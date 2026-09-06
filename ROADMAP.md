@@ -300,3 +300,17 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 执行 M0：建仓并完整迁移 kernel，跑绿全部现有测试，公开 `check_expr` / `reduce_expr` /
 声明添加 / 显式错误 API。这是后续所有层的地基，不依赖任何 UI、agent 或官方 Lean。
+
+---
+
+## 9. 当前执行清单（按顺序完成）
+
+1. [x] M0 kernel 完整迁移与公开 API
+2. [x] M1 `.sokonanoda` 前端 + CLI/REPL 端到端
+3. [x] ASCII `->`、命名箭头 `(x : A) -> B`、`Sort n` / `Sort u` / `{u}` / `id.{u}` / `@id.{u}`
+4. [x] py fol 移植：basic/true/false/and/or/not/iff/exists + Eq/propext + Eq_symm/Eq_trans
+5. [x] py `theorems.fol` 剩余可移植命题（含 congrArg 宇宙边界、or_comm 全量、and_imp、not_imp、mt 全量）
+6. [ ] `#prove` / tactic 草稿（goal state、intro/exact/apply）
+7. [ ] 真正 `inductive Nat` 声明语法 + `Nat.rec`（iota 归约）
+8. [ ] `nat.fol` 移植与 iota 端到端测试
+9. [ ] 课程/agent/编辑器层的设计文档与协议草案

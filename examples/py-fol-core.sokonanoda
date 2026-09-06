@@ -65,3 +65,17 @@ theorem Eq_symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> (h : @Eq.{u} α a
 theorem Eq_trans {u} : {α : Sort u} -> (a : α) -> (b : α) -> (c : α) -> (h1 : @Eq.{u} α a b) -> (h2 : @Eq.{u} α b c) -> @Eq.{u} α a c
   := fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (c : α) => fun (h1 : @Eq.{u} α a b) => fun (h2 : @Eq.{u} α b c) =>
        @Eq.rec.{u, 0} α b (fun (x : α) => @Eq.{u} α a x) h1 c h2
+
+theorem congrArg {u} : {α : Sort u} -> (β : Prop) -> (f : α -> β) -> (a1 : α) -> (a2 : α) -> (h : @Eq.{u} α a1 a2) -> @Eq.{0} β (f a1) (f a2)
+  := fun {α : Sort u} => fun (β : Prop) => fun (f : α -> β) => fun (a1 : α) => fun (a2 : α) => fun (h : @Eq.{u} α a1 a2) =>
+       @Eq.rec.{u, 0} α a1 (fun (x : α) => @Eq.{0} β (f a1) (f x)) (@Eq.refl.{0} β (f a1)) a2 h
+
+theorem not_imp_of_and_not_ : {a : Prop} -> {b : Prop} -> (x : And a (Not b)) -> Not (a -> b)
+  := fun {a : Prop} => fun {b : Prop} => fun (x : And a (Not b)) => fun (f : a -> b) =>
+       @And.rec a (Not b) (fun (y : And a (Not b)) => False) (fun (ha : a) => fun (hn : Not b) => hn (f ha)) x
+
+theorem or_iff_left_of_imp_ : {b : Prop} -> {a : Prop} -> (hb : b -> a) -> Iff (Or a b) a
+  := fun {b : Prop} => fun {a : Prop} => fun (hb : b -> a) =>
+       @Iff.intro (Or a b) a
+         (fun (t : Or a b) => @Or.rec a b (fun (x : Or a b) => a) (fun (ha : a) => ha) (fun (hb0 : b) => hb hb0) t)
+         (fun (ha : a) => @Or.inl a b ha)

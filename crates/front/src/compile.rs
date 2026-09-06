@@ -1061,6 +1061,38 @@ mod tests {
     }
 
     #[test]
+    fn py_congr_arg_prop_level_checks() {
+        py_core_checks(
+            "theorem congrArg_prop_test_ {u} : {α : Sort u} -> (β : Prop) -> (f : α -> β) -> (a1 : α) -> (a2 : α) -> (h : @Eq.{u} α a1 a2) -> @Eq.{0} β (f a1) (f a2) :=\n\
+             fun {α : Sort u} => fun (β : Prop) => fun (f : α -> β) => fun (a1 : α) => fun (a2 : α) => fun (h : @Eq.{u} α a1 a2) => @congrArg.{u} α β f a1 a2 h\n",
+        );
+    }
+
+    #[test]
+    fn py_rejects_congr_arg_outside_prop_universe() {
+        py_core_rejects(
+            "theorem congrArg_bad_ {u, v} : {α : Sort u} -> {β : Sort v} -> (f : α -> β) -> (a1 : α) -> (a2 : α) -> (h : @Eq.{u} α a1 a2) -> @Eq.{v} β (f a1) (f a2) :=\n\
+             fun {α : Sort u} => fun {β : Sort v} => fun (f : α -> β) => fun (a1 : α) => fun (a2 : α) => fun (h : @Eq.{u} α a1 a2) => @Eq.rec.{u, v} α a1 (fun (x : α) => @Eq.{v} β (f a1) (f x)) (@Eq.refl.{v} β (f a1)) a2 h\n",
+        );
+    }
+
+    #[test]
+    fn py_not_imp_of_and_not_is_in_core() {
+        py_core_checks(
+            "theorem not_imp_use_ : {a : Prop} -> {b : Prop} -> (x : And a (Not b)) -> Not (a -> b) :=\n\
+             fun {a : Prop} => fun {b : Prop} => fun (x : And a (Not b)) => @not_imp_of_and_not_ a b x\n",
+        );
+    }
+
+    #[test]
+    fn py_or_iff_left_of_imp_is_in_core() {
+        py_core_checks(
+            "theorem or_left_use_ : {b : Prop} -> {a : Prop} -> (hb : b -> a) -> Iff (Or a b) a :=\n\
+             fun {b : Prop} => fun {a : Prop} => fun (hb : b -> a) => @or_iff_left_of_imp_ b a hb\n",
+        );
+    }
+
+    #[test]
     fn named_arrow_is_forall_with_explicit_binder() {
         let file = parse(
             "def id {u} : (α : Sort u) -> α -> α :=\n\
