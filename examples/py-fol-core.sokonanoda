@@ -52,3 +52,16 @@ theorem or_comm_iff : {a : Prop} -> {b : Prop} -> Iff (Or a b) (Or b a)
        @Iff.intro (Or a b) (Or b a)
          (fun (t : Or a b) => @Or.rec a b (fun (x : Or a b) => Or b a) (fun (l : a) => @Or.inr b a l) (fun (r : b) => @Or.inl b a r) t)
          (fun (t : Or b a) => @Or.rec b a (fun (x : Or b a) => Or a b) (fun (l : b) => @Or.inr a b l) (fun (r : a) => @Or.inl a b r) t)
+
+axiom Eq {u} : {α : Sort u} -> (a1 : α) -> (a2 : α) -> Prop
+axiom Eq.refl {u} : {α : Sort u} -> (a : α) -> @Eq.{u} α a a
+axiom Eq.rec {u, v} : {α : Sort u} -> (a : α) -> (motive : (anon : α) -> Sort v) -> (ha : motive a) -> (b : α) -> (h : @Eq.{u} α a b) -> motive b
+axiom propext : {a : Prop} -> {b : Prop} -> (h : Iff a b) -> @Eq.{1} Prop a b
+
+theorem Eq_symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> (h : @Eq.{u} α a b) -> @Eq.{u} α b a
+  := fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : @Eq.{u} α a b) =>
+       @Eq.rec.{u, 0} α a (fun (x : α) => @Eq.{u} α x a) (@Eq.refl.{u} α a) b h
+
+theorem Eq_trans {u} : {α : Sort u} -> (a : α) -> (b : α) -> (c : α) -> (h1 : @Eq.{u} α a b) -> (h2 : @Eq.{u} α b c) -> @Eq.{u} α a c
+  := fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (c : α) => fun (h1 : @Eq.{u} α a b) => fun (h2 : @Eq.{u} α b c) =>
+       @Eq.rec.{u, 0} α b (fun (x : α) => @Eq.{u} α a x) h1 c h2

@@ -174,6 +174,8 @@ fn cli_checks_ported_py_fol_core() {
     assert!(stdout.contains("checked declaration id"));
     assert!(stdout.contains("checked declaration and_comm_iff"));
     assert!(stdout.contains("checked declaration or_comm_iff"));
+    assert!(stdout.contains("checked declaration Eq_symm"));
+    assert!(stdout.contains("checked declaration Eq_trans"));
 }
 
 #[test]

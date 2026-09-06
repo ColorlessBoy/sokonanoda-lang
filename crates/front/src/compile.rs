@@ -1043,6 +1043,24 @@ mod tests {
     }
 
     #[test]
+    fn py_eq_symm_trans_are_in_ported_core() {
+        py_core_checks(
+            "theorem eq_symm_test_ {u} : {α : Sort u} -> (a : α) -> (b : α) -> (h : @Eq.{u} α a b) -> @Eq.{u} α b a :=\n\
+             fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : @Eq.{u} α a b) => @Eq_symm.{u} α a b h\n\
+             theorem eq_trans_test_ {u} : {α : Sort u} -> (a : α) -> (b : α) -> (c : α) -> (h1 : @Eq.{u} α a b) -> (h2 : @Eq.{u} α b c) -> @Eq.{u} α a c :=\n\
+             fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (c : α) => fun (h1 : @Eq.{u} α a b) => fun (h2 : @Eq.{u} α b c) => @Eq_trans.{u} α a b c h1 h2\n",
+        );
+    }
+
+    #[test]
+    fn py_propext_and_self_eq_checks() {
+        py_core_checks(
+            "theorem and_self_eq_ : (p : Prop) -> @Eq.{1} Prop (And p p) p :=\n\
+             fun (p : Prop) => @propext (And p p) p (@Iff.intro (And p p) p (@And.left p p) (fun (h : p) => @And.intro p p h h))\n",
+        );
+    }
+
+    #[test]
     fn named_arrow_is_forall_with_explicit_binder() {
         let file = parse(
             "def id {u} : (α : Sort u) -> α -> α :=\n\
