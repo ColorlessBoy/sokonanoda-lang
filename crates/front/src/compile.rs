@@ -1,9 +1,11 @@
 //! Compile a parsed `.sokonanoda` file into kernel declarations and run the
 //! complete sokonanoda kernel over them.
 
-use crate::{BinderKind, Command, Expr, FolFile, SortKind, Span};
+use crate::{BinderKind, Command, CtorDecl, Expr, FolFile, RecDecl, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
-use sokonanoda::env::{Declar, DeclarInfo, EnvLimit, ReducibilityHint};
+use sokonanoda::env::{
+    ConstructorData, Declar, DeclarInfo, EnvLimit, RecRule, RecursorData, ReducibilityHint,
+};
 use sokonanoda::expr::BinderStyle;
 use sokonanoda::util::{Config, ExprPtr, LevelPtr, NamePtr};
 use std::collections::HashMap;
@@ -161,6 +163,26 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                         });
                     }
                     Err(e) => out.errors.push(e),
+                }
+            }
+            Command::InductiveBlock {
+                name,
+                ty,
+                constructors,
+                recursor,
+                iota_rules,
+                span: _,
+            } => {
+                if let Err(e) = install_inductive_block(
+                    &mut builder,
+                    &mut known_universes,
+                    name,
+                    ty,
+                    constructors,
+                    recursor.as_ref(),
+                    iota_rules,
+                ) {
+                    out.errors.push(e);
                 }
             }
             Command::Example { ty, val, span } => {
@@ -355,6 +377,114 @@ fn add_definition<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>,
             hint: ReducibilityHint::Regular(0),
         })
         .expect("duplicate builtin definition");
+}
+
+#[allow(clippy::too_many_arguments)]
+fn install_inductive_block<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &mut HashMap<String, Vec<String>>,
+    name: &str,
+    ty: &Expr,
+    constructors: &[CtorDecl],
+    recursor: Option<&RecDecl>,
+    iota_rules: &[crate::IotaRule],
+) -> Result<(), CompileError> {
+    let empty: UnivMap = UnivMap::new();
+    let ty = elab_expr(builder, ty, &mut Vec::new(), &empty, known)?;
+    let ind_name = builder.name_from_str(name);
+    let ctor_names: Vec<NamePtr<'a>> = constructors
+        .iter()
+        .map(|c| builder.name_from_str(&c.name))
+        .collect();
+    let no_uparams = builder.alloc_levels_slice(&[]);
+    builder
+        .add_inductive(
+            DeclarInfo {
+                name: ind_name,
+                uparams: no_uparams,
+                ty,
+            },
+            true,
+            0,
+            0,
+            Arc::from([ind_name]),
+            Arc::from(ctor_names.clone()),
+        )
+        .map_err(|e| CompileError::new(e, Span::default()))?;
+    known.insert(name.to_string(), Vec::new());
+
+    for (idx, ctor) in constructors.iter().enumerate() {
+        let ctor_ty = Expr::Forall {
+            binders: ctor.binders.clone(),
+            body: Box::new(ctor.result.clone()),
+            span: ctor.span,
+        };
+        let ctor_ty = elab_expr(builder, &ctor_ty, &mut Vec::new(), &empty, known)?;
+        let ctor_name = ctor_names[idx];
+        let no_uparams = builder.alloc_levels_slice(&[]);
+        let num_fields = u16::try_from(ctor.binders.len())
+            .map_err(|_| CompileError::new("too many constructor fields", ctor.span))?;
+        builder
+            .add_declar(Declar::Constructor(ConstructorData {
+                info: DeclarInfo {
+                    name: ctor_name,
+                    uparams: no_uparams,
+                    ty: ctor_ty,
+                },
+                inductive_name: ind_name,
+                ctor_idx: idx as u16,
+                num_params: 0,
+                num_fields,
+            }))
+            .map_err(|e| CompileError::new(e, ctor.span))?;
+        known.insert(ctor.name.clone(), Vec::new());
+    }
+
+    if let Some(rec) = recursor {
+        let univ = make_univ_map(builder, &rec.universe);
+        let rec_ty = elab_expr(builder, &rec.ty, &mut Vec::new(), &univ, known)?;
+        let rec_name = builder.name_from_str(&rec.name);
+        let known_rec_universes = rec.universe.clone();
+        known.insert(rec.name.clone(), known_rec_universes.clone());
+
+        let mut rules = Vec::with_capacity(iota_rules.len());
+        for rule in iota_rules {
+            let ctor_idx = constructors
+                .iter()
+                .position(|c| c.name == rule.ctor_name)
+                .ok_or_else(|| {
+                    CompileError::new(
+                        format!("iota rule refers to unknown constructor `{}`", rule.ctor_name),
+                        rule.span,
+                    )
+                })?;
+            let ctor_name = ctor_names[ctor_idx];
+            let val = elab_expr(builder, &rule.val, &mut Vec::new(), &univ, known)?;
+            rules.push(RecRule {
+                ctor_name,
+                ctor_telescope_size_wo_params: constructors[ctor_idx].binders.len() as u16,
+                val,
+            });
+        }
+        let info = DeclarInfo {
+            name: rec_name,
+            uparams: collect_uparams(builder, &univ, &known_rec_universes),
+            ty: rec_ty,
+        };
+        builder
+            .add_declar(Declar::Recursor(RecursorData {
+                info,
+                all_inductives: Arc::from([ind_name]),
+                num_params: 0,
+                num_indices: 0,
+                num_motives: 1,
+                num_minors: constructors.len() as u16,
+                rec_rules: Arc::from(rules),
+                is_k: false,
+            }))
+            .map_err(|e| CompileError::new(e, rec.span))?;
+    }
+    Ok(())
 }
 
 fn build_def<'a>(
@@ -1090,6 +1220,29 @@ mod tests {
             "theorem or_left_use_ : {b : Prop} -> {a : Prop} -> (hb : b -> a) -> Iff (Or a b) a :=\n\
              fun {b : Prop} => fun {a : Prop} => fun (hb : b -> a) => @or_iff_left_of_imp_ b a hb\n",
         );
+    }
+
+    #[test]
+    fn explicit_inductive_block_compiles() {
+        let src = r#"
+inductive MyNat : Type
+ctor z : MyNat
+ctor s (n : MyNat) : MyNat
+rec MyNat.rec {u} : (motive : (n : MyNat) -> Sort u) -> (mz : motive z) -> (ms : (n : MyNat) -> motive n -> motive (s n)) -> (n : MyNat) -> motive n
+iota z := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => mz
+iota s := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => fun (n : MyNat) => s (MyNat.rec motive mz ms n)
+end
+def oneMyNat : MyNat := s z
+#reduce MyNat.rec.{1} (fun (n : MyNat) => MyNat) z (fun (n : MyNat) => fun (ih : MyNat) => s n) z
+#reduce MyNat.rec.{1} (fun (n : MyNat) => MyNat) z (fun (n : MyNat) => fun (ih : MyNat) => s n) (s z)
+"#;
+        let file = parse(src).expect("parse explicit inductive block");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+        assert!(out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "z"
+        )), "events: {:?}", out.events);
     }
 
     #[test]

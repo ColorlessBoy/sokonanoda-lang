@@ -451,6 +451,14 @@ pub enum Command {
         ty: Expr,
         span: Span,
     },
+    InductiveBlock {
+        name: String,
+        ty: Expr,
+        constructors: Vec<CtorDecl>,
+        recursor: Option<RecDecl>,
+        iota_rules: Vec<IotaRule>,
+        span: Span,
+    },
     Check {
         expr: Expr,
         span: Span,
@@ -465,6 +473,29 @@ pub enum Command {
     },
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct CtorDecl {
+    pub name: String,
+    pub binders: Vec<Binder>,
+    pub result: Expr,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RecDecl {
+    pub name: String,
+    pub universe: Vec<String>,
+    pub ty: Expr,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct IotaRule {
+    pub ctor_name: String,
+    pub val: Expr,
+    pub span: Span,
+}
+
 impl Command {
     pub fn span(&self) -> Span {
         match self {
@@ -472,6 +503,7 @@ impl Command {
             | Command::Theorem { span, .. }
             | Command::Example { span, .. }
             | Command::Axiom { span, .. }
+            | Command::InductiveBlock { span, .. }
             | Command::Check { span, .. }
             | Command::Reduce { span, .. }
             | Command::Print { span, .. } => *span,
@@ -513,6 +545,7 @@ impl Parser {
             TokenKind::Ident(kw) if kw == "theorem" => self.parse_theorem(),
             TokenKind::Ident(kw) if kw == "example" => self.parse_example(),
             TokenKind::Ident(kw) if kw == "axiom" => self.parse_axiom(),
+            TokenKind::Ident(kw) if kw == "inductive" => self.parse_inductive_block(),
             TokenKind::Ident(kw) if kw == "#check" => self.parse_hash_check(),
             TokenKind::Ident(kw) if kw == "#reduce" => self.parse_hash_reduce(),
             TokenKind::Ident(kw) if kw == "#print" => self.parse_hash_print(),
@@ -607,6 +640,86 @@ impl Parser {
                 _ => return Err(self.error_here("expected `,` or `}` in universe parameters")),
             }
         }
+    }
+
+    fn parse_inductive_block(&mut self) -> Result<Command> {
+        let start = self.bump().span.start;
+        let name = self.expect_ident("inductive name")?;
+        self.expect_colon("inductive type")?;
+        let ty = self.parse_expr()?;
+        let mut constructors = Vec::new();
+        let mut recursor = None;
+        let mut iota_rules = Vec::new();
+        loop {
+            let kw = self.peek().clone();
+            let TokenKind::Ident(word) = &kw.kind else {
+                return Err(self.error_here("expected `ctor`, `rec`, `iota` or `end`"));
+            };
+            match word.as_str() {
+                "end" => {
+                    self.bump();
+                    let span = Span::new(start, kw.span.end);
+                    return Ok(Command::InductiveBlock {
+                        name,
+                        ty,
+                        constructors,
+                        recursor,
+                        iota_rules,
+                        span,
+                    });
+                }
+                "ctor" => constructors.push(self.parse_ctor()?),
+                "rec" => recursor = Some(self.parse_rec()?),
+                "iota" => iota_rules.push(self.parse_iota()?),
+                _ => return Err(self.error_here("expected `ctor`, `rec`, `iota` or `end`")),
+            }
+        }
+    }
+
+    fn parse_ctor(&mut self) -> Result<CtorDecl> {
+        let start = self.bump().span.start;
+        let name = self.expect_ident("constructor name")?;
+        let mut binders = Vec::new();
+        while self.peek().kind == TokenKind::LParen {
+            binders.push(self.parse_binder()?);
+        }
+        self.expect_colon("constructor result type")?;
+        let result = self.parse_expr()?;
+        let span = Span::new(start, result.span().end);
+        Ok(CtorDecl {
+            name,
+            binders,
+            result,
+            span,
+        })
+    }
+
+    fn parse_rec(&mut self) -> Result<RecDecl> {
+        let start = self.bump().span.start;
+        let name = self.expect_ident("recursor name")?;
+        let universe = self.parse_universe_params()?;
+        self.expect_colon("recursor type")?;
+        let ty = self.parse_expr()?;
+        let span = Span::new(start, ty.span().end);
+        Ok(RecDecl {
+            name,
+            universe,
+            ty,
+            span,
+        })
+    }
+
+    fn parse_iota(&mut self) -> Result<IotaRule> {
+        let start = self.bump().span.start;
+        let ctor_name = self.expect_ident("constructor name")?;
+        self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
+        let val = self.parse_expr()?;
+        let span = Span::new(start, val.span().end);
+        Ok(IotaRule {
+            ctor_name,
+            val,
+            span,
+        })
     }
 
     fn parse_hash_check(&mut self) -> Result<Command> {
@@ -1034,7 +1147,18 @@ pub fn parse(src: &str) -> Result<FolFile> {
 fn is_reserved_command(name: &str) -> bool {
     matches!(
         name,
-        "def" | "theorem" | "example" | "axiom" | "#check" | "#reduce" | "#print"
+        "def"
+            | "theorem"
+            | "example"
+            | "axiom"
+            | "inductive"
+            | "ctor"
+            | "rec"
+            | "iota"
+            | "end"
+            | "#check"
+            | "#reduce"
+            | "#print"
     )
 }
 

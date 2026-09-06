@@ -19,6 +19,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     /// variant belongs in the front-end layer.
     pub fn reduce_closed(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> {
         let v = self.value_of(e);
+        let v = self.whnf_head(0, v);
         self.quote(0, v)
     }
 
