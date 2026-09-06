@@ -6,7 +6,7 @@ license.workspace = true
 description = "Command-line front-end for .sokonanoda teaching files"
 
 [[bin]]
-name = "folc"
+name = "sokonanoda"
 path = "src/main.rs"
 
 [dependencies]

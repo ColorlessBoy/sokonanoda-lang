@@ -1,4 +1,4 @@
-use crate::env::{DeclarMap, Env, EnvLimit, NotationMap};
+use crate::env::{Declar, DeclarMap, Env, EnvLimit, NotationMap};
 use crate::expr::{
     BinderStyle, Expr, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, NAT_LIT_HASH, PI_HASH,
     PROJ_HASH, SORT_HASH, STRING_LIT_HASH, VAR_HASH,
@@ -632,7 +632,7 @@ pub struct ExportFile<'p> {
 impl<'p> ExportFile<'p> {
     /// Build an empty kernel environment directly in memory, without reading an
     /// export file. This is the entry point for front-ends that produce
-    /// declarations themselves (e.g. the Follow teaching front-end).
+    /// declarations themselves (e.g. the Sokonanoda teaching front-end).
     ///
     /// The returned environment references `arena`, so the arena must outlive
     /// every type-checking session created from it.
@@ -650,6 +650,29 @@ impl<'p> ExportFile<'p> {
             name_cache,
             config,
             mutual_block_sizes: new_fx_hash_map(),
+        }
+    }
+
+    /// Check an already-appended declaration and return an explicit result
+    /// instead of panicking on kernel rejection.
+    ///
+    /// The kernel still reports rejection through assertion panics today; this
+    /// wrapper classifies them as [`CheckError::Rejected`]. Replacing those
+    /// panics with explicit propagation is a follow-up kernel task.
+    pub fn try_check_declar(&self, d: &Declar<'p>) -> Result<(), CheckError> {
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.check_declar(d)));
+        match outcome {
+            Ok(()) => Ok(()),
+            Err(payload) => {
+                let msg = if let Some(s) = payload.downcast_ref::<&str>() {
+                    (*s).to_string()
+                } else if let Some(s) = payload.downcast_ref::<String>() {
+                    s.clone()
+                } else {
+                    "unknown kernel panic".to_string()
+                };
+                Err(CheckError::Rejected(msg))
+            }
         }
     }
 
@@ -1339,6 +1362,24 @@ impl<'b> SessionCache<'b> {
         let r = f(unsafe { &mut *(p as *mut TcCache<'a, 'a>) });
         self.inner.clear_session();
         r
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CheckError {
+    /// The kernel decided the declaration is not well-typed / not sound.
+    Rejected(String),
+    /// A kernel bug or an unsupported input that should not be treated as a
+    /// learner mistake.
+    Internal(String),
+}
+
+impl std::fmt::Display for CheckError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CheckError::Rejected(msg) => write!(f, "rejected: {msg}"),
+            CheckError::Internal(msg) => write!(f, "kernel error: {msg}"),
+        }
     }
 }
 

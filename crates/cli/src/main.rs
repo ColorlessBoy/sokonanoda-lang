@@ -1,4 +1,5 @@
-use sokonanoda_front::{parse, Command, Expr};
+use sokonanoda_front::compile::{compile_fol, CheckEvent};
+use sokonanoda_front::parse;
 use std::io::Read;
 use std::process::ExitCode;
 
@@ -17,44 +18,41 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    match parse(&src) {
-        Ok(file) => {
-            println!("parsed {} command(s)", file.commands.len());
-            for command in &file.commands {
-                match command {
-                    Command::Def { name, ty, val, .. } => {
-                        println!("def {name} : {} := {}", expr_label(ty), expr_label(val));
-                    }
-                    Command::Theorem { name, ty, val, .. } => {
-                        println!("theorem {name} : {} := {}", expr_label(ty), expr_label(val));
-                    }
-                    Command::Example { val, .. } => println!("example := {}", expr_label(val)),
-                    Command::Axiom { name, ty, .. } => {
-                        println!("axiom {name} : {}", expr_label(ty))
-                    }
-                    Command::Check { expr, .. } => println!("#check {}", expr_label(expr)),
-                    Command::Reduce { expr, .. } => println!("#reduce {}", expr_label(expr)),
-                }
-            }
-            ExitCode::SUCCESS
-        }
+    let label = match input.as_deref() {
+        None | Some("-") => "<stdin>".to_string(),
+        Some(path) => path.to_string(),
+    };
+
+    let file = match parse(&src) {
+        Ok(file) => file,
         Err(diag) => {
-            let label = match input.as_deref() {
-                None | Some("-") => "<stdin>".to_string(),
-                Some(path) => path.to_string(),
-            };
             eprintln!(
                 "{}:{}:{}: error: {}",
                 label, diag.span.start.line, diag.span.start.column, diag.message
             );
-            ExitCode::FAILURE
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let out = compile_fol(&file);
+    for event in &out.events {
+        match event {
+            CheckEvent::DeclarationChecked { name } => println!("checked declaration {name}"),
+            CheckEvent::ExampleChecked => println!("checked example"),
+            CheckEvent::TypeChecked { text } => println!("#check : {text}"),
+            CheckEvent::Reduced { text } => println!("#reduce => {text}"),
+            CheckEvent::ExerciseOpen => println!("exercise open (fill the ???)"),
         }
     }
-}
-
-fn expr_label(expr: &Expr) -> &str {
-    match expr {
-        Expr::Hole { .. } => "???",
-        _ => "<expr>",
+    for err in &out.errors {
+        eprintln!(
+            "{}:{}:{}: error: {}",
+            label, err.span.start.line, err.span.start.column, err.message
+        );
+    }
+    if out.errors.is_empty() {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
     }
 }

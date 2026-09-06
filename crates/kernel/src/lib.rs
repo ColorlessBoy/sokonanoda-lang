@@ -6,6 +6,7 @@
 #![deny(clippy::cast_possible_truncation)]
 
 pub mod conv;
+pub mod builder;
 pub mod debug_printer;
 pub mod env;
 pub mod eval;
@@ -26,5 +27,4 @@ pub mod util;
 pub mod value;
 
 pub(crate) const STACK_SIZE: usize = 2 * 1024 * 1024 * 1024;
-
 

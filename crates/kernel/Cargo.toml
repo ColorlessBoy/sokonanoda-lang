@@ -31,6 +31,6 @@ memmap2 = "0.9.11"
 top-byte-ignore = []
 
 [[bin]]
-name = "sokonanoda"
+name = "sokonanoda-kernel"
 path = "src/main.rs"
 bench = false

@@ -45,7 +45,7 @@ pub struct TypeChecker<'x, 't, 'p> {
     /// The elaboration/checking context. Front-ends use this to allocate
     /// names, levels and expressions directly in the kernel arena.
     ///
-    /// This is public because the Follow front-end is intentionally a thin
+    /// This is public because the Sokonanoda front-end is intentionally a thin
     /// layer over the complete sokonanoda kernel rather than a second IR.
     pub ctx: &'x mut TcCtx<'t, 'p>,
     /// An immutable reference to an environment, which contains declarations and notation.

@@ -331,6 +331,10 @@ dependencies = [
 [[package]]
 name = "sokonanoda-front"
 version = "0.1.0"
+dependencies = [
+ "sokonanoda",
+ "stumpalo",
+]
 
 [[package]]
 name = "stumpalo"

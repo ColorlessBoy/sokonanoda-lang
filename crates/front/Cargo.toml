@@ -6,3 +6,5 @@ license.workspace = true
 description = "Restricted .sokonanoda front-end (lexer, parser, diagnostics) for sokonanoda-lang"
 
 [dependencies]
+sokonanoda = { path = "../kernel" }
+stumpalo = "0.5.1"

@@ -4,14 +4,16 @@
 //! teaching curriculum. The syntax whitelist is the curriculum: adding a
 //! grammar point here means adding a lesson for it.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub mod compile;
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Pos {
     pub offset: usize,
     pub line: usize,
     pub column: usize,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Span {
     pub start: Pos,
     pub end: Pos,
@@ -470,7 +472,10 @@ impl Parser {
             TokenKind::Ident(kw) if kw == "axiom" => self.parse_axiom(),
             TokenKind::Ident(kw) if kw == "#check" => self.parse_hash_check(),
             TokenKind::Ident(kw) if kw == "#reduce" => self.parse_hash_reduce(),
-            _ => Err(self.error_at_current(&format!("expected a .sokonanoda command, found {tok:?}"))),
+            _ => {
+                Err(self
+                    .error_at_current(&format!("expected a .sokonanoda command, found {tok:?}")))
+            }
         }
     }
 
@@ -788,7 +793,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tokenizes_hello_fol() {
+    fn tokenizes_hello_sokonanoda() {
         let toks = tokenize("-- lesson\n#check Prop → Prop").unwrap();
         let kinds: Vec<_> = toks.iter().map(|t| t.kind.clone()).collect();
         assert!(matches!(kinds[0], TokenKind::Ident(ref s) if s == "#check"));
