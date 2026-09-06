@@ -63,6 +63,18 @@ abbreviations), so the type of function types is checkable:
 
 Errors are printed as `line:col: error: ...` without kernel panic traces.
 
+## Development principles
+
+- **TDD**: every grammar point, command and error mode is added through tests
+  first (`crates/front`, `crates/cli/tests/cli.rs`), then implemented.
+- **Repetition**: the same behavior is exercised at unit level, end-to-end
+  kernel level, and CLI level, so a regression is caught repeatedly.
+- **Feedback is a feature**: the compiler and CLI output types, reductions,
+  printed declarations, errors and environment state, so both a human and a
+  model can drive the tool without consulting documentation.
+- **Self-documenting CLI**: `--help` and REPL `#help` describe the language;
+  `#env` lists what has been declared.
+
 A second example defines the classic logical vocabulary from scratch and
 proves core theorems about it:
 

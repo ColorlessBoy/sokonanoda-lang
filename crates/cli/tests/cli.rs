@@ -2,36 +2,30 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 fn run(input: &str) -> std::process::Output {
+    run_args(&[], Some(input))
+}
+
+fn run_repl(input: &str) -> std::process::Output {
+    run_args(&["repl"], Some(input))
+}
+
+fn run_args(args: &[&str], input: Option<&str>) -> std::process::Output {
     let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .expect("spawn sokonanoda");
-    child
-        .stdin
-        .as_mut()
-        .expect("stdin")
-        .write_all(input.as_bytes())
-        .expect("write stdin");
+    if let Some(input) = input {
+        child
+            .stdin
+            .as_mut()
+            .expect("stdin")
+            .write_all(input.as_bytes())
+            .expect("write stdin");
+    }
     child.wait_with_output().expect("wait")
-}
-
-fn run_repl(input: &str) -> std::process::Output {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
-        .arg("repl")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("spawn sokonanoda repl");
-    child
-        .stdin
-        .as_mut()
-        .expect("stdin")
-        .write_all(input.as_bytes())
-        .expect("write repl stdin");
-    child.wait_with_output().expect("wait repl")
 }
 
 #[test]
@@ -94,4 +88,28 @@ fn repl_accumulates_declarations_and_checks_them() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration id"), "stdout: {stdout}");
     assert!(stdout.contains("#check : Prop -> Prop"), "stdout: {stdout}");
+}
+
+#[test]
+fn cli_help_is_self_documenting() {
+    let out = run_args(&["--help"], None);
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("sokonanoda repl"));
+    assert!(stdout.contains("#check"));
+    assert!(stdout.contains("#print"));
+}
+
+#[test]
+fn repl_env_and_help_are_available() {
+    let out = run_repl(
+        "help\n\
+         def id : Prop -> Prop := fun (x : Prop) => x\n\
+         #env\n",
+    );
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("#check <expr>"));
+    assert!(stdout.contains("user declarations:"));
+    assert!(stdout.contains("  id"));
 }
