@@ -674,6 +674,28 @@ mod tests {
     use super::*;
     use crate::parse;
 
+    fn py_core() -> String {
+        std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../examples/py-fol-core.sokonanoda"
+        ))
+        .expect("read py-fol-core.sokonanoda")
+    }
+
+    fn py_core_checks(extra: &str) {
+        let full = format!("{}\n{}", py_core(), extra);
+        let file = parse(&full).unwrap_or_else(|e| panic!("parse failed: {e:?}"));
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![], "extra: {extra}");
+    }
+
+    fn py_core_rejects(extra: &str) {
+        let full = format!("{}\n{}", py_core(), extra);
+        let file = parse(&full).unwrap_or_else(|e| panic!("parse failed: {e:?}"));
+        let out = compile_fol(&file);
+        assert!(!out.errors.is_empty(), "expected rejection: {extra}");
+    }
+
     #[test]
     fn checks_a_valid_file_end_to_end() {
         let file = parse("def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n").unwrap();
@@ -932,6 +954,92 @@ mod tests {
         let file = parse(&src).expect("parse py-fol-core.sokonanoda");
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
+    }
+
+    #[test]
+    fn py_mt_and_not_and_of_not_left() {
+        py_core_checks(
+            "theorem mt_ : {a : Prop} -> {b : Prop} -> (f : a -> b) -> (hb : Not b) -> Not a :=\n\
+             fun {a : Prop} => fun {b : Prop} => fun (f : a -> b) => fun (hb : Not b) => fun (ha : a) => hb (f ha)\n\
+             theorem not_and_left_ : {a : Prop} -> (b : Prop) -> (ha : Not a) -> Not (And a b) :=\n\
+             fun {a : Prop} => fun (b : Prop) => fun (ha : Not a) => fun (x : And a b) => ha (@And.left a b x)\n",
+        );
+    }
+
+    #[test]
+    fn py_or_elim_and_not_or_intro() {
+        py_core_checks(
+            "theorem or_elim_ : {a : Prop} -> {b : Prop} -> {c : Prop} -> (t : Or a b) -> (left : a -> c) -> (right : b -> c) -> c :=\n\
+             fun {a : Prop} => fun {b : Prop} => fun {c : Prop} => fun (t : Or a b) => fun (left : a -> c) => fun (right : b -> c) => @Or.rec a b (fun (x : Or a b) => c) left right t\n\
+             theorem not_or_intro_ : {a : Prop} -> {b : Prop} -> (ha : Not a) -> (hb : Not b) -> Not (Or a b) :=\n\
+             fun {a : Prop} => fun {b : Prop} => fun (ha : Not a) => fun (hb : Not b) => fun (x : Or a b) => @Or.rec a b (fun (y : Or a b) => False) (fun (l : a) => ha l) (fun (r : b) => hb r) x\n",
+        );
+    }
+
+    #[test]
+    fn py_and_imp_is_iff() {
+        py_core_checks(
+            "theorem and_imp_iff_ : {a : Prop} -> {b : Prop} -> {c : Prop} -> Iff (And a b -> c) (a -> b -> c) :=\n\
+             fun {a : Prop} => fun {b : Prop} => fun {c : Prop} =>\n\
+               @Iff.intro (And a b -> c) (a -> b -> c)\n\
+                 (fun (h : And a b -> c) => fun (ha : a) => fun (hb : b) => h (@And.intro a b ha hb))\n\
+                 (fun (h : a -> b -> c) => fun (x : And a b) => @And.rec a b (fun (y : And a b) => c) (fun (ha : a) => fun (hb : b) => h ha hb) x)\n",
+        );
+    }
+
+    #[test]
+    fn py_iff_refl_and_imp_swap() {
+        py_core_checks(
+            "theorem iff_refl_ : (a : Prop) -> Iff a a :=\n\
+             fun (a : Prop) => @Iff.intro a a (fun (h : a) => h) (fun (h : a) => h)\n\
+             theorem imp_swap_ : {a : Prop} -> {b : Prop} -> {c : Prop} -> Iff (a -> b -> c) (b -> a -> c) :=\n\
+             fun {a : Prop} => fun {b : Prop} => fun {c : Prop} => @Iff.intro (a -> b -> c) (b -> a -> c) (@flip.{0, 0, 0} a b c) (@flip.{0, 0, 0} b a c)\n",
+        );
+    }
+
+    #[test]
+    fn py_accepts_shadowed_binders() {
+        py_core_checks(
+            "theorem shadow_ : (a : Prop) -> (a : Prop) -> a -> a :=\n\
+             fun (a : Prop) => fun (a : Prop) => fun (h : a) => h\n",
+        );
+    }
+
+    #[test]
+    fn py_rejects_constructor_type_mismatch() {
+        py_core_rejects("example : Or True True := True.intro\n");
+    }
+
+    #[test]
+    fn py_rejects_function_domain_mismatch() {
+        py_core_rejects("example : False -> True := fun (h : True) => True.intro\n");
+    }
+
+    #[test]
+    fn py_rejects_or_constructor_on_wrong_side() {
+        py_core_rejects("example : Or True False := @Or.inl False True True.intro\n");
+    }
+
+    #[test]
+    fn py_rejects_self_application() {
+        py_core_rejects("example : (x : Prop) -> Prop := fun (x : Prop) => x x\n");
+    }
+
+    #[test]
+    fn py_accepts_eta_application_chain() {
+        py_core_checks(
+            "example : (a : Prop) -> (a -> a) -> a -> a :=\n\
+             fun (a : Prop) => fun (f : a -> a) => fun (x : a) => f x\n",
+        );
+    }
+
+    #[test]
+    fn py_accepts_or_rec_with_unrelated_motive() {
+        py_core_checks(
+            "theorem deep_or_rec_ : {a : Prop} -> {b : Prop} -> {c : Prop} -> (h : Or a b) -> (hc : c) -> c :=\n\
+             fun {a : Prop} => fun {b : Prop} => fun {c : Prop} => fun (h : Or a b) => fun (hc : c) =>\n\
+               @Or.rec a b (fun (x : Or a b) => c) (fun (ha : a) => hc) (fun (hb : b) => hc) h\n",
+        );
     }
 
     #[test]

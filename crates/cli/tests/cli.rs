@@ -165,16 +165,25 @@ fn cli_checks_ported_py_fol_core() {
         "/../../examples/py-fol-core.sokonanoda"
     );
     let out = run_args(&[path], None);
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration id"));
     assert!(stdout.contains("checked declaration and_comm_iff"));
+    assert!(stdout.contains("checked declaration or_comm_iff"));
 }
 
 #[test]
 fn cli_prints_expression_then_type() {
     let out = run("#check Sort 1\n");
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert_eq!(stdout.trim(), "Sort 1: Type 1");
 }

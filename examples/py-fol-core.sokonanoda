@@ -20,13 +20,17 @@ axiom And : Prop -> Prop -> Prop
 axiom And.intro : {a : Prop} -> {b : Prop} -> (ha : a) -> (hb : b) -> And a b
 axiom And.left : {a : Prop} -> {b : Prop} -> (h : And a b) -> a
 axiom And.right : {a : Prop} -> {b : Prop} -> (h : And a b) -> b
+axiom And.rec : {a : Prop} -> {b : Prop} -> (motive : And a b -> Prop) -> (case : (left : a) -> (right : b) -> motive (@And.intro a b left right)) -> (t : And a b) -> motive t
 
 axiom Or : Prop -> Prop -> Prop
 axiom Or.inl : {a : Prop} -> {b : Prop} -> (h : a) -> Or a b
 axiom Or.inr : {a : Prop} -> {b : Prop} -> (h : b) -> Or a b
+axiom Or.rec : {a : Prop} -> {b : Prop} -> (motive : Or a b -> Prop) -> (left : (l : a) -> motive (@Or.inl a b l)) -> (right : (r : b) -> motive (@Or.inr a b r)) -> (t : Or a b) -> motive t
 
 axiom Iff : Prop -> Prop -> Prop
 axiom Iff.intro : {a : Prop} -> {b : Prop} -> (mp : a -> b) -> (mpr : b -> a) -> Iff a b
+axiom Iff.mp : {a : Prop} -> {b : Prop} -> (h : Iff a b) -> (ha : a) -> b
+axiom Iff.mpr : {a : Prop} -> {b : Prop} -> (h : Iff a b) -> (hb : b) -> a
 
 def Not : Prop -> Prop
   := fun (a : Prop) => a -> False
@@ -42,3 +46,9 @@ theorem iff_of_true : {a : Prop} -> {b : Prop} -> (ha : a) -> (hb : b) -> Iff a 
 
 theorem and_comm_iff : {a : Prop} -> {b : Prop} -> Iff (And a b) (And b a)
   := fun {a : Prop} => fun {b : Prop} => @Iff.intro (And a b) (And b a) (fun (x : And a b) => @And.intro b a (@And.right a b x) (@And.left a b x)) (fun (x : And b a) => @And.intro a b (@And.right b a x) (@And.left b a x))
+
+theorem or_comm_iff : {a : Prop} -> {b : Prop} -> Iff (Or a b) (Or b a)
+  := fun {a : Prop} => fun {b : Prop} =>
+       @Iff.intro (Or a b) (Or b a)
+         (fun (t : Or a b) => @Or.rec a b (fun (x : Or a b) => Or b a) (fun (l : a) => @Or.inr b a l) (fun (r : b) => @Or.inl b a r) t)
+         (fun (t : Or b a) => @Or.rec b a (fun (x : Or b a) => Or a b) (fun (l : b) => @Or.inr a b l) (fun (r : a) => @Or.inl a b r) t)
