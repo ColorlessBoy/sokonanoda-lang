@@ -369,6 +369,16 @@ fn elab_expr<'a>(
             let ty = builder.succ(z);
             Ok(builder.mk_sort(ty))
         }
+        Expr::Sort {
+            sort: SortKind::Sort(n),
+            span: _,
+        } => {
+            let mut level = builder.zero();
+            for _ in 0..*n {
+                level = builder.succ(level);
+            }
+            Ok(builder.mk_sort(level))
+        }
         Expr::Ident { name, span } => {
             if let Some(pos) = scope.iter().rposition(|candidate| candidate == name) {
                 let idx = u16::try_from(scope.len() - 1 - pos).map_err(|_| {
@@ -593,5 +603,23 @@ mod tests {
             out.errors
         );
         assert!(!out.events.is_empty());
+    }
+
+    #[test]
+    fn checks_universe_levels_and_function_type_types() {
+        let file = parse(
+            "#check Sort 2\n\
+             #check (fun (α : Sort 2) => α)\n",
+        )
+        .unwrap();
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+        assert_eq!(
+            out.events,
+            vec![
+                CheckEvent::TypeChecked { text: "Type 2".into() },
+                CheckEvent::TypeChecked { text: "Type 1 -> Type 1".into() },
+            ]
+        );
     }
 }

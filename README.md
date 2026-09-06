@@ -45,6 +45,16 @@ checked declaration id
 exercise open (fill the ???)
 ```
 
+Numeric universes are available as `Sort 0`/`Sort 1`/… (`Prop` and `Type` are
+abbreviations), so the type of function types is checkable:
+
+```text
+> #check Sort 2
+#check : Type 2
+> #check (fun (α : Sort 2) => α)
+#check : Type 1 -> Type 1
+```
+
 A second example defines the classic logical vocabulary from scratch and
 proves core theorems about it:
 

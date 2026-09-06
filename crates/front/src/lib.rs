@@ -333,6 +333,7 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
 pub enum SortKind {
     Prop,
     Type,
+    Sort(u64),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -640,6 +641,35 @@ impl Parser {
                 sort: SortKind::Type,
                 span: tok.span,
             }),
+            TokenKind::Ident(name) if name == "Sort" => {
+                let level_tok = self.bump();
+                let level = match level_tok.kind {
+                    TokenKind::Num(value) => value.parse::<u64>().map_err(|_| {
+                        Diagnostic::new(
+                            DiagnosticKind::UnexpectedToken {
+                                found: value,
+                                expected: "a universe level".to_string(),
+                            },
+                            level_tok.span,
+                            "Sort expects a universe level".to_string(),
+                        )
+                    })?,
+                    other => {
+                        return Err(Diagnostic::new(
+                            DiagnosticKind::UnexpectedToken {
+                                found: format!("{other:?}"),
+                                expected: "a universe level".to_string(),
+                            },
+                            level_tok.span,
+                            "Sort expects a universe level".to_string(),
+                        ));
+                    }
+                };
+                Ok(Expr::Sort {
+                    sort: SortKind::Sort(level),
+                    span: tok.span,
+                })
+            }
             TokenKind::Ident(name) if is_reserved_command(&name) => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
                     found: name.clone(),
