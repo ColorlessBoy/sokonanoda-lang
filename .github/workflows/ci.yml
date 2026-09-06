@@ -27,6 +27,9 @@ jobs:
       - name: Workspace tests
         run: cargo test --workspace
 
+      - name: Protocol conformance (--json events)
+        run: cargo test -p sokonanoda-cli --test protocol
+
       - name: Lesson corpus is valid
         run: |
           for f in examples/*.sokonanoda; do

@@ -2,11 +2,10 @@
 //! complete kernel. Adding a lesson is a change to the curriculum, so it must
 //! come with a working `.sokonanoda` file (and ideally a golden event test).
 
-use std::io::Write;
 use std::process::{Command, Stdio};
 
 fn run_file(path: &str) -> std::process::Output {
-    let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+    let child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .arg(path)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -42,6 +41,27 @@ fn every_example_lesson_is_a_valid_sokonanoda_file() {
             out.status.success(),
             "lesson {name} failed:\nstdout:\n{stdout}\nstderr:\n{stderr}"
         );
+        assert!(
+            !stderr.contains("error["),
+            "lesson {name} must not print error lines on stderr:\nstderr:\n{stderr}"
+        );
+
+        if name == "fol-basics.sokonanoda" {
+            assert!(
+                stdout.contains("checked declaration absurd"),
+                "fol-basics should check theorem absurd:\n{stdout}"
+            );
+        }
+        if name == "py-fol-core.sokonanoda" {
+            let checked = stdout
+                .lines()
+                .filter(|l| l.starts_with("checked declaration "))
+                .count();
+            assert!(
+                checked >= 20,
+                "py-fol-core should check at least 20 declarations, found {checked}:\n{stdout}"
+            );
+        }
 
         if name == "lesson-01.sokonanoda" || name == "lesson-02.sokonanoda" {
             assert!(
