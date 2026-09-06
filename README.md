@@ -48,6 +48,21 @@ In `repl`, declarations accumulate line by line. Commands:
 - `#reduce <expr>` — evaluate closed terms;
 - `#print <name>` — print a declaration (types and proof terms).
 
+`#prove` shows that tactics are just building the lambda:
+
+```text
+proof> #prove {a : Prop} -> a -> a
+goal: a -> a
+lambda: fun {a : Prop} => ???
+proof> intro h
+goal: a
+lambda: fun {a : Prop} => fun (h : a) => ???
+proof> exact h
+lambda: fun {a : Prop} => fun (h : a) => h
+proof> done
+checked example
+```
+
 The CLI parses a `.sokonanoda` file, elaborates it into kernel declarations
 and runs the complete sokonanoda kernel over them:
 
