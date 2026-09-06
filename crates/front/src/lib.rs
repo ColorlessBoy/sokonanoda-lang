@@ -32,7 +32,7 @@ pub enum TokenKind {
     Hole,
     Colon,
     ColonEq,
-    Arrow, // -> or →
+    Arrow, // ->
     Plus,
     FatArrow, // =>
     Forall,   // ∀ or forall
@@ -127,7 +127,14 @@ impl<'a> Lexer<'a> {
                 Some('-') => {
                     let start = self.pos();
                     self.bump();
-                    if self.peek() == Some('-') {
+                    if self.peek() == Some('>') {
+                        self.bump();
+                        let end = self.pos();
+                        return Ok(Token {
+                            kind: TokenKind::Arrow,
+                            span: Span::new(start, end),
+                        });
+                    } else if self.peek() == Some('-') {
                         while let Some(ch) = self.peek() {
                             if ch == '\n' {
                                 break;
@@ -202,7 +209,6 @@ impl<'a> Lexer<'a> {
             '(' => self.single(TokenKind::LParen, start),
             ')' => self.single(TokenKind::RParen, start),
             ',' => self.single(TokenKind::Comma, start),
-            '→' => self.single(TokenKind::Arrow, start),
             '+' => self.single(TokenKind::Plus, start),
             '∀' => self.single(TokenKind::Forall, start),
             '-' => {
@@ -817,7 +823,7 @@ mod tests {
 
     #[test]
     fn tokenizes_hello_sokonanoda() {
-        let toks = tokenize("-- lesson\n#check Prop → Prop").unwrap();
+        let toks = tokenize("-- lesson\n#check Prop -> Prop").unwrap();
         let kinds: Vec<_> = toks.iter().map(|t| t.kind.clone()).collect();
         assert!(matches!(kinds[0], TokenKind::Ident(ref s) if s == "#check"));
         assert!(matches!(kinds[1], TokenKind::Ident(ref s) if s == "Prop"));
@@ -829,9 +835,9 @@ mod tests {
     #[test]
     fn parses_def_check_and_hole() {
         let src = r#"
-def id : Prop → Prop := fun (x : Prop) => x
+def id : Prop -> Prop := fun (x : Prop) => x
 #check id
-example : Prop → Prop := ???
+example : Prop -> Prop := ???
 "#;
         let file = parse(src).unwrap();
         assert_eq!(file.commands.len(), 3);

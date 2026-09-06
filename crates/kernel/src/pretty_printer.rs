@@ -487,7 +487,7 @@ impl<'x, 't, 'p> PrettyPrinter<'x, 't, 'p> {
                 self.pp_expr_aux(hd.binder_type)
                     .parens(25)
                     .nest_group(self.options().indent)
-                    .concat_w_space("→")
+                    .concat_w_space("->")
                     .concat(line())
                     .group()
                     .concat(tl)

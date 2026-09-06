@@ -1,7 +1,7 @@
 -- Lesson 1: functions and types
 
-def id : Prop → Prop := fun (x : Prop) => x
+def id : Prop -> Prop := fun (x : Prop) => x
 
 #check id
 
-example : Prop → Prop := ???
+example : Prop -> Prop := ???

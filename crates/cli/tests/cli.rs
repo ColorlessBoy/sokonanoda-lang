@@ -17,9 +17,26 @@ fn run(input: &str) -> std::process::Output {
     child.wait_with_output().expect("wait")
 }
 
+fn run_repl(input: &str) -> std::process::Output {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .arg("repl")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn sokonanoda repl");
+    child
+        .stdin
+        .as_mut()
+        .expect("stdin")
+        .write_all(input.as_bytes())
+        .expect("write repl stdin");
+    child.wait_with_output().expect("wait repl")
+}
+
 #[test]
 fn cli_checks_a_valid_file_via_stdin() {
-    let out = run("def id : Prop → Prop := fun (x : Prop) => x\n\
+    let out = run("def id : Prop -> Prop := fun (x : Prop) => x\n\
          #check id\n");
     assert!(
         out.status.success(),
@@ -28,12 +45,12 @@ fn cli_checks_a_valid_file_via_stdin() {
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration id"));
-    assert!(stdout.contains("#check : Prop → Prop"));
+    assert!(stdout.contains("#check : Prop -> Prop"));
 }
 
 #[test]
 fn cli_rejects_a_bad_declaration() {
-    let out = run("def bad : Prop → Type := fun (x : Prop) => x\n");
+    let out = run("def bad : Prop -> Type := fun (x : Prop) => x\n");
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("error:"));
 }
@@ -56,4 +73,16 @@ fn cli_checks_nat_and_reduces_addition() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration two"));
     assert!(stdout.contains("#reduce => 3"), "stdout: {stdout}");
+}
+
+#[test]
+fn repl_accumulates_declarations_and_checks_them() {
+    let out = run_repl(
+        "def id : Prop -> Prop := fun (x : Prop) => x\n\
+         #check id\n",
+    );
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration id"), "stdout: {stdout}");
+    assert!(stdout.contains("#check : Prop -> Prop"), "stdout: {stdout}");
 }

@@ -7,32 +7,32 @@
 axiom False : Prop
 axiom True : Prop
 axiom True.intro : True
-axiom False.rec : forall (P : Prop), False → P
+axiom False.rec : forall (P : Prop), False -> P
 
-def Not : Prop → Prop :=
-  fun (a : Prop) => a → False
+def Not : Prop -> Prop :=
+  fun (a : Prop) => a -> False
 
-axiom And : Prop → Prop → Prop
-axiom And.intro : forall (a : Prop), forall (b : Prop), a → b → And a b
-axiom And.left : forall (a : Prop), forall (b : Prop), And a b → a
-axiom And.right : forall (a : Prop), forall (b : Prop), And a b → b
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : forall (a : Prop), forall (b : Prop), a -> b -> And a b
+axiom And.left : forall (a : Prop), forall (b : Prop), And a b -> a
+axiom And.right : forall (a : Prop), forall (b : Prop), And a b -> b
 
-axiom Or : Prop → Prop → Prop
-axiom Or.inl : forall (a : Prop), forall (b : Prop), a → Or a b
-axiom Or.inr : forall (a : Prop), forall (b : Prop), b → Or a b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : forall (a : Prop), forall (b : Prop), a -> Or a b
+axiom Or.inr : forall (a : Prop), forall (b : Prop), b -> Or a b
 axiom Or.rec : forall (a : Prop), forall (b : Prop),
-  forall (motive : Or a b → Prop),
+  forall (motive : Or a b -> Prop),
   forall (left : forall (x : a), motive (Or.inl a b x)),
   forall (right : forall (y : b), motive (Or.inr a b y)),
   forall (t : Or a b), motive t
 
-axiom Iff : Prop → Prop → Prop
-axiom Iff.intro : forall (a : Prop), forall (b : Prop), (a → b) → (b → a) → Iff a b
+axiom Iff : Prop -> Prop -> Prop
+axiom Iff.intro : forall (a : Prop), forall (b : Prop), (a -> b) -> (b -> a) -> Iff a b
 
-axiom Exists : forall (α : Type), (α → Prop) → Prop
-axiom Exists.intro : forall (α : Type), forall (p : α → Prop), forall (w : α), p w → Exists α p
+axiom Exists : forall (α : Type), (α -> Prop) -> Prop
+axiom Exists.intro : forall (α : Type), forall (p : α -> Prop), forall (w : α), p w -> Exists α p
 
-theorem absurd : forall (a : Prop), forall (b : Prop), a → Not a → b :=
+theorem absurd : forall (a : Prop), forall (b : Prop), a -> Not a -> b :=
   fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hn : Not a) => False.rec b (hn ha)
 
 theorem and_comm : forall (a : Prop), forall (b : Prop), Iff (And a b) (And b a) :=
@@ -42,18 +42,18 @@ theorem and_comm : forall (a : Prop), forall (b : Prop), Iff (And a b) (And b a)
       (fun (h : And b a) => And.intro a b (And.right b a h) (And.left b a h))
 
 theorem or_elim : forall (a : Prop), forall (b : Prop), forall (c : Prop),
-  Or a b → (a → c) → (b → c) → c :=
+  Or a b -> (a -> c) -> (b -> c) -> c :=
   fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (h : Or a b) =>
-    fun (f : a → c) => fun (g : b → c) =>
+    fun (f : a -> c) => fun (g : b -> c) =>
       Or.rec a b (fun (x : Or a b) => c) f g h
 
-theorem or_swap_left : forall (a : Prop), forall (b : Prop), Or a b → Or b a :=
+theorem or_swap_left : forall (a : Prop), forall (b : Prop), Or a b -> Or b a :=
   fun (a : Prop) => fun (b : Prop) => fun (t : Or a b) =>
     Or.rec a b (fun (x : Or a b) => Or b a)
       (fun (l : a) => Or.inr b a l)
       (fun (r : b) => Or.inl b a r) t
 
-theorem or_swap_right : forall (a : Prop), forall (b : Prop), Or b a → Or a b :=
+theorem or_swap_right : forall (a : Prop), forall (b : Prop), Or b a -> Or a b :=
   fun (a : Prop) => fun (b : Prop) => fun (t : Or b a) =>
     Or.rec b a (fun (x : Or b a) => Or a b)
       (fun (l : b) => Or.inr a b l)
@@ -78,5 +78,5 @@ theorem em_of_not_not : forall (a : Prop), Not (Not (Or a (Not a))) :=
 theorem exists_zero_is_witnessed : Exists Nat (fun (n : Nat) => True) :=
   Exists.intro Nat (fun (n : Nat) => True) 0 True.intro
 
-theorem forall_composition : forall (P : Prop), forall (Q : Prop), P → (P → Q) → Q :=
-  fun (P : Prop) => fun (Q : Prop) => fun (hp : P) => fun (f : P → Q) => f hp
+theorem forall_composition : forall (P : Prop), forall (Q : Prop), P -> (P -> Q) -> Q :=
+  fun (P : Prop) => fun (Q : Prop) => fun (hp : P) => fun (f : P -> Q) => f hp

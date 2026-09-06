@@ -33,6 +33,7 @@ See [ROADMAP.md](ROADMAP.md).
 ```text
 cargo test
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda
+cargo run -q -p sokonanoda-cli --bin sokonanoda repl
 ```
 
 The CLI parses a `.sokonanoda` file, elaborates it into kernel declarations
@@ -40,7 +41,7 @@ and runs the complete sokonanoda kernel over them:
 
 ```text
 checked declaration id
-#check : Prop → Prop
+#check : Prop -> Prop
 exercise open (fill the ???)
 ```
 

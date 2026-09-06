@@ -63,7 +63,7 @@ L1  服务层（中期）
 L0  编译器层（现在只做这层）
      完整 kernel（sokonanoda 核心）
      + .sokonanoda 前端（lexer/parser/小型 elaborator/练习引擎）
-     + CLI/批处理：输入文件 → 输出结构化结果与事件流
+     + CLI/批处理：输入文件 -> 输出结构化结果与事件流
 ```
 
 每一层只依赖下一层公开的接口。L0 必须先能回答：
@@ -85,14 +85,14 @@ L0  编译器层（现在只做这层）
 -- 课程内容：文字、讲解与 agent 的“讲课脚本”可以写在文件里
 lesson: 函数与箭头
 
-def add1 : Nat → Nat := fun n => n + 1
+def add1 : Nat -> Nat := fun n => n + 1
 
 #check add1
--- 期望输出：add1 : Nat → Nat
+-- 期望输出：add1 : Nat -> Nat
 
 #exercise "恒等函数"
 -- 目标：补全右侧，使该声明通过检查
-example : Nat → Nat := ???
+example : Nat -> Nat := ???
 
 -- 用户作答写在这里
 ```
@@ -156,8 +156,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - kernel 完整迁移，不做功能裁剪；现有测试全量迁移并保持全绿（LKA arena 测试完整保留）。
 - 公开 API：
   - 在内存中构造/添加声明；
-  - `check_expr → Result<Type, KernelError>`；
-  - `reduce_expr → Expr`；
+  - `check_expr -> Result<Type, KernelError>`；
+  - `reduce_expr -> Expr`；
   - 完整环境检查能力保留；
   - 错误用显式类型表达，不再靠 panic。
 - 修复两个因缺失测试资源而失败的测试。
@@ -172,12 +172,15 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > - `.sokonanoda` v0 语法与 lexer/parser 已实现：`def` / `theorem` / `example` / `axiom` / `#check` / `#reduce` / `???`、lambda、箭头、`∀`、应用；
 > - span 诊断已带行列号；命令关键字不会泄漏进表达式；
 > - `EnvBuilder` 可把 AST elaborate 成 kernel 声明；`ExportFile::try_check_declar` 以显式错误替代 panic；
-> - `sokonanoda` CLI 已端到端工作：`.sokonanoda` → AST → kernel 声明 → 完整 kernel 检查 → 人读结果；
+> - `sokonanoda` CLI 已端到端工作：`.sokonanoda` -> AST -> kernel 声明 -> 完整 kernel 检查 -> 人读结果；
 > - `examples/lesson-01.sokonanoda` 与 `lesson-02.sokonanoda` 已入库。
 > - 数字字面量/最小 Nat 基元与 `#reduce` 已接通（`1 + 1` 可化简为 `2`）。
 > - `examples/fol-basics.sokonanoda`：False/True/Not/And/Or/Iff/Exists/Forall 从零定义，
 >   and_comm/or_comm/absurd/双重否定/存在证人/forall 组合均通过完整 kernel 检查。
-> 未完成：归纳类型的真正声明语法、隐式参数/universe 层级语法、tactic 模式与课程 UI。
+> - 教学文件/交互统一使用 ASCII `->`；`sokonanoda repl` 支持逐行累积声明并即时
+>   `#check` / `#reduce`（调试用最小 REPL）。
+> 未完成：归纳类型的真正声明语法、Nat.rec/induction、隐式参数/universe 层级语法、
+> tactic 草稿模式与课程 UI。
 
 目标：文件第一次能“翻译”成 kernel 可检查的内容。
 

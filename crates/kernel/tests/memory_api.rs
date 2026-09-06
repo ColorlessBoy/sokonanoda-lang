@@ -30,7 +30,7 @@ fn empty_env_infers_and_reduces_a_closed_lambda() {
         }
 
         let printed = tc.with_pp(|pp| pp.pp_expr(ty));
-        assert_eq!(printed, "Prop → Prop", "unexpected pretty output: {printed}");
+        assert_eq!(printed, "Prop -> Prop", "unexpected pretty output: {printed}");
 
         let reduced = tc.reduce_closed(lam);
         assert!(

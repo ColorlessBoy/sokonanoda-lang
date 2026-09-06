@@ -467,7 +467,7 @@ fn elab_expr<'a>(
             span: _,
         } => {
             let domain = elab_expr(builder, domain, scope)?;
-            // `A → B` desugars to a Pi with an anonymous binder, so free
+            // `A -> B` desugars to a Pi with an anonymous binder, so free
             // variables in the codomain live one binder deeper.
             scope.push(String::new());
             let codomain = elab_expr(builder, codomain, scope)?;
@@ -494,7 +494,7 @@ mod tests {
 
     #[test]
     fn checks_a_valid_file_end_to_end() {
-        let file = parse("def id : Prop → Prop := fun (x : Prop) => x\n#check id\n").unwrap();
+        let file = parse("def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n").unwrap();
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
         assert_eq!(
@@ -502,7 +502,7 @@ mod tests {
             vec![
                 CheckEvent::DeclarationChecked { name: "id".into() },
                 CheckEvent::TypeChecked {
-                    text: "Prop → Prop".into()
+                    text: "Prop -> Prop".into()
                 },
             ]
         );
@@ -510,7 +510,7 @@ mod tests {
 
     #[test]
     fn accepts_open_exercise() {
-        let file = parse("example : Prop → Prop := ???\n").unwrap();
+        let file = parse("example : Prop -> Prop := ???\n").unwrap();
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
         assert_eq!(out.events, vec![CheckEvent::ExerciseOpen]);
@@ -519,7 +519,7 @@ mod tests {
     #[test]
     fn checks_dependent_forall_with_lambda() {
         let file = parse(
-            "theorem t : ∀ (P : Prop), P → P :=\n\
+            "theorem t : ∀ (P : Prop), P -> P :=\n\
              fun (P : Prop) (hp : P) => hp\n",
         )
         .unwrap();
@@ -535,7 +535,7 @@ mod tests {
     fn checks_axioms_and_theorems_over_axioms() {
         let file = parse(
             "axiom p : Prop\n\
-             theorem t : p → p := fun (h : p) => h\n",
+             theorem t : p -> p := fun (h : p) => h\n",
         )
         .unwrap();
         let out = compile_fol(&file);
@@ -551,7 +551,7 @@ mod tests {
 
     #[test]
     fn reports_kernel_rejection_with_span() {
-        let file = parse("def bad : Prop → Type := fun (x : Prop) => x\n").unwrap();
+        let file = parse("def bad : Prop -> Type := fun (x : Prop) => x\n").unwrap();
         let out = compile_fol(&file);
         assert!(!out.errors.is_empty(), "expected a kernel rejection");
         assert!(out.errors[0].span.start.line >= 1);
