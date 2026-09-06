@@ -6,6 +6,7 @@ use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, EnvLimit, ReducibilityHint};
 use sokonanoda::expr::BinderStyle;
 use sokonanoda::util::{Config, ExprPtr};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompileError {
@@ -68,6 +69,7 @@ enum PendingOp<'a> {
 pub fn compile_fol(file: &FolFile) -> CompileOutput {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    install_prelude(&mut builder);
     let mut ops: Vec<PendingOp<'_>> = Vec::new();
     let mut example_idx = 0usize;
     let mut out = CompileOutput::default();
@@ -214,6 +216,77 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
     out
 }
 
+/// Trusted built-in base declarations. These are never re-checked by the
+/// kernel: they are the axioms/inductive spine that the teaching grammar is
+/// built on. The kernel's native Nat reduction is enabled purely by the
+/// matching declaration names.
+fn install_prelude(builder: &mut EnvBuilder<'_>) {
+    let anon = builder.anonymous();
+    let empty = builder.alloc_levels_slice(&[]);
+    let type_level = builder.succ(builder.zero());
+    let type_sort = builder.mk_sort(type_level);
+
+    let nat = builder.name_from_str("Nat");
+    let nat_type = builder.mk_const(nat, empty);
+    builder
+        .add_inductive(
+            DeclarInfo {
+                name: nat,
+                uparams: empty,
+                ty: type_sort,
+            },
+            false,
+            0,
+            0,
+            Arc::from([nat]),
+            Arc::from([]),
+        )
+        .expect("builtin Nat already present");
+
+    add_axiom(builder, "Nat.zero", nat_type);
+
+    let succ_arrow = builder.mk_pi(anon, BinderStyle::Default, nat_type, nat_type);
+    let succ_name = builder.name_from_str("Nat.succ");
+    let succ_levels = builder.alloc_levels_slice(&[]);
+    let succ_self = builder.mk_const(succ_name, succ_levels);
+    add_definition(builder, "Nat.succ", succ_arrow, succ_self);
+
+    let inner_arrow = builder.mk_pi(anon, BinderStyle::Default, nat_type, nat_type);
+    let add_arrow = builder.mk_pi(anon, BinderStyle::Default, nat_type, inner_arrow);
+    let add_name = builder.name_from_str("Nat.add");
+    let add_levels = builder.alloc_levels_slice(&[]);
+    let add_self = builder.mk_const(add_name, add_levels);
+    add_definition(builder, "Nat.add", add_arrow, add_self);
+}
+
+fn add_axiom<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>) {
+    let name = builder.name_from_str(name);
+    let info = DeclarInfo {
+        name,
+        uparams: builder.alloc_levels_slice(&[]),
+        ty,
+    };
+    builder
+        .add_declar(Declar::Axiom { info })
+        .expect("duplicate builtin axiom");
+}
+
+fn add_definition<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>, val: ExprPtr<'a>) {
+    let name = builder.name_from_str(name);
+    let info = DeclarInfo {
+        name,
+        uparams: builder.alloc_levels_slice(&[]),
+        ty,
+    };
+    builder
+        .add_declar(Declar::Definition {
+            info,
+            val,
+            hint: ReducibilityHint::Regular(0),
+        })
+        .expect("duplicate builtin definition");
+}
+
 fn build_def<'a>(
     builder: &mut EnvBuilder<'a>,
     name: &str,
@@ -308,10 +381,17 @@ fn elab_expr<'a>(
                 Ok(builder.mk_const(name, levels))
             }
         }
-        Expr::Num { span, .. } => Err(CompileError::new(
-            "numeric literals need the Sokonanoda prelude (next milestone)",
-            *span,
-        )),
+        Expr::Num { value, span } => {
+            let n: num_bigint::BigUint = value.parse().map_err(|_| {
+                CompileError::new(format!("invalid natural literal `{value}`"), *span)
+            })?;
+            let ptr = builder
+                .alloc_bignum(n)
+                .ok_or_else(|| CompileError::new("Nat literals are disabled", *span))?;
+            builder
+                .mk_nat_lit(ptr)
+                .ok_or_else(|| CompileError::new("Nat literals are disabled", *span))
+        }
         Expr::Hole { span } => Err(CompileError::new(
             "`???` is only allowed as the value of an open exercise",
             *span,
@@ -395,6 +475,15 @@ fn elab_expr<'a>(
             let anon = builder.anonymous();
             Ok(builder.mk_pi(anon, BinderStyle::Default, domain, codomain))
         }
+        Expr::Plus { lhs, rhs, span: _ } => {
+            let add = builder.name_from_str("Nat.add");
+            let levels = builder.alloc_levels_slice(&[]);
+            let add_const = builder.mk_const(add, levels);
+            let lhs = elab_expr(builder, lhs, scope)?;
+            let rhs = elab_expr(builder, rhs, scope)?;
+            let applied = builder.mk_app(add_const, lhs);
+            Ok(builder.mk_app(applied, rhs))
+        }
     }
 }
 
@@ -466,5 +555,43 @@ mod tests {
         let out = compile_fol(&file);
         assert!(!out.errors.is_empty(), "expected a kernel rejection");
         assert!(out.errors[0].span.start.line >= 1);
+    }
+
+    #[test]
+    fn checks_nat_literals_and_reduces_addition() {
+        let file = parse(
+            "def two : Nat := 1 + 1\n\
+             #check two\n\
+             #reduce 1 + 1\n",
+        )
+        .unwrap();
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+        assert_eq!(
+            out.events,
+            vec![
+                CheckEvent::DeclarationChecked { name: "two".into() },
+                CheckEvent::TypeChecked { text: "Nat".into() },
+                CheckEvent::Reduced { text: "2".into() },
+            ]
+        );
+    }
+
+    #[test]
+    fn checks_from_scratch_fol_proofs() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../examples/fol-basics.sokonanoda"
+        );
+        let src = std::fs::read_to_string(path).expect("read fol-basics.sokonanoda");
+        let file = parse(&src).expect("parse fol-basics.sokonanoda");
+        let out = compile_fol(&file);
+        assert_eq!(
+            out.errors,
+            vec![],
+            "from-scratch FOL proofs should all check, got {:?}",
+            out.errors
+        );
+        assert!(!out.events.is_empty());
     }
 }

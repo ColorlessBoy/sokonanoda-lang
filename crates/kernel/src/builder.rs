@@ -5,7 +5,8 @@
 //! names, levels, expressions and declarations against one arena, then call
 //! [`EnvBuilder::finish`] to obtain the environment.
 
-use crate::env::{Declar, DeclarMap, NotationMap};
+use crate::env::{Declar, DeclarInfo, DeclarMap, NotationMap};
+use crate::env::InductiveData;
 use crate::expr::{
     BinderStyle, Expr, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, NAT_LIT_HASH, PI_HASH, PROJ_HASH, SORT_HASH,
     STRING_LIT_HASH, VAR_HASH,
@@ -17,6 +18,7 @@ use crate::util::{
     NamePtr, StringPtr,
 };
 use num_bigint::BigUint;
+use std::sync::Arc;
 use stumpalo::ArenaRef;
 
 /// Accumulates declarations in dependency order and turns them into a kernel
@@ -47,7 +49,7 @@ impl<'a> EnvBuilder<'a> {
 
     pub fn alloc_string(&mut self, s: &str) -> StringPtr<'a> {
         let cow: CowStr<'a> = CowStr::Owned(s.to_owned());
-        StringPtr::local(self.dag.strings.intern(self.arena, cow))
+        StringPtr::global(self.dag.strings.intern(self.arena, cow))
     }
 
     pub fn name_from_str(&mut self, s: &str) -> NamePtr<'a> {
@@ -66,13 +68,13 @@ impl<'a> EnvBuilder<'a> {
         let sfx = self.alloc_string(sfx);
         let hash = crate::hash64!(STR_HASH, pfx, sfx);
         let name = Name::Str(pfx, sfx, hash);
-        NamePtr::local(self.dag.names.intern(self.arena, name))
+        NamePtr::global(self.dag.names.intern(self.arena, name))
     }
 
     fn name_num(&mut self, pfx: NamePtr<'a>, n: u64) -> NamePtr<'a> {
         let hash = crate::hash64!(NUM_HASH, pfx, n);
         let name = Name::Num(pfx, n, hash);
-        NamePtr::local(self.dag.names.intern(self.arena, name))
+        NamePtr::global(self.dag.names.intern(self.arena, name))
     }
 
     // -- levels -------------------------------------------------------------
@@ -92,11 +94,11 @@ impl<'a> EnvBuilder<'a> {
     }
 
     pub fn alloc_levels_slice(&mut self, levels: &[LevelPtr<'a>]) -> LevelsPtr<'a> {
-        LevelsPtr::local(self.dag.uparams.intern(self.arena, levels))
+        LevelsPtr::global(self.dag.uparams.intern(self.arena, levels))
     }
 
     fn alloc_level(&mut self, level: Level<'a>) -> LevelPtr<'a> {
-        LevelPtr::local(self.dag.levels.intern(self.arena, level))
+        LevelPtr::global(self.dag.levels.intern(self.arena, level))
     }
 
     // -- expressions --------------------------------------------------------
@@ -177,7 +179,7 @@ impl<'a> EnvBuilder<'a> {
 
     pub fn alloc_bignum(&mut self, n: BigUint) -> Option<BigUintPtr<'a>> {
         let local = self.dag.bignums.as_mut()?;
-        Some(BigUintPtr::local(local.intern(self.arena, n)))
+        Some(BigUintPtr::global(local.intern(self.arena, n)))
     }
 
     pub fn mk_string_lit(&mut self, ptr: StringPtr<'a>) -> Option<ExprPtr<'a>> {
@@ -207,6 +209,30 @@ impl<'a> EnvBuilder<'a> {
         name.as_ref().set_decl_idx(idx as u32);
         self.declars.insert(name, d);
         Ok(())
+    }
+
+    /// Add a trusted inductive type. Kernel-side validation of inductive
+    /// blocks happens when full export-style declarations are checked; this
+    /// is the entry point used by the built-in teaching prelude.
+    #[allow(clippy::too_many_arguments)]
+    pub fn add_inductive(
+        &mut self,
+        info: DeclarInfo<'a>,
+        is_recursive: bool,
+        num_params: u16,
+        num_indices: u16,
+        all_ind_names: Arc<[NamePtr<'a>]>,
+        all_ctor_names: Arc<[NamePtr<'a>]>,
+    ) -> Result<(), String> {
+        self.add_declar(Declar::Inductive(InductiveData {
+            info,
+            is_recursive,
+            is_nested: false,
+            num_params,
+            num_indices,
+            all_ind_names,
+            all_ctor_names,
+        }))
     }
 
     fn name_to_string(&self, name: NamePtr<'a>) -> String {
@@ -244,5 +270,20 @@ impl<'a> EnvBuilder<'a> {
             config: self.config,
             mutual_block_sizes: new_fx_hash_map(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use stumpalo::Arena;
+
+    #[test]
+    fn name_cache_discovers_nat() {
+        let arena = Arena::new();
+        let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+        let _ = builder.name_from_str("Nat");
+        let env = builder.finish();
+        assert!(env.name_cache.nat.is_some(), "Nat was not discovered by name cache");
     }
 }

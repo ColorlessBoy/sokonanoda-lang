@@ -43,3 +43,10 @@ checked declaration id
 #check : Prop → Prop
 exercise open (fill the ???)
 ```
+
+A second example defines the classic logical vocabulary from scratch and
+proves core theorems about it:
+
+```text
+cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/fol-basics.sokonanoda
+```

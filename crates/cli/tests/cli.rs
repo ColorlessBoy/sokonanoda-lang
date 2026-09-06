@@ -45,3 +45,15 @@ fn cli_reports_parse_errors_with_positions() {
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(stderr.contains("2:1: error:"), "stderr: {stderr}");
 }
+
+#[test]
+fn cli_checks_nat_and_reduces_addition() {
+    let out = run(
+        "def two : Nat := 1 + 1\n\
+         #reduce 1 + 2\n",
+    );
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration two"));
+    assert!(stdout.contains("#reduce => 3"), "stdout: {stdout}");
+}

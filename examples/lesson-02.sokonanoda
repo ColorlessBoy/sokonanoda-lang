@@ -1,0 +1,9 @@
+-- Lesson 2: natural numbers
+
+def two : Nat := 1 + 1
+
+#check two
+
+#reduce 2 + 3
+
+example : Nat := ???

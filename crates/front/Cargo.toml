@@ -8,3 +8,4 @@ description = "Restricted .sokonanoda front-end (lexer, parser, diagnostics) for
 [dependencies]
 sokonanoda = { path = "../kernel" }
 stumpalo = "0.5.1"
+num-bigint = "0.4.8"

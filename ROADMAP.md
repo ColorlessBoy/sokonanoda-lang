@@ -173,8 +173,11 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > - span 诊断已带行列号；命令关键字不会泄漏进表达式；
 > - `EnvBuilder` 可把 AST elaborate 成 kernel 声明；`ExportFile::try_check_declar` 以显式错误替代 panic；
 > - `sokonanoda` CLI 已端到端工作：`.sokonanoda` → AST → kernel 声明 → 完整 kernel 检查 → 人读结果；
-> - `examples/lesson-01.sokonanoda` 已入库。
-> 未完成：数字字面量/最小 prelude、`#reduce` 的真实化简用例、结构/归纳类型课程。
+> - `examples/lesson-01.sokonanoda` 与 `lesson-02.sokonanoda` 已入库。
+> - 数字字面量/最小 Nat 基元与 `#reduce` 已接通（`1 + 1` 可化简为 `2`）。
+> - `examples/fol-basics.sokonanoda`：False/True/Not/And/Or/Iff/Exists/Forall 从零定义，
+>   and_comm/or_comm/absurd/双重否定/存在证人/forall 组合均通过完整 kernel 检查。
+> 未完成：归纳类型的真正声明语法、隐式参数/universe 层级语法、tactic 模式与课程 UI。
 
 目标：文件第一次能“翻译”成 kernel 可检查的内容。
 

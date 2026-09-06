@@ -332,6 +332,7 @@ dependencies = [
 name = "sokonanoda-front"
 version = "0.1.0"
 dependencies = [
+ "num-bigint",
  "sokonanoda",
  "stumpalo",
 ]

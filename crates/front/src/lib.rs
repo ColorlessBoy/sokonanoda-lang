@@ -32,7 +32,8 @@ pub enum TokenKind {
     Hole,
     Colon,
     ColonEq,
-    Arrow,    // -> or →
+    Arrow, // -> or →
+    Plus,
     FatArrow, // =>
     Forall,   // ∀ or forall
     LParen,
@@ -202,6 +203,7 @@ impl<'a> Lexer<'a> {
             ')' => self.single(TokenKind::RParen, start),
             ',' => self.single(TokenKind::Comma, start),
             '→' => self.single(TokenKind::Arrow, start),
+            '+' => self.single(TokenKind::Plus, start),
             '∀' => self.single(TokenKind::Forall, start),
             '-' => {
                 self.bump();
@@ -364,6 +366,11 @@ pub enum Expr {
         codomain: Box<Expr>,
         span: Span,
     },
+    Plus {
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+        span: Span,
+    },
 }
 
 impl Expr {
@@ -376,7 +383,8 @@ impl Expr {
             | Expr::App { span, .. }
             | Expr::Lambda { span, .. }
             | Expr::Forall { span, .. }
-            | Expr::Arrow { span, .. } => *span,
+            | Expr::Arrow { span, .. }
+            | Expr::Plus { span, .. } => *span,
         }
     }
 }
@@ -553,7 +561,7 @@ impl Parser {
     }
 
     fn parse_arrow(&mut self) -> Result<Expr> {
-        let lhs = self.parse_app()?;
+        let lhs = self.parse_plus()?;
         if self.peek().kind == TokenKind::Arrow {
             self.bump();
             let rhs = self.parse_arrow()?;
@@ -563,6 +571,21 @@ impl Parser {
                 codomain: Box::new(rhs),
                 span,
             });
+        }
+        Ok(lhs)
+    }
+
+    fn parse_plus(&mut self) -> Result<Expr> {
+        let mut lhs = self.parse_app()?;
+        while self.peek().kind == TokenKind::Plus {
+            self.bump();
+            let rhs = self.parse_app()?;
+            let span = Span::new(lhs.span().start, rhs.span().end);
+            lhs = Expr::Plus {
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                span,
+            };
         }
         Ok(lhs)
     }
