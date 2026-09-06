@@ -1,130 +1,184 @@
-# 基础设施全面完善：差距分析 + 方案脑暴
+# 基础设施全面完善：LSP-first 设计（v2）
 
 > 状态：**设计草案（brainstorm），不是已定稿的 PRD**。
-> 目的：把"基于 sokonanoda 封装一个现代形式化证明教学语言"拆成可执行的工作流，
-> 每个决策点给出 2–3 个选项、取舍与推荐，最后列"待你确认"清单。
-> 配套：`docs/architecture.md`（现状事实）、`docs/research.md`（外部参照）。
+> v2 变更：明确最终形态是 **VS Code + 细粒度反馈 LSP**；`.sokonanoda` 文件保持
+> **纯声明式、无 `#` 命令**；`#check/#reduce/#print/#prove` 只是 REPL/调试玩具，
+> 不属于文件格式。练习 = 一个**带洞的 `def`/`theorem`/`example` 声明**。
+> 配套：`docs/architecture.md`（现状事实）、`docs/research.md`（外部参照）、
+> `docs/protocol.md`（内部事件传输）。
 
 ---
 
 ## 1. 目标与约束（一句话复述）
 
-**目标**：在 `sokonanoda-lang` 里做一门"现代形式化证明编程语言 + 教学平台"——完整内核、受限且真实的教学语法、练习引擎、可给人也给 agent 的结构化反馈，最终长成协作式教学（L2/L3）。
-**约束**：kernel 完整、无官方工具依赖、语法是真实 Lean 4 子集、白名单即课程、L0 先行、TDD/重复测试、反馈即功能。
+**目标**：一门"现代形式化证明编程语言 + 教学平台"：完整内核、受限且真实的教学语法、
+**以 LSP 为唯一反馈通道**（足够细致、足够详细），最终长成"用户 + agent 在同一
+`.sokonanoda` 画布上协作"。
+**约束**：kernel 完整、无官方工具依赖、语法是真实 Lean 4 子集、白名单即课程、
+反馈即功能。**文件里出现的每个声明，填完洞之后都必须能原样放进官方 Lean**。
 
-## 2. 现状盘点（2026-09-06 快照）
+## 2. 形态对比：REPL 思维 vs LSP 思维
 
-已具备：
+| | REPL/批处理思维（v1 文档偏此） | **LSP 思维（本版，采纳）** |
+|---|---|---|
+| 文件 | 混入 `#check/#reduce/#exercise` 命令 | **纯声明 + 讲解注释**，无 `#` |
+| 看类型 | 自己写 `#check x` | 光标悬停 → hover 给类型 |
+| 看化简 | 自己写 `#reduce` | 命令/内联动作给化简结果 |
+| 判定练习 | `#exercise` + 文本输出 | 保存即诊断：solved/open/failed 状态 |
+| 错误 | 一行文本 | LSP Diagnostic：span/code/message/related/hint |
+| 消费方 | 人读 stdout | 编辑器渲染 + agent 读同一份结构化状态 |
 
-- M0：kernel 完整迁移 + 内存 API（`EnvBuilder`/`try_check_declar`/`infer_closed_type`/`reduce_closed`）+ arena 与 memory_api 测试。
-- M1：`.sokonanoda` 前端（lexer/parser/elaborator/CLI/REPL）、span 诊断、ASCII `->`、`Sort n`/`Sort u`/`{u}`/`id.{u}`/`@id.{u}`、命名箭头、`#print`。
-- 语料：fol-basics、py-fol-core（Eq/propext/定理批）、py-nat（显式 inductive + iota）、lesson-01/02。
-- `#prove` 草案（intro/exact/apply/assumption + partial lambda 回显，`done` 走 kernel）。
-- 显式 `inductive ... ctor ... rec ... iota ... end` 块 + deep reduce。
-- 反馈：文本事件行 + **新增 `--json`（JSON Lines 事件）+ 错误 stage/code + 语料 CI**（本轮完成）。
+`#prove` 的教学价值保留，但它**不进入文件**：它在 LSP 里变成
+"goal 视图 + code action（intro/exact/…）"，且每一步仍只是搭 lambda，最终交 kernel。
 
-缺口（按 ROADMAP M2–M4 与"现代化语言"标准看）：
+## 3. 文件格式（无 `#` 命令）
 
-1. **练习引擎只有骨架**：`example : T := ???` 能产 `exercise.open`、填满后 kernel 判定通过/拒绝；但**没有"练习定义"**（名字、目标、期望 `#check` 类型/`#reduce` 值），错误只分到 stage，没有教学提示模板，没有 `exercise.solved/failed` 语义。
-2. **prelude 太小且"占位自引用"**：只有 Nat.zero/succ/add；Bool、Eq、rfl 语义、"减/乘/比较"等名字都缺；占位自引用体需要被正式对齐（见 architecture §5.4 的风险）。
-3. **elaborator 全显式**：无 binder 类型推断、无 `let`、无 `match`、无依赖消除的"自然写法"；课程第 5 单元（归纳类型 + match）因此还上不了。
-4. **课程内容基本没有**：只有 4 个示例文件，不是 M4 的 5 单元 × 3–8 练习。
-5. **协议未闭环**：`docs/protocol.md` 的事件名已有文本实现，但 exercise 的 solved/failed、诊断分类、incremental 片段事件未实现。
-6. **测试基础设施**：无 golden 事件比对（语料测试只查 exit code）；kernel 错误仍是 panic 字符串。
-7. **文档**：本轮补齐 architecture/research/design 三件套 + README/ROADMAP 刷新（见下）。
+### 3.1 原则
 
----
+- 文件 = 交错排布的**讲解（`--` 注释/正文）**与**声明**；
+- 声明只有真实 Lean 语法：`def` / `theorem` / `axiom` / `inductive … end` / `example`；
+- `???` 是方言唯一的教学扩展：**未完成练习的洞**，只允许出现在声明值位；
+  填成 term 后该声明必须与官方 Lean 一致；
+- **练习 = 带洞的声明**。带名字的练习提供稳定 ID（诊断、进度、agent 事件都用它）。
 
-## 3. 五个关键决策点（brainstorm）
+### 3.2 命名与身份（决策 D1）
 
-### D1 练习/答案区格式
+- `def name : T := ???` —— 编程/计算类练习（如 `def two : Nat`）；
+- `theorem name : T := ???` —— 命题/证明类练习（内核规则：类型须在 Prop）；
+- `example : T := ???` —— 匿名练习；文档模型给合成 ID（`<file>:<line>` 或序号），
+  填完后**不污染环境**，适合"只练不存"。
 
-- **A（现状）**：`example : T := ???`，元数据放 `--` 注释。优点：改动零；缺点：agent/UI 无法机器识别"这是第几题、期望什么"。
-- **B（推荐，轻量指令）**：加 `#exercise "名称"` 作为块头，答案区仍是 `example : T := ???`；`#exercise` 只是元数据声明，不改变 kernel 语义，允许被解析成 `Command::Exercise`。优点：向后兼容、机器可识别、可挂期望；代价：parser 加一个命令。
-- **C（重型 DSL）**：`#exercise` 内嵌期望块（期望 `#check` 类型、期望化简值、提示）。优点：表达力最强；代价：格式先行设计，容易返工，违背"M1 先定义格式"的渐进路线。
+> 注意：官方 Lean 的 `example` 不能带名字；我们不为此发明
+> `example name : T` 这种非 Lean 写法。若确实想要"名字 + 不进环境"，后续可加
+> `-- @exercise name` 这类**注释元数据**（仍无 `#`），把名字挂在 `example` 上，
+> 填洞后 strip 成合法 Lean。默认先不做，用 `theorem`/`def` 命名 + 匿名 `example`。
 
-**推荐 B，C 的期望字段推迟到 D2 的第二步**，避免在格式未验证前锁死语法。
+### 3.3 逐声明工作（文档模型）
 
-### D2 练习判定语义（分两步）
+每个声明是独立编译单元，状态机：
 
-- **B1（现在）**：判定 = kernel 通过（`ExerciseOpen` → 填洞 → `ExampleChecked`）。
-- **B2（推荐下一步）**：练习定义带**期望目标类型**（与 `example` 的类型做 kernel conv 比对），失败分类：
-  `unfinished`（还有洞）/ `type-mismatch`（kernel 拒绝或类型不符）/ `reduction-mismatch`（若练习要求 `#reduce` 到某值）。
-- **B3（远期）**：多洞练习、按序填洞、goal-state 提示（对标 lean4game Hint）。
+```text
+open(有洞 ???) ──填洞──> checked(通过 kernel) ──后续编辑──> 重新检查
+      │                        │
+      └── failed：诊断（parse/elab/kernel + 分类 + 提示）
+```
 
-**推荐 B1→B2→B3**；B2 的判定全部走 kernel：目标类型用 `infer_closed_type` + `def_eq`，化简值用 `reduce_closed` + 结构相等。
+`example : T := ???` 保持"open 是合法状态"：**只有该声明报 open，不影响其他声明**。
 
-### D3 错误分类与教学提示
+## 4. 细粒度反馈：LSP 能力清单（这是产品的核心）
 
-- **A（现状）**：`Diagnostic{parse}` / `CompileError{elab|kernel}`，消息是字符串。
-- **B（推荐）**：把 stage 之下再细分稳定的 `ErrorKind` 枚举（unknown-identifier、universe-arity、hole-not-allowed、kernel-rejected、kernel-internal…），每个 kind 一个教学提示模板（可放在 front 的 `hints.rs`），并保留原始 message 与 span。
-- **C（远期）**：kernel 侧把 panic 断言换成显式 `KernelError` 树（含 conv 差异的两端表达式），教学前端可生成"左边类型 X、右边 Y"级反馈。
+"足够细致、足够详细" = 下面的每一项都要有。按依赖排序，全部来自同一个文档服务。
 
-**推荐 B 现在做，C 单独立项**（kernel 改动风险高，不应阻塞教学层）。
+### F1 诊断（publishDiagnostics）
+- 三阶段分类：parse / elab / kernel，稳定 ASCII code，human message，**精确 span**；
+- kernel 拒绝时尽量给出**预期 vs 实际**：如 "类型不匹配：期望 `a -> a`，你的值是
+  `Nat -> Nat`"；长期靠 kernel 显式错误，过渡期靠前端按消息归类；
+- relatedInformation（指向出错 binder / 定义处）+ 首个教学提示（code → hint 模板）；
+- 多错误恢复：一个文件尽量报多个独立错误，而不是停在第一个。
 
-### D4 增量与服务边界
+### F2 Hover
+- 悬停任意表达式 → 推断类型（需要**任意 offset → 所在子表达式 → 该处类型**的查询，
+  见 §5.2 类型图）；
+- 悬停声明名 → 类型 + 前面的讲解注释；
+- 悬停 `???` → 目标类型（= 该声明期望类型在当前 binder 上下文下的形态）。
 
-- **A（现状）**：整文件/整 buffer 重编译；REPL 靠声明累积模拟增量。
-- **B（推荐）**：L1 最小 service：监听文件、整文件重编译、广播与 `--json` 相同的事件；把"文件 + 事件游标"作为协议单元，editor/agent 各自消费。
-- **C（远期）**：片段级增量（只重编改动片段，保持已检查定义）——以 decl 依赖图为基础。
+### F3 练习状态与进度
+- 每个练习声明：`open / solved / failed`，带时间戳与最后一次判定事件；
+- 事件（`exercise.open/solved/failed`）同时广播给 agent（同一文档状态）。
 
-**推荐 A→B（服务只做"整文件 + 事件流"），C 等 B 验证协议后再做**。这与 ROADMAP 的 L0→L1 分层一致，避免在 L0 阶段做重。
+### F4 化简与中间步骤
+- 对选中表达式：显示 fully reduced（deep_reduce）与**分步归约**（教学价值高：
+  让学生看到 `Nat.add` 一步步算，对标 py_nanobruijn 的 `reduce_steps`）；
+- 先做 LSP command / inline hint，UI 形态（hover vs 面板）后定。
 
-### D5 内容组织与课程管线
+### F5 Goal 视图（#prove 的 LSP 形态）
+- 悬停洞显示：**当前目标 + 可用假设**（binder 上下文）；
+- code action：`intro x` / `exact h` / `apply f` / `assumption` → 生成/替换洞内容，
+  与 `#prove` 共用同一套"搭 lambda"逻辑（`proof.rs` 从 REPL 挪成库 API）；
+- 每步后 kernel 校验，失败给出 F1 式诊断。
 
-- **A（现状）**：examples/*.sokonanoda 随手放。
-- **B（推荐）**：目录化 + 清单：
-  ```text
-  course/
-    lesson-01-functions.sokonanoda   # 每文件 = 一单元（概念卡 + 示例 + 3–8 练习）
-    lesson-02-naturals.sokonanoda
-    ...
-    course.json                      # 顺序、依赖、每单元练习数（供 UI/agent 用）
-  ```
-  每个文件既是人读教材，又是机器输入；新增课程 = 新增文件 + golden。
-- **C（远期）**：worlds/levels 双级（对标 lean4game），world 依赖从示例解法推导。
+### F6 文档结构与导航
+- documentSymbol/outline：声明列表（含练习、是否已解决）；
+- definition/references：名字跳转（先 definition，references 后置）。
 
-**推荐 B**；C 等编辑器层（L2）再引入。
+### F7 增量
+- 编辑一行 → 从**受影响声明**起重编译，之前声明缓存不动；
+- 事件带版本号；agent 与编辑器各持游标。
 
----
+### F8 语义信息（后置）
+- semantic tokens（类型/构造子/关键字着色）；Unicode `→`/`∀` 显示与 ASCII 输入并存。
 
-## 4. 推荐工作流（按依赖排序，标注谁先做）
+## 5. 编译器侧要补的"查询内核"（文档服务）
+
+LSP 只是壳，真正的活在这些库 API（放 `crates/front` 或新 `crates/server`）：
+
+### 5.1 DocumentReport（整文件一次检查的结构化结果）
+```text
+report
+├── decls: [{ name?, kind(def/theorem/example/inductive…), span,
+│             status(open/checked/failed), errors[] }]
+├── diagnostics: [{ stage, code, message, span, related[], hint? }]
+└── type_map: [span → 推断类型文本]   // F2 的素材
+```
+现在 `CompileOutput` 已有事件+错误；要补：**逐声明状态**（现在失败即整体失败）、
+**type_map**、**hints**。
+
+### 5.2 类型图（任意 offset → 类型）
+- front AST 每个 `Expr` 节点已带 span；elaborate 时按节点记录
+  `(node_span → kernel ExprPtr)`，检查后对每个节点在**其 binder 上下文**里
+  `infer` 并 pretty 成文本；
+- 难点：子表达式类型依赖外层 binder（de Bruijn/名字作用域），需要在 elaborator
+  里保留"每节点作用域"或在 AST 层做类型推导（教学子集内可先做"整声明类型 +
+  顶层子项"，再逐步细化）。
+
+### 5.3 增量缓存
+- 以声明为粒度：`decl_checked_upto` + 每条声明的依赖（名字引用图）；
+- 改动声明 i → 重查 i..n（先保守整后缀，再做依赖裁剪）。
+
+### 5.4 LSP 壳
+- 用最小 JSON-RPC over stdio（依赖可只加 serde_json，避免大框架），实现：
+  `initialize / didOpen / didChange / didSave / publishDiagnostics / hover /
+  documentSymbol / (command: reduce | prove.*)`；
+- VS Code extension 本体很薄：语法高亮 + 启动 LSP + 树状进度视图（L2 再画 UI）。
+
+## 6. 与 ROADMAP 的关系（修正）
+
+- L0 不变：编译器 + 文档服务（含 type_map、逐声明状态、增量 API 雏形）。
+- **L1 从"文本事件 service"改成"文档服务 + LSP server"**：文本 JSON Lines 保留为
+  agent/测试的传输层（protocol.md），编辑器走 LSP。
+- L2：VS Code extension（薄壳 + 进度树 + goal 视图）。
+- L3：agent 消费 LSP/文档状态讲课、出题（每个练习是带名字的声明）。
+
+## 7. 工作流（按依赖排序）
 
 | # | 工作流 | 内容 | 验收 |
 |---|---|---|---|
-| I0 | **地基（本轮已做一部分）** | docs 三件套 + `--json` 事件 + 错误 stage/code + 语料 CI + examples 语料测试 | `cargo test --workspace` 绿；`--json` 输出协议字段 |
-| I1 | **练习引擎 v1（M2）** | `#exercise` 块头（D1-B）+ 期望目标类型 + `exercise.solved/failed` 事件 + 错误分类 kind + 提示模板 v1（D2-B2/D3-B） | 恒等函数练习：填对 → solved；填 `fun n => n+1` → type-mismatch + 模板提示 |
-| I2 | **prelude 对齐与扩充** | Bool/Eq/`rfl` 所需结构、nat 运算符名字特判清单化；把"占位自引用体"改成显式受信任声明并写清理由 | `#check Eq.refl ...` 可用；新增 prelude 内容全部有测试 |
-| I3 | **elaborator 推进** | binder 类型推断（先非依赖情形）→ `let` → 单构造子 `match`/递归（M4 课程第 5 单元前必须） | 每项 TDD：front 单测 + CLI e2e + 课程用例 |
-| I4 | **第一门课（M4）** | 5 单元 × 3–8 练习，按 course/ 目录组织 + golden 事件 | CI 跑全部课程文件并比对 golden |
-| I5 | **L1 最小服务** | 文件监听 + 整文件重编译 + 事件广播（复用 `--json` 序列化） | 三步模拟（agent 出题/用户作答/改题）事件流正确 |
-| I6 | **kernel 显式错误（长期）** | panic → `KernelError`，conv 差异带两端项 | conv 失败可给出结构化差异 |
-| I7 | **L2/L3（不做）** | VS Code 扩展与讲课 agent | —— |
+| I0 | 地基（已完成大部分） | docs、`--json` 传输、错误 stage/code、CI、语料测试 | `cargo test --workspace` 绿 |
+| I1 | 逐声明状态 + DocumentReport | 一个文件 → 每个声明独立 open/checked/failed；`???` 只影响自身 | 恒等练习：文件含另一条坏声明时，练习仍能单独判 solved |
+| I2 | 错误细分 + 提示 | stage 之下稳定 kind；kernel 拒绝归类；hint 模板 v1；related info | `fun n => n + 1` 填进恒等练习 → "类型不匹配（期望返回 n）" |
+| I3 | 类型图 v1 | 悬停子表达式给类型（先覆盖显式 binder 情形） | 编辑器原型悬停 `add1`/`x+1` 显示类型 |
+| I4 | 增量 v1 | 改声明 i → 重查后缀，事件带版本 | 追加一行只重编译受影响声明（日志可验） |
+| I5 | LSP server v1 | publishDiagnostics/hover/documentSymbol + didChange | 用 VS Code 打开课程文件：错误波浪线、悬停类型、练习状态 |
+| I6 | prelude 对齐 + elaborator 推进 | Bool/Eq/rfl、binder 推断、`let`、`match`（课程需要） | 新增语法 TDD 三件套 |
+| I7 | 第一门课（M4） | 5 单元课程 + golden | CI 全绿 |
+| I8 | goal 视图 / code action | `#prove` 逻辑入库 + LSP 命令 | 在编辑器里三步完成 `a -> a` |
+| I9 | agent 事件（L3 前哨） | 文档状态 → 结构化事件（已有 `--json` 词汇扩展 exercise.solved/failed） | agent 可据状态自动出下一题 |
 
-本轮交付覆盖 I0 的大部分；I1–I5 已按 D1–D5 拆好、可直接开工。
-
----
-
-## 5. 风险与对策（更新版）
+## 8. 风险与对策（更新）
 
 | 风险 | 对策 |
 |---|---|
-| 练习格式设计返工 | D1 先做轻量 `#exercise` 头，期望字段分步加 |
-| 教学前端阻塞在 kernel 错误改造 | D3：前端先用自己的 kind + 提示模板，kernel 改造单独立项 |
-| 增量/服务在 L0 做过头 | D4：先整文件事件流，片段增量等协议验证 |
-| prelude 占位体被误展开/不一致 | I2 明确"受信任声明清单"并加测试（含裸名 `#reduce`） |
-| 课程语法超出白名单 | 每个语法点 = 课程 + 测试 + golden，CI 强制 examples 有效 |
-| 事件只对人友好 | `--json` 与协议名一一对应，新增事件必须带 machine payload |
-| "第二套 Lean" | 白名单 + 必须官方子集；新语法先写能过官方 Lean 的样例 |
+| 又回到"第二套 Lean" | 无 `#`、全声明式；填洞后文件 = 官方 Lean 子集 |
+| LSP 壳盖在没准备好的查询 API 上 | I1–I4 先做文档服务，I5 壳薄薄一层 |
+| type_map 在依赖 binder 处做不动 | 先做"整声明类型 + 顶层子项"，再逐层细化 |
+| kernel 错误不够细 | 前端先按消息归类 + hint（I2），kernel 显式错误单独立项 |
+| 增量缓存复杂度爆炸 | 先"声明后缀重查"，依赖图裁剪后置 |
+| 反馈只给人 | 每次判定同时产出机器状态（同协议词汇） |
 
----
+## 9. 待确认
 
-## 6. 待确认清单（给用户的决策点）
-
-1. 练习格式按 **D1-B**（`#exercise "名"` 头 + `example : T := ???`）推进吗？
-2. 判定语义按 **D2：先期望目标类型（B2），化简值断言（B3）随后** 推进吗？
-3. 错误分类按 **D3-B**（front 级稳定 kind + 提示模板），kernel panic→显式错误（D3-C）是否要单独立项？
-4. 内容先做 **D5-B**（course/ 目录 + course.json），还是保持 examples/ 平铺？
-5. 本轮已实现的地基（--json、stage/code、CI、docs）是否符合预期？哪一项要回退/改法？
-
-（以上在默认模式下我按推荐方案推进了 I0；I1 起等你确认后再动手，避免在格式/语义未定前返工。）
+1. 命名练习就用 `def name : T` / `theorem name : T`（匿名用 `example`），可以吗？
+   （若坚持 `example name : T`，需要接受"填完不是直接可进官方 Lean"，或走注释元数据方案。）
+2. LSP 壳用**最小 JSON-RPC**（少依赖、可控），还是引入现成框架（如 tower-lsp）？
+3. 优先级：先做 I1–I2（判定与错误细节），还是直接冲 I5（先把 LSP 竖起来再补细节）？
+4. goal 视图（F5 / I8）是否算第一期必需，还是第二期？

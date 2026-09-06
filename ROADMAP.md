@@ -6,6 +6,12 @@
 > 配套文档：`docs/architecture.md`（深度理解）、`docs/research.md`（外部调研）、
 > `docs/design-infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。
 
+> 方向更新（2026-09-06 续）：编辑器形态下 `.sokonanoda` 是**纯声明式文件**
+> （无 `#` 命令）；练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` /
+> `example : T` 声明；反馈通道是**细粒度 LSP**（hover 类型/化简、精确诊断、
+> 练习状态、goal 视图）。CLI/REPL 的 `#check` 等只是调试与自测工具。
+> 详见 `docs/design-infrastructure.md`（LSP-first 设计 v2）。
+
 ## 0. 终极形态
 
 > 用户与 code agent 共同看着 VS Code 中打开的同一个 `*.sokonanoda` 文件。

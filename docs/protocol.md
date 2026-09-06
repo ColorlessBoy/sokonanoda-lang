@@ -12,6 +12,26 @@ The protocol has **one vocabulary and two renderings**: human text lines and
 machine JSON Lines (`sokonanoda --json <file>`). Both are implemented today in
 `crates/cli/src/main.rs`; a future service layer keeps the same event names.
 
+## Editor surface: LSP, not `#` commands
+
+In the VS Code vision the `.sokonanoda` file stays **declarative**: only
+`def` / `theorem` / `axiom` / `inductive … end` / `example` declarations and
+`--` narrative comments. `#check` / `#reduce` / `#print` / `#prove` are REPL
+and self-test conveniences, **not part of the teaching file format**.
+
+Feedback that a REPL would get from a `#` command comes from the editor:
+
+| REPL command | LSP surface |
+|---|---|
+| `#check x` | hover on `x` → type |
+| `#reduce e` | command/inline action → reduced value |
+| `#prove` | goal view + code actions over the `???` hole |
+| printed errors | `publishDiagnostics` with spans and codes |
+
+The event vocabulary below is the **internal transport** (batch CLI, tests,
+agent, and later the service); the LSP maps the same data onto LSP protocol
+messages. See `docs/design-infrastructure.md` for the feedback capability list.
+
 ## Canonical text lines (human)
 
 ```text
