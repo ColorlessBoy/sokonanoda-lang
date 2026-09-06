@@ -156,3 +156,16 @@ fn cli_rejects_undeclared_universe_variable() {
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("universe variable"));
 }
+
+#[test]
+fn cli_checks_ported_py_fol_core() {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../examples/py-fol-core.sokonanoda"
+    );
+    let out = run_args(&[path], None);
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration id"));
+    assert!(stdout.contains("checked declaration and_comm_iff"));
+}

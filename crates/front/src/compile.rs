@@ -1,7 +1,7 @@
 //! Compile a parsed `.sokonanoda` file into kernel declarations and run the
 //! complete sokonanoda kernel over them.
 
-use crate::{Command, Expr, FolFile, SortKind, Span};
+use crate::{BinderKind, Command, Expr, FolFile, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, EnvLimit, ReducibilityHint};
 use sokonanoda::expr::BinderStyle;
@@ -457,6 +457,13 @@ fn level_ptr<'a>(
     }
 }
 
+fn kernel_binder_style(kind: &BinderKind) -> BinderStyle {
+    match kind {
+        BinderKind::Explicit => BinderStyle::Default,
+        BinderKind::Implicit => BinderStyle::Implicit,
+    }
+}
+
 fn elab_expr<'a>(
     builder: &mut EnvBuilder<'a>,
     expr: &Expr,
@@ -568,6 +575,7 @@ fn elab_expr<'a>(
             let base = scope.len();
             let mut names = Vec::with_capacity(binders.len());
             let mut tys = Vec::with_capacity(binders.len());
+            let mut styles = Vec::with_capacity(binders.len());
             for binder in binders {
                 let ty = match &binder.ty {
                     Some(ty) => elab_expr(builder, ty, scope, univ, known)?,
@@ -581,12 +589,13 @@ fn elab_expr<'a>(
                 let name = builder.name_from_str(&binder.name);
                 tys.push(ty);
                 names.push(name);
+                styles.push(kernel_binder_style(&binder.style));
                 scope.push(binder.name.clone());
             }
             let mut body_expr = elab_expr(builder, body, scope, univ, known)?;
             scope.truncate(base);
-            for (name, ty) in names.into_iter().zip(tys).rev() {
-                body_expr = builder.mk_lambda(name, BinderStyle::Default, ty, body_expr);
+            for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
+                body_expr = builder.mk_lambda(name, style, ty, body_expr);
             }
             Ok(body_expr)
         }
@@ -598,6 +607,7 @@ fn elab_expr<'a>(
             let base = scope.len();
             let mut names = Vec::with_capacity(binders.len());
             let mut tys = Vec::with_capacity(binders.len());
+            let mut styles = Vec::with_capacity(binders.len());
             for binder in binders {
                 let ty = match &binder.ty {
                     Some(ty) => elab_expr(builder, ty, scope, univ, known)?,
@@ -611,12 +621,13 @@ fn elab_expr<'a>(
                 let name = builder.name_from_str(&binder.name);
                 tys.push(ty);
                 names.push(name);
+                styles.push(kernel_binder_style(&binder.style));
                 scope.push(binder.name.clone());
             }
             let mut body_expr = elab_expr(builder, body, scope, univ, known)?;
             scope.truncate(base);
-            for (name, ty) in names.into_iter().zip(tys).rev() {
-                body_expr = builder.mk_pi(name, BinderStyle::Default, ty, body_expr);
+            for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
+                body_expr = builder.mk_pi(name, style, ty, body_expr);
             }
             Ok(body_expr)
         }
@@ -878,5 +889,36 @@ mod tests {
         .expect("parse wrong universe count");
         let out = compile_fol(&file);
         assert!(!out.errors.is_empty());
+    }
+
+    #[test]
+    fn checks_at_marker_and_implicit_binders_in_py_fol_style() {
+        let file = parse(
+            "def id {u} : forall {α : Sort u}, forall (a : α), α :=\n\
+             fun {α : Sort u} => fun (a : α) => a\n\
+             def id0 : forall (α : Prop), forall (a : α), α :=\n\
+             fun (α : Prop) => @id.{0} α\n",
+        )
+        .expect("parse @id.{0} and implicit binders");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+    }
+
+    #[test]
+    fn parses_implicit_binder_styles() {
+        let file = parse("#check fun {x : Prop} => fun (y : Prop) => x\n").unwrap();
+        assert_eq!(file.commands.len(), 1);
+    }
+
+    #[test]
+    fn checks_ported_py_fol_core() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../examples/py-fol-core.sokonanoda"
+        );
+        let src = std::fs::read_to_string(path).expect("read py-fol-core.sokonanoda");
+        let file = parse(&src).expect("parse py-fol-core.sokonanoda");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
     }
 }

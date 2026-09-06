@@ -36,6 +36,7 @@ pub enum TokenKind {
     Plus,
     FatArrow, // =>
     Forall,   // ∀ or forall
+    At,
     LParen,
     RParen,
     LBrace,
@@ -215,6 +216,7 @@ impl<'a> Lexer<'a> {
             ',' => self.single(TokenKind::Comma, start),
             '+' => self.single(TokenKind::Plus, start),
             '∀' => self.single(TokenKind::Forall, start),
+            '@' => self.single(TokenKind::At, start),
             '-' => {
                 self.bump();
                 if self.peek() == Some('>') {
@@ -408,10 +410,17 @@ impl Expr {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum BinderKind {
+    Explicit,
+    Implicit,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Binder {
     pub name: String,
     /// `None` means the binder has no explicit type (elaboration infers it).
     pub ty: Option<Box<Expr>>,
+    pub style: BinderKind,
     pub span: Span,
 }
 
@@ -679,7 +688,7 @@ impl Parser {
     fn starts_atom(&self) -> bool {
         match &self.peek().kind {
             TokenKind::Ident(name) => !is_reserved_command(name),
-            TokenKind::Num(_) | TokenKind::Hole | TokenKind::LParen => true,
+            TokenKind::Num(_) | TokenKind::Hole | TokenKind::LParen | TokenKind::At => true,
             TokenKind::Forall => true,
             _ => false,
         }
@@ -688,6 +697,20 @@ impl Parser {
     fn parse_atom(&mut self) -> Result<Expr> {
         let tok = self.bump();
         match tok.kind {
+            TokenKind::At => {
+                let tok = self.bump();
+                match tok.kind {
+                    TokenKind::Ident(name) => self.finish_const(name, tok.span),
+                    other => Err(Diagnostic::new(
+                        DiagnosticKind::UnexpectedToken {
+                            found: format!("{other:?}"),
+                            expected: "a constant name after `@`".to_string(),
+                        },
+                        tok.span,
+                        "expected a constant name after `@`".to_string(),
+                    )),
+                }
+            }
             TokenKind::LParen => {
                 let inner = self.parse_expr()?;
                 self.expect_kind(&TokenKind::RParen, "`)`")?;
@@ -741,61 +764,7 @@ impl Parser {
                     span: tok.span,
                 })
             }
-            TokenKind::Ident(name) if name.ends_with('.') => {
-                let base = name.trim_end_matches('.').to_string();
-                if base.is_empty() {
-                    return Err(Diagnostic::new(
-                        DiagnosticKind::UnexpectedToken {
-                            found: name,
-                            expected: "a constant name".to_string(),
-                        },
-                        tok.span,
-                        "expected a constant name before `.{...}`".to_string(),
-                    ));
-                }
-                if self.peek().kind == TokenKind::LBrace {
-                    self.bump();
-                    let mut levels = Vec::new();
-                    loop {
-                        let level = self.bump();
-                        match level.kind {
-                            TokenKind::Ident(name) | TokenKind::Num(name) => levels.push(name),
-                            other => {
-                                return Err(Diagnostic::new(
-                                    DiagnosticKind::UnexpectedToken {
-                                        found: format!("{other:?}"),
-                                        expected: "a universe level".to_string(),
-                                    },
-                                    level.span,
-                                    "expected a universe level".to_string(),
-                                ));
-                            }
-                        }
-                        match self.peek().kind {
-                            TokenKind::Comma => {
-                                self.bump();
-                            }
-                            TokenKind::RBrace => {
-                                self.bump();
-                                break;
-                            }
-                            _ => {
-                                return Err(
-                                    self.error_here("expected `,` or `}` in universe arguments")
-                                );
-                            }
-                        }
-                    }
-                    let span = Span::new(tok.span.start, self.tokens[self.cursor - 1].span.end);
-                    Ok(Expr::UniverseApp {
-                        name: base,
-                        levels,
-                        span,
-                    })
-                } else {
-                    Err(self.error_here("expected `{...}` after `.{...}` universe marker"))
-                }
-            }
+            TokenKind::Ident(name) if name.ends_with('.') => self.finish_const(name, tok.span),
             TokenKind::Ident(name) if is_reserved_command(&name) => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
                     found: name.clone(),
@@ -804,10 +773,7 @@ impl Parser {
                 tok.span,
                 format!("command keyword `{name}` cannot appear inside an expression"),
             )),
-            TokenKind::Ident(name) => Ok(Expr::Ident {
-                name,
-                span: tok.span,
-            }),
+            TokenKind::Ident(name) => self.finish_const(name, tok.span),
             other => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
                     found: format!("{other:?}"),
@@ -817,6 +783,64 @@ impl Parser {
                 format!("expected an expression, found {other:?}"),
             )),
         }
+    }
+
+    fn finish_const(&mut self, name: String, span: Span) -> Result<Expr> {
+        if name.ends_with('.') {
+            let base = name.trim_end_matches('.').to_string();
+            if base.is_empty() {
+                return Err(Diagnostic::new(
+                    DiagnosticKind::UnexpectedToken {
+                        found: name,
+                        expected: "a constant name".to_string(),
+                    },
+                    span,
+                    "expected a constant name before `.{...}`".to_string(),
+                ));
+            }
+            if self.peek().kind == TokenKind::LBrace {
+                self.bump();
+                let mut levels = Vec::new();
+                loop {
+                    let level = self.bump();
+                    match level.kind {
+                        TokenKind::Ident(name) | TokenKind::Num(name) => levels.push(name),
+                        other => {
+                            return Err(Diagnostic::new(
+                                DiagnosticKind::UnexpectedToken {
+                                    found: format!("{other:?}"),
+                                    expected: "a universe level".to_string(),
+                                },
+                                level.span,
+                                "expected a universe level".to_string(),
+                            ));
+                        }
+                    }
+                    match self.peek().kind {
+                        TokenKind::Comma => {
+                            self.bump();
+                        }
+                        TokenKind::RBrace => {
+                            self.bump();
+                            break;
+                        }
+                        _ => {
+                            return Err(
+                                self.error_here("expected `,` or `}` in universe arguments")
+                            );
+                        }
+                    }
+                }
+                let span = Span::new(span.start, self.tokens[self.cursor - 1].span.end);
+                return Ok(Expr::UniverseApp {
+                    name: base,
+                    levels,
+                    span,
+                });
+            }
+            return Err(self.error_here("expected `{...}` after `.{...}` universe marker"));
+        }
+        Ok(Expr::Ident { name, span })
     }
 
     fn parse_lambda(&mut self) -> Result<Expr> {
@@ -870,6 +894,21 @@ impl Parser {
                 Ok(Binder {
                     name,
                     ty: Some(Box::new(ty)),
+                    style: BinderKind::Explicit,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
+            TokenKind::LBrace => {
+                self.bump();
+                let name = self.expect_ident("binder name")?;
+                self.expect_colon("binder type")?;
+                let ty = self.parse_expr()?;
+                self.expect_kind(&TokenKind::RBrace, "`}`")?;
+                let end = self.tokens[self.cursor - 1].span.end;
+                Ok(Binder {
+                    name,
+                    ty: Some(Box::new(ty)),
+                    style: BinderKind::Implicit,
                     span: Span::new(tok.span.start, end),
                 })
             }
@@ -884,6 +923,7 @@ impl Parser {
                 Ok(Binder {
                     name,
                     ty,
+                    style: BinderKind::Explicit,
                     span: Span::new(tok.span.start, end),
                 })
             }

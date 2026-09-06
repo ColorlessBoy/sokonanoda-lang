@@ -73,6 +73,11 @@ def id0 : forall (α : Prop), α -> α := id.{0}
 
 Without an explicit application (`#check id`) the universe defaults to zero.
 
+`@id.{u}` is accepted as an alias, and implicit binders can be written with
+curly braces (`forall {α : Sort u}, ...`). The ported
+[`examples/py-fol-core.sokonanoda`](examples/py-fol-core.sokonanoda) mirrors
+py_nanobruijn's FOL fragments and is checked by both front-end and CLI tests.
+
 Errors are printed as `line:col: error: ...` without kernel panic traces.
 
 ## Development principles

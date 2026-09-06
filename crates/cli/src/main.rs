@@ -155,6 +155,7 @@ fn print_help() {
     println!("  #check <expr>                  print the inferred type");
     println!("  #reduce <expr>                 evaluate a closed expression");
     println!("  #print <name>                  print a declaration");
+    println!("  universes: def id {{u}}; Sort u; explicit application @id.{{u}}");
 }
 
 fn print_repl_help() {

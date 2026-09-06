@@ -185,9 +185,10 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 >   内核检查（如 `(fun (α : Sort 2) => α) : Type 1 -> Type 1`）。
 > - `Sort u` 宇宙变量、声明级 `{u, v}` 参数与显式应用 `id.{u}` 已实现；普通使用默认
 >   universe = 0；axiom/def/theorem 均可带宇宙参数。
+> - `@id.{u}` 语法别名与 `{α : Sort u}` 隐式 binder 已实现；`py-fol-core.sokonanoda`
+>   从 py_nanobruijn 的 fol 片段移植并在 front + CLI 双层测试。
 > - `#print <name>` 已可用；kernel 拒绝输出不再刷 panic trace。
-> 未完成：`@id.{u}` 语法别名、归纳类型的真正声明语法、Nat.rec/induction、
-> 隐式 binder 语法、tactic 草稿模式与课程 UI。
+> 未完成：归纳类型的真正声明语法、Nat.rec/induction、tactic 草稿模式与课程 UI。
 
 目标：文件第一次能“翻译”成 kernel 可检查的内容。
 
