@@ -28,6 +28,12 @@ examples/       Sample .sokonanoda lesson files
 
 See [ROADMAP.md](ROADMAP.md).
 
+Design docs:
+
+- [docs/inductive.md](docs/inductive.md) — what `inductive/ctor/rec/iota` mean
+  and how the kernel reduces them;
+- [docs/protocol.md](docs/protocol.md) — CLI/editor/agent feedback protocol.
+
 ## Quick start
 
 ```text
