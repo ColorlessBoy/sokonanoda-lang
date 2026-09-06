@@ -119,13 +119,17 @@ fn check_source(src: &str, label: &str) -> bool {
     output.errors.is_empty()
 }
 
-fn report_output(output: &CompileOutput, _src: &str, seen_events: usize) {
+fn report_output(output: &CompileOutput, src: &str, seen_events: usize) {
     for event in output.events.iter().skip(seen_events) {
         match event {
             CheckEvent::DeclarationChecked { name } => println!("checked declaration {name}"),
             CheckEvent::ExampleChecked => println!("checked example"),
-            CheckEvent::TypeChecked { text } => println!("#check : {text}"),
-            CheckEvent::Reduced { text } => println!("#reduce => {text}"),
+            CheckEvent::TypeChecked { text, span } => {
+                println!("{}: {text}", expr_text(src, *span));
+            }
+            CheckEvent::Reduced { text, span } => {
+                println!("{} => {text}", expr_text(src, *span));
+            }
             CheckEvent::Printed { name, text } => println!("#print {name} :\n{text}"),
             CheckEvent::ExerciseOpen => println!("exercise open (fill the ???)"),
         }
@@ -135,6 +139,14 @@ fn report_output(output: &CompileOutput, _src: &str, seen_events: usize) {
             "{}:{}: error: {}",
             err.span.start.line, err.span.start.column, err.message
         );
+    }
+}
+
+fn expr_text<'a>(src: &'a str, span: sokonanoda_front::Span) -> &'a str {
+    if span.end.offset <= src.len() {
+        &src[span.start.offset..span.end.offset]
+    } else {
+        "<expr>"
     }
 }
 

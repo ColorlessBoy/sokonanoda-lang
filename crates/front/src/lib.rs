@@ -770,7 +770,7 @@ impl Parser {
                     TokenKind::Ident(name) => {
                         return Ok(Expr::Sort {
                             sort: SortKind::Level(name),
-                            span: tok.span,
+                            span: Span::new(tok.span.start, level_tok.span.end),
                         });
                     }
                     other => {
@@ -786,7 +786,7 @@ impl Parser {
                 };
                 Ok(Expr::Sort {
                     sort: SortKind::Sort(level),
-                    span: tok.span,
+                    span: Span::new(tok.span.start, level_tok.span.end),
                 })
             }
             TokenKind::Ident(name) if name.ends_with('.') => self.finish_const(name, tok.span),

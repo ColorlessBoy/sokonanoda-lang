@@ -30,8 +30,8 @@ impl CompileError {
 pub enum CheckEvent {
     DeclarationChecked { name: String },
     ExampleChecked,
-    TypeChecked { text: String },
-    Reduced { text: String },
+    TypeChecked { text: String, span: Span },
+    Reduced { text: String, span: Span },
     Printed { name: String, text: String },
     ExerciseOpen,
 }
@@ -61,10 +61,12 @@ enum PendingOp<'a> {
     Check {
         expr: ExprPtr<'a>,
         decl_before: usize,
+        span: Span,
     },
     Reduce {
         expr: ExprPtr<'a>,
         decl_before: usize,
+        span: Span,
     },
     Print {
         name: String,
@@ -195,6 +197,7 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                     Ok(e) => ops.push(PendingOp::Check {
                         expr: e,
                         decl_before,
+                        span: expr.span(),
                     }),
                     Err(e) => out.errors.push(e),
                 }
@@ -211,6 +214,7 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                     Ok(e) => ops.push(PendingOp::Reduce {
                         expr: e,
                         decl_before,
+                        span: expr.span(),
                     }),
                     Err(e) => out.errors.push(e),
                 }
@@ -244,18 +248,26 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                 Ok(()) => out.events.push(CheckEvent::ExampleChecked),
                 Err(e) => out.errors.push(CompileError::new(format!("{e}"), span)),
             },
-            PendingOp::Check { expr, decl_before } => {
+            PendingOp::Check {
+                expr,
+                decl_before,
+                span,
+            } => {
                 env.with_tc(EnvLimit::ByIndex(decl_before), |tc| {
                     let ty = tc.infer_closed_type(expr);
                     let text = tc.with_pp(|pp| pp.pp_expr(ty));
-                    out.events.push(CheckEvent::TypeChecked { text });
+                    out.events.push(CheckEvent::TypeChecked { text, span });
                 });
             }
-            PendingOp::Reduce { expr, decl_before } => {
+            PendingOp::Reduce {
+                expr,
+                decl_before,
+                span,
+            } => {
                 env.with_tc(EnvLimit::ByIndex(decl_before), |tc| {
                     let reduced = tc.reduce_closed(expr);
                     let text = tc.with_pp(|pp| pp.pp_expr(reduced));
-                    out.events.push(CheckEvent::Reduced { text });
+                    out.events.push(CheckEvent::Reduced { text, span });
                 });
             }
             PendingOp::Print { name, ptr, span } => {
@@ -667,15 +679,15 @@ mod tests {
         let file = parse("def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n").unwrap();
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
-        assert_eq!(
-            out.events,
-            vec![
-                CheckEvent::DeclarationChecked { name: "id".into() },
-                CheckEvent::TypeChecked {
-                    text: "Prop -> Prop".into()
-                },
-            ]
-        );
+        assert_eq!(out.events.len(), 2);
+        assert!(matches!(
+            &out.events[0],
+            CheckEvent::DeclarationChecked { name } if name == "id"
+        ));
+        assert!(matches!(
+            &out.events[1],
+            CheckEvent::TypeChecked { text, .. } if text == "Prop -> Prop"
+        ));
     }
 
     #[test]
@@ -737,14 +749,15 @@ mod tests {
         .unwrap();
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
-        assert_eq!(
-            out.events,
-            vec![
-                CheckEvent::DeclarationChecked { name: "two".into() },
-                CheckEvent::TypeChecked { text: "Nat".into() },
-                CheckEvent::Reduced { text: "2".into() },
-            ]
-        );
+        assert_eq!(out.events.len(), 3);
+        assert!(matches!(
+            &out.events[1],
+            CheckEvent::TypeChecked { text, .. } if text == "Nat"
+        ));
+        assert!(matches!(
+            &out.events[2],
+            CheckEvent::Reduced { text, .. } if text == "2"
+        ));
     }
 
     #[test]
@@ -774,17 +787,15 @@ mod tests {
         .unwrap();
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
-        assert_eq!(
-            out.events,
-            vec![
-                CheckEvent::TypeChecked {
-                    text: "Type 2".into()
-                },
-                CheckEvent::TypeChecked {
-                    text: "Type 1 -> Type 1".into()
-                },
-            ]
-        );
+        assert_eq!(out.events.len(), 2);
+        assert!(matches!(
+            &out.events[0],
+            CheckEvent::TypeChecked { text, .. } if text == "Type 2"
+        ));
+        assert!(matches!(
+            &out.events[1],
+            CheckEvent::TypeChecked { text, .. } if text == "Type 1 -> Type 1"
+        ));
     }
 
     #[test]
@@ -850,7 +861,8 @@ mod tests {
         let file = parse(
             "def id {u} : forall (α : Sort u), α -> α :=\n\
              fun (α : Sort u) => fun (a : α) => a\n\
-             def id0 : forall (α : Prop), α -> α := id.{0}\n",
+             def id0 : (α : Prop) -> α -> α :=\n\
+             fun (α : Prop) => id.{0} α\n",
         )
         .expect("parse literal universe application");
         let out = compile_fol(&file);

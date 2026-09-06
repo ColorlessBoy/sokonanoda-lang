@@ -47,7 +47,7 @@ and runs the complete sokonanoda kernel over them:
 
 ```text
 checked declaration id
-#check : Prop -> Prop
+id: Prop -> Prop
 exercise open (fill the ???)
 ```
 
@@ -56,9 +56,9 @@ abbreviations), so the type of function types is checkable:
 
 ```text
 > #check Sort 2
-#check : Type 2
+Sort 2: Type 2
 > #check (fun (α : Sort 2) => α)
-#check : Type 1 -> Type 1
+(fun (α : Sort 2) => α): Type 1 -> Type 1
 ```
 
 Universe polymorphism uses declaration-level parameters and explicit
@@ -68,7 +68,8 @@ applications:
 def id {u} : {α : Sort u} -> (a : α) -> α :=
   fun (α : Sort u) => fun (a : α) => a
 
-def id0 : forall (α : Prop), α -> α := id.{0}
+def id0 : (α : Prop) -> α -> α :=
+  fun (α : Prop) => id.{0} α
 ```
 
 Without an explicit application (`#check id`) the universe defaults to zero.

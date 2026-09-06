@@ -39,7 +39,7 @@ fn cli_checks_a_valid_file_via_stdin() {
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration id"));
-    assert!(stdout.contains("#check : Prop -> Prop"));
+    assert!(stdout.contains("id: Prop -> Prop"));
 }
 
 #[test]
@@ -68,7 +68,7 @@ fn cli_checks_nat_and_reduces_addition() {
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration two"));
-    assert!(stdout.contains("#reduce => 3"), "stdout: {stdout}");
+    assert!(stdout.contains("1 + 2 => 3"), "stdout: {stdout}");
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn repl_accumulates_declarations_and_checks_them() {
         stdout.contains("checked declaration id"),
         "stdout: {stdout}"
     );
-    assert!(stdout.contains("#check : Prop -> Prop"), "stdout: {stdout}");
+    assert!(stdout.contains("id: Prop -> Prop"), "stdout: {stdout}");
 }
 
 #[test]
@@ -135,7 +135,8 @@ fn repl_env_and_help_are_available() {
 fn cli_checks_universe_polymorphic_declarations() {
     let out = run("def id {u} : forall (α : Sort u), α -> α :=\n\
          fun (α : Sort u) => fun (a : α) => a\n\
-         def id0 : forall (α : Prop), α -> α := id.{0}\n\
+         def id0 : (α : Prop) -> α -> α :=\n\
+         fun (α : Prop) => id.{0} α\n\
          #print id\n");
     assert!(
         out.status.success(),
@@ -168,4 +169,12 @@ fn cli_checks_ported_py_fol_core() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration id"));
     assert!(stdout.contains("checked declaration and_comm_iff"));
+}
+
+#[test]
+fn cli_prints_expression_then_type() {
+    let out = run("#check Sort 1\n");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(stdout.trim(), "Sort 1: Type 1");
 }
