@@ -28,19 +28,30 @@ examples/       Sample .sokonanoda lesson files
 
 See [ROADMAP.md](ROADMAP.md).
 
-Design docs:
+Documentation:
 
+- [docs/architecture.md](docs/architecture.md) — deep architecture + kernel
+  tour (start here to onboard);
+- [docs/research.md](docs/research.md) — survey of teaching-oriented proof
+  languages and infrastructure lessons;
+- [docs/design-infrastructure.md](docs/design-infrastructure.md) — gap
+  analysis and design brainstorm for the next milestones;
 - [docs/inductive.md](docs/inductive.md) — what `inductive/ctor/rec/iota` mean
   and how the kernel reduces them;
-- [docs/protocol.md](docs/protocol.md) — CLI/editor/agent feedback protocol.
+- [docs/protocol.md](docs/protocol.md) — CLI/editor/agent feedback protocol
+  (human text lines + JSON Lines).
 
 ## Quick start
 
 ```text
 cargo test
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda
+cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json examples/lesson-01.sokonanoda
 cargo run -q -p sokonanoda-cli --bin sokonanoda repl
 ```
+
+`--json` prints one JSON event per line (the machine/agent view); errors carry
+a stable pipeline stage (`parse`/`elab`/`kernel`).
 
 In `repl`, declarations accumulate line by line. Commands:
 

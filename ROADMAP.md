@@ -2,7 +2,9 @@
 
 > 状态：draft
 > 基线：sokonanoda `7b51784`
-> 日期：2026-09-06
+> 日期：2026-09-06（本轮：2026-09-06 续，基础设施）
+> 配套文档：`docs/architecture.md`（深度理解）、`docs/research.md`（外部调研）、
+> `docs/design-infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。
 
 ## 0. 终极形态
 
@@ -318,6 +320,27 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 ### 第 7 条进度
 
 - 已支持源码块：`inductive ... / ctor ... / rec ... / iota ... / end`
-- 零规则 iota 已通过 kernel 化简测试（`Nat.rec ... z ... -> z`）
-- 仍待补：构造子嵌套下的深层归约（如 `s (Nat.rec ...)` 内的再次 iota），
-  以及把该 DSL 接到内置 `Nat`（当前内置 Nat 与显式块同名冲突，先以 MyNat 验证）。
+- 零规则与深层归约都已通过：kernel 新增 `deep_reduce`，`s (Nat.rec ...)` 内
+  的再次 iota 可继续算（commit dac8e80）；`examples/py-nat.sokonanoda` 显式
+  `inductive Nat` 块 + iota 规则端到端通过，`add two two` 化简为 succ 链。
+- 说明：显式 `Nat` 块会覆盖内置 prelude（`compile.rs` 先探测文件里是否有同名块）。
+
+
+---
+
+### 本轮基础设施进度（2026-09-06 续）
+
+1. [x] 文档：`docs/architecture.md`（架构与内核深度理解）、`docs/research.md`
+      （外部调研）、`docs/design-infrastructure.md`（基础设施设计脑暴）、
+      `docs/protocol.md` 刷新为"文本 + JSON Lines"双视图协议。
+2. [x] CLI `--json`：每条事件一行 JSON（`decl.checked` / `expr.typed` /
+      `expr.reduced` / `decl.printed` / `exercise.open` / `diagnostic`），带 span 与 human 文本。
+3. [x] 错误 stage/code：parse（`unexpected-token`/`unexpected-eof`）、
+      elab、kernel 三阶段；人类视图 `error[stage]:`，JSON 视图带 `stage`+`code`。
+4. [x] CI：`.github/workflows/ci.yml`（workspace 测试 + 全部 examples 语料 +
+      `--json` 事件为合法 JSON）。
+5. [x] 语料回归：`crates/cli/tests/examples.rs` 遍历全部 `examples/*.sokonanoda`。
+
+下一步（待设计确认，见 `docs/design-infrastructure.md` §4/§6）：I1 练习引擎 v1
+（`#exercise` 头 + 期望目标类型 + solved/failed + 提示模板）、I2 prelude 对齐扩充、
+I3 elaborator 推进、I4 第一门课程、I5 L1 最小服务。
