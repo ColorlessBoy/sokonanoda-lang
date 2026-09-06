@@ -337,6 +337,12 @@ enum PendingOp<'a> {
         declar: Declar<'a>,
         span: Span,
     },
+    OpenExercise {
+        name: Option<String>,
+        kind: DeclKind,
+        goal: Option<String>,
+        span: Span,
+    },
     Check {
         expr: ExprPtr<'a>,
         env_at: usize,
@@ -405,16 +411,11 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
                 span,
             } => {
                 if matches!(val, Expr::Hole { .. }) {
-                    decl_states.push(DeclState {
+                    ops.push(PendingOp::OpenExercise {
+                        name: Some(name.clone()),
                         kind: DeclKind::Definition,
-                        name: Some(name.clone()),
-                        span: *span,
-                        status: DeclStatus::Open,
-                        error: None,
                         goal: Some(render_expr(ty)),
-                    });
-                    out.events.push(CheckEvent::ExerciseOpen {
-                        name: Some(name.clone()),
+                        span: *span,
                     });
                     continue;
                 }
@@ -474,16 +475,11 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
                 span,
             } => {
                 if matches!(val, Expr::Hole { .. }) {
-                    decl_states.push(DeclState {
+                    ops.push(PendingOp::OpenExercise {
+                        name: Some(name.clone()),
                         kind: DeclKind::Theorem,
-                        name: Some(name.clone()),
-                        span: *span,
-                        status: DeclStatus::Open,
-                        error: None,
                         goal: Some(render_expr(ty)),
-                    });
-                    out.events.push(CheckEvent::ExerciseOpen {
-                        name: Some(name.clone()),
+                        span: *span,
                     });
                     continue;
                 }
@@ -590,15 +586,12 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
             }
             Command::Example { ty, val, span } => {
                 if matches!(val, Expr::Hole { .. }) {
-                    decl_states.push(DeclState {
-                        kind: DeclKind::Example,
+                    ops.push(PendingOp::OpenExercise {
                         name: None,
-                        span: *span,
-                        status: DeclStatus::Open,
-                        error: None,
+                        kind: DeclKind::Example,
                         goal: Some(render_expr(ty)),
+                        span: *span,
                     });
-                    out.events.push(CheckEvent::ExerciseOpen { name: None });
                     continue;
                 }
                 example_idx += 1;
@@ -748,6 +741,23 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
 
     for op in ops {
         match op {
+            PendingOp::OpenExercise {
+                name,
+                kind,
+                goal,
+                span,
+            } => {
+                out.events
+                    .push(CheckEvent::ExerciseOpen { name: name.clone() });
+                decl_states.push(DeclState {
+                    kind,
+                    name,
+                    span,
+                    status: DeclStatus::Open,
+                    error: None,
+                    goal,
+                });
+            }
             PendingOp::Decl {
                 name,
                 kind,
