@@ -199,3 +199,35 @@ fn cli_checks_ported_nat_fol_and_reduces_add() {
     assert!(stdout.contains("checked declaration add"));
     assert!(stdout.contains("add two two => succ (succ (succ (succ zero)))"));
 }
+
+#[test]
+fn repl_prove_shows_partial_lambda_and_checks_done() {
+    let out = run_repl(
+        "#prove {a : Prop} -> a -> a\n\
+         intro a\n\
+         intro h\n\
+         exact h\n\
+         done\n",
+    );
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("lambda: fun {a : Prop} => ???"));
+    assert!(stdout.contains("lambda: fun {a : Prop} => fun (h : a) => ???"));
+    assert!(stdout.contains("lambda: fun {a : Prop} => fun (h : a) => h"));
+    assert!(stdout.contains("checked example"), "stdout: {stdout}");
+}
+
+#[test]
+fn repl_prove_assumption_resolves_goal() {
+    let out = run_repl(
+        "#prove {a : Prop} -> a -> a\n\
+         intro a\n\
+         intro h\n\
+         assumption\n\
+         done\n",
+    );
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("lambda: fun {a : Prop} => fun (h : a) => h"));
+    assert!(stdout.contains("checked example"), "stdout: {stdout}");
+}

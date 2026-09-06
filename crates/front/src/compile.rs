@@ -83,9 +83,10 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
-    let explicit_nat = file.commands.iter().any(|command| {
-        matches!(command, Command::InductiveBlock { name, .. } if name == "Nat")
-    });
+    let explicit_nat = file
+        .commands
+        .iter()
+        .any(|command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"));
     if !explicit_nat {
         install_prelude(&mut builder);
         for builtin in ["Nat", "Nat.zero", "Nat.succ", "Nat.add"] {
@@ -459,7 +460,10 @@ fn install_inductive_block<'a>(
                 .position(|c| c.name == rule.ctor_name)
                 .ok_or_else(|| {
                     CompileError::new(
-                        format!("iota rule refers to unknown constructor `{}`", rule.ctor_name),
+                        format!(
+                            "iota rule refers to unknown constructor `{}`",
+                            rule.ctor_name
+                        ),
                         rule.span,
                     )
                 })?;
@@ -1248,18 +1252,30 @@ def myAdd : MyNat -> MyNat -> MyNat :=
         let file = parse(src).expect("parse explicit inductive block");
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
-        assert!(out.events.iter().any(|e| matches!(
-            e,
-            CheckEvent::Reduced { text, .. } if text == "z"
-        )), "events: {:?}", out.events);
-        assert!(out.events.iter().any(|e| matches!(
-            e,
-            CheckEvent::Reduced { text, .. } if text == "s z"
-        )), "events: {:?}", out.events);
-        assert!(out.events.iter().any(|e| matches!(
-            e,
-            CheckEvent::Reduced { text, .. } if text == "s (s (s z))"
-        )), "events: {:?}", out.events);
+        assert!(
+            out.events.iter().any(|e| matches!(
+                e,
+                CheckEvent::Reduced { text, .. } if text == "z"
+            )),
+            "events: {:?}",
+            out.events
+        );
+        assert!(
+            out.events.iter().any(|e| matches!(
+                e,
+                CheckEvent::Reduced { text, .. } if text == "s z"
+            )),
+            "events: {:?}",
+            out.events
+        );
+        assert!(
+            out.events.iter().any(|e| matches!(
+                e,
+                CheckEvent::Reduced { text, .. } if text == "s (s (s z))"
+            )),
+            "events: {:?}",
+            out.events
+        );
     }
 
     #[test]
@@ -1278,23 +1294,34 @@ def oneNat : Nat := succ zero
         let file = parse(src).expect("parse explicit Nat block");
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
-        assert!(out.events.iter().any(|e| matches!(
-            e,
-            CheckEvent::Reduced { text, .. } if text == "succ zero"
-        )), "events: {:?}", out.events);
+        assert!(
+            out.events.iter().any(|e| matches!(
+                e,
+                CheckEvent::Reduced { text, .. } if text == "succ zero"
+            )),
+            "events: {:?}",
+            out.events
+        );
     }
 
     #[test]
     fn ported_nat_fol_add_two_two_reduces() {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/py-nat.sokonanoda");
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../examples/py-nat.sokonanoda"
+        );
         let src = std::fs::read_to_string(path).expect("read py-nat.sokonanoda");
         let file = parse(&src).expect("parse py-nat.sokonanoda");
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
-        assert!(out.events.iter().any(|e| matches!(
-            e,
-            CheckEvent::Reduced { text, .. } if text == "succ (succ (succ (succ zero)))"
-        )), "events: {:?}", out.events);
+        assert!(
+            out.events.iter().any(|e| matches!(
+                e,
+                CheckEvent::Reduced { text, .. } if text == "succ (succ (succ (succ zero)))"
+            )),
+            "events: {:?}",
+            out.events
+        );
     }
 
     #[test]

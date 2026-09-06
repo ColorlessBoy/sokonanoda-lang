@@ -5,6 +5,7 @@
 //! grammar point here means adding a lesson for it.
 
 pub mod compile;
+pub mod proof;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Pos {

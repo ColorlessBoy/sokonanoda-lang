@@ -21,6 +21,13 @@ exercise open (fill the ???)
 <line>:<col>: error: <message>
 ```
 
+During `#prove`, every tactic step emits the partial lambda built so far:
+
+```text
+goal: a -> a
+lambda: fun {a : Prop} => ???
+```
+
 Every `<expr>`/`<value>` is the exact source slice of the checked expression,
 so a model can re-run or display it without re-parsing.
 
