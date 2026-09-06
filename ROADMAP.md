@@ -142,6 +142,12 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 ### M0 —— kernel 完整迁移与稳定 API（0.1）
 
+> 进度（2026-09-06）：
+> - workspace `sokonanoda-follow` 已建立，kernel 完整快照迁入 `crates/kernel`；
+> - 完整测试基线通过：40 个内核单元测试 + arena 集成测试 + 首个内存 API 测试；
+> - 上游两个缺少 fixture 的测试已隔离并注明原因（需重建 NDJSON fixture，不是跳过内核能力）；
+> - 已新增 `Config::default`、`ExportFile::empty`、`infer_closed_type`、`reduce_closed` 等内存 API。
+
 目标：完整保留 sokonanoda 内核，并提供教学前端需要的稳定接口。
 
 - 建 workspace：`kernel`、`course`、`compiler`、`cli`。

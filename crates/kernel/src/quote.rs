@@ -3,6 +3,25 @@ use crate::util::ExprPtr;
 use crate::value::{ElimView, RigidHead, Spine, Value, E, S, V};
 
 impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
+    /// Infer the weak-head type of a closed expression and return it quoted
+    /// back to a kernel expression.
+    ///
+    /// This is the kernel-level primitive behind the teaching tool's `#check`.
+    pub fn infer_closed_type(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> {
+        self.infer_whnf_weak(e)
+    }
+
+    /// Evaluate a closed expression to its canonical (fully reduced) form and
+    /// return it as a kernel expression.
+    ///
+    /// This is the kernel-level primitive behind the teaching tool's `#reduce`.
+    /// Terms that do not terminate will not terminate here either; a bounded
+    /// variant belongs in the front-end layer.
+    pub fn reduce_closed(&mut self, e: ExprPtr<'t>) -> ExprPtr<'t> {
+        let v = self.value_of(e);
+        self.quote(0, v)
+    }
+
     pub(crate) fn quote(&mut self, depth: u32, v: V<'t>) -> ExprPtr<'t> {
         let v = self.force_thunk(depth, v);
         let key = (v as *const Value<'t> as usize, depth);

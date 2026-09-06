@@ -630,6 +630,29 @@ pub struct ExportFile<'p> {
 }
 
 impl<'p> ExportFile<'p> {
+    /// Build an empty kernel environment directly in memory, without reading an
+    /// export file. This is the entry point for front-ends that produce
+    /// declarations themselves (e.g. the Follow teaching front-end).
+    ///
+    /// The returned environment references `arena`, so the arena must outlive
+    /// every type-checking session created from it.
+    pub fn empty(arena: &'p ArenaRef<'p>, config: Config) -> Self {
+        let mut dag = Dag::new_local(&config);
+        let anon = NamePtr::global(dag.names.intern(arena, Name::Anon));
+        let zero = LevelPtr::global(dag.levels.intern(arena, Level::Zero));
+        let name_cache = dag.mk_name_cache(anon);
+        Self {
+            dag,
+            anon,
+            zero,
+            declars: new_fx_index_map(),
+            notations: new_fx_hash_map(),
+            name_cache,
+            config,
+            mutual_block_sizes: new_fx_hash_map(),
+        }
+    }
+
     pub fn new_env(&self, env_limit: EnvLimit<'p>) -> Env<'_, '_> { Env::new(&self.declars, &self.notations, env_limit) }
 
     pub fn with_ctx<F, A>(&self, f: F) -> A
@@ -1367,6 +1390,30 @@ pub struct Config {
 
     #[serde(default)]
     pub unsafe_permit_all_axioms: bool,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            export_file_path: None,
+            use_stdin: false,
+            permitted_axioms: None,
+            permit_standard_axioms: false,
+            unpermitted_axiom_hard_error: false,
+            num_threads: 1,
+            parse_only: false,
+            nat_extension: true,
+            string_extension: true,
+            pp_declars: None,
+            unknown_pp_declar_hard_error: false,
+            pp_options: crate::pretty_printer::PpOptions::default(),
+            pp_output_path: None,
+            pp_to_stdout: false,
+            print_success_message: false,
+            print_axioms: false,
+            unsafe_permit_all_axioms: false,
+        }
+    }
 }
 
 impl TryFrom<&Path> for Config {

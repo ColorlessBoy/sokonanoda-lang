@@ -42,7 +42,12 @@ pub(crate) enum InferFlag {
 }
 
 pub struct TypeChecker<'x, 't, 'p> {
-    pub(crate) ctx: &'x mut TcCtx<'t, 'p>,
+    /// The elaboration/checking context. Front-ends use this to allocate
+    /// names, levels and expressions directly in the kernel arena.
+    ///
+    /// This is public because the Follow front-end is intentionally a thin
+    /// layer over the complete sokonanoda kernel rather than a second IR.
+    pub ctx: &'x mut TcCtx<'t, 'p>,
     /// An immutable reference to an environment, which contains declarations and notation.
     /// To accommodate the temporary declarations created while checking nested inductives,
     /// the environment may have a temporary extension which also holds declarations, and
@@ -271,5 +276,14 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         let ctx = self.empty_ctx();
         let ty = self.infer_value(InferOnly, depth, env, ctx, e);
         self.is_prop_type(depth, ty)
+    }
+
+    /// Run a pretty-printer session against the current type-checking
+    /// context. Expressions allocated during this session can be printed
+    /// without leaving the arena they live in.
+    pub fn with_pp<F, A>(&mut self, f: F) -> A
+    where
+        F: FnOnce(&mut crate::pretty_printer::PrettyPrinter<'_, 't, 'p>) -> A, {
+        self.ctx.with_pp(self.arena, f)
     }
 }
