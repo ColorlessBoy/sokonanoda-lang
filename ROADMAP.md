@@ -350,3 +350,25 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 下一步（待设计确认，见 `docs/design-infrastructure.md` §4/§6）：I1 练习引擎 v1
 （`#exercise` 头 + 期望目标类型 + solved/failed + 提示模板）、I2 prelude 对齐扩充、
 I3 elaborator 推进、I4 第一门课程、I5 L1 最小服务。
+
+
+---
+
+### 第二轮进度（2026-09-06 晚，LSP-first 落地）
+
+按 `docs/design-infrastructure.md`（v2）开工并完成第一段垂直切片：
+
+1. [x] 逐声明状态 + `DocumentReport`（`check_document`）：每个声明 open/checked/failed，
+      开放练习不污染环境、不影响后续声明；练习带名字（def/theorem）与目标类型。
+2. [x] 错误细分：`ErrorKind` 稳定 code（`elab-*` / `kernel-rejected`…）+ 每条教学 `hint()`
+      （CLI/JSON/LSP 三处都带）。
+3. [x] 类型图 v1：elaboration 时按 AST 节点记录 (span, 内核项, binder 上下文)，
+      内核新增 `infer_under_binders`，得到整文件 hover 表（表达式级类型）。
+4. [x] `crates/lsp`（tower-lsp）：publishDiagnostics / hover（类型与 `???` 目标）/
+      documentSymbol / codeLens（练习状态）/ quick-fix `intro`；`editor/vscode/` 薄壳扩展。
+5. [x] `--json` 与 CLI 错误码跟随细粒度 code；`docs/protocol.md`、`docs/architecture.md`、
+      README 同步。
+
+仍待办（按 I6–I9 与课程）：prelude 扩充与占位体对齐、elaborator 推进（binder 推断、
+`let`、`match`）、第一门课（5 单元 × 3–8 练习 + golden）、真正增量缓存（check-then-add）、
+goal 视图深化与 `#prove` 入库、VS Code 扩展打包。

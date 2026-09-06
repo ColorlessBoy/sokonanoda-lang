@@ -23,6 +23,27 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.quote(0, v)
     }
 
+    /// Infer the type of an expression that may mention up to `binder_tys.len()`
+    /// loose de Bruijn variables, whose types are given outermost-first in
+    /// `binder_tys`. The returned type is quoted back with the same number of
+    /// loose variables, so a front-end can display it against its own binder
+    /// names. This powers editor hover on sub-expressions.
+    pub fn infer_under_binders(&mut self, binder_tys: &[ExprPtr<'t>], e: ExprPtr<'t>) -> ExprPtr<'t> {
+        let mut depth = 0u32;
+        let mut env = self.empty_env();
+        let mut ctx = self.empty_ctx();
+        for ty in binder_tys {
+            let dom = self.eval(depth, env, *ty);
+            let fresh = self.mk_bvar_hc(depth, dom);
+            env = crate::value::env_extend(self.arena, env, fresh);
+            ctx = crate::value::ctx_extend(self.arena, ctx, dom);
+            depth += 1;
+        }
+        let ty = self.infer_value(crate::tc::InferFlag::InferOnly, depth, env, ctx, e);
+        let ty = self.force_all(depth, ty);
+        self.quote(depth, ty)
+    }
+
     pub(crate) fn quote(&mut self, depth: u32, v: V<'t>) -> ExprPtr<'t> {
         let v = self.force_thunk(depth, v);
         let key = (v as *const Value<'t> as usize, depth);
@@ -30,9 +51,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             return q;
         }
         let r = match v {
-            Value::Sort { level , .. } => self.ctx.mk_sort(*level),
-            Value::NatLit { ptr , .. } => self.ctx.mk_nat_lit(*ptr).expect("quote: nat literal without extension"),
-            Value::StrLit { ptr , .. } => self.ctx.mk_string_lit(*ptr).expect("quote: string literal without extension"),
+            Value::Sort { level, .. } => self.ctx.mk_sort(*level),
+            Value::NatLit { ptr, .. } => self.ctx.mk_nat_lit(*ptr).expect("quote: nat literal without extension"),
+            Value::StrLit { ptr, .. } => self.ctx.mk_string_lit(*ptr).expect("quote: string literal without extension"),
             Value::Rigid { head, spine, .. } => {
                 let head = self.quote_rigid_head(depth, *head);
                 self.quote_spine(depth, head, spine)
@@ -106,7 +127,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
 
     pub(crate) fn quote_weak(&mut self, depth: u32, v: V<'t>) -> ExprPtr<'t> {
         match v {
-            Value::Thunk { env, expr, forced , .. } => {
+            Value::Thunk { env, expr, forced, .. } => {
                 if forced.get().is_none() {
                     let env = *env;
                     let expr = *expr;

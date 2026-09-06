@@ -46,7 +46,7 @@ fn cli_checks_a_valid_file_via_stdin() {
 fn cli_rejects_a_bad_declaration() {
     let out = run("def bad : Prop -> Type := fun (x : Prop) => x\n");
     assert!(!out.status.success());
-    assert!(String::from_utf8_lossy(&out.stderr).contains("error[kernel]:"));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("error[kernel-rejected]:"));
 }
 
 #[test]
@@ -299,7 +299,7 @@ fn json_mode_reports_kernel_stage_for_rejections() {
         value["stage"], "kernel",
         "rejection should be staged as kernel: {value}"
     );
-    assert_eq!(value["code"], "kernel");
+    assert_eq!(value["code"], "kernel-rejected");
 }
 
 #[test]
@@ -334,7 +334,10 @@ fn human_errors_carry_the_pipeline_stage() {
     let out = run("def bad : Prop -> Type := fun (x : Prop) => x\n");
     assert!(!out.status.success());
     let stderr = String::from_utf8_lossy(&out.stderr);
-    assert!(stderr.contains("error[kernel]:"), "stderr: {stderr}");
+    assert!(
+        stderr.contains("error[kernel-rejected]:"),
+        "stderr: {stderr}"
+    );
 }
 
 #[test]

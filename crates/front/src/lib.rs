@@ -86,6 +86,18 @@ impl Diagnostic {
     pub fn stage_code(&self) -> &'static str {
         "parse"
     }
+
+    /// First teaching hint for parse errors.
+    pub fn hint(&self) -> &'static str {
+        match self.kind {
+            DiagnosticKind::UnexpectedEof => {
+                "输入到这里就结束了。检查是不是漏写了 `:=` 的值、右括号或 `end`。"
+            }
+            DiagnosticKind::UnexpectedToken { .. } => {
+                "这里的写法不符合当前课程语法。检查命令拼写、括号配对，以及是否多写了还没学过的符号。"
+            }
+        }
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Diagnostic>;

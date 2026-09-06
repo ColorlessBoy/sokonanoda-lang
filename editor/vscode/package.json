@@ -1,0 +1,42 @@
+{
+  "name": "sokonanoda",
+  "displayName": "sokonanoda",
+  "description": "Editor support for .sokonanoda teaching files (LSP diagnostics, hover types, exercise status)",
+  "version": "0.1.0",
+  "publisher": "sokonanoda-lang",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Programming Languages", "Other"],
+  "activationEvents": ["onLanguage:sokonanoda"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "sokonanoda",
+        "aliases": ["sokonanoda", "sokonanoda lesson"],
+        "extensions": [".sokonanoda"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "sokonanoda",
+        "scopeName": "source.sokonanoda",
+        "path": "./syntaxes/sokonanoda.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "sokonanoda.showStatus",
+        "title": "sokonanoda: show exercise status",
+        "icon": "$(checklist)"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "echo ok"
+  },
+  "devDependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "sokonanoda",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#keywords" },
+    { "include": "#commands" },
+    { "include": "#numbers" },
+    { "include": "#arrows" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "match": "--.*$", "name": "comment.line.double-dash.sokonanoda" }
+      ]
+    },
+    "keywords": {
+      "match": "\\b(def|theorem|axiom|inductive|example|end|ctor|rec|iota|fun|forall|Prop|Type|Sort|Nat)\\b",
+      "name": "keyword.other.sokonanoda"
+    },
+    "commands": {
+      "match": "\\#(check|reduce|print|env|help|prove)\\b",
+      "name": "entity.name.function.sokonanoda"
+    },
+    "numbers": {
+      "match": "\\b[0-9]+\\b",
+      "name": "constant.numeric.sokonanoda"
+    },
+    "arrows": {
+      "patterns": [
+        { "match": "->", "name": "keyword.operator.arrow.sokonanoda" },
+        { "match": "=>", "name": "keyword.operator.fatarrow.sokonanoda" },
+        { "match": "\\?\\?\\?", "name": "markup.inserted.sokonanoda" }
+      ]
+    }
+  },
+  "scopeName": "source.sokonanoda"
+}

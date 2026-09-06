@@ -57,7 +57,7 @@ payload fields are additive and machine-meaningful.
 | `expr.typed` | `text` (source slice), `inferred_type`, `span` | `#check` |
 | `expr.reduced` | `text` (source slice), `value`, `span` | `#reduce` |
 | `decl.printed` | `name`, `text` | `#print` |
-| `exercise.open` | — | an `example : T := ???` answer slot |
+| `exercise.open` | `name` (optional) | an open answer slot (`def`/`theorem`/`example` with `???` value) |
 | `diagnostic` | `stage`, `code`, `message`, `span` | any error |
 
 Example:
@@ -65,8 +65,8 @@ Example:
 ```json
 {"type":"decl.checked","name":"id","human":"checked declaration id"}
 {"type":"expr.typed","human":"id: Prop -> Prop","inferred_type":"Prop -> Prop","span":{"start":{"offset":52,"line":2,"column":8},"end":{"offset":54,"line":2,"column":10}},"text":"id"}
-{"type":"exercise.open","human":"exercise open (fill the ???)"}
-{"type":"diagnostic","stage":"kernel","code":"kernel","message":"rejected: def_eq failed","span":{...}}
+{"type":"exercise.open","human":"exercise open (fill the ???)","name":"ex"}
+{"type":"diagnostic","stage":"kernel","code":"kernel-rejected","message":"rejected: def_eq failed","span":{...}}
 ```
 
 `text` is always the exact source slice of the checked expression, so a model
@@ -74,17 +74,20 @@ can re-run or display it without re-parsing.
 
 ## Error staging and codes
 
-Errors are classified by pipeline stage with a stable ASCII code:
+Errors carry a stable machine `code` and a stage. Codes are fine-grained so
+that a model or editor can react to the *kind* of mistake, not the wording:
 
-- `parse` — lexer/parser (`unexpected-token`, `unexpected-eof`);
-- `elab` — name/universe/binder elaboration in the front-end;
-- `kernel` — the complete kernel rejected (`rejected: ...`) or failed
-  (`kernel error: ...`) on a declaration.
+- `parse` stage — `unexpected-token`, `unexpected-eof`;
+- `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-universe-level`,
+  `elab-universe-arity`, `elab-untyped-binder`, `elab-hole-misplaced`,
+  `elab-duplicate-declaration`;
+- `kernel` stage — `kernel-rejected` (kernel said no) and
+  `kernel-internal` (a kernel bug; never a learner mistake).
 
-Human output prints `error[<stage>]: <message>`; JSON diagnostics carry
-`stage` and `code`. The plan (docs/design-infrastructure.md, D3) is to refine
-`code` below the stage level (unknown-identifier, universe-arity, type
-mismatch, …) with a first teaching-hint template per code.
+Human output prints `error[<code>]: <message>`; JSON diagnostics carry
+`stage`, `code`, `message` and a `hint`. The LSP maps the same data onto
+`publishDiagnostics` (message + hint, code, range) and `hover` (type map /
+goal text); see `docs/design-infrastructure.md` F1–F8.
 
 ## Future structured event names (service layer)
 

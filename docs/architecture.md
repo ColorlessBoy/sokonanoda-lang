@@ -59,9 +59,11 @@ sokonanoda-lang/
 │   │   └── test_resources/ # 上游 NDJSON fixtures（部分测试的输入）
 │   ├── front/              # .sokonanoda 前端
 │   │   └── src/{lib.rs,compile.rs,proof.rs}
-│   └── cli/                # `sokonanoda` 二进制（文件检查 / repl / --json）
-│       ├── src/main.rs
-│       └── tests/{cli.rs,examples.rs}
+│   ├── cli/                # `sokonanoda` 二进制（文件检查 / repl / --json）
+│   │   ├── src/main.rs
+│   │   └── tests/{cli.rs,examples.rs}
+│   └── lsp/                # `sokonanoda-lsp`：tower-lsp 服务器（诊断/hover/符号/练习状态）
+├── editor/vscode/          # 实验性 VS Code 客户端（薄壳，未打包）
 └── examples/               # 入库课程文件（lesson-01/02、fol-basics、py-fol-core、py-nat）
 ```
 
@@ -72,9 +74,10 @@ sokonanoda-lang/
 | kernel 单元测试 | 41（2 ignored：缺 fixture） | `crates/kernel/src/*` 内 `#[cfg(test)]` |
 | arena 集成测试 | 1（需 `LEAN_KERNEL_ARENA`） | `crates/kernel/tests/arena.rs` |
 | 内存 API 测试 | 1 | `crates/kernel/tests/memory_api.rs` |
-| front 单元测试 | 47 | `crates/front/src/{lib,compile,proof}.rs` |
+| front 单元测试 | 49 | `crates/front/src/{lib,compile,proof}.rs` |
 | CLI 端到端 | 21 | `crates/cli/tests/cli.rs` |
 | 课程语料 | 1（遍历全部 examples） | `crates/cli/tests/examples.rs` |
+| LSP（文档服务层） | 手动 smoke（诊断/hover/符号/code action） | `crates/lsp` |
 
 ---
 
@@ -123,7 +126,7 @@ sokonanoda-lang/
 
 `CheckEvent`：`DeclarationChecked/ExampleChecked/TypeChecked/Reduced/Printed/ExerciseOpen`。
 
-`CompileError { message, span, stage }`，`stage ∈ {Elab, Kernel}`；词法/语法错误是 `front::Diagnostic`（stage=parse）。每个诊断有稳定 ASCII `code()`：`parse` 层为 `unexpected-token` / `unexpected-eof`，elab/kernel 层为 `elab` / `kernel`。CLI 人类视图输出 `line:col: error[stage]: message`；`--json` 输出 JSON Lines（见 `docs/protocol.md`）。
+`CompileError { message, span, kind: ErrorKind }`；`ErrorKind` 细分为 `elab-unknown-identifier`、`elab-universe-arity`、`kernel-rejected` 等稳定 code，每个 kind 带一条教学 `hint()`（中文，直接贴在编辑器诊断里）。词法/语法错误是 `front::Diagnostic`（stage=parse，`unexpected-token`/`unexpected-eof`，也有 hint）。CLI 人类视图输出 `line:col: error[code]: message`；`--json` 输出 JSON Lines（见 `docs/protocol.md`）。
 
 ### 4.4 CLI / REPL（`crates/cli/src/main.rs`）
 
@@ -131,6 +134,7 @@ sokonanoda-lang/
 - `sokonanoda --json <file>`：每条事件一行 JSON（agent/service 视图）。
 - `sokonanoda repl`：逐行累积 buffer，整体重新 `parse + compile_fol`（最小"增量"模型 = 声明累加）；支持 `#check/#reduce/#print/#env/#help`。
 - `#prove <goal>`：进入证明草稿（见 §5.5），`intro/exact/apply/assumption/lambda/done`。
+- `sokonanoda-lsp`：编辑器路径的**唯一反馈通道**（文件无 `#` 命令）——publishDiagnostics、hover（表达式类型 / `???` 的目标）、documentSymbol、codeLens（练习状态）、quick-fix `intro`（把 `???` 变成 `fun (x : T) => ???`）。
 
 ---
 
@@ -171,6 +175,8 @@ sokonanoda-lang/
 - **quote**：值 → 表达式（`quote.rs`）。教学 API 就加在这里：
   - `infer_closed_type(e)` = 空环境推断 + WHNF + `quote_weak`（`#check` 的 kernel 原语）；
   - `reduce_closed(e)` = `value_of` + `deep_reduce` + `quote`（`#reduce` 的 kernel 原语）。
+  - `infer_under_binders(&[binder_ty], e)` = 在给定 binder 类型序列（由外到内）下推断
+    开放项 `e` 的类型并 quote 回来——这是编辑 hover 类型图的 kernel 原语。
 - **pretty printer**（`pretty_printer.rs`）：把表达式/声明打印成可读文本；lang 版本默认 **ASCII `->`**（与教学文件一致），打印 proof term 而非 `_`。
 
 ### 5.4 内置 prelude 与"原生 Nat"技巧（重要！）
@@ -272,6 +278,7 @@ cargo test --workspace                       # 全部测试
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json examples/fol-basics.sokonanoda
 cargo run -q -p sokonanoda-cli --bin sokonanoda repl     # #check / #reduce / #prove
+cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp      # LSP（editor/vscode 里使用）
 ```
 
 想给某个语法点加测试：先在 `crates/front/src/compile.rs`（或 `lib.rs`）加单元测试 → 在 `crates/cli/tests/cli.rs` 加端到端 → 需要的话新增/改 `examples/lesson-XX.sokonanoda`（examples.rs 会自动跑它）。

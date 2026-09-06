@@ -225,6 +225,7 @@ fn check_source(src: &str, label: &str, json: bool) -> bool {
                     "stage": "parse",
                     "code": diag.code(),
                     "message": diag.message,
+                    "hint": diag.hint(),
                     "span": span_json(diag.span),
                 }));
             } else {
@@ -261,7 +262,7 @@ fn report_output(output: &CompileOutput, src: &str, seen_events: usize) {
                 println!("{} => {text}", expr_text(src, *span));
             }
             CheckEvent::Printed { name, text } => println!("#print {name} :\n{text}"),
-            CheckEvent::ExerciseOpen => println!("exercise open (fill the ???)"),
+            CheckEvent::ExerciseOpen { .. } => println!("exercise open (fill the ???)"),
         }
     }
     for err in &output.errors {
@@ -340,10 +341,16 @@ fn report_json(output: &CompileOutput, src: &str) {
                 "name": name,
                 "text": text,
             })),
-            ExerciseOpen => print_json_line(&serde_json::json!({
-                "type": "exercise.open",
-                "human": "exercise open (fill the ???)",
-            })),
+            ExerciseOpen { name } => {
+                let mut event = serde_json::json!({
+                    "type": "exercise.open",
+                    "human": "exercise open (fill the ???)",
+                });
+                if let Some(name) = name {
+                    event["name"] = serde_json::json!(name);
+                }
+                print_json_line(&event);
+            }
         }
     }
     for err in &output.errors {

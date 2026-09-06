@@ -5,8 +5,8 @@
 //! names, levels, expressions and declarations against one arena, then call
 //! [`EnvBuilder::finish`] to obtain the environment.
 
-use crate::env::{Declar, DeclarInfo, DeclarMap, NotationMap};
 use crate::env::InductiveData;
+use crate::env::{Declar, DeclarInfo, DeclarMap, NotationMap};
 use crate::expr::{
     BinderStyle, Expr, APP_HASH, CONST_HASH, LAMBDA_HASH, LET_HASH, NAT_LIT_HASH, PI_HASH, PROJ_HASH, SORT_HASH,
     STRING_LIT_HASH, VAR_HASH,
@@ -206,9 +206,7 @@ impl<'a> EnvBuilder<'a> {
             return Err(format!("duplicate declaration {}", self.name_to_string(name)));
         }
         let idx = self.declars.len();
-        name.as_ref().set_decl_idx(
-            u32::try_from(idx).expect("more than u32::MAX declarations in one environment"),
-        );
+        name.as_ref().set_decl_idx(u32::try_from(idx).expect("more than u32::MAX declarations in one environment"));
         self.declars.insert(name, d);
         Ok(())
     }

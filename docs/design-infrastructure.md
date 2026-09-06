@@ -1,6 +1,9 @@
 # 基础设施全面完善：LSP-first 设计（v2）
 
 > 状态：**设计草案（brainstorm），不是已定稿的 PRD**。
+> 落地进度（2026-09-06 晚）：I1–I5 的第一段垂直切片已实现
+> （DocumentReport/逐声明状态、ErrorKind+hint、hover 类型图、`crates/lsp` 服务器、
+> `editor/vscode` 薄壳）；见 `docs/architecture.md` §4/§7.5。
 > v2 变更：明确最终形态是 **VS Code + 细粒度反馈 LSP**；`.sokonanoda` 文件保持
 > **纯声明式、无 `#` 命令**；`#check/#reduce/#print/#prove` 只是 REPL/调试玩具，
 > 不属于文件格式。练习 = 一个**带洞的 `def`/`theorem`/`example` 声明**。

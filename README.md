@@ -20,9 +20,11 @@ The repository will use no official Lean tooling (`lean`, `lake`,
 ## Layout
 
 ```text
-crates/kernel   Full sokonanoda kernel (complete, unmodified core)
-crates/front    .sokonanoda lexer / parser / diagnostics (restricted teaching grammar)
+crates/kernel   Full sokonanoda kernel (complete core + thin teaching API)
+crates/front    .sokonanoda lexer / parser / elaborator / document engine
 crates/cli      `sokonanoda` command-line front-end for .sokonanoda files
+crates/lsp      `sokonanoda-lsp` language server (tower-lsp)
+editor/vscode   Experimental VS Code client (unpackaged)
 examples/       Sample .sokonanoda lesson files
 ```
 
@@ -48,10 +50,16 @@ cargo test
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json examples/lesson-01.sokonanoda
 cargo run -q -p sokonanoda-cli --bin sokonanoda repl
+cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp   # editor feedback channel
 ```
 
 `--json` prints one JSON event per line (the machine/agent view); errors carry
-a stable pipeline stage (`parse`/`elab`/`kernel`).
+a stable code (`elab-*` / `kernel-rejected` / …) plus a teaching hint.
+
+The editor path is LSP-first: `.sokonanoda` files stay declarative (no `#`
+commands); the language server publishes per-declaration diagnostics, hover
+types for every sub-expression and open-exercise goals, document symbols and
+exercise status lenses. See `editor/vscode/` for the thin client.
 
 In `repl`, declarations accumulate line by line. Commands:
 
