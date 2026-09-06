@@ -2,7 +2,9 @@
 
 > 读者对象：刚接手本仓库的 agent / 工程师。
 > 本文回答三个问题：**这是什么**、**代码在哪、各管什么**、**一条 `.sokonanoda` 文件如何变成"被完整内核检查过的声明"**。
-> 配套文档：`ROADMAP.md`（里程碑与原则）、`docs/protocol.md`（反馈/事件协议）、`docs/inductive.md`（归纳类型语义）、`docs/research.md`（外部调研）、`docs/design-infrastructure.md`（基础设施方案脑暴）。
+> 配套文档：`docs/STATUS.md`（当前状态与进度日志，先读）、`ROADMAP.md`（里程碑与原则）、
+> `docs/protocol.md`（反馈/事件协议）、`docs/inductive.md`（归纳类型语义）、
+> `docs/research.md`（外部调研）、`docs/design-infrastructure.md`（基础设施方案脑暴）。
 
 ---
 

@@ -32,8 +32,10 @@ See [ROADMAP.md](ROADMAP.md).
 
 Documentation:
 
+- [docs/STATUS.md](docs/STATUS.md) — current status & progress log (read this
+  first if you are picking the project up);
 - [docs/architecture.md](docs/architecture.md) — deep architecture + kernel
-  tour (start here to onboard);
+  tour;
 - [docs/research.md](docs/research.md) — survey of teaching-oriented proof
   languages and infrastructure lessons;
 - [docs/design-infrastructure.md](docs/design-infrastructure.md) — gap

@@ -178,10 +178,26 @@ report
 | 增量缓存复杂度爆炸 | 先"声明后缀重查"，依赖图裁剪后置 |
 | 反馈只给人 | 每次判定同时产出机器状态（同协议词汇） |
 
-## 9. 待确认
+## 9. 已确认的决策（用户 2026-09-06）与落地状态
 
-1. 命名练习就用 `def name : T` / `theorem name : T`（匿名用 `example`），可以吗？
-   （若坚持 `example name : T`，需要接受"填完不是直接可进官方 Lean"，或走注释元数据方案。）
-2. LSP 壳用**最小 JSON-RPC**（少依赖、可控），还是引入现成框架（如 tower-lsp）？
-3. 优先级：先做 I1–I2（判定与错误细节），还是直接冲 I5（先把 LSP 竖起来再补细节）？
-4. goal 视图（F5 / I8）是否算第一期必需，还是第二期？
+1. 命名练习：`def name : T` / `theorem name : T`，匿名用 `example` ✅
+   （官方 Lean 的 `example` 不能带名字；不采用非 Lean 的 `example name : T`。）
+2. LSP 框架：tower-lsp ✅（`crates/lsp`）。
+3. 范围：I1–I9 全部实现；goal 视图进第一期 ✅（第一段切片已完成，见下）。
+4. 文件格式：纯声明式、无 `#` 命令 ✅（`#` 命令仅 REPL/自测）。
+
+工作流落地状态（最新以 `docs/STATUS.md` 为准）：
+
+| # | 状态 | 说明 |
+|---|---|---|
+| I0 | ✅ | `--json`、错误 code/hint、CI、语料测试、docs |
+| I1 | ✅ v1 | `DocumentReport` 逐声明状态（open/checked/failed）+ 容错 |
+| I2 | ✅ v1 | `ErrorKind` 细 code + 教学 hint（CLI/JSON/LSP） |
+| I3 | ✅ v1 | 类型图（elaboration 记录 + kernel `infer_under_binders`）→ hover |
+| I4 | 🔶 部分 | 事件按源码顺序；真正增量（check-then-add）待做 |
+| I5 | ✅ v1 | tower-lsp：diagnostics/hover/documentSymbol/codeLens/`intro` quick-fix |
+| I6 | ⬜ | prelude 对齐扩充 + elaborator（binder 推断/`let`/`match`） |
+| I7 | ⬜ | 第一门课 5 单元 × 3–8 练习 + golden |
+| I8 | ⬜ | goal 视图：`#prove` 入库 + 多洞 refine/code action（kernel 显式错误 D3-C 挂此） |
+| I9 | ⬜ | agent 事件：文档状态 → 结构化事件（exercise.solved/failed） |
+| L2/L3 | ⬜ | VS Code 打包、service 事件流、讲课 agent |

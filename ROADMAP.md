@@ -1,9 +1,10 @@
 # sokonanoda-lang —— `.sokonanoda` 协作式 Lean 4 教学 ROADMAP
 
-> 状态：draft
+> 状态：active（v2 LSP-first，已落地第一段垂直切片；最新进度先看 `docs/STATUS.md`）
 > 基线：sokonanoda `7b51784`
-> 日期：2026-09-06（本轮：2026-09-06 续，基础设施）
-> 配套文档：`docs/architecture.md`（深度理解）、`docs/research.md`（外部调研）、
+> 日期：2026-09-06（终版快照）
+> 配套文档：`docs/STATUS.md`（当前状态与进度日志，agents 先读）、
+> `docs/architecture.md`（深度理解）、`docs/research.md`（外部调研）、
 > `docs/design-infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。
 
 > 方向更新（2026-09-06 续）：编辑器形态下 `.sokonanoda` 是**纯声明式文件**
@@ -347,9 +348,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
       `--json` 事件为合法 JSON）。
 5. [x] 语料回归：`crates/cli/tests/examples.rs` 遍历全部 `examples/*.sokonanoda`。
 
-下一步（待设计确认，见 `docs/design-infrastructure.md` §4/§6）：I1 练习引擎 v1
-（`#exercise` 头 + 期望目标类型 + solved/failed + 提示模板）、I2 prelude 对齐扩充、
-I3 elaborator 推进、I4 第一门课程、I5 L1 最小服务。
+> 后续：设计已确认（v2：文件无 `#` 命令、练习=带洞声明、LSP-first）；已完成的
+> 逐声明状态/错误细分/类型图/LSP 见下方"第二轮进度"，剩余全部在 §10。
 
 
 ---
@@ -372,3 +372,42 @@ I3 elaborator 推进、I4 第一门课程、I5 L1 最小服务。
 仍待办（按 I6–I9 与课程）：prelude 扩充与占位体对齐、elaborator 推进（binder 推断、
 `let`、`match`）、第一门课（5 单元 × 3–8 练习 + golden）、真正增量缓存（check-then-add）、
 goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
+
+
+---
+
+## 10. 待办（已确认，按依赖排序）
+
+> 详细验收与设计依据：`docs/design-infrastructure.md`（F1–F8、工作流 I0–I9）；
+> 进度快照：`docs/STATUS.md`。
+
+### I6 —— prelude 对齐 + elaborator 推进
+- prelude：补 Bool / Eq / `rfl` 所需受信任基元；核对 `Nat.succ`/`Nat.add`
+  占位自引用体（当前依赖名字特判 + 原生快路径，需写清边界并加裸名 `#reduce` 测试）。
+- elaborator：binder 类型推断（先非依赖情形）→ `let` → 单构造子 `match`/递归
+  （M4 课程第 5 单元的前置）。
+- 验收：每个语法点走 TDD 三件套（front 单测 + CLI e2e + 课程用例），白名单同步更新。
+
+### I7 —— 第一门课（M4，内容层）
+- 5 单元：① 表达式与类型 ② 函数与箭头 ③ 命题与证明项 ④ 等式与 `rfl`
+  ⑤ 归纳与 `match`；每单元 3–8 个练习。
+- 组织：`course/lesson-XX-*.sokonanoda`（正文+练习），`course/course.json` 顺序清单；
+  判定走 kernel（目标类型/化简断言），不做文本比对。
+- 验收：零基础用户按顺序完成；CI 跑全部课程文件并比对 golden 事件。
+
+### I8 —— 真正增量（服务层前置）
+- check-then-add：失败的声明不进环境（现在 batch 全量构建 + ByName 可见性，
+  失败的声明仍占名字）；只重查受影响后缀；事件带版本号。
+- 验收：改第 i 个声明只重编译受影响片段（日志可验），练习状态增量更新。
+
+### I9 —— kernel 显式错误 + goal 视图
+- kernel：panic → 显式 `KernelError`（conv 失败给出两端项），教学前端可生成
+  "期望 X / 实际 Y" 级反馈（D3-C，长期）。
+- goal 视图：`#prove` 逻辑（proof.rs）入库成库 API；LSP 多洞 goal / refine /
+  code action（intro/exact/apply/assumption）；`assumption` 文本比对替换为 kernel 判定。
+- 验收：在编辑器里三步完成 `(a : Prop) -> a -> a` 并实时看到 goal/lambda 回显。
+
+### L2/L3 —— 编辑器与 agent（M5+，远期）
+- L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
+- L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
+  讲课 agent 消费同一文档状态自动出题。
