@@ -9,12 +9,16 @@
 //! - code actions turn the first step of a proof into text
 //!   (`intro` shows that tactics only build a lambda).
 
-use sokonanoda_front::compile::{
-    check_document, DeclKind, DeclState, DeclStatus, DocumentReport, HoverType,
+mod actions;
+mod render;
+
+use actions::intro_edit;
+use render::{
+    decl_at, decl_name, diagnostic_from_compile, diagnostic_from_parse, hover_type_at, range_of,
+    status_label, symbol_kind,
 };
+use sokonanoda_front::compile::{check_document, DeclStatus, DocumentReport};
 use sokonanoda_front::parse;
-use sokonanoda_front::Span;
-use std::collections::HashMap;
 use std::sync::Mutex;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -22,7 +26,6 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 
 #[derive(Default)]
 struct Doc {
-    uri: Option<Url>,
     text: String,
     report: Option<DocumentReport>,
     parse_error: Option<sokonanoda_front::Diagnostic>,
@@ -41,10 +44,9 @@ impl Backend {
         }
     }
 
-    async fn refresh(&self, uri: Url, text: String) {
+    async fn refresh(&self, uri: Url, text: String, version: Option<i32>) {
         let (doc, diagnostics) = {
             let mut doc = Doc {
-                uri: Some(uri.clone()),
                 text: text.clone(),
                 ..Doc::default()
             };
@@ -69,101 +71,8 @@ impl Backend {
         *self.doc.lock().expect("doc lock") = doc;
         let _ = self
             .client
-            .publish_diagnostics(uri, diagnostics, None)
+            .publish_diagnostics(uri, diagnostics, version)
             .await;
-    }
-}
-
-fn diagnostic_from_compile(err: &sokonanoda_front::compile::CompileError) -> Diagnostic {
-    Diagnostic {
-        range: range_of(err.span),
-        severity: Some(DiagnosticSeverity::ERROR),
-        code: Some(NumberOrString::String(err.code().to_string())),
-        code_description: None,
-        source: Some("sokonanoda".to_string()),
-        message: format!("{}\n\n提示：{}", err.message, err.hint()),
-        related_information: None,
-        tags: None,
-        data: None,
-    }
-}
-
-fn diagnostic_from_parse(diag: &sokonanoda_front::Diagnostic) -> Diagnostic {
-    Diagnostic {
-        range: range_of(diag.span),
-        severity: Some(DiagnosticSeverity::ERROR),
-        code: Some(NumberOrString::String(diag.code().to_string())),
-        code_description: None,
-        source: Some("sokonanoda".to_string()),
-        message: format!("{}\n\n提示：{}", diag.message, diag.hint()),
-        related_information: None,
-        tags: None,
-        data: None,
-    }
-}
-
-fn range_of(span: Span) -> Range {
-    Range {
-        start: Position {
-            line: span.start.line.saturating_sub(1) as u32,
-            character: span.start.column.saturating_sub(1) as u32,
-        },
-        end: Position {
-            line: span.end.line.saturating_sub(1) as u32,
-            character: span.end.column.saturating_sub(1) as u32,
-        },
-    }
-}
-
-fn pos_within_span(line: u32, character: u32, span: Span) -> bool {
-    let l = line as usize + 1;
-    let c = character as usize + 1;
-    let after_start = (l, c) > (span.start.line, span.start.column)
-        || (l, c) >= (span.start.line, span.start.column);
-    let before_end = (l, c) < (span.end.line, span.end.column);
-    after_start && before_end
-}
-
-fn hover_type_at<'a>(hovers: &'a [HoverType], line: u32, character: u32) -> Option<&'a HoverType> {
-    // smallest span containing the position wins
-    hovers
-        .iter()
-        .filter(|h| pos_within_span(line, character, h.span))
-        .min_by_key(|h| {
-            (h.span.end.offset - h.span.start.offset)
-                .try_into()
-                .unwrap_or(u64::MAX)
-        })
-}
-
-fn decl_at<'a>(decls: &'a [DeclState], line: u32, character: u32) -> Option<&'a DeclState> {
-    decls
-        .iter()
-        .find(|d| pos_within_span(line, character, d.span))
-}
-
-fn symbol_kind(kind: DeclKind) -> SymbolKind {
-    match kind {
-        DeclKind::Definition => SymbolKind::FUNCTION,
-        DeclKind::Theorem => SymbolKind::KEY,
-        DeclKind::Axiom => SymbolKind::PROPERTY,
-        DeclKind::Inductive => SymbolKind::STRUCT,
-        DeclKind::Example => SymbolKind::CONSTANT,
-    }
-}
-
-fn status_label(status: DeclStatus) -> &'static str {
-    match status {
-        DeclStatus::Open => "exercise: open",
-        DeclStatus::Checked => "solved ✓",
-        DeclStatus::Failed => "failed",
-    }
-}
-
-fn decl_name(d: &DeclState) -> String {
-    match &d.name {
-        Some(n) => n.clone(),
-        None => format!("{}@{}", d.kind.as_str(), d.span.start.line),
     }
 }
 
@@ -194,19 +103,29 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.refresh(params.text_document.uri, params.text_document.text)
-            .await;
+        self.refresh(
+            params.text_document.uri,
+            params.text_document.text,
+            Some(params.text_document.version),
+        )
+        .await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        if let Some(change) = params.content_changes.into_iter().next() {
-            self.refresh(params.text_document.uri, change.text).await;
+        // FULL sync delivers the whole text; the last change is the final state.
+        if let Some(change) = params.content_changes.into_iter().last() {
+            self.refresh(
+                params.text_document.uri,
+                change.text,
+                Some(params.text_document.version),
+            )
+            .await;
         }
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         if let Some(text) = params.text {
-            self.refresh(params.text_document.uri, text).await;
+            self.refresh(params.text_document.uri, text, None).await;
         }
     }
 
@@ -272,6 +191,7 @@ impl LanguageServer for Backend {
                 detail: Some(format!("{} — {}", d.kind.as_str(), status_label(d.status))),
                 kind: symbol_kind(d.kind),
                 tags: None,
+                #[allow(deprecated)] // lsp-types field is deprecated in favor of `tags`
                 deprecated: None,
                 range: range_of(d.span),
                 selection_range: range_of(d.span),
@@ -349,63 +269,491 @@ impl LanguageServer for Backend {
     }
 }
 
-/// Replace the first `???` inside the declaration with `fun (x : T) => ???`,
-/// using the same "tactics build a lambda" machinery as the REPL `#prove`.
-fn intro_edit(uri: Url, text: &str, d: &DeclState, goal_text: &str) -> Option<WorkspaceEdit> {
-    let decl_src = &text[d.span.start.offset..d.span.end.offset];
-    let hole_rel = decl_src.find("???")?;
-    let hole_off = d.span.start.offset + hole_rel;
-    let (hl, hc) = offset_to_line_col(text, hole_off);
-    let mut state = sokonanoda_front::proof::ProofState::start(goal_text).ok()?;
-    state.intro("x").ok()?;
-    // The intro step is just "peel one binder and keep the hole":
-    //   fun (x : T) => ???
-    let replacement = state.lambda_text();
-    let range = Range {
-        start: Position {
-            line: hl as u32,
-            character: hc as u32,
-        },
-        end: Position {
-            line: hl as u32,
-            character: (hc + 3) as u32,
-        },
-    };
-    let mut changes = HashMap::new();
-    changes.insert(
-        uri,
-        vec![TextEdit {
-            range,
-            new_text: replacement,
-        }],
-    );
-    Some(WorkspaceEdit {
-        changes: Some(changes),
-        ..Default::default()
-    })
-}
-
-fn offset_to_line_col(text: &str, offset: usize) -> (usize, usize) {
-    let mut line = 1usize;
-    let mut col = 1usize;
-    for (i, ch) in text.char_indices() {
-        if i >= offset {
-            break;
-        }
-        if ch == '\n' {
-            line += 1;
-            col = 1;
-        } else {
-            col += 1;
-        }
-    }
-    (line, col)
-}
-
 #[tokio::main]
 async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
     let (service, socket) = LspService::new(Backend::new);
     Server::new(stdin, stdout, socket).serve(service).await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Backend;
+    use futures::StreamExt;
+    use serde_json::{json, Value};
+    use std::time::Duration;
+    use tower::Service;
+    use tower::ServiceExt;
+    use tower_lsp::jsonrpc::Request as RpcRequest;
+    use tower_lsp::lsp_types::*;
+    use tower_lsp::{ClientSocket, LspService};
+
+    /// Guard only: any server→client message must arrive within this budget.
+    const TIMEOUT: Duration = Duration::from_secs(2);
+    const URI: &str = "file:///test.sokonanoda";
+
+    const VALID: &str = "def id : Prop -> Prop := fun (x : Prop) => x\n";
+    const EXERCISE: &str = "example : Prop -> Prop := ???\n";
+    const KERNEL_BAD: &str = "def bad : Prop -> Type := fun (x : Prop) => x\n";
+    const PARSE_BAD: &str = "def broken : Prop :=\n";
+
+    /// 0-based LSP position for a char offset in an (ASCII) source text.
+    fn lsp_pos(src: &str, offset: usize) -> Position {
+        let before = &src[..offset];
+        let line = before.matches('\n').count() as u32;
+        let character = (offset - before.rfind('\n').map(|i| i + 1).unwrap_or(0)) as u32;
+        Position { line, character }
+    }
+
+    fn offset_of(src: &str, needle: &str) -> usize {
+        src.find(needle)
+            .unwrap_or_else(|| panic!("`{needle}` not found in `{src}`"))
+    }
+
+    fn position_json(pos: Position) -> Value {
+        json!({"line": pos.line, "character": pos.character})
+    }
+
+    /// Drive one request/notification through the service (no stdio involved).
+    async fn call(service: &mut LspService<Backend>, req: RpcRequest) -> Option<Value> {
+        let resp = service
+            .ready()
+            .await
+            .expect("service ready")
+            .call(req)
+            .await
+            .expect("service call succeeded");
+        resp.map(|resp| match resp.into_parts() {
+            (_, Ok(result)) => result,
+            (_, Err(err)) => panic!("json-rpc error response: {err:?}"),
+        })
+    }
+
+    async fn notify(service: &mut LspService<Backend>, method: &'static str, params: Value) {
+        let req = RpcRequest::build(method).params(params).finish();
+        service
+            .ready()
+            .await
+            .expect("service ready")
+            .call(req)
+            .await
+            .expect("notification processed");
+    }
+
+    /// initialize/shutdown handshake: checks the advertised capabilities once.
+    async fn handshake(service: &mut LspService<Backend>) {
+        let init = RpcRequest::build("initialize")
+            .params(json!({"capabilities": {}}))
+            .id(1)
+            .finish();
+        let result = call(service, init).await.expect("initialize must answer");
+        let result: InitializeResult =
+            serde_json::from_value(result).expect("valid InitializeResult");
+        let caps = result.capabilities;
+        assert_eq!(
+            caps.text_document_sync,
+            Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
+            "full text sync expected"
+        );
+        assert_eq!(
+            caps.hover_provider,
+            Some(HoverProviderCapability::Simple(true))
+        );
+        assert_eq!(caps.document_symbol_provider, Some(OneOf::Left(true)));
+        assert_eq!(
+            caps.code_lens_provider,
+            Some(CodeLensOptions {
+                resolve_provider: Some(false)
+            })
+        );
+        assert_eq!(
+            caps.code_action_provider,
+            Some(CodeActionProviderCapability::Simple(true))
+        );
+    }
+
+    async fn shutdown(service: &mut LspService<Backend>) {
+        let req = RpcRequest::build("shutdown").id(i64::MAX).finish();
+        let result = call(service, req).await;
+        assert!(result.is_some(), "shutdown must answer");
+    }
+
+    async fn did_open(service: &mut LspService<Backend>, text: &str) {
+        notify(
+            service,
+            "textDocument/didOpen",
+            json!({"textDocument": {
+                "uri": URI, "languageId": "sokonanoda", "version": 1, "text": text
+            }}),
+        )
+        .await;
+    }
+
+    /// Read the next server→client message, failing with context if it never comes.
+    async fn next_socket(socket: &mut ClientSocket, waiting_for: &str) -> RpcRequest {
+        tokio::time::timeout(TIMEOUT, socket.next())
+            .await
+            .unwrap_or_else(|_| panic!("timed out after {TIMEOUT:?} waiting for {waiting_for}"))
+            .unwrap_or_else(|| panic!("server socket closed while waiting for {waiting_for}"))
+    }
+
+    /// Drain server→client messages until a publishDiagnostics for our URI arrives.
+    async fn wait_diagnostics(
+        socket: &mut ClientSocket,
+        waiting_for: &str,
+    ) -> PublishDiagnosticsParams {
+        loop {
+            let msg = next_socket(socket, waiting_for).await;
+            if msg.method() != "textDocument/publishDiagnostics" {
+                continue;
+            }
+            let params: PublishDiagnosticsParams =
+                serde_json::from_value(msg.params().cloned().unwrap_or_else(|| json!(null)))
+                    .expect("valid PublishDiagnosticsParams");
+            if params.uri.as_str() == URI {
+                return params;
+            }
+        }
+    }
+
+    fn code_of(diag: &Diagnostic) -> &str {
+        match &diag.code {
+            Some(NumberOrString::String(code)) => code,
+            other => panic!("expected a string diagnostic code, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn initialize_advertises_core_capabilities() {
+        let (mut service, _socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn did_open_valid_file_publishes_no_diagnostics() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, VALID).await;
+        let params = wait_diagnostics(&mut socket, "diagnostics after didOpen").await;
+        assert_eq!(params.uri.as_str(), URI);
+        assert!(
+            params.diagnostics.is_empty(),
+            "valid file must publish no diagnostics, got {:?}",
+            params.diagnostics
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn did_open_kernel_rejected_file_publishes_coded_diagnostic() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, KERNEL_BAD).await;
+        let params = wait_diagnostics(&mut socket, "kernel diagnostics").await;
+        assert_eq!(
+            params.diagnostics.len(),
+            1,
+            "expected exactly one kernel rejection, got {:?}",
+            params.diagnostics
+        );
+        let diag = &params.diagnostics[0];
+        assert_eq!(code_of(diag), "kernel-rejected");
+        assert!(
+            diag.message.contains("提示："),
+            "teaching hint expected in diagnostic message: {:?}",
+            diag.message
+        );
+        assert_eq!(diag.severity, Some(DiagnosticSeverity::ERROR));
+        assert_ne!(
+            diag.range.start, diag.range.end,
+            "kernel rejection must have a non-empty range"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn did_open_parse_error_publishes_parse_code() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, PARSE_BAD).await;
+        let params = wait_diagnostics(&mut socket, "parse diagnostics").await;
+        assert_eq!(
+            params.diagnostics.len(),
+            1,
+            "expected exactly one parse error, got {:?}",
+            params.diagnostics
+        );
+        let diag = &params.diagnostics[0];
+        let code = code_of(diag);
+        assert!(
+            code == "unexpected-token" || code == "unexpected-eof",
+            "expected a parse-stage code, got {code}"
+        );
+        assert_eq!(diag.severity, Some(DiagnosticSeverity::ERROR));
+        assert_eq!(diag.source.as_deref(), Some("sokonanoda"));
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_returns_inferred_type() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, VALID).await;
+        let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+        // The `x` occurrence inside the lambda body (0-based position).
+        let pos = lsp_pos(VALID, VALID.rfind('x').expect("body `x` exists"));
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(2)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+        let hover = hover.expect("hover must resolve inside the lambda body");
+        let markup = match hover.contents {
+            HoverContents::Markup(markup) => markup,
+            other => panic!("expected markup contents, got {other:?}"),
+        };
+        assert_eq!(markup.kind, MarkupKind::Markdown);
+        assert!(
+            markup.value.contains("Prop"),
+            "inferred type expected in hover markup: {:?}",
+            markup.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_hole_shows_goal() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, EXERCISE).await;
+        let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+        let pos = lsp_pos(EXERCISE, offset_of(EXERCISE, "???") + 1);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(3)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+        let hover = hover.expect("hover must resolve on the hole");
+        let markup = match hover.contents {
+            HoverContents::Markup(markup) => markup,
+            other => panic!("expected markup contents, got {other:?}"),
+        };
+        assert!(
+            markup.value.contains("目标"),
+            "goal label expected in hover markup: {:?}",
+            markup.value
+        );
+        assert!(
+            markup.value.contains("Prop -> Prop"),
+            "goal text expected in hover markup: {:?}",
+            markup.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn document_symbols_list_declarations() {
+        let src = format!("{VALID}{EXERCISE}");
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, &src).await;
+        let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/documentSymbol")
+                .params(json!({"textDocument": {"uri": URI}}))
+                .id(4)
+                .finish(),
+        )
+        .await
+        .expect("documentSymbol must answer");
+        let symbols: Option<DocumentSymbolResponse> =
+            serde_json::from_value(result).expect("valid DocumentSymbolResponse");
+        let DocumentSymbolResponse::Nested(symbols) =
+            symbols.expect("document symbols must be returned")
+        else {
+            panic!("expected nested document symbols");
+        };
+        let id = symbols
+            .iter()
+            .find(|s| s.name == "id")
+            .expect("symbol for `id`");
+        assert!(
+            id.detail.as_deref().unwrap_or_default().contains("solved"),
+            "checked def detail should carry the status label, got {:?}",
+            id.detail
+        );
+        let exercise = symbols
+            .iter()
+            .find(|s| s.name.starts_with("example"))
+            .expect("symbol for the open example");
+        assert!(
+            exercise
+                .detail
+                .as_deref()
+                .unwrap_or_default()
+                .contains("exercise: open"),
+            "example detail should carry the status label, got {:?}",
+            exercise.detail
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_lens_reflects_exercise_status() {
+        let src = format!("def ok : Prop -> Prop := fun (x : Prop) => x\n{EXERCISE}");
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, &src).await;
+        let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/codeLens")
+                .params(json!({"textDocument": {"uri": URI}}))
+                .id(5)
+                .finish(),
+        )
+        .await
+        .expect("codeLens must answer");
+        let lenses: Option<Vec<CodeLens>> = serde_json::from_value(result).expect("valid CodeLens");
+        let lenses = lenses.expect("code lenses must be returned");
+        assert_eq!(lenses.len(), 2, "one lens per declaration: {:?}", lenses);
+        let titles: Vec<&str> = lenses
+            .iter()
+            .filter_map(|lens| lens.command.as_ref().map(|cmd| cmd.title.as_str()))
+            .collect();
+        assert!(
+            titles.iter().any(|t| t.contains("solved")),
+            "checked def lens should read solved, got {titles:?}"
+        );
+        assert!(
+            titles.iter().any(|t| t.contains("exercise: open")),
+            "open exercise lens should read open, got {titles:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_offers_intro_on_open_exercise() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, EXERCISE).await;
+        let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+        let hole = offset_of(EXERCISE, "???");
+        let hole_start = lsp_pos(EXERCISE, hole);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/codeAction")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "range": {"start": position_json(hole_start), "end": position_json(hole_start)},
+                    "context": {"diagnostics": []},
+                }))
+                .id(6)
+                .finish(),
+        )
+        .await
+        .expect("codeAction must answer");
+        let actions: Option<CodeActionResponse> =
+            serde_json::from_value(result).expect("valid CodeActionResponse");
+        let actions = actions.expect("code actions must be returned");
+        assert_eq!(
+            actions.len(),
+            1,
+            "expected one intro quick-fix, got {:?}",
+            actions
+        );
+        let action = match &actions[0] {
+            CodeActionOrCommand::CodeAction(action) => action,
+            other => panic!("expected a CodeAction, got {other:?}"),
+        };
+        assert_eq!(action.kind, Some(CodeActionKind::QUICKFIX));
+        assert!(action.title.contains("intro"), "title: {:?}", action.title);
+        let edit = action.edit.as_ref().expect("intro action carries an edit");
+        let changes = edit.changes.as_ref().expect("changes map");
+        let edits = changes
+            .get(&Url::parse(URI).expect("test uri parses"))
+            .expect("edit targets our uri");
+        assert_eq!(edits.len(), 1);
+        let text_edit = &edits[0];
+        // The hole sits at 0-based (line, col); the edit must span exactly it.
+        assert_eq!(
+            text_edit.range.start, hole_start,
+            "edit must start exactly at the hole, got {:?}",
+            text_edit.range
+        );
+        assert_eq!(
+            text_edit.range.end.character - text_edit.range.start.character,
+            "???".len() as u32,
+            "edit must span exactly the 3-char hole, got {:?}",
+            text_edit.range
+        );
+        assert_eq!(
+            text_edit.range.start.line, text_edit.range.end.line,
+            "hole edit must stay on one line, got {:?}",
+            text_edit.range
+        );
+        assert!(
+            text_edit.new_text.starts_with("fun ("),
+            "intro replacement must start a lambda, got {:?}",
+            text_edit.new_text
+        );
+        assert!(
+            text_edit.new_text.ends_with("???"),
+            "intro replacement must keep the hole, got {:?}",
+            text_edit.new_text
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn did_change_recomputes_diagnostics() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, VALID).await;
+        let first = wait_diagnostics(&mut socket, "initial diagnostics").await;
+        assert!(first.diagnostics.is_empty());
+
+        notify(
+            &mut service,
+            "textDocument/didChange",
+            json!({
+                "textDocument": {"uri": URI, "version": 2},
+                "contentChanges": [{"text": KERNEL_BAD}],
+            }),
+        )
+        .await;
+        let second = wait_diagnostics(&mut socket, "diagnostics after didChange").await;
+        assert_eq!(
+            second.diagnostics.len(),
+            1,
+            "edited file must be re-checked, got {:?}",
+            second.diagnostics
+        );
+        assert_eq!(code_of(&second.diagnostics[0]), "kernel-rejected");
+        shutdown(&mut service).await;
+    }
 }
