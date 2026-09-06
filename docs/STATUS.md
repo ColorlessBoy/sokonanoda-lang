@@ -1,14 +1,44 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-06（含 LSP-first 第一段垂直切片）
-> 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；设计 = `docs/design-infrastructure.md`；
-> 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`。
+> 快照：2026-09-07（模块化重构 + 全流水线测试资产）
+> 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
+> 设计 = `docs/design-infrastructure.md`；架构/内核 = `docs/architecture.md`；
+> 协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
+> LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
 
 ## 一句话
 
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，接手 agent 第 1–3 轮）
+
+1. **模块化重构（用户要求：不得单文件巨石）**：`front/lib.rs`→
+   `span/token/ast/diagnostic/parser + compile/{mod,error,event,report,elab,prelude,check}`；
+   `cli`→`main/check/json_report/repl/help`；`lsp`→`main/render/actions`；
+   公开 API 全部 re-export 保持稳定；**kernel 一行未动**（性能原则）。
+2. **全流水线测试资产（157 tests 全绿，见 `docs/TESTING.md` 地图）**：
+   kernel 41+2 / arena 1 / memory 1；front 49→**74**（lexer 10 / parser 10 /
+   compile 51，含 ErrorKind 矩阵、DocumentReport 状态机、doc-conformance、perf 冒烟）；
+   cli 21→**21+8**（新增 protocol golden：封闭事件词表、lesson-01/02 金字、
+   协议文档防漂移）；**lsp 0→10**（内存内 LspService 协议级集成测试）。
+3. **测试揪出并修复的真实缺陷**：
+   - LSP `intro` quick-fix 行列 +1 偏移（actions.rs 1-based→LSP 0-based）；
+   - publishDiagnostics 补 `version`；didChange 改取最后一个 change（FULL sync 语义）；
+   - `--json` 的 elab/kernel diagnostic 补 `hint` 字段（protocol.md 本就承诺）；
+   - `docs/protocol.md` 补齐 6 个缺失 elab 错误码（doc-conformance 测试守护）。
+4. **文档**：新增 `docs/REQUIREMENTS.md`（用户全部要求的权威总账）、
+   `docs/TESTING.md`（测试资产地图）、`docs/lsp-notes.md`、`docs/vscode-notes.md`。
+
+## 下一步（按 REQUIREMENTS §8 路线）
+
+- **I6（进行中，规格已定）**：prelude 可选化（`PreludeMode::{Full,Bare}` + CLI
+  `--bare` + LSP 设置/注释指令）；Eq/Eq.refl/Eq.subst prelude（源语法书写）；
+  binder 类型推断（expected 下传，依赖情形免费获得）；partial hole
+  （lambda 体内 `???` = Open + 剩余 goal）。
+- **开课**：`playground.sokonanoda`（根目录画布，12 练习设计已 kernel 验证，
+  见 `docs/teaching-session.md` 待落稿）；之后 I7 课程目录化。
 
 ## 已确认的决策（用户 2026-09-06）
 

@@ -78,9 +78,11 @@ Errors carry a stable machine `code` and a stage. Codes are fine-grained so
 that a model or editor can react to the *kind* of mistake, not the wording:
 
 - `parse` stage — `unexpected-token`, `unexpected-eof`;
-- `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-universe-level`,
-  `elab-universe-arity`, `elab-untyped-binder`, `elab-hole-misplaced`,
-  `elab-duplicate-declaration`;
+- `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-constant`,
+  `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
+  `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
+  `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
+  `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`;
 - `kernel` stage — `kernel-rejected` (kernel said no) and
   `kernel-internal` (a kernel bug; never a learner mistake).
 
