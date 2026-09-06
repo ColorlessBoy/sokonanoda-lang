@@ -1,4 +1,4 @@
-# sokonanoda-lang —— `.fol` 协作式 Lean 4 教学 ROADMAP
+# sokonanoda-lang —— `.sokonanoda` 协作式 Lean 4 教学 ROADMAP
 
 > 状态：draft
 > 基线：sokonanoda `7b51784`
@@ -6,7 +6,7 @@
 
 ## 0. 终极形态
 
-> 用户与 code agent 共同看着 VS Code 中打开的同一个 `*.fol` 文件。
+> 用户与 code agent 共同看着 VS Code 中打开的同一个 `*.sokonanoda` 文件。
 > agent 从零开始逐段定义概念、写出示例、抛出练习；
 > 用户在文件里作答；
 > 我们自己的编译器实时给出反馈——**同一份反馈既给用户看，也给 agent 看**，
@@ -14,7 +14,7 @@
 
 ```
               ┌──────────── VS Code ────────────┐
-              │  *.fol（共享画布）        │
+              │  *.sokonanoda（共享画布）        │
               │  agent 写定义 / 出题             │
               │  用户作答 / 阅读解释              │
               └──────────────┬──────────────────┘
@@ -32,7 +32,7 @@
 
 “万里长城第一步”：上面的 UI、agent、实时通道都先不做。
 **第一层编译器**先独立成立：它不依赖 VS Code、不依赖任何 agent，
-但已经能解析 `.fol`、驱动完整 kernel、判定练习并输出结构化事件。
+但已经能解析 `.sokonanoda`、驱动完整 kernel、判定练习并输出结构化事件。
 
 ---
 
@@ -40,7 +40,7 @@
 
 1. **kernel 保持完整。** 完整迁移 sokonanoda 内核（含 inductive、quot、proof irrelevance、完整 conv/eval、pretty printer）。受限的只是教学语法通道，不是内核能力。
 2. **无官方工具依赖。** 运行、构建、测试都不调用 `lean` / `lake` / `lean4export` / `leanc` / `elan`；所有语料与测试入库。
-3. **教学语法是真实 Lean 4 的子集。** 学生在 `.fol` 中学到的写法，放到官方 Lean 中依然合法。
+3. **教学语法是真实 Lean 4 的子集。** 学生在 `.sokonanoda` 中学到的写法，放到官方 Lean 中依然合法。
 4. **语法白名单即课程。** parser 只支持课程已引入的语法点，每个新语法必须有对应课程单元。
 5. **分层推进，先 L0 后 L1/L2/L3。** 每层只依赖下一层，不在 L0 阶段做任何编辑器或 agent 集成。
 
@@ -53,7 +53,7 @@ L3  协作层（远期）
      code agent：依据编译器反馈决定教学内容、讲解、出题与答疑
 
 L2  编辑层（远期）
-     VS Code extension：打开 *.fol，双角色视图，
+     VS Code extension：打开 *.sokonanoda，双角色视图，
      用户作答区 / agent 输出区 / 实时诊断 / 练习状态
 
 L1  服务层（中期）
@@ -62,7 +62,7 @@ L1  服务层（中期）
 
 L0  编译器层（现在只做这层）
      完整 kernel（sokonanoda 核心）
-     + .fol 前端（lexer/parser/小型 elaborator/练习引擎）
+     + .sokonanoda 前端（lexer/parser/小型 elaborator/练习引擎）
      + CLI/批处理：输入文件 → 输出结构化结果与事件流
 ```
 
@@ -77,7 +77,7 @@ L0  编译器层（现在只做这层）
 
 ---
 
-## 3. `.fol` 文件：共享画布
+## 3. `.sokonanoda` 文件：共享画布
 
 格式草案（M1 细化，原则如下）：
 
@@ -97,7 +97,7 @@ example : Nat → Nat := ???
 -- 用户作答写在这里
 ```
 
-`.fol` 本身同时承担四种角色：
+`.sokonanoda` 本身同时承担四种角色：
 
 1. **教学内容载体**：概念卡、讲解、示例代码都留在文件里，agent 与用户共同观看；
 2. **agent 的工作面**：agent 一边写定义、一边插入练习；
@@ -120,7 +120,7 @@ example : Nat → Nat := ???
 
 - 完整 kernel 及其公开 API；
 - 自带最小 prelude（Nat、Bool、Prop、Eq 等），运行时不依赖任何外部导出；
-- `.fol` lexer / parser（带 span）；
+- `.sokonanoda` lexer / parser（带 span）；
 - 受限 elaborator（只覆盖教学白名单）；
 - 练习引擎（目标、答案区、对错判定、提示分类）；
 - CLI / 批处理与结构化事件输出；
@@ -147,7 +147,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > - 完整测试基线通过：40 个内核单元测试 + arena 集成测试 + 首个内存 API 测试；
 > - 上游两个缺少 fixture 的测试已隔离并注明原因（需重建 NDJSON fixture，不是跳过内核能力）；
 > - 已新增 `Config::default`、`ExportFile::empty`、`infer_closed_type`、`reduce_closed` 等内存 API；
-> - 已新增 `crates/front`（`.fol` lexer/parser/诊断）与 `crates/cli`（`folc`），见 M1 进度。
+> - 已新增 `crates/front`（`.sokonanoda` lexer/parser/诊断）与 `crates/cli`（`folc`），见 M1 进度。
 
 目标：完整保留 sokonanoda 内核，并提供教学前端需要的稳定接口。
 
@@ -165,18 +165,18 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 ---
 
-### M1 —— `.fol` 格式与编译器前端 v0（0.2）
+### M1 —— `.sokonanoda` 格式与编译器前端 v0（0.2）
 
 > 进度（2026-09-06）：
-> - `.fol` v0 语法与 lexer/parser 已实现：`def` / `theorem` / `example` / `axiom` / `#check` / `#reduce` / `???`、lambda、箭头、`∀`、应用；
+> - `.sokonanoda` v0 语法与 lexer/parser 已实现：`def` / `theorem` / `example` / `axiom` / `#check` / `#reduce` / `???`、lambda、箭头、`∀`、应用；
 > - span 诊断已带行列号；命令关键字不会泄漏进表达式；
-> - `folc` CLI 可解析 `.fol` 文件或 stdin 并输出摘要/诊断；
-> - `examples/lesson-01.fol` 已入库。
+> - `folc` CLI 可解析 `.sokonanoda` 文件或 stdin 并输出摘要/诊断；
+> - `examples/lesson-01.sokonanoda` 已入库。
 > 未完成：把 AST 编译成 kernel 表达式/声明需要先在 kernel 侧落地“与 arena 解耦的 Builder API”——`TcCtx` 目前把环境借用与 arena 绑定，直接暴露声明添加 API 会陷入自引用生命周期。
 
 目标：文件第一次能“翻译”成 kernel 可检查的内容。
 
-- 定义 `.fol` 格式 v0：
+- 定义 `.sokonanoda` 格式 v0：
   - 正文（`--` 注释与 lesson 元数据）；
   - `def` / `example` / `#check` / `#reduce`；
   - `#exercise` 与答案区标记。
@@ -185,7 +185,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   - 显式 binder、应用、Nat 字面量、`fun`；
   - 答案区允许 `???` 作为合法“未完成”状态；
   - 任何不支持的语法产生“课程级别不可用”，而不是内部错误。
-- 批处理 CLI：`sokonanoda-lang check lesson.fol`。
+- 批处理 CLI：`sokonanoda-lang check lesson.sokonanoda`。
 - 输出两种视图：
   - 人类可读文本；
   - JSON Lines 事件流（供未来的 service/agent 直接消费）。
@@ -241,18 +241,18 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   3. 命题与证明项；
   4. 等式与 `rfl`；
   5. 归纳类型与 `match`（elaborator 到位后引入）。
-- 每课内容作为 `.fol` 文件入库；
+- 每课内容作为 `.sokonanoda` 文件入库；
 - 每课含 3~8 个练习；
-- 课程自检：CI 跑通全部 `.fol` 文件并比对 golden 事件。
+- 课程自检：CI 跑通全部 `.sokonanoda` 文件并比对 golden 事件。
 
-验收：零基础用户按顺序完成课程；每课结束时的 `.fol` 都是合法可检查文件。
+验收：零基础用户按顺序完成课程；每课结束时的 `.sokonanoda` 都是合法可检查文件。
 
 ---
 
 ### M5+ —— 编辑器与 agent（后续，不进入当前阶段）
 
 - **L1**：compiler service 常驻、增量重编译、与编辑器通过事件协议通信。
-- **L2**：VS Code extension（`.fol` 语法、双角色视图、实时诊断与练习状态）。
+- **L2**：VS Code extension（`.sokonanoda` 语法、双角色视图、实时诊断与练习状态）。
 - **L3**：code agent 接入同一事件流：从零讲课、出题、根据反馈调整。
 
 ---

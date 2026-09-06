@@ -1,4 +1,4 @@
-//! The restricted `.fol` front-end.
+//! The restricted `.sokonanoda` front-end.
 //!
 //! This crate deliberately implements only the grammar points exposed by the
 //! teaching curriculum. The syntax whitelist is the curriculum: adding a
@@ -231,7 +231,7 @@ impl<'a> Lexer<'a> {
             ch if is_ident_start(ch) => self.lex_ident(start),
             other => {
                 self.bump();
-                Err(self.err_unexpected(start, "a valid .fol token", &other.to_string()))
+                Err(self.err_unexpected(start, "a valid .sokonanoda token", &other.to_string()))
             }
         }
     }
@@ -470,7 +470,7 @@ impl Parser {
             TokenKind::Ident(kw) if kw == "axiom" => self.parse_axiom(),
             TokenKind::Ident(kw) if kw == "#check" => self.parse_hash_check(),
             TokenKind::Ident(kw) if kw == "#reduce" => self.parse_hash_reduce(),
-            _ => Err(self.error_at_current(&format!("expected a .fol command, found {tok:?}"))),
+            _ => Err(self.error_at_current(&format!("expected a .sokonanoda command, found {tok:?}"))),
         }
     }
 

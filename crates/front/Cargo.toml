@@ -3,6 +3,6 @@ name = "sokonanoda-front"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Restricted .fol front-end (lexer, parser, diagnostics) for sokonanoda-lang"
+description = "Restricted .sokonanoda front-end (lexer, parser, diagnostics) for sokonanoda-lang"
 
 [dependencies]

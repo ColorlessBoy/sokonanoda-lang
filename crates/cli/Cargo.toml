@@ -3,7 +3,7 @@ name = "sokonanoda-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Command-line front-end for .fol teaching files"
+description = "Command-line front-end for .sokonanoda teaching files"
 
 [[bin]]
 name = "folc"

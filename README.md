@@ -10,7 +10,7 @@ intended to hide its provenance.
 ## Naming
 
 - Product language: **Follow** (tentative)
-- Source file suffix: **`.fol`**
+- Source file suffix: **`.sokonanoda`**
 - Kernel crate: `sokonanoda` (kept for attribution and stability)
 - Workspace/repository: `sokonanoda-lang`
 
@@ -21,9 +21,9 @@ The repository will use no official Lean tooling (`lean`, `lake`,
 
 ```text
 crates/kernel   Full sokonanoda kernel (complete, unmodified core)
-crates/front    .fol lexer / parser / diagnostics (restricted teaching grammar)
-crates/cli      `folc` command-line front-end for .fol files
-examples/       Sample .fol lesson files
+crates/front    .sokonanoda lexer / parser / diagnostics (restricted teaching grammar)
+crates/cli      `folc` command-line front-end for .sokonanoda files
+examples/       Sample .sokonanoda lesson files
 ```
 
 See [ROADMAP.md](ROADMAP.md).
