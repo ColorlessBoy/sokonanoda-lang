@@ -38,6 +38,8 @@ pub enum TokenKind {
     Forall,   // ∀ or forall
     LParen,
     RParen,
+    LBrace,
+    RBrace,
     Comma,
     Eof,
 }
@@ -208,6 +210,8 @@ impl<'a> Lexer<'a> {
             }
             '(' => self.single(TokenKind::LParen, start),
             ')' => self.single(TokenKind::RParen, start),
+            '{' => self.single(TokenKind::LBrace, start),
+            '}' => self.single(TokenKind::RBrace, start),
             ',' => self.single(TokenKind::Comma, start),
             '+' => self.single(TokenKind::Plus, start),
             '∀' => self.single(TokenKind::Forall, start),
@@ -329,11 +333,12 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>> {
 // AST
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SortKind {
     Prop,
     Type,
     Sort(u64),
+    Level(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -344,6 +349,11 @@ pub enum Expr {
     },
     Ident {
         name: String,
+        span: Span,
+    },
+    UniverseApp {
+        name: String,
+        levels: Vec<String>,
         span: Span,
     },
     Num {
@@ -385,6 +395,7 @@ impl Expr {
         match self {
             Expr::Sort { span, .. }
             | Expr::Ident { span, .. }
+            | Expr::UniverseApp { span, .. }
             | Expr::Num { span, .. }
             | Expr::Hole { span }
             | Expr::App { span, .. }
@@ -408,12 +419,14 @@ pub struct Binder {
 pub enum Command {
     Def {
         name: String,
+        universe: Vec<String>,
         ty: Expr,
         val: Expr,
         span: Span,
     },
     Theorem {
         name: String,
+        universe: Vec<String>,
         ty: Expr,
         val: Expr,
         span: Span,
@@ -425,6 +438,7 @@ pub enum Command {
     },
     Axiom {
         name: String,
+        universe: Vec<String>,
         ty: Expr,
         span: Span,
     },
@@ -503,6 +517,7 @@ impl Parser {
     fn parse_def(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_ident("definition name")?;
+        let universe = self.parse_universe_params()?;
         self.expect_colon("definition type")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
@@ -510,6 +525,7 @@ impl Parser {
         let span = Span::new(start, val.span().end);
         Ok(Command::Def {
             name,
+            universe,
             ty,
             val,
             span,
@@ -519,6 +535,7 @@ impl Parser {
     fn parse_theorem(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_ident("theorem name")?;
+        let universe = self.parse_universe_params()?;
         self.expect_colon("theorem statement")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
@@ -526,6 +543,7 @@ impl Parser {
         let span = Span::new(start, val.span().end);
         Ok(Command::Theorem {
             name,
+            universe,
             ty,
             val,
             span,
@@ -545,10 +563,41 @@ impl Parser {
     fn parse_axiom(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_ident("axiom name")?;
+        let universe = self.parse_universe_params()?;
         self.expect_colon("axiom type")?;
         let ty = self.parse_expr()?;
         let span = Span::new(start, ty.span().end);
-        Ok(Command::Axiom { name, ty, span })
+        Ok(Command::Axiom {
+            name,
+            universe,
+            ty,
+            span,
+        })
+    }
+
+    fn parse_universe_params(&mut self) -> Result<Vec<String>> {
+        if self.peek().kind != TokenKind::LBrace {
+            return Ok(Vec::new());
+        }
+        self.bump();
+        let mut out = Vec::new();
+        loop {
+            let name = self.expect_ident("universe parameter")?;
+            if out.contains(&name) {
+                return Err(self.error_here(&format!("duplicate universe parameter `{name}`")));
+            }
+            out.push(name);
+            match self.peek().kind {
+                TokenKind::Comma => {
+                    self.bump();
+                }
+                TokenKind::RBrace => {
+                    self.bump();
+                    return Ok(out);
+                }
+                _ => return Err(self.error_here("expected `,` or `}` in universe parameters")),
+            }
+        }
     }
 
     fn parse_hash_check(&mut self) -> Result<Command> {
@@ -670,6 +719,12 @@ impl Parser {
                             "Sort expects a universe level".to_string(),
                         )
                     })?,
+                    TokenKind::Ident(name) => {
+                        return Ok(Expr::Sort {
+                            sort: SortKind::Level(name),
+                            span: tok.span,
+                        });
+                    }
                     other => {
                         return Err(Diagnostic::new(
                             DiagnosticKind::UnexpectedToken {
@@ -685,6 +740,61 @@ impl Parser {
                     sort: SortKind::Sort(level),
                     span: tok.span,
                 })
+            }
+            TokenKind::Ident(name) if name.ends_with('.') => {
+                let base = name.trim_end_matches('.').to_string();
+                if base.is_empty() {
+                    return Err(Diagnostic::new(
+                        DiagnosticKind::UnexpectedToken {
+                            found: name,
+                            expected: "a constant name".to_string(),
+                        },
+                        tok.span,
+                        "expected a constant name before `.{...}`".to_string(),
+                    ));
+                }
+                if self.peek().kind == TokenKind::LBrace {
+                    self.bump();
+                    let mut levels = Vec::new();
+                    loop {
+                        let level = self.bump();
+                        match level.kind {
+                            TokenKind::Ident(name) | TokenKind::Num(name) => levels.push(name),
+                            other => {
+                                return Err(Diagnostic::new(
+                                    DiagnosticKind::UnexpectedToken {
+                                        found: format!("{other:?}"),
+                                        expected: "a universe level".to_string(),
+                                    },
+                                    level.span,
+                                    "expected a universe level".to_string(),
+                                ));
+                            }
+                        }
+                        match self.peek().kind {
+                            TokenKind::Comma => {
+                                self.bump();
+                            }
+                            TokenKind::RBrace => {
+                                self.bump();
+                                break;
+                            }
+                            _ => {
+                                return Err(
+                                    self.error_here("expected `,` or `}` in universe arguments")
+                                );
+                            }
+                        }
+                    }
+                    let span = Span::new(tok.span.start, self.tokens[self.cursor - 1].span.end);
+                    Ok(Expr::UniverseApp {
+                        name: base,
+                        levels,
+                        span,
+                    })
+                } else {
+                    Err(self.error_here("expected `{...}` after `.{...}` universe marker"))
+                }
             }
             TokenKind::Ident(name) if is_reserved_command(&name) => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {

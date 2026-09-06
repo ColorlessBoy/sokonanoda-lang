@@ -61,6 +61,18 @@ abbreviations), so the type of function types is checkable:
 #check : Type 1 -> Type 1
 ```
 
+Universe polymorphism uses declaration-level parameters and explicit
+applications:
+
+```text
+def id {u} : forall (α : Sort u), α -> α :=
+  fun (α : Sort u) => fun (a : α) => a
+
+def id0 : forall (α : Prop), α -> α := id.{0}
+```
+
+Without an explicit application (`#check id`) the universe defaults to zero.
+
 Errors are printed as `line:col: error: ...` without kernel panic traces.
 
 ## Development principles

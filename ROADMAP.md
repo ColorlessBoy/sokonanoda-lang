@@ -183,9 +183,11 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 >   `#check` / `#reduce`（调试用最小 REPL）。
 > - `Sort n` 数字宇宙可用（`Prop = Sort 0`、`Type = Sort 1`），函数类型本身的类型可被
 >   内核检查（如 `(fun (α : Sort 2) => α) : Type 1 -> Type 1`）。
+> - `Sort u` 宇宙变量、声明级 `{u, v}` 参数与显式应用 `id.{u}` 已实现；普通使用默认
+>   universe = 0；axiom/def/theorem 均可带宇宙参数。
 > - `#print <name>` 已可用；kernel 拒绝输出不再刷 panic trace。
-> 未完成：`Sort u` 的宇宙变量与声明级 `{u}` 参数、归纳类型的真正声明语法、
-> Nat.rec/induction、隐式参数语法、tactic 草稿模式与课程 UI。
+> 未完成：`@id.{u}` 语法别名、归纳类型的真正声明语法、Nat.rec/induction、
+> 隐式 binder 语法、tactic 草稿模式与课程 UI。
 
 目标：文件第一次能“翻译”成 kernel 可检查的内容。
 

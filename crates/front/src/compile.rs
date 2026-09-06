@@ -5,8 +5,11 @@ use crate::{Command, Expr, FolFile, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, EnvLimit, ReducibilityHint};
 use sokonanoda::expr::BinderStyle;
-use sokonanoda::util::{Config, ExprPtr, NamePtr};
+use sokonanoda::util::{Config, ExprPtr, LevelPtr, NamePtr};
+use std::collections::HashMap;
 use std::sync::Arc;
+
+type UnivMap<'a> = HashMap<String, LevelPtr<'a>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompileError {
@@ -76,6 +79,11 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     install_prelude(&mut builder);
+    let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
+    for builtin in ["Nat", "Nat.zero", "Nat.succ", "Nat.add"] {
+        known_universes.insert(builtin.to_string(), Vec::new());
+    }
+    let no_universe: UnivMap = UnivMap::new();
     let mut ops: Vec<PendingOp<'_>> = Vec::new();
     let mut example_idx = 0usize;
     let mut out = CompileOutput::default();
@@ -84,17 +92,19 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
         match command {
             Command::Def {
                 name,
+                universe,
                 ty,
                 val,
                 span,
             } => {
-                let res = build_def(&mut builder, name, ty, val);
+                let res = build_def(&mut builder, name, universe, ty, val, &known_universes);
                 match res {
                     Ok(decl) => {
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             out.errors.push(CompileError::new(e, *span));
                             continue;
                         }
+                        known_universes.insert(name.clone(), universe.clone());
                         ops.push(PendingOp::Decl {
                             name: name.clone(),
                             declar: decl,
@@ -106,17 +116,19 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
             }
             Command::Theorem {
                 name,
+                universe,
                 ty,
                 val,
                 span,
             } => {
-                let res = build_theorem(&mut builder, name, ty, val);
+                let res = build_theorem(&mut builder, name, universe, ty, val, &known_universes);
                 match res {
                     Ok(decl) => {
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             out.errors.push(CompileError::new(e, *span));
                             continue;
                         }
+                        known_universes.insert(name.clone(), universe.clone());
                         ops.push(PendingOp::Decl {
                             name: name.clone(),
                             declar: decl,
@@ -126,14 +138,20 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                     Err(e) => out.errors.push(e),
                 }
             }
-            Command::Axiom { name, ty, span } => {
-                let res = build_axiom(&mut builder, name, ty);
+            Command::Axiom {
+                name,
+                universe,
+                ty,
+                span,
+            } => {
+                let res = build_axiom(&mut builder, name, universe, ty, &known_universes);
                 match res {
                     Ok(decl) => {
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             out.errors.push(CompileError::new(e, *span));
                             continue;
                         }
+                        known_universes.insert(name.clone(), universe.clone());
                         ops.push(PendingOp::Decl {
                             name: name.clone(),
                             declar: decl,
@@ -150,12 +168,13 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                 }
                 example_idx += 1;
                 let name = format!("_example_{example_idx}");
-                match build_def(&mut builder, &name, ty, val) {
+                match build_def(&mut builder, &name, &[], ty, val, &known_universes) {
                     Ok(decl) => {
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             out.errors.push(CompileError::new(e, *span));
                             continue;
                         }
+                        known_universes.insert(name.clone(), Vec::new());
                         ops.push(PendingOp::Example {
                             declar: decl,
                             span: *span,
@@ -166,7 +185,13 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
             }
             Command::Check { expr, span: _ } => {
                 let decl_before = builder.declaration_count();
-                match elab_expr(&mut builder, expr, &mut Vec::new()) {
+                match elab_expr(
+                    &mut builder,
+                    expr,
+                    &mut Vec::new(),
+                    &no_universe,
+                    &known_universes,
+                ) {
                     Ok(e) => ops.push(PendingOp::Check {
                         expr: e,
                         decl_before,
@@ -176,7 +201,13 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
             }
             Command::Reduce { expr, span: _ } => {
                 let decl_before = builder.declaration_count();
-                match elab_expr(&mut builder, expr, &mut Vec::new()) {
+                match elab_expr(
+                    &mut builder,
+                    expr,
+                    &mut Vec::new(),
+                    &no_universe,
+                    &known_universes,
+                ) {
                     Ok(e) => ops.push(PendingOp::Reduce {
                         expr: e,
                         decl_before,
@@ -317,8 +348,10 @@ fn add_definition<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>,
 fn build_def<'a>(
     builder: &mut EnvBuilder<'a>,
     name: &str,
+    universe: &[String],
     ty: &Expr,
     val: &Expr,
+    known: &HashMap<String, Vec<String>>,
 ) -> Result<Declar<'a>, CompileError> {
     if matches!(val, Expr::Hole { .. }) {
         return Err(CompileError::new(
@@ -327,10 +360,11 @@ fn build_def<'a>(
         ));
     }
     let mut scope = Vec::new();
-    let ty = elab_expr(builder, ty, &mut scope)?;
-    let val = elab_expr(builder, val, &mut scope)?;
+    let univ = make_univ_map(builder, universe);
+    let ty = elab_expr(builder, ty, &mut scope, &univ, known)?;
+    let val = elab_expr(builder, val, &mut scope, &univ, known)?;
     let name = builder.name_from_str(name);
-    let uparams = builder.alloc_levels_slice(&[]);
+    let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Definition {
         info: DeclarInfo { name, uparams, ty },
         val,
@@ -341,8 +375,10 @@ fn build_def<'a>(
 fn build_theorem<'a>(
     builder: &mut EnvBuilder<'a>,
     name: &str,
+    universe: &[String],
     ty: &Expr,
     val: &Expr,
+    known: &HashMap<String, Vec<String>>,
 ) -> Result<Declar<'a>, CompileError> {
     if matches!(val, Expr::Hole { .. }) {
         return Err(CompileError::new(
@@ -351,10 +387,11 @@ fn build_theorem<'a>(
         ));
     }
     let mut scope = Vec::new();
-    let ty = elab_expr(builder, ty, &mut scope)?;
-    let val = elab_expr(builder, val, &mut scope)?;
+    let univ = make_univ_map(builder, universe);
+    let ty = elab_expr(builder, ty, &mut scope, &univ, known)?;
+    let val = elab_expr(builder, val, &mut scope, &univ, known)?;
     let name = builder.name_from_str(name);
-    let uparams = builder.alloc_levels_slice(&[]);
+    let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Theorem {
         info: DeclarInfo { name, uparams, ty },
         val,
@@ -364,21 +401,68 @@ fn build_theorem<'a>(
 fn build_axiom<'a>(
     builder: &mut EnvBuilder<'a>,
     name: &str,
+    universe: &[String],
     ty: &Expr,
+    known: &HashMap<String, Vec<String>>,
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = Vec::new();
-    let ty = elab_expr(builder, ty, &mut scope)?;
+    let univ = make_univ_map(builder, universe);
+    let ty = elab_expr(builder, ty, &mut scope, &univ, known)?;
     let name = builder.name_from_str(name);
-    let uparams = builder.alloc_levels_slice(&[]);
+    let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Axiom {
         info: DeclarInfo { name, uparams, ty },
     })
+}
+
+fn make_univ_map<'a>(builder: &mut EnvBuilder<'a>, universe: &[String]) -> UnivMap<'a> {
+    universe
+        .iter()
+        .map(|name| {
+            let ptr = builder.name_from_str(name);
+            let level = builder.level_param(ptr);
+            (name.clone(), level)
+        })
+        .collect()
+}
+
+fn collect_uparams<'a>(
+    builder: &mut EnvBuilder<'a>,
+    univ: &UnivMap<'a>,
+    universe: &[String],
+) -> sokonanoda::util::LevelsPtr<'a> {
+    let levels: Vec<LevelPtr<'a>> = universe.iter().map(|name| univ[name]).collect();
+    builder.alloc_levels_slice(&levels)
+}
+
+fn level_ptr<'a>(
+    builder: &mut EnvBuilder<'a>,
+    level: &str,
+    univ: &UnivMap<'a>,
+    span: Span,
+) -> Result<LevelPtr<'a>, CompileError> {
+    if let Ok(n) = level.parse::<u64>() {
+        let mut out = builder.zero();
+        for _ in 0..n {
+            out = builder.succ(out);
+        }
+        Ok(out)
+    } else if let Some(level) = univ.get(level).copied() {
+        Ok(level)
+    } else {
+        Err(CompileError::new(
+            format!("unknown universe level `{level}`"),
+            span,
+        ))
+    }
 }
 
 fn elab_expr<'a>(
     builder: &mut EnvBuilder<'a>,
     expr: &Expr,
     scope: &mut Vec<String>,
+    univ: &UnivMap<'a>,
+    known: &HashMap<String, Vec<String>>,
 ) -> Result<ExprPtr<'a>, CompileError> {
     match expr {
         Expr::Sort {
@@ -406,6 +490,18 @@ fn elab_expr<'a>(
             }
             Ok(builder.mk_sort(level))
         }
+        Expr::Sort {
+            sort: SortKind::Level(name),
+            span,
+        } => {
+            let level = univ.get(name).copied().ok_or_else(|| {
+                CompileError::new(
+                    format!("universe variable `{name}` is not declared in this declaration"),
+                    *span,
+                )
+            })?;
+            Ok(builder.mk_sort(level))
+        }
         Expr::Ident { name, span } => {
             if let Some(pos) = scope.iter().rposition(|candidate| candidate == name) {
                 let idx = u16::try_from(scope.len() - 1 - pos).map_err(|_| {
@@ -413,10 +509,36 @@ fn elab_expr<'a>(
                 })?;
                 Ok(builder.mk_var(idx))
             } else {
+                let params = known.get(name).ok_or_else(|| {
+                    CompileError::new(format!("unknown identifier `{name}`"), *span)
+                })?;
+                let levels: Vec<LevelPtr<'a>> = params.iter().map(|_| builder.zero()).collect();
+                let levels = builder.alloc_levels_slice(&levels);
                 let name = builder.name_from_str(name);
-                let levels = builder.alloc_levels_slice(&[]);
                 Ok(builder.mk_const(name, levels))
             }
+        }
+        Expr::UniverseApp { name, levels, span } => {
+            let params = known
+                .get(name)
+                .ok_or_else(|| CompileError::new(format!("unknown constant `{name}`"), *span))?;
+            if params.len() != levels.len() {
+                return Err(CompileError::new(
+                    format!(
+                        "constant `{name}` expects {} universe argument(s), got {}",
+                        params.len(),
+                        levels.len()
+                    ),
+                    *span,
+                ));
+            }
+            let mut resolved = Vec::with_capacity(levels.len());
+            for level in levels {
+                resolved.push(level_ptr(builder, level, univ, *span)?);
+            }
+            let levels = builder.alloc_levels_slice(&resolved);
+            let name = builder.name_from_str(name);
+            Ok(builder.mk_const(name, levels))
         }
         Expr::Num { value, span } => {
             let n: num_bigint::BigUint = value.parse().map_err(|_| {
@@ -434,8 +556,8 @@ fn elab_expr<'a>(
             *span,
         )),
         Expr::App { fun, arg, span: _ } => {
-            let fun = elab_expr(builder, fun, scope)?;
-            let arg = elab_expr(builder, arg, scope)?;
+            let fun = elab_expr(builder, fun, scope, univ, known)?;
+            let arg = elab_expr(builder, arg, scope, univ, known)?;
             Ok(builder.mk_app(fun, arg))
         }
         Expr::Lambda {
@@ -448,7 +570,7 @@ fn elab_expr<'a>(
             let mut tys = Vec::with_capacity(binders.len());
             for binder in binders {
                 let ty = match &binder.ty {
-                    Some(ty) => elab_expr(builder, ty, scope)?,
+                    Some(ty) => elab_expr(builder, ty, scope, univ, known)?,
                     None => {
                         return Err(CompileError::new(
                             "untyped binders need elaboration inference (not in v0)",
@@ -461,7 +583,7 @@ fn elab_expr<'a>(
                 names.push(name);
                 scope.push(binder.name.clone());
             }
-            let mut body_expr = elab_expr(builder, body, scope)?;
+            let mut body_expr = elab_expr(builder, body, scope, univ, known)?;
             scope.truncate(base);
             for (name, ty) in names.into_iter().zip(tys).rev() {
                 body_expr = builder.mk_lambda(name, BinderStyle::Default, ty, body_expr);
@@ -478,7 +600,7 @@ fn elab_expr<'a>(
             let mut tys = Vec::with_capacity(binders.len());
             for binder in binders {
                 let ty = match &binder.ty {
-                    Some(ty) => elab_expr(builder, ty, scope)?,
+                    Some(ty) => elab_expr(builder, ty, scope, univ, known)?,
                     None => {
                         return Err(CompileError::new(
                             "untyped binders need elaboration inference (not in v0)",
@@ -491,7 +613,7 @@ fn elab_expr<'a>(
                 names.push(name);
                 scope.push(binder.name.clone());
             }
-            let mut body_expr = elab_expr(builder, body, scope)?;
+            let mut body_expr = elab_expr(builder, body, scope, univ, known)?;
             scope.truncate(base);
             for (name, ty) in names.into_iter().zip(tys).rev() {
                 body_expr = builder.mk_pi(name, BinderStyle::Default, ty, body_expr);
@@ -503,11 +625,11 @@ fn elab_expr<'a>(
             codomain,
             span: _,
         } => {
-            let domain = elab_expr(builder, domain, scope)?;
+            let domain = elab_expr(builder, domain, scope, univ, known)?;
             // `A -> B` desugars to a Pi with an anonymous binder, so free
             // variables in the codomain live one binder deeper.
             scope.push(String::new());
-            let codomain = elab_expr(builder, codomain, scope)?;
+            let codomain = elab_expr(builder, codomain, scope, univ, known)?;
             scope.pop();
             let anon = builder.anonymous();
             Ok(builder.mk_pi(anon, BinderStyle::Default, domain, codomain))
@@ -516,8 +638,8 @@ fn elab_expr<'a>(
             let add = builder.name_from_str("Nat.add");
             let levels = builder.alloc_levels_slice(&[]);
             let add_const = builder.mk_const(add, levels);
-            let lhs = elab_expr(builder, lhs, scope)?;
-            let rhs = elab_expr(builder, rhs, scope)?;
+            let lhs = elab_expr(builder, lhs, scope, univ, known)?;
+            let rhs = elab_expr(builder, rhs, scope, univ, known)?;
             let applied = builder.mk_app(add_const, lhs);
             Ok(builder.mk_app(applied, rhs))
         }
@@ -644,8 +766,12 @@ mod tests {
         assert_eq!(
             out.events,
             vec![
-                CheckEvent::TypeChecked { text: "Type 2".into() },
-                CheckEvent::TypeChecked { text: "Type 1 -> Type 1".into() },
+                CheckEvent::TypeChecked {
+                    text: "Type 2".into()
+                },
+                CheckEvent::TypeChecked {
+                    text: "Type 1 -> Type 1".into()
+                },
             ]
         );
     }
@@ -663,6 +789,94 @@ mod tests {
             CheckEvent::Printed { name, text } => Some((name.as_str(), text.as_str())),
             _ => None,
         });
-        assert_eq!(printed, Some(("id", "def id : Prop -> Prop := fun (x : Prop) => x")));
+        assert_eq!(
+            printed,
+            Some(("id", "def id : Prop -> Prop := fun (x : Prop) => x"))
+        );
+    }
+
+    #[test]
+    fn checks_universe_polymorphic_id_declaration() {
+        let file = parse(
+            "def id {u} : forall (α : Sort u), α -> α :=\n\
+             fun (α : Sort u) => fun (a : α) => a\n",
+        )
+        .expect("parse universe-polymorphic declaration");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+    }
+
+    #[test]
+    fn checks_explicit_universe_application() {
+        let file = parse(
+            "def id {u} : forall (α : Sort u), α -> α :=\n\
+             fun (α : Sort u) => fun (a : α) => a\n\
+             def id2 {u} : forall (α : Sort u), α -> α := id.{u}\n",
+        )
+        .expect("parse explicit universe application");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+    }
+
+    #[test]
+    fn checks_plain_use_defaults_universe_to_zero() {
+        let file = parse(
+            "def id {u} : forall (α : Sort u), α -> α :=\n\
+             fun (α : Sort u) => fun (a : α) => a\n\
+             #check id\n",
+        )
+        .expect("parse plain use");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+        assert!(out
+            .events
+            .iter()
+            .any(|event| matches!(event, CheckEvent::TypeChecked { .. })));
+    }
+
+    #[test]
+    fn checks_explicit_literal_universe_application() {
+        let file = parse(
+            "def id {u} : forall (α : Sort u), α -> α :=\n\
+             fun (α : Sort u) => fun (a : α) => a\n\
+             def id0 : forall (α : Prop), α -> α := id.{0}\n",
+        )
+        .expect("parse literal universe application");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+    }
+
+    #[test]
+    fn checks_axiom_with_two_universe_params() {
+        let file = parse(
+            "axiom cast {u, v} :\n\
+             forall (α : Sort u), forall (β : Sort v), α -> β\n",
+        )
+        .expect("parse two universe params");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+    }
+
+    #[test]
+    fn rejects_undeclared_universe_variable() {
+        let file = parse(
+            "def bad : forall (α : Sort u), α -> α :=\n\
+             fun (α : Sort u) => fun (a : α) => a\n",
+        )
+        .expect("parse undeclared universe");
+        let out = compile_fol(&file);
+        assert!(!out.errors.is_empty());
+    }
+
+    #[test]
+    fn rejects_wrong_number_of_universe_arguments() {
+        let file = parse(
+            "def id {u} : forall (α : Sort u), α -> α :=\n\
+             fun (α : Sort u) => fun (a : α) => a\n\
+             def bad {u} : forall (α : Sort u), α -> α := id.{u, 0}\n",
+        )
+        .expect("parse wrong universe count");
+        let out = compile_fol(&file);
+        assert!(!out.errors.is_empty());
     }
 }

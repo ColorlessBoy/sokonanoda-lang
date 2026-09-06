@@ -59,11 +59,13 @@ fn cli_reports_parse_errors_with_positions() {
 
 #[test]
 fn cli_checks_nat_and_reduces_addition() {
-    let out = run(
-        "def two : Nat := 1 + 1\n\
-         #reduce 1 + 2\n",
+    let out = run("def two : Nat := 1 + 1\n\
+         #reduce 1 + 2\n");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
     );
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration two"));
     assert!(stdout.contains("#reduce => 3"), "stdout: {stdout}");
@@ -72,7 +74,11 @@ fn cli_checks_nat_and_reduces_addition() {
 #[test]
 fn cli_prints_definitions() {
     let out = run("def id : Prop -> Prop := fun (x : Prop) => x\n#print id\n");
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("#print id"));
     assert!(stdout.contains("def id : Prop -> Prop := fun (x : Prop) => x"));
@@ -84,9 +90,16 @@ fn repl_accumulates_declarations_and_checks_them() {
         "def id : Prop -> Prop := fun (x : Prop) => x\n\
          #check id\n",
     );
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("checked declaration id"), "stdout: {stdout}");
+    assert!(
+        stdout.contains("checked declaration id"),
+        "stdout: {stdout}"
+    );
     assert!(stdout.contains("#check : Prop -> Prop"), "stdout: {stdout}");
 }
 
@@ -107,9 +120,39 @@ fn repl_env_and_help_are_available() {
          def id : Prop -> Prop := fun (x : Prop) => x\n\
          #env\n",
     );
-    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("#check <expr>"));
     assert!(stdout.contains("user declarations:"));
     assert!(stdout.contains("  id"));
+}
+
+#[test]
+fn cli_checks_universe_polymorphic_declarations() {
+    let out = run("def id {u} : forall (α : Sort u), α -> α :=\n\
+         fun (α : Sort u) => fun (a : α) => a\n\
+         def id0 : forall (α : Prop), α -> α := id.{0}\n\
+         #print id\n");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration id"));
+    assert!(stdout.contains("checked declaration id0"));
+    assert!(stdout.contains("def id.{u}"), "stdout: {stdout}");
+    assert!(stdout.contains("Sort u"), "stdout: {stdout}");
+}
+
+#[test]
+fn cli_rejects_undeclared_universe_variable() {
+    let out = run("def bad : forall (α : Sort u), α -> α :=\n\
+         fun (α : Sort u) => fun (a : α) => a\n");
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("universe variable"));
 }
