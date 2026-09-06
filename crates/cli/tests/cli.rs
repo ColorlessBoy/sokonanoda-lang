@@ -76,6 +76,15 @@ fn cli_checks_nat_and_reduces_addition() {
 }
 
 #[test]
+fn cli_prints_definitions() {
+    let out = run("def id : Prop -> Prop := fun (x : Prop) => x\n#print id\n");
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("#print id"));
+    assert!(stdout.contains("def id : Prop -> Prop := fun (x : Prop) => x"));
+}
+
+#[test]
 fn repl_accumulates_declarations_and_checks_them() {
     let out = run_repl(
         "def id : Prop -> Prop := fun (x : Prop) => x\n\

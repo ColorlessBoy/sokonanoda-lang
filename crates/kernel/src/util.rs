@@ -660,7 +660,10 @@ impl<'p> ExportFile<'p> {
     /// wrapper classifies them as [`CheckError::Rejected`]. Replacing those
     /// panics with explicit propagation is a follow-up kernel task.
     pub fn try_check_declar(&self, d: &Declar<'p>) -> Result<(), CheckError> {
+        let previous_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(|_| {}));
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.check_declar(d)));
+        std::panic::set_hook(previous_hook);
         match outcome {
             Ok(()) => Ok(()),
             Err(payload) => {

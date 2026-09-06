@@ -36,6 +36,12 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda
 cargo run -q -p sokonanoda-cli --bin sokonanoda repl
 ```
 
+In `repl`, declarations accumulate line by line. Commands:
+
+- `#check <expr>` — print the inferred type;
+- `#reduce <expr>` — evaluate closed terms;
+- `#print <name>` — print a declaration (types and proof terms).
+
 The CLI parses a `.sokonanoda` file, elaborates it into kernel declarations
 and runs the complete sokonanoda kernel over them:
 
@@ -54,6 +60,8 @@ abbreviations), so the type of function types is checkable:
 > #check (fun (α : Sort 2) => α)
 #check : Type 1 -> Type 1
 ```
+
+Errors are printed as `line:col: error: ...` without kernel panic traces.
 
 A second example defines the classic logical vocabulary from scratch and
 proves core theorems about it:

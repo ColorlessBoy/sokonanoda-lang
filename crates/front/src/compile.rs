@@ -5,7 +5,7 @@ use crate::{Command, Expr, FolFile, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, EnvLimit, ReducibilityHint};
 use sokonanoda::expr::BinderStyle;
-use sokonanoda::util::{Config, ExprPtr};
+use sokonanoda::util::{Config, ExprPtr, NamePtr};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -29,6 +29,7 @@ pub enum CheckEvent {
     ExampleChecked,
     TypeChecked { text: String },
     Reduced { text: String },
+    Printed { name: String, text: String },
     ExerciseOpen,
 }
 
@@ -61,6 +62,11 @@ enum PendingOp<'a> {
     Reduce {
         expr: ExprPtr<'a>,
         decl_before: usize,
+    },
+    Print {
+        name: String,
+        ptr: NamePtr<'a>,
+        span: Span,
     },
     OpenExercise,
 }
@@ -178,6 +184,14 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                     Err(e) => out.errors.push(e),
                 }
             }
+            Command::Print { name, span } => {
+                let ptr = builder.name_from_str(name);
+                ops.push(PendingOp::Print {
+                    name: name.clone(),
+                    ptr,
+                    span: *span,
+                });
+            }
         }
     }
 
@@ -185,7 +199,10 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
         return out;
     }
 
-    let env = builder.finish();
+    let mut env = builder.finish();
+    // Print proof terms as terms instead of suppressing them to `_`; the
+    // suppression path would try to infer types of open binder bodies.
+    env.config.pp_options.proofs = true;
     for op in ops {
         match op {
             PendingOp::Decl { name, declar, span } => match env.try_check_declar(&declar) {
@@ -209,6 +226,16 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
                     let text = tc.with_pp(|pp| pp.pp_expr(reduced));
                     out.events.push(CheckEvent::Reduced { text });
                 });
+            }
+            PendingOp::Print { name, ptr, span } => {
+                let printed = env.with_pp(|pp| pp.pp_declar(ptr));
+                match printed {
+                    Some(text) => out.events.push(CheckEvent::Printed { name, text }),
+                    None => out.errors.push(CompileError::new(
+                        format!("unknown declaration `{name}`"),
+                        span,
+                    )),
+                }
             }
             PendingOp::OpenExercise => out.events.push(CheckEvent::ExerciseOpen),
         }
@@ -621,5 +648,21 @@ mod tests {
                 CheckEvent::TypeChecked { text: "Type 1 -> Type 1".into() },
             ]
         );
+    }
+
+    #[test]
+    fn prints_definitions_without_panicking_on_open_bodies() {
+        let file = parse(
+            "def id : Prop -> Prop := fun (x : Prop) => x\n\
+             #print id\n",
+        )
+        .unwrap();
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+        let printed = out.events.iter().find_map(|event| match event {
+            CheckEvent::Printed { name, text } => Some((name.as_str(), text.as_str())),
+            _ => None,
+        });
+        assert_eq!(printed, Some(("id", "def id : Prop -> Prop := fun (x : Prop) => x")));
     }
 }

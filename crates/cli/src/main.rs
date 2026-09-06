@@ -97,6 +97,7 @@ fn report_output(output: &CompileOutput, _src: &str, seen_events: usize) {
             CheckEvent::ExampleChecked => println!("checked example"),
             CheckEvent::TypeChecked { text } => println!("#check : {text}"),
             CheckEvent::Reduced { text } => println!("#reduce => {text}"),
+            CheckEvent::Printed { name, text } => println!("#print {name} :\n{text}"),
             CheckEvent::ExerciseOpen => println!("exercise open (fill the ???)"),
         }
     }

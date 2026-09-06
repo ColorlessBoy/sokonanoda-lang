@@ -436,6 +436,10 @@ pub enum Command {
         expr: Expr,
         span: Span,
     },
+    Print {
+        name: String,
+        span: Span,
+    },
 }
 
 impl Command {
@@ -446,7 +450,8 @@ impl Command {
             | Command::Example { span, .. }
             | Command::Axiom { span, .. }
             | Command::Check { span, .. }
-            | Command::Reduce { span, .. } => *span,
+            | Command::Reduce { span, .. }
+            | Command::Print { span, .. } => *span,
         }
     }
 }
@@ -487,6 +492,7 @@ impl Parser {
             TokenKind::Ident(kw) if kw == "axiom" => self.parse_axiom(),
             TokenKind::Ident(kw) if kw == "#check" => self.parse_hash_check(),
             TokenKind::Ident(kw) if kw == "#reduce" => self.parse_hash_reduce(),
+            TokenKind::Ident(kw) if kw == "#print" => self.parse_hash_print(),
             _ => {
                 Err(self
                     .error_at_current(&format!("expected a .sokonanoda command, found {tok:?}")))
@@ -557,6 +563,16 @@ impl Parser {
         let expr = self.parse_expr()?;
         let span = Span::new(start, expr.span().end);
         Ok(Command::Reduce { expr, span })
+    }
+
+    fn parse_hash_print(&mut self) -> Result<Command> {
+        let start = self.bump().span.start;
+        let name = self.expect_ident("declaration name")?;
+        let end = self.tokens[self.cursor - 1].span.end;
+        Ok(Command::Print {
+            name,
+            span: Span::new(start, end),
+        })
     }
 
     fn parse_expr(&mut self) -> Result<Expr> {
@@ -843,7 +859,7 @@ pub fn parse(src: &str) -> Result<FolFile> {
 fn is_reserved_command(name: &str) -> bool {
     matches!(
         name,
-        "def" | "theorem" | "example" | "axiom" | "#check" | "#reduce"
+        "def" | "theorem" | "example" | "axiom" | "#check" | "#reduce" | "#print"
     )
 }
 
