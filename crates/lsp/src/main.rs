@@ -17,7 +17,9 @@ use render::{
     decl_at, decl_name, diagnostic_from_compile, diagnostic_from_parse, hover_type_at, range_of,
     status_label, symbol_kind,
 };
-use sokonanoda_front::compile::{check_document, DeclStatus, DocumentReport};
+use sokonanoda_front::compile::{
+    check_document_with, prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport,
+};
 use sokonanoda_front::parse;
 use std::sync::Mutex;
 use tower_lsp::jsonrpc::Result;
@@ -53,7 +55,12 @@ impl Backend {
             let mut diagnostics = Vec::new();
             match parse(&text) {
                 Ok(file) => {
-                    let report = check_document(&file);
+                    // The file-level `-- sokonanoda:prelude none` directive
+                    // decides whether the trusted prelude is installed.
+                    let options = CompileOptions {
+                        prelude: prelude_mode_from_source(&text),
+                    };
+                    let report = check_document_with(&file, &options);
                     // A report carries the same errors as its decl states; emit
                     // them once per failing declaration.
                     for err in &report.errors {
@@ -286,7 +293,7 @@ mod tests {
     use tower::Service;
     use tower::ServiceExt;
     use tower_lsp::jsonrpc::Request as RpcRequest;
-    use tower_lsp::lsp_types::*;
+
     use tower_lsp::{ClientSocket, LspService};
 
     /// Guard only: any server→client message must arrive within this budget.
@@ -755,5 +762,54 @@ mod tests {
         );
         assert_eq!(code_of(&second.diagnostics[0]), "kernel-rejected");
         shutdown(&mut service).await;
+    }
+
+    use super::*;
+
+    const BARE_OK: &str =
+        "-- sokonanoda:prelude none\ndef id : Prop -> Prop := fun (x : Prop) => x\n";
+    const BARE_NAT: &str = "-- sokonanoda:prelude none\ndef two : Nat := 2\n";
+    const FULL_NAT: &str = "def two : Nat := 2\n";
+
+    #[tokio::test]
+    async fn directive_bare_file_without_nat_checks_clean() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, BARE_OK).await;
+        let params = wait_diagnostics(&mut socket, "bare ok diagnostics").await;
+        assert!(
+            params.diagnostics.is_empty(),
+            "bare Prop-level file must be clean: {:?}",
+            params.diagnostics
+        );
+    }
+
+    #[tokio::test]
+    async fn directive_bare_file_loses_nat() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, BARE_NAT).await;
+        let params = wait_diagnostics(&mut socket, "bare nat diagnostics").await;
+        assert!(
+            params
+                .diagnostics
+                .iter()
+                .any(|d| d.code == Some(NumberOrString::String("elab-unknown-identifier".into()))),
+            "bare file must not know Nat: {:?}",
+            params.diagnostics
+        );
+    }
+
+    #[tokio::test]
+    async fn full_mode_still_has_nat_without_directive() {
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, FULL_NAT).await;
+        let params = wait_diagnostics(&mut socket, "full nat diagnostics").await;
+        assert!(
+            params.diagnostics.is_empty(),
+            "Nat prelude must be present without the directive: {:?}",
+            params.diagnostics
+        );
     }
 }

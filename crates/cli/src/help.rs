@@ -8,6 +8,10 @@ pub(crate) fn print_help() {
     println!("  sokonanoda -                    check source from stdin");
     println!("  sokonanoda repl                 interactive REPL");
     println!("  sokonanoda --json <file>        emit JSON Lines events (agent/service view)");
+    println!("  sokonanoda --bare <file>        compile with no prelude (file is self-contained);");
+    println!(
+        "                                  files can also declare `-- sokonanoda:prelude none`"
+    );
     println!("  sokonanoda --help               this help");
     println!();
     println!("language commands (same in files and REPL):");

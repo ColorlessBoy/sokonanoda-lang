@@ -356,3 +356,65 @@ fn json_mode_example_checked_has_no_name() {
         serde_json::from_str(stdout.lines().next().expect("an event line")).expect("event is JSON");
     assert_eq!(value["type"], "example.checked");
 }
+
+#[test]
+fn bare_flag_compiles_without_prelude() {
+    let out = run_args(
+        &["--bare"],
+        Some("def id : Prop -> Prop := fun (x : Prop) => x\n"),
+    );
+    assert!(
+        out.status.success(),
+        "bare Prop-level file must check: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("checked declaration id"));
+}
+
+#[test]
+fn bare_flag_loses_nat_entirely() {
+    let out = run_args(&["--bare"], Some("#reduce 1 + 1\n"));
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[elab-unknown-identifier]:"),
+        "bare mode must not know Nat.add: {stderr}"
+    );
+}
+
+#[test]
+fn file_directive_selects_bare_prelude() {
+    let src = "-- sokonanoda:prelude none\ndef id : Prop -> Prop := fun (x : Prop) => x\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "directive-driven bare file must check: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    // Same file WITHOUT the directive gets the prelude and still checks.
+    let out = run("def id : Prop -> Prop := fun (x : Prop) => x\n");
+    assert!(out.status.success());
+}
+
+#[test]
+fn file_directive_bare_loses_nat() {
+    let src = "-- sokonanoda:prelude none\ndef two : Nat := 2\n";
+    let out = run(src);
+    assert!(!out.status.success());
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("error[elab-unknown-identifier]:"),
+        "bare file must not know Nat: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+#[test]
+fn eq_prelude_is_available_by_default() {
+    let out = run("theorem refl_two : Eq.{1} Nat 2 2 := Eq.refl.{1} Nat 2\n");
+    assert!(
+        out.status.success(),
+        "Eq prelude must be installed in full mode: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("checked declaration refl_two"));
+}

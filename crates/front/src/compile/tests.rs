@@ -916,3 +916,165 @@ fn perf_smoke_native_and_iota_reduce() {
         "perf smoke exceeded the 30s debug-build canary: {elapsed:?}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// I6: prelude 可选化、Eq 三件套、binder 推断、partial hole
+// ---------------------------------------------------------------------------
+
+#[test]
+fn eq_prelude_refl_checks_at_type_universe() {
+    let file = parse("theorem refl_two : Eq.{1} Nat 2 2 := Eq.refl.{1} Nat 2\n").unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+#[test]
+fn eq_prelude_symm_derivable_from_subst() {
+    let file = parse(
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n\
+         fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) =>\n\
+           Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+#[test]
+fn file_declaring_eq_takes_over_the_eq_prelude() {
+    // All-or-nothing: a file that declares its own Eq installs none of the
+    // prelude Eq block (no duplicate-declaration error, prelude refs absent).
+    let file = parse("axiom Eq {u} : {α : Sort u} -> α -> α -> Prop\n").unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+#[test]
+fn bare_mode_installs_nothing() {
+    let options = CompileOptions {
+        prelude: PreludeMode::Bare,
+    };
+    // Prop-level definitions still work without any prelude...
+    let file = parse("def id : Prop -> Prop := fun (x : Prop) => x\n").unwrap();
+    let out = compile_fol_with(&file, &options);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    // ...but Nat is gone entirely.
+    let file = parse("#reduce 1 + 1\n").unwrap();
+    let out = compile_fol_with(&file, &options);
+    assert!(out
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::ElabUnknownIdentifier));
+}
+
+#[test]
+fn prelude_directive_reads_bare_and_full() {
+    assert_eq!(
+        prelude_mode_from_source("-- sokonanoda:prelude none\ndef x : Prop := ???\n"),
+        PreludeMode::Bare
+    );
+    assert_eq!(
+        prelude_mode_from_source("-- 课程\n-- sokonanoda:prelude bare\n"),
+        PreludeMode::Bare
+    );
+    assert_eq!(
+        prelude_mode_from_source("def x : Prop := ???\n"),
+        PreludeMode::Full
+    );
+    assert_eq!(
+        prelude_mode_from_source("-- sokonanoda:prelude full\n"),
+        PreludeMode::Full
+    );
+}
+
+#[test]
+fn infers_untyped_binder_from_declared_arrow() {
+    let file = parse("def add1 : Nat -> Nat := fun n => n + 1\n#check add1\n").unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    assert!(matches!(
+        &out.events[1],
+        CheckEvent::TypeChecked { text, .. } if text == "Nat -> Nat"
+    ));
+}
+
+#[test]
+fn infers_dependent_binders_from_declared_forall() {
+    let file = parse(
+        "def idd {u} : forall (α : Sort u), α -> α := fun α => fun a => a\n\
+         #reduce idd.{1} Nat 2\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    assert!(matches!(
+        &out.events[1],
+        CheckEvent::Reduced { text, .. } if text == "2"
+    ));
+}
+
+#[test]
+fn untyped_binder_without_expected_type_is_rejected() {
+    let file = parse("#check fun x => x\n").unwrap();
+    let out = compile_fol(&file);
+    assert!(out
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::ElabUntypedBinder));
+}
+
+#[test]
+fn untyped_binder_past_the_declared_telescope_is_rejected() {
+    let file = parse("def f : Nat -> Nat := fun n => fun m => n\n").unwrap();
+    let out = compile_fol(&file);
+    assert!(out
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::ElabUntypedBinder));
+}
+
+#[test]
+fn partial_hole_reports_the_remaining_goal() {
+    let file = parse("example : (a : Prop) -> a -> a := fun (a : Prop) => ???\n").unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![]);
+    assert!(matches!(&out.events[0], CheckEvent::ExerciseOpen { .. }));
+    let report = check_document(&file);
+    assert_eq!(report.decls[0].status, DeclStatus::Open);
+    assert_eq!(report.decls[0].goal.as_deref(), Some("a -> a"));
+}
+
+#[test]
+fn partial_hole_with_inferred_binder_reports_goal() {
+    let file = parse("def add1 : Nat -> Nat := fun n => ???\n").unwrap();
+    let report = check_document(&file);
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    assert_eq!(report.decls[0].status, DeclStatus::Open);
+    assert_eq!(report.decls[0].goal.as_deref(), Some("Nat"));
+}
+
+#[test]
+fn hole_outside_the_lambda_tail_is_rejected() {
+    let file = parse("def bad : Nat -> Nat := fun (n : Nat) => n + ???\n").unwrap();
+    let out = compile_fol(&file);
+    assert!(out
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::ElabHoleMisplaced));
+}
+
+#[test]
+fn bare_names_of_native_nat_terminate_in_reduce() {
+    // I6 验收项：裸名不会被 delta 无限展开（原生快路径边界守护）。
+    let file = parse("#reduce Nat.add\n#reduce Nat.succ\n").unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    assert!(matches!(
+        &out.events[0],
+        CheckEvent::Reduced { text, .. } if text == "Nat.add"
+    ));
+    assert!(matches!(
+        &out.events[1],
+        CheckEvent::Reduced { text, .. } if text == "Nat.succ"
+    ));
+}

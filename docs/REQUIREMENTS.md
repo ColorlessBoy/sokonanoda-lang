@@ -95,3 +95,6 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 - 2026-09-07：**充分测试是大规模合作与多次大规模重构的重要资产**——每个环节
   （lex/parse/elab/kernel/事件/CLI/JSON 协议/LSP/语料/文档一致性/perf）都要有
   自动化测试守护；落实为 157 个测试 + `docs/TESTING.md` 测试地图（本轮完成）。
+- 2026-09-07（续）：I6 落地（prelude 可选 Full/Bare + `--bare` + 注释指令；
+  Eq 三件套 prelude；binder 类型推断；partial hole）→ 178 个测试全绿；
+  `playground.sokonanoda` 开课（12 练习 + 教学循环文档）。

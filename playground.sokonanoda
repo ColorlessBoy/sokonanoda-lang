@@ -1,0 +1,115 @@
+-- ==========================================================================
+-- playground.sokonanoda —— 我和你共同的教学画布
+--
+-- 规则：
+--   * 带 ??? 的声明是练习。把 ??? 换成你的答案，由完整内核判定对错。
+--   * 部分作答是合法状态：先写前几层 fun，最后一层留 ???，剩余目标会显示出来。
+--   * 悬停任何表达式都能看到它的类型（编辑器里）。
+--   * 判定永远走内核：填完的每一行放回官方 Lean 也合法。
+-- ==========================================================================
+
+-- ─────────────────────────────────────────────────────────────
+-- 单元① 表达式与类型
+-- 这个语言里，一切皆“有类型的表达式”。Nat 是自然数类型；
+-- 0、1、2 是它的字面量；+ 是真正的加法，内核会把 1 + 1 算成 2。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（热身）：定义 two : Nat。提示：写字面量 2，或写 1 + 1 都可以。
+-- （本练习只检查类型；单元④的 two_def 会回头“证明”它的值确实是 1 + 1。）
+def two : Nat := ???
+
+-- 类型也有类型。Prop（命题的宇宙）= Sort 0；Type（数据的宇宙）= Sort 1。
+-- 比如 Nat 的类型就是 Sort 1。
+
+-- 练习 2：补一个“住在 Sort 1 里的东西”。提示：想想上面出现过的类型名字。
+example : Sort 1 := ???
+
+-- ─────────────────────────────────────────────────────────────
+-- 单元② 函数与箭头
+-- Nat -> Nat 读作“从 Nat 到 Nat 的函数”。
+-- 值用 fun 定义：fun n => n + 1 表示参数 n、返回 n + 1。
+-- 注意：这里故意不写 (n : Nat) —— 编译器能从声明的类型推断出 n : Nat。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好，无需改动）：
+def add1 : Nat -> Nat := fun n => n + 1
+
+-- 练习 3：补全 double。洞在 lambda 里：剩余目标是 Nat（外层已确定 n : Nat）。
+def double : Nat -> Nat := fun (n : Nat) => ???
+
+-- 练习 4（高阶函数）：twice 接收一个函数 f，返回“把 f 用两次”的函数。
+-- 注意类型 (Nat -> Nat) -> Nat -> Nat：函数也可以是别人的参数。
+-- 提示：答案需要两层 fun；先把 f 用在 x 上，再对结果再用一次 f。
+def twice : (Nat -> Nat) -> Nat -> Nat := ???
+
+-- ─────────────────────────────────────────────────────────────
+-- 单元③ 命题与证明项
+-- 命题就是类型：True、And a b 都是 Prop 里的类型。
+-- 证明就是项：一个类型为 P 的项，就是命题 P 的一个证明。
+-- 我们用 axiom 搭最小逻辑骨架（与官方 Lean 的 And/Or 同构）：
+-- ─────────────────────────────────────────────────────────────
+
+axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom False.rec : (P : Prop) -> False -> P
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
+axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+
+-- Not 不是公理，是定义：Not a 展开后就是 a -> False。
+def Not : Prop -> Prop := fun (a : Prop) => a -> False
+
+-- 演示（已写好）：构造子当函数用，参数按顺序全部给全。
+example : Or True False := Or.inl True False True.intro
+
+-- 练习 5（第一个“证明”）：True 的证明项已经存在，把它叫出来即可。
+theorem true_is_true : True := ???
+
+-- 练习 6：假设 a、b 都成立，就能得到 And a b。
+-- 类型里的箭头对应值里的 fun。提示：四层 fun，最后 And.intro a b ha hb。
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???
+
+-- 练习 7：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。
+theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := ???
+
+-- 练习 8：False 没有证明（没有构造子），但可以“用”它：从矛盾推出任何 P。
+theorem ex_falso : (P : Prop) -> False -> P := ???
+
+-- 练习 9（挑战 ★）：And a (Not a) 是自相矛盾的组合。拆开它，把 Not a 那一半
+-- 当作函数应用到另一半。提示：Not a 会展开成 a -> False。
+theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := ???
+
+-- ─────────────────────────────────────────────────────────────
+-- 单元④ 等式与 rfl
+-- prelude 提供受信任的等式基元（签名与官方 Lean 一致）：
+--   Eq {u}       : {α : Sort u} -> α -> α -> Prop
+--   Eq.refl {u}  : {α : Sort u} -> (a : α) -> Eq.{u} α a a
+--   Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α}
+--                  -> Eq.{u} α a b -> p a -> p b
+-- 宇宙提醒：裸写 Eq 默认 u = 0（Prop 层）。Nat 住在 Sort 1，
+-- 所以 Nat 的等式必须显式写 Eq.{1} —— 下面全程用 Eq.{1}。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（rfl 会计算）：证明 1 + 1 = 2。提示：Eq.refl.{1} 的第一个参数给
+-- Nat，第二个参数给等号左边；内核会把左边算出来，发现就是 2。
+theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := ???
+
+-- 练习 11（自己造“对称”）：从 a = b 推出 b = a。
+-- 关键一步：subst 需要你**自己设计**谓词 p。取
+--   p := fun (x : Nat) => Eq.{1} Nat x a
+-- 于是 p a = “a = a”（用 Eq.refl 证），而 p b 恰好是目标“b = a”。
+theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := ???
+
+-- 练习 12（毕业 ★）：把练习 11 推广到任意宇宙。照抄练习 11 的配方：
+-- 把 Nat 换成 α、把 .{1} 换成 .{u}。注意第一个 binder 是隐式的
+-- {α : Sort u}，值一侧要写成 fun {α : Sort u} => ...。
+theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := ???
+
+-- 收尾（我的演示，练习 1 的闭环）：解完练习 1 后，把下面两行的注释去掉，
+-- 它必须变绿 —— 这是内核在“证明”你的 two 确实是 1 + 1。
+-- theorem two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two

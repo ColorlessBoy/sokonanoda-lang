@@ -13,10 +13,12 @@ use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let mut json = false;
+    let mut bare = false;
     let mut positionals: Vec<String> = Vec::new();
     for arg in std::env::args().skip(1) {
         match arg.as_str() {
             "--json" => json = true,
+            "--bare" => bare = true,
             "-h" | "--help" => {
                 print_help();
                 return ExitCode::SUCCESS;
@@ -30,12 +32,12 @@ fn main() -> ExitCode {
             eprintln!("error: --json is only supported for batch checking, not the repl");
             ExitCode::FAILURE
         }
-        None => check_path_or_stdin(None, json),
-        Some(p) => check_path_or_stdin(Some(p), json),
+        None => check_path_or_stdin(None, json, bare),
+        Some(p) => check_path_or_stdin(Some(p), json, bare),
     }
 }
 
-fn check_path_or_stdin(arg: Option<&str>, json: bool) -> ExitCode {
+fn check_path_or_stdin(arg: Option<&str>, json: bool, bare: bool) -> ExitCode {
     let mut src = String::new();
     let read_result = match arg {
         None | Some("-") => std::io::stdin().read_to_string(&mut src),
@@ -52,7 +54,7 @@ fn check_path_or_stdin(arg: Option<&str>, json: bool) -> ExitCode {
         None | Some("-") => "<stdin>".to_string(),
         Some(path) => path.to_string(),
     };
-    if check_source(&src, &label, json) {
+    if check_source(&src, &label, json, bare) {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE

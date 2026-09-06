@@ -6,7 +6,7 @@ use super::elab::{
 };
 use super::error::{CompileError, ErrorKind};
 use super::event::{CheckEvent, CompileOutput};
-use super::prelude::install_prelude;
+use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
 use super::report::{DeclKind, DeclState, DeclStatus, DocumentReport, HoverType};
 use crate::{Command, Expr, FolFile, Span};
 use sokonanoda::builder::EnvBuilder;
@@ -52,27 +52,144 @@ pub(crate) struct CmdHover<'a> {
 /// Compile and kernel-check a whole file in one arena session, returning the
 /// batch view (events + errors) that the CLI and tests consume.
 pub fn compile_fol(file: &FolFile) -> CompileOutput {
-    run(file, false).0
+    run(file, &CompileOptions::default(), false).0
+}
+
+/// Compile with explicit options (e.g. `PreludeMode::Bare` for a fully bare
+/// teaching file that builds every concept from scratch).
+pub fn compile_fol_with(file: &FolFile, options: &CompileOptions) -> CompileOutput {
+    run(file, options, false).0
 }
 
 /// Compile a file and return the detailed document report (per-declaration
 /// states, diagnostics, hover types) that the LSP and agents consume.
 pub fn check_document(file: &FolFile) -> DocumentReport {
-    run(file, true).1
+    run(file, &CompileOptions::default(), true).1
 }
 
-fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
+/// `check_document` with explicit compile options.
+pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> DocumentReport {
+    run(file, options, true).1
+}
+
+/// Is the answer an open exercise: does it contain a `???`, and can the
+/// remaining goal be recovered by walking the declared type alongside the
+/// lambda binders already written? `None` means "no hole" or "hole in a
+/// place the goal cannot be recovered from" (the latter falls through to
+/// normal elaboration, which reports `elab-hole-misplaced` at the hole).
+fn open_goal(ty: &Expr, val: &Expr) -> Option<String> {
+    if !expr_has_hole(val) {
+        return None;
+    }
+    goal_under_binders(ty, val)
+}
+
+fn expr_has_hole(e: &Expr) -> bool {
+    match e {
+        Expr::Hole { .. } => true,
+        Expr::App { fun, arg, .. }
+        | Expr::Plus {
+            lhs: fun, rhs: arg, ..
+        } => expr_has_hole(fun) || expr_has_hole(arg),
+        Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
+            binders
+                .iter()
+                .any(|b| b.ty.as_deref().is_some_and(expr_has_hole))
+                || expr_has_hole(body)
+        }
+        Expr::Arrow {
+            domain, codomain, ..
+        } => expr_has_hole(domain) || expr_has_hole(codomain),
+        _ => false,
+    }
+}
+
+/// Walk the declared type and the (partial) answer in parallel: every lambda
+/// in the answer consumes one Pi layer of the type; when the walk reaches the
+/// hole, the remaining type is the exercise's current goal.
+fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<String> {
+    match val {
+        Expr::Hole { .. } => Some(render_expr(ty)),
+        Expr::Lambda { binders, body, .. } => {
+            let Some((binder, binders_rest)) = binders.split_first() else {
+                return None;
+            };
+            let rest_ty = match ty {
+                Expr::Forall {
+                    binders: tbinders,
+                    body: tbody,
+                    ..
+                } => {
+                    let Some((_, trest)) = tbinders.split_first() else {
+                        return None;
+                    };
+                    if trest.is_empty() {
+                        tbody.as_ref().clone()
+                    } else {
+                        Expr::Forall {
+                            binders: trest.to_vec(),
+                            body: tbody.clone(),
+                            span: Span::default(),
+                        }
+                    }
+                }
+                Expr::Arrow { codomain, .. } => codomain.as_ref().clone(),
+                _ => return None,
+            };
+            // A partial answer may keep an untyped binder: the goal walk only
+            // renders the remaining type, so the binder name is irrelevant.
+            let _ = binder;
+            if binders_rest.is_empty() {
+                goal_under_binders(&rest_ty, body)
+            } else {
+                let rest_val = Expr::Lambda {
+                    binders: binders_rest.to_vec(),
+                    body: body.clone(),
+                    span: Span::default(),
+                };
+                goal_under_binders(&rest_ty, &rest_val)
+            }
+        }
+        _ => None,
+    }
+}
+
+/// Top-level names the file itself declares; used to keep the prelude from
+/// shadowing a user declaration (e.g. a file that defines its own `Eq`).
+fn user_top_level_names(file: &FolFile) -> std::collections::HashSet<String> {
+    file.commands
+        .iter()
+        .filter_map(|command| match command {
+            Command::Def { name, .. }
+            | Command::Theorem { name, .. }
+            | Command::Axiom { name, .. }
+            | Command::InductiveBlock { name, .. } => Some(name.clone()),
+            Command::Example { .. }
+            | Command::Check { .. }
+            | Command::Reduce { .. }
+            | Command::Print { .. } => None,
+        })
+        .collect()
+}
+
+fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutput, DocumentReport) {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
-    let explicit_nat = file
-        .commands
-        .iter()
-        .any(|command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"));
-    if !explicit_nat {
-        install_prelude(&mut builder);
-        for builtin in ["Nat", "Nat.zero", "Nat.succ", "Nat.add"] {
-            known_universes.insert(builtin.to_string(), Vec::new());
+    match options.prelude {
+        PreludeMode::Bare => {}
+        PreludeMode::Full => {
+            let explicit_nat = file.commands.iter().any(
+                |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"),
+            );
+            if !explicit_nat {
+                install_prelude(&mut builder);
+                for builtin in ["Nat", "Nat.zero", "Nat.succ", "Nat.add"] {
+                    known_universes.insert(builtin.to_string(), Vec::new());
+                }
+            }
+            let taken = user_top_level_names(file);
+            install_eq_prelude(&mut builder, &mut known_universes, &taken);
         }
     }
     let no_universe: UnivMap = UnivMap::new();
@@ -94,11 +211,11 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
                 val,
                 span,
             } => {
-                if matches!(val, Expr::Hole { .. }) {
+                if let Some(goal) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Definition,
-                        goal: Some(render_expr(ty)),
+                        goal: Some(goal),
                         span: *span,
                     });
                     continue;
@@ -158,11 +275,11 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
                 val,
                 span,
             } => {
-                if matches!(val, Expr::Hole { .. }) {
+                if let Some(goal) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Theorem,
-                        goal: Some(render_expr(ty)),
+                        goal: Some(goal),
                         span: *span,
                     });
                     continue;
@@ -269,11 +386,11 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
                 }
             }
             Command::Example { ty, val, span } => {
-                if matches!(val, Expr::Hole { .. }) {
+                if let Some(goal) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: None,
                         kind: DeclKind::Example,
-                        goal: Some(render_expr(ty)),
+                        goal: Some(goal),
                         span: *span,
                     });
                     continue;
@@ -368,6 +485,7 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
                     &no_universe,
                     &known_universes,
                     &mut hovers,
+                    None,
                 ) {
                     Ok(e) => {
                         ops.push(PendingOp::Check {
@@ -392,6 +510,7 @@ fn run(file: &FolFile, collect: bool) -> (CompileOutput, DocumentReport) {
                     &no_universe,
                     &known_universes,
                     &mut hovers,
+                    None,
                 ) {
                     Ok(e) => {
                         ops.push(PendingOp::Reduce {

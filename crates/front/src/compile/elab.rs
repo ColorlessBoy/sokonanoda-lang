@@ -74,7 +74,15 @@ pub(crate) fn install_inductive_block<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
 ) -> Result<(), CompileError> {
     let empty: UnivMap = UnivMap::new();
-    let ty = elab_expr(builder, ty, &mut ElabScope::new(), &empty, known, hovers)?;
+    let ty = elab_expr(
+        builder,
+        ty,
+        &mut ElabScope::new(),
+        &empty,
+        known,
+        hovers,
+        None,
+    )?;
     let ind_name = builder.name_from_str(name);
     let ctor_names: Vec<NamePtr<'a>> = constructors
         .iter()
@@ -110,6 +118,7 @@ pub(crate) fn install_inductive_block<'a>(
             &empty,
             known,
             hovers,
+            None,
         )?;
         let ctor_name = ctor_names[idx];
         let no_uparams = builder.alloc_levels_slice(&[]);
@@ -145,6 +154,7 @@ pub(crate) fn install_inductive_block<'a>(
             &univ,
             known,
             hovers,
+            None,
         )?;
         let rec_name = builder.name_from_str(&rec.name);
         let known_rec_universes = rec.universe.clone();
@@ -173,6 +183,7 @@ pub(crate) fn install_inductive_block<'a>(
                 &univ,
                 known,
                 hovers,
+                None,
             )?;
             rules.push(RecRule {
                 ctor_name,
@@ -212,8 +223,8 @@ pub(crate) fn build_def<'a>(
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers)?;
-    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers)?;
+    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
+    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers, Some(ty))?;
     let name = builder.name_from_str(name);
     let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Definition {
@@ -234,8 +245,8 @@ pub(crate) fn build_theorem<'a>(
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers)?;
-    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers)?;
+    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
+    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers, Some(ty))?;
     let name = builder.name_from_str(name);
     let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Theorem {
@@ -254,8 +265,8 @@ pub(crate) fn build_example<'a>(
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, &[]);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers)?;
-    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers)?;
+    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
+    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers, Some(ty))?;
     let name = builder.name_from_str(name);
     let uparams = builder.alloc_levels_slice(&[]);
     Ok(Declar::Definition {
@@ -275,7 +286,7 @@ pub(crate) fn build_axiom<'a>(
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers)?;
+    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
     let name = builder.name_from_str(name);
     let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Axiom {
@@ -333,6 +344,40 @@ pub(crate) fn kernel_binder_style(kind: &BinderKind) -> BinderStyle {
     }
 }
 
+/// Peel one Pi layer off the expected type: returns the binder style, the
+/// binder type and the remaining body. Used to infer untyped lambda binders
+/// from the declared type of the surrounding declaration.
+fn peel_expected<'a>(
+    expected: Option<ExprPtr<'a>>,
+) -> Option<(BinderStyle, ExprPtr<'a>, ExprPtr<'a>)> {
+    match expected {
+        Some(e) => match &*e {
+            sokonanoda::expr::Expr::Pi {
+                binder_style,
+                binder_type,
+                body,
+                ..
+            } => Some((*binder_style, *binder_type, *body)),
+            _ => None,
+        },
+        None => None,
+    }
+}
+
+/// Advance past one expected Pi layer without taking its binder (the binder
+/// carries an explicit type annotation, so its kernel type comes from the
+/// annotation instead).
+fn drop_expected_layer(expected: Option<ExprPtr<'_>>) -> Option<ExprPtr<'_>> {
+    match expected {
+        Some(e) => match &*e {
+            sokonanoda::expr::Expr::Pi { body, .. } => Some(*body),
+            _ => None,
+        },
+        None => None,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn elab_expr<'a>(
     builder: &mut EnvBuilder<'a>,
     expr: &Expr,
@@ -340,6 +385,7 @@ pub(crate) fn elab_expr<'a>(
     univ: &UnivMap<'a>,
     known: &HashMap<String, Vec<String>>,
     hovers: &mut Vec<HoverNode<'a>>,
+    expected: Option<ExprPtr<'a>>,
 ) -> Result<ExprPtr<'a>, CompileError> {
     match expr {
         Expr::Sort {
@@ -475,8 +521,8 @@ pub(crate) fn elab_expr<'a>(
             *span,
         )),
         Expr::App { fun, arg, span } => {
-            let fun = elab_expr(builder, fun, scope, univ, known, hovers)?;
-            let arg = elab_expr(builder, arg, scope, univ, known, hovers)?;
+            let fun = elab_expr(builder, fun, scope, univ, known, hovers, None)?;
+            let arg = elab_expr(builder, arg, scope, univ, known, hovers, None)?;
             let out = builder.mk_app(fun, arg);
             record_hover(hovers, scope, *span, out);
             Ok(out)
@@ -490,24 +536,39 @@ pub(crate) fn elab_expr<'a>(
             let mut names = Vec::with_capacity(binders.len());
             let mut tys = Vec::with_capacity(binders.len());
             let mut styles = Vec::with_capacity(binders.len());
+            let mut rest = expected;
             for binder in binders {
-                let ty = match &binder.ty {
-                    Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers)?,
-                    None => {
-                        return Err(CompileError::elab(
-                            ErrorKind::ElabUntypedBinder,
-                            "untyped binders need elaboration inference (not in v0)",
-                            binder.span,
-                        ));
+                let (ty, style) = match &binder.ty {
+                    Some(ty) => {
+                        let t = elab_expr(builder, ty, scope, univ, known, hovers, None)?;
+                        // The annotation wins, but the expected telescope
+                        // still loses one layer so later untyped binders
+                        // stay aligned with the declared type.
+                        rest = drop_expected_layer(rest);
+                        (t, kernel_binder_style(&binder.style))
                     }
+                    None => match peel_expected(rest) {
+                        Some((style, binder_ty, body)) => {
+                            rest = Some(body);
+                            (binder_ty, style)
+                        }
+                        None => {
+                            return Err(CompileError::elab(
+                                ErrorKind::ElabUntypedBinder,
+                                "cannot infer the type of this binder: the declared type does not \
+                                 provide a matching position (write it explicitly, e.g. fun (x : Nat) => x)",
+                                binder.span,
+                            ));
+                        }
+                    },
                 };
                 let name = builder.name_from_str(&binder.name);
                 tys.push(ty);
                 names.push(name);
-                styles.push(kernel_binder_style(&binder.style));
+                styles.push(style);
                 scope.push(binder.name.clone(), ty);
             }
-            let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers)?;
+            let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, rest)?;
             scope.truncate(base);
             for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
                 body_expr = builder.mk_lambda(name, style, ty, body_expr);
@@ -526,11 +587,11 @@ pub(crate) fn elab_expr<'a>(
             let mut styles = Vec::with_capacity(binders.len());
             for binder in binders {
                 let ty = match &binder.ty {
-                    Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers)?,
+                    Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers, None)?,
                     None => {
                         return Err(CompileError::elab(
                             ErrorKind::ElabUntypedBinder,
-                            "untyped binders need elaboration inference (not in v0)",
+                            "types must be written explicitly on Pi binders",
                             binder.span,
                         ));
                     }
@@ -541,7 +602,7 @@ pub(crate) fn elab_expr<'a>(
                 styles.push(kernel_binder_style(&binder.style));
                 scope.push(binder.name.clone(), ty);
             }
-            let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers)?;
+            let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, None)?;
             scope.truncate(base);
             for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
                 body_expr = builder.mk_pi(name, style, ty, body_expr);
@@ -554,11 +615,11 @@ pub(crate) fn elab_expr<'a>(
             codomain,
             span,
         } => {
-            let domain = elab_expr(builder, domain, scope, univ, known, hovers)?;
+            let domain = elab_expr(builder, domain, scope, univ, known, hovers, None)?;
             // `A -> B` desugars to a Pi with an anonymous binder, so free
             // variables in the codomain live one binder deeper.
             scope.push(String::new(), domain);
-            let codomain = elab_expr(builder, codomain, scope, univ, known, hovers)?;
+            let codomain = elab_expr(builder, codomain, scope, univ, known, hovers, None)?;
             scope.truncate(scope.len() - 1);
             let anon = builder.anonymous();
             let out = builder.mk_pi(anon, BinderStyle::Default, domain, codomain);
@@ -566,11 +627,20 @@ pub(crate) fn elab_expr<'a>(
             Ok(out)
         }
         Expr::Plus { lhs, rhs, span } => {
+            // `+` is sugar for `Nat.add`; in bare mode (no Nat prelude) the
+            // constant must not dangle — report a proper unknown identifier.
+            if !known.contains_key("Nat.add") {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabUnknownIdentifier,
+                    "`+` needs Nat.add, which is not defined (install the prelude or define Nat yourself)",
+                    *span,
+                ));
+            }
             let add = builder.name_from_str("Nat.add");
             let levels = builder.alloc_levels_slice(&[]);
             let add_const = builder.mk_const(add, levels);
-            let lhs = elab_expr(builder, lhs, scope, univ, known, hovers)?;
-            let rhs = elab_expr(builder, rhs, scope, univ, known, hovers)?;
+            let lhs = elab_expr(builder, lhs, scope, univ, known, hovers, None)?;
+            let rhs = elab_expr(builder, rhs, scope, univ, known, hovers, None)?;
             let applied = builder.mk_app(add_const, lhs);
             let out = builder.mk_app(applied, rhs);
             record_hover(hovers, scope, *span, out);

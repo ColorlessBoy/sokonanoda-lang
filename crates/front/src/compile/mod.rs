@@ -8,9 +8,10 @@ mod event;
 mod prelude;
 mod report;
 
-pub use check::{check_document, compile_fol, render_expr};
+pub use check::{check_document, check_document_with, compile_fol, compile_fol_with, render_expr};
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput};
+pub use prelude::{prelude_mode_from_source, CompileOptions, PreludeMode};
 pub use report::{DeclKind, DeclState, DeclStatus, DocumentReport, HoverType};
 
 #[cfg(test)]

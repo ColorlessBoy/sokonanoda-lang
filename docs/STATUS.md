@@ -31,14 +31,35 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. **文档**：新增 `docs/REQUIREMENTS.md`（用户全部要求的权威总账）、
    `docs/TESTING.md`（测试资产地图）、`docs/lsp-notes.md`、`docs/vscode-notes.md`。
 
+## I6 落地（2026-09-07 第二轮）
+
+全部四件套已实现并通过 178 个测试（kernel 43 / cli 35 / front 87 / lsp 13）：
+
+1. **prelude 可选化（用户要求）**：`CompileOptions{prelude: PreludeMode::{Full,Bare}}`；
+   API `compile_fol_with/check_document_with`；CLI `--bare`；文件级注释指令
+   `-- sokonanoda:prelude none`（front::prelude_mode_from_source，CLI/LSP 都认）；
+   Bare 模式下 `+` 不再产生悬空 Nat.add 常量（改报 elab-unknown-identifier）。
+2. **Eq 三件套 prelude**：`Eq`/`Eq.refl`/`Eq.subst` 以 `.sokonanoda` 源语法书写
+   （签名与官方 Lean 一致），受信任安装；文件自带 Eq 系列则整体跳过
+   （all-or-nothing，与显式 Nat 块一致）。
+3. **binder 类型推断**：`elab_expr` 下传 expected（声明类型逐层剥 Pi），
+   `fun n => n + 1` 免写 `(n : Nat)`；依赖情形（`forall (α : Sort u), α -> α`）
+   因 de Bruijn 对齐天然支持；声明类型耗尽仍报 `elab-untyped-binder`。
+4. **partial hole（部分作答）**：`???` 允许出现在 lambda 体尾部；声明保持
+   Open 且 `DeclState.goal` = 剥掉已写 binders 后的剩余目标；洞在非尾部位置
+   仍报 `elab-hole-misplaced`。LSP intro quick-fix 的「替换 ??? →
+   fun (x : T) => ???」循环第一次真正闭环。
+5. **开课**：根目录 `playground.sokonanoda`（12 练习初始全 open、0 诊断、
+   exit 0）；`docs/teaching-session.md` = 开课手册 + 事件决策表 + 全部解答钥匙
+   （12/12 经完整内核验证，含 `two_def` 闭环）。
+6. 新增裸名 `#reduce Nat.add/Nat.succ` 边界测试（I6 验收项，防 delta 循环）。
+
 ## 下一步（按 REQUIREMENTS §8 路线）
 
-- **I6（进行中，规格已定）**：prelude 可选化（`PreludeMode::{Full,Bare}` + CLI
-  `--bare` + LSP 设置/注释指令）；Eq/Eq.refl/Eq.subst prelude（源语法书写）；
-  binder 类型推断（expected 下传，依赖情形免费获得）；partial hole
-  （lambda 体内 `???` = Open + 剩余 goal）。
-- **开课**：`playground.sokonanoda`（根目录画布，12 练习设计已 kernel 验证，
-  见 `docs/teaching-session.md` 待落稿）；之后 I7 课程目录化。
+- **I7 课程目录化**：把 playground 第一课沉淀为 `course/lesson-XX-*.sokonanoda`
+  + `course/course.json` + golden 事件（ROADMAP I7）。
+- **I8 真正增量**（check-then-add）、**I9 kernel 显式错误 + goal 视图深化**、
+  **L2/L3**（VS Code 打包 / service / 讲课 agent 深化）——见 ROADMAP §10。
 
 ## 已确认的决策（用户 2026-09-06）
 

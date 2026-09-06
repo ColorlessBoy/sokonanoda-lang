@@ -1,10 +1,13 @@
 //! Batch checking: parse and compile a source, then report events or diagnostics.
 
 use crate::json_report::{print_json_line, report_json, span_json};
-use sokonanoda_front::compile::{compile_fol, CheckEvent, CompileOutput};
+use sokonanoda_front::compile::{
+    compile_fol_with, prelude_mode_from_source, CheckEvent, CompileOptions, CompileOutput,
+    PreludeMode,
+};
 use sokonanoda_front::parse;
 
-pub(crate) fn check_source(src: &str, label: &str, json: bool) -> bool {
+pub(crate) fn check_source(src: &str, label: &str, json: bool, bare: bool) -> bool {
     let file = match parse(src) {
         Ok(file) => file,
         Err(diag) => {
@@ -30,7 +33,15 @@ pub(crate) fn check_source(src: &str, label: &str, json: bool) -> bool {
             return false;
         }
     };
-    let output = compile_fol(&file);
+    // Prelude choice: an explicit `--bare` flag wins; otherwise a file-level
+    // `-- sokonanoda:prelude none` comment directive decides; default Full.
+    let prelude = if bare {
+        PreludeMode::Bare
+    } else {
+        prelude_mode_from_source(src)
+    };
+    let options = CompileOptions { prelude };
+    let output = compile_fol_with(&file, &options);
     if json {
         report_json(&output, src);
     } else {
