@@ -786,14 +786,14 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
         ExprPtr::local(self.dag.exprs.insert(self.arena, e))
     }
 
-    pub(crate) fn alloc_string(&mut self, s: CowStr<'t>) -> StringPtr<'t> {
+    pub fn alloc_string(&mut self, s: CowStr<'t>) -> StringPtr<'t> {
         if let Some(r) = self.export_file.dag.strings.get(&s) {
             return StringPtr::global(r)
         }
         StringPtr::local(self.dag.strings.intern(self.arena, s))
     }
 
-    pub(crate) fn alloc_bignum(&mut self, n: BigUint) -> Option<BigUintPtr<'t>> {
+    pub fn alloc_bignum(&mut self, n: BigUint) -> Option<BigUintPtr<'t>> {
         if let Some(global) = self.export_file.dag.bignums.as_ref() {
             if let Some(r) = global.get(&n) {
                 return Some(BigUintPtr::global(r))
@@ -1341,7 +1341,6 @@ impl<'b> SessionCache<'b> {
         r
     }
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {

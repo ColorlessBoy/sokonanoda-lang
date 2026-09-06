@@ -146,7 +146,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > - workspace `sokonanoda-lang` 已建立，kernel 完整快照迁入 `crates/kernel`；
 > - 完整测试基线通过：40 个内核单元测试 + arena 集成测试 + 首个内存 API 测试；
 > - 上游两个缺少 fixture 的测试已隔离并注明原因（需重建 NDJSON fixture，不是跳过内核能力）；
-> - 已新增 `Config::default`、`ExportFile::empty`、`infer_closed_type`、`reduce_closed` 等内存 API。
+> - 已新增 `Config::default`、`ExportFile::empty`、`infer_closed_type`、`reduce_closed` 等内存 API；
+> - 已新增 `crates/front`（`.fol` lexer/parser/诊断）与 `crates/cli`（`folc`），见 M1 进度。
 
 目标：完整保留 sokonanoda 内核，并提供教学前端需要的稳定接口。
 
@@ -165,6 +166,13 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 ---
 
 ### M1 —— `.fol` 格式与编译器前端 v0（0.2）
+
+> 进度（2026-09-06）：
+> - `.fol` v0 语法与 lexer/parser 已实现：`def` / `theorem` / `example` / `axiom` / `#check` / `#reduce` / `???`、lambda、箭头、`∀`、应用；
+> - span 诊断已带行列号；命令关键字不会泄漏进表达式；
+> - `folc` CLI 可解析 `.fol` 文件或 stdin 并输出摘要/诊断；
+> - `examples/lesson-01.fol` 已入库。
+> 未完成：把 AST 编译成 kernel 表达式/声明需要先在 kernel 侧落地“与 arena 解耦的 Builder API”——`TcCtx` 目前把环境借用与 arena 绑定，直接暴露声明添加 API 会陷入自引用生命周期。
 
 目标：文件第一次能“翻译”成 kernel 可检查的内容。
 

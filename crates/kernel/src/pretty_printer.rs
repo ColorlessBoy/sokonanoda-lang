@@ -913,8 +913,7 @@ impl<'t, 'p: 't> TcCtx<'t, 'p> {
     /// Parse a dot-separated string as a `Name`. For any given name segment, if it parses
     /// as a u64, it will be treated as coming form the `Num` constructor, otherwise the
     /// `Str` constructor.
-    #[allow(dead_code)]
-    pub(crate) fn name_from_str(&mut self, s: &str) -> NamePtr<'t> {
+    pub fn name_from_str(&mut self, s: &str) -> NamePtr<'t> {
         let mut out = self.anonymous();
         for segment in s.split('.') {
             if let Ok(n) = segment.parse::<u64>() {

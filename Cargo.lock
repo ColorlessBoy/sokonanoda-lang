@@ -322,6 +322,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sokonanoda-cli"
+version = "0.1.0"
+dependencies = [
+ "sokonanoda-front",
+]
+
+[[package]]
+name = "sokonanoda-front"
+version = "0.1.0"
+
+[[package]]
 name = "stumpalo"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

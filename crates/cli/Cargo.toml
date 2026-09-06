@@ -1,0 +1,13 @@
+[package]
+name = "sokonanoda-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Command-line front-end for .fol teaching files"
+
+[[bin]]
+name = "folc"
+path = "src/main.rs"
+
+[dependencies]
+sokonanoda-front = { path = "../front" }
