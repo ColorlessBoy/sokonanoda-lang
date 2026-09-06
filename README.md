@@ -1,4 +1,4 @@
-# sokonanoda-follow
+# sokonanoda-lang
 
 An independent, self-contained Lean-4 teaching stack built **on top of** the
 [sokonanoda](https://github.com/intgrah/sokonanoda) kernel.
@@ -12,7 +12,7 @@ intended to hide its provenance.
 - Product language: **Follow** (tentative)
 - Source file suffix: **`.fol`** (tentative)
 - Kernel crate: `sokonanoda` (kept for attribution and stability)
-- Workspace/repository: `sokonanoda-follow`
+- Workspace/repository: `sokonanoda-lang`
 
 The repository will use no official Lean tooling (`lean`, `lake`,
 `lean4export`, `leanc`, `elan`) at runtime, build time, or test time.

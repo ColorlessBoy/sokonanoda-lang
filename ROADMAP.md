@@ -1,4 +1,4 @@
-# sokonanoda-follow —— `.fol` 协作式 Lean 4 教学 ROADMAP
+# sokonanoda-lang —— `.fol` 协作式 Lean 4 教学 ROADMAP
 
 > 状态：draft
 > 基线：sokonanoda `7b51784`
@@ -20,7 +20,7 @@
               └──────────────┬──────────────────┘
                              │ 文件变更 / 事件
                              ▼
-              sokonanoda-follow compiler service（长期运行）
+              sokonanoda-lang compiler service（长期运行）
               完整 kernel + 受限前端 + 练习引擎
                              │
           ┌──────────────────┼──────────────────┐
@@ -143,7 +143,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 ### M0 —— kernel 完整迁移与稳定 API（0.1）
 
 > 进度（2026-09-06）：
-> - workspace `sokonanoda-follow` 已建立，kernel 完整快照迁入 `crates/kernel`；
+> - workspace `sokonanoda-lang` 已建立，kernel 完整快照迁入 `crates/kernel`；
 > - 完整测试基线通过：40 个内核单元测试 + arena 集成测试 + 首个内存 API 测试；
 > - 上游两个缺少 fixture 的测试已隔离并注明原因（需重建 NDJSON fixture，不是跳过内核能力）；
 > - 已新增 `Config::default`、`ExportFile::empty`、`infer_closed_type`、`reduce_closed` 等内存 API。
@@ -177,7 +177,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   - 显式 binder、应用、Nat 字面量、`fun`；
   - 答案区允许 `???` 作为合法“未完成”状态；
   - 任何不支持的语法产生“课程级别不可用”，而不是内部错误。
-- 批处理 CLI：`sokonanoda-follow check lesson.fol`。
+- 批处理 CLI：`sokonanoda-lang check lesson.fol`。
 - 输出两种视图：
   - 人类可读文本；
   - JSON Lines 事件流（供未来的 service/agent 直接消费）。
