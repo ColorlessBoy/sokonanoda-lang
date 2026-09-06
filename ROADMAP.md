@@ -187,7 +187,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 >   universe = 0；axiom/def/theorem 均可带宇宙参数。
 > - `@id.{u}` 语法别名与 `{α : Sort u}` 隐式 binder 已实现；`py-fol-core.sokonanoda`
 >   从 py_nanobruijn 的 fol 片段移植并在 front + CLI 双层测试。
-> - 类型书写偏好 `A -> B -> C`：非依赖函数一律用箭头链，`forall` 只留给需要绑定名的类型。
+> - 命名箭头 `(x : A) -> B` / `{x : A} -> B` 等价于带 binder 的 `forall`；
+>   `py-fol-core.sokonanoda` 已全量改写为箭头风并通过检查。
 > - `#print <name>` 已可用；kernel 拒绝输出不再刷 panic trace。
 > 未完成：归纳类型的真正声明语法、Nat.rec/induction、tactic 草稿模式与课程 UI。
 

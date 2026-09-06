@@ -1,43 +1,44 @@
 -- Ported from py_nanobruijn teaching/fol fragments.
+-- Arrow-first style: named arrows replace non-dependent forall binders.
 
-def id {u} : forall {α : Sort u}, forall (a : α), α
+def id {u} : {α : Sort u} -> (a : α) -> α
   := fun {α : Sort u} => fun (a : α) => a
 
-def Function.comp {u, v, w} : forall {α : Sort u}, forall {β : Sort v}, forall {δ : Sort w}, forall (f : forall (f0 : β), δ), forall (g : forall (g0 : α), β), forall (x : α), δ
-  := fun {α : Sort u} => fun {β : Sort v} => fun {δ : Sort w} => fun (f : forall (f0 : β), δ) => fun (g : forall (g0 : α), β) => fun (x : α) => f (g x)
+def Function.comp {u, v, w} : {α : Sort u} -> {β : Sort v} -> {δ : Sort w} -> (f : β -> δ) -> (g : α -> β) -> (x : α) -> δ
+  := fun {α : Sort u} => fun {β : Sort v} => fun {δ : Sort w} => fun (f : β -> δ) => fun (g : α -> β) => fun (x : α) => f (g x)
 
-def flip {u, v, w} : forall {α : Sort u}, forall {β : Sort v}, forall {φ : Sort w}, forall (f : forall (f0 : α), forall (f1 : β), φ), forall (b : β), forall (a : α), φ
-  := fun {α : Sort u} => fun {β : Sort v} => fun {φ : Sort w} => fun (f : forall (f0 : α), forall (f1 : β), φ) => fun (b : β) => fun (a : α) => f a b
+def flip {u, v, w} : {α : Sort u} -> {β : Sort v} -> {φ : Sort w} -> (f : α -> β -> φ) -> (b : β) -> (a : α) -> φ
+  := fun {α : Sort u} => fun {β : Sort v} => fun {φ : Sort w} => fun (f : α -> β -> φ) => fun (b : β) => fun (a : α) => f a b
 
 axiom True : Prop
 axiom True.intro : True
 
 axiom False : Prop
-axiom False.rec {u} : forall {motive : forall (anon : False), Sort u}, forall (t : False), motive t
+axiom False.rec {u} : (motive : (anon : False) -> Sort u) -> (t : False) -> motive t
 
 axiom And : Prop -> Prop -> Prop
-axiom And.intro : forall {a : Prop}, forall {b : Prop}, forall (ha : a), forall (hb : b), And a b
-axiom And.left : forall {a : Prop}, forall {b : Prop}, forall (h : And a b), a
-axiom And.right : forall {a : Prop}, forall {b : Prop}, forall (h : And a b), b
+axiom And.intro : {a : Prop} -> {b : Prop} -> (ha : a) -> (hb : b) -> And a b
+axiom And.left : {a : Prop} -> {b : Prop} -> (h : And a b) -> a
+axiom And.right : {a : Prop} -> {b : Prop} -> (h : And a b) -> b
 
 axiom Or : Prop -> Prop -> Prop
-axiom Or.inl : forall {a : Prop}, forall {b : Prop}, forall (h : a), Or a b
-axiom Or.inr : forall {a : Prop}, forall {b : Prop}, forall (h : b), Or a b
+axiom Or.inl : {a : Prop} -> {b : Prop} -> (h : a) -> Or a b
+axiom Or.inr : {a : Prop} -> {b : Prop} -> (h : b) -> Or a b
 
 axiom Iff : Prop -> Prop -> Prop
-axiom Iff.intro : forall {a : Prop}, forall {b : Prop}, forall (mp : forall (mp0 : a), b), forall (mpr : forall (mpr0 : b), a), Iff a b
+axiom Iff.intro : {a : Prop} -> {b : Prop} -> (mp : a -> b) -> (mpr : b -> a) -> Iff a b
 
-def Not : forall (a : Prop), Prop
-  := fun (a : Prop) => forall (n : a), False
+def Not : Prop -> Prop
+  := fun (a : Prop) => a -> False
 
-def absurd {v} : forall {a : Prop}, forall {b : Sort v}, forall (ha : a), forall (hn : Not a), b
-  := fun {a : Prop} => fun {b : Sort v} => fun (ha : a) => fun (hn : Not a) => @False.rec.{v} (fun (anon : False) => b) (hn ha)
+def absurd {v} : {a : Prop} -> (b : Sort v) -> (ha : a) -> (hn : Not a) -> b
+  := fun {a : Prop} => fun (b : Sort v) => fun (ha : a) => fun (hn : Not a) => @False.rec.{v} (fun (anon : False) => b) (hn ha)
 
-axiom Exists {u} : forall {α : Sort u}, forall (p : forall (p0 : α), Prop), Prop
-axiom Exists.intro {u} : forall {α : Sort u}, forall {p : forall (p0 : α), Prop}, forall (w : α), forall (h : p w), @Exists.{u} α p
+axiom Exists {u} : {α : Sort u} -> (p : α -> Prop) -> Prop
+axiom Exists.intro {u} : {α : Sort u} -> (p : α -> Prop) -> (w : α) -> (h : p w) -> @Exists.{u} α p
 
-theorem iff_of_true : forall {a : Prop}, forall {b : Prop}, forall (ha : a), forall (hb : b), Iff a b
+theorem iff_of_true : {a : Prop} -> {b : Prop} -> (ha : a) -> (hb : b) -> Iff a b
   := fun {a : Prop} => fun {b : Prop} => fun (ha : a) => fun (hb : b) => @Iff.intro a b (fun (anon : a) => hb) (fun (anon : b) => ha)
 
-theorem and_comm_iff : forall {a : Prop}, forall {b : Prop}, Iff (And a b) (And b a)
+theorem and_comm_iff : {a : Prop} -> {b : Prop} -> Iff (And a b) (And b a)
   := fun {a : Prop} => fun {b : Prop} => @Iff.intro (And a b) (And b a) (fun (x : And a b) => @And.intro b a (@And.right a b x) (@And.left a b x)) (fun (x : And b a) => @And.intro a b (@And.right b a x) (@And.left b a x))

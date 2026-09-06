@@ -65,7 +65,7 @@ Universe polymorphism uses declaration-level parameters and explicit
 applications:
 
 ```text
-def id {u} : forall (α : Sort u), α -> α :=
+def id {u} : {α : Sort u} -> (a : α) -> α :=
   fun (α : Sort u) => fun (a : α) => a
 
 def id0 : forall (α : Prop), α -> α := id.{0}
@@ -73,8 +73,9 @@ def id0 : forall (α : Prop), α -> α := id.{0}
 
 Without an explicit application (`#check id`) the universe defaults to zero.
 
-`@id.{u}` is accepted as an alias, and implicit binders can be written with
-curly braces (`forall {α : Sort u}, ...`). The ported
+`@id.{u}` is accepted as an alias, and named arrows make binders part of the
+arrow chain: `(x : A) -> B` means `forall (x : A), B`, and `{x : A} -> B`
+means an implicit binder. The ported
 [`examples/py-fol-core.sokonanoda`](examples/py-fol-core.sokonanoda) mirrors
 py_nanobruijn's FOL fragments and is checked by both front-end and CLI tests.
 
@@ -91,8 +92,9 @@ Errors are printed as `line:col: error: ...` without kernel panic traces.
   model can drive the tool without consulting documentation.
 - **Self-documenting CLI**: `--help` and REPL `#help` describe the language;
   `#env` lists what has been declared.
-- **Arrow-first types**: prefer `A -> B -> C` chains; write `forall` only when
-  a binder name is actually needed inside the type.
+- **Arrow-first types**: prefer `A -> B -> C` and named arrows
+  `(x : A) -> B` / `{x : A} -> B`; `forall` is only for grouping when it is
+  clearer.
 
 A second example defines the classic logical vocabulary from scratch and
 proves core theorems about it:

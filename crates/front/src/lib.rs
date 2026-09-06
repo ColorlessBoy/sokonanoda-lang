@@ -642,6 +642,17 @@ impl Parser {
     }
 
     fn parse_arrow(&mut self) -> Result<Expr> {
+        if self.named_arrow_ahead() {
+            let binder = self.parse_binder()?;
+            self.expect_kind(&TokenKind::Arrow, "`->` after binder")?;
+            let body = self.parse_expr()?;
+            let span = Span::new(binder.span.start, body.span().end);
+            return Ok(Expr::Forall {
+                binders: vec![binder],
+                body: Box::new(body),
+                span,
+            });
+        }
         let lhs = self.parse_plus()?;
         if self.peek().kind == TokenKind::Arrow {
             self.bump();
@@ -654,6 +665,20 @@ impl Parser {
             });
         }
         Ok(lhs)
+    }
+
+    fn named_arrow_ahead(&self) -> bool {
+        let open = self.tokens.get(self.cursor).map(|t| &t.kind);
+        if !matches!(open, Some(TokenKind::LParen) | Some(TokenKind::LBrace)) {
+            return false;
+        }
+        matches!(
+            self.tokens.get(self.cursor + 1).map(|t| &t.kind),
+            Some(TokenKind::Ident(_))
+        ) && matches!(
+            self.tokens.get(self.cursor + 2).map(|t| &t.kind),
+            Some(TokenKind::Colon)
+        )
     }
 
     fn parse_plus(&mut self) -> Result<Expr> {

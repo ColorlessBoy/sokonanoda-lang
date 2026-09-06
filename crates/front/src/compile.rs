@@ -921,4 +921,26 @@ mod tests {
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
     }
+
+    #[test]
+    fn named_arrow_is_forall_with_explicit_binder() {
+        let file = parse(
+            "def id {u} : (α : Sort u) -> α -> α :=\n\
+             fun {α : Sort u} => fun (a : α) => a\n",
+        )
+        .expect("parse named arrow");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+    }
+
+    #[test]
+    fn named_arrow_supports_implicit_binders() {
+        let file = parse(
+            "def id0 : {a : Prop} -> a -> a :=\n\
+             fun {a : Prop} => fun (h : a) => h\n",
+        )
+        .expect("parse implicit named arrow");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+    }
 }
