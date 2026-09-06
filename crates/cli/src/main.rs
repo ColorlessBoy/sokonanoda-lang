@@ -156,6 +156,7 @@ fn print_help() {
     println!("  #reduce <expr>                 evaluate a closed expression");
     println!("  #print <name>                  print a declaration");
     println!("  universes: def id {{u}}; Sort u; explicit application @id.{{u}}");
+    println!("  types: prefer A -> B -> C; forall only for named binders");
 }
 
 fn print_repl_help() {

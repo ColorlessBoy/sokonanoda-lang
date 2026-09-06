@@ -15,16 +15,16 @@ axiom True.intro : True
 axiom False : Prop
 axiom False.rec {u} : forall {motive : forall (anon : False), Sort u}, forall (t : False), motive t
 
-axiom And : forall (a : Prop), forall (b : Prop), Prop
+axiom And : Prop -> Prop -> Prop
 axiom And.intro : forall {a : Prop}, forall {b : Prop}, forall (ha : a), forall (hb : b), And a b
 axiom And.left : forall {a : Prop}, forall {b : Prop}, forall (h : And a b), a
 axiom And.right : forall {a : Prop}, forall {b : Prop}, forall (h : And a b), b
 
-axiom Or : forall (a : Prop), forall (b : Prop), Prop
+axiom Or : Prop -> Prop -> Prop
 axiom Or.inl : forall {a : Prop}, forall {b : Prop}, forall (h : a), Or a b
 axiom Or.inr : forall {a : Prop}, forall {b : Prop}, forall (h : b), Or a b
 
-axiom Iff : forall (a : Prop), forall (b : Prop), Prop
+axiom Iff : Prop -> Prop -> Prop
 axiom Iff.intro : forall {a : Prop}, forall {b : Prop}, forall (mp : forall (mp0 : a), b), forall (mpr : forall (mpr0 : b), a), Iff a b
 
 def Not : forall (a : Prop), Prop

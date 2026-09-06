@@ -91,6 +91,8 @@ Errors are printed as `line:col: error: ...` without kernel panic traces.
   model can drive the tool without consulting documentation.
 - **Self-documenting CLI**: `--help` and REPL `#help` describe the language;
   `#env` lists what has been declared.
+- **Arrow-first types**: prefer `A -> B -> C` chains; write `forall` only when
+  a binder name is actually needed inside the type.
 
 A second example defines the classic logical vocabulary from scratch and
 proves core theorems about it:
