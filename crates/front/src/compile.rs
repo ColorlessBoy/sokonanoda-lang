@@ -82,10 +82,15 @@ enum PendingOp<'a> {
 pub fn compile_fol(file: &FolFile) -> CompileOutput {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
-    install_prelude(&mut builder);
     let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
-    for builtin in ["Nat", "Nat.zero", "Nat.succ", "Nat.add"] {
-        known_universes.insert(builtin.to_string(), Vec::new());
+    let explicit_nat = file.commands.iter().any(|command| {
+        matches!(command, Command::InductiveBlock { name, .. } if name == "Nat")
+    });
+    if !explicit_nat {
+        install_prelude(&mut builder);
+        for builtin in ["Nat", "Nat.zero", "Nat.succ", "Nat.add"] {
+            known_universes.insert(builtin.to_string(), Vec::new());
+        }
     }
     let no_universe: UnivMap = UnivMap::new();
     let mut ops: Vec<PendingOp<'_>> = Vec::new();
@@ -1233,8 +1238,12 @@ iota z := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms
 iota s := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => fun (n : MyNat) => s (MyNat.rec motive mz ms n)
 end
 def oneMyNat : MyNat := s z
+def myAdd : MyNat -> MyNat -> MyNat :=
+  fun (m : MyNat) => fun (n : MyNat) =>
+    MyNat.rec.{1} (fun (x : MyNat) => MyNat) n (fun (k : MyNat) => fun (ih : MyNat) => s ih) m
 #reduce MyNat.rec.{1} (fun (n : MyNat) => MyNat) z (fun (n : MyNat) => fun (ih : MyNat) => s n) z
 #reduce MyNat.rec.{1} (fun (n : MyNat) => MyNat) z (fun (n : MyNat) => fun (ih : MyNat) => s n) (s z)
+#reduce myAdd (s (s z)) (s z)
 "#;
         let file = parse(src).expect("parse explicit inductive block");
         let out = compile_fol(&file);
@@ -1242,6 +1251,49 @@ def oneMyNat : MyNat := s z
         assert!(out.events.iter().any(|e| matches!(
             e,
             CheckEvent::Reduced { text, .. } if text == "z"
+        )), "events: {:?}", out.events);
+        assert!(out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "s z"
+        )), "events: {:?}", out.events);
+        assert!(out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "s (s (s z))"
+        )), "events: {:?}", out.events);
+    }
+
+    #[test]
+    fn explicit_nat_block_overrides_builtin_prelude() {
+        let src = r#"
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} : (motive : (n : Nat) -> Sort u) -> (mz : motive zero) -> (ms : (n : Nat) -> motive n -> motive (succ n)) -> (n : Nat) -> motive n
+iota zero := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => fun (n : Nat) => succ (Nat.rec motive mz ms n)
+end
+def oneNat : Nat := succ zero
+#reduce Nat.rec.{1} (fun (n : Nat) => Nat) zero (fun (n : Nat) => fun (ih : Nat) => succ n) (succ zero)
+"#;
+        let file = parse(src).expect("parse explicit Nat block");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+        assert!(out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "succ zero"
+        )), "events: {:?}", out.events);
+    }
+
+    #[test]
+    fn ported_nat_fol_add_two_two_reduces() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/py-nat.sokonanoda");
+        let src = std::fs::read_to_string(path).expect("read py-nat.sokonanoda");
+        let file = parse(&src).expect("parse py-nat.sokonanoda");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![]);
+        assert!(out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "succ (succ (succ (succ zero)))"
         )), "events: {:?}", out.events);
     }
 

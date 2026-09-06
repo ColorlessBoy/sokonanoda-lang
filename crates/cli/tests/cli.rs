@@ -189,3 +189,13 @@ fn cli_prints_expression_then_type() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert_eq!(stdout.trim(), "Sort 1: Type 1");
 }
+
+#[test]
+fn cli_checks_ported_nat_fol_and_reduces_add() {
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/py-nat.sokonanoda");
+    let out = run_args(&[path], None);
+    assert!(out.status.success(), "stderr: {}", String::from_utf8_lossy(&out.stderr));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration add"));
+    assert!(stdout.contains("add two two => succ (succ (succ (succ zero)))"));
+}

@@ -311,8 +311,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 4. [x] py fol 移植：basic/true/false/and/or/not/iff/exists + Eq/propext + Eq_symm/Eq_trans
 5. [x] py `theorems.fol` 剩余可移植命题（含 congrArg 宇宙边界、or_comm 全量、and_imp、not_imp、mt 全量）
 6. [ ] `#prove` / tactic 草稿（goal state、intro/exact/apply）
-7. [~] `inductive Nat` 声明语法 + `Nat.rec`（iota 归约）
-8. [ ] `nat.fol` 移植与 iota 端到端测试
+7. [x] `inductive Nat` 声明语法 + `Nat.rec`（iota 归约）
+8. [x] `nat.fol` 移植与 iota 端到端测试
 9. [ ] 课程/agent/编辑器层的设计文档与协议草案
 
 ### 第 7 条进度

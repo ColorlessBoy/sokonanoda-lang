@@ -1,0 +1,32 @@
+-- Ported from py_nanobruijn nat.fol, with explicit iota rules.
+
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => succ (Nat.rec motive mz ms n)
+end
+
+def one : Nat := succ zero
+def two : Nat := succ one
+def three : Nat := succ two
+def four : Nat := succ three
+
+def add : Nat -> Nat -> Nat :=
+  fun (m : Nat) => fun (n : Nat) =>
+    Nat.rec.{1} (fun (x : Nat) => Nat) n
+      (fun (k : Nat) => fun (ih : Nat) => succ ih) m
+
+#reduce add two two

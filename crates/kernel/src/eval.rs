@@ -957,6 +957,32 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         result
     }
 
+    /// Weak-head normalize and then recurse into constructor/eliminator
+    /// arguments. Used by the teaching `#reduce` so that e.g.
+    /// `s (Nat.rec ...)` can reduce the inner recursion too.
+    pub(crate) fn deep_reduce(&mut self, depth: u32, v: V<'t>) -> V<'t> {
+        let v = self.whnf_head(depth, v);
+        let v = self.force_thunk(depth, v);
+        match v {
+            Value::Rigid { head, spine, .. } => {
+                let mut reduced = self.empty_spine();
+                for elim in spine.to_vec() {
+                    let elim = match elim.view() {
+                        ElimView::App(arg) => {
+                            let arg = self.deep_reduce(depth, arg);
+                            Elim::app(arg)
+                        }
+                        ElimView::Proj { .. } => *elim,
+                    };
+                    reduced = self.spine_snoc_hc(reduced, elim);
+                }
+                self.mk_rigid_hc(*head, reduced)
+            }
+            Value::Unfold { .. } => self.unfold_value(depth, v),
+            _ => v,
+        }
+    }
+
     #[inline]
     fn note_whnf(&mut self, depth: u32, src: V<'t>, res: V<'t>, steps: u32) {
         if steps == 0 {
