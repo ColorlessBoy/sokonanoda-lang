@@ -5,19 +5,30 @@ use std::io::{BufRead, Read, Write};
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
-    let mut args = std::env::args();
-    let _ = args.next();
-    match args.next().as_deref() {
-        Some("repl") => repl(),
-        Some("-h") | Some("--help") => {
-            print_help();
-            ExitCode::SUCCESS
+    let mut json = false;
+    let mut positionals: Vec<String> = Vec::new();
+    for arg in std::env::args().skip(1) {
+        match arg.as_str() {
+            "--json" => json = true,
+            "-h" | "--help" => {
+                print_help();
+                return ExitCode::SUCCESS;
+            }
+            _ => positionals.push(arg),
         }
-        arg => check_path_or_stdin(arg),
+    }
+    match positionals.first().map(String::as_str) {
+        Some("repl") if !json => repl(),
+        Some("repl") => {
+            eprintln!("error: --json is only supported for batch checking, not the repl");
+            ExitCode::FAILURE
+        }
+        None => check_path_or_stdin(None, json),
+        Some(p) => check_path_or_stdin(Some(p), json),
     }
 }
 
-fn check_path_or_stdin(arg: Option<&str>) -> ExitCode {
+fn check_path_or_stdin(arg: Option<&str>, json: bool) -> ExitCode {
     let mut src = String::new();
     let read_result = match arg {
         None | Some("-") => std::io::stdin().read_to_string(&mut src),
@@ -34,7 +45,7 @@ fn check_path_or_stdin(arg: Option<&str>) -> ExitCode {
         None | Some("-") => "<stdin>".to_string(),
         Some(path) => path.to_string(),
     };
-    if check_source(&src, &label) {
+    if check_source(&src, &label, json) {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE
@@ -178,8 +189,11 @@ fn run_buffer(buffer: &str, seen_events: &mut usize, declared: &mut Vec<String>)
         Ok(file) => compile_fol(&file),
         Err(diag) => {
             eprintln!(
-                "{}:{}: error: {}",
-                diag.span.start.line, diag.span.start.column, diag.message
+                "{}:{}: error[{}]: {}",
+                diag.span.start.line,
+                diag.span.start.column,
+                diag.stage_code(),
+                diag.message
             );
             return;
         }
@@ -201,19 +215,37 @@ fn print_proof_state(state: &ProofState) {
     println!("lambda: {}", state.lambda_text());
 }
 
-fn check_source(src: &str, label: &str) -> bool {
+fn check_source(src: &str, label: &str, json: bool) -> bool {
     let file = match parse(src) {
         Ok(file) => file,
         Err(diag) => {
-            eprintln!(
-                "{}:{}:{}: error: {}",
-                label, diag.span.start.line, diag.span.start.column, diag.message
-            );
+            if json {
+                print_json_line(&serde_json::json!({
+                    "type": "diagnostic",
+                    "stage": "parse",
+                    "code": diag.code(),
+                    "message": diag.message,
+                    "span": span_json(diag.span),
+                }));
+            } else {
+                eprintln!(
+                    "{}:{}:{}: error[{}]: {}",
+                    label,
+                    diag.span.start.line,
+                    diag.span.start.column,
+                    diag.stage_code(),
+                    diag.message
+                );
+            }
             return false;
         }
     };
     let output = compile_fol(&file);
-    report_output(&output, src, 0);
+    if json {
+        report_json(&output, src);
+    } else {
+        report_output(&output, src, 0);
+    }
     output.errors.is_empty()
 }
 
@@ -234,8 +266,11 @@ fn report_output(output: &CompileOutput, src: &str, seen_events: usize) {
     }
     for err in &output.errors {
         eprintln!(
-            "{}:{}: error: {}",
-            err.span.start.line, err.span.start.column, err.message
+            "{}:{}: error[{}]: {}",
+            err.span.start.line,
+            err.span.start.column,
+            err.code(),
+            err.message
         );
     }
 }
@@ -248,6 +283,80 @@ fn expr_text<'a>(src: &'a str, span: sokonanoda_front::Span) -> &'a str {
     }
 }
 
+fn print_json_line(value: &serde_json::Value) {
+    println!("{}", serde_json::to_string(value).expect("serialize event"));
+}
+
+fn span_json(span: sokonanoda_front::Span) -> serde_json::Value {
+    serde_json::json!({
+        "start": {
+            "offset": span.start.offset,
+            "line": span.start.line,
+            "column": span.start.column,
+        },
+        "end": {
+            "offset": span.end.offset,
+            "line": span.end.line,
+            "column": span.end.column,
+        },
+    })
+}
+
+/// Machine view of a batch check. One JSON object per line, using the event
+/// vocabulary from docs/protocol.md so a service or agent can consume it.
+fn report_json(output: &CompileOutput, src: &str) {
+    use CheckEvent::*;
+    for event in &output.events {
+        match event {
+            DeclarationChecked { name } => print_json_line(&serde_json::json!({
+                "type": "decl.checked",
+                "human": format!("checked declaration {name}"),
+                "name": name,
+            })),
+            ExampleChecked => print_json_line(&serde_json::json!({
+                "type": "example.checked",
+                "human": "checked example",
+            })),
+            TypeChecked { text, span } => {
+                let expr_src = expr_text(src, *span);
+                print_json_line(&serde_json::json!({
+                    "type": "expr.typed",
+                    "human": format!("{expr_src}: {text}"),
+                    "text": expr_src,
+                    "inferred_type": text,
+                    "span": span_json(*span),
+                }));
+            }
+            Reduced { text, span } => print_json_line(&serde_json::json!({
+                "type": "expr.reduced",
+                "human": format!("{} => {text}", expr_text(src, *span)),
+                "text": expr_text(src, *span),
+                "value": text,
+                "span": span_json(*span),
+            })),
+            Printed { name, text } => print_json_line(&serde_json::json!({
+                "type": "decl.printed",
+                "human": format!("#print {name} :\n{text}"),
+                "name": name,
+                "text": text,
+            })),
+            ExerciseOpen => print_json_line(&serde_json::json!({
+                "type": "exercise.open",
+                "human": "exercise open (fill the ???)",
+            })),
+        }
+    }
+    for err in &output.errors {
+        print_json_line(&serde_json::json!({
+            "type": "diagnostic",
+            "stage": err.stage().code(),
+            "code": err.code(),
+            "message": err.message,
+            "span": span_json(err.span),
+        }));
+    }
+}
+
 fn print_help() {
     println!("sokonanoda — self-contained .sokonanoda compiler");
     println!();
@@ -255,6 +364,7 @@ fn print_help() {
     println!("  sokonanoda <file.sokonanoda>   check a file");
     println!("  sokonanoda -                    check source from stdin");
     println!("  sokonanoda repl                 interactive REPL");
+    println!("  sokonanoda --json <file>        emit JSON Lines events (agent/service view)");
     println!("  sokonanoda --help               this help");
     println!();
     println!("language commands (same in files and REPL):");

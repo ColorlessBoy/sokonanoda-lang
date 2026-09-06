@@ -11,3 +11,4 @@ path = "src/main.rs"
 
 [dependencies]
 sokonanoda-front = { path = "../front" }
+serde_json = "1"

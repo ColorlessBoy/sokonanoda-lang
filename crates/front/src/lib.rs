@@ -73,6 +73,19 @@ impl Diagnostic {
             message,
         }
     }
+
+    /// Stable machine code for the diagnostic (used by `--json`).
+    pub fn code(&self) -> &'static str {
+        match self.kind {
+            DiagnosticKind::UnexpectedEof => "unexpected-eof",
+            DiagnosticKind::UnexpectedToken { .. } => "unexpected-token",
+        }
+    }
+
+    /// Pipeline stage of this diagnostic.
+    pub fn stage_code(&self) -> &'static str {
+        "parse"
+    }
 }
 
 pub type Result<T> = std::result::Result<T, Diagnostic>;

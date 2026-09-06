@@ -13,10 +13,31 @@ use std::sync::Arc;
 
 type UnivMap<'a> = HashMap<String, LevelPtr<'a>>;
 
+/// Which pipeline stage produced an error. Stable classification that the
+/// teaching engine and the agent protocol rely on (docs/protocol.md).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompileStage {
+    /// Expression elaboration (name resolution, universe arity, binder rules).
+    Elab,
+    /// The complete kernel rejected or failed on the declaration.
+    Kernel,
+}
+
+impl CompileStage {
+    /// Stable machine code for the stage. Kept ASCII so agents can match it.
+    pub fn code(self) -> &'static str {
+        match self {
+            CompileStage::Elab => "elab",
+            CompileStage::Kernel => "kernel",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompileError {
     pub message: String,
     pub span: Span,
+    pub stage: CompileStage,
 }
 
 impl CompileError {
@@ -24,7 +45,26 @@ impl CompileError {
         Self {
             message: message.into(),
             span,
+            stage: CompileStage::Elab,
         }
+    }
+
+    /// A rejection or internal failure reported by the kernel check.
+    fn kernel(message: impl Into<String>, span: Span) -> Self {
+        Self {
+            message: message.into(),
+            span,
+            stage: CompileStage::Kernel,
+        }
+    }
+
+    pub fn stage(&self) -> CompileStage {
+        self.stage
+    }
+
+    /// Stable machine code for this error (used by `--json` and the protocol).
+    pub fn code(&self) -> &'static str {
+        self.stage.code()
     }
 }
 
@@ -270,11 +310,11 @@ pub fn compile_fol(file: &FolFile) -> CompileOutput {
         match op {
             PendingOp::Decl { name, declar, span } => match env.try_check_declar(&declar) {
                 Ok(()) => out.events.push(CheckEvent::DeclarationChecked { name }),
-                Err(e) => out.errors.push(CompileError::new(format!("{e}"), span)),
+                Err(e) => out.errors.push(CompileError::kernel(format!("{e}"), span)),
             },
             PendingOp::Example { declar, span } => match env.try_check_declar(&declar) {
                 Ok(()) => out.events.push(CheckEvent::ExampleChecked),
-                Err(e) => out.errors.push(CompileError::new(format!("{e}"), span)),
+                Err(e) => out.errors.push(CompileError::kernel(format!("{e}"), span)),
             },
             PendingOp::Check {
                 expr,

@@ -206,7 +206,9 @@ impl<'a> EnvBuilder<'a> {
             return Err(format!("duplicate declaration {}", self.name_to_string(name)));
         }
         let idx = self.declars.len();
-        name.as_ref().set_decl_idx(idx as u32);
+        name.as_ref().set_decl_idx(
+            u32::try_from(idx).expect("more than u32::MAX declarations in one environment"),
+        );
         self.declars.insert(name, d);
         Ok(())
     }

@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Workspace tests
+        run: cargo test --workspace
+
+      - name: Lesson corpus is valid
+        run: |
+          for f in examples/*.sokonanoda; do
+            echo "checking $f"
+            cargo run -q -p sokonanoda-cli --bin sokonanoda -- "$f" >/dev/null
+          done
+
+      - name: Machine events are well-formed JSON
+        run: |
+          printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \
+            | cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json \
+            | python3 -c 'import json,sys; [json.loads(l) for l in sys.stdin]'
