@@ -1,0 +1,65 @@
+-- ==========================================================================
+-- unit5-induction-nat-rec.sokonanoda —— 单元⑤ 显式归纳与递归
+--
+-- 规则：
+--   * 带 ??? 的声明是练习。把 ??? 换成你的答案，由完整内核判定对错。
+--   * 部分作答是合法状态：先写前几层 fun，最后一层留 ???。
+--   * 判定永远走内核：填完的每一行放回官方 Lean 也合法。
+-- ==========================================================================
+
+-- ─────────────────────────────────────────────────────────────
+-- 到目前为止的 Nat 都是 prelude 送的。这次我们**自己搭一遍**：
+-- 一个显式的 inductive 块 = 类型 + 构造子 + 消去子 Nat.rec + iota 规则。
+-- （这个块会取代整个文件里的 prelude Nat —— 文件从此自给自足。）
+-- 演示部分照抄 examples/py-nat.sokonanoda，无需改动。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => succ (Nat.rec motive mz ms n)
+end
+
+-- 演示（已写好）：数字现在用构造子搭出来，不再有字面量的魔法。
+def one : Nat := succ zero
+def two : Nat := succ one
+def three : Nat := succ two
+
+-- 自测：#reduce 走 iota 规则 —— succ two 是 3。
+#reduce succ two
+
+-- ─────────────────────────────────────────────────────────────
+-- Nat.rec 的读法：给定 motive、zero 处的值 mz、以及“从 k 的结果 ih
+-- 造出 succ k 的结果”的步进函数 ms，就能对任意 n 算出 motive n。
+-- 定义递归函数 = 选好这三样东西，再喂一个 n。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1：定义 four : Nat。提示：three 已经有了，再叠一个 succ。
+def four : Nat := ???
+
+-- 练习 2（递归定义 double）：对 zero 返回 zero；对 succ k，
+-- 用归纳结果 ih 造出 succ (succ ih)。motive 全程是常函数 (fun (x : Nat) => Nat)。
+-- 提示：照抄 Nat.rec 的形状：motive -> mz -> ms -> n。
+def double : Nat -> Nat := ???
+
+-- 练习 3（加法）：add m n 从 m 出发做归纳：zero 处返回 n（“数 zero 次”）；
+-- succ k 处用 ih 造 succ ih（“多叠一层”）。
+-- 提示：注意归纳变量是 m：Nat.rec 的第一个显式参数放 n，最后一个放 m。
+def add : Nat -> Nat -> Nat := ???
+
+-- 收尾（内核回判）：解完练习 3 后，把下面这行的注释去掉。
+-- 它必须变绿 —— add two two 就是四层 succ，这是 iota 在替你数数。
+-- #reduce add two two

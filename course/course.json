@@ -1,0 +1,27 @@
+[
+  {
+    "file": "unit1-expressions-types.sokonanoda",
+    "title": "单元① 表达式与类型",
+    "unit": 1
+  },
+  {
+    "file": "unit2-functions-arrows.sokonanoda",
+    "title": "单元② 函数与箭头",
+    "unit": 2
+  },
+  {
+    "file": "unit3-propositions.sokonanoda",
+    "title": "单元③ 命题与证明项",
+    "unit": 3
+  },
+  {
+    "file": "unit4-equality-rfl.sokonanoda",
+    "title": "单元④ 等式与 rfl",
+    "unit": 4
+  },
+  {
+    "file": "unit5-induction-nat-rec.sokonanoda",
+    "title": "单元⑤ 显式归纳与递归",
+    "unit": 5
+  }
+]

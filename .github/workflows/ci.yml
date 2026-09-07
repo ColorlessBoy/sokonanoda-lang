@@ -37,6 +37,9 @@ jobs:
             cargo run -q -p sokonanoda-cli --bin sokonanoda -- "$f" >/dev/null
           done
 
+      - name: Course layer is guarded (canvases, solutions, course.json)
+        run: cargo test -p sokonanoda-cli --test course
+
       - name: Machine events are well-formed JSON
         run: |
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \

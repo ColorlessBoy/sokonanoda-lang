@@ -1,0 +1,40 @@
+-- ==========================================================================
+-- unit4-equality-rfl-solution.sokonanoda —— 单元④ 解答钥匙（agent 专用）
+--
+-- 与学习者画布 course/unit4-equality-rfl.sokonanoda 一一对应，
+-- 所有 ??? 已填入经完整内核验证的答案。勿直接发给学习者。
+-- ==========================================================================
+
+-- 演示（与画布一致）：证明 2 + 2 = 4。内核把左边算成 4，refl 立即成立。
+def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
+
+-- 自测：#reduce 会把证明项算到最简形状。
+#reduce demo_refl
+
+-- 练习 1：Eq.refl.{1} Nat (1 + 1) —— 内核把左边算成 2，refl 立即成立
+--（Eq.refl.{1} Nat 2 也能过：conv 双向计算）。
+theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := Eq.refl.{1} Nat (1 + 1)
+
+-- 练习 2：设计 p := fun (x : Nat) => Eq.{1} Nat x a；
+-- 对 h 用 subst：p a = “a = a”（用 Eq.refl 证），得到 p b = “b = a”。
+theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=
+  fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) =>
+    Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)
+
+-- 练习 3：设计 p := fun (x : Nat) => Eq.{1} Nat a x；
+-- 对 h2 : b = c 用 subst，p b = “a = b”（h1 直接顶上），得到 p c = “a = c”。
+theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat)
+  -> Eq.{1} Nat a b -> Eq.{1} Nat b c -> Eq.{1} Nat a c :=
+  fun (a : Nat) => fun (b : Nat) => fun (c : Nat) =>
+    fun (h1 : Eq.{1} Nat a b) => fun (h2 : Eq.{1} Nat b c) =>
+      Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat a x) b c h2 h1
+
+-- 练习 4：隐式 binder {a : Prop} 在类型里，值一侧对应 fun {a : Prop} => ...；
+-- Eq.{1} Prop a a 里 Prop 本身是那个 α。
+theorem eq_refl_prop : {a : Prop} -> Eq.{1} Prop a a :=
+  fun {a : Prop} => Eq.refl.{1} Prop a
+
+-- 额外自测（钥匙内部核对）：内核逐个回判这些证明项。
+#reduce one_plus_one_eq_two
+#reduce eq_symm_nat 0 0 (Eq.refl.{1} Nat 0)
+#reduce eq_trans_nat 0 0 0 (Eq.refl.{1} Nat 0) (Eq.refl.{1} Nat 0)

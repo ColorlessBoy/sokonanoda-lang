@@ -12,7 +12,7 @@
 mod actions;
 mod render;
 
-use actions::intro_edit;
+use actions::{exact_binder, intro_edit};
 use render::{
     decl_at, decl_name, diagnostic_from_compile, diagnostic_from_parse, hover_type_at, range_of,
     status_label, symbol_kind,
@@ -155,15 +155,25 @@ impl LanguageServer for Backend {
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {
             let value = match d.status {
-                DeclStatus::Open => match &d.goal {
-                    Some(goal) => format!(
-                        "**{} {}** — 目标：`{}`\n\n在 `???` 处填写一个类型为目标的项。",
-                        d.kind.as_str(),
-                        decl_name(d),
-                        goal
-                    ),
-                    None => format!("**{} {}** — 待作答", d.kind.as_str(), decl_name(d)),
-                },
+                DeclStatus::Open => {
+                    let mut text = match &d.goal {
+                        Some(goal) => format!(
+                            "**{} {}** — 目标：`{}`\n",
+                            d.kind.as_str(),
+                            decl_name(d),
+                            goal
+                        ),
+                        None => format!("**{} {}** — 待作答\n", d.kind.as_str(), decl_name(d)),
+                    };
+                    if !d.binders.is_empty() {
+                        text.push_str("\n已引入假设：\n");
+                        for b in &d.binders {
+                            text.push_str(&format!("- `{}` : `{}`\n", b.name, b.ty));
+                        }
+                    }
+                    text.push_str("\n在 `???` 处填写一个类型为目标的项。");
+                    text
+                }
                 DeclStatus::Checked => {
                     format!("**{} {}** — 已通过内核检查", d.kind.as_str(), decl_name(d))
                 }
@@ -241,24 +251,11 @@ impl LanguageServer for Backend {
         if d.status != DeclStatus::Open {
             return Ok(None);
         }
-        let Some(goal_text) = &d.goal else {
-            return Ok(None);
-        };
-        let Ok(goal_expr) = sokonanoda_front::proof::parse_expr_text(goal_text) else {
-            return Ok(None);
-        };
-        let intros = match &goal_expr {
-            sokonanoda_front::Expr::Forall { binders, .. } => binders.len(),
-            sokonanoda_front::Expr::Arrow { .. } => 1,
-            _ => 0,
-        };
-        if intros == 0 {
-            return Ok(None);
-        }
         let mut actions: Vec<CodeActionOrCommand> = Vec::new();
-        if let Some(edit) = intro_edit(params.text_document.uri.clone(), &doc.text, d, goal_text) {
+        // Close the goal with a hypothesis whose type matches it, if any.
+        if let Some((edit, binder)) = exact_binder(params.text_document.uri.clone(), &doc.text, d) {
             actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: format!("intro {} 个 binder（把证明写成 lambda 的第一步）", intros),
+                title: format!("exact {binder}（用假设 {binder} 直接结束证明）"),
                 kind: Some(CodeActionKind::QUICKFIX),
                 diagnostics: None,
                 edit: Some(edit),
@@ -267,6 +264,36 @@ impl LanguageServer for Backend {
                 disabled: None,
                 data: None,
             }));
+        }
+        // Peel one binder: intro turns the next proof step into a lambda.
+        if let Some(goal_text) = &d.goal {
+            let Ok(goal_expr) = sokonanoda_front::proof::parse_expr_text(goal_text) else {
+                if actions.is_empty() {
+                    return Ok(None);
+                }
+                return Ok(Some(actions));
+            };
+            let intros = match &goal_expr {
+                sokonanoda_front::Expr::Forall { binders, .. } => binders.len(),
+                sokonanoda_front::Expr::Arrow { .. } => 1,
+                _ => 0,
+            };
+            if intros > 0 {
+                if let Some(edit) =
+                    intro_edit(params.text_document.uri.clone(), &doc.text, d, goal_text)
+                {
+                    actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: format!("intro {} 个 binder（把证明写成 lambda 的第一步）", intros),
+                        kind: Some(CodeActionKind::QUICKFIX),
+                        diagnostics: None,
+                        edit: Some(edit),
+                        command: None,
+                        is_preferred: None,
+                        disabled: None,
+                        data: None,
+                    }));
+                }
+            }
         }
         if actions.is_empty() {
             Ok(None)
@@ -811,5 +838,141 @@ mod tests {
             "Nat prelude must be present without the directive: {:?}",
             params.diagnostics
         );
+    }
+
+    // I9 goal 视图：hover 显示可用假设；assumption/exact code action。
+    #[tokio::test]
+    async fn hover_on_partial_hole_lists_hypotheses() {
+        let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n";
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "partial hole diagnostics").await;
+
+        let hole = offset_of(src, "???");
+        let pos = lsp_pos(src, hole);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(20)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid hover");
+        let hover = hover.expect("hover at the hole");
+        let HoverContents::Markup(markup) = hover.contents else {
+            panic!("expected markup hover");
+        };
+        assert!(
+            markup.value.contains("目标：`a`"),
+            "hover shows goal: {}",
+            markup.value
+        );
+        assert!(
+            markup.value.contains("`a` : `Prop`") && markup.value.contains("`h` : `a`"),
+            "hover lists hypotheses: {}",
+            markup.value
+        );
+    }
+
+    #[tokio::test]
+    async fn code_action_offers_exact_for_matching_hypothesis() {
+        let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n";
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "partial hole diagnostics").await;
+
+        let hole = offset_of(src, "???");
+        let hole_start = lsp_pos(src, hole);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/codeAction")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "range": {"start": position_json(hole_start), "end": position_json(hole_start)},
+                    "context": {"diagnostics": []},
+                }))
+                .id(21)
+                .finish(),
+        )
+        .await
+        .expect("codeAction must answer");
+        let actions: Option<CodeActionResponse> =
+            serde_json::from_value(result).expect("valid CodeActionResponse");
+        let actions = actions.expect("code actions for a closable goal");
+        let exact = actions
+            .iter()
+            .find_map(|a| match a {
+                CodeActionOrCommand::CodeAction(action) => {
+                    if action.title.contains("exact h") {
+                        Some(action)
+                    } else {
+                        None
+                    }
+                }
+                CodeActionOrCommand::Command(_) => None,
+            })
+            .expect("an `exact h` action must be offered");
+        let edit = exact.edit.as_ref().expect("exact action carries an edit");
+        let changes = edit.changes.as_ref().expect("changes map");
+        let edits = changes
+            .get(&Url::parse(URI).expect("test uri parses"))
+            .expect("edit targets our uri");
+        assert_eq!(edits.len(), 1);
+        assert_eq!(
+            edits[0].new_text, "h",
+            "exact fills the hole with the hypothesis"
+        );
+        assert_eq!(edits[0].range.start, hole_start, "edit targets the hole");
+    }
+
+    #[tokio::test]
+    async fn code_action_intro_still_offered_without_matching_hypothesis() {
+        let src = "example : Prop -> Prop := ???\n";
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "hole diagnostics").await;
+
+        let hole = offset_of(src, "???");
+        let hole_start = lsp_pos(src, hole);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/codeAction")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "range": {"start": position_json(hole_start), "end": position_json(hole_start)},
+                    "context": {"diagnostics": []},
+                }))
+                .id(22)
+                .finish(),
+        )
+        .await
+        .expect("codeAction must answer");
+        let actions: Option<CodeActionResponse> =
+            serde_json::from_value(result).expect("valid CodeActionResponse");
+        let actions = actions.expect("intro action without a matching hypothesis");
+        let titles: Vec<&str> = actions
+            .iter()
+            .filter_map(|a| match a {
+                CodeActionOrCommand::CodeAction(action) => Some(action.title.as_str()),
+                CodeActionOrCommand::Command(_) => None,
+            })
+            .collect();
+        assert!(
+            titles.iter().any(|t| t.contains("intro")),
+            "intro must still be offered: {titles:?}"
+        );
+        assert!(
+            !titles.iter().any(|t| t.contains("exact")),
+            "no exact action when no hypothesis matches: {titles:?}"
+        );
+        let _ = hole_start;
     }
 }

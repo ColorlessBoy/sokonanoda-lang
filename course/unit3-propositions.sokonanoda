@@ -1,0 +1,60 @@
+-- ==========================================================================
+-- unit3-propositions.sokonanoda —— 单元③ 命题与证明项
+--
+-- 规则：
+--   * 带 ??? 的声明是练习。把 ??? 换成你的答案，由完整内核判定对错。
+--   * 部分作答是合法状态：先写前几层 fun，最后一层留 ???。
+--   * 判定永远走内核：填完的每一行放回官方 Lean 也合法。
+-- ==========================================================================
+
+-- ─────────────────────────────────────────────────────────────
+-- 命题就是类型：True、And a b 都是 Prop（= Sort 0）里的类型。
+-- 证明就是项：一个类型为 P 的项，就是命题 P 的一个证明。
+-- 我们用 axiom 搭最小逻辑骨架（与官方 Lean 的 And/Or 同构）：
+-- ─────────────────────────────────────────────────────────────
+
+axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom False.rec : (P : Prop) -> False -> P
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
+axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+
+-- Not 不是公理，是定义：Not a 展开后就是 a -> False。
+def Not : Prop -> Prop := fun (a : Prop) => a -> False
+
+-- 自测：#reduce 会展开定义 —— Not True 就是 True -> False。
+#reduce Not True
+
+-- 演示（已写好）：构造子当函数用，参数按顺序全部给全。
+example : Or True False := Or.inl True False True.intro
+
+-- ─────────────────────────────────────────────────────────────
+-- 类型里的箭头对应值里的 fun：写证明 = 写一串 fun + 最后一个构造子调用。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（第一个“证明”）：True 的证明项已经存在，把它叫出来即可。
+theorem true_is_true : True := ???
+
+-- 练习 2：假设 a、b 都成立，就能得到 And a b。
+-- 提示：四层 fun，最后 And.intro a b ha hb。
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???
+
+-- 练习 3：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。
+theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := ???
+
+-- 练习 4：False 没有证明（没有构造子），但可以“用”它：从矛盾推出任何 P。
+theorem ex_falso : (P : Prop) -> False -> P := ???
+
+-- 练习 5（挑战 ★）：And a (Not a) 是自相矛盾的组合。拆开它，把 Not a 那一半
+-- 当作函数应用到另一半。提示：Not a 会展开成 a -> False。
+theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := ???
+
+-- 练习 6（Or 的左边）：有 a 就有 Or a b。构造子 Or.inl 接收
+-- (a : Prop) -> (b : Prop) -> a -> Or a b，参数按顺序全部给全。
+theorem or_intro_left : (a : Prop) -> (b : Prop) -> a -> Or a b := ???

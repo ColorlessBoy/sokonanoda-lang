@@ -4,10 +4,18 @@
   "description": "Editor support for .sokonanoda teaching files (LSP diagnostics, hover types, exercise status)",
   "version": "0.1.0",
   "publisher": "sokonanoda-lang",
-  "engines": { "vscode": "^1.80.0" },
+  "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages", "Other"],
+  "extensionKind": ["workspace"],
   "activationEvents": ["onLanguage:sokonanoda"],
   "main": "./extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In restricted mode the workspace-level sokonanoda.serverPath setting is ignored and the default server discovery is used.",
+      "restrictedConfigurations": ["sokonanoda.serverPath"]
+    }
+  },
   "contributes": {
     "languages": [
       {
@@ -29,6 +37,38 @@
         "command": "sokonanoda.showStatus",
         "title": "sokonanoda: show exercise status",
         "icon": "$(checklist)"
+      },
+      {
+        "command": "sokonanoda.status",
+        "title": "sokonanoda: show declaration status"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "sokonanoda.status", "when": "false" }
+      ]
+    },
+    "configuration": {
+      "title": "sokonanoda",
+      "properties": {
+        "sokonanoda.serverPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path to the `sokonanoda-lsp` server binary. Leave empty for auto-discovery: `target/debug/sokonanoda-lsp`, then `target/release/sokonanoda-lsp`, in the workspace folders (and the repo checkout), else `sokonanoda-lsp` from `PATH`. Ignored in restricted (untrusted) workspaces."
+        },
+        "sokonanoda.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Log LSP traffic to the 'sokonanoda' output channel (for debugging)."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "sokonanoda.showStatus",
+        "key": "alt+s",
+        "when": "editorTextFocus && editorLangId == sokonanoda"
       }
     ]
   },

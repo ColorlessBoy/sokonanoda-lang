@@ -56,6 +56,11 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 
 ## 6. 教学工作流（2026-09-06 确认并执行中）
 
+- **课程层与执行层的关系（2026-09-07 用户明确）**：`course/` 只是**给大模型的
+  路线图/素材库**（知识点、顺序、题池、可解性守护）；**具体执行层必须由大模型
+  按每个用户灵活适配**——根据用户的错误历史、节奏、兴趣实时调整出题与讲解，
+  动态画布（如 playground.sokonanoda）才是用户真正面对的表面。禁止把课程文件
+  当成"用户直接消费的固定课程"。
 - 画布 = 仓库根 `playground.sokonanoda`（纯声明式，无 `#` 命令，`--` 中文讲解）；
 - agent（本会话的我）即老师：写定义/出题 → 用户作答 → agent 跑
   `cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda`
@@ -98,3 +103,6 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 - 2026-09-07（续）：I6 落地（prelude 可选 Full/Bare + `--bare` + 注释指令；
   Eq 三件套 prelude；binder 类型推断；partial hole）→ 178 个测试全绿；
   `playground.sokonanoda` 开课（12 练习 + 教学循环文档）。
+- 2026-09-07（再续）：**课程层只是给大模型提供路线图，具体执行层需要大模型
+  适配各个用户、灵活调整**——course/ 是 agent 素材库，不是用户直接消费的
+  固定课程；I9 goal 视图第一段（假设列表 hover + exact/intro code action）。

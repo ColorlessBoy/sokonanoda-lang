@@ -12,7 +12,7 @@ pub use check::{check_document, check_document_with, compile_fol, compile_fol_wi
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput};
 pub use prelude::{prelude_mode_from_source, CompileOptions, PreludeMode};
-pub use report::{DeclKind, DeclState, DeclStatus, DocumentReport, HoverType};
+pub use report::{DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType};
 
 #[cfg(test)]
 mod tests;

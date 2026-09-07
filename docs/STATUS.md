@@ -54,6 +54,25 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    （12/12 经完整内核验证，含 `two_def` 闭环）。
 6. 新增裸名 `#reduce Nat.add/Nat.succ` 边界测试（I6 验收项，防 delta 循环）。
 
+## 本轮进度（2026-09-07 第三轮：I7 课程层 + I9 goal 视图第一段 + VS Code 修复）
+
+1. **I7 课程层**（用户定位：course/ = agent 路线图，执行层由 agent 按用户灵活
+   适配——已写入 REQUIREMENTS §6 与 teaching-session §0）：`course/` 5 单元
+   画布 + `course.json` 顺序清单 + `solutions/` 解答钥匙（全部经完整内核验证
+   可解）+ `crates/cli/tests/course.rs` golden（每单元 decl.checked/exercise.open/
+   expr.reduced 计数钉死）+ CI 步骤。
+2. **I9 goal 视图第一段**：开放声明现在携带已引入假设清单
+   （`DeclState.binders: Vec<GoalBinder{name, ty}>`，goal_under_binders 同步
+   记录）；LSP hover 在 `???` 上显示「目标 + 已引入假设」；code action 新增
+   **`exact <假设>`**（类型与目标匹配时自动提议，洞替换为该假设名），
+   与既有 `intro` 并存；LSP 测试 13→16。
+3. **VS Code 薄壳修复**（依 docs/vscode-notes.md）：修复 `client.start()` 未作为
+   disposable 注册的真实 bug（改为正确 start/stop 生命周期）；`sokonanoda.serverPath`
+   设置 + 自动发现（workspace target/debug|release → PATH）；`alt+s` 状态命令
+   （documentSymbol → 快速选择面板）；codeLens 的 `sokonanoda.status` 命令
+   补了客户端 handler（此前点击报 command not found）；新增 F5 启动配置。
+4. 测试总量 186（kernel 43 / cli 38 / front 89 / lsp 16）。
+
 ## 下一步（按 REQUIREMENTS §8 路线）
 
 - **I7 课程目录化**：把 playground 第一课沉淀为 `course/lesson-XX-*.sokonanoda`

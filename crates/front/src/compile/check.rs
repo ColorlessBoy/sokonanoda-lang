@@ -7,7 +7,7 @@ use super::elab::{
 use super::error::{CompileError, ErrorKind};
 use super::event::{CheckEvent, CompileOutput};
 use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
-use super::report::{DeclKind, DeclState, DeclStatus, DocumentReport, HoverType};
+use super::report::{DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType};
 use crate::{Command, Expr, FolFile, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, EnvLimit};
@@ -25,6 +25,7 @@ pub(crate) enum PendingOp<'a> {
         name: Option<String>,
         kind: DeclKind,
         goal: Option<String>,
+        binders: Vec<GoalBinder>,
         span: Span,
     },
     Check {
@@ -77,7 +78,9 @@ pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> Document
 /// lambda binders already written? `None` means "no hole" or "hole in a
 /// place the goal cannot be recovered from" (the latter falls through to
 /// normal elaboration, which reports `elab-hole-misplaced` at the hole).
-fn open_goal(ty: &Expr, val: &Expr) -> Option<String> {
+/// On success it returns the remaining goal text plus the hypotheses the
+/// written lambda binders already introduce (the goal view's context).
+fn open_goal(ty: &Expr, val: &Expr) -> Option<(String, Vec<GoalBinder>)> {
     if !expr_has_hole(val) {
         return None;
     }
@@ -106,24 +109,26 @@ fn expr_has_hole(e: &Expr) -> bool {
 
 /// Walk the declared type and the (partial) answer in parallel: every lambda
 /// in the answer consumes one Pi layer of the type; when the walk reaches the
-/// hole, the remaining type is the exercise's current goal.
-fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<String> {
+/// hole, the remaining type is the exercise's current goal and the consumed
+/// binders are its context.
+fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<(String, Vec<GoalBinder>)> {
     match val {
-        Expr::Hole { .. } => Some(render_expr(ty)),
+        Expr::Hole { .. } => Some((render_expr(ty), Vec::new())),
         Expr::Lambda { binders, body, .. } => {
             let Some((binder, binders_rest)) = binders.split_first() else {
                 return None;
             };
-            let rest_ty = match ty {
+            // Consume one Pi layer; remember the hypothesis it introduces.
+            let (rest_ty, layer_ty_text) = match ty {
                 Expr::Forall {
                     binders: tbinders,
                     body: tbody,
                     ..
                 } => {
-                    let Some((_, trest)) = tbinders.split_first() else {
+                    let Some((tbinder, trest)) = tbinders.split_first() else {
                         return None;
                     };
-                    if trest.is_empty() {
+                    let rest = if trest.is_empty() {
                         tbody.as_ref().clone()
                     } else {
                         Expr::Forall {
@@ -131,24 +136,43 @@ fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<String> {
                             body: tbody.clone(),
                             span: Span::default(),
                         }
-                    }
+                    };
+                    let layer_text = tbinder.ty.as_deref().map(render_expr).unwrap_or_default();
+                    (rest, layer_text)
                 }
-                Expr::Arrow { codomain, .. } => codomain.as_ref().clone(),
+                Expr::Arrow {
+                    domain, codomain, ..
+                } => {
+                    let text = render_expr(domain);
+                    (codomain.as_ref().clone(), text)
+                }
                 _ => return None,
             };
-            // A partial answer may keep an untyped binder: the goal walk only
-            // renders the remaining type, so the binder name is irrelevant.
-            let _ = binder;
-            if binders_rest.is_empty() {
-                goal_under_binders(&rest_ty, body)
+            // The learner's own binder wins for the name and (if written) the
+            // type; an untyped binder borrows the declared layer's type.
+            let binder_text = binder
+                .ty
+                .as_deref()
+                .map(render_expr)
+                .unwrap_or(layer_ty_text);
+            let introduced = GoalBinder {
+                name: binder.name.clone(),
+                ty: binder_text,
+            };
+            let (goal, rest_binders) = if binders_rest.is_empty() {
+                goal_under_binders(&rest_ty, body)?
             } else {
                 let rest_val = Expr::Lambda {
                     binders: binders_rest.to_vec(),
                     body: body.clone(),
                     span: Span::default(),
                 };
-                goal_under_binders(&rest_ty, &rest_val)
-            }
+                goal_under_binders(&rest_ty, &rest_val)?
+            };
+            let mut binders = Vec::with_capacity(rest_binders.len() + 1);
+            binders.push(introduced);
+            binders.extend(rest_binders);
+            Some((goal, binders))
         }
         _ => None,
     }
@@ -211,11 +235,12 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 val,
                 span,
             } => {
-                if let Some(goal) = open_goal(ty, val) {
+                if let Some((goal, binders)) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Definition,
                         goal: Some(goal),
+                        binders,
                         span: *span,
                     });
                     continue;
@@ -275,11 +300,12 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 val,
                 span,
             } => {
-                if let Some(goal) = open_goal(ty, val) {
+                if let Some((goal, binders)) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Theorem,
                         goal: Some(goal),
+                        binders,
                         span: *span,
                     });
                     continue;
@@ -386,11 +412,12 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 }
             }
             Command::Example { ty, val, span } => {
-                if let Some(goal) = open_goal(ty, val) {
+                if let Some((goal, binders)) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: None,
                         kind: DeclKind::Example,
                         goal: Some(goal),
+                        binders,
                         span: *span,
                     });
                     continue;
@@ -459,6 +486,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                             status: DeclStatus::Checked,
                             error: None,
                             goal: None,
+                            binders: Vec::new(),
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: builder.declaration_count(),
@@ -548,6 +576,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 name,
                 kind,
                 goal,
+                binders,
                 span,
             } => {
                 out.events
@@ -559,6 +588,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                     status: DeclStatus::Open,
                     error: None,
                     goal,
+                    binders,
                 });
             }
             PendingOp::Decl {
@@ -586,6 +616,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                         status: DeclStatus::Checked,
                         error: None,
                         goal: None,
+                        binders: Vec::new(),
                     });
                 }
                 Err(e) => {
@@ -652,6 +683,7 @@ pub(crate) fn failed_state(
         status: DeclStatus::Failed,
         error: Some(error),
         goal: None,
+        binders: Vec::new(),
     }
 }
 

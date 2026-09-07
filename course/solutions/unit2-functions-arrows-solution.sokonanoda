@@ -1,0 +1,33 @@
+-- ==========================================================================
+-- unit2-functions-arrows-solution.sokonanoda —— 单元② 解答钥匙（agent 专用）
+--
+-- 与学习者画布 course/unit2-functions-arrows.sokonanoda 一一对应，
+-- 所有 ??? 已填入经完整内核验证的答案。勿直接发给学习者。
+-- ==========================================================================
+
+-- 演示（与画布一致）：add1 把参数加一。
+def add1 : Nat -> Nat := fun n => n + 1
+
+-- 自测：#reduce 把函数应用算出来。add1 41 应该是 42。
+#reduce add1 41
+
+-- 练习 1：double = 把 n 加给自己（内核只判类型；语义靠“证明形状”约束）。
+def double : Nat -> Nat := fun (n : Nat) => n + n
+
+-- 练习 2：两层 fun；先把 f 用在 x 上，再对结果再用一次 f。
+def twice : (Nat -> Nat) -> Nat -> Nat :=
+  fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)
+
+-- 练习 3：三层 fun，一层一层写；洞永远放在最后一层。
+def three_args : Nat -> Nat -> Nat -> Nat :=
+  fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => a + b + c
+
+-- 练习 4：输入输出都是“一个函数”，所以整体类型用括号括住。
+def apply_twice : (Nat -> Nat) -> (Nat -> Nat) :=
+  fun (f : Nat -> Nat) => fun (n : Nat) => f (f n)
+
+-- 额外自测（钥匙内部核对）：内核逐个回判这些应用。
+#reduce double 5
+#reduce twice add1 5
+#reduce three_args 1 2 3
+#reduce apply_twice add1 40

@@ -34,6 +34,14 @@ pub enum DeclStatus {
     Failed,
 }
 
+/// One hypothesis already introduced in a partial answer: its written name
+/// and the type it carries, rendered as source text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GoalBinder {
+    pub name: String,
+    pub ty: String,
+}
+
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone)]
 pub struct DeclState {
@@ -43,8 +51,12 @@ pub struct DeclState {
     pub status: DeclStatus,
     /// Present when `status == Failed`.
     pub error: Option<CompileError>,
-    /// For an open exercise: the declared goal type, rendered as source text.
+    /// For an open exercise: the remaining goal type, rendered as source text.
     pub goal: Option<String>,
+    /// For an open exercise: the hypotheses already introduced by the lambda
+    /// binders written so far (the goal view's "context"). Empty when the
+    /// answer hole has no lambda prefix yet.
+    pub binders: Vec<GoalBinder>,
 }
 
 /// A hover answer for one source span (`span -> inferred type text`).

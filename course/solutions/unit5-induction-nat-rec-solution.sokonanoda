@@ -1,0 +1,57 @@
+-- ==========================================================================
+-- unit5-induction-nat-rec-solution.sokonanoda —— 单元⑤ 解答钥匙（agent 专用）
+--
+-- 与学习者画布 course/unit5-induction-nat-rec.sokonanoda 一一对应，
+-- 所有 ??? 已填入经完整内核验证的答案。勿直接发给学习者。
+-- ==========================================================================
+
+-- 显式 inductive 块（与画布一致，取代整个文件里的 prelude Nat）：
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => succ (Nat.rec motive mz ms n)
+end
+
+-- 演示（与画布一致）：数字用构造子搭出来。
+def one : Nat := succ zero
+def two : Nat := succ one
+def three : Nat := succ two
+
+-- 自测：#reduce 走 iota 规则 —— succ two 是 3。
+#reduce succ two
+
+-- 练习 1：four = succ three（在 three 之上再叠一层）。
+def four : Nat := succ three
+
+-- 练习 2：double：zero 处返回 zero；succ k 处用 ih 造 succ (succ ih)。
+def double : Nat -> Nat :=
+  fun (n : Nat) =>
+    Nat.rec.{1} (fun (x : Nat) => Nat) zero
+      (fun (k : Nat) => fun (ih : Nat) => succ (succ ih)) n
+
+-- 练习 3：add：归纳变量是 m，zero 处返回 n，succ k 处用 ih 造 succ ih。
+def add : Nat -> Nat -> Nat :=
+  fun (m : Nat) => fun (n : Nat) =>
+    Nat.rec.{1} (fun (x : Nat) => Nat) n
+      (fun (k : Nat) => fun (ih : Nat) => succ ih) m
+
+-- 收尾（内核回判）：add two two 就是四层 succ，iota 在替你数数。
+#reduce add two two
+
+-- 额外自测（钥匙内部核对）：
+#reduce four
+#reduce double two
+#reduce add two three

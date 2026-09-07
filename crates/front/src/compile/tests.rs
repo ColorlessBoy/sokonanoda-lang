@@ -1078,3 +1078,42 @@ fn bare_names_of_native_nat_terminate_in_reduce() {
         CheckEvent::Reduced { text, .. } if text == "Nat.succ"
     ));
 }
+
+#[test]
+fn partial_hole_records_introduced_binders() {
+    let file =
+        parse("example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n").unwrap();
+    let report = check_document(&file);
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = &report.decls[0];
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("a"));
+    assert_eq!(
+        d.binders,
+        vec![
+            GoalBinder {
+                name: "a".to_string(),
+                ty: "Prop".to_string(),
+            },
+            GoalBinder {
+                name: "h".to_string(),
+                ty: "a".to_string(),
+            },
+        ]
+    );
+}
+
+#[test]
+fn partial_hole_untyped_binder_borrows_declared_type() {
+    let file = parse("def f : Nat -> Nat := fun n => ???\n").unwrap();
+    let report = check_document(&file);
+    let d = &report.decls[0];
+    assert_eq!(
+        d.binders,
+        vec![GoalBinder {
+            name: "n".to_string(),
+            ty: "Nat".to_string()
+        }]
+    );
+    assert_eq!(d.goal.as_deref(), Some("Nat"));
+}
