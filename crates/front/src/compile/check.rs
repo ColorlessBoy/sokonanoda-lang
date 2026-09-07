@@ -8,7 +8,7 @@ use super::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, Erro
 use super::event::{CheckEvent, CompileOutput};
 use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
 use super::report::{
-    DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType, SubGoal,
+    DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType, ResolvedTarget, SubGoal,
 };
 use crate::{Command, Expr, FolFile, Span};
 use sokonanoda::builder::EnvBuilder;
@@ -1317,12 +1317,62 @@ fn run_pass(
         states.sort_by_key(|d| d.span.start.offset);
         report.decls = states;
         report.errors = out.errors.clone();
+        // Name use → definition: top-level targets were recorded with a
+        // placeholder span during elaboration; backfill them from the file's
+        // name → def-span map (prelude names resolve to nothing).
+        let defs = top_level_def_spans(file);
+        for cmd in &mut cmd_hovers {
+            for node in &mut cmd.nodes {
+                if let Some(ResolvedTarget::Declaration { name, .. }) = &node.resolution {
+                    let name = name.clone();
+                    node.resolution = defs
+                        .get(&name)
+                        .map(|&span| ResolvedTarget::Declaration { name, span });
+                }
+            }
+        }
         let mut hover_cmds = Vec::new();
         resolve_hovers(&env, cmd_hovers, &mut report.hovers, &mut hover_cmds);
         report.hover_cmds = hover_cmds;
     }
     let _ = built_inductives;
     (out, report, failed_cmds, kernel_checks)
+}
+
+/// Every top-level name this file declares, mapped to the span of the command
+/// that first defines it (defs/axioms/inductives, plus constructors and
+/// recursors of inductive blocks). Prelude names are absent by construction.
+fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
+    let mut defs: HashMap<String, Span> = HashMap::new();
+    for command in &file.commands {
+        match command {
+            Command::Def { name, span, .. }
+            | Command::Theorem { name, span, .. }
+            | Command::Axiom { name, span, .. } => {
+                defs.entry(name.clone()).or_insert(*span);
+            }
+            Command::InductiveBlock {
+                name,
+                constructors,
+                recursor,
+                span,
+                ..
+            } => {
+                defs.entry(name.clone()).or_insert(*span);
+                for ctor in constructors {
+                    defs.entry(ctor.name.clone()).or_insert(ctor.span);
+                }
+                if let Some(rec) = recursor {
+                    defs.entry(rec.name.clone()).or_insert(rec.span);
+                }
+            }
+            Command::Example { .. }
+            | Command::Check { .. }
+            | Command::Reduce { .. }
+            | Command::Print { .. } => {}
+        }
+    }
+    defs
 }
 
 /// Run a kernel interaction with panic suppression: panics (assertion /
@@ -1407,6 +1457,8 @@ pub(crate) fn resolve_hovers(
                 out.push(HoverType {
                     span: node.span,
                     text,
+                    scope_names: node.scope_names,
+                    resolution: node.resolution,
                 });
                 out_cmds.push(cmd.cmd);
             }

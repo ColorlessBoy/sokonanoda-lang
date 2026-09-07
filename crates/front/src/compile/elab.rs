@@ -1,6 +1,7 @@
 //! AST → 内核表达式的 elaborate、声明构建（build_*）与 hover 记录。
 
 use super::error::{CompileError, ErrorKind};
+use super::report::ResolvedTarget;
 use crate::{BinderKind, CtorDecl, Expr, RecDecl, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{
@@ -16,6 +17,9 @@ pub(crate) type UnivMap<'a> = HashMap<String, LevelPtr<'a>>;
 pub(crate) struct ElabScope<'a> {
     names: Vec<String>,
     tys: Vec<ExprPtr<'a>>,
+    /// Parallel to `names`: each binder's own source span, so a name use can
+    /// record where its binder is defined.
+    spans: Vec<Span>,
 }
 
 impl<'a> ElabScope<'a> {
@@ -23,6 +27,7 @@ impl<'a> ElabScope<'a> {
         Self {
             names: Vec::new(),
             tys: Vec::new(),
+            spans: Vec::new(),
         }
     }
     fn len(&self) -> usize {
@@ -31,10 +36,12 @@ impl<'a> ElabScope<'a> {
     fn truncate(&mut self, len: usize) {
         self.names.truncate(len);
         self.tys.truncate(len);
+        self.spans.truncate(len);
     }
-    fn push(&mut self, name: String, ty: ExprPtr<'a>) {
+    fn push(&mut self, name: String, ty: ExprPtr<'a>, span: Span) {
         self.names.push(name);
         self.tys.push(ty);
+        self.spans.push(span);
     }
 }
 
@@ -43,9 +50,12 @@ impl<'a> ElabScope<'a> {
 pub(crate) struct HoverNode<'a> {
     pub(crate) span: Span,
     pub(crate) expr: ExprPtr<'a>,
-    #[allow(dead_code)] // reserved for named display of open types
     pub(crate) scope_names: Vec<String>,
     pub(crate) scope_tys: Vec<ExprPtr<'a>>,
+    /// When this node is an ident use point: where the name is defined.
+    /// Top-level targets carry a placeholder span here and are backfilled
+    /// from the file's name → def-span map in `run_pass`.
+    pub(crate) resolution: Option<ResolvedTarget>,
 }
 
 pub(crate) fn record_hover<'a>(
@@ -53,12 +63,14 @@ pub(crate) fn record_hover<'a>(
     scope: &ElabScope<'a>,
     span: Span,
     expr: ExprPtr<'a>,
+    resolution: Option<ResolvedTarget>,
 ) {
     hovers.push(HoverNode {
         span,
         expr,
         scope_names: scope.names.clone(),
         scope_tys: scope.tys.clone(),
+        resolution,
     });
 }
 
@@ -402,7 +414,7 @@ pub(crate) fn elab_expr<'a>(
         } => {
             let z = builder.zero();
             let out = builder.mk_sort(z);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Sort {
@@ -412,7 +424,7 @@ pub(crate) fn elab_expr<'a>(
             let z = builder.zero();
             let ty = builder.succ(z);
             let out = builder.mk_sort(ty);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Sort {
@@ -424,7 +436,7 @@ pub(crate) fn elab_expr<'a>(
                 level = builder.succ(level);
             }
             let out = builder.mk_sort(level);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Sort {
@@ -439,34 +451,47 @@ pub(crate) fn elab_expr<'a>(
                 )
             })?;
             let out = builder.mk_sort(level);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Ident { name, span } => {
-            let out = if let Some(pos) = scope.names.iter().rposition(|candidate| candidate == name)
-            {
-                let idx = u16::try_from(scope.names.len() - 1 - pos).map_err(|_| {
-                    CompileError::elab(
-                        ErrorKind::ElabTooManyBinders,
-                        "too many nested binders for kernel index",
-                        *span,
+            let bound = scope.names.iter().rposition(|candidate| candidate == name);
+            let (out, resolution) = match bound {
+                Some(pos) => {
+                    let idx = u16::try_from(scope.names.len() - 1 - pos).map_err(|_| {
+                        CompileError::elab(
+                            ErrorKind::ElabTooManyBinders,
+                            "too many nested binders for kernel index",
+                            *span,
+                        )
+                    })?;
+                    (
+                        builder.mk_var(idx),
+                        Some(ResolvedTarget::Binder(scope.spans[pos])),
                     )
-                })?;
-                builder.mk_var(idx)
-            } else {
-                let params = known.get(name).ok_or_else(|| {
-                    CompileError::elab(
-                        ErrorKind::ElabUnknownIdentifier,
-                        format!("unknown identifier `{name}`"),
-                        *span,
-                    )
-                })?;
-                let levels: Vec<LevelPtr<'a>> = params.iter().map(|_| builder.zero()).collect();
-                let levels = builder.alloc_levels_slice(&levels);
-                let name = builder.name_from_str(name);
-                builder.mk_const(name, levels)
+                }
+                None => {
+                    let params = known.get(name).ok_or_else(|| {
+                        CompileError::elab(
+                            ErrorKind::ElabUnknownIdentifier,
+                            format!("unknown identifier `{name}`"),
+                            *span,
+                        )
+                    })?;
+                    // The defining command's span is backfilled in `run_pass`
+                    // (placeholder survives until then; prelude names resolve
+                    // to no source definition and drop the record there).
+                    let target = ResolvedTarget::Declaration {
+                        name: name.clone(),
+                        span: Span::default(),
+                    };
+                    let levels: Vec<LevelPtr<'a>> = params.iter().map(|_| builder.zero()).collect();
+                    let levels = builder.alloc_levels_slice(&levels);
+                    let name = builder.name_from_str(name);
+                    (builder.mk_const(name, levels), Some(target))
+                }
             };
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, resolution);
             Ok(out)
         }
         Expr::UniverseApp { name, levels, span } => {
@@ -495,7 +520,7 @@ pub(crate) fn elab_expr<'a>(
             let levels = builder.alloc_levels_slice(&resolved);
             let name = builder.name_from_str(name);
             let out = builder.mk_const(name, levels);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Num { value, span } => {
@@ -520,7 +545,7 @@ pub(crate) fn elab_expr<'a>(
                     *span,
                 )
             })?;
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Hole { span } => Err(CompileError::elab(
@@ -532,7 +557,7 @@ pub(crate) fn elab_expr<'a>(
             let fun = elab_expr(builder, fun, scope, univ, known, hovers, None)?;
             let arg = elab_expr(builder, arg, scope, univ, known, hovers, None)?;
             let out = builder.mk_app(fun, arg);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Lambda {
@@ -574,14 +599,14 @@ pub(crate) fn elab_expr<'a>(
                 tys.push(ty);
                 names.push(name);
                 styles.push(style);
-                scope.push(binder.name.clone(), ty);
+                scope.push(binder.name.clone(), ty, binder.span);
             }
             let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, rest)?;
             scope.truncate(base);
             for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
                 body_expr = builder.mk_lambda(name, style, ty, body_expr);
             }
-            record_hover(hovers, scope, *span, body_expr);
+            record_hover(hovers, scope, *span, body_expr, None);
             Ok(body_expr)
         }
         Expr::Forall {
@@ -608,14 +633,14 @@ pub(crate) fn elab_expr<'a>(
                 tys.push(ty);
                 names.push(name);
                 styles.push(kernel_binder_style(&binder.style));
-                scope.push(binder.name.clone(), ty);
+                scope.push(binder.name.clone(), ty, binder.span);
             }
             let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, None)?;
             scope.truncate(base);
             for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
                 body_expr = builder.mk_pi(name, style, ty, body_expr);
             }
-            record_hover(hovers, scope, *span, body_expr);
+            record_hover(hovers, scope, *span, body_expr, None);
             Ok(body_expr)
         }
         Expr::Arrow {
@@ -626,12 +651,12 @@ pub(crate) fn elab_expr<'a>(
             let domain = elab_expr(builder, domain, scope, univ, known, hovers, None)?;
             // `A -> B` desugars to a Pi with an anonymous binder, so free
             // variables in the codomain live one binder deeper.
-            scope.push(String::new(), domain);
+            scope.push(String::new(), domain, Span::default());
             let codomain = elab_expr(builder, codomain, scope, univ, known, hovers, None)?;
             scope.truncate(scope.len() - 1);
             let anon = builder.anonymous();
             let out = builder.mk_pi(anon, BinderStyle::Default, domain, codomain);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
         Expr::Plus { lhs, rhs, span } => {
@@ -651,7 +676,7 @@ pub(crate) fn elab_expr<'a>(
             let rhs = elab_expr(builder, rhs, scope, univ, known, hovers, None)?;
             let applied = builder.mk_app(add_const, lhs);
             let out = builder.mk_app(applied, rhs);
-            record_hover(hovers, scope, *span, out);
+            record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
     }

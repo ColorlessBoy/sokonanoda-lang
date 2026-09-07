@@ -56,6 +56,8 @@ pub struct ProofState {
     goal_source: String,
     binders: Vec<Binder>,
     solution: Option<Expr>,
+    /// 每个 tactic 成功执行前的完整快照；`undo` 逐步回退。
+    history: Vec<ProofState>,
 }
 
 impl ProofState {
@@ -66,6 +68,7 @@ impl ProofState {
             goal_source: goal_text.to_string(),
             binders: Vec::new(),
             solution: None,
+            history: Vec::new(),
         })
     }
 
@@ -111,6 +114,7 @@ impl ProofState {
             ),
             _ => return Err(ProofError::NotABinder),
         };
+        self.push_snapshot();
         self.binders.push(binder);
         self.goal = body;
         Ok(())
@@ -121,8 +125,27 @@ impl ProofState {
         if self.solution.is_some() {
             return Err(ProofError::NoHole);
         }
+        self.push_snapshot();
         self.solution = Some(term);
         Ok(())
+    }
+
+    /// 快照只记在成功路径上（所有失败分支在此之前已返回），
+    /// 因此失败的 tactic 不入栈、不改变状态。
+    fn push_snapshot(&mut self) {
+        let mut snapshot = self.clone();
+        snapshot.history = Vec::new();
+        self.history.push(snapshot);
+    }
+
+    /// 回退到上一个 tactic 之前的快照；栈空时返回 false（无可撤销的步）。
+    pub fn undo(&mut self) -> bool {
+        let Some(mut snapshot) = self.history.pop() else {
+            return false;
+        };
+        snapshot.history = std::mem::take(&mut self.history);
+        *self = snapshot;
+        true
     }
 
     /// 当前 proof 状态对应的判定规格（剩余目标 + 已写 binders）。
@@ -339,6 +362,71 @@ mod tests {
         p.intro("x").unwrap();
         p.exact_kernel("x", "", &CompileOptions::default()).unwrap();
         assert!(p.done());
+    }
+
+    // ---- undo：每个成功 tactic 前的快照可逐步回退 ----
+
+    #[test]
+    fn undo_walks_back_through_intros_to_the_initial_state() {
+        let mut p = ProofState::start("(a : Prop) -> a -> a").unwrap();
+        let initial_goal = p.goal_text();
+        let initial_lambda = p.lambda_text();
+        let initial_binders = p.binders.clone();
+        // 空栈：没有可撤销的步。
+        assert!(!p.undo());
+        p.intro("a").unwrap();
+        p.intro("h").unwrap();
+        assert_eq!(p.goal_text(), "a");
+        assert!(p.undo());
+        assert_eq!(p.goal_text(), "a -> a");
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => ???");
+        assert_eq!(p.binders.len(), 1);
+        assert!(p.undo());
+        assert_eq!(p.goal_text(), initial_goal);
+        assert_eq!(p.lambda_text(), initial_lambda);
+        assert_eq!(p.binders, initial_binders);
+        // 第三次：栈已空。
+        assert!(!p.undo());
+    }
+
+    #[test]
+    fn undo_after_exact_restores_the_open_hole() {
+        let mut p = ProofState::start("(a : Prop) -> a -> a").unwrap();
+        p.intro("a").unwrap();
+        p.intro("h").unwrap();
+        p.exact("h").unwrap();
+        assert!(p.done());
+        assert!(p.undo());
+        assert!(!p.done());
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => fun (h : a) => ???");
+        assert!(p.undo());
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => ???");
+        assert!(p.undo());
+        assert_eq!(p.lambda_text(), "???");
+        assert!(!p.undo());
+    }
+
+    #[test]
+    fn undo_after_assumption_kernel_restores_the_open_hole() {
+        let mut p = ProofState::start("(a : Prop) -> a -> a").unwrap();
+        p.intro("a").unwrap();
+        p.intro("h").unwrap();
+        p.assumption_kernel("", &CompileOptions::default()).unwrap();
+        assert!(p.done());
+        assert!(p.undo());
+        assert!(!p.done());
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => fun (h : a) => ???");
+    }
+
+    #[test]
+    fn failed_exact_kernel_leaves_no_undo_step() {
+        let mut p = ProofState::start("Prop -> Prop").unwrap();
+        p.intro("x").unwrap();
+        assert!(p.exact_kernel("1", "", &CompileOptions::default()).is_err());
+        // 失败的 exact_kernel 既不改状态也不入栈：第一次 undo 直接回到 intro 之前。
+        assert!(p.undo());
+        assert_eq!(p.lambda_text(), "???");
+        assert!(!p.undo());
     }
 
     #[test]

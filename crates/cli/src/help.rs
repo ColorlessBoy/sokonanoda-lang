@@ -30,6 +30,8 @@ pub(crate) fn print_help() {
 pub(crate) fn print_repl_help() {
     println!("commands: #check <expr>, #reduce <expr>, #print <name>,");
     println!("          #env, #prove <goal>, #help, #exit");
-    println!("proof mode: intro <name>, exact <term>, apply <term>, assumption, lambda, done");
+    println!(
+        "proof mode: intro <name>, exact <term>, apply <term>, assumption, undo, lambda, done"
+    );
     println!("declarations accumulate; one expression or declaration per line.");
 }

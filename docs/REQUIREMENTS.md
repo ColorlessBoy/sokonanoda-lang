@@ -142,4 +142,6 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   审计），主会话实现多洞+refine（I9 第二段）。修复两个关键缺陷：
   #check/#reduce 无 panic 保护（可崩掉 LSP 进程）、.vscodeignore 排除
   node_modules（VSIX 仍坏）。产出：docs/design-goal-refine.md、
-  docs/gap-analysis.md、docs/RELEASE.md、8 个新 kernel 错误码。
+  docs/gap-analysis.md、docs/RELEASE.md、8 个新 kernel 错误码。- 2026-09-07（九）：gap-analysis 第一批落地（业内标准补全）：completions、
+  folding、--version+MSRV（主会话）；go-to-definition/document highlight/
+  binder 补全（subagent）；REPL undo（subagent）。

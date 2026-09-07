@@ -147,3 +147,12 @@
 - **稳定性**：#check/#reduce panic 守卫（`cli_classifies_check_apply_to_non_function`）、
   .vscodeignore 回归守护（`runtime_dependency_is_packaged`）。
 - 测试总量（2026-09-07 第九轮）：**245**。
+
+## 2026-09-07 更新（第十轮：导航基线 + undo）
+
+- **completions/folding**（lsp 2）：关键词/宇宙/prelude/声明全集（内部名
+  不外泄）、多行声明折叠；`cli_prints_its_version`（cli）。
+- **go-to-definition/documentHighlight**（lsp 3 + front 解析映射测试）：
+  use→binder/use→声明（shadowing 用例）、同定义高亮、binder 补全。
+- **REPL undo**（front 4 + cli e2e）：快照栈、失败不入栈、恢复全等。
+- 测试总量（2026-09-07 第十轮）：**273**。

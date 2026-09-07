@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::parse;
+use crate::Span;
 
 fn py_core() -> String {
     std::fs::read_to_string(concat!(
@@ -772,6 +773,96 @@ fn hover_map_covers_subexpressions() {
             .map(|h| h.text.clone())
             .collect::<Vec<_>>()
     );
+}
+
+/// The definition span recorded for the use point starting at `offset`
+/// (`None` when the name use did not resolve to a source definition).
+fn resolved_def_at(report: &DocumentReport, offset: usize) -> Option<Span> {
+    report
+        .hovers
+        .iter()
+        .filter(|h| h.span.start.offset == offset)
+        .find_map(|h| h.resolution.as_ref().map(|target| target.span()))
+}
+
+#[test]
+fn definitions_map_resolves_binder_and_top_level_uses() {
+    let src = "def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n";
+    let file = parse(src).unwrap();
+    let report = check_document(&file);
+
+    let body_x = src.rfind('x').unwrap();
+    let binder = resolved_def_at(&report, body_x).expect("body `x` must resolve to its binder");
+    let binder_at = src.find("(x : Prop)").unwrap();
+    assert_eq!(binder.start.offset, binder_at);
+    assert_eq!(binder.end.offset, binder_at + "(x : Prop)".len());
+
+    let use_id = src.find("#check id").unwrap() + "#check ".len();
+    let decl = resolved_def_at(&report, use_id).expect("`#check id` must resolve to the def");
+    assert_eq!(decl.start.offset, 0);
+    assert_eq!(
+        decl.end.offset,
+        "def id : Prop -> Prop := fun (x : Prop) => x".len()
+    );
+}
+
+#[test]
+fn definitions_map_skips_unknown_and_prelude_names() {
+    let src = "axiom p : Prop\n#check p\n#check missing\n";
+    let file = parse(src).unwrap();
+    let report = check_document(&file);
+
+    let use_p = src.find("#check p").unwrap() + "#check ".len();
+    let decl = resolved_def_at(&report, use_p).expect("file-local axiom must resolve");
+    assert_eq!(decl.start.offset, 0);
+    assert_eq!(decl.end.offset, "axiom p : Prop".len());
+
+    let prop = src.find("Prop").unwrap();
+    assert_eq!(
+        resolved_def_at(&report, prop),
+        None,
+        "prelude names have no source definition"
+    );
+
+    let missing = src.find("missing").unwrap();
+    assert_eq!(
+        resolved_def_at(&report, missing),
+        None,
+        "unknown idents stay unresolved"
+    );
+}
+
+#[test]
+fn definitions_map_shadows_inner_binder() {
+    let src = "def f : Prop -> Prop -> Prop := fun (x : Prop) => fun (x : Prop) => x\n";
+    let file = parse(src).unwrap();
+    let report = check_document(&file);
+
+    let body_x = src.rfind('x').unwrap();
+    let inner = resolved_def_at(&report, body_x).expect("inner `x` must resolve");
+    let inner_at = src.rfind("(x : Prop)").unwrap();
+    let outer_at = src.find("(x : Prop)").unwrap();
+    assert_eq!(
+        inner.start.offset, inner_at,
+        "inner x binds to the inner binder"
+    );
+    assert_eq!(inner.end.offset, inner_at + "(x : Prop)".len());
+    assert_ne!(inner.start.offset, outer_at);
+}
+
+#[test]
+fn hover_rows_carry_in_scope_binder_names() {
+    let src = "def id : Prop -> Prop := fun (x : Prop) => x\n";
+    let file = parse(src).unwrap();
+    let report = check_document(&file);
+
+    let body_x = src.rfind('x').unwrap();
+    let row = report
+        .hovers
+        .iter()
+        .find(|h| h.span.start.offset == body_x && h.span.end.offset == body_x + 1)
+        .expect("hover row for the body `x`");
+    assert_eq!(row.scope_names, vec!["x".to_string()]);
 }
 
 #[test]

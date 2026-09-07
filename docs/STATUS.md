@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第九轮：多洞+refine、内核错误分类学、发布流水线、差距审计）
+> 快照：2026-09-07（第十轮：导航基线 + REPL undo + 基线补全第一批）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
 > 设计 = `docs/design-goal-refine.md`（本轮）/ `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
@@ -12,6 +12,23 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第十轮：gap-analysis 第一批落地）
+
+1. **行业基线 LSP 三件**（主会话）：completions（关键字/宇宙/prelude 名/
+   文档声明，单源 `front::semantic::keywords()`；内部名不外泄）、folding
+   range（仅多行声明）、`--version`（cli）+ workspace `rust-version = 1.96`
+   （MSRV 声明，rust-analyzer 教训）。
+2. **导航基线（subagent A，断网后核实其工作已完整落盘）**：go-to-definition
+   （elab 记录 use→def 解析映射：局部 binder→binder span、顶层名→声明
+   span；shadowing 正确——内层 `x` 解析到内层 binder）、document highlight
+   （同定义全部使用点）、binder 补全（光标处 name_scopes 在域名字）。
+   新 API：`ResolvedTarget`、`DocumentReport.definitions/name_scopes`、
+   `HoverType.scope_names`。
+3. **REPL undo（subagent B）**：`ProofState` 快照栈 + `undo`（`u`/`#undo`）；
+   intro/exact 成功前入栈、失败不动；cli e2e + 4 单测。lean4game/Isabelle
+   的教学基线能力。
+4. 测试总量 **273**（front 141 / lsp 33 / cli 35 / kernel 45…）；全绿。
 
 ## 本轮进度（2026-09-07，第九轮：subagent 并行 ×3，主会话多洞/refine）
 

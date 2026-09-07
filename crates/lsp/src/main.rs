@@ -14,8 +14,8 @@ mod render;
 
 use actions::{exact_binder, hole_range, intro_edit, refine_edit};
 use render::{
-    decl_at, decl_name, diagnostic_from_compile, diagnostic_from_parse, hover_type_at, range_of,
-    status_label, symbol_kind,
+    decl_at, decl_name, definition_at, diagnostic_from_compile, diagnostic_from_parse,
+    highlight_uses, hover_type_at, range_of, scope_names_at, status_label, symbol_kind,
 };
 use serde::{Deserialize, Serialize};
 use sokonanoda_front::compile::{
@@ -375,6 +375,8 @@ impl LanguageServer for Backend {
                     TextDocumentSyncKind::FULL,
                 )),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                definition_provider: Some(OneOf::Left(true)),
+                document_highlight_provider: Some(OneOf::Left(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 code_lens_provider: Some(CodeLensOptions {
                     resolve_provider: Some(false),
@@ -501,6 +503,47 @@ impl LanguageServer for Backend {
         Ok(None)
     }
 
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let doc = self.doc.lock().expect("doc lock");
+        let Some(report) = &doc.report else {
+            return Ok(None);
+        };
+        let pos = params.text_document_position_params.position;
+        let Some(target) = definition_at(&report.hovers, pos.line, pos.character) else {
+            return Ok(None);
+        };
+        Ok(Some(GotoDefinitionResponse::Scalar(Location {
+            uri: params.text_document_position_params.text_document.uri,
+            range: range_of(target.span()),
+        })))
+    }
+
+    async fn document_highlight(
+        &self,
+        params: DocumentHighlightParams,
+    ) -> Result<Option<Vec<DocumentHighlight>>> {
+        let doc = self.doc.lock().expect("doc lock");
+        let Some(report) = &doc.report else {
+            return Ok(None);
+        };
+        let pos = params.text_document_position_params.position;
+        let Some(ranges) = highlight_uses(&report.hovers, pos.line, pos.character) else {
+            return Ok(None);
+        };
+        Ok(Some(
+            ranges
+                .into_iter()
+                .map(|range| DocumentHighlight {
+                    range,
+                    kind: Some(DocumentHighlightKind::TEXT),
+                })
+                .collect(),
+        ))
+    }
+
     async fn document_symbol(
         &self,
         _: DocumentSymbolParams,
@@ -549,9 +592,26 @@ impl LanguageServer for Backend {
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-        let _ = &params;
         let doc = self.doc.lock().expect("doc lock");
         let mut items: Vec<CompletionItem> = Vec::new();
+        // In-scope binders at the cursor (smallest enclosing hover row);
+        // outside any hover span the list stays keyword/prelude-only.
+        let pos = params.text_document_position.position;
+        if let Some(report) = &doc.report {
+            if let Some(names) = scope_names_at(&report.hovers, pos.line, pos.character) {
+                for name in names {
+                    if name.is_empty() {
+                        continue; // anonymous arrow binder
+                    }
+                    items.push(CompletionItem {
+                        label: name.clone(),
+                        kind: Some(CompletionItemKind::VARIABLE),
+                        detail: Some("本域 binder".to_string()),
+                        ..Default::default()
+                    });
+                }
+            }
+        }
         // Keywords (single source: front::semantic).
         for keyword in sokonanoda_front::semantic::keywords() {
             items.push(CompletionItem {
@@ -845,6 +905,16 @@ mod tests {
                 semantic_token_options()
             )),
             "full semantic tokens with the shared legend expected"
+        );
+        assert_eq!(
+            caps.definition_provider,
+            Some(OneOf::Left(true)),
+            "go-to-definition must be advertised"
+        );
+        assert_eq!(
+            caps.document_highlight_provider,
+            Some(OneOf::Left(true)),
+            "document highlight must be advertised"
         );
     }
 
@@ -1875,6 +1945,191 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
         );
         assert_eq!(ranges[0].start_line, 0);
         assert_eq!(ranges[0].end_line, 1);
+        shutdown(&mut service).await;
+    }
+
+    // ---- 导航基线：go-to-definition / documentHighlight / binder 补全 ----
+
+    async fn goto_definition_at(
+        service: &mut LspService<Backend>,
+        src: &str,
+        offset: usize,
+    ) -> Option<GotoDefinitionResponse> {
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/definition")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(lsp_pos(src, offset)),
+                }))
+                .id(70)
+                .finish(),
+        )
+        .await
+        .expect("textDocument/definition must answer");
+        serde_json::from_value(result).expect("valid GotoDefinitionResponse")
+    }
+
+    #[tokio::test]
+    async fn goto_definition_jumps_from_use_to_binder() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, VALID).await;
+        let _ = wait_diagnostics(&mut socket, "goto def diagnostics").await;
+
+        let body_x = VALID.rfind('x').expect("body `x` exists");
+        let target = goto_definition_at(&mut service, VALID, body_x).await;
+        let GotoDefinitionResponse::Scalar(location) =
+            target.expect("binder use must resolve to a definition")
+        else {
+            panic!("expected a scalar definition location");
+        };
+        let binder_at = VALID.find("(x : Prop)").expect("binder text exists");
+        assert_eq!(location.range.start, lsp_pos(VALID, binder_at));
+        assert_eq!(
+            location.range.end,
+            lsp_pos(VALID, binder_at + "(x : Prop)".len())
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn goto_definition_jumps_from_check_use_to_declaration() {
+        let src = format!("{VALID}#check id\n");
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &src).await;
+        let _ = wait_diagnostics(&mut socket, "goto def decl diagnostics").await;
+
+        let use_id = src.find("#check id").expect("#check id exists") + "#check ".len();
+        let target = goto_definition_at(&mut service, &src, use_id).await;
+        let GotoDefinitionResponse::Scalar(location) =
+            target.expect("top-level use must resolve to a definition")
+        else {
+            panic!("expected a scalar definition location");
+        };
+        let decl_end = "def id : Prop -> Prop := fun (x : Prop) => x".len();
+        assert_eq!(location.range.start, lsp_pos(&src, 0));
+        assert_eq!(location.range.end, lsp_pos(&src, decl_end));
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn goto_definition_returns_none_without_resolution() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, VALID).await;
+        let _ = wait_diagnostics(&mut socket, "goto def none diagnostics").await;
+
+        let target = goto_definition_at(&mut service, VALID, offset_of(VALID, "Prop")).await;
+        assert!(
+            target.is_none(),
+            "prelude names have no source definition: {target:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    async fn document_highlight_at(
+        service: &mut LspService<Backend>,
+        src: &str,
+        offset: usize,
+    ) -> Option<Vec<DocumentHighlight>> {
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/documentHighlight")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(lsp_pos(src, offset)),
+                }))
+                .id(71)
+                .finish(),
+        )
+        .await
+        .expect("textDocument/documentHighlight must answer");
+        serde_json::from_value(result).expect("valid document highlight response")
+    }
+
+    #[tokio::test]
+    async fn document_highlight_lists_all_uses_of_one_definition() {
+        let src = "def double : Nat -> Nat := fun (n : Nat) => n + n\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "highlight diagnostics").await;
+
+        let body = src.find("n + n").expect("body uses exist");
+        let expected = vec![lsp_pos(src, body), lsp_pos(src, body + 4)];
+
+        // 从使用点请求：该定义的所有使用点都高亮。
+        let highlights = document_highlight_at(&mut service, src, body)
+            .await
+            .expect("uses of `n` must highlight");
+        assert_eq!(highlights.len(), 2, "both `n` uses: {highlights:?}");
+        let starts: Vec<Position> = highlights.iter().map(|h| h.range.start).collect();
+        assert_eq!(starts, expected);
+        assert!(
+            highlights
+                .iter()
+                .all(|h| h.kind == Some(DocumentHighlightKind::TEXT)),
+            "highlights are text-level: {highlights:?}"
+        );
+
+        // 从 binder 定义处请求：同样高亮全部使用点。
+        let binder = src.find("(n : Nat)").expect("binder exists");
+        let highlights = document_highlight_at(&mut service, src, binder)
+            .await
+            .expect("highlighting the binder finds its uses");
+        let starts: Vec<Position> = highlights.iter().map(|h| h.range.start).collect();
+        assert_eq!(starts, expected, "binder highlight lists all uses");
+        shutdown(&mut service).await;
+    }
+
+    async fn request_completions_at(
+        service: &mut LspService<Backend>,
+        pos: Position,
+    ) -> Vec<CompletionItem> {
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/completion")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(72)
+                .finish(),
+        )
+        .await
+        .expect("completion must answer");
+        let response: Option<CompletionResponse> =
+            serde_json::from_value(result).expect("valid CompletionResponse");
+        match response.expect("completions must be returned") {
+            CompletionResponse::Array(items) => items,
+            other => panic!("expected an array completion response, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn completion_offers_in_scope_binders() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, VALID).await;
+        let _ = wait_diagnostics(&mut socket, "completion binder diagnostics").await;
+
+        let pos = lsp_pos(VALID, VALID.rfind('x').expect("body `x` exists"));
+        let items = request_completions_at(&mut service, pos).await;
+        let binder = items
+            .iter()
+            .find(|i| i.label == "x")
+            .expect("in-scope binder `x` must be offered");
+        assert_eq!(binder.kind, Some(CompletionItemKind::VARIABLE));
+        assert!(
+            binder
+                .detail
+                .as_deref()
+                .is_some_and(|d| d.contains("binder")),
+            "detail marks the binder scope: {:?}",
+            binder.detail
+        );
         shutdown(&mut service).await;
     }
 }

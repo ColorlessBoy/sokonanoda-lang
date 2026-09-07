@@ -496,3 +496,38 @@ fn cli_prints_its_version() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.trim().starts_with("sokonanoda "), "stdout: {stdout}");
 }
+
+#[test]
+fn repl_prove_undo_steps_back_and_reports_empty_history() {
+    let out = run_repl(
+        "#prove (a : Prop) -> a -> a\n\
+         intro a\n\
+         intro h\n\
+         undo\n\
+         undo\n\
+         undo\n",
+    );
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    // 第一次 undo：回到只剩 binder a 的状态。
+    assert!(stdout.contains("goal: a -> a"), "stdout: {stdout}");
+    assert!(
+        stdout.contains("lambda: fun (a : Prop) => ???"),
+        "stdout: {stdout}"
+    );
+    // 第二次 undo：回到 #prove 的初始状态。
+    assert!(
+        stdout.contains("goal: (a : Prop) -> a -> a"),
+        "stdout: {stdout}"
+    );
+    // 第三次 undo：没有可撤销的证明步（stderr）。
+    assert!(
+        stderr.contains("error: 没有可撤销的证明步"),
+        "stderr: {stderr}"
+    );
+}

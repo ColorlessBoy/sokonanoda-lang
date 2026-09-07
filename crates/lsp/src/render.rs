@@ -1,7 +1,7 @@
 //! Rendering helpers: convert front-end compile/parse errors, spans and
 //! declarations into LSP diagnostics, ranges, hovers and symbols.
 
-use sokonanoda_front::compile::{DeclKind, DeclState, DeclStatus, HoverType};
+use sokonanoda_front::compile::{DeclKind, DeclState, DeclStatus, HoverType, ResolvedTarget};
 use sokonanoda_front::Span;
 use tower_lsp::lsp_types::*;
 
@@ -71,6 +71,52 @@ pub(crate) fn decl_at(decls: &[DeclState], line: u32, character: u32) -> Option<
     decls
         .iter()
         .find(|d| pos_within_span(line, character, d.span))
+}
+
+/// The name use point under the cursor resolves to this definition
+/// (smallest enclosing use wins; prelude/unknown idents stay unresolved).
+pub(crate) fn definition_at(
+    hovers: &[HoverType],
+    line: u32,
+    character: u32,
+) -> Option<ResolvedTarget> {
+    hover_type_at(hovers, line, character)
+        .and_then(|h| h.resolution.as_ref())
+        .cloned()
+}
+
+/// All use points of the definition at the cursor: taken from the smallest
+/// use containing the cursor, or from a use whose definition contains it
+/// (cursor on the binder / declaration itself).
+pub(crate) fn highlight_uses(
+    hovers: &[HoverType],
+    line: u32,
+    character: u32,
+) -> Option<Vec<Range>> {
+    let from_use = hover_type_at(hovers, line, character).and_then(|h| h.resolution.as_ref());
+    let def_span = match from_use {
+        Some(target) => Some(target.span()),
+        None => hovers.iter().find_map(|h| {
+            let span = h.resolution.as_ref()?.span();
+            pos_within_span(line, character, span).then_some(span)
+        }),
+    }?;
+    let uses: Vec<Range> = hovers
+        .iter()
+        .filter(|h| {
+            h.resolution
+                .as_ref()
+                .is_some_and(|target| target.span() == def_span)
+        })
+        .map(|h| range_of(h.span))
+        .collect();
+    (!uses.is_empty()).then_some(uses)
+}
+
+/// The in-scope binder names (outermost first) at the cursor, from the
+/// smallest enclosing hover row. Anonymous binders carry empty names.
+pub(crate) fn scope_names_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&[String]> {
+    hover_type_at(hovers, line, character).map(|h| h.scope_names.as_slice())
 }
 
 pub(crate) fn symbol_kind(kind: DeclKind) -> SymbolKind {

@@ -50,6 +50,14 @@ pub(crate) fn repl() -> ExitCode {
             let options = CompileOptions {
                 prelude: prelude_mode_from_source(&buffer),
             };
+            if line.trim() == "undo" || line.trim() == "u" || line.trim() == "#undo" {
+                if state.undo() {
+                    print_proof_state(state);
+                } else {
+                    eprintln!("error: 没有可撤销的证明步");
+                }
+                continue;
+            }
             if line.starts_with("intro ") {
                 let name = line.strip_prefix("intro ").unwrap_or("").trim();
                 match state.intro(name) {

@@ -88,11 +88,37 @@ pub struct DeclState {
     pub refine_template: Option<String>,
 }
 
+/// Where a name use resolves to, together with the definition's source span.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ResolvedTarget {
+    /// A local binder; the span is the binder's own source span.
+    Binder(Span),
+    /// A top-level declaration of the same file; the span is the defining
+    /// command's span.
+    Declaration { name: String, span: Span },
+}
+
+impl ResolvedTarget {
+    /// The definition's source span (go-to-definition / highlight target).
+    pub fn span(&self) -> Span {
+        match self {
+            ResolvedTarget::Binder(span) => *span,
+            ResolvedTarget::Declaration { span, .. } => *span,
+        }
+    }
+}
+
 /// A hover answer for one source span (`span -> inferred type text`).
 #[derive(Debug, Clone)]
 pub struct HoverType {
     pub span: Span,
     pub text: String,
+    /// In-scope binder names at this sub-expression, outermost first, for
+    /// scoped completion. Anonymous binders (`A -> B`) carry an empty name.
+    pub scope_names: Vec<String>,
+    /// When this span is a name use point: where the name is defined
+    /// (`None` for prelude names and unresolved idents).
+    pub resolution: Option<ResolvedTarget>,
 }
 
 #[derive(Debug, Clone, Default)]
