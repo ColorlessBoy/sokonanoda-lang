@@ -1,10 +1,10 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第七轮：逻辑先行课程重排 + I9 宇宙参数携带）
+> 快照：2026-09-07（第八轮：VS Code goal 面板 + nextHole + AGENTS.md）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
 > 设计 = `docs/design-i8-i9.md`（I8/I9）/ `docs/design-infrastructure.md`（历史）；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
-> agent 入口 = `skills/`（sokonanoda-teacher / sokonanoda-dev）；
+> agent 入口 = `AGENTS.md` + `skills/`（sokonanoda-teacher / sokonanoda-dev）；
 > LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
 
 ## 一句话
@@ -12,6 +12,22 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第八轮：goal 面板与跳洞）
+
+1. **VS Code goal 面板（I9 收尾，消费 `soko/goals`）**：资源管理器新增
+   "练习" 树——每个声明显示 kind·状态，开放练习展开为「目标 + 已引入
+   假设」，点击直达洞位；状态栏显示未完成练习数（点击聚焦面板）；诊断
+   更新即自动刷新。**`alt+n` / `alt+shift+n` 跳下一个/上一个洞**（环绕；
+   位置计算全部在 server 端 `soko/nextHole`——客户端禁止文本扫洞，
+   ocaml-lsp 教训落入代码约束）。
+2. **客户端契约测试**（`crates/cli/tests/extension.rs`，4 个）：package.json
+   声明的命令必须在 extension.js 注册、键位只指向已声明命令、客户端必须
+   消费 soko/goals+nextHole 且禁止自算洞位、运行时依赖必须在 dependencies
+   （VSIX P0 回归守护）、打包元数据齐全。无需 Electron 即可 CI 守护客户端。
+3. **AGENTS.md**（项目指令入口）：opencode/Claude Code 等原生读取——接手
+   阅读顺序、角色技能（skills/）、硬规则速记、命令清单、收尾义务。
+4. 测试总量 **239**（+4 扩展契约套件）；clippy/fmt 全绿。
 
 ## 本轮进度（2026-09-07，第七轮：逻辑先行课程落地 + I9 宇宙携带）
 

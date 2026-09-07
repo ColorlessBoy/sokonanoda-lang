@@ -57,8 +57,16 @@ is ignored and default discovery is used.
 - **Code lenses / document symbols**: every declaration is labelled with its
   status (`exercise: open` / `solved ✓` / `failed`); clicking a lens shows the
   status summary.
-- **Quick fix `intro`**: on an open exercise whose goal starts with binders —
-  inserts the first lambda step (tactics are just lambdas).
+- **Quick fix `intro` / `exact <假设>`**: on an open exercise — `intro` inserts
+  the first lambda step (tactics are just lambdas); `exact` appears only when
+  the kernel judges a hypothesis to close the remaining goal.
+- **练习 goal panel** (Explorer → "练习"): every declaration with its exercise
+  status; open exercises expand to the remaining goal and the hypotheses
+  already introduced (consumes the `soko/goals` custom request); a status-bar
+  item shows the open-exercise count.
+- **Hole navigation**: `alt+n` / `alt+shift+n` jump to the next/previous `???`
+  with wrap-around (server-side `soko/nextHole` — clients never re-derive
+  positions).
 - **`sokonanoda: show exercise status` (`alt+s`)**: quick pick listing
   `name — kind/status`; selecting an entry reveals the declaration.
 

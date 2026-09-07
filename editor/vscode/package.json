@@ -46,11 +46,53 @@
       {
         "command": "sokonanoda.status",
         "title": "sokonanoda: show declaration status"
+      },
+      {
+        "command": "sokonanoda.nextHole",
+        "title": "sokonanoda: go to next hole",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "sokonanoda.previousHole",
+        "title": "sokonanoda: go to previous hole",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "sokonanoda.goals.refresh",
+        "title": "sokonanoda: refresh exercise panel",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "sokonanoda.revealRange",
+        "title": "sokonanoda: reveal range"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "sokonanoda.goals",
+          "name": "练习",
+          "when": "resourceLangId == sokonanoda"
+        }
+      ]
+    },
     "menus": {
       "commandPalette": [
-        { "command": "sokonanoda.status", "when": "false" }
+        { "command": "sokonanoda.status", "when": "false" },
+        { "command": "sokonanoda.revealRange", "when": "false" },
+        { "command": "sokonanoda.goals.refresh", "when": "false" }
+      ],
+      "view/title": [
+        {
+          "command": "sokonanoda.goals.refresh",
+          "group": "navigation",
+          "when": "view == sokonanoda.goals"
+        },
+        {
+          "command": "sokonanoda.nextHole",
+          "group": "navigation",
+          "when": "view == sokonanoda.goals"
+        }
       ]
     },
     "configuration": {
@@ -73,6 +115,16 @@
       {
         "command": "sokonanoda.showStatus",
         "key": "alt+s",
+        "when": "editorTextFocus && editorLangId == sokonanoda"
+      },
+      {
+        "command": "sokonanoda.nextHole",
+        "key": "alt+n",
+        "when": "editorTextFocus && editorLangId == sokonanoda"
+      },
+      {
+        "command": "sokonanoda.previousHole",
+        "key": "alt+shift+n",
         "when": "editorTextFocus && editorLangId == sokonanoda"
       }
     ]

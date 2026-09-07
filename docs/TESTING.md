@@ -125,3 +125,13 @@
   (12,5,1) / ②等式与 rfl (2,5,2) / ③函数与箭头 (1,4,1) / ④宇宙 (0,3,0) /
   ⑤归纳 (4,3,1)；playground 重排后 checked=14 / open=12 / diagnostics=0。
 - 测试总量（2026-09-07 第七轮）：**235**。
+
+## 2026-09-07 更新（第八轮：goal 面板 + 客户端契约）
+
+- **扩展契约套件**（`crates/cli/tests/extension.rs`，4 个）：命令注册一致性
+  （package.json ↔ extension.js）、goal 视图协议消费（soko/goals + nextHole）
+  且客户端禁止文本扫洞、运行时依赖在 dependencies（VSIX P0 回归守护）、
+  打包元数据齐全。CI 无需 Electron 即可守护客户端。
+- editor/vscode：练习树（soko/goals）+ 状态栏计数 + alt+n/alt+shift+n 跳洞
+  （环绕）；AGENTS.md 作为 agent 项目指令入口（薄层，细节在 skills/）。
+- 测试总量（2026-09-07 第八轮）：**239**。
