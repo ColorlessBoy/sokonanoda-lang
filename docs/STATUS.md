@@ -1,9 +1,10 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第五轮：I8 真增量 + I9 judge/协议 + 内核 soundness 修复 + 工程达标）
+> 快照：2026-09-07（第六轮：agent skills + opencode LSP 接线）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-i8-i9.md`（本轮）/ `docs/design-infrastructure.md`（历史）；
+> 设计 = `docs/design-i8-i9.md`（上轮）/ `docs/design-infrastructure.md`（历史）；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
+> agent 入口 = `skills/`（sokonanoda-teacher / sokonanoda-dev）；
 > LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
 
 ## 一句话
@@ -11,6 +12,28 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第六轮：agent skills）
+
+1. **skills/ 目录（用户需求：为 code agent 设计 skill 部分）**：Agent Skill
+   格式（SKILL.md frontmatter + references）：
+   - `sokonanoda-teacher`：判卷接口（--json 事件读法）、3 步教学循环、
+     事件决策表、出题规范（含逻辑先行哲学）、解答钥匙守则、编辑器能力
+     清单、硬规则；references/events.md（事件形状 + 增量语义）与
+     references/curriculum.md（题池地图 + 适配规则）；
+   - `sokonanoda-dev`：接手清单（REQUIREMENTS→STATUS→ROADMAP→architecture）、
+     硬规则、TDD 三层 + 文档先行 + subagent 工作流、CI 门禁形态。
+   - 安装方式见 `skills/README.md`（软链到 harness 的 skills 目录）。
+2. **conformance 守护**：`crates/cli/tests/skill.rs`（4 测试）——frontmatter
+   合法且 name=目录名、引用的仓库路径必须存在、事件/方法词汇封闭且必须被
+   `docs/protocol.md` 记载（词汇表抽到 `crates/cli/tests/common/mod.rs`，
+   protocol.rs 与 skill.rs 共用）；course.json 的单元/钥匙孪生存在性校验。
+   protocol.md 补上 watch 流（Session delta）词汇一节。
+3. **opencode LSP 接线**：仓库根 `opencode.json` 把 `sokonanoda-lsp` 挂到
+   `.sokonanoda` 扩展名（`cargo run` 启动，无预构建要求）——opencode 等
+   agent 打开教学文件即自动消费 kernel 判定诊断；README 增设
+   "For code agents" 一节。
+4. 测试总量 **233**（+4 skill 套件）；clippy/fmt 门禁维持全绿。
 
 ## 本轮进度（2026-09-07，第五轮：I8 真增量 + I9 + 内核修复 + 工程达标）
 

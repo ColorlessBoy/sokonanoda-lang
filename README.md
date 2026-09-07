@@ -25,6 +25,7 @@ crates/front    .sokonanoda lexer / parser / elaborator / document engine
 crates/cli      `sokonanoda` command-line front-end for .sokonanoda files
 crates/lsp      `sokonanoda-lsp` language server (tower-lsp)
 editor/vscode   Experimental VS Code client (unpackaged)
+skills/         Agent Skills for code agents (teacher + developer)
 examples/       Sample .sokonanoda lesson files
 ```
 
@@ -123,6 +124,25 @@ means an implicit binder. The ported
 py_nanobruijn's FOL fragments and is checked by both front-end and CLI tests.
 
 Errors are printed as `line:col: error: ...` without kernel panic traces.
+
+## For code agents
+
+Code agents are first-class users of this repo, two ways:
+
+- **As the teacher** (product vision): load the
+  `skills/sokonanoda-teacher` Agent Skill — it packages the teaching loop
+  (write `???` exercises on the canvas → run the kernel via `--json` events →
+  decide the next step from `decl.checked` / `exercise.open` / `diagnostic`).
+  See `skills/README.md` for installation.
+- **As the developer**: `skills/sokonanoda-dev` packages the hard rules
+  (frozen kernel, Lean-4-subset syntax, kernel-only judging) and the
+  TDD/docs-first workflow.
+
+Editor feedback for agents needs no extra tooling: the repo-root
+`opencode.json` wires `sokonanoda-lsp` to the `.sokonanoda` extension, so
+opencode (and compatible harnesses) consume kernel-judged diagnostics
+automatically. CLI-based agents get the same contract via `--json` and
+`watch`.
 
 ## Development principles
 

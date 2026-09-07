@@ -124,3 +124,11 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   soko/goals 与 soko/nextHole 协议）、内核 conv 快路径 soundness 修复
   （eval/infer 闭包混用误判，三层回归测试）、CI lint 门禁（教学 crates
   [lints] deny + kernel 冻结豁免）与 VS Code 打包 P0 修复。
+- 2026-09-07（六）：**为 code agent 设计 skill 部分**：`skills/` 目录承载
+  `sokonanoda-teacher`（教学循环/判卷决策表/出题规范/钥匙守则）与
+  `sokonanoda-dev`（接手清单/硬规则/TDD 工作流），Agent Skill 格式
+  （SKILL.md frontmatter），`crates/cli/tests/skill.rs` conformance 守护
+  （frontmatter、引用路径存在、事件/方法词汇封闭且与 protocol.md 一致）。
+  同轮：仓库根 `opencode.json` 把 sokonanoda-lsp 挂到 .sokonanoda 扩展名
+  （opencode 等 agent 自动消费 kernel 判定诊断），根 .gitignore 收编
+  node 工具产物。

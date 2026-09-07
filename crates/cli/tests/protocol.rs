@@ -7,15 +7,9 @@ use std::process::{Command, Output, Stdio};
 
 use serde_json::Value;
 
-const VOCABULARY: [&str; 7] = [
-    "decl.checked",
-    "example.checked",
-    "expr.typed",
-    "expr.reduced",
-    "decl.printed",
-    "exercise.open",
-    "diagnostic",
-];
+use common::EVENT_VOCABULARY as VOCABULARY;
+
+mod common;
 
 fn spawn_json(args: &[&str]) -> Command {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));

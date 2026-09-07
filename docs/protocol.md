@@ -161,6 +161,23 @@ Kernel-judged tactics: `exact` code actions are computed by `front::judge`
 (a synthesized complete declaration checked by the full kernel) — no text
 matching anywhere in the editor path.
 
+## Watch stream (L1 CLI form)
+
+`sokonanoda watch <file>` emits one JSON object per line: a `file.changed`
+opener per new document version, then the versioned delta of declaration and
+exercise state transitions, then the current diagnostics. The delta vocabulary
+is closed:
+
+- `file.changed` (`{type, version, recompiled_from}`)
+- `decl.checked` / `decl.failed` (`{type, name, version}`)
+- `exercise.opened` / `exercise.solved` / `exercise.failed` (`{type, name, version}`)
+- `diagnostic` (`{type, stage, code, message, hint, span, version}`)
+
+`recompiled_from` is the index of the first re-checked command (`null` when
+nothing changed): with the I8 incremental session, editing command `i` only
+kernel-rechecks commands `i..n`. `SessionUpdate.stats.kernel_checks` (front
+API) exposes the same fact as a count.
+
 ## Future structured event names (service layer)
 
 When the resident service replaces `watch`, keep the same vocabulary and add:
