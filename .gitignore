@@ -1,2 +1,7 @@
 /target
 .DS_Store
+
+# editor/vscode（npm / vsce / 扩展测试产物）
+node_modules/
+*.vsix
+.vscode-test/
