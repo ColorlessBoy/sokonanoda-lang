@@ -422,6 +422,51 @@ fn py_or_iff_left_of_imp_is_in_core() {
     );
 }
 
+/// 非递归归纳块（Bool/Unit/Empty 的前置）：内核按构造子自算 is_recursive，
+/// front 必须镜像同规则（此前恒传 true → 内核断言崩溃）。
+#[test]
+fn non_recursive_inductive_block_compiles_and_reduces() {
+    let src = r#"
+inductive Unit : Type
+ctor unit : Unit
+rec Unit.rec {u} : (motive : (x : Unit) -> Sort u) -> (mz : motive unit) -> (x : Unit) -> motive x
+iota unit := fun (motive : (x : Unit) -> Sort u) => fun (mz : motive unit) => mz
+end
+def u : Unit := unit
+#reduce Unit.rec.{1} (fun (x : Unit) => Nat) 1 u
+"#;
+    let file = parse(src).expect("parse non-recursive inductive block");
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "non-recursive block must pass the kernel: {:?}",
+        out.errors
+    );
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "1")),
+        "iota on the non-recursive ctor must compute: {:?}",
+        out.events
+    );
+}
+
+/// 归纳块没有 rec 声明：内核会因 underived recursor 崩溃，front 必须先给出
+/// 干净的教学错误（elab-missing-inductive-rec）。
+#[test]
+fn inductive_block_without_rec_is_a_clean_elab_error() {
+    let src = "inductive Unit : Type\nctor unit : Unit\nend\n";
+    let file = parse(src).expect("parse rec-less block");
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-missing-inductive-rec"],
+        "missing rec must be a clean elab error: {:?}",
+        out.errors
+    );
+}
+
 #[test]
 fn explicit_inductive_block_compiles() {
     let src = r#"
@@ -629,6 +674,16 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
+                | ErrorKind::ElabMissingInductiveRec
+                | ErrorKind::KernelExpectedSort
+                | ErrorKind::KernelExpectedPi
+                | ErrorKind::KernelTheoremNotProp
+                | ErrorKind::KernelNonPositive
+                | ErrorKind::KernelCtorResultMismatch
+                | ErrorKind::KernelCtorArgInvalidApp
+                | ErrorKind::KernelCtorArgNotType
+                | ErrorKind::KernelCtorArgTooLarge
+                | ErrorKind::KernelRecRuleMismatch
                 | ErrorKind::KernelRejected
                 | ErrorKind::KernelInternal
         )
@@ -646,6 +701,16 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::ElabMissingInductiveRec,
+        ErrorKind::KernelExpectedSort,
+        ErrorKind::KernelExpectedPi,
+        ErrorKind::KernelTheoremNotProp,
+        ErrorKind::KernelNonPositive,
+        ErrorKind::KernelCtorResultMismatch,
+        ErrorKind::KernelCtorArgInvalidApp,
+        ErrorKind::KernelCtorArgNotType,
+        ErrorKind::KernelCtorArgTooLarge,
+        ErrorKind::KernelRecRuleMismatch,
         ErrorKind::KernelRejected,
         ErrorKind::KernelInternal,
     ];
@@ -922,6 +987,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::ElabMissingInductiveRec,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -930,6 +996,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::KernelCtorArgInvalidApp,
         ErrorKind::KernelCtorArgNotType,
         ErrorKind::KernelCtorArgTooLarge,
+        ErrorKind::KernelRecRuleMismatch,
         ErrorKind::KernelRejected,
         ErrorKind::KernelInternal,
     ];
@@ -948,6 +1015,7 @@ fn protocol_doc_lists_every_error_code() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
+                | ErrorKind::ElabMissingInductiveRec
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -956,6 +1024,7 @@ fn protocol_doc_lists_every_error_code() {
                 | ErrorKind::KernelCtorArgInvalidApp
                 | ErrorKind::KernelCtorArgNotType
                 | ErrorKind::KernelCtorArgTooLarge
+                | ErrorKind::KernelRecRuleMismatch
                 | ErrorKind::KernelRejected
                 | ErrorKind::KernelInternal
         )
@@ -1366,6 +1435,13 @@ fn refine_kernel_kind_classifies_kernel_message_families() {
             ErrorKind::KernelExpectedSort,
         ),
         ("expected a sort, got: Nat", ErrorKind::KernelExpectedSort),
+        // conv 站点的同名消息（is_prop_type）措辞不同，但共享
+        // `expected a sort` 前缀，必须落进同一个族。
+        (
+            "rejected: expected a sort in conversion, got: ($0 3)",
+            ErrorKind::KernelExpectedSort,
+        ),
+        ("expected a sort in conversion, got: ($0 3)", ErrorKind::KernelExpectedSort),
         (
             "rejected: expected a pi type, got: Nat",
             ErrorKind::KernelExpectedPi,
@@ -1373,6 +1449,28 @@ fn refine_kernel_kind_classifies_kernel_message_families() {
         (
             "expected a pi type, got: Nat -> Nat",
             ErrorKind::KernelExpectedPi,
+        ),
+        // eval 求值路径的“对非函数继续应用”消息也归 expected-pi 族。
+        (
+            "rejected: spine_type_with_value: expected Pi",
+            ErrorKind::KernelExpectedPi,
+        ),
+        // 显式消去子（rec/iota）规则与内核推导不一致。
+        (
+            "rejected: iota rule is not listed in constructor declaration order",
+            ErrorKind::KernelRecRuleMismatch,
+        ),
+        (
+            "iota rule count does not match the constructor count: 1 iota rules for 2 constructors",
+            ErrorKind::KernelRecRuleMismatch,
+        ),
+        (
+            "rejected: imported recursor rule does not match the reconstructed rule",
+            ErrorKind::KernelRecRuleMismatch,
+        ),
+        (
+            "imported inductive block contains an underived recursor",
+            ErrorKind::KernelRecRuleMismatch,
         ),
         (
             "rejected: theorem type must be Prop (sort 0): Nat",
@@ -1464,6 +1562,7 @@ fn kernel_fine_grained_kinds_stage_as_kernel_with_codes() {
         ErrorKind::KernelCtorArgInvalidApp,
         ErrorKind::KernelCtorArgNotType,
         ErrorKind::KernelCtorArgTooLarge,
+        ErrorKind::KernelRecRuleMismatch,
     ];
     let codes = [
         "kernel-expected-sort",
@@ -1474,6 +1573,7 @@ fn kernel_fine_grained_kinds_stage_as_kernel_with_codes() {
         "kernel-ctor-arg-invalid-app",
         "kernel-ctor-arg-not-type",
         "kernel-ctor-arg-too-large",
+        "kernel-rec-rule-mismatch",
     ];
     for (kind, code) in kinds.into_iter().zip(codes) {
         assert_eq!(kind.stage(), CompileStage::Kernel);
@@ -1516,12 +1616,15 @@ fn pipeline_classifies_expected_sort() {
 
 #[test]
 fn pipeline_classifies_ctor_result_mismatch() {
-    // 单构造子非递归块会在 kernel 的 is_recursive 一致性 assert 处先失败
-    // （front 恒传 true），所以补一个递归构造子让块走到 check_ctor。
+    // 递归构造子让块走到 check_ctor；rec 块是教学语法必备（缺 rec 现在是
+    // 更早的 elab-missing-inductive-rec 教学错误）。
     let file = parse(
         "inductive Bad : Type\n\
          ctor base : (b : Bad) -> Bad\n\
          ctor mk : Nat\n\
+         rec Bad.rec {u} : (motive : (x : Bad) -> Sort u) -> (m0 : (b : Bad) -> motive (base b)) -> (m1 : motive mk) -> (x : Bad) -> motive x\n\
+         iota base := fun (motive : (x : Bad) -> Sort u) => fun (m0 : (b : Bad) -> motive (base b)) => fun (m1 : motive mk) => fun (b : Bad) => m0 b\n\
+         iota mk := fun (motive : (x : Bad) -> Sort u) => fun (m0 : (b : Bad) -> motive (base b)) => fun (m1 : motive mk) => m1\n\
          end\n",
     )
     .unwrap();
@@ -1535,6 +1638,68 @@ fn pipeline_classifies_ctor_result_mismatch() {
             .iter()
             .map(|e| (&e.kind, &e.message))
             .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn pipeline_classifies_iota_rules_out_of_order() {
+    // 内核冷路径分诊：iota 规则顺序写反是学习者错误，必须给出稳定码
+    // kernel-rec-rule-mismatch（此前落进裸 assert_eq 的指针调试输出）。
+    let file = parse(
+        "inductive MyNat : Type\n\
+         ctor z : MyNat\n\
+         ctor s (n : MyNat) : MyNat\n\
+         rec MyNat.rec {u} : (motive : (n : MyNat) -> Sort u) -> (mz : motive z) -> (ms : (n : MyNat) -> motive n -> motive (s n)) -> (n : MyNat) -> motive n\n\
+         iota s := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => fun (n : MyNat) => ms n (MyNat.rec.{u} motive mz ms n)\n\
+         iota z := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => mz\n\
+         end\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    let err = out
+        .errors
+        .first()
+        .expect("out-of-order iota rules must be rejected");
+    assert_eq!(err.code(), "kernel-rec-rule-mismatch");
+    assert!(
+        !err.hint().is_empty(),
+        "rec-rule mismatch must carry a hint"
+    );
+    assert!(
+        err.message
+            .contains("iota rule is not listed in constructor declaration order"),
+        "message: {}",
+        err.message
+    );
+}
+
+#[test]
+fn pipeline_classifies_missing_iota_rule() {
+    // 少写一条 iota 规则同样是学习者错误，与顺序错误共用一个族。
+    let file = parse(
+        "inductive MyNat : Type\n\
+         ctor z : MyNat\n\
+         ctor s (n : MyNat) : MyNat\n\
+         rec MyNat.rec {u} : (motive : (n : MyNat) -> Sort u) -> (mz : motive z) -> (ms : (n : MyNat) -> motive n -> motive (s n)) -> (n : MyNat) -> motive n\n\
+         iota z := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => mz\n\
+         end\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    let err = out
+        .errors
+        .first()
+        .expect("an incomplete iota rule set must be rejected");
+    assert_eq!(err.code(), "kernel-rec-rule-mismatch");
+    assert!(
+        !err.hint().is_empty(),
+        "rec-rule mismatch must carry a hint"
+    );
+    assert!(
+        err.message
+            .contains("iota rule count does not match the constructor count"),
+        "message: {}",
+        err.message
     );
 }
 

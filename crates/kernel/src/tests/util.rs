@@ -178,14 +178,17 @@ fn reject_unlisted_recursor() {
 }
 
 #[test]
-#[should_panic(expected = "expected a sort")]
+#[should_panic(expected = "expected a sort in conversion, got:")]
 fn reject_is_prop_when_inferred_type_is_not_a_sort() {
     test_export_file_should_panic(None, |export| {
         export.with_tc(crate::env::EnvLimit::Empty, |tc| {
             let sort = crate::value::mk_sort(tc.arena, tc.ctx.zero());
             let stuck_type = tc.mk_bvar_hc(0, sort);
             let malformed_type = tc.mk_bvar_hc(1, stuck_type);
-            tc.is_prop_type(0, malformed_type);
+            // Depth 2 keeps both binder levels under the quote depth, so the
+            // failure path can render `got:` instead of tripping the
+            // quote-side "bound variable escaped its binder" assert.
+            tc.is_prop_type(2, malformed_type);
         });
     })
 }

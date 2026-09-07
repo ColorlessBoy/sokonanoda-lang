@@ -522,6 +522,43 @@ fn cli_classifies_check_apply_to_non_function() {
 }
 
 #[test]
+fn cli_classifies_iota_rules_out_of_order() {
+    // 内核冷路径分诊 e2e：iota 规则顺序写反 → kernel-rec-rule-mismatch
+    // （此前是裸 assert_eq 的指针调试输出）。
+    let src = "inductive MyNat : Type\n\
+         ctor z : MyNat\n\
+         ctor s (n : MyNat) : MyNat\n\
+         rec MyNat.rec {u} : (motive : (n : MyNat) -> Sort u) -> (mz : motive z) -> (ms : (n : MyNat) -> motive n -> motive (s n)) -> (n : MyNat) -> motive n\n\
+         iota s := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => fun (n : MyNat) => ms n (MyNat.rec.{u} motive mz ms n)\n\
+         iota z := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => mz\n\
+         end\n";
+    let out = run(src);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[kernel-rec-rule-mismatch]:"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn cli_classifies_missing_iota_rule() {
+    let src = "inductive MyNat : Type\n\
+         ctor z : MyNat\n\
+         ctor s (n : MyNat) : MyNat\n\
+         rec MyNat.rec {u} : (motive : (n : MyNat) -> Sort u) -> (mz : motive z) -> (ms : (n : MyNat) -> motive n -> motive (s n)) -> (n : MyNat) -> motive n\n\
+         iota z := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => mz\n\
+         end\n";
+    let out = run(src);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[kernel-rec-rule-mismatch]:"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
 fn cli_prints_its_version() {
     // 业内标配：`--version` 零门槛自省（发布自动化的前置）。
     let out = run_args(&["--version"], None);
@@ -623,5 +660,41 @@ fn repl_history_accumulates_across_sessions() {
     assert_eq!(
         lines,
         vec!["def id : Prop -> Prop := fun (x : Prop) => x", "#check Nat"]
+    );
+}
+
+#[test]
+fn cli_accepts_non_recursive_inductive_block() {
+    // is_recursive 镜像修复：内核按构造子自算，front 传同值 —— 非递归块
+    // （Bool/Unit/Empty 的前置）此前在内核 assert 崩溃。
+    let src = "inductive Unit : Type\n\
+         ctor unit : Unit\n\
+         rec Unit.rec {u} : (motive : (x : Unit) -> Sort u) -> (mz : motive unit) -> (x : Unit) -> motive x\n\
+         iota unit := fun (motive : (x : Unit) -> Sort u) => fun (mz : motive unit) => mz\n\
+         end\n\
+         def u : Unit := unit\n\
+         #reduce Unit.rec.{1} (fun (x : Unit) => Nat) 1 u\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("=> 1"),
+        "iota on the non-recursive ctor must compute: {stdout}"
+    );
+}
+
+#[test]
+fn cli_classifies_missing_inductive_rec() {
+    let src = "inductive Unit : Type\nctor unit : Unit\nend\n";
+    let out = run(src);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[elab-missing-inductive-rec]:"),
+        "stderr: {stderr}"
     );
 }

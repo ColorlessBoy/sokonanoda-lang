@@ -86,6 +86,18 @@ pub(crate) fn install_inductive_block<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     built: &mut Vec<Declar<'a>>,
 ) -> Result<(), CompileError> {
+    // The kernel derives a recursor for every inductive block and asserts the
+    // block registered one with a rule per constructor; a block without `rec`
+    // would die as a raw kernel assert. Refuse here — before anything enters
+    // the environment (check-then-add semantics) — with a teaching error
+    // instead (auto-derivation is future curriculum work).
+    let Some(recursor) = recursor else {
+        return Err(CompileError::elab(
+            ErrorKind::ElabMissingInductiveRec,
+            format!("inductive block `{name}` is missing its `rec` declaration"),
+            ty.span(),
+        ));
+    };
     let empty: UnivMap = UnivMap::new();
     let ty = elab_expr(
         builder,
@@ -101,6 +113,15 @@ pub(crate) fn install_inductive_block<'a>(
         .iter()
         .map(|c| builder.name_from_str(&c.name))
         .collect();
+    // 内核按「构造子 binder 类型里是否提到归纳名」自算 is_recursive 并断言
+    // 一致（inductive.rs::end_block）——这里从源码 AST 做同规则镜像，非递归
+    // 块（Bool/Unit/Empty）才能通过声明检查。
+    let is_recursive = constructors.iter().any(|ctor| {
+        ctor.binders
+            .iter()
+            .any(|b| b.ty.as_deref().is_some_and(|ty| mentions_ident(ty, name)))
+            || result_telescope_mentions(&ctor.result, name)
+    });
     let no_uparams = builder.alloc_levels_slice(&[]);
     builder.begin_inductive_block();
     let ind_declar = builder
@@ -110,7 +131,7 @@ pub(crate) fn install_inductive_block<'a>(
                 uparams: no_uparams,
                 ty,
             },
-            true,
+            is_recursive,
             0,
             0,
             Arc::from([ind_name]),
@@ -162,7 +183,8 @@ pub(crate) fn install_inductive_block<'a>(
         known.insert(ctor.name.clone(), Vec::new());
     }
 
-    if let Some(rec) = recursor {
+    {
+        let rec = recursor;
         let univ = make_univ_map(builder, &rec.universe);
         let rec_ty = elab_expr(
             builder,
@@ -678,6 +700,57 @@ pub(crate) fn elab_expr<'a>(
             let out = builder.mk_app(applied, rhs);
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
+        }
+    }
+}
+
+/// Whether any sub-expression of `e` uses the identifier `name` (mirror of
+/// the kernel's own `is_recursive` scan over constructor binder types, which
+/// checks binder types for a mention of an inductive name of the block).
+fn mentions_ident(e: &Expr, name: &str) -> bool {
+    match e {
+        Expr::Ident { name: n, .. } => n == name,
+        Expr::UniverseApp { name: n, .. } => n == name,
+        Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => false,
+        Expr::App { fun, arg, .. } => mentions_ident(fun, name) || mentions_ident(arg, name),
+        Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
+            binders
+                .iter()
+                .any(|b| b.ty.as_deref().is_some_and(|ty| mentions_ident(ty, name)))
+                || mentions_ident(body, name)
+        }
+        Expr::Arrow {
+            domain, codomain, ..
+        } => mentions_ident(domain, name) || mentions_ident(codomain, name),
+        Expr::Plus { lhs, rhs, .. } => mentions_ident(lhs, name) || mentions_ident(rhs, name),
+    }
+}
+
+/// Walk the constructor's result as a Pi telescope (every arrow domain is a
+/// binder type, the final codomain is not) and report whether any binder type
+/// mentions `name` — the kernel scans the elaborated ctor type the same way.
+fn result_telescope_mentions(result: &Expr, name: &str) -> bool {
+    let mut current = result;
+    loop {
+        match current {
+            Expr::Arrow {
+                domain, codomain, ..
+            } => {
+                if mentions_ident(domain, name) {
+                    return true;
+                }
+                current = codomain;
+            }
+            Expr::Forall { binders, body, .. } => {
+                if binders
+                    .iter()
+                    .any(|b| b.ty.as_deref().is_some_and(|ty| mentions_ident(ty, name)))
+                {
+                    return true;
+                }
+                current = body;
+            }
+            _ => return false,
         }
     }
 }

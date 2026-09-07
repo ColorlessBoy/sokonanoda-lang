@@ -28,6 +28,12 @@
 - **判定永远走 kernel**（judge = 合成完整声明走标准流水线）；任何"建议"
   （exact/refine/intro）都只是结构生成，判定与"期望/实际"反馈全由内核出
   （`front::judge`）。
+- **归纳块双契约**：内核自算 `is_recursive`（构造子 telescope binder 类型
+  是否提到归纳名——注意 `ctor base : (b : Bad) -> Bad` 的字段在 result 的
+  箭头链里，parser 的 binders 是空的）并断言 front 传入一致；内核还要求每
+  块注册 Recursor（每构造子一条 iota 规则）。front 必须镜像扫描 result 箭头
+  链（守护：`non_recursive_inductive_block_compiles_and_reduces` +
+  architecture §8 0b）；缺 rec 的块要在**入环境前**报干净教学错误。
 - 依赖 binder 折叠**必须折成单个 Forall 望远镜**（嵌套独立 Arrow 的 domain
   会在空作用域里 elaborate 而报 unknown）——`judge::fold_declared`。
 - 宇宙多态：裸名默认 u=0，跨宇宙判定必须显式 `id.{u}`（judge 测试踩过）。
@@ -55,6 +61,9 @@
   （kernel 的 rustfmt.toml 需要 nightly）。
 - 内核冷路径改动（panic 消息、`got:` 渲染）允许，但每处都要三层回归
   （kernel 单测 + CLI e2e + 语料）并在 `docs/architecture.md` §6 记账。
+- criterion 多 target 包跑基准必须带 `--bench pipeline` 选择器——`cargo
+  bench -p sokonanoda-front` 会先跑 lib unittest target 并拒绝 criterion
+  旗标（守护： benches/pipeline.rs 顶部注释）。
 - **外部调研文档（vscode-notes 等笔记类）也会过期**——落地与调研结论冲突
   时必须回头改笔记，否则文档带人跳坑（node_modules 一事故）。
 

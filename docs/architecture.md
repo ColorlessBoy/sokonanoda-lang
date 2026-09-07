@@ -229,6 +229,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 | `conv.rs` + `infer.rs`/`inductive.rs`/`tc.rs` | def_eq 失败分支的 panic 消息改为稳定格式 `def_eq mismatch expected: <E> \| actual: <A>`（保留 `def_eq failed` 前缀；两侧值经 quote + debug 打印，各截断到 200 字符）；仅改动失败/冷路径，热循环不变 | 内核拒绝能给教学文案「类型不匹配：期望 X，实际是 Y」（front 解析该标记，见 `front/src/compile/error.rs`） |
 | `conv.rs` | **soundness 修复（2026-09-07，lang）**：`unify_direct` 的 Pi/Lam body-expr 快路径增加 `closure_ctxs_compatible` 守卫——eval 闭包（`ctx: None`）与 infer 闭包（`mk_infer`）对同一 interned body 表达式语义不同（`$0` vs `Sort 1`），混用时 `(A : Sort 1) -> A` 这类不可居住类型会被 `fun (A : Sort 1) => A` 误判可居住。热路径仅增加一个闭包语义判别分支；perf 冒烟与全量测试无回归。回归测试在 `tests/memory_api.rs` 与 CLI e2e | 判定（kernel 信任边界）正确性：tactic judge、练习判定都依赖 def_eq 不出假阳性 |
 | `lib.rs` | `deny(clippy::cast_possible_truncation)` → `warn`（上游代码自身未过此 lint；冻结快照原则，教学 crates 的严格 lint 门禁经各自 `[lints]` 表实现） | lint 配置，非语义 |
+| `conv.rs` + `inductive.rs` | **冷路径消息分诊（2026-09-07 第十三轮）**：`is_prop_type` 的 `.expect("expected a sort")` 改为带 `got:` 渲染、措辞区分站点的 `expected a sort in conversion`（分类器前缀不变，教学码同为 `kernel-expected-sort`）；`inductive.rs` 两处学习者可触发的裸 `assert_eq!`（iota 规则顺序/数量）改稳定 panic 消息并新增家族 `kernel-rec-rule-mismatch`。三层回归：kernel memory_api + front 分类 + CLI e2e | 错误分类学余项；冷路径，热循环零改动 |
 | `Cargo.toml` | bin 改名 `sokonanoda-kernel`；`stumpalo 0.5.1` | workspace 集成 |
 | `tests/memory_api.rs` | **新增** | 无导出文件的内存检查验收 |
 | `builder.rs` | `add_inductive` 返回构建的 `Declar`；新增 `begin/end_inductive_block` 与 `mutual_block_sizes` 记账 | 归纳块可被 kernel 判定（I8a check-then-add） |
@@ -250,6 +251,12 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 0. **内核交互必须包 catch_unwind**（`quiet_catch`/`resolve_hovers` 模式）：
    内核以 panic 报拒绝/内部错误，不包会崩掉编译/LSP；且 panic hook 是
    进程全局的，`quiet_catch` **不可嵌套**。经验台账见 `docs/LESSONS.md`。
+0b. **front 与内核的归纳块协作契约（第十三轮起）**：内核给每个归纳块
+   自算 `is_recursive`（构造子 telescope binder 类型是否提到归纳名——含
+   result 箭头链的 domain）并断言 front 传入值一致；内核还要求每块注册
+   `Recursor` 声明（`<ind>.rec`，每构造子一条 iota 规则）。front 侧镜像：
+   `elab.rs` 从源码 AST 同规则计算 `is_recursive`；缺 `rec` 的块在**入环境
+   之前**报 `elab-missing-inductive-rec`（check-then-add 语义保持）。
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
 3. **elab 仍受限**：binder 可由声明类型推断（I6），但未做 `match`、`let`、结构/类型类、notation/macro。

@@ -34,6 +34,7 @@ pub enum ErrorKind {
     ElabInvalidNatLiteral,
     ElabTooManyCtorFields,
     ElabUnknownCtorForIota,
+    ElabMissingInductiveRec,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -42,6 +43,7 @@ pub enum ErrorKind {
     KernelCtorArgInvalidApp,
     KernelCtorArgNotType,
     KernelCtorArgTooLarge,
+    KernelRecRuleMismatch,
     KernelRejected,
     KernelInternal,
 }
@@ -61,7 +63,8 @@ impl ErrorKind {
             | ElabNatLiteralDisabled
             | ElabInvalidNatLiteral
             | ElabTooManyCtorFields
-            | ElabUnknownCtorForIota => CompileStage::Elab,
+            | ElabUnknownCtorForIota
+            | ElabMissingInductiveRec => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -70,6 +73,7 @@ impl ErrorKind {
             | KernelCtorArgInvalidApp
             | KernelCtorArgNotType
             | KernelCtorArgTooLarge
+            | KernelRecRuleMismatch
             | KernelRejected
             | KernelInternal => CompileStage::Kernel,
         }
@@ -90,6 +94,7 @@ impl ErrorKind {
             ElabInvalidNatLiteral => "elab-invalid-nat-literal",
             ElabTooManyCtorFields => "elab-too-many-ctor-fields",
             ElabUnknownCtorForIota => "elab-unknown-ctor-for-iota",
+            ElabMissingInductiveRec => "elab-missing-inductive-rec",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -98,6 +103,7 @@ impl ErrorKind {
             KernelCtorArgInvalidApp => "kernel-ctor-arg-invalid-app",
             KernelCtorArgNotType => "kernel-ctor-arg-not-type",
             KernelCtorArgTooLarge => "kernel-ctor-arg-too-large",
+            KernelRecRuleMismatch => "kernel-rec-rule-mismatch",
             KernelRejected => "kernel-rejected",
             KernelInternal => "kernel-internal",
         }
@@ -144,6 +150,9 @@ impl ErrorKind {
             ElabUnknownCtorForIota => {
                 "iota 规则引用了一个不存在的构造子。检查构造子名字是否与 ctor 声明一致。"
             }
+            ElabMissingInductiveRec => {
+                "归纳块缺少 rec 声明：内核要为每个归纳类型派生并检查 recursor。写一个 rec <名字>.rec 块（含每个构造子的 iota 规则），参考 examples/py-nat.sokonanoda。"
+            }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"
             }
@@ -167,6 +176,9 @@ impl ErrorKind {
             }
             KernelCtorArgTooLarge => {
                 "构造子参数的类型所在的宇宙太大，装不进这个 inductive。把 inductive 声明成更大的 Type，或把该参数类型改成 Prop 里的命题。"
+            }
+            KernelRecRuleMismatch => {
+                "显式消去子（rec/iota）与内核推导出的规则不一致：iota 规则必须按构造子声明顺序一条不落地给出，每条规则的值也要与 motive、minor 和构造子参数的形状完全匹配。"
             }
             KernelRejected => {
                 "内核判定不成立：类型不匹配或证明项不完整。先对比期望类型与你的值的形状；最常见的错误是两边结构不同（例如期望 a -> a，却写成了返回 Nat 的项）。"
@@ -264,7 +276,9 @@ pub(crate) fn refine_kernel_kind(msg: &str) -> ErrorKind {
     if payload.starts_with("expected a sort") {
         return ErrorKind::KernelExpectedSort;
     }
-    if payload.starts_with("expected a pi type") {
+    if payload.starts_with("expected a pi type")
+        || payload.contains("spine_type_with_value: expected Pi")
+    {
         return ErrorKind::KernelExpectedPi;
     }
     if payload.contains("theorem type must be Prop") {
@@ -284,6 +298,16 @@ pub(crate) fn refine_kernel_kind(msg: &str) -> ErrorKind {
     }
     if payload.starts_with("Constructor argument was too large") {
         return ErrorKind::KernelCtorArgTooLarge;
+    }
+    // Explicit recursor declarations (`rec`/`iota` in an inductive block) are
+    // compared against the kernel-reconstructed rules; order, count, rule
+    // value or recursor-name mismatches are learner mistakes, not kernel bugs.
+    if payload.starts_with("iota rule is not listed in constructor declaration order")
+        || payload.starts_with("iota rule count does not match the constructor count")
+        || payload.starts_with("imported recursor rule does not match the reconstructed rule")
+        || payload.starts_with("imported inductive block contains an underived recursor")
+    {
+        return ErrorKind::KernelRecRuleMismatch;
     }
     if payload.starts_with("assertion failed:")
         || payload.contains("called `Option::unwrap()`")

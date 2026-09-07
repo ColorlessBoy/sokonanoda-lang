@@ -10,6 +10,13 @@ sokonanoda = { path = "../kernel" }
 stumpalo = "0.5.1"
 num-bigint = "0.4.8"
 
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "pipeline"
+harness = false
+
 # lang：教学 crates 的 clippy 严格门禁（kernel 冻结快照不参与）。
 [lints.rust]
 warnings = "deny"

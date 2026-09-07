@@ -82,7 +82,9 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
-  `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`;
+  `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
+  `elab-missing-inductive-rec` (an `inductive … end` block without its `rec`
+  declaration; the kernel derives and checks a recursor for every block);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),
@@ -96,7 +98,10 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   number or values of parameters/indices), `kernel-ctor-arg-not-type` (a
   constructor argument type is a term, not a type),
   `kernel-ctor-arg-too-large` (a constructor argument type lives in a
-  universe too large for the inductive), plus `kernel-internal` (a kernel
+  universe too large for the inductive), `kernel-rec-rule-mismatch` (an
+  explicitly declared recursor/`iota` rule set does not match the
+  kernel-derived one — rules missing, out of constructor order, wrong rule
+  value, or a wrong recursor name), plus `kernel-internal` (a kernel
   bug; never a learner mistake).
 
 Human output prints `error[<code>]: <message>`; JSON diagnostics carry

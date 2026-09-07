@@ -646,8 +646,20 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.conv_types_at(depth, tx, ty)
     }
 
+    // Cold path: only reached from the proof-irrelevance conv branch (and the
+    // structural-eta / projection callers) when the checked value is not a
+    // type at all. Message shape matches infer.rs::ensure_sort_v (`got:`
+    // rendering, ≤200-char cap) but the wording names the conversion site so
+    // the two stations stay distinguishable; the front classifier matches on
+    // the shared `expected a sort` prefix. Hot conv loop is untouched.
     pub(crate) fn is_prop_type(&mut self, depth: u32, t: V<'t>) -> bool {
-        let level = self.level_of_type(depth, t).expect("expected a sort");
+        let level = match self.level_of_type(depth, t) {
+            Some(level) => level,
+            None => panic!(
+                "expected a sort in conversion, got: {}",
+                self.render_value_for_def_eq_error(depth, t)
+            ),
+        };
         self.ctx.is_zero(level)
     }
 

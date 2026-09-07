@@ -1,0 +1,21 @@
+[package]
+name = "sokonanoda-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# 空表：脱离根工作区（根 members 未列本 crate，防止 cargo 沿目录树误挂）。
+[workspace]
+
+[dependencies]
+sokonanoda-front = { path = "../crates/front" }
+# libfuzzer-sys 在 [dependencies]（cargo-fuzz 标准模板）而非 dev-dependencies：
+# [[bin]] 声明了 test/doc/bench = false，bin 编译不链接 dev-dependencies。
+libfuzzer-sys = "0.4"
+
+[[bin]]
+name = "parse_never_panics"
+path = "fuzz_targets/parse_never_panics.rs"
+test = false
+doc = false
+bench = false

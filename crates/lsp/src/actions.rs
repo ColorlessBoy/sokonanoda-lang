@@ -7,17 +7,24 @@
 //! * 替换文本来自 kernel 验证过的候选（exact 的假设名、rfl 的项）或结构
 //!   模板（refine / intro）；
 //! * 判定永远走 kernel，禁止文本比对（REQUIREMENTS §2.8）。
+//!
+//! kernel 拒绝的失败声明（`DeclStatus::Failed`）没有洞，编辑目标是整个
+//! 值位：`front::suggest` 按声明类型的形状给出 `Restart` 骨架，这里把值位
+//! span（tokenize 定位 `:=` 与值首）整体替换成骨架（docs/design-kernel-
+//! taxonomy.md §2）。
 
 use super::render::decl_at;
 use sokonanoda_front::compile::{
     CompileOptions, DeclState, DeclStatus, DocumentReport, PreludeMode,
 };
 use sokonanoda_front::suggest::{self, SuggestionKind};
+use sokonanoda_front::{tokenize, TokenKind};
 use std::collections::HashMap;
 use tower_lsp::lsp_types::*;
 
 /// The code-action entry: suggestions in order (exact → rfl → refine →
-/// intro), the first one marked preferred.
+/// intro), the first one marked preferred. A kernel-rejected declaration
+/// offers at most one action: the restart skeleton for the whole value.
 pub(crate) fn code_actions(
     uri: Url,
     text: &str,
@@ -26,66 +33,90 @@ pub(crate) fn code_actions(
     pos: Position,
 ) -> Option<CodeActionResponse> {
     let d = decl_at(&report.decls, pos.line, pos.character)?;
-    if d.status != DeclStatus::Open {
+    if d.status == DeclStatus::Checked {
         return None;
     }
     let options = CompileOptions { prelude: mode };
     // 建议判定需要看到声明本身：给到该声明结束为止的文本。
     let src = &text[..d.span.end.offset.min(text.len())];
     let mut actions: Vec<CodeActionOrCommand> = Vec::new();
-    for suggestion in suggest::suggest(src, &options, d) {
-        match &suggestion.kind {
-            SuggestionKind::Exact { binder, hole } => {
-                let Some(range) = hole_range_at(text, d, *hole) else {
+    if d.status == DeclStatus::Failed {
+        if d.error.is_some() {
+            let decl_src =
+                &text[d.span.start.offset.min(text.len())..d.span.end.offset.min(text.len())];
+            for suggestion in suggest::suggest(src, Some(decl_src), &options, d) {
+                let SuggestionKind::Restart { skeleton } = &suggestion.kind else {
                     continue;
                 };
-                let title = if d.holes.len() <= 1 {
-                    format!("exact {binder}（用假设 {binder} 直接结束证明）")
-                } else {
-                    format!("exact {binder}（用假设 {binder} 补第 {} 个洞）", hole + 1)
+                let Some(range) = value_range_at(text, d) else {
+                    continue;
                 };
                 push_action(
                     &mut actions,
-                    title,
-                    edit_on_hole(uri.clone(), range, binder.clone()),
+                    format!(
+                        "用目标形态重启：{}（先搭骨架，内核逐层判）",
+                        restart_summary(skeleton)
+                    ),
+                    edit_on_hole(uri.clone(), range, skeleton.clone()),
                 );
             }
-            SuggestionKind::Rfl { term } => {
-                let Some(range) = hole_range(text, d) else {
-                    continue;
-                };
-                push_action(
-                    &mut actions,
-                    "Eq.refl …（两边本来就是同一个值，rfl 即可）".to_string(),
-                    edit_on_hole(uri.clone(), range, term.clone()),
-                );
-            }
-            SuggestionKind::Refine => {
-                let Some(edit) = refine_edit(uri.clone(), text, d) else {
-                    continue;
-                };
-                let template = d.refine_template.clone().unwrap_or_default();
-                push_action(
-                    &mut actions,
-                    format!("refine {template}（按构造子拆分子目标）"),
-                    edit,
-                );
-            }
-            SuggestionKind::Intro => {
-                let Some(goal_text) = &d.goal else {
-                    continue;
-                };
-                let Some(intros) = intro_count(goal_text) else {
-                    continue;
-                };
-                let Some(edit) = intro_edit(uri.clone(), text, d, goal_text) else {
-                    continue;
-                };
-                push_action(
-                    &mut actions,
-                    format!("intro {intros} 个 binder（把证明写成 lambda 的第一步）"),
-                    edit,
-                );
+        }
+    } else {
+        for suggestion in suggest::suggest(src, None, &options, d) {
+            match &suggestion.kind {
+                SuggestionKind::Exact { binder, hole } => {
+                    let Some(range) = hole_range_at(text, d, *hole) else {
+                        continue;
+                    };
+                    let title = if d.holes.len() <= 1 {
+                        format!("exact {binder}（用假设 {binder} 直接结束证明）")
+                    } else {
+                        format!("exact {binder}（用假设 {binder} 补第 {} 个洞）", hole + 1)
+                    };
+                    push_action(
+                        &mut actions,
+                        title,
+                        edit_on_hole(uri.clone(), range, binder.clone()),
+                    );
+                }
+                SuggestionKind::Rfl { term } => {
+                    let Some(range) = hole_range(text, d) else {
+                        continue;
+                    };
+                    push_action(
+                        &mut actions,
+                        "Eq.refl …（两边本来就是同一个值，rfl 即可）".to_string(),
+                        edit_on_hole(uri.clone(), range, term.clone()),
+                    );
+                }
+                SuggestionKind::Refine => {
+                    let Some(edit) = refine_edit(uri.clone(), text, d) else {
+                        continue;
+                    };
+                    let template = d.refine_template.clone().unwrap_or_default();
+                    push_action(
+                        &mut actions,
+                        format!("refine {template}（按构造子拆分子目标）"),
+                        edit,
+                    );
+                }
+                SuggestionKind::Intro => {
+                    let Some(goal_text) = &d.goal else {
+                        continue;
+                    };
+                    let Some(intros) = intro_count(goal_text) else {
+                        continue;
+                    };
+                    let Some(edit) = intro_edit(uri.clone(), text, d, goal_text) else {
+                        continue;
+                    };
+                    push_action(
+                        &mut actions,
+                        format!("intro {intros} 个 binder（把证明写成 lambda 的第一步）"),
+                        edit,
+                    );
+                }
+                SuggestionKind::Restart { .. } => {}
             }
         }
     }
@@ -97,6 +128,51 @@ pub(crate) fn code_actions(
         first.is_preferred = Some(true);
     }
     Some(actions)
+}
+
+/// 失败声明标题里的骨架摘要：超 40 字符截断加 `…`。
+fn restart_summary(skeleton: &str) -> String {
+    let mut out: String = skeleton.chars().take(RESTART_SUMMARY_CHARS).collect();
+    if skeleton.chars().count() > RESTART_SUMMARY_CHARS {
+        out.push('…');
+    }
+    out
+}
+
+const RESTART_SUMMARY_CHARS: usize = 40;
+
+/// The failed declaration's value span: from the first token after `:=`
+/// (the lexer skips whitespace/comments) to the declaration span's end —
+/// the parser ends the span at the value's last token, so the trailing
+/// newline is already excluded. Multi-line values are replaced as a whole.
+/// Located by tokenizing the declaration command; never by scanning text.
+fn value_range_at(text: &str, d: &DeclState) -> Option<Range> {
+    let start = d.span.start.offset.min(text.len());
+    let end = d.span.end.offset.min(text.len());
+    let decl_src = text.get(start..end)?;
+    let tokens = tokenize(decl_src).ok()?;
+    let colon_eq = tokens.iter().position(|t| t.kind == TokenKind::ColonEq)?;
+    let value_tok = tokens.get(colon_eq + 1)?;
+    if value_tok.kind == TokenKind::Eof {
+        return None;
+    }
+    range_at_offsets(text, start + value_tok.span.start.offset, end)
+}
+
+/// Byte offsets → 0-based LSP range（`offset_to_line_col` 是 1 基）。
+fn range_at_offsets(text: &str, start: usize, end: usize) -> Option<Range> {
+    let (sl, sc) = offset_to_line_col(text, start);
+    let (el, ec) = offset_to_line_col(text, end);
+    Some(Range {
+        start: Position {
+            line: (sl - 1) as u32,
+            character: (sc - 1) as u32,
+        },
+        end: Position {
+            line: (el - 1) as u32,
+            character: (ec - 1) as u32,
+        },
+    })
 }
 
 fn push_action(actions: &mut Vec<CodeActionOrCommand>, title: String, edit: WorkspaceEdit) {
@@ -266,6 +342,47 @@ mod tests {
         (edit.range.start, edit.new_text.clone())
     }
 
+    /// 第一个编辑的完整 (range, 替换文本)。
+    fn first_edit_full(action: &CodeAction) -> (Range, String) {
+        let edit = action.edit.as_ref().expect("action carries an edit");
+        let changes = edit.changes.as_ref().expect("changes map");
+        let edits = changes.values().next().expect("one document's edits");
+        let edit = edits.first().expect("one edit");
+        (edit.range, edit.new_text.clone())
+    }
+
+    /// 光标放在 `offset` 上的 codeAction 响应（`None` = 无建议）。
+    async fn code_actions_at(
+        service: &mut LspService<Backend>,
+        src: &str,
+        offset: usize,
+    ) -> Option<Vec<CodeAction>> {
+        let pos = lsp_pos(src, offset);
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/codeAction")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "range": {"start": position_json(pos), "end": position_json(pos)},
+                    "context": {"diagnostics": []},
+                }))
+                .id(80)
+                .finish(),
+        )
+        .await
+        .expect("codeAction must answer");
+        let actions: Option<CodeActionResponse> =
+            serde_json::from_value(result).expect("valid CodeActionResponse");
+        actions.map(|resp| {
+            resp.into_iter()
+                .filter_map(|a| match a {
+                    CodeActionOrCommand::CodeAction(action) => Some(action),
+                    CodeActionOrCommand::Command(_) => None,
+                })
+                .collect()
+        })
+    }
+
     fn titles_of(actions: &[CodeAction]) -> Vec<&str> {
         actions.iter().map(|a| a.title.as_str()).collect()
     }
@@ -380,5 +497,130 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
         assert!(titles[1].contains("refine"), "refine second: {titles:?}");
         assert!(titles[2].contains("intro"), "intro last: {titles:?}");
         shutdown(&mut service).await;
+    }
+
+    // ---- 失败声明的重启骨架（docs/design-kernel-taxonomy.md §2）----
+
+    const FAILED_DEF_EQ: &str = "example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n";
+
+    #[tokio::test]
+    async fn code_action_restarts_failed_decl_over_the_whole_value_span() {
+        let (mut service, _socket) = opened(FAILED_DEF_EQ).await;
+        let cursor = offset_of(FAILED_DEF_EQ, "=> 1");
+        let actions = code_actions_at(&mut service, FAILED_DEF_EQ, cursor)
+            .await
+            .expect("a kernel-rejected decl must offer the restart");
+        assert_eq!(
+            actions.len(),
+            1,
+            "exactly one restart action: {:?}",
+            titles_of(&actions)
+        );
+        let restart = &actions[0];
+        assert!(
+            restart.title.contains("用目标形态重启"),
+            "title: {:?}",
+            restart.title
+        );
+        assert!(
+            restart
+                .title
+                .contains("fun (a : Prop) => fun (x : a) => ???"),
+            "the skeleton summary is in the title: {:?}",
+            restart.title
+        );
+        assert!(
+            restart.title.contains("先搭骨架，内核逐层判"),
+            "title: {:?}",
+            restart.title
+        );
+        assert_eq!(
+            restart.is_preferred,
+            Some(true),
+            "the only failed-decl action is preferred"
+        );
+        // 编辑目标 = 整个值位：从 `:=` 后第一个 token 到声明 span 末尾
+        // （不含结尾换行），多行值也整体替换。
+        let (range, new_text) = first_edit_full(restart);
+        assert_eq!(
+            range.start,
+            lsp_pos(FAILED_DEF_EQ, offset_of(FAILED_DEF_EQ, "fun (x")),
+            "the edit starts at the first value token"
+        );
+        assert_eq!(
+            range.end,
+            lsp_pos(
+                FAILED_DEF_EQ,
+                FAILED_DEF_EQ.rfind('\n').expect("trailing newline")
+            ),
+            "the edit ends at the declaration span's end (before the newline)"
+        );
+        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => ???");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_failed_decl_without_peelable_type_gets_none() {
+        // kernel 拒绝但类型是 Prop（非 Pi）：没有可剥的望远镜，无建议。
+        let src = "def bad : Prop := 1\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_at(&mut service, src, offset_of(src, "1")).await;
+        assert!(
+            actions.is_none(),
+            "a non-Pi failed decl must get no action: {actions:?}"
+        );
+        shutdown(&mut service).await;
+
+        // elab 失败（unknown identifier）同样没有可剥的类型：无建议。
+        let src = "example : Prop := undefined_name\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_at(&mut service, src, offset_of(src, "undefined_name")).await;
+        assert!(
+            actions.is_none(),
+            "an elab-failed decl must get no action: {actions:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_restart_replaces_multiline_values_as_a_whole() {
+        let src = "example : (a : Prop) -> a -> a :=\n  fun (x : Prop) => 1\n";
+        let (mut service, _socket) = opened(src).await;
+        let cursor = offset_of(src, "=> 1");
+        let actions = code_actions_at(&mut service, src, cursor)
+            .await
+            .expect("a kernel-rejected decl must offer the restart");
+        let (range, new_text) = first_edit_full(&actions[0]);
+        assert_eq!(
+            range.start,
+            lsp_pos(src, offset_of(src, "fun (x")),
+            "the edit starts at the first value token, on the value's own line"
+        );
+        assert_eq!(
+            range.end,
+            lsp_pos(src, src.rfind('\n').expect("trailing newline")),
+            "the edit ends at the declaration span's end"
+        );
+        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => ???");
+        shutdown(&mut service).await;
+    }
+
+    #[test]
+    fn restart_summary_truncates_at_40_chars() {
+        let short = "fun (a : Prop) => fun (x : a) => ???";
+        assert_eq!(
+            super::restart_summary(short),
+            short,
+            "short skeletons pass through"
+        );
+        let long = "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => ???";
+        let summary = super::restart_summary(long);
+        assert!(summary.ends_with('…'), "truncated summaries end with …");
+        assert_eq!(
+            summary.chars().count(),
+            40 + 1,
+            "40 characters plus the ellipsis"
+        );
+        assert!(long.starts_with(summary.trim_end_matches('…')));
     }
 }

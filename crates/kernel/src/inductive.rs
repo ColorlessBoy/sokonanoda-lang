@@ -1676,7 +1676,14 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         assert_ne!(imported_rr, constructed_rr);
         assert!(!st.is_nested());
         self.tc_cache.clear();
-        assert_eq!(imported_rr.ctor_name, constructed_rr.ctor_name);
+        // Cold path: runs once per declared recursor rule while checking the
+        // inductive block. An out-of-declaration-order `iota` rule is a
+        // learner-reachable mistake, so it must panic with a stable message
+        // (front classifier: `kernel-rec-rule-mismatch`), not an assert_eq
+        // payload of interned name pointers.
+        if imported_rr.ctor_name != constructed_rr.ctor_name {
+            panic!("iota rule is not listed in constructor declaration order");
+        }
         assert_eq!(imported_rr.ctor_telescope_size_wo_params, constructed_rr.ctor_telescope_size_wo_params);
         let rr_made_val = self.ctx.subst_expr_levels(constructed_rr.val, st.rec_uparams.unwrap(), old);
         self.assert_imported_expr_matches(imported_rr.val, rr_made_val);
@@ -1697,7 +1704,17 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
                     assert_ne!(old, new);
                     let imported_w_new_uparams = self.ctx.subst_expr_levels(old.info().ty, old.info().uparams, st.rec_uparams.unwrap());
                     self.assert_def_eq(imported_w_new_uparams, new.info().ty);
-                    assert_eq!(old_rec_rules.len(), new_rec_rules.len());
+                    // Cold path: same learner-reachable rejection as above —
+                    // a recursor declared with fewer/more iota rules than the
+                    // block has constructors. Stable message for the front
+                    // classifier (`kernel-rec-rule-mismatch`).
+                    if old_rec_rules.len() != new_rec_rules.len() {
+                        panic!(
+                            "iota rule count does not match the constructor count: {} iota rules for {} constructors",
+                            old_rec_rules.len(),
+                            new_rec_rules.len()
+                        );
+                    }
                     for (r_old, r_new) in old_rec_rules.iter().zip(new_rec_rules.iter()) {
                         self.assert_nonnested_rec_rule_def_eq(st, old.info().uparams, r_old, r_new)
                     }

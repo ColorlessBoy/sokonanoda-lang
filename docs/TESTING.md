@@ -197,3 +197,24 @@
   golden 逐单元计数不变 + solutions 零诊断（注释不产事件）。
 - 测试总量（2026-09-07 第十二轮）：**335**（front 171 / lsp 56 / cli 63 /
   kernel 45）。
+
+## 2026-09-07 更新（第十三轮：内核分类学 + 建议 + 基准/fuzz）
+
+- **内核冷路径分诊**（kernel memory_api 3 新 + front 分类 5 + cli e2e 2）：
+  `accepts_iota_rules_in_constructor_order`（对照）/`rejects_iota_rules_out_of_constructor_order`/
+  `rejects_iota_rule_count_short_of_constructors`；front
+  `pipeline_classifies_iota_rules_out_of_order`/`pipeline_classifies_missing_iota_rule`
+  （断言精确 code + hint）；`refine_kernel_kind` 家族样例 +9 组；
+  CLI `cli_classifies_iota_rules_out_of_order`/`cli_classifies_missing_iota_rule`。
+- **非递归归纳块**（front 2 + cli 2）：`non_recursive_inductive_block_compiles_and_reduces`
+  （kernel 语义层）、`inductive_block_without_rec_is_a_clean_elab_error`、
+  `cli_accepts_non_recursive_inductive_block`、`cli_classifies_missing_inductive_rec`。
+- **失败声明 Restart 建议**（front suggest 6 + lsp actions 4）：骨架形状/
+  重启闭环（落回后 kernel 重查回 Open）/binder 防撞/≤3 层/隐式风格/非 Pi 无建议；
+  LSP 值位整体替换/多行/摘要截断。
+- **criterion 基准**（不进 cargo test 计数）：`cargo bench -p
+  sokonanoda-front --bench pipeline`（多 target 必须 `--bench pipeline`）；
+  语料校验 OnceLock 先行。
+- **fuzz**：`fuzz/` 独立 crate（脱离 workspace）；`cd fuzz && cargo check`
+  守编译；CI 不跑。
+- 测试总量（2026-09-07 第十三轮）：**356**。

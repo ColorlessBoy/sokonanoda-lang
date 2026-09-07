@@ -17,10 +17,11 @@
 //!   期望类型。这也顺带修复了旧 `exact` 把"匹配外层 goal 的假设"塞进子洞
 //!   的错位建议：外层匹配者与子洞期望类型不合，kernel 拒绝即不出现。
 
-use crate::compile::{render_expr, CompileOptions, DeclState};
+use crate::compile::{render_expr, CompileOptions, DeclState, DeclStatus};
 use crate::judge::{judge_hole_fill, judge_terms, GoalBinderSpec, Judgement, OpenGoalSpec};
 use crate::proof::parse_expr_text;
-use crate::Expr;
+use crate::token::{tokenize, TokenKind};
+use crate::{BinderKind, Expr};
 
 /// 建议的种类（docs/design-hints-suggestions.md §4.2）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,6 +34,10 @@ pub enum SuggestionKind {
     Intro,
     /// kernel 验证过的 `Eq.refl` 候选。
     Rfl { term: String },
+    /// kernel 拒绝的失败声明：按声明类型的形状生成的重启骨架
+    /// `fun (x : A) => … => ???`，替换整个值位。结构生成、kernel 在学生
+    /// 下次编辑后终审（docs/design-kernel-taxonomy.md §2）。
+    Restart { skeleton: String },
 }
 
 /// 一条下一步建议：`verified` 为 true 表示已经过完整 kernel 判定。
@@ -51,7 +56,25 @@ const MAX_SUGGESTIONS: usize = 3;
 /// 生成与排序（每请求 ≤3 条、每洞候选 ≤4 个）。
 /// `prefix_src` 是文档开头到该声明 span 结束为止的源文本（**含**声明本身）：
 /// `judge_terms` 取它的声明前缀切片，`judge_hole_fill` 需要看到声明命令。
-pub fn suggest(prefix_src: &str, options: &CompileOptions, d: &DeclState) -> Vec<Suggestion> {
+/// `decl_src` 是该声明的命令全文切片（`decl.span` 对应的源文本），只有
+/// 失败声明的重启骨架需要它；Open 练习传 `None`。
+pub fn suggest(
+    prefix_src: &str,
+    decl_src: Option<&str>,
+    options: &CompileOptions,
+    d: &DeclState,
+) -> Vec<Suggestion> {
+    if d.status == DeclStatus::Failed {
+        // 失败声明没有洞可填：唯一的建议是按声明类型形状重启整个值位。
+        // 骨架只是结构生成（`verified: false`），kernel 在下次编辑终审。
+        return match decl_src.and_then(restart_skeleton) {
+            Some(skeleton) => vec![Suggestion {
+                kind: SuggestionKind::Restart { skeleton },
+                verified: false,
+            }],
+            None => Vec::new(),
+        };
+    }
     if d.holes.is_empty() {
         return Vec::new();
     }
@@ -127,6 +150,124 @@ pub fn suggest(prefix_src: &str, options: &CompileOptions, d: &DeclState) -> Vec
     }
     out.truncate(MAX_SUGGESTIONS);
     out
+}
+
+/// 重启骨架最多剥的 Pi 层数（docs/design-kernel-taxonomy.md §2）。
+const SKELETON_MAX_LAYERS: usize = 3;
+
+/// `parse_expr_text` 内部用 `#check {text}` 承载表达式，AST span 相对类型
+/// 文本整体偏移了这个前缀长度；切回原文本时据此扣掉。
+const CHECK_PREFIX_LEN: usize = "#check ".len();
+
+/// 一个剥出的望远镜层：写的 binder 名（Arrow 域是空名）、类型文本与
+/// binder 风格。
+struct SkeletonLayer {
+    name: String,
+    ty_text: String,
+    style: BinderKind,
+}
+
+/// 失败声明的「重启骨架」：按声明类型的形状剥 Pi/Forall 望远镜（≤3 层），
+/// 生成 `fun (x : A) => … => ???`。类型位与 `:=` 都经 tokenize 定位，类型
+/// AST 按 span 精确切回原文本——不扫文本、不做文本比对（REQUIREMENTS
+/// §2.8）。类型不可解析或不可剥（非 Pi、binder 无显式类型）时返回 `None`
+/// （不出建议）。
+fn restart_skeleton(decl_src: &str) -> Option<String> {
+    let ty_text = decl_type_text(decl_src)?;
+    let ty = parse_expr_text(ty_text).ok()?;
+    let mut layers: Vec<SkeletonLayer> = Vec::new();
+    let mut cur = &ty;
+    loop {
+        if layers.len() >= SKELETON_MAX_LAYERS {
+            break;
+        }
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                for binder in binders {
+                    if layers.len() >= SKELETON_MAX_LAYERS {
+                        break;
+                    }
+                    layers.push(SkeletonLayer {
+                        name: binder.name.clone(),
+                        ty_text: check_slice(ty_text, binder.ty.as_ref()?.span())?.to_string(),
+                        style: binder.style.clone(),
+                    });
+                }
+                cur = body;
+            }
+            Expr::Arrow {
+                domain, codomain, ..
+            } => {
+                layers.push(SkeletonLayer {
+                    name: String::new(),
+                    ty_text: check_slice(ty_text, domain.span())?.to_string(),
+                    style: BinderKind::Explicit,
+                });
+                cur = codomain;
+            }
+            _ => break,
+        }
+    }
+    if layers.is_empty() {
+        return None;
+    }
+    // binder 名防撞（外层优先保留原名）：望远镜内同名或匿名域的默认名
+    // `x` 撞上已有名字时追加序号（`x` → `x2` → …）。失败声明的值位会被
+    // 整体替换，骨架自身的名字是唯一需要避免的碰撞面。
+    let mut used = std::collections::HashSet::new();
+    let mut named: Vec<(String, &SkeletonLayer)> = Vec::with_capacity(layers.len());
+    for layer in &layers {
+        let base = if layer.name.is_empty() {
+            "x"
+        } else {
+            layer.name.as_str()
+        };
+        let mut name = base.to_string();
+        let mut n = 2;
+        while !used.insert(name.clone()) {
+            name = format!("{base}{n}");
+            n += 1;
+        }
+        named.push((name, layer));
+    }
+    let mut skeleton = String::from("???");
+    for (name, layer) in named.iter().rev() {
+        let binder = match layer.style {
+            BinderKind::Explicit => format!("({name} : {})", layer.ty_text),
+            BinderKind::Implicit => format!("{{{name} : {}}}", layer.ty_text),
+        };
+        skeleton = format!("fun {binder} => {skeleton}");
+    }
+    Some(skeleton)
+}
+
+/// 声明的类型文本：decl 命令里 `:=` 之前最近的顶层 `:` 之后到 `:=` 之前的
+/// 切片（tokenize 精确定位，`--` 注释由词法器跳过）。没有 `:=`（axiom、
+/// 无 iota 的 inductive）或没有顶层 `:` 时返回 `None`。
+fn decl_type_text(decl_src: &str) -> Option<&str> {
+    let tokens = tokenize(decl_src).ok()?;
+    let colon_eq = tokens.iter().position(|t| t.kind == TokenKind::ColonEq)?;
+    let mut depth = 0usize;
+    let mut colon_end = None;
+    for tok in &tokens[..colon_eq] {
+        match tok.kind {
+            TokenKind::LParen | TokenKind::LBrace => depth += 1,
+            TokenKind::RParen | TokenKind::RBrace => depth = depth.saturating_sub(1),
+            TokenKind::Colon if depth == 0 && colon_end.is_none() => {
+                colon_end = Some(tok.span.end.offset);
+            }
+            _ => {}
+        }
+    }
+    Some(&decl_src[colon_end?..tokens[colon_eq].span.start.offset])
+}
+
+/// 把（`#check {text}` 坐标系里的）AST span 切回类型文本。
+fn check_slice(ty_text: &str, span: crate::Span) -> Option<&str> {
+    ty_text.get(
+        span.start.offset.checked_sub(CHECK_PREFIX_LEN)?
+            ..span.end.offset.checked_sub(CHECK_PREFIX_LEN)?,
+    )
 }
 
 /// 洞的期望类型文本：主洞用剩余目标；spine 洞用 walk 恢复的期望类型
@@ -246,7 +387,21 @@ mod tests {
             .expect("open exercise")
             .clone();
         let prefix = &doc[..d.span.end.offset.min(doc.len())];
-        suggest(prefix, &CompileOptions::default(), &d)
+        suggest(prefix, None, &CompileOptions::default(), &d)
+    }
+
+    /// 文档里第一个 failed 声明的建议（decl_src 切片与 actions 一致）。
+    fn suggest_for_failed(doc: &str) -> Vec<Suggestion> {
+        let report = check_document(&parse(doc).expect("parses"));
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.status == DeclStatus::Failed)
+            .expect("failed declaration")
+            .clone();
+        let prefix = &doc[..d.span.end.offset.min(doc.len())];
+        let decl_src = &doc[d.span.start.offset..d.span.end.offset.min(doc.len())];
+        suggest(prefix, Some(decl_src), &CompileOptions::default(), &d)
     }
 
     fn kinds(suggestions: &[Suggestion]) -> Vec<SuggestionKind> {
@@ -420,5 +575,93 @@ Quad.mk a b c d ??? ??? ??? ???\n",
         assert!(matches!(ks[0], SuggestionKind::Exact { hole: 0, .. }));
         assert!(matches!(ks[1], SuggestionKind::Exact { hole: 1, .. }));
         assert!(matches!(ks[2], SuggestionKind::Exact { hole: 2, .. }));
+    }
+
+    // ---- 失败声明的重启骨架（docs/design-kernel-taxonomy.md §2）----
+
+    #[test]
+    fn failed_decl_gets_one_restart_skeleton_shaped_like_its_type() {
+        let suggestions =
+            suggest_for_failed("example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Restart {
+                skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+            }],
+            "the Pi telescope is peeled layer by layer; the anonymous Arrow \
+             domain keeps its own type text"
+        );
+        assert!(
+            !suggestions[0].verified,
+            "the skeleton is structural: the kernel judges after the next edit"
+        );
+    }
+
+    #[test]
+    fn failed_decl_skeleton_restarts_as_an_open_exercise() {
+        let suggestions =
+            suggest_for_failed("example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n");
+        let SuggestionKind::Restart { skeleton } = &suggestions[0].kind else {
+            panic!("expected a restart suggestion");
+        };
+        // 骨架落回值位后重查：kernel 接受它为合法起点，声明回到 Open，
+        // 剩下最内层目标留给学生（kernel 逐层判）。
+        let restarted = format!("example : (a : Prop) -> a -> a := {skeleton}\n");
+        let report = check_document(&parse(&restarted).expect("parses"));
+        assert_eq!(report.decls[0].status, DeclStatus::Open);
+        assert_eq!(
+            report.decls[0].goal.as_deref(),
+            Some("a"),
+            "the restart leaves the innermost goal open"
+        );
+    }
+
+    #[test]
+    fn failed_decl_renames_colliding_binder_names() {
+        let suggestions = suggest_for_failed(
+            "example : (x : Prop) -> x -> x := fun (x : Prop) => fun (h : x) => 1\n",
+        );
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Restart {
+                skeleton: "fun (x : Prop) => fun (x2 : x) => ???".to_string(),
+            }],
+            "the anonymous domain's default name `x` collides with the outer \
+             binder and is renamed to `x2`"
+        );
+    }
+
+    #[test]
+    fn failed_long_telescope_caps_the_skeleton_at_three_layers() {
+        let suggestions = suggest_for_failed(
+            "example : (a : Prop) -> (b : Prop) -> (c : Prop) -> (d : Prop) -> a := \
+fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (d : Prop) => 1\n",
+        );
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Restart {
+                skeleton: "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => ???".to_string(),
+            }],
+            "the telescope is capped at three layers; the rest stays a `???` goal"
+        );
+    }
+
+    #[test]
+    fn failed_decl_implicit_binder_keeps_its_style() {
+        let suggestions =
+            suggest_for_failed("example : {a : Prop} -> a -> a := fun (x : Prop) => 1\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Restart {
+                skeleton: "fun {a : Prop} => fun (x : a) => ???".to_string(),
+            }],
+            "an implicit telescope layer stays implicit in the skeleton"
+        );
+    }
+
+    #[test]
+    fn failed_decl_with_non_pi_type_gets_no_suggestion() {
+        // kernel 拒绝但类型是 Prop（非 Pi）：没有可剥的望远镜，不出建议。
+        assert!(suggest_for_failed("def bad : Prop := 1\n").is_empty());
     }
 }

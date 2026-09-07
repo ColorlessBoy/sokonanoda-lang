@@ -1,10 +1,10 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第十二轮：课程地图 + REPL 历史 + course 提示阶梯）
+> 快照：2026-09-07（第十三轮：内核分类学余项 + 失败声明建议 + 基准/fuzz 基建）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-course-status.md`（本轮）/ `docs/design-hints-suggestions.md` /
-> `docs/design-rename-inlay.md` / `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
-> `docs/design-infrastructure.md`；
+> 设计 = `docs/design-kernel-taxonomy.md`（本轮）/ `docs/design-course-status.md` /
+> `docs/design-hints-suggestions.md` / `docs/design-rename-inlay.md` / `docs/design-goal-refine.md` /
+> `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > 差距审计 = `docs/gap-analysis.md`；**经验台账 = `docs/LESSONS.md`**；
 > 发布 = `docs/RELEASE.md`；
@@ -15,6 +15,40 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第十三轮：内核分类学收尾 + 基建，4 subagent 并行）
+
+> 设计先行：`docs/design-kernel-taxonomy.md`。K（内核冷路径分诊）/
+> L1（失败声明建议）/ M（criterion 基准）/ N（fuzz harness）并行，主会话
+> 合并期修复 K 发现的功能性 bug（非递归归纳块）。
+
+1. **内核错误分类学余项（K，冷路径三层回归）**：全内核 `assert_eq!` 清点
+   分诊——3 处学习者可触发站点改稳定消息（`is_prop_type` 带 `got:` 渲染、
+   iota 规则顺序/数量两处裸断言）；新错误家族 `kernel-rec-rule-mismatch`
+   （`ErrorKind` + code + hint + protocol.md + 穷尽清单）；8+ 处 front 已
+   拦截的 backstop 与真内部不变量保留 assert（internal）。热循环零改动。
+2. **非递归归纳块修复（主会话，K 发现的功能 bug）**：内核按构造子 telescope
+   自算 `is_recursive` 并断言一致——front 恒传 `true` 导致
+   `inductive Unit/Bool` 崩溃。修复：`elab.rs` 从源码 AST 同规则镜像（含
+   result 箭头链的 domain）；缺 `rec` 的块在**入环境前**报干净教学错误
+   `elab-missing-inductive-rec`（check-then-add 保持；rec 块本就是白名单
+   内容，auto-derivation 留作课程轮设计）。测试三层（kernel 语义 +
+   front 2 + CLI 2）。
+3. **失败声明建议（L1）**：`SuggestionKind::Restart`——kernel-rejected
+   声明按自身类型形状生成重启骨架 `fun (x : A) => ???`（tokenize 定位
+   值位，≤3 层剥 Pi，binder 防撞改名），LSP code action 整体替换值位；
+   骨架落回后内核重查回到 Open（测试验证闭环）。
+4. **criterion 基准（M）**：`crates/front/benches/pipeline.rs`（黑盒公开
+   API）：native_bigint_reduce ~41ms / iota_deep_reduce ~14ms /
+   session_suffix_recheck ~500µs；语料校验 `OnceLock` 先行。本地跑：
+   `cargo bench -p sokonanoda-front --bench pipeline`（多 target 需带
+   `--bench pipeline` 选择器）。
+5. **fuzz harness（N）**：`fuzz/`（独立 crate，脱离 workspace，cargo-fuzz
+   标准布局）——`parse_never_panics`：parse/semantic_tokens/prelude 指令/
+   完整 check_document 永不 panic；`cd fuzz && cargo check`（stable）过；
+   CI 不跑，用法见 `fuzz/README.md`。
+6. 测试总量 **356**；全绿；fmt/clippy 干净；playground（0 诊断）与
+   course（19/20/0）锚点不变。
 
 ## 本轮进度（2026-09-07，第十二轮：课程地图 + 小项，4 subagent 并行）
 
@@ -325,13 +359,14 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
 4. ~~**rename + find-references**~~ ✅（第十一轮）：语义集 + 版本化
    documentChanges + ResponseError；shadowing 有回归测试。
 5. ~~**inlay hints**~~ ✅（第十一轮）：洞期望类型 + tooltip；只读无 textEdits。
-6. **内核错误分类学余项**：`conv.rs:650` 与 `infer.rs:52` 同名消息区分
-   （`is_prop_type: expected a sort`）；`assert_eq!` 灰色地带归 internal 的
-   议题；refine 子洞的 kernel 级 expected type（elaborator spine meta，M–L）。
-7. **小项打包**：~~`sokonanoda lsp` 子命令~~ ✅（第十一轮，gleam 模式）、
-   ~~REPL 命令历史持久化~~ ✅（第十二轮，`$HOME/.sokonanoda_history`）、
-   criterion 基准（防 I8 增量静默劣化，本地跑）、cargo-fuzz parser harness
-   （定期跑）、洞的稳定 hole_id（Deduce MCP 先例）。
+6. **内核错误分类学余项**：~~`conv.rs` 与 `infer.rs` 同名消息区分~~ ✅
+   （第十三轮：统一 `got:` 形状、措辞区分站点）；~~`assert_eq!` 灰色地带~~ ✅
+   （第十三轮全量清点分诊）；refine 子洞的 kernel 级 expected type
+   （elaborator spine meta，M–L）**仍为余项**——需专门设计轮。
+   另：归纳块 auto-derivation（无 rec 块自动派生 recursor）待课程轮设计。
+7. **小项打包**：~~`sokonanoda lsp` 子命令~~ ✅、~~REPL 历史~~ ✅、
+   ~~criterion 基准~~ ✅（第十三轮）、~~fuzz harness~~ ✅（第十三轮）、
+   洞的稳定 hole_id（Deduce MCP 先例）。
 
 ### 运营/验证类
 
