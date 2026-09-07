@@ -60,6 +60,13 @@ pub fn prelude_mode_from_source(src: &str) -> PreludeMode {
 /// installed without re-checking (like the Nat prelude). The signatures match
 /// official Lean's `Eq`/`Eq.refl`/`Eq.subst`, so a filled exercise file that
 /// uses them still checks in real Lean.
+/// The trusted prelude's top-level names (Full mode). Completions material:
+/// prelude declarations are trusted installs without `DeclState`s, so the
+/// goal view / completion layer needs this list to offer them.
+pub const PRELUDE_NAMES: &[&str] = &[
+    "Nat", "Nat.zero", "Nat.succ", "Nat.add", "Eq", "Eq.refl", "Eq.subst",
+];
+
 const PRELUDE_EQ_SRC: &str = "\
 axiom Eq {u} : {α : Sort u} -> α -> α -> Prop
 axiom Eq.refl {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a

@@ -487,3 +487,12 @@ fn cli_classifies_check_apply_to_non_function() {
         "stderr: {stderr}"
     );
 }
+
+#[test]
+fn cli_prints_its_version() {
+    // 业内标配：`--version` 零门槛自省（发布自动化的前置）。
+    let out = run_args(&["--version"], None);
+    assert!(out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.trim().starts_with("sokonanoda "), "stdout: {stdout}");
+}

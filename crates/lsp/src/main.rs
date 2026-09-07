@@ -380,6 +380,14 @@ impl LanguageServer for Backend {
                     resolve_provider: Some(false),
                 }),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
+                completion_provider: Some(CompletionOptions {
+                    work_done_progress_options: WorkDoneProgressOptions::default(),
+                    resolve_provider: Some(false),
+                    trigger_characters: None,
+                    all_commit_characters: None,
+                    completion_item: None,
+                }),
+                folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 semantic_tokens_provider: Some(semantic_token_options().into()),
                 ..Default::default()
             },
@@ -538,6 +546,94 @@ impl LanguageServer for Backend {
             })
             .collect();
         Ok(Some(lenses))
+    }
+
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        let _ = &params;
+        let doc = self.doc.lock().expect("doc lock");
+        let mut items: Vec<CompletionItem> = Vec::new();
+        // Keywords (single source: front::semantic).
+        for keyword in sokonanoda_front::semantic::keywords() {
+            items.push(CompletionItem {
+                label: (*keyword).to_string(),
+                kind: Some(CompletionItemKind::KEYWORD),
+                ..Default::default()
+            });
+        }
+        // Sorts (Prop / Type / Sort).
+        for sort in sokonanoda_front::semantic::sorts() {
+            items.push(CompletionItem {
+                label: (*sort).to_string(),
+                kind: Some(CompletionItemKind::STRUCT),
+                detail: Some("宇宙".to_string()),
+                ..Default::default()
+            });
+        }
+        // Trusted prelude names (no DeclState exists for them).
+        for name in sokonanoda_front::compile::PRELUDE_NAMES {
+            items.push(CompletionItem {
+                label: (*name).to_string(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some("prelude".to_string()),
+                ..Default::default()
+            });
+        }
+        // The document's own declarations (anonymous examples excluded).
+        if let Some(report) = &doc.report {
+            for decl in &report.decls {
+                let Some(name) = &decl.name else {
+                    continue;
+                };
+                if name.starts_with('_') {
+                    continue; // internal names (_example_N)
+                }
+                items.push(CompletionItem {
+                    label: name.clone(),
+                    kind: Some(match decl.kind {
+                        sokonanoda_front::compile::DeclKind::Inductive => {
+                            CompletionItemKind::STRUCT
+                        }
+                        sokonanoda_front::compile::DeclKind::Axiom => CompletionItemKind::CONSTANT,
+                        _ => CompletionItemKind::FUNCTION,
+                    }),
+                    detail: Some(format!(
+                        "{} · {}",
+                        decl.kind.as_str(),
+                        status_label(decl.status)
+                    )),
+                    ..Default::default()
+                });
+            }
+        }
+        Ok(Some(CompletionResponse::Array(items)))
+    }
+
+    async fn folding_range(&self, _: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
+        let doc = self.doc.lock().expect("doc lock");
+        let Some(report) = &doc.report else {
+            return Ok(None);
+        };
+        let ranges = report
+            .decls
+            .iter()
+            .filter_map(|d| {
+                // 0-based inclusive lines; clamp the end when the span ends
+                // at a line start (trailing newline).
+                let start = d.span.start.line.saturating_sub(1) as u32;
+                let end = if d.span.end.column <= 1 {
+                    d.span.end.line.saturating_sub(2)
+                } else {
+                    d.span.end.line.saturating_sub(1)
+                } as u32;
+                (start < end).then(|| FoldingRange {
+                    start_line: start,
+                    end_line: end,
+                    kind: Some(FoldingRangeKind::Region),
+                    ..Default::default()
+                })
+            })
+            .collect();
+        Ok(Some(ranges))
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
@@ -1694,6 +1790,91 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
             first_range.start, second_range.start,
             "the two sub-holes are distinct positions"
         );
+        shutdown(&mut service).await;
+    }
+
+    // ---- 行业基线补全：completions / folding ----
+
+    async fn request_completions(service: &mut LspService<Backend>) -> Vec<CompletionItem> {
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/completion")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": {"line": 0, "character": 0},
+                }))
+                .id(60)
+                .finish(),
+        )
+        .await
+        .expect("completion must answer");
+        let response: Option<CompletionResponse> =
+            serde_json::from_value(result).expect("valid CompletionResponse");
+        match response.expect("completions must be returned") {
+            CompletionResponse::Array(items) => items,
+            other => panic!("expected an array completion response, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn completion_lists_keywords_sorts_prelude_and_declarations() {
+        let src = "def two : Nat := 2\nexample : Sort 1 := ???\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "completion diagnostics").await;
+
+        let items = request_completions(&mut service).await;
+        let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+        for expected in [
+            "def", "fun", "#check", "Prop", "Sort", "Nat", "Nat.add", "Eq.refl", "two",
+        ] {
+            assert!(
+                labels.contains(&expected),
+                "completion must list `{expected}`: {labels:?}"
+            );
+        }
+        assert!(
+            !labels.iter().any(|l| l.starts_with("_example")),
+            "internal names must not be offered: {labels:?}"
+        );
+        let two = items.iter().find(|i| i.label == "two").expect("two");
+        assert_eq!(two.kind, Some(CompletionItemKind::FUNCTION));
+        assert!(
+            two.detail.as_deref().is_some_and(|d| d.contains("def")),
+            "detail carries kind/status: {:?}",
+            two.detail
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn folding_ranges_cover_multiline_declarations_only() {
+        let src = "def one : Nat :=\n  1\nexample : Sort 1 := ???\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "folding diagnostics").await;
+
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/foldingRange")
+                .params(json!({"textDocument": {"uri": URI}}))
+                .id(61)
+                .finish(),
+        )
+        .await
+        .expect("foldingRange must answer");
+        let ranges: Option<Vec<FoldingRange>> =
+            serde_json::from_value(result).expect("valid FoldingRange");
+        let ranges = ranges.expect("folding ranges");
+        assert_eq!(
+            ranges.len(),
+            1,
+            "only the two-line declaration folds: {ranges:?}"
+        );
+        assert_eq!(ranges[0].start_line, 0);
+        assert_eq!(ranges[0].end_line, 1);
         shutdown(&mut service).await;
     }
 }

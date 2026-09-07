@@ -25,6 +25,10 @@ fn main() -> ExitCode {
                 print_help();
                 return ExitCode::SUCCESS;
             }
+            "-V" | "--version" => {
+                println!("sokonanoda {}", env!("CARGO_PKG_VERSION"));
+                return ExitCode::SUCCESS;
+            }
             _ => positionals.push(arg),
         }
     }

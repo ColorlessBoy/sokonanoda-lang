@@ -57,6 +57,16 @@ const KEYWORDS: &[&str] = &[
 
 const SORTS: &[&str] = &["Prop", "Type", "Sort"];
 
+/// The language keywords (single source for semantic tokens and completions).
+pub fn keywords() -> &'static [&'static str] {
+    KEYWORDS
+}
+
+/// The sort spellings (`Prop`/`Type`/`Sort`) — completions material.
+pub fn sorts() -> &'static [&'static str] {
+    SORTS
+}
+
 /// 词法收集到的 token；出错时只保留出错点之前的干净前缀（丢弃 Eof）。
 ///
 /// 词法错误总是报在出错 token 的起始 offset，所以对 `src[..err_offset]`

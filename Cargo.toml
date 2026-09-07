@@ -6,6 +6,9 @@ resolver = "2"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
+# 跟随最新 stable（docs/RELEASE.md：发布前用当前 stable 校准）。
+rust-version = "1.96"
+
 
 [profile.release]
 opt-level = 3
