@@ -43,28 +43,30 @@
 | `kernel-rejected`（app arg def_eq failed） | 部分应用 / 参数顺序错 | 一起数构造子签名参数 |
 | 无诊断但语义不对（如 `double := fun n => n`） | 内核只判类型不判意图 | 设计“证明形状”的需求（见 two_def 模式） |
 
-## 3. 第一课练习清单与解答钥匙（全部经完整内核验证）
+## 3. 第一课练习清单与解答钥匙（全部经完整内核验证；逻辑先行排序）
 
 > 逻辑骨架由画布内 axiom 提供（True/False/And/Or/Not，与官方 Lean 同构）；
 > Eq 三件套由 prelude 提供（`Eq`/`Eq.refl`/`Eq.subst`，签名与官方 Lean 一致）。
+> 排序哲学（REQUIREMENTS §6）：单元①直接证明命题，Sort 等"函数类型的类型"
+> 问题自然出现时（单元④）才揭晓。
 
 | # | 练习 | 目标误解 | 钥匙（kernel 验证） |
 |---|---|---|---|
-| 1 | `def two : Nat := ???` | “数字就是数字”——1+1 是会被内核计算的表达式 | `1 + 1`（`two_def` 闭环回判此值） |
-| 2 | `example : Sort 1 := ???` | “类型没有类型”；Prop=Sort 0，Type=Sort 1 | `Nat` |
-| 3 | `def double : Nat -> Nat := fun (n : Nat) => ???` | 程序不必一次写完；洞下剩余目标 = Nat | `fun (n : Nat) => n + n` |
-| 4 | `def twice : (Nat -> Nat) -> Nat -> Nat := ???` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |
-| 5 | `theorem true_is_true : True := ???` | 证明=项；True.intro 已经存在 | `True.intro` |
-| 6 | `and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???` | 类型箭头 ↔ 值 fun 一一对应 | `fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha hb` |
-| 7 | `and_swap : ... And a b -> And b a := ???` | 先消去再构造 | `fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)` |
-| 8 | `ex_falso : (P : Prop) -> False -> P := ???` | False 只能“用”不能“证” | `fun (P : Prop) => fun (h : False) => False.rec P h` |
-| 9 ★ | `and_not_absurd : (a : Prop) -> And a (Not a) -> False := ???` | Not 是黑盒；部分应用陷阱 | `fun (a : Prop) => fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)` |
-| 10 | `one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := ???` | rfl 不是咒语，是函数；conv 会计算 | `Eq.refl.{1} Nat (1 + 1)`（`Eq.refl.{1} Nat 2` 也过：conv 双向计算） |
-| 11 | `eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := ???` | 谓词 p 要自己设计（本场最深的一步） | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
-| 12 ★ | `Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := ???` | 宇宙不可怕：就是 11 换成 α/.{u}，隐式 binder ↔ fun {..} | `fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : Eq.{u} α a b) => Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)` |
+| 1 | `theorem true_is_true : True := ???` | 证明=项；True.intro 已经存在 | `True.intro` |
+| 2 | `and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???` | 类型箭头 ↔ 值 fun 一一对应 | `fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha hb` |
+| 3 | `and_swap : ... And a b -> And b a := ???` | 先消去再构造 | `fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)` |
+| 4 | `ex_falso : (P : Prop) -> False -> P := ???` | False 只能“用”不能“证” | `fun (P : Prop) => fun (h : False) => False.rec P h` |
+| 5 ★ | `and_not_absurd : (a : Prop) -> And a (Not a) -> False := ???` | Not 是黑盒；部分应用陷阱 | `fun (a : Prop) => fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)` |
+| 6 | `def two : Nat := ???` | “数字就是数字”——1+1 是会被内核计算的表达式 | `2`（或 `1 + 1`；`two_def` 闭环回判此值） |
+| 7 | `one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := ???` | rfl 不是咒语，是函数；conv 会计算 | `Eq.refl.{1} Nat (1 + 1)`（`Eq.refl.{1} Nat 2` 也过：conv 双向计算） |
+| 8 | `eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := ???` | 谓词 p 要自己设计（本场最深的一步） | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
+| 9 | `def double : Nat -> Nat := fun (n : Nat) => ???` | 程序不必一次写完；洞下剩余目标 = Nat | `fun (n : Nat) => n + n` |
+| 10 | `def twice : (Nat -> Nat) -> Nat -> Nat := ???` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |
+| 11 | `example : Sort 1 := ???` | “类型没有类型”；Prop=Sort 0，Type=Sort 1 | `Nat` |
+| 12 ★ | `Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := ???` | 宇宙不可怕：就是 8 换成 α/.{u}，隐式 binder ↔ fun {..} | `fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : Eq.{u} α a b) => Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)` |
 
 收尾：`two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two` —— 画布里先
-注释着，练习 1 解出后放开；变绿 = 内核回判了练习 1 的值。
+注释着，练习 6 解出后放开；变绿 = 内核回判了练习 6 的值。
 
 ## 4. Gotchas（全部验证过，别踩）
 

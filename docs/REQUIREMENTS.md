@@ -132,3 +132,8 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   同轮：仓库根 `opencode.json` 把 sokonanoda-lsp 挂到 .sokonanoda 扩展名
   （opencode 等 agent 自动消费 kernel 判定诊断），根 .gitignore 收编
   node 工具产物。
+- 2026-09-07（七）：**逻辑先行课程重排落地**（§6 课程排序哲学的执行）：
+  course/ 5 单元更名重写（①命题与证明 → ②等式与 rfl → ③函数与箭头 →
+  ④宇宙 → ⑤归纳），playground 同步为 12 题逻辑先行版本；Sort 延迟到
+  "函数类型的类型"悬念揭晓。同轮：I9 余项——开放声明携带宇宙参数
+  （DeclState.universe，带 {u} 练习获得 exact 建议）。

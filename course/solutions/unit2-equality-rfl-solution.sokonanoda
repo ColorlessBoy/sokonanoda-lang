@@ -1,0 +1,33 @@
+-- unit2-equality-rfl-solution —— 单元② 解答钥匙（agent 专用）
+def one : Nat := 1
+
+#reduce 1 + 1
+
+def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
+
+#reduce demo_refl
+
+def two : Nat := 2
+
+theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := Eq.refl.{1} Nat (1 + 1)
+
+theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=
+  fun (a : Nat) =>
+    fun (b : Nat) =>
+      fun (h : Eq.{1} Nat a b) =>
+        Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)
+
+theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat)
+  -> Eq.{1} Nat a b -> Eq.{1} Nat b c -> Eq.{1} Nat a c :=
+  fun (a : Nat) =>
+    fun (b : Nat) =>
+      fun (c : Nat) =>
+        fun (h1 : Eq.{1} Nat a b) =>
+          fun (h2 : Eq.{1} Nat b c) =>
+            Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat a x) b c h2 h1
+
+theorem eq_refl_prop : {a : Prop} -> Eq.{1} Prop a a :=
+  fun {a : Prop} => Eq.refl.{1} Prop a
+
+-- 闭环：two 确实等于 1 + 1（内核计算两侧后判定）。
+theorem two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two

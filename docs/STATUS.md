@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第六轮：agent skills + opencode LSP 接线）
+> 快照：2026-09-07（第七轮：逻辑先行课程重排 + I9 宇宙参数携带）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-i8-i9.md`（上轮）/ `docs/design-infrastructure.md`（历史）；
+> 设计 = `docs/design-i8-i9.md`（I8/I9）/ `docs/design-infrastructure.md`（历史）；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > agent 入口 = `skills/`（sokonanoda-teacher / sokonanoda-dev）；
 > LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
@@ -12,6 +12,26 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第七轮：逻辑先行课程落地 + I9 宇宙携带）
+
+1. **课程重排（用户课程排序哲学落地，REQUIREMENTS §6）**：course/ 5 单元与
+   playground 全部重排为逻辑先行——
+   ①命题与证明项（先证明命题，全程不谈 Sort）→ ②等式与 rfl（先认识数字，
+   `Eq.{1}` 作为机械规则并埋下"为什么是 1"的悬念）→ ③函数与箭头（结尾埋
+   "函数类型的类型？"悬念）→ ④宇宙（Sort 由悬念揭晓，回收 Prop=Sort 0）
+   → ⑤归纳与递归（不变）。旧 unit1/2/3/4 文件更名重写，题目与钥匙全部
+   复用既有 kernel 验证结论（Eq.symm 钥匙修正了一处缺实参的错误——被
+   本仓库 LSP 实时抓出，opencode 接线的第一次实战验证）。
+   同步：course.json（新文件名/标题）、course.rs golden（新计数 12,5,1 /
+   2,5,2 / 1,4,1 / 0,3,0 / 4,3,1）、course/README、skill 的 curriculum.md、
+   teaching-session.md §3（12 题新编号）、playground（12 练习逻辑先行为主：
+   checked=14 open=12 diagnostics=0）。
+2. **I9 余项——开放声明携带宇宙参数**：`DeclState.universe` 贯通
+   （OpenExercise op → 报告 → LSP exact_binder → judge 合成声明），
+   带 `{u}` 的开放练习（如毕业题 Eq.symm）现在能获得 exact 建议；
+   上一轮记录的已知限制清除。测试：front 2 个（记录 + judge 端到端）。
+3. 测试总量 **235**（+2 宇宙携带）；golden 更新为刻意变更；clippy/fmt 全绿。
 
 ## 本轮进度（2026-09-07，第六轮：agent skills）
 

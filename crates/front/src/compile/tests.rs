@@ -1191,3 +1191,58 @@ fn kernel_failed_declaration_frees_its_name() {
         out.events
     );
 }
+
+// ---- I9 余项：开放声明携带宇宙参数（goal 视图 / tactic 判定可用）----
+
+#[test]
+fn open_exercise_carries_universe_params() {
+    let report = check_document(&parse("def id {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n\
+         theorem eq_symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := ???\n").expect("parse"));
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("open exercise");
+    assert_eq!(open.universe, vec!["u".to_string()]);
+    assert!(
+        open.goal
+            .as_deref()
+            .is_some_and(|goal| goal.contains("Sort u") && goal.contains("Eq.{u}")),
+        "remaining goal keeps its Sort u shape: {:?}",
+        open.goal
+    );
+    // 非开放声明不携带（无需）。
+    let checked = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("id"))
+        .expect("checked id");
+    assert!(checked.universe.is_empty());
+}
+
+#[test]
+fn judge_uses_carried_universe_for_sort_u_goals() {
+    // 判定链路端到端：目标引用 Sort u，判定规格必须携带 {u}，
+    // 否则合成声明里 Sort u 是未声明宇宙变量。
+    let open = crate::judge::OpenGoalSpec {
+        universe: vec!["u".to_string()],
+        ty: "α".to_string(),
+        binders: vec![
+            crate::judge::GoalBinderSpec {
+                name: "α".to_string(),
+                ty: Some("Sort u".to_string()),
+            },
+            crate::judge::GoalBinderSpec {
+                name: "a".to_string(),
+                ty: Some("α".to_string()),
+            },
+        ],
+    };
+    let judgements = crate::judge::judge_terms(
+        "def id {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n",
+        &CompileOptions::default(),
+        &open,
+        &["a"],
+    );
+    assert_eq!(judgements[0], crate::judge::Judgement::Match);
+}

@@ -3,25 +3,25 @@
 > `course/` 只是路线图/题池/可解性守护；**执行层必须按用户灵活适配**
 > （用户原则，见 `docs/teaching-session.md` §0）。用户面对的只有画布。
 
-## 单元地图（`course/course.json` 为准）
+## 单元地图（`course/course.json` 为准；逻辑先行排序，2026-09-07 重排）
 
 | # | 文件 | 主题 | 关键概念 |
 |---|---|---|---|
-| 1 | `unit1-expressions-types.sokonanoda` | 表达式与类型 | Nat 字面量、`+` 会计算、类型也有类型（`Sort 1`） |
-| 2 | `unit2-functions-arrows.sokonanoda` | 函数与箭头 | `fun`、命名箭头、高阶函数 `(Nat -> Nat) -> Nat -> Nat`、binder 推断 |
-| 3 | `unit3-propositions.sokonanoda` | 命题与证明项 | 证明=项；axiom 搭 True/False/And/Or/Not；False.rec；`Eq` 三件套 |
-| 4 | `unit4-equality-rfl.sokonanoda` | 等式与 rfl | `Eq.{1}`、`Eq.refl` 会计算、自己造 symm（设计谓词 p） |
+| 1 | `unit1-propositions-proofs.sokonanoda` | 命题与证明项 | 证明=项；axiom 骨架 True/False/And/Or/Not；False.rec；先证明命题，不谈 Sort |
+| 2 | `unit2-equality-rfl.sokonanoda` | 等式与 rfl | 认识数字 Nat；`Eq.{1}` 机械规则（为什么是 1 → 单元④揭晓）；自己设计谓词 p 造 symm/trans |
+| 3 | `unit3-functions-arrows.sokonanoda` | 函数与箭头 | `fun`、binder 推断、高阶函数 `(Nat -> Nat) -> Nat -> Nat`；结尾埋"函数类型的类型？"悬念 |
+| 4 | `unit4-universes-sort.sokonanoda` | 宇宙 | Sort 由悬念揭晓：Prop = Sort 0（回收单元①）、Nat : Sort 1；`Eq.symm {u}` 毕业题 |
 | 5 | `unit5-induction-nat-rec.sokonanoda` | 显式归纳与递归 | `inductive Nat` 块、ctor/rec/iota、`Nat.rec` |
 
 每个单元配 `solutions/unitN-*-solution.sokonanoda`（agent 专用钥匙，全部
 经完整内核验证；CI golden 钉死事件计数）。
 
-## 逻辑先行（用户原则，2026-09-07）
+## 逻辑先行（用户原则，2026-09-07；单元排序已按此重排）
 
-单元顺序**不等于**教学顺序。执行时优先从"命题与证明项"的直觉入手：
-先让用户证明 `True`、`And a b -> And b a` 这类命题（逻辑骨架用 axiom 搭），
-把 `Sort` 留到"函数类型的类型是什么"这个自然问题出现时再引入。
-题目本身（题池）不变，变的是编排与节奏。
+题池顺序 = 新排序（命题先于宇宙）。执行时仍然按用户灵活适配：
+如果用户带着"什么是 Sort"的抽象兴趣来，可以先在画布上口头展开再回到题池；
+如果用户在证明练习里被 `Eq.{1}` 卡住，直接用"单元②的机械规则"话术，
+不必提前剧透宇宙。题目本身不变，变的是编排、提示层与比喻。
 
 ## 适配规则速记
 

@@ -59,9 +59,8 @@ pub(crate) fn intro_edit(
 /// A hypothesis the kernel judges defeq to the remaining goal closes it:
 /// judge every written binder (innermost first, one pipeline run) and return
 /// the first match's name, or `None` when no hypothesis closes the goal.
-///
-/// 限制：判定规格暂不携带声明的宇宙参数，因此带 `{u}` 的开放声明（如
-/// `Eq.symm` 练习）不会得到 exact 建议（intro 不受影响）。
+/// The declaration's universe parameters ride along so `Sort u` goals can be
+/// judged (the judge synthesizes a declaration with the same universes).
 pub(crate) fn exact_binder(
     prefix_src: &str,
     options: &CompileOptions,
@@ -69,7 +68,7 @@ pub(crate) fn exact_binder(
 ) -> Option<String> {
     let goal = d.goal.as_deref()?;
     let spec = OpenGoalSpec {
-        universe: Vec::new(),
+        universe: d.universe.clone(),
         ty: goal.to_string(),
         binders: d
             .binders

@@ -40,10 +40,10 @@ fn count_type(events: &[Value], ty: &str) -> usize {
 /// counts are the contract, so adding/removing an exercise is a deliberate
 /// golden update.
 const GOLDEN: &[(&str, (usize, usize, usize))] = &[
-    ("unit1-expressions-types.sokonanoda", (1, 4, 1)),
-    ("unit2-functions-arrows.sokonanoda", (1, 4, 1)),
-    ("unit3-propositions.sokonanoda", (12, 6, 1)),
-    ("unit4-equality-rfl.sokonanoda", (1, 4, 1)),
+    ("unit1-propositions-proofs.sokonanoda", (12, 5, 1)),
+    ("unit2-equality-rfl.sokonanoda", (2, 5, 2)),
+    ("unit3-functions-arrows.sokonanoda", (1, 4, 1)),
+    ("unit4-universes-sort.sokonanoda", (0, 3, 0)),
     ("unit5-induction-nat-rec.sokonanoda", (4, 3, 1)),
 ];
 
@@ -150,10 +150,10 @@ fn course_json_lists_the_five_units_in_order() {
     let entries: Vec<Value> = serde_json::from_str(&raw).expect("parse course.json");
 
     let expected: [(&str, u64); 5] = [
-        ("unit1-expressions-types.sokonanoda", 1),
-        ("unit2-functions-arrows.sokonanoda", 2),
-        ("unit3-propositions.sokonanoda", 3),
-        ("unit4-equality-rfl.sokonanoda", 4),
+        ("unit1-propositions-proofs.sokonanoda", 1),
+        ("unit2-equality-rfl.sokonanoda", 2),
+        ("unit3-functions-arrows.sokonanoda", 3),
+        ("unit4-universes-sort.sokonanoda", 4),
         ("unit5-induction-nat-rec.sokonanoda", 5),
     ];
 

@@ -112,3 +112,16 @@
 - 测试总量（2026-09-07 第五轮）：**229**（kernel 43+2 新回归 / front 121 /
   cli 40（28 cli + 8 protocol + 3 course + 1 examples）/ lsp 23）。
   `cargo clippy --workspace` exit-0（kernel 冻结快照保持 warning 级）。
+
+## 2026-09-07 更新（第六/七轮：skills + 逻辑先行课程）
+
+- **skill 套件**（`crates/cli/tests/skill.rs`，4 个）：frontmatter（name=目录、
+  description 长度）、引用路径存在性、事件/方法词汇封闭且 protocol.md 记载
+  （词汇表移至 `tests/common/mod.rs` 与 protocol.rs 共用）、course.json 单元/
+  钥匙孪生存在性。
+- **宇宙参数携带**（第七轮）：`open_exercise_carries_universe_params`、
+  `judge_uses_carried_universe_for_sort_u_goals`（front）。
+- **课程 golden 重测**（course.rs，刻意变更）：新单元序 ①命题与证明
+  (12,5,1) / ②等式与 rfl (2,5,2) / ③函数与箭头 (1,4,1) / ④宇宙 (0,3,0) /
+  ⑤归纳 (4,3,1)；playground 重排后 checked=14 / open=12 / diagnostics=0。
+- 测试总量（2026-09-07 第七轮）：**235**。

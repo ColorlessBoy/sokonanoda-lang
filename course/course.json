@@ -1,22 +1,22 @@
 [
   {
-    "file": "unit1-expressions-types.sokonanoda",
-    "title": "单元① 表达式与类型",
+    "file": "unit1-propositions-proofs.sokonanoda",
+    "title": "单元① 命题与证明项",
     "unit": 1
   },
   {
-    "file": "unit2-functions-arrows.sokonanoda",
-    "title": "单元② 函数与箭头",
+    "file": "unit2-equality-rfl.sokonanoda",
+    "title": "单元② 等式与 rfl",
     "unit": 2
   },
   {
-    "file": "unit3-propositions.sokonanoda",
-    "title": "单元③ 命题与证明项",
+    "file": "unit3-functions-arrows.sokonanoda",
+    "title": "单元③ 函数与箭头",
     "unit": 3
   },
   {
-    "file": "unit4-equality-rfl.sokonanoda",
-    "title": "单元④ 等式与 rfl",
+    "file": "unit4-universes-sort.sokonanoda",
+    "title": "单元④ 宇宙：函数类型的类型",
     "unit": 4
   },
   {

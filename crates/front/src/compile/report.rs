@@ -61,6 +61,10 @@ pub struct DeclState {
     /// so incremental sessions and LSP tooling can map states back to source
     /// commands without span guessing.
     pub cmd: usize,
+    /// The declaration's universe parameters (`{u}` …). Open exercises carry
+    /// them into the goal view / tactic judging so `Sort u` goals can be
+    /// judged (the judge synthesizes a declaration with the same universes).
+    pub universe: Vec<String>,
 }
 
 /// A hover answer for one source span (`span -> inferred type text`).

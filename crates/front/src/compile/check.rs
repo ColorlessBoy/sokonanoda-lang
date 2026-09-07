@@ -33,6 +33,10 @@ pub(crate) enum PendingOp<'a> {
     OpenExercise {
         name: Option<String>,
         kind: DeclKind,
+        /// The declaration's universe parameters (`{u}` …); the goal view and
+        /// tactic judging need them to synthesize a judge declaration for
+        /// `Sort u` goals.
+        universe: Vec<String>,
         goal: Option<String>,
         binders: Vec<GoalBinder>,
         span: Span,
@@ -354,6 +358,7 @@ fn run_pass(
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Definition,
+                        universe: universe.clone(),
                         goal: Some(goal),
                         binders,
                         span: *span,
@@ -454,6 +459,7 @@ fn run_pass(
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Theorem,
+                        universe: universe.clone(),
                         goal: Some(goal),
                         binders,
                         span: *span,
@@ -629,6 +635,7 @@ fn run_pass(
                     ops.push(PendingOp::OpenExercise {
                         name: None,
                         kind: DeclKind::Example,
+                        universe: Vec::new(),
                         goal: Some(goal),
                         binders,
                         span: *span,
@@ -840,6 +847,7 @@ fn run_pass(
             PendingOp::OpenExercise {
                 name,
                 kind,
+                universe,
                 goal,
                 binders,
                 span,
@@ -855,6 +863,7 @@ fn run_pass(
                     goal,
                     binders,
                     cmd,
+                    universe,
                 });
             }
             PendingOp::Decl {
@@ -889,6 +898,7 @@ fn run_pass(
                             goal: None,
                             binders: Vec::new(),
                             cmd,
+                            universe: Vec::new(),
                         });
                     }
                     Err(e) => {
@@ -950,6 +960,7 @@ fn run_pass(
                             goal: None,
                             binders: Vec::new(),
                             cmd,
+                            universe: Vec::new(),
                         });
                     }
                     Some(err) => {
@@ -1054,6 +1065,7 @@ pub(crate) fn failed_state(
         goal: None,
         binders: Vec::new(),
         cmd,
+        universe: Vec::new(),
     }
 }
 
