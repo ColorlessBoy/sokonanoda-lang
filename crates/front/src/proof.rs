@@ -1,12 +1,29 @@
 //! A tiny tactic-draft state. Tactics do not add new logic: they build the
 //! very lambda expression the kernel will check.
+//!
+//! I9 起，`exact` / `assumption` 的匹配判定走 [`crate::judge`]（合成完整声明
+//! 交完整 kernel 裁决），文本比对已删除（REQUIREMENTS §2.8）。
 
+use crate::compile::CompileOptions;
+use crate::judge::{judge_terms, GoalBinderSpec, Judgement, OpenGoalSpec};
 use crate::{parse, Binder, BinderKind, Command, Expr, SortKind, Span};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProofError {
     Parse(String),
     NotABinder,
+    /// `assumption` 扫描全部假设后没有 kernel 判定的匹配。
+    NoAssumption,
+    /// kernel 拒绝：期望与实际类型（内核渲染）。
+    Mismatch {
+        expected: String,
+        actual: String,
+    },
+    /// 术语无法 elaborate（来自判定管线的稳定错误码 + 消息）。
+    Judge {
+        code: String,
+        message: String,
+    },
     NoHole,
 }
 
@@ -15,6 +32,11 @@ impl std::fmt::Display for ProofError {
         match self {
             ProofError::Parse(msg) => write!(f, "{msg}"),
             ProofError::NotABinder => write!(f, "the current goal is not a function type"),
+            ProofError::NoAssumption => write!(f, "没有假设能直接结束当前目标（kernel 判定）"),
+            ProofError::Mismatch { expected, actual } => {
+                write!(f, "类型不匹配：期望 `{expected}`，实际是 `{actual}`")
+            }
+            ProofError::Judge { message, .. } => write!(f, "{message}"),
             ProofError::NoHole => write!(f, "there is no open hole; use `done`"),
         }
     }
@@ -103,20 +125,62 @@ impl ProofState {
         Ok(())
     }
 
-    pub fn assumption(&mut self) -> Result<(), ProofError> {
-        let goal = render_expr(&self.goal);
-        for binder in self.binders.iter().rev() {
-            if let Some(ty) = &binder.ty {
-                if render_expr(ty) == goal {
-                    self.solution = Some(Expr::Ident {
-                        name: binder.name.clone(),
-                        span: Span::default(),
-                    });
-                    return Ok(());
-                }
-            }
+    /// 当前 proof 状态对应的判定规格（剩余目标 + 已写 binders）。
+    fn spec(&self) -> OpenGoalSpec {
+        OpenGoalSpec {
+            universe: Vec::new(),
+            ty: self.goal_text(),
+            binders: self
+                .binders
+                .iter()
+                .map(|b| GoalBinderSpec {
+                    name: b.name.clone(),
+                    ty: b.ty.as_ref().map(|ty| render_expr(ty)),
+                })
+                .collect(),
         }
-        Err(ProofError::NotABinder)
+    }
+
+    /// kernel 判定的 `exact`：术语先经完整流水线裁决，通过才填入；
+    /// 失败时返回内核的"期望 / 实际"反馈（I9）。
+    pub fn exact_kernel(
+        &mut self,
+        term_text: &str,
+        prefix_src: &str,
+        options: &CompileOptions,
+    ) -> Result<(), ProofError> {
+        let judgement = judge_terms(prefix_src, options, &self.spec(), &[term_text])
+            .into_iter()
+            .next()
+            .expect("judge_terms returns one judgement per term");
+        match judgement {
+            Judgement::Match => self.exact(term_text),
+            Judgement::Mismatch { expected, actual } => {
+                Err(ProofError::Mismatch { expected, actual })
+            }
+            Judgement::Error { code, message } => Err(ProofError::Judge { code, message }),
+        }
+    }
+
+    /// kernel 判定的 `assumption`：从最内层 binder 起逐个让完整 kernel 裁决，
+    /// 第一个通过者填入；全部失败返回 [`ProofError::NoAssumption`]。
+    /// 旧的文本比对实现已删除（REQUIREMENTS §2.8）。
+    pub fn assumption_kernel(
+        &mut self,
+        prefix_src: &str,
+        options: &CompileOptions,
+    ) -> Result<(), ProofError> {
+        let names: Vec<String> = self.binders.iter().rev().map(|b| b.name.clone()).collect();
+        let refs: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
+        let judgements = judge_terms(prefix_src, options, &self.spec(), &refs);
+        let matched = judgements
+            .iter()
+            .position(|j| matches!(j, Judgement::Match))
+            .map(|i| names[i].clone());
+        match matched {
+            Some(name) => self.exact(&name),
+            None => Err(ProofError::NoAssumption),
+        }
     }
 
     pub fn done(&self) -> bool {
@@ -228,5 +292,66 @@ mod tests {
         let file = parse(&source).expect("parse generated example");
         let out = compile_fol(&file);
         assert_eq!(out.errors, vec![]);
+    }
+
+    // ---- I9：kernel 判定的 exact / assumption ----
+
+    #[test]
+    fn assumption_kernel_matches_via_kernel() {
+        let mut p = ProofState::start("(a : Prop) -> a -> a").unwrap();
+        p.intro("a").unwrap();
+        p.intro("h").unwrap();
+        p.assumption_kernel("", &CompileOptions::default()).unwrap();
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => fun (h : a) => h");
+        assert!(p.done());
+    }
+
+    #[test]
+    fn assumption_kernel_reports_no_match() {
+        // intro 后剩余目标是变量 a 本身；没有假设的类型是 a（Prop ≠ a）。
+        let mut p = ProofState::start("(a : Prop) -> a").unwrap();
+        p.intro("a").unwrap();
+        let err = p
+            .assumption_kernel("", &CompileOptions::default())
+            .unwrap_err();
+        assert_eq!(err, ProofError::NoAssumption);
+        assert!(!p.done());
+    }
+
+    #[test]
+    fn exact_kernel_reports_kernel_mismatch() {
+        let mut p = ProofState::start("Prop -> Prop").unwrap();
+        p.intro("x").unwrap();
+        let err = p
+            .exact_kernel("1", "", &CompileOptions::default())
+            .unwrap_err();
+        assert!(
+            matches!(err, ProofError::Mismatch { .. }),
+            "expected mismatch, got {err:?}"
+        );
+        assert!(!p.done());
+    }
+
+    #[test]
+    fn exact_kernel_accepts_defeq_term() {
+        // 目标 Prop -> Prop，术语 fun (x : Prop) => x 经 kernel 裁决通过。
+        let mut p = ProofState::start("Prop -> Prop").unwrap();
+        p.intro("x").unwrap();
+        p.exact_kernel("x", "", &CompileOptions::default()).unwrap();
+        assert!(p.done());
+    }
+
+    #[test]
+    fn exact_kernel_surfaces_elab_errors() {
+        let mut p = ProofState::start("Prop -> Prop").unwrap();
+        p.intro("x").unwrap();
+        let err = p
+            .exact_kernel("nope", "", &CompileOptions::default())
+            .unwrap_err();
+        match &err {
+            ProofError::Judge { code, .. } => assert_eq!(code, "elab-unknown-identifier"),
+            other => panic!("expected judge error, got {other:?}"),
+        }
+        assert!(!p.done());
     }
 }

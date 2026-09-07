@@ -50,6 +50,27 @@ fn cli_rejects_a_bad_declaration() {
 }
 
 #[test]
+fn cli_rejects_uninhabited_dependent_codomain() {
+    // conv 快路径 soundness 修复的端到端守护：`(A : Sort 1) -> A` 不可居住，
+    // 身份 lambda 的类型是 `(A : Sort 1) -> Sort 1`，必须被拒绝（官方 Lean 同）。
+    let out = run("def bad : (A : Sort 1) -> A := fun (A : Sort 1) => A\n");
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("error[kernel-rejected]:"));
+}
+
+#[test]
+fn cli_accepts_identity_over_sort() {
+    // 对照：非依赖的身份函数仍然通过（修复不得过度拒绝）。
+    let out = run("def id0 : (A : Sort 1) -> Sort 1 := fun (A : Sort 1) => A\n");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("checked declaration id0"));
+}
+
+#[test]
 fn cli_reports_parse_errors_with_positions() {
     let out = run("def broken : Prop :=\n");
     assert!(!out.status.success());

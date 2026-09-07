@@ -1,14 +1,18 @@
 //! Code-action helpers: build quick-fix text edits for open exercises
-//! (`intro` turns the first proof step into a lambda; `exact`/`assumption`
-//! closes the goal with a hypothesis whose type matches it).
+//! (`intro` turns the first proof step into a lambda; `exact` closes the goal
+//! with a hypothesis the kernel judges to match it).
+//!
+//! I9：`exact` 的假设匹配走 front::judge（合成完整声明交完整 kernel 裁决），
+//! 文本比对已删除（REQUIREMENTS §2.8）。
 
-use sokonanoda_front::compile::{DeclState, GoalBinder};
+use sokonanoda_front::compile::{CompileOptions, DeclState};
+use sokonanoda_front::judge::{judge_terms, GoalBinderSpec, Judgement, OpenGoalSpec};
 use std::collections::HashMap;
 use tower_lsp::lsp_types::*;
 
 /// Locate the first `???` inside the declaration; returns the 0-based LSP
 /// range covering the hole.
-fn hole_range(text: &str, d: &DeclState) -> Option<Range> {
+pub(crate) fn hole_range(text: &str, d: &DeclState) -> Option<Range> {
     let decl_src = &text[d.span.start.offset..d.span.end.offset];
     let hole_rel = decl_src.find("???")?;
     let hole_off = d.span.start.offset + hole_rel;
@@ -26,7 +30,7 @@ fn hole_range(text: &str, d: &DeclState) -> Option<Range> {
     })
 }
 
-fn edit_on_hole(uri: Url, range: Range, new_text: String) -> WorkspaceEdit {
+pub(crate) fn edit_on_hole(uri: Url, range: Range, new_text: String) -> WorkspaceEdit {
     let mut changes = HashMap::new();
     changes.insert(uri, vec![TextEdit { range, new_text }]);
     WorkspaceEdit {
@@ -52,15 +56,38 @@ pub(crate) fn intro_edit(
     Some(edit_on_hole(uri, range, replacement))
 }
 
-/// A hypothesis whose type matches the remaining goal closes it: find a
-/// binder in the goal context with `ty == goal` and replace the hole with its
-/// name (the kernel stays the judge — this edit merely proposes the term).
-pub(crate) fn exact_binder(uri: Url, text: &str, d: &DeclState) -> Option<(WorkspaceEdit, String)> {
+/// A hypothesis the kernel judges defeq to the remaining goal closes it:
+/// judge every written binder (innermost first, one pipeline run) and return
+/// the first match's name, or `None` when no hypothesis closes the goal.
+///
+/// 限制：判定规格暂不携带声明的宇宙参数，因此带 `{u}` 的开放声明（如
+/// `Eq.symm` 练习）不会得到 exact 建议（intro 不受影响）。
+pub(crate) fn exact_binder(
+    prefix_src: &str,
+    options: &CompileOptions,
+    d: &DeclState,
+) -> Option<String> {
     let goal = d.goal.as_deref()?;
-    let binder: &GoalBinder = d.binders.iter().find(|b| b.ty == goal)?;
-    let range = hole_range(text, d)?;
-    let edit = edit_on_hole(uri, range, binder.name.clone());
-    Some((edit, binder.name.clone()))
+    let spec = OpenGoalSpec {
+        universe: Vec::new(),
+        ty: goal.to_string(),
+        binders: d
+            .binders
+            .iter()
+            .map(|b| GoalBinderSpec {
+                name: b.name.clone(),
+                ty: Some(b.ty.clone()),
+            })
+            .collect(),
+    };
+    let mut names: Vec<String> = d.binders.iter().map(|b| b.name.clone()).collect();
+    names.reverse();
+    let refs: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
+    let judgements = judge_terms(prefix_src, options, &spec, &refs);
+    judgements
+        .iter()
+        .position(|j| matches!(j, Judgement::Match))
+        .map(|i| names[i].clone())
 }
 
 pub(crate) fn offset_to_line_col(text: &str, offset: usize) -> (usize, usize) {

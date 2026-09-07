@@ -227,6 +227,8 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 | `tc.rs` | `ctx` 公开 + `TypeChecker::with_pp` | front 直接读写内核 arena |
 | `pretty_printer.rs` | `→` 改 ASCII `->`；`name_from_str` 公开 | 教学文本一致 |
 | `conv.rs` + `infer.rs`/`inductive.rs`/`tc.rs` | def_eq 失败分支的 panic 消息改为稳定格式 `def_eq mismatch expected: <E> \| actual: <A>`（保留 `def_eq failed` 前缀；两侧值经 quote + debug 打印，各截断到 200 字符）；仅改动失败/冷路径，热循环不变 | 内核拒绝能给教学文案「类型不匹配：期望 X，实际是 Y」（front 解析该标记，见 `front/src/compile/error.rs`） |
+| `conv.rs` | **soundness 修复（2026-09-07，lang）**：`unify_direct` 的 Pi/Lam body-expr 快路径增加 `closure_ctxs_compatible` 守卫——eval 闭包（`ctx: None`）与 infer 闭包（`mk_infer`）对同一 interned body 表达式语义不同（`$0` vs `Sort 1`），混用时 `(A : Sort 1) -> A` 这类不可居住类型会被 `fun (A : Sort 1) => A` 误判可居住。热路径仅增加一个闭包语义判别分支；perf 冒烟与全量测试无回归。回归测试在 `tests/memory_api.rs` 与 CLI e2e | 判定（kernel 信任边界）正确性：tactic judge、练习判定都依赖 def_eq 不出假阳性 |
+| `lib.rs` | `deny(clippy::cast_possible_truncation)` → `warn`（上游代码自身未过此 lint；冻结快照原则，教学 crates 的严格 lint 门禁经各自 `[lints]` 表实现） | lint 配置，非语义 |
 | `Cargo.toml` | bin 改名 `sokonanoda-kernel`；`stumpalo 0.5.1` | workspace 集成 |
 | `tests/memory_api.rs` | **新增** | 无导出文件的内存检查验收 |
 | `builder.rs` | `add_inductive` 返回构建的 `Declar`；新增 `begin/end_inductive_block` 与 `mutual_block_sizes` 记账 | 归纳块可被 kernel 判定（I8a check-then-add） |
@@ -245,13 +247,15 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 
 ## 8. 给其他 agent 的注意点（gotchas）
 
-1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。
-2. **kernel 拒绝 = panic → Result**：目前内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。不要期待细粒度错误码——细粒度是后续任务（见 design doc）。
-3. **elab 仍是"全显式"**：binder 必须带类型（`fun (x : A) => ...`），隐式 binder `{α : Sort u}` 只在 lambda/forall 首层可用；未做 `match`、`let`、无类型 binder 推断、结构/类型类、notation/macro。
-4. **语法白名单是边界**：想加语法，先加课程 + 测试；`???` 只允许出现在 `example` 的值位。
+1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
+2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
+3. **elab 仍受限**：binder 可由声明类型推断（I6），但未做 `match`、`let`、结构/类型类、notation/macro。
+4. **语法白名单是边界**：想加语法，先加课程 + 测试；`???` 只允许出现在声明（def/theorem/example）的值位。
 5. **不用官方工具链**：CI 与本地一律 `cargo`；不要引入 `lean`/`lake`/`lean4export`。
 6. **新错误要带 stage/code 与 span**：CLI 已按 `error[stage]:` 输出，`--json` 是 agent 视图；改输出格式要同步 `docs/protocol.md` 与 `crates/cli/tests/cli.rs`。
 7. **打印偏好**：教学文本 ASCII `->`；`pp_options.proofs=true` 由 `compile_fol` 设置（否则打印会把证明项压成 `_`）。
+8. **tactic/编辑器判定走 `front::judge`**（合成完整声明交完整 kernel 裁决），不要新增文本比对；`proof.rs::assumption` 的文本比对实现已删除。
+9. **kernel lint**：`lib.rs` 的 `cast_possible_truncation` 已降为 warn（上游代码自身未过）；clippy 严格门禁在各教学 crate 的 `[lints.rust] warnings = "deny"`，CI 的 fmt 门禁只覆盖教学 crates（kernel 的 rustfmt.toml 需要 nightly）。
 
 ---
 

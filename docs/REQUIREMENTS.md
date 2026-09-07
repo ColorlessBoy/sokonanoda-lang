@@ -68,6 +68,14 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 - 第一课内容：①表达式与类型 ②函数与箭头 ③命题与证明项 ④等式与 rfl；
   练习判定只走 kernel；`???` 洞（含 lambda 体内的部分作答）是合法状态；
 - 课程细节与解答钥匙见 `docs/teaching-session.md`。
+- **课程排序哲学（2026-09-07 用户插话修正，优先级高于既有单元顺序）**：
+  不要一上来教 Prop / Sort / Type——完全不直觉、没有吸引力。正确顺序是
+  **逻辑先行**：先直接讲逻辑连接词与量词 Prop True False And Or Iff Forall
+  Exists，让学生先"证明命题"；等到函数与函数类型出场、学生自然会问
+  "函数类型的类型是什么？"——由这个**自然触发的问题**引入 Sort。
+  教学顺序跟着直觉与问题触发走，而不是跟着类型论自身的知识结构走；
+  产品设计同理：好的设计应该不言自明。course/ 单元顺序与 playground
+  需按此重排。
 
 ## 7. 开发过程要求（2026-09-06，用户要求）
 
@@ -109,3 +117,10 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 - 2026-09-07（四）：**LSP 增加代码高亮（semantic tokens），VS Code 插件支持
   代码高亮**——已落地；随后不再询问、全部做好测试并推送 git（用户指令）。
   I8（check-then-add/Session/watch）与 I9 kernel 显式错误同轮落地。
+- 2026-09-07（五）：**课程排序哲学**（§6 课程排序哲学条目）：逻辑先行，
+  Sort 由"函数类型的类型是什么"自然引出；course/ 与 playground 重排为下一轮
+  任务。同轮完成：I8 真增量（TrustPlan + 快照复用 + span 重映射 + LSP 接入
+  Session）、I9 judge（合成声明 kernel 裁决；exact/assumption 文本比对删除；
+  soko/goals 与 soko/nextHole 协议）、内核 conv 快路径 soundness 修复
+  （eval/infer 闭包混用误判，三层回归测试）、CI lint 门禁（教学 crates
+  [lints] deny + kernel 冻结豁免）与 VS Code 打包 P0 修复。

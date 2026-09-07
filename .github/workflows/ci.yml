@@ -5,6 +5,30 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: "rustfmt, clippy"
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format check (teaching crates)
+        # crates/kernel 冻结快照使用 nightly-only rustfmt 配置，stable
+        # rustfmt 无法稳定复现；fmt 门禁先覆盖教学 crates（kernel 见
+        # docs/architecture.md §6）。
+        run: cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
+
+      - name: Clippy
+        # 严格度由教学 crates 各自的 [lints.rust] warnings = "deny" 注入；
+        # kernel 的上游遗留 lint 保持 warning 级（冻结快照原则）。
+        run: cargo clippy --workspace --all-targets
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -15,20 +39,14 @@ jobs:
         with:
           components: rustfmt
 
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Workspace tests
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
 
       - name: Protocol conformance (--json events)
-        run: cargo test -p sokonanoda-cli --test protocol
+        run: cargo test -p sokonanoda-cli --test protocol --locked
 
       - name: Lesson corpus is valid
         run: |
@@ -38,7 +56,7 @@ jobs:
           done
 
       - name: Course layer is guarded (canvases, solutions, course.json)
-        run: cargo test -p sokonanoda-cli --test course
+        run: cargo test -p sokonanoda-cli --test course --locked
 
       - name: Machine events are well-formed JSON
         run: |

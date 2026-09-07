@@ -57,6 +57,10 @@ pub struct DeclState {
     /// binders written so far (the goal view's "context"). Empty when the
     /// answer hole has no lambda prefix yet.
     pub binders: Vec<GoalBinder>,
+    /// Index of the command that produced this state (`file.commands[cmd]`),
+    /// so incremental sessions and LSP tooling can map states back to source
+    /// commands without span guessing.
+    pub cmd: usize,
 }
 
 /// A hover answer for one source span (`span -> inferred type text`).
@@ -70,6 +74,9 @@ pub struct HoverType {
 pub struct DocumentReport {
     pub decls: Vec<DeclState>,
     pub hovers: Vec<HoverType>,
+    /// Parallel to `hovers`: the command index each hover belongs to, so an
+    /// incremental session can cache/re-map hovers per command.
+    pub hover_cmds: Vec<usize>,
     /// Parse-level diagnostics live on the `parse` result; this holds
     /// elab/kernel failures that are not attached to a declaration.
     pub errors: Vec<CompileError>,

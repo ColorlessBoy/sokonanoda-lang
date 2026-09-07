@@ -81,6 +81,19 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
+    /// Closure-kind guard for the body-expr shortcuts above: an eval closure
+    /// (`ctx: None`) and an infer closure (`ctx: Some`) over the same body
+    /// expr denote different values, and two infer closures must also carry
+    /// the same type context for their lazy inference to agree.
+    #[inline]
+    fn closure_ctxs_compatible<'a>(bx: &crate::value::Closure<'a>, by: &crate::value::Closure<'a>) -> bool {
+        match (&bx.ctx, &by.ctx) {
+            (None, None) => true,
+            (Some(cx), Some(cy)) => std::ptr::eq(*cx, *cy),
+            _ => false,
+        }
+    }
+
     #[inline]
     fn unify<const RIGID: bool>(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
         let x = self.force_thunk(depth, x);
@@ -199,9 +212,19 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             }
 
             (Value::Pi { domain: dx, body: bx, .. }, Value::Pi { domain: dy, body: by, .. }) => {
+                // Soundness fix (lang): the body-expr shortcut is only valid
+                // when both closures share semantics — eval closures apply
+                // the body as a VALUE while infer closures (mk_infer, used by
+                // the lambda infer path) lazily infer the body's TYPE. Two
+                // closures over the same interned body expr can therefore
+                // denote different codomains (e.g. `Pi (A : Sort 1), Var 0`
+                // evaluated vs `Pi (A : Sort 1), Var 0` inferred: $0 vs
+                // Sort 1). Require the same kind (and, for infer closures,
+                // the same type context) before taking the shortcut.
                 if bx.body == by.body
                     && std::ptr::eq(*dx, *dy)
                     && Self::envs_ptr_equal(bx.env, by.env)
+                    && Self::closure_ctxs_compatible(bx, by)
                 {
                     return true;
                 }
@@ -221,6 +244,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 if bx.body == by.body
                     && std::ptr::eq(dx, dy)
                     && Self::envs_ptr_equal(bx.env, by.env)
+                    && Self::closure_ctxs_compatible(bx, by)
                 {
                     return true;
                 }

@@ -76,7 +76,7 @@ pub(crate) fn report_output(output: &CompileOutput, src: &str, seen_events: usiz
     }
 }
 
-pub(crate) fn expr_text<'a>(src: &'a str, span: sokonanoda_front::Span) -> &'a str {
+pub(crate) fn expr_text(src: &str, span: sokonanoda_front::Span) -> &str {
     if span.end.offset <= src.len() {
         &src[span.start.offset..span.end.offset]
     } else {

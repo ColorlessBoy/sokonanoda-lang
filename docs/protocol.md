@@ -124,6 +124,43 @@ KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`???`), FUNCTION
 (def/theorem names and uses), VARIABLE (axioms, unresolved idents),
 ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
 
+## Custom LSP requests (goal view, I9)
+
+Beyond standard LSP, the server answers two custom requests (tower-lsp
+`custom_method`; clients opt in, servers don't advertise them in
+capabilities):
+
+### `soko/goals`
+
+Request params: `{"textDocument": {"uri"}, "position"}` (position reserved).
+Response:
+
+```json
+{"decls": [{
+  "name": "and_swap", "kind": "theorem", "status": "open",
+  "range": {"start": {...}, "end": {...}},
+  "goal": "And b a",
+  "binders": [{"name": "a", "ty": "Prop"}, {"name": "h", "ty": "And a b"}],
+  "hole": {"start": {...}, "end": {...}}
+}]}
+```
+
+- one entry per declaration (all statuses); `goal`/`binders`/`hole` are
+  present for open exercises (`hole` is the exact `???` range);
+- multi-hole documents are naturally supported (one entry per declaration);
+- hover remains the degraded, human-readable view of the same data.
+
+### `soko/nextHole`
+
+Request params: `{"textDocument": {"uri"}, "position", "forward": true}`.
+Response: `null` or the `range` of the next open hole after (or, with
+`forward: false`, before) the cursor. The server owns hole-position logic
+(ocaml-lsp lesson: clients should not re-derive positions).
+
+Kernel-judged tactics: `exact` code actions are computed by `front::judge`
+(a synthesized complete declaration checked by the full kernel) — no text
+matching anywhere in the editor path.
+
 ## Future structured event names (service layer)
 
 When the resident service replaces `watch`, keep the same vocabulary and add:

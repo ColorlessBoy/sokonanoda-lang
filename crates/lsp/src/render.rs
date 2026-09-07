@@ -55,11 +55,7 @@ pub(crate) fn pos_within_span(line: u32, character: u32, span: Span) -> bool {
     after_start && before_end
 }
 
-pub(crate) fn hover_type_at<'a>(
-    hovers: &'a [HoverType],
-    line: u32,
-    character: u32,
-) -> Option<&'a HoverType> {
+pub(crate) fn hover_type_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&HoverType> {
     // smallest span containing the position wins
     hovers
         .iter()
@@ -71,11 +67,7 @@ pub(crate) fn hover_type_at<'a>(
         })
 }
 
-pub(crate) fn decl_at<'a>(
-    decls: &'a [DeclState],
-    line: u32,
-    character: u32,
-) -> Option<&'a DeclState> {
+pub(crate) fn decl_at(decls: &[DeclState], line: u32, character: u32) -> Option<&DeclState> {
     decls
         .iter()
         .find(|d| pos_within_span(line, character, d.span))

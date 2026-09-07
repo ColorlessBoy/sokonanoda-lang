@@ -1,9 +1,14 @@
 {
   "name": "sokonanoda",
-  "displayName": "sokonanoda",
+  "displayName": "sokonanoda language support",
   "description": "Editor support for .sokonanoda teaching files (LSP diagnostics, hover types, exercise status)",
   "version": "0.1.0",
   "publisher": "sokonanoda-lang",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ColorlessBoy/sokonanoda-lang"
+  },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages", "Other"],
   "extensionKind": ["workspace"],
@@ -74,9 +79,10 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "echo ok"
+    "compile": "echo ok",
+    "package": "vsce package --out sokonanoda.vsix"
   },
-  "devDependencies": {
+  "dependencies": {
     "vscode-languageclient": "^9.0.1"
   }
 }

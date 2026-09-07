@@ -396,16 +396,27 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - 验收：零基础用户按顺序完成；CI 跑全部课程文件并比对 golden 事件。
 
 ### I8 —— 真正增量（服务层前置）
-- check-then-add：失败的声明不进环境（现在 batch 全量构建 + ByName 可见性，
-  失败的声明仍占名字）；只重查受影响后缀；事件带版本号。
-- 验收：改第 i 个声明只重编译受影响片段（日志可验），练习状态增量更新。
+- [x] check-then-add：失败的声明不进环境（pass2 重算，ByIndex/ByName 可见性）；
+      归纳块纳入 kernel 判定。
+- [x] Session（front::session）：版本号、delta 事件、内容未变零重编译。
+- [x] watch：`sokonanoda watch <file>` JSON Lines 流。
+- [x] **真增量后缀重查（2026-09-07）**：TrustPlan 信任前缀跳过内核重查 +
+      逐命令快照复用 + span 重映射；`SessionUpdate.stats.kernel_checks`
+      可验证；LSP 切换到 Session。设计见 `docs/design-i8-i9.md` §1。
+- [ ] 验收余项：受影响后缀的**依赖精确化**（当前为保守 suffix；early-cutoff
+      签名比较是可选优化）。
 
 ### I9 —— kernel 显式错误 + goal 视图
-- kernel：panic → 显式 `KernelError`（conv 失败给出两端项），教学前端可生成
-  "期望 X / 实际 Y" 级反馈（D3-C，长期）。
-- goal 视图：`#prove` 逻辑（proof.rs）入库成库 API；LSP 多洞 goal / refine /
-  code action（intro/exact/apply/assumption）；`assumption` 文本比对替换为 kernel 判定。
-- 验收：在编辑器里三步完成 `(a : Prop) -> a -> a` 并实时看到 goal/lambda 回显。
+- [x] kernel：def_eq 失败给出两端项（稳定格式 `def_eq mismatch expected: … |
+      actual: …`），front 解析为「类型不匹配：期望 X / 实际 Y」。
+- [x] **conv 快路径 soundness 修复（2026-09-07）**：eval/infer 闭包混用导致
+      不可居住类型通过——快路径加闭包语义守卫；回归测试三层。
+      见 `docs/design-i8-i9.md` §2 与 `docs/architecture.md` §6。
+- [x] goal 视图：`front::judge`（合成声明交完整 kernel 裁决）；LSP exact
+      kernel 判定（文本比对删除）；REPL exact/apply/assumption kernel 判定
+      并反馈期望/实际；`soko/goals` + `soko/nextHole` 自定义请求。
+- [ ] goal 视图余项：多洞 refine、声明宇宙参数携带、VS Code goal 面板、
+      `assumption` 级错误信息的人因打磨。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。

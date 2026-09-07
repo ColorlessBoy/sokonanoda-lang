@@ -2,7 +2,7 @@
 
 use crate::check::report_output;
 use crate::help::print_repl_help;
-use sokonanoda_front::compile::{compile_fol, CheckEvent};
+use sokonanoda_front::compile::{prelude_mode_from_source, CheckEvent, CompileOptions};
 use sokonanoda_front::parse;
 use sokonanoda_front::proof::ProofState;
 use std::io::{BufRead, Write};
@@ -46,8 +46,12 @@ pub(crate) fn repl() -> ExitCode {
                 }
                 _ => {}
             }
+            // 判定选项跟随 buffer 的 prelude 指令（与整份重编译语义一致）。
+            let options = CompileOptions {
+                prelude: prelude_mode_from_source(&buffer),
+            };
             if line.starts_with("intro ") {
-                let name = line["intro ".len()..].trim();
+                let name = line.strip_prefix("intro ").unwrap_or("").trim();
                 match state.intro(name) {
                     Ok(()) => {
                         print_proof_state(state);
@@ -57,32 +61,34 @@ pub(crate) fn repl() -> ExitCode {
                 continue;
             }
             if line.starts_with("exact ") {
-                let term = line["exact ".len()..].trim();
-                match state.exact(term) {
+                let term = line.strip_prefix("exact ").unwrap_or("").trim();
+                // I9：kernel 先裁决术语，通过才填入；失败给出期望/实际。
+                match state.exact_kernel(term, &buffer, &options) {
                     Ok(()) => {
                         println!("lambda: {}", state.lambda_text());
-                        println!("use `done` to kernel-check this proof.");
+                        println!("kernel-checked ✓ — use `done` to append the proof.");
                     }
                     Err(e) => eprintln!("error: {e}"),
                 }
                 continue;
             }
             if line.starts_with("apply ") {
-                let term = line["apply ".len()..].trim();
-                match state.exact(term) {
+                let term = line.strip_prefix("apply ").unwrap_or("").trim();
+                match state.exact_kernel(term, &buffer, &options) {
                     Ok(()) => {
                         println!("lambda: {}", state.lambda_text());
-                        println!("use `done` to kernel-check this proof.");
+                        println!("kernel-checked ✓ — use `done` to append the proof.");
                     }
                     Err(e) => eprintln!("error: {e}"),
                 }
                 continue;
             }
             if line.trim() == "assumption" {
-                match state.assumption() {
+                // I9：从最内层假设起让 kernel 逐个裁决（文本比对已删除）。
+                match state.assumption_kernel(&buffer, &options) {
                     Ok(()) => {
                         println!("lambda: {}", state.lambda_text());
-                        println!("use `done` to kernel-check this proof.");
+                        println!("kernel-checked ✓ — use `done` to append the proof.");
                     }
                     Err(e) => eprintln!("error: {e}"),
                 }
@@ -141,8 +147,11 @@ pub(crate) fn repl() -> ExitCode {
 }
 
 pub(crate) fn run_buffer(buffer: &str, seen_events: &mut usize, declared: &mut Vec<String>) {
+    let options = CompileOptions {
+        prelude: prelude_mode_from_source(buffer),
+    };
     let output = match parse(buffer) {
-        Ok(file) => compile_fol(&file),
+        Ok(file) => sokonanoda_front::compile::compile_fol_with(&file, &options),
         Err(diag) => {
             eprintln!(
                 "{}:{}: error[{}]: {}",

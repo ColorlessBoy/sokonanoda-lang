@@ -1,9 +1,9 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（模块化重构 + 全流水线测试资产）
+> 快照：2026-09-07（第五轮：I8 真增量 + I9 judge/协议 + 内核 soundness 修复 + 工程达标）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-infrastructure.md`；架构/内核 = `docs/architecture.md`；
-> 协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
+> 设计 = `docs/design-i8-i9.md`（本轮）/ `docs/design-infrastructure.md`（历史）；
+> 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
 
 ## 一句话
@@ -11,6 +11,49 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第五轮：I8 真增量 + I9 + 内核修复 + 工程达标）
+
+本轮按"先调研后动手"执行（4 个并行 subagent：代码审计 / LSP 增量业界实践 /
+goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全程 TDD。
+
+1. **I8 真增量（front，零内核改动）**：学 Lean4/coq-lsp 的"前缀精确复用 +
+   变化点后保守重算"。`run_pass` 增加 `TrustPlan`：信任前缀照常 elaborate +
+   入环境但**跳过内核重查**（内核检查是贵的那一半）；失败声明不入环境
+   （check-then-add 语义保持）。`Session` 快照升级为逐命令
+   `{state, hovers, events, errors}`，文本不变 → 零重编译且**修复了注释/空白
+   编辑导致的 span 漂移 bug**（重映射坐标）；`first_diff` 之后才重查。
+   `SessionUpdate.stats.kernel_checks` 让"改第 i 个声明只重查后缀"可验证
+   （测试：5 声明改第 4 → kernel_checks == 2）。LSP Backend 切换到 Session
+   （此前每次编辑 2×2 遍流水线，现在前缀零内核重查）。prelude 指令变化时
+   整体重建（决策依赖整文件内容，语义与全量严格等价）。
+2. **I9 tactic 判定 kernel 化（`front::judge`，零 kernel 原语）**：
+   合成完整声明 `def _soko_judge_k : forall binders, 剩余目标 := …术语…`
+   走标准流水线，kernel 是唯一裁判。LSP `exact` 与 REPL
+   `exact/apply/assumption` 全部接入；`proof.rs` 文本比对删除
+   （REQUIREMENTS §2.8 清账）。defeq-但-不同文本的假设（`a -> False` vs
+   `Not a`）现在能被识别。goal 视图协议：`soko/goals`（结构化多洞 goal 列表）
+   与 `soko/nextHole`（server 端位置计算，ocaml-lsp 教训）两个自定义请求。
+3. **内核 soundness 修复（上游 bug，本轮最重要发现）**：judge 端到端测试暴露
+   conv `unify_direct` 的 Pi/Lam body-expr 快路径把 **eval 闭包与 infer 闭包**
+   按体表达式指针判等（同一 `Var 0` 在两种闭包下是 `$0` vs `Sort 1`），
+   `(A : Sort 1) -> A` 这种不可居住类型被身份 lambda 通过（官方 Lean 拒绝）。
+   修复 = 快路径增加闭包语义守卫（`closure_ctxs_compatible`，热路径仅一个
+   判别分支），回归测试三层（kernel 2 + CLI 2 + 全量语料）。
+4. **工程达标（业内标准）**：CI 增加 lint job（fmt + clippy）；`actions/cache`
+   → `Swatinem/rust-cache@v2`；`--locked`。lint 门禁形态：教学 crates 在各自
+   `Cargo.toml` 用 `[lints.rust] warnings = "deny"` 注入严格度，kernel 冻结
+   快照不参与（其 `lib.rs` 的 `deny(cast_possible_truncation)` 降为 warn，
+   上游代码自身未过该 lint）。fmt 门禁只覆盖教学 crates（kernel rustfmt.toml
+   需要 nightly）。VS Code 打包 P0：`vscode-languageclient` 移到 dependencies
+   （此前打出的 VSIX 装上即坏）、补 repository/LICENSE/CHANGELOG/.vscodeignore、
+   `vsce package` 冒烟通过。
+5. **课程哲学修正（用户插话，已记录 REQUIREMENTS §6）**：逻辑先行——先讲
+   True/False/And/Or/Iff/Forall/Exists 让学生在"证明命题"里建立直觉，Sort 等
+   到"函数类型的类型是什么"这一自然问题出现时再引入；course/ 与 playground
+   按此重排（**下一轮任务**）。
+6. 测试总量 **229**（kernel 45 / front 121 / cli 40 / lsp 23），
+   全绿；`cargo clippy --workspace` exit-0，教学 crates 0 警告。
 
 ## 本轮进度（2026-09-07，接手 agent 第 1–3 轮）
 
@@ -101,10 +144,15 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
 ## 下一步（按 REQUIREMENTS §8 路线）
 
-- **I7 课程目录化**：把 playground 第一课沉淀为 `course/lesson-XX-*.sokonanoda`
-  + `course/course.json` + golden 事件（ROADMAP I7）。
-- **I8 真正增量**（check-then-add）、**I9 kernel 显式错误 + goal 视图深化**、
-  **L2/L3**（VS Code 打包 / service / 讲课 agent 深化）——见 ROADMAP §10。
+- **课程哲学落地**：course/ 5 单元与 playground 重排为"逻辑先行"
+  （REQUIREMENTS §6 课程排序哲学）：单元① 逻辑连接词与证明项，Sort 由
+  "函数类型的类型"问题自然引出。
+- **I9 余项**：goal 视图携带声明宇宙参数（带 `{u}` 的开放声明目前无 exact
+  建议）；refine/multi-hole；`soko/goals` 的 VS Code 客户端消费（goal 面板）。
+- **L2/L3**：VS Code 扩展集成测试（@vscode/test-electron）与打包发布流水线；
+  L1 service 事件流（watch 已是 CLI 形态）。
+- **内核余项**：panic → 显式 KernelError 的完整化（def_eq mismatch 已闭环，
+  其余拒绝路径仍是 panic 包装）。
 
 ## 已确认的决策（用户 2026-09-06）
 

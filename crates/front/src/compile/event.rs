@@ -13,14 +13,31 @@ pub enum CheckEvent {
     ExerciseOpen { name: Option<String> },
 }
 
+/// 一次编译的性能计数（I8 增量的可验证性：改第 i 个声明只内核重查后缀）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CompileStats {
+    /// `try_check_declar` 的实际调用次数（受信任前缀不计入）。
+    pub kernel_checks: usize,
+}
+
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct CompileOutput {
     pub events: Vec<CheckEvent>,
     pub errors: Vec<CompileError>,
+    /// 与 `events` 平行：每条事件归属于哪条命令（索引）。
+    /// 增量会话用它复用未变化前缀的事件；CLI/JSON 视图不消费。
+    pub event_cmds: Vec<usize>,
+    pub stats: CompileStats,
 }
 
 impl CompileOutput {
     pub fn ok(&self) -> bool {
         self.errors.is_empty()
+    }
+
+    /// 记录一条事件及其归属命令（两数组严格平行，永不失配）。
+    pub(crate) fn push_event(&mut self, cmd: usize, event: CheckEvent) {
+        self.events.push(event);
+        self.event_cmds.push(cmd);
     }
 }

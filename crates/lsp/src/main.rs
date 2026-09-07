@@ -12,28 +12,44 @@
 mod actions;
 mod render;
 
-use actions::{exact_binder, intro_edit};
+use actions::{exact_binder, hole_range, intro_edit};
 use render::{
     decl_at, decl_name, diagnostic_from_compile, diagnostic_from_parse, hover_type_at, range_of,
     status_label, symbol_kind,
 };
+use serde::{Deserialize, Serialize};
 use sokonanoda_front::compile::{
-    check_document_with, prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport,
+    prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport, PreludeMode,
 };
-use sokonanoda_front::parse;
 use sokonanoda_front::semantic::{
     semantic_tokens as front_semantic_tokens, SemanticKind, SemanticSpan,
 };
+use sokonanoda_front::session::Session;
 use std::sync::Mutex;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-#[derive(Default)]
+#[derive(Debug)]
 struct Doc {
     text: String,
+    /// 会话式编译（I8）：持有上一版本的声明快照，编辑只重查受影响后缀。
+    session: Session,
+    mode: PreludeMode,
     report: Option<DocumentReport>,
     parse_error: Option<sokonanoda_front::Diagnostic>,
+}
+
+impl Doc {
+    fn new() -> Self {
+        Self {
+            text: String::new(),
+            session: Session::new(CompileOptions::default()),
+            mode: PreludeMode::Full,
+            report: None,
+            parse_error: None,
+        }
+    }
 }
 
 struct Backend {
@@ -145,45 +161,178 @@ impl Backend {
     fn new(client: Client) -> Self {
         Self {
             client,
-            doc: Mutex::new(Doc::default()),
+            doc: Mutex::new(Doc::new()),
         }
     }
 
     async fn refresh(&self, uri: Url, text: String, version: Option<i32>) {
-        let (doc, diagnostics) = {
-            let mut doc = Doc {
-                text: text.clone(),
-                ..Doc::default()
-            };
-            let mut diagnostics = Vec::new();
-            match parse(&text) {
-                Ok(file) => {
-                    // The file-level `-- sokonanoda:prelude none` directive
-                    // decides whether the trusted prelude is installed.
-                    let options = CompileOptions {
-                        prelude: prelude_mode_from_source(&text),
-                    };
-                    let report = check_document_with(&file, &options);
-                    // A report carries the same errors as its decl states; emit
-                    // them once per failing declaration.
-                    for err in &report.errors {
-                        diagnostics.push(diagnostic_from_compile(err));
-                    }
-                    doc.report = Some(report);
-                }
-                Err(diag) => {
-                    diagnostics.push(diagnostic_from_parse(&diag));
+        // 原地复用会话（I8 增量的关键）：prelude 模式变化时才重建。
+        // 教学文档量级小，锁内同步编译可接受（此前也是同步全量编译）。
+        let diagnostics = {
+            let mut doc = self.doc.lock().expect("doc lock");
+            let mode = prelude_mode_from_source(&text);
+            if doc.mode != mode {
+                doc.session = Session::new(CompileOptions { prelude: mode });
+                doc.mode = mode;
+            }
+            let lsp_version = version.unwrap_or(0).max(0) as u64;
+            let update = doc.session.update(&text, lsp_version);
+            doc.text = text;
+            match update.parse_error {
+                Some(diag) => {
+                    let diagnostic = diagnostic_from_parse(&diag);
                     doc.parse_error = Some(diag);
+                    doc.report = None;
+                    vec![diagnostic]
+                }
+                None => {
+                    doc.parse_error = None;
+                    // A report carries the same errors as its decl states;
+                    // emit them once per failing declaration.
+                    let diagnostics: Vec<_> = update
+                        .report
+                        .errors
+                        .iter()
+                        .map(diagnostic_from_compile)
+                        .collect();
+                    doc.report = Some(update.report);
+                    diagnostics
                 }
             }
-            (doc, diagnostics)
         };
-        *self.doc.lock().expect("doc lock") = doc;
         let _ = self
             .client
             .publish_diagnostics(uri, diagnostics, version)
             .await;
     }
+
+    // ---- I9 goal 视图协议：结构化 goal 请求（coq-lsp `proof/goals` 模式）----
+
+    fn goal_decls(&self) -> Option<(String, Vec<GoalDeclInfo>)> {
+        let doc = self.doc.lock().expect("doc lock");
+        let report = doc.report.as_ref()?;
+        let decls = report
+            .decls
+            .iter()
+            .map(|d| GoalDeclInfo {
+                name: decl_name(d),
+                kind: d.kind.as_str().to_string(),
+                status: match d.status {
+                    DeclStatus::Open => "open".to_string(),
+                    DeclStatus::Checked => "checked".to_string(),
+                    DeclStatus::Failed => "failed".to_string(),
+                },
+                range: range_of(d.span),
+                goal: d.goal.clone(),
+                binders: d
+                    .binders
+                    .iter()
+                    .map(|b| GoalBinderInfo {
+                        name: b.name.clone(),
+                        ty: b.ty.clone(),
+                    })
+                    .collect(),
+                hole: match d.status {
+                    DeclStatus::Open => hole_range(&doc.text, d),
+                    _ => None,
+                },
+            })
+            .collect();
+        Some((doc.text.clone(), decls))
+    }
+
+    async fn goals(&self, params: GoalsParams) -> Result<GoalsResponse> {
+        let _ = params;
+        let decls = self
+            .goal_decls()
+            .map(|(_, decls)| decls)
+            .unwrap_or_default();
+        Ok(GoalsResponse { decls })
+    }
+
+    async fn next_hole(&self, params: NextHoleParams) -> Result<Option<Range>> {
+        let Some((text, decls)) = self.goal_decls() else {
+            return Ok(None);
+        };
+        let forward = params.forward.unwrap_or(true);
+        let cursor = position_to_offset(&text, params.position);
+        let mut holes: Vec<(usize, Range)> = decls
+            .iter()
+            .filter_map(|d| d.hole.as_ref().map(|r| (range_start_offset(&text, r), *r)))
+            .collect();
+        holes.sort_by_key(|(off, _)| *off);
+        let found = if forward {
+            holes.iter().find(|(off, _)| *off > cursor)
+        } else {
+            holes.iter().rev().find(|(off, _)| *off < cursor)
+        };
+        Ok(found.map(|(_, range)| *range))
+    }
+}
+
+// ---- soko/* 自定义请求的 wire 类型（docs/protocol.md）----
+
+#[derive(Debug, Deserialize)]
+struct GoalsParams {
+    #[serde(rename = "textDocument")]
+    #[allow(dead_code)]
+    text_document: TextDocumentIdentifier,
+    #[allow(dead_code)]
+    #[serde(default)]
+    position: Option<Position>,
+}
+
+#[derive(Debug, Serialize)]
+struct GoalBinderInfo {
+    name: String,
+    ty: String,
+}
+
+#[derive(Debug, Serialize)]
+struct GoalDeclInfo {
+    name: String,
+    kind: String,
+    status: String,
+    range: Range,
+    goal: Option<String>,
+    binders: Vec<GoalBinderInfo>,
+    hole: Option<Range>,
+}
+
+#[derive(Debug, Serialize)]
+struct GoalsResponse {
+    decls: Vec<GoalDeclInfo>,
+}
+
+#[derive(Debug, Deserialize)]
+struct NextHoleParams {
+    #[serde(rename = "textDocument")]
+    #[allow(dead_code)]
+    text_document: TextDocumentIdentifier,
+    position: Position,
+    #[serde(default)]
+    forward: Option<bool>,
+}
+
+/// 0-based LSP position → byte offset（与本服务器的 char 计数约定一致）。
+fn position_to_offset(text: &str, position: Position) -> usize {
+    let mut offset = 0usize;
+    for (i, line) in text.lines().enumerate() {
+        if i == position.line as usize {
+            let char_idx = text[offset..]
+                .char_indices()
+                .nth(position.character as usize)
+                .map(|(i, _)| i)
+                .unwrap_or(line.len());
+            return offset + char_idx.min(line.len());
+        }
+        offset += line.len() + 1;
+    }
+    text.len()
+}
+
+fn range_start_offset(text: &str, range: &Range) -> usize {
+    position_to_offset(text, range.start)
 }
 
 #[tower_lsp::async_trait]
@@ -373,18 +522,26 @@ impl LanguageServer for Backend {
             return Ok(None);
         }
         let mut actions: Vec<CodeActionOrCommand> = Vec::new();
-        // Close the goal with a hypothesis whose type matches it, if any.
-        if let Some((edit, binder)) = exact_binder(params.text_document.uri.clone(), &doc.text, d) {
-            actions.push(CodeActionOrCommand::CodeAction(CodeAction {
-                title: format!("exact {binder}（用假设 {binder} 直接结束证明）"),
-                kind: Some(CodeActionKind::QUICKFIX),
-                diagnostics: None,
-                edit: Some(edit),
-                command: None,
-                is_preferred: None,
-                disabled: None,
-                data: None,
-            }));
+        // Close the goal with a hypothesis the kernel judges to match it
+        // (I9: no text comparison — the full pipeline is the judge).
+        let options = CompileOptions { prelude: doc.mode };
+        let prefix_end = d.span.start.offset.min(doc.text.len());
+        let prefix_src = &doc.text[..prefix_end];
+        if let Some(binder) = exact_binder(prefix_src, &options, d) {
+            if let Some(range) = hole_range(&doc.text, d) {
+                let edit =
+                    actions::edit_on_hole(params.text_document.uri.clone(), range, binder.clone());
+                actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title: format!("exact {binder}（用假设 {binder} 直接结束证明）"),
+                    kind: Some(CodeActionKind::QUICKFIX),
+                    diagnostics: None,
+                    edit: Some(edit),
+                    command: None,
+                    is_preferred: None,
+                    disabled: None,
+                    data: None,
+                }));
+            }
         }
         // Peel one binder: intro turns the next proof step into a lambda.
         if let Some(goal_text) = &d.goal {
@@ -428,7 +585,10 @@ impl LanguageServer for Backend {
 async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
-    let (service, socket) = LspService::new(Backend::new);
+    let (service, socket) = LspService::build(Backend::new)
+        .custom_method("soko/goals", Backend::goals)
+        .custom_method("soko/nextHole", Backend::next_hole)
+        .finish();
     Server::new(stdin, stdout, socket).serve(service).await;
 }
 
@@ -443,6 +603,14 @@ mod tests {
     use tower_lsp::jsonrpc::Request as RpcRequest;
 
     use tower_lsp::{ClientSocket, LspService};
+
+    /// 带自定义方法注册的服务（soko/goals、soko/nextHole）。
+    fn test_service() -> (LspService<Backend>, ClientSocket) {
+        LspService::build(Backend::new)
+            .custom_method("soko/goals", Backend::goals)
+            .custom_method("soko/nextHole", Backend::next_hole)
+            .finish()
+    }
 
     /// Guard only: any server→client message must arrive within this budget.
     const TIMEOUT: Duration = Duration::from_secs(2);
@@ -571,7 +739,7 @@ mod tests {
                 continue;
             }
             let params: PublishDiagnosticsParams =
-                serde_json::from_value(msg.params().cloned().unwrap_or_else(|| json!(null)))
+                serde_json::from_value(msg.params().cloned().unwrap_or(json!(null)))
                     .expect("valid PublishDiagnosticsParams");
             if params.uri.as_str() == URI {
                 return params;
@@ -588,14 +756,14 @@ mod tests {
 
     #[tokio::test]
     async fn initialize_advertises_core_capabilities() {
-        let (mut service, _socket) = LspService::new(Backend::new);
+        let (mut service, _socket) = test_service();
         handshake(&mut service).await;
         shutdown(&mut service).await;
     }
 
     #[tokio::test]
     async fn did_open_valid_file_publishes_no_diagnostics() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, VALID).await;
         let params = wait_diagnostics(&mut socket, "diagnostics after didOpen").await;
@@ -610,7 +778,7 @@ mod tests {
 
     #[tokio::test]
     async fn did_open_kernel_rejected_file_publishes_coded_diagnostic() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, KERNEL_BAD).await;
         let params = wait_diagnostics(&mut socket, "kernel diagnostics").await;
@@ -637,7 +805,7 @@ mod tests {
 
     #[tokio::test]
     async fn did_open_parse_error_publishes_parse_code() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, PARSE_BAD).await;
         let params = wait_diagnostics(&mut socket, "parse diagnostics").await;
@@ -660,7 +828,7 @@ mod tests {
 
     #[tokio::test]
     async fn hover_returns_inferred_type() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, VALID).await;
         let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
@@ -696,7 +864,7 @@ mod tests {
 
     #[tokio::test]
     async fn hover_on_hole_shows_goal() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, EXERCISE).await;
         let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
@@ -736,7 +904,7 @@ mod tests {
     #[tokio::test]
     async fn document_symbols_list_declarations() {
         let src = format!("{VALID}{EXERCISE}");
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, &src).await;
         let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
@@ -785,7 +953,7 @@ mod tests {
     #[tokio::test]
     async fn code_lens_reflects_exercise_status() {
         let src = format!("def ok : Prop -> Prop := fun (x : Prop) => x\n{EXERCISE}");
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, &src).await;
         let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
@@ -819,7 +987,7 @@ mod tests {
 
     #[tokio::test]
     async fn code_action_offers_intro_on_open_exercise() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, EXERCISE).await;
         let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
@@ -893,7 +1061,7 @@ mod tests {
 
     #[tokio::test]
     async fn did_change_recomputes_diagnostics() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, VALID).await;
         let first = wait_diagnostics(&mut socket, "initial diagnostics").await;
@@ -928,7 +1096,7 @@ mod tests {
 
     #[tokio::test]
     async fn directive_bare_file_without_nat_checks_clean() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, BARE_OK).await;
         let params = wait_diagnostics(&mut socket, "bare ok diagnostics").await;
@@ -941,7 +1109,7 @@ mod tests {
 
     #[tokio::test]
     async fn directive_bare_file_loses_nat() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, BARE_NAT).await;
         let params = wait_diagnostics(&mut socket, "bare nat diagnostics").await;
@@ -957,7 +1125,7 @@ mod tests {
 
     #[tokio::test]
     async fn full_mode_still_has_nat_without_directive() {
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, FULL_NAT).await;
         let params = wait_diagnostics(&mut socket, "full nat diagnostics").await;
@@ -972,7 +1140,7 @@ mod tests {
     #[tokio::test]
     async fn hover_on_partial_hole_lists_hypotheses() {
         let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n";
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "partial hole diagnostics").await;
@@ -1011,7 +1179,7 @@ mod tests {
     #[tokio::test]
     async fn code_action_offers_exact_for_matching_hypothesis() {
         let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n";
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "partial hole diagnostics").await;
@@ -1063,7 +1231,7 @@ mod tests {
     #[tokio::test]
     async fn code_action_intro_still_offered_without_matching_hypothesis() {
         let src = "example : Prop -> Prop := ???\n";
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "hole diagnostics").await;
@@ -1145,7 +1313,7 @@ mod tests {
     #[tokio::test]
     async fn semantic_tokens_full_classifies_def_example_hole() {
         let src = "def two : Nat := 2\nexample : Sort 1 := ???\n";
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "semantic tokens diagnostics").await;
@@ -1171,7 +1339,7 @@ mod tests {
     #[tokio::test]
     async fn semantic_tokens_full_handles_non_ascii_identifiers() {
         let src = "def α_id : Prop -> Prop := fun (x : Prop) => x\n";
-        let (mut service, mut socket) = LspService::new(Backend::new);
+        let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "semantic tokens diagnostics").await;
@@ -1219,5 +1387,152 @@ mod tests {
         assert!(encode_semantic_tokens(src, &spans).is_empty());
         let empty: Vec<SemanticSpan> = Vec::new();
         assert!(encode_semantic_tokens("", &empty).is_empty());
+    }
+
+    // ---- I9 goal 视图协议：soko/goals 与 soko/nextHole ----
+
+    async fn request_goals(service: &mut LspService<Backend>) -> serde_json::Value {
+        call(
+            service,
+            RpcRequest::build("soko/goals")
+                .params(json!({"textDocument": {"uri": URI}, "position": null}))
+                .id(40)
+                .finish(),
+        )
+        .await
+        .expect("soko/goals must answer")
+    }
+
+    #[tokio::test]
+    async fn goals_request_lists_open_exercise_with_hole_range() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, EXERCISE).await;
+        let _ = wait_diagnostics(&mut socket, "goals diagnostics").await;
+
+        let result = request_goals(&mut service).await;
+        let decls = result
+            .get("decls")
+            .and_then(|d| d.as_array())
+            .expect("goals response carries decls");
+        assert_eq!(decls.len(), 1, "one open exercise: {result:?}");
+        let decl = &decls[0];
+        assert_eq!(decl["status"], "open");
+        assert_eq!(decl["goal"], "Prop -> Prop");
+        let hole = decl["hole"].as_object().expect("hole range present");
+        let start = hole["start"].as_object().expect("hole start");
+        let expected = lsp_pos(EXERCISE, offset_of(EXERCISE, "???"));
+        assert_eq!(start["line"], expected.line, "hole line (0-based)");
+        assert_eq!(start["character"], expected.character, "hole character");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn next_hole_navigates_between_two_holes() {
+        let src = format!("{EXERCISE}example : Prop := ???\n");
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &src).await;
+        let _ = wait_diagnostics(&mut socket, "next hole diagnostics").await;
+
+        // 从文件头向前：命中第一个洞。
+        let first = ask_next_hole(
+            &mut service,
+            Position {
+                line: 0,
+                character: 0,
+            },
+            true,
+        )
+        .await;
+        let first_range: Option<Range> = serde_json::from_value(first).expect("valid hole range");
+        let first_range = first_range.expect("a hole ahead of (0,0)");
+        assert_eq!(first_range.start.line, 0, "first hole is on line 0");
+        // 从第一个洞再向前：命中第二个洞（line 1）。
+        let second = ask_next_hole(&mut service, first_range.start, true).await;
+        let second_range: Option<Range> = serde_json::from_value(second).expect("valid hole range");
+        let second_range = second_range.expect("a second hole ahead of the first");
+        assert_eq!(second_range.start.line, 1, "second hole is on line 1");
+        // 从第二个洞向后：回到第一个洞。
+        let back = ask_next_hole(&mut service, second_range.start, false).await;
+        let back_range: Option<Range> = serde_json::from_value(back).expect("valid hole range");
+        assert_eq!(
+            back_range.expect("a hole behind").start.line,
+            0,
+            "backward navigation returns to the first hole"
+        );
+        shutdown(&mut service).await;
+    }
+
+    async fn ask_next_hole(
+        service: &mut LspService<Backend>,
+        pos: Position,
+        forward: bool,
+    ) -> serde_json::Value {
+        call(
+            service,
+            RpcRequest::build("soko/nextHole")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                    "forward": forward,
+                }))
+                .id(41)
+                .finish(),
+        )
+        .await
+        .expect("soko/nextHole must answer")
+    }
+
+    #[tokio::test]
+    async fn code_action_exact_uses_kernel_defeq_not_text_match() {
+        // h 的类型是 `a -> False`，剩余目标渲染为 `Not a`：文本不同但
+        // definitional equal —— 文本比对给不出建议，kernel 判定可以。
+        let src = "axiom False : Prop\n\
+                   def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
+                   example : (a : Prop) -> (a -> False) -> Not a := fun (a : Prop) => fun (h : a -> False) => ???\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "defeq exact diagnostics").await;
+
+        let hole = offset_of(src, "???");
+        let hole_start = lsp_pos(src, hole);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/codeAction")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "range": {"start": position_json(hole_start), "end": position_json(hole_start)},
+                    "context": {"diagnostics": []},
+                }))
+                .id(42)
+                .finish(),
+        )
+        .await
+        .expect("codeAction must answer");
+        let actions: Option<CodeActionResponse> =
+            serde_json::from_value(result).expect("valid CodeActionResponse");
+        let actions = actions.expect("kernel-defeq hypothesis must yield an action");
+        let exact = actions
+            .iter()
+            .find_map(|a| match a {
+                CodeActionOrCommand::CodeAction(action) => {
+                    if action.title.contains("exact h") {
+                        Some(action)
+                    } else {
+                        None
+                    }
+                }
+                CodeActionOrCommand::Command(_) => None,
+            })
+            .expect("an `exact h` action must be offered (kernel judges a -> False ≡ Not a)");
+        let edit = exact.edit.as_ref().expect("exact action carries an edit");
+        let edits = edit
+            .changes
+            .as_ref()
+            .and_then(|c| c.get(&Url::parse(URI).expect("uri")))
+            .expect("edit targets our uri");
+        assert_eq!(edits[0].new_text, "h");
     }
 }

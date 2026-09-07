@@ -83,3 +83,32 @@
   cli 含 26+3+1+8 四个套件）。
 - 内核 iota 规则教学注意：`inductive` 块现在被 kernel 判定，iota 规则的递归
   调用必须写 `Rec.{u}`（宇宙参数显式），规则值必须是 `ms n (Rec.{u} ...)`。
+
+## 2026-09-07 更新（第五轮：I8 真增量 + I9 judge + 内核 soundness）
+
+- **I8 增量层**（`crates/front/src/session.rs`，5 个新测试）：
+  `session_rechecks_only_the_affected_suffix`（改第 4/5 个声明 →
+  `stats.kernel_checks == 2/1`，插入/删除对齐）、
+  `session_zero_recompile_keeps_prefix_results`（注释编辑零重编译 + hover
+  span 平移 + 事件缓存）、`session_whitespace_between_commands_zero_recompiles_with_remap`、
+  `session_prefix_failure_keeps_name_free_for_suffix`、
+  `session_prelude_directive_change_rebuilds`。
+- **I9 judge 层**（`crates/front/src/judge.rs`，8 个）：kernel 判定匹配/不匹配
+  （含期望与实际）、依赖 binder、binder 缺类型标注报错、defeq-不同文本
+  （`a -> False` ≡ `Not a`）、elab 错误透传、check-then-add 下前缀失败声明的
+  名字释放、Bare 模式、宇宙参数。`proof.rs` 5 个（exact_kernel /
+  assumption_kernel 正反两面）。
+- **goal 视图协议层**（`crates/lsp`，3 个新测试）：`soko/goals` 结构与 hole
+  range、`soko/nextHole` 三向导航、defeq-exact 端到端（文本比对给不出、
+  kernel 判定能给出）。LSP 全部测试切换到带自定义方法注册的 `test_service`。
+- **内核 conv soundness**（`crates/kernel/tests/memory_api.rs`，2 个）：
+  `dependent_codomain_is_not_inhabited_by_identity_lambda`（修复前通过、
+  修复后拒绝）+ `identity_over_sort_still_checks`（对照不过度拒绝）；
+  CLI e2e 两条（`cli_rejects_uninhabited_dependent_codomain` /
+  `cli_accepts_identity_over_sort`）。
+- **lint 门禁即测试**：教学 crates `[lints.rust] warnings = "deny"`（clippy
+  违规 = 编译失败），CI fmt 门禁覆盖教学 crates（kernel rustfmt.toml 需
+  nightly，见 ci.yml 注释）。
+- 测试总量（2026-09-07 第五轮）：**229**（kernel 43+2 新回归 / front 121 /
+  cli 40（28 cli + 8 protocol + 3 course + 1 examples）/ lsp 23）。
+  `cargo clippy --workspace` exit-0（kernel 冻结快照保持 warning 级）。

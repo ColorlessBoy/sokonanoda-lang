@@ -79,7 +79,7 @@ fn non_empty_str<'a>(event: &'a Value, field: &str, context: &str) -> &'a str {
         .unwrap_or_else(|| panic!("{context}: event missing non-empty {field:?} field: {event}"))
 }
 
-fn diagnostics<'a>(events: &'a [Value]) -> Vec<&'a Value> {
+fn diagnostics(events: &[Value]) -> Vec<&Value> {
     events
         .iter()
         .filter(|e| event_type(e) == "diagnostic")
@@ -249,7 +249,7 @@ fn kernel_rejection_diagnostic_shape() {
     assert!(
         d.get("hint")
             .and_then(|h| h.as_str())
-            .map_or(true, |s| !s.is_empty()),
+            .is_none_or(|s| !s.is_empty()),
         "kernel diagnostics carry a teaching hint per docs/protocol.md: {d}"
     );
     assert_diagnostic_shape(d, "kernel rejection");
@@ -343,7 +343,7 @@ fn elab_unknown_identifier_diagnostic() {
     assert!(
         d.get("hint")
             .and_then(|h| h.as_str())
-            .map_or(true, |s| !s.is_empty()),
+            .is_none_or(|s| !s.is_empty()),
         "elab diagnostics carry a teaching hint per docs/protocol.md: {d}"
     );
     assert_diagnostic_shape(d, "elab unknown identifier");

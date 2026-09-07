@@ -9,3 +9,7 @@ description = "Restricted .sokonanoda front-end (lexer, parser, diagnostics) for
 sokonanoda = { path = "../kernel" }
 stumpalo = "0.5.1"
 num-bigint = "0.4.8"
+
+# lang：教学 crates 的 clippy 严格门禁（kernel 冻结快照不参与）。
+[lints.rust]
+warnings = "deny"

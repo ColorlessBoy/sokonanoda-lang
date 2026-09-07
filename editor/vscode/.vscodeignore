@@ -1,0 +1,8 @@
+# Once this file exists, .gitignore no longer applies to vsce packaging,
+# so everything that must stay out of the VSIX is listed here explicitly.
+.vscode/**
+.vscode-test/**
+.github/**
+**/*.vsix
+node_modules/**
+.DS_Store

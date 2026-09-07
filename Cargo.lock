@@ -746,6 +746,7 @@ name = "sokonanoda-lsp"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "serde",
  "serde_json",
  "sokonanoda-front",
  "tokio",

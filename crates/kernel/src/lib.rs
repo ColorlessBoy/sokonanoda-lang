@@ -3,7 +3,9 @@
 //! Doc comment example
 //! ```
 #![allow(clippy::too_many_arguments)]
-#![deny(clippy::cast_possible_truncation)]
+// lang：上游快照自带该 deny，但上游代码未过此 lint。降为 warn，避免冻结
+// 快照被 lint 搅动；教学 crates 的严格门禁通过各自的 [lints] 表实现。
+#![warn(clippy::cast_possible_truncation)]
 
 pub mod conv;
 pub mod builder;

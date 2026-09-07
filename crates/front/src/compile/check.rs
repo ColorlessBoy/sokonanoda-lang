@@ -36,27 +36,40 @@ pub(crate) enum PendingOp<'a> {
         goal: Option<String>,
         binders: Vec<GoalBinder>,
         span: Span,
+        cmd: usize,
     },
     Check {
         expr: ExprPtr<'a>,
         env_at: usize,
         span: Span,
+        cmd: usize,
     },
     Reduce {
         expr: ExprPtr<'a>,
         env_at: usize,
         span: Span,
+        cmd: usize,
     },
     Print {
         name: String,
         ptr: NamePtr<'a>,
         span: Span,
+        cmd: usize,
     },
 }
 
 pub(crate) struct CmdHover<'a> {
     env_at: usize,
     nodes: Vec<HoverNode<'a>>,
+    cmd: usize,
+}
+
+/// Incremental trust plan (I8, docs/design-i8-i9.md): commands `[0, before)`
+/// were already kernel-checked in a previous session with the identical text,
+/// so this run elaborates them into the environment but does NOT re-check
+/// them — their states/hovers/events are reused from the session cache.
+pub(crate) struct TrustPlan {
+    pub before: usize,
 }
 
 /// Compile and kernel-check a whole file in one arena session, returning the
@@ -124,9 +137,7 @@ fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<(String, Vec<GoalBinder>)
     match val {
         Expr::Hole { .. } => Some((render_expr(ty), Vec::new())),
         Expr::Lambda { binders, body, .. } => {
-            let Some((binder, binders_rest)) = binders.split_first() else {
-                return None;
-            };
+            let (binder, binders_rest) = binders.split_first()?;
             // Consume one Pi layer; remember the hypothesis it introduces.
             let (rest_ty, layer_ty_text) = match ty {
                 Expr::Forall {
@@ -134,9 +145,7 @@ fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<(String, Vec<GoalBinder>)
                     body: tbody,
                     ..
                 } => {
-                    let Some((tbinder, trest)) = tbinders.split_first() else {
-                        return None;
-                    };
+                    let (tbinder, trest) = tbinders.split_first()?;
                     let rest = if trest.is_empty() {
                         tbody.as_ref().clone()
                     } else {
@@ -211,7 +220,8 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
     // unsound for teaching. Pass 2 recomputes in a fresh session with the
     // kernel-failed declarations removed (check-then-add semantics): their
     // names are free again and dependents fail with a proper diagnosis.
-    let (out, report, failed) = run_pass(file, options, collect, None);
+    let (mut out, report, failed, checks) = run_pass(file, options, collect, None, None);
+    out.stats.kernel_checks = checks;
     if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
         for (idx, err) in &failed {
             eprintln!("pass1 failed cmd {idx}: {} ({:?})", err.message, err.kind);
@@ -220,8 +230,40 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
     if failed.is_empty() {
         return (out, report);
     }
-    let (out2, report2, _failed2) = run_pass(file, options, collect, Some(&failed));
+    let (mut out2, report2, _failed2, checks2) =
+        run_pass(file, options, collect, Some(&failed), None);
+    out2.stats.kernel_checks = checks + checks2;
     (out2, report2)
+}
+
+/// Incremental entry (I8): `trust` marks the reusable prefix `[0, before)`;
+/// `prefix_failures` maps trusted command indices to their cached failures —
+/// those names stay free (check-then-add) and their states are owned by the
+/// session cache, so this pass neither re-checks nor re-reports them.
+pub(crate) fn run_incremental(
+    file: &FolFile,
+    options: &CompileOptions,
+    trust: &TrustPlan,
+    prefix_failures: &KernelFailed,
+) -> (CompileOutput, DocumentReport, usize) {
+    let (out1, report1, failed1, checks1) =
+        run_pass(file, options, true, Some(prefix_failures), Some(trust));
+    if failed1.is_empty() {
+        return (out1, report1, checks1);
+    }
+    if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
+        for (idx, err) in &failed1 {
+            eprintln!("pass1 failed cmd {idx}: {} ({:?})", err.message, err.kind);
+        }
+    }
+    let mut skip2 = prefix_failures.clone();
+    for (idx, err) in &failed1 {
+        skip2.insert(*idx, err.clone());
+    }
+    let (mut out2, report2, _failed2, checks2) =
+        run_pass(file, options, true, Some(&skip2), Some(trust));
+    out2.stats.kernel_checks = checks1 + checks2;
+    (out2, report2, checks1 + checks2)
 }
 
 type KernelFailed = HashMap<usize, CompileError>;
@@ -231,7 +273,8 @@ fn run_pass(
     options: &CompileOptions,
     collect: bool,
     skip: Option<&KernelFailed>,
-) -> (CompileOutput, DocumentReport, KernelFailed) {
+    trust: Option<&TrustPlan>,
+) -> (CompileOutput, DocumentReport, KernelFailed, usize) {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
@@ -262,7 +305,9 @@ fn run_pass(
 
     let mut failed_cmds: KernelFailed = HashMap::new();
     let mut built_inductives: Vec<Declar<'_>> = Vec::new();
+    let mut kernel_checks = 0usize;
     for (idx, command) in file.commands.iter().enumerate() {
+        let trusted = trust.is_some_and(|t| idx < t.before);
         let env_before = builder.declaration_count();
         match command {
             Command::Def {
@@ -272,6 +317,28 @@ fn run_pass(
                 val,
                 span,
             } => {
+                if trusted {
+                    // Trusted prefix: keep the environment, skip the kernel.
+                    // Cached failures keep the name free (check-then-add);
+                    // open exercises never enter the environment anyway.
+                    if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val).is_some() {
+                        continue;
+                    }
+                    let mut hovers = Vec::new();
+                    if let Ok(decl) = build_def(
+                        &mut builder,
+                        name,
+                        universe,
+                        ty,
+                        val,
+                        &known_universes,
+                        &mut hovers,
+                    ) {
+                        let _ = builder.add_declar(decl);
+                        known_universes.insert(name.clone(), universe.clone());
+                    }
+                    continue;
+                }
                 if let Some(err) = skipped(
                     skip,
                     &mut out.errors,
@@ -290,6 +357,7 @@ fn run_pass(
                         goal: Some(goal),
                         binders,
                         span: *span,
+                        cmd: idx,
                     });
                     continue;
                 }
@@ -314,6 +382,7 @@ fn run_pass(
                                 Some(name_owned.clone()),
                                 *span,
                                 err,
+                                idx,
                             ));
                             continue;
                         }
@@ -329,6 +398,7 @@ fn run_pass(
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
                             nodes: hovers,
+                            cmd: idx,
                         });
                     }
                     Err(e) => {
@@ -338,6 +408,7 @@ fn run_pass(
                             Some(name.clone()),
                             *span,
                             e,
+                            idx,
                         ));
                     }
                 }
@@ -349,6 +420,25 @@ fn run_pass(
                 val,
                 span,
             } => {
+                if trusted {
+                    if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val).is_some() {
+                        continue;
+                    }
+                    let mut hovers = Vec::new();
+                    if let Ok(decl) = build_theorem(
+                        &mut builder,
+                        name,
+                        universe,
+                        ty,
+                        val,
+                        &known_universes,
+                        &mut hovers,
+                    ) {
+                        let _ = builder.add_declar(decl);
+                        known_universes.insert(name.clone(), universe.clone());
+                    }
+                    continue;
+                }
                 if let Some(err) = skipped(
                     skip,
                     &mut out.errors,
@@ -367,6 +457,7 @@ fn run_pass(
                         goal: Some(goal),
                         binders,
                         span: *span,
+                        cmd: idx,
                     });
                     continue;
                 }
@@ -391,6 +482,7 @@ fn run_pass(
                                 Some(name_owned.clone()),
                                 *span,
                                 err,
+                                idx,
                             ));
                             continue;
                         }
@@ -406,6 +498,7 @@ fn run_pass(
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
                             nodes: hovers,
+                            cmd: idx,
                         });
                     }
                     Err(e) => {
@@ -415,6 +508,7 @@ fn run_pass(
                             Some(name.clone()),
                             *span,
                             e,
+                            idx,
                         ));
                     }
                 }
@@ -425,6 +519,24 @@ fn run_pass(
                 ty,
                 span,
             } => {
+                if trusted {
+                    if skip.is_some_and(|s| s.contains_key(&idx)) {
+                        continue;
+                    }
+                    let mut hovers = Vec::new();
+                    if let Ok(decl) = build_axiom(
+                        &mut builder,
+                        name,
+                        universe,
+                        ty,
+                        &known_universes,
+                        &mut hovers,
+                    ) {
+                        let _ = builder.add_declar(decl);
+                        known_universes.insert(name.clone(), universe.clone());
+                    }
+                    continue;
+                }
                 if let Some(err) = skipped(
                     skip,
                     &mut out.errors,
@@ -456,6 +568,7 @@ fn run_pass(
                                 Some(name_owned.clone()),
                                 *span,
                                 err,
+                                idx,
                             ));
                             continue;
                         }
@@ -471,6 +584,7 @@ fn run_pass(
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
                             nodes: hovers,
+                            cmd: idx,
                         });
                     }
                     Err(e) => {
@@ -480,11 +594,31 @@ fn run_pass(
                             Some(name.clone()),
                             *span,
                             e,
+                            idx,
                         ));
                     }
                 }
             }
             Command::Example { ty, val, span } => {
+                if trusted {
+                    if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val).is_some() {
+                        continue;
+                    }
+                    example_idx += 1;
+                    let internal_name = format!("_example_{example_idx}");
+                    let mut hovers = Vec::new();
+                    if let Ok(decl) = build_example(
+                        &mut builder,
+                        &internal_name,
+                        ty,
+                        val,
+                        &known_universes,
+                        &mut hovers,
+                    ) {
+                        let _ = builder.add_declar(decl);
+                    }
+                    continue;
+                }
                 if let Some(err) =
                     skipped(skip, &mut out.errors, idx, DeclKind::Example, None, *span)
                 {
@@ -498,6 +632,7 @@ fn run_pass(
                         goal: Some(goal),
                         binders,
                         span: *span,
+                        cmd: idx,
                     });
                     continue;
                 }
@@ -517,7 +652,13 @@ fn run_pass(
                             let err =
                                 CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, *span);
                             out.errors.push(err.clone());
-                            decl_states.push(failed_state(DeclKind::Example, None, *span, err));
+                            decl_states.push(failed_state(
+                                DeclKind::Example,
+                                None,
+                                *span,
+                                err,
+                                idx,
+                            ));
                             continue;
                         }
                         let env_after = builder.declaration_count();
@@ -531,11 +672,12 @@ fn run_pass(
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
                             nodes: hovers,
+                            cmd: idx,
                         });
                     }
                     Err(e) => {
                         out.errors.push(e.clone());
-                        decl_states.push(failed_state(DeclKind::Example, None, *span, e));
+                        decl_states.push(failed_state(DeclKind::Example, None, *span, e, idx));
                     }
                 }
             }
@@ -547,6 +689,31 @@ fn run_pass(
                 iota_rules,
                 span,
             } => {
+                if trusted {
+                    // The whole block is the minimal incremental unit: it was
+                    // kernel-validated together when first checked.
+                    if skip.is_some_and(|s| s.contains_key(&idx)) {
+                        continue;
+                    }
+                    let mut hovers = Vec::new();
+                    let mut built: Vec<Declar<'_>> = Vec::new();
+                    if install_inductive_block(
+                        &mut builder,
+                        &mut known_universes,
+                        name,
+                        ty,
+                        constructors,
+                        recursor.as_ref(),
+                        iota_rules,
+                        &mut hovers,
+                        &mut built,
+                    )
+                    .is_ok()
+                    {
+                        built_inductives.extend(built);
+                    }
+                    continue;
+                }
                 if let Some(err) = skipped(
                     skip,
                     &mut out.errors,
@@ -582,6 +749,7 @@ fn run_pass(
                         cmd_hovers.push(CmdHover {
                             env_at: builder.declaration_count(),
                             nodes: hovers,
+                            cmd: idx,
                         });
                     }
                     Err(e) => {
@@ -591,6 +759,7 @@ fn run_pass(
                             Some(name.clone()),
                             *span,
                             e,
+                            idx,
                         ));
                     }
                 }
@@ -611,10 +780,12 @@ fn run_pass(
                             expr: e,
                             env_at: env_before,
                             span: expr.span(),
+                            cmd: idx,
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: env_before,
                             nodes: hovers,
+                            cmd: idx,
                         });
                     }
                     Err(e) => out.errors.push(e),
@@ -636,10 +807,12 @@ fn run_pass(
                             expr: e,
                             env_at: env_before,
                             span: expr.span(),
+                            cmd: idx,
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: env_before,
                             nodes: hovers,
+                            cmd: idx,
                         });
                     }
                     Err(e) => out.errors.push(e),
@@ -651,6 +824,7 @@ fn run_pass(
                     name: name.clone(),
                     ptr,
                     span: *span,
+                    cmd: idx,
                 });
             }
         }
@@ -669,9 +843,9 @@ fn run_pass(
                 goal,
                 binders,
                 span,
+                cmd,
             } => {
-                out.events
-                    .push(CheckEvent::ExerciseOpen { name: name.clone() });
+                out.push_event(cmd, CheckEvent::ExerciseOpen { name: name.clone() });
                 decl_states.push(DeclState {
                     kind,
                     name,
@@ -680,6 +854,7 @@ fn run_pass(
                     error: None,
                     goal,
                     binders,
+                    cmd,
                 });
             }
             PendingOp::Decl {
@@ -688,48 +863,55 @@ fn run_pass(
                 declar,
                 span,
                 cmd,
-            } => match env.try_check_declar(&declar) {
-                Ok(()) => {
-                    match kind {
-                        DeclKind::Example => out.events.push(CheckEvent::ExampleChecked),
-                        _ => {
-                            if let Some(n) = &name {
-                                out.events
-                                    .push(CheckEvent::DeclarationChecked { name: n.clone() });
-                            } else {
-                                out.events.push(CheckEvent::ExampleChecked);
+            } => {
+                kernel_checks += 1;
+                match env.try_check_declar(&declar) {
+                    Ok(()) => {
+                        match kind {
+                            DeclKind::Example => out.push_event(cmd, CheckEvent::ExampleChecked),
+                            _ => {
+                                if let Some(n) = &name {
+                                    out.push_event(
+                                        cmd,
+                                        CheckEvent::DeclarationChecked { name: n.clone() },
+                                    );
+                                } else {
+                                    out.push_event(cmd, CheckEvent::ExampleChecked);
+                                }
                             }
                         }
+                        decl_states.push(DeclState {
+                            kind,
+                            name,
+                            span,
+                            status: DeclStatus::Checked,
+                            error: None,
+                            goal: None,
+                            binders: Vec::new(),
+                            cmd,
+                        });
                     }
-                    decl_states.push(DeclState {
-                        kind,
-                        name,
-                        span,
-                        status: DeclStatus::Checked,
-                        error: None,
-                        goal: None,
-                        binders: Vec::new(),
-                    });
+                    Err(e) => {
+                        let msg = format!("{e}");
+                        let err = if msg.contains("kernel error") || msg.contains("kernel error:") {
+                            CompileError::kernel(ErrorKind::KernelInternal, msg, span)
+                        } else {
+                            let mut err =
+                                CompileError::kernel(ErrorKind::KernelRejected, msg, span);
+                            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                                err.message =
+                                    format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                                err.expected = Some(expected);
+                                err.actual = Some(actual);
+                            }
+                            err
+                        };
+                        failed_cmds.insert(cmd, err.clone());
+                        out.errors.push(err.clone());
+                        decl_states.push(failed_state(kind, name, span, err, cmd));
+                    }
                 }
-                Err(e) => {
-                    let msg = format!("{e}");
-                    let err = if msg.contains("kernel error") || msg.contains("kernel error:") {
-                        CompileError::kernel(ErrorKind::KernelInternal, msg, span)
-                    } else {
-                        let mut err = CompileError::kernel(ErrorKind::KernelRejected, msg, span);
-                        if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                            err.message =
-                                format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
-                            err.expected = Some(expected);
-                            err.actual = Some(actual);
-                        }
-                        err
-                    };
-                    failed_cmds.insert(cmd, err.clone());
-                    out.errors.push(err.clone());
-                    decl_states.push(failed_state(kind, name, span, err));
-                }
-            },
+            }
             PendingOp::InductiveBlock {
                 name,
                 declars,
@@ -738,6 +920,7 @@ fn run_pass(
             } => {
                 let mut failure = None;
                 for declar in &declars {
+                    kernel_checks += 1;
                     if let Err(e) = env.try_check_declar(declar) {
                         let msg = format!("{e}");
                         let mut err = if msg.contains("kernel error") {
@@ -757,8 +940,7 @@ fn run_pass(
                 }
                 match failure {
                     None => {
-                        out.events
-                            .push(CheckEvent::DeclarationChecked { name: name.clone() });
+                        out.push_event(cmd, CheckEvent::DeclarationChecked { name: name.clone() });
                         decl_states.push(DeclState {
                             kind: DeclKind::Inductive,
                             name: Some(name),
@@ -767,33 +949,55 @@ fn run_pass(
                             error: None,
                             goal: None,
                             binders: Vec::new(),
+                            cmd,
                         });
                     }
                     Some(err) => {
                         failed_cmds.insert(cmd, err.clone());
                         out.errors.push(err.clone());
-                        decl_states.push(failed_state(DeclKind::Inductive, Some(name), span, err));
+                        decl_states.push(failed_state(
+                            DeclKind::Inductive,
+                            Some(name),
+                            span,
+                            err,
+                            cmd,
+                        ));
                     }
                 }
             }
-            PendingOp::Check { expr, env_at, span } => {
+            PendingOp::Check {
+                expr,
+                env_at,
+                span,
+                cmd,
+            } => {
                 env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
                     let ty = tc.infer_closed_type(expr);
                     let text = tc.with_pp(|pp| pp.pp_expr(ty));
-                    out.events.push(CheckEvent::TypeChecked { text, span });
+                    out.push_event(cmd, CheckEvent::TypeChecked { text, span });
                 });
             }
-            PendingOp::Reduce { expr, env_at, span } => {
+            PendingOp::Reduce {
+                expr,
+                env_at,
+                span,
+                cmd,
+            } => {
                 env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
                     let reduced = tc.reduce_closed(expr);
                     let text = tc.with_pp(|pp| pp.pp_expr(reduced));
-                    out.events.push(CheckEvent::Reduced { text, span });
+                    out.push_event(cmd, CheckEvent::Reduced { text, span });
                 });
             }
-            PendingOp::Print { name, ptr, span } => {
+            PendingOp::Print {
+                name,
+                ptr,
+                span,
+                cmd,
+            } => {
                 let printed = env.with_pp(|pp| pp.pp_declar(ptr));
                 match printed {
-                    Some(text) => out.events.push(CheckEvent::Printed { name, text }),
+                    Some(text) => out.push_event(cmd, CheckEvent::Printed { name, text }),
                     None => out.errors.push(CompileError::elab(
                         ErrorKind::ElabUnknownIdentifier,
                         format!("unknown declaration `{name}`"),
@@ -811,10 +1015,12 @@ fn run_pass(
         states.sort_by_key(|d| d.span.start.offset);
         report.decls = states;
         report.errors = out.errors.clone();
-        resolve_hovers(&env, cmd_hovers, &mut report.hovers);
+        let mut hover_cmds = Vec::new();
+        resolve_hovers(&env, cmd_hovers, &mut report.hovers, &mut hover_cmds);
+        report.hover_cmds = hover_cmds;
     }
     let _ = built_inductives;
-    (out, report, failed_cmds)
+    (out, report, failed_cmds, kernel_checks)
 }
 
 /// Build the failed-state placeholder for a command skipped in pass 2
@@ -829,7 +1035,7 @@ fn skipped(
 ) -> Option<DeclState> {
     let error = skip?.get(&idx)?;
     errors.push(error.clone());
-    Some(failed_state(kind, name, span, error.clone()))
+    Some(failed_state(kind, name, span, error.clone(), idx))
 }
 
 pub(crate) fn failed_state(
@@ -837,6 +1043,7 @@ pub(crate) fn failed_state(
     name: Option<String>,
     span: Span,
     error: CompileError,
+    cmd: usize,
 ) -> DeclState {
     DeclState {
         kind,
@@ -846,6 +1053,7 @@ pub(crate) fn failed_state(
         error: Some(error),
         goal: None,
         binders: Vec::new(),
+        cmd,
     }
 }
 
@@ -856,6 +1064,7 @@ pub(crate) fn resolve_hovers(
     env: &sokonanoda::util::ExportFile<'_>,
     cmd_hovers: Vec<CmdHover<'_>>,
     out: &mut Vec<HoverType>,
+    out_cmds: &mut Vec<usize>,
 ) {
     let previous_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));
@@ -873,6 +1082,7 @@ pub(crate) fn resolve_hovers(
                     span: node.span,
                     text,
                 });
+                out_cmds.push(cmd.cmd);
             }
         }
     }
