@@ -106,3 +106,6 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 - 2026-09-07（再续）：**课程层只是给大模型提供路线图，具体执行层需要大模型
   适配各个用户、灵活调整**——course/ 是 agent 素材库，不是用户直接消费的
   固定课程；I9 goal 视图第一段（假设列表 hover + exact/intro code action）。
+- 2026-09-07（四）：**LSP 增加代码高亮（semantic tokens），VS Code 插件支持
+  代码高亮**——已落地；随后不再询问、全部做好测试并推送 git（用户指令）。
+  I8（check-then-add/Session/watch）与 I9 kernel 显式错误同轮落地。

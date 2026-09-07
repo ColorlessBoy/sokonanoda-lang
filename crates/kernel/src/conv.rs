@@ -753,6 +753,36 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
+    /// Failure-path rendering of a value for a def-eq mismatch message.
+    /// Quotes the value back to an expression and debug-prints it, capped so
+    /// deep terms cannot blow up the message. Never runs on the hot conv loop:
+    /// it is only called from the branches that are about to panic.
+    pub(crate) fn render_value_for_def_eq_error(&mut self, depth: u32, v: V<'t>) -> String {
+        let e = self.quote(depth, v);
+        let ctx = &*self.ctx;
+        cap_def_eq_text(format!("{:?}", ctx.debug_print(e)))
+    }
+
+    /// Failure-path rendering of an expression for a def-eq mismatch message.
+    pub(crate) fn render_expr_for_def_eq_error(&self, e: ExprPtr<'t>) -> String {
+        let ctx = &*self.ctx;
+        cap_def_eq_text(format!("{:?}", ctx.debug_print(e)))
+    }
+
+    /// Build the stable, machine-parseable def-eq mismatch panic message:
+    /// `def_eq mismatch expected: <E-TEXT> | actual: <A-TEXT>`
+    /// (prefixed with the legacy `def_eq failed` marker).
+    pub(crate) fn def_eq_mismatch_message(
+        &mut self,
+        depth: u32,
+        expected: V<'t>,
+        actual: V<'t>,
+    ) -> String {
+        let expected = self.render_value_for_def_eq_error(depth, expected);
+        let actual = self.render_value_for_def_eq_error(depth, actual);
+        format!("def_eq failed: def_eq mismatch expected: {expected} | actual: {actual}")
+    }
+
     pub(crate) fn level_of_type(&mut self, depth: u32, ty: V<'t>) -> Option<LevelPtr<'t>> {
         let ty = self.force_thunk(depth, ty);
         match ty {
@@ -808,4 +838,19 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             _ => None,
         }
     }
+}
+
+/// Maximum characters rendered per side in a def-eq mismatch message
+/// (failure path only; deep terms are truncated with an ellipsis).
+const DEF_EQ_TEXT_CAP: usize = 200;
+
+fn cap_def_eq_text(s: String) -> String {
+    if s.len() <= DEF_EQ_TEXT_CAP {
+        return s;
+    }
+    let mut end = DEF_EQ_TEXT_CAP;
+    while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}…", &s[..end])
 }

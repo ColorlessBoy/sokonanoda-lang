@@ -72,6 +72,7 @@ pub(crate) fn install_inductive_block<'a>(
     recursor: Option<&RecDecl>,
     iota_rules: &[crate::IotaRule],
     hovers: &mut Vec<HoverNode<'a>>,
+    built: &mut Vec<Declar<'a>>,
 ) -> Result<(), CompileError> {
     let empty: UnivMap = UnivMap::new();
     let ty = elab_expr(
@@ -89,7 +90,8 @@ pub(crate) fn install_inductive_block<'a>(
         .map(|c| builder.name_from_str(&c.name))
         .collect();
     let no_uparams = builder.alloc_levels_slice(&[]);
-    builder
+    builder.begin_inductive_block();
+    let ind_declar = builder
         .add_inductive(
             DeclarInfo {
                 name: ind_name,
@@ -103,6 +105,7 @@ pub(crate) fn install_inductive_block<'a>(
             Arc::from(ctor_names.clone()),
         )
         .map_err(|e| CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, Span::default()))?;
+    built.push(ind_declar);
     known.insert(name.to_string(), Vec::new());
 
     for (idx, ctor) in constructors.iter().enumerate() {
@@ -129,19 +132,21 @@ pub(crate) fn install_inductive_block<'a>(
                 ctor.span,
             )
         })?;
+        let ctor_declar = Declar::Constructor(ConstructorData {
+            info: DeclarInfo {
+                name: ctor_name,
+                uparams: no_uparams,
+                ty: ctor_ty,
+            },
+            inductive_name: ind_name,
+            ctor_idx: idx as u16,
+            num_params: 0,
+            num_fields,
+        });
         builder
-            .add_declar(Declar::Constructor(ConstructorData {
-                info: DeclarInfo {
-                    name: ctor_name,
-                    uparams: no_uparams,
-                    ty: ctor_ty,
-                },
-                inductive_name: ind_name,
-                ctor_idx: idx as u16,
-                num_params: 0,
-                num_fields,
-            }))
+            .add_declar(ctor_declar.clone())
             .map_err(|e| CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, ctor.span))?;
+        built.push(ctor_declar);
         known.insert(ctor.name.clone(), Vec::new());
     }
 
@@ -196,19 +201,22 @@ pub(crate) fn install_inductive_block<'a>(
             uparams: collect_uparams(builder, &univ, &known_rec_universes),
             ty: rec_ty,
         };
+        let rec_declar = Declar::Recursor(RecursorData {
+            info,
+            all_inductives: Arc::from([ind_name]),
+            num_params: 0,
+            num_indices: 0,
+            num_motives: 1,
+            num_minors: constructors.len() as u16,
+            rec_rules: Arc::from(rules),
+            is_k: false,
+        });
         builder
-            .add_declar(Declar::Recursor(RecursorData {
-                info,
-                all_inductives: Arc::from([ind_name]),
-                num_params: 0,
-                num_indices: 0,
-                num_motives: 1,
-                num_minors: constructors.len() as u16,
-                rec_rules: Arc::from(rules),
-                is_k: false,
-            }))
+            .add_declar(rec_declar.clone())
             .map_err(|e| CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, rec.span))?;
+        built.push(rec_declar);
     }
+    builder.end_inductive_block();
     Ok(())
 }
 

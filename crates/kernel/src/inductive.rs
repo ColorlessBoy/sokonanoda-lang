@@ -557,7 +557,10 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
                 let stored = st.local_params[i].2;
                 self.tc_cache.clear();
                 let expected = self.eval(depth, env, stored);
-                assert!(self.def_eq_at(depth, domain, expected), "def_eq failed");
+                if !self.def_eq_at(depth, domain, expected) {
+                    let msg = self.def_eq_mismatch_message(depth, expected, domain);
+                    panic!("{}", msg);
+                }
             } else {
                 let binder_type = self.quote(depth, domain);
                 indices.push((binder_name, binder_style, binder_type));
@@ -1108,7 +1111,10 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
             let Some(Value::Pi { domain, body, .. }) = self.weak_pi(depth, cur) else { panic!() };
             let domain = *domain;
             let expected = self.eval(depth, env, st.local_params[i].2);
-            assert!(self.def_eq_at(depth, domain, expected), "def_eq failed");
+            if !self.def_eq_at(depth, domain, expected) {
+                let msg = self.def_eq_mismatch_message(depth, expected, domain);
+                panic!("{}", msg);
+            }
             let fresh = self.mk_bvar_hc(depth, domain);
             env = crate::value::env_extend(self.arena, env, fresh);
             cur = self.apply_closure(depth + 1, body, fresh, Some(domain));

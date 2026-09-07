@@ -31,6 +31,12 @@ pub struct EnvBuilder<'a> {
     declars: DeclarMap<'a>,
     notations: NotationMap<'a>,
     config: Config,
+    /// In-progress inductive block: (start index, member inductive names).
+    block_in_progress: Option<(usize, Vec<NamePtr<'a>>)>,
+    /// (start, size) per inductive-block head name, mirroring the NDJSON
+    /// parser's bookkeeping; the kernel's inductive/recursor checkers need it
+    /// to find block boundaries.
+    mutual_block_sizes: rustc_hash::FxHashMap<NamePtr<'a>, (usize, usize)>,
 }
 
 impl<'a> EnvBuilder<'a> {
@@ -38,7 +44,36 @@ impl<'a> EnvBuilder<'a> {
         let mut dag = Dag::new_local(&config);
         let anon = NamePtr::global(dag.names.intern(arena, Name::Anon));
         let zero = LevelPtr::global(dag.levels.intern(arena, Level::Zero));
-        Self { arena, dag, anon, zero, declars: new_fx_index_map(), notations: new_fx_hash_map(), config }
+        Self {
+            arena,
+            dag,
+            anon,
+            zero,
+            declars: new_fx_index_map(),
+            notations: new_fx_hash_map(),
+            config,
+            block_in_progress: None,
+            mutual_block_sizes: new_fx_hash_map(),
+        }
+    }
+
+    // -- inductive blocks ----------------------------------------------------
+
+    /// Mark the start of an `inductive ... end` block so kernel checkers can
+    /// locate its boundaries (mirrors the NDJSON parser's bookkeeping).
+    pub fn begin_inductive_block(&mut self) {
+        self.block_in_progress = Some((self.declars.len(), Vec::new()));
+    }
+
+    /// Close the inductive block opened by [`begin_inductive_block`].
+    pub fn end_inductive_block(&mut self) {
+        let Some((start, names)) = self.block_in_progress.take() else {
+            return;
+        };
+        let size = self.declars.len() - start;
+        for name in names {
+            self.mutual_block_sizes.insert(name, (start, size));
+        }
     }
 
     // -- names / strings ----------------------------------------------------
@@ -212,8 +247,9 @@ impl<'a> EnvBuilder<'a> {
     }
 
     /// Add a trusted inductive type. Kernel-side validation of inductive
-    /// blocks happens when full export-style declarations are checked; this
-    /// is the entry point used by the built-in teaching prelude.
+    /// blocks happens when full export-style declarations are checked; this is
+    /// the entry point used by the built-in teaching prelude. Returns the
+    /// built declaration so front-ends can queue it for kernel checking.
     #[allow(clippy::too_many_arguments)]
     pub fn add_inductive(
         &mut self,
@@ -223,8 +259,8 @@ impl<'a> EnvBuilder<'a> {
         num_indices: u16,
         all_ind_names: Arc<[NamePtr<'a>]>,
         all_ctor_names: Arc<[NamePtr<'a>]>,
-    ) -> Result<(), String> {
-        self.add_declar(Declar::Inductive(InductiveData {
+    ) -> Result<Declar<'a>, String> {
+        let declar = Declar::Inductive(InductiveData {
             info,
             is_recursive,
             is_nested: false,
@@ -232,7 +268,12 @@ impl<'a> EnvBuilder<'a> {
             num_indices,
             all_ind_names,
             all_ctor_names,
-        }))
+        });
+        if let Some((_, names)) = &mut self.block_in_progress {
+            names.push(declar.info().name);
+        }
+        self.add_declar(declar.clone())?;
+        Ok(declar)
     }
 
     fn name_to_string(&self, name: NamePtr<'a>) -> String {
@@ -268,7 +309,7 @@ impl<'a> EnvBuilder<'a> {
             notations: self.notations,
             name_cache,
             config: self.config,
-            mutual_block_sizes: new_fx_hash_map(),
+            mutual_block_sizes: self.mutual_block_sizes,
         }
     }
 }

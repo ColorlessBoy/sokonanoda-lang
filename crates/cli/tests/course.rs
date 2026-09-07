@@ -44,7 +44,7 @@ const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit2-functions-arrows.sokonanoda", (1, 4, 1)),
     ("unit3-propositions.sokonanoda", (12, 6, 1)),
     ("unit4-equality-rfl.sokonanoda", (1, 4, 1)),
-    ("unit5-induction-nat-rec.sokonanoda", (3, 3, 1)),
+    ("unit5-induction-nat-rec.sokonanoda", (4, 3, 1)),
 ];
 
 #[test]

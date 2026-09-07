@@ -21,6 +21,9 @@ use sokonanoda_front::compile::{
     check_document_with, prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport,
 };
 use sokonanoda_front::parse;
+use sokonanoda_front::semantic::{
+    semantic_tokens as front_semantic_tokens, SemanticKind, SemanticSpan,
+};
 use std::sync::Mutex;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -36,6 +39,106 @@ struct Doc {
 struct Backend {
     client: Client,
     doc: Mutex<Doc>,
+}
+
+/// LSP legend：front 的 [`SemanticKind`] 全部映射到标准 `SemanticTokenType`。
+/// 顺序即 wire 上 `tokenType` 的下标；测试通过常量解析下标，重排是安全的。
+fn semantic_token_types() -> Vec<SemanticTokenType> {
+    vec![
+        SemanticTokenType::KEYWORD,
+        SemanticTokenType::TYPE,
+        SemanticTokenType::NUMBER,
+        SemanticTokenType::MACRO,
+        SemanticTokenType::FUNCTION,
+        SemanticTokenType::VARIABLE,
+        SemanticTokenType::ENUM_MEMBER,
+        SemanticTokenType::PARAMETER,
+    ]
+}
+
+fn semantic_token_options() -> SemanticTokensOptions {
+    SemanticTokensOptions {
+        work_done_progress_options: WorkDoneProgressOptions::default(),
+        legend: SemanticTokensLegend {
+            token_types: semantic_token_types(),
+            token_modifiers: vec![],
+        },
+        range: None,
+        full: Some(SemanticTokensFullOptions::Bool(true)),
+    }
+}
+
+/// front kind → legend 下标（语言知识在 front，这里只查表）。
+fn token_type_index(kind: SemanticKind) -> u32 {
+    let ty = match kind {
+        SemanticKind::Keyword => SemanticTokenType::KEYWORD,
+        SemanticKind::Sort | SemanticKind::InductiveName | SemanticKind::InductiveUse => {
+            SemanticTokenType::TYPE
+        }
+        SemanticKind::Number => SemanticTokenType::NUMBER,
+        SemanticKind::Hole => SemanticTokenType::MACRO,
+        SemanticKind::DefName
+        | SemanticKind::DefUse
+        | SemanticKind::TheoremName
+        | SemanticKind::TheoremUse => SemanticTokenType::FUNCTION,
+        SemanticKind::AxiomName | SemanticKind::AxiomUse | SemanticKind::UnknownIdent => {
+            SemanticTokenType::VARIABLE
+        }
+        SemanticKind::CtorName | SemanticKind::CtorUse => SemanticTokenType::ENUM_MEMBER,
+        SemanticKind::Binder => SemanticTokenType::PARAMETER,
+    };
+    semantic_token_types()
+        .iter()
+        .position(|t| *t == ty)
+        .expect("legend covers every SemanticKind") as u32
+}
+
+/// 把 front 的（字节 offset 坐标、已排序）span 编码成 LSP 的相对 UTF-16 编码。
+///
+/// `deltaLine` 相对前一个 token 的行；`deltaStart` 在同一行时相对前一个
+/// token 的起点，换行后是该行内的绝对 UTF-16 偏移。所有位置都按 UTF-16
+/// code unit 计数（不是字节、也不是 char），首个虚拟“前一个 token”位于
+/// (line 0, utf16 0)，因此首 token 无需特判。
+fn encode_semantic_tokens(text: &str, spans: &[SemanticSpan]) -> Vec<SemanticToken> {
+    let mut spans: Vec<SemanticSpan> = spans.to_vec();
+    spans.sort_by_key(|s| s.span.start.offset);
+
+    let mut line_starts = vec![0usize];
+    for (i, b) in text.bytes().enumerate() {
+        if b == b'\n' {
+            line_starts.push(i + 1);
+        }
+    }
+
+    let mut data = Vec::with_capacity(spans.len());
+    let mut prev_line = 0usize;
+    let mut prev_start = 0usize;
+    for s in spans {
+        let (from, to) = (s.span.start.offset, s.span.end.offset);
+        if to <= from || to > text.len() {
+            continue;
+        }
+        let line = line_starts.partition_point(|&start| start <= from) - 1;
+        let line_start = line_starts[line];
+        let start_utf16: usize = text[line_start..from].chars().map(char::len_utf16).sum();
+        let length_utf16: usize = text[from..to].chars().map(char::len_utf16).sum();
+        let delta_line = line - prev_line;
+        let delta_start = if delta_line == 0 {
+            start_utf16 - prev_start
+        } else {
+            start_utf16
+        };
+        data.push(SemanticToken {
+            delta_line: delta_line as u32,
+            delta_start: delta_start as u32,
+            length: length_utf16 as u32,
+            token_type: token_type_index(s.kind),
+            token_modifiers_bitset: 0,
+        });
+        prev_line = line;
+        prev_start = start_utf16;
+    }
+    data
 }
 
 impl Backend {
@@ -97,6 +200,7 @@ impl LanguageServer for Backend {
                     resolve_provider: Some(false),
                 }),
                 code_action_provider: Some(CodeActionProviderCapability::Simple(true)),
+                semantic_tokens_provider: Some(semantic_token_options().into()),
                 ..Default::default()
             },
             ..Default::default()
@@ -137,6 +241,23 @@ impl LanguageServer for Backend {
     }
 
     async fn did_close(&self, _: DidCloseTextDocumentParams) {}
+
+    async fn semantic_tokens_full(
+        &self,
+        _: SemanticTokensParams,
+    ) -> Result<Option<SemanticTokensResult>> {
+        // 始终对当前存储的文本重新计算：解析失败时 front 的
+        // semantic_tokens 自身退化为纯词法分类，绝不复用过期报告。
+        let text = {
+            let doc = self.doc.lock().expect("doc lock");
+            doc.text.clone()
+        };
+        let spans = front_semantic_tokens(&text);
+        Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
+            result_id: None,
+            data: encode_semantic_tokens(&text, &spans),
+        })))
+    }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let doc = self.doc.lock().expect("doc lock");
@@ -404,6 +525,13 @@ mod tests {
         assert_eq!(
             caps.code_action_provider,
             Some(CodeActionProviderCapability::Simple(true))
+        );
+        assert_eq!(
+            caps.semantic_tokens_provider,
+            Some(SemanticTokensServerCapabilities::SemanticTokensOptions(
+                semantic_token_options()
+            )),
+            "full semantic tokens with the shared legend expected"
         );
     }
 
@@ -974,5 +1102,122 @@ mod tests {
             "no exact action when no hypothesis matches: {titles:?}"
         );
         let _ = hole_start;
+    }
+
+    // F8 语义着色：能力 + UTF-16 编码 + 端到端分类。
+
+    /// 把相对 delta 编码还原成绝对 (line, start_utf16, length, token_type)。
+    /// 解码逻辑独立实现（按 LSP 规范），用来交叉检验编码器。
+    fn absolutize(tokens: &[SemanticToken]) -> Vec<(u32, u32, u32, SemanticTokenType)> {
+        let legend = semantic_token_types();
+        let mut out = Vec::new();
+        let (mut line, mut start) = (0u32, 0u32);
+        for t in tokens {
+            line += t.delta_line;
+            if t.delta_line == 0 {
+                start += t.delta_start;
+            } else {
+                start = t.delta_start;
+            }
+            out.push((line, start, t.length, legend[t.token_type as usize].clone()));
+        }
+        out
+    }
+
+    async fn request_semantic_tokens(service: &mut LspService<Backend>) -> Vec<SemanticToken> {
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/semanticTokens/full")
+                .params(json!({"textDocument": {"uri": URI}}))
+                .id(30)
+                .finish(),
+        )
+        .await
+        .expect("semanticTokens/full must answer");
+        let result: Option<SemanticTokensResult> =
+            serde_json::from_value(result).expect("valid SemanticTokensResult");
+        match result.expect("tokens must be returned") {
+            SemanticTokensResult::Tokens(tokens) => tokens.data,
+            other => panic!("expected full tokens, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn semantic_tokens_full_classifies_def_example_hole() {
+        let src = "def two : Nat := 2\nexample : Sort 1 := ???\n";
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "semantic tokens diagnostics").await;
+
+        let tokens = request_semantic_tokens(&mut service).await;
+        assert_eq!(
+            absolutize(&tokens),
+            vec![
+                (0, 0, 3, SemanticTokenType::KEYWORD),   // def
+                (0, 4, 3, SemanticTokenType::FUNCTION),  // two（声明）
+                (0, 10, 3, SemanticTokenType::VARIABLE), // Nat（未知标识符）
+                (0, 17, 1, SemanticTokenType::NUMBER),   // 2
+                (1, 0, 7, SemanticTokenType::KEYWORD),   // example（换行后绝对起点）
+                (1, 10, 4, SemanticTokenType::TYPE),     // Sort
+                (1, 15, 1, SemanticTokenType::NUMBER),   // 1
+                (1, 20, 3, SemanticTokenType::MACRO),    // ???（UTF-16 长度 3）
+            ],
+            "full token stream for {src:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn semantic_tokens_full_handles_non_ascii_identifiers() {
+        let src = "def α_id : Prop -> Prop := fun (x : Prop) => x\n";
+        let (mut service, mut socket) = LspService::new(Backend::new);
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "semantic tokens diagnostics").await;
+
+        let tokens = request_semantic_tokens(&mut service).await;
+        assert_eq!(
+            absolutize(&tokens),
+            vec![
+                (0, 0, 3, SemanticTokenType::KEYWORD),    // def
+                (0, 4, 4, SemanticTokenType::FUNCTION),   // α_id（α 是 BMP，1 个 UTF-16 单元）
+                (0, 11, 4, SemanticTokenType::TYPE),      // Prop
+                (0, 19, 4, SemanticTokenType::TYPE),      // Prop
+                (0, 27, 3, SemanticTokenType::KEYWORD),   // fun（按 UTF-16 是 27，按字节会是 28）
+                (0, 32, 1, SemanticTokenType::PARAMETER), // x
+                (0, 36, 4, SemanticTokenType::TYPE),      // Prop
+                (0, 45, 1, SemanticTokenType::PARAMETER), // x（") => x"）
+            ],
+            "positions must be UTF-16 code units, not bytes/chars: {src:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[test]
+    fn encoder_counts_utf16_units_for_supplementary_identifiers() {
+        // 🦀 是增补平面字符：1 char = 2 UTF-16 单元；按 char 计数会得到 9。
+        let src = "def 🦀x : Prop := Prop\n";
+        let spans = sokonanoda_front::semantic::semantic_tokens(src);
+        let tokens = encode_semantic_tokens(src, &spans);
+        assert_eq!(
+            absolutize(&tokens),
+            vec![
+                (0, 0, 3, SemanticTokenType::KEYWORD),  // def
+                (0, 4, 3, SemanticTokenType::FUNCTION), // 🦀x：起点 4，长度 2+1=3
+                (0, 10, 4, SemanticTokenType::TYPE),    // Prop：UTF-16 绝对起点 10（char 会是 9）
+                (0, 18, 4, SemanticTokenType::TYPE),    // Prop
+            ],
+        );
+    }
+
+    #[test]
+    fn encoder_emits_nothing_for_untokenizable_text() {
+        // 词法错误截断后仍产出已收集部分的 token；纯标点行不产出 token。
+        let src = "-- 只有注释\n: :\n";
+        let spans = sokonanoda_front::semantic::semantic_tokens(src);
+        assert!(encode_semantic_tokens(src, &spans).is_empty());
+        let empty: Vec<SemanticSpan> = Vec::new();
+        assert!(encode_semantic_tokens("", &empty).is_empty());
     }
 }

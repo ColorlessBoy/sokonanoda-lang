@@ -16,7 +16,7 @@ iota succ :=
   fun (motive : (n : Nat) -> Sort u) =>
   fun (mz : motive zero) =>
   fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
-  fun (n : Nat) => succ (Nat.rec motive mz ms n)
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 
 def one : Nat := succ zero

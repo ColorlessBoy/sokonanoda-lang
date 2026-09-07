@@ -253,7 +253,11 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     pub(crate) fn empty_ctx(&self) -> crate::value::C<'t> { self.tc_cache.empty_ctx }
 
     pub fn assert_def_eq(&mut self, u: ExprPtr<'t>, v: ExprPtr<'t>) {
-        assert!(self.def_eq_core(u, v), "def_eq failed");
+        if !self.def_eq_core(u, v) {
+            let expected = self.render_expr_for_def_eq_error(u);
+            let actual = self.render_expr_for_def_eq_error(v);
+            panic!("def_eq failed: def_eq mismatch expected: {expected} | actual: {actual}");
+        }
     }
 
 

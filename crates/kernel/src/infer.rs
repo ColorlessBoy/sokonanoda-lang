@@ -164,7 +164,10 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 if flag == Check {
                     self.infer_sort_of_v(flag, depth, env, ctx, binder_type);
                     let val_ty = self.infer_value(flag, depth, env, ctx, val);
-                    assert!(self.conv_types_at(depth, dom, val_ty), "let def_eq failed");
+                    if !self.conv_types_at(depth, dom, val_ty) {
+                        let msg = self.def_eq_mismatch_message(depth, dom, val_ty);
+                        panic!("{}", msg);
+                    }
                 }
                 let slot = self.arg_value(depth, env, val);
                 let env2 = value::env_extend(self.arena, env, slot);
@@ -198,7 +201,10 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             };
             if flag == Check {
                 let arg_ty = self.infer_value(flag, depth, env, ctx, arg);
-                assert!(self.conv_types_at(depth, domain, arg_ty), "app arg def_eq failed");
+                if !self.conv_types_at(depth, domain, arg_ty) {
+                    let msg = self.def_eq_mismatch_message(depth, domain, arg_ty);
+                    panic!("{}", msg);
+                }
             }
             if body.ctx.is_none() && self.ctx.num_loose_bvars(body.body) == 0 {
                 fty = self.eval(depth, body.env, body.body);
@@ -291,6 +297,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let empty_ctx = self.empty_ctx();
         let val_ty = self.infer_value(Check, 0, empty_env, empty_ctx, val);
         let declared = self.eval(0, empty_env, d.info().ty);
-        assert!(self.def_eq_at(0, val_ty, declared), "def_eq failed");
+        if !self.def_eq_at(0, val_ty, declared) {
+            let msg = self.def_eq_mismatch_message(0, declared, val_ty);
+            panic!("{}", msg);
+        }
     }
 }

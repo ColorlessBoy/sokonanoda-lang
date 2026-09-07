@@ -429,7 +429,7 @@ ctor z : MyNat
 ctor s (n : MyNat) : MyNat
 rec MyNat.rec {u} : (motive : (n : MyNat) -> Sort u) -> (mz : motive z) -> (ms : (n : MyNat) -> motive n -> motive (s n)) -> (n : MyNat) -> motive n
 iota z := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => mz
-iota s := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => fun (n : MyNat) => s (MyNat.rec motive mz ms n)
+iota s := fun (motive : (n : MyNat) -> Sort u) => fun (mz : motive z) => fun (ms : (n : MyNat) -> motive n -> motive (s n)) => fun (n : MyNat) => ms n (MyNat.rec.{u} motive mz ms n)
 end
 def oneMyNat : MyNat := s z
 def myAdd : MyNat -> MyNat -> MyNat :=
@@ -476,7 +476,7 @@ ctor zero : Nat
 ctor succ (n : Nat) : Nat
 rec Nat.rec {u} : (motive : (n : Nat) -> Sort u) -> (mz : motive zero) -> (ms : (n : Nat) -> motive n -> motive (succ n)) -> (n : Nat) -> motive n
 iota zero := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
-iota succ := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => fun (n : Nat) => succ (Nat.rec motive mz ms n)
+iota succ := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 def oneNat : Nat := succ zero
 #reduce Nat.rec.{1} (fun (n : Nat) => Nat) zero (fun (n : Nat) => fun (ih : Nat) => succ n) (succ zero)
@@ -795,7 +795,10 @@ fn render_expr_round_trips() {
 
 #[test]
 fn kernel_rejection_message_is_not_a_panic_trace() {
-    let file = parse("def bad : Prop -> Type := fun (x : Prop) => x\n").unwrap();
+    // A kernel rejection without a conv mismatch (theorem type is not Prop)
+    // keeps the raw kernel message; def-eq mismatches get the teaching text
+    // (see kernel_rejection_reports_expected_and_actual).
+    let file = parse("theorem bad : Prop := fun (x : Prop) => x\n").unwrap();
     let out = compile_fol(&file);
     assert_eq!(out.errors.len(), 1, "errors: {:?}", out.errors);
     let message = &out.errors[0].message;
@@ -1116,4 +1119,75 @@ fn partial_hole_untyped_binder_borrows_declared_type() {
         }]
     );
     assert_eq!(d.goal.as_deref(), Some("Nat"));
+}
+
+#[test]
+fn kernel_rejection_reports_expected_and_actual() {
+    let file = parse("def bad : Prop -> Type := fun (x : Prop) => x\n").unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors.len(), 1, "errors: {:?}", out.errors);
+    let err = &out.errors[0];
+    assert_eq!(err.kind, ErrorKind::KernelRejected);
+    assert!(
+        err.message.contains("期望") && err.message.contains("实际"),
+        "message should be the Chinese teaching text with both sides: {}",
+        err.message
+    );
+    assert!(
+        !message_looks_like_panic_trace(&err.message),
+        "panic trace leaked into the learner-facing message: {}",
+        err.message
+    );
+    let expected = err
+        .expected
+        .as_deref()
+        .expect("kernel rejection should carry the expected side");
+    let actual = err
+        .actual
+        .as_deref()
+        .expect("kernel rejection should carry the actual side");
+    assert!(!expected.is_empty(), "expected side is empty");
+    assert!(!actual.is_empty(), "actual side is empty");
+    assert_ne!(
+        expected, actual,
+        "sides should differ: {expected} vs {actual}"
+    );
+}
+
+fn message_looks_like_panic_trace(message: &str) -> bool {
+    message.contains("panicked at") || message.contains("RUST_BACKTRACE")
+}
+
+#[test]
+fn kernel_failed_declaration_frees_its_name() {
+    // Check-then-add: a kernel-rejected declaration must not occupy its name.
+    // `uses_bad` would typecheck in pass 1 (the rejected decl is still in the
+    // env); the recomputed pass must report it as unknown instead.
+    let file = parse(
+        "def bad : Prop -> Type := fun (x : Prop) => x\n\
+         def uses_bad : Prop -> Type := bad\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::KernelRejected),
+        "the bad decl must stay rejected: {:?}",
+        out.errors
+    );
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::ElabUnknownIdentifier),
+        "uses_bad must fail with unknown-identifier, not inherit pass-1 success: {:?}",
+        out.errors
+    );
+    assert!(
+        out.events
+            .iter()
+            .all(|e| !matches!(e, CheckEvent::DeclarationChecked { .. })),
+        "no declaration may be reported checked: {:?}",
+        out.events
+    );
 }

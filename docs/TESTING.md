@@ -69,3 +69,17 @@
 - `cargo test -p sokonanoda-front`：**74** 个单测全绿（token 10 / parser 10 / proof 3 / compile 51）；
 - `cargo test -p sokonanoda-cli`：**30** 个 e2e 全绿（cli 21 / protocol 8 / examples 1）；
 - `cargo test -p sokonanoda`（kernel）：41 过 + 2 ignored（盲区 2）+ memory_api 1 过。
+
+## 2026-09-07 更新：新增层与总量
+
+- **semantic tokens 层**：`crates/front/src/semantic.rs`（分类单测 10 个）+
+  `crates/lsp`（capability/编码/端到端 4 个，UTF-16 增补平面用例）。
+- **session/delta 层**：`crates/front/src/session.rs`（solved/failed/opened、
+  零重编译、parse 错误恢复，2 个）。
+- **check-then-add**：`kernel_failed_declaration_frees_its_name`（双趟语义）。
+- **watch（L1 CLI 形态）**：手动三版本冒烟（file.changed → exercise.solved →
+  零重编译）；自动化等 service 化后补。
+- 测试总量（2026-09-07 第四轮）：**203**（kernel 43 / front 103 / cli 38 / lsp 20，
+  cli 含 26+3+1+8 四个套件）。
+- 内核 iota 规则教学注意：`inductive` 块现在被 kernel 判定，iota 规则的递归
+  调用必须写 `Rec.{u}`（宇宙参数显式），规则值必须是 `ms n (Rec.{u} ...)`。

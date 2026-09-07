@@ -134,6 +134,12 @@ pub struct CompileError {
     pub message: String,
     pub span: Span,
     pub kind: ErrorKind,
+    /// For kernel type mismatches (`kernel-rejected`): the expected type as
+    /// rendered by the kernel, when the rejection message carried both sides.
+    pub expected: Option<String>,
+    /// For kernel type mismatches (`kernel-rejected`): the actual (inferred)
+    /// type, when the rejection message carried both sides.
+    pub actual: Option<String>,
 }
 
 impl CompileError {
@@ -142,6 +148,8 @@ impl CompileError {
             message: message.into(),
             span,
             kind,
+            expected: None,
+            actual: None,
         }
     }
 
@@ -166,4 +174,24 @@ impl CompileError {
     pub fn hint(&self) -> &'static str {
         self.kind.hint()
     }
+}
+
+/// Stable markers the kernel embeds in def-eq failure panics:
+/// `def_eq mismatch expected: <E-TEXT> | actual: <A-TEXT>`
+/// (the panic payload is wrapped into `rejected: ...` by `CheckError`).
+const DEF_EQ_MARKER: &str = "def_eq mismatch expected: ";
+const DEF_EQ_ACTUAL_SEP: &str = " | actual: ";
+
+/// Parse the kernel's def-eq mismatch message into `(expected, actual)`.
+/// Returns `None` for rejections that do not carry both sides.
+pub(crate) fn parse_def_eq_mismatch(msg: &str) -> Option<(String, String)> {
+    let start = msg.find(DEF_EQ_MARKER)? + DEF_EQ_MARKER.len();
+    let rest = &msg[start..];
+    let sep = rest.find(DEF_EQ_ACTUAL_SEP)?;
+    let expected = rest[..sep].trim().to_string();
+    let actual = rest[sep + DEF_EQ_ACTUAL_SEP.len()..].trim().to_string();
+    if expected.is_empty() || actual.is_empty() {
+        return None;
+    }
+    Some((expected, actual))
 }

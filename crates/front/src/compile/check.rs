@@ -4,7 +4,7 @@ use super::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
     ElabScope, HoverNode, UnivMap,
 };
-use super::error::{CompileError, ErrorKind};
+use super::error::{parse_def_eq_mismatch, CompileError, ErrorKind};
 use super::event::{CheckEvent, CompileOutput};
 use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
 use super::report::{DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType};
@@ -20,6 +20,15 @@ pub(crate) enum PendingOp<'a> {
         kind: DeclKind,
         declar: Declar<'a>,
         span: Span,
+        cmd: usize,
+    },
+    /// One whole `inductive ... end` block: the kernel validates each of its
+    /// declarations (inductive spine, constructors, recursor rules).
+    InductiveBlock {
+        name: String,
+        declars: Vec<Declar<'a>>,
+        span: Span,
+        cmd: usize,
     },
     OpenExercise {
         name: Option<String>,
@@ -197,6 +206,32 @@ fn user_top_level_names(file: &FolFile) -> std::collections::HashSet<String> {
 }
 
 fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutput, DocumentReport) {
+    // Pass 1 checks everything. Kernel-rejected declarations still occupy
+    // their names in pass 1, which lets later declarations reference them —
+    // unsound for teaching. Pass 2 recomputes in a fresh session with the
+    // kernel-failed declarations removed (check-then-add semantics): their
+    // names are free again and dependents fail with a proper diagnosis.
+    let (out, report, failed) = run_pass(file, options, collect, None);
+    if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
+        for (idx, err) in &failed {
+            eprintln!("pass1 failed cmd {idx}: {} ({:?})", err.message, err.kind);
+        }
+    }
+    if failed.is_empty() {
+        return (out, report);
+    }
+    let (out2, report2, _failed2) = run_pass(file, options, collect, Some(&failed));
+    (out2, report2)
+}
+
+type KernelFailed = HashMap<usize, CompileError>;
+
+fn run_pass(
+    file: &FolFile,
+    options: &CompileOptions,
+    collect: bool,
+    skip: Option<&KernelFailed>,
+) -> (CompileOutput, DocumentReport, KernelFailed) {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
@@ -225,7 +260,9 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
     let mut decl_states: Vec<DeclState> = Vec::new();
     let mut example_idx = 0usize;
 
-    for command in &file.commands {
+    let mut failed_cmds: KernelFailed = HashMap::new();
+    let mut built_inductives: Vec<Declar<'_>> = Vec::new();
+    for (idx, command) in file.commands.iter().enumerate() {
         let env_before = builder.declaration_count();
         match command {
             Command::Def {
@@ -235,6 +272,17 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 val,
                 span,
             } => {
+                if let Some(err) = skipped(
+                    skip,
+                    &mut out.errors,
+                    idx,
+                    DeclKind::Definition,
+                    Some(name.clone()),
+                    *span,
+                ) {
+                    decl_states.push(err);
+                    continue;
+                }
                 if let Some((goal, binders)) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
@@ -276,6 +324,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                             kind: DeclKind::Definition,
                             declar: decl,
                             span: *span,
+                            cmd: idx,
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
@@ -300,6 +349,17 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 val,
                 span,
             } => {
+                if let Some(err) = skipped(
+                    skip,
+                    &mut out.errors,
+                    idx,
+                    DeclKind::Theorem,
+                    Some(name.clone()),
+                    *span,
+                ) {
+                    decl_states.push(err);
+                    continue;
+                }
                 if let Some((goal, binders)) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
@@ -341,6 +401,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                             kind: DeclKind::Theorem,
                             declar: decl,
                             span: *span,
+                            cmd: idx,
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
@@ -364,6 +425,17 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 ty,
                 span,
             } => {
+                if let Some(err) = skipped(
+                    skip,
+                    &mut out.errors,
+                    idx,
+                    DeclKind::Axiom,
+                    Some(name.clone()),
+                    *span,
+                ) {
+                    decl_states.push(err);
+                    continue;
+                }
                 let mut hovers = Vec::new();
                 match build_axiom(
                     &mut builder,
@@ -394,6 +466,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                             kind: DeclKind::Axiom,
                             declar: decl,
                             span: *span,
+                            cmd: idx,
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
@@ -412,6 +485,12 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 }
             }
             Command::Example { ty, val, span } => {
+                if let Some(err) =
+                    skipped(skip, &mut out.errors, idx, DeclKind::Example, None, *span)
+                {
+                    decl_states.push(err);
+                    continue;
+                }
                 if let Some((goal, binders)) = open_goal(ty, val) {
                     ops.push(PendingOp::OpenExercise {
                         name: None,
@@ -447,6 +526,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                             kind: DeclKind::Example,
                             declar: decl,
                             span: *span,
+                            cmd: idx,
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: env_after,
@@ -467,7 +547,19 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 iota_rules,
                 span,
             } => {
+                if let Some(err) = skipped(
+                    skip,
+                    &mut out.errors,
+                    idx,
+                    DeclKind::Inductive,
+                    Some(name.clone()),
+                    *span,
+                ) {
+                    decl_states.push(err);
+                    continue;
+                }
                 let mut hovers = Vec::new();
+                let mut built: Vec<Declar<'_>> = Vec::new();
                 match install_inductive_block(
                     &mut builder,
                     &mut known_universes,
@@ -477,16 +569,15 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                     recursor.as_ref(),
                     iota_rules,
                     &mut hovers,
+                    &mut built,
                 ) {
                     Ok(()) => {
-                        decl_states.push(DeclState {
-                            kind: DeclKind::Inductive,
-                            name: Some(name.clone()),
+                        built_inductives.extend(built.iter().cloned());
+                        ops.push(PendingOp::InductiveBlock {
+                            name: name.clone(),
+                            declars: built,
                             span: *span,
-                            status: DeclStatus::Checked,
-                            error: None,
-                            goal: None,
-                            binders: Vec::new(),
+                            cmd: idx,
                         });
                         cmd_hovers.push(CmdHover {
                             env_at: builder.declaration_count(),
@@ -596,6 +687,7 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                 kind,
                 declar,
                 span,
+                cmd,
             } => match env.try_check_declar(&declar) {
                 Ok(()) => {
                     match kind {
@@ -624,12 +716,66 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
                     let err = if msg.contains("kernel error") || msg.contains("kernel error:") {
                         CompileError::kernel(ErrorKind::KernelInternal, msg, span)
                     } else {
-                        CompileError::kernel(ErrorKind::KernelRejected, msg, span)
+                        let mut err = CompileError::kernel(ErrorKind::KernelRejected, msg, span);
+                        if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                            err.message =
+                                format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                            err.expected = Some(expected);
+                            err.actual = Some(actual);
+                        }
+                        err
                     };
+                    failed_cmds.insert(cmd, err.clone());
                     out.errors.push(err.clone());
                     decl_states.push(failed_state(kind, name, span, err));
                 }
             },
+            PendingOp::InductiveBlock {
+                name,
+                declars,
+                span,
+                cmd,
+            } => {
+                let mut failure = None;
+                for declar in &declars {
+                    if let Err(e) = env.try_check_declar(declar) {
+                        let msg = format!("{e}");
+                        let mut err = if msg.contains("kernel error") {
+                            CompileError::kernel(ErrorKind::KernelInternal, msg, span)
+                        } else {
+                            CompileError::kernel(ErrorKind::KernelRejected, msg, span)
+                        };
+                        if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                            err.message =
+                                format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                            err.expected = Some(expected);
+                            err.actual = Some(actual);
+                        }
+                        failure = Some(err);
+                        break;
+                    }
+                }
+                match failure {
+                    None => {
+                        out.events
+                            .push(CheckEvent::DeclarationChecked { name: name.clone() });
+                        decl_states.push(DeclState {
+                            kind: DeclKind::Inductive,
+                            name: Some(name),
+                            span,
+                            status: DeclStatus::Checked,
+                            error: None,
+                            goal: None,
+                            binders: Vec::new(),
+                        });
+                    }
+                    Some(err) => {
+                        failed_cmds.insert(cmd, err.clone());
+                        out.errors.push(err.clone());
+                        decl_states.push(failed_state(DeclKind::Inductive, Some(name), span, err));
+                    }
+                }
+            }
             PendingOp::Check { expr, env_at, span } => {
                 env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
                     let ty = tc.infer_closed_type(expr);
@@ -667,7 +813,23 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
         report.errors = out.errors.clone();
         resolve_hovers(&env, cmd_hovers, &mut report.hovers);
     }
-    (out, report)
+    let _ = built_inductives;
+    (out, report, failed_cmds)
+}
+
+/// Build the failed-state placeholder for a command skipped in pass 2
+/// (it was kernel-rejected in pass 1; keep that error verbatim).
+fn skipped(
+    skip: Option<&KernelFailed>,
+    errors: &mut Vec<CompileError>,
+    idx: usize,
+    kind: DeclKind,
+    name: Option<String>,
+    span: Span,
+) -> Option<DeclState> {
+    let error = skip?.get(&idx)?;
+    errors.push(error.clone());
+    Some(failed_state(kind, name, span, error.clone()))
 }
 
 pub(crate) fn failed_state(

@@ -91,14 +91,45 @@ Human output prints `error[<code>]: <message>`; JSON diagnostics carry
 `publishDiagnostics` (message + hint, code, range) and `hover` (type map /
 goal text); see `docs/design-infrastructure.md` F1–F8.
 
+## Live session: `sokonanoda watch <file>` (implemented)
+
+`watch` is the CLI form of the service layer: it monitors a file and prints one
+JSON object per change:
+
+```json
+{"type":"file.changed","version":3,"recompiled_from":0}
+{"type":"exercise.solved","name":null,"version":3}
+```
+
+- `recompiled_from` is the index of the first changed command; `null` means
+  the commands did not change (comment-only edit) and nothing was recompiled.
+- Delta events (from `sokonanoda_front::session`): `exercise.opened`,
+  `exercise.solved`, `exercise.failed`, `decl.checked`, `decl.failed` — each
+  carries `name` (when named) and `version`.
+- Diagnostics for the new version follow, with `stage`/`code`/`message`/
+  `hint`/`span` as in batch mode.
+
+## Kernel diagnostics with expected/actual
+
+A kernel rejection whose cause is a conversion failure now carries both sides:
+the human message is rendered as
+"类型不匹配：期望 `<E>`，实际是 `<A>`", and `--json` diagnostics expose the
+same text (plus `hint`). `CompileError` additionally carries the machine fields
+`expected`/`actual` when present.
+
+## Editor semantic tokens
+
+The LSP server implements `textDocument/semanticTokens` (full). Legend:
+KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`???`), FUNCTION
+(def/theorem names and uses), VARIABLE (axioms, unresolved idents),
+ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
+
 ## Future structured event names (service layer)
 
-When a service layer is added, keep the same vocabulary and add:
+When the resident service replaces `watch`, keep the same vocabulary and add:
 
 - `file.didChange`
 - `decl.rejected` (today: a `diagnostic` with stage `kernel`)
-- `exercise.solved` / `exercise.failed` (today: `example.checked` /
-  `diagnostic`; the exercise engine will emit them)
 - `diagnostic.*` kinds once sub-stage codes exist
 
 Each event carries `span {offset,line,column}` plus a human text and a machine

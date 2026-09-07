@@ -36,6 +36,20 @@ is ignored and default discovery is used.
 
 ## 3. Feedback you get
 
+- **Semantic highlighting**: on by default, no configuration needed. The
+  client auto-registers the provider because the server advertises
+  `textDocument/semanticTokens/full` (zero settings, zero `extension.js`
+  logic — vscode-languageclient v9 does the wiring). It colors:
+  - keywords (`def`, `theorem`, `example`, `axiom`, `inductive`, `ctor`,
+    `rec`, `iota`, `end`, `fun`, `forall`/`∀`, `#check`/`#reduce`/`#print`);
+  - sorts `Prop`/`Type`/`Sort` and inductive type names (as types);
+  - definition/theorem names (as functions), axiom names, constructors
+    (as enum members), binders (as parameters) and `???` holes (macro —
+    stands out as "exercise open here");
+  - numbers, and unknown identifiers (variables) as a fallback.
+  The classic TextMate grammar stays in place as an instant fallback (it
+  paints while the server starts and wherever semantic tokens are absent,
+  e.g. before the first `initialize` round-trip).
 - **Diagnostics** per declaration with stable codes (`kernel-rejected`,
   `unexpected-token`, …) and teaching hints.
 - **Hover**: inferred type of the expression under the cursor, or the goal of

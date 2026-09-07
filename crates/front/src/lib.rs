@@ -6,6 +6,8 @@
 
 pub mod compile;
 pub mod proof;
+pub mod semantic;
+pub mod session;
 
 mod ast;
 mod diagnostic;

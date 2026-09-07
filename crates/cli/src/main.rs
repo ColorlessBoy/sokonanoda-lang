@@ -4,12 +4,14 @@ mod check;
 mod help;
 mod json_report;
 mod repl;
+mod watch;
 
 use check::check_source;
 use help::print_help;
 use repl::repl;
 use std::io::Read;
 use std::process::ExitCode;
+use watch::watch;
 
 fn main() -> ExitCode {
     let mut json = false;
@@ -32,6 +34,13 @@ fn main() -> ExitCode {
             eprintln!("error: --json is only supported for batch checking, not the repl");
             ExitCode::FAILURE
         }
+        Some("watch") => match positionals.get(1) {
+            Some(path) => watch(path),
+            None => {
+                eprintln!("usage: sokonanoda watch <file.sokonanoda>");
+                ExitCode::FAILURE
+            }
+        },
         None => check_path_or_stdin(None, json, bare),
         Some(p) => check_path_or_stdin(Some(p), json, bare),
     }

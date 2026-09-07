@@ -22,7 +22,7 @@ iota succ :=
   fun (motive : (n : Nat) -> Sort u) =>
   fun (mz : motive zero) =>
   fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
-  fun (n : Nat) => succ (Nat.rec motive mz ms n)
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 
 -- 演示（与画布一致）：数字用构造子搭出来。

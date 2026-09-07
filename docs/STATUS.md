@@ -31,6 +31,32 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. **文档**：新增 `docs/REQUIREMENTS.md`（用户全部要求的权威总账）、
    `docs/TESTING.md`（测试资产地图）、`docs/lsp-notes.md`、`docs/vscode-notes.md`。
 
+## 本轮进度（2026-09-07 第四轮：I8 + I9 后半 + 语义高亮 + watch）
+
+1. **语义高亮（F8，用户要求）**：front 新增 `semantic.rs`（keyword/sort/number/
+   hole/声明名/构造子/binder 分类，声明点优先）；LSP 实现
+   `textDocument/semanticTokens`（UTF-16 编码正确处理增补平面字符——修掉了
+   `span.column` 是字符计数的错位隐患）；VS Code 端 vscode-languageclient
+   自动注册，零配置生效。
+2. **I9 kernel 显式错误**：6 处 def_eq 失败点（def-like/App 实参/let 体/
+   inductive 参数/表达式）在 panic 前用 debug printer 渲染两端（≤200 字符截断），
+   稳定格式 `def_eq mismatch expected: <E> | actual: <A>`；front 解析为
+   「类型不匹配：期望 `E`，实际是 `A`」并填充 `CompileError.expected/actual`；
+   热路径零改动，内核 41 测试全绿。
+3. **I8a check-then-add（双趟）**：kernel 拒绝的声明不再占用名字——第二趟在
+   干净环境中重算，依赖者得到真正的 unknown-identifier 诊断；归纳块首次纳入
+   kernel 判定（`EnvBuilder` 新增 `begin/end_inductive_block` +
+   `mutual_block_sizes` 记账，对齐上游 parser；`add_inductive` 返回构建的
+   Declar）。由此暴露并修正了 py-nat 系 iota 规则的两处非标准写法：
+   规则值必须是 `ms n (Rec.{u} motive mz ms n)`（`.{u}` 不能省）。
+4. **I8b Session**（front::session）：版本号、delta 事件
+   （exercise.opened/solved/failed、decl.checked/failed）、`recompiled_from`
+   日志；内容未变（仅注释/空白）零重编译。
+5. **I8c watch**：`sokonanoda watch <file>` 常驻监控 → `file.changed` +
+   delta + 诊断的 JSON Lines 流（L1 服务层的 CLI 形态）。
+6. 测试总量 **203**（kernel 43 / cli 38 / front 103 / lsp 20... 计 CLI 子套件见
+   docs/TESTING.md）。
+
 ## I6 落地（2026-09-07 第二轮）
 
 全部四件套已实现并通过 178 个测试（kernel 43 / cli 35 / front 87 / lsp 13）：
