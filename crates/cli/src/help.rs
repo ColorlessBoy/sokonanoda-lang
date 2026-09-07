@@ -11,6 +11,7 @@ pub(crate) fn print_help() {
     println!(
         "  sokonanoda lsp                  run the language server on stdio (editors spawn this)"
     );
+    println!("  sokonanoda course <course.json> aggregate unit progress (JSON with --json)");
     println!("  sokonanoda --json <file>        emit JSON Lines events (agent/service view)");
     println!("  sokonanoda --bare <file>        compile with no prelude (file is self-contained);");
     println!(

@@ -6,23 +6,33 @@ use sokonanoda_front::compile::{prelude_mode_from_source, CheckEvent, CompileOpt
 use sokonanoda_front::parse;
 use sokonanoda_front::proof::ProofState;
 use std::io::{BufRead, Write};
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+
+const HISTORY_FILE: &str = ".sokonanoda_history";
+const HISTORY_MAX_LINES: usize = 1000;
 
 pub(crate) fn repl() -> ExitCode {
     let stdin = std::io::stdin();
     let mut lines = stdin.lock().lines();
+    let history_path = history_path();
+    let mut history = load_history(history_path.as_deref());
     let mut buffer = String::new();
     let mut seen_events = 0usize;
     let mut declared: Vec<String> = Vec::new();
     let mut proof: Option<ProofState> = None;
     println!("sokonanoda repl — press Ctrl-D to exit");
-    print_repl_help();
+    print_repl_help_with_history();
     loop {
         print!("{}", if proof.is_some() { "proof> " } else { "> " });
         let _ = std::io::stdout().flush();
         let Some(Ok(line)) = lines.next() else {
             break;
         };
+        if !line.trim().is_empty() {
+            history.push(line.clone());
+            append_history_line(history_path.as_deref(), &line);
+        }
         if (line.trim() == "done" || line.trim() == "#done") && proof.is_some() {
             let state = proof.as_ref().expect("proof");
             if !state.done() {
@@ -110,7 +120,7 @@ pub(crate) fn repl() -> ExitCode {
         }
         match line.trim() {
             "#help" | "help" | "?" => {
-                print_repl_help();
+                print_repl_help_with_history();
                 continue;
             }
             "#env" | "env" => {
@@ -186,4 +196,42 @@ pub(crate) fn run_buffer(buffer: &str, seen_events: &mut usize, declared: &mut V
 pub(crate) fn print_proof_state(state: &ProofState) {
     println!("goal: {}", state.goal_text());
     println!("lambda: {}", state.lambda_text());
+}
+
+fn print_repl_help_with_history() {
+    print_repl_help();
+    println!("历史: $HOME/.sokonanoda_history");
+}
+
+fn history_path() -> Option<PathBuf> {
+    match std::env::var_os("HOME") {
+        Some(home) if !home.is_empty() => Some(PathBuf::from(home).join(HISTORY_FILE)),
+        _ => None,
+    }
+}
+
+fn load_history(path: Option<&Path>) -> Vec<String> {
+    let Some(path) = path else {
+        return Vec::new();
+    };
+    let Ok(content) = std::fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    let lines: Vec<String> = content.lines().map(str::to_string).collect();
+    let skip = lines.len().saturating_sub(HISTORY_MAX_LINES);
+    lines.into_iter().skip(skip).collect()
+}
+
+fn append_history_line(path: Option<&Path>, line: &str) {
+    let Some(path) = path else {
+        return;
+    };
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(path)
+    else {
+        return;
+    };
+    let _ = writeln!(file, "{line}");
 }

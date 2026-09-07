@@ -1,6 +1,7 @@
-//! CLI entry: argument parsing, dispatch to file-check / repl / lsp.
+//! CLI entry: argument parsing, dispatch to file-check / repl / lsp / course.
 
 mod check;
+mod course;
 mod help;
 mod json_report;
 mod repl;
@@ -55,6 +56,13 @@ fn main() -> ExitCode {
             Some(path) => watch(path),
             None => {
                 eprintln!("usage: sokonanoda watch <file.sokonanoda>");
+                ExitCode::FAILURE
+            }
+        },
+        Some("course") => match positionals.get(1) {
+            Some(manifest) => course::course(manifest, json),
+            None => {
+                eprintln!("usage: sokonanoda course <course.json>");
                 ExitCode::FAILURE
             }
         },

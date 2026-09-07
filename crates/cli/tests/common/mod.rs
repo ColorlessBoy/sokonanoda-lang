@@ -5,10 +5,11 @@
 
 use std::path::{Path, PathBuf};
 
-/// The closed event vocabulary of `--json` (docs/protocol.md).
-/// Protocol tests assert the emitted stream stays inside it; skill tests
-/// assert the agent-facing skill files only advertise these names.
-pub const EVENT_VOCABULARY: [&str; 7] = [
+/// The closed event vocabulary of `--json` (docs/protocol.md): the batch-run
+/// stream plus the `sokonanoda course` progress map (docs/protocol.md
+/// "Course map"). Protocol tests assert the emitted stream stays inside it;
+/// skill tests assert the agent-facing skill files only advertise these names.
+pub const EVENT_VOCABULARY: [&str; 9] = [
     "decl.checked",
     "example.checked",
     "expr.typed",
@@ -16,6 +17,8 @@ pub const EVENT_VOCABULARY: [&str; 7] = [
     "decl.printed",
     "exercise.open",
     "diagnostic",
+    "course.unit",
+    "course.summary",
 ];
 
 /// The closed delta-event vocabulary of `sokonanoda watch` (docs/protocol.md,

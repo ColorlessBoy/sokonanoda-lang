@@ -27,20 +27,32 @@ def add1 : Nat -> Nat := fun n => n + 1
 -- ─────────────────────────────────────────────────────────────
 
 -- 练习 1：补全 double。洞在 lambda 里：剩余目标是 Nat（外层已确定 n : Nat）。
+-- soko:hint 思路：洞在 lambda 体内——外层已经确定了 n : Nat，程序可以分步写完。
+-- soko:hint 目标形态：剩余目标是 Nat：用 n 凑出一个翻倍的表达式。
+-- soko:hint 关键件：+ 是真正的加法——把 n 和 n 组合起来。
 def double : Nat -> Nat := fun (n : Nat) => ???
 
 -- 练习 2（高阶函数）：twice 接收一个函数 f，返回“把 f 用两次”的函数。
 -- 注意类型 (Nat -> Nat) -> Nat -> Nat：括号是分组不是应用。
 -- 提示：答案需要两层 fun；先把 f 用在 x 上，再对结果再用一次 f。
+-- soko:hint 思路：函数是一等公民——f 像普通值一样，可以被使用任意多次。
+-- soko:hint 目标形态：两层箭头：先 fun (f : Nat -> Nat) =>，再 fun (x : Nat) =>，最后返回一个 Nat。
+-- soko:hint 关键件：把 f 用在 x 上得到一个 Nat，再对结果再用一次 f；括号是分组不是应用。
 def twice : (Nat -> Nat) -> Nat -> Nat := ???
 
 -- 练习 3：三个参数的函数。Nat -> Nat -> Nat -> Nat 一次吃三个 Nat。
 -- 提示：三层 fun，一层一层写；洞永远放在最后一层。
+-- soko:hint 思路：三个箭头就是三层 fun——一次吃三个 Nat，再交出一个 Nat。
+-- soko:hint 目标形态：一层一层写：fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => …，洞放在最后一层。
+-- soko:hint 关键件：最后一层返回任意一个 Nat 就行——三个参数都是现成的 Nat，内核只判类型。
 def three_args : Nat -> Nat -> Nat -> Nat := ???
 
 -- 练习 4：apply_twice 的输入本身是“一个函数”，输出也是“一个函数”。
 -- 因为箭头右结合，整体函数类型必须用括号括住：(Nat -> Nat) -> (Nat -> Nat)。
 -- 提示：两层 fun，第一层拿函数 f，第二层拿 Nat n，返回“f 用两次”。
+-- soko:hint 思路：这次输入是函数、输出也是函数——注意返回类型 Nat -> Nat 本身还是个箭头。
+-- soko:hint 目标形态：两层 fun：第一层拿函数 f，写完发现剩余目标还是 Nat -> Nat——所以再写一层 fun 拿 n。
+-- soko:hint 关键件：把 f 连用两次：先用在 n 上，再对结果用一次；最后一层返回的就是“f 用两次”的表达式。
 def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := ???
 
 -- ─────────────────────────────────────────────────────────────

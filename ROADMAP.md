@@ -433,9 +433,9 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
   讲课 agent 消费同一文档状态自动出题。
 - **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——已完成：
   completions、go-to-def、folding、提示分级（`-- soko:hint` + `soko/hints` +
-  VS Code 揭示）、undo、rename+references、inlay hints、`--version`+MSRV、
-  失败洞的下一步建议（`front::suggest` + kernel 验证 + is_preferred）、
-  `sokonanoda lsp` 子命令（单二进制分发）；余项：`soko/courseStatus` +
-  VS Code 章节地图、内核分类学余项、criterion 基准、fuzz harness、稳定
-  hole_id、REPL 历史持久化。发布流水线已落地（`release.yml` +
-  `docs/RELEASE.md`）。
+  VS Code 揭示 + course/ 五单元内容阶梯）、undo、rename+references、
+  inlay hints、`--version`+MSRV、失败洞的下一步建议（`front::suggest` +
+  kernel 验证 + is_preferred）、`sokonanoda lsp` 子命令（单二进制分发）、
+  课程地图（`sokonanoda course` 聚合 + VS Code 课程树）、REPL 历史持久化；
+  余项：内核分类学余项、criterion 基准、fuzz harness、稳定 hole_id、
+  失败声明针对性建议。发布流水线已落地（`release.yml` + `docs/RELEASE.md`）。

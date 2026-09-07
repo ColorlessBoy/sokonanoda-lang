@@ -1,9 +1,10 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第十一轮：提示阶梯 + 下一步建议 + rename/references + inlay + lsp 子命令）
+> 快照：2026-09-07（第十二轮：课程地图 + REPL 历史 + course 提示阶梯）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-hints-suggestions.md` / `docs/design-rename-inlay.md`（本轮）/
-> `docs/design-goal-refine.md` / `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
+> 设计 = `docs/design-course-status.md`（本轮）/ `docs/design-hints-suggestions.md` /
+> `docs/design-rename-inlay.md` / `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
+> `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > 差距审计 = `docs/gap-analysis.md`；**经验台账 = `docs/LESSONS.md`**；
 > 发布 = `docs/RELEASE.md`；
@@ -14,6 +15,28 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第十二轮：课程地图 + 小项，4 subagent 并行）
+
+1. **`sokonanoda course <course.json>`（课程地图，gap #8 后端）**：聚合
+   course.json 全部单元的 `decl.checked / exercise.open / failed /
+   expr.reduced` 计数，JSON 视图 = 封闭新事件 `course.unit`（坏单元带
+   `error` 字段）+ `course.summary`（进 protocol.md + 词汇表 + 4 个 e2e）；
+   人类视图逐单元一行；**进度不是错误**（open/failed 也 exit 0）。
+2. **VS Code「课程」树（gap #8 前端）**：`sokonanoda.courseMap` 视图 +
+   `sokonanoda.courseRefresh` 命令——客户端跑 CLI 子进程解析 JSON Lines
+   （10s 超时、并发去重、找不到 course.json 静默空树）；节点按
+   open/failed 着色、点击打开单元文件；**聚合归 CLI，服务器保持单文档**
+   （负断言：客户端不得引用 soko/courseStatus）。
+3. **REPL 命令历史持久化（小项）**：`$HOME/.sokonanoda_history`（截尾
+   1000 行；HOME 缺失静默禁用；不做行编辑——超范围另立项）；测试注入
+   临时 HOME，既有 repl 测试不再污染真实家目录。
+4. **course/ 五单元提示阶梯内容**：20 个 open 练习 × 3 条（共 60 条
+   `-- soko:hint`：思路→目标形态→关键件，答案不进提示）；golden 逐单元
+   计数不变、solutions 零诊断（注释级改动不产事件——playground 同机制）。
+5. 测试总量 **335**（front 171 / lsp 56 / cli 63 / kernel 45…）；全绿；
+   fmt/clippy 干净。playground 锚点不变（checked=14 / open=12 / 0 诊断）；
+   course 锚点 19 checked · 20 open · 0 failed。
 
 ## 本轮进度（2026-09-07，第十一轮：教学辅助四件套，3 subagent 并行 + 2 调研）
 
@@ -296,8 +319,9 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
 2. ~~**失败洞的"下一步建议"**~~ ✅（第十一轮）：`front::suggest` 按目标形状
    （exact/rfl/refine/intro，kernel 验证优先 + is_preferred）；顺带修复多洞
    错位 bug。余项：失败声明（kernel-rejected）的针对性建议。
-3. **`soko/courseStatus` + VS Code 章节地图**（M）：读 course.json +
-   各单元练习状态聚合；进度天然持久化（声明式文件即存储）。
+3. ~~**`soko/courseStatus` + VS Code 章节地图**~~ ✅（第十二轮）：聚合归
+   `sokonanoda course` CLI 子命令（服务器保持单文档），VS Code「课程」树
+   消费子进程 JSON Lines；学习者进度=画布自身状态（声明式文件即存储）。
 4. ~~**rename + find-references**~~ ✅（第十一轮）：语义集 + 版本化
    documentChanges + ResponseError；shadowing 有回归测试。
 5. ~~**inlay hints**~~ ✅（第十一轮）：洞期望类型 + tooltip；只读无 textEdits。
@@ -305,8 +329,9 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
    （`is_prop_type: expected a sort`）；`assert_eq!` 灰色地带归 internal 的
    议题；refine 子洞的 kernel 级 expected type（elaborator spine meta，M–L）。
 7. **小项打包**：~~`sokonanoda lsp` 子命令~~ ✅（第十一轮，gleam 模式）、
+   ~~REPL 命令历史持久化~~ ✅（第十二轮，`$HOME/.sokonanoda_history`）、
    criterion 基准（防 I8 增量静默劣化，本地跑）、cargo-fuzz parser harness
-   （定期跑）、洞的稳定 hole_id（Deduce MCP 先例）、REPL 命令历史持久化。
+   （定期跑）、洞的稳定 hole_id（Deduce MCP 先例）。
 
 ### 运营/验证类
 

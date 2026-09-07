@@ -1,7 +1,7 @@
 //! VS Code client contract tests (`editor/vscode/`): the unpackaged extension
 //! is part of the product surface, so its manifest and entry script must stay
-//! consistent with the server's custom goal-view protocol — without needing
-//! an Electron run in CI.
+//! consistent with the server's custom goal-view protocol and the CLI's
+//! course-map subcommand — without needing an Electron run in CI.
 
 use std::fs;
 use std::path::Path;
@@ -75,6 +75,56 @@ fn entry_script_speaks_the_goal_view_protocol() {
     assert!(
         !script.contains("find(\"???\")") && !script.contains("indexOf(\"???\")"),
         "clients must not re-derive hole positions (ocaml-lsp lesson)"
+    );
+}
+
+#[test]
+fn course_map_consumes_the_cli_course_subcommand() {
+    let manifest = manifest();
+    let script = entry_script();
+    // package.json declares the 「课程」 tree view next to the goals tree.
+    let views = manifest["contributes"]["views"]["explorer"]
+        .as_array()
+        .expect("explorer views");
+    assert!(
+        views
+            .iter()
+            .any(|v| v["id"].as_str() == Some("sokonanoda.courseMap")),
+        "package.json must declare the sokonanoda.courseMap view"
+    );
+    let commands = manifest["contributes"]["commands"]
+        .as_array()
+        .expect("contributes.commands");
+    assert!(
+        commands
+            .iter()
+            .any(|c| c["command"].as_str() == Some("sokonanoda.courseRefresh")),
+        "package.json must declare sokonanoda.courseRefresh"
+    );
+    assert!(
+        script.contains("\"sokonanoda.courseRefresh\""),
+        "extension.js must register sokonanoda.courseRefresh"
+    );
+    // The course map shells out to `sokonanoda course <manifest> --json`
+    // (docs/protocol.md "Course map") and renders `course.unit` events —
+    // the client must never re-derive unit status (docs/design-course-status.md
+    // §0: aggregation lives in the CLI, the LSP server stays single-document).
+    assert!(
+        script.contains("\"course\"") && script.contains("--json"),
+        "the course tree must invoke `sokonanoda course <manifest> --json`"
+    );
+    assert!(
+        script.contains("course.unit"),
+        "the course tree must parse course.unit events"
+    );
+    assert!(
+        !script.contains("soko/courseStatus"),
+        "course aggregation must not go through the LSP server (CLI subprocess by design)"
+    );
+    // Subprocess discipline: bounded runtime (timeout + kill).
+    assert!(
+        script.contains("setTimeout") && script.contains("kill"),
+        "the course subprocess must be killed on timeout"
     );
 }
 

@@ -6,6 +6,10 @@
 // position logic — clients never re-derive hole positions).
 // Hint ladder: the tree's 「提示」 node reveals `soko/hints` one at a time;
 // the reveal counter lives in workspaceState (the server stays stateless).
+// Course map: the 「课程」 tree shells out to the CLI (`sokonanoda course
+// <manifest> --json`) — cross-file aggregation is the CLI's job (the server
+// stays single-document); the client only renders `course.unit` events.
+const cp = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const vscode = require("vscode");
@@ -20,21 +24,37 @@ function firstExisting(candidates) {
   return undefined;
 }
 
+function discoveryRoots() {
+  return (vscode.workspace.workspaceFolders ?? [])
+    .map((folder) => folder.uri.fsPath)
+    .concat(path.join(__dirname, "..", "..")); // editor/vscode -> repo checkout
+}
+
+function builtBinaryCandidates(roots, name) {
+  return roots.flatMap((root) => [
+    path.join(root, "target", "debug", name),
+    path.join(root, "target", "release", name),
+  ]);
+}
+
 async function resolveServerCommand() {
   const setting = vscode.workspace.getConfiguration("sokonanoda").get("serverPath");
   if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
   if (process.env.SOKONANODA_LSP_BIN) return process.env.SOKONANODA_LSP_BIN;
 
-  const roots = (vscode.workspace.workspaceFolders ?? [])
-    .map((folder) => folder.uri.fsPath)
-    .concat(path.join(__dirname, "..", "..")); // editor/vscode -> repo checkout
-  const found = firstExisting(
-    roots.flatMap((root) => [
-      path.join(root, "target", "debug", "sokonanoda-lsp"),
-      path.join(root, "target", "release", "sokonanoda-lsp"),
-    ]),
-  );
+  const found = firstExisting(builtBinaryCandidates(discoveryRoots(), "sokonanoda-lsp"));
   return found ?? "sokonanoda-lsp"; // fall back to PATH lookup
+}
+
+// Same discovery pattern as the server, but for the `sokonanoda` CLI binary
+// (`cargo build -p sokonanoda-cli` produces target/{debug,release}/sokonanoda).
+function resolveCliCommand() {
+  return firstExisting(builtBinaryCandidates(discoveryRoots(), "sokonanoda")) ?? "sokonanoda";
+}
+
+function resolveCourseManifest() {
+  const roots = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
+  return firstExisting(roots.map((root) => path.join(root, "course", "course.json")));
 }
 
 function isExplicitPath(command) {
@@ -152,6 +172,132 @@ function buildOpenChildren(decl, uriString) {
   };
   children.push(hint);
   return children;
+}
+
+// Course map (docs/design-course-status.md §2): one node per unit, rendered
+// from `course.unit` events emitted by the CLI subprocess. The client never
+// re-derives unit status — the CLI is the single data source.
+const COURSE_TIMEOUT_MS = 10000;
+
+function courseUnitIcon(unit) {
+  if (unit.error !== undefined || (unit.failed ?? 0) > 0) {
+    return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.red"));
+  }
+  if ((unit.open ?? 0) > 0) {
+    return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.yellow"));
+  }
+  return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.green"));
+}
+
+function courseUnitItem(unit, manifestDir) {
+  const item = new vscode.TreeItem(
+    `unit ${unit.unit} ${unit.title ?? ""}`.trim(),
+    vscode.TreeItemCollapsibleState.None,
+  );
+  item.description = `${unit.checked ?? 0} checked · ${unit.open ?? 0} open · ${unit.failed ?? 0} failed`;
+  item.iconPath = courseUnitIcon(unit);
+  item.tooltip = unit.error !== undefined
+    ? `单元加载失败：${unit.error}`
+    : `checked ${unit.checked ?? 0} · open ${unit.open ?? 0} · failed ${unit.failed ?? 0}`;
+  if (manifestDir && typeof unit.file === "string" && unit.file !== "") {
+    // Unit paths resolve relative to the manifest's directory (docs/protocol.md).
+    const abs = path.isAbsolute(unit.file) ? unit.file : path.join(manifestDir, unit.file);
+    item.command = {
+      command: "vscode.open",
+      title: "打开单元文件",
+      arguments: [vscode.Uri.file(abs)],
+    };
+  }
+  return item;
+}
+
+function parseCourseEvents(stdout) {
+  const units = [];
+  for (const line of stdout.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (trimmed === "") continue;
+    try {
+      const event = JSON.parse(trimmed);
+      if (event && event.type === "course.unit") units.push(event);
+    } catch {
+      // not JSON Lines — ignore (stderr is dropped too)
+    }
+  }
+  return units;
+}
+
+// Subprocess discipline: JSON Lines from stdout, stderr ignored, kill after
+// the timeout and fall back to an empty tree (progress is never an error).
+function runCourseCommand(command, manifestPath) {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let settled = false;
+    let child;
+    let timer;
+    const finish = (units) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      child.kill();
+      resolve(units);
+    };
+    try {
+      child = cp.spawn(command, ["course", manifestPath, "--json"]);
+    } catch {
+      resolve([]);
+      return;
+    }
+    timer = setTimeout(() => finish([]), COURSE_TIMEOUT_MS);
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.resume();
+    child.on("error", () => finish([]));
+    child.on("close", () => finish(parseCourseEvents(stdout)));
+  });
+}
+
+class CourseTreeDataProvider {
+  constructor() {
+    this._emitter = new vscode.EventEmitter();
+    this.onDidChangeTreeData = this._emitter.event;
+    this.manifestDir = undefined;
+    this.units = [];
+    this._pending = undefined;
+  }
+
+  refresh() {
+    this._emitter.fire();
+  }
+
+  async getTreeItem(element) {
+    return element;
+  }
+
+  async getChildren(element) {
+    if (element) return element.children ?? [];
+    return this.loadUnits();
+  }
+
+  async loadUnits() {
+    if (!this._pending) {
+      this._pending = this.runCourse().finally(() => {
+        this._pending = undefined;
+      });
+    }
+    return this._pending;
+  }
+
+  async runCourse() {
+    this.units = [];
+    const manifest = resolveCourseManifest();
+    if (!manifest) return this.units; // no course manifest -> empty tree
+    const units = await runCourseCommand(resolveCliCommand(), manifest);
+    this.manifestDir = path.dirname(manifest);
+    this.units = units.map((unit) => courseUnitItem(unit, this.manifestDir));
+    return this.units;
+  }
 }
 
 let statusBar;
@@ -275,7 +421,7 @@ async function revealHint(context, uriArg, declName, declRange) {
   vscode.window.showInformationMessage(hints[revealed]);
 }
 
-function registerCommands(context, provider) {
+function registerCommands(context, provider, courseProvider) {
   const showStatus = async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.languageId !== "sokonanoda") {
@@ -320,6 +466,7 @@ function registerCommands(context, provider) {
     vscode.commands.registerCommand("sokonanoda.nextHole", () => nextHole(false)),
     vscode.commands.registerCommand("sokonanoda.previousHole", () => nextHole(true)),
     vscode.commands.registerCommand("sokonanoda.goals.refresh", () => provider.refresh()),
+    vscode.commands.registerCommand("sokonanoda.courseRefresh", () => courseProvider.refresh()),
     vscode.commands.registerCommand("sokonanoda.revealRange", revealRange),
     vscode.commands.registerCommand(
       "sokonanoda.revealHint",
@@ -370,7 +517,17 @@ async function activate(context) {
   );
   provider.trackEditor(vscode.window.activeTextEditor);
 
-  registerCommands(context, provider);
+  // 课程面板：数据来自 CLI 子进程（跨文件聚合）；不挂诊断刷新——诊断是
+  // 单文档事件，课程地图只需激活时与手动刷新（sokonanoda.courseRefresh）。
+  const courseProvider = new CourseTreeDataProvider();
+  const courseTree = vscode.window.createTreeView("sokonanoda.courseMap", {
+    treeDataProvider: courseProvider,
+    showCollapseAll: true,
+  });
+  context.subscriptions.push(courseTree);
+
+  registerCommands(context, provider, courseProvider);
+  courseProvider.refresh();
 
   await client.start();
   client.outputChannel.appendLine(`[client] ready — server synchronized over stdio: ${command}`);

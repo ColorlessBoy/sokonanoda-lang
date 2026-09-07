@@ -180,3 +180,20 @@
   子命令编译期覆盖（cli e2e 无 Electron 冒烟，stdio 交互不进 CI）。
 - 测试总量（2026-09-07 第十一轮）：**327**（front 171 / lsp 56 / cli 55 /
   kernel 45）。
+
+## 2026-09-07 更新（第十二轮：课程地图 + REPL 历史 + course 阶梯）
+
+- **course 聚合**（`crates/cli/tests/course_status.rs`，4 个）：manifest 聚合
+  逐单元 pinned（12/2/1/0/4 · 5/5/4/3/3，summary 19/20/0）、人类视图片段、
+  坏单元带 error 且 exit 0、manifest 缺失 exit 非零；词汇表 +2
+  （`course.unit`/`course.summary`，protocol.rs 与 skill.rs 共用同一封闭表）。
+- **课程树契约**（extension.rs，+1）：package.json 声明视图/命令 ↔
+  extension.js 注册、CLI 子进程调用 + `course.unit` 解析、**负断言**禁止
+  客户端引用 soko/courseStatus（服务器单文档是方向性取舍）、子进程超时
+  纪律（setTimeout + kill）。
+- **REPL 历史**（cli e2e，3 个）：临时 HOME 注入（既有 repl 测试从此不污染
+  真实家目录）、非空输入追加、HOME 缺失静默禁用、跨会话累积。
+- **course 阶梯内容**：5 单元 × 20 练习 × 3 条 `-- soko:hint`（60 条）；
+  golden 逐单元计数不变 + solutions 零诊断（注释不产事件）。
+- 测试总量（2026-09-07 第十二轮）：**335**（front 171 / lsp 56 / cli 63 /
+  kernel 45）。

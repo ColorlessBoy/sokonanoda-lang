@@ -63,6 +63,11 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "sokonanoda.courseRefresh",
+        "title": "sokonanoda: 刷新课程地图",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "sokonanoda.revealRange",
         "title": "sokonanoda: reveal range"
       },
@@ -78,6 +83,11 @@
           "id": "sokonanoda.goals",
           "name": "练习",
           "when": "resourceLangId == sokonanoda"
+        },
+        {
+          "id": "sokonanoda.courseMap",
+          "name": "课程",
+          "when": "resourceLangId == sokonanoda"
         }
       ]
     },
@@ -85,7 +95,8 @@
       "commandPalette": [
         { "command": "sokonanoda.status", "when": "false" },
         { "command": "sokonanoda.revealRange", "when": "false" },
-        { "command": "sokonanoda.goals.refresh", "when": "false" }
+        { "command": "sokonanoda.goals.refresh", "when": "false" },
+        { "command": "sokonanoda.courseRefresh", "when": "false" }
       ],
       "view/title": [
         {
@@ -97,6 +108,11 @@
           "command": "sokonanoda.nextHole",
           "group": "navigation",
           "when": "view == sokonanoda.goals"
+        },
+        {
+          "command": "sokonanoda.courseRefresh",
+          "group": "navigation",
+          "when": "view == sokonanoda.courseMap"
         }
       ]
     },

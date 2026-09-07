@@ -40,18 +40,33 @@ example : Or True False := Or.inl True False True.intro
 -- ─────────────────────────────────────────────────────────────
 
 -- 练习 1（第一个“证明”）：True 的证明项已经存在，把它叫出来即可。
+-- soko:hint 思路：证明就是一个项——类型为 True 的项，就是 True 的证明。
+-- soko:hint 目标形态：目标 True 没有箭头可拆，直接问自己：环境里谁能造出 True？
+-- soko:hint 关键件：True.intro——True 的构造子，不需要任何参数。
 theorem true_is_true : True := ???
 
 -- 练习 2：假设 a、b 都成立，就能得到 And a b。
 -- 提示：四层 fun，最后 And.intro a b ha hb。
+-- soko:hint 思路：类型里的箭头对应值里的 fun——写证明就是一串 fun 加最后一步构造。
+-- soko:hint 目标形态：最外层是四个箭头：先写 fun (a : Prop) =>，每写一层就看剩余目标。
+-- soko:hint 关键件：最后一步用 And.intro，它吃 a、b 和两个证明，装出 And a b。
 theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???
 
 -- 练习 3：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。
+-- soko:hint 思路：先把拿到的 And a b 拆开，再按新顺序装回去——先消去，再构造。
+-- soko:hint 目标形态：三层箭头：fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …，最后要造出 And b a。
+-- soko:hint 关键件：And.left / And.right 从 h 里取出两半；And.intro b a … 换个顺序装回去。
 theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := ???
 
 -- 练习 4：False 没有证明（没有构造子），但可以“用”它：从矛盾推出任何 P。
+-- soko:hint 思路：False 证不出来（没有构造子），但可以“被使用”——从矛盾推出任何命题。
+-- soko:hint 目标形态：两层箭头：先 fun (P : Prop) =>，再吃掉 h : False，剩余目标是任意的 P。
+-- soko:hint 关键件：False.rec——它吃一个目标命题和一份 False 的证明，吐出那个命题的证明。
 theorem ex_falso : (P : Prop) -> False -> P := ???
 
 -- 练习 5（挑战 ★）：And a (Not a) 是自相矛盾的组合。拆开它，把 Not a 那一半
 -- 当作函数应用到另一半。提示：Not a 会展开成 a -> False。
+-- soko:hint 思路：And 把 a 和 Not a 打包在一起；Not a 展开后是 a -> False——一个“吃 a”的函数。
+-- soko:hint 目标形态：两层 fun 拿到 a 和 h : And a (Not a) 之后，目标就是 False 本身。
+-- soko:hint 关键件：And.right 取出 Not a 那一半、And.left 取出 a 那一半；把前者当函数应用于后者。
 theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := ???

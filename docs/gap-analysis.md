@@ -4,9 +4,9 @@
 > lean4game(NNG) / Deduce / Isabelle。全文结论浓缩；来源清单见调研原报告
 > （completions 是 Deduce 课堂实证的第一痛点；MSRV 反例 = rust-analyzer
 > issue #18730；洞位置 server 端计算 = ocaml-lsp #1516 教训）。
-> **进度（2026-09-07 第十一轮）**：#1/#2/#3/#5/#6/#7/#10 与附加小项的
-> `sokonanoda lsp` 已落地（见 STATUS 第十一轮）；#4 提示分级、#9 下一步建议
-> 机制已落地（course/ 内容阶梯与失败声明建议为余项）。
+> **进度（2026-09-07 第十二轮）**：#1/#2/#3/#5/#6/#7/#8/#9/#10 与附加小项的
+> `sokonanoda lsp`、REPL 历史均已落地；#4 提示分级机制 + course/ 内容阶梯
+> 已落地（失败声明建议、course/ 的 goal-match 型 anchor 提示为余项）。
 
 ## 已达标（本轮盘点确认）
 
@@ -15,7 +15,8 @@ semanticTokens、codeLens、code action（exact/intro/refine）、真增量（I8
 CI lint+test+golden+conformance、agent skills、VSIX 契约守护、release 流水线、
 completions、go-to-def、folding、`soko/hints` 提示阶梯、undo、
 rename+references、inlay hints、下一步建议（is_preferred 排序）、
-`--version`+MSRV、`sokonanoda lsp` 子命令。
+`--version`+MSRV、`sokonanoda lsp` 子命令、课程地图（`sokonanoda course` +
+VS Code 课程树）、REPL 历史持久化。
 
 ## Top 10 补全清单（按投入产出比）
 

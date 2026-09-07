@@ -1,12 +1,45 @@
 use std::io::Write;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TEMP_HOME_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn run(input: &str) -> std::process::Output {
     run_args(&[], Some(input))
 }
 
 fn run_repl(input: &str) -> std::process::Output {
-    run_args(&["repl"], Some(input))
+    run_repl_in(&temp_home(), input)
+}
+
+fn run_repl_in(home: &Path, input: &str) -> std::process::Output {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .args(["repl"])
+        .env("HOME", home)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn sokonanoda");
+    child
+        .stdin
+        .as_mut()
+        .expect("stdin")
+        .write_all(input.as_bytes())
+        .expect("write stdin");
+    child.wait_with_output().expect("wait")
+}
+
+fn temp_home() -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-cli-home-{}-{}",
+        std::process::id(),
+        TEMP_HOME_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create temp home");
+    dir
 }
 
 fn run_args(args: &[&str], input: Option<&str>) -> std::process::Output {
@@ -529,5 +562,66 @@ fn repl_prove_undo_steps_back_and_reports_empty_history() {
     assert!(
         stderr.contains("error: 没有可撤销的证明步"),
         "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn repl_appends_nonempty_inputs_to_history() {
+    let home = temp_home();
+    let out = run_repl_in(&home, "1 + 1\n#check Nat\n\n");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let history = std::fs::read_to_string(home.join(".sokonanoda_history")).expect("history file");
+    let lines: Vec<&str> = history.lines().collect();
+    assert_eq!(lines, vec!["1 + 1", "#check Nat"]);
+}
+
+#[test]
+fn repl_history_missing_home_is_silently_disabled() {
+    let missing = std::env::temp_dir().join(format!(
+        "sokonanoda-cli-missing-home-{}-{}",
+        std::process::id(),
+        TEMP_HOME_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&missing);
+    let out = run_repl_in(
+        &missing,
+        "def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n",
+    );
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration id"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn repl_history_accumulates_across_sessions() {
+    let home = temp_home();
+    let first = run_repl_in(&home, "def id : Prop -> Prop := fun (x : Prop) => x\n");
+    let second = run_repl_in(&home, "#check Nat\n");
+    assert!(
+        first.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(
+        second.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let history = std::fs::read_to_string(home.join(".sokonanoda_history")).expect("history file");
+    let lines: Vec<&str> = history.lines().collect();
+    assert_eq!(
+        lines,
+        vec!["def id : Prop -> Prop := fun (x : Prop) => x", "#check Nat"]
     );
 }

@@ -244,6 +244,30 @@ nothing changed): with the I8 incremental session, editing command `i` only
 kernel-rechecks commands `i..n`. `SessionUpdate.stats.kernel_checks` (front
 API) exposes the same fact as a count.
 
+## Course map: `sokonanoda course <course.json>`
+
+Aggregates the units of `course/course.json` (the agent-facing material
+library) into a progress map; the VS Code course tree consumes it. Unit
+paths resolve relative to the manifest's directory.
+
+- `course.unit` (`{type, file, title, unit, checked, open, failed, reduced[,
+  error]}`) — per-unit counts (`checked` = `decl.checked`, `open` = open
+  exercises, `failed` = declarations the kernel/elab rejected, `reduced` =
+  `expr.reduced`); `error` carries a message when the unit file could not
+  be read or parsed;
+- `course.summary` (`{type, units, checked, open, failed}`) — totals.
+
+Human view: one line per unit (`unit 1 命题与证明 —— 12 checked · 5 open ·
+0 failed`) plus a totals line. Exit code is 0 even with open/failed
+exercises (progress is not an error); only an unreadable manifest fails.
+
+## REPL history
+
+`sokonanoda repl` appends every non-empty input line to
+`$HOME/.sokonanoda_history` (created on demand; silently disabled when
+`HOME` is unset, truncated to the most recent 1000 lines on load).
+Line-editing / arrow-key recall is out of scope.
+
 ## Future structured event names (service layer)
 
 When the resident service replaces `watch`, keep the same vocabulary and add:
