@@ -917,7 +917,7 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
                 _ => {
                     // We only need to know that it's a valid ind-app for SOMETHING in the block, since
                     // this is only a binder in the constructor, not the end of the telescope.
-                    assert!(self.which_valid_ind_app_v(st, depth, cur).is_some());
+                    assert!(self.which_valid_ind_app_v(st, depth, cur).is_some(), "recursive occurrence in constructor is not a valid application of the inductives being declared");
                     return;
                 }
             }
@@ -1139,7 +1139,7 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         }
         // The end of the constructor has to be of the form `parentIndConst params* indices*`
         // as in `List A` or `Nat.le x y`
-        assert!(self.is_valid_ind_app_v(st, parent_ind_name, depth, cur))
+        assert!(self.is_valid_ind_app_v(st, parent_ind_name, depth, cur), "constructor must return a full application of the inductive being declared")
     }
 
     // Test large elimination for an inductive that we know is...

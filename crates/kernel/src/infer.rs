@@ -49,7 +49,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     pub(crate) fn ensure_sort_v(&mut self, depth: u32, v: V<'t>) -> LevelPtr<'t> {
         match self.force_all(depth, v) {
             Value::Sort { level , .. } => *level,
-            _ => panic!("expected a sort"),
+            _ => panic!("expected a sort, got: {}", self.render_value_for_def_eq_error(depth, v)),
         }
     }
 
@@ -197,7 +197,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             let fty_f = self.force_all(depth, fty);
             let (domain, body) = match fty_f {
                 Value::Pi { domain, body, .. } => (*domain, body),
-                _ => panic!("expected a pi type"),
+                _ => panic!("expected a pi type, got: {}", self.render_value_for_def_eq_error(depth, fty_f)),
             };
             if flag == Check {
                 let arg_ty = self.infer_value(flag, depth, env, ctx, arg);
@@ -287,7 +287,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         let ty_ty = self.infer_value(Check, 0, empty_env, empty_ctx, info.ty);
         let sort = self.ensure_sort_v(0, ty_ty);
         if let Declar::Theorem { .. } = d {
-            assert!(self.ctx.is_zero(sort), "theorem type must be Prop (sort 0)");
+            let declared_v = self.eval(0, empty_env, info.ty);
+            let rendered = self.render_value_for_def_eq_error(0, declared_v);
+            assert!(self.ctx.is_zero(sort), "theorem type must be Prop (sort 0): {rendered}");
         }
     }
 

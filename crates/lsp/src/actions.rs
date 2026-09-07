@@ -11,11 +11,10 @@ use std::collections::HashMap;
 use tower_lsp::lsp_types::*;
 
 /// Locate the first `???` inside the declaration; returns the 0-based LSP
-/// range covering the hole.
+/// range covering the hole. The server derives hole positions from the walk
+/// (`DeclState.holes`) — never by scanning text.
 pub(crate) fn hole_range(text: &str, d: &DeclState) -> Option<Range> {
-    let decl_src = &text[d.span.start.offset..d.span.end.offset];
-    let hole_rel = decl_src.find("???")?;
-    let hole_off = d.span.start.offset + hole_rel;
+    let hole_off = d.holes.iter().map(|s| s.start.offset).min()?;
     let (hl, hc) = offset_to_line_col(text, hole_off);
     // `offset_to_line_col` is 1-based (matching our Spans); LSP wants 0-based.
     Some(Range {
@@ -54,6 +53,17 @@ pub(crate) fn intro_edit(
     //   fun (x : T) => ???
     let replacement = state.lambda_text();
     Some(edit_on_hole(uri, range, replacement))
+}
+
+/// Replace the first `???` with the constructor skeleton the walk recovered
+/// from the document (auto-filled parameters + one `???` per proof field),
+/// e.g. `And.intro a b ??? ???`. The suggestion is structural (from the
+/// declaration's own axiom/ctor shape); the kernel stays the judge for
+/// whatever the learner writes into the sub-holes.
+pub(crate) fn refine_edit(uri: Url, text: &str, d: &DeclState) -> Option<WorkspaceEdit> {
+    let template = d.refine_template.as_deref()?;
+    let range = hole_range(text, d)?;
+    Some(edit_on_hole(uri, range, template.to_string()))
 }
 
 /// A hypothesis the kernel judges defeq to the remaining goal closes it:

@@ -1,8 +1,11 @@
 # Once this file exists, .gitignore no longer applies to vsce packaging,
 # so everything that must stay out of the VSIX is listed here explicitly.
+# NOTE: node_modules is NOT excluded on purpose — vsce bundles the production
+# dependencies (vscode-languageclient & friends) into the VSIX; excluding it
+# ships a package that fails with "Cannot find module" on install.
 .vscode/**
 .vscode-test/**
 .github/**
 **/*.vsix
-node_modules/**
 .DS_Store
+

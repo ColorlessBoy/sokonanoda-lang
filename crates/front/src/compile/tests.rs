@@ -810,7 +810,8 @@ fn kernel_rejection_message_is_not_a_panic_trace() {
         message.contains("rejected") || message.contains("kernel error"),
         "message is neither a rejection nor a kernel error: {message}"
     );
-    assert_eq!(out.errors[0].code(), "kernel-rejected");
+    // 内核错误分类学后，theorem 非 Prop 有了专属细粒度码。
+    assert_eq!(out.errors[0].code(), "kernel-theorem-not-prop");
 }
 
 #[test]
@@ -830,6 +831,14 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::KernelExpectedSort,
+        ErrorKind::KernelExpectedPi,
+        ErrorKind::KernelTheoremNotProp,
+        ErrorKind::KernelNonPositive,
+        ErrorKind::KernelCtorResultMismatch,
+        ErrorKind::KernelCtorArgInvalidApp,
+        ErrorKind::KernelCtorArgNotType,
+        ErrorKind::KernelCtorArgTooLarge,
         ErrorKind::KernelRejected,
         ErrorKind::KernelInternal,
     ];
@@ -848,6 +857,14 @@ fn protocol_doc_lists_every_error_code() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
+                | ErrorKind::KernelExpectedSort
+                | ErrorKind::KernelExpectedPi
+                | ErrorKind::KernelTheoremNotProp
+                | ErrorKind::KernelNonPositive
+                | ErrorKind::KernelCtorResultMismatch
+                | ErrorKind::KernelCtorArgInvalidApp
+                | ErrorKind::KernelCtorArgNotType
+                | ErrorKind::KernelCtorArgTooLarge
                 | ErrorKind::KernelRejected
                 | ErrorKind::KernelInternal
         )
@@ -1245,4 +1262,290 @@ fn judge_uses_carried_universe_for_sort_u_goals() {
         &["a"],
     );
     assert_eq!(judgements[0], crate::judge::Judgement::Match);
+}
+
+// ---- 内核错误分类学：refine_kernel_kind 消息族 → ErrorKind ----
+
+#[test]
+fn refine_kernel_kind_classifies_kernel_message_families() {
+    use super::error::refine_kernel_kind;
+    let cases: &[(&str, ErrorKind)] = &[
+        (
+            "rejected: expected a sort, got: Nat",
+            ErrorKind::KernelExpectedSort,
+        ),
+        ("expected a sort, got: Nat", ErrorKind::KernelExpectedSort),
+        (
+            "rejected: expected a pi type, got: Nat",
+            ErrorKind::KernelExpectedPi,
+        ),
+        (
+            "expected a pi type, got: Nat -> Nat",
+            ErrorKind::KernelExpectedPi,
+        ),
+        (
+            "rejected: theorem type must be Prop (sort 0): Nat",
+            ErrorKind::KernelTheoremNotProp,
+        ),
+        (
+            "rejected: non-positive occurrence",
+            ErrorKind::KernelNonPositive,
+        ),
+        ("non-positive occurrence", ErrorKind::KernelNonPositive),
+        (
+            "rejected: constructor must return a full application of the inductive being declared",
+            ErrorKind::KernelCtorResultMismatch,
+        ),
+        (
+            "constructor must return a full application of the inductive being declared",
+            ErrorKind::KernelCtorResultMismatch,
+        ),
+        (
+            "rejected: recursive occurrence in constructor is not a valid application of the inductives being declared",
+            ErrorKind::KernelCtorArgInvalidApp,
+        ),
+        (
+            "recursive occurrence in constructor is not a valid application of the inductives being declared",
+            ErrorKind::KernelCtorArgInvalidApp,
+        ),
+        (
+            "rejected: constructor argument is not a type",
+            ErrorKind::KernelCtorArgNotType,
+        ),
+        (
+            "constructor argument is not a type: NotASort",
+            ErrorKind::KernelCtorArgNotType,
+        ),
+        (
+            "rejected: Constructor argument was too large for the corresponding inductive type",
+            ErrorKind::KernelCtorArgTooLarge,
+        ),
+        (
+            "Constructor argument was too large for the corresponding inductive type",
+            ErrorKind::KernelCtorArgTooLarge,
+        ),
+        // def_eq 双侧消息由 check.rs 的 parse_def_eq_mismatch 单独解析，
+        // 分类器必须维持 KernelRejected，不得重写。
+        (
+            "rejected: def_eq failed: def_eq mismatch expected: Prop | actual: Type",
+            ErrorKind::KernelRejected,
+        ),
+        (
+            "def_eq failed: def_eq mismatch expected: Prop | actual: Type",
+            ErrorKind::KernelRejected,
+        ),
+        (
+            "def_eq mismatch expected: Prop | actual: Type",
+            ErrorKind::KernelRejected,
+        ),
+    ];
+    for (msg, kind) in cases {
+        assert_eq!(&refine_kernel_kind(msg), kind, "message: {msg}");
+    }
+}
+
+#[test]
+fn refine_kernel_kind_internal_shapes_stay_kernel_internal() {
+    use super::error::refine_kernel_kind;
+    for msg in [
+        "rejected: assertion failed: x == y",
+        "assertion failed: self.is_valid_ind_app_v(st, parent_ind_name, depth, cur)",
+        "called `Option::unwrap()` on a `None` value",
+        "called `Result::unwrap()` on an `Err` value",
+        "internal error: entered unreachable code",
+    ] {
+        assert_eq!(
+            refine_kernel_kind(msg),
+            ErrorKind::KernelInternal,
+            "message: {msg}"
+        );
+    }
+}
+
+#[test]
+fn kernel_fine_grained_kinds_stage_as_kernel_with_codes() {
+    let kinds = [
+        ErrorKind::KernelExpectedSort,
+        ErrorKind::KernelExpectedPi,
+        ErrorKind::KernelTheoremNotProp,
+        ErrorKind::KernelNonPositive,
+        ErrorKind::KernelCtorResultMismatch,
+        ErrorKind::KernelCtorArgInvalidApp,
+        ErrorKind::KernelCtorArgNotType,
+        ErrorKind::KernelCtorArgTooLarge,
+    ];
+    let codes = [
+        "kernel-expected-sort",
+        "kernel-expected-pi",
+        "kernel-theorem-not-prop",
+        "kernel-inductive-non-positive",
+        "kernel-ctor-result-mismatch",
+        "kernel-ctor-arg-invalid-app",
+        "kernel-ctor-arg-not-type",
+        "kernel-ctor-arg-too-large",
+    ];
+    for (kind, code) in kinds.into_iter().zip(codes) {
+        assert_eq!(kind.stage(), CompileStage::Kernel);
+        assert_eq!(kind.code(), code);
+        assert!(!kind.hint().is_empty(), "missing hint for {code}");
+    }
+}
+
+#[test]
+fn pipeline_classifies_theorem_not_prop() {
+    let file = parse("theorem t : Nat := 1\n").unwrap();
+    let out = compile_fol(&file);
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::KernelTheoremNotProp),
+        "errors: {:?}",
+        out.errors
+            .iter()
+            .map(|e| (&e.kind, &e.message))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn pipeline_classifies_expected_sort() {
+    let file = parse("def x : 1 := 1\n").unwrap();
+    let out = compile_fol(&file);
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::KernelExpectedSort),
+        "errors: {:?}",
+        out.errors
+            .iter()
+            .map(|e| (&e.kind, &e.message))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn pipeline_classifies_ctor_result_mismatch() {
+    // 单构造子非递归块会在 kernel 的 is_recursive 一致性 assert 处先失败
+    // （front 恒传 true），所以补一个递归构造子让块走到 check_ctor。
+    let file = parse(
+        "inductive Bad : Type\n\
+         ctor base : (b : Bad) -> Bad\n\
+         ctor mk : Nat\n\
+         end\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::KernelCtorResultMismatch),
+        "errors: {:?}",
+        out.errors
+            .iter()
+            .map(|e| (&e.kind, &e.message))
+            .collect::<Vec<_>>()
+    );
+}
+
+// ---- 多洞（multi-hole）与 refine 模板（I9 第二段）----
+
+const AND_SKELETON: &str = "\
+axiom True : Prop\n\
+axiom True.intro : True\n\
+axiom False : Prop\n\
+axiom And : Prop -> Prop -> Prop\n\
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n";
+
+#[test]
+fn constructor_spine_holes_are_multi_hole_open_exercises() {
+    let report = check_document(
+        &parse(&format!(
+            "{AND_SKELETON}example : (a : Prop) -> (b : Prop) -> And a b -> And b a := \
+         fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro ??? ???\n"
+        ))
+        .expect("parse"),
+    );
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("multi-hole answer must stay an open exercise");
+    assert_eq!(open.holes.len(), 2, "two spine holes");
+    assert_eq!(open.sub_goals.len(), 2);
+    // 字段类型经结果头参数实例化：`And b a` 里 a:=b、b:=a。
+    assert_eq!(open.sub_goals[0].ty.as_deref(), Some("b"));
+    assert_eq!(open.sub_goals[1].ty.as_deref(), Some("a"));
+    assert!(open.refine_template.is_none(), "already refined");
+    assert!(
+        report
+            .errors
+            .iter()
+            .all(|e| e.kind != ErrorKind::ElabHoleMisplaced),
+        "spine holes are legal: {:?}",
+        report.errors
+    );
+}
+
+#[test]
+fn single_hole_with_ctor_goal_gets_refine_template() {
+    let report = check_document(&parse(&format!(
+        "{AND_SKELETON}theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???\n"
+    )).expect("parse"));
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("open");
+    // 结果头参数（a、b）被目标确定 → 自动填入；证明字段成为 ???
+    assert_eq!(
+        open.refine_template.as_deref(),
+        Some("And.intro a b ??? ???")
+    );
+    assert_eq!(open.holes.len(), 1);
+    assert!(open.sub_goals.is_empty());
+}
+
+#[test]
+fn mixed_spine_args_keep_state_open_with_expected_types() {
+    let report = check_document(
+        &parse(&format!(
+            "{AND_SKELETON}example : And True False := And.intro True ???\n"
+        ))
+        .expect("parse"),
+    );
+    assert!(
+        !report
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::ElabHoleMisplaced),
+        "mixed constructor application stays an open exercise: {:?}",
+        report.errors
+    );
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("open");
+    assert_eq!(open.holes.len(), 1);
+    assert_eq!(open.sub_goals.len(), 1);
+    // 字段 `b` 在目标 `And True False` 下实例化为 False。
+    assert_eq!(open.sub_goals[0].ty.as_deref(), Some("False"));
+}
+
+#[test]
+fn spine_holes_without_a_known_template_stay_open() {
+    // 没有兄弟 axiom/ctor 模板也能合法多洞（子目标类型缺省）。
+    let report = check_document(
+        &parse("example : (A : Prop -> Prop) -> A -> A := fun (A : Prop -> Prop) => ???\n")
+            .expect("parse"),
+    );
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("single hole stays open");
+    assert_eq!(open.holes.len(), 1);
+    assert!(open.refine_template.is_none());
 }

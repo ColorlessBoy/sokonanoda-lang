@@ -12,7 +12,7 @@
 mod actions;
 mod render;
 
-use actions::{exact_binder, hole_range, intro_edit};
+use actions::{exact_binder, hole_range, intro_edit, refine_edit};
 use render::{
     decl_at, decl_name, diagnostic_from_compile, diagnostic_from_parse, hover_type_at, range_of,
     status_label, symbol_kind,
@@ -236,6 +236,21 @@ impl Backend {
                     DeclStatus::Open => hole_range(&doc.text, d),
                     _ => None,
                 },
+                holes: match d.status {
+                    DeclStatus::Open => d.holes.iter().map(|span| range_of(*span)).collect(),
+                    _ => Vec::new(),
+                },
+                sub_goals: match d.status {
+                    DeclStatus::Open => d
+                        .sub_goals
+                        .iter()
+                        .map(|sub| SubGoalInfo {
+                            range: range_of(sub.span),
+                            ty: sub.ty.clone(),
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                },
             })
             .collect();
         Some((doc.text.clone(), decls))
@@ -258,7 +273,12 @@ impl Backend {
         let cursor = position_to_offset(&text, params.position);
         let mut holes: Vec<(usize, Range)> = decls
             .iter()
-            .filter_map(|d| d.hole.as_ref().map(|r| (range_start_offset(&text, r), *r)))
+            .flat_map(|d| {
+                d.holes
+                    .iter()
+                    .map(|r| (range_start_offset(&text, r), *r))
+                    .collect::<Vec<_>>()
+            })
             .collect();
         holes.sort_by_key(|(off, _)| *off);
         let found = if forward {
@@ -297,6 +317,17 @@ struct GoalDeclInfo {
     goal: Option<String>,
     binders: Vec<GoalBinderInfo>,
     hole: Option<Range>,
+    /// Every `???` in the answer (main hole + constructor-spine sub-holes).
+    holes: Vec<Range>,
+    /// Expected types for the sub-holes, positionally aligned with `holes`
+    /// subset that came from a constructor spine (server-side walk).
+    sub_goals: Vec<SubGoalInfo>,
+}
+
+#[derive(Debug, Serialize)]
+struct SubGoalInfo {
+    range: Range,
+    ty: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -533,6 +564,24 @@ impl LanguageServer for Backend {
                     actions::edit_on_hole(params.text_document.uri.clone(), range, binder.clone());
                 actions.push(CodeActionOrCommand::CodeAction(CodeAction {
                     title: format!("exact {binder}（用假设 {binder} 直接结束证明）"),
+                    kind: Some(CodeActionKind::QUICKFIX),
+                    diagnostics: None,
+                    edit: Some(edit),
+                    command: None,
+                    is_preferred: None,
+                    disabled: None,
+                    data: None,
+                }));
+            }
+        }
+        // Refine: replace the hole with the constructor skeleton the walk
+        // recovered from the document (parameters auto-filled, proof fields
+        // become sub-holes). The suggestion is structural; the kernel judges
+        // whatever the learner writes into the sub-holes.
+        if let Some(template) = &d.refine_template {
+            if let Some(edit) = refine_edit(params.text_document.uri.clone(), &doc.text, d) {
+                actions.push(CodeActionOrCommand::CodeAction(CodeAction {
+                    title: format!("refine {template}（按构造子拆分子目标）"),
                     kind: Some(CodeActionKind::QUICKFIX),
                     diagnostics: None,
                     edit: Some(edit),
@@ -1534,5 +1583,117 @@ mod tests {
             .and_then(|c| c.get(&Url::parse(URI).expect("uri")))
             .expect("edit targets our uri");
         assert_eq!(edits[0].new_text, "h");
+    }
+
+    // ---- I9 第二段：refine / 多洞 ----
+
+    const AND_EXERCISE: &str = "axiom And : Prop -> Prop -> Prop\n\
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???\n";
+
+    const AND_MULTI_HOLE: &str = "axiom And : Prop -> Prop -> Prop\n\
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := \
+fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??? ???\n";
+
+    async fn code_actions_for(service: &mut LspService<Backend>, src: &str) -> Vec<CodeAction> {
+        let hole = offset_of(src, "???");
+        let hole_start = lsp_pos(src, hole);
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/codeAction")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "range": {"start": position_json(hole_start), "end": position_json(hole_start)},
+                    "context": {"diagnostics": []},
+                }))
+                .id(50)
+                .finish(),
+        )
+        .await
+        .expect("codeAction must answer");
+        let actions: Option<CodeActionResponse> =
+            serde_json::from_value(result).expect("valid CodeActionResponse");
+        actions
+            .expect("code actions")
+            .into_iter()
+            .filter_map(|a| match a {
+                CodeActionOrCommand::CodeAction(action) => Some(action),
+                CodeActionOrCommand::Command(_) => None,
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn code_action_offers_kernel_shaped_refine_skeleton() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, AND_EXERCISE).await;
+        let _ = wait_diagnostics(&mut socket, "refine diagnostics").await;
+
+        let actions = code_actions_for(&mut service, AND_EXERCISE).await;
+        let refine = actions
+            .iter()
+            .find(|a| a.title.contains("refine And.intro a b ??? ???"))
+            .expect("refine skeleton with auto-filled parameters must be offered");
+        let edit = refine.edit.as_ref().expect("refine carries an edit");
+        let edits = edit
+            .changes
+            .as_ref()
+            .and_then(|c| c.get(&Url::parse(URI).expect("uri")))
+            .expect("edit targets our uri");
+        assert_eq!(edits[0].new_text, "And.intro a b ??? ???");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn goals_request_carries_sub_holes_with_expected_types() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, AND_MULTI_HOLE).await;
+        let _ = wait_diagnostics(&mut socket, "multi-hole diagnostics").await;
+
+        let result = request_goals(&mut service).await;
+        let decls = result["decls"].as_array().expect("decls array");
+        let decl = &decls[decls.len() - 1];
+        assert_eq!(decl["status"], "open");
+        let holes = decl["holes"].as_array().expect("holes array");
+        assert_eq!(holes.len(), 2, "two spine holes: {result:?}");
+        let sub_goals = decl["sub_goals"].as_array().expect("sub_goals array");
+        assert_eq!(sub_goals.len(), 2);
+        assert_eq!(
+            sub_goals[0]["ty"], "a",
+            "parameter hole expects the goal's own argument"
+        );
+        assert_eq!(sub_goals[1]["ty"], "b");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn next_hole_traverses_sub_holes_within_one_declaration() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, AND_MULTI_HOLE).await;
+        let _ = wait_diagnostics(&mut socket, "next hole diagnostics").await;
+
+        let first = ask_next_hole(
+            &mut service,
+            Position {
+                line: 0,
+                character: 0,
+            },
+            true,
+        )
+        .await;
+        let first_range: Option<Range> = serde_json::from_value(first).expect("range");
+        let first_range = first_range.expect("first sub-hole");
+        let second = ask_next_hole(&mut service, first_range.start, true).await;
+        let second_range: Option<Range> = serde_json::from_value(second).expect("range");
+        let second_range = second_range.expect("second sub-hole in the same declaration");
+        assert_ne!(
+            first_range.start, second_range.start,
+            "the two sub-holes are distinct positions"
+        );
+        shutdown(&mut service).await;
     }
 }

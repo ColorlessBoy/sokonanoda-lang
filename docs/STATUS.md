@@ -1,17 +1,47 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第八轮：VS Code goal 面板 + nextHole + AGENTS.md）
+> 快照：2026-09-07（第九轮：多洞+refine、内核错误分类学、发布流水线、差距审计）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-i8-i9.md`（I8/I9）/ `docs/design-infrastructure.md`（历史）；
+> 设计 = `docs/design-goal-refine.md`（本轮）/ `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
-> agent 入口 = `AGENTS.md` + `skills/`（sokonanoda-teacher / sokonanoda-dev）；
-> LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
+> 差距审计 = `docs/gap-analysis.md`；发布 = `docs/RELEASE.md`；
+> agent 入口 = `AGENTS.md` + `skills/`；LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
 
 ## 一句话
 
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第九轮：subagent 并行 ×3，主会话多洞/refine）
+
+1. **多洞 + refine（I9 第二段，设计 `docs/design-goal-refine.md`）**：
+   构造子 spine 走查——`And.intro ??? ???` 等多洞是合法 Open 状态（不再
+   hole-misplaced）；子洞期望类型从文档自身的 axiom/ctor 形状实例化
+   （参数位=目标自己的实参，证明位=实例化后的字段类型）；
+   `DeclState.holes/sub_goals/refine_template` 贯通 LSP——**refine 建议**
+   （`And.intro a b ??? ???`：参数自动填充、证明字段留洞，结构来自文档、
+   kernel 终审）、`soko/goals` 携带 holes/sub_goals、nextHole 跨子洞环绕。
+   front 4 + LSP 3 个新测试。
+2. **内核错误分类学（审计 subagent 报告 → 实现 subagent 落地）**：8 个新
+   kernel 错误码（`kernel-expected-sort` / `expected-pi` / `theorem-not-prop`
+   / `inductive-non-positive` / `ctor-result-mismatch` / `ctor-arg-invalid-app`
+   / `ctor-arg-not-type` / `ctor-arg-too-large`），各带中文教学提示；内核
+   冷路径 5 处消息增强（两处无消息 assert 加消息、三处 `got:` 渲染）；
+   分类器 `refine_kernel_kind`（含 `rejected:` 前缀剥离与 internal 兜底）。
+3. **关键稳定性修复**：`#check`/`#reduce` 直通内核求值路径此前无 panic
+   保护——`#check (Type) 3` 会**崩掉整个编译/LSP 进程**；现在经
+   `quiet_catch` 降级为分类诊断（并接通分类器）。VSIX 真因修复：
+   `.vscodeignore` 排除了 node_modules（上轮只移了 dependencies）——实测
+   VSIX 从 9 文件/13KB 变为 324 文件/470KB 且含 vscode-languageclient；
+   契约测试封死两处回归。
+4. **发布流水线（subagent 实现）**：`release.yml`（tag 触发 + dispatch
+   dry-run；Rust 双二进制 + VSIX 同 Release）+ `docs/RELEASE.md` 发布手册。
+5. **业内标准差距审计（调研 subagent）**：`docs/gap-analysis.md`——Top 10
+   补全清单（completions/go-to-def/folding/提示分级/undo/rename/inlay/
+   章节地图/下一步建议/--version+MSRV）与反标配清单；已并入 ROADMAP L2/L3。
+6. 测试总量 **245**（front 133 / lsp 26 / cli 35 / kernel 45）；全绿；
+   clippy/fmt 干净。
 
 ## 本轮进度（2026-09-07，第八轮：goal 面板与跳洞）
 

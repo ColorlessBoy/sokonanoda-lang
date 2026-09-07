@@ -1,0 +1,102 @@
+name: release
+
+# 触发：
+# - push tag v*：完整发布（建 Release + 上传二进制/VSIX）
+# - workflow_dispatch：dry-run（只构建 + 上传 artifact，不建 Release）
+permissions:
+  contents: read
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # contents: write：softprops/actions-gh-release 建 release、
+    # taiki-e/upload-rust-binary-action 上传资产（仅 tag push 路径用到）
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binaries (preflight)
+        # 预构建让下面的 taiki-e action 复用产物、快速失败于编译错误
+        run: cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
+
+      - name: Create GitHub release (tag push only)
+        # 根目录无 CHANGELOG.md，不用 taiki-e/create-gh-release-action 的
+        # changelog 参数；说明由 GitHub generate_release_notes 自动生成
+        if: github.event_name == 'push'
+        uses: softprops/actions-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: sokonanoda ${{ github.ref_name }}
+          generate_release_notes: true
+
+      - name: Package and upload binaries (tag) / dry-run (manual)
+        # bin 支持逗号分隔多 bin；根 manifest 是虚拟 manifest（workspace 根无
+        # [package]），两个 bin 分属不同 crate 也合法。多 bin 时必须显式
+        # archive（默认名 $bin-$target 不可用）。
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: sokonanoda,sokonanoda-lsp
+          package: sokonanoda-cli,sokonanoda-lsp
+          locked: true
+          archive: sokonanoda-$target
+          checksum: sha256
+          dry-run: ${{ github.event_name == 'workflow_dispatch' }}
+
+      - name: Upload binary artifacts (manual run only)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sokonanoda-binaries-${{ github.run_id }}
+          path: |
+            sokonanoda-*.tar.gz
+            sokonanoda-*.sha256
+          if-no-files-found: error
+
+  vsix:
+    needs: build
+    runs-on: ubuntu-latest
+    # contents: write：gh release upload（仅 tag push 路径用到）
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editor/vscode/package-lock.json
+
+      - name: Package VS Code extension
+        working-directory: editor/vscode
+        run: |
+          npm ci
+          # --yes：非交互环境下 npx 允许即时安装未在 devDependencies 里的
+          # @vscode/vsce（package.json 冻结，无法加 devDep）
+          npx --yes @vscode/vsce package --out sokonanoda.vsix
+
+      - name: Upload vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sokonanoda-vsix-${{ github.run_id }}
+          path: editor/vscode/sokonanoda.vsix
+          if-no-files-found: error
+
+      - name: Attach vsix to release (tag push only)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "${{ github.ref_name }}" editor/vscode/sokonanoda.vsix --clobber

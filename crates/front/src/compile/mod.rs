@@ -13,7 +13,7 @@ pub(crate) use check::{run_incremental, TrustPlan};
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};
 pub use prelude::{prelude_mode_from_source, CompileOptions, PreludeMode};
-pub use report::{DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType};
+pub use report::{DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType, SubGoal};
 
 #[cfg(test)]
 mod tests;

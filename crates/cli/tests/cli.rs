@@ -439,3 +439,51 @@ fn eq_prelude_is_available_by_default() {
     );
     assert!(String::from_utf8_lossy(&out.stdout).contains("checked declaration refl_two"));
 }
+
+// ---- 内核错误分类学：kernel-* 细粒度错误码（e2e）----
+
+#[test]
+fn cli_classifies_theorem_not_prop() {
+    let out = run("theorem t : Nat := 1\n");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[kernel-theorem-not-prop]:"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn cli_classifies_expected_sort() {
+    let out = run("def x : 1 := 1\n");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[kernel-expected-sort]:"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn cli_classifies_expected_pi() {
+    let out = run("def bad : Nat := ((fun (x : Nat) => x) 1) 2\n");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[kernel-expected-pi]:"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn cli_classifies_check_apply_to_non_function() {
+    // #check 直通内核求值路径：对非函数继续应用 → kernel-expected-pi
+    // （panic 经 quiet_catch 降级为诊断，绝不能崩掉进程）。
+    let out = run("#check (fun (x : Nat) => x) 1 2\n");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[kernel-expected-pi]"),
+        "stderr: {stderr}"
+    );
+}

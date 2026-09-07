@@ -83,8 +83,21 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
   `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`;
-- `kernel` stage — `kernel-rejected` (kernel said no) and
-  `kernel-internal` (a kernel bug; never a learner mistake).
+- `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
+  carry the expected/actual sides), and the fine-grained families
+  `kernel-expected-sort` (a term appeared where a type was required),
+  `kernel-expected-pi` (a non-function value was used as a function, or an
+  application was over-applied), `kernel-theorem-not-prop` (a theorem whose
+  type is not a proposition), `kernel-inductive-non-positive` (a recursive
+  occurrence in a negative position of a constructor argument),
+  `kernel-ctor-result-mismatch` (a constructor does not return a full
+  application of its inductive), `kernel-ctor-arg-invalid-app` (a recursive
+  occurrence in a constructor argument is not a valid application — wrong
+  number or values of parameters/indices), `kernel-ctor-arg-not-type` (a
+  constructor argument type is a term, not a type),
+  `kernel-ctor-arg-too-large` (a constructor argument type lives in a
+  universe too large for the inductive), plus `kernel-internal` (a kernel
+  bug; never a learner mistake).
 
 Human output prints `error[<code>]: <message>`; JSON diagnostics carry
 `stage`, `code`, `message` and a `hint`. The LSP maps the same data onto
@@ -141,14 +154,24 @@ Response:
   "range": {"start": {...}, "end": {...}},
   "goal": "And b a",
   "binders": [{"name": "a", "ty": "Prop"}, {"name": "h", "ty": "And a b"}],
-  "hole": {"start": {...}, "end": {...}}
+  "hole": {"start": {...}, "end": {...}},
+  "holes": [{"start": {...}, "end": {...}}, ...],
+  "sub_goals": [{"range": {"start": {...}, "end": {...}}, "ty": "b"}, ...]
 }]}
 ```
 
 - one entry per declaration (all statuses); `goal`/`binders`/`hole` are
   present for open exercises (`hole` is the exact `???` range);
+- `holes` lists every `???` (multi-hole constructor spines included) and
+  `sub_goals` pairs each spine hole with its expected type (server-side walk;
+  parameter positions expect the goal's own argument, proof positions the
+  instantiated field type); `ty` is `null` when no template is known;
 - multi-hole documents are naturally supported (one entry per declaration);
-- hover remains the degraded, human-readable view of the same data.
+- hover remains the degraded, human-readable view of the same data;
+- kernel-judged code actions: `exact` (a hypothesis the kernel deems to close
+  the goal), `intro` (peel one binder) and `refine` (a constructor skeleton
+  recovered from the declaration's own axiom/ctor shape, e.g.
+  `And.intro a b ??? ???`).
 
 ### `soko/nextHole`
 

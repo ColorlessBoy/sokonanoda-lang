@@ -135,3 +135,15 @@
 - editor/vscode：练习树（soko/goals）+ 状态栏计数 + alt+n/alt+shift+n 跳洞
   （环绕）；AGENTS.md 作为 agent 项目指令入口（薄层，细节在 skills/）。
 - 测试总量（2026-09-07 第八轮）：**239**。
+
+## 2026-09-07 更新（第九轮：多洞/refine + 内核错误分类学 + 发布流水线）
+
+- **多洞/refine**（front 4 + LSP 3）：spine 走查 Open 状态、子目标实例化
+  （参数位=目标实参、证明位=字段类型）、refine 骨架（参数自动填充）、
+  无模板回退、混合实参；LSP refine action、soko/goals holes/sub_goals、
+  nextHole 跨子洞。
+- **内核错误分类学**（front 5 + cli 3 e2e + kernel 消息增强）：8 个新
+  kernel 错误码各有实测触发样例（见 subagent 报告/protocol.md）。
+- **稳定性**：#check/#reduce panic 守卫（`cli_classifies_check_apply_to_non_function`）、
+  .vscodeignore 回归守护（`runtime_dependency_is_packaged`）。
+- 测试总量（2026-09-07 第九轮）：**245**。

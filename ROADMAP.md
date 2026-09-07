@@ -415,10 +415,23 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - [x] goal 视图：`front::judge`（合成声明交完整 kernel 裁决）；LSP exact
       kernel 判定（文本比对删除）；REPL exact/apply/assumption kernel 判定
       并反馈期望/实际；`soko/goals` + `soko/nextHole` 自定义请求。
-- [ ] goal 视图余项：多洞 refine、声明宇宙参数携带、VS Code goal 面板、
-      `assumption` 级错误信息的人因打磨。
+- [x] **多洞 + refine（2026-09-07）**：构造子 spine 走查（子洞合法、期望
+      类型实例化、`DeclState.holes/sub_goals/refine_template`）、LSP refine
+      建议（构造子骨架、参数自动填充）、nextHole 跨子洞。
+      见 `docs/design-goal-refine.md`。
+- [x] **内核错误分类学（2026-09-07）**：8 个新 kernel 错误码（expected-sort /
+      expected-pi / theorem-not-prop / non-positive / ctor-result / ctor-arg
+      三族）+ 内核冷路径消息增强（`got:` 渲染）+ `#check`/`#reduce` panic
+      守卫（此前会崩掉编译/LSP 进程）。审计见 subagent 报告，分类器
+      `front::error::refine_kernel_kind`。
+- [ ] goal 视图余项：声明宇宙参数携带 ✅（已并入 judge）；refine 的子洞
+      kernel 级 expected type（spine meta）；VS Code goal 面板 ✅。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
   讲课 agent 消费同一文档状态自动出题。
+- **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——completions、
+  go-to-def、folding、提示分级、undo、rename、inlay hints、章节地图、
+  下一步建议、`--version`+MSRV 等；发布流水线已落地（`release.yml` +
+  `docs/RELEASE.md`）。

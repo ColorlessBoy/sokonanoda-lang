@@ -34,6 +34,14 @@ pub enum ErrorKind {
     ElabInvalidNatLiteral,
     ElabTooManyCtorFields,
     ElabUnknownCtorForIota,
+    KernelExpectedSort,
+    KernelExpectedPi,
+    KernelTheoremNotProp,
+    KernelNonPositive,
+    KernelCtorResultMismatch,
+    KernelCtorArgInvalidApp,
+    KernelCtorArgNotType,
+    KernelCtorArgTooLarge,
     KernelRejected,
     KernelInternal,
 }
@@ -54,7 +62,16 @@ impl ErrorKind {
             | ElabInvalidNatLiteral
             | ElabTooManyCtorFields
             | ElabUnknownCtorForIota => CompileStage::Elab,
-            KernelRejected | KernelInternal => CompileStage::Kernel,
+            KernelExpectedSort
+            | KernelExpectedPi
+            | KernelTheoremNotProp
+            | KernelNonPositive
+            | KernelCtorResultMismatch
+            | KernelCtorArgInvalidApp
+            | KernelCtorArgNotType
+            | KernelCtorArgTooLarge
+            | KernelRejected
+            | KernelInternal => CompileStage::Kernel,
         }
     }
 
@@ -73,6 +90,14 @@ impl ErrorKind {
             ElabInvalidNatLiteral => "elab-invalid-nat-literal",
             ElabTooManyCtorFields => "elab-too-many-ctor-fields",
             ElabUnknownCtorForIota => "elab-unknown-ctor-for-iota",
+            KernelExpectedSort => "kernel-expected-sort",
+            KernelExpectedPi => "kernel-expected-pi",
+            KernelTheoremNotProp => "kernel-theorem-not-prop",
+            KernelNonPositive => "kernel-inductive-non-positive",
+            KernelCtorResultMismatch => "kernel-ctor-result-mismatch",
+            KernelCtorArgInvalidApp => "kernel-ctor-arg-invalid-app",
+            KernelCtorArgNotType => "kernel-ctor-arg-not-type",
+            KernelCtorArgTooLarge => "kernel-ctor-arg-too-large",
             KernelRejected => "kernel-rejected",
             KernelInternal => "kernel-internal",
         }
@@ -118,6 +143,30 @@ impl ErrorKind {
             }
             ElabUnknownCtorForIota => {
                 "iota 规则引用了一个不存在的构造子。检查构造子名字是否与 ctor 声明一致。"
+            }
+            KernelExpectedSort => {
+                "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"
+            }
+            KernelExpectedPi => {
+                "你把一个不是函数的值当函数用了，或者参数给多了。检查这个位置的东西的类型是不是 … -> … 形状。"
+            }
+            KernelTheoremNotProp => {
+                "theorem 的类型必须是命题（Prop 里的东西）。想定义普通值请用 def。"
+            }
+            KernelNonPositive => {
+                "递归引用出现在了负位置：构造子参数里 T 出现在箭头左边（如 T → Nat）。递归引用只能写在返回类型一侧。"
+            }
+            KernelCtorResultMismatch => {
+                "构造子的返回类型必须是本 inductive 的完整应用——参数和索引都要补齐，比如 T A n 而不是只写 T。"
+            }
+            KernelCtorArgInvalidApp => {
+                "构造子参数里的递归引用 T … 不是本 inductive 的合法应用：参数/索引的个数或取值不对。"
+            }
+            KernelCtorArgNotType => {
+                "构造子参数的类型本身必须是一个类型，这里写成了一个项。"
+            }
+            KernelCtorArgTooLarge => {
+                "构造子参数的类型所在的宇宙太大，装不进这个 inductive。把 inductive 声明成更大的 Type，或把该参数类型改成 Prop 里的命题。"
             }
             KernelRejected => {
                 "内核判定不成立：类型不匹配或证明项不完整。先对比期望类型与你的值的形状；最常见的错误是两边结构不同（例如期望 a -> a，却写成了返回 Nat 的项）。"
@@ -194,4 +243,54 @@ pub(crate) fn parse_def_eq_mismatch(msg: &str) -> Option<(String, String)> {
         return None;
     }
     Some((expected, actual))
+}
+
+/// Map a kernel rejection panic message to the most precise [`ErrorKind`].
+/// The kernel reports rejections as panics; `CheckError::Rejected` wraps the
+/// payload as `rejected: <payload>`. def_eq mismatches carry a stable marker
+/// (parsed separately by [`parse_def_eq_mismatch`]) and stay
+/// [`ErrorKind::KernelRejected`] here. Other payload shapes are classified
+/// into fine-grained message families; anything that looks like a broken
+/// kernel invariant (`assertion failed: …`, `unwrap()`) is an internal error,
+/// not a learner mistake.
+pub(crate) fn refine_kernel_kind(msg: &str) -> ErrorKind {
+    let payload = msg.strip_prefix("rejected: ").unwrap_or(msg);
+
+    // def_eq mismatches: check.rs re-renders both sides from the marker;
+    // the classifier must not interfere with them.
+    if payload.starts_with("def_eq failed:") || payload.starts_with(DEF_EQ_MARKER) {
+        return ErrorKind::KernelRejected;
+    }
+    if payload.starts_with("expected a sort") {
+        return ErrorKind::KernelExpectedSort;
+    }
+    if payload.starts_with("expected a pi type") {
+        return ErrorKind::KernelExpectedPi;
+    }
+    if payload.contains("theorem type must be Prop") {
+        return ErrorKind::KernelTheoremNotProp;
+    }
+    if payload.contains("non-positive occurrence") {
+        return ErrorKind::KernelNonPositive;
+    }
+    if payload.starts_with("constructor must return a full application") {
+        return ErrorKind::KernelCtorResultMismatch;
+    }
+    if payload.starts_with("recursive occurrence in constructor is not a valid application") {
+        return ErrorKind::KernelCtorArgInvalidApp;
+    }
+    if payload.contains("constructor argument is not a type") {
+        return ErrorKind::KernelCtorArgNotType;
+    }
+    if payload.starts_with("Constructor argument was too large") {
+        return ErrorKind::KernelCtorArgTooLarge;
+    }
+    if payload.starts_with("assertion failed:")
+        || payload.contains("called `Option::unwrap()`")
+        || payload.contains("called `Result::unwrap()`")
+        || payload.contains("internal error:")
+    {
+        return ErrorKind::KernelInternal;
+    }
+    ErrorKind::KernelRejected
 }

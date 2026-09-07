@@ -42,6 +42,15 @@ pub struct GoalBinder {
     pub ty: String,
 }
 
+/// One `???` inside a constructor spine (multi-hole answer): its span and the
+/// expected type the walk recovered for it (best-effort, `None` when the
+/// constructor's field type could not be instantiated).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubGoal {
+    pub span: Span,
+    pub ty: Option<String>,
+}
+
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone)]
 pub struct DeclState {
@@ -65,6 +74,18 @@ pub struct DeclState {
     /// them into the goal view / tactic judging so `Sort u` goals can be
     /// judged (the judge synthesizes a declaration with the same universes).
     pub universe: Vec<String>,
+    /// Open exercises: every `???` span in the answer (the main hole and any
+    /// constructor-spine sub-holes), ordered by offset. Powers `soko/nextHole`
+    /// and the goal panel; the server derives them from the walk — clients
+    /// never scan text.
+    pub holes: Vec<Span>,
+    /// Open exercises: expected types for constructor-spine sub-holes,
+    /// positionally aligned with `sub_goals` below.
+    pub sub_goals: Vec<SubGoal>,
+    /// Open exercises: when the remaining goal's head is a constructor with a
+    /// known template, a full-application skeleton with auto-filled parameters
+    /// and `???` for the proof fields (e.g. `And.intro a b ??? ???`).
+    pub refine_template: Option<String>,
 }
 
 /// A hover answer for one source span (`span -> inferred type text`).

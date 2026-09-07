@@ -137,3 +137,9 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   ④宇宙 → ⑤归纳），playground 同步为 12 题逻辑先行版本；Sort 延迟到
   "函数类型的类型"悬念揭晓。同轮：I9 余项——开放声明携带宇宙参数
   （DeclState.universe，带 {u} 练习获得 exact 建议）。
+- 2026-09-07（八）：**subagent 并行开发 + 持续调研/头脑风暴**（用户指令）：
+  本轮 3 个 subagent（内核错误分类学审计 / 发布流水线实现 / 业内标准差距
+  审计），主会话实现多洞+refine（I9 第二段）。修复两个关键缺陷：
+  #check/#reduce 无 panic 保护（可崩掉 LSP 进程）、.vscodeignore 排除
+  node_modules（VSIX 仍坏）。产出：docs/design-goal-refine.md、
+  docs/gap-analysis.md、docs/RELEASE.md、8 个新 kernel 错误码。

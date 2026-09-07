@@ -90,6 +90,16 @@ fn runtime_dependency_is_packaged() {
             .unwrap_or(true),
         "vscode-languageclient must not live in devDependencies"
     );
+    // vsce bundles production node_modules into the VSIX unless ignored —
+    // excluding them ships a package that fails with "Cannot find module".
+    let ignore = fs::read_to_string(vscode_dir().join(".vscodeignore")).expect(".vscodeignore");
+    assert!(
+        !ignore.lines().any(|l| {
+            let l = l.trim();
+            l == "node_modules/**" || l == "node_modules" || l == "node_modules/*"
+        }),
+        ".vscodeignore must not exclude node_modules (runtime deps must ship)"
+    );
 }
 
 #[test]

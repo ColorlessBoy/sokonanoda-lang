@@ -4,10 +4,12 @@ use super::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
     ElabScope, HoverNode, UnivMap,
 };
-use super::error::{parse_def_eq_mismatch, CompileError, ErrorKind};
+use super::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind};
 use super::event::{CheckEvent, CompileOutput};
 use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
-use super::report::{DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType};
+use super::report::{
+    DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType, SubGoal,
+};
 use crate::{Command, Expr, FolFile, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, EnvLimit};
@@ -39,6 +41,9 @@ pub(crate) enum PendingOp<'a> {
         universe: Vec<String>,
         goal: Option<String>,
         binders: Vec<GoalBinder>,
+        holes: Vec<Span>,
+        sub_goals: Vec<SubGoal>,
+        refine_template: Option<String>,
         span: Span,
         cmd: usize,
     },
@@ -101,16 +106,15 @@ pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> Document
 
 /// Is the answer an open exercise: does it contain a `???`, and can the
 /// remaining goal be recovered by walking the declared type alongside the
-/// lambda binders already written? `None` means "no hole" or "hole in a
-/// place the goal cannot be recovered from" (the latter falls through to
-/// normal elaboration, which reports `elab-hole-misplaced` at the hole).
-/// On success it returns the remaining goal text plus the hypotheses the
-/// written lambda binders already introduce (the goal view's context).
-fn open_goal(ty: &Expr, val: &Expr) -> Option<(String, Vec<GoalBinder>)> {
+/// lambda binders already written (and, since multi-hole, constructor-spine
+/// arguments)? `None` means "no hole" or "hole in a place the goal cannot be
+/// recovered from" (the latter falls through to normal elaboration, which
+/// reports `elab-hole-misplaced` at the hole).
+fn open_goal(ty: &Expr, val: &Expr, templates: &ConstructorTemplates) -> Option<OpenGoalInfo> {
     if !expr_has_hole(val) {
         return None;
     }
-    goal_under_binders(ty, val)
+    goal_under_binders(ty, val, templates)
 }
 
 fn expr_has_hole(e: &Expr) -> bool {
@@ -133,13 +137,266 @@ fn expr_has_hole(e: &Expr) -> bool {
     }
 }
 
+/// The walk's answer for an open exercise: the remaining goal (rendered), the
+/// lambda binders already written, every hole span, expected types for
+/// constructor-spine sub-holes, and a refine skeleton when the goal's head is
+/// a known constructor.
+pub(crate) struct OpenGoalInfo {
+    pub goal: String,
+    pub binders: Vec<GoalBinder>,
+    pub holes: Vec<Span>,
+    pub sub_goals: Vec<SubGoal>,
+    pub refine_template: Option<String>,
+}
+
+/// Flatten `C x1 … xn` (or `C.{u} x1 … xn`) into `(C, [x1, …, xn])`.
+/// Anything whose head is not an identifier (lambda, pi, sort, hole, …) is
+/// not a spine.
+fn spine_head_args(e: &Expr) -> Option<(String, Vec<&Expr>)> {
+    match e {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => {
+            Some((name.clone(), Vec::new()))
+        }
+        Expr::App { fun, arg, .. } => {
+            let (head, mut args) = spine_head_args(fun)?;
+            args.push(arg);
+            Some((head, args))
+        }
+        _ => None,
+    }
+}
+
+/// A constructor application template recovered from the document itself:
+/// the constructor's binder names/types (fields) and the identifiers its
+/// result applies (which tie parameters to the goal's arguments).
+#[derive(Debug, Clone)]
+struct CtorTemplate {
+    /// The constructor's own name (`And.intro`), used in the refine skeleton.
+    name: String,
+    binder_names: Vec<String>,
+    binder_tys: Vec<Option<Expr>>,
+    result_arg_names: Vec<Option<String>>,
+}
+
+/// Constructor templates keyed by the inductive/constructor-family head name
+/// (`And`, `Or`, `Nat`, …). Sources, in order of authority:
+/// 1. `inductive` blocks (their `ctor` declarations carry binders + result);
+/// 2. `axiom`s whose result head matches a known name (the teaching
+///    skeleton's `axiom And.intro : … -> And a b` shape).
+///
+/// Suggestion material only — the kernel remains the sole judge.
+type ConstructorTemplates = HashMap<String, CtorTemplate>;
+
+/// Flatten a type into `(binder name, binder type)` pairs plus the result.
+fn peel_type(ty: &Expr, out: &mut Vec<(String, Option<Expr>)>) -> Expr {
+    match ty {
+        Expr::Forall { binders, body, .. } => {
+            for binder in binders {
+                out.push((binder.name.clone(), binder.ty.as_deref().cloned()));
+            }
+            peel_type(body, out)
+        }
+        Expr::Arrow {
+            domain, codomain, ..
+        } => {
+            // Anonymous binder (no name): a proof field that cannot be
+            // auto-filled or name-mapped.
+            out.push((String::new(), Some(domain.as_ref().clone())));
+            peel_type(codomain, out)
+        }
+        other => other.clone(),
+    }
+}
+
+fn constructor_templates(file: &FolFile) -> ConstructorTemplates {
+    let mut templates = ConstructorTemplates::new();
+    for command in &file.commands {
+        match command {
+            Command::InductiveBlock {
+                name, constructors, ..
+            } => {
+                for ctor in constructors {
+                    let binder_names = ctor.binders.iter().map(|b| b.name.clone()).collect();
+                    let binder_tys = ctor
+                        .binders
+                        .iter()
+                        .map(|b| b.ty.as_deref().cloned())
+                        .collect();
+                    templates.entry(name.clone()).or_insert(CtorTemplate {
+                        name: ctor.name.clone(),
+                        binder_names,
+                        binder_tys,
+                        result_arg_names: Vec::new(),
+                    });
+                }
+            }
+            Command::Axiom { name, ty, .. } => {
+                let mut binders = Vec::new();
+                let result = peel_type(ty, &mut binders);
+                let Some((head, result_args)) = spine_head_args(&result) else {
+                    continue;
+                };
+                if result_args.is_empty() {
+                    continue; // not a family application (`axiom True : Prop`)
+                }
+                let binder_names = binders.iter().map(|(n, _)| n.clone()).collect();
+                let binder_tys = binders.into_iter().map(|(_, t)| t).collect();
+                let result_arg_names = result_args
+                    .iter()
+                    .map(|arg| match arg {
+                        Expr::Ident { name, .. } => Some(name.clone()),
+                        _ => None,
+                    })
+                    .collect();
+                templates.entry(head).or_insert(CtorTemplate {
+                    name: name.clone(),
+                    binder_names,
+                    binder_tys,
+                    result_arg_names,
+                });
+            }
+            _ => {}
+        }
+    }
+    templates
+}
+
+/// Render a goal-type argument, parenthesizing compound expressions so it can
+/// be spliced into a template argument list.
+fn render_arg(expr: &Expr) -> String {
+    match expr {
+        Expr::Ident { .. } | Expr::Num { .. } => render_expr(expr),
+        other => format!("({})", render_expr(other)),
+    }
+}
+
+/// Field binder i's filled value: when its name is one of the constructor
+/// result's arguments, the goal's argument at that position is the value.
+fn template_arg(template: &CtorTemplate, i: usize, ty_args: &[&Expr]) -> Option<String> {
+    let name = template.binder_names.get(i)?;
+    let j = template
+        .result_arg_names
+        .iter()
+        .position(|n| n.as_deref() == Some(name.as_str()))?;
+    let arg = ty_args.get(j)?;
+    Some(render_arg(arg))
+}
+
+/// Expected type text for the field at position `i`, instantiated through the
+/// result-argument mapping (`binder name → rendered goal argument`).
+fn field_type_text(template: &CtorTemplate, i: usize, ty_args: &[&Expr]) -> Option<String> {
+    let ty = template.binder_tys.get(i)?.as_ref()?;
+    match ty {
+        Expr::Ident { name, .. } => {
+            if let Some(j) = template
+                .result_arg_names
+                .iter()
+                .position(|n| n.as_deref() == Some(name.as_str()))
+            {
+                let arg = ty_args.get(j)?;
+                Some(render_arg(arg))
+            } else {
+                Some(render_expr(ty))
+            }
+        }
+        other => Some(render_expr(other)),
+    }
+}
+
+/// The constructor-spine case of the walk: the answer is a (partial) ctor
+/// application `ctor v1 … vn` against the goal `C t1 … tm` — every `???`
+/// argument is a sub-hole. Parameter positions expect the goal's own
+/// argument (the value is determined by the goal); proof-field positions
+/// expect the instantiated field type.
+fn ctor_spine_case(
+    ty: &Expr,
+    val: &Expr,
+    binders: Vec<GoalBinder>,
+    templates: &ConstructorTemplates,
+) -> Option<OpenGoalInfo> {
+    let (val_head, val_args) = spine_head_args(val)?;
+    let (ty_head, ty_args) = spine_head_args(ty)?;
+    let template = templates.get(&ty_head)?;
+    // 值的头必须是该族的构造子（如目标头 `And` ↔ 构造子 `And.intro`）。
+    if template.name != val_head || val_args.len() > template.binder_names.len() {
+        return None;
+    }
+    let mut holes = Vec::new();
+    let mut sub_goals = Vec::new();
+    for (i, arg) in val_args.iter().enumerate() {
+        if let Expr::Hole { span } = arg {
+            holes.push(*span);
+            let ty_text = template_arg(template, i, &ty_args)
+                .or_else(|| field_type_text(template, i, &ty_args));
+            sub_goals.push(SubGoal {
+                span: *span,
+                ty: ty_text,
+            });
+        }
+    }
+    if holes.is_empty() {
+        return None; // fully applied, no holes: not an open exercise
+    }
+    Some(OpenGoalInfo {
+        goal: render_expr(ty),
+        binders,
+        holes,
+        sub_goals,
+        refine_template: None,
+    })
+}
+
+/// The refine skeleton for a single-hole answer whose goal head is a known
+/// constructor: parameters that the goal determines are auto-filled, proof
+/// fields become `???`.
+fn refine_template_for(ty: &Expr, templates: &ConstructorTemplates) -> Option<String> {
+    // 目标本身可能是 Pi 链（`… -> And a b`）：剥到结果再取 spine。
+    let mut binders = Vec::new();
+    let result = peel_type(ty, &mut binders);
+    let (head, ty_args) = spine_head_args(&result)?;
+    let template = templates.get(&head)?;
+    if template.binder_tys.len() != template.binder_names.len()
+        || template.result_arg_names.is_empty()
+    {
+        return None;
+    }
+    let mut args = Vec::with_capacity(template.binder_names.len());
+    let mut any_hole = false;
+    for i in 0..template.binder_names.len() {
+        match template_arg(template, i, &ty_args) {
+            Some(value) => args.push(value),
+            None => {
+                args.push("???".to_string());
+                any_hole = true;
+            }
+        }
+    }
+    if !any_hole {
+        return None; // the goal is fully determined; nothing to refine
+    }
+    Some(format!("{} {}", template.name, args.join(" ")))
+}
+
 /// Walk the declared type and the (partial) answer in parallel: every lambda
-/// in the answer consumes one Pi layer of the type; when the walk reaches the
-/// hole, the remaining type is the exercise's current goal and the consumed
-/// binders are its context.
-fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<(String, Vec<GoalBinder>)> {
+/// in the answer consumes one Pi layer of the type; when the walk reaches a
+/// hole (or a constructor spine with holes), the remaining type is the
+/// exercise's current goal and the consumed binders are its context.
+fn goal_under_binders(
+    ty: &Expr,
+    val: &Expr,
+    templates: &ConstructorTemplates,
+) -> Option<OpenGoalInfo> {
     match val {
-        Expr::Hole { .. } => Some((render_expr(ty), Vec::new())),
+        Expr::Hole { span } => {
+            let holes = vec![*span];
+            Some(OpenGoalInfo {
+                goal: render_expr(ty),
+                binders: Vec::new(),
+                holes,
+                sub_goals: Vec::new(),
+                refine_template: refine_template_for(ty, templates),
+            })
+        }
         Expr::Lambda { binders, body, .. } => {
             let (binder, binders_rest) = binders.split_first()?;
             // Consume one Pi layer; remember the hypothesis it introduces.
@@ -181,22 +438,20 @@ fn goal_under_binders(ty: &Expr, val: &Expr) -> Option<(String, Vec<GoalBinder>)
                 name: binder.name.clone(),
                 ty: binder_text,
             };
-            let (goal, rest_binders) = if binders_rest.is_empty() {
-                goal_under_binders(&rest_ty, body)?
+            let mut info = if binders_rest.is_empty() {
+                goal_under_binders(&rest_ty, body, templates)?
             } else {
                 let rest_val = Expr::Lambda {
                     binders: binders_rest.to_vec(),
                     body: body.clone(),
                     span: Span::default(),
                 };
-                goal_under_binders(&rest_ty, &rest_val)?
+                goal_under_binders(&rest_ty, &rest_val, templates)?
             };
-            let mut binders = Vec::with_capacity(rest_binders.len() + 1);
-            binders.push(introduced);
-            binders.extend(rest_binders);
-            Some((goal, binders))
+            info.binders.insert(0, introduced);
+            Some(info)
         }
-        _ => None,
+        _ => ctor_spine_case(ty, val, Vec::new(), templates),
     }
 }
 
@@ -306,6 +561,7 @@ fn run_pass(
     let mut cmd_hovers: Vec<CmdHover<'_>> = Vec::new();
     let mut decl_states: Vec<DeclState> = Vec::new();
     let mut example_idx = 0usize;
+    let templates = constructor_templates(file);
 
     let mut failed_cmds: KernelFailed = HashMap::new();
     let mut built_inductives: Vec<Declar<'_>> = Vec::new();
@@ -325,7 +581,9 @@ fn run_pass(
                     // Trusted prefix: keep the environment, skip the kernel.
                     // Cached failures keep the name free (check-then-add);
                     // open exercises never enter the environment anyway.
-                    if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val).is_some() {
+                    if skip.is_some_and(|s| s.contains_key(&idx))
+                        || open_goal(ty, val, &templates).is_some()
+                    {
                         continue;
                     }
                     let mut hovers = Vec::new();
@@ -354,13 +612,16 @@ fn run_pass(
                     decl_states.push(err);
                     continue;
                 }
-                if let Some((goal, binders)) = open_goal(ty, val) {
+                if let Some(info) = open_goal(ty, val, &templates) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Definition,
                         universe: universe.clone(),
-                        goal: Some(goal),
-                        binders,
+                        goal: Some(info.goal),
+                        binders: info.binders,
+                        holes: info.holes,
+                        sub_goals: info.sub_goals,
+                        refine_template: info.refine_template,
                         span: *span,
                         cmd: idx,
                     });
@@ -426,7 +687,9 @@ fn run_pass(
                 span,
             } => {
                 if trusted {
-                    if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val).is_some() {
+                    if skip.is_some_and(|s| s.contains_key(&idx))
+                        || open_goal(ty, val, &templates).is_some()
+                    {
                         continue;
                     }
                     let mut hovers = Vec::new();
@@ -455,13 +718,16 @@ fn run_pass(
                     decl_states.push(err);
                     continue;
                 }
-                if let Some((goal, binders)) = open_goal(ty, val) {
+                if let Some(info) = open_goal(ty, val, &templates) {
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Theorem,
                         universe: universe.clone(),
-                        goal: Some(goal),
-                        binders,
+                        goal: Some(info.goal),
+                        binders: info.binders,
+                        holes: info.holes,
+                        sub_goals: info.sub_goals,
+                        refine_template: info.refine_template,
                         span: *span,
                         cmd: idx,
                     });
@@ -607,7 +873,9 @@ fn run_pass(
             }
             Command::Example { ty, val, span } => {
                 if trusted {
-                    if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val).is_some() {
+                    if skip.is_some_and(|s| s.contains_key(&idx))
+                        || open_goal(ty, val, &templates).is_some()
+                    {
                         continue;
                     }
                     example_idx += 1;
@@ -631,13 +899,16 @@ fn run_pass(
                     decl_states.push(err);
                     continue;
                 }
-                if let Some((goal, binders)) = open_goal(ty, val) {
+                if let Some(info) = open_goal(ty, val, &templates) {
                     ops.push(PendingOp::OpenExercise {
                         name: None,
                         kind: DeclKind::Example,
                         universe: Vec::new(),
-                        goal: Some(goal),
-                        binders,
+                        goal: Some(info.goal),
+                        binders: info.binders,
+                        holes: info.holes,
+                        sub_goals: info.sub_goals,
+                        refine_template: info.refine_template,
                         span: *span,
                         cmd: idx,
                     });
@@ -850,6 +1121,9 @@ fn run_pass(
                 universe,
                 goal,
                 binders,
+                holes,
+                sub_goals,
+                refine_template,
                 span,
                 cmd,
             } => {
@@ -864,6 +1138,9 @@ fn run_pass(
                     binders,
                     cmd,
                     universe,
+                    holes,
+                    sub_goals,
+                    refine_template,
                 });
             }
             PendingOp::Decl {
@@ -899,23 +1176,20 @@ fn run_pass(
                             binders: Vec::new(),
                             cmd,
                             universe: Vec::new(),
+                            holes: Vec::new(),
+                            sub_goals: Vec::new(),
+                            refine_template: None,
                         });
                     }
                     Err(e) => {
                         let msg = format!("{e}");
-                        let err = if msg.contains("kernel error") || msg.contains("kernel error:") {
-                            CompileError::kernel(ErrorKind::KernelInternal, msg, span)
-                        } else {
-                            let mut err =
-                                CompileError::kernel(ErrorKind::KernelRejected, msg, span);
-                            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                                err.message =
-                                    format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
-                                err.expected = Some(expected);
-                                err.actual = Some(actual);
-                            }
-                            err
-                        };
+                        let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
+                        if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                            err.message =
+                                format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                            err.expected = Some(expected);
+                            err.actual = Some(actual);
+                        }
                         failed_cmds.insert(cmd, err.clone());
                         out.errors.push(err.clone());
                         decl_states.push(failed_state(kind, name, span, err, cmd));
@@ -933,11 +1207,7 @@ fn run_pass(
                     kernel_checks += 1;
                     if let Err(e) = env.try_check_declar(declar) {
                         let msg = format!("{e}");
-                        let mut err = if msg.contains("kernel error") {
-                            CompileError::kernel(ErrorKind::KernelInternal, msg, span)
-                        } else {
-                            CompileError::kernel(ErrorKind::KernelRejected, msg, span)
-                        };
+                        let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
                         if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
                             err.message =
                                 format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
@@ -961,6 +1231,9 @@ fn run_pass(
                             binders: Vec::new(),
                             cmd,
                             universe: Vec::new(),
+                            holes: Vec::new(),
+                            sub_goals: Vec::new(),
+                            refine_template: None,
                         });
                     }
                     Some(err) => {
@@ -982,11 +1255,21 @@ fn run_pass(
                 span,
                 cmd,
             } => {
-                env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
-                    let ty = tc.infer_closed_type(expr);
-                    let text = tc.with_pp(|pp| pp.pp_expr(ty));
-                    out.push_event(cmd, CheckEvent::TypeChecked { text, span });
-                });
+                // #check/#reduce 直通内核求值路径：panic（如对非函数应用）
+                // 必须降级为诊断，绝不能崩掉编译/LSP 进程。
+                match quiet_catch(|| {
+                    env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
+                        let ty = tc.infer_closed_type(expr);
+                        tc.with_pp(|pp| pp.pp_expr(ty))
+                    })
+                }) {
+                    Ok(text) => out.push_event(cmd, CheckEvent::TypeChecked { text, span }),
+                    Err(msg) => out.errors.push(CompileError::kernel(
+                        refine_kernel_kind(&msg),
+                        format!("类型检查失败：{msg}"),
+                        span,
+                    )),
+                }
             }
             PendingOp::Reduce {
                 expr,
@@ -994,11 +1277,19 @@ fn run_pass(
                 span,
                 cmd,
             } => {
-                env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
-                    let reduced = tc.reduce_closed(expr);
-                    let text = tc.with_pp(|pp| pp.pp_expr(reduced));
-                    out.push_event(cmd, CheckEvent::Reduced { text, span });
-                });
+                match quiet_catch(|| {
+                    env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
+                        let reduced = tc.reduce_closed(expr);
+                        tc.with_pp(|pp| pp.pp_expr(reduced))
+                    })
+                }) {
+                    Ok(text) => out.push_event(cmd, CheckEvent::Reduced { text, span }),
+                    Err(msg) => out.errors.push(CompileError::kernel(
+                        refine_kernel_kind(&msg),
+                        format!("化简失败：{msg}"),
+                        span,
+                    )),
+                }
             }
             PendingOp::Print {
                 name,
@@ -1034,6 +1325,26 @@ fn run_pass(
     (out, report, failed_cmds, kernel_checks)
 }
 
+/// Run a kernel interaction with panic suppression: panics (assertion /
+/// internal errors) become `Err(message)` instead of unwinding through the
+/// pipeline, so the caller can classify them like any other rejection.
+/// Same contract as `resolve_hovers`.
+fn quiet_catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
+    let previous_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
+    std::panic::set_hook(previous_hook);
+    result.map_err(|payload| {
+        if let Some(s) = payload.downcast_ref::<&str>() {
+            (*s).to_string()
+        } else if let Some(s) = payload.downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "unknown kernel panic".to_string()
+        }
+    })
+}
+
 /// Build the failed-state placeholder for a command skipped in pass 2
 /// (it was kernel-rejected in pass 1; keep that error verbatim).
 fn skipped(
@@ -1066,6 +1377,9 @@ pub(crate) fn failed_state(
         binders: Vec::new(),
         cmd,
         universe: Vec::new(),
+        holes: Vec::new(),
+        sub_goals: Vec::new(),
+        refine_template: None,
     }
 }
 
