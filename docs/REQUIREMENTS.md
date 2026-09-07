@@ -81,6 +81,9 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 
 - **多用 subagent**：探索/调研/机械重构/文档起草都派 subagent 并行做；
   主会话专注核心设计与编码；产出后主会话验证（编译+测试）；
+  并行任务书必须**文件集互斥**（写死允许修改清单+验收命令，公共文件的
+  接线点由主会话先接好）；subagent 失败/断网 ≠ 工作丢失——先核实树状态
+  与测试再决定收尾或重跑（细则见 docs/LESSONS.md 工程流程节）；
 - **持续头脑风暴**：新功能先出设计方案（写进 docs），再动手；
 - **文档先行、交接友好**：`docs/REQUIREMENTS.md`（本文）、`docs/STATUS.md`（进度日志）、
   `docs/architecture.md`（架构事实）、`docs/lsp-notes.md` / `docs/vscode-notes.md`

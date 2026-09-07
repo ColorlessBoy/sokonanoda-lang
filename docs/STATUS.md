@@ -4,7 +4,8 @@
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
 > 设计 = `docs/design-goal-refine.md`（本轮）/ `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
-> 差距审计 = `docs/gap-analysis.md`；发布 = `docs/RELEASE.md`；
+> 差距审计 = `docs/gap-analysis.md`；**经验台账 = `docs/LESSONS.md`**；
+> 发布 = `docs/RELEASE.md`；
 > agent 入口 = `AGENTS.md` + `skills/`；LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
 
 ## 一句话

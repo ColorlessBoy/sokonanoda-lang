@@ -119,3 +119,13 @@ cache_key = (rec_rule.val, universe levels)
 - 指针相等性用于快速跳过重复比较。
 
 这些优化都保持 iota 规则语义不变，只是让它更快。
+
+## 已知分歧（elab ↔ kernel，写 inductive 用例前必读）
+
+- front 的 `install_inductive_block` 恒传 `is_recursive: true`
+  （`elab.rs`，占位简化），而内核按构造子 binder 重推递归性并在
+  `inductive.rs:68` 用**无消息 `assert_eq!`** 校验——"单构造子且明显非
+  递归"的块会先撞上这个 assert（报 `assertion failed: left == right`，
+  被分类为 `kernel-internal`）。写教学用例时给该块加一个递归构造子
+  （或参考 `examples/py-nat.sokonanoda`），不要拿它当学习者的错误诊断。
+  正规修法（elab 侧按 binder 重推 is_recursive）是待办。

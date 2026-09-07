@@ -247,6 +247,9 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 
 ## 8. 给其他 agent 的注意点（gotchas）
 
+0. **内核交互必须包 catch_unwind**（`quiet_catch`/`resolve_hovers` 模式）：
+   内核以 panic 报拒绝/内部错误，不包会崩掉编译/LSP；且 panic hook 是
+   进程全局的，`quiet_catch` **不可嵌套**。经验台账见 `docs/LESSONS.md`。
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
 3. **elab 仍受限**：binder 可由声明类型推断（I6），但未做 `match`、`let`、结构/类型类、notation/macro。

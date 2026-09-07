@@ -13,7 +13,7 @@
 | `package.json` | ① 显式保留 `"activationEvents": ["onLanguage:sokonanoda"]`（隐式激活有坑，见 §1.3）；② 加 `"extensionKind": ["workspace"]`；③ `engines.vscode` 升到 `^1.85.0` 并用同版本 `@types/vscode`；④ 新增 contributes：`views`（练习进度树）、`configuration`（`sokonanoda.serverPath`、`sokonanoda.trace.server`）、更多 commands（restart server / show goal）；⑤ `vscode:prepublish` 指向真实打包脚本。 |
 | `extension.js` | ① 修正生命周期：`await client.start()`，`deactivate` 返回 `client?.stop()`（现在把 start 的 Promise 塞进 subscriptions 是无效的）；② 服务器路径解析顺序：设置项 `sokonanoda.serverPath` → env → `context.asAbsolutePath('out/sokonanoda-lsp')`（打包后二进制放进扩展目录）→ PATH；③ 加 `middleware`/`trace` 便于诊断；④ 注册 VS Code 端 commands（`sokonanoda.status`、`sokonanoda.showGoal`）；⑤ TreeDataProvider + 自定义请求 `sokonanoda/status`；⑥ goal webview 面板挂后（I8）。 |
 | `language-configuration.json` | 确认 `--` 行注释、括号对、`folding.markers` 按 §6.2 检查（文件名以 `language-configuration.json` 结尾才有编辑器校验）。 |
-| `.vscodeignore` + 打包脚本 | esbuild 打包 `extension.js` → `out/extension.js`；`.vscodeignore` 排除 `node_modules`、`src`；二进制走 per-platform VSIX（§2.3）。 |
+| `.vscodeignore` + 打包脚本 | esbuild 打包 `extension.js` → `out/extension.js`；`~~排除 node_modules~~【更正 2026-09-07】：`node_modules` 绝不能进 .vscodeignore——vsce 靠它把生产依赖装进 VSIX（曾因排除导致装包即坏，契约测试已封死）；二进制走 per-platform VSIX（§2.3）。 |
 | `.vscode/launch.json` | Launch Client + Attach to Server + compound（§7）。 |
 
 优先级：进度树（F3 的 UI 形态）> goal 面板（F5，依赖 I8）> 打包（L2）。前三项都不需要改服务器协议，只需要在 `crates/lsp` 增加 2 个自定义请求：`sokonanoda/status`（整文件逐声明状态，喂进度树）和 `sokonanoda/goal`（光标处 goal + 假设，喂 goal 面板）——这正是 Lean 4 的做法（§3）。
