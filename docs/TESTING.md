@@ -156,3 +156,27 @@
   use→binder/use→声明（shadowing 用例）、同定义高亮、binder 补全。
 - **REPL undo**（front 4 + cli e2e）：快照栈、失败不入栈、恢复全等。
 - 测试总量（2026-09-07 第十轮）：**273**。
+
+## 2026-09-07 更新（第十一轮：提示阶梯 + 建议 + rename/references + inlay）
+
+- **提示阶梯**：front `compile/hints.rs`（指令解析/挂接 6 测试：独占行、
+  挂下一条声明、跳过非声明命令、最后声明后丢弃）+ session 集成
+  （`session_attaches_hints_and_refreshes_on_comment_edit`：hint 编辑零重编译
+  但阶梯刷新）+ lsp `soko/hints`（阶梯返回/声明外为空）。
+- **下一步建议**（front judge 5 + suggest 9 + lsp actions 4）：judge_hole_fill
+  正反两面与 parse 失败不 panic；suggest 排序（exact→refine→intro）、
+  rfl 仅 Eq goal 且 kernel 验证、多洞逐洞 exact 回归
+  （`spine_holes_get_per_hole_exact_not_outer_goal_matches`）、
+  is_preferred 恰一条、≤3 条截断。
+- **rename/references**（front references 5 + lsp render 12）：references
+  四向（use/含声明/def 点/无 target）、prepare 三态、rename 成功（版本化
+  documentChanges、shadowing 内层、注释不误伤）、非法名/无 target
+  ResponseError（测试内联原始调用助手断言 error）。
+- **inlay**（lsp 5）：单洞/多洞子类型/checked 无/partial tooltip/无洞空。
+- **VS Code 契约**（cli extension.rs）：`sokonanoda.revealHint` 声明/注册/
+  workspaceState/禁「还剩 N 条」；`common/mod.rs` 词汇 + soko/hints（skill
+  conformance 同步）。
+- **lsp lib 化**：`cargo test -p sokonanoda-lsp` 语义不变；`sokonanoda lsp`
+  子命令编译期覆盖（cli e2e 无 Electron 冒烟，stdio 交互不进 CI）。
+- 测试总量（2026-09-07 第十一轮）：**327**（front 171 / lsp 56 / cli 55 /
+  kernel 45）。

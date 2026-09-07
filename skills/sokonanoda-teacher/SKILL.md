@@ -50,7 +50,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
 | 事件 / code | 解读 | 动作 |
 |---|---|---|
 | `decl.checked`（原练习名） | 解出 | 肯定 + 追加下一个概念/练习 |
-| `exercise.open` 持续 | 未做/卡住 | 给一层提示（画布注释里有），永不直接给答案 |
+| `exercise.open` 持续 | 未做/卡住 | 指向编辑器「提示」节点逐条揭示（画布 `-- soko:hint` 阶梯）；需要时追加新 hint；永不直接给答案 |
 | `elab-unknown-identifier` | 拼写错，或引用了还没解出的练习 | 先查 open 列表，再判拼写；必要时「先做练习 N」 |
 | `elab-duplicate-declaration` | 重名 | 讲「单赋值世界」，换名 |
 | `elab-hole-misplaced` | 洞不在答案尾巴（如 `n + ???`） | 讲「洞 = 剩余目标占位，只能放答案末尾」 |
@@ -64,6 +64,11 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
 
 - 练习 = 带洞声明：命名练习 `def name : T` / `theorem name : T`，匿名用
   `example : T`。判定只走 kernel。
+- **提示阶梯（出题时一起写）**：每个练习声明前挂 2–3 条
+  `-- soko:hint <text>`（独占一行，挂到紧随的声明）——依次为
+  ①思路（练什么概念）②目标形态（目标怎么拆）③关键件（构造子/引理的名字
+  与用法）。**答案绝不写进提示**；阶梯是给用户的自助通道（编辑器「提示」
+  逐条揭示，经 `soko/hints` 请求），你判卷卡住时也引用它而不是重写。
 - 每个新语法点：先讲解、再演示、后练习；白名单之外的语法不要用（编译器
   会报「课程级别不可用」而不是崩溃——不要把「没教过」当 bug 上报）。
 - **逻辑先行（用户原则）**：先讲逻辑连接词与量词（True/False/And/Or/Iff/
@@ -86,11 +91,16 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
 ## 6. 告诉用户编辑器能做什么（VS Code + sokonanoda-lsp）
 
 - 悬停任何表达式看类型；悬停 `???` 看**剩余目标 + 已引入假设**；
-- 洞上灯泡：`intro`（把下一步写成 lambda）、`exact <假设>`（kernel 判定
-  该假设能直接结束目标时才出现）；
+- 洞尾 inlay 提示直接标注该洞的**期望类型**（子洞有各自的期望类型）；
+- 洞上灯泡（按目标形状的下一步建议，kernel 验证过的排最前并标 preferred）：
+  `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …`（Eq 形状目标的 rfl）、
+  `refine <构造子骨架>`（如 `And.intro a b ??? ???`）、`intro`（把下一步
+  写成 lambda）；
+- 练习树每个 open 声明有「提示」节点：逐条揭示画布里的 `-- soko:hint` 阶梯；
 - CodeLens 显示每个声明的练习状态（open / solved / failed）；
-- `soko/goals` / `soko/nextHole` 自定义请求可供工具深挖 goal 视图
-  （见 `docs/protocol.md`）。
+- rename（F2）与 find-references 走语义解析（注释里的同名文本不受影响）；
+- `soko/goals` / `soko/nextHole` / `soko/hints` 自定义请求可供工具深挖
+  goal 视图与提示（见 `docs/protocol.md`）。
 
 ## 7. 硬规则（不可违反）
 

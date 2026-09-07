@@ -86,6 +86,12 @@ pub struct DeclState {
     /// known template, a full-application skeleton with auto-filled parameters
     /// and `???` for the proof fields (e.g. `And.intro a b ??? ???`).
     pub refine_template: Option<String>,
+    /// The declaration's hint ladder, authored in the canvas as
+    /// `-- soko:hint <text>` comment directives attached to this declaration
+    /// (`compile::hints::attach_hints`). Empty when the source has no hints
+    /// for it or when the report was produced without a source text
+    /// (e.g. `compile_fol` on a pre-parsed AST).
+    pub hints: Vec<String>,
 }
 
 /// Where a name use resolves to, together with the definition's source span.

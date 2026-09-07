@@ -4,6 +4,8 @@
 // Goal view (I9): the "练习" tree consumes the server's `soko/goals` custom
 // request; alt+n jumps between holes via `soko/nextHole` (server-side
 // position logic — clients never re-derive hole positions).
+// Hint ladder: the tree's 「提示」 node reveals `soko/hints` one at a time;
+// the reveal counter lives in workspaceState (the server stays stateless).
 const fs = require("fs");
 const path = require("path");
 const vscode = require("vscode");
@@ -113,7 +115,7 @@ class GoalsTreeDataProvider {
       item.iconPath = statusIcon(decl.status);
       if (decl.status === "open") {
         item.contextValue = "openExercise";
-        item.children = buildOpenChildren(decl);
+        item.children = buildOpenChildren(decl, this.uri);
         if (decl.hole) {
           item.command = {
             command: "sokonanoda.revealRange",
@@ -127,7 +129,7 @@ class GoalsTreeDataProvider {
   }
 }
 
-function buildOpenChildren(decl) {
+function buildOpenChildren(decl, uriString) {
   const children = [];
   if (decl.goal) {
     const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
@@ -140,6 +142,15 @@ function buildOpenChildren(decl) {
     item.iconPath = new vscode.ThemeIcon("symbol-variable");
     children.push(item);
   }
+  const hint = new vscode.TreeItem("提示", vscode.TreeItemCollapsibleState.None);
+  hint.description = "逐条揭示";
+  hint.iconPath = new vscode.ThemeIcon("lightbulb");
+  hint.command = {
+    command: "sokonanoda.revealHint",
+    title: "揭示下一条提示",
+    arguments: [uriString, decl.name, decl.range],
+  };
+  children.push(hint);
   return children;
 }
 
@@ -201,6 +212,69 @@ async function nextHole(backward) {
   await revealRange(editor.document.uri.toString(), range);
 }
 
+function hintStateKey(uriString, declName) {
+  return `sokonanoda.hintRevealed:${uriString}:${declName}`;
+}
+
+function positionInRange(range, position) {
+  if (!range || !position) return false;
+  if (position.line < range.start.line || position.line > range.end.line) return false;
+  if (position.line === range.start.line && position.character < range.start.character) return false;
+  if (position.line === range.end.line && position.character > range.end.character) return false;
+  return true;
+}
+
+async function revealHint(context, uriArg, declName, declRange) {
+  if (!client) {
+    vscode.window.showWarningMessage("sokonanoda 语言服务器没有运行。");
+    return;
+  }
+  let uriString = typeof uriArg === "string" ? uriArg : uriArg?.toString();
+  let position = declRange?.start;
+  if (!position) {
+    // 命令面板回退：没有传入声明 range 时，用活动编辑器的光标位置定位。
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || editor.document.languageId !== "sokonanoda") {
+      vscode.window.showInformationMessage("请打开一个 .sokonanoda 文件再获取提示。");
+      return;
+    }
+    uriString = editor.document.uri.toString();
+    position = editor.selection.active;
+  }
+  let name = declName;
+  if (!name) {
+    // 声明定位走服务端数据（客户端不扫文本找声明）。
+    const goals = await client.sendRequest("soko/goals", {
+      textDocument: { uri: uriString },
+    }).catch(() => undefined);
+    name = (goals?.decls ?? []).find((d) => positionInRange(d.range, position))?.name
+      ?? `line:${position.line}:${position.character}`;
+  }
+  let response;
+  try {
+    response = await client.sendRequest("soko/hints", {
+      textDocument: { uri: uriString },
+      position,
+    });
+  } catch (error) {
+    vscode.window.showErrorMessage(`sokonanoda: 提示请求失败 — ${error?.message ?? error}`);
+    return;
+  }
+  const hints = response?.hints ?? [];
+  if (hints.length === 0) {
+    vscode.window.showInformationMessage("这个声明还没有挂提示。");
+    return;
+  }
+  const key = hintStateKey(uriString, name);
+  const revealed = context.workspaceState.get(key, 0);
+  if (revealed >= hints.length) {
+    vscode.window.showInformationMessage("这个练习的提示都给你了，试试写一步吧。");
+    return;
+  }
+  await context.workspaceState.update(key, revealed + 1);
+  vscode.window.showInformationMessage(hints[revealed]);
+}
+
 function registerCommands(context, provider) {
   const showStatus = async () => {
     const editor = vscode.window.activeTextEditor;
@@ -247,6 +321,10 @@ function registerCommands(context, provider) {
     vscode.commands.registerCommand("sokonanoda.previousHole", () => nextHole(true)),
     vscode.commands.registerCommand("sokonanoda.goals.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("sokonanoda.revealRange", revealRange),
+    vscode.commands.registerCommand(
+      "sokonanoda.revealHint",
+      (uri, declName, declRange) => revealHint(context, uri, declName, declRange),
+    ),
   );
 }
 

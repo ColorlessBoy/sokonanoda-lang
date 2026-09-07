@@ -30,8 +30,9 @@ pub const WATCH_VOCABULARY: [&str; 7] = [
     "diagnostic",
 ];
 
-/// Custom LSP requests the goal view exposes (docs/protocol.md).
-pub const LSP_CUSTOM_METHODS: [&str; 2] = ["soko/goals", "soko/nextHole"];
+/// Custom LSP requests exposed to clients (goal view + hint ladder,
+/// docs/protocol.md).
+pub const LSP_CUSTOM_METHODS: [&str; 3] = ["soko/goals", "soko/nextHole", "soko/hints"];
 
 /// Repository root (this crate lives at `<root>/crates/cli`).
 pub fn repo_root() -> PathBuf {

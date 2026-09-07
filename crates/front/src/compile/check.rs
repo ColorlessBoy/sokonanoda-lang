@@ -1141,6 +1141,7 @@ fn run_pass(
                     holes,
                     sub_goals,
                     refine_template,
+                    hints: Vec::new(),
                 });
             }
             PendingOp::Decl {
@@ -1179,6 +1180,7 @@ fn run_pass(
                             holes: Vec::new(),
                             sub_goals: Vec::new(),
                             refine_template: None,
+                            hints: Vec::new(),
                         });
                     }
                     Err(e) => {
@@ -1234,6 +1236,7 @@ fn run_pass(
                             holes: Vec::new(),
                             sub_goals: Vec::new(),
                             refine_template: None,
+                            hints: Vec::new(),
                         });
                     }
                     Some(err) => {
@@ -1430,6 +1433,7 @@ pub(crate) fn failed_state(
         holes: Vec::new(),
         sub_goals: Vec::new(),
         refine_template: None,
+        hints: Vec::new(),
     }
 }
 

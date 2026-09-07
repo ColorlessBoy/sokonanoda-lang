@@ -1,4 +1,4 @@
-//! CLI entry: argument parsing, dispatch to file-check / repl.
+//! CLI entry: argument parsing, dispatch to file-check / repl / lsp.
 
 mod check;
 mod help;
@@ -9,7 +9,7 @@ mod watch;
 use check::check_source;
 use help::print_help;
 use repl::repl;
-use std::io::Read;
+use std::io::{IsTerminal, Read};
 use std::process::ExitCode;
 use watch::watch;
 
@@ -36,6 +36,19 @@ fn main() -> ExitCode {
         Some("repl") if !json => repl(),
         Some("repl") => {
             eprintln!("error: --json is only supported for batch checking, not the repl");
+            ExitCode::FAILURE
+        }
+        // 单二进制分发（gleam 模式）：编辑器可用 `sokonanoda lsp` 拉起服务器。
+        // stdout 是 LSP 协议帧；任何提示只进 stderr。
+        Some("lsp") if !json => {
+            if std::io::stdin().is_terminal() {
+                eprintln!("sokonanoda lsp: starting the language server on stdio (editors spawn this; you probably want `sokonanoda repl`)");
+            }
+            sokonanoda_lsp::run();
+            ExitCode::SUCCESS
+        }
+        Some("lsp") => {
+            eprintln!("error: --json is only supported for batch checking, not lsp");
             ExitCode::FAILURE
         }
         Some("watch") => match positionals.get(1) {

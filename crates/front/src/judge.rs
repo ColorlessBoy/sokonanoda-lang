@@ -19,7 +19,7 @@
 
 use crate::compile::{check_document_with, CompileOptions, DeclStatus, DocumentReport};
 use crate::proof::parse_expr_text;
-use crate::{Binder, BinderKind, Command, Expr, FolFile, Span};
+use crate::{tokenize, Binder, BinderKind, Command, Expr, FolFile, Span, TokenKind};
 
 /// 一个开放练习的判定规格：**剩余目标**（与 `DeclState.goal` /
 /// `ProofState::goal_text` 同语义）、声明的宇宙参数、已写 binders
@@ -142,6 +142,153 @@ pub fn judge_terms(
     judgements
 }
 
+/// 把 doc 中 decl_span 命令里的 hole_span 替换为候选 term，改名合成声明
+/// 后走完整流水线判定（与 [`judge_terms`] 同语义：合成声明是唯一裁判）。
+///
+/// 与 [`judge_terms`] 的差别：判定发生在**文档里的真实命令**中。声明名换成
+/// `_soko_judge_k`（`example` 声明无名字：把首 token `example` 换成
+/// `def _soko_judge_k`；宇宙参数 `{u}` 等保留原样），指定洞的 `???` 换成
+/// 候选，其余洞保持原样。因此命令里只要还有剩余洞，合成声明就仍是 open
+/// 练习，结论如实是 [`Judgement::Error`]——多洞状态的逐洞判定由调用方
+/// （`suggest`）改用 [`judge_terms`] 按子洞期望类型完成。
+pub fn judge_hole_fill(
+    doc_src: &str,
+    options: &CompileOptions,
+    decl_span: Span,
+    hole_span: Span,
+    candidates: &[&str],
+) -> Vec<Judgement> {
+    let mut judgements = vec![
+        Judgement::Error {
+            code: "judge-not-run".to_string(),
+            message: "判定未执行".to_string(),
+        };
+        candidates.len()
+    ];
+    if candidates.is_empty() {
+        return judgements;
+    }
+    let all_parse_error = |message: String| -> Vec<Judgement> {
+        vec![
+            Judgement::Error {
+                code: "parse".to_string(),
+                message,
+            };
+            candidates.len()
+        ]
+    };
+    let decl_start = decl_span.start.offset.min(doc_src.len());
+    let decl_end = decl_span.end.offset.clamp(decl_start, doc_src.len());
+    let slice = &doc_src[decl_start..decl_end];
+    let Ok(tokens) = tokenize(slice) else {
+        return all_parse_error("声明命令切片无法分词".to_string());
+    };
+    // 声明名 token 的切片内区间：`example` 换成 `def _soko_judge_k`；
+    // def/theorem/axiom 的名字 token 换成 `_soko_judge_k`。名字定位复用
+    // `references::decl_name_span`（token 精确，绝不扫描文本）。
+    let (name_start, name_end, example_keyword) = match tokens.first().map(|t| &t.kind) {
+        Some(TokenKind::Ident(kw)) if kw == "example" => {
+            let token = &tokens[0];
+            (token.span.start.offset, token.span.end.offset, true)
+        }
+        Some(TokenKind::Ident(kw)) if matches!(kw.as_str(), "def" | "theorem" | "axiom") => {
+            let Some(TokenKind::Ident(name)) = tokens.get(1).map(|t| &t.kind) else {
+                return all_parse_error("声明名缺失，无法合成判定声明".to_string());
+            };
+            let Some(name_span) = crate::references::decl_name_span(doc_src, decl_span, name)
+            else {
+                return all_parse_error(format!("找不到声明名 `{name}` 的 token"));
+            };
+            let start = name_span.start.offset.saturating_sub(decl_start);
+            let end = name_span.end.offset.saturating_sub(decl_start);
+            (start, end, false)
+        }
+        _ => return all_parse_error("只有 def/theorem/example 声明可以合成判定".to_string()),
+    };
+    // 洞的切片内区间：必须确实落在命令里，且切片就是 `???`。
+    let hole_start = hole_span.start.offset;
+    let hole_end = hole_span.end.offset;
+    let in_decl = hole_start >= decl_start && hole_end <= decl_end && hole_start < hole_end;
+    if !in_decl || &doc_src[hole_start..hole_end] != "???" {
+        return all_parse_error("洞位置不在该声明的 `???` 上".to_string());
+    }
+    let hole_start = hole_start - decl_start;
+    let hole_end = hole_end - decl_start;
+    if name_start < hole_end && hole_start < name_end {
+        return all_parse_error("声明名与洞重叠，无法合成判定声明".to_string());
+    }
+    // 逐候选：名字段与洞段两处替换，按偏移拼接出合成命令文本。
+    let mut commands: Vec<Command> = Vec::with_capacity(candidates.len());
+    let mut failed_parse: Vec<Option<String>> = vec![None; candidates.len()];
+    for (k, candidate) in candidates.iter().enumerate() {
+        let name = format!("_soko_judge_{k}");
+        let name_text = if example_keyword {
+            format!("def {name}")
+        } else {
+            name.clone()
+        };
+        // 名字段在声明头、洞段在其后；仍按偏移排序，防御性处理乱序输入。
+        let segments: [(usize, usize, &str); 2] = if name_start <= hole_start {
+            [
+                (name_start, name_end, name_text.as_str()),
+                (hole_start, hole_end, (*candidate)),
+            ]
+        } else {
+            [
+                (hole_start, hole_end, (*candidate)),
+                (name_start, name_end, name_text.as_str()),
+            ]
+        };
+        let mut synth = String::with_capacity(slice.len() + name_text.len() + candidate.len());
+        let mut cursor = 0usize;
+        for (start, end, text) in segments {
+            synth.push_str(&slice[cursor..start]);
+            synth.push_str(text);
+            cursor = end;
+        }
+        synth.push_str(&slice[cursor..]);
+        match crate::parse(&synth) {
+            Ok(file) => match file.commands.as_slice() {
+                [parsed @ (Command::Def {
+                    name: parsed_name, ..
+                }
+                | Command::Theorem {
+                    name: parsed_name, ..
+                })] if parsed_name == &name => {
+                    commands.push(parsed.clone());
+                }
+                _ => {
+                    failed_parse[k] =
+                        Some(format!("合成文本不是声明 `{name}`（候选 `{candidate}`）"));
+                }
+            },
+            Err(err) => {
+                failed_parse[k] = Some(format!(
+                    "无法解析合成命令（候选 `{candidate}`）：{}",
+                    err.message
+                ));
+            }
+        }
+    }
+    // 前缀命令表 + 合成声明，走与 judge_terms 一致的完整流水线。
+    let Ok(mut file) = parse_prefix(&doc_src[..decl_start]) else {
+        return all_parse_error("前缀源码无法解析".to_string());
+    };
+    file.commands.extend(commands);
+    let report = check_document_with(&file, options);
+    for (k, judgement) in judgements.iter_mut().enumerate() {
+        if let Some(message) = failed_parse[k].take() {
+            *judgement = Judgement::Error {
+                code: "parse".to_string(),
+                message,
+            };
+            continue;
+        }
+        *judgement = judgement_of(&report, k);
+    }
+    judgements
+}
+
 fn parse_prefix(prefix_src: &str) -> Result<FolFile, ()> {
     crate::parse(prefix_src).map_err(|_| ())
 }
@@ -242,7 +389,8 @@ fn judgement_of(report: &DocumentReport, k: usize) -> Judgement {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compile::PreludeMode;
+    use crate::compile::{check_document, DeclState, DeclStatus, PreludeMode};
+    use crate::parse;
 
     fn spec(ty: &str, binders: &[(&str, Option<&str>)]) -> OpenGoalSpec {
         OpenGoalSpec {
@@ -387,6 +535,127 @@ mod tests {
             &["a", "id.{u} α a"],
         );
         assert_eq!(judgements[0], Judgement::Match);
+        assert_eq!(judgements[1], Judgement::Match);
+    }
+
+    // ---- judge_hole_fill：文档真实命令里的逐洞判定 ----
+
+    /// 取文档里第一个 open 练习的 DeclState（span 与洞位都来自完整流水线）。
+    fn open_decl(doc: &str) -> DeclState {
+        let report = check_document(&parse(doc).expect("parses"));
+        report
+            .decls
+            .iter()
+            .find(|d| d.status == DeclStatus::Open)
+            .expect("open exercise")
+            .clone()
+    }
+
+    const SUB_HOLE_DOC: &str = "axiom And : Prop -> Prop -> Prop\n\
+         axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+         theorem t : (a : Prop) -> (b : Prop) -> (ha : a) -> (hb : b) -> And a b := \
+         fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha ???\n";
+
+    #[test]
+    fn hole_fill_accepts_hypothesis_in_a_sub_hole() {
+        // 剩一个子洞的 spine 状态：填对假设 ⇒ 整个证明被完整 kernel 接受；
+        // 填错 ⇒ 内核给出"期望 / 实际"（类型不合的候选 → Mismatch）。
+        let d = open_decl(SUB_HOLE_DOC);
+        let judgements = judge_hole_fill(
+            SUB_HOLE_DOC,
+            &CompileOptions::default(),
+            d.span,
+            d.holes[0],
+            &["hb", "ha"],
+        );
+        assert_eq!(judgements[0], Judgement::Match);
+        assert!(
+            matches!(judgements[1], Judgement::Mismatch { .. }),
+            "type-mismatched candidate must be a kernel mismatch, got {:?}",
+            judgements[1]
+        );
+    }
+
+    #[test]
+    fn hole_fill_renames_examples_by_replacing_the_first_token() {
+        // `example` 无名字：首 token `example` 换成 `def _soko_judge_k`。
+        let doc = "axiom False : Prop\n\
+                   example : (h : False) -> False := fun (h : False) => ???\n";
+        let d = open_decl(doc);
+        let judgements = judge_hole_fill(
+            doc,
+            &CompileOptions::default(),
+            d.span,
+            d.holes[0],
+            &["h", "False"],
+        );
+        assert_eq!(judgements[0], Judgement::Match);
+        match &judgements[1] {
+            Judgement::Mismatch { expected, actual } => {
+                // 内核渲染：`False.[]` 保留原名，Prop 显示为 Sort(0)。
+                assert!(expected.contains("False"), "expected: {expected}");
+                assert!(actual.contains("Sort(0)"), "actual: {actual}");
+            }
+            other => panic!("expected mismatch, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn hole_fill_keeps_universe_params_from_the_source() {
+        // def 的宇宙参数 `{u}` 原样保留在合成命令里，Sort u 目标可判定。
+        let doc =
+            "def idT {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n\
+                   theorem t {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a := \
+                   fun {α : Sort u} => fun (a : α) => ???\n";
+        let d = open_decl(doc);
+        let judgements = judge_hole_fill(
+            doc,
+            &CompileOptions::default(),
+            d.span,
+            d.holes[0],
+            &["Eq.refl.{u} α a"],
+        );
+        assert_eq!(judgements[0], Judgement::Match);
+    }
+
+    #[test]
+    fn hole_fill_with_remaining_holes_reports_open_honestly() {
+        // 其余洞保持 `???` ⇒ 合成声明仍是 open 练习：kernel 没能整体裁决，
+        // 结论如实为 Error（绝不把"没判过"说成 Match）。
+        let doc = "axiom And : Prop -> Prop -> Prop\n\
+                   axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                   theorem t : (a : Prop) -> (b : Prop) -> (ha : a) -> (hb : b) -> And a b := \
+                   fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??? ???\n";
+        let d = open_decl(doc);
+        let judgements = judge_hole_fill(
+            doc,
+            &CompileOptions::default(),
+            d.span,
+            d.holes[0],
+            &["ha", "hb"],
+        );
+        assert!(
+            judgements.iter().all(
+                |j| matches!(j, Judgement::Error { code, .. } if code == "elab-hole-misplaced")
+            ),
+            "remaining holes keep the fill open: {judgements:?}"
+        );
+    }
+
+    #[test]
+    fn hole_fill_reports_parse_failures_as_errors_not_panics() {
+        let d = open_decl(SUB_HOLE_DOC);
+        let judgements = judge_hole_fill(
+            SUB_HOLE_DOC,
+            &CompileOptions::default(),
+            d.span,
+            d.holes[0],
+            &["no(", "hb"],
+        );
+        match &judgements[0] {
+            Judgement::Error { code, .. } => assert_eq!(code, "parse"),
+            other => panic!("expected parse error, got {other:?}"),
+        }
         assert_eq!(judgements[1], Judgement::Match);
     }
 }

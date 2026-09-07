@@ -1,8 +1,9 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第十轮：导航基线 + REPL undo + 基线补全第一批）
+> 快照：2026-09-07（第十一轮：提示阶梯 + 下一步建议 + rename/references + inlay + lsp 子命令）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-goal-refine.md`（本轮）/ `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
+> 设计 = `docs/design-hints-suggestions.md` / `docs/design-rename-inlay.md`（本轮）/
+> `docs/design-goal-refine.md` / `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > 差距审计 = `docs/gap-analysis.md`；**经验台账 = `docs/LESSONS.md`**；
 > 发布 = `docs/RELEASE.md`；
@@ -13,6 +14,38 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第十一轮：教学辅助四件套，3 subagent 并行 + 2 调研）
+
+> 设计先行：`docs/design-hints-suggestions.md`（提示阶梯/下一步建议）与
+> `docs/design-rename-inlay.md`（rename/references/inlay/lsp 子命令）；主会话
+> 预接线（协议、能力注册、桩、front 种子）后 4 个实现 subagent 文件集互斥并行。
+
+1. **提示阶梯 `soko/hints`**：画布指令 `-- soko:hint <text>`（独占一行、挂到
+   下一条声明，机制 `front::compile::hints` + `DeclState.hints`；注释级编辑走
+   Session 零重编译路径并刷新阶梯）；LSP 自定义请求 `soko/hints`（无状态，
+   揭示进度归客户端）；VS Code 练习树「提示」节点 + `sokonanoda.revealHint`
+   逐条揭示（不预告剩余条数——WPI 实证）；playground 12 题全部挂上
+   思路→目标形态→关键件三级阶梯（**答案绝不进提示**，遵守 teaching-session 规则）。
+2. **下一步建议（按目标形状）**：`front::suggest`（每请求 ≤3 条、首条
+   `is_preferred`）——exact（kernel 判定）、`Eq.refl` rfl 候选（kernel 验证后
+   才呈现）、refine（模板）、intro（形状）；`front::judge::judge_hole_fill`
+   把洞替换候选后整份交 kernel 终审。**顺带修复多洞错位 bug**：spine 状态下
+   「匹配外层 goal 的假设」不再被塞进子洞（逐洞按 `sub_goals[i].ty` 判定）。
+3. **rename + find-references**：全语义集（`resolve_at` + `references_for` +
+   tokenize 精确名字 token，零文本扫描；注释/字符串天然不误伤）；prepareRename
+   返回名字子 span + placeholder；rename 产出**版本化 documentChanges**，
+   非法名/不可解析 → ResponseError（不返回空 edit，LSP 3.17 规范）；shadowing
+   内层胜出有回归测试。
+4. **inlay hints**：每个开放练习的洞尾标注期望类型（`: T`，子洞类型来自
+   server 端 walk；单主洞显示剩余目标）+ markdown tooltip（目标 + 假设）；
+   只读信息，无 textEdits。
+5. **`sokonanoda lsp` 子命令**（单二进制分发，gleam 模式）：`crates/lsp` lib 化
+   （`sokonanoda_lsp::run()`），`sokonanoda` 二进制 `lsp` 子命令拉起 stdio 服务器
+   （tty 时 stderr 提示）；`sokonanoda-lsp` 二进制保留，VS Code 端不受影响。
+6. 测试总量 **327**（front 171 / lsp 56 / cli 55 / kernel 45…）；全绿；
+   fmt/clippy 干净（教学 crates 零警告）。playground 锚点不变：
+   checked=14 / open=12 / diagnostics=0。
 
 ## 本轮进度（2026-09-07，第十轮：gap-analysis 第一批落地）
 
@@ -257,22 +290,21 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
 
 ### 下一批候选（按投入产出比排序）
 
-1. **提示分级 `soko/hints`**（M）：course.json/关卡元数据挂 hint 阶梯
-   （思路→目标形态→关键 lemma→答案）；lean4game 的 context-match + hidden
-   语义；与 judge 共用合成机制。Deduce 课堂实证的最高价值项。
-2. **失败洞的"下一步建议"**（M–L）：judge 扩展按目标形状出建议
-   （`a -> b`→intro、`And a b`→refine/拆分、假设可闭合→exact），
-   LSP code action / `soko/hints` 呈现。
+1. ~~**提示分级 `soko/hints`**~~ ✅（第十一轮）：画布 `-- soko:hint` 指令 +
+   `soko/hints` 请求 + VS Code 逐条揭示；playground 12 题已挂阶梯。
+   余项：course/ 五个单元的内容阶梯（教学轮补）。
+2. ~~**失败洞的"下一步建议"**~~ ✅（第十一轮）：`front::suggest` 按目标形状
+   （exact/rfl/refine/intro，kernel 验证优先 + is_preferred）；顺带修复多洞
+   错位 bug。余项：失败声明（kernel-rejected）的针对性建议。
 3. **`soko/courseStatus` + VS Code 章节地图**（M）：读 course.json +
    各单元练习状态聚合；进度天然持久化（声明式文件即存储）。
-4. **rename + find-references**（S–M）：`definitions` 映射（第十轮）已有
-   use→def，反向按 def 分组即 references；rename = references + WorkspaceEdit。
-5. **inlay hints**（M）：洞的期望类型挂洞位（InfoView 最小化形态）；
-   sub_goals/rows 的 scope 信息已产出。
+4. ~~**rename + find-references**~~ ✅（第十一轮）：语义集 + 版本化
+   documentChanges + ResponseError；shadowing 有回归测试。
+5. ~~**inlay hints**~~ ✅（第十一轮）：洞期望类型 + tooltip；只读无 textEdits。
 6. **内核错误分类学余项**：`conv.rs:650` 与 `infer.rs:52` 同名消息区分
    （`is_prop_type: expected a sort`）；`assert_eq!` 灰色地带归 internal 的
    议题；refine 子洞的 kernel 级 expected type（elaborator spine meta，M–L）。
-7. **小项打包**：`sokonanoda lsp` 子命令（单二进制分发，gleam 模式）、
+7. **小项打包**：~~`sokonanoda lsp` 子命令~~ ✅（第十一轮，gleam 模式）、
    criterion 基准（防 I8 增量静默劣化，本地跑）、cargo-fuzz parser harness
    （定期跑）、洞的稳定 hole_id（Deduce MCP 先例）、REPL 命令历史持久化。
 

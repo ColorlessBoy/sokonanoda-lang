@@ -174,7 +174,10 @@ impl Session {
             self.remap_prefix(new_keys.len(), &old_spans, &new_spans, src);
             self.keys = new_keys;
             self.src = src.to_string();
-            let report = assemble_report(&self.snaps);
+            let mut report = assemble_report(&self.snaps);
+            // 提示阶梯是注释级数据：零重编译路径也要按当前文本刷新
+            // （hint 指令的增删只移动 span，不触发重编译）。
+            crate::compile::hints::attach_hints_to_report(src, &mut report);
             let events = all_events(&self.snaps);
             return SessionUpdate {
                 report,
@@ -242,7 +245,8 @@ impl Session {
             &fresh_report,
         ));
 
-        let report = assemble_report(&new_snaps);
+        let mut report = assemble_report(&new_snaps);
+        crate::compile::hints::attach_hints_to_report(src, &mut report);
         let events = all_events(&new_snaps);
         let delta = diff_decls(&old_states, &report.decls, version);
         self.keys = new_keys;
@@ -573,6 +577,33 @@ mod tests {
         assert_eq!(u4.recompiled_from, None);
         assert!(u4.delta.is_empty());
         assert_eq!(u4.version, 4);
+    }
+
+    #[test]
+    fn session_attaches_hints_and_refreshes_on_comment_edit() {
+        let mut session = Session::new(CompileOptions::default());
+        let src1 = "-- soko:hint 先看目标形状\nexample : Prop -> Prop := ???\n";
+        let u1 = update(&mut session, src1, 1);
+        let hints = u1
+            .report
+            .decls
+            .first()
+            .map(|d| d.hints.clone())
+            .unwrap_or_default();
+        assert_eq!(hints, vec!["先看目标形状".to_string()]);
+
+        // 提示注释是纯注释编辑：零重编译，但阶梯按新文本刷新。
+        let src2 = "-- soko:hint 第一层\n-- soko:hint 第二层\nexample : Prop -> Prop := ???\n";
+        let u2 = update(&mut session, src2, 2);
+        assert_eq!(u2.recompiled_from, None, "hint edits must not recompile");
+        assert!(u2.delta.is_empty());
+        let hints = u2
+            .report
+            .decls
+            .first()
+            .map(|d| d.hints.clone())
+            .unwrap_or_default();
+        assert_eq!(hints, vec!["第一层".to_string(), "第二层".to_string()]);
     }
 
     #[test]

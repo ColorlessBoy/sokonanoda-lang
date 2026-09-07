@@ -8,6 +8,9 @@ pub(crate) fn print_help() {
     println!("  sokonanoda -                    check source from stdin");
     println!("  sokonanoda repl                 interactive REPL");
     println!("  sokonanoda watch <file>         monitor a file, emit versioned JSON Lines events");
+    println!(
+        "  sokonanoda lsp                  run the language server on stdio (editors spawn this)"
+    );
     println!("  sokonanoda --json <file>        emit JSON Lines events (agent/service view)");
     println!("  sokonanoda --bare <file>        compile with no prelude (file is self-contained);");
     println!(

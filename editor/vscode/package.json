@@ -65,6 +65,11 @@
       {
         "command": "sokonanoda.revealRange",
         "title": "sokonanoda: reveal range"
+      },
+      {
+        "command": "sokonanoda.revealHint",
+        "title": "sokonanoda: 揭示下一条提示",
+        "category": "sokonanoda"
       }
     ],
     "views": {

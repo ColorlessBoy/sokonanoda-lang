@@ -168,10 +168,53 @@ Response:
   instantiated field type); `ty` is `null` when no template is known;
 - multi-hole documents are naturally supported (one entry per declaration);
 - hover remains the degraded, human-readable view of the same data;
-- kernel-judged code actions: `exact` (a hypothesis the kernel deems to close
-  the goal), `intro` (peel one binder) and `refine` (a constructor skeleton
-  recovered from the declaration's own axiom/ctor shape, e.g.
-  `And.intro a b ??? ???`).
+- kernel-judged code actions (next-step suggestions, per goal shape; see
+  `docs/design-hints-suggestions.md`): at most three per request, the first
+  one carries `is_preferred: true`:
+  - `exact <hypothesis>` — a hypothesis the kernel judges defeq to the hole's
+    expected type (per hole: in a constructor spine each sub-hole is judged
+    against its own expected type, never against the outer goal);
+  - `Eq.refl …` — for `Eq`-shaped goals, a `rfl` candidate that the kernel
+    validated before it is offered (dropped when rejected);
+  - `refine <skeleton>` — a constructor skeleton recovered from the
+    declaration's own axiom/ctor shape (e.g. `And.intro a b ??? ???`);
+    structural, the kernel judges what the learner writes into sub-holes;
+  - `intro` — peel the next binder(s) into a lambda prefix.
+
+### `soko/hints`
+
+Request params: `{"textDocument": {"uri"}, "position"}`. Response:
+
+```json
+{"hints": ["先看目标最外层的箭头…", "目标形态：拆成 fun (x : a) => …"]}
+```
+
+- The full hint ladder authored in the canvas as `-- soko:hint <text>`
+  comment directives (one hint per line, whole line a comment; each hint
+  attaches to the first declaration after it), for the declaration at
+  `position`; empty array when there is none;
+- The server is stateless: progressive disclosure (reveal one hint at a
+  time) is a client concern; the protocol never counts remaining hints.
+
+## Rename, references & inlay hints (LSP 3.17)
+
+- `textDocument/prepareRename` — resolves the target at the cursor
+  (binder or declaration); returns `{range, placeholder}` covering the
+  **name token** only; unresolved (prelude names, anonymous `example`)
+  → `null`.
+- `textDocument/rename` — semantic rewrite only: every use point that
+  resolves to the same target plus the definition's name token
+  (`WorkspaceEdit.documentChanges` with the document's version). Illegal
+  identifiers and unresolvable positions are **ResponseErrors**, never
+  empty edits or text scans.
+- `textDocument/references` — all use points of the target; with
+  `include_declaration` the definition's name location is prepended;
+  results are sorted by offset and deduplicated.
+- `textDocument/inlayHint` — one type hint per open-exercise hole, rendered
+  after the hole: `label = ": <expected type>"` (sub-hole types from the
+  server-side walk; the remaining goal for a lone main hole), markdown
+  tooltip with the goal and introduced hypotheses. Checked/failed
+  declarations produce no hints.
 
 ### `soko/nextHole`
 

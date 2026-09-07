@@ -67,10 +67,47 @@ fn entry_script_speaks_the_goal_view_protocol() {
         script.contains("soko/nextHole"),
         "next-hole navigation must consume soko/nextHole"
     );
+    assert!(
+        script.contains("soko/hints"),
+        "the hint button must consume soko/hints"
+    );
     // Server-side hole logic: the client must NOT scan for holes by text.
     assert!(
         !script.contains("find(\"???\")") && !script.contains("indexOf(\"???\")"),
         "clients must not re-derive hole positions (ocaml-lsp lesson)"
+    );
+}
+
+#[test]
+fn reveal_hint_command_is_wired_to_the_hints_protocol() {
+    let manifest = manifest();
+    let script = entry_script();
+    // package.json declares the command; extension.js registers it.
+    let commands = manifest["contributes"]["commands"]
+        .as_array()
+        .expect("contributes.commands");
+    assert!(
+        commands
+            .iter()
+            .any(|c| c["command"].as_str() == Some("sokonanoda.revealHint")),
+        "package.json must declare sokonanoda.revealHint"
+    );
+    assert!(
+        script.contains("\"sokonanoda.revealHint\""),
+        "extension.js must register sokonanoda.revealHint"
+    );
+    // Progressive disclosure lives in the client (the server stays stateless):
+    // the reveal counter is persisted in workspaceState, keyed per document
+    // and declaration.
+    assert!(
+        script.contains("workspaceState"),
+        "reveal progress must be persisted in workspaceState"
+    );
+    // Teaching rule (docs/design-hints-suggestions.md §0.2): the UI must never
+    // advertise how many hints remain — previews push students to the answer.
+    assert!(
+        !script.contains("还剩"),
+        "the reveal flow must never show the remaining hint count"
     );
 }
 

@@ -12,8 +12,10 @@
 pub mod compile;
 pub mod judge;
 pub mod proof;
+pub mod references;
 pub mod semantic;
 pub mod session;
+pub mod suggest;
 
 mod ast;
 mod diagnostic;

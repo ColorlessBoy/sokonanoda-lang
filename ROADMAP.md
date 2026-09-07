@@ -431,7 +431,11 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
   讲课 agent 消费同一文档状态自动出题。
-- **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——completions、
-  go-to-def、folding、提示分级、undo、rename、inlay hints、章节地图、
-  下一步建议、`--version`+MSRV 等；发布流水线已落地（`release.yml` +
+- **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——已完成：
+  completions、go-to-def、folding、提示分级（`-- soko:hint` + `soko/hints` +
+  VS Code 揭示）、undo、rename+references、inlay hints、`--version`+MSRV、
+  失败洞的下一步建议（`front::suggest` + kernel 验证 + is_preferred）、
+  `sokonanoda lsp` 子命令（单二进制分发）；余项：`soko/courseStatus` +
+  VS Code 章节地图、内核分类学余项、criterion 基准、fuzz harness、稳定
+  hole_id、REPL 历史持久化。发布流水线已落地（`release.yml` +
   `docs/RELEASE.md`）。
