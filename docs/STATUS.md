@@ -248,17 +248,50 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
    补了客户端 handler（此前点击报 command not found）；新增 F5 启动配置。
 4. 测试总量 186（kernel 43 / cli 38 / front 89 / lsp 16）。
 
-## 下一步（按 REQUIREMENTS §8 路线）
+## 下一步（交接快照，2026-09-07；详细依据见 docs/gap-analysis.md）
 
-- **课程哲学落地**：course/ 5 单元与 playground 重排为"逻辑先行"
-  （REQUIREMENTS §6 课程排序哲学）：单元① 逻辑连接词与证明项，Sort 由
-  "函数类型的类型"问题自然引出。
-- **I9 余项**：goal 视图携带声明宇宙参数（带 `{u}` 的开放声明目前无 exact
-  建议）；refine/multi-hole；`soko/goals` 的 VS Code 客户端消费（goal 面板）。
-- **L2/L3**：VS Code 扩展集成测试（@vscode/test-electron）与打包发布流水线；
-  L1 service 事件流（watch 已是 CLI 形态）。
-- **内核余项**：panic → 显式 KernelError 的完整化（def_eq mismatch 已闭环，
-  其余拒绝路径仍是 panic 包装）。
+> 交接要点：新机器 `git pull` 后先跑
+> `cargo test --workspace --locked`（应 273 全绿）+ `cargo clippy --workspace
+> --all-targets`；阅读顺序见根 `AGENTS.md`。
+
+### 下一批候选（按投入产出比排序）
+
+1. **提示分级 `soko/hints`**（M）：course.json/关卡元数据挂 hint 阶梯
+   （思路→目标形态→关键 lemma→答案）；lean4game 的 context-match + hidden
+   语义；与 judge 共用合成机制。Deduce 课堂实证的最高价值项。
+2. **失败洞的"下一步建议"**（M–L）：judge 扩展按目标形状出建议
+   （`a -> b`→intro、`And a b`→refine/拆分、假设可闭合→exact），
+   LSP code action / `soko/hints` 呈现。
+3. **`soko/courseStatus` + VS Code 章节地图**（M）：读 course.json +
+   各单元练习状态聚合；进度天然持久化（声明式文件即存储）。
+4. **rename + find-references**（S–M）：`definitions` 映射（第十轮）已有
+   use→def，反向按 def 分组即 references；rename = references + WorkspaceEdit。
+5. **inlay hints**（M）：洞的期望类型挂洞位（InfoView 最小化形态）；
+   sub_goals/rows 的 scope 信息已产出。
+6. **内核错误分类学余项**：`conv.rs:650` 与 `infer.rs:52` 同名消息区分
+   （`is_prop_type: expected a sort`）；`assert_eq!` 灰色地带归 internal 的
+   议题；refine 子洞的 kernel 级 expected type（elaborator spine meta，M–L）。
+7. **小项打包**：`sokonanoda lsp` 子命令（单二进制分发，gleam 模式）、
+   criterion 基准（防 I8 增量静默劣化，本地跑）、cargo-fuzz parser harness
+   （定期跑）、洞的稳定 hole_id（Deduce MCP 先例）、REPL 命令历史持久化。
+
+### 运营/验证类
+
+- **release.yml 首跑验证**：`git tag v0.1.0 && git push --tags` 后核对
+  Release 产物（双二进制 + VSIX；见 docs/RELEASE.md §6 风险清单——
+  taiki-e 多 bin 映射、softprops、gh release upload 均需首次实测）；
+  `npx @vscode/vsce` 建议钉版本。
+- **教学回环实战**：逻辑先行画布已就绪（course/ + playground，12 题）——
+  找真实学习者走一遍 `skills/sokonanoda-teacher` 循环，回收提示分层与
+  事件决策表的打磨需求。
+- **opencode.json 实战核查**：LSP 经 opencode 消费的体验（已有一次实战：
+  抓出 Eq.symm 钥匙错误）。
+
+### 更远（L2/L3）
+
+VS Code 扩展集成测试（@vscode/test-electron）、发布 marketplace、
+L1 service 事件流（watch 已是 CLI 形态）、KernelError 显式化完整推进
+（`CheckError::Internal` 目前无人构造）。
 
 ## 已确认的决策（用户 2026-09-06）
 
