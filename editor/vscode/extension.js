@@ -53,8 +53,58 @@ async function resolveServerCommand() {
 
   const found = firstExisting(builtBinaryCandidates(discoveryRoots(), "sokonanoda-lsp"));
   if (found) return found;
-  if (onPath("sokonanoda-lsp")) return "sokonanoda-lsp"; // fall back to PATH lookup
-  return undefined; // not discoverable: activate() shows the guidance dialog
+  // Final fallback: auto-download from GitHub Release (rust-analyzer model).
+  const globalDir = path.join(
+    process.env.HOME || process.env.USERPROFILE || "",
+    ".local", "share", "sokonanoda", "bin"
+  );
+  const downloaded = path.join(globalDir, process.platform === "win32" ? "sokonanoda-lsp.exe" : "sokonanoda-lsp");
+  if (fs.existsSync(downloaded)) return downloaded;
+  return undefined; // not discoverable: caller shows guidance with download option
+}
+
+async function downloadLspBinary(context) {
+  // 从 GitHub Release 下载对应平台的 LSP 二进制到全局存储。
+  // 只在首次使用时下载（之后缓存于 ~/.local/share/sokonanoda/bin/）。
+  const os = require("os");
+  const platform = process.platform;
+  const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
+  const target = platform === "darwin"
+    ? `${arch}-apple-darwin`
+    : platform === "win32" ? "x86_64-pc-windows-msvc"
+    : "x86_64-unknown-linux-gnu";
+
+  const url = `https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest/download/sokonanoda-lsp-${target}.tar.gz`;
+  const dir = path.join(os.homedir(), ".local", "share", "sokonanoda", "bin");
+  const dest = path.join(dir, process.platform === "win32" ? "sokonanoda-lsp.exe" : "sokonanoda-lsp");
+
+  if (fs.existsSync(dest)) return dest; // already downloaded
+
+  fs.mkdirSync(dir, { recursive: true });
+  const https = require("https");
+  const { pipeline } = require("stream");
+  const tar = require("child_process"); // use tar command
+
+  return new Promise((resolve, reject) => {
+    const tmp = dest + ".tmp.tar.gz";
+    const file = fs.createWriteStream(tmp);
+    https.get(url, (res) => {
+      if (res.statusCode === 302 || res.statusCode === 301) {
+        https.get(res.headers.location, (res2) => {
+          res2.pipe(file);
+          file.on("finish", () => {
+            file.close();
+            // extract
+            require("child_process").execSync(`tar xzf "${tmp}" -C "${dir}"`);
+            fs.unlinkSync(tmp);
+            resolve(dest);
+          });
+        }).on("error", reject);
+      } else {
+        reject(new Error(`HTTP ${res.statusCode}`));
+      }
+    }).on("error", reject);
+  });
 }
 
 // Same discovery pattern as the server, but for the `sokonanoda` CLI binary
@@ -490,14 +540,23 @@ function registerCommands(context, provider, courseProvider) {
 }
 
 async function activate(context) {
-  const command = await resolveServerCommand();
+  let command = await resolveServerCommand();
   if (command === undefined || (isExplicitPath(command) && !fs.existsSync(command))) {
-    // 注意：装进 ~/.vscode/extensions 后 __dirname 的上级不是仓库，
-    // 不能再提供"打开仓库"按钮（会打开扩展目录）——只给行动指引。
-    vscode.window.showWarningMessage(
-      "sokonanoda-lsp 没找到。① 在仓库根目录运行 cargo build -p sokonanoda-lsp；② 用 File → Open Folder 打开仓库文件夹（自动发现 target/ 下的二进制）；或把二进制的绝对路径填入设置 sokonanoda.serverPath（单文件窗口也能用）。"
-    );
-    return;
+    // rust-analyzer 模式：自动从 GitHub Release 下载对应平台的 LSP 二进制
+    vscode.window.showInformationMessage("sokonanoda：正在下载语言服务器…");
+    try {
+      command = await downloadLspBinary(context);
+      if (command && fs.existsSync(command)) {
+        vscode.window.showInformationMessage("sokonanoda：语言服务器下载完成 ✓");
+      } else {
+        throw new Error("download produced no binary");
+      }
+    } catch (err) {
+      vscode.window.showWarningMessage(
+        "sokonanoda-lsp 自动下载失败。请在仓库根目录运行 cargo build -p sokonanoda-lsp，或设置 sokonanoda.serverPath。错误：" + (err?.message ?? err)
+      );
+      return;
+    }
   }
 
   const serverOptions = {

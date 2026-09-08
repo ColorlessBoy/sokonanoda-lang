@@ -65,7 +65,6 @@ jobs:
           if-no-files-found: error
 
   vsix:
-    needs: build
     runs-on: ubuntu-latest
     # contents: write：gh release upload（仅 tag push 路径用到）
     permissions:
