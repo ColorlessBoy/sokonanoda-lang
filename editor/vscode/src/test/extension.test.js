@@ -1,7 +1,9 @@
 // VS Code 集成测试：扩展在真实 VS Code（@vscode/test-electron）里跑，
 // 由 `vscode-test`（@vscode/test-cli）经 .vscode-test.mjs 启动。
 // 前置条件：`cargo build -p sokonanoda-lsp` 必须先执行——测试自身绝不构建
-// 服务器，只假设二进制已在 target/debug|release（CI 与本地都先构建）。
+// 服务器，只假设二进制已在 target/debug|release 或 PATH（CI 与本地都先
+// 构建）。找不到二进制时整组 skip（不是 fail）：激活能过但服务器起不来，
+// 诊断/hover 只会无限等待直到超时，那不是被测代码的回归。
 // 判定全部走真实 kernel：诊断是服务器发布的，hover 是服务器算的；这里不
 // 复刻任何前端逻辑（客户端不做文本判定的教训同样适用于测试）。
 const assert = require("assert");
@@ -11,35 +13,60 @@ const path = require("path");
 const vscode = require("vscode");
 
 const EXTENSION_ID = "sokonanoda-lang.sokonanoda";
+const SERVER_NAME = "sokonanoda-lsp";
 const WAIT_MS = 30000;
 const POLL_MS = 100;
 
-// 内联自 examples/lesson-01.sokonanoda：干净教学文件，期望 0 诊断
-//（开放练习 `sorry` 是成功态，不是错误）。
-const LESSON_01 = [
+// 与 extension.js 的自动发现同族：仓库根（src/test 上四级）的
+// target/debug|release，再退 PATH。
+const REPO_ROOT = path.resolve(__dirname, "..", "..", "..", "..");
+
+function findServerBinary() {
+  for (const profile of ["debug", "release"]) {
+    const candidate = path.join(REPO_ROOT, "target", profile, SERVER_NAME);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (!dir) continue;
+    const candidate = path.join(dir, SERVER_NAME);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return undefined;
+}
+
+const SERVER_BINARY = findServerBinary();
+
+// 干净教学文件（内联自 examples/lesson-01.sokonanoda，去掉开放练习行）：
+// 不含 sorry——含 sorry 的文件现在会带一条 WARNING（见下）。
+const LESSON_CLEAN = [
   "-- Lesson 1: functions and types",
   "",
   "def id : Prop -> Prop := fun (x : Prop) => x",
   "",
   "#check id",
-  "",
-  "example : Prop -> Prop := sorry",
-  "",
 ].join("\n");
 
 // kernel 拒绝样例：lambda 的实际类型是 Prop -> Prop，与声明的 Prop -> Type
 // 不匹配（与 crates/front compile/tests.rs 的 Failed 用例同族）。
 const KERNEL_BAD = "def bad : Prop -> Type := fun (x : Prop) => x\n";
 
-// 开放练习：`sorry` 是洞，hover 应给出非空信息（目标/引导）。
-const EXERCISE = "-- 练习：把 Prop -> Prop 证掉。\nexample : Prop -> Prop := sorry\n";
+// 开放练习：`sorry` 是洞。Lean 4 对齐语义：文件编译通过但带缺口 →
+// 服务器发 code `sorry` 的 WARNING（不是 error，也不该静默）。
+const EXERCISE = "theorem t : True := sorry\n";
 
-suite("sokonanoda extension (VS Code integration)", () => {
+const suiteRunner = SERVER_BINARY ? suite : suite.skip;
+
+suiteRunner("sokonanoda extension (VS Code integration)", () => {
   // 测试文档写到系统临时目录：file:// URI 能被 documentSelector 命中，
   // 且不污染夹具工作区。
   let tmpDir;
 
-  suiteSetup(() => {
+  suiteSetup(async () => {
+    console.log(`sokonanoda-lsp binary: ${SERVER_BINARY}`);
+    const ext = vscode.extensions.getExtension(EXTENSION_ID);
+    assert.ok(ext, `extension ${EXTENSION_ID} must be present in the test instance`);
+    await ext.activate();
+    assert.ok(ext.isActive, "extension must report active after activate()");
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sokonanoda-vscode-test-"));
   });
 
@@ -89,15 +116,8 @@ suite("sokonanoda extension (VS Code integration)", () => {
     return contents.value ?? "";
   }
 
-  test("extension activates", async () => {
-    const ext = vscode.extensions.getExtension(EXTENSION_ID);
-    assert.ok(ext, `extension ${EXTENSION_ID} must be present in the test instance`);
-    await ext.activate();
-    assert.ok(ext.isActive, "extension must report active after activate()");
-  });
-
   test("clean lesson publishes empty diagnostics", async () => {
-    const uri = await writeDoc("lesson-01.sokonanoda", LESSON_01);
+    const uri = await writeDoc("lesson-clean.sokonanoda", LESSON_CLEAN);
     await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
     // ready 信号：hover 非空 = 服务器已编译完这份文档（refresh 先发诊断再
@@ -132,22 +152,39 @@ suite("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
-  test("open exercise shows a hover on the hole", async () => {
+  test("open exercise carries a sorry warning, not an error", async () => {
     const uri = await writeDoc("exercise.sokonanoda", EXERCISE);
     await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
-    // 第 1 行 `example : Prop -> Prop := sorry`，光标落在 sorry 上。
+    await waitFor("a sorry diagnostic", async () =>
+      vscode.languages.getDiagnostics(uri).some((d) => d.code === "sorry"),
+    );
+    const diagnostic = vscode.languages.getDiagnostics(uri).find((d) => d.code === "sorry");
+    assert.ok(diagnostic, "the sorry diagnostic must stay published");
+    assert.strictEqual(diagnostic.source, "sokonanoda", "diagnostics must be sourced");
+    assert.strictEqual(
+      diagnostic.severity,
+      vscode.DiagnosticSeverity.Warning,
+      "an open exercise compiles: sorry is a warning, not an error",
+    );
+    assert.ok(
+      !vscode.languages
+        .getDiagnostics(uri)
+        .some((d) => d.severity === vscode.DiagnosticSeverity.Error),
+      "no error diagnostics for a compiling file with holes",
+    );
+  });
+
+  test("open exercise shows a hover on the hole", async () => {
+    const uri = await writeDoc("exercise-hover.sokonanoda", EXERCISE);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    // `theorem t : True := sorry`：光标落在第 0 行的 sorry 上。
     let text = "";
     await waitFor("a hover on the sorry hole", async () => {
-      text = await hoverTextAt(uri, 1, 28);
+      text = await hoverTextAt(uri, 0, 22);
       return text !== "";
     });
     assert.ok(text.trim().length > 0, "hover markup must be non-empty");
-    // 开放练习是成功态：练习不产生诊断。
-    assert.deepStrictEqual(
-      vscode.languages.getDiagnostics(uri).map((d) => d.code),
-      [],
-      "an open exercise is a success state, not an error",
-    );
   });
 });

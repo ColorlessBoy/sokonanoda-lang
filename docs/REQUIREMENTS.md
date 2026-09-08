@@ -151,4 +151,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   AI 味、抖音味、小红书味；规范落为 skills/sokonanoda-teacher/references/
   zh-style.md（提炼 humanizer-zh/de-ai-writing/stop-slop 与维基 AI 写作
   特征清单），SKILL.md 出题规范强制引用；学习者指出的
-  "被居住/被证成"翻译腔为第一案例。
+  "被居住/被证成"翻译腔为第一案例。- 2026-09-07（十二）：**sorry → warning 诊断分级**（Lean 4 对齐）：含 sorry
+  的声明产出 WARNING 级（code `sorry`），与 kernel-rejected ERROR 分离；
+  VS Code 集成测试 4 用例落地（@vscode/test-electron）；Lean 4 调研确认
+  点分名原子/sorry warning/hover 签名与官方对齐。

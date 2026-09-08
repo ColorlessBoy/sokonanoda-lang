@@ -205,12 +205,40 @@ impl Backend {
                     doc.parse_error = None;
                     // A report carries the same errors as its decl states;
                     // emit them once per failing declaration.
-                    let diagnostics: Vec<_> = update
+                    let mut diagnostics: Vec<_> = update
                         .report
                         .errors
                         .iter()
                         .map(diagnostic_from_compile)
                         .collect();
+                    // Lean 4 对齐：含 sorry 的声明产出 warning（不是 error），
+                    // 让学习者看到"文件编译但有缺口"。
+                    if update
+                        .report
+                        .decls
+                        .iter()
+                        .any(|d| d.status == DeclStatus::Open && !d.holes.is_empty())
+                    {
+                        for d in update
+                            .report
+                            .decls
+                            .iter()
+                            .filter(|d| d.status == DeclStatus::Open)
+                        {
+                            let name = d.name.as_deref().unwrap_or("(anonymous)");
+                            diagnostics.push(Diagnostic {
+                                range: range_of(d.span),
+                                severity: Some(DiagnosticSeverity::WARNING),
+                                code: Some(NumberOrString::String("sorry".to_string())),
+                                source: Some("sokonanoda".to_string()),
+                                message: format!(
+                                    "declaration '{}' uses 'sorry' (exercise not yet solved)",
+                                    name
+                                ),
+                                ..Diagnostic::default()
+                            });
+                        }
+                    }
                     doc.report = Some(update.report);
                     diagnostics
                 }
@@ -2197,5 +2225,45 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         let hover: Option<Hover> = serde_json::from_value(result).expect("valid hover");
         assert!(hover.is_none(), "keyword hover must be silent");
         shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn sorry_produces_warning_not_error() {
+        // Lean 4 对齐：含 sorry 的声明产出 warning（不是 error），
+        // 让学习者知道"文件编译但有缺口"。
+        let src = "theorem t : True := sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let diags = wait_diagnostics(&mut socket, "sorry warning").await;
+        let sorry = diags
+            .diagnostics
+            .iter()
+            .find(|d| d.code == Some(NumberOrString::String("sorry".to_string())))
+            .expect("sorry warning must exist");
+        assert_eq!(sorry.severity, Some(DiagnosticSeverity::WARNING));
+        assert!(
+            sorry.message.contains("uses 'sorry'"),
+            "{:?}",
+            sorry.message
+        );
+    }
+
+    #[tokio::test]
+    async fn non_sorry_errors_are_not_warnings() {
+        // 非 sorry 的 kernel 拒绝仍然是 error（不被 sorry warning 稀释）。
+        let src = "def bad : Prop -> Type := fun (x : Prop) => x\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let diags = wait_diagnostics(&mut socket, "non-sorry diagnostics").await;
+        assert!(diags
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == Some(DiagnosticSeverity::ERROR)));
+        assert!(!diags
+            .diagnostics
+            .iter()
+            .any(|d| d.code == Some(NumberOrString::String("sorry".to_string()))));
     }
 }

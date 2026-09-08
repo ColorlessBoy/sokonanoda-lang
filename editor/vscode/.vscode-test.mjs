@@ -12,6 +12,7 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   // 扩展本身是纯 JS，测试同样保持纯 JS（无 TS 构建步骤）。
   files: "src/test/**/*.test.js",
+  version: "stable",
   // 打开仓库根作为工作区会连带触发课程地图的 CLI 子进程；专用夹具工作区
   // 让测试只依赖 LSP 服务器本身，结果确定。
   workspaceFolder: path.join(dirname, "src/test/fixtures/workspace"),

@@ -273,18 +273,24 @@ cd editor/vscode && npm ci && npm test
 
 **覆盖内容**（4 个用例，全部走真实 kernel，不复刻任何前端逻辑）：
 
-1. **扩展激活**：`getExtension('sokonanoda-lang.sokonanoda')` → `activate()`
-   → `isActive`（隐含客户端 start 成功——服务器找不到时 activate 只弹警告
-   不启动，会在这里暴露）；
-2. **干净文件 0 诊断**：内联 `examples/lesson-01.sokonanoda` 全文 → 等
-   hover 非空作为「服务器已编译完本文档」的 ready 信号（服务器
+- **前置（suiteSetup，不计用例）**：扩展激活——
+  `getExtension('sokonanoda-lang.sokonanoda')` → `activate()` → `isActive`
+  （隐含客户端 start 成功——服务器找不到时 activate 只弹警告不启动，
+  会在这里暴露）。服务器二进制不存在时整组 **skip 不是 fail**：激活能过
+  但服务器起不来，诊断/hover 只会等超时，那不是被测代码的回归；
+1. **干净文件 0 诊断**：内联干净教学样例（**不含** `sorry`——见用例 3 的
+   语义）→ 等 hover 非空作为「服务器已编译完本文档」的 ready 信号（服务器
    `refresh()` 先发诊断再返回，hover 在其后，见 `crates/lsp/src/lib.rs`）
-   → 断言诊断为空。开放练习 `sorry` 是成功态，不是错误；
-3. **kernel 拒绝带码**：`def bad : Prop -> Type := fun (x : Prop) => x`
+   → 断言诊断为空；
+2. **kernel 拒绝带码**：`def bad : Prop -> Type := fun (x : Prop) => x`
    → 断言诊断含 `kernel-rejected` code、`source == "sokonanoda"`、severity
    为 Error（与 front 的 Failed 用例同族，走的是同一 kernel 判定）；
-4. **开放练习 hover 非空**：`example : Prop -> Prop := sorry` → 光标落在
-   `sorry` 上断言 hover markup 非空，且该文件 0 诊断。
+3. **开放练习带 sorry warning**：`theorem t : True := sorry` → 断言诊断含
+   code `sorry`、`source == "sokonanoda"`、severity 为 Warning 且全文件
+   无 Error（Lean 4 对齐：文件编译通过但带缺口——缺口要可见，但不该
+   算编译失败）；
+4. **开放练习 hover 非空**：同一形态的光标落在 `sorry` 上断言 hover
+   markup 非空（洞的目标/引导信息）。
 
 **与静态契约测试的分工**：`extension.rs` 不需要 Electron，守护清单/入口
 脚本/打包元数据（快、进 `cargo test` 门禁）；本节测试守护**运行时行为**
@@ -303,4 +309,6 @@ manifest 变更与行为回归分别有人管。
 **已知风险**：测试跑的是 VS Code stable（会随上游漂移，xfail 策略是红
 了先看 VS Code 更新日志）；每次 CI 运行都重新下载 VS Code（未加缓存，
 VS Code 下载地址按版本变化，缓存收益低）；Linux CI 首跑验证仍待实际
-workflow 触发确认。
+workflow 触发确认；用例 3/4 依赖 LSP 的 sorry-warning 行为（`sorry` 发
+WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一契约的
+两端，需同轮落地否则测试会真实变红（这是期望的守护行为，不是误报）。

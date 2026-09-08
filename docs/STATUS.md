@@ -28,6 +28,20 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    官方对齐。
 5. 测试总量 **388 + 4 VS Code 集成测试**。
 
+## 本轮进度（2026-09-07，第十六轮：Lean 4 对齐 + VS Code 集成测试）
+
+1. **sorry → warning 诊断分级**（Lean 4 对齐）：含 sorry 的开放练习产出
+   WARNING 级诊断（code `sorry`，消息 `declaration 'X' uses 'sorry'`），
+   与 kernel-rejected 的 ERROR 分离——黄色波浪线表示"编译但有缺口"，
+   不再与真错误混淆。LSP 2 个新测试（warning 存在 / 非 sorry 不稀释）。
+2. **VS Code 集成测试框架**（subagent 搭建）：@vscode/test-electron 4 用例
+   （扩展激活/干净 0 诊断/kernel-rejected/sorry hover）；CI Linux 加
+   xvfb-run；.vscode-test.mjs 配置 trust 跳过与 60s timeout。
+3. **Lean 4 调研确认**（subagent）：点分名原子（我们的设计与官方一致）、
+   sorry severity=warning（一致）、hover 三段式（签名+docstring+import，
+   可借鉴）、错误优先原则（可借鉴：同声明已有 error 时不发 sorry warning）。
+4. 测试总量 **390**（+2 sorry 测试）；全绿；clippy/fmt 干净。
+
 ## 本轮进度（2026-09-07，第十五轮：开发清单清零，2 subagent 并行）
 
 1. **spine meta 方案 B′（S1）**：`field_type_text` 升级为深度 AST 替换
