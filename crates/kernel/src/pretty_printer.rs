@@ -400,7 +400,10 @@ impl<'x, 't, 'p> PrettyPrinter<'x, 't, 'p> {
     fn pp_bvar(&mut self, dbj_idx: u16) -> DocPtr {
         match self.binder_names.len().checked_sub(1 + dbj_idx as usize) {
             Some(pos) => self.pp_name_safe(self.binder_names[pos]),
-            None => DocPtr::from(dbj_idx.to_string()),
+            // lang：松散变量（binder 在被打印项之外）打印为 `$N`（与调试
+            // 打印机同约定）。此前直接打数字，教学前端无法把"1 -> 1"这类
+            // 输出对应回 binder 名字。闭合项不受影响（binder_names 全覆盖）。
+            None => DocPtr::from(format!("${dbj_idx}")),
         }
     }
 

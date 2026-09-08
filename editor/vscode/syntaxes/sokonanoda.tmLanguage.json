@@ -30,7 +30,7 @@
       "patterns": [
         { "match": "->", "name": "keyword.operator.arrow.sokonanoda" },
         { "match": "=>", "name": "keyword.operator.fatarrow.sokonanoda" },
-        { "match": "\\?\\?\\?", "name": "markup.inserted.sokonanoda" }
+        { "match": "\\?\\?\\?|\\bsorry\\b", "name": "markup.inserted.sokonanoda" }
       ]
     }
   },

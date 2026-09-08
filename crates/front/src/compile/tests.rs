@@ -2009,3 +2009,41 @@ fn sorry_outside_the_answer_tail_is_still_misplaced() {
         report.errors
     );
 }
+
+#[test]
+fn hover_rows_name_loose_bvars_instead_of_indices() {
+    // 学习者痛点：lambda 下的类型曾渲染成 "1 -> 1"（松散变量打成了
+    // de Bruijn 序号）。现在 $N 会被作用域名字替换。
+    let src = "theorem demo_K : (a : Prop) -> a -> a :=\n  fun (a : Prop) => fun (h : a) => h\n";
+    let report = check_document(&parse(src).expect("parse"));
+    for h in &report.hovers {
+        assert!(
+            !h.text.contains('$'),
+            "hover rows must never carry unresolved loose bvars: {:?}",
+            h.text
+        );
+    }
+    assert!(
+        report
+            .hovers
+            .iter()
+            .any(|h| h.text.contains("a") && h.text.contains("->")),
+        "named arrow rows still resolve: {:?}",
+        report.hovers.iter().map(|h| &h.text).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn sorry_is_highlighted_as_a_hole() {
+    use crate::semantic::{semantic_tokens, SemanticKind};
+    let spans = semantic_tokens("theorem t : Prop := sorry\n");
+    let sorry = spans
+        .iter()
+        .find(|s| src_slice_of("theorem t : Prop := sorry\n", s.span) == "sorry")
+        .expect("sorry token exists");
+    assert_eq!(sorry.kind, SemanticKind::Hole);
+}
+
+fn src_slice_of(src: &str, span: crate::Span) -> &str {
+    &src[span.start.offset..span.end.offset]
+}

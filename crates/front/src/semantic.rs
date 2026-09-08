@@ -293,6 +293,10 @@ fn classify_ident(text: &str, offset: usize, names: &Names) -> SemanticKind {
     if let Some(kind) = names.special.get(&offset) {
         return *kind;
     }
+    // `sorry` 是未完成证明的占位符（与 ??? 等价），高亮同 ???。
+    if text == "sorry" {
+        return SemanticKind::Hole;
+    }
     if text.ends_with('.') {
         return classify_universe_base(text.trim_end_matches('.'), names);
     }

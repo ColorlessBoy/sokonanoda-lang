@@ -25,7 +25,8 @@ mod testutil;
 use actions::hole_range;
 use render::{
     decl_at, decl_name, definition_at, diagnostic_from_compile, diagnostic_from_parse,
-    highlight_uses, hover_type_at, range_of, scope_names_at, status_label, symbol_kind,
+    highlight_uses, hover_type_at, range_of, scope_names_at, semantic_kind_at, status_label,
+    symbol_kind,
 };
 use serde::{Deserialize, Serialize};
 use sokonanoda_front::compile::{
@@ -510,6 +511,13 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
+        // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
+        // 应该来自名字/表达式，而不是把关键字所在的某个节点硬塞过来。
+        if let Some(kind) = semantic_kind_at(&doc.text, pos.line, pos.character) {
+            if matches!(kind, SemanticKind::Keyword) {
+                return Ok(None);
+            }
+        }
         if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
             return Ok(Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {
@@ -2157,6 +2165,34 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
             levels >= 2,
             "chain must reach the enclosing type, got {levels}"
         );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_keyword_returns_none() {
+        // 学习者反馈：光标在 fun/=>/theorem 上应该安静，而不是把某个
+        // 节点的类型行硬塞过来。
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, VALID).await;
+        let _ = wait_diagnostics(&mut socket, "keyword hover diagnostics").await;
+
+        let fun_at = VALID.find("fun").expect("fun exists");
+        let pos = lsp_pos(VALID, fun_at);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(80)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid hover");
+        assert!(hover.is_none(), "keyword hover must be silent");
         shutdown(&mut service).await;
     }
 }

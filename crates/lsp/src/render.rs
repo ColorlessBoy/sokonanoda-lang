@@ -5,6 +5,7 @@ use sokonanoda_front::compile::{
     DeclKind, DeclState, DeclStatus, DocumentReport, HoverType, ResolvedTarget,
 };
 use sokonanoda_front::references::{binder_name_span, decl_name_span, references_for, resolve_at};
+use sokonanoda_front::semantic::SemanticKind;
 use sokonanoda_front::{tokenize, Span, TokenKind};
 use tower_lsp::lsp_types::*;
 
@@ -118,6 +119,34 @@ pub(crate) fn highlight_uses(
 
 /// The in-scope binder names (outermost first) at the cursor, from the
 /// smallest enclosing hover row. Anonymous binders carry empty names.
+/// 光标处的语义 token 类别（front::semantic 的 token 流为准）。
+pub(crate) fn semantic_kind_at(text: &str, line: u32, character: u32) -> Option<SemanticKind> {
+    let spans = sokonanoda_front::semantic::semantic_tokens(text);
+    let offset = line_col_to_offset(text, line, character);
+    spans
+        .iter()
+        .find(|s| {
+            s.span.start.offset <= offset && offset < s.span.end.offset.max(s.span.start.offset + 1)
+        })
+        .map(|s| s.kind)
+}
+
+fn line_col_to_offset(text: &str, line: u32, character: u32) -> usize {
+    let mut offset = 0usize;
+    for (i, l) in text.lines().enumerate() {
+        if i == line as usize {
+            let within = text[offset..]
+                .char_indices()
+                .nth(character as usize)
+                .map(|(o, _)| o)
+                .unwrap_or(l.len());
+            return offset + within.min(l.len());
+        }
+        offset += l.len() + 1;
+    }
+    text.len()
+}
+
 pub(crate) fn scope_names_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&[String]> {
     hover_type_at(hovers, line, character).map(|h| h.scope_names.as_slice())
 }

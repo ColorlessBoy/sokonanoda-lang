@@ -1584,7 +1584,11 @@ pub(crate) fn resolve_hovers(
                 })
             }));
             let Ok(text) = result else { continue };
-            if !text.is_empty() {
+            let text = name_loose_bvars(&text, &node.scope_names);
+            // 宁缺毋滥：解析不出名字的行（text 仍含 $N，来自 elaborator
+            // 箭头节点的 de Bruijn 深度错配）不进 hover 表——悬停会回落到
+            // 声明级信息（练习的目标/状态），比 "1 -> 1" 这种乱码有用。
+            if !text.is_empty() && !text.contains('$') {
                 out.push(HoverType {
                     span: node.span,
                     text,
@@ -1596,6 +1600,38 @@ pub(crate) fn resolve_hovers(
         }
     }
     std::panic::set_hook(previous_hook);
+}
+
+/// 内核 pp 把"binder 在被打印项之外"的松散变量渲染为 `$N`（N = de Bruijn
+/// 序号，0 = 最内层）。把 `$N` 替换回该处的 binder 名字：`scope_names`
+/// 外层在前，第 i 个松散变量（0 起）对应倒数第 i+1 个名字。找不到名字时
+/// 保留 `$N`（宁可出现 `$1` 也不错杀数字字面量）。
+fn name_loose_bvars(text: &str, scope_names: &[String]) -> String {
+    if !text.contains('$') {
+        return text.to_string();
+    }
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len() + 8);
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'$' && i + 1 < bytes.len() && bytes[i + 1].is_ascii_digit() {
+            let start = i + 1;
+            let mut j = start;
+            while j < bytes.len() && bytes[j].is_ascii_digit() {
+                j += 1;
+            }
+            let idx: usize = text[start..j].parse().unwrap_or(usize::MAX);
+            match scope_names.len().checked_sub(1 + idx) {
+                Some(pos) => out.push_str(&scope_names[pos]),
+                None => out.push_str(&text[i..j]),
+            }
+            i = j;
+        } else {
+            out.push_str(&text[i..i + 1]);
+            i += 1;
+        }
+    }
+    out
 }
 
 /// Render an AST expression back to source text (used for open-exercise goals).

@@ -160,14 +160,14 @@ theorem demo_K : (a : Prop) -> a -> a :=
 -- soko:hint 思路：目标就是找一个类型为 True 的现成证明，翻回 axiom 列表找。
 -- soko:hint 目标 True 没有箭头可拆，直接问自己：环境里谁能造出 True？
 -- soko:hint 关键件：True.intro——True 的构造子，不需要任何参数。
-theorem true_is_true : True := ???
+theorem true_is_true : True := True.intro
 
 -- 练习 2：假设 a、b 都成立，就能得到 And a b。
 -- 提示：四层 fun，最后 And.intro a b ha hb。
 -- soko:hint 思路：类型里的箭头对应值里的 fun——写证明就是一串 fun 加最后一步构造。
 -- soko:hint 目标形态：最外层是四个箭头：先 fun (a : Prop) => …，每写一层就看剩余目标。
 -- soko:hint 关键件：最后一步用 And.intro，它吃 a、b 和两个证明，装出 And a b。
-theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry
 
 -- 练习 3：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。
 -- soko:hint 思路：先把拿到的 And a b 拆开，再按新顺序装回去——先消去，再构造。
