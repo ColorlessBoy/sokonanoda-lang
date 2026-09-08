@@ -492,13 +492,11 @@ function registerCommands(context, provider, courseProvider) {
 async function activate(context) {
   const command = await resolveServerCommand();
   if (command === undefined || (isExplicitPath(command) && !fs.existsSync(command))) {
-    const pick = await vscode.window.showWarningMessage(
-      "sokonanoda-lsp 没找到。先在仓库根目录运行 cargo build -p sokonanoda-lsp；然后用 VS Code 打开仓库文件夹（自动发现 target/ 下的二进制），或设置 sokonanoda.serverPath / SOKONANODA_LSP_BIN。",
-      "打开仓库"
+    // 注意：装进 ~/.vscode/extensions 后 __dirname 的上级不是仓库，
+    // 不能再提供"打开仓库"按钮（会打开扩展目录）——只给行动指引。
+    vscode.window.showWarningMessage(
+      "sokonanoda-lsp 没找到。① 在仓库根目录运行 cargo build -p sokonanoda-lsp；② 用 File → Open Folder 打开仓库文件夹（自动发现 target/ 下的二进制）；或把二进制的绝对路径填入设置 sokonanoda.serverPath（单文件窗口也能用）。"
     );
-    if (pick) {
-      vscode.commands.executeCommand("vscode.openFolder", vscode.Uri.file(path.join(__dirname, "..", "..")));
-    }
     return;
   }
 
