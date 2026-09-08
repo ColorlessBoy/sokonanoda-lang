@@ -35,7 +35,7 @@ jobs:
         # 根目录无 CHANGELOG.md，不用 taiki-e/create-gh-release-action 的
         # changelog 参数；说明由 GitHub generate_release_notes 自动生成
         if: github.event_name == 'push'
-        uses: softprops/actions-gh-release@v2
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: sokonanoda ${{ github.ref_name }}
