@@ -70,6 +70,8 @@ jobs:
     # contents: write：gh release upload（仅 tag push 路径用到）
     permissions:
       contents: write
+    # VSCE_PAT：Marketplace 发布（tag push only；workflow_dispatch 不发布）
+    environment: release
     steps:
       - uses: actions/checkout@v4
 
@@ -100,3 +102,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh release upload "${{ github.ref_name }}" editor/vscode/sokonanoda.vsix --clobber
+
+      - name: Publish to VS Code Marketplace (tag push only)
+        if: github.event_name == 'push'
+        working-directory: editor/vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx --yes @vscode/vsce publish --skip-duplicate
