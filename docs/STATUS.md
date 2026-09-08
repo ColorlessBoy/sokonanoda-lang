@@ -411,13 +411,32 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
    补了客户端 handler（此前点击报 command not found）；新增 F5 启动配置。
 4. 测试总量 186（kernel 43 / cli 38 / front 89 / lsp 16）。
 
-## 下一步（交接快照，2026-09-07；详细依据见 docs/gap-analysis.md）
+## 下一步（交接快照，2026-09-07 第十六轮后；依据 = docs/gap-analysis.md）
 
-> 交接要点：新机器 `git pull` 后先跑
-> `cargo test --workspace --locked`（应 273 全绿）+ `cargo clippy --workspace
-> --all-targets`；阅读顺序见根 `AGENTS.md`。
+> gap-analysis Top 10 已全部清零。以下为运营验证与精选改进。
 
-### 下一批候选（按投入产出比排序）
+### 运营验证（需要真实使用）
+- **release.yml 首跑**：`git tag v0.1.0 && git push --tags` 后核对产物
+  （双二进制 + VSIX；taiki-e 多 bin 映射、xvfb-run 集成测试需首次实测）
+- **教学回环实战**：逻辑先行画布已就绪——找真实学习者走完 12 题
+  （skills/sokonanoda-teacher 循环），回收提示分层与事件决策表的打磨需求
+- **opencode LSP 实战**：已确认一次（抓出 Eq.symm 钥匙缺实参），
+  后续在教学过程中持续观察
+
+### 精选改进（gap-analysis 余项 + 教学反馈）
+- **"错误优先"原则**：同声明已有 error 时抑制 sorry warning
+  （Lean AddDecl.lean 的 `!(← MonadLog.hasErrors)` 模式）
+- **正向完成信号**：全部练习解出时给绿色装饰（vscode-lean4 双勾✓✓ 模式）
+- **completions**：关键字 + 作用域内名字（gap #1，Deduce 实证第一痛点）
+- **go-to-definition 增强**：点分名 `And.intro` 整体跳转（已实现），
+  可评估 `And` 段跳 `And`（rust-analyzer 段级导航，成本 M）
+- **folding range**：声明体折叠（gap #3）
+
+### 远期（L2/L3）
+- spine meta 方案 A（kernel 渲染子洞类型）
+- VS Code 扩展 marketplace 发布
+- L1 service 事件流（watch 已是 CLI 形态）
+## 下一批候选（按投入产出比排序）
 
 1. ~~**提示分级 `soko/hints`**~~ ✅（第十一轮）：画布 `-- soko:hint` 指令 +
    `soko/hints` 请求 + VS Code 逐条揭示；playground 12 题已挂阶梯。

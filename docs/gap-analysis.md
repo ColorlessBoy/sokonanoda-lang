@@ -1,5 +1,8 @@
 # 业内标准差距审计（2026-09-07，外部调研 subagent 产出）
 
+> **状态（2026-09-07 更新）：Top 10 + 附加小项 + 分类学余项已全部清零。**
+> 本文件保留为设计决策的参考记录。后续改进见 STATUS.md 下一步。
+
 > 输入本轮头脑风暴；对标 rust-analyzer / gleam LSP / ocaml-lsp / coq-lsp /
 > lean4game(NNG) / Deduce / Isabelle。全文结论浓缩；来源清单见调研原报告
 > （completions 是 Deduce 课堂实证的第一痛点；MSRV 反例 = rust-analyzer
