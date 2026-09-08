@@ -147,4 +147,8 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   node_modules（VSIX 仍坏）。产出：docs/design-goal-refine.md、
   docs/gap-analysis.md、docs/RELEASE.md、8 个新 kernel 错误码。- 2026-09-07（九）：gap-analysis 第一批落地（业内标准补全）：completions、
   folding、--version+MSRV（主会话）；go-to-definition/document highlight/
-  binder 补全（subagent）；REPL undo（subagent）。
+  binder 补全（subagent）；REPL undo（subagent）。- 2026-09-07（十）：**教学文案文风硬约束（用户指令）**：拒绝翻译腔、
+  AI 味、抖音味、小红书味；规范落为 skills/sokonanoda-teacher/references/
+  zh-style.md（提炼 humanizer-zh/de-ai-writing/stop-slop 与维基 AI 写作
+  特征清单），SKILL.md 出题规范强制引用；学习者指出的
+  "被居住/被证成"翻译腔为第一案例。
