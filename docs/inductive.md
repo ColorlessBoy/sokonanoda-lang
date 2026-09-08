@@ -120,12 +120,16 @@ cache_key = (rec_rule.val, universe levels)
 
 这些优化都保持 iota 规则语义不变，只是让它更快。
 
-## 已知分歧（elab ↔ kernel，写 inductive 用例前必读）
+## 递归性判定与 recursor（2026-09-07 现状，替代早先的"已知分歧"）
 
-- front 的 `install_inductive_block` 恒传 `is_recursive: true`
-  （`elab.rs`，占位简化），而内核按构造子 binder 重推递归性并在
-  `inductive.rs:68` 用**无消息 `assert_eq!`** 校验——"单构造子且明显非
-  递归"的块会先撞上这个 assert（报 `assertion failed: left == right`，
-  被分类为 `kernel-internal`）。写教学用例时给该块加一个递归构造子
-  （或参考 `examples/py-nat.sokonanoda`），不要拿它当学习者的错误诊断。
-  正规修法（elab 侧按 binder 重推 is_recursive）是待办。
+- **递归性**：内核按「构造子 binder 类型里是否提到归纳名」自算
+  `is_recursive` 并断言一致；front 现在从源码 AST **镜像同一规则**
+  （`elab.rs`，含 result 箭头链的 domain）——曾因恒传 `true` 导致
+  非递归块（Unit/Bool）崩溃，已修复并有三层回归。
+- **recursor**：显式 `rec` 块优先（py-nat/课程块行为不变）；**无显式
+  `rec` 的块会自动合成 recursor + iota 规则**（与手写版内核 def_eq 比对
+  通过；Prop 块退化为小消除）。字段计数契约按完整 Pi 望远镜
+  （result 箭头链的 domain 也算字段）。
+- 早期"缺 `rec` 报 `elab-missing-inductive-rec`"的守卫已被自动派生
+  取代并移除。教学定位：`rec` 块仍是单元⑤正课，自动派生是其后的
+  便利层。
