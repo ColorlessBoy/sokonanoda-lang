@@ -12,7 +12,26 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 练习（带 `sorry` 洞的声明）；用户在洞里作答；**完整内核是唯一裁判**——
 你跑编译器读结构化事件来判卷和决策。判定永远走 kernel，绝不做文本比对。
 
-## 1. 环境与命令速查（在仓库根目录执行）
+## 1. 环境搭建（agent 接手时先确认）
+
+如果本机还没有 `sokonanoda` 命令，按顺序尝试：
+
+```bash
+# 方式 ①：从 GitHub Release 下载预编译二进制（最快，无编译）
+curl -sL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest/download/sokonanoda-lsp-aarch64-apple-darwin.tar.gz"   | tar xz -C /usr/local/bin sokonanoda-lsp   # macOS ARM
+# Linux x86_64 用 sokonanoda-lsp-x86_64-unknown-linux-gnu.tar.gz
+# Windows 用 sokonanoda-lsp-x86_64-pc-windows-msvc.zip
+
+# 方式 ②：从源码编译（仓库 clone 后，全量测试 + CLI + LSP）
+cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
+export PATH="$PWD/target/release:$PATH"
+```
+
+二进制装好后 `sokonanoda --version` 应输出 `sokonanoda 0.2.0` 或更高。
+LSP 服务器（`sokonanoda-lsp`）会在 VS Code / opencode 打开 `.sokonanoda`
+文件时自动启动（`opencode.json` 已接线），不需要手动启动。
+
+## 2. 环境与命令速查（在仓库根目录执行）
 
 ```bash
 # 判卷（人类可读 + 机器事件两种视图）

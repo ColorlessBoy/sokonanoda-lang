@@ -186,7 +186,7 @@ theorem ex_falso : (P : Prop) -> False -> P := False.rec
 -- 练习 5（挑战 ★）：And a (Not a) 是自相矛盾的组合。拆开它，把 Not a 那一半
 -- 当作函数应用到另一半。提示：Not a 会展开成 a -> False。
 -- soko:hint 思路：And 把 a 和 Not a 打包在一起；Not a 展开后是 a -> False——一个“吃 a”的函数。
--- soko:hint 目标形态：两层 fun 拿到 a 和 h : And a (Not a) 之后，目标就是 False 本身。
+-- soko:hint 目标形态：两层 fun 拿到 a 和 h : And a (Not a) 之后，目标就是 False 本身
 -- soko:hint 关键件：And.right 取出 Not a 那一半、And.left 取出 a 那一半；把前者当函数应用于后者。
 theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
 

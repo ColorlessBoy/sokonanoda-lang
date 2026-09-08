@@ -49,7 +49,23 @@ cargo test --workspace --locked             # 全部 13 个套件
 - 协议防漂移：改事件/输出格式必须同步 `docs/protocol.md`
   （`protocol.rs` / `skill.rs` conformance 测试会抓漂移）。
 
-## 4. 常用命令
+## 4. 环境搭建（新机器）
+
+```bash
+git clone https://github.com/ColorlessBoy/sokonanoda-lang.git && cd sokonanoda-lang
+
+# 方式 ①：从 GitHub Release 下载预编译二进制（最快，无编译）
+curl -sL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest/download/sokonanoda-lsp-aarch64-apple-darwin.tar.gz" \
+  | tar xz -C /usr/local/bin sokonanoda-lsp   # macOS ARM
+# Linux x86_64 用 sokonanoda-lsp-x86_64-unknown-linux-gnu.tar.gz
+# Windows 用 sokonanoda-lsp-x86_64-pc-windows-msvc.zip
+
+# 方式 ②：从源码编译（仓库 clone 后，全量测试 + CLI + LSP）
+cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
+export PATH="$PWD/target/release:$PATH"
+```
+
+## 5. 常用命令
 
 ```bash
 cargo test -p sokonanoda-front compile::tests::       # 前端单测
