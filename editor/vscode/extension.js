@@ -37,13 +37,24 @@ function builtBinaryCandidates(roots, name) {
   ]);
 }
 
+function onPath(basename) {
+  // Node has no portable PATH resolver; probe PATH dirs manually.
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (!dir) continue;
+    if (fs.existsSync(path.join(dir, basename))) return true;
+  }
+  return false;
+}
+
 async function resolveServerCommand() {
   const setting = vscode.workspace.getConfiguration("sokonanoda").get("serverPath");
   if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
   if (process.env.SOKONANODA_LSP_BIN) return process.env.SOKONANODA_LSP_BIN;
 
   const found = firstExisting(builtBinaryCandidates(discoveryRoots(), "sokonanoda-lsp"));
-  return found ?? "sokonanoda-lsp"; // fall back to PATH lookup
+  if (found) return found;
+  if (onPath("sokonanoda-lsp")) return "sokonanoda-lsp"; // fall back to PATH lookup
+  return undefined; // not discoverable: activate() shows the guidance dialog
 }
 
 // Same discovery pattern as the server, but for the `sokonanoda` CLI binary
@@ -480,9 +491,9 @@ function registerCommands(context, provider, courseProvider) {
 
 async function activate(context) {
   const command = await resolveServerCommand();
-  if (isExplicitPath(command) && !fs.existsSync(command)) {
+  if (command === undefined || (isExplicitPath(command) && !fs.existsSync(command))) {
     const pick = await vscode.window.showWarningMessage(
-      "sokonanoda-lsp 没找到。先在仓库根目录运行 cargo build -p sokonanoda-lsp，或设置 sokonanoda.serverPath / SOKONANODA_LSP_BIN。",
+      "sokonanoda-lsp 没找到。先在仓库根目录运行 cargo build -p sokonanoda-lsp；然后用 VS Code 打开仓库文件夹（自动发现 target/ 下的二进制），或设置 sokonanoda.serverPath / SOKONANODA_LSP_BIN。",
       "打开仓库"
     );
     if (pick) {
