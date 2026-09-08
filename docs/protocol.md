@@ -82,9 +82,7 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
-  `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
-  `elab-missing-inductive-rec` (an `inductive … end` block without its `rec`
-  declaration; the kernel derives and checks a recursor for every block);
+  `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`;
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),
@@ -167,10 +165,14 @@ Response:
 
 - one entry per declaration (all statuses); `goal`/`binders`/`hole` are
   present for open exercises (`hole` is the exact `???` range);
-- `holes` lists every `???` (multi-hole constructor spines included) and
-  `sub_goals` pairs each spine hole with its expected type (server-side walk;
-  parameter positions expect the goal's own argument, proof positions the
-  instantiated field type); `ty` is `null` when no template is known;
+- `holes` lists every `???` (multi-hole constructor spines included) as
+  objects `{"range": {…}, "id": "<declName>:<index>"}` — the id is stable
+  per (declaration, hole order) within a document version (anonymous
+  examples use the `example@<line>` name form) and is the stable reference
+  for external tools; `sub_goals` pairs each spine hole with its expected
+  type (server-side walk; parameter positions expect the goal's own
+  argument, proof positions the instantiated field type); `ty` is `null`
+  when no template is known;
 - multi-hole documents are naturally supported (one entry per declaration);
 - hover remains the degraded, human-readable view of the same data;
 - kernel-judged code actions (next-step suggestions, per goal shape; see

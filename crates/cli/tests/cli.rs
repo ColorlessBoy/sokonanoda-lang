@@ -688,13 +688,25 @@ fn cli_accepts_non_recursive_inductive_block() {
 }
 
 #[test]
-fn cli_classifies_missing_inductive_rec() {
-    let src = "inductive Unit : Type\nctor unit : Unit\nend\n";
+fn cli_accepts_bool_with_auto_derived_recursor() {
+    // 无 rec 的归纳块自动派生 recursor（显式 rec 优先不变）：Bool + not +
+    // 一次 #reduce 的 e2e 冒烟。
+    let src = "inductive Bool : Type\n\
+         ctor tt : Bool\n\
+         ctor ff : Bool\n\
+         end\n\
+         def not : Bool -> Bool := fun (b : Bool) => Bool.rec.{1} (fun (x : Bool) => Bool) ff tt b\n\
+         #reduce not tt\n";
     let out = run(src);
-    assert!(!out.status.success());
-    let stderr = String::from_utf8_lossy(&out.stderr);
     assert!(
-        stderr.contains("error[elab-missing-inductive-rec]:"),
-        "stderr: {stderr}"
+        out.status.success(),
+        "auto-derived recursor must compile: {}",
+        String::from_utf8_lossy(&out.stderr)
     );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration not"),
+        "stdout: {stdout}"
+    );
+    assert!(stdout.contains("=> ff"), "stdout: {stdout}");
 }

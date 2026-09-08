@@ -452,18 +452,91 @@ def u : Unit := unit
     );
 }
 
-/// 归纳块没有 rec 声明：内核会因 underived recursor 崩溃，front 必须先给出
-/// 干净的教学错误（elab-missing-inductive-rec）。
+/// 无 rec 的归纳块自动派生 recursor：非递归块（Unit）零错误，且
+/// `Unit.rec` 的 iota 规则能在内核上归约（与第十三轮显式 rec 同形状）。
 #[test]
-fn inductive_block_without_rec_is_a_clean_elab_error() {
-    let src = "inductive Unit : Type\nctor unit : Unit\nend\n";
+fn auto_derived_recursor_non_recursive_compiles() {
+    let src = r#"
+inductive Unit : Type
+ctor unit : Unit
+end
+def u : Unit := unit
+#reduce Unit.rec.{1} (fun (x : Unit) => Nat) 1 u
+"#;
     let file = parse(src).expect("parse rec-less block");
     let out = compile_fol(&file);
     assert_eq!(
-        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
-        vec!["elab-missing-inductive-rec"],
-        "missing rec must be a clean elab error: {:?}",
+        out.errors,
+        vec![],
+        "auto-derived recursor must compile: {:?}",
         out.errors
+    );
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "1")),
+        "iota on the non-recursive ctor must compute: {:?}",
+        out.events
+    );
+}
+
+/// 无 rec 的 Bool 块：派生的 recursor 给出 if-then-else 语义。
+#[test]
+fn auto_derived_recursor_bool_computes() {
+    let src = r#"
+inductive Bool : Type
+ctor tt : Bool
+ctor ff : Bool
+end
+def not : Bool -> Bool := fun (b : Bool) => Bool.rec.{1} (fun (x : Bool) => Bool) ff tt b
+#reduce not tt
+#reduce not ff
+"#;
+    let file = parse(src).expect("parse Bool block");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "ff")),
+        "`not tt` must reduce to ff: {:?}",
+        out.events
+    );
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "tt")),
+        "`not ff` must reduce to tt: {:?}",
+        out.events
+    );
+}
+
+/// 递归块无 rec（Nat 加法）：派生规则含递归字段后的自调用，加法可归约。
+#[test]
+fn auto_derived_recursor_recursive_nat_adds() {
+    let src = r#"
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+end
+def one : Nat := succ zero
+def two : Nat := succ one
+def add : Nat -> Nat -> Nat :=
+  fun (m : Nat) => fun (n : Nat) =>
+    Nat.rec.{1} (fun (x : Nat) => Nat) n
+      (fun (k : Nat) => fun (ih : Nat) => succ ih) m
+#reduce add two two
+"#;
+    let file = parse(src).expect("parse rec-less Nat block");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "succ (succ (succ (succ zero)))"
+        )),
+        "expected the 4-deep succ chain for `add two two`, got {:?}",
+        out.events
     );
 }
 
@@ -674,7 +747,6 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
-                | ErrorKind::ElabMissingInductiveRec
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -701,7 +773,6 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
-        ErrorKind::ElabMissingInductiveRec,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -987,7 +1058,6 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
-        ErrorKind::ElabMissingInductiveRec,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1015,7 +1085,6 @@ fn protocol_doc_lists_every_error_code() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
-                | ErrorKind::ElabMissingInductiveRec
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -1616,8 +1685,8 @@ fn pipeline_classifies_expected_sort() {
 
 #[test]
 fn pipeline_classifies_ctor_result_mismatch() {
-    // 递归构造子让块走到 check_ctor；rec 块是教学语法必备（缺 rec 现在是
-    // 更早的 elab-missing-inductive-rec 教学错误）。
+    // 递归构造子让块走到 check_ctor；rec 块是教学语法必备（无 rec 的块会
+    // 自动派生 recursor，mk 的结果类型错误仍由内核优先报出）。
     let file = parse(
         "inductive Bad : Type\n\
          ctor base : (b : Bad) -> Bad\n\

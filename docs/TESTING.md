@@ -218,3 +218,20 @@
 - **fuzz**：`fuzz/` 独立 crate（脱离 workspace）；`cd fuzz && cargo check`
   守编译；CI 不跑。
 - 测试总量（2026-09-07 第十三轮）：**356**。
+
+## 2026-09-07 更新（第十四轮：hole_id + auto-derivation）
+
+- **hole_id wire**（lsp 2 + extension 契约 1）：`goals_request_ids_holes_by_decl_and_order`
+  （命名 `<name>:0` / 匿名 `example@<行>:0`）、sub_holes 测试补对象形状与
+  区间对齐；`goals_holes_carry_ids`（客户端读 `hole.range`、负断言禁止裸
+  Range 传参）；nextHole 测试不动（仍裸 Range）。
+- **recursor 自动派生**（front 3 + cli 2 改写）：
+  `auto_derived_recursor_non_recursive_compiles`（Unit→`1`）、
+  `auto_derived_recursor_bool_computes`（`not tt⇒ff`/`not ff⇒tt`）、
+  `auto_derived_recursor_recursive_nat_adds`（无 rec 的 Nat 块 + add 闭环）、
+  `cli_accepts_bool_with_auto_derived_recursor`；显式 rec 回归锚点
+  （py-nat/course5/memory_api iota）全部不动。
+- **字段望远镜契约修正**：`num_fields`/`ctor_telescope_size_wo_params` 按
+  完整 Pi 望远镜计（result 链字段计入）——内核 `check_declared_metadata`
+  一致性要求；既有块数值不变（括号字段构造子的两种计法相同）。
+- 测试总量（2026-09-07 第十四轮）：**360**。

@@ -1,10 +1,11 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第十三轮：内核分类学余项 + 失败声明建议 + 基准/fuzz 基建）
+> 快照：2026-09-07（第十四轮：稳定 hole_id + 归纳块 recursor 自动派生）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-kernel-taxonomy.md`（本轮）/ `docs/design-course-status.md` /
-> `docs/design-hints-suggestions.md` / `docs/design-rename-inlay.md` / `docs/design-goal-refine.md` /
-> `docs/design-i8-i9.md` / `docs/design-infrastructure.md`；
+> 设计 = `docs/design-round14.md`（本轮）/ `docs/design-kernel-taxonomy.md` /
+> `docs/design-course-status.md` / `docs/design-hints-suggestions.md` /
+> `docs/design-rename-inlay.md` / `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
+> `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > 差距审计 = `docs/gap-analysis.md`；**经验台账 = `docs/LESSONS.md`**；
 > 发布 = `docs/RELEASE.md`；
@@ -15,6 +16,31 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第十四轮：hole_id + auto-derivation，2 subagent 并行）
+
+> 设计先行：`docs/design-round14.md`（含 spine meta 的 A/B/C 方案取舍——
+> 推荐方案 B 为下一轮实施项）。
+
+1. **稳定 hole_id（P）**：`soko/goals` 的 `holes` 变 `[{range, id}]`，
+   id = `<声明名>:<洞序号>`（匿名 example 用 `example@<行>`，与
+   `render::decl_name` 一致）——同一版本内稳定、声明名不变时跨版本稳定，
+   外部工具可引用；`soko/nextHole` 保持裸 Range；VS Code 点击统一走
+   `holes[0].range`（P 核实客户端历史上只消费 `decl.hole`，无行为变化）；
+   契约测试双向钉死（服务端出 id、客户端不当裸 Range 用）。
+2. **归纳块 recursor 自动派生（Q）**：无显式 `rec` 的 `inductive` 块自动
+   合成 recursor + iota 规则（与 py-nat 手写版同构、内核 def_eq 比对通过）：
+   - 递归块（Nat 无 rec + add 闭环）、非递归块（Unit）、多构造子
+     （Bool：`not tt ⇒ ff`）全部工作；
+   - Prop 块退化为无宇宙参数的小消除 recursor；
+   - **字段望远镜契约修正**：`num_fields`/`ctor_telescope_size_wo_params`
+     改按完整 Pi 望远镜计（result 箭头链的 domain 也是字段——内核
+     `check_declared_metadata` 的要求；py-nat 等既有块数值不变）；
+   - 第十三轮的 `elab-missing-inductive-rec` 守卫/变体/文档条目移除
+     （被本功能取代）；显式 rec 优先，py-nat/课程块零变化。
+   - 教学定位：rec 块仍是单元⑤正课，auto-derivation 是其后的便利层。
+3. 测试总量 **360**（front 183 / lsp 61 / cli 65 / kernel 45…）；全绿；
+   fmt/clippy 干净；playground（0 诊断）/course（19/20/0）锚点不变。
 
 ## 本轮进度（2026-09-07，第十三轮：内核分类学收尾 + 基建，4 subagent 并行）
 
@@ -363,10 +389,13 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
    （第十三轮：统一 `got:` 形状、措辞区分站点）；~~`assert_eq!` 灰色地带~~ ✅
    （第十三轮全量清点分诊）；refine 子洞的 kernel 级 expected type
    （elaborator spine meta，M–L）**仍为余项**——需专门设计轮。
-   另：归纳块 auto-derivation（无 rec 块自动派生 recursor）待课程轮设计。
+   另：~~归纳块 auto-derivation~~ ✅（第十四轮：无 rec 块自动派生
+   recursor + iota 规则，显式 rec 优先；`docs/design-round14.md` §2）。
+   refine 子洞的 kernel 级 expected type：**下一轮按方案 B 实施**
+   （`docs/design-round14.md` §0.4：kernel 渲染代替文本替换）。
 7. **小项打包**：~~`sokonanoda lsp` 子命令~~ ✅、~~REPL 历史~~ ✅、
-   ~~criterion 基准~~ ✅（第十三轮）、~~fuzz harness~~ ✅（第十三轮）、
-   洞的稳定 hole_id（Deduce MCP 先例）。
+   ~~criterion 基准~~ ✅、~~fuzz harness~~ ✅、~~洞的稳定 hole_id~~ ✅
+   （第十四轮，`<声明名>:<洞序号>` 方案）。**小项全部清零。**
 
 ### 运营/验证类
 

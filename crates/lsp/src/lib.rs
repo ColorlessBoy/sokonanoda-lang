@@ -229,43 +229,54 @@ impl Backend {
         let decls = report
             .decls
             .iter()
-            .map(|d| GoalDeclInfo {
-                name: decl_name(d),
-                kind: d.kind.as_str().to_string(),
-                status: match d.status {
-                    DeclStatus::Open => "open".to_string(),
-                    DeclStatus::Checked => "checked".to_string(),
-                    DeclStatus::Failed => "failed".to_string(),
-                },
-                range: range_of(d.span),
-                goal: d.goal.clone(),
-                binders: d
-                    .binders
-                    .iter()
-                    .map(|b| GoalBinderInfo {
-                        name: b.name.clone(),
-                        ty: b.ty.clone(),
-                    })
-                    .collect(),
-                hole: match d.status {
-                    DeclStatus::Open => hole_range(&doc.text, d),
-                    _ => None,
-                },
-                holes: match d.status {
-                    DeclStatus::Open => d.holes.iter().map(|span| range_of(*span)).collect(),
-                    _ => Vec::new(),
-                },
-                sub_goals: match d.status {
-                    DeclStatus::Open => d
-                        .sub_goals
+            .map(|d| {
+                let name = decl_name(d);
+                GoalDeclInfo {
+                    name: name.clone(),
+                    kind: d.kind.as_str().to_string(),
+                    status: match d.status {
+                        DeclStatus::Open => "open".to_string(),
+                        DeclStatus::Checked => "checked".to_string(),
+                        DeclStatus::Failed => "failed".to_string(),
+                    },
+                    range: range_of(d.span),
+                    goal: d.goal.clone(),
+                    binders: d
+                        .binders
                         .iter()
-                        .map(|sub| SubGoalInfo {
-                            range: range_of(sub.span),
-                            ty: sub.ty.clone(),
+                        .map(|b| GoalBinderInfo {
+                            name: b.name.clone(),
+                            ty: b.ty.clone(),
                         })
                         .collect(),
-                    _ => Vec::new(),
-                },
+                    hole: match d.status {
+                        DeclStatus::Open => hole_range(&doc.text, d),
+                        _ => None,
+                    },
+                    holes: match d.status {
+                        DeclStatus::Open => d
+                            .holes
+                            .iter()
+                            .enumerate()
+                            .map(|(index, span)| HoleInfo {
+                                range: range_of(*span),
+                                id: format!("{name}:{index}"),
+                            })
+                            .collect(),
+                        _ => Vec::new(),
+                    },
+                    sub_goals: match d.status {
+                        DeclStatus::Open => d
+                            .sub_goals
+                            .iter()
+                            .map(|sub| SubGoalInfo {
+                                range: range_of(sub.span),
+                                ty: sub.ty.clone(),
+                            })
+                            .collect(),
+                        _ => Vec::new(),
+                    },
+                }
             })
             .collect();
         Some((doc.text.clone(), decls))
@@ -291,7 +302,7 @@ impl Backend {
             .flat_map(|d| {
                 d.holes
                     .iter()
-                    .map(|r| (range_start_offset(&text, r), *r))
+                    .map(|h| (range_start_offset(&text, &h.range), h.range))
                     .collect::<Vec<_>>()
             })
             .collect();
@@ -331,6 +342,15 @@ struct GoalBinderInfo {
 }
 
 #[derive(Debug, Serialize)]
+struct HoleInfo {
+    range: Range,
+    /// Stable per (declaration, hole order) within a document version
+    /// (`<declName>:<index>`, docs/protocol.md); anonymous examples use the
+    /// `example@<line>` name form.
+    id: String,
+}
+
+#[derive(Debug, Serialize)]
 struct GoalDeclInfo {
     name: String,
     kind: String,
@@ -339,8 +359,9 @@ struct GoalDeclInfo {
     goal: Option<String>,
     binders: Vec<GoalBinderInfo>,
     hole: Option<Range>,
-    /// Every `???` in the answer (main hole + constructor-spine sub-holes).
-    holes: Vec<Range>,
+    /// Every `???` in the answer (main hole + constructor-spine sub-holes),
+    /// as `{range, id}` objects (`id` = `<declName>:<index>`).
+    holes: Vec<HoleInfo>,
     /// Expected types for the sub-holes, positionally aligned with `holes`
     /// subset that came from a constructor spine (server-side walk).
     sub_goals: Vec<SubGoalInfo>,
@@ -1672,6 +1693,12 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
         assert_eq!(decl["status"], "open");
         let holes = decl["holes"].as_array().expect("holes array");
         assert_eq!(holes.len(), 2, "two spine holes: {result:?}");
+        assert!(
+            holes[0]["range"].is_object(),
+            "holes are {{range, id}} objects, not bare ranges: {result:?}"
+        );
+        assert_eq!(holes[0]["id"], "and_intro_rule:0", "named decl id form");
+        assert_eq!(holes[1]["id"], "and_intro_rule:1");
         let sub_goals = decl["sub_goals"].as_array().expect("sub_goals array");
         assert_eq!(sub_goals.len(), 2);
         assert_eq!(
@@ -1679,6 +1706,39 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
             "parameter hole expects the goal's own argument"
         );
         assert_eq!(sub_goals[1]["ty"], "b");
+        assert_eq!(
+            holes[0]["range"], sub_goals[0]["range"],
+            "holes stay positionally aligned with sub_goals"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn goals_request_ids_holes_by_decl_and_order() {
+        // id = "<declName>:<index>" (docs/protocol.md): named declarations use
+        // their name; anonymous examples use the `example@<line>` name form
+        // (render::decl_name); the index counts holes in offset order.
+        let src = "theorem named : Prop := ???\nexample : Prop := ???\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "hole id diagnostics").await;
+
+        let result = request_goals(&mut service).await;
+        let decls = result["decls"].as_array().expect("decls array");
+        assert_eq!(decls.len(), 2, "one entry per declaration: {result:?}");
+        let named = &decls[0];
+        let holes = named["holes"].as_array().expect("holes array");
+        assert_eq!(holes.len(), 1);
+        assert_eq!(holes[0]["id"], "named:0", "named declaration id form");
+        let hole_start = holes[0]["range"]["start"].as_object().expect("hole start");
+        let expected = lsp_pos(src, offset_of(src, "???"));
+        assert_eq!(hole_start["line"], expected.line);
+        assert_eq!(hole_start["character"], expected.character);
+        let anon = &decls[1];
+        let holes = anon["holes"].as_array().expect("holes array");
+        assert_eq!(anon["name"], "example@2", "anonymous example name form");
+        assert_eq!(holes[0]["id"], "example@2:0", "anonymous example id form");
         shutdown(&mut service).await;
     }
 

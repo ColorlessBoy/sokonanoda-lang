@@ -4,21 +4,22 @@
 > lean4game(NNG) / Deduce / Isabelle。全文结论浓缩；来源清单见调研原报告
 > （completions 是 Deduce 课堂实证的第一痛点；MSRV 反例 = rust-analyzer
 > issue #18730；洞位置 server 端计算 = ocaml-lsp #1516 教训）。
-> **进度（2026-09-07 第十三轮）**：Top 10 全部落地 + 附加小项的
-> `sokonanoda lsp`、REPL 历史、criterion 基准、fuzz harness。剩余：
-> 洞的稳定 hole_id、失败声明 Restart 之外的针对性建议、refine 子洞
-> kernel 级 expected type（需 spine meta 设计轮）。
+> **进度（2026-09-07 第十四轮）**：Top 10 + 附加小项全部落地（含
+> criterion、fuzz、稳定 hole_id、归纳块 recursor 自动派生）。剩余：
+> refine 子洞 kernel 级 expected type（方案 B，`docs/design-round14.md`
+> §0.4）、失败声明 Restart 之外的针对性建议。
 
 ## 已达标（本轮盘点确认）
 
-诊断（带版本+代码+提示）、hover/goal 视图、`soko/goals`+`soko/nextHole`、
-semanticTokens、codeLens、code action（exact/intro/refine/restart）、
-真增量（I8）、CI lint+test+golden+conformance、agent skills、VSIX 契约守护、
-release 流水线、completions、go-to-def、folding、`soko/hints` 提示阶梯、
-undo、rename+references、inlay hints、下一步建议（is_preferred 排序）、
-`--version`+MSRV、`sokonanoda lsp` 子命令、课程地图（`sokonanoda course` +
-VS Code 课程树）、REPL 历史持久化、criterion 基准、fuzz harness、
-内核错误分类学（assert_eq 全量分诊 + rec-rule-mismatch 家族）。
+诊断（带版本+代码+提示）、hover/goal 视图、`soko/goals`（含稳定 hole_id）+
+`soko/nextHole`、semanticTokens、codeLens、code action（exact/intro/refine/
+restart）、真增量（I8）、CI lint+test+golden+conformance、agent skills、
+VSIX 契约守护、release 流水线、completions、go-to-def、folding、
+`soko/hints` 提示阶梯、undo、rename+references、inlay hints、下一步建议
+（is_preferred 排序）、`--version`+MSRV、`sokonanoda lsp` 子命令、
+课程地图（`sokonanoda course` + VS Code 课程树）、REPL 历史持久化、
+criterion 基准、fuzz harness、内核错误分类学（assert_eq 全量分诊 +
+rec-rule-mismatch 家族）、归纳块 recursor 自动派生。
 
 ## Top 10 补全清单（按投入产出比）
 

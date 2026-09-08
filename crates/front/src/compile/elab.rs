@@ -2,14 +2,14 @@
 
 use super::error::{CompileError, ErrorKind};
 use super::report::ResolvedTarget;
-use crate::{BinderKind, CtorDecl, Expr, RecDecl, SortKind, Span};
+use crate::{Binder, BinderKind, CtorDecl, Expr, IotaRule, RecDecl, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{
     ConstructorData, Declar, DeclarInfo, RecRule, RecursorData, ReducibilityHint,
 };
 use sokonanoda::expr::BinderStyle;
 use sokonanoda::util::{ExprPtr, LevelPtr, NamePtr};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 pub(crate) type UnivMap<'a> = HashMap<String, LevelPtr<'a>>;
@@ -86,17 +86,18 @@ pub(crate) fn install_inductive_block<'a>(
     hovers: &mut Vec<HoverNode<'a>>,
     built: &mut Vec<Declar<'a>>,
 ) -> Result<(), CompileError> {
-    // The kernel derives a recursor for every inductive block and asserts the
-    // block registered one with a rule per constructor; a block without `rec`
-    // would die as a raw kernel assert. Refuse here — before anything enters
-    // the environment (check-then-add semantics) — with a teaching error
-    // instead (auto-derivation is future curriculum work).
-    let Some(recursor) = recursor else {
-        return Err(CompileError::elab(
-            ErrorKind::ElabMissingInductiveRec,
-            format!("inductive block `{name}` is missing its `rec` declaration"),
-            ty.span(),
-        ));
+    // 显式 rec 优先：源里有 rec 时零行为变化；无 rec 时自动派生等价的
+    // RecDecl + iota 规则（py-nat 手写版同构），再走同一条 elab 路径。
+    let owned_rec;
+    let owned_rules;
+    let (recursor, iota_rules): (&RecDecl, &[crate::IotaRule]) = match recursor {
+        Some(rec) => (rec, iota_rules),
+        None => {
+            let (rec, rules) = derive_recursor(name, ty, constructors);
+            owned_rec = rec;
+            owned_rules = rules;
+            (&owned_rec, &owned_rules)
+        }
     };
     let empty: UnivMap = UnivMap::new();
     let ty = elab_expr(
@@ -158,7 +159,9 @@ pub(crate) fn install_inductive_block<'a>(
         )?;
         let ctor_name = ctor_names[idx];
         let no_uparams = builder.alloc_levels_slice(&[]);
-        let num_fields = u16::try_from(ctor.binders.len()).map_err(|_| {
+        // 内核把构造子类型整体当 Pi 望远镜数字段（result 箭头链的 domain
+        // 也是字段），num_fields 必须与之相等（check_declared_metadata）。
+        let num_fields = u16::try_from(ctor_field_binders(ctor).len()).map_err(|_| {
             CompileError::elab(
                 ErrorKind::ElabTooManyCtorFields,
                 "too many constructor fields",
@@ -226,7 +229,9 @@ pub(crate) fn install_inductive_block<'a>(
             )?;
             rules.push(RecRule {
                 ctor_name,
-                ctor_telescope_size_wo_params: constructors[ctor_idx].binders.len() as u16,
+                // 与 num_fields 同规则：按整条 Pi 望远镜计（含 result 链）。
+                ctor_telescope_size_wo_params: ctor_field_binders(&constructors[ctor_idx]).len()
+                    as u16,
                 val,
             });
         }
@@ -753,4 +758,363 @@ fn result_telescope_mentions(result: &Expr, name: &str) -> bool {
             _ => return false,
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// 无显式 rec 的归纳块：recursor 自动派生
+//
+// 与 py-nat 的手写 rec 同构（内核按同形状重建规则并 def_eq 比对）：
+//   rec <Ind>.rec {u} :
+//     (motive : (x : Ind) -> Sort u) ->
+//     (m<i> : forall (<字段望远镜> <ih…>), motive (<c_i> <字段>…)) …
+//     (target : Ind) -> motive target
+//   iota <c_i> := fun (motive) => fun (m_0) => … =>
+//     fun (<字段望远镜>) => m_i <字段…> [<递归字段后的自调用>]
+// ---------------------------------------------------------------------------
+
+/// One constructor's derived view: its (hygiene-renamed) field telescope and,
+/// per recursive field in declaration order, the field name plus the binder
+/// telescope of the self-call (the Pi domains of the field type).
+struct DerivedCtor {
+    fields: Vec<Binder>,
+    rec_args: Vec<(String, Vec<Binder>)>,
+}
+
+/// All fields of a constructor in declaration order: the explicit binders
+/// followed by the domains of the result's arrow chain — the parser puts
+/// `ctor base : (b : Bad) -> Bad`'s field in the result, and the kernel
+/// counts the whole elaborated Pi telescope (`pi_telescope_size`).
+fn ctor_field_binders(ctor: &CtorDecl) -> Vec<Binder> {
+    let mut out: Vec<Binder> = ctor.binders.to_vec();
+    out.extend(result_chain_binders(&ctor.result));
+    out
+}
+
+/// The binder telescope of a (possibly arrow-chained) type: Forall binders
+/// are collected verbatim, `A -> B` contributes one anonymous binder for `A`.
+fn result_chain_binders(result: &Expr) -> Vec<Binder> {
+    let mut out = Vec::new();
+    let mut current = result;
+    loop {
+        match current {
+            Expr::Arrow {
+                domain, codomain, ..
+            } => {
+                out.push(Binder {
+                    name: String::new(),
+                    ty: Some(Box::new(domain.as_ref().clone())),
+                    style: BinderKind::Explicit,
+                    span: current.span(),
+                });
+                current = codomain;
+            }
+            Expr::Forall { binders, body, .. } => {
+                out.extend(binders.iter().cloned());
+                current = body;
+            }
+            _ => return out,
+        }
+    }
+}
+
+/// A name that no already-chosen binder uses (identifiers may shadow, so the
+/// derived telescopes must avoid every name they will reference).
+fn fresh_name(base: &str, taken: &mut HashSet<String>) -> String {
+    let mut candidate = base.to_string();
+    while taken.contains(&candidate) {
+        candidate.push('_');
+    }
+    taken.insert(candidate.clone());
+    candidate
+}
+
+/// `Prop`/`Sort 0` written as the block's declared sort. The kernel then only
+/// allows large elimination when the block is empty or has a single ctor with
+/// exclusively Prop-typed fields; a multi-ctor Prop block therefore gets a
+/// small-elimination recursor (no universe parameter, motive into `Prop`).
+fn is_prop_block_ty(ty: &Expr) -> bool {
+    matches!(
+        ty,
+        Expr::Sort {
+            sort: SortKind::Prop,
+            ..
+        } | Expr::Sort {
+            sort: SortKind::Sort(0),
+            ..
+        }
+    )
+}
+
+fn e_ident(name: &str, span: Span) -> Expr {
+    Expr::Ident {
+        name: name.to_string(),
+        span,
+    }
+}
+
+fn e_app(fun: Expr, arg: Expr, span: Span) -> Expr {
+    Expr::App {
+        fun: Box::new(fun),
+        arg: Box::new(arg),
+        span,
+    }
+}
+
+fn e_forall(binders: Vec<Binder>, body: Expr, span: Span) -> Expr {
+    Expr::Forall {
+        binders,
+        body: Box::new(body),
+        span,
+    }
+}
+
+fn e_lambda(binders: Vec<Binder>, body: Expr, span: Span) -> Expr {
+    Expr::Lambda {
+        binders,
+        body: Box::new(body),
+        span,
+    }
+}
+
+fn e_universe_app(name: &str, levels: &[String], span: Span) -> Expr {
+    Expr::UniverseApp {
+        name: name.to_string(),
+        levels: levels.to_vec(),
+        span,
+    }
+}
+
+/// Synthesize the recursor declaration and one iota rule per constructor for
+/// a block written without `rec`. Every binder name is picked fresh against
+/// the names the synthesized terms must reference (inductive, constructors,
+/// source fields), so no derived binder can shadow a reference.
+fn derive_recursor(name: &str, ty: &Expr, constructors: &[CtorDecl]) -> (RecDecl, Vec<IotaRule>) {
+    let ty_span = ty.span();
+    let small_elim = is_prop_block_ty(ty) && constructors.len() > 1;
+    let universe: Vec<String> = if small_elim {
+        Vec::new()
+    } else {
+        vec!["u".to_string()]
+    };
+    let motive_sort = |span: Span| {
+        if small_elim {
+            Expr::Sort {
+                sort: SortKind::Prop,
+                span,
+            }
+        } else {
+            Expr::Sort {
+                sort: SortKind::Level("u".to_string()),
+                span,
+            }
+        }
+    };
+
+    let mut taken: HashSet<String> = HashSet::new();
+    taken.insert(name.to_string());
+    for ctor in constructors {
+        taken.insert(ctor.name.clone());
+    }
+    for ctor in constructors {
+        for field in ctor_field_binders(ctor) {
+            if !field.name.is_empty() {
+                taken.insert(field.name);
+            }
+        }
+    }
+    let motive = fresh_name("motive", &mut taken);
+    let minors: Vec<String> = (0..constructors.len())
+        .map(|i| fresh_name(&format!("m{i}"), &mut taken))
+        .collect();
+    let target = fresh_name("target", &mut taken);
+
+    let motive_ty = e_forall(
+        vec![Binder {
+            name: "x".to_string(),
+            ty: Some(Box::new(e_ident(name, ty_span))),
+            style: BinderKind::Explicit,
+            span: ty_span,
+        }],
+        motive_sort(ty_span),
+        ty_span,
+    );
+
+    let derived: Vec<DerivedCtor> = constructors
+        .iter()
+        .map(|ctor| {
+            let mut fields = Vec::new();
+            for binder in ctor_field_binders(ctor) {
+                let base = if binder.name.is_empty() {
+                    "x"
+                } else {
+                    &binder.name
+                };
+                let field_name = fresh_name(base, &mut taken);
+                fields.push(Binder {
+                    name: field_name,
+                    ty: binder.ty,
+                    style: binder.style,
+                    span: binder.span,
+                });
+            }
+            let rec_args = fields
+                .iter()
+                .filter(|field| {
+                    field
+                        .ty
+                        .as_deref()
+                        .is_some_and(|ty| mentions_ident(ty, name))
+                })
+                .map(|field| {
+                    let raw = result_chain_binders(field.ty.as_deref().expect("field has a type"));
+                    let mut telescope = Vec::with_capacity(raw.len());
+                    for binder in raw {
+                        let base = if binder.name.is_empty() {
+                            "x"
+                        } else {
+                            &binder.name
+                        };
+                        let binder_name = fresh_name(base, &mut taken);
+                        telescope.push(Binder {
+                            name: binder_name,
+                            ty: binder.ty,
+                            style: binder.style,
+                            span: binder.span,
+                        });
+                    }
+                    (field.name.clone(), telescope)
+                })
+                .collect();
+            DerivedCtor { fields, rec_args }
+        })
+        .collect();
+
+    // 每个构造子的 minor 前提：forall (字段… ih…), motive (<c_i> 字段…)。
+    let minor_types: Vec<Expr> = constructors
+        .iter()
+        .zip(&derived)
+        .map(|(ctor, d)| {
+            let mut binders = d.fields.clone();
+            for (field_name, telescope) in &d.rec_args {
+                let field_app = telescope
+                    .iter()
+                    .fold(e_ident(field_name, ctor.span), |acc, binder| {
+                        e_app(acc, e_ident(&binder.name, ctor.span), ctor.span)
+                    });
+                let ih_body = e_app(e_ident(&motive, ctor.span), field_app, ctor.span);
+                let ih_ty = if telescope.is_empty() {
+                    ih_body
+                } else {
+                    e_forall(telescope.clone(), ih_body, ctor.span)
+                };
+                let ih = fresh_name("ih", &mut taken);
+                binders.push(Binder {
+                    name: ih,
+                    ty: Some(Box::new(ih_ty)),
+                    style: BinderKind::Explicit,
+                    span: ctor.span,
+                });
+            }
+            let c_app = d
+                .fields
+                .iter()
+                .fold(e_ident(&ctor.name, ctor.span), |acc, field| {
+                    e_app(acc, e_ident(&field.name, ctor.span), ctor.span)
+                });
+            let body = e_app(e_ident(&motive, ctor.span), c_app, ctor.span);
+            e_forall(binders, body, ctor.span)
+        })
+        .collect();
+
+    let mut rec_binders = Vec::with_capacity(constructors.len() + 2);
+    rec_binders.push(Binder {
+        name: motive.clone(),
+        ty: Some(Box::new(motive_ty.clone())),
+        style: BinderKind::Explicit,
+        span: ty_span,
+    });
+    for ((ctor, minor_name), minor_ty) in constructors.iter().zip(&minors).zip(&minor_types) {
+        rec_binders.push(Binder {
+            name: minor_name.clone(),
+            ty: Some(Box::new(minor_ty.clone())),
+            style: BinderKind::Explicit,
+            span: ctor.span,
+        });
+    }
+    rec_binders.push(Binder {
+        name: target.clone(),
+        ty: Some(Box::new(e_ident(name, ty_span))),
+        style: BinderKind::Explicit,
+        span: ty_span,
+    });
+    let rec_ty = e_forall(
+        rec_binders,
+        e_app(
+            e_ident(&motive, ty_span),
+            e_ident(&target, ty_span),
+            ty_span,
+        ),
+        ty_span,
+    );
+    let rec = RecDecl {
+        name: format!("{name}.rec"),
+        universe: universe.clone(),
+        ty: rec_ty,
+        span: constructors.last().map(|ctor| ctor.span).unwrap_or(ty_span),
+    };
+
+    // 每构造子一条规则：telescope = (motive, 全部 minors, 本构造子字段)，
+    // 返回 m_i <字段…>，递归字段后面追加自调用（py-nat succ 同形）。
+    let rules = constructors
+        .iter()
+        .enumerate()
+        .map(|(i, ctor)| {
+            let d = &derived[i];
+            let mut binders = Vec::with_capacity(constructors.len() + d.fields.len() + 1);
+            binders.push(Binder {
+                name: motive.clone(),
+                ty: Some(Box::new(motive_ty.clone())),
+                style: BinderKind::Explicit,
+                span: ty_span,
+            });
+            for (minor_name, minor_ty) in minors.iter().zip(&minor_types) {
+                binders.push(Binder {
+                    name: minor_name.clone(),
+                    ty: Some(Box::new(minor_ty.clone())),
+                    style: BinderKind::Explicit,
+                    span: ty_span,
+                });
+            }
+            binders.extend(d.fields.iter().cloned());
+            let mut body = e_ident(&minors[i], ctor.span);
+            for field in &d.fields {
+                body = e_app(body, e_ident(&field.name, ctor.span), ctor.span);
+            }
+            for (field_name, telescope) in &d.rec_args {
+                let mut call = e_universe_app(&format!("{name}.rec"), &universe, ctor.span);
+                call = e_app(call, e_ident(&motive, ctor.span), ctor.span);
+                for minor_name in &minors {
+                    call = e_app(call, e_ident(minor_name, ctor.span), ctor.span);
+                }
+                let field_app = telescope
+                    .iter()
+                    .fold(e_ident(field_name, ctor.span), |acc, binder| {
+                        e_app(acc, e_ident(&binder.name, ctor.span), ctor.span)
+                    });
+                call = e_app(call, field_app, ctor.span);
+                let self_call = if telescope.is_empty() {
+                    call
+                } else {
+                    e_lambda(telescope.clone(), call, ctor.span)
+                };
+                body = e_app(body, self_call, ctor.span);
+            }
+            IotaRule {
+                ctor_name: ctor.name.clone(),
+                val: e_lambda(binders, body, ctor.span),
+                span: ctor.span,
+            }
+        })
+        .collect();
+    (rec, rules)
 }

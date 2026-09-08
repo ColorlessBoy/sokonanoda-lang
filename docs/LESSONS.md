@@ -33,7 +33,10 @@
   箭头链里，parser 的 binders 是空的）并断言 front 传入一致；内核还要求每
   块注册 Recursor（每构造子一条 iota 规则）。front 必须镜像扫描 result 箭头
   链（守护：`non_recursive_inductive_block_compiles_and_reduces` +
-  architecture §8 0b）；缺 rec 的块要在**入环境前**报干净教学错误。
+  architecture §8 0b）；**字段数（num_fields/ctor_telescope_size_wo_params）
+  同样按完整 Pi 望远镜计**（第十四轮契约修正）；无 rec 块由 front 自动派生
+  recursor + iota 规则（合成 AST 复用显式 rec 路径，形状锚点 = py-nat 手写
+  版；守护：`auto_derived_recursor_*` 三测）。
 - 依赖 binder 折叠**必须折成单个 Forall 望远镜**（嵌套独立 Arrow 的 domain
   会在空作用域里 elaborate 而报 unknown）——`judge::fold_declared`。
 - 宇宙多态：裸名默认 u=0，跨宇宙判定必须显式 `id.{u}`（judge 测试踩过）。

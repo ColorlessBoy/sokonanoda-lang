@@ -34,7 +34,6 @@ pub enum ErrorKind {
     ElabInvalidNatLiteral,
     ElabTooManyCtorFields,
     ElabUnknownCtorForIota,
-    ElabMissingInductiveRec,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -63,8 +62,7 @@ impl ErrorKind {
             | ElabNatLiteralDisabled
             | ElabInvalidNatLiteral
             | ElabTooManyCtorFields
-            | ElabUnknownCtorForIota
-            | ElabMissingInductiveRec => CompileStage::Elab,
+            | ElabUnknownCtorForIota => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -94,7 +92,6 @@ impl ErrorKind {
             ElabInvalidNatLiteral => "elab-invalid-nat-literal",
             ElabTooManyCtorFields => "elab-too-many-ctor-fields",
             ElabUnknownCtorForIota => "elab-unknown-ctor-for-iota",
-            ElabMissingInductiveRec => "elab-missing-inductive-rec",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -149,9 +146,6 @@ impl ErrorKind {
             }
             ElabUnknownCtorForIota => {
                 "iota 规则引用了一个不存在的构造子。检查构造子名字是否与 ctor 声明一致。"
-            }
-            ElabMissingInductiveRec => {
-                "归纳块缺少 rec 声明：内核要为每个归纳类型派生并检查 recursor。写一个 rec <名字>.rec 块（含每个构造子的 iota 规则），参考 examples/py-nat.sokonanoda。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"

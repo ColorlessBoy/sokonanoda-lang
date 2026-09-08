@@ -79,6 +79,24 @@ fn entry_script_speaks_the_goal_view_protocol() {
 }
 
 #[test]
+fn goals_holes_carry_ids() {
+    let script = entry_script();
+    // `soko/goals` holes are `{"range": …, "id": …}` objects since the
+    // stable hole-id wire change (docs/protocol.md) — never bare ranges.
+    // The client must read hole positions through `hole.range`; feeding a
+    // hole object itself where a range is expected would corrupt every
+    // reveal/selection after the shape change.
+    assert!(
+        script.contains("hole.range"),
+        "the goals tree must read hole positions as hole.range (holes are {{range, id}} objects)"
+    );
+    assert!(
+        !script.contains("[this.uri, hole]"),
+        "a holes element is {{range, id}} — it must never be passed as a bare range"
+    );
+}
+
+#[test]
 fn course_map_consumes_the_cli_course_subcommand() {
     let manifest = manifest();
     let script = entry_script();

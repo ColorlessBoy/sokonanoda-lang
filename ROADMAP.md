@@ -432,7 +432,7 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
   讲课 agent 消费同一文档状态自动出题。
 - **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——Top 10
-  与附加小项全部落地（第十三轮收尾：内核分类学 assert_eq 全量分诊、
-  criterion 基准、fuzz harness）；剩余：稳定 hole_id、refine 子洞
-  kernel 级 expected type（spine meta 设计轮）、归纳块 auto-derivation
-  （课程轮）。发布流水线已落地（`release.yml` + `docs/RELEASE.md`）。
+  与附加小项全部落地（第十四轮收尾：稳定 hole_id、归纳块 recursor 自动
+  派生）。剩余：refine 子洞 kernel 级 expected type（方案 B，
+  `docs/design-round14.md` §0.4）、失败声明的进一步针对性建议。
+  发布流水线已落地（`release.yml` + `docs/RELEASE.md`）。

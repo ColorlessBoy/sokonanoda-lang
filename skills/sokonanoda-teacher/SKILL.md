@@ -78,7 +78,8 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
   跳步；慢 → 拆小步、加提示层。题池见 `references/curriculum.md`。
 - 判定细节：`???` 只能放在值位；`Eq` 系列来自 prelude（`Eq`/`Eq.refl`/
   `Eq.subst`，与官方 Lean 签名一致）；Nat 的等式要写 `Eq.{1}`（裸写默认
-  宇宙 0）。
+  宇宙 0）。归纳块：显式 `rec` + iota 规则是单元⑤的正课内容；省略 rec 时
+  编译器自动派生 recursor 与规则（便利层，教学时先手写再放权）。
 
 ## 5. 解答钥匙
 
