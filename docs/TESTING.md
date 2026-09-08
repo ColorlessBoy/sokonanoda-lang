@@ -235,3 +235,16 @@
   完整 Pi 望远镜计（result 链字段计入）——内核 `check_declared_metadata`
   一致性要求；既有块数值不变（括号字段构造子的两种计法相同）。
 - 测试总量（2026-09-07 第十四轮）：**360**。
+
+## 2026-09-07 更新（第十五轮：spine meta B′ + 失败声明建议升级）
+
+- **深度替换**（front 2）：`sub_goal_field_types_substitute_compound_binders`
+  （复合字段 `And a b` → goal 实参实例化）、
+  `sub_goal_field_types_respect_binder_shadowing`（innermost wins）；
+  裸 Ident 路径旧断言零改动。
+- **失败声明建议梯子**（front judge 4 + suggest 10 + lsp 4）：
+  judge_value_replace 正反两面（rfl 接受/拒绝丢弃/宇宙携带/解析失败不
+  panic）；rfl 验证项 → Reset（lambda 前缀保留）→ Restart 排序与
+  is_preferred 恰一；保守形态识别（多 binder 单 fun 不识别）；两个既有
+  重启锚点更新到新梯子，lib.rs 锚点不动。
+- 测试总量（2026-09-07 第十五轮）：**380**。

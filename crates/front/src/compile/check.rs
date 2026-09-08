@@ -10,7 +10,7 @@ use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, Prelud
 use super::report::{
     DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType, ResolvedTarget, SubGoal,
 };
-use crate::{Command, Expr, FolFile, Span};
+use crate::{Binder, Command, Expr, FolFile, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, EnvLimit};
 use sokonanoda::util::{Config, ExprPtr, NamePtr};
@@ -282,25 +282,152 @@ fn template_arg(template: &CtorTemplate, i: usize, ty_args: &[&Expr]) -> Option<
     Some(render_arg(arg))
 }
 
-/// Expected type text for the field at position `i`, instantiated through the
-/// result-argument mapping (`binder name → rendered goal argument`).
-fn field_type_text(template: &CtorTemplate, i: usize, ty_args: &[&Expr]) -> Option<String> {
-    let ty = template.binder_tys.get(i)?.as_ref()?;
-    match ty {
-        Expr::Ident { name, .. } => {
-            if let Some(j) = template
-                .result_arg_names
-                .iter()
-                .position(|n| n.as_deref() == Some(name.as_str()))
-            {
-                let arg = ty_args.get(j)?;
-                Some(render_arg(arg))
-            } else {
-                Some(render_expr(ty))
+/// Deep-substitute template binder names with the goal's argument ASTs
+/// (shadow-guarded: a Forall/Lambda binder named like a key stops
+/// substitution beneath it — innermost wins, like elab).
+fn substitute_names(expr: &Expr, map: &HashMap<String, Expr>) -> Expr {
+    match expr {
+        Expr::Ident { name, span } => match map.get(name) {
+            // The replacement keeps the hit node's span so diagnostics point
+            // at the substituted site.
+            Some(replacement) => with_root_span(replacement.clone(), *span),
+            None => expr.clone(),
+        },
+        Expr::App { fun, arg, .. } => Expr::App {
+            fun: Box::new(substitute_names(fun, map)),
+            arg: Box::new(substitute_names(arg, map)),
+            span: expr.span(),
+        },
+        Expr::Arrow {
+            domain, codomain, ..
+        } => Expr::Arrow {
+            domain: Box::new(substitute_names(domain, map)),
+            codomain: Box::new(substitute_names(codomain, map)),
+            span: expr.span(),
+        },
+        Expr::Plus { lhs, rhs, .. } => Expr::Plus {
+            lhs: Box::new(substitute_names(lhs, map)),
+            rhs: Box::new(substitute_names(rhs, map)),
+            span: expr.span(),
+        },
+        Expr::Lambda {
+            binders,
+            body,
+            span,
+        } => {
+            let (binders, sub) = substitute_binders(binders, map);
+            Expr::Lambda {
+                binders,
+                body: Box::new(substitute_names(body, &sub)),
+                span: *span,
             }
         }
-        other => Some(render_expr(other)),
+        Expr::Forall {
+            binders,
+            body,
+            span,
+        } => {
+            let (binders, sub) = substitute_binders(binders, map);
+            Expr::Forall {
+                binders,
+                body: Box::new(substitute_names(body, &sub)),
+                span: *span,
+            }
+        }
+        Expr::Sort { .. } | Expr::UniverseApp { .. } | Expr::Num { .. } | Expr::Hole { .. } => {
+            expr.clone()
+        }
     }
+}
+
+/// Rewrite a Forall/Lambda's binder telescope and compute the map that
+/// governs its body: a binder's name stops its own key's substitution
+/// beneath (innermost wins), while its declared type sits outside its own
+/// scope and still sees the earlier siblings of the same group.
+fn substitute_binders(
+    binders: &[Binder],
+    map: &HashMap<String, Expr>,
+) -> (Vec<Binder>, HashMap<String, Expr>) {
+    let mut sub = map.clone();
+    let binders = binders
+        .iter()
+        .map(|binder| {
+            let mut binder = binder.clone();
+            let ty = binder.ty.take();
+            binder.ty = ty.map(|ty| Box::new(substitute_names(&ty, &sub)));
+            sub.remove(&binder.name);
+            binder
+        })
+        .collect();
+    (binders, sub)
+}
+
+/// Clone of `expr` with its root span replaced: every variant carries a
+/// span field, so each variant is rebuilt with the given span.
+fn with_root_span(expr: Expr, span: Span) -> Expr {
+    match expr {
+        Expr::Sort { sort, .. } => Expr::Sort { sort, span },
+        Expr::Ident { name, .. } => Expr::Ident { name, span },
+        Expr::UniverseApp { name, levels, .. } => Expr::UniverseApp { name, levels, span },
+        Expr::Num { value, .. } => Expr::Num { value, span },
+        Expr::Hole { .. } => Expr::Hole { span },
+        Expr::App { fun, arg, .. } => Expr::App { fun, arg, span },
+        Expr::Lambda { binders, body, .. } => Expr::Lambda {
+            binders,
+            body,
+            span,
+        },
+        Expr::Forall { binders, body, .. } => Expr::Forall {
+            binders,
+            body,
+            span,
+        },
+        Expr::Arrow {
+            domain, codomain, ..
+        } => Expr::Arrow {
+            domain,
+            codomain,
+            span,
+        },
+        Expr::Plus { lhs, rhs, .. } => Expr::Plus { lhs, rhs, span },
+    }
+}
+
+/// Expected type text for the field at position `i`, instantiated through the
+/// result-argument mapping (`binder name → rendered goal argument`). Bare
+/// Ident fields keep the plain argument text; compound field types
+/// (`Eq a b`, `And a b`, `p a`, …) are deep-substituted with the goal's own
+/// argument ASTs (shadow-guarded) before rendering.
+fn field_type_text(template: &CtorTemplate, i: usize, ty_args: &[&Expr]) -> Option<String> {
+    let ty = template.binder_tys.get(i)?.as_ref()?;
+    if let Expr::Ident { name, .. } = ty {
+        if let Some(j) = template
+            .result_arg_names
+            .iter()
+            .position(|n| n.as_deref() == Some(name.as_str()))
+        {
+            let arg = ty_args.get(j)?;
+            return Some(render_arg(arg));
+        }
+        return Some(render_expr(ty));
+    }
+    // Every binder the goal determines goes into the map (via the
+    // result-argument position relation), not just the first hit.
+    let mut map: HashMap<String, Expr> = HashMap::new();
+    for name in &template.binder_names {
+        let Some(j) = template
+            .result_arg_names
+            .iter()
+            .position(|n| n.as_deref() == Some(name.as_str()))
+        else {
+            continue;
+        };
+        let Some(arg) = ty_args.get(j) else {
+            continue;
+        };
+        map.insert(name.clone(), (*arg).clone());
+    }
+    Some(render_expr(&substitute_names(ty, &map)))
 }
 
 /// The constructor-spine case of the walk: the answer is a (partial) ctor

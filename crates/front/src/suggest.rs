@@ -5,6 +5,12 @@
 //! `suggest` 内部已排好序，第一即 preferred。判定永远走 kernel，不做文本
 //! 比对（REQUIREMENTS §2.8）。
 //!
+//! 失败声明（kernel 拒绝、没有洞）的建议梯子：
+//! kernel 验证过的 `Eq.refl` 整值替换（声明类型是 Eq 头且
+//! [`judge_value_replace`] 判定通过）→ 保留已写 lambda 前缀的部分重置
+//! （`Reset`，结构生成）→ 按声明类型形状的整值重启（`Restart`，结构
+//! 生成）。
+//!
 //! 逐洞判定的语义：
 //! * 主洞（单洞、无子目标）的 exact 与 rfl 用 [`judge_terms`]（现有语义
 //!   保持不变，批量判定一次成型）；
@@ -18,9 +24,11 @@
 //!   的错位建议：外层匹配者与子洞期望类型不合，kernel 拒绝即不出现。
 
 use crate::compile::{render_expr, CompileOptions, DeclState, DeclStatus};
-use crate::judge::{judge_hole_fill, judge_terms, GoalBinderSpec, Judgement, OpenGoalSpec};
+use crate::judge::{
+    judge_hole_fill, judge_terms, judge_value_replace, GoalBinderSpec, Judgement, OpenGoalSpec,
+};
 use crate::proof::parse_expr_text;
-use crate::token::{tokenize, TokenKind};
+use crate::token::{tokenize, Token, TokenKind};
 use crate::{BinderKind, Expr};
 
 /// 建议的种类（docs/design-hints-suggestions.md §4.2）。
@@ -34,6 +42,10 @@ pub enum SuggestionKind {
     Intro,
     /// kernel 验证过的 `Eq.refl` 候选。
     Rfl { term: String },
+    /// kernel 拒绝的失败声明且答案以 lambda 开头：保留已写的 lambda 前缀，
+    /// 把第一个非 lambda 部分整体换成 `???`（前缀 + `???` 的全文，直接可作
+    /// 编辑的 new_text）。结构生成、kernel 在学生下次编辑后终审。
+    Reset { new_text: String },
     /// kernel 拒绝的失败声明：按声明类型的形状生成的重启骨架
     /// `fun (x : A) => … => ???`，替换整个值位。结构生成、kernel 在学生
     /// 下次编辑后终审（docs/design-kernel-taxonomy.md §2）。
@@ -65,15 +77,36 @@ pub fn suggest(
     d: &DeclState,
 ) -> Vec<Suggestion> {
     if d.status == DeclStatus::Failed {
-        // 失败声明没有洞可填：唯一的建议是按声明类型形状重启整个值位。
-        // 骨架只是结构生成（`verified: false`），kernel 在下次编辑终审。
-        return match decl_src.and_then(restart_skeleton) {
-            Some(skeleton) => vec![Suggestion {
-                kind: SuggestionKind::Restart { skeleton },
-                verified: false,
-            }],
-            None => Vec::new(),
-        };
+        // 失败声明没有洞可填：建议梯子 = [kernel 验证项] → 部分重启 →
+        // 整值重启。rfl 候选必须先经 judge_value_replace（完整 kernel）
+        // 接受才呈现；Reset/Restart 是结构生成（`verified: false`），
+        // kernel 在学生下次编辑后终审。
+        let mut out: Vec<Suggestion> = Vec::new();
+        if let Some(decl_src) = decl_src {
+            if let Some(term) = decl_type_text(decl_src).and_then(|ty| eq_refl_candidate(ty, d)) {
+                let judgements = judge_value_replace(prefix_src, options, d.span, &[term.as_str()]);
+                if judgements.first() == Some(&Judgement::Match) {
+                    out.push(Suggestion {
+                        kind: SuggestionKind::Rfl { term },
+                        verified: true,
+                    });
+                }
+            }
+            if let Some(new_text) = reset_body_text(decl_src) {
+                out.push(Suggestion {
+                    kind: SuggestionKind::Reset { new_text },
+                    verified: false,
+                });
+            }
+            if let Some(skeleton) = restart_skeleton(decl_src) {
+                out.push(Suggestion {
+                    kind: SuggestionKind::Restart { skeleton },
+                    verified: false,
+                });
+            }
+        }
+        out.truncate(MAX_SUGGESTIONS);
+        return out;
     }
     if d.holes.is_empty() {
         return Vec::new();
@@ -241,6 +274,81 @@ fn restart_skeleton(decl_src: &str) -> Option<String> {
     Some(skeleton)
 }
 
+/// 失败声明的「部分重启」：答案以 lambda 开头时，保留已写的 lambda 前缀，
+/// 把第一个非 lambda 部分整体换成 `???`。从值首 token 起按保守规则消费
+/// `fun <binder> =>` 循环——binder 必须是括号/花括号形式（教学语法的
+/// `fun (x : T) => …` / `fun {x : T} => …`），遇到第一个不匹配的 token 就
+/// 停，从它起到值位末尾整体替换。至少剥掉一层才给此建议；整个值不可识别
+/// 时返回 `None`。全程 tokenize 定位（REQUIREMENTS §2.8）。
+fn reset_body_text(decl_src: &str) -> Option<String> {
+    let tokens = tokenize(decl_src).ok()?;
+    let colon_eq = tokens.iter().position(|t| t.kind == TokenKind::ColonEq)?;
+    let first = tokens.get(colon_eq + 1)?;
+    if first.kind == TokenKind::Eof {
+        return None;
+    }
+    let value_start = first.span.start.offset;
+    let mut i = colon_eq + 1;
+    let mut peeled = 0usize;
+    while is_fun(tokens.get(i)) {
+        // binder：一个配平的 `(...)`/`{...}` 组；形态不合立即停（停下的
+        // `fun` 本身属于待替换的 body，绝不留下悬空前缀）。
+        let Some(open) = tokens.get(i + 1) else {
+            break;
+        };
+        let close = match open.kind {
+            TokenKind::LParen => TokenKind::RParen,
+            TokenKind::LBrace => TokenKind::RBrace,
+            _ => break,
+        };
+        let Some(close_idx) = balanced_group_end(&tokens, i + 1, &close) else {
+            break;
+        };
+        if !matches!(
+            tokens.get(close_idx + 1).map(|t| &t.kind),
+            Some(TokenKind::FatArrow)
+        ) {
+            break;
+        }
+        i = close_idx + 2;
+        peeled += 1;
+    }
+    if peeled == 0 {
+        return None;
+    }
+    // 第一个非 lambda token 即 body 起点（值为纯 lambda 链且结尾是 `=>` 的
+    // 病态输入下落到值位末尾，替换结果仍是合法的 `fun … => ???`）。
+    let body_start = tokens
+        .get(i)
+        .map(|t| t.span.start.offset)
+        .unwrap_or(decl_src.len());
+    let prefix = decl_src.get(value_start..body_start)?;
+    Some(format!("{prefix}???"))
+}
+
+/// token 是不是 `fun` 关键字（词法上就是 `Ident("fun")`）。
+fn is_fun(token: Option<&Token>) -> bool {
+    matches!(token, Some(Token { kind: TokenKind::Ident(name), .. }) if name == "fun")
+}
+
+/// `tokens[from]` 起的配平括号组的**收尾 token 下标**：组以 `tokens[from]`
+/// 的同类括号开、`close` 收，逐层计数；不配平返回 `None`。
+fn balanced_group_end(tokens: &[Token], from: usize, close: &TokenKind) -> Option<usize> {
+    let open = &tokens.get(from)?.kind;
+    let mut depth = 0usize;
+    for (j, tok) in tokens[from..].iter().enumerate() {
+        if &tok.kind == open {
+            depth += 1;
+        } else if &tok.kind == close {
+            depth = depth.saturating_sub(1);
+            if depth == 0 {
+                return Some(from + j);
+            }
+        }
+    }
+    None
+}
+
 /// 声明的类型文本：decl 命令里 `:=` 之前最近的顶层 `:` 之后到 `:=` 之前的
 /// 切片（tokenize 精确定位，`--` 注释由词法器跳过）。没有 `:=`（axiom、
 /// 无 iota 的 inductive）或没有顶层 `:` 时返回 `None`。
@@ -320,8 +428,10 @@ fn intro_count(d: &DeclState) -> usize {
     }
 }
 
-/// 目标形如 `Eq α x y`（或显式 `@Eq.{u} α x y`）时的 rfl 候选
-/// `Eq.refl.{u} <α> <a>`：kernel 裁决两边是否本来就是同一个值。
+/// 期望类型形如 `Eq α x y`（或显式 `@Eq.{u} α x y`）时的 rfl 候选
+/// `Eq.refl.{u} <α> <a>`：kernel 裁决两边是否本来就是同一个值。期望类型
+/// 既可以是开放练习的剩余目标，也可以是失败声明的声明类型（后者经
+/// `judge_value_replace` 判定整值替换）。
 /// 宇宙层级：目标头写明 `Eq.{u}` 时取目标自身的层级，否则取声明的
 /// 首个宇宙参数（无则 0）。
 fn eq_refl_candidate(expected: &str, d: &DeclState) -> Option<String> {
@@ -585,15 +695,20 @@ Quad.mk a b c d ??? ??? ??? ???\n",
             suggest_for_failed("example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n");
         assert_eq!(
             kinds(&suggestions),
-            vec![SuggestionKind::Restart {
-                skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
-            }],
+            vec![
+                SuggestionKind::Reset {
+                    new_text: "fun (x : Prop) => ???".to_string(),
+                },
+                SuggestionKind::Restart {
+                    skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                },
+            ],
             "the Pi telescope is peeled layer by layer; the anonymous Arrow \
-             domain keeps its own type text"
+              domain keeps its own type text"
         );
         assert!(
-            !suggestions[0].verified,
-            "the skeleton is structural: the kernel judges after the next edit"
+            suggestions.iter().all(|s| !s.verified),
+            "the restarts are structural: the kernel judges after the next edit"
         );
     }
 
@@ -601,8 +716,13 @@ Quad.mk a b c d ??? ??? ??? ???\n",
     fn failed_decl_skeleton_restarts_as_an_open_exercise() {
         let suggestions =
             suggest_for_failed("example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n");
-        let SuggestionKind::Restart { skeleton } = &suggestions[0].kind else {
-            panic!("expected a restart suggestion");
+        let SuggestionKind::Restart { skeleton } = &suggestions
+            .iter()
+            .find(|s| matches!(s.kind, SuggestionKind::Restart { .. }))
+            .expect("a restart suggestion")
+            .kind
+        else {
+            unreachable!("matched Restart above");
         };
         // 骨架落回值位后重查：kernel 接受它为合法起点，声明回到 Open，
         // 剩下最内层目标留给学生（kernel 逐层判）。
@@ -623,11 +743,16 @@ Quad.mk a b c d ??? ??? ??? ???\n",
         );
         assert_eq!(
             kinds(&suggestions),
-            vec![SuggestionKind::Restart {
-                skeleton: "fun (x : Prop) => fun (x2 : x) => ???".to_string(),
-            }],
+            vec![
+                SuggestionKind::Reset {
+                    new_text: "fun (x : Prop) => fun (h : x) => ???".to_string(),
+                },
+                SuggestionKind::Restart {
+                    skeleton: "fun (x : Prop) => fun (x2 : x) => ???".to_string(),
+                },
+            ],
             "the anonymous domain's default name `x` collides with the outer \
-             binder and is renamed to `x2`"
+              binder and is renamed to `x2`; the reset keeps the written names"
         );
     }
 
@@ -639,10 +764,19 @@ fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (d : Prop) => 1\n",
         );
         assert_eq!(
             kinds(&suggestions),
-            vec![SuggestionKind::Restart {
-                skeleton: "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => ???".to_string(),
-            }],
-            "the telescope is capped at three layers; the rest stays a `???` goal"
+            vec![
+                SuggestionKind::Reset {
+                    new_text: "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => \
+fun (d : Prop) => ???"
+                        .to_string(),
+                },
+                SuggestionKind::Restart {
+                    skeleton: "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => ???"
+                        .to_string(),
+                },
+            ],
+            "the restart skeleton is capped at three layers; the reset keeps the \
+              whole written prefix"
         );
     }
 
@@ -652,9 +786,14 @@ fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (d : Prop) => 1\n",
             suggest_for_failed("example : {a : Prop} -> a -> a := fun (x : Prop) => 1\n");
         assert_eq!(
             kinds(&suggestions),
-            vec![SuggestionKind::Restart {
-                skeleton: "fun {a : Prop} => fun (x : a) => ???".to_string(),
-            }],
+            vec![
+                SuggestionKind::Reset {
+                    new_text: "fun (x : Prop) => ???".to_string(),
+                },
+                SuggestionKind::Restart {
+                    skeleton: "fun {a : Prop} => fun (x : a) => ???".to_string(),
+                },
+            ],
             "an implicit telescope layer stays implicit in the skeleton"
         );
     }
@@ -663,5 +802,161 @@ fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (d : Prop) => 1\n",
     fn failed_decl_with_non_pi_type_gets_no_suggestion() {
         // kernel 拒绝但类型是 Prop（非 Pi）：没有可剥的望远镜，不出建议。
         assert!(suggest_for_failed("def bad : Prop := 1\n").is_empty());
+    }
+
+    // ---- 失败声明的 kernel 验证 rfl（docs/design-kernel-taxonomy.md §2 升级）----
+
+    #[test]
+    fn failed_eq_decl_gets_a_kernel_verified_rfl_replacement() {
+        let suggestions = suggest_for_failed("example : Eq.{1} Nat 2 2 := 3\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Rfl {
+                term: "Eq.refl.{1} Nat 2".to_string(),
+            }],
+            "the declared type is Eq-headed and the kernel accepts the refl term"
+        );
+        assert!(suggestions[0].verified);
+    }
+
+    #[test]
+    fn failed_eq_decl_rfl_that_the_kernel_rejects_is_dropped() {
+        // 2 ≢ 3：Eq 形状成立但候选被内核拒绝，绝不出现（判定走 kernel）。
+        assert!(suggest_for_failed("example : Eq.{1} Nat 2 3 := 5\n").is_empty());
+    }
+
+    #[test]
+    fn failed_eq_decl_with_computed_sides_still_verifies() {
+        let suggestions = suggest_for_failed("example : Eq.{1} Nat (Nat.add 1 1) 2 := 5\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Rfl {
+                term: "Eq.refl.{1} Nat ((Nat.add 1) 1)".to_string(),
+            }],
+        );
+        assert!(suggestions[0].verified);
+    }
+
+    #[test]
+    fn failed_non_eq_decl_gets_no_rfl() {
+        let suggestions =
+            suggest_for_failed("example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n");
+        assert!(
+            suggestions
+                .iter()
+                .all(|s| !matches!(s.kind, SuggestionKind::Rfl { .. })),
+            "a Pi-typed decl is not Eq-headed: {suggestions:?}"
+        );
+    }
+
+    // ---- 失败声明的部分重启（保留 lambda 前缀）----
+
+    #[test]
+    fn failed_lambda_answer_gets_a_prefix_preserving_reset_before_restart() {
+        let suggestions = suggest_for_failed(
+            "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => 1\n",
+        );
+        assert_eq!(
+            kinds(&suggestions),
+            vec![
+                SuggestionKind::Reset {
+                    new_text: "fun (a : Prop) => fun (h : a) => ???".to_string(),
+                },
+                SuggestionKind::Restart {
+                    skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                },
+            ],
+            "the student's own lambda prefix (names and annotations) is kept; \
+             the restart skeleton comes second"
+        );
+        assert_eq!(
+            suggestions.iter().map(|s| s.verified).collect::<Vec<_>>(),
+            vec![false, false],
+            "both restarts are structural; the kernel judges after the next edit"
+        );
+    }
+
+    #[test]
+    fn reset_ranks_after_a_verified_rfl_when_both_apply() {
+        let suggestions = suggest_for_failed("example : Eq.{1} Nat 2 2 := fun (x : Nat) => 3\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![
+                SuggestionKind::Rfl {
+                    term: "Eq.refl.{1} Nat 2".to_string(),
+                },
+                SuggestionKind::Reset {
+                    new_text: "fun (x : Nat) => ???".to_string(),
+                },
+            ],
+            "kernel-verified rfl first, then the prefix-preserving reset"
+        );
+        assert_eq!(
+            suggestions.iter().map(|s| s.verified).collect::<Vec<_>>(),
+            vec![true, false]
+        );
+    }
+
+    #[test]
+    fn non_lambda_answer_gets_only_the_restart() {
+        let suggestions = suggest_for_failed("example : (a : Prop) -> a -> a := 1\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Restart {
+                skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+            }],
+        );
+    }
+
+    #[test]
+    fn reset_stops_at_the_first_non_lambda_part() {
+        // body 是构造子应用：从 And.intro 起整体换成 ???（含其中未填的洞）。
+        let suggestions = suggest_for_failed(
+            "axiom And : Prop -> Prop -> Prop\n\
+             example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => And.intro a a\n",
+        );
+        assert_eq!(
+            kinds(&suggestions),
+            vec![
+                SuggestionKind::Reset {
+                    new_text: "fun (a : Prop) => fun (h : a) => ???".to_string(),
+                },
+                SuggestionKind::Restart {
+                    skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                },
+            ],
+        );
+    }
+
+    #[test]
+    fn reset_keeps_implicit_binders_as_written() {
+        let suggestions = suggest_for_failed(
+            "example : {a : Prop} -> a -> a := fun {a : Prop} => fun (h : a) => 1\n",
+        );
+        assert_eq!(
+            kinds(&suggestions),
+            vec![
+                SuggestionKind::Reset {
+                    new_text: "fun {a : Prop} => fun (h : a) => ???".to_string(),
+                },
+                SuggestionKind::Restart {
+                    skeleton: "fun {a : Prop} => fun (x : a) => ???".to_string(),
+                },
+            ],
+        );
+    }
+
+    #[test]
+    fn multi_binder_fun_does_not_match_the_conservative_reset_shape() {
+        // `fun (a : Prop) (h : a) => 1` 不是 `fun <binder> =>` 循环形态：
+        // 保守规则不识别（替换会留下悬空的 `fun`），只有整值重启。
+        let suggestions =
+            suggest_for_failed("example : (a : Prop) -> a -> a := fun (a : Prop) (h : a) => 1\n");
+        assert_eq!(
+            kinds(&suggestions),
+            vec![SuggestionKind::Restart {
+                skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+            }],
+        );
     }
 }

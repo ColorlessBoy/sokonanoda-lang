@@ -431,8 +431,8 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
   讲课 agent 消费同一文档状态自动出题。
-- **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——Top 10
-  与附加小项全部落地（第十四轮收尾：稳定 hole_id、归纳块 recursor 自动
-  派生）。剩余：refine 子洞 kernel 级 expected type（方案 B，
-  `docs/design-round14.md` §0.4）、失败声明的进一步针对性建议。
+- **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——
+  **开发清单全部清零**（第十五轮收尾：spine meta 方案 B′ 深度实例化、
+  失败声明建议梯子 kernel-rfl/Reset/Restart）。剩余仅运营项（release 首跑、
+  教学回环、VS Code 集成测试）与远期设计项（spine meta 方案 A）。
   发布流水线已落地（`release.yml` + `docs/RELEASE.md`）。

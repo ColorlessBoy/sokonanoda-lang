@@ -1860,6 +1860,72 @@ fn mixed_spine_args_keep_state_open_with_expected_types() {
 }
 
 #[test]
+fn sub_goal_field_types_substitute_compound_binders() {
+    // 复合字段类型（`And a b`）里的模板 binder 名同样替换为 goal 自己的
+    // 实参：目标 `Pair True False` 下子洞类型是 `And True False`，而不是
+    // 原样渲染的模板名 `And a b`（旧实现只处理裸 Ident 字段类型）。
+    let report = check_document(
+        &parse(
+            "axiom Pair : Prop -> Prop -> Prop\n\
+             axiom Pair.mk : (a : Prop) -> (b : Prop) -> And a b -> Pair a b\n\
+             example : Pair True False := Pair.mk True False ???\n",
+        )
+        .expect("parse"),
+    );
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("ctor-spine hole stays an open exercise");
+    assert_eq!(open.holes.len(), 1);
+    assert_eq!(open.sub_goals.len(), 1);
+    assert_eq!(
+        open.sub_goals[0].ty.as_deref(),
+        Some("(And True) False"),
+        "compound field type must show the goal's own arguments: {:?}",
+        open.sub_goals[0].ty
+    );
+    assert!(
+        !report
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::ElabHoleMisplaced),
+        "spine holes stay legal: {:?}",
+        report.errors
+    );
+}
+
+#[test]
+fn sub_goal_field_types_respect_binder_shadowing() {
+    // 遮蔽守卫（innermost wins，与 elab 同）：字段
+    // `forall (a : Prop), And a b` 的内层 binder `a` 遮蔽模板 binder `a`，
+    // 其作用域内不再替换（内层 a 保持）；未被遮蔽的 `b` 仍替换为 goal 实参。
+    let report = check_document(
+        &parse(
+            "axiom True : Prop\n\
+             axiom False : Prop\n\
+             axiom And : Prop -> Prop -> Prop\n\
+             axiom And.mk : (a : Prop) -> (b : Prop) -> \
+             (h : forall (a : Prop), And a b) -> And a b\n\
+             example : And True False := And.mk True False ???\n",
+        )
+        .expect("parse"),
+    );
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("ctor-spine hole stays an open exercise");
+    assert_eq!(open.sub_goals.len(), 1);
+    assert_eq!(
+        open.sub_goals[0].ty.as_deref(),
+        Some("(a : Prop) -> (And a) False"),
+        "shadowed inner `a` stays, unshadowed `b` is substituted: {:?}",
+        open.sub_goals[0].ty
+    );
+}
+
+#[test]
 fn spine_holes_without_a_known_template_stay_open() {
     // 没有兄弟 axiom/ctor 模板也能合法多洞（子目标类型缺省）。
     let report = check_document(

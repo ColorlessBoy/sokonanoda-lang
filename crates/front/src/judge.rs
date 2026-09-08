@@ -15,11 +15,15 @@
 //! 目标声明之后才定义自己的 `Eq`/`Nat`（遮蔽 prelude），判定环境与文档环境
 //! 可能有差别——教学文档（练习先于解答）不会出现这种形态。
 //!
+//! [`judge_value_replace`] 服务失败声明（kernel 拒绝、没有洞）：候选整体
+//! 替换 `:=` 之后的值位，同名机制合成判定声明。失败声明的针对性建议
+//! （`suggest` 的 Eq 形状 rfl 替换）用它做 kernel 终审。
+//!
 //! 判定永远走 kernel，不做文本比对（REQUIREMENTS §2.8）。
 
 use crate::compile::{check_document_with, CompileOptions, DeclStatus, DocumentReport};
 use crate::proof::parse_expr_text;
-use crate::{tokenize, Binder, BinderKind, Command, Expr, FolFile, Span, TokenKind};
+use crate::{tokenize, Binder, BinderKind, Command, Expr, FolFile, Span, Token, TokenKind};
 
 /// 一个开放练习的判定规格：**剩余目标**（与 `DeclState.goal` /
 /// `ProofState::goal_text` 同语义）、声明的宇宙参数、已写 binders
@@ -186,25 +190,11 @@ pub fn judge_hole_fill(
     // 声明名 token 的切片内区间：`example` 换成 `def _soko_judge_k`；
     // def/theorem/axiom 的名字 token 换成 `_soko_judge_k`。名字定位复用
     // `references::decl_name_span`（token 精确，绝不扫描文本）。
-    let (name_start, name_end, example_keyword) = match tokens.first().map(|t| &t.kind) {
-        Some(TokenKind::Ident(kw)) if kw == "example" => {
-            let token = &tokens[0];
-            (token.span.start.offset, token.span.end.offset, true)
-        }
-        Some(TokenKind::Ident(kw)) if matches!(kw.as_str(), "def" | "theorem" | "axiom") => {
-            let Some(TokenKind::Ident(name)) = tokens.get(1).map(|t| &t.kind) else {
-                return all_parse_error("声明名缺失，无法合成判定声明".to_string());
-            };
-            let Some(name_span) = crate::references::decl_name_span(doc_src, decl_span, name)
-            else {
-                return all_parse_error(format!("找不到声明名 `{name}` 的 token"));
-            };
-            let start = name_span.start.offset.saturating_sub(decl_start);
-            let end = name_span.end.offset.saturating_sub(decl_start);
-            (start, end, false)
-        }
-        _ => return all_parse_error("只有 def/theorem/example 声明可以合成判定".to_string()),
-    };
+    let (name_start, name_end, example_keyword) =
+        match decl_name_segment(doc_src, decl_span, decl_start, &tokens) {
+            Ok(segment) => segment,
+            Err(message) => return all_parse_error(message),
+        };
     // 洞的切片内区间：必须确实落在命令里，且切片就是 `???`。
     let hole_start = hole_span.start.offset;
     let hole_end = hole_span.end.offset;
@@ -291,6 +281,155 @@ pub fn judge_hole_fill(
 
 fn parse_prefix(prefix_src: &str) -> Result<FolFile, ()> {
     crate::parse(prefix_src).map_err(|_| ())
+}
+
+/// 声明名 token 在命令切片内的区间（切片相对偏移）：`example` 返回关键字
+/// token 自身（合成时换成 `def _soko_judge_k`）；def/theorem/axiom 返回
+/// 名字 token（经 `references::decl_name_span` 定位，绝不扫描文本）。
+/// [`judge_hole_fill`] 与 [`judge_value_replace`] 共用。第四个返回值表示
+/// 声明是匿名 `example`。
+fn decl_name_segment(
+    doc_src: &str,
+    decl_span: Span,
+    decl_start: usize,
+    tokens: &[Token],
+) -> Result<(usize, usize, bool), String> {
+    match tokens.first().map(|t| &t.kind) {
+        Some(TokenKind::Ident(kw)) if kw == "example" => {
+            let token = &tokens[0];
+            Ok((token.span.start.offset, token.span.end.offset, true))
+        }
+        Some(TokenKind::Ident(kw)) if matches!(kw.as_str(), "def" | "theorem" | "axiom") => {
+            let Some(TokenKind::Ident(name)) = tokens.get(1).map(|t| &t.kind) else {
+                return Err("声明名缺失，无法合成判定声明".to_string());
+            };
+            let Some(name_span) = crate::references::decl_name_span(doc_src, decl_span, name)
+            else {
+                return Err(format!("找不到声明名 `{name}` 的 token"));
+            };
+            let start = name_span.start.offset.saturating_sub(decl_start);
+            let end = name_span.end.offset.saturating_sub(decl_start);
+            Ok((start, end, false))
+        }
+        _ => Err("只有 def/theorem/example 声明可以合成判定".to_string()),
+    }
+}
+
+/// 把 doc 中 decl_span 命令里 `:=` 之后的**整个值位**替换为候选，改名合成
+/// 声明后走完整流水线判定（与 [`judge_hole_fill`] 同语义：合成声明是唯一
+/// 裁判）。服务失败声明（kernel 拒绝、没有洞）的针对性建议：候选被 kernel
+/// 接受才值得呈现。值位起点由 tokenize 定位（`:=` 后第一个 token），
+/// 终点即声明 span 末尾（解析器把 span 收在值的最后一个 token 上）。
+///
+/// 与 [`judge_hole_fill`] 的差别：没有洞可填——候选**整体替换值位**，
+/// 宇宙参数与值位之前的命令头原样保留；`example` 声明仍按首 token 换名。
+/// 解析失败一律报 [`Judgement::Error`]，绝不 panic。
+pub fn judge_value_replace(
+    doc_src: &str,
+    options: &CompileOptions,
+    decl_span: Span,
+    candidates: &[&str],
+) -> Vec<Judgement> {
+    let mut judgements = vec![
+        Judgement::Error {
+            code: "judge-not-run".to_string(),
+            message: "判定未执行".to_string(),
+        };
+        candidates.len()
+    ];
+    if candidates.is_empty() {
+        return judgements;
+    }
+    let all_parse_error = |message: String| -> Vec<Judgement> {
+        vec![
+            Judgement::Error {
+                code: "parse".to_string(),
+                message,
+            };
+            candidates.len()
+        ]
+    };
+    let decl_start = decl_span.start.offset.min(doc_src.len());
+    let decl_end = decl_span.end.offset.clamp(decl_start, doc_src.len());
+    let slice = &doc_src[decl_start..decl_end];
+    let Ok(tokens) = tokenize(slice) else {
+        return all_parse_error("声明命令切片无法分词".to_string());
+    };
+    let (name_start, name_end, example_keyword) =
+        match decl_name_segment(doc_src, decl_span, decl_start, &tokens) {
+            Ok(segment) => segment,
+            Err(message) => return all_parse_error(message),
+        };
+    // 值位：`:=` 后第一个 token 起，到声明 span 末尾。
+    let Some(colon_eq) = tokens.iter().position(|t| t.kind == TokenKind::ColonEq) else {
+        return all_parse_error("声明没有 `:=` 值位，无法替换判定".to_string());
+    };
+    let Some(value_tok) = tokens.get(colon_eq + 1) else {
+        return all_parse_error("声明没有值位，无法替换判定".to_string());
+    };
+    if value_tok.kind == TokenKind::Eof {
+        return all_parse_error("声明没有值位，无法替换判定".to_string());
+    }
+    let value_start = value_tok.span.start.offset;
+    if name_end > value_start {
+        return all_parse_error("声明名与值位重叠，无法合成判定声明".to_string());
+    }
+    // 逐候选：名字段与值段两处替换，按偏移拼接出合成命令文本（值段延伸到
+    // 切片末尾，其后没有剩余文本）。
+    let mut commands: Vec<Command> = Vec::with_capacity(candidates.len());
+    let mut failed_parse: Vec<Option<String>> = vec![None; candidates.len()];
+    for (k, candidate) in candidates.iter().enumerate() {
+        let name = format!("_soko_judge_{k}");
+        let name_text = if example_keyword {
+            format!("def {name}")
+        } else {
+            name.clone()
+        };
+        let mut synth = String::with_capacity(slice.len() + name_text.len() + candidate.len());
+        synth.push_str(&slice[..name_start]);
+        synth.push_str(&name_text);
+        synth.push_str(&slice[name_end..value_start]);
+        synth.push_str(candidate);
+        match crate::parse(&synth) {
+            Ok(file) => match file.commands.as_slice() {
+                [parsed @ (Command::Def {
+                    name: parsed_name, ..
+                }
+                | Command::Theorem {
+                    name: parsed_name, ..
+                })] if parsed_name == &name => {
+                    commands.push(parsed.clone());
+                }
+                _ => {
+                    failed_parse[k] =
+                        Some(format!("合成文本不是声明 `{name}`（候选 `{candidate}`）"));
+                }
+            },
+            Err(err) => {
+                failed_parse[k] = Some(format!(
+                    "无法解析合成命令（候选 `{candidate}`）：{}",
+                    err.message
+                ));
+            }
+        }
+    }
+    // 前缀命令表 + 合成声明，走与 judge_terms 一致的完整流水线。
+    let Ok(mut file) = parse_prefix(&doc_src[..decl_start]) else {
+        return all_parse_error("前缀源码无法解析".to_string());
+    };
+    file.commands.extend(commands);
+    let report = check_document_with(&file, options);
+    for (k, judgement) in judgements.iter_mut().enumerate() {
+        if let Some(message) = failed_parse[k].take() {
+            *judgement = Judgement::Error {
+                code: "parse".to_string(),
+                message,
+            };
+            continue;
+        }
+        *judgement = judgement_of(&report, k);
+    }
+    judgements
 }
 
 /// 把剩余目标与已写 binders 折叠成完整声明类型：一个 Forall 望远镜
@@ -657,5 +796,93 @@ mod tests {
             other => panic!("expected parse error, got {other:?}"),
         }
         assert_eq!(judgements[1], Judgement::Match);
+    }
+
+    // ---- judge_value_replace：失败声明的值位整体替换判定 ----
+
+    /// 取文档里第一个 failed 声明的 DeclState（span 来自完整流水线）。
+    fn failed_decl(doc: &str) -> DeclState {
+        let report = check_document(&parse(doc).expect("parses"));
+        report
+            .decls
+            .iter()
+            .find(|d| d.status == DeclStatus::Failed)
+            .expect("failed declaration")
+            .clone()
+    }
+
+    #[test]
+    fn value_replace_accepts_a_kernel_verified_rfl_candidate() {
+        // 匿名 example：首 token 换名后整值替换。kernel 接受的 rfl 候选
+        // Match，两边不同的候选被内核以 Mismatch 拒绝。
+        let doc = "example : Eq.{1} Nat 2 2 := 3\n";
+        let d = failed_decl(doc);
+        let judgements = judge_value_replace(
+            doc,
+            &CompileOptions::default(),
+            d.span,
+            &["Eq.refl.{1} Nat 2", "Eq.refl.{1} Nat 3"],
+        );
+        assert_eq!(judgements[0], Judgement::Match);
+        assert!(
+            matches!(judgements[1], Judgement::Mismatch { .. }),
+            "3 ≢ 2 must be a kernel mismatch, got {:?}",
+            judgements[1]
+        );
+    }
+
+    #[test]
+    fn value_replace_keeps_universe_params_and_declared_binders() {
+        // def 的宇宙参数 `{u}` 与值位之前的命令头原样保留：候选 lambda
+        // 引用 Sort u 必须仍可 elaborate，内核才判得出 Match。
+        let doc =
+            "def idT {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => 1\n";
+        let d = failed_decl(doc);
+        let judgements = judge_value_replace(
+            doc,
+            &CompileOptions::default(),
+            d.span,
+            &[
+                "fun {α : Sort u} => fun (a : α) => a",
+                "fun {α : Sort u} => fun (a : α) => 2",
+            ],
+        );
+        assert_eq!(judgements[0], Judgement::Match);
+        assert!(
+            matches!(judgements[1], Judgement::Mismatch { .. }),
+            "Nat ≢ α must be a kernel mismatch, got {:?}",
+            judgements[1]
+        );
+    }
+
+    #[test]
+    fn value_replace_reports_unparseable_candidates_as_errors() {
+        let doc = "example : Eq.{1} Nat 2 2 := 3\n";
+        let d = failed_decl(doc);
+        let judgements =
+            judge_value_replace(doc, &CompileOptions::default(), d.span, &["no(", "nope"]);
+        match &judgements[0] {
+            Judgement::Error { code, message } => {
+                assert_eq!(code, "parse");
+                assert!(message.contains("no("), "message: {message}");
+            }
+            other => panic!("expected parse error, got {other:?}"),
+        }
+        match &judgements[1] {
+            Judgement::Error { code, .. } => assert_eq!(code, "elab-unknown-identifier"),
+            other => panic!("expected elab error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn value_replace_reports_declarations_without_a_value_as_errors() {
+        // axiom 没有 `:=` 值位：明确报错，绝不 panic。
+        let doc = "axiom bad : undefined_name\n";
+        let d = failed_decl(doc);
+        let judgements = judge_value_replace(doc, &CompileOptions::default(), d.span, &["Prop"]);
+        match &judgements[0] {
+            Judgement::Error { code, .. } => assert_eq!(code, "parse"),
+            other => panic!("expected parse error, got {other:?}"),
+        }
     }
 }

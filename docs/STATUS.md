@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第十四轮：稳定 hole_id + 归纳块 recursor 自动派生）
+> 快照：2026-09-07（第十五轮：spine meta B′ + 失败声明建议升级——开发清单清零）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-round14.md`（本轮）/ `docs/design-kernel-taxonomy.md` /
+> 设计 = `docs/design-round14.md`（含本轮 B′ 决议）/ `docs/design-kernel-taxonomy.md` /
 > `docs/design-course-status.md` / `docs/design-hints-suggestions.md` /
 > `docs/design-rename-inlay.md` / `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
 > `docs/design-infrastructure.md`；
@@ -16,6 +16,27 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第十五轮：开发清单清零，2 subagent 并行）
+
+1. **spine meta 方案 B′（S1）**：`field_type_text` 升级为深度 AST 替换
+   （`substitute_names`：模板 binder 名 → goal 实参 AST 全量替换，innermost
+   wins 遮蔽守卫，命中节点 span 回填）——复合字段类型（`And a b`）现在正确
+   实例化为学生上下文（`And True False`），不再原样渲染模板名；裸 Ident
+   路径与失败语义不变（旧断言零改动）。kernel 渲染版（方案 A）留作远期。
+2. **失败声明建议升级（S2）**：三条建议梯子——
+   - **kernel 验证 rfl 替换**（新 `judge_value_replace`：值位整体替换合成
+     声明交完整 kernel 裁决；Eq 形状声明验证通过才呈现，`verified: true`）；
+   - **Reset**（保留已写 lambda 前缀、只重置主体为 `???`——学生类型标注
+     工作保留，剩余目标由 goal 视图接管；保守形态识别：仅括号/花括号
+     binder 的 `fun x =>` 链）；
+   - **Restart**（整值骨架，既有）。
+   首条 `is_preferred`；lib.rs 锚点全绿。
+3. 测试总量 **380**；全绿；fmt/clippy 干净；playground（12 open / 0 诊断）与
+   course（19/20/0）锚点不变。
+4. **至此 gap-analysis Top 10 + 附加小项 + 分类学余项全部清零**；剩余仅
+   运营项（release 首跑需打 tag、教学回环需真实学习者）与远期设计项
+   （spine meta 方案 A）。
 
 ## 本轮进度（2026-09-07，第十四轮：hole_id + auto-derivation，2 subagent 并行）
 
@@ -389,13 +410,10 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
    （第十三轮：统一 `got:` 形状、措辞区分站点）；~~`assert_eq!` 灰色地带~~ ✅
    （第十三轮全量清点分诊）；refine 子洞的 kernel 级 expected type
    （elaborator spine meta，M–L）**仍为余项**——需专门设计轮。
-   另：~~归纳块 auto-derivation~~ ✅（第十四轮：无 rec 块自动派生
-   recursor + iota 规则，显式 rec 优先；`docs/design-round14.md` §2）。
-   refine 子洞的 kernel 级 expected type：**下一轮按方案 B 实施**
-   （`docs/design-round14.md` §0.4：kernel 渲染代替文本替换）。
-7. **小项打包**：~~`sokonanoda lsp` 子命令~~ ✅、~~REPL 历史~~ ✅、
-   ~~criterion 基准~~ ✅、~~fuzz harness~~ ✅、~~洞的稳定 hole_id~~ ✅
-   （第十四轮，`<声明名>:<洞序号>` 方案）。**小项全部清零。**
+   另：~~归纳块 auto-derivation~~ ✅（第十四轮）。~~refine 子洞的 kernel 级
+   expected type~~ ✅（第十五轮方案 B′：深度 AST 替换；方案 A 记为远期）。
+7. **小项打包**：全部 ✅（lsp 子命令 / REPL 历史 / criterion / fuzz /
+   hole_id）。**小项全部清零。**
 
 ### 运营/验证类
 

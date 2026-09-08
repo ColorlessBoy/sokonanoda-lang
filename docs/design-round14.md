@@ -27,17 +27,19 @@
      `<Ind>.rec.{u} motive minors… 字段…`（py-nat succ 规则同形）；
    - 递归字段判定复用 `mentions_ident`/result 望远镜扫描（与 is_recursive
      镜像同源）。
-4. **spine meta（refine 子洞 kernel 级 expected type）路线**（本轮只设计）：
-   - 现状：walk 的子洞类型来自**模板文本实例化**（binder 名 → goal 实参的
-     文本替换），实例化失败时 `ty: None`；
-   - 方案 A（完整解）：elab 的 App 实参级 expected 类型穿透——elaborate
-     部分答案时在每个洞位记录 kernel 渲染的 expected；需要新的 elab 机制
-     （应用头类型求值 + 实参位置取域），M–L；
-   - 方案 B（务实解，推荐下一步）：walk 的字段类型**用 kernel 渲染代替文本
-     替换**——在 elab 作用域里绑定「goal binder 名 → goal 实参的 elaborated
-     项」，elaborate 字段类型表达式后 `render`；失败的 None 情形大部分消失；
+4. **spine meta（refine 子洞 kernel 级 expected type）路线**（第十五轮按
+   B′ 实施）：
+   - 现状：walk 的子洞类型来自**模板文本实例化**（仅 Ident 字段类型做
+     binder→goal 实参替换，复合字段类型原样渲染，实例化失败为 `None`）；
+   - 方案 A（完整解，远期）：elab 的 App 实参级 expected 穿透——需新 elab
+     机制（应用头类型求值 + 实参位取域），M–L；
+   - **方案 B′（本轮实施）**：`field_type_text` 升级为**深度 AST 替换**——
+     模板 binder 名 → goal 实参 AST 在字段类型表达式树内全量替换（带遮蔽
+     守卫：同名 Forall/Lambda binder 下不替换），再 render。覆盖复合字段
+     类型（`Eq α a b` → `Eq α x y`）；零流水线重构（walk 仍在命令期）；
    - 方案 C（不可行）：judge 探针合成 fresh axiom——内核无 unknown 项概念。
-   - 结论：下一轮按 B 实施并把 A 记为远期。
+   - 全量 kernel 渲染（elab 字段类型 + pp）留待确有需求时再评估（需把
+     子洞类型计算挪到 ops 期）。
 
 ## 1. hole_id（P）
 

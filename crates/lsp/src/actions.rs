@@ -9,9 +9,10 @@
 //! * 判定永远走 kernel，禁止文本比对（REQUIREMENTS §2.8）。
 //!
 //! kernel 拒绝的失败声明（`DeclStatus::Failed`）没有洞，编辑目标是整个
-//! 值位：`front::suggest` 按声明类型的形状给出 `Restart` 骨架，这里把值位
-//! span（tokenize 定位 `:=` 与值首）整体替换成骨架（docs/design-kernel-
-//! taxonomy.md §2）。
+//! 值位（tokenize 定位 `:=` 与值首）。`front::suggest` 的失败声明建议梯子：
+//! kernel 验证过的 `Eq.refl` 整值替换（Eq 形状声明）→ 保留已写 lambda
+//! 前缀的部分重置（Reset）→ 整值重启骨架（Restart）——都映射为值位
+//! 整体替换（docs/design-kernel-taxonomy.md §2）。
 
 use super::render::decl_at;
 use sokonanoda_front::compile::{
@@ -44,21 +45,41 @@ pub(crate) fn code_actions(
         if d.error.is_some() {
             let decl_src =
                 &text[d.span.start.offset.min(text.len())..d.span.end.offset.min(text.len())];
-            for suggestion in suggest::suggest(src, Some(decl_src), &options, d) {
-                let SuggestionKind::Restart { skeleton } = &suggestion.kind else {
-                    continue;
-                };
-                let Some(range) = value_range_at(text, d) else {
-                    continue;
-                };
-                push_action(
-                    &mut actions,
-                    format!(
-                        "用目标形态重启：{}（先搭骨架，内核逐层判）",
-                        restart_summary(skeleton)
-                    ),
-                    edit_on_hole(uri.clone(), range, skeleton.clone()),
-                );
+            let suggestions = suggest::suggest(src, Some(decl_src), &options, d);
+            // 三类失败声明建议都替换整个值位。
+            if let Some(range) = value_range_at(text, d) {
+                for suggestion in suggestions {
+                    match &suggestion.kind {
+                        SuggestionKind::Rfl { term } => {
+                            push_action(
+                                &mut actions,
+                                "Eq.refl …（内核验证：两边就是同一个值，直接替换）".to_string(),
+                                edit_on_hole(uri.clone(), range, term.clone()),
+                            );
+                        }
+                        SuggestionKind::Reset { new_text } => {
+                            push_action(
+                                &mut actions,
+                                format!(
+                                    "保留 fun 前缀，只重置主体为 ???：{}（从剩余目标继续）",
+                                    restart_summary(new_text)
+                                ),
+                                edit_on_hole(uri.clone(), range, new_text.clone()),
+                            );
+                        }
+                        SuggestionKind::Restart { skeleton } => {
+                            push_action(
+                                &mut actions,
+                                format!(
+                                    "用目标形态重启：{}（先搭骨架，内核逐层判）",
+                                    restart_summary(skeleton)
+                                ),
+                                edit_on_hole(uri.clone(), range, skeleton.clone()),
+                            );
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
     } else {
@@ -116,7 +137,8 @@ pub(crate) fn code_actions(
                         edit,
                     );
                 }
-                SuggestionKind::Restart { .. } => {}
+                // 失败声明专属的建议不会出现在开放练习里。
+                SuggestionKind::Reset { .. } | SuggestionKind::Restart { .. } => {}
             }
         }
     }
@@ -509,14 +531,36 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
         let cursor = offset_of(FAILED_DEF_EQ, "=> 1");
         let actions = code_actions_at(&mut service, FAILED_DEF_EQ, cursor)
             .await
-            .expect("a kernel-rejected decl must offer the restart");
+            .expect("a kernel-rejected decl must offer the restarts");
+        // 答案以 lambda 开头：Reset（保留前缀）在前，Restart（整值骨架）在后。
         assert_eq!(
             actions.len(),
-            1,
-            "exactly one restart action: {:?}",
+            2,
+            "reset + restart: {:?}",
             titles_of(&actions)
         );
-        let restart = &actions[0];
+        let reset = &actions[0];
+        assert!(
+            reset.title.contains("保留 fun 前缀"),
+            "title: {:?}",
+            reset.title
+        );
+        assert!(
+            reset.title.contains("从剩余目标继续"),
+            "title: {:?}",
+            reset.title
+        );
+        assert_eq!(
+            reset.is_preferred,
+            Some(true),
+            "the first failed-decl action is preferred"
+        );
+        let (_, reset_text) = first_edit_full(reset);
+        assert_eq!(
+            reset_text, "fun (x : Prop) => ???",
+            "the reset keeps the written lambda prefix"
+        );
+        let restart = &actions[1];
         assert!(
             restart.title.contains("用目标形态重启"),
             "title: {:?}",
@@ -535,9 +579,8 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
             restart.title
         );
         assert_eq!(
-            restart.is_preferred,
-            Some(true),
-            "the only failed-decl action is preferred"
+            restart.is_preferred, None,
+            "only the first action is preferred"
         );
         // 编辑目标 = 整个值位：从 `:=` 后第一个 token 到声明 span 末尾
         // （不含结尾换行），多行值也整体替换。
@@ -589,8 +632,12 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
         let cursor = offset_of(src, "=> 1");
         let actions = code_actions_at(&mut service, src, cursor)
             .await
-            .expect("a kernel-rejected decl must offer the restart");
-        let (range, new_text) = first_edit_full(&actions[0]);
+            .expect("a kernel-rejected decl must offer the restarts");
+        let restart = actions
+            .iter()
+            .find(|a| a.title.contains("用目标形态重启"))
+            .expect("the whole-value restart action");
+        let (range, new_text) = first_edit_full(restart);
         assert_eq!(
             range.start,
             lsp_pos(src, offset_of(src, "fun (x")),
@@ -601,6 +648,125 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
             lsp_pos(src, src.rfind('\n').expect("trailing newline")),
             "the edit ends at the declaration span's end"
         );
+        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => ???");
+        // 部分重启同样覆盖整个值位（换行后的缩进不进 new_text）。
+        let reset = actions
+            .iter()
+            .find(|a| a.title.contains("保留 fun 前缀"))
+            .expect("the prefix-preserving reset action");
+        let (_, reset_text) = first_edit_full(reset);
+        assert_eq!(reset_text, "fun (x : Prop) => ???");
+        shutdown(&mut service).await;
+    }
+
+    // ---- 失败声明的 kernel 验证 rfl（Eq 形状声明）----
+
+    const FAILED_EQ_LAMBDA: &str = "example : Eq.{1} Nat 2 2 := fun (x : Nat) => 3\n";
+
+    #[tokio::test]
+    async fn code_action_failed_eq_decl_offers_kernel_verified_rfl_first() {
+        let (mut service, _socket) = opened(FAILED_EQ_LAMBDA).await;
+        let cursor = offset_of(FAILED_EQ_LAMBDA, "=> 3");
+        let actions = code_actions_at(&mut service, FAILED_EQ_LAMBDA, cursor)
+            .await
+            .expect("a kernel-rejected Eq decl must offer the verified rfl");
+        assert_eq!(actions.len(), 2, "rfl + reset: {:?}", titles_of(&actions));
+        let rfl = &actions[0];
+        assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
+        assert!(rfl.title.contains("直接替换"), "title: {:?}", rfl.title);
+        assert_eq!(rfl.is_preferred, Some(true), "the verified rfl is first");
+        // 编辑目标 = 整个值位，替换文本恰为 kernel 验证过的 rfl 项。
+        let (range, new_text) = first_edit_full(rfl);
+        assert_eq!(new_text, "Eq.refl.{1} Nat 2");
+        assert_eq!(
+            range.start,
+            lsp_pos(FAILED_EQ_LAMBDA, offset_of(FAILED_EQ_LAMBDA, "fun (x")),
+            "the edit starts at the first value token"
+        );
+        assert_eq!(
+            range.end,
+            lsp_pos(
+                FAILED_EQ_LAMBDA,
+                FAILED_EQ_LAMBDA.rfind('\n').expect("trailing newline")
+            ),
+            "the edit ends at the declaration span's end"
+        );
+        // Reset 其次：保留已写的 lambda 前缀。
+        let reset = &actions[1];
+        assert!(
+            reset.title.contains("保留 fun 前缀"),
+            "title: {:?}",
+            reset.title
+        );
+        assert_eq!(reset.is_preferred, None, "only the first is preferred");
+        let (_, reset_text) = first_edit_full(reset);
+        assert_eq!(reset_text, "fun (x : Nat) => ???");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_failed_eq_decl_with_non_lambda_answer_gets_only_rfl() {
+        let src = "example : Eq.{1} Nat 2 2 := 3\n";
+        let (mut service, _socket) = opened(src).await;
+        let cursor = offset_of(src, "3");
+        let actions = code_actions_at(&mut service, src, cursor)
+            .await
+            .expect("a kernel-rejected Eq decl must offer the verified rfl");
+        assert_eq!(
+            actions.len(),
+            1,
+            "the rfl replaces the whole value; no restart applies: {:?}",
+            titles_of(&actions)
+        );
+        let rfl = &actions[0];
+        assert!(rfl.title.contains("内核验证"), "title: {:?}", rfl.title);
+        assert_eq!(rfl.is_preferred, Some(true));
+        let (range, new_text) = first_edit_full(rfl);
+        assert_eq!(new_text, "Eq.refl.{1} Nat 2");
+        assert_eq!(
+            range.start,
+            lsp_pos(src, offset_of(src, "3")),
+            "the edit starts at the value"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_failed_eq_decl_kernel_rejected_rfl_is_dropped() {
+        // 2 ≢ 3：候选被内核拒绝，Eq 形状声明又不给重启——无建议。
+        let src = "example : Eq.{1} Nat 2 3 := 5\n";
+        let (mut service, _socket) = opened(src).await;
+        let cursor = offset_of(src, "5");
+        let actions = code_actions_at(&mut service, src, cursor).await;
+        assert!(
+            actions.is_none(),
+            "a kernel-rejected rfl candidate must not be offered: {actions:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_non_lambda_answer_gets_only_restart() {
+        let src = "example : (a : Prop) -> a -> a := 1\n";
+        let (mut service, _socket) = opened(src).await;
+        let cursor = offset_of(src, "1");
+        let actions = code_actions_at(&mut service, src, cursor)
+            .await
+            .expect("a kernel-rejected decl must offer the restart");
+        assert_eq!(
+            actions.len(),
+            1,
+            "a non-lambda answer has no prefix to keep: {:?}",
+            titles_of(&actions)
+        );
+        let restart = &actions[0];
+        assert!(
+            restart.title.contains("用目标形态重启"),
+            "title: {:?}",
+            restart.title
+        );
+        assert_eq!(restart.is_preferred, Some(true));
+        let (_, new_text) = first_edit_full(restart);
         assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => ???");
         shutdown(&mut service).await;
     }
