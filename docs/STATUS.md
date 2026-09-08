@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第十五轮：spine meta B′ + 失败声明建议升级——开发清单清零）
+> 快照：2026-09-07（第十六轮：???→sorry 迁移 + VS Code 集成测试 + hover 纪律）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
 > 设计 = `docs/design-round14.md`（含本轮 B′ 决议）/ `docs/design-kernel-taxonomy.md` /
 > `docs/design-course-status.md` / `docs/design-hints-suggestions.md` /
@@ -16,6 +16,17 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-07，第十六轮：学习者反馈验收落地）
+
+1. **???→sorry 迁移完成**：lexer 遇 ? 报教学引导错误；全仓清扫 24 文件
+   （playground/course/examples/tests/docs）；协议词表不变。
+2. **hover 纪律**：显示「表达式 : 类型」+ 声明名显示完整内核签名
+   （ty_text）+ 关键字悬停静默 + 松散变量 $N→binder 名字。
+3. **VS Code 集成测试**：@vscode/test-electron 4 用例 + CI xvfb。
+4. **Lean 4 调研确认**：点分名原子/sorry warning/hover 签名——设计与
+   官方对齐。
+5. 测试总量 **388 + 4 VS Code 集成测试**。
 
 ## 本轮进度（2026-09-07，第十五轮：开发清单清零，2 subagent 并行）
 
