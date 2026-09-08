@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Editor support for .sokonanoda teaching files (LSP diagnostics, hover types, exercise status)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
