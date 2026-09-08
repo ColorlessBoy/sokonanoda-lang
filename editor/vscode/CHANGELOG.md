@@ -1,3 +1,9 @@
+
+## [0.2.1] - 2026-09-08
+
+### Changed
+- CI auto-publishes to VS Code Marketplace on tag push
+- Version bump to test release pipeline
 ## [0.2.0] - 2026-09-07
 
 ### Added
