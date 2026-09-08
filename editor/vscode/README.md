@@ -1,81 +1,44 @@
-# sokonanoda VS Code extension (experimental)
+# sokonanoda — Lean-style theorem proving, taught
 
-Thin client for the `sokonanoda-lsp` language server: grammar, language
-configuration and one plain `extension.js`. No TypeScript, no bundler;
-packaging for the marketplace is a later task.
+Part of the [sokonanoda-lang](https://github.com/ColorlessBoy/sokonanoda-lang)
+suite: a self-contained Lean-4-style teaching compiler with a complete type
+checker, a language server, and AI-agent skills for interactive theorem
+proving lessons.
 
-## 1. Build the server
+## What you get
 
-```bash
-# from the repo root
-cargo build -p sokonanoda-lsp
-# -> target/debug/sokonanoda-lsp
-```
+- **Real kernel checking** — every declaration you write is checked by a
+  complete Lean-4-compatible type checker (not text matching). If it's green,
+  it's a real proof.
+- **Exercise canvas** — `???` (or `sorry`) marks an exercise. Fill it in, save,
+  and the kernel grades you instantly.
+- **Goal view** — hover any expression for its type; hover `sorry` for the
+  remaining goal and hypotheses.
+- **Hint ladders** — each exercise has 2–3 progressive hints (authored as
+  `-- soko:hint` comment directives); reveal them one at a time when stuck.
+- **Precedence visualisation** — smart-select (Ctrl+Shift+→) on an operator
+  highlights the binding scope.
+- **Exercise panel** — Explorer tree showing every declaration's status
+  (open / solved / failed) with goal, hypotheses and hole navigation.
+- **Course map** — a 5-unit structured course with verified solutions
+  (propositional logic first; universes when you naturally ask "what's the
+  type of a function type?").
 
-## 2. Run the extension locally
+## AI-agent integration
 
-- Open `editor/vscode` as the workspace and press **F5** ("Launch sokonanoda
-  client" — `.vscode/launch.json` builds the server first via a pre-launch
-  task, then opens an Extension Development Host window), or
-- open the repo, `code editor/vscode`, and open any `.sokonanoda` file; the
-  extension activates on `onLanguage:sokonanoda` and spawns the server over
-  stdio.
+The repo ships [agent skills](https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills)
+for Claude Code / opencode that turn an LLM into a sokonanoda teacher: it
+assigns exercises, grades via `--json` kernel events, and adapts to the
+learner. The repo-root `opencode.json` wires the LSP for `.sokonanoda` files
+automatically.
 
-### Server discovery (`sokonanoda.serverPath` empty by default)
+## Quick start
 
-1. `sokonanoda.serverPath` setting (absolute path wins);
-2. `SOKONANODA_LSP_BIN` environment variable;
-3. `target/debug/sokonanoda-lsp`, then `target/release/sokonanoda-lsp`, in
-   each workspace folder and in the repo checkout next to the extension;
-4. `sokonanoda-lsp` on `PATH`.
+1. Build the language server: `cargo build -p sokonanoda-lsp` (from the repo root)
+2. Open a `.sokonanoda` file — the extension activates automatically
+3. Start with exercise 1 in `playground.sokonanoda`
 
-The extension runs as a workspace extension (`extensionKind: ["workspace"]`)
-so the binary is spawned on the machine holding the files (WSL/remote-safe).
-In restricted (untrusted) workspaces the workspace-level `serverPath` setting
-is ignored and default discovery is used.
+## Requirements
 
-## 3. Feedback you get
-
-- **Semantic highlighting**: on by default, no configuration needed. The
-  client auto-registers the provider because the server advertises
-  `textDocument/semanticTokens/full` (zero settings, zero `extension.js`
-  logic — vscode-languageclient v9 does the wiring). It colors:
-  - keywords (`def`, `theorem`, `example`, `axiom`, `inductive`, `ctor`,
-    `rec`, `iota`, `end`, `fun`, `forall`/`∀`, `#check`/`#reduce`/`#print`);
-  - sorts `Prop`/`Type`/`Sort` and inductive type names (as types);
-  - definition/theorem names (as functions), axiom names, constructors
-    (as enum members), binders (as parameters) and `???` holes (macro —
-    stands out as "exercise open here");
-  - numbers, and unknown identifiers (variables) as a fallback.
-  The classic TextMate grammar stays in place as an instant fallback (it
-  paints while the server starts and wherever semantic tokens are absent,
-  e.g. before the first `initialize` round-trip).
-- **Diagnostics** per declaration with stable codes (`kernel-rejected`,
-  `unexpected-token`, …) and teaching hints.
-- **Hover**: inferred type of the expression under the cursor, or the goal of
-  an open `???` exercise.
-- **Code lenses / document symbols**: every declaration is labelled with its
-  status (`exercise: open` / `solved ✓` / `failed`); clicking a lens shows the
-  status summary.
-- **Quick fix `intro` / `exact <假设>`**: on an open exercise — `intro` inserts
-  the first lambda step (tactics are just lambdas); `exact` appears only when
-  the kernel judges a hypothesis to close the remaining goal.
-- **练习 goal panel** (Explorer → "练习"): every declaration with its exercise
-  status; open exercises expand to the remaining goal and the hypotheses
-  already introduced (consumes the `soko/goals` custom request); a status-bar
-  item shows the open-exercise count.
-- **Hole navigation**: `alt+n` / `alt+shift+n` jump to the next/previous `???`
-  with wrap-around (server-side `soko/nextHole` — clients never re-derive
-  positions).
-- **`sokonanoda: show exercise status` (`alt+s`)**: quick pick listing
-  `name — kind/status`; selecting an entry reveals the declaration.
-
-## 4. Settings
-
-| Setting | Meaning |
-|---|---|
-| `sokonanoda.serverPath` | Explicit server binary path; empty = auto-discovery above. |
-| `sokonanoda.trace.server` | `verbose` logs the full JSON-RPC traffic to the "sokonanoda" output channel. |
-
-All client/server logging goes to that output channel — never to stdout,
-which carries the LSP stream.
+- The `sokonanoda-lsp` binary (auto-discovered from `target/debug/`, `target/release/`, or `PATH`)
+- No official Lean toolchain required (fully self-contained)
