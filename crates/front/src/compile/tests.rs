@@ -2065,3 +2065,20 @@ fn decl_state_carries_kernel_rendered_signature() {
         .expect("open theorem");
     assert_eq!(t.ty_text.as_deref(), Some("True"), "open decl signature");
 }
+#[test]
+fn multi_binder_lambda_parses_and_checks() {
+    // 学习者写法（与官方 Lean 同款）：多 binder lambda，
+    // 曾在判卷时因编辑中间态误报 parse 错误（F5 防回归）。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem t : (a : Prop) -> (b : Prop) -> a -> b -> And a b := \
+               fun (a : Prop) (b : Prop) (ha : a) (hb : b) => And.intro a b ha hb\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let t = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("multi-binder theorem");
+    assert_eq!(t.status, DeclStatus::Checked);
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+}
