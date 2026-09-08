@@ -54,20 +54,26 @@ jobs:
           cache: npm
           cache-dependency-path: editor/vscode/package-lock.json
       - name: Package VS Code extension
+        id: package
         working-directory: editor/vscode
         run: |
           npm ci
           npx --yes @vscode/vsce package --out sokonanoda.vsix
+          echo "vsixPath=$(pwd)/sokonanoda.vsix" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: sokonanoda-vsix
           path: editor/vscode/sokonanoda.vsix
+      - uses: actions/checkout@v4
       - name: Publish to VS Code Marketplace (tag push only)
         if: github.event_name == 'push'
-        working-directory: editor/vscode
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx --yes @vscode/vsce publish --skip-duplicate
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.VSCE_PAT }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: ${{ steps.package.outputs.vsixPath }}
+          skipDuplicate: true
+          timeout: 300
 
   # 建 Release + 挂二进制 + VSIX（仅 tag push）
   github-release:
