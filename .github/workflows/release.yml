@@ -78,7 +78,7 @@ jobs:
         run: |
           gh release create "${{ github.ref_name }}" \
             --title "sokonanoda ${{ github.ref_name }}" \
-            --generate-notes
+            --generate-notes || true
           for dir in lsp-*/; do
             target="${dir#lsp-}"
             target="${target%/}"
