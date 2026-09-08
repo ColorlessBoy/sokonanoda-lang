@@ -1,8 +1,5 @@
 name: release
 
-# 触发：
-# - push tag v*：完整发布（建 Release + 上传二进制/VSIX）
-# - workflow_dispatch：dry-run（只构建 + 上传 artifact，不建 Release）
 permissions:
   contents: read
 
@@ -12,99 +9,91 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 多平台矩阵构建 LSP 二进制
   build:
-    runs-on: ubuntu-latest
-    # contents: write：softprops/actions-gh-release 建 release、
-    # taiki-e/upload-rust-binary-action 上传资产（仅 tag push 路径用到）
-    permissions:
-      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
+          - { os: macos-latest,   target: aarch64-apple-darwin }
+          - { os: macos-latest,   target: x86_64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build release binaries (preflight)
-        # 预构建让下面的 taiki-e action 复用产物、快速失败于编译错误
-        run: cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
-
-      - name: Create GitHub release (tag push only)
-        # 根目录无 CHANGELOG.md，不用 taiki-e/create-gh-release-action 的
-        # changelog 参数；说明由 GitHub generate_release_notes 自动生成
-        if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          tag_name: ${{ github.ref_name }}
-          name: sokonanoda ${{ github.ref_name }}
-          generate_release_notes: true
-
-      - name: Package and upload binaries (tag) / dry-run (manual)
-        # bin 支持逗号分隔多 bin；根 manifest 是虚拟 manifest（workspace 根无
-        # [package]），两个 bin 分属不同 crate 也合法。多 bin 时必须显式
-        # archive（默认名 $bin-$target 不可用）。
-        uses: taiki-e/upload-rust-binary-action@v1
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build LSP server
+        run: cargo build --release --locked -p sokonanoda-lsp --target ${{ matrix.target }}
+      - name: Package binary
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            cp "target/${{ matrix.target }}/release/sokonanoda-lsp.exe" dist/
+          else
+            cp "target/${{ matrix.target }}/release/sokonanoda-lsp" dist/
+          fi
+      - uses: actions/upload-artifact@v4
         with:
-          bin: sokonanoda,sokonanoda-lsp
-          package: sokonanoda-cli,sokonanoda-lsp
-          locked: true
-          archive: sokonanoda-$target
-          checksum: sha256
-          dry-run: ${{ github.event_name == 'workflow_dispatch' }}
-
-      - name: Upload binary artifacts (manual run only)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: sokonanoda-binaries-${{ github.run_id }}
-          path: |
-            sokonanoda-*.tar.gz
-            sokonanoda-*.sha256
+          name: lsp-${{ matrix.target }}
+          path: dist/
           if-no-files-found: error
 
+  # VSIX 打包 + Marketplace 发布
   vsix:
     runs-on: ubuntu-latest
-    # contents: write：gh release upload（仅 tag push 路径用到）
-    permissions:
-      contents: write
-    # VSCE_PAT：Marketplace 发布（tag push only；workflow_dispatch 不发布）
-    environment: release
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: editor/vscode/package-lock.json
-
       - name: Package VS Code extension
         working-directory: editor/vscode
         run: |
           npm ci
-          # --yes：非交互环境下 npx 允许即时安装未在 devDependencies 里的
-          # @vscode/vsce（package.json 冻结，无法加 devDep）
           npx --yes @vscode/vsce package --out sokonanoda.vsix
-
-      - name: Upload vsix artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: sokonanoda-vsix-${{ github.run_id }}
+          name: sokonanoda-vsix
           path: editor/vscode/sokonanoda.vsix
-          if-no-files-found: error
-
-      - name: Attach vsix to release (tag push only)
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh release upload "${{ github.ref_name }}" editor/vscode/sokonanoda.vsix --clobber
-
       - name: Publish to VS Code Marketplace (tag push only)
         if: github.event_name == 'push'
         working-directory: editor/vscode
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx --yes @vscode/vsce publish --skip-duplicate
+
+  # 建 Release + 挂二进制 + VSIX（仅 tag push）
+  github-release:
+    needs: [build, vsix]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+      - name: Create GitHub release and upload all artifacts
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "sokonanoda ${{ github.ref_name }}" \
+            --generate-notes
+          # 上传 LSP 二进制
+          for dir in lsp-*/; do
+            target="${dir#lsp-}"
+            target="${target%/}"
+            tar czf "sokonanoda-lsp-${target}.tar.gz" -C "$dir" .
+            gh release upload "${{ github.ref_name }}" "sokonanoda-lsp-${target}.tar.gz"
+          done
+          # 上传 VSIX
+          gh release upload "${{ github.ref_name }}" \
+            "editor/vscode/sokonanoda.vsix" --clobber || true
