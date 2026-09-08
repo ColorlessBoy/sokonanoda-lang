@@ -206,5 +206,6 @@
   "galleryBanner": {
     "color": "#1e1e2e",
     "theme": "dark"
-  }
+  },
+  "icon": "icon.png"
 }
