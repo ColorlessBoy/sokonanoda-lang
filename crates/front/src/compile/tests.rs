@@ -44,7 +44,7 @@ fn checks_a_valid_file_end_to_end() {
 
 #[test]
 fn accepts_open_exercise() {
-    let file = parse("example : Prop -> Prop := ???\n").unwrap();
+    let file = parse("example : Prop -> Prop := sorry\n").unwrap();
     let out = compile_fol(&file);
     assert_eq!(out.errors, vec![]);
     assert_eq!(out.events, vec![CheckEvent::ExerciseOpen { name: None }]);
@@ -659,7 +659,7 @@ fn named_arrow_supports_implicit_binders() {
 fn document_report_tracks_open_checked_failed_decls() {
     let file = parse(
         "def ok : Prop -> Prop := fun (x : Prop) => x\n\
-         example : Nat := ???\n\
+         example : Nat := sorry\n\
          def bad : Prop -> Type := fun (x : Prop) => x\n",
     )
     .expect("parse");
@@ -677,7 +677,7 @@ fn document_report_tracks_open_checked_failed_decls() {
     // an open exercise must not make later valid declarations fail
     let file2 = parse(
         "def f : Prop -> Prop := fun (x : Prop) => x\n\
-         theorem ex : (a : Prop) -> a -> a := ???\n\
+         theorem ex : (a : Prop) -> a -> a := sorry\n\
          example : Prop -> Prop := fun (x : Prop) => x\n",
     )
     .expect("parse2");
@@ -815,7 +815,7 @@ fn every_error_kind_has_stable_code_and_hint() {
 fn document_report_states_in_source_order() {
     let file = parse(
         "def ok : Prop -> Prop := fun (x : Prop) => x\n\
-         example : Nat := ???\n\
+         example : Nat := sorry\n\
          def bad : Prop -> Type := fun (x : Prop) => x\n\
          theorem later : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => h\n",
     )
@@ -856,7 +856,7 @@ fn document_report_states_in_source_order() {
 #[test]
 fn open_exercise_does_not_pollute_env() {
     let file = parse(
-        "example : Prop -> Prop := ???\n\
+        "example : Prop -> Prop := sorry\n\
          theorem ok : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => h\n",
     )
     .expect("parse");
@@ -1011,7 +1011,7 @@ fn render_expr_round_trips() {
         ("fun (x : Prop) => x", "fun (x : Prop) => x"),
         ("(x : Prop) -> x", "(x : Prop) -> x"),
         ("1 + 1", "1 + 1"),
-        ("???", "???"),
+        ("sorry", "sorry"),
         ("@Eq.{u, v}", "@Eq.{u, v}"),
     ];
     for (source, expected) in cases {
@@ -1219,7 +1219,7 @@ fn bare_mode_installs_nothing() {
 #[test]
 fn prelude_directive_reads_bare_and_full() {
     assert_eq!(
-        prelude_mode_from_source("-- sokonanoda:prelude none\ndef x : Prop := ???\n"),
+        prelude_mode_from_source("-- sokonanoda:prelude none\ndef x : Prop := sorry\n"),
         PreludeMode::Bare
     );
     assert_eq!(
@@ -1227,7 +1227,7 @@ fn prelude_directive_reads_bare_and_full() {
         PreludeMode::Bare
     );
     assert_eq!(
-        prelude_mode_from_source("def x : Prop := ???\n"),
+        prelude_mode_from_source("def x : Prop := sorry\n"),
         PreludeMode::Full
     );
     assert_eq!(
@@ -1284,7 +1284,7 @@ fn untyped_binder_past_the_declared_telescope_is_rejected() {
 
 #[test]
 fn partial_hole_reports_the_remaining_goal() {
-    let file = parse("example : (a : Prop) -> a -> a := fun (a : Prop) => ???\n").unwrap();
+    let file = parse("example : (a : Prop) -> a -> a := fun (a : Prop) => sorry\n").unwrap();
     let out = compile_fol(&file);
     assert_eq!(out.errors, vec![]);
     assert!(matches!(&out.events[0], CheckEvent::ExerciseOpen { .. }));
@@ -1295,7 +1295,7 @@ fn partial_hole_reports_the_remaining_goal() {
 
 #[test]
 fn partial_hole_with_inferred_binder_reports_goal() {
-    let file = parse("def add1 : Nat -> Nat := fun n => ???\n").unwrap();
+    let file = parse("def add1 : Nat -> Nat := fun n => sorry\n").unwrap();
     let report = check_document(&file);
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     assert_eq!(report.decls[0].status, DeclStatus::Open);
@@ -1304,7 +1304,7 @@ fn partial_hole_with_inferred_binder_reports_goal() {
 
 #[test]
 fn hole_outside_the_lambda_tail_is_rejected() {
-    let file = parse("def bad : Nat -> Nat := fun (n : Nat) => n + ???\n").unwrap();
+    let file = parse("def bad : Nat -> Nat := fun (n : Nat) => n + sorry\n").unwrap();
     let out = compile_fol(&file);
     assert!(out
         .errors
@@ -1330,8 +1330,8 @@ fn bare_names_of_native_nat_terminate_in_reduce() {
 
 #[test]
 fn partial_hole_records_introduced_binders() {
-    let file =
-        parse("example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n").unwrap();
+    let file = parse("example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n")
+        .unwrap();
     let report = check_document(&file);
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = &report.decls[0];
@@ -1354,7 +1354,7 @@ fn partial_hole_records_introduced_binders() {
 
 #[test]
 fn partial_hole_untyped_binder_borrows_declared_type() {
-    let file = parse("def f : Nat -> Nat := fun n => ???\n").unwrap();
+    let file = parse("def f : Nat -> Nat := fun n => sorry\n").unwrap();
     let report = check_document(&file);
     let d = &report.decls[0];
     assert_eq!(
@@ -1443,7 +1443,7 @@ fn kernel_failed_declaration_frees_its_name() {
 #[test]
 fn open_exercise_carries_universe_params() {
     let report = check_document(&parse("def id {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n\
-         theorem eq_symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := ???\n").expect("parse"));
+         theorem eq_symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry\n").expect("parse"));
     let open = report
         .decls
         .iter()
@@ -1788,7 +1788,7 @@ fn constructor_spine_holes_are_multi_hole_open_exercises() {
     let report = check_document(
         &parse(&format!(
             "{AND_SKELETON}example : (a : Prop) -> (b : Prop) -> And a b -> And b a := \
-         fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro ??? ???\n"
+         fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro sorry sorry\n"
         ))
         .expect("parse"),
     );
@@ -1816,17 +1816,17 @@ fn constructor_spine_holes_are_multi_hole_open_exercises() {
 #[test]
 fn single_hole_with_ctor_goal_gets_refine_template() {
     let report = check_document(&parse(&format!(
-        "{AND_SKELETON}theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???\n"
+        "{AND_SKELETON}theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry\n"
     )).expect("parse"));
     let open = report
         .decls
         .iter()
         .find(|d| d.status == DeclStatus::Open)
         .expect("open");
-    // 结果头参数（a、b）被目标确定 → 自动填入；证明字段成为 ???
+    // 结果头参数（a、b）被目标确定 → 自动填入；证明字段成为 sorry
     assert_eq!(
         open.refine_template.as_deref(),
-        Some("And.intro a b ??? ???")
+        Some("And.intro a b sorry sorry")
     );
     assert_eq!(open.holes.len(), 1);
     assert!(open.sub_goals.is_empty());
@@ -1836,7 +1836,7 @@ fn single_hole_with_ctor_goal_gets_refine_template() {
 fn mixed_spine_args_keep_state_open_with_expected_types() {
     let report = check_document(
         &parse(&format!(
-            "{AND_SKELETON}example : And True False := And.intro True ???\n"
+            "{AND_SKELETON}example : And True False := And.intro True sorry\n"
         ))
         .expect("parse"),
     );
@@ -1868,7 +1868,7 @@ fn sub_goal_field_types_substitute_compound_binders() {
         &parse(
             "axiom Pair : Prop -> Prop -> Prop\n\
              axiom Pair.mk : (a : Prop) -> (b : Prop) -> And a b -> Pair a b\n\
-             example : Pair True False := Pair.mk True False ???\n",
+             example : Pair True False := Pair.mk True False sorry\n",
         )
         .expect("parse"),
     );
@@ -1907,7 +1907,7 @@ fn sub_goal_field_types_respect_binder_shadowing() {
              axiom And : Prop -> Prop -> Prop\n\
              axiom And.mk : (a : Prop) -> (b : Prop) -> \
              (h : forall (a : Prop), And a b) -> And a b\n\
-             example : And True False := And.mk True False ???\n",
+             example : And True False := And.mk True False sorry\n",
         )
         .expect("parse"),
     );
@@ -1929,7 +1929,7 @@ fn sub_goal_field_types_respect_binder_shadowing() {
 fn spine_holes_without_a_known_template_stay_open() {
     // 没有兄弟 axiom/ctor 模板也能合法多洞（子目标类型缺省）。
     let report = check_document(
-        &parse("example : (A : Prop -> Prop) -> A -> A := fun (A : Prop -> Prop) => ???\n")
+        &parse("example : (A : Prop -> Prop) -> A -> A := fun (A : Prop -> Prop) => sorry\n")
             .expect("parse"),
     );
     let open = report
@@ -1941,19 +1941,7 @@ fn spine_holes_without_a_known_template_stay_open() {
     assert!(open.refine_template.is_none());
 }
 
-#[test]
-fn debug_hover_rows_for_demo_k() {
-    let src = "theorem demo_K : (a : Prop) -> a -> a :=\n  fun (a : Prop) => fun (h : a) => h\n";
-    let report = check_document(&parse(src).expect("parse"));
-    for h in &report.hovers {
-        println!(
-            "ROW span {}..{} (line {} col {}): {:?}",
-            h.span.start.offset, h.span.end.offset, h.span.start.line, h.span.start.column, h.text
-        );
-    }
-}
-
-// ---- sorry（与官方 Lean 同义的占位符，等价 ???）----
+// ---- sorry（与官方 Lean 同义的占位符，等价 sorry）----
 
 #[test]
 fn sorry_is_a_hole_and_stays_an_open_exercise() {
@@ -2005,7 +1993,7 @@ fn sorry_outside_the_answer_tail_is_still_misplaced() {
             .errors
             .iter()
             .any(|e| e.kind == ErrorKind::ElabHoleMisplaced),
-        "sorry in a non-tail position follows the ??? rules: {:?}",
+        "sorry in a non-tail position follows the sorry rules: {:?}",
         report.errors
     );
 }
@@ -2046,4 +2034,34 @@ fn sorry_is_highlighted_as_a_hole() {
 
 fn src_slice_of(src: &str, span: crate::Span) -> &str {
     &src[span.start.offset..span.end.offset]
+}
+// ---- 声明签名 hover（ty_text）----
+
+#[test]
+fn decl_state_carries_kernel_rendered_signature() {
+    let src = "axiom True : Prop\n\
+               axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem t : True := sorry\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let and_intro = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("And.intro"))
+        .expect("And.intro");
+    let ty = and_intro
+        .ty_text
+        .as_deref()
+        .expect("axiom carries signature");
+    assert!(
+        ty.contains("And a b") && ty.contains("forall") || ty.contains("->"),
+        "signature should be the kernel-rendered type: {ty}"
+    );
+    // 开放练习：ty_text 来自 elaborated type
+    let t = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("open theorem");
+    assert_eq!(t.ty_text.as_deref(), Some("True"), "open decl signature");
 }

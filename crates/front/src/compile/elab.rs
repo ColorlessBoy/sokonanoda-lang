@@ -577,7 +577,7 @@ pub(crate) fn elab_expr<'a>(
         }
         Expr::Hole { span } => Err(CompileError::elab(
             ErrorKind::ElabHoleMisplaced,
-            "`???` is only allowed as the value of an open exercise",
+            "`sorry` is only allowed as the value of an open exercise",
             *span,
         )),
         Expr::App { fun, arg, span } => {

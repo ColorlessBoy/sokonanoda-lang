@@ -75,10 +75,10 @@ In `repl`, declarations accumulate line by line. Commands:
 ```text
 proof> #prove {a : Prop} -> a -> a
 goal: a -> a
-lambda: fun {a : Prop} => ???
+lambda: fun {a : Prop} => sorry
 proof> intro h
 goal: a
-lambda: fun {a : Prop} => fun (h : a) => ???
+lambda: fun {a : Prop} => fun (h : a) => sorry
 proof> exact h
 lambda: fun {a : Prop} => fun (h : a) => h
 proof> done
@@ -91,7 +91,7 @@ and runs the complete sokonanoda kernel over them:
 ```text
 checked declaration id
 id: Prop -> Prop
-exercise open (fill the ???)
+exercise open (fill the sorry)
 ```
 
 Numeric universes are available as `Sort 0`/`Sort 1`/… (`Prop` and `Type` are
@@ -131,7 +131,7 @@ Code agents are first-class users of this repo, two ways:
 
 - **As the teacher** (product vision): load the
   `skills/sokonanoda-teacher` Agent Skill — it packages the teaching loop
-  (write `???` exercises on the canvas → run the kernel via `--json` events →
+  (write `sorry` exercises on the canvas → run the kernel via `--json` events →
   decide the next step from `decl.checked` / `exercise.open` / `diagnostic`).
   See `skills/README.md` for installation.
 - **As the developer**: `skills/sokonanoda-dev` packages the hard rules

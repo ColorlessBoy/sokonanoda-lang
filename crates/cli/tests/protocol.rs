@@ -285,7 +285,7 @@ fn parse_error_diagnostic_shape() {
 
 #[test]
 fn open_exercise_is_success_state() {
-    let (out, events) = run_json_stdin("example : Prop -> Prop := ???\n");
+    let (out, events) = run_json_stdin("example : Prop -> Prop := sorry\n");
     assert_eq!(
         out.status.code(),
         Some(0),
@@ -294,7 +294,7 @@ fn open_exercise_is_success_state() {
     );
     assert!(
         events.iter().any(|e| event_type(e) == "exercise.open"),
-        "exercise.open must be emitted for an unfilled ???: {events:?}"
+        "exercise.open must be emitted for an unfilled sorry: {events:?}"
     );
     assert!(
         diagnostics(&events).is_empty(),

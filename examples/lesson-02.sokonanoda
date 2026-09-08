@@ -6,4 +6,4 @@ def two : Nat := 1 + 1
 
 #reduce 2 + 3
 
-example : Nat := ???
+example : Nat := sorry

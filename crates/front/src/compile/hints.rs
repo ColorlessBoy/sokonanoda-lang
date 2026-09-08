@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn ladder_order_is_source_order() {
-        let src = "-- soko:hint 第一层\n-- soko:hint 第二层\nexample : Prop := ???\n";
+        let src = "-- soko:hint 第一层\n-- soko:hint 第二层\nexample : Prop := sorry\n";
         let hints = source_hints(src);
         assert_eq!(
             hints.iter().map(|h| h.text.as_str()).collect::<Vec<_>>(),
@@ -97,14 +97,14 @@ mod tests {
 
     #[test]
     fn empty_or_whitespace_text_is_not_a_hint() {
-        let src = "-- soko:hint\n-- soko:hint    \nexample : Prop := ???\n";
+        let src = "-- soko:hint\n-- soko:hint    \nexample : Prop := sorry\n";
         assert!(source_hints(src).is_empty());
     }
 
     #[test]
     fn attach_to_the_next_declaration_only() {
         let src = "-- soko:hint for-a\ndef a : Nat := 1\n\
-                   -- soko:hint for-b\n-- soko:hint also-b\nexample : Prop := ???\n\
+                   -- soko:hint for-b\n-- soko:hint also-b\nexample : Prop := sorry\n\
                    -- soko:hint ignored-after-last\n";
         let mut report = super::super::check_document_with(
             &crate::parser::parse(src).expect("parses"),
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn directives_skip_non_declaration_commands() {
         // A `#check` between the hint and the exercise must not consume it.
-        let src = "-- soko:hint for-example\n#check Nat\nexample : Prop := ???\n";
+        let src = "-- soko:hint for-example\n#check Nat\nexample : Prop := sorry\n";
         let mut report = super::super::check_document_with(
             &crate::parser::parse(src).expect("parses"),
             &Default::default(),

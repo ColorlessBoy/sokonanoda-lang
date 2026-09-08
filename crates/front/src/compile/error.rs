@@ -127,7 +127,7 @@ impl ErrorKind {
                 "这个 binder 缺少类型标注。教学版本要求写全类型，例如 fun (x : Nat) => x。"
             }
             ElabHoleMisplaced => {
-                "??? 只能出现在声明的值（答案区）位置，例如 example : T := ???。"
+                "sorry 只能出现在声明的值（答案区）位置，例如 example : T := sorry。"
             }
             ElabDuplicateDeclaration => {
                 "这个名字已经定义过了。Lean 里每个名字只能声明一次；换一个名字，或删掉前面的声明。"

@@ -16,7 +16,7 @@
 //!   保持不变，批量判定一次成型）；
 //! * spine 且只剩一个洞时用 [`judge_hole_fill`]——填好的整份证明交完整
 //!   kernel 裁决（最忠实：其余实参也随文档一起被查）；
-//! * 多洞 spine 的其余洞保持 `???` 会让合成声明仍是 open 练习（kernel 无从
+//! * 多洞 spine 的其余洞保持 `sorry` 会让合成声明仍是 open 练习（kernel 无从
 //!   整体裁决，见 `judge_hole_fill`），所以逐洞改用 [`judge_terms`] 按
 //!   `DeclState.sub_goals[i].ty`（walk 恢复的期望类型）判定
 //!   "假设 ≡ 该子洞期望类型"——同样的合成声明裁判语义，判定对象换成子洞
@@ -43,11 +43,11 @@ pub enum SuggestionKind {
     /// kernel 验证过的 `Eq.refl` 候选。
     Rfl { term: String },
     /// kernel 拒绝的失败声明且答案以 lambda 开头：保留已写的 lambda 前缀，
-    /// 把第一个非 lambda 部分整体换成 `???`（前缀 + `???` 的全文，直接可作
+    /// 把第一个非 lambda 部分整体换成 `sorry`（前缀 + `sorry` 的全文，直接可作
     /// 编辑的 new_text）。结构生成、kernel 在学生下次编辑后终审。
     Reset { new_text: String },
     /// kernel 拒绝的失败声明：按声明类型的形状生成的重启骨架
-    /// `fun (x : A) => … => ???`，替换整个值位。结构生成、kernel 在学生
+    /// `fun (x : A) => … => sorry`，替换整个值位。结构生成、kernel 在学生
     /// 下次编辑后终审（docs/design-kernel-taxonomy.md §2）。
     Restart { skeleton: String },
 }
@@ -201,7 +201,7 @@ struct SkeletonLayer {
 }
 
 /// 失败声明的「重启骨架」：按声明类型的形状剥 Pi/Forall 望远镜（≤3 层），
-/// 生成 `fun (x : A) => … => ???`。类型位与 `:=` 都经 tokenize 定位，类型
+/// 生成 `fun (x : A) => … => sorry`。类型位与 `:=` 都经 tokenize 定位，类型
 /// AST 按 span 精确切回原文本——不扫文本、不做文本比对（REQUIREMENTS
 /// §2.8）。类型不可解析或不可剥（非 Pi、binder 无显式类型）时返回 `None`
 /// （不出建议）。
@@ -263,7 +263,7 @@ fn restart_skeleton(decl_src: &str) -> Option<String> {
         }
         named.push((name, layer));
     }
-    let mut skeleton = String::from("???");
+    let mut skeleton = String::from("sorry");
     for (name, layer) in named.iter().rev() {
         let binder = match layer.style {
             BinderKind::Explicit => format!("({name} : {})", layer.ty_text),
@@ -275,7 +275,7 @@ fn restart_skeleton(decl_src: &str) -> Option<String> {
 }
 
 /// 失败声明的「部分重启」：答案以 lambda 开头时，保留已写的 lambda 前缀，
-/// 把第一个非 lambda 部分整体换成 `???`。从值首 token 起按保守规则消费
+/// 把第一个非 lambda 部分整体换成 `sorry`。从值首 token 起按保守规则消费
 /// `fun <binder> =>` 循环——binder 必须是括号/花括号形式（教学语法的
 /// `fun (x : T) => …` / `fun {x : T} => …`），遇到第一个不匹配的 token 就
 /// 停，从它起到值位末尾整体替换。至少剥掉一层才给此建议；整个值不可识别
@@ -317,13 +317,13 @@ fn reset_body_text(decl_src: &str) -> Option<String> {
         return None;
     }
     // 第一个非 lambda token 即 body 起点（值为纯 lambda 链且结尾是 `=>` 的
-    // 病态输入下落到值位末尾，替换结果仍是合法的 `fun … => ???`）。
+    // 病态输入下落到值位末尾，替换结果仍是合法的 `fun … => sorry`）。
     let body_start = tokens
         .get(i)
         .map(|t| t.span.start.offset)
         .unwrap_or(decl_src.len());
     let prefix = decl_src.get(value_start..body_start)?;
-    Some(format!("{prefix}???"))
+    Some(format!("{prefix}sorry"))
 }
 
 /// token 是不是 `fun` 关键字（词法上就是 `Ident("fun")`）。
@@ -520,8 +520,9 @@ mod tests {
 
     #[test]
     fn single_hole_exact_is_kernel_verified_and_first() {
-        let suggestions =
-            suggest_for("example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n");
+        let suggestions = suggest_for(
+            "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n",
+        );
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Exact {
@@ -537,7 +538,7 @@ mod tests {
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem t : (a : Prop) -> (b : Prop) -> (whole : And a b) -> (ha : a) -> (hb : b) -> And a b := \
 fun (a : Prop) => fun (b : Prop) => fun (whole : And a b) => fun (ha : a) => fun (hb : b) => \
-And.intro a b ??? ???\n";
+And.intro a b sorry sorry\n";
 
     #[test]
     fn spine_holes_get_per_hole_exact_not_outer_goal_matches() {
@@ -563,7 +564,7 @@ And.intro a b ??? ???\n";
     const ONE_SUB_HOLE_DOC: &str = "axiom And : Prop -> Prop -> Prop\n\
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem t : (a : Prop) -> (b : Prop) -> (ha : a) -> (hb : b) -> And a b := \
-fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha ???\n";
+fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha sorry\n";
 
     #[test]
     fn one_sub_hole_exact_verifies_the_whole_proof() {
@@ -583,7 +584,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
     fn eq_goal_gets_kernel_verified_rfl() {
         // 数字等式必须显式写 Eq.{1}（Nat : Sort 1；prelude 规则）。
         let suggestions =
-            suggest_for("theorem eq_t : (a : Nat) -> Eq.{1} Nat a a := fun (a : Nat) => ???\n");
+            suggest_for("theorem eq_t : (a : Nat) -> Eq.{1} Nat a a := fun (a : Nat) => sorry\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
@@ -598,7 +599,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
     fn rfl_of_computed_sides_still_verifies() {
         // 目标两边是 Nat.add 1 1 与 2：内核把左边算成 2，rfl 判定通过；
         // 宇宙层级取自目标自身的 Eq.{1}。
-        let suggestions = suggest_for("theorem plus_t : Eq.{1} Nat (Nat.add 1 1) 2 := ???\n");
+        let suggestions = suggest_for("theorem plus_t : Eq.{1} Nat (Nat.add 1 1) 2 := sorry\n");
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
@@ -610,7 +611,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
 
     #[test]
     fn non_eq_goal_gets_no_rfl() {
-        let suggestions = suggest_for("example : Prop -> Prop := ???\n");
+        let suggestions = suggest_for("example : Prop -> Prop := sorry\n");
         let ks = kinds(&suggestions);
         assert!(
             ks.iter().all(|k| !matches!(k, SuggestionKind::Rfl { .. })),
@@ -624,7 +625,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
         // 假设能直接结束目标，也有 kernel 验证过的 rfl：exact 在前。
         let suggestions = suggest_for(
             "theorem t : (a : Nat) -> (h : Eq.{1} Nat 2 2) -> Eq.{1} Nat 2 2 := \
-fun (a : Nat) => fun (h : Eq.{1} Nat 2 2) => ???\n",
+fun (a : Nat) => fun (h : Eq.{1} Nat 2 2) => sorry\n",
         );
         assert_eq!(
             kinds(&suggestions),
@@ -644,7 +645,7 @@ fun (a : Nat) => fun (h : Eq.{1} Nat 2 2) => ???\n",
     const TRIPLE_DOC: &str = "axiom And : Prop -> Prop -> Prop\n\
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem t : (a : Prop) -> (b : Prop) -> (k : a -> b -> And a b) -> a -> b -> And a b := \
-fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
+fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
 
     #[test]
     fn ordering_exact_refine_intro() {
@@ -678,7 +679,7 @@ theorem t : (a : Prop) -> (b : Prop) -> (c : Prop) -> (d : Prop) -> \
 (ha : a) -> (hb : b) -> (hc : c) -> (hd : d) -> Quad a b c d := \
 fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (d : Prop) => \
 fun (ha : a) => fun (hb : b) => fun (hc : c) => fun (hd : d) => \
-Quad.mk a b c d ??? ??? ??? ???\n",
+Quad.mk a b c d sorry sorry sorry sorry\n",
         );
         let ks = kinds(&suggestions);
         assert_eq!(ks.len(), 3, "at most three suggestions per request: {ks:?}");
@@ -697,10 +698,10 @@ Quad.mk a b c d ??? ??? ??? ???\n",
             kinds(&suggestions),
             vec![
                 SuggestionKind::Reset {
-                    new_text: "fun (x : Prop) => ???".to_string(),
+                    new_text: "fun (x : Prop) => sorry".to_string(),
                 },
                 SuggestionKind::Restart {
-                    skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                    skeleton: "fun (a : Prop) => fun (x : a) => sorry".to_string(),
                 },
             ],
             "the Pi telescope is peeled layer by layer; the anonymous Arrow \
@@ -745,10 +746,10 @@ Quad.mk a b c d ??? ??? ??? ???\n",
             kinds(&suggestions),
             vec![
                 SuggestionKind::Reset {
-                    new_text: "fun (x : Prop) => fun (h : x) => ???".to_string(),
+                    new_text: "fun (x : Prop) => fun (h : x) => sorry".to_string(),
                 },
                 SuggestionKind::Restart {
-                    skeleton: "fun (x : Prop) => fun (x2 : x) => ???".to_string(),
+                    skeleton: "fun (x : Prop) => fun (x2 : x) => sorry".to_string(),
                 },
             ],
             "the anonymous domain's default name `x` collides with the outer \
@@ -767,11 +768,11 @@ fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => fun (d : Prop) => 1\n",
             vec![
                 SuggestionKind::Reset {
                     new_text: "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => \
-fun (d : Prop) => ???"
+fun (d : Prop) => sorry"
                         .to_string(),
                 },
                 SuggestionKind::Restart {
-                    skeleton: "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => ???"
+                    skeleton: "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => sorry"
                         .to_string(),
                 },
             ],
@@ -788,10 +789,10 @@ fun (d : Prop) => ???"
             kinds(&suggestions),
             vec![
                 SuggestionKind::Reset {
-                    new_text: "fun (x : Prop) => ???".to_string(),
+                    new_text: "fun (x : Prop) => sorry".to_string(),
                 },
                 SuggestionKind::Restart {
-                    skeleton: "fun {a : Prop} => fun (x : a) => ???".to_string(),
+                    skeleton: "fun {a : Prop} => fun (x : a) => sorry".to_string(),
                 },
             ],
             "an implicit telescope layer stays implicit in the skeleton"
@@ -860,10 +861,10 @@ fun (d : Prop) => ???"
             kinds(&suggestions),
             vec![
                 SuggestionKind::Reset {
-                    new_text: "fun (a : Prop) => fun (h : a) => ???".to_string(),
+                    new_text: "fun (a : Prop) => fun (h : a) => sorry".to_string(),
                 },
                 SuggestionKind::Restart {
-                    skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                    skeleton: "fun (a : Prop) => fun (x : a) => sorry".to_string(),
                 },
             ],
             "the student's own lambda prefix (names and annotations) is kept; \
@@ -886,7 +887,7 @@ fun (d : Prop) => ???"
                     term: "Eq.refl.{1} Nat 2".to_string(),
                 },
                 SuggestionKind::Reset {
-                    new_text: "fun (x : Nat) => ???".to_string(),
+                    new_text: "fun (x : Nat) => sorry".to_string(),
                 },
             ],
             "kernel-verified rfl first, then the prefix-preserving reset"
@@ -903,14 +904,14 @@ fun (d : Prop) => ???"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Restart {
-                skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                skeleton: "fun (a : Prop) => fun (x : a) => sorry".to_string(),
             }],
         );
     }
 
     #[test]
     fn reset_stops_at_the_first_non_lambda_part() {
-        // body 是构造子应用：从 And.intro 起整体换成 ???（含其中未填的洞）。
+        // body 是构造子应用：从 And.intro 起整体换成 sorry（含其中未填的洞）。
         let suggestions = suggest_for_failed(
             "axiom And : Prop -> Prop -> Prop\n\
              example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => And.intro a a\n",
@@ -919,10 +920,10 @@ fun (d : Prop) => ???"
             kinds(&suggestions),
             vec![
                 SuggestionKind::Reset {
-                    new_text: "fun (a : Prop) => fun (h : a) => ???".to_string(),
+                    new_text: "fun (a : Prop) => fun (h : a) => sorry".to_string(),
                 },
                 SuggestionKind::Restart {
-                    skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                    skeleton: "fun (a : Prop) => fun (x : a) => sorry".to_string(),
                 },
             ],
         );
@@ -937,10 +938,10 @@ fun (d : Prop) => ???"
             kinds(&suggestions),
             vec![
                 SuggestionKind::Reset {
-                    new_text: "fun {a : Prop} => fun (h : a) => ???".to_string(),
+                    new_text: "fun {a : Prop} => fun (h : a) => sorry".to_string(),
                 },
                 SuggestionKind::Restart {
-                    skeleton: "fun {a : Prop} => fun (x : a) => ???".to_string(),
+                    skeleton: "fun {a : Prop} => fun (x : a) => sorry".to_string(),
                 },
             ],
         );
@@ -955,7 +956,7 @@ fun (d : Prop) => ???"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Restart {
-                skeleton: "fun (a : Prop) => fun (x : a) => ???".to_string(),
+                skeleton: "fun (a : Prop) => fun (x : a) => sorry".to_string(),
             }],
         );
     }

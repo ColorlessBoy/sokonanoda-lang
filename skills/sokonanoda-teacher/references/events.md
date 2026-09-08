@@ -16,7 +16,7 @@
 {"type": "decl.checked", "human": "checked declaration id", "name": "id"}
 {"type": "expr.typed", "human": "id: Prop -> Prop", "text": "id",
  "inferred_type": "Prop -> Prop", "span": {"start": {"offset": 87, "line": 5, "column": 8}, "end": {"offset": 89, "line": 5, "column": 10}}}
-{"type": "exercise.open", "human": "exercise open (fill the ???)", "name": "double"}
+{"type": "exercise.open", "human": "exercise open (fill the sorry)", "name": "double"}
 {"type": "diagnostic", "stage": "elab", "code": "elab-unknown-identifier",
  "message": "unknown identifier `nate`", "hint": "这个名字还没有被定义。…",
  "span": {"start": {"offset": 18, "line": 1, "column": 19}, "end": {"offset": 22, "line": 1, "column": 23}}}

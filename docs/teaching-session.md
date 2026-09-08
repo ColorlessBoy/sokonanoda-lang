@@ -19,10 +19,10 @@
 
 ## 1. 开课手册（3 步循环）
 
-1. **讲课**：agent 往画布里写 `--` 讲解 + 定义（演示）+ 练习（`???` 洞声明）。
+1. **讲课**：agent 往画布里写 `--` 讲解 + 定义（演示）+ 练习（`sorry` 洞声明）。
    语法点永远先出现在讲解注释里，再出现在练习里（白名单即课程）。
 2. **作答**：学习者编辑画布填洞（支持部分作答：先写几层 fun，最后一层留
-   `???`，剩余目标会显示在 hover/诊断里）。
+   `sorry`，剩余目标会显示在 hover/诊断里）。
 3. **判卷**：agent 跑
    ```bash
    cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
@@ -38,7 +38,7 @@
 | `exercise.open` 持续 | 未做/卡住 | 给一层提示（画布注释里有），永不直接给答案 |
 | `elab-unknown-identifier` | 拼写错 **或** 引用了还没解出的练习（open 声明不进环境） | 先查 open 列表再判拼写；「先做练习 N」 |
 | `elab-duplicate-declaration` | 重名 | 讲“单赋值世界”，换名 |
-| `elab-hole-misplaced` | 洞不在答案尾巴（如 `n + ???`） | 讲“洞 = 剩余目标占位，只能放答案末尾” |
+| `elab-hole-misplaced` | 洞不在答案尾巴（如 `n + sorry`） | 讲“洞 = 剩余目标占位，只能放答案末尾” |
 | `kernel-rejected`（def_eq failed） | 填了类型而不是证明项 / 方向反了 / 宇宙忘了 `.{1}` / 忘了 Not 会展开 | 对比声明类型与所填项的形状，让学习者逐参数预言类型 |
 | `kernel-rejected`（app arg def_eq failed） | 部分应用 / 参数顺序错 | 一起数构造子签名参数 |
 | 无诊断但语义不对（如 `double := fun n => n`） | 内核只判类型不判意图 | 设计“证明形状”的需求（见 two_def 模式） |
@@ -52,18 +52,18 @@
 
 | # | 练习 | 目标误解 | 钥匙（kernel 验证） |
 |---|---|---|---|
-| 1 | `theorem true_is_true : True := ???` | 证明=项；True.intro 已经存在 | `True.intro` |
-| 2 | `and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???` | 类型箭头 ↔ 值 fun 一一对应 | `fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha hb` |
-| 3 | `and_swap : ... And a b -> And b a := ???` | 先消去再构造 | `fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)` |
-| 4 | `ex_falso : (P : Prop) -> False -> P := ???` | False 只能“用”不能“证” | `fun (P : Prop) => fun (h : False) => False.rec P h` |
-| 5 ★ | `and_not_absurd : (a : Prop) -> And a (Not a) -> False := ???` | Not 是黑盒；部分应用陷阱 | `fun (a : Prop) => fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)` |
-| 6 | `def two : Nat := ???` | “数字就是数字”——1+1 是会被内核计算的表达式 | `2`（或 `1 + 1`；`two_def` 闭环回判此值） |
-| 7 | `one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := ???` | rfl 不是咒语，是函数；conv 会计算 | `Eq.refl.{1} Nat (1 + 1)`（`Eq.refl.{1} Nat 2` 也过：conv 双向计算） |
-| 8 | `eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := ???` | 谓词 p 要自己设计（本场最深的一步） | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
-| 9 | `def double : Nat -> Nat := fun (n : Nat) => ???` | 程序不必一次写完；洞下剩余目标 = Nat | `fun (n : Nat) => n + n` |
-| 10 | `def twice : (Nat -> Nat) -> Nat -> Nat := ???` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |
-| 11 | `example : Sort 1 := ???` | “类型没有类型”；Prop=Sort 0，Type=Sort 1 | `Nat` |
-| 12 ★ | `Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := ???` | 宇宙不可怕：就是 8 换成 α/.{u}，隐式 binder ↔ fun {..} | `fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : Eq.{u} α a b) => Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)` |
+| 1 | `theorem true_is_true : True := sorry` | 证明=项；True.intro 已经存在 | `True.intro` |
+| 2 | `and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry` | 类型箭头 ↔ 值 fun 一一对应 | `fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha hb` |
+| 3 | `and_swap : ... And a b -> And b a := sorry` | 先消去再构造 | `fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)` |
+| 4 | `ex_falso : (P : Prop) -> False -> P := sorry` | False 只能“用”不能“证” | `fun (P : Prop) => fun (h : False) => False.rec P h` |
+| 5 ★ | `and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry` | Not 是黑盒；部分应用陷阱 | `fun (a : Prop) => fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)` |
+| 6 | `def two : Nat := sorry` | “数字就是数字”——1+1 是会被内核计算的表达式 | `2`（或 `1 + 1`；`two_def` 闭环回判此值） |
+| 7 | `one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry` | rfl 不是咒语，是函数；conv 会计算 | `Eq.refl.{1} Nat (1 + 1)`（`Eq.refl.{1} Nat 2` 也过：conv 双向计算） |
+| 8 | `eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry` | 谓词 p 要自己设计（本场最深的一步） | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
+| 9 | `def double : Nat -> Nat := fun (n : Nat) => sorry` | 程序不必一次写完；洞下剩余目标 = Nat | `fun (n : Nat) => n + n` |
+| 10 | `def twice : (Nat -> Nat) -> Nat -> Nat := sorry` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |
+| 11 | `example : Sort 1 := sorry` | “类型没有类型”；Prop=Sort 0，Type=Sort 1 | `Nat` |
+| 12 ★ | `Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry` | 宇宙不可怕：就是 8 换成 α/.{u}，隐式 binder ↔ fun {..} | `fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : Eq.{u} α a b) => Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)` |
 
 收尾：`two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two` —— 画布里先
 注释着，练习 6 解出后放开；变绿 = 内核回判了练习 6 的值。

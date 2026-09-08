@@ -2,7 +2,7 @@
 -- unit5-induction-nat-rec-solution.sokonanoda —— 单元⑤ 解答钥匙（agent 专用）
 --
 -- 与学习者画布 course/unit5-induction-nat-rec.sokonanoda 一一对应，
--- 所有 ??? 已填入经完整内核验证的答案。勿直接发给学习者。
+-- 所有 sorry 已填入经完整内核验证的答案。勿直接发给学习者。
 -- ==========================================================================
 
 -- 显式 inductive 块（与画布一致，取代整个文件里的 prelude Nat）：

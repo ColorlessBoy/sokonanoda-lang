@@ -63,3 +63,26 @@ jobs:
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \
             | cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json \
             | python3 -c 'import json,sys; [json.loads(l) for l in sys.stdin]'
+
+      - name: Build LSP server for editor integration tests
+        # editor/vscode 的集成测试不自己构建服务器：它只发现 target/ 下的
+        # 二进制（extension.js 的自动发现逻辑），所以必须先构建。
+        run: cargo build -p sokonanoda-lsp --locked
+
+      - name: Setup Node for editor integration tests
+        uses: actions/setup-node@v4
+        with:
+          # @vscode/test-electron 3.x 要求 node >= 22。
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editor/vscode/package-lock.json
+
+      - name: Install editor test dependencies
+        working-directory: editor/vscode
+        run: npm ci --no-fund --no-audit
+
+      - name: VS Code extension integration tests
+        # Linux 上 Electron 需要显示器：xvfb 在 ubuntu-latest 镜像里预装，
+        # 按 @vscode/test-electron 文档用 xvfb-run 包一层。
+        working-directory: editor/vscode
+        run: xvfb-run -a npm test

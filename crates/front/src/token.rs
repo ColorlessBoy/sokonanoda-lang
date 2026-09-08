@@ -126,20 +126,21 @@ impl<'a> Lexer<'a> {
                     span: Span::new(start, end),
                 })
             }
+            // `sorry` 已移除（2026-09-07，学习者反馈）：未完成证明的占位符
+            // 统一为 `sorry`（与官方 Lean 一致）。遇到 `?` 给出教学引导。
             '?' => {
                 self.bump();
-                if self.peek() == Some('?') {
+                while self.peek() == Some('?') {
                     self.bump();
-                    if self.peek() == Some('?') {
-                        self.bump();
-                        let end = self.pos();
-                        return Ok(Token {
-                            kind: TokenKind::Hole,
-                            span: Span::new(start, end),
-                        });
-                    }
                 }
-                Err(self.err_unexpected(start, "expected `???`", "?"))
+                Err(Diagnostic::new(
+                    DiagnosticKind::UnexpectedToken {
+                        found: "?".to_string(),
+                        expected: "`sorry`".to_string(),
+                    },
+                    Span::new(start, self.pos()),
+                    "??? 已移除：未完成的证明请写 sorry（与官方 Lean 一致）".to_string(),
+                ))
             }
             ':' => {
                 self.bump();
@@ -303,12 +304,16 @@ mod tests {
     }
 
     #[test]
-    fn triple_question_lexes_as_hole() {
-        let toks = tokenize("???").unwrap();
-        assert_eq!(toks[0].kind, TokenKind::Hole);
-        assert_eq!(toks[0].span.start.line, 1);
-        assert_eq!(toks[0].span.start.column, 1);
+    fn sorry_lexes_as_ident_and_parser_treats_it_as_hole() {
+        // `sorry` 是标识符 token（parse_atom 将其解释为洞）；
+        // `???` 已移除，遇到 `?` 由 lexer 报教学错误。
+        let toks = tokenize("sorry").unwrap();
+        assert_eq!(toks[0].kind, TokenKind::Ident("sorry".to_string()));
         assert_eq!(toks[1].kind, TokenKind::Eof);
+        assert!(
+            tokenize("???").is_err(),
+            "??? must be rejected with guidance"
+        );
     }
 
     #[test]

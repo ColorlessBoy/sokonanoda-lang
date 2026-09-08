@@ -293,7 +293,7 @@ fn classify_ident(text: &str, offset: usize, names: &Names) -> SemanticKind {
     if let Some(kind) = names.special.get(&offset) {
         return *kind;
     }
-    // `sorry` 是未完成证明的占位符（与 ??? 等价），高亮同 ???。
+    // `sorry` 是未完成证明的占位符（与 sorry 等价），高亮同 sorry。
     if text == "sorry" {
         return SemanticKind::Hole;
     }
@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn classifies_def_example_hole_number_sort() {
-        let src = "def two : Nat := 2\nexample : Sort 1 := ???\n";
+        let src = "def two : Nat := 2\nexample : Sort 1 := sorry\n";
         let spans = semantic_tokens(src);
         assert_eq!(find(src, &spans, "def").kind, SemanticKind::Keyword);
         assert_eq!(find(src, &spans, "two").kind, SemanticKind::DefName);
@@ -417,7 +417,7 @@ mod tests {
         assert_eq!(find(src, &spans, "example").kind, SemanticKind::Keyword);
         assert_eq!(find(src, &spans, "Sort").kind, SemanticKind::Sort);
         assert_eq!(find(src, &spans, "1").kind, SemanticKind::Number);
-        assert_eq!(find(src, &spans, "???").kind, SemanticKind::Hole);
+        assert_eq!(find(src, &spans, "sorry").kind, SemanticKind::Hole);
         // 有序且互不重叠
         for pair in spans.windows(2) {
             assert!(pair[0].span.start.offset < pair[1].span.start.offset);

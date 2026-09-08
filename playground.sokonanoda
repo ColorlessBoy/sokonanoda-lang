@@ -3,9 +3,9 @@
 --
 -- 逻辑先行：先证明命题，Sort 等你自然问起“函数类型的类型”时再揭晓。
 -- 规则：
---   * 带 ??? 的声明是练习。把 ??? 换成你的答案，由完整内核判定对错。
---   * ??? 也可以写成 sorry（和官方 Lean 一样的占位符，两者等价）。
---   * 部分作答是合法状态：先写前几层 fun，最后一层留 ???，剩余目标会显示出来。
+--   * 带 sorry 的声明是练习。把 sorry 换成你的答案，由完整内核判定对错。
+--   * sorry 也可以写成 sorry（和官方 Lean 一样的占位符，两者等价）。
+--   * 部分作答是合法状态：先写前几层 fun，最后一层留 sorry，剩余目标会显示出来。
 --   * 悬停任何表达式都能看到它的类型（编辑器里）。
 --   * 判定永远走内核：填完的每一行放回官方 Lean 也合法。
 -- ==========================================================================
@@ -147,6 +147,7 @@ theorem demo_K : (a : Prop) -> a -> a :=
 --    最后用 And.intro 拼装——同一个游戏。
 --
 -- ⑤ 优先级与作用范围（读长类型不迷路）：
+--    感觉复杂？拆开只有两条规则，而且全课程复用这两条，不再新增：
 --    · -> 右结合：a -> b -> c 就是 a -> (b -> c)。
 --    · fun 的身体延伸到"能吃到的最远处"——所以在
 --      fun (a : Prop) => a -> False 里，-> 属于 fun 的身体，
@@ -167,26 +168,27 @@ theorem true_is_true : True := True.intro
 -- soko:hint 思路：类型里的箭头对应值里的 fun——写证明就是一串 fun 加最后一步构造。
 -- soko:hint 目标形态：最外层是四个箭头：先 fun (a : Prop) => …，每写一层就看剩余目标。
 -- soko:hint 关键件：最后一步用 And.intro，它吃 a、b 和两个证明，装出 And a b。
-theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := And.intro
 
 -- 练习 3：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。
 -- soko:hint 思路：先把拿到的 And a b 拆开，再按新顺序装回去——先消去，再构造。
 -- soko:hint 目标形态：三层箭头：fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …，最后要造出 And b a。
 -- soko:hint 关键件：And.left / And.right 从 h 里取出两半；And.intro b a … 换个顺序装回去。
-theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := ???
+theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := 
+  fun (a : Prop) (b : Prop) (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)
 
 -- 练习 4：False 没有证明（没有构造子），但可以“用”它：从矛盾推出任何 P。
 -- soko:hint 思路：False 证不出来（没有构造子），但可以“被使用”——从矛盾推出任何命题。
 -- soko:hint 目标形态：两层箭头：先 fun (P : Prop) =>，再吃掉 h : False，剩余目标是任意的 P。
 -- soko:hint 关键件：False.rec——它吃一个目标命题和一份 False 的证明，吐出那个命题的证明。
-theorem ex_falso : (P : Prop) -> False -> P := ???
+theorem ex_falso : (P : Prop) -> False -> P := False.rec
 
 -- 练习 5（挑战 ★）：And a (Not a) 是自相矛盾的组合。拆开它，把 Not a 那一半
 -- 当作函数应用到另一半。提示：Not a 会展开成 a -> False。
 -- soko:hint 思路：And 把 a 和 Not a 打包在一起；Not a 展开后是 a -> False——一个“吃 a”的函数。
 -- soko:hint 目标形态：两层 fun 拿到 a 和 h : And a (Not a) 之后，目标就是 False 本身。
 -- soko:hint 关键件：And.right 取出 Not a 那一半、And.left 取出 a 那一半；把前者当函数应用于后者。
-theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := ???
+theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 单元② 等式与 rfl（先认识一个具体类型：数字）
@@ -209,14 +211,14 @@ def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
 -- soko:hint 思路：这个洞里放的不是证明，是一个类型为 Nat 的普通表达式。
 -- soko:hint 目标形态：目标就是 Nat 本身，没有箭头也没有假设——直接给值。
 -- soko:hint 关键件：数字字面量就是合法项；填好后记得放开 two_def，让内核回判它的值。
-def two : Nat := ???
+def two : Nat := sorry
 
 -- 练习 7（rfl 会计算）：证明 1 + 1 = 2。提示：Eq.refl.{1} 的第一个参数给
 -- Nat，第二个参数给等号左边；内核会把左边算出来，发现就是 2。
 -- soko:hint 思路：rfl 不是咒语而是函数：Eq.refl 能证任何“两边本来就是同一个值”的等式。
 -- soko:hint 目标形态：内核会把 1 + 1 算成 2，所以 Eq.{1} Nat (1 + 1) 2 两边本来就相等。
 -- soko:hint 关键件：Eq.refl.{1}——第一个参数给类型 Nat，第二个参数给等号一边的表达式。
-theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := ???
+theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry
 
 -- 练习 8（自己造“对称”，本场最深的一步）：从 a = b 推出 b = a。
 -- 关键一步：subst 需要你**自己设计**谓词 p。取
@@ -225,7 +227,7 @@ theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := ???
 -- soko:hint 思路：没有现成的“对称”引理——要自己设计一个谓词 p，交给 Eq.subst 沿 h 替换。
 -- soko:hint 目标形态：三层 fun 拿到 a、b、h 之后，目标是 b = a；选一个 p，让 p b 恰好是它、p a 又容易证。
 -- soko:hint 关键件：Eq.subst.{1} 按签名给全参数；p 的配方就是上方讲解里“x = a”的形状。
-theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := ???
+theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry
 
 -- 收尾（练习 6 的闭环）：解出练习 6 后，把下面这行的注释去掉，它必须变绿
 -- —— 这是内核在“证明”你的 two 确实等于 1 + 1。
@@ -246,7 +248,7 @@ def add1 : Nat -> Nat := fun n => n + 1
 -- soko:hint 思路：洞在 lambda 体内——外层已经确定了 n : Nat，程序可以分步写完。
 -- soko:hint 目标形态：剩余目标是 Nat：用 n 凑出一个翻倍的表达式。
 -- soko:hint 关键件：+ 是真正的加法——把 n 和 n 组合起来。
-def double : Nat -> Nat := fun (n : Nat) => ???
+def double : Nat -> Nat := fun (n : Nat) => sorry
 
 -- 练习 10（高阶函数）：twice 接收一个函数 f，返回“把 f 用两次”的函数。
 -- 注意类型 (Nat -> Nat) -> Nat -> Nat：括号是分组不是应用。
@@ -254,7 +256,7 @@ def double : Nat -> Nat := fun (n : Nat) => ???
 -- soko:hint 思路：函数是一等公民——f 像普通值一样，可以被使用任意多次。
 -- soko:hint 目标形态：两层箭头：先 fun (f : Nat -> Nat) =>，再 fun (x : Nat) =>，最后返回一个 Nat。
 -- soko:hint 关键件：把 f 用在 x 上得到一个 Nat，再对结果再用一次 f；括号是分组不是应用。
-def twice : (Nat -> Nat) -> Nat -> Nat := ???
+def twice : (Nat -> Nat) -> Nat -> Nat := sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 单元④ 宇宙：函数类型的类型
@@ -277,7 +279,7 @@ def twice : (Nat -> Nat) -> Nat -> Nat := ???
 -- soko:hint 思路：给“住在 Sort 1 里的东西”报出一个名字——想想你反复在用的那个数据类型。
 -- soko:hint 目标形态：目标是 Sort 1 本身（也叫 Type），所以答案是一个类型名，不是一个值。
 -- soko:hint 关键件：单元②一直在用的 Nat 就住在 Sort 1。
-example : Sort 1 := ???
+example : Sort 1 := sorry
 
 -- 练习 12（毕业 ★）：把练习 8 的“对称”推广到任意宇宙层级。
 -- 照抄那份配方：把 Nat 换成 α、把 .{1} 换成 .{u}。注意第一个 binder 是
@@ -285,4 +287,4 @@ example : Sort 1 := ???
 -- soko:hint 思路：把练习 8 的配方推广到任意宇宙——完全同构，只是 Nat 换成 α、.{1} 换成 .{u}。
 -- soko:hint 目标形态：第一个 binder 是隐式的 {α : Sort u}：值一侧先写 fun {α : Sort u} =>，后面照旧三层 fun。
 -- soko:hint 关键件：还是 Eq.subst.{u} 加 Eq.refl.{u} 那套；谓词 p 换成“x = a”在 α 上的版本。
-theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := ???
+theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry

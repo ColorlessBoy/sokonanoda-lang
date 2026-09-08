@@ -350,7 +350,7 @@ impl Parser {
                 sort: SortKind::Prop,
                 span: tok.span,
             }),
-            // `sorry`（与官方 Lean 同义）：未完成证明的占位符，等价于 ???。
+            // `sorry`（与官方 Lean 同义）：未完成证明的占位符，等价于 sorry。
             // 只在表达式位置拦截；声明名字走各自的语法路径不受影响。
             TokenKind::Ident(name) if name == "sorry" => Ok(Expr::Hole { span: tok.span }),
             TokenKind::Ident(name) if name == "Type" => Ok(Expr::Sort {
@@ -661,7 +661,7 @@ mod tests {
         let src = r#"
 def id : Prop -> Prop := fun (x : Prop) => x
 #check id
-example : Prop -> Prop := ???
+example : Prop -> Prop := sorry
 "#;
         let file = parse(src).unwrap();
         assert_eq!(file.commands.len(), 3);
@@ -802,7 +802,7 @@ end
 
     #[test]
     fn example_keeps_hole_in_value_position() {
-        let file = parse("example : Prop -> Prop := ???\n").unwrap();
+        let file = parse("example : Prop -> Prop := sorry\n").unwrap();
         let Command::Example { ty, val, .. } = &file.commands[0] else {
             panic!("expected example");
         };

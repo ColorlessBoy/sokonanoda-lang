@@ -2,8 +2,8 @@
 -- unit5-induction-nat-rec.sokonanoda —— 单元⑤ 显式归纳与递归
 --
 -- 规则：
---   * 带 ??? 的声明是练习。把 ??? 换成你的答案，由完整内核判定对错。
---   * 部分作答是合法状态：先写前几层 fun，最后一层留 ???。
+--   * 带 sorry 的声明是练习。把 sorry 换成你的答案，由完整内核判定对错。
+--   * 部分作答是合法状态：先写前几层 fun，最后一层留 sorry。
 --   * 判定永远走内核：填完的每一行放回官方 Lean 也合法。
 -- ==========================================================================
 
@@ -51,7 +51,7 @@ def three : Nat := succ two
 -- soko:hint 思路：数字不再有字面量的魔法——现在用构造子一层层叠出来；环境里已经有 three。
 -- soko:hint 目标形态：目标就是 Nat：在 three 的基础上再叠一层。
 -- soko:hint 关键件：succ——吃一个 Nat、返回“下一个” Nat 的构造子。
-def four : Nat := ???
+def four : Nat := sorry
 
 -- 练习 2（递归定义 double）：对 zero 返回 zero；对 succ k，
 -- 用归纳结果 ih 造出 succ (succ ih)。motive 全程是常函数 (fun (x : Nat) => Nat)。
@@ -59,7 +59,7 @@ def four : Nat := ???
 -- soko:hint 思路：递归定义 = 选好 Nat.rec 的三样东西：motive、zero 处的值 mz、步进函数 ms，最后喂 n。
 -- soko:hint 目标形态：外层 fun (n : Nat) => Nat.rec … n；motive 全程是常函数 fun (x : Nat) => Nat，zero 处返回 zero。
 -- soko:hint 关键件：Nat.rec.{1} 按 motive -> mz -> ms -> n 给全；ms 吃 k 和归纳结果 ih——想想 succ k 的翻倍该比 ih 多叠几个 succ。
-def double : Nat -> Nat := ???
+def double : Nat -> Nat := sorry
 
 -- 练习 3（加法）：add m n 从 m 出发做归纳：zero 处返回 n（“数 zero 次”）；
 -- succ k 处用 ih 造 succ ih（“多叠一层”）。
@@ -67,7 +67,7 @@ def double : Nat -> Nat := ???
 -- soko:hint 思路：还是那三样东西，但归纳变量换成 m：“数 zero 次”就是 n 本身，“多叠一层”就是 succ ih。
 -- soko:hint 目标形态：fun (m : Nat) => fun (n : Nat) => Nat.rec … m——注意最后喂的是 m（归纳变量），n 是起点值。
 -- soko:hint 关键件：Nat.rec.{1}，motive 仍是常函数；mz 处放 n（zero 次的结果），ms 吃 k 和 ih、只叠一层 succ。
-def add : Nat -> Nat -> Nat := ???
+def add : Nat -> Nat -> Nat := sorry
 
 -- 收尾（内核回判）：解完练习 3 后，把下面这行的注释去掉。
 -- 它必须变绿 —— add two two 就是四层 succ，这是 iota 在替你数数。

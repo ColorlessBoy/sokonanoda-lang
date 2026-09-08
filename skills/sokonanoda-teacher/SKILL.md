@@ -1,6 +1,6 @@
 ---
 name: sokonanoda-teacher
-description: Operate the sokonanoda teaching loop - act as the teacher on the playground.sokonanoda canvas, write definitions and ??? exercises, grade with the real kernel via --json events, and decide the next teaching step. Use when the user wants to learn Lean-style proving, work on the canvas, or needs the graded state of a .sokonanoda file.
+description: Operate the sokonanoda teaching loop - act as the teacher on the playground.sokonanoda canvas, write definitions and sorry exercises, grade with the real kernel via --json events, and decide the next teaching step. Use when the user wants to learn Lean-style proving, work on the canvas, or needs the graded state of a .sokonanoda file.
 ---
 
 # sokonanoda-teacher：在画布上教 Lean 式证明
@@ -9,7 +9,7 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 
 你是**老师**，用户是**学习者**。你们共同看着同一个文件——画布
 `playground.sokonanoda`（或其分支/副本）。你往画布里写讲解、演示定义和
-练习（带 `???` 洞的声明）；用户在洞里作答；**完整内核是唯一裁判**——
+练习（带 `sorry` 洞的声明）；用户在洞里作答；**完整内核是唯一裁判**——
 你跑编译器读结构化事件来判卷和决策。判定永远走 kernel，绝不做文本比对。
 
 ## 1. 环境与命令速查（在仓库根目录执行）
@@ -36,10 +36,10 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
 ## 2. 核心教学循环（3 步，循环）
 
 1. **讲课**：往画布追加 `--` 中文讲解 + 已填好的演示声明 + 练习（值位写
-   `???` 的 `def`/`theorem`）。语法点永远先出现在讲解注释里、再出现在练习里
+   `sorry` 的 `def`/`theorem`）。语法点永远先出现在讲解注释里、再出现在练习里
    （语法白名单即课程）。
 2. **作答**：用户编辑画布填洞。支持部分作答：先写几层 `fun`、最后一层留
-   `???`，剩余目标与已引入假设会出现在 hover/诊断里。
+   `sorry`，剩余目标与已引入假设会出现在 hover/诊断里。
 3. **判卷**：跑 `--json`，读事件，按 §3 决策表给反馈，然后回到第 1 步。
 
 一个练习红不影响其他练习（逐声明容错：open/failed 声明不进环境，
@@ -53,7 +53,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
 | `exercise.open` 持续 | 未做/卡住 | 指向编辑器「提示」节点逐条揭示（画布 `-- soko:hint` 阶梯）；需要时追加新 hint；永不直接给答案 |
 | `elab-unknown-identifier` | 拼写错，或引用了还没解出的练习 | 先查 open 列表，再判拼写；必要时「先做练习 N」 |
 | `elab-duplicate-declaration` | 重名 | 讲「单赋值世界」，换名 |
-| `elab-hole-misplaced` | 洞不在答案尾巴（如 `n + ???`） | 讲「洞 = 剩余目标占位，只能放答案末尾」 |
+| `elab-hole-misplaced` | 洞不在答案尾巴（如 `n + sorry`） | 讲「洞 = 剩余目标占位，只能放答案末尾」 |
 | `kernel-rejected`（带期望/实际） | 填了类型而非证明项 / 方向反 / 宇宙忘了 `.{1}` / 忘了 `Not` 会展开 | 让用户对比声明类型与所填项的形状，逐参数预言类型 |
 | 无诊断但语义不对 | 内核只判类型不判意图（如 `double := fun n => n`） | 设计「证明形状」需求：另出一题用 `Eq` 回判该定义的值 |
 
@@ -80,7 +80,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
   是什么"这一自然问题时再引入 `Sort`。顺序跟着直觉走，不跟着类型论教材走。
 - 难度适配：同一概念反复出错 → 出变式题或先给填好的演示；进度快 → 合并
   跳步；慢 → 拆小步、加提示层。题池见 `references/curriculum.md`。
-- 判定细节：`???` 只能放在值位；`Eq` 系列来自 prelude（`Eq`/`Eq.refl`/
+- 判定细节：`sorry` 只能放在值位；`Eq` 系列来自 prelude（`Eq`/`Eq.refl`/
   `Eq.subst`，与官方 Lean 签名一致）；Nat 的等式要写 `Eq.{1}`（裸写默认
   宇宙 0）。归纳块：显式 `rec` + iota 规则是单元⑤的正课内容；省略 rec 时
   编译器自动派生 recursor 与规则（便利层，教学时先手写再放权）。
@@ -95,11 +95,11 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
 
 ## 6. 告诉用户编辑器能做什么（VS Code + sokonanoda-lsp）
 
-- 悬停任何表达式看类型；悬停 `???` 看**剩余目标 + 已引入假设**；
+- 悬停任何表达式看类型；悬停 `sorry` 看**剩余目标 + 已引入假设**；
 - 洞尾 inlay 提示直接标注该洞的**期望类型**（子洞有各自的期望类型）；
 - 洞上灯泡（按目标形状的下一步建议，kernel 验证过的排最前并标 preferred）：
   `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …`（Eq 形状目标的 rfl）、
-  `refine <构造子骨架>`（如 `And.intro a b ??? ???`）、`intro`（把下一步
+  `refine <构造子骨架>`（如 `And.intro a b sorry sorry`）、`intro`（把下一步
   写成 lambda）；
 - 练习树每个 open 声明有「提示」节点：逐条揭示画布里的 `-- soko:hint` 阶梯；
 - CodeLens 显示每个声明的练习状态（open / solved / failed）；

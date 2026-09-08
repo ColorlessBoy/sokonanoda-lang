@@ -25,7 +25,7 @@ Feedback that a REPL would get from a `#` command comes from the editor:
 |---|---|
 | `#check x` | hover on `x` → type |
 | `#reduce e` | command/inline action → reduced value |
-| `#prove` | goal view + code actions over the `???` hole |
+| `#prove` | goal view + code actions over the `sorry` hole |
 | printed errors | `publishDiagnostics` with spans and codes |
 
 The event vocabulary below is the **internal transport** (batch CLI, tests,
@@ -39,7 +39,7 @@ checked declaration <name>
 checked example
 <expr>: <type>
 <expr> => <value>
-exercise open (fill the ???)
+exercise open (fill the sorry)
 <line>:<col>: error[<stage>]: <message>
 ```
 
@@ -57,7 +57,7 @@ payload fields are additive and machine-meaningful.
 | `expr.typed` | `text` (source slice), `inferred_type`, `span` | `#check` |
 | `expr.reduced` | `text` (source slice), `value`, `span` | `#reduce` |
 | `decl.printed` | `name`, `text` | `#print` |
-| `exercise.open` | `name` (optional) | an open answer slot (`def`/`theorem`/`example` with `???` value) |
+| `exercise.open` | `name` (optional) | an open answer slot (`def`/`theorem`/`example` with `sorry` value) |
 | `diagnostic` | `stage`, `code`, `message`, `span` | any error |
 
 Example:
@@ -65,7 +65,7 @@ Example:
 ```json
 {"type":"decl.checked","name":"id","human":"checked declaration id"}
 {"type":"expr.typed","human":"id: Prop -> Prop","inferred_type":"Prop -> Prop","span":{"start":{"offset":52,"line":2,"column":8},"end":{"offset":54,"line":2,"column":10}},"text":"id"}
-{"type":"exercise.open","human":"exercise open (fill the ???)","name":"ex"}
+{"type":"exercise.open","human":"exercise open (fill the sorry)","name":"ex"}
 {"type":"diagnostic","stage":"kernel","code":"kernel-rejected","message":"rejected: def_eq failed","span":{...}}
 ```
 
@@ -136,7 +136,7 @@ same text (plus `hint`). `CompileError` additionally carries the machine fields
 ## Editor semantic tokens
 
 The LSP server implements `textDocument/semanticTokens` (full). Legend:
-KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`???`), FUNCTION
+KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`sorry`), FUNCTION
 (def/theorem names and uses), VARIABLE (axioms, unresolved idents),
 ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
 
@@ -164,8 +164,8 @@ Response:
 ```
 
 - one entry per declaration (all statuses); `goal`/`binders`/`hole` are
-  present for open exercises (`hole` is the exact `???` range);
-- `holes` lists every `???` (multi-hole constructor spines included) as
+  present for open exercises (`hole` is the exact `sorry` range);
+- `holes` lists every `sorry` (multi-hole constructor spines included) as
   objects `{"range": {…}, "id": "<declName>:<index>"}` — the id is stable
   per (declaration, hole order) within a document version (anonymous
   examples use the `example@<line>` name form) and is the stable reference
@@ -184,7 +184,7 @@ Response:
   - `Eq.refl …` — for `Eq`-shaped goals, a `rfl` candidate that the kernel
     validated before it is offered (dropped when rejected);
   - `refine <skeleton>` — a constructor skeleton recovered from the
-    declaration's own axiom/ctor shape (e.g. `And.intro a b ??? ???`);
+    declaration's own axiom/ctor shape (e.g. `And.intro a b sorry sorry`);
     structural, the kernel judges what the learner writes into sub-holes;
   - `intro` — peel the next binder(s) into a lambda prefix.
 

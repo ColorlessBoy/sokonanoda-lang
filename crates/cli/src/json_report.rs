@@ -63,7 +63,7 @@ pub(crate) fn report_json(output: &CompileOutput, src: &str) {
             ExerciseOpen { name } => {
                 let mut event = serde_json::json!({
                     "type": "exercise.open",
-                    "human": "exercise open (fill the ???)",
+                    "human": "exercise open (fill the sorry)",
                 });
                 if let Some(name) = name {
                     event["name"] = serde_json::json!(name);

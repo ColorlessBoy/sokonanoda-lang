@@ -153,9 +153,15 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "echo ok",
-    "package": "vsce package --out sokonanoda.vsix"
+    "package": "vsce package --out sokonanoda.vsix",
+    "test": "vscode-test"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/vscode": "1.85.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^3.1.0"
   }
 }

@@ -248,3 +248,59 @@
   is_preferred 恰一；保守形态识别（多 binder 单 fun 不识别）；两个既有
   重启锚点更新到新梯子，lib.rs 锚点不动。
 - 测试总量（2026-09-07 第十五轮）：**380**。
+
+## VS Code 集成测试（@vscode/test-electron，2026-09-08 新增）
+
+扩展在**真实 VS Code**（Electron）里跑测试，补上此前只有静态契约
+（`crates/cli/tests/extension.rs`）与手测的缺口。框架为官方推荐组合：
+`@vscode/test-cli`（`vscode-test` 命令）+ `@vscode/test-electron`，
+配置在 `editor/vscode/.vscode-test.mjs`，测试是**纯 JS**（与扩展一致，
+无 TS 构建步骤）。
+
+**位置与运行**：
+
+```bash
+cargo build -p sokonanoda-lsp        # 前置：测试绝不自己构建服务器
+cd editor/vscode && npm ci && npm test
+```
+
+- 测试文件：`editor/vscode/src/test/extension.test.js`；
+- 夹具工作区：`editor/vscode/src/test/fixtures/workspace`（最小工作区，
+  不放 `.sokonanoda`——测试文档运行时写进系统临时目录再打开）；
+- CI：`ci.yml` 的 test job 末尾——先 `cargo build -p sokonanoda-lsp`，再
+  node 22 + `npm ci` + `xvfb-run -a npm test`（Linux 上 Electron 需要显示器，
+  xvfb 在 ubuntu-latest 镜像预装）。
+
+**覆盖内容**（4 个用例，全部走真实 kernel，不复刻任何前端逻辑）：
+
+1. **扩展激活**：`getExtension('sokonanoda-lang.sokonanoda')` → `activate()`
+   → `isActive`（隐含客户端 start 成功——服务器找不到时 activate 只弹警告
+   不启动，会在这里暴露）；
+2. **干净文件 0 诊断**：内联 `examples/lesson-01.sokonanoda` 全文 → 等
+   hover 非空作为「服务器已编译完本文档」的 ready 信号（服务器
+   `refresh()` 先发诊断再返回，hover 在其后，见 `crates/lsp/src/lib.rs`）
+   → 断言诊断为空。开放练习 `sorry` 是成功态，不是错误；
+3. **kernel 拒绝带码**：`def bad : Prop -> Type := fun (x : Prop) => x`
+   → 断言诊断含 `kernel-rejected` code、`source == "sokonanoda"`、severity
+   为 Error（与 front 的 Failed 用例同族，走的是同一 kernel 判定）；
+4. **开放练习 hover 非空**：`example : Prop -> Prop := sorry` → 光标落在
+   `sorry` 上断言 hover markup 非空，且该文件 0 诊断。
+
+**与静态契约测试的分工**：`extension.rs` 不需要 Electron，守护清单/入口
+脚本/打包元数据（快、进 `cargo test` 门禁）；本节测试守护**运行时行为**
+（激活→LSP 起进程→诊断/hover 端到端）。两层都在时，扩展的
+manifest 变更与行为回归分别有人管。
+
+**版本注意**：
+
+- `@types/vscode` 必须钉在 `1.85.0`（engines.vscode 的**最小**版本，vsce
+  打包要求 types 不高于 engines）；`@vscode/test-electron` 用 3.x——2.5.2
+  会去找 `MacOS/Electron`，而 VS Code ≥1.136 的二进制已改名 `MacOS/Code`，
+  spawn 直接 ENOENT；3.x 要求 node ≥22（CI 的 setup-node 钉 22）；
+- 首次运行会下载 ~300MB VS Code 到 `editor/vscode/.vscode-test/`（已进
+  .gitignore）；网络不通时会在此失败。
+
+**已知风险**：测试跑的是 VS Code stable（会随上游漂移，xfail 策略是红
+了先看 VS Code 更新日志）；每次 CI 运行都重新下载 VS Code（未加缓存，
+VS Code 下载地址按版本变化，缓存收益低）；Linux CI 首跑验证仍待实际
+workflow 触发确认。

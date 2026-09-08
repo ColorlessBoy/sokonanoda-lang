@@ -73,7 +73,7 @@ fn entry_script_speaks_the_goal_view_protocol() {
     );
     // Server-side hole logic: the client must NOT scan for holes by text.
     assert!(
-        !script.contains("find(\"???\")") && !script.contains("indexOf(\"???\")"),
+        !script.contains("find(\"sorry\")") && !script.contains("indexOf(\"sorry\")"),
         "clients must not re-derive hole positions (ocaml-lsp lesson)"
     );
 }

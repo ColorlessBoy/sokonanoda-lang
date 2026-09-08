@@ -276,8 +276,8 @@ fn repl_prove_shows_partial_lambda_and_checks_done() {
         String::from_utf8_lossy(&out.stderr)
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("lambda: fun {a : Prop} => ???"));
-    assert!(stdout.contains("lambda: fun {a : Prop} => fun (h : a) => ???"));
+    assert!(stdout.contains("lambda: fun {a : Prop} => sorry"));
+    assert!(stdout.contains("lambda: fun {a : Prop} => fun (h : a) => sorry"));
     assert!(stdout.contains("lambda: fun {a : Prop} => fun (h : a) => h"));
     assert!(stdout.contains("checked example"), "stdout: {stdout}");
 }
@@ -371,7 +371,7 @@ fn json_mode_reports_parse_stage_for_lex_errors() {
 
 #[test]
 fn json_mode_open_exercise_is_a_machine_event() {
-    let out = run_args(&["--json"], Some("example : Prop -> Prop := ???\n"));
+    let out = run_args(&["--json"], Some("example : Prop -> Prop := sorry\n"));
     assert!(
         out.status.success(),
         "stderr: {}",
@@ -587,7 +587,7 @@ fn repl_prove_undo_steps_back_and_reports_empty_history() {
     // 第一次 undo：回到只剩 binder a 的状态。
     assert!(stdout.contains("goal: a -> a"), "stdout: {stdout}");
     assert!(
-        stdout.contains("lambda: fun (a : Prop) => ???"),
+        stdout.contains("lambda: fun (a : Prop) => sorry"),
         "stdout: {stdout}"
     );
     // 第二次 undo：回到 #prove 的初始状态。

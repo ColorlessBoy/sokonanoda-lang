@@ -62,7 +62,7 @@ pub(crate) fn report_output(output: &CompileOutput, src: &str, seen_events: usiz
                 println!("{} => {text}", expr_text(src, *span));
             }
             CheckEvent::Printed { name, text } => println!("#print {name} :\n{text}"),
-            CheckEvent::ExerciseOpen { .. } => println!("exercise open (fill the ???)"),
+            CheckEvent::ExerciseOpen { .. } => println!("exercise open (fill the sorry)"),
         }
     }
     for err in &output.errors {

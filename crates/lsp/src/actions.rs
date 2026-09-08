@@ -61,7 +61,7 @@ pub(crate) fn code_actions(
                             push_action(
                                 &mut actions,
                                 format!(
-                                    "保留 fun 前缀，只重置主体为 ???：{}（从剩余目标继续）",
+                                    "保留 fun 前缀，只重置主体为 sorry：{}（从剩余目标继续）",
                                     restart_summary(new_text)
                                 ),
                                 edit_on_hole(uri.clone(), range, new_text.clone()),
@@ -221,13 +221,14 @@ fn intro_count(goal_text: &str) -> Option<usize> {
     (intros > 0).then_some(intros)
 }
 
-/// Locate the `hole`-th `???` inside the declaration (0-based, from the
+/// Locate the `hole`-th `sorry` inside the declaration (0-based, from the
 /// walk-derived `DeclState.holes`); returns the 0-based LSP range covering
 /// the hole. The server derives hole positions from the walk — never by
 /// scanning text.
 pub(crate) fn hole_range_at(text: &str, d: &DeclState, hole: usize) -> Option<Range> {
     let span = d.holes.get(hole)?;
     let (hl, hc) = offset_to_line_col(text, span.start.offset);
+    let (el, ec) = offset_to_line_col(text, span.end.offset);
     // `offset_to_line_col` is 1-based (matching our Spans); LSP wants 0-based.
     Some(Range {
         start: Position {
@@ -235,8 +236,8 @@ pub(crate) fn hole_range_at(text: &str, d: &DeclState, hole: usize) -> Option<Ra
             character: (hc - 1) as u32,
         },
         end: Position {
-            line: (hl - 1) as u32,
-            character: (hc - 1 + 3) as u32,
+            line: (el - 1) as u32,
+            character: (ec - 1) as u32,
         },
     })
 }
@@ -261,7 +262,7 @@ pub(crate) fn edit_on_hole(uri: Url, range: Range, new_text: String) -> Workspac
     }
 }
 
-/// Replace the first `???` inside the declaration with `fun (x : T) => ???`,
+/// Replace the first `sorry` inside the declaration with `fun (x : T) => sorry`,
 /// using the same "tactics build a lambda" machinery as the REPL `#prove`.
 pub(crate) fn intro_edit(
     uri: Url,
@@ -273,14 +274,14 @@ pub(crate) fn intro_edit(
     let mut state = sokonanoda_front::proof::ProofState::start(goal_text).ok()?;
     state.intro("x").ok()?;
     // The intro step is just "peel one binder and keep the hole":
-    //   fun (x : T) => ???
+    //   fun (x : T) => sorry
     let replacement = state.lambda_text();
     Some(edit_on_hole(uri, range, replacement))
 }
 
-/// Replace the first `???` with the constructor skeleton the walk recovered
-/// from the document (auto-filled parameters + one `???` per proof field),
-/// e.g. `And.intro a b ??? ???`. The suggestion is structural (from the
+/// Replace the first `sorry` with the constructor skeleton the walk recovered
+/// from the document (auto-filled parameters + one `sorry` per proof field),
+/// e.g. `And.intro a b sorry sorry`. The suggestion is structural (from the
 /// declaration's own axiom/ctor shape); the kernel stays the judge for
 /// whatever the learner writes into the sub-holes.
 pub(crate) fn refine_edit(uri: Url, text: &str, d: &DeclState) -> Option<WorkspaceEdit> {
@@ -327,9 +328,9 @@ mod tests {
         (service, socket)
     }
 
-    /// 光标放在第一个 `???` 上的 codeAction 响应（只保留 CodeAction）。
+    /// 光标放在第一个 `sorry` 上的 codeAction 响应（只保留 CodeAction）。
     async fn code_actions_for(service: &mut LspService<Backend>, src: &str) -> Vec<CodeAction> {
-        let hole_start = lsp_pos(src, offset_of(src, "???"));
+        let hole_start = lsp_pos(src, offset_of(src, "sorry"));
         let result = call(
             service,
             RpcRequest::build("textDocument/codeAction")
@@ -413,16 +414,16 @@ mod tests {
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem t : (a : Prop) -> (b : Prop) -> (whole : And a b) -> (ha : a) -> (hb : b) -> And a b := \
 fun (a : Prop) => fun (b : Prop) => fun (whole : And a b) => fun (ha : a) => fun (hb : b) => \
-And.intro a b ??? ???\n";
+And.intro a b sorry sorry\n";
 
     #[tokio::test]
     async fn code_action_spine_hole_exact_targets_its_own_hole() {
         let (mut service, _socket) = opened(SPINE_WHOLE_DOC).await;
         let actions = code_actions_for(&mut service, SPINE_WHOLE_DOC).await;
-        let first_hole = lsp_pos(SPINE_WHOLE_DOC, offset_of(SPINE_WHOLE_DOC, "???"));
+        let first_hole = lsp_pos(SPINE_WHOLE_DOC, offset_of(SPINE_WHOLE_DOC, "sorry"));
         let second_hole = lsp_pos(
             SPINE_WHOLE_DOC,
-            SPINE_WHOLE_DOC.rfind("???").expect("2nd hole"),
+            SPINE_WHOLE_DOC.rfind("sorry").expect("2nd hole"),
         );
         // 假设 ha : a 恰是第 1 个子洞的期望类型 → 洞位正确。
         let ha = actions
@@ -452,7 +453,7 @@ And.intro a b ??? ???\n";
     }
 
     const EQ_GOAL_DOC: &str =
-        "theorem eq_t : (a : Nat) -> Eq.{1} Nat a a := fun (a : Nat) => ???\n";
+        "theorem eq_t : (a : Nat) -> Eq.{1} Nat a a := fun (a : Nat) => sorry\n";
 
     #[tokio::test]
     async fn code_action_rfl_only_for_eq_goals() {
@@ -471,13 +472,13 @@ And.intro a b ??? ???\n";
         assert_eq!(text, "Eq.refl.{1} Nat a", "kernel-verified rfl term");
         assert_eq!(
             start,
-            lsp_pos(EQ_GOAL_DOC, offset_of(EQ_GOAL_DOC, "???")),
+            lsp_pos(EQ_GOAL_DOC, offset_of(EQ_GOAL_DOC, "sorry")),
             "rfl targets the hole"
         );
         shutdown(&mut service).await;
 
         // 非 Eq goal 不出 rfl。
-        let arrow_src = "example : Prop -> Prop := ???\n";
+        let arrow_src = "example : Prop -> Prop := sorry\n";
         let (mut service, _socket) = opened(arrow_src).await;
         let actions = code_actions_for(&mut service, arrow_src).await;
         assert!(
@@ -491,7 +492,7 @@ And.intro a b ??? ???\n";
     const TRIPLE_DOC: &str = "axiom And : Prop -> Prop -> Prop\n\
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem t : (a : Prop) -> (b : Prop) -> (k : a -> b -> And a b) -> a -> b -> And a b := \
-fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
+fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
 
     #[tokio::test]
     async fn code_action_marks_exactly_the_first_as_preferred() {
@@ -557,7 +558,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
         );
         let (_, reset_text) = first_edit_full(reset);
         assert_eq!(
-            reset_text, "fun (x : Prop) => ???",
+            reset_text, "fun (x : Prop) => sorry",
             "the reset keeps the written lambda prefix"
         );
         let restart = &actions[1];
@@ -569,7 +570,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
         assert!(
             restart
                 .title
-                .contains("fun (a : Prop) => fun (x : a) => ???"),
+                .contains("fun (a : Prop) => fun (x : a) => sorry"),
             "the skeleton summary is in the title: {:?}",
             restart.title
         );
@@ -598,7 +599,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
             ),
             "the edit ends at the declaration span's end (before the newline)"
         );
-        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => ???");
+        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => sorry");
         shutdown(&mut service).await;
     }
 
@@ -648,14 +649,14 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
             lsp_pos(src, src.rfind('\n').expect("trailing newline")),
             "the edit ends at the declaration span's end"
         );
-        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => ???");
+        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => sorry");
         // 部分重启同样覆盖整个值位（换行后的缩进不进 new_text）。
         let reset = actions
             .iter()
             .find(|a| a.title.contains("保留 fun 前缀"))
             .expect("the prefix-preserving reset action");
         let (_, reset_text) = first_edit_full(reset);
-        assert_eq!(reset_text, "fun (x : Prop) => ???");
+        assert_eq!(reset_text, "fun (x : Prop) => sorry");
         shutdown(&mut service).await;
     }
 
@@ -700,7 +701,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
         );
         assert_eq!(reset.is_preferred, None, "only the first is preferred");
         let (_, reset_text) = first_edit_full(reset);
-        assert_eq!(reset_text, "fun (x : Nat) => ???");
+        assert_eq!(reset_text, "fun (x : Nat) => sorry");
         shutdown(&mut service).await;
     }
 
@@ -767,19 +768,19 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => ???\n";
         );
         assert_eq!(restart.is_preferred, Some(true));
         let (_, new_text) = first_edit_full(restart);
-        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => ???");
+        assert_eq!(new_text, "fun (a : Prop) => fun (x : a) => sorry");
         shutdown(&mut service).await;
     }
 
     #[test]
     fn restart_summary_truncates_at_40_chars() {
-        let short = "fun (a : Prop) => fun (x : a) => ???";
+        let short = "fun (a : Prop) => fun (x : a) => sorry";
         assert_eq!(
             super::restart_summary(short),
             short,
             "short skeletons pass through"
         );
-        let long = "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => ???";
+        let long = "fun (a : Prop) => fun (b : Prop) => fun (c : Prop) => sorry";
         let summary = super::restart_summary(long);
         assert!(summary.ends_with('…'), "truncated summaries end with …");
         assert_eq!(

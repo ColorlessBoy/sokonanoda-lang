@@ -26,7 +26,7 @@ impl DeclKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeclStatus {
-    /// The declaration is an open exercise (`???` in the value position).
+    /// The declaration is an open exercise (`sorry` in the value position).
     Open,
     /// The declaration passed the complete kernel.
     Checked,
@@ -42,7 +42,7 @@ pub struct GoalBinder {
     pub ty: String,
 }
 
-/// One `???` inside a constructor spine (multi-hole answer): its span and the
+/// One `sorry` inside a constructor spine (multi-hole answer): its span and the
 /// expected type the walk recovered for it (best-effort, `None` when the
 /// constructor's field type could not be instantiated).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,7 +74,7 @@ pub struct DeclState {
     /// them into the goal view / tactic judging so `Sort u` goals can be
     /// judged (the judge synthesizes a declaration with the same universes).
     pub universe: Vec<String>,
-    /// Open exercises: every `???` span in the answer (the main hole and any
+    /// Open exercises: every `sorry` span in the answer (the main hole and any
     /// constructor-spine sub-holes), ordered by offset. Powers `soko/nextHole`
     /// and the goal panel; the server derives them from the walk — clients
     /// never scan text.
@@ -82,9 +82,13 @@ pub struct DeclState {
     /// Open exercises: expected types for constructor-spine sub-holes,
     /// positionally aligned with `sub_goals` below.
     pub sub_goals: Vec<SubGoal>,
+    /// Kernel-rendered declared type（声明签名文本，如
+    /// `axiom And.intro : forall (a : Prop), …`）。声明名 hover 与练习
+    /// 面板显示用；Open 练习来自 elaborated type。
+    pub ty_text: Option<String>,
     /// Open exercises: when the remaining goal's head is a constructor with a
     /// known template, a full-application skeleton with auto-filled parameters
-    /// and `???` for the proof fields (e.g. `And.intro a b ??? ???`).
+    /// and `sorry` for the proof fields (e.g. `And.intro a b sorry sorry`).
     pub refine_template: Option<String>,
     /// The declaration's hint ladder, authored in the canvas as
     /// `-- soko:hint <text>` comment directives attached to this declaration

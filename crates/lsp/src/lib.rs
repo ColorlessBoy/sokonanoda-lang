@@ -3,7 +3,7 @@
 //! Feedback philosophy (docs/design-infrastructure.md):
 //! - diagnostics per declaration with stable codes and teaching hints;
 //! - hover shows the inferred type of the expression under the cursor
-//!   (from the front-end type map) or the goal of an open exercise `???`;
+//!   (from the front-end type map) or the goal of an open exercise `sorry`;
 //! - document symbols / code lenses expose exercise state
 //!   (open / solved / failed);
 //! - code actions turn the first proof step into text and are ordered by
@@ -360,7 +360,7 @@ struct GoalDeclInfo {
     goal: Option<String>,
     binders: Vec<GoalBinderInfo>,
     hole: Option<Range>,
-    /// Every `???` in the answer (main hole + constructor-spine sub-holes),
+    /// Every `sorry` in the answer (main hole + constructor-spine sub-holes),
     /// as `{range, id}` objects (`id` = `<declName>:<index>`).
     holes: Vec<HoleInfo>,
     /// Expected types for the sub-holes, positionally aligned with `holes`
@@ -519,25 +519,28 @@ impl LanguageServer for Backend {
             }
         }
         if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
+            // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片，
+            // 箭头优先级一目了然（如 `(b : Prop) -> b -> Or a b : Prop`）。
+            let end = h.span.end.offset.max(h.span.start.offset + 1);
+            let expr = &doc.text[h.span.start.offset..end.min(doc.text.len())];
             return Ok(Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: format!("```text\n{}\n```", h.text),
+                    value: format!("```text\n{} : {}\n```", expr.trim(), h.text),
                 }),
                 range: None,
             }));
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {
+            let signature = match &d.ty_text {
+                Some(ty) => format!("`{} {} : {}`\n", d.kind.as_str(), decl_name(d), ty),
+                None => format!("**{} {}**\n", d.kind.as_str(), decl_name(d)),
+            };
             let value = match d.status {
                 DeclStatus::Open => {
                     let mut text = match &d.goal {
-                        Some(goal) => format!(
-                            "**{} {}** — 目标：`{}`\n",
-                            d.kind.as_str(),
-                            decl_name(d),
-                            goal
-                        ),
-                        None => format!("**{} {}** — 待作答\n", d.kind.as_str(), decl_name(d)),
+                        Some(goal) => format!("{}目标：`{}`\n", signature, goal),
+                        None => format!("{}待作答\n", signature),
                     };
                     if !d.binders.is_empty() {
                         text.push_str("\n已引入假设：\n");
@@ -545,14 +548,14 @@ impl LanguageServer for Backend {
                             text.push_str(&format!("- `{}` : `{}`\n", b.name, b.ty));
                         }
                     }
-                    text.push_str("\n在 `???` 处填写一个类型为目标的项。");
+                    text.push_str("\n在 `sorry` 处填写一个类型为目标的项。");
                     text
                 }
                 DeclStatus::Checked => {
-                    format!("**{} {}** — 已通过内核检查", d.kind.as_str(), decl_name(d))
+                    format!("{}已通过内核检查", signature)
                 }
                 DeclStatus::Failed => {
-                    format!("**{} {}** — 未通过，见诊断", d.kind.as_str(), decl_name(d))
+                    format!("{}未通过，见诊断", signature)
                 }
             };
             return Ok(Some(Hover {
@@ -895,7 +898,7 @@ mod tests {
     use tower_lsp::jsonrpc::Request as RpcRequest;
 
     const VALID: &str = "def id : Prop -> Prop := fun (x : Prop) => x\n";
-    const EXERCISE: &str = "example : Prop -> Prop := ???\n";
+    const EXERCISE: &str = "example : Prop -> Prop := sorry\n";
     const KERNEL_BAD: &str = "def bad : Prop -> Type := fun (x : Prop) => x\n";
     const PARSE_BAD: &str = "def broken : Prop :=\n";
 
@@ -1014,7 +1017,7 @@ mod tests {
         did_open(&mut service, EXERCISE).await;
         let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
 
-        let pos = lsp_pos(EXERCISE, offset_of(EXERCISE, "???") + 1);
+        let pos = lsp_pos(EXERCISE, offset_of(EXERCISE, "sorry") + 1);
         let result = call(
             &mut service,
             RpcRequest::build("textDocument/hover")
@@ -1137,7 +1140,7 @@ mod tests {
         did_open(&mut service, EXERCISE).await;
         let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
 
-        let hole = offset_of(EXERCISE, "???");
+        let hole = offset_of(EXERCISE, "sorry");
         let hole_start = lsp_pos(EXERCISE, hole);
         let result = call(
             &mut service,
@@ -1182,7 +1185,7 @@ mod tests {
         );
         assert_eq!(
             text_edit.range.end.character - text_edit.range.start.character,
-            "???".len() as u32,
+            "sorry".len() as u32,
             "edit must span exactly the 3-char hole, got {:?}",
             text_edit.range
         );
@@ -1197,7 +1200,7 @@ mod tests {
             text_edit.new_text
         );
         assert!(
-            text_edit.new_text.ends_with("???"),
+            text_edit.new_text.ends_with("sorry"),
             "intro replacement must keep the hole, got {:?}",
             text_edit.new_text
         );
@@ -1282,13 +1285,13 @@ mod tests {
     // I9 goal 视图：hover 显示可用假设；assumption/exact code action。
     #[tokio::test]
     async fn hover_on_partial_hole_lists_hypotheses() {
-        let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n";
+        let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "partial hole diagnostics").await;
 
-        let hole = offset_of(src, "???");
+        let hole = offset_of(src, "sorry");
         let pos = lsp_pos(src, hole);
         let result = call(
             &mut service,
@@ -1321,13 +1324,13 @@ mod tests {
 
     #[tokio::test]
     async fn code_action_offers_exact_for_matching_hypothesis() {
-        let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n";
+        let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "partial hole diagnostics").await;
 
-        let hole = offset_of(src, "???");
+        let hole = offset_of(src, "sorry");
         let hole_start = lsp_pos(src, hole);
         let result = call(
             &mut service,
@@ -1373,13 +1376,13 @@ mod tests {
 
     #[tokio::test]
     async fn code_action_intro_still_offered_without_matching_hypothesis() {
-        let src = "example : Prop -> Prop := ???\n";
+        let src = "example : Prop -> Prop := sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "hole diagnostics").await;
 
-        let hole = offset_of(src, "???");
+        let hole = offset_of(src, "sorry");
         let hole_start = lsp_pos(src, hole);
         let result = call(
             &mut service,
@@ -1455,7 +1458,7 @@ mod tests {
 
     #[tokio::test]
     async fn semantic_tokens_full_classifies_def_example_hole() {
-        let src = "def two : Nat := 2\nexample : Sort 1 := ???\n";
+        let src = "def two : Nat := 2\nexample : Sort 1 := sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
@@ -1472,7 +1475,7 @@ mod tests {
                 (1, 0, 7, SemanticTokenType::KEYWORD),   // example（换行后绝对起点）
                 (1, 10, 4, SemanticTokenType::TYPE),     // Sort
                 (1, 15, 1, SemanticTokenType::NUMBER),   // 1
-                (1, 20, 3, SemanticTokenType::MACRO),    // ???（UTF-16 长度 3）
+                (1, 20, 5, SemanticTokenType::MACRO),    // sorry（UTF-16 长度 3）
             ],
             "full token stream for {src:?}"
         );
@@ -1564,7 +1567,7 @@ mod tests {
         assert_eq!(decl["goal"], "Prop -> Prop");
         let hole = decl["hole"].as_object().expect("hole range present");
         let start = hole["start"].as_object().expect("hole start");
-        let expected = lsp_pos(EXERCISE, offset_of(EXERCISE, "???"));
+        let expected = lsp_pos(EXERCISE, offset_of(EXERCISE, "sorry"));
         assert_eq!(start["line"], expected.line, "hole line (0-based)");
         assert_eq!(start["character"], expected.character, "hole character");
         shutdown(&mut service).await;
@@ -1572,7 +1575,7 @@ mod tests {
 
     #[tokio::test]
     async fn next_hole_navigates_between_two_holes() {
-        let src = format!("{EXERCISE}example : Prop := ???\n");
+        let src = format!("{EXERCISE}example : Prop := sorry\n");
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, &src).await;
@@ -1633,13 +1636,13 @@ mod tests {
         // definitional equal —— 文本比对给不出建议，kernel 判定可以。
         let src = "axiom False : Prop\n\
                    def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
-                   example : (a : Prop) -> (a -> False) -> Not a := fun (a : Prop) => fun (h : a -> False) => ???\n";
+                   example : (a : Prop) -> (a -> False) -> Not a := fun (a : Prop) => fun (h : a -> False) => sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "defeq exact diagnostics").await;
 
-        let hole = offset_of(src, "???");
+        let hole = offset_of(src, "sorry");
         let hole_start = lsp_pos(src, hole);
         let result = call(
             &mut service,
@@ -1683,15 +1686,15 @@ mod tests {
 
     const AND_EXERCISE: &str = "axiom And : Prop -> Prop -> Prop\n\
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
-theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := ???\n";
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry\n";
 
     const AND_MULTI_HOLE: &str = "axiom And : Prop -> Prop -> Prop\n\
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := \
-fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??? ???\n";
+fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro sorry sorry\n";
 
     async fn code_actions_for(service: &mut LspService<Backend>, src: &str) -> Vec<CodeAction> {
-        let hole = offset_of(src, "???");
+        let hole = offset_of(src, "sorry");
         let hole_start = lsp_pos(src, hole);
         let result = call(
             service,
@@ -1728,7 +1731,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
         let actions = code_actions_for(&mut service, AND_EXERCISE).await;
         let refine = actions
             .iter()
-            .find(|a| a.title.contains("refine And.intro a b ??? ???"))
+            .find(|a| a.title.contains("refine And.intro a b sorry sorry"))
             .expect("refine skeleton with auto-filled parameters must be offered");
         let edit = refine.edit.as_ref().expect("refine carries an edit");
         let edits = edit
@@ -1736,7 +1739,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
             .as_ref()
             .and_then(|c| c.get(&Url::parse(URI).expect("uri")))
             .expect("edit targets our uri");
-        assert_eq!(edits[0].new_text, "And.intro a b ??? ???");
+        assert_eq!(edits[0].new_text, "And.intro a b sorry sorry");
         shutdown(&mut service).await;
     }
 
@@ -1778,7 +1781,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
         // id = "<declName>:<index>" (docs/protocol.md): named declarations use
         // their name; anonymous examples use the `example@<line>` name form
         // (render::decl_name); the index counts holes in offset order.
-        let src = "theorem named : Prop := ???\nexample : Prop := ???\n";
+        let src = "theorem named : Prop := sorry\nexample : Prop := sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
@@ -1792,7 +1795,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
         assert_eq!(holes.len(), 1);
         assert_eq!(holes[0]["id"], "named:0", "named declaration id form");
         let hole_start = holes[0]["range"]["start"].as_object().expect("hole start");
-        let expected = lsp_pos(src, offset_of(src, "???"));
+        let expected = lsp_pos(src, offset_of(src, "sorry"));
         assert_eq!(hole_start["line"], expected.line);
         assert_eq!(hole_start["character"], expected.character);
         let anon = &decls[1];
@@ -1855,7 +1858,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
 
     #[tokio::test]
     async fn completion_lists_keywords_sorts_prelude_and_declarations() {
-        let src = "def two : Nat := 2\nexample : Sort 1 := ???\n";
+        let src = "def two : Nat := 2\nexample : Sort 1 := sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
@@ -1887,7 +1890,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
 
     #[tokio::test]
     async fn folding_ranges_cover_multiline_declarations_only() {
-        let src = "def one : Nat :=\n  1\nexample : Sort 1 := ???\n";
+        let src = "def one : Nat :=\n  1\nexample : Sort 1 := sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;

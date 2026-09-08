@@ -138,7 +138,7 @@ fn every_solution_twin_is_fully_solved() {
         assert_eq!(
             count_type(&events, "exercise.open"),
             0,
-            "solution {name} must fill every ??? hole:\n{stdout}"
+            "solution {name} must fill every sorry hole:\n{stdout}"
         );
     }
 }

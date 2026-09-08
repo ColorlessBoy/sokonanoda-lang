@@ -224,7 +224,7 @@ pub fn render_expr(expr: &Expr) -> String {
             format!("@{name}.{{{}}}", levels.join(", "))
         }
         Expr::Num { value, .. } => value.clone(),
-        Expr::Hole { .. } => "???".to_string(),
+        Expr::Hole { .. } => "sorry".to_string(),
         Expr::App { fun, arg, .. } => {
             format!("{} {}", render_atom(fun), render_atom(arg))
         }
@@ -290,9 +290,9 @@ mod tests {
         let mut p = ProofState::start("{a : Prop} -> a -> a").unwrap();
         p.intro("a").unwrap();
         assert_eq!(p.goal_text(), "a -> a");
-        assert_eq!(p.lambda_text(), "fun {a : Prop} => ???");
+        assert_eq!(p.lambda_text(), "fun {a : Prop} => sorry");
         p.intro("h").unwrap();
-        assert_eq!(p.lambda_text(), "fun {a : Prop} => fun (h : a) => ???");
+        assert_eq!(p.lambda_text(), "fun {a : Prop} => fun (h : a) => sorry");
     }
 
     #[test]
@@ -379,7 +379,7 @@ mod tests {
         assert_eq!(p.goal_text(), "a");
         assert!(p.undo());
         assert_eq!(p.goal_text(), "a -> a");
-        assert_eq!(p.lambda_text(), "fun (a : Prop) => ???");
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => sorry");
         assert_eq!(p.binders.len(), 1);
         assert!(p.undo());
         assert_eq!(p.goal_text(), initial_goal);
@@ -398,11 +398,11 @@ mod tests {
         assert!(p.done());
         assert!(p.undo());
         assert!(!p.done());
-        assert_eq!(p.lambda_text(), "fun (a : Prop) => fun (h : a) => ???");
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => fun (h : a) => sorry");
         assert!(p.undo());
-        assert_eq!(p.lambda_text(), "fun (a : Prop) => ???");
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => sorry");
         assert!(p.undo());
-        assert_eq!(p.lambda_text(), "???");
+        assert_eq!(p.lambda_text(), "sorry");
         assert!(!p.undo());
     }
 
@@ -415,7 +415,7 @@ mod tests {
         assert!(p.done());
         assert!(p.undo());
         assert!(!p.done());
-        assert_eq!(p.lambda_text(), "fun (a : Prop) => fun (h : a) => ???");
+        assert_eq!(p.lambda_text(), "fun (a : Prop) => fun (h : a) => sorry");
     }
 
     #[test]
@@ -425,7 +425,7 @@ mod tests {
         assert!(p.exact_kernel("1", "", &CompileOptions::default()).is_err());
         // 失败的 exact_kernel 既不改状态也不入栈：第一次 undo 直接回到 intro 之前。
         assert!(p.undo());
-        assert_eq!(p.lambda_text(), "???");
+        assert_eq!(p.lambda_text(), "sorry");
         assert!(!p.undo());
     }
 

@@ -39,6 +39,9 @@ pub(crate) enum PendingOp<'a> {
         /// tactic judging need them to synthesize a judge declaration for
         /// `Sort u` goals.
         universe: Vec<String>,
+        /// Elaborated declared type (kernel expr) — rendered into
+        /// `DeclState.ty_text` during the check phase.
+        declared_ty: Option<ExprPtr<'a>>,
         goal: Option<String>,
         binders: Vec<GoalBinder>,
         holes: Vec<Span>,
@@ -104,7 +107,7 @@ pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> Document
     run(file, options, true).1
 }
 
-/// Is the answer an open exercise: does it contain a `???`, and can the
+/// Is the answer an open exercise: does it contain a `sorry`, and can the
 /// remaining goal be recovered by walking the declared type alongside the
 /// lambda binders already written (and, since multi-hole, constructor-spine
 /// arguments)? `None` means "no hole" or "hole in a place the goal cannot be
@@ -431,7 +434,7 @@ fn field_type_text(template: &CtorTemplate, i: usize, ty_args: &[&Expr]) -> Opti
 }
 
 /// The constructor-spine case of the walk: the answer is a (partial) ctor
-/// application `ctor v1 … vn` against the goal `C t1 … tm` — every `???`
+/// application `ctor v1 … vn` against the goal `C t1 … tm` — every `sorry`
 /// argument is a sub-hole. Parameter positions expect the goal's own
 /// argument (the value is determined by the goal); proof-field positions
 /// expect the instantiated field type.
@@ -475,7 +478,7 @@ fn ctor_spine_case(
 
 /// The refine skeleton for a single-hole answer whose goal head is a known
 /// constructor: parameters that the goal determines are auto-filled, proof
-/// fields become `???`.
+/// fields become `sorry`.
 fn refine_template_for(ty: &Expr, templates: &ConstructorTemplates) -> Option<String> {
     // 目标本身可能是 Pi 链（`… -> And a b`）：剥到结果再取 spine。
     let mut binders = Vec::new();
@@ -493,7 +496,7 @@ fn refine_template_for(ty: &Expr, templates: &ConstructorTemplates) -> Option<St
         match template_arg(template, i, &ty_args) {
             Some(value) => args.push(value),
             None => {
-                args.push("???".to_string());
+                args.push("sorry".to_string());
                 any_hole = true;
             }
         }
@@ -740,10 +743,30 @@ fn run_pass(
                     continue;
                 }
                 if let Some(info) = open_goal(ty, val, &templates) {
+                    let declared_ty = elab_expr(
+                        &mut builder,
+                        ty,
+                        &mut ElabScope::new(),
+                        &no_universe,
+                        &known_universes,
+                        &mut Vec::new(),
+                        None,
+                    )
+                    .inspect(|_| {
+                        // hover 行也要：类型子表达式进 hover 表
+                        cmd_hovers.push(CmdHover {
+                            env_at: builder.declaration_count(),
+                            nodes: Vec::new(),
+                            cmd: idx,
+                        });
+                    })
+                    .ok();
+                    let _ = &declared_ty;
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Definition,
                         universe: universe.clone(),
+                        declared_ty,
                         goal: Some(info.goal),
                         binders: info.binders,
                         holes: info.holes,
@@ -846,10 +869,21 @@ fn run_pass(
                     continue;
                 }
                 if let Some(info) = open_goal(ty, val, &templates) {
+                    let declared_ty = elab_expr(
+                        &mut builder,
+                        ty,
+                        &mut ElabScope::new(),
+                        &no_universe,
+                        &known_universes,
+                        &mut Vec::new(),
+                        None,
+                    )
+                    .ok();
                     ops.push(PendingOp::OpenExercise {
                         name: Some(name.clone()),
                         kind: DeclKind::Theorem,
                         universe: universe.clone(),
+                        declared_ty,
                         goal: Some(info.goal),
                         binders: info.binders,
                         holes: info.holes,
@@ -1027,10 +1061,21 @@ fn run_pass(
                     continue;
                 }
                 if let Some(info) = open_goal(ty, val, &templates) {
+                    let declared_ty = elab_expr(
+                        &mut builder,
+                        ty,
+                        &mut ElabScope::new(),
+                        &no_universe,
+                        &known_universes,
+                        &mut Vec::new(),
+                        None,
+                    )
+                    .ok();
                     ops.push(PendingOp::OpenExercise {
                         name: None,
                         kind: DeclKind::Example,
                         universe: Vec::new(),
+                        declared_ty,
                         goal: Some(info.goal),
                         binders: info.binders,
                         holes: info.holes,
@@ -1246,6 +1291,7 @@ fn run_pass(
                 name,
                 kind,
                 universe,
+                declared_ty,
                 goal,
                 binders,
                 holes,
@@ -1255,6 +1301,12 @@ fn run_pass(
                 cmd,
             } => {
                 out.push_event(cmd, CheckEvent::ExerciseOpen { name: name.clone() });
+                let ty_text = declared_ty.and_then(|ty| {
+                    quiet_catch(|| {
+                        env.with_tc(EnvLimit::Empty, |tc| tc.with_pp(|pp| pp.pp_expr(ty)))
+                    })
+                    .ok()
+                });
                 decl_states.push(DeclState {
                     kind,
                     name,
@@ -1269,6 +1321,7 @@ fn run_pass(
                     sub_goals,
                     refine_template,
                     hints: Vec::new(),
+                    ty_text,
                 });
             }
             PendingOp::Decl {
@@ -1279,6 +1332,13 @@ fn run_pass(
                 cmd,
             } => {
                 kernel_checks += 1;
+                let ty_text = quiet_catch(|| {
+                    env.with_tc(EnvLimit::Empty, |tc| {
+                        let ty = declar.info().ty;
+                        tc.with_pp(|pp| pp.pp_expr(ty))
+                    })
+                });
+                let ty_text = ty_text.ok();
                 match env.try_check_declar(&declar) {
                     Ok(()) => {
                         match kind {
@@ -1308,6 +1368,7 @@ fn run_pass(
                             sub_goals: Vec::new(),
                             refine_template: None,
                             hints: Vec::new(),
+                            ty_text,
                         });
                     }
                     Err(e) => {
@@ -1364,6 +1425,7 @@ fn run_pass(
                             sub_goals: Vec::new(),
                             refine_template: None,
                             hints: Vec::new(),
+                            ty_text: None,
                         });
                     }
                     Some(err) => {
@@ -1561,6 +1623,7 @@ pub(crate) fn failed_state(
         sub_goals: Vec::new(),
         refine_template: None,
         hints: Vec::new(),
+        ty_text: None,
     }
 }
 

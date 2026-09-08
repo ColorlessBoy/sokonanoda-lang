@@ -151,7 +151,7 @@ pub fn judge_terms(
 ///
 /// 与 [`judge_terms`] 的差别：判定发生在**文档里的真实命令**中。声明名换成
 /// `_soko_judge_k`（`example` 声明无名字：把首 token `example` 换成
-/// `def _soko_judge_k`；宇宙参数 `{u}` 等保留原样），指定洞的 `???` 换成
+/// `def _soko_judge_k`；宇宙参数 `{u}` 等保留原样），指定洞的 `sorry` 换成
 /// 候选，其余洞保持原样。因此命令里只要还有剩余洞，合成声明就仍是 open
 /// 练习，结论如实是 [`Judgement::Error`]——多洞状态的逐洞判定由调用方
 /// （`suggest`）改用 [`judge_terms`] 按子洞期望类型完成。
@@ -195,12 +195,12 @@ pub fn judge_hole_fill(
             Ok(segment) => segment,
             Err(message) => return all_parse_error(message),
         };
-    // 洞的切片内区间：必须确实落在命令里，且切片就是 `???`。
+    // 洞的切片内区间：必须确实落在命令里，且切片就是 `sorry`。
     let hole_start = hole_span.start.offset;
     let hole_end = hole_span.end.offset;
     let in_decl = hole_start >= decl_start && hole_end <= decl_end && hole_start < hole_end;
-    if !in_decl || &doc_src[hole_start..hole_end] != "???" {
-        return all_parse_error("洞位置不在该声明的 `???` 上".to_string());
+    if !in_decl || &doc_src[hole_start..hole_end] != "sorry" {
+        return all_parse_error("洞位置不在该声明的 `sorry` 上".to_string());
     }
     let hole_start = hole_start - decl_start;
     let hole_end = hole_end - decl_start;
@@ -693,7 +693,7 @@ mod tests {
     const SUB_HOLE_DOC: &str = "axiom And : Prop -> Prop -> Prop\n\
          axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
          theorem t : (a : Prop) -> (b : Prop) -> (ha : a) -> (hb : b) -> And a b := \
-         fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha ???\n";
+         fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha sorry\n";
 
     #[test]
     fn hole_fill_accepts_hypothesis_in_a_sub_hole() {
@@ -719,7 +719,7 @@ mod tests {
     fn hole_fill_renames_examples_by_replacing_the_first_token() {
         // `example` 无名字：首 token `example` 换成 `def _soko_judge_k`。
         let doc = "axiom False : Prop\n\
-                   example : (h : False) -> False := fun (h : False) => ???\n";
+                   example : (h : False) -> False := fun (h : False) => sorry\n";
         let d = open_decl(doc);
         let judgements = judge_hole_fill(
             doc,
@@ -745,7 +745,7 @@ mod tests {
         let doc =
             "def idT {u} : {α : Sort u} -> (a : α) -> α := fun {α : Sort u} => fun (a : α) => a\n\
                    theorem t {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a := \
-                   fun {α : Sort u} => fun (a : α) => ???\n";
+                   fun {α : Sort u} => fun (a : α) => sorry\n";
         let d = open_decl(doc);
         let judgements = judge_hole_fill(
             doc,
@@ -759,12 +759,12 @@ mod tests {
 
     #[test]
     fn hole_fill_with_remaining_holes_reports_open_honestly() {
-        // 其余洞保持 `???` ⇒ 合成声明仍是 open 练习：kernel 没能整体裁决，
+        // 其余洞保持 `sorry` ⇒ 合成声明仍是 open 练习：kernel 没能整体裁决，
         // 结论如实为 Error（绝不把"没判过"说成 Match）。
         let doc = "axiom And : Prop -> Prop -> Prop\n\
                    axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
                    theorem t : (a : Prop) -> (b : Prop) -> (ha : a) -> (hb : b) -> And a b := \
-                   fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??? ???\n";
+                   fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro sorry sorry\n";
         let d = open_decl(doc);
         let judgements = judge_hole_fill(
             doc,

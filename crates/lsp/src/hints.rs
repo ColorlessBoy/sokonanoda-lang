@@ -46,7 +46,7 @@ mod tests {
     use tower_lsp::jsonrpc::Request as RpcRequest;
 
     const HINTED: &str =
-        "-- soko:hint 先看最外层箭头\n-- soko:hint 拆成 lambda\nexample : Prop -> Prop := ???\n";
+        "-- soko:hint 先看最外层箭头\n-- soko:hint 拆成 lambda\nexample : Prop -> Prop := sorry\n";
 
     async fn ask_hints(
         service: &mut tower_lsp::LspService<crate::Backend>,
@@ -74,7 +74,7 @@ mod tests {
         did_open(&mut service, HINTED).await;
         let _ = wait_diagnostics(&mut socket, "hints diagnostics").await;
 
-        let hole = offset_of(HINTED, "???");
+        let hole = offset_of(HINTED, "sorry");
         let pos = lsp_pos(HINTED, hole);
         let result = ask_hints(&mut service, pos.line, pos.character).await;
         let hints = result

@@ -65,7 +65,7 @@ fn every_example_lesson_is_a_valid_sokonanoda_file() {
 
         if name == "lesson-01.sokonanoda" || name == "lesson-02.sokonanoda" {
             assert!(
-                stdout.contains("exercise open (fill the ???)"),
+                stdout.contains("exercise open (fill the sorry)"),
                 "lesson {name} should end with an open exercise:\n{stdout}"
             );
         }

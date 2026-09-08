@@ -36,7 +36,7 @@ pub(crate) fn repl() -> ExitCode {
         if (line.trim() == "done" || line.trim() == "#done") && proof.is_some() {
             let state = proof.as_ref().expect("proof");
             if !state.done() {
-                eprintln!("error: fill the ??? with `exact <term>` first");
+                eprintln!("error: fill the sorry with `exact <term>` first");
                 continue;
             }
             buffer.push_str("\nexample : ");

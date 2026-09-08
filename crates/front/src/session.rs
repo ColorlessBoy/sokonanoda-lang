@@ -544,7 +544,7 @@ mod tests {
     #[test]
     fn session_reports_solved_and_reopen_deltas() {
         let mut session = Session::new(CompileOptions::default());
-        let src1 = "example : Prop -> Prop := ???\n";
+        let src1 = "example : Prop -> Prop := sorry\n";
         let u1 = update(&mut session, src1, 1);
         assert_eq!(u1.delta.len(), 1);
         assert_eq!(u1.delta[0].kind, SessionEventKind::ExerciseOpened);
@@ -564,7 +564,7 @@ mod tests {
         );
         assert_eq!(u2.recompiled_from, Some(0));
 
-        // 改回 ??? → 重新打开。
+        // 改回 sorry → 重新打开。
         let u3 = update(&mut session, src1, 3);
         assert!(u3
             .delta
@@ -572,7 +572,7 @@ mod tests {
             .any(|e| e.kind == SessionEventKind::ExerciseOpened));
 
         // 注释变化（命令内容不变，仍是 open 状态）→ 零重编译。
-        let src4 = "-- 只是加了一行讲解\nexample : Prop -> Prop := ???\n";
+        let src4 = "-- 只是加了一行讲解\nexample : Prop -> Prop := sorry\n";
         let u4 = update(&mut session, src4, 4);
         assert_eq!(u4.recompiled_from, None);
         assert!(u4.delta.is_empty());
@@ -582,7 +582,7 @@ mod tests {
     #[test]
     fn session_attaches_hints_and_refreshes_on_comment_edit() {
         let mut session = Session::new(CompileOptions::default());
-        let src1 = "-- soko:hint 先看目标形状\nexample : Prop -> Prop := ???\n";
+        let src1 = "-- soko:hint 先看目标形状\nexample : Prop -> Prop := sorry\n";
         let u1 = update(&mut session, src1, 1);
         let hints = u1
             .report
@@ -593,7 +593,7 @@ mod tests {
         assert_eq!(hints, vec!["先看目标形状".to_string()]);
 
         // 提示注释是纯注释编辑：零重编译，但阶梯按新文本刷新。
-        let src2 = "-- soko:hint 第一层\n-- soko:hint 第二层\nexample : Prop -> Prop := ???\n";
+        let src2 = "-- soko:hint 第一层\n-- soko:hint 第二层\nexample : Prop -> Prop := sorry\n";
         let u2 = update(&mut session, src2, 2);
         assert_eq!(u2.recompiled_from, None, "hint edits must not recompile");
         assert!(u2.delta.is_empty());
@@ -625,7 +625,7 @@ mod tests {
             .iter()
             .any(|e| e.kind == SessionEventKind::DeclFailed));
         // open → 填错 → failed。
-        let _ = update(&mut session, "example : Prop -> Prop := ???\n", 3);
+        let _ = update(&mut session, "example : Prop -> Prop := sorry\n", 3);
         let u4 = update(
             &mut session,
             "example : Prop -> Prop := fun (x : Prop) => 1\n",

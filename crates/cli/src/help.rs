@@ -23,7 +23,7 @@ pub(crate) fn print_help() {
     println!("  def <name> : <type> := <value>");
     println!("  theorem <name> : <type> := <proof>");
     println!("  axiom <name> : <type>");
-    println!("  example : <type> := <value>    (use ??? for an open exercise)");
+    println!("  example : <type> := <value>    (use sorry for an open exercise)");
     println!("  #check <expr>                  print the inferred type");
     println!("  #reduce <expr>                 evaluate a closed expression");
     println!("  #print <name>                  print a declaration");

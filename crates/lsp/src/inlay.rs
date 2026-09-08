@@ -1,5 +1,5 @@
 //! Inlay hints: the expected type of every open-exercise hole, rendered
-//! right after the `???` (docs/design-rename-inlay.md §4).
+//! right after the `sorry` (docs/design-rename-inlay.md §4).
 //!
 //! Read-only information only — no `textEdits` on hints (rust-analyzer
 //! lesson: interactive inlays are expensive and rarely wanted).
@@ -87,15 +87,15 @@ mod tests {
     use tower_lsp::jsonrpc::Request as RpcRequest;
     use tower_lsp::lsp_types::*;
 
-    const EXERCISE: &str = "example : Prop -> Prop := ???\n";
+    const EXERCISE: &str = "example : Prop -> Prop := sorry\n";
     const CHECKED: &str = "def id : Prop -> Prop := fun (x : Prop) => x\n";
     const ALL_CHECKED: &str = "def id : Prop -> Prop := fun (x : Prop) => x\ndef two : Nat := 2\n";
     const PARTIAL: &str =
-        "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => ???\n";
+        "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n";
     const AND_MULTI_HOLE: &str = "axiom And : Prop -> Prop -> Prop\n\
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := \
-fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??? ???\n";
+fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro sorry sorry\n";
 
     async fn ask_inlay(
         service: &mut tower_lsp::LspService<crate::Backend>,
@@ -148,8 +148,8 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
         assert_eq!(label_of(hint), ": Prop -> Prop");
         assert_eq!(hint.kind, Some(InlayHintKind::TYPE));
         assert_eq!(hint.padding_left, Some(true));
-        let after_hole = lsp_pos(EXERCISE, offset_of(EXERCISE, "???") + "???".len());
-        assert_eq!(hint.position, after_hole, "hint sits right after `???`");
+        let after_hole = lsp_pos(EXERCISE, offset_of(EXERCISE, "sorry") + "sorry".len());
+        assert_eq!(hint.position, after_hole, "hint sits right after `sorry`");
         assert!(
             tooltip_of(hint).contains("剩余目标：`Prop -> Prop`"),
             "tooltip carries the remaining goal: {}",
@@ -174,14 +174,20 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
             ": b",
             "second sub-hole type: {hints:?}"
         );
-        let first = offset_of(AND_MULTI_HOLE, "???");
-        let second = AND_MULTI_HOLE[first + 3..]
-            .find("???")
+        let first = offset_of(AND_MULTI_HOLE, "sorry");
+        let second = AND_MULTI_HOLE[first + "sorry".len()..]
+            .find("sorry")
             .expect("second hole exists")
             + first
-            + 3;
-        assert_eq!(hints[0].position, lsp_pos(AND_MULTI_HOLE, first + 3));
-        assert_eq!(hints[1].position, lsp_pos(AND_MULTI_HOLE, second + 3));
+            + "sorry".len();
+        assert_eq!(
+            hints[0].position,
+            lsp_pos(AND_MULTI_HOLE, first + "sorry".len())
+        );
+        assert_eq!(
+            hints[1].position,
+            lsp_pos(AND_MULTI_HOLE, second + "sorry".len())
+        );
     }
 
     #[tokio::test]
