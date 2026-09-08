@@ -1940,3 +1940,72 @@ fn spine_holes_without_a_known_template_stay_open() {
     assert_eq!(open.holes.len(), 1);
     assert!(open.refine_template.is_none());
 }
+
+#[test]
+fn debug_hover_rows_for_demo_k() {
+    let src = "theorem demo_K : (a : Prop) -> a -> a :=\n  fun (a : Prop) => fun (h : a) => h\n";
+    let report = check_document(&parse(src).expect("parse"));
+    for h in &report.hovers {
+        println!(
+            "ROW span {}..{} (line {} col {}): {:?}",
+            h.span.start.offset, h.span.end.offset, h.span.start.line, h.span.start.column, h.text
+        );
+    }
+}
+
+// ---- sorry（与官方 Lean 同义的占位符，等价 ???）----
+
+#[test]
+fn sorry_is_a_hole_and_stays_an_open_exercise() {
+    let report = check_document(
+        &parse("theorem t : Prop -> Prop := fun (x : Prop) => sorry\n").expect("parse"),
+    );
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("sorry keeps the exercise open");
+    assert_eq!(open.holes.len(), 1);
+    assert!(
+        report.errors.is_empty(),
+        "sorry must not be an error: {:?}",
+        report.errors
+    );
+}
+
+#[test]
+fn sorry_works_in_constructor_spines_and_partial_answers() {
+    let src = format!(
+        "{AND_SKELETON}example : (a : Prop) -> (b : Prop) -> And a b -> And b a := \
+         fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro sorry sorry\n"
+    );
+    let report = check_document(&parse(&src).expect("parse"));
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("multi-hole spine with sorry stays open");
+    assert_eq!(open.holes.len(), 2);
+    // 洞 span 指向两处 sorry 文本（供跳洞/面板使用）。
+    let hole_texts: Vec<&str> = open
+        .holes
+        .iter()
+        .map(|sp| &src[sp.start.offset..sp.end.offset])
+        .collect();
+    assert_eq!(hole_texts, vec!["sorry", "sorry"]);
+}
+
+#[test]
+fn sorry_outside_the_answer_tail_is_still_misplaced() {
+    let report = check_document(
+        &parse("def bad : Nat -> Nat := fun (n : Nat) => sorry + 1\n").expect("parse"),
+    );
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::ElabHoleMisplaced),
+        "sorry in a non-tail position follows the ??? rules: {:?}",
+        report.errors
+    );
+}

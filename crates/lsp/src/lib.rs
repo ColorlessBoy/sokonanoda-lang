@@ -29,7 +29,7 @@ use render::{
 };
 use serde::{Deserialize, Serialize};
 use sokonanoda_front::compile::{
-    prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport, PreludeMode,
+    prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport, HoverType, PreludeMode,
 };
 use sokonanoda_front::semantic::{
     semantic_tokens as front_semantic_tokens, SemanticKind, SemanticSpan,
@@ -420,6 +420,7 @@ impl LanguageServer for Backend {
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(OneOf::Left(true)),
                 document_highlight_provider: Some(OneOf::Left(true)),
+                selection_range_provider: Some(SelectionRangeProviderCapability::Simple(true)),
                 document_symbol_provider: Some(OneOf::Left(true)),
                 rename_provider: Some(OneOf::Right(RenameOptions {
                     prepare_provider: Some(true),
@@ -555,6 +556,57 @@ impl LanguageServer for Backend {
             }));
         }
         Ok(None)
+    }
+
+    async fn selection_range(
+        &self,
+        params: SelectionRangeParams,
+    ) -> Result<Option<Vec<SelectionRange>>> {
+        // 优先级可视化（学习者需求）：光标放在某个符号/运算符上，
+        // 逐级放大选中"先结合"的表达式。数据来自 hover 表——每个
+        // AST 节点（含箭头/应用）都有行，span 天然嵌套。
+        let doc = self.doc.lock().expect("doc lock");
+        let Some(report) = &doc.report else {
+            return Ok(None);
+        };
+        let mut out = Vec::with_capacity(params.positions.len());
+        for pos in &params.positions {
+            let offset = position_to_offset(&doc.text, *pos);
+            let mut rows: Vec<&HoverType> = report
+                .hovers
+                .iter()
+                .filter(|h| {
+                    h.span.start.offset <= offset
+                        && offset < h.span.end.offset.max(h.span.start.offset + 1)
+                })
+                .collect();
+            // 内层在前（span 小的先选中）；同一 span 只留一条。
+            rows.sort_by_key(|h| h.span.end.offset - h.span.start.offset);
+            rows.dedup_by(|a, b| a.span == b.span);
+            // SelectionRange 的 root 是最内层选择、parent 向外指：
+            // 从最外层往里建链，最后一个处理的（最小 span）成为 root。
+            let mut chain: Option<SelectionRange> = None;
+            let mut last_range: Option<Range> = None;
+            for h in rows.into_iter().rev() {
+                let range = range_of(h.span);
+                if last_range == Some(range) {
+                    continue;
+                }
+                last_range = Some(range);
+                chain = Some(SelectionRange {
+                    range,
+                    parent: chain.map(Box::new),
+                });
+            }
+            out.push(chain.unwrap_or(SelectionRange {
+                range: Range {
+                    start: *pos,
+                    end: *pos,
+                },
+                parent: None,
+            }));
+        }
+        Ok(Some(out))
     }
 
     async fn goto_definition(
@@ -2036,6 +2088,74 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro ??
                 .is_some_and(|d| d.contains("binder")),
             "detail marks the binder scope: {:?}",
             binder.detail
+        );
+        shutdown(&mut service).await;
+    }
+
+    // ---- 优先级可视化：selectionRange（学习者需求）----
+
+    const DEMO_K: &str =
+        "theorem demo_K : (a : Prop) -> a -> a :=\n  fun (a : Prop) => fun (h : a) => h\n";
+
+    async fn selection_range_at(
+        service: &mut LspService<Backend>,
+        src: &str,
+        offset: usize,
+    ) -> Option<SelectionRange> {
+        let pos = lsp_pos(src, offset);
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/selectionRange")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "positions": [position_json(pos)],
+                }))
+                .id(70)
+                .finish(),
+        )
+        .await
+        .expect("selectionRange must answer");
+        let response: Option<Vec<SelectionRange>> =
+            serde_json::from_value(result).expect("valid SelectionRange");
+        response.expect("array").into_iter().next()
+    }
+
+    #[tokio::test]
+    async fn selection_range_grows_from_arrow_to_enclosing_type() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, DEMO_K).await;
+        let _ = wait_diagnostics(&mut socket, "selection range diagnostics").await;
+
+        // 光标放在类型里第二个箭头 `a -> a` 的 `->` 上（该段先结合）。
+        let arrow_at = DEMO_K.find("a -> a").expect("inner arrow exists") + 2;
+        let inner = selection_range_at(&mut service, DEMO_K, arrow_at)
+            .await
+            .expect("arrow position must yield a chain");
+        // 第一级：正好是 `a -> a`（内层函数类型，先结合）。
+        let start_off = DEMO_K.find("a -> a").expect("span start");
+        assert_eq!(
+            inner.range.start,
+            lsp_pos(DEMO_K, start_off),
+            "innermost selection must be the arrow expression itself"
+        );
+        assert_eq!(inner.range.end, lsp_pos(DEMO_K, start_off + "a -> a".len()));
+        // 更大的层级存在，且逐级包住内层。
+        let mut cur = &inner;
+        let mut levels = 1usize;
+        while let Some(parent) = cur.parent.as_ref() {
+            assert!(
+                parent.range.start < inner.range.start,
+                "each level must start at-or-before the inner one: {:?} vs {:?}",
+                parent.range.start,
+                inner.range.start
+            );
+            levels += 1;
+            cur = parent;
+        }
+        assert!(
+            levels >= 2,
+            "chain must reach the enclosing type, got {levels}"
         );
         shutdown(&mut service).await;
     }

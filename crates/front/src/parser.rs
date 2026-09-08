@@ -350,6 +350,9 @@ impl Parser {
                 sort: SortKind::Prop,
                 span: tok.span,
             }),
+            // `sorry`（与官方 Lean 同义）：未完成证明的占位符，等价于 ???。
+            // 只在表达式位置拦截；声明名字走各自的语法路径不受影响。
+            TokenKind::Ident(name) if name == "sorry" => Ok(Expr::Hole { span: tok.span }),
             TokenKind::Ident(name) if name == "Type" => Ok(Expr::Sort {
                 sort: SortKind::Type,
                 span: tok.span,
