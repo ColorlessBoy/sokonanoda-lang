@@ -1,3 +1,13 @@
+## [0.5.0] - 2026-09-09
+
+### Added
+- **`by` tactic blocks** (Lean-style proofs): `theorem t : T := by intro a; exact h`
+  with five tactics — `intro` / `exact` / `apply` / `assumption` / `rfl` — and a
+  `by sorry` placeholder for incomplete proofs. Every tactic is kernel-judged.
+  New course unit 6 (zh + en) teaches it; playground gains two `by` exercises.
+- Hover now returns a highlight range so the editor shows which expression a
+  hover describes (well-formed, paren-balanced expressions, real binder names).
+
 ## [0.4.2] - 2026-09-09
 
 ### Changed

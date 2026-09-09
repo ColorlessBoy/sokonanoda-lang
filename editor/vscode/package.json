@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Self-contained Lean-4-style teaching language with a real kernel: goal view, hint ladders, graded exercises. Zero setup - the server downloads itself on first use. Ships agent skills (Claude Code / opencode) that turn an LLM into your proof teacher.",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
