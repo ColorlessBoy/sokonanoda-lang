@@ -13,6 +13,8 @@
 - **当老师（产品主循环）**：加载 `skills/sokonanoda-teacher`——画布
   `playground.sokonanoda` 出题/判卷/决策的完整操作手册。
 - **做开发**：加载 `skills/sokonanoda-dev`——冻结内核、TDD 三层、文档先行。
+- **推代码/发布/查 CI**：加载 `skills/sokonanoda-ci`——本地验证纪律
+  （退出码、无 grep 掩膜）、workflow 陷阱、`gh` 排错三板斧、失败必录。
 
 ## 硬规则速记（全文见 REQUIREMENTS §2/§3）
 

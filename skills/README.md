@@ -9,6 +9,7 @@ Claude Code 等）都能一键加载。项目自身的 conformance 测试守护�
 |---|---|---|
 | `sokonanoda-teacher/` | 当老师的 agent | 教学循环、判卷事件决策表、出题规范与适配规则、解答钥匙使用守则；参考件：`references/events.md`（事件形状）、`references/curriculum.md`（题池地图） |
 | `sokonanoda-dev/` | 接手开发的 agent | 接手清单、硬规则、TDD 三层与文档先行工作流、CI 门禁形态 |
+| `sokonanoda-ci/` | 推代码/发布/查 CI 的 agent | 本地验证纪律（退出码、无 grep 掩膜）、GitHub Actions 陷阱台账、`gh` 排错三板斧、失败必录 |
 
 ## 安装
 

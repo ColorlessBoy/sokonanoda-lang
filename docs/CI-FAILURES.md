@@ -100,3 +100,14 @@
   带 `pattern` + `merge-multiple: true` 才会平铺）。tag 触发的 workflow
   修复后需**强制移动 tag**（`git tag -f && git push -f`）才会用新
   workflow 重跑，`gh run rerun` 只会用 tag 上的旧文件。
+
+### 2026-09-09 — release 第三跑：tarball "asset under the same name already exists"
+- 原因：首跑（路径 bug）在死掉前已把 4 个 tarball 传上 release；修路径后
+  强移 tag 重跑，`gh release upload` 对同名 asset 报 422 → `bash -e`
+  在第一个重复处退出。`gh release create` 有 `|| true` 但 **upload 没有
+  幂等保护**。
+- 修复：tarball upload 一并加 `--clobber`（与 VSIX upload 一致——
+  同名 asset 覆盖，重跑幂等）。
+- 预防：**release job 的每个写操作都要幂等**：create → `|| true`，
+  upload → `--clobber`；强移 tag 重跑 release 前先想清楚哪些 asset
+  已经落上去了。

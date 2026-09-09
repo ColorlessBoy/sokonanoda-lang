@@ -85,7 +85,9 @@ jobs:
             target="${dir#lsp-}"
             target="${target%/}"
             tar czf "sokonanoda-lsp-${target}.tar.gz" -C "$dir" .
-            gh release upload "${{ github.ref_name }}" "sokonanoda-lsp-${target}.tar.gz"
+            # --clobber：同名 asset 已存在时覆盖（tag 重跑幂等）。
+            gh release upload "${{ github.ref_name }}" \
+              "sokonanoda-lsp-${target}.tar.gz" --clobber
           done
           gh release upload "${{ github.ref_name }}" \
             "sokonanoda-vsix/sokonanoda.vsix" --clobber
