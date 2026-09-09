@@ -65,7 +65,13 @@ cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
 export PATH="$PWD/target/release:$PATH"
 ```
 
-## 5. 常用命令
+## 5. VS Code 扩展开发规范
+
+`editor/vscode/` 的改动有独立开发规范：`docs/vscode-dev-guide.md`。
+版本纪律（feature→minor / fix→patch）、测试三层（静态契约→集成→手动）、
+常见坑（node_modules 打包/didOpen 通知/LSP 帧格式/代理）全在里面。
+
+## 6. 常用命令
 
 ```bash
 cargo test -p sokonanoda-front compile::tests::       # 前端单测
