@@ -107,6 +107,18 @@ jobs:
           name: sokonanoda-vsix
       - name: Publish to VS Code Marketplace
         if: github.event_name == 'push'
-        run: npx --yes @vscode/vsce publish --skip-duplicate --packagePath sokonanoda.vsix
+        # vsce publish 的 Azure 端点（/_apis/gallery）间歇性超时（CI 台账多次
+        # 记录）。重试最多 4 次、间隔 30s，`--skip-duplicate` 幂等（已发布则
+        # 跳过成功），避免一次超时就让整个 release 红掉。
+        run: |
+          set -e
+          for attempt in 1 2 3 4; do
+            if npx --yes @vscode/vsce publish --skip-duplicate --packagePath sokonanoda.vsix; then
+              exit 0
+            fi
+            echo "vsce publish attempt $attempt failed; retrying in 30s..."
+            sleep 30
+          done
+          exit 1
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
