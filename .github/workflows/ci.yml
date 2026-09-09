@@ -81,6 +81,12 @@ jobs:
         working-directory: editor/vscode
         run: npm ci --no-fund --no-audit
 
+      - name: Download + redirect logic unit tests
+        # 纯 Node.js 单元测试：验证 extension.js 的 HTTP 重定向跟随与 tar 解压
+        # 逻辑，不依赖 Rust / VS Code，秒级完成。
+        working-directory: editor/vscode
+        run: node test-download.js
+
       - name: VS Code extension integration tests
         # Linux 上 Electron 需要显示器：xvfb 在 ubuntu-latest 镜像里预装，
         # 按 @vscode/test-electron 文档用 xvfb-run 包一层。

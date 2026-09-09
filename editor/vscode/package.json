@@ -186,6 +186,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "echo ok",
     "package": "vsce package --out sokonanoda.vsix",
+    "test:unit": "node test-download.js",
     "test": "vscode-test"
   },
   "dependencies": {
@@ -194,7 +195,8 @@
   "devDependencies": {
     "@types/vscode": "1.85.0",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^3.1.0"
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2"
   },
   "keywords": [
     "lean",

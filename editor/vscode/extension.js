@@ -82,28 +82,51 @@ async function downloadLspBinary(context) {
 
   fs.mkdirSync(dir, { recursive: true });
   const https = require("https");
-  const { pipeline } = require("stream");
-  const tar = require("child_process"); // use tar command
+
+  // Follow redirects recursively (GitHub uses 2-level: /latest/download/ → /download/vX.Y.Z/ → CDN).
+  function followRedirects(reqUrl, redirectsLeft) {
+    return new Promise((resolve, reject) => {
+      https.get(reqUrl, (res) => {
+        if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303) && res.headers.location) {
+          if (redirectsLeft <= 0) return reject(new Error("too many redirects"));
+          res.resume(); // drain the redirect response body
+          return followRedirects(res.headers.location, redirectsLeft - 1).then(resolve, reject);
+        }
+        if (res.statusCode !== 200) {
+          res.resume();
+          return reject(new Error(`HTTP ${res.statusCode}`));
+        }
+        resolve(res);
+      }).on("error", reject);
+    });
+  }
 
   return new Promise((resolve, reject) => {
     const tmp = dest + ".tmp.tar.gz";
-    const file = fs.createWriteStream(tmp);
-    https.get(url, (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        https.get(res.headers.location, (res2) => {
-          res2.pipe(file);
-          file.on("finish", () => {
-            file.close();
-            // extract
-            require("child_process").execSync(`tar xzf "${tmp}" -C "${dir}"`);
+    followRedirects(url, 5).then((res) => {
+      const file = fs.createWriteStream(tmp);
+      res.pipe(file);
+      file.on("finish", () => {
+        file.close(() => {
+          try {
+            require("child_process").execSync(`tar xzf "${tmp}" -C "${dir}"`, { stdio: "pipe" });
             fs.unlinkSync(tmp);
-            resolve(dest);
-          });
-        }).on("error", reject);
-      } else {
-        reject(new Error(`HTTP ${res.statusCode}`));
-      }
-    }).on("error", reject);
+            if (fs.existsSync(dest)) {
+              resolve(dest);
+            } else {
+              reject(new Error("tar extracted but binary not found"));
+            }
+          } catch (e) {
+            try { fs.unlinkSync(tmp); } catch {}
+            reject(new Error(`tar extraction failed: ${e.message}`));
+          }
+        });
+      });
+      file.on("error", (e) => {
+        try { fs.unlinkSync(tmp); } catch {}
+        reject(e);
+      });
+    }).catch(reject);
   });
 }
 
