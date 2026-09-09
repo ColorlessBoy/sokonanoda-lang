@@ -564,7 +564,9 @@ impl LanguageServer for Backend {
         // 结构符号也能看到所属类型）。数据来自 hover 表（span 嵌套）。
         {
             const TOLERANCE: usize = 2;
-            let nearest = report.hovers.iter()
+            let nearest = report
+                .hovers
+                .iter()
                 .filter(|h| {
                     let start = h.span.start.offset;
                     let end = h.span.end.offset;
