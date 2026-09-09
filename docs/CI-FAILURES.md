@@ -111,3 +111,11 @@
 - 预防：**release job 的每个写操作都要幂等**：create → `|| true`，
   upload → `--clobber`；强移 tag 重跑 release 前先想清楚哪些 asset
   已经落上去了。
+
+### 2026-09-09 — marketplace-publish 连续两次 Azure gallery 超时（v0.5.2）
+- 原因：`npx @vscode/vsce publish` 调 `/_apis/gallery`（Azure Marketplace 端点）
+  连续两次 `Request timeout`（间歇性网络问题；同一天 v0.5.0/0.5.1 均一次通过）。
+- 修复：第 3 次 `gh run rerun --failed` 通过（确认为瞬态）；同时在 release.yml 给
+  publish 步骤加 **4 次重试、间隔 30s**（`--skip-duplicate` 幂等），以后一次超时
+  自动重试，不再让整个 release 红。
+- 预防：发布流程不再因一次 Azure 抖动失败；若连续重试仍失败再查代理/凭据。
