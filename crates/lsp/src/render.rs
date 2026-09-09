@@ -60,15 +60,35 @@ pub(crate) fn pos_within_span(line: u32, character: u32, span: Span) -> bool {
 }
 
 pub(crate) fn hover_type_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&HoverType> {
-    // smallest span containing the position wins
-    hovers
+    // 精确命中：包含光标的最小 span 优先
+    let exact: Vec<&HoverType> = hovers
         .iter()
         .filter(|h| pos_within_span(line, character, h.span))
-        .min_by_key(|h| {
-            (h.span.end.offset - h.span.start.offset)
-                .try_into()
-                .unwrap_or(u64::MAX)
+        .collect();
+    if let Some(best) = exact.iter().min_by_key(|h| {
+        (h.span.end.offset - h.span.start.offset)
+            .try_into()
+            .unwrap_or(u64::MAX)
+    }) {
+        return Some(best);
+    }
+    // 回退（括号/运算符等结构符号）：光标 ±1 范围内命中的最小 span，
+    // 让 hover 在括号、运算符上也能看到所属的表达式类型。
+    let near: Vec<&HoverType> = hovers
+        .iter()
+        .filter(|h| {
+            h.span.start.line as i64 == line as i64
+                && (h.span.start.column as i64 - character as i64).abs() <= 2
         })
+        .collect();
+    if let Some(best) = near.iter().min_by_key(|h| {
+        (h.span.end.offset - h.span.start.offset)
+            .try_into()
+            .unwrap_or(u64::MAX)
+    }) {
+        return Some(best);
+    }
+    None
 }
 
 pub(crate) fn decl_at(decls: &[DeclState], line: u32, character: u32) -> Option<&DeclState> {

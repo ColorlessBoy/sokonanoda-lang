@@ -546,6 +546,7 @@ impl LanguageServer for Backend {
                 return Ok(None);
             }
         }
+        let offset = position_to_offset(&doc.text, pos);
         if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
             // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片，
             // 箭头优先级一目了然（如 `(b : Prop) -> b -> Or a b : Prop`）。
@@ -558,6 +559,39 @@ impl LanguageServer for Backend {
                 }),
                 range: None,
             }));
+        }
+        // 回退：光标 ±2 字符内命中的最小外层表达式（括号、运算符等
+        // 结构符号也能看到所属类型）。数据来自 hover 表（span 嵌套）。
+        {
+            const TOLERANCE: usize = 2;
+            let nearest = report.hovers.iter()
+                .filter(|h| {
+                    let start = h.span.start.offset;
+                    let end = h.span.end.offset;
+                    // 精确包含（已被上面处理，这里补边界附近）
+                    start <= offset + TOLERANCE && offset.saturating_sub(TOLERANCE) < end
+                })
+                .min_by_key(|h| {
+                    let len = h.span.end.offset - h.span.start.offset;
+                    let dist = if offset >= h.span.start.offset && offset <= h.span.end.offset {
+                        0
+                    } else if offset < h.span.start.offset {
+                        h.span.start.offset - offset
+                    } else {
+                        offset - h.span.end.offset
+                    };
+                    (dist, len)
+                });
+            if let Some(h) = nearest {
+                let expr = &doc.text[h.span.start.offset..h.span.end.offset.min(doc.text.len())];
+                return Ok(Some(Hover {
+                    contents: HoverContents::Markup(MarkupContent {
+                        kind: MarkupKind::Markdown,
+                        value: format!("```text\n{} : {}\n```", expr.trim(), h.text),
+                    }),
+                    range: None,
+                }));
+            }
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {
             let signature = match &d.ty_text {
@@ -2265,5 +2299,77 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             .diagnostics
             .iter()
             .any(|d| d.code == Some(NumberOrString::String("sorry".to_string()))));
+    }
+
+    #[tokio::test]
+    async fn hover_on_bracket_shows_enclosing_expression_type() {
+        // 学习者需求：光标在括号/运算符上能看到所属表达式的类型
+        // （此前括号位置 hover 返回 None，因为括号不在任何子表达式 span 内）。
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, DEMO_K).await;
+        let _ = wait_diagnostics(&mut socket, "bracket hover diagnostics").await;
+
+        // 光标放在 `(a : Prop)` 的 `(` 上（第 0 行 offset 17）。
+        let paren = DEMO_K.find('(').expect("paren exists");
+        let pos = lsp_pos(DEMO_K, paren);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(90)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid hover");
+        let hover = hover.expect("bracket position must have hover (fallback)");
+        let HoverContents::Markup(m) = hover.contents else {
+            panic!("expected markup");
+        };
+        assert!(
+            m.value.contains("->"),
+            "bracket hover should show enclosing expression type: {:?}",
+            m.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_operator_shows_enclosing_type() {
+        // 光标在 `->` 上（第 0 行 offset 28）→ 应显示内层函数类型。
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, DEMO_K).await;
+        let _ = wait_diagnostics(&mut socket, "operator hover diagnostics").await;
+
+        let arrow = DEMO_K.find("->").expect("arrow exists");
+        let pos = lsp_pos(DEMO_K, arrow);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(91)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid hover");
+        let hover = hover.expect("operator position must have hover (proximity fallback)");
+        let HoverContents::Markup(m) = hover.contents else {
+            panic!("expected markup");
+        };
+        assert!(
+            m.value.contains("->") || m.value.contains("Prop"),
+            "operator hover should show type: {:?}",
+            m.value
+        );
+        shutdown(&mut service).await;
     }
 }
