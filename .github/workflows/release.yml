@@ -69,6 +69,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      # v4 不带 name 时按 artifact 名各建一个目录：
+      # lsp-<target>/ 二进制、sokonanoda-vsix/sokonanoda.vsix。
       - uses: actions/download-artifact@v4
       - name: Create release and upload all artifacts
         if: github.event_name == 'push'
@@ -85,7 +87,8 @@ jobs:
             tar czf "sokonanoda-lsp-${target}.tar.gz" -C "$dir" .
             gh release upload "${{ github.ref_name }}" "sokonanoda-lsp-${target}.tar.gz"
           done
-          gh release upload "${{ github.ref_name }}" "vsix/sokonanoda.vsix" --clobber
+          gh release upload "${{ github.ref_name }}" \
+            "sokonanoda-vsix/sokonanoda.vsix" --clobber
 
   # Marketplace 发布（官方 CI 模板：VSCE_PAT secret + vsce publish）
   marketplace-publish:

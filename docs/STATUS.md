@@ -47,6 +47,13 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    fmt/clippy 干净（kernel warning 级不变）；playground 锚点
    `decl.checked=20 / exercise.open=7 / 0 诊断`。版本 0.4.0 → **0.4.1**
    （patch：改进非新能力；CHANGELOG 已记）。
+6. **CI 两连红（v0.4.1 首推）+ 修复**：(a) lint——新代码
+   `int_plus_one` 触发 `-D warnings`，本地验证被 grep 掩膜+管道退出码
+   双重污染造成假绿（教训入 CI-FAILURES.md，预防=跑与 CI 完全一致的
+   命令）；(b) release 的 github-release——`download-artifact` v4 目录
+   布局与 upload 路径不符（`vsix/` 路径从未存在；v0.4.0 同因），
+   修为 `sokonanoda-vsix/sokonanoda.vsix`。marketplace-publish 本轮
+   **成功**（Azure 超时确认为间歇性）。
 
 ## 本轮进度（2026-09-07，第十六轮：???→sorry 迁移 + VS Code 集成测试 + hover 纪律）
 

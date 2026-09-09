@@ -95,7 +95,7 @@ pub(crate) fn bracket_hover_at<'a>(
     // 完全在括号组内部（不含括号本身）的最大 span = 括号包住的表达式。
     hovers
         .iter()
-        .filter(|h| h.span.start.offset >= open + 1 && h.span.end.offset <= close)
+        .filter(|h| h.span.start.offset > open && h.span.end.offset <= close)
         .max_by_key(|h| h.span.end.offset - h.span.start.offset)
 }
 

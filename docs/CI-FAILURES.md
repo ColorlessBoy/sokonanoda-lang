@@ -74,3 +74,29 @@
 - 原因：多个 python 编辑脚本叠加修改同一文件，前后编辑互相覆盖
 - 修复：git checkout 恢复后重新编辑
 - 预防：**对同一文件的多次编辑要么合并为一个脚本，要么每步后 build 验证**
+
+### 2026-09-09 — lint 失败：clippy `int_plus_one`（本地假绿）
+- 原因：新代码 `h.span.start.offset >= open + 1` 触发
+  `clippy::int_plus_one`（CI 的 clippy 经教学 crates 的
+  `[lints.rust] warnings = "deny"` 以 `-D warnings` 执行，直接 error）。
+  本地"验证"用了 `cargo clippy ... 2>&1 | grep -E "^(warning|error).*crates/"`
+  ——**grep 掩膜吞掉了警告行**（crate 路径在 `-->` 行不在 warning 行），
+  且 `$?` 取到的是 grep/head 的退出码——本地假绿，CI 必红。
+- 修复：改成 `h.span.start.offset > open`（语义等价）。
+- 预防：**本地验证必须跑与 CI 完全一致的命令
+  `cargo clippy --workspace --all-targets`，退出码用
+  `echo ${PIPESTATUS[0]}` 或不带管道直接查**；输出只许 tail 不许 grep 掩膜。
+
+### 2026-09-09 — release github-release：VSIX 路径不存在（v0.4.0/v0.4.1 同因）
+- 原因：`actions/download-artifact@v4` 不带 `name:` 时按 artifact 名
+  **各建一个目录**——VSIX 落在 `sokonanoda-vsix/sokonanoda.vsix`，而
+  `gh release upload` 写的是 `vsix/sokonanoda.vsix`（路径是编的，从未
+  存在过）→ `no matches found` exit 1。v0.4.0 首跑记录的
+  "github-release exit 1（原因未查）"实为同一根因。
+- 修复：upload 路径改为 `sokonanoda-vsix/sokonanoda.vsix`，并在
+  download 步骤加注释说明 v4 的目录布局。
+- 预防：**改 release workflow 的任何路径引用前，先确认上一个 step 的
+  实际落盘路径**（download-artifact v4 无 name = 每个 artifact 一个目录；
+  带 `pattern` + `merge-multiple: true` 才会平铺）。tag 触发的 workflow
+  修复后需**强制移动 tag**（`git tag -f && git push -f`）才会用新
+  workflow 重跑，`gh run rerun` 只会用 tag 上的旧文件。
