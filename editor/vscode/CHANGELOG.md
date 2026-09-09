@@ -1,3 +1,19 @@
+## [0.4.0] - 2026-09-09
+
+### Added
+- Hover proximity fallback: brackets/operators show enclosing expression type
+- VS Code integration tests (@vscode/test-electron, 4 cases + CI xvfb)
+- Multi-binder lambda regression test
+
+### Fixed
+- Hover loose bvars resolved to binder names (was "1 -> 1")
+- Keyword hover suppressed (fun/=>/theorem silent)
+- Conv soundness fix (kernel eval/infer closure conflation)
+
+### Changed
+- Hover precision limitation documented: infer_under_binders panics on
+  delta-unfolding types (Not a), affected rows dropped (宁缺毋滥)
+
 ## [0.3.0] - 2026-09-09
 
 ### Added

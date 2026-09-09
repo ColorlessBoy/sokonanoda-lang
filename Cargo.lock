@@ -1024,7 +1024,7 @@ dependencies = [
 
 [[package]]
 name = "sokonanoda-cli"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde_json",
  "sokonanoda-front",
@@ -1033,7 +1033,7 @@ dependencies = [
 
 [[package]]
 name = "sokonanoda-front"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "criterion",
  "num-bigint",
@@ -1043,7 +1043,7 @@ dependencies = [
 
 [[package]]
 name = "sokonanoda-lsp"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "futures",
  "serde",
