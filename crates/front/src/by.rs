@@ -62,7 +62,11 @@ pub fn run_by(
     prefix_src: &str,
     options: &CompileOptions,
 ) -> Result<ByOutcome, CompileError> {
-    let Expr::By { tactics, .. } = by else {
+    let Expr::By {
+        tactics,
+        span: by_span,
+    } = by
+    else {
         unreachable!("run_by called on non-By");
     };
     let mut nodes: Vec<GoalNode> = Vec::new();
@@ -225,8 +229,14 @@ pub fn run_by(
         }
     }
 
-    let expr = assemble(&nodes, 0);
+    let expr = assemble(&nodes, 0, hole_span(tactics, *by_span));
     Ok(ByOutcome { expr, steps })
+}
+
+/// 未闭合目标的洞位：以最后一个 tactic 的 span 为准（`by … sorry` 里就是
+/// `sorry` 的位置；`by intro a` 这种没写 sorry 的部分作答则落在块尾）。
+fn hole_span(tactics: &[Tactic], by_span: Span) -> Span {
+    tactics.last().map(Tactic::span).unwrap_or(by_span)
 }
 
 /// `apply f`：推断 f 的类型，位置 spine 合一 codomain 与目标，
@@ -326,20 +336,19 @@ fn apply_tactic(
     Ok(())
 }
 
-/// 组装整棵树 → 单一 lambda AST（叶子洞 = `Expr::Hole`）。
-fn assemble(nodes: &[GoalNode], id: usize) -> Expr {
+/// 组装整棵树 → 单一 lambda AST（叶子洞 = `Expr::Hole`，span 用未闭合目标
+/// 的洞位——`by … sorry` 里就是 `sorry` 的位置，供 open_goal/hole 导航使用）。
+fn assemble(nodes: &[GoalNode], id: usize, hole_span: Span) -> Expr {
     let node = &nodes[id];
     let body = match &node.kind {
-        NodeKind::Hole => Expr::Hole {
-            span: Span::default(),
-        },
+        NodeKind::Hole => Expr::Hole { span: hole_span },
         NodeKind::Closed(e) => e.clone(),
         NodeKind::Apply { f, args } => {
             let mut app = f.clone();
             for arg in args {
                 let arg_expr = match arg {
                     ApplyArg::TypeParam(e) => e.clone(),
-                    ApplyArg::SubGoal(i) => assemble(nodes, *i),
+                    ApplyArg::SubGoal(i) => assemble(nodes, *i, hole_span),
                 };
                 app = Expr::App {
                     fun: Box::new(app),

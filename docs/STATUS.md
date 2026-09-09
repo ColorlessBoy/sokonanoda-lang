@@ -23,11 +23,10 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
 ## 本轮进度（2026-09-09，第十九轮：by-tactic 块 + VSCode goal-state 设计）
 
-> ⚠️ 发布后修复（0.5.1）：扩展自动下载的 `sokonanoda-lsp` 缓存不校验版本，
-> 升级扩展后仍跑旧服务器（`by sorry` 误报未知 tactic）；axiom 连接词
-> （And/Or/True/False）语义 token 映射到接近无色的 `VARIABLE`。修复：
-> 下载按扩展版本号版本追踪（`.version` 标记，升级即重下）、AxiomName/AxiomUse
-> 映射 `TYPE`。Lean 调研确认 `sorry` 本就是术语+tactic 双栖（`admit` 同义），
+> ⚠️ 发布后修复：0.5.1 修「扩展自动下载的 LSP 缓存不校验版本（升级后仍跑旧
+> 服务器）→ 按扩展版本号版本追踪；axiom 连接词语义 token → TYPE」。
+> 0.5.2 修「`by` 块 span 终点取下一个 token 起点 → 注释被吞进警告范围；
+> 尾部 Hole span=offset 0 → 止于 `sorry`」。Lean 确认 `sorry` 术语+tactic 双栖，
 > `by sorry` 与 Lean 对齐、与值位 `:= sorry` 无冲突。
 
 > 设计先行：`docs/design-by-tactics.md`。触发：用户要求「实现一些基础 tactic，

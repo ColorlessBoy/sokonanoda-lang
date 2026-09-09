@@ -113,7 +113,8 @@ impl Parser {
     /// `by` 块：`by <tactic> (';' <tactic>)*`。tactic 之间用 `;` 分隔
     ///（教学子集不引入缩进敏感语法）。
     fn parse_by_block(&mut self) -> Result<Expr> {
-        let start = self.bump().span.start;
+        let by_tok = self.bump();
+        let start = by_tok.span.start;
         let mut tactics = Vec::new();
         // 允许空 `by`（练习从零开始）：下一个 token 不是 tactic 关键字就收尾。
         if self.tactic_keyword_ahead() {
@@ -128,7 +129,13 @@ impl Parser {
                 }
             }
         }
-        let end = self.peek().span.start;
+        // span 终点 = 最后一个 tactic 的终点（空 by = by 关键字终点）。
+        // 绝不能用 `peek().span.start`：注释会被词法器跳过，下一个 token
+        // 可能是下一个命令/EOF，会把中间的多行注释整个包进 span。
+        let end = tactics
+            .last()
+            .map(|t| t.span().end)
+            .unwrap_or(by_tok.span.end);
         let span = Span::new(start, end);
         Ok(Expr::By { tactics, span })
     }
@@ -146,11 +153,13 @@ impl Parser {
         match &tok.kind {
             TokenKind::Ident(kw) if kw == "intro" => {
                 self.bump();
-                let name = self.expect_ident("`intro` binder name")?;
-                let end = self.peek().span.start;
+                let name_tok = self.bump();
+                let TokenKind::Ident(name) = &name_tok.kind else {
+                    return Err(self.error_here("`intro` binder name"));
+                };
                 Ok(Tactic::Intro {
-                    name,
-                    span: Span::new(tok.span.start, end),
+                    name: name.clone(),
+                    span: Span::new(tok.span.start, name_tok.span.end),
                 })
             }
             TokenKind::Ident(kw) if kw == "exact" => {

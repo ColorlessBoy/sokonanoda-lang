@@ -1,3 +1,13 @@
+## [0.5.2] - 2026-09-09
+
+### Fixed
+- **Wrong `by`-block / `sorry` span ranges**: `parse_by_block` ended the block
+  span at "the next token" — comments are skipped by the lexer, so the span
+  ballooned across trailing multi-line comments into the next declaration (or
+  EOF), and the `sorry` warning squiggle covered those comment lines. The block
+  span now ends at the last tactic, and the unclosed-goal hole points at the
+  `sorry` token instead of offset 0.
+
 ## [0.5.1] - 2026-09-09
 
 ### Fixed
