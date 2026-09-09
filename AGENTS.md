@@ -35,6 +35,11 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 （仓库根 `opencode.json` 已接线）；goal 视图走自定义请求 `soko/goals` /
 `soko/nextHole`（`docs/protocol.md`）。
 
+## VS Code 扩展改动
+
+改 `editor/vscode/` 下的任何文件前，先读 `docs/vscode-dev-guide.md`
+（版本纪律 / 测试三层 / 常见坑）。版本号必须随功能改动同步 bump。
+
 ## 收尾义务
 
 - 落 commit 前更新 `docs/STATUS.md`；

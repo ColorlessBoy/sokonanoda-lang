@@ -1,3 +1,21 @@
+## [0.3.0] - 2026-09-09
+
+### Added
+- Hover on brackets/operators shows enclosing expression type (proximity fallback)
+- Declaration hover shows full kernel-rendered signature (ty_text)
+- Hover on sub-expressions shows `expr : type` (precedence visible)
+- Keyword hover suppressed (clean, no noise on fun/=>/theorem)
+- Multi-binder lambda support confirmed and regression-tested
+- `sorry` highlight in semantic tokens and TextMate grammar
+
+### Fixed
+- Hover loose bvars resolved to binder names (was showing "1 -> 1")
+- Hover rows with unresolvable names dropped (宁缺毋滥，不展示乱码)
+- Conv soundness fix (upstream kernel bug: eval/infer closure conflation)
+
+### Changed
+- `???` removed; `sorry` is the sole placeholder (Lean 4 parity)
+
 
 ## [0.2.1] - 2026-09-08
 
