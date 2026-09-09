@@ -7,8 +7,10 @@
 
 | 文件 | 职责 | 禁止 |
 |---|---|---|
-| `extension.js` | 扩展入口：LSP 客户端接线、命令注册、练习树/课程树/状态栏/inlay/跳洞 | 业务逻辑、kernel 调用 |
-| `package.json` | 清单：contributes、dependencies、engines | 运行时逻辑 |
+| `extension.js` | 扩展入口：LSP 客户端接线、命令注册、练习树/课程树/状态栏/inlay/跳洞、**server 自动下载** | 业务逻辑、kernel 调用 |
+| `package.json` | 清单：contributes、dependencies、engines、**description/keywords（市场门面）** | 运行时逻辑 |
+| `README.md` | **Marketplace 页面正文**——安装方式、功能清单、agent 集成卖点 | 与实际行为不符的描述 |
+| `CHANGELOG.md` | 市场可见的版本历史（Keep a Changelog） | 与 commit 内容不符的条目 |
 | `syntaxes/*.tmLanguage.json` | TextMate 语法（即时高亮，LSP 语义高亮的降级层） | — |
 | `language-configuration.json` | 括号配对、注释、缩进 | — |
 
@@ -95,7 +97,45 @@ git tag v0.X.Y && git push --tags
 发布前检查清单：
 - [ ] `package.json` version 已 bump
 - [ ] `CHANGELOG.md` 已更新
-- [ ] `README.md` 无占位符
+- [ ] `README.md` 与当前行为一致（见 §7 文档同步）
 - [ ] `cargo test --workspace --locked` 全绿
 - [ ] `npm test` 集成测试全绿
 - [ ] `icon.png` 存在且 ≥128×128 PNG
+
+## 7. 文档同步（市场页面即门面，硬规则）
+
+> 历史教训（2026-09-09）：server 早已实现 GitHub Release 自动下载
+> （rust-analyzer 模式），README 的 Quick start 还在教 `cargo build`；
+> agent skills 是项目最大卖点，市场介绍里只字未提。过时的门面 =
+> 用户以为插件不可用。
+
+### 必须同步的三个门面文件
+
+| 文件 | 出现在哪 | 内容 |
+|---|---|---|
+| `README.md` | Marketplace 页面正文 | 安装/获取方式、功能清单、agent 集成 |
+| `package.json` → `description` | 搜索列表的一行简介 | 一句话卖点（零安装门槛 + 教学 + agent） |
+| `CHANGELOG.md` | 页面"Changelog"标签 | 每个版本用户可感知的变化 |
+
+### 同步触发器（命中任一 = 同一 commit 里改门面）
+
+1. **安装/获取方式变化**：server 下载策略、发现顺序、缓存路径、新增设置项；
+2. **功能集变化**：新命令/键位/树/视图（对照 `package.json` contributes）；
+3. **反馈行为变化**：诊断分级、hover 内容、inlay（用户能在编辑器里"感觉到"的）；
+4. **agent 集成变化**：skills 增删、opencode 接线、CLI 事件面。
+
+### 事实校对规程
+
+- README 里的每个行为声明，**必须能在 `extension.js`/LSP 服务器里指出
+  对应实现**（如"自动下载"→ `downloadLspBinary` 的 URL 与缓存路径）；
+- 数字必须可复现（VSIX 文件数基线、VS Code 最低版本 = `engines.vscode`）；
+- 疑似过时 → 以代码为准改文档，不许"以后再改"；
+- `crates/cli/tests/extension.rs` 静态契约守护元数据存在性——文案正确性
+  靠本节规程人肉把关（契约测试读不出"说谎"）。
+
+### 发布后验证
+
+```bash
+HTTPS_PROXY=http://127.0.0.1:7890 npx --yes @vscode/vsce show <publisher>.<name>
+# 核对：Version 与 tag 一致、description 已更新、Marketplace 网页 README 渲染正常
+```

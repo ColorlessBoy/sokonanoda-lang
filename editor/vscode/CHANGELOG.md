@@ -1,3 +1,19 @@
+## [0.4.2] - 2026-09-09
+
+### Changed
+- Marketplace listing rewritten to match reality: zero-setup story (the
+  server downloads itself from GitHub Releases on first use, rust-analyzer
+  model), full feature inventory, agent-skills promotion (teacher/dev/ci)
+  and the `opencode.json` wiring; stale "build the server with cargo"
+  quick start removed
+- Keywords refreshed for marketplace discovery
+
+### Docs
+- New hard rule in docs/vscode-dev-guide.md §7: the three marketplace
+  files (README.md / description / CHANGELOG.md) must be updated in the
+  same commit whenever install story, feature set, feedback behavior or
+  agent integration changes
+
 ## [0.4.1] - 2026-09-09
 
 ### Fixed
