@@ -60,35 +60,104 @@ pub(crate) fn pos_within_span(line: u32, character: u32, span: Span) -> bool {
 }
 
 pub(crate) fn hover_type_at(hovers: &[HoverType], line: u32, character: u32) -> Option<&HoverType> {
-    // 精确命中：包含光标的最小 span 优先
+    // 精确命中：包含光标的最小 span 优先。
+    // （曾经的「起点 ±2」邻近回退会在 `)` 上命中右侧邻居——括号命中
+    // 现在统一走 bracket_hover_at 的括号组匹配。）
     let exact: Vec<&HoverType> = hovers
         .iter()
         .filter(|h| pos_within_span(line, character, h.span))
         .collect();
-    if let Some(best) = exact.iter().min_by_key(|h| {
-        (h.span.end.offset - h.span.start.offset)
-            .try_into()
-            .unwrap_or(u64::MAX)
-    }) {
-        return Some(best);
-    }
-    // 回退（括号/运算符等结构符号）：光标 ±1 范围内命中的最小 span，
-    // 让 hover 在括号、运算符上也能看到所属的表达式类型。
-    let near: Vec<&HoverType> = hovers
+    exact
         .iter()
-        .filter(|h| {
-            h.span.start.line as i64 == line as i64
-                && (h.span.start.column as i64 - character as i64).abs() <= 2
+        .min_by_key(|h| {
+            (h.span.end.offset - h.span.start.offset)
+                .try_into()
+                .unwrap_or(u64::MAX)
         })
-        .collect();
-    if let Some(best) = near.iter().min_by_key(|h| {
-        (h.span.end.offset - h.span.start.offset)
-            .try_into()
-            .unwrap_or(u64::MAX)
-    }) {
-        return Some(best);
+        .copied()
+}
+
+/// 光标落在 `(` / `)` 上时，返回括号组包住的表达式的 hover 行——
+/// `(表达式)` 的悬停内容 = `表达式 : 表达式的类型`。
+///
+/// 匹配规则：按源码文本扫描配对括号（跳过 `--` 行注释），取「完全落在
+/// 括号组内部的最大 hover span」——AST 节点的 span 不含括号本身，所以
+/// 内层表达式（应用链整体）恰好是该组内最大的行。没有配对（注释里的
+/// 括号、不闭合）或组内没有行时返回 None，调用方落到邻近回退。
+pub(crate) fn bracket_hover_at<'a>(
+    text: &str,
+    hovers: &'a [HoverType],
+    line: u32,
+    character: u32,
+) -> Option<&'a HoverType> {
+    let offset = line_col_to_offset(text, line, character);
+    let (open, close) = matching_paren(text, offset)?;
+    // 完全在括号组内部（不含括号本身）的最大 span = 括号包住的表达式。
+    hovers
+        .iter()
+        .filter(|h| h.span.start.offset >= open + 1 && h.span.end.offset <= close)
+        .max_by_key(|h| h.span.end.offset - h.span.start.offset)
+}
+
+/// 光标处括号的配对位置 `(open, close)`（字节偏移，不含括号本身）。
+/// 光标不在 `(`/`)` 上或配对失败（注释内、不闭合）时返回 None。
+fn matching_paren(text: &str, offset: usize) -> Option<(usize, usize)> {
+    let bytes = text.as_bytes();
+    match bytes.get(offset).copied()? {
+        b'(' => {
+            let mut depth = 0usize;
+            let mut i = offset;
+            while i < bytes.len() {
+                match bytes[i] {
+                    b'-' if bytes.get(i + 1) == Some(&b'-') => {
+                        i += 2;
+                        while i < bytes.len() && bytes[i] != b'\n' {
+                            i += 1;
+                        }
+                    }
+                    b'(' => depth += 1,
+                    b')' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return Some((offset, i));
+                        }
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+            None
+        }
+        b')' => {
+            // 反向找配对：正向扫描到光标之前为止，维护未闭合 `(` 栈；
+            // 光标处的 `)` 不入循环——它的配对就是栈顶。
+            let mut stack: Vec<usize> = Vec::new();
+            let mut i = 0usize;
+            while i < offset {
+                match bytes[i] {
+                    b'-' if bytes.get(i + 1) == Some(&b'-') => {
+                        i += 2;
+                        while i < bytes.len() && bytes[i] != b'\n' {
+                            i += 1;
+                        }
+                        // 注释区域跨过了光标 → 光标的 `)` 在注释里，无配对。
+                        if i > offset {
+                            return None;
+                        }
+                    }
+                    b'(' => stack.push(i),
+                    b')' => {
+                        stack.pop();
+                    }
+                    _ => {}
+                }
+                i += 1;
+            }
+            let open = stack.pop()?;
+            Some((open, offset))
+        }
+        _ => None,
     }
-    None
 }
 
 pub(crate) fn decl_at(decls: &[DeclState], line: u32, character: u32) -> Option<&DeclState> {

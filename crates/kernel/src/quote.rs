@@ -28,6 +28,11 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     /// `binder_tys`. The returned type is quoted back with the same number of
     /// loose variables, so a front-end can display it against its own binder
     /// names. This powers editor hover on sub-expressions.
+    ///
+    /// lang（2026-09-09，显示层）：不再 `force_all` —— 引用不展开定义头，
+    /// `Not a` 悬停显示为 `Not a` 而非展开后的 `a -> False`（与 `#check`
+    /// 的展示习惯一致）。quote 对每个节点自行 force thunk，Unfold 头保持
+    /// 折叠；调用方（hover）是唯一消费者，纯显示层改动。
     pub fn infer_under_binders(&mut self, binder_tys: &[ExprPtr<'t>], e: ExprPtr<'t>) -> ExprPtr<'t> {
         let mut depth = 0u32;
         let mut env = self.empty_env();
@@ -40,7 +45,6 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             depth += 1;
         }
         let ty = self.infer_value(crate::tc::InferFlag::InferOnly, depth, env, ctx, e);
-        let ty = self.force_all(depth, ty);
         self.quote(depth, ty)
     }
 

@@ -290,4 +290,16 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         F: FnOnce(&mut crate::pretty_printer::PrettyPrinter<'_, 't, 'p>) -> A, {
         self.ctx.with_pp(self.arena, f)
     }
+
+    /// lang（2026-09-09，显示层）：同 `with_pp`，但先用 `scope`（外层在前）
+    /// 播种 pp 的 binder 名字表——打印开项时松散变量直接还原为真名，
+    /// 供 hover 显示「表达式 : 类型」使用。
+    pub fn with_pp_scoped<F, A>(&mut self, scope: &[String], f: F) -> A
+    where
+        F: FnOnce(&mut crate::pretty_printer::PrettyPrinter<'_, 't, 'p>) -> A, {
+        self.ctx.with_pp(self.arena, |pp| {
+            pp.seed_binder_names(scope);
+            f(pp)
+        })
+    }
 }

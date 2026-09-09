@@ -892,6 +892,19 @@ impl<'x, 't, 'p> PrettyPrinter<'x, 't, 'p> {
     pub fn pp_expr(&mut self, e: ExprPtr<'t>) -> String {
         self.pp_expr_aux(e).parens(0).group().render(self.options().width)
     }
+
+    /// lang（2026-09-09，显示层）：用外层 binder 名字播种 `binder_names`，
+    /// 让松散变量（binder 在被打印项之外）直接还原为真名而不是 `$N`。
+    /// `names` 外层在前——与 quote 回来的开项约定一致：松散变量 j
+    /// （0 = 最内层）在 pp 下沉 d 层后索引为 d+j，`pp_bvar` 经
+    /// `checked_sub` 命中 `names[len-1-(j)]`，telescope 域的 lift 恰好抵消。
+    /// 播种后打印开项不再产生 `$N`；闭合项不受影响。
+    pub fn seed_binder_names(&mut self, names: &[String]) {
+        for n in names {
+            let ptr = self.ctx.name_from_str(n);
+            self.binder_names.push(ptr);
+        }
+    }
 }
 
 impl<'t, 'p: 't> TcCtx<'t, 'p> {

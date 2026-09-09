@@ -155,3 +155,11 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   的声明产出 WARNING 级（code `sorry`），与 kernel-rejected ERROR 分离；
   VS Code 集成测试 4 用例落地（@vscode/test-electron）；Lean 4 调研确认
   点分名原子/sorry warning/hover 签名与官方对齐。
+- 2026-09-09（十三）：**括号 hover 与真名还原（用户指令）**：hover 内容
+  曾完全混乱，要求——(1) `(表达式)` 的 `(` 与 `)` 都显示
+  `表达式 : 表达式的类型`；(2) 不得显示 `$2` 这类 de Bruijn 索引，必须
+  还原为对应 binder 名字；(3) 为括号 hover 设计多个测试样例，指定语料
+  `and_not_absurd`（`(And.right a (Not a) h)` → `And.right a (Not a) h :
+  Not a`；`And.left a (Not a) h` → `a`）。实现见
+  `docs/design-hover-brackets.md`（kernel pp 播种 + 括号组匹配 +
+  `Not a` 保持折叠），测试 front 2 + LSP 5 + 旧断言对齐。

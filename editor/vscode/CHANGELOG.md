@@ -1,3 +1,20 @@
+## [0.4.1] - 2026-09-09
+
+### Fixed
+- Bracket hover: `(expr)` shows `expr : type` on both `(` and `)` (paren
+  matching with `--` comment skipping); no longer leaks the neighbor's
+  signature on `)` (was `And.left : forall …` bug)
+- Hover types show real binder names instead of de Bruijn indices
+  (`$3 -> $4` was leaking on partially applied functions)
+- `Not a` stays folded in hover (was unfolded to `a -> False`)
+- Double hover fallbacks consolidated; `goto-def` on `)` no longer jumps
+  to a neighbor identifier
+
+### Changed
+- Kernel display layer (cold path, documented in architecture.md §6):
+  pp binder-name seeding for scope variables; `infer_under_binders` quotes
+  without `force_all`
+
 ## [0.4.0] - 2026-09-09
 
 ### Added

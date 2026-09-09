@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Lean-4-style proof teaching language with full kernel checking, goal view, hint ladders and AI-agent integration. Part of the sokonanoda-lang suite: a self-contained compiler + LSP + agent skills for teaching theorem proving.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {

@@ -1,23 +1,54 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-07（第十六轮：???→sorry 迁移 + VS Code 集成测试 + hover 纪律）
+> 快照：2026-09-09（第十七轮：括号 hover + 真名还原）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-round14.md`（含本轮 B′ 决议）/ `docs/design-kernel-taxonomy.md` /
-> `docs/design-course-status.md` / `docs/design-hints-suggestions.md` /
-> `docs/design-rename-inlay.md` / `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
+> 设计 = `docs/design-hover-brackets.md`（本轮）/ `docs/design-round14.md`（含本轮 B′ 决议）/
+> `docs/design-kernel-taxonomy.md` / `docs/design-course-status.md` /
+> `docs/design-hints-suggestions.md` / `docs/design-rename-inlay.md` /
+> `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
 > `docs/design-infrastructure.md`；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > 差距审计 = `docs/gap-analysis.md`；**经验台账 = `docs/LESSONS.md`**；
-> 发布 = `docs/RELEASE.md`；
+> 发布 = `docs/RELEASE.md`；**CI 失败台账 = `docs/CI-FAILURES.md`**；
 > agent 入口 = `AGENTS.md` + `skills/`；LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
 
 ## 一句话
 
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
-练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
+练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
-## 本轮进度（2026-09-07，第十六轮：学习者反馈验收落地）
+## 本轮进度（2026-09-09，第十七轮：括号 hover + 真名还原）
+
+> 设计先行：`docs/design-hover-brackets.md`。触发：用户反馈 VS Code hover
+> 内容完全混乱 + `(表达式)` 悬停要求 + `$N` 索引必须还原真名。
+
+1. **根因三连（全部实验证实）**：(a) pp 的 `binder_names` 从空开始 +
+   `parse_binders` 对 telescope 域 lift → `name_loose_bvars` 的文本映射
+   永不成立（同一变量打印 `$2`/`$3`/`$4`）；(b) `infer_under_binders` 的
+   `force_all` 把 `Not a` 展开成 `a -> False`；(c) `hover_type_at` 的
+   「起点 ±2」回退在 `)` 上命中右侧邻居（`And.left : forall …` 漏进括号
+   悬停），且与 hover() 的 TOLERANCE 回退语义打架。
+2. **kernel 显示层（冷路径，architecture §6 记档）**：pp 新增
+   `seed_binder_names` + `TypeChecker::with_pp_scoped`——scope 名字预置
+   `binder_names`，松散变量在**所有位置**（含 lift 域）精确还原真名
+   （代数验证 `S-1-j` 恒成立）；`infer_under_binders` 去 `force_all`
+   （`Not a` 保持折叠，与 `#check` 展示一致）。热路径零改动。
+3. **LSP 括号组匹配**：`render::bracket_hover_at`（文本扫描配对、跳
+   `--` 注释、组内最大行 = 括号包住的表达式；反向扫描扫到光标之前）；
+   hover 优先级 = 关键字静默 → **括号** → 精确 → ±2 邻近 → 声明；
+   删除错误的邻近回退（goto-def/高亮/补全同步受益）；
+   `hover_content` 统一「空 text 或含 `$` → 只显示源码切片」。
+4. **测试**：front 2 新（and_not_absurd 全语料零 `$` + 用户两条指定
+   样例 + 部分应用真名；and_swap `And.intro b a : b -> a -> And b a`）+
+   LSP 5 新（两组括号正反面、`)` 不漏邻居签名回归、`((p))` 四括号透明、
+   注释内括号不张冠李戴）+ 旧断言对齐（`(a : Prop)` 的 `(` → 组内最大行）。
+5. 测试总量 **402**（front 210 / lsp 76 / cli+kernel 116…）全绿；
+   fmt/clippy 干净（kernel warning 级不变）；playground 锚点
+   `decl.checked=20 / exercise.open=7 / 0 诊断`。版本 0.4.0 → **0.4.1**
+   （patch：改进非新能力；CHANGELOG 已记）。
+
+## 本轮进度（2026-09-07，第十六轮：???→sorry 迁移 + VS Code 集成测试 + hover 纪律）
 
 1. **???→sorry 迁移完成**：lexer 遇 ? 报教学引导错误；全仓清扫 24 文件
    （playground/course/examples/tests/docs）；协议词表不变。

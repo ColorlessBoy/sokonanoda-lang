@@ -72,11 +72,14 @@ code --install-extension sokonanoda.vsix --force
 
 1. **`node_modules` 不能进 `.vscodeignore`**——vsce 靠它把生产依赖装进 VSIX；
 2. **`vscode-languageclient` 必须在 `dependencies`**——放 `devDependencies` 的 VSIX 装上即坏；
-3. **didOpen 是通知**——不发 id，不期待响应；探针/测试里发 id 会被当作未知请求；
-4. **LSP 帧格式**——头块以 `\r\n\r\n` 结尾；探针/测试必须完整消费头块再读 body；
-5. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；
-6. **`code` CLI 与已开实例冲突**——集成测试在 macOS 上报"another instance running"时关掉 VS Code 再跑；
-7. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。
+3. **打包冒烟别带 `--no-dependencies`**——该 flag 跳过生产依赖收集，会打出
+   12 文件/21KB 的"空壳 VSIX"（正确基线 ≈327 文件/477KB，含
+   vscode-languageclient）；冒烟后核对文件数再认定通过；
+4. **didOpen 是通知**——不发 id，不期待响应；探针/测试里发 id 会被当作未知请求；
+5. **LSP 帧格式**——头块以 `\r\n\r\n` 结尾；探针/测试必须完整消费头块再读 body；
+6. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；
+7. **`code` CLI 与已开实例冲突**——集成测试在 macOS 上报"another instance running"时关掉 VS Code 再跑；
+8. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。
 
 ## 6. 发布
 

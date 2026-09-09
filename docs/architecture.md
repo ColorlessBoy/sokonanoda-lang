@@ -233,6 +233,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 | `Cargo.toml` | bin 改名 `sokonanoda-kernel`；`stumpalo 0.5.1` | workspace 集成 |
 | `tests/memory_api.rs` | **新增** | 无导出文件的内存检查验收 |
 | `builder.rs` | `add_inductive` 返回构建的 `Declar`；新增 `begin/end_inductive_block` 与 `mutual_block_sizes` 记账 | 归纳块可被 kernel 判定（I8a check-then-add） |
+| `quote.rs` + `tc.rs` + `pretty_printer.rs` | **hover 显示层（2026-09-09，第十七轮）**：`infer_under_binders` 去掉 `force_all`（`Not a` 保持折叠，quote 自行 force thunk；唯一消费者是 front 的 `resolve_hovers`）；pp 新增 `seed_binder_names(&[String])` + `TypeChecker::with_pp_scoped`——把 scope binder 名字（外层在前）预置进 `binder_names`，开项打印的松散变量直接还原真名（代数验证含 telescope 域 lift 的所有位置：`S-1-j` 恒成立）。热路径零改动 | 悬停「表达式 : 真名类型」；`$N` 索引不再泄漏（设计见 `docs/design-hover-brackets.md`） |
 
 上游"解析 NDJSON 导出文件 → 完整检查"路径原样保留（`parser.rs` + `Config::to_export_file` + `check_all_declars`），arena 集成测试 `tests/arena.rs` 也在（需要 `LEAN_KERNEL_ARENA` 指向用例根目录才运行）。
 

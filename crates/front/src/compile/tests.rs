@@ -2005,11 +2005,118 @@ fn hover_rows_name_loose_bvars_instead_of_indices() {
     let src = "theorem demo_K : (a : Prop) -> a -> a :=\n  fun (a : Prop) => fun (h : a) => h\n";
     let report = check_document(&parse(src).expect("parse"));
     for h in &report.hovers {
-        eprintln!(
-            "ALLROW {}..{} {:?}",
-            h.span.start.offset, h.span.end.offset, h.text
+        assert!(
+            !h.text.contains('$'),
+            "hover text must not leak de Bruijn indices: {:?}",
+            h.text
         );
     }
+}
+
+// ---- 括号 hover 语料：and_not_absurd（用户指定样例）----
+
+#[test]
+fn hover_rows_of_and_not_absurd_show_real_names() {
+    // 用户指定语料：括号应用 + Not 定义展开 + `$N` 还原，全部集中在
+    // 一条 and_not_absurd 里。所有 hover 行必须用真名（零 `$`），
+    // 关键行的类型精确匹配（kernel 判定，pp 只负责还原名字）。
+    let src = concat!(
+        "axiom False : Prop\n",
+        "axiom And : Prop -> Prop -> Prop\n",
+        "axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+        "axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n",
+        "axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n",
+        "def Not : Prop -> Prop := fun (a : Prop) => a -> False\n",
+        "theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :=\n",
+        "  fun (a : Prop) (h : And a (Not a)) => ",
+        "(And.right a (Not a) h) (And.left a (Not a) h)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    for h in &report.hovers {
+        let slice = &src[h.span.start.offset..h.span.end.offset];
+        assert!(
+            !h.text.contains('$'),
+            "leaked de Bruijn index in {slice:?}: {:?}",
+            h.text
+        );
+    }
+    // 行定位：AST span 不含括号，应用链的起点 = 括号后第一个字符。
+    let right_group = src.find("(And.right").expect("right group") + 1;
+    let left_group = src.find("(And.left").expect("left group") + 1;
+    let right_app_end = right_group + "And.right a (Not a) h".len();
+    let left_app_end = left_group + "And.left a (Not a) h".len();
+    // 部分应用的 span 止于 `(Not a)` 的 `a`（AST span 不含括号）
+    let right_partial_end = right_group + "And.right a (Not a".len();
+    let h_of_right = right_group + "And.right a (Not a) ".len();
+    let row = |start: usize, end: usize| {
+        report
+            .hovers
+            .iter()
+            .find(|h| h.span.start.offset == start && h.span.end.offset == end)
+            .unwrap_or_else(|| panic!("no hover row at {start}..{end}"))
+    };
+    // 用户样例 1：`(And.right a (Not a) h)` → `Not a`（Not 保持折叠）
+    assert_eq!(row(right_group, right_app_end).text, "Not a");
+    // 用户样例 2：`And.left a (Not a) h` → `a`
+    assert_eq!(row(left_group, left_app_end).text, "a");
+    // 假设的使用：`h` → `And a (Not a)`
+    assert_eq!(row(h_of_right, h_of_right + 1).text, "And a (Not a)");
+    // 部分应用：`And.right a (Not a)` → `And a (Not a) -> Not a`
+    assert_eq!(
+        row(right_group, right_partial_end).text,
+        "And a (Not a) -> Not a"
+    );
+    // 整条应用链 → `False`
+    assert_eq!(row(right_group, left_app_end).text, "False");
+    // lambda 整体 → 带真名的 forall
+    let lambda = report
+        .hovers
+        .iter()
+        .find(|h| src[h.span.start.offset..h.span.end.offset].starts_with("fun (a : Prop) (h"))
+        .expect("lambda row");
+    assert_eq!(lambda.text, "forall (a : Prop), And a (Not a) -> False");
+}
+
+#[test]
+fn hover_rows_of_partial_applications_use_scope_names() {
+    // 部分应用的类型里，scope binder 的引用全部还原为真名
+    //（此前是 `$3 -> $4 -> And $3 $4` 这样的索引残渣）。
+    let src = concat!(
+        "axiom And : Prop -> Prop -> Prop\n",
+        "axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+        "axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n",
+        "axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n",
+        "theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n",
+        "  fun (a : Prop) (b : Prop) (h : And a b) => ",
+        "And.intro b a (And.right a b h) (And.left a b h)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    for h in &report.hovers {
+        let slice = &src[h.span.start.offset..h.span.end.offset];
+        assert!(
+            !h.text.contains('$'),
+            "leaked de Bruijn index in {slice:?}: {:?}",
+            h.text
+        );
+    }
+    let row = |start: usize, end: usize| {
+        report
+            .hovers
+            .iter()
+            .find(|h| h.span.start.offset == start && h.span.end.offset == end)
+            .unwrap_or_else(|| panic!("no hover row at {start}..{end}"))
+    };
+    // And.intro b a：两个实参的顺序如实显示（b 先、a 后）
+    let intro = src.find("And.intro b a").expect("And.intro b a exists");
+    assert_eq!(
+        row(intro, intro + "And.intro b a".len()).text,
+        "b -> a -> And b a"
+    );
+    // And.right a b：剩余类型里的 scope 引用是真名
+    let arb = src.find("And.right a b").expect("And.right a b exists");
+    assert_eq!(row(arb, arb + "And.right a b".len()).text, "And a b -> b");
+    // 全应用：And.right a b h : b
+    assert_eq!(row(arb, arb + "And.right a b h".len()).text, "b");
 }
 
 #[test]

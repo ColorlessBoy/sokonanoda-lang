@@ -1643,7 +1643,9 @@ pub(crate) fn resolve_hovers(
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 env.with_tc(EnvLimit::ByIndex(cmd.env_at), |tc| {
                     let ty = tc.infer_under_binders(&node.scope_tys, node.expr);
-                    tc.with_pp(|pp| pp.pp_expr(ty))
+                    // 用 scope binder 名字播种 pp：松散变量还原为真名
+                    //（`$N` 不再出现），telescope 域的 lift 恰好被抵消。
+                    tc.with_pp_scoped(&node.scope_names, |pp| pp.pp_expr(ty))
                 })
             }));
             let text = match result {
