@@ -1,8 +1,9 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-09（第十八轮：hover 重构收尾；并发课程双语化）
+> 快照：2026-09-09（第十九轮：by-tactic 块）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-hover-refactor.md`（本轮）/ `docs/design-course-bilingual.md` /
+> 设计 = `docs/design-by-tactics.md`（本轮）/ `docs/design-hover-refactor.md` /
+> `docs/design-course-bilingual.md` /
 > `docs/design-hover-brackets.md` /
 > `docs/design-round14.md`（含本轮 B′ 决议）/
 > `docs/design-kernel-taxonomy.md` / `docs/design-course-status.md` /
@@ -19,6 +20,40 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-09，第十九轮：by-tactic 块 + VSCode goal-state 设计）
+
+> 设计先行：`docs/design-by-tactics.md`。触发：用户要求「实现一些基础 tactic，
+> 跟 Lean 4 一样用 `by` 开始」（补 assumption / rfl），并调研设计 VSCode 前端
+> 显示 goal state。首期五个 tactic：**intro / exact / apply / assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 sorry 同语义）。
+
+1. **`by` 语法 + 引擎（front 层，kernel 一行未动）**：`theorem t : T := by <tactic>; <tactic>; …`
+   （`;` 分隔，教学子集不引入缩进敏感）。新 `Expr::By`/`Tactic` AST、`Semicolon`
+   词法、`FolFile.src`（`parse` 存原文，`run_pass` 按声明起点切片当前缀源码）。
+   引擎 `crates/front/src/by.rs`：目标树（apply 多子目标）+ 父指针收集上下文；
+   逐 tactic 判定复用 `judge_terms`（kernel 唯一裁判），`apply` 用新
+   `judge::judge_infer` 推断被应用函数类型 + 位置 spine 合一（codomain 中出现的
+   命名 binder = 类型参数、其余 = 子目标）。`by` 没写完整 = 尾部 `sorry` →
+   既有 `open_goal` 分流成 Open 练习（「部分作答」同语义）。
+2. **内核类型文本可回读**：pp 把 `(a : T) -> (b : T)` 折叠成 `forall (a b : T), …`——
+   parser 新增多名字 binder 组 `(a b : T)`（Lean 对齐，仅类型箭头位），
+   `proof::render_expr`/`judge::judge_infer` 补 `+` 括号与逐 binder 剥层，
+   引擎读回内核类型不再失真。
+3. **课程三件套**：`course/` 新增单元⑥「by 写法」（中文 + `en/` 英文镜像 +
+   `solutions/` 解答钥匙，全经内核验证）；`playground` 追加 2 道 by 练习题
+   （open=7→9）；`course.json`、`course.rs`/`course_status.rs` golden 计数
+   更新（unit6 13 checked / 5 open）。
+4. **测试**：front 13 新（parse by 块/白名单拒绝未知 tactic/intro+exact/
+   assumption/apply+rfl/部分 by→Open/错误 exact→`elab-tactic-failed`/多名字
+binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/apply
+    目标不匹配/`by sorry` 占位→Open）+ CLI 2 新（by 端到端、部分 by→open）。
+    测试总量 **426**（front 226 / lsp 81 / cli+kernel 119）；fmt/clippy 干净。
+5. **VSCode goal-state（Phase 2 设计，协议先行）**：调研 vscode-lean4 Infoview /
+   coq-lsp `proof/goals`——共识 = server 端按光标位置从编译期信息树取 tactic
+   前后状态。设计：front 产出 `DeclState.by_steps`（每 tactic 执行后 goal+binders）
+   + 新请求 `soko/stateAt`（位置感知，返回 version 供丢弃过期）+ VSCode「练习」
+   树顶部「当前光标处」goal 组（方案 A，零 webview）。实现留后续轮次，
+   `docs/protocol.md` 待落地时补。
 
 ## 本轮进度（2026-09-09，第十八轮：hover 重构——良构表达式 + 高亮范围）
 

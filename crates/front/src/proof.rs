@@ -6,7 +6,7 @@
 
 use crate::compile::CompileOptions;
 use crate::judge::{judge_terms, GoalBinderSpec, Judgement, OpenGoalSpec};
-use crate::{parse, Binder, BinderKind, Command, Expr, SortKind, Span};
+use crate::{parse, Binder, BinderKind, Command, Expr, SortKind, Span, Tactic};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProofError {
@@ -244,15 +244,37 @@ pub fn render_expr(expr: &Expr) -> String {
         Expr::Plus { lhs, rhs, .. } => {
             format!("{} + {}", render_expr(lhs), render_expr(rhs))
         }
+        Expr::By { tactics, .. } => {
+            let inner = tactics
+                .iter()
+                .map(render_tactic)
+                .collect::<Vec<_>>()
+                .join("; ");
+            format!("by {inner}")
+        }
+    }
+}
+
+fn render_tactic(tactic: &Tactic) -> String {
+    use Tactic::*;
+    match tactic {
+        Intro { name, .. } => format!("intro {name}"),
+        Exact { expr, .. } => format!("exact {}", render_expr(expr)),
+        Apply { expr, .. } => format!("apply {}", render_expr(expr)),
+        Assumption { .. } => "assumption".to_string(),
+        Rfl { .. } => "rfl".to_string(),
+        Sorry { .. } => "sorry".to_string(),
     }
 }
 
 fn render_atom(expr: &Expr) -> String {
     let s = render_expr(expr);
     match expr {
-        Expr::App { .. } | Expr::Lambda { .. } | Expr::Forall { .. } | Expr::Arrow { .. } => {
-            format!("({s})")
-        }
+        Expr::App { .. }
+        | Expr::Lambda { .. }
+        | Expr::Forall { .. }
+        | Expr::Arrow { .. }
+        | Expr::Plus { .. } => format!("({s})"),
         _ => s,
     }
 }

@@ -82,7 +82,9 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
-  `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`;
+  `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
+  `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
+  内核拒绝，消息带期望/实际);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),

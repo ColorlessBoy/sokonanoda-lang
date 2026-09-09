@@ -20,6 +20,7 @@ pub enum TokenKind {
     LBrace,
     RBrace,
     Comma,
+    Semicolon,
     Eof,
 }
 
@@ -164,6 +165,7 @@ impl<'a> Lexer<'a> {
             '{' => self.single(TokenKind::LBrace, start),
             '}' => self.single(TokenKind::RBrace, start),
             ',' => self.single(TokenKind::Comma, start),
+            ';' => self.single(TokenKind::Semicolon, start),
             '+' => self.single(TokenKind::Plus, start),
             '∀' => self.single(TokenKind::Forall, start),
             '@' => self.single(TokenKind::At, start),

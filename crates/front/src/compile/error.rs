@@ -34,6 +34,7 @@ pub enum ErrorKind {
     ElabInvalidNatLiteral,
     ElabTooManyCtorFields,
     ElabUnknownCtorForIota,
+    ElabTacticFailed,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -62,7 +63,8 @@ impl ErrorKind {
             | ElabNatLiteralDisabled
             | ElabInvalidNatLiteral
             | ElabTooManyCtorFields
-            | ElabUnknownCtorForIota => CompileStage::Elab,
+            | ElabUnknownCtorForIota
+            | ElabTacticFailed => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -92,6 +94,7 @@ impl ErrorKind {
             ElabInvalidNatLiteral => "elab-invalid-nat-literal",
             ElabTooManyCtorFields => "elab-too-many-ctor-fields",
             ElabUnknownCtorForIota => "elab-unknown-ctor-for-iota",
+            ElabTacticFailed => "elab-tactic-failed",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -146,6 +149,9 @@ impl ErrorKind {
             }
             ElabUnknownCtorForIota => {
                 "iota 规则引用了一个不存在的构造子。检查构造子名字是否与 ctor 声明一致。"
+            }
+            ElabTacticFailed => {
+                "`by` 块里的 tactic 失败了：请检查当前目标与已引入的假设。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"

@@ -64,6 +64,8 @@
 | 10 | `def twice : (Nat -> Nat) -> Nat -> Nat := sorry` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |
 | 11 | `example : Sort 1 := sorry` | “类型没有类型”；Prop=Sort 0，Type=Sort 1 | `Nat` |
 | 12 ★ | `Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry` | 宇宙不可怕：就是 8 换成 α/.{u}，隐式 binder ↔ fun {..} | `fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : Eq.{u} α a b) => Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)` |
+| 13 | `and_left_by : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry` | by 块里先 intro 拆箭头再 exact；`sorry` 是占位 | `by intro a; intro b; intro h; exact And.left a b h` |
+| 14 ★ | `or_inl_by : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry` | apply 把目标套上构造子、拆子目标 | `by intro a; intro b; intro ha; apply Or.inl; exact ha` |
 
 收尾：`two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two` —— 画布里先
 注释着，练习 6 解出后放开；变绿 = 内核回判了练习 6 的值。

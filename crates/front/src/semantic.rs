@@ -267,6 +267,16 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
             walk_expr(domain, toks, names);
             walk_expr(codomain, toks, names);
         }
+        Expr::By { tactics, .. } => {
+            for tactic in tactics {
+                use crate::Tactic::*;
+                match tactic {
+                    Intro { .. } => {}
+                    Exact { expr, .. } | Apply { expr, .. } => walk_expr(expr, toks, names),
+                    Assumption { .. } | Rfl { .. } | Sorry { .. } => {}
+                }
+            }
+        }
     }
 }
 

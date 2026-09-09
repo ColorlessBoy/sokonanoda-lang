@@ -730,6 +730,12 @@ pub(crate) fn elab_expr<'a>(
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
+        // `by` 块应在 elab 前由引擎降级为 lambda AST；到不了这里。
+        Expr::By { span, .. } => Err(CompileError::elab(
+            ErrorKind::ElabHoleMisplaced,
+            "internal: `by` block reached elaboration without being lowered",
+            *span,
+        )),
     }
 }
 
@@ -752,6 +758,7 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
             domain, codomain, ..
         } => mentions_ident(domain, name) || mentions_ident(codomain, name),
         Expr::Plus { lhs, rhs, .. } => mentions_ident(lhs, name) || mentions_ident(rhs, name),
+        Expr::By { .. } => false, // by 块在 elab 前已被引擎降级为普通表达式
     }
 }
 

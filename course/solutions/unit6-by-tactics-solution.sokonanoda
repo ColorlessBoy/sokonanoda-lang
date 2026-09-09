@@ -1,0 +1,27 @@
+-- unit6-by-tactics-solution —— 单元⑥ 解答钥匙（agent 专用）
+axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
+axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+
+theorem demo_by_assumption : (a : Prop) -> a -> a := by intro a; intro h; assumption
+
+theorem demo_by_apply : Or True False := by apply Or.inl; exact True.intro
+
+theorem demo_by_rfl : Eq.{1} Nat (1 + 1) 2 := by rfl
+
+theorem by_ex1 : (a : Prop) -> a -> a := by intro a; intro h; assumption
+
+theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by intro a; intro b; intro h; exact And.left a b h
+
+theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by intro a; intro b; intro ha; apply Or.inl; exact ha
+
+theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb
+
+theorem by_ex5 : (a : Prop) -> a -> a := by intro a; intro h; assumption

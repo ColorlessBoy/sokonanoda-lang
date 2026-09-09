@@ -120,6 +120,25 @@ fn open_goal(ty: &Expr, val: &Expr, templates: &ConstructorTemplates) -> Option<
     goal_under_binders(ty, val, templates)
 }
 
+/// 值位若是 `by` 块，先用引擎降级成 lambda AST（可能带尾部 `sorry`）；
+/// 否则原样 clone。返回的 `Expr` 交给既有 `open_goal`/`build_*` 分流。
+/// `src` 为文件原文、`span_start` 为声明起点——只有真是 `by` 块才切片
+/// （judge 合成的文件 src 为空，普通声明不触发切片）。
+fn lower_by_val(
+    ty: &Expr,
+    val: &Expr,
+    src: &str,
+    span_start: usize,
+    options: &CompileOptions,
+) -> Result<Expr, CompileError> {
+    if let Expr::By { .. } = val {
+        let prefix = src.get(..span_start).unwrap_or("");
+        crate::by::run_by(ty, val, prefix, options).map(|o| o.expr)
+    } else {
+        Ok(val.clone())
+    }
+}
+
 fn expr_has_hole(e: &Expr) -> bool {
     match e {
         Expr::Hole { .. } => true,
@@ -340,6 +359,7 @@ fn substitute_names(expr: &Expr, map: &HashMap<String, Expr>) -> Expr {
         Expr::Sort { .. } | Expr::UniverseApp { .. } | Expr::Num { .. } | Expr::Hole { .. } => {
             expr.clone()
         }
+        Expr::By { .. } => expr.clone(), // by 块在 elab 前已降级，不应出现在此
     }
 }
 
@@ -393,6 +413,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             span,
         },
         Expr::Plus { lhs, rhs, .. } => Expr::Plus { lhs, rhs, span },
+        Expr::By { tactics, .. } => Expr::By { tactics, span },
     }
 }
 
@@ -707,6 +728,20 @@ fn run_pass(
                 val,
                 span,
             } => {
+                let val = &match lower_by_val(ty, val, &file.src, span.start.offset, options) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        out.errors.push(e.clone());
+                        decl_states.push(failed_state(
+                            DeclKind::Definition,
+                            Some(name.clone()),
+                            *span,
+                            e,
+                            idx,
+                        ));
+                        continue;
+                    }
+                };
                 if trusted {
                     // Trusted prefix: keep the environment, skip the kernel.
                     // Cached failures keep the name free (check-then-add);
@@ -836,6 +871,20 @@ fn run_pass(
                 val,
                 span,
             } => {
+                let val = &match lower_by_val(ty, val, &file.src, span.start.offset, options) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        out.errors.push(e.clone());
+                        decl_states.push(failed_state(
+                            DeclKind::Theorem,
+                            Some(name.clone()),
+                            *span,
+                            e,
+                            idx,
+                        ));
+                        continue;
+                    }
+                };
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
                         || open_goal(ty, val, &templates).is_some()
@@ -1033,6 +1082,14 @@ fn run_pass(
                 }
             }
             Command::Example { ty, val, span } => {
+                let val = &match lower_by_val(ty, val, &file.src, span.start.offset, options) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        out.errors.push(e.clone());
+                        decl_states.push(failed_state(DeclKind::Example, None, *span, e, idx));
+                        continue;
+                    }
+                };
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
                         || open_goal(ty, val, &templates).is_some()

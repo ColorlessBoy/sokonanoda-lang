@@ -2297,3 +2297,182 @@ fn debug_hover_bracket_coverage() {
         }
     }
 }
+
+// ---- by-tactic 块（第十九轮：intro/exact/apply/assumption/rfl）----
+
+#[test]
+fn parses_by_block_into_tactics() {
+    let src =
+        "axiom True : Prop\naxiom True.intro : True\ntheorem t : True := by exact True.intro\n";
+    let file = parse(src).unwrap();
+    let crate::Command::Theorem { val, .. } = &file.commands[2] else {
+        panic!("expected theorem")
+    };
+    match val {
+        crate::Expr::By { tactics, .. } => {
+            assert_eq!(tactics.len(), 1);
+            assert!(matches!(tactics[0], crate::Tactic::Exact { .. }));
+        }
+        _ => panic!("expected a `by` value, got {val:?}"),
+    }
+}
+
+#[test]
+fn rejects_unknown_tactic_in_by_block() {
+    let src = "theorem t : Prop := by nope\n";
+    assert!(parse(src).is_err(), "unknown tactic must be rejected");
+}
+
+#[test]
+fn by_block_with_intro_exact_checks() {
+    let src = concat!(
+        "axiom True : Prop\n",
+        "axiom And : Prop -> Prop -> Prop\n",
+        "axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+        "axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n",
+        "axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n",
+        "theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := by ",
+        "intro a; intro b; intro h; exact And.intro b a (And.right a b h) (And.left a b h)\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
+fn by_block_with_assumption_checks() {
+    let src =
+        "axiom True : Prop\ntheorem k : (a : Prop) -> a -> a := by intro a; intro h; assumption\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("k"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
+fn by_block_with_apply_and_rfl_checks() {
+    let src = concat!(
+        "axiom And : Prop -> Prop -> Prop\n",
+        "axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+        "axiom Or : Prop -> Prop -> Prop\n",
+        "axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b\n",
+        "theorem or_left : (a : Prop) -> (b : Prop) -> a -> Or a b := by ",
+        "intro a; intro b; intro ha; apply Or.inl; exact ha\n",
+        "theorem ai : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by ",
+        "intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb\n",
+        "theorem r : Eq.{1} Nat (1 + 1) 2 := by rfl\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+}
+
+#[test]
+fn partial_by_block_is_open_exercise() {
+    let src =
+        "axiom And : Prop -> Prop -> Prop\ntheorem open : (a : Prop) -> And a a -> a := by intro a; intro h\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("open"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Open);
+}
+
+#[test]
+fn wrong_exact_reports_tactic_error() {
+    let src = "axiom True : Prop\ntheorem t : (a : Prop) -> a := by intro a; exact True\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty(), "wrong exact must error");
+    assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+}
+
+#[test]
+fn parses_multi_name_binder_group() {
+    // 内核 pp 会把 `(a : Prop) -> (b : Prop)` 折叠成 `(a b : Prop)`；
+    // 引擎读回类型文本需要多名字 binder 组。
+    let src = "axiom P : (a b : Prop) -> Prop\n";
+    let file = parse(src).unwrap();
+    assert_eq!(file.commands.len(), 1);
+}
+
+// ---- by-tactic 错误路径与空 by 块 ----
+
+#[test]
+fn empty_by_block_is_open_exercise() {
+    // `:= by` 后面什么都没有：从零开始的练习，目标 = 整个声明类型。
+    let src = "axiom True : Prop\ntheorem t : (a : Prop) -> a -> a := by\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Open);
+}
+
+#[test]
+fn intro_on_non_function_goal_is_a_tactic_error() {
+    // 目标 True 没有箭头可拆，intro 应报教学错误而非崩溃。
+    let src = "axiom True : Prop\ntheorem t : True := by intro x\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty());
+    assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+}
+
+#[test]
+fn assumption_without_a_match_is_a_tactic_error() {
+    // 目标 a，上下文只有 b : Prop，没有类型为 a 的假设。
+    let src = "axiom True : Prop\ntheorem t : (a : Prop) -> (b : Prop) -> a := by intro a; intro b; assumption\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty());
+    assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+}
+
+#[test]
+fn rfl_on_non_eq_goal_is_a_tactic_error() {
+    // rfl 只对 Eq 形状的目标有效。
+    let src = "axiom True : Prop\ntheorem t : (a : Prop) -> a -> a := by intro a; intro h; rfl\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty());
+    assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+}
+
+#[test]
+fn apply_with_mismatched_function_is_a_tactic_error() {
+    // apply Or.inl 的目标必须是 Or 形状；目标是真命题时头不匹配。
+    let src = concat!(
+        "axiom True : Prop\n",
+        "axiom Or : Prop -> Prop -> Prop\n",
+        "axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b\n",
+        "theorem t : (a : Prop) -> a -> True := by intro a; intro h; apply Or.inl\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(!report.errors.is_empty());
+    assert_eq!(report.errors[0].code(), "elab-tactic-failed");
+}
+
+#[test]
+fn by_block_with_sorry_placeholder_is_open_exercise() {
+    // `:= by intro a; intro h; sorry`：sorry 把当前目标留空 → 合法 Open 状态。
+    let src = "axiom True : Prop\ntheorem t : (a : Prop) -> a -> a := by intro a; intro h; sorry\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Open);
+}

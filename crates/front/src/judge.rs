@@ -21,8 +21,10 @@
 //!
 //! 判定永远走 kernel，不做文本比对（REQUIREMENTS §2.8）。
 
-use crate::compile::{check_document_with, CompileOptions, DeclStatus, DocumentReport};
-use crate::proof::parse_expr_text;
+use crate::compile::{
+    check_document_with, compile_fol_with, CheckEvent, CompileOptions, DeclStatus, DocumentReport,
+};
+use crate::proof::{parse_expr_text, render_expr};
 use crate::{tokenize, Binder, BinderKind, Command, Expr, FolFile, Span, Token, TokenKind};
 
 /// 一个开放练习的判定规格：**剩余目标**（与 `DeclState.goal` /
@@ -132,7 +134,13 @@ pub fn judge_terms(
             span: Span::default(),
         });
     }
-    let report = check_document_with(&FolFile { commands }, options);
+    let report = check_document_with(
+        &FolFile {
+            commands,
+            src: String::new(),
+        },
+        options,
+    );
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if failed_parse == Some(k) {
             *judgement = Judgement::Error {
@@ -144,6 +152,116 @@ pub fn judge_terms(
         *judgement = judgement_of(&report, k);
     }
     judgements
+}
+
+/// 推断 `term` 在 `binders` 语境下的**类型文本**（kernel 判定驱动，供
+/// `apply` 读取被应用函数的类型）。合成 `<prefix>\n#check fun <binders> =>
+/// <term>\n` 走完整流水线，取 `TypeChecked` 事件文本，再剥掉 n 层
+/// binder 箭头得 `term` 的类型。
+pub fn judge_infer(
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Result<String, Judgement> {
+    let mut text = String::from("#check ");
+    text.push_str("fun ");
+    for b in binders {
+        let ty = match &b.ty {
+            Some(t) => t.clone(),
+            None => {
+                return Err(Judgement::Error {
+                    code: "elab-untyped-binder".to_string(),
+                    message: format!("binder `{}` 缺少类型标注，无法推断", b.name),
+                })
+            }
+        };
+        text.push_str(&format!("({} : {}) ", b.name, ty));
+    }
+    text.push_str("=> ");
+    text.push_str(term);
+    text.push('\n');
+    let mut src = prefix_src.to_string();
+    src.push_str(&text);
+    let Ok(file) = crate::parse(&src) else {
+        return Err(Judgement::Error {
+            code: "parse".to_string(),
+            message: "无法解析推断请求".to_string(),
+        });
+    };
+    let report = compile_fol_with(&file, options);
+    if !report.errors.is_empty() {
+        let e = &report.errors[0];
+        return Err(Judgement::Error {
+            code: e.code().to_string(),
+            message: e.message.clone(),
+        });
+    }
+    let ty = report
+        .events
+        .iter()
+        .find_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .ok_or_else(|| Judgement::Error {
+            code: "judge-infer-none".to_string(),
+            message: "内核未返回类型".to_string(),
+        })?;
+    // 剥掉 `fun (b1:T1) => ... => <codomain>` 的 n 层 binder 箭头。
+    // pp 可能把相邻 binder 折叠成 `forall (a b : Prop), ...`（一个 Forall 多
+    // binder），所以逐 **单个** binder 剥；余下重渲染成可回读的单箭头链。
+    let mut t = ty;
+    for _ in 0..binders.len() {
+        let Ok(e) = parse_expr_text(&t) else {
+            break;
+        };
+        match peel_one_binder(&e) {
+            Some(rest) => t = render_roundtrip(&rest),
+            None => break,
+        }
+    }
+    Ok(t)
+}
+
+/// 剥掉 `expr` 的第一个 binder（多 binder Forall 去掉首个、单 binder 去 body、
+/// Arrow 去 codomain），返回余下结构。
+fn peel_one_binder(expr: &Expr) -> Option<Expr> {
+    match expr {
+        Expr::Forall { binders, body, .. } if !binders.is_empty() => {
+            if binders.len() > 1 {
+                Some(Expr::Forall {
+                    binders: binders[1..].to_vec(),
+                    body: body.clone(),
+                    span: Span::default(),
+                })
+            } else {
+                Some(body.as_ref().clone())
+            }
+        }
+        Expr::Arrow { codomain, .. } => Some(codomain.as_ref().clone()),
+        _ => None,
+    }
+}
+
+/// 渲染成**可回读**的文本：多 binder Forall 逐名字拆成 `(a : T) -> … ->` 单
+/// 箭头链（`proof::render_expr` 会拼成 `(a) (b) ->`，无法再 parse）。
+fn render_roundtrip(expr: &Expr) -> String {
+    match expr {
+        Expr::Forall { binders, body, .. } if !binders.is_empty() => {
+            let mut rest = render_roundtrip(body);
+            for binder in binders.iter().rev() {
+                let ty = binder.ty.as_deref().map(render_expr).unwrap_or_default();
+                let (l, r) = match binder.style {
+                    BinderKind::Explicit => ("(", ")"),
+                    BinderKind::Implicit => ("{", "}"),
+                };
+                rest = format!("{l}{} : {ty}{r} -> {rest}", binder.name);
+            }
+            rest
+        }
+        _ => render_expr(expr),
+    }
 }
 
 /// 把 doc 中 decl_span 命令里的 hole_span 替换为候选 term，改名合成声明

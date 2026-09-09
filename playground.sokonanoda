@@ -289,3 +289,26 @@ example : Sort 1 := sorry
 -- soko:hint 目标形态：第一个 binder 是隐式的 {α : Sort u}：值一侧先写 fun {α : Sort u} =>，后面照旧三层 fun。
 -- soko:hint 关键件：还是 Eq.subst.{u} 加 Eq.refl.{u} 那套；谓词 p 换成“x = a”在 α 上的版本。
 theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 单元⑤后日谈：by 写法（tactic 证明）
+-- 除了直接写证明项，还可以用 by 块把证明当一串命令写：
+--   theorem t : T := by <tactic>; <tactic>; ...
+-- 判定永远走内核：搭出来的证明项和手写项完全等价。
+-- 五个基础 tactic：intro / exact / apply / assumption / rfl。
+-- `by sorry` 表示「留空未完成」（跟值位写 sorry 一样），剩余目标照常显示。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 13：用 by 块证明「a 且 b 推出 a」。
+-- 提示：先 intro 拿到 h : And a b，再用 exact And.left a b h（或 apply And.left 后 assumption）。
+-- soko:hint 思路：by 块里先 intro 把箭头拆开，拿到假设后再 exact。
+-- soko:hint 目标形态：`by intro a; intro b; intro h; exact And.left a b h`。
+-- soko:hint 关键件：And.left 吃 a、b 和 And a b 的证明，吐出 a。
+theorem and_left_by : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry
+
+-- 练习 14（挑战 ★）：用 by 块 + apply 证明「a 推出 a 或 b」。
+-- 提示：Or.inl 说「只要左边的证明」——apply Or.inl 把目标拆成只剩 a。
+-- soko:hint 思路：apply 是「把目标套上构造子」——Or.inl 需要左边，目标就换成左边。
+-- soko:hint 目标形态：`by intro a; intro b; intro ha; apply Or.inl; exact ha`。
+-- soko:hint 关键件：Or.inl 拆出子目标 a；exact ha 结束。
+theorem or_inl_by : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry

@@ -9,6 +9,7 @@
 // crate 级显式豁免并在此注明取舍。
 #![allow(clippy::result_large_err)]
 
+pub mod by;
 pub mod compile;
 pub mod judge;
 pub mod proof;
@@ -23,7 +24,9 @@ mod parser;
 mod span;
 mod token;
 
-pub use ast::{Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, RecDecl, SortKind};
+pub use ast::{
+    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, RecDecl, SortKind, Tactic,
+};
 pub use diagnostic::{Diagnostic, DiagnosticKind, Result};
 pub use parser::{parse, Parser};
 pub use span::{Pos, Span};

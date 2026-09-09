@@ -27,6 +27,7 @@
 | 文档一致性 | `docs/protocol.md` 必须列出每个 `ErrorKind` 的 code；parse 两个 code 也在文档里 | `crates/front/src/compile/tests.rs` :: `protocol_doc_lists_every_error_code`（自带不带通配的穷尽清单） | `cargo test -p sokonanoda-front protocol_doc` |
 | perf 冒烟 | 原生大整数路径（39 位大数 +1 归约）与 iota 链（`add two two` = 4 层 succ）不退化；30s canary 挡 debug 构建下的意外爆炸 | `crates/front/src/compile/tests.rs` :: `perf_smoke_native_and_iota_reduce` | `cargo test -p sokonanoda-front perf_smoke` |
 | proof/tactic | `#prove` 的 intro/exact/lambda 搭建；生成的 lambda 必须被完整 kernel 接受 | `crates/front/src/proof.rs` :: `intro_builds_lambda_text`、`exact_fills_the_hole`、`generated_lambda_passes_the_kernel` | `cargo test -p sokonanoda-front proof::` |
+| by-tactic 块 | `theorem t : T := by <tactic>; …` 的解析/引擎/kernel 判定：intro+exact / assumption / apply（单、多子目标）/ rfl / `by sorry` 占位 → Open；错误路径（未知 tactic、intro 非函数、assumption 无匹配、rfl 非 Eq、apply 头不匹配）→ `elab-tactic-failed`；多名字 binder 组回读 | `crates/front/src/compile/tests.rs` :: `*by_*`、`parses_multi_name_binder_group`；`crates/cli/tests/cli.rs` :: `cli_checks_by_tactic_blocks`、`cli_by_tactic_partial_block_is_open_exercise` | `cargo test -p sokonanoda-front by_` && `cargo test -p sokonanoda-cli by_tactic` |
 
 ## 2. 两个 meta 测试的机制（新 agent 最容易踩）
 

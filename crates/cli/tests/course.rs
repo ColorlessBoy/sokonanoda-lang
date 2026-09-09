@@ -47,6 +47,7 @@ const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit3-functions-arrows.sokonanoda", (1, 4, 1)),
     ("unit4-universes-sort.sokonanoda", (0, 3, 0)),
     ("unit5-induction-nat-rec.sokonanoda", (4, 3, 1)),
+    ("unit6-by-tactics.sokonanoda", (13, 5, 0)),
 ];
 
 #[test]
@@ -146,23 +147,24 @@ fn every_solution_twin_is_fully_solved() {
 }
 
 #[test]
-fn course_json_lists_the_five_units_in_order() {
+fn course_json_lists_the_six_units_in_order() {
     let raw =
         std::fs::read_to_string(format!("{COURSE_DIR}/course.json")).expect("read course.json");
     let entries: Vec<Value> = serde_json::from_str(&raw).expect("parse course.json");
 
-    let expected: [(&str, u64); 5] = [
+    let expected: [(&str, u64); 6] = [
         ("unit1-propositions-proofs.sokonanoda", 1),
         ("unit2-equality-rfl.sokonanoda", 2),
         ("unit3-functions-arrows.sokonanoda", 3),
         ("unit4-universes-sort.sokonanoda", 4),
         ("unit5-induction-nat-rec.sokonanoda", 5),
+        ("unit6-by-tactics.sokonanoda", 6),
     ];
 
     assert_eq!(
         entries.len(),
         expected.len(),
-        "course.json must list exactly the 5 course files"
+        "course.json must list exactly the 6 course files"
     );
     for (entry, (file, unit)) in entries.iter().zip(expected) {
         assert_eq!(

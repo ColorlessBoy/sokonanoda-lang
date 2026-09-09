@@ -83,6 +83,53 @@ fn cli_rejects_a_bad_declaration() {
 }
 
 #[test]
+fn cli_checks_by_tactic_blocks() {
+    // 第十九轮：`by` 块 —— intro/exact/assumption/apply/rfl 逐 tactic 判定
+    // 走 kernel，搭出的证明项与手写项等价。
+    let src = concat!(
+        "axiom True : Prop\n",
+        "axiom True.intro : True\n",
+        "axiom And : Prop -> Prop -> Prop\n",
+        "axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+        "axiom Or : Prop -> Prop -> Prop\n",
+        "axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b\n",
+        "theorem k : (a : Prop) -> a -> a := by intro a; intro h; assumption\n",
+        "theorem ai : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by ",
+        "intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb\n",
+        "theorem orl : (a : Prop) -> (b : Prop) -> a -> Or a b := by ",
+        "intro a; intro b; intro ha; apply Or.inl; exact ha\n",
+        "theorem r : Eq.{1} Nat (1 + 1) 2 := by rfl\n",
+    );
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for name in ["k", "ai", "orl", "r"] {
+        assert!(
+            stdout.contains(&format!("checked declaration {name}")),
+            "expected {name} to be checked:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn cli_by_tactic_partial_block_is_open_exercise() {
+    // 未写完的 by 块 = 合法 Open 状态（尾部 sorry），与「部分作答」同语义。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               theorem open : (a : Prop) -> And a a -> a := by intro a; intro h\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "partial by must still exit 0:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("exercise open"));
+}
+
+#[test]
 fn cli_rejects_uninhabited_dependent_codomain() {
     // conv 快路径 soundness 修复的端到端守护：`(A : Sort 1) -> A` 不可居住，
     // 身份 lambda 的类型是 `(A : Sort 1) -> Sort 1`，必须被拒绝（官方 Lean 同）。

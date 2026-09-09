@@ -12,6 +12,7 @@
 | 3 | `unit3-functions-arrows.sokonanoda` | 函数与箭头 | `fun`、binder 推断、高阶函数 `(Nat -> Nat) -> Nat -> Nat`；结尾埋"函数类型的类型？"悬念 |
 | 4 | `unit4-universes-sort.sokonanoda` | 宇宙 | Sort 由悬念揭晓：Prop = Sort 0（回收单元①）、Nat : Sort 1；`Eq.symm {u}` 毕业题 |
 | 5 | `unit5-induction-nat-rec.sokonanoda` | 显式归纳与递归 | `inductive Nat` 块、ctor/rec/iota、`Nat.rec` |
+| 6 | `unit6-by-tactics.sokonanoda` | by 写法 | `by` 块 + 五个 tactic（intro/exact/apply/assumption/rfl）；`by sorry` 占位；判定走 kernel |
 
 每个单元配 `solutions/unitN-*-solution.sokonanoda`（agent 专用钥匙，全部
 经完整内核验证；CI golden 钉死事件计数）。

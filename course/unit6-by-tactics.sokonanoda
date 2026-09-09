@@ -1,0 +1,78 @@
+-- ==========================================================================
+-- unit6-by-tactics.sokonanoda —— 单元⑥ by 写法：换一种方式写证明
+--
+-- 前面几单元的证明都是「直接把证明项写出来」：`:= fun (a : Prop) => ...`。
+-- 这一单元学另一种写法——`by` 块：把证明当成一串**命令**（tactic）来写，
+-- 由编译器帮你搭出证明项。判定永远走内核：搭出来的证明和手写项等价。
+--
+-- 语法：
+--   theorem 名字 : 类型 := by <tactic>; <tactic>; ...
+--   （tactic 之间用 ; 分隔）
+--
+-- 首期五个 tactic（白名单，课程就是语法）：
+--   intro x    —— 目标剥一层箭头，引入假设 x（等价于写一层 fun）
+--   exact e    —— 用项 e 直接结束当前目标（内核判定类型匹配）
+--   assumption —— 从已引入的假设里找类型与目标一致的，直接用
+--   apply f    —— 目标套上 f：若 f : A1 -> ... -> An -> B 且目标就是 B，
+--                 把目标换成 A1..An 几个子目标
+--   rfl        —— 目标是 `Eq α x y` 且两边算出来一样时，直接成立
+-- `by sorry` 表示「留空未完成」（跟值位写 sorry 一样），剩余目标照常显示。
+-- ==========================================================================
+
+-- 逻辑骨架（复用单元①的构造子）：
+axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
+axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+
+-- 演示 1（intro + assumption）：`a -> a` 用 by 写。
+--   intro a      引入假设 a（目标变成 a）
+--   assumption   上下文里 a 的类型正好是目标 a，直接用
+theorem demo_by_assumption : (a : Prop) -> a -> a := by intro a; intro h; assumption
+
+-- 演示 2（apply 拆目标）：目标是 Or True False，Or.inl 说「只要左边的证明」。
+--   apply Or.inl  目标变成 True
+--   exact True.intro  结束
+theorem demo_by_apply : Or True False := by apply Or.inl; exact True.intro
+
+-- 演示 3（rfl）：等号两边本来就是同一个值。
+--   内核会把 1 + 1 算成 2，rfl 直接成立。
+theorem demo_by_rfl : Eq.{1} Nat (1 + 1) 2 := by rfl
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1：用 by 写「a -> a」——先 intro 再 assumption。
+-- 起点：`:= by` 后面什么都没有（练习从零开始）。
+-- soko:hint 思路：assumption 是「在上下文里找目标」的捷径；先 intro 把箭头拆开。
+-- soko:hint 目标形态：先 intro a，再 intro h（目标变成 a），最后 assumption。
+-- soko:hint 关键件：assumption 会自动找到类型为 a 的假设 h。
+theorem by_ex1 : (a : Prop) -> a -> a := by sorry
+
+-- 练习 2：用 by 写「a 且 b 推出 a」。
+-- soko:hint 思路：intro 拆箭头拿到 h : And a b，再用 And.left 拆出 a 那一半。
+-- soko:hint 目标形态：intro a; intro b; intro h 之后，目标就是 a。
+-- soko:hint 关键件：`exact And.left a b h` 一步结束；或 apply And.left 再 assumption。
+theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry
+
+-- 练习 3（apply 拆目标）：目标是 a 或 b 时，apply Or.inl / Or.inr 选一边。
+-- soko:hint 思路：Or 是「二选一」——apply Or.inl 就只剩下证明左边。
+-- soko:hint 目标形态：先 intro 拿到 ha : a，再 apply Or.inl，最后 exact ha。
+-- soko:hint 关键件：Or.inl 把 Or a b 的目标拆成只剩 a；exact ha 结束。
+theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry
+
+-- 练习 4（apply And.intro 两个子目标）：And 需要左右两个证明都给出。
+-- soko:hint 思路：And.intro 要两份证明——apply 之后会出两个子目标，逐个 exact。
+-- soko:hint 目标形态：先 intro 拿到 ha : a、hb : b，apply And.intro 出两个子目标 a 和 b。
+-- soko:hint 关键件：第一个子目标 exact ha，第二个子目标 exact hb；子目标按顺序解。
+theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
+
+-- 练习 5（挑战 ★）：a -> a -> a 用 assumption（assumption 会从内到外找）。
+-- soko:hint 思路：两个 a 型假设同名不同层，assumption 取最内层那个。
+-- soko:hint 目标形态：intro a; intro h; assumption——目标 a，上下文有 a 和 h 都是 a 型。
+-- soko:hint 关键件：assumption 从内到外找第一个类型匹配的假设，即 h。
+theorem by_ex5 : (a : Prop) -> a -> a := by sorry

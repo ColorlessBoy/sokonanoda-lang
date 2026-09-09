@@ -57,6 +57,12 @@ pub enum Expr {
         rhs: Box<Expr>,
         span: Span,
     },
+    /// `:= by <tactic 序列>`：值位是一段 tactic 脚本，由编译期引擎翻译成
+    /// 普通表达式（可能带尾部 `sorry`）。
+    By {
+        tactics: Vec<Tactic>,
+        span: Span,
+    },
 }
 
 impl Expr {
@@ -71,7 +77,49 @@ impl Expr {
             | Expr::Lambda { span, .. }
             | Expr::Forall { span, .. }
             | Expr::Arrow { span, .. }
-            | Expr::Plus { span, .. } => *span,
+            | Expr::Plus { span, .. }
+            | Expr::By { span, .. } => *span,
+        }
+    }
+}
+
+/// 教学白名单里的一个 tactic（`by` 块内）。
+#[derive(Debug, Clone, PartialEq)]
+pub enum Tactic {
+    Intro {
+        name: String,
+        span: Span,
+    },
+    Exact {
+        expr: Expr,
+        span: Span,
+    },
+    Apply {
+        expr: Expr,
+        span: Span,
+    },
+    Assumption {
+        span: Span,
+    },
+    Rfl {
+        span: Span,
+    },
+    /// `sorry`：占位——当前目标保持开放（合法 Open 状态），
+    /// 与声明值位的 `sorry` 同语义（未完成证明）。
+    Sorry {
+        span: Span,
+    },
+}
+
+impl Tactic {
+    pub fn span(&self) -> Span {
+        match self {
+            Tactic::Intro { span, .. }
+            | Tactic::Exact { span, .. }
+            | Tactic::Apply { span, .. }
+            | Tactic::Assumption { span }
+            | Tactic::Rfl { span }
+            | Tactic::Sorry { span } => *span,
         }
     }
 }
@@ -181,4 +229,7 @@ impl Command {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FolFile {
     pub commands: Vec<Command>,
+    /// 源文件原文（`parse` 时填入）。`by` 引擎按命令 span 切片取前缀源码
+    /// 供 `judge_terms` 判定；judge 合成的 FolFile 置空。
+    pub src: String,
 }

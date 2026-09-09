@@ -183,3 +183,16 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
    每个 binder 记声明行（`binder: true`）、LSP 切片括号平衡成良构表达式、
    所有 hover 分支带高亮 range。实现见 `docs/design-hover-refactor.md`，
    测试 front 2 + LSP 5 + 旧断言对齐。
+- 2026-09-09（十六）：**by-tactic 块（用户指令）**：实现基础 tactic，与 Lean 4
+  一样用 `by` 开始；补充 assumption / rfl。首期五个：**intro / exact / apply /
+assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 sorry 同
+   语义）。语法 `theorem t : T := by <tactic>; <tactic>; …`；逐 tactic
+   判定永远走 kernel（复用 `judge_terms` 合成声明 + 新 `judge_infer` 推断被应用
+   函数类型）；`by` 没写完整 / 尾部 `sorry` = 合法 Open 状态。`apply` 只做位置
+   spine 合一，
+   不支持需要高阶合一的形状（如 `apply And.left` 时类型参数未定）。三件套：
+   新增 `course/` 单元⑥（中文 + en 镜像 + 解答钥匙）与 playground 2 道 by 题
+   （练习 13/14，`:= by sorry`）；
+   白名单 = 解析器只认这五个 tactic + sorry。同时要求**调研并设计 VSCode 前端显示
+   goal state**——设计见 `docs/design-by-tactics.md` §6（front `by_steps` +
+   `soko/stateAt` + 练习树「当前光标处」goal 组），实现为 Phase 2。

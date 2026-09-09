@@ -1,7 +1,7 @@
 //! 递归下降解析器：tokens → AST（命令与表达式）。
 
 use super::ast::{
-    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, RecDecl, SortKind,
+    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, RecDecl, SortKind, Tactic,
 };
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
 use super::span::Span;
@@ -12,17 +12,28 @@ pub struct Parser {
     cursor: usize,
 }
 
+/// 一个 `(a b c : T)` 多名字 binder 组（读回内核 pp 类型文本时用）。
+struct BinderGroup {
+    names: Vec<String>,
+    ty: Expr,
+    style: BinderKind,
+    span: Span,
+}
+
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, cursor: 0 }
     }
 
-    pub fn parse_file(&mut self) -> Result<FolFile> {
+    pub fn parse_file(&mut self, src: &str) -> Result<FolFile> {
         let mut commands = Vec::new();
         while !self.at_eof() {
             commands.push(self.parse_command()?);
         }
-        Ok(FolFile { commands })
+        Ok(FolFile {
+            commands,
+            src: src.to_string(),
+        })
     }
 
     fn parse_command(&mut self) -> Result<Command> {
@@ -50,7 +61,7 @@ impl Parser {
         self.expect_colon("definition type")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
-        let val = self.parse_expr()?;
+        let val = self.parse_value()?;
         let span = Span::new(start, val.span().end);
         Ok(Command::Def {
             name,
@@ -68,7 +79,7 @@ impl Parser {
         self.expect_colon("theorem statement")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
-        let val = self.parse_expr()?;
+        let val = self.parse_value()?;
         let span = Span::new(start, val.span().end);
         Ok(Command::Theorem {
             name,
@@ -84,9 +95,100 @@ impl Parser {
         self.expect_colon("example type")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
-        let val = self.parse_expr()?;
+        let val = self.parse_value()?;
         let span = Span::new(start, val.span().end);
         Ok(Command::Example { ty, val, span })
+    }
+
+    /// 值位：普通表达式，或 `by <tactic 序列>` 块。
+    fn parse_value(&mut self) -> Result<Expr> {
+        if let TokenKind::Ident(kw) = &self.peek().kind {
+            if kw == "by" {
+                return self.parse_by_block();
+            }
+        }
+        self.parse_expr()
+    }
+
+    /// `by` 块：`by <tactic> (';' <tactic>)*`。tactic 之间用 `;` 分隔
+    ///（教学子集不引入缩进敏感语法）。
+    fn parse_by_block(&mut self) -> Result<Expr> {
+        let start = self.bump().span.start;
+        let mut tactics = Vec::new();
+        // 允许空 `by`（练习从零开始）：下一个 token 不是 tactic 关键字就收尾。
+        if self.tactic_keyword_ahead() {
+            loop {
+                tactics.push(self.parse_tactic()?);
+                match self.peek().kind {
+                    TokenKind::Semicolon => {
+                        self.bump();
+                        continue;
+                    }
+                    _ => break,
+                }
+            }
+        }
+        let end = self.peek().span.start;
+        let span = Span::new(start, end);
+        Ok(Expr::By { tactics, span })
+    }
+
+    fn tactic_keyword_ahead(&self) -> bool {
+        matches!(
+            self.peek().kind,
+            TokenKind::Ident(ref kw)
+                if matches!(kw.as_str(), "intro" | "exact" | "apply" | "assumption" | "rfl" | "sorry")
+        )
+    }
+
+    fn parse_tactic(&mut self) -> Result<Tactic> {
+        let tok = self.peek().clone();
+        match &tok.kind {
+            TokenKind::Ident(kw) if kw == "intro" => {
+                self.bump();
+                let name = self.expect_ident("`intro` binder name")?;
+                let end = self.peek().span.start;
+                Ok(Tactic::Intro {
+                    name,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
+            TokenKind::Ident(kw) if kw == "exact" => {
+                self.bump();
+                let expr = self.parse_expr()?;
+                let end = expr.span().end;
+                Ok(Tactic::Exact {
+                    expr,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
+            TokenKind::Ident(kw) if kw == "apply" => {
+                self.bump();
+                let expr = self.parse_expr()?;
+                let end = expr.span().end;
+                Ok(Tactic::Apply {
+                    expr,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
+            TokenKind::Ident(kw) if kw == "assumption" => {
+                self.bump();
+                Ok(Tactic::Assumption {
+                    span: tok.span,
+                })
+            }
+            TokenKind::Ident(kw) if kw == "rfl" => {
+                self.bump();
+                Ok(Tactic::Rfl { span: tok.span })
+            }
+            TokenKind::Ident(kw) if kw == "sorry" => {
+                self.bump();
+                Ok(Tactic::Sorry { span: tok.span })
+            }
+            _ => Err(self.error_here(&format!(
+                "未知 tactic：`by` 块只支持 intro / exact / apply / assumption / rfl / sorry（白名单），发现 {tok:?}"
+            ))),
+        }
     }
 
     fn parse_axiom(&mut self) -> Result<Command> {
@@ -242,16 +344,30 @@ impl Parser {
     }
 
     fn parse_arrow(&mut self) -> Result<Expr> {
-        if self.named_arrow_ahead() {
-            let binder = self.parse_binder()?;
-            self.expect_kind(&TokenKind::Arrow, "`->` after binder")?;
+        if self.named_group_ahead() {
+            // `(a b c : T) -> body`：同型多名字 binder 组（读内核 pp 类型文本
+            // 时需要，如 `forall (a b : Prop), ...`）。展开成逐名字的 Forall 链。
+            let group = self.parse_binder_group()?;
+            self.expect_kind(&TokenKind::Arrow, "`->` after binder group")?;
             let body = self.parse_expr()?;
-            let span = Span::new(binder.span.start, body.span().end);
-            return Ok(Expr::Forall {
-                binders: vec![binder],
-                body: Box::new(body),
-                span,
-            });
+            let start = group.span.start;
+            let end = body.span().end;
+            let style = group.style;
+            let group_span = group.span;
+            let mut expr = body;
+            for name in group.names.into_iter().rev() {
+                expr = Expr::Forall {
+                    binders: vec![Binder {
+                        name,
+                        ty: Some(Box::new(group.ty.clone())),
+                        style: style.clone(),
+                        span: group_span,
+                    }],
+                    body: Box::new(expr),
+                    span: Span::new(start, end),
+                };
+            }
+            return Ok(expr);
         }
         let lhs = self.parse_plus()?;
         if self.peek().kind == TokenKind::Arrow {
@@ -267,18 +383,56 @@ impl Parser {
         Ok(lhs)
     }
 
-    fn named_arrow_ahead(&self) -> bool {
-        let open = self.tokens.get(self.cursor).map(|t| &t.kind);
-        if !matches!(open, Some(TokenKind::LParen) | Some(TokenKind::LBrace)) {
+    /// `(a b : T)` 是否在箭头位（读回内核 pp 的多名字 binder 组）。
+    fn named_group_ahead(&self) -> bool {
+        let toks = &self.tokens;
+        let mut i = self.cursor;
+        if !matches!(
+            toks.get(i).map(|t| &t.kind),
+            Some(TokenKind::LParen) | Some(TokenKind::LBrace)
+        ) {
             return false;
         }
-        matches!(
-            self.tokens.get(self.cursor + 1).map(|t| &t.kind),
-            Some(TokenKind::Ident(_))
-        ) && matches!(
-            self.tokens.get(self.cursor + 2).map(|t| &t.kind),
-            Some(TokenKind::Colon)
-        )
+        i += 1;
+        let mut saw_ident = false;
+        while matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Ident(_))) {
+            saw_ident = true;
+            i += 1;
+        }
+        saw_ident && matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Colon))
+    }
+
+    /// 解析 `(a b c : T)` / `{a b c : T}`，消费括号并返回多名字 + 共享类型。
+    fn parse_binder_group(&mut self) -> Result<BinderGroup> {
+        let tok = self.bump().clone();
+        let style = match tok.kind {
+            TokenKind::LParen => BinderKind::Explicit,
+            TokenKind::LBrace => BinderKind::Implicit,
+            _ => {
+                return Err(self.error_here("expected `(` or `{` to open a binder group"));
+            }
+        };
+        let mut names = vec![self.expect_ident("binder name")?];
+        while matches!(self.peek().kind, TokenKind::Ident(_)) {
+            names.push(self.expect_ident("binder name")?);
+        }
+        self.expect_colon("binder type")?;
+        let ty = self.parse_expr()?;
+        let close = match style {
+            BinderKind::Explicit => TokenKind::RParen,
+            BinderKind::Implicit => TokenKind::RBrace,
+        };
+        let closing = self.peek().clone();
+        if closing.kind != close {
+            return Err(self.error_here("expected `)` to close binder group"));
+        }
+        self.bump();
+        Ok(BinderGroup {
+            names,
+            ty,
+            style,
+            span: Span::new(tok.span.start, closing.span.end),
+        })
     }
 
     fn parse_plus(&mut self) -> Result<Expr> {
@@ -475,7 +629,7 @@ impl Parser {
         let start = self.bump().span.start;
         let mut binders = Vec::new();
         while self.peek().kind != TokenKind::FatArrow {
-            binders.push(self.parse_binder()?);
+            self.push_binders(&mut binders)?;
         }
         self.expect_kind(&TokenKind::FatArrow, "`=>`")?;
         let body = self.parse_expr()?;
@@ -491,7 +645,7 @@ impl Parser {
         let start = self.bump().span.start;
         let mut binders = Vec::new();
         loop {
-            binders.push(self.parse_binder()?);
+            self.push_binders(&mut binders)?;
             if self.peek().kind == TokenKind::Comma {
                 self.bump();
                 break;
@@ -507,6 +661,38 @@ impl Parser {
             body: Box::new(body),
             span,
         })
+    }
+
+    /// 向 `binders` 追加一个 binder（单名 `(a : T)`）或展开一个多名字组
+    /// `(a b : T)`（读回内核 pp 类型文本需要）。
+    fn push_binders(&mut self, binders: &mut Vec<Binder>) -> Result<()> {
+        if self.named_group_ahead() && self.multi_name_group_ahead() {
+            let group = self.parse_binder_group()?;
+            for name in group.names {
+                binders.push(Binder {
+                    name,
+                    ty: Some(Box::new(group.ty.clone())),
+                    style: group.style.clone(),
+                    span: group.span,
+                });
+            }
+            return Ok(());
+        }
+        binders.push(self.parse_binder()?);
+        Ok(())
+    }
+
+    /// `named_group_ahead` 已确认是 binder 组；判断是否为多名字
+    /// `(a b : T)`（单名走原 `parse_binder` 以保留既有 span 语义）。
+    fn multi_name_group_ahead(&self) -> bool {
+        let toks = &self.tokens;
+        let mut i = self.cursor + 1;
+        let mut count = 0;
+        while matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Ident(_))) {
+            count += 1;
+            i += 1;
+        }
+        count > 1
     }
 
     fn parse_binder(&mut self) -> Result<Binder> {
@@ -631,7 +817,7 @@ impl Parser {
 pub fn parse(src: &str) -> Result<FolFile> {
     let tokens = tokenize(src)?;
     let mut parser = Parser::new(tokens);
-    parser.parse_file()
+    parser.parse_file(src)
 }
 
 fn is_reserved_command(name: &str) -> bool {

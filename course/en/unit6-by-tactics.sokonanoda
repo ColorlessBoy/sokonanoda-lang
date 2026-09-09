@@ -1,0 +1,83 @@
+-- ==========================================================================
+-- unit6-by-tactics.sokonanoda —— Unit 6 — Proving with `by` (tactic blocks)
+--
+-- Earlier units wrote proof terms directly: `:= fun (a : Prop) => ...`.
+-- This unit learns another way — `by` blocks: write a proof as a sequence of
+-- **commands** (tactics), and let the compiler assemble the proof term for
+-- you. Judgment always goes through the kernel: the assembled term is
+-- equivalent to a hand-written one.
+--
+-- Syntax:
+--   theorem name : Type := by <tactic>; <tactic>; ...
+--   (tactics are separated by `;`)
+--
+-- First five tactics (the whitelist is the curriculum):
+--   intro x    — peel one arrow off the goal, introduce hypothesis x (like one `fun`)
+--   exact e    — end the current goal with term e (kernel-checks the type)
+--   assumption — find a hypothesis whose type is exactly the goal, and use it
+--   apply f    — wrap the goal in f: if f : A1 -> ... -> An -> B and the goal
+--                is B, replace it with the subgoals A1..An
+--   rfl        — the goal is `Eq α x y` and both sides compute to the same
+-- `by sorry` leaves the goal open (like writing sorry in the value position).
+-- ==========================================================================
+
+-- Logic skeleton (reuses Unit 1's constructors):
+axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
+axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+
+-- Demo 1 (intro + assumption): `a -> a` written with `by`.
+--   intro a      introduce hypothesis a (the goal becomes a)
+--   assumption   a's type in the context is exactly the goal a, use it
+theorem demo_by_assumption : (a : Prop) -> a -> a := by intro a; intro h; assumption
+
+-- Demo 2 (apply splits a goal): the goal is Or True False; Or.inl says
+-- "just give a proof of the left side".
+--   apply Or.inl  the goal becomes True
+--   exact True.intro  done
+theorem demo_by_apply : Or True False := by apply Or.inl; exact True.intro
+
+-- Demo 3 (rfl): both sides of the equality are the same value.
+--   The kernel computes 1 + 1 = 2, so rfl closes it directly.
+theorem demo_by_rfl : Eq.{1} Nat (1 + 1) 2 := by rfl
+
+-- ─────────────────────────────────────────────────────────────
+-- Exercise 1: prove `a -> a` with `by` — intro first, then assumption.
+-- Start: `:= by` with nothing after it (the exercise starts from scratch).
+-- soko:hint 思路：assumption 是「在上下文里找目标」的捷径；先 intro 把箭头拆开。
+-- soko:hint 目标形态：先 intro a，再 intro h（目标变成 a），最后 assumption。
+-- soko:hint 关键件：assumption 会自动找到类型为 a 的假设 h。
+theorem by_ex1 : (a : Prop) -> a -> a := by sorry
+
+-- Exercise 2: prove `a and b imply a` with `by`.
+-- soko:hint 思路：intro 拆箭头拿到 h : And a b，再用 And.left 拆出 a 那一半。
+-- soko:hint 目标形态：intro a; intro b; intro h 之后，目标就是 a。
+-- soko:hint 关键件：`exact And.left a b h` 一步结束；或 apply And.left 再 assumption。
+theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry
+
+-- Exercise 3 (apply splits the goal): when the goal is a or b, apply Or.inl /
+-- Or.inr to pick one side.
+-- soko:hint 思路：Or 是「二选一」——apply Or.inl 就只剩下证明左边。
+-- soko:hint 目标形态：先 intro 拿到 ha : a，再 apply Or.inl，最后 exact ha。
+-- soko:hint 关键件：Or.inl 把 Or a b 的目标拆成只剩 a；exact ha 结束。
+theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry
+
+-- Exercise 4 (apply And.intro, two subgoals): And needs proofs of both sides.
+-- soko:hint 思路：And.intro 要两份证明——apply 之后会出两个子目标，逐个 exact。
+-- soko:hint 目标形态：先 intro 拿到 ha : a、hb : b，apply And.intro 出两个子目标 a 和 b。
+-- soko:hint 关键件：第一个子目标 exact ha，第二个子目标 exact hb；子目标按顺序解。
+theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
+
+-- Exercise 5 (challenge ★): a -> a -> a with assumption (assumption searches
+-- innermost-first).
+-- soko:hint 思路：两个 a 型假设同名不同层，assumption 取最内层那个。
+-- soko:hint 目标形态：intro a; intro h; assumption——目标 a，上下文有 a 和 h 都是 a 型。
+-- soko:hint 关键件：assumption 从内到外找第一个类型匹配的假设，即 h。
+theorem by_ex5 : (a : Prop) -> a -> a := by sorry

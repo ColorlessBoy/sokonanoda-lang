@@ -28,5 +28,11 @@
     "title": "单元⑤ 显式归纳与递归",
     "title_en": "Unit 5 — Explicit Induction & Recursion",
     "unit": 5
+  },
+  {
+    "file": "unit6-by-tactics.sokonanoda",
+    "title": "单元⑥ by 写法：tactic 证明",
+    "title_en": "Unit 6 — Proving with `by` (tactic blocks)",
+    "unit": 6
   }
 ]
