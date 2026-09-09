@@ -40,6 +40,11 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 改 `editor/vscode/` 下的任何文件前，先读 `docs/vscode-dev-guide.md`
 （版本纪律 / 测试三层 / 常见坑）。版本号必须随功能改动同步 bump。
 
+## CI 失败记录
+
+每次 CI 红了，在 `docs/CI-FAILURES.md` 追加一条（原因/修复/预防）。
+同一类失败不犯第二次。
+
 ## 收尾义务
 
 - 落 commit 前更新 `docs/STATUS.md`；
