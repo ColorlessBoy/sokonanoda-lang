@@ -2005,9 +2005,11 @@ fn hover_rows_name_loose_bvars_instead_of_indices() {
     let src = "theorem demo_K : (a : Prop) -> a -> a :=\n  fun (a : Prop) => fun (h : a) => h\n";
     let report = check_document(&parse(src).expect("parse"));
     for h in &report.hovers {
-        eprintln!("ALLROW {}..{} {:?}", h.span.start.offset, h.span.end.offset, h.text);
+        eprintln!(
+            "ALLROW {}..{} {:?}",
+            h.span.start.offset, h.span.end.offset, h.text
+        );
     }
-
 }
 
 #[test]
