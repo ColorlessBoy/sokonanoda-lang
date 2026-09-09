@@ -1646,12 +1646,16 @@ pub(crate) fn resolve_hovers(
                     tc.with_pp(|pp| pp.pp_expr(ty))
                 })
             }));
-            let Ok(text) = result else { continue };
-            let text = name_loose_bvars(&text, &node.scope_names);
-            // 宁缺毋滥：解析不出名字的行（text 仍含 $N，来自 elaborator
-            // 箭头节点的 de Bruijn 深度错配）不进 hover 表——悬停会回落到
-            // 声明级信息（练习的目标/状态），比 "1 -> 1" 这种乱码有用。
-            if !text.is_empty() && !text.contains('$') {
+            let text = match result {
+                Ok(t) => name_loose_bvars(&t, &node.scope_names),
+                // infer_under_binders panic（delta 展开限制）：保留 span、
+                // text 置空——LSP 层的括号回退仍能定位到正确的子表达式，
+                // hover 显示源码切片（不带类型后缀）。
+                Err(_) => String::new(),
+            };
+            // 只过滤 $N 行（de Bruijn 深度错配的乱码）；空 text 行保留
+            // （span 精确，LSP 层显示源码切片）。
+            if !text.contains('$') {
                 out.push(HoverType {
                     span: node.span,
                     text,

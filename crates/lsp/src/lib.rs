@@ -548,14 +548,19 @@ impl LanguageServer for Backend {
         }
         let offset = position_to_offset(&doc.text, pos);
         if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
-            // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片，
-            // 箭头优先级一目了然（如 `(b : Prop) -> b -> Or a b : Prop`）。
+            // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片。
+            // type 为空时（infer panic 降级）只显示表达式本身。
             let end = h.span.end.offset.max(h.span.start.offset + 1);
             let expr = &doc.text[h.span.start.offset..end.min(doc.text.len())];
+            let content = if h.text.is_empty() {
+                expr.trim().to_string()
+            } else {
+                format!("{} : {}", expr.trim(), h.text)
+            };
             return Ok(Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {
                     kind: MarkupKind::Markdown,
-                    value: format!("```text\n{} : {}\n```", expr.trim(), h.text),
+                    value: format!("```text\n{}\n```", content),
                 }),
                 range: None,
             }));

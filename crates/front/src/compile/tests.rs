@@ -2098,3 +2098,40 @@ fn hover_rows_exist_for_proposition_and_axioms() {
         "should have hover rows mentioning And a b"
     );
 }
+#[test]
+fn debug_hover_bracket_coverage() {
+    // 诊断用：看 hover 表在括号位置是否有行覆盖
+    let src = "theorem demo_K : (a : Prop) -> a -> a :=\n  fun (a : Prop) => fun (h : a) => h\n";
+    let report = check_document(&parse(src).expect("parse"));
+    // 打印全部 hover 行
+    for h in &report.hovers {
+        let slice = &src[h.span.start.offset..h.span.end.offset.min(src.len())];
+        eprintln!(
+            "ROW {}..{} {:?} src={:?}",
+            h.span.start.offset, h.span.end.offset, h.text, slice
+        );
+    }
+    // 括号位置：line 0 的 `(` 在 byte offset（需要换算）
+    // `theorem demo_K : ` = 17 chars，`(` 在 17
+    // line 0 的 `)` = `)` of `(a : Prop)` at offset 26
+    let parens: Vec<(usize, char)> = src
+        .char_indices()
+        .filter(|(_, c)| *c == '(' || *c == ')')
+        .take(8)
+        .collect();
+    eprintln!("brackets: {:?}", parens);
+    for (off, c) in &parens {
+        let containing: Vec<&crate::compile::HoverType> = report
+            .hovers
+            .iter()
+            .filter(|h| h.span.start.offset <= *off && *off < h.span.end.offset)
+            .collect();
+        eprintln!("  hover@{} ({}): {} rows", off, c, containing.len());
+        for h in &containing {
+            eprintln!(
+                "    {}..{} {:?}",
+                h.span.start.offset, h.span.end.offset, h.text
+            );
+        }
+    }
+}
