@@ -56,6 +56,9 @@ pub(crate) struct HoverNode<'a> {
     /// Top-level targets carry a placeholder span here and are backfilled
     /// from the file's name → def-span map in `run_pass`.
     pub(crate) resolution: Option<ResolvedTarget>,
+    /// This node is a lambda/forall **binder declaration** (`name : ty`):
+    /// the hover should render the declaration itself (not `expr : type`).
+    pub(crate) binder: bool,
 }
 
 pub(crate) fn record_hover<'a>(
@@ -71,6 +74,25 @@ pub(crate) fn record_hover<'a>(
         scope_names: scope.names.clone(),
         scope_tys: scope.tys.clone(),
         resolution,
+        binder: false,
+    });
+}
+
+/// Record a binder-declaration hover row (`name : ty`), with the scope as it
+/// was **before** this binder was pushed (the type is elaborated in that scope).
+pub(crate) fn record_binder_hover<'a>(
+    hovers: &mut Vec<HoverNode<'a>>,
+    scope: &ElabScope<'a>,
+    span: Span,
+    ty: ExprPtr<'a>,
+) {
+    hovers.push(HoverNode {
+        span,
+        expr: ty,
+        scope_names: scope.names.clone(),
+        scope_tys: scope.tys.clone(),
+        resolution: None,
+        binder: true,
     });
 }
 
@@ -626,6 +648,7 @@ pub(crate) fn elab_expr<'a>(
                 tys.push(ty);
                 names.push(name);
                 styles.push(style);
+                record_binder_hover(hovers, scope, binder.span, ty);
                 scope.push(binder.name.clone(), ty, binder.span);
             }
             let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, rest)?;
@@ -660,6 +683,7 @@ pub(crate) fn elab_expr<'a>(
                 tys.push(ty);
                 names.push(name);
                 styles.push(kernel_binder_style(&binder.style));
+                record_binder_hover(hovers, scope, binder.span, ty);
                 scope.push(binder.name.clone(), ty, binder.span);
             }
             let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, None)?;

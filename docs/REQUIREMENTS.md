@@ -161,5 +161,25 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   还原为对应 binder 名字；(3) 为括号 hover 设计多个测试样例，指定语料
   `and_not_absurd`（`(And.right a (Not a) h)` → `And.right a (Not a) h :
   Not a`；`And.left a (Not a) h` → `a`）。实现见
-  `docs/design-hover-brackets.md`（kernel pp 播种 + 括号组匹配 +
-  `Not a` 保持折叠），测试 front 2 + LSP 5 + 旧断言对齐。
+`docs/design-hover-brackets.md`（kernel pp 播种 + 括号组匹配 +
+   `Not a` 保持折叠），测试 front 2 + LSP 5 + 旧断言对齐。
+- 2026-09-09（十四）：**课程双语化（用户指令）**：tutorial/教程文档要有中文
+  与英文两种版本——范围 = `course/` 单元课程为主，形态 = 中文/英文各一份
+  独立文件。落地：`course/en/` 英文镜像（5 单元画布 + `solutions/` 解答钥匙），
+  `course.json` 增 `title_en`，`course/README.md` 补双语布局说明，CI 新增
+  `en_mirrors_match_chinese_event_counts` 守卫（事件计数逐项相等 + 英文钥匙
+  0 诊断 0 洞），设计见 `docs/design-course-bilingual.md`。**英文注释按语义
+  重构、不按字节翻译**（用户原则 2026-09-09 修订）：英文是重新写就的自然
+  教学文案，重组句子与段落、不以中文行号/行数为准；但代码与中文逐字节
+一致、知识点与提示阶梯条数/顺序同构。不改 `course/` 中文文件与 docs/
+   开发者文档。
+- 2026-09-09（十五）：**hover 重构——良构表达式 + 高亮范围（用户指令）**：
+   括号 hover 内容仍乱（「有些是包含括号的外部表达式」「`(Not a)` 与
+   `(And.right a (Not a) h)` 左右括号对不上」），要求——(1) 逐字符评估
+   `*.sokonanoda` 文件里所有 hover 内容，指出不合理处；(2) 把正确行为设计成
+   单元测试再开发；(3) **最终要知道 hover 内容对应的表达式范围**——hover 返回
+   range，编辑器高亮该表达式。根因三连：lambda/Pi 的 binder 名整段溢出、
+   括号组切片截断（AST span 不含括号）、hover 不返回 range。决议：front 为
+   每个 binder 记声明行（`binder: true`）、LSP 切片括号平衡成良构表达式、
+   所有 hover 分支带高亮 range。实现见 `docs/design-hover-refactor.md`，
+   测试 front 2 + LSP 5 + 旧断言对齐。

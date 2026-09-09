@@ -129,6 +129,9 @@ pub struct HoverType {
     /// When this span is a name use point: where the name is defined
     /// (`None` for prelude names and unresolved idents).
     pub resolution: Option<ResolvedTarget>,
+    /// This row is a lambda/forall **binder declaration** (`name : ty`): the
+    /// editor renders the declaration itself, not `expr : type`.
+    pub binder: bool,
 }
 
 #[derive(Debug, Clone, Default)]

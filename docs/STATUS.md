@@ -1,8 +1,10 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-09（第十七轮：括号 hover + 真名还原）
+> 快照：2026-09-09（第十八轮：hover 重构收尾；并发课程双语化）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-hover-brackets.md`（本轮）/ `docs/design-round14.md`（含本轮 B′ 决议）/
+> 设计 = `docs/design-hover-refactor.md`（本轮）/ `docs/design-course-bilingual.md` /
+> `docs/design-hover-brackets.md` /
+> `docs/design-round14.md`（含本轮 B′ 决议）/
 > `docs/design-kernel-taxonomy.md` / `docs/design-course-status.md` /
 > `docs/design-hints-suggestions.md` / `docs/design-rename-inlay.md` /
 > `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
@@ -17,6 +19,75 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-09，第十八轮：hover 重构——良构表达式 + 高亮范围）
+
+> 设计先行：`docs/design-hover-refactor.md`。触发：用户反馈「括号 hover 内容
+> 乱七八糟、有些是包含括号的外部表达式」「`(Not a)` 与 `(And.right a (Not a) h)`
+> 左右括号内容对不上」，并要求——逐字符评估所有 hover、把正确行为设计成单测、
+> 最终**能看到 hover 内容对应的表达式范围（高亮）**。
+>
+> ⚠️ 本轮与「课程双语化」并发推进；双语 agent 曾 stash 我未完成的
+> `lib.rs/tests.rs`（stash@{0}）隔离验证。本轮收尾时已在工作树重建全部
+> hover 改动（lib.rs 逐字节一致、front 两个 binder 测试从 stash 还原），
+> 丢弃了已过期的 stash，并丢弃其中一条非本轮的 `playground two := 2`
+> 实验改动（画布保持 `sorry` 未作答）。
+
+1. **逐字符盘点（16 个 *.sokonanoda 文件，11229 行 dump）**：三类不合理——
+   (a) **lambda/Pi 的 binder 名整段溢出**（977 处）：hover `fun (a : Prop) => …`
+   的 binder `a` 时最小 span 是整段 lambda，把「表达式 + 整段类型」全吐出来；
+   (b) **括号组切片截断**（AST span 不含括号）：`(h : And a (Not a))` 显示
+   `And a (Not a : Prop`（缺右括号）；(c) **hover 不返回 range**：`range: None`，
+   编辑器无法高亮「这个 hover 在说哪个表达式」。
+2. **front binder 行（冷路径）**：`elab.rs` 为每个 Lambda/Forall binder 记一条
+   `binder: true` 的声明行（span = 完整标注 `(a : Prop)`，expr = binder 类型，
+   scope = push 前）；`HoverType.binder` 字段贯通 `report.rs`/`check.rs`
+   （binder 行跳过 infer、text 置空，渲染用源码切片）。hover 到 binder 名 →
+   `a : Prop`，不再整段溢出。
+3. **LSP 渲染层重构（`render.rs`）**：`HoverResolved{range, content}`；
+   `balanced_span` 把截断切片补成良构表达式（跳过 `--` 注释）；`expr_hover`
+   统一渲染 + 平衡 span；`bracket_hover` 按「binder 标注组（span==整组）→
+   组内最大表达式行」解析，高亮整组（含括号，保证覆盖光标）。
+   `hover()` 所有分支（括号/精确/邻近/声明）都返回 `range`。
+4. **测试**：front 2 新（lambda binder 行、Pi binder 行）+ LSP 5 新（binder 名
+   不溢出、`h` binder 声明、`(h : …)` 括号显示声明不截断、`(a : Prop)` 括号
+   显示声明、range 覆盖光标）+ 旧断言对齐（`hover_map_covers_subexpressions`
+   允许 binder 行空 text）。测试总量 **410**（front 212 / lsp 81 / cli+kernel 117）
+   全绿；fmt/clippy 干净；playground 锚点 `decl.checked=20 / exercise.open=7 /
+   0 诊断` 不变。
+5. **stash 协调收尾**：并发双语 agent 遗留的 stash@{0}（含我的旧 lib.rs/tests.rs
+   与一条 playground 实验）已丢弃——lib.rs 工作树与 stash 逐字节一致、两个
+   front 测试已从 stash 还原到工作树、playground 实验改动（`two := 2`）不保留。
+   STATUS 原「并发的 hover 重构编译不过」注记已过时，本行为其解决记录。
+
+## 本轮进度（2026-09-09，第十八轮：课程双语化）
+
+> 设计先行：`docs/design-course-bilingual.md`。触发：用户要求 tutorial 等
+> 教程文档提供中文与英文两种版本（范围 = `course/` 单元课程为主；形态 =
+> 中文/英文各一份独立文件）。
+
+1. **英文镜像（按语义重构）**：新增 `course/en/`（5 单元画布 +
+   `solutions/` 解答钥匙）。英文注释是**重新写就的自然教学文案**，按英语
+   语感重组句子与段落、不以中文行号/行数为准（用户修订原则：按语义重构、
+   不按字节翻译）；**代码与中文逐字节一致**，`soko:hint` 阶梯条数与顺序
+   同构（思路 / 目标形态 / 关键件）。中文文件原样不动，作为权威源。
+2. **课程清单**：`course.json` 每条目增 `title_en`（英文标题），`file`/`unit`
+   与现有 `course.rs` 断言完全兼容。
+3. **CI 守卫**：`crates/cli/tests/course.rs` 新增
+   `en_mirrors_match_chinese_event_counts`——`course/en/` 与 `course/` 文件
+   同名一一对应，两版 `--json` 事件计数（decl.checked / exercise.open /
+   expr.reduced / diagnostic）逐项相等；英文钥匙 0 诊断、0 洞。判定走 kernel
+   （事件计数），禁文本比对（注释本来就允许不同）。
+4. **验证**：EN 5 画布事件计数与中文 golden 表完全一致（如 unit1
+   decl.checked=12/exercise.open=5/diagnostics=0），EN 钥匙全 0 诊断 0 洞；
+   code 逐字节一致（脚本核对全部 10 个镜像文件）。`en_mirrors…` 守卫在
+   隔离外来改动时通过（`cargo test -p sokonanoda-cli --test course` 4 测试
+   全绿），我的改动 fmt/clippy 干净。
+5. **边界**：不改 `course/` 中文文件、不译 `docs/` 开发者文档与根画布
+   `playground.sokonanoda`（留待后续按需扩展）；不做运行时 i18n 机制。
+注：仓库里曾有**并发的 hover 重构**（非本轮产物），验证时已被隔离并
+    stash；该 hover 重构现已由对方收尾完成（见上方「第十八轮：hover 重构」
+    条目），并发期间的 stash 已清理，`sokonanoda-lsp` 恢复编译通过。
 
 ## 本轮进度（2026-09-09，第十七轮：括号 hover + 真名还原）
 

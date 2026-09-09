@@ -884,7 +884,11 @@ fn hover_map_covers_subexpressions() {
     let report = check_document(&file);
     assert!(!report.hovers.is_empty(), "hovers: {:?}", report.hovers);
     for hover in &report.hovers {
-        assert!(!hover.text.is_empty(), "empty hover text: {:?}", hover);
+        assert!(
+            hover.binder || !hover.text.is_empty(),
+            "empty hover text: {:?}",
+            hover
+        );
         assert!(
             hover.span.start.offset <= hover.span.end.offset && hover.span.end.offset <= src.len(),
             "hover span outside the file: {:?}",
@@ -2117,6 +2121,57 @@ fn hover_rows_of_partial_applications_use_scope_names() {
     assert_eq!(row(arb, arb + "And.right a b".len()).text, "And a b -> b");
     // 全应用：And.right a b h : b
     assert_eq!(row(arb, arb + "And.right a b h".len()).text, "b");
+}
+
+#[test]
+fn hover_rows_have_lambda_binder_declaration_rows() {
+    // 每个 lambda binder 都有一条 `binder: true` 的声明行，span = 完整标注
+    // `(a : Prop)` / `(h : And a (Not a))`——LSP 靠它避免整段 lambda 溢出。
+    let src = concat!(
+        "axiom False : Prop\n",
+        "axiom And : Prop -> Prop -> Prop\n",
+        "axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n",
+        "axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n",
+        "def Not : Prop -> Prop := fun (a : Prop) => a -> False\n",
+        "theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :=\n",
+        "  fun (a : Prop) (h : And a (Not a)) => ",
+        "(And.right a (Not a) h) (And.left a (Not a) h)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let a_span = src.find("(a : Prop)").expect("(a : Prop)");
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.binder
+                && h.span.start.offset == a_span
+                && h.span.end.offset == a_span + "(a : Prop)".len()
+        }),
+        "missing binder row for (a : Prop)"
+    );
+    let h_span = src.find("(h : And a (Not a))").expect("(h ...)");
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.binder
+                && h.span.start.offset == h_span
+                && h.span.end.offset == h_span + "(h : And a (Not a))".len()
+        }),
+        "missing binder row for (h : And a (Not a))"
+    );
+}
+
+#[test]
+fn hover_rows_include_pi_binder_rows() {
+    // Forall（Pi）的 binder 也必须有声明行：`(P : Prop) -> False -> P` 的 `(P : Prop)`。
+    let src = "axiom False : Prop\naxiom my_rec : (P : Prop) -> False -> P\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let p_span = src.find("(P : Prop)").expect("(P : Prop)");
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.binder
+                && h.span.start.offset == p_span
+                && h.span.end.offset == p_span + "(P : Prop)".len()
+        }),
+        "missing binder row for (P : Prop)"
+    );
 }
 
 #[test]

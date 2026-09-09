@@ -24,8 +24,8 @@ mod testutil;
 
 use actions::hole_range;
 use render::{
-    bracket_hover_at, decl_at, decl_name, definition_at, diagnostic_from_compile,
-    diagnostic_from_parse, highlight_uses, hover_type_at, range_of, scope_names_at,
+    bracket_hover, decl_at, decl_name, definition_at, diagnostic_from_compile,
+    diagnostic_from_parse, expr_hover, highlight_uses, hover_type_at, range_of, scope_names_at,
     semantic_kind_at, status_label, symbol_kind,
 };
 use serde::{Deserialize, Serialize};
@@ -438,16 +438,15 @@ fn range_start_offset(text: &str, range: &Range) -> usize {
     position_to_offset(text, range.start)
 }
 
-/// hover 内容 = `表达式 : 类型`（表达式按 span 从源码切片）。
-/// 类型为空时（infer panic 降级）只显示表达式本身；类型含 `$N`
-/// （kernel 无法还原的松散变量）时同样降级——绝不把索引值端给学习者。
-fn hover_content(text: &str, h: &HoverType) -> String {
-    let end = h.span.end.offset.max(h.span.start.offset + 1);
-    let expr = text[h.span.start.offset..end.min(text.len())].trim();
-    if h.text.is_empty() || h.text.contains('$') {
-        expr.to_string()
-    } else {
-        format!("{} : {}", expr, h.text)
+/// Build an LSP `Hover` from a resolved expression hover, carrying the
+/// expression's source range so the editor highlights exactly what is shown.
+fn hover_markup(res: render::HoverResolved) -> Hover {
+    Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: format!("```text\n{}\n```", res.content),
+        }),
+        range: Some(range_of(res.range)),
     }
 }
 
@@ -563,27 +562,13 @@ impl LanguageServer for Backend {
         // 括号优先：光标在 ( / ) 上 → 显示括号组包住的表达式及其类型
         //（`(表达式)` 的悬停 = `表达式 : 类型`）。必须先于精确命中——
         // 外层 lambda 行的 span 覆盖整个值表达式，会遮住括号组。
-        if let Some(h) = bracket_hover_at(&doc.text, &report.hovers, pos.line, pos.character) {
-            let content = hover_content(&doc.text, h);
-            return Ok(Some(Hover {
-                contents: HoverContents::Markup(MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: format!("```text\n{}\n```", content),
-                }),
-                range: None,
-            }));
+        if let Some(res) = bracket_hover(&doc.text, &report.hovers, pos.line, pos.character) {
+            return Ok(Some(hover_markup(res)));
         }
         if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
-            // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片。
-            // type 为空时（infer panic 降级）只显示表达式本身。
-            let content = hover_content(&doc.text, h);
-            return Ok(Some(Hover {
-                contents: HoverContents::Markup(MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: format!("```text\n{}\n```", content),
-                }),
-                range: None,
-            }));
+            // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片
+            //（括号平衡成良构），并返回表达式范围供编辑器高亮。
+            return Ok(Some(hover_markup(expr_hover(&doc.text, h))));
         }
         // 邻近回退：光标 ±2 字符内命中的最小外层表达式（运算符、空白
         // 边缘等结构符号也能看到所属类型）。数据来自 hover 表（span 嵌套）。
@@ -610,14 +595,7 @@ impl LanguageServer for Backend {
                     (dist, len)
                 });
             if let Some(h) = nearest {
-                let content = hover_content(&doc.text, h);
-                return Ok(Some(Hover {
-                    contents: HoverContents::Markup(MarkupContent {
-                        kind: MarkupKind::Markdown,
-                        value: format!("```text\n{}\n```", content),
-                    }),
-                    range: None,
-                }));
+                return Ok(Some(hover_markup(expr_hover(&doc.text, h))));
             }
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {
@@ -652,7 +630,7 @@ impl LanguageServer for Backend {
                     kind: MarkupKind::Markdown,
                     value,
                 }),
-                range: None,
+                range: Some(range_of(d.span)),
             }));
         }
         Ok(None)
@@ -2458,6 +2436,28 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         group_open + src[group_open..].find(" h)").expect("group closing paren") + 2
     }
 
+    /// The full `Hover` (contents + range) at a byte offset, for range assertions.
+    async fn hover_opt_at(
+        service: &mut LspService<Backend>,
+        src: &str,
+        offset: usize,
+    ) -> Option<Hover> {
+        let pos = lsp_pos(src, offset);
+        let result = call(
+            service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(96)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        serde_json::from_value(result).expect("valid hover")
+    }
+
     async fn open_and_wait(src: &str) -> (LspService<Backend>, ClientSocket) {
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
@@ -2553,6 +2553,106 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
                 "comment bracket falls back to a sane hover: {m:?}"
             ),
         }
+        shutdown(&mut service).await;
+    }
+
+    // ---- 重构后：binder 名不再整段 lambda 溢出；binder 标注组展示声明；
+    //      所有 hover 都带高亮范围（range 覆盖光标） ----
+
+    #[tokio::test]
+    async fn hover_on_binder_name_shows_its_type_not_the_lambda() {
+        // hover 到 binder 名字 `a`：显示 `a : Prop`，绝不吐整段 lambda。
+        let src = "axiom True : Prop\n\
+                   def f : Prop -> Prop := fun (a : Prop) => a\n";
+        let (mut service, _socket) = open_and_wait(src).await;
+        let a_name = src.find("(a").expect("binder") + 1;
+        let markup = hover_markup_at(&mut service, src, a_name).await;
+        assert!(
+            markup.contains("a : Prop"),
+            "hovering the binder name must show its type: {markup:?}"
+        );
+        assert!(
+            !markup.contains("fun (a : Prop) => a"),
+            "must not spill the whole lambda: {markup:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_binder_name_h_shows_declaration() {
+        // hover 到 `h` 的 binder 名字：`h : And a (Not a)`（binder 声明）。
+        let (mut service, _socket) = open_and_wait(AND_NOT_ABSURD).await;
+        let h_name = AND_NOT_ABSURD.find("(h").expect("binder h") + 1;
+        let markup = hover_markup_at(&mut service, AND_NOT_ABSURD, h_name).await;
+        assert!(
+            markup.contains("h : And a (Not a)"),
+            "binder name must show its declaration: {markup:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_binder_annotation_bracket_shows_declaration() {
+        // `(h : And a (Not a))` 的 `(` / `)`：显示 `h : And a (Not a)`
+        //（不再截断成 `And a (Not a : Prop`）。
+        let (mut service, _socket) = open_and_wait(AND_NOT_ABSURD).await;
+        let group_open = AND_NOT_ABSURD.find("(h : And a (Not a))").expect("group");
+        let group_close = group_open + "(h : And a (Not a))".len() - 1;
+        for offset in [group_open, group_close] {
+            let markup = hover_markup_at(&mut service, AND_NOT_ABSURD, offset).await;
+            assert!(
+                markup.contains("h : And a (Not a)"),
+                "bracket {offset} must show the declaration: {markup:?}"
+            );
+            assert!(
+                !markup.contains("And a (Not a :"),
+                "must not be truncated: {markup:?}"
+            );
+        }
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_binder_annotation_prop_shows_declaration() {
+        // `(a : Prop)` 的 `(`：显示 `a : Prop`。
+        let src = "axiom True : Prop\n\
+                   def f : Prop -> Prop := fun (a : Prop) => a\n";
+        let (mut service, _socket) = open_and_wait(src).await;
+        let group_open = src.find("(a : Prop)").expect("group");
+        let markup = hover_markup_at(&mut service, src, group_open).await;
+        assert!(
+            markup.contains("a : Prop"),
+            "binder annotation bracket must show the declaration: {markup:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_returns_range_highlighting_the_expression() {
+        // 括号 hover 与普通表达式 hover 都返回非空 range，且 range 覆盖光标。
+        let (mut service, _socket) = open_and_wait(AND_NOT_ABSURD).await;
+        // 括号：`(And.right a (Not a) h)` 的 `(`。
+        let group = AND_NOT_ABSURD.find("(And.right").expect("group");
+        let hov = hover_opt_at(&mut service, AND_NOT_ABSURD, group)
+            .await
+            .expect("bracket hover");
+        let range = hov.range.expect("bracket hover must carry a range");
+        let cursor = lsp_pos(AND_NOT_ABSURD, group);
+        assert!(
+            range.start <= cursor && cursor <= range.end,
+            "bracket range must contain the cursor: {range:?}"
+        );
+        // 普通表达式：hover 定理体内的 `And.right`（`(And.right` 之后那个）。
+        let and_right = AND_NOT_ABSURD.find("(And.right").expect("group") + 1;
+        let hov2 = hover_opt_at(&mut service, AND_NOT_ABSURD, and_right)
+            .await
+            .expect("expression hover");
+        let range2 = hov2.range.expect("expression hover must carry a range");
+        let cursor2 = lsp_pos(AND_NOT_ABSURD, and_right);
+        assert!(
+            range2.start <= cursor2 && cursor2 <= range2.end,
+            "expression range must contain the cursor: {range2:?}"
+        );
         shutdown(&mut service).await;
     }
 }

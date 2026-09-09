@@ -1640,20 +1640,26 @@ pub(crate) fn resolve_hovers(
     std::panic::set_hook(Box::new(|_| {}));
     for cmd in cmd_hovers {
         for node in cmd.nodes {
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                env.with_tc(EnvLimit::ByIndex(cmd.env_at), |tc| {
-                    let ty = tc.infer_under_binders(&node.scope_tys, node.expr);
-                    // 用 scope binder 名字播种 pp：松散变量还原为真名
-                    //（`$N` 不再出现），telescope 域的 lift 恰好被抵消。
-                    tc.with_pp_scoped(&node.scope_names, |pp| pp.pp_expr(ty))
-                })
-            }));
-            let text = match result {
-                Ok(t) => name_loose_bvars(&t, &node.scope_names),
-                // infer_under_binders panic（delta 展开限制）：保留 span、
-                // text 置空——LSP 层的括号回退仍能定位到正确的子表达式，
-                // hover 显示源码切片（不带类型后缀）。
-                Err(_) => String::new(),
+            // Binder-declaration rows render from their own source slice, so
+            // skip the (possibly panic-prone) type inference entirely.
+            let text = if node.binder {
+                String::new()
+            } else {
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    env.with_tc(EnvLimit::ByIndex(cmd.env_at), |tc| {
+                        let ty = tc.infer_under_binders(&node.scope_tys, node.expr);
+                        // 用 scope binder 名字播种 pp：松散变量还原为真名
+                        //（`$N` 不再出现），telescope 域的 lift 恰好被抵消。
+                        tc.with_pp_scoped(&node.scope_names, |pp| pp.pp_expr(ty))
+                    })
+                }));
+                match result {
+                    Ok(t) => name_loose_bvars(&t, &node.scope_names),
+                    // infer_under_binders panic（delta 展开限制）：保留 span、
+                    // text 置空——LSP 层的括号回退仍能定位到正确的子表达式，
+                    // hover 显示源码切片（不带类型后缀）。
+                    Err(_) => String::new(),
+                }
             };
             // 保留所有行（含 $N 行——LSP 层只显示源码切片，不显示乱码类型）。
             // 此前按 $ 过滤导致子表达式行丢失，外层行"遮蔽"了子表达式 hover。
@@ -1662,6 +1668,7 @@ pub(crate) fn resolve_hovers(
                 text,
                 scope_names: node.scope_names,
                 resolution: node.resolution,
+                binder: node.binder,
             });
             out_cmds.push(cmd.cmd);
         }

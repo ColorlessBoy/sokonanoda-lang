@@ -6,8 +6,20 @@ use sokonanoda_front::compile::{
 };
 use sokonanoda_front::references::{binder_name_span, decl_name_span, references_for, resolve_at};
 use sokonanoda_front::semantic::SemanticKind;
-use sokonanoda_front::{tokenize, Span, TokenKind};
+use sokonanoda_front::{tokenize, Pos, Span, TokenKind};
 use tower_lsp::lsp_types::*;
+
+/// A `Pos` (1-based line/column, matching front spans) at a byte offset.
+fn pos_at(text: &str, offset: usize) -> Pos {
+    let before = &text[..offset.min(text.len())];
+    let line = before.matches('\n').count() + 1;
+    let column = (offset - before.rfind('\n').map(|i| i + 1).unwrap_or(0)) + 1;
+    Pos {
+        offset,
+        line,
+        column,
+    }
+}
 
 pub(crate) fn diagnostic_from_compile(err: &sokonanoda_front::compile::CompileError) -> Diagnostic {
     Diagnostic {
@@ -77,26 +89,149 @@ pub(crate) fn hover_type_at(hovers: &[HoverType], line: u32, character: u32) -> 
         .copied()
 }
 
-/// 光标落在 `(` / `)` 上时，返回括号组包住的表达式的 hover 行——
-/// `(表达式)` 的悬停内容 = `表达式 : 表达式的类型`。
+/// A resolved hover answer: the source span to highlight and the display text.
+pub(crate) struct HoverResolved {
+    /// Source span to highlight (always contains the cursor).
+    pub(crate) range: Span,
+    /// Display text (`expr : type`, or a binder declaration).
+    pub(crate) content: String,
+}
+
+/// Net `(` minus `)` in `[start, end)` (byte offsets), skipping `--` comments.
+/// Used to detect the truncated right edge of an AST span (`And a (Not a`).
+fn paren_delta(text: &str, start: usize, end: usize) -> isize {
+    let bytes = text.as_bytes();
+    let mut d = 0isize;
+    let mut i = start;
+    while i < end {
+        match bytes[i] {
+            b'-' if bytes.get(i + 1) == Some(&b'-') => {
+                while i < end && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'(' => {
+                d += 1;
+                i += 1;
+            }
+            b')' => {
+                d -= 1;
+                i += 1;
+            }
+            _ => {
+                i += 1;
+            }
+        }
+    }
+    d
+}
+
+/// Extend a hover span's right edge so slicing yields a well-formed expression
+/// (AST spans exclude `)`, producing `And a (Not a`). Consumes the trailing
+/// `)` needed to balance the span's own parens, skipping comments.
+fn balanced_span(text: &str, span: Span) -> Span {
+    let depth = paren_delta(text, span.start.offset, span.end.offset);
+    if depth <= 0 {
+        return span;
+    }
+    let bytes = text.as_bytes();
+    let mut d = depth;
+    let mut i = span.end.offset;
+    while i < bytes.len() && d > 0 {
+        match bytes[i] {
+            b'-' if bytes.get(i + 1) == Some(&b'-') => {
+                while i < bytes.len() && bytes[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b')' => {
+                d -= 1;
+                i += 1;
+            }
+            b'(' => {
+                d += 1;
+                i += 1;
+            }
+            _ => {
+                i += 1;
+            }
+        }
+    }
+    Span::new(span.start, pos_at(text, i))
+}
+
+/// The interior of a binder annotation span, with one outer `(`/`{` …
+/// `)`/`}` layer stripped (`(h : And a (Not a))` → `h : And a (Not a)`).
+fn strip_binder_parens(text: &str, span: Span) -> &str {
+    let t = text[span.start.offset..span.end.offset].trim();
+    let inner =
+        if (t.starts_with('(') && t.ends_with(')')) || (t.starts_with('{') && t.ends_with('}')) {
+            &t[1..t.len() - 1]
+        } else {
+            t
+        };
+    inner.trim()
+}
+
+/// Display content + highlight span for a generic hover row: `expr : type`
+/// with a paren-balanced expression, or the raw declaration for binder rows.
+pub(crate) fn expr_hover(text: &str, h: &HoverType) -> HoverResolved {
+    if h.binder {
+        return HoverResolved {
+            range: h.span,
+            content: strip_binder_parens(text, h.span).to_string(),
+        };
+    }
+    let balanced = balanced_span(text, h.span);
+    let expr = text[balanced.start.offset..balanced.end.offset].trim();
+    if h.text.is_empty() || h.text.contains('$') {
+        HoverResolved {
+            range: balanced,
+            content: expr.to_string(),
+        }
+    } else {
+        HoverResolved {
+            range: balanced,
+            content: format!("{} : {}", expr, h.text),
+        }
+    }
+}
+
+/// 光标落在 `(` / `)` 上时，解析整个括号组：`(表达式)` 的悬停 =
+/// `表达式 : 表达式的类型`；`(名字 : 类型)` 这类 binder 标注组直接展示声明
+/// `名字 : 类型`。高亮范围 = 整组 `( … )`（含括号——保证覆盖光标位置）。
 ///
-/// 匹配规则：按源码文本扫描配对括号（跳过 `--` 行注释），取「完全落在
-/// 括号组内部的最大 hover span」——AST 节点的 span 不含括号本身，所以
-/// 内层表达式（应用链整体）恰好是该组内最大的行。没有配对（注释里的
-/// 括号、不闭合）或组内没有行时返回 None，调用方落到邻近回退。
-pub(crate) fn bracket_hover_at<'a>(
+/// 匹配规则：按源码文本扫描配对括号（跳过 `--` 行注释）。组内是 binder 标注
+/// 时（存在 span == 整组的 binder 行），展示声明本身；否则类型取自「完全落在
+/// 括号组内部的最大 hover 行」。组内文本天然良构（解析器保证括号平衡），
+/// 不存在切片截断。没有配对（注释里、不闭合）时返回 None。
+pub(crate) fn bracket_hover(
     text: &str,
-    hovers: &'a [HoverType],
+    hovers: &[HoverType],
     line: u32,
     character: u32,
-) -> Option<&'a HoverType> {
+) -> Option<HoverResolved> {
     let offset = line_col_to_offset(text, line, character);
     let (open, close) = matching_paren(text, offset)?;
-    // 完全在括号组内部（不含括号本身）的最大 span = 括号包住的表达式。
-    hovers
+    let group_span = Span::new(pos_at(text, open), pos_at(text, close + 1));
+    // Binder 标注组：binder 行 span 恰好等于整组 span。
+    if let Some(b) = hovers.iter().find(|h| h.binder && h.span == group_span) {
+        return Some(HoverResolved {
+            range: group_span,
+            content: strip_binder_parens(text, b.span).to_string(),
+        });
+    }
+    // 否则：取组内最大 span 的 hover 行作为该表达式（保留最内层透明，
+    // `((p))` 四括号都显示 `p : P`；`(And.right …)` 显示整条应用链）。
+    // 类型来自该行，表达式经括号平衡良构化。
+    let inside = hovers
         .iter()
         .filter(|h| h.span.start.offset > open && h.span.end.offset <= close)
-        .max_by_key(|h| h.span.end.offset - h.span.start.offset)
+        .max_by_key(|h| h.span.end.offset - h.span.start.offset)?;
+    let mut res = expr_hover(text, inside);
+    // 高亮整组（含括号）——保证范围覆盖光标位置（光标在括号上）。
+    res.range = group_span;
+    Some(res)
 }
 
 /// 光标处括号的配对位置 `(open, close)`（字节偏移，不含括号本身）。
