@@ -1653,17 +1653,15 @@ pub(crate) fn resolve_hovers(
                 // hover 显示源码切片（不带类型后缀）。
                 Err(_) => String::new(),
             };
-            // 只过滤 $N 行（de Bruijn 深度错配的乱码）；空 text 行保留
-            // （span 精确，LSP 层显示源码切片）。
-            if !text.contains('$') {
-                out.push(HoverType {
-                    span: node.span,
-                    text,
-                    scope_names: node.scope_names,
-                    resolution: node.resolution,
-                });
-                out_cmds.push(cmd.cmd);
-            }
+            // 保留所有行（含 $N 行——LSP 层只显示源码切片，不显示乱码类型）。
+            // 此前按 $ 过滤导致子表达式行丢失，外层行"遮蔽"了子表达式 hover。
+            out.push(HoverType {
+                span: node.span,
+                text,
+                scope_names: node.scope_names,
+                resolution: node.resolution,
+            });
+            out_cmds.push(cmd.cmd);
         }
     }
     std::panic::set_hook(previous_hook);

@@ -2379,4 +2379,38 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         );
         shutdown(&mut service).await;
     }
+
+    #[tokio::test]
+    async fn debug_bracket_hover_content() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, DEMO_K).await;
+        let _ = wait_diagnostics(&mut socket, "bracket debug").await;
+
+        // demo_K line 0: "theorem demo_K : (a : Prop) -> a -> a :=\n"
+        // `(` at char 17, `)` at char 26
+        for (ch, label) in [(17usize, "("), (26usize, ")"), (28usize, "-> outer"), (33usize, "-> inner")] {
+            let pos = lsp_pos(DEMO_K, ch);
+            let result = call(
+                &mut service,
+                RpcRequest::build("textDocument/hover")
+                    .params(json!({
+                        "textDocument": {"uri": URI},
+                        "position": position_json(pos),
+                    }))
+                    .id(200 + ch as i64)
+                    .finish(),
+            )
+            .await
+            .expect("hover must answer");
+            let hover: Option<Hover> = serde_json::from_value(result).expect("valid");
+            match hover {
+                Some(h) => {
+                    let HoverContents::Markup(m) = h.contents else { continue };
+                    println!("HOVER@{} ({}) => {:?}", ch, label, m.value);
+                }
+                None => println!("HOVER@{} ({}) => None", ch, label),
+            }
+        }
+    }
 }
