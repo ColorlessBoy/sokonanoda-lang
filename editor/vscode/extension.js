@@ -46,26 +46,59 @@ function onPath(basename) {
   return false;
 }
 
-async function resolveServerCommand() {
+async function resolveServerCommand(context) {
   const setting = vscode.workspace.getConfiguration("sokonanoda").get("serverPath");
   if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
   if (process.env.SOKONANODA_LSP_BIN) return process.env.SOKONANODA_LSP_BIN;
 
   const found = firstExisting(builtBinaryCandidates(discoveryRoots(), "sokonanoda-lsp"));
   if (found) return found;
-  // Final fallback: auto-download from GitHub Release (rust-analyzer model).
-  const globalDir = path.join(
+  // Final fallback: auto-downloaded cache from GitHub Release (rust-analyzer
+  // model). Only reuse it when it matches the current extension version —
+  // otherwise a stale binary (e.g. from an older release) silently wins and
+  // the editor reports outdated diagnostics.
+  if (cachedServerIsCurrent(context)) return serverDest();
+  return undefined; // not discoverable: caller shows guidance with download option
+}
+
+/// Auto-download cache directory for the language server binary.
+function serverCacheDir() {
+  return path.join(
     process.env.HOME || process.env.USERPROFILE || "",
     ".local", "share", "sokonanoda", "bin"
   );
-  const downloaded = path.join(globalDir, process.platform === "win32" ? "sokonanoda-lsp.exe" : "sokonanoda-lsp");
-  if (fs.existsSync(downloaded)) return downloaded;
-  return undefined; // not discoverable: caller shows guidance with download option
+}
+
+function serverDest() {
+  return path.join(serverCacheDir(), process.platform === "win32" ? "sokonanoda-lsp.exe" : "sokonanoda-lsp");
+}
+
+function serverVersionMarker() {
+  return serverDest() + ".version";
+}
+
+function extensionVersion(context) {
+  return context?.extension?.packageJSON?.version;
+}
+
+/// The cached server binary is reusable only when its recorded version marker
+/// matches the current extension version.
+function cachedServerIsCurrent(context) {
+  const dest = serverDest();
+  if (!fs.existsSync(dest)) return false;
+  const marker = serverVersionMarker();
+  if (!fs.existsSync(marker)) return false;
+  try {
+    return fs.readFileSync(marker, "utf8").trim() === String(extensionVersion(context));
+  } catch {
+    return false;
+  }
 }
 
 async function downloadLspBinary(context) {
   // 从 GitHub Release 下载对应平台的 LSP 二进制到全局存储。
-  // 只在首次使用时下载（之后缓存于 ~/.local/share/sokonanoda/bin/）。
+  // 版本追踪：二进制旁写一个 `.version` 标记文件；扩展版本号变了就重新
+  // 下载（覆盖旧缓存），避免升级扩展后仍跑旧语言服务器。
   const os = require("os");
   const platform = process.platform;
   const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
@@ -75,10 +108,10 @@ async function downloadLspBinary(context) {
     : "x86_64-unknown-linux-gnu";
 
   const url = `https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest/download/sokonanoda-lsp-${target}.tar.gz`;
-  const dir = path.join(os.homedir(), ".local", "share", "sokonanoda", "bin");
-  const dest = path.join(dir, process.platform === "win32" ? "sokonanoda-lsp.exe" : "sokonanoda-lsp");
+  const dir = serverCacheDir();
+  const dest = serverDest();
 
-  if (fs.existsSync(dest)) return dest; // already downloaded
+  if (cachedServerIsCurrent(context)) return dest; // 当前版本已缓存
 
   fs.mkdirSync(dir, { recursive: true });
   const https = require("https");
@@ -112,6 +145,8 @@ async function downloadLspBinary(context) {
             require("child_process").execSync(`tar xzf "${tmp}" -C "${dir}"`, { stdio: "pipe" });
             fs.unlinkSync(tmp);
             if (fs.existsSync(dest)) {
+              // 记录扩展版本号，供下次校验缓存是否过期。
+              fs.writeFileSync(serverVersionMarker(), String(extensionVersion(context)));
               resolve(dest);
             } else {
               reject(new Error("tar extracted but binary not found"));
@@ -563,7 +598,7 @@ function registerCommands(context, provider, courseProvider) {
 }
 
 async function activate(context) {
-  let command = await resolveServerCommand();
+  let command = await resolveServerCommand(context);
   if (command === undefined || (isExplicitPath(command) && !fs.existsSync(command))) {
     // rust-analyzer 模式：自动从 GitHub Release 下载对应平台的 LSP 二进制
     vscode.window.showInformationMessage("sokonanoda：正在下载语言服务器…");

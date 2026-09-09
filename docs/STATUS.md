@@ -23,6 +23,13 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
 ## 本轮进度（2026-09-09，第十九轮：by-tactic 块 + VSCode goal-state 设计）
 
+> ⚠️ 发布后修复（0.5.1）：扩展自动下载的 `sokonanoda-lsp` 缓存不校验版本，
+> 升级扩展后仍跑旧服务器（`by sorry` 误报未知 tactic）；axiom 连接词
+> （And/Or/True/False）语义 token 映射到接近无色的 `VARIABLE`。修复：
+> 下载按扩展版本号版本追踪（`.version` 标记，升级即重下）、AxiomName/AxiomUse
+> 映射 `TYPE`。Lean 调研确认 `sorry` 本就是术语+tactic 双栖（`admit` 同义），
+> `by sorry` 与 Lean 对齐、与值位 `:= sorry` 无冲突。
+
 > 设计先行：`docs/design-by-tactics.md`。触发：用户要求「实现一些基础 tactic，
 > 跟 Lean 4 一样用 `by` 开始」（补 assumption / rfl），并调研设计 VSCode 前端
 > 显示 goal state。首期五个 tactic：**intro / exact / apply / assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 sorry 同语义）。

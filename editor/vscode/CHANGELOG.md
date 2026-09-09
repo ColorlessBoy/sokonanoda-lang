@@ -1,3 +1,16 @@
+## [0.5.1] - 2026-09-09
+
+### Fixed
+- **Stale language-server binary after extension updates**: the auto-downloaded
+  `sokonanoda-lsp` was cached forever with no version check, so after upgrading
+  the extension it still ran an older server (e.g. `by sorry` reported as an
+  unknown tactic). The download is now version-tracked: when the extension
+  version changes, the server is re-downloaded from the latest GitHub Release.
+- **Axiom connectives highlight as types**: `And`/`Or`/`True`/`False` (declared
+  via `axiom`) now map to the semantic-token `type` color instead of the nearly
+  invisible `variable` color, matching Lean's treatment of the logical
+  vocabulary.
+
 ## [0.5.0] - 2026-09-09
 
 ### Added

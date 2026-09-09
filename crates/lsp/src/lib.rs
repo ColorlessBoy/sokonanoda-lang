@@ -112,9 +112,8 @@ fn token_type_index(kind: SemanticKind) -> u32 {
         | SemanticKind::DefUse
         | SemanticKind::TheoremName
         | SemanticKind::TheoremUse => SemanticTokenType::FUNCTION,
-        SemanticKind::AxiomName | SemanticKind::AxiomUse | SemanticKind::UnknownIdent => {
-            SemanticTokenType::VARIABLE
-        }
+        SemanticKind::AxiomName | SemanticKind::AxiomUse => SemanticTokenType::TYPE,
+        SemanticKind::UnknownIdent => SemanticTokenType::VARIABLE,
         SemanticKind::CtorName | SemanticKind::CtorUse => SemanticTokenType::ENUM_MEMBER,
         SemanticKind::Binder => SemanticTokenType::PARAMETER,
     };
@@ -1572,6 +1571,33 @@ mod tests {
                 (0, 45, 1, SemanticTokenType::PARAMETER), // x（") => x"）
             ],
             "positions must be UTF-16 code units, not bytes/chars: {src:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn semantic_tokens_highlight_axiom_connectives_as_types() {
+        // And/Or 这类 axiom 是教学语言的逻辑类型/命题：声明与使用都映射到
+        // TYPE（此前落到 VARIABLE，主题里几乎无色）。
+        let src = "axiom And : Prop -> Prop -> Prop\n#check And\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "semantic tokens diagnostics").await;
+
+        let tokens = request_semantic_tokens(&mut service).await;
+        assert_eq!(
+            absolutize(&tokens),
+            vec![
+                (0, 0, 5, SemanticTokenType::KEYWORD), // axiom
+                (0, 6, 3, SemanticTokenType::TYPE),    // And（声明 = AxiomName）
+                (0, 12, 4, SemanticTokenType::TYPE),   // Prop
+                (0, 20, 4, SemanticTokenType::TYPE),   // Prop
+                (0, 28, 4, SemanticTokenType::TYPE),   // Prop
+                (1, 0, 6, SemanticTokenType::KEYWORD), // #check
+                (1, 7, 3, SemanticTokenType::TYPE),    // And（使用 = AxiomUse）
+            ],
+            "axiom connective names must be type-colored: {src:?}"
         );
         shutdown(&mut service).await;
     }
