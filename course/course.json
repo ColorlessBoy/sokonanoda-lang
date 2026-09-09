@@ -2,26 +2,31 @@
   {
     "file": "unit1-propositions-proofs.sokonanoda",
     "title": "单元① 命题与证明项",
+    "title_en": "Unit 1 — Propositions & Proof Terms",
     "unit": 1
   },
   {
     "file": "unit2-equality-rfl.sokonanoda",
     "title": "单元② 等式与 rfl",
+    "title_en": "Unit 2 — Equality & rfl",
     "unit": 2
   },
   {
     "file": "unit3-functions-arrows.sokonanoda",
     "title": "单元③ 函数与箭头",
+    "title_en": "Unit 3 — Functions & Arrows",
     "unit": 3
   },
   {
     "file": "unit4-universes-sort.sokonanoda",
     "title": "单元④ 宇宙：函数类型的类型",
+    "title_en": "Unit 4 — Universes: the Type of a Function Type",
     "unit": 4
   },
   {
     "file": "unit5-induction-nat-rec.sokonanoda",
     "title": "单元⑤ 显式归纳与递归",
+    "title_en": "Unit 5 — Explicit Induction & Recursion",
     "unit": 5
   }
 ]

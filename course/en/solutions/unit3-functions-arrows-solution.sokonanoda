@@ -1,0 +1,15 @@
+-- unit3-functions-arrows-solution.sokonanoda — Unit 3 answer key (agent only)
+def add1 : Nat -> Nat := fun n => n + 1
+
+#reduce add1 41
+
+def double : Nat -> Nat := fun (n : Nat) => n + n
+
+def twice : (Nat -> Nat) -> Nat -> Nat :=
+  fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)
+
+def three_args : Nat -> Nat -> Nat -> Nat :=
+  fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => a
+
+def apply_twice : (Nat -> Nat) -> (Nat -> Nat) :=
+  fun (f : Nat -> Nat) => fun (n : Nat) => f (f n)

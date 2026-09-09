@@ -1,0 +1,82 @@
+-- ==========================================================================
+-- unit5-induction-nat-rec.sokonanoda — Unit 5 · Explicit Induction & Recursion
+--
+-- The ground rules:
+--
+--   * An exercise is a declaration whose value is `sorry`. Replace `sorry`
+--     with your answer, and let the kernel be the judge.
+--   * A partial answer is a legitimate state: write the first few `fun`
+--     layers, leave the last one as `sorry`, and the remaining goal stays
+--     open for you.
+--   * Everything you complete here is also valid in official Lean: the
+--     grammar you learn is a real subset of Lean 4.
+-- ==========================================================================
+
+-- So far Nat was a gift from the prelude. This time we build it ourselves: an
+-- explicit inductive block is a type, its constructors, the eliminator Nat.rec,
+-- and the iota rules. The block replaces the prelude Nat for the whole file —
+-- from here on the file is self-sufficient. The demo comes from
+-- examples/py-nat.sokonanoda; no changes needed.
+
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end
+
+-- Demo (already written): numbers are now built from constructors; the magic
+-- of literals is gone.
+def one : Nat := succ zero
+def two : Nat := succ one
+def three : Nat := succ two
+
+-- Self-test: #reduce walks the iota rules — succ two is 3.
+#reduce succ two
+
+-- Reading Nat.rec: give it a motive, a value mz at zero, and a step function ms
+-- that builds "the result at succ k" out of "the result ih at k"; it then
+-- yields motive n for any n. A recursive definition is exactly choosing these
+-- three pieces and feeding a number.
+
+-- Exercise 1 — define four : Nat. Hint: three already exists — stack one more
+-- succ on it.
+-- soko:hint approach: literals have lost their magic — numbers are layered up from constructors now, and three is already in scope.
+-- soko:hint goal shape: the goal is Nat: stack one more layer on three.
+-- soko:hint key piece: succ — the constructor that turns a Nat into its successor.
+def four : Nat := sorry
+
+-- Exercise 2 (double, recursively) — zero maps to zero; at succ k, build
+-- succ (succ ih) from the induction result ih. The motive is the constant
+-- function (fun (x : Nat) => Nat) throughout.
+-- Hint: mirror the shape of Nat.rec: motive -> mz -> ms -> n.
+-- soko:hint approach: a recursive definition is choosing Nat.rec's three pieces — the motive, the value at zero, and the step function — then feeding n.
+-- soko:hint goal shape: outer fun (n : Nat) => Nat.rec … n; the motive is the constant fun (x : Nat) => Nat, and zero maps to zero.
+-- soko:hint key piece: Nat.rec.{1} filled as motive -> mz -> ms -> n; ms eats k and ih — think how many extra succs the double of succ k needs over ih.
+def double : Nat -> Nat := sorry
+
+-- Exercise 3 (addition) — add m n inducts on m. At zero, return n ("count zero
+-- times"); at succ k, build succ ih from ih ("one more layer").
+-- Hint: the induction variable is m — Nat.rec's first explicit argument takes n
+-- and its last takes m.
+-- soko:hint approach: same three pieces, but the induction variable is m — "counting zero times" is just n, "one more layer" is succ ih.
+-- soko:hint goal shape: fun (m : Nat) => fun (n : Nat) => Nat.rec … m — feed m last (the induction variable); n is the starting value.
+-- soko:hint key piece: Nat.rec.{1}, motive still constant; n goes at mz (the zero-times result), and ms eats k and ih, stacking a single succ.
+def add : Nat -> Nat -> Nat := sorry
+
+-- Closing loop (kernel re-check): once Exercise 3 is done, uncomment the line
+-- below. It must turn green — add two two is four succs; iota does the
+-- counting for you.
+-- #reduce add two two

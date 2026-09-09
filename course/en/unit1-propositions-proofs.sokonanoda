@@ -1,0 +1,83 @@
+-- ==========================================================================
+-- unit1-propositions-proofs.sokonanoda — Unit 1 · Propositions & Proof Terms
+--
+-- We begin with logic itself, before universes or Sort ever come up: your job
+-- here is simply to prove propositions. The ground rules:
+--
+--   * An exercise is a declaration whose value is `sorry`. Replace `sorry`
+--     with your answer, and let the kernel be the judge.
+--   * A partial answer is a legitimate state: write the first few `fun`
+--     layers, leave the last one as `sorry`, and the remaining goal stays
+--     open for you.
+--   * Everything you complete here is also valid in official Lean: the
+--     grammar you learn is a real subset of Lean 4.
+-- ==========================================================================
+
+-- Prop is the world of propositions: True, And a b, and the rest. A proof is a
+-- term — a term of type P is a proof of the proposition P. To stay minimal we
+-- declare a small logical core with axioms; it is isomorphic to official
+-- Lean's And/Or, so nothing you prove here is Lean-specific.
+
+axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom False.rec : (P : Prop) -> False -> P
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
+axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+
+-- Not is not an axiom but a definition: Not a expands to a -> False.
+
+def Not : Prop -> Prop := fun (a : Prop) => a -> False
+
+-- Self-test: #reduce unfolds definitions, so Not True becomes True -> False.
+
+#reduce Not True
+
+-- Demo (already written): constructors double as functions — pass the
+-- arguments in order and you have a proof.
+
+example : Or True False := Or.inl True False True.intro
+
+-- The correspondence that drives everything: an arrow in a type becomes a
+-- `fun` in a value. Writing a proof is therefore writing a run of `fun`s and
+-- one final constructor call.
+
+-- Exercise 1 — your very first "proof". The proof term for True already
+-- exists; just call it out.
+-- soko:hint approach: a proof is a term — a term of type True is a proof of True.
+-- soko:hint goal shape: True has no arrows to split; ask what in your environment produces True.
+-- soko:hint key piece: True.intro — the constructor of True; it needs no arguments.
+theorem true_is_true : True := sorry
+
+-- Exercise 2 — if a and b both hold, you can get And a b.
+-- Hint: four layers of fun, finishing with And.intro a b ha hb.
+-- soko:hint approach: arrows become fun — build the proof as a chain of funs with one final constructor step.
+-- soko:hint goal shape: the outermost layer has four arrows; open with fun (a : Prop) => and re-read the goal after every layer.
+-- soko:hint key piece: finish with And.intro, which takes a, b and the two proofs, and assembles And a b.
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry
+
+-- Exercise 3 — pull h apart with And.left/And.right, then put it back together
+-- with And.intro, in the opposite order.
+-- soko:hint approach: take the And a b you hold and rebuild it the other way round — eliminate, then construct.
+-- soko:hint goal shape: three arrows: fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …, and the final goal is And b a.
+-- soko:hint key piece: And.left / And.right each extract one half of h; And.intro b a … reassembles them swapped.
+theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry
+
+-- Exercise 4 — False has no proof (no constructor), yet it is far from
+-- useless: from a contradiction you may deduce anything.
+-- soko:hint approach: False cannot be proven, but it can be consumed — a contradiction implies any proposition.
+-- soko:hint goal shape: two arrows: fun (P : Prop) =>, then consume h : False; the remaining goal is an arbitrary P.
+-- soko:hint key piece: False.rec takes a target proposition and a proof of False, and yields a proof of that proposition.
+theorem ex_falso : (P : Prop) -> False -> P := sorry
+
+-- Exercise 5 (challenge ★) — And a (Not a) is self-contradictory. Split it and
+-- apply the Not a half to the other half. Hint: Not a expands to a -> False.
+-- soko:hint approach: And packages a with Not a; Not a expands to a -> False, a function that eats an a.
+-- soko:hint goal shape: two layers of fun give you a and h : And a (Not a); the goal is then False itself.
+-- soko:hint key piece: And.right yields the Not a half and And.left the a half; apply the former to the latter.
+theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry

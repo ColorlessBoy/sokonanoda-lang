@@ -1,0 +1,56 @@
+-- ==========================================================================
+-- unit4-universes-sort.sokonanoda — Unit 4 · Universes: the Type of a Function Type
+--
+-- The ground rules:
+--
+--   * An exercise is a declaration whose value is `sorry`. Replace `sorry`
+--     with your answer, and let the kernel be the judge.
+--   * A partial answer is a legitimate state: write the first few `fun`
+--     layers, leave the last one as `sorry`, and the remaining goal stays
+--     open for you.
+--   * Everything you complete here is also valid in official Lean: the
+--     grammar you learn is a real subset of Lean 4.
+-- ==========================================================================
+
+-- The question left open by Unit 3: what is the type of Nat -> Nat? "Everything
+-- has a type" admits no exceptions — types have types too:
+--   * Nat : Sort 1        (a data type lives in Sort 1, also written Type)
+--   * Nat -> Nat : Sort 1 (a function type is still "a type of data")
+--   * Sort 1 : Sort 2     (the ladder climbs without end)
+--   * Prop = Sort 0       (the world of propositions is the bottom step — the
+--                          one you have been using since Unit 1)
+-- Ask the kernel for the type of anything with #check:
+
+#check Nat
+#check (Nat -> Nat)
+#check Prop
+
+-- Now the mechanical rule from Unit 2 pays off. Eq's signature is
+-- {α : Sort u} -> …, so "equalities over numbers write Eq.{1}" simply because
+-- Nat : Sort 1 — α must be given the right universe level. A bare Eq defaults
+-- to u = 0, the Prop level.
+
+-- Exercise 1 (warm-up) — name something that lives in Sort 1.
+-- Hint: think of a type you keep bumping into in Units 2 and 3.
+-- soko:hint approach: name a thing that lives in Sort 1 — the data type you have been using all along.
+-- soko:hint goal shape: the goal is Sort 1 (a.k.a. Type), so the answer is a type name, not a value.
+-- soko:hint key piece: the Nat you used throughout Units 2 and 3 lives in Sort 1.
+example : Sort 1 := sorry
+
+-- Exercise 2 (the bottom step) — Prop = Sort 0. Name something that lives in
+-- Sort 0.
+-- Hint: equalities are propositions — Eq.{1} Nat (1 + 1) 2 is one.
+-- soko:hint approach: Sort 0 is Prop — the world of everything you have been proving since Unit 1; this time hand over a proposition.
+-- soko:hint goal shape: the answer is a Prop-level term: not a value, not a type name, but a claim that a proof could fill.
+-- soko:hint key piece: equality is a proposition — build one with Eq.{1}: type Nat, and two sides the kernel finds equal (you proved such a case in Unit 2).
+example : Sort 0 := sorry
+
+-- Exercise 3 (graduation ★) — generalize the symmetry of Unit 2, Exercise 3 to
+-- an arbitrary universe level. Copy that recipe: swap Nat for α and .{1} for
+-- .{u}.
+-- Note the first binder is implicit — {α : Sort u} — so the value side opens
+-- with fun {α : Sort u} => ... .
+-- soko:hint approach: lift Unit 2's symmetry recipe to an arbitrary universe — fully isomorphic: Nat → α, .{1} → .{u}.
+-- soko:hint goal shape: the first binder is implicit — open with fun {α : Sort u} =>, then the same four funs taking a, b, h.
+-- soko:hint key piece: the same Eq.subst.{u} + Eq.refl.{u} pair, with p the "x = a" shape over α.
+theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry

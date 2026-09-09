@@ -1,7 +1,9 @@
 //! The course layer (`course/`) is CI-guarded: every learner canvas must
 //! compile with its open exercises, the per-unit golden event counts must stay
 //! stable, every agent solution twin must be hole-free and diagnostic-free,
-//! and `course.json` must list the five units in order. See `course/README.md`.
+//! `course.json` must list the five units in order, and the bilingual `en/`
+//! mirrors must produce byte-identical event counts to their Chinese twins.
+//! See `course/README.md`.
 
 use std::process::{Command, Stdio};
 
@@ -172,6 +174,107 @@ fn course_json_lists_the_five_units_in_order() {
             entry.get("unit").and_then(|v| v.as_u64()),
             Some(unit),
             "course.json unit number mismatch for {file}"
+        );
+    }
+}
+
+/// Bilingual mirrors: each `course/en/` canvas must produce the same event
+/// counts as its Chinese twin in `course/`, and each `course/en/solutions/`
+/// key must be fully solved (0 diagnostics, 0 open exercises) like its Chinese
+/// counterpart. Judgment goes through the kernel (event counts), never text
+/// comparison — the comments are meant to differ.
+#[test]
+fn en_mirrors_match_chinese_event_counts() {
+    let cn_dir = std::fs::read_dir(COURSE_DIR).expect("read course dir");
+    let en_dir = std::fs::read_dir(format!("{COURSE_DIR}/en")).expect("read course/en");
+
+    let top_level = |dir: std::fs::ReadDir| -> Vec<String> {
+        dir.filter_map(|e| e.ok())
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "sokonanoda")
+                    .unwrap_or(false)
+            })
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect()
+    };
+    let mut cn_files = top_level(cn_dir);
+    let mut en_files = top_level(en_dir);
+    cn_files.sort();
+    en_files.sort();
+    assert_eq!(
+        cn_files, en_files,
+        "course/ and course/en/ must hold the same .sokonanoda file names"
+    );
+
+    for name in &cn_files {
+        let cn_path = format!("{COURSE_DIR}/{name}");
+        let en_path = format!("{COURSE_DIR}/en/{name}");
+        let cn = run_binary(&["--json", &cn_path]);
+        let en = run_binary(&["--json", &en_path]);
+        assert!(cn.status.success(), "CN canvas {name} failed");
+        assert!(en.status.success(), "EN canvas {name} failed");
+        let count = |out: &std::process::Output| {
+            let events = json_events(&String::from_utf8_lossy(&out.stdout));
+            (
+                count_type(&events, "decl.checked"),
+                count_type(&events, "exercise.open"),
+                count_type(&events, "expr.reduced"),
+                count_type(&events, "diagnostic"),
+            )
+        };
+        assert_eq!(
+            count(&cn),
+            count(&en),
+            "EN mirror drifted from CN twin for {name}"
+        );
+    }
+
+    let mut cn_sols: Vec<_> = std::fs::read_dir(format!("{COURSE_DIR}/solutions"))
+        .expect("read course/solutions")
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.path()
+                .extension()
+                .map(|ext| ext == "sokonanoda")
+                .unwrap_or(false)
+        })
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    let mut en_sols: Vec<_> = std::fs::read_dir(format!("{COURSE_DIR}/en/solutions"))
+        .expect("read course/en/solutions")
+        .filter_map(|e| e.ok())
+        .filter(|e| {
+            e.path()
+                .extension()
+                .map(|ext| ext == "sokonanoda")
+                .unwrap_or(false)
+        })
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    cn_sols.sort();
+    en_sols.sort();
+    assert_eq!(
+        cn_sols, en_sols,
+        "course/solutions/ and course/en/solutions/ must hold the same file names"
+    );
+
+    for name in &cn_sols {
+        let en_path = format!("{COURSE_DIR}/en/solutions/{name}");
+        let out = run_binary(&["--json", &en_path]);
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert!(out.status.success(), "EN solution {name} failed:\n{stdout}");
+        let events = json_events(&stdout);
+        assert_eq!(
+            count_type(&events, "diagnostic"),
+            0,
+            "EN solution {name} must compile with 0 diagnostics:\n{stdout}"
+        );
+        assert_eq!(
+            count_type(&events, "exercise.open"),
+            0,
+            "EN solution {name} must fill every sorry hole:\n{stdout}"
         );
     }
 }

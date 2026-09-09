@@ -1,0 +1,59 @@
+-- ==========================================================================
+-- unit5-induction-nat-rec-solution.sokonanoda — Unit 5 answer key (agent only)
+--
+-- The solved twin of course/unit5-induction-nat-rec.sokonanoda: every sorry is
+-- filled with a kernel-verified answer. Do not hand this directly to a learner.
+-- ==========================================================================
+
+-- The explicit inductive block, as on the canvas — it replaces the prelude Nat
+-- for the whole file:
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end
+
+-- Demo (same as the canvas): numbers built from constructors.
+def one : Nat := succ zero
+def two : Nat := succ one
+def three : Nat := succ two
+
+-- Self-test: #reduce walks the iota rules — succ two is 3.
+#reduce succ two
+
+-- Exercise 1: four = succ three (one more layer on top of three).
+def four : Nat := succ three
+
+-- Exercise 2: double — zero maps to zero; at succ k, build succ (succ ih) from ih.
+def double : Nat -> Nat :=
+  fun (n : Nat) =>
+    Nat.rec.{1} (fun (x : Nat) => Nat) zero
+      (fun (k : Nat) => fun (ih : Nat) => succ (succ ih)) n
+
+-- Exercise 3: add — the induction variable is m; return n at zero, and build
+-- succ ih from ih at succ k.
+def add : Nat -> Nat -> Nat :=
+  fun (m : Nat) => fun (n : Nat) =>
+    Nat.rec.{1} (fun (x : Nat) => Nat) n
+      (fun (k : Nat) => fun (ih : Nat) => succ ih) m
+
+-- Wrap-up (kernel re-check): add two two is four succs; iota counts for you.
+#reduce add two two
+
+-- Extra internal self-checks:
+#reduce four
+#reduce double two
+#reduce add two three

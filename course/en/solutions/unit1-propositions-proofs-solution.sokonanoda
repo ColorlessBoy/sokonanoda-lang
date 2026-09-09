@@ -1,0 +1,35 @@
+-- unit1-propositions-proofs-solution.sokonanoda — Unit 1 answer key (agent only)
+axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom False.rec : (P : Prop) -> False -> P
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+axiom Or : Prop -> Prop -> Prop
+axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
+axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+
+def Not : Prop -> Prop := fun (a : Prop) => a -> False
+
+#reduce Not True
+
+example : Or True False := Or.inl True False True.intro
+
+theorem true_is_true : True := True.intro
+
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b :=
+  fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha hb
+
+theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=
+  fun (a : Prop) =>
+    fun (b : Prop) =>
+      fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)
+
+theorem ex_falso : (P : Prop) -> False -> P :=
+  fun (P : Prop) => fun (h : False) => False.rec P h
+
+theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :=
+  fun (a : Prop) =>
+    fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)

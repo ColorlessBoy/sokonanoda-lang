@@ -1,0 +1,15 @@
+-- unit4-universes-sort-solution.sokonanoda — Unit 4 answer key (agent only)
+#check Nat
+#check (Nat -> Nat)
+#check Prop
+
+example : Sort 1 := Nat
+
+example : Sort 0 := Eq.{1} Nat (1 + 1) 2
+
+theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a :=
+  fun {α : Sort u} =>
+    fun (a : α) =>
+      fun (b : α) =>
+        fun (h : Eq.{u} α a b) =>
+          Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)

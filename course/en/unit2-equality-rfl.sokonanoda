@@ -1,0 +1,93 @@
+-- ==========================================================================
+-- unit2-equality-rfl.sokonanoda — Unit 2 · Equality & rfl
+--
+-- We start with a concrete type (numbers), then look at what "two things being
+-- equal" means. The ground rules:
+--
+--   * An exercise is a declaration whose value is `sorry`. Replace `sorry`
+--     with your answer, and let the kernel be the judge.
+--   * A partial answer is a legitimate state: write the first few `fun`
+--     layers, leave the last one as `sorry`, and the remaining goal stays
+--     open for you.
+--   * Everything you complete here is also valid in official Lean: the
+--     grammar you learn is a real subset of Lean 4.
+-- ==========================================================================
+
+-- Our first concrete type is Nat, the natural numbers. 0, 1, 2 are its
+-- literals, and + is real addition: the kernel computes 1 + 1 as 2.
+
+-- Demo (already written): a literal is a legal value of type Nat.
+def one : Nat := 1
+
+-- Self-test: #reduce asks the kernel to evaluate. 1 + 1 is 2.
+#reduce 1 + 1
+
+-- Equality is itself a proposition: Eq x y reads "x = y". The prelude provides
+-- the trusted equality primitives, with the same signatures as official Lean:
+--   Eq {u}       : {α : Sort u} -> α -> α -> Prop
+--   Eq.refl {u}  : {α : Sort u} -> (a : α) -> Eq.{u} α a a
+--   Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α}
+--                  -> Eq.{u} α a b -> p a -> p b
+-- Usage on this canvas:
+--   * A bare Eq defaults to u = 0; equalities over numbers must say Eq.{1}
+--     explicitly. Why 1? Unit 4 explains — treat it as a mechanical rule for
+--     now.
+--   * Implicit arguments are never auto-filled: pass them explicitly by
+--     position, e.g. Eq.refl.{1} Nat (1 + 1) — universe, then type, then the
+--     left-hand side.
+--   * subst makes you design the predicate p yourself. And rfl is no spell —
+--     it is a function: the kernel computes both sides and compares them (conv
+--     reduces in both directions).
+
+-- Demo (already written): proving 2 + 2 = 4. The kernel reduces the left side
+-- to 4, so refl closes it in one step.
+def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
+
+-- Self-test: #reduce flattens the proof term to its simplest shape.
+#reduce demo_refl
+
+-- Exercise 1 (warm-up) — define two : Nat. Hint: either the literal 2 or 1 + 1.
+-- soko:hint approach: this hole wants a plain expression of type Nat, not a proof.
+-- soko:hint goal shape: the goal is Nat itself — no arrows, no assumptions; just give a value.
+-- soko:hint key piece: a numeric literal is a legal term. Once filled, uncomment two_def below so the kernel re-checks your two.
+def two : Nat := sorry
+
+-- Exercise 2 (rfl computes) — prove 1 + 1 = 2. Hint: Eq.refl.{1} takes the type
+-- Nat first and the left-hand side second; the kernel reduces it and finds 2.
+-- soko:hint approach: rfl is a function, not a spell — Eq.refl proves any equality whose two sides are already the same value.
+-- soko:hint goal shape: the kernel turns 1 + 1 into 2, so the two sides are already equal — refl closes in one step.
+-- soko:hint key piece: Eq.refl.{1} — the type Nat as its first argument, and one side of the equality as the second.
+theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry
+
+-- Exercise 3 (build symmetry yourself) — from a = b deduce b = a. The key move:
+-- subst makes you design the predicate p. Take
+--   p := fun (x : Nat) => Eq.{1} Nat x a
+-- Then p a is "a = a" (provable by Eq.refl), and p b is exactly the goal
+-- "b = a".
+-- soko:hint approach: there is no ready-made symmetry lemma — design a predicate p yourself and hand it to Eq.subst to rewrite along h.
+-- soko:hint goal shape: three arrows give you a, b, h; the goal is b = a — pick a p whose p b is exactly that and whose p a is easy.
+-- soko:hint key piece: Eq.subst.{1} with its full argument list; the recipe for p is the "x = a" shape from the explanation above.
+theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry
+
+-- Exercise 4 (build transitivity yourself) — from a = b and b = c deduce a = c.
+-- Same recipe, but this time p := fun (x : Nat) => Eq.{1} Nat a x: apply subst
+-- to h2 : b = c, and p b = "a = b" is exactly your h1.
+-- soko:hint approach: the recipe matches symmetry, only you now chain two equalities — which h you rewrite along fixes the shape of p.
+-- soko:hint goal shape: five arrows give you a, b, c, h1, h2; the goal is a = c — pick p so that p c is the goal and p b is exactly h1.
+-- soko:hint key piece: still Eq.subst.{1} — rewrite along h2 : b = c, put a in the predicate's x slot, and let h1 cover the p a side.
+theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat)
+  -> Eq.{1} Nat a b -> Eq.{1} Nat b c -> Eq.{1} Nat a c := sorry
+
+-- Exercise 5 (a Prop warm-up) — equality holds for every type, propositions
+-- included. The binder here is implicit: {a : Prop} sits in the type, and the
+-- value side is fun {a : Prop} => ... . Hint: in Eq.{1} Prop a a, the α is Prop
+-- itself.
+-- soko:hint approach: equality works over any type, propositions included — prove a = a for an arbitrary proposition a.
+-- soko:hint goal shape: the binder is implicit — open with fun {a : Prop} =>, then no other assumptions remain, so wrap up.
+-- soko:hint key piece: Eq.refl.{1}, where α is Prop itself; pass a on one side.
+theorem eq_refl_prop : {a : Prop} -> Eq.{1} Prop a a := sorry
+
+-- Closing the loop on Exercise 1: once two is solved, uncomment the line below
+-- and it must turn green — the kernel is "proving" that your two really equals
+-- 1 + 1.
+-- theorem two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two
