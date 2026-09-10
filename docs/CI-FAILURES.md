@@ -134,3 +134,15 @@
 - **预防**：release dry-run（workflow_dispatch）就是为这类只存在于 CI 的
   打包路径问题设的闸——涉及新 job 的路径先跑 dry-run 再打 tag；本地复现
   相对路径时先 `pwd` + `ls` 验证解析目标。
+
+## 2026-09-10 — release dry-run 第二红：vsce `--out dist/…` 不自建目录
+
+- **现象**：路径修复后 staging 与 vsce 打包都成功（日志 tree 可见
+  `bin/linux-x64/ (1 file) [4.15 MB]`），最后一步报
+  `ENOENT: ... open '.../editor/vscode/dist/sokonanoda-linux-x64.vsix'`。
+- **原因**：`vsce package --out dist/…` 只写文件、不创建父目录；`dist/` 只
+  存在于 build job 各 runner 的仓库根，package-vsix job 的 `editor/vscode/`
+  下没有。
+- **修复**：打包步骤（平台包与 universal 包）先 `mkdir -p dist`。
+- **预防**：新 job 里凡写文件到新路径，先显式建目录；dry-run 是唯一能
+  覆盖跨 runner 文件布局的闸，继续保留。

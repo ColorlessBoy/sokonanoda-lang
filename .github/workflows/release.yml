@@ -89,6 +89,7 @@ jobs:
         working-directory: editor/vscode
         run: |
           set -euo pipefail
+          mkdir -p dist
           for entry in \
             "x86_64-unknown-linux-gnu:linux-x64" \
             "aarch64-apple-darwin:darwin-arm64" \
@@ -109,6 +110,7 @@ jobs:
       - name: Package universal fallback VSIX (no bundled binary)
         working-directory: editor/vscode
         run: |
+          mkdir -p dist
           npm run clean:lsp
           npx --yes @vscode/vsce package --out dist/sokonanoda-universal.vsix
 
