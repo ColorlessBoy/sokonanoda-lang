@@ -119,6 +119,36 @@ fn copied_launcher(tmp: &Path) -> PathBuf {
     script
 }
 
+/// User/agent-facing opencode commands must stay cargo-free (hard rule
+/// REQUIREMENTS §2.9): they use the version-pinned release binaries.
+#[test]
+fn opencode_commands_stay_cargo_free() {
+    let root = repo_root();
+    for command in ["check.md", "setup.md"] {
+        let path = root.join(".opencode/command").join(command);
+        assert!(path.exists(), "{command} exists");
+        let body = fs::read_to_string(&path).expect("command readable");
+        assert!(
+            !body.contains("cargo run") && !body.contains("cargo build"),
+            "{command} must stay cargo-free (user/agent path)"
+        );
+    }
+    let setup = fs::read_to_string(root.join(".opencode/command/setup.md"))
+        .expect("setup command readable");
+    assert!(
+        setup.contains("sokonanoda-cli") && setup.contains("sokonanoda-lsp"),
+        "setup must download both the CLI and the LSP binary"
+    );
+    assert!(
+        setup.contains("releases/download/v${V}"),
+        "setup must pin the release version"
+    );
+    assert!(
+        !setup.contains("/latest/"),
+        "setup must never use the latest alias"
+    );
+}
+
 /// The launcher must pick up the server bundled in an installed VS Code
 /// extension without needing `cargo` (zero-network reuse for editor users).
 #[cfg(unix)]

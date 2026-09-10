@@ -67,7 +67,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    Release**（`SOKONANODA_LSP_OFFLINE=1` 可禁）→ 编译兜底。契约测试 4 个
    （伪造扩展目录、fake-curl 下载断言无 `/latest/`、离线可行动报错）。
 10. **CLI 零工具链化 + 全仓文档审计（用户纠正「cargo run 是重大失误」）**：
-   - 平台包同时内嵌 `sokonanoda` CLI（课程树开箱可用，`resolveCliCommand`
+    - 平台包同时内嵌 `sokonanoda` CLI（课程树开箱可用，`resolveCliCommand`
      优先 bundled → workspace → PATH）；
    - Release 新增 8 个 `sokonanoda-cli-<triple>.tar.gz`（agent/headless 直接
      下载执行，**不需要 cargo**）；
@@ -75,6 +75,13 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
      teacher 技能、teaching-session、extension 头注释与错误文案全部去
      cargo；AGENTS 命令节标注「仅贡献者需要 Rust」；
    - 原则升为硬规则 `docs/REQUIREMENTS.md` §2 第 9 条；版本 0.8.0 → 0.9.0。
+11. **v0.9.0 发布完成 + opencode 重配（用户要求）**：release run
+   `34471781169` 全绿；GitHub Release **25 资产**（8 LSP tarball + 8 CLI
+   tarball + 9 VSIX）；Marketplace 0.9.0 的 universal + 8 平台包全部上架
+   （gallery 核实）。opencode：`/check` 改零 cargo 二进制（`$SOKO`）、新增
+   `/setup`（按版本拉取 CLI+LSP，禁 latest）；契约 +1（命令文件不许出现
+   源码构建命令）。扩展激活文案精准化（显式路径写错提前报错；回退下载只
+   发生在 universal / 安装损坏场景，正常平台包永不联网）。
 
 ## 本轮进度（2026-09-10，第二十一轮：插件自带 LSP——bundled VSIX）
 
