@@ -262,3 +262,8 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    → `Nat -> Prop`）；Bare 模式下文件自定义的 Eq 同样进模板。明确不做
    （v1）：嵌套洞、部分应用补参、`sorry + 1`、kernel 级 spine meta。
    实现/验收/风险取舍见 `docs/design-goal-func-spine.md`。
+- 2026-09-10（二十四续）：**从零教学场景确认（用户重申）**：用户明确要在
+   教学中关闭 prelude、自建 `Eq`/`Nat`。Bare 模式已支持（§5：文件注释
+   `-- sokonanoda:prelude none` 或 CLI `--bare`），本轮把该工作流写进
+   teacher skill 的判定细节节，并确认函数实参洞在 Bare 下用文件自定义的
+   Eq 模板同样生效。

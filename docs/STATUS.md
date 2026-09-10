@@ -58,6 +58,10 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 5. **文档**：新增设计 `docs/design-goal-func-spine.md`；REQUIREMENTS §9、
    architecture §6 改动清单、protocol 的 `sub_goals` 说明、teacher skill 与
    teaching-session 的 `elab-hole-misplaced` 行同步。
+6. **从零教学（用户重申）**：Bare 模式（`-- sokonanoda:prelude none` /
+   `--bare`）工作流写进 teacher skill：自建 `inductive Nat`（zero/succ，rec
+   自动派生）+ `axiom Eq`/`Eq.refl`/`Eq.subst`；实测 Bare 文件里
+   `Eq.subst (sorry) …` 的 inlay 提示 `Nat -> Prop`（文件自定义模板生效）。
 
 ## 本轮进度（2026-09-10，第二十三轮：环境配置单一入口 + Release exec 修复）
 

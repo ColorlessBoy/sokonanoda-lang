@@ -107,10 +107,19 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
   是什么"这一自然问题时再引入 `Sort`。顺序跟着直觉走，不跟着类型论教材走。
 - 难度适配：同一概念反复出错 → 出变式题或先给填好的演示；进度快 → 合并
   跳步；慢 → 拆小步、加提示层。题池见 `references/curriculum.md`。
-- 判定细节：`sorry` 只能放在值位；`Eq` 系列来自 prelude（`Eq`/`Eq.refl`/
-  `Eq.subst`，与官方 Lean 签名一致）；Nat 的等式要写 `Eq.{1}`（裸写默认
-  宇宙 0）。归纳块：显式 `rec` + iota 规则是单元⑤的正课内容；省略 rec 时
-  编译器自动派生 recursor 与规则（便利层，教学时先手写再放权）。
+- 判定细节：`sorry` 可放在答案尾巴、构造子 spine 与已知函数（prelude、源内
+  axiom/def/theorem、归纳构造子）的**直接实参**位；嵌套洞（`f (g sorry)`）
+  与 `n + sorry` 类非直接位置仍报 `elab-hole-misplaced`。
+- **从零教学（关闭 prelude，用户场景）**：文件里写一行
+  `-- sokonanoda:prelude none`（CLI 等价 `--bare`；LSP/Session 同样认注释
+  指令），编译器不装任何内置声明。让学生自己写 `inductive Nat : Type`
+  （`zero`/`succ`；省略 `rec` 时自动派生 recursor）与
+  `axiom Eq : Nat -> Nat -> Prop`、`Eq.refl`、`Eq.subst`。函数实参洞在
+  Bare 与 Full 下都生效（Bare 用文件自定义的 Eq 模板）。
+- Full（默认）时 `Eq` 系列来自 prelude（`Eq`/`Eq.refl`/`Eq.subst`，与
+  官方 Lean 签名一致）；Nat 的等式要写 `Eq.{1}`（裸写默认宇宙 0）。
+  归纳块：显式 `rec` + iota 规则是单元⑤的正课内容；省略 rec 时编译器
+  自动派生 recursor 与规则（便利层，教学时先手写再放权）。
 
 ## 5. 解答钥匙
 
