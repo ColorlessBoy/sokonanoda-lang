@@ -121,10 +121,12 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- repl
   `refine <构造子骨架>`（如 `And.intro a b sorry sorry`）、`intro`（把下一步
   写成 lambda）；
 - 练习树每个 open 声明有「提示」节点：逐条揭示画布里的 `-- soko:hint` 阶梯；
+- 练习树顶部「当前光标处」跟随光标显示该位置的 tactic 目标与假设
+  （`by` 写法下逐 tactic；服务端选取，客户端只渲染）；
 - CodeLens 显示每个声明的练习状态（open / solved / failed）；
 - rename（F2）与 find-references 走语义解析（注释里的同名文本不受影响）；
-- `soko/goals` / `soko/nextHole` / `soko/hints` 自定义请求可供工具深挖
-  goal 视图与提示（见 `docs/protocol.md`）。
+- `soko/goals` / `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供
+  工具深挖 goal 视图、提示与光标处 goal（见 `docs/protocol.md`）。
 
 ## 7. 硬规则（不可违反）
 

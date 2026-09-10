@@ -196,3 +196,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    白名单 = 解析器只认这五个 tactic + sorry。同时要求**调研并设计 VSCode 前端显示
    goal state**——设计见 `docs/design-by-tactics.md` §6（front `by_steps` +
    `soko/stateAt` + 练习树「当前光标处」goal 组），实现为 Phase 2。
+- 2026-09-10（十七）：**by-tactic Phase 2 落地（上条「实现为 Phase 2」的执行）**：
+   front 产出每 tactic 步状态（`DeclState.by_steps`，进 I8 快照并随注释编辑重映射
+   span）；LSP 新请求 `soko/stateAt`——选择语义定为 Lean `goalsAt?`（光标在某条
+   tactic 上显示**执行前**状态，符合学习者「这条 tactic 要证什么」的直觉；初稿的
+   「执行后」语义作废），返回 `version` 供客户端丢弃过期响应；VS Code 练习树顶部
+   「当前光标处」组（目标/假设/by 进度，选区去抖 200ms + 序号守卫），点击目标跳
+   对应 tactic。扩展 0.5.2 → 0.6.0（minor：新学习能力）。同轮顺带修
+   `playground.sokonanoda:7` 的 `???`→`sorry` 迁移残留文案。

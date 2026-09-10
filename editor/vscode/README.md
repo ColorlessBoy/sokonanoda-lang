@@ -31,11 +31,14 @@ skills.
 - **Goal view** — an Explorer tree shows every declaration's status
   (open / solved / failed), the remaining goal and the hypotheses you
   have introduced; `alt+n` / `alt+shift+n` jump between holes.
+- **Goals at cursor** — with the caret inside a `by` proof, the same tree
+  shows the goal, the hypotheses in scope and your `by` progress at that
+  position; click the goal to jump to the tactic.
 - **Hint ladders** — each exercise carries 2–3 progressive hints
   (`-- soko:hint` directives); reveal them one at a time when stuck.
-- **Course map** — a 5-unit structured course with verified solutions
+- **Course map** — a 6-unit structured course with verified solutions
   (propositional logic first; universes only when you naturally ask
-  "what's the type of a function type?").
+  "what's the type of a function type?"; `by` tactic blocks last).
 
 **A real editing experience**
 

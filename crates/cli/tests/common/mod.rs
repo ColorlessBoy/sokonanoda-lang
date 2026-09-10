@@ -33,9 +33,10 @@ pub const WATCH_VOCABULARY: [&str; 7] = [
     "diagnostic",
 ];
 
-/// Custom LSP requests exposed to clients (goal view + hint ladder,
-/// docs/protocol.md).
-pub const LSP_CUSTOM_METHODS: [&str; 3] = ["soko/goals", "soko/nextHole", "soko/hints"];
+/// Custom LSP requests exposed to clients (goal view + hint ladder +
+/// per-tactic cursor state, docs/protocol.md).
+pub const LSP_CUSTOM_METHODS: [&str; 4] =
+    ["soko/goals", "soko/nextHole", "soko/hints", "soko/stateAt"];
 
 /// Repository root (this crate lives at `<root>/crates/cli`).
 pub fn repo_root() -> PathBuf {

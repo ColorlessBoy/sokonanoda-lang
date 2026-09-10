@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-09（第十九轮：by-tactic 块）
+> 快照：2026-09-10（第二十轮：soko/stateAt 光标处 goal 视图 + 扩展 0.6.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-by-tactics.md`（本轮）/ `docs/design-hover-refactor.md` /
+> 设计 = `docs/design-by-tactics.md`（§6 as-built）/ `docs/design-hover-refactor.md` /
 > `docs/design-course-bilingual.md` /
 > `docs/design-hover-brackets.md` /
 > `docs/design-round14.md`（含本轮 B′ 决议）/
@@ -20,6 +20,41 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-10，第二十轮：光标处 goal 视图 Phase 2 落地）
+
+> 设计先行：`docs/design-by-tactics.md` §6 修订为 as-built。承接第十九轮
+> 「实现留后续轮次」的 Phase 2：front 产出 per-tactic 状态，LSP 按光标
+> 选取，VS Code 练习树渲染。
+
+1. **front：`by_steps` 产出（kernel 一行未动）**：`by::ByStep.goal` 改
+   `Option<String>`（`None` = 全闭合）；`DeclState.by_steps: Vec<ByStepState>`
+   （`{span, goal, binders}`）贯通 Def/Theorem/Example 的 Open 与 Checked
+   分流（`lower_by_val` 返回降级值 + 步状态）；I8 session 的 `remap_prefix`
+   同步平移 `by_steps` 的 span（注释级编辑零重编译后坐标不漂）。新测试 3：
+   partial by 的逐步 goal/上下文/span（含 render 的应用括号形状）、checked
+   by 尾步 `goal=None`、session 注释编辑重映射。
+2. **LSP：`soko/stateAt`（选择全在服务端）**：请求
+   `{textDocument, position}` → `{version, decl?, goal, binders, span, step,
+   total}`。选取语义定为 **Lean `goalsAt?`**（比初稿「执行后」更贴合学习者）：
+   光标在某 tactic span 内 → 该 tactic 的**执行前**状态（`steps[i-1]`；首条 =
+   根状态，goal 用内核渲染的完整声明类型 `ty_text`）；否则取终点 ≤ 光标的
+   最后一步执行后状态。无 by 块的声明退回剩余 goal/上下文。5 个协议级测试
+   （进入态/末步态/根态/无 by 回退/声明外为空）；wire 词汇表 +1
+   （`common/mod.rs`）；`docs/protocol.md` 新小节。
+3. **VS Code：练习树「当前光标处」组**（subagent 实现，主会话验证）：
+   目标（点击 `revealRange` 跳 tactic）+ 假设 + `by 进度 k/n`；选区变化
+   去抖 200ms 请求 `soko/stateAt`，请求序号 + 活动文档守卫丢弃过期响应
+   （响应带 version）；诊断刷新后重取。静态契约测试 +2（客户端必须消费
+   `soko/stateAt`、必须挂选区监听）；**版本 0.5.2 → 0.6.0**（minor：新学习
+   能力），CHANGELOG/README/工作区 Cargo.toml 同步。
+4. **顺带修复**：`playground.sokonanoda:7` 的 `???`→`sorry` 迁移残留
+   （原文案成了「sorry 也可以写成 sorry」的同义反复）改写为自然说明。
+5. **验收**：测试总量 **437 + 8 ignored**（front 229 / lsp 89 / cli 71 /
+   kernel 48）全绿；fmt/clippy 干净；playground 锚点
+   `decl.checked=20 / exercise.open=9 / 0 诊断`不变；course 汇总
+   `32 checked · 25 open · 0 failed` 不变；`node --check` + 扩展静态契约
+   套件（7 测试）通过。未打 tag/未 push（发布留给用户触发）。
 
 ## 本轮进度（2026-09-09，第十九轮：by-tactic 块 + VSCode goal-state 设计）
 

@@ -4,6 +4,9 @@
 // Goal view (I9): the "练习" tree consumes the server's `soko/goals` custom
 // request; alt+n jumps between holes via `soko/nextHole` (server-side
 // position logic — clients never re-derive hole positions).
+// Cursor goal view (Phase 2): the tree's 「当前光标处」 group consumes
+// `soko/stateAt` on (debounced) selection changes — tactic selection stays
+// server-side; diagnostics refresh re-requests the caret state.
 // Hint ladder: the tree's 「提示」 node reveals `soko/hints` one at a time;
 // the reveal counter lives in workspaceState (the server stays stateless).
 // Course map: the 「课程」 tree shells out to the CLI (`sokonanoda course
@@ -204,6 +207,8 @@ class GoalsTreeDataProvider {
     this.onDidChangeTreeData = this._emitter.event;
     this.uri = undefined; // the active .sokonanoda document
     this.openCount = 0;
+    this.cursorState = undefined; // {uri, state} from soko/stateAt
+    this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
   }
 
   refresh() {
@@ -241,12 +246,39 @@ class GoalsTreeDataProvider {
     }
   }
 
+  // Cursor goal view: the server owns position → tactic selection; the client
+  // only forwards the caret and drops stale answers (newer request in flight
+  // or active document changed).
+  async requestCursorState(uriString, position) {
+    if (!client) return undefined;
+    const seq = ++this.cursorRequestSeq;
+    try {
+      const state = await client.sendRequest("soko/stateAt", {
+        textDocument: { uri: uriString },
+        position,
+      });
+      if (seq !== this.cursorRequestSeq) return undefined;
+      if (uriString !== this.uri) return undefined;
+      return state;
+    } catch (error) {
+      client.outputChannel.appendLine(`[client] soko/stateAt failed: ${error?.message ?? error}`);
+      return undefined;
+    }
+  }
+
+  async setCursorState(uriString, position) {
+    const state = await this.requestCursorState(uriString, position);
+    if (state === undefined || uriString !== this.uri) return;
+    this.cursorState = { uri: uriString, state };
+    this.refresh();
+  }
+
   async getDeclarations() {
     const response = await this.requestGoals();
     const decls = response?.decls ?? [];
     this.openCount = decls.filter((d) => d.status === "open").length;
     updateStatusBar(this);
-    return decls.map((decl) => {
+    const items = decls.map((decl) => {
       const item = new vscode.TreeItem(decl.name, decl.status === "open"
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None);
@@ -268,6 +300,19 @@ class GoalsTreeDataProvider {
       }
       return item;
     });
+    const cursor = this.cursorState !== undefined && this.cursorState.uri === this.uri
+      ? this.cursorState.state
+      : undefined;
+    if (cursor?.decl) {
+      const group = new vscode.TreeItem(
+        "当前光标处",
+        vscode.TreeItemCollapsibleState.Expanded,
+      );
+      group.iconPath = new vscode.ThemeIcon("target");
+      group.children = buildCursorChildren(cursor, this.uri);
+      items.unshift(group);
+    }
+    return items;
   }
 }
 
@@ -293,6 +338,37 @@ function buildOpenChildren(decl, uriString) {
     arguments: [uriString, decl.name, decl.range],
   };
   children.push(hint);
+  return children;
+}
+
+// Children of the 「当前光标处」 group (soko/stateAt): the goal selected by the
+// cursor, its hypotheses, and `by` progress. The server chose everything —
+// the client only renders and wires the reveal command.
+function buildCursorChildren(cursor, uriString) {
+  const children = [];
+  const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
+  goal.description = cursor.goal ?? "已无目标 ✓";
+  goal.iconPath = new vscode.ThemeIcon(cursor.goal ? "circle-outline" : "check");
+  if (cursor.span) {
+    goal.command = {
+      command: "sokonanoda.revealRange",
+      title: "",
+      arguments: [uriString, cursor.span],
+    };
+  }
+  children.push(goal);
+  for (const binder of cursor.binders ?? []) {
+    const item = new vscode.TreeItem(binder.name, vscode.TreeItemCollapsibleState.None);
+    item.description = binder.ty;
+    item.iconPath = new vscode.ThemeIcon("symbol-variable");
+    children.push(item);
+  }
+  if (cursor.total > 0) {
+    const progress = new vscode.TreeItem("by 进度", vscode.TreeItemCollapsibleState.None);
+    progress.description = `${cursor.step + 1}/${cursor.total}`;
+    progress.iconPath = new vscode.ThemeIcon("list-ordered");
+    children.push(progress);
+  }
   return children;
 }
 
@@ -640,11 +716,39 @@ async function activate(context) {
   statusBar.command = "sokonanoda.goals.focus";
   context.subscriptions.push(tree, statusBar);
 
+  // 光标目标视图：选区变化去抖 ~200ms 后请求 soko/stateAt（位置选取在服务端）。
+  const requestCursorForEditor = (editor = vscode.window.activeTextEditor) => {
+    if (!editor || editor.document.languageId !== "sokonanoda") return;
+    const uriString = editor.document.uri.toString();
+    if (uriString !== provider.uri) return;
+    provider.setCursorState(uriString, editor.selection.active);
+  };
+  let selectionTimer;
   context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor((editor) => provider.trackEditor(editor)),
-    vscode.languages.onDidChangeDiagnostics(() => provider.refresh()),
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      provider.trackEditor(editor);
+      requestCursorForEditor(editor);
+    }),
+    vscode.window.onDidChangeTextEditorSelection((event) => {
+      const editor = event.textEditor;
+      if (!editor || editor.document.languageId !== "sokonanoda") return;
+      const uriString = editor.document.uri.toString();
+      if (uriString !== provider.uri) return;
+      const position = editor.selection.active;
+      clearTimeout(selectionTimer);
+      selectionTimer = setTimeout(
+        () => provider.setCursorState(uriString, position),
+        200,
+      );
+    }),
+    vscode.languages.onDidChangeDiagnostics(() => {
+      provider.refresh();
+      requestCursorForEditor(); // the document may have been re-checked
+    }),
+    { dispose: () => clearTimeout(selectionTimer) },
   );
   provider.trackEditor(vscode.window.activeTextEditor);
+  requestCursorForEditor();
 
   // 课程面板：数据来自 CLI 子进程（跨文件聚合）；不挂诊断刷新——诊断是
   // 单文档事件，课程地图只需激活时与手动刷新（sokonanoda.courseRefresh）。

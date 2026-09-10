@@ -30,7 +30,8 @@ use render::{
 };
 use serde::{Deserialize, Serialize};
 use sokonanoda_front::compile::{
-    prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport, HoverType, PreludeMode,
+    prelude_mode_from_source, ByStepState, CompileOptions, DeclState, DeclStatus, DocumentReport,
+    GoalBinder, HoverType, PreludeMode,
 };
 use sokonanoda_front::semantic::{
     semantic_tokens as front_semantic_tokens, SemanticKind, SemanticSpan,
@@ -262,11 +263,7 @@ impl Backend {
                 GoalDeclInfo {
                     name: name.clone(),
                     kind: d.kind.as_str().to_string(),
-                    status: match d.status {
-                        DeclStatus::Open => "open".to_string(),
-                        DeclStatus::Checked => "checked".to_string(),
-                        DeclStatus::Failed => "failed".to_string(),
-                    },
+                    status: status_str(d.status).to_string(),
                     range: range_of(d.span),
                     goal: d.goal.clone(),
                     binders: d
@@ -349,6 +346,49 @@ impl Backend {
         let doc = self.doc.lock().expect("doc lock");
         Ok(hints::hints_for(&doc, params))
     }
+
+    /// Per-tactic goal state at the cursor (`soko/stateAt`,
+    /// docs/design-by-tactics.md §6). Lean `goalsAt?` semantics: a cursor
+    /// inside a tactic shows the state **entering** that tactic; otherwise
+    /// the state after the last tactic that ended before it. The response
+    /// carries the document version so clients drop stale answers.
+    async fn state_at(&self, params: StateAtParams) -> Result<StateAtResponse> {
+        let doc = self.doc.lock().expect("doc lock");
+        let version = doc.version;
+        let Some(report) = doc.report.as_ref() else {
+            return Ok(StateAtResponse::empty(version));
+        };
+        let cursor = position_to_offset(&doc.text, params.position);
+        let Some(d) = report
+            .decls
+            .iter()
+            .find(|d| d.span.start.offset <= cursor && cursor <= d.span.end.offset)
+        else {
+            return Ok(StateAtResponse::empty(version));
+        };
+        let selection = select_state_at(d, cursor);
+        Ok(StateAtResponse {
+            version,
+            decl: Some(StateDeclInfo {
+                name: decl_name(d),
+                kind: d.kind.as_str().to_string(),
+                status: status_str(d.status).to_string(),
+                range: range_of(d.span),
+            }),
+            goal: selection.goal,
+            binders: selection
+                .binders
+                .into_iter()
+                .map(|b| GoalBinderInfo {
+                    name: b.name,
+                    ty: b.ty,
+                })
+                .collect(),
+            span: selection.span.map(range_of),
+            step: selection.step,
+            total: selection.total,
+        })
+    }
 }
 
 // ---- soko/* 自定义请求的 wire 类型（docs/protocol.md）----
@@ -414,6 +454,131 @@ struct NextHoleParams {
     position: Position,
     #[serde(default)]
     forward: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct StateAtParams {
+    #[serde(rename = "textDocument")]
+    #[allow(dead_code)]
+    text_document: TextDocumentIdentifier,
+    position: Position,
+}
+
+#[derive(Debug, Serialize)]
+struct StateDeclInfo {
+    name: String,
+    kind: String,
+    status: String,
+    range: Range,
+}
+
+/// `soko/stateAt` response (docs/protocol.md): the goal state at the cursor,
+/// plus enough declaration info for the client to label and reveal it.
+#[derive(Debug, Serialize)]
+struct StateAtResponse {
+    version: i32,
+    decl: Option<StateDeclInfo>,
+    /// `None` = no remaining goals (the proof is closed at this position).
+    goal: Option<String>,
+    binders: Vec<GoalBinderInfo>,
+    /// The tactic's range (root state: the declaration's range).
+    span: Option<Range>,
+    /// Index of the selected per-tactic state; `-1` = root.
+    step: i64,
+    total: usize,
+}
+
+impl StateAtResponse {
+    fn empty(version: i32) -> Self {
+        Self {
+            version,
+            decl: None,
+            goal: None,
+            binders: Vec::new(),
+            span: None,
+            step: -1,
+            total: 0,
+        }
+    }
+}
+
+/// Wire status string shared by `soko/goals` and `soko/stateAt`.
+fn status_str(status: DeclStatus) -> &'static str {
+    match status {
+        DeclStatus::Open => "open",
+        DeclStatus::Checked => "checked",
+        DeclStatus::Failed => "failed",
+    }
+}
+
+/// The declaration state selected for one cursor offset (`soko/stateAt`).
+struct StateSelection {
+    goal: Option<String>,
+    binders: Vec<GoalBinder>,
+    span: Option<sokonanoda_front::Span>,
+    /// Index of the selected per-tactic state; `-1` = root (before any tactic).
+    step: i64,
+    total: usize,
+}
+
+impl StateSelection {
+    fn root(d: &DeclState) -> Self {
+        Self {
+            // Root goal: the full declared type (kernel-rendered) when known,
+            // falling back to the remaining goal for plain open exercises.
+            goal: d.ty_text.clone().or_else(|| d.goal.clone()),
+            binders: Vec::new(),
+            span: Some(d.span),
+            step: -1,
+            total: 0,
+        }
+    }
+}
+
+/// Select the state at `cursor` (Lean `goalsAt?` semantics).
+///
+/// - No `by` steps: the declaration's remaining goal/context (the best the
+///   walk recovered; `step = -1`).
+/// - With steps: a cursor inside a tactic's span `[start, end)` shows the
+///   state **entering** that tactic (`steps[i-1]` after-state, or the root
+///   for the first tactic); otherwise the state after the last tactic whose
+///   span ends at or before the cursor (root when none has).
+fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
+    if d.by_steps.is_empty() {
+        return StateSelection {
+            goal: d.goal.clone(),
+            binders: d.binders.clone(),
+            span: Some(d.span),
+            step: -1,
+            total: 0,
+        };
+    }
+    let selected = match d
+        .by_steps
+        .iter()
+        .position(|s| s.span.start.offset <= cursor && cursor < s.span.end.offset)
+    {
+        Some(i) => i as i64 - 1,
+        None => d
+            .by_steps
+            .iter()
+            .rposition(|s| s.span.end.offset <= cursor)
+            .map(|i| i as i64)
+            .unwrap_or(-1),
+    };
+    let mut selection = StateSelection::root(d);
+    selection.total = d.by_steps.len();
+    if let Some(step) = usize::try_from(selected)
+        .ok()
+        .filter(|i| *i < d.by_steps.len())
+    {
+        let s: &ByStepState = &d.by_steps[step];
+        selection.goal = s.goal.clone();
+        selection.binders = s.binders.clone();
+        selection.span = Some(s.span);
+        selection.step = selected;
+    }
+    selection
 }
 
 /// 0-based LSP position → byte offset（与本服务器的 char 计数约定一致）。
@@ -949,6 +1114,7 @@ pub async fn run() {
         .custom_method("soko/goals", Backend::goals)
         .custom_method("soko/nextHole", Backend::next_hole)
         .custom_method("soko/hints", Backend::hints)
+        .custom_method("soko/stateAt", Backend::state_at)
         .finish();
     Server::new(stdin, stdout, socket).serve(service).await;
 }
@@ -1722,6 +1888,126 @@ mod tests {
         )
         .await
         .expect("soko/nextHole must answer")
+    }
+
+    // ---- soko/stateAt：光标处 tactic 目标（docs/design-by-tactics.md §6）----
+
+    async fn ask_state_at(
+        service: &mut LspService<Backend>,
+        src: &str,
+        offset: usize,
+    ) -> serde_json::Value {
+        call(
+            service,
+            RpcRequest::build("soko/stateAt")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(lsp_pos(src, offset)),
+                }))
+                .id(43)
+                .finish(),
+        )
+        .await
+        .expect("soko/stateAt must answer")
+    }
+
+    const BY_OPEN: &str = "axiom And : Prop -> Prop -> Prop\n\
+         theorem open : (a : Prop) -> And a a -> a := by intro a; intro h\n";
+
+    #[tokio::test]
+    async fn state_at_inside_a_tactic_shows_the_entering_state() {
+        // 光标停在 `intro h` 上：学习者要看到的是「这条 tactic 进来时的目标」。
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, BY_OPEN).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        let result = ask_state_at(&mut service, BY_OPEN, offset_of(BY_OPEN, "intro h")).await;
+        assert_eq!(result["decl"]["name"], "open");
+        assert_eq!(result["decl"]["kind"], "theorem");
+        assert_eq!(result["decl"]["status"], "open");
+        assert_eq!(
+            result["step"], 0,
+            "entering the second tactic = after step 0"
+        );
+        assert_eq!(result["total"], 2);
+        assert_eq!(result["goal"], "(And a) a -> a");
+        let binders = result["binders"].as_array().expect("binders array");
+        assert_eq!(binders.len(), 1);
+        assert_eq!(binders[0]["name"], "a");
+        assert_eq!(binders[0]["ty"], "Prop");
+        assert!(result["span"].is_object(), "highlight range present");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn state_at_after_the_last_tactic_shows_the_remaining_goal() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, BY_OPEN).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        let after = offset_of(BY_OPEN, "intro h") + "intro h".len();
+        let result = ask_state_at(&mut service, BY_OPEN, after).await;
+        assert_eq!(result["step"], 1);
+        assert_eq!(result["goal"], "a");
+        let binders = result["binders"].as_array().expect("binders array");
+        assert_eq!(binders.len(), 2, "a and h are both in context");
+        assert_eq!(binders[1]["name"], "h");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn state_at_on_the_by_keyword_returns_the_root_goal() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, BY_OPEN).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        let result = ask_state_at(&mut service, BY_OPEN, offset_of(BY_OPEN, "by intro")).await;
+        assert_eq!(result["step"], -1, "before the first tactic = root state");
+        assert_eq!(result["total"], 2);
+        let goal = result["goal"].as_str().expect("root goal is the full type");
+        assert!(
+            goal.contains("And"),
+            "root goal is the declared type: {goal}"
+        );
+        assert!(result["binders"]
+            .as_array()
+            .expect("binders array")
+            .is_empty());
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn state_at_without_by_steps_returns_the_declaration_goal() {
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, EXERCISE).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        let result = ask_state_at(&mut service, EXERCISE, offset_of(EXERCISE, "sorry")).await;
+        assert_eq!(result["decl"]["status"], "open");
+        assert_eq!(result["goal"], "Prop -> Prop");
+        assert_eq!(result["step"], -1);
+        assert_eq!(result["total"], 0);
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn state_at_outside_any_declaration_is_empty() {
+        let src = "-- 讲解注释\naxiom True : Prop\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        let result = ask_state_at(&mut service, src, 0).await;
+        assert!(result["decl"].is_null(), "no declaration at the cursor");
+        assert!(result["goal"].is_null());
+        assert!(result["span"].is_null());
+        assert_eq!(result["step"], -1);
+        shutdown(&mut service).await;
     }
 
     #[tokio::test]

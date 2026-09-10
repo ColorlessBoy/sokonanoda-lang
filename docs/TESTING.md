@@ -313,3 +313,22 @@ VS Code 下载地址按版本变化，缓存收益低）；Linux CI 首跑验证
 workflow 触发确认；用例 3/4 依赖 LSP 的 sorry-warning 行为（`sorry` 发
 WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一契约的
 两端，需同轮落地否则测试会真实变红（这是期望的守护行为，不是误报）。
+
+## 2026-09-10 更新（第二十轮：soko/stateAt 光标处 goal 视图）
+
+- **front `by_steps` 层**（compile/tests.rs + session.rs，3 个）：
+  `partial_by_block_records_per_step_states`（逐步 goal/上下文/源码 span）、
+  `checked_by_block_records_closed_final_step`（尾步 `goal=None`）、
+  `session_remaps_by_step_spans_on_comment_edit`（零重编译后 span 平移）。
+- **LSP 协议层**（lib.rs，5 个）：`state_at_inside_a_tactic_shows_the_entering_state`
+  （Lean `goalsAt?`：光标在 tactic 上显示执行前状态）、
+  `state_at_after_the_last_tactic_shows_the_remaining_goal`、
+  `state_at_on_the_by_keyword_returns_the_root_goal`、
+  `state_at_without_by_steps_returns_the_declaration_goal`、
+  `state_at_outside_any_declaration_is_empty`。
+- **词汇表**：`common/mod.rs::LSP_CUSTOM_METHODS` +`soko/stateAt`（skill
+  conformance 与 protocol.md 三向一致）。
+- **VS Code 契约**（extension.rs）：`entry_script_speaks_the_goal_view_protocol`
+  增两断言（消费 `soko/stateAt`、挂 `onDidChangeTextEditorSelection`）。
+- 测试总量（第二十轮）：**437 + 8 ignored**（front 229 / lsp 89 / cli 71 /
+  kernel 48）；playground 锚点 20/9/0、course 32/25/0 不变。

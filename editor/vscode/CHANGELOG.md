@@ -1,3 +1,13 @@
+## [0.6.0] - 2026-09-10
+
+### Added
+- **Goals at cursor** (「当前光标处」): with the caret inside a declaration the
+  exercise tree now shows the goal, the hypotheses in scope and your `by`
+  progress at that position — move the cursor and the panel follows
+  (debounced ~200 ms). Clicking the goal reveals the corresponding tactic.
+  Powered by the new `soko/stateAt` request; position → tactic selection is
+  decided by the server, the client only renders.
+
 ## [0.5.2] - 2026-09-09
 
 ### Fixed

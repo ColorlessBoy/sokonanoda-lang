@@ -12,12 +12,14 @@ use tower_lsp::jsonrpc::Request as RpcRequest;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{ClientSocket, LspService};
 
-/// 带全部自定义方法注册的服务（soko/goals、soko/nextHole、soko/hints）。
+/// 带全部自定义方法注册的服务（soko/goals、soko/nextHole、soko/hints、
+/// soko/stateAt）。
 pub(crate) fn test_service() -> (LspService<Backend>, ClientSocket) {
     LspService::build(Backend::new)
         .custom_method("soko/goals", Backend::goals)
         .custom_method("soko/nextHole", Backend::next_hole)
         .custom_method("soko/hints", Backend::hints)
+        .custom_method("soko/stateAt", Backend::state_at)
         .finish()
 }
 

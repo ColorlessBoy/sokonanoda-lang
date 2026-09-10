@@ -51,6 +51,18 @@ pub struct SubGoal {
     pub ty: Option<String>,
 }
 
+/// One tactic step of a `by` block, recorded by the engine as the state
+/// **after** that tactic executed (`docs/design-by-tactics.md` §6): the
+/// tactic's source span, the remaining goal (`None` when every goal is
+/// closed) and the hypotheses in scope at that point. In the I8 session
+/// snapshot this is the editor's "goals at cursor" data (`soko/stateAt`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ByStepState {
+    pub span: Span,
+    pub goal: Option<String>,
+    pub binders: Vec<GoalBinder>,
+}
+
 /// One declaration of a `.sokonanoda` document, with its exercise status.
 #[derive(Debug, Clone)]
 pub struct DeclState {
@@ -96,6 +108,10 @@ pub struct DeclState {
     /// for it or when the report was produced without a source text
     /// (e.g. `compile_fol` on a pre-parsed AST).
     pub hints: Vec<String>,
+    /// Per-tactic states of a `:= by …` value, in tactic order (each state is
+    /// recorded **after** its tactic ran). Empty for declarations without a
+    /// `by` block. Powers `soko/stateAt` (cursor goal view).
+    pub by_steps: Vec<ByStepState>,
 }
 
 /// Where a name use resolves to, together with the definition's source span.

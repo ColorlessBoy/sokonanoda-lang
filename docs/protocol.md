@@ -144,7 +144,7 @@ ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
 
 ## Custom LSP requests (goal view, I9)
 
-Beyond standard LSP, the server answers two custom requests (tower-lsp
+Beyond standard LSP, the server answers four custom requests (tower-lsp
 `custom_method`; clients opt in, servers don't advertise them in
 capabilities):
 
@@ -204,6 +204,40 @@ Request params: `{"textDocument": {"uri"}, "position"}`. Response:
   `position`; empty array when there is none;
 - The server is stateless: progressive disclosure (reveal one hint at a
   time) is a client concern; the protocol never counts remaining hints.
+
+### `soko/stateAt`
+
+Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
+(all fields present; `null` where noted):
+
+```json
+{
+  "version": 5,
+  "decl": {"name": "open", "kind": "theorem", "status": "open", "range": {}},
+  "goal": "(And a) a -> a",
+  "binders": [{"name": "a", "ty": "Prop"}],
+  "span": {"start": {...}, "end": {...}},
+  "step": 1,
+  "total": 2
+}
+```
+
+- Selects the goal state at the caret with Lean `goalsAt?` semantics: inside
+  a tactic's source span → the state **entering** that tactic; otherwise the
+  state after the last tactic that ended at or before the caret; before the
+  first tactic → the root state (`step: -1`, `span` = the declaration's
+  range, goal = the full kernel-rendered declared type).
+- `step` indexes the declaration's per-tactic states (front `by_steps`,
+  recorded after each tactic runs); `total` is the tactic count. For a
+  declaration without a `by` block both are `-1`/`0` and the response falls
+  back to the declaration's remaining goal/context (`step: -1`).
+- `goal: null` = no remaining goals at that position (the proof is closed).
+  `decl: null` = the caret is not inside any declaration; all other fields
+  then default (`goal: null`, empty `binders`, `span: null`, `step: -1`,
+  `total: 0`).
+- The response carries the document `version` so clients drop stale answers.
+  Selection is entirely server-side (clients never scan the source);
+  `soko/goals` is unaffected.
 
 ## Rename, references & inlay hints (LSP 3.17)
 

@@ -113,12 +113,46 @@ struct ByStepState { span: Span, goal: Option<String>, binders: Vec<GoalBinder> 
 
 ### 6.2 LSP 新请求 `soko/stateAt`（coq-lsp `proof/goals` 模式）
 
-`{ textDocument, position }` → `{ version, decl?, goals: [ByStepState] }`。
-选取规则（仿 Lean `goalsAt?`）：取**最内层**覆盖光标的 ByStepState；
-光标在 step 起点之后且其后无嵌套 step 时取该步「执行后」状态。返回文档
-`version`，客户端丢弃过期响应。既有 `soko/goals` 不动。
+**as-built（2026-09-10 实现轮定稿）**：
+
+- 请求 `{ textDocument, position }`；
+- 响应：
+
+  ```json
+  {
+    "version": 5,
+    "decl": {"name": "and_swap", "kind": "theorem", "status": "open", "range": {}},
+    "goal": "And b a",
+    "binders": [{"name": "a", "ty": "Prop"}],
+    "span": {},
+    "step": 1,
+    "total": 3
+  }
+  ```
+
+  `decl` 为 `null`（光标不在任何声明内）时其余字段为 `goal: null / binders: [] /
+  span: null / step: -1 / total: 0`；`goal: null` 表示「无剩余目标」（已闭合）；
+  `step` 是选中的 per-step 状态下标（`-1` = 根状态，即尚未执行任何 tactic）。
+- 选取规则改为 **Lean `goalsAt?` 语义**（比本文初稿的「执行后」更贴合学习者：
+  光标停在某条 tactic 上时他要看的是**这条 tactic 要证的目标**）：
+  1. 光标在某 step 的 span `[start, end)` 内 → 取该 step 的**执行前**状态
+     （即 `steps[i-1]` 的执行后状态；`i == 0` 时是根状态）；
+  2. 否则取「终点 ≤ 光标」的最后一步的执行后状态；
+  3. 都没有 → 根状态。
+- 无 by 块的声明（`steps` 为空）：非 by 的 Open 练习直接返回其剩余
+  `goal`/`binders`（`step = -1`）；已判定声明返回无剩余目标。根状态的目标
+  用 `ty_text`（内核渲染的完整声明类型），拿不到时退回剩余 `goal`。
+- 返回文档 `version`，客户端丢弃过期响应。既有 `soko/goals` 不动。
 
 ### 6.3 VSCode：方案 A（零 webview，先做）
+
+**as-built（2026-09-10）**：练习树顶部「当前光标处」组已实现——
+`onDidChangeTextEditorSelection` 去抖 200ms → `soko/stateAt`（请求序号 +
+活动文档守卫丢弃过期响应；诊断刷新后重取）；组内 = 目标（点击
+`sokonanoda.revealRange` 跳 tactic）+ 假设 + `by 进度 k/n`。静态契约测试
+守护客户端必须消费 `soko/stateAt` 且不得文本扫洞。扩展版本 0.6.0。
+
+设计要点（原方案）：
 
 扩展现有「练习」树（`extension.js:166-262`）：顶部加「当前光标处」节点组
 （`⊢ goal` + binders + 当前 step 范围，点击 `revealRange` 跳转）。刷新：

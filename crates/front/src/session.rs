@@ -289,6 +289,9 @@ impl Session {
                 if let Some(err) = &mut state.error {
                     err.span = remap_span(err.span, old_c, new_c, new_src);
                 }
+                for step in &mut state.by_steps {
+                    step.span = remap_span(step.span, old_c, new_c, new_src);
+                }
             }
             for h in &mut snap.hovers {
                 h.span = remap_span(h.span, old_c, new_c, new_src);
@@ -777,6 +780,39 @@ def five : Nat := 5
             .decls
             .iter()
             .any(|d| d.name.as_deref() == Some("bad") && d.status == DeclStatus::Failed));
+    }
+
+    #[test]
+    fn session_remaps_by_step_spans_on_comment_edit() {
+        // by_steps 随快照缓存；注释级编辑零重编译，但 span 必须平移，
+        // 否则 soko/stateAt 会把光标位置对到错误的目标上。
+        let mut session = Session::new(CompileOptions::default());
+        let src =
+            "axiom True : Prop\naxiom True.intro : True\ntheorem t : True := by exact True.intro\n";
+        let u1 = update(&mut session, src, 1);
+        let before = u1
+            .report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some("t"))
+            .expect("decl t")
+            .by_steps[0]
+            .span;
+        let with_comment = format!("-- 讲解\n{src}");
+        let shift = "-- 讲解\n".len();
+        let u2 = update(&mut session, &with_comment, 2);
+        assert_eq!(u2.recompiled_from, None, "comment-only edit");
+        assert_eq!(u2.stats.kernel_checks, 0);
+        let after = u2
+            .report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some("t"))
+            .expect("decl t")
+            .by_steps[0]
+            .span;
+        assert_eq!(after.start.offset, before.start.offset + shift);
+        assert_eq!(after.start.line, before.start.line + 1);
     }
 
     #[test]

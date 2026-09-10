@@ -21,8 +21,8 @@ use crate::Span;
 pub struct ByStep {
     /// 该 tactic 的源码 span。
     pub span: Span,
-    /// 该步执行后的剩余目标。
-    pub goal: String,
+    /// 该步执行后的剩余目标；`None` = 所有目标已闭合。
+    pub goal: Option<String>,
     /// 该步执行后的已引入假设（根到该步）。
     pub binders: Vec<Binder>,
 }
@@ -216,14 +216,14 @@ pub fn run_by(
         if let Some(&top) = worklist.last() {
             steps.push(ByStep {
                 span: tactic.span(),
-                goal: render_expr(&nodes[top].ty),
+                goal: Some(render_expr(&nodes[top].ty)),
                 binders: context_binders(&nodes, top),
             });
         } else {
-            // 全部目标已闭合：记录闭合状态（goal 空）。
+            // 全部目标已闭合：记录闭合状态（goal = None）。
             steps.push(ByStep {
                 span: tactic.span(),
-                goal: String::new(),
+                goal: None,
                 binders: Vec::new(),
             });
         }

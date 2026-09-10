@@ -8,7 +8,8 @@ use super::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, Erro
 use super::event::{CheckEvent, CompileOutput};
 use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
 use super::report::{
-    DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType, ResolvedTarget, SubGoal,
+    ByStepState, DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType,
+    ResolvedTarget, SubGoal,
 };
 use crate::{Binder, Command, Expr, FolFile, Span};
 use sokonanoda::builder::EnvBuilder;
@@ -23,6 +24,9 @@ pub(crate) enum PendingOp<'a> {
         declar: Declar<'a>,
         span: Span,
         cmd: usize,
+        /// Per-tactic states for a `by` value (empty otherwise), carried to
+        /// the `DeclState` for `soko/stateAt`.
+        by_steps: Vec<ByStepState>,
     },
     /// One whole `inductive ... end` block: the kernel validates each of its
     /// declarations (inductive spine, constructors, recursor rules).
@@ -49,6 +53,8 @@ pub(crate) enum PendingOp<'a> {
         refine_template: Option<String>,
         span: Span,
         cmd: usize,
+        /// Per-tactic states for a `by` value (empty otherwise).
+        by_steps: Vec<ByStepState>,
     },
     Check {
         expr: ExprPtr<'a>,
@@ -121,7 +127,8 @@ fn open_goal(ty: &Expr, val: &Expr, templates: &ConstructorTemplates) -> Option<
 }
 
 /// 值位若是 `by` 块，先用引擎降级成 lambda AST（可能带尾部 `sorry`）；
-/// 否则原样 clone。返回的 `Expr` 交给既有 `open_goal`/`build_*` 分流。
+/// 否则原样 clone。返回降级后的值位 + 引擎记录的 per-tactic 状态
+/// （非 by 块为空），交给既有 `open_goal`/`build_*` 分流。
 /// `src` 为文件原文、`span_start` 为声明起点——只有真是 `by` 块才切片
 /// （judge 合成的文件 src 为空，普通声明不触发切片）。
 fn lower_by_val(
@@ -130,13 +137,32 @@ fn lower_by_val(
     src: &str,
     span_start: usize,
     options: &CompileOptions,
-) -> Result<Expr, CompileError> {
+) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
     if let Expr::By { .. } = val {
         let prefix = src.get(..span_start).unwrap_or("");
-        crate::by::run_by(ty, val, prefix, options).map(|o| o.expr)
+        crate::by::run_by(ty, val, prefix, options).map(|o| (o.expr, o.steps))
     } else {
-        Ok(val.clone())
+        Ok((val.clone(), Vec::new()))
     }
+}
+
+/// 引擎的 per-step 状态 → 报告层 wire 形状（binder 类型渲染成文本）。
+fn by_step_states(steps: &[crate::by::ByStep]) -> Vec<ByStepState> {
+    steps
+        .iter()
+        .map(|s| ByStepState {
+            span: s.span,
+            goal: s.goal.clone(),
+            binders: s
+                .binders
+                .iter()
+                .map(|b| GoalBinder {
+                    name: b.name.clone(),
+                    ty: b.ty.as_deref().map(render_expr).unwrap_or_default(),
+                })
+                .collect(),
+        })
+        .collect()
 }
 
 fn expr_has_hole(e: &Expr) -> bool {
@@ -728,7 +754,7 @@ fn run_pass(
                 val,
                 span,
             } => {
-                let val = &match lower_by_val(ty, val, &file.src, span.start.offset, options) {
+                let lowered = match lower_by_val(ty, val, &file.src, span.start.offset, options) {
                     Ok(v) => v,
                     Err(e) => {
                         out.errors.push(e.clone());
@@ -742,6 +768,8 @@ fn run_pass(
                         continue;
                     }
                 };
+                let val = &lowered.0;
+                let by_steps = by_step_states(&lowered.1);
                 if trusted {
                     // Trusted prefix: keep the environment, skip the kernel.
                     // Cached failures keep the name free (check-then-add);
@@ -807,6 +835,7 @@ fn run_pass(
                         holes: info.holes,
                         sub_goals: info.sub_goals,
                         refine_template: info.refine_template,
+                        by_steps: by_steps.clone(),
                         span: *span,
                         cmd: idx,
                     });
@@ -843,6 +872,7 @@ fn run_pass(
                             name: Some(name_owned),
                             kind: DeclKind::Definition,
                             declar: decl,
+                            by_steps: by_steps.clone(),
                             span: *span,
                             cmd: idx,
                         });
@@ -871,7 +901,7 @@ fn run_pass(
                 val,
                 span,
             } => {
-                let val = &match lower_by_val(ty, val, &file.src, span.start.offset, options) {
+                let lowered = match lower_by_val(ty, val, &file.src, span.start.offset, options) {
                     Ok(v) => v,
                     Err(e) => {
                         out.errors.push(e.clone());
@@ -885,6 +915,8 @@ fn run_pass(
                         continue;
                     }
                 };
+                let val = &lowered.0;
+                let by_steps = by_step_states(&lowered.1);
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
                         || open_goal(ty, val, &templates).is_some()
@@ -938,6 +970,7 @@ fn run_pass(
                         holes: info.holes,
                         sub_goals: info.sub_goals,
                         refine_template: info.refine_template,
+                        by_steps: by_steps.clone(),
                         span: *span,
                         cmd: idx,
                     });
@@ -974,6 +1007,7 @@ fn run_pass(
                             name: Some(name_owned),
                             kind: DeclKind::Theorem,
                             declar: decl,
+                            by_steps: by_steps.clone(),
                             span: *span,
                             cmd: idx,
                         });
@@ -1060,6 +1094,7 @@ fn run_pass(
                             name: Some(name_owned),
                             kind: DeclKind::Axiom,
                             declar: decl,
+                            by_steps: Vec::new(),
                             span: *span,
                             cmd: idx,
                         });
@@ -1082,7 +1117,7 @@ fn run_pass(
                 }
             }
             Command::Example { ty, val, span } => {
-                let val = &match lower_by_val(ty, val, &file.src, span.start.offset, options) {
+                let lowered = match lower_by_val(ty, val, &file.src, span.start.offset, options) {
                     Ok(v) => v,
                     Err(e) => {
                         out.errors.push(e.clone());
@@ -1090,6 +1125,8 @@ fn run_pass(
                         continue;
                     }
                 };
+                let val = &lowered.0;
+                let by_steps = by_step_states(&lowered.1);
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
                         || open_goal(ty, val, &templates).is_some()
@@ -1138,6 +1175,7 @@ fn run_pass(
                         holes: info.holes,
                         sub_goals: info.sub_goals,
                         refine_template: info.refine_template,
+                        by_steps: by_steps.clone(),
                         span: *span,
                         cmd: idx,
                     });
@@ -1173,6 +1211,7 @@ fn run_pass(
                             name: None,
                             kind: DeclKind::Example,
                             declar: decl,
+                            by_steps: by_steps.clone(),
                             span: *span,
                             cmd: idx,
                         });
@@ -1354,6 +1393,7 @@ fn run_pass(
                 holes,
                 sub_goals,
                 refine_template,
+                by_steps,
                 span,
                 cmd,
             } => {
@@ -1377,6 +1417,7 @@ fn run_pass(
                     holes,
                     sub_goals,
                     refine_template,
+                    by_steps,
                     hints: Vec::new(),
                     ty_text,
                 });
@@ -1385,6 +1426,7 @@ fn run_pass(
                 name,
                 kind,
                 declar,
+                by_steps,
                 span,
                 cmd,
             } => {
@@ -1424,6 +1466,7 @@ fn run_pass(
                             holes: Vec::new(),
                             sub_goals: Vec::new(),
                             refine_template: None,
+                            by_steps,
                             hints: Vec::new(),
                             ty_text,
                         });
@@ -1481,6 +1524,7 @@ fn run_pass(
                             holes: Vec::new(),
                             sub_goals: Vec::new(),
                             refine_template: None,
+                            by_steps: Vec::new(),
                             hints: Vec::new(),
                             ty_text: None,
                         });
@@ -1679,6 +1723,7 @@ pub(crate) fn failed_state(
         holes: Vec::new(),
         sub_goals: Vec::new(),
         refine_template: None,
+        by_steps: Vec::new(),
         hints: Vec::new(),
         ty_text: None,
     }

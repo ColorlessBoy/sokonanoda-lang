@@ -71,6 +71,16 @@ fn entry_script_speaks_the_goal_view_protocol() {
         script.contains("soko/hints"),
         "the hint button must consume soko/hints"
     );
+    // Cursor goal view (docs/design-by-tactics.md §6): the tree's
+    // 「当前光标处」 group polls state at the caret on selection changes.
+    assert!(
+        script.contains("soko/stateAt"),
+        "the cursor goal view must consume soko/stateAt"
+    );
+    assert!(
+        script.contains("onDidChangeTextEditorSelection"),
+        "the cursor goal view must track selection changes"
+    );
     // Server-side hole logic: the client must NOT scan for holes by text.
     assert!(
         !script.contains("find(\"sorry\")") && !script.contains("indexOf(\"sorry\")"),
