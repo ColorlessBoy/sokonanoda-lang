@@ -54,7 +54,8 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    kernel 48）全绿；fmt/clippy 干净；playground 锚点
    `decl.checked=20 / exercise.open=9 / 0 诊断`不变；course 汇总
    `32 checked · 25 open · 0 failed` 不变；`node --check` + 扩展静态契约
-   套件（7 测试）通过。未打 tag/未 push（发布留给用户触发）。
+   套件（7 测试）通过。commit `396adee` 已 push main 且 CI（lint + test）
+   全绿；**未打 tag**（0.6.0 的发布留给用户触发）。
 
 ## 本轮进度（2026-09-09，第十九轮：by-tactic 块 + VSCode goal-state 设计）
 
