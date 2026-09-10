@@ -24,28 +24,54 @@ const { execSync } = require("child_process");
 
 const RELEASES_BASE = "https://github.com/ColorlessBoy/sokonanoda-lang/releases";
 
+/// Alpine/musl detection: VS Code selects the `alpine-*` package by checking
+/// `/etc/alpine-release` (src/vs/base/common/platform.ts), and the runtime
+/// must map to the matching musl binary the same way.
+function isAlpineLinux(platform, fsImpl = fs) {
+  if (platform !== "linux") return false;
+  return fsImpl.existsSync("/etc/alpine-release");
+}
+
 /// VS Code target platform (`vsce --target`) for a Node platform/arch pair.
 /// `undefined` = no bundled binary and no downloadable build for this platform.
-function platformTarget(platform, arch) {
+function platformTarget(platform, arch, alpine = false) {
   if (platform === "darwin") {
     if (arch === "arm64") return "darwin-arm64";
     if (arch === "x64") return "darwin-x64";
     return undefined;
   }
-  if (platform === "linux") return arch === "x64" ? "linux-x64" : undefined;
-  if (platform === "win32") return arch === "x64" ? "win32-x64" : undefined;
+  if (platform === "linux") {
+    if (alpine) {
+      if (arch === "x64") return "alpine-x64";
+      if (arch === "arm64") return "alpine-arm64";
+      return undefined;
+    }
+    if (arch === "x64") return "linux-x64";
+    if (arch === "arm64") return "linux-arm64";
+    return undefined;
+  }
+  if (platform === "win32") {
+    if (arch === "x64") return "win32-x64";
+    if (arch === "arm64") return "win32-arm64";
+    return undefined;
+  }
   return undefined;
 }
 
 /// Rust target triple used in GitHub Release asset names. Mirrors
 /// `platformTarget` (unsupported pairs have no asset either).
-function rustTarget(platform, arch) {
-  if (!platformTarget(platform, arch)) return undefined;
+function rustTarget(platform, arch, alpine = false) {
+  if (!platformTarget(platform, arch, alpine)) return undefined;
   if (platform === "darwin") {
     return arch === "arm64" ? "aarch64-apple-darwin" : "x86_64-apple-darwin";
   }
-  if (platform === "linux") return "x86_64-unknown-linux-gnu";
-  return "x86_64-pc-windows-msvc";
+  if (platform === "linux") {
+    if (alpine) {
+      return arch === "x64" ? "x86_64-unknown-linux-musl" : "aarch64-unknown-linux-musl";
+    }
+    return arch === "x64" ? "x86_64-unknown-linux-gnu" : "aarch64-unknown-linux-gnu";
+  }
+  return arch === "x64" ? "x86_64-pc-windows-msvc" : "aarch64-pc-windows-msvc";
 }
 
 function binaryName(platform) {
@@ -53,8 +79,8 @@ function binaryName(platform) {
 }
 
 /// Path of the server bundled in this extension, for the current platform.
-function bundledServerPath(extensionPath, platform, arch) {
-  const target = platformTarget(platform, arch);
+function bundledServerPath(extensionPath, platform, arch, alpine = false) {
+  const target = platformTarget(platform, arch, alpine);
   if (!target) return undefined;
   return path.join(extensionPath, "bin", target, binaryName(platform));
 }
@@ -90,7 +116,8 @@ function isExecutable(file, fsImpl = fs) {
 function resolveBundledServer(options) {
   const { extensionPath, platform, arch, log } = options;
   const fsImpl = options.fs ?? fs;
-  const binary = bundledServerPath(extensionPath, platform, arch);
+  const alpine = options.alpine ?? isAlpineLinux(platform, fsImpl);
+  const binary = bundledServerPath(extensionPath, platform, arch, alpine);
   if (!binary || !fsImpl.existsSync(binary)) return undefined;
   if (platform === "win32") return binary;
   if (isExecutable(binary, fsImpl)) return binary;
@@ -143,8 +170,8 @@ function cachedServerIsCurrent(version, fsImpl = fs) {
 }
 
 /// Version-pinned asset URL. `undefined` for platforms with no build.
-function downloadUrl(version, platform, arch) {
-  const target = rustTarget(platform, arch);
+function downloadUrl(version, platform, arch, alpine = false) {
+  const target = rustTarget(platform, arch, alpine);
   if (!target) return undefined;
   return `${RELEASES_BASE}/download/v${version}/sokonanoda-lsp-${target}.tar.gz`;
 }
@@ -168,7 +195,15 @@ function resolveServerCommand(options) {
   if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
   if (envBin) return envBin;
 
-  const bundled = resolveBundledServer({ extensionPath, platform, arch, fs: fsImpl, log });
+  const alpine = options.alpine ?? isAlpineLinux(platform, fsImpl);
+  const bundled = resolveBundledServer({
+    extensionPath,
+    platform,
+    arch,
+    alpine,
+    fs: fsImpl,
+    log,
+  });
   if (bundled) return bundled;
 
   const found = firstExisting(
@@ -210,7 +245,8 @@ function followRedirects(reqUrl, redirectsLeft) {
 /// Options: `{version, platform, arch, log}`.
 async function downloadLspBinary(options) {
   const { version, platform, arch } = options;
-  const url = downloadUrl(version, platform, arch);
+  const alpine = options.alpine ?? isAlpineLinux(platform);
+  const url = downloadUrl(version, platform, arch, alpine);
   if (!url) {
     throw new Error(
       `当前平台（${platform}-${arch}）没有内置语言服务器，也没有对应的下载构建；` +
@@ -253,6 +289,7 @@ async function downloadLspBinary(options) {
 
 module.exports = {
   RELEASES_BASE,
+  isAlpineLinux,
   platformTarget,
   rustTarget,
   binaryName,

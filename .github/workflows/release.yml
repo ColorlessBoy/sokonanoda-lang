@@ -10,30 +10,78 @@ on:
 
 # 发布 = per-target VSIX（内嵌对应平台 LSP）+ 一个 universal 回退包（无 bin，
 # 用版本锁定的下载兜底）+ GitHub Release 资产（tarball 供回退下载）。
-# 设计：docs/design-bundled-lsp.md §3.3。三条铁律：
+# 设计：docs/design-bundled-lsp.md §3.3。四条铁律：
 #   1. exec 位必须在 Linux 上打包（Windows 打包会丢 unix mode）；
 #   2. tag、Cargo.toml、package.json 版本必须一致（版本门禁）；
-#   3. 下载 URL 锁定 v${version}，永不 latest。
+#   3. 下载 URL 锁定 v${version}，永不 latest；
+#   4. Linux 目标一律 cargo-zigbuild + 显式 glibc 2.28 地板（VS Code 自己的
+#      Linux 最低要求；ubuntu-latest 原生构建会引入 2.39 依赖）。musl 目标
+#      （alpine-*）由 Zig 静态链接，win32-arm64 在 windows-latest 原生构建。
 jobs:
-  # 1) 每个平台原生构建 LSP 二进制（供 VSIX 内嵌 + GitHub Release tarball）。
+  # 1) 每个平台构建 LSP 二进制（供 VSIX 内嵌 + GitHub Release tarball）。
   build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu }
-          - { os: macos-latest,   target: aarch64-apple-darwin }
-          - { os: macos-latest,   target: x86_64-apple-darwin }
-          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+          - { os: macos-latest,   target: aarch64-apple-darwin,       tool: cargo, glibc: "" }
+          - { os: macos-latest,   target: x86_64-apple-darwin,        tool: cargo, glibc: "" }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc,     tool: cargo, glibc: "" }
+          - { os: windows-latest, target: aarch64-pc-windows-msvc,    tool: cargo, glibc: "" }
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-gnu,   tool: zig, glibc: ".2.28" }
+          - { os: ubuntu-latest,  target: aarch64-unknown-linux-gnu,  tool: zig, glibc: ".2.28" }
+          - { os: ubuntu-latest,  target: x86_64-unknown-linux-musl,  tool: zig, glibc: "" }
+          - { os: ubuntu-latest,  target: aarch64-unknown-linux-musl, tool: zig, glibc: "" }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      # Zig + cargo-zigbuild 只用于 Linux 目标；版本钉死避免工具链漂移。
+      - if: matrix.tool == 'zig'
+        uses: mlugg/setup-zig@v2
+        with:
+          version: "0.16.0"
+          cache-key: ${{ matrix.target }}
+      - if: matrix.tool == 'zig'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild@0.23.4
       - uses: Swatinem/rust-cache@v2
+        with:
+          # 默认缓存 key 不含 target triple：矩阵各 leg 必须显式区分。
+          key: ${{ matrix.target }}${{ matrix.glibc }}
       - name: Build LSP server
-        run: cargo build --release --locked -p sokonanoda-lsp --target ${{ matrix.target }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.tool }}" = "zig" ]; then
+            cargo zigbuild --release --locked -p sokonanoda-lsp \
+              --target "${{ matrix.target }}${{ matrix.glibc }}"
+          else
+            cargo build --release --locked -p sokonanoda-lsp \
+              --target "${{ matrix.target }}"
+          fi
+      - name: Verify glibc floor <= 2.28 (linux gnu)
+        if: matrix.tool == 'zig' && !contains(matrix.target, 'musl')
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin="target/${{ matrix.target }}/release/sokonanoda-lsp"
+          max=$(readelf -W --version-info --dyn-syms "$bin" \
+            | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -1)
+          echo "highest required symbol: ${max}"
+          test "$(printf '%s\n' "$max" "GLIBC_2.28" | sort -V | tail -1)" = "GLIBC_2.28"
+      - name: Verify static musl binary
+        if: contains(matrix.target, 'musl')
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin="target/${{ matrix.target }}/release/sokonanoda-lsp"
+          file "$bin"
+          ldd "$bin" 2>&1 | grep -q "not a dynamic executable" \
+            || { ldd "$bin" || true; echo "expected a static musl binary"; exit 1; }
       - name: Package binary
         shell: bash
         run: |
@@ -92,9 +140,13 @@ jobs:
           mkdir -p dist
           for entry in \
             "x86_64-unknown-linux-gnu:linux-x64" \
+            "aarch64-unknown-linux-gnu:linux-arm64" \
+            "x86_64-unknown-linux-musl:alpine-x64" \
+            "aarch64-unknown-linux-musl:alpine-arm64" \
             "aarch64-apple-darwin:darwin-arm64" \
             "x86_64-apple-darwin:darwin-x64" \
-            "x86_64-pc-windows-msvc:win32-x64"
+            "x86_64-pc-windows-msvc:win32-x64" \
+            "aarch64-pc-windows-msvc:win32-arm64"
           do
             rust="${entry%%:*}"; vsce="${entry##*:}"
             exe=""; [[ "$rust" == *windows* ]] && exe=".exe"
@@ -118,13 +170,17 @@ jobs:
         working-directory: editor/vscode
         run: |
           python3 - <<'PY'
-          import sys, zipfile
+          import zipfile
 
           EXPECTED = {
               "dist/sokonanoda-linux-x64.vsix": ("linux-x64", "extension/bin/linux-x64/sokonanoda-lsp"),
+              "dist/sokonanoda-linux-arm64.vsix": ("linux-arm64", "extension/bin/linux-arm64/sokonanoda-lsp"),
+              "dist/sokonanoda-alpine-x64.vsix": ("alpine-x64", "extension/bin/alpine-x64/sokonanoda-lsp"),
+              "dist/sokonanoda-alpine-arm64.vsix": ("alpine-arm64", "extension/bin/alpine-arm64/sokonanoda-lsp"),
               "dist/sokonanoda-darwin-arm64.vsix": ("darwin-arm64", "extension/bin/darwin-arm64/sokonanoda-lsp"),
               "dist/sokonanoda-darwin-x64.vsix": ("darwin-x64", "extension/bin/darwin-x64/sokonanoda-lsp"),
               "dist/sokonanoda-win32-x64.vsix": ("win32-x64", "extension/bin/win32-x64/sokonanoda-lsp.exe"),
+              "dist/sokonanoda-win32-arm64.vsix": ("win32-arm64", "extension/bin/win32-arm64/sokonanoda-lsp.exe"),
           }
           universal = "dist/sokonanoda-universal.vsix"
 
@@ -209,9 +265,13 @@ jobs:
           for vsix in \
             sokonanoda-universal.vsix \
             sokonanoda-linux-x64.vsix \
+            sokonanoda-linux-arm64.vsix \
+            sokonanoda-alpine-x64.vsix \
+            sokonanoda-alpine-arm64.vsix \
             sokonanoda-darwin-arm64.vsix \
             sokonanoda-darwin-x64.vsix \
-            sokonanoda-win32-x64.vsix
+            sokonanoda-win32-x64.vsix \
+            sokonanoda-win32-arm64.vsix
           do
             echo "publishing ${vsix}"
             published=0

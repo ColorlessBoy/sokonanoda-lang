@@ -113,6 +113,11 @@ npm run clean:lsp
 11. **下载回退禁止 `latest`**——只允许
     `releases/download/v${extensionVersion}/…`（契约测试断言 server.js 不含
     `/latest/`）；否则旧插件会拉到新服务器，协议错配且不可复现。
+12. **Linux 目标必须用 cargo-zigbuild + `.2.28`**——ubuntu-latest 原生构建
+    会带 glibc 2.39 符号（VS Code 自己的 Linux 底线是 2.28）；Zig 0.16.0 /
+    cargo-zigbuild 0.23.4 版本钉死。Alpine（musl）必须是静态链接
+    （`ldd` 报 "not a dynamic executable"）；`win32-arm64` 在 windows-latest
+    原生构建即可（VS ARM64 工具链预装）。
 
 ## 6. 发布
 

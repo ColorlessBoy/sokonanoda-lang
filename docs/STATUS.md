@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-10（第二十一轮：插件自带 LSP Phase 1 + Phase 2 进行中）
+> 快照：2026-09-10（第二十二轮：平台矩阵 4 → 8，v0.8.0 待发布）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-bundled-lsp.md`（本轮）/ `docs/design-by-tactics.md`（§6 as-built）/ `docs/design-hover-refactor.md` /
+> 设计 = `docs/design-bundled-lsp.md`（本轮 Phase 3 收尾）/ `docs/design-by-tactics.md`（§6 as-built）/ `docs/design-hover-refactor.md` /
 > `docs/design-course-bilingual.md` /
 > `docs/design-hover-brackets.md` /
 > `docs/design-round14.md`（含本轮 B′ 决议）/
@@ -20,6 +20,29 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-10，第二十二轮：平台矩阵 4 → 8）
+
+> 触发：用户问「其他成熟项目都加了吗」——调研确认 cpptools 9 平台、C# 8、
+> rust-analyzer 8（含 alpine）；本轮把平台包从 4 扩到 8，对齐 C#。
+
+1. **平台矩阵 4 → 8**：新增 `linux-arm64`（aarch64-gnu）、`alpine-x64` /
+   `alpine-arm64`（musl 静态）、`win32-arm64`（aarch64-msvc 原生构建）。
+   对应 VSIX：8 平台包 + universal 回退包。
+2. **Linux 构建改 cargo-zigbuild（顺带修真实兼容缺陷）**：此前 `linux-x64`
+   在 ubuntu-24.04 原生构建，二进制带 glibc 2.39 符号（VS Code 自身底线
+   2.28）；现统一 `cargo zigbuild` + 显式 `.2.28` 地板，Zig 0.16.0 /
+   cargo-zigbuild 0.23.4 钉死；构建期 readelf 断言 GLIBC ≤ 2.28、musl
+   断言 `ldd` 非动态。
+3. **运行时 Alpine 检测**：`server.js` 按 `/etc/alpine-release` 选
+   `alpine-*`（与 VS Code 的 target 选择一致），下载映射 gnu→musl 对应
+   triple；`scripts/stage-lsp.js` 映射表补 4 个新 triple。
+4. **测试**：node 单测 16（+4 类映射/Alpine 检测/musl URL）+ 契约 12
+   （server.js 8 target + Alpine；release.yml 新 target + zigbuild + 2.28）。
+5. **版本 0.8.0**（minor：新平台覆盖）；README/CHANGELOG/RELEASE.md/
+   vscode-dev-guide/ci skill/TESTING 同步；release.yml 冒烟扩到 9 个 VSIX。
+6. **待办**：release dry-run 验证 8 平台构建（下一动作）；green 后打
+   `v0.8.0` 发布。linux-armhf 仍由 universal 兜底（可选再加）。
 
 ## 本轮进度（2026-09-10，第二十一轮：插件自带 LSP——bundled VSIX）
 

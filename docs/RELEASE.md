@@ -21,34 +21,44 @@ dry-run）。发布 = 推一个 `v*` tag，其余全自动。
 ## 2. 流水线概览
 
 ```text
-push tag v* ──► job build（matrix：4 平台原生构建）
+push tag v* ──► job build（matrix：8 平台）
+                  ├─ 原生：darwin-arm64 / darwin-x64（macos-latest）、
+                  │        win32-x64 / win32-arm64（windows-latest）
+                  └─ Linux：cargo-zigbuild + Zig（ubuntu-latest）
+                     gnu 目标加 `.2.28` 地板（VS Code 的 Linux 最低要求），
+                     musl（alpine-*）静态链接；构建后 readelf/ldd 断言
                   artifact：lsp-<rust-target>/（裸二进制）
                     │
                 job package-vsix（ubuntu；needs build）
                   1. version gate：tag == Cargo.toml == package.json
                   2. download 全部 lsp-* artifact
                   3. 逐 target：stage-lsp.js → vsce package --target
-                     → sokonanoda-{linux-x64,darwin-arm64,darwin-x64,win32-x64}.vsix
+                     → 8 个平台包（linux-x64/arm64、alpine-x64/arm64、
+                       darwin-arm64/x64、win32-x64/arm64）
                   4. clean bin/ → vsce package（无 target）
                      → sokonanoda-universal.vsix（回退包，无 bin）
                   5. 冒烟：python zipfile 断言每个平台包的 bin 路径、大小 >1MB、
                      linux/darwin exec 位（mode & 0o111）、manifest TargetPlatform
                     │
                 job github-release（needs build + package-vsix，contents: write）
-                  ├─ 4 个 sokonanoda-lsp-<rust-target>.tar.gz（回退下载资产）
-                  └─ 5 个 .vsix
+                  ├─ 8 个 sokonanoda-lsp-<rust-target>.tar.gz（回退下载资产）
+                  └─ 9 个 .vsix
                     │
                 job marketplace-publish（needs package-vsix）
-                  └─ 先 universal、后 4 个平台包，逐包重试 4 次
+                  └─ 先 universal、后 8 个平台包，逐包重试 4 次
                      （vsce publish --skip-duplicate --packagePath …）
 ```
 
+- **Linux 二进制必须走 cargo-zigbuild 并显式 `.2.28`**：ubuntu-latest
+  原生构建会带上 glibc 2.39 符号，Deacon/老发行版装不上；Zig 与
+  cargo-zigbuild 版本在 workflow 里钉死（0.16.0 / 0.23.4）。musl 目标由
+  Zig 静态链接（`ldd` 应为 "not a dynamic executable"）。
 - **exec 位必须在 Ubuntu 上打包**：VSIX 的 zip 记录 unix mode，Windows 打包
   会丢（vsce 已知问题）。`scripts/stage-lsp.js` 在 stage 时 `chmod 755`，
   package-vsix 冒烟会断言。
-- universal 包用于没有平台构建的用户（当前：Linux arm64、Alpine、Windows
-  arm64 等），其下载 URL 由扩展锁定到
-  `releases/download/v${extensionVersion}/…`，**不会**跟随 latest。
+- universal 包用于没有平台构建的用户（当前：Linux armhf 等），其下载 URL
+  由扩展锁定到 `releases/download/v${extensionVersion}/…`，**不会**跟随
+  latest。
 - 发布顺序：universal 先、平台包后（Marketplace “Validating” 窗口有装错
   target 的竞态，见 `microsoft/vscode#141696`）；`--skip-duplicate` + `--clobber`
   保证 tag 重跑幂等。
@@ -103,9 +113,10 @@ code --install-extension sokonanoda.vsix --force   # 手动验收（离线可用
 
 ## 6. 已知限制与风险
 
-- 首期平台：`linux-x64` / `darwin-arm64` / `darwin-x64` / `win32-x64`。
-  其余平台走 universal 回退包的版本锁定下载（glibc 二进制在 Alpine/musl
-  不可用；文案会提示）。
+- 平台覆盖：`linux-x64` / `linux-arm64` / `alpine-x64` / `alpine-arm64` /
+  `darwin-arm64` / `darwin-x64` / `win32-x64` / `win32-arm64`（8 个，另有
+  universal 回退包）。未覆盖的（如 linux-armhf）走 universal 的版本锁定
+  下载；glibc 地板 2.28（与 VS Code 自身要求一致），Alpine 为静态 musl。
 - Marketplace 平台包与 universal 包同版本并存；VS Code 的回落选择在历史上
   有过 bug（`microsoft/vscode#276673`），遇到装错 target 的反馈先让用户
   卸载重装。

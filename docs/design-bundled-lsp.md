@@ -232,8 +232,12 @@ per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`docs/STATU
 
 ## 5. 边界与已知风险
 
-- Alpine(musl)、linux-arm64、win32-arm64 首期无内置包 → universal 下载兜底；
-  glibc 二进制在 musl 不可用，文案必须说清；
+- 平台覆盖 8 个：`linux-x64` / `linux-arm64` / `alpine-x64` / `alpine-arm64` /
+  `darwin-arm64` / `darwin-x64` / `win32-x64` / `win32-arm64`（对齐 C# 8 平台，
+  cpptools 为 9 含 linux-armhf）；linux-armhf 等仍未覆盖 → universal 下载兜底
+  （版本锁定）。linux-x64 曾因 ubuntu-latest 原生构建引入 glibc 2.39 依赖，
+  已改 cargo-zigbuild 显式 `.2.28` 地板（VS Code 自身的 Linux 最低要求）；
+  Alpine 为静态 musl，运行时按 `/etc/alpine-release` 检测（与 VS Code 一致）。
 - macOS quarantine：VSIX 解压通常不带 quarantine；若用户遇到 Gatekeeper，
   文档给 `xattr -d com.apple.quarantine` 指引；
 - 只读扩展目录 chmod 失败 → 降级到下载缓存并提示；
@@ -283,6 +287,9 @@ per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`docs/STATU
   fallback URL 改版本锁定；`docs/RELEASE.md` / 开发指南 / CI skill 同步；
   **dry-run `workflow_dispatch` 全绿**（run 34460822423，5 个 VSIX）；版本
   bump 0.7.0 + 门面同步；两个只存在于 CI 的路径 bug 修掉并记台账。
-- **Phase 3（硬化）基本完成**：CI 集成测试改走 bundled 路径（fresh runner
-  = 无缓存激活性实证）；剩余为决策项——追加 linux-arm64 / win32-arm64 /
-  alpine 平台包（暂由 universal 回退包兜底）。
+- **Phase 3（硬化）✅ 2026-09-10（v0.8.0）**：CI 集成测试走 bundled 路径
+  （fresh runner = 无缓存激活性实证）；平台矩阵 4 → 8：新增 linux-arm64 /
+  alpine-x64 / alpine-arm64 / win32-arm64；Linux 目标改 cargo-zigbuild +
+  显式 glibc 2.28 地板（顺带修掉 linux-x64 的 24.04 兼容隐患），musl 静态
+  链接、win32-arm64 原生构建；release.yml 冒烟同步扩到 9 个 VSIX。
+  剩余：linux-armhf（边缘平台，universal 兜底）与用户反馈收集。

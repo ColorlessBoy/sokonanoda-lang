@@ -54,13 +54,18 @@ async function run() {
     assert.strictEqual(server.platformTarget("darwin", "arm64"), "darwin-arm64");
     assert.strictEqual(server.platformTarget("darwin", "x64"), "darwin-x64");
     assert.strictEqual(server.platformTarget("linux", "x64"), "linux-x64");
+    assert.strictEqual(server.platformTarget("linux", "arm64"), "linux-arm64");
     assert.strictEqual(server.platformTarget("win32", "x64"), "win32-x64");
+    assert.strictEqual(server.platformTarget("win32", "arm64"), "win32-arm64");
+    assert.strictEqual(server.platformTarget("linux", "x64", true), "alpine-x64");
+    assert.strictEqual(server.platformTarget("linux", "arm64", true), "alpine-arm64");
   });
 
   await test("platformTarget rejects unsupported pairs", () => {
     for (const [platform, arch] of [
-      ["linux", "arm64"],
-      ["win32", "arm64"],
+      ["linux", "ia32"],
+      ["linux", "arm"],
+      ["win32", "ia32"],
       ["darwin", "ia32"],
       ["freebsd", "x64"],
     ]) {
@@ -76,8 +81,19 @@ async function run() {
     assert.strictEqual(server.rustTarget("darwin", "arm64"), "aarch64-apple-darwin");
     assert.strictEqual(server.rustTarget("darwin", "x64"), "x86_64-apple-darwin");
     assert.strictEqual(server.rustTarget("linux", "x64"), "x86_64-unknown-linux-gnu");
+    assert.strictEqual(server.rustTarget("linux", "arm64"), "aarch64-unknown-linux-gnu");
     assert.strictEqual(server.rustTarget("win32", "x64"), "x86_64-pc-windows-msvc");
-    assert.strictEqual(server.rustTarget("linux", "arm64"), undefined);
+    assert.strictEqual(server.rustTarget("win32", "arm64"), "aarch64-pc-windows-msvc");
+    assert.strictEqual(server.rustTarget("linux", "x64", true), "x86_64-unknown-linux-musl");
+    assert.strictEqual(server.rustTarget("linux", "arm64", true), "aarch64-unknown-linux-musl");
+    assert.strictEqual(server.rustTarget("linux", "ia32"), undefined);
+  });
+
+  await test("isAlpineLinux detects /etc/alpine-release (linux only)", () => {
+    const alpine = fakeFs({ existing: ["/etc/alpine-release"] });
+    assert.strictEqual(server.isAlpineLinux("linux", alpine), true);
+    assert.strictEqual(server.isAlpineLinux("darwin", alpine), false);
+    assert.strictEqual(server.isAlpineLinux("linux", fakeFs()), false);
   });
 
   await test("bundledServerPath points at bin/<target>/sokonanoda-lsp[.exe]", () => {
@@ -89,7 +105,19 @@ async function run() {
       server.bundledServerPath("/ext", "win32", "x64"),
       path.join("/ext", "bin", "win32-x64", "sokonanoda-lsp.exe"),
     );
-    assert.strictEqual(server.bundledServerPath("/ext", "linux", "arm64"), undefined);
+    assert.strictEqual(
+      server.bundledServerPath("/ext", "win32", "arm64"),
+      path.join("/ext", "bin", "win32-arm64", "sokonanoda-lsp.exe"),
+    );
+    assert.strictEqual(
+      server.bundledServerPath("/ext", "linux", "arm64"),
+      path.join("/ext", "bin", "linux-arm64", "sokonanoda-lsp"),
+    );
+    assert.strictEqual(
+      server.bundledServerPath("/ext", "linux", "x64", true),
+      path.join("/ext", "bin", "alpine-x64", "sokonanoda-lsp"),
+    );
+    assert.strictEqual(server.bundledServerPath("/ext", "linux", "ia32"), undefined);
   });
 
   await test("resolveBundledServer returns the executable binary as-is", () => {
@@ -144,7 +172,7 @@ async function run() {
       undefined,
     );
     assert.strictEqual(
-      server.resolveBundledServer({ extensionPath: "/ext", platform: "linux", arch: "arm64", fs: fake }),
+      server.resolveBundledServer({ extensionPath: "/ext", platform: "linux", arch: "ia32", fs: fake }),
       undefined,
     );
   });
@@ -225,12 +253,16 @@ async function run() {
       "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v0.7.0/sokonanoda-lsp-aarch64-apple-darwin.tar.gz",
     );
     assert.ok(!url.includes("/latest/"), "the download must never resolve to latest");
-    assert.strictEqual(server.downloadUrl("0.7.0", "linux", "arm64"), undefined);
+    assert.strictEqual(
+      server.downloadUrl("0.7.0", "linux", "arm64", true),
+      "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v0.7.0/sokonanoda-lsp-aarch64-unknown-linux-musl.tar.gz",
+    );
+    assert.strictEqual(server.downloadUrl("0.7.0", "linux", "ia32"), undefined);
   });
 
   await test("downloadLspBinary rejects unsupported platforms with guidance", async () => {
     await assert.rejects(
-      server.downloadLspBinary({ version: "0.7.0", platform: "linux", arch: "arm64" }),
+      server.downloadLspBinary({ version: "0.7.0", platform: "linux", arch: "ia32" }),
       /没有内置语言服务器/,
     );
   });

@@ -87,3 +87,7 @@ gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 | 陷阱 | 事实 | 规程 |
 |---|---|---|
 | `vscode-test` ETIMEDOUT | `Resolving version...` 后 `AggregateError [ETIMEDOUT]` 是连 `update.code.visualstudio.com` 下载 VS Code 失败，**间歇性** | 直接重跑 job；同提交下一轮绿即验证为网络问题；不要当代码回归查 |
+
+| 陷阱 | 事实 | 规程 |
+|---|---|---|
+| Linux glibc 地板 | ubuntu-latest 原生构建会带 glibc 2.39 符号（VS Code 自身底线 2.28），老发行版装不上 | Linux 目标走 `cargo zigbuild` + `.2.28`；构建期 `readelf` 断言；musl（alpine）断言 `ldd` 静态；Zig/cargo-zigbuild 版本钉死 |

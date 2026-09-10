@@ -223,3 +223,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    `v${version}` 锁定，禁止 latest）。**Phase 1（核心解析/打包脚本/单测/
    契约）与 Phase 2（release.yml 逐平台打包发布 + tag↔版本门禁 + exec 冒烟）
    已落地并通过 release dry-run；Phase 3 剩余为额外平台评估。**
+- 2026-09-10（二十）：**平台矩阵扩展 4 → 8（用户要求）**：对标成熟插件
+   （cpptools 9 / C# 8 / rust-analyzer 8，均含 alpine），新增 linux-arm64、
+   alpine-x64、alpine-arm64、win32-arm64 四个平台包；Linux 二进制改
+   cargo-zigbuild 并显式 glibc 2.28 地板（顺带修掉 ubuntu-24.04 原生构建
+   引入 glibc 2.39 的兼容隐患），Alpine 为静态 musl；扩展运行时按
+   `/etc/alpine-release` 选择 alpine 包。扩展 0.7.0 → 0.8.0。行业标准
+   矩阵 = 3 OS × 2 架构 + alpine（± linux-armhf）。

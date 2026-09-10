@@ -260,12 +260,25 @@ fn server_acquisition_prefers_the_bundled_binary() {
         "extension.js must delegate server acquisition to server.js"
     );
     let server = server_script();
-    for target in ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"] {
+    for target in [
+        "darwin-arm64",
+        "darwin-x64",
+        "linux-x64",
+        "linux-arm64",
+        "alpine-x64",
+        "alpine-arm64",
+        "win32-x64",
+        "win32-arm64",
+    ] {
         assert!(
             server.contains(target),
             "server.js must map the {target} platform to its bundled target directory"
         );
     }
+    assert!(
+        server.contains("/etc/alpine-release"),
+        "server.js must detect Alpine like VS Code does (alpine-* packages)"
+    );
     assert!(
         server.contains("\"bin\"") && server.contains("chmodSync") && server.contains("0o755"),
         "server.js must resolve bin/<target>/ and repair a lost executable bit"
@@ -335,6 +348,13 @@ fn release_workflow_packages_platform_specific_vsixes() {
         "Version gate",
         "stage-lsp.js",
         "vsce publish",
+        // Full platform matrix + portable Linux builds.
+        "aarch64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl",
+        "aarch64-unknown-linux-musl",
+        "aarch64-pc-windows-msvc",
+        "cargo zigbuild",
+        ".2.28",
     ] {
         assert!(
             release.contains(needle),

@@ -2,10 +2,10 @@
 
 Zero setup. Install the extension, open a `.sokonanoda` file, and the
 language server is already there — it **ships inside the extension** as a
-platform-specific package (macOS arm64/x86_64, Linux x86_64, Windows x86_64),
-so no Rust toolchain, no checkout, and **no network download**. Every exercise
-you finish is graded by a **complete Lean-4-compatible kernel**: if it's
-green, it's a real proof.
+platform-specific package (macOS arm64/x86_64, Linux x64/arm64, Alpine
+x64/arm64, Windows x64/arm64), so no Rust toolchain, no checkout, and **no
+network download**. Every exercise you finish is graded by a **complete
+Lean-4-compatible kernel**: if it's green, it's a real proof.
 
 Part of the
 [sokonanoda-lang](https://github.com/ColorlessBoy/sokonanoda-lang)
@@ -70,7 +70,7 @@ The server is discovered in this order:
 3. `target/debug|release/sokonanoda-lsp` in your workspace (repo
    checkouts — handy when developing the compiler),
 4. the version-pinned download cache — only used by the fallback package
-   for platforms with no bundled build (e.g. Linux arm64), and always
+   for platforms with no bundled build (e.g. Linux armhf), and always
    pinned to this extension's own release tag, never `latest`.
 
 **No Lean toolchain.** The kernel ships inside the server; on platforms

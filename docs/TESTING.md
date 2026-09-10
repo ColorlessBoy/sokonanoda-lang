@@ -349,3 +349,16 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 - **本机验收**：`npm run package:host` → 1.96MB VSIX（zip mode 755、
   `TargetPlatform="darwin-arm64"`）；`package:universal` → 0.47MB 无 bin。
 - 总量：workspace **440 passed + 8 ignored**；node 单测 22。
+
+## 2026-09-10 更新（第二十二轮：平台矩阵扩展 4 → 8）
+
+- **node 单测**（test-server.js，16 个）：新增 linux-arm64 / win32-arm64 /
+  alpine-x64 / alpine-arm64 的 `platformTarget`/`rustTarget`/`bundledServerPath`
+  映射、musl 下载 URL、`isAlpineLinux`（`/etc/alpine-release`，仅 linux）。
+- **静态契约**（extension.rs，12 个）：server.js 必须含 8 个 target 与 Alpine
+  检测；release.yml 必须含 4 个新 rust target + `cargo zigbuild` + `.2.28`。
+- **release dry-run**：8 平台构建（Linux 为 Zig 交叉：gnu 目标 readelf 断言
+  GLIBC ≤ 2.28、musl 断言静态；win32-arm64 原生）→ 9 个 VSIX zipfile 冒烟
+  （8 平台 + universal）→ GitHub Release 17 资产（8 tarball + 9 VSIX）。
+- **版本** 0.7.0 → 0.8.0；扩展 README 平台列表、CHANGELOG、RELEASE.md、
+  vscode-dev-guide（zigbuild/glibc 坑）、ci skill 同步。

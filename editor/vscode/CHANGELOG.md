@@ -1,3 +1,17 @@
+## [0.8.0] - 2026-09-10
+
+### Added
+- **More platforms** — bundled packages now also cover `linux-arm64`,
+  `alpine-x64`, `alpine-arm64` and `win32-arm64` (nine packages in total, like
+  other major language extensions), so ARM and Alpine users get the
+  zero-download experience too. Linux binaries are now built with a **glibc
+  2.28 floor** (VS Code's own Linux minimum), fixing installs on older
+  distributions; Alpine binaries are statically linked musl.
+
+### Changed
+- The universal fallback package now only serves platforms without a bundled
+  build (e.g. Linux armhf).
+
 ## [0.7.0] - 2026-09-10
 
 ### Added
