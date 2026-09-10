@@ -70,10 +70,19 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `test:unit` + stage + host VSIX 冒烟。
 4. **文档同步**：`docs/RELEASE.md` 重写（新流水线 + dry-run + 风险）、
    `docs/vscode-dev-guide.md`（server.js/测试层/开发循环/3 条新坑）、
-   `skills/sokonanoda-ci`（平台包 exec 位/发布顺序/版本门禁）。
+   `skills/sokonanoda-ci`（平台包 exec 位/发布顺序/版本门禁/ETIMEDOUT）。
+5. **dry-run 验收（workflow_dispatch `34460822423` 全绿）**：4 平台构建 +
+   package-vsix 全过，产出 5 个 VSIX（darwin-arm64 1.93MB / darwin-x64
+   2.01MB / linux-x64 2.06MB / win32-x64 2.03MB / universal 0.47MB），
+   zip 内 `bin/linux-x64/sokonanoda-lsp` mode 755、manifest
+   `TargetPlatform="linux-x64"`，darwin 二进制本机 Mach-O arm64 可执行。
+   抓修 2 个只存在于 CI 的路径 bug（`../../` 层数、`mkdir -p dist`），
+   均已记 `docs/CI-FAILURES.md`；另有 1 次集成测试 ETIMEDOUT 间歇网络
+   （同代码下一轮绿，已入台账 + CI skill）。
 
-**Phase 3（硬化）**：CI 集成测试已走 bundled 路径（Phase 2 顺带完成）；
-剩余：无缓存激活用例、额外平台（linux-arm64 / win32-arm64 / alpine）评估。
+**Phase 3（硬化，基本完成）**：CI 集成测试已走 bundled 路径（fresh runner
+= 无缓存激活的实证）；剩余为决策项——是否追加 linux-arm64 / win32-arm64 /
+alpine 平台包（下轮评估，暂由 universal 回退包兜底）。
 `docs/design-bundled-lsp.md` 已提交（`39ea982`）。
 
 ## 本轮进度（2026-09-10，第二十轮：光标处 goal 视图 Phase 2 落地）

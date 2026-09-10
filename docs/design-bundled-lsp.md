@@ -274,13 +274,15 @@ per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`docs/STATU
 
 ## 8. 分阶段计划
 
-- **Phase 1（核心可用，半天）**：`server.js` 重构 + 解析顺序（含 bundled +
-  chmod 守卫）+ `stage-lsp.js` + `.gitignore` + node 单测 + 静态契约；
-  本机 `npm run package:host` 出 VSIX，断网手测可用。验收 = 本机 VSIX 离线
-  可用 + `cargo test -p sokonanoda-cli --test extension` 全绿。
-- **Phase 2（发布闭环）**：`release.yml` per-target VSIX + tag↔版本门禁 +
-  exec-bit 冒烟 + Release 附件 + marketplace 逐平台发布；fallback URL 改版本
-  锁定；`docs/RELEASE.md` / 开发指南 / CI skill 同步；dry-run 验收。
-  含版本 bump 0.7.0 + 门面同步。
-- **Phase 3（硬化）**：CI 集成测试改走 bundled 路径 + 无缓存激活用例；
-  评估 linux-arm64 / win32-arm64 / alpine 扩展；收集真实用户反馈。
+- **Phase 1（核心可用）✅ 2026-09-10**：`server.js` 重构 + 解析顺序（含
+  bundled + chmod 守卫）+ `scripts/stage-lsp.js` + `.gitignore` +
+  node 单测（15）+ 静态契约（+3）；本机 `package:host` 出 VSIX（1.96MB，
+  zip mode 755）、universal 0.47MB 无 bin。
+- **Phase 2（发布闭环）✅ 2026-09-10**：`release.yml` per-target VSIX +
+  tag↔版本门禁 + exec-bit 冒烟 + Release 附件 + marketplace 逐平台发布；
+  fallback URL 改版本锁定；`docs/RELEASE.md` / 开发指南 / CI skill 同步；
+  **dry-run `workflow_dispatch` 全绿**（run 34460822423，5 个 VSIX）；版本
+  bump 0.7.0 + 门面同步；两个只存在于 CI 的路径 bug 修掉并记台账。
+- **Phase 3（硬化）基本完成**：CI 集成测试改走 bundled 路径（fresh runner
+  = 无缓存激活性实证）；剩余为决策项——追加 linux-arm64 / win32-arm64 /
+  alpine 平台包（暂由 universal 回退包兜底）。
