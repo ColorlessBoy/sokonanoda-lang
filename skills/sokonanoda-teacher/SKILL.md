@@ -14,22 +14,34 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 
 ## 1. 环境搭建（agent 接手时先确认）
 
-如果本机还没有 `sokonanoda` 命令，按顺序尝试：
+**code agent 与 VS Code 插件是解耦的**：判卷用仓库里的 CLI，LSP 二进制从
+GitHub Release 按版本拉取——**不需要装 VS Code 扩展**。
 
-```bash
-# 方式 ①：从 GitHub Release 下载预编译二进制（最快，无编译）
-curl -sL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest/download/sokonanoda-lsp-aarch64-apple-darwin.tar.gz"   | tar xz -C /usr/local/bin sokonanoda-lsp   # macOS ARM
-# Linux x86_64 用 sokonanoda-lsp-x86_64-unknown-linux-gnu.tar.gz
-# Windows 用 sokonanoda-lsp-x86_64-pc-windows-msvc.zip
+1. **判卷 CLI**（Release 里没有 CLI 预编译包，直接用仓库）：
+   `cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json <file>`
 
-# 方式 ②：从源码编译（仓库 clone 后，全量测试 + CLI + LSP）
-cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
-export PATH="$PWD/target/release:$PATH"
-```
+2. **LSP 二进制（agent 自己的官方源）**：按仓库版本从 Release 拉取到
+   launcher 缓存；opencode 打开 `.sokonanoda` 时自动使用，无需 VS Code：
 
-二进制装好后 `sokonanoda --version` 应输出 `sokonanoda 0.2.0` 或更高。
-LSP 服务器（`sokonanoda-lsp`）会在 VS Code / opencode 打开 `.sokonanoda`
-文件时自动启动（`opencode.json` 已接线），不需要手动启动。
+   ```bash
+   V=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)   # 仓库当前版本
+   TARGET=aarch64-apple-darwin   # linux-x64: x86_64-unknown-linux-gnu；win32: x86_64-pc-windows-msvc（Windows 也是 .tar.gz）
+   mkdir -p ~/.local/share/sokonanoda/bin
+   curl -fsSL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v${V}/sokonanoda-lsp-${TARGET}.tar.gz" \
+     | tar xz -C ~/.local/share/sokonanoda/bin
+   ```
+
+   launcher（`.opencode/lsp/sokonanoda-lsp.sh`）在本地找不到二进制时也会
+   自动按同一 URL 下载；离线环境用 `SOKONANODA_LSP_OFFLINE=1` 禁用网络。
+
+3. **开发/离线机器**：`cargo build --release -p sokonanoda-lsp`——launcher
+   优先使用 `target/` 里的本地构建。
+
+4. VS Code 用户可装 Marketplace 扩展（平台包自带同版本 bin），那是编辑器
+   体验；agent 不依赖它。
+
+⚠️ **不要用 `releases/latest`**：下载 URL 必须按仓库/插件版本锁定
+（`v${V}`），否则会拿新服务器配旧插件，协议错配且不可复现。
 
 ## 2. 环境与命令速查（在仓库根目录执行）
 

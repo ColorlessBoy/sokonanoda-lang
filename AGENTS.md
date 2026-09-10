@@ -34,10 +34,15 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 ```
 
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定
-（仓库根 `opencode.json` 已接线：`skills/` 自动加载、`/gate` `/check` `/round`
-命令、`teacher` 主 agent、Lean 工具链命令 deny）；goal 视图走自定义请求
+（仓库根 `opencode.json` 已接线：LSP 走 `.opencode/lsp/sokonanoda-lsp.sh`
+launcher——本仓库构建 / VS Code 扩展自带 bin / 下载缓存优先，缺失时按版本
+锁定从 GitHub Release 自动下载（`SOKONANODA_LSP_OFFLINE=1` 可禁用），最后
+才编译；`skills/` 自动加载、`/gate` `/check` `/round` 命令、`teacher` 主
+agent、Lean 工具链命令 deny）；goal 视图走自定义请求
 `soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt`
-（`docs/protocol.md`）。
+（`docs/protocol.md`）。每个 release 仍正常产出各平台
+`sokonanoda-lsp-<triple>.tar.gz`（8 个）与 VSIX（9 个），供自动下载与
+headless 手动安装；**下载一律按仓库版本锁定，禁用 `latest`**。
 
 ## VS Code 扩展改动
 

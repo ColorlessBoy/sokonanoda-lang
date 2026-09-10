@@ -365,11 +365,11 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 
 ## 2026-09-10 更新（第二十二轮续：opencode launcher）
 
-- **opencode 配置契约**（`crates/cli/tests/opencode.rs`，2 个）：
-  1）`opencode.json` 必须启动仓库 launcher，禁止 `cargo run`；
-  2）端到端：把 launcher 复制到临时目录（屏蔽真实 `target/`），伪造
-  `~/.vscode/extensions/sokonanoda-lang.sokonanoda-9.9.9/bin/<target>/`
-  安装树，在 **PATH 不含 cargo** 的环境下断言 launcher 命中扩展自带
-  bin；无任何二进制时给出可行动错误。launcher 解析顺序：
-  `SOKONANODA_LSP_BIN` → 仓库 target → VS Code 扩展 bin → 下载缓存 →
-  `cargo build`。
+- **opencode 配置契约**（`crates/cli/tests/opencode.rs`，4 个）：
+  1）`opencode.json` 必须启动仓库 launcher（`bash -c exec …` 单行），禁止
+  `cargo run`；2）无 cargo 的 PATH 下命中 **VS Code 扩展自带 bin**；
+  3）无 VS Code、无 cargo 时用 fake `curl` 断言 **按仓库版本锁定**的
+  Release 下载（URL 含 `/download/v9.9.9/`、不含 `/latest/`）并运行解出的
+  二进制；4）离线（`SOKONANODA_LSP_OFFLINE=1`）且一无所有时给可行动错误。
+  launcher 解析顺序：`SOKONANODA_LSP_BIN` → 仓库 target → VS Code 扩展
+  bin → 下载缓存 → 版本锁定下载 → `cargo build`。

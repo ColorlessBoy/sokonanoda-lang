@@ -8,7 +8,7 @@
       "command": [
         "bash",
         "-c",
-        "root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); exec \"$root/.opencode/lsp/sokonanoda-lsp.sh\""
+        "exec \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.opencode/lsp/sokonanoda-lsp.sh\""
       ],
       "extensions": [".sokonanoda"]
     }

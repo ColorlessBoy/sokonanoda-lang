@@ -54,16 +54,27 @@ cargo test --workspace --locked             # 全部 13 个套件
 ```bash
 git clone https://github.com/ColorlessBoy/sokonanoda-lang.git && cd sokonanoda-lang
 
-# 方式 ①：从 GitHub Release 下载预编译二进制（最快，无编译）
-curl -sL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest/download/sokonanoda-lsp-aarch64-apple-darwin.tar.gz" \
-  | tar xz -C /usr/local/bin sokonanoda-lsp   # macOS ARM
-# Linux x86_64 用 sokonanoda-lsp-x86_64-unknown-linux-gnu.tar.gz
-# Windows 用 sokonanoda-lsp-x86_64-pc-windows-msvc.zip
+# 方式 ①（agent / headless 首选，与 VS Code 解耦）：按版本从 Release 拉 LSP
+V=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+TARGET=aarch64-apple-darwin   # x86_64-unknown-linux-gnu / x86_64-pc-windows-msvc（Windows 也是 .tar.gz）
+mkdir -p ~/.local/share/sokonanoda/bin
+curl -fsSL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v${V}/sokonanoda-lsp-${TARGET}.tar.gz" \
+  | tar xz -C ~/.local/share/sokonanoda/bin
+# opencode 的 launcher 会直接用这个缓存；它也会在缺失时自动按同一 URL
+# 下载（SOKONANODA_LSP_OFFLINE=1 可禁用网络）。
 
-# 方式 ②：从源码编译（仓库 clone 后，全量测试 + CLI + LSP）
+# 方式 ②（开发必需）：源码编译（CLI + LSP + 全量测试）
 cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
 export PATH="$PWD/target/release:$PATH"
+
+# 方式 ③（可选，编辑器体验）：装 VS Code 扩展（平台包自带同版本 bin）；
+#   agent 不依赖它。
 ```
+
+Release 资产：每个平台的 `sokonanoda-lsp-<rust-triple>.tar.gz` ×8 + VSIX ×9
+（8 平台 + universal 回退包）；**没有 CLI 预编译包**（CLI 走 `cargo run`
+或源码编译）。不要用 `releases/latest`——下载 URL 按仓库版本锁定，
+版本错配是明确要避免的故障。
 
 ## 5. VS Code 扩展开发规范
 
