@@ -36,12 +36,12 @@ ln -s "$PWD/skills/sokonanoda-teacher" ~/.claude/skills/sokonanoda-teacher
 ln -s "$PWD/skills/sokonanoda-teacher" ~/.agents/skills/sokonanoda-teacher
 ```
 
-编辑器反馈通道无需额外配置：仓库根 `opencode.json` 把 `.sokonanoda` 挂到
-仓库自带 launcher `.opencode/lsp/sokonanoda-lsp.sh`（opencode 打开教学文件时
-自动启动并消费 kernel 判定的诊断）。launcher 解析顺序：本仓库 `target/`
-构建 → VS Code 扩展自带 bin（若装了）→ 下载缓存 → **按版本锁定从 GitHub
-Release 自动下载**（`SOKONANODA_LSP_OFFLINE=1` 可禁用）→ 最后才 `cargo
-build`。code agent 与 VS Code 插件解耦，不装扩展也能跑。
+环境与编辑器反馈走**单一入口** `scripts/soko.sh`（设计见
+`docs/design-onboarding.md`）：`setup` 版本锁定下载 CLI+LSP（幂等）、
+`doctor` 就绪诊断（`--json`，0=就绪 3=未就绪）、`grade` 判卷、`gate`
+贡献者门禁、`lsp` 给编辑器用。opencode 的
+`.opencode/lsp/sokonanoda-lsp.sh` 只是它的 3 行 shim；启动插件还会自动
+provisioning 并把缓存目录注入 PATH。
 
 ## 守护
 

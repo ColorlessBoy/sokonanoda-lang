@@ -169,3 +169,19 @@
   `statically linked` 断言（双保险）。工作流注释已标注该坑。
 - **预防**：带 `pipefail` 的断言不要依赖会以非零退出的工具（ldd 静态退出 1、
   grep 无匹配退出 1）作为管道上游；先捕获再断言。
+
+## 2026-09-10 — v0.9.0 发布资产丢可执行位（CI 全绿但产物坏）
+
+- **现象**：v0.9.0（与 v0.8.0）GitHub Release 的 16 个 tarball 里二进制是
+  `0644`；`scripts/soko.sh setup` 解出后无法执行，扩展的 universal 回退
+  下载同理（`server.js` 只查存在、没 chmod）。CI/release 全绿——坏的是
+  产物内容，不是构建结果。
+- **原因**：`upload-artifact`/`download-artifact` 往返会丢 unix mode；发布
+  job 直接把 artifact 目录 `tar czf`，未补回 exec 位。
+- **修复**：①发布 job 在 tar 前 `chmod +x` 并用 `tar tzvf | grep '^-rwx'`
+  断言；②`scripts/soko.sh download_one` 解压后先 chmod 再判可执行；
+  ③`server.js downloadLspBinary` 解压后 chmod 0755；④回填修复了 v0.9.0
+  已发布的 16 个 tarball（重打包 + `--clobber`）。
+- **预防**：产物断言必须检查**内容属性**（mode、可执行、`--version`），
+  不能只看 job 绿；新增 tarball 消费方（脚本/扩展/launcher）一律自带
+  chmod 兜底；dry-run 应加一条“下载解包后直接执行”的冒烟。

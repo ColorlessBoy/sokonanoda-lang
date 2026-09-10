@@ -249,18 +249,26 @@ jobs:
             --title "sokonanoda ${{ github.ref_name }}" \
             --generate-notes || true
           # 平台二进制 tarball：universal VSIX 的版本锁定下载回退 + agent /
-          # headless 直接执行（LSP 与 CLI 各自一个 tarball）。
+          # headless 直接执行（LSP 与 CLI 各自一个 tarball）。artifact 上传/下载
+          # 会丢 unix mode（0644），必须在 tar 前补回并断言（v0.9.0 曾因此
+          # 解出不可执行的二进制）。
           for dir in lsp-*/; do
             target="${dir#lsp-}"
             target="${target%/}"
+            chmod +x "${dir}sokonanoda-lsp"
             tar czf "sokonanoda-lsp-${target}.tar.gz" -C "$dir" .
+            tar tzvf "sokonanoda-lsp-${target}.tar.gz" | grep -q '^-rwx' \
+              || { echo "exec bit missing in sokonanoda-lsp-${target}.tar.gz"; exit 1; }
             gh release upload "${{ github.ref_name }}" \
               "sokonanoda-lsp-${target}.tar.gz" --clobber
           done
           for dir in cli-*/; do
             target="${dir#cli-}"
             target="${target%/}"
+            chmod +x "${dir}sokonanoda"
             tar czf "sokonanoda-cli-${target}.tar.gz" -C "$dir" .
+            tar tzvf "sokonanoda-cli-${target}.tar.gz" | grep -q '^-rwx' \
+              || { echo "exec bit missing in sokonanoda-cli-${target}.tar.gz"; exit 1; }
             gh release upload "${{ github.ref_name }}" \
               "sokonanoda-cli-${target}.tar.gz" --clobber
           done

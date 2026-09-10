@@ -311,6 +311,15 @@ async function downloadLspBinary(options) {
     execSync(`tar xzf "${tmp}" -C "${dir}"`, { stdio: "pipe" });
     fs.unlinkSync(tmp);
     if (!fs.existsSync(dest)) throw new Error("tar extracted but binary not found");
+    // Release tarballs may carry 0644 (artifact round-trips strip the exec
+    // bit); restore it so the fallback path can actually spawn the server.
+    if (platform !== "win32") {
+      try {
+        fs.chmodSync(dest, 0o755);
+      } catch {
+        // read-only cache dir: the caller surfaces the spawn failure
+      }
+    }
     fs.writeFileSync(serverVersionMarker(), String(version));
     return dest;
   } catch (error) {

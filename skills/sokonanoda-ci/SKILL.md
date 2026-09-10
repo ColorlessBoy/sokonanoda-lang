@@ -91,3 +91,8 @@ gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 | 陷阱 | 事实 | 规程 |
 |---|---|---|
 | Linux glibc 地板 | ubuntu-latest 原生构建会带 glibc 2.39 符号（VS Code 自身底线 2.28），老发行版装不上 | Linux 目标走 `cargo zigbuild` + `.2.28`；构建期 `readelf` 断言；musl（alpine）断言 `ldd` 静态；Zig/cargo-zigbuild 版本钉死 |
+
+| 陷阱 | 事实 | 规程 |
+|---|---|---|
+| artifact 往返丢 unix mode | `upload/download-artifact` 后文件变 0644；直接打 tarball 会发布不可执行的二进制（v0.8/0.9 实际发生） | 打包前 `chmod +x` + `tar tzvf \| grep '^-rwx'` 断言；消费方一律自带 chmod 兜底 |
+| 本机直连 GitHub 超时 | 本地验证/下载需走代理 | `export HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890` |

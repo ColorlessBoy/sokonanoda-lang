@@ -8,6 +8,20 @@
 3. `ROADMAP.md` §10 —— 待办与验收标准；
 4. `docs/architecture.md` —— 流水线与内核 gotchas（§8 必读）。
 
+## Setup（30 秒，用户/agent 零 cargo；设计见 `docs/design-onboarding.md`）
+
+```bash
+bash scripts/soko.sh setup    # 幂等下载版本锁定的 CLI + LSP 到缓存
+bash scripts/soko.sh doctor   # 就绪诊断；--json 机器可读，0=就绪 3=未就绪
+bash scripts/soko.sh grade playground.sokonanoda   # 判卷（CLI --json）
+```
+
+- opencode 里等价命令：`/sokonanoda/setup` `/sokonanoda/doctor` `/sokonanoda/check`；
+  启动插件会自动跑一次 setup 并把缓存目录注入 PATH；
+- 贡献者（需要 Rust）：`cargo build/test` 或 `bash scripts/soko.sh gate`
+  （见 `skills/sokonanoda-dev`）；
+- 禁止：`releases/latest`、为使用仓库安装 Rust/cargo（REQUIREMENTS §2 第 9 条）。
+
 ## 角色技能（Agent Skills）
 
 - **当老师（产品主循环）**：加载 `skills/sokonanoda-teacher`——画布
@@ -27,9 +41,11 @@
    插件，不把 cargo/Rust 当使用前提（cargo 仅贡献者开发需要；见
    REQUIREMENTS §2 第 9 条）。
 
-## 命令（仅贡献者需要 Rust；用户/agent 用 Release 二进制，见 skills/sokonanoda-teacher）
+## 命令（贡献者：需要 Rust；用户/agent 用 `scripts/soko.sh`）
 
 ```bash
+bash scripts/soko.sh gate     # = CI 门禁：fmt + clippy + test + playground 锚点
+# 或手动：
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 cargo clippy --workspace --all-targets
 cargo test --workspace --locked
@@ -38,10 +54,10 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定
 （仓库根 `opencode.json` 已接线：LSP 走 `.opencode/lsp/sokonanoda-lsp.sh`
-launcher——本仓库构建 / VS Code 扩展自带 bin / 下载缓存优先，缺失时按版本
-锁定从 GitHub Release 自动下载（`SOKONANODA_LSP_OFFLINE=1` 可禁用），最后
-才编译；`skills/` 自动加载、`/gate` `/check` `/round` 命令、`teacher` 主
-agent、Lean 工具链命令 deny）；goal 视图走自定义请求
+shim → `scripts/soko.sh lsp`——本仓库构建 / VS Code 扩展自带 bin / 缓存优先，
+缺失时按版本锁定从 GitHub Release 自动下载（`SOKONANODA_OFFLINE=1` 可禁用），
+最后才编译；`skills/` 自动加载、`/sokonanoda/*` 命令、`teacher` 主 agent、
+插件启动自动 provisioning、Lean 工具链命令 deny）；goal 视图走自定义请求
 `soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt`
 （`docs/protocol.md`）。每个 release 仍正常产出各平台
 `sokonanoda-lsp-<triple>.tar.gz` 与 `sokonanoda-cli-<triple>.tar.gz`

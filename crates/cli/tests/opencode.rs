@@ -1,8 +1,6 @@
-//! opencode project-config contract (`opencode.json` + `.opencode/lsp/`): the
-//! agent editor must start the LSP through the repo-local launcher. Code
-//! agents are decoupled from the VS Code extension, so the launcher resolves
-//! (or downloads, version-pinned) the server on its own — no `cargo` and no
-//! VS Code install required.
+//! opencode project-config + onboarding contract: the single environment
+//! entrypoint is `scripts/soko.sh` (docs/design-onboarding.md); the opencode
+//! layer must stay a thin, namespaced, cargo-free wrapper around it.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -12,13 +10,12 @@ mod common;
 
 use common::repo_root;
 
-fn command_text(config: &serde_json::Value) -> Vec<String> {
-    config["lsp"]["sokonanoda"]["command"]
-        .as_array()
-        .expect("lsp.sokonanoda.command is an array")
-        .iter()
-        .filter_map(|value| value.as_str().map(str::to_string))
-        .collect()
+#[cfg(unix)]
+fn write_executable(path: &Path, body: &str) {
+    use std::os::unix::fs::PermissionsExt;
+    fs::create_dir_all(path.parent().expect("parent")).expect("create dir");
+    fs::write(path, body).expect("write script");
+    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).expect("chmod script");
 }
 
 fn unique_tmp(tag: &str) -> PathBuf {
@@ -32,130 +29,226 @@ fn unique_tmp(tag: &str) -> PathBuf {
     ))
 }
 
+/// Copy `scripts/soko.sh` + the LSP shim + a fake `Cargo.toml` into `$tmp` so
+/// the real workspace `target/` builds cannot shadow the lookup under test.
 #[cfg(unix)]
-fn write_executable(path: &Path, body: &str) {
-    use std::os::unix::fs::PermissionsExt;
-    fs::write(path, body).expect("write script");
-    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).expect("chmod script");
+fn copy_script_env(tmp: &Path, version: &str) {
+    write_executable(
+        &tmp.join("scripts/soko.sh"),
+        &fs::read_to_string(repo_root().join("scripts/soko.sh")).expect("read soko.sh"),
+    );
+    write_executable(
+        &tmp.join(".opencode/lsp/sokonanoda-lsp.sh"),
+        &fs::read_to_string(repo_root().join(".opencode/lsp/sokonanoda-lsp.sh"))
+            .expect("read launcher"),
+    );
+    fs::write(tmp.join("Cargo.toml"), format!("version = \"{version}\"\n")).expect("Cargo.toml");
 }
 
 #[test]
-fn opencode_lsp_uses_the_repo_local_launcher() {
+fn opencode_layer_is_namespaced_thin_and_cargo_free() {
     let root = repo_root();
-    let config: serde_json::Value = serde_json::from_str(
-        &fs::read_to_string(root.join("opencode.json")).expect("opencode.json"),
-    )
-    .expect("opencode.json is valid JSON");
-    let command = command_text(&config);
-    assert!(
-        command
-            .iter()
-            .any(|part| part.contains(".opencode/lsp/sokonanoda-lsp.sh")),
-        "opencode.json must launch the repo-local LSP script: {command:?}"
-    );
-    // Regression guard: the old `cargo run` form breaks for GUI-launched
-    // opencode (no cargo on PATH) and on first-run builds.
-    assert!(
-        !command.iter().any(|part| part == "cargo"),
-        "the LSP command must not invoke cargo directly: {command:?}"
-    );
-    // The command should stay a one-liner: `bash -c "exec <root>/launcher"`.
-    assert!(
-        command.len() == 3 && command[0] == "bash" && command[1] == "-c",
-        "keep the opencode LSP command minimal (bash -c exec …): {command:?}"
-    );
 
-    let script = root.join(".opencode/lsp/sokonanoda-lsp.sh");
-    assert!(script.exists(), "launcher script exists");
-    let body = fs::read_to_string(&script).expect("launcher readable");
-    assert!(
-        body.contains("target/release") && body.contains("target/debug"),
-        "launcher must reuse existing release/debug builds before compiling"
-    );
-    assert!(
-        body.contains("sokonanoda-lang.sokonanoda-"),
-        "launcher must look inside installed VS Code extensions (zero-network reuse)"
-    );
-    assert!(
-        body.contains("releases/download/v${version}/"),
-        "launcher must download version-pinned release assets"
-    );
-    assert!(
-        !body.contains("/latest/"),
-        "launcher must never download from releases/latest"
-    );
-    assert!(
-        body.contains("SOKONANODA_LSP_OFFLINE"),
-        "launcher must expose an offline escape hatch"
-    );
-    assert!(
-        body.contains("cargo build"),
-        "launcher must be able to build on a fresh clone"
-    );
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mode = fs::metadata(&script)
-            .expect("stat launcher")
-            .permissions()
-            .mode();
-        assert!(
-            mode & 0o111 != 0,
-            "launcher must be executable (mode {mode:o})"
-        );
-    }
-}
-
-/// Copy the launcher into `$tmp` so the real workspace `target/` builds cannot
-/// shadow the lookup under test; returns the copied script path.
-#[cfg(unix)]
-fn copied_launcher(tmp: &Path) -> PathBuf {
-    let lsp_dir = tmp.join(".opencode/lsp");
-    fs::create_dir_all(&lsp_dir).expect("create temp launcher dir");
-    let script = lsp_dir.join("sokonanoda-lsp.sh");
-    fs::copy(repo_root().join(".opencode/lsp/sokonanoda-lsp.sh"), &script).expect("copy launcher");
-    use std::os::unix::fs::PermissionsExt;
-    fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).expect("chmod launcher");
-    script
-}
-
-/// User/agent-facing opencode commands must stay cargo-free (hard rule
-/// REQUIREMENTS §2.9): they use the version-pinned release binaries.
-#[test]
-fn opencode_commands_stay_cargo_free() {
-    let root = repo_root();
-    for command in ["check.md", "setup.md"] {
-        let path = root.join(".opencode/command").join(command);
-        assert!(path.exists(), "{command} exists");
+    // Commands live under the `sokonanoda/` namespace (invoked /sokonanoda/…);
+    // the old flat names must be gone.
+    for name in ["setup", "doctor", "check", "gate", "round"] {
+        let path = root.join(format!(".opencode/command/sokonanoda/{name}.md"));
+        assert!(path.exists(), "missing namespaced command {name}");
         let body = fs::read_to_string(&path).expect("command readable");
         assert!(
             !body.contains("cargo run") && !body.contains("cargo build"),
-            "{command} must stay cargo-free (user/agent path)"
+            "{name} must stay cargo-free (user/agent path)"
         );
     }
-    let setup = fs::read_to_string(root.join(".opencode/command/setup.md"))
-        .expect("setup command readable");
+    for dead in ["check.md", "setup.md", "gate.md", "round.md"] {
+        assert!(
+            !root.join(".opencode/command").join(dead).exists(),
+            "flat command {dead} must be removed (namespaced now)"
+        );
+    }
+    for name in ["setup", "doctor", "check"] {
+        let body = fs::read_to_string(root.join(format!(".opencode/command/sokonanoda/{name}.md")))
+            .expect("command readable");
+        assert!(
+            body.contains("scripts/soko.sh"),
+            "{name} must call the single entrypoint scripts/soko.sh"
+        );
+    }
+
+    // The LSP launcher is only a shim over `soko.sh lsp`.
+    let launcher = fs::read_to_string(root.join(".opencode/lsp/sokonanoda-lsp.sh"))
+        .expect("launcher readable");
     assert!(
-        setup.contains("sokonanoda-cli") && setup.contains("sokonanoda-lsp"),
-        "setup must download both the CLI and the LSP binary"
+        launcher.contains("scripts/soko.sh") && launcher.contains("lsp"),
+        "launcher must delegate to scripts/soko.sh lsp"
     );
+
+    // The startup plugin provisions binaries and injects the cache into PATH.
+    let plugin =
+        fs::read_to_string(root.join(".opencode/plugin/sokonanoda.ts")).expect("plugin readable");
     assert!(
-        setup.contains("releases/download/v${V}"),
-        "setup must pin the release version"
+        plugin.contains("scripts/soko.sh") && plugin.contains("shell.env"),
+        "plugin must run the setup script and inject PATH via shell.env"
     );
-    assert!(
-        !setup.contains("/latest/"),
-        "setup must never use the latest alias"
-    );
+
+    // The entrypoint itself must exist and be runnable.
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = fs::metadata(root.join("scripts/soko.sh"))
+            .expect("stat soko.sh")
+            .permissions()
+            .mode();
+        assert!(mode & 0o111 != 0, "scripts/soko.sh must be executable");
+    }
 }
 
-/// The launcher must pick up the server bundled in an installed VS Code
-/// extension without needing `cargo` (zero-network reuse for editor users).
+/// `doctor --json` is the machine-readable readiness contract: exit 3 when the
+/// cache is empty, exit 0 once both binaries with matching version markers are
+/// present.
+#[cfg(unix)]
+#[test]
+fn soko_doctor_reports_readiness_with_exit_codes() {
+    let root = repo_root();
+    let tmp = unique_tmp("doctor");
+    let cache = tmp.join("cache");
+    fs::create_dir_all(&cache).expect("create cache");
+
+    let run = || {
+        Command::new("bash")
+            .arg(root.join("scripts/soko.sh"))
+            .arg("doctor")
+            .arg("--json")
+            .env("SOKONANODA_CACHE_DIR", &cache)
+            .env("SOKONANODA_OFFLINE", "1")
+            .output()
+            .expect("run doctor")
+    };
+
+    let output = run();
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "empty cache must be NOT READY (exit 3)"
+    );
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("doctor emits JSON");
+    assert_eq!(json["ready"], false);
+    let version = json["version"].as_str().expect("version").to_string();
+    let target = json["target"].as_str().expect("target").to_string();
+
+    // Fake binaries + version markers make the environment ready (offline).
+    write_executable(&cache.join("sokonanoda"), "#!/usr/bin/env bash\nexit 0\n");
+    write_executable(
+        &cache.join("sokonanoda-lsp"),
+        "#!/usr/bin/env bash\nexit 0\n",
+    );
+    fs::write(
+        cache.join("sokonanoda.version"),
+        format!("{version} {target}\n"),
+    )
+    .expect("cli marker");
+    fs::write(
+        cache.join("sokonanoda-lsp.version"),
+        format!("{version} {target}\n"),
+    )
+    .expect("lsp marker");
+
+    let output = run();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "matching markers must be READY (exit 0): {}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("doctor emits JSON");
+    assert_eq!(json["ready"], true);
+    assert_eq!(json["cli"]["version_match"], true);
+    assert_eq!(json["lsp"]["version_match"], true);
+
+    fs::remove_dir_all(&tmp).ok();
+}
+
+/// `setup` in offline mode must fail with exit 3 and an actionable message
+/// instead of hanging or silently doing nothing.
+#[cfg(unix)]
+#[test]
+fn soko_setup_offline_is_actionable() {
+    let root = repo_root();
+    let tmp = unique_tmp("setup-offline");
+    let cache = tmp.join("cache");
+    fs::create_dir_all(&cache).expect("create cache");
+
+    let output = Command::new("bash")
+        .arg(root.join("scripts/soko.sh"))
+        .arg("setup")
+        .env("SOKONANODA_CACHE_DIR", &cache)
+        .env("SOKONANODA_OFFLINE", "1")
+        .output()
+        .expect("run setup");
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("离线模式"),
+        "offline failure must be actionable: {stderr}"
+    );
+    fs::remove_dir_all(&tmp).ok();
+}
+
+/// `grade` must exec the cached CLI with `--json` and the given files.
+#[cfg(unix)]
+#[test]
+fn soko_grade_runs_the_cached_cli() {
+    let root = repo_root();
+    let tmp = unique_tmp("grade");
+    let cache = tmp.join("cache");
+    write_executable(
+        &cache.join("sokonanoda"),
+        "#!/usr/bin/env bash\necho \"ARGS:$*\"\n",
+    );
+    // Marker must match the repo version + host target.
+    let doctor = Command::new("bash")
+        .arg(root.join("scripts/soko.sh"))
+        .arg("doctor")
+        .arg("--json")
+        .env("SOKONANODA_CACHE_DIR", &cache)
+        .env("SOKONANODA_OFFLINE", "1")
+        .output()
+        .expect("run doctor");
+    let json: serde_json::Value =
+        serde_json::from_slice(&doctor.stdout).expect("doctor emits JSON");
+    let version = json["version"].as_str().expect("version").to_string();
+    let target = json["target"].as_str().expect("target").to_string();
+    fs::write(
+        cache.join("sokonanoda.version"),
+        format!("{version} {target}\n"),
+    )
+    .expect("cli marker");
+
+    let output = Command::new("bash")
+        .arg(root.join("scripts/soko.sh"))
+        .arg("grade")
+        .arg("playground.sokonanoda")
+        .env("SOKONANODA_CACHE_DIR", &cache)
+        .env("SOKONANODA_OFFLINE", "1")
+        .output()
+        .expect("run grade");
+    assert!(output.status.success(), "grade must succeed: {output:?}");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "ARGS:--json playground.sokonanoda"
+    );
+    fs::remove_dir_all(&tmp).ok();
+}
+
+/// The editor resolution chain must find the server bundled by an installed
+/// VS Code extension without `cargo` (zero-network reuse).
 #[cfg(unix)]
 #[test]
 fn launcher_reuses_the_vscode_extension_binary_without_cargo() {
     let tmp = unique_tmp("ext");
-    let script = copied_launcher(&tmp);
+    copy_script_env(&tmp, "9.9.9");
     let home = tmp.join("home");
     for target in [
         "darwin-arm64",
@@ -167,23 +260,22 @@ fn launcher_reuses_the_vscode_extension_binary_without_cargo() {
         "win32-x64",
         "win32-arm64",
     ] {
-        let bin_dir = home
-            .join(".vscode/extensions")
-            .join("sokonanoda-lang.sokonanoda-9.9.9/bin")
-            .join(target);
-        fs::create_dir_all(&bin_dir).expect("create fake extension bin dir");
         write_executable(
-            &bin_dir.join("sokonanoda-lsp"),
+            &home
+                .join(".vscode/extensions")
+                .join("sokonanoda-lang.sokonanoda-9.9.9/bin")
+                .join(target)
+                .join("sokonanoda-lsp"),
             "#!/usr/bin/env bash\necho FAKE_EXTENSION_BIN\n",
         );
     }
 
     let output = Command::new("bash")
-        .arg(&script)
+        .arg(tmp.join(".opencode/lsp/sokonanoda-lsp.sh"))
         .env("HOME", &home)
         .env("PATH", "/usr/bin:/bin") // deliberately no ~/.cargo/bin
         .env_remove("SOKONANODA_LSP_BIN")
-        .env_remove("SOKONANODA_LSP_OFFLINE")
+        .env_remove("SOKONANODA_OFFLINE")
         .output()
         .expect("run launcher");
     assert!(
@@ -193,8 +285,7 @@ fn launcher_reuses_the_vscode_extension_binary_without_cargo() {
     );
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
-        "FAKE_EXTENSION_BIN",
-        "launcher must exec the installed extension's bundled binary"
+        "FAKE_EXTENSION_BIN"
     );
     fs::remove_dir_all(&tmp).ok();
 }
@@ -205,12 +296,9 @@ fn launcher_reuses_the_vscode_extension_binary_without_cargo() {
 #[test]
 fn launcher_downloads_the_version_pinned_release_without_vscode_or_cargo() {
     let tmp = unique_tmp("dl");
-    let script = copied_launcher(&tmp);
-    fs::write(tmp.join("Cargo.toml"), "version = \"9.9.9\"\n").expect("write Cargo.toml");
+    copy_script_env(&tmp, "9.9.9");
 
-    // Prepared release asset: a tarball with `sokonanoda-lsp` at its root.
     let payload_dir = tmp.join("payload");
-    fs::create_dir_all(&payload_dir).expect("create payload dir");
     write_executable(
         &payload_dir.join("sokonanoda-lsp"),
         "#!/usr/bin/env bash\necho FAKE_DOWNLOAD\n",
@@ -226,9 +314,7 @@ fn launcher_downloads_the_version_pinned_release_without_vscode_or_cargo() {
         .expect("run tar");
     assert!(tar.status.success(), "tar failed: {tar:?}");
 
-    // Fake curl: records its arguments, streams the prepared tarball.
     let fake_bin = tmp.join("fake-bin");
-    fs::create_dir_all(&fake_bin).expect("create fake bin");
     write_executable(
         &fake_bin.join("curl"),
         "#!/usr/bin/env bash\nprintf '%s\\n' \"$@\" >> \"$FAKE_CURL_LOG\"\ncat \"$FAKE_TARBALL\"\n",
@@ -237,13 +323,14 @@ fn launcher_downloads_the_version_pinned_release_without_vscode_or_cargo() {
     let home = tmp.join("home");
 
     let output = Command::new("bash")
-        .arg(&script)
+        .arg(tmp.join(".opencode/lsp/sokonanoda-lsp.sh"))
         .env("HOME", &home)
+        .env("SOKONANODA_CACHE_DIR", home.join("cache"))
         .env("PATH", format!("{}:/usr/bin:/bin", fake_bin.display()))
         .env("FAKE_CURL_LOG", &curl_log)
         .env("FAKE_TARBALL", &tarball)
         .env_remove("SOKONANODA_LSP_BIN")
-        .env_remove("SOKONANODA_LSP_OFFLINE")
+        .env_remove("SOKONANODA_OFFLINE")
         .output()
         .expect("run launcher");
     assert!(
@@ -253,8 +340,7 @@ fn launcher_downloads_the_version_pinned_release_without_vscode_or_cargo() {
     );
     assert_eq!(
         String::from_utf8_lossy(&output.stdout).trim(),
-        "FAKE_DOWNLOAD",
-        "launcher must exec the downloaded binary"
+        "FAKE_DOWNLOAD"
     );
 
     let log = fs::read_to_string(&curl_log).expect("fake curl log");
@@ -270,27 +356,28 @@ fn launcher_downloads_the_version_pinned_release_without_vscode_or_cargo() {
 }
 
 /// With no extension, no cache, no network and no cargo, the failure must be
-/// actionable instead of silent.
+/// actionable (exit 3) instead of silent.
 #[cfg(unix)]
 #[test]
 fn launcher_failure_is_actionable_when_nothing_is_available() {
     let tmp = unique_tmp("empty");
-    let script = copied_launcher(&tmp);
-    fs::write(tmp.join("Cargo.toml"), "version = \"9.9.9\"\n").expect("write Cargo.toml");
+    copy_script_env(&tmp, "9.9.9");
     let home = tmp.join("home");
-    fs::create_dir_all(&home).expect("create empty home");
+    fs::create_dir_all(&home).expect("create home");
 
     let output = Command::new("bash")
-        .arg(&script)
+        .arg(tmp.join(".opencode/lsp/sokonanoda-lsp.sh"))
         .env("HOME", &home)
+        .env("SOKONANODA_CACHE_DIR", home.join("cache"))
         .env("PATH", "/usr/bin:/bin") // no cargo; offline disables the download
-        .env("SOKONANODA_LSP_OFFLINE", "1")
+        .env("SOKONANODA_OFFLINE", "1")
         .env_remove("SOKONANODA_LSP_BIN")
         .output()
         .expect("run launcher");
-    assert!(
-        !output.status.success(),
-        "launcher must fail when nothing is available"
+    assert_eq!(
+        output.status.code(),
+        Some(3),
+        "environment failure must use exit code 3"
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(

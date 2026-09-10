@@ -384,3 +384,16 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 - **打包冒烟**：CI host VSIX 与 release 的 8 平台包均断言 **LSP + CLI 两个
   二进制**入包、大小 >1MB、linux/darwin exec 位；Release 资产 = 8 LSP
   tarball + 8 CLI tarball + 9 VSIX = 25。
+
+## 2026-09-10 更新（第二十三轮：环境配置单一入口）
+
+- **opencode/onboarding 契约**（`crates/cli/tests/opencode.rs`，7 个）：
+  `scripts/soko.sh doctor --json` 退出码契约（空缓存 3 → 伪造 marker 后
+  0）、`setup` 离线可行动（exit 3 + 提示）、`grade` 直 exec 缓存 CLI、
+  launcher 命中 VS Code 扩展自带 bin（无 cargo）、fake-curl 版本锁定下载
+  （URL 含 `/download/v9.9.9/`、无 `/latest/`）、一无所有 exit 3、
+  命名空间命令/插件/shim 契约（命令禁源码构建命令）。
+- **发布资产属性断言**：release job tar 前 chmod + `tar tzvf | grep '^-rwx'`
+  （v0.8/v0.9 曾发布 0644 二进制；见 CI-FAILURES 2026-09-10）。
+- **本机冒烟**：`scripts/soko.sh setup && doctor`（READY）+
+  `grade playground.sokonanoda`（事件流）+ opencode LSP 诊断。

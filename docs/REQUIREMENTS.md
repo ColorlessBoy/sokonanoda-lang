@@ -243,3 +243,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    ④全仓文档审计：用户/agent 面向的 README/技能/教学手册/错误文案一律改用
    二进制或 `$SOKO`，cargo 只在"贡献者/源码构建"语境出现；⑤该原则升为硬规则
    （§2 第 9 条）。扩展 0.8.0 → 0.9.0。
+- 2026-09-10（二十二）：**环境配置单一入口（用户要求「流程理顺、调研优秀
+   实践」）**：新增 `scripts/soko.sh`（setup/doctor/grade/gate/lsp；退出码
+   0/1/2/3；`--json` 机器可读），设计见 `docs/design-onboarding.md`（3 路
+   subagent 调研 OSS/agent/安装器实践）；opencode 命令迁移到命名空间
+   `/sokonanoda/*`、launcher 瘦成 shim、启动插件自动 provisioning + PATH
+   注入；AGENTS/技能/README 全部改为引用单一脚本（用户/agent 零 cargo）。
+   同轮修复 v0.8/v0.9 Release tarball 丢可执行位（artifact 往返剥离 mode）
+   并回填修复已发布的 v0.9.0 资产；本地网络需代理时用
+   `HTTPS_PROXY=http://127.0.0.1:7890`。

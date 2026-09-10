@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-10（第二十二轮：平台矩阵 4 → 8，v0.8.0 待发布）
+> 快照：2026-09-10（第二十三轮：环境配置单一入口 scripts/soko.sh + Release tarball exec 修复）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-bundled-lsp.md`（本轮 Phase 3 收尾）/ `docs/design-by-tactics.md`（§6 as-built）/ `docs/design-hover-refactor.md` /
+> 设计 = `docs/design-onboarding.md`（本轮）/ `docs/design-bundled-lsp.md` / `docs/design-by-tactics.md`（§6 as-built）/
 > `docs/design-course-bilingual.md` /
 > `docs/design-hover-brackets.md` /
 > `docs/design-round14.md`（含本轮 B′ 决议）/
@@ -20,6 +20,42 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-10，第二十三轮：环境配置单一入口 + Release exec 修复）
+
+> 触发：用户反馈「项目没把如何配置好环境写清楚，让 code agent 搞了好久，
+> 流程没有理顺；要调研优秀实践」。3 个 subagent 并行调研（OSS onboarding /
+> agent onboarding / 安装器 UX），结论落 `docs/design-onboarding.md`：
+> 单一 bootstrap + doctor（机器可读、退出码契约）+ 文档只引用脚本 +
+> opencode 命名空间命令 + 启动插件自动 provisioning。
+
+1. **`scripts/soko.sh`（单一环境入口）**：`setup`（幂等、版本锁定下载
+   CLI+LSP，marker=`<version> <vsce-target>`）、`doctor [--json]`（只读，
+   0=就绪/3=未就绪）、`grade <file>`（缺则自动补齐后 CLI `--json`）、
+   `gate`（贡献者 CI 门禁）、`lsp`（编辑器解析链：env → 仓库构建 → VS Code
+   扩展自带 → 缓存 → 版本锁定下载 → 编译）。退出码契约 0/1/2/3；
+   `SOKONANODA_CACHE_DIR` / `SOKONANODA_OFFLINE` / `SOKONANODA_LSP_BIN` 可覆盖。
+2. **opencode 层收薄**：命令迁移到命名空间 `.opencode/command/sokonanoda/*`
+   （`/sokonanoda/setup|doctor|check|gate|round`，旧扁平命令删除）；
+   `.opencode/lsp/sokonanoda-lsp.sh` 瘦成 3 行 shim；新增
+   `.opencode/plugin/sokonanoda.ts`（启动 best-effort 跑 setup + `shell.env`
+   把缓存目录注入 PATH）。launcher 的解析/下载逻辑不再重复。
+3. **文档两扇门**：AGENTS.md 顶部新增 `## Setup`（一条 setup + 一条 doctor +
+   禁止项）；teacher/dev 技能的环境节改为引用脚本（零 cargo 片段从 4 处收敛
+  到 1 处）；README 增加「In this repo」一条命令；`skills/README` 说明单一
+   入口。
+4. **测试**：`opencode.rs` 重写为 7 个（`doctor` 退出码 3→0、`setup` 离线
+   可行动、`grade` 直exec CLI、launcher 命中扩展自带 bin、fake-curl 版本
+   锁定下载、离线失败 exit 3、命令命名空间/插件/shim 契约）。
+5. **发布资产 bug（重要）**：v0.8/v0.9 的 Release tarball 因
+   `upload/download-artifact` 丢 unix mode 而全是 0644，解出不可执行；
+   修：发布 job tar 前 `chmod +x` + `tar tzvf | grep '^-rwx'` 断言、
+   `soko.sh`/`server.js` 解压后 chmod 兜底、**回填修复 v0.9.0 的 16 个
+   tarball**（已验证 755 + `--version`）。教训记 `docs/CI-FAILURES.md`。
+6. **本机验收**：`scripts/soko.sh setup` 就绪（v0.9.0，版本匹配）；
+   `doctor` READY；`grade playground.sokonanoda` 正常出事件；
+   opencode LSP 诊断正常（6 条）。画布的练习进度由学习者推进（open 7→6，
+   未提交）。
 
 ## 本轮进度（2026-09-10，第二十二轮：平台矩阵 4 → 8）
 

@@ -14,26 +14,24 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 
 ## 1. 环境搭建（agent 接手时先确认）
 
-**code agent 与 VS Code 插件是解耦的**：LSP 和 CLI 两个二进制都直接从
-GitHub Release 按版本取（tarball 里就是可执行文件），**不需要 cargo、
-不需要装 VS Code 扩展**。
+一条命令（幂等；**零 cargo、不需要 VS Code 扩展**；设计见
+`docs/design-onboarding.md`）：
 
 ```bash
-V=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)   # 仓库当前版本
-TARGET=aarch64-apple-darwin   # linux-x64: x86_64-unknown-linux-gnu；linux-arm64: aarch64-unknown-linux-gnu；win32: x86_64-pc-windows-msvc（Windows 也是 .tar.gz）
-BIN="$HOME/.local/share/sokonanoda/bin"; mkdir -p "$BIN"
-for pkg in sokonanoda-cli sokonanoda-lsp; do
-  curl -fsSL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v${V}/${pkg}-${TARGET}.tar.gz" \
-    | tar xz -C "$BIN"
-done
+bash scripts/soko.sh setup     # 版本锁定的 CLI + LSP → ~/.local/share/sokonanoda/bin
+bash scripts/soko.sh doctor    # 就绪诊断；--json 供机器读，0=就绪 3=未就绪
 ```
 
-之后判卷直接用 `"$BIN/sokonanoda"`——**二进制直接执行**。
-opencode 的 LSP launcher 会自动复用 `$BIN/sokonanoda-lsp`；本地全都没有时
-它也会按同一 URL 自动下载（`SOKONANODA_LSP_OFFLINE=1` 可禁用）。
+之后判卷直接用缓存里的二进制（opencode 启动插件会自动 setup 并把该目录注入
+PATH，一般无需手动）：
 
-**本技能全程零 cargo**。需要从源码构建的场景（改编译器本身、无网络离线
-机器）见 `skills/sokonanoda-dev`，那是贡献者路径。
+```bash
+"$HOME/.local/share/sokonanoda/bin/sokonanoda" --json playground.sokonanoda
+# 等价：bash scripts/soko.sh grade playground.sokonanoda
+```
+
+- 版本严格按仓库 `Cargo.toml` 锁定，**禁用 `releases/latest`**；
+- **本技能全程零 cargo**；从源码构建（贡献者）见 `skills/sokonanoda-dev`。
 
 ⚠️ **不要用 `releases/latest`**：下载 URL 必须按仓库/插件版本锁定
 （`v${V}`），否则会拿新服务器配旧插件，协议错配且不可复现。
@@ -41,7 +39,7 @@ opencode 的 LSP launcher 会自动复用 `$BIN/sokonanoda-lsp`；本地全都�
 ## 2. 环境与命令速查（在仓库根目录执行）
 
 ```bash
-# 判卷二进制：下载到缓存的独立 CLI（二进制直接执行）。
+# 判卷二进制：scripts/soko.sh setup 已就绪（opencode 插件自动 provisioning）。
 SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
 
 # 判卷（人类可读 + 机器事件两种视图）
