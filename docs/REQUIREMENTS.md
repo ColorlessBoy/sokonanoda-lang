@@ -204,3 +204,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    「当前光标处」组（目标/假设/by 进度，选区去抖 200ms + 序号守卫），点击目标跳
    对应 tactic。扩展 0.5.2 → 0.6.0（minor：新学习能力）。同轮顺带修
    `playground.sokonanoda:7` 的 `???`→`sorry` 迁移残留文案。
+- 2026-09-10（十八）：**opencode 项目配置适配（用户指令）**：仓库根
+   `opencode.json` 增加 `skills.paths: ["./skills"]`（三个 skill 自动加载，
+   免软链）、Lean 工具链命令 deny（`lean*`/`lake*`/`elan*`/`leanc*`，硬规则
+   配置化）、watcher 忽略构建/依赖产物、Rust 自动格式化关闭（保护 kernel
+   冻结快照）；新增 `.opencode/command/` 三条命令（`/gate` 本地门禁、
+   `/check` 内核判卷、`/round` 开发轮 SOP）与 `.opencode/agent/teacher.md`
+   主 agent（画布老师角色）。`skills/README.md` 更新安装说明；配置改动后需
+   重启 opencode 生效。同轮修 VS Code 的 `opencode.json` schema 下载报错
+   （工作区 `.vscode/settings.json` 信任 `https://opencode.ai`）。

@@ -13,15 +13,27 @@ Claude Code 等）都能一键加载。项目自身的 conformance 测试守护�
 
 ## 安装
 
+### opencode（项目级，零安装）
+
+仓库根 `opencode.json` 已把本目录挂进 opencode（`skills.paths: ["./skills"]`）：
+打开本项目时三者自动可加载，无需软链。同一配置还提供：
+
+- LSP：`.sokonanoda` 文件自动启动 `sokonanoda-lsp` 并消费 kernel 判定的诊断；
+- 命令：`/gate`（与 CI 一致的本地门禁）、`/check`（内核判卷并汇总事件）、
+  `/round`（按本仓库流程启动一轮开发）；
+- 主 agent `teacher`（Tab 切换）：在画布上充当 Lean 式证明老师；
+- 权限：`lean`/`lake`/`elan`/`leanc` 命令 deny（硬规则落地为配置）。
+
+### Claude Code / 其他 harness（软链）
+
 把 skill 目录放进你的 agent harness 的 skills 目录（软链或复制均可）：
 
 ```bash
-# Claude Code / opencode（用户级）
+# Claude Code（用户级）
 ln -s "$PWD/skills/sokonanoda-teacher" ~/.claude/skills/sokonanoda-teacher
-ln -s "$PWD/skills/sokonanoda-teacher" ~/.agents/skills/sokonanoda-teacher
 
-# opencode 项目级：仓库根已带 opencode.json（配置了 sokonanoda LSP），
-# skills 放进项目根的 .opencode/skill/ 或用户级目录均可
+# 其他读取 ~/.agents/skills 的 harness
+ln -s "$PWD/skills/sokonanoda-teacher" ~/.agents/skills/sokonanoda-teacher
 ```
 
 编辑器反馈通道无需额外配置：仓库根 `opencode.json` 已把

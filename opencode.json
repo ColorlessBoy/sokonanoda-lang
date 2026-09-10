@@ -1,9 +1,35 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": ["./skills"]
+  },
   "lsp": {
     "sokonanoda": {
       "command": ["cargo", "run", "--quiet", "-p", "sokonanoda-lsp"],
       "extensions": [".sokonanoda"]
     }
+  },
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "lean*": "deny",
+      "lake*": "deny",
+      "elan*": "deny",
+      "leanc*": "deny"
+    }
+  },
+  "watcher": {
+    "ignore": [
+      ".git/**",
+      "target/**",
+      "node_modules/**",
+      ".vscode-test/**",
+      "learner/**",
+      "*.vsix"
+    ]
+  },
+  "formatter": {
+    "cargofmt": { "disabled": true },
+    "rustfmt": { "disabled": true }
   }
 }

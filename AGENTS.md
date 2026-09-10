@@ -34,8 +34,10 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 ```
 
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定
-（仓库根 `opencode.json` 已接线）；goal 视图走自定义请求 `soko/goals` /
-`soko/nextHole`（`docs/protocol.md`）。
+（仓库根 `opencode.json` 已接线：`skills/` 自动加载、`/gate` `/check` `/round`
+命令、`teacher` 主 agent、Lean 工具链命令 deny）；goal 视图走自定义请求
+`soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt`
+（`docs/protocol.md`）。
 
 ## VS Code 扩展改动
 

@@ -56,6 +56,17 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `32 checked · 25 open · 0 failed` 不变；`node --check` + 扩展静态契约
    套件（7 测试）通过。commit `396adee` 已 push main 且 CI（lint + test）
    全绿；**未打 tag**（0.6.0 的发布留给用户触发）。
+6. **opencode 项目配置适配（2026-09-10 用户要求，配置-only）**：
+   `opencode.json` 增 `skills.paths: ["./skills"]`（三个 skill 自动加载、
+   免软链）、Lean 工具链 bash deny、watcher 忽略 `target/node_modules/
+   .vscode-test/learner` 等产物、cargofmt/rustfmt 自动格式化关闭（护 kernel
+   冻结快照）；新增 `.opencode/command/{gate,check,round}.md` 与
+   `.opencode/agent/teacher.md`（主 agent，画布老师角色）；`skills/README.md`
+   与 `AGENTS.md` 同步。**配置改动需重启 opencode 才生效**；不触碰 Rust
+   测试面，CI 不受影响。另修 VS Code 报错「Unable to load schema from
+   https://opencode.ai/config.json … is untrusted」：工作区新增
+   `.vscode/settings.json`，`json.schemaDownload.trustedDomains` 补
+   `https://opencode.ai` 与 VS Code 默认域名（修后 schema 校验/补全恢复）。
 
 ## 本轮进度（2026-09-09，第十九轮：by-tactic 块 + VSCode goal-state 设计）
 
