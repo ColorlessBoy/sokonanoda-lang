@@ -3,14 +3,16 @@ description: 用真实内核判卷一个 .sokonanoda 文件并汇总 JSON 事件
 agent: build
 ---
 
-用仓库单一入口判卷 `$ARGUMENTS`（未给参数则用 `playground.sokonanoda`）：
+从**任意目录**用单一入口判卷 `$ARGUMENTS`（未给参数则用
+`$ROOT/playground.sokonanoda`）：
 
 ```bash
-bash scripts/soko.sh grade <file>
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+bash "$ROOT/scripts/soko.sh" grade "$ROOT/playground.sokonanoda"
 ```
 
-该入口在缺二进制时会自动按版本补齐（等价于 `setup`），然后运行
-`"$HOME/.local/share/sokonanoda/bin/sokonanoda" --json <file>`。
+该入口在缺二进制时会自动按版本补齐（等价于 `setup`），然后在
+`~/.local/share/sokonanoda/bin/sokonanoda` 上执行 `--json`。
 
 汇总并报告：
 

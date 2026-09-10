@@ -56,6 +56,16 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `doctor` READY；`grade playground.sokonanoda` 正常出事件；
    opencode LSP 诊断正常（6 条）。画布的练习进度由学习者推进（open 7→6，
    未提交）。
+7. **cwd 无关修复（用户复查命令体发现）**：命令体/插件最初用相对路径
+   `scripts/soko.sh`，但 opencode 可从子目录启动（ctx.directory=启动目录），
+   会直接找不到；命令改为 `git rev-parse --show-toplevel` 定位仓库根，插件
+   `findRepoRoot` 向上查找；契约测试加断言（命令必须根无关）。
+8. **opencode.json 的 lsp 块被误删（用户现场发现）**：工作区里
+   `opencode.json` 丢了整个 `lsp` 段，opencode 启动即打
+   `all LSPs are disabled`（不是“没安装”：doctor READY、LSP 握手正常）。
+   从 git 恢复 + 新增契约测试 `opencode_json_wires_the_sokonanoda_lsp`
+   （命令必须指向 shim、extensions 含 `.sokonanoda`、skills.paths 在），
+   防再次静默丢失。opencode 配置只在启动时加载，需重启生效。
 
 ## 本轮进度（2026-09-10，第二十二轮：平台矩阵 4 → 8）
 

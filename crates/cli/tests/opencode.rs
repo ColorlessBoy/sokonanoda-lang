@@ -45,6 +45,42 @@ fn copy_script_env(tmp: &Path, version: &str) {
     fs::write(tmp.join("Cargo.toml"), format!("version = \"{version}\"\n")).expect("Cargo.toml");
 }
 
+/// Regression guard: the project `opencode.json` must keep wiring the
+/// sokonanoda LSP (the block was accidentally deleted once, which made
+/// opencode log "all LSPs are disabled").
+#[test]
+fn opencode_json_wires_the_sokonanoda_lsp() {
+    let root = repo_root();
+    let config: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(root.join("opencode.json")).expect("opencode.json"),
+    )
+    .expect("opencode.json is valid JSON");
+    let lsp = &config["lsp"]["sokonanoda"];
+    assert!(
+        lsp.is_object(),
+        "opencode.json must configure lsp.sokonanoda"
+    );
+    let command = lsp["command"].as_array().expect("command array");
+    assert!(
+        command.iter().any(|v| v
+            .as_str()
+            .is_some_and(|s| s.contains(".opencode/lsp/sokonanoda-lsp.sh"))),
+        "lsp.sokonanoda.command must run the repo launcher shim: {command:?}"
+    );
+    assert!(
+        lsp["extensions"]
+            .as_array()
+            .expect("extensions array")
+            .iter()
+            .any(|v| v.as_str() == Some(".sokonanoda")),
+        "lsp.sokonanoda.extensions must include .sokonanoda"
+    );
+    assert!(
+        config["skills"]["paths"].is_array(),
+        "skills.paths must stay wired"
+    );
+}
+
 #[test]
 fn opencode_layer_is_namespaced_thin_and_cargo_free() {
     let root = repo_root();
@@ -73,8 +109,19 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
             body.contains("scripts/soko.sh"),
             "{name} must call the single entrypoint scripts/soko.sh"
         );
+        // opencode may be opened in a repo subdirectory: commands must resolve
+        // the repo root instead of assuming cwd.
+        assert!(
+            body.contains("git rev-parse --show-toplevel"),
+            "{name} must resolve the repo root (cwd-independent)"
+        );
     }
-
+    let gate_body = fs::read_to_string(root.join(".opencode/command/sokonanoda/gate.md"))
+        .expect("gate readable");
+    assert!(
+        gate_body.contains("git rev-parse --show-toplevel") && gate_body.contains("soko.sh"),
+        "gate must also be cwd-independent"
+    );
     // The LSP launcher is only a shim over `soko.sh lsp`.
     let launcher = fs::read_to_string(root.join(".opencode/lsp/sokonanoda-lsp.sh"))
         .expect("launcher readable");
@@ -87,8 +134,10 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
     let plugin =
         fs::read_to_string(root.join(".opencode/plugin/sokonanoda.ts")).expect("plugin readable");
     assert!(
-        plugin.contains("scripts/soko.sh") && plugin.contains("shell.env"),
-        "plugin must run the setup script and inject PATH via shell.env"
+        plugin.contains("scripts/soko.sh")
+            && plugin.contains("shell.env")
+            && plugin.contains("findRepoRoot"),
+        "plugin must find the repo root, run the setup script, and inject PATH via shell.env"
     );
 
     // The entrypoint itself must exist and be runnable.

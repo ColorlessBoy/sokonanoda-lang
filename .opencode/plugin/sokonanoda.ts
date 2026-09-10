@@ -10,9 +10,22 @@ import { existsSync } from "node:fs"
 import path from "node:path"
 import type { Plugin } from "@opencode-ai/plugin"
 
+/// opencode may be opened in a repo subdirectory; walk up to the repo root
+/// that owns `scripts/soko.sh`.
+function findRepoRoot(start: string): string | undefined {
+  let dir = start
+  for (;;) {
+    if (existsSync(path.join(dir, "scripts", "soko.sh"))) return dir
+    const parent = path.dirname(dir)
+    if (parent === dir) return undefined
+    dir = parent
+  }
+}
+
 export const Sokonanoda: Plugin = async ({ directory }) => {
-  const script = path.join(directory, "scripts", "soko.sh")
-  if (existsSync(script) && !process.env.SOKONANODA_OFFLINE) {
+  const repo = findRepoRoot(directory)
+  const script = repo ? path.join(repo, "scripts", "soko.sh") : undefined
+  if (script && !process.env.SOKONANODA_OFFLINE) {
     spawnSync("bash", [script, "setup"], { stdio: "ignore", timeout: 120000 })
   }
   return {
