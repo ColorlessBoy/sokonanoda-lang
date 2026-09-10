@@ -1,3 +1,14 @@
+## [0.9.1] - 2026-09-10
+
+### Fixed
+- **Greek binder letters stay plain** — VS Code's confusable-character
+  highlight (Trojan Source protection, on by default) drew a box around
+  `α`/`β`/`γ` in `.sokonanoda` files. The extension now ships a
+  `[sokonanoda]` configuration default that turns
+  `editor.unicodeHighlight.ambiguousCharacters` off for this language only
+  (the same approach VS Code itself uses for plaintext and markdown). Your
+  global settings are untouched.
+
 ## [0.9.0] - 2026-09-10
 
 ### Added

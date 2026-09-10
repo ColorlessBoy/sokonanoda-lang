@@ -116,6 +116,19 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     return contents.value ?? "";
   }
 
+  test("confusable-character highlight is off for sokonanoda files", async () => {
+    // α/β/γ 是教学语言的 binder 名；扩展用语言级默认关掉 VS Code 的
+    // Trojan-Source 混淆字符框（同内置 plaintext/markdown 的做法）。
+    const cfg = vscode.workspace.getConfiguration("editor", {
+      languageId: "sokonanoda",
+    });
+    assert.strictEqual(
+      cfg.get("unicodeHighlight.ambiguousCharacters"),
+      false,
+      "extension must default the confusable-character box off for .sokonanoda",
+    );
+  });
+
   test("clean lesson publishes empty diagnostics", async () => {
     const uri = await writeDoc("lesson-clean.sokonanoda", LESSON_CLEAN);
     await vscode.workspace.openTextDocument(uri);

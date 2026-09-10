@@ -267,3 +267,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    `-- sokonanoda:prelude none` 或 CLI `--bare`），本轮把该工作流写进
    teacher skill 的判定细节节，并确认函数实参洞在 Bare 下用文件自定义的
    Eq 模板同样生效。
+- 2026-09-10（二十五）：**VS Code 希腊字母矩形框（用户反馈）**：`α` 等
+  希腊 binder 名被 VS Code 的 Trojan-Source 混淆字符高亮
+  （`editor.unicodeHighlight.ambiguousCharacters`，默认开）画框。修复 =
+  扩展 `contributes.configurationDefaults` 对 `[sokonanoda]` 语言关掉该项
+   （与 VS Code 内置 plaintext/markdown 同法，不改用户全局设置）；仓库
+   `.vscode/settings.json` 同步一份，开发态重载即生效。扩展 0.9.0 → 0.9.1
+   （patch；Cargo workspace 版本同步）。零新能力、纯观感修复。

@@ -51,6 +51,8 @@ skills.
   offered
 - Semantic highlighting (including `sorry`), folding ranges, smart
   select that visualises precedence
+- Greek binder letters (`α`, `β`, …) render plainly — the extension turns
+  VS Code's confusable-character box off for `.sokonanoda` files by default
 
 ## Install & use
 

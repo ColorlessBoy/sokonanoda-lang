@@ -250,6 +250,21 @@ fn packaging_metadata_is_complete() {
 }
 
 #[test]
+fn manifest_disables_confusable_unicode_highlight_for_the_language() {
+    // 教学语言用希腊字母（α/β/γ）作 binder 名；VS Code 的 Trojan-Source
+    // 混淆字符高亮（editor.unicodeHighlight.ambiguousCharacters，默认开）
+    // 会给 α 画框。内置的 plaintext/markdown 已用语言级默认关掉它；
+    // 本扩展对 [sokonanoda] 做同样的事（只影响本语言文件，不动全局设置）。
+    let manifest = manifest();
+    assert_eq!(
+        manifest["contributes"]["configurationDefaults"]["[sokonanoda]"]
+            ["editor.unicodeHighlight.ambiguousCharacters"],
+        Value::Bool(false),
+        "[sokonanoda] must default the confusable-character box off"
+    );
+}
+
+#[test]
 fn server_acquisition_prefers_the_bundled_binary() {
     // Bundled-LSP contract (docs/design-bundled-lsp.md §3.2): the extension
     // wires acquisition through server.js, which resolves the binary shipped

@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-10（第二十四轮：函数实参洞 + hover 开项修复）
+> 快照：2026-09-10（第二十五轮：VS Code 希腊字母高亮修复，扩展 0.9.1）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-goal-func-spine.md`（本轮）/ `docs/design-onboarding.md` / `docs/design-bundled-lsp.md` / `docs/design-by-tactics.md`（§6 as-built）/
+> 设计 = `docs/design-goal-func-spine.md` / `docs/design-onboarding.md` / `docs/design-bundled-lsp.md` / `docs/design-by-tactics.md`（§6 as-built）/
 > `docs/design-course-bilingual.md` /
 > `docs/design-hover-brackets.md` /
 > `docs/design-round14.md`（含本轮 B′ 决议）/
@@ -20,6 +20,31 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-10，第二十五轮：VS Code 希腊字母高亮修复，扩展 0.9.1）
+
+> 触发：用户反馈「α 在 VS Code 里有奇怪的难看的矩形框」。根因不是渲染
+> 损坏，而是 VS Code 的 Trojan-Source 防护：混淆字符高亮
+> `editor.unicodeHighlight.ambiguousCharacters`（默认开）把希腊 α 视为
+> 与拉丁 a 易混，画框提示；代码区默认命中（注释默认豁免，所以中文不受
+> 影响）。内置的 `[plaintext]`/`[markdown]` 语言默认已关掉它。
+
+1. **扩展级修复（只影响本语言）**：`package.json` 新增
+   `contributes.configurationDefaults["[sokonanoda]"]
+   .editor.unicodeHighlight.ambiguousCharacters = false`——不动用户全局
+   设置，`.sokonanoda` 文件里 α/β/γ 正常显示；安全高亮在其他语言照旧。
+2. **仓库开发态立即生效**：`.vscode/settings.json` 同步语言级覆盖，重载
+   窗口即不用等新 VSIX。
+3. **版本纪律**：扩展 0.9.0 → 0.9.1（patch：观感修复、零新能力），
+   `Cargo.toml` workspace 版本同步，`Cargo.lock`/`package-lock.json` 更新；
+   `CHANGELOG.md` 与 Marketplace README 功能清单同步。
+4. **测试**：静态契约 +1（`manifest_disables_confusable_unicode_highlight_
+   for_the_language`，TDD 先红后绿）；集成测试 +1（真实 VS Code：
+   `getConfiguration("editor", {languageId})` 断言为 false，`npm test`
+   5 passing）；全量门禁 `scripts/soko.sh gate` 通过。
+5. **对用户**：已装 0.9.0 的实例要么重载本仓库窗口（吃 `.vscode` 覆盖），
+   要么装 0.9.1 VSIX / 等下一版发布；报错时先查
+   `editor.unicodeHighlight.*` 是否为其他设置覆盖。
 
 ## 本轮进度（2026-09-10，第二十四轮：函数实参洞 + hover 开项修复）
 

@@ -6,5 +6,8 @@
     "https://json.schemastore.org/": true,
     "https://json-schema.org/": true,
     "https://opencode.ai": true
+  },
+  "[sokonanoda]": {
+    "editor.unicodeHighlight.ambiguousCharacters": false
   }
 }
