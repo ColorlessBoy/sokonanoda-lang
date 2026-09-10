@@ -6,3 +6,6 @@ node_modules/
 *.vsix
 .vscode-test/
 learner/
+
+# 打包时 stage 的 LSP 二进制（scripts/stage-lsp.js 生成，不进仓库）
+editor/vscode/bin/

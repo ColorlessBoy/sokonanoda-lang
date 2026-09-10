@@ -24,6 +24,17 @@ fn entry_script() -> String {
     fs::read_to_string(vscode_dir().join("extension.js")).expect("extension.js")
 }
 
+fn server_script() -> String {
+    fs::read_to_string(vscode_dir().join("server.js")).expect("server.js")
+}
+
+fn repo_root() -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .canonicalize()
+        .expect("repo root exists")
+}
+
 #[test]
 fn manifest_declares_commands_that_extension_registers() {
     let manifest = manifest();
@@ -235,5 +246,110 @@ fn packaging_metadata_is_complete() {
     assert!(
         vscode_dir().join("LICENSE").exists() && vscode_dir().join("CHANGELOG.md").exists(),
         "LICENSE and CHANGELOG.md are required for packaging"
+    );
+}
+
+#[test]
+fn server_acquisition_prefers_the_bundled_binary() {
+    // Bundled-LSP contract (docs/design-bundled-lsp.md §3.2): the extension
+    // wires acquisition through server.js, which resolves the binary shipped
+    // in the VSIX before any workspace build or download.
+    let script = entry_script();
+    assert!(
+        script.contains("require(\"./server\")"),
+        "extension.js must delegate server acquisition to server.js"
+    );
+    let server = server_script();
+    for target in ["darwin-arm64", "darwin-x64", "linux-x64", "win32-x64"] {
+        assert!(
+            server.contains(target),
+            "server.js must map the {target} platform to its bundled target directory"
+        );
+    }
+    assert!(
+        server.contains("\"bin\"") && server.contains("chmodSync") && server.contains("0o755"),
+        "server.js must resolve bin/<target>/ and repair a lost executable bit"
+    );
+    // Version-skew regression (docs/design-bundled-lsp.md §0.5): the fallback
+    // download must be pinned to the extension's own release, never `latest`.
+    assert!(
+        !server.contains("/releases/latest/") && !server.contains("/latest/download/"),
+        "server.js must never download from releases/latest"
+    );
+    assert!(
+        server.contains("/download/v${version}/"),
+        "server.js must pin the fallback download to v<extension version>"
+    );
+}
+
+#[test]
+fn package_scripts_stage_the_bundled_binary() {
+    let manifest = manifest();
+    let scripts = manifest["scripts"].as_object().expect("scripts");
+    for key in [
+        "stage:lsp",
+        "package:host",
+        "package:universal",
+        "clean:lsp",
+    ] {
+        assert!(
+            scripts.contains_key(key),
+            "package.json must declare the {key} script"
+        );
+    }
+    assert!(
+        scripts["stage:lsp"]
+            .as_str()
+            .is_some_and(|s| s.contains("scripts/stage-lsp.js")),
+        "stage:lsp must run scripts/stage-lsp.js"
+    );
+    // `bin/` must ship inside the VSIX (the whole point of this feature).
+    let ignore = fs::read_to_string(vscode_dir().join(".vscodeignore")).expect(".vscodeignore");
+    assert!(
+        !ignore.lines().any(|l| {
+            let l = l.trim();
+            l == "bin/**" || l == "bin" || l == "bin/*"
+        }),
+        ".vscodeignore must not exclude the bundled bin/ directory"
+    );
+    // Facade anti-drift: the old "downloads itself on first use" promise is
+    // gone; the marketplace description now advertises the bundled server.
+    let description = manifest["description"].as_str().expect("description");
+    assert!(
+        !description.contains("downloads itself"),
+        "description must not promise a runtime download anymore"
+    );
+}
+
+#[test]
+fn cargo_and_extension_versions_match() {
+    // Version discipline (docs/design-bundled-lsp.md §3.3): the VSIX and the
+    // server it bundles are built from the same tag, so the two version fields
+    // must be bumped together — caught here before a release tag is pushed.
+    let cargo = fs::read_to_string(repo_root().join("Cargo.toml")).expect("Cargo.toml");
+    let mut in_workspace_package = false;
+    let mut cargo_version = None;
+    for line in cargo.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_workspace_package = line == "[workspace.package]";
+            continue;
+        }
+        if in_workspace_package {
+            if let Some(rest) = line.strip_prefix("version") {
+                let value = rest.trim_start_matches([' ', '=']).trim().trim_matches('"');
+                cargo_version = Some(value.to_string());
+                break;
+            }
+        }
+    }
+    let cargo_version = cargo_version.expect("workspace.package.version");
+    let extension_version = manifest()["version"]
+        .as_str()
+        .expect("package.json version")
+        .to_string();
+    assert_eq!(
+        cargo_version, extension_version,
+        "Cargo.toml workspace version and editor/vscode/package.json must match"
     );
 }

@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-10（第二十轮：soko/stateAt 光标处 goal 视图 + 扩展 0.6.0）
+> 快照：2026-09-10（第二十一轮：插件自带 LSP Phase 1 + Phase 2 进行中）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-by-tactics.md`（§6 as-built）/ `docs/design-hover-refactor.md` /
+> 设计 = `docs/design-bundled-lsp.md`（本轮）/ `docs/design-by-tactics.md`（§6 as-built）/ `docs/design-hover-refactor.md` /
 > `docs/design-course-bilingual.md` /
 > `docs/design-hover-brackets.md` /
 > `docs/design-round14.md`（含本轮 B′ 决议）/
@@ -20,6 +20,45 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-10，第二十一轮：插件自带 LSP——bundled VSIX）
+
+> 设计先行：`docs/design-bundled-lsp.md`（含行业调研、发布流程 as-is 与
+> 版本错配根因、to-be 流水线）。触发：用户要求把 bin 打包进 VS Code 插件，
+> 消除「装完插件再下载 GitHub」与**插件/latest bin 版本错配**。调研纠正：
+> 官方 Lean 4 / VsCoq 均不打包（依赖 elan/opam）；正确机制是 VS Code
+> platform-specific VSIX（`vsce package --target`）。
+
+**Phase 1（核心，已落地）**：
+
+1. **`editor/vscode/server.js`（新增，无 `vscode` 依赖可单测）**：平台→target
+   映射（darwin-arm64/darwin-x64/linux-x64/win32-x64）、bundled 解析 +
+   exec 位自动修复（X_OK 检测 + best-effort chmod 755，只读则回退）、
+   解析顺序（setting → env → **bundled** → workspace target → 缓存）与
+   下载。**下载 URL 从 `releases/latest` 改为 `releases/download/v${version}`**
+   ——用户点名的版本错配根因在此修复（`extension.js:113` 旧行为）。
+2. **`extension.js` 接线**：删掉本地重复的下载/发现逻辑，改 require
+   `server.js`；激活文案区分「无内置二进制（回退下载）」与「平台不支持」。
+3. **`scripts/stage-lsp.js`（新增）**：按 rust host/`--rust-target` 把 release
+   二进制 stage 到 `bin/<target>/` + chmod 755，支持 `--package` 一键出
+   host VSIX；`package:host` / `package:universal` / `clean:lsp` scripts。
+4. **版本纪律**：扩展与 Rust 同步 bump **0.7.0**；`extension.rs` 新增
+   `cargo_and_extension_versions_match` 契约测试（tag 前拦漂移）。
+5. **测试**：node 单测 22（`test-download.js` 改为 require `server.js` 真实现，
+   消灭复制漂移）+ 静态契约 +3（bundled 解析/latest 禁令/版本一致），
+   workspace **440 passed + 8 ignored** 全绿；fmt/clippy 干净；
+   playground 锚点 20/9/0 不变。
+6. **本机验收**：`npm run package:host` → VSIX 1.96MB，含
+   `extension/bin/darwin-arm64/sokonanoda-lsp`（zip mode 755）、manifest
+   `TargetPlatform="darwin-arm64"`；`package:universal` → 0.47MB 无 bin。
+7. **门面**：README/description/CHANGELOG 0.7.0 同步；`.gitignore` 收
+   `editor/vscode/bin/`；`.vscodeignore` 排除 scripts/test；CI 单测步骤改
+   `npm run test:unit`。
+
+**Phase 2（发布闭环，进行中）**：release.yml per-target 打包 + tag 版本门禁
++ exec 冒烟 + 逐平台发布；`docs/RELEASE.md`/`vscode-dev-guide`/CI skill 同步。
+**Phase 3（硬化）**：CI 集成测试走 bundled 路径 + 无缓存激活用例。
+`docs/design-bundled-lsp.md` 已提交（`39ea982`）。
 
 ## 本轮进度（2026-09-10，第二十轮：光标处 goal 视图 Phase 2 落地）
 

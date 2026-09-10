@@ -1,3 +1,23 @@
+## [0.7.0] - 2026-09-10
+
+### Added
+- **Bundled language server** — the `sokonanoda-lsp` binary now ships inside
+  the extension as a platform-specific package (macOS arm64/x86_64, Linux
+  x86_64, Windows x86_64). Installing the extension is now truly zero setup:
+  no GitHub download on first use, works offline, and the kernel version is
+  always the one the extension was built and tested with — no more client /
+  server version skew.
+
+### Changed
+- Server discovery is now: `sokonanoda.serverPath` / `SOKONANODA_LSP_BIN` →
+  bundled `bin/<target>/` → workspace `target/` build → version-pinned cached
+  download. A lost executable bit on the bundled binary is repaired
+  automatically.
+- The fallback download (used only by the universal package for platforms
+  without a bundled build) is pinned to this extension's own release tag
+  instead of `releases/latest`, so it can never pull a newer, incompatible
+  server.
+
 ## [0.6.0] - 2026-09-10
 
 ### Added

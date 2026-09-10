@@ -213,3 +213,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    主 agent（画布老师角色）。`skills/README.md` 更新安装说明；配置改动后需
    重启 opencode 生效。同轮修 VS Code 的 `opencode.json` schema 下载报错
    （工作区 `.vscode/settings.json` 信任 `https://opencode.ai`）。
+- 2026-09-10（十九）：**插件自带 LSP 二进制（用户要求，进行中）**：用户要求
+   像“coq/lean 的 vscode 插件”那样把 bin 打包进插件（调研纠正：官方 Lean 4
+   与 VsCoq/Rocq 实际都**不**把语言服务器打进 VSIX，运行时依赖 elan/opam），
+   消除“装完插件再下载 GitHub”的差体验，尤其是**插件与 `releases/latest`
+   bin 的版本错配**。设计与行业调研见 `docs/design-bundled-lsp.md`：per-target
+   VSIX（`vsce package --target`；exec 位必须在 Linux/macOS 打包）+ universal
+   回退包（下载 URL 按扩展版本 `v${version}` 锁定，禁止 latest）。分阶段：
+   Phase 1（核心解析/打包脚本/单测/契约，已落地）→ Phase 2（release.yml
+   逐平台打包发布 + tag↔版本门禁）→ Phase 3（集成测试硬化 + 平台扩展评估）。

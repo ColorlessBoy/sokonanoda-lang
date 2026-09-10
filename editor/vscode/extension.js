@@ -17,15 +17,9 @@ const fs = require("fs");
 const path = require("path");
 const vscode = require("vscode");
 const { LanguageClient, State, TransportKind } = require("vscode-languageclient/node");
+const server = require("./server");
 
 let client;
-
-function firstExisting(candidates) {
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-  return undefined;
-}
 
 function discoveryRoots() {
   return (vscode.workspace.workspaceFolders ?? [])
@@ -33,150 +27,37 @@ function discoveryRoots() {
     .concat(path.join(__dirname, "..", "..")); // editor/vscode -> repo checkout
 }
 
-function builtBinaryCandidates(roots, name) {
-  return roots.flatMap((root) => [
-    path.join(root, "target", "debug", name),
-    path.join(root, "target", "release", name),
-  ]);
-}
-
-function onPath(basename) {
-  // Node has no portable PATH resolver; probe PATH dirs manually.
-  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
-    if (!dir) continue;
-    if (fs.existsSync(path.join(dir, basename))) return true;
-  }
-  return false;
-}
-
-async function resolveServerCommand(context) {
-  const setting = vscode.workspace.getConfiguration("sokonanoda").get("serverPath");
-  if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
-  if (process.env.SOKONANODA_LSP_BIN) return process.env.SOKONANODA_LSP_BIN;
-
-  const found = firstExisting(builtBinaryCandidates(discoveryRoots(), "sokonanoda-lsp"));
-  if (found) return found;
-  // Final fallback: auto-downloaded cache from GitHub Release (rust-analyzer
-  // model). Only reuse it when it matches the current extension version —
-  // otherwise a stale binary (e.g. from an older release) silently wins and
-  // the editor reports outdated diagnostics.
-  if (cachedServerIsCurrent(context)) return serverDest();
-  return undefined; // not discoverable: caller shows guidance with download option
-}
-
-/// Auto-download cache directory for the language server binary.
-function serverCacheDir() {
-  return path.join(
-    process.env.HOME || process.env.USERPROFILE || "",
-    ".local", "share", "sokonanoda", "bin"
-  );
-}
-
-function serverDest() {
-  return path.join(serverCacheDir(), process.platform === "win32" ? "sokonanoda-lsp.exe" : "sokonanoda-lsp");
-}
-
-function serverVersionMarker() {
-  return serverDest() + ".version";
-}
-
 function extensionVersion(context) {
   return context?.extension?.packageJSON?.version;
 }
 
-/// The cached server binary is reusable only when its recorded version marker
-/// matches the current extension version.
-function cachedServerIsCurrent(context) {
-  const dest = serverDest();
-  if (!fs.existsSync(dest)) return false;
-  const marker = serverVersionMarker();
-  if (!fs.existsSync(marker)) return false;
-  try {
-    return fs.readFileSync(marker, "utf8").trim() === String(extensionVersion(context));
-  } catch {
-    return false;
-  }
-}
-
-async function downloadLspBinary(context) {
-  // 从 GitHub Release 下载对应平台的 LSP 二进制到全局存储。
-  // 版本追踪：二进制旁写一个 `.version` 标记文件；扩展版本号变了就重新
-  // 下载（覆盖旧缓存），避免升级扩展后仍跑旧语言服务器。
-  const os = require("os");
-  const platform = process.platform;
-  const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
-  const target = platform === "darwin"
-    ? `${arch}-apple-darwin`
-    : platform === "win32" ? "x86_64-pc-windows-msvc"
-    : "x86_64-unknown-linux-gnu";
-
-  const url = `https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest/download/sokonanoda-lsp-${target}.tar.gz`;
-  const dir = serverCacheDir();
-  const dest = serverDest();
-
-  if (cachedServerIsCurrent(context)) return dest; // 当前版本已缓存
-
-  fs.mkdirSync(dir, { recursive: true });
-  const https = require("https");
-
-  // Follow redirects recursively (GitHub uses 2-level: /latest/download/ → /download/vX.Y.Z/ → CDN).
-  function followRedirects(reqUrl, redirectsLeft) {
-    return new Promise((resolve, reject) => {
-      https.get(reqUrl, (res) => {
-        if ((res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303) && res.headers.location) {
-          if (redirectsLeft <= 0) return reject(new Error("too many redirects"));
-          res.resume(); // drain the redirect response body
-          return followRedirects(res.headers.location, redirectsLeft - 1).then(resolve, reject);
-        }
-        if (res.statusCode !== 200) {
-          res.resume();
-          return reject(new Error(`HTTP ${res.statusCode}`));
-        }
-        resolve(res);
-      }).on("error", reject);
-    });
-  }
-
-  return new Promise((resolve, reject) => {
-    const tmp = dest + ".tmp.tar.gz";
-    followRedirects(url, 5).then((res) => {
-      const file = fs.createWriteStream(tmp);
-      res.pipe(file);
-      file.on("finish", () => {
-        file.close(() => {
-          try {
-            require("child_process").execSync(`tar xzf "${tmp}" -C "${dir}"`, { stdio: "pipe" });
-            fs.unlinkSync(tmp);
-            if (fs.existsSync(dest)) {
-              // 记录扩展版本号，供下次校验缓存是否过期。
-              fs.writeFileSync(serverVersionMarker(), String(extensionVersion(context)));
-              resolve(dest);
-            } else {
-              reject(new Error("tar extracted but binary not found"));
-            }
-          } catch (e) {
-            try { fs.unlinkSync(tmp); } catch {}
-            reject(new Error(`tar extraction failed: ${e.message}`));
-          }
-        });
-      });
-      file.on("error", (e) => {
-        try { fs.unlinkSync(tmp); } catch {}
-        reject(e);
-      });
-    }).catch(reject);
+// Server acquisition (bundled VSIX binary first, downloads only as a fallback)
+// lives in server.js so plain Node can unit-test it; this module stays the
+// VS Code wiring layer.
+function resolveServerCommand(context) {
+  return server.resolveServerCommand({
+    setting: vscode.workspace.getConfiguration("sokonanoda").get("serverPath"),
+    envBin: process.env.SOKONANODA_LSP_BIN,
+    extensionPath: context.extensionPath,
+    roots: discoveryRoots(),
+    platform: process.platform,
+    arch: process.arch,
+    version: extensionVersion(context),
+    log: (message) => console.warn(`[sokonanoda] ${message}`),
   });
 }
 
 // Same discovery pattern as the server, but for the `sokonanoda` CLI binary
 // (`cargo build -p sokonanoda-cli` produces target/{debug,release}/sokonanoda).
 function resolveCliCommand() {
-  return firstExisting(builtBinaryCandidates(discoveryRoots(), "sokonanoda")) ?? "sokonanoda";
+  return server.firstExisting(
+    server.builtBinaryCandidates(discoveryRoots(), "sokonanoda"),
+  ) ?? "sokonanoda";
 }
 
 function resolveCourseManifest() {
   const roots = (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri.fsPath);
-  return firstExisting(roots.map((root) => path.join(root, "course", "course.json")));
+  return server.firstExisting(roots.map((root) => path.join(root, "course", "course.json")));
 }
 
 function isExplicitPath(command) {
@@ -676,18 +557,32 @@ function registerCommands(context, provider, courseProvider) {
 async function activate(context) {
   let command = await resolveServerCommand(context);
   if (command === undefined || (isExplicitPath(command) && !fs.existsSync(command))) {
-    // rust-analyzer 模式：自动从 GitHub Release 下载对应平台的 LSP 二进制
-    vscode.window.showInformationMessage("sokonanoda：正在下载语言服务器…");
+    // No bundled binary for this platform (universal VSIX / unsupported arch):
+    // fall back to the version-pinned GitHub Release download.
+    if (!server.platformTarget(process.platform, process.arch)) {
+      vscode.window.showErrorMessage(
+        `sokonanoda：当前平台（${process.platform}-${process.arch}）没有内置语言服务器。` +
+          "请设置 sokonanoda.serverPath 指向本地编译的 sokonanoda-lsp。",
+      );
+      return;
+    }
+    vscode.window.showInformationMessage(
+      "sokonanoda：正在获取语言服务器（内置包缺失，回退下载）…",
+    );
     try {
-      command = await downloadLspBinary(context);
+      command = await server.downloadLspBinary({
+        version: extensionVersion(context),
+        platform: process.platform,
+        arch: process.arch,
+      });
       if (command && fs.existsSync(command)) {
-        vscode.window.showInformationMessage("sokonanoda：语言服务器下载完成 ✓");
+        vscode.window.showInformationMessage("sokonanoda：语言服务器就绪 ✓");
       } else {
         throw new Error("download produced no binary");
       }
     } catch (err) {
       vscode.window.showWarningMessage(
-        "sokonanoda-lsp 自动下载失败。请在仓库根目录运行 cargo build -p sokonanoda-lsp，或设置 sokonanoda.serverPath。错误：" + (err?.message ?? err)
+        "sokonanoda-lsp 获取失败。请安装对应平台的插件安装包、在仓库根目录运行 cargo build -p sokonanoda-lsp，或设置 sokonanoda.serverPath。错误：" + (err?.message ?? err)
       );
       return;
     }

@@ -1,8 +1,8 @@
 {
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
-  "description": "Self-contained Lean-4-style teaching language with a real kernel: goal view, hint ladders, graded exercises. Zero setup - the server downloads itself on first use. Ships agent skills (Claude Code / opencode) that turn an LLM into your proof teacher.",
-  "version": "0.6.0",
+  "description": "Self-contained Lean-4-style teaching language with a real kernel: goal view, hint ladders, graded exercises. Zero setup - the language server ships inside the platform-specific extension, so it works offline. Ships agent skills (Claude Code / opencode) that turn an LLM into your proof teacher.",
+  "version": "0.7.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -150,7 +150,7 @@
         "sokonanoda.serverPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to the `sokonanoda-lsp` server binary. Leave empty for auto-discovery: `target/debug/sokonanoda-lsp`, then `target/release/sokonanoda-lsp`, in the workspace folders (and the repo checkout), else `sokonanoda-lsp` from `PATH`. Ignored in restricted (untrusted) workspaces."
+          "markdownDescription": "Path to the `sokonanoda-lsp` server binary. Leave empty for auto-discovery: the server bundled in this extension (`bin/<target>/`), then `target/debug/sokonanoda-lsp` / `target/release/sokonanoda-lsp` in the workspace folders (and the repo checkout), then a version-pinned download cache. Ignored in restricted (untrusted) workspaces."
         },
         "sokonanoda.trace.server": {
           "type": "string",
@@ -185,8 +185,12 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "echo ok",
+    "clean:lsp": "node -e \"require('fs').rmSync('bin',{recursive:true,force:true})\"",
+    "stage:lsp": "node scripts/stage-lsp.js",
     "package": "vsce package --out sokonanoda.vsix",
-    "test:unit": "node test-download.js",
+    "package:host": "node scripts/stage-lsp.js --package",
+    "package:universal": "npm run clean:lsp && vsce package --out sokonanoda-universal.vsix",
+    "test:unit": "node test-server.js && node test-download.js",
     "test": "vscode-test"
   },
   "dependencies": {

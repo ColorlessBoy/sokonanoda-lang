@@ -5,8 +5,11 @@
 # ships a package that fails with "Cannot find module" on install.
 .vscode/**
 .vscode-test/**
+.vscode-test.mjs
 .github/**
 **/*.vsix
 .DS_Store
 src/**
+scripts/**
+test-*.js
 

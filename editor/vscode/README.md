@@ -1,10 +1,11 @@
 # sokonanoda — learn theorem proving in a Lean-4-style language
 
 Zero setup. Install the extension, open a `.sokonanoda` file, and the
-language server **downloads itself** from GitHub Releases on first use
-(rust-analyzer model) — no Rust toolchain, no checkout, no official Lean
-required. Every exercise you finish is graded by a **complete
-Lean-4-compatible kernel**: if it's green, it's a real proof.
+language server is already there — it **ships inside the extension** as a
+platform-specific package (macOS arm64/x86_64, Linux x86_64, Windows x86_64),
+so no Rust toolchain, no checkout, and **no network download**. Every exercise
+you finish is graded by a **complete Lean-4-compatible kernel**: if it's
+green, it's a real proof.
 
 Part of the
 [sokonanoda-lang](https://github.com/ColorlessBoy/sokonanoda-lang)
@@ -53,25 +54,27 @@ skills.
 
 ## Install & use
 
-1. Install this extension from the Marketplace.
+1. Install this extension from the Marketplace — VS Code picks the package
+   with the server bundled for your platform.
 2. Open any `.sokonanoda` file (or the `playground.sokonanoda` that
    ships in the repo — 12 exercises, zero to theorem).
-3. On first use the extension downloads the matching
-   `sokonanoda-lsp` binary for your platform
-   (macOS arm64/x86_64, Linux x86_64, Windows x86_64) from the
-   [latest GitHub Release](https://github.com/ColorlessBoy/sokonanoda-lang/releases/latest)
-   and caches it under `~/.local/share/sokonanoda/bin/`.
+3. That's it. The server binary lives in `bin/<platform>/` inside the
+   extension; the client and its bundled kernel are built from the same
+   release, so there is no version drift.
 
 The server is discovered in this order:
 
 1. the `sokonanoda.serverPath` setting (or `SOKONANODA_LSP_BIN` env),
-2. `target/debug|release/sokonanoda-lsp` in your workspace (repo
+2. the bundled `bin/<target>/sokonanoda-lsp[.exe]` (repairs a lost
+   executable bit automatically),
+3. `target/debug|release/sokonanoda-lsp` in your workspace (repo
    checkouts — handy when developing the compiler),
-3. `sokonanoda-lsp` on `PATH`,
-4. the cached download above, then a fresh download as the last resort.
+4. the version-pinned download cache — only used by the fallback package
+   for platforms with no bundled build (e.g. Linux arm64), and always
+   pinned to this extension's own release tag, never `latest`.
 
-**No Lean toolchain.** The kernel ships inside the server; everything
-works offline after the first download.
+**No Lean toolchain.** The kernel ships inside the server; on platforms
+with a bundled package everything works fully offline.
 
 ## Teaching with AI agents
 
@@ -107,7 +110,8 @@ out of the box.
 ## Requirements
 
 - VS Code 1.85+
-- Network access for the one-time server download (or use
+- No network needed on platforms with a bundled package; the fallback
+  package for other platforms downloads once (or use
   `sokonanoda.serverPath` to point at a local build)
 
 ## Links

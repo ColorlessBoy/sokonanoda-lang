@@ -1,38 +1,16 @@
-// Unit tests for the download logic in extension.js.
+// Unit tests for the download logic in server.js (followRedirects), plus a
+// download → tar extraction simulation.
 // Run: node editor/vscode/test-download.js
 // No VS Code, no cargo build required — pure Node.js.
 
 const http = require("http");
-const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { execSync } = require("child_process");
 const assert = require("assert");
 
-// ── Extract followRedirects + download logic from extension.js (duplicated for
-// test isolation; the real code stays in extension.js unchanged). ──────────
-
-function followRedirects(reqUrl, redirectsLeft) {
-  const mod = reqUrl.startsWith("https") ? https : http;
-  return new Promise((resolve, reject) => {
-    mod.get(reqUrl, (res) => {
-      if (
-        (res.statusCode === 301 || res.statusCode === 302 || res.statusCode === 303) &&
-        res.headers.location
-      ) {
-        if (redirectsLeft <= 0) return reject(new Error("too many redirects"));
-        res.resume();
-        return followRedirects(res.headers.location, redirectsLeft - 1).then(resolve, reject);
-      }
-      if (res.statusCode !== 200) {
-        res.resume();
-        return reject(new Error(`HTTP ${res.statusCode}`));
-      }
-      resolve(res);
-    }).on("error", reject);
-  });
-}
+const { followRedirects } = require("./server");
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
