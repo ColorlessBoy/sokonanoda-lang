@@ -79,6 +79,11 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    抓修 2 个只存在于 CI 的路径 bug（`../../` 层数、`mkdir -p dist`），
    均已记 `docs/CI-FAILURES.md`；另有 1 次集成测试 ETIMEDOUT 间歇网络
    （同代码下一轮绿，已入台账 + CI skill）。
+6. **正式发布 v0.7.0（2026-09-10）**：tag `v0.7.0` → release run
+   `34462668264` 全 job 绿（含 marketplace-publish 真实发布 5 个包）；
+   GitHub Release 9 资产（4 tarball + 5 VSIX）；Marketplace 经 gallery API
+   核实 0.7.0 的 universal + darwin-arm64 / darwin-x64 / linux-x64 /
+   win32-x64 五个包全部上架（validation 约 4–10 分钟）；tag 触发的 ci 也绿。
 
 **Phase 3（硬化，基本完成）**：CI 集成测试已走 bundled 路径（fresh runner
 = 无缓存激活的实证）；剩余为决策项——是否追加 linux-arm64 / win32-arm64 /
@@ -677,8 +682,8 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
 > gap-analysis Top 10 已全部清零。以下为运营验证与精选改进。
 
 ### 运营验证（需要真实使用）
-- **release.yml 首跑**：`git tag v0.1.0 && git push --tags` 后核对产物
-  （双二进制 + VSIX；taiki-e 多 bin 映射、xvfb-run 集成测试需首次实测）
+- ~~**release.yml 首跑**~~ ✅（v0.4.1 起常规 tag 发布已在使用；v0.7.0 起为
+  per-target VSIX 发布，见第二十一轮与 `docs/RELEASE.md`）
 - **教学回环实战**：逻辑先行画布已就绪——找真实学习者走完 12 题
   （skills/sokonanoda-teacher 循环），回收提示分层与事件决策表的打磨需求
 - **opencode LSP 实战**：已确认一次（抓出 Eq.symm 钥匙缺实参），
@@ -722,10 +727,9 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
 
 ### 运营/验证类
 
-- **release.yml 首跑验证**：`git tag v0.1.0 && git push --tags` 后核对
-  Release 产物（双二进制 + VSIX；见 docs/RELEASE.md §6 风险清单——
-  taiki-e 多 bin 映射、softprops、gh release upload 均需首次实测）；
-  `npx @vscode/vsce` 建议钉版本。
+- ~~**release.yml 首跑验证**~~ ✅（2026-09-10 v0.7.0：per-target VSIX +
+  universal 回退包 5 个全部上架 Marketplace，GitHub Release 9 资产齐全；
+  见 `docs/RELEASE.md`）。
 - **教学回环实战**：逻辑先行画布已就绪（course/ + playground，12 题）——
   找真实学习者走一遍 `skills/sokonanoda-teacher` 循环，回收提示分层与
   事件决策表的打磨需求。
