@@ -53,11 +53,12 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 ```
 
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定
-（仓库根 `opencode.json` 已接线：LSP 走 `.opencode/lsp/sokonanoda-lsp.sh`
-shim → `scripts/soko.sh lsp`——本仓库构建 / VS Code 扩展自带 bin / 缓存优先，
-缺失时按版本锁定从 GitHub Release 自动下载（`SOKONANODA_OFFLINE=1` 可禁用），
-最后才编译；`skills/` 自动加载、`/sokonanoda/*` 命令、`teacher` 主 agent、
-插件启动自动 provisioning、Lean 工具链命令 deny）；goal 视图走自定义请求
+（opencode 由启动插件自动接线：解析原生 `sokonanoda-lsp`——仓库构建 / VS Code
+扩展自带 / 缓存 / 版本锁定下载（`fetch`+`tar`，跨平台、零 bash）——并改写
+`lsp.command`；`shell.env` 注入 PATH；`opencode.json` 不再含 lsp 命令。
+非 opencode harness 可用 `.opencode/lsp/sokonanoda-lsp.sh` shim →
+`scripts/soko.sh lsp`。`skills/` 自动加载、`/sokonanoda/*` 命令、`teacher`
+主 agent、Lean 工具链命令 deny）；goal 视图走自定义请求
 `soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt`
 （`docs/protocol.md`）。每个 release 仍正常产出各平台
 `sokonanoda-lsp-<triple>.tar.gz` 与 `sokonanoda-cli-<triple>.tar.gz`

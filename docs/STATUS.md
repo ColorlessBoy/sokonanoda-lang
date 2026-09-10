@@ -63,9 +63,16 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 8. **opencode.json 的 lsp 块被误删（用户现场发现）**：工作区里
    `opencode.json` 丢了整个 `lsp` 段，opencode 启动即打
    `all LSPs are disabled`（不是“没安装”：doctor READY、LSP 握手正常）。
-   从 git 恢复 + 新增契约测试 `opencode_json_wires_the_sokonanoda_lsp`
-   （命令必须指向 shim、extensions 含 `.sokonanoda`、skills.paths 在），
-   防再次静默丢失。opencode 配置只在启动时加载，需重启生效。
+   新增契约测试 `opencode_json_wires_the_sokonanoda_lsp`（后续被第 9 条
+   的插件方案取代）防静默丢失。
+9. **opencode LSP 改为插件直连原生二进制（用户问「为什么需要 bash /
+   其他平台支持吗」）**：实验证实插件 `config` 钩子在 LSP 启动前生效；
+   插件改为纯 TS 完成解析 + 版本锁定下载（`fetch`+`tar`；Windows 10+ 自带
+   tar，不需要 bash），把 `lsp.command` 直接指向二进制绝对路径；
+   `opencode.json` 不再含 lsp/shell 命令；尊重用户自定义 `lsp.sokonanoda`；
+   shim 仅保留给非 opencode harness。契约：插件必须含
+   `config`/`fetch`/`extensions` 且不含 `"bash"`，opencode.json 无 lsp 块
+   （8 个 opencode 测试全绿；opencode 实测 6 条诊断）。需重启 opencode 生效。
 
 ## 本轮进度（2026-09-10，第二十二轮：平台矩阵 4 → 8）
 

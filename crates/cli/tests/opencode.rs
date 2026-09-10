@@ -45,39 +45,50 @@ fn copy_script_env(tmp: &Path, version: &str) {
     fs::write(tmp.join("Cargo.toml"), format!("version = \"{version}\"\n")).expect("Cargo.toml");
 }
 
-/// Regression guard: the project `opencode.json` must keep wiring the
-/// sokonanoda LSP (the block was accidentally deleted once, which made
-/// opencode log "all LSPs are disabled").
+/// Regression guard for the base wiring: the plugin itself must provide the
+/// LSP (native binary, cross-platform, no bash) and the repo keeps a shim for
+/// harnesses that need a command entrypoint. The block was accidentally
+/// deleted once, which made opencode log "all LSPs are disabled".
 #[test]
-fn opencode_json_wires_the_sokonanoda_lsp() {
+fn opencode_lsp_is_wired_via_the_plugin() {
     let root = repo_root();
+    let plugin =
+        fs::read_to_string(root.join(".opencode/plugin/sokonanoda.ts")).expect("plugin readable");
+    for needle in [
+        "config:",
+        "cfg.lsp.sokonanoda",
+        "sokonanoda-lsp",
+        "extensions: [\".sokonanoda\"]",
+        "fetch(",
+    ] {
+        assert!(plugin.contains(needle), "plugin must contain `{needle}`");
+    }
+    assert!(
+        !plugin.contains("\"bash\""),
+        "the plugin must not need bash (it runs on opencode's bundled runtime)"
+    );
+
+    // The shim stays for non-opencode harnesses and manual use.
+    let launcher = fs::read_to_string(root.join(".opencode/lsp/sokonanoda-lsp.sh"))
+        .expect("launcher readable");
+    assert!(
+        launcher.contains("scripts/soko.sh") && launcher.contains("lsp"),
+        "the fallback launcher must delegate to scripts/soko.sh lsp"
+    );
+
     let config: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(root.join("opencode.json")).expect("opencode.json"),
     )
     .expect("opencode.json is valid JSON");
-    let lsp = &config["lsp"]["sokonanoda"];
-    assert!(
-        lsp.is_object(),
-        "opencode.json must configure lsp.sokonanoda"
-    );
-    let command = lsp["command"].as_array().expect("command array");
-    assert!(
-        command.iter().any(|v| v
-            .as_str()
-            .is_some_and(|s| s.contains(".opencode/lsp/sokonanoda-lsp.sh"))),
-        "lsp.sokonanoda.command must run the repo launcher shim: {command:?}"
-    );
-    assert!(
-        lsp["extensions"]
-            .as_array()
-            .expect("extensions array")
-            .iter()
-            .any(|v| v.as_str() == Some(".sokonanoda")),
-        "lsp.sokonanoda.extensions must include .sokonanoda"
-    );
     assert!(
         config["skills"]["paths"].is_array(),
         "skills.paths must stay wired"
+    );
+    // Cleanliness: the LSP is wired by the plugin (native binary), not by a
+    // hardcoded shell command in opencode.json.
+    assert!(
+        config["lsp"].is_null(),
+        "opencode.json must not hardcode an lsp block (the plugin wires the binary)"
     );
 }
 
@@ -134,7 +145,7 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
     let plugin =
         fs::read_to_string(root.join(".opencode/plugin/sokonanoda.ts")).expect("plugin readable");
     assert!(
-        plugin.contains("scripts/soko.sh")
+        plugin.contains("\"soko.sh\"")
             && plugin.contains("shell.env")
             && plugin.contains("findRepoRoot"),
         "plugin must find the repo root, run the setup script, and inject PATH via shell.env"

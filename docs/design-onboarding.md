@@ -56,18 +56,21 @@
 可覆盖项：`SOKONANODA_CACHE_DIR`、`SOKONANODA_OFFLINE=1`、
 `SOKONANODA_LSP_BIN`。
 
-### 3.2 opencode 层（薄）
+### 3.2 opencode 层（薄，运行时零 bash）
 
 - **命令命名空间**：`.opencode/command/sokonanoda/{setup,doctor,check,gate,round}.md`
   → `/sokonanoda/setup`、`/sokonanoda/doctor`、`/sokonanoda/check`、
   `/sokonanoda/gate`、`/sokonanoda/round`；旧的扁平 `/check` `/setup`
-  `/gate` `/round` 删除。命令体只调用 `scripts/soko.sh`，不复制逻辑。
-- **LSP launcher**：`.opencode/lsp/sokonanoda-lsp.sh` 瘦身为 3 行 shim，
-  `exec bash scripts/soko.sh lsp`；解析/下载逻辑只存在于脚本里。
-- **插件**：`.opencode/plugin/sokonanoda.ts` 启动时 best-effort 跑
-  `soko.sh setup`（幂等，已就绪约毫秒级；失败不阻塞），并用 `shell.env`
-  把缓存目录注入 PATH，agent 可直接用 `sokonanoda`。
-- `opencode.json` 的 `lsp` 仍指 shim（opencode 无 shell、cwd 可能是子目录）。
+  `/gate` `/round` 删除。命令体只调用 `scripts/soko.sh`（根无关），不复制逻辑。
+- **插件 = LSP 接线**（`.opencode/plugin/sokonanoda.ts`，跨平台、零 bash）：
+  启动时解析服务器（`SOKONANODA_LSP_BIN` → 仓库构建 → VS Code 扩展自带 →
+  缓存 → 版本锁定下载，`fetch` + `tar`），用 `config` 钩子把
+  `lsp.sokonanoda.command` 改写为**原生二进制绝对路径**；`shell.env` 把缓存
+  目录注入 PATH。用户自己写的 `lsp.sokonanoda` 会被尊重、不覆盖。
+  （实验证实 config 钩子在 LSP 启动前生效；`tar` 在 Windows 10+/macOS/Linux
+  自带，无需 bash。）
+- `opencode.json` **不再包含 lsp/shell 命令**；`.opencode/lsp/sokonanoda-lsp.sh`
+  仅保留给非 opencode 的 harness / 手工使用（shim → `scripts/soko.sh lsp`）。
 
 ### 3.3 文档分工（消除漂移）
 

@@ -387,7 +387,7 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 
 ## 2026-09-10 更新（第二十三轮：环境配置单一入口）
 
-- **opencode/onboarding 契约**（`crates/cli/tests/opencode.rs`，7 个）：
+- **opencode/onboarding 契约**（`crates/cli/tests/opencode.rs`，8 个；含插件直连原生二进制、不许 `"bash"`、opencode.json 不写 lsp 的契约）：
   `scripts/soko.sh doctor --json` 退出码契约（空缓存 3 → 伪造 marker 后
   0）、`setup` 离线可行动（exit 3 + 提示）、`grade` 直 exec 缓存 CLI、
   launcher 命中 VS Code 扩展自带 bin（无 cargo）、fake-curl 版本锁定下载
