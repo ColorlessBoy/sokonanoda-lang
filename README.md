@@ -46,7 +46,35 @@ Documentation:
 - [docs/protocol.md](docs/protocol.md) — CLI/editor/agent feedback protocol
   (human text lines + JSON Lines).
 
-## Quick start
+## Use it (no Rust toolchain required)
+
+**VS Code users**: install the extension from the Marketplace — the
+platform-specific package ships both the language server and the `sokonanoda`
+CLI, so checking, the goal view and the course map work offline out of the
+box.
+
+**Command line / agents**: download the version-pinned binaries from GitHub
+Releases (the tarballs contain runnable executables — no cargo, no checkout):
+
+```bash
+V=0.9.0   # or this checkout's version: grep -m1 '^version' Cargo.toml | cut -d'"' -f2
+TARGET=aarch64-apple-darwin   # linux: x86_64-unknown-linux-gnu / aarch64-unknown-linux-gnu; win: x86_64-pc-windows-msvc
+BIN="$HOME/.local/share/sokonanoda/bin"; mkdir -p "$BIN"
+for pkg in sokonanoda-cli sokonanoda-lsp; do
+  curl -fsSL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v${V}/${pkg}-${TARGET}.tar.gz" \
+    | tar xz -C "$BIN"
+done
+"$BIN/sokonanoda" --json your-file.sokonanoda
+```
+
+`--json` prints one JSON event per line (the machine/agent view); errors carry
+a stable code (`elab-*` / `kernel-rejected` / …) plus a teaching hint.
+**Never use `releases/latest`** — always pin `v${version}`, otherwise a newer
+server would be paired with an older client.
+
+## Build from source (contributors)
+
+Contributors need the Rust toolchain; from this checkout:
 
 ```text
 cargo test
@@ -55,9 +83,6 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json examples/lesson-01.sok
 cargo run -q -p sokonanoda-cli --bin sokonanoda repl
 cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp   # editor feedback channel
 ```
-
-`--json` prints one JSON event per line (the machine/agent view); errors carry
-a stable code (`elab-*` / `kernel-rejected` / …) plus a teaching hint.
 
 The editor path is LSP-first: `.sokonanoda` files stay declarative (no `#`
 commands); the language server publishes per-declaration diagnostics, hover
@@ -139,10 +164,11 @@ Code agents are first-class users of this repo, two ways:
   TDD/docs-first workflow.
 
 Editor feedback for agents needs no extra tooling: the repo-root
-`opencode.json` wires `sokonanoda-lsp` to the `.sokonanoda` extension, so
-opencode (and compatible harnesses) consume kernel-judged diagnostics
-automatically. CLI-based agents get the same contract via `--json` and
-`watch`.
+`opencode.json` starts the LSP through `.opencode/lsp/sokonanoda-lsp.sh`, which
+resolves an installed VS Code extension binary, a local build, or the
+version-pinned GitHub Release binary (auto-download; set
+`SOKONANODA_LSP_OFFLINE=1` to forbid the network step). CLI-based agents get
+the same contract via `--json` and `watch`.
 
 ## Development principles
 
@@ -163,5 +189,5 @@ A second example defines the classic logical vocabulary from scratch and
 proves core theorems about it:
 
 ```text
-cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/fol-basics.sokonanoda
+"$BIN/sokonanoda" examples/fol-basics.sokonanoda
 ```

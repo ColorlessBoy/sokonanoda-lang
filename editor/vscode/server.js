@@ -78,11 +78,21 @@ function binaryName(platform) {
   return platform === "win32" ? "sokonanoda-lsp.exe" : "sokonanoda-lsp";
 }
 
-/// Path of the server bundled in this extension, for the current platform.
-function bundledServerPath(extensionPath, platform, arch, alpine = false) {
+/// Path of a bundled binary in this extension (`bin/<target>/<baseName>[.exe]`).
+function bundledBinaryPath(extensionPath, platform, arch, baseName, alpine = false) {
   const target = platformTarget(platform, arch, alpine);
   if (!target) return undefined;
-  return path.join(extensionPath, "bin", target, binaryName(platform));
+  return path.join(
+    extensionPath,
+    "bin",
+    target,
+    `${baseName}${platform === "win32" ? ".exe" : ""}`,
+  );
+}
+
+/// Path of the server bundled in this extension, for the current platform.
+function bundledServerPath(extensionPath, platform, arch, alpine = false) {
+  return bundledBinaryPath(extensionPath, platform, arch, "sokonanoda-lsp", alpine);
 }
 
 function firstExisting(candidates, fsImpl = fs) {
@@ -113,23 +123,47 @@ function isExecutable(file, fsImpl = fs) {
 /// bundled target, the file is missing, or it stays non-executable (e.g. a
 /// read-only extension directory) — callers then fall through to the next
 /// acquisition path.
-function resolveBundledServer(options) {
-  const { extensionPath, platform, arch, log } = options;
+function resolveBundledBinary(options) {
+  const { extensionPath, platform, arch, baseName = "sokonanoda-lsp", log } = options;
   const fsImpl = options.fs ?? fs;
   const alpine = options.alpine ?? isAlpineLinux(platform, fsImpl);
-  const binary = bundledServerPath(extensionPath, platform, arch, alpine);
+  const binary = bundledBinaryPath(extensionPath, platform, arch, baseName, alpine);
   if (!binary || !fsImpl.existsSync(binary)) return undefined;
   if (platform === "win32") return binary;
   if (isExecutable(binary, fsImpl)) return binary;
   try {
     fsImpl.chmodSync(binary, 0o755);
   } catch (error) {
-    log?.(`bundled server is not executable and chmod failed: ${binary}: ${error}`);
+    log?.(`bundled binary is not executable and chmod failed: ${binary}: ${error}`);
     return undefined;
   }
   if (isExecutable(binary, fsImpl)) return binary;
-  log?.(`bundled server is still not executable after chmod: ${binary}`);
+  log?.(`bundled binary is still not executable after chmod: ${binary}`);
   return undefined;
+}
+
+function resolveBundledServer(options) {
+  return resolveBundledBinary({ ...options, baseName: "sokonanoda-lsp" });
+}
+
+/// Resolve the `sokonanoda` CLI (used by the course map): bundled in the VSIX
+/// first, then a workspace build, then PATH. No network, no cargo needed.
+function resolveCliCommand(options) {
+  const { extensionPath, roots = [], platform, arch, log } = options;
+  const fsImpl = options.fs ?? fs;
+  const bundled = resolveBundledBinary({
+    extensionPath,
+    platform,
+    arch,
+    baseName: "sokonanoda",
+    fs: fsImpl,
+    log,
+  });
+  if (bundled) return bundled;
+  const cliName = platform === "win32" ? "sokonanoda.exe" : "sokonanoda";
+  const found = firstExisting(builtBinaryCandidates(roots, cliName), fsImpl);
+  if (found) return found;
+  return "sokonanoda";
 }
 
 /// Auto-download cache directory for the language server binary (legacy
@@ -293,8 +327,11 @@ module.exports = {
   platformTarget,
   rustTarget,
   binaryName,
+  bundledBinaryPath,
   bundledServerPath,
+  resolveBundledBinary,
   resolveBundledServer,
+  resolveCliCommand,
   firstExisting,
   builtBinaryCandidates,
   serverCacheDir,

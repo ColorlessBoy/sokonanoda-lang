@@ -1,5 +1,7 @@
 // Minimal VS Code client for the sokonanoda language server.
-// Requirements: `cargo build -p sokonanoda-lsp` first (or have sokonanoda-lsp on PATH).
+// Server/CLI are resolved at runtime (server.js): bundled VSIX binaries →
+// workspace `target/` builds → version-pinned release download. No cargo
+// required for users; see docs/design-bundled-lsp.md.
 // The server must never log to stdout; stdio carries the LSP stream.
 // Goal view (I9): the "练习" tree consumes the server's `soko/goals` custom
 // request; alt+n jumps between holes via `soko/nextHole` (server-side
@@ -20,6 +22,7 @@ const { LanguageClient, State, TransportKind } = require("vscode-languageclient/
 const server = require("./server");
 
 let client;
+let extensionRoot;
 
 function discoveryRoots() {
   return (vscode.workspace.workspaceFolders ?? [])
@@ -47,12 +50,17 @@ function resolveServerCommand(context) {
   });
 }
 
-// Same discovery pattern as the server, but for the `sokonanoda` CLI binary
-// (`cargo build -p sokonanoda-cli` produces target/{debug,release}/sokonanoda).
+// Same discovery pattern as the server, but for the `sokonanoda` CLI binary:
+// bundled in the VSIX first (course map works with nothing installed), then
+// workspace `target/{debug,release}` builds, then PATH.
 function resolveCliCommand() {
-  return server.firstExisting(
-    server.builtBinaryCandidates(discoveryRoots(), "sokonanoda"),
-  ) ?? "sokonanoda";
+  return server.resolveCliCommand({
+    extensionPath: extensionRoot,
+    roots: discoveryRoots(),
+    platform: process.platform,
+    arch: process.arch,
+    log: (message) => console.warn(`[sokonanoda] ${message}`),
+  });
 }
 
 function resolveCourseManifest() {
@@ -555,6 +563,7 @@ function registerCommands(context, provider, courseProvider) {
 }
 
 async function activate(context) {
+  extensionRoot = context.extensionPath;
   let command = await resolveServerCommand(context);
   if (command === undefined || (isExplicitPath(command) && !fs.existsSync(command))) {
     // No bundled binary for this platform (universal VSIX / unsupported arch):
@@ -582,7 +591,7 @@ async function activate(context) {
       }
     } catch (err) {
       vscode.window.showWarningMessage(
-        "sokonanoda-lsp 获取失败。请安装对应平台的插件安装包、在仓库根目录运行 cargo build -p sokonanoda-lsp，或设置 sokonanoda.serverPath。错误：" + (err?.message ?? err)
+        "sokonanoda-lsp 获取失败。请安装对应平台的插件包，或联网后重试；也可用 sokonanoda.serverPath 指向本地二进制。错误：" + (err?.message ?? err)
       );
       return;
     }

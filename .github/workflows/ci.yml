@@ -64,14 +64,14 @@ jobs:
             | cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json \
             | python3 -c 'import json,sys; [json.loads(l) for l in sys.stdin]'
 
-      - name: Build LSP server for editor integration tests
-        # editor/vscode 的集成测试不自己构建服务器：它只发现 target/ 下的
-        # 二进制（extension.js 的自动发现逻辑），所以必须先构建。
-        run: cargo build -p sokonanoda-lsp --locked
+      - name: Build server + CLI for editor integration tests
+        # editor/vscode 的集成测试不自己构建：它只发现 target/ 下的二进制
+        # （extension.js 的自动发现逻辑），所以必须先构建两者。
+        run: cargo build -p sokonanoda-lsp -p sokonanoda-cli --locked
 
-      - name: Stage bundled server (VSIX layout)
+      - name: Stage bundled binaries (VSIX layout)
         # 按打包布局 stage 到 bin/<target>/：bundled 解析优先于 target/ 发现，
-        # 因此集成测试验证的就是用户安装平台包后的那条路径。
+        # 因此集成测试验证的就是用户安装平台包后的那条路径（LSP + CLI）。
         run: node editor/vscode/scripts/stage-lsp.js --profile debug
 
       - name: Setup Node for editor integration tests
@@ -101,14 +101,15 @@ jobs:
           python3 - <<'PY'
           import zipfile
           with zipfile.ZipFile("/tmp/host.vsix") as zf:
-              name = "extension/bin/linux-x64/sokonanoda-lsp"
-              info = zf.getinfo(name)
-              mode = (info.external_attr >> 16) & 0o777
-              assert info.file_size > 1_000_000, info.file_size
-              assert mode & 0o111, oct(mode)
               manifest = zf.read("extension.vsixmanifest").decode()
               assert 'TargetPlatform="linux-x64"' in manifest
-              print(f"host VSIX ok: {name} mode={oct(mode)} size={info.file_size}")
+              for base in ["sokonanoda-lsp", "sokonanoda"]:
+                  name = f"extension/bin/linux-x64/{base}"
+                  info = zf.getinfo(name)
+                  mode = (info.external_attr >> 16) & 0o777
+                  assert info.file_size > 1_000_000, (name, info.file_size)
+                  assert mode & 0o111, (name, oct(mode))
+                  print(f"host VSIX ok: {name} mode={oct(mode)} size={info.file_size}")
           PY
 
       - name: VS Code extension integration tests

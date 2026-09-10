@@ -54,14 +54,17 @@ cargo test --workspace --locked             # 全部 13 个套件
 ```bash
 git clone https://github.com/ColorlessBoy/sokonanoda-lang.git && cd sokonanoda-lang
 
-# 方式 ①（agent / headless 首选，与 VS Code 解耦）：按版本从 Release 拉 LSP
+# 方式 ①（agent / headless 首选，与 VS Code 解耦）：按版本从 Release 拉
+#   LSP + CLI 两个二进制（tarball 直接解出可执行文件，不需要 cargo）
 V=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
 TARGET=aarch64-apple-darwin   # x86_64-unknown-linux-gnu / x86_64-pc-windows-msvc（Windows 也是 .tar.gz）
-mkdir -p ~/.local/share/sokonanoda/bin
-curl -fsSL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v${V}/sokonanoda-lsp-${TARGET}.tar.gz" \
-  | tar xz -C ~/.local/share/sokonanoda/bin
-# opencode 的 launcher 会直接用这个缓存；它也会在缺失时自动按同一 URL
-# 下载（SOKONANODA_LSP_OFFLINE=1 可禁用网络）。
+BIN="$HOME/.local/share/sokonanoda/bin"; mkdir -p "$BIN"
+for pkg in sokonanoda-cli sokonanoda-lsp; do
+  curl -fsSL "https://github.com/ColorlessBoy/sokonanoda-lang/releases/download/v${V}/${pkg}-${TARGET}.tar.gz" \
+    | tar xz -C "$BIN"
+done
+# opencode 的 launcher 会直接用这个缓存；缺失时它也会按同一 URL 自动下载
+# （SOKONANODA_LSP_OFFLINE=1 可禁用网络）。
 
 # 方式 ②（开发必需）：源码编译（CLI + LSP + 全量测试）
 cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
@@ -71,10 +74,10 @@ export PATH="$PWD/target/release:$PATH"
 #   agent 不依赖它。
 ```
 
-Release 资产：每个平台的 `sokonanoda-lsp-<rust-triple>.tar.gz` ×8 + VSIX ×9
-（8 平台 + universal 回退包）；**没有 CLI 预编译包**（CLI 走 `cargo run`
-或源码编译）。不要用 `releases/latest`——下载 URL 按仓库版本锁定，
-版本错配是明确要避免的故障。
+Release 资产：每个平台的 `sokonanoda-lsp-<rust-triple>.tar.gz` 与
+`sokonanoda-cli-<rust-triple>.tar.gz`（各 8 个；后者就是可直接执行的 CLI），
+加上 VSIX ×9（8 平台包内嵌两者 + universal 回退包）。不要用
+`releases/latest`——下载 URL 按仓库版本锁定，版本错配是明确要避免的故障。
 
 ## 5. VS Code 扩展开发规范
 

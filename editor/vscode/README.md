@@ -1,11 +1,11 @@
 # sokonanoda — learn theorem proving in a Lean-4-style language
 
 Zero setup. Install the extension, open a `.sokonanoda` file, and the
-language server is already there — it **ships inside the extension** as a
-platform-specific package (macOS arm64/x86_64, Linux x64/arm64, Alpine
-x64/arm64, Windows x64/arm64), so no Rust toolchain, no checkout, and **no
-network download**. Every exercise you finish is graded by a **complete
-Lean-4-compatible kernel**: if it's green, it's a real proof.
+language server **and the `sokonanoda` CLI** are already there — they ship
+inside the extension as platform-specific packages (macOS arm64/x86_64, Linux
+x64/arm64, Alpine x64/arm64, Windows x64/arm64), so no Rust toolchain, no
+checkout, and **no network download**. Every exercise you finish is graded by a
+**complete Lean-4-compatible kernel**: if it's green, it's a real proof.
 
 Part of the
 [sokonanoda-lang](https://github.com/ColorlessBoy/sokonanoda-lang)
@@ -94,18 +94,13 @@ kernel-checked diagnostics in the agent's own editor loop. The same
 `--json` event stream (`sokonanoda --json file`, `sokonanoda watch`)
 is the integration surface for any tooling you want to build.
 
-## The course map needs one extra binary
+## The course map
 
-The 「课程」tree shells out to the `sokonanoda` CLI (it aggregates all
-course units — the language server stays single-document). The CLI is
-not auto-downloaded yet; pick one:
-
-- `cargo build --release -p sokonanoda-cli` (then it is discovered from
-  `target/release/`), or
-- put `sokonanoda` on your `PATH`.
-
-Without it, everything else (checking, hover, goal view, hints) works
-out of the box.
+The 「课程」tree shells out to the `sokonanoda` CLI (it aggregates all course
+units — the language server stays single-document). The CLI ships in the same
+platform package as the server, so it works out of the box; in a development
+host without a staged `bin/`, a workspace `target/{debug,release}` build is
+used instead.
 
 ## Requirements
 

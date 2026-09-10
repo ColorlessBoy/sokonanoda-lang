@@ -25,8 +25,10 @@
    `sorry`，剩余目标会显示在 hover/诊断里）。
 3. **判卷**：agent 跑
    ```bash
-   cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
+   SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"   # Release 二进制，零 cargo
+   "$SOKO" --json playground.sokonanoda
    ```
+   （二进制的获取见 `skills/sokonanoda-teacher` §1。）
    读结构化事件（不是 exit code）决定反馈；一个练习红了不影响其他练习
    （逐声明容错）。然后再回到第 1 步追加内容。
 

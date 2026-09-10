@@ -279,6 +279,11 @@ fn server_acquisition_prefers_the_bundled_binary() {
         server.contains("/etc/alpine-release"),
         "server.js must detect Alpine like VS Code does (alpine-* packages)"
     );
+    // The CLI is bundled too (course map works with nothing installed).
+    assert!(
+        server.contains("resolveCliCommand") && server.contains("sokonanoda.exe"),
+        "server.js must resolve the bundled sokonanoda CLI (incl. the .exe name)"
+    );
     assert!(
         server.contains("\"bin\"") && server.contains("chmodSync") && server.contains("0o755"),
         "server.js must resolve bin/<target>/ and repair a lost executable bit"
@@ -355,6 +360,9 @@ fn release_workflow_packages_platform_specific_vsixes() {
         "aarch64-pc-windows-msvc",
         "cargo zigbuild",
         ".2.28",
+        // Both binaries ship: VSIX embeds LSP + CLI; Releases carry the CLI too.
+        "--cli-binary",
+        "sokonanoda-cli-",
     ] {
         assert!(
             release.contains(needle),

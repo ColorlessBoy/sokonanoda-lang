@@ -292,6 +292,9 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 
 ## 10. 快速上手指南
 
+> 面向**贡献者**（需要 Rust）。用户/agent 的零工具链路径见根 `README.md`
+> 「Use it」与 `skills/sokonanoda-teacher`（Release 二进制 / 平台插件）。
+
 ```bash
 cargo test --workspace                       # 全部测试
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda

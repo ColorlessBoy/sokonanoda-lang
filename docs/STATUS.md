@@ -61,6 +61,20 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 8. **v0.8.0 发布完成**：release run `34468213710` 全绿；GitHub Release 17
    资产（8 tarball + 9 VSIX）；Marketplace 0.8.0 的 universal + 8 平台包
    全部上架（gallery API 核实）。linux-armhf 仍由 universal 兜底（可选）。
+9. **opencode LSP launcher（用户反馈）**：`opencode.json` 改为 `bash -c exec`
+   单行调用仓库 launcher；launcher 解析顺序：`SOKONANODA_LSP_BIN` → 仓库
+   `target/` → VS Code 扩展自带 bin → 下载缓存 → **按仓库版本锁定自动下载
+   Release**（`SOKONANODA_LSP_OFFLINE=1` 可禁）→ 编译兜底。契约测试 4 个
+   （伪造扩展目录、fake-curl 下载断言无 `/latest/`、离线可行动报错）。
+10. **CLI 零工具链化 + 全仓文档审计（用户纠正「cargo run 是重大失误」）**：
+   - 平台包同时内嵌 `sokonanoda` CLI（课程树开箱可用，`resolveCliCommand`
+     优先 bundled → workspace → PATH）；
+   - Release 新增 8 个 `sokonanoda-cli-<triple>.tar.gz`（agent/headless 直接
+     下载执行，**不需要 cargo**）；
+   - 根 README 拆为「Use it（零工具链）」/「Build from source（贡献者）」；
+     teacher 技能、teaching-session、extension 头注释与错误文案全部去
+     cargo；AGENTS 命令节标注「仅贡献者需要 Rust」；
+   - 原则升为硬规则 `docs/REQUIREMENTS.md` §2 第 9 条；版本 0.8.0 → 0.9.0。
 
 ## 本轮进度（2026-09-10，第二十一轮：插件自带 LSP——bundled VSIX）
 

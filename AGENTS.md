@@ -22,9 +22,12 @@
 2. 不调用官方 Lean 工具链（lean/lake/lean4export/elan）；
 3. 教学语法是真实 Lean 4 的子集；新增语法 = 课程 + 测试 + 白名单三件套；
 4. 判定永远走 kernel——**禁止文本比对**（tactic 判定范例：`front::judge`）；
-5. 模块化：文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定。
+5. 模块化：文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
+6. **用户/agent 路径零工具链依赖**：获取与运行只用 Release 二进制或平台
+   插件，不把 cargo/Rust 当使用前提（cargo 仅贡献者开发需要；见
+   REQUIREMENTS §2 第 9 条）。
 
-## 命令（改动落盘前全绿）
+## 命令（仅贡献者需要 Rust；用户/agent 用 Release 二进制，见 skills/sokonanoda-teacher）
 
 ```bash
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
@@ -41,8 +44,10 @@ launcher——本仓库构建 / VS Code 扩展自带 bin / 下载缓存优先，
 agent、Lean 工具链命令 deny）；goal 视图走自定义请求
 `soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt`
 （`docs/protocol.md`）。每个 release 仍正常产出各平台
-`sokonanoda-lsp-<triple>.tar.gz`（8 个）与 VSIX（9 个），供自动下载与
-headless 手动安装；**下载一律按仓库版本锁定，禁用 `latest`**。
+`sokonanoda-lsp-<triple>.tar.gz` 与 `sokonanoda-cli-<triple>.tar.gz`
+（各 8 个；CLI tarball 里就是可直接执行的二进制，agent 无需 cargo）与
+VSIX（9 个，平台包内嵌 LSP 与 CLI），供自动下载与 headless 手动安装；
+**下载一律按仓库版本锁定，禁用 `latest`**。
 
 ## VS Code 扩展改动
 

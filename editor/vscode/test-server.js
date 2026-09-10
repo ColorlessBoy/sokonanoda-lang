@@ -177,6 +177,58 @@ async function run() {
     );
   });
 
+  await test("resolveCliCommand: bundled CLI, then workspace build, then PATH", () => {
+    const bundled = path.join("/ext", "bin", "linux-x64", "sokonanoda");
+    const withBundled = fakeFs({ existing: [bundled], executable: [bundled] });
+    assert.strictEqual(
+      server.resolveCliCommand({
+        extensionPath: "/ext",
+        roots: [],
+        platform: "linux",
+        arch: "x64",
+        fs: withBundled,
+      }),
+      bundled,
+    );
+    const workspace = path.join("/ws", "target", "release", "sokonanoda");
+    const withWorkspace = fakeFs({ existing: [workspace], executable: [workspace] });
+    assert.strictEqual(
+      server.resolveCliCommand({
+        extensionPath: "/ext",
+        roots: ["/ws"],
+        platform: "linux",
+        arch: "x64",
+        fs: withWorkspace,
+      }),
+      workspace,
+    );
+    assert.strictEqual(
+      server.resolveCliCommand({
+        extensionPath: "/ext",
+        roots: [],
+        platform: "linux",
+        arch: "x64",
+        fs: fakeFs(),
+      }),
+      "sokonanoda",
+    );
+  });
+
+  await test("resolveCliCommand uses the Windows .exe name", () => {
+    const bundled = path.join("/ext", "bin", "win32-x64", "sokonanoda.exe");
+    const fake = fakeFs({ existing: [bundled] });
+    assert.strictEqual(
+      server.resolveCliCommand({
+        extensionPath: "/ext",
+        roots: [],
+        platform: "win32",
+        arch: "x64",
+        fs: fake,
+      }),
+      bundled,
+    );
+  });
+
   const ARGS = {
     extensionPath: "/ext",
     roots: [],

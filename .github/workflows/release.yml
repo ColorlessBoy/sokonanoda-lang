@@ -52,15 +52,15 @@ jobs:
         with:
           # 默认缓存 key 不含 target triple：矩阵各 leg 必须显式区分。
           key: ${{ matrix.target }}${{ matrix.glibc }}
-      - name: Build LSP server
+      - name: Build binaries (LSP server + CLI)
         shell: bash
         run: |
           set -euo pipefail
           if [ "${{ matrix.tool }}" = "zig" ]; then
-            cargo zigbuild --release --locked -p sokonanoda-lsp \
+            cargo zigbuild --release --locked -p sokonanoda-lsp -p sokonanoda-cli \
               --target "${{ matrix.target }}${{ matrix.glibc }}"
           else
-            cargo build --release --locked -p sokonanoda-lsp \
+            cargo build --release --locked -p sokonanoda-lsp -p sokonanoda-cli \
               --target "${{ matrix.target }}"
           fi
       - name: Verify glibc floor <= 2.28 (linux gnu)
@@ -87,19 +87,26 @@ jobs:
           echo "$ldd_out"
           grep -q "not a dynamic executable" <<< "$ldd_out" \
             || { echo "expected ldd to report a static binary"; exit 1; }
-      - name: Package binary
+      - name: Package binaries
         shell: bash
         run: |
-          mkdir -p dist
+          mkdir -p dist-lsp dist-cli
           if [[ "${{ matrix.target }}" == *"windows"* ]]; then
-            cp "target/${{ matrix.target }}/release/sokonanoda-lsp.exe" dist/
+            cp "target/${{ matrix.target }}/release/sokonanoda-lsp.exe" dist-lsp/
+            cp "target/${{ matrix.target }}/release/sokonanoda.exe" dist-cli/
           else
-            cp "target/${{ matrix.target }}/release/sokonanoda-lsp" dist/
+            cp "target/${{ matrix.target }}/release/sokonanoda-lsp" dist-lsp/
+            cp "target/${{ matrix.target }}/release/sokonanoda" dist-cli/
           fi
       - uses: actions/upload-artifact@v4
         with:
           name: lsp-${{ matrix.target }}
-          path: dist/
+          path: dist-lsp/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: dist-cli/
           if-no-files-found: error
 
   # 2) 逐 target stage 二进制 → `vsce package --target`；另出 universal 回退包。
@@ -128,11 +135,11 @@ jobs:
           fi
           echo "version gate ok: v${ext_version}"
 
-      # v4 不带 name 时按 artifact 名各建一个目录：lsp-<rust-target>/。
+      # v4 按 artifact 名各建一个目录：lsp-<rust-target>/ 与 cli-<rust-target>/。
       - name: Download per-platform binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: lsp-*
+          pattern: "{lsp,cli}-*"
 
       - name: Install extension dependencies
         working-directory: editor/vscode
@@ -159,7 +166,8 @@ jobs:
             # 落到 editor/ 下，dry-run 曾因此 ENOENT，见 CI-FAILURES.md）。
             node scripts/stage-lsp.js \
               --rust-target "$rust" \
-              --binary "../../lsp-${rust}/sokonanoda-lsp${exe}"
+              --binary "../../lsp-${rust}/sokonanoda-lsp${exe}" \
+              --cli-binary "../../cli-${rust}/sokonanoda${exe}"
             npx --yes @vscode/vsce package --target "$vsce" \
               --out "dist/sokonanoda-${vsce}.vsix"
           done
@@ -177,30 +185,34 @@ jobs:
           python3 - <<'PY'
           import zipfile
 
+          # (vsce target, bundled base names) — the VSIX carries BOTH the LSP
+          # server and the `sokonanoda` CLI for the same platform.
           EXPECTED = {
-              "dist/sokonanoda-linux-x64.vsix": ("linux-x64", "extension/bin/linux-x64/sokonanoda-lsp"),
-              "dist/sokonanoda-linux-arm64.vsix": ("linux-arm64", "extension/bin/linux-arm64/sokonanoda-lsp"),
-              "dist/sokonanoda-alpine-x64.vsix": ("alpine-x64", "extension/bin/alpine-x64/sokonanoda-lsp"),
-              "dist/sokonanoda-alpine-arm64.vsix": ("alpine-arm64", "extension/bin/alpine-arm64/sokonanoda-lsp"),
-              "dist/sokonanoda-darwin-arm64.vsix": ("darwin-arm64", "extension/bin/darwin-arm64/sokonanoda-lsp"),
-              "dist/sokonanoda-darwin-x64.vsix": ("darwin-x64", "extension/bin/darwin-x64/sokonanoda-lsp"),
-              "dist/sokonanoda-win32-x64.vsix": ("win32-x64", "extension/bin/win32-x64/sokonanoda-lsp.exe"),
-              "dist/sokonanoda-win32-arm64.vsix": ("win32-arm64", "extension/bin/win32-arm64/sokonanoda-lsp.exe"),
+              "dist/sokonanoda-linux-x64.vsix": ("linux-x64", ["sokonanoda-lsp", "sokonanoda"]),
+              "dist/sokonanoda-linux-arm64.vsix": ("linux-arm64", ["sokonanoda-lsp", "sokonanoda"]),
+              "dist/sokonanoda-alpine-x64.vsix": ("alpine-x64", ["sokonanoda-lsp", "sokonanoda"]),
+              "dist/sokonanoda-alpine-arm64.vsix": ("alpine-arm64", ["sokonanoda-lsp", "sokonanoda"]),
+              "dist/sokonanoda-darwin-arm64.vsix": ("darwin-arm64", ["sokonanoda-lsp", "sokonanoda"]),
+              "dist/sokonanoda-darwin-x64.vsix": ("darwin-x64", ["sokonanoda-lsp", "sokonanoda"]),
+              "dist/sokonanoda-win32-x64.vsix": ("win32-x64", ["sokonanoda-lsp", "sokonanoda"]),
+              "dist/sokonanoda-win32-arm64.vsix": ("win32-arm64", ["sokonanoda-lsp", "sokonanoda"]),
           }
           universal = "dist/sokonanoda-universal.vsix"
 
-          for path, (target, binary) in EXPECTED.items():
+          for path, (target, bases) in EXPECTED.items():
               with zipfile.ZipFile(path) as zf:
                   names = zf.namelist()
-                  assert binary in names, f"{path}: missing {binary}"
-                  info = zf.getinfo(binary)
-                  mode = (info.external_attr >> 16) & 0o777
-                  assert info.file_size > 1_000_000, f"{path}: suspiciously small binary ({info.file_size} B)"
-                  if not target.startswith("win32"):
-                      assert mode & 0o111, f"{path}: {binary} is not executable (mode={oct(mode)})"
                   manifest = zf.read("extension.vsixmanifest").decode("utf-8", "replace")
                   assert f'TargetPlatform="{target}"' in manifest, f"{path}: manifest lacks TargetPlatform={target}"
-                  print(f"ok {path}: {binary} mode={oct(mode)} size={info.file_size}")
+                  for base in bases:
+                      binary = f"extension/bin/{target}/{base}" + (".exe" if target.startswith("win32") else "")
+                      assert binary in names, f"{path}: missing {binary}"
+                      info = zf.getinfo(binary)
+                      mode = (info.external_attr >> 16) & 0o777
+                      assert info.file_size > 1_000_000, f"{path}: suspiciously small binary ({info.file_size} B)"
+                      if not target.startswith("win32"):
+                          assert mode & 0o111, f"{path}: {binary} is not executable (mode={oct(mode)})"
+                      print(f"ok {path}: {binary} mode={oct(mode)} size={info.file_size}")
 
           with zipfile.ZipFile(universal) as zf:
               assert not any(n.startswith("extension/bin/") for n in zf.namelist()), \
@@ -236,13 +248,21 @@ jobs:
           gh release create "${{ github.ref_name }}" \
             --title "sokonanoda ${{ github.ref_name }}" \
             --generate-notes || true
-          # 平台二进制 tarball：universal VSIX 的版本锁定下载回退要用。
+          # 平台二进制 tarball：universal VSIX 的版本锁定下载回退 + agent /
+          # headless 直接执行（LSP 与 CLI 各自一个 tarball）。
           for dir in lsp-*/; do
             target="${dir#lsp-}"
             target="${target%/}"
             tar czf "sokonanoda-lsp-${target}.tar.gz" -C "$dir" .
             gh release upload "${{ github.ref_name }}" \
               "sokonanoda-lsp-${target}.tar.gz" --clobber
+          done
+          for dir in cli-*/; do
+            target="${dir#cli-}"
+            target="${target%/}"
+            tar czf "sokonanoda-cli-${target}.tar.gz" -C "$dir" .
+            gh release upload "${{ github.ref_name }}" \
+              "sokonanoda-cli-${target}.tar.gz" --clobber
           done
           for vsix in sokonanoda-vsix/*.vsix; do
             gh release upload "${{ github.ref_name }}" "$vsix" --clobber

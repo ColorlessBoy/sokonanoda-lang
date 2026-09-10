@@ -1,11 +1,13 @@
-// Stage the built sokonanoda-lsp binary into `editor/vscode/bin/<target>/` so
-// `vsce package --target <target>` produces a platform-specific VSIX with a
-// bundled server (docs/design-bundled-lsp.md §3.3).
+// Stage the built sokonanoda binaries (`sokonanoda-lsp` server + `sokonanoda`
+// CLI) into `editor/vscode/bin/<target>/` so `vsce package --target <target>`
+// produces a platform-specific VSIX with both bundled
+// (docs/design-bundled-lsp.md §3.3).
 //
 // Usage:
 //   node scripts/stage-lsp.js                              # host release build
 //   node scripts/stage-lsp.js --profile debug              # host debug build
-//   node scripts/stage-lsp.js --rust-target <triple> --binary <path>
+//   node scripts/stage-lsp.js --rust-target <triple> \
+//     --binary <lsp path> --cli-binary <cli path>          # CI packaging
 //   node scripts/stage-lsp.js --package [--out sokonanoda.vsix]
 //
 // Staging keeps exactly one target in `bin/` (the packaging job iterates
@@ -26,6 +28,11 @@ const HOST_TO_VSCE = {
   "x86_64-pc-windows-msvc": "win32-x64",
   "aarch64-pc-windows-msvc": "win32-arm64",
 };
+
+const BUNDLED_BINARIES = [
+  { base: "sokonanoda-lsp", arg: "binary" },
+  { base: "sokonanoda", arg: "cliBinary" },
+];
 
 const EXTENSION_DIR = path.join(__dirname, "..");
 const REPO_ROOT = path.join(EXTENSION_DIR, "..", "..");
@@ -48,6 +55,7 @@ function parseArgs(argv) {
     if (arg === "--profile") args.profile = argv[++i];
     else if (arg === "--rust-target") args.rustTarget = argv[++i];
     else if (arg === "--binary") args.binary = argv[++i];
+    else if (arg === "--cli-binary") args.cliBinary = argv[++i];
     else if (arg === "--package") args.package = true;
     else if (arg === "--out") args.out = argv[++i];
     else throw new Error(`unknown argument: ${arg}`);
@@ -55,12 +63,13 @@ function parseArgs(argv) {
   return args;
 }
 
-/// Locate the built server binary for the given rust target: cargo puts it
-/// under `target/<triple>/<profile>/` when `--target` was passed and under
+/// Locate a built binary for the given rust target: cargo puts it under
+/// `target/<triple>/<profile>/` when `--target` was passed and under
 /// `target/<profile>/` for a host build.
-function findBinary(rustTarget, profile) {
+function findBinary(rustTarget, profile, baseName, explicit) {
+  if (explicit) return explicit;
   const exe = rustTarget.includes("windows") ? ".exe" : "";
-  const name = `sokonanoda-lsp${exe}`;
+  const name = `${baseName}${exe}`;
   const candidates = [
     path.join(REPO_ROOT, "target", rustTarget, profile, name),
     path.join(REPO_ROOT, "target", profile, name),
@@ -68,15 +77,16 @@ function findBinary(rustTarget, profile) {
   const found = candidates.find((candidate) => fs.existsSync(candidate));
   if (!found) {
     throw new Error(
-      `built server not found; run \`cargo build ${profile === "release" ? "--release " : ""}` +
-        `-p sokonanoda-lsp\` first (looked in ${candidates.join(", ")})`,
+      `built binary \`${name}\` not found; run \`cargo build ` +
+        `${profile === "release" ? "--release " : ""}-p sokonanoda-lsp -p sokonanoda-cli\` ` +
+        `first (looked in ${candidates.join(", ")})`,
     );
   }
   return found;
 }
 
-/// Clear `bin/` and stage exactly one platform's binary. Returns
-/// `{target, rustTarget, source, dest}`.
+/// Clear `bin/` and stage exactly one platform's binaries (server + CLI).
+/// Returns `{target, rustTarget, binaries}`.
 function stage(args, log = console.log) {
   const rustTarget = args.rustTarget ?? hostRustTarget();
   const target = args.target ?? vsceTargetForRust(rustTarget);
@@ -86,21 +96,22 @@ function stage(args, log = console.log) {
         "add it to scripts/stage-lsp.js and to the release matrix first",
     );
   }
-  const source = args.binary ?? findBinary(rustTarget, args.profile);
+  const exe = rustTarget.includes("windows") ? ".exe" : "";
   const binDir = path.join(EXTENSION_DIR, "bin");
   fs.rmSync(binDir, { recursive: true, force: true });
-  const dest = path.join(
-    binDir,
-    target,
-    rustTarget.includes("windows") ? "sokonanoda-lsp.exe" : "sokonanoda-lsp",
-  );
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.copyFileSync(source, dest);
-  // POSIX executable bit must be set before packaging on Linux/macOS: VS Code
-  // restores the zip entry's mode on install (docs/design-bundled-lsp.md §0).
-  if (!rustTarget.includes("windows")) fs.chmodSync(dest, 0o755);
-  log(`staged ${source} -> ${path.relative(EXTENSION_DIR, dest)} (target ${target})`);
-  return { target, rustTarget, source, dest };
+  const binaries = [];
+  for (const { base, arg } of BUNDLED_BINARIES) {
+    const source = findBinary(rustTarget, args.profile, base, args[arg]);
+    const dest = path.join(binDir, target, `${base}${exe}`);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(source, dest);
+    // POSIX executable bit must be set before packaging on Linux/macOS: VS Code
+    // restores the zip entry's mode on install (docs/design-bundled-lsp.md §0).
+    if (!rustTarget.includes("windows")) fs.chmodSync(dest, 0o755);
+    binaries.push({ base, source, dest });
+    log(`staged ${source} -> ${path.relative(EXTENSION_DIR, dest)} (target ${target})`);
+  }
+  return { target, rustTarget, binaries };
 }
 
 function packageVsix(target, out, log = console.log) {

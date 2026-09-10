@@ -97,7 +97,11 @@ marketplace-publish（needs vsix）
 
 - 受支持平台安装 VSIX 后**零网络**启动 LSP：不再有「正在下载语言服务器」；
 - 内核二进制与扩展同 tag 同版本（版本一致性由 CI 保证）；
-- 保留逃生通道：无内置二进制的平台仍回退到现有下载 / 自编译路径。
+- **CLI（`sokonanoda`）同样内嵌进平台包**（课程树开箱可用），并在 Release
+  单独发布 CLI tarball（agent/headless 直接下载执行）；
+- **用户/agent 使用路径零工具链依赖**（REQUIREMENTS §2 第 9 条）：不需要
+  Rust/cargo、不需要 VS Code（opencode launcher 自带版本锁定下载）；
+- 保留逃生通道：无内置二进制的平台仍回退到版本锁定下载 / 本地编译。
 
 **非目标**：
 
@@ -120,6 +124,7 @@ marketplace-publish（needs vsix）
 
 ```text
 editor/vscode/bin/<target>/sokonanoda-lsp[.exe]   # gitignored；打包前 stage
+editor/vscode/bin/<target>/sokonanoda[.exe]       # CLI 一同内嵌（课程树用）
 ```
 
 首期 target（与 release matrix 一致）：
@@ -293,3 +298,8 @@ per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`docs/STATU
   显式 glibc 2.28 地板（顺带修掉 linux-x64 的 24.04 兼容隐患），musl 静态
   链接、win32-arm64 原生构建；release.yml 冒烟同步扩到 9 个 VSIX。
   剩余：linux-armhf（边缘平台，universal 兜底）与用户反馈收集。
+- **Phase 4（零工具链收尾）✅ 2026-09-10（v0.9.0）**：CLI 一并内嵌进平台包
+  （课程树开箱可用）并在 Release 单独发布 `sokonanoda-cli-<triple>.tar.gz`
+  （8 个，agent/headless 直接执行）；opencode launcher 的解析顺序补上
+  「版本锁定自动下载（离线可禁）」；全仓文档审计——用户/agent 路径不再
+  出现 cargo（硬规则 REQUIREMENTS §2 第 9 条）。

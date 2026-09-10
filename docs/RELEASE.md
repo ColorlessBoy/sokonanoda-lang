@@ -27,21 +27,23 @@ push tag v* ──► job build（matrix：8 平台）
                   └─ Linux：cargo-zigbuild + Zig（ubuntu-latest）
                      gnu 目标加 `.2.28` 地板（VS Code 的 Linux 最低要求），
                      musl（alpine-*）静态链接；构建后 readelf/ldd 断言
-                  artifact：lsp-<rust-target>/（裸二进制）
+                  产物：artifact `lsp-<rust-target>/` 与 `cli-<rust-target>/`
+                      （LSP 服务器 + `sokonanoda` CLI 裸二进制）
                     │
                 job package-vsix（ubuntu；needs build）
                   1. version gate：tag == Cargo.toml == package.json
-                  2. download 全部 lsp-* artifact
-                  3. 逐 target：stage-lsp.js → vsce package --target
+                  2. download 全部 lsp-*/cli-* artifact
+                  3. 逐 target：stage-lsp.js（同时 stage 两者）→ vsce package --target
                      → 8 个平台包（linux-x64/arm64、alpine-x64/arm64、
-                       darwin-arm64/x64、win32-x64/arm64）
+                       darwin-arm64/x64、win32-x64/arm64，各内嵌 LSP+CLI）
                   4. clean bin/ → vsce package（无 target）
                      → sokonanoda-universal.vsix（回退包，无 bin）
-                  5. 冒烟：python zipfile 断言每个平台包的 bin 路径、大小 >1MB、
-                     linux/darwin exec 位（mode & 0o111）、manifest TargetPlatform
+                  5. 冒烟：python zipfile 断言每个平台包的两个 bin 路径、
+                     大小 >1MB、linux/darwin exec 位、manifest TargetPlatform
                     │
                 job github-release（needs build + package-vsix，contents: write）
                   ├─ 8 个 sokonanoda-lsp-<rust-target>.tar.gz（回退下载资产）
+                  ├─ 8 个 sokonanoda-cli-<rust-target>.tar.gz（agent/headless）
                   └─ 9 个 .vsix
                     │
                 job marketplace-publish（needs package-vsix）
@@ -77,9 +79,10 @@ push tag v* ──► job build（matrix：8 平台）
    git push origin vX.Y.Z
    ```
 5. **看 CI**：Actions → `release`。`build`、`package-vsix` 绿后，
-   到 GitHub Releases 确认资产齐全：
-   - `sokonanoda-lsp-<rust-target>.tar.gz` ×4（回退下载）
-   - `sokonanoda-{linux-x64,darwin-arm64,darwin-x64,win32-x64}.vsix` ×4
+   到 GitHub Releases 确认资产齐全（共 25 个）：
+   - `sokonanoda-lsp-<rust-target>.tar.gz` ×8（回退下载）
+   - `sokonanoda-cli-<rust-target>.tar.gz` ×8（agent/headless 直接执行）
+   - `sokonanoda-{linux-x64,linux-arm64,alpine-x64,alpine-arm64,darwin-arm64,darwin-x64,win32-x64,win32-arm64}.vsix` ×8
    - `sokonanoda-universal.vsix`
 6. **看 Marketplace**：版本、平台包与 universal 包都应在（`vsce show` 或
    网页端 Files 列表核对）。

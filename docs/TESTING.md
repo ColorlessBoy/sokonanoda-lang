@@ -373,3 +373,14 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   二进制；4）离线（`SOKONANODA_LSP_OFFLINE=1`）且一无所有时给可行动错误。
   launcher 解析顺序：`SOKONANODA_LSP_BIN` → 仓库 target → VS Code 扩展
   bin → 下载缓存 → 版本锁定下载 → `cargo build`。
+
+## 2026-09-10 更新（第二十二轮续：CLI 零工具链化）
+
+- **CLI 解析**（test-server.js，+2）：`resolveCliCommand` 的 bundled →
+  workspace → PATH 顺序、Windows `.exe` 名称。
+- **静态契约**（extension.rs）：server.js 必须含 `resolveCliCommand` 与
+  `sokonanoda.exe`；release.yml 必须含 `--cli-binary` 与
+  `sokonanoda-cli-` 资产名。
+- **打包冒烟**：CI host VSIX 与 release 的 8 平台包均断言 **LSP + CLI 两个
+  二进制**入包、大小 >1MB、linux/darwin exec 位；Release 资产 = 8 LSP
+  tarball + 8 CLI tarball + 9 VSIX = 25。

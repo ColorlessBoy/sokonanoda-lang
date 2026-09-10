@@ -1,3 +1,16 @@
+## [0.9.0] - 2026-09-10
+
+### Added
+- **CLI bundled too** — each platform package now ships the `sokonanoda` CLI
+  next to the language server, so the 「课程」course map works out of the box
+  (no separate `cargo build`, no PATH setup). Standalone per-platform CLI
+  tarballs are also published on GitHub Releases for headless / agent use
+  (`sokonanoda-cli-<triple>.tar.gz`, version-pinned).
+
+### Changed
+- CLI discovery is now: bundled `bin/<target>/sokonanoda` → workspace
+  `target/{debug,release}` build → `PATH`.
+
 ## [0.8.0] - 2026-09-10
 
 ### Added

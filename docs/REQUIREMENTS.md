@@ -19,7 +19,11 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 5. **分层推进**：L0 编译器 → L1 服务 → L2 编辑器 → L3 agent 协作；
 6. **TDD 与重复测试**：front 单测 + CLI 端到端 + 课程语料三层覆盖；
 7. **反馈即功能**：类型/化简/打印/错误都结构化输出，人与模型都能无文档驱动；
-8. **判定永远走 kernel**，不做文本比对（`proof.rs::assumption` 的文本比对是待替换草案）。
+8. **判定永远走 kernel**，不做文本比对（`proof.rs::assumption` 的文本比对是待替换草案）；
+9. **用户/agent 使用路径零工具链依赖**（2026-09-10 用户明确）：获取与运行只
+   依赖 GitHub Release 资产（`sokonanoda-cli-*.tar.gz` / `sokonanoda-lsp-*.tar.gz`）
+   或平台 VSIX 插件，**不要求 Rust/cargo**；cargo 仅贡献者开发需要。面向
+   用户/agent 的文档、技能与错误文案不得把 cargo 当使用前提。
 
 ## 3. 内核性能是产品优势（2026-09-06，用户要求）
 
@@ -62,8 +66,9 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   动态画布（如 playground.sokonanoda）才是用户真正面对的表面。禁止把课程文件
   当成"用户直接消费的固定课程"。
 - 画布 = 仓库根 `playground.sokonanoda`（纯声明式，无 `#` 命令，`--` 中文讲解）；
-- agent（本会话的我）即老师：写定义/出题 → 用户作答 → agent 跑
-  `cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda`
+- agent（本会话的我）即老师：写定义/出题 → 用户作答 → agent 用 Release 的
+  `sokonanoda` 二进制跑 `"$SOKO" --json playground.sokonanoda`（零 cargo；
+  仅贡献者可用 `cargo run -q -p sokonanoda-cli --bin sokonanoda --` 等价形式）
   读结构化事件（decl.checked / exercise.open / diagnostic+code+hint）决定下一步；
 - 第一课内容：①表达式与类型 ②函数与箭头 ③命题与证明项 ④等式与 rfl；
   练习判定只走 kernel；`???` 洞（含 lambda 体内的部分作答）是合法状态；
@@ -230,3 +235,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    引入 glibc 2.39 的兼容隐患），Alpine 为静态 musl；扩展运行时按
    `/etc/alpine-release` 选择 alpine 包。扩展 0.7.0 → 0.8.0。行业标准
    矩阵 = 3 OS × 2 架构 + alpine（± linux-armhf）。
+- 2026-09-10（二十一）：**用户路径零工具链依赖（用户纠正"cargo run 是重大失误"）**：
+   ①Release 同时发布各平台 `sokonanoda-cli-<triple>.tar.gz`（8 个，可直接执行）
+   与 `sokonanoda-lsp-<triple>.tar.gz`（8 个）；②平台 VSIX 内嵌 **LSP + CLI**
+   两个二进制（课程树开箱可用）；③opencode launcher 解析顺序补全为
+   本地构建 → 扩展自带 → 缓存 → **版本锁定自动下载**（离线可禁）→ 编译兜底；
+   ④全仓文档审计：用户/agent 面向的 README/技能/教学手册/错误文案一律改用
+   二进制或 `$SOKO`，cargo 只在"贡献者/源码构建"语境出现；⑤该原则升为硬规则
+   （§2 第 9 条）。扩展 0.8.0 → 0.9.0。
