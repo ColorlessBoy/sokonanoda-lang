@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-10（第二十三轮：环境配置单一入口 scripts/soko.sh + Release tarball exec 修复）
+> 快照：2026-09-10（第二十四轮：函数实参洞 + hover 开项修复）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-onboarding.md`（本轮）/ `docs/design-bundled-lsp.md` / `docs/design-by-tactics.md`（§6 as-built）/
+> 设计 = `docs/design-goal-func-spine.md`（本轮）/ `docs/design-onboarding.md` / `docs/design-bundled-lsp.md` / `docs/design-by-tactics.md`（§6 as-built）/
 > `docs/design-course-bilingual.md` /
 > `docs/design-hover-brackets.md` /
 > `docs/design-round14.md`（含本轮 B′ 决议）/
@@ -20,6 +20,44 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-10，第二十四轮：函数实参洞 + hover 开项修复）
+
+> 触发：用户以 `playground.sokonanoda:233`（`Eq.subst.{1} Nat (fun (x : Nat)
+> => …) a b h …`）为例提两个需求——(1) hover `Eq.subst.{1}` 要显示完整类型
+> （现在只剩源码切片）；(2) 谓词实参改写成 `(sorry)` 后应是合法练习、编辑器
+> 提示 `Nat -> Prop`。评估后二者都不需要 metavariable / 内核语义改动，同轮
+> 落地；设计见 `docs/design-goal-func-spine.md`。
+
+1. **hover/#check 真 bug 修复（内核显示层）**：根因是 pp 的
+   `is_implicit_fun` 开空 context 推断子项隐式风格，打印 `Eq.subst`/`Eq.refl`
+   的类型时遇到开项（Var 头 `p a`、依赖实参 `Eq α a`）对松散变量 panic
+   （`infer: loose bvar` / `eval: loose bvar`）；front 的 `resolve_hovers`
+   catch_unwind 后把类型文本置空，LSP 只剩源码切片。修复 = 含松散变量的
+   fun 项直接返回 `false`（按显式打印），闭项行为逐字节不变、热路径零改动。
+   同一修复让 CLI `#check (Eq.subst.{1})` / `(Eq.refl.{1})` 不再假报
+   `kernel-rejected`。
+2. **函数实参洞（方案一）**：模板 machinery 从 check.rs（1816 行）抽到新
+   `crates/front/src/compile/goals.rs`；模板表扩成双索引——`ctors`（族头→
+   构造子，行为不变）+ `funcs`（函数名→望远镜，来源：源内 axiom/def/theorem、
+   归纳构造子、Full 模式下未被文件接管的 Eq prelude）。walk 在构造子语义
+   之后加函数兜底：第 i 个直接实参洞的期望类型 = binder 类型用前 i 个实参
+   AST（含宇宙层级：`.{1}` → `Sort 1`）替换后渲染；前置洞未定时 `ty=null`。
+   Bare 模式文件自定义的 `axiom Eq.subst` 同样生效（来源 1）。
+3. **明确不做（v1）**：嵌套洞（`f (g sorry)`、含洞 lambda 实参）、部分应用
+   自动补参、`sorry + 1`（`Expr::Plus`）、kernel 级 spine meta（远期项不变）。
+   宽松度取舍：已知函数的直接实参洞都算 Open，形状错误推迟到填洞后的内核
+   终审（与整值 `sorry` 一致）。
+4. **测试 +14（三层）**：kernel `memory_api` 1（开项 pp 不 panic，已验证
+   修复前必失败）；front 9（hover `Eq.subst.{1}` 带类型 + 函数洞期望类型/
+   层级替换/前置洞 `None`/源内 axiom/用户 def/嵌套洞仍 misplaced）；CLI 2
+   （`#check` 恢复 `expr.typed`、函数洞 `exercise.open`）；LSP 2（hover 签名、
+   inlay `: Nat -> Prop`）。全量 `cargo test --workspace --locked` 与
+   `scripts/soko.sh gate` 通过；协议形状未变（`sub_goals` 既有字段，仅
+   `docs/protocol.md` 措辞泛化）。
+5. **文档**：新增设计 `docs/design-goal-func-spine.md`；REQUIREMENTS §9、
+   architecture §6 改动清单、protocol 的 `sub_goals` 说明、teacher skill 与
+   teaching-session 的 `elab-hole-misplaced` 行同步。
 
 ## 本轮进度（2026-09-10，第二十三轮：环境配置单一入口 + Release exec 修复）
 

@@ -385,6 +385,42 @@ fn json_mode_emits_structured_events() {
 }
 
 #[test]
+fn json_mode_types_universe_applied_eq_prelude_constants() {
+    // 回归（2026-09-10）：`#check (Eq.subst.{1})` / `#check (Eq.refl.{1})`
+    // 曾因内核 pp 对开项推断 panic 而误报 kernel-rejected。现在必须给出
+    // expr.typed 事件与完整签名（依赖 codomain `p a` 可打印）。
+    let out = run_args(
+        &["--json"],
+        Some("#check (Eq.subst.{1})\n#check (Eq.refl.{1})\n"),
+    );
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let events: Vec<serde_json::Value> = stdout
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("each line is JSON"))
+        .collect();
+    assert_eq!(events.len(), 2, "two #check events expected: {events:?}");
+    for (value, text) in events.iter().zip(["Eq.subst.{1}", "Eq.refl.{1}"]) {
+        assert_eq!(value["type"], "expr.typed");
+        assert_eq!(value["text"], text);
+        let ty = value["inferred_type"].as_str().expect("inferred_type");
+        assert!(!ty.is_empty(), "{text} must infer a type");
+    }
+    assert!(
+        events[0]["inferred_type"]
+            .as_str()
+            .expect("subst type")
+            .contains("p a"),
+        "Eq.subst's inferred type must mention the dependent codomain: {:?}",
+        events[0]
+    );
+}
+
+#[test]
 fn json_mode_reports_kernel_stage_for_rejections() {
     let out = run_args(
         &["--json"],
@@ -428,6 +464,31 @@ fn json_mode_open_exercise_is_a_machine_event() {
     let value: serde_json::Value =
         serde_json::from_str(stdout.lines().next().expect("an event line")).expect("event is JSON");
     assert_eq!(value["type"], "exercise.open");
+}
+
+#[test]
+fn json_mode_function_argument_hole_is_an_open_exercise() {
+    // 方案一（2026-09-10）：已知函数（含 Eq prelude）的直接实参洞是合法
+    // 练习状态，不再报 elab-hole-misplaced。
+    let out = run_args(
+        &["--json"],
+        Some(concat!(
+            "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+            "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+            "    Eq.subst.{1} Nat (sorry) a b h (Eq.refl.{1} Nat a)\n",
+        )),
+    );
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(stdout.lines().count(), 1, "one event line: {stdout}");
+    let value: serde_json::Value =
+        serde_json::from_str(stdout.lines().next().expect("an event line")).expect("event is JSON");
+    assert_eq!(value["type"], "exercise.open");
+    assert_eq!(value["name"], "eq_symm_nat");
 }
 
 #[test]

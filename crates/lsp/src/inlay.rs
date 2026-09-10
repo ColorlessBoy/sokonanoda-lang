@@ -191,6 +191,30 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
+    async fn function_argument_hole_hint_shows_instantiated_binder_type() {
+        // 用户原始需求（playground.sokonanoda:233）：`Eq.subst` 的谓词实参
+        // 写成 sorry 后，inlay 显示实例化后的 `Nat -> Prop`。
+        let src = concat!(
+            "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+            "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+            "    Eq.subst.{1} Nat (sorry) a b h (Eq.refl.{1} Nat a)\n",
+        );
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "function-hole diagnostics").await;
+
+        let hints = ask_inlay(&mut service, src).await.expect("hints array");
+        assert_eq!(hints.len(), 1, "one hint for the lone hole: {hints:?}");
+        assert_eq!(label_of(&hints[0]), ": Nat -> Prop");
+        let after_hole = lsp_pos(src, offset_of(src, "sorry") + "sorry".len());
+        assert_eq!(
+            hints[0].position, after_hole,
+            "hint sits right after `sorry`"
+        );
+    }
+
+    #[tokio::test]
     async fn checked_declaration_produces_no_hints() {
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;

@@ -67,7 +67,7 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "Nat", "Nat.zero", "Nat.succ", "Nat.add", "Eq", "Eq.refl", "Eq.subst",
 ];
 
-const PRELUDE_EQ_SRC: &str = "\
+pub(crate) const PRELUDE_EQ_SRC: &str = "\
 axiom Eq {u} : {α : Sort u} -> α -> α -> Prop
 axiom Eq.refl {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a
 axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -> Eq.{u} α a b -> p a -> p b

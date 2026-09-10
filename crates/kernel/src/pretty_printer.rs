@@ -611,6 +611,14 @@ impl<'x, 't, 'p> PrettyPrinter<'x, 't, 'p> {
 
     /// Does this expression infer as a `Pi` with any binder style other than `Default`
     fn is_implicit_fun(&mut self, fun: ExprPtr<'t>) -> bool {
+        // 显示层短路（2026-09-10）：开项（含松散变量）无法在空 context 下
+        // 做推断——`p a`、依赖实参的 `Eq α a` 等会让 `infer_whnf_weak`
+        // 对松散变量 panic（`infer: loose bvar` / `eval: loose bvar`），
+        // hover/`#check` 的类型文本被 catch_unwind 吞成空。松散变量在
+        // 被打印项的 binder 内，其隐式风格不可知；按显式打印是安全回退。
+        if fun.num_loose_bvars() > 0 {
+            return false;
+        }
         self.ctx.with_tc(crate::env::EnvLimit::PpUnlimited, self.arena, &mut self.tc_cache, |tc| {
             let ty = tc.infer_whnf_weak(fun);
             match tc.ctx.read_expr(ty) {

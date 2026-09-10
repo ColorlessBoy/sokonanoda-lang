@@ -71,6 +71,104 @@ fn identity_over_sort_still_checks() {
     assert!(result.is_ok(), "non-dependent identity must check: {result:?}");
 }
 
+/// 回归测试（显示层，2026-09-10）：pp 在打印含**开项**（松散变量）的类型
+/// 时不得 panic。`is_implicit_fun` 曾开空 context 推断隐式参数风格，
+/// 遇到 Var 头应用（`p a`）或依赖实参展开（`Eq A a a`）会对松散变量
+/// panic（`infer: loose bvar` / `eval: loose bvar`），导致 hover / `#check`
+/// 的类型文本被吞成空。修复：开项直接返回 `false`（按显式打印）。
+#[test]
+fn pp_of_dependent_applications_with_loose_bvars_does_not_panic() {
+    let arena = Arena::new();
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let empty = b.alloc_levels_slice(&[]);
+    let zero = b.zero();
+    let prop = b.mk_sort(zero);
+    let one = b.succ(zero);
+    let sort1 = b.mk_sort(one);
+    let a_name = b.name_from_str("A");
+    let p_name = b.name_from_str("p");
+    let a_lower = b.name_from_str("a");
+    let anon = b.anonymous();
+
+    // Eq : (A : Sort 1) -> A -> A -> Prop
+    let var1 = b.mk_var(1);
+    let b2 = b.mk_pi(anon, BinderStyle::Default, var1, prop);
+    let var0 = b.mk_var(0);
+    let b1 = b.mk_pi(anon, BinderStyle::Default, var0, b2);
+    let eq_ty = b.mk_pi(a_name, BinderStyle::Default, sort1, b1);
+    let eq_name = b.name_from_str("Eq");
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo {
+            name: eq_name,
+            uparams: empty,
+            ty: eq_ty,
+        },
+    })
+    .expect("add Eq");
+
+    // refl : (A : Sort 1) -> (a : A) -> Eq A a a
+    // （`Eq A a a` 的 `Eq A` 展开需要 eval 松散 A：Const 头依赖应用 panic 站点）
+    let eq_const = b.mk_const(eq_name, empty);
+    let refl_a = b.mk_var(1);
+    let eq_a = b.mk_app(eq_const, refl_a);
+    let refl_arg = b.mk_var(0);
+    let eq_a_a = b.mk_app(eq_a, refl_arg);
+    let refl_arg2 = b.mk_var(0);
+    let refl_body = b.mk_app(eq_a_a, refl_arg2);
+    let refl_dom = b.mk_var(0);
+    let refl_inner = b.mk_pi(a_lower, BinderStyle::Default, refl_dom, refl_body);
+    let refl_ty = b.mk_pi(a_name, BinderStyle::Default, sort1, refl_inner);
+    let refl_name = b.name_from_str("refl");
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo {
+            name: refl_name,
+            uparams: empty,
+            ty: refl_ty,
+        },
+    })
+    .expect("add refl");
+
+    // subst_like : (A : Sort 1) -> (p : A -> Prop) -> (a : A) -> p a
+    // （`p a` 是 Var 头应用：`is_implicit_fun(p)` 的 loose bvar in infer 站点）
+    let p_dom = b.mk_var(0);
+    let p_ty = b.mk_pi(anon, BinderStyle::Default, p_dom, prop);
+    let p_var = b.mk_var(1);
+    let a_var = b.mk_var(0);
+    let subst_body = b.mk_app(p_var, a_var);
+    let subst_a_dom = b.mk_var(1);
+    let subst_a = b.mk_pi(a_lower, BinderStyle::Default, subst_a_dom, subst_body);
+    let subst_p = b.mk_pi(p_name, BinderStyle::Default, p_ty, subst_a);
+    let subst_ty = b.mk_pi(a_name, BinderStyle::Default, sort1, subst_p);
+    let subst_name = b.name_from_str("subst_like");
+    b.add_declar(Declar::Axiom {
+        info: DeclarInfo {
+            name: subst_name,
+            uparams: empty,
+            ty: subst_ty,
+        },
+    })
+    .expect("add subst_like");
+
+    let mut env = b.finish();
+    // 与教学前端一致（front 设置 proofs=true，否则 `is_proof` 也会在开项上
+    // 走空 context 推断——那是另一条路径，见 compile/check.rs）。
+    env.config.pp_options.proofs = true;
+    env.with_tc(EnvLimit::PpUnlimited, |tc| {
+        for (label, name, needle) in [
+            ("refl", refl_name, "Eq A a a"),
+            ("subst_like", subst_name, "p a"),
+        ] {
+            let c = tc.ctx.mk_const(name, empty);
+            let ty = tc.infer_closed_type(c);
+            let printed = tc.with_pp(|pp| pp.pp_expr(ty));
+            assert!(
+                printed.contains(needle),
+                "pp of {label} must contain `{needle}`, got: {printed}"
+            );
+        }
+    });
+}
+
 #[test]
 fn empty_env_infers_and_reduces_a_closed_lambda() {
     let arena = Arena::new();

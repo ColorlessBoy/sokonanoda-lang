@@ -1244,6 +1244,56 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn hover_on_universe_applied_eq_prelude_constant_shows_signature() {
+        // 用户原始症状（playground.sokonanoda:233）：hover `Eq.subst.{1}` 只显示
+        // 源码切片。根因是内核 pp 对开项推断 panic、hover 文本被吞空；修复后
+        // 必须显示 `Eq.subst.{1} : forall … p a …` 的完整签名。
+        let src = concat!(
+            "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+            "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+            "    Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)\n",
+        );
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let params = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+        assert!(
+            params.diagnostics.is_empty(),
+            "valid theorem must publish no diagnostics: {:?}",
+            params.diagnostics
+        );
+        let offset = offset_of(src, "Eq.subst.{1}");
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(lsp_pos(src, offset)),
+                }))
+                .id(2)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+        let hover = hover.expect("hover must resolve on `Eq.subst.{1}`");
+        let HoverContents::Markup(markup) = hover.contents else {
+            panic!("expected markup hover");
+        };
+        assert!(
+            markup.value.contains("Eq.subst.{1} :"),
+            "hover must show the signature, got: {:?}",
+            markup.value
+        );
+        assert!(
+            markup.value.contains("p a"),
+            "hover signature must mention the dependent codomain, got: {:?}",
+            markup.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
     async fn hover_on_hole_shows_goal() {
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;

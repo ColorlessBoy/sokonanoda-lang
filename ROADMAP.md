@@ -419,6 +419,13 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
       类型实例化、`DeclState.holes/sub_goals/refine_template`）、LSP refine
       建议（构造子骨架、参数自动填充）、nextHole 跨子洞。
       见 `docs/design-goal-refine.md`。
+- [x] **函数实参洞 + hover 开项修复（2026-09-10，第二十四轮）**：已知函数
+      （prelude Eq、源内 axiom/def/theorem、归纳构造子）的**直接实参**
+      `sorry` 合法，期望类型 = binder 望远镜在前置实参处实例化（含宇宙
+      层级 `. {1}` → `Sort 1`）；模板 machinery 抽到
+      `crates/front/src/compile/goals.rs`；同轮修内核 pp 对开项推断 panic
+      （hover `Eq.subst.{1}` 显示签名、`#check` 不再假报 rejected）。
+      v1 不做嵌套洞/部分应用/`sorry + 1`。见 `docs/design-goal-func-spine.md`。
 - [x] **内核错误分类学（2026-09-07）**：8 个新 kernel 错误码（expected-sort /
       expected-pi / theorem-not-prop / non-positive / ctor-result / ctor-arg
       三族）+ 内核冷路径消息增强（`got:` 渲染）+ `#check`/`#reduce` panic

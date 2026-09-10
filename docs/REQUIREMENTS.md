@@ -252,3 +252,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    同轮修复 v0.8/v0.9 Release tarball 丢可执行位（artifact 往返剥离 mode）
    并回填修复已发布的 v0.9.0 资产；本地网络需代理时用
    `HTTPS_PROXY=http://127.0.0.1:7890`。
+- 2026-09-10（二十四）：**函数实参洞 + hover 开项修复（用户要求，以
+   `playground.sokonanoda:233` 为例）**——①`Eq.subst.{1}` 这类宇宙应用
+   常量的 hover 必须显示完整类型（此前内核 pp 的 `is_implicit_fun` 对开项
+   推断 panic、类型文本被吞成空；同一 bug 让 `#check (Eq.subst.{1})` /
+   `(Eq.refl.{1})` 假报 `kernel-rejected`）；②已知函数（prelude `Eq.subst`/
+   `Eq.refl`、源内 axiom/def/theorem、归纳构造子）的**直接实参** `sorry`
+   是合法练习状态，编辑器提示该洞期望类型（`Eq.subst.{1} Nat (sorry) …`
+   → `Nat -> Prop`）；Bare 模式下文件自定义的 Eq 同样进模板。明确不做
+   （v1）：嵌套洞、部分应用补参、`sorry + 1`、kernel 级 spine meta。
+   实现/验收/风险取舍见 `docs/design-goal-func-spine.md`。

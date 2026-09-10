@@ -167,14 +167,17 @@ Response:
 
 - one entry per declaration (all statuses); `goal`/`binders`/`hole` are
   present for open exercises (`hole` is the exact `sorry` range);
-- `holes` lists every `sorry` (multi-hole constructor spines included) as
-  objects `{"range": {…}, "id": "<declName>:<index>"}` — the id is stable
-  per (declaration, hole order) within a document version (anonymous
-  examples use the `example@<line>` name form) and is the stable reference
-  for external tools; `sub_goals` pairs each spine hole with its expected
-  type (server-side walk; parameter positions expect the goal's own
-  argument, proof positions the instantiated field type); `ty` is `null`
-  when no template is known;
+- `holes` lists every `sorry` (multi-hole constructor/function spines
+  included) as objects `{"range": {…}, "id": "<declName>:<index>"}` — the id
+  is stable per (declaration, hole order) within a document version
+  (anonymous examples use the `example@<line>` name form) and is the stable
+  reference for external tools; `sub_goals` pairs each hole with its
+  expected type (server-side walk: constructor parameter positions expect
+  the goal's own argument, proof positions the instantiated field type;
+  function argument holes expect the function binder's type instantiated at
+  the preceding arguments, e.g. `Eq.subst.{1} Nat (sorry) …` → `Nat ->
+  Prop`); `ty` is `null` when the walk cannot determine it (unknown
+  template, or a preceding argument is itself a hole);
 - multi-hole documents are naturally supported (one entry per declaration);
 - hover remains the degraded, human-readable view of the same data;
 - kernel-judged code actions (next-step suggestions, per goal shape; see

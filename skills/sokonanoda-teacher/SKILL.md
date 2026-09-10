@@ -80,7 +80,7 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
 | `exercise.open` 持续 | 未做/卡住 | 指向编辑器「提示」节点逐条揭示（画布 `-- soko:hint` 阶梯）；需要时追加新 hint；永不直接给答案 |
 | `elab-unknown-identifier` | 拼写错，或引用了还没解出的练习 | 先查 open 列表，再判拼写；必要时「先做练习 N」 |
 | `elab-duplicate-declaration` | 重名 | 讲「单赋值世界」，换名 |
-| `elab-hole-misplaced` | 洞不在答案尾巴（如 `n + sorry`） | 讲「洞 = 剩余目标占位，只能放答案末尾」 |
+| `elab-hole-misplaced` | 洞不在可恢复位置（嵌套洞/非直接实参，如 `n + sorry`；答案尾巴、构造子 spine 与已知函数直接实参都合法） | 讲「洞只能放答案末尾，或已知函数/构造子的直接实参位」 |
 | `kernel-rejected`（带期望/实际） | 填了类型而非证明项 / 方向反 / 宇宙忘了 `.{1}` / 忘了 `Not` 会展开 | 让用户对比声明类型与所填项的形状，逐参数预言类型 |
 | 无诊断但语义不对 | 内核只判类型不判意图（如 `double := fun n => n`） | 设计「证明形状」需求：另出一题用 `Eq` 回判该定义的值 |
 

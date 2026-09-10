@@ -915,6 +915,42 @@ fn hover_map_covers_subexpressions() {
     );
 }
 
+#[test]
+fn hover_rows_type_universe_applied_eq_prelude_constants() {
+    // 用户原始场景（playground.sokonanoda:233）：`Eq.subst.{1}` 的 hover
+    // 曾只剩源码切片——内核 pp 的 `is_implicit_fun` 对开项推断 panic，
+    // front 的 catch_unwind 把类型文本吞成空。修复后必须带完整签名。
+    let src = concat!(
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+        "    Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let hover = report
+        .hovers
+        .iter()
+        .find(|h| &src[h.span.start.offset..h.span.end.offset] == "Eq.subst.{1}")
+        .expect("hover row for `Eq.subst.{1}`");
+    assert!(
+        !hover.text.is_empty(),
+        "`Eq.subst.{{1}}` hover must carry a type after the pp fix"
+    );
+    assert!(
+        hover.text.contains("p a"),
+        "hover type must mention the dependent codomain `p a`, got: {}",
+        hover.text
+    );
+    let refl = report
+        .hovers
+        .iter()
+        .find(|h| &src[h.span.start.offset..h.span.end.offset] == "Eq.refl.{1}")
+        .expect("hover row for `Eq.refl.{1}`");
+    assert!(
+        !refl.text.is_empty(),
+        "`Eq.refl.{{1}}` hover must carry a type after the pp fix"
+    );
+}
+
 /// The definition span recorded for the use point starting at `offset`
 /// (`None` when the name use did not resolve to a source definition).
 fn resolved_def_at(report: &DocumentReport, offset: usize) -> Option<Span> {
@@ -1813,6 +1849,156 @@ fn constructor_spine_holes_are_multi_hole_open_exercises() {
             .iter()
             .all(|e| e.kind != ErrorKind::ElabHoleMisplaced),
         "spine holes are legal: {:?}",
+        report.errors
+    );
+}
+
+// ---- 函数实参洞（function-spine holes，2026-09-10）----
+
+/// 找到唯一 open 练习（含洞 span 文本校验辅助）。
+fn open_exercise(report: &DocumentReport, expect_holes: usize) -> &DeclState {
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("open exercise");
+    assert_eq!(open.holes.len(), expect_holes, "holes: {:?}", open.holes);
+    open
+}
+
+#[test]
+fn eq_subst_argument_hole_expects_instantiated_binder_type() {
+    // 用户原始需求（playground.sokonanoda:233）：谓词实参改写成 sorry 后，
+    // 洞的期望类型是 `Nat -> Prop`（binder `{p : α -> Prop}` 中 α:=Nat）。
+    let src = concat!(
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+        "    Eq.subst.{1} Nat (sorry) a b h (Eq.refl.{1} Nat a)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let open = open_exercise(&report, 1);
+    assert_eq!(open.sub_goals.len(), 1);
+    assert_eq!(
+        open.sub_goals[0].ty.as_deref(),
+        Some("Nat -> Prop"),
+        "sub_goals: {:?}",
+        open.sub_goals
+    );
+    assert_eq!(
+        &src[open.holes[0].start.offset..open.holes[0].end.offset],
+        "sorry"
+    );
+    assert!(
+        report.errors.is_empty(),
+        "function argument holes are legal: {:?}",
+        report.errors
+    );
+}
+
+#[test]
+fn later_function_hole_uses_preceding_arguments() {
+    // 末位洞期望 `p a`：p、a 来自前置实参的 AST 替换。
+    let src = concat!(
+        "theorem t : (p : Nat -> Prop) -> (a : Nat) -> Eq.{1} Nat a a -> p a :=\n",
+        "  fun (p : Nat -> Prop) (a : Nat) (h : Eq.{1} Nat a a) =>\n",
+        "    Eq.subst.{1} Nat p a a h (sorry)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let open = open_exercise(&report, 1);
+    assert_eq!(open.sub_goals[0].ty.as_deref(), Some("p a"));
+}
+
+#[test]
+fn eq_refl_argument_hole_expects_the_type_argument() {
+    let src =
+        "theorem t : (a : Nat) -> Eq.{1} Nat a a :=\n  fun (a : Nat) => Eq.refl.{1} Nat (sorry)\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let open = open_exercise(&report, 1);
+    assert_eq!(open.sub_goals[0].ty.as_deref(), Some("Nat"));
+}
+
+#[test]
+fn function_hole_reports_substituted_universe_sort() {
+    // 洞在 α 位：调用点 `. {1}` 把模板里的 `Sort u` 替换成 `Sort 1`。
+    let src =
+        "theorem t : (a : Nat) -> Eq.{1} Nat a a :=\n  fun (a : Nat) => Eq.refl.{1} (sorry) a\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let open = open_exercise(&report, 1);
+    assert_eq!(open.sub_goals[0].ty.as_deref(), Some("Sort 1"));
+}
+
+#[test]
+fn function_hole_after_another_hole_has_no_expected_type() {
+    // 前置实参本身是洞：`p a` 无法实例化 → ty = None（面板显示 `?`）。
+    let src = concat!(
+        "theorem t : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+        "    Eq.subst.{1} Nat (sorry) a b h (sorry)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let open = open_exercise(&report, 2);
+    assert_eq!(open.sub_goals[0].ty.as_deref(), Some("Nat -> Prop"));
+    assert_eq!(open.sub_goals[1].ty, None);
+}
+
+#[test]
+fn source_axiom_argument_holes_use_the_function_telescope() {
+    // 源内 axiom：`False.rec`（结果不是族应用）与 `Or.inr`（多构造子族，
+    // 既有 ctor 表每族只留第一个构造子）都走函数模板。
+    let src = concat!(
+        "axiom False : Prop\n",
+        "axiom False.rec : (P : Prop) -> False -> P\n",
+        "axiom Or : Prop -> Prop -> Prop\n",
+        "axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b\n",
+        "axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b\n",
+        "example : (a : Prop) -> (b : Prop) -> b -> Or a b :=\n",
+        "  fun (a : Prop) (b : Prop) (hb : b) => Or.inr a b (sorry)\n",
+        "example : (P : Prop) -> False -> P :=\n",
+        "  fun (P : Prop) (h : False) => False.rec (sorry) (sorry)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let opens: Vec<&DeclState> = report
+        .decls
+        .iter()
+        .filter(|d| d.status == DeclStatus::Open)
+        .collect();
+    assert_eq!(opens.len(), 2, "two open exercises");
+    assert_eq!(opens[0].sub_goals[0].ty.as_deref(), Some("b"));
+    assert_eq!(opens[1].sub_goals[0].ty.as_deref(), Some("Prop"));
+    assert_eq!(opens[1].sub_goals[1].ty.as_deref(), Some("False"));
+    assert!(
+        report.errors.is_empty(),
+        "source axiom holes are legal: {:?}",
+        report.errors
+    );
+}
+
+#[test]
+fn user_defined_function_argument_hole_gets_its_binder_type() {
+    let src = concat!(
+        "def add1 : Nat -> Nat := fun n => n + 1\n",
+        "theorem t : Nat -> Nat := fun (n : Nat) => add1 (sorry)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let open = open_exercise(&report, 1);
+    assert_eq!(open.sub_goals[0].ty.as_deref(), Some("Nat"));
+}
+
+#[test]
+fn nested_function_hole_is_still_misplaced() {
+    // v1 边界：嵌套洞（实参是含洞的 lambda）不恢复目标，仍报 misplaced。
+    let src = concat!(
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+        "    Eq.subst.{1} Nat (fun (x : Nat) => sorry) a b h (Eq.refl.{1} Nat a)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(
+        report
+            .errors
+            .iter()
+            .any(|e| e.kind == ErrorKind::ElabHoleMisplaced),
+        "nested holes stay misplaced in v1: {:?}",
         report.errors
     );
 }

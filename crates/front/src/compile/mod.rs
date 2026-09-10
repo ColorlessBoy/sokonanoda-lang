@@ -5,6 +5,7 @@ mod check;
 mod elab;
 mod error;
 mod event;
+mod goals;
 pub mod hints;
 mod prelude;
 mod report;
