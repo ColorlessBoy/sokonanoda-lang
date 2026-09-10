@@ -41,8 +41,15 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    （server.js 8 target + Alpine；release.yml 新 target + zigbuild + 2.28）。
 5. **版本 0.8.0**（minor：新平台覆盖）；README/CHANGELOG/RELEASE.md/
    vscode-dev-guide/ci skill/TESTING 同步；release.yml 冒烟扩到 9 个 VSIX。
-6. **待办**：release dry-run 验证 8 平台构建（下一动作）；green 后打
-   `v0.8.0` 发布。linux-armhf 仍由 universal 兜底（可选再加）。
+6. **release dry-run 验收（run `34466809786` 全绿）**：8 平台构建全过——
+   `linux-x64/arm64` 断言 `highest required symbol: GLIBC_2.28`，
+   `alpine-x64/arm64` 断言 `not a dynamic executable`（静态），
+   `win32-arm64` 原生构建成功；package-vsix 出 9 个 VSIX（8 平台 1.89–2.03MB
+   + universal 0.47MB），冒烟全部 mode=755 / TargetPlatform 正确。首次跑
+   抓到一个验证脚本 bug（musl 断言被 `pipefail` 反杀，二进制本身正确），
+   已修并记 `docs/CI-FAILURES.md`。
+7. **待办**：tag `v0.8.0` 发布（等用户确认）；linux-armhf 仍由 universal
+   兜底（可选再加）。
 
 ## 本轮进度（2026-09-10，第二十一轮：插件自带 LSP——bundled VSIX）
 
