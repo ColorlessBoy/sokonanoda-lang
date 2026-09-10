@@ -5,7 +5,11 @@
   },
   "lsp": {
     "sokonanoda": {
-      "command": ["cargo", "run", "--quiet", "-p", "sokonanoda-lsp"],
+      "command": [
+        "bash",
+        "-c",
+        "root=$(git rev-parse --show-toplevel 2>/dev/null || pwd); exec \"$root/.opencode/lsp/sokonanoda-lsp.sh\""
+      ],
       "extensions": [".sokonanoda"]
     }
   },

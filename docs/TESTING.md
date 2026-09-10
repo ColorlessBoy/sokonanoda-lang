@@ -362,3 +362,14 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   （8 平台 + universal）→ GitHub Release 17 资产（8 tarball + 9 VSIX）。
 - **版本** 0.7.0 → 0.8.0；扩展 README 平台列表、CHANGELOG、RELEASE.md、
   vscode-dev-guide（zigbuild/glibc 坑）、ci skill 同步。
+
+## 2026-09-10 更新（第二十二轮续：opencode launcher）
+
+- **opencode 配置契约**（`crates/cli/tests/opencode.rs`，2 个）：
+  1）`opencode.json` 必须启动仓库 launcher，禁止 `cargo run`；
+  2）端到端：把 launcher 复制到临时目录（屏蔽真实 `target/`），伪造
+  `~/.vscode/extensions/sokonanoda-lang.sokonanoda-9.9.9/bin/<target>/`
+  安装树，在 **PATH 不含 cargo** 的环境下断言 launcher 命中扩展自带
+  bin；无任何二进制时给出可行动错误。launcher 解析顺序：
+  `SOKONANODA_LSP_BIN` → 仓库 target → VS Code 扩展 bin → 下载缓存 →
+  `cargo build`。

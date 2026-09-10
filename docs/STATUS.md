@@ -48,8 +48,19 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    + universal 0.47MB），冒烟全部 mode=755 / TargetPlatform 正确。首次跑
    抓到一个验证脚本 bug（musl 断言被 `pipefail` 反杀，二进制本身正确），
    已修并记 `docs/CI-FAILURES.md`。
-7. **待办**：tag `v0.8.0` 发布（等用户确认）；linux-armhf 仍由 universal
-   兜底（可选再加）。
+7. **opencode LSP 启动修复（用户反馈「找不到可执行的 sokonanoda-lsp」）**：
+   根因是 opencode 直接 spawn `command[0]`（无 shell、cwd 可能是子目录），
+   原配置 `cargo run …` 依赖 PATH 里的 cargo，且首次构建/握手失败会把
+   server 整个会话标 broken、不再重试。改为 `opencode.json` 指向仓库自带
+   launcher `.opencode/lsp/sokonanoda-lsp.sh`，解析顺序：`SOKONANODA_LSP_BIN`
+   → 仓库 `target/{release,debug}` → **VS Code 扩展自带 bin**
+   （`~/.vscode*/extensions/sokonanoda-lang.sokonanoda-*/bin/<target>/`）
+   → 扩展下载缓存 → 最后才 `cargo build`。新增
+   `crates/cli/tests/opencode.rs` 契约 2 个（含伪造扩展目录 + 无 cargo PATH
+   的端到端用例）。
+8. **v0.8.0 发布完成**：release run `34468213710` 全绿；GitHub Release 17
+   资产（8 tarball + 9 VSIX）；Marketplace 0.8.0 的 universal + 8 平台包
+   全部上架（gallery API 核实）。linux-armhf 仍由 universal 兜底（可选）。
 
 ## 本轮进度（2026-09-10，第二十一轮：插件自带 LSP——bundled VSIX）
 

@@ -36,9 +36,11 @@ ln -s "$PWD/skills/sokonanoda-teacher" ~/.claude/skills/sokonanoda-teacher
 ln -s "$PWD/skills/sokonanoda-teacher" ~/.agents/skills/sokonanoda-teacher
 ```
 
-编辑器反馈通道无需额外配置：仓库根 `opencode.json` 已把
-`sokonanoda-lsp` 挂到 `.sokonanoda` 扩展名上（opencode 会在打开教学文件时
-自动启动它并消费 kernel 判定的诊断）。
+编辑器反馈通道无需额外配置：仓库根 `opencode.json` 把 `.sokonanoda` 挂到
+仓库自带 launcher `.opencode/lsp/sokonanoda-lsp.sh`（opencode 打开教学文件时
+自动启动并消费 kernel 判定的诊断）。launcher 优先复用已构建的 `target/`
+二进制或 **VS Code 扩展自带的同版本 bin**，都没有才 `cargo build`——
+装了扩展的机器不需要 cargo。
 
 ## 守护
 
