@@ -8,7 +8,14 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# 发布 = per-target VSIX（内嵌对应平台 LSP）+ 一个 universal 回退包（无 bin，
+# 用版本锁定的下载兜底）+ GitHub Release 资产（tarball 供回退下载）。
+# 设计：docs/design-bundled-lsp.md §3.3。三条铁律：
+#   1. exec 位必须在 Linux 上打包（Windows 打包会丢 unix mode）；
+#   2. tag、Cargo.toml、package.json 版本必须一致（版本门禁）；
+#   3. 下载 URL 锁定 v${version}，永不 latest。
 jobs:
+  # 1) 每个平台原生构建 LSP 二进制（供 VSIX 内嵌 + GitHub Release tarball）。
   build:
     strategy:
       fail-fast: false
@@ -42,7 +49,9 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  vsix:
+  # 2) 逐 target stage 二进制 → `vsce package --target`；另出 universal 回退包。
+  package-vsix:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,26 +60,106 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: editor/vscode/package-lock.json
-      - name: Package VS Code extension
+
+      - name: Version gate (tag == Cargo.toml == package.json)
+        run: |
+          set -euo pipefail
+          cargo_version=$(sed -n '/^\[workspace.package\]/,/^\[/p' Cargo.toml \
+            | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
+          ext_version=$(node -p "require('./editor/vscode/package.json').version")
+          test "$cargo_version" = "$ext_version" \
+            || { echo "Cargo.toml ($cargo_version) != package.json ($ext_version)"; exit 1; }
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            test "${GITHUB_REF_NAME}" = "v${ext_version}" \
+              || { echo "tag ${GITHUB_REF_NAME} != v${ext_version}"; exit 1; }
+          fi
+          echo "version gate ok: v${ext_version}"
+
+      # v4 不带 name 时按 artifact 名各建一个目录：lsp-<rust-target>/。
+      - name: Download per-platform binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: lsp-*
+
+      - name: Install extension dependencies
+        working-directory: editor/vscode
+        run: npm ci --no-fund --no-audit
+
+      - name: Package platform-specific VSIXes
         working-directory: editor/vscode
         run: |
-          npm ci
-          npx --yes @vscode/vsce package --out sokonanoda.vsix
+          set -euo pipefail
+          for entry in \
+            "x86_64-unknown-linux-gnu:linux-x64" \
+            "aarch64-apple-darwin:darwin-arm64" \
+            "x86_64-apple-darwin:darwin-x64" \
+            "x86_64-pc-windows-msvc:win32-x64"
+          do
+            rust="${entry%%:*}"; vsce="${entry##*:}"
+            exe=""; [[ "$rust" == *windows* ]] && exe=".exe"
+            node scripts/stage-lsp.js \
+              --rust-target "$rust" \
+              --binary "../lsp-${rust}/sokonanoda-lsp${exe}"
+            npx --yes @vscode/vsce package --target "$vsce" \
+              --out "dist/sokonanoda-${vsce}.vsix"
+          done
+
+      - name: Package universal fallback VSIX (no bundled binary)
+        working-directory: editor/vscode
+        run: |
+          npm run clean:lsp
+          npx --yes @vscode/vsce package --out dist/sokonanoda-universal.vsix
+
+      - name: VSIX smoke test (payload + exec bits + target manifest)
+        working-directory: editor/vscode
+        run: |
+          python3 - <<'PY'
+          import sys, zipfile
+
+          EXPECTED = {
+              "dist/sokonanoda-linux-x64.vsix": ("linux-x64", "extension/bin/linux-x64/sokonanoda-lsp"),
+              "dist/sokonanoda-darwin-arm64.vsix": ("darwin-arm64", "extension/bin/darwin-arm64/sokonanoda-lsp"),
+              "dist/sokonanoda-darwin-x64.vsix": ("darwin-x64", "extension/bin/darwin-x64/sokonanoda-lsp"),
+              "dist/sokonanoda-win32-x64.vsix": ("win32-x64", "extension/bin/win32-x64/sokonanoda-lsp.exe"),
+          }
+          universal = "dist/sokonanoda-universal.vsix"
+
+          for path, (target, binary) in EXPECTED.items():
+              with zipfile.ZipFile(path) as zf:
+                  names = zf.namelist()
+                  assert binary in names, f"{path}: missing {binary}"
+                  info = zf.getinfo(binary)
+                  mode = (info.external_attr >> 16) & 0o777
+                  assert info.file_size > 1_000_000, f"{path}: suspiciously small binary ({info.file_size} B)"
+                  if not target.startswith("win32"):
+                      assert mode & 0o111, f"{path}: {binary} is not executable (mode={oct(mode)})"
+                  manifest = zf.read("extension.vsixmanifest").decode("utf-8", "replace")
+                  assert f'TargetPlatform="{target}"' in manifest, f"{path}: manifest lacks TargetPlatform={target}"
+                  print(f"ok {path}: {binary} mode={oct(mode)} size={info.file_size}")
+
+          with zipfile.ZipFile(universal) as zf:
+              assert not any(n.startswith("extension/bin/") for n in zf.namelist()), \
+                  f"{universal}: fallback package must not embed a platform binary"
+              assert "extension.vsixmanifest" in zf.namelist()
+              print(f"ok {universal}: no bundled binary")
+          PY
+
       - uses: actions/upload-artifact@v4
         with:
           name: sokonanoda-vsix
-          path: editor/vscode/sokonanoda.vsix
+          path: editor/vscode/dist/*.vsix
+          if-no-files-found: error
 
-  # LSP 二进制 + VSIX 挂 GitHub Release；VSIX 同时发布到 Marketplace
+  # 3) GitHub Release：平台 tarball（回退下载资产）+ 全部 VSIX。
   github-release:
-    needs: [build, vsix]
+    needs: [build, package-vsix]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
       # v4 不带 name 时按 artifact 名各建一个目录：
-      # lsp-<target>/ 二进制、sokonanoda-vsix/sokonanoda.vsix。
+      # lsp-<target>/ 二进制、sokonanoda-vsix/*.vsix。
       - uses: actions/download-artifact@v4
       - name: Create release and upload all artifacts
         if: github.event_name == 'push'
@@ -78,47 +167,59 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
           gh release create "${{ github.ref_name }}" \
             --title "sokonanoda ${{ github.ref_name }}" \
             --generate-notes || true
+          # 平台二进制 tarball：universal VSIX 的版本锁定下载回退要用。
           for dir in lsp-*/; do
             target="${dir#lsp-}"
             target="${target%/}"
             tar czf "sokonanoda-lsp-${target}.tar.gz" -C "$dir" .
-            # --clobber：同名 asset 已存在时覆盖（tag 重跑幂等）。
             gh release upload "${{ github.ref_name }}" \
               "sokonanoda-lsp-${target}.tar.gz" --clobber
           done
-          gh release upload "${{ github.ref_name }}" \
-            "sokonanoda-vsix/sokonanoda.vsix" --clobber
+          for vsix in sokonanoda-vsix/*.vsix; do
+            gh release upload "${{ github.ref_name }}" "$vsix" --clobber
+          done
 
-  # Marketplace 发布（官方 CI 模板：VSCE_PAT secret + vsce publish）
+  # 4) Marketplace：先 universal 回退包，再逐 target 平台包。
+  #    Azure 端点间歇超时（CI 台账多次记录），每个包独立重试 4 次；
+  #    `--skip-duplicate` 保证 tag 重跑幂等。
   marketplace-publish:
-    needs: [vsix]
+    needs: [package-vsix]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Download VSIX
+      - name: Download VSIXes
         uses: actions/download-artifact@v4
         with:
           name: sokonanoda-vsix
       - name: Publish to VS Code Marketplace
         if: github.event_name == 'push'
-        # vsce publish 的 Azure 端点（/_apis/gallery）间歇性超时（CI 台账多次
-        # 记录）。重试最多 4 次、间隔 30s，`--skip-duplicate` 幂等（已发布则
-        # 跳过成功），避免一次超时就让整个 release 红掉。
         run: |
-          set -e
-          for attempt in 1 2 3 4; do
-            if npx --yes @vscode/vsce publish --skip-duplicate --packagePath sokonanoda.vsix; then
-              exit 0
-            fi
-            echo "vsce publish attempt $attempt failed; retrying in 30s..."
-            sleep 30
+          set -euo pipefail
+          for vsix in \
+            sokonanoda-universal.vsix \
+            sokonanoda-linux-x64.vsix \
+            sokonanoda-darwin-arm64.vsix \
+            sokonanoda-darwin-x64.vsix \
+            sokonanoda-win32-x64.vsix
+          do
+            echo "publishing ${vsix}"
+            published=0
+            for attempt in 1 2 3 4; do
+              if npx --yes @vscode/vsce publish --skip-duplicate --packagePath "$vsix"; then
+                published=1
+                break
+              fi
+              echo "vsce publish ${vsix} attempt ${attempt} failed; retrying in 30s..."
+              sleep 30
+            done
+            test "$published" = "1" || { echo "failed to publish ${vsix}"; exit 1; }
           done
-          exit 1
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}

@@ -69,6 +69,11 @@ jobs:
         # 二进制（extension.js 的自动发现逻辑），所以必须先构建。
         run: cargo build -p sokonanoda-lsp --locked
 
+      - name: Stage bundled server (VSIX layout)
+        # 按打包布局 stage 到 bin/<target>/：bundled 解析优先于 target/ 发现，
+        # 因此集成测试验证的就是用户安装平台包后的那条路径。
+        run: node editor/vscode/scripts/stage-lsp.js --profile debug
+
       - name: Setup Node for editor integration tests
         uses: actions/setup-node@v4
         with:
@@ -86,6 +91,25 @@ jobs:
         # 以及 followRedirects 与 tar 解压逻辑；不依赖 Rust / VS Code，秒级完成。
         working-directory: editor/vscode
         run: npm run test:unit
+
+      - name: Package host VSIX (bundled payload smoke)
+        # 每次 CI 都走一遍真实打包：断言 bin/<target>/ 在包里且可执行位正确
+        # （exec 位只能在 Linux/macOS 打包时保留）。发布 dry-run 之外的第一道闸。
+        working-directory: editor/vscode
+        run: |
+          npx --yes @vscode/vsce package --target linux-x64 --out /tmp/host.vsix
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile("/tmp/host.vsix") as zf:
+              name = "extension/bin/linux-x64/sokonanoda-lsp"
+              info = zf.getinfo(name)
+              mode = (info.external_attr >> 16) & 0o777
+              assert info.file_size > 1_000_000, info.file_size
+              assert mode & 0o111, oct(mode)
+              manifest = zf.read("extension.vsixmanifest").decode()
+              assert 'TargetPlatform="linux-x64"' in manifest
+              print(f"host VSIX ok: {name} mode={oct(mode)} size={info.file_size}")
+          PY
 
       - name: VS Code extension integration tests
         # Linux 上 Electron 需要显示器：xvfb 在 ubuntu-latest 镜像里预装，

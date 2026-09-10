@@ -7,7 +7,10 @@
 
 | 文件 | 职责 | 禁止 |
 |---|---|---|
-| `extension.js` | 扩展入口：LSP 客户端接线、命令注册、练习树/课程树/状态栏/inlay/跳洞、**server 自动下载** | 业务逻辑、kernel 调用 |
+| `extension.js` | 扩展入口：LSP 客户端接线、命令注册、练习树/课程树/状态栏/inlay/跳洞 | 业务逻辑、kernel 调用 |
+| `server.js` | 服务器获取：平台→target 映射、bundled `bin/<target>/` 解析、exec 位修复、版本锁定下载（**无 `vscode` 依赖，可纯 Node 单测**） | UI/命令逻辑 |
+| `scripts/stage-lsp.js` | 打包前把构建产物 stage 到 `bin/<target>/`（chmod 755），支持 `--package` 出 host VSIX | 运行时逻辑 |
+| `test-server.js` / `test-download.js` | 纯 Node 单测（解析顺序/版本锁定 URL/重定向/解压） | — |
 | `package.json` | 清单：contributes、dependencies、engines、**description/keywords（市场门面）** | 运行时逻辑 |
 | `README.md` | **Marketplace 页面正文**——安装方式、功能清单、agent 集成卖点 | 与实际行为不符的描述 |
 | `CHANGELOG.md` | 市场可见的版本历史（Keep a Changelog） | 与 commit 内容不符的条目 |
@@ -46,29 +49,47 @@
 
 - **每次 commit 涉及 `editor/vscode/` 改动时必须同步 bump `package.json` version**；
 - 同步更新 `editor/vscode/CHANGELOG.md`（Keep a Changelog 格式）；
-- 版本号变更后必须重新 `vsce package` + `code --install-extension` 并在本地 VS Code 验证。
+- **Rust 与扩展版本必须一致**（同一 tag 构建扩展与内置内核）：`Cargo.toml`
+  workspace version 是单一来源，契约测试 `cargo_and_extension_versions_match`
+  与 release 的 version gate 双重强制；
+- 版本号变更后必须重新 `vsce package` + `code --install-extension` 并在本地
+  VS Code 验证。
 
 ## 3. 测试三层
 
 | 层 | 工具 | 覆盖 | 文件 |
 |---|---|---|---|
-| 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、市场元数据 | `crates/cli/tests/extension.rs` |
-| 集成测试 | `npm test`（@vscode/test-electron） | 扩展激活、诊断到达、hover 内容、sorry warning | `editor/vscode/src/test/extension.test.js` |
-| 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全） | — |
+| 纯 Node 单测 | `npm run test:unit` | server.js 解析顺序/版本锁定 URL/exec 位修复、重定向、解压 | `test-server.js` / `test-download.js` |
+| 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、bundled 解析/版本一致/市场元数据 | `crates/cli/tests/extension.rs` |
+| 打包冒烟 | CI `Package host VSIX` step | `bin/<target>/` 入包、exec 位、`TargetPlatform` | ci.yml |
+| 集成测试 | `npm test`（@vscode/test-electron） | 扩展激活、诊断到达、hover 内容、sorry warning（CI 先 stage bundled） | `editor/vscode/src/test/extension.test.js` |
+| 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全、安装态离线） | — |
 
 **commit 前**：至少跑静态契约 + 集成测试；**发 tag 前**：三层全跑。
 
 ## 4. 开发循环
 
 ```bash
-# 改 extension.js 或 package.json 后：
+# 改 extension.js / server.js 后：
 cd editor/vscode
-npx --yes @vscode/vsce package --out sokonanoda.vsix
+npm run test:unit                 # 纯 Node 单测（秒级，先跑这个）
+cd ../.. && cargo test -p sokonanoda-cli --test extension   # 静态契约
+cd editor/vscode
+
+# 本地验收安装态（bundled 路径）：stage 本机 release 二进制 + 打平台 VSIX
+cargo build --release -p sokonanoda-lsp
+npm run package:host
 code --install-extension sokonanoda.vsix --force
 # 手动 Reload Window（Cmd+Shift+P → Reload Window）
+
+# 回到纯开发发现（可选）：清掉 stage 的 bin/，F5 会走 target/
+npm run clean:lsp
 ```
 
-或按 F5 用开发宿主调试（`.vscode/launch.json` 已配置）。
+或按 F5 用开发宿主调试（`.vscode/launch.json` 已配置）。注意：F5 时
+`bin/` 不存在（gitignored），解析会落到 `target/debug`；若刚跑过
+`package:host`，会优先使用 stage 的 release 二进制——要回到 debug 发现先
+`npm run clean:lsp`。
 
 ## 5. 常见坑（全部踩过）
 
@@ -82,6 +103,16 @@ code --install-extension sokonanoda.vsix --force
 6. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；
 7. **`code` CLI 与已开实例冲突**——集成测试在 macOS 上报"another instance running"时关掉 VS Code 再跑；
 8. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。
+9. **exec 位只能在 Linux/macOS 打包**——Windows 上 `vsce package` 会丢 unix
+   mode（zip external attributes），装到 mac/linux 后二进制不可执行。CI 在
+   ubuntu 打包；`scripts/stage-lsp.js` staging 时 `chmod 755`；冒烟用
+   python `zipfile` 断言 `mode & 0o111`。
+10. **`bin/` 不进仓库、也不出包外**——`editor/vscode/bin/` 是 staging 目录
+    （gitignored），`.vscodeignore` 不许排除它（契约测试守护）；每次打包前
+    先 `clean:lsp`，保证一个 VSIX 只带一个平台。
+11. **下载回退禁止 `latest`**——只允许
+    `releases/download/v${extensionVersion}/…`（契约测试断言 server.js 不含
+    `/latest/`）；否则旧插件会拉到新服务器，协议错配且不可复现。
 
 ## 6. 发布
 
@@ -90,11 +121,12 @@ code --install-extension sokonanoda.vsix --force
 cd editor/vscode
 npx --yes @vscode/vsce publish
 
-# CI 自动发布（tag 触发，VSCE_PAT secret 已配置）
+# CI 自动发布（tag 触发，VSCE_PAT secret 已配置）：
 git tag v0.X.Y && git push --tags
 ```
 
-发布前检查清单：
+发布形态：per-target VSIX（内嵌各平台 LSP）+ universal 回退包；完整流程、
+版本门禁与 dry-run 见 `docs/RELEASE.md`。发布前检查清单：
 - [ ] `package.json` version 已 bump
 - [ ] `CHANGELOG.md` 已更新
 - [ ] `README.md` 与当前行为一致（见 §7 文档同步）

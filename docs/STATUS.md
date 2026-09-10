@@ -45,9 +45,9 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. **版本纪律**：扩展与 Rust 同步 bump **0.7.0**；`extension.rs` 新增
    `cargo_and_extension_versions_match` 契约测试（tag 前拦漂移）。
 5. **测试**：node 单测 22（`test-download.js` 改为 require `server.js` 真实现，
-   消灭复制漂移）+ 静态契约 +3（bundled 解析/latest 禁令/版本一致），
-   workspace **440 passed + 8 ignored** 全绿；fmt/clippy 干净；
-   playground 锚点 20/9/0 不变。
+   消灭复制漂移）+ 静态契约 +5（bundled 解析/latest 禁令/版本一致/发布
+   per-target/CI stage），workspace **442 passed + 8 ignored** 全绿；
+   fmt/clippy 干净；playground 锚点 20/9/0 不变。
 6. **本机验收**：`npm run package:host` → VSIX 1.96MB，含
    `extension/bin/darwin-arm64/sokonanoda-lsp`（zip mode 755）、manifest
    `TargetPlatform="darwin-arm64"`；`package:universal` → 0.47MB 无 bin。
@@ -55,9 +55,25 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `editor/vscode/bin/`；`.vscodeignore` 排除 scripts/test；CI 单测步骤改
    `npm run test:unit`。
 
-**Phase 2（发布闭环，进行中）**：release.yml per-target 打包 + tag 版本门禁
-+ exec 冒烟 + 逐平台发布；`docs/RELEASE.md`/`vscode-dev-guide`/CI skill 同步。
-**Phase 3（硬化）**：CI 集成测试走 bundled 路径 + 无缓存激活用例。
+**Phase 2（发布闭环，已落地）**：
+
+1. **`release.yml` 重排**：新增 `package-vsix` job（needs build）——tag 版本
+   门禁（`tag == Cargo.toml == package.json`）→ 下载 4 平台二进制 → 逐 target
+   `stage-lsp.js` + `vsce package --target` → 4 个平台包 + universal 回退包 →
+   **python zipfile 冒烟**（bin 路径/大小 >1MB/linux+darwin exec 位 755/
+   manifest TargetPlatform/universal 无 bin）；github-release 附 4 tarball +
+   5 VSIX；marketplace-publish 先 universal 后逐 target（每包 4 次重试）。
+2. **`ci.yml` 硬化**：集成测试前 `stage-lsp.js --profile debug` 到
+   `bin/linux-x64/`（集成测试走 **bundled 路径**）；新增 host VSIX 打包冒烟
+   step（每次 CI 验 exec 位）。
+3. **契约 +2**：release.yml 含 per-target/version gate/universal；ci.yml 含
+   `test:unit` + stage + host VSIX 冒烟。
+4. **文档同步**：`docs/RELEASE.md` 重写（新流水线 + dry-run + 风险）、
+   `docs/vscode-dev-guide.md`（server.js/测试层/开发循环/3 条新坑）、
+   `skills/sokonanoda-ci`（平台包 exec 位/发布顺序/版本门禁）。
+
+**Phase 3（硬化）**：CI 集成测试已走 bundled 路径（Phase 2 顺带完成）；
+剩余：无缓存激活用例、额外平台（linux-arm64 / win32-arm64 / alpine）评估。
 `docs/design-bundled-lsp.md` 已提交（`39ea982`）。
 
 ## 本轮进度（2026-09-10，第二十轮：光标处 goal 视图 Phase 2 落地）

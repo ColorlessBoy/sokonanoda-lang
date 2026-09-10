@@ -322,6 +322,51 @@ fn package_scripts_stage_the_bundled_binary() {
 }
 
 #[test]
+fn release_workflow_packages_platform_specific_vsixes() {
+    // Release contract (docs/design-bundled-lsp.md §3.3, docs/RELEASE.md):
+    // per-target VSIXes with the server staged in, plus a universal fallback,
+    // a tag/version gate, and marketplace publishing.
+    let release =
+        fs::read_to_string(repo_root().join(".github/workflows/release.yml")).expect("release.yml");
+    for needle in [
+        "package-vsix",
+        "--target",
+        "sokonanoda-universal.vsix",
+        "Version gate",
+        "stage-lsp.js",
+        "vsce publish",
+    ] {
+        assert!(
+            release.contains(needle),
+            "release.yml must contain `{needle}`"
+        );
+    }
+    assert!(
+        !release.contains("sokonanoda-vsix/sokonanoda.vsix"),
+        "release.yml must not use the old single universal VSIX path"
+    );
+}
+
+#[test]
+fn ci_stages_the_bundled_server_for_integration_tests() {
+    // CI contract: integration tests run against the VSIX layout (bundled
+    // resolution) and the node unit tests gate every push.
+    let ci = fs::read_to_string(repo_root().join(".github/workflows/ci.yml")).expect("ci.yml");
+    assert!(
+        ci.contains("npm run test:unit"),
+        "ci.yml must run npm run test:unit"
+    );
+    assert!(
+        ci.contains("stage-lsp.js"),
+        "ci.yml must stage the bundled server before integration tests"
+    );
+    assert!(
+        ci.contains("Package host VSIX"),
+        "ci.yml must smoke-package a platform VSIX"
+    );
+}
+
+#[test]
 fn cargo_and_extension_versions_match() {
     // Version discipline (docs/design-bundled-lsp.md §3.3): the VSIX and the
     // server it bundles are built from the same tag, so the two version fields

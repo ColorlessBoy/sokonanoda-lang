@@ -41,10 +41,13 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 | `gh release create` 非幂等 | 已存在 → 422 | 永远 `|| true`（存在即跳过） |
 | `gh release upload` 非幂等 | 同名 asset 已存在 → 422 → `bash -e` 全 job 死 | 永远 `--clobber`（重跑覆盖） |
 | 强移 tag 前先想清楚 | release 上可能已有首跑传了一半的 asset | 上传步骤必须幂等后再强移 |
-| `vsce package --no-dependencies` | 跳过生产依赖收集 → 12 文件/21KB 空壳 VSIX | 冒烟用与 release.yml 相同的命令（无该 flag）；正确基线 ≈327 文件/477KB |
+| `vsce package --no-dependencies` | 跳过生产依赖收集 → 12 文件/21KB 空壳 VSIX | 冒烟用与 release.yml 相同的命令（无该 flag）；平台包正确基线 ≈327 文件（含 `bin/<target>/`） |
 | vsce publish Azure 超时 | `Request timeout: /_apis/gallery` 是**间歇性**网络问题 | 直接重跑该 job；连续两次超时再查代理 |
 | action 名拼写 | 多个 s / 复数错名 → action 不存在 | 新 action 首次使用先验证存在 |
 | run 步骤默认 `bash -e` | 任何一步非零退出 → 整个 step 死 | 想容忍的命令才加 `\|\| true`；别把 `bash -e` 当没有 |
+| 平台包 exec 位 | VSIX 的 zip 记录 unix mode；**Windows 上 `vsce package` 会丢执行位**（vsce #152/#512） | 只在 Linux/macOS 打包；stage 时 `chmod 755`；冒烟用 python `zipfile` 断言 `mode & 0o111` |
+| 平台包发布顺序 | Marketplace 同版本 universal + 多 target 并存；“Validating”窗口有装错 target 的竞态（vscode#141696） | 先 universal 后 target；每包独立重试；装错反馈先让用户卸载重装 |
+| 版本门禁 | tag / `Cargo.toml` / `package.json` 三者不一致时 release 必须 fail（历史上靠人工） | release `package-vsix` 的 version gate + `cargo_and_extension_versions_match` 契约测试双保险；tag 前先 `cargo check` 更新 lock |
 
 ## 2. 触发与监控
 
@@ -57,9 +60,10 @@ gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 ```
 
 - **版本纪律先于 tag**：tag 之前确认 `Cargo.toml` 与
-  `editor/vscode/package.json` 版本已 bump（feature→minor / fix→patch，
-  见 `docs/vscode-dev-guide.md` §2）——tag 触发的 release 会发布这两个
-  版本号，错配就要删 tag 重来。
+  `editor/vscode/package.json` 版本已 bump 且一致（feature→minor /
+  fix→patch，见 `docs/vscode-dev-guide.md` §2）——release 的 version gate
+  会直接 fail 不一致的 tag；发布形态（per-target VSIX + universal 回退包）
+  与 dry-run 见 `docs/RELEASE.md`。
 - **推送后必监控到终态**：`gh run list` 每 2–5 分钟一次；红 → 立即
   `--log-failed` 取证，不许"回头再看"。
 - marketplace 没更新 = 先查 tag 是否真触发（`gh run list --workflow=release`），

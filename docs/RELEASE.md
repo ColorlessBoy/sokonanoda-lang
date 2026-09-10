@@ -1,56 +1,78 @@
 # 发布手册（RELEASE.md）
 
-发布流水线：`.github/workflows/release.yml`（业内标准 tag 触发式发布）。
-发布 = 推一个 `v*` tag，其余全自动。
+发布流水线：`.github/workflows/release.yml`（tag 触发 + `workflow_dispatch`
+dry-run）。发布 = 推一个 `v*` tag，其余全自动。
+
+> 设计依据：`docs/design-bundled-lsp.md`（插件自带 per-target VSIX + universal
+> 回退包 + 版本锁定下载）。核心不变量：
+> **tag == `Cargo.toml` == `package.json` == VSIX 内嵌的 LSP 二进制版本。**
 
 ## 1. 版本号在哪几处
 
 | 位置 | 说明 |
 | --- | --- |
-| `Cargo.toml` → `[workspace.package].version` | **Rust 侧单一来源**。四个 crate（kernel/front/cli/lsp）均 `version.workspace = true`，改这一处即可。 |
-| `editor/vscode/package.json` → `version` | 扩展版本，与 Rust 版本保持一致（人工同步）。 |
-| `editor/vscode/CHANGELOG.md` | 扩展的变更记录，发布时补一条对应版本条目。 |
+| `Cargo.toml` → `[workspace.package].version` | **Rust 侧单一来源**。四个 crate 均 `version.workspace = true`，改这一处即可。 |
+| `editor/vscode/package.json` → `version` | 扩展版本。必须与 Rust 一致，由契约测试 `cargo_and_extension_versions_match` 与 release 的 version gate 双重强制。 |
+| `editor/vscode/CHANGELOG.md` | 扩展变更记录，发布时补对应版本条目。 |
 
-注意：**根目录没有 CHANGELOG.md**。因此 release 工作流不使用
-`taiki-e/create-gh-release-action` 的 changelog 参数，GitHub Release 的说明由
+注意：**根目录没有 CHANGELOG.md**。GitHub Release 的说明由
 `generate_release_notes: true` 自动生成（基于上个 tag 以来的 commit/PR）。
-若日后想改为 changelog 驱动，先在根目录建 CHANGELOG.md 再改工作流。
 
 ## 2. 流水线概览
 
-```
-push tag v* ──► job build (ubuntu-latest)
-                 1. cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
-                 2. softprops/actions-gh-release 建 Release（名 = tag，自动生成说明）
-                 3. taiki-e/upload-rust-binary-action 上传
-                    sokonanoda,sokonanoda-lsp → sokonanoda-x86_64-unknown-linux-gnu.tar.gz
-                    + .sha256 校验和
-               ─► job vsix (needs: build)
-                 1. node 22 + npm ci（editor/vscode）
-                 2. npx @vscode/vsce package --out sokonanoda.vsix
-                 3. upload-artifact 挂 vsix
-                 4. gh release upload 把 vsix 附到同一 Release
+```text
+push tag v* ──► job build（matrix：4 平台原生构建）
+                  artifact：lsp-<rust-target>/（裸二进制）
+                    │
+                job package-vsix（ubuntu；needs build）
+                  1. version gate：tag == Cargo.toml == package.json
+                  2. download 全部 lsp-* artifact
+                  3. 逐 target：stage-lsp.js → vsce package --target
+                     → sokonanoda-{linux-x64,darwin-arm64,darwin-x64,win32-x64}.vsix
+                  4. clean bin/ → vsce package（无 target）
+                     → sokonanoda-universal.vsix（回退包，无 bin）
+                  5. 冒烟：python zipfile 断言每个平台包的 bin 路径、大小 >1MB、
+                     linux/darwin exec 位（mode & 0o111）、manifest TargetPlatform
+                    │
+                job github-release（needs build + package-vsix，contents: write）
+                  ├─ 4 个 sokonanoda-lsp-<rust-target>.tar.gz（回退下载资产）
+                  └─ 5 个 .vsix
+                    │
+                job marketplace-publish（needs package-vsix）
+                  └─ 先 universal、后 4 个平台包，逐包重试 4 次
+                     （vsce publish --skip-duplicate --packagePath …）
 ```
 
-权限最小化：workflow 顶层 `contents: read`；仅需要写权限的 job 声明
-`contents: write`（build 的建 Release/传资产、vsix 的 `gh release upload`）。
+- **exec 位必须在 Ubuntu 上打包**：VSIX 的 zip 记录 unix mode，Windows 打包
+  会丢（vsce 已知问题）。`scripts/stage-lsp.js` 在 stage 时 `chmod 755`，
+  package-vsix 冒烟会断言。
+- universal 包用于没有平台构建的用户（当前：Linux arm64、Alpine、Windows
+  arm64 等），其下载 URL 由扩展锁定到
+  `releases/download/v${extensionVersion}/…`，**不会**跟随 latest。
+- 发布顺序：universal 先、平台包后（Marketplace “Validating” 窗口有装错
+  target 的竞态，见 `microsoft/vscode#141696`）；`--skip-duplicate` + `--clobber`
+  保证 tag 重跑幂等。
 
 ## 3. 发布步骤
 
 1. **改版本**：`Cargo.toml` 的 `[workspace.package].version` +
-   `editor/vscode/package.json` 的 `version`，两处一致（如 `0.2.0`）。
-2. **补 CHANGELOG**：`editor/vscode/CHANGELOG.md` 加对应条目。
-3. **跑校验清单**（见 §5），全绿后 commit。
+   `editor/vscode/package.json` 的 `version`，两处一致（如 `0.7.0`）；
+   跑一次 `cargo check` 让 `Cargo.lock` 跟上。
+2. **补 CHANGELOG**：`editor/vscode/CHANGELOG.md` 加对应条目；
+   门面（README/description）与行为同步（`docs/vscode-dev-guide.md` §7）。
+3. **跑校验清单**（见 §5），全绿后 commit + push。
 4. **打 tag 并推送**：
    ```bash
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
-5. **看 CI**：Actions → `release` workflow；`build` 与 `vsix` 都绿后，
+5. **看 CI**：Actions → `release`。`build`、`package-vsix` 绿后，
    到 GitHub Releases 确认资产齐全：
-   - `sokonanoda-x86_64-unknown-linux-gnu.tar.gz`
-   - `sokonanoda-x86_64-unknown-linux-gnu.tar.gz.sha256`
-   - `sokonanoda.vsix`
+   - `sokonanoda-lsp-<rust-target>.tar.gz` ×4（回退下载）
+   - `sokonanoda-{linux-x64,darwin-arm64,darwin-x64,win32-x64}.vsix` ×4
+   - `sokonanoda-universal.vsix`
+6. **看 Marketplace**：版本、平台包与 universal 包都应在（`vsce show` 或
+   网页端 Files 列表核对）。
 
 tag 推错只需删 tag 重推：`git push origin :refs/tags/vX.Y.Z`（Release 若已建，
 删 tag 后删 Release 再来）。
@@ -59,9 +81,10 @@ tag 推错只需删 tag 重推：`git push origin :refs/tags/vX.Y.Z`（Release �
 
 Actions → `release` → **Run workflow**（`workflow_dispatch`）。该模式：
 
-- 跳过 Release 创建与 `gh release upload`；
-- taiki-e action 以 `dry-run: true` 运行（构建 + 打 tar.gz，不上传）；
-- 二进制 tar.gz 与 vsix 都只作为 workflow artifact 上传，可在 run 页面下载验证。
+- 跳过 version gate 的 tag 检查（仍校验 Cargo ↔ package.json 一致）；
+- 跳过 Release 创建/上传与 Marketplace 发布；
+- `build` + `package-vsix` 正常跑，5 个 VSIX 作为 workflow artifact 上传，
+  可在 run 页面下载验证（含 exec 位冒烟）。
 
 ## 5. 发布前校验清单
 
@@ -70,33 +93,24 @@ cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 cargo clippy --workspace --all-targets
 cargo test --workspace --locked
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
-```
 
-VSIX 本地预打包（应输出 `DONE  Packaged: sokonanoda.vsix`）：
-
-```bash
 cd editor/vscode
 npm ci
-npx @vscode/vsce package --out sokonanoda.vsix
+npm run test:unit        # server.js 解析/下载 + 重定向/解压单测
+npm run package:host      # stage 本机二进制 + 打平台 VSIX
+code --install-extension sokonanoda.vsix --force   # 手动验收（离线可用）
 ```
 
 ## 6. 已知限制与风险
 
-- **【高优先】VSIX 缺运行时依赖**：`extension.js:10` 运行时
-  `require("vscode-languageclient/node")`，但 `editor/vscode/.vscodeignore`
-  排除了 `node_modules/**`，实测 vsce 打包结果不含 node_modules（9 个文件，
-  13.54 KB）——装上后会报 "Cannot find module"。修复（需另改文件，本手册
-  无权限）二选一：
-  1. `.vscodeignore` 删除 `node_modules/**` 一行（vsce 会自动包含
-     package.json `dependencies` 的生产依赖），最小改动；
-  2. 引入 esbuild/webpack 打包为单文件（依赖 devDependencies，改动更大）。
-- vsce 未列入 devDependencies（`package.json` 冻结），CI 里
-  `npx @vscode/vsce` 每次解析最新版 → 存在版本漂移/供应链风险；可用
-  `npx @vscode/vsce@<pin>` 收敛。
-- `publisher` 是占位符 `sokonanoda-lang`，未注册 marketplace：只把 vsix
-  挂 GitHub Release，不发布商店。
-- 目前仅 linux x86_64 二进制；需要 mac/windows 时在 build job 加
-  target matrix（taiki-e action 原生支持）。
-- 以下属 GitHub 环境特有，**需 CI 首跑验证**：taiki-e 多 bin +
-  `package` 映射行为、softprops 建 Release、`gh release upload`、
-  setup-node 的 npm cache。
+- 首期平台：`linux-x64` / `darwin-arm64` / `darwin-x64` / `win32-x64`。
+  其余平台走 universal 回退包的版本锁定下载（glibc 二进制在 Alpine/musl
+  不可用；文案会提示）。
+- Marketplace 平台包与 universal 包同版本并存；VS Code 的回落选择在历史上
+  有过 bug（`microsoft/vscode#276673`），遇到装错 target 的反馈先让用户
+  卸载重装。
+- Azure gallery 端点间歇超时：marketplace-publish 每包重试 4 次 ×30s。
+- macOS quarantine：VSIX 解压一般不带 quarantine；若用户被 Gatekeeper 拦，
+  指引 `xattr -d com.apple.quarantine <extension>/bin/<target>/sokonanoda-lsp`。
+- 只读扩展目录（Nix/系统安装）：chmod 修复会失败，扩展自动回退到
+  workspace/缓存/下载路径并提示。

@@ -332,3 +332,20 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   增两断言（消费 `soko/stateAt`、挂 `onDidChangeTextEditorSelection`）。
 - 测试总量（第二十轮）：**437 + 8 ignored**（front 229 / lsp 89 / cli 71 /
   kernel 48）；playground 锚点 20/9/0、course 32/25/0 不变。
+
+## 2026-09-10 更新（第二十一轮：插件自带 LSP——bundled VSIX）
+
+- **纯 Node 单测**（`editor/vscode/test-server.js`，15 个）：平台→target 映射、
+  bundled 路径/exec 位修复（缺位 chmod、只读降级）、解析顺序（setting/env/
+  bundled/workspace/缓存）、**下载 URL 锁定 `v${version}` 且不含 `/latest/`**、
+  不支持平台报错；`test-download.js` 改为 require `server.js` 真实现（去重）。
+- **打包冒烟**（ci.yml `Package host VSIX`）：每次 CI 对 host 打平台包并断言
+  `bin/linux-x64/sokonanoda-lsp` 大小 >1MB、exec 位、`TargetPlatform`。
+- **静态契约**（extension.rs，+5）：bundled 解析/latest 禁令/版本锁定 URL、
+  scripts 齐全 + `.vscodeignore` 不排 bin、`Cargo.toml` ↔ `package.json`
+  版本一致、release.yml per-target 打包 + universal、ci.yml test:unit + stage。
+- **集成测试**：CI 先 `stage-lsp.js --profile debug` 把服务器放进
+  `bin/linux-x64/`，集成测试因此走的正是用户安装平台包后的 bundled 路径。
+- **本机验收**：`npm run package:host` → 1.96MB VSIX（zip mode 755、
+  `TargetPlatform="darwin-arm64"`）；`package:universal` → 0.47MB 无 bin。
+- 总量：workspace **440 passed + 8 ignored**；node 单测 22。
