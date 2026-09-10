@@ -79,9 +79,14 @@ jobs:
         run: |
           set -euo pipefail
           bin="target/${{ matrix.target }}/release/sokonanoda-lsp"
-          file "$bin"
-          ldd "$bin" 2>&1 | grep -q "not a dynamic executable" \
-            || { ldd "$bin" || true; echo "expected a static musl binary"; exit 1; }
+          # 注意 `set -o pipefail` + `ldd`（静态二进制退出码 1）：不能直接
+          # `ldd | grep`，否则管道恒失败（dry-run 踩过，见 CI-FAILURES.md）。
+          file "$bin" | grep -q "statically linked" \
+            || { file "$bin"; echo "expected a statically linked musl binary"; exit 1; }
+          ldd_out=$(ldd "$bin" 2>&1 || true)
+          echo "$ldd_out"
+          grep -q "not a dynamic executable" <<< "$ldd_out" \
+            || { echo "expected ldd to report a static binary"; exit 1; }
       - name: Package binary
         shell: bash
         run: |

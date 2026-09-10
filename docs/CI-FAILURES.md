@@ -156,3 +156,16 @@
 - **修复**：无需改代码，重跑 job。
 - **预防**：`docs/TESTING.md` 已记该风险；CI skill 台账补一行：集成测试
   ETIMEDOUT = 网络，直接重跑，不要当代码回归查。
+
+## 2026-09-10 — release dry-run 第三红：musl 静态断言被 pipefail 反杀
+
+- **现象**：8 平台矩阵 dry-run 中，两个 musl 构建（x86_64/aarch64）都失败于
+  `Verify static musl binary`，但日志显示 `file` 已报 `statically linked`、
+  `ldd` 已报 `not a dynamic executable`——二进制完全正确。
+- **原因**：验证脚本是 `ldd "$bin" 2>&1 | grep -q "not a dynamic executable"`，
+  而 step 带 `set -o pipefail`；`ldd` 对静态二进制退出码为 1，管道整体判负，
+  `||` 兜底分支误报失败。
+- **修复**：先 `$(ldd ... || true)` 捕获输出，再 `grep <<<`；并加 `file` 的
+  `statically linked` 断言（双保险）。工作流注释已标注该坑。
+- **预防**：带 `pipefail` 的断言不要依赖会以非零退出的工具（ldd 静态退出 1、
+  grep 无匹配退出 1）作为管道上游；先捕获再断言。
