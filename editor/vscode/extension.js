@@ -68,8 +68,14 @@ function resolveCourseManifest() {
   return server.firstExisting(roots.map((root) => path.join(root, "course", "course.json")));
 }
 
-function isExplicitPath(command) {
-  return path.isAbsolute(command) || command.includes(path.sep);
+// The user's explicit server choice (`sokonanoda.serverPath` /
+// `SOKONANODA_LSP_BIN`), if any. Checked before auto-discovery so a typo is
+// reported instead of silently falling back to a download.
+function requestedServerCommand() {
+  const setting = vscode.workspace.getConfiguration("sokonanoda").get("serverPath");
+  if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
+  if (process.env.SOKONANODA_LSP_BIN) return process.env.SOKONANODA_LSP_BIN;
+  return undefined;
 }
 
 const stateNames = {
@@ -564,19 +570,36 @@ function registerCommands(context, provider, courseProvider) {
 
 async function activate(context) {
   extensionRoot = context.extensionPath;
-  let command = await resolveServerCommand(context);
-  if (command === undefined || (isExplicitPath(command) && !fs.existsSync(command))) {
-    // No bundled binary for this platform (universal VSIX / unsupported arch):
-    // fall back to the version-pinned GitHub Release download.
+
+  // Explicit choice first: report a broken path instead of silently
+  // downloading something else.
+  const requested = requestedServerCommand();
+  let command;
+  if (requested !== undefined) {
+    if (!fs.existsSync(requested)) {
+      vscode.window.showErrorMessage(
+        `sokonanoda：指定的语言服务器不存在：${requested}（检查 sokonanoda.serverPath 或 SOKONANODA_LSP_BIN）`,
+      );
+      return;
+    }
+    command = requested;
+  } else {
+    command = await resolveServerCommand(context);
+  }
+
+  // Every platform package bundles the server; `undefined` here means an
+  // unsupported platform or the universal fallback package (no bundled bin).
+  if (command === undefined) {
     if (!server.platformTarget(process.platform, process.arch)) {
       vscode.window.showErrorMessage(
         `sokonanoda：当前平台（${process.platform}-${process.arch}）没有内置语言服务器。` +
-          "请设置 sokonanoda.serverPath 指向本地编译的 sokonanoda-lsp。",
+          "请设置 sokonanoda.serverPath 指向本地二进制。",
       );
       return;
     }
     vscode.window.showInformationMessage(
-      "sokonanoda：正在获取语言服务器（内置包缺失，回退下载）…",
+      `sokonanoda：未找到内置语言服务器（universal 包或安装损坏），` +
+        `正在按 v${extensionVersion(context)} 回退下载…`,
     );
     try {
       command = await server.downloadLspBinary({
@@ -591,7 +614,8 @@ async function activate(context) {
       }
     } catch (err) {
       vscode.window.showWarningMessage(
-        "sokonanoda-lsp 获取失败。请安装对应平台的插件包，或联网后重试；也可用 sokonanoda.serverPath 指向本地二进制。错误：" + (err?.message ?? err)
+        "sokonanoda-lsp 回退下载失败。请安装对应平台的插件包（VS Code 会自动选择），" +
+          "或设置 sokonanoda.serverPath 指向本地二进制。错误：" + (err?.message ?? err),
       );
       return;
     }
