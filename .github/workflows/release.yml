@@ -97,9 +97,11 @@ jobs:
           do
             rust="${entry%%:*}"; vsce="${entry##*:}"
             exe=""; [[ "$rust" == *windows* ]] && exe=".exe"
+            # 相对路径从 editor/vscode 出发：仓库根是 ../../（少一层 ../ 会
+            # 落到 editor/ 下，dry-run 曾因此 ENOENT，见 CI-FAILURES.md）。
             node scripts/stage-lsp.js \
               --rust-target "$rust" \
-              --binary "../lsp-${rust}/sokonanoda-lsp${exe}"
+              --binary "../../lsp-${rust}/sokonanoda-lsp${exe}"
             npx --yes @vscode/vsce package --target "$vsce" \
               --out "dist/sokonanoda-${vsce}.vsix"
           done

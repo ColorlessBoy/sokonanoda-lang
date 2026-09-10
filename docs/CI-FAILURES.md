@@ -119,3 +119,18 @@
   publish 步骤加 **4 次重试、间隔 30s**（`--skip-duplicate` 幂等），以后一次超时
   自动重试，不再让整个 release 红。
 - 预防：发布流程不再因一次 Azure 抖动失败；若连续重试仍失败再查代理/凭据。
+
+## 2026-09-10 — release dry-run：package-vsix ENOENT（相对路径少一层）
+
+- **现象**：`workflow_dispatch` dry-run 的 `package-vsix` job 在第一个
+  target 就失败：`stage-lsp: ENOENT: ... copyfile '../lsp-x86_64-unknown-linux-gnu/
+  sokonanoda-lsp'`。四个 `build` 全绿、版本门禁通过、artifact 也确实下载到了
+  仓库根。
+- **原因**：stage 步骤的 `working-directory` 是 `editor/vscode`，仓库根是
+  `../../`；写成了 `../lsp-…` 会解析到 `editor/lsp-…`（不存在）。本地复现时
+  同样写错一层，说明是路径推理错误而非 CI 环境问题。
+- **修复**：`--binary "../../lsp-${rust}/sokonanoda-lsp${exe}"`（commit 见
+  台账后一次 push）。
+- **预防**：release dry-run（workflow_dispatch）就是为这类只存在于 CI 的
+  打包路径问题设的闸——涉及新 job 的路径先跑 dry-run 再打 tag；本地复现
+  相对路径时先 `pwd` + `ls` 验证解析目标。
