@@ -81,3 +81,9 @@ gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 
 每次 CI 红了（本地推前发现的红也记），在 `docs/CI-FAILURES.md` 追加
 原因 / 修复 / 预防；同一类失败第二次出现 = 流程没改进，返工。
+
+补充（2026-09-10）：
+
+| 陷阱 | 事实 | 规程 |
+|---|---|---|
+| `vscode-test` ETIMEDOUT | `Resolving version...` 后 `AggregateError [ETIMEDOUT]` 是连 `update.code.visualstudio.com` 下载 VS Code 失败，**间歇性** | 直接重跑 job；同提交下一轮绿即验证为网络问题；不要当代码回归查 |

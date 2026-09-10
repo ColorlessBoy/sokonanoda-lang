@@ -146,3 +146,13 @@
 - **修复**：打包步骤（平台包与 universal 包）先 `mkdir -p dist`。
 - **预防**：新 job 里凡写文件到新路径，先显式建目录；dry-run 是唯一能
   覆盖跨 runner 文件布局的闸，继续保留。
+
+## 2026-09-10 — ci / VS Code 集成测试：vscode-test ETIMEDOUT（间歇网络）
+
+- **现象**：`xvfb-run -a npm test` 在 "Resolving version..." 后报
+  `AggregateError [ETIMEDOUT]`，失败于 `@vscode/test-electron` 连接
+  `update.code.visualstudio.com`（下载 VS Code 阶段）；同一提交下一轮 CI
+  全绿，属间歇性。
+- **修复**：无需改代码，重跑 job。
+- **预防**：`docs/TESTING.md` 已记该风险；CI skill 台账补一行：集成测试
+  ETIMEDOUT = 网络，直接重跑，不要当代码回归查。

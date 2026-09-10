@@ -1,8 +1,10 @@
 // @vscode/test-cli 的运行配置（`npm test` → `vscode-test`）。
-// 前置条件：`cargo build -p sokonanoda-lsp` 已产出 target/debug/sokonanoda-lsp
-// （测试自身绝不构建服务器；CI 与本地都先构建再跑测试）。
-// 服务器二进制由 extension.js 的自动发现逻辑找到：工作区文件夹 + 仓库根
-// （editor/vscode 的上两级）下的 target/debug|release/sokonanoda-lsp。
+// 前置条件：`cargo build -p sokonanoda-lsp` 已产出服务器二进制（测试自身
+// 绝不构建服务器；CI 与本地都先构建再跑测试）。
+// 服务器解析顺序（extension.js / server.js）：bundled `bin/<target>/` 优先，
+// 其次工作区文件夹 + 仓库根（editor/vscode 的上两级）下的
+// target/debug|release/sokonanoda-lsp。CI 会先 stage 到 bin/，让集成测试
+// 走用户安装平台包后的同一条路径。
 import { defineConfig } from "@vscode/test-cli";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
