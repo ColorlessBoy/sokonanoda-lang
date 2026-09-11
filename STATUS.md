@@ -25,8 +25,12 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 2. **发版**：预发布校验（fmt/clippy/test/playground）全绿后 commit + push，
    打 `v0.13.0` tag 推送；release 流水线编 8 平台 + 9 VSIX + 25 个 Release 资产。
 3. **opencode 初始化**：`sokonanoda update` 按锁定 `v0.13.0` 刷新缓存
-   （CLI+LSP 均为编译产物）；三个 skill 软链到 `~/.agents/skills`（镜像
-   `~/.claude/skills`）；plugin/commands/agent/shim 校验在位。
+   （CLI+LSP 均为编译产物，`version`/`doctor --json` 全 match、ready）；
+   三个 skill 软链到 `~/.agents/skills`（镜像 `~/.claude/skills`）；
+   plugin/commands/agent/shim 校验在位。
+4. **Marketplace**：`v0.13.0` 的 `marketplace-publish` 因 Azure gallery
+   连续超时失败（Release 25 个资产已齐，见 `docs/CI-FAILURES.md`
+   2026-09-11）；择时重跑即可。
 
 ## 本轮进度（2026-09-11，第二十九轮：环境能力进二进制，删除 soko.sh）
 

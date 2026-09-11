@@ -201,3 +201,17 @@
 - **预防**：产物断言必须检查**内容属性**（mode、可执行、`--version`），
   不能只看 job 绿；新增 tarball 消费方（脚本/扩展/launcher）一律自带
   chmod 兜底；dry-run 应加一条“下载解包后直接执行”的冒烟。
+
+## 2026-09-11 — v0.13.0 发布：marketplace-publish 再次 Azure gallery 超时
+
+- **现象**：tag `v0.13.0` 的 release 工作流中 `build`×8、`package-vsix`、
+  `github-release` 全绿（Release 25 个资产齐全），仅 `marketplace-publish`
+  以 `Request timeout: /_apis/gallery` 失败；`gh run rerun --failed` 重跑
+  一次仍连续超时。
+- **原因**：仍是无根修的 Azure DevOps gallery 端点间歇性网络问题；runner
+  侧 4×30s 重试未能覆盖连续超时（同类见 2026-09-08 / 2026-09-09 两条）。
+- **修复**：无需改代码——GitHub Release 资产与 9 个 VSIX 均已产出、可下载；
+  Marketplace 入口择时单独重跑 `marketplace-publish`（`--skip-duplicate`
+  幂等）。
+- **预防**：暂无（外部服务）；继续依赖 workflow 内逐包重试，连续失败时人工
+  择时重跑。
