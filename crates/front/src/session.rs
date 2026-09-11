@@ -178,6 +178,7 @@ impl Session {
             // 提示阶梯是注释级数据：零重编译路径也要按当前文本刷新
             // （hint 指令的增删只移动 span，不触发重编译）。
             crate::compile::hints::attach_hints_to_report(src, &mut report);
+            report.warnings = crate::compile::collect_warnings(&file);
             let events = all_events(&self.snaps);
             return SessionUpdate {
                 report,
@@ -247,6 +248,7 @@ impl Session {
 
         let mut report = assemble_report(&new_snaps);
         crate::compile::hints::attach_hints_to_report(src, &mut report);
+        report.warnings = crate::compile::collect_warnings(&file);
         let events = all_events(&new_snaps);
         let delta = diff_decls(&old_states, &report.decls, version);
         self.keys = new_keys;
@@ -486,6 +488,9 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
         hover_cmds,
         errors,
         checks,
+        // Warnings are recomputed per document update from the parsed file
+        // (`collect_warnings`); snapshots do not cache them.
+        warnings: Vec::new(),
     }
 }
 
@@ -840,6 +845,24 @@ def five : Nat := 5
         assert_eq!(
             u2.report.checks[0].span.start.offset,
             u1.report.checks[0].span.start.offset + "-- 讲解\n".len()
+        );
+    }
+
+    #[test]
+    fn session_keeps_warnings_on_zero_recompile() {
+        // 语法级 warning 每轮从文件现算：注释级编辑零重编译后仍在，且 span
+        // 随前文平移。
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, "axiom Prop : Sort 1\n", 1);
+        assert_eq!(u1.report.warnings.len(), 1);
+        assert_eq!(u1.report.warnings[0].code(), "reserved-declaration-name");
+        let with_comment = "-- 讲解\naxiom Prop : Sort 1\n";
+        let u2 = update(&mut session, with_comment, 2);
+        assert_eq!(u2.recompiled_from, None, "comment-only edit");
+        assert_eq!(u2.report.warnings.len(), 1);
+        assert_eq!(
+            u2.report.warnings[0].span.start.offset,
+            u1.report.warnings[0].span.start.offset + "-- 讲解\n".len()
         );
     }
 

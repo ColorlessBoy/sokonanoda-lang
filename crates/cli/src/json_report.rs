@@ -72,6 +72,16 @@ pub(crate) fn report_json(output: &CompileOutput, src: &str) {
             }
         }
     }
+    for warning in &output.warnings {
+        print_json_line(&serde_json::json!({
+            "type": "warning",
+            "human": format!("warning[{}]: {}", warning.code(), warning.message),
+            "code": warning.code(),
+            "message": warning.message,
+            "hint": warning.hint(),
+            "span": span_json(warning.span),
+        }));
+    }
     for err in &output.errors {
         print_json_line(&serde_json::json!({
             "type": "diagnostic",

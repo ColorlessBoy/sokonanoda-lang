@@ -65,6 +65,15 @@ pub(crate) fn report_output(output: &CompileOutput, src: &str, seen_events: usiz
             CheckEvent::ExerciseOpen { .. } => println!("exercise open (fill the sorry)"),
         }
     }
+    for warning in &output.warnings {
+        eprintln!(
+            "{}:{}: warning[{}]: {}",
+            warning.span.start.line,
+            warning.span.start.column,
+            warning.code(),
+            warning.message
+        );
+    }
     for err in &output.errors {
         eprintln!(
             "{}:{}: error[{}]: {}",

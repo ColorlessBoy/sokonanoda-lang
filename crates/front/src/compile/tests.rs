@@ -2728,3 +2728,34 @@ fn by_block_with_sorry_placeholder_is_open_exercise() {
         .unwrap();
     assert_eq!(d.status, DeclStatus::Open);
 }
+
+#[test]
+fn reserved_declaration_name_produces_a_warning() {
+    // `axiom Prop : Sort 1` 能通过内核，但这个名字永不被引用（所有 `Prop`
+    // 都解析为内置排序）——产出语法级 warning，不是 error。
+    let src = "axiom Prop : Sort 1\n";
+    let file = parse(src).unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "warning must not be an error");
+    assert_eq!(out.warnings.len(), 1, "{:?}", out.warnings);
+    let w = &out.warnings[0];
+    assert_eq!(w.code(), "reserved-declaration-name");
+    assert_eq!(
+        &src[w.span.start.offset..w.span.end.offset],
+        "Prop",
+        "warning span covers the name token"
+    );
+    assert!(!w.hint().is_empty());
+
+    let report = check_document(&file);
+    assert_eq!(report.warnings.len(), 1);
+    assert_eq!(report.warnings[0].code(), "reserved-declaration-name");
+}
+
+#[test]
+fn ordinary_declaration_names_have_no_warning() {
+    let src = "axiom True : Prop\naxiom And : Prop -> Prop -> Prop\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![]);
+    assert!(out.warnings.is_empty(), "{:?}", out.warnings);
+}

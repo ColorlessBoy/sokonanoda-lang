@@ -9,6 +9,7 @@ mod goals;
 pub mod hints;
 mod prelude;
 mod report;
+mod warning;
 
 pub use check::{check_document, check_document_with, compile_fol, compile_fol_with, render_expr};
 pub(crate) use check::{run_incremental, TrustPlan};
@@ -20,6 +21,7 @@ pub use report::{
     ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType,
     ResolvedTarget, SubGoal,
 };
+pub use warning::{collect_warnings, CompileWarning, WarningKind, RESERVED_SORT_NAMES};
 
 #[cfg(test)]
 mod tests;

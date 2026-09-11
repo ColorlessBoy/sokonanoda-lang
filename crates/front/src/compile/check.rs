@@ -1161,6 +1161,11 @@ fn run_pass(
             })
             .collect();
     }
+    // Syntax-level warnings are independent of the kernel pass: compute them
+    // once for the whole file so every return path (batch output + report)
+    // carries the same list.
+    report.warnings = super::warning::collect_warnings(file);
+    out.warnings = report.warnings.clone();
     let _ = built_inductives;
     (out, report, failed_cmds, kernel_checks)
 }

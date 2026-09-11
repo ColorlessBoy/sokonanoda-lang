@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-11（第二十七轮：文档结构收敛）
+> 快照：2026-09-11（第二十八轮：保留排序名声明 warning）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,36 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-11，第二十八轮：保留排序名声明 warning）
+
+> 触发：学习者在画布写 `axiom Prop : Sort 1`。这行本编译器能通过（内核
+> 把 `Prop` 当排序 `Sort 0`，不查环境），但声明出的名字永不被引用；官方
+> Lean 里还会重复声明报错。用户要求保留这行、但在 VS Code 里给 warning，
+> 并选定「前端产出 + CLI/LSP 两侧消费」方案。
+
+1. **front**（新模块 `compile/warning.rs`）：`collect_warnings` 纯语法扫描
+   顶层声明名，命中 `Prop`/`Sort`/`Type` 产出 `reserved-declaration-name`
+   （`decl_name_span` 把 span 收窄到名字 token）；`CompileOutput.warnings`
+   与 `DocumentReport.warnings` 双通道；会话零重编译路径现算，坐标随前文
+   平移。
+2. **CLI**：`--json` 新事件 `warning`（`{type, human, code, message, hint,
+   span}`），人类视图 stderr `line:col: warning[code]: message`；不改退出码
+   （只有 errors 决定成败）。`EVENT_VOCABULARY` 9→10。
+3. **LSP**：`report.warnings` → `DiagnosticSeverity::WARNING`，与既有
+   `sorry` warning 并列；`axiom Prop : Sort 1` 在第 79 行显示 warning。
+4. **协议/文档**：`docs/protocol.md` 增 `warning` 事件与非致命语义；
+   `docs/design/reserved-decl-warning.md`（取舍/验收）；teacher 参考
+   `references/events.md` 同步。
+5. **测试三层**：front `reserved_declaration_name_produces_a_warning` /
+   `ordinary_declaration_names_have_no_warning` /
+   `session_keeps_warnings_on_zero_recompile`；CLI protocol
+   `reserved_declaration_name_warns_but_stays_successful`；LSP
+   `reserved_declaration_name_is_a_warning_not_an_error`。
+6. **验证**：`cargo fmt --check` 干净；`cargo clippy --workspace --all-targets`
+   教学 crates 零违规；`cargo test --workspace --locked` 全绿（front 243 /
+   LSP 93 / CLI protocol 9）。playground 锚点：checked=14 / open=5 /
+   warning=1 / 0 诊断。
 
 ## 本轮进度（2026-09-11，第二十七轮：文档结构收敛）
 

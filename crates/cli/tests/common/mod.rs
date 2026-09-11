@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 /// stream plus the `sokonanoda course` progress map (docs/protocol.md
 /// "Course map"). Protocol tests assert the emitted stream stays inside it;
 /// skill tests assert the agent-facing skill files only advertise these names.
-pub const EVENT_VOCABULARY: [&str; 9] = [
+pub const EVENT_VOCABULARY: [&str; 10] = [
     "decl.checked",
     "example.checked",
     "expr.typed",
@@ -17,6 +17,7 @@ pub const EVENT_VOCABULARY: [&str; 9] = [
     "decl.printed",
     "exercise.open",
     "diagnostic",
+    "warning",
     "course.unit",
     "course.summary",
 ];

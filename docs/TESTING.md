@@ -21,7 +21,7 @@
 | kernel 检查 | 整文件过完整 kernel、拒绝带 span、拒绝消息形状（不是 panic 栈）、py-fol / py-nat 移植用例正反两面、显式 inductive / Nat 块、`#check`/`#reduce`/`#print`、原生大整数路径 | `crates/front/src/compile/tests.rs` :: `checks_a_valid_file_end_to_end`、`reports_kernel_rejection_with_span`、`kernel_rejection_message_is_not_a_panic_trace`、`checks_from_scratch_fol_proofs`、`checks_ported_py_fol_core`、`py_core_checks*` / `py_rejects_*` 系列、`explicit_inductive_block_compiles`、`explicit_nat_block_overrides_builtin_prelude`、`ported_nat_fol_add_two_two_reduces`、`checks_nat_literals_and_reduces_addition`；kernel 自身：`crates/kernel/src/tests/*` + `crates/kernel/tests/memory_api.rs` | `cargo test -p sokonanoda-front compile::tests::`；`cargo test -p sokonanoda` |
 | 事件与报告 | `CheckEvent` 流（checked/open/typed/reduced/printed）、`DocumentReport` 状态机（Checked/Open/Failed 按源码序、Failed 带 error、errors 计数）、open 练习不污染 env、hover 类型图、`render_expr` 往返 | `crates/front/src/compile/tests.rs` :: `checks_dependent_forall_with_lambda`、`accepts_open_exercise`、`document_report_tracks_open_checked_failed_decls`、`document_report_states_in_source_order`、`open_exercise_does_not_pollute_env`、`document_report_produces_hover_types_for_subexpressions`、`hover_map_covers_subexpressions`、`render_expr_round_trips` | `cargo test -p sokonanoda-front compile::tests::` |
 | CLI 人类视图 | stdin/文件批处理、`line:col: error[code]: message` 格式、REPL 声明累积 / `#env` / `#help` / `#prove` | `crates/cli/tests/cli.rs` :: `cli_checks_a_valid_file_via_stdin`、`cli_rejects_a_bad_declaration`、`cli_reports_parse_errors_with_positions`、`cli_prints_*`、`repl_*`、`human_errors_carry_the_pipeline_stage`、`cli_help_is_self_documenting` | `cargo test -p sokonanoda-cli --test cli` |
-| CLI JSON 协议 | `--json` 词汇封闭（7 种事件）、diagnostic 形状（stage/code/hint/span）、`protocol.md` 列出全部事件类型、exercise.open 是成功态 | `crates/cli/tests/protocol.rs` :: `every_example_stream_is_closed_vocabulary`、`kernel_rejection_diagnostic_shape`、`protocol_document_lists_every_emitted_type`、`elab_unknown_identifier_diagnostic`、`open_exercise_is_success_state`；另有 `cli.rs` :: `json_mode_*` | `cargo test -p sokonanoda-cli` |
+| CLI JSON 协议 | `--json` 词汇封闭（8 种事件，含 `warning`）、diagnostic 形状（stage/code/hint/span）、`protocol.md` 列出全部事件类型、exercise.open 是成功态、warning 不改退出码 | `crates/cli/tests/protocol.rs` :: `every_example_stream_is_closed_vocabulary`、`kernel_rejection_diagnostic_shape`、`protocol_document_lists_every_emitted_type`、`elab_unknown_identifier_diagnostic`、`open_exercise_is_success_state`、`reserved_declaration_name_warns_but_stays_successful`；另有 `cli.rs` :: `json_mode_*` | `cargo test -p sokonanoda-cli` |
 | LSP 协议 | **无自动化**（见盲区 3）：publishDiagnostics / hover / documentSymbol / codeLens / quick-fix 只能手工验证 | （缺位——`crates/lsp/` 目前没有 tests 目录） | `cargo run -p sokonanoda-lsp` 手测 |
 | 语料 | 每份 `examples/*.sokonanoda` 必须被真实 CLI 整文件通过 | `crates/cli/tests/examples.rs` :: `every_example_lesson_is_a_valid_sokonanoda_file` | `cargo test -p sokonanoda-cli --test examples` |
 | 文档一致性 | `docs/protocol.md` 必须列出每个 `ErrorKind` 的 code；parse 两个 code 也在文档里 | `crates/front/src/compile/tests.rs` :: `protocol_doc_lists_every_error_code`（自带不带通配的穷尽清单） | `cargo test -p sokonanoda-front protocol_doc` |
@@ -397,3 +397,22 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   （v0.8/v0.9 曾发布 0644 二进制；见 CI-FAILURES 2026-09-10）。
 - **本机冒烟**：`scripts/soko.sh setup && doctor`（READY）+
   `grade playground.sokonanoda`（事件流）+ opencode LSP 诊断。
+
+## 2026-09-11 更新（第二十八轮：保留排序名声明 warning）
+
+- **触发**：画布 `axiom Prop : Sort 1`——内核接受但名字永不被引用；用户
+  要在 VS Code 里给出 warning。设计见 `docs/design/reserved-decl-warning.md`。
+- **front**（`compile::warning`）：`collect_warnings` 纯语法扫描顶层声明名，
+  命中 `Prop`/`Sort`/`Type` 产出 `reserved-declaration-name`（span 用
+  `decl_name_span` 收窄到名字 token）；`CompileOutput.warnings` 与
+  `DocumentReport.warnings` 双通道；会话零重编译路径现算。
+  测试：`reserved_declaration_name_produces_a_warning`、
+  `ordinary_declaration_names_have_no_warning`、
+  `session_keeps_warnings_on_zero_recompile`（front 243，+3）。
+- **CLI**：新事件 `warning`（`{type, human, code, message, hint, span}`），
+  人类视图 stderr `line:col: warning[code]: message`；不改退出码。
+  测试：`reserved_declaration_name_warns_but_stays_successful`（CLI protocol 9，+1）。
+- **LSP**：`update.report.warnings` → `DiagnosticSeverity::WARNING`。
+  测试：`reserved_declaration_name_is_a_warning_not_an_error`（LSP 93，+1）。
+- **锚点**：`playground.sokonanoda` 现为 checked=14 / open=5 / warning=1 /
+  0 诊断（第 79 行的 `axiom Prop : Sort 1`）。

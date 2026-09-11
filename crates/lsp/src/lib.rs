@@ -239,6 +239,18 @@ impl Backend {
                             });
                         }
                     }
+                    // Syntax-level warnings (e.g. a declaration named like a
+                    // built-in sort): WARNING severity, never an error.
+                    for warning in &update.report.warnings {
+                        diagnostics.push(Diagnostic {
+                            range: range_of(warning.span),
+                            severity: Some(DiagnosticSeverity::WARNING),
+                            code: Some(NumberOrString::String(warning.code().to_string())),
+                            source: Some("sokonanoda".to_string()),
+                            message: format!("{}\n\n提示：{}", warning.message, warning.hint()),
+                            ..Diagnostic::default()
+                        });
+                    }
                     doc.report = Some(update.report);
                     diagnostics
                 }
@@ -2667,6 +2679,41 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             .diagnostics
             .iter()
             .any(|d| d.code == Some(NumberOrString::String("sorry".to_string()))));
+    }
+
+    #[tokio::test]
+    async fn reserved_declaration_name_is_a_warning_not_an_error() {
+        // `axiom Prop : Sort 1` 能通过内核，但这个名字永不被引用（所有
+        // `Prop` 都解析为内置排序）——编辑器给出 WARNING 级提示。
+        let src = "axiom Prop : Sort 1\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let diags = wait_diagnostics(&mut socket, "reserved name warning").await;
+        let warning = diags
+            .diagnostics
+            .iter()
+            .find(|d| {
+                d.code
+                    == Some(NumberOrString::String(
+                        "reserved-declaration-name".to_string(),
+                    ))
+            })
+            .expect("reserved-declaration-name warning must exist");
+        assert_eq!(warning.severity, Some(DiagnosticSeverity::WARNING));
+        assert!(
+            warning.message.contains("内置排序"),
+            "warning carries the teaching message: {:?}",
+            warning.message
+        );
+        assert!(
+            !diags
+                .diagnostics
+                .iter()
+                .any(|d| d.severity == Some(DiagnosticSeverity::ERROR)),
+            "the declaration itself must not produce an error: {:?}",
+            diags.diagnostics
+        );
     }
 
     #[tokio::test]

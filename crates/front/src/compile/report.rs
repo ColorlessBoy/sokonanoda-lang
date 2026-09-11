@@ -1,6 +1,7 @@
 //! 文档级报告：每个声明的练习状态与 hover 类型。
 
 use super::error::CompileError;
+use super::warning::CompileWarning;
 use crate::Span;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -171,4 +172,8 @@ pub struct DocumentReport {
     pub errors: Vec<CompileError>,
     /// `#check` results, in source order.
     pub checks: Vec<CheckInfo>,
+    /// Syntax-level warnings (e.g. a declaration named like a built-in sort).
+    /// Independent of declaration status; the LSP renders these as
+    /// `DiagnosticSeverity::WARNING`.
+    pub warnings: Vec<CompileWarning>,
 }

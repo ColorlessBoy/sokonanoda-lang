@@ -286,3 +286,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    删除零引用/过时件 `docs/notes/last-request.md` 与
    `docs/design/learner-round.md`；全仓引用路径同步；设计文档作为 as-built
    存档保留（被后续轮次取代的细节以 `STATUS.md` 为准）。
+- 2026-09-11（二十八）：**保留排序名声明的 warning（用户要求）**：顶层声明
+   名撞内置排序（`Prop`/`Sort`/`Type`）时——本编译器接受但该名字永不被引用
+   （`Prop` 等始终解析为内置排序），官方 Lean 里还会重复声明报错——产出
+   **非致命 warning**。前端 `compile::warning` 双通道（`CompileOutput.warnings`
+   + `DocumentReport.warnings`，纯语法、span 收窄到名字 token、会话零重编译
+   路径现算）；CLI `--json` 新事件 `warning`（`code`/`message`/`hint`/`span`，
+   不改退出码），人类视图 stderr；LSP 映射为
+   `DiagnosticSeverity::WARNING`。设计见 `docs/design/reserved-decl-warning.md`，
+   协议见 `docs/protocol.md`。

@@ -7,7 +7,7 @@
 
 | 视图 | 命令 | 词汇 | 用途 |
 |---|---|---|---|
-| 批处理 `--json` | `sokonanoda --json <file>` | `decl.checked` `example.checked` `expr.typed` `expr.reduced` `decl.printed` `exercise.open` `diagnostic` | 一次判卷的完整事件流（agent 主用） |
+| 批处理 `--json` | `sokonanoda --json <file>` | `decl.checked` `example.checked` `expr.typed` `expr.reduced` `decl.printed` `exercise.open` `diagnostic` `warning` | 一次判卷的完整事件流（agent 主用） |
 | watch 流 | `sokonanoda watch <file>` | `file.changed` + delta（`decl.checked`/`decl.failed`/`exercise.opened`/`exercise.solved`/`exercise.failed`）+ `diagnostic` | 常驻监听：每版只推状态变化 |
 
 ## 批处理事件形状
@@ -20,9 +20,15 @@
 {"type": "diagnostic", "stage": "elab", "code": "elab-unknown-identifier",
  "message": "unknown identifier `nate`", "hint": "这个名字还没有被定义。…",
  "span": {"start": {"offset": 18, "line": 1, "column": 19}, "end": {"offset": 22, "line": 1, "column": 23}}}
+{"type": "warning", "human": "warning[reserved-declaration-name]: …",
+ "code": "reserved-declaration-name", "message": "声明名 `Prop` 与内置排序同名：…",
+ "hint": "换一个名字即可；…", "span": {"start": {...}, "end": {...}}}
 ```
 
 - `span` 是 1-based 行列 + 字节 offset；`--json` 的所有诊断带 `code` 与 `hint`。
+- `warning` 不改变退出码、不把文件判成错误。`reserved-declaration-name`
+  表示顶层声明名撞上了内置排序（`Prop`/`Sort`/`Type`）：声明本身仍会
+  `decl.checked`，但这个名字永远不会被引用。
 - `elab-*` 错误码封闭清单见 `docs/protocol.md`（doc-conformance 测试守护）。
 
 ## 判卷读法（伪代码）

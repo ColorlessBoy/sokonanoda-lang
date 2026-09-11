@@ -82,6 +82,7 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
 | `elab-duplicate-declaration` | 重名 | 讲「单赋值世界」，换名 |
 | `elab-hole-misplaced` | 洞不在可恢复位置（嵌套洞/非直接实参，如 `n + sorry`；答案尾巴、构造子 spine 与已知函数直接实参都合法） | 讲「洞只能放答案末尾，或已知函数/构造子的直接实参位」 |
 | `kernel-rejected`（带期望/实际） | 填了类型而非证明项 / 方向反 / 宇宙忘了 `.{1}` / 忘了 `Not` 会展开 | 让用户对比声明类型与所填项的形状，逐参数预言类型 |
+| `warning`（`reserved-declaration-name`） | 声明名撞内置排序（`Prop`/`Sort`/`Type`）：声明仍 `decl.checked`，但永不被引用 | 非致命，不影响判卷；说明这行只是占位，练习照常推进 |
 | 无诊断但语义不对 | 内核只判类型不判意图（如 `double := fun n => n`） | 设计「证明形状」需求：另出一题用 `Eq` 回判该定义的值 |
 
 诊断自带教学 `hint` 字段——那是给学习者的第一句话，转述即可，不要照本

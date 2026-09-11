@@ -303,6 +303,36 @@ fn open_exercise_is_success_state() {
 }
 
 #[test]
+fn reserved_declaration_name_warns_but_stays_successful() {
+    let (out, events) = run_json_stdin("axiom Prop : Sort 1\n");
+    assert!(
+        out.status.success(),
+        "a warning must not fail the run; stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let warnings: Vec<&Value> = events
+        .iter()
+        .filter(|e| event_type(e) == "warning")
+        .collect();
+    assert_eq!(warnings.len(), 1, "exactly one warning: {events:?}");
+    let w = warnings[0];
+    assert_eq!(w["code"], "reserved-declaration-name");
+    non_empty_str(w, "message", "warning");
+    non_empty_str(w, "hint", "warning");
+    assert_eq!(
+        w["span"]["start"]["line"], 1,
+        "warning points at the declaration line: {w}"
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| event_type(e) == "decl.checked" && e["name"] == "Prop"),
+        "the declaration itself still passes the kernel: {events:?}"
+    );
+}
+
+#[test]
 fn protocol_document_lists_every_emitted_type() {
     let doc = std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),
