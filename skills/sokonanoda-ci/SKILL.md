@@ -96,3 +96,7 @@ gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 |---|---|---|
 | artifact 往返丢 unix mode | `upload/download-artifact` 后文件变 0644；直接打 tarball 会发布不可执行的二进制（v0.8/0.9 实际发生） | 打包前 `chmod +x` + `tar tzvf \| grep '^-rwx'` 断言；消费方一律自带 chmod 兜底 |
 | 本机直连 GitHub 超时 | 本地验证/下载需走代理 | `export HTTPS_PROXY=http://127.0.0.1:7890 HTTP_PROXY=http://127.0.0.1:7890` |
+
+| 陷阱 | 事实 | 规程 |
+|---|---|---|
+| GitHub Actions Node 20 弃用 | runner 把 node20 action 强制跑在 Node 24，annotation 点名 `actions/checkout@v4` / `setup-node@v4` | 升到 node24 版本：`checkout@v5`、`setup-node@v5`、`upload-artifact@v6+`、`download-artifact@v7+`；`Swatinem/rust-cache@v2` 已是 node24；`mlugg/setup-zig@v2`（最新 v2.2.1）仍 node20，暂无替代，留观察。判断某版本运行时：`gh api -H "Accept: application/vnd.github.raw" repos/<owner>/<repo>/contents/action.yml?ref=<tag>` 看 `using:` |

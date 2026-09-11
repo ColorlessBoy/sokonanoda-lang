@@ -8,7 +8,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -32,7 +32,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -75,7 +75,7 @@ jobs:
         run: node editor/vscode/scripts/stage-lsp.js --profile debug
 
       - name: Setup Node for editor integration tests
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           # @vscode/test-electron 3.x 要求 node >= 22。
           node-version: 22

@@ -43,6 +43,11 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    教学 crates 零违规；`cargo test --workspace --locked` 全绿（front 243 /
    LSP 93 / CLI protocol 9）。playground 锚点：checked=14 / open=5 /
    warning=1 / 0 诊断。
+7. **CI 维护**：GitHub Actions Node 20 弃用提示（首次推送后 annotation）——
+   升级到 node24 版本：`actions/checkout@v5`、`actions/setup-node@v5`、
+   `actions/upload-artifact@v7`、`actions/download-artifact@v8`；
+   `Swatinem/rust-cache@v2` 已是 node24；`mlugg/setup-zig@v2`（最新 v2.2.1）
+   仍 node20、暂无替代，留观察。判断规程记入 `skills/sokonanoda-ci`。
 
 ## 本轮进度（2026-09-11，第二十七轮：文档结构收敛）
 

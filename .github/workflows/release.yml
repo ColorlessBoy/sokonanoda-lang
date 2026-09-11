@@ -34,7 +34,7 @@ jobs:
           - { os: ubuntu-latest,  target: aarch64-unknown-linux-musl, tool: zig, glibc: "" }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -98,12 +98,12 @@ jobs:
             cp "target/${{ matrix.target }}/release/sokonanoda-lsp" dist-lsp/
             cp "target/${{ matrix.target }}/release/sokonanoda" dist-cli/
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: lsp-${{ matrix.target }}
           path: dist-lsp/
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cli-${{ matrix.target }}
           path: dist-cli/
@@ -114,8 +114,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -135,9 +135,10 @@ jobs:
           fi
           echo "version gate ok: v${ext_version}"
 
-      # v4 按 artifact 名各建一个目录：lsp-<rust-target>/ 与 cli-<rust-target>/。
+      # 不带 name 时 download-artifact 按 artifact 名各建一个目录：
+      # lsp-<rust-target>/ 与 cli-<rust-target>/。
       - name: Download per-platform binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: "{lsp,cli}-*"
 
@@ -221,7 +222,7 @@ jobs:
               print(f"ok {universal}: no bundled binary")
           PY
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sokonanoda-vsix
           path: editor/vscode/dist/*.vsix
@@ -234,10 +235,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # v4 不带 name 时按 artifact 名各建一个目录：
       # lsp-<target>/ 二进制、sokonanoda-vsix/*.vsix。
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
       - name: Create release and upload all artifacts
         if: github.event_name == 'push'
         env:
@@ -285,12 +286,12 @@ jobs:
     needs: [package-vsix]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Download VSIXes
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sokonanoda-vsix
       - name: Publish to VS Code Marketplace
