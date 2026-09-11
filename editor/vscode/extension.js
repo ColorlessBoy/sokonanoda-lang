@@ -1,7 +1,7 @@
 // Minimal VS Code client for the sokonanoda language server.
 // Server/CLI are resolved at runtime (server.js): bundled VSIX binaries →
 // workspace `target/` builds → version-pinned release download. No cargo
-// required for users; see docs/design-bundled-lsp.md.
+// required for users; see docs/design/bundled-lsp.md.
 // The server must never log to stdout; stdio carries the LSP stream.
 // Goal view (I9): the "练习" tree consumes the server's `soko/goals` custom
 // request; alt+n jumps between holes via `soko/nextHole` (server-side
@@ -267,7 +267,7 @@ function buildCursorChildren(cursor, uriString) {
   return children;
 }
 
-// Course map (docs/design-course-status.md §2): one node per unit, rendered
+// Course map (docs/design/course-status.md §2): one node per unit, rendered
 // from `course.unit` events emitted by the CLI subprocess. The client never
 // re-derives unit status — the CLI is the single data source.
 const COURSE_TIMEOUT_MS = 10000;

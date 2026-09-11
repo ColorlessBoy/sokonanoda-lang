@@ -15,7 +15,7 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 ## 1. 环境搭建（agent 接手时先确认）
 
 一条命令（幂等；**零 cargo、不需要 VS Code 扩展**；设计见
-`docs/design-onboarding.md`）：
+`docs/design/onboarding.md`）：
 
 ```bash
 bash scripts/soko.sh setup     # 版本锁定的 CLI + LSP → ~/.local/share/sokonanoda/bin
@@ -154,8 +154,8 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
    当前画布。
 4. 增量会话语义：改过的前缀会被信任复用（I8）；`recompiled_from` 与
    `stats.kernel_checks`（front API）可验证重查范围。
-5. 收尾义务：改动落盘前更新 `docs/STATUS.md`；涉及产品行为的新要求记入
-   `docs/REQUIREMENTS.md`。
+5. 收尾义务：改动落盘前更新 `STATUS.md`；涉及产品行为的新要求记入
+   `REQUIREMENTS.md`。
 
 ## 8. 收尾
 

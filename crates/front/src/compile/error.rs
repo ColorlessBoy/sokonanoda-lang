@@ -19,7 +19,7 @@ impl CompileStage {
 }
 
 /// Stable, fine-grained error kind below the stage level. Every kind maps to a
-/// machine code and a first teaching hint (docs/design-infrastructure.md F1).
+/// machine code and a first teaching hint (docs/design/infrastructure.md F1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     ElabUnknownIdentifier,

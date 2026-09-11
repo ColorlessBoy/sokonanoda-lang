@@ -1,6 +1,6 @@
 # 设计：课程地图（sokonanoda course）+ REPL 历史持久化 + course 提示阶梯
 
-> 状态：设计定稿（2026-09-07，第十二轮实施）。依据：`docs/gap-analysis.md`
+> 状态：设计定稿（2026-09-07，第十二轮实施）。依据：`docs/notes/gap-analysis.md`
 > #8（`soko/courseStatus` + VS Code 章节地图）与小项（REPL 命令历史）、
 > STATUS 第十一轮余项（course/ 提示阶梯内容）。
 
@@ -74,7 +74,7 @@
 
 | owner | 允许修改 |
 |---|---|
-| 主会话（预接） | `docs/design-course-status.md`、`docs/protocol.md`（course.unit/summary 事件 + REPL 历史）、`crates/cli/src/main.rs`（course 分支 + mod）、`crates/cli/src/help.rs`（course/历史两行） |
+| 主会话（预接） | `docs/design/course-status.md`、`docs/protocol.md`（course.unit/summary 事件 + REPL 历史）、`crates/cli/src/main.rs`（course 分支 + mod）、`crates/cli/src/help.rs`（course/历史两行） |
 | E（course 聚合） | `crates/cli/src/course.rs`（新）、`crates/cli/tests/course_status.rs`（新）、`crates/cli/tests/common/mod.rs`（词汇 + course.unit/course.summary）、`crates/cli/src/json_report.rs`（仅当事件序列化需要） |
 | F（VS Code 课程地图） | `editor/vscode/{extension.js,package.json}`、`crates/cli/tests/extension.rs` |
 | G（REPL 历史） | `crates/cli/src/repl.rs`、`crates/cli/tests/cli.rs`（repl 测试追加） |

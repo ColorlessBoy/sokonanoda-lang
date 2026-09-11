@@ -31,7 +31,7 @@
 同步**：只改语言注释不改代码、只改代码不改注释都不行——`crates/cli/tests/
 course.rs` 的镜像守卫会比较中英两版的事件计数（decl.checked / exercise.open
 / expr.reduced / diagnostic），任何一侧漂移都会显红。设计见
-`docs/design-course-bilingual.md`。
+`docs/design/course-bilingual.md`。
 
 ## 约定
 

@@ -52,7 +52,7 @@ pub struct SubGoal {
 }
 
 /// One tactic step of a `by` block, recorded by the engine as the state
-/// **after** that tactic executed (`docs/design-by-tactics.md` §6): the
+/// **after** that tactic executed (`docs/design/by-tactics.md` §6): the
 /// tactic's source span, the remaining goal (`None` when every goal is
 /// closed) and the hypotheses in scope at that point. In the I8 session
 /// snapshot this is the editor's "goals at cursor" data (`soko/stateAt`).

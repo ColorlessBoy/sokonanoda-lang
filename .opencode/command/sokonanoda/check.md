@@ -24,5 +24,5 @@ bash "$ROOT/scripts/soko.sh" grade "$ROOT/playground.sokonanoda"
 
 - 开放练习（`sorry`）是**合法状态**（exit 0），不是错误；
 - 判定永远走 kernel，禁止文本比对或「看起来对」；
-- 用户/agent 路径零工具链依赖（`docs/REQUIREMENTS.md` §2 第 9 条），
+- 用户/agent 路径零工具链依赖（`REQUIREMENTS.md` §2 第 9 条），
   禁止改用源码构建命令。

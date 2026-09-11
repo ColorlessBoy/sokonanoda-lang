@@ -1,7 +1,7 @@
 # 教学循环：playground.sokonanoda（agents 开课前必读）
 
 > 画布：仓库根 `playground.sokonanoda`（学习者与 agent 共同编辑）。
-> 依据：`docs/REQUIREMENTS.md` §6（教学工作流）；事件协议：`docs/protocol.md`。
+> 依据：`REQUIREMENTS.md` §6（教学工作流）；事件协议：`docs/protocol.md`。
 > 本文档 = 开课手册 + 事件决策表 + 全部练习的解答钥匙（agent 专用，勿直接给学习者）。
 
 ## 0. 课程层与执行层的关系（用户原则，2026-09-07）

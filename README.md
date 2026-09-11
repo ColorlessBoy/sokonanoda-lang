@@ -33,15 +33,15 @@ See [ROADMAP.md](ROADMAP.md).
 
 Documentation:
 
-- [docs/STATUS.md](docs/STATUS.md) — current status & progress log (read this
+- [STATUS.md](STATUS.md) — current status & progress log (read this
   first if you are picking the project up);
 - [docs/architecture.md](docs/architecture.md) — deep architecture + kernel
   tour;
-- [docs/research.md](docs/research.md) — survey of teaching-oriented proof
+- [docs/notes/research.md](docs/notes/research.md) — survey of teaching-oriented proof
   languages and infrastructure lessons;
-- [docs/design-infrastructure.md](docs/design-infrastructure.md) — gap
+- [docs/design/infrastructure.md](docs/design/infrastructure.md) — gap
   analysis and design brainstorm for the next milestones;
-- [docs/inductive.md](docs/inductive.md) — what `inductive/ctor/rec/iota` mean
+- [docs/notes/inductive.md](docs/notes/inductive.md) — what `inductive/ctor/rec/iota` mean
   and how the kernel reduces them;
 - [docs/protocol.md](docs/protocol.md) — CLI/editor/agent feedback protocol
   (human text lines + JSON Lines).
@@ -53,7 +53,7 @@ platform-specific package ships both the language server and the `sokonanoda`
 CLI, so checking, the goal view and the course map work offline out of the
 box.
 
-**In this repo**: one idempotent command (design: `docs/design-onboarding.md`):
+**In this repo**: one idempotent command (design: `docs/design/onboarding.md`):
 
 ```bash
 bash scripts/soko.sh setup && bash scripts/soko.sh doctor

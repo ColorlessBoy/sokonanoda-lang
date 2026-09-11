@@ -400,7 +400,7 @@ pub(crate) fn decl_name(d: &DeclState) -> String {
     }
 }
 
-// ---- rename / references（docs/design-rename-inlay.md §2–§3）----
+// ---- rename / references（docs/design/rename-inlay.md §2–§3）----
 
 /// The definition's name token span for a resolved target: a binder's own
 /// first identifier, or the declaration's defining name token. Token-precise

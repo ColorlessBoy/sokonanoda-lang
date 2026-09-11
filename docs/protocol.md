@@ -30,7 +30,7 @@ Feedback that a REPL would get from a `#` command comes from the editor:
 
 The event vocabulary below is the **internal transport** (batch CLI, tests,
 agent, and later the service); the LSP maps the same data onto LSP protocol
-messages. See `docs/design-infrastructure.md` for the feedback capability list.
+messages. See `docs/design/infrastructure.md` for the feedback capability list.
 
 ## Canonical text lines (human)
 
@@ -107,7 +107,7 @@ that a model or editor can react to the *kind* of mistake, not the wording:
 Human output prints `error[<code>]: <message>`; JSON diagnostics carry
 `stage`, `code`, `message` and a `hint`. The LSP maps the same data onto
 `publishDiagnostics` (message + hint, code, range) and `hover` (type map /
-goal text); see `docs/design-infrastructure.md` F1–F8.
+goal text); see `docs/design/infrastructure.md` F1–F8.
 
 ## Live session: `sokonanoda watch <file>` (implemented)
 
@@ -181,7 +181,7 @@ Response:
 - multi-hole documents are naturally supported (one entry per declaration);
 - hover remains the degraded, human-readable view of the same data;
 - kernel-judged code actions (next-step suggestions, per goal shape; see
-  `docs/design-hints-suggestions.md`): at most three per request, the first
+  `docs/design/hints-suggestions.md`): at most three per request, the first
   one carries `is_preferred: true`:
   - `exact <hypothesis>` — a hypothesis the kernel judges defeq to the hole's
     expected type (per hole: in a constructor spine each sub-hole is judged

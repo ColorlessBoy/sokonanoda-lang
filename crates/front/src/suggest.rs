@@ -1,4 +1,4 @@
-//! 按目标形状的下一步建议（docs/design-hints-suggestions.md §4）。
+//! 按目标形状的下一步建议（docs/design/hints-suggestions.md §4）。
 //!
 //! 优先级：exact（逐洞，kernel 判定）→ rfl（kernel 判定）→ refine → intro
 //! （结构生成，kernel 在学生落笔后终审）。每请求 ≤3 条、每洞候选 ≤4 个；
@@ -31,7 +31,7 @@ use crate::proof::parse_expr_text;
 use crate::token::{tokenize, Token, TokenKind};
 use crate::{BinderKind, Expr};
 
-/// 建议的种类（docs/design-hints-suggestions.md §4.2）。
+/// 建议的种类（docs/design/hints-suggestions.md §4.2）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SuggestionKind {
     /// 第 `hole` 个洞（`DeclState.holes` 下标）填该假设。
@@ -48,7 +48,7 @@ pub enum SuggestionKind {
     Reset { new_text: String },
     /// kernel 拒绝的失败声明：按声明类型的形状生成的重启骨架
     /// `fun (x : A) => … => sorry`，替换整个值位。结构生成、kernel 在学生
-    /// 下次编辑后终审（docs/design-kernel-taxonomy.md §2）。
+    /// 下次编辑后终审（docs/design/kernel-taxonomy.md §2）。
     Restart { skeleton: String },
 }
 
@@ -59,7 +59,7 @@ pub struct Suggestion {
     pub verified: bool,
 }
 
-/// 每洞 exact 的候选 binder 数上限（docs/design-hints-suggestions.md §4.2）。
+/// 每洞 exact 的候选 binder 数上限（docs/design/hints-suggestions.md §4.2）。
 const BINDER_CANDIDATES: usize = 4;
 
 /// 每请求的建议条数上限（第一即 preferred）。
@@ -185,7 +185,7 @@ pub fn suggest(
     out
 }
 
-/// 重启骨架最多剥的 Pi 层数（docs/design-kernel-taxonomy.md §2）。
+/// 重启骨架最多剥的 Pi 层数（docs/design/kernel-taxonomy.md §2）。
 const SKELETON_MAX_LAYERS: usize = 3;
 
 /// `parse_expr_text` 内部用 `#check {text}` 承载表达式，AST span 相对类型
@@ -688,7 +688,7 @@ Quad.mk a b c d sorry sorry sorry sorry\n",
         assert!(matches!(ks[2], SuggestionKind::Exact { hole: 2, .. }));
     }
 
-    // ---- 失败声明的重启骨架（docs/design-kernel-taxonomy.md §2）----
+    // ---- 失败声明的重启骨架（docs/design/kernel-taxonomy.md §2）----
 
     #[test]
     fn failed_decl_gets_one_restart_skeleton_shaped_like_its_type() {
@@ -805,7 +805,7 @@ fun (d : Prop) => sorry"
         assert!(suggest_for_failed("def bad : Prop := 1\n").is_empty());
     }
 
-    // ---- 失败声明的 kernel 验证 rfl（docs/design-kernel-taxonomy.md §2 升级）----
+    // ---- 失败声明的 kernel 验证 rfl（docs/design/kernel-taxonomy.md §2 升级）----
 
     #[test]
     fn failed_eq_decl_gets_a_kernel_verified_rfl_replacement() {

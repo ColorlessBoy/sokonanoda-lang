@@ -7,11 +7,11 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 
 ## 0. 接手清单（按序读完再动手）
 
-1. `docs/REQUIREMENTS.md` —— 用户全部要求的权威总账（含硬规则）；
-2. `docs/STATUS.md` —— 当前进度日志（最新一轮在最上）；
+1. `REQUIREMENTS.md` —— 用户全部要求的权威总账（含硬规则）；
+2. `STATUS.md` —— 当前进度日志（最新一轮在最上）；
 3. `ROADMAP.md` —— 里程碑与 §10 待办（I 系列编号）；
 4. `docs/architecture.md` —— 流水线、内核机制与 §8 gotchas；
-5. `docs/design-i8-i9.md` 等设计文档 —— 已确认方案的 as-built 记录。
+5. `docs/design/i8-i9.md` 等设计文档 —— 已确认方案的 as-built 记录。
 
 ## 1. 不可动摇的硬规则（REQUIREMENTS §2，违者返工）
 
@@ -32,8 +32,8 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 - **多用 subagent**：探索/调研/机械重构派出去并行，主会话做核心设计编码，
   产出后主会话验证（编译 + 全量测试）;
 - **模块化**：任何文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
-- **交接友好**：落 commit 前先更新 `docs/STATUS.md`；用户新要求追加进
-  `docs/REQUIREMENTS.md` §9 并注明日期，冲突时以该文件为准。
+- **交接友好**：落 commit 前先更新 `STATUS.md`；用户新要求追加进
+  `REQUIREMENTS.md` §9 并注明日期，冲突时以该文件为准。
 
 ## 3. 质量门禁（CI 与本地一致）
 
@@ -70,7 +70,7 @@ Release 资产：每个平台的 `sokonanoda-lsp-<rust-triple>.tar.gz` 与
 `sokonanoda-cli-<rust-triple>.tar.gz`（各 8 个；后者就是可直接执行的 CLI），
 加上 VSIX ×9（8 平台包内嵌两者 + universal 回退包）。不要用
 `releases/latest`——下载 URL 按仓库版本锁定，版本错配是明确要避免的故障。
-完整入门设计见 `docs/design-onboarding.md`。
+完整入门设计见 `docs/design/onboarding.md`。
 
 ## 5. VS Code 扩展开发规范
 

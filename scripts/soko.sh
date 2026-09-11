@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The single environment entrypoint for sokonanoda-lang.
-# Design + research: docs/design-onboarding.md.
+# Design + research: docs/design/onboarding.md.
 #
 #   scripts/soko.sh setup            version-pinned CLI + LSP into the cache
 #   scripts/soko.sh doctor [--json]  read-only readiness report

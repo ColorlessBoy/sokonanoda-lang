@@ -219,8 +219,8 @@ rust 三连 ↔ vsce target 映射（与 build matrix 一一对应）：
 `editor/vscode/README.md` Quick start（装完即用 + universal 回退说明）、
 `CHANGELOG.md`、`docs/vscode-dev-guide.md`（§4 开发循环加 stage、§5 加
 exec-bit/打包平台坑）、`docs/RELEASE.md`（**已过期**，本轮一并重写为
-per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`docs/STATUS.md`、
-`docs/REQUIREMENTS.md` §9。
+per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`STATUS.md`、
+`REQUIREMENTS.md` §9。
 
 ## 4. 测试
 
@@ -279,7 +279,7 @@ per-target 流程）、`skills/sokonanoda-ci`（发布陷阱 +1）、`docs/STATU
 | `.gitignore` | `editor/vscode/bin/` |
 | `crates/cli/tests/extension.rs` | 契约 +3（bundled 解析、scripts/描述、Cargo↔package.json 版本一致） |
 | `docs/vscode-dev-guide.md` / `docs/RELEASE.md` / `skills/sokonanoda-ci` | 打包/发布纪律 |
-| `docs/STATUS.md` / `docs/REQUIREMENTS.md` | 收尾 |
+| `STATUS.md` / `REQUIREMENTS.md` | 收尾 |
 
 ## 8. 分阶段计划
 

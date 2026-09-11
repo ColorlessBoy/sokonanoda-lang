@@ -83,7 +83,7 @@ pub(crate) struct CmdHover<'a> {
     cmd: usize,
 }
 
-/// Incremental trust plan (I8, docs/design-i8-i9.md): commands `[0, before)`
+/// Incremental trust plan (I8, docs/design/i8-i9.md): commands `[0, before)`
 /// were already kernel-checked in a previous session with the identical text,
 /// so this run elaborates them into the environment but does NOT re-check
 /// them — their states/hovers/events are reused from the session cache.

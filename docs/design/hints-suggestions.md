@@ -1,6 +1,6 @@
 # 设计：提示阶梯（soko/hints）+ 下一步建议（goal 形状）
 
-> 状态：设计定稿（2026-09-07，本轮实施）。依据：`docs/gap-analysis.md` #4/#9、
+> 状态：设计定稿（2026-09-07，本轮实施）。依据：`docs/notes/gap-analysis.md` #4/#9、
 > 外部调研（lean4game hint 匹配、Deduce `?` 课堂实证、Lean TryThis 三通道、
 > ITS hint-ladder 四级范式）。实现落点见 §6 文件分工。
 

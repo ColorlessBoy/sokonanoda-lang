@@ -8,7 +8,7 @@
 //
 // Cross-platform (macOS/Linux/Windows): uses fetch + `tar` (present on
 // Windows 10+, macOS, Linux), never bash. Failures never block the session.
-// Offline opt-out: SOKONANODA_OFFLINE=1. Design: docs/design-onboarding.md.
+// Offline opt-out: SOKONANODA_OFFLINE=1. Design: docs/design/onboarding.md.
 import { spawnSync } from "node:child_process"
 import {
   chmodSync,

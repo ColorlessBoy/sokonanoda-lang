@@ -1,25 +1,42 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-10（第二十六轮：#check 结果常驻显示，扩展 0.10.0）
-> 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
-> 设计 = `docs/design-goal-func-spine.md` / `docs/design-onboarding.md` / `docs/design-bundled-lsp.md` / `docs/design-by-tactics.md`（§6 as-built）/
-> `docs/design-course-bilingual.md` /
-> `docs/design-hover-brackets.md` /
-> `docs/design-round14.md`（含本轮 B′ 决议）/
-> `docs/design-kernel-taxonomy.md` / `docs/design-course-status.md` /
-> `docs/design-hints-suggestions.md` / `docs/design-rename-inlay.md` /
-> `docs/design-goal-refine.md` / `docs/design-i8-i9.md` /
-> `docs/design-infrastructure.md`；
+> 快照：2026-09-11（第二十七轮：文档结构收敛）
+> 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
+> **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
+> 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
-> 差距审计 = `docs/gap-analysis.md`；**经验台账 = `docs/LESSONS.md`**；
-> 发布 = `docs/RELEASE.md`；**CI 失败台账 = `docs/CI-FAILURES.md`**；
-> agent 入口 = `AGENTS.md` + `skills/`；LSP/VS Code 调研 = `docs/lsp-notes.md` / `docs/vscode-notes.md`。
+> 经验台账 = `docs/LESSONS.md`；CI 失败台账 = `docs/CI-FAILURES.md`；发布 = `docs/RELEASE.md`；
+> agent 入口 = `AGENTS.md` + `skills/`。
 
 ## 一句话
 
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-11，第二十七轮：文档结构收敛）
+
+> 触发：用户要求「把文档文件夹结构化、最重要的放外面、收敛一下」，并清理
+> 过时件。原有 32 篇平铺在 `docs/`，核心与长尾混在一起，新 agent 难以定位。
+
+1. **分层**：入口/权威移到仓库根（`README.md`/`AGENTS.md`/`ROADMAP.md`/
+   `REQUIREMENTS.md`/`STATUS.md`）；开发者参考留在 `docs/` 顶层
+   （architecture/protocol/TESTING/RELEASE/vscode-dev-guide/LESSONS/
+   CI-FAILURES/teaching-session）；设计文档进 `docs/design/`（15 篇，
+   去掉冗余 `design-` 前缀）；调研/笔记进 `docs/notes/`（5 篇）。
+2. **单一地图**：新增 `docs/README.md`（仓库根/核心/设计/笔记四层，
+   每篇一句话职责 + 何时读）；`AGENTS.md` 指向它；`STATUS.md` 头部原来的
+   16 条设计文档长列表收敛为一行指针。
+3. **清理**：删除零引用/纯历史件 `docs/notes/last-request.md`（原始 scratch）
+   与 `docs/design/learner-round.md`（第一堂课的历史轮次，成果已在 STATUS）；
+   修正 `docs/design/round14.md` 里悬空的 `docs/design-spine-meta.md` 引用
+   （该文件从未创建，路线就在 round14 §0.4）。其余设计文档均有代码注释/
+   REQUIREMENTS/STATUS 引用，作为 as-built 存档保留。
+4. **引用同步**：全仓 45 个文件批量改写路径（`docs/design-*` →
+   `docs/design/*`、notes 同理、根文档去 `docs/` 前缀）；契约测试
+   `skill_referenced_repo_paths_exist` 守护 skill 引用可达。
+5. **验证**：`skill`（4）/`protocol`（8）/`extension`（13）契约测试 +
+   全量 `scripts/soko.sh gate` 通过。
 
 ## 本轮进度（2026-09-10，第二十六轮：#check 结果常驻显示，扩展 0.10.0）
 
@@ -78,7 +95,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 > => …) a b h …`）为例提两个需求——(1) hover `Eq.subst.{1}` 要显示完整类型
 > （现在只剩源码切片）；(2) 谓词实参改写成 `(sorry)` 后应是合法练习、编辑器
 > 提示 `Nat -> Prop`。评估后二者都不需要 metavariable / 内核语义改动，同轮
-> 落地；设计见 `docs/design-goal-func-spine.md`。
+> 落地；设计见 `docs/design/goal-func-spine.md`。
 
 1. **hover/#check 真 bug 修复（内核显示层）**：根因是 pp 的
    `is_implicit_fun` 开空 context 推断子项隐式风格，打印 `Eq.subst`/`Eq.refl`
@@ -106,7 +123,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    inlay `: Nat -> Prop`）。全量 `cargo test --workspace --locked` 与
    `scripts/soko.sh gate` 通过；协议形状未变（`sub_goals` 既有字段，仅
    `docs/protocol.md` 措辞泛化）。
-5. **文档**：新增设计 `docs/design-goal-func-spine.md`；REQUIREMENTS §9、
+5. **文档**：新增设计 `docs/design/goal-func-spine.md`；REQUIREMENTS §9、
    architecture §6 改动清单、protocol 的 `sub_goals` 说明、teacher skill 与
    teaching-session 的 `elab-hole-misplaced` 行同步。
 6. **从零教学（用户重申）**：Bare 模式（`-- sokonanoda:prelude none` /
@@ -118,7 +135,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
 > 触发：用户反馈「项目没把如何配置好环境写清楚，让 code agent 搞了好久，
 > 流程没有理顺；要调研优秀实践」。3 个 subagent 并行调研（OSS onboarding /
-> agent onboarding / 安装器 UX），结论落 `docs/design-onboarding.md`：
+> agent onboarding / 安装器 UX），结论落 `docs/design/onboarding.md`：
 > 单一 bootstrap + doctor（机器可读、退出码契约）+ 文档只引用脚本 +
 > opencode 命名空间命令 + 启动插件自动 provisioning。
 
@@ -220,7 +237,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    - 根 README 拆为「Use it（零工具链）」/「Build from source（贡献者）」；
      teacher 技能、teaching-session、extension 头注释与错误文案全部去
      cargo；AGENTS 命令节标注「仅贡献者需要 Rust」；
-   - 原则升为硬规则 `docs/REQUIREMENTS.md` §2 第 9 条；版本 0.8.0 → 0.9.0。
+   - 原则升为硬规则 `REQUIREMENTS.md` §2 第 9 条；版本 0.8.0 → 0.9.0。
 11. **v0.9.0 发布完成 + opencode 重配（用户要求）**：release run
    `34471781169` 全绿；GitHub Release **25 资产**（8 LSP tarball + 8 CLI
    tarball + 9 VSIX）；Marketplace 0.9.0 的 universal + 8 平台包全部上架
@@ -231,7 +248,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
 ## 本轮进度（2026-09-10，第二十一轮：插件自带 LSP——bundled VSIX）
 
-> 设计先行：`docs/design-bundled-lsp.md`（含行业调研、发布流程 as-is 与
+> 设计先行：`docs/design/bundled-lsp.md`（含行业调研、发布流程 as-is 与
 > 版本错配根因、to-be 流水线）。触发：用户要求把 bin 打包进 VS Code 插件，
 > 消除「装完插件再下载 GitHub」与**插件/latest bin 版本错配**。调研纠正：
 > 官方 Lean 4 / VsCoq 均不打包（依赖 elan/opam）；正确机制是 VS Code
@@ -296,11 +313,11 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 **Phase 3（硬化，基本完成）**：CI 集成测试已走 bundled 路径（fresh runner
 = 无缓存激活的实证）；剩余为决策项——是否追加 linux-arm64 / win32-arm64 /
 alpine 平台包（下轮评估，暂由 universal 回退包兜底）。
-`docs/design-bundled-lsp.md` 已提交（`39ea982`）。
+`docs/design/bundled-lsp.md` 已提交（`39ea982`）。
 
 ## 本轮进度（2026-09-10，第二十轮：光标处 goal 视图 Phase 2 落地）
 
-> 设计先行：`docs/design-by-tactics.md` §6 修订为 as-built。承接第十九轮
+> 设计先行：`docs/design/by-tactics.md` §6 修订为 as-built。承接第十九轮
 > 「实现留后续轮次」的 Phase 2：front 产出 per-tactic 状态，LSP 按光标
 > 选取，VS Code 练习树渲染。
 
@@ -353,7 +370,7 @@ alpine 平台包（下轮评估，暂由 universal 回退包兜底）。
 > 尾部 Hole span=offset 0 → 止于 `sorry`」。Lean 确认 `sorry` 术语+tactic 双栖，
 > `by sorry` 与 Lean 对齐、与值位 `:= sorry` 无冲突。
 
-> 设计先行：`docs/design-by-tactics.md`。触发：用户要求「实现一些基础 tactic，
+> 设计先行：`docs/design/by-tactics.md`。触发：用户要求「实现一些基础 tactic，
 > 跟 Lean 4 一样用 `by` 开始」（补 assumption / rfl），并调研设计 VSCode 前端
 > 显示 goal state。首期五个 tactic：**intro / exact / apply / assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 sorry 同语义）。
 
@@ -387,7 +404,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 
 ## 本轮进度（2026-09-09，第十八轮：hover 重构——良构表达式 + 高亮范围）
 
-> 设计先行：`docs/design-hover-refactor.md`。触发：用户反馈「括号 hover 内容
+> 设计先行：`docs/design/hover-refactor.md`。触发：用户反馈「括号 hover 内容
 > 乱七八糟、有些是包含括号的外部表达式」「`(Not a)` 与 `(And.right a (Not a) h)`
 > 左右括号内容对不上」，并要求——逐字符评估所有 hover、把正确行为设计成单测、
 > 最终**能看到 hover 内容对应的表达式范围（高亮）**。
@@ -427,7 +444,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 
 ## 本轮进度（2026-09-09，第十八轮：课程双语化）
 
-> 设计先行：`docs/design-course-bilingual.md`。触发：用户要求 tutorial 等
+> 设计先行：`docs/design/course-bilingual.md`。触发：用户要求 tutorial 等
 > 教程文档提供中文与英文两种版本（范围 = `course/` 单元课程为主；形态 =
 > 中文/英文各一份独立文件）。
 
@@ -456,7 +473,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 
 ## 本轮进度（2026-09-09，第十七轮：括号 hover + 真名还原）
 
-> 设计先行：`docs/design-hover-brackets.md`。触发：用户反馈 VS Code hover
+> 设计先行：`docs/design/hover-brackets.md`。触发：用户反馈 VS Code hover
 > 内容完全混乱 + `(表达式)` 悬停要求 + `$N` 索引必须还原真名。
 
 1. **根因三连（全部实验证实）**：(a) pp 的 `binder_names` 从空开始 +
@@ -539,7 +556,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 
 ## 本轮进度（2026-09-07，第十四轮：hole_id + auto-derivation，2 subagent 并行）
 
-> 设计先行：`docs/design-round14.md`（含 spine meta 的 A/B/C 方案取舍——
+> 设计先行：`docs/design/round14.md`（含 spine meta 的 A/B/C 方案取舍——
 > 推荐方案 B 为下一轮实施项）。
 
 1. **稳定 hole_id（P）**：`soko/goals` 的 `holes` 变 `[{range, id}]`，
@@ -564,7 +581,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 
 ## 本轮进度（2026-09-07，第十三轮：内核分类学收尾 + 基建，4 subagent 并行）
 
-> 设计先行：`docs/design-kernel-taxonomy.md`。K（内核冷路径分诊）/
+> 设计先行：`docs/design/kernel-taxonomy.md`。K（内核冷路径分诊）/
 > L1（失败声明建议）/ M（criterion 基准）/ N（fuzz harness）并行，主会话
 > 合并期修复 K 发现的功能性 bug（非递归归纳块）。
 
@@ -620,8 +637,8 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 
 ## 本轮进度（2026-09-07，第十一轮：教学辅助四件套，3 subagent 并行 + 2 调研）
 
-> 设计先行：`docs/design-hints-suggestions.md`（提示阶梯/下一步建议）与
-> `docs/design-rename-inlay.md`（rename/references/inlay/lsp 子命令）；主会话
+> 设计先行：`docs/design/hints-suggestions.md`（提示阶梯/下一步建议）与
+> `docs/design/rename-inlay.md`（rename/references/inlay/lsp 子命令）；主会话
 > 预接线（协议、能力注册、桩、front 种子）后 4 个实现 subagent 文件集互斥并行。
 
 1. **提示阶梯 `soko/hints`**：画布指令 `-- soko:hint <text>`（独占一行、挂到
@@ -669,7 +686,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 
 ## 本轮进度（2026-09-07，第九轮：subagent 并行 ×3，主会话多洞/refine）
 
-1. **多洞 + refine（I9 第二段，设计 `docs/design-goal-refine.md`）**：
+1. **多洞 + refine（I9 第二段，设计 `docs/design/goal-refine.md`）**：
    构造子 spine 走查——`And.intro ??? ???` 等多洞是合法 Open 状态（不再
    hole-misplaced）；子洞期望类型从文档自身的 axiom/ctor 形状实例化
    （参数位=目标自己的实参，证明位=实例化后的字段类型）；
@@ -691,7 +708,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
    契约测试封死两处回归。
 4. **发布流水线（subagent 实现）**：`release.yml`（tag 触发 + dispatch
    dry-run；Rust 双二进制 + VSIX 同 Release）+ `docs/RELEASE.md` 发布手册。
-5. **业内标准差距审计（调研 subagent）**：`docs/gap-analysis.md`——Top 10
+5. **业内标准差距审计（调研 subagent）**：`docs/notes/gap-analysis.md`——Top 10
    补全清单（completions/go-to-def/folding/提示分级/undo/rename/inlay/
    章节地图/下一步建议/--version+MSRV）与反标配清单；已并入 ROADMAP L2/L3。
 6. 测试总量 **245**（front 133 / lsp 26 / cli 35 / kernel 45）；全绿；
@@ -758,7 +775,7 @@ binder 组/空 by→Open/intro 非函数目标/assumption 无匹配/rfl 非 Eq/a
 ## 本轮进度（2026-09-07，第五轮：I8 真增量 + I9 + 内核修复 + 工程达标）
 
 本轮按"先调研后动手"执行（4 个并行 subagent：代码审计 / LSP 增量业界实践 /
-goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全程 TDD。
+goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design/i8-i9.md`，全程 TDD。
 
 1. **I8 真增量（front，零内核改动）**：学 Lean4/coq-lsp 的"前缀精确复用 +
    变化点后保守重算"。`run_pass` 增加 `TrustPlan`：信任前缀照常 elaborate +
@@ -814,8 +831,8 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
    - publishDiagnostics 补 `version`；didChange 改取最后一个 change（FULL sync 语义）；
    - `--json` 的 elab/kernel diagnostic 补 `hint` 字段（protocol.md 本就承诺）；
    - `docs/protocol.md` 补齐 6 个缺失 elab 错误码（doc-conformance 测试守护）。
-4. **文档**：新增 `docs/REQUIREMENTS.md`（用户全部要求的权威总账）、
-   `docs/TESTING.md`（测试资产地图）、`docs/lsp-notes.md`、`docs/vscode-notes.md`。
+4. **文档**：新增 `REQUIREMENTS.md`（用户全部要求的权威总账）、
+   `docs/TESTING.md`（测试资产地图）、`docs/notes/lsp-notes.md`、`docs/notes/vscode-notes.md`。
 
 ## 本轮进度（2026-09-07 第四轮：I8 + I9 后半 + 语义高亮 + watch）
 
@@ -878,14 +895,14 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design-i8-i9.md`，全
    记录）；LSP hover 在 `???` 上显示「目标 + 已引入假设」；code action 新增
    **`exact <假设>`**（类型与目标匹配时自动提议，洞替换为该假设名），
    与既有 `intro` 并存；LSP 测试 13→16。
-3. **VS Code 薄壳修复**（依 docs/vscode-notes.md）：修复 `client.start()` 未作为
+3. **VS Code 薄壳修复**（依 docs/notes/vscode-notes.md）：修复 `client.start()` 未作为
    disposable 注册的真实 bug（改为正确 start/stop 生命周期）；`sokonanoda.serverPath`
    设置 + 自动发现（workspace target/debug|release → PATH）；`alt+s` 状态命令
    （documentSymbol → 快速选择面板）；codeLens 的 `sokonanoda.status` 命令
    补了客户端 handler（此前点击报 command not found）；新增 F5 启动配置。
 4. 测试总量 186（kernel 43 / cli 38 / front 89 / lsp 16）。
 
-## 下一步（交接快照，2026-09-07 第十六轮后；依据 = docs/gap-analysis.md）
+## 下一步（交接快照，2026-09-07 第十六轮后；依据 = docs/notes/gap-analysis.md）
 
 > gap-analysis Top 10 已全部清零。以下为运营验证与精选改进。
 

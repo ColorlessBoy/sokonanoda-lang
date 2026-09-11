@@ -1,5 +1,5 @@
 //! Hint ladders authored in the canvas as `-- soko:hint <text>` comment
-//! directives (docs/design-hints-suggestions.md).
+//! directives (docs/design/hints-suggestions.md).
 //!
 //! Rules:
 //! - a directive must own its line (only whitespace before `--`);

@@ -1,5 +1,5 @@
 //! opencode project-config + onboarding contract: the single environment
-//! entrypoint is `scripts/soko.sh` (docs/design-onboarding.md); the opencode
+//! entrypoint is `scripts/soko.sh` (docs/design/onboarding.md); the opencode
 //! layer must stay a thin, namespaced, cargo-free wrapper around it.
 
 use std::fs;

@@ -1,7 +1,7 @@
 # 设计：内核错误分类学余项 + 失败声明建议 + 基准/fuzz 基建
 
-> 状态：设计定稿（2026-09-07，第十三轮实施）。依据：`docs/gap-analysis.md`
-> 余项、`docs/STATUS.md` 第十一/十二轮遗留、内核冷路径改动规则
+> 状态：设计定稿（2026-09-07，第十三轮实施）。依据：`docs/notes/gap-analysis.md`
+> 余项、`STATUS.md` 第十一/十二轮遗留、内核冷路径改动规则
 > （REQUIREMENTS §3、LESSONS「内核冷路径改动」、architecture §6 记账）。
 
 ## 0. 头脑风暴与取舍
@@ -74,7 +74,7 @@
 | L1（失败声明建议） | `crates/front/src/suggest.rs`、`crates/lsp/src/actions.rs` |
 | M（criterion） | `crates/front/Cargo.toml`、`crates/front/benches/**` |
 | N（fuzz） | `fuzz/**`（新） |
-| 主会话（合并期） | `docs/architecture.md` §6 记账、`docs/STATUS.md`、`docs/TESTING.md`、`docs/gap-analysis.md` |
+| 主会话（合并期） | `docs/architecture.md` §6 记账、`STATUS.md`、`docs/TESTING.md`、`docs/notes/gap-analysis.md` |
 
 冲突警戒：K 与 L1 都不碰 `suggest.rs`/`error.rs` 交叉面（K 只改 error.rs 的
 分类器，L1 只消费既有 SuggestionKind 扩展——suggest.rs 归 L1 独占）。

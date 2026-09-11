@@ -1,15 +1,15 @@
 //! `sokonanoda-lsp`: a language server for `.sokonanoda` teaching files.
 //!
-//! Feedback philosophy (docs/design-infrastructure.md):
+//! Feedback philosophy (docs/design/infrastructure.md):
 //! - diagnostics per declaration with stable codes and teaching hints;
 //! - hover shows the inferred type of the expression under the cursor
 //!   (from the front-end type map) or the goal of an open exercise `sorry`;
 //! - document symbols / code lenses expose exercise state
 //!   (open / solved / failed);
 //! - code actions turn the first proof step into text and are ordered by
-//!   kernel-verified first (see docs/design-hints-suggestions.md);
+//!   kernel-verified first (see docs/design/hints-suggestions.md);
 //! - rename / references / inlay hints follow LSP 3.17
-//!   (docs/design-rename-inlay.md).
+//!   (docs/design/rename-inlay.md).
 //!
 //! The crate is also a library so the single `sokonanoda` binary can host
 //! the server (`sokonanoda lsp`, the gleam pattern): call
@@ -340,7 +340,7 @@ impl Backend {
         Ok(found.map(|(_, range)| *range))
     }
 
-    /// Hint ladder for the declaration at the cursor (docs/design-hints-
+    /// Hint ladder for the declaration at the cursor (docs/design/hints-
     /// suggestions.md). Stateless: the client owns progressive disclosure.
     async fn hints(&self, params: hints::HintsParams) -> Result<hints::HintsResponse> {
         let doc = self.doc.lock().expect("doc lock");
@@ -348,7 +348,7 @@ impl Backend {
     }
 
     /// Per-tactic goal state at the cursor (`soko/stateAt`,
-    /// docs/design-by-tactics.md §6). Lean `goalsAt?` semantics: a cursor
+    /// docs/design/by-tactics.md §6). Lean `goalsAt?` semantics: a cursor
     /// inside a tactic shows the state **entering** that tactic; otherwise
     /// the state after the last tactic that ended before it. The response
     /// carries the document version so clients drop stale answers.
@@ -1940,7 +1940,7 @@ mod tests {
         .expect("soko/nextHole must answer")
     }
 
-    // ---- soko/stateAt：光标处 tactic 目标（docs/design-by-tactics.md §6）----
+    // ---- soko/stateAt：光标处 tactic 目标（docs/design/by-tactics.md §6）----
 
     async fn ask_state_at(
         service: &mut LspService<Backend>,

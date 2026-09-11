@@ -1,7 +1,7 @@
 # 项目要求总账（REQUIREMENTS）
 
 > 这是用户全部要求的**权威记录**。任何 agent 接手任何任务前先读本文，
-> 再读 `ROADMAP.md`（里程碑）与 `docs/STATUS.md`（当前进度）。
+> 再读 `ROADMAP.md`（里程碑）与 `STATUS.md`（当前进度）。
 > 新要求出现时追加到本文末尾并注明日期；冲突时以本文为准。
 
 ## 1. 产品愿景（不变）
@@ -90,8 +90,8 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   接线点由主会话先接好）；subagent 失败/断网 ≠ 工作丢失——先核实树状态
   与测试再决定收尾或重跑（细则见 docs/LESSONS.md 工程流程节）；
 - **持续头脑风暴**：新功能先出设计方案（写进 docs），再动手；
-- **文档先行、交接友好**：`docs/REQUIREMENTS.md`（本文）、`docs/STATUS.md`（进度日志）、
-  `docs/architecture.md`（架构事实）、`docs/lsp-notes.md` / `docs/vscode-notes.md`
+- **文档先行、交接友好**：`REQUIREMENTS.md`（本文）、`STATUS.md`（进度日志）、
+  `docs/architecture.md`（架构事实）、`docs/notes/lsp-notes.md` / `docs/notes/vscode-notes.md`
   （外部标准调研）、`docs/teaching-session.md`（教学循环）、`docs/protocol.md`（事件协议）；
   每轮进度落 commit 前先更新 STATUS；
 - LSP/VS Code 集成遵循业界标准做法（tower-lsp[-server]、vscode-languageclient、
@@ -149,8 +149,8 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   本轮 3 个 subagent（内核错误分类学审计 / 发布流水线实现 / 业内标准差距
   审计），主会话实现多洞+refine（I9 第二段）。修复两个关键缺陷：
   #check/#reduce 无 panic 保护（可崩掉 LSP 进程）、.vscodeignore 排除
-  node_modules（VSIX 仍坏）。产出：docs/design-goal-refine.md、
-  docs/gap-analysis.md、docs/RELEASE.md、8 个新 kernel 错误码。- 2026-09-07（九）：gap-analysis 第一批落地（业内标准补全）：completions、
+  node_modules（VSIX 仍坏）。产出：docs/design/goal-refine.md、
+  docs/notes/gap-analysis.md、docs/RELEASE.md、8 个新 kernel 错误码。- 2026-09-07（九）：gap-analysis 第一批落地（业内标准补全）：completions、
   folding、--version+MSRV（主会话）；go-to-definition/document highlight/
   binder 补全（subagent）；REPL undo（subagent）。- 2026-09-07（十）：**教学文案文风硬约束（用户指令）**：拒绝翻译腔、
   AI 味、抖音味、小红书味；规范落为 skills/sokonanoda-teacher/references/
@@ -166,14 +166,14 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   还原为对应 binder 名字；(3) 为括号 hover 设计多个测试样例，指定语料
   `and_not_absurd`（`(And.right a (Not a) h)` → `And.right a (Not a) h :
   Not a`；`And.left a (Not a) h` → `a`）。实现见
-`docs/design-hover-brackets.md`（kernel pp 播种 + 括号组匹配 +
+`docs/design/hover-brackets.md`（kernel pp 播种 + 括号组匹配 +
    `Not a` 保持折叠），测试 front 2 + LSP 5 + 旧断言对齐。
 - 2026-09-09（十四）：**课程双语化（用户指令）**：tutorial/教程文档要有中文
   与英文两种版本——范围 = `course/` 单元课程为主，形态 = 中文/英文各一份
   独立文件。落地：`course/en/` 英文镜像（5 单元画布 + `solutions/` 解答钥匙），
   `course.json` 增 `title_en`，`course/README.md` 补双语布局说明，CI 新增
   `en_mirrors_match_chinese_event_counts` 守卫（事件计数逐项相等 + 英文钥匙
-  0 诊断 0 洞），设计见 `docs/design-course-bilingual.md`。**英文注释按语义
+  0 诊断 0 洞），设计见 `docs/design/course-bilingual.md`。**英文注释按语义
   重构、不按字节翻译**（用户原则 2026-09-09 修订）：英文是重新写就的自然
   教学文案，重组句子与段落、不以中文行号/行数为准；但代码与中文逐字节
 一致、知识点与提示阶梯条数/顺序同构。不改 `course/` 中文文件与 docs/
@@ -186,7 +186,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
    range，编辑器高亮该表达式。根因三连：lambda/Pi 的 binder 名整段溢出、
    括号组切片截断（AST span 不含括号）、hover 不返回 range。决议：front 为
    每个 binder 记声明行（`binder: true`）、LSP 切片括号平衡成良构表达式、
-   所有 hover 分支带高亮 range。实现见 `docs/design-hover-refactor.md`，
+   所有 hover 分支带高亮 range。实现见 `docs/design/hover-refactor.md`，
    测试 front 2 + LSP 5 + 旧断言对齐。
 - 2026-09-09（十六）：**by-tactic 块（用户指令）**：实现基础 tactic，与 Lean 4
   一样用 `by` 开始；补充 assumption / rfl。首期五个：**intro / exact / apply /
@@ -199,7 +199,7 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    新增 `course/` 单元⑥（中文 + en 镜像 + 解答钥匙）与 playground 2 道 by 题
    （练习 13/14，`:= by sorry`）；
    白名单 = 解析器只认这五个 tactic + sorry。同时要求**调研并设计 VSCode 前端显示
-   goal state**——设计见 `docs/design-by-tactics.md` §6（front `by_steps` +
+   goal state**——设计见 `docs/design/by-tactics.md` §6（front `by_steps` +
    `soko/stateAt` + 练习树「当前光标处」goal 组），实现为 Phase 2。
 - 2026-09-10（十七）：**by-tactic Phase 2 落地（上条「实现为 Phase 2」的执行）**：
    front 产出每 tactic 步状态（`DeclState.by_steps`，进 I8 快照并随注释编辑重映射
@@ -223,7 +223,7 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    Lean 4 与 VsCoq/Rocq 实际都**不**把语言服务器打进 VSIX，运行时依赖
    elan/opam），消除“装完插件再下载 GitHub”的差体验，尤其是**插件与
    `releases/latest` bin 的版本错配**。设计与行业调研见
-   `docs/design-bundled-lsp.md`：per-target VSIX（`vsce package --target`；
+   `docs/design/bundled-lsp.md`：per-target VSIX（`vsce package --target`；
    exec 位必须在 Linux/macOS 打包）+ universal 回退包（下载 URL 按扩展版本
    `v${version}` 锁定，禁止 latest）。**Phase 1（核心解析/打包脚本/单测/
    契约）与 Phase 2（release.yml 逐平台打包发布 + tag↔版本门禁 + exec 冒烟）
@@ -245,7 +245,7 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    （§2 第 9 条）。扩展 0.8.0 → 0.9.0。
 - 2026-09-10（二十二）：**环境配置单一入口（用户要求「流程理顺、调研优秀
    实践」）**：新增 `scripts/soko.sh`（setup/doctor/grade/gate/lsp；退出码
-   0/1/2/3；`--json` 机器可读），设计见 `docs/design-onboarding.md`（3 路
+   0/1/2/3；`--json` 机器可读），设计见 `docs/design/onboarding.md`（3 路
    subagent 调研 OSS/agent/安装器实践）；opencode 命令迁移到命名空间
    `/sokonanoda/*`、launcher 瘦成 shim、启动插件自动 provisioning + PATH
    注入；AGENTS/技能/README 全部改为引用单一脚本（用户/agent 零 cargo）。
@@ -261,7 +261,7 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    是合法练习状态，编辑器提示该洞期望类型（`Eq.subst.{1} Nat (sorry) …`
    → `Nat -> Prop`）；Bare 模式下文件自定义的 Eq 同样进模板。明确不做
    （v1）：嵌套洞、部分应用补参、`sorry + 1`、kernel 级 spine meta。
-   实现/验收/风险取舍见 `docs/design-goal-func-spine.md`。
+   实现/验收/风险取舍见 `docs/design/goal-func-spine.md`。
 - 2026-09-10（二十四续）：**从零教学场景确认（用户重申）**：用户明确要在
    教学中关闭 prelude、自建 `Eq`/`Nat`。Bare 模式已支持（§5：文件注释
    `-- sokonanoda:prelude none` 或 CLI `--bare`），本轮把该工作流写进
@@ -279,3 +279,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    常显内核结果（`#check Nat` → `Nat` 后 `: Type 0`）。front `DocumentReport`
    新增 `checks`（表达式 span + 内核打印文本，随增量快照缓存、零重编译平移）；
    LSP inlay 渲染；扩展 0.9.1 → 0.10.0（minor：新展示能力）。
+- 2026-09-11（二十七）：**文档结构收敛 + 清理（用户要求）**：文档分层——
+   入口/权威在仓库根（`README.md`/`AGENTS.md`/`ROADMAP.md`/`REQUIREMENTS.md`/
+   `STATUS.md`），开发者参考在 `docs/` 顶层，设计在 `docs/design/`，调研笔记
+   在 `docs/notes/`；新增 `docs/README.md` 文档地图（`AGENTS.md` 指向它）。
+   删除零引用/过时件 `docs/notes/last-request.md` 与
+   `docs/design/learner-round.md`；全仓引用路径同步；设计文档作为 as-built
+   存档保留（被后续轮次取代的细节以 `STATUS.md` 为准）。

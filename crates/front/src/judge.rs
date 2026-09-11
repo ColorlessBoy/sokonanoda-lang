@@ -1,6 +1,6 @@
 //! kernel 判定的术语匹配（I9 goal 视图深化）。
 //!
-//! 设计（docs/design-i8-i9.md §2）：不发明第二套判定逻辑——把"候选术语 +
+//! 设计（docs/design/i8-i9.md §2）：不发明第二套判定逻辑——把"候选术语 +
 //! 已写 binders"合成一条**完整的声明**（`def _soko_judge_k : <声明类型> :=
 //! fun <binders> => <术语>`），交给标准流水线（含 prelude 决策与
 //! check-then-add 语义），由完整 kernel 当裁判：

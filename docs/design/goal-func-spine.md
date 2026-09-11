@@ -139,4 +139,4 @@ LSP（`crates/lsp/src/lib.rs` / `inlay.rs` tests）：
 `crates/kernel/src/pretty_printer.rs`、`crates/kernel/tests/memory_api.rs`、
 `crates/front/src/compile/{goals.rs(new),mod.rs,check.rs,prelude.rs(只读引用),tests.rs}`、
 `crates/cli/tests/cli.rs`、`crates/lsp/src/{lib.rs,inlay.rs}`、本设计文档、
-`docs/STATUS.md`、`docs/REQUIREMENTS.md` §9。
+`STATUS.md`、`REQUIREMENTS.md` §9。

@@ -1,6 +1,6 @@
 //! `sokonanoda course <course.json>`: aggregate the units of the course
 //! manifest (the agent-facing material library) into a progress map
-//! (docs/design-course-status.md; event contract in docs/protocol.md).
+//! (docs/design/course-status.md; event contract in docs/protocol.md).
 //!
 //! Progress is not an error: open/failed exercises still exit 0 — only an
 //! unreadable manifest fails.

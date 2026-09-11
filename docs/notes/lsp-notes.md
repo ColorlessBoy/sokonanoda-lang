@@ -2,7 +2,7 @@
 
 > 调研日期：2026-09-06。目的：为 `crates/lsp`（tower-lsp）与 I8（真增量）/ I9（goal 视图）
 > 路线图提供外部参照。本文先给 TL;DR 建议，再分主题展开，末尾附可直接抄的代码模式。
-> 阅读顺序建议：`docs/STATUS.md` → 本文件 → `docs/design-infrastructure.md` F1–F8。
+> 阅读顺序建议：`STATUS.md` → 本文件 → `docs/design/infrastructure.md` F1–F8。
 
 ---
 

@@ -1,6 +1,6 @@
 # 设计：多洞（multi-hole）与 refine —— I9 goal 深化第二段（2026-09-07）
 
-> 依据：goal 视图 UX 调研（docs/design-i8-i9.md §2 引用）、Lean refine/TryThis
+> 依据：goal 视图 UX 调研（docs/design/i8-i9.md §2 引用）、Lean refine/TryThis
 > 范式、ocaml-lsp typed-holes。目标：把"洞 = 剩余目标占位"从**单一尾洞**
 > 推广到**构造子 spine 上的多洞**，并提供 kernel 知情的 `refine` 建议。
 

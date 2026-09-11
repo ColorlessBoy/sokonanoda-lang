@@ -1,17 +1,17 @@
 # sokonanoda-lang —— `.sokonanoda` 协作式 Lean 4 教学 ROADMAP
 
-> 状态：active（v2 LSP-first，已落地第一段垂直切片；最新进度先看 `docs/STATUS.md`）
+> 状态：active（v2 LSP-first，已落地第一段垂直切片；最新进度先看 `STATUS.md`）
 > 基线：sokonanoda `7b51784`
 > 日期：2026-09-06（终版快照）
-> 配套文档：`docs/STATUS.md`（当前状态与进度日志，agents 先读）、
-> `docs/architecture.md`（深度理解）、`docs/research.md`（外部调研）、
-> `docs/design-infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。
+> 配套文档：`STATUS.md`（当前状态与进度日志，agents 先读）、
+> `docs/architecture.md`（深度理解）、`docs/notes/research.md`（外部调研）、
+> `docs/design/infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。
 
 > 方向更新（2026-09-06 续）：编辑器形态下 `.sokonanoda` 是**纯声明式文件**
 > （无 `#` 命令）；练习 = 带 `???` 洞的 `def name : T` / `theorem name : T` /
 > `example : T` 声明；反馈通道是**细粒度 LSP**（hover 类型/化简、精确诊断、
 > 练习状态、goal 视图）。CLI/REPL 的 `#check` 等只是调试与自测工具。
-> 详见 `docs/design-infrastructure.md`（LSP-first 设计 v2）。
+> 详见 `docs/design/infrastructure.md`（LSP-first 设计 v2）。
 
 ## 0. 终极形态
 
@@ -337,8 +337,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 ### 本轮基础设施进度（2026-09-06 续）
 
-1. [x] 文档：`docs/architecture.md`（架构与内核深度理解）、`docs/research.md`
-      （外部调研）、`docs/design-infrastructure.md`（基础设施设计脑暴）、
+1. [x] 文档：`docs/architecture.md`（架构与内核深度理解）、`docs/notes/research.md`
+      （外部调研）、`docs/design/infrastructure.md`（基础设施设计脑暴）、
       `docs/protocol.md` 刷新为"文本 + JSON Lines"双视图协议。
 2. [x] CLI `--json`：每条事件一行 JSON（`decl.checked` / `expr.typed` /
       `expr.reduced` / `decl.printed` / `exercise.open` / `diagnostic`），带 span 与 human 文本。
@@ -356,7 +356,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 ### 第二轮进度（2026-09-06 晚，LSP-first 落地）
 
-按 `docs/design-infrastructure.md`（v2）开工并完成第一段垂直切片：
+按 `docs/design/infrastructure.md`（v2）开工并完成第一段垂直切片：
 
 1. [x] 逐声明状态 + `DocumentReport`（`check_document`）：每个声明 open/checked/failed，
       开放练习不污染环境、不影响后续声明；练习带名字（def/theorem）与目标类型。
@@ -378,8 +378,8 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 
 ## 10. 待办（已确认，按依赖排序）
 
-> 详细验收与设计依据：`docs/design-infrastructure.md`（F1–F8、工作流 I0–I9）；
-> 进度快照：`docs/STATUS.md`。
+> 详细验收与设计依据：`docs/design/infrastructure.md`（F1–F8、工作流 I0–I9）；
+> 进度快照：`STATUS.md`。
 
 ### I6 —— prelude 对齐 + elaborator 推进
 - prelude：补 Bool / Eq / `rfl` 所需受信任基元；核对 `Nat.succ`/`Nat.add`
@@ -402,7 +402,7 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - [x] watch：`sokonanoda watch <file>` JSON Lines 流。
 - [x] **真增量后缀重查（2026-09-07）**：TrustPlan 信任前缀跳过内核重查 +
       逐命令快照复用 + span 重映射；`SessionUpdate.stats.kernel_checks`
-      可验证；LSP 切换到 Session。设计见 `docs/design-i8-i9.md` §1。
+      可验证；LSP 切换到 Session。设计见 `docs/design/i8-i9.md` §1。
 - [ ] 验收余项：受影响后缀的**依赖精确化**（当前为保守 suffix；early-cutoff
       签名比较是可选优化）。
 
@@ -411,21 +411,21 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
       actual: …`），front 解析为「类型不匹配：期望 X / 实际 Y」。
 - [x] **conv 快路径 soundness 修复（2026-09-07）**：eval/infer 闭包混用导致
       不可居住类型通过——快路径加闭包语义守卫；回归测试三层。
-      见 `docs/design-i8-i9.md` §2 与 `docs/architecture.md` §6。
+      见 `docs/design/i8-i9.md` §2 与 `docs/architecture.md` §6。
 - [x] goal 视图：`front::judge`（合成声明交完整 kernel 裁决）；LSP exact
       kernel 判定（文本比对删除）；REPL exact/apply/assumption kernel 判定
       并反馈期望/实际；`soko/goals` + `soko/nextHole` 自定义请求。
 - [x] **多洞 + refine（2026-09-07）**：构造子 spine 走查（子洞合法、期望
       类型实例化、`DeclState.holes/sub_goals/refine_template`）、LSP refine
       建议（构造子骨架、参数自动填充）、nextHole 跨子洞。
-      见 `docs/design-goal-refine.md`。
+      见 `docs/design/goal-refine.md`。
 - [x] **函数实参洞 + hover 开项修复（2026-09-10，第二十四轮）**：已知函数
       （prelude Eq、源内 axiom/def/theorem、归纳构造子）的**直接实参**
       `sorry` 合法，期望类型 = binder 望远镜在前置实参处实例化（含宇宙
       层级 `. {1}` → `Sort 1`）；模板 machinery 抽到
       `crates/front/src/compile/goals.rs`；同轮修内核 pp 对开项推断 panic
       （hover `Eq.subst.{1}` 显示签名、`#check` 不再假报 rejected）。
-      v1 不做嵌套洞/部分应用/`sorry + 1`。见 `docs/design-goal-func-spine.md`。
+      v1 不做嵌套洞/部分应用/`sorry + 1`。见 `docs/design/goal-func-spine.md`。
 - [x] **内核错误分类学（2026-09-07）**：8 个新 kernel 错误码（expected-sort /
       expected-pi / theorem-not-prop / non-positive / ctor-result / ctor-arg
       三族）+ 内核冷路径消息增强（`got:` 渲染）+ `#check`/`#reduce` panic
@@ -438,7 +438,7 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
   讲课 agent 消费同一文档状态自动出题。
-- **业内标准补全清单**：`docs/gap-analysis.md`（2026-09-07 调研）——
+- **业内标准补全清单**：`docs/notes/gap-analysis.md`（2026-09-07 调研）——
   **开发清单全部清零**（第十五轮收尾：spine meta 方案 B′ 深度实例化、
   失败声明建议梯子 kernel-rfl/Reset/Restart）。剩余仅运营项（release 首跑、
   教学回环、VS Code 集成测试）与远期设计项（spine meta 方案 A）。

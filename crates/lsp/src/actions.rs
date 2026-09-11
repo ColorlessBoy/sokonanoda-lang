@@ -1,5 +1,5 @@
 //! Code-action helpers: map next-step suggestions into quick-fix text edits
-//! for open exercises (docs/design-hints-suggestions.md §4.3).
+//! for open exercises (docs/design/hints-suggestions.md §4.3).
 //!
 //! 建议生成在 `front::suggest`（kernel 验证优先：exact → rfl → refine →
 //! intro；第一条标 preferred）。这里只做映射：
@@ -12,7 +12,7 @@
 //! 值位（tokenize 定位 `:=` 与值首）。`front::suggest` 的失败声明建议梯子：
 //! kernel 验证过的 `Eq.refl` 整值替换（Eq 形状声明）→ 保留已写 lambda
 //! 前缀的部分重置（Reset）→ 整值重启骨架（Restart）——都映射为值位
-//! 整体替换（docs/design-kernel-taxonomy.md §2）。
+//! 整体替换（docs/design/kernel-taxonomy.md §2）。
 
 use super::render::decl_at;
 use sokonanoda_front::compile::{
@@ -522,7 +522,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         shutdown(&mut service).await;
     }
 
-    // ---- 失败声明的重启骨架（docs/design-kernel-taxonomy.md §2）----
+    // ---- 失败声明的重启骨架（docs/design/kernel-taxonomy.md §2）----
 
     const FAILED_DEF_EQ: &str = "example : (a : Prop) -> a -> a := fun (x : Prop) => 1\n";
 

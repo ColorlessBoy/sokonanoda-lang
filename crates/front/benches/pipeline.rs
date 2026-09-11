@@ -1,5 +1,5 @@
 //! Criterion benchmarks for the sokonanoda front-end pipeline
-//! (`docs/design-kernel-taxonomy.md` §0.5/§3, item M).
+//! (`docs/design/kernel-taxonomy.md` §0.5/§3, item M).
 //!
 //! Motivation: kernel performance is a product property (REQUIREMENTS §3);
 //! these benchmarks pin the timing of three paths so that later kernel or

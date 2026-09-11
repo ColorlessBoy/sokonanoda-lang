@@ -10,7 +10,7 @@ on:
 
 # 发布 = per-target VSIX（内嵌对应平台 LSP）+ 一个 universal 回退包（无 bin，
 # 用版本锁定的下载兜底）+ GitHub Release 资产（tarball 供回退下载）。
-# 设计：docs/design-bundled-lsp.md §3.3。四条铁律：
+# 设计：docs/design/bundled-lsp.md §3.3。四条铁律：
 #   1. exec 位必须在 Linux 上打包（Windows 打包会丢 unix mode）；
 #   2. tag、Cargo.toml、package.json 版本必须一致（版本门禁）；
 #   3. 下载 URL 锁定 v${version}，永不 latest；

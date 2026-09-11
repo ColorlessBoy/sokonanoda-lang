@@ -1,7 +1,7 @@
 # 调研：教学型形式化证明语言与基础设施
 
 > 目的：为 `.sokonanoda` 的 L0–L3 决策提供外部参照系。结论见文末"对我们项目的启示"，
-> 逐条落实到 `docs/design-infrastructure.md`。
+> 逐条落实到 `docs/design/infrastructure.md`。
 > 调研时间：2026-09-06。所有外部项目只做定性比对，数字均为仓库自述。
 
 ---

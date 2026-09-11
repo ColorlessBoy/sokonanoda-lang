@@ -41,7 +41,7 @@
   会在空作用域里 elaborate 而报 unknown）——`judge::fold_declared`。
 - 宇宙多态：裸名默认 u=0，跨宇宙判定必须显式 `id.{u}`（judge 测试踩过）。
 - prelude 决策（explicit-Nat 探测 / Eq all-or-nothing / 防遮蔽）**依赖整份
-  文件内容**——Session 增量正确性的根基（`docs/design-i8-i9.md` §1）。
+  文件内容**——Session 增量正确性的根基（`docs/design/i8-i9.md` §1）。
 - 多洞走查：**值头是构造子名、目标头是族名**（`And.intro` vs `And`），对齐
   要经模板的 `name` 字段校验，不能直接比头（多洞实现踩过）。
 - 洞位/子目标永远由 server 端 walk 产出（`DeclState.holes/sub_goals`）；

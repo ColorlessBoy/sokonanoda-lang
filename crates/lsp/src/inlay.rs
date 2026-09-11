@@ -1,5 +1,5 @@
 //! Inlay hints: the expected type of every open-exercise hole, rendered
-//! right after the `sorry` (docs/design-rename-inlay.md §4).
+//! right after the `sorry` (docs/design/rename-inlay.md §4).
 //!
 //! Read-only information only — no `textEdits` on hints (rust-analyzer
 //! lesson: interactive inlays are expensive and rarely wanted).

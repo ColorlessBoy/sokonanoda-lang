@@ -3,7 +3,7 @@
 发布流水线：`.github/workflows/release.yml`（tag 触发 + `workflow_dispatch`
 dry-run）。发布 = 推一个 `v*` tag，其余全自动。
 
-> 设计依据：`docs/design-bundled-lsp.md`（插件自带 per-target VSIX + universal
+> 设计依据：`docs/design/bundled-lsp.md`（插件自带 per-target VSIX + universal
 > 回退包 + 版本锁定下载）。核心不变量：
 > **tag == `Cargo.toml` == `package.json` == VSIX 内嵌的 LSP 二进制版本。**
 

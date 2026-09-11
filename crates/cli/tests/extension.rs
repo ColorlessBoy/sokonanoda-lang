@@ -82,7 +82,7 @@ fn entry_script_speaks_the_goal_view_protocol() {
         script.contains("soko/hints"),
         "the hint button must consume soko/hints"
     );
-    // Cursor goal view (docs/design-by-tactics.md §6): the tree's
+    // Cursor goal view (docs/design/by-tactics.md §6): the tree's
     // 「当前光标处」 group polls state at the caret on selection changes.
     assert!(
         script.contains("soko/stateAt"),
@@ -146,7 +146,7 @@ fn course_map_consumes_the_cli_course_subcommand() {
     );
     // The course map shells out to `sokonanoda course <manifest> --json`
     // (docs/protocol.md "Course map") and renders `course.unit` events —
-    // the client must never re-derive unit status (docs/design-course-status.md
+    // the client must never re-derive unit status (docs/design/course-status.md
     // §0: aggregation lives in the CLI, the LSP server stays single-document).
     assert!(
         script.contains("\"course\"") && script.contains("--json"),
@@ -192,7 +192,7 @@ fn reveal_hint_command_is_wired_to_the_hints_protocol() {
         script.contains("workspaceState"),
         "reveal progress must be persisted in workspaceState"
     );
-    // Teaching rule (docs/design-hints-suggestions.md §0.2): the UI must never
+    // Teaching rule (docs/design/hints-suggestions.md §0.2): the UI must never
     // advertise how many hints remain — previews push students to the answer.
     assert!(
         !script.contains("还剩"),
@@ -266,7 +266,7 @@ fn manifest_disables_confusable_unicode_highlight_for_the_language() {
 
 #[test]
 fn server_acquisition_prefers_the_bundled_binary() {
-    // Bundled-LSP contract (docs/design-bundled-lsp.md §3.2): the extension
+    // Bundled-LSP contract (docs/design/bundled-lsp.md §3.2): the extension
     // wires acquisition through server.js, which resolves the binary shipped
     // in the VSIX before any workspace build or download.
     let script = entry_script();
@@ -303,7 +303,7 @@ fn server_acquisition_prefers_the_bundled_binary() {
         server.contains("\"bin\"") && server.contains("chmodSync") && server.contains("0o755"),
         "server.js must resolve bin/<target>/ and repair a lost executable bit"
     );
-    // Version-skew regression (docs/design-bundled-lsp.md §0.5): the fallback
+    // Version-skew regression (docs/design/bundled-lsp.md §0.5): the fallback
     // download must be pinned to the extension's own release, never `latest`.
     assert!(
         !server.contains("/releases/latest/") && !server.contains("/latest/download/"),
@@ -356,7 +356,7 @@ fn package_scripts_stage_the_bundled_binary() {
 
 #[test]
 fn release_workflow_packages_platform_specific_vsixes() {
-    // Release contract (docs/design-bundled-lsp.md §3.3, docs/RELEASE.md):
+    // Release contract (docs/design/bundled-lsp.md §3.3, docs/RELEASE.md):
     // per-target VSIXes with the server staged in, plus a universal fallback,
     // a tag/version gate, and marketplace publishing.
     let release =
@@ -411,7 +411,7 @@ fn ci_stages_the_bundled_server_for_integration_tests() {
 
 #[test]
 fn cargo_and_extension_versions_match() {
-    // Version discipline (docs/design-bundled-lsp.md §3.3): the VSIX and the
+    // Version discipline (docs/design/bundled-lsp.md §3.3): the VSIX and the
     // server it bundles are built from the same tag, so the two version fields
     // must be bumped together — caught here before a release tag is pushed.
     let cargo = fs::read_to_string(repo_root().join("Cargo.toml")).expect("Cargo.toml");

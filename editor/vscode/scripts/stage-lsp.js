@@ -1,7 +1,7 @@
 // Stage the built sokonanoda binaries (`sokonanoda-lsp` server + `sokonanoda`
 // CLI) into `editor/vscode/bin/<target>/` so `vsce package --target <target>`
 // produces a platform-specific VSIX with both bundled
-// (docs/design-bundled-lsp.md §3.3).
+// (docs/design/bundled-lsp.md §3.3).
 //
 // Usage:
 //   node scripts/stage-lsp.js                              # host release build
@@ -106,7 +106,7 @@ function stage(args, log = console.log) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.copyFileSync(source, dest);
     // POSIX executable bit must be set before packaging on Linux/macOS: VS Code
-    // restores the zip entry's mode on install (docs/design-bundled-lsp.md §0).
+    // restores the zip entry's mode on install (docs/design/bundled-lsp.md §0).
     if (!rustTarget.includes("windows")) fs.chmodSync(dest, 0o755);
     binaries.push({ base, source, dest });
     log(`staged ${source} -> ${path.relative(EXTENSION_DIR, dest)} (target ${target})`);

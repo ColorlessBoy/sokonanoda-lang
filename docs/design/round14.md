@@ -1,7 +1,7 @@
 # 设计：稳定 hole_id + 归纳块 recursor 自动派生 + spine meta 路线
 
 > 状态：设计定稿（2026-09-07，第十四轮实施 hole_id 与 auto-derivation；
-> spine meta 只定路线，实现留下一轮）。依据：`docs/gap-analysis.md` 余项、
+> spine meta 只定路线，实现留下一轮）。依据：`docs/notes/gap-analysis.md` 余项、
 > 第十三轮遗留（`elab-missing-inductive-rec` 停gap、refine 子洞 kernel 级
 > expected type）。
 
@@ -80,6 +80,6 @@
 
 | owner | 允许修改 |
 |---|---|
-| 主会话（预接） | 本设计文档、`docs/protocol.md`（hole_id 节 + 移除 missing-rec 条目——合并期统一处理）、`docs/design-spine-meta.md`（路线定稿） |
+| 主会话（预接） | 本设计文档（§0.4 spine meta 路线）、`docs/protocol.md`（hole_id 节 + 移除 missing-rec 条目——合并期统一处理） |
 | P（hole_id） | `crates/lsp/src/lib.rs`（goals wire + tests）、`editor/vscode/{extension.js,package.json}`、`crates/cli/tests/extension.rs` |
 | Q（auto-derivation） | `crates/front/src/compile/{elab.rs,error.rs,tests.rs}`、`crates/cli/tests/cli.rs` |

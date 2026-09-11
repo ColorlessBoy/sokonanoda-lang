@@ -3,12 +3,16 @@
 给任何 code agent 的项目入口（opencode / Claude Code 等原生读取本文件）。
 按序读完再动手：
 
-1. `docs/REQUIREMENTS.md` —— 用户全部要求的**权威总账**（硬规则、新要求追加到 §9）；
-2. `docs/STATUS.md` —— 当前进度（最新一轮在最上）；
+1. `REQUIREMENTS.md` —— 用户全部要求的**权威总账**（硬规则、新要求追加到 §9）；
+2. `STATUS.md` —— 当前进度（最新一轮在最上）；
 3. `ROADMAP.md` §10 —— 待办与验收标准；
 4. `docs/architecture.md` —— 流水线与内核 gotchas（§8 必读）。
 
-## Setup（30 秒，用户/agent 零 cargo；设计见 `docs/design-onboarding.md`）
+文档已分层：入口/权威在仓库根（`README.md`/`AGENTS.md`/`ROADMAP.md`/
+`REQUIREMENTS.md`/`STATUS.md`），开发者参考在 `docs/` 顶层，设计与调研笔记在
+`docs/design/`、`docs/notes/`；完整地图见 **`docs/README.md`**。
+
+## Setup（30 秒，用户/agent 零 cargo；设计见 `docs/design/onboarding.md`）
 
 ```bash
 bash scripts/soko.sh setup    # 幂等下载版本锁定的 CLI + LSP 到缓存
@@ -78,6 +82,6 @@ VSIX（9 个，平台包内嵌 LSP 与 CLI），供自动下载与 headless 手�
 
 ## 收尾义务
 
-- 落 commit 前更新 `docs/STATUS.md`；
-- 用户新要求追加进 `docs/REQUIREMENTS.md` §9 并注明日期（冲突以该文件为准）；
+- 落 commit 前更新 `STATUS.md`；
+- 用户新要求追加进 `REQUIREMENTS.md` §9 并注明日期（冲突以该文件为准）；
 - 设计先行：新功能先写设计进 `docs/`，再动手；多用 subagent 并行调研。

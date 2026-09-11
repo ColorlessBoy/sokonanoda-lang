@@ -7,7 +7,7 @@
 > v2 变更：明确最终形态是 **VS Code + 细粒度反馈 LSP**；`.sokonanoda` 文件保持
 > **纯声明式、无 `#` 命令**；`#check/#reduce/#print/#prove` 只是 REPL/调试玩具，
 > 不属于文件格式。练习 = 一个**带洞的 `def`/`theorem`/`example` 声明**。
-> 配套：`docs/architecture.md`（现状事实）、`docs/research.md`（外部参照）、
+> 配套：`docs/architecture.md`（现状事实）、`docs/notes/research.md`（外部参照）、
 > `docs/protocol.md`（内部事件传输）。
 
 ---
@@ -186,7 +186,7 @@ report
 3. 范围：I1–I9 全部实现；goal 视图进第一期 ✅（第一段切片已完成，见下）。
 4. 文件格式：纯声明式、无 `#` 命令 ✅（`#` 命令仅 REPL/自测）。
 
-工作流落地状态（最新以 `docs/STATUS.md` 为准）：
+工作流落地状态（最新以 `STATUS.md` 为准）：
 
 | # | 状态 | 说明 |
 |---|---|---|

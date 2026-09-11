@@ -1,5 +1,5 @@
 //! `soko/hints` custom request: the hint ladder of the declaration at the
-//! cursor (docs/design-hints-suggestions.md, protocol.md).
+//! cursor (docs/design/hints-suggestions.md, protocol.md).
 //!
 //! Ladders are authored in the canvas as `-- soko:hint <text>` directives
 //! and attached by `front::compile::hints`. The server is stateless — the

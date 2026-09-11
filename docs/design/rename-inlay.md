@@ -1,6 +1,6 @@
 # 设计：rename + find-references + inlay hints + `sokonanoda lsp`
 
-> 状态：设计定稿（2026-09-07，本轮实施）。依据：`docs/gap-analysis.md` #6/#7
+> 状态：设计定稿（2026-09-07，本轮实施）。依据：`docs/notes/gap-analysis.md` #6/#7
 > 与附加小项；LSP 3.17 规范要点与 rust-analyzer/clangd/gleam 实践调研。
 
 ## 0. 头脑风暴与取舍

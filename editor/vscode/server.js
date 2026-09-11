@@ -1,7 +1,7 @@
 // Language-server acquisition for the sokonanoda VS Code extension.
 //
 // Kept free of the `vscode` module so plain Node can unit-test it
-// (`test-server.js`). Acquisition order (docs/design-bundled-lsp.md §3.2):
+// (`test-server.js`). Acquisition order (docs/design/bundled-lsp.md §3.2):
 //
 //   1. `sokonanoda.serverPath` setting (explicit override)
 //   2. `SOKONANODA_LSP_BIN` environment variable
