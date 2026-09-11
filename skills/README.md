@@ -36,12 +36,13 @@ ln -s "$PWD/skills/sokonanoda-teacher" ~/.claude/skills/sokonanoda-teacher
 ln -s "$PWD/skills/sokonanoda-teacher" ~/.agents/skills/sokonanoda-teacher
 ```
 
-环境与编辑器反馈走**单一入口** `scripts/soko.sh`（设计见
-`docs/design/onboarding.md`）：`setup` 版本锁定下载 CLI+LSP（幂等）、
-`doctor` 就绪诊断（`--json`，0=就绪 3=未就绪）、`grade` 判卷、`gate`
-贡献者门禁、`lsp` 给编辑器用。opencode 由启动插件**直接接线原生
-`sokonanoda-lsp`**（跨平台、零 bash；`opencode.json` 不再写 lsp 命令）；
-非 opencode harness 可用 `.opencode/lsp/sokonanoda-lsp.sh` shim。
+环境与编辑器反馈走**单一入口** `sokonanoda` 二进制（设计见
+`docs/design/binary-cli.md`）：`setup` 版本锁定下载 CLI+LSP（幂等、内嵌
+下载器）、`update` 强制刷新、`version`/`doctor` 就绪与版本诊断（`--json`，
+0=就绪 3=未就绪）、`grade` 判卷、`gate` 贡献者门禁、`lsp` 给编辑器用。
+opencode 由启动插件**直接接线原生 `sokonanoda-lsp`**（跨平台、零 bash；
+`opencode.json` 不再写 lsp 命令）；非 opencode harness 可用
+`.opencode/lsp/sokonanoda-lsp.sh` shim（→ `sokonanoda lsp`）。
 
 ## 守护
 

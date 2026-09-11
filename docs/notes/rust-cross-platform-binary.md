@@ -83,3 +83,12 @@
 - cargo-dist：构建 per-target 二进制 + 多种安装器。
 - Rust Forge《Other Installation Methods》：standalone installer 只有
   平台专属形态（tar.xz / .msi / .pkg）。
+
+## 7. 后续更新（2026-09-11）
+
+本调研之后，用户要求彻底去掉 `soko.sh`：环境能力（`version`/`doctor`/
+`setup`/`update`/`grade`/`gate`/`lsp`）已全部搬进 `sokonanoda` 二进制
+（内嵌 `ureq`(rustls/ring) + `flate2` + `tar` 下载器），`scripts/soko.sh`
+删除。**首次获取**二进制仍由 opencode 插件（Node，跨平台）或 VSIX 自带完成；
+插件是跨平台 bootstrap 的定位不变。设计见 `docs/design/binary-cli.md`。
+第 5 节的"自检命令下放 CLI"已实现；引导器从脚本变成了 Node 插件。

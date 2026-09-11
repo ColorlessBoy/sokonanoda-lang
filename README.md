@@ -53,10 +53,13 @@ platform-specific package ships both the language server and the `sokonanoda`
 CLI, so checking, the goal view and the course map work offline out of the
 box.
 
-**In this repo**: one idempotent command (design: `docs/design/onboarding.md`):
+**In this repo**: the `sokonanoda` binary is the single entrypoint (the
+opencode plugin provisions it and puts it on PATH; contributors can
+`cargo build -p sokonanoda-cli` and run `target/debug/sokonanoda`). Design:
+`docs/design/binary-cli.md`.
 
 ```bash
-bash scripts/soko.sh setup && bash scripts/soko.sh doctor
+sokonanoda setup && sokonanoda doctor
 ```
 
 opencode users get the same via `/sokonanoda/setup` + `/sokonanoda/doctor`

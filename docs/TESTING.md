@@ -388,14 +388,14 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 ## 2026-09-10 更新（第二十三轮：环境配置单一入口）
 
 - **opencode/onboarding 契约**（`crates/cli/tests/opencode.rs`，8 个；含插件直连原生二进制、不许 `"bash"`、opencode.json 不写 lsp 的契约）：
-  `scripts/soko.sh doctor --json` 退出码契约（空缓存 3 → 伪造 marker 后
+  `sokonanoda doctor --json` 退出码契约（空缓存 3 → 伪造 marker 后
   0）、`setup` 离线可行动（exit 3 + 提示）、`grade` 直 exec 缓存 CLI、
   launcher 命中 VS Code 扩展自带 bin（无 cargo）、fake-curl 版本锁定下载
   （URL 含 `/download/v9.9.9/`、无 `/latest/`）、一无所有 exit 3、
   命名空间命令/插件/shim 契约（命令禁源码构建命令）。
 - **发布资产属性断言**：release job tar 前 chmod + `tar tzvf | grep '^-rwx'`
   （v0.8/v0.9 曾发布 0644 二进制；见 CI-FAILURES 2026-09-10）。
-- **本机冒烟**：`scripts/soko.sh setup && doctor`（READY）+
+- **本机冒烟**：`sokonanoda setup && sokonanoda doctor`（READY）+
   `grade playground.sokonanoda`（事件流）+ opencode LSP 诊断。
 
 ## 2026-09-11 更新（第二十八轮：内核已定义名字的声明 warning）
@@ -420,3 +420,22 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   测试：parser `type_with_level_parses_as_sort_succ`、front
   `type_with_level_is_lean_sort_succ`、CLI `cli_accepts_type_with_level_as_sort_succ`；
   课程单元④ zh/en 各加一条 `#check (Type 0)`（事件计数仍相等）。
+
+## 2026-09-11 更新（第二十九轮：环境能力进二进制，删除 `soko.sh`）
+
+- **触发**：用户要求环境能力做成二进制 CLI，拒绝 `scripts/soko.sh`（Windows
+  不可用、维护面大）。设计见 `docs/design/binary-cli.md`。
+- **CLI 子命令**（`crates/cli/src/env/`）：`version`/`doctor`/`setup`/
+  `update`/`grade`/`gate`；`setup`/`update` 用**内嵌下载器**
+  （`ureq`(rustls/ring) + `flate2` + `tar`，无 shell/外部工具）按
+  `build.rs` 钉死的 `TARGET` 拉取 `<pkg>-<triple>.tar.gz`；
+  `SOKONANODA_RELEASE_BASE` 供测试/自托管覆盖；标记与 VSIX/插件一致
+  （`<version> <vsce-target>`）。
+- **去脚本**：删除 `scripts/soko.sh`；`.opencode/command/sokonanoda/*` 改调
+  `sokonanoda <sub>`；插件 `findRepoRoot` 改用 `.opencode/plugin/sokonanoda.ts`
+  作仓库标记；LSP shim 改为解析二进制并 exec `sokonanoda lsp`。
+- **测试**（`crates/cli/tests/opencode.rs`，8 个，重写）：`version` 三态标记、
+  `doctor` 退出码、`setup` 离线可行动、`update` 用本地 HTTP 服务器验证
+  版本锁定下载（无 `/latest/`）、shim 解析/失败可行动、插件/命令契约。
+- **发布注意**：二进制新增 TLS（rustls/ring）+ tar/gzip 依赖，需 release
+  `workflow_dispatch` 干跑验证 8 平台交叉构建。

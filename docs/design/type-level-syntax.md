@@ -43,4 +43,4 @@ hover 看到 `Type 0` 就是 `Sort 1`，两者指同一个项。
 2. 单独的 `Type` 仍是 `Sort 1`（`inductive Nat : Type` 不受影响）；
 3. `Type -> Type`、`(x : Type)` 等旧用法零回归；
 4. 普通名字零 behavior 变化；`Type u` 仍按现有（不支持）行为对待；
-5. 课程 zh/en 事件计数仍相等；`scripts/soko.sh gate` 全绿。
+5. 课程 zh/en 事件计数仍相等；`sokonanoda gate` 全绿。

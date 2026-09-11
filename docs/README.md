@@ -46,6 +46,7 @@
 - `onboarding.md` — `scripts/soko.sh` 单一环境入口
 - `reserved-decl-warning.md` — 声明名撞内核已定义名字（`Prop`/`Sort`/`Type`）的 warning 通道
 - `type-level-syntax.md` — `Type n`（= `Sort (n+1)`）记法解析糖
+- `binary-cli.md` — 环境能力进 `sokonanoda` 二进制子命令（内嵌下载器），删除 `scripts/soko.sh`
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。

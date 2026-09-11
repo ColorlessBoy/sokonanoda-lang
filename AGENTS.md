@@ -12,21 +12,23 @@
 `REQUIREMENTS.md`/`STATUS.md`），开发者参考在 `docs/` 顶层，设计与调研笔记在
 `docs/design/`、`docs/notes/`；完整地图见 **`docs/README.md`**。
 
-## Setup（30 秒，用户/agent 零 cargo；设计见 `docs/design/onboarding.md`）
+## Setup（用户/agent 零 cargo；设计见 `docs/design/binary-cli.md`）
 
 ```bash
-bash scripts/soko.sh setup    # 幂等下载版本锁定的 CLI + LSP 到缓存
-bash scripts/soko.sh update   # 强制刷新缓存到仓库版本（版本变了/缓存过期时）
-bash scripts/soko.sh version  # 仓库版本 + 缓存里实际版本（--json 机器可读）
-bash scripts/soko.sh doctor   # 就绪诊断；--json 机器可读，0=就绪 3=未就绪
-bash scripts/soko.sh grade playground.sokonanoda   # 判卷（CLI --json）
+sokonanoda setup    # 版本锁定的 CLI + LSP → 缓存（幂等）
+sokonanoda update   # 强制刷新到当前版本
+sokonanoda version  # 版本 + 缓存里实际版本（--json 机器可读）
+sokonanoda doctor   # 就绪诊断；--json，0=就绪 3=未就绪
+sokonanoda grade playground.sokonanoda   # 判卷（--json 事件）
 ```
 
+- 环境能力就是 `sokonanoda` 二进制的子命令（内嵌下载器，跨平台；旧的
+  `scripts/soko.sh` 已删除）；二进制由 opencode 启动插件 provision 到缓存
+  并注入 PATH，首次获取也由插件或 VSIX 自带完成；
 - opencode 里等价命令：`/sokonanoda/setup` `/sokonanoda/update`
-  `/sokonanoda/version` `/sokonanoda/doctor` `/sokonanoda/check`；
-  启动插件会自动 provisioning（缓存版本标记不匹配就按仓库版本重下）并把
-  缓存目录注入 PATH；
-- 贡献者（需要 Rust）：`cargo build/test` 或 `bash scripts/soko.sh gate`
+  `/sokonanoda/version` `/sokonanoda/doctor` `/sokonanoda/check`
+  `/sokonanoda/gate`；
+- 贡献者（需要 Rust）：`cargo build/test` 或 `sokonanoda gate`
   （见 `skills/sokonanoda-dev`）；
 - 禁止：`releases/latest`、为使用仓库安装 Rust/cargo（REQUIREMENTS §2 第 9 条）。
 
@@ -49,10 +51,10 @@ bash scripts/soko.sh grade playground.sokonanoda   # 判卷（CLI --json）
    插件，不把 cargo/Rust 当使用前提（cargo 仅贡献者开发需要；见
    REQUIREMENTS §2 第 9 条）。
 
-## 命令（贡献者：需要 Rust；用户/agent 用 `scripts/soko.sh`）
+## 命令（贡献者：需要 Rust；用户/agent 用 `sokonanoda` 子命令）
 
 ```bash
-bash scripts/soko.sh gate     # = CI 门禁：fmt + clippy + test + playground 锚点
+sokonanoda gate     # = CI 门禁：fmt + clippy + test + playground 锚点
 # 或手动：
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 cargo clippy --workspace --all-targets
@@ -63,9 +65,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定
 （opencode 由启动插件自动接线：解析原生 `sokonanoda-lsp`——仓库构建 / VS Code
 扩展自带 / 缓存 / 版本锁定下载（`fetch`+`tar`，跨平台、零 bash）——并改写
-`lsp.command`；`shell.env` 注入 PATH；`opencode.json` 不再含 lsp 命令。
+`lsp.command`；`shell.env` 注入 PATH；`opencode.json` 不再含 lsp 命令）。
 非 opencode harness 可用 `.opencode/lsp/sokonanoda-lsp.sh` shim →
-`scripts/soko.sh lsp`。`skills/` 自动加载、`/sokonanoda/*` 命令、`teacher`
+`sokonanoda lsp`。`skills/` 自动加载、`/sokonanoda/*` 命令、`teacher`
 主 agent、Lean 工具链命令 deny）；goal 视图走自定义请求
 `soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt`
 （`docs/protocol.md`）。每个 release 仍正常产出各平台

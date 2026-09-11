@@ -18,10 +18,10 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 `docs/design/onboarding.md`）：
 
 ```bash
-bash scripts/soko.sh setup     # 版本锁定的 CLI + LSP → ~/.local/share/sokonanoda/bin
-bash scripts/soko.sh update    # 缓存过期/版本不匹配时强制刷新
-bash scripts/soko.sh version   # 看仓库版本 + 缓存里实际版本（--json）
-bash scripts/soko.sh doctor    # 就绪诊断；--json 供机器读，0=就绪 3=未就绪
+sokonanoda setup     # 版本锁定的 CLI + LSP → ~/.local/share/sokonanoda/bin
+sokonanoda update    # 缓存过期/版本不匹配时强制刷新
+sokonanoda version   # 看版本 + 缓存里实际版本（--json）
+sokonanoda doctor    # 就绪诊断；--json 供机器读，0=就绪 3=未就绪
 ```
 
 之后判卷直接用缓存里的二进制（opencode 启动插件会自动 setup 并把该目录注入
@@ -29,7 +29,7 @@ PATH，一般无需手动）：
 
 ```bash
 "$HOME/.local/share/sokonanoda/bin/sokonanoda" --json playground.sokonanoda
-# 等价：bash scripts/soko.sh grade playground.sokonanoda
+# 等价：sokonanoda grade playground.sokonanoda
 ```
 
 - 版本严格按仓库 `Cargo.toml` 锁定，**禁用 `releases/latest`**；
@@ -41,7 +41,7 @@ PATH，一般无需手动）：
 ## 2. 环境与命令速查（在仓库根目录执行）
 
 ```bash
-# 判卷二进制：scripts/soko.sh setup 已就绪（opencode 插件自动 provisioning）。
+# 判卷二进制：`sokonanoda setup` 已就绪（opencode 插件自动 provisioning）。
 SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
 
 # 判卷（人类可读 + 机器事件两种视图）

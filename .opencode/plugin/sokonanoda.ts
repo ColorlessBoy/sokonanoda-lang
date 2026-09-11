@@ -40,7 +40,10 @@ function binaryName(base: string): string {
 function findRepoRoot(start: string): string | undefined {
   let dir = start
   for (;;) {
-    if (existsSync(path.join(dir, "Cargo.toml")) && existsSync(path.join(dir, "scripts", "soko.sh")))
+    if (
+      existsSync(path.join(dir, "Cargo.toml")) &&
+      existsSync(path.join(dir, ".opencode", "plugin", "sokonanoda.ts"))
+    )
       return dir
     const parent = path.dirname(dir)
     if (parent === dir) return undefined
@@ -89,8 +92,8 @@ function markerPath(dir: string, base: string): string {
 }
 
 /// True when the cached binary's version marker matches `<version> <target>`
-/// (the same marker `scripts/soko.sh` writes). A missing/stale marker means the
-/// cached binary must be refreshed from the version-pinned release.
+/// (the same marker the CLI's `setup`/`update` writes). A missing/stale marker
+/// means the cached binary must be refreshed from the version-pinned release.
 function markerMatches(dir: string, base: string, version: string): boolean {
   const target = platformTarget()
   if (!target) return false

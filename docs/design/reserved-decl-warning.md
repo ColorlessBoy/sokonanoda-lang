@@ -60,4 +60,4 @@
 4. LSP 在对应行给出 `WARNING` 严重级诊断，且不把文件判成错误；
 5. 会话零重编译（仅改注释）后 warning 仍在；
 6. `docs/protocol.md` 记录新事件；三层测试（front 单测 + CLI e2e +
-   LSP）全绿；`scripts/soko.sh gate` 通过。
+   LSP）全绿；`sokonanoda gate` 通过。

@@ -314,4 +314,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   报告仓库版本/平台与缓存 CLI/LSP 的 `<version> <target>` 标记是否匹配）；
   opencode 补 `/sokonanoda/update`、`/sokonanoda/version`；插件按标记校验
   缓存并在重下后写标记（修掉纯缓存不随版本更新的缺陷）。契约测试与
-  `AGENTS.md`/`docs/design/onboarding.md`/teacher 技能同步。
+   `AGENTS.md`/`docs/design/onboarding.md`/teacher 技能同步。
+- 2026-09-11（三十二）：**环境能力进二进制、删除 `soko.sh`（用户要求）**：
+  用户要求把 onboarding/环境能力做成**二进制 CLI** 并拒绝 `scripts/soko.sh`。
+  落地：`sokonanoda` 新增子命令 `version`/`doctor`/`setup`/`update`/`grade`/
+  `gate`（沿用既有 `lsp`）；`setup`/`update` 用内嵌下载器
+  （`ureq`(rustls/ring) + `flate2` + `tar`，编译期 `TARGET` 钉死）按版本锁定
+  拉取 release 资产；删除 `scripts/soko.sh`，opencode 命令改调二进制、插件与
+  shim 去脚本化；缓存标记 `<version> <vsce-target>` 与 VSIX/插件一致。
+  设计见 `docs/design/binary-cli.md`。首次获取二进制仍由 opencode 插件或
+  VSIX 完成（不是 shell 脚本）。

@@ -13,6 +13,9 @@ path = "src/main.rs"
 sokonanoda-front = { path = "../front" }
 sokonanoda-lsp = { path = "../lsp" }
 serde_json = "1"
+flate2 = "1.1.10"
+tar = "0.4.46"
+ureq = "3.4.1"
 
 # lang：教学 crates 的 clippy 严格门禁（kernel 冻结快照不参与）。
 [lints.rust]

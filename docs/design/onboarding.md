@@ -1,5 +1,10 @@
 # 环境配置与入门（设计）
 
+> 更新（2026-09-11）：`scripts/soko.sh` 已删除，环境能力改由 `sokonanoda`
+> 二进制的子命令提供（`version`/`doctor`/`setup`/`update`/`grade`/`gate`/
+> `lsp`），见 `docs/design/binary-cli.md`。下文是引入脚本时的 as-built
+> 记录，保留作历史；命令名以 `binary-cli.md` 为准。
+
 > 日期：2026-09-10。触发：用户反馈「项目没有把如何配置好环境写清楚，让 code
 > agent 搞了好久，流程没有理顺；要调研优秀实践」。本文是调研结论 + 单一入口
 > 设计（as-built：`scripts/soko.sh` + `/sokonanoda/*` 命令 + 自动 provisioning

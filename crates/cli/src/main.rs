@@ -2,6 +2,7 @@
 
 mod check;
 mod course;
+mod env;
 mod help;
 mod json_report;
 mod repl;
@@ -17,11 +18,13 @@ use watch::watch;
 fn main() -> ExitCode {
     let mut json = false;
     let mut bare = false;
+    let mut force = false;
     let mut positionals: Vec<String> = Vec::new();
     for arg in std::env::args().skip(1) {
         match arg.as_str() {
             "--json" => json = true,
             "--bare" => bare = true,
+            "--force" => force = true,
             "-h" | "--help" => {
                 print_help();
                 return ExitCode::SUCCESS;
@@ -34,6 +37,13 @@ fn main() -> ExitCode {
         }
     }
     match positionals.first().map(String::as_str) {
+        // Environment subcommands (binary replacement for scripts/soko.sh).
+        Some("version") => env::version_cmd(json),
+        Some("doctor") => env::doctor(json),
+        Some("setup") => env::setup(force),
+        Some("update") => env::update(),
+        Some("grade") => env::grade(&positionals[1..]),
+        Some("gate") => env::gate(),
         Some("repl") if !json => repl(),
         Some("repl") => {
             eprintln!("error: --json is only supported for batch checking, not the repl");

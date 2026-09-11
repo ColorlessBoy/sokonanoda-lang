@@ -55,15 +55,15 @@ cargo test --workspace --locked             # 全部 13 个套件
 git clone https://github.com/ColorlessBoy/sokonanoda-lang.git && cd sokonanoda-lang
 
 # 方式 ①（agent / headless，与 VS Code 解耦）：一条命令
-bash scripts/soko.sh setup     # 版本锁定下载 CLI + LSP（幂等；零 cargo）
-bash scripts/soko.sh doctor    # 0=就绪 3=未就绪；--json 机器可读
+sokonanoda setup     # 版本锁定下载 CLI + LSP（幂等；零 cargo；内嵌下载器）
+sokonanoda doctor    # 0=就绪 3=未就绪；--json 机器可读
 
 # 方式 ②（开发必需）：源码编译（CLI + LSP + 全量测试）
 cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
 export PATH="$PWD/target/release:$PATH"
 
 # 门禁（= CI：fmt + clippy + test + playground 锚点）
-bash scripts/soko.sh gate
+sokonanoda gate
 ```
 
 Release 资产：每个平台的 `sokonanoda-lsp-<rust-triple>.tar.gz` 与

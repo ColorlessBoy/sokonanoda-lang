@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-11（第二十八轮：内核已定义名字的声明 warning）
+> 快照：2026-09-11（第二十九轮：环境能力进二进制，删除 soko.sh）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,31 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-11，第二十九轮：环境能力进二进制，删除 soko.sh）
+
+> 触发：用户要求环境能力做成二进制 CLI，拒绝 `scripts/soko.sh`（Windows
+> 不可用、维护面大）。设计见 `docs/design/binary-cli.md`。
+
+1. **CLI 子命令**（`crates/cli/src/env/`，内嵌下载器）：`version`/`doctor`/
+   `setup`/`update`/`grade`/`gate`（沿用 `lsp`）；`build.rs` 在编译期钉死
+   `SOKONANODA_TARGET`，按 `<pkg>-<triple>.tar.gz` 下载并写
+   `<version> <vsce-target>` 标记（与 VSIX/插件一致）；HTTP/TLS + 解压用
+   `ureq`(rustls/ring) + `flate2` + `tar`，无 shell/外部工具；
+   `SOKONANODA_RELEASE_BASE` 供测试/自托管覆盖，`SOKONANODA_OFFLINE` 离线。
+2. **去脚本**：删除 `scripts/soko.sh`；`.opencode/command/sokonanoda/*` 改调
+   `sokonanoda <sub>`；插件 `findRepoRoot` 改用 `.opencode/plugin/sokonanoda.ts`
+   作仓库标记；LSP shim 改为解析二进制 + `sokonanoda lsp`。
+3. **测试**：`crates/cli/tests/opencode.rs` 重写为 8 个（`version` 三态标记、
+   `doctor` 退出码、`setup` 离线可行动、`update` 本地 HTTP 服务器验证版本
+   锁定下载、shim 解析/失败可行动、插件与命令契约）。
+4. **独立验收（subagent）**：build / `--test opencode` / 全部子命令（含真实
+   网络 `setup`+`update`）/ `grade` / shim / 契约 / clippy 全过；唯一发现
+   `cargo fmt` 未过（新 `src/env/` 的 7 处换行）→ 已修。
+5. **文档**：新增 `docs/design/binary-cli.md`；AGENTS/README/`skills/README`/
+   teacher+dev 技能/TESTING 同步；onboarding 加历史注记；调研笔记补后续。
+6. **发布注意**：二进制新增 TLS+tar 依赖，需 release `workflow_dispatch`
+   干跑验证 8 平台交叉构建（rustls/ring）。
 
 ## 本轮进度（2026-09-11，第二十八轮：内核已定义名字的声明 warning）
 
