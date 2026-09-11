@@ -12,6 +12,22 @@
 - 预防：
 ```
 
+### 2026-09-11 — release github-release job 对 Windows artifact 目录 chmod 失败
+- 原因：`release.yml` 的 tarball 循环无条件
+  `chmod +x "${dir}sokonanoda-lsp"`；Windows 构建产物是
+  `sokonanoda-lsp.exe`（artifact 目录 `lsp-*pc-windows-msvc/`），chmod 找不到
+  文件即失败（`bash -e` 直接死），8 个 LSP/CLI tarball 与 9 个 VSIX 都没上传，
+  Release 页只剩自动生成的 notes、零资产。Marketplace 发布（独立 job）不受
+  影响，0.10.0 已正常上架。
+- 修复：tarball 循环按 target 是否含 `windows` 追加 `.exe`
+  （`exe=""; [[ "$target" == *windows* ]] && exe=".exe"`）；`git tag -f v0.10.0`
+  指向修复 commit 后强推 tag 重跑（tag 触发 workflow 用的是 tag 指向的 commit
+  上的文件，`gh run rerun` 只会重放旧文件）。
+- 预防：**任何跨平台打包/上传循环都要按 artifact 里的实际文件名处理 `.exe`**
+  （与 package-vsix 的 stage-lsp.js 一致）；发布后核对 GitHub Release 资产数
+  （25 个）与 Marketplace 版本，双页都验证。v0.9.0 的 tarball exec 位教训同
+  族（平台差异 → 发布资产损坏），发布清单里加「Release 资产数 + 可执行位
+  抽样」项。
 ---
 
 ### 2026-09-08 — fmt 格式不匹配（debug 测试未格式化）

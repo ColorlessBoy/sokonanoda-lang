@@ -255,7 +255,8 @@ jobs:
           for dir in lsp-*/; do
             target="${dir#lsp-}"
             target="${target%/}"
-            chmod +x "${dir}sokonanoda-lsp"
+            exe=""; [[ "$target" == *windows* ]] && exe=".exe"
+            chmod +x "${dir}sokonanoda-lsp${exe}"
             tar czf "sokonanoda-lsp-${target}.tar.gz" -C "$dir" .
             tar tzvf "sokonanoda-lsp-${target}.tar.gz" | grep -q '^-rwx' \
               || { echo "exec bit missing in sokonanoda-lsp-${target}.tar.gz"; exit 1; }
@@ -265,7 +266,8 @@ jobs:
           for dir in cli-*/; do
             target="${dir#cli-}"
             target="${target%/}"
-            chmod +x "${dir}sokonanoda"
+            exe=""; [[ "$target" == *windows* ]] && exe=".exe"
+            chmod +x "${dir}sokonanoda${exe}"
             tar czf "sokonanoda-cli-${target}.tar.gz" -C "$dir" .
             tar tzvf "sokonanoda-cli-${target}.tar.gz" | grep -q '^-rwx' \
               || { echo "exec bit missing in sokonanoda-cli-${target}.tar.gz"; exit 1; }
