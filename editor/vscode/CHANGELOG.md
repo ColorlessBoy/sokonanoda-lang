@@ -1,3 +1,12 @@
+## [0.11.0] - 2026-09-11
+
+### Added
+- **Warns on declarations named like built-in sorts** — `Prop`, `Sort` and
+  `Type` always parse to the built-in sort, so a top-level declaration using
+  one of those names can never be referenced. It still compiles, but the
+  editor now shows a `reserved-declaration-name` warning on the name, and the
+  CLI emits a matching `warning` event.
+
 ## [0.10.0] - 2026-09-10
 
 ### Added

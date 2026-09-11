@@ -54,6 +54,11 @@ const KERNEL_BAD = "def bad : Prop -> Type := fun (x : Prop) => x\n";
 // 服务器发 code `sorry` 的 WARNING（不是 error，也不该静默）。
 const EXERCISE = "theorem t : True := sorry\n";
 
+// 声明名撞内置排序：内核接受（`Prop` 在这里是内置排序），但这个顶层名字
+// 永远解析不到 → 服务器发 code `reserved-declaration-name` 的 WARNING，
+// 文件整体仍编译通过。
+const RESERVED = "axiom Prop : Sort 1\n";
+
 const suiteRunner = SERVER_BINARY ? suite : suite.skip;
 
 suiteRunner("sokonanoda extension (VS Code integration)", () => {
@@ -213,6 +218,33 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
         .getDiagnostics(uri)
         .some((d) => d.severity === vscode.DiagnosticSeverity.Error),
       "no error diagnostics for a compiling file with holes",
+    );
+  });
+
+  test("a declaration named like a built-in sort warns, not errors", async () => {
+    const uri = await writeDoc("reserved.sokonanoda", RESERVED);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    await waitFor("a reserved-declaration-name diagnostic", async () =>
+      vscode.languages
+        .getDiagnostics(uri)
+        .some((d) => d.code === "reserved-declaration-name"),
+    );
+    const diagnostic = vscode.languages
+      .getDiagnostics(uri)
+      .find((d) => d.code === "reserved-declaration-name");
+    assert.ok(diagnostic, "the reserved-declaration-name diagnostic must stay published");
+    assert.strictEqual(diagnostic.source, "sokonanoda", "diagnostics must be sourced");
+    assert.strictEqual(
+      diagnostic.severity,
+      vscode.DiagnosticSeverity.Warning,
+      "a sort-name collision is a warning, not an error",
+    );
+    assert.ok(
+      !vscode.languages
+        .getDiagnostics(uri)
+        .some((d) => d.severity === vscode.DiagnosticSeverity.Error),
+      "the declaration itself compiles: no error diagnostics",
     );
   });
 

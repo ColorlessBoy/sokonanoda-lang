@@ -24,6 +24,9 @@ skills.
   inside parentheses) for `expression : type`; partial applications
   print your actual binder names, definition heads stay folded
   (`Not a`, not `a -> False`).
+- **Honest warnings** — a declaration named like a built-in sort (`Prop`,
+  `Sort`, `Type`) still compiles, but the name can never be referenced;
+  the editor flags it with a `reserved-declaration-name` warning.
 
 **Guided exercises**
 
