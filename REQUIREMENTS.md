@@ -307,3 +307,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    课程单元④（zh + en + 解答钥匙）写清 `Type n = Sort (n+1)` 并加
    `#check (Type 0)`；front 解析/编译单测 + CLI e2e；白名单文档同步。
    设计见 `docs/design/type-level-syntax.md`。
+- 2026-09-11（三十一）：**onboarding 的 `update` / `version` 命令（用户要求）**：
+  经查 `scripts/soko.sh` 原只有 `setup`/`doctor`（`setup` 兼作更新，`doctor`
+  报版本），没有具名 `update` 与看版本号的命令。补：`soko.sh update`（=
+  `setup --force`，强制刷新到仓库版本）与 `soko.sh version [--json]`（只读
+  报告仓库版本/平台与缓存 CLI/LSP 的 `<version> <target>` 标记是否匹配）；
+  opencode 补 `/sokonanoda/update`、`/sokonanoda/version`；插件按标记校验
+  缓存并在重下后写标记（修掉纯缓存不随版本更新的缺陷）。契约测试与
+  `AGENTS.md`/`docs/design/onboarding.md`/teacher 技能同步。

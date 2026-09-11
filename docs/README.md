@@ -56,6 +56,7 @@
 - `lsp-notes.md` / `vscode-notes.md` — LSP / VS Code 接入实践调研
 - `gap-analysis.md` — 业内标准差距审计
 - `inductive.md` — `inductive`/`ctor`/`rec`/`iota` 讲解
+- `rust-cross-platform-binary.md` — 为什么跨 OS 没有单一 Rust 二进制、引导器（`soko.sh`/插件）的角色
 
 ## 关联目录
 

@@ -84,6 +84,23 @@ function readVersion(repo: string): string | undefined {
   }
 }
 
+function markerPath(dir: string, base: string): string {
+  return path.join(dir, `${base}.version`)
+}
+
+/// True when the cached binary's version marker matches `<version> <target>`
+/// (the same marker `scripts/soko.sh` writes). A missing/stale marker means the
+/// cached binary must be refreshed from the version-pinned release.
+function markerMatches(dir: string, base: string, version: string): boolean {
+  const target = platformTarget()
+  if (!target) return false
+  try {
+    return readFileSync(markerPath(dir, base), "utf8").trim() === `${version} ${target}`
+  } catch {
+    return false
+  }
+}
+
 /// Newest of the contributor builds (`target/release|debug`).
 function repoBuild(repo: string, base: string): string | undefined {
   const name = binaryName(base)
@@ -145,7 +162,9 @@ async function downloadBinary(
   if (!triple || process.env.SOKONANODA_OFFLINE) return undefined
   const dir = cacheDir()
   const dest = path.join(dir, binaryName(base))
-  if (existsSync(dest)) return dest
+  // Re-use the cached binary only when its marker matches the repo version;
+  // otherwise re-fetch from the version-pinned release (never `latest`).
+  if (existsSync(dest) && markerMatches(dir, base, version)) return dest
   let tmp: string | undefined
   try {
     const res = await fetch(`${RELEASES}/v${version}/${pkg}-${triple}.tar.gz`)
@@ -166,6 +185,7 @@ async function downloadBinary(
         // read-only cache dir
       }
     }
+    writeFileSync(markerPath(dir, base), `${version} ${platformTarget()}\n`)
     return existsSync(dest) ? dest : undefined
   } catch {
     return undefined
@@ -187,11 +207,18 @@ async function resolveServer(repo: string | undefined): Promise<string | undefin
     if (bundled) return bundled
   }
   const cached = path.join(cacheDir(), binaryName("sokonanoda-lsp"))
-  if (existsSync(cached)) return cached
-  if (!repo) return undefined
-  const version = readVersion(repo)
-  if (!version) return undefined
-  return downloadBinary(version, "sokonanoda-lsp", "sokonanoda-lsp")
+  const version = repo ? readVersion(repo) : undefined
+  // Use the cache when we cannot determine the expected version, or when its
+  // marker matches. A stale cache is refreshed from the pinned release.
+  if (
+    existsSync(cached) &&
+    (!version || markerMatches(cacheDir(), "sokonanoda-lsp", version))
+  )
+    return cached
+  if (!version) return existsSync(cached) ? cached : undefined
+  const downloaded = await downloadBinary(version, "sokonanoda-lsp", "sokonanoda-lsp")
+  // Offline / download failure: fall back to the (possibly stale) cache.
+  return downloaded ?? (existsSync(cached) ? cached : undefined)
 }
 
 export const Sokonanoda: Plugin = async ({ directory }) => {

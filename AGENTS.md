@@ -16,12 +16,16 @@
 
 ```bash
 bash scripts/soko.sh setup    # 幂等下载版本锁定的 CLI + LSP 到缓存
+bash scripts/soko.sh update   # 强制刷新缓存到仓库版本（版本变了/缓存过期时）
+bash scripts/soko.sh version  # 仓库版本 + 缓存里实际版本（--json 机器可读）
 bash scripts/soko.sh doctor   # 就绪诊断；--json 机器可读，0=就绪 3=未就绪
 bash scripts/soko.sh grade playground.sokonanoda   # 判卷（CLI --json）
 ```
 
-- opencode 里等价命令：`/sokonanoda/setup` `/sokonanoda/doctor` `/sokonanoda/check`；
-  启动插件会自动跑一次 setup 并把缓存目录注入 PATH；
+- opencode 里等价命令：`/sokonanoda/setup` `/sokonanoda/update`
+  `/sokonanoda/version` `/sokonanoda/doctor` `/sokonanoda/check`；
+  启动插件会自动 provisioning（缓存版本标记不匹配就按仓库版本重下）并把
+  缓存目录注入 PATH；
 - 贡献者（需要 Rust）：`cargo build/test` 或 `bash scripts/soko.sh gate`
   （见 `skills/sokonanoda-dev`）；
 - 禁止：`releases/latest`、为使用仓库安装 Rust/cargo（REQUIREMENTS §2 第 9 条）。

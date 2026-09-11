@@ -19,6 +19,8 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 
 ```bash
 bash scripts/soko.sh setup     # 版本锁定的 CLI + LSP → ~/.local/share/sokonanoda/bin
+bash scripts/soko.sh update    # 缓存过期/版本不匹配时强制刷新
+bash scripts/soko.sh version   # 看仓库版本 + 缓存里实际版本（--json）
 bash scripts/soko.sh doctor    # 就绪诊断；--json 供机器读，0=就绪 3=未就绪
 ```
 

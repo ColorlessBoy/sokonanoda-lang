@@ -46,6 +46,8 @@
 | 命令 | 用途 | 退出码 |
 |---|---|---|
 | `setup [--force]` | 幂等下载版本锁定的 CLI+LSP 到缓存（`~/.local/share/sokonanoda/bin`）；版本标记 = `<version> <target>` | 0 / 3 |
+| `update` | 强制按仓库版本重下（= `setup --force`；版本变了/缓存过期时用） | 0 / 3 |
+| `version [--json]` | 只读：仓库版本 + target + 缓存里 CLI/LSP 的标记与是否匹配 | 0 |
 | `doctor [--json]` | 只读诊断：version/target/cache/cli/lsp/launcher/plugin/cargo | 0 就绪 / 3 未就绪 |
 | `grade <file...>` | 缺二进制自动补齐后执行 CLI `--json` | 0 / 3 |
 | `gate` | 贡献者 CI 门禁（fmt/clippy/test/playground），需要 cargo | 0 / 1 / 3 |
@@ -58,13 +60,15 @@
 
 ### 3.2 opencode 层（薄，运行时零 bash）
 
-- **命令命名空间**：`.opencode/command/sokonanoda/{setup,doctor,check,gate,round}.md`
-  → `/sokonanoda/setup`、`/sokonanoda/doctor`、`/sokonanoda/check`、
-  `/sokonanoda/gate`、`/sokonanoda/round`；旧的扁平 `/check` `/setup`
+- **命令命名空间**：`.opencode/command/sokonanoda/{setup,update,version,doctor,check,gate,round}.md`
+  → `/sokonanoda/setup`、`/sokonanoda/update`、`/sokonanoda/version`、
+  `/sokonanoda/doctor`、`/sokonanoda/check`、`/sokonanoda/gate`、
+  `/sokonanoda/round`；旧的扁平 `/check` `/setup`
   `/gate` `/round` 删除。命令体只调用 `scripts/soko.sh`（根无关），不复制逻辑。
 - **插件 = LSP 接线**（`.opencode/plugin/sokonanoda.ts`，跨平台、零 bash）：
   启动时解析服务器（`SOKONANODA_LSP_BIN` → 仓库构建 → VS Code 扩展自带 →
-  缓存 → 版本锁定下载，`fetch` + `tar`），用 `config` 钩子把
+  缓存（先按 `<version> <target>` 标记校验，过期/缺失就重下）→ 版本锁定下载，
+  `fetch` + `tar`），用 `config` 钩子把
   `lsp.sokonanoda.command` 改写为**原生二进制绝对路径**；`shell.env` 把缓存
   目录注入 PATH。用户自己写的 `lsp.sokonanoda` 会被尊重、不覆盖。
   （实验证实 config 钩子在 LSP 启动前生效；`tar` 在 Windows 10+/macOS/Linux
@@ -87,7 +91,9 @@
 ## 4. 测试
 
 - `scripts/soko.sh doctor --json`（exit 3 → 伪造缓存后 exit 0）、`setup`
-  离线报错、`lsp` 无 cargo 命中扩展自带 bin、fake-curl 版本锁定下载
+  离线报错、`version --json`（空缓存/过期标记/匹配标记三态）、`update`
+  强制重下（fake-curl 断言锁定 `v<version>`、双 tarball）、`lsp` 无 cargo
+  命中扩展自带 bin、fake-curl 版本锁定下载
   （见 `crates/cli/tests/opencode.rs`，unix）。
 - 契约：命令必须嵌套命名且 cargo-free；launcher 只含 shim（引用
   `scripts/soko.sh`）；插件文件存在且只引用脚本。

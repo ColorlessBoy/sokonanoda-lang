@@ -62,6 +62,19 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
     `SortKind::Sort`，不碰 elaborator/内核。课程单元④（zh + en + 钥匙）+
    front 解析/编译单测 + CLI e2e + 白名单文档同步。设计见
    `docs/design/type-level-syntax.md`。
+11. **onboarding 补 `update` / `version`（用户要求）**：`soko.sh` 新增
+    `update`（强制按仓库版本重下 = `setup --force`）与 `version [--json]`
+    （只读报告仓库版本/平台 + 缓存里 CLI/LSP 的 `<version> <target>` 标记与
+    是否匹配）；opencode 新增 `/sokonanoda/update`、`/sokonanoda/version`；
+    插件 `downloadBinary` 现在按标记校验缓存（过期/缺失就重下，下载后写
+    标记）——修掉「发新版后纯缓存不会更新」。契约测试 opencode 8→10；
+    AGENTS/onboarding/teacher 文档同步。
+12. **调研：为什么不用单一跨平台 Rust 二进制替代 `soko.sh`（用户提问）**：
+    结论——跨 OS 的单一二进制在技术上不存在，Rust 按 target triple 编译，
+    "跨平台"= 每平台一份二进制 + 一个"选对并取回"的引导器；`soko.sh` 与
+    Node 插件就是引导器（rustup 也是 `rustup-init.sh` 引导）。记录见
+    `docs/notes/rust-cross-platform-binary.md`（含可选的减负方向：
+    自检命令下放 CLI、POSIX sh、cargo-dist/cargo-binstall）。
 
 ## 本轮进度（2026-09-11，第二十七轮：文档结构收敛）
 

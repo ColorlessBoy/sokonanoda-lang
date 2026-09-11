@@ -98,7 +98,9 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
 
     // Commands live under the `sokonanoda/` namespace (invoked /sokonanoda/…);
     // the old flat names must be gone.
-    for name in ["setup", "doctor", "check", "gate", "round"] {
+    for name in [
+        "setup", "update", "version", "doctor", "check", "gate", "round",
+    ] {
         let path = root.join(format!(".opencode/command/sokonanoda/{name}.md"));
         assert!(path.exists(), "missing namespaced command {name}");
         let body = fs::read_to_string(&path).expect("command readable");
@@ -113,7 +115,7 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
             "flat command {dead} must be removed (namespaced now)"
         );
     }
-    for name in ["setup", "doctor", "check"] {
+    for name in ["setup", "update", "version", "doctor", "check"] {
         let body = fs::read_to_string(root.join(format!(".opencode/command/sokonanoda/{name}.md")))
             .expect("command readable");
         assert!(
@@ -149,6 +151,12 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
             && plugin.contains("shell.env")
             && plugin.contains("findRepoRoot"),
         "plugin must find the repo root, run the setup script, and inject PATH via shell.env"
+    );
+    // The plugin must version-check the cache (marker `<version> <target>`)
+    // before reusing a cached binary, so a repo version bump refreshes it.
+    assert!(
+        plugin.contains("markerMatches") && plugin.contains(".version"),
+        "plugin must version-check the cache before reusing it"
     );
 
     // The entrypoint itself must exist and be runnable.
@@ -443,6 +451,151 @@ fn launcher_failure_is_actionable_when_nothing_is_available() {
     assert!(
         stderr.contains("找不到语言服务器二进制"),
         "failure must be actionable: {stderr}"
+    );
+    fs::remove_dir_all(&tmp).ok();
+}
+
+/// `version --json` is the read-only status contract: it reports the repo
+/// version + target and the cached binaries' markers, flagging stale caches.
+#[cfg(unix)]
+#[test]
+fn soko_version_reports_repo_and_cached_markers() {
+    let root = repo_root();
+    let tmp = unique_tmp("version");
+    let cache = tmp.join("cache");
+    fs::create_dir_all(&cache).expect("create cache");
+
+    let run = || {
+        Command::new("bash")
+            .arg(root.join("scripts/soko.sh"))
+            .arg("version")
+            .arg("--json")
+            .env("SOKONANODA_CACHE_DIR", &cache)
+            .output()
+            .expect("run version")
+    };
+
+    let output = run();
+    assert!(output.status.success(), "version must always succeed");
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).expect("version JSON");
+    assert_eq!(json["cli"]["match"], false, "empty cache cannot match");
+    assert_eq!(json["lsp"]["present"], false);
+    let version = json["version"].as_str().expect("version").to_string();
+    let target = json["target"].as_str().expect("target").to_string();
+
+    // A present-but-stale binary must be flagged, not reported as ready.
+    write_executable(&cache.join("sokonanoda"), "#!/usr/bin/env bash\nexit 0\n");
+    fs::write(cache.join("sokonanoda.version"), "0.0.1 nowhere\n").expect("stale marker");
+    let output = run();
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).expect("version JSON");
+    assert_eq!(json["cli"]["present"], true);
+    assert_eq!(json["cli"]["marker"], "0.0.1 nowhere");
+    assert_eq!(json["cli"]["match"], false, "stale marker must not match");
+
+    // Markers for the repo version + host target match.
+    fs::write(
+        cache.join("sokonanoda.version"),
+        format!("{version} {target}\n"),
+    )
+    .expect("fresh marker");
+    let output = run();
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).expect("version JSON");
+    assert_eq!(json["cli"]["match"], true);
+
+    fs::remove_dir_all(&tmp).ok();
+}
+
+/// `update` force-refreshes even a ready cache (plain `setup` would skip it):
+/// the version-pinned tarballs must be re-fetched.
+#[cfg(unix)]
+#[test]
+fn soko_update_forces_a_refetch() {
+    let tmp = unique_tmp("update");
+    copy_script_env(&tmp, "9.9.9");
+
+    // One payload tarball carrying both binaries (download_one extracts and
+    // checks for the expected name each time).
+    let payload_dir = tmp.join("payload");
+    write_executable(
+        &payload_dir.join("sokonanoda"),
+        "#!/usr/bin/env bash\necho CLI\n",
+    );
+    write_executable(
+        &payload_dir.join("sokonanoda-lsp"),
+        "#!/usr/bin/env bash\necho LSP\n",
+    );
+    let tarball = tmp.join("asset.tar.gz");
+    let tar = Command::new("tar")
+        .args(["czf"])
+        .arg(&tarball)
+        .args(["-C"])
+        .arg(&payload_dir)
+        .args(["sokonanoda", "sokonanoda-lsp"])
+        .output()
+        .expect("run tar");
+    assert!(tar.status.success(), "tar failed: {tar:?}");
+
+    let fake_bin = tmp.join("fake-bin");
+    write_executable(
+        &fake_bin.join("curl"),
+        "#!/usr/bin/env bash\nprintf '%s\\n' \"$@\" >> \"$FAKE_CURL_LOG\"\ncat \"$FAKE_TARBALL\"\n",
+    );
+    let curl_log = tmp.join("curl.log");
+    let cache = tmp.join("cache");
+
+    // A cache that already matches the repo version: `setup` would skip it.
+    fs::create_dir_all(&cache).expect("cache");
+    write_executable(&cache.join("sokonanoda"), "#!/usr/bin/env bash\nexit 0\n");
+    write_executable(
+        &cache.join("sokonanoda-lsp"),
+        "#!/usr/bin/env bash\nexit 0\n",
+    );
+    let doctor = Command::new("bash")
+        .arg(tmp.join("scripts/soko.sh"))
+        .arg("doctor")
+        .arg("--json")
+        .env("SOKONANODA_CACHE_DIR", &cache)
+        .env("SOKONANODA_OFFLINE", "1")
+        .output()
+        .expect("run doctor");
+    let djson: serde_json::Value = serde_json::from_slice(&doctor.stdout).expect("doctor JSON");
+    let version = djson["version"].as_str().expect("version").to_string();
+    let target = djson["target"].as_str().expect("target").to_string();
+    for base in ["sokonanoda", "sokonanoda-lsp"] {
+        fs::write(
+            cache.join(format!("{base}.version")),
+            format!("{version} {target}\n"),
+        )
+        .expect("marker");
+    }
+
+    let output = Command::new("bash")
+        .arg(tmp.join("scripts/soko.sh"))
+        .arg("update")
+        .env("SOKONANODA_CACHE_DIR", &cache)
+        .env("PATH", format!("{}:/usr/bin:/bin", fake_bin.display()))
+        .env("FAKE_CURL_LOG", &curl_log)
+        .env("FAKE_TARBALL", &tarball)
+        .env_remove("SOKONANODA_OFFLINE")
+        .output()
+        .expect("run update");
+    assert!(
+        output.status.success(),
+        "update must succeed: {:?}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let log = fs::read_to_string(&curl_log).expect("fake curl log");
+    assert!(
+        log.contains("releases/download/v9.9.9/sokonanoda-cli-"),
+        "update must re-fetch the CLI: {log}"
+    );
+    assert!(
+        log.contains("releases/download/v9.9.9/sokonanoda-lsp-"),
+        "update must re-fetch the LSP: {log}"
+    );
+    assert!(
+        !log.contains("/latest/"),
+        "never use the latest alias: {log}"
     );
     fs::remove_dir_all(&tmp).ok();
 }
