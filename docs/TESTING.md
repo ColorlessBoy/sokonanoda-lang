@@ -398,7 +398,7 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 - **本机冒烟**：`scripts/soko.sh setup && doctor`（READY）+
   `grade playground.sokonanoda`（事件流）+ opencode LSP 诊断。
 
-## 2026-09-11 更新（第二十八轮：保留排序名声明 warning）
+## 2026-09-11 更新（第二十八轮：内核已定义名字的声明 warning）
 
 - **触发**：画布 `axiom Prop : Sort 1`——内核接受但名字永不被引用；用户
   要在 VS Code 里给出 warning。设计见 `docs/design/reserved-decl-warning.md`。
@@ -416,3 +416,7 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   测试：`reserved_declaration_name_is_a_warning_not_an_error`（LSP 93，+1）。
 - **锚点**：`playground.sokonanoda` 现为 checked=14 / open=5 / warning=1 /
   0 诊断（第 79 行的 `axiom Prop : Sort 1`）。
+- **`Type n` 记法**（同轮，用户要求）：`Type n` = `Sort (n + 1)` 解析糖。
+  测试：parser `type_with_level_parses_as_sort_succ`、front
+  `type_with_level_is_lean_sort_succ`、CLI `cli_accepts_type_with_level_as_sort_succ`；
+  课程单元④ zh/en 各加一条 `#check (Type 0)`（事件计数仍相等）。

@@ -2731,8 +2731,9 @@ fn by_block_with_sorry_placeholder_is_open_exercise() {
 
 #[test]
 fn reserved_declaration_name_produces_a_warning() {
-    // `axiom Prop : Sort 1` 能通过内核，但这个名字永不被引用（所有 `Prop`
-    // 都解析为内置排序）——产出语法级 warning，不是 error。
+    // `axiom Prop : Sort 1` 能通过内核，但这个名字永不被引用（`Prop` 内核
+    // 已经定义过，代码里的 `Prop` 都指内核那个）——产出语法级 warning，
+    // 不是 error。
     let src = "axiom Prop : Sort 1\n";
     let file = parse(src).unwrap();
     let out = compile_fol(&file);
@@ -2758,4 +2759,26 @@ fn ordinary_declaration_names_have_no_warning() {
     let out = compile_fol(&parse(src).unwrap());
     assert_eq!(out.errors, vec![]);
     assert!(out.warnings.is_empty(), "{:?}", out.warnings);
+}
+
+#[test]
+fn type_with_level_is_lean_sort_succ() {
+    // Lean 记法：`Type n` = `Sort (n + 1)`；`Type 0` = `Sort 1`。
+    let src = "axiom T0 : Type 0\naxiom T2 : Type 2\n\
+               def idT : Type -> Type := fun (x : Type) => x\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+
+    // `#check Type 0`：内核打印 `Type 1`（`Sort 1` 的类型是 `Sort 2`）。
+    let file = parse("#check Type 0\n#check Type 2\n").unwrap();
+    let out = compile_fol(&file);
+    let texts: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts, vec!["Type 1", "Type 3"]);
 }

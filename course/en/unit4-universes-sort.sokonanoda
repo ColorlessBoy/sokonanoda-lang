@@ -14,16 +14,21 @@
 
 -- The question left open by Unit 3: what is the type of Nat -> Nat? "Everything
 -- has a type" admits no exceptions — types have types too:
---   * Nat : Sort 1        (a data type lives in Sort 1, also written Type)
+--   * Nat : Sort 1        (a data type lives in Sort 1)
 --   * Nat -> Nat : Sort 1 (a function type is still "a type of data")
 --   * Sort 1 : Sort 2     (the ladder climbs without end)
 --   * Prop = Sort 0       (the world of propositions is the bottom step — the
 --                          one you have been using since Unit 1)
--- Ask the kernel for the type of anything with #check:
+--
+-- Lean also gives universes a second spelling: `Type n` is `Sort (n + 1)` —
+-- `Type 0` is `Sort 1`, `Type 1` is `Sort 2`, and a bare `Type` is `Sort 1`.
+-- Both spellings name the same thing. Ask the kernel for the type of anything
+-- with #check:
 
 #check Nat
 #check (Nat -> Nat)
 #check Prop
+#check (Type 0)
 
 -- Now the mechanical rule from Unit 2 pays off. Eq's signature is
 -- {α : Sort u} -> …, so "equalities over numbers write Eq.{1}" simply because

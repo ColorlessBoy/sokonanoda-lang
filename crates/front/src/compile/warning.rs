@@ -4,9 +4,9 @@ use crate::ast::{Command, FolFile};
 use crate::references::decl_name_span;
 use crate::Span;
 
-/// 解析器硬编码为排序的名字（`crates/front/src/parser.rs`）：表达式位置的
-/// 这些标识符一律解析为内置排序，永不查环境，因此同名顶层声明不可能被
-/// 任何引用命中。
+/// 内核已经定义、不能再声明的名字（`Prop` / `Sort` / `Type`）：表达式位置
+/// 的这些标识符一律指向内核定义的那个，不会去查环境里有没有同名声明，
+/// 因此同名顶层声明不可能被任何引用命中。
 pub const RESERVED_SORT_NAMES: [&str; 3] = ["Prop", "Sort", "Type"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,7 +25,7 @@ impl WarningKind {
     pub fn hint(self) -> &'static str {
         match self {
             WarningKind::ReservedDeclarationName => {
-                "换一个名字即可；如果这里要表达的是内建的 Prop / Sort / Type，它们本来就存在，不需要再声明。"
+                "删掉这一行即可；要写命题或类型，直接用内核已经有的 Prop / Sort / Type。"
             }
         }
     }
@@ -50,7 +50,7 @@ impl CompileWarning {
     }
 }
 
-/// 顶层声明名命中保留排序名时产出 warning（纯语法，与内核结果无关）。
+/// 顶层声明名撞上内核已定义的名字时产出 warning（纯语法，与内核结果无关）。
 /// span 收窄到名字 token；拿不到时退回整条声明的 span。
 pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
     let mut warnings = Vec::new();
@@ -68,11 +68,16 @@ pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
         if !RESERVED_SORT_NAMES.contains(&name.as_str()) {
             continue;
         }
+        let message = if name == "Prop" {
+            "`Prop` 内核已经定义过了，不能再声明一次。Prop 在形式化证明里地位特殊：所有命题都住在 Prop 里，代码里每个 `Prop` 指的都是内核定义的那个，这一行声明出来的名字不会被用到。".to_string()
+        } else {
+            format!(
+                "`{name}` 内核已经定义过了，不能再声明一次；代码里每个 `{name}` 指的都是内核定义的那个，这一行声明出来的名字不会被用到。"
+            )
+        };
         warnings.push(CompileWarning {
             kind: WarningKind::ReservedDeclarationName,
-            message: format!(
-                "声明名 `{name}` 与内置排序同名：所有 `{name}` 的引用都指向内置排序，这个声明不会被用到。"
-            ),
+            message,
             span: decl_name_span(&file.src, *span, name).unwrap_or(*span),
         });
     }

@@ -102,7 +102,7 @@ sokonanoda-lang/
 - `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。
 - `--` 是行注释；`???` 是 Hole（未完成练习）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
-- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`。
+- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`。
 - **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。`A -> B` 与 `fun (x : A) => ...` 的 binder 都必须**带显式类型**（elaborator 尚未做 binder 类型推断，见 §8 待办）。
 - span 全程保留（offset/line/column），诊断带行列。
 

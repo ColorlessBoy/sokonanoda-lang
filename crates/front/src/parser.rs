@@ -516,10 +516,45 @@ impl Parser {
             // `sorry`（与官方 Lean 同义）：未完成证明的占位符，等价于 sorry。
             // 只在表达式位置拦截；声明名字走各自的语法路径不受影响。
             TokenKind::Ident(name) if name == "sorry" => Ok(Expr::Hole { span: tok.span }),
-            TokenKind::Ident(name) if name == "Type" => Ok(Expr::Sort {
-                sort: SortKind::Type,
-                span: tok.span,
-            }),
+            TokenKind::Ident(name) if name == "Type" => {
+                // `Type` 单独出现是 `Sort 1`；`Type n` 是 Lean 记法，等于
+                // `Sort (n + 1)`（Lean 里 `Type u = Sort (u + 1)`）。
+                let next_num = match &self.peek().kind {
+                    TokenKind::Num(value) => Some(value.clone()),
+                    _ => None,
+                };
+                if let Some(value) = next_num {
+                    let level_tok = self.bump();
+                    let n = value.parse::<u64>().map_err(|_| {
+                        Diagnostic::new(
+                            DiagnosticKind::UnexpectedToken {
+                                found: value.clone(),
+                                expected: "a universe level".to_string(),
+                            },
+                            level_tok.span,
+                            "Type expects a universe level".to_string(),
+                        )
+                    })?;
+                    let n = n.checked_add(1).ok_or_else(|| {
+                        Diagnostic::new(
+                            DiagnosticKind::UnexpectedToken {
+                                found: value.clone(),
+                                expected: "a universe level".to_string(),
+                            },
+                            level_tok.span,
+                            "universe level is too large".to_string(),
+                        )
+                    })?;
+                    return Ok(Expr::Sort {
+                        sort: SortKind::Sort(n),
+                        span: Span::new(tok.span.start, level_tok.span.end),
+                    });
+                }
+                Ok(Expr::Sort {
+                    sort: SortKind::Type,
+                    span: tok.span,
+                })
+            }
             TokenKind::Ident(name) if name == "Sort" => {
                 let level_tok = self.bump();
                 let level = match level_tok.kind {
@@ -871,6 +906,32 @@ example : Prop -> Prop := sorry
     fn reports_diagnostic_with_span() {
         let err = parse("def broken : Prop :=\n").unwrap_err();
         assert_eq!(err.span.start.line, 2, "err: {err:?}");
+    }
+
+    #[test]
+    fn type_with_level_parses_as_sort_succ() {
+        // Lean 记法：`Type n` = `Sort (n + 1)`；单独的 `Type` 仍是 `Sort 1`。
+        let file = parse("axiom T : Type 2\naxiom U : Type\n").unwrap();
+        assert!(matches!(
+            &file.commands[0],
+            Command::Axiom {
+                ty: Expr::Sort {
+                    sort: SortKind::Sort(3),
+                    ..
+                },
+                ..
+            }
+        ));
+        assert!(matches!(
+            &file.commands[1],
+            Command::Axiom {
+                ty: Expr::Sort {
+                    sort: SortKind::Type,
+                    ..
+                },
+                ..
+            }
+        ));
     }
 
     #[test]

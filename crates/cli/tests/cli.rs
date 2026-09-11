@@ -292,6 +292,19 @@ fn cli_prints_expression_then_type() {
 }
 
 #[test]
+fn cli_accepts_type_with_level_as_sort_succ() {
+    // Lean 记法：`Type 0` = `Sort 1`；`#check` 显示它的类型为 `Type 1`。
+    let out = run("#check Type 0\n");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert_eq!(stdout.trim(), "Type 0: Type 1");
+}
+
+#[test]
 fn cli_checks_ported_nat_fol_and_reduces_add() {
     let path = concat!(
         env!("CARGO_MANIFEST_DIR"),

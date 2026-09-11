@@ -2,6 +2,7 @@
 #check Nat
 #check (Nat -> Nat)
 #check Prop
+#check (Type 0)
 
 example : Sort 1 := Nat
 

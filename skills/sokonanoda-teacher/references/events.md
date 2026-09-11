@@ -21,14 +21,14 @@
  "message": "unknown identifier `nate`", "hint": "这个名字还没有被定义。…",
  "span": {"start": {"offset": 18, "line": 1, "column": 19}, "end": {"offset": 22, "line": 1, "column": 23}}}
 {"type": "warning", "human": "warning[reserved-declaration-name]: …",
- "code": "reserved-declaration-name", "message": "声明名 `Prop` 与内置排序同名：…",
- "hint": "换一个名字即可；…", "span": {"start": {...}, "end": {...}}}
+ "code": "reserved-declaration-name", "message": "`Prop` 内核已经定义过了，不能再声明一次。…",
+ "hint": "删掉这一行即可；…", "span": {"start": {...}, "end": {...}}}
 ```
 
 - `span` 是 1-based 行列 + 字节 offset；`--json` 的所有诊断带 `code` 与 `hint`。
 - `warning` 不改变退出码、不把文件判成错误。`reserved-declaration-name`
-  表示顶层声明名撞上了内置排序（`Prop`/`Sort`/`Type`）：声明本身仍会
-  `decl.checked`，但这个名字永远不会被引用。
+  表示顶层声明名撞上了内核已定义的名字（`Prop`/`Sort`/`Type`）：声明本身
+  仍会 `decl.checked`，但这个名字永远不会被用到。
 - `elab-*` 错误码封闭清单见 `docs/protocol.md`（doc-conformance 测试守护）。
 
 ## 判卷读法（伪代码）

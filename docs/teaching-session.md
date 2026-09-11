@@ -81,7 +81,8 @@
 3. **open 声明不进环境**：后面的代码引用它会得到 `elab-unknown-identifier`
    （两_def 初期报错即此——所以 two_def 先注释）。
 4. **kernel 只判类型**：`double := fun n => n` 也能过；语义要求用证明形状表达。
-5. **`Type 1` 不是合法输入**：教 `Sort n`；`Type` = `Sort 1` 只出现在讲解里。
+5. **`Type n` = `Sort (n + 1)`**：`Type 0` 等于 `Sort 1`，单独一个 `Type`
+   也是 `Sort 1`；`Type u`（宇宙变量）不支持，写 `Sort u`。
 6. **命名要防撞 prelude**：若画布自己声明 `Eq`/`Eq.refl`/`Eq.subst` 任一，
    整个 Eq prelude 跳过（all-or-nothing，与显式 `Nat` 块行为一致）。
 7. **本课不含排中律/or_comm**（Or 没有 rec；那是单元⑤的内容——别许诺）。

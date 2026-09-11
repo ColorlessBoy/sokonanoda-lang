@@ -25,7 +25,7 @@ pub struct CompileStats {
 pub struct CompileOutput {
     pub events: Vec<CheckEvent>,
     pub errors: Vec<CompileError>,
-    /// 语法级警告（如声明名撞内置排序）。不影响 `ok()` / 退出码。
+    /// 语法级警告（如声明名撞内核已定义的名字）。不影响 `ok()` / 退出码。
     pub warnings: Vec<CompileWarning>,
     /// 与 `events` 平行：每条事件归属于哪条命令（索引）。
     /// 增量会话用它复用未变化前缀的事件；CLI/JSON 视图不消费。

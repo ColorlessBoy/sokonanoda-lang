@@ -299,7 +299,7 @@ fn classify_universe_base(base: &str, names: &Names) -> SemanticKind {
 }
 
 fn classify_ident(text: &str, offset: usize, names: &Names) -> SemanticKind {
-    // 声明点 span 优先于一切使用侧分类（含关键字/排序名同名等边角情况）。
+    // 声明点 span 优先于一切使用侧分类（含关键字/内核已定义名字同名等边角情况）。
     if let Some(kind) = names.special.get(&offset) {
         return *kind;
     }

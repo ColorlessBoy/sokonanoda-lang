@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-11（第二十八轮：保留排序名声明 warning）
+> 快照：2026-09-11（第二十八轮：内核已定义名字的声明 warning）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,7 +14,7 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
-## 本轮进度（2026-09-11，第二十八轮：保留排序名声明 warning）
+## 本轮进度（2026-09-11，第二十八轮：内核已定义名字的声明 warning）
 
 > 触发：学习者在画布写 `axiom Prop : Sort 1`。这行本编译器能通过（内核
 > 把 `Prop` 当排序 `Sort 0`，不查环境），但声明出的名字永不被引用；官方
@@ -52,6 +52,16 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `Cargo.lock`/`editor/vscode/package.json`/`package-lock.json`/
    CHANGELOG/README），tag `v0.11.0` 触发 release：新 LSP tarball +
    per-target/universal VSIX 发布到 GitHub Release 与 VS Code Marketplace。
+9. **warning 文案直白化（用户反馈）**：原文案里「内置排序」是生造词——改成
+   直白说法：`Prop` 内核已经定义过，并点出 Prop 在形式化证明里的特殊地位，
+   不再出现「排序」这个词。同步 front message/hint、CLI/LSP 文案、设计文档
+   与 teacher 参考。与 `Type n` 一起随 0.12.0 发布（0.11.1 未单独发版）。
+10. **`Type n` 记法（0.12.0，minor，用户要求）**：补上 Lean 的
+    `Type n = Sort (n + 1)` 解析糖（`Type 0` = `Sort 1`；单独 `Type` 仍
+    `Sort 1`；`Type u` 不支持，写 `Sort u`）。纯解析糖、复用
+    `SortKind::Sort`，不碰 elaborator/内核。课程单元④（zh + en + 钥匙）+
+   front 解析/编译单测 + CLI e2e + 白名单文档同步。设计见
+   `docs/design/type-level-syntax.md`。
 
 ## 本轮进度（2026-09-11，第二十七轮：文档结构收敛）
 

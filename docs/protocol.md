@@ -75,9 +75,10 @@ can re-run or display it without re-parsing.
 
 `warning` events use the same span shape as diagnostics but carry no `stage`
 and never change the exit code. The only code today is
-`reserved-declaration-name`: a top-level declaration named `Prop` / `Sort` /
-`Type` is accepted by the kernel but can never be referenced, because those
-identifiers always parse to the built-in sort (`docs/design/reserved-decl-warning.md`).
+`reserved-declaration-name`: `Prop` / `Sort` / `Type` are already defined by
+the kernel and cannot be declared again, so a top-level declaration with one
+of those names is accepted but never used
+(`docs/design/reserved-decl-warning.md`).
 
 ## Error staging and codes
 

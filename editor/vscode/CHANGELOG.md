@@ -1,11 +1,25 @@
+## [0.12.0] - 2026-09-11
+
+### Added
+- **`Type n` universe notation** — `Type n` is now accepted as
+  `Sort (n + 1)`, Lean's spelling: `Type 0` = `Sort 1`, `Type 1` = `Sort 2`,
+  and a bare `Type` stays `Sort 1`. `Type u` (a universe variable) is not
+  supported — use `Sort u`.
+
+### Fixed
+- Reworded the `reserved-declaration-name` warning to plain language: it now
+  says `Prop` / `Sort` / `Type` are already defined by the kernel (and notes
+  `Prop`'s special role in formal proofs) instead of the coined term
+  "built-in sort".
+
 ## [0.11.0] - 2026-09-11
 
 ### Added
-- **Warns on declarations named like built-in sorts** — `Prop`, `Sort` and
-  `Type` always parse to the built-in sort, so a top-level declaration using
-  one of those names can never be referenced. It still compiles, but the
-  editor now shows a `reserved-declaration-name` warning on the name, and the
-  CLI emits a matching `warning` event.
+- **Warns on declarations that reuse a kernel-defined name** — `Prop`, `Sort`
+  and `Type` are already defined by the kernel, so a top-level declaration
+  with one of those names still compiles but is never used. The editor now
+  shows a `reserved-declaration-name` warning on the name, and the CLI emits
+  a matching `warning` event.
 
 ## [0.10.0] - 2026-09-10
 
