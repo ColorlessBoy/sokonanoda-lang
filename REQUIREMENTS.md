@@ -324,3 +324,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   shim 去脚本化；缓存标记 `<version> <vsce-target>` 与 VSIX/插件一致。
   设计见 `docs/design/binary-cli.md`。首次获取二进制仍由 opencode 插件或
   VSIX 完成（不是 shell 脚本）。
+- 2026-09-11（三十三）：**发版 0.13.0 + opencode 全量初始化（用户要求）**：
+  用户发现缓存里的 `sokonanoda` 缺 `version`/`setup`/`update` 等子命令
+  （`v0.12.0` tag 停在 onboarding 二进制提交之前，Release CLI 比仓库旧），
+  要求「先发版，再继续配置」，让编译好的最新 CLI 可直接下载、不要本地
+  cargo。落地：版本 0.12.0 → **0.13.0** 并推 tag `v0.13.0`，CI 编 8 平台
+  资产；随后 `sokonanoda update` 按锁定 `v0.13.0` 下载编译好的 CLI+LSP，
+  opencode 接线（插件/commands/agent/skills）全量就绪。

@@ -1,3 +1,21 @@
+## [0.13.0] - 2026-09-11
+
+### Added
+- **Onboarding lives in the CLI** — `sokonanoda` now ships
+  `version` / `doctor` / `setup` / `update` / `grade` / `gate` subcommands
+  (plus the existing `lsp`), replacing `scripts/soko.sh`. `setup` / `update`
+  fetch the version-pinned CLI + LSP with a built-in downloader (no shell,
+  cross-platform); `version` / `doctor` report the cached binaries' markers
+  (`--json`); `grade` batches the `--json` judge view.
+
+### Changed
+- The cache version marker (`<version> <target>`) is shared with the VS Code
+  extension and the opencode plugin; a stale or missing cache is refreshed
+  from the pinned release (never `latest`).
+
+### Removed
+- `scripts/soko.sh` (superseded by the binary subcommands).
+
 ## [0.12.0] - 2026-09-11
 
 ### Added

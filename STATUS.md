@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-11（第二十九轮：环境能力进二进制，删除 soko.sh）
+> 快照：2026-09-11（第三十轮：发版 0.13.0 + opencode 全量初始化）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,20 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-11，第三十轮：发版 0.13.0 + opencode 全量初始化）
+
+> 触发：用户发现缓存里的 `sokonanoda` 报 `os error 2`——v0.12.0 tag 停在
+> onboarding 二进制提交之前，Release 里的 CLI 比仓库旧；用户要求「先发版，
+> 再继续配置」，让编译好的新 CLI 可直接下载，不要本地 cargo。
+
+1. **版本**：`Cargo.toml` + `editor/vscode/package.json`（+ `package-lock.json`）
+   由 0.12.0 → **0.13.0**；CHANGELOG 补条目；`Cargo.lock` 同步。
+2. **发版**：预发布校验（fmt/clippy/test/playground）全绿后 commit + push，
+   打 `v0.13.0` tag 推送；release 流水线编 8 平台 + 9 VSIX + 25 个 Release 资产。
+3. **opencode 初始化**：`sokonanoda update` 按锁定 `v0.13.0` 刷新缓存
+   （CLI+LSP 均为编译产物）；三个 skill 软链到 `~/.agents/skills`（镜像
+   `~/.claude/skills`）；plugin/commands/agent/shim 校验在位。
 
 ## 本轮进度（2026-09-11，第二十九轮：环境能力进二进制，删除 soko.sh）
 
