@@ -1148,6 +1148,18 @@ fn run_pass(
         let mut hover_cmds = Vec::new();
         resolve_hovers(&env, cmd_hovers, &mut report.hovers, &mut hover_cmds);
         report.hover_cmds = hover_cmds;
+        report.checks = out
+            .events
+            .iter()
+            .zip(out.event_cmds.iter())
+            .filter_map(|(event, _)| match event {
+                CheckEvent::TypeChecked { text, span } => Some(super::report::CheckInfo {
+                    span: *span,
+                    text: text.clone(),
+                }),
+                _ => None,
+            })
+            .collect();
     }
     let _ = built_inductives;
     (out, report, failed_cmds, kernel_checks)

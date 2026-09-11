@@ -8,6 +8,29 @@ use sokonanoda_front::compile::{DeclState, DeclStatus, DocumentReport};
 use sokonanoda_front::Span;
 use tower_lsp::lsp_types::*;
 
+/// All editor inlay hints for a document: hole hints (expected types) plus
+/// `#check` results (`#check Nat` → `Nat` 之后常显 `: Type 0`，Lean Infoview
+/// 的 #check 等价物）。
+pub(crate) fn document_hints(text: &str, report: &DocumentReport) -> Vec<InlayHint> {
+    let mut hints = hole_hints(text, report);
+    for check in &report.checks {
+        hints.push(InlayHint {
+            position: end_position(check.span),
+            label: InlayHintLabel::String(format!(": {}", check.text)),
+            kind: Some(InlayHintKind::TYPE),
+            text_edits: None,
+            tooltip: Some(InlayHintTooltip::MarkupContent(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: "`#check` 的内核结果".to_string(),
+            })),
+            padding_left: Some(true),
+            padding_right: None,
+            data: None,
+        });
+    }
+    hints
+}
+
 /// One hint per hole: sub-hole types come from the server-side walk
 /// (`sub_goals`, matched by span); a lone main hole shows the remaining
 /// goal. Hints without a known type are skipped (labels are never empty).
@@ -211,6 +234,33 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         assert_eq!(
             hints[0].position, after_hole,
             "hint sits right after `sorry`"
+        );
+    }
+
+    #[tokio::test]
+    async fn check_results_appear_as_inlay_hints() {
+        // Lean Infoview 的 #check 等价物：`#check Nat` 在表达式后常显
+        // `: Type 0`（内核结果，LSP 消费 front 报告的 checks）。
+        let src = "#check Nat\n#check (Nat -> Nat)\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let params = wait_diagnostics(&mut socket, "check diagnostics").await;
+        assert!(
+            params.diagnostics.is_empty(),
+            "#check-only file has no diagnostics: {:?}",
+            params.diagnostics
+        );
+        let hints = ask_inlay(&mut service, src).await.expect("hints array");
+        assert_eq!(hints.len(), 2, "two #check hints: {hints:?}");
+        assert_eq!(label_of(&hints[0]), ": Type 0");
+        assert_eq!(label_of(&hints[1]), ": Type 0");
+        // 位置在表达式末尾（`Nat` 之后 / `(Nat -> Nat)` 之后）。
+        let first = offset_of(src, "Nat");
+        assert_eq!(
+            hints[0].position,
+            lsp_pos(src, first + "Nat".len()),
+            "first hint sits right after the checked expression"
         );
     }
 

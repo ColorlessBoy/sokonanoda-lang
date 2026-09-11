@@ -129,6 +129,34 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("#check results appear as inlay hints", async () => {
+    // Lean Infoview 的 #check 等价物：`#check Nat` 之后常显 `: Type 0`。
+    const src = "#check Nat\n#check (Nat -> Nat)\n";
+    const uri = await writeDoc("check.sokonanoda", src);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    await waitFor("inlay hints for #check", async () => {
+      const hints = await vscode.commands.executeCommand(
+        "vscode.executeInlayHintProvider",
+        uri,
+        new vscode.Range(0, 0, 10, 0),
+      );
+      return Array.isArray(hints) && hints.length >= 2;
+    });
+    const hints = await vscode.commands.executeCommand(
+      "vscode.executeInlayHintProvider",
+      uri,
+      new vscode.Range(0, 0, 10, 0),
+    );
+    const labels = hints.map((h) =>
+      typeof h.label === "string" ? h.label : h.label?.value ?? "",
+    );
+    assert.ok(
+      labels.includes(": Type 0"),
+      `check hints must show the kernel result, got: ${JSON.stringify(labels)}`,
+    );
+  });
+
   test("clean lesson publishes empty diagnostics", async () => {
     const uri = await writeDoc("lesson-clean.sokonanoda", LESSON_CLEAN);
     await vscode.workspace.openTextDocument(uri);

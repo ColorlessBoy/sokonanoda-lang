@@ -151,6 +151,25 @@ fn checks_universe_levels_and_function_type_types() {
 }
 
 #[test]
+fn document_report_carries_check_results() {
+    // 编辑器常驻展示 #check 结果（inlay hint）的数据源：LSP 不需要再
+    // 跑一遍内核，直接消费报告里的文本与表达式 span。
+    let file = parse("#check Nat\n#check (Nat -> Nat)\n#check Prop\n").unwrap();
+    let report = check_document(&file);
+    let texts: Vec<&str> = report.checks.iter().map(|c| c.text.as_str()).collect();
+    assert_eq!(texts, vec!["Type 0", "Type 0", "Type 0"]);
+    assert!(
+        report
+            .checks
+            .iter()
+            .all(|c| c.span.start.offset < c.span.end.offset),
+        "check spans point at the checked expression: {:?}",
+        report.checks
+    );
+    assert!(report.errors.is_empty(), "errors: {:?}", report.errors);
+}
+
+#[test]
 fn prints_definitions_without_panicking_on_open_bodies() {
     let file = parse(
         "def id : Prop -> Prop := fun (x : Prop) => x\n\

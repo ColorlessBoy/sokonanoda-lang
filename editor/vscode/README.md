@@ -45,7 +45,8 @@ skills.
 
 - Completions (keywords, in-scope binders, prelude names)
 - Go-to-definition, document highlight, rename, find references
-- Inlay hints showing the expected type at each hole
+- Inlay hints showing the expected type at each hole — and the result of
+  every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style)
 - Code actions: introduce-and-refine templates, `exact` suggestions,
   restart scaffolds — every suggestion is kernel-verified before it's
   offered

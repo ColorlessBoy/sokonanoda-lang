@@ -1099,7 +1099,7 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let _ = params.range;
-        Ok(Some(inlay::hole_hints(&doc.text, report)))
+        Ok(Some(inlay::document_hints(&doc.text, report)))
     }
 }
 

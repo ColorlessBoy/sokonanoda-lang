@@ -268,9 +268,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
    teacher skill 的判定细节节，并确认函数实参洞在 Bare 下用文件自定义的
    Eq 模板同样生效。
 - 2026-09-10（二十五）：**VS Code 希腊字母矩形框（用户反馈）**：`α` 等
-  希腊 binder 名被 VS Code 的 Trojan-Source 混淆字符高亮
-  （`editor.unicodeHighlight.ambiguousCharacters`，默认开）画框。修复 =
-  扩展 `contributes.configurationDefaults` 对 `[sokonanoda]` 语言关掉该项
+   希腊 binder 名被 VS Code 的 Trojan-Source 混淆字符高亮
+   （`editor.unicodeHighlight.ambiguousCharacters`，默认开）画框。修复 =
+   扩展 `contributes.configurationDefaults` 对 `[sokonanoda]` 语言关掉该项
    （与 VS Code 内置 plaintext/markdown 同法，不改用户全局设置）；仓库
    `.vscode/settings.json` 同步一份，开发态重载即生效。扩展 0.9.0 → 0.9.1
    （patch；Cargo workspace 版本同步）。零新能力、纯观感修复。
+- 2026-09-10（二十六）：**`#check` 结果常驻显示（用户要求，Lean Infoview
+   对照）**：`#check X` 在编辑器里不再只有悬停可见——LSP inlay 在表达式后
+   常显内核结果（`#check Nat` → `Nat` 后 `: Type 0`）。front `DocumentReport`
+   新增 `checks`（表达式 span + 内核打印文本，随增量快照缓存、零重编译平移）；
+   LSP inlay 渲染；扩展 0.9.1 → 0.10.0（minor：新展示能力）。

@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-10（第二十五轮：VS Code 希腊字母高亮修复，扩展 0.9.1）
+> 快照：2026-09-10（第二十六轮：#check 结果常驻显示，扩展 0.10.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `docs/REQUIREMENTS.md`（先读）**；
 > 设计 = `docs/design-goal-func-spine.md` / `docs/design-onboarding.md` / `docs/design-bundled-lsp.md` / `docs/design-by-tactics.md`（§6 as-built）/
 > `docs/design-course-bilingual.md` /
@@ -20,6 +20,32 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-10，第二十六轮：#check 结果常驻显示，扩展 0.10.0）
+
+> 触发：用户问「`playground.sokonanoda:276-278` 的 `#check` 在 VS Code 里
+> 怎么看结果，没有 Lean 那样的 goal infoview」。现状：悬停即等价于
+> `#check`（内核同一路径），但结果不常驻。要求：Lean Infoview 对照的
+> 常驻展示。
+
+1. **front**：`DocumentReport` 新增 `checks: Vec<CheckInfo { span, text }>`
+   （`#check` 表达式 span + 内核 pp 的类型文本），`run_pass` 从
+   `TypeChecked` 事件收集；session 的 `assemble_report` 同源——零重编译
+   与部分重编译路径都保留结果并随 span 重映射平移。
+2. **LSP**：`inlay::document_hints` = 洞 hints + `#check` hints
+   （表达式后常显 `: <类型>`，tooltip「`#check` 的内核结果」）；inlayHint
+   处理器切换入口。
+3. **扩展 0.9.1 → 0.10.0**（minor：新展示能力）：`package.json` /
+   `package-lock.json` / Cargo workspace / `Cargo.lock` 同步；CHANGELOG
+   Added + Marketplace README 的 inlay 条目扩写。
+4. **测试三层**：front `document_report_carries_check_results`（报告携带
+   span+文本）；session `session_keeps_check_results_on_zero_recompile`
+   （注释编辑零重编译后结果保留、坐标平移）；LSP inlay
+   `check_results_appear_as_inlay_hints`（`: Type 0` ×2、位置在表达式尾）；
+   集成测试 `#check results appear as inlay hints`
+   （`vscode.executeInlayHintProvider`，真实 VS Code）。门禁 `gate` 通过。
+5. **既有通道不变**：悬停表达式仍是「逐点查类型」；`#check` 结果现在
+   常驻且与判定同源。
 
 ## 本轮进度（2026-09-10，第二十五轮：VS Code 希腊字母高亮修复，扩展 0.9.1）
 

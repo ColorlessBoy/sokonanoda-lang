@@ -17,7 +17,7 @@ pub use event::{CheckEvent, CompileOutput, CompileStats};
 pub use hints::{attach_hints, attach_hints_to_report, source_hints};
 pub use prelude::{prelude_mode_from_source, CompileOptions, PreludeMode, PRELUDE_NAMES};
 pub use report::{
-    ByStepState, DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType,
+    ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType,
     ResolvedTarget, SubGoal,
 };
 

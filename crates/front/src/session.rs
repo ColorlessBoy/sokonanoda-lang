@@ -455,12 +455,13 @@ fn containing_command(commands: &[crate::Command], offset: usize) -> Option<usiz
     best
 }
 
-/// 从快照组装整份报告（声明、hover、错误；来源顺序即命令顺序）。
+/// 从快照组装整份报告（声明、hover、错误、#check 结果；来源顺序即命令顺序）。
 fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
     let mut decls = Vec::new();
     let mut hovers = Vec::new();
     let mut hover_cmds = Vec::new();
     let mut errors = Vec::new();
+    let mut checks = Vec::new();
     for (j, snap) in snaps.iter().enumerate() {
         if let Some(state) = &snap.state {
             decls.push(state.clone());
@@ -470,12 +471,21 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
             hover_cmds.push(j);
         }
         errors.extend(snap.errors.iter().cloned());
+        for event in &snap.events {
+            if let CheckEvent::TypeChecked { text, span } = event {
+                checks.push(crate::compile::CheckInfo {
+                    span: *span,
+                    text: text.clone(),
+                });
+            }
+        }
     }
     DocumentReport {
         decls,
         hovers,
         hover_cmds,
         errors,
+        checks,
     }
 }
 
@@ -813,6 +823,24 @@ def five : Nat := 5
             .span;
         assert_eq!(after.start.offset, before.start.offset + shift);
         assert_eq!(after.start.line, before.start.line + 1);
+    }
+
+    #[test]
+    fn session_keeps_check_results_on_zero_recompile() {
+        // #check 结果随快照缓存：注释级编辑零重编译时仍可用，且 span 平移。
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, "#check Nat\n", 1);
+        assert_eq!(u1.report.checks.len(), 1);
+        assert_eq!(u1.report.checks[0].text, "Type 0");
+        let with_comment = "-- 讲解\n#check Nat\n";
+        let u2 = update(&mut session, with_comment, 2);
+        assert_eq!(u2.recompiled_from, None, "comment-only edit");
+        assert_eq!(u2.stats.kernel_checks, 0);
+        assert_eq!(u2.report.checks.len(), 1);
+        assert_eq!(
+            u2.report.checks[0].span.start.offset,
+            u1.report.checks[0].span.start.offset + "-- 讲解\n".len()
+        );
     }
 
     #[test]

@@ -1,3 +1,11 @@
+## [0.10.0] - 2026-09-10
+
+### Added
+- **`#check` results stay visible** — like Lean's Infoview, the editor now
+  shows each `#check` result as an inlay hint right after the checked
+  expression (`#check Nat` → `Nat : Type 0`). The result comes from the
+  same kernel pass that grades exercises, and survives incremental edits.
+
 ## [0.9.1] - 2026-09-10
 
 ### Fixed

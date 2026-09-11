@@ -150,6 +150,15 @@ pub struct HoverType {
     pub binder: bool,
 }
 
+/// A `#check` command's result: the checked expression's span and the
+/// kernel-pretty-printed type. Carried on the report so the editor can show
+/// it persistently (inlay hint), like Lean's Infoview.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckInfo {
+    pub span: Span,
+    pub text: String,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct DocumentReport {
     pub decls: Vec<DeclState>,
@@ -160,4 +169,6 @@ pub struct DocumentReport {
     /// Parse-level diagnostics live on the `parse` result; this holds
     /// elab/kernel failures that are not attached to a declaration.
     pub errors: Vec<CompileError>,
+    /// `#check` results, in source order.
+    pub checks: Vec<CheckInfo>,
 }
