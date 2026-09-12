@@ -22,6 +22,7 @@ const { LanguageClient, State, TransportKind } = require("vscode-languageclient/
 const server = require("./server");
 
 let client;
+let serverOptions;
 let extensionRoot;
 
 function discoveryRoots() {
@@ -514,6 +515,41 @@ async function revealHint(context, uriArg, declName, declRange) {
   vscode.window.showInformationMessage(hints[revealed]);
 }
 
+// Restart the language server in place: re-resolve the binary path first so a
+// rebuilt or freshly downloaded server (or a changed `serverPath` setting)
+// takes effect without reloading the window. Extension-code updates still need
+// a window reload — a running extension host cannot swap itself.
+async function restartServer(context) {
+  if (!client) {
+    vscode.window.showWarningMessage(
+      "sokonanoda 语言服务器没有运行；打开一个 .sokonanoda 文件即可启动。",
+    );
+    return;
+  }
+  let next;
+  try {
+    const requested = requestedServerCommand();
+    if (requested === undefined) {
+      next = await resolveServerCommand(context);
+    } else if (fs.existsSync(requested)) {
+      next = requested;
+    }
+    if (next && serverOptions) {
+      serverOptions.run.command = next;
+      serverOptions.debug.command = next;
+    }
+    await client.restart();
+  } catch (error) {
+    vscode.window.showErrorMessage(
+      `sokonanoda: 重启语言服务器失败 — ${error?.message ?? error}`,
+    );
+    return;
+  }
+  vscode.window.showInformationMessage(
+    `sokonanoda: 语言服务器已重启${next ? ` — ${next}` : ""}`,
+  );
+}
+
 function registerCommands(context, provider, courseProvider) {
   const showStatus = async () => {
     const editor = vscode.window.activeTextEditor;
@@ -564,6 +600,10 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand(
       "sokonanoda.revealHint",
       (uri, declName, declRange) => revealHint(context, uri, declName, declRange),
+    ),
+    vscode.commands.registerCommand(
+      "sokonanoda.restartServer",
+      () => restartServer(context),
     ),
   );
 }
@@ -621,7 +661,7 @@ async function activate(context) {
     }
   }
 
-  const serverOptions = {
+  serverOptions = {
     run: { command, transport: TransportKind.stdio },
     debug: { command, transport: TransportKind.stdio },
   };

@@ -1,3 +1,12 @@
+## [0.16.0] - 2026-09-12
+
+### Added
+- **Restart the language server in place** — the new command
+  `sokonanoda: 重启语言服务器` re-resolves the server binary (rebuilt
+  workspace build, refreshed cache, or a changed `sokonanoda.serverPath`) and
+  restarts the client, so the editor picks it up without reloading the
+  window. Extension-code updates still apply on window reload.
+
 ## [0.15.0] - 2026-09-12
 
 ### Added

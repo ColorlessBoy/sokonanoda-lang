@@ -363,3 +363,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   值」（open-goal/内核全复用）、`by` 引擎接收声明 binder 为初始上下文、
   `intro` 沿 lambda 链递归只剥剩余 codomain；课程 unit1 两种拼写对照 +
   练习 6（zh/en + 钥匙）。发布随 0.15.0。
+- 2026-09-12（三十八）：**手动重启 LSP 的 VS Code 命令（用户要求）**：用户
+  遇到「扩展/LSP 更新后旧进程不生效」的困惑，要求插件提供手动重启语言
+  服务器的命令。落地：`sokonanoda.restartServer`（命令面板
+  「sokonanoda: 重启语言服务器」）先重解析二进制路径再 `client.restart()`，
+  无需重载窗口（重建的仓库构建 / 刷新后的缓存 / 改 `serverPath` 都生效）；
+  扩展本体升级仍需 Reload Window（README 与 `docs/vscode-dev-guide.md` §5
+  写明）。发布随 0.16.0。

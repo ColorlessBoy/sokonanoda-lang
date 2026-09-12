@@ -260,4 +260,20 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     });
     assert.ok(text.trim().length > 0, "hover markup must be non-empty");
   });
+
+  test("restart server command re-syncs open documents", async () => {
+    // `sokonanoda: 重启语言服务器` 重新解析二进制并重启客户端；重启后
+    // 打开中的文档要重新拿到诊断（场景：本地二进制重建/缓存刷新后，
+    // 不想重载整个窗口）。
+    const uri = await writeDoc("restart.sokonanoda", EXERCISE);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    await waitFor("a sorry diagnostic before restart", async () =>
+      vscode.languages.getDiagnostics(uri).some((d) => d.code === "sorry"),
+    );
+    await vscode.commands.executeCommand("sokonanoda.restartServer");
+    await waitFor("diagnostics re-published after restart", async () =>
+      vscode.languages.getDiagnostics(uri).some((d) => d.code === "sorry"),
+    );
+  });
 });

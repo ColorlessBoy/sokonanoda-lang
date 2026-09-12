@@ -100,7 +100,7 @@ npm run clean:lsp
    vscode-languageclient）；冒烟后核对文件数再认定通过；
 4. **didOpen 是通知**——不发 id，不期待响应；探针/测试里发 id 会被当作未知请求；
 5. **LSP 帧格式**——头块以 `\r\n\r\n` 结尾；探针/测试必须完整消费头块再读 body；
-6. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；
+6. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；二进制原地更新（重建 / 缓存刷新 / 改 `serverPath`）可用命令 `sokonanoda: 重启语言服务器` 重新解析并重启，扩展本体升级仍需 Reload Window；
 7. **`code` CLI 与已开实例冲突**——集成测试在 macOS 上报"another instance running"时关掉 VS Code 再跑；
 8. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。
 9. **exec 位只能在 Linux/macOS 打包**——Windows 上 `vsce package` 会丢 unix
