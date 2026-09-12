@@ -356,3 +356,9 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `elab-intro-not-a-function`）、LSP 补全展开项（`textEdit` + 文档）、
   inlay/session 联动、课程 unit6 补充与 golden；顺带修正旧缺陷
   `render_expr` 函数位多余括号与 session 洞 span 未重映射。
+- 2026-09-12（三十七）：**声明级 binder（Lean 风格，用户要求）**：用户要求
+  支持 `theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a :=
+  sorry`——省去 `intro`/`fun` 的麻烦。设计见 `docs/design/decl-binders.md`
+  （parser 侧 desugar 成「Forall 类型 + Lambda 值」，open-goal/内核全复用；
+  `intro` 沿 lambda 链递归剥剩余 codomain；三件套随实现）。0.14.0 发布
+  完成后实现（0.15.0）。
