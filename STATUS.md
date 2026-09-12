@@ -42,6 +42,9 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    关键字、TESTING 测试地图、teacher skill 决策表与课程地图。
 7. **发布**：0.13.0 → **0.14.0**（feature → minor；扩展无代码改动但内嵌
    LSP 更新，VSIX 版本随 workspace 同步）；CHANGELOG 补 0.14.0 条目。
+8. **发布结果**：tag `v0.14.0` → ci / release 全绿（8 平台 build +
+   package-vsix + github-release 25 资产 + Marketplace `0.14.0` ×9）；
+   本地缓存 `sokonanoda update` 刷新到 0.14.0（`doctor` ready）。
 
 ## 本轮进度（2026-09-12，第三十二轮：扩展残留清理 + 插件 LSP 解析加固）
 
