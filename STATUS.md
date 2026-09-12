@@ -37,6 +37,10 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 6. **测试**：front 265 / lsp 98 / cli 51 / course 4 全绿（parser/降级/宇宙
    消歧/by 上下文/intro 组合/inlay/补全/CLI e2e）。
 7. **发布**：0.14.0 → **0.15.0**（feature → minor）。
+8. **发布结果**：tag `v0.15.0` → ci / release 全绿（8 平台 build +
+   package-vsix + github-release 25 资产 + Marketplace `0.15.0` ×9）；
+   本地缓存 `sokonanoda update` 刷新到 0.15.0（`doctor` ready）；用发布后的
+   缓存二进制跑用户原例：`:= sorry` → Open、闭合正文 → checked。
 
 ## 本轮进度（2026-09-12，第三十三轮：值位 `intro` 关键字 + 展开补全）
 
