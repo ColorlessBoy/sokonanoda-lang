@@ -59,15 +59,62 @@ gh run view <id> --json jobs --jq '.jobs[] | {name, conclusion}'
 gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 ```
 
+**`gh` 未必存在**（2026-09-12 本机实测 `command not found: gh`）。不能因为没装
+`gh` 就说"看不了 CI"——公开仓库可用未认证 REST（`curl` + `node`/`python3`
+解析）；把下面这段存成习惯（`$SHA`=提交，`$RUN`=run id）：
+
+```bash
+NODE=$(command -v node)
+# 某提交触发了哪些 run
+curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/actions/runs?head_sha=$SHA" \
+  | $NODE -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);
+      console.log((j.workflow_runs||[]).map(r=>r.id+" "+r.name+" "+r.status+" "+(r.conclusion||"-")).join("\n"))})'
+# 某 run 的 job 与逐 step 状态（判断卡在哪一步）
+curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/actions/runs/$RUN/jobs?per_page=30" \
+  | $NODE -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);
+      for(const x of j.jobs) console.log(x.name, x.status, x.conclusion, "|",
+        x.steps.map(t=>t.number+":"+t.name+"="+t.conclusion).join(", "))})'
+```
+
+- **步骤日志拉不到（403）**：`/actions/runs/<id>/logs` 即使在公开仓库也要鉴权
+  （2026-09-12 实测 403）。所以**能拿到的最强信号是 job/step 的 `conclusion`**；
+  真要日志得让用户在网页端看，或本机装 `gh` 后 `gh auth login`。
 - **版本纪律先于 tag**：tag 之前确认 `Cargo.toml` 与
   `editor/vscode/package.json` 版本已 bump 且一致（feature→minor /
   fix→patch，见 `docs/vscode-dev-guide.md` §2）——release 的 version gate
   会直接 fail 不一致的 tag；发布形态（per-target VSIX + universal 回退包）
   与 dry-run 见 `docs/RELEASE.md`。
-- **推送后必监控到终态**：`gh run list` 每 2–5 分钟一次；红 → 立即
-  `--log-failed` 取证，不许"回头再看"。
-- marketplace 没更新 = 先查 tag 是否真触发（`gh run list --workflow=release`），
-  再查版本号是否与 tag 一致。
+- **推送后必监控到终态**：每 2–5 分钟轮一次（`case "$OUT" in
+  *in_progress*|*queued*) sleep 45;; esac`），别用一次查询下结论；红 → 立即取证。
+- **release 期望的 job 形状**：`build`（matrix 8）→ `package-vsix` →
+  `github-release` 与 `marketplace-publish`（后两者并行）。**`github-release`
+  绿 ≠ 资产齐**，必须按 §2.1 核对双页。
+
+### 2.1 发布后核对"双页"（2026-09-11 空 Release 事故留下的硬性预防）
+
+```bash
+# ① GitHub Release：必须恰 25 个资产（lsp tarball ×8 + cli tarball ×8 + vsix ×9）
+curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/releases/tags/v$VER" \
+  | $NODE -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);
+      const a=r.assets.map(x=>x.name);
+      console.log("assets:",r.assets.length,
+        "lsp:",a.filter(n=>/^sokonanoda-lsp-.*tar\.gz$/.test(n)).length,
+        "cli:",a.filter(n=>/^sokonanoda-cli-.*tar\.gz$/.test(n)).length,
+        "vsix:",a.filter(n=>/\.vsix$/.test(n)).length)})'
+# ② Marketplace：轮询到 versions 里出现目标版本号（见下面的延迟警告）
+curl -sS -X POST "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery" \
+  -H "Accept: application/json;api-version=7.2-preview.1" -H "Content-Type: application/json" \
+  -d '{"filters":[{"criteria":[{"filterType":7,"value":"sokonanoda-lang.sokonanoda"}]}],"flags":3}' \
+  | $NODE -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const e=JSON.parse(s).results[0].extensions[0];
+      console.log(e.lastUpdated, [...new Set(e.versions.map(v=>v.version))].slice(0,4).join(","))})'
+```
+
+| 陷阱 | 事实 | 规程 |
+|---|---|---|
+| Marketplace 索引**延迟** | `vsce publish` 成功后 `extensionquery` 还要**几分钟**才收录新版本（2026-09-12 v0.17.0 实测约 2 分钟） | 轮询到出现目标版本号为止，别查一次就判失败；看 `lastUpdated` 是否推进 |
+| 按版本号"探测"是**死路** | `/_apis/public/gallery/publishers/<p>/vsextensions/<n>/<v>` 这个路由**不存在**，一律 404（"controller … was not found"） | 只认 `extensionquery`；那个 404 不代表没上架 |
+| 半坏状态 | `github-release` 与 `marketplace-publish` 是独立 job，可能"已上架但 Release 页零资产"（v0.10.0 实际发生） | 两个页面**都必须**核对，不能只看 run 绿 |
+| 资产"能下"才算发布完 | 只核清单不够：tarball 可能解不出或丢 exec 位 | 发布后抽样 `curl` 下载 → `tar xzf` → 跑 `./sokonanoda <file>` 看真退出码（v0.17.0 做过，darwin-arm64 两个资产均 OK） |
 
 ## 3. 排错三板斧
 
