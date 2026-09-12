@@ -130,6 +130,31 @@ fn cli_by_tactic_partial_block_is_open_exercise() {
 }
 
 #[test]
+fn cli_value_intro_is_an_open_exercise() {
+    // 值位 `intro`：一次全剥剩余 binder，合法 Open（与部分作答同一条流水线）。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "value intro must exit 0:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("exercise open"));
+}
+
+#[test]
+fn cli_value_intro_on_a_non_function_goal_is_rejected() {
+    let out = run("axiom True : Prop\ntheorem t : True := intro\n");
+    assert!(!out.status.success());
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("error[elab-intro-not-a-function]:"),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+#[test]
 fn cli_rejects_uninhabited_dependent_codomain() {
     // conv 快路径 soundness 修复的端到端守护：`(A : Sort 1) -> A` 不可居住，
     // 身份 lambda 的类型是 `(A : Sort 1) -> Sort 1`，必须被拒绝（官方 Lean 同）。

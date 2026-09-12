@@ -76,3 +76,20 @@ theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
 -- soko:hint 目标形态：intro a; intro h; assumption——目标 a，上下文有 a 和 h 都是 a 型。
 -- soko:hint 关键件：assumption 从内到外找第一个类型匹配的假设，即 h。
 theorem by_ex5 : (a : Prop) -> a -> a := by sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 补充：值位 `intro`——比 by 更短的起步写法
+--
+-- `by` 之外，值位还能直接写 `intro`：编译器一次把目标剩下的 binder 全写成
+-- fun，末尾留一个洞。三层箭头的目标写 `:= intro`，等价于手写：
+--
+--   := fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry
+--
+-- 两者都合法：`intro` 是快捷输入，`by` 是一次一层；编辑器会提示把 `intro`
+-- 展开成显式的 fun 骨架，方便对照学习。
+--
+-- 练习 6：用值位 intro 起步，再把末尾的洞补完。
+-- soko:hint 思路：intro 把三层箭头全变成 fun 加一个洞；在洞里把 And b a 装出来。
+-- soko:hint 目标形态：剩余目标 And b a，上下文 a、b、x : And a b（x 是自动生成的名字）。
+-- soko:hint 关键件：And.intro b a 要两份证明——And.right a b x 给 b，And.left a b x 给 a。
+theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro

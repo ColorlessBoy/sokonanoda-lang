@@ -367,6 +367,7 @@ fn substitute_names(
             span: *span,
         },
         Expr::Num { .. } | Expr::Hole { .. } => expr.clone(),
+        Expr::Intro { .. } => expr.clone(),
         Expr::By { .. } => expr.clone(), // by 块在 elab 前已降级，不应出现在此
     }
 }
@@ -411,6 +412,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
         Expr::UniverseApp { name, levels, .. } => Expr::UniverseApp { name, levels, span },
         Expr::Num { value, .. } => Expr::Num { value, span },
         Expr::Hole { .. } => Expr::Hole { span },
+        Expr::Intro { .. } => Expr::Intro { span },
         Expr::App { fun, arg, .. } => Expr::App { fun, arg, span },
         Expr::Lambda { binders, body, .. } => Expr::Lambda {
             binders,

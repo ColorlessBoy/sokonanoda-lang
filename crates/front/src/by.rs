@@ -521,6 +521,7 @@ fn mentions(name: &str, expr: &Expr) -> bool {
         Expr::UniverseApp { .. } | Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => {
             false
         }
+        Expr::Intro { .. } => false,
         Expr::App { fun, arg, .. } => mentions(name, fun) || mentions(name, arg),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
             binders
@@ -560,6 +561,7 @@ fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, Expr>) -> E
             span: *span,
         },
         Expr::Hole { span } => Expr::Hole { span: *span },
+        Expr::Intro { span } => Expr::Intro { span: *span },
         Expr::App { fun, arg, span } => Expr::App {
             fun: Box::new(substitute(fun, sigma)),
             arg: Box::new(substitute(arg, sigma)),

@@ -255,12 +255,7 @@ fn restart_skeleton(decl_src: &str) -> Option<String> {
         } else {
             layer.name.as_str()
         };
-        let mut name = base.to_string();
-        let mut n = 2;
-        while !used.insert(name.clone()) {
-            name = format!("{base}{n}");
-            n += 1;
-        }
+        let name = crate::proof::fresh_name(base, &mut used);
         named.push((name, layer));
     }
     let mut skeleton = String::from("sorry");
@@ -603,7 +598,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a 
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Eq.refl.{1} Nat ((Nat.add 1) 1)".to_string()
+                term: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string()
             }],
         );
         assert!(suggestions[0].verified);
@@ -832,7 +827,7 @@ fun (d : Prop) => sorry"
         assert_eq!(
             kinds(&suggestions),
             vec![SuggestionKind::Rfl {
-                term: "Eq.refl.{1} Nat ((Nat.add 1) 1)".to_string(),
+                term: "Eq.refl.{1} Nat (Nat.add 1 1)".to_string(),
             }],
         );
         assert!(suggestions[0].verified);

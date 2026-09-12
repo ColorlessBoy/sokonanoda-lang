@@ -92,7 +92,9 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
   `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
   `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
-  内核拒绝，消息带期望/实际);
+  内核拒绝，消息带期望/实际),
+  `elab-intro-not-a-function` (值位 `intro` 的目标不是函数——没有 binder
+  可以引入);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),
@@ -149,6 +151,22 @@ The LSP server implements `textDocument/semanticTokens` (full). Legend:
 KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`sorry`), FUNCTION
 (def/theorem names and uses), VARIABLE (axioms, unresolved idents),
 ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
+
+## Value-position `intro` (syntax + editor completion)
+
+The value position accepts a bare `intro` keyword:
+`theorem t : (a : Prop) -> a -> a := intro`. The front unrolls every
+remaining Pi binder of the declared type into `fun … => sorry` (anonymous
+layers are named `x`, `x2`, …) and keeps the declaration an Open exercise —
+the value never reaches the kernel; the kernel still judges every fill. A
+goal with no binder to introduce is rejected with
+`elab-intro-not-a-function`.
+
+`textDocument/completion` offers one extra item when the caret is inside
+that `intro` token: it replaces the token with the explicit skeleton
+(`textEdit`, `PlainText`; `documentation` shows the expansion). Clients
+render it like any completion; the server gates on the declaration state
+(front `DeclState.intro_skeleton` + the hole span), never by scanning text.
 
 ## Custom LSP requests (goal view, I9)
 
@@ -225,7 +243,7 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
 {
   "version": 5,
   "decl": {"name": "open", "kind": "theorem", "status": "open", "range": {}},
-  "goal": "(And a) a -> a",
+  "goal": "And a a -> a",
   "binders": [{"name": "a", "ty": "Prop"}],
   "span": {"start": {...}, "end": {...}},
   "step": 1,

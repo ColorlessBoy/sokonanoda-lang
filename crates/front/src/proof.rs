@@ -225,8 +225,9 @@ pub fn render_expr(expr: &Expr) -> String {
         }
         Expr::Num { value, .. } => value.clone(),
         Expr::Hole { .. } => "sorry".to_string(),
+        Expr::Intro { .. } => "intro".to_string(),
         Expr::App { fun, arg, .. } => {
-            format!("{} {}", render_atom(fun), render_atom(arg))
+            format!("{} {}", render_fun_position(fun), render_atom(arg))
         }
         Expr::Lambda { binders, body, .. } => {
             let prefix: Vec<_> = binders.iter().map(render_binder).collect();
@@ -267,6 +268,18 @@ fn render_tactic(tactic: &Tactic) -> String {
     }
 }
 
+/// 应用链左结合，函数位置的 App 不需要括号（`f x y` 而非 `(f x) y`）：
+/// 只有 lambda/forall/arrow/plus 这些优先级低于应用的形状才补括号。
+fn render_fun_position(expr: &Expr) -> String {
+    let s = render_expr(expr);
+    match expr {
+        Expr::Lambda { .. } | Expr::Forall { .. } | Expr::Arrow { .. } | Expr::Plus { .. } => {
+            format!("({s})")
+        }
+        _ => s,
+    }
+}
+
 fn render_atom(expr: &Expr) -> String {
     let s = render_expr(expr);
     match expr {
@@ -277,6 +290,19 @@ fn render_atom(expr: &Expr) -> String {
         | Expr::Plus { .. } => format!("({s})"),
         _ => s,
     }
+}
+
+/// binder 名防撞（外层优先保留原名）：生成骨架（失败声明重启、值位
+/// `intro` 展开）时，同名或匿名层的默认名 `x` 撞上已有名字就追加序号
+/// （`x` → `x2` → …）。命名约定只有一处，两个生成器共用。
+pub(crate) fn fresh_name(base: &str, used: &mut std::collections::HashSet<String>) -> String {
+    let mut name = base.to_string();
+    let mut n = 2;
+    while !used.insert(name.clone()) {
+        name = format!("{base}{n}");
+        n += 1;
+    }
+    name
 }
 
 fn render_binder(binder: &Binder) -> String {

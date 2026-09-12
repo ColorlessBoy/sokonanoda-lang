@@ -103,6 +103,9 @@ pub struct DeclState {
     /// known template, a full-application skeleton with auto-filled parameters
     /// and `sorry` for the proof fields (e.g. `And.intro a b sorry sorry`).
     pub refine_template: Option<String>,
+    /// 值位是 `intro` 时的显式展开骨架（`fun (a : Prop) => … => sorry`）。
+    /// 编辑器补全项的单一事实源；其它声明为 `None`。
+    pub intro_skeleton: Option<String>,
     /// The declaration's hint ladder, authored in the canvas as
     /// `-- soko:hint <text>` comment directives attached to this declaration
     /// (`compile::hints::attach_hints`). Empty when the source has no hints

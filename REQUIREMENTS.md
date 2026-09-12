@@ -347,3 +347,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `.obsolete` 待删目录。落地：解析按目录名版本号取最高（无版本号才回退
   mtime）并跳过 `.obsolete`；机器清理为默认 profile 升级到 0.13.0 + 删除
   孤儿目录（非仓库改动）。
+- 2026-09-12（三十六）：**值位 `intro` 关键字 + 展开补全（用户要求）**：
+  用户要求一个确定性的「类似 intro」补全——`theorem … := intro` 时 VS Code
+  建议原地替换为 `fun … => sorry` 骨架，明确拒绝 Copilot 式 AI 补全的
+  「作弊感」。拍板：一次全剥（等价 Lean `intros`）、匿名 binder 名沿用
+  现有生成器 `x`/`x2`。设计见 `docs/design/term-intro.md`；同日实现落地：
+  值位 `intro` 全剥降低（`compile/intro.rs`，非函数目标
+  `elab-intro-not-a-function`）、LSP 补全展开项（`textEdit` + 文档）、
+  inlay/session 联动、课程 unit6 补充与 golden；顺带修正旧缺陷
+  `render_expr` 函数位多余括号与 session 洞 span 未重映射。

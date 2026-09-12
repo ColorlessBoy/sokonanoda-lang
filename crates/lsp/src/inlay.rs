@@ -296,6 +296,28 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
+    async fn value_intro_hole_shows_the_remaining_goal() {
+        // 值位 `intro` 全剥后，洞在 intro token 上：inlay 直接显示最终目标，
+        // tooltip 列出全部引入的 binder（含匿名层生成的 `x`）。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "intro inlay diagnostics").await;
+
+        let hints = ask_inlay(&mut service, src).await.expect("hints array");
+        assert_eq!(hints.len(), 1, "one hint for the intro hole: {hints:?}");
+        assert_eq!(label_of(&hints[0]), ": And b a");
+        let tooltip = tooltip_of(&hints[0]);
+        assert!(
+            tooltip.contains("剩余目标：`And b a`"),
+            "tooltip: {tooltip}"
+        );
+        assert!(tooltip.contains("`x` : `And a b`"), "tooltip: {tooltip}");
+    }
+
+    #[tokio::test]
     async fn hole_free_document_yields_an_empty_hint_array() {
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;

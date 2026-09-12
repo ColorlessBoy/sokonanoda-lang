@@ -81,3 +81,23 @@ theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
 -- soko:hint 目标形态：intro a; intro h; assumption——目标 a，上下文有 a 和 h 都是 a 型。
 -- soko:hint 关键件：assumption 从内到外找第一个类型匹配的假设，即 h。
 theorem by_ex5 : (a : Prop) -> a -> a := by sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- Aside: value-position `intro` — a shorter starting move than `by`
+--
+-- Besides `by`, the value position also accepts a bare `intro`: the compiler
+-- turns every remaining binder of the goal into a `fun` in one go and leaves a
+-- single hole at the end. On a three-arrow goal, `:= intro` is the same as
+-- writing out:
+--
+--   := fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry
+--
+-- Both are legal: `intro` is the shortcut, `by` peels one layer at a time. The
+-- editor offers to expand `intro` into the explicit `fun` skeleton so the two
+-- spellings can be compared side by side.
+--
+-- Exercise 6: start from value-position `intro`, then fill the hole at the end.
+-- soko:hint 思路：intro 把三层箭头全变成 fun 加一个洞；在洞里把 And b a 装出来。
+-- soko:hint 目标形态：剩余目标 And b a，上下文 a、b、x : And a b（x 是自动生成的名字）。
+-- soko:hint 关键件：And.intro b a 要两份证明——And.right a b x 给 b，And.left a b x 给 a。
+theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro

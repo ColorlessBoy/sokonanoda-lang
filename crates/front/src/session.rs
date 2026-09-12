@@ -294,6 +294,12 @@ impl Session {
                 for step in &mut state.by_steps {
                     step.span = remap_span(step.span, old_c, new_c, new_src);
                 }
+                for hole in &mut state.holes {
+                    *hole = remap_span(*hole, old_c, new_c, new_src);
+                }
+                for sub in &mut state.sub_goals {
+                    sub.span = remap_span(sub.span, old_c, new_c, new_src);
+                }
             }
             for h in &mut snap.hovers {
                 h.span = remap_span(h.span, old_c, new_c, new_src);
@@ -828,6 +834,48 @@ def five : Nat := 5
             .span;
         assert_eq!(after.start.offset, before.start.offset + shift);
         assert_eq!(after.start.line, before.start.line + 1);
+    }
+
+    #[test]
+    fn session_remaps_hole_and_sub_goal_spans_on_comment_edit() {
+        // 洞 span 随快照缓存：注释级编辑零重编译后 holes/sub_goals 坐标必须
+        // 平移，否则 inlay / nextHole / code action 会指到错误位置。
+        let mut session = Session::new(CompileOptions::default());
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                   axiom True : Prop\n\
+                   example : And True True := And.intro True True sorry sorry\n";
+        let u1 = update(&mut session, src, 1);
+        let before = u1
+            .report
+            .decls
+            .iter()
+            .find(|d| d.status == DeclStatus::Open)
+            .expect("open example");
+        assert_eq!(before.holes.len(), 2);
+        assert_eq!(before.sub_goals.len(), 2);
+        let hole = before.holes[0];
+        let sub = before.sub_goals[0].span;
+        assert_eq!(hole, sub, "each sub-goal span matches its hole");
+
+        let with_comment = format!("-- 讲解\n{src}");
+        let shift = "-- 讲解\n".len();
+        let u2 = update(&mut session, &with_comment, 2);
+        assert_eq!(u2.recompiled_from, None, "comment-only edit");
+        assert_eq!(u2.stats.kernel_checks, 0);
+        let after = u2
+            .report
+            .decls
+            .iter()
+            .find(|d| d.status == DeclStatus::Open)
+            .expect("open example");
+        assert_eq!(after.holes[0].start.offset, hole.start.offset + shift);
+        assert_eq!(after.holes[0].start.line, hole.start.line + 1);
+        assert_eq!(
+            after.sub_goals[0].span.start.offset,
+            sub.start.offset + shift
+        );
+        assert_eq!(after.sub_goals[0].span.start.line, sub.start.line + 1);
     }
 
     #[test]

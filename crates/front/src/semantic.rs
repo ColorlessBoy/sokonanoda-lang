@@ -50,6 +50,7 @@ const KEYWORDS: &[&str] = &[
     "iota",
     "end",
     "fun",
+    "intro",
     "#check",
     "#reduce",
     "#print",
@@ -245,6 +246,7 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
 fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
     match expr {
         Expr::Sort { .. } | Expr::Ident { .. } | Expr::Num { .. } | Expr::Hole { .. } => {}
+        Expr::Intro { .. } => {}
         Expr::UniverseApp { span, .. } => names.universes.push(*span),
         Expr::App { fun, arg, .. } => {
             walk_expr(fun, toks, names);
@@ -433,6 +435,17 @@ mod tests {
             assert!(pair[0].span.start.offset < pair[1].span.start.offset);
             assert!(pair[0].span.end.offset <= pair[1].span.start.offset);
         }
+    }
+
+    #[test]
+    fn intro_classifies_as_keyword_in_value_and_tactic_positions() {
+        let src = "theorem t : (a : Prop) -> a := intro\n\
+                   theorem u : (a : Prop) -> a := by intro a; exact a\n";
+        let spans = semantic_tokens(src);
+        assert_eq!(
+            kinds_of(src, &spans, "intro"),
+            vec![SemanticKind::Keyword, SemanticKind::Keyword]
+        );
     }
 
     #[test]

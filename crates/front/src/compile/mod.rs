@@ -7,6 +7,7 @@ mod error;
 mod event;
 mod goals;
 pub mod hints;
+mod intro;
 mod prelude;
 mod report;
 mod warning;

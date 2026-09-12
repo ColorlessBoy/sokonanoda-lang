@@ -957,6 +957,40 @@ impl LanguageServer for Backend {
         // In-scope binders at the cursor (smallest enclosing hover row);
         // outside any hover span the list stays keyword/prelude-only.
         let pos = params.text_document_position.position;
+        // 值位 `intro`：光标落在 intro token（= 那个洞）上时，给一项把关键字
+        // 原地展开为 front 计算的显式 fun 骨架。门控与骨架文本全部来自
+        // DeclState（单一事实源），编辑器不扫文本、不重算。
+        let intro_item = doc.report.as_ref().and_then(|report| {
+            let offset = position_to_offset(&doc.text, pos);
+            let d = decl_at(&report.decls, pos.line, pos.character)?;
+            if d.status != DeclStatus::Open {
+                return None;
+            }
+            let skeleton = d.intro_skeleton.as_deref()?;
+            let hole = d
+                .holes
+                .iter()
+                .find(|h| h.start.offset <= offset && offset <= h.end.offset)?;
+            Some(CompletionItem {
+                label: "intro（展开为 fun 骨架）".to_string(),
+                kind: Some(CompletionItemKind::KEYWORD),
+                detail: Some("等价于把目标剩下的 binder 全部引入".to_string()),
+                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: format!(
+                        "值位 `intro`：一次把目标剩下的 binder 全写成 `fun`，末尾留 `sorry`。\n\n展开为：\n\n```lean\n{skeleton}\n```"
+                    ),
+                })),
+                filter_text: Some("intro".to_string()),
+                sort_text: Some("0intro".to_string()),
+                preselect: Some(true),
+                text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+                    range: range_of(*hole),
+                    new_text: skeleton.to_string(),
+                })),
+                ..Default::default()
+            })
+        });
         if let Some(report) = &doc.report {
             if let Some(names) = scope_names_at(&report.hovers, pos.line, pos.character) {
                 for name in names {
@@ -972,8 +1006,12 @@ impl LanguageServer for Backend {
                 }
             }
         }
-        // Keywords (single source: front::semantic).
+        // Keywords (single source: front::semantic). 有展开项时不再重复给
+        // 裸 `intro` 关键字（同一个词只出一次）。
         for keyword in sokonanoda_front::semantic::keywords() {
+            if *keyword == "intro" && intro_item.is_some() {
+                continue;
+            }
             items.push(CompletionItem {
                 label: (*keyword).to_string(),
                 kind: Some(CompletionItemKind::KEYWORD),
@@ -1024,6 +1062,9 @@ impl LanguageServer for Backend {
                     ..Default::default()
                 });
             }
+        }
+        if let Some(item) = intro_item {
+            items.push(item);
         }
         Ok(Some(CompletionResponse::Array(items)))
     }
@@ -1993,7 +2034,7 @@ mod tests {
             "entering the second tactic = after step 0"
         );
         assert_eq!(result["total"], 2);
-        assert_eq!(result["goal"], "(And a) a -> a");
+        assert_eq!(result["goal"], "And a a -> a");
         let binders = result["binders"].as_array().expect("binders array");
         assert_eq!(binders.len(), 1);
         assert_eq!(binders[0]["name"], "a");
@@ -2541,6 +2582,71 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
                 .is_some_and(|d| d.contains("binder")),
             "detail marks the binder scope: {:?}",
             binder.detail
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn completion_expands_value_intro_into_a_lambda_skeleton() {
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "intro completion diagnostics").await;
+
+        let start = offset_of(src, "intro");
+        let items = request_completions_at(&mut service, lsp_pos(src, start)).await;
+        let item = items
+            .iter()
+            .find(|i| i.filter_text.as_deref() == Some("intro"))
+            .expect("the intro expansion must be offered");
+        let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
+            panic!("expected a plain CompletionTextEdit::Edit");
+        };
+        assert_eq!(edit.range.start, lsp_pos(src, start));
+        assert_eq!(
+            edit.range.end,
+            lsp_pos(src, start + "intro".len()),
+            "the edit replaces exactly the intro token"
+        );
+        assert_eq!(
+            edit.new_text,
+            "fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry"
+        );
+        assert_eq!(item.preselect, Some(true));
+        assert_eq!(
+            items
+                .iter()
+                .filter(|i| i.label.starts_with("intro"))
+                .count(),
+            1,
+            "the expansion replaces the bare keyword entry: {items:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn completion_does_not_expand_intro_outside_its_token() {
+        // 普通 `sorry` 开放练习没有骨架；光标在洞上时也只给裸关键字。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "plain completion diagnostics").await;
+
+        let pos = lsp_pos(src, offset_of(src, "sorry"));
+        let items = request_completions_at(&mut service, pos).await;
+        assert!(
+            items
+                .iter()
+                .all(|i| i.filter_text.as_deref() != Some("intro")),
+            "no expansion item without an intro token: {items:?}"
+        );
+        assert!(
+            items.iter().any(|i| i.label == "intro"),
+            "the bare intro keyword stays available"
         );
         shutdown(&mut service).await;
     }

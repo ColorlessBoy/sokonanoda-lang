@@ -766,6 +766,7 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
+                | ErrorKind::ElabIntroNotAFunction
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -792,6 +793,7 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::ElabIntroNotAFunction,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -894,6 +896,106 @@ fn open_exercise_does_not_pollute_env() {
         .events
         .iter()
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "ok")));
+}
+
+// ---- 值位 `intro`（一次全剥的 lambda 骨架）----
+
+#[test]
+fn intro_lowers_all_pi_binders_into_a_lambda_skeleton() {
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro\n";
+    let file = parse(src).expect("parse");
+    let report = check_document(&file);
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap"))
+        .expect("decl and_swap");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("And b a"));
+    let binders: Vec<(&str, &str)> = d
+        .binders
+        .iter()
+        .map(|b| (b.name.as_str(), b.ty.as_str()))
+        .collect();
+    assert_eq!(
+        binders,
+        vec![("a", "Prop"), ("b", "Prop"), ("x", "And a b")]
+    );
+    assert_eq!(d.holes.len(), 1);
+    assert_eq!(
+        &src[d.holes[0].start.offset..d.holes[0].end.offset],
+        "intro"
+    );
+    assert_eq!(
+        d.intro_skeleton.as_deref(),
+        Some("fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry")
+    );
+}
+
+#[test]
+fn intro_names_anonymous_layers_x_and_dedups() {
+    let report = check_document(
+        &parse("def f : (x : Prop) -> Prop -> Nat -> Nat := intro\n").expect("parse"),
+    );
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("f"))
+        .expect("decl f");
+    let names: Vec<&str> = d.binders.iter().map(|b| b.name.as_str()).collect();
+    assert_eq!(names, vec!["x", "x2", "x3"]);
+    assert_eq!(d.goal.as_deref(), Some("Nat"));
+    assert_eq!(
+        d.intro_skeleton.as_deref(),
+        Some("fun (x : Prop) => fun (x2 : Prop) => fun (x3 : Nat) => sorry")
+    );
+}
+
+#[test]
+fn intro_on_a_non_function_goal_is_rejected() {
+    let report =
+        check_document(&parse("axiom True : Prop\ntheorem t : True := intro\n").expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Failed);
+    assert!(d.intro_skeleton.is_none());
+}
+
+#[test]
+fn intro_open_exercise_does_not_touch_the_kernel() {
+    let file = parse("theorem t : (a : Prop) -> a -> a := intro\n").expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    assert_eq!(out.stats.kernel_checks, 0, "intro is an open exercise");
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::ExerciseOpen { name } if name.as_deref() == Some("t"))));
+}
+
+#[test]
+fn intro_preserves_implicit_binder_style() {
+    let report =
+        check_document(&parse("theorem t : {a : Prop} -> a -> a := intro\n").expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.goal.as_deref(), Some("a"));
+    assert_eq!(
+        d.intro_skeleton.as_deref(),
+        Some("fun {a : Prop} => fun (x : a) => sorry")
+    );
 }
 
 #[test]
@@ -1067,6 +1169,9 @@ fn render_expr_round_trips() {
     let cases = [
         ("Prop", "Prop"),
         ("f x", "f x"),
+        ("f x y", "f x y"),
+        ("f (g x)", "f (g x)"),
+        ("And a b", "And a b"),
         ("fun (x : Prop) => x", "fun (x : Prop) => x"),
         ("(x : Prop) -> x", "(x : Prop) -> x"),
         ("1 + 1", "1 + 1"),
@@ -1117,6 +1222,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::ElabIntroNotAFunction,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1144,6 +1250,7 @@ fn protocol_doc_lists_every_error_code() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
+                | ErrorKind::ElabIntroNotAFunction
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -2090,7 +2197,7 @@ fn sub_goal_field_types_substitute_compound_binders() {
     assert_eq!(open.sub_goals.len(), 1);
     assert_eq!(
         open.sub_goals[0].ty.as_deref(),
-        Some("(And True) False"),
+        Some("And True False"),
         "compound field type must show the goal's own arguments: {:?}",
         open.sub_goals[0].ty
     );
@@ -2128,7 +2235,7 @@ fn sub_goal_field_types_respect_binder_shadowing() {
     assert_eq!(open.sub_goals.len(), 1);
     assert_eq!(
         open.sub_goals[0].ty.as_deref(),
-        Some("(a : Prop) -> (And a) False"),
+        Some("(a : Prop) -> And a False"),
         "shadowed inner `a` stays, unshadowed `b` is substituted: {:?}",
         open.sub_goals[0].ty
     );
@@ -2608,9 +2715,9 @@ fn partial_by_block_records_per_step_states() {
         .unwrap();
     assert_eq!(d.by_steps.len(), 2, "one state per tactic");
     // step 0 = `intro a` 执行后：binder a : Prop，目标剩 `And a a -> a`
-    // （render_expr 给应用作函数位置补括号：`(And a) a`）。
+    // （应用链左结合，函数位置不补括号）。
     let s0 = &d.by_steps[0];
-    assert_eq!(s0.goal.as_deref(), Some("(And a) a -> a"));
+    assert_eq!(s0.goal.as_deref(), Some("And a a -> a"));
     assert_eq!(s0.binders.len(), 1);
     assert_eq!(s0.binders[0].name, "a");
     assert_eq!(s0.binders[0].ty, "Prop");
@@ -2620,7 +2727,7 @@ fn partial_by_block_records_per_step_states() {
     assert_eq!(s1.goal.as_deref(), Some("a"));
     assert_eq!(s1.binders.len(), 2);
     assert_eq!(s1.binders[1].name, "h");
-    assert_eq!(s1.binders[1].ty, "(And a) a");
+    assert_eq!(s1.binders[1].ty, "And a a");
     assert_eq!(&src[s1.span.start.offset..s1.span.end.offset], "intro h");
 }
 

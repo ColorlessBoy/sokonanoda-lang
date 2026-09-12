@@ -100,11 +100,16 @@ impl Parser {
         Ok(Command::Example { ty, val, span })
     }
 
-    /// 值位：普通表达式，或 `by <tactic 序列>` 块。
+    /// 值位：普通表达式、`by <tactic 序列>` 块，或 `intro`（一次引入剩余
+    /// 全部 binder 的教学关键字，与 `by` 同级）。
     fn parse_value(&mut self) -> Result<Expr> {
         if let TokenKind::Ident(kw) = &self.peek().kind {
             if kw == "by" {
                 return self.parse_by_block();
+            }
+            if kw == "intro" {
+                let tok = self.bump();
+                return Ok(Expr::Intro { span: tok.span });
             }
         }
         self.parse_expr()
@@ -900,6 +905,36 @@ example : Prop -> Prop := sorry
         assert!(
             matches!(&file.commands[2], Command::Example { val, .. } if matches!(val, Expr::Hole { .. }))
         );
+    }
+
+    #[test]
+    fn value_intro_parses_as_the_intro_keyword() {
+        let file = parse("theorem t : (a : Prop) -> a := intro\n").unwrap();
+        assert!(matches!(
+            &file.commands[0],
+            Command::Theorem {
+                val: Expr::Intro { .. },
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn intro_with_a_trailing_name_is_a_parse_error() {
+        assert!(parse("theorem t : (a : Prop) -> a := intro a\n").is_err());
+    }
+
+    #[test]
+    fn dotted_intro_names_are_not_the_value_keyword() {
+        // `And.intro` 是带点标识符；值位只认裸的 `intro`。
+        let file = parse("def t : Prop -> Prop := And.intro\n").unwrap();
+        assert!(matches!(
+            &file.commands[0],
+            Command::Def {
+                val: Expr::Ident { name, .. },
+                ..
+            } if name == "And.intro"
+        ));
     }
 
     #[test]

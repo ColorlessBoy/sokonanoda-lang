@@ -35,6 +35,7 @@ pub enum ErrorKind {
     ElabTooManyCtorFields,
     ElabUnknownCtorForIota,
     ElabTacticFailed,
+    ElabIntroNotAFunction,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -64,7 +65,8 @@ impl ErrorKind {
             | ElabInvalidNatLiteral
             | ElabTooManyCtorFields
             | ElabUnknownCtorForIota
-            | ElabTacticFailed => CompileStage::Elab,
+            | ElabTacticFailed
+            | ElabIntroNotAFunction => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -95,6 +97,7 @@ impl ErrorKind {
             ElabTooManyCtorFields => "elab-too-many-ctor-fields",
             ElabUnknownCtorForIota => "elab-unknown-ctor-for-iota",
             ElabTacticFailed => "elab-tactic-failed",
+            ElabIntroNotAFunction => "elab-intro-not-a-function",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -152,6 +155,9 @@ impl ErrorKind {
             }
             ElabTacticFailed => {
                 "`by` 块里的 tactic 失败了：请检查当前目标与已引入的假设。"
+            }
+            ElabIntroNotAFunction => {
+                "值位 `intro` 需要目标至少是一层函数（`A -> B` 或 `forall …`）。先看目标最外层有没有箭头；不是函数就直接写答案或 sorry。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"
