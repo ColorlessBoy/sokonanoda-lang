@@ -1,3 +1,16 @@
+## [0.15.0] - 2026-09-12
+
+### Added
+- **Declaration binders (Lean-style)** — `theorem f (a : A) (h : B a) : C := v`
+  is now valid: the declared type becomes the matching arrow telescope and the
+  value gets its `fun`s wrapped automatically. Writing `:= sorry` reports the
+  codomain goal with the binders already in context (no `intro` needed), a
+  closed body needs no `fun`s either, and `by` blocks start from that context.
+  Universe params and implicit binders stay unambiguous
+  (`{u}` vs `{x : T}`).
+- Course unit 1 gained a side-by-side section (arrow spelling vs declaration
+  binders) plus exercise 6.
+
 ## [0.14.0] - 2026-09-12
 
 ### Added

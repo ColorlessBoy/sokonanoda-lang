@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十三轮：值位 `intro` 关键字 + 展开补全）
+> 快照：2026-09-12（第三十四轮：声明级 binder（Lean 风格））
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,30 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十四轮：声明级 binder（Lean 风格））
+
+> 触发：用户要求支持官方 Lean 的
+> `theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a := sorry`
+> ——省去 `intro`/`fun` 的麻烦。设计 `docs/design/decl-binders.md` +
+> REQUIREMENTS §9（三十七），同日实现。
+
+1. **parser**：声明 binder（显式/隐式/多名字组）解析 + 宇宙参数消歧
+   （`{u}` vs `{x : T}` 的 lookahead）；`wrap_decl_binders` 降级为
+   「类型 = Forall 望远镜、值 = Lambda 望远镜」，后续流水线零改动；
+   无类型 binder（`(a)`）给教学 parse 错误。
+2. **`by` 引擎**：`run_by` 新增 `initial_binders`——声明 binder 进根节点
+   上下文、类型先剥对应层数；`split_by_value` 识别「lambda 链 → by」。
+3. **`intro` 递归**：沿 lambda 链下降，只剥剩余 codomain；补全骨架只含
+   剩余展开（`theorem t (a : Prop) : a -> a := intro` →
+   `fun (x : a) => sorry`）。
+4. **体验**：`:= sorry` 目标即 codomain、上下文含声明 binder（不用
+   intro）；闭合正文直接写、不用 fun；两种拼写内核判定等价。
+5. **课程**：unit1 补「声明级 binder」小节 + 练习 6（zh/en 镜像 + 钥匙），
+   golden unit1 (13,6,1)。
+6. **测试**：front 265 / lsp 98 / cli 51 / course 4 全绿（parser/降级/宇宙
+   消歧/by 上下文/intro 组合/inlay/补全/CLI e2e）。
+7. **发布**：0.14.0 → **0.15.0**（feature → minor）。
 
 ## 本轮进度（2026-09-12，第三十三轮：值位 `intro` 关键字 + 展开补全）
 
