@@ -39,7 +39,14 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `intro_is_equivalent_to_typing_the_skeleton_out_by_hand`（同 status/goal/
    binders/洞数，差别只有骨架字段）与 `value_intro_is_layout_independent`
    （同页 / 换行 / 尾随空格三种排版判定一字不差）。
-5. **发布**：0.16.2 → **0.17.0**（新增命令 = 新能力 → minor）。
+5. **发布**：0.16.2 → **0.17.0**（新增命令 = 新能力 → minor），tag `v0.17.0`
+   → commit `52a6f22`。`release` run 34703048635 **全绿**：8 平台 `build` →
+   `package-vsix` → `github-release` → `marketplace-publish`；GitHub Release
+   资产 **25 个**（lsp tarball ×8 + cli tarball ×8 + VSIX ×9），Marketplace
+   `sokonanoda-lang.sokonanoda` 已上 **0.17.0**；同 tag 的 `ci` 也 success。
+   发布后额外做了资产冒烟：darwin-arm64 的 lsp/cli tarball 下载→解压→
+   `0o755` 保住、发布的 CLI 直接判 `playground.sokonanoda` exit 0。
+   （双页核对是 2026-09-11 那次「Release 零资产」事故留下的硬性预防。）
 
 ## 本轮进度（2026-09-12，第三十七轮：`intro` hover 展开式 + Tab 接受回归）
 

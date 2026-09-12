@@ -81,6 +81,14 @@
   UTF-16 列——换算集中在 `encode_semantic_tokens`/`offset_to_line_col`，
   别在业务代码里散落换算（增补平面字符踩过）。
 - 洞位置、nextHole 逻辑放 server 端（ocaml-lsp 教训），客户端零位置推导。
+- **发布后核对 Marketplace 要认「索引延迟」**：`extensionquery` API（POST
+  `/_apis/public/gallery/extensionquery`，`filterType:7` = 扩展全名，
+  `flags:3` 带版本）在 `vsce publish` 成功后**还要几分钟**才收录新版本；别
+  据此判失败。也**别**用 `/_apis/public/gallery/publishers/<p>/vsextensions/<n>/<v>`
+  探测——那个路由根本不存在，一律 404，最容易被误读成「版本没上架」。判据
+  看 `lastUpdated` 是否推进 + 轮询 `versions` 里出现目标版本号（本轮实测
+  延迟约 2 分钟）。步骤日志要鉴权（未登录拉 `/actions/runs/<id>/logs` 是 403），
+  public 仓库也一样，所以「job 步骤 success」是能拿到的最强信号（v0.17.0）。
 
 ## 教学（course / playground）
 
