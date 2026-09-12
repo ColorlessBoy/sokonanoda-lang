@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十五轮：VS Code 手动重启 LSP 命令）
+> 快照：2026-09-12（第三十六轮：修复 `intro` 补全在词尾不触发）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,21 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十六轮：修复 `intro` 补全在词尾不触发）
+
+> 触发：用户实测 `playground.sokonanoda:201` 输入完 `intro` 看不到展开补全。
+
+1. **根因**：补全门控用 `render::decl_at`（区间**末尾排他**，`render.rs:70`），
+   而输完关键字时光标恰在声明/token 末尾 → 不命中。旧 LSP 测试都从 token
+   **起点**请求，掩盖了真实输入位置。
+2. **修复**：门控改为字节区间（末尾含）`start <= offset <= end`，洞区间也
+   含末尾；两个补全测试改为在 token 末尾请求（回归守护）。
+3. **验证**：真实 LSP 探针在 `playground:201` 现在返回展开项（`textEdit`
+   就是 `fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry`）；
+   VS Code 集成新增 `value intro offers the expansion completion at the end
+   of the token`（9 passing）。
+4. **发布**：0.16.0 → **0.16.1**（bugfix → patch）。
 
 ## 本轮进度（2026-09-12，第三十五轮：VS Code 手动重启 LSP 命令）
 

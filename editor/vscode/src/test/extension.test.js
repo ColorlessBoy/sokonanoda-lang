@@ -261,6 +261,35 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     assert.ok(text.trim().length > 0, "hover markup must be non-empty");
   });
 
+  test("value intro offers the expansion completion at the end of the token", async () => {
+    // 刚输完 `intro` 时光标在 token 末尾；补全门控必须覆盖这个位置
+    // （曾经只覆盖 token 内部，导致真实输入时看不到展开项）。
+    const src = "theorem t : Prop -> Prop := intro\n";
+    const uri = await writeDoc("intro-completion.sokonanoda", src);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    const position = new vscode.Position(0, src.trimEnd().length);
+    let item;
+    await waitFor("the intro expansion completion", async () => {
+      const list = await vscode.commands.executeCommand(
+        "vscode.executeCompletionItemProvider",
+        uri,
+        position,
+      );
+      const items = list?.items ?? list ?? [];
+      item = items.find((candidate) => candidate.filterText === "intro");
+      return !!item;
+    });
+    const inserted =
+      item.textEdit?.newText ??
+      (typeof item.insertText === "string" ? item.insertText : item.insertText?.value) ??
+      "";
+    assert.ok(
+      inserted.startsWith("fun ") && inserted.endsWith("=> sorry"),
+      `the expansion must be the explicit skeleton, got: ${JSON.stringify(inserted)}`,
+    );
+  });
+
   test("restart server command re-syncs open documents", async () => {
     // `sokonanoda: 重启语言服务器` 重新解析二进制并重启客户端；重启后
     // 打开中的文档要重新拿到诊断（场景：本地二进制重建/缓存刷新后，

@@ -960,9 +960,14 @@ impl LanguageServer for Backend {
         // 值位 `intro`：光标落在 intro token（= 那个洞）上时，给一项把关键字
         // 原地展开为 front 计算的显式 fun 骨架。门控与骨架文本全部来自
         // DeclState（单一事实源），编辑器不扫文本、不重算。
+        // 注意：用字节区间（末尾含）而不是 `decl_at`——`decl_at` 的末尾
+        // 排他，而「刚输完 intro」光标恰在声明末尾，那正是最常见的场景。
         let intro_item = doc.report.as_ref().and_then(|report| {
             let offset = position_to_offset(&doc.text, pos);
-            let d = decl_at(&report.decls, pos.line, pos.character)?;
+            let d = report
+                .decls
+                .iter()
+                .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
             if d.status != DeclStatus::Open {
                 return None;
             }
@@ -2595,8 +2600,10 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "intro completion diagnostics").await;
 
+        // 回归：光标在 intro token **末尾**（刚输完关键字的真实位置）也要命中。
+        // 曾经的 `decl_at` 末尾排他语义正是在这里漏掉了补全项。
         let start = offset_of(src, "intro");
-        let items = request_completions_at(&mut service, lsp_pos(src, start)).await;
+        let items = request_completions_at(&mut service, lsp_pos(src, start + "intro".len())).await;
         let item = items
             .iter()
             .find(|i| i.filter_text.as_deref() == Some("intro"))
@@ -2662,7 +2669,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         let _ = wait_diagnostics(&mut socket, "decl-binder completion diagnostics").await;
 
         let start = offset_of(src, "intro");
-        let items = request_completions_at(&mut service, lsp_pos(src, start)).await;
+        let items = request_completions_at(&mut service, lsp_pos(src, start + "intro".len())).await;
         let item = items
             .iter()
             .find(|i| i.filter_text.as_deref() == Some("intro"))

@@ -1,3 +1,12 @@
+## [0.16.1] - 2026-09-12
+
+### Fixed
+- The value-position `intro` expansion completion now appears when the caret
+  is at the **end** of the keyword — the moment you finish typing it. The
+  declaration lookup used an end-exclusive range, so the item was only
+  offered with the caret strictly inside the token, which never happens while
+  typing.
+
 ## [0.16.0] - 2026-09-12
 
 ### Added
