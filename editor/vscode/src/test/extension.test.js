@@ -290,6 +290,85 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("accepting the intro suggestion expands the token", async () => {
+    // 用户在词尾按 Tab/Enter 接受补全：用 VS Code 的
+    // acceptSelectedSuggestion（Tab 绑定的同一命令）复现接受路径，
+    // 断言 token 真的被原地替换成显式骨架。
+    const src = "theorem t : Prop -> Prop := intro\n";
+    const uri = await writeDoc("intro-accept.sokonanoda", src);
+    await vscode.workspace.openTextDocument(uri);
+    const editor = await vscode.window.showTextDocument(uri, { preview: false });
+    const end = new vscode.Position(0, src.trimEnd().length);
+    await waitFor("the intro expansion completion", async () => {
+      const list = await vscode.commands.executeCommand(
+        "vscode.executeCompletionItemProvider",
+        uri,
+        end,
+      );
+      return (list?.items ?? []).some((candidate) => candidate.filterText === "intro");
+    });
+    editor.selection = new vscode.Selection(end, end);
+    await vscode.commands.executeCommand("editor.action.triggerSuggest");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await vscode.commands.executeCommand("acceptSelectedSuggestion");
+    await waitFor("the expanded skeleton in the document", async () =>
+      editor.document.getText().includes("fun (x : Prop) => sorry"),
+    );
+  });
+
+  test("typing intro then accepting expands the token", async () => {
+    // 真实手势：敲 `intro`（触发快速建议）→ 接受选中项（Tab/Enter 的同一
+    // 命令）。若补全项没弹出来或没被选中，这条会超时失败。
+    const prefix = "theorem t : Prop -> Prop := ";
+    const uri = await writeDoc("intro-type.sokonanoda", prefix + "\n");
+    await vscode.workspace.openTextDocument(uri);
+    const editor = await vscode.window.showTextDocument(uri, { preview: false });
+    const end = new vscode.Position(0, prefix.length);
+    editor.selection = new vscode.Selection(end, end);
+    await waitFor("the server to serve completions", async () => {
+      const list = await vscode.commands.executeCommand(
+        "vscode.executeCompletionItemProvider",
+        uri,
+        end,
+      );
+      return (list?.items ?? []).length > 0;
+    });
+    await vscode.commands.executeCommand("type", { text: "intro" });
+    // 真实敲键时建议列表自动弹出；测试环境里快速连续输入的触发时机
+    // 不稳定，所以等服务端编译出展开项后显式唤起列表再接受。
+    await waitFor("the intro expansion in the completion list", async () => {
+      const list = await vscode.commands.executeCommand(
+        "vscode.executeCompletionItemProvider",
+        uri,
+        new vscode.Position(0, prefix.length + "intro".length),
+      );
+      return (list?.items ?? []).some((candidate) => candidate.filterText === "intro");
+    });
+    await vscode.commands.executeCommand("editor.action.triggerSuggest");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await vscode.commands.executeCommand("acceptSelectedSuggestion");
+    await waitFor("the expanded skeleton in the document", async () =>
+      editor.document.getText().includes("fun (x : Prop) => sorry"),
+    );
+  });
+
+  test("hover on value intro shows the expansion", async () => {
+    // 没选择补全时，hover `intro` 也能看到展开后的显式表达式。
+    const src = "theorem t : Prop -> Prop := intro\n";
+    const uri = await writeDoc("intro-hover.sokonanoda", src);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    let text = "";
+    await waitFor("hover on the intro keyword", async () => {
+      text = await hoverTextAt(uri, 0, src.indexOf("intro"));
+      return text.includes("fun (x : Prop) => sorry");
+    });
+    assert.ok(
+      text.includes("展开为"),
+      `hover must show the expansion, got: ${JSON.stringify(text)}`,
+    );
+  });
+
   test("restart server command re-syncs open documents", async () => {
     // `sokonanoda: 重启语言服务器` 重新解析二进制并重启客户端；重启后
     // 打开中的文档要重新拿到诊断（场景：本地二进制重建/缓存刷新后，

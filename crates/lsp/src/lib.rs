@@ -626,6 +626,32 @@ fn hover_markup(res: render::HoverResolved) -> Hover {
     }
 }
 
+/// 值位 `intro` 的展开 hover：未接受补全时也能看到它展开成什么。
+/// 光标在 intro token 上（含末尾）命中；返回洞的 range 供编辑器高亮。
+fn intro_expansion_hover(report: &DocumentReport, offset: usize) -> Option<Hover> {
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
+    if d.status != DeclStatus::Open {
+        return None;
+    }
+    let skeleton = d.intro_skeleton.as_deref()?;
+    let hole = d
+        .holes
+        .iter()
+        .find(|h| h.start.offset <= offset && offset <= h.end.offset)?;
+    Some(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: format!(
+                "值位 `intro`：一次把目标剩下的 binder 全写成 `fun`，末尾留 `sorry`。\n\n展开为：\n\n```lean\n{skeleton}\n```"
+            ),
+        }),
+        range: Some(range_of(*hole)),
+    })
+}
+
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
@@ -727,6 +753,12 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
+        let offset = position_to_offset(&doc.text, pos);
+        // 值位 `intro`：不选择补全也能在 hover 里看到展开后的显式表达式。
+        // 先于关键字抑制——`intro` 在 KEYWORDS 里，否则会被当普通关键字吞掉。
+        if let Some(hover) = intro_expansion_hover(report, offset) {
+            return Ok(Some(hover));
+        }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
         // 应该来自名字/表达式，而不是把关键字所在的某个节点硬塞过来。
         if let Some(kind) = semantic_kind_at(&doc.text, pos.line, pos.character) {
@@ -734,7 +766,6 @@ impl LanguageServer for Backend {
                 return Ok(None);
             }
         }
-        let offset = position_to_offset(&doc.text, pos);
         // 括号优先：光标在 ( / ) 上 → 显示括号组包住的表达式及其类型
         //（`(表达式)` 的悬停 = `表达式 : 类型`）。必须先于精确命中——
         // 外层 lambda 行的 span 覆盖整个值表达式，会遮住括号组。
@@ -2340,7 +2371,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             serde_json::from_value(result).expect("valid CompletionResponse");
         match response.expect("completions must be returned") {
             CompletionResponse::Array(items) => items,
-            other => panic!("expected an array completion response, got {other:?}"),
+            CompletionResponse::List(list) => list.items,
         }
     }
 
@@ -2562,7 +2593,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             serde_json::from_value(result).expect("valid CompletionResponse");
         match response.expect("completions must be returned") {
             CompletionResponse::Array(items) => items,
-            other => panic!("expected an array completion response, got {other:?}"),
+            CompletionResponse::List(list) => list.items,
         }
     }
 
@@ -3012,6 +3043,32 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "bracket suite diagnostics").await;
         (service, socket)
+    }
+
+    #[tokio::test]
+    async fn hover_on_value_intro_shows_the_expansion() {
+        // 未接受补全时，hover `intro` 也能看到展开后的显式表达式；
+        // 光标在 token 里或词尾都命中，并高亮 intro token。
+        let src = "theorem t : Prop -> Prop := intro\n";
+        let (mut service, _socket) = open_and_wait(src).await;
+        let intro = src.find("intro").expect("intro token");
+        for offset in [intro, intro + "intro".len()] {
+            let hover = hover_opt_at(&mut service, src, offset)
+                .await
+                .unwrap_or_else(|| panic!("hover at {offset} must exist"));
+            let value = match hover.contents {
+                HoverContents::Markup(m) => m.value,
+                other => panic!("expected markup hover, got {other:?}"),
+            };
+            assert!(
+                value.contains("fun (x : Prop) => sorry"),
+                "hover must show the expansion: {value}"
+            );
+            let range = hover.range.expect("hover must highlight the intro token");
+            assert_eq!(range.start, lsp_pos(src, intro));
+            assert_eq!(range.end, lsp_pos(src, intro + "intro".len()));
+        }
+        shutdown(&mut service).await;
     }
 
     #[tokio::test]

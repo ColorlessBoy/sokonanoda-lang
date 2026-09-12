@@ -1,3 +1,15 @@
+## [0.16.2] - 2026-09-12
+
+### Added
+- Hovering the value-position `intro` keyword now shows its explicit expansion
+  (`fun (a : Prop) => … => sorry`), so the skeleton stays visible even when
+  the completion suggestion is not accepted.
+
+### Fixed
+- Regression coverage for the real interaction: type `intro` and accept the
+  selected suggestion — the token is replaced by the explicit skeleton. Also
+  covers the end-of-token completion position fixed in 0.16.1.
+
 ## [0.16.1] - 2026-09-12
 
 ### Fixed

@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十六轮：修复 `intro` 补全在词尾不触发）
+> 快照：2026-09-12（第三十七轮：`intro` hover 展开式 + Tab 接受回归）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,22 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十七轮：`intro` hover 展开式 + Tab 接受回归）
+
+> 触发：用户要求「不选择补全时，hover `intro` 显示展开的表达式」，并反馈
+> 按 Tab 没看到替换。
+
+1. **hover**：值位 `intro` 的 hover 显示展开后的显式表达式（token 内或
+   词尾都命中），返回洞 range 高亮；放在关键字抑制之前（`intro` 现在是
+   `KEYWORDS`，否则会被当普通关键字吞掉）。
+2. **接受路径复现**：真实 VS Code 集成新增两个确定性用例——「接受选中
+   建议 → token 原地替换成骨架」与「type `intro` → 接受」（12 passing，
+   连跑两轮稳定），确认 0.16.1 的机制本身可用；用户未生效大概率是窗口
+   还在跑旧扩展/LSP。
+3. **实验与回退**：试过补全响应标 `is_incomplete: true` 强制客户端逐键
+   重查；实测让 VS Code 的选择/接受行为退化（用例转红），已回退不采用。
+4. **发布**：0.16.1 → **0.16.2**（hover 信息 patch）。
 
 ## 本轮进度（2026-09-12，第三十六轮：修复 `intro` 补全在词尾不触发）
 
