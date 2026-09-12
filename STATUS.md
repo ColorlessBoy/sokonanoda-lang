@@ -28,9 +28,11 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    （CLI+LSP 均为编译产物，`version`/`doctor --json` 全 match、ready）；
    三个 skill 软链到 `~/.agents/skills`（镜像 `~/.claude/skills`）；
    plugin/commands/agent/shim 校验在位。
-4. **Marketplace**：`v0.13.0` 的 `marketplace-publish` 因 Azure gallery
-   连续超时失败（Release 25 个资产已齐，见 `docs/CI-FAILURES.md`
-   2026-09-11）；择时重跑即可。
+4. **Marketplace**：`v0.13.0` 的 `marketplace-publish` 曾因 Marketplace
+   认证端点（`/_apis/gallery`）后端故障连续超时（非账号风控；Release 25
+   个资产不受影响，见 `docs/CI-FAILURES.md` 2026-09-11）。服务端恢复后本机
+   `vsce publish --skip-duplicate` 补发 9 个 VSIX、CI rerun 转绿，
+   Marketplace 已上线 `0.13.0`。
 
 ## 本轮进度（2026-09-11，第二十九轮：环境能力进二进制，删除 soko.sh）
 

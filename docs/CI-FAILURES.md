@@ -208,10 +208,16 @@
   `github-release` 全绿（Release 25 个资产齐全），仅 `marketplace-publish`
   以 `Request timeout: /_apis/gallery` 失败；`gh run rerun --failed` 重跑
   一次仍连续超时。
-- **原因**：仍是无根修的 Azure DevOps gallery 端点间歇性网络问题；runner
-  侧 4×30s 重试未能覆盖连续超时（同类见 2026-09-08 / 2026-09-09 两条）。
-- **修复**：无需改代码——GitHub Release 资产与 9 个 VSIX 均已产出、可下载；
-  Marketplace 入口择时单独重跑 `marketplace-publish`（`--skip-duplicate`
-  幂等）。
-- **预防**：暂无（外部服务）；继续依赖 workflow 内逐包重试，连续失败时人工
-  择时重跑。
+- **定位**（本机复现 + 对照）：公开页 `200`、`app.vssps .../profiles/me`
+  带 PAT `200`（PAT/身份正常）、无效 PAT 快速 302/404，但**带有效 PAT 的
+  `/_apis/gallery/*` 一律挂死**（连 `microsoft`/`ms-python` 也挂）→ 是
+  Marketplace 认证端点的后端故障，**不是账号风控**（风控是 429
+  `RequestBlockedException`，且公开 publisher/extension 页会 404）。Azure
+  status 无 active event；同款 `Request timeout: /_apis/gallery` 见外部 run
+  （QwenLM/qwen-code #6574）。
+- **修复**：服务端恢复后，本机带 PAT `vsce publish --skip-duplicate` 逐个补发
+  9 个 VSIX（全部 `DONE`），再 `gh run rerun --failed` → run 转绿、
+  Marketplace 上线 `0.13.0`。
+- **预防**：连续多次 `timeout`（而非 429）先按 Marketplace 后端故障处理：
+  本机探测 `/_apis/gallery`、等恢复后本机 `--skip-duplicate` 补发；若 >24h
+  仍超时，再发 `vsmarketplace@microsoft.com` 查是否 VSID 锁。
