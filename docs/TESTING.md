@@ -432,8 +432,9 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   `SOKONANODA_RELEASE_BASE` 供测试/自托管覆盖；标记与 VSIX/插件一致
   （`<version> <vsce-target>`）。
 - **去脚本**：删除 `scripts/soko.sh`；`.opencode/command/sokonanoda/*` 改调
-  `sokonanoda <sub>`；插件 `findRepoRoot` 改用 `.opencode/plugin/sokonanoda.ts`
-  作仓库标记；LSP shim 改为解析二进制并 exec `sokonanoda lsp`。
+  `sokonanoda <sub>`；插件 `findRepoRoot` 改用官方目录
+  `.opencode/plugins/sokonanoda.ts` 作仓库标记；LSP shim 改为解析二进制并
+  exec `sokonanoda lsp`。
 - **测试**（`crates/cli/tests/opencode.rs`，8 个，重写）：`version` 三态标记、
   `doctor` 退出码、`setup` 离线可行动、`update` 用本地 HTTP 服务器验证
   版本锁定下载（无 `/latest/`）、shim 解析/失败可行动、插件/命令契约。

@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-11（第三十轮：发版 0.13.0 + opencode 全量初始化）
+> 快照：2026-09-12（第三十一轮：opencode 插件迁移官方 `plugins/`）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,38 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十一轮：opencode 插件迁移官方 `plugins/`）
+
+> 触发：opencode 官方项目级插件目录改为复数 `.opencode/plugins/`（用户
+> 指出机制已换，要求删旧文件并按最新 skill 描述重配）。旧单数目录
+> `.opencode/plugin/` 不再使用。
+
+1. **迁移**：`git mv .opencode/plugin/sokonanoda.ts →
+   .opencode/plugins/sokonanoda.ts`，删除旧目录；插件行为不变——启动
+   best-effort provision CLI/LSP、`config` 钩子接线原生
+   `lsp.sokonanoda`（`opencode.json` 仍不写 lsp 命令）、`shell.env` 注入
+   缓存目录到 PATH；`findRepoRoot` 的仓库标记改指
+   `.opencode/plugins/sokonanoda.ts`。
+2. **契约**：`crates/cli/tests/opencode.rs` 改读新路径，并新增断言
+   「`.opencode/plugin`（单数）必须不存在」，防止旧目录回潮；其余
+   （shim、namespaced commands、skills.paths、无 lsp 块）断言不动。
+3. **文档**：REQUIREMENTS §9（三十四）、`docs/TESTING.md`、
+   `docs/notes/rust-cross-platform-binary.md`、`docs/design/onboarding.md`
+   路径同步；非 opencode harness 的 `.opencode/lsp/sokonanoda-lsp.sh`
+   shim 按 skill 描述保留。
+4. **验证（重启后）**：`opencode debug config` 确认新路径被识别
+   （`plugin_origins` 指向 `.opencode/plugins/sokonanoda.ts`）且
+   `lsp.sokonanoda` 已接线；三个 skill / 7 个 `/sokonanoda/*` 命令 /
+   `teacher` agent 全部加载；`shell.env` 注入生效（`which sokonanoda` →
+   缓存）；契约测试 8/8、skill 4/4 全绿。
+5. **环境修复（重启后验证发现）**：缓存 `sokonanoda-lsp` 停在旧版
+   （marker `0.5.2`，`doctor` 未就绪），且插件优先的仓库构建
+   `target/debug/sokonanoda-lsp`（9-10 旧二进制）不支持 `Type n`，把画布
+   `axiom Prop : Type 0` 误报为 `kernel-expected-pi` error。修复：
+   `sokonanoda update` 刷新缓存到 0.13.0（`doctor` ready）+ `cargo build
+   -p sokonanoda-lsp` 重建仓库构建；LSP 诊断恢复为 5×`sorry` +
+   1×`reserved-declaration-name`（全 warning、零 error），与内核 CLI 一致。
 
 ## 本轮进度（2026-09-11，第三十轮：发版 0.13.0 + opencode 全量初始化）
 

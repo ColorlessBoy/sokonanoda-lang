@@ -331,3 +331,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   cargo。落地：版本 0.12.0 → **0.13.0** 并推 tag `v0.13.0`，CI 编 8 平台
   资产；随后 `sokonanoda update` 按锁定 `v0.13.0` 下载编译好的 CLI+LSP，
   opencode 接线（插件/commands/agent/skills）全量就绪。
+- 2026-09-12（三十四）：**opencode 插件迁移到官方 `.opencode/plugins/`（用户要求）**：
+  opencode 官方项目级插件目录为复数 `.opencode/plugins/`（文档与新版行为），
+  旧的单数 `.opencode/plugin/` 不再保留。落地：`sokonanoda.ts` 原样迁移
+  （provision CLI/LSP + `config` 接线 `lsp.sokonanoda` + `shell.env` 注入
+  PATH 的行为不变），`findRepoRoot` 仓库标记改指新路径；契约测试改读新路径
+  并断言旧目录不存在；`opencode.json` 仍不写 lsp 命令。非 opencode harness
+  的 `.opencode/lsp/sokonanoda-lsp.sh` shim（`skills/README` 记载的用法）保留。

@@ -42,7 +42,7 @@ function findRepoRoot(start: string): string | undefined {
   for (;;) {
     if (
       existsSync(path.join(dir, "Cargo.toml")) &&
-      existsSync(path.join(dir, ".opencode", "plugin", "sokonanoda.ts"))
+      existsSync(path.join(dir, ".opencode", "plugins", "sokonanoda.ts"))
     )
       return dir
     const parent = path.dirname(dir)

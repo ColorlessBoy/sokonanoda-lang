@@ -52,7 +52,7 @@
 | 场景 | 引导方式 |
 |---|---|
 | macOS/Linux 终端、贡献者、CI | `scripts/soko.sh`（bash） |
-| opencode / 任意 Node 运行时 | `.opencode/plugin/sokonanoda.ts`（Node，零 bash） |
+| opencode / 任意 Node 运行时 | `.opencode/plugins/sokonanoda.ts`（Node，零 bash） |
 | VS Code 用户 | VSIX 自带 per-target 二进制（无需引导） |
 
 三条路最终都消费同一批 per-target Rust 二进制。

@@ -92,8 +92,14 @@ fn serve_bytes(bytes: Vec<u8>) -> (String, Arc<Mutex<Vec<String>>>) {
 #[test]
 fn opencode_lsp_is_wired_via_the_plugin() {
     let root = repo_root();
+    // opencode discovers project plugins in `.opencode/plugins/` (the official
+    // location); the old singular `plugin/` directory must stay gone.
+    assert!(
+        !root.join(".opencode/plugin").exists(),
+        ".opencode/plugin (singular) is the removed location; use .opencode/plugins/"
+    );
     let plugin =
-        fs::read_to_string(root.join(".opencode/plugin/sokonanoda.ts")).expect("plugin readable");
+        fs::read_to_string(root.join(".opencode/plugins/sokonanoda.ts")).expect("plugin readable");
     for needle in [
         "config:",
         "cfg.lsp.sokonanoda",
@@ -183,7 +189,7 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
     // The startup plugin provisions binaries, version-checks the cache, and
     // injects the cache into PATH.
     let plugin =
-        fs::read_to_string(root.join(".opencode/plugin/sokonanoda.ts")).expect("plugin readable");
+        fs::read_to_string(root.join(".opencode/plugins/sokonanoda.ts")).expect("plugin readable");
     assert!(
         plugin.contains("shell.env")
             && plugin.contains("findRepoRoot")
