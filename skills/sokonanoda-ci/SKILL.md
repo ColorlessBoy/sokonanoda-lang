@@ -65,7 +65,8 @@ gh run view <id> --log-failed | tail -30  # 只看失败 step 的日志尾部
 
 ```bash
 NODE=$(command -v node)
-# 某提交触发了哪些 run
+# 某提交触发了哪些 run —— head_sha 必须是**完整** SHA（短 SHA 会返回空列表，
+# 2026-09-12 实测踩过，很容易误判成"CI 根本没跑"）。先 `SHA=$(git rev-parse HEAD)`。
 curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/actions/runs?head_sha=$SHA" \
   | $NODE -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);
       console.log((j.workflow_runs||[]).map(r=>r.id+" "+r.name+" "+r.status+" "+(r.conclusion||"-")).join("\n"))})'
