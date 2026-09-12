@@ -318,6 +318,28 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
+    async fn decl_binder_hole_shows_the_codomain_goal() {
+        // 声明级 binder：`:= sorry` 的剩余目标直接是 codomain，上下文是
+        // 声明 binder（inlay 不必经过 lambda 前缀）。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a := sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "decl-binder inlay diagnostics").await;
+
+        let hints = ask_inlay(&mut service, src).await.expect("hints array");
+        assert_eq!(hints.len(), 1, "one hint for the lone hole: {hints:?}");
+        assert_eq!(label_of(&hints[0]), ": And b a");
+        let tooltip = tooltip_of(&hints[0]);
+        assert!(
+            tooltip.contains("剩余目标：`And b a`"),
+            "tooltip: {tooltip}"
+        );
+        assert!(tooltip.contains("`h` : `And a b`"), "tooltip: {tooltip}");
+    }
+
+    #[tokio::test]
     async fn hole_free_document_yields_an_empty_hint_array() {
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;

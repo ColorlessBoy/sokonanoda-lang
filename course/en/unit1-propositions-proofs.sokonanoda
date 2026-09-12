@@ -81,3 +81,28 @@ theorem ex_falso : (P : Prop) -> False -> P := sorry
 -- soko:hint goal shape: two layers of fun give you a and h : And a (Not a); the goal is then False itself.
 -- soko:hint key piece: And.right yields the Not a half and And.left the a half; apply the former to the latter.
 theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- Aside: declaration binders — let the declaration line do the `fun`s
+--
+-- The spelling Lean users reach for most often puts the binders right after
+-- the name:
+--
+--   theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a := …
+--
+-- It is the same thing as the arrow spelling: the type is an arrow telescope
+-- and the value gets the matching `fun`s wrapped around it automatically. The
+-- difference shows up while writing the proof — the binders are already in
+-- scope, so there are no `fun`s (and no `intro`) to write.
+--
+-- Demo: this declaration and Exercise 3's and_swap are the same problem in
+-- two spellings; the kernel judges them identically.
+theorem demo_binders (a : Prop) (b : Prop) (h : And a b) : And b a :=
+  And.intro b a (And.right a b h) (And.left a b h)
+
+-- Exercise 6: prove and_intro_rule again, this time with declaration binders
+-- (no `fun`s to write).
+-- soko:hint approach: a, b, ha and hb are all already in scope; assemble And a b directly.
+-- soko:hint goal shape: the goal is just And a b — no arrows left to split, and no fun to write.
+-- soko:hint key piece: And.intro a b ha hb closes it in one step.
+theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b := sorry

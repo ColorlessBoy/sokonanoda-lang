@@ -2651,6 +2651,31 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         shutdown(&mut service).await;
     }
 
+    #[tokio::test]
+    async fn completion_expands_intro_after_declaration_binders_to_the_residual() {
+        // 声明 binder 已把 a、h 带进上下文；`intro` 只剥剩余 codomain，
+        // 展开项不含声明 binder。
+        let src = "theorem t (a : Prop) (h : a) : a -> a := intro\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "decl-binder completion diagnostics").await;
+
+        let start = offset_of(src, "intro");
+        let items = request_completions_at(&mut service, lsp_pos(src, start)).await;
+        let item = items
+            .iter()
+            .find(|i| i.filter_text.as_deref() == Some("intro"))
+            .expect("the intro expansion must be offered");
+        let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
+            panic!("expected a plain CompletionTextEdit::Edit");
+        };
+        assert_eq!(edit.range.start, lsp_pos(src, start));
+        assert_eq!(edit.range.end, lsp_pos(src, start + "intro".len()));
+        assert_eq!(edit.new_text, "fun (x : a) => sorry");
+        shutdown(&mut service).await;
+    }
+
     // ---- 优先级可视化：selectionRange（学习者需求）----
 
     const DEMO_K: &str =

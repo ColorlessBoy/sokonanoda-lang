@@ -129,9 +129,9 @@ fn lower_by_val(
     span_start: usize,
     options: &CompileOptions,
 ) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
-    if let Expr::By { .. } = val {
+    if let Some((binders, by)) = crate::by::split_by_value(val) {
         let prefix = src.get(..span_start).unwrap_or("");
-        crate::by::run_by(ty, val, prefix, options).map(|o| (o.expr, o.steps))
+        crate::by::run_by(ty, by, &binders, prefix, options).map(|o| (o.expr, o.steps))
     } else {
         Ok((val.clone(), Vec::new()))
     }

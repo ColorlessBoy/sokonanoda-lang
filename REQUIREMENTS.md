@@ -358,7 +358,8 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `render_expr` 函数位多余括号与 session 洞 span 未重映射。
 - 2026-09-12（三十七）：**声明级 binder（Lean 风格，用户要求）**：用户要求
   支持 `theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a :=
-  sorry`——省去 `intro`/`fun` 的麻烦。设计见 `docs/design/decl-binders.md`
-  （parser 侧 desugar 成「Forall 类型 + Lambda 值」，open-goal/内核全复用；
-  `intro` 沿 lambda 链递归剥剩余 codomain；三件套随实现）。0.14.0 发布
-  完成后实现（0.15.0）。
+  sorry`——省去 `intro`/`fun` 的麻烦。设计见 `docs/design/decl-binders.md`；
+  同日实现落地：parser 侧 `wrap_decl_binders` 降级为「Forall 类型 + Lambda
+  值」（open-goal/内核全复用）、`by` 引擎接收声明 binder 为初始上下文、
+  `intro` 沿 lambda 链递归只剥剩余 codomain；课程 unit1 两种拼写对照 +
+  练习 6（zh/en + 钥匙）。发布随 0.15.0。

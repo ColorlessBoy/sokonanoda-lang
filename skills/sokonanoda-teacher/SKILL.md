@@ -60,7 +60,8 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
   `expr.reduced` / `decl.printed` / `exercise.open` / `diagnostic`，
   形状见 `docs/protocol.md`；watch 流词汇见同文档 watch 一节。
 - 语言能力速查：`sokonanoda --help` 自描述（def/theorem/axiom/example、
-  `#check`、`#reduce`、宇宙参数、命名箭头）。
+  `#check`、`#reduce`、宇宙参数、命名箭头、声明级 binder
+  `theorem f (a : A) : B := v`）。
 
 ## 2. 核心教学循环（3 步，循环）
 

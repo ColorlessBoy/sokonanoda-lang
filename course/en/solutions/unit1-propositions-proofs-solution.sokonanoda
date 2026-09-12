@@ -33,3 +33,9 @@ theorem ex_falso : (P : Prop) -> False -> P :=
 theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :=
   fun (a : Prop) =>
     fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)
+
+theorem demo_binders (a : Prop) (b : Prop) (h : And a b) : And b a :=
+  And.intro b a (And.right a b h) (And.left a b h)
+
+theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b :=
+  And.intro a b ha hb

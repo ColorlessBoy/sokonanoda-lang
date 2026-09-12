@@ -6,22 +6,51 @@
 //! 骨架文本（`render_expr` 产物）同时回传，作为编辑器补全项的单一事实源。
 
 use super::error::{CompileError, ErrorKind};
-use crate::proof::{fresh_name, render_expr};
+use crate::proof::{fresh_name, peel_pi_layers, render_expr};
 use crate::{Binder, BinderKind, Expr, Span};
 use std::collections::HashSet;
 
 /// 值位恰为 `intro` 时返回 `(降低后的 lambda + 洞, 显式骨架文本)`；
 /// 其它值原样透传（`None`）。目标没有可剥的 binder 时返回教学错误。
+/// 声明 binder 会把值包成 lambda 链，因此这里沿链下降到体部再处理。
 pub(crate) fn lower_intro_val(
     ty: &Expr,
     val: &Expr,
 ) -> Result<Option<(Expr, String)>, CompileError> {
-    let Expr::Intro { span } = val else {
-        return Ok(None);
-    };
-    let expr = peel_all_pi(ty, *span)?;
-    let skeleton = render_expr(&expr);
-    Ok(Some((expr, skeleton)))
+    lower_inner(ty, val)
+}
+
+fn lower_inner(ty: &Expr, val: &Expr) -> Result<Option<(Expr, String)>, CompileError> {
+    match val {
+        Expr::Intro { span } => {
+            let expr = peel_all_pi(ty, *span)?;
+            let skeleton = render_expr(&expr);
+            Ok(Some((expr, skeleton)))
+        }
+        // 声明 binder 降级后的 lambda 链：沿链消耗类型层，在体尾处理
+        // `intro`。骨架只覆盖 intro 自身的展开（补全替换的是 intro token）。
+        Expr::Lambda {
+            binders,
+            body,
+            span,
+        } => {
+            let Some(rest_ty) = peel_pi_layers(ty, binders.len()) else {
+                return Ok(None);
+            };
+            match lower_inner(&rest_ty, body)? {
+                Some((new_body, skeleton)) => Ok(Some((
+                    Expr::Lambda {
+                        binders: binders.clone(),
+                        body: Box::new(new_body),
+                        span: *span,
+                    },
+                    skeleton,
+                ))),
+                None => Ok(None),
+            }
+        }
+        _ => Ok(None),
+    }
 }
 
 /// 全剥 `ty` 最外层的 Forall binder / Arrow 域，包成一层层单 binder 的

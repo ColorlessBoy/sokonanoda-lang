@@ -42,7 +42,7 @@ fn count_type(events: &[Value], ty: &str) -> usize {
 /// counts are the contract, so adding/removing an exercise is a deliberate
 /// golden update.
 const GOLDEN: &[(&str, (usize, usize, usize))] = &[
-    ("unit1-propositions-proofs.sokonanoda", (12, 5, 1)),
+    ("unit1-propositions-proofs.sokonanoda", (13, 6, 1)),
     ("unit2-equality-rfl.sokonanoda", (2, 5, 2)),
     ("unit3-functions-arrows.sokonanoda", (1, 4, 1)),
     ("unit4-universes-sort.sokonanoda", (0, 3, 0)),

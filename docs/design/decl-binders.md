@@ -1,4 +1,11 @@
-# 声明级 binder（Lean 风格 `theorem f (a : A) : B := v`）设计（2026-09-12，待实现）
+# 声明级 binder（Lean 风格 `theorem f (a : A) : B := v`）设计（2026-09-12 设计 + 同日实现）
+
+> as-built（2026-09-12 实现轮）：parser 侧 `wrap_decl_binders` 降级为
+> 「Forall 类型 + Lambda 值」（`crates/front/src/parser.rs`）；`by` 引擎
+> `run_by` 新增 `initial_binders` 参数，声明 binder 进根节点上下文、类型先
+> 剥对应层数；`intro` 降低沿 lambda 链递归（`compile/intro.rs`，共用
+> `proof::peel_pi_layers`）；课程落 unit1「两种拼写」+ 练习 6。验收：
+> front 265 / lsp 98 / cli 51 / course 4 全绿，golden unit1 (13,6,1)。
 
 > 触发（用户原话）：「接下来我希望支持 lean4 里这样的语法，省去 intro 的
 > 麻烦事」：

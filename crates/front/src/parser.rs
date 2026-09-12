@@ -20,6 +20,28 @@ struct BinderGroup {
     span: Span,
 }
 
+/// 声明 binder 糖的降级（官方 Lean 语义）：类型拼成 Forall 望远镜、值包成
+/// Lambda 望远镜，于是 open-goal/elab/kernel 全部复用既有路径；`:= sorry`
+/// 的剩余目标直接是 codomain，上下文即声明 binder。空 binder 原样返回。
+fn wrap_decl_binders(binders: Vec<Binder>, ty: Expr, val: Expr) -> (Expr, Expr) {
+    let Some(first) = binders.first() else {
+        return (ty, val);
+    };
+    let ty_span = Span::new(first.span.start, ty.span().end);
+    let val_span = Span::new(first.span.start, val.span().end);
+    let ty = Expr::Forall {
+        binders: binders.clone(),
+        body: Box::new(ty),
+        span: ty_span,
+    };
+    let val = Expr::Lambda {
+        binders,
+        body: Box::new(val),
+        span: val_span,
+    };
+    (ty, val)
+}
+
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, cursor: 0 }
@@ -58,11 +80,13 @@ impl Parser {
         let start = self.bump().span.start;
         let name = self.expect_ident("definition name")?;
         let universe = self.parse_universe_params()?;
+        let binders = self.parse_decl_binders()?;
         self.expect_colon("definition type")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_value()?;
         let span = Span::new(start, val.span().end);
+        let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Def {
             name,
             universe,
@@ -76,11 +100,13 @@ impl Parser {
         let start = self.bump().span.start;
         let name = self.expect_ident("theorem name")?;
         let universe = self.parse_universe_params()?;
+        let binders = self.parse_decl_binders()?;
         self.expect_colon("theorem statement")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_value()?;
         let span = Span::new(start, val.span().end);
+        let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Theorem {
             name,
             universe,
@@ -92,12 +118,35 @@ impl Parser {
 
     fn parse_example(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
+        let binders = self.parse_decl_binders()?;
         self.expect_colon("example type")?;
         let ty = self.parse_expr()?;
         self.expect_kind(&TokenKind::ColonEq, "`:=`")?;
         let val = self.parse_value()?;
         let span = Span::new(start, val.span().end);
+        let (ty, val) = wrap_decl_binders(binders, ty, val);
         Ok(Command::Example { ty, val, span })
+    }
+
+    /// 声明级 binder（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v`
+    /// 里名字与冒号之间的 binder 组。解析后由 [`wrap_decl_binders`] 降级成
+    /// 「类型 = Forall 望远镜；值 = Lambda 望远镜」，后续流水线零改动。
+    fn parse_decl_binders(&mut self) -> Result<Vec<Binder>> {
+        let mut binders = Vec::new();
+        loop {
+            match self.peek().kind {
+                TokenKind::LParen | TokenKind::LBrace if self.named_group_ahead() => {
+                    self.push_binders(&mut binders)?;
+                }
+                TokenKind::LParen | TokenKind::LBrace => {
+                    return Err(self.error_here(
+                        "声明 binder 需要显式类型，例如 (a : Prop)；不支持无类型的 (a) 写法",
+                    ));
+                }
+                _ => break,
+            }
+        }
+        Ok(binders)
     }
 
     /// 值位：普通表达式、`by <tactic 序列>` 块，或 `intro`（一次引入剩余
@@ -220,8 +269,30 @@ impl Parser {
         })
     }
 
+    /// `{u}` / `{u, v}`（只有名字、逗号分隔）是宇宙参数；`{a : Prop}` 是隐式
+    /// binder 组。声明位两者都以 `{` 开头，用这个 lookahead 消歧。
+    fn universe_params_ahead(&self) -> bool {
+        let toks = &self.tokens;
+        let mut i = self.cursor;
+        if !matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::LBrace)) {
+            return false;
+        }
+        i += 1;
+        loop {
+            if !matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Ident(_))) {
+                return false;
+            }
+            i += 1;
+            match toks.get(i).map(|t| &t.kind) {
+                Some(TokenKind::Comma) => i += 1,
+                Some(TokenKind::RBrace) => return true,
+                _ => return false,
+            }
+        }
+    }
+
     fn parse_universe_params(&mut self) -> Result<Vec<String>> {
-        if self.peek().kind != TokenKind::LBrace {
+        if !self.universe_params_ahead() {
             return Ok(Vec::new());
         }
         self.bump();
@@ -934,6 +1005,65 @@ example : Prop -> Prop := sorry
                 val: Expr::Ident { name, .. },
                 ..
             } if name == "And.intro"
+        ));
+    }
+
+    #[test]
+    fn decl_binders_desugar_to_forall_and_lambda() {
+        let file = parse("theorem t (a : Prop) (b : Prop) : Prop := b\n").unwrap();
+        let Command::Theorem { ty, val, .. } = &file.commands[0] else {
+            panic!("expected theorem");
+        };
+        let Expr::Forall {
+            binders: tbinders, ..
+        } = ty
+        else {
+            panic!("expected Forall type, got {ty:?}");
+        };
+        assert_eq!(tbinders.len(), 2);
+        assert_eq!(tbinders[0].name, "a");
+        assert_eq!(tbinders[1].name, "b");
+        let Expr::Lambda {
+            binders: vbinders, ..
+        } = val
+        else {
+            panic!("expected Lambda value, got {val:?}");
+        };
+        assert_eq!(vbinders.len(), 2);
+    }
+
+    #[test]
+    fn untyped_decl_binder_is_a_parse_error() {
+        let err = parse("theorem t (a) : Prop := Prop\n").unwrap_err();
+        assert!(
+            err.message.contains("显式类型"),
+            "teaching message expected, got {err:?}"
+        );
+    }
+
+    #[test]
+    fn universe_params_before_decl_binders_parse() {
+        let file = parse("def id {u} (A : Sort u) (x : A) : A := x\n").unwrap();
+        let Command::Def { universe, ty, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        assert_eq!(universe, &vec!["u".to_string()]);
+        let Expr::Forall { binders, .. } = ty else {
+            panic!("expected Forall type, got {ty:?}");
+        };
+        assert_eq!(binders.len(), 2);
+        assert_eq!(binders[0].name, "A");
+    }
+
+    #[test]
+    fn example_with_decl_binders_parses() {
+        let file = parse("example (a : Prop) : a -> a := fun (h : a) => h\n").unwrap();
+        assert!(matches!(
+            &file.commands[0],
+            Command::Example {
+                ty: Expr::Forall { binders, .. },
+                ..
+            } if binders.len() == 1
         ));
     }
 

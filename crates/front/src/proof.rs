@@ -305,6 +305,35 @@ pub(crate) fn fresh_name(base: &str, used: &mut std::collections::HashSet<String
     name
 }
 
+/// 从 `ty` 最外层剥 `n` 层 Pi/Forall binder，返回剩余类型；层数不够返回
+/// `None`。声明 binder 的 `intro` 递归降低与 `by` 引擎的初始上下文共用。
+pub(crate) fn peel_pi_layers(ty: &Expr, n: usize) -> Option<Expr> {
+    if n == 0 {
+        return Some(ty.clone());
+    }
+    match ty {
+        Expr::Forall { binders, body, .. } if !binders.is_empty() => {
+            if binders.len() >= n {
+                if binders.len() == n {
+                    Some(body.as_ref().clone())
+                } else {
+                    // 同一 Forall 节点里还有剩的 binder：重包余下的（与
+                    // `by::peel_pi` 的逐层剥法同构）。
+                    Some(Expr::Forall {
+                        binders: binders[n..].to_vec(),
+                        body: body.clone(),
+                        span: Span::default(),
+                    })
+                }
+            } else {
+                peel_pi_layers(body, n - binders.len())
+            }
+        }
+        Expr::Arrow { codomain, .. } => peel_pi_layers(codomain, n - 1),
+        _ => None,
+    }
+}
+
 fn render_binder(binder: &Binder) -> String {
     let ty = binder
         .ty

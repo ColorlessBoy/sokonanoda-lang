@@ -55,10 +55,33 @@ struct GoalNode {
     kind: NodeKind,
 }
 
+/// 值位是 `by` 块，或声明 binder 降级后「lambda 链 → by 块」的形态：
+/// 返回 `(声明 binder, by 块)`；其它形态返回 `None`。
+pub(crate) fn split_by_value(val: &Expr) -> Option<(Vec<Binder>, &Expr)> {
+    let mut binders = Vec::new();
+    let mut cur = val;
+    while let Expr::Lambda {
+        binders: bs, body, ..
+    } = cur
+    {
+        binders.extend(bs.iter().cloned());
+        cur = body;
+    }
+    if matches!(cur, Expr::By { .. }) {
+        Some((binders, cur))
+    } else {
+        None
+    }
+}
+
 /// 把 `ty`（声明类型）与 `by` 块降级成 lambda AST。
+/// `initial_binders` 是声明级 binder（`theorem f (a : A) : B := by …` 里的
+/// `a`）：它们是引擎的初始上下文，类型先剥掉对应层数，`by` 从 `B` 出发；
+/// 没有声明 binder 时传空切片（旧行为）。
 pub fn run_by(
     ty: &Expr,
     by: &Expr,
+    initial_binders: &[Binder],
     prefix_src: &str,
     options: &CompileOptions,
 ) -> Result<ByOutcome, CompileError> {
@@ -69,14 +92,22 @@ pub fn run_by(
     else {
         unreachable!("run_by called on non-By");
     };
+    let root_ty = crate::proof::peel_pi_layers(ty, initial_binders.len()).ok_or_else(|| {
+        let span = initial_binders.last().map(|b| b.span).unwrap_or(*by_span);
+        CompileError::elab(
+            ErrorKind::ElabTacticFailed,
+            "internal: declared binders do not match the declaration type",
+            span,
+        )
+    })?;
     let mut nodes: Vec<GoalNode> = Vec::new();
     let mut worklist: Vec<usize> = Vec::new();
     let mut steps: Vec<ByStep> = Vec::new();
 
-    // 根目标 = 声明类型。
+    // 根目标 = 声明类型（先剥掉声明 binder）；声明 binder 进初始上下文。
     nodes.push(GoalNode {
-        ty: ty.clone(),
-        intros: Vec::new(),
+        ty: root_ty,
+        intros: initial_binders.to_vec(),
         parent: None,
         kind: NodeKind::Hole,
     });

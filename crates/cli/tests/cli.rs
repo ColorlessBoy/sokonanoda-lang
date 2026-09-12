@@ -155,6 +155,51 @@ fn cli_value_intro_on_a_non_function_goal_is_rejected() {
 }
 
 #[test]
+fn cli_decl_binders_compile_and_open() {
+    // 官方 Lean 风格：声明级 binder——`:= sorry` 的目标就是 codomain，
+    // 正文直接写、不用 fun；两种形态（Open / 闭合）都要过。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
+               axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
+               theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a := sorry\n\
+               theorem and_swap3 (a : Prop) (b : Prop) (h : And a b) : And b a := \
+               And.intro b a (And.right a b h) (And.left a b h)\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "declaration binders must compile:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("exercise open"), "{stdout}");
+    assert!(stdout.contains("checked declaration and_swap3"), "{stdout}");
+}
+
+#[test]
+fn cli_untyped_decl_binder_is_a_parse_error() {
+    let out = run("theorem t (a) : Prop := Prop\n");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("显式类型"), "stderr: {stderr}");
+}
+
+#[test]
+fn cli_decl_binders_feed_the_by_engine() {
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
+               theorem by_ctx (a : Prop) (b : Prop) (h : And a b) : a := \
+               by exact And.left a b h\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "by with declaration binders must compile:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(String::from_utf8_lossy(&out.stdout).contains("checked declaration by_ctx"));
+}
+
+#[test]
 fn cli_rejects_uninhabited_dependent_codomain() {
     // conv 快路径 soundness 修复的端到端守护：`(A : Sort 1) -> A` 不可居住，
     // 身份 lambda 的类型是 `(A : Sort 1) -> Sort 1`，必须被拒绝（官方 Lean 同）。

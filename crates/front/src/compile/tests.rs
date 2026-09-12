@@ -998,6 +998,138 @@ fn intro_preserves_implicit_binder_style() {
     );
 }
 
+// ---- 声明级 binder（Lean 风格：theorem f (a : A) : B := v）----
+
+const AND_PRELUDE: &str = "axiom And : Prop -> Prop -> Prop\n\
+     axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+     axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
+     axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n";
+
+#[test]
+fn decl_binders_open_exercise_reports_codomain_and_context() {
+    let src = format!(
+        "{AND_PRELUDE}\
+         theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a := sorry\n"
+    );
+    let report = check_document(&parse(&src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap2"))
+        .expect("decl and_swap2");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("And b a"));
+    let binders: Vec<(&str, &str)> = d
+        .binders
+        .iter()
+        .map(|b| (b.name.as_str(), b.ty.as_str()))
+        .collect();
+    assert_eq!(
+        binders,
+        vec![("a", "Prop"), ("b", "Prop"), ("h", "And a b")]
+    );
+    assert_eq!(d.holes.len(), 1);
+    assert_eq!(
+        &src[d.holes[0].start.offset..d.holes[0].end.offset],
+        "sorry"
+    );
+    assert!(d.intro_skeleton.is_none());
+}
+
+#[test]
+fn decl_binders_closed_body_needs_no_lambdas() {
+    let src = format!(
+        "{AND_PRELUDE}\
+         theorem and_swap3 (a : Prop) (b : Prop) (h : And a b) : And b a := \
+         And.intro b a (And.right a b h) (And.left a b h)\n"
+    );
+    let report = check_document(&parse(&src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap3"))
+        .expect("decl and_swap3");
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
+fn decl_binders_intro_peels_only_the_residual() {
+    let src = "theorem t (a : Prop) : a -> a := intro\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("a"));
+    let binders: Vec<(&str, &str)> = d
+        .binders
+        .iter()
+        .map(|b| (b.name.as_str(), b.ty.as_str()))
+        .collect();
+    assert_eq!(binders, vec![("a", "Prop"), ("x", "a")]);
+    assert_eq!(d.intro_skeleton.as_deref(), Some("fun (x : a) => sorry"));
+    assert_eq!(
+        &src[d.holes[0].start.offset..d.holes[0].end.offset],
+        "intro"
+    );
+}
+
+#[test]
+fn decl_binders_feed_the_by_engine_context() {
+    let src = format!(
+        "{AND_PRELUDE}\
+         theorem by_ctx (a : Prop) (h : a) : a := by assumption\n"
+    );
+    let report = check_document(&parse(&src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("by_ctx"))
+        .expect("decl by_ctx");
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
+fn decl_binders_match_arrow_style_outcomes() {
+    let src = format!(
+        "{AND_PRELUDE}\
+         theorem arrow_style : (a : Prop) -> (b : Prop) -> And a b -> And b a := \
+         fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => \
+         And.intro b a (And.right a b h) (And.left a b h)\n\
+         theorem binder_style (a : Prop) (b : Prop) (h : And a b) : And b a := \
+         And.intro b a (And.right a b h) (And.left a b h)\n"
+    );
+    let report = check_document(&parse(&src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    for name in ["arrow_style", "binder_style"] {
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some(name))
+            .expect("decl");
+        assert_eq!(d.status, DeclStatus::Checked, "{name} must check");
+    }
+}
+
+#[test]
+fn decl_binders_disambiguate_universe_params_from_implicit_binders() {
+    let report =
+        check_document(&parse("def id_univ {u} (A : Sort u) (x : A) : A := x\n").expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    assert_eq!(report.decls[0].status, DeclStatus::Checked);
+    let report = check_document(
+        &parse("theorem implicit_decl {a : Prop} : a -> a := fun (h : a) => h\n").expect("parse"),
+    );
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    assert_eq!(report.decls[0].status, DeclStatus::Checked);
+}
+
 #[test]
 fn hover_map_covers_subexpressions() {
     let src = "def add1 : Nat -> Nat := fun (n : Nat) => n + 1\n";

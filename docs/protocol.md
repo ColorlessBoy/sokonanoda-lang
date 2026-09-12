@@ -162,6 +162,11 @@ the value never reaches the kernel; the kernel still judges every fill. A
 goal with no binder to introduce is rejected with
 `elab-intro-not-a-function`.
 
+The declaration itself may also carry Lean-style binders
+(`theorem t (a : Prop) (h : a) : a -> a := intro`): they desugar to a Forall
+type plus a Lambda value, so `:= sorry` reports the codomain goal with the
+declaration binders already in context, and `intro` only peels what is left.
+
 `textDocument/completion` offers one extra item when the caret is inside
 that `intro` token: it replaces the token with the explicit skeleton
 (`textEdit`, `PlainText`; `documentation` shows the expansion). Clients

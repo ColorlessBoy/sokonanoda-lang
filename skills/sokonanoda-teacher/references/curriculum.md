@@ -7,7 +7,7 @@
 
 | # | 文件 | 主题 | 关键概念 |
 |---|---|---|---|
-| 1 | `unit1-propositions-proofs.sokonanoda` | 命题与证明项 | 证明=项；axiom 骨架 True/False/And/Or/Not；False.rec；先证明命题，不谈 Sort |
+| 1 | `unit1-propositions-proofs.sokonanoda` | 命题与证明项 | 证明=项；axiom 骨架 True/False/And/Or/Not；False.rec；声明级 binder（`theorem f (a : A) : B := v`）两种拼写；先证明命题，不谈 Sort |
 | 2 | `unit2-equality-rfl.sokonanoda` | 等式与 rfl | 认识数字 Nat；`Eq.{1}` 机械规则（为什么是 1 → 单元④揭晓）；自己设计谓词 p 造 symm/trans |
 | 3 | `unit3-functions-arrows.sokonanoda` | 函数与箭头 | `fun`、binder 推断、高阶函数 `(Nat -> Nat) -> Nat -> Nat`；结尾埋"函数类型的类型？"悬念 |
 | 4 | `unit4-universes-sort.sokonanoda` | 宇宙 | Sort 由悬念揭晓：Prop = Sort 0（回收单元①）、Nat : Sort 1；`Eq.symm {u}` 毕业题 |

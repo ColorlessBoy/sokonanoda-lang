@@ -70,3 +70,24 @@ theorem ex_falso : (P : Prop) -> False -> P := sorry
 -- soko:hint 目标形态：两层 fun 拿到 a 和 h : And a (Not a) 之后，目标就是 False 本身。
 -- soko:hint 关键件：And.right 取出 Not a 那一半、And.left 取出 a 那一半；把前者当函数应用于后者。
 theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 补充：声明级 binder——把 fun 的活交给声明行
+--
+-- 官方 Lean 更常用的拼写是把 binder 直接写在名字和冒号之间：
+--
+--   theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a := …
+--
+-- 它和箭头写法是同一件事：类型 = 一串箭头，值 = 自动包好一层层 fun。
+-- 区别在写证明的时候——binder 已经在你手边，不用再写 fun（也不用 intro）。
+--
+-- 演示：下面这条声明与练习 3 的 and_swap 是同一道题，只是换了拼写；
+-- 内核判定完全一样，可以对照着看。
+theorem demo_binders (a : Prop) (b : Prop) (h : And a b) : And b a :=
+  And.intro b a (And.right a b h) (And.left a b h)
+
+-- 练习 6：用声明级 binder 再证一遍 and_intro_rule（这一次不用写 fun）。
+-- soko:hint 思路：四样东西 a、b、ha、hb 都已经在上下文里；直接装出 And a b。
+-- soko:hint 目标形态：目标就是 And a b，没有箭头要拆——不要再写 fun。
+-- soko:hint 关键件：And.intro a b ha hb 一步结束。
+theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b := sorry
