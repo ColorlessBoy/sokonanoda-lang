@@ -434,6 +434,77 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - [ ] goal 视图余项：声明宇宙参数携带 ✅（已并入 judge）；refine 的子洞
       kernel 级 expected type（spine meta）；VS Code goal 面板 ✅。
 
+### I10 —— 值位 `apply` 关键字（新语法，三件套）
+
+> 设计（已完成，勿再重复讨论方案）：`docs/design/term-apply.md`。
+> 核心结论：**不能照抄 `intro`**——`apply` 需要「被应用名字的类型」，而 front 侧
+> 没有可用的类型表（`GoalTemplates` 丢 codomain、局部假设不在表内、内核无查询 API），
+> 因此降低走 `by` 引擎已验证的 `judge_infer` 路线（内核推断类型，判定仍在填洞后）。
+
+- **S1 front 骨架**：`parse_value` 第三分支（实参用 `parse_app` 消费）、AST
+  `Expr::Apply`、穷尽 match 补齐、`compile/apply.rs`（复用 `judge_infer` /
+  `parse_expr_text` / `peel_pi` / `unify_spine` / `substitute`）、
+  `DeclState.apply_skeleton`、`check.rs::lower_value` 接线、三个新错误码 + `protocol.md`。
+- **S2 合成洞分派**：`suggest.rs` 把带骨架的声明（`intro`/`apply`）一律路由到
+  `judge_terms`，绕开 `judge_hole_fill` 的「洞位源码必须恰为 `sorry`」守卫
+  （`judge.rs:316-322`）+ 回归测试。
+- **S3 编辑器面**：`keyword_at` 通用化（收敛现有三套位置选取）、hover、补全项、
+  VS Code 命令 `sokonanoda.expandApply`（含 `markdown.isTrusted` 放行）。
+- **S4 课程与白名单**：单元里加「`exact` / `apply` / `intro` / `by` 对照」一节 + 练习
+  （zh/en + 钥匙 + golden）；`semantic::KEYWORDS` 与白名单文档同步。
+- **验收**：`cargo test --workspace --locked` 全绿（fmt/clippy 无新警告）；`apply` 的
+  「不展开也等价」与「排版无关」两条契约测试；课程 golden 更新并说明新旧计数；
+  版本 bump（新增命令 → minor）。
+- **subagent 切分**：S1 由主会话做（公共接线点最多）；S2 与 S3 可并行派发，
+  文件集互斥（`suggest.rs`+`compile/tests.rs` ↔ `lsp/*`+`editor/vscode/*`），
+  任务书必须写死允许修改的文件清单与验收命令。
+
+### I11 —— 真人输入测试体系（覆盖 `sorry`/`intro`/`apply`/`by` 共存）
+
+> 设计（已完成）：`docs/design/real-input-tests.md`（含共存风险矩阵、测试清单、flake 预算）。
+
+- **S0 前置（主会话，必须先做）**：`testutil::type_script` / `type_chars`（逐段/逐字符的
+  真实编辑序列）；`keyword_at` 收敛位置选取（现 `intro_at` / `select_state_at` /
+  `render::decl_at` 三套并存）。
+- **S1 `by` 引擎缺陷**（调研发现的既有 bug，正交但会被共存测试暴露）：
+  `by` 末个 tactic 是 `apply` 且留 ≥2 个子目标时，所有洞 span 相同
+  （`by.rs:263/375` 取 `by.rs:269-271` 的单一 `hole_span`）→ `nextHole` 跳不动、
+  inlay 叠位且类型可能错。**先写红测试钉住现状，再修**。允许改：`crates/front/src/by.rs`、
+  `crates/front/src/compile/tests.rs`。
+- **S2 front/session 五条**（F1–F5）：`sorry`↔`intro`/`by`/`apply` 往返、四种排版重排、
+  同文档四写法改一行（`recompiled_from` 精确 + span remap）。
+- **S3 LSP 逐字符四条**（L1–L4）：前缀不触发、整词才触发、词尾+空格仍触发、
+  `by` 块内不串台。
+- **S4 与 I10 合流**：L5–L8（展开后的 inlay/nextHole 可寻址、四写法混排 stateAt、
+  注释编辑 remap）、V1–V4（VS Code 手势烟测）。
+- **验收**：新增测试全部登记进 `docs/TESTING.md` 测试地图；**LSP/front 层零 sleep**；
+  VS Code 层新增 sleep 必须在文件里登记理由；`ci.yml` 的集成测试步骤保持绿。
+
+### I12 —— 项目官网（GitHub Pages）
+
+> 设计（已完成）：`docs/design/site.md`（含托管方案决策、单一事实源机制、信息架构、页面清单）。
+
+- **S0 修文档漂移**（`site.md` §5.1 的 6 条，含 README 写死 `V=0.9.0`、课程单元数
+  「5 vs 6」三处口径矛盾）：与官网同批做，避免官网一上线就带错数字。
+- **S1 站点骨架**：新目录 `site/`（零构建手写 HTML/CSS）+ `.github/workflows/pages.yml`
+  （`configure-pages` / `upload-pages-artifact` / `deploy-pages`，`paths:` 过滤）
+  + `scripts/gen-site-data.py`（python3 标准库，CI 生成 `site/data/site.json`）。
+- **S2 单一事实源**：`STATUS.md` 顶部加机器可读块（version/round/date/tests），
+  CI 断言其 version 与 `Cargo.toml` 一致；版本与下载链接在页面用 Releases API 取。
+- **S3 页面**：`index` / `get-started` / `course` / `vision`（**必须新写**，现有全是
+  agent 口吻）/ `progress`（生成）/ `agents` / `docs` / `about` / `en`。
+- **S4 防漂移**：站内链接检查 + 「禁止写死版本号」断言 + README/AGENTS 挂官网入口。
+- **前置人工动作（阻塞项）**：Settings → Pages → **Source = GitHub Actions**
+  ——只能由仓库拥有者做；不做则 workflow 报 `Get Pages site failed. Not Found`。
+- **验收**：站点可访问；`progress` 页的版本号/单元数与 `Cargo.toml`/`course/course.json`
+  一致；链接检查与版本断言绿；`ci.yml`/`release.yml` 行为不变。
+
+### 依赖与并行
+
+- **I11-S0 先于 I10-S3 与 I11-S2/S3**（测试基建与位置收敛是公共接线点）；
+- I10 与 I12 **互不依赖**，可并行（不同文件集：`crates/**` ↔ `site/**`+`workflows/**`）；
+- I12-S0（修漂移）不依赖任何代码改动，可最先做。
+
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、

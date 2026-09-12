@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十八轮：`intro` 词尾命中修复 + hover 展开按钮 + 「不替换也等价」契约）
+> 快照：2026-09-13（第三十九轮：三个大方向的设计——值位 `apply` / 真人输入测试 / 官网）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,47 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-13，第三十九轮：三个大方向的设计——值位 `apply` / 真人输入测试 / 官网）
+
+> 触发：用户提出三个大方向——①照 `intro` 的模式新增值位 `apply`（要补全 + 等价部分
+> 表达式，必要时用括号界定范围）；②设计「真人相同输入」测试，覆盖 `sorry`/`intro`/
+> `apply`/`by` 共存；③做 GitHub Pages 官网介绍用法、远大目标、当前进展。并要求
+> **先调研、头脑风暴、规划、做好文档，再启动分步骤计划、多用 subagent**。
+> 本轮按仓库「设计先行」硬规则，**只落设计，不动实现**。
+
+1. **调研**：并行派了 4 路只读 subagent（`intro` 端到端触点与 `apply` 可行性 /
+   LSP 触点全图 / 输入测试现状与共存风险 / Pages 方案），全部报告进设计文档的证据表；
+   第一路的结论**推翻了乐观假设**（见 2）。
+2. **`docs/design/term-apply.md`（值位 `apply` 设计）**：最关键的一条——**不能照抄
+   `intro`**。`intro` 只需要声明类型（已在 AST），而 `apply` 需要**被应用名字的类型**，
+   front 侧根本没有可用来源：`GoalTemplates` 的 `peel_type` 丢掉了 codomain
+   （`goals.rs:249-267`）、局部假设（最常用的教学场景）不在表内
+   （`goals.rs:531-534`）、`EnvBuilder` 无类型查询 API（`kernel/builder.rs:234`）。
+   决策：降低走 `by` 引擎已验证的 `judge_infer` 路线（内核只用来**推断类型**，不做
+   判定；判定仍在填洞后的合成声明上）——这是对 `intro`「值不进内核」的**刻意偏离**，
+   文档里写明理由以免后人误判为违规。另定：实参用 `parse_app` 消费（括号已支持，
+   无需新语法）、三个新错误码、以及一条硬风险——`apply` 展开成 `h sorry` 是 App spine，
+   会产出非空 `sub_goals`，从而踩到 `judge_hole_fill` 的「洞位源码必须恰为 `sorry`」
+   守卫（`judge.rs:316-322`），必须把**合成洞**路由到 `judge_terms`。
+3. **`docs/design/real-input-tests.md`（真人输入测试）**：三层设计（front 版本序列 /
+   LSP `didOpen→didChange` 输入脚本 / VS Code 真实手势），新增 `type_script`/`type_chars`
+   基建把「输入序列」变成被测对象；给出共存风险矩阵与 flake 预算（LSP 层零 sleep）。
+   **并发现一个既有缺陷**：`by` 的末个 tactic 是 `apply` 且留下 ≥2 个子目标时，
+   所有洞 span 都等于「最后一个 tactic 的 span」（`by.rs:263/375` + `269-271`），
+   导致 nextHole 跳不动、inlay 叠位且类型可能错——当前**零覆盖**，已排为 I11-S1
+   （先红测试再修）。
+4. **`docs/design/site.md`（官网）**：方案定为**零构建手写静态 `site/` + GitHub Actions
+   部署**（不用 `docs/` 做 Pages 源：那会把 35 篇内部台账公开、还触发 Jekyll 隐式渲染）；
+   「版本 / 进展 / 单元数」一律由 `STATUS.md` 机器可读块 + `Cargo.toml` + `course.json`
+   + Releases API 生成，官网只做视图不做第五个事实源；一期零后端（主 CTA = 装 VS Code
+   扩展），WASM playground 入 backlog。并列出 6 条**已确认的文档漂移**
+   （README 写死 `V=0.9.0`、课程单元数「5 vs 6」三处口径矛盾、ROADMAP/文档索引陈旧）。
+5. **计划**：`ROADMAP.md` §10 新增 **I10 / I11 / I12** 三个分阶段条目，含每阶段验收
+   标准与 subagent 切分（文件集互斥、公共接线点由主会话先落地）；
+   `REQUIREMENTS.md` §9 追加第四十条。**阻塞项**：官网需仓库拥有者在
+   Settings → Pages 手动把 Source 设为 GitHub Actions，否则 workflow 报
+   `Get Pages site failed. Not Found`。
 
 ## 本轮进度（2026-09-12，第三十八轮：`intro` 词尾命中修复 + hover 展开按钮 + 「不替换也等价」契约）
 

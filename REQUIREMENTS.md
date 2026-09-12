@@ -386,3 +386,26 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `value_intro_is_layout_independent`）把等价性与排版无关性钉死。发布随
   0.17.0。**非目标不变**（`docs/design/term-intro.md` §9）：嵌套 `intro`
   （`fun … => intro`）仍不做——那里的 `intro` 是普通标识符。
+- 2026-09-13（四十）：**三个大方向（用户要求，先设计后实施）**：用户提出
+  ①「参考刚才的 intro 设计新的 command apply，也能触发自动补全和等价部分表达式。
+  必要的时候可以要求用括号确定范围」；②「设计真人相同的输入测试，多设计测试，
+  覆盖 sorry intro apply 和 by 这些 command 共存会引发的复杂」；③「增加一个
+  github pages，相当于当前项目的官网，充分介绍本项目的用法、远大目标和当前进展」；
+  并要求「先好好调研、头脑风暴、规划，做好文档，然后再启动分步骤计划，多用
+  subagent 执行」。**本轮只落设计，不动实现**（设计先行是仓库硬规则）。产出：
+  `docs/design/term-apply.md`（值位 `apply`：语法/语义/错误码/编辑器面/风险；
+  **关键结论——不能照抄 `intro`**：`apply` 需要被应用名字的类型，而 front 侧
+  `GoalTemplates` 丢了 codomain、局部假设不在表内、内核无类型查询 API，
+  故降低走 `by` 引擎已验证的 `judge_infer` 路线，并新增「合成洞不得走
+  `judge_hole_fill` 源码切片守卫」的分派修正）；
+  `docs/design/real-input-tests.md`（三层输入测试：front 版本序列 / LSP
+  `didOpen→didChange` 脚本 / VS Code 真实手势；含共存风险矩阵与**调研发现的
+  既有缺陷**：`by` 末个 tactic 是 `apply` 且留 ≥2 子目标时所有洞 span 相同，
+  导致 nextHole 跳不动、inlay 叠位）；
+  `docs/design/site.md`（官网：**零构建静态 `site/` + Actions 部署**，不把
+  `docs/` 设为 Pages 源；「版本/进展/单元数」一律由 `STATUS.md`/`Cargo.toml`/
+  `course.json`/Releases API 生成，官网只做视图不做第五个事实源；一期零后端，
+  主 CTA = 装 VS Code 扩展，WASM playground 入 backlog）。
+  分阶段计划与验收标准落 `ROADMAP.md` §10 的 **I10（值位 `apply`）/ I11（真人输入
+  测试）/ I12（官网）**。**阻塞项**：官网需仓库拥有者在 Settings → Pages 手动把
+  Source 设为 GitHub Actions（会话内无法代做）。

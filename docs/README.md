@@ -43,12 +43,15 @@
 - `course-status.md` — 课程地图 + REPL 历史
 - `course-bilingual.md` — 课程英文镜像
 - `bundled-lsp.md` — 插件自带 LSP 二进制（per-target VSIX + 版本锁定下载）
-- `onboarding.md` — `scripts/soko.sh` 单一环境入口
+- `onboarding.md` — opencode 启动插件 + `sokonanoda` 二进制子命令的零脚本接入（`scripts/soko.sh` 已删除）
 - `reserved-decl-warning.md` — 声明名撞内核已定义名字（`Prop`/`Sort`/`Type`）的 warning 通道
 - `type-level-syntax.md` — `Type n`（= `Sort (n+1)`）记法解析糖
 - `binary-cli.md` — 环境能力进 `sokonanoda` 二进制子命令（内嵌下载器），删除 `scripts/soko.sh`
-- `term-intro.md` — 值位 `intro` 关键字 + VS Code 展开补全（已实现）
-- `decl-binders.md` — 声明级 binder（Lean 风格）设计（待实现）
+- `term-intro.md` — 值位 `intro` 关键字 + VS Code 展开补全（已实现，0.17.0 发布）
+- `term-apply.md` — 值位 `apply` 关键字（设计完成，待实施：ROADMAP I10）
+- `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（设计完成，待实施：ROADMAP I11）
+- `site.md` — 项目官网（GitHub Pages）方案与信息架构（设计完成，待实施：ROADMAP I12）
+- `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。
