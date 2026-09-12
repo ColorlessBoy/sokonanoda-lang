@@ -28,6 +28,9 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 3. **测试**：静态契约 13、extension 单测 25、VSIX 冒烟、集成 8（含新
    `restart server command re-syncs open documents`）。
 4. **发布**：0.15.0 → **0.16.0**（feature → minor）。
+5. **发布结果**：tag `v0.16.0` → ci / release 全绿（8 平台 build +
+   package-vsix + github-release 25 资产 + Marketplace `0.16.0` ×9）；
+   本地缓存刷新到 0.16.0（`doctor` ready）。
 
 ## 本轮进度（2026-09-12，第三十四轮：声明级 binder（Lean 风格））
 
