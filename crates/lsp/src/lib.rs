@@ -626,29 +626,101 @@ fn hover_markup(res: render::HoverResolved) -> Hover {
     }
 }
 
-/// 值位 `intro` 的展开 hover：未接受补全时也能看到它展开成什么。
-/// 光标在 intro token 上（含末尾）命中；返回洞的 range 供编辑器高亮。
-fn intro_expansion_hover(report: &DocumentReport, offset: usize) -> Option<Hover> {
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
+/// `offset` 在 `end` 之后，但中间只隔着同一行的空白（没有换行）。
+fn trailing_same_line_ws(text: &str, end: usize, offset: usize) -> bool {
+    if offset <= end || end > text.len() || offset > text.len() {
+        return false;
+    }
+    text[end..offset].chars().all(|c| c == ' ' || c == '\t')
+}
+
+/// 值位 `intro` 的光标命中区间：token 本身（含末尾），以及 token 之后到
+/// **同一行行尾**的空白。学习者敲完关键字常常再打一个空格（顺手关掉补全
+/// 弹窗），或者光标向右漂一格——这两种位置都该照常命中；跨行不算，
+/// 免得在后面的声明上误弹。
+fn intro_hit(text: &str, hole: sokonanoda_front::Span, offset: usize) -> bool {
+    (hole.start.offset <= offset && offset <= hole.end.offset)
+        || trailing_same_line_ws(text, hole.end.offset, offset)
+}
+
+/// 值位 `intro` 的定位：`(洞, 骨架)`。hover 与补全共用这一套命中规则
+/// （同一份 `DeclState` 快照，编辑器不扫文本）。
+fn intro_at<'a>(
+    report: &'a DocumentReport,
+    text: &str,
+    offset: usize,
+) -> Option<(sokonanoda_front::Span, &'a str)> {
+    let d = report.decls.iter().find(|d| {
+        (d.span.start.offset <= offset && offset <= d.span.end.offset)
+            || trailing_same_line_ws(text, d.span.end.offset, offset)
+    })?;
     if d.status != DeclStatus::Open {
         return None;
     }
     let skeleton = d.intro_skeleton.as_deref()?;
-    let hole = d
-        .holes
-        .iter()
-        .find(|h| h.start.offset <= offset && offset <= h.end.offset)?;
+    let hole = *d.holes.iter().find(|h| intro_hit(text, **h, offset))?;
+    Some((hole, skeleton))
+}
+
+/// `command:` URI 的 JSON 参数按 `encodeURIComponent` 规则转义（编辑器端
+/// 反解后 `JSON.parse`）。只保留 unreserved 字符，其余逐字节 `%XX`。
+///
+/// 与浏览器版 `encodeURIComponent` 的唯一差别：这里连 `(` `)` 也编码成
+/// `%28` `%29`。原因在 markdown——载荷嵌在 `](command:...?)` 里，任何裸
+/// `)` 都会被链接解析器（以及调用方的朴素切分）误当成右括号提前收尾；骨架
+/// 里恰恰常含 `fun (x : Prop) => ...` 这类括号。多编两个字符零成本，
+/// 扩展端 `decodeURIComponent` 照样还原。
+fn percent_encode_component(input: &str) -> String {
+    let mut out = String::with_capacity(input.len());
+    for byte in input.bytes() {
+        match byte {
+            b'A'..=b'Z'
+            | b'a'..=b'z'
+            | b'0'..=b'9'
+            | b'-'
+            | b'_'
+            | b'.'
+            | b'!'
+            | b'~'
+            | b'*'
+            | b'\'' => out.push(byte as char),
+            _ => out.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    out
+}
+
+/// 值位 `intro` 的展开 hover。两件事：
+///
+/// 1. **不替换也完全等价**——`intro` 本身就已经是一次合法作答（等价于下面的
+///    `fun` 骨架，末端是个 `sorry` 洞），可以直接留着在洞的位置继续写；
+/// 2. 想看清结构（或想让编辑器接手）时有就地替换按钮
+///    （`command:sokonanoda.expandIntro`），载荷由服务端算好：uri + 洞 range
+///    + 骨架文本，与接受 Tab 补全是同一份编辑。
+fn intro_expansion_hover(
+    report: &DocumentReport,
+    text: &str,
+    uri: &str,
+    offset: usize,
+) -> Option<Hover> {
+    let (hole, skeleton) = intro_at(report, text, offset)?;
+    let payload = serde_json::json!({
+        "uri": uri,
+        "range": range_of(hole),
+        "newText": skeleton,
+    });
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
             value: format!(
-                "值位 `intro`：一次把目标剩下的 binder 全写成 `fun`，末尾留 `sorry`。\n\n展开为：\n\n```lean\n{skeleton}\n```"
+                "值位 `intro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。\n\n\
+                 **不替换也完全等价**——`intro` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n\
+                 它等价于：\n\n```lean\n{skeleton}\n```\n\n\
+                 [展开为 fun 骨架](command:sokonanoda.expandIntro?{})",
+                percent_encode_component(&payload.to_string())
             ),
         }),
-        range: Some(range_of(*hole)),
+        range: Some(range_of(hole)),
     })
 }
 
@@ -754,9 +826,15 @@ impl LanguageServer for Backend {
         };
         let pos = params.text_document_position_params.position;
         let offset = position_to_offset(&doc.text, pos);
-        // 值位 `intro`：不选择补全也能在 hover 里看到展开后的显式表达式。
-        // 先于关键字抑制——`intro` 在 KEYWORDS 里，否则会被当普通关键字吞掉。
-        if let Some(hover) = intro_expansion_hover(report, offset) {
+        // 值位 `intro`：不选择补全也能在 hover 里看到展开后的显式表达式，
+        // 并带一个就地替换的按钮（command link）。先于关键字抑制——
+        // `intro` 在 KEYWORDS 里，否则会被当普通关键字吞掉。
+        let uri = params
+            .text_document_position_params
+            .text_document
+            .uri
+            .clone();
+        if let Some(hover) = intro_expansion_hover(report, &doc.text, uri.as_str(), offset) {
             return Ok(Some(hover));
         }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
@@ -988,25 +1066,13 @@ impl LanguageServer for Backend {
         // In-scope binders at the cursor (smallest enclosing hover row);
         // outside any hover span the list stays keyword/prelude-only.
         let pos = params.text_document_position.position;
-        // 值位 `intro`：光标落在 intro token（= 那个洞）上时，给一项把关键字
-        // 原地展开为 front 计算的显式 fun 骨架。门控与骨架文本全部来自
-        // DeclState（单一事实源），编辑器不扫文本、不重算。
-        // 注意：用字节区间（末尾含）而不是 `decl_at`——`decl_at` 的末尾
-        // 排他，而「刚输完 intro」光标恰在声明末尾，那正是最常见的场景。
+        // 值位 `intro`：光标落在 intro token（= 那个洞）或其后的同行空白上
+        // 时，给一项把关键字原地展开为 front 计算的显式 fun 骨架。门控与
+        // 骨架文本全部来自 DeclState（单一事实源），编辑器不扫文本、不重算；
+        // 命中规则与 hover 同一套（`intro_at`）。
         let intro_item = doc.report.as_ref().and_then(|report| {
             let offset = position_to_offset(&doc.text, pos);
-            let d = report
-                .decls
-                .iter()
-                .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
-            if d.status != DeclStatus::Open {
-                return None;
-            }
-            let skeleton = d.intro_skeleton.as_deref()?;
-            let hole = d
-                .holes
-                .iter()
-                .find(|h| h.start.offset <= offset && offset <= h.end.offset)?;
+            let (hole, skeleton) = intro_at(report, &doc.text, offset)?;
             Some(CompletionItem {
                 label: "intro（展开为 fun 骨架）".to_string(),
                 kind: Some(CompletionItemKind::KEYWORD),
@@ -1021,7 +1087,7 @@ impl LanguageServer for Backend {
                 sort_text: Some("0intro".to_string()),
                 preselect: Some(true),
                 text_edit: Some(CompletionTextEdit::Edit(TextEdit {
-                    range: range_of(*hole),
+                    range: range_of(hole),
                     new_text: skeleton.to_string(),
                 })),
                 ..Default::default()
@@ -2712,6 +2778,226 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         assert_eq!(edit.range.end, lsp_pos(src, start + "intro".len()));
         assert_eq!(edit.new_text, "fun (x : a) => sorry");
         shutdown(&mut service).await;
+    }
+
+    /// 值位 `intro` 换行书写的源文本（用户症状：`playground.sokonanoda:201`）。
+    /// Rust 字符串续行会吃掉行首空白，所以这里用 `concat!` 保住缩进。
+    const INTRO_NEXT_LINE: &str = concat!(
+        "axiom And : Prop -> Prop -> Prop\n",
+        "theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n",
+        "  intro\n",
+    );
+
+    #[tokio::test]
+    async fn completion_expands_value_intro_on_the_next_line() {
+        // 学习者把 `:= intro` 拆成两行只为不写超长行；补全不该因此消失。
+        let src = INTRO_NEXT_LINE;
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "next-line intro diagnostics").await;
+
+        let start = offset_of(src, "intro");
+        for offset in [start, start + "intro".len()] {
+            let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
+            let item = items
+                .iter()
+                .find(|i| i.filter_text.as_deref() == Some("intro"))
+                .unwrap_or_else(|| {
+                    panic!("intro expansion at {offset} must be offered: {items:?}")
+                });
+            let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
+                panic!("expected a plain CompletionTextEdit::Edit");
+            };
+            assert_eq!(edit.range.start, lsp_pos(src, start));
+            assert_eq!(edit.range.end, lsp_pos(src, start + "intro".len()));
+        }
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_value_intro_shows_the_expansion_on_the_next_line() {
+        let src = INTRO_NEXT_LINE;
+        let (mut service, _socket) = open_and_wait(src).await;
+        let intro = offset_of(src, "intro");
+        let hover = hover_opt_at(&mut service, src, intro + "intro".len())
+            .await
+            .expect("hover on a next-line intro must exist");
+        let HoverContents::Markup(markup) = hover.contents else {
+            panic!("expected markup hover");
+        };
+        assert!(
+            markup
+                .value
+                .contains("fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry"),
+            "hover must show the expansion: {:?}",
+            markup.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn completion_expands_value_intro_after_a_line_break_edit() {
+        // 真实编辑序列：先 `:= sorry`，再把值折到下一行改成 `intro`——
+        // 走的是 didChange + Session 增量路径，不是 didOpen 全量。
+        let before = concat!(
+            "axiom And : Prop -> Prop -> Prop\n",
+            "theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry\n",
+        );
+        let after = INTRO_NEXT_LINE;
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, before).await;
+        let _ = wait_diagnostics(&mut socket, "pre-edit diagnostics").await;
+
+        notify(
+            &mut service,
+            "textDocument/didChange",
+            json!({
+                "textDocument": {"uri": URI, "version": 2},
+                "contentChanges": [{"text": after}],
+            }),
+        )
+        .await;
+        let _ = wait_diagnostics(&mut socket, "post-edit diagnostics").await;
+
+        let start = offset_of(after, "intro");
+        let items =
+            request_completions_at(&mut service, lsp_pos(after, start + "intro".len())).await;
+        assert!(
+            items
+                .iter()
+                .any(|i| i.filter_text.as_deref() == Some("intro")),
+            "the intro expansion must survive the line-break edit: {items:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn intro_expansion_survives_a_trailing_space_on_both_layouts() {
+        // 学习者症状（playground.sokonanoda:201 实况：`:= intro ` 带尾随空格）：
+        // 敲完关键字常顺手打一个空格，光标落在 token 之后。命中区间放宽到
+        // 「token + 同行空白」后，同一行与换行两种写法都要照常给展开项，
+        // 且不改动被替换的范围（仍是 intro token 本身）。
+        let same = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a := intro \n";
+        let next = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a :=\n  intro \n";
+        for (label, src) in [("same-line", same), ("next-line", next)] {
+            let (mut service, mut socket) = test_service();
+            handshake(&mut service).await;
+            did_open(&mut service, src).await;
+            let _ = wait_diagnostics(&mut socket, "trailing-space diagnostics").await;
+            let start = offset_of(src, "intro");
+            for (where_, offset) in [
+                ("token", start),
+                ("token end", start + "intro".len()),
+                ("after the trailing space", start + "intro".len() + 1),
+            ] {
+                let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
+                let item = items
+                    .iter()
+                    .find(|i| i.filter_text.as_deref() == Some("intro"))
+                    .unwrap_or_else(|| panic!("{label} @{where_}: the expansion must be offered"));
+                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
+                else {
+                    panic!("expected a plain CompletionTextEdit::Edit");
+                };
+                assert_eq!(
+                    edit.range.start,
+                    lsp_pos(src, start),
+                    "{label} @{where_}: the edit still replaces exactly the token"
+                );
+                assert_eq!(edit.range.end, lsp_pos(src, start + "intro".len()));
+                let hover = hover_opt_at(&mut service, src, offset)
+                    .await
+                    .unwrap_or_else(|| panic!("{label} @{where_}: hover must answer too"));
+                assert!(matches!(hover.contents, HoverContents::Markup(_)));
+            }
+            shutdown(&mut service).await;
+        }
+    }
+
+    #[tokio::test]
+    async fn intro_expansion_is_not_offered_on_a_later_line() {
+        // 放宽命中区间不能跨行：光标到下一行（新声明/空行）就不该再弹。
+        let src = INTRO_NEXT_LINE; // "...:=\n  intro\n"
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "later-line diagnostics").await;
+        let after_line = src.len(); // 换行之后的文档末尾
+        let items = request_completions_at(&mut service, lsp_pos(src, after_line)).await;
+        assert!(
+            items
+                .iter()
+                .all(|i| i.filter_text.as_deref() != Some("intro")),
+            "no expansion outside the intro line: {items:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_value_intro_carries_the_expand_command() {
+        // hover 里的按钮：载荷全部由服务端算好（uri + 洞 range + 骨架），
+        // 编辑器只应用编辑，不扫文本、不重算。
+        let src = "theorem t : Prop -> Prop := intro\n";
+        let (mut service, _socket) = open_and_wait(src).await;
+        let intro = offset_of(src, "intro");
+        let hover = hover_opt_at(&mut service, src, intro + "intro".len())
+            .await
+            .expect("hover must answer");
+        let HoverContents::Markup(markup) = hover.contents else {
+            panic!("expected markup hover");
+        };
+        // 载荷以 `](command:...?)` 结尾；正因为编码器把 `(` `)` 也转义了，
+        // 这里遇到的第一个 `)` 一定是 markdown 链接自己的右括号——切分不会
+        // 截断 JSON。谁要是把 `)` 放回白名单，这条断言会立刻红。
+        let link = markup
+            .value
+            .split("command:sokonanoda.expandIntro?")
+            .nth(1)
+            .and_then(|rest| rest.split(')').next())
+            .unwrap_or_else(|| panic!("hover must carry the command link: {:?}", markup.value));
+        assert!(
+            !link.contains(')'),
+            "encoded payload must not contain a bare ')': {link}"
+        );
+        let payload: serde_json::Value =
+            serde_json::from_str(&percent_decode(link)).expect("payload must be JSON");
+        assert_eq!(payload["uri"], URI);
+        assert_eq!(
+            payload["range"],
+            json!({
+                "start": position_json(lsp_pos(src, intro)),
+                "end": position_json(lsp_pos(src, intro + "intro".len())),
+            })
+        );
+        assert_eq!(payload["newText"], "fun (x : Prop) => sorry");
+        // 用户诉求（「intro 也可以不被替换，直接等价于对应的 fun 表达式」）：
+        // hover 必须**明说**不替换也等价——否则学习者会以为非得点按钮/按 Tab。
+        assert!(
+            markup.value.contains("不替换也完全等价"),
+            "hover must state that leaving `intro` alone is equivalent: {:?}",
+            markup.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    /// 测试用：`%XX` 反转义（`command:` URI 的载荷是 encodeURIComponent 结果）。
+    fn percent_decode(input: &str) -> String {
+        let bytes = input.as_bytes();
+        let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
+        let mut i = 0;
+        while i < bytes.len() {
+            if bytes[i] == b'%' && i + 2 < bytes.len() {
+                let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).expect("hex");
+                out.push(u8::from_str_radix(hex, 16).expect("hex digit"));
+                i += 3;
+            } else {
+                out.push(bytes[i]);
+                i += 1;
+            }
+        }
+        String::from_utf8(out).expect("utf8")
     }
 
     // ---- 优先级可视化：selectionRange（学习者需求）----

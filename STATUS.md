@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十七轮：`intro` hover 展开式 + Tab 接受回归）
+> 快照：2026-09-12（第三十八轮：`intro` 词尾命中修复 + hover 展开按钮 + 「不替换也等价」契约）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,33 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十八轮：`intro` 词尾命中修复 + hover 展开按钮 + 「不替换也等价」契约）
+
+> 触发：用户反馈 `playground.sokonanoda:201` 上「同一行敲 `intro` 正常，把值
+> 折到下一行就没用了（那行会太宽）」；并提两个新要求——hover 加一个直接替换
+> `intro` 的按钮（等价 Tab 补全）、`intro` 不被替换也直接等价于 `fun` 表达式。
+
+1. **根因（不是换行，是光标在词后）**：旧命中判据是洞的**闭区间字节范围**
+   `[start, end]`。学习者敲完 `intro`，光标停在词尾、或顺手多打一个空格想
+   关掉弹窗，就落到区间外——补全与 hover 一起消失。折行只是让「停在词尾」
+   更容易发生（同一行 `:= intro ` 也是同一个 bug，此前 36/37 轮只修了
+   补全覆盖面、hover 没同步）。
+2. **修复**：命中区间扩到「token 本身 + token 之后到**同一行行尾**的空白」，
+   `trailing_same_line_ws` 判据；hover 与补全抽成**同一套** helper
+   （`intro_hit` / `intro_at`），编辑器不扫文本、不各自重算。跨行不算，
+   免得在后面的声明上误弹。
+3. **hover 展开按钮**：hover markdown 带
+   `command:sokonanoda.expandIntro?<payload>`；载荷（uri + 洞 range + 骨架）
+   由服务端算好，编辑器照单应用一次 `WorkspaceEdit`——与接受 Tab 补全是
+   **同一份编辑**，不会分叉。客户端三处配套：`markdown.isTrusted` 只放行
+   这一个命令（白名单，不是整体 `true`）、`contributes.commands` 声明、
+   命令面板隐藏（`when: false`）。
+4. **「不替换也等价」钉成契约**：hover 明写「不替换也完全等价」；front 新增
+   `intro_is_equivalent_to_typing_the_skeleton_out_by_hand`（同 status/goal/
+   binders/洞数，差别只有骨架字段）与 `value_intro_is_layout_independent`
+   （同页 / 换行 / 尾随空格三种排版判定一字不差）。
+5. **发布**：0.16.2 → **0.17.0**（新增命令 = 新能力 → minor）。
 
 ## 本轮进度（2026-09-12，第三十七轮：`intro` hover 展开式 + Tab 接受回归）
 

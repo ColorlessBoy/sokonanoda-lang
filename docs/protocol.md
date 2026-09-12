@@ -173,6 +173,26 @@ that `intro` token: it replaces the token with the explicit skeleton
 render it like any completion; the server gates on the declaration state
 (front `DeclState.intro_skeleton` + the hole span), never by scanning text.
 
+The caret counts as "inside" from the token's first byte through the end of
+the **same line**, as long as only spaces/tabs separate it from the token —
+finishing the keyword leaves the caret just past it, and a trailing space
+(the reflex that dismisses the suggestion popup) must not kill the offer. A
+caret on a later line never matches.
+
+`textDocument/hover` on the same token shows the expansion and a clickable
+`command:sokonanoda.expandIntro?<payload>` link, where `<payload>` is the
+percent-encoded JSON `{uri, range, newText}` the server computed — identical
+to the completion's `textEdit`, so the hover button and Tab accept produce
+byte-identical edits. `(` and `)` are encoded too, so the payload never
+contains a bare `)` that markdown would read as the link's closing paren.
+The client must allow-list the command (`markdown.isTrusted.enabledCommands`)
+— LSP hover markdown is untrusted by default, and command links there are
+inert without it.
+
+Keeping `intro` un-expanded is a first-class answer: it is *equivalent* to
+the skeleton, not a placeholder for it. No client work is required to accept
+it, and the hover says so.
+
 ## Custom LSP requests (goal view, I9)
 
 Beyond standard LSP, the server answers four custom requests (tower-lsp

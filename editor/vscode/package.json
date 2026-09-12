@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Self-contained Lean-4-style teaching language with a real kernel: goal view, hint ladders, graded exercises. Zero setup - the language server and CLI ship inside the platform-specific extension, so it works offline. Ships agent skills (Claude Code / opencode) that turn an LLM into your proof teacher.",
-  "version": "0.16.2",
+  "version": "0.17.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -97,6 +97,11 @@
         "title": "sokonanoda: 重启语言服务器",
         "icon": "$(debug-restart)",
         "category": "sokonanoda"
+      },
+      {
+        "command": "sokonanoda.expandIntro",
+        "title": "sokonanoda: 展开值位 intro 为 fun 骨架",
+        "category": "sokonanoda"
       }
     ],
     "views": {
@@ -129,6 +134,10 @@
         },
         {
           "command": "sokonanoda.courseRefresh",
+          "when": "false"
+        },
+        {
+          "command": "sokonanoda.expandIntro",
           "when": "false"
         }
       ],

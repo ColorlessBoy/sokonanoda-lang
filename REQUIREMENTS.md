@@ -370,3 +370,19 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   无需重载窗口（重建的仓库构建 / 刷新后的缓存 / 改 `serverPath` 都生效）；
   扩展本体升级仍需 Reload Window（README 与 `docs/vscode-dev-guide.md` §5
   写明）。发布随 0.16.0。
+- 2026-09-12（三十九）：**`intro` 换行/词尾命中修复 + hover 展开按钮 +
+  「不替换也等价」契约（用户要求）**：用户反馈 `playground.sokonanoda:201`
+  「同一行输入 `intro` 符合预期，换行就没用了（那行会太宽）」，并要求
+  ①「hover 信息加一个按钮，直接替换 `intro`，跟 tab 补全一样，防止错过
+  tab 补全」；②「`intro` 也可以不被替换，直接等价于对应的 `fun` 表达式，
+  这样更方便」。落地：命中区间从洞的闭区间扩到「token 之后到同一行行尾的
+  空白」（`trailing_same_line_ws`，hover 与补全共用 `intro_hit`/`intro_at`；
+  真实触发是光标停在词尾或尾随空格，折行只是放大器）；hover 带
+  `command:sokonanoda.expandIntro?<服务端算好的 uri+range+newText>`，
+  客户端新增 `sokonanoda.expandIntro`（`markdown.isTrusted` 白名单放行 +
+  `contributes.commands` + 命令面板隐藏），应用的编辑与 Tab 补全完全同一份；
+  hover 文案明说「不替换也完全等价」；front 新增两条契约测试
+  （`intro_is_equivalent_to_typing_the_skeleton_out_by_hand`、
+  `value_intro_is_layout_independent`）把等价性与排版无关性钉死。发布随
+  0.17.0。**非目标不变**（`docs/design/term-intro.md` §9）：嵌套 `intro`
+  （`fun … => intro`）仍不做——那里的 `intro` 是普通标识符。

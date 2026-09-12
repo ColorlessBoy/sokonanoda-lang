@@ -167,7 +167,7 @@ example : Or True False := Or.inl True False True.intro
 -- forall 书写，是后面量词的骨架。
 --
 -- 命题里的每一层箭头，在证明项里对应一层 fun。看下面这个写好的例子：
-theorem demo_K : (a : Prop) -> a -> a :=
+theorem prop_id: (a : Prop) -> a -> a :=
   fun (a : Prop) => fun (h : a) => h
 -- 类型有两层带名字的箭头，值就写两层 fun：第一层参数是 a : Prop，第二
 -- 层参数是 h : a，也就是 a 的证明，函数体直接返回 h。练习 2 的类型有
@@ -186,19 +186,21 @@ theorem demo_K : (a : Prop) -> a -> a :=
 -- soko:hint 思路：目标就是找一个类型为 True 的现成证明，翻回 axiom 列表找。
 -- soko:hint 目标形态：目标 True 没有箭头可拆，直接问自己：环境里谁能造出 True？
 -- soko:hint 关键件：True.intro——True 的构造子，不需要任何参数。
-theorem true_is_true : True := sorry
+theorem true_is_true : True := True.intro
 
 -- 练习 2：若 a、b 都成立，则 a 且 b 成立。
 -- soko:hint 思路：类型里的箭头对应值里的 fun——写证明就是一串 fun 加最后一步构造。
 -- soko:hint 目标形态：最外层是四个箭头：先写 fun (a : Prop) =>，每写一层就看剩余目标。
 -- soko:hint 关键件：最后一步用 And.intro，它吃 a、b 和两个证明，装出 And a b。
-theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry
+theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := And.intro
 
 -- 练习 3：由 a 且 b 推出 b 且 a。
 -- soko:hint 思路：先把拿到的 And a b 拆开，再按新顺序装回去——先消去，再构造。
 -- soko:hint 目标形态：三层箭头：fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …，最后要造出 And b a。
 -- soko:hint 关键件：And.left / And.right 从 h 里取出两半；And.intro b a … 换个顺序装回去。
-theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry
+theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro 
+
+theorem and_swap2 (a : Prop) (b : Prop) (h :And a b) : And b a := sorry
 
 -- 练习 4：由 False 推出任意命题 P。
 -- soko:hint 思路：False 证不出来（没有构造子），但可以“被使用”——从矛盾推出任何命题。

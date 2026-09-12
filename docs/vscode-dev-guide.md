@@ -118,6 +118,22 @@ npm run clean:lsp
     cargo-zigbuild 0.23.4 版本钉死。Alpine（musl）必须是静态链接
     （`ldd` 报 "not a dynamic executable"）；`win32-arm64` 在 windows-latest
     原生构建即可（VS ARM64 工具链预装）。
+13. **bump 版本后跑集成测试必须先 stage/指定二进制**——服务器解析顺序是
+    `setting` → `SOKONANODA_LSP_BIN` → bundled `bin/<target>/` → 工作区
+    `target/` → 按当前版本命中的缓存（`server.js` `resolveServerCommand`）。
+    版本号一涨，缓存里那份旧版本就不再「命中」，而新版本的 release 还不存在
+    → 解析返回 `undefined` → 回退下载 404 → **整个 LSP 起不来，13 个集成
+    用例集体超时**（症状像代码回归，实则环境）。跑 `npm test` 前先
+    `npm run stage:lsp`（或 `SOKONANODA_LSP_BIN=$(pwd)/../../
+    target/debug/sokonanoda-lsp`）。注意集成测试自己的 skip 守卫是
+    `findServerBinary()`：它只认「测试文件上四级的 `target/debug|release`」
+    与 `PATH`，与扩展的解析顺序**不是同一套**——两处都要能满足。
+14. **仓库路径过长时 VS Code 集成测试起不来**——`IPC handle ... is longer
+    than 103 chars`（macOS socket 上限）。把扩展拷到短路径（如 `/tmp/v`）再
+    跑：`rsync -a --exclude node_modules --exclude .vscode-test --exclude bin
+    editor/vscode/ /tmp/v/`，再 `ln -s` 回 `node_modules` 与 `.vscode-test`
+    （省去重复下载），并把服务器二进制所在目录塞进 `PATH`。此时
+    `REPO_ROOT` 会退化，`bin/` staging 与 `PATH` 两个条件都得显式满足（见 13）。
 
 ## 6. 发布
 

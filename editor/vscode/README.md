@@ -47,7 +47,12 @@ skills.
 
 **A real editing experience**
 
-- Completions (keywords, in-scope binders, prelude names)
+- Completions (keywords, in-scope binders, prelude names) — including the
+  value-position `intro` keyword, which offers to expand in place into the
+  explicit `fun … => sorry` skeleton its type determines. Hovering `intro`
+  shows the same expansion with a one-click 「展开为 fun 骨架」 button, and
+  tells you that keeping `intro` is equivalent anyway — expanding is never
+  required.
 - Go-to-definition, document highlight, rename, find references
 - Inlay hints showing the expected type at each hole — and the result of
   every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style)

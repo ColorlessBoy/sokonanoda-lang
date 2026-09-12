@@ -1,3 +1,25 @@
+## [0.17.0] - 2026-09-12
+
+### Added
+- **Hover `intro` → one-click expansion.** The hover on a value-position
+  `intro` now carries an 「展开为 fun 骨架」 button that applies the same
+  in-place edit as accepting the Tab completion — no need to catch the
+  suggestion popup. The payload (document, hole range, skeleton) is computed
+  by the language server and applied verbatim, so the button and Tab can
+  never drift apart.
+
+### Fixed
+- The `intro` expansion (completion **and** hover) now survives the caret
+  sitting just after the keyword — a trailing space on the same line, or the
+  caret resting at the end of the token. Previously only the exact token byte
+  range matched, so a wrapped `:=` … `intro` line looked like it "stopped
+  working".
+
+### Changed
+- The `intro` hover now says outright that **keeping `intro` is equivalent**
+  to the expanded `fun … => sorry` skeleton — expanding is a convenience,
+  not a required step.
+
 ## [0.16.2] - 2026-09-12
 
 ### Added

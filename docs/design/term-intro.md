@@ -252,3 +252,67 @@ spine，需先放宽该守卫。
 - `by`/`And.intro`/既有测试与课程零回归；fmt/clippy/gate 全绿；
 - 课程中文 + en + 钥匙与 golden 计数通过；
 - STATUS / REQUIREMENTS §9 / protocol/测试地图同步。
+
+## 12. 追加轮（2026-09-12，0.17.0）：词尾命中 + hover 按钮 + 等价契约
+
+> 触发：用户反馈 `playground.sokonanoda:201`「同一行输入 `intro` 正常，
+> 换行就没用了（那行会太宽）」，并加两个要求——hover 加一个直接替换
+> `intro` 的按钮（等价 Tab 补全）；`intro` 不被替换也直接等价于 `fun`
+> 表达式。
+
+### 12.1 命中区间：不是换行，是光标停在词后
+
+旧判据是洞的**闭区间字节范围**（§4 的门控写的是「offset 落在 `d.holes[0]`
+内」）。学习者敲完关键字那一刻，光标在 token **末尾之后**：要么正好贴在
+词尾（`<= end` 覆盖），要么顺手多打一个空格（落到区间外）。折行书写让
+「停在词尾」成为常态，所以症状看起来像「换行就坏」，实际同一行
+`:= intro ` 也坏——第 36/37 轮只修了补全在词尾那一格，hover 与尾随空白
+都没跟上。
+
+现判据（hover 与补全**共用**）：
+
+- `trailing_same_line_ws(text, end, offset)`：`offset > end`，且
+  `text[end..offset]` 全是空格/制表符（**不含换行**）；
+- `intro_hit` = 洞闭区间 **或** 尾随同行空白；
+- `intro_at` 再对声明 span 应用同一条尾随空白规则（`:= intro ` 时光标可能
+  已经在声明之后），返回 `(洞, 骨架)`，hover 与补全都从这里取——单一事实源
+  仍是 `DeclState`，编辑器零扫描、零重算。
+
+跨行**故意不算**：光标落到下一行（新声明或空行）不该再弹，回归
+`intro_expansion_is_not_offered_on_a_later_line` 守护。
+
+### 12.2 hover 展开按钮（`command:sokonanoda.expandIntro`）
+
+hover markdown 追加一条命令链接，载荷是服务端算好的
+`{uri, range, newText}`——与补全项的 `textEdit` 同源，因此**不会分叉**：
+
+- 编码：`percent_encode_component`（`encodeURIComponent` 语义），额外把
+  `(` `)` 也编成 `%28` `%29`——载荷嵌在 `](command:…?)` 里，骨架常含
+  `fun (x : Prop) => …`，裸 `)` 会被 markdown 链接解析提前收尾；
+- 客户端：`sokonanoda.expandIntro` 只做一次 `WorkspaceEdit`（uri + range +
+  newText），不扫文本；
+- **受信 markdown**：LSP hover 默认 `isTrusted = false`，命令链接点了没反应。
+  客户端 `LanguageClient` 选项用 `markdown: { isTrusted: { enabledCommands:
+  ["sokonanoda.expandIntro"] } }`——白名单只放行这一个命令；
+- `package.json` 声明该命令并在命令面板隐藏（`when: false`，纯 hover 目标）；
+- 静态契约 `manifest_declares_commands_that_extension_registers` 自动覆盖
+  「package.json 声明 ↔ extension.js 注册」的一致性。
+
+### 12.3 「不替换也等价」= 契约，不是文案
+
+§1 第 1 条本来就把「直接写 `intro` 就是合法答案」列为体验目标，但没有测试
+钉住，容易被后续改动悄悄破坏。追加两条 front 契约：
+
+- `intro_is_equivalent_to_typing_the_skeleton_out_by_hand`：把
+  `intro_skeleton` 原样粘回去 vs 写 `intro`，必须同 `status`、同 `goal`、
+  同 `binders`、同洞数（差别只有洞的 span 与骨架字段本身）；
+- `value_intro_is_layout_independent`：同页 / 换行 / 尾随空格三种排版，
+  判定与骨架**一字不差**。
+
+hover 文案同步改成明说「不替换也完全等价」（LSP 测试断言该措辞存在）。
+
+### 12.4 仍然不做（§9 不变）
+
+嵌套 `intro`（`fun (a : Prop) => intro`）**不是**「不替换」的一种形态：
+值位关键字只在 `parse_value` 识别（§2.1），lambda 体内的 `intro` 是普通
+标识符，会得到既有的 `unknown identifier`。本轮不动这条边界。

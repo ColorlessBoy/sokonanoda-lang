@@ -420,6 +420,39 @@ async function revealRange(uriString, range) {
   }
 }
 
+// 值位 `intro` 的展开按钮：hover 里那条 `command:sokonanoda.expandIntro?{...}`
+// 链接点下去就走这里。载荷（uri + 洞 range + 骨架文本）全部由语言服务器算好，
+// 客户端只把它原样应用成一次 WorkspaceEdit —— 不扫文本、不重算骨架，因此和
+// 接受 Tab 补全得到的是**同一份**编辑，只是不需要学习者先撞上补全弹窗。
+async function expandIntro(payload) {
+  if (!payload || typeof payload !== "object") {
+    vscode.window.showErrorMessage("sokonanoda: 展开 intro 的载荷缺失。");
+    return;
+  }
+  const { uri, range, newText } = payload;
+  if (typeof uri !== "string" || !range || typeof newText !== "string") {
+    vscode.window.showErrorMessage("sokonanoda: 展开 intro 的载荷不完整。");
+    return;
+  }
+  const target = vscode.Uri.parse(uri);
+  const span = new vscode.Range(
+    range.start.line,
+    range.start.character,
+    range.end.line,
+    range.end.character,
+  );
+  const edit = new vscode.WorkspaceEdit();
+  edit.replace(target, span, newText);
+  if (!(await vscode.workspace.applyEdit(edit))) {
+    vscode.window.showErrorMessage("sokonanoda: 展开 intro 失败。");
+    return;
+  }
+  const editor = vscode.window.visibleTextEditors.find(
+    (candidate) => candidate.document.uri.toString() === target.toString(),
+  );
+  editor?.revealRange(span, vscode.TextEditorRevealType.InCenter);
+}
+
 async function nextHole(backward) {
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.languageId !== "sokonanoda") {
@@ -597,6 +630,7 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand("sokonanoda.goals.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("sokonanoda.courseRefresh", () => courseProvider.refresh()),
     vscode.commands.registerCommand("sokonanoda.revealRange", revealRange),
+    vscode.commands.registerCommand("sokonanoda.expandIntro", expandIntro),
     vscode.commands.registerCommand(
       "sokonanoda.revealHint",
       (uri, declName, declRange) => revealHint(context, uri, declName, declRange),
@@ -668,6 +702,9 @@ async function activate(context) {
   client = new LanguageClient("sokonanoda", "sokonanoda", serverOptions, {
     documentSelector: [{ language: "sokonanoda", scheme: "file" }],
     synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/*.sokonanoda") },
+    // hover 里的 `command:` 链接默认是死的（markdown 未受信）。这里只放行
+    // 那一个展开命令，别的命令一律照旧不可用——白名单而不是整体 `true`。
+    markdown: { isTrusted: { enabledCommands: ["sokonanoda.expandIntro"] } },
   });
   client.onDidChangeState((event) => {
     client.outputChannel.appendLine(`[client] ${stateNames[event.newState] ?? event.newState}`);

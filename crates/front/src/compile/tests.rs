@@ -998,6 +998,114 @@ fn intro_preserves_implicit_binder_style() {
     );
 }
 
+/// 值位 `intro` 是**可选糖**：不展开也完全等价于手写骨架。
+///
+/// 用户诉求（原话）：「`intro` 也可以不被替换，直接等价于对应的 `fun`
+/// 表达式，这样更方便。」这条测试把它钉成契约——`intro` 与把
+/// `intro_skeleton` 原样粘回去，必须得到同一个练习：同 status、同 goal、
+/// 同 binders、同洞数。区别只有两处：`intro` 的洞落在 `intro` token 上、
+/// 且它多带一份 `intro_skeleton`（那正是给编辑器展开用的）。
+#[test]
+fn intro_is_equivalent_to_typing_the_skeleton_out_by_hand() {
+    let head = "axiom And : Prop -> Prop -> Prop\n";
+    let ty = "(a : Prop) -> (b : Prop) -> And a b -> And b a";
+    let with_intro = format!("{head}theorem and_swap : {ty} := intro\n");
+    let by_hand = format!(
+        "{head}theorem and_swap : {ty} :=\n  \
+         fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry\n"
+    );
+
+    let report = check_document(&parse(&with_intro).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let a = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap"))
+        .expect("decl");
+    let skeleton = a
+        .intro_skeleton
+        .clone()
+        .expect("intro carries its skeleton");
+
+    let report = check_document(&parse(&by_hand).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let b = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap"))
+        .expect("decl");
+
+    let binders = |d: &DeclState| {
+        d.binders
+            .iter()
+            .map(|x| (x.name.clone(), x.ty.clone()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(a.status, DeclStatus::Open);
+    assert_eq!(
+        b.status,
+        DeclStatus::Open,
+        "handwritten skeleton is also open"
+    );
+    assert_eq!(a.goal, b.goal, "same remaining goal");
+    assert_eq!(binders(a), binders(b), "same introduced binders");
+    assert_eq!(a.holes.len(), 1);
+    assert_eq!(a.holes.len(), b.holes.len(), "same number of holes");
+    // 骨架原样粘回去，就该是我们给出的那个字符串——不多不少。
+    assert_eq!(
+        skeleton,
+        "fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry"
+    );
+    assert!(
+        b.intro_skeleton.is_none(),
+        "only the `intro` form carries the editor skeleton"
+    );
+}
+
+/// 换行只为不写超长行：把 `:= intro` 折成两行，练习必须**一字不差**地相同
+///（用户症状：`playground.sokonanoda:201` 只差一个换行，行为却不一样）。
+#[test]
+fn value_intro_is_layout_independent() {
+    let head = "axiom And : Prop -> Prop -> Prop\n";
+    let ty = "(a : Prop) -> (b : Prop) -> And a b -> And b a";
+    let same_line = format!("{head}theorem and_swap : {ty} := intro\n");
+    let next_line = format!("{head}theorem and_swap : {ty} :=\n  intro\n");
+    // 学习者顺手关掉补全弹窗打的那个尾随空格，也不该改变任何东西。
+    let trailing = format!("{head}theorem and_swap : {ty} := intro \n");
+
+    let decl_of = |src: &str| {
+        let report = check_document(&parse(src).expect("parse"));
+        assert!(report.errors.is_empty(), "{src:?}: {:?}", report.errors);
+        report
+            .decls
+            .into_iter()
+            .find(|d| d.name.as_deref() == Some("and_swap"))
+            .expect("decl and_swap")
+    };
+
+    let base = decl_of(&same_line);
+    for src in [&next_line, &trailing] {
+        let other = decl_of(src);
+        assert_eq!(other.status, base.status, "{src:?}");
+        assert_eq!(other.goal, base.goal, "{src:?}");
+        assert_eq!(other.intro_skeleton, base.intro_skeleton, "{src:?}");
+        let binders = |d: &DeclState| {
+            d.binders
+                .iter()
+                .map(|x| (x.name.clone(), x.ty.clone()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(binders(&other), binders(&base), "{src:?}");
+        // 洞数一致；只有 span 随排版走（不同布局本来就指向不同的字节）。
+        assert_eq!(other.holes.len(), base.holes.len(), "{src:?}");
+        assert_eq!(
+            &src[other.holes[0].start.offset..other.holes[0].end.offset],
+            "intro",
+            "{src:?}"
+        );
+    }
+}
+
 // ---- 声明级 binder（Lean 风格：theorem f (a : A) : B := v）----
 
 const AND_PRELUDE: &str = "axiom And : Prop -> Prop -> Prop\n\

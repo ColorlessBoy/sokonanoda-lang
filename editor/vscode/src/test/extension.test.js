@@ -14,6 +14,7 @@ const vscode = require("vscode");
 
 const EXTENSION_ID = "sokonanoda-lang.sokonanoda";
 const SERVER_NAME = "sokonanoda-lsp";
+const EXPECTED_EXPAND_COMMAND = "sokonanoda.expandIntro";
 const WAIT_MS = 30000;
 const POLL_MS = 100;
 
@@ -119,6 +120,26 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       return contents.map((part) => (typeof part === "string" ? part : part.value ?? "")).join("\n");
     }
     return contents.value ?? "";
+  }
+
+  // hover 的第一块内容（MarkdownString 时连 isTrusted 一起拿到）。LSP 的
+  // hover markdown 默认**不受信**，命令链接在那里是死的——要断言按钮真的
+  // 可点，必须把它读出来，光看文本里有没有链接是不够的。
+  async function hoverMarkdownAt(uri, line, character) {
+    const hovers = await vscode.commands.executeCommand(
+      "vscode.executeHoverProvider",
+      uri,
+      new vscode.Position(line, character),
+    );
+    const contents = hovers?.[0]?.contents;
+    if (Array.isArray(contents)) return contents[0];
+    return contents;
+  }
+
+  function commandLinkEnabled(trusted, command) {
+    if (trusted === true) return true;
+    if (!trusted || typeof trusted !== "object") return false;
+    return Array.isArray(trusted.enabledCommands) && trusted.enabledCommands.includes(command);
   }
 
   test("confusable-character highlight is off for sokonanoda files", async () => {
@@ -352,6 +373,27 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("typing intro on its own line still offers the expansion", async () => {
+    // 学习者症状（playground.sokonanoda:201）：声明行已经很长，把值折到
+    // 下一行写 `intro` 时补全不该消失（同一行 `:= intro` 是正常的）。
+    const head = "theorem t : Prop -> Prop :=";
+    const uri = await writeDoc("intro-next-line.sokonanoda", head + "\n");
+    await vscode.workspace.openTextDocument(uri);
+    const editor = await vscode.window.showTextDocument(uri, { preview: false });
+    const caret = new vscode.Position(1, 0);
+    editor.selection = new vscode.Selection(caret, caret);
+    await vscode.commands.executeCommand("type", { text: "intro" });
+    const end = new vscode.Position(1, "intro".length);
+    await waitFor("the intro expansion on the next line", async () => {
+      const list = await vscode.commands.executeCommand(
+        "vscode.executeCompletionItemProvider",
+        uri,
+        end,
+      );
+      return (list?.items ?? []).some((candidate) => candidate.filterText === "intro");
+    });
+  });
+
   test("hover on value intro shows the expansion", async () => {
     // 没选择补全时，hover `intro` 也能看到展开后的显式表达式。
     const src = "theorem t : Prop -> Prop := intro\n";
@@ -366,6 +408,67 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     assert.ok(
       text.includes("展开为"),
       `hover must show the expansion, got: ${JSON.stringify(text)}`,
+    );
+    // 用户诉求：intro 不被替换也完全等价——hover 必须这样讲，否则学习者
+    // 会以为非得按 Tab 展开不可。
+    assert.ok(
+      text.includes("不替换也完全等价"),
+      `hover must say leaving intro alone is equivalent, got: ${JSON.stringify(text)}`,
+    );
+  });
+
+  test("hover on value intro carries a clickable expand command", async () => {
+    // 用户诉求：「hover 信息能不能加一个按钮，直接替换 intro，跟 tab 补全一样」。
+    // 服务端在 hover markdown 里给出 `command:sokonanoda.expandIntro?<payload>`；
+    // 这里按 VS Code 的解析规则（decodeURIComponent → JSON.parse）取出载荷，
+    // 再用它调同一个命令——覆盖「载荷由服务端算好、客户端照单应用」这条链路。
+    const src = "theorem t : Prop -> Prop := intro\n";
+    const uri = await writeDoc("intro-hover-button.sokonanoda", src);
+    await vscode.workspace.openTextDocument(uri);
+    const editor = await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    let text = "";
+    await waitFor("hover carrying the expand link", async () => {
+      text = await hoverTextAt(uri, 0, src.indexOf("intro"));
+      return text.includes("command:sokonanoda.expandIntro?");
+    });
+
+    const commands = await vscode.commands.getCommands(true);
+    assert.ok(
+      commands.includes("sokonanoda.expandIntro"),
+      "the hover button target must be a registered command",
+    );
+
+    // 按钮真的可点：hover markdown 必须是受信的，且只放行这一个命令。
+    const markdown = await hoverMarkdownAt(uri, 0, src.indexOf("intro"));
+    assert.ok(
+      commandLinkEnabled(markdown?.isTrusted, EXPECTED_EXPAND_COMMAND),
+      `hover markdown must trust ${EXPECTED_EXPAND_COMMAND}, got isTrusted=` +
+        `${JSON.stringify(markdown?.isTrusted)} — without it the button is inert`,
+    );
+
+    const encoded = text.split("command:sokonanoda.expandIntro?")[1].split(")")[0];
+    const payload = JSON.parse(decodeURIComponent(encoded));
+    assert.strictEqual(payload.uri, uri.toString(), "payload targets the hovered document");
+    assert.strictEqual(payload.newText, "fun (x : Prop) => sorry", "payload carries the skeleton");
+    const start = src.indexOf("intro");
+    assert.deepStrictEqual(payload.range, {
+      start: { line: 0, character: start },
+      end: { line: 0, character: start + "intro".length },
+    });
+
+    await vscode.commands.executeCommand("sokonanoda.expandIntro", payload);
+    await waitFor("the expanded skeleton in the document", async () =>
+      editor.document.getText().includes("fun (x : Prop) => sorry"),
+    );
+    assert.ok(
+      !editor.document.getText().includes(":= intro"),
+      `the token must be replaced in place, got: ${JSON.stringify(editor.document.getText())}`,
+    );
+    assert.ok(
+      vscode.languages
+        .getDiagnostics(uri)
+        .every((d) => d.severity !== vscode.DiagnosticSeverity.Error),
+      "the expanded declaration stays a valid open exercise",
     );
   });
 
