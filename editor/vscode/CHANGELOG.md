@@ -1,3 +1,24 @@
+## [0.14.0] - 2026-09-12
+
+### Added
+- **Value-position `intro`** — write `intro` as the whole value
+  (`theorem t : (a : Prop) -> a -> a := intro`) and the compiler unrolls every
+  remaining binder into `fun … => sorry` (anonymous layers are named `x`,
+  `x2`, …). It is a legal open exercise; the kernel still judges every fill.
+  A goal with no binder left is rejected as `elab-intro-not-a-function`.
+- **Expansion completion** — when the caret is on that `intro` keyword the
+  completion list offers `intro（展开为 fun 骨架）`; accepting it replaces the
+  keyword in place with the explicit skeleton. The hole's inlay hint shows the
+  remaining goal right after `intro` (e.g. `: And b a`).
+
+### Fixed
+- Pretty-printed goals and binders no longer wrap application heads in a
+  redundant parenthesis (`(And a) b` → `And a b`), matching the kernel's own
+  printer and the learner's source.
+- Comment-only edits no longer leave stale hole / sub-goal spans in
+  incremental sessions; they are remapped together with the other cached
+  spans.
+
 ## [0.13.0] - 2026-09-11
 
 ### Added

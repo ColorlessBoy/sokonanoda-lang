@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十二轮：扩展残留清理 + 插件 LSP 解析加固）
+> 快照：2026-09-12（第三十三轮：值位 `intro` 关键字 + 展开补全）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,35 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十三轮：值位 `intro` 关键字 + 展开补全）
+
+> 触发：用户要一个「类似 intro、和 by 同级」的确定性补全（拒绝 Copilot
+> 式 AI 补全的作弊感）。设计先落 `docs/design/term-intro.md` +
+> REQUIREMENTS §9（三十六），同日设计 + 实现。
+
+1. **前置修正（旧缺陷）**：`render_expr` 函数位置不再给应用头补括号
+   （`(And a) b` → `And a b`，与内核 pp / 学习者源码一致；6 处被钉断言与
+   `docs/protocol.md` 示例同步）；session 零重编译路径补 remap
+   `holes`/`sub_goals` span，并加回归测试。
+2. **语法/语义**：值位 `intro`（`Expr::Intro`，与 `by` 同挂点，`And.intro`
+   不受影响）；全剥声明类型最外层 Pi 望远镜成显式 lambda + 洞
+   （`compile/intro.rs`；匿名层 `x`/`x2`，命名 helper 提取为
+   `proof::fresh_name` 与 `suggest::restart_skeleton` 同源）；合法 Open、
+   值不进内核；非函数目标稳定码 `elab-intro-not-a-function`；
+   `DeclState.intro_skeleton` 贯通。
+3. **编辑器**：`textDocument/completion` 在 intro token 上门控给一项
+   `intro（展开为 fun 骨架）`（`textEdit` 原地替换、PlainText、markdown
+   文档）；inlay 在 intro 后直接显示剩余目标；`KEYWORDS` 加 `intro` 高亮；
+   VS Code 扩展零改动。
+4. **课程**：unit6 补「值位 intro」小节 + 练习 6（zh/en 镜像 + 钥匙），
+   golden (13,5,0) → (13,6,0)。
+5. **测试**：front 255 / lsp 96 / cli 48 / course 4 全绿；新增 parser、
+   降低、命名、非函数、零内核、补全、inlay、session、CLI e2e 用例。
+6. **文档**：protocol（错误码 + intro/补全一节）、architecture §4.1 值位
+   关键字、TESTING 测试地图、teacher skill 决策表与课程地图。
+7. **发布**：0.13.0 → **0.14.0**（feature → minor；扩展无代码改动但内嵌
+   LSP 更新，VSIX 版本随 workspace 同步）；CHANGELOG 补 0.14.0 条目。
 
 ## 本轮进度（2026-09-12，第三十二轮：扩展残留清理 + 插件 LSP 解析加固）
 
