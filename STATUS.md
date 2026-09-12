@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十四轮：声明级 binder（Lean 风格））
+> 快照：2026-09-12（第三十五轮：VS Code 手动重启 LSP 命令）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,21 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十五轮：VS Code 手动重启 LSP 命令）
+
+> 触发：用户发现扩展/LSP 更新后旧进程不生效，要求插件提供手动重启语言
+> 服务器的命令。
+
+1. **命令**：`sokonanoda.restartServer`（命令面板「sokonanoda: 重启语言
+   服务器」）——先重解析二进制路径（重建的仓库构建 / 刷新后的缓存 / 改
+   `serverPath` 都生效），原地更新 `serverOptions` 后 `client.restart()`；
+   无需重载窗口。扩展本体升级仍需 Reload Window（README 与开发指南写明）。
+2. **门面**：README 功能清单 + `docs/vscode-dev-guide.md` §5.6 同步；
+   CHANGELOG 0.16.0。
+3. **测试**：静态契约 13、extension 单测 25、VSIX 冒烟、集成 8（含新
+   `restart server command re-syncs open documents`）。
+4. **发布**：0.15.0 → **0.16.0**（feature → minor）。
 
 ## 本轮进度（2026-09-12，第三十四轮：声明级 binder（Lean 风格））
 
