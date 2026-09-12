@@ -72,7 +72,8 @@
   `/gate` `/round` 删除。命令体只调用 `scripts/soko.sh`（根无关），不复制逻辑。
 - **插件 = LSP 接线**（`.opencode/plugins/sokonanoda.ts`，跨平台、零 bash；
   2026-09-12 随 opencode 官方目录改为复数 `plugins/`）：
-  启动时解析服务器（`SOKONANODA_LSP_BIN` → 仓库构建 → VS Code 扩展自带 →
+  启动时解析服务器（`SOKONANODA_LSP_BIN` → 仓库构建 → VS Code 扩展自带
+  （按目录名版本号取最高，跳过 `.obsolete` 标记待删的旧目录）→
   缓存（先按 `<version> <target>` 标记校验，过期/缺失就重下）→ 版本锁定下载，
   `fetch` + `tar`），用 `config` 钩子把
   `lsp.sokonanoda.command` 改写为**原生二进制绝对路径**；`shell.env` 把缓存

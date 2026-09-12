@@ -91,10 +91,11 @@ axiom False : Prop
 -- 我们也会把 True.intro 叫做 True 的构造子（constructor）。
 axiom True.intro : True
 
--- False 恰好相反：它没有任何构造子相关的公理。通过不给构造子来定义 False，实际上就是在规定 False 永远不成立。
--- 下面的 False.rec 是 False 的消去规则（elimination rule），它不是用来证明 False 的，
--- 而是用来使用 False 的：如果有人真给你一份 False 的证明，说明推理中已经出现矛盾，
--- 这时任何命题 P 的证明都能由它换到。 这条规则叫“从矛盾推出一切”。
+-- False 恰好相反：一个构造子都不给，所以 False 永远证不出来。
+-- 下面的 False.rec 是它的消去规则（elimination rule）：不证明 False，只使用 False。
+-- 手里真拿到一份 False 的证明，说明推理出了矛盾，从它换到任何命题 P 都成立，这叫“从矛盾推出一切”。
+-- 用 False 时没有情况要分，能做的只有换；零构造子和这条规则合起来，就是 False 的完整定义。
+-- （官方 Lean 里 False 写成一行 inductive False : Prop，False.rec 由内核自动派生。）
 axiom False.rec : (P : Prop) -> False -> P
 
 -- And 表示“且”。它接收两个命题，返回它们合起来的新命题，类型因此是

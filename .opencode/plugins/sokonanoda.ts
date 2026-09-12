@@ -120,7 +120,36 @@ function repoBuild(repo: string, base: string): string | undefined {
   return best?.path
 }
 
-/// Newest server bundled by an installed VS Code extension (zero network).
+/// Semver-ish tuple parsed from an extension folder name
+/// (`sokonanoda-lang.sokonanoda-0.13.0-darwin-arm64` -> `[0, 13, 0]`).
+function entryVersion(entry: string): [number, number, number] | undefined {
+  const match = /^sokonanoda-lang\.sokonanoda-(\d+)\.(\d+)\.(\d+)/.exec(entry)
+  if (!match) return undefined
+  return [Number(match[1]), Number(match[2]), Number(match[3])]
+}
+
+/// Folder names VS Code marked for deletion (it removes them on its next
+/// start). Stale installs from other profiles and uninstalls land here; they
+/// must never be resolved, even when their folder happens to be newer.
+function obsoleteEntries(root: string): Set<string> {
+  try {
+    const marked = JSON.parse(readFileSync(path.join(root, ".obsolete"), "utf8")) as Record<string, boolean>
+    return new Set(Object.keys(marked).filter((name) => marked[name]))
+  } catch {
+    return new Set()
+  }
+}
+
+function compareVersion(a: [number, number, number], b: [number, number, number]): number {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i]
+  }
+  return 0
+}
+
+/// Server bundled by an installed VS Code extension (zero network). Picks the
+/// highest version instead of the newest mtime: VS Code keeps several versions
+/// on disk (profiles, lazy deletion), and mtime does not track version order.
 function extensionServer(target: string): string | undefined {
   const home = process.env.HOME ?? process.env.USERPROFILE ?? ""
   const roots = [
@@ -132,7 +161,7 @@ function extensionServer(target: string): string | undefined {
     ".vscode-server/extensions",
   ].map((rel) => path.join(home, rel))
   const server = binaryName("sokonanoda-lsp")
-  let best: { path: string; mtime: number } | undefined
+  const candidates: { path: string; version?: [number, number, number]; mtime: number }[] = []
   for (const root of roots) {
     if (!existsSync(root)) continue
     let entries: string[]
@@ -141,18 +170,29 @@ function extensionServer(target: string): string | undefined {
     } catch {
       continue
     }
+    const obsolete = obsoleteEntries(root)
     for (const entry of entries) {
       if (!entry.startsWith("sokonanoda-lang.sokonanoda-")) continue
+      if (obsolete.has(entry)) continue
       const candidate = path.join(root, entry, "bin", target, server)
       try {
-        const mtime = statSync(candidate).mtimeMs
-        if (!best || mtime > best.mtime) best = { path: candidate, mtime }
+        candidates.push({
+          path: candidate,
+          version: entryVersion(entry),
+          mtime: statSync(candidate).mtimeMs,
+        })
       } catch {
         // no binary for this target
       }
     }
   }
-  return best?.path
+  candidates.sort((a, b) => {
+    if (a.version && b.version) return compareVersion(b.version, a.version) || b.mtime - a.mtime
+    if (a.version) return -1
+    if (b.version) return 1
+    return b.mtime - a.mtime
+  })
+  return candidates[0]?.path
 }
 
 /// Version-pinned download + extract (fetch + `tar`; no shell).

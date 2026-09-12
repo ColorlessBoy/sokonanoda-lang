@@ -338,3 +338,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   PATH 的行为不变），`findRepoRoot` 仓库标记改指新路径；契约测试改读新路径
   并断言旧目录不存在；`opencode.json` 仍不写 lsp 命令。非 opencode harness
   的 `.opencode/lsp/sokonanoda-lsp.sh` shim（`skills/README` 记载的用法）保留。
+- 2026-09-12（三十五）：**扩展残留清理 + 插件扩展自带 LSP 解析加固（用户要求）**：
+  用户机器 `~/.vscode/extensions` 出现 0.2.1/0.4.2/0.5.3/0.12.0/0.13.0
+  多版本共存，要求清理并检查插件是否缺「清理旧版本」逻辑。结论：多版本全由
+  VS Code 管理（各 profile 的 extensions.json 可引用不同版本，删旧是惰性
+  标记 + 下次启动），opencode 插件缓存固定路径单版本、无此缺陷；真实瑕疵是
+  解析扩展自带 LSP 只按 mtime 取新、不认版本号也不跳过 VS Code 的
+  `.obsolete` 待删目录。落地：解析按目录名版本号取最高（无版本号才回退
+  mtime）并跳过 `.obsolete`；机器清理为默认 profile 升级到 0.13.0 + 删除
+  孤儿目录（非仓库改动）。

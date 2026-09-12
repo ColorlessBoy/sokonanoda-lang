@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-12（第三十一轮：opencode 插件迁移官方 `plugins/`）
+> 快照：2026-09-12（第三十二轮：扩展残留清理 + 插件 LSP 解析加固）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,25 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-12，第三十二轮：扩展残留清理 + 插件 LSP 解析加固）
+
+> 触发：用户发现 `~/.vscode/extensions` 里 0.2.1/0.4.2/0.5.3/0.12.0/0.13.0
+> 五份 sokonanoda 共存，问插件是否缺清理逻辑。排查：版本目录全由 VS Code
+> 管理（profile 各自记账、惰性删旧），插件缓存固定路径单版本，无清理缺陷；
+> 真正瑕疵是解析扩展自带 LSP 只按 mtime 取新（不认版本号、不跳过待删目录）。
+
+1. **机器清理**（本机 VS Code，非仓库改动）：默认 profile 的 0.5.3 从
+   Marketplace 升到 0.13.0，与 `macos` profile 共用同一目录；删除其余四个
+   孤儿目录，只留 `sokonanoda-lang.sokonanoda-0.13.0-darwin-arm64`。
+2. **插件加固**：`.opencode/plugins/sokonanoda.ts` 的 `extensionServer`
+   改为按目录名版本号取最高（无版本号才回退 mtime），跳过 `.obsolete`
+   标记待删目录；新增 `entryVersion`/`obsoleteEntries` 两个纯函数。
+3. **验证**：Node 24 临时回归脚本（mock HOME + 假扩展树）10 项断言全绿
+   （版本优先、obsolete 跳过、无版本回退、解析边界）。
+4. **文档**：`docs/design/onboarding.md` 解析链补注；REQUIREMENTS §9（三十五）。
+5. **教学**：`playground.sokonanoda` False 段讲解改写（一句一行，点明
+   「零构造子 + 消去规则 = False 的完整定义」）。
 
 ## 本轮进度（2026-09-12，第三十一轮：opencode 插件迁移官方 `plugins/`）
 
