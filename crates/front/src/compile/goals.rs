@@ -231,7 +231,7 @@ fn local_func_templates(val: &Expr, out: &mut HashMap<String, FuncTemplate>) {
     }
 }
 
-fn expr_has_hole(e: &Expr) -> bool {
+pub(crate) fn expr_has_hole(e: &Expr) -> bool {
     match e {
         Expr::Hole { .. } => true,
         Expr::App { fun, arg, .. }

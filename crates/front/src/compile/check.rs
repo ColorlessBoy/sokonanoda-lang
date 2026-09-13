@@ -6,7 +6,7 @@ use super::elab::{
 };
 use super::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind};
 use super::event::{CheckEvent, CompileOutput};
-use super::goals::{open_goal, GoalTemplates};
+use super::goals::{expr_has_hole, open_goal, GoalTemplates};
 use super::intro::lower_intro_val;
 use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
 use super::report::{
@@ -355,7 +355,8 @@ fn run_pass(
                     decl_states.push(err);
                     continue;
                 }
-                if let Some(info) = open_goal(ty, val, &templates) {
+                let open_info = open_goal(ty, val, &templates);
+                if let Some(info) = open_info {
                     let declared_ty = elab_expr(
                         &mut builder,
                         ty,
@@ -501,7 +502,26 @@ fn run_pass(
                     decl_states.push(err);
                     continue;
                 }
-                if let Some(info) = open_goal(ty, val, &templates) {
+                // 尾部复用 + fallback（I13-S5b）：open_goal 的 spine 走查
+                // 无法分解时（如超量应用、def 展开间接调用），如果值里有
+                // 洞 → 生成 **generic open exercise**（整值 = 一个洞，目标 =
+                // 声明类型）。学习者看到的是一个可填充的练习而不是报错。
+                let open_info = open_goal(ty, val, &templates);
+                let open_info = match open_info {
+                    Some(info) => Some(info),
+                    None if expr_has_hole(val) => {
+                        // spine 走查无法分解，但值有洞 → generic open exercise
+                        Some(super::goals::OpenGoalInfo {
+                            goal: render_expr(ty),
+                            binders: Vec::new(),
+                            holes: vec![val.span()],
+                            sub_goals: Vec::new(),
+                            refine_template: None,
+                        })
+                    }
+                    _ => None,
+                };
+                if let Some(info) = open_info {
                     let declared_ty = elab_expr(
                         &mut builder,
                         ty,
@@ -708,7 +728,26 @@ fn run_pass(
                     decl_states.push(err);
                     continue;
                 }
-                if let Some(info) = open_goal(ty, val, &templates) {
+                // 尾部复用 + fallback（I13-S5b）：open_goal 的 spine 走查
+                // 无法分解时（如超量应用、def 展开间接调用），如果值里有
+                // 洞 → 生成 **generic open exercise**（整值 = 一个洞，目标 =
+                // 声明类型）。学习者看到的是一个可填充的练习而不是报错。
+                let open_info = open_goal(ty, val, &templates);
+                let open_info = match open_info {
+                    Some(info) => Some(info),
+                    None if expr_has_hole(val) => {
+                        // spine 走查无法分解，但值有洞 → generic open exercise
+                        Some(super::goals::OpenGoalInfo {
+                            goal: render_expr(ty),
+                            binders: Vec::new(),
+                            holes: vec![val.span()],
+                            sub_goals: Vec::new(),
+                            refine_template: None,
+                        })
+                    }
+                    _ => None,
+                };
+                if let Some(info) = open_info {
                     let declared_ty = elab_expr(
                         &mut builder,
                         ty,

@@ -1164,6 +1164,54 @@ fn nested_funintro_without_a_function_goal_is_still_rejected() {
 }
 
 #[test]
+fn sorry_in_argument_position_within_open_exercise_is_accepted() {
+    // 用户案例 B：`(And.right a (Not a) x) sorry` —— sorry 在参数位置（不在
+    // 值位开头也不在 lambda 尾的 funintro/after 位置）。open_goal 的 spine
+    // 走查因超量应用（通过 `Not` def 间接获得函数类型）无法分解，但值里有
+    // 洞 → fallback 生成 generic open exercise（整值 = 一个洞）。
+    let src = "axiom P : Prop\n\
+               axiom Not : Prop -> Prop\n\
+               axiom And : Prop -> Prop -> Prop\n\
+               axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
+               axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
+               theorem t : (a : Prop) -> And a (Not a) -> False :=\n\
+                 fun (a : Prop) => fun (x : And a (Not a)) => (And.right a (Not a) x) sorry\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(
+        report.errors.is_empty(),
+        "sorry in argument position within an open exercise must not error: {:?}",
+        report.errors
+    );
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open, "the exercise is in progress");
+    assert_eq!(d.holes.len(), 1, "one hole for the whole value");
+}
+
+#[test]
+fn incomplete_application_without_sorry_shows_remaining_goals_on_hover() {
+    // 用户案例 A：`And.intro b a`（不完整、无 sorry）→ 内核拒绝，但 hover
+    // 显示推断出的剩余目标（half_expression_goals_hover 在 LSP 层处理；
+    // 这里验证 front 侧的 Failed 状态和错误码正确，LSP 层有对应测试）。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
+                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "kernel-rejected");
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Failed);
+}
+
+#[test]
 fn keywords_work_in_a_lambda_tail() {
     // lambda 体尾部可用 `funintro`：拆完 binder 后直接写答案是主流程。
     // 剥完 x : Q 后还剩 `Q -> P`——lambda 尾的 funintro 把它也剥掉，答案填 P。
@@ -2558,8 +2606,9 @@ fn user_defined_function_argument_hole_gets_its_binder_type() {
 }
 
 #[test]
-fn nested_function_hole_is_still_misplaced() {
-    // v1 边界：嵌套洞（实参是含洞的 lambda）不恢复目标，仍报 misplaced。
+fn nested_function_hole_becomes_generic_open_exercise() {
+    // 0.23.0：嵌套洞不再报 misplaced——fallback 生成 generic open
+    // exercise（整值 = 一个洞）。宽松行为优于报错（用户反馈）。
     let src = concat!(
         "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
         "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
@@ -2567,15 +2616,14 @@ fn nested_function_hole_is_still_misplaced() {
     );
     let report = check_document(&parse(src).expect("parse"));
     assert!(
-        report
+        !report
             .errors
             .iter()
             .any(|e| e.kind == ErrorKind::ElabHoleMisplaced),
-        "nested holes stay misplaced in v1: {:?}",
+        "nested holes should be caught by the fallback, not error: {:?}",
         report.errors
     );
 }
-
 #[test]
 fn single_hole_with_ctor_goal_gets_refine_template() {
     let report = check_document(&parse(&format!(
