@@ -56,6 +56,12 @@
 - **演示资产例行化**：官网 GIF/图由 `scripts/gen-site-demos.py` 渲染；改了
   编辑器交互/文案必须重跑并提交（pages workflow 的 `--check` 步骤会在漂移
   时红掉）。演示画面与实现一一对应，不是假截图。
+- **tag 已存在 → 推送不会发布**（auto-tag 幂等跳过）。0.23.0 的 sorry
+  fallback 修复（a181102）在 tag 切走之后才推上去，静默漏发——用户装到的
+  marketplace 0.23.0 不含该修复，报错"依旧存在"实为旧二进制。铁律：
+  **任何要发布到用户手里的改动（crates/editor），落 commit 就必须同步
+  bump 版本**（Cargo.toml + package.json 双处，auto-tag 会校验一致）；
+  「先修后补发版」不存在，只有「下一版」。docs-only 改动除外。
 ## 工程流程（subagent / 门禁 / 测试）
 
 - **并行 subagent 必须文件集互斥**：任务书里写死"允许修改的文件清单 +
