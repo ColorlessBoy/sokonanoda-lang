@@ -1,9 +1,7 @@
 name: pages
 
 # 项目官网（GitHub Pages）：零构建静态 `site/` + 官方 Pages actions。
-# 设计与信息架构见 docs/design/site.md；一次性前置动作是仓库拥有者在
-# Settings → Pages 把 Source 设为 GitHub Actions，否则 configure-pages 会报
-# `Get Pages site failed. Not Found`。
+# 设计与信息架构见 docs/design/site.md。
 #
 # 为什么不用 `docs/` 作 Pages 源：那里是 35 篇开发者台账（含 CI 失败记录与
 # 内部取舍），发布它等于把研发内账挂上公网；且分支部署有 Jekyll 隐式渲染与
@@ -12,6 +10,12 @@ name: pages
 # 版本号 / 单元数 / 进展**一律不手写**：`scripts/gen-site-data.py` 从
 # Cargo.toml、course/course.json、STATUS.md 生成 site/data/site.json，页面
 # 上的最新 release 由浏览器查 Releases API（docs/design/site.md §3）。
+#
+# **一次性前置动作（只能由仓库拥有者做）**：Settings → Pages 把 Source 设为
+# GitHub Actions。创建 Pages 站点需要仓库管理员权限，GITHUB_TOKEN 的
+# `pages: write` 只够部署**已启用**的站点（configure-pages 的 `enablement:
+# true` 实测也建不了）。未启用时本 workflow 会礼貌跳过并留下 notice，而不是
+# 把 CI 刷红；启用之后无需再改代码，下一次 push 自动部署。
 
 on:
   push:
@@ -19,6 +23,7 @@ on:
     paths:
       - "site/**"
       - "scripts/gen-site-data.py"
+      - "scripts/check-site.py"
       - "STATUS.md"
       - "course/course.json"
       - "Cargo.toml"
@@ -43,23 +48,38 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # 门禁：Pages 未启用时跳过其余步骤（见文件头说明）。
+      - name: Gate on Pages being enabled
+        id: gate
+        run: |
+          code=$(curl -sS -o /tmp/pages.json -w '%{http_code}' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")
+          echo "GET /pages -> $code"
+          if [ "$code" = "200" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::GitHub Pages 尚未启用：到 Settings → Pages 把 Source 设为 GitHub Actions 后重跑本 workflow（docs/design/site.md §6.2）。"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Generate site data (python3 stdlib only — no new toolchain)
+        if: steps.gate.outputs.enabled == 'true'
         run: python3 scripts/gen-site-data.py
 
       # 防漂移：站内链接必须指向真实文件；页面里不许出现写死的版本号
       # （docs/design/site.md §5.3）。
       - name: Site hygiene checks (links + no hardcoded versions)
+        if: steps.gate.outputs.enabled == 'true'
         run: python3 scripts/check-site.py
 
-      # enablement: true 让 action 在 Pages 尚未启用时自动创建站点
-      # （需要 pages: write；见 docs/design/site.md §6.2）。
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
+        if: steps.gate.outputs.enabled == 'true'
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.gate.outputs.enabled == 'true'
         with:
           path: site
 
       - id: deployment
+        if: steps.gate.outputs.enabled == 'true'
         uses: actions/deploy-pages@v4

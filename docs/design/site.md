@@ -177,7 +177,13 @@ jobs:
 ### 6.2 一次性人工动作（**只能由仓库拥有者做**）
 
 > Settings → Pages → **Source = GitHub Actions**。
-> 不做这一步，`configure-pages` 会报 `Get Pages site failed. Not Found`。
+> 不做这一步，workflow 会礼貌跳过（见下）。
+>
+> **实测（2026-09-13）**：GITHUB_TOKEN 的 `pages: write` 只够部署**已启用**
+> 的站点；`configure-pages` 的 `enablement: true` 也建不了站点（创建 Pages
+> 需要仓库管理员权限）。所以 workflow 里加了一个门禁步骤：先查
+> `GET /repos/<owner>/<repo>/pages`，404 就发 `::notice::` 并跳过其余步骤，
+> 避免每次 push 都把 CI 刷红；启用之后无需再改代码。
 > （本会话无法代做：需要仓库管理员身份，且工作区没有可用的 GitHub token。）
 
 站点地址：`https://colorlessboy.github.io/sokonanoda-lang/`。自定义域名可后续在
