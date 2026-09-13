@@ -75,7 +75,9 @@ jobs:
       # gen-site-demos.py 时，这里会红并提示修复命令。
       - name: Check site demos are up-to-date
         if: steps.gate.outputs.enabled == 'true'
-        run: python3 scripts/gen-site-demos.py --check
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check pillow==12.3.0
+          python3 scripts/gen-site-demos.py --check
 
       # 防漂移：站内链接必须指向真实文件；页面里不许出现写死的版本号
       # （docs/design/site.md §5.3）。
