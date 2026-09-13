@@ -10,8 +10,6 @@
 - The command palette entry is now `sokonanoda: restart server` (was
   `sokonanoda: 重启语言服务器`).
 
-## [0.18.0] - 2026-09-13
-
 ### Added
 - **Value-position `apply`** — the second teaching keyword next to `intro`.
   `theorem t (h : Q -> P) : P := apply h` applies a proof/function to the
@@ -35,6 +33,7 @@
   a `by apply …` declaration that leaves several sub-goals open — those
   holes share one source position, so the lookup had to be positional
   (`[": p", ": p"]` → `[": p", ": q"]`).
+
 
 ## [0.17.0] - 2026-09-12
 
