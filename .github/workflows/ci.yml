@@ -43,7 +43,20 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Workspace tests
-        run: cargo test --workspace --locked
+        # tee 保留完整输出；--no-fail-fast 让所有失败一次暴露。
+        # 失败时把完整日志作为 artifact 上传（公开仓库也能从 run 页下载），
+        # 避免「CI 红了但拿不到日志」的排查死角（2026-09-13 实况）。
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test --workspace --locked --no-fail-fast 2>&1 | tee /tmp/cargo-test.log
+      - name: Upload test log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cargo-test-log
+          path: /tmp/cargo-test.log
+          include-hidden-files: false
 
       - name: Protocol conformance (--json events)
         run: cargo test -p sokonanoda-cli --test protocol --locked
