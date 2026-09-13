@@ -96,8 +96,10 @@ npm run clean:lsp
 1. **`node_modules` 不能进 `.vscodeignore`**——vsce 靠它把生产依赖装进 VSIX；
 2. **`vscode-languageclient` 必须在 `dependencies`**——放 `devDependencies` 的 VSIX 装上即坏；
 3. **打包冒烟别带 `--no-dependencies`**——该 flag 跳过生产依赖收集，会打出
-   12 文件/21KB 的"空壳 VSIX"（正确基线 ≈327 文件/477KB，含
-   vscode-languageclient）；冒烟后核对文件数再认定通过；
+   12 文件/21KB 的"空壳 VSIX"。正确基线（2026-09-13 实测 0.19.0）：
+   **平台包 ≈328 文件/4.3MB**（含 `bin/<target>/` 的 LSP+CLI ≈9.5MB 解压）、
+   **universal ≈326 文件/0.5MB**（不含 bin，走版本锁定下载）；冒烟后核对
+   文件数**和 bin 平台归属**再认定通过；
 4. **didOpen 是通知**——不发 id，不期待响应；探针/测试里发 id 会被当作未知请求；
 5. **LSP 帧格式**——头块以 `\r\n\r\n` 结尾；探针/测试必须完整消费头块再读 body；
 6. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；二进制原地更新（重建 / 缓存刷新 / 改 `serverPath`）可用命令 `sokonanoda: restart server` 重新解析并重启（命令回执会显示重启前后的服务器版本与 pid）；扩展本体升级仍需 Reload Window；
