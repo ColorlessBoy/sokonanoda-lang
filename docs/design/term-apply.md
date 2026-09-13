@@ -118,9 +118,10 @@ theorem t : P := apply (fun (q : Q) => hfun q) -- 复合表达式必须加括号
 
 ### 2.4 非目标（v1）
 
-- **不做**嵌套位置的关键字（`fun (a : Prop) => apply h`）：`intro` 的值位关键字只在
-  `parse_value` 识别（本文件 §2.1 同一挂点），lambda 体内的 `apply` 是普通标识符。
-  与 `term-intro.md` §9 保持一致。
+- ~~不做嵌套位置的关键字~~（0.20.0 放开）：lambda 体**尾部**现在也识别
+  `intro` / `apply`——学习者拆完 binder 再用关键字是主流程，hardcoded 边界
+  反而挡人（playground 202 行实况）。降低侧零改动（沿链下降本就支持）。
+  与 `term-intro.md` §12.5 同步。
 - **不做**`by` 块内的改动：`by apply h` 走 `parse_tactic`（`parser.rs:228-236`）与
   `apply_tactic`（`by.rs:275-368`），是**另一条路径**，本设计不碰。两条路径并存是
   刻意的（作用域不同：值位=整个值，tactic=当前目标），课程里必须对照讲清。

@@ -1,3 +1,14 @@
+## [0.20.0] - 2026-09-13
+
+### Added
+- **`intro` / `apply` now work inside a `fun` body** — the natural place a
+  learner reaches after introducing some binders by hand:
+  `theorem t : Q -> P := fun (x : Q) => apply proofP` (implicit replacement)
+  and `theorem and_swap : … := fun (a : Prop) => fun (b : Prop) => fun (x :
+  And a b) => intro` (introduces the rest). Previously the keywords were only
+  recognised at the very start of the value, and inside a `fun` body `apply`
+  was an ordinary identifier (`unknown identifier`).
+
 ## [0.19.0] - 2026-09-13
 
 ### Added

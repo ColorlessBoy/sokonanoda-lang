@@ -17,16 +17,24 @@ pub(crate) fn lower_intro_val(
     ty: &Expr,
     val: &Expr,
 ) -> Result<Option<(Expr, String)>, CompileError> {
-    lower_inner(ty, val)
+    lower_inner(ty, val, &mut Vec::new())
 }
 
-fn lower_inner(ty: &Expr, val: &Expr) -> Result<Option<(Expr, String)>, CompileError> {
+/// `outer` 是**外层 lambda 已占用**的 binder 名（含声明 binder与学习者写的
+/// lambda）。intro 展开骨架的合成 binder 必须避开它们——嵌套形态下骨架
+/// 只替换 intro token，若与外层撞名会产生 `fun (x : Q) => fun (x : Q) => …`
+/// 这样的遮蔽（内层可用但极易误读）。
+fn lower_inner(
+    ty: &Expr,
+    val: &Expr,
+    outer: &mut Vec<String>,
+) -> Result<Option<(Expr, String)>, CompileError> {
     match val {
         Expr::Intro { answer, span } => {
             // `intro` 与 `intro <answer>` 都走这里：前者末端是洞（练习），
             // 后者把答案直接填进骨架末端（**前端隐式替换**）——学习者不必先
             // 接受展开才能继续写。两种形态都不进内核，判定照旧由内核终审。
-            let expr = peel_all_pi(ty, *span, answer.as_deref())?;
+            let expr = peel_all_pi(ty, *span, answer.as_deref(), outer)?;
             let skeleton = render_expr(&expr);
             Ok(Some((expr, skeleton)))
         }
@@ -40,16 +48,24 @@ fn lower_inner(ty: &Expr, val: &Expr) -> Result<Option<(Expr, String)>, CompileE
             let Some(rest_ty) = peel_pi_layers(ty, binders.len()) else {
                 return Ok(None);
             };
-            match lower_inner(&rest_ty, body)? {
-                Some((new_body, skeleton)) => Ok(Some((
-                    Expr::Lambda {
-                        binders: binders.clone(),
-                        body: Box::new(new_body),
-                        span: *span,
-                    },
-                    skeleton,
-                ))),
-                None => Ok(None),
+            let pushed = binders.len();
+            outer.extend(binders.iter().map(|b| b.name.clone()));
+            match lower_inner(&rest_ty, body, outer)? {
+                Some((new_body, skeleton)) => {
+                    outer.truncate(outer.len() - pushed);
+                    Ok(Some((
+                        Expr::Lambda {
+                            binders: binders.clone(),
+                            body: Box::new(new_body),
+                            span: *span,
+                        },
+                        skeleton,
+                    )))
+                }
+                None => {
+                    outer.truncate(outer.len() - pushed);
+                    Ok(None)
+                }
             }
         }
         _ => Ok(None),
@@ -60,8 +76,13 @@ fn lower_inner(ty: &Expr, val: &Expr) -> Result<Option<(Expr, String)>, CompileE
 /// `Expr::Lambda`；匿名层用生成器约定的基名 `x`（`x2` 防撞，与
 /// `suggest::restart_skeleton` 同源）。每个合成节点的 span 都是 `intro`
 /// token——洞需要它，binder 本身不需要更细的位置。
-fn peel_all_pi(ty: &Expr, hole: Span, answer: Option<&Expr>) -> Result<Expr, CompileError> {
-    let mut used: HashSet<String> = HashSet::new();
+fn peel_all_pi(
+    ty: &Expr,
+    hole: Span,
+    answer: Option<&Expr>,
+    outer: &[String],
+) -> Result<Expr, CompileError> {
+    let mut used: HashSet<String> = outer.iter().cloned().collect();
     let mut layers: Vec<(String, Option<Box<Expr>>, BinderKind)> = Vec::new();
     let mut cur = ty;
     loop {

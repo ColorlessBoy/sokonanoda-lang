@@ -1364,6 +1364,87 @@ fn by_block_apply_still_uses_the_tactic_engine() {
 }
 
 #[test]
+fn keywords_work_in_a_lambda_tail() {
+    // 用户在 playground 202 行实况：拆完 binder 之后才想用 `apply`。
+    // 关键字原来只在值位开头识别，lambda 体里是普通标识符 → unknown
+    // identifier。现在 lambda 体尾部也认 `intro` / `apply`。
+    let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
+               theorem t : Q -> P := fun (x : Q) => apply proofP\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    // 降低了：`fun (x : Q) => proofP sorry`?? 不——apply proofP 的类型
+    // `P -> P`?? 不：proofP : P，apply proofP 无前提 → 就是 proofP。
+    // 关键是它被 kernel 接受了：隐式替换在 lambda 尾同样成立。
+    assert_eq!(d.status, DeclStatus::Checked);
+    assert!(d.intro_skeleton.is_none() && d.apply_skeleton.is_none());
+}
+
+#[test]
+fn nested_intro_in_a_lambda_tail_lowers_to_the_skeleton() {
+    // 多层 lambda 尾部的裸 `intro`：剩余目标还有一层函数，嵌套的 intro
+    // 把它也剥掉。洞 = 嵌套 intro token，骨架只覆盖 intro 自身的展开。
+    let src = "axiom P : Prop\naxiom Q : Prop\n\
+               theorem t : Q -> (Q -> P) := fun (x : Q) => intro\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("P"));
+    assert_eq!(d.holes.len(), 1);
+    let text = "axiom P : Prop\naxiom Q : Prop\n\
+                theorem t : Q -> (Q -> P) := fun (x : Q) => intro\n";
+    assert_eq!(
+        &text[d.holes[0].start.offset..d.holes[0].end.offset],
+        "intro"
+    );
+    // 骨架的合成 binder 避开外层 lambda 的 `x`（命名避让）。
+    assert_eq!(d.intro_skeleton.as_deref(), Some("fun (x2 : Q) => sorry"));
+}
+
+#[test]
+fn nested_apply_in_a_lambda_tail_checks() {
+    // and_swap 的自然写法：拆完 binder 后用 `apply` 接上 And.intro。
+    // 注意前提顺序：`And.intro b a u v` 里 u : b、v : a，所以 u 取
+    // And.right、v 取 And.left——顺序写反正是画布练习 3 要教的东西。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
+               axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
+               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
+                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) =>\n\
+                   apply (And.intro b a (And.right a b x) (And.left a b x))\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap"))
+        .expect("decl and_swap");
+    assert_eq!(d.status, DeclStatus::Checked, "the kernel judges the fill");
+}
+
+#[test]
+fn nested_intro_on_a_non_function_goal_is_still_rejected() {
+    // 边界不变：剩余目标不是函数时，裸 `intro` 没有东西可引入 → 教学错误
+    // （and_swap 拆到只剩 `And b a` 时就是这种形态，此时该用 apply 或直接写）。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
+                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => intro\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
+}
+
+#[test]
 fn intro_with_an_answer_is_the_implicit_replacement() {
     // 用户诉求：「不修改内核的前提下，改前端隐式替换」——`intro <answer>`
     // 由前端把 intro 隐式替换成 `fun … => <answer>`，学习者不必先接受展开

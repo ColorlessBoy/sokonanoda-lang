@@ -237,6 +237,14 @@ Local hypotheses are the common case (`apply h`), so the open-goal walk
 overlays the declaration's introduced binders on the global template index
 (`GoalTemplates` only holds globals).
 
+Both keywords are also recognised at the **tail of a `fun` body** — the
+position a learner reaches after introducing some binders by hand:
+`theorem t : Q -> P := fun (x : Q) => apply proofP`. The lowering already
+walked lambda chains, so this is parser-only; a bare `intro` on a
+non-function remaining goal is still `elab-intro-not-a-function`. Skeleton
+synthesis avoids the outer lambda's binder names (`fun (x : Q) => intro`
+expands to `fun (x2 : Q) => sorry`, not a shadowing `fun (x : Q) => sorry`).
+
 ## Custom LSP requests (goal view, I9)
 
 Beyond standard LSP, the server answers four custom requests (tower-lsp

@@ -182,6 +182,44 @@ impl Parser {
         self.parse_expr()
     }
 
+    /// lambda 体**尾部**的值位关键字：`fun (x : Q) => apply h`。
+    ///
+    /// 学习者写多步证明时几乎总在 lambda 里——只在值位开头认关键字会让
+    /// 「拆完 binder 再 apply」这种最自然的流程用不了。 lowered 一侧
+    /// （`lower_intro_val` / `lower_apply_val`）本来就沿 lambda 链下降处理
+    /// 关键字节点，这里只要把关键字解析出来即可。
+    fn parse_lambda_tail_keyword(&mut self, kw: &str, tok: Span) -> Result<Expr> {
+        match kw {
+            "intro" => {
+                let answer = if self.starts_atom() {
+                    Some(Box::new(self.parse_app()?))
+                } else {
+                    None
+                };
+                let end = answer.as_ref().map(|a| a.span().end).unwrap_or(tok.end);
+                Ok(Expr::Intro {
+                    answer,
+                    span: Span::new(tok.start, end),
+                })
+            }
+            "apply" => {
+                if !self.starts_atom() {
+                    return Ok(Expr::Apply {
+                        term: None,
+                        span: tok,
+                    });
+                }
+                let term = self.parse_app()?;
+                let end = term.span().end;
+                Ok(Expr::Apply {
+                    term: Some(Box::new(term)),
+                    span: Span::new(tok.start, end),
+                })
+            }
+            other => unreachable!("lambda-tail keyword is `{other}`, not intro/apply"),
+        }
+    }
+
     /// 值位 `apply`：实参用 [`Self::parse_app`]（只吃应用 spine；更复杂的
     /// 形状让学习者自己加括号）。`starts_atom` 会把下一条命令关键字挡在
     /// 外面，所以 `apply` 不会吞掉后续声明。
@@ -794,7 +832,17 @@ impl Parser {
             self.push_binders(&mut binders)?;
         }
         self.expect_kind(&TokenKind::FatArrow, "`=>`")?;
-        let body = self.parse_expr()?;
+        // body 的第一个 token 若是 `intro` / `apply`，按值位关键字解析——
+        // 学习者拆完 binder 后直接 apply/写答案是主流程，不该被迫把关键字
+        // 挪到值位开头。`by` 仍只在值位开头（tactic 块的上下文语义不同）。
+        let body = match &self.peek().kind {
+            TokenKind::Ident(kw) if kw == "intro" || kw == "apply" => {
+                let kw = kw.clone();
+                let tok = self.bump().span;
+                self.parse_lambda_tail_keyword(&kw, tok)?
+            }
+            _ => self.parse_expr()?,
+        };
         let span = Span::new(start, body.span().end);
         Ok(Expr::Lambda {
             binders,

@@ -327,7 +327,20 @@ hover 文案同步改成明说「不替换也完全等价」（LSP 测试断言�
 （`createCommandUri` 规范），发对象会让点击静默失效——单测直接调命令绕过了
 这层，集成测试须按链接解析规则取数组首元素。
 
-### 12.5 仍然不做（§9 不变）
+### 12.5 追加（0.20.0）：嵌套位置放开（推翻 §9 的一半）
+
+用户在 playground 202 行实况：`fun (a : Prop) => fun (b : Prop) => fun
+(x : And a b) => apply …` 报 `unknown identifier apply`。§9 原把「嵌套
+intro」列为非目标，但拆完 binder 再用关键字**正是主流程**——hardcoded 边界
+反而把学习者挡在门外。
+
+放开范围：lambda 体**尾部**识别 `intro` / `apply`（`parse_lambda` 的 body
+首 token 检查）；`by` 仍只在值位开头。降低侧零改动——`lower_intro_val` /
+`lower_apply_val` 本来就沿 lambda 链下降。连带修正：骨架的合成 binder 现在
+避开外层 lambda 的 binder 名（`fun (x : Q) => intro` → `fun (x2 : Q) =>
+sorry`，不再遮蔽）。
+
+### 12.6 仍然不做（§9 不变）
 
 嵌套 `intro`（`fun (a : Prop) => intro`）**不是**「不替换」的一种形态：
 值位关键字只在 `parse_value` 识别（§2.1），lambda 体内的 `intro` 是普通
