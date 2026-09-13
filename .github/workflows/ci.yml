@@ -114,6 +114,35 @@ jobs:
       - name: Protocol conformance (--json events)
         run: cargo test -p sokonanoda-cli --test protocol --locked
 
+      # 性能例行化（I13-S5c）：每次 push 产出性能报告 artifact——阈值断言
+      # 已在上面 Workspace tests 里把红（回归即失败），这一步额外留档：
+      # 报告带版本 + commit SHA，按版本可追溯「哪个改动引入了性能回退」。
+      - name: Performance report
+        run: |
+          set -o pipefail
+          version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          out="perf-report-v${version}-$(git rev-parse --short HEAD).txt"
+          {
+            echo "# sokonanoda perf report"
+            echo "version: v${version}  commit: $(git rev-parse HEAD)  date: $(date -u +%FT%TZ)"
+            echo "# 阈值断言（scaling ratio / latency）在 Workspace tests 里强制执行；"
+            echo "# 下面是本轮实测值（front = 编译器内核路径，lsp = 编辑器交互路径）。"
+            echo ""
+            echo "## compiler (crates/front/tests/perf.rs)"
+            cargo test -p sokonanoda-front --test perf -- --nocapture 2>&1 | grep "^PERF" || true
+            echo ""
+            echo "## lsp interaction (crates/lsp/src/lib.rs perf_*)"
+            cargo test -p sokonanoda-lsp --lib -- perf_ --nocapture 2>&1 | grep "^PERF" || true
+          } | tee "$out"
+          echo "PERF report written: $out"
+
+      - name: Upload perf report
+        uses: actions/upload-artifact@v7
+        with:
+          name: perf-report
+          path: perf-report-*.txt
+          include-hidden-files: false
+
       - name: Lesson corpus is valid
         run: |
           for f in examples/*.sokonanoda; do

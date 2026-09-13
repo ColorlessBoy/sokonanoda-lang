@@ -440,6 +440,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   hover 显示推断出的剩余目标 `|- b`、`|- a`——只在 hover 请求时计算；
   ③官网演示 GIF 例行化（`gen-site-demos.py --check` 进 pages workflow）；
   ④value `funapply` 于 0.22.0 移除（见前条），GIF 与文档同步清除。
+- 2026-09-13（四十五）：**性能测试例行化（用户明确）**：编译器与编辑器
+  交互路径都要有性能测试、覆盖全面且细致，每版本留档可追溯。落地 =
+  ①阈值断言进常规测试（缩放比哨兵抓 O(n²)：check_document 400/50 块
+  ≤12×；增量编辑每键 <50ms 且 kernel_checks≤1；编辑首练习延迟不随文件
+  长度超线性）②LSP 交互延迟哨兵（didChange <50ms、completion/hover/
+  soko/goals <10ms）③CI "Performance report" 步骤：每次 push 产出
+  带 version+SHA 的报告 artifact（perf-report），本地同口径
+  `scripts/perf-report.sh`。设计原则见 `docs/PERF.md`。
 - 2026-09-13（四十三）：**值位关键字 v2（用户三需求）**：①输入过程中要有
   补全替换提示（探针实测根因：keyword_at 要求 Open 态，而输入中间态必然
   Failed）；②`funintro (funapply X)` 关键字组合——纯前端实现，funintro 到

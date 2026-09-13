@@ -25,6 +25,7 @@
 | `STATUS-ARCHIVE.md` | STATUS 的历史轮次归档（1–39 轮原文） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
+| `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |
 | `CI-FAILURES.md` | CI 失败台账（原因/修复/预防） | CI 红时；同类不二犯 |
 | `teaching-session.md` | 教学循环与解答钥匙（agent 老师用） | 讲课时 |
 

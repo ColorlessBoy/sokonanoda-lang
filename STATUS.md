@@ -1,7 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-13（第四十五轮：性能收口——judge 缓存 / 半截表达式 goal-state hover / 演示例行化，0.23.0）
-> 历史轮次（1–39）见 `docs/STATUS-ARCHIVE.md`。
+> 快照：2026-09-13（第四十六轮：性能测试例行化——阈值哨兵 + 每版本报告 artifact）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +13,26 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-13，第四十六轮：性能测试例行化）
+
+> 用户要求：性能测试例行化、覆盖全面+细致（编译器 + VS Code 插件特性）、
+> 每版本可见、回归时能定位到哪个改动。
+
+1. **阈值断言哨兵**（`crates/front/tests/perf.rs` 3 个 +
+   `crates/lsp/src/lib.rs` 3 个，随 `cargo test --workspace` 例行执行）：
+   编译器缩放比（400/50 块 ≤12×，O(n²)=64× 必红）、增量编辑每键 <50ms
+   且 kernel_checks≤1、编辑首练习不随文件长度超线性；LSP didChange
+   round-trip <50ms、completion/hover/goals 各 <10ms（50 块文件）。
+2. **每版本留档**：CI "Performance report" 步骤提取 PERF 行 →
+   `perf-report-v<version>-<sha>.txt` artifact（每次 push 都有）；
+   本地同口径 `scripts/perf-report.sh`。对比相邻版本报告即可定位回退
+   场景 → git log 找改动。
+3. **阈值设计原则**：只抓算法级回归（线性理论值 ×1.5 余量），CI 噪声
+   不误报；绝对延迟抓用户可感劣化。设计文档 `docs/PERF.md`（含基线）。
+4. 扩展层无独立计算路径——所有特性经 LSP，故覆盖在 LSP 请求层
+   （didChange/completion/hover/soko-goals）。
+5. 验收：cargo test --workspace 543 passed / 0 failed（+6 perf）；clippy 0。
 
 ## 本轮进度（2026-09-13，第四十五轮：性能收口 + goal-state hover）
 
