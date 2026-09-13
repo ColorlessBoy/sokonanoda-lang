@@ -699,6 +699,68 @@ fn keyword_at(
     Some((hole, skeleton))
 }
 
+/// 键入态探测：光标前的词是关键字全词或其**前缀**。返回前缀词的 span。
+///
+/// **刻意不做任何 decl/状态门禁**：前缀阶段（`fun`）整篇 parse 失败、没有
+/// decl；而弹窗恰恰要在这个阶段就在。误报面（注释里手动 Ctrl+Space、by 块
+/// 里敲值位关键字）可接受且有教学提示兜底。
+///
+/// 前缀而非整词：整词门控是 v1 的决定（当时展开项只能整词命中），v2 反转——
+/// 弹窗里要**一直**有项，否则学习者输入过程中什么都看不到。
+fn keyword_typing_at(
+    text: &str,
+    offset: usize,
+    keyword: ValueKeyword,
+) -> Option<sokonanoda_front::Span> {
+    let name = keyword.name();
+    let bytes = text.as_bytes();
+    // 光标前允许同行空白（学习者敲完关键字习惯再打一个空格）：
+    // `funapply ` 与 `funap` 都要命中。
+    let mut word_end = offset;
+    while word_end > 0 && (bytes[word_end - 1] == b' ' || bytes[word_end - 1] == b'\t') {
+        word_end -= 1;
+    }
+    // 从词尾向前扫出已敲的词（关键字都是 ASCII 词字符）。
+    let mut start = word_end;
+    while start > 0 && (bytes[start - 1].is_ascii_alphanumeric() || bytes[start - 1] == b'_') {
+        start -= 1;
+    }
+    let word = &text[start..word_end];
+    if word.is_empty() || !name.starts_with(word) {
+        return None;
+    }
+    // 点号开头的名字（`And.intro`）不是关键字：word 前一个字符不能是 `.`。
+    if start > 0 && bytes[start - 1] == b'.' {
+        return None;
+    }
+    Some(sokonanoda_front::Span::new(
+        pos_at(text, start),
+        pos_at(text, word_end),
+    ))
+}
+
+/// offset → `Pos`（1 基行列，与 parser 的口径一致；`render::range_of` 消费）。
+fn pos_at(text: &str, offset: usize) -> sokonanoda_front::Pos {
+    let mut line = 1usize;
+    let mut column = 1usize;
+    for (i, b) in text.bytes().enumerate() {
+        if i >= offset {
+            break;
+        }
+        if b == b'\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+    sokonanoda_front::Pos {
+        offset,
+        line,
+        column,
+    }
+}
+
 /// `command:` URI 的 JSON 参数按 `encodeURIComponent` 规则转义（编辑器端
 /// 反解后 `JSON.parse`）。只保留 unreserved 字符，其余逐字节 `%XX`。
 ///
@@ -1156,40 +1218,74 @@ impl LanguageServer for Backend {
         // 命中规则与 hover 同一套（`keyword_at`）。
         // 值位关键字展开项（`funintro` / `funapply`）：门控、骨架与命中区间全部来自
         // DeclState（单一事实源），编辑器不扫文本、不重算。
-        let keyword_items: Vec<CompletionItem> = match doc.report.as_ref() {
-            Some(report) => {
-                let offset = position_to_offset(&doc.text, pos);
-                [ValueKeyword::Intro, ValueKeyword::Apply]
-                    .into_iter()
-                    .filter_map(|keyword| {
-                        let (hole, skeleton) = keyword_at(report, &doc.text, offset, keyword)?;
+        // 两态（I13-S2，`docs/design/value-keywords-v2.md` §3.1）：
+        // - **骨架态**：声明 Open 且骨架可算——textEdit 覆盖洞区间、newText 是
+        //   完整骨架（与 Tab 补全同一份编辑）；
+        // - **键入态**：声明还在输入中间态（半截实参 → unknown identifier、裸
+        //   关键字 → needs-a-term）——骨架算不出来，但「替换源代码」项必须照常
+        //   出现，否则学习者输入全程看不到任何可选项（探针实测）。textEdit
+        //   覆盖已敲的前缀、newText 是关键字全词（接受即补全单词）。
+        let offset = position_to_offset(&doc.text, pos);
+        let keyword_items: Vec<CompletionItem> = {
+            [ValueKeyword::Intro, ValueKeyword::Apply]
+                .into_iter()
+                .filter_map(|keyword| {
                         let name = keyword.name();
-                        Some(CompletionItem {
-                            label: format!("{name}（展开为骨架）"),
+                        let label = format!("{name}（替换源代码）");
+                        let base = CompletionItem {
+                            label,
                             kind: Some(CompletionItemKind::KEYWORD),
                             detail: Some(keyword_detail(keyword).to_string()),
-                            documentation: Some(Documentation::MarkupContent(MarkupContent {
-                                kind: MarkupKind::Markdown,
-                                value: format!(
-                                    "{explains}\n\n**不替换也完全等价**——`{name}` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n它等价于：\n\n```lean\n{skeleton}\n```",
-                                    explains = keyword_copy(keyword).explains,
-                                    name = name,
-                                    skeleton = skeleton,
-                                ),
-                            })),
                             filter_text: Some(name.to_string()),
                             sort_text: Some(format!("0{name}")),
                             preselect: Some(true),
-                            text_edit: Some(CompletionTextEdit::Edit(TextEdit {
-                                range: range_of(hole),
-                                new_text: skeleton,
-                            })),
                             ..Default::default()
+                        };
+                        if let Some(report) = doc.report.as_ref() {
+                        if let Some((hole, skeleton)) =
+                            keyword_at(report, &doc.text, offset, keyword)
+                        {
+                            let copy = keyword_copy(keyword);
+                            return Some(CompletionItem {
+                                documentation: Some(Documentation::MarkupContent(MarkupContent {
+                                    kind: MarkupKind::Markdown,
+                                    value: format!(
+                                        "{explains}\n\n**不替换也完全等价**——`{name}` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n它等价于：\n\n```lean\n{skeleton}\n```",
+                                        explains = copy.explains,
+                                        name = name,
+                                        skeleton = skeleton,
+                                    ),
+                                })),
+                                text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+                                    range: range_of(hole),
+                                    new_text: skeleton,
+                                })),
+                                ..base
+                            });
+                        }
+                        }
+                        // 键入态：已敲的词是关键字的前缀（含全词）。刻意不依赖
+                        // doc.report——前缀阶段（`fun`）整篇 parse 失败、report
+                        // 是 None，而弹窗恰恰要在这个阶段就在。
+                        let word = keyword_typing_at(&doc.text, offset, keyword)?;
+                        let copy = keyword_copy(keyword);
+                        Some(CompletionItem {
+                            documentation: Some(Documentation::MarkupContent(MarkupContent {
+                                kind: MarkupKind::Markdown,
+                                value: format!(
+                                    "{explains}\n\n实参敲完、声明通过检查后，这里会出现完整骨架的就地替换。\n\n提示：`{name}` 不替换也完全等价——直接在洞的位置继续写就行。",
+                                    explains = copy.explains,
+                                    name = name,
+                                ),
+                            })),
+                            text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+                                range: range_of(word),
+                                new_text: name.to_string(),
+                            })),
+                            ..base
                         })
-                    })
-                    .collect()
-            }
-            None => Vec::new(),
+                })
+                .collect()
         };
         // 只用于「裸关键字去重」的存在性判断。
         let has_intro_item = keyword_items
@@ -3021,10 +3117,11 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn typed_funintro_chars_only_expand_on_the_whole_word() {
-        // 真人输入：一个字符一个字符地敲 `funintro`。值位展开是**整词**门控
-        // （前缀触发是 term-funintro.md §9 的 v2 非目标），所以 `i`/`in`/`int`/
-        // `intr` 都不该给展开项，敲完第五个字符才给。
+    async fn typed_funintro_chars_offer_the_replace_item_while_typing() {
+        // 真人输入：一个字符一个字符地敲 `funintro`。v2 语义（I13-S2）：
+        // **每个前缀**都要有「替换源代码」项（键入态：textEdit 覆盖已敲的
+        // 前缀、newText 是关键字全词），整词之后声明 Open，升级为骨架态
+        // （textEdit 覆盖 token、newText 是完整骨架）。v1 的整词门控已推翻。
         //
         // 断言必须落在**每个中间态**上（`type_step` 一步一次 didChange）：
         // 服务器只持有最新状态，攒到最后再断言就只能验到最后一步。
@@ -3038,35 +3135,40 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
 
         let mut cur = initial.clone();
         let mut version = 1;
-        let steps = char_steps("funintro", caret);
-        assert_eq!(steps.len(), "funintro".len(), "one step per keystroke");
-        for (index, step) in steps.iter().enumerate() {
+        let word = "funintro";
+        for (index, step) in char_steps(word, caret).iter().enumerate() {
             type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
-            let typed = &"funintro"[..=index];
+            let typed = &word[..=index];
             let cursor = caret + typed.len();
             let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
-            let expansion = items
+            let item = items
                 .iter()
-                .find(|i| i.filter_text.as_deref() == Some("funintro"));
-            if typed == "funintro" {
-                let item = expansion.unwrap_or_else(|| {
-                    panic!("the whole keyword must offer the expansion: {items:?}")
+                .find(|i| i.filter_text.as_deref() == Some("funintro"))
+                .unwrap_or_else(|| {
+                    panic!("prefix `{typed}` must offer the replace item: {items:?}")
                 });
-                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
-                else {
-                    panic!("expected a plain CompletionTextEdit::Edit");
-                };
+            assert_eq!(item.preselect, Some(true), "preselect at `{typed}`");
+            let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
+                panic!("expected a plain CompletionTextEdit::Edit");
+            };
+            if typed == word {
+                // 骨架态：裸 funintro 合法（Open），textEdit 覆盖整个 token。
+                assert_eq!(edit.range.start, lsp_pos(&cur, caret), "skeleton state");
+                assert_eq!(edit.range.end, lsp_pos(&cur, caret + word.len()));
+                assert!(
+                    edit.new_text.contains("sorry"),
+                    "skeleton state replaces with the full skeleton: {}",
+                    edit.new_text
+                );
+            } else {
+                // 键入态：textEdit 覆盖已敲的前缀，newText 补全为关键字全词。
                 assert_eq!(
                     edit.range.start,
                     lsp_pos(&cur, caret),
-                    "the edit replaces exactly the typed token"
+                    "typing state at `{typed}`"
                 );
-                assert_eq!(edit.range.end, lsp_pos(&cur, caret + "funintro".len()));
-            } else {
-                assert!(
-                    expansion.is_none(),
-                    "prefix `{typed}` must not offer the expansion ({cur:?}): {items:?}"
-                );
+                assert_eq!(edit.range.end, lsp_pos(&cur, cursor), "typing state");
+                assert_eq!(edit.new_text, "funintro", "typing state completes the word");
             }
         }
         shutdown(&mut service).await;
@@ -3194,10 +3296,12 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         shutdown(&mut service).await;
     }
 
-    // —— 临时探针（调研用，S2 会替换成正式断言）：逐键输入 lambda 尾 `funapply`，
-    // 打印每个中间态的补全清单，定位「输入过程中没有弹出替换提示」的环节。
     #[tokio::test]
-    async fn probe_typing_completions_in_lambda_tail() {
+    async fn typed_funapply_in_a_lambda_tail_keeps_the_suggestion_at_every_keystroke() {
+        // 用户实况（playground 202 行）：lambda 尾逐键输入 `funapply And.intro`，
+        // 输入过程中弹窗里必须有可选项（探针实测 v1 在整串敲完之前全程缺席）。
+        // v2：前缀/裸关键字态出键入态项；整串完成、声明变 Open 后出骨架态项
+        // （newText = σ 实例化后的完整骨架 `And.intro b a sorry sorry`）。
         let head = "axiom And : Prop -> Prop -> Prop\n\
                     axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
                     theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n  \
@@ -3207,42 +3311,60 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, &initial).await;
-        let _ = wait_diagnostics(&mut socket, "probe: initial").await;
+        let _ = wait_diagnostics(&mut socket, "lambda-tail typing: initial state").await;
 
         let mut cur = initial.clone();
         let mut version = 1;
         let script = "funapply And.intro";
+        let keyword_len = "funapply".len();
         for (index, step) in char_steps(script, caret).iter().enumerate() {
             type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
             let typed = &script[..=index];
             let cursor = caret + typed.len();
             let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
-            let labels: Vec<String> = items
+            let item = items
                 .iter()
-                .map(|i| {
-                    let edit = match i.text_edit.as_ref() {
-                        Some(CompletionTextEdit::Edit(e)) => format!("->{}", e.new_text),
-                        _ => String::new(),
-                    };
-                    format!("{}{}", i.label, edit)
-                })
-                .collect();
-            let expand = items.iter().any(|i| {
-                matches!(i.text_edit.as_ref(), Some(CompletionTextEdit::Edit(e)) if e.new_text.contains("sorry"))
-            });
-            println!(
-                "PROBE typed={typed:?} items={} expand={} {:?}",
-                items.len(),
-                expand,
-                labels
-            );
+                .find(|i| i.filter_text.as_deref() == Some("funapply"));
+            if typed == script {
+                // 骨架态：σ 实例化 + 两个前提洞。
+                let item = item.expect("the full `funapply And.intro` must offer the skeleton");
+                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
+                else {
+                    panic!("expected a plain CompletionTextEdit::Edit");
+                };
+                assert_eq!(edit.new_text, "And.intro b a sorry sorry", "skeleton state");
+                assert_eq!(edit.range.start, lsp_pos(&cur, caret));
+                assert_eq!(edit.range.end, lsp_pos(&cur, caret + script.len()));
+            } else if typed.len() <= keyword_len {
+                // 关键字前缀/整词/尾随空格：键入态项必须在（v1 缺席的正是这段）。
+                let item =
+                    item.unwrap_or_else(|| panic!("typing state at `{typed}` must offer the item"));
+                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
+                else {
+                    panic!("expected a plain CompletionTextEdit::Edit");
+                };
+                assert_eq!(edit.new_text, "funapply", "typing state at `{typed}`");
+                assert_eq!(edit.range.start, lsp_pos(&cur, caret));
+                // textEdit 只覆盖**词**本身（不含尾随空格）：接受时不能误删空格。
+                let word_len = typed.trim_end_matches(' ').len();
+                assert_eq!(edit.range.end, lsp_pos(&cur, caret + word_len));
+            } else {
+                // 实参输入阶段：弹窗转给实参补全（如 `And`），不强求关键字项，
+                // 但列表不能为空。
+                assert!(
+                    !items.is_empty(),
+                    "argument typing `{typed}` must still offer completions"
+                );
+            }
         }
         shutdown(&mut service).await;
     }
 
     #[tokio::test]
-    async fn typed_funapply_chars_only_expand_on_the_whole_word() {
-        // 逐字符敲 `funapply`：前缀不给展开项，整词才给（与 `funintro` 同一门控）。
+    async fn typed_funapply_chars_offer_the_replace_item_then_the_skeleton() {
+        // 值位逐键输入 `funapply h`：前缀出键入态项（newText = 关键字全词）；
+        // 裸 `funapply` 是教学错误（needs-a-term）→ 仍是键入态；实参 `h` 敲完、
+        // 声明 Open 后升级为骨架态（newText = `h sorry`）。
         let head = "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P := ";
         let initial = format!("{head}\n");
         let caret = head.len();
@@ -3253,32 +3375,31 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
 
         let mut cur = initial.clone();
         let mut version = 1;
-        // `funapply` 不带实参是**教学错误**（elab-funapply-needs-a-term），所以展开项
-        // 要等到实参 `h` 也敲完才出现：断言「敲完整串之前一路不弹、之后弹」。
         let script = "funapply h";
         for (index, step) in char_steps(script, caret).iter().enumerate() {
             type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
             let typed = &script[..=index];
             let cursor = caret + typed.len();
             let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
-            let expansion = items
+            let item = items
                 .iter()
-                .find(|i| i.filter_text.as_deref() == Some("funapply"));
+                .find(|i| i.filter_text.as_deref() == Some("funapply"))
+                .unwrap_or_else(|| {
+                    panic!("keystroke `{typed}` must keep the replace item: {items:?}")
+                });
+            let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
+                panic!("expected a plain CompletionTextEdit::Edit");
+            };
             if typed == script {
-                let item = expansion
-                    .unwrap_or_else(|| panic!("the full `funapply h` must offer the expansion"));
-                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
-                else {
-                    panic!("expected a plain CompletionTextEdit::Edit");
-                };
+                assert_eq!(edit.new_text, "h sorry", "skeleton state");
                 assert_eq!(edit.range.start, lsp_pos(&cur, caret));
                 assert_eq!(edit.range.end, lsp_pos(&cur, caret + script.len()));
-                assert_eq!(edit.new_text, "h sorry");
             } else {
-                assert!(
-                    expansion.is_none(),
-                    "partial input `{typed}` must not offer the expansion ({cur:?})"
-                );
+                assert_eq!(edit.new_text, "funapply", "typing state at `{typed}`");
+                assert_eq!(edit.range.start, lsp_pos(&cur, caret));
+                // textEdit 只覆盖**词**本身（不含尾随空格）：接受时不能误删空格。
+                let word_len = typed.trim_end_matches(' ').len();
+                assert_eq!(edit.range.end, lsp_pos(&cur, caret + word_len));
             }
         }
         shutdown(&mut service).await;
