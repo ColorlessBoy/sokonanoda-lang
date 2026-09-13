@@ -433,3 +433,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   判会被 dispatch 静默 skipped）；③pages 门禁改鉴权 `gh api`。发布结果：
   v0.20.0 上 Release（25 资产）+ Marketplace + 官网上线（About 三件套已填）。
   手动推 tag 降级为应急路径（`docs/RELEASE.md`）。
+- 2026-09-13（四十三）：**值位关键字 v2（用户三需求）**：①输入过程中要有
+  补全替换提示（探针实测根因：keyword_at 要求 Open 态，而输入中间态必然
+  Failed）；②`funintro (funapply X)` 关键字组合——纯前端实现，funintro 到
+  内核就是 fun 链、funapply 到内核就是部分应用带前提洞；③值位关键字改名
+  `funintro`/`funapply` 与 tactic 消歧义（by 块 tactic 不变），按钮文案改
+  「替换源代码 funintro/funapply」。设计定稿 `docs/design/value-keywords-v2.md`
+  （决策单 D1–D9：无别名、命令 ID 保留、KEYWORDS 保留旧词加新词、错误码
+  机器码保留只改 hint）。实施按 ROADMAP I13 S1–S4 由 subagent 顺序执行。

@@ -3187,6 +3187,47 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         shutdown(&mut service).await;
     }
 
+    // —— 临时探针（调研用，S2 会替换成正式断言）：逐键输入 lambda 尾 `apply`，
+    // 打印每个中间态的补全清单，定位「输入过程中没有弹出替换提示」的环节。
+    #[tokio::test]
+    async fn probe_typing_completions_in_lambda_tail() {
+        let head = "axiom And : Prop -> Prop -> Prop\n\
+                    axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                    theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n  \
+                    fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => ";
+        let initial = format!("{head}\n");
+        let caret = head.len();
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &initial).await;
+        let _ = wait_diagnostics(&mut socket, "probe: initial").await;
+
+        let mut cur = initial.clone();
+        let mut version = 1;
+        let script = "apply And.intro";
+        for (index, step) in char_steps(script, caret).iter().enumerate() {
+            type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
+            let typed = &script[..=index];
+            let cursor = caret + typed.len();
+            let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
+            let labels: Vec<String> = items
+                .iter()
+                .map(|i| {
+                    let edit = match i.text_edit.as_ref() {
+                        Some(CompletionTextEdit::Edit(e)) => format!("->{}", e.new_text),
+                        _ => String::new(),
+                    };
+                    format!("{}{}", i.label, edit)
+                })
+                .collect();
+            let expand = items.iter().any(|i| {
+                matches!(i.text_edit.as_ref(), Some(CompletionTextEdit::Edit(e)) if e.new_text.contains("sorry"))
+            });
+            println!("PROBE typed={typed:?} items={} expand={} {:?}", items.len(), expand, labels);
+        }
+        shutdown(&mut service).await;
+    }
+
     #[tokio::test]
     async fn typed_apply_chars_only_expand_on_the_whole_word() {
         // 逐字符敲 `apply`：前缀不给展开项，整词才给（与 `intro` 同一门控）。

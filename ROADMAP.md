@@ -505,6 +505,31 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - I10 与 I12 **互不依赖**，可并行（不同文件集：`crates/**` ↔ `site/**`+`workflows/**`）；
 - I12-S0（修漂移）不依赖任何代码改动，可最先做。
 
+### I13 —— 值位关键字 v2：funintro/funapply + 输入期补全 + 关键字组合
+
+> 设计（已定稿，勿再讨论方案）：`docs/design/value-keywords-v2.md`（含探针
+> 实测、调研结论、决策单 D1–D9）。触发（用户三需求）：①输入过程没有补全
+> 替换提示；②`funintro (funapply X)` 组合；③值位关键字改名与 tactic 消歧义。
+
+- **S1 改名**（subagent，文件集最广）：值位 `intro`→`funintro`、`apply`→
+  `funapply`（无别名，D1）；by 块 tactic 不动（D2）；KEYWORDS 保留旧词并新增
+  新词（D3）；命令 ID 保留、按钮文案改「替换源代码 funintro/funapply」（D4/D7）；
+  hint 文案改新名、机器码保留（D5）；course/unit6 zh+en 5 个 theorem 与三种
+  写法对照、`playground.sokonanoda`、~45 个值位测试名全扫；golden 事件计数
+  不变（调研已证）。
+- **S2 输入期补全**（subagent）：`keyword_at` 两态门控（骨架态/键入态，§3.1），
+  前缀出键入态项、整词+实参完成出骨架态项；**推翻 v1 整词门控**并改写对应
+  测试；真人输入测试三条（char_steps 零 sleep）。
+- **S3 关键字组合**（subagent）：关键字成为原子位表达式（`parse_atom` 分支 +
+  四段重复解析收敛为 `parse_intro`/`parse_apply`）；`apply.rs::lower_at` 提为
+  pub(crate)；`lower_intro_val` 增 src/span_start/options 传参、`peel_all_pi`
+  返回最终 goal 类型与层 binder；组合骨架填 `intro_skeleton`；组合矩阵测试
+  （端到端/等价性/错误面/声明 binder 叠加/LSP 命中）。
+- **S4 收口**（主会话）：protocol/TESTING/architecture/README/skills 同步；
+  版本 0.20.0 → 0.21.0；push main 验证 auto-tag 自动发布。
+- **验收**：见 value-keywords-v2.md §5（五条，含逐键输入每中间态有项、组合
+  等价性契约、全仓值位无旧名残留、三层门禁绿、自动发布成功）。
+
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
