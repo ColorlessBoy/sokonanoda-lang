@@ -149,98 +149,80 @@ impl Parser {
         Ok(binders)
     }
 
-    /// 值位：普通表达式、`by <tactic 序列>` 块，或 `intro`（一次引入剩余
+    /// 值位：普通表达式、`by <tactic 序列>` 块，或 `funintro`（一次引入剩余
     /// 全部 binder 的教学关键字，与 `by` 同级）。
     fn parse_value(&mut self) -> Result<Expr> {
         if let TokenKind::Ident(kw) = &self.peek().kind {
             if kw == "by" {
                 return self.parse_by_block();
             }
-            if kw == "intro" {
+            if kw == "funintro" {
                 let tok = self.bump();
-                // 可选答案：`intro <expr>` 让前端把 intro 隐式替换成
-                // `fun … => <expr>`（判定仍由内核终审）。实参用 `parse_app`
-                // 与 `apply` 对称——复合形状加括号即可。
-                let answer = if self.starts_atom() {
-                    Some(Box::new(self.parse_app()?))
-                } else {
-                    None
-                };
-                let end = answer
-                    .as_ref()
-                    .map(|a| a.span().end)
-                    .unwrap_or(tok.span.end);
-                return Ok(Expr::Intro {
-                    answer,
-                    span: Span::new(tok.span.start, end),
-                });
+                return self.parse_intro(tok.span);
             }
-            if kw == "apply" {
-                return self.parse_value_apply();
+            if kw == "funapply" {
+                let tok = self.bump();
+                return self.parse_apply(tok.span);
             }
         }
         self.parse_expr()
     }
 
-    /// lambda 体**尾部**的值位关键字：`fun (x : Q) => apply h`。
+    /// 值位 `funintro`：实参用 [`Self::parse_app`]，可选答案 `funintro <expr>`
+    /// 让前端把 funintro 隐式替换成 `fun … => <expr>`（判定仍由内核终审）；
+    /// 复合形状加括号即可。与 lambda 尾的 [`Self::parse_lambda_tail_keyword`]
+    /// 共用——两者空实参行为一致（term/answer: None）。
+    fn parse_intro(&mut self, kw_span: Span) -> Result<Expr> {
+        // 可选答案：`funintro <expr>` 让前端把 funintro 隐式替换成
+        // `fun … => <expr>`（判定仍由内核终审）。实参用 `parse_app`
+        // 与 `funapply` 对称——复合形状加括号即可。
+        let answer = if self.starts_atom() {
+            Some(Box::new(self.parse_app()?))
+        } else {
+            None
+        };
+        let end = answer.as_ref().map(|a| a.span().end).unwrap_or(kw_span.end);
+        Ok(Expr::Intro {
+            answer,
+            span: Span::new(kw_span.start, end),
+        })
+    }
+
+    /// lambda 体**尾部**的值位关键字：`fun (x : Q) => funapply h`。
     ///
     /// 学习者写多步证明时几乎总在 lambda 里——只在值位开头认关键字会让
-    /// 「拆完 binder 再 apply」这种最自然的流程用不了。 lowered 一侧
+    /// 「拆完 binder 再 funapply」这种最自然的流程用不了。 lowered 一侧
     /// （`lower_intro_val` / `lower_apply_val`）本来就沿 lambda 链下降处理
     /// 关键字节点，这里只要把关键字解析出来即可。
     fn parse_lambda_tail_keyword(&mut self, kw: &str, tok: Span) -> Result<Expr> {
+        // 与 `parse_value` 共用同一对解析函数——lambda 尾与值位开头的行为
+        // 完全一致（空实参 term: None）。
         match kw {
-            "intro" => {
-                let answer = if self.starts_atom() {
-                    Some(Box::new(self.parse_app()?))
-                } else {
-                    None
-                };
-                let end = answer.as_ref().map(|a| a.span().end).unwrap_or(tok.end);
-                Ok(Expr::Intro {
-                    answer,
-                    span: Span::new(tok.start, end),
-                })
-            }
-            "apply" => {
-                if !self.starts_atom() {
-                    return Ok(Expr::Apply {
-                        term: None,
-                        span: tok,
-                    });
-                }
-                let term = self.parse_app()?;
-                let end = term.span().end;
-                Ok(Expr::Apply {
-                    term: Some(Box::new(term)),
-                    span: Span::new(tok.start, end),
-                })
-            }
-            other => unreachable!("lambda-tail keyword is `{other}`, not intro/apply"),
+            "funintro" => self.parse_intro(tok),
+            "funapply" => self.parse_apply(tok),
+            other => unreachable!("lambda-tail keyword is `{other}`, not funintro/funapply"),
         }
     }
 
-    /// 值位 `apply`：实参用 [`Self::parse_app`]（只吃应用 spine；更复杂的
+    /// 值位 `funapply`：实参用 [`Self::parse_app`]（只吃应用 spine；更复杂的
     /// 形状让学习者自己加括号）。`starts_atom` 会把下一条命令关键字挡在
-    /// 外面，所以 `apply` 不会吞掉后续声明。
+    /// 外面，所以 `funapply` 不会吞掉后续声明。
     ///
-    /// 语法上**允许空实参**（`:= apply`），由 lowering 报
+    /// 语法上**允许空实参**（`:= funapply`），由 lowering 报
     /// `elab-apply-needs-a-term`——学习者因此拿到稳定的机器码 + 专属教学
     /// 提示，而不是一句泛泛的语法错误。
-    fn parse_value_apply(&mut self) -> Result<Expr> {
-        let kw = self.bump();
-        let start = kw.span.start;
+    fn parse_apply(&mut self, kw_span: Span) -> Result<Expr> {
         if !self.starts_atom() {
             return Ok(Expr::Apply {
                 term: None,
-                span: kw.span,
+                span: kw_span,
             });
         }
         let term = self.parse_app()?;
         let end = term.span().end;
         Ok(Expr::Apply {
             term: Some(Box::new(term)),
-            span: Span::new(start, end),
+            span: Span::new(kw_span.start, end),
         })
     }
 
@@ -832,13 +814,13 @@ impl Parser {
             self.push_binders(&mut binders)?;
         }
         self.expect_kind(&TokenKind::FatArrow, "`=>`")?;
-        // body 的第一个 token 若是 `intro` / `apply` / `by`，按值位关键字
-        // 解析——学习者拆完 binder 后直接 apply / 进 tactic 模式是主流程，
+        // body 的第一个 token 若是 `funintro` / `funapply` / `by`，按值位关键字
+        // 解析——学习者拆完 binder 后直接 funapply / 进 tactic 模式是主流程，
         // 不该被迫把关键字挪到值位开头。降低侧零改动：
         // `lower_intro_val` / `lower_apply_val` / `split_by_value` 本来就沿
         // lambda 链下降处理关键字节点。
         let body = match &self.peek().kind {
-            TokenKind::Ident(kw) if matches!(kw.as_str(), "intro" | "apply" | "by") => {
+            TokenKind::Ident(kw) if matches!(kw.as_str(), "funintro" | "funapply" | "by") => {
                 let kw = kw.clone();
                 if kw == "by" {
                     // `parse_by_block` 自己 bump `by`，不要提前 bump。
@@ -1076,8 +1058,8 @@ example : Prop -> Prop := sorry
     }
 
     #[test]
-    fn value_intro_parses_as_the_intro_keyword() {
-        let file = parse("theorem t : (a : Prop) -> a := intro\n").unwrap();
+    fn value_funintro_parses_as_the_funintro_keyword() {
+        let file = parse("theorem t : (a : Prop) -> a := funintro\n").unwrap();
         assert!(matches!(
             &file.commands[0],
             Command::Theorem {
@@ -1087,31 +1069,31 @@ example : Prop -> Prop := sorry
         ));
     }
 
-    /// `intro` 现在接受**可选答案**（前端隐式替换：`intro a` →
+    /// `funintro` 现在接受**可选答案**（前端隐式替换：`funintro a` →
     /// `fun … => a`），所以带尾随名字不再是解析错误——但答案必须是
     /// `starts_atom` 能识别的形状，且不会吞掉下一条命令。
     #[test]
-    fn intro_takes_an_optional_answer() {
-        let file = parse("theorem t : (a : Prop) -> a := intro a\n").unwrap();
+    fn funintro_takes_an_optional_answer() {
+        let file = parse("theorem t : (a : Prop) -> a := funintro a\n").unwrap();
         match &file.commands[0] {
             Command::Theorem {
                 val: Expr::Intro { answer, span },
                 ..
             } => {
-                let answer = answer.as_ref().expect("`intro a` carries its answer");
+                let answer = answer.as_ref().expect("`funintro a` carries its answer");
                 assert!(matches!(answer.as_ref(), Expr::Ident { name, .. } if name == "a"));
-                // span 覆盖整个 `intro a`（编辑器整段替换）。
-                let text = "theorem t : (a : Prop) -> a := intro a\n";
-                assert_eq!(&text[span.start.offset..span.end.offset], "intro a");
+                // span 覆盖整个 `funintro a`（编辑器整段替换）。
+                let text = "theorem t : (a : Prop) -> a := funintro a\n";
+                assert_eq!(&text[span.start.offset..span.end.offset], "funintro a");
             }
-            other => panic!("expected a value-position intro, got {other:?}"),
+            other => panic!("expected a value-position funintro, got {other:?}"),
         }
     }
 
     #[test]
-    fn intro_answer_does_not_swallow_the_next_command() {
-        let file =
-            parse("axiom h : Prop\ntheorem t : Prop := intro h\ntheorem u : Prop := h\n").unwrap();
+    fn funintro_answer_does_not_swallow_the_next_command() {
+        let file = parse("axiom h : Prop\ntheorem t : Prop := funintro h\ntheorem u : Prop := h\n")
+            .unwrap();
         assert_eq!(
             file.commands.len(),
             3,
@@ -1120,26 +1102,26 @@ example : Prop -> Prop := sorry
     }
 
     #[test]
-    fn value_apply_parses_with_its_argument() {
-        let file = parse("axiom h : Prop\ntheorem t : Prop := apply h\n").unwrap();
+    fn value_funapply_parses_with_its_argument() {
+        let file = parse("axiom h : Prop\ntheorem t : Prop := funapply h\n").unwrap();
         match &file.commands[1] {
             Command::Theorem {
                 val: Expr::Apply { term, span },
                 ..
             } => {
-                let term = term.as_ref().expect("`apply h` carries its argument");
+                let term = term.as_ref().expect("`funapply h` carries its argument");
                 assert!(matches!(term.as_ref(), Expr::Ident { name, .. } if name == "h"));
-                // span 覆盖整个 `apply h`：编辑器展开要整段替换。
-                let text = "axiom h : Prop\ntheorem t : Prop := apply h\n";
-                assert_eq!(&text[span.start.offset..span.end.offset], "apply h");
+                // span 覆盖整个 `funapply h`：编辑器展开要整段替换。
+                let text = "axiom h : Prop\ntheorem t : Prop := funapply h\n";
+                assert_eq!(&text[span.start.offset..span.end.offset], "funapply h");
             }
-            other => panic!("expected a value-position apply, got {other:?}"),
+            other => panic!("expected a value-position funapply, got {other:?}"),
         }
     }
 
     #[test]
-    fn value_apply_allows_a_parenthesised_argument() {
-        let file = parse("theorem t : Prop -> Prop := apply (fun (x : Prop) => x)\n").unwrap();
+    fn value_funapply_allows_a_parenthesised_argument() {
+        let file = parse("theorem t : Prop -> Prop := funapply (fun (x : Prop) => x)\n").unwrap();
         match &file.commands[0] {
             Command::Theorem {
                 val: Expr::Apply { term, .. },
@@ -1147,30 +1129,33 @@ example : Prop -> Prop := sorry
             } => {
                 assert!(term.is_some(), "parenthesised argument is consumed");
             }
-            other => panic!("expected a value-position apply, got {other:?}"),
+            other => panic!("expected a value-position funapply, got {other:?}"),
         }
     }
 
     #[test]
-    fn value_apply_without_an_argument_parses_empty() {
+    fn value_funapply_without_an_argument_parses_empty() {
         // 空实参在语法层收下，教学错误由 lowering 出（稳定的 elab code）。
-        let file = parse("theorem t : Prop -> Prop := apply\n").unwrap();
+        let file = parse("theorem t : Prop -> Prop := funapply\n").unwrap();
         match &file.commands[0] {
             Command::Theorem {
                 val: Expr::Apply { term, .. },
                 ..
             } => {
-                assert!(term.is_none(), "bare `apply` must parse with no argument");
+                assert!(
+                    term.is_none(),
+                    "bare `funapply` must parse with no argument"
+                );
             }
-            other => panic!("expected a value-position apply, got {other:?}"),
+            other => panic!("expected a value-position funapply, got {other:?}"),
         }
     }
 
     #[test]
-    fn value_apply_does_not_swallow_the_next_command() {
-        // `apply` 不会吞掉后续声明：`starts_atom` 挡住命令关键字。
-        let file =
-            parse("axiom h : Prop\ntheorem t : Prop := apply h\ntheorem u : Prop := h\n").unwrap();
+    fn value_funapply_does_not_swallow_the_next_command() {
+        // `funapply` 不会吞掉后续声明：`starts_atom` 挡住命令关键字。
+        let file = parse("axiom h : Prop\ntheorem t : Prop := funapply h\ntheorem u : Prop := h\n")
+            .unwrap();
         assert_eq!(
             file.commands.len(),
             3,
@@ -1179,10 +1164,21 @@ example : Prop -> Prop := sorry
     }
 
     #[test]
-    fn dotted_apply_names_are_not_the_value_keyword() {
-        // `And.apply`（若存在）是单个 Ident（`.` 是标识符字符），不受影响。
-        let file = parse("axiom And.apply : Prop\ntheorem t : Prop := And.apply\n").unwrap();
+    fn dotted_funapply_names_are_not_the_value_keyword() {
+        // `And.funapply`（若存在）是单个 Ident（`.` 是标识符字符），不受影响。
+        let file = parse("axiom And.funapply : Prop\ntheorem t : Prop := And.funapply\n").unwrap();
         match &file.commands[1] {
+            Command::Theorem { val, .. } => {
+                assert!(
+                    !matches!(val, Expr::Apply { .. }),
+                    "dotted names are identifiers, not the value keyword"
+                );
+            }
+            other => panic!("expected a theorem, got {other:?}"),
+        }
+        // `And.apply`（旧名）作为带点标识符同样不受影响，断言保留。
+        let legacy = parse("axiom And.apply : Prop\ntheorem t : Prop := And.apply\n").unwrap();
+        match &legacy.commands[1] {
             Command::Theorem { val, .. } => {
                 assert!(
                     !matches!(val, Expr::Apply { .. }),
@@ -1194,11 +1190,20 @@ example : Prop -> Prop := sorry
     }
 
     #[test]
-    fn dotted_intro_names_are_not_the_value_keyword() {
-        // `And.intro` 是带点标识符；值位只认裸的 `intro`。
-        let file = parse("def t : Prop -> Prop := And.intro\n").unwrap();
+    fn dotted_funintro_names_are_not_the_value_keyword() {
+        // `And.funintro` 是带点标识符；值位只认裸的 `funintro`。
+        let file = parse("def t : Prop -> Prop := And.funintro\n").unwrap();
         assert!(matches!(
             &file.commands[0],
+            Command::Def {
+                val: Expr::Ident { name, .. },
+                ..
+            } if name == "And.funintro"
+        ));
+        // `And.intro`（旧名）作为带点标识符同样不受影响，断言保留。
+        let legacy = parse("def t : Prop -> Prop := And.intro\n").unwrap();
+        assert!(matches!(
+            &legacy.commands[0],
             Command::Def {
                 val: Expr::Ident { name, .. },
                 ..

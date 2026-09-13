@@ -52,6 +52,8 @@ const KEYWORDS: &[&str] = &[
     "fun",
     "intro",
     "apply",
+    "funintro",
+    "funapply",
     "#check",
     "#reduce",
     "#print",
@@ -248,7 +250,7 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
     match expr {
         Expr::Sort { .. } | Expr::Ident { .. } | Expr::Num { .. } | Expr::Hole { .. } => {}
         Expr::Intro { .. } => {}
-        // 值位 `apply`：`apply` token 本身由 KEYWORDS 分类，这里只走它的实参
+        // 值位 `funapply`：`funapply` token 本身由 KEYWORDS 分类，这里只走它的实参
         // （实参里的标识符/binder 照常收集）。
         Expr::Apply { term, .. } => {
             if let Some(t) = term {
@@ -446,13 +448,37 @@ mod tests {
     }
 
     #[test]
-    fn intro_classifies_as_keyword_in_value_and_tactic_positions() {
-        let src = "theorem t : (a : Prop) -> a := intro\n\
+    fn keyword_classification_covers_funintro_in_value_and_intro_in_tactic() {
+        // 0.21.0 起值位关键字是 `funintro`/`funapply`；`intro`/`apply` 保留在
+        // KEYWORDS 里服务 by 块 tactic（分类位置无关）。
+        let src = "theorem t : (a : Prop) -> a := funintro\n\
                    theorem u : (a : Prop) -> a := by intro a; exact a\n";
         let spans = semantic_tokens(src);
         assert_eq!(
-            kinds_of(src, &spans, "intro"),
-            vec![SemanticKind::Keyword, SemanticKind::Keyword]
+            kinds_of(src, &spans, "funintro"),
+            vec![SemanticKind::Keyword]
+        );
+        assert_eq!(kinds_of(src, &spans, "intro"), vec![SemanticKind::Keyword]);
+        let src = "theorem t (h : P) : P := funapply h\n";
+        let spans = semantic_tokens(src);
+        assert_eq!(
+            kinds_of(src, &spans, "funapply"),
+            vec![SemanticKind::Keyword]
+        );
+    }
+
+    #[test]
+    fn funintro_funapply_classify_as_keyword_in_value_position() {
+        let src = "theorem t : (a : Prop) -> a := funintro\n\
+                   theorem u : (a : Prop) -> a := funapply h\n";
+        let spans = semantic_tokens(src);
+        assert_eq!(
+            kinds_of(src, &spans, "funintro"),
+            vec![SemanticKind::Keyword]
+        );
+        assert_eq!(
+            kinds_of(src, &spans, "funapply"),
+            vec![SemanticKind::Keyword]
         );
     }
 

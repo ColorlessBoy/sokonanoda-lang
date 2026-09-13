@@ -645,7 +645,7 @@ fn trailing_same_line_ws(text: &str, end: usize, offset: usize) -> bool {
     text[end..offset].chars().all(|c| c == ' ' || c == '\t')
 }
 
-/// 值位关键字（`intro` / `apply`）。两者共用同一套命中规则、同一份
+/// 值位关键字（`funintro` / `funapply`）。两者共用同一套命中规则、同一份
 /// 骨架字段约定与同一种 `command:` 展开按钮——只差名字与文案。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ValueKeyword {
@@ -656,8 +656,8 @@ pub(crate) enum ValueKeyword {
 impl ValueKeyword {
     fn name(self) -> &'static str {
         match self {
-            ValueKeyword::Intro => "intro",
-            ValueKeyword::Apply => "apply",
+            ValueKeyword::Intro => "funintro",
+            ValueKeyword::Apply => "funapply",
         }
     }
 
@@ -727,7 +727,7 @@ fn percent_encode_component(input: &str) -> String {
     out
 }
 
-/// 值位关键字（`intro` / `apply`）各自的编辑器文案。
+/// 值位关键字（`funintro` / `funapply`）各自的编辑器文案。
 struct KeywordCopy {
     /// hover 第一句：这个关键字在做什么。
     explains: &'static str,
@@ -739,8 +739,8 @@ struct KeywordCopy {
 
 fn keyword_detail(keyword: ValueKeyword) -> &'static str {
     match keyword {
-        ValueKeyword::Intro => "一次引入目标剩下的全部 binder",
-        ValueKeyword::Apply => "把一个证明/函数接到目标上，前提留洞",
+        ValueKeyword::Intro => "值位 funintro：一次引入目标剩下的全部 binder",
+        ValueKeyword::Apply => "值位 funapply：把一个证明/函数接到目标上，前提留洞",
     }
 }
 
@@ -748,19 +748,19 @@ fn keyword_copy(keyword: ValueKeyword) -> KeywordCopy {
     match keyword {
         ValueKeyword::Intro => KeywordCopy {
             explains:
-                "值位 `intro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。",
-            button: "展开为 fun 骨架",
+                "值位 `funintro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。",
+            button: "替换源代码 funintro",
             command: "sokonanoda.expandIntro",
         },
         ValueKeyword::Apply => KeywordCopy {
-            explains: "值位 `apply`：把一个证明/函数接到当前目标上，它的前提留成 `sorry` 洞。",
-            button: "展开为 apply 骨架",
+            explains: "值位 `funapply`：把一个证明/函数接到当前目标上，它的前提留成 `sorry` 洞。",
+            button: "替换源代码 funapply",
             command: "sokonanoda.expandApply",
         },
     }
 }
 
-/// 值位关键字（`intro` / `apply`）的展开 hover。两件事：
+/// 值位关键字（`funintro` / `funapply`）的展开 hover。两件事：
 ///
 /// 1. **不替换也完全等价**——关键字本身就已经是一次合法作答（等价于下面的
 ///    骨架，末端是 `sorry` 洞），可以直接留着在洞的位置继续写；
@@ -906,17 +906,17 @@ impl LanguageServer for Backend {
         };
         let pos = params.text_document_position_params.position;
         let offset = position_to_offset(&doc.text, pos);
-        // 值位 `intro`：不选择补全也能在 hover 里看到展开后的显式表达式，
+        // 值位 `funintro`：不选择补全也能在 hover 里看到展开后的显式表达式，
         // 并带一个就地替换的按钮（command link）。先于关键字抑制——
-        // `intro` 在 KEYWORDS 里，否则会被当普通关键字吞掉。
+        // `funintro` 在 KEYWORDS 里，否则会被当普通关键字吞掉。
         let uri = params
             .text_document_position_params
             .text_document
             .uri
             .clone();
-        let intro_hover =
+        let funintro_hover =
             keyword_expansion_hover(report, &doc.text, uri.as_str(), offset, ValueKeyword::Intro);
-        if let Some(hover) = intro_hover.or_else(|| {
+        if let Some(hover) = funintro_hover.or_else(|| {
             keyword_expansion_hover(report, &doc.text, uri.as_str(), offset, ValueKeyword::Apply)
         }) {
             return Ok(Some(hover));
@@ -1150,11 +1150,11 @@ impl LanguageServer for Backend {
         // In-scope binders at the cursor (smallest enclosing hover row);
         // outside any hover span the list stays keyword/prelude-only.
         let pos = params.text_document_position.position;
-        // 值位 `intro`：光标落在 intro token（= 那个洞）或其后的同行空白上
+        // 值位 `funintro`：光标落在 funintro token（= 那个洞）或其后的同行空白上
         // 时，给一项把关键字原地展开为 front 计算的显式 fun 骨架。门控与
         // 骨架文本全部来自 DeclState（单一事实源），编辑器不扫文本、不重算；
-        // 命中规则与 hover 同一套（`intro_at`）。
-        // 值位关键字展开项（`intro` / `apply`）：门控、骨架与命中区间全部来自
+        // 命中规则与 hover 同一套（`keyword_at`）。
+        // 值位关键字展开项（`funintro` / `funapply`）：门控、骨架与命中区间全部来自
         // DeclState（单一事实源），编辑器不扫文本、不重算。
         let keyword_items: Vec<CompletionItem> = match doc.report.as_ref() {
             Some(report) => {
@@ -1194,10 +1194,10 @@ impl LanguageServer for Backend {
         // 只用于「裸关键字去重」的存在性判断。
         let has_intro_item = keyword_items
             .iter()
-            .any(|i| i.filter_text.as_deref() == Some("intro"));
+            .any(|i| i.filter_text.as_deref() == Some("funintro"));
         let has_apply_item = keyword_items
             .iter()
-            .any(|i| i.filter_text.as_deref() == Some("apply"));
+            .any(|i| i.filter_text.as_deref() == Some("funapply"));
         if let Some(report) = &doc.report {
             if let Some(names) = scope_names_at(&report.hovers, pos.line, pos.character) {
                 for name in names {
@@ -1217,10 +1217,10 @@ impl LanguageServer for Backend {
         // Keywords (single source: front::semantic). 有展开项时不再重复给
         // 裸关键字（同一个词只出一次）。
         for keyword in sokonanoda_front::semantic::keywords() {
-            if *keyword == "intro" && has_intro_item {
+            if *keyword == "funintro" && has_intro_item {
                 continue;
             }
-            if *keyword == "apply" && has_apply_item {
+            if *keyword == "funapply" && has_apply_item {
                 continue;
             }
             items.push(CompletionItem {
@@ -1706,7 +1706,7 @@ mod tests {
         assert_eq!(
             actions.len(),
             1,
-            "expected one intro quick-fix, got {:?}",
+            "expected one funintro quick-fix, got {:?}",
             actions
         );
         let action = match &actions[0] {
@@ -1714,8 +1714,11 @@ mod tests {
             other => panic!("expected a CodeAction, got {other:?}"),
         };
         assert_eq!(action.kind, Some(CodeActionKind::QUICKFIX));
-        assert!(action.title.contains("intro"), "title: {:?}", action.title);
-        let edit = action.edit.as_ref().expect("intro action carries an edit");
+        assert!(action.title.contains("引入"), "title: {:?}", action.title);
+        let edit = action
+            .edit
+            .as_ref()
+            .expect("funintro action carries an edit");
         let changes = edit.changes.as_ref().expect("changes map");
         let edits = changes
             .get(&Url::parse(URI).expect("test uri parses"))
@@ -1741,12 +1744,12 @@ mod tests {
         );
         assert!(
             text_edit.new_text.starts_with("fun ("),
-            "intro replacement must start a lambda, got {:?}",
+            "funintro replacement must start a lambda, got {:?}",
             text_edit.new_text
         );
         assert!(
             text_edit.new_text.ends_with("sorry"),
-            "intro replacement must keep the hole, got {:?}",
+            "funintro replacement must keep the hole, got {:?}",
             text_edit.new_text
         );
         shutdown(&mut service).await;
@@ -1944,7 +1947,7 @@ mod tests {
         .expect("codeAction must answer");
         let actions: Option<CodeActionResponse> =
             serde_json::from_value(result).expect("valid CodeActionResponse");
-        let actions = actions.expect("intro action without a matching hypothesis");
+        let actions = actions.expect("funintro action without a matching hypothesis");
         let titles: Vec<&str> = actions
             .iter()
             .filter_map(|a| match a {
@@ -1953,8 +1956,8 @@ mod tests {
             })
             .collect();
         assert!(
-            titles.iter().any(|t| t.contains("intro")),
-            "intro must still be offered: {titles:?}"
+            titles.iter().any(|t| t.contains("引入")),
+            "funintro must still be offered: {titles:?}"
         );
         assert!(
             !titles.iter().any(|t| t.contains("exact")),
@@ -2228,7 +2231,7 @@ mod tests {
 
     #[tokio::test]
     async fn state_at_inside_a_tactic_shows_the_entering_state() {
-        // 光标停在 `intro h` 上：学习者要看到的是「这条 tactic 进来时的目标」。
+        // 光标停在 tactic `intro h` 上：学习者要看到的是「这条 tactic 进来时的目标」。
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, BY_OPEN).await;
@@ -2796,30 +2799,31 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn completion_expands_value_intro_into_a_lambda_skeleton() {
+    async fn completion_expands_value_funintro_into_a_lambda_skeleton() {
         let src = "axiom And : Prop -> Prop -> Prop\n\
-                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro\n";
+                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
-        let _ = wait_diagnostics(&mut socket, "intro completion diagnostics").await;
+        let _ = wait_diagnostics(&mut socket, "funintro completion diagnostics").await;
 
-        // 回归：光标在 intro token **末尾**（刚输完关键字的真实位置）也要命中。
+        // 回归：光标在 funintro token **末尾**（刚输完关键字的真实位置）也要命中。
         // 曾经的 `decl_at` 末尾排他语义正是在这里漏掉了补全项。
-        let start = offset_of(src, "intro");
-        let items = request_completions_at(&mut service, lsp_pos(src, start + "intro".len())).await;
+        let start = offset_of(src, "funintro");
+        let items =
+            request_completions_at(&mut service, lsp_pos(src, start + "funintro".len())).await;
         let item = items
             .iter()
-            .find(|i| i.filter_text.as_deref() == Some("intro"))
-            .expect("the intro expansion must be offered");
+            .find(|i| i.filter_text.as_deref() == Some("funintro"))
+            .expect("the funintro expansion must be offered");
         let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
             panic!("expected a plain CompletionTextEdit::Edit");
         };
         assert_eq!(edit.range.start, lsp_pos(src, start));
         assert_eq!(
             edit.range.end,
-            lsp_pos(src, start + "intro".len()),
-            "the edit replaces exactly the intro token"
+            lsp_pos(src, start + "funintro".len()),
+            "the edit replaces exactly the funintro token"
         );
         assert_eq!(
             edit.new_text,
@@ -2829,7 +2833,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         assert_eq!(
             items
                 .iter()
-                .filter(|i| i.label.starts_with("intro"))
+                .filter(|i| i.label.starts_with("funintro"))
                 .count(),
             1,
             "the expansion replaces the bare keyword entry: {items:?}"
@@ -2838,7 +2842,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn completion_does_not_expand_intro_outside_its_token() {
+    async fn completion_does_not_expand_funintro_outside_its_token() {
         // 普通 `sorry` 开放练习没有骨架；光标在洞上时也只给裸关键字。
         let src = "axiom And : Prop -> Prop -> Prop\n\
                    theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry\n";
@@ -2852,84 +2856,85 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         assert!(
             items
                 .iter()
-                .all(|i| i.filter_text.as_deref() != Some("intro")),
-            "no expansion item without an intro token: {items:?}"
+                .all(|i| i.filter_text.as_deref() != Some("funintro")),
+            "no expansion item without an funintro token: {items:?}"
         );
         assert!(
-            items.iter().any(|i| i.label == "intro"),
-            "the bare intro keyword stays available"
+            items.iter().any(|i| i.label == "funintro"),
+            "the bare funintro keyword stays available"
         );
         shutdown(&mut service).await;
     }
 
     #[tokio::test]
-    async fn completion_expands_intro_after_declaration_binders_to_the_residual() {
-        // 声明 binder 已把 a、h 带进上下文；`intro` 只剥剩余 codomain，
+    async fn completion_expands_funintro_after_declaration_binders_to_the_residual() {
+        // 声明 binder 已把 a、h 带进上下文；`funintro` 只剥剩余 codomain，
         // 展开项不含声明 binder。
-        let src = "theorem t (a : Prop) (h : a) : a -> a := intro\n";
+        let src = "theorem t (a : Prop) (h : a) : a -> a := funintro\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "decl-binder completion diagnostics").await;
 
-        let start = offset_of(src, "intro");
-        let items = request_completions_at(&mut service, lsp_pos(src, start + "intro".len())).await;
+        let start = offset_of(src, "funintro");
+        let items =
+            request_completions_at(&mut service, lsp_pos(src, start + "funintro".len())).await;
         let item = items
             .iter()
-            .find(|i| i.filter_text.as_deref() == Some("intro"))
-            .expect("the intro expansion must be offered");
+            .find(|i| i.filter_text.as_deref() == Some("funintro"))
+            .expect("the funintro expansion must be offered");
         let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
             panic!("expected a plain CompletionTextEdit::Edit");
         };
         assert_eq!(edit.range.start, lsp_pos(src, start));
-        assert_eq!(edit.range.end, lsp_pos(src, start + "intro".len()));
+        assert_eq!(edit.range.end, lsp_pos(src, start + "funintro".len()));
         assert_eq!(edit.new_text, "fun (x : a) => sorry");
         shutdown(&mut service).await;
     }
 
-    /// 值位 `intro` 换行书写的源文本（用户症状：`playground.sokonanoda:201`）。
+    /// 值位 `funintro` 换行书写的源文本（用户症状：`playground.sokonanoda:201`）。
     /// Rust 字符串续行会吃掉行首空白，所以这里用 `concat!` 保住缩进。
-    const INTRO_NEXT_LINE: &str = concat!(
+    const FUNINTRO_NEXT_LINE: &str = concat!(
         "axiom And : Prop -> Prop -> Prop\n",
         "theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n",
-        "  intro\n",
+        "  funintro\n",
     );
 
     #[tokio::test]
-    async fn completion_expands_value_intro_on_the_next_line() {
-        // 学习者把 `:= intro` 拆成两行只为不写超长行；补全不该因此消失。
-        let src = INTRO_NEXT_LINE;
+    async fn completion_expands_value_funintro_on_the_next_line() {
+        // 学习者把 `:= funintro` 拆成两行只为不写超长行；补全不该因此消失。
+        let src = FUNINTRO_NEXT_LINE;
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
-        let _ = wait_diagnostics(&mut socket, "next-line intro diagnostics").await;
+        let _ = wait_diagnostics(&mut socket, "next-line funintro diagnostics").await;
 
-        let start = offset_of(src, "intro");
-        for offset in [start, start + "intro".len()] {
+        let start = offset_of(src, "funintro");
+        for offset in [start, start + "funintro".len()] {
             let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
             let item = items
                 .iter()
-                .find(|i| i.filter_text.as_deref() == Some("intro"))
+                .find(|i| i.filter_text.as_deref() == Some("funintro"))
                 .unwrap_or_else(|| {
-                    panic!("intro expansion at {offset} must be offered: {items:?}")
+                    panic!("funintro expansion at {offset} must be offered: {items:?}")
                 });
             let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
                 panic!("expected a plain CompletionTextEdit::Edit");
             };
             assert_eq!(edit.range.start, lsp_pos(src, start));
-            assert_eq!(edit.range.end, lsp_pos(src, start + "intro".len()));
+            assert_eq!(edit.range.end, lsp_pos(src, start + "funintro".len()));
         }
         shutdown(&mut service).await;
     }
 
     #[tokio::test]
-    async fn hover_on_value_intro_shows_the_expansion_on_the_next_line() {
-        let src = INTRO_NEXT_LINE;
+    async fn hover_on_value_funintro_shows_the_expansion_on_the_next_line() {
+        let src = FUNINTRO_NEXT_LINE;
         let (mut service, _socket) = open_and_wait(src).await;
-        let intro = offset_of(src, "intro");
-        let hover = hover_opt_at(&mut service, src, intro + "intro".len())
+        let funintro = offset_of(src, "funintro");
+        let hover = hover_opt_at(&mut service, src, funintro + "funintro".len())
             .await
-            .expect("hover on a next-line intro must exist");
+            .expect("hover on a next-line funintro must exist");
         let HoverContents::Markup(markup) = hover.contents else {
             panic!("expected markup hover");
         };
@@ -2944,14 +2949,14 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn completion_expands_value_intro_after_a_line_break_edit() {
-        // 真实编辑序列：先 `:= sorry`，再把值折到下一行改成 `intro`——
+    async fn completion_expands_value_funintro_after_a_line_break_edit() {
+        // 真实编辑序列：先 `:= sorry`，再把值折到下一行改成 `funintro`——
         // 走的是 didChange + Session 增量路径，不是 didOpen 全量。
         let before = concat!(
             "axiom And : Prop -> Prop -> Prop\n",
             "theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry\n",
         );
-        let after = INTRO_NEXT_LINE;
+        let after = FUNINTRO_NEXT_LINE;
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, before).await;
@@ -2960,41 +2965,41 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         did_change(&mut service, 2, after).await;
         let _ = wait_diagnostics(&mut socket, "post-edit diagnostics").await;
 
-        let start = offset_of(after, "intro");
+        let start = offset_of(after, "funintro");
         let items =
-            request_completions_at(&mut service, lsp_pos(after, start + "intro".len())).await;
+            request_completions_at(&mut service, lsp_pos(after, start + "funintro".len())).await;
         assert!(
             items
                 .iter()
-                .any(|i| i.filter_text.as_deref() == Some("intro")),
-            "the intro expansion must survive the line-break edit: {items:?}"
+                .any(|i| i.filter_text.as_deref() == Some("funintro")),
+            "the funintro expansion must survive the line-break edit: {items:?}"
         );
         shutdown(&mut service).await;
     }
 
     #[tokio::test]
-    async fn intro_expansion_survives_a_trailing_space_on_both_layouts() {
-        // 学习者症状（playground.sokonanoda:201 实况：`:= intro ` 带尾随空格）：
+    async fn funintro_expansion_survives_a_trailing_space_on_both_layouts() {
+        // 学习者症状（playground.sokonanoda:201 实况：`:= funintro ` 带尾随空格）：
         // 敲完关键字常顺手打一个空格，光标落在 token 之后。命中区间放宽到
         // 「token + 同行空白」后，同一行与换行两种写法都要照常给展开项，
-        // 且不改动被替换的范围（仍是 intro token 本身）。
-        let same = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a := intro \n";
-        let next = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a :=\n  intro \n";
+        // 且不改动被替换的范围（仍是 funintro token 本身）。
+        let same = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a := funintro \n";
+        let next = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a :=\n  funintro \n";
         for (label, src) in [("same-line", same), ("next-line", next)] {
             let (mut service, mut socket) = test_service();
             handshake(&mut service).await;
             did_open(&mut service, src).await;
             let _ = wait_diagnostics(&mut socket, "trailing-space diagnostics").await;
-            let start = offset_of(src, "intro");
+            let start = offset_of(src, "funintro");
             for (where_, offset) in [
                 ("token", start),
-                ("token end", start + "intro".len()),
-                ("after the trailing space", start + "intro".len() + 1),
+                ("token end", start + "funintro".len()),
+                ("after the trailing space", start + "funintro".len() + 1),
             ] {
                 let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
                 let item = items
                     .iter()
-                    .find(|i| i.filter_text.as_deref() == Some("intro"))
+                    .find(|i| i.filter_text.as_deref() == Some("funintro"))
                     .unwrap_or_else(|| panic!("{label} @{where_}: the expansion must be offered"));
                 let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
                 else {
@@ -3005,7 +3010,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
                     lsp_pos(src, start),
                     "{label} @{where_}: the edit still replaces exactly the token"
                 );
-                assert_eq!(edit.range.end, lsp_pos(src, start + "intro".len()));
+                assert_eq!(edit.range.end, lsp_pos(src, start + "funintro".len()));
                 let hover = hover_opt_at(&mut service, src, offset)
                     .await
                     .unwrap_or_else(|| panic!("{label} @{where_}: hover must answer too"));
@@ -3016,9 +3021,9 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn typed_intro_chars_only_expand_on_the_whole_word() {
-        // 真人输入：一个字符一个字符地敲 `intro`。值位展开是**整词**门控
-        // （前缀触发是 term-intro.md §9 的 v2 非目标），所以 `i`/`in`/`int`/
+    async fn typed_funintro_chars_only_expand_on_the_whole_word() {
+        // 真人输入：一个字符一个字符地敲 `funintro`。值位展开是**整词**门控
+        // （前缀触发是 term-funintro.md §9 的 v2 非目标），所以 `i`/`in`/`int`/
         // `intr` 都不该给展开项，敲完第五个字符才给。
         //
         // 断言必须落在**每个中间态**上（`type_step` 一步一次 didChange）：
@@ -3029,21 +3034,21 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, &initial).await;
-        let _ = wait_diagnostics(&mut socket, "typed intro: initial state").await;
+        let _ = wait_diagnostics(&mut socket, "typed funintro: initial state").await;
 
         let mut cur = initial.clone();
         let mut version = 1;
-        let steps = char_steps("intro", caret);
-        assert_eq!(steps.len(), "intro".len(), "one step per keystroke");
+        let steps = char_steps("funintro", caret);
+        assert_eq!(steps.len(), "funintro".len(), "one step per keystroke");
         for (index, step) in steps.iter().enumerate() {
             type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
-            let typed = &"intro"[..=index];
+            let typed = &"funintro"[..=index];
             let cursor = caret + typed.len();
             let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
             let expansion = items
                 .iter()
-                .find(|i| i.filter_text.as_deref() == Some("intro"));
-            if typed == "intro" {
+                .find(|i| i.filter_text.as_deref() == Some("funintro"));
+            if typed == "funintro" {
                 let item = expansion.unwrap_or_else(|| {
                     panic!("the whole keyword must offer the expansion: {items:?}")
                 });
@@ -3056,7 +3061,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
                     lsp_pos(&cur, caret),
                     "the edit replaces exactly the typed token"
                 );
-                assert_eq!(edit.range.end, lsp_pos(&cur, caret + "intro".len()));
+                assert_eq!(edit.range.end, lsp_pos(&cur, caret + "funintro".len()));
             } else {
                 assert!(
                     expansion.is_none(),
@@ -3068,55 +3073,55 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn typed_intro_after_retyping_sorry_and_wrapping() {
+    async fn typed_funintro_after_retyping_sorry_and_wrapping() {
         // 真实学习者动作链：
         //   ① 先写着 `:= sorry`；
-        //   ② 把 `sorry` 删掉改敲 `intro`（选中重打）；
+        //   ② 把 `sorry` 删掉改敲 `funintro`（选中重打）；
         //   ③ 嫌那行太长，把值折到下一行。
         // 两步编辑之后文档各不相同，而「展开项可用」必须一路成立——
-        // `intro` 折行那个历史 bug（playground:201）正是这类编辑序列里的中间态。
+        // `funintro` 折行那个历史 bug（playground:201）正是这类编辑序列里的中间态。
         let initial = "theorem t : Prop -> Prop := sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, initial).await;
-        let _ = wait_diagnostics(&mut socket, "typed intro: sorry baseline").await;
+        let _ = wait_diagnostics(&mut socket, "typed funintro: sorry baseline").await;
 
         let sorry = offset_of(initial, "sorry");
         let space_after_colons = offset_of(initial, ":= ") + ":=".len();
         let steps: [TypedStep<'_>; 2] = [
-            (sorry, "sorry".len(), "intro"), // 选中重打
-            (space_after_colons, 1, "\n  "), // 折行 + 缩进
+            (sorry, "sorry".len(), "funintro"), // 选中重打
+            (space_after_colons, 1, "\n  "),    // 折行 + 缩进
         ];
         let mut cur = initial.to_string();
         let mut version = 1;
         for step in steps {
             type_step(&mut service, &mut socket, &mut cur, &mut version, step).await;
-            let start = offset_of(&cur, "intro");
-            for offset in [start, start + "intro".len()] {
+            let start = offset_of(&cur, "funintro");
+            for offset in [start, start + "funintro".len()] {
                 let items = request_completions_at(&mut service, lsp_pos(&cur, offset)).await;
                 let item = items
                     .iter()
-                    .find(|i| i.filter_text.as_deref() == Some("intro"))
+                    .find(|i| i.filter_text.as_deref() == Some("funintro"))
                     .unwrap_or_else(|| panic!("expansion must survive the edit ({cur:?})"));
                 let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
                 else {
                     panic!("expected a plain CompletionTextEdit::Edit");
                 };
                 assert_eq!(edit.range.start, lsp_pos(&cur, start));
-                assert_eq!(edit.range.end, lsp_pos(&cur, start + "intro".len()));
+                assert_eq!(edit.range.end, lsp_pos(&cur, start + "funintro".len()));
             }
         }
         assert_eq!(
-            cur, "theorem t : Prop -> Prop :=\n  intro\n",
+            cur, "theorem t : Prop -> Prop :=\n  funintro\n",
             "the script must end in the wrapped layout"
         );
         shutdown(&mut service).await;
     }
 
     #[tokio::test]
-    async fn intro_expansion_is_not_offered_on_a_later_line() {
+    async fn funintro_expansion_is_not_offered_on_a_later_line() {
         // 放宽命中区间不能跨行：光标到下一行（新声明/空行）就不该再弹。
-        let src = INTRO_NEXT_LINE; // "...:=\n  intro\n"
+        let src = FUNINTRO_NEXT_LINE; // "...:=\n  funintro\n"
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;
@@ -3126,38 +3131,40 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         assert!(
             items
                 .iter()
-                .all(|i| i.filter_text.as_deref() != Some("intro")),
-            "no expansion outside the intro line: {items:?}"
+                .all(|i| i.filter_text.as_deref() != Some("funintro")),
+            "no expansion outside the funintro line: {items:?}"
         );
         shutdown(&mut service).await;
     }
 
     const APPLY_LOCAL_HYP: &str =
-        "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P := apply h\n";
+        "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P := funapply h\n";
 
     #[tokio::test]
-    async fn value_apply_completion_and_hover_carry_the_skeleton() {
-        // `apply h`（h 是局部假设）：展开项与 hover 都要给出 `h sorry`，
-        // 且 textEdit 覆盖**整个** `apply h`（只覆盖 `apply` 会把 h 留在原地）。
+    async fn value_funapply_completion_and_hover_carry_the_skeleton() {
+        // `funapply h`（h 是局部假设）：展开项与 hover 都要给出 `h sorry`，
+        // 且 textEdit 覆盖**整个** `funapply h`（只覆盖 `funapply` 会把 h 留在原地）。
         let src = APPLY_LOCAL_HYP;
         let (mut service, _socket) = open_and_wait(src).await;
-        let start = offset_of(src, "apply");
+        let start = offset_of(src, "funapply");
         for (where_, offset) in [
             ("token", start),
-            ("end of the argument", start + "apply h".len()),
+            ("end of the argument", start + "funapply h".len()),
         ] {
             let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
             let item = items
                 .iter()
-                .find(|i| i.filter_text.as_deref() == Some("apply"))
-                .unwrap_or_else(|| panic!("{where_}: apply expansion must be offered: {items:?}"));
+                .find(|i| i.filter_text.as_deref() == Some("funapply"))
+                .unwrap_or_else(|| {
+                    panic!("{where_}: funapply expansion must be offered: {items:?}")
+                });
             let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
                 panic!("expected a plain CompletionTextEdit::Edit");
             };
             assert_eq!(edit.range.start, lsp_pos(src, start), "{where_}");
             assert_eq!(
                 edit.range.end,
-                lsp_pos(src, start + "apply h".len()),
+                lsp_pos(src, start + "funapply h".len()),
                 "{where_}"
             );
             assert_eq!(edit.new_text, "h sorry", "{where_}");
@@ -3165,7 +3172,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
 
         let hover = hover_opt_at(&mut service, src, start)
             .await
-            .expect("hover on value apply must answer");
+            .expect("hover on value funapply must answer");
         let HoverContents::Markup(markup) = hover.contents else {
             panic!("expected markup hover");
         };
@@ -3176,7 +3183,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         );
         assert!(
             markup.value.contains("不替换也完全等价"),
-            "hover must say leaving apply alone is equivalent: {:?}",
+            "hover must say leaving funapply alone is equivalent: {:?}",
             markup.value
         );
         assert!(
@@ -3187,7 +3194,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         shutdown(&mut service).await;
     }
 
-    // —— 临时探针（调研用，S2 会替换成正式断言）：逐键输入 lambda 尾 `apply`，
+    // —— 临时探针（调研用，S2 会替换成正式断言）：逐键输入 lambda 尾 `funapply`，
     // 打印每个中间态的补全清单，定位「输入过程中没有弹出替换提示」的环节。
     #[tokio::test]
     async fn probe_typing_completions_in_lambda_tail() {
@@ -3204,7 +3211,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
 
         let mut cur = initial.clone();
         let mut version = 1;
-        let script = "apply And.intro";
+        let script = "funapply And.intro";
         for (index, step) in char_steps(script, caret).iter().enumerate() {
             type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
             let typed = &script[..=index];
@@ -3223,27 +3230,32 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             let expand = items.iter().any(|i| {
                 matches!(i.text_edit.as_ref(), Some(CompletionTextEdit::Edit(e)) if e.new_text.contains("sorry"))
             });
-            println!("PROBE typed={typed:?} items={} expand={} {:?}", items.len(), expand, labels);
+            println!(
+                "PROBE typed={typed:?} items={} expand={} {:?}",
+                items.len(),
+                expand,
+                labels
+            );
         }
         shutdown(&mut service).await;
     }
 
     #[tokio::test]
-    async fn typed_apply_chars_only_expand_on_the_whole_word() {
-        // 逐字符敲 `apply`：前缀不给展开项，整词才给（与 `intro` 同一门控）。
+    async fn typed_funapply_chars_only_expand_on_the_whole_word() {
+        // 逐字符敲 `funapply`：前缀不给展开项，整词才给（与 `funintro` 同一门控）。
         let head = "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P := ";
         let initial = format!("{head}\n");
         let caret = head.len();
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, &initial).await;
-        let _ = wait_diagnostics(&mut socket, "typed apply: initial state").await;
+        let _ = wait_diagnostics(&mut socket, "typed funapply: initial state").await;
 
         let mut cur = initial.clone();
         let mut version = 1;
-        // `apply` 不带实参是**教学错误**（elab-apply-needs-a-term），所以展开项
+        // `funapply` 不带实参是**教学错误**（elab-funapply-needs-a-term），所以展开项
         // 要等到实参 `h` 也敲完才出现：断言「敲完整串之前一路不弹、之后弹」。
-        let script = "apply h";
+        let script = "funapply h";
         for (index, step) in char_steps(script, caret).iter().enumerate() {
             type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
             let typed = &script[..=index];
@@ -3251,10 +3263,10 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
             let expansion = items
                 .iter()
-                .find(|i| i.filter_text.as_deref() == Some("apply"));
+                .find(|i| i.filter_text.as_deref() == Some("funapply"));
             if typed == script {
                 let item = expansion
-                    .unwrap_or_else(|| panic!("the full `apply h` must offer the expansion"));
+                    .unwrap_or_else(|| panic!("the full `funapply h` must offer the expansion"));
                 let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
                 else {
                     panic!("expected a plain CompletionTextEdit::Edit");
@@ -3273,18 +3285,18 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn apply_expansion_is_not_offered_outside_its_own_line() {
-        // 与 `intro` 同一条边界：跨行不命中，免得在后面的声明上误弹。
-        let src = "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P :=\n  apply h\n\ntheorem u : P := h sorry\n";
+    async fn funapply_expansion_is_not_offered_outside_its_own_line() {
+        // 与 `funintro` 同一条边界：跨行不命中，免得在后面的声明上误弹。
+        let src = "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P :=\n  funapply h\n\ntheorem u : P := h sorry\n";
         let (mut service, _socket) = open_and_wait(src).await;
-        // 光标落在下下个声明上：不该再给 `apply` 的展开项。
+        // 光标落在下下个声明上：不该再给 `funapply` 的展开项。
         let items =
             request_completions_at(&mut service, lsp_pos(src, offset_of(src, "h sorry"))).await;
         assert!(
             items
                 .iter()
-                .all(|i| i.filter_text.as_deref() != Some("apply")),
-            "no apply expansion on a later declaration: {items:?}"
+                .all(|i| i.filter_text.as_deref() != Some("funapply")),
+            "no funapply expansion on a later declaration: {items:?}"
         );
         shutdown(&mut service).await;
     }
@@ -3311,13 +3323,13 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn hover_on_value_intro_carries_the_expand_command() {
+    async fn hover_on_value_funintro_carries_the_expand_command() {
         // hover 里的按钮：载荷全部由服务端算好（uri + 洞 range + 骨架），
         // 编辑器只应用编辑，不扫文本、不重算。
-        let src = "theorem t : Prop -> Prop := intro\n";
+        let src = "theorem t : Prop -> Prop := funintro\n";
         let (mut service, _socket) = open_and_wait(src).await;
-        let intro = offset_of(src, "intro");
-        let hover = hover_opt_at(&mut service, src, intro + "intro".len())
+        let funintro = offset_of(src, "funintro");
+        let hover = hover_opt_at(&mut service, src, funintro + "funintro".len())
             .await
             .expect("hover must answer");
         let HoverContents::Markup(markup) = hover.contents else {
@@ -3344,16 +3356,16 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         assert_eq!(
             payload["range"],
             json!({
-                "start": position_json(lsp_pos(src, intro)),
-                "end": position_json(lsp_pos(src, intro + "intro".len())),
+                "start": position_json(lsp_pos(src, funintro)),
+                "end": position_json(lsp_pos(src, funintro + "funintro".len())),
             })
         );
         assert_eq!(payload["newText"], "fun (x : Prop) => sorry");
-        // 用户诉求（「intro 也可以不被替换，直接等价于对应的 fun 表达式」）：
+        // 用户诉求（「funintro 也可以不被替换，直接等价于对应的 fun 表达式」）：
         // hover 必须**明说**不替换也等价——否则学习者会以为非得点按钮/按 Tab。
         assert!(
             markup.value.contains("不替换也完全等价"),
-            "hover must state that leaving `intro` alone is equivalent: {:?}",
+            "hover must state that leaving `funintro` alone is equivalent: {:?}",
             markup.value
         );
         shutdown(&mut service).await;
@@ -3710,12 +3722,12 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
 
     #[tokio::test]
     async fn hover_on_value_intro_shows_the_expansion() {
-        // 未接受补全时，hover `intro` 也能看到展开后的显式表达式；
-        // 光标在 token 里或词尾都命中，并高亮 intro token。
-        let src = "theorem t : Prop -> Prop := intro\n";
+        // 未接受补全时，hover `funintro` 也能看到展开后的显式表达式；
+        // 光标在 token 里或词尾都命中，并高亮 funintro token。
+        let src = "theorem t : Prop -> Prop := funintro\n";
         let (mut service, _socket) = open_and_wait(src).await;
-        let intro = src.find("intro").expect("intro token");
-        for offset in [intro, intro + "intro".len()] {
+        let funintro = src.find("funintro").expect("funintro token");
+        for offset in [funintro, funintro + "funintro".len()] {
             let hover = hover_opt_at(&mut service, src, offset)
                 .await
                 .unwrap_or_else(|| panic!("hover at {offset} must exist"));
@@ -3727,9 +3739,11 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
                 value.contains("fun (x : Prop) => sorry"),
                 "hover must show the expansion: {value}"
             );
-            let range = hover.range.expect("hover must highlight the intro token");
-            assert_eq!(range.start, lsp_pos(src, intro));
-            assert_eq!(range.end, lsp_pos(src, intro + "intro".len()));
+            let range = hover
+                .range
+                .expect("hover must highlight the funintro token");
+            assert_eq!(range.start, lsp_pos(src, funintro));
+            assert_eq!(range.end, lsp_pos(src, funintro + "funintro".len()));
         }
         shutdown(&mut service).await;
     }
@@ -3939,7 +3953,7 @@ mod by_sorry_range_tests {
         let src = "axiom And : Prop -> Prop -> Prop\n\
                    theorem a : (a : Prop) -> And a a -> a := by sorry\n\
                    -- 练习 14 注释\n\
-                   -- soko:hint 思路：apply\n\
+                   -- soko:hint 思路：funapply\n\
                    theorem b : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;

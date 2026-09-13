@@ -133,7 +133,7 @@ pub(crate) fn code_actions(
                     };
                     push_action(
                         &mut actions,
-                        format!("intro {intros} 个 binder（把证明写成 lambda 的第一步）"),
+                        format!("引入 {intros} 个 binder（把证明写成 lambda 的第一步）"),
                         edit,
                     );
                 }
@@ -518,7 +518,7 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         let titles = titles_of(&actions);
         assert!(titles[0].contains("exact"), "exact first: {titles:?}");
         assert!(titles[1].contains("refine"), "refine second: {titles:?}");
-        assert!(titles[2].contains("intro"), "intro last: {titles:?}");
+        assert!(titles[2].contains("引入"), "intro last: {titles:?}");
         shutdown(&mut service).await;
     }
 

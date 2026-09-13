@@ -898,12 +898,12 @@ fn open_exercise_does_not_pollute_env() {
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "ok")));
 }
 
-// ---- 值位 `intro`（一次全剥的 lambda 骨架）----
+// ---- 值位 `funintro`（一次全剥的 lambda 骨架）----
 
 #[test]
-fn intro_lowers_all_pi_binders_into_a_lambda_skeleton() {
+fn funintro_lowers_all_pi_binders_into_a_lambda_skeleton() {
     let src = "axiom And : Prop -> Prop -> Prop\n\
-               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro\n";
+               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro\n";
     let file = parse(src).expect("parse");
     let report = check_document(&file);
     assert!(report.errors.is_empty(), "{:?}", report.errors);
@@ -926,7 +926,7 @@ fn intro_lowers_all_pi_binders_into_a_lambda_skeleton() {
     assert_eq!(d.holes.len(), 1);
     assert_eq!(
         &src[d.holes[0].start.offset..d.holes[0].end.offset],
-        "intro"
+        "funintro"
     );
     assert_eq!(
         d.intro_skeleton.as_deref(),
@@ -935,9 +935,9 @@ fn intro_lowers_all_pi_binders_into_a_lambda_skeleton() {
 }
 
 #[test]
-fn intro_names_anonymous_layers_x_and_dedups() {
+fn funintro_names_anonymous_layers_x_and_dedups() {
     let report = check_document(
-        &parse("def f : (x : Prop) -> Prop -> Nat -> Nat := intro\n").expect("parse"),
+        &parse("def f : (x : Prop) -> Prop -> Nat -> Nat := funintro\n").expect("parse"),
     );
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -955,9 +955,9 @@ fn intro_names_anonymous_layers_x_and_dedups() {
 }
 
 #[test]
-fn intro_on_a_non_function_goal_is_rejected() {
+fn funintro_on_a_non_function_goal_is_rejected() {
     let report =
-        check_document(&parse("axiom True : Prop\ntheorem t : True := intro\n").expect("parse"));
+        check_document(&parse("axiom True : Prop\ntheorem t : True := funintro\n").expect("parse"));
     assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
     assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
     let d = report
@@ -970,8 +970,8 @@ fn intro_on_a_non_function_goal_is_rejected() {
 }
 
 #[test]
-fn intro_open_exercise_does_not_touch_the_kernel() {
-    let file = parse("theorem t : (a : Prop) -> a -> a := intro\n").expect("parse");
+fn funintro_open_exercise_does_not_touch_the_kernel() {
+    let file = parse("theorem t : (a : Prop) -> a -> a := funintro\n").expect("parse");
     let out = compile_fol(&file);
     assert_eq!(out.errors, vec![], "{:?}", out.errors);
     assert_eq!(out.stats.kernel_checks, 0, "intro is an open exercise");
@@ -982,9 +982,9 @@ fn intro_open_exercise_does_not_touch_the_kernel() {
 }
 
 #[test]
-fn intro_preserves_implicit_binder_style() {
+fn funintro_preserves_implicit_binder_style() {
     let report =
-        check_document(&parse("theorem t : {a : Prop} -> a -> a := intro\n").expect("parse"));
+        check_document(&parse("theorem t : {a : Prop} -> a -> a := funintro\n").expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
         .decls
@@ -998,18 +998,18 @@ fn intro_preserves_implicit_binder_style() {
     );
 }
 
-/// 值位 `intro` 是**可选糖**：不展开也完全等价于手写骨架。
+/// 值位 `funintro` 是**可选糖**：不展开也完全等价于手写骨架。
 ///
-/// 用户诉求（原话）：「`intro` 也可以不被替换，直接等价于对应的 `fun`
-/// 表达式，这样更方便。」这条测试把它钉成契约——`intro` 与把
+/// 用户诉求（原话）：「`funintro` 也可以不被替换，直接等价于对应的 `fun`
+/// 表达式，这样更方便。」这条测试把它钉成契约——`funintro` 与把
 /// `intro_skeleton` 原样粘回去，必须得到同一个练习：同 status、同 goal、
-/// 同 binders、同洞数。区别只有两处：`intro` 的洞落在 `intro` token 上、
+/// 同 binders、同洞数。区别只有两处：`funintro` 的洞落在 `funintro` token 上、
 /// 且它多带一份 `intro_skeleton`（那正是给编辑器展开用的）。
 #[test]
-fn intro_is_equivalent_to_typing_the_skeleton_out_by_hand() {
+fn funintro_is_equivalent_to_typing_the_skeleton_out_by_hand() {
     let head = "axiom And : Prop -> Prop -> Prop\n";
     let ty = "(a : Prop) -> (b : Prop) -> And a b -> And b a";
-    let with_intro = format!("{head}theorem and_swap : {ty} := intro\n");
+    let with_intro = format!("{head}theorem and_swap : {ty} := funintro\n");
     let by_hand = format!(
         "{head}theorem and_swap : {ty} :=\n  \
          fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry\n"
@@ -1058,20 +1058,20 @@ fn intro_is_equivalent_to_typing_the_skeleton_out_by_hand() {
     );
     assert!(
         b.intro_skeleton.is_none(),
-        "only the `intro` form carries the editor skeleton"
+        "only the `funintro` form carries the editor skeleton"
     );
 }
 
-/// 换行只为不写超长行：把 `:= intro` 折成两行，练习必须**一字不差**地相同
+/// 换行只为不写超长行：把 `:= funintro` 折成两行，练习必须**一字不差**地相同
 ///（用户症状：`playground.sokonanoda:201` 只差一个换行，行为却不一样）。
 #[test]
-fn value_intro_is_layout_independent() {
+fn value_funintro_is_layout_independent() {
     let head = "axiom And : Prop -> Prop -> Prop\n";
     let ty = "(a : Prop) -> (b : Prop) -> And a b -> And b a";
-    let same_line = format!("{head}theorem and_swap : {ty} := intro\n");
-    let next_line = format!("{head}theorem and_swap : {ty} :=\n  intro\n");
+    let same_line = format!("{head}theorem and_swap : {ty} := funintro\n");
+    let next_line = format!("{head}theorem and_swap : {ty} :=\n  funintro\n");
     // 学习者顺手关掉补全弹窗打的那个尾随空格，也不该改变任何东西。
-    let trailing = format!("{head}theorem and_swap : {ty} := intro \n");
+    let trailing = format!("{head}theorem and_swap : {ty} := funintro \n");
 
     let decl_of = |src: &str| {
         let report = check_document(&parse(src).expect("parse"));
@@ -1100,20 +1100,20 @@ fn value_intro_is_layout_independent() {
         assert_eq!(other.holes.len(), base.holes.len(), "{src:?}");
         assert_eq!(
             &src[other.holes[0].start.offset..other.holes[0].end.offset],
-            "intro",
+            "funintro",
             "{src:?}"
         );
     }
 }
 
-// ---- 值位 `apply`（目标「倒过来」消费，前提留洞）----
+// ---- 值位 `funapply`（目标「倒过来」消费，前提留洞）----
 
 #[test]
-fn apply_lowers_to_the_partial_application_skeleton() {
-    // 局部假设是 `apply` 最常用的教学场景：`h : Q -> P`，目标 `P`，
+fn funapply_lowers_to_the_partial_application_skeleton() {
+    // 局部假设是 `funapply` 最常用的教学场景：`h : Q -> P`，目标 `P`，
     // 展开成 `h sorry`——前提留成洞。
     let src = "axiom P : Prop\naxiom Q : Prop\n\
-               theorem t (h : Q -> P) : P := apply h\n";
+               theorem t (h : Q -> P) : P := funapply h\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1130,24 +1130,24 @@ fn apply_lowers_to_the_partial_application_skeleton() {
         .collect();
     assert_eq!(binders, vec![("h", "Q -> P")]);
     assert_eq!(d.holes.len(), 1);
-    // 洞的 span 覆盖**整个** `apply h`：编辑器展开要整段替换，只覆盖
-    // `apply` 会把实参留在原地变成 `h h sorry`。
+    // 洞的 span 覆盖**整个** `funapply h`：编辑器展开要整段替换，只覆盖
+    // `funapply` 会把实参留在原地变成 `h h sorry`。
     assert_eq!(
         &src[d.holes[0].start.offset..d.holes[0].end.offset],
-        "apply h"
+        "funapply h"
     );
     assert_eq!(d.apply_skeleton.as_deref(), Some("h sorry"));
     assert!(d.intro_skeleton.is_none());
 }
 
 #[test]
-fn apply_fills_type_parameters_from_the_goal() {
+fn funapply_fills_type_parameters_from_the_goal() {
     // `f : (a : Prop) -> Q a -> P a`，目标 `P p` → 类型参数 `a` 由目标实参
     // 填充，只有前提 `Q p` 留成洞：`f p sorry`。
     let src = "axiom P : Prop -> Prop\naxiom Q : Prop -> Prop\naxiom p : Prop\n\
                axiom f : (a : Prop) -> Q a -> P a\n\
                axiom qx : Q p\n\
-               theorem t : P p := apply f\n";
+               theorem t : P p := funapply f\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1165,12 +1165,12 @@ fn apply_fills_type_parameters_from_the_goal() {
 }
 
 #[test]
-fn apply_with_a_supplied_premise_keeps_only_the_rest() {
+fn funapply_with_a_supplied_premise_keeps_only_the_rest() {
     // `apply f p`：类型参数已经手写给出，只剩一个前提洞。
     let src = "axiom P : Prop -> Prop\naxiom Q : Prop -> Prop\naxiom p : Prop\n\
                axiom f : (a : Prop) -> Q a -> P a\n\
                axiom qx : Q p\n\
-               theorem t : P p := apply f p\n";
+               theorem t : P p := funapply f p\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1184,9 +1184,9 @@ fn apply_with_a_supplied_premise_keeps_only_the_rest() {
 }
 
 #[test]
-fn apply_of_a_fully_determined_proof_is_checked_by_the_kernel() {
+fn funapply_of_a_fully_determined_proof_is_checked_by_the_kernel() {
     // `h : P` 直接就是答案（零个前提洞）——与 `exact` 等价，交内核终审。
-    let src = "axiom P : Prop\naxiom h : P\ntheorem t : P := apply h\n";
+    let src = "axiom P : Prop\naxiom h : P\ntheorem t : P := funapply h\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1199,10 +1199,10 @@ fn apply_of_a_fully_determined_proof_is_checked_by_the_kernel() {
 }
 
 #[test]
-fn apply_is_equivalent_to_typing_the_skeleton_out_by_hand() {
-    // 与 `intro` 同一条契约：不展开也完全等价（同 status/goal/binders/洞数）。
+fn funapply_is_equivalent_to_typing_the_skeleton_out_by_hand() {
+    // 与 `funintro` 同一条契约：不展开也完全等价（同 status/goal/binders/洞数）。
     let head = "axiom P : Prop\naxiom Q : Prop\n";
-    let with_apply = format!("{head}theorem t (h : Q -> P) : P := apply h\n");
+    let with_apply = format!("{head}theorem t (h : Q -> P) : P := funapply h\n");
     let by_hand = format!("{head}theorem t (h : Q -> P) : P := h sorry\n");
 
     let report = check_document(&parse(&with_apply).expect("parse"));
@@ -1215,7 +1215,7 @@ fn apply_is_equivalent_to_typing_the_skeleton_out_by_hand() {
     let skeleton = a
         .apply_skeleton
         .clone()
-        .expect("apply carries its skeleton");
+        .expect("funapply carries its skeleton");
 
     let report = check_document(&parse(&by_hand).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
@@ -1250,13 +1250,13 @@ fn apply_is_equivalent_to_typing_the_skeleton_out_by_hand() {
 }
 
 #[test]
-fn value_apply_is_layout_independent() {
+fn value_funapply_is_layout_independent() {
     // 同页 / 换行 / 尾随空格三种排版，判定与骨架一字不差。
     let head = "axiom P : Prop\naxiom Q : Prop\n";
     let ty = "(h : Q -> P)";
-    let same_line = format!("{head}theorem t {ty} : P := apply h\n");
-    let next_line = format!("{head}theorem t {ty} : P :=\n  apply h\n");
-    let trailing = format!("{head}theorem t {ty} : P := apply h \n");
+    let same_line = format!("{head}theorem t {ty} : P := funapply h\n");
+    let next_line = format!("{head}theorem t {ty} : P :=\n  funapply h\n");
+    let trailing = format!("{head}theorem t {ty} : P := funapply h \n");
 
     let decl_of = |src: &str| {
         let report = check_document(&parse(src).expect("parse"));
@@ -1287,12 +1287,12 @@ fn value_apply_is_layout_independent() {
 }
 
 #[test]
-fn apply_on_an_unrelated_goal_is_rejected() {
+fn funapply_on_an_unrelated_goal_is_rejected() {
     // `impl` 的结论是 `P`，目标却是 `Q`——位置合一失败 → 教学错误。
     let src = "axiom P : Prop\naxiom Q : Prop\n\
                axiom impl : Q -> P\n\
                axiom q : Q\n\
-               theorem t : Q := apply impl\n";
+               theorem t : Q := funapply impl\n";
     let report = check_document(&parse(src).expect("parse"));
     assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
     assert_eq!(report.errors[0].code(), "elab-apply-not-applicable");
@@ -1306,17 +1306,17 @@ fn apply_on_an_unrelated_goal_is_rejected() {
 }
 
 #[test]
-fn apply_without_an_argument_is_a_stable_teaching_error() {
-    let src = "axiom P : Prop\ntheorem t : P := apply\n";
+fn funapply_without_an_argument_is_a_stable_teaching_error() {
+    let src = "axiom P : Prop\ntheorem t : P := funapply\n";
     let report = check_document(&parse(src).expect("parse"));
     assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
     assert_eq!(report.errors[0].code(), "elab-apply-needs-a-term");
 }
 
 #[test]
-fn apply_of_an_unknown_name_reports_the_identifier() {
+fn funapply_of_an_unknown_name_reports_the_identifier() {
     // 名字打错是最常见的失败：保留既有的 `elab-unknown-identifier` 码。
-    let src = "axiom P : Prop\ntheorem t : P := apply nope\n";
+    let src = "axiom P : Prop\ntheorem t : P := funapply nope\n";
     let report = check_document(&parse(src).expect("parse"));
     assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
     assert_eq!(report.errors[0].code(), "elab-unknown-identifier");
@@ -1336,7 +1336,7 @@ fn by_block_apply_still_uses_the_tactic_engine() {
         .iter()
         .find(|d| d.name.as_deref() == Some("t"))
         .expect("decl t");
-    // `apply impl` 留下一个未解子目标 `Q` → 练习态（Open），且**不带**值位骨架。
+    // `funapply impl` 留下一个未解子目标 `Q` → 练习态（Open），且**不带**值位骨架。
     assert_eq!(d.status, DeclStatus::Open);
     assert_eq!(d.holes.len(), 1);
     assert!(
@@ -1365,11 +1365,11 @@ fn by_block_apply_still_uses_the_tactic_engine() {
 
 #[test]
 fn keywords_work_in_a_lambda_tail() {
-    // 用户在 playground 202 行实况：拆完 binder 之后才想用 `apply`。
+    // 用户在 playground 202 行实况：拆完 binder 之后才想用 `funapply`。
     // 关键字原来只在值位开头识别，lambda 体里是普通标识符 → unknown
-    // identifier。现在 lambda 体尾部也认 `intro` / `apply`。
+    // identifier。现在 lambda 体尾部也认 `funintro` / `funapply`。
     let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
-               theorem t : Q -> P := fun (x : Q) => apply proofP\n";
+               theorem t : Q -> P := fun (x : Q) => funapply proofP\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1377,19 +1377,19 @@ fn keywords_work_in_a_lambda_tail() {
         .iter()
         .find(|d| d.name.as_deref() == Some("t"))
         .expect("decl t");
-    // 降低了：`fun (x : Q) => proofP sorry`?? 不——apply proofP 的类型
-    // `P -> P`?? 不：proofP : P，apply proofP 无前提 → 就是 proofP。
+    // 降低了：`fun (x : Q) => proofP sorry`?? 不——funapply proofP 的类型
+    // `P -> P`?? 不：proofP : P，funapply proofP 无前提 → 就是 proofP。
     // 关键是它被 kernel 接受了：隐式替换在 lambda 尾同样成立。
     assert_eq!(d.status, DeclStatus::Checked);
     assert!(d.intro_skeleton.is_none() && d.apply_skeleton.is_none());
 }
 
 #[test]
-fn nested_intro_in_a_lambda_tail_lowers_to_the_skeleton() {
-    // 多层 lambda 尾部的裸 `intro`：剩余目标还有一层函数，嵌套的 intro
-    // 把它也剥掉。洞 = 嵌套 intro token，骨架只覆盖 intro 自身的展开。
+fn nested_funintro_in_a_lambda_tail_lowers_to_the_skeleton() {
+    // 多层 lambda 尾部的裸 `funintro`：剩余目标还有一层函数，嵌套的 funintro
+    // 把它也剥掉。洞 = 嵌套 funintro token，骨架只覆盖 funintro 自身的展开。
     let src = "axiom P : Prop\naxiom Q : Prop\n\
-               theorem t : Q -> (Q -> P) := fun (x : Q) => intro\n";
+               theorem t : Q -> (Q -> P) := fun (x : Q) => funintro\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1401,18 +1401,18 @@ fn nested_intro_in_a_lambda_tail_lowers_to_the_skeleton() {
     assert_eq!(d.goal.as_deref(), Some("P"));
     assert_eq!(d.holes.len(), 1);
     let text = "axiom P : Prop\naxiom Q : Prop\n\
-                theorem t : Q -> (Q -> P) := fun (x : Q) => intro\n";
+                theorem t : Q -> (Q -> P) := fun (x : Q) => funintro\n";
     assert_eq!(
         &text[d.holes[0].start.offset..d.holes[0].end.offset],
-        "intro"
+        "funintro"
     );
     // 骨架的合成 binder 避开外层 lambda 的 `x`（命名避让）。
     assert_eq!(d.intro_skeleton.as_deref(), Some("fun (x2 : Q) => sorry"));
 }
 
 #[test]
-fn nested_apply_in_a_lambda_tail_checks() {
-    // and_swap 的自然写法：拆完 binder 后用 `apply` 接上 And.intro。
+fn nested_funapply_in_a_lambda_tail_checks() {
+    // and_swap 的自然写法：拆完 binder 后用 `funapply` 接上 And.intro。
     // 注意前提顺序：`And.intro b a u v` 里 u : b、v : a，所以 u 取
     // And.right、v 取 And.left——顺序写反正是画布练习 3 要教的东西。
     let src = "axiom And : Prop -> Prop -> Prop\n\
@@ -1421,7 +1421,7 @@ fn nested_apply_in_a_lambda_tail_checks() {
                axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
                theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
                  fun (a : Prop) => fun (b : Prop) => fun (x : And a b) =>\n\
-                   apply (And.intro b a (And.right a b x) (And.left a b x))\n";
+                   funapply (And.intro b a (And.right a b x) (And.left a b x))\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1433,12 +1433,12 @@ fn nested_apply_in_a_lambda_tail_checks() {
 }
 
 #[test]
-fn nested_intro_on_a_non_function_goal_is_still_rejected() {
-    // 边界不变：剩余目标不是函数时，裸 `intro` 没有东西可引入 → 教学错误
-    // （and_swap 拆到只剩 `And b a` 时就是这种形态，此时该用 apply 或直接写）。
+fn nested_funintro_on_a_non_function_goal_is_still_rejected() {
+    // 边界不变：剩余目标不是函数时，裸 `funintro` 没有东西可引入 → 教学错误
+    // （and_swap 拆到只剩 `And b a` 时就是这种形态，此时该用 funapply 或直接写）。
     let src = "axiom And : Prop -> Prop -> Prop\n\
                theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
-                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => intro\n";
+                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => funintro\n";
     let report = check_document(&parse(src).expect("parse"));
     assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
     assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
@@ -1497,14 +1497,14 @@ fn by_sorry_in_a_lambda_tail_is_an_open_exercise() {
 }
 
 #[test]
-fn intro_with_an_answer_is_the_implicit_replacement() {
+fn funintro_with_an_answer_is_the_implicit_replacement() {
     // 用户诉求：「不修改内核的前提下，改前端隐式替换」——`intro <answer>`
     // 由前端把 intro 隐式替换成 `fun … => <answer>`，学习者不必先接受展开
     // 才能继续写。判定仍由内核终审（这里是完整证明 → Checked）。
     // 答案必须是**最终目标**的证明：intro 引入 `x : Q` 之后，目标是 `P`，
     // 所以答案是 `proofP : P`（而不是 `impl : Q -> P`——那是函数，类型会对不上）。
     let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
-               theorem t : Q -> P := intro proofP\n";
+               theorem t : Q -> P := funintro proofP\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1523,11 +1523,11 @@ fn intro_with_an_answer_is_the_implicit_replacement() {
 }
 
 #[test]
-fn intro_with_a_wrong_answer_is_judged_by_the_kernel() {
+fn funintro_with_a_wrong_answer_is_judged_by_the_kernel() {
     // 答案 `wrongQ : Q` 不是 `P` 的证明 → 内核拒绝。
     // 前端不做判定，也没有合成洞可绕。
     let src = "axiom P : Prop\naxiom Q : Prop\naxiom wrongQ : Q\n\
-               theorem t : Q -> P := intro wrongQ\n";
+               theorem t : Q -> P := funintro wrongQ\n";
     let report = check_document(&parse(src).expect("parse"));
     assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
     assert_eq!(report.errors[0].code(), "kernel-rejected");
@@ -1596,8 +1596,8 @@ fn decl_binders_closed_body_needs_no_lambdas() {
 }
 
 #[test]
-fn decl_binders_intro_peels_only_the_residual() {
-    let src = "theorem t (a : Prop) : a -> a := intro\n";
+fn decl_binders_funintro_peels_only_the_residual() {
+    let src = "theorem t (a : Prop) : a -> a := funintro\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1616,7 +1616,7 @@ fn decl_binders_intro_peels_only_the_residual() {
     assert_eq!(d.intro_skeleton.as_deref(), Some("fun (x : a) => sorry"));
     assert_eq!(
         &src[d.holes[0].start.offset..d.holes[0].end.offset],
-        "intro"
+        "funintro"
     );
 }
 

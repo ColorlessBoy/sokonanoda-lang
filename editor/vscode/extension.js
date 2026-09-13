@@ -435,7 +435,7 @@ async function expandKeyword(...args) {
   }
   const { uri, range, newText } = payload;
   if (typeof uri !== "string" || !range || typeof newText !== "string") {
-    vscode.window.showErrorMessage("sokonanoda: 展开 intro 的载荷不完整。");
+    vscode.window.showErrorMessage("sokonanoda: 展开 funintro 的载荷不完整。");
     return;
   }
   const target = vscode.Uri.parse(uri);
@@ -448,7 +448,7 @@ async function expandKeyword(...args) {
   const edit = new vscode.WorkspaceEdit();
   edit.replace(target, span, newText);
   if (!(await vscode.workspace.applyEdit(edit))) {
-    vscode.window.showErrorMessage("sokonanoda: 展开 intro 失败。");
+    vscode.window.showErrorMessage("sokonanoda: 展开 funintro 失败。");
     return;
   }
   const editor = vscode.window.visibleTextEditors.find(

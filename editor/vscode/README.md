@@ -48,10 +48,10 @@ skills.
 **A real editing experience**
 
 - Completions (keywords, in-scope binders, prelude names) — including the
-  value-position keywords `intro` and `apply`, which offer to expand in
+  value-position keywords `funintro` and `funapply`, which offer to expand in
   place into the explicit skeleton their type determines (`fun … => sorry`
-  for `intro`, a partial application with the premises left as holes for
-  `apply`). Hovering either shows the same expansion with a one-click
+  for `funintro`, a partial application with the premises left as holes for
+  `funapply`). Hovering either shows the same expansion with a one-click
   expand button, and tells you that keeping the keyword is equivalent
   anyway — expanding is never required.
 - Go-to-definition, document highlight, rename, find references

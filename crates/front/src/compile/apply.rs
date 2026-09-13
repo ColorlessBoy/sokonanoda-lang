@@ -1,8 +1,8 @@
-//! 值位 `apply` 关键字的降低：把目标「倒过来」消费——拿一个证明/函数接到
-//! 目标上，把它的前提留成洞（`apply h` → `h sorry`）。
+//! 值位 `funapply` 关键字的降低：把目标「倒过来」消费——拿一个证明/函数接到
+//! 目标上，把它的前提留成洞（`funapply h` → `h sorry`）。
 //!
-//! 与 `intro` 的关键差别（`docs/design/term-apply.md` §1）：`intro` 只需要
-//! **声明类型**（parse 后已是 AST，纯 front 侧、值不进内核）；`apply` 需要
+//! 与 `funintro` 的关键差别（`docs/design/term-apply.md` §1）：`funintro` 只需要
+//! **声明类型**（parse 后已是 AST，纯 front 侧、值不进内核）；`funapply` 需要
 //! **被应用名字的类型望远镜**，而 front 侧没有可用的类型表——局部假设只有
 //! 渲染后的文本、`GoalTemplates` 丢了 codomain、内核无类型查询 API。因此这里
 //! 走 `by` 引擎已验证的 [`judge_infer`] 路线：内核只用来**推断类型**，不做
@@ -99,7 +99,7 @@ fn lower_at(
     let Some(term) = term else {
         return Err(CompileError::elab(
             ErrorKind::ElabApplyNeedsATerm,
-            "`apply` 后面要跟一个证明或函数".to_string(),
+            "`funapply` 后面要跟一个证明或函数，例如 `funapply h`…`funapply (f a)`".to_string(),
             span,
         ));
     };
@@ -154,7 +154,7 @@ fn lower_at(
     // 实参项的每个 telescope 层：出现在结论里的命名 binder 是**类型参数**
     // （由目标实参经 σ 填充，学习者不用写），其余是**前提**，留成洞。
     //
-    // 注意 `term` 的类型已经吃掉了学习者手写的实参（`apply f p` 推出来的是
+    // 注意 `term` 的类型已经吃掉了学习者手写的实参（`funapply f p` 推出来的是
     // `Q p -> P p`），所以这里不需要、也不能再按「已给实参个数」去跳层——
     // 结论之后剩下的每一层前提都是洞。
     let mut app = term.clone();

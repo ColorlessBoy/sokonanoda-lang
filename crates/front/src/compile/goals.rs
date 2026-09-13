@@ -200,7 +200,7 @@ pub(crate) fn open_goal(ty: &Expr, val: &Expr, templates: &GoalTemplates) -> Opt
     goal_under_binders(ty, val, templates, &locals)
 }
 
-/// 值位 `apply` 的**局部假设**模板覆盖层。
+/// 值位 `funapply` 的**局部假设**模板覆盖层。
 ///
 /// `apply h`（`h` 是当前 lambda 链已引入的假设）降低成 `h sorry` 之后，spine
 /// 走查要能认出 `h` 的望远镜——但 [`GoalTemplates.funcs`] 只有全局名字，局部
@@ -401,7 +401,7 @@ fn substitute_names(
         },
         Expr::Num { .. } | Expr::Hole { .. } => expr.clone(),
         Expr::Intro { .. } => expr.clone(),
-        Expr::Apply { .. } => expr.clone(), // 值位 `apply` 在 lowering 前已消费
+        Expr::Apply { .. } => expr.clone(), // 值位 `funapply` 在 lowering 前已消费
         Expr::By { .. } => expr.clone(),    // by 块在 elab 前已降级，不应出现在此
     }
 }
@@ -564,7 +564,7 @@ fn func_spine_case(
     locals: &HashMap<String, FuncTemplate>,
 ) -> Option<OpenGoalInfo> {
     let (val_head, val_args) = spine_head_args(val)?;
-    // 全局优先，局部假设（值位 `apply` 引入的覆盖层）兜底。
+    // 全局优先，局部假设（值位 `funapply` 引入的覆盖层）兜底。
     let template = templates
         .funcs
         .get(&val_head)

@@ -163,13 +163,13 @@ impl ErrorKind {
                 "`by` 块里的 tactic 失败了：请检查当前目标与已引入的假设。"
             }
             ElabIntroNotAFunction => {
-                "值位 `intro` 需要目标至少是一层函数（`A -> B` 或 `forall …`）。先看目标最外层有没有箭头；不是函数就直接写答案或 sorry。"
+                "值位 `funintro` 需要目标至少是一层函数（`A -> B` 或 `forall …`）。先看目标最外层有没有箭头；不是函数就直接写答案或 sorry。"
             }
             ElabApplyNeedsATerm => {
-                "`apply` 后面要跟一个证明或函数，例如 `apply h`；要应用的项复杂时可以用括号界定范围，例如 `apply (f a)`。"
+                "`funapply` 后面要跟一个证明或函数，例如 `funapply h`；要应用的项复杂时可以用括号界定范围，例如 `funapply (f a)`。"
             }
             ElabApplyNotApplicable => {
-                "`apply h` 要求 `h` 的结论正好是当前目标（`h : … -> 目标`）。看看 `h` 类型的最后一段是不是当前目标；不是就换一个前提，或直接写答案。"
+                "`funapply h` 要求 `h` 的结论正好是当前目标（`h : … -> 目标`）。看看 `h` 类型的最后一段是不是当前目标；不是就换一个前提，或直接写答案。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"

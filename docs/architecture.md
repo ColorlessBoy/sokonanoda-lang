@@ -101,8 +101,8 @@ sokonanoda-lang/
 - `--` 是行注释；`???` 是 Hole（未完成练习）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`。
-- 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）`intro`（`Expr::Intro`，同上全剥成 `fun … => sorry`，可选答案时末端放答案）
-与 `apply`（`Expr::Apply`，`crates/front/src/compile/apply.rs` 降为带前提洞
+- 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）`funintro`（`Expr::Intro`，同上全剥成 `fun … => sorry`，可选答案时末端放答案）
+与 `funapply`（`Expr::Apply`，`crates/front/src/compile/apply.rs` 降为带前提洞
 的部分应用；类型经 `judge_infer` 推断，判定仍在填洞后）。
 - **声明级 binder**（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v` 在 parser 里降级为 `ty = Forall{binders → C}`、`val = Lambda{binders → v}`（`parser.rs::wrap_decl_binders`）；`by` 引擎把声明 binder 作为初始上下文（`run_by` 的 `initial_binders`），`:= sorry` 的剩余目标直接是 `C`。
 - **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。`A -> B` 与 `fun (x : A) => ...` 的 binder 都必须**带显式类型**（elaborator 尚未做 binder 类型推断，见 §8 待办）。
@@ -138,7 +138,7 @@ sokonanoda-lang/
 - `sokonanoda --json <file>`：每条事件一行 JSON（agent/service 视图）。
 - `sokonanoda repl`：逐行累积 buffer，整体重新 `parse + compile_fol`（最小"增量"模型 = 声明累加）；支持 `#check/#reduce/#print/#env/#help`。
 - `#prove <goal>`：进入证明草稿（见 §5.5），`intro/exact/apply/assumption/lambda/done`。
-- `sokonanoda-lsp`：编辑器路径的**唯一反馈通道**（文件无 `#` 命令）——publishDiagnostics、hover（表达式类型 / `???` 的目标）、documentSymbol、codeLens（练习状态）、quick-fix `intro`（把 `???` 变成 `fun (x : T) => ???`）。
+- `sokonanoda-lsp`：编辑器路径的**唯一反馈通道**（文件无 `#` 命令）——publishDiagnostics、hover（表达式类型 / `???` 的目标）、documentSymbol、codeLens（练习状态）、quick-fix `引入 N 个 binder`（把 `???` 变成 `fun (x : T) => ???`；I13-S1 由 `intro` 改名）。
 
 ---
 

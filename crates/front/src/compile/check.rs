@@ -54,9 +54,9 @@ pub(crate) enum PendingOp<'a> {
         holes: Vec<Span>,
         sub_goals: Vec<SubGoal>,
         refine_template: Option<String>,
-        /// 值位是 `intro` 时的显式骨架文本（编辑器补全用）；其余为 `None`。
+        /// 值位是 `funintro` 时的显式骨架文本（编辑器补全用）；其余为 `None`。
         intro_skeleton: Option<String>,
-        /// 值位是 `apply` 时的显式骨架文本；其余为 `None`。
+        /// 值位是 `funapply` 时的显式骨架文本；其余为 `None`。
         apply_skeleton: Option<String>,
         span: Span,
         cmd: usize,
@@ -140,9 +140,9 @@ fn lower_by_val(
     }
 }
 
-/// 值位关键字降低后的编辑器骨架（`intro` / `apply` 各自的展开文本）。
+/// 值位关键字降低后的编辑器骨架（`funintro` / `funapply` 各自的展开文本）。
 ///
-/// 单一事实源：编辑器不重算、不扫文本。`intro` 与 `apply` 互斥
+/// 单一事实源：编辑器不重算、不扫文本。`funintro` 与 `funapply` 互斥
 /// （`parse_value` 只会命中其一），所以一个声明至多带一个。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ValueKeyword {
@@ -153,7 +153,7 @@ pub(crate) enum ValueKeyword {
 /// 值位降低产物：`(值, per-tactic 状态, 关键字骨架)`。
 pub(crate) type LoweredValue = (Expr, Vec<crate::by::ByStep>, Option<(ValueKeyword, String)>);
 
-/// 值位恰为 `intro` / `apply` 时降低为带洞的骨架；`by` 块走 tactic 引擎；
+/// 值位恰为 `funintro` / `funapply` 时降低为带洞的骨架；`by` 块走 tactic 引擎；
 /// 其它值原样透传。返回 `(值, per-tactic 状态, 关键字骨架)`。
 fn lower_value(
     ty: &Expr,

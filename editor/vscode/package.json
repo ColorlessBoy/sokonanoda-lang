@@ -100,12 +100,12 @@
       },
       {
         "command": "sokonanoda.expandIntro",
-        "title": "展开值位 intro 为 fun 骨架",
+        "title": "展开值位 funintro 为 fun 骨架",
         "category": "sokonanoda"
       },
       {
         "command": "sokonanoda.expandApply",
-        "title": "展开值位 apply 为部分应用骨架",
+        "title": "展开值位 funapply 为部分应用骨架",
         "category": "sokonanoda"
       }
     ],

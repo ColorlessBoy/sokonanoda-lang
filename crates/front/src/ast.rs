@@ -48,7 +48,7 @@ pub enum Expr {
     /// 拿一个证明/函数接到目标上，把它的前提留成洞（`apply h` → `h sorry`）。
     ///
     /// `term` 是实参（`h`、`f a`、`(fun …)`；`parse_app` 只吃应用 spine，
-    /// 更复杂的形状要自己加括号）。**语法上允许空**（`:= apply`），由 lowering
+    /// 更复杂的形状要自己加括号）。**语法上允许空**（`:= funapply`），由 lowering
     /// 报 `elab-apply-needs-a-term`——这样学习者拿到的是稳定的机器码 + 专属
     /// 教学提示，而不是一句泛泛的语法错误。
     ///

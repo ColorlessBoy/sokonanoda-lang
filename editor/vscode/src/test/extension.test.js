@@ -282,23 +282,23 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     assert.ok(text.trim().length > 0, "hover markup must be non-empty");
   });
 
-  test("value intro offers the expansion completion at the end of the token", async () => {
-    // 刚输完 `intro` 时光标在 token 末尾；补全门控必须覆盖这个位置
+  test("value funintro offers the expansion completion at the end of the token", async () => {
+    // 刚输完 `funintro` 时光标在 token 末尾；补全门控必须覆盖这个位置
     // （曾经只覆盖 token 内部，导致真实输入时看不到展开项）。
-    const src = "theorem t : Prop -> Prop := intro\n";
-    const uri = await writeDoc("intro-completion.sokonanoda", src);
+    const src = "theorem t : Prop -> Prop := funintro\n";
+    const uri = await writeDoc("funintro-completion.sokonanoda", src);
     await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
     const position = new vscode.Position(0, src.trimEnd().length);
     let item;
-    await waitFor("the intro expansion completion", async () => {
+    await waitFor("the funintro expansion completion", async () => {
       const list = await vscode.commands.executeCommand(
         "vscode.executeCompletionItemProvider",
         uri,
         position,
       );
       const items = list?.items ?? list ?? [];
-      item = items.find((candidate) => candidate.filterText === "intro");
+      item = items.find((candidate) => candidate.filterText === "funintro");
       return !!item;
     });
     const inserted =
@@ -311,22 +311,22 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
-  test("accepting the intro suggestion expands the token", async () => {
+  test("accepting the funintro suggestion expands the token", async () => {
     // 用户在词尾按 Tab/Enter 接受补全：用 VS Code 的
     // acceptSelectedSuggestion（Tab 绑定的同一命令）复现接受路径，
     // 断言 token 真的被原地替换成显式骨架。
-    const src = "theorem t : Prop -> Prop := intro\n";
-    const uri = await writeDoc("intro-accept.sokonanoda", src);
+    const src = "theorem t : Prop -> Prop := funintro\n";
+    const uri = await writeDoc("funintro-accept.sokonanoda", src);
     await vscode.workspace.openTextDocument(uri);
     const editor = await vscode.window.showTextDocument(uri, { preview: false });
     const end = new vscode.Position(0, src.trimEnd().length);
-    await waitFor("the intro expansion completion", async () => {
+    await waitFor("the funintro expansion completion", async () => {
       const list = await vscode.commands.executeCommand(
         "vscode.executeCompletionItemProvider",
         uri,
         end,
       );
-      return (list?.items ?? []).some((candidate) => candidate.filterText === "intro");
+      return (list?.items ?? []).some((candidate) => candidate.filterText === "funintro");
     });
     editor.selection = new vscode.Selection(end, end);
     await vscode.commands.executeCommand("editor.action.triggerSuggest");
@@ -337,11 +337,11 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
-  test("typing intro then accepting expands the token", async () => {
-    // 真实手势：敲 `intro`（触发快速建议）→ 接受选中项（Tab/Enter 的同一
+  test("typing funintro then accepting expands the token", async () => {
+    // 真实手势：敲 `funintro`（触发快速建议）→ 接受选中项（Tab/Enter 的同一
     // 命令）。若补全项没弹出来或没被选中，这条会超时失败。
     const prefix = "theorem t : Prop -> Prop := ";
-    const uri = await writeDoc("intro-type.sokonanoda", prefix + "\n");
+    const uri = await writeDoc("funintro-type.sokonanoda", prefix + "\n");
     await vscode.workspace.openTextDocument(uri);
     const editor = await vscode.window.showTextDocument(uri, { preview: false });
     const end = new vscode.Position(0, prefix.length);
@@ -354,16 +354,16 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       );
       return (list?.items ?? []).length > 0;
     });
-    await vscode.commands.executeCommand("type", { text: "intro" });
+    await vscode.commands.executeCommand("type", { text: "funintro" });
     // 真实敲键时建议列表自动弹出；测试环境里快速连续输入的触发时机
     // 不稳定，所以等服务端编译出展开项后显式唤起列表再接受。
-    await waitFor("the intro expansion in the completion list", async () => {
+    await waitFor("the funintro expansion in the completion list", async () => {
       const list = await vscode.commands.executeCommand(
         "vscode.executeCompletionItemProvider",
         uri,
-        new vscode.Position(0, prefix.length + "intro".length),
+        new vscode.Position(0, prefix.length + "funintro".length),
       );
-      return (list?.items ?? []).some((candidate) => candidate.filterText === "intro");
+      return (list?.items ?? []).some((candidate) => candidate.filterText === "funintro");
     });
     await vscode.commands.executeCommand("editor.action.triggerSuggest");
     await new Promise((resolve) => setTimeout(resolve, 300));
@@ -373,62 +373,62 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
-  test("typing intro on its own line still offers the expansion", async () => {
+  test("typing funintro on its own line still offers the expansion", async () => {
     // 学习者症状（playground.sokonanoda:201）：声明行已经很长，把值折到
-    // 下一行写 `intro` 时补全不该消失（同一行 `:= intro` 是正常的）。
+    // 下一行写 `funintro` 时补全不该消失（同一行 `:= funintro` 是正常的）。
     const head = "theorem t : Prop -> Prop :=";
-    const uri = await writeDoc("intro-next-line.sokonanoda", head + "\n");
+    const uri = await writeDoc("funintro-next-line.sokonanoda", head + "\n");
     await vscode.workspace.openTextDocument(uri);
     const editor = await vscode.window.showTextDocument(uri, { preview: false });
     const caret = new vscode.Position(1, 0);
     editor.selection = new vscode.Selection(caret, caret);
-    await vscode.commands.executeCommand("type", { text: "intro" });
-    const end = new vscode.Position(1, "intro".length);
-    await waitFor("the intro expansion on the next line", async () => {
+    await vscode.commands.executeCommand("type", { text: "funintro" });
+    const end = new vscode.Position(1, "funintro".length);
+    await waitFor("the funintro expansion on the next line", async () => {
       const list = await vscode.commands.executeCommand(
         "vscode.executeCompletionItemProvider",
         uri,
         end,
       );
-      return (list?.items ?? []).some((candidate) => candidate.filterText === "intro");
+      return (list?.items ?? []).some((candidate) => candidate.filterText === "funintro");
     });
   });
 
-  test("hover on value intro shows the expansion", async () => {
-    // 没选择补全时，hover `intro` 也能看到展开后的显式表达式。
-    const src = "theorem t : Prop -> Prop := intro\n";
-    const uri = await writeDoc("intro-hover.sokonanoda", src);
+  test("hover on value funintro shows the expansion", async () => {
+    // 没选择补全时，hover `funintro` 也能看到展开后的显式表达式。
+    const src = "theorem t : Prop -> Prop := funintro\n";
+    const uri = await writeDoc("funintro-hover.sokonanoda", src);
     await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
     let text = "";
-    await waitFor("hover on the intro keyword", async () => {
-      text = await hoverTextAt(uri, 0, src.indexOf("intro"));
+    await waitFor("hover on the funintro keyword", async () => {
+      text = await hoverTextAt(uri, 0, src.indexOf("funintro"));
       return text.includes("fun (x : Prop) => sorry");
     });
     assert.ok(
-      text.includes("展开为"),
+      text.includes("替换源代码 funintro"),
       `hover must show the expansion, got: ${JSON.stringify(text)}`,
     );
-    // 用户诉求：intro 不被替换也完全等价——hover 必须这样讲，否则学习者
+    // 用户诉求：funintro 不被替换也完全等价——hover 必须这样讲，否则学习者
     // 会以为非得按 Tab 展开不可。
     assert.ok(
       text.includes("不替换也完全等价"),
-      `hover must say leaving intro alone is equivalent, got: ${JSON.stringify(text)}`,
+      `hover must say leaving funintro alone is equivalent, got: ${JSON.stringify(text)}`,
     );
   });
 
-  test("hover on value intro carries a clickable expand command", async () => {
-    // 用户诉求：「hover 信息能不能加一个按钮，直接替换 intro，跟 tab 补全一样」。
+  test("hover on value funintro carries a clickable expand command", async () => {
+    // 用户诉求：「hover 信息能不能加一个按钮，直接替换 funintro，跟 tab 补全一样」。
     // 服务端在 hover markdown 里给出 `command:sokonanoda.expandIntro?<payload>`；
     // 这里按 VS Code 的解析规则（decodeURIComponent → JSON.parse）取出载荷，
     // 再用它调同一个命令——覆盖「载荷由服务端算好、客户端照单应用」这条链路。
-    const src = "theorem t : Prop -> Prop := intro\n";
-    const uri = await writeDoc("intro-hover-button.sokonanoda", src);
+    const src = "theorem t : Prop -> Prop := funintro\n";
+    const uri = await writeDoc("funintro-hover-button.sokonanoda", src);
     await vscode.workspace.openTextDocument(uri);
     const editor = await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
     let text = "";
     await waitFor("hover carrying the expand link", async () => {
-      text = await hoverTextAt(uri, 0, src.indexOf("intro"));
+      text = await hoverTextAt(uri, 0, src.indexOf("funintro"));
       return text.includes("command:sokonanoda.expandIntro?");
     });
 
@@ -439,7 +439,7 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
 
     // 按钮真的可点：hover markdown 必须是受信的，且只放行这一个命令。
-    const markdown = await hoverMarkdownAt(uri, 0, src.indexOf("intro"));
+    const markdown = await hoverMarkdownAt(uri, 0, src.indexOf("funintro"));
     assert.ok(
       commandLinkEnabled(markdown?.isTrusted, EXPECTED_EXPAND_COMMAND),
       `hover markdown must trust ${EXPECTED_EXPAND_COMMAND}, got isTrusted=` +
@@ -452,10 +452,10 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const payload = Array.isArray(parsed) ? parsed[0] : parsed;
     assert.strictEqual(payload.uri, uri.toString(), "payload targets the hovered document");
     assert.strictEqual(payload.newText, "fun (x : Prop) => sorry", "payload carries the skeleton");
-    const start = src.indexOf("intro");
+    const start = src.indexOf("funintro");
     assert.deepStrictEqual(payload.range, {
       start: { line: 0, character: start },
-      end: { line: 0, character: start + "intro".length },
+      end: { line: 0, character: start + "funintro".length },
     });
 
     await vscode.commands.executeCommand("sokonanoda.expandIntro", payload);
@@ -463,7 +463,7 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       editor.document.getText().includes("fun (x : Prop) => sorry"),
     );
     assert.ok(
-      !editor.document.getText().includes(":= intro"),
+      !editor.document.getText().includes(":= funintro"),
       `the token must be replaced in place, got: ${JSON.stringify(editor.document.getText())}`,
     );
     assert.ok(

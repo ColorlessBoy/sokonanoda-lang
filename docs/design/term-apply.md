@@ -1,5 +1,7 @@
 # 值位 `apply` 关键字 + 展开补全（2026-09-13 设计）
 
+> **改名说明（ROADMAP I13-S1，2026-09-13）**：本设计写作时值位关键字名为 `apply`，现已改名为 **`funapply`**。下文（含标题与正文）中所有指「值位关键字」的 `apply` 均对应今天的 `funapply`。AST 节点 `Expr::Apply` 与模块 `crates/front/src/compile/apply.rs` 的名称不变；by 块 tactic `apply` 不受影响。
+
 > **状态：已实现并发布（0.18.0，2026-09-13）。** 本文档含设计取舍与 as-built
 > 记录（§12）。实现：`crates/front/src/compile/apply.rs`（降低）、
 > `crates/front/src/spine.rs`（与 tactic apply 共用的 telescope 机械）、

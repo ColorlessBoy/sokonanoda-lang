@@ -736,16 +736,16 @@ pub(crate) fn elab_expr<'a>(
             "internal: `by` block reached elaboration without being lowered",
             *span,
         )),
-        // 值位 `intro` 同理：check 阶段先降低为显式 lambda + 洞。
+        // 值位 `funintro` 同理：check 阶段先降低为显式 lambda + 洞。
         Expr::Intro { span, .. } => Err(CompileError::elab(
             ErrorKind::ElabHoleMisplaced,
-            "internal: `intro` reached elaboration without being lowered",
+            "internal: `funintro` reached elaboration without being lowered",
             *span,
         )),
-        // 值位 `apply` 同理：check 阶段先降低为实参应用 + 洞。
+        // 值位 `funapply` 同理：check 阶段先降低为实参应用 + 洞。
         Expr::Apply { span, .. } => Err(CompileError::elab(
             ErrorKind::ElabHoleMisplaced,
-            "internal: `apply` reached elaboration without being lowered",
+            "internal: `funapply` reached elaboration without being lowered",
             *span,
         )),
     }
@@ -760,7 +760,7 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
         Expr::UniverseApp { name: n, .. } => n == name,
         Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => false,
         Expr::Intro { .. } => false,
-        // 值位 `apply` 在 elab 前已被 lowering 消费；保守起见看它的实参。
+        // 值位 `funapply` 在 elab 前已被 lowering 消费；保守起见看它的实参。
         Expr::Apply { term, .. } => term.as_deref().is_some_and(|t| mentions_ident(t, name)),
         Expr::App { fun, arg, .. } => mentions_ident(fun, name) || mentions_ident(arg, name),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {

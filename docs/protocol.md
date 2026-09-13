@@ -93,9 +93,9 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
   `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
   内核拒绝，消息带期望/实际),
-  `elab-apply-needs-a-term` (值位 `apply` 后没有跟证明或函数),
+  `elab-apply-needs-a-term` (值位 `funapply` 后没有跟证明或函数),
   `elab-apply-not-applicable` (被应用项的结论与当前目标对不上),
-  `elab-intro-not-a-function` (值位 `intro` 的目标不是函数——没有 binder
+  `elab-intro-not-a-function` (值位 `funintro` 的目标不是函数——没有 binder
   可以引入);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
@@ -154,10 +154,12 @@ KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`sorry`), FUNCTION
 (def/theorem names and uses), VARIABLE (axioms, unresolved idents),
 ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
 
-## Value-position `intro` (syntax + editor completion)
+## Value-position `funintro` (syntax + editor completion)
 
-The value position accepts a bare `intro` keyword:
-`theorem t : (a : Prop) -> a -> a := intro`. The front unrolls every
+> **改名说明（I13-S1）**：本节的「值位关键字」原名 `intro`，现已改名为 `funintro`；by 块 tactic `intro` 不受影响。下文同一含义的 `intro` 均指 `funintro`。
+
+The value position accepts a bare `funintro` keyword:
+`theorem t : (a : Prop) -> a -> a := funintro`. The front unrolls every
 remaining Pi binder of the declared type into `fun … => sorry` (anonymous
 layers are named `x`, `x2`, …) and keeps the declaration an Open exercise —
 the value never reaches the kernel; the kernel still judges every fill. A
@@ -216,12 +218,14 @@ therefore `[{uri, range, newText}]`, and the client handler tolerates both an
 array and a bare object for backwards compatibility.
 
 
-### Value-position `apply`
+### Value-position `funapply`
 
-`theorem t (h : Q -> P) : P := apply h` applies a proof/function to the goal
+> **改名说明（I13-S1）**：本节的「值位关键字」原名 `apply`，现已改名为 `funapply`；by 块 tactic `apply` 不受影响。下文同一含义的 `apply` 均指 `funapply`。
+
+`theorem t (h : Q -> P) : P := funapply h` applies a proof/function to the goal
 and leaves its premises as holes: the value lowers to `h sorry`. The argument
-is parsed with the application-spine parser, so `apply f` works and compound
-terms need parentheses (`apply (f a)`) — that is how the learner delimits the
+is parsed with the application-spine parser, so `funapply f` works and compound
+terms need parentheses (`funapply (f a)`) — that is how the learner delimits the
 scope. The applied name's type is obtained through `front::judge::judge_infer`
 (the kernel infers; it does not judge — the value still never reaches the
 kernel, and every fill is judged by the kernel afterwards). Telescope
