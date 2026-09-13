@@ -309,9 +309,10 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   results are sorted by offset and deduplicated.
 - `textDocument/inlayHint` — one type hint per open-exercise hole, rendered
   after the hole: `label = ": <expected type>"` (sub-hole types from the
-  server-side walk; the remaining goal for a lone main hole), markdown
-  tooltip with the goal and introduced hypotheses. Checked/failed
-  declarations produce no hints.
+  server-side walk, **aligned with `holes` by position** — several sub-goals
+  may share one source position, so never look them up by span; the remaining
+  goal for a lone main hole), markdown tooltip with the goal and introduced
+  hypotheses. Checked/failed declarations produce no hints.
 
 ### `soko/nextHole`
 
@@ -319,6 +320,22 @@ Request params: `{"textDocument": {"uri"}, "position", "forward": true}`.
 Response: `null` or the `range` of the next open hole after (or, with
 `forward: false`, before) the cursor. The server owns hole-position logic
 (ocaml-lsp lesson: clients should not re-derive positions).
+
+**Known limitation (multi sub-goals at one position).** When a `by` block
+leaves several open sub-goals, they share a single source position: `assemble`
+hands every leaf hole the same `hole_span` (`crates/front/src/by.rs`), because
+those premises genuinely have no source text of their own. Consequences:
+
+- `soko/nextHole` cannot step **between** such sub-goals — they are the same
+  offset, so the search either returns the current position or skips the whole
+  group. Navigation is group-wise, not goal-wise;
+- the stable identity for programmatic consumers is `soko/goals`'
+  `holes[i].id` (unique by index), **not** the range;
+- inlay hints do show each sub-goal's own type (they align by position
+  index), so the information is visible even though it is not addressable.
+
+Not a regression to fix by inventing positions: fabricating distinct offsets
+would produce bogus ranges for `documentHighlight` / `selectionRange`.
 
 Kernel-judged tactics: `exact` code actions are computed by `front::judge`
 (a synthesized complete declaration checked by the full kernel) — no text

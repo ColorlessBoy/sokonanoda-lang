@@ -32,8 +32,9 @@ pub(crate) fn document_hints(text: &str, report: &DocumentReport) -> Vec<InlayHi
 }
 
 /// One hint per hole: sub-hole types come from the server-side walk
-/// (`sub_goals`, matched by span); a lone main hole shows the remaining
-/// goal. Hints without a known type are skipped (labels are never empty).
+/// (`sub_goals`, aligned **by position** with `holes`); a lone main hole
+/// shows the remaining goal. Hints without a known type are skipped
+/// (labels are never empty).
 pub(crate) fn hole_hints(text: &str, report: &DocumentReport) -> Vec<InlayHint> {
     let _ = text;
     let mut hints = Vec::new();
@@ -41,8 +42,8 @@ pub(crate) fn hole_hints(text: &str, report: &DocumentReport) -> Vec<InlayHint> 
         if d.status != DeclStatus::Open {
             continue;
         }
-        for hole in &d.holes {
-            let Some(label) = hint_label(d, hole) else {
+        for (index, hole) in d.holes.iter().enumerate() {
+            let Some(label) = hint_label(d, index, hole) else {
                 continue;
             };
             hints.push(InlayHint {
@@ -62,8 +63,17 @@ pub(crate) fn hole_hints(text: &str, report: &DocumentReport) -> Vec<InlayHint> 
 
 /// The hint label for one hole: `": <expected type>"`, or `None` when the
 /// walk could not produce a type for it.
-fn hint_label(d: &DeclState, hole: &Span) -> Option<InlayHintLabel> {
-    let ty = if let Some(sub) = d.sub_goals.iter().find(|s| s.span == *hole) {
+///
+/// 洞的类型**按位置顺序**对齐 `sub_goals`，不能用 span 反查：`by apply imp`
+/// 留下的多个未解子目标在源码里只有同一个位置（`by.rs` 的 `assemble` 给每个
+/// 叶子洞传的是同一个 `hole_span`），按 span 反查会让每一处都命中**第一个**
+/// 子目标——第二个子目标的期望类型永远显示不出来。
+/// 回归：`by_apply_sub_goals_keep_their_own_expected_types`。
+fn hint_label(d: &DeclState, index: usize, hole: &Span) -> Option<InlayHintLabel> {
+    let ty = if d.sub_goals.len() == d.holes.len() {
+        // spine 走查逐洞 push（`goals.rs:494-506` / `555-565`），一一对应。
+        d.sub_goals.get(index).and_then(|s| s.ty.clone())
+    } else if let Some(sub) = d.sub_goals.iter().find(|s| s.span == *hole) {
         sub.ty.clone()
     } else if d.holes.len() == 1 {
         d.goal.clone()
@@ -119,6 +129,22 @@ mod tests {
 axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
 theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := \
 fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro sorry sorry\n";
+
+    /// `by apply imp` 会留下**两个**未解子目标（imp 的两个前提），而它们
+    /// 在源码里只有**同一个**位置——`apply` 那一刻。`assemble` 给树里每个
+    /// 叶子洞传的都是同一个 `hole_span`（`by.rs:372-397` + `269-271`），
+    /// 所以 `holes = [s, s]`、`sub_goals[i].span` 也全是 `s`。
+    ///
+    /// 这直接暴露了 inlay 的旧实现对洞类型的**反查方式**：用
+    /// `sub_goals.iter().find(span == hole)`——两个洞都会命中**第一个**
+    /// 子目标，于是两处提示都是 `: p`，第二处的 `: q` 永远不显示。
+    /// 见 `docs/design/real-input-tests.md` §4.1。
+    const BY_APPLY_TWO_SUBGOALS: &str = "axiom And : Prop -> Prop -> Prop\n\
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+axiom p : Prop\n\
+axiom q : Prop\n\
+axiom imp : p -> q -> And p q\n\
+theorem t : And p q := by apply imp\n";
 
     async fn ask_inlay(
         service: &mut tower_lsp::LspService<crate::Backend>,
@@ -293,6 +319,34 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         assert!(tooltip.contains("剩余目标：`a`"), "tooltip: {tooltip}");
         assert!(tooltip.contains("假设"), "tooltip: {tooltip}");
         assert!(tooltip.contains("`h` : `a`"), "tooltip: {tooltip}");
+    }
+
+    #[tokio::test]
+    async fn by_apply_sub_goals_keep_their_own_expected_types() {
+        // 两个未解子目标共用同一个位置时，提示必须**按洞的位置顺序**分别取
+        // 自己的期望类型，不能用「span 反查 sub_goals」——那会让两处都显示
+        // 第一个子目标的类型（本用例正是为此而红过）。
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, BY_APPLY_TWO_SUBGOALS).await;
+        let _ = wait_diagnostics(&mut socket, "by apply inlay diagnostics").await;
+
+        let hints = ask_inlay(&mut service, BY_APPLY_TWO_SUBGOALS)
+            .await
+            .expect("hints array");
+        let labels: Vec<&str> = hints.iter().map(label_of).collect();
+        assert_eq!(
+            labels,
+            vec![": p", ": q"],
+            "each sub-goal must show its own premise: {hints:?}"
+        );
+        // 两个洞在源码里确实同址（`apply` 那一刻），这是 by 引擎的已知限制：
+        // soko/nextHole 无法在同址的多个子目标之间导航，程序化消费应以
+        // soko/goals 的 hole id 为身份。见 docs/design/real-input-tests.md §4.1。
+        assert_eq!(
+            hints[0].position, hints[1].position,
+            "the two sub-goals share one source position"
+        );
     }
 
     #[tokio::test]

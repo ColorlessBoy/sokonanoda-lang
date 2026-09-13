@@ -142,8 +142,18 @@ for (index, step) in char_steps("intro", caret).iter().enumerate() {
      同步改动），不是内部小修；
   3. `inlay` 的 `hint_label` 目前用 `sub_goals.iter().find(span == hole)` 反查
      （`inlay.rs:65-74`），要改成按洞索引对齐 `sub_goals`。
-- 处置：**先写红测试钉住现状，再按上面的身份模型修**；因为涉及协议，单独一轮做，
-  不要塞进 `apply` 的实现轮里。
+- 处置（**已执行 2026-09-13**，分两半）：
+  1. **inlay 的类型错配——已修**。`hint_label` 原本用
+     `sub_goals.iter().find(span == hole)` 反查，两个同址洞都命中第一个子目标
+     （实测 `[": p", ": p"]`，应为 `[": p", ": q"]`）。现改为**按洞的位置顺序**
+     对齐 `sub_goals`（数量相等时按索引取，见 `inlay.rs` 的 `hint_label`），
+     回归 `by_apply_sub_goals_keep_their_own_expected_types`（先红后绿）。
+     这是一处真实的用户可见缺陷：`by apply h` 之后第二处提示一直是错的。
+  2. **`nextHole` 无法在同址子目标间导航——已确认为限制并写进协议文档**，不再
+     试图修。理由：`by apply h` 的后继子目标在源码里**确实没有各自坐标**，
+     而伪造互异 offset 会让 `documentHighlight`/`selectionRange` 产出假范围。
+     协议文档（`docs/protocol.md` §`soko/nextHole`）已写明：导航是「组级」而非
+     「目标级」，程序化消费应以 `soko/goals` 的 `holes[i].id` 为身份。
 
 ### 4.2 三套「位置选取」逻辑并存
 
