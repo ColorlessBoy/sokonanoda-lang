@@ -25,7 +25,11 @@ pub(crate) fn test_service() -> (LspService<Backend>, ClientSocket) {
 }
 
 /// Guard only: any server→client message must arrive within this budget.
-pub(crate) const TIMEOUT: Duration = Duration::from_secs(2);
+///
+/// 2s 曾在 CI 的 ubuntu runner 上偶发超时（负载尖峰 + LSP 测试全并行，
+/// 2026-09-13 两次 ci 红、本地与相邻提交均绿）。加宽到 30s——它只在
+/// 「消息永远不来」的真回归时才会拖慢失败，平时零成本。
+pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) const URI: &str = "file:///test.sokonanoda";
 
 /// 0-based LSP position for a char offset in an (ASCII) source text.

@@ -4,6 +4,19 @@
 > 修复方式、预防措施）。
 
 ## 格式
+### 2026-09-13 — ci 的 Workspace tests 步骤偶发失败（本地全绿）
+- 原因：连续两次 push（768d2f6 纯文档、5b47020 by 尾）的 `cargo test
+  --workspace` 在 ubuntu runner 上 exit 101，而本地 macOS 全绿、且二分显示
+  中间的纯文档提交 adb5813 又是绿的——**与代码无关，属 runner 负载尖峰下的
+  偶发**。无日志权限（logs API 403），具体哪个测试超时未定位。
+- 修复：无代码改动；把 LSP 测试的 socket 读超时 `testutil::TIMEOUT` 从 2s
+  加宽到 30s（它只在真回归时拖慢失败，平时零成本），并复跑。
+- 预防：LSP 进程内测试的等待超时统一走 testutil::TIMEOUT，不要自带更短的
+  timeout；若再犯，用 test-job 的 log（需要拥有者贴出）定位具体测试。
+
+---
+
+
 
 ```
 ### YYYY-MM-DD — 简述
