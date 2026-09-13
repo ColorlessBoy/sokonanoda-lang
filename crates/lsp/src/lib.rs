@@ -764,11 +764,14 @@ fn keyword_expansion_hover(
 ) -> Option<Hover> {
     let (hole, skeleton) = keyword_at(report, text, offset, keyword)?;
     let copy = keyword_copy(keyword);
-    let payload = serde_json::json!({
-        "uri": uri,
-        "range": range_of(hole),
-        "newText": skeleton,
-    });
+    // VS Code 的命令链接规范（`createCommandUri`）：query 是
+    // `encodeURIComponent(JSON.stringify(commandArgs))`，且 commandArgs 是
+    // **数组**——点击时展开成 `executeCommand(id, ...args)`。发**对象**会让
+    // 展开失败、点击静默无效（第一版正是这么错的：单测直接调
+    // executeCommand 绕过了这层，没抓到）。
+    let payload = serde_json::json!([
+        { "uri": uri, "range": range_of(hole), "newText": skeleton }
+    ]);
     let encoded = percent_encode_component(&payload.to_string());
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
@@ -3261,6 +3264,8 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         );
         let payload: serde_json::Value =
             serde_json::from_str(&percent_decode(link)).expect("payload must be JSON");
+        // 载荷是**数组**（VS Code 命令链接的实参列表），命令收到的是第一个元素。
+        let payload = &payload[0];
         assert_eq!(payload["uri"], URI);
         assert_eq!(
             payload["range"],

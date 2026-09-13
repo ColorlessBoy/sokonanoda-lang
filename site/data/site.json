@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 39,
+  "round": 40,
   "round_date": "2026-09-13",
-  "round_title": "三个大方向的设计——值位 apply / 真人输入测试 / 官网",
+  "round_title": "三个大方向落地",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -53,5 +53,5 @@
       "unit": 6
     }
   ],
-  "version": "0.17.0"
+  "version": "0.18.0"
 }

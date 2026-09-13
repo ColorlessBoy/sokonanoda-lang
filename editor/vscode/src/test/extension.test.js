@@ -447,7 +447,9 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
 
     const encoded = text.split("command:sokonanoda.expandIntro?")[1].split(")")[0];
-    const payload = JSON.parse(decodeURIComponent(encoded));
+    const parsed = JSON.parse(decodeURIComponent(encoded));
+    // VS Code 命令链接的载荷是**实参数组**，命令收到第一个元素。
+    const payload = Array.isArray(parsed) ? parsed[0] : parsed;
     assert.strictEqual(payload.uri, uri.toString(), "payload targets the hovered document");
     assert.strictEqual(payload.newText, "fun (x : Prop) => sorry", "payload carries the skeleton");
     const start = src.indexOf("intro");

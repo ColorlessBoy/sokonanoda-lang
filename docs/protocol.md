@@ -195,6 +195,27 @@ Keeping `intro` un-expanded is a first-class answer: it is *equivalent* to
 the skeleton, not a placeholder for it. No client work is required to accept
 it, and the hover says so.
 
+`intro` also accepts an optional **answer** (`intro <expr>`): the front
+implicitly replaces the keyword with `fun … => <expr>`, so a learner can
+finish the proof without expanding first
+(`theorem t : Q -> P := intro proofP`). The answer must prove the *final*
+goal (after every binder is introduced); the kernel still judges it — a wrong
+answer is `kernel-rejected`, exactly as if it had been written by hand.
+An answered `intro` leaves no synthetic hole and carries no editor skeleton
+(there is nothing left to expand).
+
+### Command-link payload shape (editor contract)
+
+The `command:` link payload is
+`encodeURIComponent(JSON.stringify(commandArgs))` with `commandArgs` an
+**array** — VS Code's own `createCommandUri` shape — because the editor
+spreads the parsed array into `executeCommand(id, ...args)`. Emitting a bare
+object makes the click silently do nothing (the object is not iterable), and
+a unit test that calls the command directly never notices. The payload is
+therefore `[{uri, range, newText}]`, and the client handler tolerates both an
+array and a bare object for backwards compatibility.
+
+
 ### Value-position `apply`
 
 `theorem t (h : Q -> P) : P := apply h` applies a proof/function to the goal

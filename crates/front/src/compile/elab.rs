@@ -737,7 +737,7 @@ pub(crate) fn elab_expr<'a>(
             *span,
         )),
         // 值位 `intro` 同理：check 阶段先降低为显式 lambda + 洞。
-        Expr::Intro { span } => Err(CompileError::elab(
+        Expr::Intro { span, .. } => Err(CompileError::elab(
             ErrorKind::ElabHoleMisplaced,
             "internal: `intro` reached elaboration without being lowered",
             *span,

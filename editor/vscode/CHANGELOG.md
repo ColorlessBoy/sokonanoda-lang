@@ -10,6 +10,13 @@
   mirror `intro`'s; the editor command is `sokonanoda.expandApply`.
 - New teaching error codes `elab-apply-needs-a-term` and
   `elab-apply-not-applicable`.
+- **`intro` accepts an optional answer** — `theorem t : Q -> P := intro proofP`
+  implicitly replaces the keyword with `fun (x : Q) => proofP`, so finishing a
+  proof no longer requires expanding first. The answer must prove the final
+  goal; the kernel still judges it.
+- The hover expand-button payload now follows VS Code's command-link shape
+  (a JSON **array** of arguments). The previous object payload made the
+  button click silently do nothing; the client handler accepts both.
 
 ### Fixed
 - Inlay hints no longer show the **first** sub-goal's type on every hole of

@@ -158,7 +158,22 @@ impl Parser {
             }
             if kw == "intro" {
                 let tok = self.bump();
-                return Ok(Expr::Intro { span: tok.span });
+                // 可选答案：`intro <expr>` 让前端把 intro 隐式替换成
+                // `fun … => <expr>`（判定仍由内核终审）。实参用 `parse_app`
+                // 与 `apply` 对称——复合形状加括号即可。
+                let answer = if self.starts_atom() {
+                    Some(Box::new(self.parse_app()?))
+                } else {
+                    None
+                };
+                let end = answer
+                    .as_ref()
+                    .map(|a| a.span().end)
+                    .unwrap_or(tok.span.end);
+                return Ok(Expr::Intro {
+                    answer,
+                    span: Span::new(tok.span.start, end),
+                });
             }
             if kw == "apply" {
                 return self.parse_value_apply();
@@ -1017,9 +1032,36 @@ example : Prop -> Prop := sorry
         ));
     }
 
+    /// `intro` 现在接受**可选答案**（前端隐式替换：`intro a` →
+    /// `fun … => a`），所以带尾随名字不再是解析错误——但答案必须是
+    /// `starts_atom` 能识别的形状，且不会吞掉下一条命令。
     #[test]
-    fn intro_with_a_trailing_name_is_a_parse_error() {
-        assert!(parse("theorem t : (a : Prop) -> a := intro a\n").is_err());
+    fn intro_takes_an_optional_answer() {
+        let file = parse("theorem t : (a : Prop) -> a := intro a\n").unwrap();
+        match &file.commands[0] {
+            Command::Theorem {
+                val: Expr::Intro { answer, span },
+                ..
+            } => {
+                let answer = answer.as_ref().expect("`intro a` carries its answer");
+                assert!(matches!(answer.as_ref(), Expr::Ident { name, .. } if name == "a"));
+                // span 覆盖整个 `intro a`（编辑器整段替换）。
+                let text = "theorem t : (a : Prop) -> a := intro a\n";
+                assert_eq!(&text[span.start.offset..span.end.offset], "intro a");
+            }
+            other => panic!("expected a value-position intro, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn intro_answer_does_not_swallow_the_next_command() {
+        let file =
+            parse("axiom h : Prop\ntheorem t : Prop := intro h\ntheorem u : Prop := h\n").unwrap();
+        assert_eq!(
+            file.commands.len(),
+            3,
+            "three commands must survive: {file:?}"
+        );
     }
 
     #[test]

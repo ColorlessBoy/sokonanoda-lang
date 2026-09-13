@@ -424,9 +424,13 @@ async function revealRange(uriString, range) {
 // 链接点下去就走这里。载荷（uri + 洞 range + 骨架文本）全部由语言服务器算好，
 // 客户端只把它原样应用成一次 WorkspaceEdit —— 不扫文本、不重算骨架，因此和
 // 接受 Tab 补全得到的是**同一份**编辑，只是不需要学习者先撞上补全弹窗。
-async function expandKeyword(payload) {
+async function expandKeyword(...args) {
+  // `command:` 链接的载荷按 VS Code 规范是 JSON **数组**，点击时被展开成
+  // 多个实参；旧版本服务器发的是单对象。两种形态都收。
+  const first = args[0];
+  const payload = Array.isArray(first) ? first[0] : first;
   if (!payload || typeof payload !== "object") {
-    vscode.window.showErrorMessage("sokonanoda: 展开 intro 的载荷缺失。");
+    vscode.window.showErrorMessage("sokonanoda: 展开关键字的载荷缺失。");
     return;
   }
   const { uri, range, newText } = payload;

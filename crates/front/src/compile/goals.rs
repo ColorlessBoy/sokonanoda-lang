@@ -446,7 +446,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
         Expr::UniverseApp { name, levels, .. } => Expr::UniverseApp { name, levels, span },
         Expr::Num { value, .. } => Expr::Num { value, span },
         Expr::Hole { .. } => Expr::Hole { span },
-        Expr::Intro { .. } => Expr::Intro { span },
+        Expr::Intro { answer, .. } => Expr::Intro { answer, span },
         Expr::Apply { term, .. } => Expr::Apply { term, span },
         Expr::App { fun, arg, .. } => Expr::App { fun, arg, span },
         Expr::Lambda { binders, body, .. } => Expr::Lambda {

@@ -1363,6 +1363,49 @@ fn by_block_apply_still_uses_the_tactic_engine() {
     );
 }
 
+#[test]
+fn intro_with_an_answer_is_the_implicit_replacement() {
+    // 用户诉求：「不修改内核的前提下，改前端隐式替换」——`intro <answer>`
+    // 由前端把 intro 隐式替换成 `fun … => <answer>`，学习者不必先接受展开
+    // 才能继续写。判定仍由内核终审（这里是完整证明 → Checked）。
+    // 答案必须是**最终目标**的证明：intro 引入 `x : Q` 之后，目标是 `P`，
+    // 所以答案是 `proofP : P`（而不是 `impl : Q -> P`——那是函数，类型会对不上）。
+    let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
+               theorem t : Q -> P := intro proofP\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Checked, "the answer is kernel-judged");
+    assert!(d.holes.is_empty(), "an answer leaves no synthetic hole");
+    // 有答案就没有「待展开」这回事了：不再携带编辑器骨架。
+    assert!(
+        d.intro_skeleton.is_none(),
+        "an answered intro has nothing left to expand: {:?}",
+        d.intro_skeleton
+    );
+}
+
+#[test]
+fn intro_with_a_wrong_answer_is_judged_by_the_kernel() {
+    // 答案 `wrongQ : Q` 不是 `P` 的证明 → 内核拒绝。
+    // 前端不做判定，也没有合成洞可绕。
+    let src = "axiom P : Prop\naxiom Q : Prop\naxiom wrongQ : Q\n\
+               theorem t : Q -> P := intro wrongQ\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "kernel-rejected");
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Failed);
+}
+
 // ---- 声明级 binder（Lean 风格：theorem f (a : A) : B := v）----
 
 const AND_PRELUDE: &str = "axiom And : Prop -> Prop -> Prop\n\

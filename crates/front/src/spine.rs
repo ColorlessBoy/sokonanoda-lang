@@ -160,7 +160,10 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             span: *span,
         },
         Expr::Hole { span } => Expr::Hole { span: *span },
-        Expr::Intro { span } => Expr::Intro { span: *span },
+        Expr::Intro { answer, span } => Expr::Intro {
+            answer: answer.as_deref().map(|t| Box::new(substitute(t, sigma))),
+            span: *span,
+        },
         Expr::Apply { term, span } => Expr::Apply {
             term: term.as_deref().map(|t| Box::new(substitute(t, sigma))),
             span: *span,

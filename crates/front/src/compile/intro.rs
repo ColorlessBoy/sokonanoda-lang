@@ -22,8 +22,11 @@ pub(crate) fn lower_intro_val(
 
 fn lower_inner(ty: &Expr, val: &Expr) -> Result<Option<(Expr, String)>, CompileError> {
     match val {
-        Expr::Intro { span } => {
-            let expr = peel_all_pi(ty, *span)?;
+        Expr::Intro { answer, span } => {
+            // `intro` 与 `intro <answer>` 都走这里：前者末端是洞（练习），
+            // 后者把答案直接填进骨架末端（**前端隐式替换**）——学习者不必先
+            // 接受展开才能继续写。两种形态都不进内核，判定照旧由内核终审。
+            let expr = peel_all_pi(ty, *span, answer.as_deref())?;
             let skeleton = render_expr(&expr);
             Ok(Some((expr, skeleton)))
         }
@@ -57,7 +60,7 @@ fn lower_inner(ty: &Expr, val: &Expr) -> Result<Option<(Expr, String)>, CompileE
 /// `Expr::Lambda`；匿名层用生成器约定的基名 `x`（`x2` 防撞，与
 /// `suggest::restart_skeleton` 同源）。每个合成节点的 span 都是 `intro`
 /// token——洞需要它，binder 本身不需要更细的位置。
-fn peel_all_pi(ty: &Expr, hole: Span) -> Result<Expr, CompileError> {
+fn peel_all_pi(ty: &Expr, hole: Span, answer: Option<&Expr>) -> Result<Expr, CompileError> {
     let mut used: HashSet<String> = HashSet::new();
     let mut layers: Vec<(String, Option<Box<Expr>>, BinderKind)> = Vec::new();
     let mut cur = ty;
@@ -92,7 +95,11 @@ fn peel_all_pi(ty: &Expr, hole: Span) -> Result<Expr, CompileError> {
             hole,
         ));
     }
-    let mut body = Expr::Hole { span: hole };
+    // 末端：有答案就是答案本身（隐式替换），没有就是洞。
+    let mut body = match answer {
+        Some(answer) => answer.clone(),
+        None => Expr::Hole { span: hole },
+    };
     for (name, ty, style) in layers.into_iter().rev() {
         body = Expr::Lambda {
             binders: vec![Binder {
