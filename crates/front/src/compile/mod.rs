@@ -1,6 +1,7 @@
 //! Compile a parsed `.sokonanoda` file into kernel declarations and run the
 //! complete sokonanoda kernel over them.
 
+mod apply;
 mod check;
 mod elab;
 mod error;

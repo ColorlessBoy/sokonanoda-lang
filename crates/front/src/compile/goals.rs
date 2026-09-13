@@ -195,7 +195,40 @@ pub(crate) fn open_goal(ty: &Expr, val: &Expr, templates: &GoalTemplates) -> Opt
     if !expr_has_hole(val) {
         return None;
     }
-    goal_under_binders(ty, val, templates)
+    let mut locals = HashMap::new();
+    local_func_templates(val, &mut locals);
+    goal_under_binders(ty, val, templates, &locals)
+}
+
+/// 值位 `apply` 的**局部假设**模板覆盖层。
+///
+/// `apply h`（`h` 是当前 lambda 链已引入的假设）降低成 `h sorry` 之后，spine
+/// 走查要能认出 `h` 的望远镜——但 [`GoalTemplates.funcs`] 只有全局名字，局部
+/// 假设不在其中。这里沿答案的 lambda 链把「本声明已引入的假设」收成一张局部
+/// 覆盖表，`func_spine_case` 在全局查不到时回退到这里。
+///
+/// 只收集**带类型**的假设（无类型的 binder 无法实例化期望类型，交回 elab 报
+/// `elab-untyped-binder`）。
+fn local_func_templates(val: &Expr, out: &mut HashMap<String, FuncTemplate>) {
+    let mut cur = val;
+    while let Expr::Lambda { binders, body, .. } = cur {
+        for binder in binders {
+            let Some(ty) = binder.ty.as_deref() else {
+                continue;
+            };
+            let mut telescope = Vec::new();
+            peel_type(ty, &mut telescope);
+            out.insert(
+                binder.name.clone(),
+                FuncTemplate {
+                    universe: Vec::new(),
+                    binder_names: telescope.iter().map(|(n, _)| n.clone()).collect(),
+                    binder_tys: telescope.into_iter().map(|(_, t)| t).collect(),
+                },
+            );
+        }
+        cur = body;
+    }
 }
 
 fn expr_has_hole(e: &Expr) -> bool {
@@ -368,7 +401,8 @@ fn substitute_names(
         },
         Expr::Num { .. } | Expr::Hole { .. } => expr.clone(),
         Expr::Intro { .. } => expr.clone(),
-        Expr::By { .. } => expr.clone(), // by 块在 elab 前已降级，不应出现在此
+        Expr::Apply { .. } => expr.clone(), // 值位 `apply` 在 lowering 前已消费
+        Expr::By { .. } => expr.clone(),    // by 块在 elab 前已降级，不应出现在此
     }
 }
 
@@ -413,6 +447,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
         Expr::Num { value, .. } => Expr::Num { value, span },
         Expr::Hole { .. } => Expr::Hole { span },
         Expr::Intro { .. } => Expr::Intro { span },
+        Expr::Apply { term, .. } => Expr::Apply { term, span },
         Expr::App { fun, arg, .. } => Expr::App { fun, arg, span },
         Expr::Lambda { binders, body, .. } => Expr::Lambda {
             binders,
@@ -526,9 +561,14 @@ fn func_spine_case(
     val: &Expr,
     binders: Vec<GoalBinder>,
     templates: &GoalTemplates,
+    locals: &HashMap<String, FuncTemplate>,
 ) -> Option<OpenGoalInfo> {
     let (val_head, val_args) = spine_head_args(val)?;
-    let template = templates.funcs.get(&val_head)?;
+    // 全局优先，局部假设（值位 `apply` 引入的覆盖层）兜底。
+    let template = templates
+        .funcs
+        .get(&val_head)
+        .or_else(|| locals.get(&val_head))?;
     if val_args.len() > template.binder_names.len() {
         return None;
     }
@@ -634,7 +674,12 @@ fn refine_template_for(ty: &Expr, templates: &GoalTemplates) -> Option<String> {
 /// in the answer consumes one Pi layer of the type; when the walk reaches a
 /// hole (or a constructor/function spine with holes), the remaining type is
 /// the exercise's current goal and the consumed binders are its context.
-fn goal_under_binders(ty: &Expr, val: &Expr, templates: &GoalTemplates) -> Option<OpenGoalInfo> {
+fn goal_under_binders(
+    ty: &Expr,
+    val: &Expr,
+    templates: &GoalTemplates,
+    locals: &HashMap<String, FuncTemplate>,
+) -> Option<OpenGoalInfo> {
     match val {
         Expr::Hole { span } => {
             let holes = vec![*span];
@@ -688,20 +733,20 @@ fn goal_under_binders(ty: &Expr, val: &Expr, templates: &GoalTemplates) -> Optio
                 ty: binder_text,
             };
             let mut info = if binders_rest.is_empty() {
-                goal_under_binders(&rest_ty, body, templates)?
+                goal_under_binders(&rest_ty, body, templates, locals)?
             } else {
                 let rest_val = Expr::Lambda {
                     binders: binders_rest.to_vec(),
                     body: body.clone(),
                     span: Span::default(),
                 };
-                goal_under_binders(&rest_ty, &rest_val, templates)?
+                goal_under_binders(&rest_ty, &rest_val, templates, locals)?
             };
             info.binders.insert(0, introduced);
             Some(info)
         }
         // 构造子语义优先（参数位可由目标自动判定，信息更多）；函数兜底。
         _ => ctor_spine_case(ty, val, Vec::new(), templates)
-            .or_else(|| func_spine_case(ty, val, Vec::new(), templates)),
+            .or_else(|| func_spine_case(ty, val, Vec::new(), templates, locals)),
     }
 }

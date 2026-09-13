@@ -634,22 +634,48 @@ fn trailing_same_line_ws(text: &str, end: usize, offset: usize) -> bool {
     text[end..offset].chars().all(|c| c == ' ' || c == '\t')
 }
 
-/// 值位 `intro` 的光标命中区间：token 本身（含末尾），以及 token 之后到
+/// 值位关键字（`intro` / `apply`）。两者共用同一套命中规则、同一份
+/// 骨架字段约定与同一种 `command:` 展开按钮——只差名字与文案。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ValueKeyword {
+    Intro,
+    Apply,
+}
+
+impl ValueKeyword {
+    fn name(self) -> &'static str {
+        match self {
+            ValueKeyword::Intro => "intro",
+            ValueKeyword::Apply => "apply",
+        }
+    }
+
+    /// 该关键字在 `DeclState` 上的骨架字段（单一事实源）。
+    fn skeleton_of(self, d: &DeclState) -> Option<&str> {
+        match self {
+            ValueKeyword::Intro => d.intro_skeleton.as_deref(),
+            ValueKeyword::Apply => d.apply_skeleton.as_deref(),
+        }
+    }
+}
+
+/// 值位关键字的光标命中区间：token 本身（含末尾），以及 token 之后到
 /// **同一行行尾**的空白。学习者敲完关键字常常再打一个空格（顺手关掉补全
 /// 弹窗），或者光标向右漂一格——这两种位置都该照常命中；跨行不算，
 /// 免得在后面的声明上误弹。
-fn intro_hit(text: &str, hole: sokonanoda_front::Span, offset: usize) -> bool {
+fn keyword_hit(text: &str, hole: sokonanoda_front::Span, offset: usize) -> bool {
     (hole.start.offset <= offset && offset <= hole.end.offset)
         || trailing_same_line_ws(text, hole.end.offset, offset)
 }
 
-/// 值位 `intro` 的定位：`(洞, 骨架)`。hover 与补全共用这一套命中规则
-/// （同一份 `DeclState` 快照，编辑器不扫文本）。
-fn intro_at<'a>(
-    report: &'a DocumentReport,
+/// 值位关键字的定位：`(洞, 骨架)`。hover 与补全共用这一套命中规则
+/// （同一份 `DeclState` 快照，编辑器不扫文本、不重算）。
+fn keyword_at(
+    report: &DocumentReport,
     text: &str,
     offset: usize,
-) -> Option<(sokonanoda_front::Span, &'a str)> {
+    keyword: ValueKeyword,
+) -> Option<(sokonanoda_front::Span, String)> {
     let d = report.decls.iter().find(|d| {
         (d.span.start.offset <= offset && offset <= d.span.end.offset)
             || trailing_same_line_ws(text, d.span.end.offset, offset)
@@ -657,8 +683,8 @@ fn intro_at<'a>(
     if d.status != DeclStatus::Open {
         return None;
     }
-    let skeleton = d.intro_skeleton.as_deref()?;
-    let hole = *d.holes.iter().find(|h| intro_hit(text, **h, offset))?;
+    let skeleton = keyword.skeleton_of(d)?.to_string();
+    let hole = *d.holes.iter().find(|h| keyword_hit(text, **h, offset))?;
     Some((hole, skeleton))
 }
 
@@ -690,34 +716,74 @@ fn percent_encode_component(input: &str) -> String {
     out
 }
 
-/// 值位 `intro` 的展开 hover。两件事：
+/// 值位关键字（`intro` / `apply`）各自的编辑器文案。
+struct KeywordCopy {
+    /// hover 第一句：这个关键字在做什么。
+    explains: &'static str,
+    /// 展开按钮文字。
+    button: &'static str,
+    /// `command:` 的方法名（编辑器端必须注册同名命令并放行受信 markdown）。
+    command: &'static str,
+}
+
+fn keyword_detail(keyword: ValueKeyword) -> &'static str {
+    match keyword {
+        ValueKeyword::Intro => "一次引入目标剩下的全部 binder",
+        ValueKeyword::Apply => "把一个证明/函数接到目标上，前提留洞",
+    }
+}
+
+fn keyword_copy(keyword: ValueKeyword) -> KeywordCopy {
+    match keyword {
+        ValueKeyword::Intro => KeywordCopy {
+            explains:
+                "值位 `intro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。",
+            button: "展开为 fun 骨架",
+            command: "sokonanoda.expandIntro",
+        },
+        ValueKeyword::Apply => KeywordCopy {
+            explains: "值位 `apply`：把一个证明/函数接到当前目标上，它的前提留成 `sorry` 洞。",
+            button: "展开为 apply 骨架",
+            command: "sokonanoda.expandApply",
+        },
+    }
+}
+
+/// 值位关键字（`intro` / `apply`）的展开 hover。两件事：
 ///
-/// 1. **不替换也完全等价**——`intro` 本身就已经是一次合法作答（等价于下面的
-///    `fun` 骨架，末端是个 `sorry` 洞），可以直接留着在洞的位置继续写；
-/// 2. 想看清结构（或想让编辑器接手）时有就地替换按钮
-///    （`command:sokonanoda.expandIntro`），载荷由服务端算好：uri + 洞 range
-///    + 骨架文本，与接受 Tab 补全是同一份编辑。
-fn intro_expansion_hover(
+/// 1. **不替换也完全等价**——关键字本身就已经是一次合法作答（等价于下面的
+///    骨架，末端是 `sorry` 洞），可以直接留着在洞的位置继续写；
+/// 2. 想看清结构（或想让编辑器接手）时有就地替换按钮（`command:<方法名>`），
+///    载荷由服务端算好：uri + 洞 range + 骨架文本，与接受 Tab 补全是同一份编辑。
+fn keyword_expansion_hover(
     report: &DocumentReport,
     text: &str,
     uri: &str,
     offset: usize,
+    keyword: ValueKeyword,
 ) -> Option<Hover> {
-    let (hole, skeleton) = intro_at(report, text, offset)?;
+    let (hole, skeleton) = keyword_at(report, text, offset, keyword)?;
+    let copy = keyword_copy(keyword);
     let payload = serde_json::json!({
         "uri": uri,
         "range": range_of(hole),
         "newText": skeleton,
     });
+    let encoded = percent_encode_component(&payload.to_string());
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
             value: format!(
-                "值位 `intro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。\n\n\
-                 **不替换也完全等价**——`intro` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n\
+                "{explains}\n\n\
+                 **不替换也完全等价**——`{name}` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n\
                  它等价于：\n\n```lean\n{skeleton}\n```\n\n\
-                 [展开为 fun 骨架](command:sokonanoda.expandIntro?{})",
-                percent_encode_component(&payload.to_string())
+                 [{button}](command:{command}?{encoded})",
+                explains = copy.explains,
+                name = keyword.name(),
+                skeleton = skeleton,
+                button = copy.button,
+                command = copy.command,
+                encoded = encoded,
             ),
         }),
         range: Some(range_of(hole)),
@@ -834,7 +900,11 @@ impl LanguageServer for Backend {
             .text_document
             .uri
             .clone();
-        if let Some(hover) = intro_expansion_hover(report, &doc.text, uri.as_str(), offset) {
+        let intro_hover =
+            keyword_expansion_hover(report, &doc.text, uri.as_str(), offset, ValueKeyword::Intro);
+        if let Some(hover) = intro_hover.or_else(|| {
+            keyword_expansion_hover(report, &doc.text, uri.as_str(), offset, ValueKeyword::Apply)
+        }) {
             return Ok(Some(hover));
         }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
@@ -1070,29 +1140,50 @@ impl LanguageServer for Backend {
         // 时，给一项把关键字原地展开为 front 计算的显式 fun 骨架。门控与
         // 骨架文本全部来自 DeclState（单一事实源），编辑器不扫文本、不重算；
         // 命中规则与 hover 同一套（`intro_at`）。
-        let intro_item = doc.report.as_ref().and_then(|report| {
-            let offset = position_to_offset(&doc.text, pos);
-            let (hole, skeleton) = intro_at(report, &doc.text, offset)?;
-            Some(CompletionItem {
-                label: "intro（展开为 fun 骨架）".to_string(),
-                kind: Some(CompletionItemKind::KEYWORD),
-                detail: Some("等价于把目标剩下的 binder 全部引入".to_string()),
-                documentation: Some(Documentation::MarkupContent(MarkupContent {
-                    kind: MarkupKind::Markdown,
-                    value: format!(
-                        "值位 `intro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。\n\n**不替换也完全等价**——`intro` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n它等价于：\n\n```lean\n{skeleton}\n```"
-                    ),
-                })),
-                filter_text: Some("intro".to_string()),
-                sort_text: Some("0intro".to_string()),
-                preselect: Some(true),
-                text_edit: Some(CompletionTextEdit::Edit(TextEdit {
-                    range: range_of(hole),
-                    new_text: skeleton.to_string(),
-                })),
-                ..Default::default()
-            })
-        });
+        // 值位关键字展开项（`intro` / `apply`）：门控、骨架与命中区间全部来自
+        // DeclState（单一事实源），编辑器不扫文本、不重算。
+        let keyword_items: Vec<CompletionItem> = match doc.report.as_ref() {
+            Some(report) => {
+                let offset = position_to_offset(&doc.text, pos);
+                [ValueKeyword::Intro, ValueKeyword::Apply]
+                    .into_iter()
+                    .filter_map(|keyword| {
+                        let (hole, skeleton) = keyword_at(report, &doc.text, offset, keyword)?;
+                        let name = keyword.name();
+                        Some(CompletionItem {
+                            label: format!("{name}（展开为骨架）"),
+                            kind: Some(CompletionItemKind::KEYWORD),
+                            detail: Some(keyword_detail(keyword).to_string()),
+                            documentation: Some(Documentation::MarkupContent(MarkupContent {
+                                kind: MarkupKind::Markdown,
+                                value: format!(
+                                    "{explains}\n\n**不替换也完全等价**——`{name}` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n它等价于：\n\n```lean\n{skeleton}\n```",
+                                    explains = keyword_copy(keyword).explains,
+                                    name = name,
+                                    skeleton = skeleton,
+                                ),
+                            })),
+                            filter_text: Some(name.to_string()),
+                            sort_text: Some(format!("0{name}")),
+                            preselect: Some(true),
+                            text_edit: Some(CompletionTextEdit::Edit(TextEdit {
+                                range: range_of(hole),
+                                new_text: skeleton,
+                            })),
+                            ..Default::default()
+                        })
+                    })
+                    .collect()
+            }
+            None => Vec::new(),
+        };
+        // 只用于「裸关键字去重」的存在性判断。
+        let has_intro_item = keyword_items
+            .iter()
+            .any(|i| i.filter_text.as_deref() == Some("intro"));
+        let has_apply_item = keyword_items
+            .iter()
+            .any(|i| i.filter_text.as_deref() == Some("apply"));
         if let Some(report) = &doc.report {
             if let Some(names) = scope_names_at(&report.hovers, pos.line, pos.character) {
                 for name in names {
@@ -1108,10 +1199,14 @@ impl LanguageServer for Backend {
                 }
             }
         }
+        items.extend(keyword_items);
         // Keywords (single source: front::semantic). 有展开项时不再重复给
-        // 裸 `intro` 关键字（同一个词只出一次）。
+        // 裸关键字（同一个词只出一次）。
         for keyword in sokonanoda_front::semantic::keywords() {
-            if *keyword == "intro" && intro_item.is_some() {
+            if *keyword == "intro" && has_intro_item {
+                continue;
+            }
+            if *keyword == "apply" && has_apply_item {
                 continue;
             }
             items.push(CompletionItem {
@@ -1164,9 +1259,6 @@ impl LanguageServer for Backend {
                     ..Default::default()
                 });
             }
-        }
-        if let Some(item) = intro_item {
-            items.push(item);
         }
         Ok(Some(CompletionResponse::Array(items)))
     }
@@ -3021,6 +3113,122 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
                 .iter()
                 .all(|i| i.filter_text.as_deref() != Some("intro")),
             "no expansion outside the intro line: {items:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
+    const APPLY_LOCAL_HYP: &str =
+        "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P := apply h\n";
+
+    #[tokio::test]
+    async fn value_apply_completion_and_hover_carry_the_skeleton() {
+        // `apply h`（h 是局部假设）：展开项与 hover 都要给出 `h sorry`，
+        // 且 textEdit 覆盖**整个** `apply h`（只覆盖 `apply` 会把 h 留在原地）。
+        let src = APPLY_LOCAL_HYP;
+        let (mut service, _socket) = open_and_wait(src).await;
+        let start = offset_of(src, "apply");
+        for (where_, offset) in [
+            ("token", start),
+            ("end of the argument", start + "apply h".len()),
+        ] {
+            let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
+            let item = items
+                .iter()
+                .find(|i| i.filter_text.as_deref() == Some("apply"))
+                .unwrap_or_else(|| panic!("{where_}: apply expansion must be offered: {items:?}"));
+            let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
+                panic!("expected a plain CompletionTextEdit::Edit");
+            };
+            assert_eq!(edit.range.start, lsp_pos(src, start), "{where_}");
+            assert_eq!(
+                edit.range.end,
+                lsp_pos(src, start + "apply h".len()),
+                "{where_}"
+            );
+            assert_eq!(edit.new_text, "h sorry", "{where_}");
+        }
+
+        let hover = hover_opt_at(&mut service, src, start)
+            .await
+            .expect("hover on value apply must answer");
+        let HoverContents::Markup(markup) = hover.contents else {
+            panic!("expected markup hover");
+        };
+        assert!(
+            markup.value.contains("h sorry"),
+            "hover: {:?}",
+            markup.value
+        );
+        assert!(
+            markup.value.contains("不替换也完全等价"),
+            "hover must say leaving apply alone is equivalent: {:?}",
+            markup.value
+        );
+        assert!(
+            markup.value.contains("command:sokonanoda.expandApply?"),
+            "hover must carry the expand button: {:?}",
+            markup.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn typed_apply_chars_only_expand_on_the_whole_word() {
+        // 逐字符敲 `apply`：前缀不给展开项，整词才给（与 `intro` 同一门控）。
+        let head = "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P := ";
+        let initial = format!("{head}\n");
+        let caret = head.len();
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &initial).await;
+        let _ = wait_diagnostics(&mut socket, "typed apply: initial state").await;
+
+        let mut cur = initial.clone();
+        let mut version = 1;
+        // `apply` 不带实参是**教学错误**（elab-apply-needs-a-term），所以展开项
+        // 要等到实参 `h` 也敲完才出现：断言「敲完整串之前一路不弹、之后弹」。
+        let script = "apply h";
+        for (index, step) in char_steps(script, caret).iter().enumerate() {
+            type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
+            let typed = &script[..=index];
+            let cursor = caret + typed.len();
+            let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
+            let expansion = items
+                .iter()
+                .find(|i| i.filter_text.as_deref() == Some("apply"));
+            if typed == script {
+                let item = expansion
+                    .unwrap_or_else(|| panic!("the full `apply h` must offer the expansion"));
+                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
+                else {
+                    panic!("expected a plain CompletionTextEdit::Edit");
+                };
+                assert_eq!(edit.range.start, lsp_pos(&cur, caret));
+                assert_eq!(edit.range.end, lsp_pos(&cur, caret + script.len()));
+                assert_eq!(edit.new_text, "h sorry");
+            } else {
+                assert!(
+                    expansion.is_none(),
+                    "partial input `{typed}` must not offer the expansion ({cur:?})"
+                );
+            }
+        }
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn apply_expansion_is_not_offered_outside_its_own_line() {
+        // 与 `intro` 同一条边界：跨行不命中，免得在后面的声明上误弹。
+        let src = "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P :=\n  apply h\n\ntheorem u : P := h sorry\n";
+        let (mut service, _socket) = open_and_wait(src).await;
+        // 光标落在下下个声明上：不该再给 `apply` 的展开项。
+        let items =
+            request_completions_at(&mut service, lsp_pos(src, offset_of(src, "h sorry"))).await;
+        assert!(
+            items
+                .iter()
+                .all(|i| i.filter_text.as_deref() != Some("apply")),
+            "no apply expansion on a later declaration: {items:?}"
         );
         shutdown(&mut service).await;
     }

@@ -38,6 +38,20 @@ pub enum Expr {
     Intro {
         span: Span,
     },
+    /// 值位 `apply`（与 `intro` 同级的教学关键字）：把目标「倒过来」消费——
+    /// 拿一个证明/函数接到目标上，把它的前提留成洞（`apply h` → `h sorry`）。
+    ///
+    /// `term` 是实参（`h`、`f a`、`(fun …)`；`parse_app` 只吃应用 spine，
+    /// 更复杂的形状要自己加括号）。**语法上允许空**（`:= apply`），由 lowering
+    /// 报 `elab-apply-needs-a-term`——这样学习者拿到的是稳定的机器码 + 专属
+    /// 教学提示，而不是一句泛泛的语法错误。
+    ///
+    /// `span` 覆盖整个 `apply <term>`（编辑器展开补全要整段替换，只覆盖
+    /// `apply` 会把实参留在原地变成 `h h sorry`）。
+    Apply {
+        term: Option<Box<Expr>>,
+        span: Span,
+    },
     App {
         fun: Box<Expr>,
         arg: Box<Expr>,
@@ -80,6 +94,7 @@ impl Expr {
             | Expr::Num { span, .. }
             | Expr::Hole { span }
             | Expr::Intro { span }
+            | Expr::Apply { span, .. }
             | Expr::App { span, .. }
             | Expr::Lambda { span, .. }
             | Expr::Forall { span, .. }

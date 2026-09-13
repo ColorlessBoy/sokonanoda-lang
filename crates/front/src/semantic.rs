@@ -51,6 +51,7 @@ const KEYWORDS: &[&str] = &[
     "end",
     "fun",
     "intro",
+    "apply",
     "#check",
     "#reduce",
     "#print",
@@ -247,6 +248,13 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
     match expr {
         Expr::Sort { .. } | Expr::Ident { .. } | Expr::Num { .. } | Expr::Hole { .. } => {}
         Expr::Intro { .. } => {}
+        // 值位 `apply`：`apply` token 本身由 KEYWORDS 分类，这里只走它的实参
+        // （实参里的标识符/binder 照常收集）。
+        Expr::Apply { term, .. } => {
+            if let Some(t) = term {
+                walk_expr(t, toks, names);
+            }
+        }
         Expr::UniverseApp { span, .. } => names.universes.push(*span),
         Expr::App { fun, arg, .. } => {
             walk_expr(fun, toks, names);

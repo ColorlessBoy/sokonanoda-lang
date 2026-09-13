@@ -16,6 +16,7 @@ pub mod proof;
 pub mod references;
 pub mod semantic;
 pub mod session;
+pub mod spine;
 pub mod suggest;
 
 mod ast;

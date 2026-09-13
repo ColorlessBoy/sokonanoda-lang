@@ -160,8 +160,35 @@ impl Parser {
                 let tok = self.bump();
                 return Ok(Expr::Intro { span: tok.span });
             }
+            if kw == "apply" {
+                return self.parse_value_apply();
+            }
         }
         self.parse_expr()
+    }
+
+    /// 值位 `apply`：实参用 [`Self::parse_app`]（只吃应用 spine；更复杂的
+    /// 形状让学习者自己加括号）。`starts_atom` 会把下一条命令关键字挡在
+    /// 外面，所以 `apply` 不会吞掉后续声明。
+    ///
+    /// 语法上**允许空实参**（`:= apply`），由 lowering 报
+    /// `elab-apply-needs-a-term`——学习者因此拿到稳定的机器码 + 专属教学
+    /// 提示，而不是一句泛泛的语法错误。
+    fn parse_value_apply(&mut self) -> Result<Expr> {
+        let kw = self.bump();
+        let start = kw.span.start;
+        if !self.starts_atom() {
+            return Ok(Expr::Apply {
+                term: None,
+                span: kw.span,
+            });
+        }
+        let term = self.parse_app()?;
+        let end = term.span().end;
+        Ok(Expr::Apply {
+            term: Some(Box::new(term)),
+            span: Span::new(start, end),
+        })
     }
 
     /// `by` 块：`by <tactic> (';' <tactic>)*`。tactic 之间用 `;` 分隔
@@ -993,6 +1020,80 @@ example : Prop -> Prop := sorry
     #[test]
     fn intro_with_a_trailing_name_is_a_parse_error() {
         assert!(parse("theorem t : (a : Prop) -> a := intro a\n").is_err());
+    }
+
+    #[test]
+    fn value_apply_parses_with_its_argument() {
+        let file = parse("axiom h : Prop\ntheorem t : Prop := apply h\n").unwrap();
+        match &file.commands[1] {
+            Command::Theorem {
+                val: Expr::Apply { term, span },
+                ..
+            } => {
+                let term = term.as_ref().expect("`apply h` carries its argument");
+                assert!(matches!(term.as_ref(), Expr::Ident { name, .. } if name == "h"));
+                // span 覆盖整个 `apply h`：编辑器展开要整段替换。
+                let text = "axiom h : Prop\ntheorem t : Prop := apply h\n";
+                assert_eq!(&text[span.start.offset..span.end.offset], "apply h");
+            }
+            other => panic!("expected a value-position apply, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn value_apply_allows_a_parenthesised_argument() {
+        let file = parse("theorem t : Prop -> Prop := apply (fun (x : Prop) => x)\n").unwrap();
+        match &file.commands[0] {
+            Command::Theorem {
+                val: Expr::Apply { term, .. },
+                ..
+            } => {
+                assert!(term.is_some(), "parenthesised argument is consumed");
+            }
+            other => panic!("expected a value-position apply, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn value_apply_without_an_argument_parses_empty() {
+        // 空实参在语法层收下，教学错误由 lowering 出（稳定的 elab code）。
+        let file = parse("theorem t : Prop -> Prop := apply\n").unwrap();
+        match &file.commands[0] {
+            Command::Theorem {
+                val: Expr::Apply { term, .. },
+                ..
+            } => {
+                assert!(term.is_none(), "bare `apply` must parse with no argument");
+            }
+            other => panic!("expected a value-position apply, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn value_apply_does_not_swallow_the_next_command() {
+        // `apply` 不会吞掉后续声明：`starts_atom` 挡住命令关键字。
+        let file =
+            parse("axiom h : Prop\ntheorem t : Prop := apply h\ntheorem u : Prop := h\n").unwrap();
+        assert_eq!(
+            file.commands.len(),
+            3,
+            "three commands must survive: {file:?}"
+        );
+    }
+
+    #[test]
+    fn dotted_apply_names_are_not_the_value_keyword() {
+        // `And.apply`（若存在）是单个 Ident（`.` 是标识符字符），不受影响。
+        let file = parse("axiom And.apply : Prop\ntheorem t : Prop := And.apply\n").unwrap();
+        match &file.commands[1] {
+            Command::Theorem { val, .. } => {
+                assert!(
+                    !matches!(val, Expr::Apply { .. }),
+                    "dotted names are identifiers, not the value keyword"
+                );
+            }
+            other => panic!("expected a theorem, got {other:?}"),
+        }
     }
 
     #[test]

@@ -106,6 +106,9 @@ pub struct DeclState {
     /// 值位是 `intro` 时的显式展开骨架（`fun (a : Prop) => … => sorry`）。
     /// 编辑器补全项的单一事实源；其它声明为 `None`。
     pub intro_skeleton: Option<String>,
+    /// 值位是 `apply` 时的显式展开骨架（`h sorry …`）；其它声明为 `None`。
+    /// 编辑器补全项的单一事实源（与 `intro_skeleton` 同一套约定）。
+    pub apply_skeleton: Option<String>,
     /// The declaration's hint ladder, authored in the canvas as
     /// `-- soko:hint <text>` comment directives attached to this declaration
     /// (`compile::hints::attach_hints`). Empty when the source has no hints

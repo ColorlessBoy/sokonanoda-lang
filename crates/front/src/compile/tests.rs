@@ -1106,6 +1106,263 @@ fn value_intro_is_layout_independent() {
     }
 }
 
+// ---- 值位 `apply`（目标「倒过来」消费，前提留洞）----
+
+#[test]
+fn apply_lowers_to_the_partial_application_skeleton() {
+    // 局部假设是 `apply` 最常用的教学场景：`h : Q -> P`，目标 `P`，
+    // 展开成 `h sorry`——前提留成洞。
+    let src = "axiom P : Prop\naxiom Q : Prop\n\
+               theorem t (h : Q -> P) : P := apply h\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("P"));
+    let binders: Vec<(&str, &str)> = d
+        .binders
+        .iter()
+        .map(|b| (b.name.as_str(), b.ty.as_str()))
+        .collect();
+    assert_eq!(binders, vec![("h", "Q -> P")]);
+    assert_eq!(d.holes.len(), 1);
+    // 洞的 span 覆盖**整个** `apply h`：编辑器展开要整段替换，只覆盖
+    // `apply` 会把实参留在原地变成 `h h sorry`。
+    assert_eq!(
+        &src[d.holes[0].start.offset..d.holes[0].end.offset],
+        "apply h"
+    );
+    assert_eq!(d.apply_skeleton.as_deref(), Some("h sorry"));
+    assert!(d.intro_skeleton.is_none());
+}
+
+#[test]
+fn apply_fills_type_parameters_from_the_goal() {
+    // `f : (a : Prop) -> Q a -> P a`，目标 `P p` → 类型参数 `a` 由目标实参
+    // 填充，只有前提 `Q p` 留成洞：`f p sorry`。
+    let src = "axiom P : Prop -> Prop\naxiom Q : Prop -> Prop\naxiom p : Prop\n\
+               axiom f : (a : Prop) -> Q a -> P a\n\
+               axiom qx : Q p\n\
+               theorem t : P p := apply f\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("P p"));
+    assert_eq!(d.holes.len(), 1);
+    assert_eq!(d.apply_skeleton.as_deref(), Some("f p sorry"));
+    // 子目标的期望类型是**实例化后**的前提。
+    assert_eq!(d.sub_goals.len(), 1);
+    assert_eq!(d.sub_goals[0].ty.as_deref(), Some("Q p"));
+}
+
+#[test]
+fn apply_with_a_supplied_premise_keeps_only_the_rest() {
+    // `apply f p`：类型参数已经手写给出，只剩一个前提洞。
+    let src = "axiom P : Prop -> Prop\naxiom Q : Prop -> Prop\naxiom p : Prop\n\
+               axiom f : (a : Prop) -> Q a -> P a\n\
+               axiom qx : Q p\n\
+               theorem t : P p := apply f p\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1);
+    assert_eq!(d.apply_skeleton.as_deref(), Some("f p sorry"));
+}
+
+#[test]
+fn apply_of_a_fully_determined_proof_is_checked_by_the_kernel() {
+    // `h : P` 直接就是答案（零个前提洞）——与 `exact` 等价，交内核终审。
+    let src = "axiom P : Prop\naxiom h : P\ntheorem t : P := apply h\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Checked);
+    assert_eq!(d.apply_skeleton, None);
+}
+
+#[test]
+fn apply_is_equivalent_to_typing_the_skeleton_out_by_hand() {
+    // 与 `intro` 同一条契约：不展开也完全等价（同 status/goal/binders/洞数）。
+    let head = "axiom P : Prop\naxiom Q : Prop\n";
+    let with_apply = format!("{head}theorem t (h : Q -> P) : P := apply h\n");
+    let by_hand = format!("{head}theorem t (h : Q -> P) : P := h sorry\n");
+
+    let report = check_document(&parse(&with_apply).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let a = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl");
+    let skeleton = a
+        .apply_skeleton
+        .clone()
+        .expect("apply carries its skeleton");
+
+    let report = check_document(&parse(&by_hand).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let b = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl");
+
+    let binders = |d: &DeclState| {
+        d.binders
+            .iter()
+            .map(|x| (x.name.clone(), x.ty.clone()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(a.status, DeclStatus::Open);
+    assert_eq!(
+        b.status,
+        DeclStatus::Open,
+        "handwritten skeleton is also open"
+    );
+    assert_eq!(a.goal, b.goal, "same remaining goal");
+    assert_eq!(binders(a), binders(b), "same introduced binders");
+    assert_eq!(a.holes.len(), 1);
+    assert_eq!(a.holes.len(), b.holes.len(), "same number of holes");
+    assert_eq!(skeleton, "h sorry");
+    assert!(b.apply_skeleton.is_none());
+    assert!(
+        b.intro_skeleton.is_none(),
+        "only the keyword form carries an editor skeleton"
+    );
+}
+
+#[test]
+fn value_apply_is_layout_independent() {
+    // 同页 / 换行 / 尾随空格三种排版，判定与骨架一字不差。
+    let head = "axiom P : Prop\naxiom Q : Prop\n";
+    let ty = "(h : Q -> P)";
+    let same_line = format!("{head}theorem t {ty} : P := apply h\n");
+    let next_line = format!("{head}theorem t {ty} : P :=\n  apply h\n");
+    let trailing = format!("{head}theorem t {ty} : P := apply h \n");
+
+    let decl_of = |src: &str| {
+        let report = check_document(&parse(src).expect("parse"));
+        assert!(report.errors.is_empty(), "{src:?}: {:?}", report.errors);
+        report
+            .decls
+            .into_iter()
+            .find(|d| d.name.as_deref() == Some("t"))
+            .expect("decl t")
+    };
+
+    let base = decl_of(&same_line);
+    assert_eq!(base.apply_skeleton.as_deref(), Some("h sorry"));
+    for src in [&next_line, &trailing] {
+        let other = decl_of(src);
+        assert_eq!(other.status, base.status, "{src:?}");
+        assert_eq!(other.goal, base.goal, "{src:?}");
+        assert_eq!(other.apply_skeleton, base.apply_skeleton, "{src:?}");
+        let binders = |d: &DeclState| {
+            d.binders
+                .iter()
+                .map(|x| (x.name.clone(), x.ty.clone()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(binders(&other), binders(&base), "{src:?}");
+        assert_eq!(other.holes.len(), base.holes.len(), "{src:?}");
+    }
+}
+
+#[test]
+fn apply_on_an_unrelated_goal_is_rejected() {
+    // `impl` 的结论是 `P`，目标却是 `Q`——位置合一失败 → 教学错误。
+    let src = "axiom P : Prop\naxiom Q : Prop\n\
+               axiom impl : Q -> P\n\
+               axiom q : Q\n\
+               theorem t : Q := apply impl\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "elab-apply-not-applicable");
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Failed);
+    assert!(d.apply_skeleton.is_none());
+}
+
+#[test]
+fn apply_without_an_argument_is_a_stable_teaching_error() {
+    let src = "axiom P : Prop\ntheorem t : P := apply\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "elab-apply-needs-a-term");
+}
+
+#[test]
+fn apply_of_an_unknown_name_reports_the_identifier() {
+    // 名字打错是最常见的失败：保留既有的 `elab-unknown-identifier` 码。
+    let src = "axiom P : Prop\ntheorem t : P := apply nope\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "elab-unknown-identifier");
+}
+
+#[test]
+fn by_block_apply_still_uses_the_tactic_engine() {
+    // `by` 块里的 `apply` 走 tactic 引擎（另一条路径），语义不受值位关键字影响。
+    let src = "axiom P : Prop\naxiom Q : Prop\n\
+               axiom impl : Q -> P\n\
+               axiom q : Q\n\
+               theorem t : P := by apply impl\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    // `apply impl` 留下一个未解子目标 `Q` → 练习态（Open），且**不带**值位骨架。
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1);
+    assert!(
+        d.apply_skeleton.is_none(),
+        "tactic path carries no skeleton"
+    );
+    assert!(!d.by_steps.is_empty(), "the tactic step is recorded");
+    // 同一份证明写全就是 Closed——两条路径都由内核终审。
+    let src = "axiom P : Prop\naxiom Q : Prop\n\
+               axiom impl : Q -> P\n\
+               axiom q : Q\n\
+               theorem t : P := by apply impl; exact q\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(
+        d.status,
+        DeclStatus::Checked,
+        "closing the sub-goal checks it"
+    );
+}
+
 // ---- 声明级 binder（Lean 风格：theorem f (a : A) : B := v）----
 
 const AND_PRELUDE: &str = "axiom And : Prop -> Prop -> Prop\n\

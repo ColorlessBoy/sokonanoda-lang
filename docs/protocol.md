@@ -93,6 +93,8 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
   `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
   内核拒绝，消息带期望/实际),
+  `elab-apply-needs-a-term` (值位 `apply` 后没有跟证明或函数),
+  `elab-apply-not-applicable` (被应用项的结论与当前目标对不上),
   `elab-intro-not-a-function` (值位 `intro` 的目标不是函数——没有 binder
   可以引入);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
@@ -192,6 +194,27 @@ inert without it.
 Keeping `intro` un-expanded is a first-class answer: it is *equivalent* to
 the skeleton, not a placeholder for it. No client work is required to accept
 it, and the hover says so.
+
+### Value-position `apply`
+
+`theorem t (h : Q -> P) : P := apply h` applies a proof/function to the goal
+and leaves its premises as holes: the value lowers to `h sorry`. The argument
+is parsed with the application-spine parser, so `apply f` works and compound
+terms need parentheses (`apply (f a)`) — that is how the learner delimits the
+scope. The applied name's type is obtained through `front::judge::judge_infer`
+(the kernel infers; it does not judge — the value still never reaches the
+kernel, and every fill is judged by the kernel afterwards). Telescope
+mechanics (`peel_pi` / `unify_spine` / `substitute`) are shared with the
+`by`-block tactic `apply` (`crate::spine`), so the two paths cannot drift.
+
+Completion and hover behave exactly like `intro`'s, with
+`command:sokonanoda.expandApply?<payload>` and the same
+`{uri, range, newText}` payload. The editor command is
+`sokonanoda.expandApply`; the client must allow-list it.
+
+Local hypotheses are the common case (`apply h`), so the open-goal walk
+overlays the declaration's introduced binders on the global template index
+(`GoalTemplates` only holds globals).
 
 ## Custom LSP requests (goal view, I9)
 

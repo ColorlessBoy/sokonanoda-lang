@@ -1,5 +1,6 @@
 //! 编译入口：`compile_fol`/`check_document`、待执行操作与 hover 解析。
 
+use super::apply::lower_apply_val;
 use super::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
     ElabScope, HoverNode, UnivMap,
@@ -55,6 +56,8 @@ pub(crate) enum PendingOp<'a> {
         refine_template: Option<String>,
         /// 值位是 `intro` 时的显式骨架文本（编辑器补全用）；其余为 `None`。
         intro_skeleton: Option<String>,
+        /// 值位是 `apply` 时的显式骨架文本；其余为 `None`。
+        apply_skeleton: Option<String>,
         span: Span,
         cmd: usize,
         /// Per-tactic states for a `by` value (empty otherwise).
@@ -137,20 +140,47 @@ fn lower_by_val(
     }
 }
 
-/// 值位恰为 `intro` 时降低为全剥的 lambda 骨架；`by` 块走 tactic 引擎；
-/// 其它值原样透传。返回 `(值, per-tactic 状态, intro 骨架文本)`。
+/// 值位关键字降低后的编辑器骨架（`intro` / `apply` 各自的展开文本）。
+///
+/// 单一事实源：编辑器不重算、不扫文本。`intro` 与 `apply` 互斥
+/// （`parse_value` 只会命中其一），所以一个声明至多带一个。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ValueKeyword {
+    Intro,
+    Apply,
+}
+
+/// 值位降低产物：`(值, per-tactic 状态, 关键字骨架)`。
+pub(crate) type LoweredValue = (Expr, Vec<crate::by::ByStep>, Option<(ValueKeyword, String)>);
+
+/// 值位恰为 `intro` / `apply` 时降低为带洞的骨架；`by` 块走 tactic 引擎；
+/// 其它值原样透传。返回 `(值, per-tactic 状态, 关键字骨架)`。
 fn lower_value(
     ty: &Expr,
     val: &Expr,
     src: &str,
     span_start: usize,
     options: &CompileOptions,
-) -> Result<(Expr, Vec<crate::by::ByStep>, Option<String>), CompileError> {
+) -> Result<LoweredValue, CompileError> {
     if let Some((expr, skeleton)) = lower_intro_val(ty, val)? {
-        return Ok((expr, Vec::new(), Some(skeleton)));
+        return Ok((expr, Vec::new(), Some((ValueKeyword::Intro, skeleton))));
+    }
+    if let Some((expr, skeleton)) = lower_apply_val(ty, val, src, span_start, options)? {
+        return Ok((expr, Vec::new(), Some((ValueKeyword::Apply, skeleton))));
     }
     let (expr, steps) = lower_by_val(ty, val, src, span_start, options)?;
     Ok((expr, steps, None))
+}
+
+/// 从关键字骨架里取指定关键字的文本（同一声明至多带一个关键字）。
+fn keyword_skeleton(
+    keyword: &Option<(ValueKeyword, String)>,
+    want: ValueKeyword,
+) -> Option<String> {
+    keyword
+        .as_ref()
+        .filter(|(kind, _)| *kind == want)
+        .map(|(_, text)| text.clone())
 }
 
 /// 引擎的 per-step 状态 → 报告层 wire 形状（binder 类型渲染成文本）。
@@ -310,7 +340,8 @@ fn run_pass(
                 };
                 let val = &lowered.0;
                 let by_steps = by_step_states(&lowered.1);
-                let intro_skeleton = lowered.2.clone();
+                let intro_skeleton = keyword_skeleton(&lowered.2, ValueKeyword::Intro);
+                let apply_skeleton = keyword_skeleton(&lowered.2, ValueKeyword::Apply);
                 if trusted {
                     // Trusted prefix: keep the environment, skip the kernel.
                     // Cached failures keep the name free (check-then-add);
@@ -377,6 +408,7 @@ fn run_pass(
                         sub_goals: info.sub_goals,
                         refine_template: info.refine_template,
                         intro_skeleton: intro_skeleton.clone(),
+                        apply_skeleton: apply_skeleton.clone(),
                         by_steps: by_steps.clone(),
                         span: *span,
                         cmd: idx,
@@ -459,7 +491,8 @@ fn run_pass(
                 };
                 let val = &lowered.0;
                 let by_steps = by_step_states(&lowered.1);
-                let intro_skeleton = lowered.2.clone();
+                let intro_skeleton = keyword_skeleton(&lowered.2, ValueKeyword::Intro);
+                let apply_skeleton = keyword_skeleton(&lowered.2, ValueKeyword::Apply);
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
                         || open_goal(ty, val, &templates).is_some()
@@ -514,6 +547,7 @@ fn run_pass(
                         sub_goals: info.sub_goals,
                         refine_template: info.refine_template,
                         intro_skeleton: intro_skeleton.clone(),
+                        apply_skeleton: apply_skeleton.clone(),
                         by_steps: by_steps.clone(),
                         span: *span,
                         cmd: idx,
@@ -671,7 +705,8 @@ fn run_pass(
                 };
                 let val = &lowered.0;
                 let by_steps = by_step_states(&lowered.1);
-                let intro_skeleton = lowered.2.clone();
+                let intro_skeleton = keyword_skeleton(&lowered.2, ValueKeyword::Intro);
+                let apply_skeleton = keyword_skeleton(&lowered.2, ValueKeyword::Apply);
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
                         || open_goal(ty, val, &templates).is_some()
@@ -721,6 +756,7 @@ fn run_pass(
                         sub_goals: info.sub_goals,
                         refine_template: info.refine_template,
                         intro_skeleton: intro_skeleton.clone(),
+                        apply_skeleton: apply_skeleton.clone(),
                         by_steps: by_steps.clone(),
                         span: *span,
                         cmd: idx,
@@ -940,6 +976,7 @@ fn run_pass(
                 sub_goals,
                 refine_template,
                 intro_skeleton,
+                apply_skeleton,
                 by_steps,
                 span,
                 cmd,
@@ -965,6 +1002,7 @@ fn run_pass(
                     sub_goals,
                     refine_template,
                     intro_skeleton,
+                    apply_skeleton,
                     by_steps,
                     hints: Vec::new(),
                     ty_text,
@@ -1015,6 +1053,7 @@ fn run_pass(
                             sub_goals: Vec::new(),
                             refine_template: None,
                             intro_skeleton: None,
+                            apply_skeleton: None,
                             by_steps,
                             hints: Vec::new(),
                             ty_text,
@@ -1074,6 +1113,7 @@ fn run_pass(
                             sub_goals: Vec::new(),
                             refine_template: None,
                             intro_skeleton: None,
+                            apply_skeleton: None,
                             by_steps: Vec::new(),
                             hints: Vec::new(),
                             ty_text: None,
@@ -1291,6 +1331,7 @@ pub(crate) fn failed_state(
         sub_goals: Vec::new(),
         refine_template: None,
         intro_skeleton: None,
+        apply_skeleton: None,
         by_steps: Vec::new(),
         hints: Vec::new(),
         ty_text: None,
