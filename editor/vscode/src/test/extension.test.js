@@ -309,7 +309,12 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       inserted.startsWith("fun ") && inserted.endsWith("=> ${0:sorry}"),
       `the expansion must be a snippet whose trailing sorry lands selected, got: ${JSON.stringify(inserted)}`,
     );
-    assert.strictEqual(item.insertTextFormat, 2, "insertTextFormat must be Snippet");
+    // VS Code API 层不暴露 insertTextFormat（转换器吞掉），snippet 形态本身
+    // 就是信号：newText 以占位符结尾，接受后 sorry 落盘并选中。
+    assert.ok(
+      item.textEdit?.newText?.includes("${0:sorry}"),
+      "textEdit must carry the snippet placeholder",
+    );
   });
 
   test("accepting the funintro suggestion expands the token", async () => {
