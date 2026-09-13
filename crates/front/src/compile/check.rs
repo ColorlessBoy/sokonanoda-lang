@@ -162,7 +162,7 @@ fn lower_value(
     span_start: usize,
     options: &CompileOptions,
 ) -> Result<LoweredValue, CompileError> {
-    if let Some((expr, skeleton)) = lower_intro_val(ty, val)? {
+    if let Some((expr, skeleton)) = lower_intro_val(ty, val, src, span_start, options)? {
         return Ok((expr, Vec::new(), Some((ValueKeyword::Intro, skeleton))));
     }
     if let Some((expr, skeleton)) = lower_apply_val(ty, val, src, span_start, options)? {

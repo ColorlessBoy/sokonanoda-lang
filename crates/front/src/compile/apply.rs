@@ -85,9 +85,13 @@ pub(crate) fn lower_apply_val(
     }
 }
 
-/// 把 `apply <term>` 降低成 `term <已给实参> <前提洞…>`。
+/// 把 `funapply <term>` 降低成 `term <已给实参> <前提洞…>`。
+///
+/// `pub(crate)` 供 `funintro (funapply X)` 的组合降低复用（I13-S3）：组合时
+/// 「目标类型」是 funintro 剥完 binder 后的最终目标，「context」是外层 lambda
+/// 链 + funintro 剥出的层。
 #[allow(clippy::too_many_arguments)]
-fn lower_at(
+pub(crate) fn lower_at(
     term: Option<&Expr>,
     span: Span,
     goal_ty: &Expr,

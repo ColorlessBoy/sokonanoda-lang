@@ -729,6 +729,18 @@ impl Parser {
                 })
             }
             TokenKind::Ident(name) if name.ends_with('.') => self.finish_const(name, tok.span),
+            // 值位关键字在**原子位**也可识别（I13-S3）：`funintro (funapply X)`
+            // 这类组合里，括号组的内部走 `parse_expr` → `parse_atom`，必须在这
+            // 里认出关键字才能构成组合。四段重复的解析已收敛为
+            // `parse_intro`/`parse_apply`，这里直接复用。
+            TokenKind::Ident(name) if name == "funintro" || name == "funapply" => {
+                let kw_span = tok.span;
+                if name == "funintro" {
+                    self.parse_intro(kw_span)
+                } else {
+                    self.parse_apply(kw_span)
+                }
+            }
             TokenKind::Ident(name) if is_reserved_command(&name) => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
                     found: name.clone(),
@@ -1067,6 +1079,43 @@ example : Prop -> Prop := sorry
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn keywords_parse_inside_parentheses_enabling_composition() {
+        // I13-S3：关键字是原子位表达式——括号组内的 `funapply` 解析为
+        // `Expr::Apply`，组合 `funintro (funapply And.intro)` 才有可能。
+        let file = parse(
+            "axiom And : Prop -> Prop -> Prop\ntheorem t : Prop -> Prop := (funapply And.intro)\n",
+        )
+        .unwrap();
+        match &file.commands[1] {
+            Command::Theorem { val, .. } => {
+                assert!(
+                    matches!(val, Expr::Apply { .. }),
+                    "the parenthesised keyword parses as an Apply node: {val:?}"
+                );
+            }
+            other => panic!("expected a theorem, got {other:?}"),
+        }
+        let file = parse(
+            "axiom And : Prop -> Prop -> Prop\n\
+             theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro (funapply And.intro)\n",
+        )
+        .unwrap();
+        match &file.commands[1] {
+            Command::Theorem {
+                val: Expr::Intro { answer, .. },
+                ..
+            } => {
+                let answer = answer.as_ref().expect("composition carries its answer");
+                assert!(
+                    matches!(answer.as_ref(), Expr::Apply { .. }),
+                    "the answer holds the parenthesised funapply: {answer:?}"
+                );
+            }
+            other => panic!("expected a value-position funintro, got {other:?}"),
+        }
     }
 
     /// `funintro` 现在接受**可选答案**（前端隐式替换：`funintro a` →

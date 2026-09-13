@@ -1364,6 +1364,87 @@ fn by_block_apply_still_uses_the_tactic_engine() {
 }
 
 #[test]
+fn funintro_with_a_nested_funapply_lowers_the_composition() {
+    // 用户需求②：`funintro (funapply And.intro)` —— funintro 到内核那边就是
+    // fun 链；funapply 面对剥完 binder 后的最终目标 `And b a`，降为
+    // `And.intro b a sorry sorry`（σ 实例化 + 两个前提洞）。内核零感知。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
+                 funintro (funapply And.intro)\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_swap"))
+        .expect("decl and_swap");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("And b a"));
+    assert_eq!(d.holes.len(), 2, "two premises left as holes");
+    // 前提洞的期望类型 = σ 实例化后的 b、a。
+    let sub_tys: Vec<Option<&str>> = d.sub_goals.iter().map(|s| s.ty.as_deref()).collect();
+    assert_eq!(sub_tys, vec![Some("b"), Some("a")]);
+    // 合并骨架：funintro 部分全剥 + funapply 部分展开。
+    assert_eq!(
+        d.intro_skeleton.as_deref(),
+        Some("fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a sorry sorry")
+    );
+}
+
+#[test]
+fn funintro_composition_is_equivalent_to_typing_the_skeleton_out_by_hand() {
+    // 与 intro/apply 同一条契约：组合关键字不替换也完全等价。
+    let head = "axiom And : Prop -> Prop -> Prop\n\
+                axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n";
+    let composed = format!(
+        "{head}theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n  funintro (funapply And.intro)\n"
+    );
+    let by_hand = format!(
+        "{head}theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n  fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a sorry sorry\n"
+    );
+    let decl_of = |src: &str| {
+        let report = check_document(&parse(src).expect("parse"));
+        assert!(report.errors.is_empty(), "{src:?}: {:?}", report.errors);
+        report
+            .decls
+            .into_iter()
+            .find(|d| d.name.as_deref() == Some("t"))
+            .expect("decl t")
+    };
+    let a = decl_of(&composed);
+    let b = decl_of(&by_hand);
+    assert_eq!(a.status, DeclStatus::Open);
+    assert_eq!(b.status, DeclStatus::Open);
+    assert_eq!(a.goal, b.goal);
+    assert_eq!(a.holes.len(), b.holes.len(), "same number of holes");
+    let sub_tys = |d: &DeclState| -> Vec<Option<String>> {
+        d.sub_goals.iter().map(|s| s.ty.clone()).collect()
+    };
+    assert_eq!(sub_tys(&a), sub_tys(&b), "same instantiated premises");
+}
+
+#[test]
+fn funintro_composition_on_an_unrelated_goal_is_rejected() {
+    // funapply 的结论与最终目标对不上 → 既有教学错误码。
+    let src = "axiom P : Prop\naxiom Q : Prop\n\
+               axiom impl : Q -> P\n\
+               theorem t : Q -> Q := funintro (funapply impl)\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "elab-apply-not-applicable");
+}
+
+#[test]
+fn nested_funintro_without_a_function_goal_is_still_rejected() {
+    // 嵌套 funintro：内层面对非函数目标 → 既有教学错误码（无需新码）。
+    let src = "axiom P : Prop\ntheorem t : P := funintro (funintro)\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
+}
+
+#[test]
 fn keywords_work_in_a_lambda_tail() {
     // 用户在 playground 202 行实况：拆完 binder 之后才想用 `funapply`。
     // 关键字原来只在值位开头识别，lambda 体里是普通标识符 → unknown
