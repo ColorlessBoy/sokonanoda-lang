@@ -1,3 +1,17 @@
+## [0.24.0] - 2026-09-13
+
+### Development / Infrastructure
+
+- **Performance tests are now routine** (user requirement: performance is
+  the project's lifeline) — 6 threshold-sentinel tests run on every push:
+  compiler scaling (400 blocks ≤ 12× the time of 50; O(n²) trips it),
+  incremental editing (<50ms per keystroke, only the edited block is
+  kernel-checked), and LSP interaction latency (didChange <50ms;
+  completion/hover/goal view <10ms). Every push also uploads a
+  `perf-report` artifact (version + commit) so regressions can be traced
+  to the change that caused them. No user-facing behavior change;
+  the version bump exists so each round of work has its own perf report.
+
 ## [0.23.0] - 2026-09-13
 
 ### Added

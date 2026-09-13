@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-13（第四十六轮：性能测试例行化——阈值哨兵 + 每版本报告 artifact）
+> 快照：2026-09-13（第四十六轮：性能测试例行化——阈值哨兵 + 每版本报告 artifact，0.24.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -33,6 +33,9 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. 扩展层无独立计算路径——所有特性经 LSP，故覆盖在 LSP 请求层
    （didChange/completion/hover/soko-goals）。
 5. 验收：cargo test --workspace 543 passed / 0 failed（+6 perf）；clippy 0。
+6. 版本 0.23.0 → **0.24.0**：纯基建无功能面变化，但用户要求每轮工作
+   有独立版本号（性能报告按版本对比）；CHANGELOG 以 Development/Infrastructure
+   节记录。
 
 ## 本轮进度（2026-09-13，第四十五轮：性能收口 + goal-state hover）
 
