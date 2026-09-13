@@ -20,6 +20,7 @@ pub(crate) fn test_service() -> (LspService<Backend>, ClientSocket) {
         .custom_method("soko/nextHole", Backend::next_hole)
         .custom_method("soko/hints", Backend::hints)
         .custom_method("soko/stateAt", Backend::state_at)
+        .custom_method("soko/version", Backend::version)
         .finish()
 }
 

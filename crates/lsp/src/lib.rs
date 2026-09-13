@@ -328,6 +328,17 @@ impl Backend {
         Ok(GoalsResponse { decls })
     }
 
+    /// 服务器自述：版本 + 进程号。`sokonanoda: restart server` 用它在重启前后
+    /// 各问一次，让「旧进程确实退出、新进程确实是新版本」变成**可见的事实**
+    /// 而不是一句口头保证——扩展更新后跑着旧版服务器正是用户最常见的困惑
+    /// （docs/vscode-dev-guide.md §5.6）。
+    async fn version(&self, _params: serde_json::Value) -> Result<serde_json::Value> {
+        Ok(serde_json::json!({
+            "version": env!("CARGO_PKG_VERSION"),
+            "pid": std::process::id(),
+        }))
+    }
+
     async fn next_hole(&self, params: NextHoleParams) -> Result<Option<Range>> {
         let Some((text, decls)) = self.goal_decls() else {
             return Ok(None);
@@ -1365,6 +1376,7 @@ pub async fn run() {
         .custom_method("soko/nextHole", Backend::next_hole)
         .custom_method("soko/hints", Backend::hints)
         .custom_method("soko/stateAt", Backend::state_at)
+        .custom_method("soko/version", Backend::version)
         .finish();
     Server::new(stdin, stdout, socket).serve(service).await;
 }
@@ -3233,6 +3245,27 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
                 .all(|i| i.filter_text.as_deref() != Some("apply")),
             "no apply expansion on a later declaration: {items:?}"
         );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn version_request_reports_version_and_pid() {
+        // `sokonanoda: restart server` 在重启前后各问一次 soko/version：
+        // 旧 pid 消失 + 新 pid 出现 + 版本号变化，把「旧进程退出、新进程是
+        // 新版本」变成可验证的事实。
+        let (mut service, _socket) = open_and_wait(EXERCISE).await;
+        let result = call(
+            &mut service,
+            RpcRequest::build("soko/version")
+                .params(json!({}))
+                .id(91)
+                .finish(),
+        )
+        .await
+        .expect("soko/version must answer");
+        assert_eq!(result["version"], env!("CARGO_PKG_VERSION"));
+        let pid = result["pid"].as_u64().expect("pid is a number");
+        assert!(pid > 0, "a real process id: {result:?}");
         shutdown(&mut service).await;
     }
 

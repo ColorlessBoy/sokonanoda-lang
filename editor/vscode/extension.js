@@ -556,13 +556,29 @@ async function revealHint(context, uriArg, declName, declRange) {
 // rebuilt or freshly downloaded server (or a changed `serverPath` setting)
 // takes effect without reloading the window. Extension-code updates still need
 // a window reload — a running extension host cannot swap itself.
+// 问服务器自述（版本 + 进程号）。重启前后各问一次，旧 pid 消失、新 pid 出现，
+// 「旧进程退出、新进程确实是新版本」就是可验证的事实而非口头保证——扩展更新
+// 之后跑着旧版服务器是最常见的困惑（docs/vscode-dev-guide.md §5.6）。
+async function serverVersion() {
+  if (!client) return undefined;
+  try {
+    const result = await client.sendRequest("soko/version", {});
+    return `${result?.version ?? "?"} (pid ${result?.pid ?? "?"})`;
+  } catch {
+    return undefined;
+  }
+}
+
 async function restartServer(context) {
   if (!client) {
     vscode.window.showWarningMessage(
-      "sokonanoda 语言服务器没有运行；打开一个 .sokonanoda 文件即可启动。",
+      "sokonanoda language server is not running; open a .sokonanoda file to start it.",
     );
     return;
   }
+  // 重启前先记录旧进程：restart() 会 stop() 旧客户端（2s 宽限后 SIGTERM/SIGKILL
+  // 旧子进程），再从重新解析出的命令启动新进程。
+  const before = await serverVersion();
   let next;
   try {
     const requested = requestedServerCommand();
@@ -578,12 +594,15 @@ async function restartServer(context) {
     await client.restart();
   } catch (error) {
     vscode.window.showErrorMessage(
-      `sokonanoda: 重启语言服务器失败 — ${error?.message ?? error}`,
+      `sokonanoda: restart server failed — ${error?.message ?? error}`,
     );
     return;
   }
+  const after = await serverVersion();
   vscode.window.showInformationMessage(
-    `sokonanoda: 语言服务器已重启${next ? ` — ${next}` : ""}`,
+    `sokonanoda: server restarted${before ? ` — ${before}` : ""} → ${
+      after ?? next ?? "?"
+    }`,
   );
 }
 

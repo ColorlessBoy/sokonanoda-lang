@@ -62,7 +62,7 @@ skills.
   offered
 - Semantic highlighting (including `sorry`), folding ranges, smart
   select that visualises precedence
-- Restart the language server in place (`sokonanoda: 重启语言服务器`) after
+- Restart the language server in place (`sokonanoda: restart server`) after
   rebuilding or refreshing the binary — no window reload needed (extension
   updates themselves still apply on reload)
 - Greek binder letters (`α`, `β`, …) render plainly — the extension turns

@@ -1,3 +1,15 @@
+## [0.19.0] - 2026-09-13
+
+### Added
+- **`soko/version`** — the server reports its version and process id. The
+  `sokonanoda: restart server` command now asks before and after, so the
+  receipt shows `0.16.2 (pid 1001) → 0.19.0 (pid 2002)`: proof that the old
+  process died and the new one is the new version.
+
+### Changed
+- The command palette entry is now `sokonanoda: restart server` (was
+  `sokonanoda: 重启语言服务器`).
+
 ## [0.18.0] - 2026-09-13
 
 ### Added
