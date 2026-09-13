@@ -48,6 +48,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 | 平台包 exec 位 | VSIX 的 zip 记录 unix mode；**Windows 上 `vsce package` 会丢执行位**（vsce #152/#512） | 只在 Linux/macOS 打包；stage 时 `chmod 755`；冒烟用 python `zipfile` 断言 `mode & 0o111` |
 | 平台包发布顺序 | Marketplace 同版本 universal + 多 target 并存；“Validating”窗口有装错 target 的竞态（vscode#141696） | 先 universal 后 target；每包独立重试；装错反馈先让用户卸载重装 |
 | 版本门禁 | tag / `Cargo.toml` / `package.json` 三者不一致时 release 必须 fail（历史上靠人工） | release `package-vsix` 的 version gate + `cargo_and_extension_versions_match` 契约测试双保险；tag 前先 `cargo check` 更新 lock |
+| **job success ≠ 关键步骤跑过** | 条件不满足的步骤显示 `skipped`，其余步骤 success 会把 **job 抬绿**（v0.20.0 首发：8 平台构建真跑、Release/上架两步被 `if: github.event_name == 'push'` 静默跳过） | 核对必须逐步骤；`conclusion == "skipped"` 出现在创建/上传/发布步骤 = 发布半坏。条件按 **ref** 判（`startsWith(github.ref,'refs/tags/')`），别按 event 判 |
+| GITHUB_TOKEN 推 tag **不触发**其它 workflow | 防递归规则；但 `workflow_dispatch` / `repository_dispatch` 是**例外**，token 触发有效 | 自动发版 = 推 tag + 显式 `gh workflow run release.yml --ref v<tag>`（ci.yml 的 auto-tag job）；dispatch 还需 `actions: write`（只有 contents:write 会 403 "Resource not accessible by integration"） |
+| runner 上的未鉴权 GitHub API 调用会假 404/403 | 匿名额度按 IP 共享，限流/风控返回 403/404，与资源真实状态无关（pages 门禁曾因此误判"未启用"→ 部署全 skipped） | workflow 里查仓库状态一律 `gh api` + `GH_TOKEN: ${{ github.token }}` |
 
 ## 2. 触发与监控
 
@@ -116,6 +119,7 @@ curl -sS -X POST "https://marketplace.visualstudio.com/_apis/public/gallery/exte
 | 按版本号"探测"是**死路** | `/_apis/public/gallery/publishers/<p>/vsextensions/<n>/<v>` 这个路由**不存在**，一律 404（"controller … was not found"） | 只认 `extensionquery`；那个 404 不代表没上架 |
 | 半坏状态 | `github-release` 与 `marketplace-publish` 是独立 job，可能"已上架但 Release 页零资产"（v0.10.0 实际发生） | 两个页面**都必须**核对，不能只看 run 绿 |
 | 资产"能下"才算发布完 | 只核清单不够：tarball 可能解不出或丢 exec 位 | 发布后抽样 `curl` 下载 → `tar xzf` → 跑 `./sokonanoda <file>` 看真退出码（v0.17.0 做过，darwin-arm64 两个资产均 OK） |
+| Azure gallery **503** | `vsce publish` 连续 4 次 HTTP 503 Service Unavailable 是服务端瞬时故障（v0.20.0 实况），与流水线无关 | 先 `curl` gallery 的 extensionquery 探健康度：503 → 等恢复后 `gh run rerun <run-id> --failed`；别改流水线 |
 
 ## 3. 排错三板斧
 

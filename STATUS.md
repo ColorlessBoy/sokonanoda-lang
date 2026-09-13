@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-13（第四十轮：三个大方向落地——真人输入基建 / 值位 `apply` / 官网）
+> 快照：2026-09-13（第四十一轮：发布链自动化闭环——auto-tag / Pages 上线 / Marketplace 0.20.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,30 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-13，第四十一轮：发布链自动化闭环）
+
+> 用户复盘发布流程后发现三个流水线缺口，全部修复并落地自动化。本机 `gh`（owner
+> 权限）可用后，此前「只能网页手点」的动作全部自动化了。
+
+1. **auto-tag 自动发版**（`ci.yml` 新 job）：main 上 lint/test 全绿后，若
+   `Cargo.toml` 版本还没有对应 v* tag → 打 tag 并 `workflow_dispatch`
+   release.yml。机制：GITHUB_TOKEN 推的 tag 不触发其它 workflow（防递归），
+   `workflow_dispatch` 是例外；dispatch 需要 `actions: write`（首跑 403 教训）。
+   幂等：tag 已存在即跳过；两处版本不一致直接 fail。
+2. **release.yml 两处 `if: github.event_name == 'push'` 改为按 ref 判**——
+   dispatch 进来核心步骤（创建 Release/上架 Marketplace）被静默 skipped 而
+   job 依然绿，v0.20.0 首发实况。
+3. **pages 门禁改鉴权 `gh api`**——未鉴权 curl 的假 404/403 让门禁误判
+   「未启用」→ 部署步骤全 skipped，站点迟迟不上线。
+4. **发布结果**：v0.20.0（tag 强移到含修复的 commit，版本契约核验）→ Release
+   资产 25 个（9 VSIX + 8 LSP tar + 8 CLI tar）✓；Marketplace 已收录 0.20.0
+   （首跑遇 Azure gallery 503，`gh run rerun --failed` 恢复后成功）✓；站点
+   https://colorlessboy.github.io/sokonanoda-lang/ 上线（About 的 homepage
+   指向它）✓；About 三件套（description/website/topics）已用 gh repo edit
+   填好。
+5. **教训落台账**：`docs/CI-FAILURES.md` +2（skipped 步骤把 job 抬绿；gallery
+   503）；`skills/sokonanoda-ci` §1/§2.1 +4 行。
 
 ## 本轮进度（2026-09-13，第四十轮：三个大方向落地）
 

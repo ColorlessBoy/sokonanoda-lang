@@ -4,6 +4,27 @@
 > 修复方式、预防措施）。
 
 ## 格式
+### 2026-09-13 — v0.20.0 首发：构建真跑、Release/Marketplace 步骤被 skipped（job 却 success）
+- 现象：release run 34746149297 全绿，但 Release 页没建、市场没更新。逐步骤
+  核验发现 github-release 的「Create release and upload all artifacts」与
+  marketplace 的「Publish」都是 **skipped**——其余步骤 success 会把 job 抬绿。
+- 原因：两步的 `if: github.event_name == 'push'` 是只有 tag-push 触发时写的；
+  auto-tag 走 workflow_dispatch 进来 event 不满足 → 静默跳过。
+- 修复：改 `if: startsWith(github.ref, 'refs/tags/')`（tag push 与在 tag ref
+  上 dispatch 都满足）。
+- **预防**：看 CI 结论必须**逐步骤**看——job success ≠ 关键步骤执行过；
+  `conclusion == "skipped"` 的核心步骤是发布半坏的头号信号（v0.10.0 空
+  Release 事故的兄弟形态）。
+
+### 2026-09-13 — marketplace 上架 503（服务端瞬时故障）
+- `vsce publish` 对 Azure gallery 连续 4 次 HTTP 503（Service Unavailable），
+  与代码无关。gallery 恢复后 `gh run rerun <run-id> --failed` 重跑失败 job
+  即成功。
+- 预防：上架失败先 `curl` 一下 gallery 的 extensionquery 探健康度，503 就
+  等——不要急着改流水线。
+
+---
+
 ### 2026-09-13 — ci 的 Workspace tests 步骤偶发失败（本地全绿）
 - 原因：连续两次 push（768d2f6 纯文档、5b47020 by 尾）的 `cargo test
   --workspace` 在 ubuntu runner 上 exit 101，而本地 macOS 全绿、且二分显示
