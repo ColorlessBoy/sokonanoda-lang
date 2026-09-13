@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 42,
+  "round": 43,
   "round_date": "2026-09-13",
-  "round_title": "文档治理",
+  "round_title": "值位关键字 v2",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",

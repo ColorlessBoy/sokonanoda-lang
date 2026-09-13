@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-13（第四十二轮：文档治理——归档/去漂移/发布口径统一）
+> 快照：2026-09-13（第四十三轮：值位关键字 v2——funintro/funapply 改名 + 输入期补全 + 组合，0.21.0 全自动发布）
 > 历史轮次（1–39）见 `docs/STATUS-ARCHIVE.md`。
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
@@ -14,6 +14,30 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-13，第四十三轮：值位关键字 v2）
+
+> 用户三需求：①输入过程没有补全替换提示；②`funintro (funapply X)` 组合；
+> ③值位关键字改名与 tactic 消歧义。设计 `docs/design/value-keywords-v2.md`
+> （探针实测 + 两路调研 + 决策单 D1–D9），S1–S3 由 subagent/主会话顺序实施。
+
+1. **S1 改名**（commit 966117c）：值位 `intro`→`funintro`、`apply`→`funapply`
+   （无别名）；by 块 tactic 不动；KEYWORDS 保留旧词加新词；按钮文案
+   「替换源代码 funintro/funapply」；hint 改新名、机器码沿用；课程/画布/
+   编辑器/文档全扫（~30 文件）。执行事故：subagent 跑 51 文件后 429 中断且
+   误跑了 kernel 全仓 fmt——已回滚 kernel、修复 7 处残留 + BY_OPEN 夹具的
+   tactic 误改名。
+2. **S2 输入期补全**（4cc3f70）：探针实测根因（keyword_at 要求 Open，输入
+   中间态必然 Failed，前缀阶段连 decl 都没有）→ 补全两态：骨架态（原行为）+
+   键入态（前缀/整词/尾随空格出「替换源代码」项，newText = 关键字全词）。
+   v1 整词门控明确推翻；三条逐键真人输入测试（零 sleep）。
+3. **S3 组合**（4603888）：关键字成为原子位表达式（parse_atom）；`lower_at`
+   提为 pub(crate)；`lower_intro_val` 增加 src/span_start/options 与 context
+   贯穿；`funintro (funapply X)` → `And.intro b a sorry sorry`（σ 实例化 +
+   前提洞），内核零感知；等价性契约 + 错误面沿用既有码。
+4. **S4 收口 + 全自动发布**（b255991 → auto-tag 自动打 v0.21.0 → release
+   run 全绿）：Release 25 资产、Marketplace 收录 0.21.0、官网同步——**首次
+   零人工发版**，上一轮的 auto-tag 链实战验证通过。
 
 ## 本轮进度（2026-09-13，第四十二轮：文档治理）
 
