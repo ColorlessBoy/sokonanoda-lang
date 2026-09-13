@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 43,
+  "round": 45,
   "round_date": "2026-09-13",
-  "round_title": "值位关键字 v2",
+  "round_title": "性能收口 + goal-state hover",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -53,5 +53,5 @@
       "unit": 6
     }
   ],
-  "version": "0.22.0"
+  "version": "0.23.0"
 }

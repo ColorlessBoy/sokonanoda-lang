@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-13（第四十三轮：值位关键字 v2——funintro/funapply 改名 + 输入期补全 + 组合，0.21.0 全自动发布）
+> 快照：2026-09-13（第四十五轮：性能收口——judge 缓存 / 半截表达式 goal-state hover / 演示例行化，0.23.0）
 > 历史轮次（1–39）见 `docs/STATUS-ARCHIVE.md`。
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
@@ -14,6 +14,27 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-13，第四十五轮：性能收口 + goal-state hover）
+
+> 用户三点：性能是生命线（排查 funapply 同源问题与内存）；半截表达式
+> （`And.intro b a`）hover 给 goal state；GIF 例行化与最新更新同步。
+
+1. **judge 结果缓存**（`judge.rs`）：judge_infer/terms/hole_fill 的每次
+   调用都重编译整个文档前缀——by 块 tactic `apply`/`exact` 让该成本落在
+   每一次按键（与 funapply 同根，未随其移除而消失）。指纹缓存（前缀文本 +
+   options + context + terms），封顶 128 条；前缀参与指纹 → 更早编辑失效
+   缓存，保守但正确。命中返回与直算逐字节一致（缓存测试钉住）。
+2. **半截表达式 goal-state hover**：内核拒绝的声明（如 `And.intro b a`
+   差两个前提），hover 显示推断出的剩余目标 `|- b`、`|- a`——只在 hover
+   请求时计算（judge 缓存命中后零成本），不在按键路径。值文本取自声明
+   切片最后一个 `:=` 之后；context = 值自己的 lambda 链（学习者命名原样）。
+3. **内存审计结论**：LSP 侧单 Document 结构、报告整体替换（无历史累积）；
+   judge 缓存封顶；扩展端命令/监听一次性注册——未发现无界增长。判定
+   结果缓存同时消除了每次按键为每个 by 块分配整套编译报告的抖动。
+4. **演示例行化**：`gen-site-demos.py --check`（帧指纹比对）进 pages
+   workflow——交互/文案改了而没重跑渲染脚本时 CI 红。演示已无 funapply。
+5. 版本 0.22.0 → **0.23.0**（goal-state hover = 新能力）。
 
 ## 本轮进度（2026-09-13，第四十三轮：值位关键字 v2）
 

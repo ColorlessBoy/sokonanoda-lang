@@ -206,6 +206,14 @@ answer is `kernel-rejected`, exactly as if it had been written by hand.
 An answered `intro` leaves no synthetic hole and carries no editor skeleton
 (there is nothing left to expand).
 
+### Half-expression goal state (0.23.0)
+
+A value that the kernel rejects can still carry useful structure: hovering
+`And.intro b a` against the goal `And b a` shows the inferred remaining goals
+(`|- b`, `|- a`) instead of only the error. Computed **on hover only** (never
+on the keystroke path) via `judge_infer`, whose results are cached (bounded
+128-entry fingerprint cache — see `docs/LESSONS.md`).
+
 ### Keyword expressions (0.21.0 / narrowed 0.22.0)
 
 `funintro` is also recognised in **atom position** (inside parentheses, in

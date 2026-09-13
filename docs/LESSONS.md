@@ -47,6 +47,15 @@
 - 洞位/子目标永远由 server 端 walk 产出（`DeclState.holes/sub_goals`）；
   客户端禁止文本扫洞——已编码为契约测试（`extension.rs`）。
 
+## 工程
+
+- **front 降低/判定路径禁止 per-keystroke 的全文档重编译**（O(n²)，funapply
+  因此整体移除；by 块 tactic 的 judge_infer 同源，已加指纹缓存封顶 128 条）。
+  任何需要内核信息的特性：要么缓存、要么只在显式请求（hover/code action）
+  时计算——半截表达式的 goal-state hover 即此模式。
+- **演示资产例行化**：官网 GIF/图由 `scripts/gen-site-demos.py` 渲染；改了
+  编辑器交互/文案必须重跑并提交（pages workflow 的 `--check` 步骤会在漂移
+  时红掉）。演示画面与实现一一对应，不是假截图。
 ## 工程流程（subagent / 门禁 / 测试）
 
 - **并行 subagent 必须文件集互斥**：任务书里写死"允许修改的文件清单 +

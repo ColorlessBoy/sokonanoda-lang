@@ -828,6 +828,130 @@ fn keyword_expansion_hover(
     })
 }
 
+/// 半截表达式的 goal-state hover（I13-S5，用户需求）：值写了一半、内核
+/// 拒绝时（如 `And.intro b a` 还差两个前提），hover 不只给报错——把推断
+/// 出的**剩余目标**列出来（`|- b`、`|- a`）。
+///
+/// 性能边界：只在 **hover 请求时**计算（不在按键路径上），且 `judge_infer`
+/// 有缓存——同一位置重复悬停零成本；指纹含前缀文本，其它位置的编辑会
+/// 失效缓存（保守但正确）。
+fn half_expression_goals_hover(
+    report: &DocumentReport,
+    text: &str,
+    offset: usize,
+) -> Option<Hover> {
+    use sokonanoda_front::compile::CompileOptions;
+    use sokonanoda_front::proof::{parse_expr_text, peel_pi_layers, render_expr};
+    use sokonanoda_front::{parse, Command, Expr};
+
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
+    if d.status != DeclStatus::Failed {
+        return None;
+    }
+    let error = d.error.as_ref()?;
+    if error.code() != "kernel-rejected" {
+        return None;
+    }
+    // 值文本 = 声明切片里最后一个 `:=` 之后的部分（表达式语法不含 `:=`）。
+    let slice = &text[d.span.start.offset..d.span.end.offset];
+    let (_head, value) = slice.rsplit_once(":=")?;
+    let value = value.trim();
+    if value.is_empty() {
+        return None;
+    }
+    // 值自己的 lambda 链 = 判定上下文（学习者命名的 binder 原样可用）。
+    let value_expr = parse_expr_text(value).ok()?;
+    let mut binders: Vec<sokonanoda_front::judge::GoalBinderSpec> = Vec::new();
+    let mut body = &value_expr;
+    while let Expr::Lambda {
+        binders: bs,
+        body: b,
+        ..
+    } = body
+    {
+        for b in bs {
+            binders.push(sokonanoda_front::judge::GoalBinderSpec {
+                name: b.name.clone(),
+                ty: b.ty.as_deref().map(render_expr),
+            });
+        }
+        body = b;
+    }
+    if binders.is_empty() {
+        return None; // 没有引入 binder 的半截表达式：诊断已足够
+    }
+    let term_text = render_expr(body);
+    // 声明目标 = 声明类型剥掉值已消耗的层数。
+    let file = parse(slice).ok()?;
+    let ty = match file.commands.first()? {
+        Command::Theorem { ty, .. } | Command::Def { ty, .. } => ty.clone(),
+        _ => return None,
+    };
+    let goal_ty = peel_pi_layers(&ty, binders.len())?;
+    let goal_text = render_expr(&goal_ty);
+
+    // 问内核：这一项在上下文里的类型（推断，不是判定；有缓存）。
+    let prefix = &text[..d.span.start.offset];
+    let inferred = sokonanoda_front::judge::judge_infer(
+        prefix,
+        &CompileOptions::default(),
+        &binders,
+        &term_text,
+    )
+    .ok()?;
+    let inferred_expr = parse_expr_text(&inferred).ok()?;
+    let mut goals: Vec<String> = Vec::new();
+    let mut cur = &inferred_expr;
+    loop {
+        match cur {
+            Expr::Arrow {
+                domain, codomain, ..
+            } => {
+                goals.push(render_expr(domain));
+                cur = codomain;
+            }
+            Expr::Forall { binders, body, .. } => {
+                for binder in binders {
+                    goals.push(render_expr(
+                        binder.ty.as_deref().unwrap_or_else(|| body.as_ref()),
+                    ));
+                }
+                cur = body;
+            }
+            _ => break,
+        }
+    }
+    if goals.is_empty() {
+        return None; // 不是部分应用：诊断已足够
+    }
+    let codomain = render_expr(cur);
+    let (headline, tail) = if codomain == goal_text {
+        (
+            format!(
+                "这一项的结论已经对上目标 `{goal_text}`，还差 {} 个前提：",
+                goals.len()
+            ),
+            "\n\n继续把前提补上，或用 `funintro` 让编辑器接手。".to_string(),
+        )
+    } else {
+        (
+            format!("这一项的类型是 `{inferred}`，与目标 `{goal_text}` 对不上："),
+            String::new(),
+        )
+    };
+    let goal_lines: Vec<String> = goals.iter().map(|g| format!("\n|- {g}")).collect();
+    Some(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: format!("{headline}{}", goal_lines.join("")) + &tail,
+        }),
+        range: Some(range_of(d.span)),
+    })
+}
+
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
@@ -939,6 +1063,11 @@ impl LanguageServer for Backend {
             .uri
             .clone();
         if let Some(hover) = keyword_expansion_hover(report, &doc.text, uri.as_str(), offset) {
+            return Ok(Some(hover));
+        }
+        // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。
+        // 只在 hover 请求时计算（不在按键路径），judge_infer 有缓存。
+        if let Some(hover) = half_expression_goals_hover(report, &doc.text, offset) {
             return Ok(Some(hover));
         }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
@@ -2968,6 +3097,33 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             assert_eq!(edit.range.start, lsp_pos(src, start));
             assert_eq!(edit.range.end, lsp_pos(src, start + "funintro".len()));
         }
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_a_half_expression_shows_the_remaining_goals() {
+        // 用户需求：半截表达式（`And.intro b a` 还差两个前提）的 hover 不只给
+        // 报错——把推断出的剩余目标列成 `|- b`、`|- a`。按需计算 + judge 缓存，
+        // 不在按键路径上。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
+                     fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a\n";
+        let (mut service, _socket) = open_and_wait(src).await;
+        let at = src.rfind("And.intro").expect("value occurrence");
+        let hover = hover_opt_at(&mut service, src, at)
+            .await
+            .expect("hover on the half expression must answer");
+        let HoverContents::Markup(markup) = hover.contents else {
+            panic!("expected markup hover");
+        };
+        assert!(
+            markup.value.contains("还差 2 个前提"),
+            "hover: {:?}",
+            markup.value
+        );
+        assert!(markup.value.contains("|- b"), "hover: {:?}", markup.value);
+        assert!(markup.value.contains("|- a"), "hover: {:?}", markup.value);
         shutdown(&mut service).await;
     }
 

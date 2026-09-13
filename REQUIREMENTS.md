@@ -433,6 +433,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   判会被 dispatch 静默 skipped）；③pages 门禁改鉴权 `gh api`。发布结果：
   v0.20.0 上 Release（25 资产）+ Marketplace + 官网上线（About 三件套已填）。
   手动推 tag 降级为应急路径（`docs/RELEASE.md`）。
+- 2026-09-13（四十四）：**性能是生命线（用户明确）+ 半截表达式 goal-state
+  hover + 演示例行化**：①判定结果缓存（judge_infer/terms/hole_fill 指纹
+  缓存，封顶 128 条）——by 块 tactic 的 judge_infer 每键全前缀重编译与
+  funapply 同根，缓存修复；②内核拒绝的半截表达式（如 `And.intro b a`）
+  hover 显示推断出的剩余目标 `|- b`、`|- a`——只在 hover 请求时计算；
+  ③官网演示 GIF 例行化（`gen-site-demos.py --check` 进 pages workflow）；
+  ④value `funapply` 于 0.22.0 移除（见前条），GIF 与文档同步清除。
 - 2026-09-13（四十三）：**值位关键字 v2（用户三需求）**：①输入过程中要有
   补全替换提示（探针实测根因：keyword_at 要求 Open 态，而输入中间态必然
   Failed）；②`funintro (funapply X)` 关键字组合——纯前端实现，funintro 到

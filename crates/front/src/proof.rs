@@ -310,7 +310,7 @@ pub(crate) fn fresh_name(base: &str, used: &mut std::collections::HashSet<String
 
 /// 从 `ty` 最外层剥 `n` 层 Pi/Forall binder，返回剩余类型；层数不够返回
 /// `None`。声明 binder 的 `intro` 递归降低与 `by` 引擎的初始上下文共用。
-pub(crate) fn peel_pi_layers(ty: &Expr, n: usize) -> Option<Expr> {
+pub fn peel_pi_layers(ty: &Expr, n: usize) -> Option<Expr> {
     if n == 0 {
         return Some(ty.clone());
     }

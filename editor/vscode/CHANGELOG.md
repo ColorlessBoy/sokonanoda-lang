@@ -1,3 +1,17 @@
+## [0.23.0] - 2026-09-13
+
+### Added
+- **Half-expression goal state** — hovering a partial application the kernel
+  rejected (e.g. `And.intro b a` against `And b a`) now lists the inferred
+  remaining goals (`|- b`, `|- a`) instead of only the error. Computed on
+  hover only, with a bounded fingerprint cache.
+
+### Performance
+- **Judge results are cached** (fingerprint-keyed, capped at 128) — the
+  by-block tactics `apply`/`exact` infer types through a full document-prefix
+  recompile on every keystroke; unrelated edits now hit the cache. This was
+  the same O(n²) pattern that got value-position `funapply` removed.
+
 ## [0.22.0] - 2026-09-13
 
 ### Removed

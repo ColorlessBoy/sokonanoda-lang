@@ -68,7 +68,92 @@ pub enum Judgement {
 
 /// 对开放声明 `open` 逐个判定 `terms` 是否能填进洞里。
 /// 返回值与 `terms` 等长、按序对应；每次调用独立跑一遍前缀流水线。
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::sync::{Mutex, OnceLock};
+
+/// 判定结果缓存（I13 性能收口）：judge_* 的每次调用都要**重编译整个文档
+/// 前缀**（拼合成 `#check` 声明后走完整 compile）——by 块 tactic `apply`/
+/// `exact` 让这个 O(前缀) 成本落在每一次按键上。缓存按请求指纹命中，
+/// 容量封顶（防内存膨胀）；前缀文本参与指纹，文档任何更早的编辑都会
+/// 失效缓存——**保守但正确**。
+const JUDGE_CACHE_CAP: usize = 128;
+
+/// 判定缓存的值：`Infer` = judge_infer 的类型文本（Ok/Err 都缓存），
+/// `Terms` = judge_terms / judge_hole_fill 的结论序列。
+#[derive(Clone)]
+enum JudgeCacheValue {
+    Infer(Result<String, Judgement>),
+    Terms(Vec<Judgement>),
+}
+
+/// 缓存存储：指纹 → 结论；`Vec` 记录插入序（FIFO 淘汰）。
+type JudgeCacheStore = (HashMap<u64, JudgeCacheValue>, Vec<u64>);
+
+fn judge_cache() -> &'static Mutex<JudgeCacheStore> {
+    static CACHE: OnceLock<Mutex<JudgeCacheStore>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new((HashMap::new(), Vec::new())))
+}
+
+fn judge_cache_key(parts: &[&str]) -> u64 {
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    for part in parts {
+        part.hash(&mut h);
+        0u8.hash(&mut h); // 分隔符，避免拼接歧义
+    }
+    h.finish()
+}
+
+fn judge_cache_get(key: u64) -> Option<JudgeCacheValue> {
+    judge_cache()
+        .lock()
+        .expect("judge cache")
+        .0
+        .get(&key)
+        .cloned()
+}
+
+fn judge_cache_put(key: u64, value: JudgeCacheValue) {
+    let mut cache = judge_cache().lock().expect("judge cache");
+    if cache.0.insert(key, value.clone()).is_none() {
+        cache.1.push(key);
+        while cache.1.len() > JUDGE_CACHE_CAP {
+            let oldest = cache.1.remove(0);
+            cache.0.remove(&oldest);
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn judge_cache_len() -> usize {
+    judge_cache().lock().expect("judge cache").0.len()
+}
+
+fn options_key(options: &CompileOptions) -> String {
+    format!("{:?}", options.prelude)
+}
+
 pub fn judge_terms(
+    prefix_src: &str,
+    options: &CompileOptions,
+    open: &OpenGoalSpec,
+    terms: &[&str],
+) -> Vec<Judgement> {
+    let key = judge_cache_key(&[
+        prefix_src,
+        &options_key(options),
+        &format!("{open:?}"),
+        &format!("{terms:?}"),
+    ]);
+    if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
+        return j;
+    }
+    let j = judge_terms_uncached(prefix_src, options, open, terms);
+    judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
+    j
+}
+
+fn judge_terms_uncached(
     prefix_src: &str,
     options: &CompileOptions,
     open: &OpenGoalSpec,
@@ -159,6 +244,26 @@ pub fn judge_terms(
 /// <term>\n` 走完整流水线，取 `TypeChecked` 事件文本，再剥掉 n 层
 /// binder 箭头得 `term` 的类型。
 pub fn judge_infer(
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Result<String, Judgement> {
+    let key = judge_cache_key(&[
+        prefix_src,
+        &options_key(options),
+        &format!("{binders:?}"),
+        term,
+    ]);
+    if let Some(JudgeCacheValue::Infer(r)) = judge_cache_get(key) {
+        return r;
+    }
+    let r = judge_infer_uncached(prefix_src, options, binders, term);
+    judge_cache_put(key, JudgeCacheValue::Infer(r.clone()));
+    r
+}
+
+fn judge_infer_uncached(
     prefix_src: &str,
     options: &CompileOptions,
     binders: &[GoalBinderSpec],
@@ -274,6 +379,28 @@ fn render_roundtrip(expr: &Expr) -> String {
 /// 练习，结论如实是 [`Judgement::Error`]——多洞状态的逐洞判定由调用方
 /// （`suggest`）改用 [`judge_terms`] 按子洞期望类型完成。
 pub fn judge_hole_fill(
+    doc_src: &str,
+    options: &CompileOptions,
+    decl_span: Span,
+    hole_span: Span,
+    candidates: &[&str],
+) -> Vec<Judgement> {
+    let key = judge_cache_key(&[
+        doc_src,
+        &options_key(options),
+        &format!("{decl_span:?}"),
+        &format!("{hole_span:?}"),
+        &format!("{candidates:?}"),
+    ]);
+    if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
+        return j;
+    }
+    let j = judge_hole_fill_uncached(doc_src, options, decl_span, hole_span, candidates);
+    judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
+    j
+}
+
+fn judge_hole_fill_uncached(
     doc_src: &str,
     options: &CompileOptions,
     decl_span: Span,
@@ -661,6 +788,33 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    #[test]
+    fn judge_cache_returns_identical_results_and_stores_entries() {
+        // 缓存是性能设施（by 块 tactic 的 judge_infer 每键全前缀重编译是
+        // funapply 移除的根因）：命中必须返回与直算一致的结果，且条目入库。
+        let prefix = "axiom P : Prop\naxiom Q : Prop\n";
+        let binders = vec![crate::judge::GoalBinderSpec {
+            name: "h".into(),
+            ty: Some("P".into()),
+        }];
+        let options = CompileOptions::default();
+        let first = judge_infer(prefix, &options, &binders, "h");
+        let before = judge_cache_len();
+        let second = judge_infer(prefix, &options, &binders, "h");
+        assert_eq!(first, second, "cache must not change results");
+        assert!(judge_cache_len() >= before, "the request must be cached");
+
+        // 不同 prelude 模式是指纹的一部分：不串台。
+        let bare = CompileOptions {
+            prelude: crate::compile::PreludeMode::Bare,
+        };
+        let _ = judge_infer(prefix, &bare, &binders, "h");
+        assert!(
+            judge_cache_len() > before,
+            "different options = different key"
+        );
     }
 
     #[test]

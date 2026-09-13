@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import math
+import hashlib
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -68,7 +69,7 @@ def text_w(draw, s, f):
 
 
 # ── 语法着色：把一行源码拆成 (text, color) 片段 ────────────────────
-KEYWORDS = {"fun", "funintro", "funapply", "by", "intro", "exact", "apply", "sorry", "assumption"}
+KEYWORDS = {"fun", "funintro", "by", "intro", "exact", "apply", "sorry", "assumption"}
 
 
 def tokenize(line: str) -> list[tuple[str, tuple]]:
@@ -408,11 +409,75 @@ def save_gif(frames: list[tuple[Image.Image, int]], path: Path) -> None:
     )
 
 
+def render_all() -> dict[str, list[tuple[Image.Image, int]]]:
+    """全部演示的帧序列（单一事实源：页面与 --check 都从这里出发）。"""
+    return {
+        "demo-completion.gif": demo_completion(),
+        "demo-hover.png": [(demo_hover_png(), 0)],
+        "demo-kernel.png": [(demo_kernel_png(), 0)],
+    }
+
+
+def _quantized_rgb(img: Image.Image) -> Image.Image:
+    # 与 save_gif 的调色板量化同口径：GIF 解码出来的像素 = 量化后的像素。
+    return img.convert("P", palette=Image.ADAPTIVE, colors=64).convert("RGB")
+
+
+def frame_fingerprint(frames: list[tuple[Image.Image, int]]) -> list[str]:
+    return [
+        hashlib.sha256(_quantized_rgb(f).tobytes()).hexdigest()
+        for f, _ in frames
+    ]
+
+
+def frame_fingerprint_raw(frames: list[tuple[Image.Image, int]]) -> list[str]:
+    return [hashlib.sha256(f.convert("RGB").tobytes()).hexdigest() for f, _ in frames]
+
+
 def main() -> None:
+    import sys
+
+    check = "--check" in sys.argv
+    all_frames = render_all()
+    if check:
+        # 例行化校验（CI / pages 用）：仓库里的演示若与当前渲染不一致
+        # （交互或文案改了但没重跑本脚本），报错并给出修复命令。
+        bad = []
+        for name, frames in all_frames.items():
+            path = OUT / name
+            if not path.exists():
+                bad.append(f"{name}: missing — run `python3 scripts/gen-site-demos.py`")
+                continue
+            existing = Image.open(path)
+            existing_frames = []
+            i = 0
+            while True:
+                existing.seek(i)
+                existing_frames.append(existing.convert("RGB"))
+                i += 1
+                try:
+                    existing.seek(i)
+                except EOFError:
+                    break
+            if name.endswith(".gif"):
+                want = frame_fingerprint(frames)  # GIF：量化后的像素
+            else:
+                want = frame_fingerprint_raw(frames)  # PNG：原始像素
+            got = [hashlib.sha256(im.tobytes()).hexdigest() for im in existing_frames]
+            if want != got:
+                bad.append(f"{name}: stale — run `python3 scripts/gen-site-demos.py`")
+        if bad:
+            for b in bad:
+                print(f"DEMO STALE: {b}", file=sys.stderr)
+            sys.exit(1)
+        print(f"demos up-to-date ({len(all_frames)} files)")
+        return
     OUT.mkdir(parents=True, exist_ok=True)
-    save_gif(demo_completion(), OUT / "demo-completion.gif")
-    demo_hover_png().save(OUT / "demo-hover.png", optimize=True)
-    demo_kernel_png().save(OUT / "demo-kernel.png", optimize=True)
+    for name, frames in all_frames.items():
+        if name.endswith(".gif"):
+            save_gif(frames, OUT / name)
+        else:
+            frames[0][0].save(OUT / name, optimize=True)
     for f in sorted(OUT.iterdir()):
         print(f"  {f.name}  {f.stat().st_size // 1024} KB")
 

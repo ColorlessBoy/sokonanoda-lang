@@ -71,6 +71,12 @@ jobs:
         if: steps.gate.outputs.enabled == 'true'
         run: python3 scripts/gen-site-data.py
 
+      # 例行化：演示 GIF/图与实现保持同步——交互或文案改了而没重跑
+      # gen-site-demos.py 时，这里会红并提示修复命令。
+      - name: Check site demos are up-to-date
+        if: steps.gate.outputs.enabled == 'true'
+        run: python3 scripts/gen-site-demos.py --check
+
       # 防漂移：站内链接必须指向真实文件；页面里不许出现写死的版本号
       # （docs/design/site.md §5.3）。
       - name: Site hygiene checks (links + no hardcoded versions)
