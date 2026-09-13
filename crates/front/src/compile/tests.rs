@@ -1164,6 +1164,47 @@ fn nested_funintro_without_a_function_goal_is_still_rejected() {
 }
 
 #[test]
+fn overapplied_spine_through_def_shows_hole_expected_type() {
+    // 用户案例（playground L216，0.25.0 精确化）：`(And.right a (Not a) x)
+    // sorry` —— And.right 全量应用的结果是 `Not a`（def 展开为 `a ->
+    // False`），`sorry` 是它的函数实参 → 洞的期望类型是 `a`，不是整个
+    // 声明类型，也不是 `Not a`。walk 借 def 体展开一步得到。
+    let src = "axiom False : Prop\n\
+               axiom And : Prop -> Prop -> Prop\n\
+               axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
+               def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
+               theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :=\n\
+                 fun (a : Prop) => fun (x : And a (Not a)) => (And.right a (Not a) x) sorry\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(
+        report.errors.is_empty(),
+        "no errors expected: {:?}",
+        report.errors
+    );
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("and_not_absurd"))
+        .expect("decl");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1);
+    // 剩余目标 = 声明类型剥掉两层 lambda 后的 `False`。
+    assert_eq!(d.goal.as_deref(), Some("False"), "goal: {:?}", d.goal);
+    // 洞的期望类型 = `Not a` 展开后的箭头定义域 `a`。
+    assert_eq!(
+        d.sub_goals.len(),
+        1,
+        "the hole carries a precise expected type"
+    );
+    assert_eq!(
+        d.sub_goals[0].ty.as_deref(),
+        Some("a"),
+        "expected type of the sorry: {:?}",
+        d.sub_goals[0].ty
+    );
+}
+
+#[test]
 fn sorry_in_argument_position_within_open_exercise_is_accepted() {
     // 用户案例 B：`(And.right a (Not a) x) sorry` —— sorry 在参数位置（不在
     // 值位开头也不在 lambda 尾的 funintro/after 位置）。open_goal 的 spine

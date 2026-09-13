@@ -22,6 +22,13 @@ struct FuncTemplate {
     universe: Vec<String>,
     binder_names: Vec<String>,
     binder_tys: Vec<Option<Expr>>,
+    /// 声明类型剥完望远镜后的结果（axiom/def/theorem 有；归纳构造子的
+    /// func 视图没有）。超量应用走查需要它：实参落在结果之上时，把结果
+    /// 按 def 体展开继续匹配。
+    result_ty: Option<Expr>,
+    /// def 的值（仅 `Command::Def`）：结果类型是 def 应用时展开一步
+    /// （`Not a` ⇒ 体 `fun (a : Prop) => a -> False` 代入后 = `a -> False`）。
+    def_body: Option<Expr>,
 }
 
 /// 构造子模板：来自归纳块构造子或「结果头是族应用」的源内 axiom。
@@ -92,24 +99,40 @@ impl GoalTemplates {
                                     .iter()
                                     .map(|b| b.ty.as_deref().cloned())
                                     .collect(),
+                                result_ty: None,
+                                def_body: None,
                             },
                         );
                     }
                 }
                 Command::Def {
-                    name, universe, ty, ..
+                    name,
+                    universe,
+                    ty,
+                    val,
+                    ..
+                } => {
+                    // def 记录体：结果类型是 def 应用时展开一步（`Not a`
+                    // ⇒ `a -> False`），超量应用的 spine 走查靠它继续。
+                    templates.insert_def_func(name, universe, ty, Some(val.clone()));
                 }
-                | Command::Theorem {
+                Command::Theorem {
                     name, universe, ty, ..
                 } => {
-                    templates.insert_func(name, universe, ty);
+                    templates.insert_def_func(name, universe, ty, None);
                 }
                 Command::Axiom {
                     name, universe, ty, ..
                 } => {
                     let mut binders = Vec::new();
                     let result = peel_type(ty, &mut binders);
-                    templates.insert_func_with_binders(name, universe, binders.clone());
+                    templates.insert_func_with_binders(
+                        name,
+                        universe,
+                        binders.clone(),
+                        Some(result.clone()),
+                        None,
+                    );
                     // 构造子索引：结果头是族应用的 axiom 才是 ctor 模板
                     //（与既有 I9 多洞语义一致）。
                     if let Some((head, result_args)) = spine_head_args(&result) {
@@ -139,9 +162,21 @@ impl GoalTemplates {
     }
 
     fn insert_func(&mut self, name: &str, universe: &[String], ty: &Expr) {
+        self.insert_def_func(name, universe, ty, None);
+    }
+
+    /// def/theorem/axiom 共用：剥望远镜存层，def 另存体；结果 = 望远镜
+    /// 剥完的残余（超量应用走查的起点）。
+    fn insert_def_func(
+        &mut self,
+        name: &str,
+        universe: &[String],
+        ty: &Expr,
+        def_body: Option<Expr>,
+    ) {
         let mut binders = Vec::new();
-        peel_type(ty, &mut binders);
-        self.insert_func_with_binders(name, universe, binders);
+        let result = peel_type(ty, &mut binders);
+        self.insert_func_with_binders(name, universe, binders, Some(result), def_body);
     }
 
     fn insert_func_with_binders(
@@ -149,6 +184,8 @@ impl GoalTemplates {
         name: &str,
         universe: &[String],
         binders: Vec<(String, Option<Expr>)>,
+        result_ty: Option<Expr>,
+        def_body: Option<Expr>,
     ) {
         self.funcs.insert(
             name.to_string(),
@@ -156,6 +193,8 @@ impl GoalTemplates {
                 universe: universe.to_vec(),
                 binder_names: binders.iter().map(|(n, _)| n.clone()).collect(),
                 binder_tys: binders.into_iter().map(|(_, t)| t).collect(),
+                result_ty,
+                def_body,
             },
         );
     }
@@ -224,6 +263,8 @@ fn local_func_templates(val: &Expr, out: &mut HashMap<String, FuncTemplate>) {
                     universe: Vec::new(),
                     binder_names: telescope.iter().map(|(n, _)| n.clone()).collect(),
                     binder_tys: telescope.into_iter().map(|(_, t)| t).collect(),
+                    result_ty: None,
+                    def_body: None,
                 },
             );
         }
@@ -567,9 +608,7 @@ fn func_spine_case(
         .funcs
         .get(&val_head)
         .or_else(|| locals.get(&val_head))?;
-    if val_args.len() > template.binder_names.len() {
-        return None;
-    }
+    let overapplied = val_args.len() > template.binder_names.len();
     let base = spine_base(val)?;
     let levels = match base {
         Expr::UniverseApp { levels, .. } => {
@@ -592,13 +631,59 @@ fn func_spine_case(
     };
     let mut holes = Vec::new();
     let mut sub_goals = Vec::new();
-    for (i, arg) in val_args.iter().enumerate() {
-        if let Expr::Hole { span } = arg {
-            holes.push(*span);
-            sub_goals.push(SubGoal {
-                span: *span,
-                ty: instantiate_binder_type(template, i, &val_args, &levels),
-            });
+    if overapplied {
+        // 超量应用：实参落在声明望远镜的结果之上（`(And.right a (Not a) x)
+        // sorry`——And.right 全量应用的结果是 `Not a`，`sorry` 是它的函数
+        // 实参）。把结果按 def 体展开（`Not a` ⇒ `a -> False`）后继续按
+        // 箭头逐层匹配剩余实参；展开不了或不是箭头就交回原路径。
+        let result = template.result_ty.as_ref()?;
+        let mut map: HashMap<String, Expr> = HashMap::new();
+        for (name, arg) in template.binder_names.iter().zip(val_args.iter()) {
+            if !name.is_empty() {
+                map.insert(name.clone(), (*arg).clone());
+            }
+        }
+        let mut res = substitute_names(result, &map, &levels);
+        for arg in &val_args[template.binder_names.len()..] {
+            for _ in 0..8 {
+                if matches!(res, Expr::Arrow { .. }) {
+                    break;
+                }
+                match unfold_def_once(&res, templates) {
+                    Some(next) => res = next,
+                    None => break,
+                }
+            }
+            match res {
+                Expr::Arrow {
+                    domain, codomain, ..
+                } => {
+                    if let Expr::Hole { span } = arg {
+                        holes.push(*span);
+                        let text = render_expr(&domain);
+                        sub_goals.push(SubGoal {
+                            span: *span,
+                            ty: if text.contains("sorry") {
+                                None
+                            } else {
+                                Some(text)
+                            },
+                        });
+                    }
+                    res = *codomain;
+                }
+                _ => return None,
+            }
+        }
+    } else {
+        for (i, arg) in val_args.iter().enumerate() {
+            if let Expr::Hole { span } = arg {
+                holes.push(*span);
+                sub_goals.push(SubGoal {
+                    span: *span,
+                    ty: instantiate_binder_type(template, i, &val_args, &levels),
+                });
+            }
         }
     }
     if holes.is_empty() {
@@ -611,6 +696,36 @@ fn func_spine_case(
         sub_goals,
         refine_template: None,
     })
+}
+
+/// 一步 delta-β 展开：`res` 的头是带 def 体的函数时，把体按实参代入。
+/// 教学语言的简单 def（非递归）够用；无捕获重命名——体 binder 与文档
+/// 局部名同名时恰好代入的就是该实参（`Not` 的 binder `a` 对文档局部
+/// `a`），碰撞场景按名字直代可接受。
+fn unfold_def_once(res: &Expr, templates: &GoalTemplates) -> Option<Expr> {
+    let (head, args) = spine_head_args(res)?;
+    let body = templates.funcs.get(&head)?.def_body.as_ref()?;
+    let mut map: HashMap<String, Expr> = HashMap::new();
+    let mut cur = body;
+    let mut i = 0usize;
+    while let Expr::Lambda {
+        binders,
+        body: inner,
+        ..
+    } = cur
+    {
+        for binder in binders {
+            if let Some(arg) = args.get(i) {
+                map.insert(binder.name.clone(), (*arg).clone());
+            }
+            i += 1;
+        }
+        cur = inner;
+    }
+    if i == 0 {
+        return None;
+    }
+    Some(substitute_names(cur, &map, &HashMap::new()))
 }
 
 /// 第 `i` 个实参的期望类型文本：binder 类型经前置实参 AST 替换后渲染；

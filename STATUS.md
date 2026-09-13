@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-13（第四十六轮：性能测试例行化——阈值哨兵 + 每版本报告 artifact，0.24.0）
+> 快照：2026-09-14（第四十七轮：sorry 洞期望类型精确化——def 展开的超量应用走查，0.25.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,28 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第四十七轮：sorry 洞期望类型精确化）
+
+> 用户报告：练习 5 `(And.right a (Not a) x) sorry` 的 hover 显示整个声明
+> 类型，应显示洞的期望类型 `a`（用户以 `((…) sorry : a)` 说明）。
+
+1. **根因**：goal 走查（func_spine_case）只覆盖声明望远镜内的实参；
+   `And.right` 全量应用后结果 `Not a`，`sorry` 是它的函数实参——超量应用
+   直接 `return None` → generic fallback 用整个声明类型当目标。
+2. **修复**（goals.rs）：FuncTemplate 增加 `result_ty`（望远镜剥完的残余）
+   与 `def_body`（仅 def）；超量应用时把结果类型按 def 体逐步展开
+   （`Not a` ⇒ `a -> False`），继续按箭头匹配剩余实参 → 洞期望 = 箭头
+   定义域 `a`。剩余目标 `False`、假设 a/x 一并展示。
+3. **hover**：decl_at 的 Open 分支在光标落在洞上时优先显示
+   「此处 sorry 的期望类型」+「剩余目标」。
+4. **测试**：front `overapplied_spine_through_def_shows_hole_expected_type`
+   （goal="False"、sub_goals[0].ty="a"）+ LSP
+   `hover_on_sorry_in_overapplied_spine_shows_hole_expected_type`。用户
+   案例按其原话钉成单元测试。
+5. 验收：545 passed / 0 failed（+2）；clippy 0；真实 LSP 协议跑
+   playground 确认 hover 输出正确。版本 0.24.0 → **0.25.0**（crates 改动
+   必须随 commit bump 版本——LESSONS 铁律）。
 
 ## 本轮进度（2026-09-13，第四十六轮：性能测试例行化）
 

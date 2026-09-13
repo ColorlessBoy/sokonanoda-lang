@@ -1123,9 +1123,22 @@ impl LanguageServer for Backend {
             };
             let value = match d.status {
                 DeclStatus::Open => {
-                    let mut text = match &d.goal {
-                        Some(goal) => format!("{}目标：`{}`\n", signature, goal),
-                        None => format!("{}待作答\n", signature),
+                    // 光标正落在某个 `sorry` 上：先给这个洞的精确期望类型
+                    //（超量应用走查经 def 展开算出，如 `(And.right a (Not a)
+                    // x) sorry` 的洞期望 `a`，而不是整个声明类型）。
+                    let hole_ty = d
+                        .sub_goals
+                        .iter()
+                        .find(|s| s.span.start.offset <= offset && offset <= s.span.end.offset);
+                    let mut text = match (&d.goal, hole_ty) {
+                        (Some(goal), Some(sg)) if sg.ty.is_some() => format!(
+                            "{}此处 `sorry` 的期望类型：`{}`\n\n剩余目标：`{}`\n",
+                            signature,
+                            sg.ty.as_deref().unwrap_or_default(),
+                            goal
+                        ),
+                        (Some(goal), _) => format!("{}目标：`{}`\n", signature, goal),
+                        (None, _) => format!("{}待作答\n", signature),
                     };
                     if !d.binders.is_empty() {
                         text.push_str("\n已引入假设：\n");
@@ -1722,6 +1735,68 @@ mod tests {
         assert!(
             markup.value.contains("p a"),
             "hover signature must mention the dependent codomain, got: {:?}",
+            markup.value
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_sorry_in_overapplied_spine_shows_hole_expected_type() {
+        // 用户案例（playground 练习 5，0.25.0）：`(And.right a (Not a) x)
+        // sorry` 的 hover 必须显示洞的精确期望类型 `a`（经 def `Not` 展开
+        // `Not a` ⇒ `a -> False`），而不是整个声明类型。剩余目标 `False`。
+        let src = "axiom False : Prop\n\
+                   axiom And : Prop -> Prop -> Prop\n\
+                   axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
+                   def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
+                   theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :=\n\
+                     fun (a : Prop) => fun (x : And a (Not a)) => (And.right a (Not a) x) sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+        let pos = lsp_pos(src, offset_of(src, "sorry") + 2);
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/hover")
+                .params(json!({
+                    "textDocument": {"uri": URI},
+                    "position": position_json(pos),
+                }))
+                .id(4)
+                .finish(),
+        )
+        .await
+        .expect("hover must answer");
+        let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+        let hover = hover.expect("hover must resolve on the sorry");
+        let markup = match hover.contents {
+            HoverContents::Markup(markup) => markup,
+            other => panic!("expected markup contents, got {other:?}"),
+        };
+        // 洞的精确期望类型（def 展开后的箭头定义域）。
+        assert!(
+            markup.value.contains("期望类型：`a`"),
+            "hole expected type must be `a`: {:?}",
+            markup.value
+        );
+        // 剩余目标 = 声明类型剥掉两层 lambda。
+        assert!(
+            markup.value.contains("剩余目标：`False`"),
+            "remaining goal must be `False`: {:?}",
+            markup.value
+        );
+        // 上下文假设完整。
+        assert!(
+            markup.value.contains("`x` : `And a (Not a)`"),
+            "{:?}",
+            markup.value
+        );
+        // 不再把整个声明类型当目标展示。
+        assert!(
+            !markup.value.contains("目标：`forall"),
+            "declared type must not be shown as the goal: {:?}",
             markup.value
         );
         shutdown(&mut service).await;

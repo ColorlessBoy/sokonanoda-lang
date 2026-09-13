@@ -1,3 +1,17 @@
+## [0.25.0] - 2026-09-14
+
+### Fixed
+
+- **`sorry` hover shows the precise expected type** (user report on
+  playground exercise 5) — for `(And.right a (Not a) x) sorry` the hover
+  now says the hole expects `a` (computed by unfolding `Not a` via the
+  `Not` definition to `a -> False` and taking the arrow domain), instead
+  of the whole declared type. The goal walk now handles **over-applied
+  spines**: arguments beyond a function's declared telescope are matched
+  against its result type, unfolding simple `def` bodies one step at a
+  time. The remaining goal (`False`) and the local hypotheses (`a`,
+  `x : And a (Not a)`) are shown alongside.
+
 ## [0.24.0] - 2026-09-13
 
 ### Development / Infrastructure
