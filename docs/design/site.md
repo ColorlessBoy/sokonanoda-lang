@@ -144,6 +144,19 @@ agent：clone + skills 拷贝 + 三技能分工 + `--json` 协议）→ 「怎�
 - 首页「怎么用」第 4 张演示卡与英文镜像同步改写；`check-site.py` 照常兜住
   链接与写死版本号（prompt 文本不写版本号，版本由二进制自行对齐）。
 
+### 4.4 官网 v3.1：学习者卡两步化（2026-09-14）
+
+用户要求：VS Code 插件这部分也简单一点。落地（中英 + get-started 同步）：
+
+- 学习者路径统一为**两步**：市场一键安装（主按钮）→ `clone` 一行命令打开
+  `playground.sokonanoda`。第三步「换 sorry」降为小字（它已是首页演示卡的
+  内容），离线/指定版本 VSIX 也收进小字。
+- 删除 `code --install-extension sokonanoda.vsix`：资产名是
+  `sokonanoda-<平台>.vsix`，装市场包的命令是
+  `code --install-extension sokonanoda-lang.sokonanoda`，原命令两边都不是，
+  属于写错的指示（纯站点文案 bug，非功能问题）。
+- get-started 的「复制第一题」保留：它是 clone 之外的免终端替代路径。
+
 ## 5. 落地前置：先修文档漂移（否则官网放大它）
 
 ### 5.1 已确认的漂移（调研产出，逐条可复现）

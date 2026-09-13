@@ -31,14 +31,28 @@
     <p>按你的身份选一条路。学习者这条是零安装主路径；agent 和贡献者各有独立入口。</p>
 
     <h2 id="learner">学习者：装 VS Code 扩展</h2>
-    <p>这是最省事的路径。扩展里内嵌了语言服务器和 <code>sokonanoda</code> 命令行，按平台打包，装完即用，不需要 Rust 工具链，也不需要联网下载。</p>
+    <p>
+      最省事的路径。扩展里内嵌了语言服务器和 <code>sokonanoda</code> 命令行，按平台
+      打包，装完即用：<strong>不需要 Rust 工具链，也不需要联网下载</strong>。
+    </p>
     <ol>
-      <li>在 VS Code 扩展市场里安装 <strong>sokonanoda</strong>（VS Code 1.85 及以上）。</li>
-      <li>打开任意 <code>.sokonanoda</code> 文件，或仓库里的 <code>playground.sokonanoda</code>（12 道练习，从零到定理）。</li>
-      <li>完成。诊断、悬停类型、目标视图、课程地图都已就位。</li>
+      <li>
+        <a class="btn primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" target="_blank" rel="noopener">在 VS Code 插件市场一键安装</a>
+        <p>
+          VS Code 1.85 及以上；想离线或装指定版本，到
+          <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" target="_blank" rel="noopener">GitHub Releases</a>
+          下载对应平台的 VSIX。
+        </p>
+      </li>
+      <li>
+        克隆仓库、打开课程画布（12 道练习，从零到定理）：
+        <pre><code>git clone https://github.com/ColorlessBoy/sokonanoda-lang
+code sokonanoda-lang/playground.sokonanoda</code></pre>
+      </li>
     </ol>
     <div class="note">
-      服务器二进制就在扩展的 <code>bin/&lt;平台&gt;/</code> 目录里，和扩展本身同一个版本构建，
+      打开文件后诊断、悬停类型、目标视图、课程地图都已就位；服务器二进制就在扩展的
+      <code>bin/&lt;平台&gt;/</code> 目录里，和扩展本身同一个版本构建，
       所以不会出现「服务器新、客户端旧」的错位。
     </div>
 

@@ -461,3 +461,7 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   「一段安装 prompt + 一个复制按钮」；prompt 取简短委派版（克隆仓库 → 读
   `AGENTS.md` → 装环境 → `--json` 判卷开课），文本单一源
   `site/assets/agent-prompt.js`（中英），协议细节收进折叠与链接。
+- 2026-09-14（续）：**VS Code 插件部分同样做减法**——首页学习者卡与快速开始
+  压成两步（市场一键安装按钮 + clone 打开画布），删掉写错的
+  `code --install-extension sokonanoda.vsix` 与第三步描述，离线/指定版本
+  VSIX 收进小字；英文镜像同步。设计见 `docs/design/site.md` §4.4。
