@@ -25,6 +25,8 @@ from pathlib import Path
 
 SITE = Path(__file__).resolve().parent.parent / "site"
 VERSION_RE = re.compile(r"\b0\.\d+\.\d+\b")
+# Any `scheme:` prefix (https:, mailto:, vscode: …) — not a repo-relative link.
+SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 REPO = SITE.parent
 
 
@@ -48,10 +50,11 @@ def html_files() -> list[Path]:
 def resolve_ref(page: Path, ref: str) -> Path | None:
     """Resolve a relative href/src against the page's own directory.
 
-    `None` for external URLs, pure anchors, and links that escape the repo
-    (those are someone else's problem — and a path-traversal smell).
+    `None` for external URLs, URI-scheme links (`https:`, `mailto:`,
+    `vscode:` …), pure anchors, and links that escape the repo (those are
+    someone else's problem — and a path-traversal smell).
     """
-    if ref.startswith(("http://", "https://", "mailto:", "#")):
+    if ref.startswith("#") or SCHEME_RE.match(ref):
         return None
     path = ref.split("#", 1)[0]
     if not path:

@@ -157,6 +157,20 @@ agent：clone + skills 拷贝 + 三技能分工 + `--json` 协议）→ 「怎�
   属于写错的指示（纯站点文案 bug，非功能问题）。
 - get-started 的「复制第一题」保留：它是 clone 之外的免终端替代路径。
 
+### 4.5 官网 v3.2：`vscode:` 协议直达（2026-09-14）
+
+用户问「能直接弹开 VS Code 吗」。落地：两步路径各加一个协议链接，同时
+保留市场主按钮与命令行路径兜底（没装 VS Code / 没注册协议处理器的环境
+点击无反应）：
+
+- 安装：`vscode:extension/sokonanoda-lang.sokonanoda` —— VS Code 注册的
+  extension URI，浏览器确认后弹开并进入安装（VS Code 官方文档同款用法）。
+- 克隆：`vscode://vscode.git/clone?url=<repo>` —— 内置 Git 扩展自 1.23 起
+  注册的 `onUri` 处理器，弹开克隆流程。
+- `scripts/check-site.py` 的 `resolve_ref` 改为按 `scheme:` 通配跳过外链
+  （原白名单只认 http/https/mailto，`vscode:` 会被当成相对路径误报）；
+  站内相对路径的解析行为不变。
+
 ## 5. 落地前置：先修文档漂移（否则官网放大它）
 
 ### 5.1 已确认的漂移（调研产出，逐条可复现）

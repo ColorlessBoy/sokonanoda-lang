@@ -465,3 +465,7 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   压成两步（市场一键安装按钮 + clone 打开画布），删掉写错的
   `code --install-extension sokonanoda.vsix` 与第三步描述，离线/指定版本
   VSIX 收进小字；英文镜像同步。设计见 `docs/design/site.md` §4.4。
+- 2026-09-14（再续）：**官网提供 vscode: 协议直达**——安装
+  `vscode:extension/sokonanoda-lang.sokonanoda`、克隆
+  `vscode://vscode.git/clone?url=…`；市场主按钮与命令行路径保留兜底，
+  `check-site.py` 支持按 `scheme:` 跳过外链。设计见 `docs/design/site.md` §4.5。
