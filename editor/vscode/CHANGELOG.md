@@ -9,6 +9,12 @@
   recognised at the very start of the value, and inside a `fun` body `apply`
   was an ordinary identifier (`unknown identifier`).
 
+### Fixed
+- Command-palette entries no longer print `sokonanoda: sokonanoda: …` — the
+  titles of the four commands that carried a `category` lost their redundant
+  `sokonanoda:` prefix (`restart server`, `揭示下一条提示`, the two expand
+  commands).
+
 ## [0.19.0] - 2026-09-13
 
 ### Added

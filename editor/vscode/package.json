@@ -89,23 +89,23 @@
       },
       {
         "command": "sokonanoda.revealHint",
-        "title": "sokonanoda: 揭示下一条提示",
+        "title": "揭示下一条提示",
         "category": "sokonanoda"
       },
       {
         "command": "sokonanoda.restartServer",
-        "title": "sokonanoda: restart server",
+        "title": "restart server",
         "icon": "$(debug-restart)",
         "category": "sokonanoda"
       },
       {
         "command": "sokonanoda.expandIntro",
-        "title": "sokonanoda: 展开值位 intro 为 fun 骨架",
+        "title": "展开值位 intro 为 fun 骨架",
         "category": "sokonanoda"
       },
       {
         "command": "sokonanoda.expandApply",
-        "title": "sokonanoda: 展开值位 apply 为部分应用骨架",
+        "title": "展开值位 apply 为部分应用骨架",
         "category": "sokonanoda"
       }
     ],
