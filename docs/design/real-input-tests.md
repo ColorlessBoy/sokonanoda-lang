@@ -129,10 +129,21 @@ for (index, step) in char_steps("intro", caret).iter().enumerate() {
   且类型可能是错的（`inlay.rs:65-74`）。
 - **当前零覆盖**：`by_block_with_apply_and_rfl_checks`（`compile/tests.rs:2914-2928`）apply 后
   立刻 `exact` 全闭合；`apply_with_mismatched_function_is_a_tactic_error`（`:3052`）直接报错。
-- 处置：**先写测试钉住现状，再修**（修法候选：`assemble` 用「产生该子目标的那个 tactic 的
-  span」而不是「最后一个 tactic 的 span」；或给每个子目标一个 `(span, index)` 复合身份供
-  nextHole/inlay 区分）。这条属于 `by` 引擎的既有缺陷，与本轮 `apply` 正交，但会被
-  `apply` 的共存测试直接暴露，所以排在本计划最前。
+- **根因是身份模型，不只是 span 计算**（实现轮复核后修正）：`assemble` 把同一个
+  `hole_span` 传给树里**每一个**叶子洞（`by.rs:372-397`），而 `hole_span` 是
+  「最后一个 tactic 的 span」（`by.rs:269-271`）。就算改成「每个叶子用它**自己**由哪个
+  tactic 产生的 span」，`by apply h` 的两个前提子目标仍然同源、仍然同 span——
+  **它们在源码里确实没有各自的坐标**。
+- 因此修法必须是**给洞一个 (span, index) 复合身份**，而不是继续在 span 上做文章：
+  1. `soko/goals` 已经在 `holes[i]` 上带了按索引唯一的 `id`（protocol 侧已有位置），
+     `nextHole` 与 inlay 应改用它，而不是用 offset 反查；
+  2. `soko/nextHole` 的返回需要能表达「同一个 offset 上的第几个洞」——这是
+     **协议形状变更**（`docs/protocol.md` + `editor/vscode/extension.js` + 契约测试
+     同步改动），不是内部小修；
+  3. `inlay` 的 `hint_label` 目前用 `sub_goals.iter().find(span == hole)` 反查
+     （`inlay.rs:65-74`），要改成按洞索引对齐 `sub_goals`。
+- 处置：**先写红测试钉住现状，再按上面的身份模型修**；因为涉及协议，单独一轮做，
+  不要塞进 `apply` 的实现轮里。
 
 ### 4.2 三套「位置选取」逻辑并存
 
