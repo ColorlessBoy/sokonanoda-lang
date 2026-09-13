@@ -8,6 +8,10 @@
   And a b) => intro` (introduces the rest). Previously the keywords were only
   recognised at the very start of the value, and inside a `fun` body `apply`
   was an ordinary identifier (`unknown identifier`).
+- **`by` also works at the tail of a `fun` body** —
+  `theorem t : Q -> P := fun (x : Q) => by exact proofP` enters tactic mode
+  with the lambda binders as the initial context; `by_steps`, goal view and
+  kernel judging behave exactly like a value-position `by`.
 
 ### Fixed
 - Command-palette entries no longer print `sokonanoda: sokonanoda: …` — the

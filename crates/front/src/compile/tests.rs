@@ -1445,6 +1445,58 @@ fn nested_intro_on_a_non_function_goal_is_still_rejected() {
 }
 
 #[test]
+fn by_in_a_lambda_tail_enters_tactic_mode() {
+    // 用户诉求：`by` 也能在 lambda 里直接进 tactic 模式——拆完 binder 后
+    // 用 tactic 继续是主流程。降低走 `split_by_value`（沿链收集 binder），
+    // 引擎拿到的初始上下文就是这些 binder。
+    let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
+               theorem t : Q -> P := fun (x : Q) => by exact proofP\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Checked, "the kernel judges the fill");
+    assert!(!d.by_steps.is_empty(), "the tactic step is recorded");
+    assert!(d.apply_skeleton.is_none() && d.intro_skeleton.is_none());
+}
+
+#[test]
+fn by_in_a_lambda_tail_with_intro_and_exact() {
+    // tactic 序列也能在 lambda 尾跑：intro 消一层、exact 收尾。
+    let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
+               theorem t : Q -> (Q -> P) := fun (x : Q) => by intro h; exact proofP\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Checked);
+    assert_eq!(d.by_steps.len(), 2, "two tactic steps: {d:?}");
+}
+
+#[test]
+fn by_sorry_in_a_lambda_tail_is_an_open_exercise() {
+    // 与值位 `by sorry` 同语义：占位 → Open，且洞指向 by 块。
+    let src = "axiom P : Prop\naxiom Q : Prop\n\
+               theorem t : Q -> P := fun (x : Q) => by sorry\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1);
+    assert_eq!(d.goal.as_deref(), Some("P"));
+}
+
+#[test]
 fn intro_with_an_answer_is_the_implicit_replacement() {
     // 用户诉求：「不修改内核的前提下，改前端隐式替换」——`intro <answer>`
     // 由前端把 intro 隐式替换成 `fun … => <answer>`，学习者不必先接受展开

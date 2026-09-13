@@ -245,6 +245,12 @@ non-function remaining goal is still `elab-intro-not-a-function`. Skeleton
 synthesis avoids the outer lambda's binder names (`fun (x : Q) => intro`
 expands to `fun (x2 : Q) => sorry`, not a shadowing `fun (x : Q) => sorry`).
 
+`by` joins them there too: `theorem t : Q -> P := fun (x : Q) => by exact
+proofP` enters tactic mode with the lambda binders as the initial context
+(`split_by_value` collects them). Everything else about `by` blocks is
+unchanged — tactic goals, `by_steps`, and kernel judging are identical to a
+value-position `by`.
+
 ## Custom LSP requests (goal view, I9)
 
 Beyond standard LSP, the server answers four custom requests (tower-lsp

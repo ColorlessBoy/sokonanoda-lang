@@ -832,14 +832,21 @@ impl Parser {
             self.push_binders(&mut binders)?;
         }
         self.expect_kind(&TokenKind::FatArrow, "`=>`")?;
-        // body 的第一个 token 若是 `intro` / `apply`，按值位关键字解析——
-        // 学习者拆完 binder 后直接 apply/写答案是主流程，不该被迫把关键字
-        // 挪到值位开头。`by` 仍只在值位开头（tactic 块的上下文语义不同）。
+        // body 的第一个 token 若是 `intro` / `apply` / `by`，按值位关键字
+        // 解析——学习者拆完 binder 后直接 apply / 进 tactic 模式是主流程，
+        // 不该被迫把关键字挪到值位开头。降低侧零改动：
+        // `lower_intro_val` / `lower_apply_val` / `split_by_value` 本来就沿
+        // lambda 链下降处理关键字节点。
         let body = match &self.peek().kind {
-            TokenKind::Ident(kw) if kw == "intro" || kw == "apply" => {
+            TokenKind::Ident(kw) if matches!(kw.as_str(), "intro" | "apply" | "by") => {
                 let kw = kw.clone();
-                let tok = self.bump().span;
-                self.parse_lambda_tail_keyword(&kw, tok)?
+                if kw == "by" {
+                    // `parse_by_block` 自己 bump `by`，不要提前 bump。
+                    self.parse_by_block()?
+                } else {
+                    let tok = self.bump().span;
+                    self.parse_lambda_tail_keyword(&kw, tok)?
+                }
             }
             _ => self.parse_expr()?,
         };

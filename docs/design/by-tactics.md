@@ -94,6 +94,10 @@ codomain = term 的类型文本。复用合成声明 + kernel 唯一裁判纪律
 
 ## 5. 流水线接入（check.rs）
 
+> **0.20.0 追加**：`by` 也识别于 **lambda 体尾部**（`fun (x : Q) => by …`）——
+> `split_by_value` 沿链收集 binder 作为引擎初始上下文，其余机制不变。与值位
+> `intro` / `apply` 的 lambda 尾支持（`term-apply.md` §2.4）同一批放开。
+
 `run_pass` 命令循环的 `Command::Def/Theorem/Example` 分支：值位若是 `By` 块 →
 先跑引擎得 lambda AST（可能带尾 `sorry`），当新 `val` 走既有分流：
 - 有洞 → `open_goal` → `PendingOp::OpenExercise`；
