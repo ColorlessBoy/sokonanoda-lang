@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>关于 — sokonanoda</title>
+  <meta name="description" content="sokonanoda-lang 的上游来源、命名与许可（Apache-2.0，内核来自 intgrah/sokonanoda）。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
+      <nav class="nav" aria-label="主导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html" class="active" aria-current="page">关于</a>
+        <a href="en/index.html" class="lang">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap prose">
+    <h1>关于</h1>
+
+    <h2>上游来源</h2>
+    <p>
+      本仓库是 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a> 的一个显式复刻（fork），固定的上游提交是
+      <code>sokonanoda@7b51784</code>。内核代码（<code>crates/kernel</code>）就是那一提交的一份快照，
+      保留其完整的测试套件与原版权 / 许可声明。我们不改内核语义，只在其上叠加教学接口。项目归属不掩饰，明确写在
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/NOTICE.md">NOTICE.md</a> 里。
+    </p>
+
+    <h2>命名</h2>
+    <ul>
+      <li><b>产品语言</b>：sokonanoda，文件后缀 <code>.sokonanoda</code>。</li>
+      <li><b>内核 crate</b>：沿用上游名 <code>sokonanoda</code>（为归属与稳定）。</li>
+      <li><b>工作区 / 仓库</b>：sokonanoda-lang。</li>
+    </ul>
+
+    <h2>许可</h2>
+    <p>
+      整体以 Apache-2.0 许可发布，内核部分沿用上游 sokonanoda 的 Apache-2.0 许可与版权声明。详见仓库根目录的
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/NOTICE.md">NOTICE.md</a> 与许可证文件。
+    </p>
+
+    <h2>一条硬约束</h2>
+    <p>
+      本项目在运行、构建、测试时都不调用官方 Lean 工具链（<code>lean</code> / <code>lake</code> / <code>lean4export</code> /
+      <code>leanc</code> / <code>elan</code>）。内核、预置定义、教学语料全部入库，CI 离线可跑。这意味着教学内容可复现、可审计，
+      也不受上游版本漂移影响。
+    </p>
+
+    <div class="note">
+      想看项目在做什么，回到 <a href="vision.html">愿景</a>；想看当前状态，去 <a href="progress.html">进展</a>。
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav class="fnav" aria-label="页脚导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html">English</a>
+      </nav>
+      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
+      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+    </div>
+  </footer>
+</body>
+</html>

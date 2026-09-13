@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-13（第三十九轮：三个大方向的设计——值位 `apply` / 真人输入测试 / 官网）
+> 快照：2026-09-13（第四十轮：三个大方向落地——真人输入基建 / 值位 `apply` / 官网）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,45 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-13，第四十轮：三个大方向落地）
+
+> 承接第三十九轮的设计（`docs/design/term-apply.md` / `real-input-tests.md` / `site.md`），
+> 用户确认「三条串行进行」后按依赖顺序执行：I11-S0 → I11-S1 → I10 → I12。
+
+1. **I11-S0 真人输入脚本基建**（`lsp/src/testutil.rs`）：`TypedStep`
+   `(offset, delete, insert)`（纯输入/纯删除/**选中重打**三种形态）+ `type_step`
+   （一步一次 didChange + 等诊断落地，`refresh` 每次都发诊断 → **零 sleep**）+
+   `char_steps`。两条用例：逐字符敲 `intro` 只在整词给展开项；「选中重打 + 折行」
+   每个中间态都能拿到展开项。**教训**：最初设计成「跑完整条脚本返回各步快照」，
+   而服务器只持有最新状态——据此写出的是**看起来会通过的假测试**，已改为
+   「一步一断言」并写进设计文档 §2。
+2. **I11-S1 修复 `by apply` 多子目标的 inlay 类型错配**：这些子目标在源码里
+   **共用同一个位置**（`assemble` 给每个叶子洞传同一个 `hole_span`），旧实现用
+   span 反查 `sub_goals`，两处都显示第一个子目标的类型（实测 `[": p", ": p"]`）。
+   改为**按洞的位置顺序**对齐（红→绿）。`soko/nextHole` 无法在同址子目标间导航
+   属**确认为限制**（伪造互异 offset 会让 documentHighlight/selectionRange 出假
+   范围），已写进 `docs/protocol.md`。
+3. **I10 值位 `apply`**：`theorem t (h : Q -> P) : P := apply h` → `h sorry`。
+   设计里的关键取舍全部落地——内核只用来**推断**被应用名字的类型（`judge_infer`，
+   front 侧无类型表可用），telescope 机械抽到 `crates/front/src/spine.rs` 与
+   tactic `apply` **共用**；局部假设（最常用场景）经 `open_goal` 的局部模板覆盖层
+   被 spine 走查认出；合成洞一律走 `judge_terms` 绕开 `judge_hole_fill` 的
+   sorry 守卫；类型参数由目标实参经 σ 填充；实参用 `parse_app`（括号界定范围）；
+   洞 span 覆盖整个 `apply <term>`。LSP 侧 `intro_at` 泛化为 `keyword_at`（第二
+   个调用方出现），hover/补全/`sokonanoda.expandApply` 全套接入。两个新错误码。
+4. **I10-S4 课程**：第 6 单元新增「值位 `apply`」一节（三种写法对照 + 2 道练习 +
+   钥匙），英文镜像非逐字对齐。golden **刻意**变更：unit6 事件计数
+   `(13, 6, 0)` → `(17, 10, 0)`，汇总 `33/27` → `37/31`（`course.rs` 与
+   `course_status.rs` 同步）。
+5. **I12 官网**：零构建静态 `site/`（9 页 + CSS + `site/data/site.json`）+
+   `scripts/gen-site-data.py`（python3 标准库：版本←Cargo.toml、单元←course.json、
+   轮次←STATUS.md）+ `scripts/check-site.py`（站内链接 + 禁止写死版本号）+
+   `.github/workflows/pages.yml`（configure-pages / upload-pages-artifact /
+   deploy-pages）。**一次性前置动作仍需仓库拥有者**：Settings → Pages → Source =
+   GitHub Actions。顺带修 4 处文档漂移（README 写死 `V=0.9.0`、课程单元数
+   5 vs 6 的三处口径）。
+6. **版本**：0.17.0 → **0.18.0**（新语法 = 新能力 → minor）。
 
 ## 本轮进度（2026-09-13，第三十九轮：三个大方向的设计——值位 `apply` / 真人输入测试 / 官网）
 

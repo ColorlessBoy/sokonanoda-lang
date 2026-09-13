@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>进展 — sokonanoda</title>
+  <meta name="description" content="sokonanoda 的当前版本、最新 Release、课程规模与最近一轮开发进度。数据在页面加载后从项目事实源填入，不写死。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
+      <nav class="nav" aria-label="主导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html" class="active" aria-current="page">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html" class="lang">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap prose">
+    <h1>进展</h1>
+    <p>
+      这一页的数字不在 HTML 里写死。版本与课程规模来自项目的课程清单和 Cargo 配置，最新
+      Release 来自 GitHub Releases API，页面加载后填入。取不到时显示「见 GitHub Releases」，不会出现空白。
+    </p>
+
+    <h2 class="section-title">当前状态</h2>
+    <div class="stats">
+      <div class="stat"><div class="n" id="version">—</div><div class="l">当前版本（仓库）</div></div>
+      <div class="stat"><div class="n" id="release-version">—</div><div class="l">最新 Release</div></div>
+      <div class="stat"><div class="n" id="release-date">—</div><div class="l">Release 日期</div></div>
+      <div class="stat"><div class="n" id="unit-count">—</div><div class="l">课程单元</div></div>
+    </div>
+
+    <h2 class="section-title">最近一轮</h2>
+    <p id="round-line">加载中…</p>
+
+    <h2 class="section-title">完整历史与路线图</h2>
+    <ul>
+      <li>版本变动与功能清单：<a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md">VS Code 扩展 CHANGELOG</a></li>
+      <li>所有发布资产与说明：<a id="release-link" href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">GitHub Releases</a></li>
+      <li>项目要做什么、教学理念、架构：<a href="vision.html">愿景</a></li>
+    </ul>
+    <div class="note">
+      版本号与单元数由自动化从 <code>Cargo.toml</code> 和课程清单生成，不在此页手写，避免和仓库事实源漂移。
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav class="fnav" aria-label="页脚导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html">English</a>
+      </nav>
+      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
+      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var DATA_URL = "data/site.json";
+    var API = "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/releases/latest";
+    function setText(id, t) { var e = document.getElementById(id); if (e) e.textContent = t; }
+    function setHTML(id, h) { var e = document.getElementById(id); if (e) e.innerHTML = h; }
+    function fmtDate(s) {
+      if (!s) return "";
+      var d = new Date(s);
+      if (isNaN(d)) return s;
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    fetch(DATA_URL).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        if (d.version) setText("version", d.version);
+        if (Array.isArray(d.units)) setText("unit-count", String(d.units.length));
+        var line = "";
+        if (d.round != null) line += "第 " + d.round + " 轮";
+        if (d.round_date) line += " · " + d.round_date;
+        if (d.round_title) line += " · " + d.round_title;
+        if (line) setText("round-line", line); else setText("round-line", "暂无轮次信息");
+      }).catch(function () {
+        setText("round-line", "进度信息加载失败，见仓库 STATUS.md。");
+      });
+
+    fetch(API).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (r) {
+        var tag = (r.tag_name || "").replace(/^v/, "");
+        if (tag) setText("release-version", tag);
+        if (r.published_at) setText("release-date", fmtDate(r.published_at));
+        var a = document.getElementById("release-link");
+        if (a && r.html_url) a.href = r.html_url;
+      }).catch(function () {
+        setHTML("release-version", '<a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">见 GitHub Releases</a>');
+        setText("release-date", "—");
+      });
+  })();
+  </script>
+</body>
+</html>

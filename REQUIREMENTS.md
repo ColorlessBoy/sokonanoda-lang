@@ -409,3 +409,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   分阶段计划与验收标准落 `ROADMAP.md` §10 的 **I10（值位 `apply`）/ I11（真人输入
   测试）/ I12（官网）**。**阻塞项**：官网需仓库拥有者在 Settings → Pages 手动把
   Source 设为 GitHub Actions（会话内无法代做）。
+- 2026-09-13（四十一）：**三个大方向落地（用户确认「三条串行进行」）**：按
+  依赖顺序 I11-S0 → I11-S1 → I10 → I12 执行。①真人输入脚本基建
+  （`type_step`/`char_steps`，一步一断言、零 sleep）；②修复 `by apply` 多子目标
+  的 inlay 类型错配（按洞位置顺序对齐 sub_goals），`nextHole` 同址限制记入
+  protocol.md；③值位 `apply` 全链（parser/AST/`compile/apply.rs`/`spine.rs`
+  共用机械/局部假设覆盖层/合成洞分派/2 个错误码/LSP hover+补全/
+  `sokonanoda.expandApply`）；④课程第 6 单元补「值位 `apply`」一节 + 练习 +
+  钥匙（golden 刻意变更 unit6 `(13,6,0)`→`(17,10,0)`、汇总 `33/27`→`37/31`）；
+  ⑤官网静态 `site/` + `gen-site-data.py` + `check-site.py` + `pages.yml`，并修
+  4 处文档漂移。版本 0.17.0 → **0.18.0**。

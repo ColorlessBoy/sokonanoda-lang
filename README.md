@@ -69,7 +69,7 @@ opencode users get the same via `/sokonanoda/setup` + `/sokonanoda/doctor`
 Releases (the tarballs contain runnable executables — no cargo, no checkout):
 
 ```bash
-V=0.9.0   # or this checkout's version: grep -m1 '^version' Cargo.toml | cut -d'"' -f2
+V=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)   # never hardcode: the release must match this checkout
 TARGET=aarch64-apple-darwin   # linux: x86_64-unknown-linux-gnu / aarch64-unknown-linux-gnu; win: x86_64-pc-windows-msvc
 BIN="$HOME/.local/share/sokonanoda/bin"; mkdir -p "$BIN"
 for pkg in sokonanoda-cli sokonanoda-lsp; do

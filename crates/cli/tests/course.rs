@@ -1,7 +1,7 @@
 //! The course layer (`course/`) is CI-guarded: every learner canvas must
 //! compile with its open exercises, the per-unit golden event counts must stay
 //! stable, every agent solution twin must be hole-free and diagnostic-free,
-//! `course.json` must list the five units in order, and the bilingual `en/`
+//! `course.json` must list the six units in order, and the bilingual `en/`
 //! mirrors must produce byte-identical event counts to their Chinese twins.
 //! See `course/README.md`.
 
@@ -47,7 +47,7 @@ const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit3-functions-arrows.sokonanoda", (1, 4, 1)),
     ("unit4-universes-sort.sokonanoda", (0, 3, 0)),
     ("unit5-induction-nat-rec.sokonanoda", (4, 3, 1)),
-    ("unit6-by-tactics.sokonanoda", (13, 6, 0)),
+    ("unit6-by-tactics.sokonanoda", (17, 10, 0)),
 ];
 
 #[test]

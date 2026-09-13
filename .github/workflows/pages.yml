@@ -1,0 +1,61 @@
+name: pages
+
+# 项目官网（GitHub Pages）：零构建静态 `site/` + 官方 Pages actions。
+# 设计与信息架构见 docs/design/site.md；一次性前置动作是仓库拥有者在
+# Settings → Pages 把 Source 设为 GitHub Actions，否则 configure-pages 会报
+# `Get Pages site failed. Not Found`。
+#
+# 为什么不用 `docs/` 作 Pages 源：那里是 35 篇开发者台账（含 CI 失败记录与
+# 内部取舍），发布它等于把研发内账挂上公网；且分支部署有 Jekyll 隐式渲染与
+# 10 次构建/小时的限制。Actions 部署两者皆免。
+#
+# 版本号 / 单元数 / 进展**一律不手写**：`scripts/gen-site-data.py` 从
+# Cargo.toml、course/course.json、STATUS.md 生成 site/data/site.json，页面
+# 上的最新 release 由浏览器查 Releases API（docs/design/site.md §3）。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "scripts/gen-site-data.py"
+      - "STATUS.md"
+      - "course/course.json"
+      - "Cargo.toml"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Generate site data (python3 stdlib only — no new toolchain)
+        run: python3 scripts/gen-site-data.py
+
+      # 防漂移：站内链接必须指向真实文件；页面里不许出现写死的版本号
+      # （docs/design/site.md §5.3）。
+      - name: Site hygiene checks (links + no hardcoded versions)
+        run: python3 scripts/check-site.py
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

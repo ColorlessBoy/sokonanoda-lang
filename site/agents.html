@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>给 Agent — sokonanoda</title>
+  <meta name="description" content="code agent 是 sokonanoda 的一等用户：三个技能（teacher / dev / ci）加一份人和 agent 共用的结构化反馈协议（--json 事件流）。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
+      <nav class="nav" aria-label="主导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html" class="active" aria-current="page">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html" class="lang">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap prose">
+    <h1>给 code agent</h1>
+    <p>
+      code agent 是 sokonanoda 的一等用户，不是事后接入。仓库把「怎么操作这个项目」和「怎么消费反馈」
+      都做成了机器能直接用的形式：一套 Agent Skill，加一份人和 agent 共用的结构化协议。
+    </p>
+
+    <h2>三个技能</h2>
+    <p>
+      仓库的 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">skills/</a>
+      目录把操作知识固化成 Agent Skill（opencode、Claude Code 等都能加载）：
+    </p>
+    <ul>
+      <li><b>sokonanoda-teacher</b>：当老师的 agent。在画布上出题，用内核的 <code>--json</code> 事件判卷，按提示阶梯带你走下一步。</li>
+      <li><b>sokonanoda-dev</b>：接手开发的 agent。冻结内核、TDD 三层（单元 / 内核端到端 / CLI）、文档先行的纪律。</li>
+      <li><b>sokonanoda-ci</b>：推代码 / 发布 / 查 CI 的 agent。本地验证纪律、GitHub Actions 陷阱、失败必录。</li>
+    </ul>
+
+    <h2>人和 agent 共用的反馈协议</h2>
+    <p>
+      编译器产出两份视图，来自同一份事实：人读的是带行列、稳定错误码和中文提示的诊断文本；
+      agent 读的是 <code>--json</code> 输出的 JSON Lines，每条事件一行。两类视图不会各说各话。
+    </p>
+    <ul>
+      <li><b>事件</b>：声明被检查、练习打开、类型被推断、项被化简、声明被打印等，每行一个。</li>
+      <li><b>错误码</b>：每个错误带稳定前缀（<code>elab-*</code> 来自前端，<code>kernel-*</code> 来自内核）和一条中文提示，提示直接进编辑器诊断。</li>
+      <li><b>同一入口</b>：无论是编辑器里的语言服务器，还是命令行，反馈都经过同一个完整内核。</li>
+    </ul>
+    <pre><code>sokonanoda --json your-file.sokonanoda   # 每行一个 JSON 事件，给 agent / 工具用
+sokonanoda your-file.sokonanoda          # 人读的诊断文本</code></pre>
+    <p>
+      协议的完整事件类型和错误码见 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/protocol.md">docs/protocol.md</a>。
+      取用发布二进制时按仓库版本锁定，不要用 <code>releases/latest</code>。
+    </p>
+
+    <h2>一条提示</h2>
+    <div class="warnbox">
+      本项目硬规则之一：判定永远走内核，禁止文本比对。给 agent 写判卷逻辑时，也请基于内核事件，而不是去比较文件文本。
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav class="fnav" aria-label="页脚导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html">English</a>
+      </nav>
+      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
+      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+    </div>
+  </footer>
+</body>
+</html>

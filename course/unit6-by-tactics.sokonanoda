@@ -93,3 +93,50 @@ theorem by_ex5 : (a : Prop) -> a -> a := by sorry
 -- soko:hint 目标形态：剩余目标 And b a，上下文 a、b、x : And a b（x 是自动生成的名字）。
 -- soko:hint 关键件：And.intro b a 要两份证明——And.right a b x 给 b，And.left a b x 给 a。
 theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := intro
+
+-- ─────────────────────────────────────────────────────────────
+-- 补充 2：值位 apply —— 把已知证明用到目标上
+--
+-- 本单元前面讲的是 by 块里的 tactic apply（演示 2 就是）。值位也能直接写
+-- apply：让 h 去证当前目标，h 的前提留成洞。三种最容易混的写法，摆在一起看。
+
+-- ① 值位 intro：一次把目标剩下的 binder 全写成 fun，末尾留一个洞。
+--    theorem t : (a : Prop) -> a -> a := intro
+--    ≡ fun (a : Prop) => fun (h : a) => sorry
+-- ② 值位 apply h：让 h 去证当前目标，h 的前提留成洞。
+--    theorem t (h : Q -> P) : P := apply h
+--    ≡ h sorry
+-- ③ by 块里的 tactic apply：一次只处理当前目标，留下的是「子目标」不是洞，
+--    要接着用别的 tactic 把它证出来。
+--    theorem t (h : Q -> P) : P := by apply h; exact q   -- q : Q 另给
+
+-- 一句区分：值位 apply 留下的洞属于这个值本身，编辑器会把它展开成
+-- h sorry 这样的部分表达式；by 块里的 apply 留下的「子目标」是下一步要解的，
+-- 不在值里。
+
+-- 本节演示骨架（用 axiom 给出前提，方便直接编译）：
+axiom h_s : True -> True                       -- 简单情形：h : P -> P
+axiom Pfam : Prop -> Prop                      -- 依赖情形：类型族 P(a)
+axiom Qfam : Prop -> Prop                      -- 依赖情形：前提族 Q(a)
+axiom f_dep : (a : Prop) -> Qfam a -> Pfam a   -- f : (a : Prop) -> Q a -> P a
+
+-- 演示（简单情形）：目标 True，让 h_s 去证，前提 True 留成洞。
+--   apply h_s  ≡  h_s sorry
+theorem val_apply_imp : True := apply h_s
+
+-- 演示（依赖情形）：目标 Pfam True；apply f_dep 把类型参数 a 填成 True，
+-- 前提 Qfam True 留成洞。类型参数由目标自动填，不用手写。
+--   apply f_dep  ≡  f_dep True sorry
+theorem val_apply_dep : Pfam True := apply f_dep
+
+-- 练习 7：用值位 apply 接 And.intro，造出 And True True。
+-- soko:hint 思路：apply And.intro 会把 a、b 从目标自动填成 True，留下两个前提洞。
+-- soko:hint 目标形态：apply And.intro ≡ And.intro True True sorry sorry（两个洞，都是 True）。
+-- soko:hint 关键件：两个洞各填一个 True.intro 就填完了。
+theorem by_ex7 : And True True := apply And.intro
+
+-- 练习 8：用值位 apply 接 Or.inl，造出 Or True True。
+-- soko:hint 思路：apply Or.inl 把 a、b 填成 True，只留下左边 a（即 True）一个洞。
+-- soko:hint 目标形态：apply Or.inl ≡ Or.inl True True sorry（一个洞，类型是 True）。
+-- soko:hint 关键件：洞里填 True.intro，整句就证出来了。
+theorem by_ex8 : Or True True := apply Or.inl

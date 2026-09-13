@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>快速开始 — sokonanoda</title>
+  <meta name="description" content="三条使用路径：学习者装 VS Code 扩展（零安装）、code agent 加载技能、贡献者用 cargo 构建。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
+      <nav class="nav" aria-label="主导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html" class="active" aria-current="page">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html" class="lang">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap prose">
+    <h1>快速开始</h1>
+    <p>按你的身份选一条路。学习者这条是零安装主路径；agent 和贡献者各有独立入口。</p>
+
+    <h2 id="learner">学习者：装 VS Code 扩展</h2>
+    <p>这是最省事的路径。扩展里内嵌了语言服务器和 <code>sokonanoda</code> 命令行，按平台打包，装完即用，不需要 Rust 工具链，也不需要联网下载。</p>
+    <ol>
+      <li>在 VS Code 扩展市场里安装 <strong>sokonanoda</strong>（VS Code 1.85 及以上）。</li>
+      <li>打开任意 <code>.sokonanoda</code> 文件，或仓库里的 <code>playground.sokonanoda</code>（12 道练习，从零到定理）。</li>
+      <li>完成。诊断、悬停类型、目标视图、课程地图都已就位。</li>
+    </ol>
+    <div class="note">
+      服务器二进制就在扩展的 <code>bin/&lt;平台&gt;/</code> 目录里，和扩展本身同一个版本构建，
+      所以不会出现「服务器新、客户端旧」的错位。
+    </div>
+
+    <h3>想直接看第一题？</h3>
+    <p>下面是从第一课取来的片段。点按钮复制到剪贴板，贴进一个 <code>.sokonanoda</code> 文件，保存即可由内核判定。</p>
+    <pre id="lesson-src" aria-live="polite">（正在加载示例…）</pre>
+    <p>
+      <button class="btn ghost" id="copy-lesson" type="button">复制第一题</button>
+      <a class="btn ghost" id="lesson-link" href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/examples/lesson-01.sokonanoda">在仓库里看完整文件</a>
+    </p>
+
+    <h2 id="agent">code agent：加载技能</h2>
+    <p>仓库里的 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">skills/</a> 目录把「怎么操作这个项目」固化成了 Agent Skill，任何支持该格式的 agent（opencode、Claude Code 等）都能加载。</p>
+    <ul>
+      <li><strong>sokonanoda-teacher</strong>：当老师的 agent——在画布上出题、用内核的 <code>--json</code> 事件判卷、按提示阶梯带你走。</li>
+      <li><strong>sokonanoda-dev</strong>：接手开发的 agent——冻结内核、TDD 三层、文档先行的纪律。</li>
+      <li><strong>sokonanoda-ci</strong>：推代码 / 发布 / 查 CI 的 agent——本地验证纪律与发布流程。</li>
+    </ul>
+    <p>若用 opencode 打开本仓库，这三个技能自动可加载，无需软链。其它 harness 把技能目录软链进各自的 skills 目录即可，详见 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/skills/README.md">skills/README</a>。</p>
+
+    <h2 id="contributor">贡献者：从源码构建</h2>
+    <p>需要 Rust 工具链。从本仓库根目录：</p>
+    <pre><code>cargo test --workspace
+cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda
+cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json examples/lesson-01.sokonanoda
+cargo run -q -p sokonanoda-cli --bin sokonanoda repl
+cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp</code></pre>
+    <p>其中 <code>repl</code> 逐行累积声明，支持 <code>#check</code> / <code>#reduce</code> / <code>#print</code> / <code>#prove</code>。构建与测试全部离线，不调用官方 Lean 工具链。更完整的开发纪律见 <a href="docs.html">文档</a> 与 <a href="agents.html">给 Agent</a>。</p>
+    <div class="warnbox">
+      取用发布二进制时一律按仓库版本锁定，不要用 <code>releases/latest</code>——否则新服务器可能配上旧客户端。版本号请从
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">GitHub Releases</a> 读取，不要写死在脚本里。
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav class="fnav" aria-label="页脚导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html">English</a>
+      </nav>
+      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
+      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var RAW = "https://raw.githubusercontent.com/ColorlessBoy/sokonanoda-lang/main/examples/lesson-01.sokonanoda";
+    var pre = document.getElementById("lesson-src");
+    var btn = document.getElementById("copy-lesson");
+    fetch(RAW).then(function (r) { return r.ok ? r.text() : Promise.reject(); })
+      .then(function (t) {
+        if (pre) pre.textContent = t.trimEnd();
+        if (btn) btn.disabled = false;
+      }).catch(function () {
+        if (pre) pre.textContent = "示例加载失败，请直接前往仓库查看 lesson-01.sokonanoda。";
+        if (btn) btn.disabled = true;
+      });
+    if (btn) btn.addEventListener("click", function () {
+      if (!pre) return;
+      navigator.clipboard.writeText(pre.textContent).then(function () {
+        btn.textContent = "已复制";
+        setTimeout(function () { btn.textContent = "复制第一题"; }, 1500);
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

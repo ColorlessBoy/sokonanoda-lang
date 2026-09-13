@@ -6,7 +6,7 @@
 > 按其反馈历史动态维护的画布（如根 `playground.sokonanoda`）。适配规则见
 > `docs/teaching-session.md` §0。
 
-把 playground 第一课拆成五个可独立编译的单元画布，并配上解答钥匙与 CI 守卫。
+把 playground 第一课拆成六个可独立编译的单元画布，并配上解答钥匙与 CI 守卫。
 
 ## 布局
 
@@ -48,4 +48,4 @@ course.rs` 的镜像守卫会比较中英两版的事件计数（decl.checked / 
 1. `course/*.sokonanoda` 全部可编译（exit 0，stderr 无 `error[`）；
 2. 每单元的 `decl.checked` / `exercise.open` / `expr.reduced` 事件数与 golden 表精确一致；
 3. `solutions/*.sokonanoda` 全部 0 诊断、0 个 `exercise.open`（课程可解性证明）；
-4. `course.json` 恰好按序列出这 5 个文件、unit = 1..5。
+4. `course.json` 恰好按序列出这 6 个文件、unit = 1..6。

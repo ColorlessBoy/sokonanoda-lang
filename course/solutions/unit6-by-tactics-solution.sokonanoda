@@ -27,3 +27,14 @@ theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by intro a; in
 theorem by_ex5 : (a : Prop) -> a -> a := by intro a; intro h; assumption
 
 theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)
+
+axiom h_s : True -> True
+axiom Pfam : Prop -> Prop
+axiom Qfam : Prop -> Prop
+axiom f_dep : (a : Prop) -> Qfam a -> Pfam a
+axiom qfam_true : Qfam True
+
+theorem val_apply_imp : True := h_s True.intro
+theorem val_apply_dep : Pfam True := f_dep True qfam_true
+theorem by_ex7 : And True True := And.intro True True True.intro True.intro
+theorem by_ex8 : Or True True := Or.inl True True True.intro

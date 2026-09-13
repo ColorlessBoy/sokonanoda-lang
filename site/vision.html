@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>愿景 — sokonanoda</title>
+  <meta name="description" content="sokonanoda 想做什么、为什么这么做、它和 Lean 4 / Coq 的关系，以及它的教学理念：逻辑先行、真内核判卷、agent 可驱动。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
+      <nav class="nav" aria-label="主导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html" class="active" aria-current="page">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html" class="lang">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap prose">
+    <h1>愿景</h1>
+
+    <h2>一句话要做什么</h2>
+    <p>
+      sokonanoda 想让你在浏览器之外的普通编辑器里，学会用 Lean 4 的方式写证明。你写一个
+      <code>.sokonanoda</code> 文件，背后一整套完整的 Lean 4 类型检查内核替你判定：写对了，它就是真的证明；
+      写错了，它告诉你错在哪、类型对不上在哪。学习过程不靠对照答案，靠内核自己说话。
+    </p>
+
+    <h2>为什么做这个</h2>
+    <p>
+      已有的 Lean 教学（比如 Natural Number Game）依赖整套 Lean 工具链：安装重、版本容易漂移、课程内容难以离线复现。
+      我们希望把内核、预置定义、教学语料全部放进仓库，CI 离线就能跑——这样教的内容可复现、可审计，也不怕上游改版。
+    </p>
+    <p>
+      更关键的是判卷必须「真」。很多教学工具用文本比对或简单规则判断是否做对，学生可能绕过证明。sokonanoda 用的是完整、
+      可运行的依赖类型检查器：一道题判过，意味着它通过了真实的类型检查，不是形式上的「看起来对」。
+    </p>
+
+    <h2>它和 Lean 4、Coq 是什么关系</h2>
+    <ul>
+      <li>
+        <b>它是真实 Lean 4 的一个受控子集。</b> 在 <code>.sokonanoda</code> 里学会的写法，放进官方 Lean 依然合法。
+        所以你学的不是一套玩具语言，而是能迁移到真实证明助手的写法。
+      </li>
+      <li>
+        <b>它不是 Coq。</b> 它的类型论取向、语法、内核都对齐 Lean 4，而不是 Coq 的 Calc 风格。
+      </li>
+      <li>
+        <b>内核来自 sokonanoda。</b> 底层是一个独立的 Lean 4 类型检查器实现（Apache-2.0，来自
+        <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>）。我们完整移植，只在其上叠加教学接口，不改语义。
+      </li>
+    </ul>
+
+    <h2>教学理念</h2>
+    <h3>逻辑先行</h3>
+    <p>
+      第一单元直接让你证明一个命题，而不是先背术语。等你在练习里自然发问「函数类型的类型到底是什么」时，
+      才引出宇宙（universe）这一概念。课程的编排跟着直觉走，而不是先堆概念再找地方用。
+    </p>
+    <h3>真内核判卷</h3>
+    <p>
+      练习里留着未完成的 <code>sorry</code> 洞是合法的文件状态，不是错误。你填完，内核重新判定；填错了，给你带行列和稳定错误码的诊断。
+      对错由内核决定，不由文本模板决定。
+    </p>
+    <h3>agent 可驱动</h3>
+    <p>
+      编译产物设计成两份视图：人读的是诊断文本，agent 读的是 JSON 事件流（每条事件一行）。同一个教学 agent 可以基于这些事件
+      给你出题、判卷、在卡住时讲下一步。人和 agent 面对的是同一份事实，不会各说各话。
+    </p>
+
+    <h2>架构示意</h2>
+    <p>一条 <code>.sokonanoda</code> 文件怎么变成「被完整内核检查过的声明」：</p>
+    <div class="diagram" role="img" aria-label="一条 sokonanoda 文件的旅程：源码经前端解析为内核声明，再经完整内核检查，产出人和 agent 各取所需的反馈。">
+      <div class="col">
+        <div class="node"><div class="t">教学方言文件</div><div class="d"><code>.sokonanoda</code>：声明、命题、留洞的练习</div></div>
+        <div class="node"><div class="t">前端</div><div class="d">词法 / 语法 / 轻度 elaboration，把表面语法变成内核声明</div></div>
+        <div class="node"><div class="t">完整内核</div><div class="d">类型检查 / 化简 / 打印，和真实 Lean 4 同一套语义</div></div>
+        <div class="node"><div class="t">结构化反馈</div><div class="d">检查事件 + 打印结果，分出人和 agent 两份视图</div></div>
+      </div>
+      <div class="flow arrow">↓ &nbsp; 解析与 elaboration &nbsp; ↓ &nbsp; 内核检查 &nbsp; ↓ &nbsp; 分发给两类读者</div>
+      <div class="col">
+        <div class="node"><div class="t">人读的视图</div><div class="d">诊断文本：行列、稳定错误码、中文提示</div></div>
+        <div class="node"><div class="t">agent 读的视图</div><div class="d">JSON 事件流：<code>--json</code> 一行一条，可直接驱动工具</div></div>
+      </div>
+    </div>
+
+    <div class="note">
+      想看这些理念落到产品上是什么样，去 <a href="get-started.html">快速开始</a> 装扩展，或看
+      <a href="progress.html">进展</a> 里当前的版本与课程规模。
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav class="fnav" aria-label="页脚导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html">English</a>
+      </nav>
+      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
+      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+    </div>
+  </footer>
+</body>
+</html>

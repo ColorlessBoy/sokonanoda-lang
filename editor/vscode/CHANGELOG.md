@@ -1,3 +1,22 @@
+## [0.18.0] - 2026-09-13
+
+### Added
+- **Value-position `apply`** — the second teaching keyword next to `intro`.
+  `theorem t (h : Q -> P) : P := apply h` applies a proof/function to the
+  goal and leaves its premises as holes (`h sorry`). Type parameters are
+  filled from the goal automatically; premises you already supply
+  (`apply (f p)`) are not duplicated. Completion, hover with the
+  「展开为 apply 骨架」 button, and the "keeping it is equivalent" note all
+  mirror `intro`'s; the editor command is `sokonanoda.expandApply`.
+- New teaching error codes `elab-apply-needs-a-term` and
+  `elab-apply-not-applicable`.
+
+### Fixed
+- Inlay hints no longer show the **first** sub-goal's type on every hole of
+  a `by apply …` declaration that leaves several sub-goals open — those
+  holes share one source position, so the lookup had to be positional
+  (`[": p", ": p"]` → `[": p", ": q"]`).
+
 ## [0.17.0] - 2026-09-12
 
 ### Added

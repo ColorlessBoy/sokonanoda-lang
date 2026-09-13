@@ -64,7 +64,7 @@
 
 ## 4. course/ 提示阶梯内容（素材库完善）
 
-- 五个单元的每个 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
+- 六个单元的每个 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
 - 钥匙来源：`course/solutions/`（全部经内核验证）；阶梯只给思路/形态/关键件；
 - **验收锚点**：`crates/cli/tests/course.rs` golden 计数逐单元不变
   （12,5,1 / 2,5,2 / 1,4,1 / 0,3,0 / 4,3,1）、solutions 零诊断——注释级

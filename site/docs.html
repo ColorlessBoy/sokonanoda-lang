@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文档 — sokonanoda</title>
+  <meta name="description" content="深度文档入口：架构与内核、反馈协议、测试地图、调研与设计笔记。这里只给链接，正文在仓库 docs/ 内。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
+      <nav class="nav" aria-label="主导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html" class="active" aria-current="page">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html" class="lang">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap prose">
+    <h1>文档入口</h1>
+    <p>
+      这一页只放链接，不复制正文。完整的深度文档都在仓库的 <code>docs/</code> 里。
+      下面的说明是我们写的导览，具体细节以仓库文档为准。
+    </p>
+
+    <h2>给使用者</h2>
+    <ul class="lead-list">
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/protocol.md">反馈协议（protocol.md）</a></h3>
+        <p>编译产物的人读文本与 <code>--json</code> 事件流：事件类型、错误码与提示的权威清单。</p></li>
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md">扩展更新日志</a></h3>
+        <p>每次发布新增、修复、变更了什么功能与反馈行为。</p></li>
+    </ul>
+
+    <h2>给开发者与 agent</h2>
+    <ul class="lead-list">
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/architecture.md">架构与内核（architecture.md）</a></h3>
+        <p>这是什么、代码各管什么、一条 <code>.sokonanoda</code> 文件如何变成被完整内核检查过的声明，以及内核 gotchas。</p></li>
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/TESTING.md">测试地图（TESTING.md）</a></h3>
+        <p>分层守护表与 TDD 三件套：给前端加语法点 / 错误模式时该跑哪层测试。</p></li>
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/AGENTS.md">Agent 入口（AGENTS.md）</a></h3>
+        <p>给任何 code agent 的项目入口：按序读什么、Setup、角色技能与硬规则速记。</p></li>
+    </ul>
+
+    <h2>调研与设计</h2>
+    <ul class="lead-list">
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/notes/research.md">教学型证明语言调研</a></h3>
+        <p>对标 NNG / SASyLF / Agda / py_nanobruijn 等，说明本项目的关键差异与定位。</p></li>
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/notes/gap-analysis.md">业内标准差距审计</a></h3>
+        <p>对照主流 LSP / 证明助手梳理的达标清单与「明确不做」。</p></li>
+      <li><h3><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/docs/design">设计笔记（docs/design）</a></h3>
+        <p>各项里程碑的设计文档与取舍记录。</p></li>
+    </ul>
+
+    <div class="note">
+      想直接动手？<a href="get-started.html#contributor">贡献者路径</a>给的是 cargo 命令，<a href="agents.html">给 Agent</a> 讲技能和协议。
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav class="fnav" aria-label="页脚导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html">English</a>
+      </nav>
+      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
+      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+    </div>
+  </footer>
+</body>
+</html>
