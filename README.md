@@ -1,5 +1,25 @@
 # sokonanoda-lang
 
+[![CI][ci-badge]][ci-link]
+[![Website][website-badge]][website-link]
+[![VS Code Marketplace][marketplace-badge]][marketplace-link]
+
+[ci-badge]: https://github.com/ColorlessBoy/sokonanoda-lang/actions/workflows/ci.yml/badge.svg
+[ci-link]: https://github.com/ColorlessBoy/sokonanoda-lang/actions/workflows/ci.yml
+[website-badge]: https://img.shields.io/badge/website-sokonanoda--lang-blue.svg
+[website-link]: https://colorlessboy.github.io/sokonanoda-lang/
+[marketplace-badge]: https://img.shields.io/visual-studio-marketplace/v/sokonanoda-lang.sokonanoda.svg
+[marketplace-link]: https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda
+
+**About**
+
+- [Website](https://colorlessboy.github.io/sokonanoda-lang/) — 项目官网（用法 ·
+  远大目标 · 当前进度）
+- [Quickstart](editor/vscode/README.md) — 装上 VS Code 扩展即可用，零工具链
+- [Course](course/README.md) — 六个单元的命题逻辑课，判卷由真内核完成
+- [Documentation](docs/README.md) — 架构 / 协议 / 测试地图 / 发布手册
+- [Agent Skills](skills/README.md) — 给 code agent 的教学与开发技能
+
 An independent, self-contained Lean-4 teaching stack built **on top of** the
 [sokonanoda](https://github.com/intgrah/sokonanoda) kernel.
 
@@ -24,7 +44,7 @@ crates/kernel   Full sokonanoda kernel (complete core + thin teaching API)
 crates/front    .sokonanoda lexer / parser / elaborator / document engine
 crates/cli      `sokonanoda` command-line front-end for .sokonanoda files
 crates/lsp      `sokonanoda-lsp` language server (tower-lsp)
-editor/vscode   Experimental VS Code client (unpackaged)
+editor/vscode   VS Code extension (bundles the LSP + CLI, Marketplace)
 skills/         Agent Skills for code agents (teacher + developer)
 examples/       Sample .sokonanoda lesson files
 ```
