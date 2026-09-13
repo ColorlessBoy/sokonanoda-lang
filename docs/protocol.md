@@ -206,6 +206,17 @@ answer is `kernel-rejected`, exactly as if it had been written by hand.
 An answered `intro` leaves no synthetic hole and carries no editor skeleton
 (there is nothing left to expand).
 
+### Keyword composition (0.21.0)
+
+`funintro` / `funapply` are also recognised in **atom position**, so they
+compose: `theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=
+funintro (funapply And.intro)` peels every remaining binder and lowers
+`funapply And.intro` against the *final* goal — the value reaches the kernel as
+`fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a sorry
+sorry` (type parameters σ-instantiated, premises left as holes). The kernel
+never sees a keyword. Nested `funintro` on a non-function final goal is still
+`elab-intro-not-a-function`.
+
 ### Command-link payload shape (editor contract)
 
 The `command:` link payload is

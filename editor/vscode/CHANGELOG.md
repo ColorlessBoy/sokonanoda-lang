@@ -1,3 +1,25 @@
+## [0.21.0] - 2026-09-13
+
+### Added
+- **`funintro` (funapply X) composition** — the keywords are now first-class
+  expressions: `funintro (funapply And.intro)` peels every remaining binder and
+  lowers `funapply And.intro` against the final goal
+  (`And.intro b a sorry sorry`). Pure front-end; the kernel never sees a
+  keyword.
+- **Completion while typing** — the 「替换源代码」 item now appears from the
+  first keystroke of the keyword (previously the popup was empty until the
+  whole expression compiled). While the keyword is incomplete the item
+  completes the word; once the argument compiles it upgrades to the full
+  skeleton replacement.
+
+### Changed
+- **Breaking (teaching surface): value-position keywords renamed** —
+  `intro` → `funintro`, `apply` → `funapply`, to remove the ambiguity with the
+  tactic versions inside `by` blocks (which are unchanged). Course unit 6 and
+  the playground were updated in the same release. Error codes keep their
+  historical names (`elab-intro-not-a-function`, `elab-apply-*`); the
+  human-readable hints use the new names.
+
 ## [0.20.0] - 2026-09-13
 
 ### Added
