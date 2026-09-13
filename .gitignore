@@ -9,3 +9,6 @@ learner/
 
 # 打包时 stage 的 LSP 二进制（scripts/stage-lsp.js 生成，不进仓库）
 editor/vscode/bin/
+
+# 本地 agent 会话记忆（工作台私有，不入库）
+.workbuddy/

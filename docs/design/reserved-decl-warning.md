@@ -1,5 +1,8 @@
 # 内核已定义名字的声明警告（reserved-declaration-name）
 
+> **状态：已实现**（`crates/front/src/compile/warning.rs`；`elab-intro-*`
+> 同款 warning 通道；协议测试 `reserved_declaration_name_warns_but_stays_successful`）。
+
 > 触发（2026-09-11）：学习者在画布写 `axiom Prop : Sort 1`。这行在本
 > 编译器里能通过（`Prop` 内核已经定义过，代码里的 `Prop` 都指内核那个），
 > 但声明出来的名字永远不会被任何引用命中。官方 Lean 里 `Prop` 已存在，

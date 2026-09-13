@@ -1,7 +1,9 @@
 # 发布手册（RELEASE.md）
 
 发布流水线：`.github/workflows/release.yml`（tag 触发 + `workflow_dispatch`
-dry-run）。发布 = 推一个 `v*` tag，其余全自动。
+dry-run）。**发布已全自动**：bump 两处版本 → commit 推 main → `ci.yml` 的
+`auto-tag` job（lint+test 全绿后）自动打 `v<version>` tag 并 dispatch
+release——人不再需要手打 tag。手动推 tag 仅作应急/重发备用路径。
 
 > 设计依据：`docs/design/bundled-lsp.md`（插件自带 per-target VSIX + universal
 > 回退包 + 版本锁定下载）。核心不变量：
@@ -21,6 +23,11 @@ dry-run）。发布 = 推一个 `v*` tag，其余全自动。
 ## 2. 流水线概览
 
 ```text
+push main ──► job ci: lint + test ──► job auto-tag（main 专用）
+                  │  Cargo.toml 的版本尚无对应 tag？→ 打 tag + dispatch release
+                  │  （GITHUB_TOKEN 推 tag 不触发 workflow，workflow_dispatch 是
+                  │   例外，故须显式 dispatch；dispatch 需 actions: write）
+                  ▼
 push tag v* ──► job build（matrix：8 平台）
                   ├─ 原生：darwin-arm64 / darwin-x64（macos-latest）、
                   │        win32-x64 / win32-arm64（windows-latest）
@@ -73,10 +80,11 @@ push tag v* ──► job build（matrix：8 平台）
 2. **补 CHANGELOG**：`editor/vscode/CHANGELOG.md` 加对应条目；
    门面（README/description）与行为同步（`docs/vscode-dev-guide.md` §7）。
 3. **跑校验清单**（见 §5），全绿后 commit + push。
-4. **打 tag 并推送**：
+4. **发布（自动）**：上面的 commit 推上 main 后，`ci.yml` 的 `auto-tag`
+   会自动打 `vX.Y.Z` 并 dispatch release——无需手动操作。手动推 tag 仅在
+   auto-tag 不可用时应急（如跨版本热修）：
    ```bash
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
+   git tag vX.Y.Z && git push origin vX.Y.Z
    ```
 5. **看 CI**：Actions → `release`。`build`、`package-vsix` 绿后，
    到 GitHub Releases 确认资产齐全（共 25 个）：
@@ -96,7 +104,7 @@ Actions → `release` → **Run workflow**（`workflow_dispatch`）。该模式�
 
 - 跳过 version gate 的 tag 检查（仍校验 Cargo ↔ package.json 一致）；
 - 跳过 Release 创建/上传与 Marketplace 发布；
-- `build` + `package-vsix` 正常跑，5 个 VSIX 作为 workflow artifact 上传，
+- `build` + `package-vsix` 正常跑，9 个 VSIX 作为 workflow artifact 上传，
   可在 run 页面下载验证（含 exec 位冒烟）。
 
 ## 5. 发布前校验清单
@@ -113,6 +121,11 @@ npm run test:unit        # server.js 解析/下载 + 重定向/解压单测
 npm run package:host      # stage 本机二进制 + 打平台 VSIX
 code --install-extension sokonanoda.vsix --force   # 手动验收（离线可用）
 ```
+
+全绿后 commit 推 main 即触发 auto-tag 自动发布；版本一致性现有三重强制
+（`cargo_and_extension_versions_match` 契约测试、release 的 version gate、
+auto-tag 的显式比对）。手动推 tag 应急后，核对双页见
+`skills/sokonanoda-ci/SKILL.md` §2.1。
 
 ## 6. 已知限制与风险
 

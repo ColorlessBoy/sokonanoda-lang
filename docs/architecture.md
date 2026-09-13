@@ -45,12 +45,10 @@ sokonanoda-lang/
 ├── ROADMAP.md              # 中文里程碑 + 执行清单（当前状态入口）
 ├── NOTICE.md               # 上游归属（sokonanoda@7b51784，Apache-2.0）
 ├── .github/workflows/ci.yml  # 离线 cargo test + 课程语料 + JSON 事件自检
-├── docs/
-│   ├── architecture.md     # 本文
-│   ├── protocol.md         # 文本/JSON 事件协议（CLI 已实现 --json）
-│   ├── inductive.md        # inductive/ctor/rec/iota 语义
-│   ├── research.md         # 教学型证明语言外部调研
-│   └── design-infrastructure.md  # 基础设施补全设计脑暴
+├── docs/                   # 开发者文档（完整地图见 docs/README.md）
+│   ├── architecture.md     # 本文（§8 内核 gotchas 必读）
+│   ├── protocol.md         # CLI --json 事件 + LSP 协议与自定义请求
+│   └── design/ notes/      # 设计文档与调研笔记
 ├── crates/
 │   ├── kernel/             # 完整 sokonanoda 内核快照 + 少量教学适配（见 §6）
 │   │   ├── src/{expr,level,name,value,env,util,parser,...}.rs
@@ -65,7 +63,7 @@ sokonanoda-lang/
 │   │   ├── src/main.rs
 │   │   └── tests/{cli.rs,examples.rs}
 │   └── lsp/                # `sokonanoda-lsp`：tower-lsp 服务器（诊断/hover/符号/练习状态）
-├── editor/vscode/          # 实验性 VS Code 客户端（薄壳，未打包）
+├── editor/vscode/          # VS Code 扩展（per-target VSIX + universal，Marketplace 上架）
 └── examples/               # 入库课程文件（lesson-01/02、fol-basics、py-fol-core、py-nat）
 ```
 
@@ -103,7 +101,9 @@ sokonanoda-lang/
 - `--` 是行注释；`???` 是 Hole（未完成练习）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`。
-- 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）与 `intro`（`Expr::Intro`，进内核前由 `crates/front/src/compile/intro.rs` 全剥成 `fun … => sorry`；值不进内核，填洞后仍由内核终审）。
+- 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）`intro`（`Expr::Intro`，同上全剥成 `fun … => sorry`，可选答案时末端放答案）
+与 `apply`（`Expr::Apply`，`crates/front/src/compile/apply.rs` 降为带前提洞
+的部分应用；类型经 `judge_infer` 推断，判定仍在填洞后）。
 - **声明级 binder**（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v` 在 parser 里降级为 `ty = Forall{binders → C}`、`val = Lambda{binders → v}`（`parser.rs::wrap_decl_binders`）；`by` 引擎把声明 binder 作为初始上下文（`run_by` 的 `initial_binders`），`:= sorry` 的剩余目标直接是 `C`。
 - **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。`A -> B` 与 `fun (x : A) => ...` 的 binder 都必须**带显式类型**（elaborator 尚未做 binder 类型推断，见 §8 待办）。
 - span 全程保留（offset/line/column），诊断带行列。
@@ -207,8 +207,9 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 `ProofState { goal, goal_source, binders, solution }` 完全不碰内核：
 
 - `intro name`：剥掉最外层 `Forall`/`Arrow` binder，把 binder 存进 `binders`，goal 变成 body；
-- `exact term` / `apply term`（目前同义）：把解析出的项放进 `solution`（洞）；
-- `assumption`：在 `binders` 里找一个类型与当前 goal 文本相同的假设（**文本比对**，教学草案级的简化）；
+- `exact term` / `apply term`：把解析出的项放进 `solution`（洞）；
+  （历史：早期 exact/apply 同义、`assumption` 走文本比对——两者均已由内核
+  判定取代，见 §8.8。）
 - `lambda_text()`：把 binders 反向包回 `fun (b : T) =>` 前缀，未完成处显示 `???`；
 - REPL 里 `done` 把 `example : <goal> := <lambda>` 追加进 buffer 重编译，**由完整内核判定**。
 

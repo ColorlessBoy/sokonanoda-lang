@@ -1,5 +1,8 @@
 # LSP Server（Rust）实践调研笔记（2025–2026）
 
+> 快照（2026-09-06 调研）：「现在就改」行动项已全部落地（诊断带版本、FULL
+> sync 取 last 等）。保留为外部参照。
+
 > 调研日期：2026-09-06。目的：为 `crates/lsp`（tower-lsp）与 I8（真增量）/ I9（goal 视图）
 > 路线图提供外部参照。本文先给 TL;DR 建议，再分主题展开，末尾附可直接抄的代码模式。
 > 阅读顺序建议：`STATUS.md` → 本文件 → `docs/design/infrastructure.md` F1–F8。

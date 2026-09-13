@@ -19,7 +19,7 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 5. **分层推进**：L0 编译器 → L1 服务 → L2 编辑器 → L3 agent 协作；
 6. **TDD 与重复测试**：front 单测 + CLI 端到端 + 课程语料三层覆盖；
 7. **反馈即功能**：类型/化简/打印/错误都结构化输出，人与模型都能无文档驱动；
-8. **判定永远走 kernel**，不做文本比对（`proof.rs::assumption` 的文本比对是待替换草案）；
+8. **判定永远走 kernel**，不做文本比对（`proof.rs::assumption` 的文本比对草案已于 2026-09-07 删除）；
 9. **用户/agent 使用路径零工具链依赖**（2026-09-10 用户明确）：获取与运行只
    依赖 GitHub Release 资产（`sokonanoda-cli-*.tar.gz` / `sokonanoda-lsp-*.tar.gz`）
    或平台 VSIX 插件，**不要求 Rust/cargo**；cargo 仅贡献者开发需要。面向
@@ -35,7 +35,11 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 
 ## 4. 工程标准：模块化、单文件不许越长越大（2026-09-06，用户要求）
 
-- **现状不合格**：`front/lib.rs` ~1200 行、`front/compile.rs` ~2100 行，单文件巨石难维护；
+- **现状不合格**（2026-09-06 时是 `front/lib.rs` ~1200 行 / `front/compile.rs`
+  ~2100 行，均已拆完；**当前欠账**）：`crates/lsp/src/lib.rs` **3949 行**、
+  `crates/front/src/compile/tests.rs` **3564 行**——后者是测试文件，暂以
+  「测试可后拆」豁免，但两者都远超 ~500 行红线，拆分排期见 ROADMAP（intro
+  一族 → `lsp/src/intro.rs`）；
 - **目标结构**（公开 API 用 re-export 保持稳定，调用方不改）：
   - `crates/front/src/`：`span.rs` / `token.rs` / `ast.rs` / `diagnostic.rs` /
     `parser.rs` / `compile/{mod,error,event,report,elab,prelude,check}.rs` / `proof.rs`；
@@ -99,9 +103,12 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
 
 ## 8. 路线对齐
 
-- 当前执行：I6（Eq prelude + binder 推断 + partial hole + prelude 可选化）
-  → playground 开课 → I7 第一门课（course/ + golden）→ I8 增量 → I9 goal 视图
-  → L2/L3（编辑器打包、service 事件流、讲课 agent 深化）。
+- 已完成：I6 → playground 开课 → I7 第一门课 → I8（余项：依赖精确化 /
+  early-cutoff）→ I9 goal 视图 → I10 值位 `apply` → I12 官网（上线）。
+- **当前执行：I11 余项（真人输入测试 S2–S4：front 往返矩阵 F1–F5、LSP L3–L8、
+  VS Code 手势 V2–V4）→ I8 余项 → L2/L3（编辑器打包已由 bundled-lsp 落地，
+  余下为 service 事件流、讲课 agent 深化）。**
+- 发布流程已自动化（ci auto-tag，见 `docs/RELEASE.md`）。
 - 详细验收标准以 `ROADMAP.md` §10 为准。
 
 ## 9. 要求追加日志
@@ -366,7 +373,7 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 - 2026-09-12（三十八）：**手动重启 LSP 的 VS Code 命令（用户要求）**：用户
   遇到「扩展/LSP 更新后旧进程不生效」的困惑，要求插件提供手动重启语言
   服务器的命令。落地：`sokonanoda.restartServer`（命令面板
-  「sokonanoda: 重启语言服务器」）先重解析二进制路径再 `client.restart()`，
+  「sokonanoda: 重启语言服务器」，0.19.0 起改名 restart server）先重解析二进制路径再 `client.restart()`，
   无需重载窗口（重建的仓库构建 / 刷新后的缓存 / 改 `serverPath` 都生效）；
   扩展本体升级仍需 Reload Window（README 与 `docs/vscode-dev-guide.md` §5
   写明）。发布随 0.16.0。
@@ -419,3 +426,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   钥匙（golden 刻意变更 unit6 `(13,6,0)`→`(17,10,0)`、汇总 `33/27`→`37/31`）；
   ⑤官网静态 `site/` + `gen-site-data.py` + `check-site.py` + `pages.yml`，并修
   4 处文档漂移。版本 0.17.0 → **0.18.0**。
+- 2026-09-13（四十二）：**发布链自动化闭环（用户复盘触发）**：①`ci.yml`
+  新增 auto-tag——main 全绿后自动打 tag 并 dispatch release，发布零人工
+  （GITHUB_TOKEN 推 tag 不触发 workflow，须显式 `workflow_dispatch`，需
+  `actions: write`）；②release.yml 的创建/上架步骤改按 ref 判（原按 event
+  判会被 dispatch 静默 skipped）；③pages 门禁改鉴权 `gh api`。发布结果：
+  v0.20.0 上 Release（25 资产）+ Marketplace + 官网上线（About 三件套已填）。
+  手动推 tag 降级为应急路径（`docs/RELEASE.md`）。

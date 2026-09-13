@@ -1,5 +1,9 @@
 # 设计：课程地图（sokonanoda course）+ REPL 历史持久化 + course 提示阶梯
 
+> **状态：已实现**（`crates/cli/src/course.rs`、REPL 历史、`sokonanoda.courseMap`、
+> 单元提示阶梯）。§4 的 golden 计数是 5 单元旧口径——现为 6 单元，以
+> `crates/cli/tests/course.rs` 与 `course_status.rs` 现值为准。
+
 > 状态：设计定稿（2026-09-07，第十二轮实施）。依据：`docs/notes/gap-analysis.md`
 > #8（`soko/courseStatus` + VS Code 章节地图）与小项（REPL 命令历史）、
 > STATUS 第十一轮余项（course/ 提示阶梯内容）。

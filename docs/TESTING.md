@@ -8,7 +8,7 @@
 
 三件齐全，这个语法点才算"进了课程"。另附两条铁律（详见 `docs/architecture.md` §7）：
 
-- **判定练习靠 kernel，不靠文本比对**（唯一例外：`proof.rs::assumption` 的草案级文本比对，待替换，见盲区 4）；
+- **判定练习靠 kernel，不靠文本比对**（历史上的 `assumption` 文本比对草案已于 2026-09-07 删除）；
 - **错误码 + 教学提示是协议的一部分**：每个 `ErrorKind` 必须有稳定 code（`elab-*` / `kernel-*` 前缀）与中文 hint，且要写进 `docs/protocol.md`——这两条由 meta 测试强制执行（见 §2）。
 
 ## 1. 分层守护表（改哪层，跑哪层）
@@ -22,7 +22,7 @@
 | 事件与报告 | `CheckEvent` 流（checked/open/typed/reduced/printed）、`DocumentReport` 状态机（Checked/Open/Failed 按源码序、Failed 带 error、errors 计数）、open 练习不污染 env、hover 类型图、`render_expr` 往返 | `crates/front/src/compile/tests.rs` :: `checks_dependent_forall_with_lambda`、`accepts_open_exercise`、`document_report_tracks_open_checked_failed_decls`、`document_report_states_in_source_order`、`open_exercise_does_not_pollute_env`、`document_report_produces_hover_types_for_subexpressions`、`hover_map_covers_subexpressions`、`render_expr_round_trips` | `cargo test -p sokonanoda-front compile::tests::` |
 | CLI 人类视图 | stdin/文件批处理、`line:col: error[code]: message` 格式、REPL 声明累积 / `#env` / `#help` / `#prove` | `crates/cli/tests/cli.rs` :: `cli_checks_a_valid_file_via_stdin`、`cli_rejects_a_bad_declaration`、`cli_reports_parse_errors_with_positions`、`cli_prints_*`、`repl_*`、`human_errors_carry_the_pipeline_stage`、`cli_help_is_self_documenting` | `cargo test -p sokonanoda-cli --test cli` |
 | CLI JSON 协议 | `--json` 词汇封闭（8 种事件，含 `warning`）、diagnostic 形状（stage/code/hint/span）、`protocol.md` 列出全部事件类型、exercise.open 是成功态、warning 不改退出码 | `crates/cli/tests/protocol.rs` :: `every_example_stream_is_closed_vocabulary`、`kernel_rejection_diagnostic_shape`、`protocol_document_lists_every_emitted_type`、`elab_unknown_identifier_diagnostic`、`open_exercise_is_success_state`、`reserved_declaration_name_warns_but_stays_successful`；另有 `cli.rs` :: `json_mode_*` | `cargo test -p sokonanoda-cli` |
-| LSP 协议 | **无自动化**（见盲区 3）：publishDiagnostics / hover / documentSymbol / codeLens / quick-fix 只能手工验证 | （缺位——`crates/lsp/` 目前没有 tests 目录） | `cargo run -p sokonanoda-lsp` 手测 |
+| LSP 协议 | publishDiagnostics / hover / completion / inlay / 自定义请求（goals/nextHole/hints/stateAt/version）全部有进程内 rpc 测试（`test_service` 走完整 tower-lsp 栈）；codeLens/quick-fix 等少数能力仍靠手工 | `crates/lsp/src/lib.rs`（lib 内 `#[cfg(test)]` 模块）与 `crates/lsp/src/inlay.rs`、`actions.rs` | `cargo test -p sokonanoda-lsp --lib` |
 | 语料 | 每份 `examples/*.sokonanoda` 必须被真实 CLI 整文件通过 | `crates/cli/tests/examples.rs` :: `every_example_lesson_is_a_valid_sokonanoda_file` | `cargo test -p sokonanoda-cli --test examples` |
 | 文档一致性 | `docs/protocol.md` 必须列出每个 `ErrorKind` 的 code；parse 两个 code 也在文档里 | `crates/front/src/compile/tests.rs` :: `protocol_doc_lists_every_error_code`（自带不带通配的穷尽清单） | `cargo test -p sokonanoda-front protocol_doc` |
 | perf 冒烟 | 原生大整数路径（39 位大数 +1 归约）与 iota 链（`add two two` = 4 层 succ）不退化；30s canary 挡 debug 构建下的意外爆炸 | `crates/front/src/compile/tests.rs` :: `perf_smoke_native_and_iota_reduce` | `cargo test -p sokonanoda-front perf_smoke` |
@@ -37,7 +37,7 @@
 ## 2. 两个 meta 测试的机制（新 agent 最容易踩）
 
 - `every_error_kind_has_stable_code_and_hint`：测试内部有一段**不带通配分支**的 `matches!` 穷尽清单——给 `ErrorKind` 加新 variant 时，这段代码会**编译失败**，逼你把新 variant 加进清单，并补齐 code（前缀必须与 stage 一致：elab kind → `elab-*`，kernel kind → `kernel-*`）与非空中文 hint。这是把"忘补 code/hint"从运行时错误提前到编译错误。
-- `protocol_doc_lists_every_error_code`：把每个 code 断言出现在 `docs/protocol.md` 里。目前 6 个 elab code 还没写进文档，用 `known_missing` 允许表临时放行（见盲区 1）。**允许表是自毁的**：一旦文档补齐了这 6 个 code，测试反而会失败，失败消息会明确提示你"从 `known_missing` 删除它们"。
+- `protocol_doc_lists_every_error_code`：把每个 code 断言出现在 `docs/protocol.md` 里。（历史注：曾有 6 个 elab code 靠 `known_missing` 允许表放行，2026-09-12 文档补齐后允许表已删除——该机制已闭环。）
 
 ## 3. 失败时的排查顺序
 
@@ -65,12 +65,12 @@
 
 1. **`docs/protocol.md` 的 elab 错误码清单不完整**：缺 `elab-unknown-constant`、`elab-too-many-binders`、`elab-nat-literal-disabled`、`elab-invalid-nat-literal`、`elab-too-many-ctor-fields`、`elab-unknown-ctor-for-iota`。补齐文档后删除 `protocol_doc_lists_every_error_code` 里的 `known_missing` 允许表（测试失败消息会引导你）。
 2. **kernel 内部 2 个 ignored fixture 测试**：`crates/kernel/src/tests/util.rs` 的 `reject_rec_rule_with_forged_lambda_domains` 与 `reject_unlisted_recursor`——上游提交了测试但没提交 `test_resources/` 的 NDJSON fixture，重建 fixture 是独立任务。另有 `crates/kernel/tests/arena.rs` 需要设 `LEAN_KERNEL_ARENA` 才运行，未设时自动跳过。
-3. **编辑器端零自动化**：`sokonanoda-lsp` 没有任何测试；publishDiagnostics、hover、documentSymbol、codeLens、quick-fix 全靠手工验证。
-4. **goal 视图未测——留给 I9**：`#prove` 只有 `proof.rs` 的 3 个单测（intro/exact/lambda），REPL 集成路径、goal 渲染、`assumption` 的文本比对草案（待替换为 kernel 判定）都没有 e2e 覆盖。
+3. **编辑器端部分手工**：codeLens、quick-fix 等 LSP 能力暂无自动化（其余均有，见 §2 的 LSP 行）。
+4. **（已闭环，留档）** goal 视图曾「只有 proof.rs 3 个单测、无 e2e」——I9 起已有 `soko/goals` 等 5 个自定义请求的进程内测试与 `crates/cli/tests` 的 goal 视图路径。
 5. **hover 文本的语义要读懂再用**：hover 显示的是"该子表达式的类型"。类型位置的 `Nat` 的 hover 是 `Type 0`（Nat 的类型），值位置的 `n + 1` 才是 `Nat`——`hover_map_covers_subexpressions` 固定了这两个真实值，编辑器呈现时别想当然。
 6. **perf 只有 canary 不是基准**：30s 阈值只挡 debug 构建下的"意外爆炸"，真正的性能回归基准（Lean Kernel Arena 对比）尚未立项。
 
-## 6. 当前规模（截至本文写作）
+## 6. 初始规模快照（历史，最新数字以 STATUS.md 各轮为准）
 
 - `cargo test -p sokonanoda-front`：**74** 个单测全绿（token 10 / parser 10 / proof 3 / compile 51）；
 - `cargo test -p sokonanoda-cli`：**30** 个 e2e 全绿（cli 21 / protocol 8 / examples 1）；

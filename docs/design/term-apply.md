@@ -1,5 +1,11 @@
 # 值位 `apply` 关键字 + 展开补全（2026-09-13 设计）
 
+> **状态：已实现并发布（0.18.0，2026-09-13）。** 本文档含设计取舍与 as-built
+> 记录（§12）。实现：`crates/front/src/compile/apply.rs`（降低）、
+> `crates/front/src/spine.rs`（与 tactic apply 共用的 telescope 机械）、
+> `crates/front/src/compile/goals.rs`（局部假设覆盖层）、测试见
+> `docs/TESTING.md`。0.20.0 起 lambda 体尾部也可用（§2.4 已更新）。
+
 > 触发（用户原话）：「我希望参考刚才的 intro 设计新的 command apply，也能触发自动
 > 补全和等价部分表达式。必要的时候可以要求用括号确定范围。」
 >

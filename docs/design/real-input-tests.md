@@ -1,5 +1,10 @@
 # 真人输入测试（`sokonanoda` 四写法共存）
 
+> **状态：部分实施（2026-09-13）。** S0（`testutil::type_step`/`char_steps`
+> 输入脚本基建 + 整词门控用例）与 S1（`by apply` 多子目标 inlay 修复）已
+> 落地；B4 依赖的值位 `apply` 已随 I10 实现。**余项**：F1–F5 / L3–L8 /
+> V2–V4（见 ROADMAP I11-S2–S4）。
+
 > 触发（用户原话）：「你要设计真人相同的输入测试，多设计测试，覆盖 sorry intro apply 和 by
 > 这些 command 共存会引发的复杂。」
 >

@@ -21,7 +21,8 @@
 | `architecture.md` | 流水线、内核机制、§6 内核改动清单、§8 gotchas | 改内核/front 前 |
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
-| `RELEASE.md` | 发布手册（tag 触发、8 平台 + 9 VSIX、Marketplace） | 发版前 |
+| `RELEASE.md` | 发布手册（main 全绿自动 tag、8 平台 + 9 VSIX、Marketplace） | 发版前 |
+| `STATUS-ARCHIVE.md` | STATUS 的历史轮次归档（1–39 轮原文） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
 | `CI-FAILURES.md` | CI 失败台账（原因/修复/预防） | CI 红时；同类不二犯 |
@@ -48,9 +49,9 @@
 - `type-level-syntax.md` — `Type n`（= `Sort (n+1)`）记法解析糖
 - `binary-cli.md` — 环境能力进 `sokonanoda` 二进制子命令（内嵌下载器），删除 `scripts/soko.sh`
 - `term-intro.md` — 值位 `intro` 关键字 + VS Code 展开补全（已实现，0.17.0 发布）
-- `term-apply.md` — 值位 `apply` 关键字（设计完成，待实施：ROADMAP I10）
-- `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（设计完成，待实施：ROADMAP I11）
-- `site.md` — 项目官网（GitHub Pages）方案与信息架构（设计完成，待实施：ROADMAP I12）
+- `term-apply.md` — 值位 `apply` 关键字（已实现，0.18.0 发布）
+- `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（部分实施：I11-S0/S1 已落地，余项见 ROADMAP）
+- `site.md` — 项目官网（GitHub Pages）方案与信息架构（已上线：site/ + pages.yml）
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以

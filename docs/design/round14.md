@@ -1,5 +1,8 @@
 # 设计：稳定 hole_id + 归纳块 recursor 自动派生 + spine meta 路线
 
+> **状态：hole_id 与 recursor 自动派生已实现；spine meta 方案 B′ 已落地**
+>（见 gap-analysis），方案 A 仍远期。
+
 > 状态：设计定稿（2026-09-07，第十四轮实施 hole_id 与 auto-derivation；
 > spine meta 只定路线，实现留下一轮）。依据：`docs/notes/gap-analysis.md` 余项、
 > 第十三轮遗留（`elab-missing-inductive-rec` 停gap、refine 子洞 kernel 级

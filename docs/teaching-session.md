@@ -87,7 +87,9 @@
    整个 Eq prelude 跳过（all-or-nothing，与显式 `Nat` 块行为一致）。
 7. **本课不含排中律/or_comm**（Or 没有 rec；那是单元⑤的内容——别许诺）。
 
-## 5. 下一课预告（单元⑤，待 elaborator 支持后）
+## 5. 后续课程（单元⑤⑥已上线）
 
-`Or.rec` 与 `or_comm`、`eq_trans`、显式 `inductive Nat` 块 + `Nat.rec`/iota 归纳。
-语料参照 `examples/py-nat.sokonanoda` 与 `examples/fol-basics.sokonanoda`。
+`Or.rec` 与 `or_comm`、`eq_trans`、显式 `inductive Nat` 块 + `Nat.rec`/iota
+归纳已在 **course/ 单元⑤**；`by` 写法（tactic 证明）与值位
+`intro`/`apply` 对照在**单元⑥**（0.18.0 起）。语料参照
+`examples/py-nat.sokonanoda` 与 `examples/fol-basics.sokonanoda`。

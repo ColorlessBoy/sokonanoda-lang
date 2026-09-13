@@ -1,5 +1,7 @@
 # `Type n` 记法（= `Sort (n + 1)`）
 
+> **状态：已实现**（`crates/front/src/parser.rs` 的 `Type n` → `Sort (n+1)`）。
+
 > 触发（2026-09-11）：学习者在画布写 `axiom Prop : Type 0`，内核报
 > `rejected: expected a pi type, got: Sort(2)`。原因：本编译器只把单独的
 > `Type` 当 `Sort 1`，没有实现 `Type n`，于是 `Type 0` 被读成「把 `Type`

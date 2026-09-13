@@ -1,5 +1,11 @@
 # 环境能力进二进制：`sokonanoda env`（去掉 `soko.sh`）
 
+> **状态：已实现（0.13.0 起）。两处以实现为准**：①没有 `sokonanoda env`
+> 父命令——`version`/`doctor`/`setup`/`update`/`grade`/`gate`/`lsp` 等是
+> **平级子命令**（`crates/cli/src/main.rs`）；②下载器是 **`ureq`**（不是
+> minreq；`crates/cli/src/env/download.rs`）。其余机制（内嵌下载器、版本
+> 锁定、跨平台）与本文一致。
+
 > 触发（2026-09-11，用户要求）：`scripts/soko.sh` 是 bash 脚本，macOS/Linux
 > 可用但 Windows 不可用、维护面大。用户要求把环境能力做成**二进制 CLI**
 > （`sokonanoda` 的子命令），拒绝 `soko.sh`。方案选定「CLI 内嵌下载器」

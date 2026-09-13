@@ -1,8 +1,7 @@
 # sokonanoda-lang —— `.sokonanoda` 协作式 Lean 4 教学 ROADMAP
 
-> 状态：active（v2 LSP-first，已落地第一段垂直切片；最新进度先看 `STATUS.md`）
-> 基线：sokonanoda `7b51784`
-> 日期：2026-09-06（终版快照）
+> 状态：active（v2 LSP-first；最新进度先看 `STATUS.md`，本文 §10 是待办与验收标准）
+> 基线：v0.20.0（本文只描述计划与验收，已完成的条目就地打勾并标注版本）
 > 配套文档：`STATUS.md`（当前状态与进度日志，agents 先读）、
 > `docs/architecture.md`（深度理解）、`docs/notes/research.md`（外部调研）、
 > `docs/design/infrastructure.md`（基础设施方案脑暴）、`docs/protocol.md`（事件协议）。
@@ -307,8 +306,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 
 ## 8. 当前只需要做的一件事
 
-执行 M0：建仓并完整迁移 kernel，跑绿全部现有测试，公开 `check_expr` / `reduce_expr` /
-声明添加 / 显式错误 API。这是后续所有层的地基，不依赖任何 UI、agent 或官方 Lean。
+**I11 余项（真人输入测试 S2–S4）**——基建与关键缺陷修复（S0/S1）已落地，
+剩余 F1–F5 / L3–L8 / V2–V4 见 §10。M0（kernel 迁移）等早期里程碑均已完成。
 
 ---
 
@@ -434,7 +433,7 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - [ ] goal 视图余项：声明宇宙参数携带 ✅（已并入 judge）；refine 的子洞
       kernel 级 expected type（spine meta）；VS Code goal 面板 ✅。
 
-### I10 —— 值位 `apply` 关键字（新语法，三件套）
+### I10 —— 值位 `apply` 关键字（✅ 0.18.0 完成，全子项落地；设计+as-built 见 term-apply.md）
 
 > 设计（已完成，勿再重复讨论方案）：`docs/design/term-apply.md`。
 > 核心结论：**不能照抄 `intro`**——`apply` 需要「被应用名字的类型」，而 front 侧
@@ -467,11 +466,10 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
   输入脚本基建 + 两条整词门控用例（**已落地 2026-09-13**，见 `real-input-tests.md` §8）。
   > 原计划里 S0 还包含 `keyword_at` 位置逻辑收敛，**已后移到 I10-S3**：只有一个值位
    > 关键字时把 `intro_at` 泛化是没有第二调用方可验证的抽象，等 `apply` 落地再抽。
-- **S1 `by` 引擎缺陷**（调研发现的既有 bug，正交但会被共存测试暴露）：
-  `by` 末个 tactic 是 `apply` 且留 ≥2 个子目标时，所有洞 span 相同
-  （`by.rs:263/375` 取 `by.rs:269-271` 的单一 `hole_span`）→ `nextHole` 跳不动、
-  inlay 叠位且类型可能错。**先写红测试钉住现状，再修**。允许改：`crates/front/src/by.rs`、
-  `crates/front/src/compile/tests.rs`。
+- **S1 `by` 引擎缺陷**（✅ 已修，0.18.0）：inlay 的类型分派按洞的位置顺序
+  对齐 sub_goals（实测红 `[": p", ": p"]` → 绿 `[": p", ": q"]`）；
+  `soko/nextHole` 无法在同址子目标间导航是**确认为限制**（伪造互异 offset
+  会破坏 documentHighlight/selectionRange），已记入 `docs/protocol.md`。
 - **S2 front/session 五条**（F1–F5）：`sorry`↔`intro`/`by`/`apply` 往返、四种排版重排、
   同文档四写法改一行（`recompiled_from` 精确 + span remap）。
 - **S3 LSP 逐字符四条**（L1–L4）：前缀不触发、整词才触发、词尾+空格仍触发、
@@ -485,20 +483,21 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 
 > 设计（已完成）：`docs/design/site.md`（含托管方案决策、单一事实源机制、信息架构、页面清单）。
 
-- **S0 修文档漂移**（`site.md` §5.1 的 6 条，含 README 写死 `V=0.9.0`、课程单元数
-  「5 vs 6」三处口径矛盾）：与官网同批做，避免官网一上线就带错数字。
+- **S0 修文档漂移**（✅ 已完成：README 版本号、课程单元数口径等已随 I12 修正）。
 - **S1 站点骨架**：新目录 `site/`（零构建手写 HTML/CSS）+ `.github/workflows/pages.yml`
   （`configure-pages` / `upload-pages-artifact` / `deploy-pages`，`paths:` 过滤）
   + `scripts/gen-site-data.py`（python3 标准库，CI 生成 `site/data/site.json`）。
-- **S2 单一事实源**：`STATUS.md` 顶部加机器可读块（version/round/date/tests），
-  CI 断言其 version 与 `Cargo.toml` 一致；版本与下载链接在页面用 Releases API 取。
+- **S2 单一事实源**（✅ 按实际实现落地，与原规划不同）：不引入 STATUS 机器
+  可读块——`scripts/gen-site-data.py` 直接解析 STATUS 最新轮标题 + Cargo.toml
+  + course.json 生成 `site/data/site.json`；版本一致性由三重现有机制强制
+  （契约测试 / release version gate / auto-tag 显式比对）。
 - **S3 页面**：`index` / `get-started` / `course` / `vision`（**必须新写**，现有全是
   agent 口吻）/ `progress`（生成）/ `agents` / `docs` / `about` / `en`。
 - **S4 防漂移**：站内链接检查 + 「禁止写死版本号」断言 + README/AGENTS 挂官网入口。
-- **前置人工动作（阻塞项）**：Settings → Pages → **Source = GitHub Actions**
-  ——只能由仓库拥有者做；不做则 workflow 报 `Get Pages site failed. Not Found`。
-- **验收**：站点可访问；`progress` 页的版本号/单元数与 `Cargo.toml`/`course/course.json`
-  一致；链接检查与版本断言绿；`ci.yml`/`release.yml` 行为不变。
+- **前置人工动作**（✅ 已完成 2026-09-13：Settings → Pages → Source = GitHub
+  Actions，经 gh api 代启；workflow 门禁用鉴权 `gh api` 探测，未启用时礼貌跳过)。
+- **验收**（✅ 0.20.0 达成）：站点可访问（colorlessboy.github.io/sokonanoda-lang）；
+  版本号/单元数全部生成、零手写；`check-site.py` 卫生检查绿。
 
 ### 依赖与并行
 

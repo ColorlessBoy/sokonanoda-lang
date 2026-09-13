@@ -1,5 +1,8 @@
 # VS Code 扩展接入语言服务器：调研笔记
 
+> 快照：本文的落地计划已由 `docs/design/bundled-lsp.md` 承接并实现
+> （per-target VSIX + Marketplace）。保留为调研存档。
+
 > 目的：为 `editor/vscode` 薄壳的下一步（进度树、goal 视图、打包）提供依据。
 > 关联：`docs/design/infrastructure.md`（LSP-first 产品形态）、`crates/lsp/src/main.rs`（tower-lsp 服务器）。
 > 调研时间：2026-09-06。中文行文，代码/标识符保持英文。

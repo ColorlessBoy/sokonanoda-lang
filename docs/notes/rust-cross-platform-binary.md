@@ -1,5 +1,8 @@
 # 为什么不直接编一个跨平台 Rust 二进制，而要 `soko.sh`
 
+> 快照：结论（按 target triple 出包 + 引导器）已转化为
+> `docs/design/binary-cli.md` 并实现；标题里的 `soko.sh` 已删除。
+
 > 调研（2026-09-11，用户提问）：能不能像现在一样用 `soko.sh` 这么麻烦，
 > 直接把 Rust 编成一个跨平台二进制？结论：**跨 OS 的单一二进制在技术上
 > 不存在**；Rust 的编译单位是 target triple，跨平台 = 每个平台各出一份

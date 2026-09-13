@@ -1,5 +1,8 @@
 # 基础设施全面完善：LSP-first 设计（v2）
 
+> **状态：v2 决策已全部 as-built（本文其余部分是历史脑暴存档）。** 当前
+> 能力地图见 `docs/architecture.md` 与 `docs/README.md`。
+
 > 状态：**设计草案（brainstorm），不是已定稿的 PRD**。
 > 落地进度（2026-09-06 晚）：I1–I5 的第一段垂直切片已实现
 > （DocumentReport/逐声明状态、ErrorKind+hint、hover 类型图、`crates/lsp` 服务器、

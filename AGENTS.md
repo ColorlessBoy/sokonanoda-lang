@@ -10,7 +10,8 @@
 
 文档已分层：入口/权威在仓库根（`README.md`/`AGENTS.md`/`ROADMAP.md`/
 `REQUIREMENTS.md`/`STATUS.md`），开发者参考在 `docs/` 顶层，设计与调研笔记在
-`docs/design/`、`docs/notes/`；完整地图见 **`docs/README.md`**。
+`docs/design/`、`docs/notes/`；完整地图见 **`docs/README.md`**。对外官网在
+`site/`（数据由 `scripts/gen-site-data.py` 生成，永不手写版本号）。
 
 ## Setup（用户/agent 零 cargo；设计见 `docs/design/binary-cli.md`）
 
@@ -69,12 +70,15 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 非 opencode harness 可用 `.opencode/lsp/sokonanoda-lsp.sh` shim →
 `sokonanoda lsp`。`skills/` 自动加载、`/sokonanoda/*` 命令、`teacher`
 主 agent、Lean 工具链命令 deny）；goal 视图走自定义请求
-`soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt`
+`soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt` /
+`soko/version`（服务器自述 {version,pid}，重启命令用）
 （`docs/protocol.md`）。每个 release 仍正常产出各平台
 `sokonanoda-lsp-<triple>.tar.gz` 与 `sokonanoda-cli-<triple>.tar.gz`
 （各 8 个；CLI tarball 里就是可直接执行的二进制，agent 无需 cargo）与
 VSIX（9 个，平台包内嵌 LSP 与 CLI），供自动下载与 headless 手动安装；
 **下载一律按仓库版本锁定，禁用 `latest`**。
+**发版已全自动**：bump 两处版本 → push main → `ci.yml` 的 auto-tag 自动打
+tag 并 dispatch release（见 `docs/RELEASE.md`；手动推 tag 仅应急）。
 
 ## VS Code 扩展改动
 
@@ -88,6 +92,7 @@ VSIX（9 个，平台包内嵌 LSP 与 CLI），供自动下载与 headless 手�
 
 ## 收尾义务
 
-- 落 commit 前更新 `STATUS.md`；
+- 落 commit 前更新 `STATUS.md`（只保留最近 3 轮，旧轮归档
+  `docs/STATUS-ARCHIVE.md`；网站进度页自动读最新轮标题）；
 - 用户新要求追加进 `REQUIREMENTS.md` §9 并注明日期（冲突以该文件为准）；
 - 设计先行：新功能先写设计进 `docs/`，再动手；多用 subagent 并行调研。

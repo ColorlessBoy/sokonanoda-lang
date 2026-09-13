@@ -124,7 +124,7 @@ npm run clean:lsp
     `setting` → `SOKONANODA_LSP_BIN` → bundled `bin/<target>/` → 工作区
     `target/` → 按当前版本命中的缓存（`server.js` `resolveServerCommand`）。
     版本号一涨，缓存里那份旧版本就不再「命中」，而新版本的 release 还不存在
-    → 解析返回 `undefined` → 回退下载 404 → **整个 LSP 起不来，13 个集成
+    → 解析返回 `undefined` → 回退下载 404 → **整个 LSP 起不来，全部集成
     用例集体超时**（症状像代码回归，实则环境）。跑 `npm test` 前先
     `npm run stage:lsp`（或 `SOKONANODA_LSP_BIN=$(pwd)/../../
     target/debug/sokonanoda-lsp`）。注意集成测试自己的 skip 守卫是
@@ -144,8 +144,9 @@ npm run clean:lsp
 cd editor/vscode
 npx --yes @vscode/vsce publish
 
-# CI 自动发布（tag 触发，VSCE_PAT secret 已配置）：
-git tag v0.X.Y && git push --tags
+# CI 自动发布：bump 版本 + push main 即可——ci.yml 的 auto-tag 自动打 tag
+# 并 dispatch release.yml（docs/RELEASE.md §3）。手动推 tag 仅应急：
+git tag v0.X.Y && git push origin v0.X.Y
 ```
 
 发布形态：per-target VSIX（内嵌各平台 LSP）+ universal 回退包；完整流程、
