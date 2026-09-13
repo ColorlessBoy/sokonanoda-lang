@@ -463,9 +463,10 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 
 > 设计（已完成）：`docs/design/real-input-tests.md`（含共存风险矩阵、测试清单、flake 预算）。
 
-- **S0 前置（主会话，必须先做）**：`testutil::type_script` / `type_chars`（逐段/逐字符的
-  真实编辑序列）；`keyword_at` 收敛位置选取（现 `intro_at` / `select_state_at` /
-  `render::decl_at` 三套并存）。
+- **S0 前置（主会话，必须先做）**：`testutil::type_step` / `char_steps` / `did_change`
+  输入脚本基建 + 两条整词门控用例（**已落地 2026-09-13**，见 `real-input-tests.md` §8）。
+  > 原计划里 S0 还包含 `keyword_at` 位置逻辑收敛，**已后移到 I10-S3**：只有一个值位
+   > 关键字时把 `intro_at` 泛化是没有第二调用方可验证的抽象，等 `apply` 落地再抽。
 - **S1 `by` 引擎缺陷**（调研发现的既有 bug，正交但会被共存测试暴露）：
   `by` 末个 tactic 是 `apply` 且留 ≥2 个子目标时，所有洞 span 相同
   （`by.rs:263/375` 取 `by.rs:269-271` 的单一 `hole_span`）→ `nextHole` 跳不动、

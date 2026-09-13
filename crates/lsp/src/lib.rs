@@ -1080,7 +1080,7 @@ impl LanguageServer for Backend {
                 documentation: Some(Documentation::MarkupContent(MarkupContent {
                     kind: MarkupKind::Markdown,
                     value: format!(
-                        "值位 `intro`：一次把目标剩下的 binder 全写成 `fun`，末尾留 `sorry`。\n\n展开为：\n\n```lean\n{skeleton}\n```"
+                        "值位 `intro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。\n\n**不替换也完全等价**——`intro` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n它等价于：\n\n```lean\n{skeleton}\n```"
                     ),
                 })),
                 filter_text: Some("intro".to_string()),
@@ -1278,8 +1278,8 @@ pub async fn run() {
 mod tests {
     use super::*;
     use crate::testutil::{
-        call, code_of, did_open, handshake, lsp_pos, notify, offset_of, position_json, shutdown,
-        test_service, wait_diagnostics, URI,
+        call, char_steps, code_of, did_change, did_open, handshake, lsp_pos, notify, offset_of,
+        position_json, shutdown, test_service, type_step, wait_diagnostics, TypedStep, URI,
     };
     use serde_json::json;
     use tower_lsp::jsonrpc::Request as RpcRequest;
@@ -2850,15 +2850,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         did_open(&mut service, before).await;
         let _ = wait_diagnostics(&mut socket, "pre-edit diagnostics").await;
 
-        notify(
-            &mut service,
-            "textDocument/didChange",
-            json!({
-                "textDocument": {"uri": URI, "version": 2},
-                "contentChanges": [{"text": after}],
-            }),
-        )
-        .await;
+        did_change(&mut service, 2, after).await;
         let _ = wait_diagnostics(&mut socket, "post-edit diagnostics").await;
 
         let start = offset_of(after, "intro");
@@ -2914,6 +2906,104 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             }
             shutdown(&mut service).await;
         }
+    }
+
+    #[tokio::test]
+    async fn typed_intro_chars_only_expand_on_the_whole_word() {
+        // 真人输入：一个字符一个字符地敲 `intro`。值位展开是**整词**门控
+        // （前缀触发是 term-intro.md §9 的 v2 非目标），所以 `i`/`in`/`int`/
+        // `intr` 都不该给展开项，敲完第五个字符才给。
+        //
+        // 断言必须落在**每个中间态**上（`type_step` 一步一次 didChange）：
+        // 服务器只持有最新状态，攒到最后再断言就只能验到最后一步。
+        let head = "theorem t : Prop -> Prop := ";
+        let initial = format!("{head}\n");
+        let caret = head.len();
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &initial).await;
+        let _ = wait_diagnostics(&mut socket, "typed intro: initial state").await;
+
+        let mut cur = initial.clone();
+        let mut version = 1;
+        let steps = char_steps("intro", caret);
+        assert_eq!(steps.len(), "intro".len(), "one step per keystroke");
+        for (index, step) in steps.iter().enumerate() {
+            type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
+            let typed = &"intro"[..=index];
+            let cursor = caret + typed.len();
+            let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
+            let expansion = items
+                .iter()
+                .find(|i| i.filter_text.as_deref() == Some("intro"));
+            if typed == "intro" {
+                let item = expansion.unwrap_or_else(|| {
+                    panic!("the whole keyword must offer the expansion: {items:?}")
+                });
+                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
+                else {
+                    panic!("expected a plain CompletionTextEdit::Edit");
+                };
+                assert_eq!(
+                    edit.range.start,
+                    lsp_pos(&cur, caret),
+                    "the edit replaces exactly the typed token"
+                );
+                assert_eq!(edit.range.end, lsp_pos(&cur, caret + "intro".len()));
+            } else {
+                assert!(
+                    expansion.is_none(),
+                    "prefix `{typed}` must not offer the expansion ({cur:?}): {items:?}"
+                );
+            }
+        }
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn typed_intro_after_retyping_sorry_and_wrapping() {
+        // 真实学习者动作链：
+        //   ① 先写着 `:= sorry`；
+        //   ② 把 `sorry` 删掉改敲 `intro`（选中重打）；
+        //   ③ 嫌那行太长，把值折到下一行。
+        // 两步编辑之后文档各不相同，而「展开项可用」必须一路成立——
+        // `intro` 折行那个历史 bug（playground:201）正是这类编辑序列里的中间态。
+        let initial = "theorem t : Prop -> Prop := sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, initial).await;
+        let _ = wait_diagnostics(&mut socket, "typed intro: sorry baseline").await;
+
+        let sorry = offset_of(initial, "sorry");
+        let space_after_colons = offset_of(initial, ":= ") + ":=".len();
+        let steps: [TypedStep<'_>; 2] = [
+            (sorry, "sorry".len(), "intro"), // 选中重打
+            (space_after_colons, 1, "\n  "), // 折行 + 缩进
+        ];
+        let mut cur = initial.to_string();
+        let mut version = 1;
+        for step in steps {
+            type_step(&mut service, &mut socket, &mut cur, &mut version, step).await;
+            let start = offset_of(&cur, "intro");
+            for offset in [start, start + "intro".len()] {
+                let items = request_completions_at(&mut service, lsp_pos(&cur, offset)).await;
+                let item = items
+                    .iter()
+                    .find(|i| i.filter_text.as_deref() == Some("intro"))
+                    .unwrap_or_else(|| panic!("expansion must survive the edit ({cur:?})"));
+                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
+                else {
+                    panic!("expected a plain CompletionTextEdit::Edit");
+                };
+                assert_eq!(edit.range.start, lsp_pos(&cur, start));
+                assert_eq!(edit.range.end, lsp_pos(&cur, start + "intro".len()));
+            }
+        }
+        assert_eq!(
+            cur, "theorem t : Prop -> Prop :=\n  intro\n",
+            "the script must end in the wrapped layout"
+        );
+        shutdown(&mut service).await;
     }
 
     #[tokio::test]

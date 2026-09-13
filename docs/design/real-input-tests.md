@@ -35,36 +35,55 @@
 
 ## 2. 新增基建：输入脚本（本设计的核心可复用件）
 
-### 2.1 `crates/lsp/src/testutil.rs` 增加两个 helper
+> **实现轮修正（2026-09-13，同日）**：本节最初设计的 API 是
+> `type_script(...) -> Vec<String>`（跑完整条脚本、返回每步之后的文档全文）。
+> 落地时发现它**根本不能用**：**服务器只持有最新状态**，历史文本快照拿回来
+> 什么也断言不了——攒到最后再断言，验到的只是最后一步。
+> 据此写出的第一个版本是**假测试**（在「已敲 `i`」的快照上，服务器其实已经
+> 是「已敲 `intro`」，断言看起来还通过了）。
+>
+> 现形态（已落地）只给**「一步」**这个原语，断言由测试在**步与步之间**做：
+> 见 §2.1。教训值得单独记一笔：**测试基建设计错了，比没有基建更危险——
+> 它会产出看起来通过的假测试。**
+
+### 2.1 `crates/lsp/src/testutil.rs` 新增（已落地）
 
 ```rust
-/// 逐段重放「学习者输入」：每段是在 `offset` 插入 `text`（真实输入的增量形态），
-/// 每段都发一次 didChange（FULL sync，version 递增）并等到诊断落地。
-/// 返回每段结束后的快照，便于断言"中间态"。
-pub(crate) async fn type_script(
-    service: &mut LspService<Backend>,
-    socket: &mut ClientSocket,
-    uri: &str,
-    initial: &str,
-    steps: &[(usize, &str)],
-) -> Vec<String>;   // 每步之后的文档全文
+/// 输入脚本的一步：把当前文本 [offset, offset + delete) 换成 insert。
+/// delete == 0 = 纯输入；insert == "" = 纯删除；两者都有 = 选中重打。
+pub(crate) type TypedStep<'a> = (usize, usize, &'a str);
 
-/// 逐字符输入（`type_script` 的特例）：把 `text` 一个字符一个字符插入。
-/// 用于断言"前缀不触发、整词才触发"这类补全门控行为。
-pub(crate) async fn type_chars(
+/// 每一步一次 didChange + 等到诊断落地，原地推进 cur / version。
+pub(crate) async fn type_step(
     service: &mut LspService<Backend>,
     socket: &mut ClientSocket,
-    uri: &str,
-    initial: &str,
-    offset: usize,
-    text: &str,
-) -> Vec<String>;
+    cur: &mut String,
+    version: &mut i32,
+    step: TypedStep<'_>,
+);
+
+/// 把 text 展开成「在 offset 起逐字符输入」的步骤（纯函数，不驱动服务）。
+pub(crate) fn char_steps<'a>(text: &'a str, offset: usize) -> Vec<TypedStep<'a>>;
+
+/// 一次 didChange（FULL sync），version 严格递增。
+pub(crate) async fn did_change(service: &mut LspService<Backend>, version: i32, text: &str);
+```
+
+调用形态（断言在中间态）：
+
+```rust
+let mut cur = initial.to_string();
+let mut version = 1;
+for (index, step) in char_steps("intro", caret).iter().enumerate() {
+    type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
+    // ← 这里 service 正持有「已敲 index+1 个字符」的状态，可以断言
+}
 ```
 
 为什么要「每段一次 didChange」而不是一次性 `did_open(最终文本)`：`did_change` 走的是
 `refresh` → `Session::update`（`lsp/lib.rs:785-795`）的真实增量路径，中间态会经过
 「旧快照 + remap」，这正是缺陷藏身处。已有先例：
-`completion_expands_value_intro_after_a_line_break_edit`（`lsp/lib.rs:2839-2874`）用的
+`completion_expands_value_intro_after_a_line_break_edit`（`lsp/lib.rs:2840`）用的
 就是这个模式，只是没有 helper，所以只有一条。
 
 ### 2.2 就绪信号（不许 sleep）
@@ -138,16 +157,17 @@ pub(crate) async fn type_chars(
 
 ### 5.2 LSP 协议（`lsp/*.rs`）——用 `type_script` / `type_chars`
 
-| # | 测试名 | 输入序列（关键步骤） | 断言 |
-|---|---|---|---|
-| L1 | `typed_intro_chars_only_complete_on_the_whole_word` | 逐字符 `i`,`n`,`t`,`r`,`o` | `int`/`intr` **不**给展开项；`intro` 给出且 `textEdit.range` 恰为 token |
-| L2 | `typed_apply_chars_only_complete_on_the_whole_word` | 逐字符 `a`…`y`，再空格 + `h` | 同上；外加「`apply` 后空格再敲名字时补全仍可用」 |
-| L3 | `typed_intro_then_space_still_completes` | 逐字符 `intro`，再插一个空格 | 展开项仍在（`term-intro.md` 第 38 轮的回归，扩展到逐字符形态） |
-| L4 | `typed_by_then_apply_keeps_tactic_completion` | `:= by ` + 逐字符 `apply` | 给的是 **tactic** 补全语义（不是值位关键字），且解析进 `Tactic::Apply` |
-| L5 | `replayed_intro_expansion_keeps_inlay_and_next_hole` | `:= intro` → 接受展开（把文本换成骨架） | 展开后 inlay 数=1、`nextHole` 命中骨架里的 `sorry`、诊断只剩 sorry warning |
-| L6 | `replayed_apply_expansion_keeps_sub_goals_addressable` | `:= apply h`（h : Q -> P → 多前提版本） | 每个子洞可被 `nextHole` **独立**寻址（依赖 §4.1 的修复） |
-| L7 | `replayed_four_spellings_state_at_and_next_hole` | 四声明文档，光标依次落在四处 | `stateAt`/`nextHole` 在 `by` 与值位关键字混排时不互相污染 |
-| L8 | `replayed_comment_edit_remaps_synthetic_holes` | 四声明文档，在文件头插入注释行 | 每类声明的洞 span 都按新坐标平移（复用 `session.rs:806/839` 的判据） |
+| # | 测试名 | 输入序列（关键步骤） | 断言 | 状态 |
+|---|---|---|---|---|
+| L1 | `typed_intro_chars_only_expand_on_the_whole_word` | 逐字符 `i`,`n`,`t`,`r`,`o`（`char_steps` + `type_step`） | `i`/`in`/`int`/`intr` **不**给展开项；`intro` 给出且 `textEdit.range` 恰为 token | ✅ 已落地 |
+| L1b | `typed_intro_after_retyping_sorry_and_wrapping` | `:= sorry` → 选中重打为 `intro` → 折行缩进 | 每个中间态都能拿到展开项；编辑范围恒为 token | ✅ 已落地 |
+| L2 | `typed_apply_chars_only_complete_on_the_whole_word` | 逐字符 `a`…`y`，再空格 + `h` | 同上；外加「`apply` 后空格再敲名字时补全仍可用」 | 待 I10 合流 |
+| L3 | `typed_intro_then_space_still_completes` | 逐字符 `intro`，再插一个空格 | 展开项仍在（第 38 轮的回归，扩展到逐字符形态） | 待做 |
+| L4 | `typed_by_then_apply_keeps_tactic_completion` | `:= by ` + 逐字符 `apply` | 给的是 **tactic** 补全语义（不是值位关键字），且解析进 `Tactic::Apply` | 待做 |
+| L5 | `replayed_intro_expansion_keeps_inlay_and_next_hole` | `:= intro` → 接受展开（把文本换成骨架） | 展开后 inlay 数=1、`nextHole` 命中骨架里的 `sorry`、诊断只剩 sorry warning | 待做 |
+| L6 | `replayed_apply_expansion_keeps_sub_goals_addressable` | `:= apply h`（多前提版本） | 每个子洞可被 `nextHole` **独立**寻址（依赖 §4.1 的修复） | 待 I10 合流 |
+| L7 | `replayed_four_spellings_state_at_and_next_hole` | 四声明文档，光标依次落在四处 | `stateAt`/`nextHole` 在 `by` 与值位关键字混排时不互相污染 | 待做 |
+| L8 | `replayed_comment_edit_remaps_synthetic_holes` | 四声明文档，在文件头插入注释行 | 每类声明的洞 span 都按新坐标平移（复用 `session.rs:806/839` 的判据） | 待做 |
 
 ### 5.3 VS Code 端到端（`extension.test.js`）——每条链路一个手势
 
@@ -167,16 +187,38 @@ pub(crate) async fn type_chars(
 
 ## 7. 执行顺序与 subagent 切分
 
-1. **B0（前置，主会话自己写）**：§2 的 `type_script`/`type_chars` helper + §4.2 的
-   `keyword_at` 收敛。理由：这两个是**公共接线点**，按 LESSONS「并行 subagent 必须文件集
-   互斥、主会话独占公共文件」，必须先由主会话落地，再派人。
+1. **B0（前置，主会话自己写）**：§2.1 的 `type_step` / `char_steps` / `did_change`
+   基建 + L1/L1b 两条用例。理由：这是**公共接线点**，按 LESSONS「并行 subagent 必须
+   文件集互斥、主会话独占公共文件」，必须先由主会话落地，再派人。
+   **✅ 已落地（2026-09-13，见 §8）**。
+   > 顺序修正：原本把 §4.2 的 `keyword_at` 收敛也放在 B0。实现轮判断**后移到
+   > I10-S3**——现在只有一个值位关键字（`intro`），把 `intro_at` 提前泛化成
+   > `keyword_at` 是**没有第二个调用方可验证的抽象**，多半会在 `apply` 落地时
+   > 返工。等 `apply` 存在、两个调用方都在时再抽，收益与可验证性都更高。
+   > 代价：`apply` 落地前位置选取仍有三套逻辑，属已知债务（§4.2）。
 2. **B1（subagent-1）**：§4.1 的缺陷——先加红测试，再修 `by.rs` 的 `assemble` 洞 span。
    允许改：`crates/front/src/by.rs`、`crates/front/src/compile/tests.rs`。
 3. **B2（subagent-2）**：§5.1 的 F1–F5（front/session），只改 `crates/front/src/session.rs`
    的测试模块与 `compile/tests.rs`。
-4. **B3（subagent-3）**：§5.2 的 L1–L4（逐字符输入），只改 `crates/lsp/src/lib.rs` 的测试模块。
-   依赖 B0。
+4. **B3（subagent-3）**：§5.2 的 L3/L4（逐字符输入的后两条），只改 `crates/lsp/src/lib.rs`
+   的测试模块。依赖 B0。
 5. **B4（主会话 + subagent）**：§5.2 的 L5–L8、§5.3 的 V1–V4——涉及 `apply`，与 I10 合流。
 6. 每步验收命令固定：`cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check`
    && `cargo clippy --workspace --all-targets` && `cargo test --workspace --locked`，
    外加 `cd editor/vscode && npm run test:unit`（改了扩展时）。
+
+## 8. B0 落地记录（2026-09-13）
+
+| 交付 | 位置 |
+|---|---|
+| `TypedStep` / `type_step` / `char_steps` / `did_change` | `crates/lsp/src/testutil.rs` |
+| L1 `typed_intro_chars_only_expand_on_the_whole_word` | `crates/lsp/src/lib.rs` 测试模块 |
+| L1b `typed_intro_after_retyping_sorry_and_wrapping` | 同上 |
+| `completion_expands_value_intro_after_a_line_break_edit` 改用 `did_change`（去掉内联 notify 样板） | 同上 |
+
+顺带修正的一致性缺陷：值位 `intro` 的**补全项文档**此前仍写「一次把目标剩下的 binder
+全写成 `fun`」，与 hover 已改的「不替换也完全等价」口径不一致——现已统一（编辑器里
+两处文案不该打架）。
+
+验收：`cargo test --workspace --locked` **517 passed / 0 failed**（本轮 +2），
+fmt clean，clippy 无新警告。
