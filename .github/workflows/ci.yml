@@ -29,6 +29,44 @@ jobs:
         # kernel 的上游遗留 lint 保持 warning 级（冻结快照原则）。
         run: cargo clippy --workspace --all-targets
 
+  # 自动打 tag + 触发发布：main 上 lint/test 全绿后，若 Cargo.toml 的版本
+  # 还没有对应的 v* tag，就打 tag 并 workflow_dispatch release.yml。
+  #
+  # 为什么两步而不是只推 tag：用 GITHUB_TOKEN 推的 tag **不会**触发其它
+  # workflow（GitHub 的防递归规则），所以推完 tag 还要显式 dispatch——
+  # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
+  # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
+  auto-tag:
+    needs: [lint, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Tag v$VERSION when it does not exist yet, then dispatch release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cargo_version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          ext_version=$(python3 -c "import json;print(json.load(open('editor/vscode/package.json'))['version'])")
+          if [ "$cargo_version" != "$ext_version" ]; then
+            echo "::error::Cargo.toml ($cargo_version) and editor/vscode/package.json ($ext_version) disagree; the version contract (docs/RELEASE.md §2) requires both before tagging."
+            exit 1
+          fi
+          tag="v${cargo_version}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "::notice::tag ${tag} already exists — nothing to release."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$tag"
+          git push origin "refs/tags/${tag}"
+          gh workflow run release.yml --ref "$tag"
+          echo "::notice::tagged ${tag} and dispatched release.yml"
+
   test:
     runs-on: ubuntu-latest
     steps:

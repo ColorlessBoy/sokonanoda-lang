@@ -49,13 +49,18 @@ jobs:
       - uses: actions/checkout@v5
 
       # 门禁：Pages 未启用时跳过其余步骤（见文件头说明）。
+      #
+      # **必须走鉴权的 gh api**，不能用裸 curl：未鉴权的 GET /pages 会 401/404
+      # （限流或权限），曾经让门禁误判 enabled=false → 部署步骤全被跳过、
+      # 站点迟迟不上线（2026-09-13 实况：三次「成功」的 run 里部署全是
+      # skipped）。runner 自带 gh，GITHUB_TOKEN 天然可用。
       - name: Gate on Pages being enabled
         id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          code=$(curl -sS -o /tmp/pages.json -w '%{http_code}' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages")
-          echo "GET /pages -> $code"
-          if [ "$code" = "200" ]; then
+          if gh api "repos/${GITHUB_REPOSITORY}/pages" > /tmp/pages.json 2>&1; then
+            echo "enabled=true"
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::GitHub Pages 尚未启用：到 Settings → Pages 把 Source 设为 GitHub Actions 后重跑本 workflow（docs/design/site.md §6.2）。"
