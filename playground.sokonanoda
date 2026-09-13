@@ -199,7 +199,7 @@ theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := And.in
 -- soko:hint 目标形态：三层箭头：fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …，最后要造出 And b a。
 -- soko:hint 关键件：And.left / And.right 从 h 里取出两半；And.intro b a … 换个顺序装回去。
 theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := 
-  fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => funapply And.intro
+  fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a
 
 
 theorem and_swap2 (a : Prop) (b : Prop) (h :And a b) : And b a := sorry

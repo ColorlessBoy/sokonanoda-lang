@@ -1,3 +1,17 @@
+## [0.22.0] - 2026-09-13
+
+### Removed
+- **Value-position `funapply`** — its lowering asked the kernel to infer the
+  applied term's type, which re-compiled the entire document prefix on every
+  keystroke (O(n²)); the interaction was unusably laggy (user report). The
+  by-block tactic `apply` is unchanged. Course unit 6's funapply aside and
+  exercises were removed with it (goldens reverted to (13, 6, 0) / 33-27).
+
+### Changed
+- **`funintro` skeleton lands with `sorry` selected** — accepting the
+  completion inserts the skeleton as a snippet whose trailing `sorry` is
+  preselected, so the next input overwrites it directly.
+
 ## [0.21.0] - 2026-09-13
 
 ### Added

@@ -160,22 +160,16 @@ impl Parser {
                 let tok = self.bump();
                 return self.parse_intro(tok.span);
             }
-            if kw == "funapply" {
-                let tok = self.bump();
-                return self.parse_apply(tok.span);
-            }
         }
         self.parse_expr()
     }
 
-    /// 值位 `funintro`：实参用 [`Self::parse_app`]，可选答案 `funintro <expr>`
-    /// 让前端把 funintro 隐式替换成 `fun … => <expr>`（判定仍由内核终审）；
-    /// 复合形状加括号即可。与 lambda 尾的 [`Self::parse_lambda_tail_keyword`]
-    /// 共用——两者空实参行为一致（term/answer: None）。
+    /// 值位 `funintro`：可选答案 `funintro <expr>` 让前端把 funintro 隐式
+    /// 替换成 `fun … => <expr>`（判定仍由内核终审）；复合形状加括号即可。
+    /// 与 lambda 尾的 [`Self::parse_lambda_tail_keyword`] 共用。
     fn parse_intro(&mut self, kw_span: Span) -> Result<Expr> {
         // 可选答案：`funintro <expr>` 让前端把 funintro 隐式替换成
-        // `fun … => <expr>`（判定仍由内核终审）。实参用 `parse_app`
-        // 与 `funapply` 对称——复合形状加括号即可。
+        // `fun … => <expr>`（判定仍由内核终审）。
         let answer = if self.starts_atom() {
             Some(Box::new(self.parse_app()?))
         } else {
@@ -188,42 +182,19 @@ impl Parser {
         })
     }
 
-    /// lambda 体**尾部**的值位关键字：`fun (x : Q) => funapply h`。
+    /// lambda 体**尾部**的值位关键字：`fun (x : Q) => funintro`。
     ///
     /// 学习者写多步证明时几乎总在 lambda 里——只在值位开头认关键字会让
-    /// 「拆完 binder 再 funapply」这种最自然的流程用不了。 lowered 一侧
-    /// （`lower_intro_val` / `lower_apply_val`）本来就沿 lambda 链下降处理
-    /// 关键字节点，这里只要把关键字解析出来即可。
+    /// 「拆完 binder 再 funintro」这种最自然的流程用不了。lowered 一侧
+    /// （`lower_intro_val`）本来就沿 lambda 链下降处理关键字节点，这里只要
+    /// 把关键字解析出来即可。
     fn parse_lambda_tail_keyword(&mut self, kw: &str, tok: Span) -> Result<Expr> {
-        // 与 `parse_value` 共用同一对解析函数——lambda 尾与值位开头的行为
-        // 完全一致（空实参 term: None）。
+        // 与 `parse_value` 共用同一个解析函数——lambda 尾与值位开头的行为
+        // 完全一致（answer: None）。
         match kw {
             "funintro" => self.parse_intro(tok),
-            "funapply" => self.parse_apply(tok),
-            other => unreachable!("lambda-tail keyword is `{other}`, not funintro/funapply"),
+            other => unreachable!("lambda-tail keyword is `{other}`, not funintro"),
         }
-    }
-
-    /// 值位 `funapply`：实参用 [`Self::parse_app`]（只吃应用 spine；更复杂的
-    /// 形状让学习者自己加括号）。`starts_atom` 会把下一条命令关键字挡在
-    /// 外面，所以 `funapply` 不会吞掉后续声明。
-    ///
-    /// 语法上**允许空实参**（`:= funapply`），由 lowering 报
-    /// `elab-apply-needs-a-term`——学习者因此拿到稳定的机器码 + 专属教学
-    /// 提示，而不是一句泛泛的语法错误。
-    fn parse_apply(&mut self, kw_span: Span) -> Result<Expr> {
-        if !self.starts_atom() {
-            return Ok(Expr::Apply {
-                term: None,
-                span: kw_span,
-            });
-        }
-        let term = self.parse_app()?;
-        let end = term.span().end;
-        Ok(Expr::Apply {
-            term: Some(Box::new(term)),
-            span: Span::new(kw_span.start, end),
-        })
     }
 
     /// `by` 块：`by <tactic> (';' <tactic>)*`。tactic 之间用 `;` 分隔
@@ -729,17 +700,13 @@ impl Parser {
                 })
             }
             TokenKind::Ident(name) if name.ends_with('.') => self.finish_const(name, tok.span),
-            // 值位关键字在**原子位**也可识别（I13-S3）：`funintro (funapply X)`
-            // 这类组合里，括号组的内部走 `parse_expr` → `parse_atom`，必须在这
-            // 里认出关键字才能构成组合。四段重复的解析已收敛为
-            // `parse_intro`/`parse_apply`，这里直接复用。
-            TokenKind::Ident(name) if name == "funintro" || name == "funapply" => {
+            // 值位关键字在**原子位**也可识别：括号组内 `(funintro …)` 走
+            // `parse_expr` → `parse_atom`，这里认出并复用 `parse_intro`。
+            // （`funapply` 已随 0.22.0 移除——它的降低每次按键都要把整个文档
+            // 前缀重编译一遍来推断类型，O(n²)，交互无法接受。）
+            TokenKind::Ident(name) if name == "funintro" => {
                 let kw_span = tok.span;
-                if name == "funintro" {
-                    self.parse_intro(kw_span)
-                } else {
-                    self.parse_apply(kw_span)
-                }
+                self.parse_intro(kw_span)
             }
             TokenKind::Ident(name) if is_reserved_command(&name) => Err(Diagnostic::new(
                 DiagnosticKind::UnexpectedToken {
@@ -826,13 +793,12 @@ impl Parser {
             self.push_binders(&mut binders)?;
         }
         self.expect_kind(&TokenKind::FatArrow, "`=>`")?;
-        // body 的第一个 token 若是 `funintro` / `funapply` / `by`，按值位关键字
-        // 解析——学习者拆完 binder 后直接 funapply / 进 tactic 模式是主流程，
-        // 不该被迫把关键字挪到值位开头。降低侧零改动：
-        // `lower_intro_val` / `lower_apply_val` / `split_by_value` 本来就沿
+        // body 的第一个 token 若是 `funintro` / `by`，按值位关键字解析——
+        // 学习者拆完 binder 后直接写答案是主流程，不该被迫把关键字挪到值位
+        // 开头。降低侧零改动：`lower_intro_val` / `split_by_value` 本来就沿
         // lambda 链下降处理关键字节点。
         let body = match &self.peek().kind {
-            TokenKind::Ident(kw) if matches!(kw.as_str(), "funintro" | "funapply" | "by") => {
+            TokenKind::Ident(kw) if matches!(kw.as_str(), "funintro" | "by") => {
                 let kw = kw.clone();
                 if kw == "by" {
                     // `parse_by_block` 自己 bump `by`，不要提前 bump。
@@ -1082,39 +1048,17 @@ example : Prop -> Prop := sorry
     }
 
     #[test]
-    fn keywords_parse_inside_parentheses_enabling_composition() {
-        // I13-S3：关键字是原子位表达式——括号组内的 `funapply` 解析为
-        // `Expr::Apply`，组合 `funintro (funapply And.intro)` 才有可能。
-        let file = parse(
-            "axiom And : Prop -> Prop -> Prop\ntheorem t : Prop -> Prop := (funapply And.intro)\n",
-        )
-        .unwrap();
-        match &file.commands[1] {
+    fn keywords_parse_inside_parentheses() {
+        // I13-S3 后保留：`funintro` 是原子位表达式，括号组内可用。
+        let file = parse("theorem t : Prop -> Prop := (funintro)\n").unwrap();
+        match &file.commands[0] {
             Command::Theorem { val, .. } => {
                 assert!(
-                    matches!(val, Expr::Apply { .. }),
-                    "the parenthesised keyword parses as an Apply node: {val:?}"
+                    matches!(val, Expr::Intro { .. }),
+                    "the parenthesised keyword parses inside the group: {val:?}"
                 );
             }
             other => panic!("expected a theorem, got {other:?}"),
-        }
-        let file = parse(
-            "axiom And : Prop -> Prop -> Prop\n\
-             theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro (funapply And.intro)\n",
-        )
-        .unwrap();
-        match &file.commands[1] {
-            Command::Theorem {
-                val: Expr::Intro { answer, .. },
-                ..
-            } => {
-                let answer = answer.as_ref().expect("composition carries its answer");
-                assert!(
-                    matches!(answer.as_ref(), Expr::Apply { .. }),
-                    "the answer holds the parenthesised funapply: {answer:?}"
-                );
-            }
-            other => panic!("expected a value-position funintro, got {other:?}"),
         }
     }
 
@@ -1148,94 +1092,6 @@ example : Prop -> Prop := sorry
             3,
             "three commands must survive: {file:?}"
         );
-    }
-
-    #[test]
-    fn value_funapply_parses_with_its_argument() {
-        let file = parse("axiom h : Prop\ntheorem t : Prop := funapply h\n").unwrap();
-        match &file.commands[1] {
-            Command::Theorem {
-                val: Expr::Apply { term, span },
-                ..
-            } => {
-                let term = term.as_ref().expect("`funapply h` carries its argument");
-                assert!(matches!(term.as_ref(), Expr::Ident { name, .. } if name == "h"));
-                // span 覆盖整个 `funapply h`：编辑器展开要整段替换。
-                let text = "axiom h : Prop\ntheorem t : Prop := funapply h\n";
-                assert_eq!(&text[span.start.offset..span.end.offset], "funapply h");
-            }
-            other => panic!("expected a value-position funapply, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn value_funapply_allows_a_parenthesised_argument() {
-        let file = parse("theorem t : Prop -> Prop := funapply (fun (x : Prop) => x)\n").unwrap();
-        match &file.commands[0] {
-            Command::Theorem {
-                val: Expr::Apply { term, .. },
-                ..
-            } => {
-                assert!(term.is_some(), "parenthesised argument is consumed");
-            }
-            other => panic!("expected a value-position funapply, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn value_funapply_without_an_argument_parses_empty() {
-        // 空实参在语法层收下，教学错误由 lowering 出（稳定的 elab code）。
-        let file = parse("theorem t : Prop -> Prop := funapply\n").unwrap();
-        match &file.commands[0] {
-            Command::Theorem {
-                val: Expr::Apply { term, .. },
-                ..
-            } => {
-                assert!(
-                    term.is_none(),
-                    "bare `funapply` must parse with no argument"
-                );
-            }
-            other => panic!("expected a value-position funapply, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn value_funapply_does_not_swallow_the_next_command() {
-        // `funapply` 不会吞掉后续声明：`starts_atom` 挡住命令关键字。
-        let file = parse("axiom h : Prop\ntheorem t : Prop := funapply h\ntheorem u : Prop := h\n")
-            .unwrap();
-        assert_eq!(
-            file.commands.len(),
-            3,
-            "three commands must survive: {file:?}"
-        );
-    }
-
-    #[test]
-    fn dotted_funapply_names_are_not_the_value_keyword() {
-        // `And.funapply`（若存在）是单个 Ident（`.` 是标识符字符），不受影响。
-        let file = parse("axiom And.funapply : Prop\ntheorem t : Prop := And.funapply\n").unwrap();
-        match &file.commands[1] {
-            Command::Theorem { val, .. } => {
-                assert!(
-                    !matches!(val, Expr::Apply { .. }),
-                    "dotted names are identifiers, not the value keyword"
-                );
-            }
-            other => panic!("expected a theorem, got {other:?}"),
-        }
-        // `And.apply`（旧名）作为带点标识符同样不受影响，断言保留。
-        let legacy = parse("axiom And.apply : Prop\ntheorem t : Prop := And.apply\n").unwrap();
-        match &legacy.commands[1] {
-            Command::Theorem { val, .. } => {
-                assert!(
-                    !matches!(val, Expr::Apply { .. }),
-                    "dotted names are identifiers, not the value keyword"
-                );
-            }
-            other => panic!("expected a theorem, got {other:?}"),
-        }
     }
 
     #[test]

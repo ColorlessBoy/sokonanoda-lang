@@ -124,3 +124,19 @@
 | S4 | protocol/TESTING/architecture/README/site 技能收口 + 版本 0.21.0 + 发布 | 主会话 | docs + Cargo.toml/package.json |
 
 依赖：S1 →（S2、S3 可串行，因共享 lsp lib.rs 与 parser）。每步完成跑全量门禁，红不交接。
+
+## 7. 后记（0.22.0）：funapply 移除
+
+用户实测反馈「funapply 整个交互变得好卡」——根因是 `funapply` 的降低要问
+内核推断被应用项的类型（`judge_infer`），而 `judge_infer` 会**重编译整个
+文档前缀**（拼合成 `#check` 声明后走完整 compile）；每次按键触发一次，
+文档越长越慢，O(n²)。这是设计时的已知取舍（见 §1.2/§3.2 的「刻意偏离」），
+实测体验不可接受，故整个移除：
+
+- 值位 `funapply` 关键字、`Expr::Apply` AST 节点、`compile/apply.rs`、
+  `elab-apply-*` 错误码、`funintro (funapply …)` 组合全部删除；
+- **保留**：`funintro`（纯结构性展开，无内核调用，按键零额外成本）、
+  by 块 tactic `apply`（教学需要；其 judge_infer 开销是已知限制）、
+  snippet 选中态体验（骨架态补全的 `${0:sorry}`）；
+- 教训：**front 侧降低路径禁止 per-keystroke 的全文档重编译**。任何需要
+  内核信息（类型推断）的特性，都要么缓存、要么只在显式请求时计算。

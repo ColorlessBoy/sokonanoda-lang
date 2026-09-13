@@ -229,12 +229,6 @@ pub fn render_expr(expr: &Expr) -> String {
             Some(answer) => format!("funintro {}", render_atom(answer)),
             None => "funintro".to_string(),
         },
-        // 值位 `funapply` 的展开文本在 lowering 时单独产出（`apply_skeleton`）；
-        // 这里只负责把未降低的 AST 原样回写，`funapply <term>`。
-        Expr::Apply { term, .. } => match term {
-            Some(t) => format!("funapply {}", render_atom(t)),
-            None => "funapply".to_string(),
-        },
         Expr::App { fun, arg, .. } => {
             format!("{} {}", render_fun_position(fun), render_atom(arg))
         }

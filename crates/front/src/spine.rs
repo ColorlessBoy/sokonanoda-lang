@@ -90,7 +90,6 @@ pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
         }
         Expr::Intro { .. } => false,
         // 值位 `apply` 的实参里出现这个名字，也算提到它。
-        Expr::Apply { term, .. } => term.as_deref().is_some_and(|t| mentions(name, t)),
         Expr::App { fun, arg, .. } => mentions(name, fun) || mentions(name, arg),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
             binders
@@ -162,10 +161,6 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
         Expr::Hole { span } => Expr::Hole { span: *span },
         Expr::Intro { answer, span } => Expr::Intro {
             answer: answer.as_deref().map(|t| Box::new(substitute(t, sigma))),
-            span: *span,
-        },
-        Expr::Apply { term, span } => Expr::Apply {
-            term: term.as_deref().map(|t| Box::new(substitute(t, sigma))),
             span: *span,
         },
         Expr::App { fun, arg, span } => Expr::App {

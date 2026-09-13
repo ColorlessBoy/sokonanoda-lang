@@ -124,21 +124,9 @@ cd sokonanoda-lang</div>
         <h3>Completion from keystroke one</h3>
         <p>
           Type <code>funintro</code> in the value position: the popup preselects the
-          “replace source” item from the first character; once the argument
-          compiles, the same item upgrades to a full skeleton replacement.
-        </p>
-      </article>
-
-      <article class="demo-card">
-        <div class="media">
-          <img src="../assets/demos/demo-compose.gif" width="1180" height="700"
-               alt="Keyword composition: funintro (funapply And.intro) peels all binders and leaves two typed premise holes" loading="lazy">
-        </div>
-        <h3>The keywords compose</h3>
-        <p>
-          <code>funintro (funapply And.intro)</code>: funintro turns the remaining
-          binders into a fun chain, funapply points the proof at the final goal and
-          leaves its premises as typed holes. The kernel grades the result.
+          “replace source” item from the first character; after accepting, the
+          skeleton lands with <code>sorry</code> selected — your next input
+          overwrites it directly.
         </p>
       </article>
 

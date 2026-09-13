@@ -1109,211 +1109,6 @@ fn value_funintro_is_layout_independent() {
 // ---- 值位 `funapply`（目标「倒过来」消费，前提留洞）----
 
 #[test]
-fn funapply_lowers_to_the_partial_application_skeleton() {
-    // 局部假设是 `funapply` 最常用的教学场景：`h : Q -> P`，目标 `P`，
-    // 展开成 `h sorry`——前提留成洞。
-    let src = "axiom P : Prop\naxiom Q : Prop\n\
-               theorem t (h : Q -> P) : P := funapply h\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Open);
-    assert_eq!(d.goal.as_deref(), Some("P"));
-    let binders: Vec<(&str, &str)> = d
-        .binders
-        .iter()
-        .map(|b| (b.name.as_str(), b.ty.as_str()))
-        .collect();
-    assert_eq!(binders, vec![("h", "Q -> P")]);
-    assert_eq!(d.holes.len(), 1);
-    // 洞的 span 覆盖**整个** `funapply h`：编辑器展开要整段替换，只覆盖
-    // `funapply` 会把实参留在原地变成 `h h sorry`。
-    assert_eq!(
-        &src[d.holes[0].start.offset..d.holes[0].end.offset],
-        "funapply h"
-    );
-    assert_eq!(d.apply_skeleton.as_deref(), Some("h sorry"));
-    assert!(d.intro_skeleton.is_none());
-}
-
-#[test]
-fn funapply_fills_type_parameters_from_the_goal() {
-    // `f : (a : Prop) -> Q a -> P a`，目标 `P p` → 类型参数 `a` 由目标实参
-    // 填充，只有前提 `Q p` 留成洞：`f p sorry`。
-    let src = "axiom P : Prop -> Prop\naxiom Q : Prop -> Prop\naxiom p : Prop\n\
-               axiom f : (a : Prop) -> Q a -> P a\n\
-               axiom qx : Q p\n\
-               theorem t : P p := funapply f\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Open);
-    assert_eq!(d.goal.as_deref(), Some("P p"));
-    assert_eq!(d.holes.len(), 1);
-    assert_eq!(d.apply_skeleton.as_deref(), Some("f p sorry"));
-    // 子目标的期望类型是**实例化后**的前提。
-    assert_eq!(d.sub_goals.len(), 1);
-    assert_eq!(d.sub_goals[0].ty.as_deref(), Some("Q p"));
-}
-
-#[test]
-fn funapply_with_a_supplied_premise_keeps_only_the_rest() {
-    // `apply f p`：类型参数已经手写给出，只剩一个前提洞。
-    let src = "axiom P : Prop -> Prop\naxiom Q : Prop -> Prop\naxiom p : Prop\n\
-               axiom f : (a : Prop) -> Q a -> P a\n\
-               axiom qx : Q p\n\
-               theorem t : P p := funapply f p\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Open);
-    assert_eq!(d.holes.len(), 1);
-    assert_eq!(d.apply_skeleton.as_deref(), Some("f p sorry"));
-}
-
-#[test]
-fn funapply_of_a_fully_determined_proof_is_checked_by_the_kernel() {
-    // `h : P` 直接就是答案（零个前提洞）——与 `exact` 等价，交内核终审。
-    let src = "axiom P : Prop\naxiom h : P\ntheorem t : P := funapply h\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Checked);
-    assert_eq!(d.apply_skeleton, None);
-}
-
-#[test]
-fn funapply_is_equivalent_to_typing_the_skeleton_out_by_hand() {
-    // 与 `funintro` 同一条契约：不展开也完全等价（同 status/goal/binders/洞数）。
-    let head = "axiom P : Prop\naxiom Q : Prop\n";
-    let with_apply = format!("{head}theorem t (h : Q -> P) : P := funapply h\n");
-    let by_hand = format!("{head}theorem t (h : Q -> P) : P := h sorry\n");
-
-    let report = check_document(&parse(&with_apply).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let a = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl");
-    let skeleton = a
-        .apply_skeleton
-        .clone()
-        .expect("funapply carries its skeleton");
-
-    let report = check_document(&parse(&by_hand).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let b = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl");
-
-    let binders = |d: &DeclState| {
-        d.binders
-            .iter()
-            .map(|x| (x.name.clone(), x.ty.clone()))
-            .collect::<Vec<_>>()
-    };
-    assert_eq!(a.status, DeclStatus::Open);
-    assert_eq!(
-        b.status,
-        DeclStatus::Open,
-        "handwritten skeleton is also open"
-    );
-    assert_eq!(a.goal, b.goal, "same remaining goal");
-    assert_eq!(binders(a), binders(b), "same introduced binders");
-    assert_eq!(a.holes.len(), 1);
-    assert_eq!(a.holes.len(), b.holes.len(), "same number of holes");
-    assert_eq!(skeleton, "h sorry");
-    assert!(b.apply_skeleton.is_none());
-    assert!(
-        b.intro_skeleton.is_none(),
-        "only the keyword form carries an editor skeleton"
-    );
-}
-
-#[test]
-fn value_funapply_is_layout_independent() {
-    // 同页 / 换行 / 尾随空格三种排版，判定与骨架一字不差。
-    let head = "axiom P : Prop\naxiom Q : Prop\n";
-    let ty = "(h : Q -> P)";
-    let same_line = format!("{head}theorem t {ty} : P := funapply h\n");
-    let next_line = format!("{head}theorem t {ty} : P :=\n  funapply h\n");
-    let trailing = format!("{head}theorem t {ty} : P := funapply h \n");
-
-    let decl_of = |src: &str| {
-        let report = check_document(&parse(src).expect("parse"));
-        assert!(report.errors.is_empty(), "{src:?}: {:?}", report.errors);
-        report
-            .decls
-            .into_iter()
-            .find(|d| d.name.as_deref() == Some("t"))
-            .expect("decl t")
-    };
-
-    let base = decl_of(&same_line);
-    assert_eq!(base.apply_skeleton.as_deref(), Some("h sorry"));
-    for src in [&next_line, &trailing] {
-        let other = decl_of(src);
-        assert_eq!(other.status, base.status, "{src:?}");
-        assert_eq!(other.goal, base.goal, "{src:?}");
-        assert_eq!(other.apply_skeleton, base.apply_skeleton, "{src:?}");
-        let binders = |d: &DeclState| {
-            d.binders
-                .iter()
-                .map(|x| (x.name.clone(), x.ty.clone()))
-                .collect::<Vec<_>>()
-        };
-        assert_eq!(binders(&other), binders(&base), "{src:?}");
-        assert_eq!(other.holes.len(), base.holes.len(), "{src:?}");
-    }
-}
-
-#[test]
-fn funapply_on_an_unrelated_goal_is_rejected() {
-    // `impl` 的结论是 `P`，目标却是 `Q`——位置合一失败 → 教学错误。
-    let src = "axiom P : Prop\naxiom Q : Prop\n\
-               axiom impl : Q -> P\n\
-               axiom q : Q\n\
-               theorem t : Q := funapply impl\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
-    assert_eq!(report.errors[0].code(), "elab-apply-not-applicable");
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Failed);
-    assert!(d.apply_skeleton.is_none());
-}
-
-#[test]
-fn funapply_without_an_argument_is_a_stable_teaching_error() {
-    let src = "axiom P : Prop\ntheorem t : P := funapply\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
-    assert_eq!(report.errors[0].code(), "elab-apply-needs-a-term");
-}
-
-#[test]
 fn funapply_of_an_unknown_name_reports_the_identifier() {
     // 名字打错是最常见的失败：保留既有的 `elab-unknown-identifier` 码。
     let src = "axiom P : Prop\ntheorem t : P := funapply nope\n";
@@ -1336,13 +1131,9 @@ fn by_block_apply_still_uses_the_tactic_engine() {
         .iter()
         .find(|d| d.name.as_deref() == Some("t"))
         .expect("decl t");
-    // `funapply impl` 留下一个未解子目标 `Q` → 练习态（Open），且**不带**值位骨架。
+    // `apply impl` 留下一个未解子目标 `Q` → 练习态（Open），且**不带**值位骨架。
     assert_eq!(d.status, DeclStatus::Open);
     assert_eq!(d.holes.len(), 1);
-    assert!(
-        d.apply_skeleton.is_none(),
-        "tactic path carries no skeleton"
-    );
     assert!(!d.by_steps.is_empty(), "the tactic step is recorded");
     // 同一份证明写全就是 Closed——两条路径都由内核终审。
     let src = "axiom P : Prop\naxiom Q : Prop\n\
@@ -1364,78 +1155,6 @@ fn by_block_apply_still_uses_the_tactic_engine() {
 }
 
 #[test]
-fn funintro_with_a_nested_funapply_lowers_the_composition() {
-    // 用户需求②：`funintro (funapply And.intro)` —— funintro 到内核那边就是
-    // fun 链；funapply 面对剥完 binder 后的最终目标 `And b a`，降为
-    // `And.intro b a sorry sorry`（σ 实例化 + 两个前提洞）。内核零感知。
-    let src = "axiom And : Prop -> Prop -> Prop\n\
-               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
-               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
-                 funintro (funapply And.intro)\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("and_swap"))
-        .expect("decl and_swap");
-    assert_eq!(d.status, DeclStatus::Open);
-    assert_eq!(d.goal.as_deref(), Some("And b a"));
-    assert_eq!(d.holes.len(), 2, "two premises left as holes");
-    // 前提洞的期望类型 = σ 实例化后的 b、a。
-    let sub_tys: Vec<Option<&str>> = d.sub_goals.iter().map(|s| s.ty.as_deref()).collect();
-    assert_eq!(sub_tys, vec![Some("b"), Some("a")]);
-    // 合并骨架：funintro 部分全剥 + funapply 部分展开。
-    assert_eq!(
-        d.intro_skeleton.as_deref(),
-        Some("fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a sorry sorry")
-    );
-}
-
-#[test]
-fn funintro_composition_is_equivalent_to_typing_the_skeleton_out_by_hand() {
-    // 与 intro/apply 同一条契约：组合关键字不替换也完全等价。
-    let head = "axiom And : Prop -> Prop -> Prop\n\
-                axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n";
-    let composed = format!(
-        "{head}theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n  funintro (funapply And.intro)\n"
-    );
-    let by_hand = format!(
-        "{head}theorem t : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n  fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a sorry sorry\n"
-    );
-    let decl_of = |src: &str| {
-        let report = check_document(&parse(src).expect("parse"));
-        assert!(report.errors.is_empty(), "{src:?}: {:?}", report.errors);
-        report
-            .decls
-            .into_iter()
-            .find(|d| d.name.as_deref() == Some("t"))
-            .expect("decl t")
-    };
-    let a = decl_of(&composed);
-    let b = decl_of(&by_hand);
-    assert_eq!(a.status, DeclStatus::Open);
-    assert_eq!(b.status, DeclStatus::Open);
-    assert_eq!(a.goal, b.goal);
-    assert_eq!(a.holes.len(), b.holes.len(), "same number of holes");
-    let sub_tys = |d: &DeclState| -> Vec<Option<String>> {
-        d.sub_goals.iter().map(|s| s.ty.clone()).collect()
-    };
-    assert_eq!(sub_tys(&a), sub_tys(&b), "same instantiated premises");
-}
-
-#[test]
-fn funintro_composition_on_an_unrelated_goal_is_rejected() {
-    // funapply 的结论与最终目标对不上 → 既有教学错误码。
-    let src = "axiom P : Prop\naxiom Q : Prop\n\
-               axiom impl : Q -> P\n\
-               theorem t : Q -> Q := funintro (funapply impl)\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
-    assert_eq!(report.errors[0].code(), "elab-apply-not-applicable");
-}
-
-#[test]
 fn nested_funintro_without_a_function_goal_is_still_rejected() {
     // 嵌套 funintro：内层面对非函数目标 → 既有教学错误码（无需新码）。
     let src = "axiom P : Prop\ntheorem t : P := funintro (funintro)\n";
@@ -1446,11 +1165,10 @@ fn nested_funintro_without_a_function_goal_is_still_rejected() {
 
 #[test]
 fn keywords_work_in_a_lambda_tail() {
-    // 用户在 playground 202 行实况：拆完 binder 之后才想用 `funapply`。
-    // 关键字原来只在值位开头识别，lambda 体里是普通标识符 → unknown
-    // identifier。现在 lambda 体尾部也认 `funintro` / `funapply`。
+    // lambda 体尾部可用 `funintro`：拆完 binder 后直接写答案是主流程。
+    // 剥完 x : Q 后还剩 `Q -> P`——lambda 尾的 funintro 把它也剥掉，答案填 P。
     let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
-               theorem t : Q -> P := fun (x : Q) => funapply proofP\n";
+               theorem t : Q -> (Q -> P) := fun (x : Q) => funintro proofP\n";
     let report = check_document(&parse(src).expect("parse"));
     assert!(report.errors.is_empty(), "{:?}", report.errors);
     let d = report
@@ -1458,11 +1176,8 @@ fn keywords_work_in_a_lambda_tail() {
         .iter()
         .find(|d| d.name.as_deref() == Some("t"))
         .expect("decl t");
-    // 降低了：`fun (x : Q) => proofP sorry`?? 不——funapply proofP 的类型
-    // `P -> P`?? 不：proofP : P，funapply proofP 无前提 → 就是 proofP。
-    // 关键是它被 kernel 接受了：隐式替换在 lambda 尾同样成立。
-    assert_eq!(d.status, DeclStatus::Checked);
-    assert!(d.intro_skeleton.is_none() && d.apply_skeleton.is_none());
+    assert_eq!(d.status, DeclStatus::Checked, "the answer is kernel-judged");
+    assert!(d.intro_skeleton.is_none());
 }
 
 #[test]
@@ -1489,28 +1204,6 @@ fn nested_funintro_in_a_lambda_tail_lowers_to_the_skeleton() {
     );
     // 骨架的合成 binder 避开外层 lambda 的 `x`（命名避让）。
     assert_eq!(d.intro_skeleton.as_deref(), Some("fun (x2 : Q) => sorry"));
-}
-
-#[test]
-fn nested_funapply_in_a_lambda_tail_checks() {
-    // and_swap 的自然写法：拆完 binder 后用 `funapply` 接上 And.intro。
-    // 注意前提顺序：`And.intro b a u v` 里 u : b、v : a，所以 u 取
-    // And.right、v 取 And.left——顺序写反正是画布练习 3 要教的东西。
-    let src = "axiom And : Prop -> Prop -> Prop\n\
-               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
-               axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
-               axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
-               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
-                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) =>\n\
-                   funapply (And.intro b a (And.right a b x) (And.left a b x))\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("and_swap"))
-        .expect("decl and_swap");
-    assert_eq!(d.status, DeclStatus::Checked, "the kernel judges the fill");
 }
 
 #[test]
@@ -1541,7 +1234,7 @@ fn by_in_a_lambda_tail_enters_tactic_mode() {
         .expect("decl t");
     assert_eq!(d.status, DeclStatus::Checked, "the kernel judges the fill");
     assert!(!d.by_steps.is_empty(), "the tactic step is recorded");
-    assert!(d.apply_skeleton.is_none() && d.intro_skeleton.is_none());
+    assert!(d.intro_skeleton.is_none());
 }
 
 #[test]

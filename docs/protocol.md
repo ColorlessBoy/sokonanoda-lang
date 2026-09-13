@@ -206,16 +206,15 @@ answer is `kernel-rejected`, exactly as if it had been written by hand.
 An answered `intro` leaves no synthetic hole and carries no editor skeleton
 (there is nothing left to expand).
 
-### Keyword composition (0.21.0)
+### Keyword expressions (0.21.0 / narrowed 0.22.0)
 
-`funintro` / `funapply` are also recognised in **atom position**, so they
-compose: `theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=
-funintro (funapply And.intro)` peels every remaining binder and lowers
-`funapply And.intro` against the *final* goal — the value reaches the kernel as
-`fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a sorry
-sorry` (type parameters σ-instantiated, premises left as holes). The kernel
-never sees a keyword. Nested `funintro` on a non-function final goal is still
-`elab-intro-not-a-function`.
+`funintro` is also recognised in **atom position** (inside parentheses, in
+answers): `funintro <answer>` implicitly replaces the keyword with
+`fun … => <answer>`. With 0.22.0 the value-position `funapply` keyword was
+**removed** for performance — its lowering re-compiled the whole document
+prefix on every keystroke (O(n²), user-reported lag) — together with the
+`elab-apply-*` error codes and the `funintro (funapply …)` composition. The
+by-block tactic `apply` is unchanged.
 
 ### Command-link payload shape (editor contract)
 
@@ -228,43 +227,6 @@ a unit test that calls the command directly never notices. The payload is
 therefore `[{uri, range, newText}]`, and the client handler tolerates both an
 array and a bare object for backwards compatibility.
 
-
-### Value-position `funapply`
-
-> **改名说明（I13-S1）**：本节的「值位关键字」原名 `apply`，现已改名为 `funapply`；by 块 tactic `apply` 不受影响。下文同一含义的 `apply` 均指 `funapply`。
-
-`theorem t (h : Q -> P) : P := funapply h` applies a proof/function to the goal
-and leaves its premises as holes: the value lowers to `h sorry`. The argument
-is parsed with the application-spine parser, so `funapply f` works and compound
-terms need parentheses (`funapply (f a)`) — that is how the learner delimits the
-scope. The applied name's type is obtained through `front::judge::judge_infer`
-(the kernel infers; it does not judge — the value still never reaches the
-kernel, and every fill is judged by the kernel afterwards). Telescope
-mechanics (`peel_pi` / `unify_spine` / `substitute`) are shared with the
-`by`-block tactic `apply` (`crate::spine`), so the two paths cannot drift.
-
-Completion and hover behave exactly like `intro`'s, with
-`command:sokonanoda.expandApply?<payload>` and the same
-`{uri, range, newText}` payload. The editor command is
-`sokonanoda.expandApply`; the client must allow-list it.
-
-Local hypotheses are the common case (`apply h`), so the open-goal walk
-overlays the declaration's introduced binders on the global template index
-(`GoalTemplates` only holds globals).
-
-Both keywords are also recognised at the **tail of a `fun` body** — the
-position a learner reaches after introducing some binders by hand:
-`theorem t : Q -> P := fun (x : Q) => apply proofP`. The lowering already
-walked lambda chains, so this is parser-only; a bare `intro` on a
-non-function remaining goal is still `elab-intro-not-a-function`. Skeleton
-synthesis avoids the outer lambda's binder names (`fun (x : Q) => intro`
-expands to `fun (x2 : Q) => sorry`, not a shadowing `fun (x : Q) => sorry`).
-
-`by` joins them there too: `theorem t : Q -> P := fun (x : Q) => by exact
-proofP` enters tactic mode with the lambda binders as the initial context
-(`split_by_value` collects them). Everything else about `by` blocks is
-unchanged — tactic goals, `by_steps`, and kernel judging are identical to a
-value-position `by`.
 
 ## Custom LSP requests (goal view, I9)
 

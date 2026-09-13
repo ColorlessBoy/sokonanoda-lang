@@ -137,7 +137,7 @@ pub fn suggest(
         // `sorry`」守卫必然拒绝（judge.rs:316-322）。这些声明一律走
         // judge_terms（按折叠声明判定，不碰源码文本）——与 `intro` 一开始就
         // 在用的路径相同。
-        let synthetic = d.intro_skeleton.is_some() || d.apply_skeleton.is_some();
+        let synthetic = d.intro_skeleton.is_some();
         let judgements = if d.sub_goals.is_empty() || synthetic {
             // 主洞 / 合成洞：judge_terms 语义。
             judge_terms(judge_prefix, options, &open_spec(d, &expected), &refs)

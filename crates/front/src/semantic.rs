@@ -53,7 +53,6 @@ const KEYWORDS: &[&str] = &[
     "intro",
     "apply",
     "funintro",
-    "funapply",
     "#check",
     "#reduce",
     "#print",
@@ -250,13 +249,6 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
     match expr {
         Expr::Sort { .. } | Expr::Ident { .. } | Expr::Num { .. } | Expr::Hole { .. } => {}
         Expr::Intro { .. } => {}
-        // 值位 `funapply`：`funapply` token 本身由 KEYWORDS 分类，这里只走它的实参
-        // （实参里的标识符/binder 照常收集）。
-        Expr::Apply { term, .. } => {
-            if let Some(t) = term {
-                walk_expr(t, toks, names);
-            }
-        }
         Expr::UniverseApp { span, .. } => names.universes.push(*span),
         Expr::App { fun, arg, .. } => {
             walk_expr(fun, toks, names);
@@ -459,27 +451,6 @@ mod tests {
             vec![SemanticKind::Keyword]
         );
         assert_eq!(kinds_of(src, &spans, "intro"), vec![SemanticKind::Keyword]);
-        let src = "theorem t (h : P) : P := funapply h\n";
-        let spans = semantic_tokens(src);
-        assert_eq!(
-            kinds_of(src, &spans, "funapply"),
-            vec![SemanticKind::Keyword]
-        );
-    }
-
-    #[test]
-    fn funintro_funapply_classify_as_keyword_in_value_position() {
-        let src = "theorem t : (a : Prop) -> a := funintro\n\
-                   theorem u : (a : Prop) -> a := funapply h\n";
-        let spans = semantic_tokens(src);
-        assert_eq!(
-            kinds_of(src, &spans, "funintro"),
-            vec![SemanticKind::Keyword]
-        );
-        assert_eq!(
-            kinds_of(src, &spans, "funapply"),
-            vec![SemanticKind::Keyword]
-        );
     }
 
     #[test]

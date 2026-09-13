@@ -127,21 +127,8 @@ cd sokonanoda-lang</div>
         <h3>补全从第一个字符起就在</h3>
         <p>
           在值位敲 <code>funintro</code>：弹窗从第一个字符起就预选「替换源代码」项，
-          Tab 接受即补全；实参敲完、声明通过检查后，同一项升级为完整骨架的就地替换
-          ——要不要替换都行，不替换也完全等价。
-        </p>
-      </article>
-
-      <article class="demo-card">
-        <div class="media">
-          <img src="assets/demos/demo-compose.gif" width="1180" height="700"
-               alt="组合关键字：funintro (funapply And.intro) 剥掉全部 binder，前提留成两个带期望类型的洞，内核终审通过" loading="lazy">
-        </div>
-        <h3>两个关键字可以组合</h3>
-        <p>
-          <code>funintro (funapply And.intro)</code>：funintro 把剩余 binder 全剥成
-          fun 链，funapply 把证明接到最终目标上、前提留成带期望类型的洞——
-          到内核那里的就是普通的部分应用，判对判错由内核终审。
+          Tab 接受后骨架落盘，<code>sorry</code> 处于选中态——下一次输入直接覆盖它。
+          要不要替换都行，不替换也完全等价。
         </p>
       </article>
 

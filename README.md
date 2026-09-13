@@ -142,17 +142,16 @@ proof> done
 checked example
 ```
 
-Value-position keywords make the first steps shorter — and all three also
-work at the tail of a `fun` body:
+Value-position keywords make the first steps shorter — and they also work
+at the tail of a `fun` body:
 
 ```text
-theorem t (h : Q -> P) : P := apply h        -- = h sorry (premise left open)
-theorem u : Q -> P := intro proofP           -- implicitly = fun (x : Q) => proofP
-theorem v : Q -> P := fun (x : Q) => by exact proofP
+theorem t (h : Q -> P) : P := funintro proofP  -- = fun (x : Q) => proofP
+theorem u : Q -> P := fun (x : Q) => by exact proofP
 ```
 
-Hovering `intro`/`apply` offers a one-click expand button; keeping the
-keyword un-expanded is equivalent anyway. The kernel grades every fill.
+Hovering `funintro` offers a one-click expand button; keeping the keyword
+un-expanded is equivalent anyway. The kernel grades every fill.
 
 The CLI parses a `.sokonanoda` file, elaborates it into kernel declarations
 and runs the complete sokonanoda kernel over them:

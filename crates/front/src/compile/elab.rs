@@ -742,12 +742,6 @@ pub(crate) fn elab_expr<'a>(
             "internal: `funintro` reached elaboration without being lowered",
             *span,
         )),
-        // 值位 `funapply` 同理：check 阶段先降低为实参应用 + 洞。
-        Expr::Apply { span, .. } => Err(CompileError::elab(
-            ErrorKind::ElabHoleMisplaced,
-            "internal: `funapply` reached elaboration without being lowered",
-            *span,
-        )),
     }
 }
 
@@ -760,8 +754,6 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
         Expr::UniverseApp { name: n, .. } => n == name,
         Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => false,
         Expr::Intro { .. } => false,
-        // 值位 `funapply` 在 elab 前已被 lowering 消费；保守起见看它的实参。
-        Expr::Apply { term, .. } => term.as_deref().is_some_and(|t| mentions_ident(t, name)),
         Expr::App { fun, arg, .. } => mentions_ident(fun, name) || mentions_ident(arg, name),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
             binders

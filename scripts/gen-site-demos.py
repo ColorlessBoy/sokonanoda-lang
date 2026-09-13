@@ -266,148 +266,65 @@ BASE_LINES = [
 
 
 def demo_completion() -> list[tuple[Image.Image, int]]:
+    """值位 `funintro`：逐键输入 → 弹窗从第一个字符起就在 → Tab 补全单词 →
+    骨架态出现 → 接受 → `sorry` 处于选中态（下一次输入直接覆盖）。"""
     frames = []
-    base = [l[:] for l in BASE_LINES]
-    li = 4
-    col = line_width(ImageDraw.Draw(Image.new("RGB", (8, 8))), base[4]) - EDITOR_X - PAD_L
-    col = 0
-    # 计算第 5 行缩进后的列：行内容是 "  fun … => "，光标在行尾
-    prefix = "  fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => "
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    col = int(text_w(probe, prefix, F_CODE)) - 24  # 行内容从 x=EDITOR_X+PAD_L 起，prefix 含缩进
-    cursor_col = col
-
-    # ① 逐键敲 funintro：第一个字符起弹窗就在（键入态项 preselect）
+    head = "theorem t : Q -> P := "
+    base = [
+        L("axiom P : Prop"),
+        L("axiom Q : Prop"),
+        L("axiom proofP : P"),
+        L(""),
+        L(head + "sorry"),
+    ]
+    li = 4
+    caret_px = int(text_w(probe, head, F_CODE)) - 24
+    # ① 逐键敲 funintro：每个前缀都有键入态项（preselect）
     typed = ""
     for ch in "funintro":
         typed += ch
-        lines = [l[:] for l in BASE_LINES]
-        # 行尾追加已敲的前缀
-        lines[4] = L(prefix + typed)
-        cur_col = int(text_w(probe, prefix + typed, F_CODE)) - 24
-        item_label = "funintro（替换源代码）"
+        lines = [l[:] for l in base]
+        lines[4] = L(head + typed)
+        cur = caret_px + int(text_w(probe, typed, F_CODE))
         popup = {
             "items": [
-                {"label": item_label, "detail": "", "selected_badge": "Tab 接受"},
-                {"label": "fun", "detail": ""},
-                {"label": "funapply（替换源代码）", "detail": ""},
+                {"label": "funintro（替换源代码）", "selected_badge": "Tab 接受"},
+                {"label": "fun"},
             ],
             "selected": 0,
         }
         frames.append(
-            (
-                editor_frame(
-                    lines,
-                    cursor=(li, cur_col),
-                    popup=popup,
-                    status="⚠ 练习待填：and_swap",
-                    status_warn=True,
-                ),
-                260 if len(typed) == 1 else 140,
-            )
+            (editor_frame(lines, cursor=(li, cur), popup=popup,
+                          status="练习待填：t", status_warn=True),
+             260 if len(typed) == 1 else 130)
         )
-    # ② Tab 接受：整词落盘（键入态 → 接受即补全单词）
-    lines = [l[:] for l in BASE_LINES]
-    lines[4] = L(prefix + "funintro ")
+    # ② 整词 + 尾随空格：仍是键入态项
+    lines = [l[:] for l in base]
+    lines[4] = L(head + "funintro ")
     frames.append(
-        (
-            editor_frame(
-                lines,
-                cursor=(li, int(text_w(probe, prefix + "funintro ", F_CODE)) - 24),
-                status="⚠ 练习待填：and_swap",
-                status_warn=True,
-            ),
-            500,
-        )
+        (editor_frame(lines, cursor=(li, caret_px + int(text_w(probe, "funintro ", F_CODE))),
+                      popup={"items": [
+                          {"label": "funintro（替换源代码）", "selected_badge": "Tab 接受"},
+                      ], "selected": 0},
+                      status="练习待填：t", status_warn=True),
+         400)
     )
-    # ③ 敲实参 And.intro：骨架态项出现（σ 实例化的完整骨架）
-    lines = [l[:] for l in BASE_LINES]
-    lines[4] = L(prefix + "funintro And.intro")
-    cur_col = int(text_w(probe, prefix + "funintro And.intro", F_CODE)) - 24
-    popup = {
-        "items": [
-            {
-                "label": "funapply（替换源代码）",
-                "detail": "",
-                "selected_badge": "完整骨架",
-            },
-            {"label": "And", "detail": ""},
-            {"label": "And.intro", "detail": ""},
-        ],
-        "selected": 0,
-    }
-    # 骨架态项展示展开预览
-    frames.append((editor_frame(lines, cursor=(li, cur_col), popup=popup, status="⚠ 练习待填：and_swap", status_warn=True), 500))
-    # ④ 接受：骨架落盘 + 行内显示两个前提洞的期望类型
-    lines = [l[:] for l in BASE_LINES]
-    lines[4] = L(prefix + "funapply And.intro")
-    frames.append(
-        (
-            editor_frame(
-                lines,
-                cursor=(li, int(text_w(probe, prefix + "funapply And.intro", F_CODE)) - 24),
-                inlays={4: "sorry : b"},
-                status="⚠ 练习待填：and_swap",
-                status_warn=True,
-            ),
-            500,
-        )
-    )
-    frames.append(
-        (
-            editor_frame(
-                lines,
-                cursor=(li, int(text_w(probe, prefix + "funapply And.intro", F_CODE)) - 24),
-                inlays={4: "sorry : b   sorry : a"},
-                status="⚠ 两个前提洞由内核判定",
-                status_warn=True,
-            ),
-            900,
-        )
-    )
+    # ③ 骨架态：接受补全 → `fun (x : Q) => ${0:sorry}`，sorry 落盘并选中
+    lines = [l[:] for l in base]
+    lines[4] = L(head + "fun (x : Q) => sorry")
+    sorry_px = caret_px + int(text_w(probe, "fun (x : Q) => ", F_CODE))
+    img = editor_frame(lines, status="练习待填：t（sorry 已选中，输入即覆盖）", status_warn=True)
+    draw = ImageDraw.Draw(img)
+    sy = 78 + li * LH
+    draw.rectangle([EDITOR_X + PAD_L + sorry_px, sy - 1,
+                    EDITOR_X + PAD_L + sorry_px + text_w(probe, "sorry", F_CODE), sy + FS_CODE + 3],
+                   outline=(120, 190, 255), width=2)
+    frames.append((img, 1100))
     return frames
 
 
 # ── 演示 2：组合关键字 + 内核判定 ─────────────────────────────────
-def demo_compose() -> list[tuple[Image.Image, int]]:
-    frames = []
-    lines = [
-        L("axiom And : Prop -> Prop -> Prop"),
-        L("axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b"),
-        L(""),
-        L("theorem composed : (a : Prop) -> (b : Prop) -> And a b -> And b a :="),
-        L("  funintro (funapply And.intro)"),
-    ]
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    frames.append((editor_frame([l[:] for l in lines], status="⚠ 练习待填", status_warn=True), 700))
-    # 行内显示合并骨架的两个前提洞
-    frames.append(
-        (
-            editor_frame(
-                [l[:] for l in lines],
-                inlays={4: "sorry : b   sorry : a"},
-                status="两个前提洞由内核判定",
-                status_warn=True,
-            ),
-            800,
-        )
-    )
-    # 填洞后：内核终审通过
-    lines2 = [l[:] for l in lines]
-    lines2[4] = L("  funintro (funapply (And.intro (And.right a b x) (And.left a b x)))")
-    frames.append(
-        (
-            editor_frame(
-                lines2,
-                inlays={4: "kernel-checked"},
-                status="composed：内核终审通过",
-            ),
-            1100,
-        )
-    )
-    return frames
-
-
 # ── 静态图 1：hover 按钮 ──────────────────────────────────────────
 def demo_hover_png() -> Image.Image:
     lines = [
@@ -494,7 +411,6 @@ def save_gif(frames: list[tuple[Image.Image, int]], path: Path) -> None:
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     save_gif(demo_completion(), OUT / "demo-completion.gif")
-    save_gif(demo_compose(), OUT / "demo-compose.gif")
     demo_hover_png().save(OUT / "demo-hover.png", optimize=True)
     demo_kernel_png().save(OUT / "demo-kernel.png", optimize=True)
     for f in sorted(OUT.iterdir()):

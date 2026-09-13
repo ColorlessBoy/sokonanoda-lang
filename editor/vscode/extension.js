@@ -454,7 +454,18 @@ async function expandKeyword(...args) {
   const editor = vscode.window.visibleTextEditors.find(
     (candidate) => candidate.document.uri.toString() === target.toString(),
   );
-  editor?.revealRange(span, vscode.TextEditorRevealType.InCenter);
+  if (editor) {
+    editor.revealRange(span, vscode.TextEditorRevealType.InCenter);
+    // 骨架末端的 `sorry` 设为选中态：学习者的下一次输入直接覆盖它
+    // （与骨架态补全的 snippet `${0:sorry}` 行为一致）。
+    if (newText.endsWith("sorry")) {
+      const doc = editor.document;
+      const startOffset = doc.offsetAt(span.start);
+      const sorryStart = doc.positionAt(startOffset + newText.length - "sorry".length);
+      const sorryEnd = doc.positionAt(startOffset + newText.length);
+      editor.selection = new vscode.Selection(sorryStart, sorryEnd);
+    }
+  }
 }
 
 async function nextHole(backward) {
@@ -656,7 +667,6 @@ function registerCommands(context, provider, courseProvider) {
     // intro / apply 两个值位关键字共用同一个处理器：载荷都是
     // {uri, range, newText}，编辑器只做一次替换。
     vscode.commands.registerCommand("sokonanoda.expandIntro", expandKeyword),
-    vscode.commands.registerCommand("sokonanoda.expandApply", expandKeyword),
     vscode.commands.registerCommand(
       "sokonanoda.revealHint",
       (uri, declName, declRange) => revealHint(context, uri, declName, declRange),
@@ -732,7 +742,7 @@ async function activate(context) {
     // 那一个展开命令，别的命令一律照旧不可用——白名单而不是整体 `true`。
     markdown: {
       isTrusted: {
-        enabledCommands: ["sokonanoda.expandIntro", "sokonanoda.expandApply"],
+        enabledCommands: ["sokonanoda.expandIntro"],
       },
     },
   });
