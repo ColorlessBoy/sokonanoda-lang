@@ -62,11 +62,23 @@ def font(path: str, size: int, index: int = 0):
     return ImageFont.truetype(path, size, index=index)
 
 
-F_CODE = font(CODE_FONT, FS_CODE)
-F_CODE_B = font(CODE_FONT, FS_CODE)  # Menlo 无粗体档，沿用
-F_UI = font(CJK_FONT, FS_UI)
-F_SMALL = font(CJK_FONT, 11)
-F_LINENO = font(CODE_FONT, FS_CODE - 2)
+# 字体惰性初始化：--check 在缺字体的平台（CI Linux）不渲染，也不该在
+# import 时就触碰系统字体路径。
+_FONTS: dict = {}
+
+_FONT_SPECS = {
+    "code": (CODE_FONT, FS_CODE),
+    "ui": (CJK_FONT, FS_UI),
+    "small": (CJK_FONT, 11),
+    "lineno": (CODE_FONT, FS_CODE - 2),
+}
+
+
+def _F(key: str):
+    if key not in _FONTS:
+        path, size = _FONT_SPECS[key]
+        _FONTS[key] = ImageFont.truetype(path, size, index=0)
+    return _FONTS[key]
 
 
 def text_w(draw, s, f):
@@ -129,24 +141,24 @@ def chrome(draw: ImageDraw.ImageDraw, filename: str, status: str, status_warn: b
         draw.rectangle([16, y, 32, y + 22], outline=color, width=2)
     # 侧栏
     draw.rectangle([48, 34, 48 + 190, H - 26], fill=SIDEBAR_BG)
-    draw.text((62, 48), "资源管理器", fill=(200, 200, 200), font=F_UI)
+    draw.text((62, 48), "资源管理器", fill=(200, 200, 200), font=_F("ui"))
     draw.rectangle([58, 84, 224, 108], fill=(58, 58, 58))
-    draw.text((70, 88), "PLAYGROUND", fill=(230, 230, 230), font=F_SMALL)
+    draw.text((70, 88), "PLAYGROUND", fill=(230, 230, 230), font=_F("small"))
     for i, name in enumerate(["playground.sokonanoda", "course/", "examples/", "skills/"]):
         y = 116 + i * 26
         if i == 0:
             draw.rectangle([58, y - 2, 224, y + 22], fill=(47, 61, 76))
-        draw.text((78, y), name, fill=(225, 225, 225) if i == 0 else (170, 170, 170), font=F_SMALL)
+        draw.text((78, y), name, fill=(225, 225, 225) if i == 0 else (170, 170, 170), font=_F("small"))
     # 标签栏
     draw.rectangle([EDITOR_X, 34, W, 66], fill=TABBAR_BG)
     draw.rectangle([EDITOR_X, 34, EDITOR_X + 250, 66], fill=EDITOR_BG)
-    draw.text((EDITOR_X + 14, 42), filename, fill=(255, 255, 255), font=F_SMALL)
+    draw.text((EDITOR_X + 14, 42), filename, fill=(255, 255, 255), font=_F("small"))
     draw.ellipse([EDITOR_X + 232, 46, EDITOR_X + 240, 54], fill=(230, 230, 230))
     # 状态栏
     sb = (170, 110, 20) if status_warn else STATUS_BG
     draw.rectangle([0, H - 26, W, H], fill=sb)
-    draw.text((14, H - 21), status, fill=(255, 255, 255), font=F_SMALL)
-    draw.text((W - 250, H - 21), "sokonanoda-lsp  ✓ 内核判卷", fill=(255, 255, 255), font=F_SMALL)
+    draw.text((14, H - 21), status, fill=(255, 255, 255), font=_F("small"))
+    draw.text((W - 250, H - 21), "sokonanoda-lsp  ✓ 内核判卷", fill=(255, 255, 255), font=_F("small"))
 
 
 def editor_frame(
@@ -167,11 +179,11 @@ def editor_frame(
     # 行号 + 代码
     for li, line in enumerate(lines):
         y = top + li * LH
-        draw.text((16, y + 2), f"{li + 1}", fill=LINE_NO, font=F_LINENO)
+        draw.text((16, y + 2), f"{li + 1}", fill=LINE_NO, font=_F("lineno"))
         x = EDITOR_X + PAD_L
         for tok, color in line:
-            draw.text((x, y), tok, fill=color, font=F_CODE)
-            x += text_w(draw, tok, F_CODE)
+            draw.text((x, y), tok, fill=color, font=_F("code"))
+            x += text_w(draw, tok, _F("code"))
     # 波浪线（诊断）
     if squiggle:
         x0, y0, x1, li = squiggle
@@ -186,10 +198,10 @@ def editor_frame(
         for li, label in inlays.items():
             y = top + li * LH + 2
             line = lines[li]
-            x = EDITOR_X + PAD_L + text_w(draw, "".join(t for t, _ in line), F_CODE) + 12
-            tw = text_w(draw, label, F_SMALL)
+            x = EDITOR_X + PAD_L + text_w(draw, "".join(t for t, _ in line), _F("code")) + 12
+            tw = text_w(draw, label, _F("small"))
             draw.rectangle([x, y - 1, x + tw + 10, y + FS_CODE + 1], fill=(51, 51, 51))
-            draw.text((x + 5, y + 1), label, fill=(150, 170, 200) if ": " in label else OK_GREEN, font=F_SMALL)
+            draw.text((x + 5, y + 1), label, fill=(150, 170, 200) if ": " in label else OK_GREEN, font=_F("small"))
     # 光标
     if cursor:
         li, col = cursor
@@ -211,7 +223,7 @@ def _draw_popup(draw, popup, cursor):
     li, col = cursor
     x = EDITOR_X + PAD_L + col + 8
     y = 78 + li * LH + LH + 4
-    w = max(text_w(draw, it["label"], F_SMALL) + text_w(draw, it.get("detail", ""), F_SMALL) + 56 for it in items) + 20
+    w = max(text_w(draw, it["label"], _F("small")) + text_w(draw, it.get("detail", ""), _F("small")) + 56 for it in items) + 20
     h = len(items) * 24 + 8
     draw.rectangle([x, y, x + w, y + h], fill=POPUP_BG, outline=POPUP_BORDER, width=1)
     draw.line([x, y, x, y + h], fill=(0, 122, 204), width=2)
@@ -221,13 +233,13 @@ def _draw_popup(draw, popup, cursor):
             draw.rectangle([x + 2, ry - 1, x + w - 2, ry + 21], fill=SELECT_BG)
         # kind 图标
         draw.rectangle([x + 10, ry + 5, x + 22, ry + 17], outline=(200, 160, 220), width=1)
-        draw.text((x + 28, ry + 1), it["label"], fill=(230, 230, 230), font=F_SMALL)
+        draw.text((x + 28, ry + 1), it["label"], fill=(230, 230, 230), font=_F("small"))
         if it.get("detail"):
-            dw = text_w(draw, it["label"], F_SMALL)
-            draw.text((x + 34 + dw, ry + 1), it["detail"], fill=(150, 150, 150), font=F_SMALL)
+            dw = text_w(draw, it["label"], _F("small"))
+            draw.text((x + 34 + dw, ry + 1), it["detail"], fill=(150, 150, 150), font=_F("small"))
         if it.get("selected_badge"):
-            bw = text_w(draw, it["selected_badge"], F_SMALL)
-            draw.text((x + w - bw - 12, ry + 1), it["selected_badge"], fill=(120, 190, 255), font=F_SMALL)
+            bw = text_w(draw, it["selected_badge"], _F("small"))
+            draw.text((x + w - bw - 12, ry + 1), it["selected_badge"], fill=(120, 190, 255), font=_F("small"))
 
 
 def _draw_hover(draw, hover, cursor):
@@ -245,8 +257,8 @@ def _draw_hover(draw, hover, cursor):
         bw = hover["button_w"]
         draw.rectangle([x + 12, yy + 2, x + 12 + bw, yy + 26], fill=(0, 90, 158))
         bt = hover["button"]
-        tw = text_w(draw, bt, F_UI)
-        draw.text((x + 12 + (bw - tw) / 2, yy + 6), bt, fill=(255, 255, 255), font=F_UI)
+        tw = text_w(draw, bt, _F("ui"))
+        draw.text((x + 12 + (bw - tw) / 2, yy + 6), bt, fill=(255, 255, 255), font=_F("ui"))
 
 
 # ── 代码行构建 ─────────────────────────────────────────────────────
@@ -258,7 +270,7 @@ def L(*parts: tuple[str, tuple] | str) -> list[tuple[str, tuple]]:
 
 
 def line_width(draw, line):
-    return text_w(draw, "".join(t for t, _ in line), F_CODE)
+    return text_w(draw, "".join(t for t, _ in line), _F("code"))
 
 
 # ── 演示 1：输入期补全 + Tab 接受展开 ──────────────────────────────
@@ -285,14 +297,14 @@ def demo_completion() -> list[tuple[Image.Image, int]]:
         L(head + "sorry"),
     ]
     li = 4
-    caret_px = int(text_w(probe, head, F_CODE)) - 24
+    caret_px = int(text_w(probe, head, _F("code"))) - 24
     # ① 逐键敲 funintro：每个前缀都有键入态项（preselect）
     typed = ""
     for ch in "funintro":
         typed += ch
         lines = [l[:] for l in base]
         lines[4] = L(head + typed)
-        cur = caret_px + int(text_w(probe, typed, F_CODE))
+        cur = caret_px + int(text_w(probe, typed, _F("code")))
         popup = {
             "items": [
                 {"label": "funintro（替换源代码）", "selected_badge": "Tab 接受"},
@@ -309,7 +321,7 @@ def demo_completion() -> list[tuple[Image.Image, int]]:
     lines = [l[:] for l in base]
     lines[4] = L(head + "funintro ")
     frames.append(
-        (editor_frame(lines, cursor=(li, caret_px + int(text_w(probe, "funintro ", F_CODE))),
+        (editor_frame(lines, cursor=(li, caret_px + int(text_w(probe, "funintro ", _F("code")))),
                       popup={"items": [
                           {"label": "funintro（替换源代码）", "selected_badge": "Tab 接受"},
                       ], "selected": 0},
@@ -319,12 +331,12 @@ def demo_completion() -> list[tuple[Image.Image, int]]:
     # ③ 骨架态：接受补全 → `fun (x : Q) => ${0:sorry}`，sorry 落盘并选中
     lines = [l[:] for l in base]
     lines[4] = L(head + "fun (x : Q) => sorry")
-    sorry_px = caret_px + int(text_w(probe, "fun (x : Q) => ", F_CODE))
+    sorry_px = caret_px + int(text_w(probe, "fun (x : Q) => ", _F("code")))
     img = editor_frame(lines, status="练习待填：t（sorry 已选中，输入即覆盖）", status_warn=True)
     draw = ImageDraw.Draw(img)
     sy = 78 + li * LH
     draw.rectangle([EDITOR_X + PAD_L + sorry_px, sy - 1,
-                    EDITOR_X + PAD_L + sorry_px + text_w(probe, "sorry", F_CODE), sy + FS_CODE + 3],
+                    EDITOR_X + PAD_L + sorry_px + text_w(probe, "sorry", _F("code")), sy + FS_CODE + 3],
                    outline=(120, 190, 255), width=2)
     frames.append((img, 1100))
     return frames
@@ -342,10 +354,10 @@ def demo_hover_png() -> Image.Image:
     ]
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     prefix = "theorem t : Q -> P := "
-    cursor_col = int(text_w(probe, prefix, F_CODE)) - 24
+    cursor_col = int(text_w(probe, prefix, _F("code"))) - 24
     img = editor_frame(
         [l[:] for l in lines],
-        cursor=(4, cursor_col + int(text_w(probe, "funintro", F_CODE))),
+        cursor=(4, cursor_col + int(text_w(probe, "funintro", _F("code")))),
         status="练习待填：t",
         status_warn=True,
     )
@@ -356,14 +368,14 @@ def demo_hover_png() -> Image.Image:
         "button": "替换源代码 funintro",
         "button_w": 190,
         "lines": [
-            ("值位 funintro：一次引入剩余的全部 binder。", F_UI, (230, 230, 230)),
-            ("", F_SMALL, FG),
-            ("不替换也完全等价——funintro 本身就是一次合法", F_SMALL, (200, 200, 200)),
-            ("作答；它等价于：", F_SMALL, (200, 200, 200)),
-            ("fun (x : Q) => sorry", F_CODE, TYPE),
+            ("值位 funintro：一次引入剩余的全部 binder。", _F("ui"), (230, 230, 230)),
+            ("", _F("small"), FG),
+            ("不替换也完全等价——funintro 本身就是一次合法", _F("small"), (200, 200, 200)),
+            ("作答；它等价于：", _F("small"), (200, 200, 200)),
+            ("fun (x : Q) => sorry", _F("code"), TYPE),
         ],
     }
-    _draw_hover(draw, hover, (4, cursor_col + int(text_w(probe, "funintro", F_CODE))))
+    _draw_hover(draw, hover, (4, cursor_col + int(text_w(probe, "funintro", _F("code")))))
     return img
 
 
@@ -378,7 +390,7 @@ def demo_kernel_png() -> Image.Image:
     ]
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     wline = lines[4]
-    x0 = EDITOR_X + PAD_L + int(text_w(probe, "".join(t for t, _ in wline)[:34], F_CODE))
+    x0 = EDITOR_X + PAD_L + int(text_w(probe, "".join(t for t, _ in wline)[:34], _F("code")))
     img = editor_frame(
         [l[:] for l in lines],
         squiggle=(x0, 0, x0 + 130, 4),
@@ -390,11 +402,11 @@ def demo_kernel_png() -> Image.Image:
     hx, hy = EDITOR_X + PAD_L + 60, 78 + 4 * LH + LH + 10
     draw.rectangle([hx, hy, hx + 470, hy + 108], fill=(37, 37, 38), outline=(69, 69, 69), width=1)
     draw.line([hx, hy, hx, hy + 108], fill=ERROR, width=2)
-    draw.text((hx + 12, hy + 10), "kernel-rejected  ✗", fill=ERROR, font=F_UI)
-    draw.text((hx + 12, hy + 36), "内核拒绝了这个证明：And.intro a b 的结论是", font=F_SMALL, fill=(210, 210, 210)) if False else None
-    draw.text((hx + 12, hy + 34), "内核拒绝了这个证明。检查提示：", fill=(210, 210, 210), font=F_SMALL)
-    draw.text((hx + 12, hy + 58), "And.intro b a 的两个前提依次是 b、a——取用的", fill=(200, 200, 200), font=F_SMALL)
-    draw.text((hx + 12, hy + 80), "顺序写反了。判对判错由内核说了算。", fill=(200, 200, 200), font=F_SMALL)
+    draw.text((hx + 12, hy + 10), "kernel-rejected  ✗", fill=ERROR, font=_F("ui"))
+    draw.text((hx + 12, hy + 36), "内核拒绝了这个证明：And.intro a b 的结论是", font=_F("small"), fill=(210, 210, 210)) if False else None
+    draw.text((hx + 12, hy + 34), "内核拒绝了这个证明。检查提示：", fill=(210, 210, 210), font=_F("small"))
+    draw.text((hx + 12, hy + 58), "And.intro b a 的两个前提依次是 b、a——取用的", fill=(200, 200, 200), font=_F("small"))
+    draw.text((hx + 12, hy + 80), "顺序写反了。判对判错由内核说了算。", fill=(200, 200, 200), font=_F("small"))
     return img
 
 
