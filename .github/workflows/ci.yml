@@ -42,6 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # workflow_dispatch 需要它（403 "Resource not accessible by
+      # integration" 的教训：只给 contents: write 时 gh workflow run 被拒）。
+      actions: write
     steps:
       - uses: actions/checkout@v5
       - name: Tag v$VERSION when it does not exist yet, then dispatch release
