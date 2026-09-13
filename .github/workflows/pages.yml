@@ -51,7 +51,11 @@ jobs:
       - name: Site hygiene checks (links + no hardcoded versions)
         run: python3 scripts/check-site.py
 
+      # enablement: true 让 action 在 Pages 尚未启用时自动创建站点
+      # （需要 pages: write；见 docs/design/site.md §6.2）。
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
