@@ -23,6 +23,7 @@ on:
     paths:
       - "site/**"
       - "scripts/gen-site-data.py"
+      - "scripts/gen-site-demos.py"
       - "scripts/check-site.py"
       - "STATUS.md"
       - "course/course.json"
