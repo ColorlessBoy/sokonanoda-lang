@@ -53,6 +53,11 @@ FS_CODE = 15
 FS_UI = 12
 
 
+FONTS_AVAILABLE = all(
+    Path(p).exists() for p in (CODE_FONT, CJK_FONT)
+)
+
+
 def font(path: str, size: int, index: int = 0):
     return ImageFont.truetype(path, size, index=index)
 
@@ -438,6 +443,12 @@ def main() -> None:
     import sys
 
     check = "--check" in sys.argv
+    if check and not FONTS_AVAILABLE:
+        # 渲染依赖 macOS 系统字体（Menlo + Hiragino）。字体不可用的平台
+        # （CI Linux runner）跳过校验——例行校验在维护者本机强制执行；
+        # 渲染本身不进 CI（这也是演示不经 CI 重生成的原因）。
+        print("demos check skipped: platform fonts unavailable", file=sys.stderr)
+        return
     all_frames = render_all()
     if check:
         # 例行化校验（CI / pages 用）：仓库里的演示若与当前渲染不一致
