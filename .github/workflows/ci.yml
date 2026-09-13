@@ -50,6 +50,18 @@ jobs:
         run: |
           set -o pipefail
           cargo test --workspace --locked --no-fail-fast 2>&1 | tee /tmp/cargo-test.log
+      # 注解走 check-runs API，**无需鉴权即可公开读取**（logs/artifact 都要
+      # token）——这是无 gh/token 环境下唯一的自服务诊断通道。
+      - name: Surface failing tests as annotations
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "^test .* FAILED$" /tmp/cargo-test.log | while read -r line; do
+            echo "::error::$line"
+          done
+          grep -E "^error(\[E[0-9]+\])?:" /tmp/cargo-test.log | head -20 | while read -r line; do
+            echo "::error::$line"
+          done
       - name: Upload test log (on failure)
         if: failure()
         uses: actions/upload-artifact@v7
