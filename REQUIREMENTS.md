@@ -456,3 +456,8 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   「替换源代码 funintro/funapply」。设计定稿 `docs/design/value-keywords-v2.md`
   （决策单 D1–D9：无别名、命令 ID 保留、KEYWORDS 保留旧词加新词、错误码
   机器码保留只改 hint）。实施按 ROADMAP I13 S1–S4 由 subagent 顺序执行。
+- 2026-09-14：**官网 code agent 部分简化（用户明确）**——GitHub Pages 偏复杂，
+  code agent 相关三处（首页安装卡 / 快速开始技能列表 / 给 Agent 页）统一为
+  「一段安装 prompt + 一个复制按钮」；prompt 取简短委派版（克隆仓库 → 读
+  `AGENTS.md` → 装环境 → `--json` 判卷开课），文本单一源
+  `site/assets/agent-prompt.js`（中英），协议细节收进折叠与链接。

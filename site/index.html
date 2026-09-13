@@ -84,31 +84,18 @@ code sokonanoda-lang/playground.sokonanoda</div>
       </div>
       <div class="card install-card">
         <div class="step">给 code agent</div>
-        <h3>适配所有 code agent</h3>
-        <ol class="steps">
-          <li>
-            克隆仓库（<code>skills/</code> 与 <code>AGENTS.md</code> 入口随之就位）：
-            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
-cd sokonanoda-lang</div>
-          </li>
-          <li>
-            让你的 agent（Claude Code / opencode / Codex / Cursor / …）读
-            <code>AGENTS.md</code> 进入角色——一个入口，不挑 agent：
-            <div class="cmd">把 AGENTS.md 粘进任意 code agent 的上下文即可</div>
-          </li>
-          <li>
-            角色技能是标准 Agent Skill 格式，按需加载：
-            <span class="kbd">sokonanoda-teacher</span> 当老师（出题/判卷/决策）、
-            <span class="kbd">sokonanoda-dev</span> 做开发（冻结内核、TDD 三层）、
-            <span class="kbd">sokonanoda-ci</span> 推代码与发布。opencode 零配置
-            自动加载；其它 agent 把 <code>skills/</code> 拷进各自的技能目录。
-            判卷走 <code>--json</code> 事件流，agent 无需读源码。
-          </li>
-        </ol>
+        <h3>复制一段 prompt 就够了</h3>
+        <p>
+          粘进任意 code agent（opencode / Claude Code / Codex / Cursor / …）。
+          它会自己克隆仓库、读 <code>AGENTS.md</code>、装好版本锁定环境，
+          然后在画布上出题、按内核事件判卷。
+        </p>
+        <p>
+          <button class="btn primary" type="button" data-copy-agent-prompt>复制安装 prompt</button>
+        </p>
         <p class="fineprint">
-          环境准备一条命令：<code>sokonanoda setup</code>（按版本锁定下载
-          CLI + LSP，跨平台、零 bash）。协议与自定义请求见
-          <a href="docs.html">文档</a>。
+          零 cargo、不碰官方 Lean 工具链；判定全程走内核 <code>--json</code> 事件。
+          它读的技能与协议见 <a href="agents.html">给 Agent</a>。
         </p>
       </div>
     </div>
@@ -165,10 +152,9 @@ cd sokonanoda-lang</div>
         </div>
         <h3>你的 code agent 也能当老师</h3>
         <p>
-          任何 code agent（Claude Code / opencode / Codex / Cursor / …）读
-          <code>sokonanoda --json</code> 的每行事件就能判卷驱动教学循环——
-          读 <code>AGENTS.md</code> 进入角色，或直接复制
-          <a href="agents.html">一条现成的提示</a>。判卷走内核，不做文本比对。
+          任何 code agent（Claude Code / opencode / Codex / Cursor / …）都能判卷驱动
+          教学循环——把<a href="agents.html">安装 prompt</a>复制给它，它自己装好环境
+          就能上课；判卷走 <code>--json</code> 内核事件，不做文本比对。
         </p>
       </article>
     </div>
@@ -200,5 +186,6 @@ cd sokonanoda-lang</div>
       </div>
     </div>
   </footer>
+  <script src="assets/agent-prompt.js"></script>
 </body>
 </html>

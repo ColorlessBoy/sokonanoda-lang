@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>给 Agent — sokonanoda</title>
-  <meta name="description" content="code agent 是 sokonanoda 的一等用户：三个技能（teacher / dev / ci）加一份人和 agent 共用的结构化反馈协议（--json 事件流）。">
+  <meta name="description" content="复制一段安装 prompt，任意 code agent 就能装好版本锁定环境、在画布上出题并用内核事件判卷。技能与协议入口在此。">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -29,91 +29,35 @@
   <main id="main" class="wrap prose">
     <h1>给 code agent</h1>
     <p>
-      code agent 是 sokonanoda 的一等用户，不是事后接入。仓库把「怎么操作这个项目」和「怎么消费反馈」
-      都做成了机器能直接用的形式：一套 Agent Skill，加一份人和 agent 共用的结构化协议。
+      不用预装什么，也不用先读协议。复制下面这段安装 prompt，粘进任意 code agent
+      （opencode / Claude Code / Codex / Cursor / …）：它会克隆仓库、读
+      <code>AGENTS.md</code>、加载 teacher 技能、按版本锁定装好环境，然后在
+      <code>playground.sokonanoda</code> 上出题、用内核事件判卷。
     </p>
 
-    <h2>三个技能</h2>
-    <p>
-      仓库的 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">skills/</a>
-      目录把操作知识固化成 Agent Skill（opencode、Claude Code 等都能加载）：
-    </p>
-    <ul>
-      <li><b>sokonanoda-teacher</b>：当老师的 agent。在画布上出题，用内核的 <code>--json</code> 事件判卷，按提示阶梯带你走下一步。</li>
-      <li><b>sokonanoda-dev</b>：接手开发的 agent。冻结内核、TDD 三层（单元 / 内核端到端 / CLI）、文档先行的纪律。</li>
-      <li><b>sokonanoda-ci</b>：推代码 / 发布 / 查 CI 的 agent。本地验证纪律、GitHub Actions 陷阱、失败必录。</li>
-    </ul>
-
-    <h2>人和 agent 共用的反馈协议</h2>
-    <p>
-      编译器产出两份视图，来自同一份事实：人读的是带行列、稳定错误码和中文提示的诊断文本；
-      agent 读的是 <code>--json</code> 输出的 JSON Lines，每条事件一行。两类视图不会各说各话。
-    </p>
-    <ul>
-      <li><b>事件</b>：声明被检查、练习打开、类型被推断、项被化简、声明被打印等，每行一个。</li>
-      <li><b>错误码</b>：每个错误带稳定前缀（<code>elab-*</code> 来自前端，<code>kernel-*</code> 来自内核）和一条中文提示，提示直接进编辑器诊断。</li>
-      <li><b>同一入口</b>：无论是编辑器里的语言服务器，还是命令行，反馈都经过同一个完整内核。</li>
-    </ul>
-    <pre><code>sokonanoda --json your-file.sokonanoda   # 每行一个 JSON 事件，给 agent / 工具用
-sokonanoda your-file.sokonanoda          # 人读的诊断文本</code></pre>
-    <p>
-      协议的完整事件类型和错误码见 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/protocol.md">docs/protocol.md</a>。
-      取用发布二进制时按仓库版本锁定，不要用 <code>releases/latest</code>。
-    </p>
-
-    <h2>一条提示，复制即用</h2>
-    <p>
-      不想装技能？把下面整段粘进任意 code agent 的上下文，它就能当
-      sokonanoda 的老师。提示自包含：环境搭建、判卷接口、事件决策表、
-      风格约束都在里面。
-    </p>
     <div class="promptbox">
-      <button class="copybtn" id="copy-prompt" type="button">复制全文</button>
-      <pre id="teacher-prompt"><code>你是 sokonanoda 的老师，我是学习者。sokonanoda 是一个 Lean 4 式证明的教学语言：命题即类型，证明即项。我们共同看着画布文件 playground.sokonanoda。
-
-## 环境搭建（接手时先执行）
-sokonanoda setup        # 版本锁定的 CLI + LSP，零 cargo、不需要 Lean
-sokonanoda doctor --json  # 就绪诊断：exit 0 = 就绪；未就绪先 sokonanoda update
-
-## 教学循环（三步，反复）
-1. 讲课：往画布追加 -- 中文讲解注释、已填好的演示声明，以及练习（值位写 sorry 的 def/theorem）。每个练习声明前挂 2-3 行 "-- soko:hint &lt;text&gt;" 提示阶梯，依次为：思路（练什么概念）、目标形态（目标怎么拆）、关键件（构造子/引理名字与用法）。答案绝不写进提示。
-2. 作答：我在画布上填 sorry。支持部分作答——先写几层 fun，最后一层留 sorry。
-3. 判卷：跑 sokonanoda --json playground.sokonanoda，逐行读 JSON 事件，按下表决策，然后回到第 1 步。
-
-## 判卷纪律（硬规则）
-- 判定永远走内核：只读 --json 事件（decl.checked / example.checked / exercise.open / expr.typed / diagnostic），禁止文本比对，禁止拿 exit code 当判卷依据。
-- 不调用官方 Lean 工具链（lean/lake/elan）；下载二进制按仓库版本锁定，禁用 releases/latest；全程零 cargo。
-- 事件词汇封闭，完整形状见仓库 docs/protocol.md。
-
-## 事件决策表
-- decl.checked（练习名）→ 解出了：简短肯定，追加下一个概念与练习。
-- exercise.open 持续 → 未做或卡住：指向 soko:hint 阶梯逐条揭示，必要时追加新 hint；永不直接给答案。
-- elab-unknown-identifier → 拼写错，或引用了还没解出的练习：先查 open 列表再判拼写。
-- elab-duplicate-declaration → 重名：讲「单赋值世界」，换个名字。
-- kernel-rejected（诊断带期望/实际类型）→ 让我对比声明类型与所填项的形状，逐参数预言类型；常见错误：方向反、忘 Not 是 def 会展开、宇宙层级忘 .{1}。
-- warning reserved-declaration-name → 非致命：声明名撞内核内建（Prop/Sort/Type），练习照常推进。
-- 无诊断但语义不对 → 内核只判类型不判意图：另出一题用 Eq 回判该定义的值。
-
-## 教学原则
-- 语法点先在讲解注释里出现，再进练习；白名单之外的语法不要用（报「课程级别不可用」不是 bug）。
-- 逻辑先行：先讲 True/False/And/Or 与量词，在「证明命题」里建立直觉；Sort 等我自然问到再引入。
-- 难度适配：同一概念反复错 → 出变式题或先给演示；快 → 跳步；慢 → 拆小步、加提示层。
-- 所有讲解与反馈用简体中文；拒绝翻译腔与 AI 味（排比句、路标词、升华结尾、感叹号连用）。
-
-现在开始：读画布，跑一次判卷，告诉我当前状态，然后按我的进度推进下一步。</code></pre>
+      <button class="copybtn" type="button" data-copy-agent-prompt>复制安装 prompt</button>
+      <pre data-agent-prompt aria-label="安装 prompt"></pre>
+      <noscript>
+        <p>本页依赖 JavaScript 填充与复制 prompt；不启用时可直接阅读
+          <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/AGENTS.md">AGENTS.md</a> 与
+          <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/skills/sokonanoda-teacher/SKILL.md">skills/sokonanoda-teacher</a>。</p>
+      </noscript>
     </div>
-    <script>
-      (function () {
-        var btn = document.getElementById("copy-prompt");
-        btn.addEventListener("click", function () {
-          var text = document.getElementById("teacher-prompt").textContent;
-          navigator.clipboard.writeText(text).then(function () {
-            btn.textContent = "已复制 ✓";
-            setTimeout(function () { btn.textContent = "复制全文"; }, 1600);
-          });
-        });
-      })();
-    </script>
+
+    <details class="agent-details">
+      <summary>它背后读什么（技能与协议）</summary>
+      <ul>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/AGENTS.md">AGENTS.md</a>：项目入口——先读什么、Setup、硬规则速记。</li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">skills/</a>：<b>sokonanoda-teacher</b> 是教学循环手册（出题、判卷、提示阶梯），另有 <b>dev</b> / <b>ci</b> 两个开发向技能。</li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/protocol.md">docs/protocol.md</a>：<code>--json</code> 事件流契约——人读诊断文本、agent 读 JSON 事件，同一份事实，不会各说各话。</li>
+      </ul>
+      <p>
+        用 opencode 打开本仓库时，技能与 <code>/sokonanoda/*</code> 命令零配置可用；
+        其它 harness 读技能文件即可。取用发布二进制一律按仓库版本锁定，禁用
+        <code>releases/latest</code>。
+      </p>
+    </details>
 
     <div class="warnbox">
       本项目硬规则之一：判定永远走内核，禁止文本比对。给 agent 写判卷逻辑时，也请基于内核事件，而不是去比较文件文本。
@@ -137,5 +81,6 @@ sokonanoda doctor --json  # 就绪诊断：exit 0 = 就绪；未就绪先 sokona
       <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
     </div>
   </footer>
+  <script src="assets/agent-prompt.js"></script>
 </body>
 </html>

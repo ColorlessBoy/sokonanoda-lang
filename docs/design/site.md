@@ -125,6 +125,25 @@ agent：clone + skills 拷贝 + 三技能分工 + `--json` 协议）→ 「怎�
 演示卡（图 + 标题 + 两句话）→ 入口条（课程/进展/愿景/文档）。en/index 同步
 镜像。stats 数字块移出首页（避免维护第三处数字，进展页仍是单一事实源视图）。
 
+### 4.3 官网 v3：code agent 统一为一段安装 prompt（2026-09-14）
+
+用户要求：官网偏复杂，code agent 相关部分统一成「一段安装 prompt + 一个复制
+按钮」，用户点一下复制即可；解释性文字删减，细节收进折叠或链接。
+
+落地：
+
+- **单一源 `site/assets/agent-prompt.js`**：中英两段安装 prompt（克隆仓库 → 读
+  `AGENTS.md` → 按 `skills/sokonanoda-teacher` 装环境 → `--json` 判卷 → 开始
+  教学）。`index.html` / `get-started.html` / `agents.html` / `en/index.html`
+  共用：页面只放 `data-copy-agent-prompt` 按钮与 `data-agent-prompt` 展示块，
+  禁止各页内联文本（可复制文本多处抄写必漂移）。
+- **委派而非自包含**：prompt 简短，把协议细节留给 `AGENTS.md` +
+  `skills/sokonanoda-teacher/SKILL.md` + `docs/protocol.md`；agents.html 用
+  `<details>` 折叠区只给这三个入口。上一版自包含的长老师 prompt 退役——它的
+  内容本就在 teacher 技能里，留在官网是第二事实源。
+- 首页「怎么用」第 4 张演示卡与英文镜像同步改写；`check-site.py` 照常兜住
+  链接与写死版本号（prompt 文本不写版本号，版本由二进制自行对齐）。
+
 ## 5. 落地前置：先修文档漂移（否则官网放大它）
 
 ### 5.1 已确认的漂移（调研产出，逐条可复现）

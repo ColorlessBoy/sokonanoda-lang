@@ -83,32 +83,19 @@ code sokonanoda-lang/playground.sokonanoda</div>
       </div>
       <div class="card install-card">
         <div class="step">For code agents</div>
-        <h3>Works with any code agent</h3>
-        <ol class="steps">
-          <li>
-            Clone the repository (<code>skills/</code> and the <code>AGENTS.md</code>
-            entry point come with it):
-            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
-cd sokonanoda-lang</div>
-          </li>
-          <li>
-            Point your agent at <code>AGENTS.md</code> — one entry point, any
-            agent (Claude Code / opencode / Codex / Cursor / …):
-            <div class="cmd">paste AGENTS.md into any code agent's context</div>
-          </li>
-          <li>
-            The role skills are standard Agent Skills, loaded on demand:
-            <span class="kbd">sokonanoda-teacher</span> runs the teaching loop,
-            <span class="kbd">sokonanoda-dev</span> develops the compiler,
-            <span class="kbd">sokonanoda-ci</span> ships and watches CI. opencode
-            loads them with zero setup; other agents copy <code>skills/</code>
-            into their own skill directory. Grading is driven through the
-            <code>--json</code> event stream.
-          </li>
-        </ol>
+        <h3>One prompt is all it takes</h3>
+        <p>
+          Paste it into any code agent (opencode / Claude Code / Codex / Cursor / …):
+          it clones the repository, reads <code>AGENTS.md</code>, prepares the
+          version-pinned environment, then teaches and grades on the canvas.
+        </p>
+        <p>
+          <button class="btn primary" type="button" data-copy-agent-prompt>Copy install prompt</button>
+        </p>
         <p class="fineprint">
-          One command prepares the environment: <code>sokonanoda setup</code>
-          (version-locked CLI + LSP download, cross-platform).
+          No cargo, no official Lean toolchain; grading always goes through the
+          <code>--json</code> kernel events. Skills and protocol it reads:
+          <a href="../agents.html">Agents</a>.
         </p>
       </div>
     </div>
@@ -168,10 +155,10 @@ cd sokonanoda-lang</div>
         <h3>Your code agent can teach too</h3>
         <p>
           Any code agent (Claude Code / opencode / Codex / Cursor / …) can grade
-          and drive the teaching loop from the one-JSON-event-per-line
-          <code>sokonanoda --json</code> stream — point it at <code>AGENTS.md</code>
-          or copy <a href="../agents.html">a ready-made prompt</a>. The kernel
-          grades; no text matching.
+          and drive the teaching loop — copy the
+          <a href="../agents.html">install prompt</a> and it prepares everything
+          itself. Grading reads the <code>--json</code> kernel events; no text
+          matching.
         </p>
       </article>
     </div>
@@ -202,5 +189,6 @@ cd sokonanoda-lang</div>
       </div>
     </div>
   </footer>
+  <script src="../assets/agent-prompt.js"></script>
 </body>
 </html>

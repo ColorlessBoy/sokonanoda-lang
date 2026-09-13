@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>快速开始 — sokonanoda</title>
-  <meta name="description" content="三条使用路径：学习者装 VS Code 扩展（零安装）、code agent 加载技能、贡献者用 cargo 构建。">
+  <meta name="description" content="三条使用路径：学习者装 VS Code 扩展（零安装）、code agent 复制一段安装 prompt、贡献者用 cargo 构建。">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -50,14 +50,22 @@
       <a class="btn ghost" id="lesson-link" href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/examples/lesson-01.sokonanoda">在仓库里看完整文件</a>
     </p>
 
-    <h2 id="agent">code agent：加载技能</h2>
-    <p>仓库里的 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">skills/</a> 目录把「怎么操作这个项目」固化成了 Agent Skill，任何支持该格式的 agent（opencode、Claude Code 等）都能加载。</p>
-    <ul>
-      <li><strong>sokonanoda-teacher</strong>：当老师的 agent——在画布上出题、用内核的 <code>--json</code> 事件判卷、按提示阶梯带你走。</li>
-      <li><strong>sokonanoda-dev</strong>：接手开发的 agent——冻结内核、TDD 三层、文档先行的纪律。</li>
-      <li><strong>sokonanoda-ci</strong>：推代码 / 发布 / 查 CI 的 agent——本地验证纪律与发布流程。</li>
-    </ul>
-    <p>若用 opencode 打开本仓库，这三个技能自动可加载，无需软链。其它 harness 把技能目录软链进各自的 skills 目录即可，详见 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/skills/README.md">skills/README</a>。</p>
+    <h2 id="agent">code agent：复制一段提示</h2>
+    <p>
+      不用预装技能，也不用读协议。复制下面这段安装 prompt，粘进任意 code agent
+      （opencode / Claude Code / Codex / Cursor / …）：它会克隆仓库、读
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/AGENTS.md">AGENTS.md</a>、
+      按 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/skills/sokonanoda-teacher/SKILL.md">sokonanoda-teacher</a>
+      技能装好版本锁定环境，然后在 <code>playground.sokonanoda</code> 上出题、判卷。
+    </p>
+    <p>
+      <button class="btn primary" type="button" data-copy-agent-prompt>复制安装 prompt</button>
+    </p>
+    <p>
+      用 opencode 打开本仓库时，三份技能（teacher / dev / ci）与
+      <code>/sokonanoda/*</code> 命令零配置可用；其它 harness 直接读技能文件即可，
+      细节见 <a href="agents.html">给 Agent</a>。
+    </p>
 
     <h2 id="contributor">贡献者：从源码构建</h2>
     <p>需要 Rust 工具链。从本仓库根目录：</p>
@@ -113,5 +121,6 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp</code></pre>
     });
   })();
   </script>
+  <script src="assets/agent-prompt.js"></script>
 </body>
 </html>

@@ -158,6 +158,22 @@ main { padding: 40px 0 56px; }
   border-color: #0a7cc4;
 }
 
+/* agents.html：技能与协议细节折叠 */
+details.agent-details {
+  margin: 1.2rem 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px 16px;
+}
+details.agent-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--accent-ink);
+  font-size: 15px;
+}
+details.agent-details[open] summary { margin-bottom: 6px; }
+
 /* ---- unit cards (course) ---- */
 .unit-card {
   background: var(--surface); border: 1px solid var(--line);
