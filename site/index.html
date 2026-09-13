@@ -1,10 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>sokonanoda — 学 Lean 4 式证明的教学编译器</title>
-  <meta name="description" content="sokonanoda 是建立在完整 sokonanoda 内核之上的 Lean 4 教学编译器：真实内核判卷、逻辑先行课程、可被 code agent 消费的结构化反馈。">
+  <meta name="description" content="VS Code 里学证明：真内核判卷、输入全程有提示、agent 可驱动。安装两步，演示即所见。">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -14,12 +14,12 @@
       <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
       <nav class="nav" aria-label="主导航">
         <a href="index.html" class="active" aria-current="page">首页</a>
-        <a href="get-started.html">快速开始</a>
+        <a href="get-started.html">安装与上手</a>
         <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
         <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
+        <a href="agents.html">Agent</a>
         <a href="docs.html">文档</a>
+        <a href="vision.html">愿景</a>
         <a href="about.html">关于</a>
         <a href="en/index.html" class="lang">English</a>
       </nav>
@@ -27,117 +27,175 @@
   </header>
 
   <main id="main" class="wrap">
-    <section class="hero">
-      <h1>学证明，从写对一个命题开始</h1>
-      <p class="lead">
-        sokonanoda 是一个教学用的证明语言与工具链，建立在完整、可运行的 Lean 4
-        类型检查内核之上。你在编辑器里写的每一道题，都由同一个真正的
-        内核判定——判过了，就是真的证明。
-      </p>
-      <div class="cta">
-        <a class="btn primary" href="get-started.html#learner">装 VS Code 扩展，零安装开始</a>
-        <a class="btn ghost" href="course.html">看课程</a>
-        <a class="btn ghost" href="vision.html">项目在做什么</a>
+    <!-- ══════════ Hero：一句话 + 主演示 ══════════ -->
+    <section class="hero hero-split">
+      <div class="hero-copy">
+        <h1>学证明，<br>从写对一个命题开始</h1>
+        <p class="lead">
+          一个自研的 Lean 4 式教学编译器：真内核判卷、判错给教学提示，
+          编辑器输入全程有提示。装一个 VS Code 扩展就能开始，零工具链依赖。
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="#install">安装（扩展 / agent）</a>
+          <a class="btn ghost" href="#demos">看怎么用</a>
+        </div>
       </div>
+      <figure class="hero-media">
+        <img src="assets/demos/demo-completion.gif" width="1180" height="700"
+             alt="演示：在 VS Code 里逐键输入 funintro，补全弹窗从第一个字符起就给出「替换源代码」预选项，Tab 接受后展开为 fun 骨架" loading="eager">
+        <figcaption>输入期补全：弹窗从第一个字符起就在；Tab 接受，内核判卷。</figcaption>
+      </figure>
     </section>
 
-    <h2 class="section-title">三条价值主张</h2>
-    <ul class="lead-list">
-      <li>
-        <h3>判卷用的是真内核，不是文本比对</h3>
-        <p>
-          一道题判对，意味着它通过了完整的依赖类型检查器。练习里留着未完成的
-          <code>sorry</code> 洞是合法状态，填完由内核终审；写错的地方给出带行列和
-          稳定错误码的诊断。
-        </p>
-      </li>
-      <li>
-        <h3>逻辑先行的课程</h3>
-        <p>
-          第一单元直接让你证明命题，等自然发问「函数类型的类型是什么」时才引出
-          宇宙（universe）。题序跟着直觉走，而不是先堆术语。
-        </p>
-      </li>
-      <li>
-        <h3>人和 agent 看同一份反馈</h3>
-        <p>
-          编译产物既是人读的诊断文本，也是 agent 消费的 JSON 事件流。一个教学
-          agent 可以读同样的事件来给你出题、判卷、讲下一步。
-        </p>
-      </li>
-    </ul>
-
-    <h2 class="section-title">当前状态</h2>
-    <div class="stats">
-      <div class="stat"><div class="n" id="version">—</div><div class="l">当前版本</div></div>
-      <div class="stat"><div class="n" id="release-version">—</div><div class="l">最新 Release</div></div>
-      <div class="stat"><div class="n" id="release-date">—</div><div class="l">Release 日期</div></div>
-      <div class="stat"><div class="n" id="unit-count">—</div><div class="l">课程单元</div></div>
-    </div>
-    <p class="note" style="margin-top:14px">
-      版本与日期来自 GitHub Releases；单元数来自课程清单。数据在页面加载后填入，
-      不写死在页面里。
+    <!-- ══════════ 安装 ══════════ -->
+    <h2 class="section-title" id="install">安装</h2>
+    <p class="section-sub">
+      两条路径，按你的角色选。两者共享同一套课程画布与内核判卷，可以混用。
     </p>
+    <div class="install-grid">
+      <div class="card install-card">
+        <div class="step">给学习者</div>
+        <h3>VS Code 扩展（推荐入口）</h3>
+        <ol class="steps">
+          <li>
+            从 <a href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" target="_blank" rel="noopener">VS Code 插件市场</a>
+            一键安装，或命令行：
+            <div class="cmd">code --install-extension sokonanoda.vsix</div>
+            <p class="fineprint">
+              想装指定版本：到 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" target="_blank" rel="noopener">GitHub Releases</a>
+              下载你平台对应的 VSIX（扩展内嵌本平台的 LSP 与 CLI 二进制，
+              <strong>不需要装 Rust、Lean 或任何工具链</strong>）。
+            </p>
+          </li>
+          <li>
+            打开课程画布开始做题：
+            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
+code sokonanoda-lang/playground.sokonanoda</div>
+          </li>
+          <li>
+            把带 <code>sorry</code> 的练习换成答案、保存——判对判错由内核说了算，
+            悬停 <code>sorry</code> 或 <code>funintro</code> 能看到还差什么。
+          </li>
+        </ol>
+        <p class="fineprint">
+          详细步骤与常见问题见 <a href="get-started.html#learner">安装与上手</a>；
+          编辑器功能细节见 <a href="docs.html">文档</a>。
+        </p>
+      </div>
+      <div class="card install-card">
+        <div class="step">给 code agent</div>
+        <h3>三个角色技能 + JSON 事件协议</h3>
+        <ol class="steps">
+          <li>
+            克隆仓库（<code>skills/</code> 与 <code>AGENTS.md</code> 入口随之就位）：
+            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
+cd sokonanoda-lang</div>
+          </li>
+          <li>
+            opencode 用户零配置——仓库自带加载约定；其它 agent 把技能拷进你的
+            技能目录：
+            <div class="cmd">cp -r skills/* /path/to/your/agent/skills/</div>
+          </li>
+          <li>
+            让 agent 读 <code>AGENTS.md</code> 进入角色：
+            <span class="kbd">sokonanoda-teacher</span> 当老师（出题/判卷/决策）、
+            <span class="kbd">sokonanoda-dev</span> 做开发（冻结内核、TDD 三层）、
+            <span class="kbd">sokonanoda-ci</span> 推代码与发布。判卷走
+            <code>--json</code> 事件流，agent 无需读源码就能驱动教学循环。
+          </li>
+        </ol>
+        <p class="fineprint">
+          环境准备一条命令：<code>sokonanoda setup</code>（按版本锁定下载
+          CLI + LSP，跨平台、零 bash）。协议与自定义请求见
+          <a href="docs.html">文档</a>。
+        </p>
+      </div>
+    </div>
 
-    <h2 class="section-title">第一步，不用装任何东西</h2>
-    <div class="card">
-      <h3>装 VS Code 扩展</h3>
-      <p>
-        平台包里内嵌了语言服务器和 <code>sokonanoda</code> 命令行，装完即用，离线可跑。
-        打开任意 <code>.sokonanoda</code> 文件，内核判定、目标视图、课程地图就都到位了。
-        <a href="get-started.html#learner">查看安装步骤 →</a>
-      </p>
+    <!-- ══════════ 怎么用 ══════════ -->
+    <h2 class="section-title" id="demos">怎么用</h2>
+    <p class="section-sub">
+      四个最常见的瞬间。所有演示都是扩展里真实存在的功能——演示脚本生成的
+      画面，与实现一一对应。
+    </p>
+    <div class="demo-grid">
+      <article class="demo-card">
+        <div class="media">
+          <img src="assets/demos/demo-completion.gif" width="1180" height="700"
+               alt="逐键输入 funintro：补全弹窗从第一个字符起出现并预选「替换源代码」项，接受后展开" loading="lazy">
+        </div>
+        <h3>补全从第一个字符起就在</h3>
+        <p>
+          在值位敲 <code>funintro</code>：弹窗从第一个字符起就预选「替换源代码」项，
+          Tab 接受即补全；实参敲完、声明通过检查后，同一项升级为完整骨架的就地替换
+          ——要不要替换都行，不替换也完全等价。
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="assets/demos/demo-compose.gif" width="1180" height="700"
+               alt="组合关键字：funintro (funapply And.intro) 剥掉全部 binder，前提留成两个带期望类型的洞，内核终审通过" loading="lazy">
+        </div>
+        <h3>两个关键字可以组合</h3>
+        <p>
+          <code>funintro (funapply And.intro)</code>：funintro 把剩余 binder 全剥成
+          fun 链，funapply 把证明接到最终目标上、前提留成带期望类型的洞——
+          到内核那里的就是普通的部分应用，判对判错由内核终审。
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="assets/demos/demo-hover.png" width="1180" height="700"
+               alt="悬停 funintro：显示它等价于 fun (x : Q) => sorry，并给出「替换源代码 funintro」按钮" loading="lazy">
+        </div>
+        <h3>悬停即解释，一键替换</h3>
+        <p>
+          光标放在关键字上，hover 直接告诉你它等价于什么、剩余目标是什么；
+          想看清楚结构时点一下「替换源代码」按钮，与 Tab 补全是同一份编辑。
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="assets/demos/demo-kernel.png" width="1180" height="700"
+               alt="写错的前提顺序被内核拒绝：红色波浪线与 kernel-rejected 诊断给出教学提示" loading="lazy">
+        </div>
+        <h3>判对判错，内核说了算</h3>
+        <p>
+          判定永远走完整内核，不做文本比对：判错的证明给红色诊断与教学提示
+          （哪里写反了、该怎么想），判对的每一行放进官方 Lean 也一样合法。
+        </p>
+      </article>
+    </div>
+
+    <!-- ══════════ 更多入口 ══════════ -->
+    <div class="entry-strip">
+      <a href="course.html">六个单元的命题逻辑课 →</a>
+      <a href="progress.html">当前进展与版本 →</a>
+      <a href="vision.html">为什么做这个项目 →</a>
+      <a href="docs.html">架构 / 协议 / 发布手册 →</a>
     </div>
   </main>
 
   <footer class="site-footer">
     <div class="wrap">
       <nav class="fnav" aria-label="页脚导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
+        <a href="get-started.html">安装与上手</a>
         <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
         <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
+        <a href="agents.html">Agent</a>
         <a href="docs.html">文档</a>
+        <a href="vision.html">愿景</a>
         <a href="about.html">关于</a>
-        <a href="en/index.html">English</a>
+        <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub</a>
       </nav>
-      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
-      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+      <div>
+        sokonanoda-lang —— 自研 Lean 4 式教学编译栈。判卷由真内核完成；
+        学习者与 agent 的使用路径零工具链依赖。
+      </div>
     </div>
   </footer>
-
-  <script>
-  (function () {
-    var DATA_URL = "data/site.json";
-    var API = "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/releases/latest";
-    function setText(id, t) { var e = document.getElementById(id); if (e) e.textContent = t; }
-    function setHTML(id, h) { var e = document.getElementById(id); if (e) e.innerHTML = h; }
-    function fmtDate(s) {
-      if (!s) return "";
-      var d = new Date(s);
-      if (isNaN(d)) return s;
-      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    }
-    fetch(DATA_URL).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        if (d.version) setText("version", d.version);
-        if (Array.isArray(d.units)) setText("unit-count", String(d.units.length));
-      }).catch(function () { /* 留占位符，不编造 */ });
-
-    fetch(API).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (r) {
-        var tag = (r.tag_name || "").replace(/^v/, "");
-        if (tag) setText("release-version", tag);
-        if (r.published_at) setText("release-date", fmtDate(r.published_at));
-        var a = document.getElementById("release-link");
-        if (a && r.html_url) a.href = r.html_url;
-      }).catch(function () {
-        setHTML("release-version", '<a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">见 GitHub Releases</a>');
-        setText("release-date", "—");
-      });
-  })();
-  </script>
 </body>
 </html>

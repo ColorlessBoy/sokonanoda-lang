@@ -178,3 +178,68 @@ table.compare th { background: var(--accent-soft); color: var(--accent-ink); }
 
 .skip-link { position: absolute; left: -999px; }
 .skip-link:focus { left: 12px; top: 8px; background: #fff; padding: 6px 10px; border: 1px solid var(--line); z-index: 20; }
+
+/* ---- homepage v2: hero split / install / demos ---- */
+.hero-split {
+  display: grid;
+  grid-template-columns: minmax(280px, 5fr) minmax(320px, 7fr);
+  gap: 26px;
+  align-items: center;
+}
+.hero-media { margin: 0; }
+.hero-media img {
+  width: 100%; height: auto; display: block;
+  border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(20, 30, 25, .12);
+}
+.hero-media figcaption {
+  margin-top: 8px; font-size: 13px; color: var(--ink-soft); text-align: center;
+}
+@media (max-width: 860px) {
+  .hero-split { grid-template-columns: 1fr; }
+}
+
+.section-sub { color: var(--ink-soft); font-size: 15px; margin: -6px 0 16px; }
+
+.install-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px; margin-bottom: 8px;
+}
+.install-card .steps { margin: 10px 0 8px; padding-left: 20px; }
+.install-card .steps li { margin: 10px 0; font-size: 14px; color: #2b2b2e; }
+.install-card .cmd {
+  background: #11161a; color: #e6eef0; border-radius: 7px;
+  padding: 9px 12px; margin: 7px 0 2px; font-size: 12.5px; line-height: 1.5;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  overflow-x: auto; white-space: pre;
+}
+.install-card .fineprint { font-size: 12.5px; color: var(--ink-soft); margin: 8px 0 0; }
+.install-card kbd {
+  background: var(--accent-soft); color: var(--accent-ink);
+  border: 1px solid var(--line); border-radius: 5px;
+  padding: 1px 6px; font-size: 12px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.demo-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+.demo-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.demo-card .media {
+  border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  background: #1e1e1e;
+}
+.demo-card .media img { width: 100%; height: auto; display: block; }
+.demo-card h3 { margin: 2px 4px 0; font-size: 16px; }
+.demo-card p { margin: 0 4px 6px; color: var(--ink-soft); font-size: 13.5px; }
+
+.entry-strip {
+  display: flex; flex-wrap: wrap; gap: 10px 22px;
+  border-top: 1px solid var(--line); margin-top: 30px; padding-top: 18px;
+  font-size: 14px;
+}

@@ -102,6 +102,29 @@ GitHub Releases API 在 CI 里生成。官网是这些事实的**视图**，不�
 | Rocq `rocq-prover.org` | 首页直接展示**当前 release 号 + 日期 + 安装按钮**（我们用 Releases API 自动取） |
 | Agda 文档站 | 反例：纯文档站缺第一课入口与目标叙事，教学项目不宜照抄 |
 
+## 4.1 首页 v2：安装 + 怎么用做透（2026-09-13，第四十四轮）
+
+用户要求：官网核心是「如何安装（VS Code 扩展 + code agent skill）」与「怎么用」，
+配 GIF/图片演示，首页两块做干净做透。
+
+调研：扩展类产品（Marketplace listing / rust-analyzer 等）的标准范式 =
+首屏演示图 + 特性分节（每节一图一短说明）+ 安装压缩到 1–3 步。
+
+**GIF 来源的决策**：真实录屏在沙箱不可行（无录屏权限、CI 有头录制链路过长），
+改用 **PIL 逐帧渲染**——`scripts/gen-site-demos.py` 画一个高保真 VS Code
+Dark+ 界面（活动栏/侧栏/标签/语法配色/弹窗/hover/诊断波浪线），逐帧驱动：
+`demo-completion.gif`（输入期补全 + Tab 接受）、`demo-compose.gif`（组合 +
+前提洞 inlay + 内核通过）、`demo-hover.png`（hover 按钮文案）、
+`demo-kernel.png`（kernel-rejected + 教学提示）。脚本入库可复现（改文案重跑），
+产物提交入库（首页/README/市场通用）；演示画面与实现一一对应（弹窗项、按钮
+文案、诊断码都来自真实行为）。
+
+**首页信息架构 v2**：hero 分栏（左文案双 CTA / 右主演示 GIF）→ 「安装」双卡
+（学习者：市场 + `code --install-extension` + Releases pinned + 零工具链说明；
+agent：clone + skills 拷贝 + 三技能分工 + `--json` 协议）→ 「怎么用」四张
+演示卡（图 + 标题 + 两句话）→ 入口条（课程/进展/愿景/文档）。en/index 同步
+镜像。stats 数字块移出首页（避免维护第三处数字，进展页仍是单一事实源视图）。
+
 ## 5. 落地前置：先修文档漂移（否则官网放大它）
 
 ### 5.1 已确认的漂移（调研产出，逐条可复现）

@@ -1,152 +1,198 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sokonanoda — learn theorem proving in a Lean-4-style language</title>
-  <meta name="description" content="sokonanoda is a teaching compiler for Lean-4-style proving, built on a complete, runnable Lean 4 kernel: real kernel grading, a logic-first course, and structured feedback an agent can consume.">
+  <title>sokonanoda — a teaching compiler for Lean-4-style proofs</title>
+  <meta name="description" content="Learn proofs in VS Code: graded by a real kernel, hints while you type, drivable by code agents. Install in two steps.">
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="wrap">
-      <div class="brand">sokonanoda <small>learn Lean-4-style proving</small></div>
+      <div class="brand">sokonanoda <small>Lean-4-style proofs, taught</small></div>
       <nav class="nav" aria-label="Main navigation">
-        <a href="../index.html">首页</a>
-        <a href="../get-started.html">快速开始</a>
-        <a href="../course.html">课程</a>
-        <a href="../vision.html">愿景</a>
-        <a href="../progress.html">进展</a>
-        <a href="../agents.html">给 Agent</a>
-        <a href="../docs.html">文档</a>
-        <a href="../about.html">关于</a>
-        <a href="index.html" class="lang active" aria-current="page">English</a>
+        <a href="index.html" class="active" aria-current="page">Home</a>
+        <a href="../get-started.html">Install</a>
+        <a href="../course.html">Course</a>
+        <a href="../progress.html">Progress</a>
+        <a href="../agents.html">Agents</a>
+        <a href="../docs.html">Docs</a>
+        <a href="../vision.html">Vision</a>
+        <a href="../about.html">About</a>
+        <a href="../index.html" class="lang">中文</a>
       </nav>
     </div>
   </header>
 
   <main id="main" class="wrap">
-    <section class="hero">
-      <h1>Learn proofs by writing one that checks out</h1>
-      <p class="lead">
-        sokonanoda is a teaching language and toolchain for Lean-4-style theorem proving, built on a
-        complete, runnable Lean 4 type checker. Every exercise you finish is graded by the same real
-        kernel — if it's green, it's a real proof.
-      </p>
-      <div class="cta">
-        <a class="btn primary" href="../get-started.html#learner">Install the VS Code extension — zero setup</a>
-        <a class="btn ghost" href="../course.html">See the course</a>
-        <a class="btn ghost" href="../vision.html">What this project is</a>
+    <section class="hero hero-split">
+      <div class="hero-copy">
+        <h1>Learn proofs by<br>writing one that checks</h1>
+        <p class="lead">
+          A self-contained Lean-4-style teaching compiler: every proof is graded
+          by a real kernel, the editor hints while you type, and code agents can
+          drive the whole loop. One VS Code extension — no toolchain required.
+        </p>
+        <div class="cta">
+          <a class="btn primary" href="#install">Install (extension / agent)</a>
+          <a class="btn ghost" href="#demos">See it in action</a>
+        </div>
       </div>
+      <figure class="hero-media">
+        <img src="../assets/demos/demo-completion.gif" width="1180" height="700"
+             alt="Demo: typing funintro character by character — the completion popup offers the “replace source” item from the first keystroke; Tab accepts and expands" loading="eager">
+        <figcaption>Completion while typing: the popup is there from keystroke one; the kernel grades the result.</figcaption>
+      </figure>
     </section>
 
-    <h2 class="section-title">Three value propositions</h2>
-    <ul class="lead-list">
-      <li>
-        <h3>Grading uses the real kernel, not text matching</h3>
-        <p>
-          An exercise is solved only when it passes the full dependent type checker. Leaving an
-          unfinished <code>sorry</code> hole is a legal file state; filling it triggers a real kernel
-          judgment, and mistakes come back with line/column and a stable error code.
-        </p>
-      </li>
-      <li>
-        <h3>A logic-first course</h3>
-        <p>
-          Unit 1 has you proving a proposition directly. Universes appear only when you naturally ask
-          "what is the type of a function type?" — the order follows intuition, not a pile of terms.
-        </p>
-      </li>
-      <li>
-        <h3>Human and agent read the same feedback</h3>
-        <p>
-          The compiler emits both human-readable diagnostics and a JSON event stream for agents. A
-          teaching agent can use those events to assign exercises, grade them, and suggest the next step.
-        </p>
-      </li>
-    </ul>
-
-    <h2 class="section-title">Current state</h2>
-    <div class="stats">
-      <div class="stat"><div class="n" id="version">—</div><div class="l">Current version</div></div>
-      <div class="stat"><div class="n" id="release-version">—</div><div class="l">Latest release</div></div>
-      <div class="stat"><div class="n" id="release-date">—</div><div class="l">Release date</div></div>
-      <div class="stat"><div class="n" id="unit-count">—</div><div class="l">Course units</div></div>
-    </div>
-    <p class="note" style="margin-top:14px">
-      Versions and dates come from GitHub Releases; the unit count comes from the course manifest.
-      Both are filled in after the page loads — nothing is hard-coded here.
+    <h2 class="section-title" id="install">Install</h2>
+    <p class="section-sub">
+      Two paths, pick by role. Both share the same course canvas and kernel grading.
     </p>
-
-    <h2 class="section-title">First step, no install required</h2>
-    <div class="card">
-      <h3>Install the VS Code extension</h3>
-      <p>
-        The platform packages bundle the language server and the <code>sokonanoda</code> CLI, so it
-        works the moment you install — offline, with no Rust toolchain. Open any
-        <code>.sokonanoda</code> file and kernel grading, the goal view, and the course map are all there.
-        <a href="../get-started.html#learner">See installation steps →</a>
-      </p>
+    <div class="install-grid">
+      <div class="card install-card">
+        <div class="step">For learners</div>
+        <h3>VS Code extension (recommended)</h3>
+        <ol class="steps">
+          <li>
+            Install from the <a href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" target="_blank" rel="noopener">VS Code Marketplace</a>,
+            or from the command line:
+            <div class="cmd">code --install-extension sokonanoda.vsix</div>
+            <p class="fineprint">
+              Prefer a pinned version? Grab the VSIX for your platform from
+              <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" target="_blank" rel="noopener">GitHub Releases</a>
+              — the extension bundles its own LSP and CLI binaries,
+              <strong>no Rust, Lean or any toolchain needed</strong>.
+            </p>
+          </li>
+          <li>
+            Open the course canvas and start solving:
+            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
+code sokonanoda-lang/playground.sokonanoda</div>
+          </li>
+          <li>
+            Replace the <code>sorry</code> holes with answers and save — the kernel
+            decides. Hover a hole to see what is still missing.
+          </li>
+        </ol>
+        <p class="fineprint">
+          Full walkthrough: <a href="../get-started.html#learner">Install &amp; get started</a>.
+        </p>
+      </div>
+      <div class="card install-card">
+        <div class="step">For code agents</div>
+        <h3>Three role skills + a JSON event protocol</h3>
+        <ol class="steps">
+          <li>
+            Clone the repository (<code>skills/</code> and the <code>AGENTS.md</code>
+            entry point come with it):
+            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
+cd sokonanoda-lang</div>
+          </li>
+          <li>
+            opencode picks the skills up automatically; for other agents, copy them
+            into your skill directory:
+            <div class="cmd">cp -r skills/* /path/to/your/agent/skills/</div>
+          </li>
+          <li>
+            Point your agent at <code>AGENTS.md</code>:
+            <span class="kbd">sokonanoda-teacher</span> runs the teaching loop,
+            <span class="kbd">sokonanoda-dev</span> develops the compiler,
+            <span class="kbd">sokonanoda-ci</span> ships and watches CI. Grading is
+            driven through the <code>--json</code> event stream.
+          </li>
+        </ol>
+        <p class="fineprint">
+          One command prepares the environment: <code>sokonanoda setup</code>
+          (version-locked CLI + LSP download, cross-platform).
+        </p>
+      </div>
     </div>
 
-    <h2 class="section-title">Teaching with AI agents</h2>
-    <p>
-      The repository ships three
-      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">agent skills</a>
-      any skill-aware agent (Claude Code, opencode, …) can load:
-      <code>sokonanoda-teacher</code> (your proof teacher), <code>sokonanoda-dev</code> (a careful
-      contributor), and <code>sokonanoda-ci</code> (a disciplined releaser). The same
-      <code>--json</code> event stream is the integration surface for any tooling you build.
+    <h2 class="section-title" id="demos">See it in action</h2>
+    <p class="section-sub">
+      Four moments people hit first. Everything shown exists in the extension.
     </p>
+    <div class="demo-grid">
+      <article class="demo-card">
+        <div class="media">
+          <img src="../assets/demos/demo-completion.gif" width="1180" height="700"
+               alt="Typing funintro: the completion popup appears from the first keystroke with the replace item preselected" loading="lazy">
+        </div>
+        <h3>Completion from keystroke one</h3>
+        <p>
+          Type <code>funintro</code> in the value position: the popup preselects the
+          “replace source” item from the first character; once the argument
+          compiles, the same item upgrades to a full skeleton replacement.
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="../assets/demos/demo-compose.gif" width="1180" height="700"
+               alt="Keyword composition: funintro (funapply And.intro) peels all binders and leaves two typed premise holes" loading="lazy">
+        </div>
+        <h3>The keywords compose</h3>
+        <p>
+          <code>funintro (funapply And.intro)</code>: funintro turns the remaining
+          binders into a fun chain, funapply points the proof at the final goal and
+          leaves its premises as typed holes. The kernel grades the result.
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="../assets/demos/demo-hover.png" width="1180" height="700"
+               alt="Hovering funintro shows what it is equivalent to, with a one-click replace button" loading="lazy">
+        </div>
+        <h3>Hover to understand, click to expand</h3>
+        <p>
+          Hover a keyword to see its expansion and remaining goal; the
+          “replace source” button applies the same edit as Tab completion.
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="../assets/demos/demo-kernel.png" width="1180" height="700"
+               alt="A wrong premise order is rejected by the kernel: red squiggle and a kernel-rejected diagnostic with a teaching hint" loading="lazy">
+        </div>
+        <h3>The kernel decides</h3>
+        <p>
+          Grading always goes through the real kernel — no text matching. A wrong
+          proof gets a diagnostic with a teaching hint; a correct one is valid
+          Lean, verbatim.
+        </p>
+      </article>
+    </div>
+
+    <div class="entry-strip">
+      <a href="../course.html">The six-unit propositional course →</a>
+      <a href="../progress.html">Progress &amp; releases →</a>
+      <a href="../vision.html">Why this project exists →</a>
+      <a href="../docs.html">Architecture / protocol / release manual →</a>
+    </div>
   </main>
 
   <footer class="site-footer">
     <div class="wrap">
       <nav class="fnav" aria-label="Footer navigation">
-        <a href="../index.html">首页</a>
-        <a href="../get-started.html">快速开始</a>
-        <a href="../course.html">课程</a>
-        <a href="../vision.html">愿景</a>
-        <a href="../progress.html">进展</a>
-        <a href="../agents.html">给 Agent</a>
-        <a href="../docs.html">文档</a>
-        <a href="../about.html">关于</a>
-        <a href="index.html">English</a>
+        <a href="../get-started.html">Install</a>
+        <a href="../course.html">Course</a>
+        <a href="../progress.html">Progress</a>
+        <a href="../agents.html">Agents</a>
+        <a href="../docs.html">Docs</a>
+        <a href="../vision.html">Vision</a>
+        <a href="../about.html">About</a>
+        <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub</a>
       </nav>
-      <p>sokonanoda-lang is a Lean 4 teaching compiler built on the sokonanoda kernel. The kernel, Apache-2.0, comes from <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>.</p>
-      <p>Source and issues: <a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+      <div>
+        sokonanoda-lang — a self-contained Lean-4-style teaching stack, graded by a
+        real kernel. Zero toolchain for learners and agents alike.
+      </div>
     </div>
   </footer>
-
-  <script>
-  (function () {
-    var DATA_URL = "../data/site.json";
-    var API = "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/releases/latest";
-    function setText(id, t) { var e = document.getElementById(id); if (e) e.textContent = t; }
-    function setHTML(id, h) { var e = document.getElementById(id); if (e) e.innerHTML = h; }
-    function fmtDate(s) {
-      if (!s) return "";
-      var d = new Date(s);
-      if (isNaN(d)) return s;
-      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    }
-    fetch(DATA_URL).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        if (d.version) setText("version", d.version);
-        if (Array.isArray(d.units)) setText("unit-count", String(d.units.length));
-      }).catch(function () { /* leave placeholder; do not fabricate */ });
-
-    fetch(API).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (r) {
-        var tag = (r.tag_name || "").replace(/^v/, "");
-        if (tag) setText("release-version", tag);
-        if (r.published_at) setText("release-date", fmtDate(r.published_at));
-      }).catch(function () {
-        setHTML("release-version", '<a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">see GitHub Releases</a>');
-        setText("release-date", "—");
-      });
-  })();
-  </script>
 </body>
 </html>
