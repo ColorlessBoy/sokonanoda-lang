@@ -33,6 +33,13 @@ fn parse_ms(d: Duration) -> f64 {
 #[test]
 fn check_document_scaling_is_linear() {
     let sizes = [50usize, 200, 400];
+    // 预热：首次运行含冷启动（页缓存/JIT 式预热），会污染第一个数据点
+    //（CI 实测 291ms vs 热身后 108ms），跨版本对比失真。热身后测量。
+    {
+        let warm = gen_canvas(sizes[0], sizes[0] / 10);
+        let warm_file = sokonanoda_front::parse(&warm).expect("parse warmup");
+        let _ = sokonanoda_front::compile::check_document(&warm_file);
+    }
     let mut times = Vec::new();
     for &size in &sizes {
         let src = gen_canvas(size, size / 10);
