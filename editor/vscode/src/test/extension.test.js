@@ -306,9 +306,10 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       (typeof item.insertText === "string" ? item.insertText : item.insertText?.value) ??
       "";
     assert.ok(
-      inserted.startsWith("fun ") && inserted.endsWith("=> sorry"),
-      `the expansion must be the explicit skeleton, got: ${JSON.stringify(inserted)}`,
+      inserted.startsWith("fun ") && inserted.endsWith("=> ${0:sorry}"),
+      `the expansion must be a snippet whose trailing sorry lands selected, got: ${JSON.stringify(inserted)}`,
     );
+    assert.strictEqual(item.insertTextFormat, 2, "insertTextFormat must be Snippet");
   });
 
   test("accepting the funintro suggestion expands the token", async () => {
