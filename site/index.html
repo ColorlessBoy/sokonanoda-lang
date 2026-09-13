@@ -84,7 +84,7 @@ code sokonanoda-lang/playground.sokonanoda</div>
       </div>
       <div class="card install-card">
         <div class="step">给 code agent</div>
-        <h3>三个角色技能 + JSON 事件协议</h3>
+        <h3>适配所有 code agent</h3>
         <ol class="steps">
           <li>
             克隆仓库（<code>skills/</code> 与 <code>AGENTS.md</code> 入口随之就位）：
@@ -92,16 +92,17 @@ code sokonanoda-lang/playground.sokonanoda</div>
 cd sokonanoda-lang</div>
           </li>
           <li>
-            opencode 用户零配置——仓库自带加载约定；其它 agent 把技能拷进你的
-            技能目录：
-            <div class="cmd">cp -r skills/* /path/to/your/agent/skills/</div>
+            让你的 agent（Claude Code / opencode / Codex / Cursor / …）读
+            <code>AGENTS.md</code> 进入角色——一个入口，不挑 agent：
+            <div class="cmd">把 AGENTS.md 粘进任意 code agent 的上下文即可</div>
           </li>
           <li>
-            让 agent 读 <code>AGENTS.md</code> 进入角色：
+            角色技能是标准 Agent Skill 格式，按需加载：
             <span class="kbd">sokonanoda-teacher</span> 当老师（出题/判卷/决策）、
             <span class="kbd">sokonanoda-dev</span> 做开发（冻结内核、TDD 三层）、
-            <span class="kbd">sokonanoda-ci</span> 推代码与发布。判卷走
-            <code>--json</code> 事件流，agent 无需读源码就能驱动教学循环。
+            <span class="kbd">sokonanoda-ci</span> 推代码与发布。opencode 零配置
+            自动加载；其它 agent 把 <code>skills/</code> 拷进各自的技能目录。
+            判卷走 <code>--json</code> 事件流，agent 无需读源码。
           </li>
         </ol>
         <p class="fineprint">
@@ -121,26 +122,14 @@ cd sokonanoda-lang</div>
     <div class="demo-grid">
       <article class="demo-card">
         <div class="media">
-          <img src="assets/demos/demo-completion.gif" width="1180" height="700"
-               alt="逐键输入 funintro：补全弹窗从第一个字符起出现并预选「替换源代码」项，接受后展开" loading="lazy">
+          <img src="assets/demos/demo-goal.png" width="1180" height="700"
+               alt="悬停 sorry：显示这个洞的精确期望类型 a、剩余目标 False 与已引入假设" loading="lazy">
         </div>
-        <h3>补全从第一个字符起就在</h3>
+        <h3>卡住了，悬停 <code>sorry</code></h3>
         <p>
-          在值位敲 <code>funintro</code>：弹窗从第一个字符起就预选「替换源代码」项，
-          Tab 接受后骨架落盘，<code>sorry</code> 处于选中态——下一次输入直接覆盖它。
-          要不要替换都行，不替换也完全等价。
-        </p>
-      </article>
-
-      <article class="demo-card">
-        <div class="media">
-          <img src="assets/demos/demo-hover.png" width="1180" height="700"
-               alt="悬停 funintro：显示它等价于 fun (x : Q) => sorry，并给出「替换源代码 funintro」按钮" loading="lazy">
-        </div>
-        <h3>悬停即解释，一键替换</h3>
-        <p>
-          光标放在关键字上，hover 直接告诉你它等价于什么、剩余目标是什么；
-          想看清楚结构时点一下「替换源代码」按钮，与 Tab 补全是同一份编辑。
+          光标落在 <code>sorry</code> 上，hover 直接给<strong>这个洞</strong>的期望类型、
+          剩余目标与已引入假设——期望类型会展开定义来算（<code>Not a</code>
+          展开成 <code>a -> False</code>，洞期望 <code>a</code>）。填之前就知道还差什么。
         </p>
       </article>
 
@@ -153,6 +142,33 @@ cd sokonanoda-lang</div>
         <p>
           判定永远走完整内核，不做文本比对：判错的证明给红色诊断与教学提示
           （哪里写反了、该怎么想），判对的每一行放进官方 Lean 也一样合法。
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="assets/demos/demo-completion.gif" width="1180" height="700"
+               alt="逐键输入 funintro：补全弹窗从第一个字符起出现并预选「替换源代码」项，接受后展开" loading="lazy">
+        </div>
+        <h3>骨架从第一个字符起就在</h3>
+        <p>
+          在值位敲 <code>funintro</code>：弹窗从第一个字符起就预选「替换源代码」项，
+          Tab 接受后骨架落盘，<code>sorry</code> 处于选中态——下一次输入直接覆盖它。
+          要不要替换都行，不替换也完全等价。
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="assets/demos/demo-agent.png" width="1180" height="700"
+               alt="终端里 sokonanoda --json 每行输出一个 JSON 事件：decl.checked 与 exercise.open" loading="lazy">
+        </div>
+        <h3>你的 code agent 也能当老师</h3>
+        <p>
+          任何 code agent（Claude Code / opencode / Codex / Cursor / …）读
+          <code>sokonanoda --json</code> 的每行事件就能判卷驱动教学循环——
+          读 <code>AGENTS.md</code> 进入角色，或直接复制
+          <a href="agents.html">一条现成的提示</a>。判卷走内核，不做文本比对。
         </p>
       </article>
     </div>

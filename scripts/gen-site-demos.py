@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """生成官网的 GIF/图片演示（site/assets/demos/）。
 
-设计与口径见 docs/design/site.md §7（首页 v2）。三个演示对应产品主循环的
-三个卖点：输入期补全（弹窗从第一个字符起就在）、组合关键字、内核判卷。
+设计与口径见 docs/design/site.md §7（首页 v2）。四个演示对应产品主循环的
+四个典型瞬间：hover `sorry` 看洞的期望类型与剩余目标、内核判卷、输入期
+补全（弹窗从第一个字符起就在）、`--json` 事件流（任意 code agent 判卷）。
 
 可复现：纯 PIL 逐帧绘制，无外部素材；重跑幂等。运行需要 Pillow（仅维护者；
 学习者路径零工具链的纪律不受影响——产物已提交入库）。
@@ -244,8 +245,9 @@ def _draw_popup(draw, popup, cursor):
 
 def _draw_hover(draw, hover, cursor):
     li, col = cursor
-    x = EDITOR_X + PAD_L + col + 10
-    y = 78 + li * LH + LH + 6
+    # 显式定位优先（长行上的卡片会溢出画布右缘）。
+    x = hover.get("x", EDITOR_X + PAD_L + col + 10)
+    y = hover.get("y", 78 + li * LH + LH + 6)
     w = hover["w"]
     h = hover["h"]
     draw.rectangle([x, y, x + w, y + h], fill=(37, 37, 38), outline=(69, 69, 69), width=1)
@@ -343,39 +345,48 @@ def demo_completion() -> list[tuple[Image.Image, int]]:
 
 
 # ── 演示 2：组合关键字 + 内核判定 ─────────────────────────────────
-# ── 静态图 1：hover 按钮 ──────────────────────────────────────────
-def demo_hover_png() -> Image.Image:
+# ── 静态图 1：hover `sorry` —— 洞的期望类型 + 剩余目标（0.25.0）──
+def demo_goal_png() -> Image.Image:
+    """学习者最典型的瞬间：光标落在 `sorry` 上，hover 给出这个洞的精确
+    期望类型（经 def `Not` 展开算出）、剩余目标与已引入假设——
+    与扩展真实输出逐字一致（`half_expression`/goal walk）。"""
     lines = [
-        L("axiom P : Prop"),
-        L("axiom Q : Prop"),
-        L("axiom proofP : P"),
+        L("axiom False : Prop"),
+        L("axiom And : Prop -> Prop -> Prop"),
+        L("axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b"),
+        L("def Not : Prop -> Prop := fun (a : Prop) => a -> False"),
         L(""),
-        L("theorem t : Q -> P := funintro"),
+        L("theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :="),
+        L("  fun (a : Prop) => fun (x : And a (Not a)) => (And.right a (Not a) x) sorry"),
     ]
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    prefix = "theorem t : Q -> P := "
-    cursor_col = int(text_w(probe, prefix, _F("code"))) - 24
+    prefix = "  fun (a : Prop) => fun (x : And a (Not a)) => (And.right a (Not a) x) "
+    sorry_col = int(text_w(probe, prefix, _F("code")))
     img = editor_frame(
         [l[:] for l in lines],
-        cursor=(4, cursor_col + int(text_w(probe, "funintro", _F("code")))),
-        status="练习待填：t",
+        cursor=(6, sorry_col + int(text_w(probe, "sor", _F("code")))),
+        status="练习待填：and_not_absurd",
         status_warn=True,
     )
     draw = ImageDraw.Draw(img)
     hover = {
-        "w": 430,
-        "h": 150,
-        "button": "替换源代码 funintro",
-        "button_w": 190,
+        # 长行 + 卡片会溢出画布：显式定位在编辑器左上区域。
+        "x": EDITOR_X + PAD_L + 20,
+        "y": 78 + 0 * LH + LH + 8,
+        "w": 470,
+        "h": 208,
         "lines": [
-            ("值位 funintro：一次引入剩余的全部 binder。", _F("ui"), (230, 230, 230)),
+            ("此处 `sorry` 的期望类型：", _F("ui"), (230, 230, 230)),
+            ("a", _F("code"), OK_GREEN),
             ("", _F("small"), FG),
-            ("不替换也完全等价——funintro 本身就是一次合法", _F("small"), (200, 200, 200)),
-            ("作答；它等价于：", _F("small"), (200, 200, 200)),
-            ("fun (x : Q) => sorry", _F("code"), TYPE),
+            ("剩余目标：False", _F("ui"), (230, 230, 230)),
+            ("", _F("small"), FG),
+            ("已引入假设：", _F("ui"), (200, 200, 200)),
+            ("- a : Prop", _F("small"), (170, 200, 230)),
+            ("- x : And a (Not a)", _F("small"), (170, 200, 230)),
         ],
     }
-    _draw_hover(draw, hover, (4, cursor_col + int(text_w(probe, "funintro", _F("code")))))
+    _draw_hover(draw, hover, (6, sorry_col))
     return img
 
 
@@ -410,6 +421,66 @@ def demo_kernel_png() -> Image.Image:
     return img
 
 
+# ── 静态图 3：终端 --json 事件流（任意 code agent 的判卷接口）────
+STR = (206, 145, 120)   # JSON 字符串（VS Code Dark+ 橙）
+KEY = (156, 220, 254)   # JSON 键（浅蓝）
+PROMPT = (135, 214, 132)
+
+
+def demo_agent_png() -> Image.Image:
+    """给 code agent 的瞬间：`sokonanoda --json` 每行一个事件——agent 读
+    事件判卷，无需读源码。事件形状与 CLI 真实输出逐字一致。"""
+    img = Image.new("RGB", (W, H), (18, 18, 18))
+    draw = ImageDraw.Draw(img)
+    # 终端标题栏
+    draw.rectangle([0, 0, W, 34], fill=TITLE_BG)
+    for i, c in enumerate([(255, 95, 86), (255, 189, 46), (39, 201, 63)]):
+        draw.ellipse([14 + i * 22, 12, 26 + i * 22, 24], fill=c)
+    title = "agent — sokonanoda --json"
+    tw = text_w(draw, title, font(CODE_FONT, 12))
+    draw.text(((W - tw) / 2, 10), title, fill=(180, 180, 180), font=font(CODE_FONT, 12))
+
+    f = _F("code")
+    fs = _F("small")
+    y = 64
+
+    def put(segments, line_h=None):
+        nonlocal y
+        x = 40
+        for text, color, font_ in segments:
+            draw.text((x, y), text, fill=color, font=font_)
+            x += text_w(draw, text, font_)
+        y += line_h or (f.size + 12)
+
+    put([("$ ", PROMPT, f), ("sokonanoda --json playground.sokonanoda", (230, 230, 230), f)])
+    y += 8
+    events = [
+        ("type", "decl.checked", "checked declaration true_is_true", "true_is_true"),
+        ("type", "decl.checked", "checked declaration and_intro_rule", "and_intro_rule"),
+        ("type", "decl.checked", "checked declaration and_swap", "and_swap"),
+        ("type", "exercise.open", "exercise open (fill the sorry)", "and_not_absurd"),
+    ]
+    for typ, t, human, name in events:
+        sep = '","'
+        put([
+            ('{"', PUNCT, fs), ("human", KEY, fs), ('":"', PUNCT, fs),
+            (human + sep, STR, fs),
+            ("name", KEY, fs), ('":"', PUNCT, fs),
+            (name + sep, STR, fs),
+            ("type", KEY, fs), ('":"', PUNCT, fs),
+            (t + '"}', STR, fs),
+        ])
+    y += 14
+    put([
+        ("# agent 读事件，不做文本比对：decl.checked = 解出，", COMMENT, fs),
+    ], fs.size + 10)
+    put([
+        ("# exercise.open = 进行中（指向 soko:hint 阶梯）。", COMMENT, fs),
+    ], fs.size + 10)
+    put([("$ ", PROMPT, f), ("█", CURSOR, f)])
+    return img
+
+
 # ── GIF 组装 ──────────────────────────────────────────────────────
 def save_gif(frames: list[tuple[Image.Image, int]], path: Path) -> None:
     ims = [f for f, _ in frames]
@@ -429,9 +500,10 @@ def save_gif(frames: list[tuple[Image.Image, int]], path: Path) -> None:
 def render_all() -> dict[str, list[tuple[Image.Image, int]]]:
     """全部演示的帧序列（单一事实源：页面与 --check 都从这里出发）。"""
     return {
-        "demo-completion.gif": demo_completion(),
-        "demo-hover.png": [(demo_hover_png(), 0)],
+        "demo-goal.png": [(demo_goal_png(), 0)],
         "demo-kernel.png": [(demo_kernel_png(), 0)],
+        "demo-completion.gif": demo_completion(),
+        "demo-agent.png": [(demo_agent_png(), 0)],
     }
 
 

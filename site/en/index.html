@@ -83,7 +83,7 @@ code sokonanoda-lang/playground.sokonanoda</div>
       </div>
       <div class="card install-card">
         <div class="step">For code agents</div>
-        <h3>Three role skills + a JSON event protocol</h3>
+        <h3>Works with any code agent</h3>
         <ol class="steps">
           <li>
             Clone the repository (<code>skills/</code> and the <code>AGENTS.md</code>
@@ -92,16 +92,18 @@ code sokonanoda-lang/playground.sokonanoda</div>
 cd sokonanoda-lang</div>
           </li>
           <li>
-            opencode picks the skills up automatically; for other agents, copy them
-            into your skill directory:
-            <div class="cmd">cp -r skills/* /path/to/your/agent/skills/</div>
+            Point your agent at <code>AGENTS.md</code> — one entry point, any
+            agent (Claude Code / opencode / Codex / Cursor / …):
+            <div class="cmd">paste AGENTS.md into any code agent's context</div>
           </li>
           <li>
-            Point your agent at <code>AGENTS.md</code>:
+            The role skills are standard Agent Skills, loaded on demand:
             <span class="kbd">sokonanoda-teacher</span> runs the teaching loop,
             <span class="kbd">sokonanoda-dev</span> develops the compiler,
-            <span class="kbd">sokonanoda-ci</span> ships and watches CI. Grading is
-            driven through the <code>--json</code> event stream.
+            <span class="kbd">sokonanoda-ci</span> ships and watches CI. opencode
+            loads them with zero setup; other agents copy <code>skills/</code>
+            into their own skill directory. Grading is driven through the
+            <code>--json</code> event stream.
           </li>
         </ol>
         <p class="fineprint">
@@ -118,27 +120,16 @@ cd sokonanoda-lang</div>
     <div class="demo-grid">
       <article class="demo-card">
         <div class="media">
-          <img src="../assets/demos/demo-completion.gif" width="1180" height="700"
-               alt="Typing funintro: the completion popup appears from the first keystroke with the replace item preselected" loading="lazy">
+          <img src="../assets/demos/demo-goal.png" width="1180" height="700"
+               alt="Hovering sorry shows the hole's precise expected type a, the remaining goal False, and the hypotheses in scope" loading="lazy">
         </div>
-        <h3>Completion from keystroke one</h3>
+        <h3>Stuck? Hover the <code>sorry</code></h3>
         <p>
-          Type <code>funintro</code> in the value position: the popup preselects the
-          “replace source” item from the first character; after accepting, the
-          skeleton lands with <code>sorry</code> selected — your next input
-          overwrites it directly.
-        </p>
-      </article>
-
-      <article class="demo-card">
-        <div class="media">
-          <img src="../assets/demos/demo-hover.png" width="1180" height="700"
-               alt="Hovering funintro shows what it is equivalent to, with a one-click replace button" loading="lazy">
-        </div>
-        <h3>Hover to understand, click to expand</h3>
-        <p>
-          Hover a keyword to see its expansion and remaining goal; the
-          “replace source” button applies the same edit as Tab completion.
+          With the cursor on a <code>sorry</code>, the hover shows
+          <strong>that hole's</strong> expected type, the remaining goal, and the
+          hypotheses in scope — expected types are computed through definitions
+          (<code>Not a</code> unfolds to <code>a -> False</code>, so the hole
+          expects <code>a</code>). You know what's missing before you write.
         </p>
       </article>
 
@@ -152,6 +143,35 @@ cd sokonanoda-lang</div>
           Grading always goes through the real kernel — no text matching. A wrong
           proof gets a diagnostic with a teaching hint; a correct one is valid
           Lean, verbatim.
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="../assets/demos/demo-completion.gif" width="1180" height="700"
+               alt="Typing funintro: the completion popup appears from the first keystroke with the replace item preselected" loading="lazy">
+        </div>
+        <h3>A skeleton from keystroke one</h3>
+        <p>
+          Type <code>funintro</code> in the value position: the popup preselects the
+          “replace source” item from the first character; after accepting, the
+          skeleton lands with <code>sorry</code> selected — your next input
+          overwrites it directly.
+        </p>
+      </article>
+
+      <article class="demo-card">
+        <div class="media">
+          <img src="../assets/demos/demo-agent.png" width="1180" height="700"
+               alt="A terminal running sokonanoda --json, one JSON event per line: decl.checked and exercise.open" loading="lazy">
+        </div>
+        <h3>Your code agent can teach too</h3>
+        <p>
+          Any code agent (Claude Code / opencode / Codex / Cursor / …) can grade
+          and drive the teaching loop from the one-JSON-event-per-line
+          <code>sokonanoda --json</code> stream — point it at <code>AGENTS.md</code>
+          or copy <a href="../agents.html">a ready-made prompt</a>. The kernel
+          grades; no text matching.
         </p>
       </article>
     </div>
