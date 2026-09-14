@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第五十一轮：tactic 关键字高亮 + hover 中间 goal state；同版含多目标显示与移除 funintro，0.27.0）
+> 快照：2026-09-14（第五十二轮：restart server 版本纪律修复；0.27.1）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,28 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第五十二轮：restart server 版本纪律修复）
+
+> 用户报告：下载 0.27.0 插件后 LSP 仍报 0.26.0，疑发布流程有问题；要求
+> `sokonanoda: restart server` 应校验版本、不重用旧的缓存 LSP。
+
+1. **核实发布**：下载 `v0.27.0` 的 darwin-arm64 VSIX，内置 LSP 实测
+   `soko/version = 0.27.0`；已安装 0.27.0 扩展的 `server.js` 解析到内置
+   0.27.0。发布无误；0.26.0 来自本地下载缓存（`sokonanoda version` 报的是
+   缓存，非运行中的服务器）与宿主未重载。
+2. **定位缺陷**：`resolveServerCommand` 本就拒绝过期缓存（stale → undefined，
+   有单测钉住），但 `restartServer` **没有激活路径的版本锁定下载兜底**：
+   解析返回 undefined 时它保持 `serverOptions` 不变并 `client.restart()`，
+   于是静默重启了旧的（可能来自过期缓存的）服务器。
+3. **修复**：抽出 `resolveServerForStart`（激活/重启共用：显式路径 → 内置 →
+   工作区 → 当前缓存 → `v<扩展版本>` 锁定下载）；restart 用它，拿不到可用
+   服务器时报错而不重启旧命令；新增 `newestInstalledExtensionVersion`，检测到
+   磁盘上更新的扩展而当前宿主仍旧时提示 `Developer: Reload Window`。
+4. **测试**：CLI 契约 `restart_server_re_resolves_and_never_keeps_a_stale_command`
+   钉住共用解析器 + 下载兜底 + 更新提示；`node test-server.js` 18/18 绿。
+5. **版本** 0.27.0 → **0.27.1**（fix → patch）；CHANGELOG Fixed、
+   `docs/vscode-dev-guide.md` §5.6 同步。
 
 ## 本轮进度（2026-09-14，第五十一轮：tactic 关键字高亮 + hover goal state）
 
@@ -53,33 +75,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 6. **测试**：`cli_value_funintro_is_no_longer_a_keyword` 钉「已非关键字」；
    其余 funintro 测试全删。
 7. **验收**：`sokonanoda gate`（fmt/clippy/test/playground 锚点）。
-
-## 本轮进度（2026-09-14，第四十九轮：多目标显示）
-
-> 用户报告：画布上 `apply And.intro; intro x` 之后应同时看到 `P x` 和
-> `(x : Person) -> Q x` 两个待证目标，目前只显示一个。用户确认按完整流程修。
-> 判定逻辑本就正确（`apply` 确开两个 `forall` 子目标），缺陷在**引擎数据**：
-> `ByStep` 每步只记 worklist 栈顶目标，其余目标编译期即丢。随后用户报告
-> VS Code 目标视图很卡，同轮修刷新路径。
-
-1. **设计先行** `docs/design/goal-list.md`（根因 / 方案 / 测试 / 验收 / as-built）。
-2. **前端**：`ByStep` 改为 `{ span, goals: Vec<ByGoal> }`，`ByGoal = { ty,
-   binders }`；每步记**全部**未闭合目标（当前在首位，各带自己的假设链），
-   闭合则为空。`by_step_states` / `ByGoalState` / re-export 同步。
-3. **协议**：`soko/stateAt` 增 `goals: [{goal, binders}]`；`soko/goals` 每
-   声明增 `goals: [String]`（by 声明取最后一步、非 by 取走查目标）。
-   单值 `goal`/`binders` 保留且恒等于 `goals[0]`，旧客户端不回归。
-4. **客户端多目标**：VS Code「当前光标处」与练习节点遍历多目标——>1 时渲染
-   `目标 i/n` 可展开节点、各自挂假设；=1 保持现状。
-5. **客户端性能**（用户报告「vscode 很卡」）：原实现每次光标移动都
-   `refresh()` → 重取 `soko/goals` + 重建全部练习 TreeItem。改为
-   `refresh()` 只处理诊断/切文件，光标移动走 `refreshCursor()` 复用缓存
-   `declItems`，只重建光标组。
-6. **测试三层**：front `apply_records_all_open_goals_current_first`（+改两旧
-   用例读 `goals`）；LSP `state_at_lists_all_open_goals_after_apply` +
-   `goals_request_lists_every_open_goal_after_apply`；CLI 契约
-   `extension.rs` 钉客户端消费 `cursor.goals`/`decl.goals` 与 `declItems`/
-   `refreshCursor` 缓存纪律。
-7. **版本** 0.26.0 → **0.27.0**（Cargo + VSIX + CHANGELOG Added）；`docs/protocol.md`
-   两节 + 已知限制小节、`REQUIREMENTS.md §9` 同步。
-8. **验收**：`sokonanoda gate` PASS（fmt / clippy / test / playground 锚点）。

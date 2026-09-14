@@ -35,6 +35,39 @@ function extensionVersion(context) {
   return context?.extension?.packageJSON?.version;
 }
 
+// Version tuple compare (`1.2.3` vs `1.2.2`); >0 when `a` is newer.
+function compareVersions(a, b) {
+  const pa = String(a).split(".").map(Number);
+  const pb = String(b).split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] || 0) - (pb[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+// Newest sokonanoda extension version installed on disk (sibling folders of
+// the running extension). VS Code swaps extension *code* only on a window
+// reload, so right after an upgrade this can be newer than the running host —
+// worth surfacing instead of pretending a server restart fixed it
+// (docs/vscode-dev-guide.md §5.6). `undefined` when it cannot be determined.
+function newestInstalledExtensionVersion(context) {
+  try {
+    const dir = path.dirname(context.extensionPath);
+    let best;
+    for (const name of fs.readdirSync(dir)) {
+      const match = /^sokonanoda-lang\.sokonanoda-(\d+\.\d+\.\d+)/.exec(name);
+      if (!match) continue;
+      if (best === undefined || compareVersions(match[1], best) > 0) {
+        best = match[1];
+      }
+    }
+    return best;
+  } catch {
+    return undefined;
+  }
+}
+
 // Server acquisition (bundled VSIX binary first, downloads only as a fallback)
 // lives in server.js so plain Node can unit-test it; this module stays the
 // VS Code wiring layer.
@@ -589,6 +622,62 @@ async function serverVersion() {
   }
 }
 
+// Resolve the language-server command for a fresh start, including the
+// version-pinned download fallback for the universal package. Shared by
+// activation and `sokonanoda: restart server` so a stale cache is never
+// silently reused: re-resolution rejects a stale marker (server.js
+// `cachedServerIsCurrent`), and this then fetches the release pinned to the
+// extension version instead of leaving the old command in place.
+//
+// Returns the command path, or `undefined` after reporting why (missing
+// explicit path / unsupported platform / download failure).
+async function resolveServerForStart(context) {
+  const requested = requestedServerCommand();
+  if (requested !== undefined) {
+    if (!fs.existsSync(requested)) {
+      vscode.window.showErrorMessage(
+        `sokonanoda：指定的语言服务器不存在：${requested}（检查 sokonanoda.serverPath 或 SOKONANODA_LSP_BIN）`,
+      );
+      return undefined;
+    }
+    return requested;
+  }
+  const resolved = await resolveServerCommand(context);
+  if (resolved !== undefined) return resolved;
+
+  // Every platform package bundles the server; `undefined` here means an
+  // unsupported platform or the universal fallback package (no bundled bin).
+  if (!server.platformTarget(process.platform, process.arch)) {
+    vscode.window.showErrorMessage(
+      `sokonanoda：当前平台（${process.platform}-${process.arch}）没有内置语言服务器。` +
+        "请设置 sokonanoda.serverPath 指向本地二进制。",
+    );
+    return undefined;
+  }
+  vscode.window.showInformationMessage(
+    `sokonanoda：未找到内置语言服务器（universal 包或安装损坏），` +
+      `正在按 v${extensionVersion(context)} 回退下载…`,
+  );
+  try {
+    const command = await server.downloadLspBinary({
+      version: extensionVersion(context),
+      platform: process.platform,
+      arch: process.arch,
+    });
+    if (command && fs.existsSync(command)) {
+      vscode.window.showInformationMessage("sokonanoda：语言服务器就绪 ✓");
+      return command;
+    }
+    throw new Error("download produced no binary");
+  } catch (err) {
+    vscode.window.showWarningMessage(
+      "sokonanoda-lsp 回退下载失败。请安装对应平台的插件包（VS Code 会自动选择），" +
+        "或设置 sokonanoda.serverPath 指向本地二进制。错误：" + (err?.message ?? err),
+    );
+    return undefined;
+  }
+}
+
 async function restartServer(context) {
   if (!client) {
     vscode.window.showWarningMessage(
@@ -596,21 +685,34 @@ async function restartServer(context) {
     );
     return;
   }
+  // Extension-code upgrades only take effect on a window reload, so the
+  // bundled server of a freshly installed version cannot be picked up by a
+  // server restart. Tell the user instead of silently staying on the old one.
+  const current = extensionVersion(context);
+  const installed = newestInstalledExtensionVersion(context);
+  if (installed && current && compareVersions(installed, current) > 0) {
+    vscode.window.showWarningMessage(
+      `sokonanoda: 已安装扩展 v${installed}，但当前窗口仍运行 v${current}；` +
+        "扩展本体升级需要 “Developer: Reload Window”（restart server 只能重解析服务器二进制）。",
+    );
+  }
   // 重启前先记录旧进程：restart() 会 stop() 旧客户端（2s 宽限后 SIGTERM/SIGKILL
   // 旧子进程），再从重新解析出的命令启动新进程。
   const before = await serverVersion();
-  let next;
+  // Re-resolve through the same path as activation so a rebuilt/updated server
+  // takes effect — and so a stale cache triggers a version-pinned download
+  // instead of silently restarting the old binary.
+  const next = await resolveServerForStart(context);
+  if (next === undefined) {
+    // resolveServerForStart already surfaced the reason; never restart with the
+    // stale command still in `serverOptions`.
+    return;
+  }
+  if (serverOptions) {
+    serverOptions.run.command = next;
+    serverOptions.debug.command = next;
+  }
   try {
-    const requested = requestedServerCommand();
-    if (requested === undefined) {
-      next = await resolveServerCommand(context);
-    } else if (fs.existsSync(requested)) {
-      next = requested;
-    }
-    if (next && serverOptions) {
-      serverOptions.run.command = next;
-      serverOptions.debug.command = next;
-    }
     await client.restart();
   } catch (error) {
     vscode.window.showErrorMessage(
@@ -687,55 +789,10 @@ function registerCommands(context, provider, courseProvider) {
 async function activate(context) {
   extensionRoot = context.extensionPath;
 
-  // Explicit choice first: report a broken path instead of silently
-  // downloading something else.
-  const requested = requestedServerCommand();
-  let command;
-  if (requested !== undefined) {
-    if (!fs.existsSync(requested)) {
-      vscode.window.showErrorMessage(
-        `sokonanoda：指定的语言服务器不存在：${requested}（检查 sokonanoda.serverPath 或 SOKONANODA_LSP_BIN）`,
-      );
-      return;
-    }
-    command = requested;
-  } else {
-    command = await resolveServerCommand(context);
-  }
-
-  // Every platform package bundles the server; `undefined` here means an
-  // unsupported platform or the universal fallback package (no bundled bin).
-  if (command === undefined) {
-    if (!server.platformTarget(process.platform, process.arch)) {
-      vscode.window.showErrorMessage(
-        `sokonanoda：当前平台（${process.platform}-${process.arch}）没有内置语言服务器。` +
-          "请设置 sokonanoda.serverPath 指向本地二进制。",
-      );
-      return;
-    }
-    vscode.window.showInformationMessage(
-      `sokonanoda：未找到内置语言服务器（universal 包或安装损坏），` +
-        `正在按 v${extensionVersion(context)} 回退下载…`,
-    );
-    try {
-      command = await server.downloadLspBinary({
-        version: extensionVersion(context),
-        platform: process.platform,
-        arch: process.arch,
-      });
-      if (command && fs.existsSync(command)) {
-        vscode.window.showInformationMessage("sokonanoda：语言服务器就绪 ✓");
-      } else {
-        throw new Error("download produced no binary");
-      }
-    } catch (err) {
-      vscode.window.showWarningMessage(
-        "sokonanoda-lsp 回退下载失败。请安装对应平台的插件包（VS Code 会自动选择），" +
-          "或设置 sokonanoda.serverPath 指向本地二进制。错误：" + (err?.message ?? err),
-      );
-      return;
-    }
-  }
+  // Resolve the server (explicit path, bundled bin, workspace build, or the
+  // version-pinned download fallback). Same path as `restart server`.
+  const command = await resolveServerForStart(context);
+  if (command === undefined) return;
 
   serverOptions = {
     run: { command, transport: TransportKind.stdio },

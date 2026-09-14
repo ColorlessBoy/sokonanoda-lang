@@ -36,6 +36,33 @@ fn repo_root() -> std::path::PathBuf {
 }
 
 #[test]
+fn restart_server_re_resolves_and_never_keeps_a_stale_command() {
+    // `sokonanoda: restart server` must go through the same version-aware
+    // resolution as activation (including the version-pinned download
+    // fallback), and must bail out instead of silently restarting the old
+    // server when re-resolution yields nothing.
+    let script = entry_script();
+    assert!(
+        script.contains("resolveServerForStart"),
+        "restart must share the activation resolver (no stale-cache reuse)"
+    );
+    assert!(
+        script.contains("if (next === undefined)"),
+        "restart must abort when no usable server is resolved"
+    );
+    assert!(
+        script.contains("downloadLspBinary"),
+        "the shared resolver must keep the version-pinned download fallback"
+    );
+    // Extension-code upgrades need a window reload; the command must surface
+    // that instead of pretending the restart fixed it.
+    assert!(
+        script.contains("newestInstalledExtensionVersion"),
+        "restart must detect a newer installed extension and ask for a reload"
+    );
+}
+
+#[test]
 fn manifest_declares_commands_that_extension_registers() {
     let manifest = manifest();
     let script = entry_script();

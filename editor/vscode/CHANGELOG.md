@@ -1,3 +1,15 @@
+## [0.27.1] - 2026-09-14
+
+### Fixed
+
+- **`sokonanoda: restart server` no longer silently keeps a stale server** —
+  it now re-resolves through the same path as activation, including the
+  version-pinned download fallback, and aborts with a message instead of
+  restarting the old binary when no usable server is found (a stale cache
+  marker is rejected, not reused). It also detects a newer installed extension
+  and tells you to reload the window, since extension-code upgrades cannot be
+  picked up by a server restart.
+
 ## [0.27.0] - 2026-09-14
 
 ### Added

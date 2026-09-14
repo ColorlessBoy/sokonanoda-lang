@@ -496,3 +496,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   tactic span 内 → 用 `by_steps` + `select_state_at` 渲染「进入该 tactic」的
   全部目标与假设（与 `soko/stateAt` 同数据、同语义，零重编译）。并入 0.27.0。
   设计见 `docs/design/tactic-hover.md`，协议见 `docs/protocol.md`。
+- 2026-09-14（五十一）：**`restart server` 版本纪律修复（用户报告）**——用户
+  下载 0.27.0 插件后 LSP 仍是 0.26.0，疑发布流程。核实：发布无误（v0.27.0
+  darwin-arm64 VSIX 内置 LSP 实测 `soko/version = 0.27.0`，`server.js` 内置
+  优先解析正确）；0.26.0 来自本地下载缓存 + `restart server` 无下载兜底、
+  不校验。修 = restart 复用激活解析链（含 `v<扩展版本>` 锁定下载兜底）、
+  解析不到可用服务器时报错而非静默重启旧命令/旧缓存、检测到磁盘上更新的
+  扩展而宿主仍旧时提示 Reload Window。版本 **0.27.1**。见
+  `docs/vscode-dev-guide.md` §5.6。

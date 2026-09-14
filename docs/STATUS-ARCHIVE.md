@@ -1,8 +1,38 @@
-# STATUS 归档（第 1–48 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–49 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第四十九轮：多目标显示）
+
+> 用户报告：画布上 `apply And.intro; intro x` 之后应同时看到 `P x` 和
+> `(x : Person) -> Q x` 两个待证目标，目前只显示一个。用户确认按完整流程修。
+> 判定逻辑本就正确（`apply` 确开两个 `forall` 子目标），缺陷在**引擎数据**：
+> `ByStep` 每步只记 worklist 栈顶目标，其余目标编译期即丢。随后用户报告
+> VS Code 目标视图很卡，同轮修刷新路径。
+
+1. **设计先行** `docs/design/goal-list.md`（根因 / 方案 / 测试 / 验收 / as-built）。
+2. **前端**：`ByStep` 改为 `{ span, goals: Vec<ByGoal> }`，`ByGoal = { ty,
+   binders }`；每步记**全部**未闭合目标（当前在首位，各带自己的假设链），
+   闭合则为空。`by_step_states` / `ByGoalState` / re-export 同步。
+3. **协议**：`soko/stateAt` 增 `goals: [{goal, binders}]`；`soko/goals` 每
+   声明增 `goals: [String]`（by 声明取最后一步、非 by 取走查目标）。
+   单值 `goal`/`binders` 保留且恒等于 `goals[0]`，旧客户端不回归。
+4. **客户端多目标**：VS Code「当前光标处」与练习节点遍历多目标——>1 时渲染
+   `目标 i/n` 可展开节点、各自挂假设；=1 保持现状。
+5. **客户端性能**（用户报告「vscode 很卡」）：原实现每次光标移动都
+   `refresh()` → 重取 `soko/goals` + 重建全部练习 TreeItem。改为
+   `refresh()` 只处理诊断/切文件，光标移动走 `refreshCursor()` 复用缓存
+   `declItems`，只重建光标组。
+6. **测试三层**：front `apply_records_all_open_goals_current_first`（+改两旧
+   用例读 `goals`）；LSP `state_at_lists_all_open_goals_after_apply` +
+   `goals_request_lists_every_open_goal_after_apply`；CLI 契约
+   `extension.rs` 钉客户端消费 `cursor.goals`/`decl.goals` 与 `declItems`/
+   `refreshCursor` 缓存纪律。
+7. **版本** 0.26.0 → **0.27.0**（Cargo + VSIX + CHANGELOG Added）；`docs/protocol.md`
+   两节 + 已知限制小节、`REQUIREMENTS.md §9` 同步。
+8. **验收**：`sokonanoda gate` PASS（fmt / clippy / test / playground 锚点）。
 
 ## 本轮进度（2026-09-14，第四十八轮：量词课程——单元⑦ + 画布第二课）
 
