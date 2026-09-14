@@ -8,7 +8,7 @@
 
 **`course/` 只是大模型的路线图/素材库；执行层必须按用户灵活适配。**
 
-- course/ 的 5 个单元 = 知识点顺序、题池、可解性守护（CI 验证解答）；
+- course/ 的 7 个单元 = 知识点顺序、题池、可解性守护（CI 验证解答）；
 - **真正教学时，agent 必须依据当前用户的反馈历史动态重组**：
   - 用户在某概念反复出错 → 追加同概念的变式练习，或先放一个"填好
     的演示声明"再重新出题；
@@ -72,6 +72,27 @@
 收尾：`two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two` —— 画布里先
 注释着，练习 6 解出后放开；变绿 = 内核回判了练习 6 的值。
 
+### 第二课：量词（playground 练习 6–12；course/ 单元⑦）
+
+> 画布在 `forall_demo` 后引入：`axiom Person : Type 0`、`axiom someone : Person`
+> 与 `Exists`/`Exists.intro`/`Exists.elim`（显式公理版，与官方 Lean 的
+> `Exists` 同构）。结构：∀ 引入=fun、消去=应用；∃ 引入=交证人、消去=把
+> 函数交给 elim（结论不提证人）。
+
+| # | 练习 | 目标误解 | 钥匙（kernel 验证） |
+|---|---|---|---|
+| 6 | `forall_elim (P : Person -> Prop) (w : Person) (h : forall (x : Person), P x) : P w := sorry` | ∀ 消去就是应用 | `h w` |
+| 7 | `forall_and ... : And (forall (x : Person), P x) (forall (x : Person), Q x) := sorry` | 配对的 ∀ 分成两个 ∀，两处 fun 引入 | `And.intro (forall (x : Person), P x) (forall (x : Person), Q x) (fun (x : Person) => And.left (P x) (Q x) (h x)) (fun (x : Person) => And.right (P x) (Q x) (h x))` |
+| 8 | `and_forall ... : forall (x : Person), And (P x) (Q x) := sorry` | 反向；外层 fun 引入 ∀ | `fun (x : Person) => And.intro (P x) (Q x) (And.left (forall (y : Person), P y) (forall (y : Person), Q y) h x) (And.right (forall (y : Person), P y) (forall (y : Person), Q y) h x)` |
+| 9 | `exists_intro_rule (P : Person -> Prop) (w : Person) (hw : P w) : Exists Person P := sorry` | ∃ 引入=证人+性质证明 | `Exists.intro Person P w hw` |
+| 10 | `exists_elim_rule (P : Person -> Prop) (Q : Prop) (h : Exists Person P) (f : forall (x : Person), P x -> Q) : Q := sorry` | ∃ 消去=把函数交给 elim | `Exists.elim Person P Q h f` |
+| 11 ★ | `forall_exists (P : Person -> Prop) (h : forall (x : Person), P x) : Exists Person P := sorry` | 空论域反例意识；证人用 someone | `Exists.intro Person P someone (h someone)` |
+| 12 ★★ | `exists_mono (P : Person -> Prop) (Q : Person -> Prop) (f : forall (x : Person), P x -> Q x) (h : Exists Person P) : Exists Person Q := sorry` | 消去后重新装回；motive 是 `Exists Person Q` | `Exists.elim Person P (Exists Person Q) h (fun (w : Person) => fun (hw : P w) => Exists.intro Person Q w (f w hw))` |
+
+单元⑦画布（`course/unit7-quantifiers.sokonanoda`）同题重编号为练习 1–7，
+钥匙见 `course/solutions/unit7-quantifiers-solution.sokonanoda`；`#reduce`
+自测 `(fun (x : Person) => x) someone` 应化简为 `someone`。
+
 ## 4. Gotchas（全部验证过，别踩）
 
 1. **裸 `Eq` 默认 u=0**（Prop 层）；Nat 级必须 `Eq.{1}`/`Eq.refl.{1}`/`Eq.subst.{1}`。
@@ -87,9 +108,10 @@
    整个 Eq prelude 跳过（all-or-nothing，与显式 `Nat` 块行为一致）。
 7. **本课不含排中律/or_comm**（Or 没有 rec；那是单元⑤的内容——别许诺）。
 
-## 5. 后续课程（单元⑤⑥已上线）
+## 5. 后续课程（单元⑤⑥⑦已上线）
 
 `Or.rec` 与 `or_comm`、`eq_trans`、显式 `inductive Nat` 块 + `Nat.rec`/iota
 归纳已在 **course/ 单元⑤**；`by` 写法（tactic 证明）与值位
-`intro`/`apply` 对照在**单元⑥**（0.18.0 起）。语料参照
-`examples/py-nat.sokonanoda` 与 `examples/fol-basics.sokonanoda`。
+`intro`/`apply` 对照在**单元⑥**（0.18.0 起）；量词（`forall`/`Exists`，
+Person 论域 + `Exists` 公理三件套）在**单元⑦**（0.26.0 起），就是画布的
+第二课。语料参照 `examples/py-nat.sokonanoda` 与 `examples/fol-basics.sokonanoda`。

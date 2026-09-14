@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 45,
-  "round_date": "2026-09-13",
-  "round_title": "性能收口 + goal-state hover",
+  "round": 48,
+  "round_date": "2026-09-14",
+  "round_title": "量词课程——单元⑦ + 画布第二课",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -51,7 +51,14 @@
       "title": "单元⑥ by 写法：tactic 证明",
       "title_en": "Unit 6 — Proving with `by` (tactic blocks)",
       "unit": 6
+    },
+    {
+      "en_file": "course/en/unit7-quantifiers.sokonanoda",
+      "file": "unit7-quantifiers.sokonanoda",
+      "title": "单元⑦ 量词：forall 与 exists",
+      "title_en": "Unit 7 — Quantifiers: forall & exists",
+      "unit": 7
     }
   ],
-  "version": "0.23.0"
+  "version": "0.26.0"
 }

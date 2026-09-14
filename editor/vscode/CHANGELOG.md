@@ -1,3 +1,16 @@
+## [0.26.0] - 2026-09-14
+
+### Added
+
+- **Course unit 7 — quantifiers (`forall` & `exists`)** — a new bilingual
+  canvas with seven kernel-graded exercises: universal introduction
+  (`fun`) and elimination (application), existential witnesses and
+  `Exists.elim`, the two distribution laws with `And`, `∀ → ∃` on a
+  non-empty domain, and existential monotonicity. The unit carries its own
+  logic skeleton and `Exists` axioms, plus an English mirror, agent answer
+  keys, golden event counts, and a `#reduce` self-test. The learner canvas
+  `playground.sokonanoda` gained the same lesson.
+
 ## [0.25.0] - 2026-09-14
 
 ### Fixed

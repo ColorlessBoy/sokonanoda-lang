@@ -1,0 +1,54 @@
+-- unit7-quantifiers-solution —— Unit 7 answer key (agents only)
+axiom True : Prop
+axiom True.intro : True
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+
+axiom Person : Type 0
+axiom someone : Person
+
+theorem forall_demo (P : Person -> Prop) : forall (x : Person), P x -> P x :=
+  fun (x : Person) => fun (hx : P x) => hx
+
+example (P : Person -> Prop) (h : forall (x : Person), P x) : (x : Person) -> P x := h
+
+#reduce (fun (x : Person) => x) someone
+
+theorem forall_elim (P : Person -> Prop) (w : Person) (h : forall (x : Person), P x) : P w :=
+  h w
+
+theorem forall_and (P : Person -> Prop) (Q : Person -> Prop) (h : forall (x : Person), And (P x) (Q x)) : And (forall (x : Person), P x) (forall (x : Person), Q x) :=
+  And.intro (forall (x : Person), P x) (forall (x : Person), Q x)
+    (fun (x : Person) => And.left (P x) (Q x) (h x))
+    (fun (x : Person) => And.right (P x) (Q x) (h x))
+
+theorem and_forall (P : Person -> Prop) (Q : Person -> Prop) (h : And (forall (x : Person), P x) (forall (x : Person), Q x)) : forall (x : Person), And (P x) (Q x) :=
+  fun (x : Person) =>
+    And.intro (P x) (Q x)
+      (And.left (forall (y : Person), P y) (forall (y : Person), Q y) h x)
+      (And.right (forall (y : Person), P y) (forall (y : Person), Q y) h x)
+
+axiom Exists : (A : Type 0) -> (A -> Prop) -> Prop
+axiom Exists.intro : (A : Type 0) -> (p : A -> Prop) -> (w : A) -> p w -> Exists A p
+axiom Exists.elim : (A : Type 0) -> (p : A -> Prop) -> (Q : Prop) -> Exists A p -> ((w : A) -> p w -> Q) -> Q
+
+theorem exists_demo : Exists Person (fun (x : Person) => True) :=
+  Exists.intro Person (fun (x : Person) => True) someone True.intro
+
+theorem exists_use_demo (P : Person -> Prop) (h : Exists Person P) : True :=
+  Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro)
+
+theorem exists_intro_rule (P : Person -> Prop) (w : Person) (hw : P w) : Exists Person P :=
+  Exists.intro Person P w hw
+
+theorem exists_elim_rule (P : Person -> Prop) (Q : Prop) (h : Exists Person P) (f : forall (x : Person), P x -> Q) : Q :=
+  Exists.elim Person P Q h f
+
+theorem forall_exists (P : Person -> Prop) (h : forall (x : Person), P x) : Exists Person P :=
+  Exists.intro Person P someone (h someone)
+
+theorem exists_mono (P : Person -> Prop) (Q : Person -> Prop) (f : forall (x : Person), P x -> Q x) (h : Exists Person P) : Exists Person Q :=
+  Exists.elim Person P (Exists Person Q) h
+    (fun (w : Person) => fun (hw : P w) => Exists.intro Person Q w (f w hw))

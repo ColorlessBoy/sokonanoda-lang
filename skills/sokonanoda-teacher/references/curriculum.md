@@ -13,6 +13,7 @@
 | 4 | `unit4-universes-sort.sokonanoda` | 宇宙 | Sort 由悬念揭晓：Prop = Sort 0（回收单元①）、Nat : Sort 1；`Eq.symm {u}` 毕业题 |
 | 5 | `unit5-induction-nat-rec.sokonanoda` | 显式归纳与递归 | `inductive Nat` 块、ctor/rec/iota、`Nat.rec` |
 | 6 | `unit6-by-tactics.sokonanoda` | by 写法 | `by` 块 + 五个 tactic（intro/exact/apply/assumption/rfl）；`by sorry` 占位；值位 `funintro` 一次全剥（编辑器提示展开为 fun 骨架）；判定走 kernel |
+| 7 | `unit7-quantifiers.sokonanoda` | 量词 | `forall` 引入=fun / 消去=应用；`Exists` 公理三件套（intro=证人、elim=函数，结论不提证人）；Person/someone 论域；∀/∃ 与 And 的分配、∀→∃、∃ 单调（7 题，含 ★/★★）；可紧跟单元①教学 |
 
 每个单元配 `solutions/unitN-*-solution.sokonanoda`（agent 专用钥匙，全部
 经完整内核验证；CI golden 钉死事件计数）。

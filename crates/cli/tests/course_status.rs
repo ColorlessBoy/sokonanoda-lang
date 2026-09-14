@@ -48,13 +48,14 @@ fn u64_field(event: &Value, field: &str) -> u64 {
 /// Per-unit golden counts in course.json order:
 /// (decl.checked, exercise.open, failed, expr.reduced) — identical to the
 /// course.rs golden (checked, open, reduced) with failed = 0 throughout.
-const GOLDEN: [(u64, u64, u64, u64); 6] = [
+const GOLDEN: [(u64, u64, u64, u64); 7] = [
     (13, 6, 0, 1),
     (2, 5, 0, 2),
     (1, 4, 0, 1),
     (0, 3, 0, 0),
     (4, 3, 0, 1),
     (13, 6, 0, 0),
+    (14, 7, 0, 1),
 ];
 
 #[test]
@@ -70,11 +71,11 @@ fn course_subcommand_aggregates_the_manifest() {
     let events = parse_lines(&stdout);
     assert_eq!(
         events.len(),
-        7,
-        "exactly 6 course.unit + 1 course.summary, got: {events:?}"
+        8,
+        "exactly 7 course.unit + 1 course.summary, got: {events:?}"
     );
     let units = typed(&events, "course.unit");
-    assert_eq!(units.len(), 6, "one course.unit per manifest entry");
+    assert_eq!(units.len(), 7, "one course.unit per manifest entry");
     let summaries = typed(&events, "course.summary");
     assert_eq!(summaries.len(), 1, "exactly one course.summary");
 
@@ -92,9 +93,9 @@ fn course_subcommand_aggregates_the_manifest() {
     }
 
     let summary = summaries[0];
-    assert_eq!(u64_field(summary, "units"), 6, "summary units");
-    assert_eq!(u64_field(summary, "checked"), 33, "summary checked");
-    assert_eq!(u64_field(summary, "open"), 27, "summary open");
+    assert_eq!(u64_field(summary, "units"), 7, "summary units");
+    assert_eq!(u64_field(summary, "checked"), 47, "summary checked");
+    assert_eq!(u64_field(summary, "open"), 34, "summary open");
     assert_eq!(u64_field(summary, "failed"), 0, "summary failed");
 }
 
@@ -114,7 +115,7 @@ fn course_subcommand_human_view_lists_units() {
     );
     let last = stdout.lines().last().unwrap_or_default();
     assert!(
-        last.contains("27") && last.contains("checked") && last.contains("failed"),
+        last.contains("34") && last.contains("checked") && last.contains("failed"),
         "the final line must be the totals, got: {last:?}"
     );
 }

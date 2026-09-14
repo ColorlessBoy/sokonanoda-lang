@@ -34,5 +34,11 @@
     "title": "单元⑥ by 写法：tactic 证明",
     "title_en": "Unit 6 — Proving with `by` (tactic blocks)",
     "unit": 6
+  },
+  {
+    "file": "unit7-quantifiers.sokonanoda",
+    "title": "单元⑦ 量词：forall 与 exists",
+    "title_en": "Unit 7 — Quantifiers: forall & exists",
+    "unit": 7
   }
 ]

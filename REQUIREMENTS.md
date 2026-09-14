@@ -469,3 +469,9 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `vscode:extension/sokonanoda-lang.sokonanoda`、克隆
   `vscode://vscode.git/clone?url=…`；市场主按钮与命令行路径保留兜底，
   `check-site.py` 支持按 `scheme:` 跳过外链。设计见 `docs/design/site.md` §4.5。
+- 2026-09-14（四十八）：**量词课程（用户明确）**——教程逻辑内容偏少、
+  缺 forall/exists 题目，参考 Metamath 出题，并同步进 `course/`。落地 =
+  ①画布第二课（∀=依赖函数、`Exists` 公理三件套、Person/someone 非空
+  论域、7 题 + 三层提示 + `#reduce` 自测）②`course/unit7-quantifiers.sokonanoda`
+  + 解答钥匙 + 英文镜像 + golden `(14, 7, 1)` + `course.json` unit=1..7
+  ③§3 钥匙表与 §5 课程地图同步到 `docs/teaching-session.md`。

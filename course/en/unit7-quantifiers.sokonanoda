@@ -1,0 +1,162 @@
+-- ==========================================================================
+-- unit7-quantifiers.sokonanoda —— Unit 7 — Quantifiers: forall & exists
+--
+-- Unit 1's propositional logic only talks about a fixed few propositions. To
+-- say "everyone ..." or "at least one person ...", you need quantifiers
+-- (quantifier). This unit looks at the universal quantifier first, then the
+-- existential one. Judgment still goes through the kernel: every filled line
+-- stays valid in official Lean.
+--
+-- Syntax at a glance:
+--   (x : A) -> P x        named arrow, the equivalent spelling (met again in Unit 3)
+--   forall (x : A), P x   universal quantifier; official Lean also writes ∀ (x : A), P x
+--   Exists A P            existential quantifier: A is the domain, P : A -> Prop a property
+-- ==========================================================================
+
+-- Logic skeleton (reuses Unit 1's constructors):
+axiom True : Prop
+axiom True.intro : True
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+
+-- ─────────────────────────────────────────────────────────────
+-- 7.1 forall
+--
+-- The arrows from Unit 1 already hide a universal quantifier. Look at the
+-- type of axiom And.intro:
+--
+--        (a : Prop) -> (b : Prop) -> a -> b -> And a b
+--
+-- It reads "give me any proposition a, any proposition b, ..." — that is
+-- "for every". Written as a quantifier, the three spellings below are the
+-- same type:
+--
+--        (x : Person) -> P x
+--        forall (x : Person), P x
+--        ∀ (x : Person), P x
+--
+-- A proof of a universal statement is a function (function): take any person
+-- x, return a proof of P x. Introduction is fun — the proof is a machine that
+-- answers every person with a proof; elimination is application — use
+-- "everyone ..." on one particular person.
+--
+-- The domain (domain) is the type Person. It is an abstract type; which
+-- members it has does not matter in this unit. Only the existential demos
+-- need one named member, so declare it first:
+-- ─────────────────────────────────────────────────────────────
+
+axiom Person : Type 0
+axiom someone : Person
+
+-- A predicate (predicate) P : Person -> Prop is a function from people to
+-- propositions: for each person x, P x is a proposition, read "x satisfies P".
+
+-- Demo 1: a ∀ proof is written with fun. This one says "for every person,
+-- P x implies P x"; the outer fun introduces the forall, the inner fun
+-- introduces the arrow.
+theorem forall_demo (P : Person -> Prop) : forall (x : Person), P x -> P x :=
+  fun (x : Person) => fun (hx : P x) => hx
+
+-- Demo 2: named arrow and forall are the same type; changing the spelling
+-- does not change the proof.
+example (P : Person -> Prop) (h : forall (x : Person), P x) : (x : Person) -> P x := h
+
+-- Self-test: #reduce applies the function to someone; the kernel computes the
+-- result, which is someone itself.
+#reduce (fun (x : Person) => x) someone
+
+-- ─────────────────────────────────────────────────────────────
+-- Exercise 1 (warm-up): everyone ..., so this person ... too.
+-- soko:hint approach: a forall proof is a function, so elimination is application — apply h to w.
+-- soko:hint goal shape: the goal P w has no arrows to split; h already proves the statement for everyone.
+-- soko:hint key piece: h w has type P w.
+theorem forall_elim (P : Person -> Prop) (w : Person) (h : forall (x : Person), P x) : P w :=
+  sorry
+
+-- Exercise 2: split "everyone satisfies P and Q" into two "everyone" statements.
+-- soko:hint approach: for any x, pull a pair of proofs out of h, then build the two foralls separately.
+-- soko:hint goal shape: the goal is an And; both halves are foralls, each opened with fun (x : Person).
+-- soko:hint key piece: h x gives And (P x) (Q x); And.left / And.right take one half each, And.intro packs them.
+theorem forall_and (P : Person -> Prop) (Q : Person -> Prop) (h : forall (x : Person), And (P x) (Q x)) : And (forall (x : Person), P x) (forall (x : Person), Q x) :=
+  sorry
+
+-- Exercise 3: the other direction: two "everyone" statements join into
+-- "everyone satisfies both".
+-- soko:hint approach: split h in two, use each half on the same x, then join them with And.intro.
+-- soko:hint goal shape: the outermost layer is forall: write fun (x : Person), and the goal becomes And (P x) (Q x).
+-- soko:hint key piece: And.left / And.right pull the two foralls out of h; apply them to x.
+theorem and_forall (P : Person -> Prop) (Q : Person -> Prop) (h : And (forall (x : Person), P x) (forall (x : Person), Q x)) : forall (x : Person), And (P x) (Q x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 7.2 exists
+--
+-- An existential statement is written Exists Person P, read "there is a
+-- person in Person satisfying P". It consists of two parts: the domain A and
+-- the property p : A -> Prop.
+--
+-- To prove an existential statement, hand over one concrete witness
+-- (witness) w : Person together with a proof of P w; give both to
+-- Exists.intro.
+--
+-- To use an existential statement already in hand, the rule does not let you
+-- ask "which person is it". All you can do is hand it to a function: the
+-- function receives an anonymous person w and a proof of P w, and produces a
+-- conclusion Q. The conclusion Q must not mention w — while h is in use, it
+-- is unknown which person w is. This use rule is Exists.elim.
+--
+-- In official Lean, Exists is an inductive (you will meet it in Unit 5 when
+-- you write inductive yourself); here we follow Unit 1 and set up its two
+-- rules as axioms:
+-- ─────────────────────────────────────────────────────────────
+
+axiom Exists : (A : Type 0) -> (A -> Prop) -> Prop
+axiom Exists.intro : (A : Type 0) -> (p : A -> Prop) -> (w : A) -> p w -> Exists A p
+axiom Exists.elim : (A : Type 0) -> (p : A -> Prop) -> (Q : Prop) -> Exists A p -> ((w : A) -> p w -> Q) -> Q
+
+-- Demo 1: build an existential statement. The property is "always true", the
+-- witness is the someone declared above, plus a True.intro; with all four
+-- pieces in place, it is done.
+theorem exists_demo : Exists Person (fun (x : Person) => True) :=
+  Exists.intro Person (fun (x : Person) => True) someone True.intro
+
+-- Demo 2: use an existential statement. After h goes to Exists.elim the
+-- conclusion is True, which does not mention the witness, so True.intro
+-- closes it. If the conclusion mentioned the witness, this rule would not
+-- apply.
+theorem exists_use_demo (P : Person -> Prop) (h : Exists Person P) : True :=
+  Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro)
+
+-- ─────────────────────────────────────────────────────────────
+-- Exercise 4 (warm-up): hand over the witness w and the proof hw to build an
+-- existential statement.
+-- soko:hint approach: a proof of an existential hands over two things: a witness, and a proof that the property holds of it.
+-- soko:hint goal shape: the goal Exists Person P has no arrows to split; use the constructor directly.
+-- soko:hint key piece: Exists.intro takes four things: the domain Person, the property P, the witness w, the proof hw.
+theorem exists_intro_rule (P : Person -> Prop) (w : Person) (hw : P w) : Exists Person P :=
+  sorry
+
+-- Exercise 5: hand h to f and let f handle the witness and the evidence.
+-- soko:hint approach: use Exists.elim on h; the function it takes receives a witness w and a proof hw and produces Q.
+-- soko:hint goal shape: the conclusion Q does not mention the witness, which is exactly what the rule allows; f already has the shape "for every x, P x -> Q".
+-- soko:hint key piece: Exists.elim takes five things: Person, P, Q, h, f.
+theorem exists_elim_rule (P : Person -> Prop) (Q : Prop) (h : Exists Person P) (f : forall (x : Person), P x -> Q) : Q :=
+  sorry
+
+-- Exercise 6 (★): everyone ..., so there is someone ...; someone is that
+-- witness.
+-- soko:hint approach: eliminate h to get that someone satisfies P, then hand it over as the witness.
+-- soko:hint goal shape: the goal is Exists Person P; the witness is not among the parameters, so use someone.
+-- soko:hint key piece: h someone is a proof of P someone; Exists.intro Person P someone still needs it.
+theorem forall_exists (P : Person -> Prop) (h : forall (x : Person), P x) : Exists Person P :=
+  sorry
+
+-- Exercise 7 (★★): if P implies Q, then "there is someone satisfying P"
+-- implies "there is someone satisfying Q".
+-- soko:hint approach: use Exists.elim on h to get some w with a proof of P w; apply f w to get Q w, and pack an Exists again.
+-- soko:hint goal shape: the goal is Exists Person Q; inside the function write fun (w : Person), then fun (hw : P w).
+-- soko:hint key piece: Exists.elim consumes h; the body is Exists.intro Person Q w (f w hw).
+theorem exists_mono (P : Person -> Prop) (Q : Person -> Prop) (f : forall (x : Person), P x -> Q x) (h : Exists Person P) : Exists Person Q :=
+  sorry
