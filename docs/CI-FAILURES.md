@@ -255,3 +255,15 @@
 - **预防**：连续多次 `timeout`（而非 429）先按 Marketplace 后端故障处理：
   本机探测 `/_apis/gallery`、等恢复后本机 `--skip-duplicate` 补发；若 >24h
   仍超时，再发 `vsmarketplace@microsoft.com` 查是否 VSID 锁。
+
+## 2026-09-14 — v0.27.0 发布：marketplace-publish Azure gallery 超时（复发）
+
+- **现象**：tag `v0.27.0` 的 release 中 `build`×8 / `package-vsix` /
+  `github-release`（25 资产：lsp×8 + cli×8 + vsix×9）全绿，仅
+  `marketplace-publish` 连续 4 次 `Request timeout: /_apis/gallery`
+  （首个 universal 包就挂，故未发出任何 target 包）。
+- **定位/修复**：与 2026-09-11（v0.13.0）/ 2026-09-11 v0.17.0 同类——Azure
+  gallery 后端瞬时故障，与代码/流水线无关。探 `extensionquery` 公开端点
+  返回 `200`（已恢复）后 `gh run rerun 34848107228 --failed` 重跑即可。
+- **预防**：连续 `timeout`（非 429）按后端故障处理；先探 gallery 健康度，
+  恢复后 `gh run rerun --failed`；沿用既有 runbook，无需改流水线。
