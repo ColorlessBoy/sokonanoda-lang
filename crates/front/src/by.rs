@@ -17,15 +17,20 @@ use crate::proof::{parse_expr_text, render_expr};
 use crate::spine::{mentions, peel_pi, spine_of, substitute, unify_spine};
 use crate::Span;
 
+/// 一个未闭合目标：内核渲染的类型文本 + 沿父链收集的已引入假设。
+#[derive(Debug, Clone, PartialEq)]
+pub struct ByGoal {
+    pub ty: String,
+    pub binders: Vec<Binder>,
+}
+
 /// 编译期记录的每个 tactic 步执行后的 goal 状态（Phase 2 的 goal 面板用）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct ByStep {
     /// 该 tactic 的源码 span。
     pub span: Span,
-    /// 该步执行后的剩余目标；`None` = 所有目标已闭合。
-    pub goal: Option<String>,
-    /// 该步执行后的已引入假设（根到该步）。
-    pub binders: Vec<Binder>,
+    /// 该步执行后的**全部**未闭合目标，当前目标在首位；空 = 所有目标已闭合。
+    pub goals: Vec<ByGoal>,
 }
 
 /// 引擎结果：降级后的 lambda AST（可能带尾部 `Expr::Hole`）+ 每步状态。
@@ -244,21 +249,20 @@ pub fn run_by(
             // `sorry` = 占位：当前目标保持开放（no-op，节点仍是 Hole）。
             Tactic::Sorry { .. } => {}
         }
-        // 记录当前（最新）被解目标的状态（Phase 2 goal 面板）。
-        if let Some(&top) = worklist.last() {
-            steps.push(ByStep {
-                span: tactic.span(),
-                goal: Some(render_expr(&nodes[top].ty)),
-                binders: context_binders(&nodes, top),
-            });
-        } else {
-            // 全部目标已闭合：记录闭合状态（goal = None）。
-            steps.push(ByStep {
-                span: tactic.span(),
-                goal: None,
-                binders: Vec::new(),
-            });
-        }
+        // 记录当前（最新）被解目标的状态（Phase 2 goal 面板）：所有未闭合
+        // 目标都记下来（当前目标在首位），客户端才能一次看到完整目标列表。
+        let goals = worklist
+            .iter()
+            .rev()
+            .map(|&id| ByGoal {
+                ty: render_expr(&nodes[id].ty),
+                binders: context_binders(&nodes, id),
+            })
+            .collect();
+        steps.push(ByStep {
+            span: tactic.span(),
+            goals,
+        });
     }
 
     let expr = assemble(&nodes, 0, hole_span(tactics, *by_span));

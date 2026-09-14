@@ -92,6 +92,19 @@ fn entry_script_speaks_the_goal_view_protocol() {
         script.contains("onDidChangeTextEditorSelection"),
         "the cursor goal view must track selection changes"
     );
+    // Multi-goal display (docs/design/goal-list.md): both goal views must
+    // render the server's full open-goal list, not just the current goal.
+    assert!(
+        script.contains("cursor.goals") && script.contains("decl.goals"),
+        "the goal views must render every open goal from the server (goals), not only one"
+    );
+    // Cursor-move performance (docs/design/goal-list.md): caret movement must
+    // not refetch `soko/goals` / rebuild the exercise nodes — the client
+    // caches the declaration TreeItems and refreshes only the cursor group.
+    assert!(
+        script.contains("declItems") && script.contains("refreshCursor"),
+        "cursor movement must reuse cached declaration items (no soko/goals per caret move)"
+    );
     // Server-side hole logic: the client must NOT scan for holes by text.
     assert!(
         !script.contains("find(\"sorry\")") && !script.contains("indexOf(\"sorry\")"),

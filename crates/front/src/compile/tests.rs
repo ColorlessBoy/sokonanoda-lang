@@ -766,7 +766,6 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
-                | ErrorKind::ElabIntroNotAFunction
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -793,7 +792,6 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
-        ErrorKind::ElabIntroNotAFunction,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -898,214 +896,6 @@ fn open_exercise_does_not_pollute_env() {
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "ok")));
 }
 
-// ---- 值位 `funintro`（一次全剥的 lambda 骨架）----
-
-#[test]
-fn funintro_lowers_all_pi_binders_into_a_lambda_skeleton() {
-    let src = "axiom And : Prop -> Prop -> Prop\n\
-               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro\n";
-    let file = parse(src).expect("parse");
-    let report = check_document(&file);
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("and_swap"))
-        .expect("decl and_swap");
-    assert_eq!(d.status, DeclStatus::Open);
-    assert_eq!(d.goal.as_deref(), Some("And b a"));
-    let binders: Vec<(&str, &str)> = d
-        .binders
-        .iter()
-        .map(|b| (b.name.as_str(), b.ty.as_str()))
-        .collect();
-    assert_eq!(
-        binders,
-        vec![("a", "Prop"), ("b", "Prop"), ("x", "And a b")]
-    );
-    assert_eq!(d.holes.len(), 1);
-    assert_eq!(
-        &src[d.holes[0].start.offset..d.holes[0].end.offset],
-        "funintro"
-    );
-    assert_eq!(
-        d.intro_skeleton.as_deref(),
-        Some("fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry")
-    );
-}
-
-#[test]
-fn funintro_names_anonymous_layers_x_and_dedups() {
-    let report = check_document(
-        &parse("def f : (x : Prop) -> Prop -> Nat -> Nat := funintro\n").expect("parse"),
-    );
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("f"))
-        .expect("decl f");
-    let names: Vec<&str> = d.binders.iter().map(|b| b.name.as_str()).collect();
-    assert_eq!(names, vec!["x", "x2", "x3"]);
-    assert_eq!(d.goal.as_deref(), Some("Nat"));
-    assert_eq!(
-        d.intro_skeleton.as_deref(),
-        Some("fun (x : Prop) => fun (x2 : Prop) => fun (x3 : Nat) => sorry")
-    );
-}
-
-#[test]
-fn funintro_on_a_non_function_goal_is_rejected() {
-    let report =
-        check_document(&parse("axiom True : Prop\ntheorem t : True := funintro\n").expect("parse"));
-    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
-    assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Failed);
-    assert!(d.intro_skeleton.is_none());
-}
-
-#[test]
-fn funintro_open_exercise_does_not_touch_the_kernel() {
-    let file = parse("theorem t : (a : Prop) -> a -> a := funintro\n").expect("parse");
-    let out = compile_fol(&file);
-    assert_eq!(out.errors, vec![], "{:?}", out.errors);
-    assert_eq!(out.stats.kernel_checks, 0, "intro is an open exercise");
-    assert!(out
-        .events
-        .iter()
-        .any(|e| matches!(e, CheckEvent::ExerciseOpen { name } if name.as_deref() == Some("t"))));
-}
-
-#[test]
-fn funintro_preserves_implicit_binder_style() {
-    let report =
-        check_document(&parse("theorem t : {a : Prop} -> a -> a := funintro\n").expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.goal.as_deref(), Some("a"));
-    assert_eq!(
-        d.intro_skeleton.as_deref(),
-        Some("fun {a : Prop} => fun (x : a) => sorry")
-    );
-}
-
-/// 值位 `funintro` 是**可选糖**：不展开也完全等价于手写骨架。
-///
-/// 用户诉求（原话）：「`funintro` 也可以不被替换，直接等价于对应的 `fun`
-/// 表达式，这样更方便。」这条测试把它钉成契约——`funintro` 与把
-/// `intro_skeleton` 原样粘回去，必须得到同一个练习：同 status、同 goal、
-/// 同 binders、同洞数。区别只有两处：`funintro` 的洞落在 `funintro` token 上、
-/// 且它多带一份 `intro_skeleton`（那正是给编辑器展开用的）。
-#[test]
-fn funintro_is_equivalent_to_typing_the_skeleton_out_by_hand() {
-    let head = "axiom And : Prop -> Prop -> Prop\n";
-    let ty = "(a : Prop) -> (b : Prop) -> And a b -> And b a";
-    let with_intro = format!("{head}theorem and_swap : {ty} := funintro\n");
-    let by_hand = format!(
-        "{head}theorem and_swap : {ty} :=\n  \
-         fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry\n"
-    );
-
-    let report = check_document(&parse(&with_intro).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let a = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("and_swap"))
-        .expect("decl");
-    let skeleton = a
-        .intro_skeleton
-        .clone()
-        .expect("intro carries its skeleton");
-
-    let report = check_document(&parse(&by_hand).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let b = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("and_swap"))
-        .expect("decl");
-
-    let binders = |d: &DeclState| {
-        d.binders
-            .iter()
-            .map(|x| (x.name.clone(), x.ty.clone()))
-            .collect::<Vec<_>>()
-    };
-    assert_eq!(a.status, DeclStatus::Open);
-    assert_eq!(
-        b.status,
-        DeclStatus::Open,
-        "handwritten skeleton is also open"
-    );
-    assert_eq!(a.goal, b.goal, "same remaining goal");
-    assert_eq!(binders(a), binders(b), "same introduced binders");
-    assert_eq!(a.holes.len(), 1);
-    assert_eq!(a.holes.len(), b.holes.len(), "same number of holes");
-    // 骨架原样粘回去，就该是我们给出的那个字符串——不多不少。
-    assert_eq!(
-        skeleton,
-        "fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry"
-    );
-    assert!(
-        b.intro_skeleton.is_none(),
-        "only the `funintro` form carries the editor skeleton"
-    );
-}
-
-/// 换行只为不写超长行：把 `:= funintro` 折成两行，练习必须**一字不差**地相同
-///（用户症状：`playground.sokonanoda:201` 只差一个换行，行为却不一样）。
-#[test]
-fn value_funintro_is_layout_independent() {
-    let head = "axiom And : Prop -> Prop -> Prop\n";
-    let ty = "(a : Prop) -> (b : Prop) -> And a b -> And b a";
-    let same_line = format!("{head}theorem and_swap : {ty} := funintro\n");
-    let next_line = format!("{head}theorem and_swap : {ty} :=\n  funintro\n");
-    // 学习者顺手关掉补全弹窗打的那个尾随空格，也不该改变任何东西。
-    let trailing = format!("{head}theorem and_swap : {ty} := funintro \n");
-
-    let decl_of = |src: &str| {
-        let report = check_document(&parse(src).expect("parse"));
-        assert!(report.errors.is_empty(), "{src:?}: {:?}", report.errors);
-        report
-            .decls
-            .into_iter()
-            .find(|d| d.name.as_deref() == Some("and_swap"))
-            .expect("decl and_swap")
-    };
-
-    let base = decl_of(&same_line);
-    for src in [&next_line, &trailing] {
-        let other = decl_of(src);
-        assert_eq!(other.status, base.status, "{src:?}");
-        assert_eq!(other.goal, base.goal, "{src:?}");
-        assert_eq!(other.intro_skeleton, base.intro_skeleton, "{src:?}");
-        let binders = |d: &DeclState| {
-            d.binders
-                .iter()
-                .map(|x| (x.name.clone(), x.ty.clone()))
-                .collect::<Vec<_>>()
-        };
-        assert_eq!(binders(&other), binders(&base), "{src:?}");
-        // 洞数一致；只有 span 随排版走（不同布局本来就指向不同的字节）。
-        assert_eq!(other.holes.len(), base.holes.len(), "{src:?}");
-        assert_eq!(
-            &src[other.holes[0].start.offset..other.holes[0].end.offset],
-            "funintro",
-            "{src:?}"
-        );
-    }
-}
-
 // ---- 值位 `funapply`（目标「倒过来」消费，前提留洞）----
 
 #[test]
@@ -1155,15 +945,6 @@ fn by_block_apply_still_uses_the_tactic_engine() {
 }
 
 #[test]
-fn nested_funintro_without_a_function_goal_is_still_rejected() {
-    // 嵌套 funintro：内层面对非函数目标 → 既有教学错误码（无需新码）。
-    let src = "axiom P : Prop\ntheorem t : P := funintro (funintro)\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
-    assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
-}
-
-#[test]
 fn overapplied_spine_through_def_shows_hole_expected_type() {
     // 用户案例（playground L216，0.25.0 精确化）：`(And.right a (Not a) x)
     // sorry` —— And.right 全量应用的结果是 `Not a`（def 展开为 `a ->
@@ -1207,7 +988,7 @@ fn overapplied_spine_through_def_shows_hole_expected_type() {
 #[test]
 fn sorry_in_argument_position_within_open_exercise_is_accepted() {
     // 用户案例 B：`(And.right a (Not a) x) sorry` —— sorry 在参数位置（不在
-    // 值位开头也不在 lambda 尾的 funintro/after 位置）。open_goal 的 spine
+    // 值位开头也不在 lambda 尾的位置）。open_goal 的 spine
     // 走查因超量应用（通过 `Not` def 间接获得函数类型）无法分解，但值里有
     // 洞 → fallback 生成 generic open exercise（整值 = 一个洞）。
     let src = "axiom P : Prop\n\
@@ -1253,61 +1034,6 @@ fn incomplete_application_without_sorry_shows_remaining_goals_on_hover() {
 }
 
 #[test]
-fn keywords_work_in_a_lambda_tail() {
-    // lambda 体尾部可用 `funintro`：拆完 binder 后直接写答案是主流程。
-    // 剥完 x : Q 后还剩 `Q -> P`——lambda 尾的 funintro 把它也剥掉，答案填 P。
-    let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
-               theorem t : Q -> (Q -> P) := fun (x : Q) => funintro proofP\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Checked, "the answer is kernel-judged");
-    assert!(d.intro_skeleton.is_none());
-}
-
-#[test]
-fn nested_funintro_in_a_lambda_tail_lowers_to_the_skeleton() {
-    // 多层 lambda 尾部的裸 `funintro`：剩余目标还有一层函数，嵌套的 funintro
-    // 把它也剥掉。洞 = 嵌套 funintro token，骨架只覆盖 funintro 自身的展开。
-    let src = "axiom P : Prop\naxiom Q : Prop\n\
-               theorem t : Q -> (Q -> P) := fun (x : Q) => funintro\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Open);
-    assert_eq!(d.goal.as_deref(), Some("P"));
-    assert_eq!(d.holes.len(), 1);
-    let text = "axiom P : Prop\naxiom Q : Prop\n\
-                theorem t : Q -> (Q -> P) := fun (x : Q) => funintro\n";
-    assert_eq!(
-        &text[d.holes[0].start.offset..d.holes[0].end.offset],
-        "funintro"
-    );
-    // 骨架的合成 binder 避开外层 lambda 的 `x`（命名避让）。
-    assert_eq!(d.intro_skeleton.as_deref(), Some("fun (x2 : Q) => sorry"));
-}
-
-#[test]
-fn nested_funintro_on_a_non_function_goal_is_still_rejected() {
-    // 边界不变：剩余目标不是函数时，裸 `funintro` 没有东西可引入 → 教学错误
-    // （and_swap 拆到只剩 `And b a` 时就是这种形态，此时该用 funapply 或直接写）。
-    let src = "axiom And : Prop -> Prop -> Prop\n\
-               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
-                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => funintro\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
-    assert_eq!(report.errors[0].code(), "elab-intro-not-a-function");
-}
-
-#[test]
 fn by_in_a_lambda_tail_enters_tactic_mode() {
     // 用户诉求：`by` 也能在 lambda 里直接进 tactic 模式——拆完 binder 后
     // 用 tactic 继续是主流程。降低走 `split_by_value`（沿链收集 binder），
@@ -1323,7 +1049,6 @@ fn by_in_a_lambda_tail_enters_tactic_mode() {
         .expect("decl t");
     assert_eq!(d.status, DeclStatus::Checked, "the kernel judges the fill");
     assert!(!d.by_steps.is_empty(), "the tactic step is recorded");
-    assert!(d.intro_skeleton.is_none());
 }
 
 #[test]
@@ -1357,49 +1082,6 @@ fn by_sorry_in_a_lambda_tail_is_an_open_exercise() {
     assert_eq!(d.status, DeclStatus::Open);
     assert_eq!(d.holes.len(), 1);
     assert_eq!(d.goal.as_deref(), Some("P"));
-}
-
-#[test]
-fn funintro_with_an_answer_is_the_implicit_replacement() {
-    // 用户诉求：「不修改内核的前提下，改前端隐式替换」——`intro <answer>`
-    // 由前端把 intro 隐式替换成 `fun … => <answer>`，学习者不必先接受展开
-    // 才能继续写。判定仍由内核终审（这里是完整证明 → Checked）。
-    // 答案必须是**最终目标**的证明：intro 引入 `x : Q` 之后，目标是 `P`，
-    // 所以答案是 `proofP : P`（而不是 `impl : Q -> P`——那是函数，类型会对不上）。
-    let src = "axiom P : Prop\naxiom Q : Prop\naxiom proofP : P\n\
-               theorem t : Q -> P := funintro proofP\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Checked, "the answer is kernel-judged");
-    assert!(d.holes.is_empty(), "an answer leaves no synthetic hole");
-    // 有答案就没有「待展开」这回事了：不再携带编辑器骨架。
-    assert!(
-        d.intro_skeleton.is_none(),
-        "an answered intro has nothing left to expand: {:?}",
-        d.intro_skeleton
-    );
-}
-
-#[test]
-fn funintro_with_a_wrong_answer_is_judged_by_the_kernel() {
-    // 答案 `wrongQ : Q` 不是 `P` 的证明 → 内核拒绝。
-    // 前端不做判定，也没有合成洞可绕。
-    let src = "axiom P : Prop\naxiom Q : Prop\naxiom wrongQ : Q\n\
-               theorem t : Q -> P := funintro wrongQ\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
-    assert_eq!(report.errors[0].code(), "kernel-rejected");
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Failed);
 }
 
 // ---- 声明级 binder（Lean 风格：theorem f (a : A) : B := v）----
@@ -1438,7 +1120,6 @@ fn decl_binders_open_exercise_reports_codomain_and_context() {
         &src[d.holes[0].start.offset..d.holes[0].end.offset],
         "sorry"
     );
-    assert!(d.intro_skeleton.is_none());
 }
 
 #[test]
@@ -1456,31 +1137,6 @@ fn decl_binders_closed_body_needs_no_lambdas() {
         .find(|d| d.name.as_deref() == Some("and_swap3"))
         .expect("decl and_swap3");
     assert_eq!(d.status, DeclStatus::Checked);
-}
-
-#[test]
-fn decl_binders_funintro_peels_only_the_residual() {
-    let src = "theorem t (a : Prop) : a -> a := funintro\n";
-    let report = check_document(&parse(src).expect("parse"));
-    assert!(report.errors.is_empty(), "{:?}", report.errors);
-    let d = report
-        .decls
-        .iter()
-        .find(|d| d.name.as_deref() == Some("t"))
-        .expect("decl t");
-    assert_eq!(d.status, DeclStatus::Open);
-    assert_eq!(d.goal.as_deref(), Some("a"));
-    let binders: Vec<(&str, &str)> = d
-        .binders
-        .iter()
-        .map(|b| (b.name.as_str(), b.ty.as_str()))
-        .collect();
-    assert_eq!(binders, vec![("a", "Prop"), ("x", "a")]);
-    assert_eq!(d.intro_skeleton.as_deref(), Some("fun (x : a) => sorry"));
-    assert_eq!(
-        &src[d.holes[0].start.offset..d.holes[0].end.offset],
-        "funintro"
-    );
 }
 
 #[test]
@@ -1758,7 +1414,6 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
-        ErrorKind::ElabIntroNotAFunction,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1786,7 +1441,6 @@ fn protocol_doc_lists_every_error_code() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
-                | ErrorKind::ElabIntroNotAFunction
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -3253,18 +2907,45 @@ fn partial_by_block_records_per_step_states() {
     // step 0 = `intro a` 执行后：binder a : Prop，目标剩 `And a a -> a`
     // （应用链左结合，函数位置不补括号）。
     let s0 = &d.by_steps[0];
-    assert_eq!(s0.goal.as_deref(), Some("And a a -> a"));
-    assert_eq!(s0.binders.len(), 1);
-    assert_eq!(s0.binders[0].name, "a");
-    assert_eq!(s0.binders[0].ty, "Prop");
+    assert_eq!(s0.goals.len(), 1);
+    assert_eq!(s0.goals[0].ty, "And a a -> a");
+    assert_eq!(s0.goals[0].binders.len(), 1);
+    assert_eq!(s0.goals[0].binders[0].name, "a");
+    assert_eq!(s0.goals[0].binders[0].ty, "Prop");
     assert_eq!(&src[s0.span.start.offset..s0.span.end.offset], "intro a");
     // step 1 = `intro h` 执行后：h : And a a，目标剩 `a`。
     let s1 = &d.by_steps[1];
-    assert_eq!(s1.goal.as_deref(), Some("a"));
-    assert_eq!(s1.binders.len(), 2);
-    assert_eq!(s1.binders[1].name, "h");
-    assert_eq!(s1.binders[1].ty, "And a a");
+    assert_eq!(s1.goals.len(), 1);
+    assert_eq!(s1.goals[0].ty, "a");
+    assert_eq!(s1.goals[0].binders.len(), 2);
+    assert_eq!(s1.goals[0].binders[1].name, "h");
+    assert_eq!(s1.goals[0].binders[1].ty, "And a a");
     assert_eq!(&src[s1.span.start.offset..s1.span.end.offset], "intro h");
+}
+
+#[test]
+fn apply_records_all_open_goals_current_first() {
+    // 多目标（本轮修复）：`apply And.intro` 开出两个子目标，per-step 状态
+    // 必须记下全部（当前目标在首位），否则 goal 面板只能显示一个。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom P : Prop\n\
+               axiom Q : Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem both : And P Q := by apply And.intro\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("both"))
+        .unwrap();
+    let step = &d.by_steps[0];
+    let tys: Vec<&str> = step.goals.iter().map(|g| g.ty.as_str()).collect();
+    assert_eq!(
+        tys,
+        vec!["P", "Q"],
+        "both apply sub-goals recorded, current first"
+    );
 }
 
 #[test]
@@ -3280,8 +2961,11 @@ fn checked_by_block_records_closed_final_step() {
         .unwrap();
     assert_eq!(d.status, DeclStatus::Checked);
     assert_eq!(d.by_steps.len(), 3);
-    assert_eq!(d.by_steps[0].goal.as_deref(), Some("a -> a"));
-    assert_eq!(d.by_steps[2].goal, None, "all goals closed by `exact`");
+    assert_eq!(d.by_steps[0].goals[0].ty, "a -> a");
+    assert!(
+        d.by_steps[2].goals.is_empty(),
+        "all goals closed by `exact`"
+    );
 }
 
 #[test]

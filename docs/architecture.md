@@ -101,7 +101,7 @@ sokonanoda-lang/
 - `--` 是行注释；`???` 是 Hole（未完成练习）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`。
-- 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）`funintro`（`Expr::Intro`，同上全剥成 `fun … => sorry`，可选答案时末端放答案）
+- 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）；值位不再有其它关键字（`funintro` 已在 0.27.0 移除，见 `docs/design/remove-funintro.md`）
 与 `funapply`（`Expr::Apply`，`crates/front/src/compile/apply.rs` 降为带前提洞
 的部分应用；类型经 `judge_infer` 推断，判定仍在填洞后）。
 - **声明级 binder**（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v` 在 parser 里降级为 `ty = Forall{binders → C}`、`val = Lambda{binders → v}`（`parser.rs::wrap_decl_binders`）；`by` 引擎把声明 binder 作为初始上下文（`run_by` 的 `initial_binders`），`:= sorry` 的剩余目标直接是 `C`。

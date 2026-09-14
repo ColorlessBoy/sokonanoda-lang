@@ -26,7 +26,7 @@ theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by intro a; in
 
 theorem by_ex5 : (a : Prop) -> a -> a := by intro a; intro h; assumption
 
-theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)
+theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by intro a; intro b; intro h; exact And.intro b a (And.right a b h) (And.left a b h)
 
 axiom h_s : True -> True
 axiom Pfam : Prop -> Prop

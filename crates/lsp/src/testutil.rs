@@ -194,21 +194,6 @@ pub(crate) async fn type_step(
     let _ = wait_diagnostics(socket, "diagnostics after one typed step").await;
 }
 
-/// 把 `text` 展开成「在 `offset` 起逐字符输入」的步骤序列（纯函数，不驱动服务）。
-///
-/// 用于「前缀不触发补全、整词才触发」这类门控行为（`intro`/`apply` 的值位
-/// 补全都是整词门控）：调用方逐步 `type_step`，并在**每个中间态**断言。
-pub(crate) fn char_steps<'a>(text: &'a str, offset: usize) -> Vec<TypedStep<'a>> {
-    let mut steps = Vec::new();
-    let mut consumed = 0usize;
-    for ch in text.chars() {
-        let next = consumed + ch.len_utf8();
-        steps.push((offset + consumed, 0, &text[consumed..next]));
-        consumed = next;
-    }
-    steps
-}
-
 /// Read the next server→client message, failing with context if it never comes.
 pub(crate) async fn next_socket(socket: &mut ClientSocket, waiting_for: &str) -> RpcRequest {
     tokio::time::timeout(TIMEOUT, socket.next())

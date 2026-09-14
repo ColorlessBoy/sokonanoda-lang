@@ -736,12 +736,6 @@ pub(crate) fn elab_expr<'a>(
             "internal: `by` block reached elaboration without being lowered",
             *span,
         )),
-        // 值位 `funintro` 同理：check 阶段先降低为显式 lambda + 洞。
-        Expr::Intro { span, .. } => Err(CompileError::elab(
-            ErrorKind::ElabHoleMisplaced,
-            "internal: `funintro` reached elaboration without being lowered",
-            *span,
-        )),
     }
 }
 
@@ -753,7 +747,6 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
         Expr::Ident { name: n, .. } => n == name,
         Expr::UniverseApp { name: n, .. } => n == name,
         Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => false,
-        Expr::Intro { .. } => false,
         Expr::App { fun, arg, .. } => mentions_ident(fun, name) || mentions_ident(arg, name),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
             binders

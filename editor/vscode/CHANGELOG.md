@@ -1,3 +1,30 @@
+## [0.27.0] - 2026-09-14
+
+### Added
+
+- **Multi-goal display** — after a tactic that opens several sub-goals (for
+  example `apply And.intro`), the cursor goal view and the exercise panel now
+  list **every** remaining goal, current first, each with its own hypotheses,
+  instead of showing only the top goal. The server records the full open-goal
+  list per tactic step and exposes it as `goals[]` in `soko/stateAt` and
+  `soko/goals`; the single `goal`/`binders` fields remain for older clients.
+- **Tactic goal-state hover** — hovering a `by` tactic (anywhere in its source
+  span) shows the goal state entering that tactic — every remaining goal with
+  its hypotheses, Infoview-style. It reuses the per-tactic snapshot
+  (`by_steps`), so no re-check happens on hover.
+- **Tactic keywords are highlighted** — `by`, `exact`, `assumption` and `rfl`
+  are now classified as keywords (previously they colored as plain
+  identifiers).
+
+### Removed
+
+- **Value-position keywords** — `funintro` (and the earlier `funapply`) are
+  gone. The value position now accepts only a plain expression or a
+  `by <tactic>; …` block; `funintro` is no longer a keyword, so it parses as an
+  ordinary identifier. The completion/hover expand button, the
+  `sokonanoda.expandIntro` command, and the `elab-intro-not-a-function` error
+  code were removed with it. The `by` tactic `intro` is unchanged.
+
 ## [0.26.0] - 2026-09-14
 
 ### Added

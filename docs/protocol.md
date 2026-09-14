@@ -92,11 +92,7 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
   `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
   `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
-  内核拒绝，消息带期望/实际),
-  `elab-apply-needs-a-term` (值位 `funapply` 后没有跟证明或函数),
-  `elab-apply-not-applicable` (被应用项的结论与当前目标对不上),
-  `elab-intro-not-a-function` (值位 `funintro` 的目标不是函数——没有 binder
-  可以引入);
+  内核拒绝，消息带期望/实际);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),
@@ -154,59 +150,19 @@ KEYWORD, TYPE (Sort / inductive), NUMBER, MACRO (`sorry`), FUNCTION
 (def/theorem names and uses), VARIABLE (axioms, unresolved idents),
 ENUM_MEMBER (constructors), PARAMETER (binders). Encoding is UTF-16 correct.
 
-## Value-position `funintro` (syntax + editor completion)
+## Value-position keywords (removed)
 
-> **改名说明（I13-S1）**：本节的「值位关键字」原名 `intro`，现已改名为 `funintro`；by 块 tactic `intro` 不受影响。下文同一含义的 `intro` 均指 `funintro`。
+The value position once accepted `funintro` (and before it `funapply`) teaching
+keywords. Both were removed — `funapply` in 0.22.0, `funintro` in 0.27.0
+(`docs/design/remove-funintro.md`). The value position now accepts only a plain
+expression or a `by <tactic>; …` block. `funintro` is no longer a keyword: it
+parses as an ordinary identifier and fails elaboration as an unknown name.
+Declarations may still carry Lean-style binders
+(`theorem t (a : Prop) (h : a) : a -> a := by …`): they desugar to a Forall type
+plus a Lambda value, so `:= sorry` reports the codomain goal with the
+declaration binders already in context.
 
-The value position accepts a bare `funintro` keyword:
-`theorem t : (a : Prop) -> a -> a := funintro`. The front unrolls every
-remaining Pi binder of the declared type into `fun … => sorry` (anonymous
-layers are named `x`, `x2`, …) and keeps the declaration an Open exercise —
-the value never reaches the kernel; the kernel still judges every fill. A
-goal with no binder to introduce is rejected with
-`elab-intro-not-a-function`.
-
-The declaration itself may also carry Lean-style binders
-(`theorem t (a : Prop) (h : a) : a -> a := intro`): they desugar to a Forall
-type plus a Lambda value, so `:= sorry` reports the codomain goal with the
-declaration binders already in context, and `intro` only peels what is left.
-
-`textDocument/completion` offers one extra item when the caret is inside
-that `intro` token: it replaces the token with the explicit skeleton
-(`textEdit`, `PlainText`; `documentation` shows the expansion). Clients
-render it like any completion; the server gates on the declaration state
-(front `DeclState.intro_skeleton` + the hole span), never by scanning text.
-
-The caret counts as "inside" from the token's first byte through the end of
-the **same line**, as long as only spaces/tabs separate it from the token —
-finishing the keyword leaves the caret just past it, and a trailing space
-(the reflex that dismisses the suggestion popup) must not kill the offer. A
-caret on a later line never matches.
-
-`textDocument/hover` on the same token shows the expansion and a clickable
-`command:sokonanoda.expandIntro?<payload>` link, where `<payload>` is the
-percent-encoded JSON `{uri, range, newText}` the server computed — identical
-to the completion's `textEdit`, so the hover button and Tab accept produce
-byte-identical edits. `(` and `)` are encoded too, so the payload never
-contains a bare `)` that markdown would read as the link's closing paren.
-The client must allow-list the command (`markdown.isTrusted.enabledCommands`)
-— LSP hover markdown is untrusted by default, and command links there are
-inert without it.
-
-Keeping `intro` un-expanded is a first-class answer: it is *equivalent* to
-the skeleton, not a placeholder for it. No client work is required to accept
-it, and the hover says so.
-
-`intro` also accepts an optional **answer** (`intro <expr>`): the front
-implicitly replaces the keyword with `fun … => <expr>`, so a learner can
-finish the proof without expanding first
-(`theorem t : Q -> P := intro proofP`). The answer must prove the *final*
-goal (after every binder is introduced); the kernel still judges it — a wrong
-answer is `kernel-rejected`, exactly as if it had been written by hand.
-An answered `intro` leaves no synthetic hole and carries no editor skeleton
-(there is nothing left to expand).
-
-### Half-expression goal state (0.23.0)
+## Half-expression goal state (0.23.0)
 
 A value that the kernel rejects can still carry useful structure: hovering
 `And.intro b a` against the goal `And b a` shows the inferred remaining goals
@@ -214,27 +170,23 @@ A value that the kernel rejects can still carry useful structure: hovering
 on the keystroke path) via `judge_infer`, whose results are cached (bounded
 128-entry fingerprint cache — see `docs/LESSONS.md`).
 
-### Keyword expressions (0.21.0 / narrowed 0.22.0)
+## Tactic goal-state hover (0.27.0)
 
-`funintro` is also recognised in **atom position** (inside parentheses, in
-answers): `funintro <answer>` implicitly replaces the keyword with
-`fun … => <answer>`. With 0.22.0 the value-position `funapply` keyword was
-**removed** for performance — its lowering re-compiled the whole document
-prefix on every keystroke (O(n²), user-reported lag) — together with the
-`elab-apply-*` error codes and the `funintro (funapply …)` composition. The
-by-block tactic `apply` is unchanged.
+`textDocument/hover` on a `by` tactic (anywhere in its source span) shows the
+goal state **entering** that tactic — every remaining goal with its
+hypotheses, Lean-Infoview style:
 
-### Command-link payload shape (editor contract)
+```text
+P : Prop
+Q : Prop
+⊢ And P Q
+```
 
-The `command:` link payload is
-`encodeURIComponent(JSON.stringify(commandArgs))` with `commandArgs` an
-**array** — VS Code's own `createCommandUri` shape — because the editor
-spreads the parsed array into `executeCommand(id, ...args)`. Emitting a bare
-object makes the click silently do nothing (the object is not iterable), and
-a unit test that calls the command directly never notices. The payload is
-therefore `[{uri, range, newText}]`, and the client handler tolerates both an
-array and a bare object for backwards compatibility.
-
+Data comes from the same per-tactic snapshot as `soko/stateAt` (`by_steps`),
+with the same entry semantics: entering tactic *i* is the state after tactic
+*i-1* (the root for the first tactic; multi-subgoal steps list every goal,
+current first). No re-check and no text scan happen at hover time. The hover
+range is the tactic's span. Editors need no extra work: it is ordinary hover.
 
 ## Custom LSP requests (goal view, I9)
 
@@ -252,6 +204,7 @@ Response:
   "name": "and_swap", "kind": "theorem", "status": "open",
   "range": {"start": {...}, "end": {...}},
   "goal": "And b a",
+  "goals": ["And b a"],
   "binders": [{"name": "a", "ty": "Prop"}, {"name": "h", "ty": "And a b"}],
   "hole": {"start": {...}, "end": {...}},
   "holes": [{"start": {...}, "end": {...}}, ...],
@@ -261,6 +214,11 @@ Response:
 
 - one entry per declaration (all statuses); `goal`/`binders`/`hole` are
   present for open exercises (`hole` is the exact `sorry` range);
+- `goals` lists **every** open goal after the last recorded tactic (the current
+  goal first) for `by` declarations, or the single walked remaining goal for
+  non-`by` open exercises; empty for non-open declarations. It is the
+  declaration-level counterpart of `soko/stateAt`'s per-cursor `goals` — a
+  multi-subgoal `apply` shows all of its sub-goals here, not just one;
 - `holes` lists every `sorry` (multi-hole constructor/function spines
   included) as objects `{"range": {…}, "id": "<declName>:<index>"}` — the id
   is stable per (declaration, hole order) within a document version
@@ -313,6 +271,7 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   "decl": {"name": "open", "kind": "theorem", "status": "open", "range": {}},
   "goal": "And a a -> a",
   "binders": [{"name": "a", "ty": "Prop"}],
+  "goals": [{"goal": "And a a -> a", "binders": [{"name": "a", "ty": "Prop"}]}],
   "span": {"start": {...}, "end": {...}},
   "step": 1,
   "total": 2
@@ -324,6 +283,12 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   state after the last tactic that ended at or before the caret; before the
   first tactic → the root state (`step: -1`, `span` = the declaration's
   range, goal = the full kernel-rendered declared type).
+- `goals` is the **full** remaining-goal list at that position (current goal
+  first, `[]` = closed), each entry carrying its own `goal` text and
+  `binders` — so a multi-subgoal tactic (`apply And.intro`) shows both
+  sub-goals at once. The single-value `goal`/`binders` fields are kept for
+  older clients and always equal `goals[0]` (`goal: null` when `goals` is
+  empty).
 - `step` indexes the declaration's per-tactic states (front `by_steps`,
   recorded after each tactic runs); `total` is the tactic count. For a
   declaration without a `by` block both are `-1`/`0` and the response falls
@@ -384,7 +349,10 @@ those premises genuinely have no source text of their own. Consequences:
 - the stable identity for programmatic consumers is `soko/goals`'
   `holes[i].id` (unique by index), **not** the range;
 - inlay hints do show each sub-goal's own type (they align by position
-  index), so the information is visible even though it is not addressable.
+  index), so the information is visible even though it is not addressable;
+- the full open-goal list **is** addressable as data: `soko/stateAt`'s
+  `goals[]` and `soko/goals`' `goals[]` list every goal (current first),
+  so the gap is navigation only, not visibility (docs/design/goal-list.md).
 
 Not a regression to fix by inventing positions: fabricating distinct offsets
 would produce bogus ranges for `documentHighlight` / `selectionRange`.

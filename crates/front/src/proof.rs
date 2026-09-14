@@ -225,10 +225,6 @@ pub fn render_expr(expr: &Expr) -> String {
         }
         Expr::Num { value, .. } => value.clone(),
         Expr::Hole { .. } => "sorry".to_string(),
-        Expr::Intro { answer, .. } => match answer {
-            Some(answer) => format!("funintro {}", render_atom(answer)),
-            None => "funintro".to_string(),
-        },
         Expr::App { fun, arg, .. } => {
             format!("{} {}", render_fun_position(fun), render_atom(arg))
         }

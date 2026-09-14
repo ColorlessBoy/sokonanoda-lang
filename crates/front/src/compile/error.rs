@@ -35,7 +35,6 @@ pub enum ErrorKind {
     ElabTooManyCtorFields,
     ElabUnknownCtorForIota,
     ElabTacticFailed,
-    ElabIntroNotAFunction,
     ElabApplyNeedsATerm,
     ElabApplyNotApplicable,
     KernelExpectedSort,
@@ -68,7 +67,6 @@ impl ErrorKind {
             | ElabTooManyCtorFields
             | ElabUnknownCtorForIota
             | ElabTacticFailed
-            | ElabIntroNotAFunction
             | ElabApplyNeedsATerm
             | ElabApplyNotApplicable => CompileStage::Elab,
             KernelExpectedSort
@@ -101,7 +99,6 @@ impl ErrorKind {
             ElabTooManyCtorFields => "elab-too-many-ctor-fields",
             ElabUnknownCtorForIota => "elab-unknown-ctor-for-iota",
             ElabTacticFailed => "elab-tactic-failed",
-            ElabIntroNotAFunction => "elab-intro-not-a-function",
             ElabApplyNeedsATerm => "elab-apply-needs-a-term",
             ElabApplyNotApplicable => "elab-apply-not-applicable",
             KernelExpectedSort => "kernel-expected-sort",
@@ -161,9 +158,6 @@ impl ErrorKind {
             }
             ElabTacticFailed => {
                 "`by` 块里的 tactic 失败了：请检查当前目标与已引入的假设。"
-            }
-            ElabIntroNotAFunction => {
-                "值位 `funintro` 需要目标至少是一层函数（`A -> B` 或 `forall …`）。先看目标最外层有没有箭头；不是函数就直接写答案或 sorry。"
             }
             ElabApplyNeedsATerm => {
                 "`funapply` 后面要跟一个证明或函数，例如 `funapply h`；要应用的项复杂时可以用括号界定范围，例如 `funapply (f a)`。"

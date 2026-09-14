@@ -52,16 +52,23 @@ pub struct SubGoal {
     pub ty: Option<String>,
 }
 
+/// One open goal after a tactic step: its type and the hypotheses in scope
+/// for it (a different sub-goal may carry a different context).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ByGoalState {
+    pub ty: String,
+    pub binders: Vec<GoalBinder>,
+}
+
 /// One tactic step of a `by` block, recorded by the engine as the state
 /// **after** that tactic executed (`docs/design/by-tactics.md` §6): the
-/// tactic's source span, the remaining goal (`None` when every goal is
-/// closed) and the hypotheses in scope at that point. In the I8 session
-/// snapshot this is the editor's "goals at cursor" data (`soko/stateAt`).
+/// tactic's source span and **every** remaining goal (the current goal first;
+/// empty when every goal is closed). In the I8 session snapshot this is the
+/// editor's "goals at cursor" data (`soko/stateAt`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ByStepState {
     pub span: Span,
-    pub goal: Option<String>,
-    pub binders: Vec<GoalBinder>,
+    pub goals: Vec<ByGoalState>,
 }
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
@@ -103,9 +110,6 @@ pub struct DeclState {
     /// known template, a full-application skeleton with auto-filled parameters
     /// and `sorry` for the proof fields (e.g. `And.intro a b sorry sorry`).
     pub refine_template: Option<String>,
-    /// 值位是 `funintro` 时的显式展开骨架（`fun (a : Prop) => … => sorry`）。
-    /// 编辑器补全项的单一事实源；其它声明为 `None`。
-    pub intro_skeleton: Option<String>,
     /// The declaration's hint ladder, authored in the canvas as
     /// `-- soko:hint <text>` comment directives attached to this declaration
     /// (`compile::hints::attach_hints`). Empty when the source has no hints

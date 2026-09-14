@@ -7,7 +7,6 @@ mod error;
 mod event;
 mod goals;
 pub mod hints;
-mod intro;
 mod prelude;
 mod report;
 mod warning;
@@ -19,8 +18,8 @@ pub use event::{CheckEvent, CompileOutput, CompileStats};
 pub use hints::{attach_hints, attach_hints_to_report, source_hints};
 pub use prelude::{prelude_mode_from_source, CompileOptions, PreludeMode, PRELUDE_NAMES};
 pub use report::{
-    ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder, HoverType,
-    ResolvedTarget, SubGoal,
+    ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
+    GoalBinder, HoverType, ResolvedTarget, SubGoal,
 };
 pub use warning::{collect_warnings, CompileWarning, WarningKind, RESERVED_SORT_NAMES};
 

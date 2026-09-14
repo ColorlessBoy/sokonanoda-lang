@@ -475,3 +475,24 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   论域、7 题 + 三层提示 + `#reduce` 自测）②`course/unit7-quantifiers.sokonanoda`
   + 解答钥匙 + 英文镜像 + golden `(14, 7, 1)` + `course.json` unit=1..7
   ③§3 钥匙表与 §5 课程地图同步到 `docs/teaching-session.md`。
+- 2026-09-14（四十九）：**多目标显示（用户报告）**——画布上
+  `apply And.intro; intro x` 之后应同时看到 `P x` 和 `(x : Person) -> Q x`
+  两个待证目标，当前只显示一个，属引擎层数据缺失（`ByStep` 只记 worklist
+  栈顶）。修复 = ①前端每步记录**全部**未闭合目标（当前在前，各带自己的
+  假设）②`soko/stateAt` 增 `goals[]`、`soko/goals` 每声明增 `goals[]`
+  （单值 `goal`/`binders` 保留 = `goals[0]` 兼容旧客户端）③VS Code 两个
+  目标视图渲染多目标节点。设计见 `docs/design/goal-list.md`。
+- 2026-09-14（四十九·续）：**移除值位关键字 `funintro`（用户明确）**——「跟
+  `funapply` 一样实现得稀里糊涂，不如直接删了」。值位从此只保留普通表达式与
+  `by` 块；删语法/引擎/`intro_skeleton`/`ErrorKind::ElabIntroNotAFunction`、
+  LSP 补全·hover·code action·inlay、VS Code `expandIntro` 命令、课程 unit6
+  相关段落（改写为综合 `by` 练习）、文档/site/技能；by 块 tactic `intro` 不动。
+  并入 0.27.0。设计 + as-built 见 `docs/design/remove-funintro.md`。
+- 2026-09-14（五十）：**tactic 关键字高亮 + hover 中间 goal state（用户明确）**
+  ——「`exact` 没有正确高亮；希望像 Lean 一样，在每个 tactic 上 hover 都能看到
+  中间 goal state（Infoview 式），或按鼠标位置给 goal state」。落地 = ①
+  `semantic::KEYWORDS` 增补 `by`/`exact`/`assumption`/`rfl`（`forall`/`sorry`
+  已分别由 token/Hole 着色）②`textDocument/hover` 首插 tactic 命中：光标落在某
+  tactic span 内 → 用 `by_steps` + `select_state_at` 渲染「进入该 tactic」的
+  全部目标与假设（与 `soko/stateAt` 同数据、同语义，零重编译）。并入 0.27.0。
+  设计见 `docs/design/tactic-hover.md`，协议见 `docs/protocol.md`。

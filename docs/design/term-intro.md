@@ -1,5 +1,9 @@
 # 值位 `intro` 关键字 + 展开补全（2026-09-12 设计；同日实现）
 
+> **已废弃（0.27.0，2026-09-14）**：值位关键字 `funintro`（本文件的「值位
+> `intro`」）已整体移除，见 `docs/design/remove-funintro.md`。本文仅存档历史
+> 设计；by 块 tactic `intro` 不受影响。
+
 > **改名说明（ROADMAP I13-S1，2026-09-13）**：本设计写作时值位关键字名为 `intro`，现已改名为 **`funintro`**。下文（含标题与正文）中所有指「值位关键字」的 `intro` 均对应今天的 `funintro`。AST 节点 `Expr::Intro` 与模块 `crates/front/src/compile/intro.rs` 的名称不变；by 块 tactic `intro` 不受影响。
 
 > as-built（2026-09-12 实现轮）：降低模块落在

@@ -132,14 +132,8 @@ pub fn suggest(
             terms.push(term.clone());
         }
         let refs: Vec<&str> = terms.iter().map(String::as_str).collect();
-        // 值位关键字（`intro` / `apply`）的洞是**合成的**：洞 span 指向关键字
-        // token，源码切片不是 `sorry`，`judge_hole_fill` 的「洞位源码必须恰为
-        // `sorry`」守卫必然拒绝（judge.rs:316-322）。这些声明一律走
-        // judge_terms（按折叠声明判定，不碰源码文本）——与 `intro` 一开始就
-        // 在用的路径相同。
-        let synthetic = d.intro_skeleton.is_some();
-        let judgements = if d.sub_goals.is_empty() || synthetic {
-            // 主洞 / 合成洞：judge_terms 语义。
+        let judgements = if d.sub_goals.is_empty() {
+            // 主洞：judge_terms 语义。
             judge_terms(judge_prefix, options, &open_spec(d, &expected), &refs)
         } else if single_hole {
             // spine 只剩一个洞：填好的整份证明交完整 kernel 裁决。

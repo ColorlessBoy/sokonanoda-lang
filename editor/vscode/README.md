@@ -47,13 +47,7 @@ skills.
 
 **A real editing experience**
 
-- Completions (keywords, in-scope binders, prelude names) — including the
-  value-position keywords `funintro` and `funapply`, which offer to expand in
-  place into the explicit skeleton their type determines (`fun … => sorry`
-  for `funintro`, a partial application with the premises left as holes for
-  `funapply`). Hovering either shows the same expansion with a one-click
-  expand button, and tells you that keeping the keyword is equivalent
-  anyway — expanding is never required.
+- Completions (keywords, in-scope binders, prelude names)
 - Go-to-definition, document highlight, rename, find references
 - Inlay hints showing the expected type at each hole — and the result of
   every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style)

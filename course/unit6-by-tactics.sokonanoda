@@ -78,19 +78,13 @@ theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
 theorem by_ex5 : (a : Prop) -> a -> a := by sorry
 
 -- ─────────────────────────────────────────────────────────────
--- 补充：值位 `funintro`——比 by 更短的起步写法
+-- 练习 6（综合）：把 by 的几个 tactic 串起来——intro 拆三层，exact 一次性收尾。
 --
--- `by` 之外，值位还能直接写 `funintro`：编译器一次把目标剩下的 binder 全写成
--- fun，末尾留一个洞。三层箭头的目标写 `:= funintro`，等价于手写：
+-- 多步证明几乎总要先拆 binder：`intro a; intro b; intro x` 逐层把箭头变成
+-- 假设，目标随之缩小到 `And b a`；最后用 exact 交出完整证明项。
 --
---   := fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry
---
--- 两者都合法：`funintro` 是快捷输入，`by` 是一次一层；编辑器会提示把 `funintro`
--- 展开成显式的 fun 骨架，方便对照学习。
---
--- 练习 6：用值位 funintro 起步，再把末尾的洞补完。
--- soko:hint 思路：funintro 把三层箭头全变成 fun 加一个洞；在洞里把 And b a 装出来。
--- soko:hint 目标形态：剩余目标 And b a，上下文 a、b、x : And a b（x 是自动生成的名字）。
--- soko:hint 关键件：And.intro b a 要两份证明——And.right a b x 给 b，And.left a b x 给 a。
-theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro
+-- soko:hint 思路：先用 intro 把 a、b、x 逐一引入，目标变成 And b a；再用 And.intro 构造。
+-- soko:hint 目标形态：intro a; intro b; intro x 之后目标 And b a，上下文有 x : And a b。
+-- soko:hint 关键件：And.intro b a (And.right a b x) (And.left a b x)——注意 b 在前。
+theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by sorry
 

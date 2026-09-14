@@ -50,9 +50,12 @@ const KEYWORDS: &[&str] = &[
     "iota",
     "end",
     "fun",
+    "by",
     "intro",
+    "exact",
     "apply",
-    "funintro",
+    "assumption",
+    "rfl",
     "#check",
     "#reduce",
     "#print",
@@ -248,7 +251,6 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
 fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
     match expr {
         Expr::Sort { .. } | Expr::Ident { .. } | Expr::Num { .. } | Expr::Hole { .. } => {}
-        Expr::Intro { .. } => {}
         Expr::UniverseApp { span, .. } => names.universes.push(*span),
         Expr::App { fun, arg, .. } => {
             walk_expr(fun, toks, names);
@@ -440,17 +442,19 @@ mod tests {
     }
 
     #[test]
-    fn keyword_classification_covers_funintro_in_value_and_intro_in_tactic() {
-        // 0.21.0 起值位关键字是 `funintro`/`funapply`；`intro`/`apply` 保留在
-        // KEYWORDS 里服务 by 块 tactic（分类位置无关）。
-        let src = "theorem t : (a : Prop) -> a := funintro\n\
-                   theorem u : (a : Prop) -> a := by intro a; exact a\n";
+    fn keyword_classification_covers_intro_and_apply_tactics() {
+        // by 块的关键字（`by`/`intro`/`exact`/`apply`/`assumption`/`rfl`）都要
+        // 着成 Keyword——用户报告 `exact` 不高亮（分类位置无关）。
+        let src = "theorem u : (a : Prop) -> a := by intro a; exact a\n\
+                   theorem v : (a : Prop) -> a -> a := by intro a; intro h; assumption\n";
         let spans = semantic_tokens(src);
-        assert_eq!(
-            kinds_of(src, &spans, "funintro"),
-            vec![SemanticKind::Keyword]
-        );
-        assert_eq!(kinds_of(src, &spans, "intro"), vec![SemanticKind::Keyword]);
+        for kw in ["by", "intro", "exact", "assumption"] {
+            let kinds = kinds_of(src, &spans, kw);
+            assert!(
+                !kinds.is_empty() && kinds.iter().all(|k| *k == SemanticKind::Keyword),
+                "`{kw}` must be a keyword, got {kinds:?}"
+            );
+        }
     }
 
     #[test]

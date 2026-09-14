@@ -130,25 +130,13 @@ fn cli_by_tactic_partial_block_is_open_exercise() {
 }
 
 #[test]
-fn cli_value_funintro_is_an_open_exercise() {
-    // 值位 `funintro`：一次全剥剩余 binder，合法 Open（与部分作答同一条流水线）。
-    let src = "axiom And : Prop -> Prop -> Prop\n\
-               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro\n";
-    let out = run(src);
-    assert!(
-        out.status.success(),
-        "value funintro must exit 0:\n{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    assert!(String::from_utf8_lossy(&out.stdout).contains("exercise open"));
-}
-
-#[test]
-fn cli_value_funintro_on_a_non_function_goal_is_rejected() {
-    let out = run("axiom True : Prop\ntheorem t : True := funintro\n");
+fn cli_value_funintro_is_no_longer_a_keyword() {
+    // `funintro` 已从语言中移除（docs/design/remove-funintro.md）：它现在是
+    // 一个普通标识符，值位引用会因未定义而报错，不再是合法 Open 练习。
+    let out = run("theorem t : (a : Prop) -> a := funintro\n");
     assert!(!out.status.success());
     assert!(
-        String::from_utf8_lossy(&out.stderr).contains("error[elab-intro-not-a-function]:"),
+        String::from_utf8_lossy(&out.stderr).contains("error[elab-unknown-identifier]:"),
         "stderr: {}",
         String::from_utf8_lossy(&out.stderr)
     );

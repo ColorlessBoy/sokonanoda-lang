@@ -88,8 +88,6 @@ pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
         Expr::UniverseApp { .. } | Expr::Sort { .. } | Expr::Num { .. } | Expr::Hole { .. } => {
             false
         }
-        Expr::Intro { .. } => false,
-        // 值位 `apply` 的实参里出现这个名字，也算提到它。
         Expr::App { fun, arg, .. } => mentions(name, fun) || mentions(name, arg),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
             binders
@@ -159,10 +157,6 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             span: *span,
         },
         Expr::Hole { span } => Expr::Hole { span: *span },
-        Expr::Intro { answer, span } => Expr::Intro {
-            answer: answer.as_deref().map(|t| Box::new(substitute(t, sigma))),
-            span: *span,
-        },
         Expr::App { fun, arg, span } => Expr::App {
             fun: Box::new(substitute(fun, sigma)),
             arg: Box::new(substitute(arg, sigma)),

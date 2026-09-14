@@ -49,9 +49,12 @@
 - `reserved-decl-warning.md` — 声明名撞内核已定义名字（`Prop`/`Sort`/`Type`）的 warning 通道
 - `type-level-syntax.md` — `Type n`（= `Sort (n+1)`）记法解析糖
 - `binary-cli.md` — 环境能力进 `sokonanoda` 二进制子命令（内嵌下载器），删除 `scripts/soko.sh`
-- `term-intro.md` — 值位 `funintro` 关键字 + VS Code 展开补全（已实现，0.17.0 发布；原名 `intro`，I13-S1 改名）
-- `term-apply.md` — 值位 `funapply` 关键字（已实现，0.18.0 发布；原名 `apply`，I13-S1 改名）
-- `value-keywords-v2.md` — 值位关键字 v2：funintro/funapply 改名 + 输入期补全 + 组合（设计定稿，实施中：ROADMAP I13）
+- `term-intro.md` — 值位关键字设计（**已废弃**：`funintro` 于 0.27.0 移除，见 `remove-funintro.md`）
+- `term-apply.md` — 值位 `funapply` 关键字（**已废弃**：0.22.0 移除）
+- `value-keywords-v2.md` — 值位关键字 v2（**已废弃**：`funintro`/`funapply` 均已移除）
+- `remove-funintro.md` — 移除值位关键字 `funintro`（0.27.0）
+- `goal-list.md` — 多目标显示：`by` 每步记录全部剩余目标 + 协议 `goals[]`（0.27.0）
+- `tactic-hover.md` — tactic 关键字高亮 + hover 中间 goal state（0.27.0）
 - `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（部分实施：I11-S0/S1 已落地，余项见 ROADMAP）
 - `site.md` — 项目官网（GitHub Pages）方案与信息架构（已上线：site/ + pages.yml）
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）

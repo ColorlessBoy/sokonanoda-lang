@@ -278,6 +278,14 @@ impl Backend {
                     status: status_str(d.status).to_string(),
                     range: range_of(d.span),
                     goal: d.goal.clone(),
+                    goals: match d.status {
+                        DeclStatus::Open => d
+                            .by_steps
+                            .last()
+                            .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
+                            .unwrap_or_else(|| d.goal.clone().into_iter().collect()),
+                        _ => Vec::new(),
+                    },
                     binders: d
                         .binders
                         .iter()
@@ -390,6 +398,7 @@ impl Backend {
             return Ok(StateAtResponse::empty(version));
         };
         let selection = select_state_at(d, cursor);
+        let first = selection.goals.first();
         Ok(StateAtResponse {
             version,
             decl: Some(StateDeclInfo {
@@ -398,13 +407,33 @@ impl Backend {
                 status: status_str(d.status).to_string(),
                 range: range_of(d.span),
             }),
-            goal: selection.goal,
-            binders: selection
-                .binders
-                .into_iter()
-                .map(|b| GoalBinderInfo {
-                    name: b.name,
-                    ty: b.ty,
+            // Single-value fields kept for older clients: the current goal
+            // (first of `goals`) and its hypotheses.
+            goal: first.map(|g| g.ty.clone()),
+            binders: first
+                .map(|g| {
+                    g.binders
+                        .iter()
+                        .map(|b| GoalBinderInfo {
+                            name: b.name.clone(),
+                            ty: b.ty.clone(),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+            goals: selection
+                .goals
+                .iter()
+                .map(|g| StateGoalInfo {
+                    goal: g.ty.clone(),
+                    binders: g
+                        .binders
+                        .iter()
+                        .map(|b| GoalBinderInfo {
+                            name: b.name.clone(),
+                            ty: b.ty.clone(),
+                        })
+                        .collect(),
                 })
                 .collect(),
             span: selection.span.map(range_of),
@@ -448,6 +477,10 @@ struct GoalDeclInfo {
     status: String,
     range: Range,
     goal: Option<String>,
+    /// Every open goal after the last recorded tactic (current goal first),
+    /// or the single walked remaining goal for non-`by` open exercises.
+    /// Empty for non-open declarations. Powers the multi-goal exercise panel.
+    goals: Vec<String>,
     binders: Vec<GoalBinderInfo>,
     hole: Option<Range>,
     /// Every `sorry` in the answer (main hole + constructor-spine sub-holes),
@@ -495,6 +528,13 @@ struct StateDeclInfo {
     range: Range,
 }
 
+/// One open goal inside `soko/stateAt`'s `goals` array.
+#[derive(Debug, Serialize)]
+struct StateGoalInfo {
+    goal: String,
+    binders: Vec<GoalBinderInfo>,
+}
+
 /// `soko/stateAt` response (docs/protocol.md): the goal state at the cursor,
 /// plus enough declaration info for the client to label and reveal it.
 #[derive(Debug, Serialize)]
@@ -502,8 +542,13 @@ struct StateAtResponse {
     version: i32,
     decl: Option<StateDeclInfo>,
     /// `None` = no remaining goals (the proof is closed at this position).
+    /// Single-value, equal to `goals[0].goal`; kept for older clients.
     goal: Option<String>,
+    /// Hypotheses of `goal` (single-value, equal to `goals[0].binders`).
     binders: Vec<GoalBinderInfo>,
+    /// Every remaining goal, current goal first (`[]` = closed). Clients that
+    /// render goal lists should prefer this over the single `goal`.
+    goals: Vec<StateGoalInfo>,
     /// The tactic's range (root state: the declaration's range).
     span: Option<Range>,
     /// Index of the selected per-tactic state; `-1` = root.
@@ -518,6 +563,7 @@ impl StateAtResponse {
             decl: None,
             goal: None,
             binders: Vec::new(),
+            goals: Vec::new(),
             span: None,
             step: -1,
             total: 0,
@@ -534,10 +580,16 @@ fn status_str(status: DeclStatus) -> &'static str {
     }
 }
 
+/// One goal of the selected state: its rendered type and in-scope hypotheses.
+struct SelectedGoal {
+    ty: String,
+    binders: Vec<GoalBinder>,
+}
+
 /// The declaration state selected for one cursor offset (`soko/stateAt`).
 struct StateSelection {
-    goal: Option<String>,
-    binders: Vec<GoalBinder>,
+    /// Every open goal at this position, current goal first (empty = closed).
+    goals: Vec<SelectedGoal>,
     span: Option<sokonanoda_front::Span>,
     /// Index of the selected per-tactic state; `-1` = root (before any tactic).
     step: i64,
@@ -546,11 +598,20 @@ struct StateSelection {
 
 impl StateSelection {
     fn root(d: &DeclState) -> Self {
+        // Root goal: the full declared type (kernel-rendered) when known,
+        // falling back to the remaining goal for plain open exercises.
+        let goals = d
+            .ty_text
+            .clone()
+            .or_else(|| d.goal.clone())
+            .map(|ty| SelectedGoal {
+                ty,
+                binders: Vec::new(),
+            })
+            .into_iter()
+            .collect();
         Self {
-            // Root goal: the full declared type (kernel-rendered) when known,
-            // falling back to the remaining goal for plain open exercises.
-            goal: d.ty_text.clone().or_else(|| d.goal.clone()),
-            binders: Vec::new(),
+            goals,
             span: Some(d.span),
             step: -1,
             total: 0,
@@ -568,9 +629,17 @@ impl StateSelection {
 ///   span ends at or before the cursor (root when none has).
 fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
     if d.by_steps.is_empty() {
+        let goals = d
+            .goal
+            .clone()
+            .map(|ty| SelectedGoal {
+                ty,
+                binders: d.binders.clone(),
+            })
+            .into_iter()
+            .collect();
         return StateSelection {
-            goal: d.goal.clone(),
-            binders: d.binders.clone(),
+            goals,
             span: Some(d.span),
             step: -1,
             total: 0,
@@ -596,8 +665,14 @@ fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
         .filter(|i| *i < d.by_steps.len())
     {
         let s: &ByStepState = &d.by_steps[step];
-        selection.goal = s.goal.clone();
-        selection.binders = s.binders.clone();
+        selection.goals = s
+            .goals
+            .iter()
+            .map(|g| SelectedGoal {
+                ty: g.ty.clone(),
+                binders: g.binders.clone(),
+            })
+            .collect();
         selection.span = Some(s.span);
         selection.step = selected;
     }
@@ -625,6 +700,52 @@ fn range_start_offset(text: &str, range: &Range) -> usize {
     position_to_offset(text, range.start)
 }
 
+/// Hover on a `by` tactic shows the goal state **entering** that tactic
+/// (Lean Infoview-style, user request): every remaining goal with the
+/// hypotheses in scope, computed from the per-tactic snapshot the front
+/// already records (`by_steps`) — no re-check, no text scan. The whole tactic
+/// span is the trigger; the goal view's hypotheses make term hovers redundant
+/// inside it.
+fn tactic_goal_hover(report: &DocumentReport, offset: usize) -> Option<Hover> {
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
+    let step = d
+        .by_steps
+        .iter()
+        .find(|s| s.span.start.offset <= offset && offset <= s.span.end.offset)?;
+    // `select_state_at` on the tactic's start returns the *entering* state.
+    let selection = select_state_at(d, step.span.start.offset);
+    let mut value = String::new();
+    if selection.goals.is_empty() {
+        value.push_str("已无剩余目标 ✓");
+    } else {
+        if selection.goals.len() > 1 {
+            value.push_str(&format!("**目标（{}）**\n", selection.goals.len()));
+        }
+        for (i, goal) in selection.goals.iter().enumerate() {
+            if i > 0 {
+                value.push('\n');
+            }
+            if selection.goals.len() > 1 {
+                value.push_str(&format!("**目标 {}/{}**\n", i + 1, selection.goals.len()));
+            }
+            for binder in &goal.binders {
+                value.push_str(&format!("{} : {}\n", binder.name, binder.ty));
+            }
+            value.push_str(&format!("⊢ {}\n", goal.ty));
+        }
+    }
+    Some(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value,
+        }),
+        range: Some(range_of(step.span)),
+    })
+}
+
 /// Build an LSP `Hover` from a resolved expression hover, carrying the
 /// expression's source range so the editor highlights exactly what is shown.
 fn hover_markup(res: render::HoverResolved) -> Hover {
@@ -635,197 +756,6 @@ fn hover_markup(res: render::HoverResolved) -> Hover {
         }),
         range: Some(range_of(res.range)),
     }
-}
-
-/// `offset` 在 `end` 之后，但中间只隔着同一行的空白（没有换行）。
-fn trailing_same_line_ws(text: &str, end: usize, offset: usize) -> bool {
-    if offset <= end || end > text.len() || offset > text.len() {
-        return false;
-    }
-    text[end..offset].chars().all(|c| c == ' ' || c == '\t')
-}
-
-/// 值位关键字名（0.22.0 起只有 `funintro`；`funapply` 因性能移除）。
-const VALUE_KEYWORD: &str = "funintro";
-
-/// 值位关键字的光标命中区间：token 本身（含末尾），以及 token 之后到
-/// **同一行行尾**的空白。学习者敲完关键字常常再打一个空格（顺手关掉补全
-/// 弹窗），或者光标向右漂一格——这两种位置都该照常命中；跨行不算，
-/// 免得在后面的声明上误弹。
-fn keyword_hit(text: &str, hole: sokonanoda_front::Span, offset: usize) -> bool {
-    (hole.start.offset <= offset && offset <= hole.end.offset)
-        || trailing_same_line_ws(text, hole.end.offset, offset)
-}
-
-/// 值位关键字的定位：`(洞, 骨架)`。hover 与补全共用这一套命中规则
-/// （同一份 `DeclState` 快照，编辑器不扫文本、不重算）。
-fn keyword_at(
-    report: &DocumentReport,
-    text: &str,
-    offset: usize,
-) -> Option<(sokonanoda_front::Span, String)> {
-    let d = report.decls.iter().find(|d| {
-        (d.span.start.offset <= offset && offset <= d.span.end.offset)
-            || trailing_same_line_ws(text, d.span.end.offset, offset)
-    })?;
-    if d.status != DeclStatus::Open {
-        return None;
-    }
-    let skeleton = d.intro_skeleton.as_deref()?.to_string();
-    let hole = *d.holes.iter().find(|h| keyword_hit(text, **h, offset))?;
-    Some((hole, skeleton))
-}
-
-/// 键入态探测：光标前的词是关键字全词或其**前缀**。返回前缀词的 span。
-///
-/// **刻意不做任何 decl/状态门禁**：前缀阶段（`fun`）整篇 parse 失败、没有
-/// decl；而弹窗恰恰要在这个阶段就在。误报面（注释里手动 Ctrl+Space、by 块
-/// 里敲值位关键字）可接受且有教学提示兜底。
-///
-/// 前缀而非整词：整词门控是 v1 的决定（当时展开项只能整词命中），v2 反转——
-/// 弹窗里要**一直**有项，否则学习者输入过程中什么都看不到。
-fn keyword_typing_at(text: &str, offset: usize) -> Option<sokonanoda_front::Span> {
-    let name = VALUE_KEYWORD;
-    let bytes = text.as_bytes();
-    // 光标前允许同行空白（学习者敲完关键字习惯再打一个空格）：
-    // `funapply ` 与 `funap` 都要命中。
-    let mut word_end = offset;
-    while word_end > 0 && (bytes[word_end - 1] == b' ' || bytes[word_end - 1] == b'\t') {
-        word_end -= 1;
-    }
-    // 从词尾向前扫出已敲的词（关键字都是 ASCII 词字符）。
-    let mut start = word_end;
-    while start > 0 && (bytes[start - 1].is_ascii_alphanumeric() || bytes[start - 1] == b'_') {
-        start -= 1;
-    }
-    let word = &text[start..word_end];
-    if word.is_empty() || !name.starts_with(word) {
-        return None;
-    }
-    // 点号开头的名字（`And.intro`）不是关键字：word 前一个字符不能是 `.`。
-    if start > 0 && bytes[start - 1] == b'.' {
-        return None;
-    }
-    Some(sokonanoda_front::Span::new(
-        pos_at(text, start),
-        pos_at(text, word_end),
-    ))
-}
-
-/// offset → `Pos`（1 基行列，与 parser 的口径一致；`render::range_of` 消费）。
-fn pos_at(text: &str, offset: usize) -> sokonanoda_front::Pos {
-    let mut line = 1usize;
-    let mut column = 1usize;
-    for (i, b) in text.bytes().enumerate() {
-        if i >= offset {
-            break;
-        }
-        if b == b'\n' {
-            line += 1;
-            column = 1;
-        } else {
-            column += 1;
-        }
-    }
-    sokonanoda_front::Pos {
-        offset,
-        line,
-        column,
-    }
-}
-
-/// `command:` URI 的 JSON 参数按 `encodeURIComponent` 规则转义（编辑器端
-/// 反解后 `JSON.parse`）。只保留 unreserved 字符，其余逐字节 `%XX`。
-///
-/// 与浏览器版 `encodeURIComponent` 的唯一差别：这里连 `(` `)` 也编码成
-/// `%28` `%29`。原因在 markdown——载荷嵌在 `](command:...?)` 里，任何裸
-/// `)` 都会被链接解析器（以及调用方的朴素切分）误当成右括号提前收尾；骨架
-/// 里恰恰常含 `fun (x : Prop) => ...` 这类括号。多编两个字符零成本，
-/// 扩展端 `decodeURIComponent` 照样还原。
-fn percent_encode_component(input: &str) -> String {
-    let mut out = String::with_capacity(input.len());
-    for byte in input.bytes() {
-        match byte {
-            b'A'..=b'Z'
-            | b'a'..=b'z'
-            | b'0'..=b'9'
-            | b'-'
-            | b'_'
-            | b'.'
-            | b'!'
-            | b'~'
-            | b'*'
-            | b'\'' => out.push(byte as char),
-            _ => out.push_str(&format!("%{byte:02X}")),
-        }
-    }
-    out
-}
-
-/// 值位关键字（`funintro` / `funapply`）各自的编辑器文案。
-struct KeywordCopy {
-    /// hover 第一句：这个关键字在做什么。
-    explains: &'static str,
-    /// 展开按钮文字。
-    button: &'static str,
-    /// `command:` 的方法名（编辑器端必须注册同名命令并放行受信 markdown）。
-    command: &'static str,
-}
-
-fn keyword_detail() -> &'static str {
-    "值位 funintro：一次引入目标剩下的全部 binder"
-}
-
-fn keyword_copy() -> KeywordCopy {
-    KeywordCopy {
-        explains:
-            "值位 `funintro`：一次把目标剩下的 binder 全引进成 `fun`，末端留一个 `sorry` 洞。",
-        button: "替换源代码 funintro",
-        command: "sokonanoda.expandIntro",
-    }
-}
-
-/// 值位关键字（`funintro`）的展开 hover。两件事：
-///
-/// 1. **不替换也完全等价**——关键字本身就已经是一次合法作答（等价于下面的
-///    骨架，末端是 `sorry` 洞），可以直接留着在洞的位置继续写；
-/// 2. 想看清结构（或想让编辑器接手）时有就地替换按钮（`command:<方法名>`），
-///    载荷由服务端算好：uri + 洞 range + 骨架文本，与接受 Tab 补全是同一份编辑。
-fn keyword_expansion_hover(
-    report: &DocumentReport,
-    text: &str,
-    uri: &str,
-    offset: usize,
-) -> Option<Hover> {
-    let (hole, skeleton) = keyword_at(report, text, offset)?;
-    let copy = keyword_copy();
-    // VS Code 的命令链接规范（`createCommandUri`）：query 是
-    // `encodeURIComponent(JSON.stringify(commandArgs))`，且 commandArgs 是
-    // **数组**——点击时展开成 `executeCommand(id, ...args)`。发**对象**会让
-    // 展开失败、点击静默无效（第一版正是这么错的：单测直接调
-    // executeCommand 绕过了这层，没抓到）。
-    let payload = serde_json::json!([
-        { "uri": uri, "range": range_of(hole), "newText": skeleton }
-    ]);
-    let encoded = percent_encode_component(&payload.to_string());
-    Some(Hover {
-        contents: HoverContents::Markup(MarkupContent {
-            kind: MarkupKind::Markdown,
-            value: format!(
-                "{explains}\n\n\
-                 **不替换也完全等价**——`{name}` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n\
-                 它等价于：\n\n```lean\n{skeleton}\n```\n\n\
-                 [{button}](command:{command}?{encoded})",
-                explains = copy.explains,
-                name = VALUE_KEYWORD,
-                skeleton = skeleton,
-                button = copy.button,
-                command = copy.command,
-                encoded = encoded,
-            ),
-        }),
-        range: Some(range_of(hole)),
-    })
 }
 
 /// 半截表达式的 goal-state hover（I13-S5，用户需求）：值写了一半、内核
@@ -934,7 +864,7 @@ fn half_expression_goals_hover(
                 "这一项的结论已经对上目标 `{goal_text}`，还差 {} 个前提：",
                 goals.len()
             ),
-            "\n\n继续把前提补上，或用 `funintro` 让编辑器接手。".to_string(),
+            "\n\n继续把前提补上，或用 `by` / `fun` 继续写。".to_string(),
         )
     } else {
         (
@@ -1054,15 +984,10 @@ impl LanguageServer for Backend {
         };
         let pos = params.text_document_position_params.position;
         let offset = position_to_offset(&doc.text, pos);
-        // 值位 `funintro`：不选择补全也能在 hover 里看到展开后的显式表达式，
-        // 并带一个就地替换的按钮（command link）。先于关键字抑制——
-        // `funintro` 在 KEYWORDS 里，否则会被当普通关键字吞掉。
-        let uri = params
-            .text_document_position_params
-            .text_document
-            .uri
-            .clone();
-        if let Some(hover) = keyword_expansion_hover(report, &doc.text, uri.as_str(), offset) {
+        // `by` tactic hover: show the goal state entering the tactic under the
+        // cursor (Lean Infoview-style, user request). Before keyword suppression
+        // below, because tactic words (intro/exact/…) are keywords.
+        if let Some(hover) = tactic_goal_hover(report, offset) {
             return Ok(Some(hover));
         }
         // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。
@@ -1312,78 +1237,8 @@ impl LanguageServer for Backend {
         // In-scope binders at the cursor (smallest enclosing hover row);
         // outside any hover span the list stays keyword/prelude-only.
         let pos = params.text_document_position.position;
-        // 值位 `funintro` 补全，两态（I13-S2/S5，`docs/design/value-keywords-v2.md` §3.1）：
-        // - **骨架态**：声明 Open 且骨架可算——textEdit 覆盖洞区间，newText 是
-        //   完整骨架，末端的 `sorry` 以 snippet 占位符给出（`${0:sorry}`）：接受
-        //   补全后 sorry 处于**选中态**，学习者的下一次输入直接覆盖它（I13-S5，
-        //   用户反馈的体验改进）；
-        // - **键入态**：声明还在输入中间态（半截答案 → unknown identifier）——
-        //   骨架算不出来，但「替换源代码」项必须照常出现，否则学习者输入全程
-        //   看不到任何可选项（探针实测）。textEdit 覆盖已敲的前缀、newText 是
-        //   关键字全词（接受即补全单词）。刻意不依赖 doc.report——前缀阶段
-        //   （`fun`）整篇 parse 失败、report 是 None，而弹窗恰恰要在这个阶段就在。
-        let offset = position_to_offset(&doc.text, pos);
-        let name = VALUE_KEYWORD;
-        let base = CompletionItem {
-            label: format!("{name}（替换源代码）"),
-            kind: Some(CompletionItemKind::KEYWORD),
-            detail: Some(keyword_detail().to_string()),
-            filter_text: Some(name.to_string()),
-            sort_text: Some(format!("0{name}")),
-            preselect: Some(true),
-            ..Default::default()
-        };
-        let mut keyword_item: Option<CompletionItem> = None;
-        if let Some(report) = doc.report.as_ref() {
-            if let Some((hole, skeleton)) = keyword_at(report, &doc.text, offset) {
-                let snippet = match skeleton.strip_suffix("sorry") {
-                    Some(head) => format!("{head}${{0:sorry}}"),
-                    None => skeleton.clone(),
-                };
-                let copy = keyword_copy();
-                keyword_item = Some(CompletionItem {
-                    documentation: Some(Documentation::MarkupContent(MarkupContent {
-                        kind: MarkupKind::Markdown,
-                        value: format!(
-                            "{explains}\n\n**不替换也完全等价**——`{name}` 本身就是一次合法作答，留着它、直接在洞的位置继续写就行。\n\n它等价于：\n\n```lean\n{skeleton}\n```\n\n接受后 `sorry` 处于选中态，直接输入即可覆盖。",
-                            explains = copy.explains,
-                            name = name,
-                            skeleton = skeleton,
-                        ),
-                    })),
-                    insert_text_format: Some(InsertTextFormat::SNIPPET),
-                    text_edit: Some(CompletionTextEdit::Edit(TextEdit {
-                        range: range_of(hole),
-                        new_text: snippet,
-                    })),
-                    ..base.clone()
-                });
-            }
-        }
-        if keyword_item.is_none() {
-            // 键入态。
-            if let Some(word) = keyword_typing_at(&doc.text, offset) {
-                let copy = keyword_copy();
-                keyword_item = Some(CompletionItem {
-                    documentation: Some(Documentation::MarkupContent(MarkupContent {
-                        kind: MarkupKind::Markdown,
-                        value: format!(
-                            "{explains}\n\n提示：`{name}` 不替换也完全等价——直接在洞的位置继续写就行。",
-                            explains = copy.explains,
-                            name = name,
-                        ),
-                    })),
-                    text_edit: Some(CompletionTextEdit::Edit(TextEdit {
-                        range: range_of(word),
-                        new_text: name.to_string(),
-                    })),
-                    ..base
-                });
-            }
-        }
-        let keyword_item = keyword_item;
-        // 只用于「裸关键字去重」的存在性判断。
-        let has_funintro_item = keyword_item.is_some();
+        // In-scope binders at the cursor (smallest enclosing hover row);
+        // outside any hover span the list stays keyword/prelude-only.
         if let Some(report) = &doc.report {
             if let Some(names) = scope_names_at(&report.hovers, pos.line, pos.character) {
                 for name in names {
@@ -1399,15 +1254,8 @@ impl LanguageServer for Backend {
                 }
             }
         }
-        if let Some(item) = keyword_item {
-            items.push(item);
-        }
-        // Keywords (single source: front::semantic). 有展开项时不再重复给
-        // 裸关键字（同一个词只出一次）。
+        // Keywords (single source: front::semantic).
         for keyword in sokonanoda_front::semantic::keywords() {
-            if *keyword == "funintro" && has_funintro_item {
-                continue;
-            }
             items.push(CompletionItem {
                 label: (*keyword).to_string(),
                 kind: Some(CompletionItemKind::KEYWORD),
@@ -1570,8 +1418,8 @@ pub async fn run() {
 mod tests {
     use super::*;
     use crate::testutil::{
-        call, char_steps, code_of, did_change, did_open, handshake, lsp_pos, notify, offset_of,
-        position_json, shutdown, test_service, type_step, wait_diagnostics, TypedStep, URI,
+        call, code_of, did_open, handshake, lsp_pos, notify, offset_of, position_json, shutdown,
+        test_service, type_step, wait_diagnostics, TypedStep, URI,
     };
     use serde_json::json;
     use tower_lsp::jsonrpc::Request as RpcRequest;
@@ -1953,7 +1801,7 @@ mod tests {
         assert_eq!(
             actions.len(),
             1,
-            "expected one funintro quick-fix, got {:?}",
+            "expected one intro quick-fix, got {:?}",
             actions
         );
         let action = match &actions[0] {
@@ -1962,10 +1810,7 @@ mod tests {
         };
         assert_eq!(action.kind, Some(CodeActionKind::QUICKFIX));
         assert!(action.title.contains("引入"), "title: {:?}", action.title);
-        let edit = action
-            .edit
-            .as_ref()
-            .expect("funintro action carries an edit");
+        let edit = action.edit.as_ref().expect("intro action carries an edit");
         let changes = edit.changes.as_ref().expect("changes map");
         let edits = changes
             .get(&Url::parse(URI).expect("test uri parses"))
@@ -1991,12 +1836,12 @@ mod tests {
         );
         assert!(
             text_edit.new_text.starts_with("fun ("),
-            "funintro replacement must start a lambda, got {:?}",
+            "intro replacement must start a lambda, got {:?}",
             text_edit.new_text
         );
         assert!(
             text_edit.new_text.ends_with("sorry"),
-            "funintro replacement must keep the hole, got {:?}",
+            "intro replacement must keep the hole, got {:?}",
             text_edit.new_text
         );
         shutdown(&mut service).await;
@@ -2194,7 +2039,7 @@ mod tests {
         .expect("codeAction must answer");
         let actions: Option<CodeActionResponse> =
             serde_json::from_value(result).expect("valid CodeActionResponse");
-        let actions = actions.expect("funintro action without a matching hypothesis");
+        let actions = actions.expect("intro action without a matching hypothesis");
         let titles: Vec<&str> = actions
             .iter()
             .filter_map(|a| match a {
@@ -2204,7 +2049,7 @@ mod tests {
             .collect();
         assert!(
             titles.iter().any(|t| t.contains("引入")),
-            "funintro must still be offered: {titles:?}"
+            "intro must still be offered: {titles:?}"
         );
         assert!(
             !titles.iter().any(|t| t.contains("exact")),
@@ -2396,6 +2241,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn goals_request_lists_every_open_goal_after_apply() {
+        // 练习面板的多目标：`soko/goals` 的每声明 `goals` 数组给出最后一步的
+        // 全部未闭合目标（当前在前），非 by 练习回退为单个走查目标。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   axiom P : Prop\n\
+                   axiom Q : Prop\n\
+                   axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                   theorem both : And P Q := by apply And.intro; sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "goals diagnostics").await;
+
+        let result = request_goals(&mut service).await;
+        let decl = result["decls"]
+            .as_array()
+            .expect("decls")
+            .iter()
+            .find(|d| d["name"] == "both")
+            .expect("the `both` declaration");
+        assert_eq!(decl["status"], "open");
+        let goals = decl["goals"].as_array().expect("goals array");
+        assert_eq!(
+            goals,
+            &vec![json!("P"), json!("Q")],
+            "both goals, current first"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
     async fn next_hole_navigates_between_two_holes() {
         let src = format!("{EXERCISE}example : Prop := sorry\n");
         let (mut service, mut socket) = test_service();
@@ -2516,6 +2392,78 @@ mod tests {
         let binders = result["binders"].as_array().expect("binders array");
         assert_eq!(binders.len(), 2, "a and h are both in context");
         assert_eq!(binders[1]["name"], "h");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn state_at_lists_all_open_goals_after_apply() {
+        // `apply And.intro` 开出两个子目标；`soko/stateAt` 必须一次给出全部
+        // （当前目标在首位），兼容单值字段仍等于 `goals[0]`。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   axiom P : Prop\n\
+                   axiom Q : Prop\n\
+                   axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                   theorem both : And P Q := by apply And.intro; sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        // 光标停在 `sorry` 上：进入 sorry 的状态 = `apply` 执行后。
+        let result = ask_state_at(&mut service, src, offset_of(src, "sorry")).await;
+        assert_eq!(
+            result["step"], 0,
+            "entering the second tactic = after apply"
+        );
+        assert_eq!(result["total"], 2);
+        let goals = result["goals"].as_array().expect("goals array");
+        assert_eq!(goals.len(), 2, "both apply sub-goals are listed");
+        assert_eq!(goals[0]["goal"], "P");
+        assert_eq!(goals[1]["goal"], "Q");
+        // 兼容单值字段 = 当前（首个）目标。
+        assert_eq!(result["goal"], "P");
+        assert_eq!(result["goal"], goals[0]["goal"]);
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn hover_on_a_tactic_shows_the_entering_goal_state() {
+        // 用户需求：hover 每个 tactic → 中间 goal state（Lean Infoview 式）。
+        // 进入某 tactic 的状态 = 上一步执行后（`soko/stateAt` 同一语义）。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                   axiom P : Prop\n\
+                   axiom Q : Prop\n\
+                   theorem both : And P Q := by apply And.intro; sorry\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "tactic hover diagnostics").await;
+
+        // hover `apply`：进入它时目标 = 根状态 `And P Q`。
+        let at = offset_of(src, "apply And.intro");
+        let hover = hover_opt_at(&mut service, src, at)
+            .await
+            .expect("hover on `apply` must answer");
+        let HoverContents::Markup(markup) = hover.contents else {
+            panic!("expected markup hover");
+        };
+        assert!(
+            markup.value.contains("⊢ And P Q"),
+            "tactic hover shows the entering goal: {:?}",
+            markup.value
+        );
+
+        // hover `sorry`：进入它时有 apply 开出的两个子目标 P、Q。
+        let at_sorry = offset_of(src, "sorry");
+        let hover2 = hover_opt_at(&mut service, src, at_sorry)
+            .await
+            .expect("hover on `sorry` must answer");
+        let HoverContents::Markup(m2) = hover2.contents else {
+            panic!("expected markup hover");
+        };
+        assert!(m2.value.contains("⊢ P"), "hover: {:?}", m2.value);
+        assert!(m2.value.contains("⊢ Q"), "hover: {:?}", m2.value);
         shutdown(&mut service).await;
     }
 
@@ -3046,136 +2994,6 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn completion_expands_value_funintro_into_a_lambda_skeleton() {
-        let src = "axiom And : Prop -> Prop -> Prop\n\
-                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := funintro\n";
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, src).await;
-        let _ = wait_diagnostics(&mut socket, "funintro completion diagnostics").await;
-
-        // 回归：光标在 funintro token **末尾**（刚输完关键字的真实位置）也要命中。
-        // 曾经的 `decl_at` 末尾排他语义正是在这里漏掉了补全项。
-        let start = offset_of(src, "funintro");
-        let items =
-            request_completions_at(&mut service, lsp_pos(src, start + "funintro".len())).await;
-        let item = items
-            .iter()
-            .find(|i| i.filter_text.as_deref() == Some("funintro"))
-            .expect("the funintro expansion must be offered");
-        let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
-            panic!("expected a plain CompletionTextEdit::Edit");
-        };
-        assert_eq!(edit.range.start, lsp_pos(src, start));
-        assert_eq!(
-            edit.range.end,
-            lsp_pos(src, start + "funintro".len()),
-            "the edit replaces exactly the funintro token"
-        );
-        assert_eq!(
-            edit.new_text,
-            "fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => ${0:sorry}"
-        );
-        assert_eq!(item.preselect, Some(true));
-        assert_eq!(
-            items
-                .iter()
-                .filter(|i| i.label.starts_with("funintro"))
-                .count(),
-            1,
-            "the expansion replaces the bare keyword entry: {items:?}"
-        );
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
-    async fn completion_does_not_expand_funintro_outside_its_token() {
-        // 普通 `sorry` 开放练习没有骨架；光标在洞上时也只给裸关键字。
-        let src = "axiom And : Prop -> Prop -> Prop\n\
-                   theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry\n";
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, src).await;
-        let _ = wait_diagnostics(&mut socket, "plain completion diagnostics").await;
-
-        let pos = lsp_pos(src, offset_of(src, "sorry"));
-        let items = request_completions_at(&mut service, pos).await;
-        assert!(
-            items
-                .iter()
-                .all(|i| i.filter_text.as_deref() != Some("funintro")),
-            "no expansion item without an funintro token: {items:?}"
-        );
-        assert!(
-            items.iter().any(|i| i.label == "funintro"),
-            "the bare funintro keyword stays available"
-        );
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
-    async fn completion_expands_funintro_after_declaration_binders_to_the_residual() {
-        // 声明 binder 已把 a、h 带进上下文；`funintro` 只剥剩余 codomain，
-        // 展开项不含声明 binder。
-        let src = "theorem t (a : Prop) (h : a) : a -> a := funintro\n";
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, src).await;
-        let _ = wait_diagnostics(&mut socket, "decl-binder completion diagnostics").await;
-
-        let start = offset_of(src, "funintro");
-        let items =
-            request_completions_at(&mut service, lsp_pos(src, start + "funintro".len())).await;
-        let item = items
-            .iter()
-            .find(|i| i.filter_text.as_deref() == Some("funintro"))
-            .expect("the funintro expansion must be offered");
-        let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
-            panic!("expected a plain CompletionTextEdit::Edit");
-        };
-        assert_eq!(edit.range.start, lsp_pos(src, start));
-        assert_eq!(edit.range.end, lsp_pos(src, start + "funintro".len()));
-        // 骨架末端是 snippet 占位符：接受后 sorry 选中，输入直接覆盖。
-        assert_eq!(edit.new_text, "fun (x : a) => ${0:sorry}");
-        shutdown(&mut service).await;
-    }
-
-    /// 值位 `funintro` 换行书写的源文本（用户症状：`playground.sokonanoda:201`）。
-    /// Rust 字符串续行会吃掉行首空白，所以这里用 `concat!` 保住缩进。
-    const FUNINTRO_NEXT_LINE: &str = concat!(
-        "axiom And : Prop -> Prop -> Prop\n",
-        "theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n",
-        "  funintro\n",
-    );
-
-    #[tokio::test]
-    async fn completion_expands_value_funintro_on_the_next_line() {
-        // 学习者把 `:= funintro` 拆成两行只为不写超长行；补全不该因此消失。
-        let src = FUNINTRO_NEXT_LINE;
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, src).await;
-        let _ = wait_diagnostics(&mut socket, "next-line funintro diagnostics").await;
-
-        let start = offset_of(src, "funintro");
-        for offset in [start, start + "funintro".len()] {
-            let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
-            let item = items
-                .iter()
-                .find(|i| i.filter_text.as_deref() == Some("funintro"))
-                .unwrap_or_else(|| {
-                    panic!("funintro expansion at {offset} must be offered: {items:?}")
-                });
-            let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
-                panic!("expected a plain CompletionTextEdit::Edit");
-            };
-            assert_eq!(edit.range.start, lsp_pos(src, start));
-            assert_eq!(edit.range.end, lsp_pos(src, start + "funintro".len()));
-        }
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
     async fn hover_on_a_half_expression_shows_the_remaining_goals() {
         // 用户需求：半截表达式（`And.intro b a` 还差两个前提）的 hover 不只给
         // 报错——把推断出的剩余目标列成 `|- b`、`|- a`。按需计算 + judge 缓存，
@@ -3203,224 +3021,8 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     }
 
     #[tokio::test]
-    async fn hover_on_value_funintro_shows_the_expansion_on_the_next_line() {
-        let src = FUNINTRO_NEXT_LINE;
-        let (mut service, _socket) = open_and_wait(src).await;
-        let funintro = offset_of(src, "funintro");
-        let hover = hover_opt_at(&mut service, src, funintro + "funintro".len())
-            .await
-            .expect("hover on a next-line funintro must exist");
-        let HoverContents::Markup(markup) = hover.contents else {
-            panic!("expected markup hover");
-        };
-        assert!(
-            markup
-                .value
-                .contains("fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => sorry"),
-            "hover must show the expansion: {:?}",
-            markup.value
-        );
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
-    async fn completion_expands_value_funintro_after_a_line_break_edit() {
-        // 真实编辑序列：先 `:= sorry`，再把值折到下一行改成 `funintro`——
-        // 走的是 didChange + Session 增量路径，不是 didOpen 全量。
-        let before = concat!(
-            "axiom And : Prop -> Prop -> Prop\n",
-            "theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry\n",
-        );
-        let after = FUNINTRO_NEXT_LINE;
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, before).await;
-        let _ = wait_diagnostics(&mut socket, "pre-edit diagnostics").await;
-
-        did_change(&mut service, 2, after).await;
-        let _ = wait_diagnostics(&mut socket, "post-edit diagnostics").await;
-
-        let start = offset_of(after, "funintro");
-        let items =
-            request_completions_at(&mut service, lsp_pos(after, start + "funintro".len())).await;
-        assert!(
-            items
-                .iter()
-                .any(|i| i.filter_text.as_deref() == Some("funintro")),
-            "the funintro expansion must survive the line-break edit: {items:?}"
-        );
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
-    async fn funintro_expansion_survives_a_trailing_space_on_both_layouts() {
-        // 学习者症状（playground.sokonanoda:201 实况：`:= funintro ` 带尾随空格）：
-        // 敲完关键字常顺手打一个空格，光标落在 token 之后。命中区间放宽到
-        // 「token + 同行空白」后，同一行与换行两种写法都要照常给展开项，
-        // 且不改动被替换的范围（仍是 funintro token 本身）。
-        let same = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a := funintro \n";
-        let next = "axiom And : Prop -> Prop -> Prop\ntheorem and_swap : (a : Prop) -> And a b -> And b a :=\n  funintro \n";
-        for (label, src) in [("same-line", same), ("next-line", next)] {
-            let (mut service, mut socket) = test_service();
-            handshake(&mut service).await;
-            did_open(&mut service, src).await;
-            let _ = wait_diagnostics(&mut socket, "trailing-space diagnostics").await;
-            let start = offset_of(src, "funintro");
-            for (where_, offset) in [
-                ("token", start),
-                ("token end", start + "funintro".len()),
-                ("after the trailing space", start + "funintro".len() + 1),
-            ] {
-                let items = request_completions_at(&mut service, lsp_pos(src, offset)).await;
-                let item = items
-                    .iter()
-                    .find(|i| i.filter_text.as_deref() == Some("funintro"))
-                    .unwrap_or_else(|| panic!("{label} @{where_}: the expansion must be offered"));
-                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
-                else {
-                    panic!("expected a plain CompletionTextEdit::Edit");
-                };
-                assert_eq!(
-                    edit.range.start,
-                    lsp_pos(src, start),
-                    "{label} @{where_}: the edit still replaces exactly the token"
-                );
-                assert_eq!(edit.range.end, lsp_pos(src, start + "funintro".len()));
-                let hover = hover_opt_at(&mut service, src, offset)
-                    .await
-                    .unwrap_or_else(|| panic!("{label} @{where_}: hover must answer too"));
-                assert!(matches!(hover.contents, HoverContents::Markup(_)));
-            }
-            shutdown(&mut service).await;
-        }
-    }
-
-    #[tokio::test]
-    async fn typed_funintro_chars_offer_the_replace_item_while_typing() {
-        // 真人输入：一个字符一个字符地敲 `funintro`。v2 语义（I13-S2）：
-        // **每个前缀**都要有「替换源代码」项（键入态：textEdit 覆盖已敲的
-        // 前缀、newText 是关键字全词），整词之后声明 Open，升级为骨架态
-        // （textEdit 覆盖 token、newText 是完整骨架）。v1 的整词门控已推翻。
-        //
-        // 断言必须落在**每个中间态**上（`type_step` 一步一次 didChange）：
-        // 服务器只持有最新状态，攒到最后再断言就只能验到最后一步。
-        let head = "theorem t : Prop -> Prop := ";
-        let initial = format!("{head}\n");
-        let caret = head.len();
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, &initial).await;
-        let _ = wait_diagnostics(&mut socket, "typed funintro: initial state").await;
-
-        let mut cur = initial.clone();
-        let mut version = 1;
-        let word = "funintro";
-        for (index, step) in char_steps(word, caret).iter().enumerate() {
-            type_step(&mut service, &mut socket, &mut cur, &mut version, *step).await;
-            let typed = &word[..=index];
-            let cursor = caret + typed.len();
-            let items = request_completions_at(&mut service, lsp_pos(&cur, cursor)).await;
-            let item = items
-                .iter()
-                .find(|i| i.filter_text.as_deref() == Some("funintro"))
-                .unwrap_or_else(|| {
-                    panic!("prefix `{typed}` must offer the replace item: {items:?}")
-                });
-            assert_eq!(item.preselect, Some(true), "preselect at `{typed}`");
-            let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit") else {
-                panic!("expected a plain CompletionTextEdit::Edit");
-            };
-            if typed == word {
-                // 骨架态：裸 funintro 合法（Open），textEdit 覆盖整个 token。
-                assert_eq!(edit.range.start, lsp_pos(&cur, caret), "skeleton state");
-                assert_eq!(edit.range.end, lsp_pos(&cur, caret + word.len()));
-                assert!(
-                    edit.new_text.contains("sorry"),
-                    "skeleton state replaces with the full skeleton: {}",
-                    edit.new_text
-                );
-            } else {
-                // 键入态：textEdit 覆盖已敲的前缀，newText 补全为关键字全词。
-                assert_eq!(
-                    edit.range.start,
-                    lsp_pos(&cur, caret),
-                    "typing state at `{typed}`"
-                );
-                assert_eq!(edit.range.end, lsp_pos(&cur, cursor), "typing state");
-                assert_eq!(edit.new_text, "funintro", "typing state completes the word");
-            }
-        }
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
-    async fn typed_funintro_after_retyping_sorry_and_wrapping() {
-        // 真实学习者动作链：
-        //   ① 先写着 `:= sorry`；
-        //   ② 把 `sorry` 删掉改敲 `funintro`（选中重打）；
-        //   ③ 嫌那行太长，把值折到下一行。
-        // 两步编辑之后文档各不相同，而「展开项可用」必须一路成立——
-        // `funintro` 折行那个历史 bug（playground:201）正是这类编辑序列里的中间态。
-        let initial = "theorem t : Prop -> Prop := sorry\n";
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, initial).await;
-        let _ = wait_diagnostics(&mut socket, "typed funintro: sorry baseline").await;
-
-        let sorry = offset_of(initial, "sorry");
-        let space_after_colons = offset_of(initial, ":= ") + ":=".len();
-        let steps: [TypedStep<'_>; 2] = [
-            (sorry, "sorry".len(), "funintro"), // 选中重打
-            (space_after_colons, 1, "\n  "),    // 折行 + 缩进
-        ];
-        let mut cur = initial.to_string();
-        let mut version = 1;
-        for step in steps {
-            type_step(&mut service, &mut socket, &mut cur, &mut version, step).await;
-            let start = offset_of(&cur, "funintro");
-            for offset in [start, start + "funintro".len()] {
-                let items = request_completions_at(&mut service, lsp_pos(&cur, offset)).await;
-                let item = items
-                    .iter()
-                    .find(|i| i.filter_text.as_deref() == Some("funintro"))
-                    .unwrap_or_else(|| panic!("expansion must survive the edit ({cur:?})"));
-                let CompletionTextEdit::Edit(edit) = item.text_edit.as_ref().expect("textEdit")
-                else {
-                    panic!("expected a plain CompletionTextEdit::Edit");
-                };
-                assert_eq!(edit.range.start, lsp_pos(&cur, start));
-                assert_eq!(edit.range.end, lsp_pos(&cur, start + "funintro".len()));
-            }
-        }
-        assert_eq!(
-            cur, "theorem t : Prop -> Prop :=\n  funintro\n",
-            "the script must end in the wrapped layout"
-        );
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
-    async fn funintro_expansion_is_not_offered_on_a_later_line() {
-        // 放宽命中区间不能跨行：光标到下一行（新声明/空行）就不该再弹。
-        let src = FUNINTRO_NEXT_LINE; // "...:=\n  funintro\n"
-        let (mut service, mut socket) = test_service();
-        handshake(&mut service).await;
-        did_open(&mut service, src).await;
-        let _ = wait_diagnostics(&mut socket, "later-line diagnostics").await;
-        let after_line = src.len(); // 换行之后的文档末尾
-        let items = request_completions_at(&mut service, lsp_pos(src, after_line)).await;
-        assert!(
-            items
-                .iter()
-                .all(|i| i.filter_text.as_deref() != Some("funintro")),
-            "no expansion outside the funintro line: {items:?}"
-        );
-        shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
     async fn funapply_expansion_is_not_offered_outside_its_own_line() {
-        // 与 `funintro` 同一条边界：跨行不命中，免得在后面的声明上误弹。
+        // 与 `intro` 同一条边界：跨行不命中，免得在后面的声明上误弹。
         let src = "axiom P : Prop\naxiom Q : Prop\ntheorem t (h : Q -> P) : P :=\n  funapply h\n\ntheorem u : P := h sorry\n";
         let (mut service, _socket) = open_and_wait(src).await;
         // 光标落在下下个声明上：不该再给 `funapply` 的展开项。
@@ -3556,73 +3158,6 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         let pid = result["pid"].as_u64().expect("pid is a number");
         assert!(pid > 0, "a real process id: {result:?}");
         shutdown(&mut service).await;
-    }
-
-    #[tokio::test]
-    async fn hover_on_value_funintro_carries_the_expand_command() {
-        // hover 里的按钮：载荷全部由服务端算好（uri + 洞 range + 骨架），
-        // 编辑器只应用编辑，不扫文本、不重算。
-        let src = "theorem t : Prop -> Prop := funintro\n";
-        let (mut service, _socket) = open_and_wait(src).await;
-        let funintro = offset_of(src, "funintro");
-        let hover = hover_opt_at(&mut service, src, funintro + "funintro".len())
-            .await
-            .expect("hover must answer");
-        let HoverContents::Markup(markup) = hover.contents else {
-            panic!("expected markup hover");
-        };
-        // 载荷以 `](command:...?)` 结尾；正因为编码器把 `(` `)` 也转义了，
-        // 这里遇到的第一个 `)` 一定是 markdown 链接自己的右括号——切分不会
-        // 截断 JSON。谁要是把 `)` 放回白名单，这条断言会立刻红。
-        let link = markup
-            .value
-            .split("command:sokonanoda.expandIntro?")
-            .nth(1)
-            .and_then(|rest| rest.split(')').next())
-            .unwrap_or_else(|| panic!("hover must carry the command link: {:?}", markup.value));
-        assert!(
-            !link.contains(')'),
-            "encoded payload must not contain a bare ')': {link}"
-        );
-        let payload: serde_json::Value =
-            serde_json::from_str(&percent_decode(link)).expect("payload must be JSON");
-        // 载荷是**数组**（VS Code 命令链接的实参列表），命令收到的是第一个元素。
-        let payload = &payload[0];
-        assert_eq!(payload["uri"], URI);
-        assert_eq!(
-            payload["range"],
-            json!({
-                "start": position_json(lsp_pos(src, funintro)),
-                "end": position_json(lsp_pos(src, funintro + "funintro".len())),
-            })
-        );
-        assert_eq!(payload["newText"], "fun (x : Prop) => sorry");
-        // 用户诉求（「funintro 也可以不被替换，直接等价于对应的 fun 表达式」）：
-        // hover 必须**明说**不替换也等价——否则学习者会以为非得点按钮/按 Tab。
-        assert!(
-            markup.value.contains("不替换也完全等价"),
-            "hover must state that leaving `funintro` alone is equivalent: {:?}",
-            markup.value
-        );
-        shutdown(&mut service).await;
-    }
-
-    /// 测试用：`%XX` 反转义（`command:` URI 的载荷是 encodeURIComponent 结果）。
-    fn percent_decode(input: &str) -> String {
-        let bytes = input.as_bytes();
-        let mut out: Vec<u8> = Vec::with_capacity(bytes.len());
-        let mut i = 0;
-        while i < bytes.len() {
-            if bytes[i] == b'%' && i + 2 < bytes.len() {
-                let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).expect("hex");
-                out.push(u8::from_str_radix(hex, 16).expect("hex digit"));
-                i += 3;
-            } else {
-                out.push(bytes[i]);
-                i += 1;
-            }
-        }
-        String::from_utf8(out).expect("utf8")
     }
 
     // ---- 优先级可视化：selectionRange（学习者需求）----
@@ -3954,34 +3489,6 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         did_open(&mut service, src).await;
         let _ = wait_diagnostics(&mut socket, "bracket suite diagnostics").await;
         (service, socket)
-    }
-
-    #[tokio::test]
-    async fn hover_on_value_intro_shows_the_expansion() {
-        // 未接受补全时，hover `funintro` 也能看到展开后的显式表达式；
-        // 光标在 token 里或词尾都命中，并高亮 funintro token。
-        let src = "theorem t : Prop -> Prop := funintro\n";
-        let (mut service, _socket) = open_and_wait(src).await;
-        let funintro = src.find("funintro").expect("funintro token");
-        for offset in [funintro, funintro + "funintro".len()] {
-            let hover = hover_opt_at(&mut service, src, offset)
-                .await
-                .unwrap_or_else(|| panic!("hover at {offset} must exist"));
-            let value = match hover.contents {
-                HoverContents::Markup(m) => m.value,
-                other => panic!("expected markup hover, got {other:?}"),
-            };
-            assert!(
-                value.contains("fun (x : Prop) => sorry"),
-                "hover must show the expansion: {value}"
-            );
-            let range = hover
-                .range
-                .expect("hover must highlight the funintro token");
-            assert_eq!(range.start, lsp_pos(src, funintro));
-            assert_eq!(range.end, lsp_pos(src, funintro + "funintro".len()));
-        }
-        shutdown(&mut service).await;
     }
 
     #[tokio::test]

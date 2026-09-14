@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第四十八轮：量词课程——course 单元⑦ + 画布第二课，0.26.0）
+> 快照：2026-09-14（第五十一轮：tactic 关键字高亮 + hover 中间 goal state；同版含多目标显示与移除 funintro，0.27.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,70 +14,72 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
-## 本轮进度（2026-09-14，第四十八轮：量词课程——单元⑦ + 画布第二课）
+## 本轮进度（2026-09-14，第五十一轮：tactic 关键字高亮 + hover goal state）
 
-> 用户提出：教程里逻辑内容偏少，缺 forall/exists 题目，参考 Metamath 出题；
-> 随后要求同步加进 `course/` 并提交推送。判定全部走内核。
+> 用户反馈：`exact` 没有正确高亮；希望像 Lean 一样在每个 tactic 上 hover 看到
+> 中间 goal state（Infoview 式），或按鼠标位置给 goal state。
 
-1. **画布第二课**（`playground.sokonanoda`）：∀=依赖函数类型（引入写 fun、
-   消去写应用、命名箭头等价）；`Exists` 按单元①的老办法立成公理三件套
-   （intro 交证人、elim 交给函数且结论不提证人）；`Person`/`someone` 论域
-   + 两个已填演示 + `#reduce` 自测 + 7 道练习（练习 6–12，含 ★/★★）各挂
-   三层 `soko:hint`；7 份钥匙全部经完整内核验证。
-2. **course 单元⑦**（`unit7-quantifiers.sokonanoda`）：同题重编号 1–7，自带
-   逻辑骨架（True/And）与 `Exists` 公理，中文画布 + `solutions/` 钥匙 +
-   英文镜像（代码逐字节一致、事件计数一致），golden `(14, 7, 1)`；
-   `course.json` unit=1..7、`course/README.md` 七个单元/1..7 同步。
-3. **守卫与文案**：`course.rs` golden +「seven units」；`course_status.rs`
-   golden + 汇总 `units=7 / checked=47 / open=34`；根 README、site
-   `index/course/en` 三处静态文案、teacher `curriculum.md` 单元表、
-   `docs/teaching-session.md`（§3 新增第二课钥匙表、§5 单元⑦）同步。
-4. **版本** 0.25.0 → **0.26.0**（Cargo + VSIX 两处；CHANGELOG Added）。
-5. **验收**：`cargo fmt --check` 0；`cargo clippy --workspace --all-targets`
-   教学 crates 0 告警（kernel 保持 warning）；`cargo test --workspace --locked`
-   **545 passed / 0 failed**（8 ignored）。
+1. **设计** `docs/design/tactic-hover.md`。
+2. **高亮**：`semantic::KEYWORDS` 增补 `by`/`exact`/`assumption`/`rfl`（此前
+   当普通标识符着色；`forall`/`sorry` 已由 token/Hole 正确处理）。
+3. **hover**：`textDocument/hover` 首插 `tactic_goal_hover`——光标落在某 tactic
+   span 内 → 用 `by_steps` + `select_state_at`（进入态语义，与 `soko/stateAt`
+   同数据同规则）渲染全部目标与假设（多目标标 `目标 i/n`），range = 该 tactic；
+   纯快照消费，零重编译零文本扫描。
+4. **测试**：front semantic 断言四关键字均 Keyword；LSP
+   `hover_on_a_tactic_shows_the_entering_goal_state`（hover `apply` → `⊢ And P Q`；
+   hover `sorry` → `⊢ P` / `⊢ Q`）。
+5. **协议**：`docs/protocol.md` 新增「Tactic goal-state hover」小节；并入 0.27.0。
+6. **验收**：`sokonanoda gate` PASS。
 
-## 本轮进度（2026-09-14，第四十七轮：sorry 洞期望类型精确化）
+## 本轮进度（2026-09-14，第五十轮：移除值位关键字 funintro）
 
-> 用户报告：练习 5 `(And.right a (Not a) x) sorry` 的 hover 显示整个声明
-> 类型，应显示洞的期望类型 `a`（用户以 `((…) sorry : a)` 说明）。
+> 用户评估：「`funintro` 跟 `funapply` 一样，实现起来稀里糊涂的，不如直接删了。」
+> 确认按「彻底删」执行，与多目标显示并入 0.27.0。
 
-1. **根因**：goal 走查（func_spine_case）只覆盖声明望远镜内的实参；
-   `And.right` 全量应用后结果 `Not a`，`sorry` 是它的函数实参——超量应用
-   直接 `return None` → generic fallback 用整个声明类型当目标。
-2. **修复**（goals.rs）：FuncTemplate 增加 `result_ty`（望远镜剥完的残余）
-   与 `def_body`（仅 def）；超量应用时把结果类型按 def 体逐步展开
-   （`Not a` ⇒ `a -> False`），继续按箭头匹配剩余实参 → 洞期望 = 箭头
-   定义域 `a`。剩余目标 `False`、假设 a/x 一并展示。
-3. **hover**：decl_at 的 Open 分支在光标落在洞上时优先显示
-   「此处 sorry 的期望类型」+「剩余目标」。
-4. **测试**：front `overapplied_spine_through_def_shows_hole_expected_type`
-   （goal="False"、sub_goals[0].ty="a"）+ LSP
-   `hover_on_sorry_in_overapplied_spine_shows_hole_expected_type`。用户
-   案例按其原话钉成单元测试。
-5. 验收：545 passed / 0 failed（+2）；clippy 0；真实 LSP 协议跑
-   playground 确认 hover 输出正确。版本 0.24.0 → **0.25.0**（crates 改动
-   必须随 commit bump 版本——LESSONS 铁律）。
+1. **设计先行** `docs/design/remove-funintro.md`（根因/方案/测试/验收/as-built）。
+2. **前端**：删 `Expr::Intro`、`parse_intro`/原子位/lambda 尾关键字分支、
+   `KEYWORDS` 的 `funintro`、`compile/intro.rs`、`DeclState.intro_skeleton`、
+   `ErrorKind::ElabIntroNotAFunction`；各 crate 匹配臂与测试同步。
+3. **协议/客户端**：`soko/stateAt` 的 `goals` 相关不受影响；删 LSP 值位关键字
+   补全/hover/code action/inlay 全路径、VS Code `sokonanoda.expandIntro`
+   命令与 `markdown.isTrusted` 白名单；`docs/protocol.md` 值位关键字小节改为
+   「已移除」说明。
+4. **课程**：unit6（zh+en）改写「补充 funintro」段 + 练习 6 为综合 `by` 练习，
+   钥匙同步；golden 计数不变。
+5. **文档/site/技能**：architecture/README/TESTING/ROADMAP(I13 标废弃)/
+   term-intro/value-keywords-v2(废弃横幅)/site hero 换图/gen-site-demos 删演示/
+   teacher 技能表同步；历史归档与 CHANGELOG 原文保留。
+6. **测试**：`cli_value_funintro_is_no_longer_a_keyword` 钉「已非关键字」；
+   其余 funintro 测试全删。
+7. **验收**：`sokonanoda gate`（fmt/clippy/test/playground 锚点）。
 
-## 本轮进度（2026-09-13，第四十六轮：性能测试例行化）
+## 本轮进度（2026-09-14，第四十九轮：多目标显示）
 
-> 用户要求：性能测试例行化、覆盖全面+细致（编译器 + VS Code 插件特性）、
-> 每版本可见、回归时能定位到哪个改动。
+> 用户报告：画布上 `apply And.intro; intro x` 之后应同时看到 `P x` 和
+> `(x : Person) -> Q x` 两个待证目标，目前只显示一个。用户确认按完整流程修。
+> 判定逻辑本就正确（`apply` 确开两个 `forall` 子目标），缺陷在**引擎数据**：
+> `ByStep` 每步只记 worklist 栈顶目标，其余目标编译期即丢。随后用户报告
+> VS Code 目标视图很卡，同轮修刷新路径。
 
-1. **阈值断言哨兵**（`crates/front/tests/perf.rs` 3 个 +
-   `crates/lsp/src/lib.rs` 3 个，随 `cargo test --workspace` 例行执行）：
-   编译器缩放比（400/50 块 ≤12×，O(n²)=64× 必红）、增量编辑每键 <50ms
-   且 kernel_checks≤1、编辑首练习不随文件长度超线性；LSP didChange
-   round-trip <50ms、completion/hover/goals 各 <10ms（50 块文件）。
-2. **每版本留档**：CI "Performance report" 步骤提取 PERF 行 →
-   `perf-report-v<version>-<sha>.txt` artifact（每次 push 都有）；
-   本地同口径 `scripts/perf-report.sh`。对比相邻版本报告即可定位回退
-   场景 → git log 找改动。
-3. **阈值设计原则**：只抓算法级回归（线性理论值 ×1.5 余量），CI 噪声
-   不误报；绝对延迟抓用户可感劣化。设计文档 `docs/PERF.md`（含基线）。
-4. 扩展层无独立计算路径——所有特性经 LSP，故覆盖在 LSP 请求层
-   （didChange/completion/hover/soko-goals）。
-5. 验收：cargo test --workspace 543 passed / 0 failed（+6 perf）；clippy 0。
-6. 版本 0.23.0 → **0.24.0**：纯基建无功能面变化，但用户要求每轮工作
-   有独立版本号（性能报告按版本对比）；CHANGELOG 以 Development/Infrastructure
-   节记录。
+1. **设计先行** `docs/design/goal-list.md`（根因 / 方案 / 测试 / 验收 / as-built）。
+2. **前端**：`ByStep` 改为 `{ span, goals: Vec<ByGoal> }`，`ByGoal = { ty,
+   binders }`；每步记**全部**未闭合目标（当前在首位，各带自己的假设链），
+   闭合则为空。`by_step_states` / `ByGoalState` / re-export 同步。
+3. **协议**：`soko/stateAt` 增 `goals: [{goal, binders}]`；`soko/goals` 每
+   声明增 `goals: [String]`（by 声明取最后一步、非 by 取走查目标）。
+   单值 `goal`/`binders` 保留且恒等于 `goals[0]`，旧客户端不回归。
+4. **客户端多目标**：VS Code「当前光标处」与练习节点遍历多目标——>1 时渲染
+   `目标 i/n` 可展开节点、各自挂假设；=1 保持现状。
+5. **客户端性能**（用户报告「vscode 很卡」）：原实现每次光标移动都
+   `refresh()` → 重取 `soko/goals` + 重建全部练习 TreeItem。改为
+   `refresh()` 只处理诊断/切文件，光标移动走 `refreshCursor()` 复用缓存
+   `declItems`，只重建光标组。
+6. **测试三层**：front `apply_records_all_open_goals_current_first`（+改两旧
+   用例读 `goals`）；LSP `state_at_lists_all_open_goals_after_apply` +
+   `goals_request_lists_every_open_goal_after_apply`；CLI 契约
+   `extension.rs` 钉客户端消费 `cursor.goals`/`decl.goals` 与 `declItems`/
+   `refreshCursor` 缓存纪律。
+7. **版本** 0.26.0 → **0.27.0**（Cargo + VSIX + CHANGELOG Added）；`docs/protocol.md`
+   两节 + 已知限制小节、`REQUIREMENTS.md §9` 同步。
+8. **验收**：`sokonanoda gate` PASS（fmt / clippy / test / playground 锚点）。

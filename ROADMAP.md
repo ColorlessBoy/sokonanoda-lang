@@ -507,6 +507,10 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 
 ### I13 —— 值位关键字 v2：funintro/funapply + 输入期补全 + 关键字组合
 
+> **已废弃（历史存档）**：`funapply` 于 0.22.0 移除，`funintro` 于 0.27.0
+> 移除（`docs/design/remove-funintro.md`）。值位现在只保留普通表达式与
+> `by` 块；本节仅记录当时的决策，不再执行。
+
 > 设计（已定稿，勿再讨论方案）：`docs/design/value-keywords-v2.md`（含探针
 > 实测、调研结论、决策单 D1–D9）。触发（用户三需求）：①输入过程没有补全
 > 替换提示；②`funintro (funapply X)` 组合；③值位关键字改名与 tactic 消歧义。

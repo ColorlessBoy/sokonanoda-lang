@@ -105,9 +105,21 @@ class GoalsTreeDataProvider {
     this.openCount = 0;
     this.cursorState = undefined; // {uri, state} from soko/stateAt
     this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
+    this.declItems = undefined; // cached decl TreeItems from the last soko/goals
   }
 
+  // Full reload: the declarations themselves changed (new diagnostics or a
+  // different active document), so drop the cached items and refetch.
   refresh() {
+    this.declItems = undefined;
+    this._emitter.fire();
+  }
+
+  // Cursor-only update: the declarations are unchanged, so reuse the cached
+  // TreeItems and only rebuild the 「当前光标处」 group. This is what keeps
+  // caret movement cheap — no `soko/goals` round trip and no rebuild of the
+  // exercise nodes on every selection change (docs/design/goal-list.md).
+  refreshCursor() {
     this._emitter.fire();
   }
 
@@ -126,8 +138,27 @@ class GoalsTreeDataProvider {
   }
 
   async getChildren(element) {
-    if (!element) return this.getDeclarations();
+    if (!element) return this.rootChildren();
     return element.children ?? [];
+  }
+
+  async rootChildren() {
+    if (!this.declItems) await this.loadDeclarations();
+    const items = [];
+    const cursor = this.cursorState !== undefined && this.cursorState.uri === this.uri
+      ? this.cursorState.state
+      : undefined;
+    if (cursor?.decl) {
+      const group = new vscode.TreeItem(
+        "当前光标处",
+        vscode.TreeItemCollapsibleState.Expanded,
+      );
+      group.iconPath = new vscode.ThemeIcon("target");
+      group.children = buildCursorChildren(cursor, this.uri);
+      items.push(group);
+    }
+    items.push(...(this.declItems ?? []));
+    return items;
   }
 
   async requestGoals() {
@@ -166,15 +197,17 @@ class GoalsTreeDataProvider {
     const state = await this.requestCursorState(uriString, position);
     if (state === undefined || uriString !== this.uri) return;
     this.cursorState = { uri: uriString, state };
-    this.refresh();
+    this.refreshCursor();
   }
 
-  async getDeclarations() {
+  // Fetch `soko/goals` once per document/diagnostics version and cache the
+  // built TreeItems; cursor movement reuses them (see `refreshCursor`).
+  async loadDeclarations() {
     const response = await this.requestGoals();
     const decls = response?.decls ?? [];
     this.openCount = decls.filter((d) => d.status === "open").length;
     updateStatusBar(this);
-    const items = decls.map((decl) => {
+    this.declItems = decls.map((decl) => {
       const item = new vscode.TreeItem(decl.name, decl.status === "open"
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None);
@@ -196,34 +229,31 @@ class GoalsTreeDataProvider {
       }
       return item;
     });
-    const cursor = this.cursorState !== undefined && this.cursorState.uri === this.uri
-      ? this.cursorState.state
-      : undefined;
-    if (cursor?.decl) {
-      const group = new vscode.TreeItem(
-        "当前光标处",
-        vscode.TreeItemCollapsibleState.Expanded,
-      );
-      group.iconPath = new vscode.ThemeIcon("target");
-      group.children = buildCursorChildren(cursor, this.uri);
-      items.unshift(group);
-    }
-    return items;
   }
+}
+
+function binderItem(binder) {
+  const item = new vscode.TreeItem(binder.name, vscode.TreeItemCollapsibleState.None);
+  item.description = binder.ty;
+  item.iconPath = new vscode.ThemeIcon("symbol-variable");
+  return item;
 }
 
 function buildOpenChildren(decl, uriString) {
   const children = [];
-  if (decl.goal) {
-    const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
-    goal.description = decl.goal;
+  // soko/goals carries every open goal after the last tactic (`goals`,
+  // current first); fall back to the single `goal` for older servers.
+  const goals = Array.isArray(decl.goals) && decl.goals.length > 0
+    ? decl.goals
+    : (decl.goal ? [decl.goal] : []);
+  goals.forEach((ty, index) => {
+    const label = goals.length > 1 ? `目标 ${index + 1}/${goals.length}` : "目标";
+    const goal = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
+    goal.description = ty;
     children.push(goal);
-  }
+  });
   for (const binder of decl.binders ?? []) {
-    const item = new vscode.TreeItem(binder.name, vscode.TreeItemCollapsibleState.None);
-    item.description = binder.ty;
-    item.iconPath = new vscode.ThemeIcon("symbol-variable");
-    children.push(item);
+    children.push(binderItem(binder));
   }
   const hint = new vscode.TreeItem("提示", vscode.TreeItemCollapsibleState.None);
   hint.description = "逐条揭示";
@@ -237,27 +267,53 @@ function buildOpenChildren(decl, uriString) {
   return children;
 }
 
-// Children of the 「当前光标处」 group (soko/stateAt): the goal selected by the
-// cursor, its hypotheses, and `by` progress. The server chose everything —
-// the client only renders and wires the reveal command.
+// Children of the 「当前光标处」 group (soko/stateAt): every goal selected by the
+// cursor (current first), each with its own hypotheses, plus `by` progress.
+// The server chose everything — the client only renders and wires the reveal
+// command.
 function buildCursorChildren(cursor, uriString) {
   const children = [];
-  const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
-  goal.description = cursor.goal ?? "已无目标 ✓";
-  goal.iconPath = new vscode.ThemeIcon(cursor.goal ? "circle-outline" : "check");
-  if (cursor.span) {
-    goal.command = {
-      command: "sokonanoda.revealRange",
-      title: "",
-      arguments: [uriString, cursor.span],
-    };
-  }
-  children.push(goal);
-  for (const binder of cursor.binders ?? []) {
-    const item = new vscode.TreeItem(binder.name, vscode.TreeItemCollapsibleState.None);
-    item.description = binder.ty;
-    item.iconPath = new vscode.ThemeIcon("symbol-variable");
-    children.push(item);
+  const goals = Array.isArray(cursor.goals) && cursor.goals.length > 0
+    ? cursor.goals
+    : (cursor.goal ? [{ goal: cursor.goal, binders: cursor.binders ?? [] }] : []);
+  if (goals.length === 0) {
+    const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
+    goal.description = "已无目标 ✓";
+    goal.iconPath = new vscode.ThemeIcon("check");
+    children.push(goal);
+  } else if (goals.length === 1) {
+    const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
+    goal.description = goals[0].goal;
+    goal.iconPath = new vscode.ThemeIcon("circle-outline");
+    if (cursor.span) {
+      goal.command = {
+        command: "sokonanoda.revealRange",
+        title: "",
+        arguments: [uriString, cursor.span],
+      };
+    }
+    children.push(goal);
+    for (const binder of goals[0].binders ?? []) {
+      children.push(binderItem(binder));
+    }
+  } else {
+    goals.forEach((state, index) => {
+      const goal = new vscode.TreeItem(
+        `目标 ${index + 1}/${goals.length}`,
+        vscode.TreeItemCollapsibleState.Expanded,
+      );
+      goal.description = state.goal;
+      goal.iconPath = new vscode.ThemeIcon("circle-outline");
+      if (cursor.span) {
+        goal.command = {
+          command: "sokonanoda.revealRange",
+          title: "",
+          arguments: [uriString, cursor.span],
+        };
+      }
+      goal.children = (state.binders ?? []).map(binderItem);
+      children.push(goal);
+    });
   }
   if (cursor.total > 0) {
     const progress = new vscode.TreeItem("by 进度", vscode.TreeItemCollapsibleState.None);
@@ -420,53 +476,6 @@ async function revealRange(uriString, range) {
   }
 }
 
-// 值位 `intro` 的展开按钮：hover 里那条 `command:sokonanoda.expandIntro?{...}`
-// 链接点下去就走这里。载荷（uri + 洞 range + 骨架文本）全部由语言服务器算好，
-// 客户端只把它原样应用成一次 WorkspaceEdit —— 不扫文本、不重算骨架，因此和
-// 接受 Tab 补全得到的是**同一份**编辑，只是不需要学习者先撞上补全弹窗。
-async function expandKeyword(...args) {
-  // `command:` 链接的载荷按 VS Code 规范是 JSON **数组**，点击时被展开成
-  // 多个实参；旧版本服务器发的是单对象。两种形态都收。
-  const first = args[0];
-  const payload = Array.isArray(first) ? first[0] : first;
-  if (!payload || typeof payload !== "object") {
-    vscode.window.showErrorMessage("sokonanoda: 展开关键字的载荷缺失。");
-    return;
-  }
-  const { uri, range, newText } = payload;
-  if (typeof uri !== "string" || !range || typeof newText !== "string") {
-    vscode.window.showErrorMessage("sokonanoda: 展开 funintro 的载荷不完整。");
-    return;
-  }
-  const target = vscode.Uri.parse(uri);
-  const span = new vscode.Range(
-    range.start.line,
-    range.start.character,
-    range.end.line,
-    range.end.character,
-  );
-  const edit = new vscode.WorkspaceEdit();
-  edit.replace(target, span, newText);
-  if (!(await vscode.workspace.applyEdit(edit))) {
-    vscode.window.showErrorMessage("sokonanoda: 展开 funintro 失败。");
-    return;
-  }
-  const editor = vscode.window.visibleTextEditors.find(
-    (candidate) => candidate.document.uri.toString() === target.toString(),
-  );
-  if (editor) {
-    editor.revealRange(span, vscode.TextEditorRevealType.InCenter);
-    // 骨架末端的 `sorry` 设为选中态：学习者的下一次输入直接覆盖它
-    // （与骨架态补全的 snippet `${0:sorry}` 行为一致）。
-    if (newText.endsWith("sorry")) {
-      const doc = editor.document;
-      const startOffset = doc.offsetAt(span.start);
-      const sorryStart = doc.positionAt(startOffset + newText.length - "sorry".length);
-      const sorryEnd = doc.positionAt(startOffset + newText.length);
-      editor.selection = new vscode.Selection(sorryStart, sorryEnd);
-    }
-  }
-}
 
 async function nextHole(backward) {
   const editor = vscode.window.activeTextEditor;
@@ -664,9 +673,6 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand("sokonanoda.goals.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("sokonanoda.courseRefresh", () => courseProvider.refresh()),
     vscode.commands.registerCommand("sokonanoda.revealRange", revealRange),
-    // intro / apply 两个值位关键字共用同一个处理器：载荷都是
-    // {uri, range, newText}，编辑器只做一次替换。
-    vscode.commands.registerCommand("sokonanoda.expandIntro", expandKeyword),
     vscode.commands.registerCommand(
       "sokonanoda.revealHint",
       (uri, declName, declRange) => revealHint(context, uri, declName, declRange),
@@ -738,13 +744,6 @@ async function activate(context) {
   client = new LanguageClient("sokonanoda", "sokonanoda", serverOptions, {
     documentSelector: [{ language: "sokonanoda", scheme: "file" }],
     synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/*.sokonanoda") },
-    // hover 里的 `command:` 链接默认是死的（markdown 未受信）。这里只放行
-    // 那一个展开命令，别的命令一律照旧不可用——白名单而不是整体 `true`。
-    markdown: {
-      isTrusted: {
-        enabledCommands: ["sokonanoda.expandIntro"],
-      },
-    },
   });
   client.onDidChangeState((event) => {
     client.outputChannel.appendLine(`[client] ${stateNames[event.newState] ?? event.newState}`);

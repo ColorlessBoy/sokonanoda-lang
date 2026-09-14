@@ -32,19 +32,6 @@ pub enum Expr {
     Hole {
         span: Span,
     },
-    /// 值位 `intro`（与 `by` 同级的教学关键字）：一次把声明类型剩下的 Pi
-    /// binder 全写成 `fun … => sorry`。front 层降低为普通 lambda + 洞，
-    /// 值不进内核；只有编辑器补全与诊断需要认识原 token 的形状。
-    ///
-    /// **可选答案**：`intro <expr>` 让前端把 `intro` 隐式替换成对应的
-    /// `fun` 骨架、末端直接填上 `<expr>`（`docs/design/term-intro.md`）——
-    /// 学习者因此不必先接受展开才能继续；判定仍由内核终审。
-    /// `None` 即裸 `intro`（末端是洞）。
-    Intro {
-        answer: Option<Box<Expr>>,
-        span: Span,
-    },
-    /// 值位 `apply`（与 `intro` 同级的教学关键字）：把目标「倒过来」消费——
     App {
         fun: Box<Expr>,
         arg: Box<Expr>,
@@ -86,7 +73,6 @@ impl Expr {
             | Expr::UniverseApp { span, .. }
             | Expr::Num { span, .. }
             | Expr::Hole { span }
-            | Expr::Intro { span, .. }
             | Expr::App { span, .. }
             | Expr::Lambda { span, .. }
             | Expr::Forall { span, .. }

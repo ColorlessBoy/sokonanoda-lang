@@ -142,16 +142,15 @@ proof> done
 checked example
 ```
 
-Value-position keywords make the first steps shorter — and they also work
-at the tail of a `fun` body:
+Multi-step proofs chain a `by` block with the tactics, and a `by` block also
+works at the tail of a `fun` body:
 
 ```text
-theorem t (h : Q -> P) : P := funintro proofP  -- = fun (x : Q) => proofP
+theorem t (h : Q -> P) : P := by intro x; exact h x
 theorem u : Q -> P := fun (x : Q) => by exact proofP
 ```
 
-Hovering `funintro` offers a one-click expand button; keeping the keyword
-un-expanded is equivalent anyway. The kernel grades every fill.
+The kernel grades every fill — there are no text heuristics.
 
 The CLI parses a `.sokonanoda` file, elaborates it into kernel declarations
 and runs the complete sokonanoda kernel over them:
