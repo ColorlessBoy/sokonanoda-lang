@@ -1,8 +1,30 @@
-# STATUS 归档（第 1–49 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–50 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十轮：移除值位关键字 funintro）
+
+> 用户评估：「`funintro` 跟 `funapply` 一样，实现起来稀里糊涂的，不如直接删了。」
+> 确认按「彻底删」执行，与多目标显示并入 0.27.0。
+
+1. **设计先行** `docs/design/remove-funintro.md`（根因/方案/测试/验收/as-built）。
+2. **前端**：删 `Expr::Intro`、`parse_intro`/原子位/lambda 尾关键字分支、
+   `KEYWORDS` 的 `funintro`、`compile/intro.rs`、`DeclState.intro_skeleton`、
+   `ErrorKind::ElabIntroNotAFunction`；各 crate 匹配臂与测试同步。
+3. **协议/客户端**：`soko/stateAt` 的 `goals` 相关不受影响；删 LSP 值位关键字
+   补全/hover/code action/inlay 全路径、VS Code `sokonanoda.expandIntro`
+   命令与 `markdown.isTrusted` 白名单；`docs/protocol.md` 值位关键字小节改为
+   「已移除」说明。
+4. **课程**：unit6（zh+en）改写「补充 funintro」段 + 练习 6 为综合 `by` 练习，
+   钥匙同步；golden 计数不变。
+5. **文档/site/技能**：architecture/README/TESTING/ROADMAP(I13 标废弃)/
+   term-intro/value-keywords-v2(废弃横幅)/site hero 换图/gen-site-demos 删演示/
+   teacher 技能表同步；历史归档与 CHANGELOG 原文保留。
+6. **测试**：`cli_value_funintro_is_no_longer_a_keyword` 钉「已非关键字」；
+   其余 funintro 测试全删。
+7. **验收**：`sokonanoda gate`（fmt/clippy/test/playground 锚点）。
 
 ## 本轮进度（2026-09-14，第四十九轮：多目标显示）
 

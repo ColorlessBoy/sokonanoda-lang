@@ -151,7 +151,6 @@ fn check_proj_from_prop() {
 
 #[test]
 #[should_panic(expected = "imported recursor rule does not match the reconstructed rule")]
-#[ignore = "upstream added this test without committing test_resources/RuleDomainMismatch; fixture must be reconstructed"]
 fn reject_rec_rule_with_forged_lambda_domains() {
     test_export_file_should_panic(
         Some(Path::new("test_resources/RuleDomainMismatch/config.json")),
@@ -165,7 +164,6 @@ fn reject_rec_rule_with_forged_lambda_domains() {
 
 #[test]
 #[should_panic(expected = "imported inductive block contains an underived recursor")]
-#[ignore = "upstream added this test without committing test_resources/UnlistedRecursor; fixture must be reconstructed"]
 fn reject_unlisted_recursor() {
     test_export_file_should_panic(
         Some(Path::new("test_resources/UnlistedRecursor/config.json")),

@@ -1414,6 +1414,9 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::ElabTacticFailed,
+        ErrorKind::ElabApplyNeedsATerm,
+        ErrorKind::ElabApplyNotApplicable,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1426,33 +1429,37 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::KernelRejected,
         ErrorKind::KernelInternal,
     ];
-    let _all_variants_listed = |kind: ErrorKind| {
-        matches!(
-            kind,
-            ErrorKind::ElabUnknownIdentifier
-                | ErrorKind::ElabUnknownConstant
-                | ErrorKind::ElabUnknownUniverseLevel
-                | ErrorKind::ElabUniverseArity
-                | ErrorKind::ElabUntypedBinder
-                | ErrorKind::ElabHoleMisplaced
-                | ErrorKind::ElabDuplicateDeclaration
-                | ErrorKind::ElabTooManyBinders
-                | ErrorKind::ElabNatLiteralDisabled
-                | ErrorKind::ElabInvalidNatLiteral
-                | ErrorKind::ElabTooManyCtorFields
-                | ErrorKind::ElabUnknownCtorForIota
-                | ErrorKind::KernelExpectedSort
-                | ErrorKind::KernelExpectedPi
-                | ErrorKind::KernelTheoremNotProp
-                | ErrorKind::KernelNonPositive
-                | ErrorKind::KernelCtorResultMismatch
-                | ErrorKind::KernelCtorArgInvalidApp
-                | ErrorKind::KernelCtorArgNotType
-                | ErrorKind::KernelCtorArgTooLarge
-                | ErrorKind::KernelRecRuleMismatch
-                | ErrorKind::KernelRejected
-                | ErrorKind::KernelInternal
-        )
+    // Genuine exhaustiveness guard: a `match` with no wildcard arm fails to
+    // compile when a new `ErrorKind` variant is added, forcing this list (and
+    // the `all` array above) to be updated. A `matches!` would silently fall
+    // through to `_ => false` and never catch the omission.
+    let _all_variants_listed = |kind: ErrorKind| match kind {
+        ErrorKind::ElabUnknownIdentifier => {}
+        ErrorKind::ElabUnknownConstant => {}
+        ErrorKind::ElabUnknownUniverseLevel => {}
+        ErrorKind::ElabUniverseArity => {}
+        ErrorKind::ElabUntypedBinder => {}
+        ErrorKind::ElabHoleMisplaced => {}
+        ErrorKind::ElabDuplicateDeclaration => {}
+        ErrorKind::ElabTooManyBinders => {}
+        ErrorKind::ElabNatLiteralDisabled => {}
+        ErrorKind::ElabInvalidNatLiteral => {}
+        ErrorKind::ElabTooManyCtorFields => {}
+        ErrorKind::ElabUnknownCtorForIota => {}
+        ErrorKind::ElabTacticFailed => {}
+        ErrorKind::ElabApplyNeedsATerm => {}
+        ErrorKind::ElabApplyNotApplicable => {}
+        ErrorKind::KernelExpectedSort => {}
+        ErrorKind::KernelExpectedPi => {}
+        ErrorKind::KernelTheoremNotProp => {}
+        ErrorKind::KernelNonPositive => {}
+        ErrorKind::KernelCtorResultMismatch => {}
+        ErrorKind::KernelCtorArgInvalidApp => {}
+        ErrorKind::KernelCtorArgNotType => {}
+        ErrorKind::KernelCtorArgTooLarge => {}
+        ErrorKind::KernelRecRuleMismatch => {}
+        ErrorKind::KernelRejected => {}
+        ErrorKind::KernelInternal => {}
     };
     let undocumented: Vec<&str> = all
         .iter()

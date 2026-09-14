@@ -1,0 +1,21 @@
+{
+  // Contributor-only environment.
+  //
+  // End users and code agents do NOT need Rust: they run the prebuilt Release
+  // binaries (scripts/install.sh) or the VS Code extension, which bundles both
+  // the LSP and the CLI. See docs/design/onboarding.md and REQUIREMENTS.md
+  // §2.9 (zero-toolchain user path).
+  "name": "sokonanoda-lang (contributors)",
+  "image": "mcr.microsoft.com/devcontainers/rust:1-bookworm",
+  // Prefer the repo's own gate when a `sokonanoda` binary is on PATH,
+  // otherwise fall back to a plain build.
+  "postCreateCommand": "if command -v sokonanoda >/dev/null 2>&1; then sokonanoda gate; else cargo build; fi",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "sokonanoda-lang.sokonanoda"
+      ]
+    }
+  }
+}

@@ -99,6 +99,15 @@ done
 "$BIN/sokonanoda" --json your-file.sokonanoda
 ```
 
+Or run the POSIX installer (`scripts/install.sh`, macOS/Linux): it maps your
+OS/arch to the right Rust triple and installs into
+`~/.local/share/sokonanoda/bin`:
+
+```bash
+TAG=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)   # this checkout's version
+SOKONANODA_VERSION="v${TAG}" sh scripts/install.sh
+```
+
 `--json` prints one JSON event per line (the machine/agent view); errors carry
 a stable code (`elab-*` / `kernel-rejected` / …) plus a teaching hint.
 **Never use `releases/latest`** — always pin `v${version}`, otherwise a newer
@@ -115,6 +124,10 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json examples/lesson-01.sok
 cargo run -q -p sokonanoda-cli --bin sokonanoda repl
 cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp   # editor feedback channel
 ```
+
+Or open the checkout in the contributor devcontainer
+(`.devcontainer/devcontainer.json`, Rust image). This is contributor-only —
+end users and code agents never need Rust.
 
 The editor path is LSP-first: `.sokonanoda` files stay declarative (no `#`
 commands); the language server publishes per-declaration diagnostics, hover

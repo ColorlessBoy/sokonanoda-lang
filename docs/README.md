@@ -55,6 +55,10 @@
 - `remove-funintro.md` — 移除值位关键字 `funintro`（0.27.0）
 - `goal-list.md` — 多目标显示：`by` 每步记录全部剩余目标 + 协议 `goals[]`（0.27.0）
 - `tactic-hover.md` — tactic 关键字高亮 + hover 中间 goal state（0.27.0）
+- `elaborator-let-match.md` — elaborator `let`（Phase 1）/ `match`（Phase 2）设计（I6）
+- `spine-meta-a.md` — refine 子洞的 kernel 级期望类型（方案 A，I9 余项）
+- `webview-infoview.md` — VS Code webview goal 面板（方案 B）
+- `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
 - `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（部分实施：I11-S0/S1 已落地，余项见 ROADMAP）
 - `site.md` — 项目官网（GitHub Pages）方案与信息架构（已上线：site/ + pages.yml）
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
@@ -77,3 +81,6 @@
 - `skills/` — 角色技能（`sokonanoda-teacher` / `-dev` / `-ci`）
 - `course/` — 课程素材库（agent 用，非用户直接消费）
 - `playground.sokonanoda`（仓库根）— 共享教学画布
+- `scripts/install.sh` — 终端用户零 cargo 安装器（版本锁定 Release 资产，
+  见 `docs/design/onboarding.md` §5）
+- `.devcontainer/` — 仅贡献者的 Rust 容器（终端用户无需 Rust）

@@ -433,51 +433,24 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - [ ] goal 视图余项：声明宇宙参数携带 ✅（已并入 judge）；refine 的子洞
       kernel 级 expected type（spine meta）；VS Code goal 面板 ✅。
 
-### I10 —— 值位 `apply` 关键字（✅ 0.18.0 完成，全子项落地；设计+as-built 见 term-apply.md）
+### I10 —— 值位 `apply` 关键字（✅ 0.18.0 完成；❌ 关键字本身已整体移除）
 
-> 设计（已完成，勿再重复讨论方案）：`docs/design/term-apply.md`。
-> 核心结论：**不能照抄 `intro`**——`apply` 需要「被应用名字的类型」，而 front 侧
-> 没有可用的类型表（`GoalTemplates` 丢 codomain、局部假设不在表内、内核无查询 API），
-> 因此降低走 `by` 引擎已验证的 `judge_infer` 路线（内核推断类型，判定仍在填洞后）。
+> **已废弃（历史存档）**：值位 `apply` 随 I13 改名 `funapply`，并于 0.22.0
+> 一并移除；独立关键字通道（`Expr::Apply` 值位物化）已不存在，值位只保留
+> 普通表达式与 `by` 块（`docs/design/remove-funintro.md`）。设计与 as-built
+> 存 `docs/design/term-apply.md`；当前的 `apply` 仅是 `by` 块内 tactic，见
+> `docs/design/by-tactics.md`。
 
-- **S1 front 骨架**：`parse_value` 第三分支（实参用 `parse_app` 消费）、AST
-  `Expr::Apply`、穷尽 match 补齐、`compile/apply.rs`（复用 `judge_infer` /
-  `parse_expr_text` / `peel_pi` / `unify_spine` / `substitute`）、
-  `DeclState.apply_skeleton`、`check.rs::lower_value` 接线、三个新错误码 + `protocol.md`。
-- **S2 合成洞分派**：`suggest.rs` 把带骨架的声明（`intro`/`apply`）一律路由到
-  `judge_terms`，绕开 `judge_hole_fill` 的「洞位源码必须恰为 `sorry`」守卫
-  （`judge.rs:316-322`）+ 回归测试。
-- **S3 编辑器面**：`keyword_at` 通用化（收敛现有三套位置选取）、hover、补全项、
-  VS Code 命令 `sokonanoda.expandApply`（含 `markdown.isTrusted` 放行）。
-- **S4 课程与白名单**：单元里加「`exact` / `apply` / `intro` / `by` 对照」一节 + 练习
-  （zh/en + 钥匙 + golden）；`semantic::KEYWORDS` 与白名单文档同步。
-- **验收**：`cargo test --workspace --locked` 全绿（fmt/clippy 无新警告）；`apply` 的
-  「不展开也等价」与「排版无关」两条契约测试；课程 golden 更新并说明新旧计数；
-  版本 bump（新增命令 → minor）。
-- **subagent 切分**：S1 由主会话做（公共接线点最多）；S2 与 S3 可并行派发，
-  文件集互斥（`suggest.rs`+`compile/tests.rs` ↔ `lsp/*`+`editor/vscode/*`），
-  任务书必须写死允许修改的文件清单与验收命令。
+### I11 —— 真人输入测试体系（❌ 已废弃/被取代）
 
-### I11 —— 真人输入测试体系（覆盖 `sorry`/`intro`/`apply`/`by` 共存）
-
-> 设计（已完成）：`docs/design/real-input-tests.md`（含共存风险矩阵、测试清单、flake 预算）。
-
-- **S0 前置（主会话，必须先做）**：`testutil::type_step` / `char_steps` / `did_change`
-  输入脚本基建 + 两条整词门控用例（**已落地 2026-09-13**，见 `real-input-tests.md` §8）。
-  > 原计划里 S0 还包含 `keyword_at` 位置逻辑收敛，**已后移到 I10-S3**：只有一个值位
-   > 关键字时把 `intro_at` 泛化是没有第二调用方可验证的抽象，等 `apply` 落地再抽。
-- **S1 `by` 引擎缺陷**（✅ 已修，0.18.0）：inlay 的类型分派按洞的位置顺序
-  对齐 sub_goals（实测红 `[": p", ": p"]` → 绿 `[": p", ": q"]`）；
-  `soko/nextHole` 无法在同址子目标间导航是**确认为限制**（伪造互异 offset
-  会破坏 documentHighlight/selectionRange），已记入 `docs/protocol.md`。
-- **S2 front/session 五条**（F1–F5）：`sorry`↔`intro`/`by`/`apply` 往返、四种排版重排、
-  同文档四写法改一行（`recompiled_from` 精确 + span remap）。
-- **S3 LSP 逐字符四条**（L1–L4）：前缀不触发、整词才触发、词尾+空格仍触发、
-  `by` 块内不串台。
-- **S4 与 I10 合流**：L5–L8（展开后的 inlay/nextHole 可寻址、四写法混排 stateAt、
-  注释编辑 remap）、V1–V4（VS Code 手势烟测）。
-- **验收**：新增测试全部登记进 `docs/TESTING.md` 测试地图；**LSP/front 层零 sleep**；
-  VS Code 层新增 sleep 必须在文件里登记理由；`ci.yml` 的集成测试步骤保持绿。
+> **已废弃（历史存档）**：`char_steps` 输入脚本基建已删除，值位 `intro`/`apply`
+> 关键字也已移除，四写法共存矩阵随之作废（`docs/design/remove-funintro.md`）。
+> 测试体系现以 `by` 引擎为中心：`docs/design/by-tactics.md`（tactic 集）、
+> `docs/design/goal-list.md`（多目标）、`docs/design/tactic-hover.md`
+> （tactic 高亮/hover）。
+> **仅一条结论仍成立**：`soko/nextHole` 无法在同一源码位置的多子目标之间
+> 导航（同址子目标只能整组导航）——已记入 `docs/protocol.md` 的
+> `soko/nextHole` 小节（"Known limitation"）。
 
 ### I12 —— 项目官网（GitHub Pages）
 
@@ -505,34 +478,15 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - I10 与 I12 **互不依赖**，可并行（不同文件集：`crates/**` ↔ `site/**`+`workflows/**`）；
 - I12-S0（修漂移）不依赖任何代码改动，可最先做。
 
-### I13 —— 值位关键字 v2：funintro/funapply + 输入期补全 + 关键字组合
+### I13 —— 值位关键字 v2：funintro/funapply + 输入期补全 + 关键字组合（❌ 已废弃）
 
 > **已废弃（历史存档）**：`funapply` 于 0.22.0 移除，`funintro` 于 0.27.0
 > 移除（`docs/design/remove-funintro.md`）。值位现在只保留普通表达式与
-> `by` 块；本节仅记录当时的决策，不再执行。
-
-> 设计（已定稿，勿再讨论方案）：`docs/design/value-keywords-v2.md`（含探针
-> 实测、调研结论、决策单 D1–D9）。触发（用户三需求）：①输入过程没有补全
-> 替换提示；②`funintro (funapply X)` 组合；③值位关键字改名与 tactic 消歧义。
-
-- **S1 改名**（subagent，文件集最广）：值位 `intro`→`funintro`、`apply`→
-  `funapply`（无别名，D1）；by 块 tactic 不动（D2）；KEYWORDS 保留旧词并新增
-  新词（D3）；命令 ID 保留、按钮文案改「替换源代码 funintro/funapply」（D4/D7）；
-  hint 文案改新名、机器码保留（D5）；course/unit6 zh+en 5 个 theorem 与三种
-  写法对照、`playground.sokonanoda`、~45 个值位测试名全扫；golden 事件计数
-  不变（调研已证）。
-- **S2 输入期补全**（subagent）：`keyword_at` 两态门控（骨架态/键入态，§3.1），
-  前缀出键入态项、整词+实参完成出骨架态项；**推翻 v1 整词门控**并改写对应
-  测试；真人输入测试三条（char_steps 零 sleep）。
-- **S3 关键字组合**（subagent）：关键字成为原子位表达式（`parse_atom` 分支 +
-  四段重复解析收敛为 `parse_intro`/`parse_apply`）；`apply.rs::lower_at` 提为
-  pub(crate)；`lower_intro_val` 增 src/span_start/options 传参、`peel_all_pi`
-  返回最终 goal 类型与层 binder；组合骨架填 `intro_skeleton`；组合矩阵测试
-  （端到端/等价性/错误面/声明 binder 叠加/LSP 命中）。
-- **S4 收口**（主会话）：protocol/TESTING/architecture/README/skills 同步；
-  版本 0.20.0 → 0.21.0；push main 验证 auto-tag 自动发布。
-- **验收**：见 value-keywords-v2.md §5（五条，含逐键输入每中间态有项、组合
-  等价性契约、全仓值位无旧名残留、三层门禁绿、自动发布成功）。
+> `by` 块；当时的改名/输入期补全/关键字组合方案均不再执行，设计存
+> `docs/design/value-keywords-v2.md`（已加废弃横幅）。
+> 现状实现见 `docs/design/by-tactics.md`（tactic 集与 `by` 引擎）、
+> `docs/design/goal-list.md`（多目标显示）、`docs/design/tactic-hover.md`
+> （tactic 高亮与 hover goal state）。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。

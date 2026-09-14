@@ -1774,6 +1774,72 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn code_lens_ranges_match_each_declaration() {
+        // codeLens 的 range 必须精确覆盖每个声明（checked def 与 open
+        // exercise 各一），命令 id 由扩展消费（sokonanoda.status）。
+        const CHECKED: &str = "def ok : Prop -> Prop := fun (x : Prop) => x";
+        const OPEN: &str = "example : Prop -> Prop := sorry";
+        let src = format!("{CHECKED}\n{OPEN}\n");
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &src).await;
+        let _ = wait_diagnostics(&mut socket, "codeLens diagnostics").await;
+
+        let result = call(
+            &mut service,
+            RpcRequest::build("textDocument/codeLens")
+                .params(json!({"textDocument": {"uri": URI}}))
+                .id(6)
+                .finish(),
+        )
+        .await
+        .expect("codeLens must answer");
+        let lenses: Option<Vec<CodeLens>> = serde_json::from_value(result).expect("valid CodeLens");
+        let lenses = lenses.expect("code lenses must be returned");
+        assert_eq!(lenses.len(), 2, "one lens per declaration: {lenses:?}");
+
+        let checked = &lenses[0];
+        let command = checked.command.as_ref().expect("lens carries a command");
+        assert_eq!(command.command, "sokonanoda.status");
+        assert!(
+            command.title.contains("solved"),
+            "checked def lens title: {:?}",
+            command.title
+        );
+        assert_eq!(
+            checked.range.start,
+            lsp_pos(&src, 0),
+            "checked lens starts at the declaration"
+        );
+        assert_eq!(
+            checked.range.end,
+            lsp_pos(&src, CHECKED.len()),
+            "checked lens ends at the declaration's last token"
+        );
+
+        let open_start = CHECKED.len() + 1;
+        let open = &lenses[1];
+        let command = open.command.as_ref().expect("lens carries a command");
+        assert_eq!(command.command, "sokonanoda.status");
+        assert!(
+            command.title.contains("exercise: open"),
+            "open exercise lens title: {:?}",
+            command.title
+        );
+        assert_eq!(
+            open.range.start,
+            lsp_pos(&src, open_start),
+            "open lens starts at the exercise declaration"
+        );
+        assert_eq!(
+            open.range.end,
+            lsp_pos(&src, open_start + OPEN.len()),
+            "open lens ends at the exercise's last token"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
     async fn code_action_offers_intro_on_open_exercise() {
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;

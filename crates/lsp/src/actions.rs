@@ -772,6 +772,50 @@ fun (a : Prop) => fun (b : Prop) => fun (k : a -> b -> And a b) => sorry\n";
         shutdown(&mut service).await;
     }
 
+    #[tokio::test]
+    async fn code_action_refine_edit_targets_the_hole() {
+        // refine 族（构造子骨架）必须替换**洞**本身，与 exact/intro 同址：
+        // 自动填充参数 + 每个证明位一个 sorry。
+        let src = "axiom And : Prop -> Prop -> Prop\n\
+                   axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+                   theorem t : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_for(&mut service, src).await;
+        let refine = actions
+            .iter()
+            .find(|a| a.title.contains("refine And.intro a b sorry sorry"))
+            .expect("refine skeleton with auto-filled parameters must be offered");
+        let (range, new_text) = first_edit_full(refine);
+        assert_eq!(new_text, "And.intro a b sorry sorry");
+        let hole = offset_of(src, "sorry");
+        assert_eq!(
+            range.start,
+            lsp_pos(src, hole),
+            "refine must start at the hole"
+        );
+        assert_eq!(
+            range.end,
+            lsp_pos(src, hole + "sorry".len()),
+            "refine must cover exactly the hole"
+        );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn code_action_open_goal_without_a_next_step_offers_none() {
+        // 目标是不带构造子的公理命题 `P`：没有可填的假设（无 exact/rfl）、
+        // 没有 refine 模板（P 不是构造子的目标）、也不是 Pi（无 intro）。
+        // refine/intro 两族的「无候选」回退在此守护：不产出任何 action。
+        let src = "axiom P : Prop\ntheorem t : P := sorry\n";
+        let (mut service, _socket) = opened(src).await;
+        let actions = code_actions_at(&mut service, src, offset_of(src, "sorry")).await;
+        assert!(
+            actions.is_none(),
+            "no next step for a bare axiom goal: {actions:?}"
+        );
+        shutdown(&mut service).await;
+    }
+
     #[test]
     fn restart_summary_truncates_at_40_chars() {
         let short = "fun (a : Prop) => fun (x : a) => sorry";

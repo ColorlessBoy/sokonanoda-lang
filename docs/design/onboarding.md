@@ -107,8 +107,22 @@
 
 ## 5. 后续（未做）
 
-- `install.sh`（repo 根 + Release 附件，`curl raw.../vX.Y.Z/install.sh | sh`）+
-  `SHA256SUMS` + `actions/attest@v4`/immutable releases（cargo-dist 模式）。
-- `.devcontainer/devcontainer.json`（Rust 镜像 + `postCreateCommand: scripts/soko.sh gate`）。
-- `rust-toolchain.toml` 钉工具链（当前跟随 stable）。
-- `cargo binstall` / `mise github:` 作为包管理器备选写进 README。
+> 2026-09-14：本节条目分批推进；保留标题与分节，完成了就打勾并注明落点。
+
+- [x] **`install.sh`（终端用户，零 cargo）** —— POSIX `sh`，按 OS/arch（Linux
+  再分 glibc / musl·alpine）映射 Release 资产名里的 Rust triple，从
+  `releases/download/v${VERSION}/sokonanoda-cli-<triple>.tar.gz` 下载，解到
+  `${SOKONANODA_HOME:-$HOME/.local/share/sokonanoda}/bin`，`chmod +x` 并打印
+  PATH 指引。`SOKONANODA_VERSION` 或 `--version` **必填**，未给则报错并给出
+  指引；**不使用 `releases/latest`**（与 §2.9 / README 版本锁定规则一致）。
+  落点 `scripts/install.sh`；入口见根 `README.md` / `docs/README.md`。
+  校验：`sh -n scripts/install.sh`。
+- [x] **`.devcontainer/devcontainer.json`（仅贡献者）** —— Rust 官方 devcontainer
+  镜像；`postCreateCommand` = 有 `sokonanoda` 就跑 `sokonanoda gate`，否则
+  `cargo build`。文件内注释点明终端用户/agent 零 Rust（本文 + `REQUIREMENTS.md`
+  §2.9）。
+- [ ] `SHA256SUMS` + `actions/attest@v4` + immutable releases（cargo-dist 模式）。
+  **涉及 Release workflow，单独评审。**
+- [ ] `rust-toolchain.toml` 钉工具链（当前跟随 stable；`Cargo.toml` 的
+  `rust-version` 只是 MSRV 下限）。
+- [ ] `cargo binstall` / `mise github:` 作为包管理器备选写进 README。

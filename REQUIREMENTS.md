@@ -504,3 +504,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   解析不到可用服务器时报错而非静默重启旧命令/旧缓存、检测到磁盘上更新的
   扩展而宿主仍旧时提示 Reload Window。版本 **0.27.1**。见
   `docs/vscode-dev-guide.md` §5.6。
+- 2026-09-14（五十二）：**TODO 清账（用户明确：全部按流程做，多用 subagent）**
+  ——把 ROADMAP §10 未勾选、TESTING §5 盲区、onboarding §5 待办按依赖清账：
+  ①修 `protocol_doc_lists_every_error_code` 的假穷尽守卫（`matches!` 自带
+  `_`）为不可绕过的 `match` + 26 variant 数组，补 `elab-apply-*` 文档；
+  ②补 codeLens/quick-fix 进程内 rpc 测试；③重建两个内核冻结 fixture
+  （`RuleDomainMismatch`/`UnlistedRecursor`）并解禁对应测试；④落地
+  `scripts/install.sh`（零 cargo、版本锁定、禁 latest）与 `.devcontainer`；
+  ⑤为 `let`/`match`、spine-meta A、webview Infoview、compiler service
+  事件流产出设计文档（实现留后续轮）。全过程 8 个 subagent 并行产出，
+  主会话统一 gate。设计见 `docs/design/*`；本轮机/文/脚本改动不 bump 版本。
