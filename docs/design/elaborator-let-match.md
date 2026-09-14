@@ -474,3 +474,23 @@ Phase 1 **不新增 ErrorKind**（避免协议churn）：
 | **S4** | 课程单元③（zh/en/钥匙）+ golden + 白名单文档 | course golden、gate |
 | **S5** | CLI e2e + 文档（architecture §4.1 / protocol 说明 / STATUS / REQUIREMENTS §9） | cli 测试、gate |
 | **Phase 2** | `match`：另立 `docs/design/` 设计，再做归纳登记表 + recursor 合成 | 独立验收 |
+
+---
+
+## 12. as-built（2026-09-14，Phase 1 `let`，0.28.0）
+
+- **AST**：`Expr::Let { binder, val, body, span }`（`ast.rs`）。
+- **parser**：`parse_expr` 识别 `let`；`starts_atom` 排除 `let`；额外修
+  `named_group_ahead`（`(let …)` 曾被当成多名字 binder 组）。
+- **elab**：`Expr::Let` 分支（类型在外层 scope、`record_binder_hover`、值在
+  `Some(ty)` 期望下、binder 入 scope 供 body、`mk_let(..., nondep=false)`）；
+  缺注解 → `elab-untyped-binder`（hint 补 `let` 例子）。`spine`/`proof`/
+  `semantic`/`goals` 的 `Expr` 匹配同步。
+- **goal**：`expr_has_hole`/`collect_hole_spans`/`goal_under_binders` 支持
+  `let`；值位洞产出子目标（期望 `T`）、body 洞把 `x : T` 加入局部假设后再走。
+- **测试**：front +21（parse 8 / compile 13，含 zeta 等价契约）、CLI e2e +3、
+  课程 unit3 新增 `let` 小节（zh/en/钥匙，`def`/`#reduce` 逐字节镜像）+
+  golden `unit3 (1,4,1)→(2,6,2)`、汇总 `checked 47→48 / open 34→36`。
+- **文档**：`architecture.md` §4.1/§8、`TESTING.md` §1 同步。
+- **版本** 0.27.1 → **0.28.0**（新语法 → minor）。
+- **未做（Phase 2）**：`match`、无注解 `let`（走 `judge_infer` 查询）。

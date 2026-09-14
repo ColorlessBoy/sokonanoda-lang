@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第五十三轮：TODO 清账——测试/文档债 + 内核 fixture + 安装子集 + 大项设计）
+> 快照：2026-09-14（第五十四轮：elaborator `let`——Phase 1 落地；0.28.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,26 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第五十四轮：elaborator `let`（Phase 1））
+
+> 续第五十三轮的 TODO 清账：按 `docs/design/elaborator-let-match.md` 的
+> S1–S5 落地**值位 `let`**（Phase 1）。`match` 依设计推迟到 Phase 2。
+
+1. **设计**：`docs/design/elaborator-let-match.md` §11 切片 S1–S5 + 本文 §12 as-built。
+2. **front（S1–S3）**：`Expr::Let`；`parse_expr` 识别 `let`（`starts_atom` /
+   `named_group_ahead` 排除）；elab 分支（外层类型 + 期望类型 + `mk_let`
+   `nondep=false`，缺注解 `elab-untyped-binder`）；`spine`/`proof`/`semantic`/
+   `goals` 同步；`open_goal` 支持值位/body 洞。+21 测试（含 zeta 等价契约）。
+3. **课程 + CLI（S4–S5）**：unit3 新增「局部绑定 `let`」小节（zh/en/钥匙，
+   `def`/`#reduce` 逐字节镜像 + 两道 sorry 练习）；golden `unit3 (1,4,1)→(2,6,2)`、
+   汇总 `checked 47→48 / open 34→36`；CLI e2e +3；`architecture.md` §4.1/§8、
+   `TESTING.md` §1 同步。
+4. **验收**：`sokonanoda gate` PASS（front 287、cli 97、lsp 108）。
+5. **版本** 0.27.1 → **0.28.0**（新语法 = minor，Cargo + VSIX + CHANGELOG Added）。
+
+> TODO 余项：`match`（Phase 2）、无注解 `let`、spine-meta A 实现、webview
+> Infoview、事件流、perf 基准 + I8 early-cutoff、SHA256SUMS/attest。
 
 ## 本轮进度（2026-09-14，第五十三轮：TODO 清账——测试/文档债 + 大项设计）
 
@@ -69,21 +89,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    钉住共用解析器 + 下载兜底 + 更新提示；`node test-server.js` 18/18 绿。
 5. **版本** 0.27.0 → **0.27.1**（fix → patch）；CHANGELOG Fixed、
    `docs/vscode-dev-guide.md` §5.6 同步。
-
-## 本轮进度（2026-09-14，第五十一轮：tactic 关键字高亮 + hover goal state）
-
-> 用户反馈：`exact` 没有正确高亮；希望像 Lean 一样在每个 tactic 上 hover 看到
-> 中间 goal state（Infoview 式），或按鼠标位置给 goal state。
-
-1. **设计** `docs/design/tactic-hover.md`。
-2. **高亮**：`semantic::KEYWORDS` 增补 `by`/`exact`/`assumption`/`rfl`（此前
-   当普通标识符着色；`forall`/`sorry` 已由 token/Hole 正确处理）。
-3. **hover**：`textDocument/hover` 首插 `tactic_goal_hover`——光标落在某 tactic
-   span 内 → 用 `by_steps` + `select_state_at`（进入态语义，与 `soko/stateAt`
-   同数据同规则）渲染全部目标与假设（多目标标 `目标 i/n`），range = 该 tactic；
-   纯快照消费，零重编译零文本扫描。
-4. **测试**：front semantic 断言四关键字均 Keyword；LSP
-   `hover_on_a_tactic_shows_the_entering_goal_state`（hover `apply` → `⊢ And P Q`；
-   hover `sorry` → `⊢ P` / `⊢ Q`）。
-5. **协议**：`docs/protocol.md` 新增「Tactic goal-state hover」小节；并入 0.27.0。
-6. **验收**：`sokonanoda gate` PASS。

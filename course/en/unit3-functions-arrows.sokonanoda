@@ -65,6 +65,35 @@ def three_args : Nat -> Nat -> Nat -> Nat := sorry
 -- soko:hint key piece: apply f twice in a row — first to n, then to the result; the last layer returns that "applied twice" expression.
 def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := sorry
 
+-- Local bindings with let: give an intermediate result a name, then continue.
+--   let x : T := v; body
+-- Read it as: name v as x (of type T), then compute body, where x is in scope.
+-- Note: v1 requires the type to be written out (let x : T := v); decide the
+-- type of the intermediate value first.
+-- Equivalence: let x : T := v; body is exactly (fun (x : T) => body) v — the
+-- kernel makes the call, so either spelling is fine.
+-- ---------------------------------------------------------------------------
+
+-- Demo (already written): name an intermediate result with let, then return it.
+def add_two_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 2; m
+
+-- Self-test: #reduce evaluates the let first; this should be 42.
+#reduce (let m : Nat := 20 + 20; m + 2)
+
+-- Exercise 5 — name an intermediate result with let. The hole is in the value
+-- position: bind n + n to m.
+-- soko:hint approach: let evaluates its right-hand side first, then the body — decide m's value and type first.
+-- soko:hint goal shape: the hole's expected type is the binder annotation Nat; combine n to double it.
+-- soko:hint key piece: + is real addition — put n together with n.
+def double_let : Nat -> Nat := fun (n : Nat) => let m : Nat := sorry; m
+
+-- Exercise 6 — after a let binding, the body may use the name directly.
+-- The hole is in the let body: m is already a ready-made Nat, so hand it back.
+-- soko:hint approach: let puts m into scope — inside the body m is an ordinary Nat.
+-- soko:hint goal shape: the remaining goal is still Nat, and m is already in the local context.
+-- soko:hint key piece: the body can just be m (or any Nat built from m).
+def body_uses_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 5; sorry
+
 -- A question to sit with (answered in Unit 4): you have been writing types
 -- like `Nat -> Nat`. But if everything has a type — what is the type of a
 -- function type itself? Think for a minute, then open Unit 4.

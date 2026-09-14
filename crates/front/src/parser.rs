@@ -419,8 +419,53 @@ impl Parser {
         match &self.peek().kind {
             TokenKind::Forall => self.parse_forall(),
             TokenKind::Ident(kw) if kw == "fun" => self.parse_lambda(),
+            TokenKind::Ident(kw) if kw == "let" => self.parse_let(),
             _ => self.parse_arrow(),
         }
+    }
+
+    /// Phase 1 值位 `let`：`let x : T := v; body`。`: T` 可省略，缺注解时
+    /// 仍产出 `Binder.ty = None`，由 elaborator 报 `elab-untyped-binder`
+    ///（与设计 §3.4 一致）。`v`/`body` 都按完整 term 解析（右结合、可嵌套）。
+    fn parse_let(&mut self) -> Result<Expr> {
+        let start = self.bump().span.start;
+        let name_tok = self.peek().clone();
+        let TokenKind::Ident(name) = name_tok.kind.clone() else {
+            return Err(Diagnostic::new(
+                DiagnosticKind::UnexpectedToken {
+                    found: format!("{:?}", name_tok.kind),
+                    expected: "a `let` binder name".to_string(),
+                },
+                name_tok.span,
+                "`let` 后面要跟绑定名，例如 let x : Nat := 1; x".to_string(),
+            ));
+        };
+        self.bump();
+        let mut ty = None;
+        if self.peek().kind == TokenKind::Colon {
+            self.bump();
+            ty = Some(Box::new(self.parse_expr()?));
+        }
+        self.expect_kind(&TokenKind::ColonEq, "`:=` after the let binder")?;
+        let val = self.parse_expr()?;
+        self.expect_kind(&TokenKind::Semicolon, "`;` after the let value")?;
+        let body = self.parse_expr()?;
+        let binder_end = ty
+            .as_ref()
+            .map(|ty| ty.span().end)
+            .unwrap_or(name_tok.span.end);
+        let span = Span::new(start, body.span().end);
+        Ok(Expr::Let {
+            binder: Binder {
+                name,
+                ty,
+                style: BinderKind::Explicit,
+                span: Span::new(name_tok.span.start, binder_end),
+            },
+            val: Box::new(val),
+            body: Box::new(body),
+            span,
+        })
     }
 
     fn parse_arrow(&mut self) -> Result<Expr> {
@@ -474,6 +519,14 @@ impl Parser {
             return false;
         }
         i += 1;
+        // `(let x : T := …)` / `(fun …)` 是表达式，不是多名字 binder 组；
+        // `let`/`fun` 恰好也是 Ident，必须在这里让路。
+        if matches!(
+            toks.get(i).map(|t| &t.kind),
+            Some(TokenKind::Ident(name)) if is_expr_keyword(name) || name.as_str() == "fun"
+        ) {
+            return false;
+        }
         let mut saw_ident = false;
         while matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Ident(_))) {
             saw_ident = true;
@@ -546,7 +599,7 @@ impl Parser {
 
     fn starts_atom(&self) -> bool {
         match &self.peek().kind {
-            TokenKind::Ident(name) => !is_reserved_command(name),
+            TokenKind::Ident(name) => !is_reserved_command(name) && !is_expr_keyword(name),
             TokenKind::Num(_) | TokenKind::Hole | TokenKind::LParen | TokenKind::At => true,
             TokenKind::Forall => true,
             _ => false,
@@ -941,6 +994,12 @@ pub fn parse(src: &str) -> Result<FolFile> {
     parser.parse_file(src)
 }
 
+/// 表达式关键字（term 关键字）：不是命令，但在应用位必须让路——`f let …`
+/// 绝不能被当成 `f` 应用到标识符 `let`。
+fn is_expr_keyword(name: &str) -> bool {
+    matches!(name, "let")
+}
+
 fn is_reserved_command(name: &str) -> bool {
     matches!(
         name,
@@ -1200,5 +1259,105 @@ end
         };
         assert!(matches!(ty, Expr::Arrow { .. }));
         assert!(matches!(val, Expr::Hole { .. }));
+    }
+
+    #[test]
+    fn let_parses_binder_value_body_and_span() {
+        let file =
+            parse("def two : Nat := let one : Nat := Nat.succ Nat.zero; one + one\n").unwrap();
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        let Expr::Let {
+            binder,
+            val: let_val,
+            body,
+            span,
+        } = val
+        else {
+            panic!("expected Let, got {val:?}");
+        };
+        assert_eq!(binder.name, "one");
+        assert_eq!(binder.style, BinderKind::Explicit);
+        assert!(matches!(
+            binder.ty.as_deref(),
+            Some(Expr::Ident { name, .. }) if name == "Nat"
+        ));
+        assert!(matches!(let_val.as_ref(), Expr::App { .. }));
+        assert!(matches!(body.as_ref(), Expr::Plus { .. }));
+        assert_eq!(span.end.offset, body.span().end.offset);
+        assert!(span.start.offset < binder.span.start.offset);
+    }
+
+    #[test]
+    fn let_without_annotation_keeps_none_binder_type() {
+        let file = parse("#check (let x := Nat.zero; x)\n").unwrap();
+        let Command::Check { expr, .. } = &file.commands[0] else {
+            panic!("expected #check");
+        };
+        let Expr::Let { binder, .. } = expr else {
+            panic!("expected Let, got {expr:?}");
+        };
+        assert_eq!(binder.name, "x");
+        assert!(
+            binder.ty.is_none(),
+            "missing annotation stays None for elab"
+        );
+    }
+
+    #[test]
+    fn let_nests_right_associatively() {
+        let file = parse("#check (let a : Nat := 0; let b : Nat := 1; a)\n").unwrap();
+        let Command::Check { expr, .. } = &file.commands[0] else {
+            panic!("expected #check");
+        };
+        let Expr::Let { body, .. } = expr else {
+            panic!("expected outer Let, got {expr:?}");
+        };
+        assert!(
+            matches!(body.as_ref(), Expr::Let { .. }),
+            "body should be a nested Let: {body:?}"
+        );
+    }
+
+    #[test]
+    fn let_parses_in_fun_body_and_parentheses() {
+        let file = parse("def d : Nat := fun (x : Nat) => let y : Nat := x; y\n").unwrap();
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        let Expr::Lambda { body, .. } = val else {
+            panic!("expected Lambda, got {val:?}");
+        };
+        assert!(matches!(body.as_ref(), Expr::Let { .. }));
+        let file2 = parse("#check (let x : Nat := 1; x)\n").unwrap();
+        assert!(
+            matches!(&file2.commands[0], Command::Check { expr, .. } if matches!(expr, Expr::Let { .. }))
+        );
+    }
+
+    #[test]
+    fn let_missing_semicolon_is_a_parse_error() {
+        let err = parse("def x : Nat := let y : Nat := 1\n").unwrap_err();
+        assert!(err.message.contains(";"), "err: {err:?}");
+    }
+
+    #[test]
+    fn let_missing_assign_is_a_parse_error() {
+        let err = parse("#check (let y : Nat; y)\n").unwrap_err();
+        assert!(err.message.contains(":="), "err: {err:?}");
+    }
+
+    #[test]
+    fn let_without_binder_name_is_a_parse_error() {
+        let err = parse("#check (let 3 : Nat := 3; 3)\n").unwrap_err();
+        assert!(err.message.contains("let"), "err: {err:?}");
+    }
+
+    #[test]
+    fn let_does_not_start_an_application_argument() {
+        // `f let …`：`let` 必须让路成 term 关键字，而不是被吃成 `f` 的实参。
+        let err = parse("def x : Nat := Nat.succ let y : Nat := 1; y\n").unwrap_err();
+        assert!(err.message.contains("command"), "err: {err:?}");
     }
 }

@@ -44,7 +44,7 @@ fn count_type(events: &[Value], ty: &str) -> usize {
 const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit1-propositions-proofs.sokonanoda", (13, 6, 1)),
     ("unit2-equality-rfl.sokonanoda", (2, 5, 2)),
-    ("unit3-functions-arrows.sokonanoda", (1, 4, 1)),
+    ("unit3-functions-arrows.sokonanoda", (2, 6, 2)),
     ("unit4-universes-sort.sokonanoda", (0, 3, 0)),
     ("unit5-induction-nat-rec.sokonanoda", (4, 3, 1)),
     ("unit6-by-tactics.sokonanoda", (13, 6, 0)),

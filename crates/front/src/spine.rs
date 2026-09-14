@@ -99,6 +99,13 @@ pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
             domain, codomain, ..
         } => mentions(name, domain) || mentions(name, codomain),
         Expr::Plus { lhs, rhs, .. } => mentions(name, lhs) || mentions(name, rhs),
+        Expr::Let {
+            binder, val, body, ..
+        } => {
+            binder.ty.as_deref().is_some_and(|t| mentions(name, t))
+                || mentions(name, val)
+                || mentions(name, body)
+        }
         Expr::By { .. } => false,
     }
 }
@@ -192,6 +199,17 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
         Expr::Plus { lhs, rhs, span } => Expr::Plus {
             lhs: Box::new(substitute(lhs, sigma)),
             rhs: Box::new(substitute(rhs, sigma)),
+            span: *span,
+        },
+        Expr::Let {
+            binder,
+            val,
+            body,
+            span,
+        } => Expr::Let {
+            binder: binder.clone(),
+            val: Box::new(substitute(val, sigma)),
+            body: Box::new(substitute(body, sigma)),
             span: *span,
         },
         Expr::By { tactics, span } => Expr::By {

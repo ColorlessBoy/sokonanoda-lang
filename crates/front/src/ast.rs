@@ -57,6 +57,16 @@ pub enum Expr {
         rhs: Box<Expr>,
         span: Span,
     },
+    /// Phase 1：`let x : T := val; body`（局部、有名字的中间值）。
+    /// binder 复用 [`Binder`]；Phase 1 要求 `ty == Some`（缺注解在 elab 报
+    /// `elab-untyped-binder`）。`binder.span` 收窄到名字+注解，供 hover /
+    /// go-to-definition。
+    Let {
+        binder: Binder,
+        val: Box<Expr>,
+        body: Box<Expr>,
+        span: Span,
+    },
     /// `:= by <tactic 序列>`：值位是一段 tactic 脚本，由编译期引擎翻译成
     /// 普通表达式（可能带尾部 `sorry`）。
     By {
@@ -78,6 +88,7 @@ impl Expr {
             | Expr::Forall { span, .. }
             | Expr::Arrow { span, .. }
             | Expr::Plus { span, .. }
+            | Expr::Let { span, .. }
             | Expr::By { span, .. } => *span,
         }
     }

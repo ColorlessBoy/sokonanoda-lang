@@ -514,3 +514,9 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   ⑤为 `let`/`match`、spine-meta A、webview Infoview、compiler service
   事件流产出设计文档（实现留后续轮）。全过程 8 个 subagent 并行产出，
   主会话统一 gate。设计见 `docs/design/*`；本轮机/文/脚本改动不 bump 版本。
+- 2026-09-14（五十三）：**elaborator `let`（Phase 1，I6）**——按
+  `docs/design/elaborator-let-match.md` 落地值位 `let x : T := v; body`
+  （任意 term 位置；kernel 冻结，降为内核 `Let`，判定走完整内核）。front
+  parser/AST/elab/goal 全链 + zeta 等价契约测试；unit3 新增「局部绑定 let」
+  课程（zh/en/钥匙）+ golden；CLI e2e；缺类型注解复用 `elab-untyped-binder`。
+  `match` 与无注解 `let` 依设计推迟 Phase 2。版本 **0.28.0**（新语法 = minor）。

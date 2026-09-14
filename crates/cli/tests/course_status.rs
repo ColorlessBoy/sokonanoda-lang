@@ -51,7 +51,7 @@ fn u64_field(event: &Value, field: &str) -> u64 {
 const GOLDEN: [(u64, u64, u64, u64); 7] = [
     (13, 6, 0, 1),
     (2, 5, 0, 2),
-    (1, 4, 0, 1),
+    (2, 6, 0, 2),
     (0, 3, 0, 0),
     (4, 3, 0, 1),
     (13, 6, 0, 0),
@@ -94,8 +94,8 @@ fn course_subcommand_aggregates_the_manifest() {
 
     let summary = summaries[0];
     assert_eq!(u64_field(summary, "units"), 7, "summary units");
-    assert_eq!(u64_field(summary, "checked"), 47, "summary checked");
-    assert_eq!(u64_field(summary, "open"), 34, "summary open");
+    assert_eq!(u64_field(summary, "checked"), 48, "summary checked");
+    assert_eq!(u64_field(summary, "open"), 36, "summary open");
     assert_eq!(u64_field(summary, "failed"), 0, "summary failed");
 }
 
@@ -115,7 +115,7 @@ fn course_subcommand_human_view_lists_units() {
     );
     let last = stdout.lines().last().unwrap_or_default();
     assert!(
-        last.contains("34") && last.contains("checked") && last.contains("failed"),
+        last.contains("36") && last.contains("checked") && last.contains("failed"),
         "the final line must be the totals, got: {last:?}"
     );
 }

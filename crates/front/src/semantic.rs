@@ -50,6 +50,7 @@ const KEYWORDS: &[&str] = &[
     "iota",
     "end",
     "fun",
+    "let",
     "by",
     "intro",
     "exact",
@@ -272,6 +273,17 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
         } => {
             walk_expr(domain, toks, names);
             walk_expr(codomain, toks, names);
+        }
+        Expr::Let {
+            binder, val, body, ..
+        } => {
+            // binder 类型与值在外层 scope；x 只对 body 可见。
+            if let Some(ty) = binder.ty.as_deref() {
+                walk_expr(ty, toks, names);
+            }
+            walk_expr(val, toks, names);
+            names.add_binder(toks, binder);
+            walk_expr(body, toks, names);
         }
         Expr::By { tactics, .. } => {
             for tactic in tactics {

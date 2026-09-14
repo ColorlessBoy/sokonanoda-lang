@@ -1,3 +1,15 @@
+## [0.28.0] - 2026-09-14
+
+### Added
+
+- **Local bindings: `let x : T := v; body`** — the teaching language now
+  supports `let` at any term position (also inside `#check`, `#reduce`, `fun`
+  bodies and parentheses). It elaborates to the kernel's own `Let` (zeta), so
+  the value is still judged by the complete kernel; the type annotation is
+  required for now. Includes course coverage in the functions/arrows unit and
+  goal-view support for `sorry` in the value or body. Design:
+  `docs/design/elaborator-let-match.md` (`match` is a later milestone).
+
 ## [0.27.1] - 2026-09-14
 
 ### Fixed

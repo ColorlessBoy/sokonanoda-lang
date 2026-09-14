@@ -133,7 +133,7 @@ impl ErrorKind {
                 "宇宙参数个数不对。这个常量声明了几个宇宙参数，就要给几个，例如 id.{u, v}。"
             }
             ElabUntypedBinder => {
-                "这个 binder 缺少类型标注。教学版本要求写全类型，例如 fun (x : Nat) => x。"
+                "这个 binder 缺少类型标注。教学版本要求写全类型，例如 fun (x : Nat) => x；let 的绑定也要写类型，例如 let x : Nat := 1; x。"
             }
             ElabHoleMisplaced => {
                 "sorry 只能出现在声明的值（答案区）位置，例如 example : T := sorry。"

@@ -288,7 +288,53 @@ pub(crate) fn expr_has_hole(e: &Expr) -> bool {
         Expr::Arrow {
             domain, codomain, ..
         } => expr_has_hole(domain) || expr_has_hole(codomain),
+        Expr::Let {
+            binder, val, body, ..
+        } => {
+            binder.ty.as_deref().is_some_and(expr_has_hole)
+                || expr_has_hole(val)
+                || expr_has_hole(body)
+        }
         _ => false,
+    }
+}
+
+/// Every `sorry` span in `e`, source order (used to surface value-position
+/// holes in a `let` as sub-goals whose expected type is the binder's `T`).
+fn collect_hole_spans(e: &Expr, out: &mut Vec<Span>) {
+    match e {
+        Expr::Hole { span } => out.push(*span),
+        Expr::App { fun, arg, .. }
+        | Expr::Plus {
+            lhs: fun, rhs: arg, ..
+        } => {
+            collect_hole_spans(fun, out);
+            collect_hole_spans(arg, out);
+        }
+        Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
+            for binder in binders {
+                if let Some(ty) = binder.ty.as_deref() {
+                    collect_hole_spans(ty, out);
+                }
+            }
+            collect_hole_spans(body, out);
+        }
+        Expr::Arrow {
+            domain, codomain, ..
+        } => {
+            collect_hole_spans(domain, out);
+            collect_hole_spans(codomain, out);
+        }
+        Expr::Let {
+            binder, val, body, ..
+        } => {
+            if let Some(ty) = binder.ty.as_deref() {
+                collect_hole_spans(ty, out);
+            }
+            collect_hole_spans(val, out);
+            collect_hole_spans(body, out);
+        }
+        _ => {}
     }
 }
 
@@ -440,6 +486,25 @@ fn substitute_names(
                 .collect(),
             span: *span,
         },
+        Expr::Let {
+            binder,
+            val,
+            body,
+            span,
+        } => {
+            // binder 类型与值在 binder 自己的作用域之外；body 在其内，屏蔽同名。
+            let mut binder = binder.clone();
+            let ty = binder.ty.take();
+            binder.ty = ty.map(|ty| Box::new(substitute_names(&ty, map, levels)));
+            let mut sub = map.clone();
+            sub.remove(&binder.name);
+            Expr::Let {
+                binder,
+                val: Box::new(substitute_names(val, map, levels)),
+                body: Box::new(substitute_names(body, &sub, levels)),
+                span: *span,
+            }
+        }
         Expr::Num { .. } | Expr::Hole { .. } => expr.clone(),
         Expr::By { .. } => expr.clone(), // by 块在 elab 前已降级，不应出现在此
     }
@@ -504,6 +569,14 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             span,
         },
         Expr::Plus { lhs, rhs, .. } => Expr::Plus { lhs, rhs, span },
+        Expr::Let {
+            binder, val, body, ..
+        } => Expr::Let {
+            binder,
+            val,
+            body,
+            span,
+        },
         Expr::By { tactics, .. } => Expr::By { tactics, span },
     }
 }
@@ -855,6 +928,57 @@ fn goal_under_binders(
             };
             info.binders.insert(0, introduced);
             Some(info)
+        }
+        // 值位 `let`：值为洞 → 子目标期望 binder 注解 `T`；值闭合 → `x : T`
+        // 进入局部假设，继续 walk body（§5.3）。
+        Expr::Let {
+            binder,
+            val: let_val,
+            body,
+            ..
+        } => {
+            if expr_has_hole(let_val) {
+                // 值位洞的期望类型 = binder 注解 T；整体剩余目标仍是声明类型。
+                let ty_ast = binder.ty.as_deref()?;
+                let precise = goal_under_binders(ty_ast, let_val, templates, locals);
+                let (holes, precise_goals) = match precise {
+                    Some(info) => (info.holes, info.sub_goals),
+                    None => {
+                        let mut holes = Vec::new();
+                        collect_hole_spans(let_val, &mut holes);
+                        (holes, Vec::new())
+                    }
+                };
+                let text = render_expr(ty_ast);
+                let sub_goals = holes
+                    .iter()
+                    .enumerate()
+                    .map(|(i, span)| SubGoal {
+                        span: *span,
+                        ty: precise_goals
+                            .get(i)
+                            .and_then(|sub| sub.ty.clone())
+                            .or_else(|| Some(text.clone())),
+                    })
+                    .collect();
+                Some(OpenGoalInfo {
+                    goal: render_expr(ty),
+                    binders: Vec::new(),
+                    holes,
+                    sub_goals,
+                    refine_template: None,
+                })
+            } else {
+                // 闭合值：`x : T` 加入局部假设，继续 walk body。
+                let ty_ast = binder.ty.as_deref()?;
+                let introduced = GoalBinder {
+                    name: binder.name.clone(),
+                    ty: render_expr(ty_ast),
+                };
+                let mut info = goal_under_binders(ty, body, templates, locals)?;
+                info.binders.insert(0, introduced);
+                Some(info)
+            }
         }
         // 构造子语义优先（参数位可由目标自动判定，信息更多）；函数兜底。
         _ => ctor_spine_case(ty, val, Vec::new(), templates)

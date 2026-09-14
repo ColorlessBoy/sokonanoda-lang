@@ -244,6 +244,23 @@ pub fn render_expr(expr: &Expr) -> String {
         Expr::Plus { lhs, rhs, .. } => {
             format!("{} + {}", render_expr(lhs), render_expr(rhs))
         }
+        Expr::Let {
+            binder, val, body, ..
+        } => match binder.ty.as_deref() {
+            Some(ty) => format!(
+                "let {} : {} := {}; {}",
+                binder.name,
+                render_expr(ty),
+                render_expr(val),
+                render_expr(body)
+            ),
+            None => format!(
+                "let {} := {}; {}",
+                binder.name,
+                render_expr(val),
+                render_expr(body)
+            ),
+        },
         Expr::By { tactics, .. } => {
             let inner = tactics
                 .iter()
@@ -272,9 +289,11 @@ fn render_tactic(tactic: &Tactic) -> String {
 fn render_fun_position(expr: &Expr) -> String {
     let s = render_expr(expr);
     match expr {
-        Expr::Lambda { .. } | Expr::Forall { .. } | Expr::Arrow { .. } | Expr::Plus { .. } => {
-            format!("({s})")
-        }
+        Expr::Lambda { .. }
+        | Expr::Forall { .. }
+        | Expr::Arrow { .. }
+        | Expr::Plus { .. }
+        | Expr::Let { .. } => format!("({s})"),
         _ => s,
     }
 }
@@ -286,7 +305,8 @@ fn render_atom(expr: &Expr) -> String {
         | Expr::Lambda { .. }
         | Expr::Forall { .. }
         | Expr::Arrow { .. }
-        | Expr::Plus { .. } => format!("({s})"),
+        | Expr::Plus { .. }
+        | Expr::Let { .. } => format!("({s})"),
         _ => s,
     }
 }

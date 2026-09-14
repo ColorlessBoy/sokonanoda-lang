@@ -56,6 +56,34 @@ def three_args : Nat -> Nat -> Nat -> Nat := sorry
 def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := sorry
 
 -- ─────────────────────────────────────────────────────────────
+-- 局部绑定 let：给中间结果起个名字，再往下写。
+--   let x : T := v; body
+-- 读作：先把 v 命名为 x（类型 T），再计算 body，body 里可以引用 x。
+-- 注意：v1 要求显式写类型（let x : T := v），先想清楚中间值的类型。
+-- 等价性：let x : T := v; body 与 (fun (x : T) => body) v 完全相同——
+-- 判定完全交给内核，你写哪种都行。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好）：用 let 给中间结果命名，再返回它。
+def add_two_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 2; m
+
+-- 自测：#reduce 会先把 let 算出来；下面应该是 42。
+#reduce (let m : Nat := 20 + 20; m + 2)
+
+-- 练习 5：用 let 给中间结果起名。洞在值位：把 n + n 绑定成 m。
+-- soko:hint 思路：let 先算右边、再进 body——先给 m 想好值和类型。
+-- soko:hint 目标形态：洞的期望类型就是绑定注解 Nat：用 n 凑出翻倍的值。
+-- soko:hint 关键件：+ 是真正的加法——把 n 和 n 加起来。
+def double_let : Nat -> Nat := fun (n : Nat) => let m : Nat := sorry; m
+
+-- 练习 6：let 绑定之后，body 里就能直接用这个名字。
+-- 洞在 let 的 body：m 已经是现成的 Nat，直接把它交出去。
+-- soko:hint 思路：let 把 m 放进了作用域——body 里 m 就是一个普通的 Nat。
+-- soko:hint 目标形态：剩余目标还是 Nat；m 已经在局部上下文里。
+-- soko:hint 关键件：body 直接写 m 即可（或者任何用 m 凑出的 Nat）。
+def body_uses_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 5; sorry
+
+-- ─────────────────────────────────────────────────────────────
 -- 悬念（单元④揭晓）：你已经在写 `Nat -> Nat` 这样的类型了。
 -- 可是——“一切皆有类型”，那么**函数类型本身**的类型是什么？
 -- 想一分钟，再打开单元④。

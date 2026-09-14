@@ -1,8 +1,26 @@
-# STATUS 归档（第 1–50 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–51 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十一轮：tactic 关键字高亮 + hover goal state）
+
+> 用户反馈：`exact` 没有正确高亮；希望像 Lean 一样在每个 tactic 上 hover 看到
+> 中间 goal state（Infoview 式），或按鼠标位置给 goal state。
+
+1. **设计** `docs/design/tactic-hover.md`。
+2. **高亮**：`semantic::KEYWORDS` 增补 `by`/`exact`/`assumption`/`rfl`（此前
+   当普通标识符着色；`forall`/`sorry` 已由 token/Hole 正确处理）。
+3. **hover**：`textDocument/hover` 首插 `tactic_goal_hover`——光标落在某 tactic
+   span 内 → 用 `by_steps` + `select_state_at`（进入态语义，与 `soko/stateAt`
+   同数据同规则）渲染全部目标与假设（多目标标 `目标 i/n`），range = 该 tactic；
+   纯快照消费，零重编译零文本扫描。
+4. **测试**：front semantic 断言四关键字均 Keyword；LSP
+   `hover_on_a_tactic_shows_the_entering_goal_state`（hover `apply` → `⊢ And P Q`；
+   hover `sorry` → `⊢ P` / `⊢ Q`）。
+5. **协议**：`docs/protocol.md` 新增「Tactic goal-state hover」小节；并入 0.27.0。
+6. **验收**：`sokonanoda gate` PASS。
 
 ## 本轮进度（2026-09-14，第五十轮：移除值位关键字 funintro）
 

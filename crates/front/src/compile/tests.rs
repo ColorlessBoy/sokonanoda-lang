@@ -3116,3 +3116,192 @@ fn type_with_level_is_lean_sort_succ() {
         .collect();
     assert_eq!(texts, vec!["Type 1", "Type 3"]);
 }
+
+// ---- Phase 1: 值位 `let`（docs/design/elaborator-let-match.md，S1–S3）----
+
+#[test]
+fn let_definition_checks_through_kernel() {
+    let src = "def two : Nat := let one : Nat := Nat.succ Nat.zero; one + one\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    assert!(matches!(
+        out.events.first(),
+        Some(CheckEvent::DeclarationChecked { name }) if name == "two"
+    ));
+}
+
+#[test]
+fn let_type_mismatch_is_kernel_rejected() {
+    // 注解写 Nat，值却是 Prop：前端不做等价性检查，完整内核拒绝。
+    let src = "def bad : Nat := let x : Nat := Prop; x\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors.len(), 1, "{:?}", out.errors);
+    assert_eq!(out.errors[0].code(), "kernel-rejected");
+}
+
+#[test]
+fn let_missing_annotation_is_untyped_binder_with_let_message() {
+    let src = "def bad : Nat := let x := Nat.zero; x\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors.len(), 1, "{:?}", out.errors);
+    assert_eq!(out.errors[0].code(), "elab-untyped-binder");
+    assert!(
+        out.errors[0].message.contains("let"),
+        "let-specific message expected, got {:?}",
+        out.errors[0].message
+    );
+    assert!(out.errors[0].hint().contains("let"));
+}
+
+#[test]
+fn let_value_is_not_in_scope_for_itself() {
+    // `x` 的类型/值都在引入 x 之前 elaborate，值位引用 x 必须是未知标识符。
+    let src = "def bad : Nat := let x : Nat := x; x\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors.len(), 1, "{:?}", out.errors);
+    assert_eq!(out.errors[0].code(), "elab-unknown-identifier");
+}
+
+#[test]
+fn let_scope_shadows_and_restores() {
+    let src = "def shadow : Nat := let x : Nat := 1; let x : Nat := 2; x\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+#[test]
+fn let_expected_type_infers_untyped_lambda() {
+    // 值的期望类型 = binder 注解，`fun y => y` 借它推断出 y : Nat。
+    let src = "def applied : Nat := let f : Nat -> Nat := fun y => y; f 3\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+#[test]
+fn let_works_in_check_and_reduce() {
+    let src = "#check (let x : Nat := 1; x)\n#reduce (let x : Nat := 1; x + 2)\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    assert!(matches!(
+        &out.events[0],
+        CheckEvent::TypeChecked { text, .. } if text == "Nat"
+    ));
+    assert!(matches!(
+        &out.events[1],
+        CheckEvent::Reduced { text, .. } if text == "3"
+    ));
+}
+
+#[test]
+fn let_value_hole_reports_subgoal_of_annotated_type() {
+    let src = "example : Nat := let x : Nat := sorry; x\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = &report.decls[0];
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("Nat"));
+    assert_eq!(d.holes.len(), 1);
+    assert_eq!(
+        &src[d.holes[0].start.offset..d.holes[0].end.offset],
+        "sorry"
+    );
+    assert_eq!(d.sub_goals.len(), 1, "the value hole is a sub-goal");
+    assert_eq!(d.sub_goals[0].ty.as_deref(), Some("Nat"));
+}
+
+#[test]
+fn let_body_hole_opens_with_binder_in_context() {
+    let src = "example : Nat := let x : Nat := Nat.zero; sorry\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = &report.decls[0];
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("Nat"));
+    assert_eq!(d.holes.len(), 1);
+    assert_eq!(
+        d.binders,
+        vec![GoalBinder {
+            name: "x".to_string(),
+            ty: "Nat".to_string(),
+        }]
+    );
+}
+
+#[test]
+fn let_body_hole_under_lambda_reports_both_binders() {
+    let src = "example : Nat -> Nat := fun (n : Nat) => let m : Nat := n + n; sorry\n";
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = &report.decls[0];
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.goal.as_deref(), Some("Nat"));
+    assert_eq!(
+        d.binders,
+        vec![
+            GoalBinder {
+                name: "n".to_string(),
+                ty: "Nat".to_string(),
+            },
+            GoalBinder {
+                name: "m".to_string(),
+                ty: "Nat".to_string(),
+            },
+        ]
+    );
+}
+
+#[test]
+fn let_binder_hover_and_go_to_definition() {
+    let src = "def id2 : Nat := let x : Nat := 1; x\n";
+    let report = check_document(&parse(src).unwrap());
+    let decl = src.find("x : Nat").expect("binder annotation");
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.binder && h.span.start.offset == decl && h.span.end.offset == decl + "x : Nat".len()
+        }),
+        "expected a `x : Nat` binder row, got {:?}",
+        report
+            .hovers
+            .iter()
+            .map(|h| (h.span.start.offset, h.span.end.offset, h.binder))
+            .collect::<Vec<_>>()
+    );
+    let use_off = src.rfind('x').expect("body x");
+    let resolved = report.hovers.iter().find_map(|h| {
+        (h.span.start.offset <= use_off && use_off < h.span.end.offset && h.resolution.is_some())
+            .then(|| h.resolution.clone())
+            .flatten()
+    });
+    assert!(
+        matches!(resolved, Some(ResolvedTarget::Binder(_))),
+        "body `x` must resolve to the let binder, got {resolved:?}"
+    );
+}
+
+#[test]
+fn let_and_beta_expansion_agree_when_open() {
+    // 契约（zeta 等价）：`let x : T := v; body` 与其 beta 展开
+    // `(fun (x : T) => body) v` 的 status/goal/洞数一致——降低只做结构，
+    // 判定走内核。
+    let let_src = "example : Nat := let x : Nat := sorry; x\n";
+    let beta_src = "example : Nat := (fun (x : Nat) => x) sorry\n";
+    let let_report = check_document(&parse(let_src).unwrap());
+    let beta_report = check_document(&parse(beta_src).unwrap());
+    let let_d = &let_report.decls[0];
+    let beta_d = &beta_report.decls[0];
+    assert_eq!(let_d.status, DeclStatus::Open);
+    assert_eq!(let_d.status, beta_d.status);
+    assert_eq!(let_d.goal, beta_d.goal);
+    assert_eq!(let_d.holes.len(), beta_d.holes.len());
+}
+
+#[test]
+fn let_and_beta_expansion_agree_when_closed() {
+    let let_src = "def two : Nat := let one : Nat := Nat.succ Nat.zero; one + one\n";
+    let beta_src = "def two : Nat := (fun (one : Nat) => one + one) (Nat.succ Nat.zero)\n";
+    let let_out = compile_fol(&parse(let_src).unwrap());
+    let beta_out = compile_fol(&parse(beta_src).unwrap());
+    assert_eq!(let_out.errors, vec![], "{:?}", let_out.errors);
+    assert_eq!(beta_out.errors, vec![], "{:?}", beta_out.errors);
+    assert_eq!(let_out.events, beta_out.events);
+}

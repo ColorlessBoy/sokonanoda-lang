@@ -563,6 +563,82 @@ fn json_mode_function_argument_hole_is_an_open_exercise() {
 }
 
 #[test]
+fn json_mode_let_declaration_and_open_exercise() {
+    // Phase 1 值位 `let`（docs/design/elaborator-let-match.md §7.2）：含 `let` 的
+    // 文档照常给出 `decl.checked`（闭合）与 `exercise.open`（值位洞）。
+    let out = run_args(
+        &["--json"],
+        Some(concat!(
+            "def two : Nat := let one : Nat := Nat.succ Nat.zero; one + one\n",
+            "example : Nat := let x : Nat := sorry; x\n",
+        )),
+    );
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let events: Vec<serde_json::Value> = stdout
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("each line is JSON"))
+        .collect();
+    assert_eq!(events.len(), 2, "two events expected: {events:?}");
+    assert_eq!(events[0]["type"], "decl.checked");
+    assert_eq!(events[0]["name"], "two");
+    assert_eq!(events[1]["type"], "exercise.open");
+}
+
+#[test]
+fn json_mode_let_missing_annotation_is_untyped_binder_with_hint() {
+    // v1 要求 `let x : T := v`；缺注解走复用码 `elab-untyped-binder`，且 JSON
+    // 诊断必须带教学 hint（含 let 写法）。
+    let out = run_args(&["--json"], Some("def bad : Nat := let x := Nat.zero; x\n"));
+    assert!(!out.status.success());
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let value: serde_json::Value =
+        serde_json::from_str(stdout.lines().next().expect("a diagnostic line"))
+            .expect("diagnostic is JSON");
+    assert_eq!(value["type"], "diagnostic");
+    assert_eq!(value["stage"], "elab");
+    assert_eq!(value["code"], "elab-untyped-binder");
+    let hint = value["hint"].as_str().expect("diagnostic carries a hint");
+    assert!(
+        hint.contains("let"),
+        "hint must teach the let spelling: {hint}"
+    );
+}
+
+#[test]
+fn json_mode_let_checks_and_reduces() {
+    // `#check`/`#reduce` 与 `let` 交互：推断类型与 zeta 归约结果都要正确。
+    let out = run_args(
+        &["--json"],
+        Some(concat!(
+            "#check (let x : Nat := 1; x)\n",
+            "#reduce (let x : Nat := 1; x + 2)\n",
+        )),
+    );
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let events: Vec<serde_json::Value> = stdout
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("each line is JSON"))
+        .collect();
+    assert_eq!(events.len(), 2, "two events expected: {events:?}");
+    assert_eq!(events[0]["type"], "expr.typed");
+    assert_eq!(events[0]["text"], "let x : Nat := 1; x");
+    assert_eq!(events[0]["inferred_type"], "Nat");
+    assert_eq!(events[1]["type"], "expr.reduced");
+    assert_eq!(events[1]["text"], "let x : Nat := 1; x + 2");
+    assert_eq!(events[1]["value"], "3");
+}
+
+#[test]
 fn human_errors_carry_the_pipeline_stage() {
     let out = run("def bad : Prop -> Type := fun (x : Prop) => x\n");
     assert!(!out.status.success());

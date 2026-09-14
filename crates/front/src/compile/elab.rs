@@ -730,6 +730,38 @@ pub(crate) fn elab_expr<'a>(
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
+        Expr::Let {
+            binder,
+            val,
+            body,
+            span,
+        } => {
+            let base = scope.len();
+            // 1) binder 类型在「未引入 x」的外层 scope 里 elaborate。
+            let ty = match binder.ty.as_deref() {
+                Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers, None)?,
+                None => {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabUntypedBinder,
+                        "`let` 的绑定需要类型标注，例如 `let x : Nat := 1; x`",
+                        binder.span,
+                    ));
+                }
+            };
+            // 2) binder 声明行 hover（`x : T`），scope 仍是外层。
+            record_binder_hover(hovers, scope, binder.span, ty);
+            // 3) 值在期望类型 T 下 elaborate（未注解的 lambda binder 可借此推断）。
+            let val = elab_expr(builder, val, scope, univ, known, hovers, Some(ty))?;
+            // 4) 引入 x，body 在扩展 scope + 外层 expected 下 elaborate。
+            scope.push(binder.name.clone(), ty, binder.span);
+            let body = elab_expr(builder, body, scope, univ, known, hovers, expected)?;
+            scope.truncate(base);
+            // 5) 拼内核 Let 并落 hover（`nondep` 保守取 false，见设计 §3.3）。
+            let name = builder.name_from_str(&binder.name);
+            let out = builder.mk_let(name, ty, val, body, false);
+            record_hover(hovers, scope, *span, out, None);
+            Ok(out)
+        }
         // `by` 块应在 elab 前由引擎降级为 lambda AST；到不了这里。
         Expr::By { span, .. } => Err(CompileError::elab(
             ErrorKind::ElabHoleMisplaced,
@@ -758,6 +790,16 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
             domain, codomain, ..
         } => mentions_ident(domain, name) || mentions_ident(codomain, name),
         Expr::Plus { lhs, rhs, .. } => mentions_ident(lhs, name) || mentions_ident(rhs, name),
+        Expr::Let {
+            binder, val, body, ..
+        } => {
+            binder
+                .ty
+                .as_deref()
+                .is_some_and(|ty| mentions_ident(ty, name))
+                || mentions_ident(val, name)
+                || mentions_ident(body, name)
+        }
         Expr::By { .. } => false, // by 块在 elab 前已被引擎降级为普通表达式
     }
 }
