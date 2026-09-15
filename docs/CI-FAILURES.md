@@ -279,3 +279,16 @@
 - **预防**：沿用既有 runbook（探活 + rerun）；已知间歇性、与代码无关。
   复发频次升高，后续可考虑在 publish 步骤前加一次 `extensionquery` 健康
   探测 + 更长退避（待评估，不改流水线语义）。
+
+## 2026-09-15 — v0.39.1 发布：upload-artifact FinalizeArtifact 403（新类型）
+
+- **现象**：tag `v0.39.1` 的 release 中 `build (windows-latest,
+  aarch64-pc-windows-msvc)` 的 `actions/upload-artifact@v7` 在上传成功后
+  `FinalizeArtifact` 报 `(403) Forbidden: ... Error from intermediary with HTTP
+  status code 403 "Forbidden"`；该 job 失败导致 `package-vsix` /
+  `marketplace-publish` / `github-release` 全部 skipped（Release 未产出）。
+- **定位**：本地/代码无关——artifact 已上传（SHA256 已打印），仅 finalize 步骤被
+  中介拒绝，属 GitHub Artifacts 服务瞬时故障。
+- **修复**：`gh run rerun 34959375797 --failed` 重跑失败 job（下游依赖随之重跑）。
+- **预防**：新增「artifact finalize 403」到重跑清单：确认是 finalize（不是 build/
+  upload 内容）后直接 rerun；与 Azure gallery 超时一样属服务端间歇故障，不改流水线。

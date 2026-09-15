@@ -46,13 +46,17 @@ cargo test --workspace --locked   # 全量 13 套件
 
 ## 3. 剩余 TODO（按建议顺序）
 
-### A. ~~`judge_infer` 往返健壮性~~ ✅ 已完成（0.39.1）
-- `proof::render_expr` 的 Arrow **domain 位**改用 `render_fun_position`（复合式补括号），
-  修掉「内核类型 → 文本 → AST」往返腐蚀 telescope；依赖 `match`、建议、半表达式
-  hover、level 查询一并受益。
-- 证据：`render_expr_round_trips`（Forall 作 domain 用例）+
-  `match_dependent_motive_with_function_typed_binder_round_trips_safely`；
-  见 `docs/design/match-dependent-motive.md` §8。
+### A′. 统一 goal 呈现 + Infoview 落右侧（设计已写，**优先**）
+- 设计 `docs/design/goal-rendering.md`：单一分类源（`front::semantic`）+ 结构化
+  `(text, kind)` 片段供 hover 与 Infoview 共用 + Infoview 移入
+  `viewsContainers.secondarySidebar`（右侧，需 bump engine）+ 去掉「暂时不可用」
+  握手判定（静默回退树组）。
+- 切片 S1–S7 见设计 §3；验收 §4。
+
+### A. 已完成
+- **`judge_infer` 往返健壮性** ✅（0.39.1）：`proof::render_expr` 的 Arrow domain 位
+  补括号；依赖 `match`/suggest/hover/level 均受益；证据 `render_expr_round_trips`
+  + `match_dependent_motive_with_function_typed_binder_round_trips_safely`。
 
 ### B. `match` Phase 2 余项
 - **带索引归纳**（`inductive Vec (A : Type) : Nat -> Type`）：需 `num_indices>0`

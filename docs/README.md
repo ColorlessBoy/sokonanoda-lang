@@ -59,6 +59,7 @@
 - `elaborator-let-match.md` — elaborator `let`（Phase 1）/ `match`（Phase 2）设计（I6）
 - `spine-meta-a.md` — refine 子洞的 kernel 级期望类型（方案 A，I9 余项）
 - `webview-infoview.md` — VS Code webview goal 面板（方案 B）
+- `goal-rendering.md` — 统一 goal 呈现（结构化 tag + 单一分类源）+ Infoview 落右侧 + fallback 修复（设计）
 - `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
 - `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（部分实施：I11-S0/S1 已落地，余项见 ROADMAP）
 - `site.md` — 项目官网（GitHub Pages）方案与信息架构（已上线：site/ + pages.yml）
