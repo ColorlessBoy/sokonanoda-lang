@@ -239,3 +239,32 @@ def predOpt (x : Option Nat) : Nat := match x with
 | some zero => zero
 | some (succ k) => sorry
 | none => zero
+
+-- ─────────────────────────────────────────────────────────────
+-- Indexed inductives: a type can carry **indices** as well as parameters — an
+-- index varies per constructor. `Vec A n` is "a list of A of length n": `vnil`
+-- has length `zero`, and `vcons` prepends to a length-`n` tail, giving `succ n`.
+-- (v1 boundary: the match result type may not depend on the index itself.)
+-- ─────────────────────────────────────────────────────────────
+
+inductive Vec (A : Type) : Nat -> Type
+ctor vnil : Vec A zero
+ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
+end
+
+-- Demo (given): the length.
+def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
+| vnil => zero
+| vcons a m w => succ ih
+
+-- Self-check: `#reduce` runs through `Vec.rec`.
+#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))
+
+-- Exercise 10: vhead returns the first element; the empty vector gives the
+-- default `d`.
+-- soko:hint 思路：match v 分 vnil / vcons a m w 两支。
+-- soko:hint 目标形态：vnil 支返回 d；vcons 支的结果类型是 A。
+-- soko:hint 关键件：vcons 把头部绑成 a——直接把 a 交出去。
+def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
+| vnil => d
+| vcons a m w => sorry

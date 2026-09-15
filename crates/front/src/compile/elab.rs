@@ -21,6 +21,9 @@ pub(crate) type UnivMap<'a> = HashMap<String, LevelPtr<'a>>;
 /// One constructor field's elaborated type, for building a `match` minor.
 #[derive(Debug, Clone)]
 pub(crate) struct MatchField<'a> {
+    /// The constructor's declared field name (used to rename it to the user's
+    /// `match` binder when a later field type references it).
+    pub name: String,
     pub ty: ExprPtr<'a>,
     pub style: BinderStyle,
     /// Source type (for binder hover / judge-inference scope).
@@ -45,6 +48,10 @@ pub(crate) struct InductiveInfo<'a> {
     pub num_params: usize,
     /// Parameter names in declaration order (for `match` param substitution).
     pub param_names: Vec<String>,
+    /// Index count (`num_indices=0` for `Nat`/`Bool`/non-indexed inductives).
+    pub num_indices: usize,
+    /// Index binder source types in declaration order (for `match` motives).
+    pub index_types: Vec<Expr>,
 }
 
 /// Forward-accumulated registry of the file's own `inductive` blocks, keyed by
@@ -235,6 +242,16 @@ pub(crate) fn install_inductive_block<'a>(
             ty.span(),
         )
     })?;
+    // 带索引归纳：`ty` 在 params 之外的 Pi 望远镜就是索引（内核同一规则，
+    // `inductive.rs::check_inductive_spec_0th`）。设计 `parameterized-inductives.md`。
+    let index_binders = result_chain_binders(ty);
+    let num_indices = u16::try_from(index_binders.len()).map_err(|_| {
+        CompileError::elab(
+            ErrorKind::ElabTooManyBinders,
+            "too many inductive indices",
+            ty.span(),
+        )
+    })?;
     // 显式 rec 优先：源里有 rec 时零行为变化；无 rec 时自动派生等价的
     // RecDecl + iota 规则（py-nat 手写版同构），再走同一条 elab 路径。
     let owned_rec;
@@ -303,7 +320,7 @@ pub(crate) fn install_inductive_block<'a>(
             },
             is_recursive,
             num_params,
-            0,
+            num_indices,
             Arc::from([ind_name]),
             Arc::from(ctor_names.clone()),
         )
@@ -343,6 +360,7 @@ pub(crate) fn install_inductive_block<'a>(
             .iter()
             .zip(kernel_field_tys)
             .map(|(src, (style, kernel_ty))| MatchField {
+                name: src.name.clone(),
                 ty: kernel_ty,
                 style,
                 src_ty: src.ty.as_deref().cloned(),
@@ -446,7 +464,7 @@ pub(crate) fn install_inductive_block<'a>(
             info,
             all_inductives: Arc::from([ind_name]),
             num_params,
-            num_indices: 0,
+            num_indices,
             num_motives: 1,
             num_minors: constructors.len() as u16,
             rec_rules: Arc::from(rules),
@@ -467,6 +485,15 @@ pub(crate) fn install_inductive_block<'a>(
             recursive: is_recursive,
             num_params: params.len(),
             param_names: params.iter().map(|b| b.name.clone()).collect(),
+            num_indices: index_binders.len(),
+            index_types: index_binders
+                .iter()
+                .map(|b| {
+                    b.ty.as_deref()
+                        .cloned()
+                        .unwrap_or(Expr::Hole { span: b.span })
+                })
+                .collect(),
         },
     );
     Ok(())
@@ -1215,6 +1242,40 @@ pub(crate) fn elab_expr<'a>(
                 .iter()
                 .map(|arg| elab_expr(builder, arg, scope, univ, known, hovers, None, None, ctx))
                 .collect::<Result<Vec<_>, _>>()?;
+            // 带索引归纳：scrutinee 书写类型里参数之后是索引实参（如
+            // `v : Vec A n` 的 `n`）；motive/recursor 应用都要用它们。
+            let index_args_src: Vec<Expr> = if info.num_indices == 0 {
+                Vec::new()
+            } else {
+                let args = written_args.as_ref().ok_or_else(|| {
+                    CompileError::elab(
+                        ErrorKind::ElabMatchParameterizedUnsupported,
+                        format!(
+                            "`match` 暂不支持这个带索引归纳形状 `{ind_name}`：被匹配项必须是一个书写类型为 `{ind_name} <参数> <索引>` 的局部变量"
+                        ),
+                        scrutinee.span(),
+                    )
+                })?;
+                if args.len() < info.num_params + info.num_indices {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabMatchParameterizedUnsupported,
+                        format!(
+                            "`match` 暂不支持这个带索引归纳形状 `{ind_name}`：被匹配项的书写类型需要显式给出 {} 个参数 + {} 个索引",
+                            info.num_params, info.num_indices
+                        ),
+                        scrutinee.span(),
+                    ));
+                }
+                args.iter()
+                    .skip(info.num_params)
+                    .take(info.num_indices)
+                    .cloned()
+                    .collect()
+            };
+            let index_kernel: Vec<ExprPtr<'a>> = index_args_src
+                .iter()
+                .map(|arg| elab_expr(builder, arg, scope, univ, known, hovers, None, None, ctx))
+                .collect::<Result<Vec<_>, _>>()?;
             // 递归归纳：字段源类型必须可知（用于定位递归字段并插 IH）。
             if info.recursive
                 && info
@@ -1292,12 +1353,6 @@ pub(crate) fn elab_expr<'a>(
             })?;
             // 4) motive：依赖时为 `fun (t : Ind params) => R[x := t]`，否则
             //    `fun (_ : Ind params) => R`（v1 非依赖，见设计 §2）。
-            let empty_levels = builder.alloc_levels_slice(&[]);
-            let ind_ptr = builder.name_from_str(&ind_name);
-            let ind_const = builder.mk_const(ind_ptr, empty_levels);
-            let ind_applied = param_kernel
-                .iter()
-                .fold(ind_const, |acc, p| builder.mk_app(acc, *p));
             // motive 域的书写源类型 = `Ind params`（从 scrutinee 的书写参数）。
             let ind_ty_src = param_args_src.iter().fold(
                 Expr::Ident {
@@ -1337,7 +1392,53 @@ pub(crate) fn elab_expr<'a>(
             // body 必须在 motive binder 的作用域里 elaborate：`mk_lambda` 不做
             // de Bruijn shift，body 的索引须相对扩展后的上下文。
             let outer = scope.len();
-            scope.push(motive_name.clone(), ind_applied, Some(ind_ty_src), *span);
+            // 带索引归纳：motive 先绑索引再绑 major（`Ind params i1…ik`），与内核
+            // `mk_motive_dep` 一致。索引名新鲜、类型代入参数实参。
+            let param_map: HashMap<String, Expr> = info
+                .param_names
+                .iter()
+                .cloned()
+                .zip(param_args_src.iter().cloned())
+                .collect();
+            let mut index_binder_srcs: Vec<(String, Expr)> = Vec::new();
+            for (k, ty) in info.index_types.iter().enumerate() {
+                let name = {
+                    let mut candidate = format!("__soko_i{k}");
+                    while scope.names.iter().any(|n| n == &candidate) {
+                        candidate.push('_');
+                    }
+                    candidate
+                };
+                let ty = super::goals::substitute_names(ty, &param_map, &HashMap::new());
+                let ty_kernel =
+                    elab_expr(builder, &ty, scope, univ, known, hovers, None, None, ctx)?;
+                scope.push(name.clone(), ty_kernel, Some(ty.clone()), *span);
+                index_binder_srcs.push((name, ty));
+            }
+            // major 的书写源类型 = `Ind <参数实参> <索引名…>`。
+            let ind_ty_src =
+                index_binder_srcs
+                    .iter()
+                    .fold(ind_ty_src, |acc, (name, _)| Expr::App {
+                        fun: Box::new(acc),
+                        arg: Box::new(Expr::Ident {
+                            name: name.clone(),
+                            span: *span,
+                        }),
+                        span: *span,
+                    });
+            let ind_kernel = elab_expr(
+                builder,
+                &ind_ty_src,
+                scope,
+                univ,
+                known,
+                hovers,
+                None,
+                None,
+                ctx,
+            )?;
+            scope.push(motive_name.clone(), ind_kernel, Some(ind_ty_src), *span);
             let motive_body = elab_expr(
                 builder, &body_src, scope, univ, known, hovers, None, None, ctx,
             )?;
@@ -1347,12 +1448,18 @@ pub(crate) fn elab_expr<'a>(
             } else {
                 builder.name_from_str(&motive_name)
             };
-            let motive = builder.mk_lambda(
+            let mut motive = builder.mk_lambda(
                 motive_name_ptr,
                 BinderStyle::Default,
-                ind_applied,
+                ind_kernel,
                 motive_body,
             );
+            for (name, ty) in index_binder_srcs.iter().rev() {
+                let ty_kernel =
+                    elab_expr(builder, ty, scope, univ, known, hovers, None, None, ctx)?;
+                let name_ptr = builder.name_from_str(name);
+                motive = builder.mk_lambda(name_ptr, BinderStyle::Default, ty_kernel, motive);
+            }
             // 5) minors：按构造子声明序重排；**递归字段后插入归纳假设 IH**
             //    （类型 = motive 结果 R，v1 非依赖 motive；design §5 / Phase 2）。
             let base = scope.len();
@@ -1377,14 +1484,28 @@ pub(crate) fn elab_expr<'a>(
                 };
                 let mut minor_binders: Vec<(String, BinderStyle, ExprPtr<'a>, Option<Expr>)> =
                     Vec::new();
+                // 字段原名 → 用户模式里的绑定名：后面的字段类型可能引用前面的
+                // 字段（`v : Vec A n` 引用 `n`），elaborate 前必须改名。
+                let mut field_rename: HashMap<String, Expr> = HashMap::new();
+                let param_map: HashMap<String, Expr> = info
+                    .param_names
+                    .iter()
+                    .cloned()
+                    .zip(param_args_src.iter().cloned())
+                    .collect();
                 for (field, binder) in ctor.fields.iter().zip(binders.iter()) {
                     // 参数化归纳：把字段源类型里的参数名代换成 scrutinee 的
                     // 书写实参后再 elaborate，得到该构造子在其实例下的字段类型。
                     let parameterized = info.num_params > 0;
+                    let renamed_src = field.src_ty.as_ref().map(|src| {
+                        let mut map = param_map.clone();
+                        map.extend(field_rename.clone());
+                        super::goals::substitute_names(src, &map, &HashMap::new())
+                    });
                     let (field_ty, field_src_ty): (ExprPtr<'a>, Option<Expr>) = if !parameterized {
-                        (field.ty, field.src_ty.clone())
+                        (field.ty, renamed_src)
                     } else {
-                        let src = field.src_ty.as_ref().ok_or_else(|| {
+                        let src = renamed_src.ok_or_else(|| {
                             CompileError::elab(
                                 ErrorKind::ElabMatchParameterizedUnsupported,
                                 format!(
@@ -1394,18 +1515,19 @@ pub(crate) fn elab_expr<'a>(
                                 binder.span,
                             )
                         })?;
-                        let map: HashMap<String, Expr> = info
-                            .param_names
-                            .iter()
-                            .cloned()
-                            .zip(param_args_src.iter().cloned())
-                            .collect();
-                        let subst = super::goals::substitute_names(src, &map, &HashMap::new());
-                        let k = elab_expr(
-                            builder, &subst, scope, univ, known, hovers, None, None, ctx,
-                        )?;
-                        (k, Some(subst))
+                        let k =
+                            elab_expr(builder, &src, scope, univ, known, hovers, None, None, ctx)?;
+                        (k, Some(src))
                     };
+                    if !field.name.is_empty() && field.name != binder.name {
+                        field_rename.insert(
+                            field.name.clone(),
+                            Expr::Ident {
+                                name: binder.name.clone(),
+                                span: binder.span,
+                            },
+                        );
+                    }
                     record_binder_hover(hovers, scope, binder.span, field_ty);
                     scope.push(
                         binder.name.clone(),
@@ -1550,6 +1672,9 @@ pub(crate) fn elab_expr<'a>(
             app = builder.mk_app(app, motive);
             for minor in minors {
                 app = builder.mk_app(app, minor);
+            }
+            for index in &index_kernel {
+                app = builder.mk_app(app, *index);
             }
             app = builder.mk_app(app, scrutinee_kernel);
             record_hover(hovers, scope, *span, app, None);
@@ -2229,7 +2354,10 @@ fn result_telescope_mentions(result: &Expr, name: &str) -> bool {
 /// telescope of the self-call (the Pi domains of the field type).
 struct DerivedCtor {
     fields: Vec<Binder>,
-    rec_args: Vec<(String, Vec<Binder>)>,
+    /// `(field name, telescope, field index arguments)` for each recursive field.
+    rec_args: Vec<(String, Vec<Binder>, Vec<Expr>)>,
+    /// The ctor's result index arguments (`Vec A (Nat.succ n)` → `[Nat.succ n]`).
+    ctor_indices: Vec<Expr>,
 }
 
 /// All fields of a constructor in declaration order: the explicit binders
@@ -2244,6 +2372,20 @@ fn ctor_field_binders(ctor: &CtorDecl) -> Vec<Binder> {
 
 /// The binder telescope of a (possibly arrow-chained) type: Forall binders
 /// are collected verbatim, `A -> B` contributes one anonymous binder for `A`.
+/// Head + arguments of the *codomain* of a possibly-arrow/forall type — a
+/// recursive field's index arguments live under its telescope
+/// (`(x : Nat) -> Vec A x` → `Vec A x`).
+fn spine_of_codomain(ty: &Expr) -> Option<(String, Vec<Expr>)> {
+    let mut cur = ty;
+    loop {
+        match cur {
+            Expr::Arrow { codomain, .. } => cur = codomain,
+            Expr::Forall { body, .. } => cur = body,
+            _ => return src_spine(cur),
+        }
+    }
+}
+
 fn result_chain_binders(result: &Expr) -> Vec<Binder> {
     let mut out = Vec::new();
     let mut current = result;
@@ -2285,16 +2427,23 @@ fn fresh_name(base: &str, taken: &mut HashSet<String>) -> String {
 /// exclusively Prop-typed fields; a multi-ctor Prop block therefore gets a
 /// small-elimination recursor (no universe parameter, motive into `Prop`).
 fn is_prop_block_ty(ty: &Expr) -> bool {
-    matches!(
-        ty,
-        Expr::Sort {
-            sort: SortKind::Prop,
-            ..
-        } | Expr::Sort {
-            sort: SortKind::Sort(0),
-            ..
+    // 带索引归纳的 `ty` 是索引望远镜（`Nat -> … -> Sort`）：先剥到最终 Sort。
+    let mut cur = ty;
+    loop {
+        match cur {
+            Expr::Arrow { codomain, .. } => cur = codomain,
+            Expr::Forall { body, .. } => cur = body,
+            Expr::Sort {
+                sort: SortKind::Prop,
+                ..
+            }
+            | Expr::Sort {
+                sort: SortKind::Sort(0),
+                ..
+            } => return true,
+            _ => return false,
         }
-    )
+    }
 }
 
 fn e_ident(name: &str, span: Span) -> Expr {
@@ -2366,13 +2515,6 @@ fn derive_recursor(
             }
         }
     };
-    // `Ind p1 … pn`（无参数时就是裸 `Ind`）。
-    let ind_applied = |span: Span| {
-        params.iter().fold(e_ident(name, span), |acc, p| {
-            e_app(acc, e_ident(&p.name, span), span)
-        })
-    };
-
     let mut taken: HashSet<String> = HashSet::new();
     taken.insert(name.to_string());
     for ctor in constructors {
@@ -2391,6 +2533,33 @@ fn derive_recursor(
             }
         }
     }
+    // 索引望远镜（`ty` 在 params 之外）：给每个索引一个新鲜名字，供 motive/
+    // recursor 引用（内核的 motive = `forall indices, Ind params indices -> Sort`）。
+    let index_binders: Vec<Binder> = result_chain_binders(ty)
+        .into_iter()
+        .map(|b| {
+            let base = if b.name.is_empty() { "i" } else { &b.name };
+            Binder {
+                name: fresh_name(base, &mut taken),
+                ty: b.ty,
+                style: b.style,
+                span: b.span,
+            }
+        })
+        .collect();
+    let index_names: Vec<String> = index_binders.iter().map(|b| b.name.clone()).collect();
+
+    // `Ind p1 … pn i1 … ik`（无参数/索引时就是裸 `Ind`）。
+    let ind_applied = |span: Span| {
+        let mut e = params.iter().fold(e_ident(name, span), |acc, p| {
+            e_app(acc, e_ident(&p.name, span), span)
+        });
+        for index in &index_names {
+            e = e_app(e, e_ident(index, span), span);
+        }
+        e
+    };
+
     let motive = fresh_name("motive", &mut taken);
     let minors: Vec<String> = (0..constructors.len())
         .map(|i| fresh_name(&format!("m{i}"), &mut taken))
@@ -2398,20 +2567,28 @@ fn derive_recursor(
     let target = fresh_name("target", &mut taken);
 
     let motive_x = fresh_name("x", &mut taken);
+    // motive : forall (indices…), (x : Ind params indices) -> Sort
     let motive_ty = e_forall(
-        vec![Binder {
-            name: motive_x,
-            ty: Some(Box::new(ind_applied(ty_span))),
-            style: BinderKind::Explicit,
-            span: ty_span,
-        }],
-        motive_sort(ty_span),
+        index_binders.clone(),
+        e_forall(
+            vec![Binder {
+                name: motive_x,
+                ty: Some(Box::new(ind_applied(ty_span))),
+                style: BinderKind::Explicit,
+                span: ty_span,
+            }],
+            motive_sort(ty_span),
+            ty_span,
+        ),
         ty_span,
     );
 
+    // 派生字段名（避让参数/motive 等），并把 ctor 字段名 → 派生名的替换同时作用
+    // 到字段类型与构造子结果的索引实参上（索引可能引用字段，如 `Vec A n`）。
     let derived: Vec<DerivedCtor> = constructors
         .iter()
         .map(|ctor| {
+            let mut rename: HashMap<String, Expr> = HashMap::new();
             let mut fields = Vec::new();
             for binder in ctor_field_binders(ctor) {
                 let base = if binder.name.is_empty() {
@@ -2420,13 +2597,28 @@ fn derive_recursor(
                     &binder.name
                 };
                 let field_name = fresh_name(base, &mut taken);
+                if !binder.name.is_empty() && binder.name != field_name {
+                    rename.insert(binder.name.clone(), e_ident(&field_name, binder.span));
+                }
+                let ty = binder.ty.map(|t| {
+                    Box::new(super::goals::substitute_names(&t, &rename, &HashMap::new()))
+                });
                 fields.push(Binder {
                     name: field_name,
-                    ty: binder.ty,
+                    ty,
                     style: binder.style,
                     span: binder.span,
                 });
             }
+            let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
+                .filter(|(head, _)| head.as_str() == name)
+                .map(|(_, args)| {
+                    args.into_iter()
+                        .skip(params.len())
+                        .map(|a| super::goals::substitute_names(&a, &rename, &HashMap::new()))
+                        .collect()
+                })
+                .unwrap_or_default();
             let rec_args = fields
                 .iter()
                 .filter(|field| {
@@ -2436,7 +2628,8 @@ fn derive_recursor(
                         .is_some_and(|ty| mentions_ident(ty, name))
                 })
                 .map(|field| {
-                    let raw = result_chain_binders(field.ty.as_deref().expect("field has a type"));
+                    let field_ty = field.ty.as_deref().expect("field has a type");
+                    let raw = result_chain_binders(field_ty);
                     let mut telescope = Vec::with_capacity(raw.len());
                     for binder in raw {
                         let base = if binder.name.is_empty() {
@@ -2452,26 +2645,38 @@ fn derive_recursor(
                             span: binder.span,
                         });
                     }
-                    (field.name.clone(), telescope)
+                    let index_args: Vec<Expr> = spine_of_codomain(field_ty)
+                        .map(|(_, args)| args.into_iter().skip(params.len()).collect())
+                        .unwrap_or_default();
+                    (field.name.clone(), telescope, index_args)
                 })
                 .collect();
-            DerivedCtor { fields, rec_args }
+            DerivedCtor {
+                fields,
+                rec_args,
+                ctor_indices,
+            }
         })
         .collect();
 
-    // 每个构造子的 minor 前提：forall (字段… ih…), motive (<c_i> 字段…)。
+    // 每个构造子的 minor 前提：forall (字段… ih…), motive <ctor 索引实参> (C 字段…)。
     let minor_types: Vec<Expr> = constructors
         .iter()
         .zip(&derived)
         .map(|(ctor, d)| {
             let mut binders = d.fields.clone();
-            for (field_name, telescope) in &d.rec_args {
+            for (field_name, telescope, field_indices) in &d.rec_args {
                 let field_app = telescope
                     .iter()
                     .fold(e_ident(field_name, ctor.span), |acc, binder| {
                         e_app(acc, e_ident(&binder.name, ctor.span), ctor.span)
                     });
-                let ih_body = e_app(e_ident(&motive, ctor.span), field_app, ctor.span);
+                // IH : motive <field 索引实参> <field 应用>
+                let mut ih_body = e_ident(&motive, ctor.span);
+                for index in field_indices {
+                    ih_body = e_app(ih_body, index.clone(), ctor.span);
+                }
+                ih_body = e_app(ih_body, field_app, ctor.span);
                 let ih_ty = if telescope.is_empty() {
                     ih_body
                 } else {
@@ -2485,20 +2690,25 @@ fn derive_recursor(
                     span: ctor.span,
                 });
             }
-            let c_app = params
+            let mut c_app = params
                 .iter()
                 .fold(e_ident(&ctor.name, ctor.span), |acc, p| {
                     e_app(acc, e_ident(&p.name, ctor.span), ctor.span)
                 });
-            let c_app = d.fields.iter().fold(c_app, |acc, field| {
+            c_app = d.fields.iter().fold(c_app, |acc, field| {
                 e_app(acc, e_ident(&field.name, ctor.span), ctor.span)
             });
-            let body = e_app(e_ident(&motive, ctor.span), c_app, ctor.span);
+            let mut body = e_ident(&motive, ctor.span);
+            for index in &d.ctor_indices {
+                body = e_app(body, index.clone(), ctor.span);
+            }
+            let body = e_app(body, c_app, ctor.span);
             e_forall(binders, body, ctor.span)
         })
         .collect();
 
-    // 递归子望远镜：params（最外层，风格与声明一致）→ motive → minors → 目标。
+    // 递归子望远镜：params → motive → minors → 索引 → 目标
+    // （内核 `major_idx = params + motives + minors + indices`）。
     let mut rec_binders: Vec<Binder> = params.to_vec();
     rec_binders.push(Binder {
         name: motive.clone(),
@@ -2514,21 +2724,19 @@ fn derive_recursor(
             span: ctor.span,
         });
     }
+    rec_binders.extend(index_binders.clone());
     rec_binders.push(Binder {
         name: target.clone(),
         ty: Some(Box::new(ind_applied(ty_span))),
         style: BinderKind::Explicit,
         span: ty_span,
     });
-    let rec_ty = e_forall(
-        rec_binders,
-        e_app(
-            e_ident(&motive, ty_span),
-            e_ident(&target, ty_span),
-            ty_span,
-        ),
-        ty_span,
-    );
+    let mut rec_body = e_ident(&motive, ty_span);
+    for index in &index_names {
+        rec_body = e_app(rec_body, e_ident(index, ty_span), ty_span);
+    }
+    rec_body = e_app(rec_body, e_ident(&target, ty_span), ty_span);
+    let rec_ty = e_forall(rec_binders, rec_body, ty_span);
     let rec = RecDecl {
         name: format!("{name}.rec"),
         universe: universe.clone(),
@@ -2536,8 +2744,8 @@ fn derive_recursor(
         span: constructors.last().map(|ctor| ctor.span).unwrap_or(ty_span),
     };
 
-    // 每构造子一条规则：telescope = (motive, 全部 minors, 本构造子字段)，
-    // 返回 m_i <字段…>，递归字段后面追加自调用（py-nat succ 同形）。
+    // 每构造子一条规则：telescope = (params, motive, 全部 minors, 本构造子字段)，
+    // 返回 m_i <字段…>，递归字段后面追加自调用（携带该字段的索引实参）。
     let rules = constructors
         .iter()
         .enumerate()
@@ -2545,7 +2753,6 @@ fn derive_recursor(
             let d = &derived[i];
             let mut binders =
                 Vec::with_capacity(params.len() + constructors.len() + d.fields.len() + 1);
-            // iota 值 lambda 序：params → motive → minors → 本构造子字段。
             binders.extend(params.iter().cloned());
             binders.push(Binder {
                 name: motive.clone(),
@@ -2566,7 +2773,7 @@ fn derive_recursor(
             for field in &d.fields {
                 body = e_app(body, e_ident(&field.name, ctor.span), ctor.span);
             }
-            for (field_name, telescope) in &d.rec_args {
+            for (field_name, telescope, field_indices) in &d.rec_args {
                 let mut call = e_universe_app(&format!("{name}.rec"), &universe, ctor.span);
                 for param in params {
                     call = e_app(call, e_ident(&param.name, ctor.span), ctor.span);
@@ -2574,6 +2781,9 @@ fn derive_recursor(
                 call = e_app(call, e_ident(&motive, ctor.span), ctor.span);
                 for minor_name in &minors {
                     call = e_app(call, e_ident(minor_name, ctor.span), ctor.span);
+                }
+                for index in field_indices {
+                    call = e_app(call, index.clone(), ctor.span);
                 }
                 let field_app = telescope
                     .iter()
@@ -2595,5 +2805,6 @@ fn derive_recursor(
             }
         })
         .collect();
+
     (rec, rules)
 }

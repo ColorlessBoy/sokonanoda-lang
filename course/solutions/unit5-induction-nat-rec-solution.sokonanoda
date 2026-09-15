@@ -171,3 +171,19 @@ def predOpt (x : Option Nat) : Nat := match x with
 
 #reduce isZeroOpt (some Nat zero)
 #reduce predOpt (some Nat (succ (succ zero)))
+
+-- 带索引归纳（对应画布最后一节）：
+inductive Vec (A : Type) : Nat -> Type
+ctor vnil : Vec A zero
+ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
+end
+
+def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
+| vnil => zero
+| vcons a m w => succ ih
+
+def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
+| vnil => d
+| vcons a m w => a
+
+#reduce vlen Nat (succ zero) (vcons Nat zero zero (vnil Nat))

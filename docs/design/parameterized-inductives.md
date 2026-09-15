@@ -59,7 +59,7 @@ end
 
 ## 5. 明确不做（v1）
 
-- **带索引**归纳（`num_indices > 0`）、依赖 motive、嵌套/互递归、宇宙多态参数
+- ~~**带索引**归纳（`num_indices > 0`）~~ ✅ 已落地（0.47.0，见 `indexed-inductives.md`）、依赖 motive、嵌套/互递归、宇宙多态参数
   （`{u}` 级参数）、`match` 的嵌套/守卫/字面量模式；`Nat`/`Eq` prelude 仍
   `num_params=0`（原生快路径已按 `num_params` 泛化，不回归）。
 

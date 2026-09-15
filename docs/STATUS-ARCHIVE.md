@@ -1,8 +1,25 @@
-# STATUS 归档（第 1–73 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–74 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十四轮：Infoview 声明类型提示 + 点击跳转）
+
+> 用户：Infoview 的「声明」除名字外，用小字写出类型做提示，注意排版（保持
+> 每行一个声明）；并支持鼠标点击跳转。
+
+1. **协议**：`soko/goals` 每条声明增 `ty`（内核渲染的声明类型）与 `ty_runs`
+   （`front::semantic` runs，与 goal 同一分类源）；`docs/protocol.md` 同步。
+2. **Webview 排版**：声明项改「名字 + kind/status 徽标」一行、下面一行
+   `.decl-ty` 小字（0.78em、暗色、等宽、单行省略）按 `tok-*` 着色——保持
+   「每行一个声明」的节奏；`codeBlock` 复用同一渲染路径。
+3. **点击跳转**：点击声明 post `focusExercise` 带 `range`；扩展处理器在
+   `focusDeclaration` + 聚焦练习树之外，把编辑器光标移到该声明并 reveal。
+4. **测试**：LSP `goals_request_lists_open_exercise_with_hole_range` 增 `ty`/
+   `ty_runs`（重建 + sort kind）断言；扩展契约
+   `infoview_declaration_list_shows_types_and_jumps`（webview/css/host 三处）。
+5. **验收**：`sokonanoda gate` PASS；版本 0.43.0 → **0.44.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-15，第七十三轮：呈现面高亮统一）
 

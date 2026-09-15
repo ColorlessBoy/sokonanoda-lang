@@ -1469,3 +1469,35 @@ fn cli_match_dependent_motive_checks_via_kernel() {
         "dependent branch sorry must stay open: {stdout}"
     );
 }
+
+// ---- 带索引归纳（0.47.0，docs/design/indexed-inductives.md）----
+
+#[test]
+fn cli_indexed_vec_checks_and_reduces() {
+    // 带索引归纳 `Vec (A : Type) : Nat -> Type`：声明 + 派生 recursor +
+    // 常量 motive 的 match（长度），判定与归约全走内核。
+    let src = "\
+inductive Vec (A : Type) : Nat -> Type
+ctor vnil : Vec A 0
+ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (Nat.succ n)
+end
+def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat :=
+  match v with
+  | vnil => 0
+  | vcons a m w => Nat.succ ih
+#reduce vlen Nat 2 (vcons Nat 1 1 (vcons Nat 2 0 (vnil Nat)))
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration Vec"), "{stdout}");
+    assert!(stdout.contains("checked declaration vlen"), "{stdout}");
+    assert!(
+        stdout.contains("=> Nat.succ (Nat.succ 0)"),
+        "indexed recursion must reduce through Vec.rec: {stdout}"
+    );
+}

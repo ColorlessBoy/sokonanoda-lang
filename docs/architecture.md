@@ -134,7 +134,11 @@ sokonanoda-lang/
   （`num_params`，字段数严格为 `telescope − num_params`）。无显式 `rec` 时
   前端按内核期望形状自动派生递归子（**参数在最外层**）。`match` 对参数化
   归纳的参数实例从 scrutinee 的**书写源类型**取；scrutinee 不是带参数类型的
-  局部量 → `elab-match-parameterized-unsupported`。带索引归纳
+  局部量 → `elab-match-parameterized-unsupported`。**带索引归纳**（0.47.0：
+  `inductive Vec (A : Type) : Nat -> Type`，索引 = `ty` 在 params 之外的 Pi 望远镜；
+  派生 recursor 的 motive = `forall indices, Ind params indices -> Sort`、major 在索引之后；
+  `match` 取 scrutinee 书写类型的索引实参；结果类型依赖索引不在 v1，见
+  `docs/design/indexed-inductives.md`）。带索引归纳
   （`num_indices > 0`）与宇宙多态参数（`{u}` 级参数）仍不支持。
 - **声明级 binder**（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v` 在 parser 里降级为 `ty = Forall{binders → C}`、`val = Lambda{binders → v}`（`parser.rs::wrap_decl_binders`）；`by` 引擎把声明 binder 作为初始上下文（`run_by` 的 `initial_binders`），`:= sorry` 的剩余目标直接是 `C`。
 - **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。`A -> B` 与 `fun (x : A) => ...` 的 binder 都必须**带显式类型**（elaborator 尚未做 binder 类型推断，见 §8 待办）。

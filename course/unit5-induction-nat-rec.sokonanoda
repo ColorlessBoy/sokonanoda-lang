@@ -223,3 +223,31 @@ def predOpt (x : Option Nat) : Nat := match x with
 | some zero => zero
 | some (succ k) => sorry
 | none => zero
+
+-- ─────────────────────────────────────────────────────────────
+-- 带索引归纳：类型除了参数，还能带**索引**——索引随构造子取值变化。
+-- `Vec A n` = 「长度为 n 的 A 列表」：vnil 的长度是 zero，
+-- vcons 把头接在长度 n 的尾巴前，长度变成 succ n。
+-- （v1 边界：match 的结果类型不能依赖索引本身。）
+-- ─────────────────────────────────────────────────────────────
+
+inductive Vec (A : Type) : Nat -> Type
+ctor vnil : Vec A zero
+ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
+end
+
+-- 演示（已写好）：长度。
+def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
+| vnil => zero
+| vcons a m w => succ ih
+
+-- 自测：#reduce 走 Vec.rec —— 两层 vcons 的长度是两层 succ。
+#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))
+
+-- 练习 10：vhead 取出第一个元素；空表返回默认值 d。
+-- soko:hint 思路：match v 分 vnil / vcons a m w 两支。
+-- soko:hint 目标形态：vnil 支返回 d；vcons 支的结果类型是 A。
+-- soko:hint 关键件：vcons 把头部绑成 a——直接把 a 交出去。
+def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
+| vnil => d
+| vcons a m w => sorry

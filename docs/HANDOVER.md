@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量 13 套件
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～七十六轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～七十七轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -48,6 +48,7 @@ cargo test --workspace --locked   # 全量 13 套件
 | 74 | 0.44.0 | Infoview 声明类型提示 + 点击跳转 | `docs/protocol.md` / `webview-infoview.md` |
 | 75 | 0.45.0 | 应用位置 binder 类型推断（I6 最后一项） | `docs/design/elaborator-let-match.md` as-built |
 | 76 | 0.46.0 | `match` 作为 tactic（`by` 块内）+ judge 前缀修复 | `docs/design/by-tactics.md` §2 |
+| 77 | 0.47.0 | 带索引归纳（`Vec A n` 声明 + 派生 recursor + match） | `docs/design/indexed-inductives.md` |
 
 > 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–71 轮原文）。
 
@@ -79,9 +80,9 @@ cargo test --workspace --locked   # 全量 13 套件
   `rendered_language_text_uses_the_sokonanoda_fence`。
 
 ### B. `match` Phase 2 余项
-- **带索引归纳**（`inductive Vec (A : Type) : Nat -> Type`）：需 `num_indices>0`
-  的声明 + recursor + match（motive 依赖索引）。设计需先定稿（现 `match.md` §2
-  列为不做）。
+- ~~**带索引归纳**~~ ✅ 已完成（0.47.0）：`num_indices>0` 声明 + index-aware
+  派生 recursor + `match`（常量结果类型）；结果类型依赖索引不在 v1。见
+  `docs/design/indexed-inductives.md`。
 - ~~**`match` tactic**（`by` 块内用 `match`）~~ ✅ 已完成（0.46.0）：`by` 白名单加
   `match`（臂体是项，等价 `exact (match …)`）；顺带修 `judge_terms` 前缀（使
   `by exact match …` 可用）。臂体内再写一串 tactic 为后续可选扩展。

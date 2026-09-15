@@ -1,3 +1,14 @@
+## [0.47.0] - 2026-09-15
+
+### Added
+
+- **Indexed inductive declarations** — types may now carry indices alongside
+  parameters, e.g. `inductive Vec (A : Type) : Nat -> Type` with
+  `ctor vnil : Vec A zero` / `ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)`.
+  The recursor is derived (motive abstracts the indices), and `match` works for
+  results that do not depend on the index (e.g. computing the length). Design:
+  `docs/design/indexed-inductives.md`.
+
 ## [0.46.0] - 2026-09-15
 
 ### Added

@@ -731,3 +731,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   测试：parser（白名单 + 降到 Exact）、front ×2、CLI ×1；文档 by-tactics/
   architecture/TESTING。版本 **0.46.0**。臂体内再写一串 tactic 为后续可选扩展。
 
+- 2026-09-15（七十七）：**带索引归纳（0.47.0）**——ROADMAP I6/§3 B 最后一项。
+  `inductive Vec (A : Type) : Nat -> Type`（参数 + 索引）可声明、派生 recursor、
+  `match`（常量结果类型）。索引 = `ty` 在 params 之外的 Pi 望远镜（内核契约）；
+  前端补 `num_indices` 元数据、index-aware `derive_recursor`（motive 先绑索引、
+  major 在索引之后）、以及 match 的索引实参/索引化 motive；顺带修既有 latent
+  bug（字段类型引用前面字段时按用户绑定名改名）。边界：结果类型依赖索引不做。
+  front +3 / CLI +1 / 课程 unit5 带索引 Vec 节 + 练习 10（golden
+  `(11,9,6)→(13,10,7)`、汇总 `checked 55→57 / open 42→43`）。版本 **0.47.0**；
+  设计 as-built `docs/design/indexed-inductives.md`。
+

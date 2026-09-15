@@ -4533,3 +4533,93 @@ theorem t (hs : (k : Nat) -> P k -> P (succ k)) (hz : Q hs zero)
         .iter()
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")));
 }
+
+// ---- 带索引归纳（v1；design docs/design/indexed-inductives.md）----
+
+/// `Vec (A : Type) : Nat -> Type`（1 参数 + 1 索引）。
+const INDEXED_VEC: &str = "\
+inductive Vec (A : Type) : Nat -> Type
+ctor vnil : Vec A 0
+ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (Nat.succ n)
+end
+";
+
+#[test]
+fn indexed_vec_checks_and_derives_recursor() {
+    let src = format!("{INDEXED_VEC}#check Vec\n#check Vec.rec\n#check vcons\n");
+    let out = compile_fol(&parse(&src).expect("parse indexed"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "Vec")));
+    let types: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    // `Vec : Type -> Nat -> Type`（参数 + 索引都在类型里）。
+    assert!(
+        types
+            .iter()
+            .any(|t| t.contains("Nat") && t.contains("Type")),
+        "Vec's type must carry its index: {types:?}"
+    );
+    assert!(
+        types
+            .iter()
+            .any(|t| t.contains("motive") && t.contains("vnil") && t.contains("vcons")),
+        "Vec.rec must mention both constructors: {types:?}"
+    );
+}
+
+#[test]
+fn match_on_indexed_vec_computes_with_a_constant_motive() {
+    let src = format!(
+        "{INDEXED_VEC}\
+         def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat :=\n\
+           match v with\n\
+           | vnil => 0\n\
+           | vcons a m w => Nat.succ ih\n\
+         #reduce vlen Nat 0 (vnil Nat)\n\
+         #reduce vlen Nat 2 (vcons Nat 1 1 (vcons Nat 2 0 (vnil Nat)))\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        reduced,
+        vec!["0", "Nat.succ (Nat.succ 0)"],
+        "{:?}",
+        out.events
+    );
+}
+
+#[test]
+fn match_field_types_follow_the_user_binder_names() {
+    // 字段类型引用前面的字段（`v : Vec A n`），而用户改名为 `w`/`m`：
+    // 结果类型里对 `n` 的引用必须跟着改名，否则 de Bruijn 指错。
+    let src = format!(
+        "{INDEXED_VEC}\
+         def head_or (A : Type) (d : A) (n : Nat) (v : Vec A n) : A :=\n\
+           match v with\n\
+           | vnil => d\n\
+           | vcons a m w => a\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "head_or")));
+}

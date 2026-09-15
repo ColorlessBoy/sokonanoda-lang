@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十六轮：`match` 作为 tactic；0.46.0）
+> 快照：2026-09-15（第七十七轮：带索引归纳；0.47.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,27 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十七轮：带索引归纳）
+
+> 续 HANDOVER §3 B / ROADMAP I6 的最后一项：`inductive Vec (A : Type) : Nat -> Type`。
+
+1. **索引定义**（内核契约）：索引 = `ty` 在 `num_params` 之外的 Pi 望远镜
+   （`inductive.rs::check_inductive_spec_0th`）；内核本支持 `num_indices`，本轮
+   只补前端。设计 `docs/design/indexed-inductives.md`。
+2. **安装**：`install_inductive_block` 算 `index_binders`/`num_indices`，传入
+   `add_inductive`/`RecursorData`，存入 `InductiveInfo{num_indices,index_types}`；
+   `is_prop_block_ty` 先剥索引望远镜。
+3. **派生 recursor**：motive = `forall indices, Ind params indices -> Sort`；rec 绑定序
+   `params→motive→minors→indices→target`；minor = `motive <ctor 索引> (C 字段…)`；
+   iota 自调用带字段索引实参；字段名替换同时作用于字段类型与 ctor 结果索引实参。
+4. **match**：从 scrutinee 书写类型取索引实参；motive 先绑索引再绑 major；
+   应用 `Ind.rec params motive minors indices scrutinee`。顺带修既有 latent bug：
+   字段类型引用前面字段（`v : Vec A n`）时按「字段原名→用户绑定名」substitution。
+5. **边界**：结果类型依赖索引不做（sound 拒绝；另立设计）。
+6. **测试/课程**：front +3、CLI +1；课程 unit5 带索引 Vec 节 + 练习 10
+   （golden `(11,9,6)→(13,10,7)`、汇总 `checked 55→57 / open 42→43`）。
+7. **验收**：`sokonanoda gate` PASS；版本 0.46.0 → **0.47.0**（新语法 minor）。
 
 ## 本轮进度（2026-09-15，第七十六轮：`match` 作为 tactic）
 
@@ -50,21 +71,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    回归不破。
 5. **文档**：architecture §elab、`elaborator-let-match.md` as-built、TESTING。
 6. **验收**：`sokonanoda gate` PASS；版本 0.44.0 → **0.45.0**（新能力 minor）。
-
-## 本轮进度（2026-09-15，第七十四轮：Infoview 声明类型提示 + 点击跳转）
-
-> 用户：Infoview 的「声明」除名字外，用小字写出类型做提示，注意排版（保持
-> 每行一个声明）；并支持鼠标点击跳转。
-
-1. **协议**：`soko/goals` 每条声明增 `ty`（内核渲染的声明类型）与 `ty_runs`
-   （`front::semantic` runs，与 goal 同一分类源）；`docs/protocol.md` 同步。
-2. **Webview 排版**：声明项改「名字 + kind/status 徽标」一行、下面一行
-   `.decl-ty` 小字（0.78em、暗色、等宽、单行省略）按 `tok-*` 着色——保持
-   「每行一个声明」的节奏；`codeBlock` 复用同一渲染路径。
-3. **点击跳转**：点击声明 post `focusExercise` 带 `range`；扩展处理器在
-   `focusDeclaration` + 聚焦练习树之外，把编辑器光标移到该声明并 reveal。
-4. **测试**：LSP `goals_request_lists_open_exercise_with_hole_range` 增 `ty`/
-   `ty_runs`（重建 + sort kind）断言；扩展契约
-   `infoview_declaration_list_shows_types_and_jumps`（webview/css/host 三处）。
-5. **验收**：`sokonanoda gate` PASS；版本 0.43.0 → **0.44.0**（新能力 minor）。
 
