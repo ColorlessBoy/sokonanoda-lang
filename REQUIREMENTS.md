@@ -693,3 +693,15 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `docs/design/match-patterns.md`。已知限制：`as`/or 模式、多 scrutinee、
   `if/then/else` 表达式不做；嵌套/守卫下依赖子目标类型退回常量（保守）。
 
+- 2026-09-15（七十三）：**呈现面高亮统一（0.43.0）**——用户追问「各个地方的高亮
+  统一」；0.40.0 只统了 goal 状态。统一手段：凡渲染 `.sokonanoda` 文本一律
+  ` ```sokonanoda ` markdown 围栏（LSP `code_block`/`CODE_LANG`，扩展
+  `codeMarkdown`），着色只来自 `front::semantic` 的 TM 语法/语义 token。覆盖：
+  表达式/签名 hover（原 ` ```text `）、声明 hover（签名/洞期望类型/目标态）、
+  tactic hover 的 tactic 片段、半表达式 hover 的推断类型与目标、补全
+  `documentation`、练习树 tooltip。刻意保持纯文本（VS Code 不渲染 markdown /
+  行内代码无语言）：诊断消息、inlay hint、TreeItem.description、CodeAction 标题、
+  散文里的单词引用。契约：`code_fences_always_use_the_sokonanoda_language`、
+  `rendered_language_text_uses_the_sokonanoda_fence`。版本 **0.43.0**；见
+  `docs/design/goal-rendering.md` §7。
+

@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十二轮：模式编译器——嵌套/字面量/守卫；0.42.0）
+> 快照：2026-09-15（第七十三轮：呈现面高亮统一；0.43.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,27 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十三轮：呈现面高亮统一）
+
+> 用户追问「各个地方的高亮统一」后补做（HANDOVER §3 A″）：0.40.0 只统了 goal
+> 状态，其余渲染 `.sokonanoda` 的面仍各自为政。原则：**着色只来自
+> `front::semantic`**（语义 token + TM 语法 + runs），手段是统一 `{sokonanoda}`
+> markdown 围栏。
+
+1. **LSP**：新增 `CODE_LANG`/`code_block`/`goal_block`；`hover_markup`（表达式/
+   签名 hover）由 ` ```text ` 改 ` ```sokonanoda `；声明 hover 的签名、洞期望
+   类型、目标态都用代码块；tactic hover 的 tactic 片段、半表达式 hover 的
+   推断类型/目标也从行内代码改成代码块；补全 `documentation` 给出签名的
+   `sokonanoda` 围栏。
+2. **扩展**：`codeMarkdown`/`goalTooltip`——练习树「目标」「假设」tooltip 用
+   `MarkdownString.appendCodeblock(…, "sokonanoda")`。
+3. **刻意保持纯文本**（VS Code 不渲染 markdown / 不给行内代码语言）：诊断消息、
+   inlay hint、TreeItem.description、CodeAction 标题；hover 里「散文提到单个词」
+   也保持行内代码。文档写明（`goal-rendering.md §7`）。
+4. **契约**：LSP `code_fences_always_use_the_sokonanoda_language` + hover/
+   completion 断言；扩展 `rendered_language_text_uses_the_sokonanoda_fence`。
+5. **验收**：`sokonanoda gate` PASS；版本 0.42.0 → **0.43.0**（行为统一，minor）。
 
 ## 本轮进度（2026-09-15，第七十二轮：`match` 模式编译器 v1）
 
@@ -63,50 +84,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `TESTING.md`、`protocol` 错误文案（`Nat/Bool`）；错误提示改为
    「prelude 内建的 Nat/Bool」。
 6. **验收**：`sokonanoda gate` PASS；版本 0.40.0 → **0.41.0**（新能力 minor）。
-
-## 本轮进度（2026-09-15，第七十轮：统一 goal 呈现 + Infoview 落右侧）
-
-> 用户：Infoview 弹出「暂时不可用」很困惑、希望默认在右侧；各处 goal
-> 高亮/颜色各自独立不可维护，要求对齐 VS Code 代码框标准。参照 Lean4
-> Infoview（服务器下发结构化 tag + 客户端按主题渲染）。设计
-> `docs/design/goal-rendering.md`。
-
-1. **单一分类源**：`front::semantic` 新增 `tag_runs`/`tag_expr`/
-   `declaration_kinds` + `SemanticKind::{ALL, as_str}`——把任意表达式文本按
-   编辑器同一套规则切成 `(text, kind)` runs。
-2. **协议**：`soko/stateAt`（及 `soko/goals` 的 binders）新增 `goal_runs`/
-   `ty_runs`（有序 `{text, kind?}`，`kind` 用 wire 名），旧字符串字段保留；
-   `docs/protocol.md` 记录词表。
-3. **Infoview 渲染**：webview 用 runs 生成 `tok-<kind>` span（不再自绘规则、
-   仍仅 textContent），`infoview.css` 单一映射到主题变量；契约测试断言每个
-   `SemanticKind` 都有 `.tok-*` 类。
-4. **落位 + fallback**：视图移出 explorer，进
-   `viewsContainers.secondarySidebar` 的 `sokonanoda` 容器（**右侧**，engine
-   `^1.85.0 → ^1.106.0`，已核实 1.106 为无需 proposed API 的首个稳定版）；
-   删除 `waitReady`/2s 握手与「暂时不可用」提示，失败静默回退树组。
-5. **防漂移**：TM 语法（hover 代码框着色）关键词/命令/sort 列表由测试断言
-   == `front::semantic`（keywords + sorts + forall），删掉硬编码 `Nat`。
-6. **市场门面**：`description` 348 → 247 字符（>300 被 Marketplace 硬截断、
-   切在 `opencode` 中间）+ 护栏测试；README/CHANGELOG 同步。
-7. **验收**：front/LSP/cli 契约测试 + `sokonanoda gate` PASS；版本 0.39.1 →
-   **0.40.0**（新面板位置 + 协议字段，minor）。
-
-
-
-> 续 TODO（HANDOVER §3 A）：消除依赖类型判定/建议里「内核类型文本 → AST」往返
-> 的括号歧义。
-
-1. **根因**：`proof::render_expr` 的 `Arrow` 分支把 **domain** 直接 `render_expr`，
-   当 domain 是 Forall/箭头时输出 `(k : Nat) -> P k -> Q` 被右结合误读；
-   `judge_infer` 逐层 render→parse 剥 Pi 时腐蚀 telescope → 依赖 `match` 的
-   level 查询报 `elab-match-no-expected-type`。
-2. **修复**：Arrow domain 位改用 `render_fun_position`（Lambda/Forall/Arrow/
-   Plus/Let/Match 一律补括号）。
-3. **回归**：`render_expr_round_trips` 增「Forall 作 domain」用例（含渲染→再解析
-   稳定）；`match_dependent_motive_with_function_typed_binder_round_trips_safely`
-   （结果类型 `Q hs n`、`hs` 为依赖函数 binder）内核通过。
-4. **影响**：`judge_infer` 的所有消费方受益（依赖 `match`、suggest、半表达式
-   hover、level 查询）。
-5. **验收**：`sokonanoda gate` PASS；版本 0.39.0 → **0.39.1**（健壮性 patch）；
-   设计 as-built `docs/design/match-dependent-motive.md` §8；HANDOVER §3 A 勾选。
 

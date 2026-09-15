@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量 13 套件
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～七十二轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～七十三轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -44,8 +44,9 @@ cargo test --workspace --locked   # 全量 13 套件
 | 70 | 0.40.0 | 统一 goal 呈现（`front::semantic` runs）+ Infoview 落右侧 + engine ^1.106 + 市场简介护栏 | `docs/design/goal-rendering.md` |
 | 71 | 0.41.0 | prelude `Bool`（非递归真实可信归纳） | `docs/design/match.md` §10 Phase 5 |
 | 72 | 0.42.0 | `match` 模式编译器 v1（嵌套/字面量/通配/守卫） | `docs/design/match-patterns.md` |
+| 73 | 0.43.0 | 呈现面高亮统一（`sokonanoda` 围栏全量） | `docs/design/goal-rendering.md` §7 |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–69 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–70 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
@@ -62,21 +63,17 @@ cargo test --workspace --locked   # 全量 13 套件
   补括号；依赖 `match`/suggest/hover/level 均受益；证据 `render_expr_round_trips`
   + `match_dependent_motive_with_function_typed_binder_round_trips_safely`。
 
-### A″. 呈现面高亮统一（**未做**；0.40.0 只覆盖了 goal 状态）
-> 用户 2026-09-15 追问：「各个地方的高亮统一」要进 TODO。
-- 0.40.0 只把 **goal 状态**（tactic/半表达式 hover + Infoview）统一到
-  `front::semantic`。其它渲染语言文本的地方仍是各自为政：
-  1. **表达式/签名 hover**：`hover_markup`（`crates/lsp/src/lib.rs:862`）用
-     ` ```text ` 围栏 → 应改 ` ```sokonanoda `（同一 TM 语法，直接高亮）；
-  2. **声明 hover**（`lib.rs:1195`）内联签名无围栏；
-  3. **补全** `detail`/`documentation`（`lib.rs:1346+`）；
-  4. **诊断**里内嵌的类型文本（`期望 X / 实际 Y`）——诊断是 markdown，可用围栏；
-  5. **hints / quick-fix 预览**、**练习树 tooltip**（TreeItem tooltip 支持
-     `MarkdownString`，可放 `sokonanoda` 围栏或按 runs 渲染）。
-- 验收原则：凡渲染 `.sokonanoda` 语言文本，着色**只**来自 `front::semantic`
-  （编辑器 token / TM 语法 / `tag_runs`），不得再各写一套；能围栏的地方统一
-  ` ```sokonanoda `，不能围栏的（inlay hint、纯文本 tree description）保持纯文本
-  并在文档写明。
+### A″. ~~呈现面高亮统一~~ ✅ 已完成（0.43.0）
+> 用户 2026-09-15 追问后补做。
+- 统一手段：LSP `code_block`/`CODE_LANG`、扩展 `codeMarkdown`——凡渲染
+  `.sokonanoda` 文本一律 ` ```sokonanoda ` 围栏（着色只来自 `front::semantic`
+  的 TM 语法/语义 token）。
+- 覆盖：表达式/签名 hover（原 ` ```text `）、声明 hover（签名 + 目标态代码块）、
+  补全 documentation 签名、练习树 tooltip（`appendCodeblock(…, "sokonanoda")`）。
+- 刻意保持纯文本（VS Code 不渲染 markdown/无法着色）：诊断消息、inlay hint、
+  TreeItem.description、CodeAction 标题；见 `docs/design/goal-rendering.md §7`。
+- 契约：`code_fences_always_use_the_sokonanoda_language`、
+  `rendered_language_text_uses_the_sokonanoda_fence`。
 
 ### B. `match` Phase 2 余项
 - **带索引归纳**（`inductive Vec (A : Type) : Nat -> Type`）：需 `num_indices>0`

@@ -333,9 +333,28 @@ class GoalsTreeDataProvider {
   }
 }
 
+// Every place the extension renders `.sokonanoda` text uses the same language
+// id, so tooltips are highlighted by the same grammar as hover/completion/
+// Infoview (docs/design/goal-rendering.md §7).
+function codeMarkdown(text) {
+  const md = new vscode.MarkdownString();
+  md.appendCodeblock(String(text ?? ""), "sokonanoda");
+  return md;
+}
+
+function goalTooltip(state) {
+  const lines = [];
+  for (const binder of state?.binders ?? []) {
+    lines.push(`${binder.name} : ${binder.ty}`);
+  }
+  lines.push(`⊢ ${state?.goal ?? ""}`);
+  return codeMarkdown(lines.join("\n"));
+}
+
 function binderItem(binder) {
   const item = new vscode.TreeItem(binder.name, vscode.TreeItemCollapsibleState.None);
   item.description = binder.ty;
+  item.tooltip = codeMarkdown(`${binder.name} : ${binder.ty}`);
   item.iconPath = new vscode.ThemeIcon("symbol-variable");
   return item;
 }
@@ -351,6 +370,7 @@ function buildOpenChildren(decl, uriString) {
     const label = goals.length > 1 ? `目标 ${index + 1}/${goals.length}` : "目标";
     const goal = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.None);
     goal.description = ty;
+    goal.tooltip = codeMarkdown(ty);
     children.push(goal);
   });
   for (const binder of decl.binders ?? []) {
@@ -385,6 +405,7 @@ function buildCursorChildren(cursor, uriString) {
   } else if (goals.length === 1) {
     const goal = new vscode.TreeItem("目标", vscode.TreeItemCollapsibleState.None);
     goal.description = goals[0].goal;
+    goal.tooltip = goalTooltip(goals[0]);
     goal.iconPath = new vscode.ThemeIcon("circle-outline");
     if (cursor.span) {
       goal.command = {
@@ -404,6 +425,7 @@ function buildCursorChildren(cursor, uriString) {
         vscode.TreeItemCollapsibleState.Expanded,
       );
       goal.description = state.goal;
+      goal.tooltip = goalTooltip(state);
       goal.iconPath = new vscode.ThemeIcon("circle-outline");
       if (cursor.span) {
         goal.command = {

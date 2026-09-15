@@ -1,3 +1,16 @@
+## [0.43.0] - 2026-09-15
+
+### Changed
+
+- **One highlighting path everywhere** — every place the editor shows
+  `.sokonanoda` text now uses the same `sokonanoda` markdown code fence, so it
+  is coloured by the single TextMate grammar: expression/signature hovers (were
+  plain `text`), declaration hovers, the tactic and half-expression hover
+  headers, completion documentation, and the exercise-tree tooltips. Blocks
+  that a client cannot markdown-render (diagnostics, inlay hints, tree
+  descriptions, code-action titles) stay plain text, as documented in
+  `docs/design/goal-rendering.md` §7.
+
 ## [0.42.0] - 2026-09-15
 
 ### Added

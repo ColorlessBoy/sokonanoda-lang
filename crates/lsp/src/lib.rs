@@ -815,18 +815,19 @@ fn tactic_goal_hover(report: &DocumentReport, text: &str, offset: usize) -> Opti
         .get(step.span.start.offset..step.span.end.offset)
         .unwrap_or("")
         .trim();
-    // Header: the tactic itself (inline code) + its 1-based position. The code
-    // fence below uses the `sokonanoda` grammar so the goal state is both
-    // monospaced/aligned and syntax-highlighted in the hover.
-    let mut value = if selection.total > 0 {
-        format!(
-            "`{tactic_text}` · tactic {}/{}\n",
+    // Header: the tactic itself + its 1-based position. The tactic is a
+    // `sokonanoda` code block too, so its own syntax is highlighted (same fence
+    // language as the goal state below, docs/design/goal-rendering.md §7).
+    let mut value = code_block(tactic_text);
+    if selection.total > 0 {
+        value.push_str(&format!(
+            "\ntactic {}/{}\n",
             step_index + 1,
             selection.total
-        )
+        ));
     } else {
-        format!("`{tactic_text}`\n")
-    };
+        value.push('\n');
+    }
     if selection.goals.is_empty() {
         value.push_str("\n已无剩余目标 ✓\n");
     } else {
@@ -853,13 +854,36 @@ fn tactic_goal_hover(report: &DocumentReport, text: &str, offset: usize) -> Opti
     })
 }
 
+/// Language id used by **every** markdown code fence the server emits, so the
+/// editor colours it with the `sokonanoda` TextMate grammar (which is
+/// contract-tested against `front::semantic`) — the single source for any
+/// `.sokonanoda` text the client renders (docs/design/goal-rendering.md §7).
+const CODE_LANG: &str = "sokonanoda";
+
+/// A fenced `sokonanoda` code block for editor markdown (hover / completion
+/// docs / any place that shows language text).
+fn code_block(text: &str) -> String {
+    format!("```{CODE_LANG}\n{}\n```", text.trim_end_matches('\n'))
+}
+
+/// Render a goal state (hypotheses + `⊢ goal`) as one `sokonanoda` code block —
+/// the same line model as the tactic hover and the Infoview.
+fn goal_block(binders: &[GoalBinder], goal: &str) -> String {
+    let mut body = String::new();
+    for binder in binders {
+        body.push_str(&format!("{} : {}\n", binder.name, binder.ty));
+    }
+    body.push_str(&format!("⊢ {goal}"));
+    code_block(&body)
+}
+
 /// Build an LSP `Hover` from a resolved expression hover, carrying the
 /// expression's source range so the editor highlights exactly what is shown.
 fn hover_markup(res: render::HoverResolved) -> Hover {
     Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
-            value: format!("```text\n{}\n```", res.content),
+            value: code_block(&res.content),
         }),
         range: Some(range_of(res.range)),
     }
@@ -968,22 +992,33 @@ fn half_expression_goals_hover(
     let (headline, tail) = if codomain == goal_text {
         (
             format!(
-                "这一项的结论已经对上目标 `{goal_text}`，还差 {} 个前提：",
+                "这一项的结论已经对上目标：\n{}\n还差 {} 个前提：",
+                code_block(&goal_text),
                 goals.len()
             ),
             "\n\n继续把前提补上，或用 `by` / `fun` 继续写。".to_string(),
         )
     } else {
         (
-            format!("这一项的类型是 `{inferred}`，与目标 `{goal_text}` 对不上："),
+            format!(
+                "这一项的类型是：\n{}\n与目标对不上：\n{}",
+                code_block(&inferred),
+                code_block(&goal_text)
+            ),
             String::new(),
         )
     };
-    let goal_block = goals.iter().map(|g| format!("⊢ {g}\n")).collect::<String>();
+    let goal_block = code_block(
+        &goals
+            .iter()
+            .map(|g| format!("⊢ {g}"))
+            .collect::<Vec<_>>()
+            .join("\n"),
+    );
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
-            value: format!("{headline}\n\n```sokonanoda\n{goal_block}```{tail}"),
+            value: format!("{headline}\n\n{goal_block}{tail}"),
         }),
         range: Some(range_of(d.span)),
     })
@@ -1153,10 +1188,13 @@ impl LanguageServer for Backend {
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {
             let signature = match &d.ty_text {
-                Some(ty) => format!("`{} {} : {}`\n", d.kind.as_str(), decl_name(d), ty),
-                None => format!("**{} {}**\n", d.kind.as_str(), decl_name(d)),
+                Some(ty) => format!("{} {} : {}", d.kind.as_str(), decl_name(d), ty),
+                None => format!("{} {}", d.kind.as_str(), decl_name(d)),
             };
-            let value = match d.status {
+            // Signature and goal state are `.sokonanoda` text → fenced blocks so
+            // the editor highlights them (docs/design/goal-rendering.md §7).
+            let mut value = code_block(&signature);
+            match d.status {
                 DeclStatus::Open => {
                     // 光标正落在某个 `sorry` 上：先给这个洞的精确期望类型
                     //（超量应用走查经 def 展开算出，如 `(And.right a (Not a)
@@ -1165,31 +1203,21 @@ impl LanguageServer for Backend {
                         .sub_goals
                         .iter()
                         .find(|s| s.span.start.offset <= offset && offset <= s.span.end.offset);
-                    let mut text = match (&d.goal, hole_ty) {
-                        (Some(goal), Some(sg)) if sg.ty.is_some() => format!(
-                            "{}此处 `sorry` 的期望类型：`{}`\n\n剩余目标：`{}`\n",
-                            signature,
-                            sg.ty.as_deref().unwrap_or_default(),
-                            goal
-                        ),
-                        (Some(goal), _) => format!("{}目标：`{}`\n", signature, goal),
-                        (None, _) => format!("{}待作答\n", signature),
-                    };
-                    if !d.binders.is_empty() {
-                        text.push_str("\n已引入假设：\n");
-                        for b in &d.binders {
-                            text.push_str(&format!("- `{}` : `{}`\n", b.name, b.ty));
+                    match (&d.goal, hole_ty) {
+                        (Some(goal), Some(sg)) if sg.ty.is_some() => value.push_str(&format!(
+                            "\n此处 `sorry` 的期望类型：\n{}\n\n剩余目标：\n{}",
+                            code_block(sg.ty.as_deref().unwrap_or_default()),
+                            goal_block(&d.binders, goal)
+                        )),
+                        (Some(goal), _) => {
+                            value.push_str(&format!("\n目标：\n{}", goal_block(&d.binders, goal)));
                         }
+                        (None, _) => value.push_str("\n待作答"),
                     }
-                    text.push_str("\n在 `sorry` 处填写一个类型为目标的项。");
-                    text
+                    value.push_str("\n\n在 `sorry` 处填写一个类型为目标的项。");
                 }
-                DeclStatus::Checked => {
-                    format!("{}已通过内核检查", signature)
-                }
-                DeclStatus::Failed => {
-                    format!("{}未通过，见诊断", signature)
-                }
+                DeclStatus::Checked => value.push_str("\n\n已通过内核检查"),
+                DeclStatus::Failed => value.push_str("\n\n未通过，见诊断"),
             };
             return Ok(Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {
@@ -1413,6 +1441,14 @@ impl LanguageServer for Backend {
                         decl.kind.as_str(),
                         status_label(decl.status)
                     )),
+                    // Signature as a `sokonanoda` fence so the docs popup is
+                    // highlighted like every other surface (§7).
+                    documentation: decl.ty_text.as_ref().map(|ty| {
+                        Documentation::MarkupContent(MarkupContent {
+                            kind: MarkupKind::Markdown,
+                            value: code_block(&format!("{} {} : {ty}", decl.kind.as_str(), name)),
+                        })
+                    }),
                     ..Default::default()
                 });
             }
@@ -1737,25 +1773,25 @@ mod tests {
         };
         // 洞的精确期望类型（def 展开后的箭头定义域）。
         assert!(
-            markup.value.contains("期望类型：`a`"),
-            "hole expected type must be `a`: {:?}",
+            markup.value.contains("期望类型：") && markup.value.contains("```sokonanoda\na"),
+            "hole expected type must be `a` in a sokonanoda fence: {:?}",
             markup.value
         );
-        // 剩余目标 = 声明类型剥掉两层 lambda。
+        // 剩余目标 = 声明类型剥掉两层 lambda（goal 代码块内 `⊢ False`）。
         assert!(
-            markup.value.contains("剩余目标：`False`"),
+            markup.value.contains("剩余目标：") && markup.value.contains("⊢ False"),
             "remaining goal must be `False`: {:?}",
             markup.value
         );
-        // 上下文假设完整。
+        // 上下文假设完整（goal 代码块内的 `x : And a (Not a)`）。
         assert!(
-            markup.value.contains("`x` : `And a (Not a)`"),
+            markup.value.contains("x : And a (Not a)"),
             "{:?}",
             markup.value
         );
         // 不再把整个声明类型当目标展示。
         assert!(
-            !markup.value.contains("目标：`forall"),
+            !markup.value.contains("目标：\n```sokonanoda\nforall"),
             "declared type must not be shown as the goal: {:?}",
             markup.value
         );
@@ -2129,12 +2165,12 @@ mod tests {
             panic!("expected markup hover");
         };
         assert!(
-            markup.value.contains("目标：`a`"),
+            markup.value.contains("目标：") && markup.value.contains("⊢ a"),
             "hover shows goal: {}",
             markup.value
         );
         assert!(
-            markup.value.contains("`a` : `Prop`") && markup.value.contains("`h` : `a`"),
+            markup.value.contains("a : Prop") && markup.value.contains("h : a"),
             "hover lists hypotheses: {}",
             markup.value
         );
@@ -2690,11 +2726,11 @@ mod tests {
             "tactic hover shows the entering goal: {:?}",
             markup.value
         );
-        // Presentation: the tactic itself + a `sokonanoda` code fence so the
-        // goal state is monospaced/aligned and syntax-highlighted.
+        // Presentation: the tactic itself + `sokonanoda` code fences so both
+        // the tactic and the goal state are syntax-highlighted.
         assert!(
-            markup.value.contains("`apply And.intro`"),
-            "hover header names the tactic: {:?}",
+            markup.value.contains("```sokonanoda\napply And.intro"),
+            "hover header renders the tactic as a highlighted code block: {:?}",
             markup.value
         );
         assert!(
@@ -3048,6 +3084,14 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         }
     }
 
+    #[test]
+    fn code_fences_always_use_the_sokonanoda_language() {
+        // docs/design/goal-rendering.md §7: one language id for every rendered
+        // code block, so the single TM grammar colours all of them.
+        assert_eq!(code_block("x : Nat"), "```sokonanoda\nx : Nat\n```");
+        assert!(!code_block("x").contains("```text"));
+    }
+
     #[tokio::test]
     async fn completion_lists_keywords_sorts_prelude_and_declarations() {
         let src = "def two : Nat := 2\nexample : Sort 1 := sorry\n";
@@ -3076,6 +3120,15 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             two.detail.as_deref().is_some_and(|d| d.contains("def")),
             "detail carries kind/status: {:?}",
             two.detail
+        );
+        // 文档里的签名是 `sokonanoda` 代码块（与 hover 同一围栏语言，§7）。
+        let documentation = match &two.documentation {
+            Some(Documentation::MarkupContent(markup)) => markup.value.clone(),
+            other => panic!("expected markdown documentation, got {other:?}"),
+        };
+        assert!(
+            documentation.contains("```sokonanoda") && documentation.contains("def two : Nat"),
+            "signature docs must be a sokonanoda fence: {documentation:?}"
         );
         shutdown(&mut service).await;
     }

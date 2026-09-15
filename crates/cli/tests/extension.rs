@@ -776,6 +776,22 @@ fn infoview_colours_every_semantic_kind_from_the_single_source() {
 }
 
 #[test]
+fn rendered_language_text_uses_the_sokonanoda_fence() {
+    // docs/design/goal-rendering.md §7: the extension renders `.sokonanoda` text
+    // (tree tooltips) with the {sokonanoda} language id, so it is highlighted by
+    // the same TM grammar as hover/completion/Infoview.
+    let script = entry_script();
+    assert!(
+        script.contains("appendCodeblock"),
+        "the extension must render language text as code blocks"
+    );
+    assert!(
+        script.contains("appendCodeblock(String(text ?? \"\"), \"sokonanoda\")"),
+        "code blocks must use the sokonanoda language id"
+    );
+}
+
+#[test]
 fn infoview_message_protocol_matches_design() {
     // Protocol table (docs/design/webview-infoview.md §3): host → webview
     // state/decls/server/theme; webview → host ready/reveal/focusExercise.

@@ -167,19 +167,27 @@
 - 未做单一大 `<pre>` 代码框：沿用既有 `goal-ty` + `binders` 结构，仅把着色
   接入 runs，避免推翻既有布局契约。
 
-## 7. 未覆盖的呈现面（后续 TODO）
+## 7. 呈现面高亮统一（0.43.0 完成）
 
-本文只统一了 **goal 状态**（tactic/半表达式 hover + Infoview）。其余渲染
-`.sokonanoda` 语言文本的界面仍在自绘/纯文本，属后续（`docs/HANDOVER.md §3 A″`）：
+原则：**凡渲染 `.sokonanoda` 语言文本，着色只来自 `front::semantic`**
+（编辑器语义 token + TM 语法 + `tag_runs`）。统一手段是给每个 markdown 面一个
+`{sokonanoda}` 代码围栏（LSP `code_block`/`CODE_LANG`，扩展 `codeMarkdown`）。
 
-| 面 | 现状 | 目标 |
-|---|---|---|
-| 表达式/签名 hover | ` ```text ` 围栏（`crates/lsp/src/lib.rs:862`） | ` ```sokonanoda ` 围栏 |
-| 声明 hover 内联签名 | 纯文本（`lib.rs:1195`） | 围栏或 runs |
-| 补全 detail/documentation | 纯文本（`lib.rs:1346+`） | 围栏或 runs |
-| 诊断内嵌类型（期望/实际） | 纯文本 | markdown 围栏 |
-| hints/quick-fix 预览、练习树 tooltip | 纯文本 | `sokonanoda` 围栏 / runs |
-| inlay hint、tree description | 纯文本（无法着色） | 保持纯文本，文档写明 |
+| 面 | 处理 |
+|---|---|
+| 表达式/签名 hover | ✅ ` ```sokonanoda `（原 ` ```text ` 不高亮） |
+| 声明 hover（签名 + 目标态） | ✅ 签名与 goal（假设 + `⊢`）都是 `sokonanoda` 代码块 |
+| 补全 documentation | ✅ 声明签名以 `sokonanoda` 围栏给出（`detail` 仍是纯文本，VS Code 限制） |
+| 练习树 tooltip（目标 / 假设） | ✅ `MarkdownString.appendCodeblock(…, "sokonanoda")` |
+| 诊断消息、inlay hint、TreeItem.description、CodeAction 标题 | ⛔ 保持纯文本——VS Code 不渲染 markdown / 无法着色，文档写明 |
+| tactic hover | ✅ tactic 片段与 goal 都是代码块（原 tactic 是行内代码） |
+| 半表达式 hover | ✅ 推断类型 / 目标 / 剩余目标都是代码块 |
+| tactic/半表达式 hover、Infoview | ✅ 0.40.0 起统一（goal 状态；0.43.0 补齐 header） |
 
-原则不变：**着色只来自 `front::semantic`**，不得各处再写一套。
+**平台限制**：VS Code 只对**带语言 id 的围栏块**着色，单反引号行内代码无法指定
+语言。因此 hover 里**成块的代码一律围栏**；仅有「散文里提到单个词」的场合
+（如「在 `sorry` 处填写…」）保持行内代码——那不是可着色的代码片段。
 
+校验：`crates/lsp/src/lib.rs` 的 `code_fences_always_use_the_sokonanoda_language`
++ hover/completion 断言；`crates/cli/tests/extension.rs` 的
+`rendered_language_text_uses_the_sokonanoda_fence`。
