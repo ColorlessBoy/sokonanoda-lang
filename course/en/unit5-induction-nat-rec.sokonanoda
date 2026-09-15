@@ -155,3 +155,34 @@ def addM (a b : Nat) : Nat := match a with
 def recDouble (n : Nat) : Nat := match n with
 | zero => zero
 | succ m => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- Parameterized inductives: a type can take parameters.
+-- `Option (A : Type)` means "maybe an A, maybe nothing": the parameter A is
+-- the element type, none carries no element, and some carries one A. The
+-- derived recursor Option.rec is synthesized by the front-end (parameters
+-- outermost). A match reads the parameter instance from the scrutinee's
+-- written type — here x : Option Nat, so a in the arm is a Nat.
+-- ─────────────────────────────────────────────────────────────
+
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+
+-- Demo (already written): fromOption extracts a "maybe" value with a default.
+def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
+| none => d
+| some a => a
+
+-- Self-test: #reduce walks the Option.rec that match lowers to — the some
+-- arm is just the number inside.
+#reduce fromOption (some Nat (succ zero)) zero
+
+-- Exercise 7 — valueOrZero extracts a "maybe" value: a at some, zero at none.
+-- soko:hint approach: match lists none and some once, and every arm must produce a Nat.
+-- soko:hint goal shape: fun (x : Option Nat) => match x with | none => zero | some a => <some arm>; the parameter Nat is substituted from x's written type.
+-- soko:hint key piece: the arm's a has type Nat, substituted from the parameter A — hand it back as the Nat directly.
+def valueOrZero (x : Option Nat) : Nat := match x with
+| none => zero
+| some a => sorry

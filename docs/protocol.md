@@ -101,6 +101,8 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   (`match` 的结果类型未知，无法定 motive 及其宇宙), 
   `elab-match-recursive-unsupported` (`match` 暂不支持递归归纳类型),
   `elab-match-non-exhaustive` (`match` 未覆盖全部构造子),
+  `elab-match-parameterized-unsupported` (`match` 参数化归纳时，被匹配项不是
+  一个书写类型为 `T 参数…` 的局部变量——拿不到参数实例),
   `elab-let-type-query-failed` (无类型标注的 `let` 无法从值推断绑定类型);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families

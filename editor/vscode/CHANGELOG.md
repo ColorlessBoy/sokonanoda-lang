@@ -1,3 +1,18 @@
+## [0.38.0] - 2026-09-14
+
+### Added
+
+- **Parameterized inductive declarations (non-indexed)** — declarations may
+  now take parameters, e.g.
+  `inductive Option (A : Type) : Type` / `ctor none : Option A` /
+  `ctor some (a : A) : Option A` / `end`, with the derived recursor. `match`
+  works on them (`match o with | none => … | some a => …`); the type arguments
+  come from the scrutinee's written source type, and the field type is
+  instantiated (`some a` gives `a : A`). Indexed inductives,
+  universe-polymorphic parameters, nested/mutual blocks and nested/guard
+  patterns remain out of scope. Design:
+  `docs/design/parameterized-inductives.md`.
+
 ## [0.37.0] - 2026-09-14
 
 ### Added

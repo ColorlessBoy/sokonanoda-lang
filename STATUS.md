@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十六轮：watch stdin 客户端命令——subscribe/unsubscribe/ping；0.37.0）
+> 快照：2026-09-14（第六十七轮：参数化归纳声明（非带索引）+ match；0.38.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,27 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十七轮：参数化归纳声明）
+
+> 续 TODO：match 参数化的前置——教学语言 `inductive` 声明支持参数（非带索引）。
+
+1. **设计** `docs/design/parameterized-inductives.md`（含内核期望形状与风险）。
+2. **前端**：parser 解析 `(A : Type)`/`{A : Type}` 参数 → `InductiveBlock.params`；
+   归纳类型 `forall params, sort`；ctor `forall (params++fields), C params`；
+   `add_inductive(num_params=params.len())`；`num_fields` 字段-only 计数；
+   `derive_recursor` params 最外层 + motive `(t : Ind params) -> Sort u` + iota
+   lambda/自调用带 params。`InductiveInfo` 增 `num_params`/`param_names`。
+3. **match**：`Ind.rec.{level} <params> motive minors scrutinee`；params 取
+   scrutinee **书写源类型**头部实参；字段 `src_ty` 做 params 替换后 elaborate；
+   拿不到 → 新码 `elab-match-parameterized-unsupported`。
+4. **测试**：front +8（parse 2 / compile 6，含 `Option`/`List` 派生递归子与
+   `match`、显式 rec/iota、iota 错 → `kernel-rec-rule-mismatch`）；CLI +4；
+   课程 unit5 加 `Option` 小节 + 练习 7；golden `(7,6,3)→(9,7,4)`、汇总
+   `checked 51→53 / open 39→40`。
+5. **文档**：`architecture.md §4.1/§8`、`TESTING.md`；设计 as-built §9。
+6. **验收**：`sokonanoda gate` PASS；版本 0.37.0 → **0.38.0**（新语法 minor）。
+7. **v1 边界**：带索引归纳、宇宙多态参数、互/嵌套递归、`match` 嵌套/守卫/字面量。
 
 ## 本轮进度（2026-09-14，第六十六轮：watch stdin 客户端命令）
 
@@ -49,21 +70,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. **文档**：`match.md` §2/§10、`architecture.md` §4.1/§4.2/§5.4/§8、
    `TESTING.md`、`protocol.md`（`elab-match-not-inductive` 文案）同步。
 5. **验收**：`sokonanoda gate` PASS；版本 0.35.1 → **0.36.0**（新能力 minor）。
-
-## 本轮进度（2026-09-14，第六十四轮：发布加固）
-
-> 续 TODO（用户指定顺序：先 match 递归 IH，再发布加固）：`onboarding.md §5`
-> 剩余的发布完整性三项。
-
-1. **`SHA256SUMS`**：`release.yml` 的 `github-release` job 对 8 lsp + 8 cli +
-   9 vsix 生成校验和清单并 `--clobber` 上传（资产 25 → **26**）。
-2. **SLSA provenance**：`actions/attest-build-provenance@v2` 对上述资产签发
-   构建来源证明；job 加 `id-token: write` + `attestations: write`。校验
-   `gh attestation verify <file> -R ColorlessBoy/sokonanoda-lang`。
-3. **文档**：`docs/RELEASE.md` §6（校验与证明）、`skills/sokonanoda-ci` §2.1
-   资产数 26、`onboarding.md §5` 三项勾选（含 `rust-toolchain` 决策：**不钉**，
-   跟随 stable；README 补 binstall/mise）。
-4. **契约**：`crates/cli/tests/extension.rs` release 契约增 `SHA256SUMS` /
-   `attest-build-provenance@v2` / `attestations: write` 断言。
-5. **验收**：`sokonanoda gate` PASS；版本 0.35.0 → **0.35.1**；发布后核
-   Release 26 资产 + `sha256sum -c` + `gh attestation verify` 通过。

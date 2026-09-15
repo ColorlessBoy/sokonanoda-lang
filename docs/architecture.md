@@ -117,8 +117,17 @@ sokonanoda-lang/
   `<Ind>.rec.{level} motive minor... scrutinee`（level 由结果类型的 Sort 推出，
   显式宇宙实例是内核接受的必要条件）。**递归归纳已支持**：递归构造子字段后
   自动插入归纳假设 binder（`ih`、`ih2`…，类型为结果类型 R），branch 直接引用，
-  递归无需自引用；motive 仍非依赖。覆盖率/顺序/未知构造子等错误码见
+  递归无需自引用；motive 仍非依赖。  覆盖率/顺序/未知构造子等错误码见
   `docs/protocol.md`，判定仍完全交给 kernel（见 `docs/design/match.md`）。
+- **参数化归纳声明**（非带索引，`docs/design/parameterized-inductives.md`）：
+  `inductive Option (A : Type) : Type` 在名字后、`:` 前解析零或多个 binder
+  作为类型参数（复用 `(A : Type)` / `{A : Type}` binder 语法）；参数对类型、
+  每个构造子类型与显式 `rec`/`iota` 均在作用域内，参数个数交给内核
+  （`num_params`，字段数严格为 `telescope − num_params`）。无显式 `rec` 时
+  前端按内核期望形状自动派生递归子（**参数在最外层**）。`match` 对参数化
+  归纳的参数实例从 scrutinee 的**书写源类型**取；scrutinee 不是带参数类型的
+  局部量 → `elab-match-parameterized-unsupported`。带索引归纳
+  （`num_indices > 0`）与宇宙多态参数（`{u}` 级参数）仍不支持。
 - **声明级 binder**（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v` 在 parser 里降级为 `ty = Forall{binders → C}`、`val = Lambda{binders → v}`（`parser.rs::wrap_decl_binders`）；`by` 引擎把声明 binder 作为初始上下文（`run_by` 的 `initial_binders`），`:= sorry` 的剩余目标直接是 `C`。
 - **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。`A -> B` 与 `fun (x : A) => ...` 的 binder 都必须**带显式类型**（elaborator 尚未做 binder 类型推断，见 §8 待办）。
 - span 全程保留（offset/line/column），诊断带行列。
@@ -281,7 +290,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
    之前**报 `elab-missing-inductive-rec`（check-then-add 语义保持）。
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
-3. **elab 仍受限**：binder 可由声明类型推断（I6）、值位 `let`（Phase 1）与值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）已落地，但未做无注解 `let`、依赖 motive、参数化/带索引归纳、prelude `Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
+3. **elab 仍受限**：binder 可由声明类型推断（I6）、值位 `let`（Phase 1）、值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）与**非带索引参数化归纳**（`inductive Option (A : Type)`，含对它的 `match`；`docs/design/parameterized-inductives.md`）已落地，但未做无注解 `let`、依赖 motive、**带索引**归纳与宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
 4. **语法白名单是边界**：想加语法，先加课程 + 测试；`???` 只允许出现在声明（def/theorem/example）的值位。
 5. **不用官方工具链**：CI 与本地一律 `cargo`；不要引入 `lean`/`lake`/`lean4export`。
 6. **新错误要带 stage/code 与 span**：CLI 已按 `error[stage]:` 输出，`--json` 是 agent 视图；改输出格式要同步 `docs/protocol.md` 与 `crates/cli/tests/cli.rs`。

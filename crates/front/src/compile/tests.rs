@@ -1422,6 +1422,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabMatchNoExpectedType,
         ErrorKind::ElabMatchRecursiveUnsupported,
         ErrorKind::ElabMatchNonExhaustive,
+        ErrorKind::ElabMatchParameterizedUnsupported,
         ErrorKind::ElabLetTypeQueryFailed,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
@@ -1460,6 +1461,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabMatchNoExpectedType => {}
         ErrorKind::ElabMatchRecursiveUnsupported => {}
         ErrorKind::ElabMatchNonExhaustive => {}
+        ErrorKind::ElabMatchParameterizedUnsupported => {}
         ErrorKind::ElabLetTypeQueryFailed => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
@@ -3793,6 +3795,160 @@ def addS (a b : Nat) : Nat := match a with
             |e| matches!(e, CheckEvent::Reduced { text, .. } if text == "succ (succ (succ zero))")
         ),
         "source `Nat` must still reduce with bare ctors: {:?}",
+        out.events
+    );
+}
+
+// ---- 参数化归纳（非带索引，v1；design docs/design/parameterized-inductives.md）----
+
+const OPTION_ENUM: &str = "\
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+";
+
+#[test]
+fn parameterized_option_checks_and_derives_recursor() {
+    // 派生递归子 `Option.rec.{u}` 由前端合成，经完整内核判定（含 def_eq 重建
+    // 断言）；参数在内核望远镜最外层。
+    let src = format!(
+        "{OPTION_ENUM}\n\
+         #check none Nat\n\
+         #check some Nat\n\
+         #check Option.rec\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse Option"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let texts: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        texts.iter().any(|t| t == &"Option Nat"),
+        "`none Nat : Option Nat`: {texts:?}"
+    );
+    assert!(
+        texts.iter().any(|t| t == &"Nat -> Option Nat"),
+        "`some Nat : Nat -> Option Nat`: {texts:?}"
+    );
+    assert!(
+        texts.iter().any(|t| t.contains("motive")),
+        "`Option.rec` renders its derived type: {texts:?}"
+    );
+}
+
+#[test]
+fn parameterized_explicit_rec_and_iota_pass_kernel() {
+    // 显式单参数 rec/iota：params 最外层，经内核 def_eq 重建断言。
+    let src = "\
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+rec Option.rec {u} :
+  (A : Type) ->
+  (motive : (t : Option A) -> Sort u) ->
+  (m_none : motive (none A)) ->
+  (m_some : (a : A) -> motive (some A a)) ->
+  (t : Option A) -> motive t
+iota none := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => m_none
+iota some := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => fun (a : A) => m_some a
+end
+";
+    let out = compile_fol(&parse(src).expect("parse explicit rec"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+#[test]
+fn parameterized_explicit_iota_wrong_value_is_rejected() {
+    // `iota none` 返回了 `m_some`（形状不符）⇒ 内核规则重建断言拒绝。
+    let src = "\
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+rec Option.rec {u} :
+  (A : Type) ->
+  (motive : (t : Option A) -> Sort u) ->
+  (m_none : motive (none A)) ->
+  (m_some : (a : A) -> motive (some A a)) ->
+  (t : Option A) -> motive t
+iota none := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => m_some
+iota some := fun (A : Type) => fun (motive : (t : Option A) -> Sort u) => fun (m_none : motive (none A)) => fun (m_some : (a : A) -> motive (some A a)) => fun (a : A) => m_some a
+end
+";
+    let out = compile_fol(&parse(src).expect("parse explicit rec"));
+    assert_eq!(out.errors[0].code(), "kernel-rec-rule-mismatch");
+}
+
+#[test]
+fn match_on_parameterized_option_instantiates_field_type() {
+    // `some a` 的 `a : A` 被 scrutinee 的书写参数 `Nat` 代入；分支体 `a` 因此
+    // 具有类型 Nat，且归约经派生的 `Option.rec`。
+    let src = format!(
+        "{OPTION_ENUM}\n\
+         def orElse (x : Option Nat) (d : Nat) : Nat := match x with\n\
+         | none => d\n\
+         | some a => a\n\
+         #reduce orElse (some Nat (Nat.succ Nat.zero)) Nat.zero\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "orElse")));
+    assert!(
+        out.events.iter().any(
+            |e| matches!(e, CheckEvent::Reduced { text, .. } if text.contains('1') || text.contains("succ"))
+        ),
+        "`orElse (some Nat 1) 0` must reduce through `Option.rec`: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn match_parameterized_without_written_params_reports_code() {
+    // scrutinee 是顶层常量（不在局部 scope），拿不到书写参数实例 → 干净报错。
+    let src = format!(
+        "{OPTION_ENUM}\n\
+         def opt : Option Nat := none Nat\n\
+         def f : Nat := match opt with\n\
+         | none => Nat.zero\n\
+         | some a => a\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-parameterized-unsupported");
+}
+
+#[test]
+fn parameterized_recursive_list_derives_recursor_and_matches() {
+    // 递归 + 参数：派生递归子的自调用必须带上 params；`match` 的递归字段
+    // 自动获得归纳假设 `ih`。
+    let src = "\
+inductive List (A : Type) : Type
+ctor nil : List A
+ctor cons (a : A) (as : List A) : List A
+end
+def len (l : List Nat) : Nat := match l with
+| nil => Nat.zero
+| cons a as => Nat.succ ih
+#reduce len (cons Nat Nat.zero (nil Nat))
+";
+    let out = compile_fol(&parse(src).expect("parse List"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "len")));
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text.contains("succ"))),
+        "`len [0]` must reduce through the parameterized `List.rec`: {:?}",
         out.events
     );
 }

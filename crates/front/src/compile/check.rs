@@ -1003,6 +1003,7 @@ fn run_pass(
             }
             Command::InductiveBlock {
                 name,
+                params,
                 ty,
                 constructors,
                 recursor,
@@ -1024,6 +1025,7 @@ fn run_pass(
                         prefix_src,
                         options,
                         name,
+                        params,
                         ty,
                         constructors,
                         recursor.as_ref(),
@@ -1057,6 +1059,7 @@ fn run_pass(
                     prefix_src,
                     options,
                     name,
+                    params,
                     ty,
                     constructors,
                     recursor.as_ref(),

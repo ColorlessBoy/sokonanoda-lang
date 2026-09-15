@@ -567,7 +567,7 @@ fn template_arg(template: &CtorTemplate, i: usize, ty_args: &[&Expr]) -> Option<
 /// Forall/Lambda binder named like a key stops substitution beneath it —
 /// innermost wins, like elab). `levels` maps the declaration's universe
 /// parameter names to the call site's level texts (`u` → `1`).
-fn substitute_names(
+pub(crate) fn substitute_names(
     expr: &Expr,
     map: &HashMap<String, Expr>,
     levels: &HashMap<String, String>,

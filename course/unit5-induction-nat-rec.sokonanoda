@@ -144,3 +144,32 @@ def addM (a b : Nat) : Nat := match a with
 def recDouble (n : Nat) : Nat := match n with
 | zero => zero
 | succ m => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 参数化归纳：类型可以带参数。
+-- `Option (A : Type)` 表示「可能有一个 A、也可能什么都没有」：参数 A 是
+-- 元素类型，none 不带元素，some 带一个 A。派生递归子 Option.rec 由前端
+-- 自动合成（参数在最外层）。match 的参数实例从 scrutinee 的书写类型取
+-- ——这里 x : Option Nat，所以分支里的 a 是 Nat。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+
+-- 演示（已写好）：fromOption 把「可能没有」的值接一个默认值后取出。
+def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
+| none => d
+| some a => a
+
+-- 自测：#reduce 走 match 降低出的 Option.rec —— some 那支就是里面的数。
+#reduce fromOption (some Nat (succ zero)) zero
+
+-- 练习 7：valueOrZero 把「可能没有」的值取出来：some a 给 a，none 给 zero。
+-- soko:hint 思路：match 一次列全 none 与 some 两个构造子，分支结果都必须是 Nat。
+-- soko:hint 目标形态：fun (x : Option Nat) => match x with | none => zero | some a => <some 分支>；参数 Nat 从 x 的书写类型代入。
+-- soko:hint 关键件：some 分支的 a 类型就是参数 A 代入后的 Nat，直接把它作为 Nat 交出去。
+def valueOrZero (x : Option Nat) : Nat := match x with
+| none => zero
+| some a => sorry

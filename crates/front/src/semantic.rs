@@ -207,6 +207,7 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
             }
             Command::InductiveBlock {
                 name,
+                params,
                 ty,
                 constructors,
                 recursor,
@@ -221,6 +222,12 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
                     span.end.offset,
                     SemanticKind::InductiveName,
                 );
+                for param in params {
+                    names.add_binder(toks, param);
+                    if let Some(param_ty) = param.ty.as_deref() {
+                        walk_expr(param_ty, toks, names);
+                    }
+                }
                 walk_expr(ty, toks, names);
                 for ctor in constructors {
                     names.ctors.insert(ctor.name.clone());

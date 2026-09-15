@@ -322,6 +322,11 @@ impl Parser {
     fn parse_inductive_block(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_ident("inductive name")?;
+        // 零或多个参数 binder（`(A : Type)` / `{A : Type}`），在 `:` 之前。
+        let mut params = Vec::new();
+        while matches!(self.peek().kind, TokenKind::LParen | TokenKind::LBrace) {
+            params.push(self.parse_binder()?);
+        }
         self.expect_colon("inductive type")?;
         let ty = self.parse_expr()?;
         let mut constructors = Vec::new();
@@ -338,6 +343,7 @@ impl Parser {
                     let span = Span::new(start, kw.span.end);
                     return Ok(Command::InductiveBlock {
                         name,
+                        params,
                         ty,
                         constructors,
                         recursor,
@@ -1336,6 +1342,52 @@ end
             Some(vec!["u".to_string()])
         );
         assert!(iota_rules.is_empty());
+    }
+
+    #[test]
+    fn inductive_block_parses_parameters() {
+        let src = "\
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+";
+        let file = parse(src).unwrap();
+        let Command::InductiveBlock {
+            name,
+            params,
+            constructors,
+            ..
+        } = &file.commands[0]
+        else {
+            panic!("expected InductiveBlock");
+        };
+        assert_eq!(name, "Option");
+        assert_eq!(params.len(), 1);
+        assert_eq!(params[0].name, "A");
+        assert!(matches!(params[0].style, BinderKind::Explicit));
+        // 字段只含 ctor 自己的 binder，不含 params。
+        assert_eq!(constructors.len(), 2);
+        assert_eq!(constructors[0].name, "none");
+        assert_eq!(constructors[0].binders.len(), 0);
+        assert_eq!(constructors[1].name, "some");
+        assert_eq!(constructors[1].binders.len(), 1);
+        assert_eq!(constructors[1].binders[0].name, "a");
+    }
+
+    #[test]
+    fn inductive_block_parses_implicit_parameter() {
+        let src = "\
+inductive Box {A : Type} : Type
+ctor mk (a : A) : Box
+end
+";
+        let file = parse(src).unwrap();
+        let Command::InductiveBlock { params, .. } = &file.commands[0] else {
+            panic!("expected InductiveBlock");
+        };
+        assert_eq!(params.len(), 1);
+        assert!(matches!(params[0].style, BinderKind::Implicit));
     }
 
     #[test]

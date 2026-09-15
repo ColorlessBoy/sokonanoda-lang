@@ -198,6 +198,9 @@ pub enum Command {
     },
     InductiveBlock {
         name: String,
+        /// Non-indexed parameters (`inductive Option (A : Type) : Type`).
+        /// Empty for `num_params = 0` blocks such as the prelude `Nat`.
+        params: Vec<Binder>,
         ty: Expr,
         constructors: Vec<CtorDecl>,
         recursor: Option<RecDecl>,

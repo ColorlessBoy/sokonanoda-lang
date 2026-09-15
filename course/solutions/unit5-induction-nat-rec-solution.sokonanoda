@@ -119,3 +119,29 @@ def recDouble (n : Nat) : Nat := match n with
 
 -- 额外自测（钥匙内部核对）：
 #reduce recDouble two
+
+-- ─────────────────────────────────────────────────────────────
+-- 参数化归纳：Option (A : Type) + 演示 fromOption + 练习 7 的答案。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+
+-- 演示（与画布一致）：fromOption 接默认值后取出。
+def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
+| none => d
+| some a => a
+
+-- 自测：#reduce 走 match 降低出的 Option.rec —— some 那支就是里面的数。
+#reduce fromOption (some Nat (succ zero)) zero
+
+-- 练习 7：some 分支直接交出代入后的字段 a。
+def valueOrZero (x : Option Nat) : Nat := match x with
+| none => zero
+| some a => a
+
+-- 额外自测（钥匙内部核对）：
+#reduce valueOrZero (some Nat (succ zero))
+#reduce valueOrZero (none Nat)

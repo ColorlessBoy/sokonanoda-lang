@@ -611,3 +611,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   依赖）。CLI 测试 +4（ping/subscribe/unsubscribe/malformed）+ 单测 2；文档
   protocol/TESTING 同步。版本 **0.37.0**（新能力 minor）；设计 as-built
   `docs/design/compiler-service-events.md` §9。
+- 2026-09-14（六十六）：**参数化归纳声明（非带索引）**——`inductive Option
+  (A : Type) : Type / ctor none / ctor some (a : A) / end` 现在可声明（含派生
+  递归子）；`match` 可用于其上（params 取 scrutinee 书写源类型头部实参，
+  字段类型代入，如 `some a` 的 `a : A`）。前端 parser/AST/install/derive_recursor
+  全链；`add_inductive(num_params=params.len())`、字段/iota 计数按「不含 params」
+  对齐内核断言。front +8 / CLI +4 / 课程 unit5 `Option` 小节 + golden
+  (7,6,3)→(9,7,4)；新码 `elab-match-parameterized-unsupported`（拿不到 params）。
+  v1 不做：带索引归纳、宇宙多态参数、互/嵌套递归、match 嵌套/守卫/字面量。
+  设计 + as-built 见 `docs/design/parameterized-inductives.md`；版本 **0.38.0**。

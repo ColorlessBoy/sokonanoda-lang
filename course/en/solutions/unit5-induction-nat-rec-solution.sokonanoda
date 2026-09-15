@@ -123,3 +123,31 @@ def recDouble (n : Nat) : Nat := match n with
 
 -- Extra internal self-checks:
 #reduce recDouble two
+
+-- ─────────────────────────────────────────────────────────────
+-- Parameterized inductives: Option (A : Type), the fromOption demo, and the
+-- answer to Exercise 7.
+-- ─────────────────────────────────────────────────────────────
+
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+
+-- Demo (same as the canvas): fromOption takes a default and extracts.
+def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
+| none => d
+| some a => a
+
+-- Self-test: #reduce walks the Option.rec that match lowers to — the some
+-- arm is just the number inside.
+#reduce fromOption (some Nat (succ zero)) zero
+
+-- Exercise 7: the some arm hands back the substituted field a directly.
+def valueOrZero (x : Option Nat) : Nat := match x with
+| none => zero
+| some a => a
+
+-- Extra internal self-checks:
+#reduce valueOrZero (some Nat (succ zero))
+#reduce valueOrZero (none Nat)

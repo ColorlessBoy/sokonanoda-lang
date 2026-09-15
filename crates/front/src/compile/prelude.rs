@@ -160,6 +160,7 @@ pub(crate) fn install_prelude<'a>(
         "",
         &CompileOptions::default(),
         "Nat",
+        &[],
         &nat_sort,
         &constructors,
         None,

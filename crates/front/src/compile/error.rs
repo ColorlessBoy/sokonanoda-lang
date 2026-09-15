@@ -42,6 +42,7 @@ pub enum ErrorKind {
     ElabMatchNoExpectedType,
     ElabMatchRecursiveUnsupported,
     ElabMatchNonExhaustive,
+    ElabMatchParameterizedUnsupported,
     ElabLetTypeQueryFailed,
     KernelExpectedSort,
     KernelExpectedPi,
@@ -80,6 +81,7 @@ impl ErrorKind {
             | ElabMatchNoExpectedType
             | ElabMatchRecursiveUnsupported
             | ElabMatchNonExhaustive
+            | ElabMatchParameterizedUnsupported
             | ElabLetTypeQueryFailed => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
@@ -118,6 +120,7 @@ impl ErrorKind {
             ElabMatchNoExpectedType => "elab-match-no-expected-type",
             ElabMatchRecursiveUnsupported => "elab-match-recursive-unsupported",
             ElabMatchNonExhaustive => "elab-match-non-exhaustive",
+            ElabMatchParameterizedUnsupported => "elab-match-parameterized-unsupported",
             ElabLetTypeQueryFailed => "elab-let-type-query-failed",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
@@ -197,6 +200,9 @@ impl ErrorKind {
             }
             ElabMatchNonExhaustive => {
                 "match 要覆盖该归纳类型的每一个构造子，一个都不能漏。"
+            }
+            ElabMatchParameterizedUnsupported => {
+                "参数化归纳的 match 目前只支持：被匹配项是一个局部变量，且它的类型写成 `T 参数…`（显式给出归纳的全部参数）。换成一个这样标注的变量再 match。"
             }
             ElabLetTypeQueryFailed => {
                 "无法从值推断出 `let` 绑定的类型；补上类型标注即可，例如 `let x : Nat := 1; x`。"

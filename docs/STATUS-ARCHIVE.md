@@ -1,8 +1,26 @@
-# STATUS 归档（第 1–63 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–64 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十四轮：发布加固）
+
+> 续 TODO（用户指定顺序：先 match 递归 IH，再发布加固）：`onboarding.md §5`
+> 剩余的发布完整性三项。
+
+1. **`SHA256SUMS`**：`release.yml` 的 `github-release` job 对 8 lsp + 8 cli +
+   9 vsix 生成校验和清单并 `--clobber` 上传（资产 25 → **26**）。
+2. **SLSA provenance**：`actions/attest-build-provenance@v2` 对上述资产签发
+   构建来源证明；job 加 `id-token: write` + `attestations: write`。校验
+   `gh attestation verify <file> -R ColorlessBoy/sokonanoda-lang`。
+3. **文档**：`docs/RELEASE.md` §6（校验与证明）、`skills/sokonanoda-ci` §2.1
+   资产数 26、`onboarding.md §5` 三项勾选（含 `rust-toolchain` 决策：**不钉**，
+   跟随 stable；README 补 binstall/mise）。
+4. **契约**：`crates/cli/tests/extension.rs` release 契约增 `SHA256SUMS` /
+   `attest-build-provenance@v2` / `attestations: write` 断言。
+5. **验收**：`sokonanoda gate` PASS；版本 0.35.0 → **0.35.1**；发布后核
+   Release 26 资产 + `sha256sum -c` + `gh attestation verify` 通过。
 
 ## 本轮进度（2026-09-14，第六十三轮：`match` 递归归纳（IH））
 

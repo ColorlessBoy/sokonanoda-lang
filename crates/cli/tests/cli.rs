@@ -1171,3 +1171,99 @@ def addN (a b : Nat) : Nat := match a with
         "prelude-Nat recursion must reduce: {stdout}"
     );
 }
+
+// ---- 参数化归纳（docs/design/parameterized-inductives.md，v1）----
+
+/// Non-indexed parameterized source inductive (`inductive Option (A : Type)`);
+/// arms match on it with the parameter read from the scrutinee's written type.
+const OPTION_ENUM: &str = "inductive Option (A : Type) : Type\n\
+     ctor none : Option A\n\
+     ctor some (a : A) : Option A\n\
+     end\n";
+
+#[test]
+fn cli_match_parameterized_option_checks_via_kernel() {
+    // 参数化归纳 `Option A` + match：参数实例从 scrutinee 的书写类型取，
+    // 判定照旧走完整内核 → 照常产出 `decl.checked`。
+    let src = format!(
+        "{OPTION_ENUM}\
+         def fromOption (x : Option Nat) (d : Nat) : Nat := match x with\n\
+         | none => d\n\
+         | some a => a\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "parameterized match must compile: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration fromOption"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn cli_match_parameterized_sorry_branch_is_open_exercise() {
+    // some 分支里的 sorry 是合法 Open 状态（目标类型就是声明结果类型 Nat）。
+    let src = format!(
+        "{OPTION_ENUM}\
+         example (x : Option Nat) : Nat := match x with\n\
+         | none => Nat.zero\n\
+         | some a => sorry\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "a sorry parameterized branch must stay exit 0: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&out.stdout).contains("exercise open"),
+        "stdout: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}
+
+#[test]
+fn cli_match_parameterized_without_written_params_reports_code() {
+    // scrutinee 是应用 `some Nat Nat.zero`（非局部变量）→ 拿不到参数实例 →
+    // 稳定的教学错误码 elab-match-parameterized-unsupported。
+    let src = format!(
+        "{OPTION_ENUM}\
+         def bad : Nat := match (some Nat Nat.zero) with\n\
+         | none => Nat.zero\n\
+         | some a => a\n"
+    );
+    let out = run(&src);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[elab-match-parameterized-unsupported]:"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn cli_match_parameterized_reduces_through_kernel() {
+    // #reduce 走 match 降低出的 Option.rec：some Nat 1 取出后就是 1。
+    let src = format!(
+        "{OPTION_ENUM}\
+         def fromOption (x : Option Nat) (d : Nat) : Nat := match x with\n\
+         | none => d\n\
+         | some a => a\n\
+         #reduce fromOption (some Nat (Nat.succ Nat.zero)) Nat.zero\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("fromOption (some Nat (Nat.succ Nat.zero)) Nat.zero => 1"),
+        "stdout: {stdout}"
+    );
+}
