@@ -127,7 +127,23 @@ code --install-extension sokonanoda.vsix --force   # 手动验收（离线可用
 auto-tag 的显式比对）。手动推 tag 应急后，核对双页见
 `skills/sokonanoda-ci/SKILL.md` §2.1。
 
-## 6. 已知限制与风险
+## 6. 完整性校验与来源证明（0.35.1 起）
+
+每个 Release 现在带两类可核验信息：
+
+- **`SHA256SUMS`**：覆盖 8 个 `sokonanoda-lsp-*.tar.gz`、8 个
+  `sokonanoda-cli-*.tar.gz`、9 个 `*.vsix`。下载后核对：
+  `sha256sum -c SHA256SUMS`；Windows 用 `Get-FileHash` 对照。
+  资产总数因此为 **26**（原 25 + `SHA256SUMS`）。
+- **SLSA 构建来源证明**（`actions/attest-build-provenance`）：对上述资产签发
+  attestation，可离线校验它们确实由本仓库该 tag 的 workflow 产出：
+  `gh attestation verify ./sokonanoda-cli-<triple>.tar.gz -R ColorlessBoy/sokonanoda-lang`。
+  需要 `gh` ≥ 2.49；私有不适用（本仓库公开）。
+
+发布后抽样：`curl` 下载一个资产 → `sha256sum -c` 对照 `SHA256SUMS` →
+`gh attestation verify` 通过。
+
+## 7. 已知限制与风险
 
 - 平台覆盖：`linux-x64` / `linux-arm64` / `alpine-x64` / `alpine-arm64` /
   `darwin-arm64` / `darwin-x64` / `win32-x64` / `win32-arm64`（8 个，另有

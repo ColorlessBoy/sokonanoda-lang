@@ -113,6 +113,11 @@ a stable code (`elab-*` / `kernel-rejected` / …) plus a teaching hint.
 **Never use `releases/latest`** — always pin `v${version}`, otherwise a newer
 server would be paired with an older client.
 
+Prefer a package manager? The CLI is a single static binary on the Release page,
+so `cargo binstall sokonanoda-cli` (points at the same pinned tarball) or
+`mise github:ColorlessBoy/sokonanoda-lang` both work; each Release also ships
+`SHA256SUMS` and an SLSA build-provenance attestation to verify before running:
+
 ## Build from source (contributors)
 
 Contributors need the Rust toolchain; from this checkout:

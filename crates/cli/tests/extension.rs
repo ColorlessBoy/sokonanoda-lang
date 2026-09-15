@@ -509,6 +509,11 @@ fn release_workflow_packages_platform_specific_vsixes() {
         // Both binaries ship: VSIX embeds LSP + CLI; Releases carry the CLI too.
         "--cli-binary",
         "sokonanoda-cli-",
+        // Supply-chain integrity (docs/RELEASE.md §6, 0.35.1): a checksum
+        // manifest plus SLSA build-provenance attestations over the assets.
+        "SHA256SUMS",
+        "actions/attest-build-provenance@v2",
+        "attestations: write",
     ] {
         assert!(
             release.contains(needle),

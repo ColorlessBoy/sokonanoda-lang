@@ -121,8 +121,18 @@
   镜像；`postCreateCommand` = 有 `sokonanoda` 就跑 `sokonanoda gate`，否则
   `cargo build`。文件内注释点明终端用户/agent 零 Rust（本文 + `REQUIREMENTS.md`
   §2.9）。
-- [ ] `SHA256SUMS` + `actions/attest@v4` + immutable releases（cargo-dist 模式）。
-  **涉及 Release workflow，单独评审。**
-- [ ] `rust-toolchain.toml` 钉工具链（当前跟随 stable；`Cargo.toml` 的
-  `rust-version` 只是 MSRV 下限）。
-- [ ] `cargo binstall` / `mise github:` 作为包管理器备选写进 README。
+- [x] **`SHA256SUMS` + 构建来源证明（0.35.1）** —— `release.yml` 的
+  `github-release` job 生成并上传 `SHA256SUMS`（8 lsp + 8 cli + 9 vsix = 25 项
+  校验和），并用 `actions/attest-build-provenance@v2` 对全部资产签发 SLSA
+  provenance（job 加 `id-token: write` + `attestations: write`）。校验：
+  `sha256sum -c SHA256SUMS` / `gh attestation verify <file> -R …`；见
+  `docs/RELEASE.md` §6。（HTTP* 与 `actions/attest` 的 immutable-release 语义
+  由 GitHub 托管；未额外引入 cargo-dist。）
+- [x] **`rust-toolchain.toml` 决策：不钉** —— 仓库刻意**跟随最新 stable**
+  （CI 用 `dtolnay/rust-toolchain@stable`；`Cargo.toml` 的 `rust-version` 只作
+  MSRV 下限）。钉死工具链会与 CI/贡献者本地 stable 冲突，故不加该文件；如需
+  复现旧构建，按 tag + 当时 stable 重建。记录于本项即可。
+- [x] **`cargo binstall` / `mise` 备选** —— 根 `README.md`「Other install
+  methods」补一句：CLI 是 Release 上的单文件静态二进制，`cargo binstall
+  sokonanoda-cli` 与 `mise github:ColorlessBoy/sokonanoda-lang` 均可用；发布
+  同时给出 `SHA256SUMS` + provenance 供核对。

@@ -1,8 +1,21 @@
-# STATUS 归档（第 1–60 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–61 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十一轮：tactic hover 呈现升级）
+
+> 用户反馈：tactic hover 内容有了，但只有单/两行裸文本，无排版无高亮，体验不行。
+
+1. **表头**：`` `<tactic>` · tactic k/n ``（k/total 为 per-tactic 进度）；
+   闭合显示 `已无剩余目标 ✓`。
+2. **目标块**：包进 ` ```sokonanoda ` 代码围栏 → 等宽对齐 + **语法高亮**
+   （扩展自带 TM 语法，hover fenced code 用该语言着色）；多目标加 `**目标 i/n**`。
+3. **半截表达式 hover** 同步 `⊢` + 同款围栏。
+4. **测试**：tactic hover 断言表头/围栏；half-expression 断言 `⊢`/围栏。
+5. **验收**：`sokonanoda gate` PASS；版本 0.33.0 → **0.33.1**（呈现 patch）；
+   设计 `docs/design/tactic-hover.md` §5 as-built。
 
 ## 本轮进度（2026-09-14，第六十轮：elaborator `match` v1）
 

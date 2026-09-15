@@ -589,3 +589,9 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   项 + 课程 unit5 递归 IH 演示与练习；golden (6,5,2)→(7,6,3)。仍缺：依赖 motive、
   参数化/带索引归纳、prelude `Nat`/`Eq`、`match` tactic、嵌套/守卫/字面量模式。
   版本 **0.35.0**（新能力 minor）；设计 as-built 见 `docs/design/match.md` §10。
+- 2026-09-14（六十三）：**发布加固（供应链完整性）**——每个 Release 增
+  `SHA256SUMS`（8 lsp + 8 cli + 9 vsix）与 SLSA 构建来源证明
+  （`actions/attest-build-provenance@v2`，job 加 `id-token: write` +
+  `attestations: write`）；资产 25→26。文档 `docs/RELEASE.md §6`、
+  `skills/sokonanoda-ci §2.1`、`onboarding §5`（含 rust-toolchain 决策：不钉、
+  跟随 stable；README 补 binstall/mise）、release 契约断言同步。版本 **0.35.1**。

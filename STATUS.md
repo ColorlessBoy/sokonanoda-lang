@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十三轮：`match` 递归归纳——IH；0.35.0）
+> 快照：2026-09-14（第六十四轮：发布加固——SHA256SUMS + SLSA provenance；0.35.1）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,24 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十四轮：发布加固）
+
+> 续 TODO（用户指定顺序：先 match 递归 IH，再发布加固）：`onboarding.md §5`
+> 剩余的发布完整性三项。
+
+1. **`SHA256SUMS`**：`release.yml` 的 `github-release` job 对 8 lsp + 8 cli +
+   9 vsix 生成校验和清单并 `--clobber` 上传（资产 25 → **26**）。
+2. **SLSA provenance**：`actions/attest-build-provenance@v2` 对上述资产签发
+   构建来源证明；job 加 `id-token: write` + `attestations: write`。校验
+   `gh attestation verify <file> -R ColorlessBoy/sokonanoda-lang`。
+3. **文档**：`docs/RELEASE.md` §6（校验与证明）、`skills/sokonanoda-ci` §2.1
+   资产数 26、`onboarding.md §5` 三项勾选（含 `rust-toolchain` 决策：**不钉**，
+   跟随 stable；README 补 binstall/mise）。
+4. **契约**：`crates/cli/tests/extension.rs` release 契约增 `SHA256SUMS` /
+   `attest-build-provenance@v2` / `attestations: write` 断言。
+5. **验收**：`sokonanoda gate` PASS；版本 0.35.0 → **0.35.1**；发布后核
+   Release 26 资产 + `sha256sum -c` + `gh attestation verify` 通过。
 
 ## 本轮进度（2026-09-14，第六十三轮：`match` 递归归纳（IH））
 
@@ -46,16 +64,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `json_mode_unannotated_let_infers_or_reports_hint`；课程 unit3 注释更新。
 3. **验收**：`sokonanoda gate` PASS；版本 0.33.1 → **0.34.0**（新能力 minor）；
    设计 as-built `docs/design/elaborator-let-match.md` §13。
-
-## 本轮进度（2026-09-14，第六十一轮：tactic hover 呈现升级）
-
-> 用户反馈：tactic hover 内容有了，但只有单/两行裸文本，无排版无高亮，体验不行。
-
-1. **表头**：`` `<tactic>` · tactic k/n ``（k/total 为 per-tactic 进度）；
-   闭合显示 `已无剩余目标 ✓`。
-2. **目标块**：包进 ` ```sokonanoda ` 代码围栏 → 等宽对齐 + **语法高亮**
-   （扩展自带 TM 语法，hover fenced code 用该语言着色）；多目标加 `**目标 i/n**`。
-3. **半截表达式 hover** 同步 `⊢` + 同款围栏。
-4. **测试**：tactic hover 断言表头/围栏；half-expression 断言 `⊢`/围栏。
-5. **验收**：`sokonanoda gate` PASS；版本 0.33.0 → **0.33.1**（呈现 patch）；
-   设计 `docs/design/tactic-hover.md` §5 as-built。

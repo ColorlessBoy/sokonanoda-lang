@@ -97,7 +97,8 @@ curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/actions/runs
 ### 2.1 发布后核对"双页"（2026-09-11 空 Release 事故留下的硬性预防）
 
 ```bash
-# ① GitHub Release：必须恰 25 个资产（lsp tarball ×8 + cli tarball ×8 + vsix ×9）
+# ① GitHub Release：必须恰 26 个资产（lsp tarball ×8 + cli tarball ×8 + vsix ×9
+#    + SHA256SUMS；0.35.1 起每资产另有 SLSA provenance attestation）
 curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/releases/tags/v$VER" \
   | $NODE -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);
       const a=r.assets.map(x=>x.name);

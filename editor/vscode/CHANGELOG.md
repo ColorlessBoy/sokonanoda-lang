@@ -1,3 +1,14 @@
+## [0.35.1] - 2026-09-14
+
+### Infrastructure
+
+- **Release integrity** — every Release now ships a `SHA256SUMS` manifest
+  covering the 8 LSP tarballs, 8 CLI tarballs and 9 VSIXes, plus SLSA
+  build-provenance attestations (`actions/attest-build-provenance`) for all of
+  them. Verify with `sha256sum -c SHA256SUMS` and
+  `gh attestation verify <file> -R ColorlessBoy/sokonanoda-lang`. See
+  `docs/RELEASE.md` §6. Asset count is now 26.
+
 ## [0.35.0] - 2026-09-14
 
 ### Added
