@@ -220,6 +220,8 @@ Response:
 {"decls": [{
   "name": "and_swap", "kind": "theorem", "status": "open",
   "range": {"start": {...}, "end": {...}},
+  "ty": "And a b -> And b a",
+  "ty_runs": [{"text": "And", "kind": "axiom_use"}, {"text": " a b -> And b a"}],
   "goal": "And b a",
   "goals": ["And b a"],
   "binders": [{"name": "a", "ty": "Prop", "ty_runs": [{"text": "Prop", "kind": "sort"}]},
@@ -232,6 +234,10 @@ Response:
 
 - one entry per declaration (all statuses); `goal`/`binders`/`hole` are
   present for open exercises (`hole` is the exact `sorry` range);
+- `ty` is the declaration's kernel-rendered type (signature) and `ty_runs` its
+  semantic runs (same vocabulary as `goal_runs`, §`soko/stateAt`) — the Infoview
+  declaration list renders `ty_runs` as a small coloured hint and uses `range`
+  to jump to the declaration;
 - `goals` lists **every** open goal after the last recorded tactic (the current
   goal first) for `by` declarations, or the single walked remaining goal for
   non-`by` open exercises; empty for non-open declarations. It is the

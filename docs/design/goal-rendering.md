@@ -179,6 +179,7 @@
 | 声明 hover（签名 + 目标态） | ✅ 签名与 goal（假设 + `⊢`）都是 `sokonanoda` 代码块 |
 | 补全 documentation | ✅ 声明签名以 `sokonanoda` 围栏给出（`detail` 仍是纯文本，VS Code 限制） |
 | 练习树 tooltip（目标 / 假设） | ✅ `MarkdownString.appendCodeblock(…, "sokonanoda")` |
+| Infoview 声明列表的类型提示 | ✅ 0.44.0：`soko/goals` 增 `ty`/`ty_runs`，声明行下用小字等宽着色显示，点击跳转 |
 | 诊断消息、inlay hint、TreeItem.description、CodeAction 标题 | ⛔ 保持纯文本——VS Code 不渲染 markdown / 无法着色，文档写明 |
 | tactic hover | ✅ tactic 片段与 goal 都是代码块（原 tactic 是行内代码） |
 | 半表达式 hover | ✅ 推断类型 / 目标 / 剩余目标都是代码块 |

@@ -184,11 +184,21 @@
     }
     list.forEach(function (decl) {
       const name = decl && decl.name ? decl.name : "?";
-      const button = el("button", "decl " + ((decl && decl.status) || ""), name);
+      const button = el("button", "decl " + ((decl && decl.status) || ""));
       button.type = "button";
-      button.appendChild(el("span", "decl-kind", (decl && decl.kind) || ""));
+      const head = el("div", "decl-head");
+      head.appendChild(el("span", "decl-name", name));
+      head.appendChild(el("span", "decl-kind", (decl && decl.kind) || ""));
+      button.appendChild(head);
+      // The declaration's type as a small, dim, syntax-coloured hint
+      // (docs/design/goal-rendering.md §2.1: same runs as the goal state).
+      if (decl && Array.isArray(decl.ty_runs) && decl.ty_runs.length > 0) {
+        button.appendChild(codeBlock("decl-ty", decl.ty_runs, (decl && decl.ty) || ""));
+      }
       button.addEventListener("click", function () {
-        vscode.postMessage({ protocol: PROTOCOL, type: "focusExercise", name: name });
+        const message = { protocol: PROTOCOL, type: "focusExercise", name: name };
+        if (decl && decl.range) message.range = decl.range;
+        vscode.postMessage(message);
       });
       declsBody.appendChild(button);
     });

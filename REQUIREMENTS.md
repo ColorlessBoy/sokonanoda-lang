@@ -705,3 +705,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `rendered_language_text_uses_the_sokonanoda_fence`。版本 **0.43.0**；见
   `docs/design/goal-rendering.md` §7。
 
+- 2026-09-15（七十四）：**Infoview 声明类型提示 + 点击跳转（0.44.0）**——用户要求
+  「声明除名字外用小字写出类型做提示，注意排版（保持每行一个声明），并支持鼠标
+  点击跳转」。落地：`soko/goals` 每条声明增 `ty` + `ty_runs`（复用
+  `front::semantic` runs，与 goal 同一分类源）；Infoview 声明项一行名字 + 徽标、
+  下面一行 `.decl-ty`（0.78em/暗色/等宽/单行省略）按 `tok-*` 着色；点击 post
+  `focusExercise` 带 `range`，扩展在聚焦练习树外把编辑器光标移到该声明并
+  reveal。测试：LSP `goals_request_*` 断言 `ty`/`ty_runs`、扩展契约
+  `infoview_declaration_list_shows_types_and_jumps`。版本 **0.44.0**。
+

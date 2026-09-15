@@ -319,11 +319,18 @@ impl Backend {
             .map(|d| {
                 let name = decl_name(d);
                 let binder_names: Vec<String> = d.binders.iter().map(|b| b.name.clone()).collect();
+                let ty_runs = d
+                    .ty_text
+                    .as_deref()
+                    .map(|ty| runs_of(ty, &decls_names, &binder_names))
+                    .unwrap_or_default();
                 GoalDeclInfo {
                     name: name.clone(),
                     kind: d.kind.as_str().to_string(),
                     status: status_str(d.status).to_string(),
                     range: range_of(d.span),
+                    ty: d.ty_text.clone(),
+                    ty_runs,
                     goal: d.goal.clone(),
                     goals: match d.status {
                         DeclStatus::Open => d
@@ -564,6 +571,12 @@ struct GoalDeclInfo {
     kind: String,
     status: String,
     range: Range,
+    /// The declaration's kernel-rendered type (signature), when known — used by
+    /// the Infoview declaration list as a small hint (`docs/protocol.md`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ty: Option<String>,
+    /// Semantic runs of `ty` (same single source as `goal_runs`, §2.1).
+    ty_runs: Vec<RunInfo>,
     goal: Option<String>,
     /// Every open goal after the last recorded tactic (current goal first),
     /// or the single walked remaining goal for non-`by` open exercises.
@@ -2446,6 +2459,22 @@ mod tests {
         let decl = &decls[0];
         assert_eq!(decl["status"], "open");
         assert_eq!(decl["goal"], "Prop -> Prop");
+        // The declaration's own type ships with the wire so the Infoview can
+        // show it as a hint; runs reconstruct it exactly (§2.1).
+        let ty = decl["ty"].as_str().expect("declared type");
+        assert_eq!(ty, "Prop -> Prop", "declared type text");
+        let runs = decl["ty_runs"].as_array().expect("ty_runs array");
+        assert_eq!(
+            runs.iter()
+                .map(|r| r["text"].as_str().unwrap_or_default())
+                .collect::<String>(),
+            ty,
+            "ty_runs reconstruct ty"
+        );
+        assert!(
+            runs.iter().any(|r| r["kind"].as_str() == Some("sort")),
+            "`Prop` in the type is a sort: {runs:?}"
+        );
         let hole = decl["hole"].as_object().expect("hole range present");
         let start = hole["start"].as_object().expect("hole start");
         let expected = lsp_pos(EXERCISE, offset_of(EXERCISE, "sorry"));

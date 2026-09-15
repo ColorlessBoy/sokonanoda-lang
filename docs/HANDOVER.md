@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量 13 套件
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～七十三轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～七十四轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -45,6 +45,7 @@ cargo test --workspace --locked   # 全量 13 套件
 | 71 | 0.41.0 | prelude `Bool`（非递归真实可信归纳） | `docs/design/match.md` §10 Phase 5 |
 | 72 | 0.42.0 | `match` 模式编译器 v1（嵌套/字面量/通配/守卫） | `docs/design/match-patterns.md` |
 | 73 | 0.43.0 | 呈现面高亮统一（`sokonanoda` 围栏全量） | `docs/design/goal-rendering.md` §7 |
+| 74 | 0.44.0 | Infoview 声明类型提示 + 点击跳转 | `docs/protocol.md` / `webview-infoview.md` |
 
 > 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–70 轮原文）。
 

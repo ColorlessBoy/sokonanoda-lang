@@ -792,6 +792,32 @@ fn rendered_language_text_uses_the_sokonanoda_fence() {
 }
 
 #[test]
+fn infoview_declaration_list_shows_types_and_jumps() {
+    // The declaration list renders each declaration's type as a small,
+    // syntax-coloured hint (same runs as the goal state) and clicking a row
+    // jumps the editor to it (range travels with `focusExercise`).
+    let webview = media_file("infoview.js");
+    assert!(
+        webview.contains("ty_runs") && webview.contains("decl-ty"),
+        "the declaration list must render the type hint"
+    );
+    assert!(
+        webview.contains("message.range = decl.range"),
+        "clicking a declaration must send its range so the host can jump"
+    );
+    let css = media_file("infoview.css");
+    assert!(
+        css.contains(".decl-ty") && css.contains("text-overflow: ellipsis"),
+        "the type hint must be a small single-line ellipsised line"
+    );
+    let script = entry_script();
+    assert!(
+        script.contains("focusExercise") && script.contains("revealRange"),
+        "the host must reveal the declaration range on click"
+    );
+}
+
+#[test]
 fn infoview_message_protocol_matches_design() {
     // Protocol table (docs/design/webview-infoview.md §3): host → webview
     // state/decls/server/theme; webview → host ready/reveal/focusExercise.

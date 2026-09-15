@@ -583,6 +583,19 @@ class InfoviewProvider {
         if (typeof message.name === "string") {
           await this._treeProvider.focusDeclaration(message.name);
           await vscode.commands.executeCommand("sokonanoda.goals.focus");
+          // Clicking a declaration in the Infoview also jumps the editor to it
+          // (the range travels with the message).
+          const editor = vscode.window.activeTextEditor;
+          const span = message.range;
+          if (span && editor && editor.document.languageId === "sokonanoda") {
+            const start = new vscode.Position(span.start.line, span.start.character);
+            const end = new vscode.Position(span.end.line, span.end.character);
+            editor.selection = new vscode.Selection(start, start);
+            editor.revealRange(
+              new vscode.Range(start, end),
+              vscode.TextEditorRevealType.InCenterIfOutsideViewport,
+            );
+          }
         }
         break;
     }

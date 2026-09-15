@@ -1,3 +1,13 @@
+## [0.44.0] - 2026-09-15
+
+### Added
+
+- **Infoview declaration types + click to jump** — the declaration list now
+  shows each declaration's type as a small, dim, syntax-coloured line under its
+  name (coloured from the same `front::semantic` runs as the goal state, never
+  re-tokenized), keeping the one-declaration-per-line layout. Clicking a
+  declaration now also moves the editor to it.
+
 ## [0.43.0] - 2026-09-15
 
 ### Changed
