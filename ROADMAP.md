@@ -383,9 +383,9 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 ### I6 —— prelude 对齐 + elaborator 推进
 - prelude：补 Bool / Eq / `rfl` 所需受信任基元；核对 `Nat.succ`/`Nat.add`
   占位自引用体（当前依赖名字特判 + 原生快路径，需写清边界并加裸名 `#reduce` 测试）。
-- elaborator：binder 类型推断（先非依赖情形）→ `let`（✅ 0.28.0）→ `match`
-  （✅ v1 0.33.0：源内非递归 `inductive`；递归/依赖/参数化/prelude `Nat`·`Eq`
-  与无注解 `let` 待后续，见 `docs/design/match.md`）。
+- elaborator：binder 类型推断（先非依赖情形）→ `let`（✅ 0.28.0；✅ 无注解
+  `let` 0.34.0）→ `match`（✅ v1 0.33.0：源内非递归 `inductive`；递归/依赖/
+  参数化/prelude `Nat`·`Eq` 待后续，见 `docs/design/match.md`）。
 - 验收：每个语法点走 TDD 三件套（front 单测 + CLI e2e + 课程用例），白名单同步更新。
 
 ### I7 —— 第一门课（M4，内容层）
@@ -432,8 +432,11 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
       三族）+ 内核冷路径消息增强（`got:` 渲染）+ `#check`/`#reduce` panic
       守卫（此前会崩掉编译/LSP 进程）。审计见 subagent 报告，分类器
       `front::error::refine_kernel_kind`。
-- [ ] goal 视图余项：声明宇宙参数携带 ✅（已并入 judge）；refine 的子洞
-      kernel 级 expected type（spine meta）；VS Code goal 面板 ✅。
+- [x] goal 视图余项：声明宇宙参数携带 ✅（已并入 judge）；refine 的子洞
+      kernel 级 expected type（✅ spine meta 方案 A，0.32.0：请求期 `judge_infer`
+      探针，覆盖前置洞穿透/一层嵌套洞；更深嵌套与 def 包裹结果类型的 whnf 仍留
+      B′，见 `docs/design/spine-meta-a.md`）；VS Code goal 面板 ✅（树「当前光标处」
+      + webview Infoview，0.30.0）。
 
 ### I10 —— 值位 `apply` 关键字（✅ 0.18.0 完成；❌ 关键字本身已整体移除）
 
