@@ -267,3 +267,15 @@
   返回 `200`（已恢复）后 `gh run rerun 34848107228 --failed` 重跑即可。
 - **预防**：连续 `timeout`（非 429）按后端故障处理；先探 gallery 健康度，
   恢复后 `gh run rerun --failed`；沿用既有 runbook，无需改流水线。
+
+## 2026-09-15 — v0.29.0 发布：marketplace-publish Azure gallery 超时（第三次复发）
+
+- **现象**：tag `v0.29.0` 的 release 中 `build`×8 / `package-vsix` /
+  `github-release`（25 资产）全绿，仅 `marketplace-publish` 的
+  "Publish to VS Code Marketplace" 步骤长时间挂起后失败（同
+  `/_apis/gallery` 超时；v0.27.0 已同类记录）。
+- **定位/修复**：`extensionquery` 公开端点探活 `200`（已恢复）→
+  `gh run rerun 34912145470 --failed` 重跑该 job。
+- **预防**：沿用既有 runbook（探活 + rerun）；已知间歇性、与代码无关。
+  复发频次升高，后续可考虑在 publish 步骤前加一次 `extensionquery` 健康
+  探测 + 更长退避（待评估，不改流水线语义）。
