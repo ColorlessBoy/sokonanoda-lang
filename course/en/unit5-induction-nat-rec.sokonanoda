@@ -186,3 +186,28 @@ def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
 def valueOrZero (x : Option Nat) : Nat := match x with
 | none => zero
 | some a => sorry
+-- ─────────────────────────────────────────────────────────────
+-- Dependent `match`: the result type varies with the scrutinee's value.
+-- Mathematical induction has exactly this shape: given a proposition `P`, a
+-- base `P zero`, and a step “from `P k` conclude `P (succ k)` for every k”,
+-- you get `P n` for any n. Each arm has a different result type — the zero arm
+-- must prove `P zero`, the succ arm `P (succ k)`; crucially the induction
+-- hypothesis `ih` has type `P k` (a dependent IH).
+-- ─────────────────────────────────────────────────────────────
+
+theorem nat_induction (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih
+
+-- Exercise 8: the same induction, but you write the step yourself — in the
+-- succ arm `ih : P k`.
+-- soko:hint 思路：match n 分 zero/succ 两支：zero 交基础 hz，succ 交递推。
+-- soko:hint 目标形态：succ 支的目标是 P (succ k)，上下文有 k : Nat 与 ih : P k。
+-- soko:hint 关键件：hs 吃 k 和一份 P k 的证明——把 ih 交给它就行。
+theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => sorry

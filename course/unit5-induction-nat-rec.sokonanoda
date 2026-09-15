@@ -173,3 +173,27 @@ def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
 def valueOrZero (x : Option Nat) : Nat := match x with
 | none => zero
 | some a => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 依赖 match：结果类型随 scrutinee 的取值变化。
+-- 数学归纳法就是这种形状：给定命题 P、基础 P zero，以及递推
+-- 「对每个 k，P k 推出 P (succ k)」，就能对任意 n 得到 P n。
+-- match 每支的结果类型不同——zero 支要证 P zero，succ 支要证 P (succ k)；
+-- 关键是 succ 支里的归纳假设 ih，它的类型正是 P k（依赖 IH）。
+-- ─────────────────────────────────────────────────────────────
+
+theorem nat_induction (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih
+
+-- 练习 8：同样的归纳法，递推那步自己写——succ 支里 ih : P k。
+-- soko:hint 思路：match n 分 zero/succ 两支：zero 交基础 hz，succ 交递推。
+-- soko:hint 目标形态：succ 支的目标是 P (succ k)，上下文有 k : Nat 与 ih : P k。
+-- soko:hint 关键件：hs 吃 k 和一份 P k 的证明——把 ih 交给它就行。
+theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => sorry

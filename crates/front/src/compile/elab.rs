@@ -113,6 +113,48 @@ impl<'a> ElabScope<'a> {
             })
             .collect()
     }
+    /// Like [`judge_binders`], but keeps only the binders `expr` (transitively)
+    /// depends on, in scope order.
+    ///
+    /// `judge_infer` peels its answer one Pi layer at a time by re-rendering and
+    /// re-parsing each intermediate type, and `render_expr` does not parenthesise
+    /// a `forall` that sits in an arrow's domain. A binder whose written type is
+    /// itself a function (`hs : (k : Nat) -> P k -> P (succ k)`) therefore
+    /// corrupts that round trip and the query returns the wrong sub-term — even
+    /// when the sort being asked about never mentions it. Passing only the needed
+    /// binders keeps those unrelated function-typed binders out of the telescope.
+    fn judge_binders_for(&self, expr: &Expr) -> Vec<GoalBinderSpec> {
+        let n = self.len();
+        let mut needed = vec![false; n];
+        for (i, name) in self.names.iter().enumerate() {
+            if !name.is_empty() && mentions_ident(expr, name) {
+                needed[i] = true;
+            }
+        }
+        // A binder's written type may only mention earlier binders, so a single
+        // right-to-left pass closes the dependency set.
+        for i in (0..n).rev() {
+            if !needed[i] {
+                continue;
+            }
+            if let Some(ty) = self.src_tys[i].as_ref() {
+                for (j, name) in self.names.iter().enumerate().take(i) {
+                    if !needed[j] && !name.is_empty() && mentions_ident(ty, name) {
+                        needed[j] = true;
+                    }
+                }
+            }
+        }
+        (0..n)
+            .filter(|&i| needed[i])
+            .filter_map(|i| {
+                self.src_tys[i].as_ref().map(|ty| GoalBinderSpec {
+                    name: self.names[i].clone(),
+                    ty: Some(render_expr(ty)),
+                })
+            })
+            .collect()
+    }
     /// The written source type of the innermost binder named `name`.
     fn src_ty(&self, name: &str) -> Option<&Expr> {
         let pos = self.names.iter().rposition(|candidate| candidate == name)?;
@@ -1099,7 +1141,7 @@ pub(crate) fn elab_expr<'a>(
             arms,
             span,
         } => {
-            let (Some(expected_kernel), Some(expected_src)) = (expected, expected_src) else {
+            let (Some(_expected_kernel), Some(expected_src)) = (expected, expected_src) else {
                 return Err(CompileError::elab(
                     ErrorKind::ElabMatchNoExpectedType,
                     "`match` 的结果类型必须已知：请把它放在有类型标注的位置（声明类型 / \
@@ -1228,6 +1270,18 @@ pub(crate) fn elab_expr<'a>(
                     ));
                 }
             }
+            // 依赖 motive 触发（v1，design docs/design/match-dependent-motive.md §1）：
+            // scrutinee 是裸局部变量 `x`，且 `x` 在结果类型 R 中出现。否则保持
+            // 常量 motive（完全兼容既有行为）。
+            let dependent_var: Option<String> = match &**scrutinee {
+                Expr::Ident { name, .. }
+                    if scope.names.iter().any(|n| n == name)
+                        && mentions_ident(expected_src, name) =>
+                {
+                    Some(name.clone())
+                }
+                _ => None,
+            };
             // 3) level：judge_infer(R) 的类型文本映射宇宙（design §5 step 3）。
             let level = infer_expected_level(ctx, scope, expected_src).ok_or_else(|| {
                 CompileError::elab(
@@ -1236,16 +1290,69 @@ pub(crate) fn elab_expr<'a>(
                     *span,
                 )
             })?;
-            // 4) motive = fun (_ : Ind params) => R（v1 非依赖，见设计 §2）。
+            // 4) motive：依赖时为 `fun (t : Ind params) => R[x := t]`，否则
+            //    `fun (_ : Ind params) => R`（v1 非依赖，见设计 §2）。
             let empty_levels = builder.alloc_levels_slice(&[]);
             let ind_ptr = builder.name_from_str(&ind_name);
             let ind_const = builder.mk_const(ind_ptr, empty_levels);
             let ind_applied = param_kernel
                 .iter()
                 .fold(ind_const, |acc, p| builder.mk_app(acc, *p));
-            let anon = builder.anonymous();
-            let motive =
-                builder.mk_lambda(anon, BinderStyle::Default, ind_applied, expected_kernel);
+            // motive 域的书写源类型 = `Ind params`（从 scrutinee 的书写参数）。
+            let ind_ty_src = param_args_src.iter().fold(
+                Expr::Ident {
+                    name: ind_name.clone(),
+                    span: *span,
+                },
+                |acc, p| Expr::App {
+                    fun: Box::new(acc),
+                    arg: Box::new(p.clone()),
+                    span: *span,
+                },
+            );
+            let (motive_name, body_src) = if let Some(x) = &dependent_var {
+                // 新鲜 motive binder 名 `t`：避让作用域内全部名字（包括 x）。
+                let motive_name = {
+                    let mut candidate = String::from("t");
+                    let mut k = 1;
+                    while scope.names.iter().any(|n| n == &candidate) {
+                        k += 1;
+                        candidate = format!("t{k}");
+                    }
+                    candidate
+                };
+                let mut map = HashMap::new();
+                map.insert(
+                    x.clone(),
+                    Expr::Ident {
+                        name: motive_name.clone(),
+                        span: *span,
+                    },
+                );
+                let body_src = super::goals::substitute_names(expected_src, &map, &HashMap::new());
+                (motive_name, body_src)
+            } else {
+                (String::new(), expected_src.clone())
+            };
+            // body 必须在 motive binder 的作用域里 elaborate：`mk_lambda` 不做
+            // de Bruijn shift，body 的索引须相对扩展后的上下文。
+            let outer = scope.len();
+            scope.push(motive_name.clone(), ind_applied, Some(ind_ty_src), *span);
+            let motive_body = elab_expr(
+                builder, &body_src, scope, univ, known, hovers, None, None, ctx,
+            )?;
+            scope.truncate(outer);
+            let motive_name_ptr = if motive_name.is_empty() {
+                builder.anonymous()
+            } else {
+                builder.name_from_str(&motive_name)
+            };
+            let motive = builder.mk_lambda(
+                motive_name_ptr,
+                BinderStyle::Default,
+                ind_applied,
+                motive_body,
+            );
             // 5) minors：按构造子声明序重排；**递归字段后插入归纳假设 IH**
             //    （类型 = motive 结果 R，v1 非依赖 motive；design §5 / Phase 2）。
             let base = scope.len();
@@ -1315,22 +1422,82 @@ pub(crate) fn elab_expr<'a>(
                             }
                             candidate
                         };
-                        let ih_src = expected_src.clone();
-                        record_binder_hover(hovers, scope, binder.span, expected_kernel);
+                        // 依赖 motive：IH 类型 = motive <field> = R[x := field]；
+                        // 否则保持常量 R（Phase 2 非依赖）。须在当前 minor 作用域
+                        // 里 elaborate（索引相对已推入的字段/IH binder）。
+                        let ih_src = if let Some(x) = &dependent_var {
+                            let mut map = HashMap::new();
+                            map.insert(
+                                x.clone(),
+                                Expr::Ident {
+                                    name: binder.name.clone(),
+                                    span: binder.span,
+                                },
+                            );
+                            super::goals::substitute_names(expected_src, &map, &HashMap::new())
+                        } else {
+                            expected_src.clone()
+                        };
+                        let ih_kernel = elab_expr(
+                            builder, &ih_src, scope, univ, known, hovers, None, None, ctx,
+                        )?;
+                        record_binder_hover(hovers, scope, binder.span, ih_kernel);
                         scope.push(
                             ih_name.clone(),
-                            expected_kernel,
+                            ih_kernel,
                             Some(ih_src.clone()),
                             binder.span,
                         );
                         minor_binders.push((
                             ih_name,
                             BinderStyle::Default,
-                            expected_kernel,
+                            ih_kernel,
                             Some(ih_src),
                         ));
                     }
                 }
+                // 依赖 motive：分支期望类型 = R[x := C params v…]（把 scrutinee
+                // 变量替换成该分支的构造子项）；否则保持常量 R。同样在当前 minor
+                // 作用域里 elaborate（branch body 就在这个作用域下）。
+                let branch_expected_src = if let Some(x) = &dependent_var {
+                    let mut term = Expr::Ident {
+                        name: ctor.name.clone(),
+                        span: arm.span,
+                    };
+                    for p in &param_args_src {
+                        term = Expr::App {
+                            fun: Box::new(term),
+                            arg: Box::new(p.clone()),
+                            span: arm.span,
+                        };
+                    }
+                    for b in &arm.binders {
+                        term = Expr::App {
+                            fun: Box::new(term),
+                            arg: Box::new(Expr::Ident {
+                                name: b.name.clone(),
+                                span: b.span,
+                            }),
+                            span: arm.span,
+                        };
+                    }
+                    let mut map = HashMap::new();
+                    map.insert(x.clone(), term);
+                    super::goals::substitute_names(expected_src, &map, &HashMap::new())
+                } else {
+                    expected_src.clone()
+                };
+                let branch_expected = elab_expr(
+                    builder,
+                    &branch_expected_src,
+                    scope,
+                    univ,
+                    known,
+                    hovers,
+                    None,
+                    None,
+                    ctx,
+                )?;
                 let mut body = elab_expr(
                     builder,
                     &arm.body,
@@ -1338,8 +1505,8 @@ pub(crate) fn elab_expr<'a>(
                     univ,
                     known,
                     hovers,
-                    Some(expected_kernel),
-                    Some(expected_src),
+                    Some(branch_expected),
+                    Some(&branch_expected_src),
                     ctx,
                 )?;
                 scope.truncate(base);
@@ -1478,14 +1645,19 @@ fn sort_text_level(text: &str) -> Option<u64> {
 /// The recursor universe level for the expected result type `R`: the sort of
 /// `R` as inferred by the kernel (`judge_infer` reuses the 128-entry cache).
 fn infer_expected_level(ctx: &ElabCtx, scope: &ElabScope, expected_src: &Expr) -> Option<u64> {
-    let binders = scope.judge_binders();
-    let text = judge_infer(
-        ctx.prefix_src,
-        ctx.options,
-        &binders,
-        &render_expr(expected_src),
-    )
-    .ok()?;
+    let term = render_expr(expected_src);
+    let binders = scope.judge_binders_for(expected_src);
+    let text = if binders.is_empty() {
+        // `R` is closed w.r.t. the local context: add one dummy `Prop` binder so
+        // `judge_infer`'s `fun … => R` wrapper still has a layer to peel.
+        let dummy = vec![GoalBinderSpec {
+            name: "_soko_expected_level".to_string(),
+            ty: Some("Prop".to_string()),
+        }];
+        judge_infer(ctx.prefix_src, ctx.options, &dummy, &term).ok()?
+    } else {
+        judge_infer(ctx.prefix_src, ctx.options, &binders, &term).ok()?
+    };
     sort_text_level(&text)
 }
 

@@ -1,3 +1,16 @@
+## [0.39.0] - 2026-09-14
+
+### Added
+
+- **`match` dependent motive** — when the result type mentions the (local
+  variable) scrutinee, the motive becomes `fun t => R[x := t]`, each arm's
+  expected type is the instantiated `R[x := <constructor term>]`, and a
+  recursive arm's induction hypothesis has the dependent type `R[x := <field>]`.
+  This makes the natural induction principle expressible:
+  `theorem nat_induction (P : Nat -> Prop) (hz : P zero) (hs : …) (n : Nat) : P n := match n with | zero => hz | succ k => hs k ih`.
+  Non-dependent matches are unchanged. Design:
+  `docs/design/match-dependent-motive.md`.
+
 ## [0.38.0] - 2026-09-14
 
 ### Added

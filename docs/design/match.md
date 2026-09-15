@@ -168,3 +168,23 @@ match <scrutinee> with
 - **已知表示现象**：内核 `Nat.rec` 的 `NatLit` 快路径会留下未回收的一元链，
   故 `#reduce add 2 1` 呈现 `Nat.succ (Nat.succ 1)`（def-eq 上等于 3）；
   源内 `Nat` 无此现象，仍是干净的一元链。
+
+### Phase 4：依赖 motive（2026-09-15，v1；design `match-dependent-motive.md`）
+
+- **触发**：scrutinee 是**裸局部变量** `x`（在 scope 中）且 `x` 出现在结果类型
+  `R`（`expected_src`）中 → 依赖 motive；否则常量 motive（完全兼容）。
+- **降低**：motive = `fun (t : Ind params) => R[x := t]`（新鲜名 `t` 避让 scope
+  全部名字，`goals::substitute_names` 做 shadow-aware 替换）；分支期望
+  = `R[x := C params v…]`（构造子项）；递归字段 IH = `R[x := field]`。
+  **关键**：motive body / 分支期望 / IH 类型都在其 binder 已推入的当前作用域里
+  elaborate（`mk_lambda` 不做 de Bruijn shift）——常量路径也改为在当前 minor
+  作用域重算 R，修掉了「R 含局部变量时索引错位」的旧隐患。
+- **level** 不变：`judge_infer(R)` → Sort。**kernel 零改动**。
+- **goals.rs**：match-arm 走查从 goal 上下文里取 `x` 的书写类型 `Ind params`，
+  对每个 arm 做同一 `x := C params v…` 替换（`substitute_names`），使 branch
+  `sorry` 的期望类型正确；非依赖路径不变。
+- **测试**（front +6，无新错误码）：依赖零/succ 过内核；`sorry` 分支期望
+  `P Nat.zero` / `P (Nat.succ k)`；依赖 IH 用法；非变量 scrutinee 仍常量；
+  非依赖回归；参数化 `Box` + 依赖结果组合。
+- **仍未做**：带索引归纳的 dependent motive、scrutinee 为非变量表达式的
+  dependent elimination、`match` tactic。

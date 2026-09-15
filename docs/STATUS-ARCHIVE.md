@@ -1,8 +1,28 @@
-# STATUS 归档（第 1–64 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–65 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十五轮：`match` 支持 prelude Nat）
+
+> 续 TODO：移除「match 只支持源内 inductive」限制，让学生直接对 prelude `Nat`
+> 分情况。
+
+1. **根因**：prelude 的 `Nat` 是「原生 hack」（无 ctor 的 add_inductive +
+   `Nat.zero` 公理 + 自引用 `Nat.succ` 定义），**没有 `Nat.rec`**，`match` 无从
+   降低。改为经 **`install_inductive_block` 装成真实可信归纳**（ctor `Nat.zero`
+   /`Nat.succ` + 派生 `Nat.rec` + iota，`recursive=true`，`rec_universe_arity=1`），
+   并注册进 `InductiveTable`；`Nat.add` 保持原生自引用定义。
+2. **效果**：`match n with | Nat.zero => … | Nat.succ k => …`（点号 ctor）可用，
+   递归字段后自动 IH；`#check Nat.rec` 有签名；`#reduce 1 + 1 => 2`、
+   `Nat.add 2 3 => 5`、`three => 3` 均正常。**已知显示**：经 `Nat.rec` 归约的
+   结果可能是不合并的一元链（如 `addN 2 1 → Nat.succ (Nat.succ 1)`，与 numeral
+   def-eq），已文档化并钉测试。
+3. **测试**：front +3（prelude Nat pred/add + 源内 Nat 回归）；CLI e2e +1。
+4. **文档**：`match.md` §2/§10、`architecture.md` §4.1/§4.2/§5.4/§8、
+   `TESTING.md`、`protocol.md`（`elab-match-not-inductive` 文案）同步。
+5. **验收**：`sokonanoda gate` PASS；版本 0.35.1 → **0.36.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-14，第六十四轮：发布加固）
 

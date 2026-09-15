@@ -3799,6 +3799,157 @@ def addS (a b : Nat) : Nat := match a with
     );
 }
 
+// ---- 依赖 motive（v1；design docs/design/match-dependent-motive.md）----
+
+const DEP_PROP: &str = "\
+axiom P : Nat -> Prop
+axiom hz : P Nat.zero
+axiom hs : (k : Nat) -> P k -> P (Nat.succ k)
+";
+
+#[test]
+fn match_dependent_motive_checks_through_kernel() {
+    // 结果类型 `P n` 依赖 scrutinee：motive = fun t => P t，分支期望
+    // P Nat.zero / P (Nat.succ k)，递归字段的 IH : P k（依赖 IH）。
+    let src = format!(
+        "{DEP_PROP}\
+         theorem foo (n : Nat) : P n := match n with\n\
+         | Nat.zero => hz\n\
+         | Nat.succ k => hs k ih\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse dependent match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "foo")));
+}
+
+#[test]
+fn match_dependent_motive_sees_declaration_binders() {
+    // 结果类型 `P n` 里的 `P` 是**声明 binder**（不是顶层 axiom）：本文件自带
+    // 归纳 Nat + 全 binder 望远镜，`infer_expected_level` 的 judge 查询必须带上
+    // `P`/`n` 的书写类型，同时不能被无关的函数型 binder
+    // （`hs : (k : Nat) -> P k -> P (succ k)`）的重渲染破坏。
+    let src = "\
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+end
+
+theorem nat_induction (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih
+";
+    let out = compile_fol(&parse(src).expect("parse declaration-binder dependent match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "nat_induction")));
+}
+
+#[test]
+fn match_dependent_motive_branches_get_instantiated_expected_type() {
+    // 依赖分支里的 `sorry`：洞期望 = R[x := Ctor …]，不是常量 `P n`。
+    let src = format!(
+        "{DEP_PROP}\
+         theorem foo (n : Nat) : P n := match n with\n\
+         | Nat.zero => sorry\n\
+         | Nat.succ k => sorry\n"
+    );
+    let report = check_document(&parse(&src).expect("parse dependent match"));
+    assert_eq!(report.errors, vec![], "errors: {:?}", report.errors);
+    let decl = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("the theorem should be open");
+    assert_eq!(decl.goal.as_deref(), Some("P n"));
+    let tys: Vec<&str> = decl
+        .sub_goals
+        .iter()
+        .filter_map(|sub| sub.ty.as_deref())
+        .collect();
+    assert!(
+        tys.contains(&"P Nat.zero"),
+        "zero branch expected type must be `P Nat.zero`: {tys:?}"
+    );
+    assert!(
+        tys.contains(&"P (Nat.succ k)"),
+        "succ branch expected type must be `P (Nat.succ k)`: {tys:?}"
+    );
+}
+
+#[test]
+fn match_dependent_ih_has_instantiated_type() {
+    // 依赖 IH 的用法：`hs2` 需要 `P k`（IH）与 k；若 IH 仍是常量 `P n`
+    // 则内核会拒绝。
+    let src = "\
+axiom P : Nat -> Prop
+axiom hz : P Nat.zero
+axiom hs2 : (k : Nat) -> P k -> P (Nat.succ k)
+theorem bar (n : Nat) : P n := match n with
+| Nat.zero => hz
+| Nat.succ k => hs2 k ih
+";
+    let out = compile_fol(&parse(src).expect("parse dependent match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "bar")));
+}
+
+#[test]
+fn match_dependent_non_variable_scrutinee_stays_constant_motive() {
+    // 非变量 scrutinee `Nat.succ n`：不触发依赖 motive，分支期望仍是常量
+    // `P n`（用假设 `h` 填充两支），不报错。
+    let src = format!(
+        "{DEP_PROP}\
+         theorem foo (n : Nat) (h : P n) : P n := match Nat.succ n with\n\
+         | Nat.zero => h\n\
+         | Nat.succ k => h\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse constant match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+#[test]
+fn match_dependent_non_dependent_result_regresses_to_constant_motive() {
+    // 结果类型 `Nat` 不提到 scrutinee：常量 motive，与既有行为一致。
+    let src = "\
+def f (n : Nat) : Nat := match n with
+| Nat.zero => Nat.zero
+| Nat.succ k => k
+";
+    let out = compile_fol(&parse(src).expect("parse non-dependent match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+#[test]
+fn match_dependent_motive_composes_with_parameterized_inductive() {
+    // 参数化归纳（Box）+ 依赖结果：motive 域 = `Box Nat`，分支构造子项
+    // = `box Nat a`，期望 `P (box Nat a)`。
+    let src = "\
+inductive Box (A : Type) : Type
+ctor box (a : A) : Box A
+end
+axiom P : Box Nat -> Prop
+axiom h : (a : Nat) -> P (box Nat a)
+theorem unbox (b : Box Nat) : P b := match b with
+| box a => h a
+";
+    let out = compile_fol(&parse(src).expect("parse dependent parameterized match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "unbox")));
+}
+
 // ---- 参数化归纳（非带索引，v1；design docs/design/parameterized-inductives.md）----
 
 const OPTION_ENUM: &str = "\

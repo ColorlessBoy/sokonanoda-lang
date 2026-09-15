@@ -151,3 +151,14 @@ def valueOrZero (x : Option Nat) : Nat := match x with
 -- Extra internal self-checks:
 #reduce valueOrZero (some Nat (succ zero))
 #reduce valueOrZero (none Nat)
+theorem nat_induction (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih
+
+theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih

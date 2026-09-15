@@ -117,7 +117,10 @@ sokonanoda-lang/
   `<Ind>.rec.{level} motive minor... scrutinee`（level 由结果类型的 Sort 推出，
   显式宇宙实例是内核接受的必要条件）。**递归归纳已支持**：递归构造子字段后
   自动插入归纳假设 binder（`ih`、`ih2`…，类型为结果类型 R），branch 直接引用，
-  递归无需自引用；motive 仍非依赖。  覆盖率/顺序/未知构造子等错误码见
+  递归无需自引用。**依赖 motive**：当结果类型 `R` 含被匹配的**裸局部变量**
+  `x`（如 `P n`）时，motive = `fun t => R[x:=t]`，分支期望 = `R[x:=<构造子项>]`、
+  IH 类型 = `R[x:=<递归字段>]`（否则保持常量 motive；见
+  `docs/design/match-dependent-motive.md`）。覆盖率/顺序/未知构造子等错误码见
   `docs/protocol.md`，判定仍完全交给 kernel（见 `docs/design/match.md`）。
 - **参数化归纳声明**（非带索引，`docs/design/parameterized-inductives.md`）：
   `inductive Option (A : Type) : Type` 在名字后、`:` 前解析零或多个 binder

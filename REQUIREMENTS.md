@@ -620,3 +620,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   (7,6,3)→(9,7,4)；新码 `elab-match-parameterized-unsupported`（拿不到 params）。
   v1 不做：带索引归纳、宇宙多态参数、互/嵌套递归、match 嵌套/守卫/字面量。
   设计 + as-built 见 `docs/design/parameterized-inductives.md`；版本 **0.38.0**。
+- 2026-09-14（六十七）：**`match` 依赖 motive**——结果类型含被匹配的裸局部变量
+  `x`（如 `P n`）时，motive = `fun t => R[x:=t]`（shadow-aware 替换）、分支期望 =
+  `R[x:=<构造子项>]`、递归 branch 的 IH 类型 = `R[x:=<field>]`；`goals` 走查同步
+  代入。由此可写归纳法：`theorem nat_induction (P : Nat -> Prop) (hz : P zero)
+  (hs : …) (n : Nat) : P n := match n with | zero => hz | succ k => hs k ih`。
+  顺带修 `infer_expected_level` 只纳入 `R` 依赖到的 binder（`judge_binders_for`），
+  使声明 binder 形式可用。front `match_dependent_*` / CLI `cli_match_dependent_*` /
+  课程 unit5 依赖 match 节 + golden (9,7,4)→(10,8,4)。版本 **0.39.0**（新能力
+  minor）；设计 + as-built 见 `docs/design/match-dependent-motive.md`。已知限制：
+  motive 引用「类型为以箭头结尾的依赖函数」的 binder 时 judge_infer 往返仍可能
+  腐蚀 telescope。

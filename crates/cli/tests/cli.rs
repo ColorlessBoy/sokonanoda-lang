@@ -1267,3 +1267,38 @@ fn cli_match_parameterized_reduces_through_kernel() {
         "stdout: {stdout}"
     );
 }
+
+#[test]
+fn cli_match_dependent_motive_checks_via_kernel() {
+    // 依赖 motive：结果类型 `P n` 随 scrutinee 变化；分支期望分别是
+    // `P zero` / `P (succ k)`，succ 支的 `ih : P k`（依赖 IH）。这里用
+    // 声明 binder 形式（P/hz/hs 都是声明 binder）钉住 decl-binder 路径。
+    let body = concat!(
+        "theorem nat_induction (P : Nat -> Prop) (hz : P zero)\n",
+        "    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=\n",
+        "  match n with\n",
+        "  | zero => hz\n",
+        "  | succ k => hs k ih\n",
+        "theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)\n",
+        "    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=\n",
+        "  match n with\n",
+        "  | zero => hz\n",
+        "  | succ k => sorry\n",
+    );
+    let src = format!("{MATCH_NAT}{body}");
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration nat_induction"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("exercise open (fill the sorry)"),
+        "dependent branch sorry must stay open: {stdout}"
+    );
+}

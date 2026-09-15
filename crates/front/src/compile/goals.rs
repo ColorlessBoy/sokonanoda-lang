@@ -13,6 +13,7 @@ use super::report::{GoalBinder, SubGoal};
 use crate::ast::MatchArm;
 use crate::judge::{judge_infer, GoalBinderSpec};
 use crate::proof::{parse_expr_text, render_expr};
+use crate::spine::{mentions, spine_of};
 use crate::{Binder, Command, Expr, FolFile, Span};
 use std::collections::HashMap;
 
@@ -1063,6 +1064,16 @@ fn refine_template_for(ty: &Expr, templates: &GoalTemplates) -> Option<String> {
     Some(format!("{} {}", template.name, args.join(" ")))
 }
 
+/// 依赖 `match` 的 goal 走查：取局部变量 `x` 在上下文里的书写类型
+/// `Ind params` 的实参（非带索引归纳下即全部 params）。找不到绑定或类型文本
+/// 解析失败 → `None`（退回常量 R，绝不比既有行为差）。
+fn scrutinee_params(ctx: &[GoalBinder], x: &str) -> Option<Vec<Expr>> {
+    let ty_text = ctx.iter().rev().find(|b| b.name == x)?.ty.clone();
+    let ty = parse_expr_text(&ty_text).ok()?;
+    let (_, args) = spine_of(&ty);
+    Some(args.into_iter().cloned().collect())
+}
+
 /// Walk the declared type and the (partial) answer in parallel: every lambda
 /// in the answer consumes one Pi layer of the type; when the walk reaches a
 /// hole (or a constructor/function spine with holes), the remaining type is
@@ -1196,12 +1207,20 @@ fn goal_under_binders(
                 Some(info)
             }
         }
-        // `match`：scrutinee 洞的期望类型未知（`None`）；分支体洞的期望类型
-        // 就是整个 match 的结果类型 R（v1 非依赖，见设计 §5）。
+        // `match`：scrutinee 洞的期望类型未知（`None`）。分支体洞的期望类型
+        // 默认是常量 R；当 scrutinee 是裸局部变量 x 且出现在 R 中时是依赖
+        // motive，分支期望 = R[x := C params v…]（design
+        // `docs/design/match-dependent-motive.md` §3）。
         Expr::Match {
             scrutinee, arms, ..
         } => {
             let r = render_expr(ty);
+            let dependent: Option<(String, Vec<Expr>)> = match &**scrutinee {
+                Expr::Ident { name, .. } if mentions(name, ty) => {
+                    scrutinee_params(ctx, name).map(|params| (name.clone(), params))
+                }
+                _ => None,
+            };
             let mut holes = Vec::new();
             let mut sub_goals = Vec::new();
             if expr_has_hole(scrutinee) {
@@ -1216,7 +1235,37 @@ fn goal_under_binders(
                 if !expr_has_hole(&arm.body) {
                     continue;
                 }
-                match goal_under_binders(ty, &arm.body, templates, locals, probe, ctx) {
+                let arm_ty = match &dependent {
+                    Some((x, params)) => {
+                        let mut term = Expr::Ident {
+                            name: arm.ctor.clone(),
+                            span: arm.span,
+                        };
+                        for param in params {
+                            term = Expr::App {
+                                fun: Box::new(term),
+                                arg: Box::new(param.clone()),
+                                span: arm.span,
+                            };
+                        }
+                        for binder in &arm.binders {
+                            term = Expr::App {
+                                fun: Box::new(term),
+                                arg: Box::new(Expr::Ident {
+                                    name: binder.name.clone(),
+                                    span: binder.span,
+                                }),
+                                span: arm.span,
+                            };
+                        }
+                        let mut map = HashMap::new();
+                        map.insert(x.clone(), term);
+                        substitute_names(ty, &map, &HashMap::new())
+                    }
+                    None => ty.clone(),
+                };
+                let arm_r = render_expr(&arm_ty);
+                match goal_under_binders(&arm_ty, &arm.body, templates, locals, probe, ctx) {
                     Some(info) => {
                         for (i, span) in info.holes.iter().enumerate() {
                             holes.push(*span);
@@ -1224,7 +1273,7 @@ fn goal_under_binders(
                                 .sub_goals
                                 .get(i)
                                 .and_then(|sub| sub.ty.clone())
-                                .or_else(|| Some(r.clone()));
+                                .or_else(|| Some(arm_r.clone()));
                             sub_goals.push(SubGoal {
                                 span: *span,
                                 ty: sub_ty,
@@ -1238,7 +1287,7 @@ fn goal_under_binders(
                             holes.push(span);
                             sub_goals.push(SubGoal {
                                 span,
-                                ty: Some(r.clone()),
+                                ty: Some(arm_r.clone()),
                             });
                         }
                     }
