@@ -714,3 +714,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   reveal。测试：LSP `goals_request_*` 断言 `ty`/`ty_runs`、扩展契约
   `infoview_declaration_list_shows_types_and_jumps`。版本 **0.44.0**。
 
+- 2026-09-15（七十五）：**应用位置 binder 类型推断（0.45.0）**——ROADMAP I6
+  elaborator 最后一项。`fun x => …` 在有期望类型时早已可推断；本轮补**无期望
+  类型**的应用位置：`annotate_application_lambda` 展平 spine，用 kernel-backed
+  `judge_infer` 从实参类型推断未注解 binder，源到源改写后交回正常路径（支持
+  柯里化 `(fun x y => x) a b`）。实参不足仍报 `elab-untyped-binder`。front +3 /
+  CLI +1；文档 architecture + `elaborator-let-match.md` as-built + TESTING。
+  版本 **0.45.0**。
+

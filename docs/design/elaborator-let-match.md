@@ -513,3 +513,20 @@ options }` 贯通进 `elab_expr` 后，§3.4 的「走 `judge_infer` 查询」�
   reports_a_let_specific_error`；CLI `json_mode_unannotated_let_infers_or_reports_hint`；
   课程 unit3 注释更新（类型可省略）。kernel 零改动。
 - 版本 0.33.1 → **0.34.0**（新能力 = minor）。
+
+## As-built：应用位置的 binder 类型推断（2026-09-15，0.45.0）
+
+- 现状：`fun x => …` 在**有期望类型**的位置早已能从期望望远镜推断
+  （`elab_expr` 的 `Expr::Lambda` + `peel_expected`）；缺的是**无期望类型**的
+  应用位置（`(fun x => x) 1`）。
+- 实现：`annotate_application_lambda`（`elab.rs`）在做 `Expr::App` 之前，把
+  spine `f a1 … an` 展平；若头部是带未注解 binder 的 `Lambda`，用
+  `judge_infer`（kernel-backed）推断 `a_i` 的类型，作为第 i 个 binder 的注解，
+  **源到源改写**后交回正常路径。支持柯里化 `(fun x y => x) a b`。
+- 边界：实参不足以覆盖全部未注解 binder（`(fun x y => x) 1`）→ 仍报
+  `elab-untyped-binder`；`#check fun x => x` 无期望无实参 → 同样报错。
+- 测试：front `untyped_binder_is_inferred_from_the_application_argument`、
+  `curried_untyped_binders_are_inferred_from_the_arguments`、
+  `untyped_binder_still_errors_with_too_few_arguments`；CLI
+  `cli_untyped_lambda_binder_is_inferred_from_the_argument`。
+

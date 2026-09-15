@@ -1,8 +1,58 @@
-# STATUS 归档（第 1–70 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–72 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十二轮：`match` 模式编译器 v1）
+
+> 续 HANDOVER §3 B / ROADMAP I6：把「每构造子一条 arm」换成有序 arm + 列式
+> 模式编译，支持字面量/嵌套/通配/守卫。设计 `docs/design/match-patterns.md`。
+
+1. **AST/parser**：`Pattern { Wild, Num, Ident{name,args} }`；`MatchArm` 改
+   `{pattern, guard, body}`；`parse_pattern`（递归、`(...)`、`_`、数字）；
+   守卫 `if` 只在 arm 里识别（不升全局关键字）。
+2. **编译器（核心）**：**源到源 canonical 化**——`compile_pattern_body` 选可反驳
+   列、按构造子特化，生成嵌套 `Expr::Match`，每层仍走既有 motive/IH/level/
+   recursor 构造（**不手搓 de Bruijn**）；守卫复用 prelude `Bool` 的 match。
+   字段名取绑定名（canonical 幂等）、撞构造子名用新鲜名；参数化字段先代入参数
+   （`some (a : A)` 在 `Option Nat` → `Nat`）。
+3. **语义**：有序、首个匹配者胜；未知裸名 = 绑定变量（带子模式才 bad-arm）；
+   覆盖不全/守卫无兜底 = `elab-match-non-exhaustive`；error hint 措辞更新。
+4. **消费者**：`semantic`（模式绑定着色 + 守卫）、`proof::render_pattern`、
+   `spine`（mentions/substitute 含守卫与模式阴影）、`goals`（hole/替身/依赖
+   子目标；嵌套/守卫退回常量 R）。
+5. **测试**：front +8、CLI +3；课程 unit5 增嵌套模式节 + 练习 9
+   （golden `(10,8,4)→(11,9,6)`、汇总 `checked 54→55 / open 41→42`）。
+6. **文档**：architecture §2/§4.1、design `match.md` §2/§10 Phase 6、
+   `match-patterns.md` as-built、TESTING、protocol、CHANGELOG。
+7. **验收**：`sokonanoda gate` PASS；版本 0.41.0 → **0.42.0**（新语法 minor）。
+   已知限制：`as`/or 模式、多 scrutinee、`if/then/else` 表达式不做。
+
+## 本轮进度（2026-09-15，第七十一轮：prelude `Bool`）
+
+> 续 HANDOVER §3 C / ROADMAP I6：把 `Bool` 作为真实可信归纳加进 prelude，
+> 与 `Nat`（0.36.0）同法，供 `match` 与后续布尔例子使用。
+
+1. **安装**：`prelude.rs::install_bool_prelude` 调用既有
+   `install_inductive_block`，`Bool` **非递归** → 构造子 `Bool.true`/`Bool.false`
+   + 派生 `Bool.rec`（两分支、无 IH），登记进 `known` 与 `match` 的
+   `InductiveTable`；`PRELUDE_NAMES` 增 4 个名字（补全/目标视图）。
+2. **闸**：`check.rs::run_pass` 增 `explicit_bool`——文件自带 `inductive Bool`
+   时 prelude 让位（否则重复声明 panic）；`session.rs::PreludeShape` 扩成
+   `(mode, explicit_nat, explicit_bool, eq_taken)`，任一变化整体重编译。
+3. **内核零改动**：`Bool.true`/`Bool.false` 的 name-cache 槽位早已存在
+   （原生 `Nat.beq`/`Nat.ble` 用），归约走通用构造子 iota。
+4. **测试**：front `prelude_bool_is_available_without_a_source_block` /
+   `match_prelude_bool_not_checks_and_reduces`（`#reduce bnot Bool.true =>
+   Bool.false`）/ `prelude_bool_definitions_compose` /
+   `explicit_bool_block_yields_to_the_source_declaration`；CLI
+   `cli_match_on_prelude_bool_checks_and_reduces`；既有源内 `inductive Bool`
+   （`tt`/`ff`）用例继续通过=闸生效。
+5. **文档**：`architecture.md §5.4`、`design/match.md §2/§10 Phase 5`、
+   `TESTING.md`、`protocol` 错误文案（`Nat/Bool`）；错误提示改为
+   「prelude 内建的 Nat/Bool」。
+6. **验收**：`sokonanoda gate` PASS；版本 0.40.0 → **0.41.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-15，第七十轮：统一 goal 呈现 + Infoview 落右侧）
 
@@ -684,6 +734,7 @@
    GitHub Actions。顺带修 4 处文档漂移（README 写死 `V=0.9.0`、课程单元数
    5 vs 6 的三处口径）。
 6. **版本**：0.17.0 → **0.18.0**（新语法 = 新能力 → minor）。
+
 ## 本轮进度（2026-09-13，第三十九轮：三个大方向的设计——值位 `apply` / 真人输入测试 / 官网）
 
 > 触发：用户提出三个大方向——①照 `intro` 的模式新增值位 `apply`（要补全 + 等价部分
@@ -1827,25 +1878,6 @@ goal 视图 UX / VSCode+CI 标准），设计文档 `docs/design/i8-i9.md`，全
 6. 测试总量 **229**（kernel 45 / front 121 / cli 40 / lsp 23），
    全绿；`cargo clippy --workspace` exit-0，教学 crates 0 警告。
 
-## 本轮进度（2026-09-07，接手 agent 第 1–3 轮）
-
-1. **模块化重构（用户要求：不得单文件巨石）**：`front/lib.rs`→
-   `span/token/ast/diagnostic/parser + compile/{mod,error,event,report,elab,prelude,check}`；
-   `cli`→`main/check/json_report/repl/help`；`lsp`→`main/render/actions`；
-   公开 API 全部 re-export 保持稳定；**kernel 一行未动**（性能原则）。
-2. **全流水线测试资产（157 tests 全绿，见 `docs/TESTING.md` 地图）**：
-   kernel 41+2 / arena 1 / memory 1；front 49→**74**（lexer 10 / parser 10 /
-   compile 51，含 ErrorKind 矩阵、DocumentReport 状态机、doc-conformance、perf 冒烟）；
-   cli 21→**21+8**（新增 protocol golden：封闭事件词表、lesson-01/02 金字、
-   协议文档防漂移）；**lsp 0→10**（内存内 LspService 协议级集成测试）。
-3. **测试揪出并修复的真实缺陷**：
-   - LSP `intro` quick-fix 行列 +1 偏移（actions.rs 1-based→LSP 0-based）；
-   - publishDiagnostics 补 `version`；didChange 改取最后一个 change（FULL sync 语义）；
-   - `--json` 的 elab/kernel diagnostic 补 `hint` 字段（protocol.md 本就承诺）；
-   - `docs/protocol.md` 补齐 6 个缺失 elab 错误码（doc-conformance 测试守护）。
-4. **文档**：新增 `REQUIREMENTS.md`（用户全部要求的权威总账）、
-   `docs/TESTING.md`（测试资产地图）、`docs/notes/lsp-notes.md`、`docs/notes/vscode-notes.md`。
-
 ## 本轮进度（2026-09-07 第四轮：I8 + I9 后半 + 语义高亮 + watch）
 
 1. **语义高亮（F8，用户要求）**：front 新增 `semantic.rs`（keyword/sort/number/
@@ -2041,3 +2073,22 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
 - 新增语法 = 课程 + 测试 + 白名单；`???` 只允许在声明值位。
 - kernel 拒绝目前仍是 panic→`Result`（`try_check_declar`）；细粒度 kernel 错误是 I9。
 - arena 生命周期：`EnvBuilder`/`ExportFile` 挂同一 `stumpalo::Arena`，必须活得比检查会话久。
+
+## 本轮进度（2026-09-07，接手 agent 第 1–3 轮）
+
+1. **模块化重构（用户要求：不得单文件巨石）**：`front/lib.rs`→
+   `span/token/ast/diagnostic/parser + compile/{mod,error,event,report,elab,prelude,check}`；
+   `cli`→`main/check/json_report/repl/help`；`lsp`→`main/render/actions`；
+   公开 API 全部 re-export 保持稳定；**kernel 一行未动**（性能原则）。
+2. **全流水线测试资产（157 tests 全绿，见 `docs/TESTING.md` 地图）**：
+   kernel 41+2 / arena 1 / memory 1；front 49→**74**（lexer 10 / parser 10 /
+   compile 51，含 ErrorKind 矩阵、DocumentReport 状态机、doc-conformance、perf 冒烟）；
+   cli 21→**21+8**（新增 protocol golden：封闭事件词表、lesson-01/02 金字、
+   协议文档防漂移）；**lsp 0→10**（内存内 LspService 协议级集成测试）。
+3. **测试揪出并修复的真实缺陷**：
+   - LSP `intro` quick-fix 行列 +1 偏移（actions.rs 1-based→LSP 0-based）；
+   - publishDiagnostics 补 `version`；didChange 改取最后一个 change（FULL sync 语义）；
+   - `--json` 的 elab/kernel diagnostic 补 `hint` 字段（protocol.md 本就承诺）；
+   - `docs/protocol.md` 补齐 6 个缺失 elab 错误码（doc-conformance 测试守护）。
+4. **文档**：新增 `REQUIREMENTS.md`（用户全部要求的权威总账）、
+   `docs/TESTING.md`（测试资产地图）、`docs/notes/lsp-notes.md`、`docs/notes/vscode-notes.md`。

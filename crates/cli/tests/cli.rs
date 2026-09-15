@@ -173,6 +173,24 @@ fn cli_untyped_decl_binder_is_a_parse_error() {
 }
 
 #[test]
+fn cli_untyped_lambda_binder_is_inferred_from_the_argument() {
+    // I6：应用位置的 `fun x => …` 从实参类型推断 binder（kernel-backed）。
+    let src = "\
+def k : Nat := (fun x => x) 1
+#reduce (fun x y => x) 3 4
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration k"), "{stdout}");
+    assert!(stdout.contains("=> 3"), "{stdout}");
+}
+
+#[test]
 fn cli_decl_binders_feed_the_by_engine() {
     let src = "axiom And : Prop -> Prop -> Prop\n\
                axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\

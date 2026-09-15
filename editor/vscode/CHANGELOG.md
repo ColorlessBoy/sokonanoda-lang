@@ -1,3 +1,13 @@
+## [0.45.0] - 2026-09-15
+
+### Added
+
+- **Binder type inference at application sites** — an unannotated `fun x => …`
+  used as a function (`(fun x => x) 1`, `(fun x y => x) 1 2`) now infers its
+  binder types from the argument types (kernel-checked), so fewer annotations
+  are needed. Positions with neither an expected type nor arguments still
+  require the annotation.
+
 ## [0.44.0] - 2026-09-15
 
 ### Added

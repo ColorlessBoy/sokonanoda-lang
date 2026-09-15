@@ -304,7 +304,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
    之前**报 `elab-missing-inductive-rec`（check-then-add 语义保持）。
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
-3. **elab 仍受限**：binder 可由声明类型推断（I6）、值位 `let`（Phase 1）、值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）与**非带索引参数化归纳**（`inductive Option (A : Type)`，含对它的 `match`；`docs/design/parameterized-inductives.md`）已落地，但未做无注解 `let`、依赖 motive、**带索引**归纳与宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
+3. **elab 仍受限**：binder 可由声明类型推断（I6；应用位置的未注解 `fun x => …` 也可从实参类型推断，0.45.0）、值位 `let`（Phase 1）、值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）与**非带索引参数化归纳**（`inductive Option (A : Type)`，含对它的 `match`；`docs/design/parameterized-inductives.md`）已落地，但未做无注解 `let`、依赖 motive、**带索引**归纳与宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
 4. **语法白名单是边界**：想加语法，先加课程 + 测试；`???` 只允许出现在声明（def/theorem/example）的值位。
 5. **不用官方工具链**：CI 与本地一律 `cargo`；不要引入 `lean`/`lake`/`lean4export`。
 6. **新错误要带 stage/code 与 span**：CLI 已按 `error[stage]:` 输出，`--json` 是 agent 视图；改输出格式要同步 `docs/protocol.md` 与 `crates/cli/tests/cli.rs`。

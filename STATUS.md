@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十四轮：Infoview 声明类型提示 + 点击跳转；0.44.0）
+> 快照：2026-09-15（第七十五轮：应用位置 binder 类型推断；0.45.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,24 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十五轮：应用位置 binder 类型推断）
+
+> 续 HANDOVER §3 C / ROADMAP I6：elaborator 最后一项——无期望类型时从实参
+> 推断 `fun x => …` 的 binder 类型。
+
+1. **现状**：`fun x => …` 在有期望望远镜时已能推断（`Expr::Lambda` +
+   `peel_expected`）；缺的是 `(fun x => x) 1` 这类无期望的应用位置。
+2. **实现**：`annotate_application_lambda`——处理 `Expr::App` 前展平 spine
+   `f a1 … an`；头部是带未注解 binder 的 `Lambda` 时，用 `judge_infer`
+   推断 `a_i` 类型作为 binder 注解，**源到源改写**后交回正常路径；支持
+   柯里化 `(fun x y => x) a b`。
+3. **边界**：实参不足以覆盖全部未注解 binder → 仍报 `elab-untyped-binder`
+   （`(fun x y => x) 1`、`#check fun x => x`）。
+4. **测试**：front +3（应用/柯里化/实参不足）、CLI +1；既有 `untyped_binder_*`
+   回归不破。
+5. **文档**：architecture §elab、`elaborator-let-match.md` as-built、TESTING。
+6. **验收**：`sokonanoda gate` PASS；版本 0.44.0 → **0.45.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-15，第七十四轮：Infoview 声明类型提示 + 点击跳转）
 
@@ -51,54 +69,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. **契约**：LSP `code_fences_always_use_the_sokonanoda_language` + hover/
    completion 断言；扩展 `rendered_language_text_uses_the_sokonanoda_fence`。
 5. **验收**：`sokonanoda gate` PASS；版本 0.42.0 → **0.43.0**（行为统一，minor）。
-
-## 本轮进度（2026-09-15，第七十二轮：`match` 模式编译器 v1）
-
-> 续 HANDOVER §3 B / ROADMAP I6：把「每构造子一条 arm」换成有序 arm + 列式
-> 模式编译，支持字面量/嵌套/通配/守卫。设计 `docs/design/match-patterns.md`。
-
-1. **AST/parser**：`Pattern { Wild, Num, Ident{name,args} }`；`MatchArm` 改
-   `{pattern, guard, body}`；`parse_pattern`（递归、`(...)`、`_`、数字）；
-   守卫 `if` 只在 arm 里识别（不升全局关键字）。
-2. **编译器（核心）**：**源到源 canonical 化**——`compile_pattern_body` 选可反驳
-   列、按构造子特化，生成嵌套 `Expr::Match`，每层仍走既有 motive/IH/level/
-   recursor 构造（**不手搓 de Bruijn**）；守卫复用 prelude `Bool` 的 match。
-   字段名取绑定名（canonical 幂等）、撞构造子名用新鲜名；参数化字段先代入参数
-   （`some (a : A)` 在 `Option Nat` → `Nat`）。
-3. **语义**：有序、首个匹配者胜；未知裸名 = 绑定变量（带子模式才 bad-arm）；
-   覆盖不全/守卫无兜底 = `elab-match-non-exhaustive`；error hint 措辞更新。
-4. **消费者**：`semantic`（模式绑定着色 + 守卫）、`proof::render_pattern`、
-   `spine`（mentions/substitute 含守卫与模式阴影）、`goals`（hole/替身/依赖
-   子目标；嵌套/守卫退回常量 R）。
-5. **测试**：front +8、CLI +3；课程 unit5 增嵌套模式节 + 练习 9
-   （golden `(10,8,4)→(11,9,6)`、汇总 `checked 54→55 / open 41→42`）。
-6. **文档**：architecture §2/§4.1、design `match.md` §2/§10 Phase 6、
-   `match-patterns.md` as-built、TESTING、protocol、CHANGELOG。
-7. **验收**：`sokonanoda gate` PASS；版本 0.41.0 → **0.42.0**（新语法 minor）。
-   已知限制：`as`/or 模式、多 scrutinee、`if/then/else` 表达式不做。
-
-## 本轮进度（2026-09-15，第七十一轮：prelude `Bool`）
-
-> 续 HANDOVER §3 C / ROADMAP I6：把 `Bool` 作为真实可信归纳加进 prelude，
-> 与 `Nat`（0.36.0）同法，供 `match` 与后续布尔例子使用。
-
-1. **安装**：`prelude.rs::install_bool_prelude` 调用既有
-   `install_inductive_block`，`Bool` **非递归** → 构造子 `Bool.true`/`Bool.false`
-   + 派生 `Bool.rec`（两分支、无 IH），登记进 `known` 与 `match` 的
-   `InductiveTable`；`PRELUDE_NAMES` 增 4 个名字（补全/目标视图）。
-2. **闸**：`check.rs::run_pass` 增 `explicit_bool`——文件自带 `inductive Bool`
-   时 prelude 让位（否则重复声明 panic）；`session.rs::PreludeShape` 扩成
-   `(mode, explicit_nat, explicit_bool, eq_taken)`，任一变化整体重编译。
-3. **内核零改动**：`Bool.true`/`Bool.false` 的 name-cache 槽位早已存在
-   （原生 `Nat.beq`/`Nat.ble` 用），归约走通用构造子 iota。
-4. **测试**：front `prelude_bool_is_available_without_a_source_block` /
-   `match_prelude_bool_not_checks_and_reduces`（`#reduce bnot Bool.true =>
-   Bool.false`）/ `prelude_bool_definitions_compose` /
-   `explicit_bool_block_yields_to_the_source_declaration`；CLI
-   `cli_match_on_prelude_bool_checks_and_reduces`；既有源内 `inductive Bool`
-   （`tt`/`ff`）用例继续通过=闸生效。
-5. **文档**：`architecture.md §5.4`、`design/match.md §2/§10 Phase 5`、
-   `TESTING.md`、`protocol` 错误文案（`Nat/Bool`）；错误提示改为
-   「prelude 内建的 Nat/Bool」。
-6. **验收**：`sokonanoda gate` PASS；版本 0.40.0 → **0.41.0**（新能力 minor）。
 

@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量 13 套件
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～七十四轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～七十五轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -46,8 +46,9 @@ cargo test --workspace --locked   # 全量 13 套件
 | 72 | 0.42.0 | `match` 模式编译器 v1（嵌套/字面量/通配/守卫） | `docs/design/match-patterns.md` |
 | 73 | 0.43.0 | 呈现面高亮统一（`sokonanoda` 围栏全量） | `docs/design/goal-rendering.md` §7 |
 | 74 | 0.44.0 | Infoview 声明类型提示 + 点击跳转 | `docs/protocol.md` / `webview-infoview.md` |
+| 75 | 0.45.0 | 应用位置 binder 类型推断（I6 最后一项） | `docs/design/elaborator-let-match.md` as-built |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–70 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–71 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
@@ -90,8 +91,10 @@ cargo test --workspace --locked   # 全量 13 套件
 - ~~**prelude `Bool`**~~ ✅ 已完成（0.41.0）：`install_bool_prelude`（非递归真实可信归纳，
   `Bool.true`/`Bool.false` + `Bool.rec`）；`match` 可用；文件自带 `inductive Bool`
   时让位（`explicit_bool` 闸 + `PreludeShape` 四元组）。见 `docs/design/match.md` §10 Phase 5。
-- **binder 类型推断（非依赖情形）**：让 `fun (x)` 之类能从期望类型推断 binder 类型；
-  设计待写（`docs/design/elaborator-let-match.md` 提到过路线）。
+- ~~**binder 类型推断（非依赖情形）**~~ ✅ 已完成（0.45.0）：有期望望远镜时可推断
+  （既有）；无期望的**应用位置**从实参类型推断（`annotate_application_lambda`，
+  支持柯里化），实参不足仍报 `elab-untyped-binder`。见
+  `docs/design/elaborator-let-match.md` as-built。
 - `Nat.succ`/`Nat.add` 边界：`Nat` 现为真实归纳、`Nat.add` 仍原生自引用定义
   （见 `docs/architecture.md` §5.4）；如需可补裸名 `#reduce` 测试。
 

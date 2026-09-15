@@ -753,6 +753,22 @@ pub(crate) fn elab_expr<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<ExprPtr<'a>, CompileError> {
+    // Lambda-headed application with untyped binders: infer the binder types
+    // from the arguments' types (non-dependent case, I6). Source-to-source
+    // rewrite, then the normal path elaborates the annotated lambda.
+    if let Some(rewritten) = annotate_application_lambda(expr, ctx, scope) {
+        return elab_expr(
+            builder,
+            &rewritten,
+            scope,
+            univ,
+            known,
+            hovers,
+            expected,
+            expected_src,
+            ctx,
+        );
+    }
     match expr {
         Expr::Sort {
             sort: SortKind::Prop,
@@ -1593,6 +1609,64 @@ fn src_spine(expr: &Expr) -> Option<(String, Vec<Expr>)> {
         }
         _ => None,
     }
+}
+
+// ---- 应用位置的 lambda binder 类型推断（I6，非依赖）----
+
+/// Rewrite a lambda-headed application whose leading binders lack annotations
+/// by inferring those binder types from the argument types (kernel-backed
+/// `judge_infer`, design `docs/design/elaborator-let-match.md`). Handles the
+/// curried case `(fun x y => …) a b`. Returns `None` when the shape or the
+/// query does not apply — the normal path then reports the untyped binder.
+fn annotate_application_lambda(expr: &Expr, ctx: &ElabCtx, scope: &ElabScope) -> Option<Expr> {
+    // Flatten the spine `f a1 … an` (leftmost non-App is the head).
+    let mut args: Vec<&Expr> = Vec::new();
+    let mut head = expr;
+    while let Expr::App { fun, arg, .. } = head {
+        args.push(arg);
+        head = fun;
+    }
+    if args.is_empty() {
+        return None;
+    }
+    args.reverse();
+    let Expr::Lambda {
+        binders,
+        body,
+        span,
+    } = head
+    else {
+        return None;
+    };
+    let untyped: Vec<usize> = binders
+        .iter()
+        .enumerate()
+        .filter(|(_, b)| b.ty.is_none())
+        .map(|(i, _)| i)
+        .collect();
+    if untyped.is_empty() || args.len() < untyped.len() {
+        return None;
+    }
+    let judge = scope.judge_binders();
+    let mut new_binders = binders.clone();
+    for (n, &i) in untyped.iter().enumerate() {
+        let text = judge_infer(ctx.prefix_src, ctx.options, &judge, &render_expr(args[n])).ok()?;
+        let ty = crate::proof::parse_expr_text(&text).ok()?;
+        new_binders[i].ty = Some(Box::new(ty));
+    }
+    let mut rebuilt = Expr::Lambda {
+        binders: new_binders,
+        body: body.clone(),
+        span: *span,
+    };
+    for arg in &args {
+        rebuilt = Expr::App {
+            fun: Box::new(rebuilt),
+            arg: Box::new((*arg).clone()),
+            span: expr.span(),
+        };
+    }
+    Some(rebuilt)
 }
 
 // ---- 模式编译器（docs/design/match-patterns.md §4）----

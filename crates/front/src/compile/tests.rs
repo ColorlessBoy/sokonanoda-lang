@@ -1669,6 +1669,49 @@ fn untyped_binder_past_the_declared_telescope_is_rejected() {
 }
 
 #[test]
+fn untyped_binder_is_inferred_from_the_application_argument() {
+    // I6（非依赖）：应用位置没有期望类型时，从实参类型推断 lambda binder。
+    let src = "def k : Nat := (fun x => x) 1\n#reduce (fun x => x) 2\n";
+    let out = compile_fol(&parse(src).expect("parse"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "k")));
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "2")),
+        "{:?}",
+        out.events
+    );
+}
+
+#[test]
+fn curried_untyped_binders_are_inferred_from_the_arguments() {
+    let src = "def k : Nat := (fun x y => y) 1 2\n#reduce (fun x y => x) 3 4\n";
+    let out = compile_fol(&parse(src).expect("parse"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "3")),
+        "{:?}",
+        out.events
+    );
+}
+
+#[test]
+fn untyped_binder_still_errors_with_too_few_arguments() {
+    // 只有一个实参、两个未注解 binder：第二个无从推断 → 仍报 untyped-binder。
+    let out = compile_fol(&parse("def k : Nat := (fun x y => x) 1\n").expect("parse"));
+    assert!(out
+        .errors
+        .iter()
+        .any(|e| e.kind == ErrorKind::ElabUntypedBinder));
+}
+
+#[test]
 fn partial_hole_reports_the_remaining_goal() {
     let file = parse("example : (a : Prop) -> a -> a := fun (a : Prop) => sorry\n").unwrap();
     let out = compile_fol(&file);
