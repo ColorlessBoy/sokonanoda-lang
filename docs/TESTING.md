@@ -68,7 +68,10 @@
 3. **（已闭环，留档）编辑器端 LSP 部分手工**：codeLens / quick-fix 曾有自动化缺口（2026-09-14 补齐：`code_lens_ranges_match_each_declaration`、`code_action_refine_edit_targets_the_hole`、`code_action_open_goal_without_a_next_step_offers_none`，四族 quick-fix 与 codeLens 全走进程内 rpc；见 §1 的 LSP 行）。真正仍需手工/真实编辑器的只剩 VS Code Electron 集成（已由 `editor/vscode/src/test/extension.test.js` 覆盖激活→LSP→诊断/hover 运行时行为，见下节）。
 4. **（已闭环，留档）** goal 视图曾「只有 proof.rs 3 个单测、无 e2e」——I9 起已有 `soko/goals` 等 5 个自定义请求的进程内测试与 `crates/cli/tests` 的 goal 视图路径。
 5. **hover 文本的语义要读懂再用**：hover 显示的是"该子表达式的类型"。类型位置的 `Nat` 的 hover 是 `Type 0`（Nat 的类型），值位置的 `n + 1` 才是 `Nat`——`hover_map_covers_subexpressions` 固定了这两个真实值，编辑器呈现时别想当然。
-6. **perf 只有 canary 不是基准**：30s 阈值只挡 debug 构建下的"意外爆炸"，真正的性能回归基准（Lean Kernel Arena 对比）尚未立项。
+6. **perf 只有 canary 不是基准**：30s 阈值只挡 debug 构建下的"意外爆炸"。外部
+   基准（对照 Lean Kernel Arena）**已立项为 opt-in**：`scripts/perf-arena.sh` +
+   `crates/kernel/tests/arena.rs`（`LEAN_KERNEL_ARENA` 门控，未设自跳过，CI 不依赖）；
+   语料属外部仓库不 vendor，见 `docs/PERF.md`「External baseline」。
 
 ## 6. 初始规模快照（历史，最新数字以 STATUS.md 各轮为准）
 

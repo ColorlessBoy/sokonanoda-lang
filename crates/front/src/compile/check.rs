@@ -15,7 +15,7 @@ use super::report::{
 use crate::{Command, Expr, FolFile, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, EnvLimit};
-use sokonanoda::util::{Config, ExprPtr, NamePtr};
+use sokonanoda::util::{Config, ExportFile, ExprPtr, NamePtr};
 use std::collections::HashMap;
 
 pub(crate) enum PendingOp<'a> {
@@ -87,8 +87,140 @@ pub(crate) struct CmdHover<'a> {
 /// were already kernel-checked in a previous session with the identical text,
 /// so this run elaborates them into the environment but does NOT re-check
 /// them — their states/hovers/events are reused from the session cache.
+///
+/// `prev_signatures`/`text_unchanged`/`allow_cutoff` power **early cutoff**:
+/// after re-elaborating the changed command, if the accumulated
+/// environment contribution `[before, j)` matches the previous session's and
+/// every later command's text is unchanged, commands `[j, n)` are reused
+/// verbatim and never kernel-checked (I8 依赖精确化).
 pub(crate) struct TrustPlan {
     pub before: usize,
+    /// Previous session's per-command signature (length = previous command
+    /// count). `None` for open/failed/non-declaration commands.
+    pub prev_signatures: Vec<Option<String>>,
+    /// `true` for a command index whose source text is byte-identical to the
+    /// previous session's command at the same index.
+    pub text_unchanged: Vec<bool>,
+    /// Early cutoff is only attempted when the caller established that all
+    /// commands after `before` keep their text (single-edit alignment).
+    pub allow_cutoff: bool,
+}
+
+/// One `run_pass` result, including the early-cutoff bookkeeping.
+struct PassResult {
+    out: CompileOutput,
+    report: DocumentReport,
+    failed: KernelFailed,
+    checks: usize,
+    /// Per-command environment signatures (length = current command count).
+    /// Only populated for incremental runs; `None` means "no env contribution
+    /// or the command was past the cutoff".
+    sigs: Vec<Option<String>>,
+    /// First command index whose previous snapshots may be reused; `n` when
+    /// the whole suffix was (re)processed. Fresh results cover `[0, cutoff)`.
+    cutoff: usize,
+}
+
+/// The command index a pending op belongs to.
+fn op_cmd(op: &PendingOp<'_>) -> usize {
+    match op {
+        PendingOp::Decl { cmd, .. }
+        | PendingOp::InductiveBlock { cmd, .. }
+        | PendingOp::OpenExercise { cmd, .. }
+        | PendingOp::Check { cmd, .. }
+        | PendingOp::Reduce { cmd, .. }
+        | PendingOp::Print { cmd, .. } => *cmd,
+    }
+}
+
+/// A declaration's discriminative keyword (part of its signature so that an
+/// `axiom` and a `def` of the same name/type never compare equal).
+fn declar_keyword(declar: &Declar<'_>) -> &'static str {
+    match declar {
+        Declar::Axiom { .. } => "axiom",
+        Declar::Quot { .. } => "quot",
+        Declar::Theorem { .. } => "theorem",
+        Declar::Definition { .. } => "def",
+        Declar::Opaque { .. } => "opaque",
+        Declar::Inductive(_) => "inductive",
+        Declar::Constructor(_) => "ctor",
+        Declar::Recursor(_) => "recursor",
+    }
+}
+
+/// Render a declaration into a canonical, environment-observable signature:
+/// kind, name, declared universes, type, body (for reducible/opaque
+/// declarations) and iota rules (for recursors). Two commands with equal
+/// signatures are interchangeable for every later command — the soundness
+/// contract for I8 early cutoff. The body is required because delta unfolding
+/// is observable (a changed def body with an unchanged type MUST invalidate
+/// dependents); theorems/opaques carry their bodies too (conservative:
+/// `#print` / `#reduce` can observe them).
+///
+/// The encoding uses the kernel's structural `debug_print` rather than the
+/// pretty printer: every application node, universe instantiation, declared
+/// universe parameter (even an unused one) and iota rule appears verbatim, so
+/// no notation/elision can make two different declarations compare equal.
+/// Binder *names* are included, so alpha-renaming or binder-style differences
+/// can only ever produce *false* mismatches (extra rechecks), never false
+/// matches.
+fn declar_signature(env: &mut ExportFile<'_>, declar: &Declar<'_>) -> String {
+    let info = *declar.info();
+    let mut out = String::new();
+    out.push_str(declar_keyword(declar));
+    out.push(' ');
+    out.push_str(&env.with_ctx(|ctx, _cache, _bump| format!("{:?}", ctx.debug_print(&info))));
+    match declar {
+        Declar::Definition { val, hint, .. } => {
+            out.push_str(" := ");
+            out.push_str(
+                &env.with_ctx(|ctx, _cache, _bump| format!("{:?}", ctx.debug_print(*val))),
+            );
+            out.push_str(&format!(" [{hint:?}]"));
+        }
+        Declar::Theorem { val, .. } | Declar::Opaque { val, .. } => {
+            out.push_str(" := ");
+            out.push_str(
+                &env.with_ctx(|ctx, _cache, _bump| format!("{:?}", ctx.debug_print(*val))),
+            );
+        }
+        Declar::Constructor(data) => {
+            out.push_str(&env.with_ctx(|ctx, _cache, _bump| {
+                format!(
+                    " |ctor-of {:?} idx={} p={} f={}",
+                    ctx.debug_print(data.inductive_name),
+                    data.ctor_idx,
+                    data.num_params,
+                    data.num_fields
+                )
+            }));
+        }
+        Declar::Recursor(data) => {
+            out.push_str(&format!(
+                " |meta p={} i={} m={} n={} k={}",
+                data.num_params, data.num_indices, data.num_motives, data.num_minors, data.is_k
+            ));
+            out.push_str(&env.with_ctx(|ctx, _cache, _bump| {
+                format!(" |inds {:?}", ctx.debug_print(&data.all_inductives[..]))
+            }));
+            out.push_str(&env.with_ctx(|ctx, _cache, _bump| {
+                format!(" |rules {:?}", ctx.debug_print(&data.rec_rules[..]))
+            }));
+        }
+        _ => {}
+    }
+    out
+}
+
+/// Signature of an `inductive … end` block: every declaration it installs
+/// (spine, constructors, recursor + iota rules), in order.
+fn inductive_signature(env: &mut ExportFile<'_>, declars: &[Declar<'_>]) -> String {
+    let mut out = String::new();
+    for declar in declars {
+        out.push('\n');
+        out.push_str(&declar_signature(env, declar));
+    }
+    out
 }
 
 /// Compile and kernel-check a whole file in one arena session, returning the
@@ -198,50 +330,75 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
     // unsound for teaching. Pass 2 recomputes in a fresh session with the
     // kernel-failed declarations removed (check-then-add semantics): their
     // names are free again and dependents fail with a proper diagnosis.
-    let (mut out, report, failed, checks) = run_pass(file, options, collect, None, None);
-    out.stats.kernel_checks = checks;
+    let pass = run_pass(file, options, collect, None, None);
+    let mut out = pass.out;
+    out.stats.kernel_checks = pass.checks;
     if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
-        for (idx, err) in &failed {
+        for (idx, err) in &pass.failed {
             eprintln!("pass1 failed cmd {idx}: {} ({:?})", err.message, err.kind);
         }
     }
-    if failed.is_empty() {
-        return (out, report);
+    if pass.failed.is_empty() {
+        return (out, pass.report);
     }
-    let (mut out2, report2, _failed2, checks2) =
-        run_pass(file, options, collect, Some(&failed), None);
-    out2.stats.kernel_checks = checks + checks2;
-    (out2, report2)
+    let pass2 = run_pass(file, options, collect, Some(&pass.failed), None);
+    let mut out2 = pass2.out;
+    out2.stats.kernel_checks = pass.checks + pass2.checks;
+    (out2, pass2.report)
 }
 
 /// Incremental entry (I8): `trust` marks the reusable prefix `[0, before)`;
 /// `prefix_failures` maps trusted command indices to their cached failures —
 /// those names stay free (check-then-add) and their states are owned by the
 /// session cache, so this pass neither re-checks nor re-reports them.
+///
+/// Returns `(output, report, kernel_checks, signatures, cutoff)`. Fresh
+/// results cover `[0, cutoff)`; commands `[cutoff, n)` can be reused from the
+/// session cache (early cutoff). Early cutoff is abandoned for good as soon
+/// as a currently-processed declaration is kernel-rejected (check-then-add
+/// makes pass 1's environment provisional), in which case pass 2 reprocesses
+/// the whole suffix with cutoff disabled.
 pub(crate) fn run_incremental(
     file: &FolFile,
     options: &CompileOptions,
     trust: &TrustPlan,
     prefix_failures: &KernelFailed,
-) -> (CompileOutput, DocumentReport, usize) {
-    let (out1, report1, failed1, checks1) =
-        run_pass(file, options, true, Some(prefix_failures), Some(trust));
-    if failed1.is_empty() {
-        return (out1, report1, checks1);
+) -> (
+    CompileOutput,
+    DocumentReport,
+    usize,
+    Vec<Option<String>>,
+    usize,
+) {
+    let pass1 = run_pass(file, options, true, Some(prefix_failures), Some(trust));
+    if pass1.failed.is_empty() {
+        let mut out = pass1.out;
+        out.stats.kernel_checks = pass1.checks;
+        return (out, pass1.report, pass1.checks, pass1.sigs, pass1.cutoff);
     }
     if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
-        for (idx, err) in &failed1 {
+        for (idx, err) in &pass1.failed {
             eprintln!("pass1 failed cmd {idx}: {} ({:?})", err.message, err.kind);
         }
     }
     let mut skip2 = prefix_failures.clone();
-    for (idx, err) in &failed1 {
+    for (idx, err) in &pass1.failed {
         skip2.insert(*idx, err.clone());
     }
-    let (mut out2, report2, _failed2, checks2) =
-        run_pass(file, options, true, Some(&skip2), Some(trust));
-    out2.stats.kernel_checks = checks1 + checks2;
-    (out2, report2, checks1 + checks2)
+    // Pass 2 establishes the true check-then-add environment; cutoff is
+    // disabled because pass 1's provisional environment invalidated any
+    // signature comparison it might have made.
+    let trust2 = TrustPlan {
+        before: trust.before,
+        prev_signatures: Vec::new(),
+        text_unchanged: Vec::new(),
+        allow_cutoff: false,
+    };
+    let pass2 = run_pass(file, options, true, Some(&skip2), Some(&trust2));
+    let checks = pass1.checks + pass2.checks;
+    let mut out = pass2.out;
+    out.stats.kernel_checks = checks;
+    (out, pass2.report, checks, pass2.sigs, pass2.cutoff)
 }
 
 type KernelFailed = HashMap<usize, CompileError>;
@@ -252,7 +409,7 @@ fn run_pass(
     collect: bool,
     skip: Option<&KernelFailed>,
     trust: Option<&TrustPlan>,
-) -> (CompileOutput, DocumentReport, KernelFailed, usize) {
+) -> PassResult {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
@@ -962,225 +1119,289 @@ fn run_pass(
     // suppression path would try to infer types of open binder bodies.
     env.config.pp_options.proofs = true;
 
-    for op in ops {
-        match op {
-            PendingOp::OpenExercise {
-                name,
-                kind,
-                universe,
-                declared_ty,
-                goal,
-                binders,
-                holes,
-                sub_goals,
-                refine_template,
-                by_steps,
-                span,
-                cmd,
-            } => {
-                out.push_event(cmd, CheckEvent::ExerciseOpen { name: name.clone() });
-                let ty_text = declared_ty.and_then(|ty| {
-                    quiet_catch(|| {
-                        env.with_tc(EnvLimit::Empty, |tc| tc.with_pp(|pp| pp.pp_expr(ty)))
-                    })
-                    .ok()
-                });
-                decl_states.push(DeclState {
-                    kind,
+    let n = file.commands.len();
+    let want_sigs = trust.is_some();
+    let before = trust.map_or(0, |t| t.before);
+    let mut allow_cutoff = trust.is_some_and(|t| t.allow_cutoff);
+    let old_sigs: &[Option<String>] = trust.map_or(&[][..], |t| t.prev_signatures.as_slice());
+    let text_unchanged: &[bool] = trust.map_or(&[][..], |t| t.text_unchanged.as_slice());
+    let mut sigs: Vec<Option<String>> = vec![None; n];
+    let mut acc_new: Vec<Option<String>> = Vec::new();
+    let mut acc_old: Vec<Option<String>> = Vec::new();
+    let mut cutoff = n;
+
+    let mut ops = ops.into_iter().peekable();
+    for (j, sig_slot) in sigs.iter_mut().enumerate() {
+        // Early cutoff (I8 依赖精确化): the environment contribution of
+        // `[before, j)` matches the previous session AND command `j`'s text is
+        // unchanged, so `[j, n)` may be reused from the session cache without
+        // re-checking. `j > before` because the changed command itself must
+        // always be recompiled (its own spans/hovers may have moved).
+        if allow_cutoff
+            && j > before
+            && text_unchanged.get(j).copied().unwrap_or(false)
+            && acc_new == acc_old
+        {
+            cutoff = j;
+            break;
+        }
+        let op = match ops.peek() {
+            Some(o) if op_cmd(o) == j => ops.next(),
+            _ => None,
+        };
+        let mut contribution = if want_sigs {
+            op.as_ref().and_then(|op| match op {
+                PendingOp::Decl { declar, .. } => Some(declar_signature(&mut env, declar)),
+                PendingOp::InductiveBlock { declars, .. } => {
+                    Some(inductive_signature(&mut env, declars))
+                }
+                _ => None,
+            })
+        } else {
+            None
+        };
+        // A kernel-rejected declaration never enters the environment
+        // (check-then-add), so its environment contribution is empty.
+        let mut op_failed = false;
+        if let Some(op) = op {
+            match op {
+                PendingOp::OpenExercise {
                     name,
-                    span,
-                    status: DeclStatus::Open,
-                    error: None,
+                    kind,
+                    universe,
+                    declared_ty,
                     goal,
                     binders,
-                    cmd,
-                    universe,
                     holes,
                     sub_goals,
                     refine_template,
                     by_steps,
-                    hints: Vec::new(),
-                    ty_text,
-                });
-            }
-            PendingOp::Decl {
-                name,
-                kind,
-                declar,
-                by_steps,
-                span,
-                cmd,
-            } => {
-                kernel_checks += 1;
-                let ty_text = quiet_catch(|| {
-                    env.with_tc(EnvLimit::Empty, |tc| {
-                        let ty = declar.info().ty;
-                        tc.with_pp(|pp| pp.pp_expr(ty))
-                    })
-                });
-                let ty_text = ty_text.ok();
-                match env.try_check_declar(&declar) {
-                    Ok(()) => {
-                        match kind {
-                            DeclKind::Example => out.push_event(cmd, CheckEvent::ExampleChecked),
-                            _ => {
-                                if let Some(n) = &name {
-                                    out.push_event(
-                                        cmd,
-                                        CheckEvent::DeclarationChecked { name: n.clone() },
-                                    );
-                                } else {
-                                    out.push_event(cmd, CheckEvent::ExampleChecked);
+                    span,
+                    cmd,
+                } => {
+                    out.push_event(cmd, CheckEvent::ExerciseOpen { name: name.clone() });
+                    let ty_text = declared_ty.and_then(|ty| {
+                        quiet_catch(|| {
+                            env.with_tc(EnvLimit::Empty, |tc| tc.with_pp(|pp| pp.pp_expr(ty)))
+                        })
+                        .ok()
+                    });
+                    decl_states.push(DeclState {
+                        kind,
+                        name,
+                        span,
+                        status: DeclStatus::Open,
+                        error: None,
+                        goal,
+                        binders,
+                        cmd,
+                        universe,
+                        holes,
+                        sub_goals,
+                        refine_template,
+                        by_steps,
+                        hints: Vec::new(),
+                        ty_text,
+                    });
+                }
+                PendingOp::Decl {
+                    name,
+                    kind,
+                    declar,
+                    by_steps,
+                    span,
+                    cmd,
+                } => {
+                    kernel_checks += 1;
+                    let ty_text = quiet_catch(|| {
+                        env.with_tc(EnvLimit::Empty, |tc| {
+                            let ty = declar.info().ty;
+                            tc.with_pp(|pp| pp.pp_expr(ty))
+                        })
+                    });
+                    let ty_text = ty_text.ok();
+                    match env.try_check_declar(&declar) {
+                        Ok(()) => {
+                            match kind {
+                                DeclKind::Example => {
+                                    out.push_event(cmd, CheckEvent::ExampleChecked)
+                                }
+                                _ => {
+                                    if let Some(n) = &name {
+                                        out.push_event(
+                                            cmd,
+                                            CheckEvent::DeclarationChecked { name: n.clone() },
+                                        );
+                                    } else {
+                                        out.push_event(cmd, CheckEvent::ExampleChecked);
+                                    }
                                 }
                             }
+                            decl_states.push(DeclState {
+                                kind,
+                                name,
+                                span,
+                                status: DeclStatus::Checked,
+                                error: None,
+                                goal: None,
+                                binders: Vec::new(),
+                                cmd,
+                                universe: Vec::new(),
+                                holes: Vec::new(),
+                                sub_goals: Vec::new(),
+                                refine_template: None,
+                                by_steps,
+                                hints: Vec::new(),
+                                ty_text,
+                            });
                         }
-                        decl_states.push(DeclState {
-                            kind,
-                            name,
-                            span,
-                            status: DeclStatus::Checked,
-                            error: None,
-                            goal: None,
-                            binders: Vec::new(),
-                            cmd,
-                            universe: Vec::new(),
-                            holes: Vec::new(),
-                            sub_goals: Vec::new(),
-                            refine_template: None,
-                            by_steps,
-                            hints: Vec::new(),
-                            ty_text,
-                        });
-                    }
-                    Err(e) => {
-                        let msg = format!("{e}");
-                        let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
-                        if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                            err.message =
-                                format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
-                            err.expected = Some(expected);
-                            err.actual = Some(actual);
+                        Err(e) => {
+                            let msg = format!("{e}");
+                            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
+                            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                                err.message =
+                                    format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                                err.expected = Some(expected);
+                                err.actual = Some(actual);
+                            }
+                            // Check-then-add: a rejected declaration makes pass 1's
+                            // environment provisional — stop trusting any cutoff.
+                            allow_cutoff = false;
+                            op_failed = true;
+                            failed_cmds.insert(cmd, err.clone());
+                            out.errors.push(err.clone());
+                            decl_states.push(failed_state(kind, name, span, err, cmd));
                         }
-                        failed_cmds.insert(cmd, err.clone());
-                        out.errors.push(err.clone());
-                        decl_states.push(failed_state(kind, name, span, err, cmd));
                     }
                 }
-            }
-            PendingOp::InductiveBlock {
-                name,
-                declars,
-                span,
-                cmd,
-            } => {
-                let mut failure = None;
-                for declar in &declars {
-                    kernel_checks += 1;
-                    if let Err(e) = env.try_check_declar(declar) {
-                        let msg = format!("{e}");
-                        let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
-                        if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                            err.message =
-                                format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
-                            err.expected = Some(expected);
-                            err.actual = Some(actual);
+                PendingOp::InductiveBlock {
+                    name,
+                    declars,
+                    span,
+                    cmd,
+                } => {
+                    let mut failure = None;
+                    for declar in &declars {
+                        kernel_checks += 1;
+                        if let Err(e) = env.try_check_declar(declar) {
+                            let msg = format!("{e}");
+                            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
+                            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                                err.message =
+                                    format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                                err.expected = Some(expected);
+                                err.actual = Some(actual);
+                            }
+                            failure = Some(err);
+                            break;
                         }
-                        failure = Some(err);
-                        break;
+                    }
+                    match failure {
+                        None => {
+                            out.push_event(
+                                cmd,
+                                CheckEvent::DeclarationChecked { name: name.clone() },
+                            );
+                            decl_states.push(DeclState {
+                                kind: DeclKind::Inductive,
+                                name: Some(name),
+                                span,
+                                status: DeclStatus::Checked,
+                                error: None,
+                                goal: None,
+                                binders: Vec::new(),
+                                cmd,
+                                universe: Vec::new(),
+                                holes: Vec::new(),
+                                sub_goals: Vec::new(),
+                                refine_template: None,
+                                by_steps: Vec::new(),
+                                hints: Vec::new(),
+                                ty_text: None,
+                            });
+                        }
+                        Some(err) => {
+                            allow_cutoff = false;
+                            op_failed = true;
+                            failed_cmds.insert(cmd, err.clone());
+                            out.errors.push(err.clone());
+                            decl_states.push(failed_state(
+                                DeclKind::Inductive,
+                                Some(name),
+                                span,
+                                err,
+                                cmd,
+                            ));
+                        }
                     }
                 }
-                match failure {
-                    None => {
-                        out.push_event(cmd, CheckEvent::DeclarationChecked { name: name.clone() });
-                        decl_states.push(DeclState {
-                            kind: DeclKind::Inductive,
-                            name: Some(name),
+                PendingOp::Check {
+                    expr,
+                    env_at,
+                    span,
+                    cmd,
+                } => {
+                    // #check/#reduce 直通内核求值路径：panic（如对非函数应用）
+                    // 必须降级为诊断，绝不能崩掉编译/LSP 进程。
+                    match quiet_catch(|| {
+                        env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
+                            let ty = tc.infer_closed_type(expr);
+                            tc.with_pp(|pp| pp.pp_expr(ty))
+                        })
+                    }) {
+                        Ok(text) => out.push_event(cmd, CheckEvent::TypeChecked { text, span }),
+                        Err(msg) => out.errors.push(CompileError::kernel(
+                            refine_kernel_kind(&msg),
+                            format!("类型检查失败：{msg}"),
                             span,
-                            status: DeclStatus::Checked,
-                            error: None,
-                            goal: None,
-                            binders: Vec::new(),
-                            cmd,
-                            universe: Vec::new(),
-                            holes: Vec::new(),
-                            sub_goals: Vec::new(),
-                            refine_template: None,
-                            by_steps: Vec::new(),
-                            hints: Vec::new(),
-                            ty_text: None,
-                        });
+                        )),
                     }
-                    Some(err) => {
-                        failed_cmds.insert(cmd, err.clone());
-                        out.errors.push(err.clone());
-                        decl_states.push(failed_state(
-                            DeclKind::Inductive,
-                            Some(name),
+                }
+                PendingOp::Reduce {
+                    expr,
+                    env_at,
+                    span,
+                    cmd,
+                } => {
+                    match quiet_catch(|| {
+                        env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
+                            let reduced = tc.reduce_closed(expr);
+                            tc.with_pp(|pp| pp.pp_expr(reduced))
+                        })
+                    }) {
+                        Ok(text) => out.push_event(cmd, CheckEvent::Reduced { text, span }),
+                        Err(msg) => out.errors.push(CompileError::kernel(
+                            refine_kernel_kind(&msg),
+                            format!("化简失败：{msg}"),
                             span,
-                            err,
-                            cmd,
-                        ));
+                        )),
+                    }
+                }
+                PendingOp::Print {
+                    name,
+                    ptr,
+                    span,
+                    cmd,
+                } => {
+                    let printed = env.with_pp(|pp| pp.pp_declar(ptr));
+                    match printed {
+                        Some(text) => out.push_event(cmd, CheckEvent::Printed { name, text }),
+                        None => out.errors.push(CompileError::elab(
+                            ErrorKind::ElabUnknownIdentifier,
+                            format!("unknown declaration `{name}`"),
+                            span,
+                        )),
                     }
                 }
             }
-            PendingOp::Check {
-                expr,
-                env_at,
-                span,
-                cmd,
-            } => {
-                // #check/#reduce 直通内核求值路径：panic（如对非函数应用）
-                // 必须降级为诊断，绝不能崩掉编译/LSP 进程。
-                match quiet_catch(|| {
-                    env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
-                        let ty = tc.infer_closed_type(expr);
-                        tc.with_pp(|pp| pp.pp_expr(ty))
-                    })
-                }) {
-                    Ok(text) => out.push_event(cmd, CheckEvent::TypeChecked { text, span }),
-                    Err(msg) => out.errors.push(CompileError::kernel(
-                        refine_kernel_kind(&msg),
-                        format!("类型检查失败：{msg}"),
-                        span,
-                    )),
-                }
-            }
-            PendingOp::Reduce {
-                expr,
-                env_at,
-                span,
-                cmd,
-            } => {
-                match quiet_catch(|| {
-                    env.with_tc(EnvLimit::ByIndex(env_at), |tc| {
-                        let reduced = tc.reduce_closed(expr);
-                        tc.with_pp(|pp| pp.pp_expr(reduced))
-                    })
-                }) {
-                    Ok(text) => out.push_event(cmd, CheckEvent::Reduced { text, span }),
-                    Err(msg) => out.errors.push(CompileError::kernel(
-                        refine_kernel_kind(&msg),
-                        format!("化简失败：{msg}"),
-                        span,
-                    )),
-                }
-            }
-            PendingOp::Print {
-                name,
-                ptr,
-                span,
-                cmd,
-            } => {
-                let printed = env.with_pp(|pp| pp.pp_declar(ptr));
-                match printed {
-                    Some(text) => out.push_event(cmd, CheckEvent::Printed { name, text }),
-                    None => out.errors.push(CompileError::elab(
-                        ErrorKind::ElabUnknownIdentifier,
-                        format!("unknown declaration `{name}`"),
-                        span,
-                    )),
-                }
-            }
+        }
+        if op_failed {
+            contribution = None;
+        }
+        *sig_slot = contribution.clone();
+        if j >= before {
+            acc_new.push(contribution);
+            acc_old.push(old_sigs.get(j).cloned().flatten());
         }
     }
 
@@ -1227,7 +1448,14 @@ fn run_pass(
     report.warnings = super::warning::collect_warnings(file);
     out.warnings = report.warnings.clone();
     let _ = built_inductives;
-    (out, report, failed_cmds, kernel_checks)
+    PassResult {
+        out,
+        report,
+        failed: failed_cmds,
+        checks: kernel_checks,
+        sigs,
+        cutoff,
+    }
 }
 
 /// Every top-level name this file declares, mapped to the span of the command

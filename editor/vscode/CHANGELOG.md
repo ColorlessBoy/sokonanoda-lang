@@ -1,3 +1,18 @@
+## [0.32.1] - 2026-09-14
+
+### Changed
+
+- **Incremental edits stop re-checking unchanged suffixes (early-cutoff)** —
+  the session now compares each command's elaborated environment contribution
+  (structural signature: type **and** body, so delta unfolding stays correct)
+  and reuses the remaining snapshots once the signature matches. In the common
+  case a one-line edit drops the kernel re-checks to 1 instead of the whole
+  suffix. Conservative and sound: multi-edits, changed bodies and kernel
+  rejections fall back to the previous suffix re-check. Design:
+  `docs/design/early-cutoff.md`.
+- Documented an opt-in external performance/soundness baseline against the
+  Lean Kernel Arena (`scripts/perf-arena.sh`, `docs/PERF.md`); not part of CI.
+
 ## [0.32.0] - 2026-09-14
 
 ### Added

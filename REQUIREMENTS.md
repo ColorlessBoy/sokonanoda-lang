@@ -553,3 +553,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   hover/inlay 请求期补 `None` 的 `sub_goals[i].ty`，协议形状不变。更深嵌套与
   def 包裹结果类型的 whnf 仍走 B′（需内核/pp 暴露 whnf，违反冻结）。设计 +
   as-built 见 `docs/design/spine-meta-a.md`；版本 **0.32.0**（新增公开 front API）。
+- 2026-09-14（五十八）：**I8 early-cutoff 依赖精确化 + arena 基准立项（R58）**
+  ——Session 增量新增**保守 sound** 的 early-cutoff：每条命令用内核结构化
+  `debug_print` 渲染「环境贡献签名」（含 type + **body**，保证 delta 可观察性），
+  单点编辑时签名相等即停止重查并复用尾部快照（测试实测 kernel_checks 4→1 /
+  3→1 / 6→1；改 body、宇宙元数、多点编辑、内核拒绝一律退回旧后缀重查；
+  prelude 形状守卫重建）。另把外部 perf/soundness 基准立项为 opt-in：
+  `scripts/perf-arena.sh` + `crates/kernel/tests/arena.rs`（`LEAN_KERNEL_ARENA`
+  门控，不 vendor、不进 CI、不引入官方 Lean 工具链）。设计 + as-built 见
+  `docs/design/early-cutoff.md`；版本 **0.32.1**（内部性能优化 patch）。

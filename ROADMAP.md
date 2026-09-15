@@ -402,8 +402,9 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 - [x] **真增量后缀重查（2026-09-07）**：TrustPlan 信任前缀跳过内核重查 +
       逐命令快照复用 + span 重映射；`SessionUpdate.stats.kernel_checks`
       可验证；LSP 切换到 Session。设计见 `docs/design/i8-i9.md` §1。
-- [ ] 验收余项：受影响后缀的**依赖精确化**（当前为保守 suffix；early-cutoff
-      签名比较是可选优化）。
+- [x] 验收余项：受影响后缀的**依赖精确化**（✅ 2026-09-14 补做 conservative
+      early-cutoff 签名比较：环境贡献签名相等即停止重查并复用尾部快照；
+      保守 sound，见 `docs/design/early-cutoff.md`）。
 
 ### I9 —— kernel 显式错误 + goal 视图
 - [x] kernel：def_eq 失败给出两端项（稳定格式 `def_eq mismatch expected: … |

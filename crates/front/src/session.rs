@@ -17,7 +17,7 @@ use crate::Diagnostic;
 use crate::{
     compile::{
         prelude_mode_from_source, run_incremental, CheckEvent, CompileError, CompileOptions,
-        CompileStats, DeclState, DeclStatus, DocumentReport, HoverType, TrustPlan,
+        CompileStats, DeclState, DeclStatus, DocumentReport, HoverType, PreludeMode, TrustPlan,
     },
     Pos, Span,
 };
@@ -86,7 +86,14 @@ struct CmdSnapshot {
     events: Vec<CheckEvent>,
     /// 归属本命令、但不属于声明状态的错误（如 `#check` 的 elab 失败）。
     errors: Vec<CompileError>,
+    /// I8 依赖精确化（early cutoff）：本命令对环境的贡献签名（已过内核的
+    /// 声明非空）。open/失败/非声明命令为 `None`（无环境贡献）。
+    signature: Option<String>,
 }
+
+/// 影响 prelude 安装决策的整文件特征：模式、是否自带 `inductive Nat`、
+/// 是否自带 `Eq` 三件套。任一变化都必须整体重编译（决策看整文件）。
+type PreludeShape = (PreludeMode, bool, bool);
 
 /// 长期驻留的编译会话：持有上一版本的命令键与逐命令快照，按内容差异决定
 /// 复用范围，并产出带版本号的 delta 事件与内核检查统计。
@@ -99,6 +106,8 @@ pub struct Session {
     /// 上一版本文本（span 重映射时重新计算行列）。
     src: String,
     started: bool,
+    /// 上一版本的 prelude 决策特征（变化时整体重编译）。
+    prelude_shape: Option<PreludeShape>,
 }
 
 impl Session {
@@ -110,6 +119,7 @@ impl Session {
             snaps: Vec::new(),
             src: String::new(),
             started: false,
+            prelude_shape: None,
         }
     }
 
@@ -142,6 +152,16 @@ impl Session {
                 };
             }
         };
+        // prelude 决策看整文件（explicit-Nat / Eq all-or-nothing）：特征变化
+        // 时缓存快照全部失效，整体重建（与全量语义严格一致）。这也保证
+        // early cutoff 的前提——会话前缀环境相同——在 prelude 层面成立。
+        let shape = prelude_shape(&file, self.options.prelude);
+        if self.started && self.prelude_shape != Some(shape) {
+            self.started = false;
+            self.keys.clear();
+            self.snaps.clear();
+        }
+        self.prelude_shape = Some(shape);
         let new_keys: Vec<DeclKey> = file
             .commands
             .iter()
@@ -151,6 +171,13 @@ impl Session {
             })
             .collect();
         let new_spans: Vec<Span> = file.commands.iter().map(|c| c.span()).collect();
+        // 旧命令 span 已不单独保存：用 (start, start+text.len()) 重建
+        // ——文本相同 ⇒ 长度相同。
+        let old_spans: Vec<Span> = self
+            .keys
+            .iter()
+            .map(|k| span_from_offsets(&self.src, k.start, k.start + k.text.len()))
+            .collect();
 
         // 文本完全一致（注释/空白可能变化）→ 零重编译：重映射缓存坐标。
         if self.started
@@ -161,17 +188,7 @@ impl Session {
                 .zip(new_keys.iter())
                 .all(|(a, b)| a.text == b.text)
         {
-            let old_spans: Vec<Span> = self
-                .keys
-                .iter()
-                .map(|k| {
-                    // 旧命令 span 已不单独保存；从旧快照状态取不到时用
-                    // (start, start+text.len()) 重建——文本相同 ⇒ 长度相同。
-                    let end = k.start + k.text.len();
-                    span_from_offsets(&self.src, k.start, end)
-                })
-                .collect();
-            self.remap_prefix(new_keys.len(), &old_spans, &new_spans, src);
+            remap_snapshots(&mut self.snaps, &old_spans, &new_spans, src);
             self.keys = new_keys;
             self.src = src.to_string();
             let mut report = assemble_report(&self.snaps);
@@ -198,18 +215,14 @@ impl Session {
         };
         // 信任前缀的坐标重映射（文本相同，起点可能因前文编辑而漂移）。
         if self.started {
-            let old_spans: Vec<Span> = self.keys[..recompiled_from.min(self.keys.len())]
-                .iter()
-                .map(|k| {
-                    let end = k.start + k.text.len();
-                    span_from_offsets(&self.src, k.start, end)
-                })
-                .collect();
-            let prefix_new_spans = &new_spans[..recompiled_from.min(new_spans.len())];
-            self.remap_prefix(
-                recompiled_from.min(self.snaps.len()),
-                &old_spans,
-                prefix_new_spans,
+            let count = recompiled_from
+                .min(self.snaps.len())
+                .min(old_spans.len())
+                .min(new_spans.len());
+            remap_snapshots(
+                &mut self.snaps[..count],
+                &old_spans[..count],
+                &new_spans[..count],
                 src,
             );
         }
@@ -228,23 +241,60 @@ impl Session {
             })
             .collect();
 
+        // I8 依赖精确化（early cutoff）：仅当命令数与上次一致、且改动点之后
+        // 所有命令源码文本未变时才允许截断（复用尾段要求文本逐条未变）。
+        let prev_signatures: Vec<Option<String>> =
+            self.snaps.iter().map(|s| s.signature.clone()).collect();
+        let allow_cutoff = self.started
+            && self.keys.len() == new_keys.len()
+            && prev_signatures.len() == new_keys.len()
+            && recompiled_from < new_keys.len()
+            && (recompiled_from + 1..new_keys.len()).all(|j| new_keys[j].text == self.keys[j].text);
+        let mut text_unchanged = vec![false; new_keys.len()];
+        if allow_cutoff {
+            for (j, unchanged) in text_unchanged.iter_mut().enumerate() {
+                *unchanged = new_keys[j].text == self.keys[j].text;
+            }
+        }
         let trust = TrustPlan {
             before: recompiled_from,
+            prev_signatures: if allow_cutoff {
+                prev_signatures
+            } else {
+                Vec::new()
+            },
+            text_unchanged,
+            allow_cutoff,
         };
-        let (out, fresh_report, checks) =
+        let (out, fresh_report, checks, sigs, cutoff) =
             run_incremental(&file, &self.options, &trust, &prefix_failures);
 
-        // 组装快照：信任前缀来自缓存，后缀来自本轮运行。
+        // 组装快照：信任前缀来自缓存、新鲜段 `[i, cutoff)` 来自本轮运行、
+        // 复用尾段 `[cutoff, n)` 来自缓存（仅坐标重映射）。
         let old_states: Vec<DeclState> =
             self.snaps.iter().filter_map(|s| s.state.clone()).collect();
         let mut new_snaps: Vec<CmdSnapshot> =
             self.snaps[..recompiled_from.min(self.snaps.len())].to_vec();
+        let mid_base = recompiled_from.min(file.commands.len());
+        let mid_end = cutoff.min(file.commands.len());
         new_snaps.extend(build_suffix_snapshots(
-            &file.commands[recompiled_from.min(file.commands.len())..],
-            recompiled_from,
+            &file.commands[mid_base..mid_end],
+            mid_base,
             &out,
             &fresh_report,
+            &sigs,
         ));
+        if cutoff < new_keys.len() && cutoff < self.snaps.len() {
+            let mut tail: Vec<CmdSnapshot> = self.snaps[cutoff..].to_vec();
+            let tail_len = tail.len();
+            remap_snapshots(
+                &mut tail,
+                &old_spans[cutoff..cutoff + tail_len],
+                &new_spans[cutoff..cutoff + tail_len],
+                src,
+            );
+            new_snaps.extend(tail);
+        }
 
         let mut report = assemble_report(&new_snaps);
         crate::compile::hints::attach_hints_to_report(src, &mut report);
@@ -267,56 +317,76 @@ impl Session {
             parse_error: None,
         }
     }
+}
 
-    /// 把 `[0, count)` 的缓存快照从旧坐标重映射到新坐标。
-    fn remap_prefix(
-        &mut self,
-        count: usize,
-        old_spans: &[Span],
-        new_spans: &[Span],
-        new_src: &str,
-    ) {
-        for j in 0..count
-            .min(self.snaps.len())
-            .min(old_spans.len())
-            .min(new_spans.len())
-        {
-            let (old_c, new_c) = (old_spans[j], new_spans[j]);
-            if old_c == new_c {
-                continue;
-            }
-            let snap = &mut self.snaps[j];
-            if let Some(state) = &mut snap.state {
-                state.span = new_c;
-                if let Some(err) = &mut state.error {
-                    err.span = remap_span(err.span, old_c, new_c, new_src);
-                }
-                for step in &mut state.by_steps {
-                    step.span = remap_span(step.span, old_c, new_c, new_src);
-                }
-                for hole in &mut state.holes {
-                    *hole = remap_span(*hole, old_c, new_c, new_src);
-                }
-                for sub in &mut state.sub_goals {
-                    sub.span = remap_span(sub.span, old_c, new_c, new_src);
-                }
-            }
-            for h in &mut snap.hovers {
-                h.span = remap_span(h.span, old_c, new_c, new_src);
-            }
-            for ev in &mut snap.events {
-                match ev {
-                    CheckEvent::TypeChecked { span, .. } | CheckEvent::Reduced { span, .. } => {
-                        *span = remap_span(*span, old_c, new_c, new_src);
-                    }
-                    _ => {}
-                }
-            }
-            for err in &mut snap.errors {
+/// 把快照数组的 span 从旧坐标重映射到新坐标（按命令索引对齐）。
+fn remap_snapshots(
+    snaps: &mut [CmdSnapshot],
+    old_spans: &[Span],
+    new_spans: &[Span],
+    new_src: &str,
+) {
+    for j in 0..snaps.len().min(old_spans.len()).min(new_spans.len()) {
+        let (old_c, new_c) = (old_spans[j], new_spans[j]);
+        if old_c == new_c {
+            continue;
+        }
+        let snap = &mut snaps[j];
+        if let Some(state) = &mut snap.state {
+            state.span = new_c;
+            if let Some(err) = &mut state.error {
                 err.span = remap_span(err.span, old_c, new_c, new_src);
+            }
+            for step in &mut state.by_steps {
+                step.span = remap_span(step.span, old_c, new_c, new_src);
+            }
+            for hole in &mut state.holes {
+                *hole = remap_span(*hole, old_c, new_c, new_src);
+            }
+            for sub in &mut state.sub_goals {
+                sub.span = remap_span(sub.span, old_c, new_c, new_src);
+            }
+        }
+        for h in &mut snap.hovers {
+            h.span = remap_span(h.span, old_c, new_c, new_src);
+        }
+        for ev in &mut snap.events {
+            match ev {
+                CheckEvent::TypeChecked { span, .. } | CheckEvent::Reduced { span, .. } => {
+                    *span = remap_span(*span, old_c, new_c, new_src);
+                }
+                _ => {}
+            }
+        }
+        for err in &mut snap.errors {
+            err.span = remap_span(err.span, old_c, new_c, new_src);
+        }
+    }
+}
+
+/// 影响 prelude 安装的整文件特征（与 `run_pass` 的判定一致）：模式、
+/// 是否自带 `inductive Nat`、是否自带 `Eq`/`Eq.refl`/`Eq.subst` 之一。
+fn prelude_shape(file: &crate::FolFile, mode: PreludeMode) -> PreludeShape {
+    let mut explicit_nat = false;
+    let mut eq_taken = false;
+    for command in &file.commands {
+        let name = match command {
+            crate::Command::Def { name, .. }
+            | crate::Command::Theorem { name, .. }
+            | crate::Command::Axiom { name, .. }
+            | crate::Command::InductiveBlock { name, .. } => Some(name),
+            _ => None,
+        };
+        if let Some(name) = name {
+            if matches!(command, crate::Command::InductiveBlock { .. }) && name == "Nat" {
+                explicit_nat = true;
+            }
+            if matches!(name.as_str(), "Eq" | "Eq.refl" | "Eq.subst") {
+                eq_taken = true;
             }
         }
     }
+    (mode, explicit_nat, eq_taken)
 }
 
 /// 一条命令的源码切片（内容键：文本相同 = 未变）。
@@ -415,6 +485,7 @@ fn build_suffix_snapshots(
     cmd_base: usize,
     out: &crate::compile::CompileOutput,
     report: &DocumentReport,
+    signatures: &[Option<String>],
 ) -> Vec<CmdSnapshot> {
     let mut snaps: Vec<CmdSnapshot> = (0..commands.len())
         .map(|_| CmdSnapshot::default())
@@ -423,6 +494,7 @@ fn build_suffix_snapshots(
         if state.cmd >= cmd_base {
             if let Some(s) = snaps.get_mut(state.cmd - cmd_base) {
                 s.state = Some(state.clone());
+                s.signature = signatures.get(state.cmd).cloned().flatten();
             }
         }
     }
@@ -926,5 +998,229 @@ def five : Nat := 5
             .errors
             .iter()
             .any(|e| e.code() == "elab-unknown-identifier"));
+    }
+
+    // ---- I8 依赖精确化（early cutoff 签名比较）----
+
+    const FOUR: &str = "\
+def one : Nat := 1
+def two : Nat := 2
+def three : Nat := 3
+def four : Nat := 4
+";
+
+    /// (a) 改第一个命令的源码写法（加括号），elaboration 后签名不变：
+    /// 改动点之后文本未变的全部命令被复用，`kernel_checks` 从 4 降到 1。
+    #[test]
+    fn session_early_cutoff_reuses_suffix_when_signature_unchanged() {
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, FOUR, 1);
+        assert_eq!(u1.stats.kernel_checks, 4);
+
+        let edited = FOUR.replace("def one : Nat := 1", "def one : Nat := (1)");
+        assert_ne!(edited, FOUR);
+        let u2 = update(&mut session, &edited, 2);
+        assert_eq!(u2.recompiled_from, Some(0), "first changed command index");
+        assert_eq!(
+            u2.stats.kernel_checks, 1,
+            "signature unchanged → only the edited command is rechecked"
+        );
+        // 报告仍带全部已证声明，且复用尾段坐标正确。
+        for (name, line) in [("one", 1), ("two", 2), ("three", 3), ("four", 4)] {
+            let d = u2
+                .report
+                .decls
+                .iter()
+                .find(|d| d.name.as_deref() == Some(name))
+                .unwrap_or_else(|| panic!("decl {name} missing after cutoff"));
+            assert_eq!(d.status, DeclStatus::Checked);
+            assert_eq!(d.span.start.line, line);
+        }
+        assert!(
+            u2.report.errors.is_empty(),
+            "cutoff must not drop or add errors"
+        );
+    }
+
+    /// (b) 改 def 的 body（type 不变）：签名变化 → 依赖的后缀必须重查，
+    /// 且 `#reduce` 结果反映新 body（不许复用陈旧快照）。
+    #[test]
+    fn session_early_cutoff_rechecks_after_def_body_change() {
+        let src = "def one : Nat := 1\ndef two : Nat := one\n#reduce two\n";
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, src, 1);
+        assert_eq!(u1.stats.kernel_checks, 2);
+        let reduced = |u: &SessionUpdate| {
+            u.events.iter().find_map(|e| match e {
+                CheckEvent::Reduced { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+        };
+        assert_eq!(reduced(&u1).as_deref(), Some("1"));
+
+        // body 1 → 2（type 不变）：one 的签名变，two / #reduce 全部重查。
+        let edited = src.replace("def one : Nat := 1", "def one : Nat := 2");
+        let u2 = update(&mut session, &edited, 2);
+        assert_eq!(u2.recompiled_from, Some(0));
+        assert_eq!(
+            u2.stats.kernel_checks, 2,
+            "changed def body must invalidate the suffix"
+        );
+        assert_eq!(
+            reduced(&u2).as_deref(),
+            Some("2"),
+            "no stale #reduce result from a reused snapshot"
+        );
+    }
+
+    /// (c) 仅公理的文件：改动源码写法但签名不变 → 截断后缀重查。
+    #[test]
+    fn session_early_cutoff_axiom_only() {
+        let src = "axiom A : Prop\naxiom B : A\naxiom C : A -> A\n";
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, src, 1);
+        assert_eq!(u1.stats.kernel_checks, 3);
+
+        let edited = src.replace("axiom A : Prop", "axiom A : (Prop)");
+        assert_ne!(edited, src);
+        let u2 = update(&mut session, &edited, 2);
+        assert_eq!(u2.recompiled_from, Some(0));
+        assert_eq!(
+            u2.stats.kernel_checks, 1,
+            "axiom name/type unchanged → suffix reused"
+        );
+        assert_eq!(u2.report.decls.len(), 3);
+        assert!(u2
+            .report
+            .decls
+            .iter()
+            .all(|d| d.status == DeclStatus::Checked));
+    }
+
+    /// prelude 决策特征（此处 `Eq` 被文件占用）变化时整体重建：改动点
+    /// 之前、原本依赖 prelude `Eq` 的命令必须重查，不能复用陈旧状态。
+    #[test]
+    fn session_early_cutoff_prelude_shape_change_rebuilds() {
+        let old = "axiom A : Prop\naxiom a : A\naxiom eqa : Eq A a a\naxiom B : Prop\n";
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, old, 1);
+        assert!(
+            u1.report
+                .decls
+                .iter()
+                .any(|d| d.name.as_deref() == Some("eqa") && d.status == DeclStatus::Checked),
+            "eqa is checked against the Eq prelude"
+        );
+
+        // 末条改名为 `Eq` → Eq prelude 整体不再安装（all-or-nothing）。
+        // 改动点之前的 `eqa`（引用 Eq）必须重查，不能复用陈旧 Checked 状态。
+        let new = "axiom A : Prop\naxiom a : A\naxiom eqa : Eq A a a\naxiom Eq : Prop\n";
+        let u2 = update(&mut session, new, 2);
+        assert_eq!(
+            u2.recompiled_from,
+            Some(0),
+            "prelude decision change rebuilds from scratch"
+        );
+        assert!(
+            u2.report
+                .decls
+                .iter()
+                .any(|d| d.name.as_deref() == Some("eqa") && d.status == DeclStatus::Failed),
+            "eqa can no longer use the (removed) Eq prelude"
+        );
+    }
+
+    /// 签名必须包含声明的宇宙参数（arity）：未使用的 `{v}` 也改变声明的
+    /// universe 参数个数，是可观测的环境贡献，不能因 type/body 文本相同
+    /// 而被误判为未变。
+    #[test]
+    fn session_early_cutoff_sees_universe_arity_change() {
+        let src = "def id {u} : {A : Sort u} -> A -> A := fun (A : Sort u) (a : A) => a\ndef one : Nat := 1\n";
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, src, 1);
+        assert_eq!(u1.stats.kernel_checks, 2);
+
+        // 增加一个未使用的宇宙参数 → arity 1 → 2，签名必须变化。
+        let edited = src.replace("def id {u} :", "def id {u, v} :");
+        assert_ne!(edited, src);
+        let u2 = update(&mut session, &edited, 2);
+        assert_eq!(u2.recompiled_from, Some(0));
+        assert_eq!(
+            u2.stats.kernel_checks, 2,
+            "universe arity change must invalidate the suffix"
+        );
+    }
+
+    /// 归纳块（inductive/ctor/recursor + iota 规则）的签名路径：整块作为一
+    /// 条命令参与签名比较，改动块后的等价 def 仍可截断复用。
+    #[test]
+    fn session_early_cutoff_handles_inductive_blocks() {
+        let src = "\
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end
+def one : Nat := succ zero
+def two : Nat := succ one
+";
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, src, 1);
+        assert!(
+            u1.report.errors.is_empty(),
+            "inductive block compiles: {:?}",
+            u1.report.errors
+        );
+        // 4 block declarations (spine/zero/succ/rec) + 2 defs.
+        assert_eq!(u1.stats.kernel_checks, 6);
+
+        let edited = src.replace("def one : Nat := succ zero", "def one : Nat := (succ zero)");
+        assert_ne!(edited, src);
+        let u2 = update(&mut session, &edited, 2);
+        assert_eq!(u2.recompiled_from, Some(1));
+        assert_eq!(
+            u2.stats.kernel_checks, 1,
+            "inductive block + unchanged def signatures → suffix reused"
+        );
+        assert_eq!(u2.report.decls.len(), 3);
+        assert!(u2
+            .report
+            .decls
+            .iter()
+            .all(|d| d.status == DeclStatus::Checked));
+    }
+
+    /// 多条命令同时改动：不做跨改动命令的复用（`allow_cutoff` 关闭），
+    /// 行为与当前保守后缀重查一致。
+    #[test]
+    fn session_early_cutoff_disabled_for_multiple_edits() {
+        let src = "def one : Nat := 1\ndef two : Nat := 2\ndef three : Nat := 3\n";
+        let mut session = Session::new(CompileOptions::default());
+        let u1 = update(&mut session, src, 1);
+        assert_eq!(u1.stats.kernel_checks, 3);
+
+        // 两处等价编辑：第二处 text 也变 → 不允许截断。
+        let edited = src
+            .replace("def one : Nat := 1", "def one : Nat := (1)")
+            .replace("def three : Nat := 3", "def three : Nat := (3)");
+        let u2 = update(&mut session, &edited, 2);
+        assert_eq!(u2.recompiled_from, Some(0));
+        assert_eq!(
+            u2.stats.kernel_checks, 3,
+            "multiple changed commands disable cutoff"
+        );
     }
 }

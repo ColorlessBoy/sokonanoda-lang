@@ -57,6 +57,23 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 
 教学规模（20-50 块）每键 3-8ms——无感。500+ 块仍 <100ms。
 
+## External baseline：Lean Kernel Arena（opt-in，非 CI）
+
+仓库内的 perf 套件是**哨兵**（抓算法级回归），不是与外部实现的**基准对比**。
+真正的横向基准用上游 [`leanprover/lean-kernel-arena`](https://github.com/leanprover/lean-kernel-arena)
+的 NDJSON 语料：它给出 accept/reject 期望，能同时验证我们内核的**性能**与
+**soundness**（例如 `extra-rec` 未派生 recursor、`nat-rec-rules` 伪造 iota 规则）。
+
+- 已把语料跑法固化成 `scripts/perf-arena.sh` + 既有的
+  `crates/kernel/tests/arena.rs`（`LEAN_KERNEL_ARENA` 环境变量门控；未设置时自动
+  跳过，CI 不依赖它）。
+- 语料很大且属外部仓库，**不 vendor**；获取：`git clone` 后
+  `uv run lka.py build-test` 生成 `_build/tests/*.ndjson`。
+- 跑法：`LEAN_KERNEL_ARENA=/path/to/lean-kernel-arena scripts/perf-arena.sh`
+  （输出各 corpus 的通过情况与总耗时）。
+- 该基准面向**贡献者**（需要克隆外部语料），不属于用户/agent 路径；不引入
+  官方 Lean 工具链（只消费 NDJSON）。
+
 ## 历史教训（为什么有这些测试）
 
 - **funapply 的 O(n²)**（0.22.0 移除）：judge_infer 全前缀重编译 ×

@@ -1,8 +1,28 @@
-# STATUS 归档（第 1–55 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–56 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十六轮：VS Code webview Infoview）
+
+> 续 TODO 清账（顺序 R57→R56→R55）：按
+> `docs/design/webview-infoview.md` 落地方案 B（Lean Infoview 式 webview）。
+
+1. **view/命令**：新增 `sokonanoda.infoview`（`type: webview`，与练习/课程
+   并列）+ `sokonanoda.openInfoview`；树的「当前光标处」组保留为默认与兜底
+   （webview 不可用时功能零回归）。
+2. **协议**（`protocol:1`）：宿主→webview `state`（`soko/stateAt`）/`decls`
+   （仅诊断·切文件）/`server`（`soko/version`）/`theme`；webview→宿主
+   `ready`/`reveal`/`focusExercise`；按文档 `version` 丢弃过期 `state`。
+3. **安全**：CSP `default-src 'none'` + 每次随机 nonce、`localResourceRoots`
+   限 media；渲染只用 `textContent`（契约负断言禁 `innerHTML`/远程 URL/eval）。
+4. **性能**（吸取 goal-list §2.4 教训）：光标移动只发轻量 `state`（去抖
+   200ms），绝不触发 `soko/goals` 或整树重建；provider 缓存最后快照。
+5. **测试**：`crates/cli/tests/extension.rs` 静态契约（view/命令一致、资源与
+   CSP nonce、负断言）；`extension.test.js` 集成 smoke；`node test-server.js`
+   18/18。
+6. **验收**：`sokonanoda gate` PASS；版本 0.29.0 → **0.30.0**（新 view+命令）。
 
 ## 本轮进度（2026-09-14，第五十五轮：编译器服务事件流）
 
