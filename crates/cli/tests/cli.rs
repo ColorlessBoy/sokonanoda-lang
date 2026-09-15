@@ -130,6 +130,26 @@ fn cli_by_tactic_partial_block_is_open_exercise() {
 }
 
 #[test]
+fn cli_by_match_tactic_checks_via_kernel() {
+    // `match` 作为 tactic：以当前目标为期望类型，臂体是项。
+    let src = "\
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+end
+def swap (c : Color) : Color := by match c with | red => green | green => red
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration swap"), "{stdout}");
+}
+
+#[test]
 fn cli_value_funintro_is_no_longer_a_keyword() {
     // `funintro` 已从语言中移除（docs/design/remove-funintro.md）：它现在是
     // 一个普通标识符，值位引用会因未定义而报错，不再是合法 Open 练习。

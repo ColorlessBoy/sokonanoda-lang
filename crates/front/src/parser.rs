@@ -201,7 +201,10 @@ impl Parser {
         matches!(
             self.peek().kind,
             TokenKind::Ident(ref kw)
-                if matches!(kw.as_str(), "intro" | "exact" | "apply" | "assumption" | "rfl" | "sorry")
+                if matches!(
+                    kw.as_str(),
+                    "intro" | "exact" | "apply" | "assumption" | "rfl" | "match" | "sorry"
+                )
         )
     }
 
@@ -247,12 +250,22 @@ impl Parser {
                 self.bump();
                 Ok(Tactic::Rfl { span: tok.span })
             }
+            TokenKind::Ident(kw) if kw == "match" => {
+                // `match` 作为 tactic：臂体是**项**（同值位 match），语义等价于
+                // `exact (match … with …)`；`by` 引擎以当前目标为期望类型判定。
+                let expr = self.parse_match()?;
+                let end = expr.span().end;
+                Ok(Tactic::Exact {
+                    expr,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
             TokenKind::Ident(kw) if kw == "sorry" => {
                 self.bump();
                 Ok(Tactic::Sorry { span: tok.span })
             }
             _ => Err(self.error_here(&format!(
-                "未知 tactic：`by` 块只支持 intro / exact / apply / assumption / rfl / sorry（白名单），发现 {tok:?}"
+                "未知 tactic：`by` 块只支持 intro / exact / apply / assumption / rfl / match / sorry（白名单），发现 {tok:?}"
             ))),
         }
     }
@@ -1616,6 +1629,29 @@ end
             "branch body should be a nested match: {:?}",
             arms[0].body
         );
+    }
+
+    #[test]
+    fn match_is_a_tactic_in_a_by_block() {
+        let src = "def swap (c : Color) : Color := by match c with | red => green | green => red\n";
+        let file = parse(src).unwrap();
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        // `def f (c : Color) : T := …` sugar folds the declared binder into a
+        // Lambda, so the `by` block sits in the lambda body.
+        let expr = match val {
+            Expr::Lambda { body, .. } => body.as_ref(),
+            other => other,
+        };
+        let Expr::By { tactics, .. } = expr else {
+            panic!("expected a by block, got {expr:?}");
+        };
+        assert_eq!(tactics.len(), 1);
+        let Tactic::Exact { expr, .. } = &tactics[0] else {
+            panic!("`match` must lower to Exact: {:?}", tactics[0]);
+        };
+        assert!(matches!(expr, Expr::Match { .. }), "got {expr:?}");
     }
 
     #[test]

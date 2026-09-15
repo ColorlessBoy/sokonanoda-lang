@@ -25,6 +25,7 @@ use crate::compile::{
     check_document_with, compile_fol_with, CheckEvent, CompileOptions, DeclStatus, DocumentReport,
 };
 use crate::proof::{parse_expr_text, render_expr};
+use crate::span::Pos;
 use crate::{tokenize, Binder, BinderKind, Command, Expr, FolFile, Span, Token, TokenKind};
 
 /// 一个开放练习的判定规格：**剩余目标**（与 `DeclState.goal` /
@@ -205,6 +206,24 @@ fn judge_terms_uncached(
 
     let mut commands = prefix_file.commands;
     let mut failed_parse: Option<usize> = None;
+    // The synthesized declarations sit *after* the real prefix in the source:
+    // give them a span past `prefix_src` and hand the prefix as the file text so
+    // `command.span().start`-based prefix lookup (which `match`'s universe query
+    // uses) sees the real declarations again (`Color`, …). Without this, a
+    // `by exact match c with …` judgement would fail `elab-match-no-expected-type`.
+    let prefix_len = prefix_src.len();
+    let after_prefix = Span::new(
+        Pos {
+            offset: prefix_len,
+            line: 0,
+            column: 0,
+        },
+        Pos {
+            offset: prefix_len,
+            line: 0,
+            column: 0,
+        },
+    );
     for (k, term) in terms.iter().enumerate() {
         let Ok(term_expr) = parse_expr_text(term) else {
             failed_parse = Some(k);
@@ -216,13 +235,13 @@ fn judge_terms_uncached(
             universe: open.universe.clone(),
             ty: ty.clone(),
             val,
-            span: Span::default(),
+            span: after_prefix,
         });
     }
     let report = check_document_with(
         &FolFile {
             commands,
-            src: String::new(),
+            src: prefix_src.to_string(),
         },
         options,
     );

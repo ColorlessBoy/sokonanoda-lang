@@ -1,3 +1,13 @@
+## [0.46.0] - 2026-09-15
+
+### Added
+
+- **`match` as a tactic** — inside a `by` block you can now write
+  `match c with | red => green | green => red` (arm bodies are terms, exactly like
+  the value-position `match`), judged against the current goal. `by exact match …`
+  works too. The judge now keeps the real source prefix, so a `match`'s universe
+  query succeeds inside judgements.
+
 ## [0.45.0] - 2026-09-15
 
 ### Added

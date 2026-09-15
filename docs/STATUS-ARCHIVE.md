@@ -1,8 +1,29 @@
-# STATUS 归档（第 1–72 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–73 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十三轮：呈现面高亮统一）
+
+> 用户追问「各个地方的高亮统一」后补做（HANDOVER §3 A″）：0.40.0 只统了 goal
+> 状态，其余渲染 `.sokonanoda` 的面仍各自为政。原则：**着色只来自
+> `front::semantic`**（语义 token + TM 语法 + runs），手段是统一 `{sokonanoda}`
+> markdown 围栏。
+
+1. **LSP**：新增 `CODE_LANG`/`code_block`/`goal_block`；`hover_markup`（表达式/
+   签名 hover）由 ` ```text ` 改 ` ```sokonanoda `；声明 hover 的签名、洞期望
+   类型、目标态都用代码块；tactic hover 的 tactic 片段、半表达式 hover 的
+   推断类型/目标也从行内代码改成代码块；补全 `documentation` 给出签名的
+   `sokonanoda` 围栏。
+2. **扩展**：`codeMarkdown`/`goalTooltip`——练习树「目标」「假设」tooltip 用
+   `MarkdownString.appendCodeblock(…, "sokonanoda")`。
+3. **刻意保持纯文本**（VS Code 不渲染 markdown / 不给行内代码语言）：诊断消息、
+   inlay hint、TreeItem.description、CodeAction 标题；hover 里「散文提到单个词」
+   也保持行内代码。文档写明（`goal-rendering.md §7`）。
+4. **契约**：LSP `code_fences_always_use_the_sokonanoda_language` + hover/
+   completion 断言；扩展 `rendered_language_text_uses_the_sokonanoda_fence`。
+5. **验收**：`sokonanoda gate` PASS；版本 0.42.0 → **0.43.0**（行为统一，minor）。
 
 ## 本轮进度（2026-09-15，第七十二轮：`match` 模式编译器 v1）
 

@@ -722,3 +722,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   CLI +1；文档 architecture + `elaborator-let-match.md` as-built + TESTING。
   版本 **0.45.0**。
 
+- 2026-09-15（七十六）：**`match` 作为 tactic（0.46.0）**——ROADMAP I6/§3 B 的
+  “`by` 块内用 `match`”。`by` 白名单加 `match`：`match c with | p => <项> …`，
+  臂体是项（同值位 match）、以当前目标为期望类型判定，等价 `exact (match …)`。
+  根因修复：`judge_terms` 合成文件原 `src` 为空，`match` 宇宙查询拿不到前缀
+  （`Color` 等），报 `elab-match-no-expected-type`；改为把真实 `prefix_src` 作为
+  文件 `src`、合成声明 span 放到前缀之后（副产品：`by exact match …` 也可用）。
+  测试：parser（白名单 + 降到 Exact）、front ×2、CLI ×1；文档 by-tactics/
+  architecture/TESTING。版本 **0.46.0**。臂体内再写一串 tactic 为后续可选扩展。
+

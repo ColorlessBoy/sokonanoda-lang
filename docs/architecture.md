@@ -169,7 +169,7 @@ sokonanoda-lang/
 - `sokonanoda <file>` / `sokonanoda -`：批处理检查，人类可读输出。
 - `sokonanoda --json <file>`：每条事件一行 JSON（agent/service 视图）。
 - `sokonanoda repl`：逐行累积 buffer，整体重新 `parse + compile_fol`（最小"增量"模型 = 声明累加）；支持 `#check/#reduce/#print/#env/#help`。
-- `#prove <goal>`：进入证明草稿（见 §5.5），`intro/exact/apply/assumption/lambda/done`。
+- `#prove <goal>`：进入证明草稿（见 §5.5），`intro/exact/apply/assumption/lambda/done`（值位 `by` tactic：intro/exact/apply/assumption/rfl/match/sorry）。
 - `sokonanoda-lsp`：编辑器路径的**唯一反馈通道**（文件无 `#` 命令）——publishDiagnostics、hover（表达式类型 / `???` 的目标）、documentSymbol、codeLens（练习状态）、quick-fix `引入 N 个 binder`（把 `???` 变成 `fun (x : T) => ???`；I13-S1 由 `intro` 改名）。
 
 ---

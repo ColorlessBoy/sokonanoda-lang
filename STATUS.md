@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十五轮：应用位置 binder 类型推断；0.45.0）
+> 快照：2026-09-15（第七十六轮：`match` 作为 tactic；0.46.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,25 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十六轮：`match` 作为 tactic）
+
+> 续 HANDOVER §3 B / ROADMAP I6：`by` 块内可用 `match`（设计与白名单此前待定）。
+
+1. **tactic 集**：`by` 白名单加 `match`——`match c with | p => <项> …`，臂体是
+   **项**（同值位 match），以当前目标为期望类型判定，语义等价 `exact (match …)`；
+   `parse_tactic` 复用 `parse_match` + `tactic_keyword_ahead` 纳入 `match`。
+2. **judge 修复（根因）**：`judge_terms` 合成文件原 `src: String::new()`，
+   `command.span().start` 前缀切片为空 → `match` 的宇宙查询（`judge_infer` 看
+   不到 `Color` 等声明）失败，报 `elab-match-no-expected-type`。改为把真实
+   `prefix_src` 作为文件 `src`、合成声明 span 放到前缀之后。副产品：
+   `by exact match …` 也可用。
+3. **测试**：parser `match_is_a_tactic_in_a_by_block`（白名单 + 降到 Exact）；
+   front `by_block_with_match_tactic_checks` / `by_block_with_exact_match_checks`；
+   CLI `cli_by_match_tactic_checks_via_kernel`。
+4. **文档**：`by-tactics.md` §2 表 + 0.46.0 更新、architecture、TESTING。
+5. **验收**：`sokonanoda gate` PASS；版本 0.45.0 → **0.46.0**（新语法 minor）。
+   注：臂体是「项」；「每个臂里再写一串 tactic」是后续可选扩展（设计 §9 留白）。
 
 ## 本轮进度（2026-09-15，第七十五轮：应用位置 binder 类型推断）
 
@@ -48,25 +67,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `ty_runs`（重建 + sort kind）断言；扩展契约
    `infoview_declaration_list_shows_types_and_jumps`（webview/css/host 三处）。
 5. **验收**：`sokonanoda gate` PASS；版本 0.43.0 → **0.44.0**（新能力 minor）。
-
-## 本轮进度（2026-09-15，第七十三轮：呈现面高亮统一）
-
-> 用户追问「各个地方的高亮统一」后补做（HANDOVER §3 A″）：0.40.0 只统了 goal
-> 状态，其余渲染 `.sokonanoda` 的面仍各自为政。原则：**着色只来自
-> `front::semantic`**（语义 token + TM 语法 + runs），手段是统一 `{sokonanoda}`
-> markdown 围栏。
-
-1. **LSP**：新增 `CODE_LANG`/`code_block`/`goal_block`；`hover_markup`（表达式/
-   签名 hover）由 ` ```text ` 改 ` ```sokonanoda `；声明 hover 的签名、洞期望
-   类型、目标态都用代码块；tactic hover 的 tactic 片段、半表达式 hover 的
-   推断类型/目标也从行内代码改成代码块；补全 `documentation` 给出签名的
-   `sokonanoda` 围栏。
-2. **扩展**：`codeMarkdown`/`goalTooltip`——练习树「目标」「假设」tooltip 用
-   `MarkdownString.appendCodeblock(…, "sokonanoda")`。
-3. **刻意保持纯文本**（VS Code 不渲染 markdown / 不给行内代码语言）：诊断消息、
-   inlay hint、TreeItem.description、CodeAction 标题；hover 里「散文提到单个词」
-   也保持行内代码。文档写明（`goal-rendering.md §7`）。
-4. **契约**：LSP `code_fences_always_use_the_sokonanoda_language` + hover/
-   completion 断言；扩展 `rendered_language_text_uses_the_sokonanoda_fence`。
-5. **验收**：`sokonanoda gate` PASS；版本 0.42.0 → **0.43.0**（行为统一，minor）。
 

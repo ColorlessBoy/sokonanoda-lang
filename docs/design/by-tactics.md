@@ -29,6 +29,7 @@ theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := by
 | `apply f` | `f : A1→…→An→B`，B 与目标合一 → 换成 A1..An 子目标 | `judge_infer` 推断 f 类型 + 位置 spine 合一 + `judge_terms` 验证 |
 | `assumption` | 从最内层假设起找类型与目标 defeq 者 | `judge_terms` 逐个（复用 `assumption_kernel`） |
 | `rfl` | 目标为 `Eq α x y` 时造 `Eq.refl.{u} α x` | `judge_terms`（内核算两边；复用 `eq_refl_candidate`） |
+| `match` | 情形分析：`match c with | p => <项> …`，以当前目标为期望类型；臂体是**项**（同值位 `match`），语义等价 `exact (match …)` | `judge_terms`（kernel） |
 | `sorry` | 占位：当前目标保持开放（no-op），与值位 `sorry` 同语义 | 无 |
 
 ## 3. 引擎：把 `by` 块翻译成 lambda AST
@@ -163,6 +164,11 @@ struct ByStepState { span: Span, goal: Option<String>, binders: Vec<GoalBinder> 
 新增 `window.onDidChangeTextEditorSelection` 去抖 ~200ms → `soko/stateAt`；
 编辑/重编译沿用 `onDidChangeDiagnostics`。方案 B（Lean Infoview 式 webview）
 留后续，协议先行验证。
+
+> **0.46.0 更新**：`match` 作为 tactic 加入白名单（臂体是项，见 §2）。同时修
+> `judge_terms` 合成文件：把真实前缀作为 `src`、合成声明 span 放到前缀之后，
+> 使 `match` 降低时的宇宙查询（依赖 `command.span().start` 的前缀切片）可用 ——
+> 这也让 `by exact match …` 直接可用。
 
 ## 7. 课程（三件套之课程）
 

@@ -3036,6 +3036,40 @@ fn by_block_with_intro_exact_checks() {
 }
 
 #[test]
+fn by_block_with_match_tactic_checks() {
+    // `match` 作为 tactic（臂体是项），以当前目标为期望类型判定。
+    let src = concat!(
+        "inductive Color : Type\nctor red : Color\nctor green : Color\nend\n",
+        "def swap (c : Color) : Color := by match c with | red => green | green => red\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("swap"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
+fn by_block_with_exact_match_checks() {
+    // 等价写法：`by exact match …`（judge 合成文件保留前缀，宇宙查询可用）。
+    let src = concat!(
+        "inductive Color : Type\nctor red : Color\nctor green : Color\nend\n",
+        "def swap (c : Color) : Color := by exact match c with | red => green | green => red\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("swap"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
 fn by_block_with_assumption_checks() {
     let src =
         "axiom True : Prop\ntheorem k : (a : Prop) -> a -> a := by intro a; intro h; assumption\n";
