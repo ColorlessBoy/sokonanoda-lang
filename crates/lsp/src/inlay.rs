@@ -264,6 +264,45 @@ theorem t : And p q := by apply imp\n";
     }
 
     #[tokio::test]
+    async fn probed_sub_goal_hint_shows_the_kernel_expected_type() {
+        // 前置洞穿透（design spine-meta-a.md）：B′ 对「前置实参是洞」的
+        // 子洞给 None；请求期 kernel 探针补齐 → inlay 显示 `: Not _h0`。
+        let src = "axiom False : Prop\n\
+                   def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
+                   axiom h : (a : Prop) -> Not a -> a\n\
+                   theorem t : (a : Prop) -> Not a -> a :=\n\
+                     fun (a : Prop) => fun (na : Not a) => h (sorry) (sorry)\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "probe inlay diagnostics").await;
+
+        let hints = ask_inlay(&mut service, src).await.expect("hints array");
+        let labels: Vec<&str> = hints.iter().map(label_of).collect();
+        assert_eq!(
+            labels,
+            vec![": Prop", ": Not _h0"],
+            "the kernel probe's type must reach the inlay: {hints:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn nested_hole_hint_shows_the_inner_expected_type() {
+        // 一层嵌套洞 `h (g sorry)`：洞 span 是内层 sorry，类型来自探针。
+        let src = "axiom g : (a : Prop) -> Prop\n\
+                   axiom h : (b : Prop) -> Prop\n\
+                   theorem t : Prop := h (g sorry)\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "nested inlay diagnostics").await;
+
+        let hints = ask_inlay(&mut service, src).await.expect("hints array");
+        assert_eq!(hints.len(), 1, "one nested hole: {hints:?}");
+        assert_eq!(label_of(&hints[0]), ": Prop");
+    }
+
+    #[tokio::test]
     async fn check_results_appear_as_inlay_hints() {
         // Lean Infoview 的 #check 等价物：`#check Nat` 在表达式后常显
         // `: Type 0`（内核结果，LSP 消费 front 报告的 checks）。

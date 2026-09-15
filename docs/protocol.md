@@ -236,7 +236,10 @@ Response:
   function argument holes expect the function binder's type instantiated at
   the preceding arguments, e.g. `Eq.subst.{1} Nat (sorry) …` → `Nat ->
   Prop`); `ty` is `null` when the walk cannot determine it (unknown
-  template, or a preceding argument is itself a hole);
+  template, or a preceding argument is itself a hole), but at request time
+  the server may fill such a `null` with a kernel-driven probe (the Pi domain
+  of the partial application), so clients must not assume `null` means
+  "undeterminable";
 - multi-hole documents are naturally supported (one entry per declaration);
 - hover remains the degraded, human-readable view of the same data;
 - kernel-judged code actions (next-step suggestions, per goal shape; see

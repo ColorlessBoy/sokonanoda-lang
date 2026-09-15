@@ -545,3 +545,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `source=`。设计 + as-built 见 `docs/design/extension-server-policy.md`；
   版本 **0.31.0**（新设置+命令 minor）。本机止血：清 `serverPath` 设置 + 删
   8 个 `.obsolete` 旧版本。
+- 2026-09-14（五十七）：**spine meta 方案 A（I9 余项，R55）**——refine/goal
+  子洞期望类型改为**请求期内核探针**：`front::goals::probe_sub_goal_types`
+  （重解析 + `judge_infer`，复用 128 条有界缓存）算「第 i 实参期望 = 部分应用
+  类型剥最外层 Pi domain」，支持**前置洞穿透**与**一层嵌套洞**；`open_goal`
+  仍 `probe=None` → 键路径零内核调用（perf 无回退）。LSP 只在 `soko/goals`/
+  hover/inlay 请求期补 `None` 的 `sub_goals[i].ty`，协议形状不变。更深嵌套与
+  def 包裹结果类型的 whnf 仍走 B′（需内核/pp 暴露 whnf，违反冻结）。设计 +
+  as-built 见 `docs/design/spine-meta-a.md`；版本 **0.32.0**（新增公开 front API）。

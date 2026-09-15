@@ -1,8 +1,30 @@
-# STATUS 归档（第 1–54 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–55 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十五轮：编译器服务事件流）
+
+> 续 TODO 清账（用户确认顺序 R57→R56→R55）：按
+> `docs/design/compiler-service-events.md` 落地 watch 服务事件流。
+
+1. **规范名**：watch 开场事件 `file.changed` → **`file.didChange`**（payload
+   不变，新增稳定 `file` 字段）；`file.changed` 保留一个 minor 的弃用别名
+   （`WATCH_VOCABULARY` 接受、不再发射）。
+2. **握手**：stdout 第一行恒为 `service.hello {protocol:1, engine, pid}`
+   （对齐 LSP `soko/version`；原纯文本 banner 移出 stdout）。
+3. **作用域**：`watch <file>` / `--doc <file>` / `--workspace <root>`（互斥）；
+   workspace 递归发现 `*.sokonanoda`，每文件一个 `Session` 与独立版本号、
+   事件带 `file`、跨文件无全序。
+4. **背压**：每文件有界缓冲（64），溢出合并为最新版本并标
+   `recompiled_from: 0`（协议注明可全量重同步）。
+5. **测试**：`crates/cli/tests/watch.rs` 6 项（握手/规范名/`--doc`/workspace
+   独立版本/闭词汇 + `file`/protocol.md 覆盖）+ watch.rs 单测（溢出合并）；
+   CLI 套件 105 pass、`skill.rs` conformance 绿。
+6. **文档**：`protocol.md` watch 小节 + `TESTING.md` + teacher `events.md` +
+   `help.rs` 同步。
+7. **验收**：`sokonanoda gate` PASS；版本 0.28.0 → **0.29.0**（协议/功能 minor）。
 
 ## 本轮进度（2026-09-14，第五十四轮：elaborator `let`（Phase 1））
 

@@ -2326,6 +2326,122 @@ fn nested_function_hole_becomes_generic_open_exercise() {
         report.errors
     );
 }
+
+// ---- spine meta 方案 A：请求期 kernel 探针（design spine-meta-a.md）----
+
+/// 对声明 `name` 跑探针，返回 `(洞起点 offset, 类型文本)`。
+fn probe_for(doc: &str, name: &str) -> Vec<(usize, String)> {
+    let report = check_document(&parse(doc).expect("parse"));
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some(name))
+        .expect("declaration");
+    probe_sub_goal_types(doc, &CompileOptions::default(), d.span)
+}
+
+fn probed_ty(doc: &str, name: &str, hole_offset: usize) -> Option<String> {
+    probe_for(doc, name)
+        .into_iter()
+        .find(|(o, _)| *o == hole_offset)
+        .map(|(_, ty)| ty)
+}
+
+#[test]
+fn probe_fills_defeq_alias_domain_after_a_preceding_hole() {
+    // defeq 别名 + 前置洞穿透：`h : (a : Prop) -> Not a -> a`，第二个实参
+    // 期望 `Not <第一个洞的期望类型>`。B′ 的 AST 替换看到前置洞只能给
+    // None；探针把第一个洞提升为局部 binder `_h0 : Prop` 后让内核算。
+    let src = "axiom False : Prop\n\
+               def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
+               axiom h : (a : Prop) -> Not a -> a\n\
+               theorem t : (a : Prop) -> Not a -> a :=\n\
+                 fun (a : Prop) => fun (na : Not a) => h (sorry) (sorry)\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    // B′ 快路径不变：第一个洞有类型，第二个是 None（既有断言语义）。
+    assert_eq!(d.sub_goals[0].ty.as_deref(), Some("Prop"));
+    assert_eq!(d.sub_goals[1].ty, None);
+    let second = d.sub_goals[1].span.start.offset;
+    assert_eq!(probed_ty(src, "t", second).as_deref(), Some("Not _h0"));
+}
+
+#[test]
+fn probe_fills_dependent_field_via_substitution() {
+    // 依赖字段经替换：`Eq.subst.{1} Nat (sorry) a b h (sorry)` 的末位洞
+    // 期望 `p a`；p 是前置洞（合成名 `_h1`）。探针让内核推断部分应用
+    // `Eq.subst Nat _h1 a b h` 的类型 `_h1 a -> _h1 b`，剥域得 `_h1 a`。
+    let src = concat!(
+        "theorem t : (p : Nat -> Prop) -> (a : Nat) -> (b : Nat) -> p a -> p b :=\n",
+        "  fun (p : Nat -> Prop) (a : Nat) (b : Nat) (h : p a) =>\n",
+        "    Eq.subst.{1} Nat (sorry) a b h (sorry)\n",
+    );
+    let report = check_document(&parse(src).expect("parse"));
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.sub_goals[0].ty.as_deref(), Some("Nat -> Prop"));
+    assert_eq!(d.sub_goals[1].ty, None);
+    let second = d.sub_goals[1].span.start.offset;
+    assert_eq!(probed_ty(src, "t", second).as_deref(), Some("_h1 a"));
+}
+
+#[test]
+fn probe_fills_one_level_nested_hole_expected_type() {
+    // 一层嵌套洞 `h (g sorry)`：廉价 walk 给出**内层** sorry 的 span，
+    // 类型交给请求期探针（`g` 的定义域）。
+    let src = "axiom g : (a : Prop) -> Prop\n\
+               axiom h : (b : Prop) -> Prop\n\
+               theorem t : Prop := h (g sorry)\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1, "the inner sorry is the hole");
+    assert_eq!(d.sub_goals.len(), 1);
+    assert_eq!(d.sub_goals[0].ty, None, "B′ leaves the nested hole unknown");
+    assert_eq!(
+        &src[d.holes[0].start.offset..d.holes[0].end.offset],
+        "sorry"
+    );
+    assert_eq!(
+        probed_ty(src, "t", d.holes[0].start.offset).as_deref(),
+        Some("Prop")
+    );
+}
+
+#[test]
+fn probe_deeper_than_one_level_falls_back_to_none() {
+    // v1 上限：超过一层的嵌套不识别为精确子洞，走既有 generic fallback
+    // （整值 = 一个洞，sub_goals 为空），探针也返回空——绝不比 B′ 差。
+    let src = "axiom k : (a : Prop) -> Prop\n\
+               axiom g : (a : Prop) -> Prop\n\
+               axiom h : (b : Prop) -> Prop\n\
+               theorem t : Prop := h (g (k sorry))\n";
+    let report = check_document(&parse(src).expect("parse"));
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("t"))
+        .expect("decl t");
+    assert_eq!(d.status, DeclStatus::Open);
+    assert_eq!(d.holes.len(), 1, "generic fallback: the whole value");
+    assert!(d.sub_goals.is_empty(), "{:?}", d.sub_goals);
+    assert!(
+        probe_for(src, "t").is_empty(),
+        "deeper nesting must stay a fallback, not a guess"
+    );
+}
+
 #[test]
 fn single_hole_with_ctor_goal_gets_refine_template() {
     let report = check_document(&parse(&format!(

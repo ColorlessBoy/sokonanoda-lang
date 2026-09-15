@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第五十七轮：扩展强制内置 LSP + doctor 自检；0.31.0）
+> 快照：2026-09-14（第五十八轮：spine meta 方案 A——请求期内核探针补子洞期望类型；0.32.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,24 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第五十八轮：spine meta 方案 A）
+
+> 续 TODO 清账：按 `docs/design/spine-meta-a.md` 落地 refine 子洞的
+> kernel 级期望类型（请求期探针，内核冻结）。
+
+1. **front**（`goals.rs`）：公开 `probe_sub_goal_types`——请求期重解析 + 带
+   `judge_infer` 重跑；第 i 实参期望 = 部分应用类型剥最外层 Pi domain；
+   **前置洞穿透**（`f sorry sorry` 第二个用第一个的期望）+ **一层嵌套洞**
+   （`f (g sorry)`）。`open_goal` 仍 `probe=None` → 键路径零内核调用。
+2. **LSP**：`probed_report` 仅在 `soko/goals`/hover/inlay 请求期补 `None` 的
+   `sub_goals[i].ty`；`stateAt`/`nextHole` 不探测；协议形状/洞数不变。
+3. **测试**：front 4（defeq 别名+前置洞、依赖字段、一层嵌套、更深回退）+
+   LSP 4；B′ 既有断言不变；perf 无回退（goals/hover 0ms、didChange 1ms）。
+4. **验收**：`sokonanoda gate` PASS；版本 0.31.0 → **0.32.0**（新增公开 front
+   API → minor）。
+5. **未闭环（留档）**：超量应用里「def 包裹的结果类型」whnf 展开需内核/pp 暴露
+   （违反冻结）→ 仍走 B′；更深嵌套/非 spine 实参仍 `None`。
 
 ## 本轮进度（2026-09-14，第五十七轮：扩展强制内置 LSP + doctor 自检）
 
@@ -55,25 +73,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    CSP nonce、负断言）；`extension.test.js` 集成 smoke；`node test-server.js`
    18/18。
 6. **验收**：`sokonanoda gate` PASS；版本 0.29.0 → **0.30.0**（新 view+命令）。
-
-## 本轮进度（2026-09-14，第五十五轮：编译器服务事件流）
-
-> 续 TODO 清账（用户确认顺序 R57→R56→R55）：按
-> `docs/design/compiler-service-events.md` 落地 watch 服务事件流。
-
-1. **规范名**：watch 开场事件 `file.changed` → **`file.didChange`**（payload
-   不变，新增稳定 `file` 字段）；`file.changed` 保留一个 minor 的弃用别名
-   （`WATCH_VOCABULARY` 接受、不再发射）。
-2. **握手**：stdout 第一行恒为 `service.hello {protocol:1, engine, pid}`
-   （对齐 LSP `soko/version`；原纯文本 banner 移出 stdout）。
-3. **作用域**：`watch <file>` / `--doc <file>` / `--workspace <root>`（互斥）；
-   workspace 递归发现 `*.sokonanoda`，每文件一个 `Session` 与独立版本号、
-   事件带 `file`、跨文件无全序。
-4. **背压**：每文件有界缓冲（64），溢出合并为最新版本并标
-   `recompiled_from: 0`（协议注明可全量重同步）。
-5. **测试**：`crates/cli/tests/watch.rs` 6 项（握手/规范名/`--doc`/workspace
-   独立版本/闭词汇 + `file`/protocol.md 覆盖）+ watch.rs 单测（溢出合并）；
-   CLI 套件 105 pass、`skill.rs` conformance 绿。
-6. **文档**：`protocol.md` watch 小节 + `TESTING.md` + teacher `events.md` +
-   `help.rs` 同步。
-7. **验收**：`sokonanoda gate` PASS；版本 0.28.0 → **0.29.0**（协议/功能 minor）。

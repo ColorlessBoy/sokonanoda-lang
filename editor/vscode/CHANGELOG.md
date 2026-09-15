@@ -1,3 +1,16 @@
+## [0.32.0] - 2026-09-14
+
+### Added
+
+- **Kernel-driven expected types for refine sub-holes (spine meta, 方案 A)** —
+  the goal view / inlay now fill sub-hole expected types that the syntax walk
+  left empty, by probing the kernel at request time (`judge_infer` + its
+  bounded cache; never on the keystroke path). Covered: preceding-hole
+  penetration (`f sorry sorry`, the second using the first's expected type),
+  one-level nested holes (`f (g sorry)`), and syntactic def-eq domains.
+  Deeper nesting and def-wrapped *result* types still fall back to the old
+  behaviour. Design: `docs/design/spine-meta-a.md`.
+
 ## [0.31.0] - 2026-09-14
 
 ### Added

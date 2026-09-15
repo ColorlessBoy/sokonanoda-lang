@@ -10,7 +10,8 @@
 
 use super::prelude::{CompileOptions, PreludeMode, PRELUDE_EQ_SRC};
 use super::report::{GoalBinder, SubGoal};
-use crate::proof::render_expr;
+use crate::judge::{judge_infer, GoalBinderSpec};
+use crate::proof::{parse_expr_text, render_expr};
 use crate::{Binder, Command, Expr, FolFile, Span};
 use std::collections::HashMap;
 
@@ -236,7 +237,150 @@ pub(crate) fn open_goal(ty: &Expr, val: &Expr, templates: &GoalTemplates) -> Opt
     }
     let mut locals = HashMap::new();
     local_func_templates(val, &mut locals);
-    goal_under_binders(ty, val, templates, &locals)
+    goal_under_binders(ty, val, templates, &locals, None, &[])
+}
+
+/// 请求期 kernel 探针的上下文（design spine-meta-a §2）：前缀源码 +
+/// prelude 选项。前端已有同形探针 [`judge_infer`]——合成
+/// `#check fun <intros> => <部分应用>` 走完整内核，结果按有界指纹缓存。
+pub(crate) struct ProbeEnv<'a> {
+    prefix_src: &'a str,
+    options: &'a CompileOptions,
+}
+
+/// 请求期 kernel 探针入口（方案 A，front-only，内核零改动）：
+/// 重解析文档、定位开放练习声明，再用 [`judge_infer`] 为**函数 spine 子洞**
+/// 重算期望类型。返回 `(洞起点 offset, 类型文本)`；调用方按 span 覆盖
+/// report 中为 `None` 的 `sub_goals[i].ty`。
+///
+/// 纪律（docs/design/spine-meta-a.md §2/§4）：只在 LSP 的
+/// `soko/goals` / inlay / hover 请求路径调用，绝不进 didChange / keystroke
+/// 路径；`open_goal` 的廉价 AST 走查仍是「是否 Open + 洞 span」的唯一来源。
+/// 算不出（深层嵌套、无类型 binder 等）就返回空——不倒退、永不比 B′ 差。
+pub fn probe_sub_goal_types(
+    doc_src: &str,
+    options: &CompileOptions,
+    decl_span: Span,
+) -> Vec<(usize, String)> {
+    let Ok(file) = crate::parse(doc_src) else {
+        return Vec::new();
+    };
+    let decl_start = decl_span.start.offset.min(doc_src.len());
+    let Some((ty, val)) = file.commands.iter().find_map(|command| match command {
+        Command::Def { ty, val, span, .. }
+        | Command::Theorem { ty, val, span, .. }
+        | Command::Example { ty, val, span, .. }
+            if span.start.offset == decl_start || *span == decl_span =>
+        {
+            Some((ty, val))
+        }
+        _ => None,
+    }) else {
+        return Vec::new();
+    };
+    let templates = GoalTemplates::new_for(&file, options);
+    let mut locals = HashMap::new();
+    local_func_templates(val, &mut locals);
+    let env = ProbeEnv {
+        prefix_src: &doc_src[..decl_start],
+        options,
+    };
+    let Some(info) = goal_under_binders(ty, val, &templates, &locals, Some(&env), &[]) else {
+        return Vec::new();
+    };
+    info.sub_goals
+        .iter()
+        .filter_map(|sub| sub.ty.clone().map(|t| (sub.span.start.offset, t)))
+        .collect()
+}
+
+/// 第 `target` 个实参的期望类型：`head` 应用到 `args[..target]` 的部分应用
+/// 的类型，剥掉最外层 Pi 的 domain。前置洞按递归算得的期望类型提升为局部
+/// binder（`_h0`, `_h1`, …），代入部分应用继续——双向检查的 expected 传播
+/// （design spine-meta-a §2.1/§2.2）。任一步算不出即 `None`。
+fn probe_arg_type(
+    env: &ProbeEnv,
+    ctx: &[GoalBinder],
+    head: &Expr,
+    args: &[&Expr],
+    target: usize,
+) -> Option<String> {
+    let mut term = render_expr(head);
+    let mut lifted: Vec<GoalBinder> = Vec::new();
+    for (j, arg) in args.iter().enumerate().take(target) {
+        match arg {
+            Expr::Hole { .. } => {
+                let ty = probe_arg_type(env, ctx, head, args, j)?;
+                // 合成名带下划线前缀：不与教学文档里常见的 `h`/`a` 撞名。
+                let name = format!("_h{j}");
+                term.push(' ');
+                term.push_str(&name);
+                lifted.push(GoalBinder { name, ty });
+            }
+            other => {
+                if expr_has_hole(other) {
+                    return None; // 前置实参自身含洞：v1 回退
+                }
+                term.push(' ');
+                term.push_str(&render_arg(other));
+            }
+        }
+    }
+    let mut specs: Vec<GoalBinderSpec> = ctx.iter().map(binder_spec).collect();
+    specs.extend(lifted.iter().map(binder_spec));
+    let ty = judge_infer(env.prefix_src, env.options, &specs, &term).ok()?;
+    peel_pi_domain_text(&ty)
+}
+
+/// 一层嵌套洞的**廉价**识别：实参是应用 spine `g b₁ … bₙ`，且其中恰好
+/// 一个直接实参是 `sorry`、其余都不含洞。返回 `(洞在 spine 中的位置, span)`。
+/// 说明这是「一层嵌套」而非更深——更深（`g (k sorry)`）或非 spine
+/// （`fun (x) => sorry`）都返回 `None`，交回既有的 generic fallback。
+fn nested_spine_hole(arg: &Expr) -> Option<(usize, Span)> {
+    let (_, args) = spine_head_args(arg)?;
+    let mut hole: Option<(usize, Span)> = None;
+    for (k, a) in args.iter().enumerate() {
+        match a {
+            Expr::Hole { span } => {
+                if hole.is_some() {
+                    return None; // 多个直接洞：超出 v1
+                }
+                hole = Some((k, *span));
+            }
+            other if expr_has_hole(other) => return None, // 更深一层：超出 v1
+            _ => {}
+        }
+    }
+    hole
+}
+
+/// 一层嵌套洞（`f (g sorry)`）的期望类型：对 `g b₁ … bₖ₋₁` 走一次
+/// [`probe_arg_type`]（design §2.3 v1 的一层上限）。
+fn probe_nested_hole(env: &ProbeEnv, ctx: &[GoalBinder], arg: &Expr) -> Option<(Span, String)> {
+    let (k, span) = nested_spine_hole(arg)?;
+    let head = spine_base(arg)?;
+    let (_, args) = spine_head_args(arg)?;
+    let ty = probe_arg_type(env, ctx, head, &args, k)?;
+    Some((span, ty))
+}
+
+fn binder_spec(b: &GoalBinder) -> GoalBinderSpec {
+    GoalBinderSpec {
+        name: b.name.clone(),
+        ty: Some(b.ty.clone()),
+    }
+}
+
+/// 类型文本剥掉最外层 Pi 的 domain（`(x : A) -> B` 或 `A -> B` → `A`）。
+fn peel_pi_domain_text(ty: &str) -> Option<String> {
+    let expr = parse_expr_text(ty).ok()?;
+    match expr {
+        Expr::Forall { binders, .. } if !binders.is_empty() => {
+            binders[0].ty.as_deref().map(render_expr)
+        }
+        Expr::Arrow { domain, .. } => Some(render_expr(&domain)),
+        _ => None,
+    }
 }
 
 /// 值位 `funapply` 的**局部假设**模板覆盖层。
@@ -672,6 +816,8 @@ fn func_spine_case(
     binders: Vec<GoalBinder>,
     templates: &GoalTemplates,
     locals: &HashMap<String, FuncTemplate>,
+    probe: Option<&ProbeEnv>,
+    ctx: &[GoalBinder],
 ) -> Option<OpenGoalInfo> {
     let (val_head, val_args) = spine_head_args(val)?;
     // 全局优先，局部假设（值位 `funapply` 引入的覆盖层）兜底。
@@ -715,7 +861,11 @@ fn func_spine_case(
             }
         }
         let mut res = substitute_names(result, &map, &levels);
-        for arg in &val_args[template.binder_names.len()..] {
+        for (i, arg) in val_args
+            .iter()
+            .enumerate()
+            .skip(template.binder_names.len())
+        {
             for _ in 0..8 {
                 if matches!(res, Expr::Arrow { .. }) {
                     break;
@@ -732,14 +882,14 @@ fn func_spine_case(
                     if let Expr::Hole { span } = arg {
                         holes.push(*span);
                         let text = render_expr(&domain);
-                        sub_goals.push(SubGoal {
-                            span: *span,
-                            ty: if text.contains("sorry") {
-                                None
-                            } else {
-                                Some(text)
-                            },
-                        });
+                        // B′ 的 Arrow 走查算不出（含 sorry / def 展开不够）
+                        // 时，请求期 kernel 探针兜底（方案 A）。
+                        let ty = if text.contains("sorry") {
+                            probe.and_then(|env| probe_arg_type(env, ctx, base, &val_args, i))
+                        } else {
+                            Some(text)
+                        };
+                        sub_goals.push(SubGoal { span: *span, ty });
                     }
                     res = *codomain;
                 }
@@ -748,12 +898,29 @@ fn func_spine_case(
         }
     } else {
         for (i, arg) in val_args.iter().enumerate() {
-            if let Expr::Hole { span } = arg {
-                holes.push(*span);
-                sub_goals.push(SubGoal {
-                    span: *span,
-                    ty: instantiate_binder_type(template, i, &val_args, &levels),
-                });
+            match arg {
+                Expr::Hole { span } => {
+                    holes.push(*span);
+                    let cheap = instantiate_binder_type(template, i, &val_args, &levels);
+                    let ty = cheap.or_else(|| {
+                        probe.and_then(|env| probe_arg_type(env, ctx, base, &val_args, i))
+                    });
+                    sub_goals.push(SubGoal { span: *span, ty });
+                }
+                other if expr_has_hole(other) => {
+                    // 一层嵌套洞（`f (g sorry)`）：B′ 只认直接实参洞；这里
+                    // 只对**恰好一层**的 spine 嵌套给出精确子洞（span 来自
+                    // 洞本身），类型由请求期 kernel 探针填。更深或非 spine
+                    // （`fun (x) => sorry`）不处理 → 交回 generic fallback，
+                    // 与既有行为一致（绝不比 B′ 差）。
+                    if let Some((_, span)) = nested_spine_hole(other) {
+                        let ty = probe
+                            .and_then(|env| probe_nested_hole(env, ctx, other).map(|(_, t)| t));
+                        holes.push(span);
+                        sub_goals.push(SubGoal { span, ty });
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -863,6 +1030,8 @@ fn goal_under_binders(
     val: &Expr,
     templates: &GoalTemplates,
     locals: &HashMap<String, FuncTemplate>,
+    probe: Option<&ProbeEnv>,
+    ctx: &[GoalBinder],
 ) -> Option<OpenGoalInfo> {
     match val {
         Expr::Hole { span } => {
@@ -916,15 +1085,18 @@ fn goal_under_binders(
                 name: binder.name.clone(),
                 ty: binder_text,
             };
+            // 探针的局部上下文：本 lambda 引入的假设对下标可达（外侧在前）。
+            let mut child_ctx = ctx.to_vec();
+            child_ctx.push(introduced.clone());
             let mut info = if binders_rest.is_empty() {
-                goal_under_binders(&rest_ty, body, templates, locals)?
+                goal_under_binders(&rest_ty, body, templates, locals, probe, &child_ctx)?
             } else {
                 let rest_val = Expr::Lambda {
                     binders: binders_rest.to_vec(),
                     body: body.clone(),
                     span: Span::default(),
                 };
-                goal_under_binders(&rest_ty, &rest_val, templates, locals)?
+                goal_under_binders(&rest_ty, &rest_val, templates, locals, probe, &child_ctx)?
             };
             info.binders.insert(0, introduced);
             Some(info)
@@ -940,7 +1112,7 @@ fn goal_under_binders(
             if expr_has_hole(let_val) {
                 // 值位洞的期望类型 = binder 注解 T；整体剩余目标仍是声明类型。
                 let ty_ast = binder.ty.as_deref()?;
-                let precise = goal_under_binders(ty_ast, let_val, templates, locals);
+                let precise = goal_under_binders(ty_ast, let_val, templates, locals, probe, ctx);
                 let (holes, precise_goals) = match precise {
                     Some(info) => (info.holes, info.sub_goals),
                     None => {
@@ -975,13 +1147,15 @@ fn goal_under_binders(
                     name: binder.name.clone(),
                     ty: render_expr(ty_ast),
                 };
-                let mut info = goal_under_binders(ty, body, templates, locals)?;
+                let mut child_ctx = ctx.to_vec();
+                child_ctx.push(introduced.clone());
+                let mut info = goal_under_binders(ty, body, templates, locals, probe, &child_ctx)?;
                 info.binders.insert(0, introduced);
                 Some(info)
             }
         }
         // 构造子语义优先（参数位可由目标自动判定，信息更多）；函数兜底。
         _ => ctor_spine_case(ty, val, Vec::new(), templates)
-            .or_else(|| func_spine_case(ty, val, Vec::new(), templates, locals)),
+            .or_else(|| func_spine_case(ty, val, Vec::new(), templates, locals, probe, ctx)),
     }
 }

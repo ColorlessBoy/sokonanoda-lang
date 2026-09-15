@@ -100,3 +100,23 @@
 - `sokonanoda gate` 全绿；`STATUS.md` / `REQUIREMENTS.md §9` 同步；
   版本按 `docs/vscode-dev-guide.md` §2 判断（信息更正确 = patch；若引入
   新的公开 front API 则 minor）。
+
+---
+
+## 6. as-built（2026-09-14，0.32.0）
+
+- **front**（`goals.rs`）：新增公开 `probe_sub_goal_types(doc_src, options,
+  decl_span) -> Vec<(hole_offset, ty)>`——请求期重解析 → 定位声明 → 带
+  `judge_infer` 重跑走查。第 i 实参期望 = 部分应用 `<head> a₁…aᵢ₋₁` 的类型剥
+  最外层 Pi domain；前置洞提升为 `_h0/_h1…` 局部 binder 并递归取期望
+  （穿透）；一层嵌套洞（`f (g sorry)`）取内层期望。`open_goal` 仍以
+  `probe=None` 运行 → **键路径零内核调用**。
+- **LSP**（`lib.rs`/`inlay.rs`）：`probed_report(doc)` 仅在 `soko/goals`、
+  hover、inlay 请求期把 `None` 的 `sub_goals[i].ty` 补上；`stateAt`/`nextHole`
+  不探测。协议形状与洞数不变（仅更多非空 `ty`）。
+- **测试**：front 4 条（defeq 别名 + 前置洞 → `Not _h0`、依赖字段替换
+  `_h1 a`、一层嵌套、深于一层回退）+ LSP 4 条；B′ 既有断言逐条不变；perf
+  无回退（goals/hover/completion 0ms、didChange 1ms、缩放比 6.8×）。
+- **版本** 0.31.0 → **0.32.0**（新增公开 front API → minor）。
+- **未闭环（留档）**：超量应用下「def 包裹的结果类型」的 whnf 展开需要
+  内核/pp 暴露 whnf（违反冻结）→ 仍走 B′；更深嵌套/非 spine 实参仍 `None`。

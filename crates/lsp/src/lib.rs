@@ -68,6 +68,43 @@ impl Doc {
     }
 }
 
+/// 请求期 kernel 探针后的报告（design spine-meta-a.md §2/§4）：只把开放练习
+/// 里 `sub_goals[i].ty == None` 的项交给 `front::probe_sub_goal_types`
+/// 按洞 span 覆盖填充。**绝不进 didChange / keystroke 路径**——此函数只在
+/// `soko/goals` / inlay / hover 请求里调用；无待填类型时零探针（只 clone）。
+fn probed_report(doc: &Doc) -> DocumentReport {
+    let Some(report) = &doc.report else {
+        return DocumentReport::default();
+    };
+    let needs_probe = report
+        .decls
+        .iter()
+        .any(|d| d.status == DeclStatus::Open && d.sub_goals.iter().any(|s| s.ty.is_none()));
+    if !needs_probe {
+        return report.clone();
+    }
+    let options = CompileOptions { prelude: doc.mode };
+    let mut report = report.clone();
+    for d in &mut report.decls {
+        if d.status != DeclStatus::Open || !d.sub_goals.iter().any(|s| s.ty.is_none()) {
+            continue;
+        }
+        let probed = sokonanoda_front::compile::probe_sub_goal_types(&doc.text, &options, d.span);
+        for sub in &mut d.sub_goals {
+            if sub.ty.is_none() {
+                if let Some(ty) = probed
+                    .iter()
+                    .find(|(offset, _)| *offset == sub.span.start.offset)
+                    .map(|(_, ty)| ty.clone())
+                {
+                    sub.ty = Some(ty);
+                }
+            }
+        }
+    }
+    report
+}
+
 struct Backend {
     client: Client,
     doc: Mutex<Doc>,
@@ -264,9 +301,17 @@ impl Backend {
 
     // ---- I9 goal 视图协议：结构化 goal 请求（coq-lsp `proof/goals` 模式）----
 
-    fn goal_decls(&self) -> Option<(String, Vec<GoalDeclInfo>)> {
+    /// 组 `soko/goals` 的 wire 数据。`probe` = 是否跑请求期 kernel 探针填
+    /// 函数 spine 子洞的期望类型（`nextHole` 只看洞 span，用 `false` 不引入
+    /// 内核成本）。
+    fn goal_decls(&self, probe: bool) -> Option<(String, Vec<GoalDeclInfo>)> {
         let doc = self.doc.lock().expect("doc lock");
-        let report = doc.report.as_ref()?;
+        doc.report.as_ref()?;
+        let report = if probe {
+            probed_report(&doc)
+        } else {
+            doc.report.clone().unwrap_or_default()
+        };
         let decls = report
             .decls
             .iter()
@@ -330,7 +375,7 @@ impl Backend {
     async fn goals(&self, params: GoalsParams) -> Result<GoalsResponse> {
         let _ = params;
         let decls = self
-            .goal_decls()
+            .goal_decls(true)
             .map(|(_, decls)| decls)
             .unwrap_or_default();
         Ok(GoalsResponse { decls })
@@ -348,7 +393,7 @@ impl Backend {
     }
 
     async fn next_hole(&self, params: NextHoleParams) -> Result<Option<Range>> {
-        let Some((text, decls)) = self.goal_decls() else {
+        let Some((text, decls)) = self.goal_decls(false) else {
             return Ok(None);
         };
         let forward = params.forward.unwrap_or(true);
@@ -979,9 +1024,12 @@ impl LanguageServer for Backend {
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        if doc.report.is_none() {
             return Ok(None);
-        };
+        }
+        // 请求期探针：洞期望类型（含函数 spine 的 None 项）在 hover 时补齐。
+        let report = probed_report(&doc);
+        let report = &report;
         let pos = params.text_document_position_params.position;
         let offset = position_to_offset(&doc.text, pos);
         // `by` tactic hover: show the goal state entering the tactic under the
@@ -1389,11 +1437,13 @@ impl LanguageServer for Backend {
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        if doc.report.is_none() {
             return Ok(None);
-        };
+        }
+        // 请求期探针补齐函数 spine 子洞的期望类型（inlay 是惰性请求）。
+        let report = probed_report(&doc);
         let _ = params.range;
-        Ok(Some(inlay::document_hints(&doc.text, report)))
+        Ok(Some(inlay::document_hints(&doc.text, &report)))
     }
 }
 
@@ -2729,6 +2779,59 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             holes[0]["range"], sub_goals[0]["range"],
             "holes stay positionally aligned with sub_goals"
         );
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn goals_request_probes_preceding_hole_penetration() {
+        // B′ 把「前置实参是洞」的子洞类型留成 null；请求期 kernel 探针把
+        // 第一个洞提升为局部 `_h0 : Prop`，第二个洞（`Not a`）得 `Not _h0`。
+        // wire 形状不变，只是 sub_goals[i].ty 从 null 变成文本。
+        let src = "axiom False : Prop\n\
+                   def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
+                   axiom h : (a : Prop) -> Not a -> a\n\
+                   theorem t : (a : Prop) -> Not a -> a :=\n\
+                     fun (a : Prop) => fun (na : Not a) => h (sorry) (sorry)\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "probe diagnostics").await;
+
+        let result = request_goals(&mut service).await;
+        let decls = result["decls"].as_array().expect("decls array");
+        let decl = &decls[decls.len() - 1];
+        assert_eq!(decl["status"], "open");
+        let sub_goals = decl["sub_goals"].as_array().expect("sub_goals array");
+        assert_eq!(sub_goals.len(), 2, "{result:?}");
+        assert_eq!(sub_goals[0]["ty"], "Prop");
+        assert_eq!(
+            sub_goals[1]["ty"], "Not _h0",
+            "the second hole's expected type comes from the kernel probe"
+        );
+        // 契约不变：客户端不得文本扫洞——id 仍在 holes 里，位置对齐。
+        assert_eq!(decl["holes"][1]["id"], "t:1");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn goals_request_probes_one_level_nested_hole() {
+        // 一层嵌套洞 `h (g sorry)`：廉价 walk 给出内层 sorry 的精确 span，
+        // 请求期探针填上 `g` 的定义域。
+        let src = "axiom g : (a : Prop) -> Prop\n\
+                   axiom h : (b : Prop) -> Prop\n\
+                   theorem t : Prop := h (g sorry)\n";
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, src).await;
+        let _ = wait_diagnostics(&mut socket, "nested probe diagnostics").await;
+
+        let result = request_goals(&mut service).await;
+        let decls = result["decls"].as_array().expect("decls array");
+        let decl = &decls[decls.len() - 1];
+        let holes = decl["holes"].as_array().expect("holes array");
+        assert_eq!(holes.len(), 1, "the inner sorry is the hole: {result:?}");
+        let sub_goals = decl["sub_goals"].as_array().expect("sub_goals array");
+        assert_eq!(sub_goals[0]["ty"], "Prop");
         shutdown(&mut service).await;
     }
 
