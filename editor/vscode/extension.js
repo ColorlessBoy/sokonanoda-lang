@@ -29,6 +29,9 @@ const server = require("./server");
 let client;
 let serverOptions;
 let extensionRoot;
+let lastResolution; // {command, source} of the last successful resolveServerForStart
+let overrideNoticeShown = false; // one-time "your serverPath is ignored" notice
+let doctorChannel; // shared read-only doctor output channel
 
 function discoveryRoots() {
   return (vscode.workspace.workspaceFolders ?? [])
@@ -75,7 +78,13 @@ function newestInstalledExtensionVersion(context) {
 
 // Server acquisition (bundled VSIX binary first, downloads only as a fallback)
 // lives in server.js so plain Node can unit-test it; this module stays the
-// VS Code wiring layer.
+// VS Code wiring layer. `serverOverride` defaults to false: the bundled server
+// always wins and `serverPath` / `SOKONANODA_LSP_BIN` / workspace builds are
+// ignored (docs/design/extension-server-policy.md §2).
+function serverOverrideEnabled() {
+  return vscode.workspace.getConfiguration("sokonanoda").get("serverOverride") === true;
+}
+
 function resolveServerCommand(context) {
   return server.resolveServerCommand({
     setting: vscode.workspace.getConfiguration("sokonanoda").get("serverPath"),
@@ -85,6 +94,7 @@ function resolveServerCommand(context) {
     platform: process.platform,
     arch: process.arch,
     version: extensionVersion(context),
+    override: serverOverrideEnabled(),
     log: (message) => console.warn(`[sokonanoda] ${message}`),
   });
 }
@@ -108,13 +118,43 @@ function resolveCourseManifest() {
 }
 
 // The user's explicit server choice (`sokonanoda.serverPath` /
-// `SOKONANODA_LSP_BIN`), if any. Checked before auto-discovery so a typo is
-// reported instead of silently falling back to a download.
+// `SOKONANODA_LSP_BIN`), if any. With `serverOverride` off these are ignored
+// (the bundled server wins), so this is used to report that instead of
+// silently falling back to a download.
 function requestedServerCommand() {
   const setting = vscode.workspace.getConfiguration("sokonanoda").get("serverPath");
   if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
   if (process.env.SOKONANODA_LSP_BIN) return process.env.SOKONANODA_LSP_BIN;
   return undefined;
+}
+
+// One-time, non-blocking notice that an explicit server path is being ignored
+// because `serverOverride` is off (docs/design/extension-server-policy.md §2).
+// Never modifies the setting — the action just opens it.
+function noticeIgnoredOverride() {
+  if (overrideNoticeShown) return;
+  overrideNoticeShown = true;
+  const setting = vscode.workspace.getConfiguration("sokonanoda").get("serverPath");
+  const which = typeof setting === "string" && setting.trim() !== ""
+    ? "sokonanoda.serverPath"
+    : "SOKONANODA_LSP_BIN";
+  vscode.window
+    .showWarningMessage(
+      `sokonanoda：已忽略 ${which}，正在使用扩展内置的语言服务器（避免版本错配）。` +
+        "要改用自定义服务器，请开启 sokonanoda.serverOverride。",
+      "打开设置",
+      "运行 doctor",
+    )
+    .then((choice) => {
+      if (choice === "打开设置") {
+        vscode.commands.executeCommand(
+          "workbench.action.openSettings",
+          "sokonanoda.serverOverride",
+        );
+      } else if (choice === "运行 doctor") {
+        vscode.commands.executeCommand("sokonanoda.doctor");
+      }
+    });
 }
 
 const stateNames = {
@@ -416,12 +456,17 @@ function themeKindName() {
 // Raw `soko/version` snapshot for the webview's `server` message (the restart
 // receipt in `serverVersion` stays a human string).
 async function requestServerInfo() {
-  if (!client) return { running: false };
+  if (!client) return { running: false, source: lastResolution?.source };
   try {
     const result = await client.sendRequest("soko/version", {});
-    return { running: true, version: result?.version, pid: result?.pid };
+    return {
+      running: true,
+      version: result?.version,
+      pid: result?.pid,
+      source: lastResolution?.source,
+    };
   } catch {
-    return { running: false };
+    return { running: false, source: lastResolution?.source };
   }
 }
 
@@ -852,23 +897,35 @@ async function serverVersion() {
 // `cachedServerIsCurrent`), and this then fetches the release pinned to the
 // extension version instead of leaving the old command in place.
 //
-// Returns the command path, or `undefined` after reporting why (missing
-// explicit path / unsupported platform / download failure).
+// Returns `{command, source}`, or `undefined` after reporting why (missing
+// explicit path / unsupported platform / download failure). `source` is one of
+// `bundled | setting | env | workspace | cache | download` and feeds the
+// restart receipt and the doctor report.
 async function resolveServerForStart(context) {
+  const override = serverOverrideEnabled();
   const requested = requestedServerCommand();
-  if (requested !== undefined) {
-    if (!fs.existsSync(requested)) {
+  // Bundled-first policy: a configured override is ignored (once) unless the
+  // contributor explicitly opted in.
+  if (!override && requested !== undefined) noticeIgnoredOverride();
+
+  const resolved = await resolveServerCommand(context);
+  if (resolved.command !== undefined) {
+    // Under override, a typo'd path must be reported instead of silently
+    // falling through to a download.
+    if (
+      (resolved.source === "setting" || resolved.source === "env") &&
+      !fs.existsSync(resolved.command)
+    ) {
       vscode.window.showErrorMessage(
-        `sokonanoda：指定的语言服务器不存在：${requested}（检查 sokonanoda.serverPath 或 SOKONANODA_LSP_BIN）`,
+        `sokonanoda：指定的语言服务器不存在：${resolved.command}（检查 sokonanoda.serverPath 或 SOKONANODA_LSP_BIN）`,
       );
       return undefined;
     }
-    return requested;
+    lastResolution = resolved;
+    return resolved;
   }
-  const resolved = await resolveServerCommand(context);
-  if (resolved !== undefined) return resolved;
 
-  // Every platform package bundles the server; `undefined` here means an
+  // Every platform package bundles the server; nothing resolved here means an
   // unsupported platform or the universal fallback package (no bundled bin).
   if (!server.platformTarget(process.platform, process.arch)) {
     vscode.window.showErrorMessage(
@@ -889,7 +946,8 @@ async function resolveServerForStart(context) {
     });
     if (command && fs.existsSync(command)) {
       vscode.window.showInformationMessage("sokonanoda：语言服务器就绪 ✓");
-      return command;
+      lastResolution = { command, source: "download" };
+      return lastResolution;
     }
     throw new Error("download produced no binary");
   } catch (err) {
@@ -899,6 +957,175 @@ async function resolveServerForStart(context) {
     );
     return undefined;
   }
+}
+
+// ── Doctor (docs/design/extension-server-policy.md §3) ─────────────────────
+// A read-only self-check: it NEVER changes settings and NEVER deletes files.
+// It reports physical facts (resolved source/command, server/host/cache
+// versions, ignored overrides, stale installs) and, on an error-level finding,
+// raises a non-blocking notification with a "运行 doctor" button. Returns the
+// report text so callers/tests can assert on it.
+const DOCTOR_CHECKS = [
+  "resolution",
+  "server-version",
+  "host-version",
+  "ignored-override",
+  "download-cache",
+  "obsolete-versions",
+];
+
+function doctorOutput(context) {
+  if (!doctorChannel) {
+    doctorChannel = vscode.window.createOutputChannel("sokonanoda doctor");
+    context?.subscriptions?.push(doctorChannel);
+  }
+  return doctorChannel;
+}
+
+async function runDoctor(context, { notify = true, show = false } = {}) {
+  const lines = [];
+  const issues = [];
+  let extVersion;
+  try {
+    extVersion = extensionVersion(context) ?? "?";
+    lines.push(`sokonanoda doctor — 扩展 v${extVersion} (${DOCTOR_CHECKS.length} checks)`);
+
+    // 1. resolution result and source.
+    const override = serverOverrideEnabled();
+    let dry = { command: undefined, source: undefined };
+    try {
+      dry = await resolveServerCommand(context);
+    } catch (error) {
+      lines.push(`[warn] 1/6 ${DOCTOR_CHECKS[0]}：解析失败 — ${error?.message ?? error}`);
+    }
+    const source = lastResolution?.source ?? dry.source;
+    const command = lastResolution?.command ?? dry.command;
+    if (command) {
+      lines.push(`[ok] 1/6 ${DOCTOR_CHECKS[0]}：${source} — ${command} (source=${source ?? "?"})`);
+    } else if (server.platformTarget(process.platform, process.arch)) {
+      lines.push(
+        `[info] 1/6 ${DOCTOR_CHECKS[0]}：无内置/缓存服务器，将按 v${extVersion} 下载 (source=download)`,
+      );
+    } else {
+      const text = `1/6 ${DOCTOR_CHECKS[0]}：平台 ${process.platform}-${process.arch} 无内置服务器且无下载构建 (source=unsupported)`;
+      lines.push(`[error] ${text}`);
+      issues.push({ level: "error", text });
+    }
+
+    // 2. running server version vs the extension version.
+    const info = await requestServerInfo();
+    if (!info.running) {
+      lines.push(`[warn] 2/6 ${DOCTOR_CHECKS[1]}：服务器未运行（打开一个 .sokonanoda 文件启动）`);
+    } else if (info.version === extVersion) {
+      lines.push(
+        `[ok] 2/6 ${DOCTOR_CHECKS[1]}：${info.version} (pid ${info.pid}) == 扩展 v${extVersion} (source=${info.source ?? "?"})`,
+      );
+    } else {
+      const hint = override
+        ? "serverOverride 已开启"
+        : "serverOverride 关闭，本应始终使用内置服务器";
+      const text =
+        `2/6 ${DOCTOR_CHECKS[1]}：运行 ${info.version} (pid ${info.pid}) != 扩展 v${extVersion}；` +
+        `${hint}。请 “Developer: Reload Window” 或清空 sokonanoda.serverPath`;
+      lines.push(`[error] ${text}`);
+      issues.push({ level: "error", text });
+    }
+
+    // 3. extension host version vs newest installed on disk.
+    const installed = newestInstalledExtensionVersion(context);
+    if (installed && compareVersions(installed, extVersion) > 0) {
+      const text = `3/6 ${DOCTOR_CHECKS[2]}：磁盘已安装 v${installed} > 运行 v${extVersion}；执行 “Developer: Reload Window”`;
+      lines.push(`[warn] ${text}`);
+      issues.push({ level: "warn", text });
+    } else {
+      lines.push(
+        `[ok] 3/6 ${DOCTOR_CHECKS[2]}：运行宿主 v${extVersion}${installed ? ` == 最新安装 v${installed}` : ""}`,
+      );
+    }
+
+    // 4. overrides that are being (or would be) ignored.
+    const requested = requestedServerCommand();
+    if (!override && requested !== undefined) {
+      const text =
+        `4/6 ${DOCTOR_CHECKS[3]}：已设置 ${requested}，但 serverOverride=false，已忽略；` +
+        "要覆盖请开启 sokonanoda.serverOverride";
+      lines.push(`[warn] ${text}`);
+      issues.push({ level: "warn", text });
+    } else if (override && requested !== undefined) {
+      lines.push(`[ok] 4/6 ${DOCTOR_CHECKS[3]}：serverOverride=true，使用 ${requested}`);
+    } else {
+      lines.push(`[ok] 4/6 ${DOCTOR_CHECKS[3]}：没有被忽略的 serverPath/env 覆盖`);
+    }
+
+    // 5. download cache marker (CLI/universal fallback only).
+    let markerVersion;
+    try {
+      const marker = server.serverVersionMarker();
+      markerVersion = fs.existsSync(marker)
+        ? String(fs.readFileSync(marker, "utf8")).trim()
+        : undefined;
+    } catch (error) {
+      markerVersion = `unreadable: ${error?.message ?? error}`;
+    }
+    if (markerVersion === extVersion) {
+      lines.push(`[ok] 5/6 ${DOCTOR_CHECKS[4]}：缓存 marker = 扩展 v${extVersion}`);
+    } else if (markerVersion === undefined) {
+      lines.push(
+        `[info] 5/6 ${DOCTOR_CHECKS[4]}：无下载缓存（仅影响 CLI/universal 兜底，不影响内置服务器）`,
+      );
+    } else {
+      lines.push(
+        `[info] 5/6 ${DOCTOR_CHECKS[4]}：缓存 marker ${markerVersion} != 扩展 v${extVersion}；可运行 sokonanoda update`,
+      );
+    }
+
+    // 6. old extension versions piling up (informational).
+    try {
+      const dir = path.dirname(context.extensionPath);
+      let versions = 0;
+      let obsolete = 0;
+      for (const name of fs.readdirSync(dir)) {
+        if (/^sokonanoda-lang\.sokonanoda-\d+\.\d+\.\d+/.test(name)) versions++;
+        if (name.includes(".obsolete")) obsolete++;
+      }
+      lines.push(
+        `[info] 6/6 ${DOCTOR_CHECKS[5]}：检测到 ${versions} 个扩展版本快照、${obsolete} 个 .obsolete 条目；完整重启 VS Code 会自动清理`,
+      );
+    } catch (error) {
+      lines.push(`[info] 6/6 ${DOCTOR_CHECKS[5]}：无法读取扩展目录 — ${error?.message ?? error}`);
+    }
+  } catch (error) {
+    const text = `doctor 运行失败：${error?.message ?? error}`;
+    lines.push(`[error] ${text}`);
+    issues.push({ level: "error", text });
+  }
+
+  const report = lines.join("\n");
+  try {
+    doctorOutput(context).appendLine(report);
+    if (show) doctorOutput(context).show(true);
+  } catch {
+    // Output channel is best-effort; never fail the command.
+  }
+
+  const errors = issues.filter((entry) => entry.level === "error");
+  if (notify && errors.length > 0) {
+    try {
+      vscode.window
+        .showWarningMessage(
+          `sokonanoda doctor 发现 ${errors.length} 个问题：${errors[0].text}`,
+          "运行 doctor",
+        )
+        .then((choice) => {
+          if (choice === "运行 doctor") {
+            vscode.commands.executeCommand("sokonanoda.doctor");
+          }
+        });
+    } catch {
+      // notification is best-effort
+    }
+  }
+  return report;
 }
 
 async function restartServer(context) {
@@ -932,8 +1159,8 @@ async function restartServer(context) {
     return;
   }
   if (serverOptions) {
-    serverOptions.run.command = next;
-    serverOptions.debug.command = next;
+    serverOptions.run.command = next.command;
+    serverOptions.debug.command = next.command;
   }
   try {
     await client.restart();
@@ -946,9 +1173,11 @@ async function restartServer(context) {
   const after = await serverVersion();
   vscode.window.showInformationMessage(
     `sokonanoda: server restarted${before ? ` — ${before}` : ""} → ${
-      after ?? next ?? "?"
-    }`,
+      after ?? next.command ?? "?"
+    }, source=${next.source ?? "?"}`,
   );
+  // Post-restart self-check: surface version/source problems automatically.
+  await runDoctor(context, { notify: true, show: false });
 }
 
 function registerCommands(context, provider, courseProvider, infoviewProvider) {
@@ -1007,16 +1236,22 @@ function registerCommands(context, provider, courseProvider, infoviewProvider) {
       "sokonanoda.restartServer",
       () => restartServer(context),
     ),
+    vscode.commands.registerCommand(
+      "sokonanoda.doctor",
+      () => runDoctor(context, { notify: true, show: true }),
+    ),
   );
 }
 
 async function activate(context) {
   extensionRoot = context.extensionPath;
 
-  // Resolve the server (explicit path, bundled bin, workspace build, or the
-  // version-pinned download fallback). Same path as `restart server`.
-  const command = await resolveServerForStart(context);
-  if (command === undefined) return;
+  // Resolve the server (bundled bin first; explicit path only with
+  // `serverOverride` on; version-pinned download fallback). Same path as
+  // `restart server`.
+  const resolution = await resolveServerForStart(context);
+  if (resolution === undefined) return;
+  const command = resolution.command;
 
   serverOptions = {
     run: { command, transport: TransportKind.stdio },
@@ -1106,7 +1341,12 @@ async function activate(context) {
   courseProvider.refresh();
 
   await client.start();
-  client.outputChannel.appendLine(`[client] ready — server synchronized over stdio: ${command}`);
+  client.outputChannel.appendLine(
+    `[client] ready — server synchronized over stdio: ${command} (source=${resolution.source ?? "?"})`,
+  );
+  // Auto-run the read-only doctor once, after the first soko/version exchange,
+  // so version/source problems surface without the user hunting for them.
+  await runDoctor(context, { notify: true, show: false });
 }
 
 async function deactivate() {

@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第五十六轮：VS Code webview Infoview goal 面板；0.30.0）
+> 快照：2026-09-14（第五十七轮：扩展强制内置 LSP + doctor 自检；0.31.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,28 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第五十七轮：扩展强制内置 LSP + doctor 自检）
+
+> 用户报告：扩展升到 0.29.0，`restart server` 仍回弹 `0.26.0 → 0.26.0`。
+> 盘链路确认：用户设置里 `sokonanoda.serverPath` 指向仓库陈旧的
+> `target/debug/sokonanoda-lsp`（0.26.0），显式路径优先级最高，静默压过内置
+> 0.29.0 服务器。用户要求：**强制用扩展自带的 LSP**，并**自动检测所有版本问题**。
+
+1. **设计** `docs/design/extension-server-policy.md`（含 as-built）。
+2. **强制内置**：`resolveServerCommand` 增 `override`（默认 `false`）与
+   `{command, source}`；默认链 = **内置 → 当前缓存 → 锁定下载兜底**，
+   `serverPath`/env/工作区构建**忽略**（弹一次提示，含「打开设置/运行
+   doctor」）；新增设置 `sokonanoda.serverOverride`（默认 false，restricted）
+   供贡献者恢复旧序。
+3. **doctor**：`sokonanoda.doctor` 只读输出 6 项自检（解析来源/运行版本/
+   宿主版本/被忽略覆盖/缓存/旧版本堆积），激活与 restart 后自动跑一次，
+   有问题非阻塞提示；restart 回执带 `source=`。
+4. **测试**：`test-server.js` override 单测；`extension.rs` 静态契约；
+   `extension.test.js` doctor 冒烟；`node --check` 全绿。
+5. **止血（本机）**：移除用户设置里的 `serverPath`（备份
+   `settings.json.bak-sokonanoda`）、删 8 个 `.obsolete` 旧版本（只剩 0.29.0）。
+6. **验收**：`sokonanoda gate` PASS；版本 0.30.0 → **0.31.0**（新设置+命令）。
 
 ## 本轮进度（2026-09-14，第五十六轮：VS Code webview Infoview）
 
@@ -55,23 +77,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 6. **文档**：`protocol.md` watch 小节 + `TESTING.md` + teacher `events.md` +
    `help.rs` 同步。
 7. **验收**：`sokonanoda gate` PASS；版本 0.28.0 → **0.29.0**（协议/功能 minor）。
-
-## 本轮进度（2026-09-14，第五十四轮：elaborator `let`（Phase 1））
-
-> 续第五十三轮的 TODO 清账：按 `docs/design/elaborator-let-match.md` 的
-> S1–S5 落地**值位 `let`**（Phase 1）。`match` 依设计推迟到 Phase 2。
-
-1. **设计**：`docs/design/elaborator-let-match.md` §11 切片 S1–S5 + 本文 §12 as-built。
-2. **front（S1–S3）**：`Expr::Let`；`parse_expr` 识别 `let`（`starts_atom` /
-   `named_group_ahead` 排除）；elab 分支（外层类型 + 期望类型 + `mk_let`
-   `nondep=false`，缺注解 `elab-untyped-binder`）；`spine`/`proof`/`semantic`/
-   `goals` 同步；`open_goal` 支持值位/body 洞。+21 测试（含 zeta 等价契约）。
-3. **课程 + CLI（S4–S5）**：unit3 新增「局部绑定 `let`」小节（zh/en/钥匙，
-   `def`/`#reduce` 逐字节镜像 + 两道 sorry 练习）；golden `unit3 (1,4,1)→(2,6,2)`、
-   汇总 `checked 47→48 / open 34→36`；CLI e2e +3；`architecture.md` §4.1/§8、
-   `TESTING.md` §1 同步。
-4. **验收**：`sokonanoda gate` PASS（front 287、cli 97、lsp 108）。
-5. **版本** 0.27.1 → **0.28.0**（新语法 = minor，Cargo + VSIX + CHANGELOG Added）。
-
-> TODO 余项：`match`（Phase 2）、无注解 `let`、spine-meta A 实现、webview
-> Infoview、事件流、perf 基准 + I8 early-cutoff、SHA256SUMS/attest。

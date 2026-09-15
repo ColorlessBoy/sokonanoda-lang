@@ -535,3 +535,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   不重建），CSP+nonce、仅 `textContent`；webview 不可用时静默回落树组。树的
   「当前光标处」保留。设计 + as-built 见 `docs/design/webview-infoview.md`；
   版本 **0.30.0**（新 view+命令 minor）。
+- 2026-09-14（五十六）：**VS Code 扩展强制内置 LSP + doctor 自检（用户明确）**
+  ——用户报告扩展 0.29.0 后 `restart server` 仍 `0.26.0 → 0.26.0`；盘链路确认
+  是用户设置 `sokonanoda.serverPath` 指向仓库陈旧 debug 构建（0.26.0），显式
+  路径静默压过内置服务器。修：①解析默认 **bundled-first**（`serverPath`/env/
+  工作区构建忽略并提示；贡献者用新设置 `sokonanoda.serverOverride` 显式恢复
+  旧序）②新增只读 `sokonanoda.doctor`（6 项自检：解析来源/运行版本/宿主版本/
+  被忽略覆盖/缓存/旧版本堆积），激活与 restart 后自动跑一次③restart 回执带
+  `source=`。设计 + as-built 见 `docs/design/extension-server-policy.md`；
+  版本 **0.31.0**（新设置+命令 minor）。本机止血：清 `serverPath` 设置 + 删
+  8 个 `.obsolete` 旧版本。

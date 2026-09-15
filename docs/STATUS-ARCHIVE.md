@@ -1,8 +1,28 @@
-# STATUS 归档（第 1–53 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–54 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十四轮：elaborator `let`（Phase 1））
+
+> 续第五十三轮的 TODO 清账：按 `docs/design/elaborator-let-match.md` 的
+> S1–S5 落地**值位 `let`**（Phase 1）。`match` 依设计推迟到 Phase 2。
+
+1. **设计**：`docs/design/elaborator-let-match.md` §11 切片 S1–S5 + 本文 §12 as-built。
+2. **front（S1–S3）**：`Expr::Let`；`parse_expr` 识别 `let`（`starts_atom` /
+   `named_group_ahead` 排除）；elab 分支（外层类型 + 期望类型 + `mk_let`
+   `nondep=false`，缺注解 `elab-untyped-binder`）；`spine`/`proof`/`semantic`/
+   `goals` 同步；`open_goal` 支持值位/body 洞。+21 测试（含 zeta 等价契约）。
+3. **课程 + CLI（S4–S5）**：unit3 新增「局部绑定 `let`」小节（zh/en/钥匙，
+   `def`/`#reduce` 逐字节镜像 + 两道 sorry 练习）；golden `unit3 (1,4,1)→(2,6,2)`、
+   汇总 `checked 47→48 / open 34→36`；CLI e2e +3；`architecture.md` §4.1/§8、
+   `TESTING.md` §1 同步。
+4. **验收**：`sokonanoda gate` PASS（front 287、cli 97、lsp 108）。
+5. **版本** 0.27.1 → **0.28.0**（新语法 = minor，Cargo + VSIX + CHANGELOG Added）。
+
+> TODO 余项：`match`（Phase 2）、无注解 `let`、spine-meta A 实现、webview
+> Infoview、事件流、perf 基准 + I8 early-cutoff、SHA256SUMS/attest。
 
 ## 本轮进度（2026-09-14，第五十三轮：TODO 清账——测试/文档债 + 大项设计）
 

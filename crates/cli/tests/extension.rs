@@ -361,6 +361,92 @@ fn server_acquisition_prefers_the_bundled_binary() {
 }
 
 #[test]
+fn bundled_first_policy_and_doctor_are_wired() {
+    // Server policy (docs/design/extension-server-policy.md §2/§3/§5): the
+    // default is bundled-first with an explicit `serverOverride` opt-in, and a
+    // read-only `sokonanoda.doctor` self-check covers six checks.
+    let manifest = manifest();
+    let script = entry_script();
+    let server = server_script();
+
+    // New boolean setting, default off.
+    let prop = &manifest["contributes"]["configuration"]["properties"]["sokonanoda.serverOverride"];
+    assert_eq!(
+        prop["type"].as_str(),
+        Some("boolean"),
+        "sokonanoda.serverOverride must be a boolean setting"
+    );
+    assert_eq!(
+        prop["default"],
+        Value::Bool(false),
+        "sokonanoda.serverOverride must default to false (bundled-first)"
+    );
+    // The setting must be restricted in untrusted workspaces (it re-enables
+    // workspace `target/` builds = running untrusted code).
+    let restricted = manifest["capabilities"]["untrustedWorkspaces"]["restrictedConfigurations"]
+        .as_array()
+        .expect("restrictedConfigurations");
+    assert!(
+        restricted
+            .iter()
+            .any(|v| v.as_str() == Some("sokonanoda.serverOverride")),
+        "sokonanoda.serverOverride must be a restricted configuration"
+    );
+
+    // `sokonanoda.doctor`: declared and registered.
+    let commands = manifest["contributes"]["commands"]
+        .as_array()
+        .expect("contributes.commands");
+    assert!(
+        commands
+            .iter()
+            .any(|c| c["command"].as_str() == Some("sokonanoda.doctor")),
+        "package.json must declare sokonanoda.doctor"
+    );
+    assert!(
+        script.contains("\"sokonanoda.doctor\""),
+        "extension.js must register sokonanoda.doctor"
+    );
+
+    // Bundled-first default: server.js consults setting/env only after the
+    // explicit `override` gate (the old `setting → env → bundled` chain is
+    // gone), and reports a `source`.
+    let override_gate = server
+        .find("if (override)")
+        .expect("server.js must gate the explicit override behind `if (override)`");
+    let setting_branch = server
+        .find("typeof setting === \"string\"")
+        .expect("server.js must keep the setting path");
+    assert!(
+        override_gate < setting_branch,
+        "the setting/env paths must only run under the override gate (bundled-first default)"
+    );
+    assert!(
+        server.contains("source: \"bundled\"") && server.contains("source: \"cache\""),
+        "server.js must report the resolution source (bundled/cache)"
+    );
+    assert!(
+        script.contains("serverOverride") && script.contains("source="),
+        "extension.js must read serverOverride and include source= in receipts/doctor"
+    );
+
+    // Doctor covers all six checks (design §3) and is read-only.
+    for check in [
+        "resolution",
+        "server-version",
+        "host-version",
+        "ignored-override",
+        "download-cache",
+        "obsolete-versions",
+    ] {
+        assert!(
+            script.contains(check),
+            "doctor must cover the `{check}` check"
+        );
+    }
+}
+
+#[test]
 fn package_scripts_stage_the_bundled_binary() {
     let manifest = manifest();
     let scripts = manifest["scripts"].as_object().expect("scripts");

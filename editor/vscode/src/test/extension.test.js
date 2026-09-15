@@ -307,4 +307,18 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
     await vscode.commands.executeCommand("sokonanoda.openInfoview");
   });
+
+  test("doctor command returns a read-only source + version report", async () => {
+    // 冒烟（docs/design/extension-server-policy.md §5 集成层）：doctor 命令可
+    // 执行，返回报告文本且包含来源（source=）与版本行；只读、绝不抛。
+    const commands = await vscode.commands.getCommands(true);
+    assert.ok(commands.includes("sokonanoda.doctor"), "sokonanoda.doctor must be registered");
+    const report = await vscode.commands.executeCommand("sokonanoda.doctor");
+    assert.strictEqual(typeof report, "string", "doctor must return its report text");
+    assert.ok(report.includes("source="), `doctor report must include source=, got: ${report}`);
+    assert.ok(
+      /\d+\.\d+\.\d+/.test(report),
+      `doctor report must include a version line, got: ${report}`,
+    );
+  });
 });

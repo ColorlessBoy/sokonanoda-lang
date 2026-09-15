@@ -102,7 +102,7 @@ npm run clean:lsp
    文件数**和 bin 平台归属**再认定通过；
 4. **didOpen 是通知**——不发 id，不期待响应；探针/测试里发 id 会被当作未知请求；
 5. **LSP 帧格式**——头块以 `\r\n\r\n` 结尾；探针/测试必须完整消费头块再读 body；
-6. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；二进制原地更新（重建 / 缓存刷新 / 改 `serverPath`）可用命令 `sokonanoda: restart server` 重新解析并重启（命令回执会显示重启前后的服务器版本与 pid）。**0.27.1 起**：restart 走与激活同一条解析链（含 `v<扩展版本>` 锁定下载兜底），解析不到可用服务器时直接报错而**不再静默重启旧命令/旧缓存**；若检测到磁盘上已安装更新的扩展而当前宿主仍是旧版，会提示 `Developer: Reload Window`（扩展本体升级仍需重载——restart 只能换服务器二进制，换不了扩展代码）；
+6. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；二进制原地更新（重建 / 缓存刷新 / 改 `serverPath`）可用命令 `sokonanoda: restart server` 重新解析并重启（命令回执会显示重启前后的服务器版本与 pid）。**0.27.1 起**：restart 走与激活同一条解析链（含 `v<扩展版本>` 锁定下载兜底），解析不到可用服务器时直接报错而**不再静默重启旧命令/旧缓存**；若检测到磁盘上已安装更新的扩展而当前宿主仍是旧版，会提示 `Developer: Reload Window`（扩展本体升级仍需重载——restart 只能换服务器二进制，换不了扩展代码）。**0.31.0 起**：解析默认 **bundled-first**（`sokonanoda.serverOverride` 默认 `false`，`serverPath`/env/工作区构建被忽略并弹一次提示），杜绝「陈旧本地构建静默压过内置服务器」；`sokonanoda: doctor` 只读输出解析来源（`source=`）、运行/扩展版本、被忽略的覆盖、缓存与旧版本堆积等自检项；
 7. **`code` CLI 与已开实例冲突**——集成测试在 macOS 上报"another instance running"时关掉 VS Code 再跑；
 8. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。
 9. **exec 位只能在 Linux/macOS 打包**——Windows 上 `vsce package` 会丢 unix

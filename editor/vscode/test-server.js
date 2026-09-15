@@ -238,61 +238,113 @@ async function run() {
   };
   const BUNDLED = path.join("/ext", "bin", "darwin-arm64", "sokonanoda-lsp");
 
-  await test("resolveServerCommand: setting wins over everything", () => {
+  // Bundled-first policy (docs/design/extension-server-policy.md §2, §5):
+  // default `override === false` ignores setting/env/workspace builds; only an
+  // explicit opt-in restores them. `resolveServerCommand` returns
+  // `{command, source}`.
+  await test("resolveServerCommand: default (override=false) returns the bundled server", () => {
     const fake = fakeFs({ existing: [BUNDLED], executable: [BUNDLED] });
     const found = server.resolveServerCommand({
       ...ARGS,
-      setting: "  /custom/sokonanoda-lsp  ",
+      setting: "/custom/sokonanoda-lsp",
       envBin: "/env/sokonanoda-lsp",
+      roots: ["/ws"],
       fs: fake,
     });
-    assert.strictEqual(found, "/custom/sokonanoda-lsp");
+    assert.deepStrictEqual(found, { command: BUNDLED, source: "bundled" });
   });
 
-  await test("resolveServerCommand: env var wins over bundled", () => {
+  await test("resolveServerCommand: override=false keeps a stale serverPath from overriding bundled", () => {
+    // Even a serverPath that does not exist must not change the result (and
+    // must not turn into an error at this layer).
     const fake = fakeFs({ existing: [BUNDLED], executable: [BUNDLED] });
     const found = server.resolveServerCommand({
       ...ARGS,
-      envBin: "/env/sokonanoda-lsp",
+      setting: "/custom/missing-sokonanoda-lsp",
       fs: fake,
     });
-    assert.strictEqual(found, "/env/sokonanoda-lsp");
+    assert.strictEqual(found.command, BUNDLED);
+    assert.strictEqual(found.source, "bundled");
   });
 
-  await test("resolveServerCommand: bundled binary beats workspace builds", () => {
+  await test("resolveServerCommand: override=false ignores a workspace build in favor of bundled", () => {
     const workspace = path.join("/ws", "target", "release", "sokonanoda-lsp");
     const fake = fakeFs({ existing: [BUNDLED, workspace], executable: [BUNDLED, workspace] });
-    const found = server.resolveServerCommand({ ...ARGS, roots: ["/ws"], fs: fake });
-    assert.strictEqual(found, BUNDLED);
+    const found = server.resolveServerCommand({
+      ...ARGS,
+      roots: ["/ws"],
+      override: false,
+      fs: fake,
+    });
+    assert.deepStrictEqual(found, { command: BUNDLED, source: "bundled" });
   });
 
-  await test("resolveServerCommand: workspace build used when no bundled binary", () => {
+  await test("resolveServerCommand: override=true restores setting → env → bundled → workspace", () => {
+    const fake = fakeFs({ existing: [BUNDLED], executable: [BUNDLED] });
+    assert.deepStrictEqual(
+      server.resolveServerCommand({
+        ...ARGS,
+        override: true,
+        setting: "  /custom/sokonanoda-lsp  ",
+        envBin: "/env/sokonanoda-lsp",
+        fs: fake,
+      }),
+      { command: "/custom/sokonanoda-lsp", source: "setting" },
+    );
+    assert.deepStrictEqual(
+      server.resolveServerCommand({
+        ...ARGS,
+        override: true,
+        envBin: "/env/sokonanoda-lsp",
+        fs: fake,
+      }),
+      { command: "/env/sokonanoda-lsp", source: "env" },
+    );
     const workspace = path.join("/ws", "target", "release", "sokonanoda-lsp");
-    const fake = fakeFs({ existing: [workspace], executable: [workspace] });
-    const found = server.resolveServerCommand({ ...ARGS, roots: ["/ws"], fs: fake });
-    assert.strictEqual(found, workspace);
+    const withBoth = fakeFs({
+      existing: [BUNDLED, workspace],
+      executable: [BUNDLED, workspace],
+    });
+    assert.deepStrictEqual(
+      server.resolveServerCommand({ ...ARGS, override: true, roots: ["/ws"], fs: withBoth }),
+      { command: BUNDLED, source: "bundled" },
+    );
+    const onlyWorkspace = fakeFs({ existing: [workspace], executable: [workspace] });
+    assert.deepStrictEqual(
+      server.resolveServerCommand({
+        ...ARGS,
+        override: true,
+        roots: ["/ws"],
+        fs: onlyWorkspace,
+      }),
+      { command: workspace, source: "workspace" },
+    );
   });
 
-  await test("resolveServerCommand: version-current cache is the last resort", () => {
+  await test("resolveServerCommand: no bundled falls back to cache only when current", () => {
     const previousHome = process.env.HOME;
     process.env.HOME = path.join("/home", "test");
     try {
       const dest = server.serverDest();
       const marker = server.serverVersionMarker();
-      const fake = fakeFs({
+      const current = fakeFs({
         existing: [dest, marker],
         executable: [dest],
         contents: { [marker]: "0.7.0\n" },
       });
-      const found = server.resolveServerCommand({ ...ARGS, fs: fake });
-      assert.strictEqual(found, dest);
-      // A stale marker must NOT be reused.
+      assert.deepStrictEqual(server.resolveServerCommand({ ...ARGS, fs: current }), {
+        command: dest,
+        source: "cache",
+      });
+      // A stale marker must NOT be reused (caller then downloads).
       const stale = fakeFs({
         existing: [dest, marker],
         executable: [dest],
         contents: { [marker]: "0.6.0\n" },
       });
-      assert.strictEqual(server.resolveServerCommand({ ...ARGS, fs: stale }), undefined);
+      assert.strictEqual(server.resolveServerCommand({ ...ARGS, fs: stale }).command, undefined);
+      // No bundled, no cache -> undefined (caller then downloads).
+      assert.strictEqual(server.resolveServerCommand({ ...ARGS, fs: fakeFs() }).command, undefined);
     } finally {
       process.env.HOME = previousHome;
     }

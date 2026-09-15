@@ -1,20 +1,29 @@
 // Language-server acquisition for the sokonanoda VS Code extension.
 //
 // Kept free of the `vscode` module so plain Node can unit-test it
-// (`test-server.js`). Acquisition order (docs/design/bundled-lsp.md §3.2):
+// (`test-server.js`). Policy per docs/design/extension-server-policy.md:
 //
-//   1. `sokonanoda.serverPath` setting (explicit override)
-//   2. `SOKONANODA_LSP_BIN` environment variable
-//   3. bundled `bin/<target>/sokonanoda-lsp[.exe]` shipped in the VSIX
-//   4. workspace `target/{debug,release}` build (development)
-//   5. version-marked download cache (legacy)
-//   6. version-pinned GitHub Release download (universal fallback VSIX)
+//   default (`override === false`, users):
+//     bundled `bin/<target>/sokonanoda-lsp[.exe]` shipped in the VSIX →
+//     version-marked cache (only if its marker matches) → `undefined`
+//     (caller then uses the version-pinned GitHub Release download).
+//     `serverPath` / `SOKONANODA_LSP_BIN` / workspace builds are IGNORED so a
+//     stale repo build can never silently override the bundled server.
 //
-// The bundled binary is the primary path: platform-specific VSIXes carry the
-// exact server built from the same tag as the extension, so no network call
-// and no client/server version skew. The download path is kept for the
-// universal fallback VSIX (unsupported platforms) and is pinned to
-// `v${extensionVersion}` — never the mutable latest alias.
+//   `override === true` (contributors, explicit opt-in):
+//     1. `sokonanoda.serverPath` setting
+//     2. `SOKONANODA_LSP_BIN` environment variable
+//     3. bundled `bin/<target>/sokonanoda-lsp[.exe]`
+//     4. workspace `target/{debug,release}` build (development)
+//     5. version-marked download cache (legacy)
+//     6. version-pinned GitHub Release download (universal fallback VSIX)
+//
+// `resolveServerCommand` returns `{command, source}` where `source` is one of
+// `bundled` | `setting` | `env` | `workspace` | `cache` (and the caller adds
+// `download` for the fallback). The bundled binary is always built from the
+// same tag as the extension, so there is no network call and no
+// client/server version skew on supported platforms. The download path is
+// pinned to `v${extensionVersion}` — never the mutable latest alias.
 
 const fs = require("fs");
 const http = require("http");
@@ -212,7 +221,14 @@ function downloadUrl(version, platform, arch, alpine = false) {
 
 /// Resolve the server without any network I/O.
 /// Options: `{setting, envBin, extensionPath, roots, platform, arch, version,
-/// fs, log}`. Returns a path or `undefined` (caller may then download).
+/// override, fs, log}`. Returns `{command, source}` where `command` is a path
+/// or `undefined` (caller may then download) and `source` is
+/// `bundled | setting | env | workspace | cache` (or `undefined`).
+///
+/// `override` defaults to `false` (bundled-first, docs/design/
+/// extension-server-policy.md §2): the setting/env/workspace paths are ignored.
+/// `override: true` restores the contributor order
+/// `setting → env → bundled → workspace → cache`.
 function resolveServerCommand(options) {
   const {
     setting,
@@ -225,29 +241,34 @@ function resolveServerCommand(options) {
     log,
   } = options;
   const fsImpl = options.fs ?? fs;
-
-  if (typeof setting === "string" && setting.trim() !== "") return setting.trim();
-  if (envBin) return envBin;
-
+  const override = options.override === true;
   const alpine = options.alpine ?? isAlpineLinux(platform, fsImpl);
-  const bundled = resolveBundledServer({
-    extensionPath,
-    platform,
-    arch,
-    alpine,
-    fs: fsImpl,
-    log,
-  });
-  if (bundled) return bundled;
 
-  const found = firstExisting(
-    builtBinaryCandidates(roots, binaryName(platform)),
-    fsImpl,
-  );
-  if (found) return found;
+  const bundled = () =>
+    resolveBundledServer({ extensionPath, platform, arch, alpine, fs: fsImpl, log });
+  const cached = () => (cachedServerIsCurrent(version, fsImpl) ? serverDest() : undefined);
 
-  if (cachedServerIsCurrent(version, fsImpl)) return serverDest();
-  return undefined;
+  if (override) {
+    if (typeof setting === "string" && setting.trim() !== "") {
+      return { command: setting.trim(), source: "setting" };
+    }
+    if (envBin) return { command: envBin, source: "env" };
+  }
+
+  const foundBundled = bundled();
+  if (foundBundled) return { command: foundBundled, source: "bundled" };
+
+  if (override) {
+    const found = firstExisting(
+      builtBinaryCandidates(roots, binaryName(platform)),
+      fsImpl,
+    );
+    if (found) return { command: found, source: "workspace" };
+  }
+
+  const foundCache = cached();
+  if (foundCache) return { command: foundCache, source: "cache" };
+  return { command: undefined, source: undefined };
 }
 
 /// Follow redirects recursively (GitHub uses a versioned asset URL directly,

@@ -79,16 +79,22 @@ skills.
    extension; the client and its bundled kernel are built from the same
    release, so there is no version drift.
 
-The server is discovered in this order:
+The server is discovered **bundled-first** by default:
 
-1. the `sokonanoda.serverPath` setting (or `SOKONANODA_LSP_BIN` env),
-2. the bundled `bin/<target>/sokonanoda-lsp[.exe]` (repairs a lost
-   executable bit automatically),
-3. `target/debug|release/sokonanoda-lsp` in your workspace (repo
-   checkouts — handy when developing the compiler),
-4. the version-pinned download cache — only used by the fallback package
+1. the bundled `bin/<target>/sokonanoda-lsp[.exe]` (repairs a lost
+   executable bit automatically) — the client and its kernel are built from
+   the same release, so there is no version drift;
+2. the version-pinned download cache — only used by the fallback package
    for platforms with no bundled build (e.g. Linux armhf), and always
    pinned to this extension's own release tag, never `latest`.
+
+`sokonanoda.serverPath` / `SOKONANODA_LSP_BIN` and workspace
+`target/debug|release` builds are **ignored unless you opt in** with the
+`sokonanoda.serverOverride` setting (default `false`). This prevents a stale
+local build (a common cause of "the server is still 0.26.0" surprises) from
+silently overriding the bundled server. Use **`sokonanoda: doctor`** any time
+to see which server is in use, its `source` (bundled / override / cache), the
+running vs extension version, and other version-skew issues.
 
 **No Lean toolchain.** The kernel ships inside the server; on platforms
 with a bundled package everything works fully offline.

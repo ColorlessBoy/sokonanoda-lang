@@ -1,3 +1,22 @@
+## [0.31.0] - 2026-09-14
+
+### Added
+
+- **`sokonanoda: doctor`** — a read-only self-check that reports which server
+  is in use and its `source`, the running vs extension version, a stale
+  extension host, ignored overrides, the download cache and old-version
+  buildup. It runs automatically after activation and `restart server`, and
+  offers a "Run doctor" action on problems.
+
+### Changed
+
+- **Bundled server is now forced by default** — `sokonanoda.serverPath` /
+  `SOKONANODA_LSP_BIN` and workspace `target/{debug,release}` builds are
+  ignored unless the new `sokonanoda.serverOverride` setting (default
+  `false`) is enabled. A stale local build can no longer silently override
+  the server that ships inside the extension. Design:
+  `docs/design/extension-server-policy.md`.
+
 ## [0.30.0] - 2026-09-14
 
 ### Added

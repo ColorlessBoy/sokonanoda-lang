@@ -1,8 +1,8 @@
 {
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
-  "description": "Self-contained Lean-4-style teaching language with a real kernel: an Infoview goal panel, hint ladders, graded exercises. Zero setup - the language server and CLI ship inside the platform-specific extension, so it works offline. Ships agent skills (Claude Code / opencode) that turn an LLM into your proof teacher.",
-  "version": "0.30.0",
+  "description": "Self-contained Lean-4-style teaching language with a real kernel: an Infoview goal panel, hint ladders, graded exercises, and a built-in doctor self-check. Zero setup - the language server and CLI ship inside the platform-specific extension, so it works offline. Ships agent skills (Claude Code / opencode) that turn an LLM into your proof teacher.",
+  "version": "0.31.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -26,9 +26,10 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In restricted mode the workspace-level sokonanoda.serverPath setting is ignored and the default server discovery is used.",
+      "description": "In restricted mode the workspace-level sokonanoda.serverPath and sokonanoda.serverOverride settings are ignored and the bundled server is always used.",
       "restrictedConfigurations": [
-        "sokonanoda.serverPath"
+        "sokonanoda.serverPath",
+        "sokonanoda.serverOverride"
       ]
     }
   },
@@ -103,6 +104,12 @@
         "title": "sokonanoda: 打开目标面板 (Infoview)",
         "icon": "$(open-preview)",
         "category": "sokonanoda"
+      },
+      {
+        "command": "sokonanoda.doctor",
+        "title": "doctor: 诊断服务器与版本",
+        "icon": "$(heart)",
+        "category": "sokonanoda"
       }
     ],
     "views": {
@@ -173,7 +180,12 @@
         "sokonanoda.serverPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Path to the `sokonanoda-lsp` server binary. Leave empty for auto-discovery: the server bundled in this extension (`bin/<target>/`), then `target/debug/sokonanoda-lsp` / `target/release/sokonanoda-lsp` in the workspace folders (and the repo checkout), then a version-pinned download cache. Ignored in restricted (untrusted) workspaces."
+          "markdownDescription": "Path to a custom `sokonanoda-lsp` server binary. **Ignored unless `sokonanoda.serverOverride` is enabled** — by default the extension always uses its own bundled server so a stale build cannot override it. Ignored in restricted (untrusted) workspaces."
+        },
+        "sokonanoda.serverOverride": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Use an explicitly configured server instead of the bundled one. When off (default), the server shipped inside this extension always wins: `sokonanoda.serverPath`, the `SOKONANODA_LSP_BIN` environment variable and workspace `target/{debug,release}` builds are ignored (a one-time notice explains this). Turn it on only when developing the compiler locally; it restores the order `serverPath → SOKONANODA_LSP_BIN → bundled → workspace target → download cache`. Ignored in restricted (untrusted) workspaces."
         },
         "sokonanoda.trace.server": {
           "type": "string",
