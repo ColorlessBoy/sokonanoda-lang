@@ -639,3 +639,25 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   （Forall 作 domain）+ `match_dependent_motive_with_function_typed_binder_
   round_trips_safely`。版本 **0.39.1**（健壮性 patch）；as-built 见
   `docs/design/match-dependent-motive.md` §8。
+- 2026-09-15（六十九）：**统一 goal 呈现 + Infoview 落右侧（用户要求）**——
+  用户两点：(1) Infoview 弹出「目标面板 (Infoview) 暂时不可用…」很困惑，希望它
+  默认单独开在**右侧**；(2) tactic hover、Infoview 等各处 goal 高亮/颜色各自
+  独立、不可维护，要求统一并**对齐 VS Code 代码框标准**。参照 Lean4 Infoview
+  （服务器下发结构化 tag，客户端按主题渲染，分类来源唯一）。落地：
+  `front::semantic` 出 `tag_runs`/`tag_expr`/`declaration_kinds` +
+  `SemanticKind::{ALL, as_str}` 作单一分类源；`soko/stateAt`/`soko/goals` 下发
+  `goal_runs`/`ty_runs`（旧字符串字段保留）；Infoview 渲染 `tok-<kind>` 类
+  （主题变量单一映射，仍只用 textContent）；视图移入
+  `viewsContainers.secondarySidebar` 的 `sokonanoda` 容器（右侧，engine
+  `^1.85.0→^1.106.0`，1.106 为无需 proposed API 的首个稳定版）；删
+  `waitReady`/2s 握手与「暂时不可用」，失败静默回退树组；TM 语法词表由测试锁死
+  == `front::semantic`（keywords + sorts + forall，删硬编码 `Nat`）。契约测试
+  （front semantic 5 + lsp state_at runs + extension 24）+ `sokonanoda gate` PASS。
+  版本 **0.40.0**（新面板位置 + 协议字段，minor）；设计 as-built
+  `docs/design/goal-rendering.md`。
+- 2026-09-15：**市场简介超 300 字符被硬截断（用户要求修复）**——Marketplace
+  详情页把 `package.json` 的 `description` 当短简介，>300 字符直接截断（无省略号、
+  切在词中间）：0.39.1 的 348 字符被切在 `opencode` 中间。改短为 247 字符完整句
+  （长卖点留在 `editor/vscode/README.md`），加护栏测试
+  `marketplace_description_fits_the_gallery_limit`（≤300 / ASCII / 句号结尾），
+  `docs/vscode-dev-guide.md` §7 记录上限与教训。随 0.40.0 发布。
