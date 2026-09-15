@@ -1,8 +1,26 @@
-# STATUS 归档（第 1–62 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–63 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十三轮：`match` 递归归纳（IH））
+
+> 续 TODO（用户指定顺序：先 match Phase 2 递归 IH，再发布加固）。
+
+1. **前端**：递归归纳不再一律拒绝；构造子**递归字段后自动插入归纳假设** `ih`
+   （避开既有名 → `ih2`…），类型 = match 结果类型 R（v1 非依赖 motive），push 进
+   branch scope 供引用；minor 以「字段 + IH」序列折 lambda。递归函数/证明经 IH
+   表达，**无需自引用**（`def add (a b : Nat) := match a with | zero => b |
+   succ m => succ ih`）。
+2. **测试**：front `match_recursive_inductive_uses_the_induction_hypothesis`
+   （`add two two` 经内核归约到 `s (s (s (s z)))`）；CLI recursive match 3 项。
+3. **课程**：unit5 `match` 小节加递归 IH 演示 + 练习 6（`recDouble`）+ `#reduce`
+   自测；golden `(6,5,2)→(7,6,3)`、汇总 `checked 50→51 / open 38→39`。
+4. **文档**：`match.md` §2/§5/§6/§10、`architecture.md` §4.1/§8、`TESTING.md` 同步。
+5. **验收**：`sokonanoda gate` PASS；版本 0.34.0 → **0.35.0**（新能力 minor）。
+6. **仍缺（Phase 2 余项）**：依赖 motive、参数化/带索引归纳、prelude `Nat`/`Eq`、
+   `match` tactic、嵌套/字面量/守卫模式。
 
 ## 本轮进度（2026-09-14，第六十二轮：无注解 `let`）
 

@@ -603,3 +603,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   经 `Nat.rec` 归约的结果可能显示为不合并一元链（与 numeral def-eq，已文档化/
   钉测试）。front +3 / CLI +1；文档 match.md/architecture/TESTING/protocol 同步。
   版本 **0.36.0**（新能力 minor）；kernel 零改动。
+- 2026-09-14（六十五）：**watch stdin 客户端命令（compiler-service-events v1 面）**
+  ——`sokonanoda watch`（含 `--doc`/`--workspace`）在轮询文件的同时读 stdin JSON
+  Lines：`ping {id}` → `pong {id, protocol, engine}`；`subscribe`/`unsubscribe
+  {file}` 过滤哪些文件发事件（默认全发兼容旧行为）；畸形/未知命令 → `error`
+  事件且流不中断；stdin EOF 不杀 watch。非阻塞（后台线程 + mpsc，仅 std，零新
+  依赖）。CLI 测试 +4（ping/subscribe/unsubscribe/malformed）+ 单测 2；文档
+  protocol/TESTING 同步。版本 **0.37.0**（新能力 minor）；设计 as-built
+  `docs/design/compiler-service-events.md` §9。

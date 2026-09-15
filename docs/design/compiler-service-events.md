@@ -121,3 +121,18 @@ watch 的限制：**单文档、轮询、无订阅/背压、无生命周期协�
 - **文档**：`docs/protocol.md` watch 小节、`docs/TESTING.md`、
   `skills/sokonanoda-teacher/references/events.md`、`help.rs` 同步。
 - **版本** 0.28.0 → **0.29.0**（协议/功能 → minor）。
+
+---
+
+## 9. as-built 续：stdin 客户端命令（2026-09-14，0.37.0）
+
+- **命令集**（stdin JSON Lines，边轮询边处理）：`ping {id}` → `pong {id, protocol, engine}`；
+  `subscribe {file}` / `unsubscribe {file}` 过滤 `--workspace` 哪些文件发事件
+  （首个 subscribe 收窄为白名单；默认全发，兼容旧行为）；未知/畸形行 → `error`
+  事件且流不中断。
+- **非阻塞**：后台线程 `stdin().lock().lines()` + `mpsc`，轮询每 300ms `try_recv`
+  排空；stdin EOF 不杀 watch（继续监控）。
+- **测试**：`crates/cli/tests/watch.rs` ping/subscribe/unsubscribe/malformed 4 项
+  （用 ping→pong 同步，不 sleep）+ watch.rs 单测 2 项。
+- **文档**：`docs/protocol.md` watch 小节、`docs/TESTING.md`。
+- 版本 0.36.0 → **0.37.0**（新能力 minor）。

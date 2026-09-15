@@ -1,3 +1,14 @@
+## [0.37.0] - 2026-09-14
+
+### Added
+
+- **`sokonanoda watch` client commands** — the watch process now reads JSON
+  Lines commands on stdin: `{"type":"ping","id":N}` replies with a `pong`,
+  and `subscribe`/`unsubscribe` filter which files emit events in
+  `--workspace` mode. Malformed input yields an `error` event and the stream
+  keeps running; stdin EOF does not stop monitoring. Design:
+  `docs/design/compiler-service-events.md`.
+
 ## [0.36.0] - 2026-09-14
 
 ### Added

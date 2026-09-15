@@ -1,8 +1,9 @@
 //! Integration tests for the `sokonanoda watch` service stream
 //! (`docs/design/compiler-service-events.md`): the `service.hello` handshake,
-//! the canonical `file.didChange` opener, the `--doc` alias, and per-file
-//! independent versions under `--workspace`. All waits are bounded recv
-//! timeouts, never fixed sleeps.
+//! the canonical `file.didChange` opener, the `--doc` alias, per-file
+//! independent versions under `--workspace`, and the client→service command
+//! set (`ping`/`subscribe`/`unsubscribe`, error recovery). All waits are
+//! bounded recv timeouts, never fixed sleeps.
 
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -53,19 +54,31 @@ fn replace_source(path: &Path, content: &str) {
 /// A live `sokonanoda watch` child plus its parsed stdout event stream.
 struct Watch {
     child: Child,
+    stdin: Option<std::process::ChildStdin>,
     events: Receiver<Value>,
     _reader: JoinHandle<()>,
 }
 
 impl Watch {
     fn spawn(args: &[&str]) -> Self {
+        Self::spawn_inner(args, Stdio::null())
+    }
+
+    /// Like [`Watch::spawn`], but keeps stdin open so the test can drive the
+    /// client→service command set (docs/protocol.md, watch stream).
+    fn spawn_with_stdin(args: &[&str]) -> Self {
+        Self::spawn_inner(args, Stdio::piped())
+    }
+
+    fn spawn_inner(args: &[&str], stdin: Stdio) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
             .args(args)
-            .stdin(Stdio::null())
+            .stdin(stdin)
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .expect("spawn sokonanoda watch");
+        let stdin = child.stdin.take();
         let stdout = child.stdout.take().expect("child stdout");
         let (tx, events) = mpsc::channel();
         let _reader = std::thread::spawn(move || {
@@ -83,9 +96,18 @@ impl Watch {
         });
         Self {
             child,
+            stdin,
             events,
             _reader,
         }
+    }
+
+    /// Send one JSON Lines command to the service.
+    fn send(&mut self, line: &str) {
+        use std::io::Write;
+        let stdin = self.stdin.as_mut().expect("watch stdin is piped");
+        writeln!(stdin, "{line}").expect("write watch command");
+        stdin.flush().expect("flush watch command");
     }
 
     fn next(&self) -> Value {
@@ -312,4 +334,149 @@ fn protocol_document_lists_every_watch_event_name() {
         doc.contains(WATCH_HANDSHAKE),
         "docs/protocol.md must document the {WATCH_HANDSHAKE:?} handshake"
     );
+    for command in ["ping", "pong", "subscribe", "unsubscribe"] {
+        assert!(
+            doc.contains(command),
+            "docs/protocol.md must document the watch command/response {command:?}"
+        );
+    }
+}
+
+#[test]
+fn ping_round_trips_as_pong() {
+    let dir = temp_dir("ping");
+    let file = dir.join("canvas.sokonanoda");
+    write_source(&file, "def id : Prop -> Prop := fun (x : Prop) => x\n");
+
+    let mut watch = Watch::spawn_with_stdin(&["watch", file.to_str().expect("utf-8 path")]);
+    assert_eq!(event_type(&watch.next()), WATCH_HANDSHAKE);
+
+    watch.send(r#"{"type":"ping","id":42}"#);
+    let pong = watch.until(|event| event_type(event) == "pong");
+    assert_eq!(pong["id"], 42, "pong echoes the ping id: {pong}");
+    assert_eq!(
+        pong["protocol"], 1,
+        "pong reports the control-plane protocol: {pong}"
+    );
+    assert_eq!(
+        pong["engine"],
+        env!("CARGO_PKG_VERSION"),
+        "pong mirrors the engine version: {pong}"
+    );
+}
+
+#[test]
+fn subscribe_filters_workspace_events_to_the_named_file() {
+    let dir = temp_dir("subscribe");
+    let a = dir.join("a.sokonanoda");
+    let b = dir.join("b.sokonanoda");
+    write_source(&a, "def a : Prop -> Prop := fun (x : Prop) => x\n");
+    write_source(&b, "def b : Prop -> Prop := fun (x : Prop) => x\n");
+
+    let mut watch =
+        Watch::spawn_with_stdin(&["watch", "--workspace", dir.to_str().expect("utf-8 path")]);
+    assert_eq!(event_type(&watch.next()), WATCH_HANDSHAKE);
+    watch.until(|event| is_did_change_for(event, "a.sokonanoda"));
+    watch.until(|event| is_did_change_for(event, "b.sokonanoda"));
+    watch.drain_quiet();
+
+    let a_path = a.to_str().expect("utf-8 path");
+    watch.send(&format!(r#"{{"type":"subscribe","file":"{a_path}"}}"#));
+    // Commands are FIFO: the pong proves the subscription is already in
+    // effect before the edits below are polled.
+    watch.send(r#"{"type":"ping","id":1}"#);
+    watch.until(|event| event_type(event) == "pong");
+
+    replace_source(
+        &a,
+        "def a : Prop -> Prop := fun (x : Prop) => x\n#check a\n",
+    );
+    replace_source(
+        &b,
+        "def b : Prop -> Prop := fun (x : Prop) => x\n#check b\n",
+    );
+
+    let bumped =
+        watch.until(|event| is_did_change_for(event, "a.sokonanoda") && event["version"] == 2);
+    assert_eq!(bumped["file"], a_path, "a still emits: {bumped}");
+
+    for event in watch.drain_quiet() {
+        assert!(
+            !(is_did_change_for(&event, "b.sokonanoda") && event["version"] == 2),
+            "an unsubscribed workspace file must not emit: {event}"
+        );
+    }
+}
+
+#[test]
+fn unsubscribe_stops_events_for_the_file() {
+    let dir = temp_dir("unsubscribe");
+    let file = dir.join("canvas.sokonanoda");
+    write_source(&file, "def id : Prop -> Prop := fun (x : Prop) => x\n");
+
+    let mut watch = Watch::spawn_with_stdin(&["watch", file.to_str().expect("utf-8 path")]);
+    assert_eq!(event_type(&watch.next()), WATCH_HANDSHAKE);
+    watch.until(|event| event_type(event) == "file.didChange");
+    watch.drain_quiet();
+
+    let path = file.to_str().expect("utf-8 path");
+    watch.send(&format!(r#"{{"type":"subscribe","file":"{path}"}}"#));
+    watch.send(r#"{"type":"ping","id":1}"#);
+    watch.until(|event| event_type(event) == "pong");
+
+    replace_source(
+        &file,
+        "def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n",
+    );
+    watch.until(|event| event_type(event) == "file.didChange" && event["version"] == 2);
+    watch.drain_quiet();
+
+    watch.send(&format!(r#"{{"type":"unsubscribe","file":"{path}"}}"#));
+    watch.send(r#"{"type":"ping","id":2}"#);
+    watch.until(|event| event_type(event) == "pong");
+
+    replace_source(
+        &file,
+        "def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n#check id\n",
+    );
+    // The stream stays alive while the file is filtered.
+    watch.send(r#"{"type":"ping","id":3}"#);
+    watch.until(|event| event_type(event) == "pong");
+
+    for event in watch.drain_quiet() {
+        assert!(
+            !(event_type(&event) == "file.didChange" && event["version"] == 3),
+            "an unsubscribed file must stop emitting: {event}"
+        );
+    }
+}
+
+#[test]
+fn malformed_command_emits_an_error_and_does_not_kill_the_stream() {
+    let dir = temp_dir("malformed");
+    let file = dir.join("canvas.sokonanoda");
+    write_source(&file, "def id : Prop -> Prop := fun (x : Prop) => x\n");
+
+    let mut watch = Watch::spawn_with_stdin(&["watch", file.to_str().expect("utf-8 path")]);
+    assert_eq!(event_type(&watch.next()), WATCH_HANDSHAKE);
+
+    watch.send("this is not json");
+    let error = watch.until(|event| event_type(event) == "error");
+    assert!(
+        error["message"].as_str().is_some_and(|m| !m.is_empty()),
+        "malformed line yields a structured error: {error}"
+    );
+
+    watch.send(r#"{"type":"frobnicate"}"#);
+    let error = watch.until(|event| event_type(event) == "error");
+    assert!(
+        error["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("frobnicate")),
+        "unknown command names the offending type: {error}"
+    );
+
+    watch.send(r#"{"type":"ping","id":9}"#);
+    let pong = watch.until(|event| event_type(event) == "pong");
+    assert_eq!(pong["id"], 9, "the stream survives bad commands: {pong}");
 }

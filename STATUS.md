@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十五轮：`match` 支持 prelude `Nat`——内置 Nat 改为真实可信归纳；0.36.0）
+> 快照：2026-09-14（第六十六轮：watch stdin 客户端命令——subscribe/unsubscribe/ping；0.37.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,22 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十六轮：watch stdin 客户端命令）
+
+> 续 TODO：compiler-service-events 设计的 v1 未做面（客户端→服务命令）。
+
+1. **命令集**（stdin JSON Lines）：`ping {id}` → `pong {id, protocol, engine}`；
+   `subscribe {file}`/`unsubscribe {file}` 过滤 `--workspace` 事件（首个
+   subscribe 收窄白名单；默认全发兼容旧行为）；畸形/未知命令 → `error` 事件且
+   流不中断。
+2. **非阻塞实现**：后台线程 `stdin().lock().lines()` + `mpsc`，轮询每 300ms
+   `try_recv` 排空；stdin EOF 不杀 watch；零新依赖（仅 std）。
+3. **测试**：`crates/cli/tests/watch.rs` ping/subscribe/unsubscribe/malformed
+   4 项 + watch.rs 单测 2 项（用 ping→pong 同步，不 sleep）。
+4. **文档**：`docs/protocol.md` watch 小节、`TESTING.md`；设计 as-built
+   `docs/design/compiler-service-events.md` §9。
+5. **验收**：`sokonanoda gate` PASS；版本 0.36.0 → **0.37.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-14，第六十五轮：`match` 支持 prelude Nat）
 
@@ -51,21 +67,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `attest-build-provenance@v2` / `attestations: write` 断言。
 5. **验收**：`sokonanoda gate` PASS；版本 0.35.0 → **0.35.1**；发布后核
    Release 26 资产 + `sha256sum -c` + `gh attestation verify` 通过。
-
-## 本轮进度（2026-09-14，第六十三轮：`match` 递归归纳（IH））
-
-> 续 TODO（用户指定顺序：先 match Phase 2 递归 IH，再发布加固）。
-
-1. **前端**：递归归纳不再一律拒绝；构造子**递归字段后自动插入归纳假设** `ih`
-   （避开既有名 → `ih2`…），类型 = match 结果类型 R（v1 非依赖 motive），push 进
-   branch scope 供引用；minor 以「字段 + IH」序列折 lambda。递归函数/证明经 IH
-   表达，**无需自引用**（`def add (a b : Nat) := match a with | zero => b |
-   succ m => succ ih`）。
-2. **测试**：front `match_recursive_inductive_uses_the_induction_hypothesis`
-   （`add two two` 经内核归约到 `s (s (s (s z)))`）；CLI recursive match 3 项。
-3. **课程**：unit5 `match` 小节加递归 IH 演示 + 练习 6（`recDouble`）+ `#reduce`
-   自测；golden `(6,5,2)→(7,6,3)`、汇总 `checked 50→51 / open 38→39`。
-4. **文档**：`match.md` §2/§5/§6/§10、`architecture.md` §4.1/§8、`TESTING.md` 同步。
-5. **验收**：`sokonanoda gate` PASS；版本 0.34.0 → **0.35.0**（新能力 minor）。
-6. **仍缺（Phase 2 余项）**：依赖 motive、参数化/带索引归纳、prelude `Nat`/`Eq`、
-   `match` tactic、嵌套/字面量/守卫模式。

@@ -90,8 +90,10 @@
 - **watch（L1 CLI 形态）**：初始手动三版本冒烟（file.changed → exercise.solved →
   零重编译）；现已有自动化集成套件 `crates/cli/tests/watch.rs`（握手
   `service.hello`、规范名 `file.didChange`、`--doc` 别名、`--workspace`
-  每文件独立版本与 `file` 字段、闭词汇与 protocol.md 列名；等待用
-  `recv_timeout` 轮询，无固定 sleep）。
+  每文件独立版本与 `file` 字段、闭词汇与 protocol.md 列名；client→service
+  命令集：`ping`→`pong`、`subscribe` 过滤 workspace 文件、`unsubscribe`
+  停止事件、坏命令回 `error` 且流不崩；等待用 `recv_timeout` 轮询，无固定
+  sleep；同文件单测守护订阅白名单语义）。
 - 测试总量（2026-09-07 第四轮）：**203**（kernel 43 / front 103 / cli 38 / lsp 20，
   cli 含 26+3+1+8 四个套件）。
 - 内核 iota 规则教学注意：`inductive` 块现在被 kernel 判定，iota 规则的递归

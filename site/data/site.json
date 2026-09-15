@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 65,
+  "round": 66,
   "round_date": "2026-09-14",
-  "round_title": "match 支持 prelude Nat",
+  "round_title": "watch stdin 客户端命令",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -60,5 +60,5 @@
       "unit": 7
     }
   ],
-  "version": "0.36.0"
+  "version": "0.37.0"
 }

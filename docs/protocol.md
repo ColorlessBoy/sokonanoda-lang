@@ -429,6 +429,25 @@ exceed that bound, the service **coalesces** to the latest version and emits a
 may have been dropped, so re-read the document (e.g. one batch `--json` run)
 instead of assuming a contiguous event history.
 
+### Client → service commands (stdin)
+
+While polling, `watch` also reads **JSON Lines commands from stdin** (one object
+per line) on a background thread, so the poll loop never blocks. Responses are
+written to the same stdout event stream:
+
+- `ping` (`{type, id?}`) → `pong` (`{type, id, protocol, engine}`): `id` is
+  echoed as-is (`null` when omitted); `protocol`/`engine` mirror `service.hello`.
+- `subscribe` / `unsubscribe` (`{type, file}`): select which files emit events.
+  With no command every watched file emits (backward compatible). The first
+  `subscribe` switches to an allowlist — only subscribed files emit, so send one
+  `subscribe` per file; `unsubscribe` removes a file. `unsubscribe` before any
+  `subscribe` starts from all currently-known files. `file` is the same stable
+  path carried by that file's events.
+- Unknown, malformed or non-JSON lines → `error` (`{type, message}`); the
+  command has no other effect and the stream keeps running.
+- EOF on stdin is not fatal: the command channel closes and watching continues
+  (this is the default when stdin is `/dev/null`).
+
 ## Course map: `sokonanoda course <course.json>`
 
 Aggregates the units of `course/course.json` (the agent-facing material
