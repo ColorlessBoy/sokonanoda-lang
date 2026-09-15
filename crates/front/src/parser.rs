@@ -1,8 +1,8 @@
 //! 递归下降解析器：tokens → AST（命令与表达式）。
 
 use super::ast::{
-    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, MatchArm, RecDecl, SortKind,
-    Tactic,
+    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, MatchArm, Pattern, RecDecl,
+    SortKind, Tactic,
 };
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
 use super::span::Span;
@@ -531,37 +531,90 @@ impl Parser {
     fn parse_match_arm(&mut self) -> Result<MatchArm> {
         let pipe = self.bump();
         let start = pipe.span.start;
-        let ctor_tok = self.peek().clone();
-        let TokenKind::Ident(ctor) = ctor_tok.kind.clone() else {
-            return Err(Diagnostic::new(
-                DiagnosticKind::UnexpectedToken {
-                    found: format!("{:?}", ctor_tok.kind),
-                    expected: "a constructor name".to_string(),
-                },
-                ctor_tok.span,
-                "`|` 后面要跟构造子名（裸名，例如 red），然后写模式变量".to_string(),
-            ));
+        let pattern = self.parse_pattern()?;
+        // `if <guard>`：仅在 arm 里把 `if` 当守卫关键字（设计 §5：不升为全局
+        // 关键字，`if` 在别处仍是普通标识符）。
+        let guard = if matches!(&self.peek().kind, TokenKind::Ident(k) if k == "if") {
+            self.bump();
+            Some(self.parse_expr()?)
+        } else {
+            None
         };
-        self.bump();
-        let mut binders = Vec::new();
-        while let TokenKind::Ident(name) = self.peek().kind.clone() {
-            let tok = self.bump();
-            binders.push(Binder {
-                name,
-                ty: None,
-                style: BinderKind::Explicit,
-                span: tok.span,
-            });
-        }
         self.expect_kind(&TokenKind::FatArrow, "`=>` after the match pattern")?;
         let body = self.parse_expr()?;
         let span = Span::new(start, body.span().end);
         Ok(MatchArm {
-            ctor,
-            binders,
+            pattern,
+            guard,
             body,
             span,
         })
+    }
+
+    /// `pattern := atom+`，`atom := '_' | <num> | <ident> | '(' pattern ')'`。
+    /// 遇 `if`（守卫）/`=>`/`|` 或任何不能起原子的 token 停止
+    /// （`docs/design/match-patterns.md` §2）。
+    fn parse_pattern(&mut self) -> Result<Pattern> {
+        let mut atoms: Vec<Pattern> = Vec::new();
+        loop {
+            match self.peek().kind.clone() {
+                TokenKind::Ident(name) if name == "if" => break,
+                TokenKind::Ident(name) => {
+                    let tok = self.bump();
+                    atoms.push(if name == "_" {
+                        Pattern::Wild { span: tok.span }
+                    } else {
+                        Pattern::Ident {
+                            name,
+                            args: Vec::new(),
+                            span: tok.span,
+                        }
+                    });
+                }
+                TokenKind::Num(value) => {
+                    let tok = self.bump();
+                    atoms.push(Pattern::Num {
+                        value,
+                        span: tok.span,
+                    });
+                }
+                TokenKind::LParen => {
+                    self.bump();
+                    let inner = self.parse_pattern()?;
+                    self.expect_kind(&TokenKind::RParen, "`)` after a nested pattern")?;
+                    atoms.push(inner);
+                }
+                _ => break,
+            }
+        }
+        let Some(head) = atoms.first().cloned() else {
+            let tok = self.peek().clone();
+            return Err(Diagnostic::new(
+                DiagnosticKind::UnexpectedToken {
+                    found: format!("{:?}", tok.kind),
+                    expected: "a pattern".to_string(),
+                },
+                tok.span,
+                "`|` 后面要跟模式：构造子（如 `succ k`）、`_`、变量名或数字字面量".to_string(),
+            ));
+        };
+        atoms.remove(0);
+        match head {
+            Pattern::Ident { name, args, span } if args.is_empty() => Ok(Pattern::Ident {
+                name,
+                args: atoms,
+                span,
+            }),
+            other if atoms.is_empty() => Ok(other),
+            other => Err(Diagnostic::new(
+                DiagnosticKind::UnexpectedToken {
+                    found: "pattern argument".to_string(),
+                    expected: "an identifier head".to_string(),
+                },
+                other.span(),
+                "模式要写成「构造子/变量 子模式…」；数字或 `_` 不能带子模式".to_string(),
+            )),
+        }
     }
 
     fn parse_arrow(&mut self) -> Result<Expr> {
@@ -1523,15 +1576,22 @@ end
         };
         assert!(matches!(scrutinee.as_ref(), Expr::Ident { name, .. } if name == "c"));
         assert_eq!(arms.len(), 2);
-        assert_eq!(arms[0].ctor, "red");
-        assert!(arms[0].binders.is_empty());
+        let Pattern::Ident { name, args, .. } = &arms[0].pattern else {
+            panic!("expected a constructor pattern, got {:?}", arms[0].pattern);
+        };
+        assert_eq!(name, "red");
+        assert!(args.is_empty());
         assert!(matches!(&arms[0].body, Expr::Ident { name, .. } if name == "green"));
-        assert_eq!(arms[1].ctor, "pair");
+        let Pattern::Ident { name, args, .. } = &arms[1].pattern else {
+            panic!("expected a constructor pattern");
+        };
+        assert_eq!(name, "pair");
         assert_eq!(
-            arms[1]
-                .binders
-                .iter()
-                .map(|b| b.name.as_str())
+            args.iter()
+                .map(|p| match p {
+                    Pattern::Ident { name, .. } => name.as_str(),
+                    other => panic!("expected a bind, got {other:?}"),
+                })
                 .collect::<Vec<_>>(),
             vec!["x", "y"]
         );

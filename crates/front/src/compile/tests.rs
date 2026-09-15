@@ -3587,11 +3587,37 @@ fn match_non_exhaustive_reports_code() {
 }
 
 #[test]
-fn match_unknown_ctor_reports_bad_arm() {
+fn match_unknown_bare_name_is_a_binding() {
+    // Lean 语义：未知的裸名按**绑定变量**处理（不是构造子）。变量模式不可反驳，
+    // 所以它匹配一切、后面的 arm 不可达，整个 match 通过覆盖性检查。
     let src = format!(
         "{}\n\
          def f (c : Color) : Color := match c with\n\
-         | purple => red\n\
+         | purple => green\n\
+         | green => red\n\
+         | blue => blue\n\
+         #reduce f blue\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "green")),
+        "a variable pattern shadows later arms: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn match_unknown_ctor_with_args_reports_bad_arm() {
+    // 带子模式的未知名字不可能是绑定 ⇒ bad-arm，消息点名 culprit。
+    let src = format!(
+        "{}\n\
+         def f (c : Color) : Color := match c with\n\
+         | purple x => red\n\
+         | red => red\n\
          | green => red\n\
          | blue => blue\n",
         color_enum()
@@ -3606,18 +3632,28 @@ fn match_unknown_ctor_reports_bad_arm() {
 }
 
 #[test]
-fn match_duplicate_ctor_reports_bad_arm() {
+fn match_duplicate_ctor_falls_through_in_order() {
+    // 模式编译器起，同一构造子可以出现多条 arm：**有序、首个匹配者胜**
+    // （docs/design/match-patterns.md §4）。
     let src = format!(
         "{}\n\
          def f (c : Color) : Color := match c with\n\
          | red => green\n\
          | red => blue\n\
          | green => red\n\
-         | blue => blue\n",
+         | blue => blue\n\
+         #reduce f red\n",
         color_enum()
     );
     let out = compile_fol(&parse(&src).expect("parse match"));
-    assert_eq!(out.errors[0].code(), "elab-match-bad-arm");
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "green")),
+        "the first matching arm must win: {:?}",
+        out.events
+    );
 }
 
 const NAT2_ENUM: &str = "\
@@ -3902,6 +3938,164 @@ def negate (b : Bool) : Bool := match b with
         "source `Bool` must reduce with its own ctors: {:?}",
         out.events
     );
+}
+
+// ---- 模式编译器 v1：通配 / 嵌套 / 字面量 / 守卫（docs/design/match-patterns.md）----
+
+/// 两个嵌套枚举，供嵌套模式测试。
+const NESTED_ENUMS: &str = "\
+inductive Inner : Type
+ctor ia : Inner
+ctor ib : Inner
+end
+inductive Outer : Type
+ctor oi (i : Inner) : Outer
+ctor on : Outer
+end
+";
+
+#[test]
+fn match_wildcard_falls_through_by_order() {
+    let src = format!(
+        "{}\n\
+         def f (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | _ => blue\n\
+         #reduce f red\n\
+         #reduce f green\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(reduced, vec!["green", "blue"], "{:?}", out.events);
+}
+
+#[test]
+fn match_nested_patterns_use_the_inner_values() {
+    // `oi (ia|ib)` 同一构造子两条 arm：嵌套模式由编译器生成内层 match。
+    let src = format!(
+        "{NESTED_ENUMS}\n\
+         def f (o : Outer) : Inner := match o with\n\
+         | oi ia => ib\n\
+         | oi ib => ia\n\
+         | on => ia\n\
+         #reduce f (oi ia)\n\
+         #reduce f (oi ib)\n\
+         #reduce f on\n",
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(reduced, vec!["ib", "ia", "ia"], "{:?}", out.events);
+}
+
+#[test]
+fn match_nested_wildcard_binds_and_defaults() {
+    // 外层绑定 + 内层通配混用：`oi _` 覆盖未列出的内层值。
+    let src = format!(
+        "{NESTED_ENUMS}\n\
+         def g (o : Outer) : Inner := match o with\n\
+         | oi ia => ib\n\
+         | oi _ => ia\n\
+         | on => ia\n\
+         #reduce g (oi ib)\n",
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "ia")),
+        "{:?}",
+        out.events
+    );
+}
+
+#[test]
+fn match_nat_literals_desugar_to_ctors() {
+    let src = "def f (n : Nat) : Nat := match n with\n\
+               | 0 => Nat.succ Nat.zero\n\
+               | _ => Nat.zero\n\
+               #reduce f 0\n\
+               #reduce f 2\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Nat.zero")),
+        "`f 2` takes the wildcard arm: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn match_literal_can_be_combined_with_succ_patterns() {
+    // `| 0 =>` 与 `| Nat.succ k =>` 混排（两个不同构造子）。
+    let src = "def pred (n : Nat) : Nat := match n with\n\
+               | 0 => 0\n\
+               | Nat.succ k => k\n\
+               #reduce pred 0\n\
+               #reduce pred 3\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+#[test]
+fn match_guard_falls_through_to_the_next_arm() {
+    // `Bool.true if b`：守卫为真 → false；为假 → 落到 `_`（返回 a）。
+    let src = "def g (a b : Bool) : Bool := match a with\n\
+               | Bool.true if b => Bool.false\n\
+               | _ => a\n\
+               #reduce g Bool.true Bool.true\n\
+               #reduce g Bool.true Bool.false\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(reduced, vec!["Bool.false", "Bool.true"], "{:?}", out.events);
+}
+
+#[test]
+fn match_guard_without_a_fallback_is_non_exhaustive() {
+    let src = "def g (a b : Bool) : Bool := match a with\n\
+               | Bool.true if b => Bool.false\n\
+               | Bool.false => Bool.true\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-non-exhaustive");
+}
+
+#[test]
+fn match_nested_arity_mismatch_reports_bad_arm() {
+    let src = format!(
+        "{NESTED_ENUMS}\n\
+         def f (o : Outer) : Inner := match o with\n\
+         | oi ia ib => ia\n\
+         | on => ia\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-bad-arm");
 }
 
 #[test]

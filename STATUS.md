@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十一轮：prelude `Bool`；0.41.0）
+> 快照：2026-09-15（第七十二轮：模式编译器——嵌套/字面量/守卫；0.42.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,31 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十二轮：`match` 模式编译器 v1）
+
+> 续 HANDOVER §3 B / ROADMAP I6：把「每构造子一条 arm」换成有序 arm + 列式
+> 模式编译，支持字面量/嵌套/通配/守卫。设计 `docs/design/match-patterns.md`。
+
+1. **AST/parser**：`Pattern { Wild, Num, Ident{name,args} }`；`MatchArm` 改
+   `{pattern, guard, body}`；`parse_pattern`（递归、`(...)`、`_`、数字）；
+   守卫 `if` 只在 arm 里识别（不升全局关键字）。
+2. **编译器（核心）**：**源到源 canonical 化**——`compile_pattern_body` 选可反驳
+   列、按构造子特化，生成嵌套 `Expr::Match`，每层仍走既有 motive/IH/level/
+   recursor 构造（**不手搓 de Bruijn**）；守卫复用 prelude `Bool` 的 match。
+   字段名取绑定名（canonical 幂等）、撞构造子名用新鲜名；参数化字段先代入参数
+   （`some (a : A)` 在 `Option Nat` → `Nat`）。
+3. **语义**：有序、首个匹配者胜；未知裸名 = 绑定变量（带子模式才 bad-arm）；
+   覆盖不全/守卫无兜底 = `elab-match-non-exhaustive`；error hint 措辞更新。
+4. **消费者**：`semantic`（模式绑定着色 + 守卫）、`proof::render_pattern`、
+   `spine`（mentions/substitute 含守卫与模式阴影）、`goals`（hole/替身/依赖
+   子目标；嵌套/守卫退回常量 R）。
+5. **测试**：front +8、CLI +3；课程 unit5 增嵌套模式节 + 练习 9
+   （golden `(10,8,4)→(11,9,6)`、汇总 `checked 54→55 / open 41→42`）。
+6. **文档**：architecture §2/§4.1、design `match.md` §2/§10 Phase 6、
+   `match-patterns.md` as-built、TESTING、protocol、CHANGELOG。
+7. **验收**：`sokonanoda gate` PASS；版本 0.41.0 → **0.42.0**（新语法 minor）。
+   已知限制：`as`/or 模式、多 scrutinee、`if/then/else` 表达式不做。
 
 ## 本轮进度（2026-09-15，第七十一轮：prelude `Bool`）
 

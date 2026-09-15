@@ -112,9 +112,7 @@ pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
         } => {
             mentions(name, scrutinee)
                 || arms.iter().any(|arm| {
-                    arm.binders
-                        .iter()
-                        .any(|b| b.ty.as_deref().is_some_and(|t| mentions(name, t)))
+                    arm.guard.as_ref().is_some_and(|g| mentions(name, g))
                         || mentions(name, &arm.body)
                 })
         }
@@ -153,6 +151,22 @@ pub(crate) fn unify_spine(
 }
 
 /// 把 σ 代入 `expr` 里的命名 Ident（不改 span）。
+/// 收集模式里绑定的变量名（`_`/字面量不绑定）。
+pub(crate) fn collect_pattern_binds(pat: &crate::ast::Pattern, out: &mut Vec<String>) {
+    match pat {
+        crate::ast::Pattern::Wild { .. } | crate::ast::Pattern::Num { .. } => {}
+        crate::ast::Pattern::Ident { name, args, .. } => {
+            if args.is_empty() {
+                out.push(name.clone());
+            } else {
+                for a in args {
+                    collect_pattern_binds(a, out);
+                }
+            }
+        }
+    }
+}
+
 pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, Expr>) -> Expr {
     match expr {
         Expr::Ident { name, span } => match sigma.get(name) {
@@ -228,19 +242,33 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             scrutinee,
             arms,
             span,
-        } => Expr::Match {
-            scrutinee: Box::new(substitute(scrutinee, sigma)),
-            arms: arms
+        } => {
+            // 模式的绑定变量对被匹配的 body/守卫是**阴影**：从代入里删掉它们，
+            // 避免把模式变量错误替换掉（`docs/design/match-patterns.md` §5）。
+            let scrutinee = Box::new(substitute(scrutinee, sigma));
+            let arms = arms
                 .iter()
-                .map(|arm| MatchArm {
-                    ctor: arm.ctor.clone(),
-                    binders: arm.binders.clone(),
-                    body: substitute(&arm.body, sigma),
-                    span: arm.span,
+                .map(|arm| {
+                    let mut sigma = sigma.clone();
+                    let mut binds = Vec::new();
+                    collect_pattern_binds(&arm.pattern, &mut binds);
+                    for name in &binds {
+                        sigma.remove(name);
+                    }
+                    MatchArm {
+                        pattern: arm.pattern.clone(),
+                        guard: arm.guard.as_ref().map(|g| substitute(g, &sigma)),
+                        body: substitute(&arm.body, &sigma),
+                        span: arm.span,
+                    }
                 })
-                .collect(),
-            span: *span,
-        },
+                .collect();
+            Expr::Match {
+                scrutinee,
+                arms,
+                span: *span,
+            }
+        }
         Expr::By { tactics, span } => Expr::By {
             tactics: tactics.clone(),
             span: *span,

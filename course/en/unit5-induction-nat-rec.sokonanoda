@@ -211,3 +211,31 @@ theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
   match n with
   | zero => hz
   | succ k => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- Nested patterns and wildcards: patterns can look *inside* a field.
+-- `some zero` and `some _` split "is the inner number zero?": the same
+-- constructor `some` may appear in several arms — in order, first match wins;
+-- `_` catches the rest.
+-- ─────────────────────────────────────────────────────────────
+
+-- Demo (given): inner zero becomes one, otherwise zero.
+def isZeroOpt (x : Option Nat) : Nat := match x with
+| some zero => succ zero
+| some _ => zero
+| none => zero
+
+-- Self-check: `#reduce` runs the outer Option match, then the nested Nat match.
+#reduce isZeroOpt (some Nat zero)
+#reduce isZeroOpt (some Nat (succ zero))
+
+-- Exercise 9: predOpt returns the predecessor of the inner number — `some
+-- (succ k)` gives `k`, while `some zero` and `none` both give `zero`; use a
+-- nested pattern to bind the `succ` field `k`.
+-- soko:hint 思路：some 要分两种：里面是 zero 还是 succ k。
+-- soko:hint 目标形态：match x with | some zero => … | some (succ k) => … | none => …。
+-- soko:hint 关键件：succ 那一支把字段 k 绑出来了，直接把它作为 Nat 交出去。
+def predOpt (x : Option Nat) : Nat := match x with
+| some zero => zero
+| some (succ k) => sorry
+| none => zero

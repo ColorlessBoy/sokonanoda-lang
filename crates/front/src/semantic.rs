@@ -451,10 +451,38 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
         } => {
             walk_expr(scrutinee, toks, names);
             for arm in arms {
-                for binder in &arm.binders {
-                    names.add_binder(toks, binder);
+                add_pattern_binders(&arm.pattern, toks, names);
+                if let Some(guard) = &arm.guard {
+                    walk_expr(guard, toks, names);
                 }
                 walk_expr(&arm.body, toks, names);
+            }
+        }
+    }
+}
+
+/// 把模式里「绑定变量」的位置登记进名字表（构造子名交给 ctors 表；点号名一律
+/// 视为构造子）。设计 `docs/design/match-patterns.md` §5。
+fn add_pattern_binders(pat: &crate::ast::Pattern, toks: &[Token], names: &mut Names) {
+    match pat {
+        crate::ast::Pattern::Wild { .. } | crate::ast::Pattern::Num { .. } => {}
+        crate::ast::Pattern::Ident { name, args, span } => {
+            if args.is_empty() {
+                // 裸名：可能是绑定，也可能是 0 元构造子（ctor 表优先）。
+                if name.contains('.') || names.ctors.contains(name) {
+                    return;
+                }
+                let binder = Binder {
+                    name: name.clone(),
+                    ty: None,
+                    style: crate::BinderKind::Explicit,
+                    span: *span,
+                };
+                names.add_binder(toks, &binder);
+            } else {
+                for arg in args {
+                    add_pattern_binders(arg, toks, names);
+                }
             }
         }
     }

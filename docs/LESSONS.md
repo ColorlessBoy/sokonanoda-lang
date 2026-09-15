@@ -131,3 +131,17 @@
 - 参考：`install_prelude`/`install_bool_prelude`（`crates/front/src/compile/prelude.rs`）、
   `explicit_nat`/`explicit_bool`（`check.rs`）。
 
+## 模式编译器用「源到源 canonical 化」而非手写内核项（2026-09-15，0.42.0）
+
+- **教训**：把「每构造子一条 arm」扩成嵌套/字面量/守卫，若直接手写
+  `Ind.rec` 应用 + lambda，会掉进 de Bruijn/作用域泥潭（本项目 dependent motive
+  就修过一次索引 bug）。
+- **做法**：编写器把用户模式**源到源**编译成「每构造子一条 arm、参数全是绑定」
+  的 `Expr::Match` 树（嵌套匹配作为 arm body），再交回既有 lowering 逐层处理；
+  守卫直接生成 prelude `Bool` 的 `match`。编译器只需处理**名字**（确定性字段名
+  保证幂等、撞构造子名则换新鲜名），完全不碰索引。
+- **代价**：多一趟 canonical 化（幂等，不重复改名）；嵌套/守卫下子目标类型
+  退回常量（保守，sound）。
+- 参考：`crates/front/src/compile/elab.rs`（`compile_pattern_body`/`guard_chain`）、
+  `docs/design/match-patterns.md` §4/§10。
+

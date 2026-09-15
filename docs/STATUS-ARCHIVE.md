@@ -1,8 +1,27 @@
-# STATUS 归档（第 1–68 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–69 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十九轮：judge_infer 类型往返健壮性）
+
+> 续 TODO（HANDOVER §3 A）：消除依赖类型判定/建议里「内核类型文本 → AST」往返
+> 的括号歧义。
+
+1. **根因**：`proof::render_expr` 的 `Arrow` 分支把 **domain** 直接 `render_expr`，
+   当 domain 是 Forall/箭头时输出 `(k : Nat) -> P k -> Q` 被右结合误读；
+   `judge_infer` 逐层 render→parse 剥 Pi 时腐蚀 telescope → 依赖 `match` 的
+   level 查询报 `elab-match-no-expected-type`。
+2. **修复**：Arrow domain 位改用 `render_fun_position`（Lambda/Forall/Arrow/
+   Plus/Let/Match 一律补括号）。
+3. **回归**：`render_expr_round_trips` 增「Forall 作 domain」用例（含渲染→再解析
+   稳定）；`match_dependent_motive_with_function_typed_binder_round_trips_safely`
+   （结果类型 `Q hs n`、`hs` 为依赖函数 binder）内核通过。
+4. **影响**：`judge_infer` 的所有消费方受益（依赖 `match`、suggest、半表达式
+   hover、level 查询）。
+5. **验收**：`sokonanoda gate` PASS；版本 0.39.0 → **0.39.1**（健壮性 patch）；
+   设计 as-built `docs/design/match-dependent-motive.md` §8；HANDOVER §3 A 勾选。
 
 ## 本轮进度（2026-09-14，第六十八轮：`match` 依赖 motive）
 

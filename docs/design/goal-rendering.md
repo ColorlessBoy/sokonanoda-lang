@@ -166,3 +166,20 @@
   `(text, kind)`，够用且不引入新协议负担。
 - 未做单一大 `<pre>` 代码框：沿用既有 `goal-ty` + `binders` 结构，仅把着色
   接入 runs，避免推翻既有布局契约。
+
+## 7. 未覆盖的呈现面（后续 TODO）
+
+本文只统一了 **goal 状态**（tactic/半表达式 hover + Infoview）。其余渲染
+`.sokonanoda` 语言文本的界面仍在自绘/纯文本，属后续（`docs/HANDOVER.md §3 A″`）：
+
+| 面 | 现状 | 目标 |
+|---|---|---|
+| 表达式/签名 hover | ` ```text ` 围栏（`crates/lsp/src/lib.rs:862`） | ` ```sokonanoda ` 围栏 |
+| 声明 hover 内联签名 | 纯文本（`lib.rs:1195`） | 围栏或 runs |
+| 补全 detail/documentation | 纯文本（`lib.rs:1346+`） | 围栏或 runs |
+| 诊断内嵌类型（期望/实际） | 纯文本 | markdown 围栏 |
+| hints/quick-fix 预览、练习树 tooltip | 纯文本 | `sokonanoda` 围栏 / runs |
+| inlay hint、tree description | 纯文本（无法着色） | 保持纯文本，文档写明 |
+
+原则不变：**着色只来自 `front::semantic`**，不得各处再写一套。
+

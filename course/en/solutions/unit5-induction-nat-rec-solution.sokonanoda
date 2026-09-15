@@ -162,3 +162,17 @@ theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
   match n with
   | zero => hz
   | succ k => hs k ih
+
+-- Nested patterns and wildcards (mirrors the canvas tail):
+def isZeroOpt (x : Option Nat) : Nat := match x with
+| some zero => succ zero
+| some _ => zero
+| none => zero
+
+def predOpt (x : Option Nat) : Nat := match x with
+| some zero => zero
+| some (succ k) => k
+| none => zero
+
+#reduce isZeroOpt (some Nat zero)
+#reduce predOpt (some Nat (succ (succ zero)))

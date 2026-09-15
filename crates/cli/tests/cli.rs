@@ -1210,6 +1210,97 @@ def band (a b : Bool) : Bool := match a with
     );
 }
 
+// ---- 模式编译器 v1：通配 / 嵌套 / 字面量 / 守卫（0.42.0）----
+
+#[test]
+fn cli_match_nested_and_wildcard_patterns_check_via_kernel() {
+    // 嵌套模式（同一构造子多条 arm）+ 通配兜底；判定走完整内核。
+    let src = "\
+inductive Inner : Type
+ctor ia : Inner
+ctor ib : Inner
+end
+inductive Outer : Type
+ctor oi (i : Inner) : Outer
+ctor on : Outer
+end
+def flip (o : Outer) : Inner := match o with
+| oi ia => ib
+| oi _ => ia
+| on => ia
+#reduce flip (oi ia)
+#reduce flip (oi ib)
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration flip"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("=> ib"),
+        "nested `oi ia` must pick the first arm: {stdout}"
+    );
+    assert!(
+        stdout.contains("=> ia"),
+        "nested `oi ib` must fall to `oi _`: {stdout}"
+    );
+}
+
+#[test]
+fn cli_match_nat_literals_check_via_kernel() {
+    // 字面量模式脱糖为 succ^k zero；与 `Nat.succ k` 混排。
+    let src = "\
+def is_zero (n : Nat) : Bool := match n with
+| 0 => Bool.true
+| _ => Bool.false
+#reduce is_zero 0
+#reduce is_zero 2
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration is_zero"),
+        "stdout: {stdout}"
+    );
+    assert!(stdout.contains("=> Bool.true"), "stdout: {stdout}");
+    assert!(stdout.contains("=> Bool.false"), "stdout: {stdout}");
+}
+
+#[test]
+fn cli_match_guard_falls_through_to_the_next_arm() {
+    let src = "\
+def pick (a b : Bool) : Bool := match a with
+| Bool.true if b => Bool.false
+| _ => a
+#reduce pick Bool.true Bool.true
+#reduce pick Bool.true Bool.false
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration pick"),
+        "stdout: {stdout}"
+    );
+    assert!(stdout.contains("=> Bool.false"), "stdout: {stdout}");
+    assert!(stdout.contains("=> Bool.true"), "stdout: {stdout}");
+}
+
 // ---- 参数化归纳（docs/design/parameterized-inductives.md，v1）----
 
 /// Non-indexed parameterized source inductive (`inductive Option (A : Type)`);

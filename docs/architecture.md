@@ -100,7 +100,7 @@ sokonanoda-lang/
 - `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。
 - `--` 是行注释；`???` 是 Hole（未完成练习）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
-- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | Ctor binder => body`）。
+- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）。
 - 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）；值位不再有其它关键字（`funintro` 已在 0.27.0 移除，见 `docs/design/remove-funintro.md`）
 与 `funapply`（`Expr::Apply`，`crates/front/src/compile/apply.rs` 降为带前提洞
 的部分应用；类型经 `judge_infer` 推断，判定仍在填洞后）。
@@ -110,10 +110,15 @@ sokonanoda-lang/
   `(fun (x : T) => body) v` 内核等价（zeta），判定完全交给 kernel。
   无注解 `let` 仍是 Phase 2（见 `docs/design/elaborator-let-match.md`）。
 - **`match` 分情况**（term 关键字，Phase 2，同 `fun`/`let` 挂 `parse_expr`）：
-  `match e with | Ctor binder... => body | ... => body`。被匹配项是**源内
+  `match e with | <pattern> [if <guard>] => body | ...`。模式支持通配 `_`、绑定
+  变量、**嵌套构造子**（`some (succ k)`）、**Nat 字面量**（`0`/`1`/… 脱糖为
+  `succ^k zero`）与 **Bool 守卫**（`if cond`，假则落到后续 arm）；arm **有序、
+  首个匹配者胜**，同一构造子可写多条。编译器把模式源到源 canonical 化成
+  「每构造子一条 arm、参数全为绑定」，再复用既有 lowering（不手搓 de Bruijn）；
+  见 `docs/design/match-patterns.md`。被匹配项是**源内
   `inductive`**（分支用裸构造子名）**或 prelude 内建 `Nat`**（分支用点号名
   `Nat.zero`/`Nat.succ`；prelude 以受信任归纳块安装，含 `Nat.rec`），每个构造子
-  恰好一次，且结果类型必须已知（否则 `elab-match-no-expected-type`）；降低为显式
+  结果类型必须已知（否则 `elab-match-no-expected-type`）；降低为显式
   `<Ind>.rec.{level} motive minor... scrutinee`（level 由结果类型的 Sort 推出，
   显式宇宙实例是内核接受的必要条件）。**递归归纳已支持**：递归构造子字段后
   自动插入归纳假设 binder（`ih`、`ih2`…，类型为结果类型 R），branch 直接引用，

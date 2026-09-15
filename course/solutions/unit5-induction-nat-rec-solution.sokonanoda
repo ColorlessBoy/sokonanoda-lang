@@ -157,3 +157,17 @@ theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
   match n with
   | zero => hz
   | succ k => hs k ih
+
+-- 嵌套模式与通配（对应画布最后两节）：
+def isZeroOpt (x : Option Nat) : Nat := match x with
+| some zero => succ zero
+| some _ => zero
+| none => zero
+
+def predOpt (x : Option Nat) : Nat := match x with
+| some zero => zero
+| some (succ k) => k
+| none => zero
+
+#reduce isZeroOpt (some Nat zero)
+#reduce predOpt (some Nat (succ (succ zero)))

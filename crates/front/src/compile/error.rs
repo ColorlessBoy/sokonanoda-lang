@@ -187,7 +187,7 @@ impl ErrorKind {
                 "`funapply h` 要求 `h` 的结论正好是当前目标（`h : … -> 目标`）。看看 `h` 类型的最后一段是不是当前目标；不是就换一个前提，或直接写答案。"
             }
             ElabMatchBadArm => {
-                "match 的分支要写对：裸构造子名、每个构造子只写一次、模式变量个数与该构造子的字段数一致。"
+                "match 的模式要写对：构造子名与字段数要对应（可以嵌套，如 some (succ k)）；不确定的名字按变量绑定处理，带子模式的未知名才报错。"
             }
             ElabMatchNotInductive => {
                 "match 的被匹配项必须是已知的归纳类型：本文件用 inductive 声明的类型，或 prelude 内建的 Nat/Bool（分支写 Nat.zero/Nat.succ 或 Bool.true/Bool.false）。"
@@ -199,7 +199,7 @@ impl ErrorKind {
                 "match 暂不支持递归归纳类型（v1 只做没有归纳假设的非递归分情况）；递归定义请直接用消去子 .rec。"
             }
             ElabMatchNonExhaustive => {
-                "match 要覆盖该归纳类型的每一个构造子，一个都不能漏。"
+                "match 要覆盖该归纳类型的每一个构造子（含每个字段位置）；带守卫的 arm 还要在后面补一条不带守卫的兜底。"
             }
             ElabMatchParameterizedUnsupported => {
                 "参数化归纳的 match 目前只支持：被匹配项是一个局部变量，且它的类型写成 `T 参数…`（显式给出归纳的全部参数）。换成一个这样标注的变量再 match。"

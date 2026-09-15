@@ -672,3 +672,24 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `Bool.false` 的 name-cache 槽位早已存在）。front +4 / CLI +1；文档
   architecture §5.4 / match.md §10 Phase 5 / TESTING / 错误文案同步。版本
   **0.41.0**（新能力 minor）。
+
+- 2026-09-15（七十一，追踪项）：**「各个地方的高亮统一」入账**——用户指出
+  0.40.0 只统一了 goal 状态（tactic/半表达式 hover + Infoview），其余渲染
+  `.sokonanoda` 文本的呈现面（表达式/签名 hover 的 ` ```text ` 围栏、声明 hover
+  内联签名、补全 detail/文档、诊断内嵌类型、hints/quick-fix 预览、练习树 tooltip）
+  仍各自为政，且未列入 TODO。已补 `docs/HANDOVER.md §3 A″` + `ROADMAP`（I9）+ 
+  `docs/design/goal-rendering.md §7`；验收原则：着色只来自 `front::semantic`。
+
+- 2026-09-15（七十二）：**`match` 模式编译器 v1（嵌套/字面量/通配/守卫）**——把
+  「每构造子一条 arm（`arm_by_ctor`）」换成**有序 arm + 列式模式编译**：模式支持
+  通配 `_`、绑定变量、嵌套构造子（`| some (succ k) =>`）、Nat 字面量（`| 0 =>`/`1`/…
+  脱糖为 `succ^k zero`）、`Bool` 守卫（`| succ k if p =>`，假则落到后续 arm）。
+  实现走**源到源 canonical 化**（`compile_pattern_body` 生成嵌套 `Expr::Match`，
+  每层复用既有 motive/IH/level/recursor 构造，不手搓 de Bruijn；参数化字段先代入
+  参数）。语义：首个匹配者胜；未知裸名按 Lean 当绑定变量（带子模式才 bad-arm）；
+  覆盖不全/守卫无兜底 → `elab-match-non-exhaustive`。front +8 / CLI +3 / 课程
+  unit5 嵌套模式节 + 练习 9（golden `(10,8,4)→(11,9,6)`、汇总 `checked 54→55 /
+  open 41→42`）。版本 **0.42.0**（新语法 minor）；设计 + as-built
+  `docs/design/match-patterns.md`。已知限制：`as`/or 模式、多 scrutinee、
+  `if/then/else` 表达式不做；嵌套/守卫下依赖子目标类型退回常量（保守）。
+

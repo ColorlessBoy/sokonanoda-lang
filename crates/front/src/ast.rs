@@ -73,9 +73,10 @@ pub enum Expr {
         tactics: Vec<Tactic>,
         span: Span,
     },
-    /// `match <scrutinee> with | <Ctor> <binder>... => <body> | ...`：对**源内
-    /// 非递归**归纳类型分情况。降低为 `<Ind>.rec.{level} motive minor… scrutinee`
-    /// （v1 设计 `docs/design/match.md`）；判定仍由完整内核终审。
+    /// `match <scrutinee> with | <pattern> [if <guard>] => <body> | ...`：对
+    /// **源内/预置**归纳类型做模式匹配（支持通配 `_`、绑定变量、嵌套构造子、
+    /// Nat 字面量、`Bool` 守卫）。降低为 `<Ind>.rec.{level} motive minor… scrutinee`；
+    /// 判定仍由完整内核终审。设计 `docs/design/match-patterns.md`。
     Match {
         scrutinee: Box<Expr>,
         arms: Vec<MatchArm>,
@@ -83,14 +84,45 @@ pub enum Expr {
     },
 }
 
-/// `match` 的一条分支：裸构造子名 + 按字段位置的模式变量（复用 [`Binder`]，
-/// v1 无类型注解，字段类型来自归纳登记表）。
+/// `match` 的一条分支：`| <pattern> [if <guard>] => <body>`
+/// （模式编译器设计 `docs/design/match-patterns.md`）。
 #[derive(Debug, Clone, PartialEq)]
 pub struct MatchArm {
-    pub ctor: String,
-    pub binders: Vec<Binder>,
+    pub pattern: Pattern,
+    /// `if <cond>`：`cond : Bool`，为假时落到后续 arm（v1，见设计 §4）。
+    pub guard: Option<Expr>,
     pub body: Expr,
     pub span: Span,
+}
+
+/// 一个 `match` 模式（递归）。
+///
+/// parser 只产出 [`Pattern::Ident`]/[`Pattern::Wild`]/[`Pattern::Num`]；
+/// `Ident` 是**构造子还是绑定变量由 elaborator 按该位置的归纳类型判定**
+/// （parser 无类型信息）。编译器生成的 canonical 模式也是 `Ident`，只是
+/// 名字一定是当前类型的构造子名（幂等，见设计 §4）。
+#[derive(Debug, Clone, PartialEq)]
+pub enum Pattern {
+    /// `_`：通配，不绑定。
+    Wild { span: Span },
+    /// `0`/`1`/…：Nat 字面量（仅被匹配类型为 Nat 形状时合法）。
+    Num { value: String, span: Span },
+    /// 构造子（`zero`/`Nat.succ`，可带子模式）或绑定变量（无子模式）。
+    Ident {
+        name: String,
+        args: Vec<Pattern>,
+        span: Span,
+    },
+}
+
+impl Pattern {
+    pub fn span(&self) -> Span {
+        match self {
+            Pattern::Wild { span } | Pattern::Num { span, .. } | Pattern::Ident { span, .. } => {
+                *span
+            }
+        }
+    }
 }
 
 impl Expr {

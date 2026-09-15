@@ -197,3 +197,29 @@ theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
   match n with
   | zero => hz
   | succ k => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 嵌套模式与通配：模式可以「看进」字段里。
+-- `some zero` 与 `some _` 分开了「里面的数是不是零」——同一个构造子
+-- `some` 可以写多条 arm，按顺序、第一个匹配的胜出；`_` 兜住其余取值。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好）：里面是零就给一，否则给零。
+def isZeroOpt (x : Option Nat) : Nat := match x with
+| some zero => succ zero
+| some _ => zero
+| none => zero
+
+-- 自测：#reduce 先走外层 Option 的 match，再走内层 Nat 的嵌套 match。
+#reduce isZeroOpt (some Nat zero)
+#reduce isZeroOpt (some Nat (succ zero))
+
+-- 练习 9：predOpt 取出「里面那个数的前驱」：some (succ k) 给 k，
+-- some zero 与 none 都给 zero——用嵌套模式把 succ 的字段 k 绑出来。
+-- soko:hint 思路：some 要分两种：里面是 zero 还是 succ k。
+-- soko:hint 目标形态：match x with | some zero => … | some (succ k) => … | none => …。
+-- soko:hint 关键件：succ 那一支把字段 k 绑出来了，直接把它作为 Nat 交出去。
+def predOpt (x : Option Nat) : Nat := match x with
+| some zero => zero
+| some (succ k) => sorry
+| none => zero

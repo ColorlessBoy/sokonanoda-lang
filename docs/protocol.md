@@ -94,13 +94,14 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
   内核拒绝，消息带期望/实际), `elab-apply-needs-a-term` (apply 类 tactic
   后面缺少要应用的项), `elab-apply-not-applicable` (要应用的项的结论不是
-  当前目标),   `elab-match-bad-arm` (`match` 的分支写错：未知/重复构造子、
-  模式变量个数与字段数不符), `elab-match-not-inductive` (`match` 的被匹配项
+  当前目标),   `elab-match-bad-arm` (`match` 的模式写错：带子模式的未知名、
+  构造子字段数与子模式数不符), `elab-match-not-inductive` (`match` 的被匹配项
   不是已知归纳类型——本文件用 `inductive` 声明，或 prelude 内建的 `Nat`/`Bool`),
   `elab-match-no-expected-type`
   (`match` 的结果类型未知，无法定 motive 及其宇宙), 
   `elab-match-recursive-unsupported` (`match` 暂不支持递归归纳类型),
-  `elab-match-non-exhaustive` (`match` 未覆盖全部构造子),
+  `elab-match-non-exhaustive` (`match` 未覆盖全部构造子/字段位置，或带守卫的 arm
+  没有兜底),
   `elab-match-parameterized-unsupported` (`match` 参数化归纳时，被匹配项不是
   一个书写类型为 `T 参数…` 的局部变量——拿不到参数实例),
   `elab-let-type-query-failed` (无类型标注的 `let` 无法从值推断绑定类型);

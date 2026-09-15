@@ -25,7 +25,7 @@ match <scrutinee> with
 
 - **依赖 motive**（`motive` 依赖 scrutinee 的值）；v1 motive 恒为 `fun (_ : Ind) => R`；
 - ~~**递归类型**（`Nat` 等有 IH 的类型）~~ **已解除（Phase 2，见 §10）**：递归构造子字段后自动插入归纳假设 `ih`（多个递归字段依次 `ih`、`ih2`…，类型 = 结果类型 R），branch 可直接引用，递归无需自引用；v1 的 motive 仍非依赖，故只覆盖「以 scrutinee 自身构造子直接递归」的用例；
-- 嵌套/字面量/`as`/守卫/多 scrutinee/`if-then-else`；
+- ~~嵌套/字面量/`as`/守卫/多 scrutinee/`if-then-else`~~ **部分解除（0.42.0，见 `match-patterns.md`）**：嵌套/字面量/守卫（`Bool`）已实现；`as`、or 模式、多 scrutinee、`if/then/else` 表达式仍不做；
 - ~~prelude 内建 `Nat` 的 match（它没有源内 `InductiveBlock` 元数据）~~ **已解除（2026-09-15，见 §10）**：prelude `Nat` 现以受信任归纳块安装（`Nat.zero`/`Nat.succ` 构造子 + 派生 `Nat.rec`）并登记进 `InductiveTable`，分支用点号名 `Nat.zero`/`Nat.succ`；prelude `Bool`（非递归）**同法已装**（`Bool.true`/`Bool.false` + `Bool.rec`，见 §10 Phase 5）；`Eq` 仍不支持；
 - `match` 作为 tactic；`match` 出现在**期望类型未知**的位置（报教学错误）。
 
@@ -205,3 +205,24 @@ match <scrutinee> with
   `explicit_bool_block_yields_to_the_source_declaration`；CLI
   `cli_match_on_prelude_bool_checks_and_reduces`。既有「源内 `inductive Bool`
   （`tt`/`ff`）」用例继续通过，验证闸生效。
+
+### Phase 6：模式编译器 v1（嵌套 / 字面量 / 通配 / 守卫，2026-09-15，0.42.0）
+
+- 触发与设计：`docs/design/match-patterns.md`（把「每构造子一条 arm」换成
+  **有序 arm + 列式模式编译**）。AST 增 `Pattern`（`Wild`/`Num`/`Ident{args}`），
+  `MatchArm` 改 `{pattern, guard, body}`；parser 支持 `_`/数字/嵌套 `(...)`/`if`
+  守卫（`if` 只在 arm 里当关键字，不升为全局）。
+- 实现：**源到源 canonical 化**——`compile_pattern_body` 选可反驳列、按构造子
+  特化，生成嵌套 `Expr::Match`；每层仍走既有 motive/IH/level/recursor 构造
+  （不手搓 de Bruijn）。守卫复用 prelude `Bool` 的 match。字段名取绑定名
+  （canonical 输入幂等），撞构造子名则用新鲜名；参数化字段先代入参数
+  （`some (a : A)` 在 `Option Nat` → `Nat`）。
+- 语义：arm 有序、首个匹配者胜；未知裸名按 Lean 语义当**绑定变量**（
+  带子模式的未知名报 `elab-match-bad-arm`）；覆盖不全报
+  `elab-match-non-exhaustive`（守卫无兜底同）。
+- 消费者同步：`semantic`（模式绑定着色/守卫）、`proof::render_pattern`、
+  `spine`（mentions/substitute 含守卫、模式阴影）、`goals`（hole/替身/依赖
+  子目标；嵌套/守卫退回常量结果类型）。
+- 测试：front +8（通配/嵌套/嵌套通配/字面量/混排/守卫/守卫无兜底/arity）；
+  CLI +3；课程 unit5 增嵌套模式节 + 练习 9（golden `(10,8,4)→(11,9,6)`、汇总
+  `checked 54→55 / open 41→42`）。

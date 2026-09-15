@@ -282,18 +282,17 @@ pub fn render_expr(expr: &Expr) -> String {
             let rendered: Vec<String> = arms
                 .iter()
                 .map(|arm| {
-                    let binders = arm
-                        .binders
-                        .iter()
-                        .map(|binder| binder.name.clone())
-                        .collect::<Vec<_>>()
-                        .join(" ");
-                    let head = if binders.is_empty() {
-                        arm.ctor.clone()
-                    } else {
-                        format!("{} {}", arm.ctor, binders)
-                    };
-                    format!("| {} => {}", head, render_expr(&arm.body))
+                    let guard = arm
+                        .guard
+                        .as_ref()
+                        .map(|g| format!(" if {}", render_expr(g)))
+                        .unwrap_or_default();
+                    format!(
+                        "| {}{} => {}",
+                        render_pattern(&arm.pattern),
+                        guard,
+                        render_expr(&arm.body)
+                    )
                 })
                 .collect();
             format!(
@@ -301,6 +300,26 @@ pub fn render_expr(expr: &Expr) -> String {
                 render_expr(scrutinee),
                 rendered.join(" ")
             )
+        }
+    }
+}
+
+/// Render a `match` pattern back to teaching syntax (used by hover/error text).
+fn render_pattern(pat: &crate::ast::Pattern) -> String {
+    match pat {
+        crate::ast::Pattern::Wild { .. } => "_".to_string(),
+        crate::ast::Pattern::Num { value, .. } => value.clone(),
+        crate::ast::Pattern::Ident { name, args, .. } => {
+            if args.is_empty() {
+                name.clone()
+            } else {
+                let inner = args
+                    .iter()
+                    .map(render_pattern)
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                format!("{name} ({inner})")
+            }
         }
     }
 }

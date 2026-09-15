@@ -1,3 +1,14 @@
+## [0.42.0] - 2026-09-15
+
+### Added
+
+- **Richer `match` patterns** — value-position matches now support wildcards
+  (`_`), nested constructor patterns (`| some (succ k) =>`), natural-number
+  literals (`| 0 =>`, `1`, …; desugared to `succ^k zero`), and `Bool` guards
+  (`| succ k if p =>`). Arms are ordered and the first match wins, so the same
+  constructor may appear in several arms. Unknown bare names bind a variable
+  (Lean semantics). Design: `docs/design/match-patterns.md`.
+
 ## [0.41.0] - 2026-09-15
 
 ### Added

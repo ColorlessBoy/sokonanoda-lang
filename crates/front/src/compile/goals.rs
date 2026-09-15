@@ -443,7 +443,12 @@ pub(crate) fn expr_has_hole(e: &Expr) -> bool {
         }
         Expr::Match {
             scrutinee, arms, ..
-        } => expr_has_hole(scrutinee) || arms.iter().any(|arm| expr_has_hole(&arm.body)),
+        } => {
+            expr_has_hole(scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.guard.as_ref().is_some_and(expr_has_hole) || expr_has_hole(&arm.body)
+                })
+        }
         _ => false,
     }
 }
@@ -488,6 +493,9 @@ fn collect_hole_spans(e: &Expr, out: &mut Vec<Span>) {
         } => {
             collect_hole_spans(scrutinee, out);
             for arm in arms {
+                if let Some(guard) = &arm.guard {
+                    collect_hole_spans(guard, out);
+                }
                 collect_hole_spans(&arm.body, out);
             }
         }
@@ -674,12 +682,17 @@ pub(crate) fn substitute_names(
                 .iter()
                 .map(|arm| {
                     let mut sub = map.clone();
-                    for binder in &arm.binders {
-                        sub.remove(&binder.name);
+                    let mut binds = Vec::new();
+                    crate::spine::collect_pattern_binds(&arm.pattern, &mut binds);
+                    for name in &binds {
+                        sub.remove(name);
                     }
                     MatchArm {
-                        ctor: arm.ctor.clone(),
-                        binders: arm.binders.clone(),
+                        pattern: arm.pattern.clone(),
+                        guard: arm
+                            .guard
+                            .as_ref()
+                            .map(|g| substitute_names(g, &sub, levels)),
                         body: substitute_names(&arm.body, &sub, levels),
                         span: arm.span,
                     }
@@ -688,6 +701,28 @@ pub(crate) fn substitute_names(
             span: *span,
         },
     }
+}
+
+/// 扁平构造子模式 → `(构造子名, 绑定参数)`，仅当每个子模式都是无参标识符
+/// （绑定变量）时返回；嵌套/通配/字面量 → `None`（保守退回常量结果类型）。
+fn flat_ctor_binds(pat: &crate::ast::Pattern) -> Option<(String, Vec<String>)> {
+    let crate::ast::Pattern::Ident { name, args, .. } = pat else {
+        return None;
+    };
+    let mut binds = Vec::with_capacity(args.len());
+    for arg in args {
+        let crate::ast::Pattern::Ident {
+            name, args: sub, ..
+        } = arg
+        else {
+            return None;
+        };
+        if !sub.is_empty() {
+            return None;
+        }
+        binds.push(name.clone());
+    }
+    Some((name.clone(), binds))
 }
 
 /// A level text (`1`) becomes a literal sort; a name stays symbolic.
@@ -1235,10 +1270,14 @@ fn goal_under_binders(
                 if !expr_has_hole(&arm.body) {
                     continue;
                 }
-                let arm_ty = match &dependent {
-                    Some((x, params)) => {
+                // 依赖 motive 的代入只在「扁平构造子模式 + 全绑定参数 + 无守卫」
+                // 时可精确构造 `C params v…`；嵌套/字面量/通配/守卫退回常量 R
+                // （保守，子目标类型可能不够精确但 sound）。
+                let flat = flat_ctor_binds(&arm.pattern).filter(|_| arm.guard.is_none());
+                let arm_ty = match (&dependent, flat) {
+                    (Some((x, params)), Some((ctor, binders))) => {
                         let mut term = Expr::Ident {
-                            name: arm.ctor.clone(),
+                            name: ctor.clone(),
                             span: arm.span,
                         };
                         for param in params {
@@ -1248,12 +1287,12 @@ fn goal_under_binders(
                                 span: arm.span,
                             };
                         }
-                        for binder in &arm.binders {
+                        for binder in binders {
                             term = Expr::App {
                                 fun: Box::new(term),
                                 arg: Box::new(Expr::Ident {
-                                    name: binder.name.clone(),
-                                    span: binder.span,
+                                    name: binder.clone(),
+                                    span: arm.span,
                                 }),
                                 span: arm.span,
                             };
@@ -1262,7 +1301,7 @@ fn goal_under_binders(
                         map.insert(x.clone(), term);
                         substitute_names(ty, &map, &HashMap::new())
                     }
-                    None => ty.clone(),
+                    _ => ty.clone(),
                 };
                 let arm_r = render_expr(&arm_ty);
                 match goal_under_binders(&arm_ty, &arm.body, templates, locals, probe, ctx) {
