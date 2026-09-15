@@ -98,12 +98,12 @@ sokonanoda-lang/
 ### 4.1 词法/语法（`crates/front/src/lib.rs`）
 
 - `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。
-- `--` 是行注释；`???` 是 Hole（未完成练习）。
+- `--` 是行注释；`sorry` 是 Hole（未完成练习/占位符；旧的 `???` 已于 2026-09-07 移除）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）。
-- 值位关键字：`by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs` 降级为 lambda）；值位不再有其它关键字（`funintro` 已在 0.27.0 移除，见 `docs/design/remove-funintro.md`）
-与 `funapply`（`Expr::Apply`，`crates/front/src/compile/apply.rs` 降为带前提洞
-的部分应用；类型经 `judge_infer` 推断，判定仍在填洞后）。
+- 值位关键字：只有 `by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs`
+降级为 lambda）。历史：值位 `funapply`（0.22.0 移除）与 `funintro`（0.27.0 移除）
+均已删除，见 `docs/design/remove-funintro.md`。
 - **局部绑定 `let`**（term 关键字，Phase 1，同 `fun`/`forall` 挂 `parse_expr`）：
   `let x : T := v; body`。v1 要求显式类型注解（缺注解 / `let x := v` 报
   `elab-untyped-binder`，message/hint 定制为 `let` 写法）；`let` 与
@@ -154,7 +154,7 @@ sokonanoda-lang/
    - `def/theorem/example/axiom` → `build_*` 把 AST elaborate 成 kernel `Declar`，`builder.add_declar` 入表（记录每条声明在环境里的索引），随后 push `PendingOp`。
    - `#check/#reduce` → 先 elaborate 表达式并记住 `decl_before`（当前声明数），稍后用 `EnvLimit::ByIndex(decl_before)` 检查，保证 `#check` 只看到它之前的声明。
    - `inductive ... end` → `install_inductive_block`：先加 `Inductive`，再逐个加 `Constructor`，有 `rec` 则加 `Recursor`（带 `RecRule` 列表，每条 iota 规则按构造子索引绑定）。
-   - `example : T := ???` → 不建声明，直接产出 `CheckEvent::ExerciseOpen`。
+   - `example : T := sorry` → 不建声明，直接产出 `CheckEvent::ExerciseOpen`。
 4. 若 elaboration 阶段已有错误，直接返回（不碰 kernel）。
 5. 否则 `builder.finish()` 得到 `ExportFile`，设 `pp_options.proofs = true`（打印证明项本体而不是 `_`），然后逐个执行 PendingOp：
    - 声明：`env.try_check_declar(&declar)`（panic 包装成 `Result<(), CheckError>`），成功产 `decl.checked` / `example.checked`。
@@ -174,7 +174,11 @@ sokonanoda-lang/
 - `sokonanoda --json <file>`：每条事件一行 JSON（agent/service 视图）。
 - `sokonanoda repl`：逐行累积 buffer，整体重新 `parse + compile_fol`（最小"增量"模型 = 声明累加）；支持 `#check/#reduce/#print/#env/#help`。
 - `#prove <goal>`：进入证明草稿（见 §5.5），`intro/exact/apply/assumption/lambda/done`（值位 `by` tactic：intro/exact/apply/assumption/rfl/match/sorry）。
-- `sokonanoda-lsp`：编辑器路径的**唯一反馈通道**（文件无 `#` 命令）——publishDiagnostics、hover（表达式类型 / `???` 的目标）、documentSymbol、codeLens（练习状态）、quick-fix `引入 N 个 binder`（把 `???` 变成 `fun (x : T) => ???`；I13-S1 由 `intro` 改名）。
+- **编译结果缓存（0.48.0）**：`crates/lsp/src/cache.rs` 把内核产出的
+  `DocumentReport` 以 `(编译器版本, prelude 模式, 源文本)` 的稳定哈希落盘；打开
+  未变文档直接复用，编辑则照走 Session 增量。诊断由 `report_diagnostics` 统一
+  构造（命中与重编一致）。见 `docs/design/compile-cache.md`。
+- `sokonanoda-lsp`：编辑器路径的**唯一反馈通道**（文件无 `#` 命令）——publishDiagnostics、hover（表达式类型 / `sorry` 的目标）、documentSymbol、codeLens（练习状态）、quick-fix `引入 N 个 binder`（把 `sorry` 变成 `fun (x : T) => sorry`；I13-S1 由 `intro` 改名）。
 
 ---
 
@@ -254,7 +258,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 - `exact term` / `apply term`：把解析出的项放进 `solution`（洞）；
   （历史：早期 exact/apply 同义、`assumption` 走文本比对——两者均已由内核
   判定取代，见 §8.8。）
-- `lambda_text()`：把 binders 反向包回 `fun (b : T) =>` 前缀，未完成处显示 `???`；
+- `lambda_text()`：把 binders 反向包回 `fun (b : T) =>` 前缀，未完成处显示 `sorry`；
 - REPL 里 `done` 把 `example : <goal> := <lambda>` 追加进 buffer 重编译，**由完整内核判定**。
 
 设计意图：让学生先看懂"证明就是构造 lambda/证明项"，再接触 tactic 语感。
@@ -309,7 +313,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
 3. **elab 仍受限**：binder 可由声明类型推断（I6；应用位置的未注解 `fun x => …` 也可从实参类型推断，0.45.0）、值位 `let`（Phase 1）、值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）与**非带索引参数化归纳**（`inductive Option (A : Type)`，含对它的 `match`；`docs/design/parameterized-inductives.md`）已落地，但未做无注解 `let`、依赖 motive、**带索引**归纳与宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
-4. **语法白名单是边界**：想加语法，先加课程 + 测试；`???` 只允许出现在声明（def/theorem/example）的值位。
+4. **语法白名单是边界**：想加语法，先加课程 + 测试；`sorry` 只允许出现在声明（def/theorem/example）的值位。
 5. **不用官方工具链**：CI 与本地一律 `cargo`；不要引入 `lean`/`lake`/`lean4export`。
 6. **新错误要带 stage/code 与 span**：CLI 已按 `error[stage]:` 输出，`--json` 是 agent 视图；改输出格式要同步 `docs/protocol.md` 与 `crates/cli/tests/cli.rs`。
 7. **打印偏好**：教学文本 ASCII `->`；`pp_options.proofs=true` 由 `compile_fol` 设置（否则打印会把证明项压成 `_`）。
@@ -332,7 +336,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 | WHNF | 弱头范式；常规检查只需 WHNF，`#reduce` 要 deep normal form |
 | EnvLimit | 环境可见前缀控制（Empty/ByIndex/ByName/PpUnlimited） |
 | CheckEvent | 前端产出的事件（decl.checked / expr.typed / exercise.open …） |
-| `???` | 练习"未完成"洞：合法文件状态，产出 `exercise.open` |
+| `sorry` | 练习"未完成"洞：合法文件状态，产出 `exercise.open` |
 | `#prove` | 教学 tactic 草稿：tactic 语句只在搭 lambda，最终仍由 kernel 判定 |
 | NDJSON | lean4export 的导出格式（上游内核的检查输入；教学栈不走它） |
 

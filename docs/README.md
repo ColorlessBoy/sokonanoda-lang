@@ -59,9 +59,17 @@
 - `elaborator-let-match.md` — elaborator `let`（Phase 1）/ `match`（Phase 2）设计（I6）
 - `spine-meta-a.md` — refine 子洞的 kernel 级期望类型（方案 A，I9 余项）
 - `webview-infoview.md` — VS Code webview goal 面板（方案 B）
+- `compile-cache.md` — 编译结果落盘缓存（olean 式，LSP 打开免重编，0.48.0）
 - `goal-rendering.md` — 统一 goal 呈现（结构化 tag + 单一分类源）+ Infoview 落右侧 + fallback 修复（设计）
+- `match-patterns.md` — `match` 模式编译器（通配/嵌套/Nat 字面量/Bool 守卫，0.42.0）
+- `match-dependent-motive.md` — `match` 依赖 motive（结果类型随 scrutinee 变化，0.39.0）
+- `parameterized-inductives.md` — 非带索引参数化归纳（`Option A`/`List A`，0.38.0）
+- `indexed-inductives.md` — 带索引归纳（`Vec A n`：声明 + 派生 recursor + match，0.47.0）
+- `match.md` — 值位 `match` 总设计（Phase 1–6，含 as-built）
+- `early-cutoff.md` — I8 依赖精确化：conservative early-cutoff 签名比较（0.32.1）
+- `extension-server-policy.md` — VS Code 扩展强制内置 LSP + `sokonanoda: doctor` 自检（0.31.0）
 - `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
-- `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（部分实施：I11-S0/S1 已落地，余项见 ROADMAP）
+- `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（**已废弃**：`char_steps` 基建随值位关键字一并删除）
 - `site.md` — 项目官网（GitHub Pages）方案与信息架构（已上线：site/ + pages.yml）
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 

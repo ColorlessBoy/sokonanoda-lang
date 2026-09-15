@@ -12,7 +12,7 @@
 sokonanoda setup        # 用户/agent：版本锁定下载 CLI+LSP（零 cargo，幂等）
 sokonanoda doctor       # 0=就绪 3=未就绪
 sokonanoda gate         # 贡献者门禁：fmt + clippy + test + playground 锚点（需要 cargo）
-cargo test --workspace --locked   # 全量 13 套件
+cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文件）
 ```
 
 - **用户/agent 路径零工具链**：执行只用 `sokonanoda` 子命令 / Release 二进制 / VSIX；
@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量 13 套件
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～七十七轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～七十八轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -49,6 +49,7 @@ cargo test --workspace --locked   # 全量 13 套件
 | 75 | 0.45.0 | 应用位置 binder 类型推断（I6 最后一项） | `docs/design/elaborator-let-match.md` as-built |
 | 76 | 0.46.0 | `match` 作为 tactic（`by` 块内）+ judge 前缀修复 | `docs/design/by-tactics.md` §2 |
 | 77 | 0.47.0 | 带索引归纳（`Vec A n` 声明 + 派生 recursor + match） | `docs/design/indexed-inductives.md` |
+| 78 | 0.48.0 | 编译结果缓存（olean 式）+ Infoview 类型换行/`⊢`/点击跳转 | `docs/design/compile-cache.md` |
 
 > 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–71 轮原文）。
 

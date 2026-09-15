@@ -741,3 +741,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `(11,9,6)→(13,10,7)`、汇总 `checked 55→57 / open 42→43`）。版本 **0.47.0**；
   设计 as-built `docs/design/indexed-inductives.md`。
 
+- 2026-09-15（七十八）：**编译结果缓存 + Infoview 细节（0.48.0）**——用户四项：
+  (1) Infoview 类型小行允许换行（原单行省略看不全）；(2) 目标用 `⊢` 开头；
+  (3) 点击 Infoview 跳转未生效（点 webview 后 `activeTextEditor` 为空）；
+  (4) 设计类似 Lean4 的编译结果文件，避免文件多了打开即编译慢。落地：`.decl-ty`
+  改 `pre-wrap`；goal 前缀 `⊢ `；plumb 文档 uri + `jumpToRange`（visibleTextEditors
+  优先，不依赖 activeTextEditor）；`crates/lsp/src/cache.rs` 以稳定哈希
+  (编译器版本, prelude 模式, 源文本) 落盘内核 `DocumentReport`，`refresh` 命中即跳过
+  重编（`SOKONANODA_NO_CACHE=1` 关闭 / `SOKONANODA_CACHE_DIR` 重定位；内核仍是唯一
+  判定者）。front 报告类型加 serde。版本 **0.48.0**；设计 `docs/design/compile-cache.md`。
+

@@ -184,7 +184,7 @@ class GoalsTreeDataProvider {
     this.cursorState = undefined; // {uri, state} from soko/stateAt
     this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
     this.declItems = undefined; // cached decl TreeItems from the last soko/goals
-    this.onDecls = undefined; // (decls) => void — feeds the Infoview decls message
+    this.onDecls = undefined; // (decls, uri) => void — feeds the Infoview decls message
     this.onState = undefined; // (uri, state) => void — feeds the Infoview state message
     this.treeView = undefined; // set by activate, for focusExercise reveal
   }
@@ -329,8 +329,33 @@ class GoalsTreeDataProvider {
       }
       return item;
     });
-    this.onDecls?.(decls);
+    this.onDecls?.(decls, this.uri);
   }
+}
+
+// Move the editor to `range` in `uriString` — `activeTextEditor` is undefined
+// while the Infoview webview has focus, so resolve the document explicitly
+// (already-open editors first, then open it).
+async function jumpToRange(uriString, range) {
+  if (!uriString || !range || !range.start || !range.end) return;
+  let editor = vscode.window.visibleTextEditors.find(
+    (e) => e.document.uri.toString() === uriString,
+  );
+  if (!editor) {
+    try {
+      const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(uriString));
+      editor = await vscode.window.showTextDocument(doc, { preview: false });
+    } catch {
+      return;
+    }
+  }
+  const start = new vscode.Position(range.start.line, range.start.character);
+  const end = new vscode.Position(range.end.line, range.end.character);
+  editor.selection = new vscode.Selection(start, start);
+  editor.revealRange(
+    new vscode.Range(start, end),
+    vscode.TextEditorRevealType.InCenterIfOutsideViewport,
+  );
 }
 
 // Every place the extension renders `.sokonanoda` text uses the same language
@@ -499,6 +524,7 @@ class InfoviewProvider {
     this._ready = false;
     this._lastState = undefined; // {uri, state} — replayed when the view returns
     this._lastDecls = undefined; // last soko/goals decls (cursor moves don't touch it)
+    this._lastDeclsUri = undefined; // document the decls belong to (click-to-jump)
   }
 
   resolveWebviewView(view) {
@@ -553,10 +579,11 @@ class InfoviewProvider {
     this._post(Object.assign({ type: "state", uri }, state));
   }
 
-  setDecls(decls) {
+  setDecls(decls, uri) {
     this._lastDecls = decls;
+    if (uri !== undefined) this._lastDeclsUri = uri;
     if (!this._view || !this._ready) return;
-    this._post({ type: "decls", decls });
+    this._post({ type: "decls", decls, uri: this._lastDeclsUri });
   }
 
   postTheme() {
@@ -582,20 +609,8 @@ class InfoviewProvider {
       case "focusExercise":
         if (typeof message.name === "string") {
           await this._treeProvider.focusDeclaration(message.name);
+          await jumpToRange(message.uri, message.range);
           await vscode.commands.executeCommand("sokonanoda.goals.focus");
-          // Clicking a declaration in the Infoview also jumps the editor to it
-          // (the range travels with the message).
-          const editor = vscode.window.activeTextEditor;
-          const span = message.range;
-          if (span && editor && editor.document.languageId === "sokonanoda") {
-            const start = new vscode.Position(span.start.line, span.start.character);
-            const end = new vscode.Position(span.end.line, span.end.character);
-            editor.selection = new vscode.Selection(start, start);
-            editor.revealRange(
-              new vscode.Range(start, end),
-              vscode.TextEditorRevealType.InCenterIfOutsideViewport,
-            );
-          }
         }
         break;
     }
@@ -617,7 +632,7 @@ class InfoviewProvider {
 
   _pushDecls() {
     if (this._lastDecls !== undefined) {
-      this._post({ type: "decls", decls: this._lastDecls });
+      this._post({ type: "decls", decls: this._lastDecls, uri: this._lastDeclsUri });
     } else {
       this._treeProvider.ensureDeclarations().catch(() => {});
     }
@@ -1305,7 +1320,7 @@ async function activate(context) {
   // released (`retainContextWhenHidden: false`); the provider caches the last
   // state/decls and replays them on the next `ready` (docs/design §5).
   const infoviewProvider = new InfoviewProvider(context.extensionUri, provider);
-  provider.onDecls = (decls) => infoviewProvider.setDecls(decls);
+  provider.onDecls = (decls, uri) => infoviewProvider.setDecls(decls, uri);
   provider.onState = (uriString, state) => infoviewProvider.setState(uriString, state);
   provider.treeView = tree;
   context.subscriptions.push(

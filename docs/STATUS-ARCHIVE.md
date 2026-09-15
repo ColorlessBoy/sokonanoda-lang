@@ -1,8 +1,26 @@
-# STATUS 归档（第 1–74 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–75 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十五轮：应用位置 binder 类型推断）
+
+> 续 HANDOVER §3 C / ROADMAP I6：elaborator 最后一项——无期望类型时从实参
+> 推断 `fun x => …` 的 binder 类型。
+
+1. **现状**：`fun x => …` 在有期望望远镜时已能推断（`Expr::Lambda` +
+   `peel_expected`）；缺的是 `(fun x => x) 1` 这类无期望的应用位置。
+2. **实现**：`annotate_application_lambda`——处理 `Expr::App` 前展平 spine
+   `f a1 … an`；头部是带未注解 binder 的 `Lambda` 时，用 `judge_infer`
+   推断 `a_i` 类型作为 binder 注解，**源到源改写**后交回正常路径；支持
+   柯里化 `(fun x y => x) a b`。
+3. **边界**：实参不足以覆盖全部未注解 binder → 仍报 `elab-untyped-binder`
+   （`(fun x y => x) 1`、`#check fun x => x`）。
+4. **测试**：front +3（应用/柯里化/实参不足）、CLI +1；既有 `untyped_binder_*`
+   回归不破。
+5. **文档**：architecture §elab、`elaborator-let-match.md` as-built、TESTING。
+6. **验收**：`sokonanoda gate` PASS；版本 0.44.0 → **0.45.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-15，第七十四轮：Infoview 声明类型提示 + 点击跳转）
 

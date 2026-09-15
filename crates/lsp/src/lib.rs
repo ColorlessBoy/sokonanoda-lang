@@ -22,6 +22,8 @@ mod render;
 #[cfg(test)]
 mod testutil;
 
+mod cache;
+
 use actions::hole_range;
 use render::{
     bracket_hover, decl_at, decl_name, definition_at, diagnostic_from_compile,
@@ -228,68 +230,36 @@ impl Backend {
                 doc.mode = mode;
             }
             let lsp_version = version.unwrap_or(0).max(0) as u64;
-            let update = doc.session.update(&text, lsp_version);
-            doc.text = text;
-            doc.version = version.unwrap_or(doc.version);
-            match update.parse_error {
-                Some(diag) => {
-                    let diagnostic = diagnostic_from_parse(&diag);
-                    doc.parse_error = Some(diag);
-                    doc.report = None;
-                    vec![diagnostic]
-                }
-                None => {
-                    doc.parse_error = None;
-                    // A report carries the same errors as its decl states;
-                    // emit them once per failing declaration.
-                    let mut diagnostics: Vec<_> = update
-                        .report
-                        .errors
-                        .iter()
-                        .map(diagnostic_from_compile)
-                        .collect();
-                    // Lean 4 对齐：含 sorry 的声明产出 warning（不是 error），
-                    // 让学习者看到"文件编译但有缺口"。
-                    if update
-                        .report
-                        .decls
-                        .iter()
-                        .any(|d| d.status == DeclStatus::Open && !d.holes.is_empty())
-                    {
-                        for d in update
-                            .report
-                            .decls
-                            .iter()
-                            .filter(|d| d.status == DeclStatus::Open)
-                        {
-                            let name = d.name.as_deref().unwrap_or("(anonymous)");
-                            diagnostics.push(Diagnostic {
-                                range: range_of(d.span),
-                                severity: Some(DiagnosticSeverity::WARNING),
-                                code: Some(NumberOrString::String("sorry".to_string())),
-                                source: Some("sokonanoda".to_string()),
-                                message: format!(
-                                    "declaration '{}' uses 'sorry' (exercise not yet solved)",
-                                    name
-                                ),
-                                ..Diagnostic::default()
-                            });
-                        }
+            // Persistent compile cache (olean-like): identical
+            // (compiler version, prelude mode, text) reuses the kernel's report
+            // instead of recompiling. A miss compiles and stores the report.
+            let key = cache::key(env!("CARGO_PKG_VERSION"), mode == PreludeMode::Bare, &text);
+            if let Some(report) = cache::load(&key) {
+                doc.text = text;
+                doc.version = version.unwrap_or(doc.version);
+                doc.parse_error = None;
+                let diagnostics = report_diagnostics(&report);
+                doc.report = Some(report);
+                diagnostics
+            } else {
+                let update = doc.session.update(&text, lsp_version);
+                doc.text = text;
+                doc.version = version.unwrap_or(doc.version);
+                match update.parse_error {
+                    Some(diag) => {
+                        let diagnostic = diagnostic_from_parse(&diag);
+                        doc.parse_error = Some(diag);
+                        doc.report = None;
+                        vec![diagnostic]
                     }
-                    // Syntax-level warnings (e.g. a declaration colliding with
-                    // a kernel-defined name): WARNING severity, never an error.
-                    for warning in &update.report.warnings {
-                        diagnostics.push(Diagnostic {
-                            range: range_of(warning.span),
-                            severity: Some(DiagnosticSeverity::WARNING),
-                            code: Some(NumberOrString::String(warning.code().to_string())),
-                            source: Some("sokonanoda".to_string()),
-                            message: format!("{}\n\n提示：{}", warning.message, warning.hint()),
-                            ..Diagnostic::default()
-                        });
+                    None => {
+                        doc.parse_error = None;
+                        let report = update.report;
+                        let diagnostics = report_diagnostics(&report);
+                        cache::store(&key, &report);
+                        doc.report = Some(report);
+                        diagnostics
                     }
-                    doc.report = Some(update.report);
-                    diagnostics
                 }
             }
         };
@@ -865,6 +835,45 @@ fn tactic_goal_hover(report: &DocumentReport, text: &str, offset: usize) -> Opti
         }),
         range: Some(range_of(step.span)),
     })
+}
+
+/// Diagnostics for a compiled [`sokonanoda_front::compile::DocumentReport`]:
+/// elab/kernel errors, one WARNING per `sorry` (Lean-4 aligned), and
+/// syntax-level warnings. Shared by the fresh-compile and cache-hit paths so a
+/// cached open produces exactly the same diagnostics as a recompile.
+fn report_diagnostics(report: &sokonanoda_front::compile::DocumentReport) -> Vec<Diagnostic> {
+    let mut diagnostics: Vec<_> = report.errors.iter().map(diagnostic_from_compile).collect();
+    if report
+        .decls
+        .iter()
+        .any(|d| d.status == DeclStatus::Open && !d.holes.is_empty())
+    {
+        for d in report.decls.iter().filter(|d| d.status == DeclStatus::Open) {
+            let name = d.name.as_deref().unwrap_or("(anonymous)");
+            diagnostics.push(Diagnostic {
+                range: range_of(d.span),
+                severity: Some(DiagnosticSeverity::WARNING),
+                code: Some(NumberOrString::String("sorry".to_string())),
+                source: Some("sokonanoda".to_string()),
+                message: format!(
+                    "declaration '{}' uses 'sorry' (exercise not yet solved)",
+                    name
+                ),
+                ..Diagnostic::default()
+            });
+        }
+    }
+    for warning in &report.warnings {
+        diagnostics.push(Diagnostic {
+            range: range_of(warning.span),
+            severity: Some(DiagnosticSeverity::WARNING),
+            code: Some(NumberOrString::String(warning.code().to_string())),
+            source: Some("sokonanoda".to_string()),
+            message: format!("{}\n\n提示：{}", warning.message, warning.hint()),
+            ..Diagnostic::default()
+        });
+    }
+    diagnostics
 }
 
 /// Language id used by **every** markdown code fence the server emits, so the
@@ -3492,6 +3501,32 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
         let h_ms = start.elapsed().as_millis();
         println!("PERF lsp hover: {h_ms}ms (threshold 10ms)");
         assert!(h_ms < 10, "hover took {h_ms}ms (threshold 10ms)");
+        shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn perf_state_at_latency() {
+        // 光标移动路径 `soko/stateAt`（0.40.0 起带 goal_runs/ty_runs）延迟
+        // < 10ms（50 声明文件）——防止「每次移动都全量重解析」之类的回归。
+        let src = perf_canvas(50);
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, &src).await;
+        let _ = wait_diagnostics(&mut socket, "perf: initial").await;
+
+        let at = offset_of(&src, "sorry");
+        let start = std::time::Instant::now();
+        let result = ask_state_at(&mut service, &src, at).await;
+        let elapsed = start.elapsed().as_millis();
+        assert!(
+            result.get("goals").and_then(|g| g.as_array()).is_some(),
+            "stateAt response shape: {result:?}"
+        );
+        println!("PERF lsp stateAt: {elapsed}ms (threshold 10ms)");
+        assert!(
+            elapsed < 10,
+            "soko/stateAt took {elapsed}ms (threshold 10ms)"
+        );
         shutdown(&mut service).await;
     }
 

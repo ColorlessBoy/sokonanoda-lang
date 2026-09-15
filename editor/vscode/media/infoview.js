@@ -20,6 +20,8 @@
   // host-side cursorRequestSeq).
   let lastUri;
   let lastVersion = -1;
+  // Document the declaration list belongs to (for click-to-jump).
+  let declsUri;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -38,11 +40,14 @@
   // from hover. Each run is `{text, kind?}`; `kind` maps to a `tok-<kind>`
   // class whose colour lives in infoview.css. Missing runs (older server) fall
   // back to the plain text — still textContent-only.
-  function codeBlock(className, runs, fallback) {
+  function codeBlock(className, runs, fallback, prefix) {
     const pre = el("pre", className);
+    if (typeof prefix === "string" && prefix !== "") {
+      pre.appendChild(document.createTextNode(prefix));
+    }
     const list = Array.isArray(runs) ? runs : [];
     if (list.length === 0) {
-      pre.textContent = fallback || "";
+      pre.appendChild(document.createTextNode(fallback || ""));
       return pre;
     }
     list.forEach(function (run) {
@@ -132,7 +137,7 @@
         });
         goal.appendChild(head);
         goal.appendChild(
-          codeBlock("goal-ty", state && state.goal_runs, (state && state.goal) || ""),
+          codeBlock("goal-ty", state && state.goal_runs, (state && state.goal) || "", "⊢ "),
         );
 
         const binders = (state && state.binders) || [];
@@ -175,7 +180,8 @@
     renderGoals(msg);
   }
 
-  function renderDecls(decls) {
+  function renderDecls(decls, uri) {
+    declsUri = typeof uri === "string" ? uri : undefined;
     clear(declsBody);
     const list = Array.isArray(decls) ? decls : [];
     if (list.length === 0) {
@@ -198,6 +204,7 @@
       button.addEventListener("click", function () {
         const message = { protocol: PROTOCOL, type: "focusExercise", name: name };
         if (decl && decl.range) message.range = decl.range;
+        if (declsUri) message.uri = declsUri;
         vscode.postMessage(message);
       });
       declsBody.appendChild(button);
@@ -218,7 +225,7 @@
         renderState(msg);
         break;
       case "decls":
-        renderDecls(msg.decls);
+        renderDecls(msg.decls, msg.uri);
         break;
       case "server":
         renderServer(msg);

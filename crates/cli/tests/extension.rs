@@ -801,19 +801,31 @@ fn infoview_declaration_list_shows_types_and_jumps() {
         webview.contains("ty_runs") && webview.contains("decl-ty"),
         "the declaration list must render the type hint"
     );
+    // Goal line starts with `⊢` (user preference) and the type line wraps.
     assert!(
-        webview.contains("message.range = decl.range"),
-        "clicking a declaration must send its range so the host can jump"
+        webview.contains("\"⊢ \""),
+        "the Infoview goal line must start with `⊢ `"
+    );
+    assert!(
+        webview.contains("message.range = decl.range")
+            && webview.contains("message.uri = declsUri"),
+        "clicking a declaration must send its uri+range so the host can jump"
     );
     let css = media_file("infoview.css");
     assert!(
-        css.contains(".decl-ty") && css.contains("text-overflow: ellipsis"),
-        "the type hint must be a small single-line ellipsised line"
+        css.contains(".decl-ty") && css.contains("white-space: pre-wrap"),
+        "the type hint must wrap (it was truncated before)"
+    );
+    assert!(
+        !css.contains("text-overflow: ellipsis"),
+        "the type hint must no longer be ellipsised"
     );
     let script = entry_script();
+    // The webview has focus on click, so `activeTextEditor` is undefined:
+    // the jump must resolve the document from the message uri.
     assert!(
-        script.contains("focusExercise") && script.contains("revealRange"),
-        "the host must reveal the declaration range on click"
+        script.contains("jumpToRange") && script.contains("visibleTextEditors"),
+        "the host must jump via the message uri, not activeTextEditor"
     );
 }
 

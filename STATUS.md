@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十七轮：带索引归纳；0.47.0）
+> 快照：2026-09-15（第七十八轮：编译结果缓存 + Infoview 细节；0.48.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,28 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十八轮：编译结果缓存 + Infoview 细节）
+
+> 用户四项：(1) Infoview 类型小行允许换行；(2) 目标用 `⊢` 开头；(3) 点击
+> Infoview 跳转没生效；(4) 设计类似 Lean4 的编译结果文件（避免文件多了打开即编译慢）。
+
+1. **换行**：`media/infoview.css` 的 `.decl-ty` 由「单行省略」改 `pre-wrap` +
+   `word-break`（类型不再看不全）。
+2. **`⊢` 开头**：`infoview.js` 的 goal 代码块加前缀 `⊢ `（与 hover/树 tooltip 一致）。
+3. **点击跳转修复**：点了 webview 后 `activeTextEditor` 为空，旧实现据此直接失败。
+   改为 plumb 文档 uri（树的 `onDecls(decls, uri)` → `setDecls(decls, uri)` →
+   webview `focusExercise{uri,range}`），扩展用 `jumpToRange`（`visibleTextEditors`
+   优先、必要时 `openTextDocument`）跳转。
+4. **编译结果缓存（olean 式）**：`crates/lsp/src/cache.rs` 把内核产出的
+   `DocumentReport` 以稳定 FNV 哈希 `(CARGO_PKG_VERSION, prelude 模式, 源文本)`
+   落盘；`refresh` 命中则跳过 `session.update`，miss 则编译并落盘。诊断由
+   `report_diagnostics` 统一构造（命中/重编一致）。`SOKONANODA_NO_CACHE=1` 关闭、
+   `SOKONANODA_CACHE_DIR` 重定位；front 报告类型加 serde derive。
+5. **测试**：`cache.rs` 单测 3（key 稳定/作用域/format miss）；扩展契约更新
+   （`⊢`/wrap/uri 跳转）。
+6. **验收**：`sokonanoda gate` PASS；版本 0.47.0 → **0.48.0**（新能力 minor）；
+   设计 `docs/design/compile-cache.md`。已知边界：不缓存 Session 快照、无 LRU。
 
 ## 本轮进度（2026-09-15，第七十七轮：带索引归纳）
 
@@ -53,22 +75,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. **文档**：`by-tactics.md` §2 表 + 0.46.0 更新、architecture、TESTING。
 5. **验收**：`sokonanoda gate` PASS；版本 0.45.0 → **0.46.0**（新语法 minor）。
    注：臂体是「项」；「每个臂里再写一串 tactic」是后续可选扩展（设计 §9 留白）。
-
-## 本轮进度（2026-09-15，第七十五轮：应用位置 binder 类型推断）
-
-> 续 HANDOVER §3 C / ROADMAP I6：elaborator 最后一项——无期望类型时从实参
-> 推断 `fun x => …` 的 binder 类型。
-
-1. **现状**：`fun x => …` 在有期望望远镜时已能推断（`Expr::Lambda` +
-   `peel_expected`）；缺的是 `(fun x => x) 1` 这类无期望的应用位置。
-2. **实现**：`annotate_application_lambda`——处理 `Expr::App` 前展平 spine
-   `f a1 … an`；头部是带未注解 binder 的 `Lambda` 时，用 `judge_infer`
-   推断 `a_i` 类型作为 binder 注解，**源到源改写**后交回正常路径；支持
-   柯里化 `(fun x y => x) a b`。
-3. **边界**：实参不足以覆盖全部未注解 binder → 仍报 `elab-untyped-binder`
-   （`(fun x y => x) 1`、`#check fun x => x`）。
-4. **测试**：front +3（应用/柯里化/实参不足）、CLI +1；既有 `untyped_binder_*`
-   回归不破。
-5. **文档**：architecture §elab、`elaborator-let-match.md` as-built、TESTING。
-6. **验收**：`sokonanoda gate` PASS；版本 0.44.0 → **0.45.0**（新能力 minor）。
 

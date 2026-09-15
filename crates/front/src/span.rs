@@ -1,13 +1,15 @@
 //! 源码位置与区间：`Pos` 与 `Span`。
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Pos {
     pub offset: usize,
     pub line: usize,
     pub column: usize,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Span {
     pub start: Pos,
     pub end: Pos,

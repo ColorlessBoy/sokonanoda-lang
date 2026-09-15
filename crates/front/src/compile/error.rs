@@ -1,9 +1,10 @@
 //! 编译错误分类：stage/kind、机器错误码与教学提示（`CompileError`）。
+use serde::{Deserialize, Serialize};
 
 use crate::Span;
 
 /// Which pipeline stage produced an error.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompileStage {
     Elab,
     Kernel,
@@ -20,7 +21,7 @@ impl CompileStage {
 
 /// Stable, fine-grained error kind below the stage level. Every kind maps to a
 /// machine code and a first teaching hint (docs/design/infrastructure.md F1).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ErrorKind {
     ElabUnknownIdentifier,
     ElabUnknownConstant,
@@ -244,7 +245,7 @@ impl ErrorKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CompileError {
     pub message: String,
     pub span: Span,

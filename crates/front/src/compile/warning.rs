@@ -1,4 +1,5 @@
 //! 语法级警告：按声明名判定的教学提示（不参与内核判定）。
+use serde::{Deserialize, Serialize};
 
 use crate::ast::{Command, FolFile};
 use crate::references::decl_name_span;
@@ -9,7 +10,7 @@ use crate::Span;
 /// 因此同名顶层声明不可能被任何引用命中。
 pub const RESERVED_SORT_NAMES: [&str; 3] = ["Prop", "Sort", "Type"];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WarningKind {
     ReservedDeclarationName,
 }
@@ -31,7 +32,7 @@ impl WarningKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompileWarning {
     pub kind: WarningKind,
     pub message: String,

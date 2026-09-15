@@ -3,8 +3,9 @@
 use super::error::CompileError;
 use super::warning::CompileWarning;
 use crate::Span;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeclKind {
     Definition,
     Theorem,
@@ -25,7 +26,7 @@ impl DeclKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeclStatus {
     /// The declaration is an open exercise (`sorry` in the value position).
     Open,
@@ -37,7 +38,7 @@ pub enum DeclStatus {
 
 /// One hypothesis already introduced in a partial answer: its written name
 /// and the type it carries, rendered as source text.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GoalBinder {
     pub name: String,
     pub ty: String,
@@ -46,7 +47,7 @@ pub struct GoalBinder {
 /// One `sorry` inside a constructor spine (multi-hole answer): its span and the
 /// expected type the walk recovered for it (best-effort, `None` when the
 /// constructor's field type could not be instantiated).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubGoal {
     pub span: Span,
     pub ty: Option<String>,
@@ -54,7 +55,7 @@ pub struct SubGoal {
 
 /// One open goal after a tactic step: its type and the hypotheses in scope
 /// for it (a different sub-goal may carry a different context).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ByGoalState {
     pub ty: String,
     pub binders: Vec<GoalBinder>,
@@ -65,14 +66,14 @@ pub struct ByGoalState {
 /// tactic's source span and **every** remaining goal (the current goal first;
 /// empty when every goal is closed). In the I8 session snapshot this is the
 /// editor's "goals at cursor" data (`soko/stateAt`).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ByStepState {
     pub span: Span,
     pub goals: Vec<ByGoalState>,
 }
 
 /// One declaration of a `.sokonanoda` document, with its exercise status.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeclState {
     pub kind: DeclKind,
     pub name: Option<String>,
@@ -123,7 +124,7 @@ pub struct DeclState {
 }
 
 /// Where a name use resolves to, together with the definition's source span.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResolvedTarget {
     /// A local binder; the span is the binder's own source span.
     Binder(Span),
@@ -143,7 +144,7 @@ impl ResolvedTarget {
 }
 
 /// A hover answer for one source span (`span -> inferred type text`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HoverType {
     pub span: Span,
     pub text: String,
@@ -161,13 +162,13 @@ pub struct HoverType {
 /// A `#check` command's result: the checked expression's span and the
 /// kernel-pretty-printed type. Carried on the report so the editor can show
 /// it persistently (inlay hint), like Lean's Infoview.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CheckInfo {
     pub span: Span,
     pub text: String,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DocumentReport {
     pub decls: Vec<DeclState>,
     pub hovers: Vec<HoverType>,

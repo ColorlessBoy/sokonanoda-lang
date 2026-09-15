@@ -1,3 +1,20 @@
+## [0.48.0] - 2026-09-15
+
+### Added
+
+- **Persistent compile cache** — the language server now caches each file's
+  kernel report keyed by (compiler version, prelude mode, source text), so
+  reopening an unchanged `.sokonanoda` file skips recompiling; opening files
+  stays fast as a workspace grows. The kernel remains the only judge.
+  Disable with `SOKONANODA_NO_CACHE=1`. Design:
+  `docs/design/compile-cache.md`.
+
+### Fixed
+
+- **Infoview declaration types wrap** instead of being truncated, the goal line
+  starts with `⊢`, and clicking a declaration now actually jumps the editor to
+  it (the document is resolved from the click, not from `activeTextEditor`).
+
 ## [0.47.0] - 2026-09-15
 
 ### Added
