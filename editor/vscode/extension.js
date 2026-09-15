@@ -432,7 +432,6 @@ function buildCursorChildren(cursor, uriString) {
 // textContent only (CSP nonce, local resources only, no innerHTML). Cursor
 // moves push `state` only; `decls` follows diagnostics/file changes (§5).
 const INFOVIEW_PROTOCOL = 1;
-const INFOVIEW_READY_TIMEOUT_MS = 2000;
 
 // Per-load CSP nonce (docs/design/webview-infoview.md §4): unpredictable,
 // embedded in both the meta tag and the script tag.
@@ -476,7 +475,6 @@ class InfoviewProvider {
     this._treeProvider = treeProvider;
     this._view = undefined;
     this._ready = false;
-    this._readyWaiters = [];
     this._lastState = undefined; // {uri, state} — replayed when the view returns
     this._lastDecls = undefined; // last soko/goals decls (cursor moves don't touch it)
   }
@@ -543,23 +541,11 @@ class InfoviewProvider {
     this._post({ type: "theme", kind: themeKindName() });
   }
 
-  waitReady(timeoutMs) {
-    if (this._ready) return Promise.resolve(true);
-    return new Promise((resolve) => {
-      const timer = setTimeout(() => resolve(false), timeoutMs);
-      this._readyWaiters.push(() => {
-        clearTimeout(timer);
-        resolve(true);
-      });
-    });
-  }
-
   async _onMessage(message) {
     if (!message || message.protocol !== INFOVIEW_PROTOCOL) return;
     switch (message.type) {
       case "ready":
         this._ready = true;
-        this._readyWaiters.splice(0).forEach((resolve) => resolve());
         this._pushAll();
         break;
       case "reveal":
@@ -608,20 +594,23 @@ class InfoviewProvider {
   }
 }
 
-// `sokonanoda.openInfoview`: reveal the webview. If it never handshakes
-// (old VS Code / scripts disabled / creation failure) the tree keeps working
-// and we surface that instead of failing silently (docs/design §6).
-async function openInfoview(infoviewProvider) {
+// `sokonanoda.openInfoview`: reveal the Infoview, which lives in the
+// `sokonanoda` container on the right (secondary side bar,
+// docs/design/goal-rendering.md §2.3). Focusing a view is enough — it renders
+// on demand and the host replays the last snapshot on `ready` — so there is no
+// handshake to wait for and nothing to report: an unavailable webview degrades
+// silently to the tree's 「当前光标处」 group (§2.4).
+async function openInfoview() {
+  try {
+    await vscode.commands.executeCommand("workbench.view.extension.sokonanoda");
+  } catch {
+    // Older/headless hosts may not expose the container command; the view
+    // focus below still works when the view is already known.
+  }
   try {
     await vscode.commands.executeCommand("sokonanoda.infoview.focus");
   } catch {
-    // Focus is best-effort; the readiness check below reports the truth.
-  }
-  const ready = await infoviewProvider.waitReady(INFOVIEW_READY_TIMEOUT_MS);
-  if (!ready) {
-    vscode.window.showInformationMessage(
-      "目标面板 (Infoview) 暂时不可用；「练习」面板中的「当前光标处」组仍然可用。",
-    );
+    // Best-effort: falling back to the tree is the documented behaviour.
   }
 }
 
@@ -1180,7 +1169,7 @@ async function restartServer(context) {
   await runDoctor(context, { notify: true, show: false });
 }
 
-function registerCommands(context, provider, courseProvider, infoviewProvider) {
+function registerCommands(context, provider, courseProvider) {
   const showStatus = async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.languageId !== "sokonanoda") {
@@ -1226,7 +1215,7 @@ function registerCommands(context, provider, courseProvider, infoviewProvider) {
     vscode.commands.registerCommand("sokonanoda.previousHole", () => nextHole(true)),
     vscode.commands.registerCommand("sokonanoda.goals.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("sokonanoda.courseRefresh", () => courseProvider.refresh()),
-    vscode.commands.registerCommand("sokonanoda.openInfoview", () => openInfoview(infoviewProvider)),
+    vscode.commands.registerCommand("sokonanoda.openInfoview", () => openInfoview()),
     vscode.commands.registerCommand("sokonanoda.revealRange", revealRange),
     vscode.commands.registerCommand(
       "sokonanoda.revealHint",
@@ -1337,7 +1326,7 @@ async function activate(context) {
   });
   context.subscriptions.push(courseTree);
 
-  registerCommands(context, provider, courseProvider, infoviewProvider);
+  registerCommands(context, provider, courseProvider);
   courseProvider.refresh();
 
   await client.start();

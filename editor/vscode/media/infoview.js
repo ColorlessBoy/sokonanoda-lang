@@ -32,6 +32,31 @@
     while (node.firstChild) node.removeChild(node.firstChild);
   }
 
+  // Semantic runs (docs/design/goal-rendering.md §2.1): the server classifies
+  // goal/hypothesis text with the SAME rules as the editor's semantic tokens
+  // (`front::semantic`), so the Infoview never re-tokenizes and never drifts
+  // from hover. Each run is `{text, kind?}`; `kind` maps to a `tok-<kind>`
+  // class whose colour lives in infoview.css. Missing runs (older server) fall
+  // back to the plain text — still textContent-only.
+  function codeBlock(className, runs, fallback) {
+    const pre = el("pre", className);
+    const list = Array.isArray(runs) ? runs : [];
+    if (list.length === 0) {
+      pre.textContent = fallback || "";
+      return pre;
+    }
+    list.forEach(function (run) {
+      const text = (run && run.text) || "";
+      const kind = run && run.kind;
+      if (typeof kind === "string" && /^[a-z_]+$/.test(kind)) {
+        pre.appendChild(el("span", "tok tok-" + kind, text));
+      } else {
+        pre.appendChild(document.createTextNode(text));
+      }
+    });
+    return pre;
+  }
+
   function section(title) {
     const box = el("section", "section");
     box.appendChild(el("h2", "section-title", title));
@@ -106,7 +131,9 @@
           }
         });
         goal.appendChild(head);
-        goal.appendChild(el("pre", "goal-ty", (state && state.goal) || ""));
+        goal.appendChild(
+          codeBlock("goal-ty", state && state.goal_runs, (state && state.goal) || ""),
+        );
 
         const binders = (state && state.binders) || [];
         if (binders.length > 0) {
@@ -114,7 +141,13 @@
           binders.forEach(function (binder) {
             const row = el("li", "binder");
             row.appendChild(el("span", "binder-name", (binder && binder.name) || ""));
-            row.appendChild(el("span", "binder-ty", (binder && binder.ty) || ""));
+            row.appendChild(
+              codeBlock(
+                "binder-ty",
+                binder && binder.ty_runs,
+                (binder && binder.ty) || "",
+              ),
+            );
             list.appendChild(row);
           });
           goal.appendChild(list);

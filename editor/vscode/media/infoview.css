@@ -121,9 +121,60 @@ body {
 }
 
 .binder-ty {
+  flex: 1;
+  margin: 0;
   opacity: 0.85;
   white-space: pre-wrap;
   word-break: break-word;
+  font: inherit;
+}
+
+/* Semantic colours (docs/design/goal-rendering.md §2.2). VS Code does not
+ * expose TextMate/editor token colours to webviews, so this is the ONE mapping
+ * from `front::semantic::SemanticKind` (wire name = the class suffix) to
+ * theme-aware variables — approximated with the symbol-icon palette so it
+ * follows light/dark/high-contrast themes. A Rust contract test asserts every
+ * wire kind has a class here; hover gets its colours from the same
+ * classification via the `sokonanoda` TextMate grammar. */
+.tok-keyword {
+  color: var(--vscode-symbolIcon-keywordForeground, var(--vscode-foreground));
+}
+
+.tok-sort {
+  color: var(--vscode-symbolIcon-structForeground, var(--vscode-foreground));
+}
+
+.tok-number {
+  color: var(--vscode-symbolIcon-numberForeground, var(--vscode-foreground));
+}
+
+.tok-hole {
+  color: var(--vscode-symbolIcon-snippetForeground, var(--vscode-foreground));
+  font-style: italic;
+}
+
+.tok-def_name,
+.tok-def_use,
+.tok-theorem_name,
+.tok-theorem_use {
+  color: var(--vscode-symbolIcon-functionForeground, var(--vscode-foreground));
+}
+
+.tok-axiom_name,
+.tok-axiom_use,
+.tok-inductive_name,
+.tok-inductive_use {
+  color: var(--vscode-symbolIcon-classForeground, var(--vscode-foreground));
+}
+
+.tok-ctor_name,
+.tok-ctor_use {
+  color: var(--vscode-symbolIcon-enumMemberForeground, var(--vscode-foreground));
+}
+
+.tok-binder,
+.tok-unknown_ident {
+  color: var(--vscode-symbolIcon-variableForeground, var(--vscode-foreground));
 }
 
 .solved {

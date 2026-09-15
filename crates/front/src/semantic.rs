@@ -76,6 +76,148 @@ pub fn sorts() -> &'static [&'static str] {
     SORTS
 }
 
+impl SemanticKind {
+    /// Every kind, in declaration order — the exhaustive source for tests and
+    /// client look-up tables (wire names, colour classes).
+    pub const ALL: &'static [SemanticKind] = &[
+        SemanticKind::Keyword,
+        SemanticKind::Sort,
+        SemanticKind::Number,
+        SemanticKind::Hole,
+        SemanticKind::DefName,
+        SemanticKind::TheoremName,
+        SemanticKind::AxiomName,
+        SemanticKind::InductiveName,
+        SemanticKind::CtorName,
+        SemanticKind::Binder,
+        SemanticKind::DefUse,
+        SemanticKind::TheoremUse,
+        SemanticKind::AxiomUse,
+        SemanticKind::InductiveUse,
+        SemanticKind::CtorUse,
+        SemanticKind::UnknownIdent,
+    ];
+
+    /// Stable lowercase wire name (single source for `soko/*` tagged runs and
+    /// any other client that colours from [`SemanticKind`]).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SemanticKind::Keyword => "keyword",
+            SemanticKind::Sort => "sort",
+            SemanticKind::Number => "number",
+            SemanticKind::Hole => "hole",
+            SemanticKind::DefName => "def_name",
+            SemanticKind::TheoremName => "theorem_name",
+            SemanticKind::AxiomName => "axiom_name",
+            SemanticKind::InductiveName => "inductive_name",
+            SemanticKind::CtorName => "ctor_name",
+            SemanticKind::Binder => "binder",
+            SemanticKind::DefUse => "def_use",
+            SemanticKind::TheoremUse => "theorem_use",
+            SemanticKind::AxiomUse => "axiom_use",
+            SemanticKind::InductiveUse => "inductive_use",
+            SemanticKind::CtorUse => "ctor_use",
+            SemanticKind::UnknownIdent => "unknown_ident",
+        }
+    }
+}
+
+/// One renderable fragment of a text: its literal source plus the semantic
+/// kind (`None` = whitespace/punctuation, drawn plain).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Run {
+    pub text: String,
+    pub kind: Option<SemanticKind>,
+}
+
+/// The declaration-name table of `src` (name → use-kind, constructors as
+/// [`SemanticKind::CtorUse`]) — the input [`tag_runs`] needs to colour a
+/// goal/hypothesis type that lives outside the document's own spans.
+pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
+    let Ok(file) = crate::parse(src) else {
+        return Vec::new();
+    };
+    let mut out: Vec<(String, SemanticKind)> = Vec::new();
+    for cmd in &file.commands {
+        match cmd {
+            Command::Def { name, .. } => out.push((name.clone(), SemanticKind::DefUse)),
+            Command::Theorem { name, .. } => out.push((name.clone(), SemanticKind::TheoremUse)),
+            Command::Axiom { name, .. } => out.push((name.clone(), SemanticKind::AxiomUse)),
+            Command::InductiveBlock {
+                name, constructors, ..
+            } => {
+                out.push((name.clone(), SemanticKind::InductiveUse));
+                for ctor in constructors {
+                    out.push((ctor.name.clone(), SemanticKind::CtorUse));
+                }
+            }
+            Command::Example { .. }
+            | Command::Check { .. }
+            | Command::Reduce { .. }
+            | Command::Print { .. } => {}
+        }
+    }
+    out
+}
+
+/// Classify an arbitrary expression text (a kernel-rendered goal or hypothesis
+/// type) into renderable [`Run`]s, using the very same rules as the editor's
+/// semantic tokens — the single source of language knowledge
+/// (`docs/design/goal-rendering.md` §2.1).
+///
+/// `decls` = visible declarations (see [`declaration_kinds`]); `binders` =
+/// names in scope at that goal (hypotheses). Lexing failures degrade to one
+/// plain run, never an error.
+pub fn tag_runs(text: &str, decls: &[(String, SemanticKind)], binders: &[String]) -> Vec<Run> {
+    let plain = |s: &str| Run {
+        text: s.to_string(),
+        kind: None,
+    };
+    let mut names = Names::default();
+    for (name, kind) in decls {
+        names.decls.insert(name.clone(), *kind);
+    }
+    for name in binders {
+        names.binders.insert(name.clone());
+    }
+    let toks = match crate::token::tokenize(text) {
+        Ok(mut toks) => {
+            toks.pop(); // Eof
+            toks
+        }
+        Err(_) => return vec![plain(text)],
+    };
+    let mut runs = Vec::new();
+    let mut cursor = 0usize;
+    for tok in &toks {
+        if tok.span.start.offset > cursor {
+            runs.push(plain(&text[cursor..tok.span.start.offset]));
+        }
+        let kind = match &tok.kind {
+            TokenKind::Ident(name) => Some(classify_ident(name, tok.span.start.offset, &names)),
+            TokenKind::Num(_) => Some(SemanticKind::Number),
+            TokenKind::Hole => Some(SemanticKind::Hole),
+            TokenKind::Forall => Some(SemanticKind::Keyword),
+            _ => None,
+        };
+        runs.push(Run {
+            text: text[tok.span.start.offset..tok.span.end.offset].to_string(),
+            kind,
+        });
+        cursor = tok.span.end.offset;
+    }
+    if cursor < text.len() {
+        runs.push(plain(&text[cursor..]));
+    }
+    runs
+}
+
+/// [`tag_runs`] with the declaration table pulled from `file_src` — the LSP's
+/// call shape (it holds the document text, not a name table).
+pub fn tag_expr(text: &str, file_src: &str, binders: &[String]) -> Vec<Run> {
+    tag_runs(text, &declaration_kinds(file_src), binders)
+}
+
 /// 词法收集到的 token；出错时只保留出错点之前的干净前缀（丢弃 Eof）。
 ///
 /// 词法错误总是报在出错 token 的起始 offset，所以对 `src[..err_offset]`
@@ -629,6 +771,96 @@ end
         assert_eq!(
             kinds_of(src, &spans, "b"),
             vec![SemanticKind::Binder, SemanticKind::Binder]
+        );
+    }
+
+    // ---- tag_runs / tag_expr: the shared goal-rendering classification ----
+
+    /// `(text, kind)` view of runs, dropping the plain connector fragments.
+    fn tagged(runs: &[Run]) -> Vec<(&str, SemanticKind)> {
+        runs.iter()
+            .filter_map(|r| r.kind.map(|k| (r.text.as_str(), k)))
+            .collect()
+    }
+
+    #[test]
+    fn tag_runs_covers_the_whole_text_in_order() {
+        let word = vec![("P".to_string(), SemanticKind::DefUse)];
+        for text in ["P -> Nat", "fun (x : Nat) => x", "Sort 1", "sorry -> P"] {
+            let runs = tag_runs(text, &word, &[]);
+            assert_eq!(
+                runs.iter().map(|r| r.text.as_str()).collect::<String>(),
+                text,
+                "runs must reconstruct {text:?} exactly"
+            );
+        }
+    }
+
+    #[test]
+    fn tag_runs_classifies_like_the_editor() {
+        // `P` is a file declaration (DefUse), `x` is in scope (Binder),
+        // `Nat`/`Q` are unknown to this table — same rules as the editor.
+        let decls = vec![("P".to_string(), SemanticKind::DefUse)];
+        let binders = vec!["x".to_string()];
+        let text = "fun (x : Nat) => P -> Sort 2";
+        let runs = tag_runs(text, &decls, &binders);
+        assert_eq!(
+            tagged(&runs),
+            vec![
+                ("fun", SemanticKind::Keyword),
+                ("x", SemanticKind::Binder),
+                ("Nat", SemanticKind::UnknownIdent),
+                ("P", SemanticKind::DefUse),
+                ("Sort", SemanticKind::Sort),
+                ("2", SemanticKind::Number),
+            ]
+        );
+        let runs = tag_runs("sorry -> sorry", &decls, &binders);
+        assert_eq!(
+            tagged(&runs),
+            vec![("sorry", SemanticKind::Hole), ("sorry", SemanticKind::Hole),]
+        );
+    }
+
+    #[test]
+    fn tag_expr_resolves_declarations_and_constructors_from_the_file() {
+        // A goal type rendered by the kernel has no spans of its own, so the
+        // declaration table comes from the document text.
+        let src = "inductive Nat : Type\nctor zero : Nat\nctor succ (n : Nat) : Nat\nend\n";
+        let runs = tag_expr("succ zero", src, &[]);
+        assert_eq!(
+            tagged(&runs),
+            vec![
+                ("succ", SemanticKind::CtorUse),
+                ("zero", SemanticKind::CtorUse),
+            ]
+        );
+    }
+
+    #[test]
+    fn tag_runs_degrades_on_a_lex_error_instead_of_panicking() {
+        let runs = tag_runs("$", &[], &[]);
+        assert_eq!(
+            runs,
+            vec![Run {
+                text: "$".to_string(),
+                kind: None,
+            }]
+        );
+    }
+
+    #[test]
+    fn semantic_kind_wire_names_are_unique() {
+        let mut names: Vec<&str> = SemanticKind::ALL.iter().map(|k| k.as_str()).collect();
+        assert!(names
+            .iter()
+            .all(|n| n.chars().all(|c| c.is_ascii_lowercase() || c == '_')));
+        names.sort_unstable();
+        names.dedup();
+        assert_eq!(
+            names.len(),
+            SemanticKind::ALL.len(),
+            "wire names must be unique"
         );
     }
 }

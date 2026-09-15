@@ -136,3 +136,33 @@
 | hover 无法 class 高亮 | hover 保持 VS Code TM 代码框；与 Infoview 共享**行模型与分类源**，不共享颜色实现 |
 | `tagged` 字段增大 payload | 只在请求期计算、按目标小体积；有界、无网络放大 |
 | 与既有「当前光标处」树重复 | Infoview 是增量能力；树保留为默认+兜底（见 §2.4） |
+
+## 6. As-built（0.40.0，2026-09-15）
+
+- **S1**：`front::semantic::{Run, tag_runs, tag_expr, declaration_kinds,
+  SemanticKind::ALL, SemanticKind::as_str}`（`crates/front/src/semantic.rs`）
+  + 5 个单测。
+- **S2/S4**：不再单独出「行模型」——hover 的既有 `{name} : {ty}` / `⊢ {goal}`
+  行模型就是客户端共用形状；hover 保持 ` ```sokonanoda ` 代码围栏，颜色由
+  **同步后的 TM 语法**给（见 S7），内容与 Infoview 同源。
+- **S3**：`soko/stateAt` 增 `goal_runs`（单值 + 每 goal）与 `GoalBinderInfo.ty_runs`；
+  `soko/goals` 的 binders 同步增 `ty_runs`；`docs/protocol.md` 记词表。
+  进程内测试 `state_at_carries_semantic_runs_for_goals_and_hypotheses`。
+- **S5**：`media/infoview.js::codeBlock` 渲染 `tok tok-<kind>`（仅 textContent）；
+  `media/infoview.css` 单一主题映射；契约测试
+  `infoview_colours_every_semantic_kind_from_the_single_source`（遍历
+  `SemanticKind::ALL`）。
+- **S6**：`viewsContainers.secondarySidebar`（`sokonanoda` 容器）+
+  `engines.vscode ^1.106.0` + `@types/vscode 1.106.0`；`openInfoview` 去掉
+  `waitReady`/`INFOVIEW_READY_TIMEOUT_MS` 与「暂时不可用」，改聚焦容器。
+- **S7**：`syntaxes/sokonanoda.tmLanguage.json` 词表 == `front::semantic`
+  （keywords + sorts + forall/∀），测试
+  `tm_grammar_keywords_follow_the_single_source`。
+- **门面**：`description` ≤300（`marketplace_description_fits_the_gallery_limit`）、
+  README/CHANGELOG/协议/规范同步；版本 0.40.0。
+
+### 与设计的偏差
+- 未做「子表达式引用/跳转」（Lean `CodeWithInfos` 的 ref 部分）：runs 只带
+  `(text, kind)`，够用且不引入新协议负担。
+- 未做单一大 `<pre>` 代码框：沿用既有 `goal-ty` + `binders` 结构，仅把着色
+  接入 runs，避免推翻既有布局契约。

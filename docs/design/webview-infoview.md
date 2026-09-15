@@ -5,6 +5,12 @@
 > §2.5、ROADMAP §10 I9「VS Code goal 面板」。依据：现有「当前光标处」树
 > （方案 A，`extension.js:307`）与其性能教训
 > （`docs/design/goal-list.md` §2.4）。**本文只定方案，不改码。**
+>
+> **更新（0.40.0，见 `docs/design/goal-rendering.md`）**：视图已移出 explorer，
+> 落到 `viewsContainers.secondarySidebar` 的 `sokonanoda` 容器（**右侧辅助侧栏**，
+> 需 VS Code ≥ 1.106）；goal/假设的着色改为服务器下发的 `goal_runs`/`ty_runs`
+> （单一分类源 `front::semantic`），webview 不再自绘规则；`openInfoview` 去掉
+> `ready` 握手与「暂时不可用」提示（静默回退树组）。本文其余部分仍为 as-built 记录。
 
 ## 1. 现状与动机
 

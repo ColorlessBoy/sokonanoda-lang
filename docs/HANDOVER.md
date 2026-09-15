@@ -4,7 +4,7 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.39.1**（2026-09-14），最近一轮 **第六十九轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.40.0**（2026-09-15），最近一轮 **第七十轮**。仓库根入口 `AGENTS.md`。
 
 ## 1. 30 秒接手
 
@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量 13 套件
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～六十八轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～七十轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -41,17 +41,19 @@ cargo test --workspace --locked   # 全量 13 套件
 | 67 | 0.38.0 | 参数化归纳声明（非带索引）+ `match` | `docs/design/parameterized-inductives.md` |
 | 68 | 0.39.0 | `match` 依赖 motive（归纳法形状可用） | `docs/design/match-dependent-motive.md` |
 | 69 | 0.39.1 | `judge_infer` 类型往返健壮性（Arrow domain 补括号） | `docs/design/match-dependent-motive.md` §8 |
+| 70 | 0.40.0 | 统一 goal 呈现（`front::semantic` runs）+ Infoview 落右侧 + engine ^1.106 + 市场简介护栏 | `docs/design/goal-rendering.md` |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–65 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–67 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
-### A′. 统一 goal 呈现 + Infoview 落右侧（设计已写，**优先**）
-- 设计 `docs/design/goal-rendering.md`：单一分类源（`front::semantic`）+ 结构化
-  `(text, kind)` 片段供 hover 与 Infoview 共用 + Infoview 移入
-  `viewsContainers.secondarySidebar`（右侧，需 bump engine）+ 去掉「暂时不可用」
-  握手判定（静默回退树组）。
-- 切片 S1–S7 见设计 §3；验收 §4。
+### A′. ~~统一 goal 呈现 + Infoview 落右侧~~ ✅ 已完成（0.40.0）
+- 单一分类源 `front::semantic`（`tag_runs`/`tag_expr`/`declaration_kinds` +
+  `SemanticKind::{ALL, as_str}`）；`soko/stateAt`/`soko/goals` 下发
+  `goal_runs`/`ty_runs`（旧字符串字段保留）；Infoview 渲染 `tok-<kind>`
+  （主题变量单一映射）；视图移入右侧 `secondarySidebar` 容器，engine
+  `^1.106.0`；删握手 + 「暂时不可用」，静默回退树组；TM 语法与
+  `front::semantic` 由测试锁死。见 `docs/design/goal-rendering.md`。
 
 ### A. 已完成
 - **`judge_infer` 往返健壮性** ✅（0.39.1）：`proof::render_expr` 的 Arrow domain 位

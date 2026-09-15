@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Learn theorem proving in a self-contained Lean-4-style language: real kernel grading, an Infoview goal panel, graded exercises, and agent skills that turn an LLM into your proof teacher. Zero setup - the language server ships inside the extension.",
-  "version": "0.39.1",
+  "version": "0.40.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -10,7 +10,7 @@
     "url": "https://github.com/ColorlessBoy/sokonanoda-lang"
   },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.106.0"
   },
   "categories": [
     "Programming Languages",
@@ -112,6 +112,15 @@
         "category": "sokonanoda"
       }
     ],
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "sokonanoda",
+          "title": "sokonanoda",
+          "icon": "$(mortar-board)"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
@@ -123,7 +132,9 @@
           "id": "sokonanoda.courseMap",
           "name": "课程",
           "when": "resourceLangId == sokonanoda"
-        },
+        }
+      ],
+      "sokonanoda": [
         {
           "id": "sokonanoda.infoview",
           "name": "目标面板 (Infoview)",
@@ -237,7 +248,7 @@
     "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
-    "@types/vscode": "1.85.0",
+    "@types/vscode": "1.106.0",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^3.9.2"

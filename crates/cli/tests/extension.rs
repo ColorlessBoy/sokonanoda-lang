@@ -575,15 +575,24 @@ fn ci_stages_the_bundled_server_for_integration_tests() {
 
 #[test]
 fn infoview_view_and_command_are_consistent() {
-    // Infoview webview (docs/design/webview-infoview.md, 方案 B): package.json
-    // declares a webview view in the explorer container next to 「练习」/「课程」
-    // and a command to reveal it; extension.js registers a provider for exactly
-    // that view id and the command itself.
+    // Infoview webview (docs/design/goal-rendering.md §2.3): package.json
+    // declares a webview view inside the `sokonanoda` secondary-side-bar
+    // container (right dock) and a command to reveal it; extension.js registers
+    // a provider for exactly that view id and the command itself.
     let manifest = manifest();
     let script = entry_script();
-    let views = manifest["contributes"]["views"]["explorer"]
+    let containers = manifest["contributes"]["viewsContainers"]["secondarySidebar"]
         .as_array()
-        .expect("explorer views");
+        .expect("contributes.viewsContainers.secondarySidebar (lowercase b)");
+    assert!(
+        containers
+            .iter()
+            .any(|c| c["id"].as_str() == Some("sokonanoda")),
+        "the Infoview container must live in the secondary (right) side bar"
+    );
+    let views = manifest["contributes"]["views"]["sokonanoda"]
+        .as_array()
+        .expect("the sokonanoda container's views");
     let view = views
         .iter()
         .find(|v| v["id"].as_str() == Some("sokonanoda.infoview"))
@@ -592,6 +601,14 @@ fn infoview_view_and_command_are_consistent() {
         view["type"].as_str(),
         Some("webview"),
         "sokonanoda.infoview must be a webview view"
+    );
+    assert!(
+        manifest["contributes"]["views"]["explorer"]
+            .as_array()
+            .expect("explorer views")
+            .iter()
+            .all(|v| v["id"].as_str() != Some("sokonanoda.infoview")),
+        "the Infoview must no longer sit in the explorer container"
     );
     let commands = manifest["contributes"]["commands"]
         .as_array()
@@ -608,8 +625,59 @@ fn infoview_view_and_command_are_consistent() {
         "extension.js must register a WebviewViewProvider for sokonanoda.infoview"
     );
     assert!(
+        script.contains("workbench.view.extension.sokonanoda"),
+        "sokonanoda.openInfoview must reveal the sokonanoda container"
+    );
+    assert!(
         script.contains("\"sokonanoda.openInfoview\""),
         "extension.js must register sokonanoda.openInfoview"
+    );
+}
+
+#[test]
+fn infoview_opens_without_a_handshake_or_a_confusing_error() {
+    // docs/design/goal-rendering.md §2.4: opening the panel focuses the view and
+    // it renders on demand; the old 2 s readiness handshake plus the
+    // 「目标面板 (Infoview) 暂时不可用…」 warning is gone for good.
+    let script = entry_script();
+    assert!(
+        !script.contains("暂时不可用"),
+        "the confusing temporary-unavailable warning must not come back"
+    );
+    assert!(
+        !script.contains("waitReady") && !script.contains("INFOVIEW_READY_TIMEOUT_MS"),
+        "the Infoview must not gate opening on a readiness handshake"
+    );
+}
+
+#[test]
+fn secondary_sidebar_container_requires_the_engine_bump() {
+    // `viewsContainers.secondarySidebar` needs VS Code >= 1.106: 1.104/1.105
+    // required the `contribSecondarySidebar` proposed API, and older versions
+    // silently ignore the key — the view would simply disappear.
+    // docs/design/goal-rendering.md §2.3.
+    let manifest = manifest();
+    let engine = manifest["engines"]["vscode"]
+        .as_str()
+        .expect("engines.vscode");
+    let vscode_minor = |version: &str| -> u32 {
+        version
+            .trim_start_matches('^')
+            .split('.')
+            .nth(1)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_else(|| panic!("{version:?} must be ^<major>.<minor>.<patch>"))
+    };
+    assert!(
+        vscode_minor(engine) >= 106,
+        "secondarySidebar containers require VS Code >=1.106 (got {engine:?})"
+    );
+    let types = manifest["devDependencies"]["@types/vscode"]
+        .as_str()
+        .expect("@types/vscode");
+    assert!(
+        vscode_minor(types) >= 106,
+        "@types/vscode must follow the engine bump (got {types:?})"
     );
 }
 
@@ -679,6 +747,32 @@ fn infoview_webview_is_hardened() {
         script.contains("lastVersion") && script.contains("version"),
         "the webview must drop stale state snapshots by version"
     );
+}
+
+#[test]
+fn infoview_colours_every_semantic_kind_from_the_single_source() {
+    // docs/design/goal-rendering.md §2.2: the webview renders the server's
+    // semantic runs (never re-tokenizing goal text), so every
+    // `front::semantic::SemanticKind` wire name must have a `.tok-<kind>` rule
+    // — a new kind that lacks one would silently render uncoloured and let the
+    // Infoview drift from hover.
+    let webview = media_file("infoview.js");
+    assert!(
+        webview.contains("goal_runs") && webview.contains("ty_runs"),
+        "media/infoview.js must render the server's semantic runs"
+    );
+    assert!(
+        webview.contains("\"tok tok-\""),
+        "media/infoview.js must emit `tok tok-<kind>` spans for classified runs"
+    );
+    let css = media_file("infoview.css");
+    for kind in sokonanoda_front::semantic::SemanticKind::ALL {
+        let class = format!(".tok-{}", kind.as_str());
+        assert!(
+            css.contains(&class),
+            "media/infoview.css must colour `{class}` (front::semantic is the single source)"
+        );
+    }
 }
 
 #[test]
@@ -759,5 +853,66 @@ fn cargo_and_extension_versions_match() {
     assert_eq!(
         cargo_version, extension_version,
         "Cargo.toml workspace version and editor/vscode/package.json must match"
+    );
+}
+
+fn alternation_words(grammar: &Value, rule: &str) -> Vec<String> {
+    let pattern = grammar["repository"][rule]["match"]
+        .as_str()
+        .unwrap_or_else(|| panic!("syntaxes/sokonanoda.tmLanguage.json: repository.{rule}.match"));
+    let mut words = Vec::new();
+    for group in pattern.split('(').skip(1) {
+        let inner = group.split(')').next().unwrap_or("");
+        for word in inner.split('|') {
+            let word = word.trim();
+            if !word.is_empty()
+                && word
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '#' | '∀'))
+            {
+                words.push(word.to_string());
+            }
+        }
+    }
+    words
+}
+
+#[test]
+fn tm_grammar_keywords_follow_the_single_source() {
+    // docs/design/goal-rendering.md §2.2/§7: hover colours its code fence with
+    // the TextMate grammar while the editor's semantic tokens and the Infoview
+    // colour from `front::semantic`. To keep them from drifting, the grammar's
+    // word lists (keywords + `#` commands + sorts + `forall`) must equal that
+    // single source exactly — no missing new keyword, no stale one (`Nat` used
+    // to be hard-coded here).
+    let raw = fs::read_to_string(
+        vscode_dir()
+            .join("syntaxes")
+            .join("sokonanoda.tmLanguage.json"),
+    )
+    .expect("syntaxes/sokonanoda.tmLanguage.json");
+    let grammar: Value = serde_json::from_str(&raw).expect("grammar is valid JSON");
+
+    let mut actual = alternation_words(&grammar, "keywords");
+    actual.extend(alternation_words(&grammar, "commands"));
+    actual.extend(alternation_words(&grammar, "sorts"));
+    actual.sort();
+    actual.dedup();
+
+    let mut expected: Vec<String> = sokonanoda_front::semantic::keywords()
+        .iter()
+        .chain(sokonanoda_front::semantic::sorts())
+        .map(|word| word.to_string())
+        .collect();
+    // `forall`/`∀` are keywords via the lexer's `Forall` token, not the
+    // `KEYWORDS` table (front `semantic.rs`).
+    expected.push("forall".to_string());
+    expected.push("∀".to_string());
+    expected.sort();
+    expected.dedup();
+
+    assert_eq!(
+        actual, expected,
+        "the TM grammar word lists must mirror front::semantic (keywords + sorts + forall)"
     );
 }

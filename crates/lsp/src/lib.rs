@@ -312,11 +312,13 @@ impl Backend {
         } else {
             doc.report.clone().unwrap_or_default()
         };
+        let decls_names = sokonanoda_front::semantic::declaration_kinds(&doc.text);
         let decls = report
             .decls
             .iter()
             .map(|d| {
                 let name = decl_name(d);
+                let binder_names: Vec<String> = d.binders.iter().map(|b| b.name.clone()).collect();
                 GoalDeclInfo {
                     name: name.clone(),
                     kind: d.kind.as_str().to_string(),
@@ -337,6 +339,7 @@ impl Backend {
                         .map(|b| GoalBinderInfo {
                             name: b.name.clone(),
                             ty: b.ty.clone(),
+                            ty_runs: runs_of(&b.ty, &decls_names, &binder_names),
                         })
                         .collect(),
                     hole: match d.status {
@@ -443,7 +446,13 @@ impl Backend {
             return Ok(StateAtResponse::empty(version));
         };
         let selection = select_state_at(d, cursor);
+        // One parse of the document, then pure classification per goal/binder
+        // (docs/design/goal-rendering.md §2.1).
+        let decls = sokonanoda_front::semantic::declaration_kinds(&doc.text);
         let first = selection.goals.first();
+        let first_names: Vec<String> = first
+            .map(|g| g.binders.iter().map(|b| b.name.clone()).collect())
+            .unwrap_or_default();
         Ok(StateAtResponse {
             version,
             decl: Some(StateDeclInfo {
@@ -455,6 +464,9 @@ impl Backend {
             // Single-value fields kept for older clients: the current goal
             // (first of `goals`) and its hypotheses.
             goal: first.map(|g| g.ty.clone()),
+            goal_runs: first
+                .map(|g| runs_of(&g.ty, &decls, &first_names))
+                .unwrap_or_default(),
             binders: first
                 .map(|g| {
                     g.binders
@@ -462,6 +474,7 @@ impl Backend {
                         .map(|b| GoalBinderInfo {
                             name: b.name.clone(),
                             ty: b.ty.clone(),
+                            ty_runs: runs_of(&b.ty, &decls, &first_names),
                         })
                         .collect()
                 })
@@ -469,16 +482,21 @@ impl Backend {
             goals: selection
                 .goals
                 .iter()
-                .map(|g| StateGoalInfo {
-                    goal: g.ty.clone(),
-                    binders: g
-                        .binders
-                        .iter()
-                        .map(|b| GoalBinderInfo {
-                            name: b.name.clone(),
-                            ty: b.ty.clone(),
-                        })
-                        .collect(),
+                .map(|g| {
+                    let names: Vec<String> = g.binders.iter().map(|b| b.name.clone()).collect();
+                    StateGoalInfo {
+                        goal: g.ty.clone(),
+                        goal_runs: runs_of(&g.ty, &decls, &names),
+                        binders: g
+                            .binders
+                            .iter()
+                            .map(|b| GoalBinderInfo {
+                                name: b.name.clone(),
+                                ty: b.ty.clone(),
+                                ty_runs: runs_of(&b.ty, &decls, &names),
+                            })
+                            .collect(),
+                    }
                 })
                 .collect(),
             span: selection.span.map(range_of),
@@ -501,9 +519,34 @@ struct GoalsParams {
 }
 
 #[derive(Debug, Serialize)]
+struct RunInfo {
+    text: String,
+    /// [`sokonanoda_front::semantic::SemanticKind::as_str`]; absent = plain
+    /// connector (whitespace/punctuation), drawn unstyled.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    kind: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 struct GoalBinderInfo {
     name: String,
     ty: String,
+    /// Semantic runs of `ty` (`docs/design/goal-rendering.md` §2.1): the same
+    /// classification the editor's semantic tokens use, so hover and the
+    /// Infoview can never drift.
+    ty_runs: Vec<RunInfo>,
+}
+
+/// Classify `text` into wire runs. `decls` is the document's declaration table
+/// (computed once per request); `binders` are the names in scope.
+fn runs_of(text: &str, decls: &[(String, SemanticKind)], binders: &[String]) -> Vec<RunInfo> {
+    sokonanoda_front::semantic::tag_runs(text, decls, binders)
+        .into_iter()
+        .map(|run| RunInfo {
+            text: run.text,
+            kind: run.kind.map(|k| k.as_str().to_string()),
+        })
+        .collect()
 }
 
 #[derive(Debug, Serialize)]
@@ -577,6 +620,8 @@ struct StateDeclInfo {
 #[derive(Debug, Serialize)]
 struct StateGoalInfo {
     goal: String,
+    /// Semantic runs of `goal` (`docs/design/goal-rendering.md` §2.1).
+    goal_runs: Vec<RunInfo>,
     binders: Vec<GoalBinderInfo>,
 }
 
@@ -589,6 +634,8 @@ struct StateAtResponse {
     /// `None` = no remaining goals (the proof is closed at this position).
     /// Single-value, equal to `goals[0].goal`; kept for older clients.
     goal: Option<String>,
+    /// Semantic runs of `goal` (= `goals[0].goal_runs`); kept for older clients.
+    goal_runs: Vec<RunInfo>,
     /// Hypotheses of `goal` (single-value, equal to `goals[0].binders`).
     binders: Vec<GoalBinderInfo>,
     /// Every remaining goal, current goal first (`[]` = closed). Clients that
@@ -607,6 +654,7 @@ impl StateAtResponse {
             version,
             decl: None,
             goal: None,
+            goal_runs: Vec::new(),
             binders: Vec::new(),
             goals: Vec::new(),
             span: None,
@@ -2506,6 +2554,65 @@ mod tests {
         assert_eq!(binders[0]["ty"], "Prop");
         assert!(result["span"].is_object(), "highlight range present");
         shutdown(&mut service).await;
+    }
+
+    #[tokio::test]
+    async fn state_at_carries_semantic_runs_for_goals_and_hypotheses() {
+        // docs/design/goal-rendering.md §2.1: `soko/stateAt` ships the same
+        // classification the editor's semantic tokens use, so the Infoview can
+        // colour identically instead of inventing its own rules.
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, BY_OPEN).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        let result = ask_state_at(&mut service, BY_OPEN, offset_of(BY_OPEN, "intro h")).await;
+        let goal = result["goal"].as_str().expect("goal");
+        assert_eq!(
+            reconstruct_runs(&result["goal_runs"]),
+            goal,
+            "runs must reconstruct the goal text exactly"
+        );
+        let binder = &result["binders"][0];
+        assert_eq!(
+            reconstruct_runs(&binder["ty_runs"]),
+            binder["ty"].as_str().expect("binder ty")
+        );
+        let goal_kinds = run_kinds(&result["goal_runs"]);
+        assert!(
+            goal_kinds.contains(&"binder"),
+            "the hypothesis `a` must classify as a binder: {goal_kinds:?}"
+        );
+        assert!(
+            goal_kinds.contains(&"axiom_use"),
+            "`And` is the declared axiom: {goal_kinds:?}"
+        );
+        let binder_kinds = run_kinds(&binder["ty_runs"]);
+        assert!(
+            binder_kinds.contains(&"sort"),
+            "the hypothesis type `Prop` is a sort: {binder_kinds:?}"
+        );
+        assert_eq!(
+            result["goals"][0]["goal_runs"], result["goal_runs"],
+            "single-value runs mirror goals[0]"
+        );
+        shutdown(&mut service).await;
+    }
+
+    fn reconstruct_runs(runs: &serde_json::Value) -> String {
+        runs.as_array()
+            .expect("runs array")
+            .iter()
+            .map(|run| run["text"].as_str().expect("run text"))
+            .collect()
+    }
+
+    fn run_kinds(runs: &serde_json::Value) -> Vec<&str> {
+        runs.as_array()
+            .expect("runs array")
+            .iter()
+            .filter_map(|run| run["kind"].as_str())
+            .collect()
     }
 
     #[tokio::test]

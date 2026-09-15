@@ -40,12 +40,15 @@ skills.
   shows the goal, the hypotheses in scope and your `by` progress at that
   position; click the goal to jump to the tactic.
 - **Infoview panel** — a dockable, syntax-styled goal panel (Lean-Infoview
-  style) next to 「练习」: multi-goal columns with each goal's hypotheses,
-  `by k/n` progress, the declaration list, and the live server version. It
-  reads the same kernel-checked data as the tree, updates only on
-  debounced caret moves (never refetches the declaration list on cursor
-  movement), and falls back to the tree's 「当前光标处」 group when webviews
-  are unavailable. Open it with `sokonanoda: 打开目标面板 (Infoview)`.
+  style) in its **own container on the right side bar**, so it can sit next to
+  your proof: multi-goal columns with each goal's hypotheses, `by k/n`
+  progress, the declaration list, and the live server version. Goal and
+  hypothesis text is coloured from the **same single source** as the editor's
+  semantic highlighting (no separate, drifting rules), it reads the same
+  kernel-checked data as the tree, updates only on debounced caret moves
+  (never refetches the declaration list on cursor movement), and falls back to
+  the Explorer tree's 「当前光标处」 group when webviews are unavailable. Open it
+  with `sokonanoda: 打开目标面板 (Infoview)` (needs VS Code 1.106+).
 - **Hint ladders** — each exercise carries 2–3 progressive hints
   (`-- soko:hint` directives); reveal them one at a time when stuck.
 - **Course map** — a 6-unit structured course with verified solutions
@@ -127,7 +130,8 @@ used instead.
 
 ## Requirements
 
-- VS Code 1.85+
+- VS Code 1.106+ (the Infoview uses an extension-contributed
+  secondary-side-bar container)
 - No network needed on platforms with a bundled package; the fallback
   package for other platforms downloads once (or use
   `sokonanoda.serverPath` to point at a local build)

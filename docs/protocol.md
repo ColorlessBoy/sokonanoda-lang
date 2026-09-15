@@ -221,7 +221,8 @@ Response:
   "range": {"start": {...}, "end": {...}},
   "goal": "And b a",
   "goals": ["And b a"],
-  "binders": [{"name": "a", "ty": "Prop"}, {"name": "h", "ty": "And a b"}],
+  "binders": [{"name": "a", "ty": "Prop", "ty_runs": [{"text": "Prop", "kind": "sort"}]},
+              {"name": "h", "ty": "And a b", "ty_runs": [...]}],
   "hole": {"start": {...}, "end": {...}},
   "holes": [{"start": {...}, "end": {...}}, ...],
   "sub_goals": [{"range": {"start": {...}, "end": {...}}, "ty": "b"}, ...]
@@ -289,14 +290,30 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   "version": 5,
   "decl": {"name": "open", "kind": "theorem", "status": "open", "range": {}},
   "goal": "And a a -> a",
-  "binders": [{"name": "a", "ty": "Prop"}],
-  "goals": [{"goal": "And a a -> a", "binders": [{"name": "a", "ty": "Prop"}]}],
+  "goal_runs": [{"text": "And", "kind": "axiom_use"}, {"text": " "},
+                {"text": "a", "kind": "binder"}, {"text": " -> "},
+                {"text": "a", "kind": "binder"}],
+  "binders": [{"name": "a", "ty": "Prop",
+               "ty_runs": [{"text": "Prop", "kind": "sort"}]}],
+  "goals": [{"goal": "And a a -> a", "goal_runs": [...], "binders": [...]}],
   "span": {"start": {...}, "end": {...}},
   "step": 1,
   "total": 2
 }
 ```
 
+- `goal_runs` / `ty_runs` carry the **semantic runs** of `goal` / a
+  hypothesis's `ty` (`docs/design/goal-rendering.md` §2.1): an ordered list of
+  `{"text"}` fragments that concatenate back to the exact field text, each
+  optionally carrying a `kind`. The vocabulary is the editor's own semantic
+  classification, owned by `front::semantic::SemanticKind` and spelled by
+  `SemanticKind::as_str()` (`keyword`, `sort`, `number`, `hole`, `def_name`,
+  `def_use`, `theorem_name`, `theorem_use`, `axiom_name`, `axiom_use`,
+  `inductive_name`, `inductive_use`, `ctor_name`, `ctor_use`, `binder`,
+  `unknown_ident`); a run **without** `kind` is plain connector
+  (whitespace/punctuation) and is drawn unstyled. Clients that colour goals
+  (the Infoview) must use these runs and never re-tokenize the text — that is
+  what keeps hover and the Infoview from drifting apart.
 - Selects the goal state at the caret with Lean `goalsAt?` semantics: inside
   a tactic's source span → the state **entering** that tactic; otherwise the
   state after the last tactic that ended at or before the caret; before the

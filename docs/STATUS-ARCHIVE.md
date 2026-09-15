@@ -1,8 +1,29 @@
-# STATUS 归档（第 1–66 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–67 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十七轮：参数化归纳声明）
+
+> 续 TODO：match 参数化的前置——教学语言 `inductive` 声明支持参数（非带索引）。
+
+1. **设计** `docs/design/parameterized-inductives.md`（含内核期望形状与风险）。
+2. **前端**：parser 解析 `(A : Type)`/`{A : Type}` 参数 → `InductiveBlock.params`；
+   归纳类型 `forall params, sort`；ctor `forall (params++fields), C params`；
+   `add_inductive(num_params=params.len())`；`num_fields` 字段-only 计数；
+   `derive_recursor` params 最外层 + motive `(t : Ind params) -> Sort u` + iota
+   lambda/自调用带 params。`InductiveInfo` 增 `num_params`/`param_names`。
+3. **match**：`Ind.rec.{level} <params> motive minors scrutinee`；params 取
+   scrutinee **书写源类型**头部实参；字段 `src_ty` 做 params 替换后 elaborate；
+   拿不到 → 新码 `elab-match-parameterized-unsupported`。
+4. **测试**：front +8（parse 2 / compile 6，含 `Option`/`List` 派生递归子与
+   `match`、显式 rec/iota、iota 错 → `kernel-rec-rule-mismatch`）；CLI +4；
+   课程 unit5 加 `Option` 小节 + 练习 7；golden `(7,6,3)→(9,7,4)`、汇总
+   `checked 51→53 / open 39→40`。
+5. **文档**：`architecture.md §4.1/§8`、`TESTING.md`；设计 as-built §9。
+6. **验收**：`sokonanoda gate` PASS；版本 0.37.0 → **0.38.0**（新语法 minor）。
+7. **v1 边界**：带索引归纳、宇宙多态参数、互/嵌套递归、`match` 嵌套/守卫/字面量。
 
 ## 本轮进度（2026-09-14，第六十六轮：watch stdin 客户端命令）
 

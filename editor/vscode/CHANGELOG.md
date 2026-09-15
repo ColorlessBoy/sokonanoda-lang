@@ -1,3 +1,35 @@
+## [0.40.0] - 2026-09-15
+
+### Added
+
+- **Infoview in the right side bar** — the goal panel now lives in its own
+  `sokonanoda` container on the **secondary (right) side bar** instead of
+  sharing the Explorer, so it can sit next to your proof. Requires VS Code
+  **1.106+** (extension-contributed secondary-side-bar containers), and
+  `sokonanoda: 打开目标面板 (Infoview)` reveals it.
+- **Unified goal highlighting** — goal and hypothesis text in the Infoview is
+  now coloured from the **same single source** as the editor's semantic tokens
+  (`front::semantic`): `soko/stateAt` ships `goal_runs` / `ty_runs` (ordered
+  `{text, kind}` fragments) and the webview renders them with theme-aware
+  colours. No more re-tokenizing, no more drift between hover and the panel.
+  Design: `docs/design/goal-rendering.md`.
+
+### Changed
+
+- The TextMate grammar now mirrors `front::semantic` exactly (hover code fences
+  highlight `let`, `match`, `with`, `by`, `intro`/`exact`/`apply`/`assumption`/
+  `rfl`, `#check`/`#reduce`/`#print`, `forall`/`∀`); the hard-coded `Nat`
+  keyword is gone, and a contract test keeps the two lists equal.
+
+### Fixed
+
+- Opening the Infoview no longer shows the confusing
+  「目标面板 (Infoview) 暂时不可用…」 warning: the view renders on demand and
+  degrades silently to the Explorer tree's 「当前光标处」 group if a webview
+  cannot be shown.
+- Marketplace description trimmed under 300 characters (it was truncated
+  mid-word) with a regression guard.
+
 ## [0.39.1] - 2026-09-14
 
 ### Fixed
