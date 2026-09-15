@@ -1136,3 +1136,38 @@ fn cli_match_recursive_reduces_through_the_ih() {
         "stdout: {stdout}"
     );
 }
+
+#[test]
+fn cli_match_on_prelude_nat_checks_and_reduces() {
+    // prelude Nat（文件未自带 `inductive Nat`）现在也能 `match`：arms 用点号
+    // ctor `Nat.zero`/`Nat.succ`，递归字段后自动有 IH。`#reduce` 经 recursor
+    // 归约出的结果可能是不合并的一元链（与 numeral def-eq），此处钉住该形状。
+    let src = "\
+def pred (n : Nat) : Nat := match n with
+| Nat.zero => Nat.zero
+| Nat.succ k => k
+def addN (a b : Nat) : Nat := match a with
+| Nat.zero => b
+| Nat.succ k => Nat.succ ih
+#reduce addN (Nat.succ (Nat.succ Nat.zero)) (Nat.succ Nat.zero)
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration pred"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("checked declaration addN"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("=> Nat.succ (Nat.succ 1)"),
+        "prelude-Nat recursion must reduce: {stdout}"
+    );
+}

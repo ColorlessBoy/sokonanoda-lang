@@ -3727,3 +3727,72 @@ def pick (x : Two) : Two := match x with | t1 => t1 | t2 => t2
         .iter()
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "pick")));
 }
+
+// ---- match on the built-in prelude `Nat`（design docs/design/match.md §10）----
+
+#[test]
+fn match_prelude_nat_pred_checks() {
+    // 文件未自带 `inductive Nat`：prelude 里的 `Nat` 被登记进 InductiveTable，
+    // `match` 降低为 `Nat.rec.{1}`；分支用点号构造子名 `Nat.zero`/`Nat.succ`。
+    let src = "def pred (n : Nat) : Nat := match n with\n\
+               | Nat.zero => Nat.zero\n\
+               | Nat.succ k => k\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "pred")));
+}
+
+#[test]
+fn match_prelude_nat_add_checks_and_reduces() {
+    // 递归分支拿到归纳假设 `ih`（与源内递归归纳同一 Phase-2 逻辑）；
+    // `#reduce` 走降低出的 `Nat.rec`（内核原生 NatLit 快路径混入一元链，
+    // 故 2 + 1 呈现为 `Nat.succ (Nat.succ 1)`，语义即 3）。
+    let src = "def add (a b : Nat) : Nat := match a with\n\
+               | Nat.zero => b\n\
+               | Nat.succ k => Nat.succ ih\n\
+               #reduce add (Nat.succ (Nat.succ Nat.zero)) (Nat.succ Nat.zero)\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "add")));
+    assert!(
+        out.events.iter().any(
+            |e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Nat.succ (Nat.succ 1)")
+        ),
+        "`add 2 1` must reduce through `Nat.rec`: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn match_source_inductive_nat_still_uses_bare_ctors() {
+    // 文件自带 `inductive Nat` 时 prelude 不装，源块自己登记：分支仍是裸名
+    // `zero`/`succ`（不是 `Nat.zero`/`Nat.succ`），且不受 prelude 影响。
+    let src = "\
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} : (motive : (n : Nat) -> Sort u) -> (mz : motive zero) -> (ms : (n : Nat) -> motive n -> motive (succ n)) -> (n : Nat) -> motive n
+iota zero := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end
+def addS (a b : Nat) : Nat := match a with
+| zero => b
+| succ k => succ ih
+#reduce addS (succ (succ zero)) (succ zero)
+";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events.iter().any(
+            |e| matches!(e, CheckEvent::Reduced { text, .. } if text == "succ (succ (succ zero))")
+        ),
+        "source `Nat` must still reduce with bare ctors: {:?}",
+        out.events
+    );
+}

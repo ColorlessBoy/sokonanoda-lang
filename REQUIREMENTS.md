@@ -595,3 +595,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `attestations: write`）；资产 25→26。文档 `docs/RELEASE.md §6`、
   `skills/sokonanoda-ci §2.1`、`onboarding §5`（含 rust-toolchain 决策：不钉、
   跟随 stable；README 补 binstall/mise）、release 契约断言同步。版本 **0.35.1**。
+- 2026-09-14（六十四）：**`match` 支持 prelude `Nat`**——内置 `Nat` 从「原生
+  hack」改为经 `install_inductive_block` 装成的**真实可信归纳**（ctor
+  `Nat.zero`/`Nat.succ` + 派生 `Nat.rec` + iota），注册进 `InductiveTable`；
+  `match n with | Nat.zero => … | Nat.succ k => …`（点号 ctor）可用，递归字段
+  自动 IH。`Nat.add` 保持原生自引用定义；`#reduce 1 + 1 => 2` 等 numeral 正常；
+  经 `Nat.rec` 归约的结果可能显示为不合并一元链（与 numeral def-eq，已文档化/
+  钉测试）。front +3 / CLI +1；文档 match.md/architecture/TESTING/protocol 同步。
+  版本 **0.36.0**（新能力 minor）；kernel 零改动。

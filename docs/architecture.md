@@ -110,9 +110,10 @@ sokonanoda-lang/
   `(fun (x : T) => body) v` 内核等价（zeta），判定完全交给 kernel。
   无注解 `let` 仍是 Phase 2（见 `docs/design/elaborator-let-match.md`）。
 - **`match` 分情况**（term 关键字，Phase 2，同 `fun`/`let` 挂 `parse_expr`）：
-  `match e with | Ctor binder... => body | ... => body`。只接受**源内**
-  `inductive` 的被匹配项与**裸构造子名**，每个构造子恰好一次，且结果类型必须
-  已知（否则 `elab-match-no-expected-type`）；降低为显式
+  `match e with | Ctor binder... => body | ... => body`。被匹配项是**源内
+  `inductive`**（分支用裸构造子名）**或 prelude 内建 `Nat`**（分支用点号名
+  `Nat.zero`/`Nat.succ`；prelude 以受信任归纳块安装，含 `Nat.rec`），每个构造子
+  恰好一次，且结果类型必须已知（否则 `elab-match-no-expected-type`）；降低为显式
   `<Ind>.rec.{level} motive minor... scrutinee`（level 由结果类型的 Sort 推出，
   显式宇宙实例是内核接受的必要条件）。**递归归纳已支持**：递归构造子字段后
   自动插入归纳假设 binder（`ih`、`ih2`…，类型为结果类型 R），branch 直接引用，
@@ -127,7 +128,7 @@ sokonanoda-lang/
 `compile_fol(file) -> CompileOutput { events: Vec<CheckEvent>, errors: Vec<CompileError> }`：
 
 1. 开一个 `stumpalo::Arena`，建 `EnvBuilder`（kernel 的 `builder.rs`）。
-2. 若文件里没有显式 `inductive Nat ... end` 块，就 `install_prelude` 内置最小 Nat 基元（见 §5.4）。
+2. 若文件里没有显式 `inductive Nat ... end` 块，就 `install_prelude` 内置最小 Nat 基元（受信任归纳块 `Nat.zero`/`Nat.succ` + 派生 `Nat.rec`，并把 `Nat` 登记进 `match` 的 `InductiveTable`；见 §5.4）。
 3. 顺序处理每条命令：
    - `def/theorem/example/axiom` → `build_*` 把 AST elaborate 成 kernel `Declar`，`builder.add_declar` 入表（记录每条声明在环境里的索引），随后 push `PendingOp`。
    - `#check/#reduce` → 先 elaborate 表达式并记住 `decl_before`（当前声明数），稍后用 `EnvLimit::ByIndex(decl_before)` 检查，保证 `#check` 只看到它之前的声明。
@@ -202,18 +203,20 @@ sokonanoda-lang/
 `compile.rs::install_prelude` 在文件没有显式 `inductive Nat` 时装入最小可信基元：
 
 ```text
-inductive Nat : Type                 （add_inductive，无构造子）
-axiom     Nat.zero : Nat             （名字特判）
-def       Nat.succ : Nat -> Nat := Nat.succ      ← 占位自引用体
+inductive Nat : Type
+ctor      Nat.zero : Nat
+ctor      Nat.succ : Nat -> Nat
+rec       Nat.rec  : (motive : (n : Nat) -> Sort u) -> …   ← 由 install_inductive_block 派生
 def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 ```
 
 要点与坑：
 
 - 这些声明**从不被 try_check_declar 重查**（不进 PendingOp），是"受信任的预置"；注释明确写了这一点。
-- `EnvBuilder::finish()` 会 `dag.mk_name_cache(anon)`：在 intern 表里按名字找到 `Nat.succ/Nat.add/...`，给 `NameNode` 打 `NatRed` 标记。此后求值遇到这些头时，`unfold_value_go` 先走 `do_nat_red` **原生大整数运算**（`num-bigint`），而不是展开成递归定义。这就是 `#reduce 1 + 2 => 3` 的来源，也解释了为什么要以 `Definition`（Unfoldable）而非 `Axiom` 形式放置。
+- `Nat` 走与源内 `inductive` 相同的 `install_inductive_block`：`Nat.zero`/`Nat.succ` 是真正的构造子，`Nat.rec` 是带 iota 规则的递归子；同时把 `Nat` 登记进 `match` 的 `InductiveTable`，因此 `match` 能降低为 `Nat.rec.{level}`（此前 prelude Nat 无元数据，`match` 报 `elab-match-not-inductive`）。
+- `EnvBuilder::finish()` 会 `dag.mk_name_cache(anon)`：在 intern 表里按名字找到 `Nat.succ/Nat.add/...`，给 `NameNode` 打 `NatRed` 标记。此后求值遇到这些头时，`unfold_value_go` 先走 `do_nat_red` **原生大整数运算**（`num-bigint`）；构造子 `Nat.succ` 在 `apply` 里还会把已是一元链的参数折叠成 `NatLit`。这就是 `#reduce 1 + 2 => 3` 与 `#reduce Nat.succ (Nat.succ Nat.zero) => 2` 的来源。`Nat.add` 仍必须是 `Definition`（Unfoldable）而非 `Axiom`，原生快路径才会接管。
 - `Expr::Num` 在 front 被 elaborate 成 `NatLit`（bignum 指针）；`a + b` 是 `Nat.add a b` 的语法糖。
-- **风险/待对齐**：`Nat.succ`/`Nat.add` 的体是"自引用占位"，语义上等价于公理 + 原生快路径；上游真身是正常递归定义。教学 prelude 必须保证这些名字**只在有实参时被原生快路径接管**、裸名字（如 `#reduce Nat.add`）不会被 delta 无限展开——当前实测 `#reduce Nat.add => Nat.add` 可终止，但这是要长期盯住的边界（见 `docs/design/infrastructure.md` 的 prelude 工作流）。
+- **风险/待对齐**：`Nat.add` 的体是"自引用占位"，语义上等价于公理 + 原生快路径；上游真身是正常递归定义。教学 prelude 必须保证这些名字**只在有实参时被原生快路径接管**、裸名字（如 `#reduce Nat.add`）不会被 delta 无限展开——当前实测 `#reduce Nat.add => Nat.add` 可终止，但这是要长期盯住的边界（见 `docs/design/infrastructure.md` 的 prelude 工作流）。另一个已知现象：`Nat.rec` 的 `NatLit` 快路径会先给递归结果套一层未归约的一元链，`deep_reduce` 不再回收，所以 `match` 递归结果可能呈混合表示（如 `2 + 1 => Nat.succ (Nat.succ 1)`），def-eq 上仍等于 3。
 - `nat_extension` 由 `Config::default()` 默认打开；`StringLit` 类似（`string_extension`）。
 
 ### 5.5 `#prove`：tactic 只是"帮你搭 lambda"（`crates/front/src/proof.rs`）
@@ -278,7 +281,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
    之前**报 `elab-missing-inductive-rec`（check-then-add 语义保持）。
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
-3. **elab 仍受限**：binder 可由声明类型推断（I6）、值位 `let`（Phase 1）与值位 `match`（Phase 2，源内 inductive，含递归 IH `ih`/`ih2`…）已落地，但未做无注解 `let`、依赖 motive、参数化/带索引归纳、prelude `Nat`/`Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
+3. **elab 仍受限**：binder 可由声明类型推断（I6）、值位 `let`（Phase 1）与值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）已落地，但未做无注解 `let`、依赖 motive、参数化/带索引归纳、prelude `Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
 4. **语法白名单是边界**：想加语法，先加课程 + 测试；`???` 只允许出现在声明（def/theorem/example）的值位。
 5. **不用官方工具链**：CI 与本地一律 `cargo`；不要引入 `lean`/`lake`/`lean4export`。
 6. **新错误要带 stage/code 与 span**：CLI 已按 `error[stage]:` 输出，`--json` 是 agent 视图；改输出格式要同步 `docs/protocol.md` 与 `crates/cli/tests/cli.rs`。

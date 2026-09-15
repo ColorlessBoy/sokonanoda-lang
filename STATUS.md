@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十四轮：发布加固——SHA256SUMS + SLSA provenance；0.35.1）
+> 快照：2026-09-14（第六十五轮：`match` 支持 prelude `Nat`——内置 Nat 改为真实可信归纳；0.36.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,26 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十五轮：`match` 支持 prelude Nat）
+
+> 续 TODO：移除「match 只支持源内 inductive」限制，让学生直接对 prelude `Nat`
+> 分情况。
+
+1. **根因**：prelude 的 `Nat` 是「原生 hack」（无 ctor 的 add_inductive +
+   `Nat.zero` 公理 + 自引用 `Nat.succ` 定义），**没有 `Nat.rec`**，`match` 无从
+   降低。改为经 **`install_inductive_block` 装成真实可信归纳**（ctor `Nat.zero`
+   /`Nat.succ` + 派生 `Nat.rec` + iota，`recursive=true`，`rec_universe_arity=1`），
+   并注册进 `InductiveTable`；`Nat.add` 保持原生自引用定义。
+2. **效果**：`match n with | Nat.zero => … | Nat.succ k => …`（点号 ctor）可用，
+   递归字段后自动 IH；`#check Nat.rec` 有签名；`#reduce 1 + 1 => 2`、
+   `Nat.add 2 3 => 5`、`three => 3` 均正常。**已知显示**：经 `Nat.rec` 归约的
+   结果可能是不合并的一元链（如 `addN 2 1 → Nat.succ (Nat.succ 1)`，与 numeral
+   def-eq），已文档化并钉测试。
+3. **测试**：front +3（prelude Nat pred/add + 源内 Nat 回归）；CLI e2e +1。
+4. **文档**：`match.md` §2/§10、`architecture.md` §4.1/§4.2/§5.4/§8、
+   `TESTING.md`、`protocol.md`（`elab-match-not-inductive` 文案）同步。
+5. **验收**：`sokonanoda gate` PASS；版本 0.35.1 → **0.36.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-14，第六十四轮：发布加固）
 
@@ -49,18 +69,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 5. **验收**：`sokonanoda gate` PASS；版本 0.34.0 → **0.35.0**（新能力 minor）。
 6. **仍缺（Phase 2 余项）**：依赖 motive、参数化/带索引归纳、prelude `Nat`/`Eq`、
    `match` tactic、嵌套/字面量/守卫模式。
-
-## 本轮进度（2026-09-14，第六十二轮：无注解 `let`）
-
-> 续 TODO 清账：把 `let` 的类型标注变为可选（Phase 2 小切片）。
-
-1. **实现**：`Expr::Let` 的 `binder.ty == None` 时，用当前 scope 的
-   `judge_binders()` + `judge_infer`（复用有界缓存）推断值类型、回 AST 作 binder
-   类型（`match` 轮已把 `ElabCtx{prefix,options}` 贯通进 elab，正好复用）。
-   推断失败（值位 `sorry` 等）→ 新码 `elab-let-type-query-failed`（protocol +
-   穷尽清单 + hint 同步）。
-2. **测试**：front `let_without_annotation_infers_the_value_type` +
-   `unannotated_let_that_cannot_be_inferred_reports_a_let_specific_error`；CLI
-   `json_mode_unannotated_let_infers_or_reports_hint`；课程 unit3 注释更新。
-3. **验收**：`sokonanoda gate` PASS；版本 0.33.1 → **0.34.0**（新能力 minor）；
-   设计 as-built `docs/design/elaborator-let-match.md` §13。

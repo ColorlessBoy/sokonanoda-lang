@@ -1,8 +1,23 @@
-# STATUS 归档（第 1–61 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–62 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十二轮：无注解 `let`）
+
+> 续 TODO 清账：把 `let` 的类型标注变为可选（Phase 2 小切片）。
+
+1. **实现**：`Expr::Let` 的 `binder.ty == None` 时，用当前 scope 的
+   `judge_binders()` + `judge_infer`（复用有界缓存）推断值类型、回 AST 作 binder
+   类型（`match` 轮已把 `ElabCtx{prefix,options}` 贯通进 elab，正好复用）。
+   推断失败（值位 `sorry` 等）→ 新码 `elab-let-type-query-failed`（protocol +
+   穷尽清单 + hint 同步）。
+2. **测试**：front `let_without_annotation_infers_the_value_type` +
+   `unannotated_let_that_cannot_be_inferred_reports_a_let_specific_error`；CLI
+   `json_mode_unannotated_let_infers_or_reports_hint`；课程 unit3 注释更新。
+3. **验收**：`sokonanoda gate` PASS；版本 0.33.1 → **0.34.0**（新能力 minor）；
+   设计 as-built `docs/design/elaborator-let-match.md` §13。
 
 ## 本轮进度（2026-09-14，第六十一轮：tactic hover 呈现升级）
 

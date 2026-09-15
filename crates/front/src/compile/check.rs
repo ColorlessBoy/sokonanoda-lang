@@ -421,10 +421,9 @@ fn run_pass(
                 |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"),
             );
             if !explicit_nat {
-                install_prelude(&mut builder);
-                for builtin in ["Nat", "Nat.zero", "Nat.succ", "Nat.add"] {
-                    known_universes.insert(builtin.to_string(), Vec::new());
-                }
+                // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
+                // Nat.rec 登记进 `known` 与 `match` 的 InductiveTable。
+                install_prelude(&mut builder, &mut known_universes, &mut inductives);
             }
             let taken = user_top_level_names(file);
             install_eq_prelude(&mut builder, &mut known_universes, &taken);

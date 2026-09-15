@@ -1,3 +1,16 @@
+## [0.36.0] - 2026-09-14
+
+### Added
+
+- **`match` on the prelude `Nat`** — the built-in `Nat` is now a real trusted
+  inductive (constructors `Nat.zero`/`Nat.succ` plus a derived `Nat.rec`), so
+  `match` works on it directly:
+  `def pred (n : Nat) : Nat := match n with | Nat.zero => Nat.zero | Nat.succ k => k`
+  (arms use the dotted constructor names). Recursive branches get the induction
+  hypothesis `ih`, exactly like source recursive inductives. Note: `#reduce`
+  through `Nat.rec` may print an unary chain (e.g. `Nat.succ (Nat.succ 1)`) that
+  is definitionally equal to the numeral. Design: `docs/design/match.md`.
+
 ## [0.35.1] - 2026-09-14
 
 ### Infrastructure

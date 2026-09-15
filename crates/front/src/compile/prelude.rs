@@ -6,14 +6,13 @@
 //! * `PreludeMode::Bare` —— 完全不安装任何东西，课程从零构造一切
 //!   （例如自带 `inductive Nat` 块或纯逻辑公理文件）。
 
-use super::elab::{build_axiom, ElabCtx, InductiveTable};
-use crate::Command;
+use super::elab::{build_axiom, install_inductive_block, ElabCtx, InductiveTable};
+use crate::{Binder, BinderKind, Command, CtorDecl, Expr, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, ReducibilityHint};
 use sokonanoda::expr::BinderStyle;
 use sokonanoda::util::ExprPtr;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// Which trusted base declarations a compilation installs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -64,7 +63,7 @@ pub fn prelude_mode_from_source(src: &str) -> PreludeMode {
 /// prelude declarations are trusted installs without `DeclState`s, so the
 /// goal view / completion layer needs this list to offer them.
 pub const PRELUDE_NAMES: &[&str] = &[
-    "Nat", "Nat.zero", "Nat.succ", "Nat.add", "Eq", "Eq.refl", "Eq.subst",
+    "Nat", "Nat.zero", "Nat.succ", "Nat.rec", "Nat.add", "Eq", "Eq.refl", "Eq.subst",
 ];
 
 pub(crate) const PRELUDE_EQ_SRC: &str = "\
@@ -113,39 +112,67 @@ pub(crate) fn install_eq_prelude(
 }
 
 /// Trusted built-in base declarations. These are never re-checked by the
-/// kernel: they are the axioms/inductive spine that the teaching grammar is
-/// built on. The kernel's native Nat reduction is enabled purely by the
-/// matching declaration names.
-pub(crate) fn install_prelude(builder: &mut EnvBuilder<'_>) {
+/// kernel. `Nat` is installed as a trusted source-style inductive block
+/// (`Nat.zero`/`Nat.succ` constructors + a derived `Nat.rec`) so that `match`
+/// on the prelude `Nat` lowers to a real `Nat.rec` and the recursor has a
+/// proper iota rule set. `Nat.add` stays the native self-referential
+/// definition: the kernel's native Nat reduction is enabled by the matching
+/// declaration names.
+pub(crate) fn install_prelude<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &mut HashMap<String, Vec<String>>,
+    inductives: &mut InductiveTable<'a>,
+) {
+    let span = Span::default();
+    let nat_sort = Expr::Sort {
+        sort: SortKind::Type,
+        span,
+    };
+    let nat_ident = Expr::Ident {
+        name: "Nat".to_string(),
+        span,
+    };
+    let constructors = vec![
+        CtorDecl {
+            name: "Nat.zero".to_string(),
+            binders: Vec::new(),
+            result: nat_ident.clone(),
+            span,
+        },
+        CtorDecl {
+            name: "Nat.succ".to_string(),
+            binders: vec![Binder {
+                name: "n".to_string(),
+                ty: Some(Box::new(nat_ident.clone())),
+                style: BinderKind::Explicit,
+                span,
+            }],
+            result: nat_ident,
+            span,
+        },
+    ];
+    let mut hovers = Vec::new();
+    let mut built = Vec::new();
+    install_inductive_block(
+        builder,
+        known,
+        inductives,
+        "",
+        &CompileOptions::default(),
+        "Nat",
+        &nat_sort,
+        &constructors,
+        None,
+        &[],
+        &mut hovers,
+        &mut built,
+    )
+    .expect("built-in Nat block installs");
+
     let anon = builder.anonymous();
     let empty = builder.alloc_levels_slice(&[]);
-    let type_level = builder.succ(builder.zero());
-    let type_sort = builder.mk_sort(type_level);
-
     let nat = builder.name_from_str("Nat");
     let nat_type = builder.mk_const(nat, empty);
-    builder
-        .add_inductive(
-            DeclarInfo {
-                name: nat,
-                uparams: empty,
-                ty: type_sort,
-            },
-            false,
-            0,
-            0,
-            Arc::from([nat]),
-            Arc::from([]),
-        )
-        .expect("builtin Nat already present");
-
-    add_axiom(builder, "Nat.zero", nat_type);
-
-    let succ_arrow = builder.mk_pi(anon, BinderStyle::Default, nat_type, nat_type);
-    let succ_name = builder.name_from_str("Nat.succ");
-    let succ_levels = builder.alloc_levels_slice(&[]);
-    let succ_self = builder.mk_const(succ_name, succ_levels);
-    add_definition(builder, "Nat.succ", succ_arrow, succ_self);
 
     let inner_arrow = builder.mk_pi(anon, BinderStyle::Default, nat_type, nat_type);
     let add_arrow = builder.mk_pi(anon, BinderStyle::Default, nat_type, inner_arrow);
@@ -153,18 +180,7 @@ pub(crate) fn install_prelude(builder: &mut EnvBuilder<'_>) {
     let add_levels = builder.alloc_levels_slice(&[]);
     let add_self = builder.mk_const(add_name, add_levels);
     add_definition(builder, "Nat.add", add_arrow, add_self);
-}
-
-fn add_axiom<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>) {
-    let name = builder.name_from_str(name);
-    let info = DeclarInfo {
-        name,
-        uparams: builder.alloc_levels_slice(&[]),
-        ty,
-    };
-    builder
-        .add_declar(Declar::Axiom { info })
-        .expect("duplicate builtin axiom");
+    known.insert("Nat.add".to_string(), Vec::new());
 }
 
 fn add_definition<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>, val: ExprPtr<'a>) {

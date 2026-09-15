@@ -26,7 +26,7 @@ match <scrutinee> with
 - **依赖 motive**（`motive` 依赖 scrutinee 的值）；v1 motive 恒为 `fun (_ : Ind) => R`；
 - ~~**递归类型**（`Nat` 等有 IH 的类型）~~ **已解除（Phase 2，见 §10）**：递归构造子字段后自动插入归纳假设 `ih`（多个递归字段依次 `ih`、`ih2`…，类型 = 结果类型 R），branch 可直接引用，递归无需自引用；v1 的 motive 仍非依赖，故只覆盖「以 scrutinee 自身构造子直接递归」的用例；
 - 嵌套/字面量/`as`/守卫/多 scrutinee/`if-then-else`；
-- prelude 内建 `Nat`/`Eq` 的 match（它们没有源内 `InductiveBlock` 元数据）——v1 限**源内** `inductive`；
+- ~~prelude 内建 `Nat` 的 match（它没有源内 `InductiveBlock` 元数据）~~ **已解除（2026-09-15，见 §10）**：prelude `Nat` 现以受信任归纳块安装（`Nat.zero`/`Nat.succ` 构造子 + 派生 `Nat.rec`）并登记进 `InductiveTable`，分支用点号名 `Nat.zero`/`Nat.succ`；`Eq` 仍不支持；
 - `match` 作为 tactic；`match` 出现在**期望类型未知**的位置（报教学错误）。
 
 ## 3. 语法与 AST
@@ -147,5 +147,24 @@ match <scrutinee> with
   小节（zh/en/钥匙，代码逐字节镜像）+ golden `unit5 (6,5,2)→(7,6,3)`、汇总
   `checked 50→51 / open 38→39`；`architecture.md` §4.1/§8、`TESTING.md` 同步。
 - **仍未做（Phase 2 余项）**：依赖 motive（`motive` 依赖 scrutinee 的值）、
-  参数化/带索引归纳、prelude 内建 `Nat`/`Eq` 的 match（无源内 `InductiveBlock`
-  元数据）、`match` tactic、嵌套/守卫/字面量模式、无注解 `let`。
+  参数化/带索引归纳、`match` tactic、嵌套/守卫/字面量模式、无注解 `let`。
+
+### Phase 3：prelude `Nat` 的 match（2026-09-15）
+
+- **登记表来源改变（关键）**：`install_prelude` 不再手写「`Nat` 无构造子 +
+  `Nat.zero` axiom + `Nat.succ` 自引用 Definition」，而是把 `Nat` 作为**受信任
+  归纳块**交给既有的 `install_inductive_block`（`Nat.zero`/`Nat.succ` 真构造子、
+  自动派生带 iota 规则的 `Nat.rec`，`rec_universe_arity = 1`）。该调用顺带把
+  `Nat` 登记进 `InductiveTable`，因此文件未自带 `inductive Nat` 时 `match` 也能
+  读到元数据；`Nat.add` 仍是原生快路径所需的自引用 `Definition`。
+- **分支名**：prelude `Nat` 用点号构造子名 `Nat.zero`/`Nat.succ`（登记表里的
+  ctor 名就是全名）；源内 `inductive Nat` 不受影响，仍用裸名 `zero`/`succ`，
+  且 prelude 不装（文件块自己登记）。
+- **降低/IH/错误码不变**：仍是 `<Ind>.rec.{level} motive minor… scrutinee`，
+  递归字段后插 `ih`，level 由结果类型 Sort 推出。
+- **测试**：front `match_prelude_nat_pred_checks` /
+  `match_prelude_nat_add_checks_and_reduces` / `match_source_inductive_nat_still_uses_bare_ctors`；
+  `architecture.md` §4.1/§4.2/§5.4/§8、`TESTING.md`、`protocol.md` 同步。
+- **已知表示现象**：内核 `Nat.rec` 的 `NatLit` 快路径会留下未回收的一元链，
+  故 `#reduce add 2 1` 呈现 `Nat.succ (Nat.succ 1)`（def-eq 上等于 3）；
+  源内 `Nat` 无此现象，仍是干净的一元链。
