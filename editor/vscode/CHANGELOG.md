@@ -1,3 +1,13 @@
+## [0.33.1] - 2026-09-14
+
+### Changed
+
+- **Tactic hover presentation** — the tactic hover now names the tactic and its
+  position, and renders each goal state in a `sokonanoda` code fence, so the
+  hypotheses/goal are monospaced, aligned and syntax-highlighted (the extension
+  ships the grammar). Multi-goal states show a `目标 i/n` header per goal. The
+  half-expression goal hover uses the same fence.
+
 ## [0.33.0] - 2026-09-14
 
 ### Added

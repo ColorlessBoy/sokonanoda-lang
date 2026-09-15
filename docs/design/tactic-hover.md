@@ -63,3 +63,19 @@ h : And a a
 
 - `semantic.rs` KEYWORDS +4；`hover()` 首插 `tactic_goal_hover`。
 - 版本并入 **0.27.0**（CHANGELOG `Added`）；`docs/protocol.md` 增说明。
+
+---
+
+## 5. as-built — hover 呈现升级（2026-09-14，0.33.1）
+
+原 hover 是裸行 markdown（`x : Prop` / `⊢ …` 逐行），无排版、无高亮。改进：
+
+- **表头**：`` `<tactic 源码>` · tactic k/n ``（k 为该 tactic 的 1-based 序号，
+  n = 该声明的 tactic 总数）；闭合时 `已无剩余目标 ✓`。
+- **目标块**：每个目标包在 ` ```sokonanoda ` 代码围栏里 → 等宽对齐 +
+  **语法高亮**（扩展自带 `syntaxes/sokonanoda.tmLanguage.json`，VS Code hover
+  的 fenced code 用该语言语法着色）；多目标时目标前加 `**目标 i/n**`。
+- **半截表达式 hover** 同步改用 ` ⊢ ` + 同款围栏（原 `|-`）。
+- 测试：`hover_on_a_tactic_shows_the_entering_goal_state` 断言表头/围栏；
+  `hover_on_a_half_expression_shows_the_remaining_goals` 断言 `⊢`/围栏。
+- 版本 0.33.0 → **0.33.1**（呈现改进 patch）。

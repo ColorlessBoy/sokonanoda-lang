@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十轮：elaborator `match` v1——非递归归纳分情况；0.33.0）
+> 快照：2026-09-14（第六十一轮：tactic hover 呈现升级——代码围栏 + 高亮 + 排版；0.33.1）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,19 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十一轮：tactic hover 呈现升级）
+
+> 用户反馈：tactic hover 内容有了，但只有单/两行裸文本，无排版无高亮，体验不行。
+
+1. **表头**：`` `<tactic>` · tactic k/n ``（k/total 为 per-tactic 进度）；
+   闭合显示 `已无剩余目标 ✓`。
+2. **目标块**：包进 ` ```sokonanoda ` 代码围栏 → 等宽对齐 + **语法高亮**
+   （扩展自带 TM 语法，hover fenced code 用该语言着色）；多目标加 `**目标 i/n**`。
+3. **半截表达式 hover** 同步 `⊢` + 同款围栏。
+4. **测试**：tactic hover 断言表头/围栏；half-expression 断言 `⊢`/围栏。
+5. **验收**：`sokonanoda gate` PASS；版本 0.33.0 → **0.33.1**（呈现 patch）；
+   设计 `docs/design/tactic-hover.md` §5 as-built。
 
 ## 本轮进度（2026-09-14，第六十轮：elaborator `match` v1）
 
@@ -56,21 +69,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `ROADMAP.md` I8 余项勾选。
 6. **验收**：`sokonanoda gate` PASS（front 298、perf 3、cli 105、lsp 112）；版本
    0.32.0 → **0.32.1**（内部性能优化 → patch）。
-
-## 本轮进度（2026-09-14，第五十八轮：spine meta 方案 A）
-
-> 续 TODO 清账：按 `docs/design/spine-meta-a.md` 落地 refine 子洞的
-> kernel 级期望类型（请求期探针，内核冻结）。
-
-1. **front**（`goals.rs`）：公开 `probe_sub_goal_types`——请求期重解析 + 带
-   `judge_infer` 重跑；第 i 实参期望 = 部分应用类型剥最外层 Pi domain；
-   **前置洞穿透**（`f sorry sorry` 第二个用第一个的期望）+ **一层嵌套洞**
-   （`f (g sorry)`）。`open_goal` 仍 `probe=None` → 键路径零内核调用。
-2. **LSP**：`probed_report` 仅在 `soko/goals`/hover/inlay 请求期补 `None` 的
-   `sub_goals[i].ty`；`stateAt`/`nextHole` 不探测；协议形状/洞数不变。
-3. **测试**：front 4（defeq 别名+前置洞、依赖字段、一层嵌套、更深回退）+
-   LSP 4；B′ 既有断言不变；perf 无回退（goals/hover 0ms、didChange 1ms）。
-4. **验收**：`sokonanoda gate` PASS；版本 0.31.0 → **0.32.0**（新增公开 front
-   API → minor）。
-5. **未闭环（留档）**：超量应用里「def 包裹的结果类型」whnf 展开需内核/pp 暴露
-   （违反冻结）→ 仍走 B′；更深嵌套/非 spine 实参仍 `None`。

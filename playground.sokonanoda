@@ -270,7 +270,11 @@ theorem forall_elim (P : Person -> Prop) (w : Person) (h : forall (x : Person), 
 -- soko:hint 目标形态：结论是 And，左右两半都是 forall；每半各写一层 fun (x : Person)。
 -- soko:hint 关键件：h x 给出 And (P x) (Q x)；And.left / And.right 取一半，外面用 And.intro 包好。
 theorem forall_and (P : Person -> Prop) (Q : Person -> Prop) (h : forall (x : Person), And (P x) (Q x)) : And (forall (x : Person), P x) (forall (x : Person), Q x) := by
-  apply And.intro; intro x ; exact And.left (P x) (Q x) (h x); intro x; exact And.right (P x) (Q x) (h x)
+  apply And.intro; 
+  intro x; 
+  exact And.left (P x) (Q x) (h x); 
+  intro x; 
+  exact And.right (P x) (Q x) (h x)
 
 -- 练习 8：反过来：两个“每个人”合起来，得到“每个人同时满足”。
 -- soko:hint 思路：把 h 分成两半，各自用到同一个人 x 上，再用 And.intro 合起来。

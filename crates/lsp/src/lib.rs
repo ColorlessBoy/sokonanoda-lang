@@ -751,35 +751,49 @@ fn range_start_offset(text: &str, range: &Range) -> usize {
 /// already records (`by_steps`) — no re-check, no text scan. The whole tactic
 /// span is the trigger; the goal view's hypotheses make term hovers redundant
 /// inside it.
-fn tactic_goal_hover(report: &DocumentReport, offset: usize) -> Option<Hover> {
+fn tactic_goal_hover(report: &DocumentReport, text: &str, offset: usize) -> Option<Hover> {
     let d = report
         .decls
         .iter()
         .find(|d| d.span.start.offset <= offset && offset <= d.span.end.offset)?;
-    let step = d
+    let step_index = d
         .by_steps
         .iter()
-        .find(|s| s.span.start.offset <= offset && offset <= s.span.end.offset)?;
+        .position(|s| s.span.start.offset <= offset && offset <= s.span.end.offset)?;
+    let step = &d.by_steps[step_index];
     // `select_state_at` on the tactic's start returns the *entering* state.
     let selection = select_state_at(d, step.span.start.offset);
-    let mut value = String::new();
-    if selection.goals.is_empty() {
-        value.push_str("已无剩余目标 ✓");
+    let tactic_text = text
+        .get(step.span.start.offset..step.span.end.offset)
+        .unwrap_or("")
+        .trim();
+    // Header: the tactic itself (inline code) + its 1-based position. The code
+    // fence below uses the `sokonanoda` grammar so the goal state is both
+    // monospaced/aligned and syntax-highlighted in the hover.
+    let mut value = if selection.total > 0 {
+        format!(
+            "`{tactic_text}` · tactic {}/{}\n",
+            step_index + 1,
+            selection.total
+        )
     } else {
-        if selection.goals.len() > 1 {
-            value.push_str(&format!("**目标（{}）**\n", selection.goals.len()));
-        }
+        format!("`{tactic_text}`\n")
+    };
+    if selection.goals.is_empty() {
+        value.push_str("\n已无剩余目标 ✓\n");
+    } else {
+        let n = selection.goals.len();
         for (i, goal) in selection.goals.iter().enumerate() {
-            if i > 0 {
-                value.push('\n');
+            value.push('\n');
+            if n > 1 {
+                value.push_str(&format!("**目标 {}/{}**\n", i + 1, n));
             }
-            if selection.goals.len() > 1 {
-                value.push_str(&format!("**目标 {}/{}**\n", i + 1, selection.goals.len()));
-            }
+            value.push_str("```sokonanoda\n");
             for binder in &goal.binders {
                 value.push_str(&format!("{} : {}\n", binder.name, binder.ty));
             }
             value.push_str(&format!("⊢ {}\n", goal.ty));
+            value.push_str("```\n");
         }
     }
     Some(Hover {
@@ -805,7 +819,7 @@ fn hover_markup(res: render::HoverResolved) -> Hover {
 
 /// 半截表达式的 goal-state hover（I13-S5，用户需求）：值写了一半、内核
 /// 拒绝时（如 `And.intro b a` 还差两个前提），hover 不只给报错——把推断
-/// 出的**剩余目标**列出来（`|- b`、`|- a`）。
+/// 出的**剩余目标**列出来（`⊢ b`、`⊢ a`）。
 ///
 /// 性能边界：只在 **hover 请求时**计算（不在按键路径上），且 `judge_infer`
 /// 有缓存——同一位置重复悬停零成本；指纹含前缀文本，其它位置的编辑会
@@ -917,11 +931,11 @@ fn half_expression_goals_hover(
             String::new(),
         )
     };
-    let goal_lines: Vec<String> = goals.iter().map(|g| format!("\n|- {g}")).collect();
+    let goal_block = goals.iter().map(|g| format!("⊢ {g}\n")).collect::<String>();
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
-            value: format!("{headline}{}", goal_lines.join("")) + &tail,
+            value: format!("{headline}\n\n```sokonanoda\n{goal_block}```{tail}"),
         }),
         range: Some(range_of(d.span)),
     })
@@ -1035,7 +1049,7 @@ impl LanguageServer for Backend {
         // `by` tactic hover: show the goal state entering the tactic under the
         // cursor (Lean Infoview-style, user request). Before keyword suppression
         // below, because tactic words (intro/exact/…) are keywords.
-        if let Some(hover) = tactic_goal_hover(report, offset) {
+        if let Some(hover) = tactic_goal_hover(report, &doc.text, offset) {
             return Ok(Some(hover));
         }
         // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。
@@ -2569,6 +2583,18 @@ mod tests {
             "tactic hover shows the entering goal: {:?}",
             markup.value
         );
+        // Presentation: the tactic itself + a `sokonanoda` code fence so the
+        // goal state is monospaced/aligned and syntax-highlighted.
+        assert!(
+            markup.value.contains("`apply And.intro`"),
+            "hover header names the tactic: {:?}",
+            markup.value
+        );
+        assert!(
+            markup.value.contains("```sokonanoda"),
+            "hover goal state is a highlighted code fence: {:?}",
+            markup.value
+        );
 
         // hover `sorry`：进入它时有 apply 开出的两个子目标 P、Q。
         let at_sorry = offset_of(src, "sorry");
@@ -3165,7 +3191,7 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
     #[tokio::test]
     async fn hover_on_a_half_expression_shows_the_remaining_goals() {
         // 用户需求：半截表达式（`And.intro b a` 还差两个前提）的 hover 不只给
-        // 报错——把推断出的剩余目标列成 `|- b`、`|- a`。按需计算 + judge 缓存，
+        // 报错——把推断出的剩余目标列成 `⊢ b`、`⊢ a`。按需计算 + judge 缓存，
         // 不在按键路径上。
         let src = "axiom And : Prop -> Prop -> Prop\n\
                    axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
@@ -3184,8 +3210,13 @@ fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro so
             "hover: {:?}",
             markup.value
         );
-        assert!(markup.value.contains("|- b"), "hover: {:?}", markup.value);
-        assert!(markup.value.contains("|- a"), "hover: {:?}", markup.value);
+        assert!(markup.value.contains("⊢ b"), "hover: {:?}", markup.value);
+        assert!(markup.value.contains("⊢ a"), "hover: {:?}", markup.value);
+        assert!(
+            markup.value.contains("```sokonanoda"),
+            "half-expression goals use the highlighted fence: {:?}",
+            markup.value
+        );
         shutdown(&mut service).await;
     }
 

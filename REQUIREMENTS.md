@@ -570,3 +570,8 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   小节 + golden。v1 不做：递归归纳（IH）、依赖/参数化归纳、prelude `Nat`/`Eq`、
   `match` tactic、嵌套/字面量/守卫、无注解 `let`。设计 + as-built 见
   `docs/design/match.md`；版本 **0.33.0**（新语法 minor）。
+- 2026-09-14（六十）：**tactic hover 呈现升级（用户体验）**——原 hover 是
+  裸行文本（无排版/高亮）。改为：表头 `` `<tactic>` · tactic k/n ``；每个目标
+  包进 ` ```sokonanoda ` 代码围栏（等宽对齐 + 语法高亮，扩展自带 TM 语法），
+  多目标加 `**目标 i/n**`；半截表达式 hover 同步 `⊢` + 围栏。版本 **0.33.1**
+  （呈现改进 patch）。设计 as-built 见 `docs/design/tactic-hover.md` §5。

@@ -1,8 +1,26 @@
-# STATUS 归档（第 1–57 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–58 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十八轮：spine meta 方案 A）
+
+> 续 TODO 清账：按 `docs/design/spine-meta-a.md` 落地 refine 子洞的
+> kernel 级期望类型（请求期探针，内核冻结）。
+
+1. **front**（`goals.rs`）：公开 `probe_sub_goal_types`——请求期重解析 + 带
+   `judge_infer` 重跑；第 i 实参期望 = 部分应用类型剥最外层 Pi domain；
+   **前置洞穿透**（`f sorry sorry` 第二个用第一个的期望）+ **一层嵌套洞**
+   （`f (g sorry)`）。`open_goal` 仍 `probe=None` → 键路径零内核调用。
+2. **LSP**：`probed_report` 仅在 `soko/goals`/hover/inlay 请求期补 `None` 的
+   `sub_goals[i].ty`；`stateAt`/`nextHole` 不探测；协议形状/洞数不变。
+3. **测试**：front 4（defeq 别名+前置洞、依赖字段、一层嵌套、更深回退）+
+   LSP 4；B′ 既有断言不变；perf 无回退（goals/hover 0ms、didChange 1ms）。
+4. **验收**：`sokonanoda gate` PASS；版本 0.31.0 → **0.32.0**（新增公开 front
+   API → minor）。
+5. **未闭环（留档）**：超量应用里「def 包裹的结果类型」whnf 展开需内核/pp 暴露
+   （违反冻结）→ 仍走 B′；更深嵌套/非 spine 实参仍 `None`。
 
 ## 本轮进度（2026-09-14，第五十七轮：扩展强制内置 LSP + doctor 自检）
 
