@@ -13,6 +13,7 @@
 | `ROADMAP.md` | 里程碑与 §10 验收标准 | 规划 |
 | `REQUIREMENTS.md` | **用户全部要求的权威总账**（硬规则、§9 追加日志） | 动手前必读；冲突以它为准 |
 | `STATUS.md` | 当前进度与逐轮日志（最新在最上） | 每轮开始/收尾 |
+| `HANDOVER.md` | **交接汇总**：现在在哪、还剩什么、怎么继续（TODO/限制/gotchas 索引） | 接手第一份 |
 
 ## 核心（`docs/` 顶层，开发者参考）
 
@@ -22,7 +23,7 @@
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
 | `RELEASE.md` | 发布手册（main 全绿自动 tag、8 平台 + 9 VSIX、Marketplace） | 发版前 |
-| `STATUS-ARCHIVE.md` | STATUS 的历史轮次归档（1–39 轮原文） | 查旧轮/缺陷修复时间线 |
+| `STATUS-ARCHIVE.md` | STATUS 的历史轮次归档（第 1–65 轮原文） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
 | `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |

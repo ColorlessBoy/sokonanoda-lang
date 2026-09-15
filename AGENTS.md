@@ -4,9 +4,10 @@
 按序读完再动手：
 
 1. `REQUIREMENTS.md` —— 用户全部要求的**权威总账**（硬规则、新要求追加到 §9）；
-2. `STATUS.md` —— 当前进度（最新一轮在最上）；
-3. `ROADMAP.md` §10 —— 待办与验收标准；
-4. `docs/architecture.md` —— 流水线与内核 gotchas（§8 必读）。
+2. `docs/HANDOVER.md` —— **交接汇总**（现在在哪、还剩什么、怎么继续）；
+3. `STATUS.md` —— 当前进度（最新一轮在最上）；
+4. `ROADMAP.md` §10 —— 待办与验收标准；
+5. `docs/architecture.md` —— 流水线与内核 gotchas（§8 必读）。
 
 文档已分层：入口/权威在仓库根（`README.md`/`AGENTS.md`/`ROADMAP.md`/
 `REQUIREMENTS.md`/`STATUS.md`），开发者参考在 `docs/` 顶层，设计与调研笔记在
