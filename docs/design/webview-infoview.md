@@ -106,3 +106,26 @@ Rust 与扩展版本必须一致（契约测试 `cargo_and_extension_versions_ma
 - `npm run test:unit`、静态契约、集成测试、`sokonanoda gate` 全绿；
 - `docs/protocol.md`（若新增宿主→webview 契约说明）、`STATUS.md`、
   `REQUIREMENTS.md §9` 同步；版本按 §7 bump。
+
+---
+
+## 10. as-built（2026-09-14，0.30.0）
+
+- **view/命令**：`sokonanoda.infoview`（`type: webview`，与「练习」「课程」
+  并列）+ `sokonanoda.openInfoview`（view/title 导航）；树「当前光标处」组
+  保留为默认与兜底。
+- **资源**：`editor/vscode/media/{infoview.html,infoview.css,infoview.js}`；
+  CSP `default-src 'none'` + 每次随机 nonce；`enableScripts:true`、
+  `localResourceRoots=[media]`；渲染只用 `textContent`（契约负断言禁
+  `innerHTML`/远程 URL/eval/内联事件）。
+- **协议**（`protocol:1`）：host→webview `state`（`soko/stateAt` + `uri`）、
+  `decls`（仅诊断/切文件）、`server`（`soko/version`）、`theme`；
+  webview→host `ready`/`reveal`/`focusExercise`；按 `version` 丢弃过期
+  `state`。
+- **性能**：光标移动只发 `state`（去抖 200ms，复用既有 selection 监听），
+  绝不因此发 `soko/goals`；provider 缓存最后 `state`/`decls`，
+  `retainContextWhenHidden:false`。
+- **测试**：`crates/cli/tests/extension.rs` 静态契约（view/命令一致、资源与
+  CSP nonce、负断言）；`extension.test.js` 集成 smoke；`node test-server.js`
+  18/18。
+- **版本** 0.29.0 → **0.30.0**（新 view + 命令 = minor）。

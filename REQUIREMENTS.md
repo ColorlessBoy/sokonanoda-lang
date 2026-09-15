@@ -527,3 +527,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `file`、跨文件无全序）；有界缓冲溢出合并标 `recompiled_from:0`（可全量重
   同步）。设计 + as-built 见 `docs/design/compiler-service-events.md`；版本
   **0.29.0**（协议/功能 minor）。
+- 2026-09-14（五十五）：**VS Code webview Infoview（方案 B，R56）**——新增
+  `sokonanoda.infoview`（webview，与练习/课程并列）+ `sokonanoda.openInfoview`
+  命令，Lean Infoview 式渲染全部目标 + 假设 + by 进度 + 服务器版本；宿主独占
+  `LanguageClient` 并把 `soko/stateAt`/`soko/goals`/`soko/version` 快照 post
+  给 webview（`protocol:1`）；光标移动只发轻量 `state`（不去 `soko/goals`、
+  不重建），CSP+nonce、仅 `textContent`；webview 不可用时静默回落树组。树的
+  「当前光标处」保留。设计 + as-built 见 `docs/design/webview-infoview.md`；
+  版本 **0.30.0**（新 view+命令 minor）。

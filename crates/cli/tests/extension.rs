@@ -28,6 +28,11 @@ fn server_script() -> String {
     fs::read_to_string(vscode_dir().join("server.js")).expect("server.js")
 }
 
+fn media_file(name: &str) -> String {
+    fs::read_to_string(vscode_dir().join("media").join(name))
+        .unwrap_or_else(|_| panic!("media/{name} exists"))
+}
+
 fn repo_root() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
@@ -446,6 +451,162 @@ fn ci_stages_the_bundled_server_for_integration_tests() {
     assert!(
         ci.contains("Package host VSIX"),
         "ci.yml must smoke-package a platform VSIX"
+    );
+}
+
+#[test]
+fn infoview_view_and_command_are_consistent() {
+    // Infoview webview (docs/design/webview-infoview.md, 方案 B): package.json
+    // declares a webview view in the explorer container next to 「练习」/「课程」
+    // and a command to reveal it; extension.js registers a provider for exactly
+    // that view id and the command itself.
+    let manifest = manifest();
+    let script = entry_script();
+    let views = manifest["contributes"]["views"]["explorer"]
+        .as_array()
+        .expect("explorer views");
+    let view = views
+        .iter()
+        .find(|v| v["id"].as_str() == Some("sokonanoda.infoview"))
+        .expect("package.json must declare the sokonanoda.infoview view");
+    assert_eq!(
+        view["type"].as_str(),
+        Some("webview"),
+        "sokonanoda.infoview must be a webview view"
+    );
+    let commands = manifest["contributes"]["commands"]
+        .as_array()
+        .expect("contributes.commands");
+    assert!(
+        commands
+            .iter()
+            .any(|c| c["command"].as_str() == Some("sokonanoda.openInfoview")),
+        "package.json must declare sokonanoda.openInfoview"
+    );
+    assert!(
+        script.contains("\"sokonanoda.infoview\"")
+            && script.contains("registerWebviewViewProvider"),
+        "extension.js must register a WebviewViewProvider for sokonanoda.infoview"
+    );
+    assert!(
+        script.contains("\"sokonanoda.openInfoview\""),
+        "extension.js must register sokonanoda.openInfoview"
+    );
+}
+
+#[test]
+fn infoview_assets_exist_and_are_referenced() {
+    // The webview loads only from media/ (localResourceRoots); the HTML is a
+    // template whose CSP nonce/style/script URIs are filled per load.
+    let script = entry_script();
+    for asset in ["infoview.js", "infoview.css", "infoview.html"] {
+        assert!(
+            vscode_dir().join("media").join(asset).exists(),
+            "media/{asset} must exist (referenced by the provider)"
+        );
+        assert!(
+            script.contains(asset),
+            "extension.js must reference media/{asset}"
+        );
+    }
+    let html = media_file("infoview.html");
+    for needle in [
+        "default-src 'none'",
+        "script-src 'nonce-{{nonce}}'",
+        "{{scriptUri}}",
+        "{{styleUri}}",
+        "{{cspSource}}",
+    ] {
+        assert!(
+            html.contains(needle),
+            "media/infoview.html must declare the CSP/nonce contract: `{needle}`"
+        );
+    }
+    assert!(
+        script.contains("localResourceRoots") && script.contains("enableScripts"),
+        "the webview must enable scripts with localResourceRoots = media/"
+    );
+    assert!(
+        script.contains("nonce") && script.contains("randomBytes"),
+        "the CSP nonce must be generated randomly per load"
+    );
+}
+
+#[test]
+fn infoview_webview_is_hardened() {
+    // Untrusted-text discipline (docs/design/webview-infoview.md §4): no
+    // innerHTML, no remote assets, no release/latest, no inline handlers.
+    let script = media_file("infoview.js");
+    assert!(
+        !script.contains("innerHTML"),
+        "the webview script must render with textContent only (no innerHTML)"
+    );
+    assert!(
+        !script.contains("http://") && !script.contains("https://"),
+        "the webview script must not reference remote assets"
+    );
+    assert!(
+        !script.contains("/latest/") && !script.contains("releases/latest"),
+        "the webview must not reference a release `latest` URL"
+    );
+    let html = media_file("infoview.html");
+    assert!(
+        !html.contains("http://") && !html.contains("https://") && !html.contains("onclick="),
+        "the webview HTML must not carry remote URLs or inline event attributes"
+    );
+    // Stale snapshots are dropped by document version (the host's own
+    // cursorRequestSeq discipline, mirrored in the webview).
+    assert!(
+        script.contains("lastVersion") && script.contains("version"),
+        "the webview must drop stale state snapshots by version"
+    );
+}
+
+#[test]
+fn infoview_message_protocol_matches_design() {
+    // Protocol table (docs/design/webview-infoview.md §3): host → webview
+    // state/decls/server/theme; webview → host ready/reveal/focusExercise.
+    // Cursor moves post only `state` (decls follows diagnostics/file change),
+    // the view releases hidden context, and the client still consumes
+    // soko/stateAt / soko/version.
+    let script = entry_script();
+    let webview = media_file("infoview.js");
+    for needle in [
+        "INFOVIEW_PROTOCOL",
+        "\"state\"",
+        "\"decls\"",
+        "\"server\"",
+        "\"theme\"",
+        "\"ready\"",
+        "\"reveal\"",
+        "\"focusExercise\"",
+    ] {
+        assert!(
+            script.contains(needle),
+            "extension.js must implement the Infoview message {needle}"
+        );
+    }
+    for needle in [
+        "\"state\"",
+        "\"decls\"",
+        "\"server\"",
+        "\"theme\"",
+        "\"ready\"",
+        "\"reveal\"",
+        "\"focusExercise\"",
+    ] {
+        assert!(
+            webview.contains(needle),
+            "media/infoview.js must handle the Infoview message {needle}"
+        );
+    }
+    assert!(
+        script.contains("retainContextWhenHidden: false"),
+        "the Infoview must release hidden context (retainContextWhenHidden: false)"
+    );
+    assert!(
+        script.contains("soko/stateAt") && script.contains("soko/version"),
+        "the host must feed the webview from soko/stateAt / soko/version"
     );
 }
 

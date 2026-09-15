@@ -14,7 +14,12 @@
 // Course map: the 「课程」 tree shells out to the CLI (`sokonanoda course
 // <manifest> --json`) — cross-file aggregation is the CLI's job (the server
 // stays single-document); the client only renders `course.unit` events.
+// Infoview (方案 B, docs/design/webview-infoview.md): a WebviewViewProvider
+// (`sokonanoda.infoview`) renders the same soko/stateAt snapshot and
+// soko/goals declaration list in a dockable panel; it is a read-only
+// presentation layer and the trees stay the default/fallback.
 const cp = require("child_process");
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const vscode = require("vscode");
@@ -139,6 +144,9 @@ class GoalsTreeDataProvider {
     this.cursorState = undefined; // {uri, state} from soko/stateAt
     this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
     this.declItems = undefined; // cached decl TreeItems from the last soko/goals
+    this.onDecls = undefined; // (decls) => void — feeds the Infoview decls message
+    this.onState = undefined; // (uri, state) => void — feeds the Infoview state message
+    this.treeView = undefined; // set by activate, for focusExercise reveal
   }
 
   // Full reload: the declarations themselves changed (new diagnostics or a
@@ -230,7 +238,26 @@ class GoalsTreeDataProvider {
     const state = await this.requestCursorState(uriString, position);
     if (state === undefined || uriString !== this.uri) return;
     this.cursorState = { uri: uriString, state };
+    // Fan the single soko/stateAt snapshot out to the Infoview webview too —
+    // one request feeds both views, and cursor moves never trigger soko/goals.
+    this.onState?.(uriString, state);
     this.refreshCursor();
+  }
+
+  // Load the declaration list once (per document/diagnostics version), or
+  // reuse the cached items. The Infoview asks for this on `ready`/diagnostics;
+  // cursor movement never calls it (docs/design/goal-list.md §2.4).
+  async ensureDeclarations() {
+    if (!this.declItems) await this.loadDeclarations();
+  }
+
+  // `focusExercise` from the Infoview: reveal + expand the declaration node in
+  // the 练习 tree. Declarations come from `soko/goals` — never scan the source.
+  async focusDeclaration(name) {
+    if (!this.declItems) await this.ensureDeclarations();
+    const item = (this.declItems ?? []).find((entry) => entry.label === name);
+    if (!item || !this.treeView) return;
+    await this.treeView.reveal(item, { select: true, focus: true, expand: true });
   }
 
   // Fetch `soko/goals` once per document/diagnostics version and cache the
@@ -262,6 +289,7 @@ class GoalsTreeDataProvider {
       }
       return item;
     });
+    this.onDecls?.(decls);
   }
 }
 
@@ -355,6 +383,201 @@ function buildCursorChildren(cursor, uriString) {
     children.push(progress);
   }
   return children;
+}
+
+// Infoview webview (docs/design/webview-infoview.md, 方案 B): a read-only
+// presentation of the same server data the trees consume. The extension host
+// is the only holder of the LanguageClient, so it pushes structured JSON to
+// the webview — never the other way around — and the webview renders it with
+// textContent only (CSP nonce, local resources only, no innerHTML). Cursor
+// moves push `state` only; `decls` follows diagnostics/file changes (§5).
+const INFOVIEW_PROTOCOL = 1;
+const INFOVIEW_READY_TIMEOUT_MS = 2000;
+
+// Per-load CSP nonce (docs/design/webview-infoview.md §4): unpredictable,
+// embedded in both the meta tag and the script tag.
+function makeNonce() {
+  return crypto.randomBytes(16).toString("base64");
+}
+
+function themeKindName() {
+  switch (vscode.window.activeColorTheme.kind) {
+    case vscode.ColorThemeKind.Light:
+      return "light";
+    case vscode.ColorThemeKind.HighContrast:
+      return "high-contrast";
+    case vscode.ColorThemeKind.HighContrastLight:
+      return "high-contrast-light";
+    default:
+      return "dark";
+  }
+}
+
+// Raw `soko/version` snapshot for the webview's `server` message (the restart
+// receipt in `serverVersion` stays a human string).
+async function requestServerInfo() {
+  if (!client) return { running: false };
+  try {
+    const result = await client.sendRequest("soko/version", {});
+    return { running: true, version: result?.version, pid: result?.pid };
+  } catch {
+    return { running: false };
+  }
+}
+
+class InfoviewProvider {
+  constructor(extensionUri, treeProvider) {
+    this._extensionUri = extensionUri;
+    this._treeProvider = treeProvider;
+    this._view = undefined;
+    this._ready = false;
+    this._readyWaiters = [];
+    this._lastState = undefined; // {uri, state} — replayed when the view returns
+    this._lastDecls = undefined; // last soko/goals decls (cursor moves don't touch it)
+  }
+
+  resolveWebviewView(view) {
+    this._view = view;
+    view.webview.options = {
+      enableScripts: true,
+      // Only media/ may be loaded — no remote assets (docs/design §4).
+      localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, "media")],
+    };
+    view.webview.html = this._buildHtml(view.webview);
+    view.webview.onDidReceiveMessage((message) => {
+      this._onMessage(message).catch(() => {});
+    });
+    view.onDidChangeVisibility(() => {
+      if (view.visible) this._pushAll();
+    });
+  }
+
+  _buildHtml(webview) {
+    const mediaRoot = vscode.Uri.joinPath(this._extensionUri, "media");
+    const nonce = makeNonce();
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaRoot, "infoview.js"));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(mediaRoot, "infoview.css"));
+    let template;
+    try {
+      template = fs.readFileSync(
+        path.join(this._extensionUri.fsPath, "media", "infoview.html"),
+        "utf8",
+      );
+    } catch {
+      // Missing asset must not break activation: the tree stays the fallback
+      // (docs/design §6); an empty document simply renders nothing.
+      return "<!DOCTYPE html><html><body></body></html>";
+    }
+    return template
+      .replaceAll("{{cspSource}}", webview.cspSource)
+      .replaceAll("{{nonce}}", nonce)
+      .replaceAll("{{styleUri}}", String(styleUri))
+      .replaceAll("{{scriptUri}}", String(scriptUri));
+  }
+
+  // Every host message is stamped with the protocol so the webview can drop
+  // anything it does not understand.
+  _post(payload) {
+    if (!this._view) return;
+    this._view.webview.postMessage(Object.assign({ protocol: INFOVIEW_PROTOCOL }, payload));
+  }
+
+  setState(uri, state) {
+    this._lastState = { uri, state };
+    if (!this._view || !this._ready) return;
+    this._post(Object.assign({ type: "state", uri }, state));
+  }
+
+  setDecls(decls) {
+    this._lastDecls = decls;
+    if (!this._view || !this._ready) return;
+    this._post({ type: "decls", decls });
+  }
+
+  postTheme() {
+    this._post({ type: "theme", kind: themeKindName() });
+  }
+
+  waitReady(timeoutMs) {
+    if (this._ready) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), timeoutMs);
+      this._readyWaiters.push(() => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+    });
+  }
+
+  async _onMessage(message) {
+    if (!message || message.protocol !== INFOVIEW_PROTOCOL) return;
+    switch (message.type) {
+      case "ready":
+        this._ready = true;
+        this._readyWaiters.splice(0).forEach((resolve) => resolve());
+        this._pushAll();
+        break;
+      case "reveal":
+        if (typeof message.uri === "string" && message.range) {
+          await vscode.commands.executeCommand(
+            "sokonanoda.revealRange",
+            message.uri,
+            message.range,
+          );
+        }
+        break;
+      case "focusExercise":
+        if (typeof message.name === "string") {
+          await this._treeProvider.focusDeclaration(message.name);
+          await vscode.commands.executeCommand("sokonanoda.goals.focus");
+        }
+        break;
+    }
+  }
+
+  _pushAll() {
+    if (!this._view) return;
+    this.postTheme();
+    this._pushDecls();
+    this._pushState();
+    this._pushServer();
+  }
+
+  _pushState() {
+    if (!this._lastState) return;
+    const { uri, state } = this._lastState;
+    this._post(Object.assign({ type: "state", uri }, state));
+  }
+
+  _pushDecls() {
+    if (this._lastDecls !== undefined) {
+      this._post({ type: "decls", decls: this._lastDecls });
+    } else {
+      this._treeProvider.ensureDeclarations().catch(() => {});
+    }
+  }
+
+  async _pushServer() {
+    const info = await requestServerInfo();
+    this._post(Object.assign({ type: "server" }, info));
+  }
+}
+
+// `sokonanoda.openInfoview`: reveal the webview. If it never handshakes
+// (old VS Code / scripts disabled / creation failure) the tree keeps working
+// and we surface that instead of failing silently (docs/design §6).
+async function openInfoview(infoviewProvider) {
+  try {
+    await vscode.commands.executeCommand("sokonanoda.infoview.focus");
+  } catch {
+    // Focus is best-effort; the readiness check below reports the truth.
+  }
+  const ready = await infoviewProvider.waitReady(INFOVIEW_READY_TIMEOUT_MS);
+  if (!ready) {
+    vscode.window.showInformationMessage(
+      "目标面板 (Infoview) 暂时不可用；「练习」面板中的「当前光标处」组仍然可用。",
+    );
+  }
 }
 
 // Course map (docs/design/course-status.md §2): one node per unit, rendered
@@ -728,7 +951,7 @@ async function restartServer(context) {
   );
 }
 
-function registerCommands(context, provider, courseProvider) {
+function registerCommands(context, provider, courseProvider, infoviewProvider) {
   const showStatus = async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.languageId !== "sokonanoda") {
@@ -774,6 +997,7 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand("sokonanoda.previousHole", () => nextHole(true)),
     vscode.commands.registerCommand("sokonanoda.goals.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("sokonanoda.courseRefresh", () => courseProvider.refresh()),
+    vscode.commands.registerCommand("sokonanoda.openInfoview", () => openInfoview(infoviewProvider)),
     vscode.commands.registerCommand("sokonanoda.revealRange", revealRange),
     vscode.commands.registerCommand(
       "sokonanoda.revealHint",
@@ -817,6 +1041,21 @@ async function activate(context) {
   statusBar.command = "sokonanoda.goals.focus";
   context.subscriptions.push(tree, statusBar);
 
+  // Infoview webview (方案 B): the tree fans its single soko/stateAt snapshot
+  // and its soko/goals declaration list out to the webview. Hidden context is
+  // released (`retainContextWhenHidden: false`); the provider caches the last
+  // state/decls and replays them on the next `ready` (docs/design §5).
+  const infoviewProvider = new InfoviewProvider(context.extensionUri, provider);
+  provider.onDecls = (decls) => infoviewProvider.setDecls(decls);
+  provider.onState = (uriString, state) => infoviewProvider.setState(uriString, state);
+  provider.treeView = tree;
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("sokonanoda.infoview", infoviewProvider, {
+      webviewOptions: { retainContextWhenHidden: false },
+    }),
+    vscode.window.onDidChangeActiveColorTheme(() => infoviewProvider.postTheme()),
+  );
+
   // 光标目标视图：选区变化去抖 ~200ms 后请求 soko/stateAt（位置选取在服务端）。
   const requestCursorForEditor = (editor = vscode.window.activeTextEditor) => {
     if (!editor || editor.document.languageId !== "sokonanoda") return;
@@ -844,6 +1083,9 @@ async function activate(context) {
     }),
     vscode.languages.onDidChangeDiagnostics(() => {
       provider.refresh();
+      // decls follow diagnostics/file changes only (never cursor moves): the
+      // webview gets the fresh declaration list through the onDecls hook.
+      provider.ensureDeclarations().catch(() => {});
       requestCursorForEditor(); // the document may have been re-checked
     }),
     { dispose: () => clearTimeout(selectionTimer) },
@@ -860,7 +1102,7 @@ async function activate(context) {
   });
   context.subscriptions.push(courseTree);
 
-  registerCommands(context, provider, courseProvider);
+  registerCommands(context, provider, courseProvider, infoviewProvider);
   courseProvider.refresh();
 
   await client.start();

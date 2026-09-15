@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 55,
+  "round": 56,
   "round_date": "2026-09-14",
-  "round_title": "编译器服务事件流",
+  "round_title": "VS Code webview Infoview",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -60,5 +60,5 @@
       "unit": 7
     }
   ],
-  "version": "0.29.0"
+  "version": "0.30.0"
 }

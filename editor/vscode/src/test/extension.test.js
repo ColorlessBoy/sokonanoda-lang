@@ -296,4 +296,15 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       vscode.languages.getDiagnostics(uri).some((d) => d.code === "sorry"),
     );
   });
+
+  test("infoview command is registered and revealable", async () => {
+    // 冒烟（docs/design/webview-infoview.md §8）：命令存在，聚焦 webview 不抛。
+    // webview 本身由真实宿主渲染，这里只验证接线；数据/渲染由静态契约守护。
+    const commands = await vscode.commands.getCommands(true);
+    assert.ok(
+      commands.includes("sokonanoda.openInfoview"),
+      "sokonanoda.openInfoview must be registered",
+    );
+    await vscode.commands.executeCommand("sokonanoda.openInfoview");
+  });
 });

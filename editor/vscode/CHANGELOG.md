@@ -1,3 +1,16 @@
+## [0.30.0] - 2026-09-14
+
+### Added
+
+- **Infoview panel (webview)** — a Lean-Infoview-style goal panel in the
+  side bar (`sokonanoda.infoview`, command `sokonanoda.openInfoview`) rendering
+  every goal with its hypotheses, the `by` progress and the running server
+  version. The extension host remains the only LSP client (it posts
+  `soko/stateAt` / `soko/goals` / `soko/version` snapshots); cursor moves post
+  only the light `state` message (no `soko/goals`, no rebuild), and the panel
+  falls back silently to the existing tree group when a webview is
+  unavailable. Design: `docs/design/webview-infoview.md`.
+
 ## [0.29.0] - 2026-09-14
 
 ### Added

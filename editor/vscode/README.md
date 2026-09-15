@@ -39,6 +39,13 @@ skills.
 - **Goals at cursor** — with the caret inside a `by` proof, the same tree
   shows the goal, the hypotheses in scope and your `by` progress at that
   position; click the goal to jump to the tactic.
+- **Infoview panel** — a dockable, syntax-styled goal panel (Lean-Infoview
+  style) next to 「练习」: multi-goal columns with each goal's hypotheses,
+  `by k/n` progress, the declaration list, and the live server version. It
+  reads the same kernel-checked data as the tree, updates only on
+  debounced caret moves (never refetches the declaration list on cursor
+  movement), and falls back to the tree's 「当前光标处」 group when webviews
+  are unavailable. Open it with `sokonanoda: 打开目标面板 (Infoview)`.
 - **Hint ladders** — each exercise carries 2–3 progressive hints
   (`-- soko:hint` directives); reveal them one at a time when stuck.
 - **Course map** — a 6-unit structured course with verified solutions
