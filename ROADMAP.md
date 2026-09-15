@@ -368,9 +368,11 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 5. [x] `--json` 与 CLI 错误码跟随细粒度 code；`docs/protocol.md`、`docs/architecture.md`、
       README 同步。
 
-仍待办（按 I6–I9 与课程）：prelude 扩充与占位体对齐、elaborator 推进（binder 推断、
-`let`、`match`）、第一门课（5 单元 × 3–8 练习 + golden）、真正增量缓存（check-then-add）、
-goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
+以上均已落地（I6–I9 全绿）：prelude（`Nat`/`Bool`/`Eq`）、elaborator（
+无注解 `let`、`match` 全形态含带索引、binder 推断）、第一门课 7 单元 + golden、
+真增量（early cutoff）、goal 视图（树 + Infoview + 高亮统一）、VS Code 打包发布。
+剩余仅远期 L2/L3（协作/远程、compiler service 跨文件转播）与已文档化技术债
+（见 `docs/HANDOVER.md` §3 D / §4）。
 
 
 ---

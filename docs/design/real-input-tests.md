@@ -1,6 +1,11 @@
 # 真人输入测试（`sokonanoda` 四写法共存）
 
-> **状态：部分实施（2026-09-13）。** S0（`testutil::type_step`/`char_steps`
+> **状态：已废弃（2026-09-15，历史存档）。** 逐字符输入脚本基建（`char_steps`）与
+> 值位 `intro`/`apply` 关键字均已随 `docs/design/remove-funintro.md` 删除，本设计的
+> F*/L*/V* 余项不再执行。现行测试以前端单测 + CLI e2e + 进程内 LSP rpc +
+> `editor/vscode/src/test/extension.test.js`（Electron 集成）为准，见 `docs/TESTING.md`。
+>
+> ~~**状态：部分实施（2026-09-13）。**~~ S0（`testutil::type_step`/`char_steps`
 > 输入脚本基建 + 整词门控用例）与 S1（`by apply` 多子目标 inlay 修复）已
 > 落地；B4 依赖的值位 `apply` 已随 I10 实现。**余项**：F1–F5 / L3–L8 /
 > V2–V4（见 ROADMAP I11-S2–S4）。

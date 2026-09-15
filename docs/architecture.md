@@ -141,7 +141,7 @@ sokonanoda-lang/
   `docs/design/indexed-inductives.md`）。带索引归纳
   （`num_indices > 0`）与宇宙多态参数（`{u}` 级参数）仍不支持。
 - **声明级 binder**（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v` 在 parser 里降级为 `ty = Forall{binders → C}`、`val = Lambda{binders → v}`（`parser.rs::wrap_decl_binders`）；`by` 引擎把声明 binder 作为初始上下文（`run_by` 的 `initial_binders`），`:= sorry` 的剩余目标直接是 `C`。
-- **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。`A -> B` 与 `fun (x : A) => ...` 的 binder 都必须**带显式类型**（elaborator 尚未做 binder 类型推断，见 §8 待办）。
+- **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。Pi（`A -> B`/`forall`）的 binder 必须**带显式类型**；lambda 的 binder 在**有期望望远镜**或**应用位置**（从实参类型，0.45.0）时可省略（`docs/design/elaborator-let-match.md` as-built）。
 - span 全程保留（offset/line/column），诊断带行列。
 
 ### 4.2 Elaboration（`crates/front/src/compile.rs`）

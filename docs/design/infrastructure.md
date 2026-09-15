@@ -193,6 +193,9 @@ report
 
 | # | 状态 | 说明 |
 |---|---|---|
+> **注（2026-09-15）**：下表是**立项时的原始计划**，其状态列已过期（I4–I9 均已
+> 落地或取代）。**当前状态以 `ROADMAP.md §10` + `STATUS.md` 为准**，此处仅留历史。
+>
 | I0 | ✅ | `--json`、错误 code/hint、CI、语料测试、docs |
 | I1 | ✅ v1 | `DocumentReport` 逐声明状态（open/checked/failed）+ 容错 |
 | I2 | ✅ v1 | `ErrorKind` 细 code + 教学 hint（CLI/JSON/LSP） |

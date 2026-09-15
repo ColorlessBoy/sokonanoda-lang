@@ -54,6 +54,10 @@ cargo test --workspace --locked   # 全量 13 套件
 
 ## 3. 剩余 TODO（按建议顺序）
 
+> **状态（2026-09-15）**：§3 A/A′/A″/B/C 的**可执行项已全部完成**（0.40.0–0.47.0）；
+> 仅剩 §3 D「远期 L2/L3」（协作/远程、compiler service 跨文件转播）与 §4 的
+> 已文档化技术债（多数需内核/pp 变更，违反 kernel 冻结）。
+
 ### A′. ~~统一 goal 呈现 + Infoview 落右侧~~ ✅ 已完成（0.40.0）
 - 单一分类源 `front::semantic`（`tag_runs`/`tag_expr`/`declaration_kinds` +
   `SemanticKind::{ALL, as_str}`）；`soko/stateAt`/`soko/goals` 下发
@@ -99,8 +103,8 @@ cargo test --workspace --locked   # 全量 13 套件
   （既有）；无期望的**应用位置**从实参类型推断（`annotate_application_lambda`，
   支持柯里化），实参不足仍报 `elab-untyped-binder`。见
   `docs/design/elaborator-let-match.md` as-built。
-- `Nat.succ`/`Nat.add` 边界：`Nat` 现为真实归纳、`Nat.add` 仍原生自引用定义
-  （见 `docs/architecture.md` §5.4）；如需可补裸名 `#reduce` 测试。
+- ~~`Nat.succ`/`Nat.add` 边界裸名 `#reduce` 测试~~ ✅ 已完成（0.42.0）：
+  `bare_prelude_nat_names_stay_terminating`（裸 `#reduce Nat.add` 终止为常量）。
 
 ### D. 远期（L2/L3）
 - 协作/多用户、远程；compiler service 的跨文件转播 / `setContent`（v1 未做）。

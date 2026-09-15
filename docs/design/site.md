@@ -3,8 +3,8 @@
 > 触发（用户原话）：「我希望增加一个 github pages，相当于当前项目的官网，充分介绍本项目的
 > 用法、远大目标和当前进展。」
 >
-> 现状：仓库 `ColorlessBoy/sokonanoda-lang` **尚未启用 Pages**（`GET /repos/.../pages`
-> 返回 404），`.github/workflows/` 下只有 `ci.yml`、`release.yml`。
+> 现状：Pages 已于 2026-09-13 启用（Source = GitHub Actions），`pages.yml` 已上线，
+> 站点可访问；本文为立项时的设计，as-built 见 `ROADMAP.md` I12 与 `site/`。
 
 ## 0. 一句话
 

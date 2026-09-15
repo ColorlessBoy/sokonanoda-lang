@@ -58,7 +58,7 @@
 | 练习载体 | Level 文件（Game 命令） | 文件+推导 | 文件+洞 | fol/*.fol + REPL | `.sokonanoda`（正文+代码+`???`） |
 | 判定 | 服务端编译 proof | 检查证明 | 检查 | kernel 检查 | kernel 检查（已实现） |
 | 学生书写 | tactic proof | 显式推导规则 | 项+洞 | term + 草案 tactic | term（`#prove` 草案 tactic） |
-| 提示/反馈 | Hint 绑定 goal state | 错误定位到规则应用 | goal/type 视图 | REPL 文本 + 报告 | 文本 + JSON 事件（新）；提示模板待做 |
+| 提示/反馈 | Hint 绑定 goal state | 错误定位到规则应用 | goal/type 视图 | REPL 文本 + 报告 | 文本 + JSON 事件；提示梯度 `soko:hint`（已实现） |
 | 增量/服务 | 长驻 server | 批处理 | IDE | LSP/server 草案 | REPL 累积 + 批处理；service 是 M3+ |
 | 离线/无官方工具 | 否（依赖 lean） | 是 | 否 | 是 | **是（硬规则）** |
 
