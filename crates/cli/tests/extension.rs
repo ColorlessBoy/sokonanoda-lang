@@ -295,6 +295,34 @@ fn packaging_metadata_is_complete() {
 }
 
 #[test]
+fn marketplace_description_fits_the_gallery_limit() {
+    // The Marketplace gallery renders `description` as the short blurb under the
+    // extension name and hard-truncates it at 300 characters — mid-word, with no
+    // ellipsis. Keep it a complete sentence under the limit; the long pitch
+    // belongs in README.md (which the gallery renders in full). Regression guard
+    // for the shipped 0.39.1 description, which was cut at "...(Claude Code / ope".
+    const GALLERY_LIMIT: usize = 300;
+    let manifest = manifest();
+    let description = manifest["description"]
+        .as_str()
+        .expect("package.json must declare a string description");
+    let len = description.chars().count();
+    assert!(
+        len <= GALLERY_LIMIT,
+        "Marketplace truncates `description` at {GALLERY_LIMIT} chars (got {len}); \
+         move the detail into editor/vscode/README.md:\n{description}"
+    );
+    assert!(
+        !description.ends_with(' ') && description.ends_with('.'),
+        "`description` must end on a complete sentence: {description:?}"
+    );
+    assert!(
+        description.is_ascii(),
+        "`description` must stay ASCII so every gallery surface renders it the same: {description:?}"
+    );
+}
+
+#[test]
 fn manifest_disables_confusable_unicode_highlight_for_the_language() {
     // 教学语言用希腊字母（α/β/γ）作 binder 名；VS Code 的 Trojan-Source
     // 混淆字符高亮（editor.unicodeHighlight.ambiguousCharacters，默认开）

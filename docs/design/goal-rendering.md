@@ -83,10 +83,11 @@
   需 bump `engines.vscode`），容器 `id: sokonanoda`，把现有 `sokonanoda.infoview`
   视图放进去 → 默认落在**右侧辅助侧栏**。
 - 保留 Explorer 的「练习」「课程」树不变；Infoview 视图从 explorer 移出。
-- **engine bump**：`engines.vscode` 设为首个支持扩展贡献 `secondarySidebar` 容器的稳定
-  版本（实现时用 VS Code 源码 `viewsExtensionPoint.ts` 的 schema/switch 与 release notes
-  确认具体版本号；老版本会忽略该键）。bump 会排除更老的 VS Code——若不可接受，退路是
-  放 `activitybar` 容器并文档说明"可拖到右侧"（见 §5 风险）。
+- **engine bump**：`engines.vscode` 提到 **`^1.106.0`**。已核实（VS Code 源码
+  `viewsExtensionPoint.ts`）：`1.104`/`1.105` 的 `case 'secondarySidebar'` 里有
+  `checkProposedApiEnabled(description, 'contribSecondarySidebar')`（需 proposed
+  API），**`1.106.0` 起该检查被移除**（commit 75988f8，key 统一为小写 b），是首个
+  无需 proposal 的稳定版。老版本会忽略该键 → 必须 bump engine，否则视图会整块消失。
 - 命令 `sokonanoda.openInfoview` 改为 `executeCommand('workbench.view.extension.sokonanoda')`
   / `sokonanoda.infoview.focus`，聚焦容器。
 
@@ -131,7 +132,7 @@
 | 风险 | 取舍 |
 |---|---|
 | VS Code 不暴露 token 颜色给 webview | 同一分类 + 主题变量近似映射（单一表）；将来有 API 再替换 |
-| `secondarySidebar` 需 bump engine，排除老 VS Code | 确认首个支持版本；不可接受则退回 `activitybar` 容器并文档"可拖右" |
+| `secondarySidebar` 需 bump engine，排除老 VS Code | 已核实首个稳定版 **1.106.0**；engine 提到 `^1.106.0`（老版本会忽略该键 → 视图整块消失，必须 bump） |
 | hover 无法 class 高亮 | hover 保持 VS Code TM 代码框；与 Infoview 共享**行模型与分类源**，不共享颜色实现 |
 | `tagged` 字段增大 payload | 只在请求期计算、按目标小体积；有界、无网络放大 |
 | 与既有「当前光标处」树重复 | Infoview 是增量能力；树保留为默认+兜底（见 §2.4） |

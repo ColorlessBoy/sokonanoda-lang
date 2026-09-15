@@ -170,7 +170,7 @@ git tag v0.X.Y && git push origin v0.X.Y
 | 文件 | 出现在哪 | 内容 |
 |---|---|---|
 | `README.md` | Marketplace 页面正文 | 安装/获取方式、功能清单、agent 集成 |
-| `package.json` → `description` | 搜索列表的一行简介 | 一句话卖点（零安装门槛 + 教学 + agent） |
+| `package.json` → `description` | 搜索列表的一行简介 | 一句话卖点（零安装门槛 + 教学 + agent）；**≤ 300 字符**，超了 Marketplace 硬截断（无省略号，切在词中间——见下） |
 | `CHANGELOG.md` | 页面"Changelog"标签 | 每个版本用户可感知的变化 |
 
 ### 同步触发器（命中任一 = 同一 commit 里改门面）
@@ -179,6 +179,23 @@ git tag v0.X.Y && git push origin v0.X.Y
 2. **功能集变化**：新命令/键位/树/视图（对照 `package.json` contributes）；
 3. **反馈行为变化**：诊断分级、hover 内容、inlay（用户能在编辑器里"感觉到"的）；
 4. **agent 集成变化**：skills 增删、opencode 接线、CLI 事件面。
+
+### description 硬上限 300 字符（2026-09-15 教训）
+
+Marketplace 详情页把 `description` 当"短简介"，**超过 300 字符直接截断**
+（无省略号、切在词中间）。0.39.1 的实际表现：
+
+```
+… it works offline. Ships agent skills (Claude Code / ope
+```
+
+即 348 字符的简介被切在 `opencode` 中间——第一屏门面直接"翻车"。规程：
+
+- `description` = 一句话，**≤ 300 字符**（留余量，别贴着上限写），必须 ASCII、
+  以句号结尾；
+- 长卖点放 `README.md`（Marketplace 正文完整渲染，不截断）；
+- 护栏：`crates/cli/tests/extension.rs::marketplace_description_fits_the_gallery_limit`
+  断言长度/结尾/ASCII——改坏了 `cargo test` 直接红。
 
 ### 事实校对规程
 
