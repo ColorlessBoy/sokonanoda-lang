@@ -68,8 +68,8 @@ def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := sorry
 -- Local bindings with let: give an intermediate result a name, then continue.
 --   let x : T := v; body
 -- Read it as: name v as x (of type T), then compute body, where x is in scope.
--- Note: v1 requires the type to be written out (let x : T := v); decide the
--- type of the intermediate value first.
+-- Note: the type may be omitted — `let x := v; body` infers it from `v` via the
+-- kernel; write it explicitly when the value alone is ambiguous.
 -- Equivalence: let x : T := v; body is exactly (fun (x : T) => body) v — the
 -- kernel makes the call, so either spelling is fine.
 -- ---------------------------------------------------------------------------

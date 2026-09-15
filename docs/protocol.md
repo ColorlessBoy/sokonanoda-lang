@@ -99,7 +99,8 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   不是本文件声明的非递归 `inductive` 类型), `elab-match-no-expected-type`
   (`match` 的结果类型未知，无法定 motive 及其宇宙), 
   `elab-match-recursive-unsupported` (`match` 暂不支持递归归纳类型),
-  `elab-match-non-exhaustive` (`match` 未覆盖全部构造子);
+  `elab-match-non-exhaustive` (`match` 未覆盖全部构造子),
+  `elab-let-type-query-failed` (无类型标注的 `let` 无法从值推断绑定类型);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),

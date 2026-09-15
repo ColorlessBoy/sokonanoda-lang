@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十一轮：tactic hover 呈现升级——代码围栏 + 高亮 + 排版；0.33.1）
+> 快照：2026-09-14（第六十二轮：无注解 `let`——内核推断绑定类型；0.34.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,21 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十二轮：无注解 `let`）
+
+> 续 TODO 清账：把 `let` 的类型标注变为可选（Phase 2 小切片）。
+
+1. **实现**：`Expr::Let` 的 `binder.ty == None` 时，用当前 scope 的
+   `judge_binders()` + `judge_infer`（复用有界缓存）推断值类型、回 AST 作 binder
+   类型（`match` 轮已把 `ElabCtx{prefix,options}` 贯通进 elab，正好复用）。
+   推断失败（值位 `sorry` 等）→ 新码 `elab-let-type-query-failed`（protocol +
+   穷尽清单 + hint 同步）。
+2. **测试**：front `let_without_annotation_infers_the_value_type` +
+   `unannotated_let_that_cannot_be_inferred_reports_a_let_specific_error`；CLI
+   `json_mode_unannotated_let_infers_or_reports_hint`；课程 unit3 注释更新。
+3. **验收**：`sokonanoda gate` PASS；版本 0.33.1 → **0.34.0**（新能力 minor）；
+   设计 as-built `docs/design/elaborator-let-match.md` §13。
 
 ## 本轮进度（2026-09-14，第六十一轮：tactic hover 呈现升级）
 
@@ -46,26 +61,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 5. **验收**：`sokonanoda gate` PASS；版本 0.32.1 → **0.33.0**（新语法 minor）。
 6. **v1 边界（未做）**：递归归纳（IH）、依赖/参数化归纳、prelude `Nat`/`Eq`、
    `match` tactic、嵌套/字面量/守卫模式、无注解 `let`。
-
-## 本轮进度（2026-09-14，第五十九轮：I8 early-cutoff + arena 基准立项）
-
-> 续 TODO 清账（R58）：ROADMAP I8 验收余项「受影响后缀的依赖精确化」+ TESTING
-> §5 perf 基准立项。
-
-1. **设计** `docs/design/early-cutoff.md`（机制/soundness/测试/边界）。
-2. **early-cutoff（保守 sound）**：每条命令在 `try_check_declar` 前用内核
-   结构化 `debug_print` 渲染「环境贡献签名」（kind+name+宇宙+type+**body**+
-   hint+ctor/recursor/iota；归纳块串联），存 `CmdSnapshot.signature`（不改
-   `--json`/LSP 形状）。单点编辑时累积 `[i, j)` 签名，遇到文本不变且签名与上轮
-   相同的 `j` 即停止，`[j, n)` 快照复用、内核检查跳过；任何内核拒绝或多点编辑
-   一律退回旧后缀重查；prelude 形状守卫变化整文件重建。body 进签名保证 delta
-   可观察性 sound。
-3. **效果**（测试实测 kernel_checks）：`def one := 1 → (1)` 4→**1**；axiom 3→**1**；
-   Nat 归纳块 6→**1**；改 body/宇宙元数/多点编辑不 cut（正确重查）。
-4. **arena 基准立项**：`scripts/perf-arena.sh`（opt-in，`LEAN_KERNEL_ARENA`
-   门控，未设给获取指引并跳过；不 vendor、不进 CI、不引入官方 Lean 工具链）+
-   `docs/PERF.md`「External baseline」；TESTING §5 盲区第 6 条更新。
-5. **文档/清单**：`docs/design/i8-i9.md` §4 更新（early-cutoff 已补做）；
-   `ROADMAP.md` I8 余项勾选。
-6. **验收**：`sokonanoda gate` PASS（front 298、perf 3、cli 105、lsp 112）；版本
-   0.32.0 → **0.32.1**（内部性能优化 → patch）。

@@ -1422,6 +1422,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabMatchNoExpectedType,
         ErrorKind::ElabMatchRecursiveUnsupported,
         ErrorKind::ElabMatchNonExhaustive,
+        ErrorKind::ElabLetTypeQueryFailed,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1459,6 +1460,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabMatchNoExpectedType => {}
         ErrorKind::ElabMatchRecursiveUnsupported => {}
         ErrorKind::ElabMatchNonExhaustive => {}
+        ErrorKind::ElabLetTypeQueryFailed => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}
@@ -3266,11 +3268,29 @@ fn let_type_mismatch_is_kernel_rejected() {
 }
 
 #[test]
-fn let_missing_annotation_is_untyped_binder_with_let_message() {
-    let src = "def bad : Nat := let x := Nat.zero; x\n";
+fn let_without_annotation_infers_the_value_type() {
+    // Phase 2：无注解 `let` 由内核推断值类型（judge_infer，复用有界缓存）。
+    let src = "def one : Nat := let x := Nat.zero; x\n\
+               def id2 : Nat -> Nat := let f := fun (n : Nat) => n; f\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert!(out.errors.is_empty(), "{:?}", out.errors);
+    for name in ["one", "id2"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "{name} must check through the kernel"
+        );
+    }
+}
+
+#[test]
+fn unannotated_let_that_cannot_be_inferred_reports_a_let_specific_error() {
+    // 推断不出值类型（值位洞 / 无类型 binder）→ 教学错误，提示补类型标注。
+    let src = "def bad : Nat := let x := sorry; x\n";
     let out = compile_fol(&parse(src).unwrap());
     assert_eq!(out.errors.len(), 1, "{:?}", out.errors);
-    assert_eq!(out.errors[0].code(), "elab-untyped-binder");
+    assert_eq!(out.errors[0].code(), "elab-let-type-query-failed");
     assert!(
         out.errors[0].message.contains("let"),
         "let-specific message expected, got {:?}",

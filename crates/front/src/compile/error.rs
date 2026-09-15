@@ -42,6 +42,7 @@ pub enum ErrorKind {
     ElabMatchNoExpectedType,
     ElabMatchRecursiveUnsupported,
     ElabMatchNonExhaustive,
+    ElabLetTypeQueryFailed,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -78,7 +79,8 @@ impl ErrorKind {
             | ElabMatchNotInductive
             | ElabMatchNoExpectedType
             | ElabMatchRecursiveUnsupported
-            | ElabMatchNonExhaustive => CompileStage::Elab,
+            | ElabMatchNonExhaustive
+            | ElabLetTypeQueryFailed => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -116,6 +118,7 @@ impl ErrorKind {
             ElabMatchNoExpectedType => "elab-match-no-expected-type",
             ElabMatchRecursiveUnsupported => "elab-match-recursive-unsupported",
             ElabMatchNonExhaustive => "elab-match-non-exhaustive",
+            ElabLetTypeQueryFailed => "elab-let-type-query-failed",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -194,6 +197,9 @@ impl ErrorKind {
             }
             ElabMatchNonExhaustive => {
                 "match 要覆盖该归纳类型的每一个构造子，一个都不能漏。"
+            }
+            ElabLetTypeQueryFailed => {
+                "无法从值推断出 `let` 绑定的类型；补上类型标注即可，例如 `let x : Nat := 1; x`。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"

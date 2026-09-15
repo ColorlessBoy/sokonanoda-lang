@@ -993,18 +993,39 @@ pub(crate) fn elab_expr<'a>(
             span,
         } => {
             let base = scope.len();
-            // 1) binder 类型在「未引入 x」的外层 scope 里 elaborate。
-            let ty_src = binder.ty.as_deref();
-            let ty = match ty_src {
-                Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers, None, None, ctx)?,
+            // 1) binder 类型在「未引入 x」的外层 scope 里 elaborate；无注解时
+            //    问内核推断值 `v` 的类型（`judge_infer`，复用有界缓存）。
+            let mut inferred_src: Option<Expr> = None;
+            let ty = match binder.ty.as_deref() {
+                Some(src_ty) => {
+                    elab_expr(builder, src_ty, scope, univ, known, hovers, None, None, ctx)?
+                }
                 None => {
-                    return Err(CompileError::elab(
-                        ErrorKind::ElabUntypedBinder,
-                        "`let` 的绑定需要类型标注，例如 `let x : Nat := 1; x`",
-                        binder.span,
-                    ));
+                    let binders = scope.judge_binders();
+                    let text =
+                        judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(val))
+                            .map_err(|_| {
+                                CompileError::elab(
+                            ErrorKind::ElabLetTypeQueryFailed,
+                            "无法推断 `let` 绑定的类型；请补上类型标注，例如 `let x : Nat := 1; x`",
+                            binder.span,
+                        )
+                            })?;
+                    let parsed = crate::proof::parse_expr_text(&text).map_err(|_| {
+                        CompileError::elab(
+                            ErrorKind::ElabLetTypeQueryFailed,
+                            "无法解析推断出的 `let` 绑定类型",
+                            binder.span,
+                        )
+                    })?;
+                    let kernel = elab_expr(
+                        builder, &parsed, scope, univ, known, hovers, None, None, ctx,
+                    )?;
+                    inferred_src = Some(parsed);
+                    kernel
                 }
             };
+            let ty_src = inferred_src.as_ref().or(binder.ty.as_deref());
             // 2) binder 声明行 hover（`x : T`），scope 仍是外层。
             record_binder_hover(hovers, scope, binder.span, ty);
             // 3) 值在期望类型 T 下 elaborate（未注解的 lambda binder 可借此推断）。

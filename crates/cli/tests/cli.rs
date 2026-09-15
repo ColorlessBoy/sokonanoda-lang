@@ -590,10 +590,12 @@ fn json_mode_let_declaration_and_open_exercise() {
 }
 
 #[test]
-fn json_mode_let_missing_annotation_is_untyped_binder_with_hint() {
-    // v1 要求 `let x : T := v`；缺注解走复用码 `elab-untyped-binder`，且 JSON
-    // 诊断必须带教学 hint（含 let 写法）。
-    let out = run_args(&["--json"], Some("def bad : Nat := let x := Nat.zero; x\n"));
+fn json_mode_unannotated_let_infers_or_reports_hint() {
+    // Phase 2：无注解 `let` 由内核推断值类型；推断成功即 checked。
+    let ok = run_args(&["--json"], Some("def one : Nat := let x := Nat.zero; x\n"));
+    assert!(ok.status.success(), "unannotated let must infer: {ok:?}");
+    // 推断不出（值位洞）→ 教学错误 `elab-let-type-query-failed`，带 let hint。
+    let out = run_args(&["--json"], Some("def bad : Nat := let x := sorry; x\n"));
     assert!(!out.status.success());
     let stdout = String::from_utf8_lossy(&out.stdout);
     let value: serde_json::Value =
@@ -601,7 +603,7 @@ fn json_mode_let_missing_annotation_is_untyped_binder_with_hint() {
             .expect("diagnostic is JSON");
     assert_eq!(value["type"], "diagnostic");
     assert_eq!(value["stage"], "elab");
-    assert_eq!(value["code"], "elab-untyped-binder");
+    assert_eq!(value["code"], "elab-let-type-query-failed");
     let hint = value["hint"].as_str().expect("diagnostic carries a hint");
     assert!(
         hint.contains("let"),

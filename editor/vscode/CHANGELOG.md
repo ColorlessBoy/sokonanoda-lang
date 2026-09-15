@@ -1,3 +1,13 @@
+## [0.34.0] - 2026-09-14
+
+### Added
+
+- **Unannotated `let`** — `let x := v; body` now infers the binder type from
+  the value via the kernel (`judge_infer`, reusing its bounded cache); the type
+  annotation is optional. When the value alone cannot determine the type (e.g.
+  a `sorry` value), it reports the teaching error `elab-let-type-query-failed`
+  asking for an explicit annotation.
+
 ## [0.33.1] - 2026-09-14
 
 ### Changed

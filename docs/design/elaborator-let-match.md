@@ -494,3 +494,22 @@ Phase 1 **不新增 ErrorKind**（避免协议churn）：
 - **文档**：`architecture.md` §4.1/§8、`TESTING.md` §1 同步。
 - **版本** 0.27.1 → **0.28.0**（新语法 → minor）。
 - **未做（Phase 2）**：`match`、无注解 `let`（走 `judge_infer` 查询）。
+
+---
+
+## 13. as-built 续：无注解 `let`（2026-09-14，0.34.0）
+
+原 v1 要求 `let x : T := v`（§3.4）。`match` 轮把 `ElabCtx { prefix_src,
+options }` 贯通进 `elab_expr` 后，§3.4 的「走 `judge_infer` 查询」路线可直接落地：
+
+- `Expr::Let` 的 elab 分支：`binder.ty` 为 `None` 时，用当前 scope 的
+  `judge_binders()` + `render_expr(val)` 调 `judge_infer`（复用 128 条有界缓存）
+  推断值类型，`parse_expr_text` 回 AST 后作为 binder 类型；`ty_src` 用推断出的
+  AST，供 `expected_src` 与 scope 使用。
+- 推断失败（如值位 `sorry`、无类型 binder）→ 新错误码
+  `elab-let-type-query-failed`（protocol + 穷尽清单 + hint 已同步），提示补类型。
+- 测试：front `let_without_annotation_infers_the_value_type`（`let x := Nat.zero; x`
+  与 `let f := fun (n : Nat) => n; f`）+ `unannotated_let_that_cannot_be_inferred_
+  reports_a_let_specific_error`；CLI `json_mode_unannotated_let_infers_or_reports_hint`；
+  课程 unit3 注释更新（类型可省略）。kernel 零改动。
+- 版本 0.33.1 → **0.34.0**（新能力 = minor）。

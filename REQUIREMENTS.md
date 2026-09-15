@@ -575,3 +575,9 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   包进 ` ```sokonanoda ` 代码围栏（等宽对齐 + 语法高亮，扩展自带 TM 语法），
   多目标加 `**目标 i/n**`；半截表达式 hover 同步 `⊢` + 围栏。版本 **0.33.1**
   （呈现改进 patch）。设计 as-built 见 `docs/design/tactic-hover.md` §5。
+- 2026-09-14（六十一）：**无注解 `let`（Phase 2 小切片）**——`let x := v; body`
+  的类型标注变为可选：`binder.ty == None` 时用当前 scope 的 `judge_binders()` +
+  `judge_infer`（复用有界缓存）推断值类型并回 AST 作 binder 类型；推断失败
+  （值位 `sorry` 等）报新码 `elab-let-type-query-failed` 并提示补标注。front/CLI
+  测试 + 课程注释同步；kernel 零改动。版本 **0.34.0**（新能力 minor）；设计
+  as-built 见 `docs/design/elaborator-let-match.md` §13。

@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 61,
+  "round": 62,
   "round_date": "2026-09-14",
-  "round_title": "tactic hover 呈现升级",
+  "round_title": "无注解 let",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -60,5 +60,5 @@
       "unit": 7
     }
   ],
-  "version": "0.33.1"
+  "version": "0.34.0"
 }

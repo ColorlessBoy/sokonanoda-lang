@@ -1,8 +1,31 @@
-# STATUS 归档（第 1–58 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–59 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十九轮：I8 early-cutoff + arena 基准立项）
+
+> 续 TODO 清账（R58）：ROADMAP I8 验收余项「受影响后缀的依赖精确化」+ TESTING
+> §5 perf 基准立项。
+
+1. **设计** `docs/design/early-cutoff.md`（机制/soundness/测试/边界）。
+2. **early-cutoff（保守 sound）**：每条命令在 `try_check_declar` 前用内核
+   结构化 `debug_print` 渲染「环境贡献签名」（kind+name+宇宙+type+**body**+
+   hint+ctor/recursor/iota；归纳块串联），存 `CmdSnapshot.signature`（不改
+   `--json`/LSP 形状）。单点编辑时累积 `[i, j)` 签名，遇到文本不变且签名与上轮
+   相同的 `j` 即停止，`[j, n)` 快照复用、内核检查跳过；任何内核拒绝或多点编辑
+   一律退回旧后缀重查；prelude 形状守卫变化整文件重建。body 进签名保证 delta
+   可观察性 sound。
+3. **效果**（测试实测 kernel_checks）：`def one := 1 → (1)` 4→**1**；axiom 3→**1**；
+   Nat 归纳块 6→**1**；改 body/宇宙元数/多点编辑不 cut（正确重查）。
+4. **arena 基准立项**：`scripts/perf-arena.sh`（opt-in，`LEAN_KERNEL_ARENA`
+   门控，未设给获取指引并跳过；不 vendor、不进 CI、不引入官方 Lean 工具链）+
+   `docs/PERF.md`「External baseline」；TESTING §5 盲区第 6 条更新。
+5. **文档/清单**：`docs/design/i8-i9.md` §4 更新（early-cutoff 已补做）；
+   `ROADMAP.md` I8 余项勾选。
+6. **验收**：`sokonanoda gate` PASS（front 298、perf 3、cli 105、lsp 112）；版本
+   0.32.0 → **0.32.1**（内部性能优化 → patch）。
 
 ## 本轮进度（2026-09-14，第五十八轮：spine meta 方案 A）
 
