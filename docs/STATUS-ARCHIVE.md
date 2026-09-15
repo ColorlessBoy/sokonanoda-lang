@@ -1,8 +1,28 @@
-# STATUS 归档（第 1–59 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–60 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十轮：elaborator `match` v1）
+
+> 续 TODO 清账（Phase 2 首切片）：按 `docs/design/match.md`（本轮 spike 定稿）
+> 落地 `match`（限源内非递归 `inductive`）。
+
+1. **可行性 spike**：手写 `Color.rec.{1} (fun _ => Color) green red c` 被内核
+   接受，缺 `. {level}` 被拒 → 降低必须从期望类型 Sort 推 level。
+2. **前端**：`Expr::Match`/`MatchArm`、`TokenKind::Pipe`、`parse_match`（裸 ctor、
+   按声明序重排、恰好覆盖一次）；`InductiveTable` 登记表 + `ElabCtx`/`expected_src`
+   贯通；降低为 `<Ind>.rec.{level} (fun _ => R) minors… e`；`goals`/`spine`/
+   `proof`/`semantic`/`suggest` 同步。+19 测试（含与手写 recursor 的等价契约）。
+3. **错误码**：`elab-match-{bad-arm,not-inductive,no-expected-type,recursive-unsupported,non-exhaustive}`
+   （已入 protocol + 穷尽清单）。
+4. **课程 + CLI**：unit5 新增「match 分情况」小节（自定义非递归枚举 + rec/iota，
+   zh/en/钥匙逐字节镜像，2 练习）+ golden `(4,3,1)→(6,5,2)`、汇总
+   `checked 48→50 / open 36→38`；CLI e2e +4。
+5. **验收**：`sokonanoda gate` PASS；版本 0.32.1 → **0.33.0**（新语法 minor）。
+6. **v1 边界（未做）**：递归归纳（IH）、依赖/参数化归纳、prelude `Nat`/`Eq`、
+   `match` tactic、嵌套/字面量/守卫模式、无注解 `let`。
 
 ## 本轮进度（2026-09-14，第五十九轮：I8 early-cutoff + arena 基准立项）
 

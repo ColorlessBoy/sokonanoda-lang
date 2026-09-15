@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十二轮：无注解 `let`——内核推断绑定类型；0.34.0）
+> 快照：2026-09-14（第六十三轮：`match` 递归归纳——IH；0.35.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,24 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十三轮：`match` 递归归纳（IH））
+
+> 续 TODO（用户指定顺序：先 match Phase 2 递归 IH，再发布加固）。
+
+1. **前端**：递归归纳不再一律拒绝；构造子**递归字段后自动插入归纳假设** `ih`
+   （避开既有名 → `ih2`…），类型 = match 结果类型 R（v1 非依赖 motive），push 进
+   branch scope 供引用；minor 以「字段 + IH」序列折 lambda。递归函数/证明经 IH
+   表达，**无需自引用**（`def add (a b : Nat) := match a with | zero => b |
+   succ m => succ ih`）。
+2. **测试**：front `match_recursive_inductive_uses_the_induction_hypothesis`
+   （`add two two` 经内核归约到 `s (s (s (s z)))`）；CLI recursive match 3 项。
+3. **课程**：unit5 `match` 小节加递归 IH 演示 + 练习 6（`recDouble`）+ `#reduce`
+   自测；golden `(6,5,2)→(7,6,3)`、汇总 `checked 50→51 / open 38→39`。
+4. **文档**：`match.md` §2/§5/§6/§10、`architecture.md` §4.1/§8、`TESTING.md` 同步。
+5. **验收**：`sokonanoda gate` PASS；版本 0.34.0 → **0.35.0**（新能力 minor）。
+6. **仍缺（Phase 2 余项）**：依赖 motive、参数化/带索引归纳、prelude `Nat`/`Eq`、
+   `match` tactic、嵌套/字面量/守卫模式。
 
 ## 本轮进度（2026-09-14，第六十二轮：无注解 `let`）
 
@@ -41,23 +59,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 4. **测试**：tactic hover 断言表头/围栏；half-expression 断言 `⊢`/围栏。
 5. **验收**：`sokonanoda gate` PASS；版本 0.33.0 → **0.33.1**（呈现 patch）；
    设计 `docs/design/tactic-hover.md` §5 as-built。
-
-## 本轮进度（2026-09-14，第六十轮：elaborator `match` v1）
-
-> 续 TODO 清账（Phase 2 首切片）：按 `docs/design/match.md`（本轮 spike 定稿）
-> 落地 `match`（限源内非递归 `inductive`）。
-
-1. **可行性 spike**：手写 `Color.rec.{1} (fun _ => Color) green red c` 被内核
-   接受，缺 `. {level}` 被拒 → 降低必须从期望类型 Sort 推 level。
-2. **前端**：`Expr::Match`/`MatchArm`、`TokenKind::Pipe`、`parse_match`（裸 ctor、
-   按声明序重排、恰好覆盖一次）；`InductiveTable` 登记表 + `ElabCtx`/`expected_src`
-   贯通；降低为 `<Ind>.rec.{level} (fun _ => R) minors… e`；`goals`/`spine`/
-   `proof`/`semantic`/`suggest` 同步。+19 测试（含与手写 recursor 的等价契约）。
-3. **错误码**：`elab-match-{bad-arm,not-inductive,no-expected-type,recursive-unsupported,non-exhaustive}`
-   （已入 protocol + 穷尽清单）。
-4. **课程 + CLI**：unit5 新增「match 分情况」小节（自定义非递归枚举 + rec/iota，
-   zh/en/钥匙逐字节镜像，2 练习）+ golden `(4,3,1)→(6,5,2)`、汇总
-   `checked 48→50 / open 36→38`；CLI e2e +4。
-5. **验收**：`sokonanoda gate` PASS；版本 0.32.1 → **0.33.0**（新语法 minor）。
-6. **v1 边界（未做）**：递归归纳（IH）、依赖/参数化归纳、prelude `Nat`/`Eq`、
-   `match` tactic、嵌套/字面量/守卫模式、无注解 `let`。

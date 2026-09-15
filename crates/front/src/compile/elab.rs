@@ -1095,11 +1095,18 @@ pub(crate) fn elab_expr<'a>(
                     scrutinee.span(),
                 )
             })?;
-            if info.recursive {
+            // 递归归纳：字段源类型必须可知（用于定位递归字段并插 IH）。
+            if info.recursive
+                && info
+                    .ctors
+                    .iter()
+                    .flat_map(|c| c.fields.iter())
+                    .any(|f| f.src_ty.is_none())
+            {
                 return Err(CompileError::elab(
                     ErrorKind::ElabMatchRecursiveUnsupported,
                     format!(
-                        "`match` 暂不支持递归归纳类型 `{ind_name}`（v1 只做非递归：没有归纳假设的分情况）"
+                        "`match` 暂不支持这个递归归纳形状 `{ind_name}`：构造子字段缺少源类型，无法定位归纳假设"
                     ),
                     scrutinee.span(),
                 ));
@@ -1171,11 +1178,14 @@ pub(crate) fn elab_expr<'a>(
             let ind_const = builder.mk_const(ind_ptr, empty_levels);
             let anon = builder.anonymous();
             let motive = builder.mk_lambda(anon, BinderStyle::Default, ind_const, expected_kernel);
-            // 5) minors：按构造子声明序重排，用户写满的字段绑成 lambda。
+            // 5) minors：按构造子声明序重排；**递归字段后插入归纳假设 IH**
+            //    （类型 = motive 结果 R，v1 非依赖 motive；design §5 / Phase 2）。
             let base = scope.len();
             let mut minors = Vec::with_capacity(info.ctors.len());
             for ctor in &info.ctors {
                 let arm = arm_by_ctor[ctor.name.as_str()];
+                let mut minor_binders: Vec<(String, BinderStyle, ExprPtr<'a>, Option<Expr>)> =
+                    Vec::new();
                 for (field, binder) in ctor.fields.iter().zip(arm.binders.iter()) {
                     record_binder_hover(hovers, scope, binder.span, field.ty);
                     scope.push(
@@ -1184,6 +1194,47 @@ pub(crate) fn elab_expr<'a>(
                         field.src_ty.clone(),
                         binder.span,
                     );
+                    minor_binders.push((
+                        binder.name.clone(),
+                        field.style,
+                        field.ty,
+                        field.src_ty.clone(),
+                    ));
+                    let recursive_field = info.recursive
+                        && field
+                            .src_ty
+                            .as_ref()
+                            .is_some_and(|t| mentions_ident(t, &ind_name));
+                    if recursive_field {
+                        // 归纳假设名避开既有绑定（`ih`、`ih2`、…），供 branch 引用。
+                        let ih_name = {
+                            let used = |name: &str| {
+                                scope.names.iter().any(|n| n == name)
+                                    || minor_binders.iter().any(|(n, ..)| n == name)
+                            };
+                            let mut candidate = String::from("ih");
+                            let mut k = 1;
+                            while used(&candidate) {
+                                k += 1;
+                                candidate = format!("ih{k}");
+                            }
+                            candidate
+                        };
+                        let ih_src = expected_src.clone();
+                        record_binder_hover(hovers, scope, binder.span, expected_kernel);
+                        scope.push(
+                            ih_name.clone(),
+                            expected_kernel,
+                            Some(ih_src.clone()),
+                            binder.span,
+                        );
+                        minor_binders.push((
+                            ih_name,
+                            BinderStyle::Default,
+                            expected_kernel,
+                            Some(ih_src),
+                        ));
+                    }
                 }
                 let mut body = elab_expr(
                     builder,
@@ -1197,9 +1248,9 @@ pub(crate) fn elab_expr<'a>(
                     ctx,
                 )?;
                 scope.truncate(base);
-                for (field, binder) in ctor.fields.iter().zip(arm.binders.iter()).rev() {
-                    let name = builder.name_from_str(&binder.name);
-                    body = builder.mk_lambda(name, field.style, field.ty, body);
+                for (name, style, ty, _src) in minor_binders.iter().rev() {
+                    let nm = builder.name_from_str(name);
+                    body = builder.mk_lambda(nm, *style, *ty, body);
                 }
                 minors.push(body);
             }

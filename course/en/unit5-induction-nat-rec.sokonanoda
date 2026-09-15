@@ -128,3 +128,30 @@ def relabel (c : Color) : Color := sorry
 def swapOpen (c : Color) : Color := match c with
 | red => green
 | green => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- `match` + recursion: the induction hypothesis (IH) inside an arm.
+-- For a source recursive inductive, every recursive field is followed by an
+-- auto-inserted binder named `ih` (its type is the match result type Nat);
+-- the arm references it directly, so recursion needs no self-reference. The
+-- `addM` demo's succ arm does exactly that: stack one more succ on `ih`.
+-- ─────────────────────────────────────────────────────────────
+
+-- Demo (already written): addM a b inducts on a — b at zero, succ ih at succ.
+-- Same semantics as Exercise 3's add, just written with match.
+def addM (a b : Nat) : Nat := match a with
+| zero => b
+| succ m => succ ih
+
+-- Self-test: #reduce walks the Nat.rec that match lowers to — addM two three
+-- is five succs.
+#reduce addM two three
+
+-- Exercise 6 — recDouble inducts on n: zero maps to zero; at succ, build
+-- succ (succ ih) from the induction hypothesis ih. Only the succ arm is missing.
+-- soko:hint approach: the recursive field m is followed by an auto-inserted induction hypothesis ih (its type is the result type Nat); the succ arm builds its result from it directly.
+-- soko:hint goal shape: match n with | zero => zero | succ m => <succ arm>; both arms must produce a Nat.
+-- soko:hint key piece: write succ (succ ih) in the succ arm — two more succ layers on top of ih is exactly doubling.
+def recDouble (n : Nat) : Nat := match n with
+| zero => zero
+| succ m => sorry

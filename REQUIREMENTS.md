@@ -581,3 +581,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   （值位 `sorry` 等）报新码 `elab-let-type-query-failed` 并提示补标注。front/CLI
   测试 + 课程注释同步；kernel 零改动。版本 **0.34.0**（新能力 minor）；设计
   as-built 见 `docs/design/elaborator-let-match.md` §13。
+- 2026-09-14（六十二）：**`match` 递归归纳（IH，Phase 2，R63）**——源内递归
+  `inductive` 的 `match` 不再拒绝：构造子**递归字段后自动插入归纳假设** `ih`
+  （避让既有名 → `ih2`…，类型 = 结果类型 R），branch 可引用，递归函数/证明经
+  recursor 表达、无需自引用（`def add (a b : Nat) := match a with | zero => b |
+  succ m => succ ih`）。front 测试（`add two two` 归约到 `s(s(s(s z)))`）+ CLI 3
+  项 + 课程 unit5 递归 IH 演示与练习；golden (6,5,2)→(7,6,3)。仍缺：依赖 motive、
+  参数化/带索引归纳、prelude `Nat`/`Eq`、`match` tactic、嵌套/守卫/字面量模式。
+  版本 **0.35.0**（新能力 minor）；设计 as-built 见 `docs/design/match.md` §10。

@@ -1056,3 +1056,83 @@ fn cli_match_reduces_through_kernel() {
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("swap red => green"), "stdout: {stdout}");
 }
+
+/// The course-style explicit `Nat` (inductive + `rec`/`iota`), mirroring
+/// `course/unit5-induction-nat-rec.sokonanoda`.
+const MATCH_NAT: &str = "inductive Nat : Type\n\
+     ctor zero : Nat\n\
+     ctor succ (n : Nat) : Nat\n\
+     rec Nat.rec {u} : (motive : (n : Nat) -> Sort u) -> (mz : motive zero) -> (ms : (n : Nat) -> motive n -> motive (succ n)) -> (n : Nat) -> motive n\n\
+     iota zero := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz\n\
+     iota succ := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)\n\
+     end\n";
+
+#[test]
+fn cli_match_recursive_inductive_inserts_the_ih() {
+    // Phase 2：递归源内归纳的 match 在递归字段后自动得到归纳假设 `ih`
+    // （类型 = 结果类型 Nat），branch 里直接引用；递归无需自引用。
+    let src = format!(
+        "{MATCH_NAT}\
+         def addM (a b : Nat) : Nat := match a with\n\
+         | zero => b\n\
+         | succ m => succ ih\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "recursive match must compile: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration addM"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn cli_match_recursive_sorry_branch_is_open_exercise() {
+    // 递归分支里的 sorry 仍是合法 Open 状态（目标类型就是声明的结果类型 Nat）。
+    let src = format!(
+        "{MATCH_NAT}\
+         example (a b : Nat) : Nat := match a with\n\
+         | zero => b\n\
+         | succ m => sorry\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "a sorry recursive branch must stay exit 0: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&out.stdout).contains("exercise open"),
+        "stdout: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}
+
+#[test]
+fn cli_match_recursive_reduces_through_the_ih() {
+    // #reduce 走 match 降低出的 Nat.rec：addM two three 归约到五层 succ。
+    let src = format!(
+        "{MATCH_NAT}\
+         def two : Nat := succ (succ zero)\n\
+         def three : Nat := succ two\n\
+         def addM (a b : Nat) : Nat := match a with\n\
+         | zero => b\n\
+         | succ m => succ ih\n\
+         #reduce addM two three\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("addM two three => succ (succ (succ (succ (succ zero))))"),
+        "stdout: {stdout}"
+    );
+}

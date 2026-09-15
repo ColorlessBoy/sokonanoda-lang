@@ -1,3 +1,17 @@
+## [0.35.0] - 2026-09-14
+
+### Added
+
+- **`match` on recursive inductives (induction hypotheses)** — for a source
+  recursive `inductive`, each recursive constructor field now gets an
+  auto-inserted induction hypothesis named `ih` (`ih2`, …) typed as the match
+  result; the branch body can reference it, so recursive functions/proofs are
+  written through the recursor without self-reference
+  (`def add (a b : Nat) : Nat := match a with | zero => b | succ m => succ ih`).
+  Still out of scope: dependent motives, parameterized/indexed inductives, the
+  prelude `Nat`/`Eq`, `match`-as-tactic and nested/guard/literal patterns.
+  Design: `docs/design/match.md`.
+
 ## [0.34.0] - 2026-09-14
 
 ### Added

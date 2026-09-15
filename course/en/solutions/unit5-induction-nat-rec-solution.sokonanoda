@@ -102,3 +102,24 @@ def swapOpen (c : Color) : Color := match c with
 -- Extra internal self-checks:
 #reduce relabel green
 #reduce swapOpen green
+
+-- ─────────────────────────────────────────────────────────────
+-- `match` + recursion (IH): the addM demo and the answer to Exercise 6.
+-- ─────────────────────────────────────────────────────────────
+
+-- Demo (same as the canvas): addM's succ arm uses the auto-inserted IH `ih`.
+def addM (a b : Nat) : Nat := match a with
+| zero => b
+| succ m => succ ih
+
+-- Self-test: #reduce walks the Nat.rec that match lowers to — addM two three
+-- is five succs.
+#reduce addM two three
+
+-- Exercise 6: recDouble builds succ (succ ih) from ih in the succ arm.
+def recDouble (n : Nat) : Nat := match n with
+| zero => zero
+| succ m => succ (succ ih)
+
+-- Extra internal self-checks:
+#reduce recDouble two

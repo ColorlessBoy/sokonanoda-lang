@@ -99,3 +99,23 @@ def swapOpen (c : Color) : Color := match c with
 -- 额外自测（钥匙内部核对）：
 #reduce relabel green
 #reduce swapOpen green
+
+-- ─────────────────────────────────────────────────────────────
+-- `match` + 递归（IH）：演示 addM + 练习 6 的答案。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（与画布一致）：addM 在 succ 分支直接用自动插入的归纳假设 ih。
+def addM (a b : Nat) : Nat := match a with
+| zero => b
+| succ m => succ ih
+
+-- 自测：#reduce 走 match 降低出的 Nat.rec —— addM two three 是五层 succ。
+#reduce addM two three
+
+-- 练习 6：recDouble 在 succ 分支用 ih 造出 succ (succ ih)。
+def recDouble (n : Nat) : Nat := match n with
+| zero => zero
+| succ m => succ (succ ih)
+
+-- 额外自测（钥匙内部核对）：
+#reduce recDouble two

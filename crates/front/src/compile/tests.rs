@@ -3609,17 +3609,45 @@ fn match_duplicate_ctor_reports_bad_arm() {
     assert_eq!(out.errors[0].code(), "elab-match-bad-arm");
 }
 
-#[test]
-fn match_recursive_inductive_is_unsupported() {
-    let src = "\
+const NAT2_ENUM: &str = "\
 inductive Nat2 : Type
 ctor z : Nat2
 ctor s (n : Nat2) : Nat2
 end
-def f (n : Nat2) : Nat2 := match n with | z => z | s k => k
 ";
-    let out = compile_fol(&parse(src).expect("parse match"));
-    assert_eq!(out.errors[0].code(), "elab-match-recursive-unsupported");
+
+#[test]
+fn match_recursive_inductive_uses_the_induction_hypothesis() {
+    // Phase 2：递归归纳可用——递归字段后自动得到归纳假设 `ih`（类型 = 结果类型），
+    // branch 里按名引用；用它写出的递归函数/证明无需自引用。
+    let src = format!(
+        "{NAT2_ENUM}\n\
+         def pred (n : Nat2) : Nat2 := match n with\n\
+         | z => z\n\
+         | s k => k\n\
+         def add (a b : Nat2) : Nat2 := match a with\n\
+         | z => b\n\
+         | s k => s ih\n\
+         def two : Nat2 := s (s z)\n\
+         #reduce add two two\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    for name in ["pred", "add"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "{name} must check through the kernel"
+        );
+    }
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "s (s (s (s z)))")),
+        "recursion via the IH must compute: {:?}",
+        out.events
+    );
 }
 
 #[test]
