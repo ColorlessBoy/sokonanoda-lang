@@ -3780,6 +3780,99 @@ fn match_prelude_nat_add_checks_and_reduces() {
     );
 }
 
+// ---- match on the built-in prelude `Bool`（0.41.0）----
+
+#[test]
+fn prelude_bool_is_available_without_a_source_block() {
+    // `Bool`/`Bool.true`/`Bool.false`/`Bool.rec` come from the trusted prelude
+    // (installed like `Nat`); a plain file can `#check` them.
+    let src = "#check Bool\n#check Bool.true\n#check Bool.false\n#check Bool.rec\n";
+    let out = compile_fol(&parse(src).expect("parse checks"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+#[test]
+fn match_prelude_bool_not_checks_and_reduces() {
+    // Non-recursive prelude inductive: `match` lowers to `Bool.rec.{1}` with the
+    // dotted constructor names, and `#reduce` runs the derived iota rule.
+    let src = "def bnot (b : Bool) : Bool := match b with\n\
+               | Bool.true => Bool.false\n\
+               | Bool.false => Bool.true\n\
+               #reduce bnot Bool.true\n\
+               #reduce bnot Bool.false\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "bnot")));
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        reduced,
+        vec!["Bool.false", "Bool.true"],
+        "`bnot` must reduce through `Bool.rec`: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn prelude_bool_definitions_compose() {
+    // A boolean `and` written with the prelude constructors checks by the real
+    // kernel (both branches are total), and reducing it exercises `Bool.rec`.
+    let src = "def band (a b : Bool) : Bool := match a with\n\
+               | Bool.true => b\n\
+               | Bool.false => Bool.false\n\
+               #reduce band Bool.true Bool.false\n\
+               #reduce band Bool.true Bool.true\n";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(reduced, vec!["Bool.false", "Bool.true"], "{:?}", out.events);
+}
+
+#[test]
+fn explicit_bool_block_yields_to_the_source_declaration() {
+    // A file that declares its own `inductive Bool` owns the name entirely: no
+    // duplicate-declaration panic, and the prelude's `Bool.true` is absent (the
+    // source ctors are bare `tt`/`ff`).
+    let src = "\
+inductive Bool : Type
+ctor tt : Bool
+ctor ff : Bool
+rec Bool.rec {u} : (motive : (b : Bool) -> Sort u) -> (mt : motive tt) -> (mf : motive ff) -> (b : Bool) -> motive b
+iota tt := fun (motive : (b : Bool) -> Sort u) => fun (mt : motive tt) => fun (mf : motive ff) => mt
+iota ff := fun (motive : (b : Bool) -> Sort u) => fun (mt : motive tt) => fun (mf : motive ff) => mf
+end
+def negate (b : Bool) : Bool := match b with
+| tt => ff
+| ff => tt
+#reduce negate tt
+";
+    let out = compile_fol(&parse(src).expect("parse source Bool"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "ff")),
+        "source `Bool` must reduce with its own ctors: {:?}",
+        out.events
+    );
+}
+
 #[test]
 fn match_source_inductive_nat_still_uses_bare_ctors() {
     // 文件自带 `inductive Nat` 时 prelude 不装，源块自己登记：分支仍是裸名

@@ -92,8 +92,9 @@ struct CmdSnapshot {
 }
 
 /// 影响 prelude 安装决策的整文件特征：模式、是否自带 `inductive Nat`、
-/// 是否自带 `Eq` 三件套。任一变化都必须整体重编译（决策看整文件）。
-type PreludeShape = (PreludeMode, bool, bool);
+/// 是否自带 `inductive Bool`、是否自带 `Eq` 三件套。任一变化都必须整体
+/// 重编译（决策看整文件）。
+type PreludeShape = (PreludeMode, bool, bool, bool);
 
 /// 长期驻留的编译会话：持有上一版本的命令键与逐命令快照，按内容差异决定
 /// 复用范围，并产出带版本号的 delta 事件与内核检查统计。
@@ -365,9 +366,11 @@ fn remap_snapshots(
 }
 
 /// 影响 prelude 安装的整文件特征（与 `run_pass` 的判定一致）：模式、
-/// 是否自带 `inductive Nat`、是否自带 `Eq`/`Eq.refl`/`Eq.subst` 之一。
+/// 是否自带 `inductive Nat`、是否自带 `inductive Bool`、是否自带
+/// `Eq`/`Eq.refl`/`Eq.subst` 之一。
 fn prelude_shape(file: &crate::FolFile, mode: PreludeMode) -> PreludeShape {
     let mut explicit_nat = false;
+    let mut explicit_bool = false;
     let mut eq_taken = false;
     for command in &file.commands {
         let name = match command {
@@ -381,12 +384,15 @@ fn prelude_shape(file: &crate::FolFile, mode: PreludeMode) -> PreludeShape {
             if matches!(command, crate::Command::InductiveBlock { .. }) && name == "Nat" {
                 explicit_nat = true;
             }
+            if matches!(command, crate::Command::InductiveBlock { .. }) && name == "Bool" {
+                explicit_bool = true;
+            }
             if matches!(name.as_str(), "Eq" | "Eq.refl" | "Eq.subst") {
                 eq_taken = true;
             }
         }
     }
-    (mode, explicit_nat, eq_taken)
+    (mode, explicit_nat, explicit_bool, eq_taken)
 }
 
 /// 一条命令的源码切片（内容键：文本相同 = 未变）。

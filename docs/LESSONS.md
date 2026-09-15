@@ -119,3 +119,15 @@
   证明形状表达（`two_def` 闭环模式，teaching-session §2）。
 - 解答钥匙必须经完整内核验证（course/solutions + golden）；本次流程自己
   就靠它抓出过 Eq.symm 钥匙缺实参（被自家 LSP 实时抓出）。
+
+## prelude 新增内建类型必须带「显式声明让位」闸（2026-09-15，0.41.0 Bool）
+
+- **教训**：把 `Bool` 加进 prelude 时，若不做让步判断，任何自带
+  `inductive Bool` 的教学文件都会在 `builder.add_inductive` 的重复声明检查处
+  **panic**（不是返回错误码）。仓库里已有两个这样的用例（`tt`/`ff`）。
+- **规矩**：每个 prelude 内建类型在 `check.rs::run_pass` 都要有
+  `explicit_<name>` 判断（文件自行声明即不装），并同步
+  `session.rs::PreludeShape`（否则增量会话不会因新增/删除该声明而失效）。
+- 参考：`install_prelude`/`install_bool_prelude`（`crates/front/src/compile/prelude.rs`）、
+  `explicit_nat`/`explicit_bool`（`check.rs`）。
+

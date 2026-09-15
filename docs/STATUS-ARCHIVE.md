@@ -1,8 +1,31 @@
-# STATUS 归档（第 1–67 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–68 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十八轮：`match` 依赖 motive）
+
+> 续 TODO：让 `match` 的结果类型随 scrutinee 变化（`P n`），从而能写出归纳法。
+
+1. **设计** `docs/design/match-dependent-motive.md`（触发/构造/交互/风险）。
+2. **前端**：scrutinee 是裸局部变量 `x` 且 `R` 含 `x` → motive = `fun t =>
+   R[x:=t]`（`substitute_names`），分支期望 = `R[x:=<ctor 项>]`、IH 类型 =
+   `R[x:=<field>]`；motive/分支/IH 类型在 binder 存活的 scope 里 elaborate。
+   否则保持常量 motive（完全兼容）。
+3. **修缺口**：`infer_expected_level` 改为只纳入 `R` 依赖到的 binder
+   （`judge_binders_for`），修掉「无关函数型 binder 破坏 judge_infer 望远镜」
+   导致**声明 binder 形式**（`nat_induction`）level 查询失败的问题。
+4. **goal 视图**：match-arm 走查同样代入 `x := C params v…`，分支 `sorry` 期望
+   `R[x:=ctor]`。
+5. **测试**：front `match_dependent_*`（含声明 binder 的 `nat_induction`）；
+   CLI `cli_match_dependent_motive_checks_via_kernel`；课程 unit5 加依赖 match 节
+   （`nat_induction` + 练习 8）；golden `(9,7,4)→(10,8,4)`、汇总
+   `checked 53→54 / open 40→41`。
+6. **验收**：`sokonanoda gate` PASS；版本 0.38.0 → **0.39.0**（新能力 minor）。
+7. **已知限制**：motive 引用「类型为以箭头结尾的依赖函数」的 binder 时，
+   `judge_infer` 的 render→parse 往返仍可能腐蚀 telescope（需 `judge.rs` 改
+   一次性解析，或 `proof::render_expr` 给 domain 位 `Forall` 加括号）。
 
 ## 本轮进度（2026-09-14，第六十七轮：参数化归纳声明）
 

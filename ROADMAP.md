@@ -381,7 +381,7 @@ goal 视图深化与 `#prove` 入库、VS Code 扩展打包。
 > 进度快照：`STATUS.md`。
 
 ### I6 —— prelude 对齐 + elaborator 推进
-- prelude：补 Bool / Eq / `rfl` 所需受信任基元；核对 `Nat.succ`/`Nat.add`
+- prelude：~~补 Bool~~（✅ 0.41.0：非递归真实可信归纳，`Bool.true`/`Bool.false` + `Bool.rec`）/ Eq / `rfl` 所需受信任基元；核对 `Nat.succ`/`Nat.add`
   占位自引用体（当前依赖名字特判 + 原生快路径，需写清边界并加裸名 `#reduce` 测试）。
 - elaborator：binder 类型推断（先非依赖情形）→ `let`（✅ 0.28.0；✅ 无注解
   `let` 0.34.0）→ `match`（✅ v1 0.33.0：源内非递归 `inductive`；递归/依赖/

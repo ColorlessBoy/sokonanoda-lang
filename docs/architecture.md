@@ -229,6 +229,12 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 - `EnvBuilder::finish()` 会 `dag.mk_name_cache(anon)`：在 intern 表里按名字找到 `Nat.succ/Nat.add/...`，给 `NameNode` 打 `NatRed` 标记。此后求值遇到这些头时，`unfold_value_go` 先走 `do_nat_red` **原生大整数运算**（`num-bigint`）；构造子 `Nat.succ` 在 `apply` 里还会把已是一元链的参数折叠成 `NatLit`。这就是 `#reduce 1 + 2 => 3` 与 `#reduce Nat.succ (Nat.succ Nat.zero) => 2` 的来源。`Nat.add` 仍必须是 `Definition`（Unfoldable）而非 `Axiom`，原生快路径才会接管。
 - `Expr::Num` 在 front 被 elaborate 成 `NatLit`（bignum 指针）；`a + b` 是 `Nat.add a b` 的语法糖。
 - **风险/待对齐**：`Nat.add` 的体是"自引用占位"，语义上等价于公理 + 原生快路径；上游真身是正常递归定义。教学 prelude 必须保证这些名字**只在有实参时被原生快路径接管**、裸名字（如 `#reduce Nat.add`）不会被 delta 无限展开——当前实测 `#reduce Nat.add => Nat.add` 可终止，但这是要长期盯住的边界（见 `docs/design/infrastructure.md` 的 prelude 工作流）。另一个已知现象：`Nat.rec` 的 `NatLit` 快路径会先给递归结果套一层未归约的一元链，`deep_reduce` 不再回收，所以 `match` 递归结果可能呈混合表示（如 `2 + 1 => Nat.succ (Nat.succ 1)`），def-eq 上仍等于 3。
+`install_bool_prelude` 同法装入 `Bool`（**非递归**）：`Bool.true`/`Bool.false` 真构造子 +
+派生 `Bool.rec`（两分支消去子，无 IH），登记进 `known` 与 `match` 的 `InductiveTable`。
+名字必须是 `Bool`/`Bool.true`/`Bool.false`：内核 name cache 已预留这两个 ctor 槽位
+（供原生 `Nat.beq`/`Nat.ble` 返回布尔值），故内核**零改动**即可归约。文件自带
+`inductive Bool` 时 prelude 不装（与 `Nat` 同一闸；否则重复声明 panic）。
+
 - `nat_extension` 由 `Config::default()` 默认打开；`StringLit` 类似（`string_extension`）。
 
 ### 5.5 `#prove`：tactic 只是"帮你搭 lambda"（`crates/front/src/proof.rs`）

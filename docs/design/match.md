@@ -26,7 +26,7 @@ match <scrutinee> with
 - **依赖 motive**（`motive` 依赖 scrutinee 的值）；v1 motive 恒为 `fun (_ : Ind) => R`；
 - ~~**递归类型**（`Nat` 等有 IH 的类型）~~ **已解除（Phase 2，见 §10）**：递归构造子字段后自动插入归纳假设 `ih`（多个递归字段依次 `ih`、`ih2`…，类型 = 结果类型 R），branch 可直接引用，递归无需自引用；v1 的 motive 仍非依赖，故只覆盖「以 scrutinee 自身构造子直接递归」的用例；
 - 嵌套/字面量/`as`/守卫/多 scrutinee/`if-then-else`；
-- ~~prelude 内建 `Nat` 的 match（它没有源内 `InductiveBlock` 元数据）~~ **已解除（2026-09-15，见 §10）**：prelude `Nat` 现以受信任归纳块安装（`Nat.zero`/`Nat.succ` 构造子 + 派生 `Nat.rec`）并登记进 `InductiveTable`，分支用点号名 `Nat.zero`/`Nat.succ`；`Eq` 仍不支持；
+- ~~prelude 内建 `Nat` 的 match（它没有源内 `InductiveBlock` 元数据）~~ **已解除（2026-09-15，见 §10）**：prelude `Nat` 现以受信任归纳块安装（`Nat.zero`/`Nat.succ` 构造子 + 派生 `Nat.rec`）并登记进 `InductiveTable`，分支用点号名 `Nat.zero`/`Nat.succ`；prelude `Bool`（非递归）**同法已装**（`Bool.true`/`Bool.false` + `Bool.rec`，见 §10 Phase 5）；`Eq` 仍不支持；
 - `match` 作为 tactic；`match` 出现在**期望类型未知**的位置（报教学错误）。
 
 ## 3. 语法与 AST
@@ -188,3 +188,20 @@ match <scrutinee> with
   非依赖回归；参数化 `Box` + 依赖结果组合。
 - **仍未做**：带索引归纳的 dependent motive、scrutinee 为非变量表达式的
   dependent elimination、`match` tactic。
+
+### Phase 5：prelude `Bool`（2026-09-15，0.41.0）
+
+- API 与 Nat 完全共用：新增 `install_bool_prelude`（`prelude.rs`）调用同一个
+  `install_inductive_block`，`Bool` 非递归 → `is_recursive = false`、派生
+  `Bool.rec.{u}`（两分支，无 IH）。分支用点号名 `Bool.true`/`Bool.false`。
+- **闸**：`check.rs::run_pass` 新增 `explicit_bool`——文件自带 `inductive Bool`
+  时让位（否则 `add_inductive` 重复声明 panic）；`session.rs::PreludeShape`
+  扩为四元组 `(mode, explicit_nat, explicit_bool, eq_taken)`，任一变化整体重编。
+- **内核零改动**：`Bool.true`/`Bool.false` 的 name-cache 槽位早已存在
+  （`crates/kernel/src/util.rs`，供原生 `Nat.beq`/`Nat.ble`），`Bool` 归约走通用
+  构造子 iota。
+- **测试**：front `match_prelude_bool_not_checks_and_reduces`、
+  `prelude_bool_is_available_without_a_source_block`、`prelude_bool_definitions_compose`、
+  `explicit_bool_block_yields_to_the_source_declaration`；CLI
+  `cli_match_on_prelude_bool_checks_and_reduces`。既有「源内 `inductive Bool`
+  （`tt`/`ff`）」用例继续通过，验证闸生效。

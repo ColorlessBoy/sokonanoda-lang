@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十轮：统一 goal 呈现 + Infoview 落右侧；0.40.0）
+> 快照：2026-09-15（第七十一轮：prelude `Bool`；0.41.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,31 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十一轮：prelude `Bool`）
+
+> 续 HANDOVER §3 C / ROADMAP I6：把 `Bool` 作为真实可信归纳加进 prelude，
+> 与 `Nat`（0.36.0）同法，供 `match` 与后续布尔例子使用。
+
+1. **安装**：`prelude.rs::install_bool_prelude` 调用既有
+   `install_inductive_block`，`Bool` **非递归** → 构造子 `Bool.true`/`Bool.false`
+   + 派生 `Bool.rec`（两分支、无 IH），登记进 `known` 与 `match` 的
+   `InductiveTable`；`PRELUDE_NAMES` 增 4 个名字（补全/目标视图）。
+2. **闸**：`check.rs::run_pass` 增 `explicit_bool`——文件自带 `inductive Bool`
+   时 prelude 让位（否则重复声明 panic）；`session.rs::PreludeShape` 扩成
+   `(mode, explicit_nat, explicit_bool, eq_taken)`，任一变化整体重编译。
+3. **内核零改动**：`Bool.true`/`Bool.false` 的 name-cache 槽位早已存在
+   （原生 `Nat.beq`/`Nat.ble` 用），归约走通用构造子 iota。
+4. **测试**：front `prelude_bool_is_available_without_a_source_block` /
+   `match_prelude_bool_not_checks_and_reduces`（`#reduce bnot Bool.true =>
+   Bool.false`）/ `prelude_bool_definitions_compose` /
+   `explicit_bool_block_yields_to_the_source_declaration`；CLI
+   `cli_match_on_prelude_bool_checks_and_reduces`；既有源内 `inductive Bool`
+   （`tt`/`ff`）用例继续通过=闸生效。
+5. **文档**：`architecture.md §5.4`、`design/match.md §2/§10 Phase 5`、
+   `TESTING.md`、`protocol` 错误文案（`Nat/Bool`）；错误提示改为
+   「prelude 内建的 Nat/Bool」。
+6. **验收**：`sokonanoda gate` PASS；版本 0.40.0 → **0.41.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-15，第七十轮：统一 goal 呈现 + Infoview 落右侧）
 
@@ -59,27 +84,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    hover、level 查询）。
 5. **验收**：`sokonanoda gate` PASS；版本 0.39.0 → **0.39.1**（健壮性 patch）；
    设计 as-built `docs/design/match-dependent-motive.md` §8；HANDOVER §3 A 勾选。
-
-## 本轮进度（2026-09-14，第六十八轮：`match` 依赖 motive）
-
-> 续 TODO：让 `match` 的结果类型随 scrutinee 变化（`P n`），从而能写出归纳法。
-
-1. **设计** `docs/design/match-dependent-motive.md`（触发/构造/交互/风险）。
-2. **前端**：scrutinee 是裸局部变量 `x` 且 `R` 含 `x` → motive = `fun t =>
-   R[x:=t]`（`substitute_names`），分支期望 = `R[x:=<ctor 项>]`、IH 类型 =
-   `R[x:=<field>]`；motive/分支/IH 类型在 binder 存活的 scope 里 elaborate。
-   否则保持常量 motive（完全兼容）。
-3. **修缺口**：`infer_expected_level` 改为只纳入 `R` 依赖到的 binder
-   （`judge_binders_for`），修掉「无关函数型 binder 破坏 judge_infer 望远镜」
-   导致**声明 binder 形式**（`nat_induction`）level 查询失败的问题。
-4. **goal 视图**：match-arm 走查同样代入 `x := C params v…`，分支 `sorry` 期望
-   `R[x:=ctor]`。
-5. **测试**：front `match_dependent_*`（含声明 binder 的 `nat_induction`）；
-   CLI `cli_match_dependent_motive_checks_via_kernel`；课程 unit5 加依赖 match 节
-   （`nat_induction` + 练习 8）；golden `(9,7,4)→(10,8,4)`、汇总
-   `checked 53→54 / open 40→41`。
-6. **验收**：`sokonanoda gate` PASS；版本 0.38.0 → **0.39.0**（新能力 minor）。
-7. **已知限制**：motive 引用「类型为以箭头结尾的依赖函数」的 binder 时，
-   `judge_infer` 的 render→parse 往返仍可能腐蚀 telescope（需 `judge.rs` 改
-   一次性解析，或 `proof::render_expr` 给 domain 位 `Forall` 加括号）。
 

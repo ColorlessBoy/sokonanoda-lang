@@ -661,3 +661,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   （长卖点留在 `editor/vscode/README.md`），加护栏测试
   `marketplace_description_fits_the_gallery_limit`（≤300 / ASCII / 句号结尾），
   `docs/vscode-dev-guide.md` §7 记录上限与教训。随 0.40.0 发布。
+
+- 2026-09-15（七十）：**prelude `Bool`（TODO：I6/elaborator 组）**——把 `Bool` 作为
+  **真实可信归纳**加进 prelude，与 `Nat`（0.36.0）同法：`install_bool_prelude`
+  调 `install_inductive_block` 装出 `Bool.true`/`Bool.false` 真构造子 + 派生
+  `Bool.rec`（非递归，两分支消去子），登记进 `known` 与 `match` 的
+  `InductiveTable`，于是 `match b with | Bool.true => … | Bool.false => …` 可用、
+  `#reduce` 走通用 iota。文件自带 `inductive Bool` 时 prelude 让位
+  （`explicit_bool` 闸；`PreludeShape` 扩四元组）。内核**零改动**（`Bool.true`/
+  `Bool.false` 的 name-cache 槽位早已存在）。front +4 / CLI +1；文档
+  architecture §5.4 / match.md §10 Phase 5 / TESTING / 错误文案同步。版本
+  **0.41.0**（新能力 minor）。

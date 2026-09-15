@@ -63,7 +63,18 @@ pub fn prelude_mode_from_source(src: &str) -> PreludeMode {
 /// prelude declarations are trusted installs without `DeclState`s, so the
 /// goal view / completion layer needs this list to offer them.
 pub const PRELUDE_NAMES: &[&str] = &[
-    "Nat", "Nat.zero", "Nat.succ", "Nat.rec", "Nat.add", "Eq", "Eq.refl", "Eq.subst",
+    "Nat",
+    "Nat.zero",
+    "Nat.succ",
+    "Nat.rec",
+    "Nat.add",
+    "Bool",
+    "Bool.true",
+    "Bool.false",
+    "Bool.rec",
+    "Eq",
+    "Eq.refl",
+    "Eq.subst",
 ];
 
 pub(crate) const PRELUDE_EQ_SRC: &str = "\
@@ -182,6 +193,60 @@ pub(crate) fn install_prelude<'a>(
     let add_self = builder.mk_const(add_name, add_levels);
     add_definition(builder, "Nat.add", add_arrow, add_self);
     known.insert("Nat.add".to_string(), Vec::new());
+}
+
+/// Trusted built-in `Bool`, installed exactly like the `Nat` block: a
+/// source-style inductive with constructors `Bool.true`/`Bool.false` and a
+/// derived `Bool.rec`, registered in `known` and the `match` `InductiveTable`.
+/// Non-recursive, so the recursor is the plain two-branch eliminator and the
+/// kernel needs no change. The names must stay `Bool`/`Bool.true`/`Bool.false`
+/// to match the kernel's name cache (frozen; `docs/architecture.md` §5.4).
+pub(crate) fn install_bool_prelude<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &mut HashMap<String, Vec<String>>,
+    inductives: &mut InductiveTable<'a>,
+) {
+    let span = Span::default();
+    let bool_sort = Expr::Sort {
+        sort: SortKind::Type,
+        span,
+    };
+    let bool_ident = Expr::Ident {
+        name: "Bool".to_string(),
+        span,
+    };
+    let constructors = vec![
+        CtorDecl {
+            name: "Bool.true".to_string(),
+            binders: Vec::new(),
+            result: bool_ident.clone(),
+            span,
+        },
+        CtorDecl {
+            name: "Bool.false".to_string(),
+            binders: Vec::new(),
+            result: bool_ident,
+            span,
+        },
+    ];
+    let mut hovers = Vec::new();
+    let mut built = Vec::new();
+    install_inductive_block(
+        builder,
+        known,
+        inductives,
+        "",
+        &CompileOptions::default(),
+        "Bool",
+        &[],
+        &bool_sort,
+        &constructors,
+        None,
+        &[],
+        &mut hovers,
+        &mut built,
+    )
+    .expect("built-in Bool block installs");
 }
 
 fn add_definition<'a>(builder: &mut EnvBuilder<'a>, name: &str, ty: ExprPtr<'a>, val: ExprPtr<'a>) {

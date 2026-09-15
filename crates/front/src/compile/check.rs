@@ -7,7 +7,9 @@ use super::elab::{
 use super::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind};
 use super::event::{CheckEvent, CompileOutput};
 use super::goals::{expr_has_hole, open_goal, GoalTemplates};
-use super::prelude::{install_eq_prelude, install_prelude, CompileOptions, PreludeMode};
+use super::prelude::{
+    install_bool_prelude, install_eq_prelude, install_prelude, CompileOptions, PreludeMode,
+};
 use super::report::{
     ByGoalState, ByStepState, DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder,
     HoverType, ResolvedTarget, SubGoal,
@@ -424,6 +426,13 @@ fn run_pass(
                 // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
                 // Nat.rec 登记进 `known` 与 `match` 的 InductiveTable。
                 install_prelude(&mut builder, &mut known_universes, &mut inductives);
+            }
+            let explicit_bool = file.commands.iter().any(
+                |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Bool"),
+            );
+            if !explicit_bool {
+                // Bool 同法（非递归）：文件自带 `inductive Bool` 时让位。
+                install_bool_prelude(&mut builder, &mut known_universes, &mut inductives);
             }
             let taken = user_top_level_names(file);
             install_eq_prelude(&mut builder, &mut known_universes, &taken);

@@ -1172,6 +1172,44 @@ def addN (a b : Nat) : Nat := match a with
     );
 }
 
+// ---- prelude Bool（0.41.0，镜像 Nat）----
+
+#[test]
+fn cli_match_on_prelude_bool_checks_and_reduces() {
+    // The trusted `Bool` prelude (no source `inductive Bool`) is matchable with
+    // the dotted constructors `Bool.true`/`Bool.false`; `#reduce` runs the
+    // derived `Bool.rec` iota rules.
+    let src = "\
+def bnot (b : Bool) : Bool := match b with
+| Bool.true => Bool.false
+| Bool.false => Bool.true
+def band (a b : Bool) : Bool := match a with
+| Bool.true => b
+| Bool.false => Bool.false
+#reduce bnot Bool.true
+#reduce band Bool.true Bool.false
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration bnot"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("checked declaration band"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("=> Bool.false"),
+        "prelude-Bool elimination must reduce: {stdout}"
+    );
+}
+
 // ---- 参数化归纳（docs/design/parameterized-inductives.md，v1）----
 
 /// Non-indexed parameterized source inductive (`inductive Option (A : Type)`);

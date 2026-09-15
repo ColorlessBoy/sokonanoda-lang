@@ -1157,7 +1157,7 @@ pub(crate) fn elab_expr<'a>(
                 infer_inductive_with_params(ctx, scope, scrutinee).ok_or_else(|| {
                     CompileError::elab(
                         ErrorKind::ElabMatchNotInductive,
-                        "`match` 的被匹配项不是已知的归纳类型（本文件用 inductive 声明，或 prelude 的 Nat）",
+                        "`match` 的被匹配项不是已知的归纳类型（本文件用 inductive 声明，或 prelude 的 Nat/Bool）",
                         scrutinee.span(),
                     )
                 })?;
@@ -1165,7 +1165,7 @@ pub(crate) fn elab_expr<'a>(
                 CompileError::elab(
                     ErrorKind::ElabMatchNotInductive,
                     format!(
-                        "`match` 的被匹配项类型 `{ind_name}` 不是已知的归纳类型（本文件用 inductive 声明，或 prelude 的 Nat）"
+                        "`match` 的被匹配项类型 `{ind_name}` 不是已知的归纳类型（本文件用 inductive 声明，或 prelude 的 Nat/Bool）"
                     ),
                     scrutinee.span(),
                 )

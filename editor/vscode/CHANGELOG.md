@@ -1,3 +1,13 @@
+## [0.41.0] - 2026-09-15
+
+### Added
+
+- **Prelude `Bool`** — `Bool`, `Bool.true`, `Bool.false` and the derived
+  `Bool.rec` are now installed as a trusted, non-recursive inductive (the same
+  way as `Nat`), so `match b with | Bool.true => … | Bool.false => …` checks and
+  reduces through the real kernel. A file that declares its own `inductive Bool`
+  keeps it (the prelude steps aside).
+
 ## [0.40.0] - 2026-09-15
 
 ### Added

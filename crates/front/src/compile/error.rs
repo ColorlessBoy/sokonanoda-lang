@@ -190,7 +190,7 @@ impl ErrorKind {
                 "match 的分支要写对：裸构造子名、每个构造子只写一次、模式变量个数与该构造子的字段数一致。"
             }
             ElabMatchNotInductive => {
-                "match 的被匹配项必须是已知的归纳类型：本文件用 inductive 声明的类型，或 prelude 内建的 Nat（分支写 Nat.zero/Nat.succ）。"
+                "match 的被匹配项必须是已知的归纳类型：本文件用 inductive 声明的类型，或 prelude 内建的 Nat/Bool（分支写 Nat.zero/Nat.succ 或 Bool.true/Bool.false）。"
             }
             ElabMatchNoExpectedType => {
                 "match 的结果类型必须已知：把它放在有类型标注的位置（声明类型、let/fun 的 binder 注解），或由外层 match 提供。"

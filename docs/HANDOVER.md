@@ -68,7 +68,9 @@ cargo test --workspace --locked   # 全量 13 套件
 - **嵌套/守卫/字面量模式**（`| some (some x) =>`、`| 0 =>`）：需模式编译扩展。
 
 ### C. I6 剩余
-- **prelude `Bool`**：可作为真实可信归纳加（与 Nat 同法）；当前无课程依赖，价值中等。
+- ~~**prelude `Bool`**~~ ✅ 已完成（0.41.0）：`install_bool_prelude`（非递归真实可信归纳，
+  `Bool.true`/`Bool.false` + `Bool.rec`）；`match` 可用；文件自带 `inductive Bool`
+  时让位（`explicit_bool` 闸 + `PreludeShape` 四元组）。见 `docs/design/match.md` §10 Phase 5。
 - **binder 类型推断（非依赖情形）**：让 `fun (x)` 之类能从期望类型推断 binder 类型；
   设计待写（`docs/design/elaborator-let-match.md` 提到过路线）。
 - `Nat.succ`/`Nat.add` 边界：`Nat` 现为真实归纳、`Nat.add` 仍原生自引用定义
