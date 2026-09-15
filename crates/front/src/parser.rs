@@ -1,7 +1,8 @@
 //! 递归下降解析器：tokens → AST（命令与表达式）。
 
 use super::ast::{
-    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, RecDecl, SortKind, Tactic,
+    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, MatchArm, RecDecl, SortKind,
+    Tactic,
 };
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
 use super::span::Span;
@@ -10,6 +11,9 @@ use super::token::{tokenize, Token, TokenKind};
 pub struct Parser {
     tokens: Vec<Token>,
     cursor: usize,
+    /// `match` 的 scrutinee 解析期间 > 0：让 `with` 停止 `parse_app` 的实参
+    /// 收集（`with` 是普通标识符，否则会被当成 `c` 的实参吃掉）。
+    scrutinee_depth: usize,
 }
 
 /// 一个 `(a b c : T)` 多名字 binder 组（读回内核 pp 类型文本时用）。
@@ -44,7 +48,11 @@ fn wrap_decl_binders(binders: Vec<Binder>, ty: Expr, val: Expr) -> (Expr, Expr) 
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, cursor: 0 }
+        Self {
+            tokens,
+            cursor: 0,
+            scrutinee_depth: 0,
+        }
     }
 
     pub fn parse_file(&mut self, src: &str) -> Result<FolFile> {
@@ -420,6 +428,7 @@ impl Parser {
             TokenKind::Forall => self.parse_forall(),
             TokenKind::Ident(kw) if kw == "fun" => self.parse_lambda(),
             TokenKind::Ident(kw) if kw == "let" => self.parse_let(),
+            TokenKind::Ident(kw) if kw == "match" => self.parse_match(),
             _ => self.parse_arrow(),
         }
     }
@@ -464,6 +473,87 @@ impl Parser {
             },
             val: Box::new(val),
             body: Box::new(body),
+            span,
+        })
+    }
+
+    /// `match <scrutinee> with | <Ctor> <binder>... => <body> | ...`（v1）。
+    /// 分支顺序任意，前端在降低时按构造子声明序重排；`with` 只是普通标识符，
+    /// 由 `scrutinee_depth` 保证它不被吃成 scrutinee 的实参。
+    fn parse_match(&mut self) -> Result<Expr> {
+        let start = self.bump().span.start;
+        self.scrutinee_depth += 1;
+        let scrutinee = self.parse_expr();
+        self.scrutinee_depth -= 1;
+        let scrutinee = scrutinee?;
+        let with_tok = self.peek().clone();
+        match &with_tok.kind {
+            TokenKind::Ident(word) if word == "with" => {
+                self.bump();
+            }
+            _ => {
+                return Err(Diagnostic::new(
+                    DiagnosticKind::UnexpectedToken {
+                        found: format!("{:?}", with_tok.kind),
+                        expected: "`with` after the match scrutinee".to_string(),
+                    },
+                    with_tok.span,
+                    "`match` 的 scrutinee 后面要写 `with`，例如 match c with | … => …".to_string(),
+                ));
+            }
+        }
+        let mut arms = Vec::new();
+        while self.peek().kind == TokenKind::Pipe {
+            arms.push(self.parse_match_arm()?);
+        }
+        if arms.is_empty() {
+            return Err(
+                self.error_here("`match` 至少需要一条分支，例如 | red => …（`|` 开头的分支）")
+            );
+        }
+        let end = arms
+            .last()
+            .map(|a| a.span.end)
+            .unwrap_or(scrutinee.span().end);
+        Ok(Expr::Match {
+            scrutinee: Box::new(scrutinee),
+            arms,
+            span: Span::new(start, end),
+        })
+    }
+
+    fn parse_match_arm(&mut self) -> Result<MatchArm> {
+        let pipe = self.bump();
+        let start = pipe.span.start;
+        let ctor_tok = self.peek().clone();
+        let TokenKind::Ident(ctor) = ctor_tok.kind.clone() else {
+            return Err(Diagnostic::new(
+                DiagnosticKind::UnexpectedToken {
+                    found: format!("{:?}", ctor_tok.kind),
+                    expected: "a constructor name".to_string(),
+                },
+                ctor_tok.span,
+                "`|` 后面要跟构造子名（裸名，例如 red），然后写模式变量".to_string(),
+            ));
+        };
+        self.bump();
+        let mut binders = Vec::new();
+        while let TokenKind::Ident(name) = self.peek().kind.clone() {
+            let tok = self.bump();
+            binders.push(Binder {
+                name,
+                ty: None,
+                style: BinderKind::Explicit,
+                span: tok.span,
+            });
+        }
+        self.expect_kind(&TokenKind::FatArrow, "`=>` after the match pattern")?;
+        let body = self.parse_expr()?;
+        let span = Span::new(start, body.span().end);
+        Ok(MatchArm {
+            ctor,
+            binders,
+            body,
             span,
         })
     }
@@ -599,7 +689,10 @@ impl Parser {
 
     fn starts_atom(&self) -> bool {
         match &self.peek().kind {
-            TokenKind::Ident(name) => !is_reserved_command(name) && !is_expr_keyword(name),
+            TokenKind::Ident(name) => {
+                let blocks_match = self.scrutinee_depth > 0 && name == "with";
+                !(is_reserved_command(name) || is_expr_keyword(name) || blocks_match)
+            }
             TokenKind::Num(_) | TokenKind::Hole | TokenKind::LParen | TokenKind::At => true,
             TokenKind::Forall => true,
             _ => false,
@@ -997,7 +1090,7 @@ pub fn parse(src: &str) -> Result<FolFile> {
 /// 表达式关键字（term 关键字）：不是命令，但在应用位必须让路——`f let …`
 /// 绝不能被当成 `f` 应用到标识符 `let`。
 fn is_expr_keyword(name: &str) -> bool {
-    matches!(name, "let")
+    matches!(name, "let" | "match")
 }
 
 fn is_reserved_command(name: &str) -> bool {
@@ -1359,5 +1452,85 @@ end
         // `f let …`：`let` 必须让路成 term 关键字，而不是被吃成 `f` 的实参。
         let err = parse("def x : Nat := Nat.succ let y : Nat := 1; y\n").unwrap_err();
         assert!(err.message.contains("command"), "err: {err:?}");
+    }
+
+    #[test]
+    fn match_parses_scrutinee_arms_binders_and_span() {
+        let src = "def f : Color := match c with | red => green | pair x y => x\n";
+        let file = parse(src).unwrap();
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        let Expr::Match {
+            scrutinee,
+            arms,
+            span,
+        } = val
+        else {
+            panic!("expected Match, got {val:?}");
+        };
+        assert!(matches!(scrutinee.as_ref(), Expr::Ident { name, .. } if name == "c"));
+        assert_eq!(arms.len(), 2);
+        assert_eq!(arms[0].ctor, "red");
+        assert!(arms[0].binders.is_empty());
+        assert!(matches!(&arms[0].body, Expr::Ident { name, .. } if name == "green"));
+        assert_eq!(arms[1].ctor, "pair");
+        assert_eq!(
+            arms[1]
+                .binders
+                .iter()
+                .map(|b| b.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["x", "y"]
+        );
+        assert!(matches!(&arms[1].body, Expr::Ident { name, .. } if name == "x"));
+        assert_eq!(span.end.offset, arms[1].span.end.offset);
+    }
+
+    #[test]
+    fn match_nests_in_a_branch_body() {
+        let src = "def f : Color := match c with | red => match d with | blue => green | green => blue | blue => red\n";
+        let file = parse(src).unwrap();
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        let Expr::Match { arms, .. } = val else {
+            panic!("expected outer Match, got {val:?}");
+        };
+        // 贪心：内层 match 吃掉后续的 `|` 分支，外层只剩第一条。
+        assert_eq!(arms.len(), 1);
+        assert!(
+            matches!(&arms[0].body, Expr::Match { .. }),
+            "branch body should be a nested match: {:?}",
+            arms[0].body
+        );
+    }
+
+    #[test]
+    fn match_missing_with_is_a_parse_error() {
+        let err = parse("def f : Color := match c | red => green\n").unwrap_err();
+        assert!(err.message.contains("with"), "err: {err:?}");
+    }
+
+    #[test]
+    fn match_without_arms_is_a_parse_error() {
+        let err = parse("def f : Color := match c with\n").unwrap_err();
+        assert!(
+            err.message.contains("分支") || err.message.contains("|"),
+            "err: {err:?}"
+        );
+    }
+
+    #[test]
+    fn match_missing_fat_arrow_is_a_parse_error() {
+        let err = parse("def f : Color := match c with | red green\n").unwrap_err();
+        assert!(err.message.contains("=>"), "err: {err:?}");
+    }
+
+    #[test]
+    fn match_does_not_start_an_application_argument() {
+        // `f match …`：`match` 必须让路成 term 关键字。
+        let err = parse("def x : Color := red match c with | red => green\n").unwrap_err();
+        assert!(!err.message.is_empty(), "err: {err:?}");
     }
 }

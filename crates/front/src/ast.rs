@@ -73,6 +73,24 @@ pub enum Expr {
         tactics: Vec<Tactic>,
         span: Span,
     },
+    /// `match <scrutinee> with | <Ctor> <binder>... => <body> | ...`：对**源内
+    /// 非递归**归纳类型分情况。降低为 `<Ind>.rec.{level} motive minor… scrutinee`
+    /// （v1 设计 `docs/design/match.md`）；判定仍由完整内核终审。
+    Match {
+        scrutinee: Box<Expr>,
+        arms: Vec<MatchArm>,
+        span: Span,
+    },
+}
+
+/// `match` 的一条分支：裸构造子名 + 按字段位置的模式变量（复用 [`Binder`]，
+/// v1 无类型注解，字段类型来自归纳登记表）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct MatchArm {
+    pub ctor: String,
+    pub binders: Vec<Binder>,
+    pub body: Expr,
+    pub span: Span,
 }
 
 impl Expr {
@@ -89,7 +107,8 @@ impl Expr {
             | Expr::Arrow { span, .. }
             | Expr::Plus { span, .. }
             | Expr::Let { span, .. }
-            | Expr::By { span, .. } => *span,
+            | Expr::By { span, .. }
+            | Expr::Match { span, .. } => *span,
         }
     }
 }

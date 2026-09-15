@@ -10,6 +10,7 @@
 
 use super::prelude::{CompileOptions, PreludeMode, PRELUDE_EQ_SRC};
 use super::report::{GoalBinder, SubGoal};
+use crate::ast::MatchArm;
 use crate::judge::{judge_infer, GoalBinderSpec};
 use crate::proof::{parse_expr_text, render_expr};
 use crate::{Binder, Command, Expr, FolFile, Span};
@@ -439,6 +440,9 @@ pub(crate) fn expr_has_hole(e: &Expr) -> bool {
                 || expr_has_hole(val)
                 || expr_has_hole(body)
         }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => expr_has_hole(scrutinee) || arms.iter().any(|arm| expr_has_hole(&arm.body)),
         _ => false,
     }
 }
@@ -477,6 +481,14 @@ fn collect_hole_spans(e: &Expr, out: &mut Vec<Span>) {
             }
             collect_hole_spans(val, out);
             collect_hole_spans(body, out);
+        }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            collect_hole_spans(scrutinee, out);
+            for arm in arms {
+                collect_hole_spans(&arm.body, out);
+            }
         }
         _ => {}
     }
@@ -651,6 +663,29 @@ fn substitute_names(
         }
         Expr::Num { .. } | Expr::Hole { .. } => expr.clone(),
         Expr::By { .. } => expr.clone(), // by 块在 elab 前已降级，不应出现在此
+        Expr::Match {
+            scrutinee,
+            arms,
+            span,
+        } => Expr::Match {
+            scrutinee: Box::new(substitute_names(scrutinee, map, levels)),
+            arms: arms
+                .iter()
+                .map(|arm| {
+                    let mut sub = map.clone();
+                    for binder in &arm.binders {
+                        sub.remove(&binder.name);
+                    }
+                    MatchArm {
+                        ctor: arm.ctor.clone(),
+                        binders: arm.binders.clone(),
+                        body: substitute_names(&arm.body, &sub, levels),
+                        span: arm.span,
+                    }
+                })
+                .collect(),
+            span: *span,
+        },
     }
 }
 
@@ -719,6 +754,13 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             binder,
             val,
             body,
+            span,
+        },
+        Expr::Match {
+            scrutinee, arms, ..
+        } => Expr::Match {
+            scrutinee,
+            arms,
             span,
         },
         Expr::By { tactics, .. } => Expr::By { tactics, span },
@@ -1153,6 +1195,62 @@ fn goal_under_binders(
                 info.binders.insert(0, introduced);
                 Some(info)
             }
+        }
+        // `match`：scrutinee 洞的期望类型未知（`None`）；分支体洞的期望类型
+        // 就是整个 match 的结果类型 R（v1 非依赖，见设计 §5）。
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            let r = render_expr(ty);
+            let mut holes = Vec::new();
+            let mut sub_goals = Vec::new();
+            if expr_has_hole(scrutinee) {
+                let mut sh = Vec::new();
+                collect_hole_spans(scrutinee, &mut sh);
+                for span in sh {
+                    holes.push(span);
+                    sub_goals.push(SubGoal { span, ty: None });
+                }
+            }
+            for arm in arms {
+                if !expr_has_hole(&arm.body) {
+                    continue;
+                }
+                match goal_under_binders(ty, &arm.body, templates, locals, probe, ctx) {
+                    Some(info) => {
+                        for (i, span) in info.holes.iter().enumerate() {
+                            holes.push(*span);
+                            let sub_ty = info
+                                .sub_goals
+                                .get(i)
+                                .and_then(|sub| sub.ty.clone())
+                                .or_else(|| Some(r.clone()));
+                            sub_goals.push(SubGoal {
+                                span: *span,
+                                ty: sub_ty,
+                            });
+                        }
+                    }
+                    None => {
+                        let mut bh = Vec::new();
+                        collect_hole_spans(&arm.body, &mut bh);
+                        for span in bh {
+                            holes.push(span);
+                            sub_goals.push(SubGoal {
+                                span,
+                                ty: Some(r.clone()),
+                            });
+                        }
+                    }
+                }
+            }
+            Some(OpenGoalInfo {
+                goal: r,
+                binders: Vec::new(),
+                holes,
+                sub_goals,
+                refine_template: None,
+            })
         }
         // 构造子语义优先（参数位可由目标自动判定，信息更多）；函数兜底。
         _ => ctor_spine_case(ty, val, Vec::new(), templates)

@@ -37,6 +37,11 @@ pub enum ErrorKind {
     ElabTacticFailed,
     ElabApplyNeedsATerm,
     ElabApplyNotApplicable,
+    ElabMatchBadArm,
+    ElabMatchNotInductive,
+    ElabMatchNoExpectedType,
+    ElabMatchRecursiveUnsupported,
+    ElabMatchNonExhaustive,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -68,7 +73,12 @@ impl ErrorKind {
             | ElabUnknownCtorForIota
             | ElabTacticFailed
             | ElabApplyNeedsATerm
-            | ElabApplyNotApplicable => CompileStage::Elab,
+            | ElabApplyNotApplicable
+            | ElabMatchBadArm
+            | ElabMatchNotInductive
+            | ElabMatchNoExpectedType
+            | ElabMatchRecursiveUnsupported
+            | ElabMatchNonExhaustive => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -101,6 +111,11 @@ impl ErrorKind {
             ElabTacticFailed => "elab-tactic-failed",
             ElabApplyNeedsATerm => "elab-apply-needs-a-term",
             ElabApplyNotApplicable => "elab-apply-not-applicable",
+            ElabMatchBadArm => "elab-match-bad-arm",
+            ElabMatchNotInductive => "elab-match-not-inductive",
+            ElabMatchNoExpectedType => "elab-match-no-expected-type",
+            ElabMatchRecursiveUnsupported => "elab-match-recursive-unsupported",
+            ElabMatchNonExhaustive => "elab-match-non-exhaustive",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -164,6 +179,21 @@ impl ErrorKind {
             }
             ElabApplyNotApplicable => {
                 "`funapply h` 要求 `h` 的结论正好是当前目标（`h : … -> 目标`）。看看 `h` 类型的最后一段是不是当前目标；不是就换一个前提，或直接写答案。"
+            }
+            ElabMatchBadArm => {
+                "match 的分支要写对：裸构造子名、每个构造子只写一次、模式变量个数与该构造子的字段数一致。"
+            }
+            ElabMatchNotInductive => {
+                "match 的被匹配项必须是本文件里用 inductive 声明（且非递归）的类型；v1 不支持 Nat/Eq 等 prelude 内建类型。"
+            }
+            ElabMatchNoExpectedType => {
+                "match 的结果类型必须已知：把它放在有类型标注的位置（声明类型、let/fun 的 binder 注解），或由外层 match 提供。"
+            }
+            ElabMatchRecursiveUnsupported => {
+                "match 暂不支持递归归纳类型（v1 只做没有归纳假设的非递归分情况）；递归定义请直接用消去子 .rec。"
+            }
+            ElabMatchNonExhaustive => {
+                "match 要覆盖该归纳类型的每一个构造子，一个都不能漏。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"

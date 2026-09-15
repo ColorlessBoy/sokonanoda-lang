@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第五十九轮：I8 early-cutoff 依赖精确化 + arena 基准立项；0.32.1）
+> 快照：2026-09-14（第六十轮：elaborator `match` v1——非递归归纳分情况；0.33.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,26 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十轮：elaborator `match` v1）
+
+> 续 TODO 清账（Phase 2 首切片）：按 `docs/design/match.md`（本轮 spike 定稿）
+> 落地 `match`（限源内非递归 `inductive`）。
+
+1. **可行性 spike**：手写 `Color.rec.{1} (fun _ => Color) green red c` 被内核
+   接受，缺 `. {level}` 被拒 → 降低必须从期望类型 Sort 推 level。
+2. **前端**：`Expr::Match`/`MatchArm`、`TokenKind::Pipe`、`parse_match`（裸 ctor、
+   按声明序重排、恰好覆盖一次）；`InductiveTable` 登记表 + `ElabCtx`/`expected_src`
+   贯通；降低为 `<Ind>.rec.{level} (fun _ => R) minors… e`；`goals`/`spine`/
+   `proof`/`semantic`/`suggest` 同步。+19 测试（含与手写 recursor 的等价契约）。
+3. **错误码**：`elab-match-{bad-arm,not-inductive,no-expected-type,recursive-unsupported,non-exhaustive}`
+   （已入 protocol + 穷尽清单）。
+4. **课程 + CLI**：unit5 新增「match 分情况」小节（自定义非递归枚举 + rec/iota，
+   zh/en/钥匙逐字节镜像，2 练习）+ golden `(4,3,1)→(6,5,2)`、汇总
+   `checked 48→50 / open 36→38`；CLI e2e +4。
+5. **验收**：`sokonanoda gate` PASS；版本 0.32.1 → **0.33.0**（新语法 minor）。
+6. **v1 边界（未做）**：递归归纳（IH）、依赖/参数化归纳、prelude `Nat`/`Eq`、
+   `match` tactic、嵌套/字面量/守卫模式、无注解 `let`。
 
 ## 本轮进度（2026-09-14，第五十九轮：I8 early-cutoff + arena 基准立项）
 
@@ -54,25 +74,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    API → minor）。
 5. **未闭环（留档）**：超量应用里「def 包裹的结果类型」whnf 展开需内核/pp 暴露
    （违反冻结）→ 仍走 B′；更深嵌套/非 spine 实参仍 `None`。
-
-## 本轮进度（2026-09-14，第五十七轮：扩展强制内置 LSP + doctor 自检）
-
-> 用户报告：扩展升到 0.29.0，`restart server` 仍回弹 `0.26.0 → 0.26.0`。
-> 盘链路确认：用户设置里 `sokonanoda.serverPath` 指向仓库陈旧的
-> `target/debug/sokonanoda-lsp`（0.26.0），显式路径优先级最高，静默压过内置
-> 0.29.0 服务器。用户要求：**强制用扩展自带的 LSP**，并**自动检测所有版本问题**。
-
-1. **设计** `docs/design/extension-server-policy.md`（含 as-built）。
-2. **强制内置**：`resolveServerCommand` 增 `override`（默认 `false`）与
-   `{command, source}`；默认链 = **内置 → 当前缓存 → 锁定下载兜底**，
-   `serverPath`/env/工作区构建**忽略**（弹一次提示，含「打开设置/运行
-   doctor」）；新增设置 `sokonanoda.serverOverride`（默认 false，restricted）
-   供贡献者恢复旧序。
-3. **doctor**：`sokonanoda.doctor` 只读输出 6 项自检（解析来源/运行版本/
-   宿主版本/被忽略覆盖/缓存/旧版本堆积），激活与 restart 后自动跑一次，
-   有问题非阻塞提示；restart 回执带 `source=`。
-4. **测试**：`test-server.js` override 单测；`extension.rs` 静态契约；
-   `extension.test.js` doctor 冒烟；`node --check` 全绿。
-5. **止血（本机）**：移除用户设置里的 `serverPath`（备份
-   `settings.json.bak-sokonanoda`）、删 8 个 `.obsolete` 旧版本（只剩 0.29.0）。
-6. **验收**：`sokonanoda gate` PASS；版本 0.30.0 → **0.31.0**（新设置+命令）。

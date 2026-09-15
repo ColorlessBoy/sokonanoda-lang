@@ -7,6 +7,7 @@
 //!
 //! 只做结构操作，不做判定：类型文本一律由 `judge::judge_infer` 问内核。
 
+use crate::ast::MatchArm;
 use crate::Expr;
 
 /// 剥一层 Pi/Arrow 的结果：binder 名（Arrow 层为空）、域、余下的体。
@@ -105,6 +106,17 @@ pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
             binder.ty.as_deref().is_some_and(|t| mentions(name, t))
                 || mentions(name, val)
                 || mentions(name, body)
+        }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            mentions(name, scrutinee)
+                || arms.iter().any(|arm| {
+                    arm.binders
+                        .iter()
+                        .any(|b| b.ty.as_deref().is_some_and(|t| mentions(name, t)))
+                        || mentions(name, &arm.body)
+                })
         }
         Expr::By { .. } => false,
     }
@@ -210,6 +222,23 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             binder: binder.clone(),
             val: Box::new(substitute(val, sigma)),
             body: Box::new(substitute(body, sigma)),
+            span: *span,
+        },
+        Expr::Match {
+            scrutinee,
+            arms,
+            span,
+        } => Expr::Match {
+            scrutinee: Box::new(substitute(scrutinee, sigma)),
+            arms: arms
+                .iter()
+                .map(|arm| MatchArm {
+                    ctor: arm.ctor.clone(),
+                    binders: arm.binders.clone(),
+                    body: substitute(&arm.body, sigma),
+                    span: arm.span,
+                })
+                .collect(),
             span: *span,
         },
         Expr::By { tactics, span } => Expr::By {

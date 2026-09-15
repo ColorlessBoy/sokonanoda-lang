@@ -965,3 +965,92 @@ fn cli_accepts_bool_with_auto_derived_recursor() {
     );
     assert!(stdout.contains("=> ff"), "stdout: {stdout}");
 }
+
+// ---- match（design docs/design/match.md，v1）----
+
+const COLOR_ENUM: &str = "inductive Color : Type\n\
+     ctor red : Color\n\
+     ctor green : Color\n\
+     end\n";
+
+#[test]
+fn cli_match_enum_checks_via_kernel() {
+    // 值位 `match` 对非递归源内枚举分情况，判定照旧走完整内核 →
+    // 照常产出 `decl.checked`。
+    let src = format!(
+        "{COLOR_ENUM}\
+         def swap (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | green => red\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "match must compile: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration swap"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn cli_match_sorry_branch_is_open_exercise() {
+    // 分支里的 sorry 是合法 Open 状态（目标类型就是声明的结果类型 Color）。
+    let src = format!(
+        "{COLOR_ENUM}\
+         example (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | green => sorry\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "a sorry branch must stay exit 0: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&out.stdout).contains("exercise open"),
+        "stdout: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+}
+
+#[test]
+fn cli_match_non_exhaustive_reports_code() {
+    // 漏写 green 分支 → 稳定的教学错误码 elab-match-non-exhaustive。
+    let src = format!(
+        "{COLOR_ENUM}\
+         def f (c : Color) : Color := match c with\n\
+         | red => green\n"
+    );
+    let out = run(&src);
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[elab-match-non-exhaustive]:"),
+        "stderr: {stderr}"
+    );
+}
+
+#[test]
+fn cli_match_reduces_through_kernel() {
+    // #reduce 走 match 降低出的 recursor：swap red 归约到 green。
+    let src = format!(
+        "{COLOR_ENUM}\
+         def swap (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | green => red\n\
+         #reduce swap red\n"
+    );
+    let out = run(&src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("swap red => green"), "stdout: {stdout}");
+}

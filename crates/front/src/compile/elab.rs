@@ -1,7 +1,10 @@
 //! AST → 内核表达式的 elaborate、声明构建（build_*）与 hover 记录。
 
 use super::error::{CompileError, ErrorKind};
+use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
+use crate::judge::{judge_infer, GoalBinderSpec};
+use crate::proof::render_expr;
 use crate::{Binder, BinderKind, CtorDecl, Expr, IotaRule, RecDecl, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{
@@ -14,9 +17,53 @@ use std::sync::Arc;
 
 pub(crate) type UnivMap<'a> = HashMap<String, LevelPtr<'a>>;
 
+/// One constructor field's elaborated type, for building a `match` minor.
+#[derive(Debug, Clone)]
+pub(crate) struct MatchField<'a> {
+    /// The constructor's declared field name (diagnostics).
+    pub name: String,
+    pub ty: ExprPtr<'a>,
+    pub style: BinderStyle,
+    /// Source type (for binder hover / judge-inference scope).
+    pub src_ty: Option<Expr>,
+}
+
+/// One constructor of a source-declared inductive, in declaration order.
+#[derive(Debug, Clone)]
+pub(crate) struct MatchCtor<'a> {
+    pub name: String,
+    pub fields: Vec<MatchField<'a>>,
+}
+
+/// Source-declared inductive metadata that `match` lowering reads (kernel frozen).
+#[derive(Debug, Clone)]
+pub(crate) struct InductiveInfo<'a> {
+    pub ctors: Vec<MatchCtor<'a>>,
+    pub recursor: String,
+    pub rec_universe_arity: usize,
+    pub recursive: bool,
+}
+
+/// Forward-accumulated registry of the file's own `inductive` blocks, keyed by
+/// inductive name. A `match` may only eliminate an inductive already declared
+/// earlier in the file (design §4).
+pub(crate) type InductiveTable<'a> = HashMap<String, InductiveInfo<'a>>;
+
+/// Read-only context threaded through elaboration: source prefix + compile
+/// options (for the [`judge_infer`] universe query that `match` needs) and the
+/// inductive registry.
+pub(crate) struct ElabCtx<'a, 'b> {
+    pub prefix_src: &'b str,
+    pub options: &'b CompileOptions,
+    pub inductives: &'b InductiveTable<'a>,
+}
+
 pub(crate) struct ElabScope<'a> {
     names: Vec<String>,
     tys: Vec<ExprPtr<'a>>,
+    /// Parallel to `names`: the binder's source type when it was written
+    /// explicitly (used to synthesize `judge_infer` binder specs for `match`).
+    src_tys: Vec<Option<Expr>>,
     /// Parallel to `names`: each binder's own source span, so a name use can
     /// record where its binder is defined.
     spans: Vec<Span>,
@@ -27,6 +74,7 @@ impl<'a> ElabScope<'a> {
         Self {
             names: Vec::new(),
             tys: Vec::new(),
+            src_tys: Vec::new(),
             spans: Vec::new(),
         }
     }
@@ -36,12 +84,35 @@ impl<'a> ElabScope<'a> {
     fn truncate(&mut self, len: usize) {
         self.names.truncate(len);
         self.tys.truncate(len);
+        self.src_tys.truncate(len);
         self.spans.truncate(len);
     }
-    fn push(&mut self, name: String, ty: ExprPtr<'a>, span: Span) {
+    fn push(&mut self, name: String, ty: ExprPtr<'a>, src_ty: Option<Expr>, span: Span) {
         self.names.push(name);
         self.tys.push(ty);
+        self.src_tys.push(src_ty);
         self.spans.push(span);
+    }
+    /// Binder specs for [`judge_infer`]: named binders with a written source
+    /// type, in scope order. Anonymous/untyped binders are dropped (nothing can
+    /// reference them by name).
+    fn judge_binders(&self) -> Vec<GoalBinderSpec> {
+        self.names
+            .iter()
+            .zip(self.src_tys.iter())
+            .filter(|(name, _)| !name.is_empty())
+            .filter_map(|(name, src)| {
+                src.as_ref().map(|ty| GoalBinderSpec {
+                    name: name.clone(),
+                    ty: Some(render_expr(ty)),
+                })
+            })
+            .collect()
+    }
+    /// The written source type of the innermost binder named `name`.
+    fn src_ty(&self, name: &str) -> Option<&Expr> {
+        let pos = self.names.iter().rposition(|candidate| candidate == name)?;
+        self.src_tys[pos].as_ref()
     }
 }
 
@@ -100,6 +171,9 @@ pub(crate) fn record_binder_hover<'a>(
 pub(crate) fn install_inductive_block<'a>(
     builder: &mut EnvBuilder<'a>,
     known: &mut HashMap<String, Vec<String>>,
+    table: &mut InductiveTable<'a>,
+    prefix_src: &str,
+    options: &CompileOptions,
     name: &str,
     ty: &Expr,
     constructors: &[CtorDecl],
@@ -122,6 +196,13 @@ pub(crate) fn install_inductive_block<'a>(
         }
     };
     let empty: UnivMap = UnivMap::new();
+    // 归纳声明自身内部出现 `match` 的情形按「本块尚未登记」处理（递归类型本就
+    // 不在 v1 支持内）。这里借用既有登记表，插入在本函数末尾进行。
+    let elab_ctx = ElabCtx {
+        prefix_src,
+        options,
+        inductives: table,
+    };
     let ty = elab_expr(
         builder,
         ty,
@@ -130,6 +211,8 @@ pub(crate) fn install_inductive_block<'a>(
         known,
         hovers,
         None,
+        None,
+        &elab_ctx,
     )?;
     let ind_name = builder.name_from_str(name);
     let ctor_names: Vec<NamePtr<'a>> = constructors
@@ -164,6 +247,7 @@ pub(crate) fn install_inductive_block<'a>(
     built.push(ind_declar);
     known.insert(name.to_string(), Vec::new());
 
+    let mut match_ctors: Vec<MatchCtor<'a>> = Vec::with_capacity(constructors.len());
     for (idx, ctor) in constructors.iter().enumerate() {
         let ctor_ty = Expr::Forall {
             binders: ctor.binders.clone(),
@@ -178,7 +262,27 @@ pub(crate) fn install_inductive_block<'a>(
             known,
             hovers,
             None,
+            None,
+            &elab_ctx,
         )?;
+        // 字段元数据：类型用已 elaborate 的内核 Pi 望远镜（与 recursor 的
+        // minor 形状逐位一致），源码 binder 提供 hover / judge 用的源类型。
+        let src_fields = ctor_field_binders(ctor);
+        let kernel_fields = kernel_field_binders(ctor_ty);
+        let fields = src_fields
+            .iter()
+            .zip(kernel_fields)
+            .map(|(src, (style, kernel_ty))| MatchField {
+                name: src.name.clone(),
+                ty: kernel_ty,
+                style,
+                src_ty: src.ty.as_deref().cloned(),
+            })
+            .collect();
+        match_ctors.push(MatchCtor {
+            name: ctor.name.clone(),
+            fields,
+        });
         let ctor_name = ctor_names[idx];
         let no_uparams = builder.alloc_levels_slice(&[]);
         // 内核把构造子类型整体当 Pi 望远镜数字段（result 箭头链的 domain
@@ -208,6 +312,8 @@ pub(crate) fn install_inductive_block<'a>(
         known.insert(ctor.name.clone(), Vec::new());
     }
 
+    let rec_name_text = recursor.name.clone();
+    let rec_universe_arity = recursor.universe.len();
     {
         let rec = recursor;
         let univ = make_univ_map(builder, &rec.universe);
@@ -219,6 +325,8 @@ pub(crate) fn install_inductive_block<'a>(
             known,
             hovers,
             None,
+            None,
+            &elab_ctx,
         )?;
         let rec_name = builder.name_from_str(&rec.name);
         let known_rec_universes = rec.universe.clone();
@@ -248,6 +356,8 @@ pub(crate) fn install_inductive_block<'a>(
                 known,
                 hovers,
                 None,
+                None,
+                &elab_ctx,
             )?;
             rules.push(RecRule {
                 ctor_name,
@@ -278,9 +388,19 @@ pub(crate) fn install_inductive_block<'a>(
         built.push(rec_declar);
     }
     builder.end_inductive_block();
+    table.insert(
+        name.to_string(),
+        InductiveInfo {
+            ctors: match_ctors,
+            recursor: rec_name_text,
+            rec_universe_arity,
+            recursive: is_recursive,
+        },
+    );
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_def<'a>(
     builder: &mut EnvBuilder<'a>,
     name: &str,
@@ -289,20 +409,38 @@ pub(crate) fn build_def<'a>(
     val: &Expr,
     known: &HashMap<String, Vec<String>>,
     hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
-    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers, Some(ty))?;
+    let ty_kernel = elab_expr(
+        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
+    )?;
+    let val_kernel = elab_expr(
+        builder,
+        val,
+        &mut scope,
+        &univ,
+        known,
+        hovers,
+        Some(ty_kernel),
+        Some(ty),
+        ctx,
+    )?;
     let name = builder.name_from_str(name);
     let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Definition {
-        info: DeclarInfo { name, uparams, ty },
-        val,
+        info: DeclarInfo {
+            name,
+            uparams,
+            ty: ty_kernel,
+        },
+        val: val_kernel,
         hint: ReducibilityHint::Regular(0),
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_theorem<'a>(
     builder: &mut EnvBuilder<'a>,
     name: &str,
@@ -311,16 +449,33 @@ pub(crate) fn build_theorem<'a>(
     val: &Expr,
     known: &HashMap<String, Vec<String>>,
     hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
-    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers, Some(ty))?;
+    let ty_kernel = elab_expr(
+        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
+    )?;
+    let val_kernel = elab_expr(
+        builder,
+        val,
+        &mut scope,
+        &univ,
+        known,
+        hovers,
+        Some(ty_kernel),
+        Some(ty),
+        ctx,
+    )?;
     let name = builder.name_from_str(name);
     let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Theorem {
-        info: DeclarInfo { name, uparams, ty },
-        val,
+        info: DeclarInfo {
+            name,
+            uparams,
+            ty: ty_kernel,
+        },
+        val: val_kernel,
     })
 }
 
@@ -331,16 +486,33 @@ pub(crate) fn build_example<'a>(
     val: &Expr,
     known: &HashMap<String, Vec<String>>,
     hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, &[]);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
-    let val = elab_expr(builder, val, &mut scope, &univ, known, hovers, Some(ty))?;
+    let ty_kernel = elab_expr(
+        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
+    )?;
+    let val_kernel = elab_expr(
+        builder,
+        val,
+        &mut scope,
+        &univ,
+        known,
+        hovers,
+        Some(ty_kernel),
+        Some(ty),
+        ctx,
+    )?;
     let name = builder.name_from_str(name);
     let uparams = builder.alloc_levels_slice(&[]);
     Ok(Declar::Definition {
-        info: DeclarInfo { name, uparams, ty },
-        val,
+        info: DeclarInfo {
+            name,
+            uparams,
+            ty: ty_kernel,
+        },
+        val: val_kernel,
         hint: ReducibilityHint::Regular(0),
     })
 }
@@ -352,10 +524,13 @@ pub(crate) fn build_axiom<'a>(
     ty: &Expr,
     known: &HashMap<String, Vec<String>>,
     hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
     let mut scope = ElabScope::new();
     let univ = make_univ_map(builder, universe);
-    let ty = elab_expr(builder, ty, &mut scope, &univ, known, hovers, None)?;
+    let ty = elab_expr(
+        builder, ty, &mut scope, &univ, known, hovers, None, None, ctx,
+    )?;
     let name = builder.name_from_str(name);
     let uparams = collect_uparams(builder, &univ, universe);
     Ok(Declar::Axiom {
@@ -446,6 +621,54 @@ fn drop_expected_layer(expected: Option<ExprPtr<'_>>) -> Option<ExprPtr<'_>> {
     }
 }
 
+/// Source-level mirror of [`peel_expected`]: the binder style, the written
+/// domain and the remaining source type.
+fn peel_expected_src(expected: Option<&Expr>) -> Option<(BinderStyle, Expr, Expr)> {
+    match expected? {
+        Expr::Arrow {
+            domain, codomain, ..
+        } => Some((
+            BinderStyle::Default,
+            domain.as_ref().clone(),
+            codomain.as_ref().clone(),
+        )),
+        Expr::Forall { binders, body, .. } if !binders.is_empty() => {
+            let binder = &binders[0];
+            let domain = binder.ty.as_deref()?.clone();
+            let rest = if binders.len() > 1 {
+                Expr::Forall {
+                    binders: binders[1..].to_vec(),
+                    body: body.clone(),
+                    span: binder.span,
+                }
+            } else {
+                body.as_ref().clone()
+            };
+            Some((kernel_binder_style(&binder.style), domain, rest))
+        }
+        _ => None,
+    }
+}
+
+/// Source-level mirror of [`drop_expected_layer`].
+fn drop_expected_src_layer(expected: Option<&Expr>) -> Option<Expr> {
+    match expected? {
+        Expr::Arrow { codomain, .. } => Some(codomain.as_ref().clone()),
+        Expr::Forall { binders, body, .. } if !binders.is_empty() => {
+            if binders.len() > 1 {
+                Some(Expr::Forall {
+                    binders: binders[1..].to_vec(),
+                    body: body.clone(),
+                    span: binders[0].span,
+                })
+            } else {
+                Some(body.as_ref().clone())
+            }
+        }
+        _ => None,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn elab_expr<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -455,6 +678,8 @@ pub(crate) fn elab_expr<'a>(
     known: &HashMap<String, Vec<String>>,
     hovers: &mut Vec<HoverNode<'a>>,
     expected: Option<ExprPtr<'a>>,
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
 ) -> Result<ExprPtr<'a>, CompileError> {
     match expr {
         Expr::Sort {
@@ -603,8 +828,8 @@ pub(crate) fn elab_expr<'a>(
             *span,
         )),
         Expr::App { fun, arg, span } => {
-            let fun = elab_expr(builder, fun, scope, univ, known, hovers, None)?;
-            let arg = elab_expr(builder, arg, scope, univ, known, hovers, None)?;
+            let fun = elab_expr(builder, fun, scope, univ, known, hovers, None, None, ctx)?;
+            let arg = elab_expr(builder, arg, scope, univ, known, hovers, None, None, ctx)?;
             let out = builder.mk_app(fun, arg);
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
@@ -619,20 +844,30 @@ pub(crate) fn elab_expr<'a>(
             let mut tys = Vec::with_capacity(binders.len());
             let mut styles = Vec::with_capacity(binders.len());
             let mut rest = expected;
+            let mut rest_src = expected_src.cloned();
             for binder in binders {
-                let (ty, style) = match &binder.ty {
+                let (ty, style, src_ty) = match &binder.ty {
                     Some(ty) => {
-                        let t = elab_expr(builder, ty, scope, univ, known, hovers, None)?;
+                        let t =
+                            elab_expr(builder, ty, scope, univ, known, hovers, None, None, ctx)?;
                         // The annotation wins, but the expected telescope
                         // still loses one layer so later untyped binders
                         // stay aligned with the declared type.
                         rest = drop_expected_layer(rest);
-                        (t, kernel_binder_style(&binder.style))
+                        rest_src = drop_expected_src_layer(rest_src.as_ref());
+                        (
+                            t,
+                            kernel_binder_style(&binder.style),
+                            Some(ty.as_ref().clone()),
+                        )
                     }
                     None => match peel_expected(rest) {
                         Some((style, binder_ty, body)) => {
+                            let src_layer = peel_expected_src(rest_src.as_ref());
                             rest = Some(body);
-                            (binder_ty, style)
+                            rest_src = src_layer.as_ref().map(|(_, _, body)| body.clone());
+                            let src_ty = src_layer.map(|(_, domain, _)| domain);
+                            (binder_ty, style, src_ty)
                         }
                         None => {
                             return Err(CompileError::elab(
@@ -649,9 +884,19 @@ pub(crate) fn elab_expr<'a>(
                 names.push(name);
                 styles.push(style);
                 record_binder_hover(hovers, scope, binder.span, ty);
-                scope.push(binder.name.clone(), ty, binder.span);
+                scope.push(binder.name.clone(), ty, src_ty, binder.span);
             }
-            let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, rest)?;
+            let mut body_expr = elab_expr(
+                builder,
+                body,
+                scope,
+                univ,
+                known,
+                hovers,
+                rest,
+                rest_src.as_ref(),
+                ctx,
+            )?;
             scope.truncate(base);
             for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
                 body_expr = builder.mk_lambda(name, style, ty, body_expr);
@@ -670,7 +915,9 @@ pub(crate) fn elab_expr<'a>(
             let mut styles = Vec::with_capacity(binders.len());
             for binder in binders {
                 let ty = match &binder.ty {
-                    Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers, None)?,
+                    Some(ty) => {
+                        elab_expr(builder, ty, scope, univ, known, hovers, None, None, ctx)?
+                    }
                     None => {
                         return Err(CompileError::elab(
                             ErrorKind::ElabUntypedBinder,
@@ -684,9 +931,15 @@ pub(crate) fn elab_expr<'a>(
                 names.push(name);
                 styles.push(kernel_binder_style(&binder.style));
                 record_binder_hover(hovers, scope, binder.span, ty);
-                scope.push(binder.name.clone(), ty, binder.span);
+                scope.push(
+                    binder.name.clone(),
+                    ty,
+                    binder.ty.as_deref().cloned(),
+                    binder.span,
+                );
             }
-            let mut body_expr = elab_expr(builder, body, scope, univ, known, hovers, None)?;
+            let mut body_expr =
+                elab_expr(builder, body, scope, univ, known, hovers, None, None, ctx)?;
             scope.truncate(base);
             for ((name, ty), style) in names.into_iter().zip(tys).zip(styles).rev() {
                 body_expr = builder.mk_pi(name, style, ty, body_expr);
@@ -699,11 +952,14 @@ pub(crate) fn elab_expr<'a>(
             codomain,
             span,
         } => {
-            let domain = elab_expr(builder, domain, scope, univ, known, hovers, None)?;
+            let domain_src = domain.as_ref().clone();
+            let domain = elab_expr(builder, domain, scope, univ, known, hovers, None, None, ctx)?;
             // `A -> B` desugars to a Pi with an anonymous binder, so free
             // variables in the codomain live one binder deeper.
-            scope.push(String::new(), domain, Span::default());
-            let codomain = elab_expr(builder, codomain, scope, univ, known, hovers, None)?;
+            scope.push(String::new(), domain, Some(domain_src), Span::default());
+            let codomain = elab_expr(
+                builder, codomain, scope, univ, known, hovers, None, None, ctx,
+            )?;
             scope.truncate(scope.len() - 1);
             let anon = builder.anonymous();
             let out = builder.mk_pi(anon, BinderStyle::Default, domain, codomain);
@@ -723,8 +979,8 @@ pub(crate) fn elab_expr<'a>(
             let add = builder.name_from_str("Nat.add");
             let levels = builder.alloc_levels_slice(&[]);
             let add_const = builder.mk_const(add, levels);
-            let lhs = elab_expr(builder, lhs, scope, univ, known, hovers, None)?;
-            let rhs = elab_expr(builder, rhs, scope, univ, known, hovers, None)?;
+            let lhs = elab_expr(builder, lhs, scope, univ, known, hovers, None, None, ctx)?;
+            let rhs = elab_expr(builder, rhs, scope, univ, known, hovers, None, None, ctx)?;
             let applied = builder.mk_app(add_const, lhs);
             let out = builder.mk_app(applied, rhs);
             record_hover(hovers, scope, *span, out, None);
@@ -738,8 +994,9 @@ pub(crate) fn elab_expr<'a>(
         } => {
             let base = scope.len();
             // 1) binder 类型在「未引入 x」的外层 scope 里 elaborate。
-            let ty = match binder.ty.as_deref() {
-                Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers, None)?,
+            let ty_src = binder.ty.as_deref();
+            let ty = match ty_src {
+                Some(ty) => elab_expr(builder, ty, scope, univ, known, hovers, None, None, ctx)?,
                 None => {
                     return Err(CompileError::elab(
                         ErrorKind::ElabUntypedBinder,
@@ -751,16 +1008,198 @@ pub(crate) fn elab_expr<'a>(
             // 2) binder 声明行 hover（`x : T`），scope 仍是外层。
             record_binder_hover(hovers, scope, binder.span, ty);
             // 3) 值在期望类型 T 下 elaborate（未注解的 lambda binder 可借此推断）。
-            let val = elab_expr(builder, val, scope, univ, known, hovers, Some(ty))?;
+            let val = elab_expr(
+                builder,
+                val,
+                scope,
+                univ,
+                known,
+                hovers,
+                Some(ty),
+                ty_src,
+                ctx,
+            )?;
             // 4) 引入 x，body 在扩展 scope + 外层 expected 下 elaborate。
-            scope.push(binder.name.clone(), ty, binder.span);
-            let body = elab_expr(builder, body, scope, univ, known, hovers, expected)?;
+            scope.push(binder.name.clone(), ty, ty_src.cloned(), binder.span);
+            let body = elab_expr(
+                builder,
+                body,
+                scope,
+                univ,
+                known,
+                hovers,
+                expected,
+                expected_src,
+                ctx,
+            )?;
             scope.truncate(base);
             // 5) 拼内核 Let 并落 hover（`nondep` 保守取 false，见设计 §3.3）。
             let name = builder.name_from_str(&binder.name);
             let out = builder.mk_let(name, ty, val, body, false);
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
+        }
+        // `match`：降低为 `<Ind>.rec.{level} (fun (_ : Ind) => R) minor… scrutinee`
+        // （design `docs/design/match.md` §5）。判定交给完整内核。
+        Expr::Match {
+            scrutinee,
+            arms,
+            span,
+        } => {
+            let (Some(expected_kernel), Some(expected_src)) = (expected, expected_src) else {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabMatchNoExpectedType,
+                    "`match` 的结果类型必须已知：请把它放在有类型标注的位置（声明类型 / \
+                     let / fun 的 binder 注解），或让外层 match 提供结果类型",
+                    *span,
+                ));
+            };
+            // 1) elaborate scrutinee (no expected), then find its inductive head.
+            let scrutinee_kernel = elab_expr(
+                builder, scrutinee, scope, univ, known, hovers, None, None, ctx,
+            )?;
+            let ind_name = infer_inductive(ctx, scope, scrutinee).ok_or_else(|| {
+                CompileError::elab(
+                    ErrorKind::ElabMatchNotInductive,
+                    "`match` 的被匹配项不是本文件里用 inductive 声明的归纳类型（v1 只支持源内非递归枚举/结构体）",
+                    scrutinee.span(),
+                )
+            })?;
+            let info = ctx.inductives.get(&ind_name).ok_or_else(|| {
+                CompileError::elab(
+                    ErrorKind::ElabMatchNotInductive,
+                    format!(
+                        "`match` 的被匹配项类型 `{ind_name}` 不是本文件用 inductive 声明的类型"
+                    ),
+                    scrutinee.span(),
+                )
+            })?;
+            if info.recursive {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabMatchRecursiveUnsupported,
+                    format!(
+                        "`match` 暂不支持递归归纳类型 `{ind_name}`（v1 只做非递归：没有归纳假设的分情况）"
+                    ),
+                    scrutinee.span(),
+                ));
+            }
+            // 2) arms: bare ctor names, each covered exactly once, exact arity.
+            let mut arm_by_ctor: HashMap<&str, &crate::ast::MatchArm> = HashMap::new();
+            for arm in arms {
+                if !info.ctors.iter().any(|c| c.name == arm.ctor) {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabMatchBadArm,
+                        format!(
+                            "`{ind_name}` 没有构造子 `{}`；可用的是：{}",
+                            arm.ctor,
+                            ctor_names_text(info)
+                        ),
+                        arm.span,
+                    ));
+                }
+                if arm_by_ctor.insert(arm.ctor.as_str(), arm).is_some() {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabMatchBadArm,
+                        format!("构造子 `{}` 被重复匹配了；每个构造子只能写一次", arm.ctor),
+                        arm.span,
+                    ));
+                }
+            }
+            if let Some(missing) = info
+                .ctors
+                .iter()
+                .find(|c| !arm_by_ctor.contains_key(c.name.as_str()))
+            {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabMatchNonExhaustive,
+                    format!(
+                        "`match` 漏掉了构造子 `{}`；请覆盖 `{ind_name}` 的每个构造子",
+                        missing.name
+                    ),
+                    *span,
+                ));
+            }
+            for ctor in &info.ctors {
+                let arm = arm_by_ctor[ctor.name.as_str()];
+                if arm.binders.len() != ctor.fields.len() {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabMatchBadArm,
+                        format!(
+                            "构造子 `{}` 有 {} 个字段，但这一支写了 {} 个模式变量；请写满字段：| {} {} => …",
+                            ctor.name,
+                            ctor.fields.len(),
+                            arm.binders.len(),
+                            ctor.name,
+                            field_names_text(ctor)
+                        ),
+                        arm.span,
+                    ));
+                }
+            }
+            // 3) level：judge_infer(R) 的类型文本映射宇宙（design §5 step 3）。
+            let level = infer_expected_level(ctx, scope, expected_src).ok_or_else(|| {
+                CompileError::elab(
+                    ErrorKind::ElabMatchNoExpectedType,
+                    "无法确定 `match` 结果类型所在的宇宙层级（v1 只支持内核能推断出 Sort 的结果类型）",
+                    *span,
+                )
+            })?;
+            // 4) motive = fun (_ : Ind) => R（v1 非依赖，见设计 §2）。
+            let empty_levels = builder.alloc_levels_slice(&[]);
+            let ind_ptr = builder.name_from_str(&ind_name);
+            let ind_const = builder.mk_const(ind_ptr, empty_levels);
+            let anon = builder.anonymous();
+            let motive = builder.mk_lambda(anon, BinderStyle::Default, ind_const, expected_kernel);
+            // 5) minors：按构造子声明序重排，用户写满的字段绑成 lambda。
+            let base = scope.len();
+            let mut minors = Vec::with_capacity(info.ctors.len());
+            for ctor in &info.ctors {
+                let arm = arm_by_ctor[ctor.name.as_str()];
+                for (field, binder) in ctor.fields.iter().zip(arm.binders.iter()) {
+                    record_binder_hover(hovers, scope, binder.span, field.ty);
+                    scope.push(
+                        binder.name.clone(),
+                        field.ty,
+                        field.src_ty.clone(),
+                        binder.span,
+                    );
+                }
+                let mut body = elab_expr(
+                    builder,
+                    &arm.body,
+                    scope,
+                    univ,
+                    known,
+                    hovers,
+                    Some(expected_kernel),
+                    Some(expected_src),
+                    ctx,
+                )?;
+                scope.truncate(base);
+                for (field, binder) in ctor.fields.iter().zip(arm.binders.iter()).rev() {
+                    let name = builder.name_from_str(&binder.name);
+                    body = builder.mk_lambda(name, field.style, field.ty, body);
+                }
+                minors.push(body);
+            }
+            // 6) `<Ind>.rec.{level} motive minor_1 … minor_n scrutinee`.
+            let rec_ptr = builder.name_from_str(&info.recursor);
+            let rec_const = if info.rec_universe_arity == 0 {
+                // Prop 小消去推导出的 recursor 没有宇宙参数（如多构造子 Prop 枚举）。
+                let levels = builder.alloc_levels_slice(&[]);
+                builder.mk_const(rec_ptr, levels)
+            } else {
+                let lvl = level_from_u64(builder, level);
+                let levels = builder.alloc_levels_slice(&[lvl]);
+                builder.mk_const(rec_ptr, levels)
+            };
+            let mut app = builder.mk_app(rec_const, motive);
+            for minor in minors {
+                app = builder.mk_app(app, minor);
+            }
+            app = builder.mk_app(app, scrutinee_kernel);
+            record_hover(hovers, scope, *span, app, None);
+            Ok(app)
         }
         // `by` 块应在 elab 前由引擎降级为 lambda AST；到不了这里。
         Expr::By { span, .. } => Err(CompileError::elab(
@@ -769,6 +1208,115 @@ pub(crate) fn elab_expr<'a>(
             *span,
         )),
     }
+}
+
+/// Peel a constructor's elaborated kernel type into its field binder types
+/// (dependencies resolved by de Bruijn), in declaration order.
+fn kernel_field_binders<'a>(mut ty: ExprPtr<'a>) -> Vec<(BinderStyle, ExprPtr<'a>)> {
+    let mut out = Vec::new();
+    loop {
+        match &*ty {
+            sokonanoda::expr::Expr::Pi {
+                binder_style,
+                binder_type,
+                body,
+                ..
+            } => {
+                out.push((*binder_style, *binder_type));
+                ty = *body;
+            }
+            _ => return out,
+        }
+    }
+}
+
+/// The head identifier of a type expression (`Color`, `Color A`, `@{…}`), used
+/// to map a scrutinee/expected type onto the inductive registry.
+fn head_ident(expr: &Expr) -> Option<String> {
+    match expr {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => Some(name.clone()),
+        Expr::App { fun, .. } => head_ident(fun),
+        _ => None,
+    }
+}
+
+/// The inductive a `match` scrutinee eliminates: a local variable uses its
+/// written source type (cheap); anything else asks the kernel for its type via
+/// [`judge_infer`] under the current binder scope.
+fn infer_inductive(ctx: &ElabCtx, scope: &ElabScope, scrutinee: &Expr) -> Option<String> {
+    if let Expr::Ident { name, .. } = scrutinee {
+        if let Some(ty) = scope.src_ty(name) {
+            if let Some(head) = head_ident(ty) {
+                return Some(head);
+            }
+        }
+    }
+    let binders = scope.judge_binders();
+    let text = judge_infer(
+        ctx.prefix_src,
+        ctx.options,
+        &binders,
+        &render_expr(scrutinee),
+    )
+    .ok()?;
+    let ty = crate::proof::parse_expr_text(&text).ok()?;
+    head_ident(&ty)
+}
+
+/// Map the kernel-rendered sort of `R` to the recursor's universe level:
+/// `Prop`→0, `Type`→1, `Sort n`→n (design §5).
+fn sort_text_level(text: &str) -> Option<u64> {
+    match text.trim() {
+        "Prop" => Some(0),
+        "Type" => Some(1),
+        other => {
+            if let Some(rest) = other.strip_prefix("Sort ") {
+                rest.trim().parse::<u64>().ok()
+            } else if let Some(rest) = other.strip_prefix("Type ") {
+                rest.trim().parse::<u64>().ok().map(|n| n + 1)
+            } else {
+                None
+            }
+        }
+    }
+}
+
+/// The recursor universe level for the expected result type `R`: the sort of
+/// `R` as inferred by the kernel (`judge_infer` reuses the 128-entry cache).
+fn infer_expected_level(ctx: &ElabCtx, scope: &ElabScope, expected_src: &Expr) -> Option<u64> {
+    let binders = scope.judge_binders();
+    let text = judge_infer(
+        ctx.prefix_src,
+        ctx.options,
+        &binders,
+        &render_expr(expected_src),
+    )
+    .ok()?;
+    sort_text_level(&text)
+}
+
+fn level_from_u64<'a>(builder: &mut EnvBuilder<'a>, n: u64) -> LevelPtr<'a> {
+    let mut level = builder.zero();
+    for _ in 0..n {
+        level = builder.succ(level);
+    }
+    level
+}
+
+fn ctor_names_text(info: &InductiveInfo) -> String {
+    info.ctors
+        .iter()
+        .map(|c| c.name.as_str())
+        .collect::<Vec<_>>()
+        .join("，")
+}
+
+fn field_names_text(ctor: &MatchCtor) -> String {
+    ctor.fields
+        .iter()
+        .map(|f| f.name.as_str())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Whether any sub-expression of `e` uses the identifier `name` (mirror of
@@ -799,6 +1347,17 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
                 .is_some_and(|ty| mentions_ident(ty, name))
                 || mentions_ident(val, name)
                 || mentions_ident(body, name)
+        }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            mentions_ident(scrutinee, name)
+                || arms.iter().any(|arm| {
+                    arm.binders
+                        .iter()
+                        .any(|b| b.ty.as_deref().is_some_and(|ty| mentions_ident(ty, name)))
+                        || mentions_ident(&arm.body, name)
+                })
         }
         Expr::By { .. } => false, // by 块在 elab 前已被引擎降级为普通表达式
     }

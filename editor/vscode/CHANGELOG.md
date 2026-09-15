@@ -1,3 +1,17 @@
+## [0.33.0] - 2026-09-14
+
+### Added
+
+- **`match` (v1)** — pattern matching on **source-declared, non-recursive**
+  `inductive` types: `match e with | Ctor x … => body | …`. Each constructor
+  is covered once (any order; reordered to declaration order), the result type
+  is the expected type at the match position, and lowering goes to
+  `<Ind>.rec.{level} (fun _ => R) minors … e` (the universe level is derived
+  from the expected type). Kernel-frozen and kernel-judged. Recursive
+  inductives, dependent motives, parameterized inductives and the prelude
+  `Nat`/`Eq` are explicit errors in v1. Course coverage added to the induction
+  unit. Design: `docs/design/match.md`.
+
 ## [0.32.1] - 2026-09-14
 
 ### Changed

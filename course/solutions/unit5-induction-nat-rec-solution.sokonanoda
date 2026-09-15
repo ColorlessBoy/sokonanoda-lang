@@ -55,3 +55,47 @@ def add : Nat -> Nat -> Nat :=
 #reduce four
 #reduce double two
 #reduce add two three
+
+-- ─────────────────────────────────────────────────────────────
+-- `match` 分情况：非递归枚举 Color + 演示 swap + 练习 4/5 的答案。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+rec Color.rec {u} :
+  (motive : (c : Color) -> Sort u) ->
+  (mr : motive red) ->
+  (mg : motive green) ->
+  (c : Color) -> motive c
+iota red :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mr
+iota green :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mg
+end
+
+-- 演示（与画布一致）：swap 对调 red/green。
+def swap (c : Color) : Color := match c with
+| red => green
+| green => red
+
+-- 自测：#reduce 走 match 降低出的 Color.rec —— swap red 就是 green。
+#reduce swap red
+
+-- 练习 4：恒等映射。
+def relabel (c : Color) : Color := match c with
+| red => red
+| green => green
+
+-- 练习 5：green 分支填 red。
+def swapOpen (c : Color) : Color := match c with
+| red => green
+| green => red
+
+-- 额外自测（钥匙内部核对）：
+#reduce relabel green
+#reduce swapOpen green

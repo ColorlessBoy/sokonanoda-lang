@@ -2,7 +2,7 @@
 
 use super::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
-    ElabScope, HoverNode, UnivMap,
+    ElabCtx, ElabScope, HoverNode, InductiveTable, UnivMap,
 };
 use super::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind};
 use super::event::{CheckEvent, CompileOutput};
@@ -413,6 +413,7 @@ fn run_pass(
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
+    let mut inductives = InductiveTable::new();
     match options.prelude {
         PreludeMode::Bare => {}
         PreludeMode::Full => {
@@ -445,6 +446,8 @@ fn run_pass(
     for (idx, command) in file.commands.iter().enumerate() {
         let trusted = trust.is_some_and(|t| idx < t.before);
         let env_before = builder.declaration_count();
+        // `match` 的宇宙查询用前缀源码（与 `by` 同一条合成 `#check` 路线）。
+        let prefix_src = file.src.get(..command.span().start.offset).unwrap_or("");
         match command {
             Command::Def {
                 name,
@@ -453,6 +456,11 @@ fn run_pass(
                 val,
                 span,
             } => {
+                let elab_ctx = ElabCtx {
+                    prefix_src,
+                    options,
+                    inductives: &inductives,
+                };
                 let lowered = match lower_value(ty, val, &file.src, span.start.offset, options) {
                     Ok(v) => v,
                     Err(e) => {
@@ -487,6 +495,7 @@ fn run_pass(
                         val,
                         &known_universes,
                         &mut hovers,
+                        &elab_ctx,
                     ) {
                         let _ = builder.add_declar(decl);
                         known_universes.insert(name.clone(), universe.clone());
@@ -514,6 +523,8 @@ fn run_pass(
                         &known_universes,
                         &mut Vec::new(),
                         None,
+                        None,
+                        &elab_ctx,
                     )
                     .inspect(|_| {
                         // hover 行也要：类型子表达式进 hover 表
@@ -550,6 +561,7 @@ fn run_pass(
                     val,
                     &known_universes,
                     &mut hovers,
+                    &elab_ctx,
                 ) {
                     Ok(decl) => {
                         let name_owned = name.clone();
@@ -601,6 +613,11 @@ fn run_pass(
                 val,
                 span,
             } => {
+                let elab_ctx = ElabCtx {
+                    prefix_src,
+                    options,
+                    inductives: &inductives,
+                };
                 let lowered = match lower_value(ty, val, &file.src, span.start.offset, options) {
                     Ok(v) => v,
                     Err(e) => {
@@ -632,6 +649,7 @@ fn run_pass(
                         val,
                         &known_universes,
                         &mut hovers,
+                        &elab_ctx,
                     ) {
                         let _ = builder.add_declar(decl);
                         known_universes.insert(name.clone(), universe.clone());
@@ -677,6 +695,8 @@ fn run_pass(
                         &known_universes,
                         &mut Vec::new(),
                         None,
+                        None,
+                        &elab_ctx,
                     )
                     .ok();
                     ops.push(PendingOp::OpenExercise {
@@ -704,6 +724,7 @@ fn run_pass(
                     val,
                     &known_universes,
                     &mut hovers,
+                    &elab_ctx,
                 ) {
                     Ok(decl) => {
                         let name_owned = name.clone();
@@ -754,6 +775,11 @@ fn run_pass(
                 ty,
                 span,
             } => {
+                let elab_ctx = ElabCtx {
+                    prefix_src,
+                    options,
+                    inductives: &inductives,
+                };
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx)) {
                         continue;
@@ -766,6 +792,7 @@ fn run_pass(
                         ty,
                         &known_universes,
                         &mut hovers,
+                        &elab_ctx,
                     ) {
                         let _ = builder.add_declar(decl);
                         known_universes.insert(name.clone(), universe.clone());
@@ -791,6 +818,7 @@ fn run_pass(
                     ty,
                     &known_universes,
                     &mut hovers,
+                    &elab_ctx,
                 ) {
                     Ok(decl) => {
                         let name_owned = name.clone();
@@ -836,6 +864,11 @@ fn run_pass(
                 }
             }
             Command::Example { ty, val, span } => {
+                let elab_ctx = ElabCtx {
+                    prefix_src,
+                    options,
+                    inductives: &inductives,
+                };
                 let lowered = match lower_value(ty, val, &file.src, span.start.offset, options) {
                     Ok(v) => v,
                     Err(e) => {
@@ -862,6 +895,7 @@ fn run_pass(
                         val,
                         &known_universes,
                         &mut hovers,
+                        &elab_ctx,
                     ) {
                         let _ = builder.add_declar(decl);
                     }
@@ -901,6 +935,8 @@ fn run_pass(
                         &known_universes,
                         &mut Vec::new(),
                         None,
+                        None,
+                        &elab_ctx,
                     )
                     .ok();
                     ops.push(PendingOp::OpenExercise {
@@ -929,6 +965,7 @@ fn run_pass(
                     val,
                     &known_universes,
                     &mut hovers,
+                    &elab_ctx,
                 ) {
                     Ok(decl) => {
                         if let Err(e) = builder.add_declar(decl.clone()) {
@@ -984,6 +1021,9 @@ fn run_pass(
                     if install_inductive_block(
                         &mut builder,
                         &mut known_universes,
+                        &mut inductives,
+                        prefix_src,
+                        options,
                         name,
                         ty,
                         constructors,
@@ -1014,6 +1054,9 @@ fn run_pass(
                 match install_inductive_block(
                     &mut builder,
                     &mut known_universes,
+                    &mut inductives,
+                    prefix_src,
+                    options,
                     name,
                     ty,
                     constructors,
@@ -1058,6 +1101,12 @@ fn run_pass(
                     &known_universes,
                     &mut hovers,
                     None,
+                    None,
+                    &ElabCtx {
+                        prefix_src,
+                        options,
+                        inductives: &inductives,
+                    },
                 ) {
                     Ok(e) => {
                         ops.push(PendingOp::Check {
@@ -1085,6 +1134,12 @@ fn run_pass(
                     &known_universes,
                     &mut hovers,
                     None,
+                    None,
+                    &ElabCtx {
+                        prefix_src,
+                        options,
+                        inductives: &inductives,
+                    },
                 ) {
                     Ok(e) => {
                         ops.push(PendingOp::Reduce {

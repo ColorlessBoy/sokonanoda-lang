@@ -72,3 +72,50 @@ def add : Nat -> Nat -> Nat := sorry
 -- 收尾（内核回判）：解完练习 3 后，把下面这行的注释去掉。
 -- 它必须变绿 —— add two two 就是四层 succ，这是 iota 在替你数数。
 -- #reduce add two two
+
+-- ─────────────────────────────────────────────────────────────
+-- `match` 分情况：对非递归枚举「看构造子办事」。
+-- 下面的 Color 只有两个构造子 red/green；我们照旧给出消去子
+-- Color.rec 与 iota 规则，再用 match 一次覆盖全部构造子。
+-- v1 的 match 只做**非递归**的源内 inductive，且结果类型必须已知。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+rec Color.rec {u} :
+  (motive : (c : Color) -> Sort u) ->
+  (mr : motive red) ->
+  (mg : motive green) ->
+  (c : Color) -> motive c
+iota red :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mr
+iota green :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mg
+end
+
+-- 演示（已写好）：swap 把 red/green 对调；两个分支各写一次。
+def swap (c : Color) : Color := match c with
+| red => green
+| green => red
+
+-- 自测：#reduce 走的是 match 降低出的 Color.rec —— swap red 就是 green。
+#reduce swap red
+
+-- 练习 4：relabel 把 red 映到 red、green 映到 green（原样返回）。
+-- soko:hint 思路：match 一次列全 red 与 green 两个构造子，每个分支给一个 Color。
+-- soko:hint 目标形态：fun (c : Color) => match c with …；分支顺序随意，前端按声明序重排。
+-- soko:hint 关键件：red 分支写 red、green 分支写 green——这就是恒等映射。
+def relabel (c : Color) : Color := sorry
+
+-- 练习 5：在 match 的一个分支里留 sorry —— 只需补上 green 这一支。
+-- soko:hint 思路：red 分支已经给出 green；green 分支待填，目标类型是 Color。
+-- soko:hint 目标形态：match c with | red => green | green => <你的答案>。
+-- soko:hint 关键件：green 分支填 red——这样得到的正是 swap。
+def swapOpen (c : Color) : Color := match c with
+| red => green
+| green => sorry

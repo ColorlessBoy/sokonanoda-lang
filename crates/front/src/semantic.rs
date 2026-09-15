@@ -51,6 +51,8 @@ const KEYWORDS: &[&str] = &[
     "end",
     "fun",
     "let",
+    "match",
+    "with",
     "by",
     "intro",
     "exact",
@@ -293,6 +295,17 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
                     Exact { expr, .. } | Apply { expr, .. } => walk_expr(expr, toks, names),
                     Assumption { .. } | Rfl { .. } | Sorry { .. } => {}
                 }
+            }
+        }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            walk_expr(scrutinee, toks, names);
+            for arm in arms {
+                for binder in &arm.binders {
+                    names.add_binder(toks, binder);
+                }
+                walk_expr(&arm.body, toks, names);
             }
         }
     }

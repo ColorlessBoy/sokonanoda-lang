@@ -471,7 +471,9 @@ fn atom_text(expr: &Expr) -> String {
         | Expr::Lambda { .. }
         | Expr::Forall { .. }
         | Expr::Arrow { .. }
-        | Expr::Plus { .. } => format!("({s})"),
+        | Expr::Plus { .. }
+        | Expr::Let { .. }
+        | Expr::Match { .. } => format!("({s})"),
         _ => s,
     }
 }

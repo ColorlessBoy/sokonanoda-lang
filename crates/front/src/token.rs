@@ -12,6 +12,7 @@ pub enum TokenKind {
     ColonEq,
     Arrow, // ->
     Plus,
+    Pipe,     // |
     FatArrow, // =>
     Forall,   // ∀ or forall
     At,
@@ -167,6 +168,7 @@ impl<'a> Lexer<'a> {
             ',' => self.single(TokenKind::Comma, start),
             ';' => self.single(TokenKind::Semicolon, start),
             '+' => self.single(TokenKind::Plus, start),
+            '|' => self.single(TokenKind::Pipe, start),
             '∀' => self.single(TokenKind::Forall, start),
             '@' => self.single(TokenKind::At, start),
             '-' => {

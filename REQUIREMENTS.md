@@ -562,3 +562,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `scripts/perf-arena.sh` + `crates/kernel/tests/arena.rs`（`LEAN_KERNEL_ARENA`
   门控，不 vendor、不进 CI、不引入官方 Lean 工具链）。设计 + as-built 见
   `docs/design/early-cutoff.md`；版本 **0.32.1**（内部性能优化 patch）。
+- 2026-09-14（五十九）：**elaborator `match` v1（Phase 2 首切片，R60）**——支持
+  对**源内非递归 `inductive`** 分情况：`match e with | Ctor x… => body`；裸
+  ctor、按声明序重排、恰好覆盖一次；结果类型取所在位置的期望类型；降低为
+  `<Ind>.rec.{level} (fun _ => R) minors… e`（level 由期望类型的 Sort 推出，
+  spike 证明显式宇宙必要）。新增 5 个错误码；front +19 / CLI +4 / 课程 unit5
+  小节 + golden。v1 不做：递归归纳（IH）、依赖/参数化归纳、prelude `Nat`/`Eq`、
+  `match` tactic、嵌套/字面量/守卫、无注解 `let`。设计 + as-built 见
+  `docs/design/match.md`；版本 **0.33.0**（新语法 minor）。

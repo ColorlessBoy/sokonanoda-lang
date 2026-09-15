@@ -1,8 +1,30 @@
-# STATUS 归档（第 1–56 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–57 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十七轮：扩展强制内置 LSP + doctor 自检）
+
+> 用户报告：扩展升到 0.29.0，`restart server` 仍回弹 `0.26.0 → 0.26.0`。
+> 盘链路确认：用户设置里 `sokonanoda.serverPath` 指向仓库陈旧的
+> `target/debug/sokonanoda-lsp`（0.26.0），显式路径优先级最高，静默压过内置
+> 0.29.0 服务器。用户要求：**强制用扩展自带的 LSP**，并**自动检测所有版本问题**。
+
+1. **设计** `docs/design/extension-server-policy.md`（含 as-built）。
+2. **强制内置**：`resolveServerCommand` 增 `override`（默认 `false`）与
+   `{command, source}`；默认链 = **内置 → 当前缓存 → 锁定下载兜底**，
+   `serverPath`/env/工作区构建**忽略**（弹一次提示，含「打开设置/运行
+   doctor」）；新增设置 `sokonanoda.serverOverride`（默认 false，restricted）
+   供贡献者恢复旧序。
+3. **doctor**：`sokonanoda.doctor` 只读输出 6 项自检（解析来源/运行版本/
+   宿主版本/被忽略覆盖/缓存/旧版本堆积），激活与 restart 后自动跑一次，
+   有问题非阻塞提示；restart 回执带 `source=`。
+4. **测试**：`test-server.js` override 单测；`extension.rs` 静态契约；
+   `extension.test.js` doctor 冒烟；`node --check` 全绿。
+5. **止血（本机）**：移除用户设置里的 `serverPath`（备份
+   `settings.json.bak-sokonanoda`）、删 8 个 `.obsolete` 旧版本（只剩 0.29.0）。
+6. **验收**：`sokonanoda gate` PASS；版本 0.30.0 → **0.31.0**（新设置+命令）。
 
 ## 本轮进度（2026-09-14，第五十六轮：VS Code webview Infoview）
 

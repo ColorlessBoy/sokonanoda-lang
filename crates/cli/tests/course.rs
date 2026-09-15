@@ -46,7 +46,7 @@ const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit2-equality-rfl.sokonanoda", (2, 5, 2)),
     ("unit3-functions-arrows.sokonanoda", (2, 6, 2)),
     ("unit4-universes-sort.sokonanoda", (0, 3, 0)),
-    ("unit5-induction-nat-rec.sokonanoda", (4, 3, 1)),
+    ("unit5-induction-nat-rec.sokonanoda", (6, 5, 2)),
     ("unit6-by-tactics.sokonanoda", (13, 6, 0)),
     ("unit7-quantifiers.sokonanoda", (14, 7, 1)),
 ];

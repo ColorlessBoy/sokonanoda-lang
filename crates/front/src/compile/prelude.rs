@@ -6,7 +6,7 @@
 //! * `PreludeMode::Bare` —— 完全不安装任何东西，课程从零构造一切
 //!   （例如自带 `inductive Nat` 块或纯逻辑公理文件）。
 
-use super::elab::build_axiom;
+use super::elab::{build_axiom, ElabCtx, InductiveTable};
 use crate::Command;
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, ReducibilityHint};
@@ -87,6 +87,13 @@ pub(crate) fn install_eq_prelude(
         return;
     }
     let file = crate::parse(PRELUDE_EQ_SRC).expect("Eq prelude source parses");
+    let empty: InductiveTable<'_> = InductiveTable::new();
+    let options = CompileOptions::default();
+    let ctx = ElabCtx {
+        prefix_src: "",
+        options: &options,
+        inductives: &empty,
+    };
     for command in &file.commands {
         let Command::Axiom {
             name, universe, ty, ..
@@ -98,7 +105,7 @@ pub(crate) fn install_eq_prelude(
             continue;
         }
         let mut hovers = Vec::new();
-        let decl = build_axiom(builder, name, universe, ty, known, &mut hovers)
+        let decl = build_axiom(builder, name, universe, ty, known, &mut hovers, &ctx)
             .expect("Eq prelude axiom elaborates");
         builder.add_declar(decl).expect("duplicate prelude axiom");
         known.insert(name.clone(), universe.clone());

@@ -57,3 +57,48 @@ def add : Nat -> Nat -> Nat :=
 #reduce four
 #reduce double two
 #reduce add two three
+
+-- ─────────────────────────────────────────────────────────────
+-- `match`: the non-recursive enum Color, the swap demo, and the answers to
+-- Exercises 4 and 5.
+-- ─────────────────────────────────────────────────────────────
+
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+rec Color.rec {u} :
+  (motive : (c : Color) -> Sort u) ->
+  (mr : motive red) ->
+  (mg : motive green) ->
+  (c : Color) -> motive c
+iota red :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mr
+iota green :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mg
+end
+
+-- Demo (same as the canvas): swap exchanges red and green.
+def swap (c : Color) : Color := match c with
+| red => green
+| green => red
+
+-- Self-test: #reduce walks the Color.rec that match lowers to — swap red is green.
+#reduce swap red
+
+-- Exercise 4: the identity map.
+def relabel (c : Color) : Color := match c with
+| red => red
+| green => green
+
+-- Exercise 5: put red in the green arm.
+def swapOpen (c : Color) : Color := match c with
+| red => green
+| green => red
+
+-- Extra internal self-checks:
+#reduce relabel green
+#reduce swapOpen green

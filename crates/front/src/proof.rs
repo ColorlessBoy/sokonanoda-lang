@@ -269,6 +269,32 @@ pub fn render_expr(expr: &Expr) -> String {
                 .join("; ");
             format!("by {inner}")
         }
+        Expr::Match {
+            scrutinee, arms, ..
+        } => {
+            let rendered: Vec<String> = arms
+                .iter()
+                .map(|arm| {
+                    let binders = arm
+                        .binders
+                        .iter()
+                        .map(|binder| binder.name.clone())
+                        .collect::<Vec<_>>()
+                        .join(" ");
+                    let head = if binders.is_empty() {
+                        arm.ctor.clone()
+                    } else {
+                        format!("{} {}", arm.ctor, binders)
+                    };
+                    format!("| {} => {}", head, render_expr(&arm.body))
+                })
+                .collect();
+            format!(
+                "match {} with {}",
+                render_expr(scrutinee),
+                rendered.join(" ")
+            )
+        }
     }
 }
 
@@ -293,7 +319,8 @@ fn render_fun_position(expr: &Expr) -> String {
         | Expr::Forall { .. }
         | Expr::Arrow { .. }
         | Expr::Plus { .. }
-        | Expr::Let { .. } => format!("({s})"),
+        | Expr::Let { .. }
+        | Expr::Match { .. } => format!("({s})"),
         _ => s,
     }
 }
@@ -306,7 +333,8 @@ fn render_atom(expr: &Expr) -> String {
         | Expr::Forall { .. }
         | Expr::Arrow { .. }
         | Expr::Plus { .. }
-        | Expr::Let { .. } => format!("({s})"),
+        | Expr::Let { .. }
+        | Expr::Match { .. } => format!("({s})"),
         _ => s,
     }
 }

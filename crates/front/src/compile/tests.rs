@@ -1417,6 +1417,11 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabTacticFailed,
         ErrorKind::ElabApplyNeedsATerm,
         ErrorKind::ElabApplyNotApplicable,
+        ErrorKind::ElabMatchBadArm,
+        ErrorKind::ElabMatchNotInductive,
+        ErrorKind::ElabMatchNoExpectedType,
+        ErrorKind::ElabMatchRecursiveUnsupported,
+        ErrorKind::ElabMatchNonExhaustive,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1449,6 +1454,11 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabTacticFailed => {}
         ErrorKind::ElabApplyNeedsATerm => {}
         ErrorKind::ElabApplyNotApplicable => {}
+        ErrorKind::ElabMatchBadArm => {}
+        ErrorKind::ElabMatchNotInductive => {}
+        ErrorKind::ElabMatchNoExpectedType => {}
+        ErrorKind::ElabMatchRecursiveUnsupported => {}
+        ErrorKind::ElabMatchNonExhaustive => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}
@@ -3420,4 +3430,252 @@ fn let_and_beta_expansion_agree_when_closed() {
     assert_eq!(let_out.errors, vec![], "{:?}", let_out.errors);
     assert_eq!(beta_out.errors, vec![], "{:?}", beta_out.errors);
     assert_eq!(let_out.events, beta_out.events);
+}
+
+// ---- match（design docs/design/match.md，v1）----
+
+/// 源内非递归枚举，无显式 rec：recursor 由前端派生（`Color.rec.{u}`）。
+const COLOR_ENUM: &str = "\
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+ctor blue : Color
+end
+";
+
+fn color_enum() -> &'static str {
+    COLOR_ENUM
+}
+
+#[test]
+fn match_enum_swap_checks_with_kernel() {
+    let src = format!(
+        "{}\n\
+         def swap (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | green => red\n\
+         | blue => blue\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "swap")));
+}
+
+#[test]
+fn match_reorders_arms_by_constructor_declaration_order() {
+    // 用户乱序写分支：与声明序（red, green, blue）等价，内核判定通过。
+    let src = format!(
+        "{}\n\
+         def swap (c : Color) : Color := match c with\n\
+         | blue => blue\n\
+         | green => red\n\
+         | red => green\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+#[test]
+fn match_single_ctor_struct_checks() {
+    let src = format!(
+        "{}\n\
+         inductive Wrap : Type\n\
+         ctor wrap (c : Color) : Wrap\n\
+         end\n\
+         def unwrap (w : Wrap) : Color := match w with | wrap c => c\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "unwrap")));
+}
+
+#[test]
+fn match_prop_result_checks() {
+    // R = Prop ⇒ motive 的宇宙层级为 1（judge_infer(Prop) = Type）。
+    let src = format!(
+        "{}\n\
+         axiom True : Prop\n\
+         axiom False : Prop\n\
+         def isGreen (c : Color) : Prop := match c with\n\
+         | red => True\n\
+         | green => False\n\
+         | blue => False\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "isGreen")));
+}
+
+#[test]
+fn match_sorry_branch_is_open_with_result_type() {
+    let src = format!(
+        "{}\n\
+         example (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | green => red\n\
+         | blue => sorry\n",
+        color_enum()
+    );
+    let report = check_document(&parse(&src).expect("parse match"));
+    assert_eq!(report.errors, vec![], "errors: {:?}", report.errors);
+    let decl = report
+        .decls
+        .iter()
+        .find(|d| d.status == DeclStatus::Open)
+        .expect("the example should be open");
+    assert_eq!(decl.goal.as_deref(), Some("Color"));
+    assert_eq!(decl.holes.len(), 1);
+    assert_eq!(decl.sub_goals.len(), 1);
+    assert_eq!(decl.sub_goals[0].ty.as_deref(), Some("Color"));
+}
+
+#[test]
+fn match_non_exhaustive_reports_code() {
+    let src = format!(
+        "{}\n\
+         def f (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | green => red\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-non-exhaustive");
+}
+
+#[test]
+fn match_unknown_ctor_reports_bad_arm() {
+    let src = format!(
+        "{}\n\
+         def f (c : Color) : Color := match c with\n\
+         | purple => red\n\
+         | green => red\n\
+         | blue => blue\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-bad-arm");
+    assert!(
+        out.errors[0].message.contains("purple"),
+        "message should name the bad ctor: {:?}",
+        out.errors[0]
+    );
+}
+
+#[test]
+fn match_duplicate_ctor_reports_bad_arm() {
+    let src = format!(
+        "{}\n\
+         def f (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | red => blue\n\
+         | green => red\n\
+         | blue => blue\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-bad-arm");
+}
+
+#[test]
+fn match_recursive_inductive_is_unsupported() {
+    let src = "\
+inductive Nat2 : Type
+ctor z : Nat2
+ctor s (n : Nat2) : Nat2
+end
+def f (n : Nat2) : Nat2 := match n with | z => z | s k => k
+";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-recursive-unsupported");
+}
+
+#[test]
+fn match_without_expected_type_reports_code() {
+    // `#check` 位置没有期望类型 → 无法定 motive。
+    let src = format!(
+        "{}\n\
+         #check match red with | red => green | green => red | blue => blue\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors[0].code(), "elab-match-no-expected-type");
+}
+
+#[test]
+fn match_and_handwritten_recursor_agree() {
+    // 等价契约：同一枚举的 `match` 与手写 `<Ind>.rec.{level}` 应用判定一致
+    // （都过内核；归约到同一构造子）。
+    let src = format!(
+        "{}\n\
+         def swapM (c : Color) : Color := match c with\n\
+         | red => green\n\
+         | green => red\n\
+         | blue => blue\n\
+         def swapR (c : Color) : Color :=\n\
+           Color.rec.{{1}} (fun (_ : Color) => Color) green red blue c\n\
+         #reduce swapM red\n\
+         #reduce swapR red\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(reduced, vec!["green", "green"]);
+}
+
+#[test]
+fn match_scrutinee_ctor_uses_kernel_type_query() {
+    // scrutinee 是顶层构造子（不在局部 scope）：走 judge_infer 类型查询找归纳头。
+    let src = format!(
+        "{}\n\
+         def alwaysGreen : Color := match red with\n\
+         | red => green\n\
+         | green => green\n\
+         | blue => green\n",
+        color_enum()
+    );
+    let out = compile_fol(&parse(&src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "alwaysGreen")));
+}
+
+#[test]
+fn match_prop_enum_uses_small_elimination_recursor() {
+    // 多构造子 Prop 块 ⇒ 派生 recursor 无宇宙参数（`Two.rec`，不是 `Two.rec.{u}`）。
+    let src = "\
+inductive Two : Prop
+ctor t1 : Two
+ctor t2 : Two
+end
+def pick (x : Two) : Two := match x with | t1 => t1 | t2 => t2
+";
+    let out = compile_fol(&parse(src).expect("parse match"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "pick")));
 }

@@ -80,3 +80,51 @@ def add : Nat -> Nat -> Nat := sorry
 -- below. It must turn green — add two two is four succs; iota does the
 -- counting for you.
 -- #reduce add two two
+
+-- ─────────────────────────────────────────────────────────────
+-- `match` — case on a non-recursive enum. The Color type below has just
+-- two constructors, red and green; as before we give its eliminator
+-- Color.rec and the iota rules, then use match to cover every
+-- constructor once. v1 of match only handles **non-recursive** source
+-- inductives, and the result type must be known.
+-- ─────────────────────────────────────────────────────────────
+
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+rec Color.rec {u} :
+  (motive : (c : Color) -> Sort u) ->
+  (mr : motive red) ->
+  (mg : motive green) ->
+  (c : Color) -> motive c
+iota red :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mr
+iota green :=
+  fun (motive : (c : Color) -> Sort u) =>
+  fun (mr : motive red) =>
+  fun (mg : motive green) => mg
+end
+
+-- Demo (already written): swap exchanges red and green; one arm each.
+def swap (c : Color) : Color := match c with
+| red => green
+| green => red
+
+-- Self-test: #reduce walks the Color.rec that match lowers to — swap red is green.
+#reduce swap red
+
+-- Exercise 4 — relabel maps red to red and green to green (the identity).
+-- soko:hint approach: match lists red and green once, and each arm must produce a Color.
+-- soko:hint goal shape: fun (c : Color) => match c with …; arm order is free — the front-end reorders by declaration order.
+-- soko:hint key piece: put red in the red arm and green in the green arm — that is the identity map.
+def relabel (c : Color) : Color := sorry
+
+-- Exercise 5 — leave a sorry inside one match arm; only the green arm is missing.
+-- soko:hint approach: the red arm already yields green; the green arm is pending, and its goal type is Color.
+-- soko:hint goal shape: match c with | red => green | green => <your answer>.
+-- soko:hint key piece: put red in the green arm — that is exactly swap.
+def swapOpen (c : Color) : Color := match c with
+| red => green
+| green => sorry
