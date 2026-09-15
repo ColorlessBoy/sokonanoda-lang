@@ -1369,10 +1369,19 @@ fn render_expr_round_trips() {
         ("1 + 1", "1 + 1"),
         ("sorry", "sorry"),
         ("@Eq.{u, v}", "@Eq.{u, v}"),
+        // Forall 作箭头 domain：必须补括号（judge_infer 往返健壮性）。
+        (
+            "((k : Nat) -> P k -> P (succ k)) -> Nat -> Prop",
+            "((k : Nat) -> P k -> P (succ k)) -> Nat -> Prop",
+        ),
     ];
     for (source, expected) in cases {
         let expr = parse_expr_text(source).unwrap_or_else(|e| panic!("parse {source}: {e:?}"));
         assert_eq!(render_expr(&expr), expected, "source: {source}");
+        // 渲染结果必须能再解析回同一渲染（往返稳定）。
+        let back = parse_expr_text(&render_expr(&expr))
+            .unwrap_or_else(|e| panic!("reparse {source}: {e:?}"));
+        assert_eq!(render_expr(&back), expected, "round-trip: {source}");
     }
 }
 
@@ -4102,4 +4111,30 @@ def len (l : List Nat) : Nat := match l with
         "`len [0]` must reduce through the parameterized `List.rec`: {:?}",
         out.events
     );
+}
+
+#[test]
+fn match_dependent_motive_with_function_typed_binder_round_trips_safely() {
+    // judge_infer 的 render→parse 往返健壮性：结果类型 `Q hs n` 引用「类型为
+    // 依赖函数」的 binder `hs`，Arrow domain 位的 Forall 必须补括号，否则
+    // 望远镜被腐蚀 → level 查询失败。此前该形状报 `elab-match-no-expected-type`。
+    let src = "\
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+end
+axiom P : Nat -> Prop
+axiom Q : ((k : Nat) -> P k -> P (succ k)) -> Nat -> Prop
+theorem t (hs : (k : Nat) -> P k -> P (succ k)) (hz : Q hs zero)
+    (hstep : (k : Nat) -> Q hs k -> Q hs (succ k)) (n : Nat) : Q hs n :=
+  match n with
+  | zero => hz
+  | succ k => hstep k ih
+";
+    let out = compile_fol(&parse(src).expect("parse"));
+    assert!(out.errors.is_empty(), "{:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")));
 }

@@ -1,3 +1,15 @@
+## [0.39.1] - 2026-09-14
+
+### Fixed
+
+- **`judge_infer` type round-trip robustness** — `render_expr` now parenthesises
+  a `forall`/arrow/lambda when it sits in the **domain** of an arrow, so the
+  kernel-type → text → AST round trip used by `judge_infer` (and thus the
+  dependent-`match` motive level query, suggestions and hover) no longer
+  corrupts a telescope containing a function-typed binder. Previously a
+  dependent `match` whose result type referenced such a binder failed with
+  `elab-match-no-expected-type`.
+
 ## [0.39.0] - 2026-09-14
 
 ### Added

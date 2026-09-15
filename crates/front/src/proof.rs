@@ -239,7 +239,14 @@ pub fn render_expr(expr: &Expr) -> String {
         Expr::Arrow {
             domain, codomain, ..
         } => {
-            format!("{} -> {}", render_expr(domain), render_expr(codomain))
+            // domain 位置若是 Pi/箭頭/lambda 等复合式必须加括号，否则
+            // `(k : Nat) -> P k -> Q` 会被右结合误读（judge_infer 的
+            // render→parse 往返因此腐蚀 telescope）。
+            format!(
+                "{} -> {}",
+                render_fun_position(domain),
+                render_expr(codomain)
+            )
         }
         Expr::Plus { lhs, rhs, .. } => {
             format!("{} + {}", render_expr(lhs), render_expr(rhs))

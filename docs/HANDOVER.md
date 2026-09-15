@@ -4,7 +4,7 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.39.0**（2026-09-14），最近一轮 **第六十八轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.39.1**（2026-09-14），最近一轮 **第六十九轮**。仓库根入口 `AGENTS.md`。
 
 ## 1. 30 秒接手
 
@@ -40,21 +40,19 @@ cargo test --workspace --locked   # 全量 13 套件
 | 66 | 0.37.0 | watch stdin 客户端命令（subscribe/unsubscribe/ping） | `docs/design/compiler-service-events.md` §9 |
 | 67 | 0.38.0 | 参数化归纳声明（非带索引）+ `match` | `docs/design/parameterized-inductives.md` |
 | 68 | 0.39.0 | `match` 依赖 motive（归纳法形状可用） | `docs/design/match-dependent-motive.md` |
+| 69 | 0.39.1 | `judge_infer` 类型往返健壮性（Arrow domain 补括号） | `docs/design/match-dependent-motive.md` §8 |
 
 > 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–65 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
-### A. `judge_infer` 往返健壮性（小、影响面广）
-- **问题**：`crates/front/src/judge.rs` 的 `judge_infer` 用「内核渲染类型文本 →
-  前端再解析」逐层剥 Pi；当类型里含**以箭头结尾的依赖函数** binder 时，
-  `proof::render_expr` 在 domain 位不补括号，往返会腐蚀 telescope（依赖类型的
-  判定/建议/level 查询都可能受影响）。
-- **修法**（二选一）：`judge.rs` 一次性取内核类型并直接剥，不再 render→parse；
-  或 `proof::render_expr` 给**箭头/Pi 作为 domain** 的位置加括号。
-- **验收**：加回归测试（motive 引用「类型为 `… -> …` 的依赖函数」的 binder 的
-  依赖 `match`）；`cargo test -p sokonanoda-front`。设计并入
-  `docs/design/match-dependent-motive.md` §7 已知限制。
+### A. ~~`judge_infer` 往返健壮性~~ ✅ 已完成（0.39.1）
+- `proof::render_expr` 的 Arrow **domain 位**改用 `render_fun_position`（复合式补括号），
+  修掉「内核类型 → 文本 → AST」往返腐蚀 telescope；依赖 `match`、建议、半表达式
+  hover、level 查询一并受益。
+- 证据：`render_expr_round_trips`（Forall 作 domain 用例）+
+  `match_dependent_motive_with_function_typed_binder_round_trips_safely`；
+  见 `docs/design/match-dependent-motive.md` §8。
 
 ### B. `match` Phase 2 余项
 - **带索引归纳**（`inductive Vec (A : Type) : Nat -> Type`）：需 `num_indices>0`
@@ -78,7 +76,7 @@ cargo test --workspace --locked   # 全量 13 套件
 - **spine meta 方案 A** 仍有缺口：更深嵌套、`def` 包裹结果类型的 whnf 展开
   （需内核/pp 暴露 whnf，违反冻结）→ 仍走 B′；见 `docs/design/spine-meta-a.md`。
 - **参数化归纳 v1**：带索引、宇宙多态参数、互/嵌套递归不做。
-- **`match` 依赖 motive**：见 A 的已知限制。
+- **`match` 依赖 motive**：`judge_infer` 往返限制已修（0.39.1，见 §3 A）；其余同 B。
 - **prelude `Nat` 经 `Nat.rec` 归约**：结果可能显示为不合并一元链（与 numeral
   def-eq），已文档化并钉测试；`#reduce 1 + 1 => 2`、`three => 3` 正常。
 - **perf 套件是哨兵**：外部基准（Lean Kernel Arena）已立项但 opt-in

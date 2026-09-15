@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 68,
+  "round": 69,
   "round_date": "2026-09-14",
-  "round_title": "match 依赖 motive",
+  "round_title": "judge_infer 类型往返健壮性",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -60,5 +60,5 @@
       "unit": 7
     }
   ],
-  "version": "0.39.0"
+  "version": "0.39.1"
 }

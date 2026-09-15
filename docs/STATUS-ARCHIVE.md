@@ -1,8 +1,24 @@
-# STATUS 归档（第 1–65 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–66 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第六十六轮：watch stdin 客户端命令）
+
+> 续 TODO：compiler-service-events 设计的 v1 未做面（客户端→服务命令）。
+
+1. **命令集**（stdin JSON Lines）：`ping {id}` → `pong {id, protocol, engine}`；
+   `subscribe {file}`/`unsubscribe {file}` 过滤 `--workspace` 事件（首个
+   subscribe 收窄白名单；默认全发兼容旧行为）；畸形/未知命令 → `error` 事件且
+   流不中断。
+2. **非阻塞实现**：后台线程 `stdin().lock().lines()` + `mpsc`，轮询每 300ms
+   `try_recv` 排空；stdin EOF 不杀 watch；零新依赖（仅 std）。
+3. **测试**：`crates/cli/tests/watch.rs` ping/subscribe/unsubscribe/malformed
+   4 项 + watch.rs 单测 2 项（用 ping→pong 同步，不 sleep）。
+4. **文档**：`docs/protocol.md` watch 小节、`TESTING.md`；设计 as-built
+   `docs/design/compiler-service-events.md` §9。
+5. **验收**：`sokonanoda gate` PASS；版本 0.36.0 → **0.37.0**（新能力 minor）。
 
 ## 本轮进度（2026-09-14，第六十五轮：`match` 支持 prelude Nat）
 

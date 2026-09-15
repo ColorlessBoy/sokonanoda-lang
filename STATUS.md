@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第六十八轮：`match` 依赖 motive——归纳法形状可用；0.39.0）
+> 快照：2026-09-14（第六十九轮：judge_infer 类型往返健壮性；0.39.1）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,25 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第六十九轮：judge_infer 类型往返健壮性）
+
+> 续 TODO（HANDOVER §3 A）：消除依赖类型判定/建议里「内核类型文本 → AST」往返
+> 的括号歧义。
+
+1. **根因**：`proof::render_expr` 的 `Arrow` 分支把 **domain** 直接 `render_expr`，
+   当 domain 是 Forall/箭头时输出 `(k : Nat) -> P k -> Q` 被右结合误读；
+   `judge_infer` 逐层 render→parse 剥 Pi 时腐蚀 telescope → 依赖 `match` 的
+   level 查询报 `elab-match-no-expected-type`。
+2. **修复**：Arrow domain 位改用 `render_fun_position`（Lambda/Forall/Arrow/
+   Plus/Let/Match 一律补括号）。
+3. **回归**：`render_expr_round_trips` 增「Forall 作 domain」用例（含渲染→再解析
+   稳定）；`match_dependent_motive_with_function_typed_binder_round_trips_safely`
+   （结果类型 `Q hs n`、`hs` 为依赖函数 binder）内核通过。
+4. **影响**：`judge_infer` 的所有消费方受益（依赖 `match`、suggest、半表达式
+   hover、level 查询）。
+5. **验收**：`sokonanoda gate` PASS；版本 0.39.0 → **0.39.1**（健壮性 patch）；
+   设计 as-built `docs/design/match-dependent-motive.md` §8；HANDOVER §3 A 勾选。
 
 ## 本轮进度（2026-09-14，第六十八轮：`match` 依赖 motive）
 
@@ -57,19 +76,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 5. **文档**：`architecture.md §4.1/§8`、`TESTING.md`；设计 as-built §9。
 6. **验收**：`sokonanoda gate` PASS；版本 0.37.0 → **0.38.0**（新语法 minor）。
 7. **v1 边界**：带索引归纳、宇宙多态参数、互/嵌套递归、`match` 嵌套/守卫/字面量。
-
-## 本轮进度（2026-09-14，第六十六轮：watch stdin 客户端命令）
-
-> 续 TODO：compiler-service-events 设计的 v1 未做面（客户端→服务命令）。
-
-1. **命令集**（stdin JSON Lines）：`ping {id}` → `pong {id, protocol, engine}`；
-   `subscribe {file}`/`unsubscribe {file}` 过滤 `--workspace` 事件（首个
-   subscribe 收窄白名单；默认全发兼容旧行为）；畸形/未知命令 → `error` 事件且
-   流不中断。
-2. **非阻塞实现**：后台线程 `stdin().lock().lines()` + `mpsc`，轮询每 300ms
-   `try_recv` 排空；stdin EOF 不杀 watch；零新依赖（仅 std）。
-3. **测试**：`crates/cli/tests/watch.rs` ping/subscribe/unsubscribe/malformed
-   4 项 + watch.rs 单测 2 项（用 ping→pong 同步，不 sleep）。
-4. **文档**：`docs/protocol.md` watch 小节、`TESTING.md`；设计 as-built
-   `docs/design/compiler-service-events.md` §9。
-5. **验收**：`sokonanoda gate` PASS；版本 0.36.0 → **0.37.0**（新能力 minor）。

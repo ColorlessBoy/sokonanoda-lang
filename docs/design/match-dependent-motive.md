@@ -80,3 +80,15 @@
 - **已知限制**：motive 引用「自身类型是以箭头结尾的依赖函数」的 binder 时，
   `judge_infer` 的 render→parse 往返仍可能腐蚀 telescope（完整修需 `judge.rs`
   一次性解析内核类型、或 `proof::render_expr` 给 domain 位的 `Forall` 加括号）。
+
+---
+
+## 8. 已修：`judge_infer` 往返健壮性（2026-09-14，0.39.1）
+
+§7 的「已知限制」（motive 引用类型为依赖函数的 binder 时 telescope 被腐蚀）已修：
+`proof::render_expr` 的 **Arrow domain 位**改用 `render_fun_position`（Lambda/
+Forall/Arrow/Plus/Let/Match 一律补括号），因此内核类型文本 → 前端 AST 的往返不再
+右结合误读。回归：`render_expr_round_trips` 增「Forall 作 domain」用例 +
+`match_dependent_motive_with_function_typed_binder_round_trips_safely`（结果类型
+`Q hs n`，`hs` 为依赖函数 binder）→ 内核通过。该修复同时保护 `judge_infer` 的
+其他消费方（建议/半表达式 hover/level 查询）。

@@ -631,3 +631,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   minor）；设计 + as-built 见 `docs/design/match-dependent-motive.md`。已知限制：
   motive 引用「类型为以箭头结尾的依赖函数」的 binder 时 judge_infer 往返仍可能
   腐蚀 telescope。
+- 2026-09-14（六十八）：**judge_infer 类型往返健壮性**——`proof::render_expr`
+  的 Arrow **domain 位**改用 `render_fun_position`（Lambda/Forall/Arrow/Plus/
+  Let/Match 一律补括号），修掉「内核渲染类型文本 → 前端 AST」往返把
+  `(k : Nat) -> P k -> Q` 右结合误读、腐蚀 telescope 的问题；依赖 `match` 的
+  level 查询、suggest、半表达式 hover 一并受益。回归 `render_expr_round_trips`
+  （Forall 作 domain）+ `match_dependent_motive_with_function_typed_binder_
+  round_trips_safely`。版本 **0.39.1**（健壮性 patch）；as-built 见
+  `docs/design/match-dependent-motive.md` §8。
