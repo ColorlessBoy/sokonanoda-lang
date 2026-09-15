@@ -1,8 +1,30 @@
-# STATUS 归档（第 1–51 轮，2026-09-06 → 2026-09-14）
+# STATUS 归档（第 1–52 轮，2026-09-06 → 2026-09-14）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-14，第五十二轮：restart server 版本纪律修复）
+
+> 用户报告：下载 0.27.0 插件后 LSP 仍报 0.26.0，疑发布流程有问题；要求
+> `sokonanoda: restart server` 应校验版本、不重用旧的缓存 LSP。
+
+1. **核实发布**：下载 `v0.27.0` 的 darwin-arm64 VSIX，内置 LSP 实测
+   `soko/version = 0.27.0`；已安装 0.27.0 扩展的 `server.js` 解析到内置
+   0.27.0。发布无误；0.26.0 来自本地下载缓存（`sokonanoda version` 报的是
+   缓存，非运行中的服务器）与宿主未重载。
+2. **定位缺陷**：`resolveServerCommand` 本就拒绝过期缓存（stale → undefined，
+   有单测钉住），但 `restartServer` **没有激活路径的版本锁定下载兜底**：
+   解析返回 undefined 时它保持 `serverOptions` 不变并 `client.restart()`，
+   于是静默重启了旧的（可能来自过期缓存的）服务器。
+3. **修复**：抽出 `resolveServerForStart`（激活/重启共用：显式路径 → 内置 →
+   工作区 → 当前缓存 → `v<扩展版本>` 锁定下载）；restart 用它，拿不到可用
+   服务器时报错而不重启旧命令；新增 `newestInstalledExtensionVersion`，检测到
+   磁盘上更新的扩展而当前宿主仍旧时提示 `Developer: Reload Window`。
+4. **测试**：CLI 契约 `restart_server_re_resolves_and_never_keeps_a_stale_command`
+   钉住共用解析器 + 下载兜底 + 更新提示；`node test-server.js` 18/18 绿。
+5. **版本** 0.27.0 → **0.27.1**（fix → patch）；CHANGELOG Fixed、
+   `docs/vscode-dev-guide.md` §5.6 同步。
 
 ## 本轮进度（2026-09-14，第五十一轮：tactic 关键字高亮 + hover goal state）
 

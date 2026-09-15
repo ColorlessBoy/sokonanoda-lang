@@ -520,3 +520,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   parser/AST/elab/goal 全链 + zeta 等价契约测试；unit3 新增「局部绑定 let」
   课程（zh/en/钥匙）+ golden；CLI e2e；缺类型注解复用 `elab-untyped-binder`。
   `match` 与无注解 `let` 依设计推迟 Phase 2。版本 **0.28.0**（新语法 = minor）。
+- 2026-09-14（五十四）：**编译器服务事件流（L1/L3，R57）**——`sokonanoda watch`
+  开场事件规范名 `file.changed` → **`file.didChange`**（旧名保留一个 minor 的
+  弃用别名）；stdout 第一行恒为 `service.hello {protocol,engine,pid}`；新增
+  `--doc <file>` / `--workspace <root>`（每文件独立 session 与版本、事件带
+  `file`、跨文件无全序）；有界缓冲溢出合并标 `recompiled_from:0`（可全量重
+  同步）。设计 + as-built 见 `docs/design/compiler-service-events.md`；版本
+  **0.29.0**（协议/功能 minor）。

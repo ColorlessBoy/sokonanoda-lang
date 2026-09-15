@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-14（第五十四轮：elaborator `let`——Phase 1 落地；0.28.0）
+> 快照：2026-09-14（第五十五轮：编译器服务事件流——`file.didChange` + handshake + workspace；0.29.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,28 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-14，第五十五轮：编译器服务事件流）
+
+> 续 TODO 清账（用户确认顺序 R57→R56→R55）：按
+> `docs/design/compiler-service-events.md` 落地 watch 服务事件流。
+
+1. **规范名**：watch 开场事件 `file.changed` → **`file.didChange`**（payload
+   不变，新增稳定 `file` 字段）；`file.changed` 保留一个 minor 的弃用别名
+   （`WATCH_VOCABULARY` 接受、不再发射）。
+2. **握手**：stdout 第一行恒为 `service.hello {protocol:1, engine, pid}`
+   （对齐 LSP `soko/version`；原纯文本 banner 移出 stdout）。
+3. **作用域**：`watch <file>` / `--doc <file>` / `--workspace <root>`（互斥）；
+   workspace 递归发现 `*.sokonanoda`，每文件一个 `Session` 与独立版本号、
+   事件带 `file`、跨文件无全序。
+4. **背压**：每文件有界缓冲（64），溢出合并为最新版本并标
+   `recompiled_from: 0`（协议注明可全量重同步）。
+5. **测试**：`crates/cli/tests/watch.rs` 6 项（握手/规范名/`--doc`/workspace
+   独立版本/闭词汇 + `file`/protocol.md 覆盖）+ watch.rs 单测（溢出合并）；
+   CLI 套件 105 pass、`skill.rs` conformance 绿。
+6. **文档**：`protocol.md` watch 小节 + `TESTING.md` + teacher `events.md` +
+   `help.rs` 同步。
+7. **验收**：`sokonanoda gate` PASS；版本 0.28.0 → **0.29.0**（协议/功能 minor）。
 
 ## 本轮进度（2026-09-14，第五十四轮：elaborator `let`（Phase 1））
 
@@ -67,25 +89,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 > 余项（各自独立轮，设计已就位）：`let`/`match` 实现（R54）、spine-meta A 实现
 > （R55）、webview Infoview（R56）、事件流（R57）、perf 基准 + I8 early-cutoff
 > （R58）、SHA256SUMS/attest immutable releases。
-
-## 本轮进度（2026-09-14，第五十二轮：restart server 版本纪律修复）
-
-> 用户报告：下载 0.27.0 插件后 LSP 仍报 0.26.0，疑发布流程有问题；要求
-> `sokonanoda: restart server` 应校验版本、不重用旧的缓存 LSP。
-
-1. **核实发布**：下载 `v0.27.0` 的 darwin-arm64 VSIX，内置 LSP 实测
-   `soko/version = 0.27.0`；已安装 0.27.0 扩展的 `server.js` 解析到内置
-   0.27.0。发布无误；0.26.0 来自本地下载缓存（`sokonanoda version` 报的是
-   缓存，非运行中的服务器）与宿主未重载。
-2. **定位缺陷**：`resolveServerCommand` 本就拒绝过期缓存（stale → undefined，
-   有单测钉住），但 `restartServer` **没有激活路径的版本锁定下载兜底**：
-   解析返回 undefined 时它保持 `serverOptions` 不变并 `client.restart()`，
-   于是静默重启了旧的（可能来自过期缓存的）服务器。
-3. **修复**：抽出 `resolveServerForStart`（激活/重启共用：显式路径 → 内置 →
-   工作区 → 当前缓存 → `v<扩展版本>` 锁定下载）；restart 用它，拿不到可用
-   服务器时报错而不重启旧命令；新增 `newestInstalledExtensionVersion`，检测到
-   磁盘上更新的扩展而当前宿主仍旧时提示 `Developer: Reload Window`。
-4. **测试**：CLI 契约 `restart_server_re_resolves_and_never_keeps_a_stale_command`
-   钉住共用解析器 + 下载兜底 + 更新提示；`node test-server.js` 18/18 绿。
-5. **版本** 0.27.0 → **0.27.1**（fix → patch）；CHANGELOG Fixed、
-   `docs/vscode-dev-guide.md` §5.6 同步。

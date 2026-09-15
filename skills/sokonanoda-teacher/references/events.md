@@ -8,7 +8,12 @@
 | 视图 | 命令 | 词汇 | 用途 |
 |---|---|---|---|
 | 批处理 `--json` | `sokonanoda --json <file>` | `decl.checked` `example.checked` `expr.typed` `expr.reduced` `decl.printed` `exercise.open` `diagnostic` `warning` | 一次判卷的完整事件流（agent 主用） |
-| watch 流 | `sokonanoda watch <file>` | `file.changed` + delta（`decl.checked`/`decl.failed`/`exercise.opened`/`exercise.solved`/`exercise.failed`）+ `diagnostic` | 常驻监听：每版只推状态变化 |
+| watch 流 | `sokonanoda watch <file>`（或 `--doc <file>` / `--workspace <root>`） | 握手 `service.hello`，随后 `file.didChange` + delta（`decl.checked`/`decl.failed`/`exercise.opened`/`exercise.solved`/`exercise.failed`）+ `diagnostic` | 常驻监听：每版只推状态变化 |
+
+> watch 流第一条 JSON 行是握手 `service.hello`（`{protocol, engine, pid}`）。
+> `--workspace` 下每文件一个会话、版本号**按文件独立**、事件带 `file` 字段，
+> 跨文件**无全序**；opener 的 `recompiled_from: 0` 表示增量可能被合并，
+> **必须视为全量重同步**。`file.changed` 是已弃用别名（不再发射）。
 
 ## 批处理事件形状
 

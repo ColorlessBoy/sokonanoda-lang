@@ -1,3 +1,15 @@
+## [0.29.0] - 2026-09-14
+
+### Added
+
+- **Compiler service event stream** — `sokonanoda watch` now opens with a
+  `service.hello` handshake (`{protocol, engine, pid}`) and its canonical
+  change event is `file.didChange` (`file.changed` stays as a one-minor
+  deprecation alias). New flags: `--doc <file>` (single document) and
+  `--workspace <root>` (every `*.sokonanoda` under the root, one session per
+  file, per-file versions, events carry `file`). Design:
+  `docs/design/compiler-service-events.md`.
+
 ## [0.28.0] - 2026-09-14
 
 ### Added

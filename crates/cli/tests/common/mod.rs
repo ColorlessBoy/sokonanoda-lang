@@ -24,7 +24,10 @@ pub const EVENT_VOCABULARY: [&str; 10] = [
 
 /// The closed delta-event vocabulary of `sokonanoda watch` (docs/protocol.md,
 /// watch stream section): per-version state transitions from front::session.
-pub const WATCH_VOCABULARY: [&str; 7] = [
+/// `file.changed` is the deprecated alias of the canonical `file.didChange`
+/// opener; it is accepted for one minor cycle but never emitted together.
+pub const WATCH_VOCABULARY: [&str; 8] = [
+    "file.didChange",
     "file.changed",
     "decl.checked",
     "decl.failed",
@@ -33,6 +36,10 @@ pub const WATCH_VOCABULARY: [&str; 7] = [
     "exercise.failed",
     "diagnostic",
 ];
+
+/// The first line of the watch stream: the service handshake (not a delta
+/// event), mirroring LSP `soko/version`.
+pub const WATCH_HANDSHAKE: &str = "service.hello";
 
 /// Custom LSP requests exposed to clients (goal view + hint ladder +
 /// per-tactic cursor state, docs/protocol.md).

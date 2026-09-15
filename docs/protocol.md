@@ -125,15 +125,20 @@ goal text); see `docs/design/infrastructure.md` F1–F8.
 JSON object per change:
 
 ```json
-{"type":"file.changed","version":3,"recompiled_from":0}
-{"type":"exercise.solved","name":null,"version":3}
+{"type":"service.hello","protocol":1,"engine":"0.28.0","pid":12345}
+{"type":"file.didChange","file":"canvas.sokonanoda","version":3,"recompiled_from":0}
+{"type":"exercise.solved","file":"canvas.sokonanoda","name":null,"version":3}
 ```
 
+- The first JSON line is always the service handshake `service.hello`
+  (mirroring LSP `soko/version`); everything after is versioned document state.
+- `file.didChange` is the canonical opener (alias: `file.changed`, deprecated
+  but accepted for one minor cycle — never emitted alongside it).
 - `recompiled_from` is the index of the first changed command; `null` means
   the commands did not change (comment-only edit) and nothing was recompiled.
 - Delta events (from `sokonanoda_front::session`): `exercise.opened`,
   `exercise.solved`, `exercise.failed`, `decl.checked`, `decl.failed` — each
-  carries `name` (when named) and `version`.
+  carries `name` (when named), the stable `file` path and `version`.
 - Diagnostics for the new version follow, with `stage`/`code`/`message`/
   `hint`/`span` as in batch mode.
 
@@ -365,20 +370,54 @@ matching anywhere in the editor path.
 
 ## Watch stream (L1 CLI form)
 
-`sokonanoda watch <file>` emits one JSON object per line: a `file.changed`
-opener per new document version, then the versioned delta of declaration and
-exercise state transitions, then the current diagnostics. The delta vocabulary
-is closed:
+`sokonanoda watch` emits one JSON object per line. The **first line is always
+the service handshake**:
 
-- `file.changed` (`{type, version, recompiled_from}`)
-- `decl.checked` / `decl.failed` (`{type, name, version}`)
-- `exercise.opened` / `exercise.solved` / `exercise.failed` (`{type, name, version}`)
-- `diagnostic` (`{type, stage, code, message, hint, span, version}`)
+- `service.hello` (`{type, protocol, engine, pid}`) — `protocol` is the stream
+  protocol version (currently `1`), `engine` is the binary's
+  `<CARGO_PKG_VERSION>`, `pid` is the process id. Clients use it to check
+  compatibility and to detect a restart (it mirrors LSP `soko/version`).
+
+After the handshake, each new document version opens with `file.didChange`, then
+the versioned delta of declaration and exercise state transitions, then the
+current diagnostics. The delta vocabulary is closed:
+
+- `file.didChange` (`{type, file, version, recompiled_from}`) — canonical
+  opener; `file.changed` is a **deprecated alias accepted for one minor cycle**
+  (never emitted together with the canonical name).
+- `decl.checked` / `decl.failed` (`{type, file, name, version}`)
+- `exercise.opened` / `exercise.solved` / `exercise.failed` (`{type, file, name, version}`)
+- `diagnostic` (`{type, file, stage, code, message, hint, span, version}`)
 
 `recompiled_from` is the index of the first re-checked command (`null` when
 nothing changed): with the I8 incremental session, editing command `i` only
 kernel-rechecks commands `i..n`. `SessionUpdate.stats.kernel_checks` (front
 API) exposes the same fact as a count.
+
+### Scope: `--doc` and `--workspace`
+
+`watch` accepts the document as a positional path, as `--doc <path>`, or
+monitors a whole tree via `--workspace <root>`:
+
+- `sokonanoda watch <file>` / `sokonanoda watch --doc <file>` — one `Session`
+  for that document; the device is the same as the positional form.
+- `sokonanoda watch --workspace <root>` — recursively monitors every
+  `*.sokonanoda` under `<root>` (skipping `target`, `.git` and `node_modules`),
+  one `Session` per file.
+
+Every event for a file carries a stable `file` field (the path used to discover
+the document). **Version counters are per file** and there is **no global
+ordering across files** — a client must aggregate by `file` and gate on that
+file's `version`.
+
+### Backpressure and resync
+
+Each file has a bounded pending-event buffer. If buffered events for a file
+exceed that bound, the service **coalesces** to the latest version and emits a
+`file.didChange` opener with `recompiled_from: 0`. Clients **must treat
+`recompiled_from: 0` as a full resync**: the incremental delta for that version
+may have been dropped, so re-read the document (e.g. one batch `--json` run)
+instead of assuming a contiguous event history.
 
 ## Course map: `sokonanoda course <course.json>`
 
@@ -406,10 +445,11 @@ Line-editing / arrow-key recall is out of scope.
 
 ## Future structured event names (service layer)
 
-When the resident service replaces `watch`, keep the same vocabulary and add:
+The service stream vocabulary is now implemented (see "Watch stream" above).
+Future additions:
 
-- `file.didChange`
-- `decl.rejected` (today: a `diagnostic` with stage `kernel`)
+- `decl.rejected` (today: a `diagnostic` with stage `kernel`; if added, it is
+  an alias of `decl.failed` — the two are never emitted together)
 - `diagnostic.*` kinds once sub-stage codes exist
 
 Each event carries `span {offset,line,column}` plus a human text and a machine

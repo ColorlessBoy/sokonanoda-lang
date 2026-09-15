@@ -13,18 +13,42 @@ use help::print_help;
 use repl::repl;
 use std::io::{IsTerminal, Read};
 use std::process::ExitCode;
-use watch::watch;
+use watch::{watch_doc, watch_workspace};
 
 fn main() -> ExitCode {
+    let args: Vec<String> = std::env::args().skip(1).collect();
     let mut json = false;
     let mut bare = false;
     let mut force = false;
+    let mut doc: Option<String> = None;
+    let mut workspace: Option<String> = None;
     let mut positionals: Vec<String> = Vec::new();
-    for arg in std::env::args().skip(1) {
-        match arg.as_str() {
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
             "--json" => json = true,
             "--bare" => bare = true,
             "--force" => force = true,
+            "--doc" => match args.get(i + 1) {
+                Some(path) => {
+                    doc = Some(path.clone());
+                    i += 1;
+                }
+                None => {
+                    eprintln!("error: --doc requires a path");
+                    return ExitCode::FAILURE;
+                }
+            },
+            "--workspace" => match args.get(i + 1) {
+                Some(root) => {
+                    workspace = Some(root.clone());
+                    i += 1;
+                }
+                None => {
+                    eprintln!("error: --workspace requires a root directory");
+                    return ExitCode::FAILURE;
+                }
+            },
             "-h" | "--help" => {
                 print_help();
                 return ExitCode::SUCCESS;
@@ -33,8 +57,15 @@ fn main() -> ExitCode {
                 println!("sokonanoda {}", env!("CARGO_PKG_VERSION"));
                 return ExitCode::SUCCESS;
             }
-            _ => positionals.push(arg),
+            _ => positionals.push(args[i].clone()),
         }
+        i += 1;
+    }
+    if (doc.is_some() || workspace.is_some())
+        && positionals.first().map(String::as_str) != Some("watch")
+    {
+        eprintln!("error: --doc/--workspace are only valid with `sokonanoda watch`");
+        return ExitCode::FAILURE;
     }
     match positionals.first().map(String::as_str) {
         // Environment subcommands (binary replacement for scripts/soko.sh).
@@ -62,12 +93,22 @@ fn main() -> ExitCode {
             eprintln!("error: --json is only supported for batch checking, not lsp");
             ExitCode::FAILURE
         }
-        Some("watch") => match positionals.get(1) {
-            Some(path) => watch(path),
-            None => {
-                eprintln!("usage: sokonanoda watch <file.sokonanoda>");
+        Some("watch") => match (doc.as_deref(), workspace.as_deref()) {
+            (Some(_), Some(_)) => {
+                eprintln!("error: --doc and --workspace are mutually exclusive");
                 ExitCode::FAILURE
             }
+            (Some(path), None) => watch_doc(path),
+            (None, Some(root)) => watch_workspace(root),
+            (None, None) => match positionals.get(1) {
+                Some(path) => watch_doc(path),
+                None => {
+                    eprintln!(
+                        "usage: sokonanoda watch <file.sokonanoda> | --doc <file> | --workspace <root>"
+                    );
+                    ExitCode::FAILURE
+                }
+            },
         },
         Some("course") => match positionals.get(1) {
             Some(manifest) => course::course(manifest, json),

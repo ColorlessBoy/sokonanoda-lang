@@ -99,3 +99,25 @@ watch 的限制：**单文档、轮询、无订阅/背压、无生命周期协�
 - 跨文件事件的全局顺序；替代 LSP（编辑器面仍 LSP）；
 - 历史事件回放（只做订阅时全量快照 + 增量）；
 - 在服务里再实现一遍 kernel/前端逻辑（复用 `front::session` 是硬约束）。
+
+---
+
+## 8. as-built（2026-09-14，0.29.0）
+
+- **规范名**：watch 开场事件改为 `file.didChange`（payload 不变，新增稳定
+  `file` 字段）；`file.changed` 保留为**一个 minor 的弃用别名**（
+  `WATCH_VOCABULARY` 接受、实现不再发射）。
+- **握手**：stdout 第一行恒为
+  `{"type":"service.hello","protocol":1,"engine":"<ver>","pid":<pid>}`
+  （原纯文本 banner 移出 stdout）。
+- **参数**：`watch <file>` / `watch --doc <file>` / `watch --workspace <root>`
+  （互斥）；workspace 递归发现 `*.sokonanoda`（跳过 target/.git/node_modules），
+  每文件一个 `Session` 与独立版本号，事件带 `file`，跨文件无全序。
+- **背压**：每文件有界缓冲（64）；溢出合并为最新版本并标 `recompiled_from: 0`
+  （协议注明「客户端须视为可全量重同步」）。
+- **测试**：`crates/cli/tests/watch.rs`（握手 / didChange / `--doc` /
+  `--workspace` 独立版本 / 闭词汇 + `file` 字段 / protocol.md 覆盖）+
+  watch.rs 单测（溢出合并）；CLI 套件 105 pass。
+- **文档**：`docs/protocol.md` watch 小节、`docs/TESTING.md`、
+  `skills/sokonanoda-teacher/references/events.md`、`help.rs` 同步。
+- **版本** 0.28.0 → **0.29.0**（协议/功能 → minor）。
