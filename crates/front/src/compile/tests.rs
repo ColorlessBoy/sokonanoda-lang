@@ -3783,6 +3783,37 @@ fn match_prelude_nat_add_checks_and_reduces() {
 // ---- match on the built-in prelude `Bool`（0.41.0）----
 
 #[test]
+fn bare_prelude_nat_names_stay_terminating() {
+    // Boundary pinned in docs/architecture.md §5.4: `Nat.add` is a self-referential
+    // placeholder reached only through the native fast path when *applied*; a bare
+    // `#reduce`/`#check` must terminate and keep the constant (no delta loop).
+    let src = "#reduce Nat.add\n#check Nat.add\n#check Nat.succ\n";
+    let out = compile_fol(&parse(src).expect("parse checks"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Nat.add")),
+        "bare `#reduce Nat.add` must terminate as the constant: {:?}",
+        out.events
+    );
+    let types: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        types,
+        vec!["Nat -> Nat -> Nat", "Nat -> Nat"],
+        "{:?}",
+        out.events
+    );
+}
+
+#[test]
 fn prelude_bool_is_available_without_a_source_block() {
     // `Bool`/`Bool.true`/`Bool.false`/`Bool.rec` come from the trusted prelude
     // (installed like `Nat`); a plain file can `#check` them.
