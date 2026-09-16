@@ -302,3 +302,11 @@
 - **修复**：探活 `extensionquery` 返回 200 后 `gh run rerun 35039642744 --failed` → 成功。
 - **预防**：沿用既有处置（探活 → rerun --failed）。若复发频率上升，考虑把发布步骤的
   重试次数从 3 提到 5 并加指数退避。
+
+## 2026-09-16 — v0.52.0 发布：marketplace-publish Azure gallery 超时（已知类，再次复发）
+
+- **现象**：`marketplace-publish` 失败（`Request timeout: /_apis/gallery`，工作流内 3 次重试仍
+  不够）；`build`×8 / `package-vsix` / `github-release` 成功（Release 26 资产齐全）。
+- **修复**：探活 `extensionquery` = 200 → `gh run rerun 35101032677 --failed` → 成功。
+- **观察**：这是本会话第 3 次同类复发，均为服务端瞬时；处置已固化为"探活 → rerun --failed"。
+  若继续上升，考虑把 publish 重试 3→5 并加指数退避（记为待办，非本轮）。
