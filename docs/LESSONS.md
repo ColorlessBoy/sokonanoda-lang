@@ -231,3 +231,23 @@
   或者用 `git show HEAD:STATUS.md` 兜底恢复。
 - **自检**：改完立刻 `grep -c '^## 本轮进度' STATUS.md`（应为 3）并确认归档首条 = 被移出的轮次。
 
+## STATUS 插入轮次要按"轮号排序"，不要"插在上一轮锚点前"（2026-09-16，第三次踩）
+
+- **教训**：三轮都用"把新轮插在上一轮 heading 之前"的脚本——当上一轮本身是**早先插到
+  更低位置**的（轮 82 在 81 之前、轮 83 又插到 81 前），结果顺序变成 82,83,81；
+  轮号不再单调，读者/网站"最新一轮"取值会错。同类第 3 次（轮 69/79 丢失、这次错序）。
+- **规矩**：归档/插入一律**解析出所有轮次 → 按轮号（中文数字转数值）降序 `sort` →
+  取前 3 留 STATUS、其余并入 ARCHIVE**；脚本里先 `assert` 无重复轮号、再写文件。
+- **自检**：`grep -n '^## 本轮进度' STATUS.md` 的轮号必须**严格递减**，且与快照行一致。
+
+## 本地 `gate` 报 cargo 101：先怀疑 perf 哨兵，别改内核（2026-09-16，0.54.0 收尾）
+
+- **教训**：`sokonanoda gate` 报 `cargo exit exit status: 101`，我按"clippy 失败"去查
+  （kernel 一堆 warning 干扰视线），实际是**满载时 `incremental_edit_anywhere_is_fast`
+  这类 perf 哨兵误报**；机器空转重跑即 PASS。且我先前用 `grep -E "^\+ cargo|error"`
+  过滤门禁输出，**掩膜了真实失败步骤**（同 CI 的"禁止 grep 掩膜退出码"规矩）。
+- **规矩**：门禁红先逐条单跑并看**真实退出码**——
+  `cargo fmt -p … --check; echo $?` / `cargo clippy --workspace --all-targets; echo $?` /
+  `cargo test --workspace --locked; echo $?`（各自 `$?`），空载重跑 `sokonanoda gate` 复核；
+  只有单跑仍红且指向教学 crate 才动手（内核只读）。
+
