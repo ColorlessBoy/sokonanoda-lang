@@ -807,3 +807,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   `teaching-session.md`/`course-status.md`/`ROADMAP` I7/`course-bilingual.md`/
   `course/README.md`/`infrastructure.md` 文档漂移修正。版本 **0.52.0**。P2/P3/P4 待做。
 
+- 2026-09-16（八十四）：**课程大纲重构 P2（重排 + 拆分，0.53.0）**——`by` 单元提到第 4
+  （紧跟函数/箭头），宇宙顺延第 5，量词第 8；旧归纳单元拆成 **Ⅰ/Ⅱ**（显式归纳块+`Nat.rec`
+  +`match` 非递归+递归 `match`+IH ｜ 参数化 `Option`+依赖 `match`=归纳+嵌套/字面量/通配/
+  guard 模式+带索引 `Vec`），两半各自重声明 `inductive Nat` 以自足（`decl.checked` 57→58）。
+  重命名 CN/EN 画布与 solutions；`course.json` 8 单元；两处 GOLDEN 与汇总、`course_json_
+  lists_the_eight_units_in_order`、`cli.rs` 金值同步。门面按硬规则同步：5+ 份 docs、teacher
+  skills、`editor/vscode/README.md`，并**移除根 README 与 site 三处手写单元数**（改为由
+  `course/course.json` 生成，永久消除该漂移类）。验收：course/course_status/skill + 全量 CLI
+  全绿；16 画布 exit 0；双语画布与 solutions 逐项相等。版本 **0.53.0**。P3（#9 关系与联结词、
+  #10 读证明与综合）待做。
+

@@ -16,7 +16,7 @@
 - [Website](https://colorlessboy.github.io/sokonanoda-lang/) — 项目官网（用法 ·
   远大目标 · 当前进度）
 - [Quickstart](editor/vscode/README.md) — 装上 VS Code 扩展即可用，零工具链
-- [Course](course/README.md) — 七个单元的逻辑与证明课，判卷由真内核完成
+- [Course](course/README.md) — 逻辑与证明课（单元数与顺序见 `course/course.json`），判卷由真内核完成
 - [Documentation](docs/README.md) — 架构 / 协议 / 测试地图 / 发布手册
 - [Agent Skills](skills/README.md) — 给 code agent 的教学与开发技能
 

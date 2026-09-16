@@ -9,7 +9,8 @@
 
 ## 0. 目标结构（**锁定** 2026-09-16，采用大纲 A）
 
-最终 10 单元（文件名为落地目标；P2 才真正改结构，P1 只修内容不动结构）：
+最终 10 单元（文件名为落地目标；**P2 已真正改结构，落地 #1–#8**（`by` 提前、
+现 U5 拆为 #6/#7），P1 只修内容不动结构；#9/#10 仍 P3）：
 
 | # | 文件 | 标题（CN） | 来源 | 主要内容 |
 |---|---|---|---|---|
@@ -51,11 +52,15 @@
 **验收**：`cargo test -p sokonanoda-cli --test course --test course_status --locked` + 全量
 workspace + `sokonanoda gate`；双语镜像事件计数逐项相等；skills/VS Code 门面若受影响同步。
 
-> **状态（2026-09-16）：P1 已完成。** 内容 1–8 由课程内容修复落地（新增
-> `solution_covers_every_canvas_exercise` 与 `en_solutions_match_chinese_event_counts`，
-> `expr.typed` 纳入镜像比较）；文档 9–14 本轮补齐。两处 GOLDEN 与汇总同步为
-> `(13,6,1)/(2,5,2)/(2,6,2)/(0,6,1)/(13,10,7)/(13,5,0)/(14,7,1)`、
-> `units=7 checked=57 open=45 failed=0`。P2/P3/P4 未动。
+> **状态（2026-09-16）：P1 已完成，P2 已完成。** P1：内容 1–8 由课程内容修复落地
+> （新增 `solution_covers_every_canvas_exercise` 与
+> `en_solutions_match_chinese_event_counts`，`expr.typed` 纳入镜像比较）；文档
+> 9–14 补齐。P2：`by` 由旧单元⑥提前为 #4、现 U5（显式归纳）拆为 #6/#7，
+> `course.json`/两处 GOLDEN/顺序断言/双语镜像/solutions/skill/VS Code 门面全部
+> 同步（测试名 `course_json_lists_the_eight_units_in_order`）。两处 GOLDEN 与汇总
+> 现为 `(13,6,1)/(2,5,2)/(2,6,2)/(13,5,0)/(0,6,1)/(7,6,3)/(7,4,4)/(14,7,1)`、
+> `units=8 checked=58 open=45 failed=0`——拆分让 #6/#7 各自重声明一次显式
+> `inductive Nat`，故 `decl.checked` 57→58（open 不变）。P3/P4 未动。
 
 ## 1. 调研综合（Lean 系 / Coq·Agda·Isabelle·Idris / 传统证明教材）
 
@@ -140,16 +145,22 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
 
 ## 2. 现状审计（摘要；细节见 §4 与 `crates/cli/tests/course.rs`）
 
-7 单元（`course/course.json`）：①命题与证明项 ②等式与 rfl ③函数与箭头 ④宇宙
-⑤显式归纳与递归 ⑥by 写法 ⑦量词。P1 修复后 golden（权威值见两处测试）：
-`(13,6,1)/(2,5,2)/(2,6,2)/(0,6,1)/(13,10,7)/(13,5,0)/(14,7,1)`，汇总
-`units=7 checked=57 open=45 failed=0`。
+> 下面是 P1 审计时的**旧口径**（7 单元）；P2 后的真实结构见 §0 表与
+> `course/course.json`——8 单元、汇总 `units=8 checked=58 open=45 failed=0`。
+
+7 单元（`course/course.json`，P1 审计时）：①命题与证明项 ②等式与 rfl
+③函数与箭头 ④宇宙 ⑤显式归纳与递归 ⑥by 写法 ⑦量词。P1 修复后 golden（当时值，
+权威见两处测试）：`(13,6,1)/(2,5,2)/(2,6,2)/(0,6,1)/(13,10,7)/(13,5,0)/(14,7,1)`，
+汇总 `units=7 checked=57 open=45 failed=0`。
 
 **已确认的问题（改内容时一并修；每项末尾标注处置）**：
 1. **U5 过大**（253 行 / 10 题）：显式归纳 + iota + `match` + 递归 IH + 参数化 +
-   依赖 match + 嵌套模式 + 带索引 `Vec` 挤在一单元。 —— **P2 待做**（§0 拆为 #6/#7）
+   依赖 match + 嵌套模式 + 带索引 `Vec` 挤在一单元。 —— **P2 已修**（§0 拆为
+   #6/#7：Ⅰ = 显式 `inductive Nat`/`rec`/`iota` + 手写 `Nat.rec` + `Color` 的
+   非递归 `match` + 递归 `match` 自动 IH；Ⅱ = 参数化 `Option` + 依赖
+   `match`（=归纳） + 嵌套/通配模式 + 带索引 `Vec`）
 2. **`by`（U6）来得太晚**：学习者到第 6 单元才见 tactic，而前 5 单元全靠 term——与
-   "即时反馈/低门槛"的调研结论相反。 —— **P2 待做**（§0 提前到 #4）
+   "即时反馈/低门槛"的调研结论相反。 —— **P2 已修**（§0 提前到 #4）
 3. **U3 两题欠定义**（`three_args`/`body_uses_let` 返回"任意 Nat 即可"）；**`by_ex5`
    与 `by_ex1` 完全重复**且 hint 描述有误。 —— **P1 已修**
 4. **散文常把答案写进提示**（违背 teacher skill「答案绝不写进提示」）：U1 ex2/ex5、
@@ -247,7 +258,7 @@ inversion 引理 → 4 相等作为归纳类型（唯一 `refl`）→ 5 同构/�
 
 ## 5. 推荐：大纲 A（逻辑先行 + `by` 提前 + 归纳拆分 + 关系/读证明收尾）
 
-理由：与现有 7 单元的叙事、双语、reader 预期**迁移成本最低**；同时修掉审计出的全部
+理由：与现有课程的叙事、双语、reader 预期**迁移成本最低**；同时修掉审计出的全部
 问题；`by` 提前正好利用 Infoview/hint 阶梯的即时反馈优势；把"读/评阅/翻译"补上，直接
 回应调研里最被低估的"迁移失败"障碍；`Or/Iff/关系` 补齐让"逻辑先行"名实相符。
 
@@ -288,8 +299,8 @@ inversion 引理 → 4 相等作为归纳类型（唯一 `refl`）→ 5 同构/�
 
 - **P1 修补（不改结构）**：§5.1 的 5/6/7（去歧义题、删重复题、hint 不泄题、删过期断言、
   文档漂移、solutions 一致性测试 + EN unit4 修复）。golden 若变动则同步两处。
-- **P2 重排 + 拆分**：`by` 提前；U5 拆两单元；重编号与双语/solutions 同步；两个 GOLDEN、
-  `course.json`、顺序断言、汇总同步；skill/VS Code 门面同步。
+- **P2 重排 + 拆分（已完成）**：`by` 提前；U5 拆两单元；重编号与双语/solutions 同步；两个 GOLDEN、
+  `course.json`、顺序断言、汇总（`units=8 checked=58 open=45`）同步；skill/VS Code 门面同步。
 - **P3 新增两单元**：关系与联结词、读证明与综合（含可能需要的协议/事件扩展 → 先设计）。
 - **P4（可选）并列入口**：把大纲 B 做成"游戏线"（若决定做，需要 Lean4Game 式关卡元数据
   的轻量版与 Infoview 配合；另立设计）。

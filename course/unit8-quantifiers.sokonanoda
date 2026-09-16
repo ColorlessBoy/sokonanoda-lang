@@ -1,5 +1,5 @@
 -- ==========================================================================
--- unit7-quantifiers.sokonanoda —— 单元⑦ 量词：forall 与 exists
+-- unit8-quantifiers.sokonanoda —— 单元⑧ 量词：forall 与 exists
 --
 -- 单元① 的命题逻辑只谈论固定的几个命题。要表达“每一个人都……”“至少有一
 -- 个人……”这类断言，需要量词（quantifier）。本单元先看全称量词，再看存在
@@ -94,7 +94,7 @@ theorem and_forall (P : Person -> Prop) (Q : Person -> Prop) (h : And (forall (x
 -- 结论 Q 不能提到 w——使用 h 的时候，w 是哪一个还不知道。这条使用规则
 -- 就是 Exists.elim。
 --
--- 官方 Lean 的 Exists 是 inductive（单元⑤自己写 inductive 时会见到），
+-- 官方 Lean 的 Exists 是 inductive（单元⑥、⑦自己写 inductive 时会见到），
 -- 这里按单元①的老办法，把两条规则立成公理：
 -- ─────────────────────────────────────────────────────────────
 

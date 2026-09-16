@@ -1,4 +1,4 @@
--- unit7-quantifiers-solution —— Unit 7 answer key (agents only)
+-- unit8-quantifiers-solution —— 单元⑧ 解答钥匙（agent 专用）
 axiom True : Prop
 axiom True.intro : True
 axiom And : Prop -> Prop -> Prop

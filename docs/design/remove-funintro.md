@@ -63,7 +63,7 @@
 
 ### 2.5 课程与文档
 
-- `course/unit6-by-tactics.sokonanoda`（+ en 镜像）：删除「补充：值位 funintro」
+- `course/unit4-by-tactics.sokonanoda`（+ en 镜像）：删除「补充：值位 funintro」
   段与练习 6（`by_ex6 := funintro`），用等价 `by intro …; exact …` 或显式 `fun`
   收尾；`solutions/` 钥匙同步；golden 计数更新；
 - docs（`protocol.md`/`README.md`/`TESTING.md`/`architecture.md`/`design/*`）、

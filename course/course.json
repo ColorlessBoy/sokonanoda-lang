@@ -18,27 +18,33 @@
     "unit": 3
   },
   {
-    "file": "unit4-universes-sort.sokonanoda",
-    "title": "单元④ 宇宙：函数类型的类型",
-    "title_en": "Unit 4 — Universes: the Type of a Function Type",
+    "file": "unit4-by-tactics.sokonanoda",
+    "title": "单元④ by 写法：tactic 证明",
+    "title_en": "Unit 4 — Proving with `by` (tactic blocks)",
     "unit": 4
   },
   {
-    "file": "unit5-induction-nat-rec.sokonanoda",
-    "title": "单元⑤ 显式归纳与递归",
-    "title_en": "Unit 5 — Explicit Induction & Recursion",
+    "file": "unit5-universes-sort.sokonanoda",
+    "title": "单元⑤ 宇宙：函数类型的类型",
+    "title_en": "Unit 5 — Universes: the Type of a Function Type",
     "unit": 5
   },
   {
-    "file": "unit6-by-tactics.sokonanoda",
-    "title": "单元⑥ by 写法：tactic 证明",
-    "title_en": "Unit 6 — Proving with `by` (tactic blocks)",
+    "file": "unit6-induction-recursion-1.sokonanoda",
+    "title": "单元⑥ 归纳与递归 Ⅰ",
+    "title_en": "Unit 6 — Induction & Recursion I",
     "unit": 6
   },
   {
-    "file": "unit7-quantifiers.sokonanoda",
-    "title": "单元⑦ 量词：forall 与 exists",
-    "title_en": "Unit 7 — Quantifiers: forall & exists",
+    "file": "unit7-induction-recursion-2.sokonanoda",
+    "title": "单元⑦ 归纳与递归 Ⅱ",
+    "title_en": "Unit 7 — Induction & Recursion II",
     "unit": 7
+  },
+  {
+    "file": "unit8-quantifiers.sokonanoda",
+    "title": "单元⑧ 量词：forall 与 exists",
+    "title_en": "Unit 8 — Quantifiers: forall & exists",
+    "unit": 8
   }
 ]

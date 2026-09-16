@@ -1,0 +1,115 @@
+-- ==========================================================================
+-- unit7-induction-recursion-2-solution.sokonanoda — Unit 7 answer key (agent only)
+--
+-- The solved twin of course/unit7-induction-recursion-2.sokonanoda: every sorry
+-- is filled with a kernel-verified answer. Do not hand this directly to a
+-- learner.
+-- ==========================================================================
+
+-- The self-contained Nat inductive block (same as the canvas, so this file
+-- compiles on its own).
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end
+
+-- ─────────────────────────────────────────────────────────────
+-- Parameterized inductives: Option (A : Type), the fromOption demo, and the
+-- answer to Exercise 1.
+-- ─────────────────────────────────────────────────────────────
+
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+
+-- Demo (same as the canvas): fromOption takes a default and extracts.
+def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
+| none => d
+| some a => a
+
+-- Self-test: #reduce walks the Option.rec that match lowers to — the some
+-- arm is just the number inside.
+#reduce fromOption (some Nat (succ zero)) zero
+
+-- Exercise 1: the some arm hands back the substituted field a directly.
+def valueOrZero (x : Option Nat) : Nat := match x with
+| none => zero
+| some a => a
+
+-- Extra internal self-checks:
+#reduce valueOrZero (some Nat (succ zero))
+#reduce valueOrZero (none Nat)
+
+-- ─────────────────────────────────────────────────────────────
+-- Dependent match (induction): the nat_induction demo and the answer to
+-- Exercise 2.
+-- ─────────────────────────────────────────────────────────────
+
+theorem nat_induction (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih
+
+-- Exercise 2: the succ arm hands ih over to hs.
+theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih
+
+-- ─────────────────────────────────────────────────────────────
+-- Nested patterns and wildcards: the isZeroOpt demo and the answer to
+-- Exercise 3.
+-- ─────────────────────────────────────────────────────────────
+
+def isZeroOpt (x : Option Nat) : Nat := match x with
+| some zero => succ zero
+| some _ => zero
+| none => zero
+
+-- Exercise 3: the succ arm hands the field k out.
+def predOpt (x : Option Nat) : Nat := match x with
+| some zero => zero
+| some (succ k) => k
+| none => zero
+
+-- Extra internal self-checks:
+#reduce isZeroOpt (some Nat zero)
+#reduce predOpt (some Nat (succ (succ zero)))
+
+-- ─────────────────────────────────────────────────────────────
+-- Indexed inductives: the vlen demo and the answer to Exercise 4.
+-- ─────────────────────────────────────────────────────────────
+
+inductive Vec (A : Type) : Nat -> Type
+ctor vnil : Vec A zero
+ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
+end
+
+def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
+| vnil => zero
+| vcons a m w => succ ih
+
+-- Exercise 4: vcons binds the head as a; hand it out directly.
+def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
+| vnil => d
+| vcons a m w => a
+
+-- Extra internal self-checks:
+#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))

@@ -1,4 +1,4 @@
--- unit6-by-tactics-solution —— 单元⑥ 解答钥匙（agent 专用）
+-- unit4-by-tactics-solution —— Unit 4 solution key (agent-only)
 axiom True : Prop
 axiom True.intro : True
 axiom False : Prop

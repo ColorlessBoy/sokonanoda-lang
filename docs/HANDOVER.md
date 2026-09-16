@@ -4,7 +4,7 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.40.0**（2026-09-15），最近一轮 **第七十轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.53.0**（2026-09-16），最近一轮 **第八十三轮**。仓库根入口 `AGENTS.md`。
 
 ## 1. 30 秒接手
 
@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～八十二轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～八十三轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -54,8 +54,9 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 80 | 0.50.0 | Infoview 自研调色板（主题 token 解析回退） | `docs/design/highlighting.md` §3b |
 | 81 | 0.51.0 | `by` 块换行分隔 tactic（`;` 或换行） | `docs/design/by-tactics.md` §11 |
 | 82 | 0.52.0 | 课程大纲重构 P1（内容修补 + 测试加固 + 设计锁定） | `docs/design/course-syllabus.md` |
+| 83 | 0.53.0 | 课程大纲重构 P2（`by` 提前到 #4、归纳拆 Ⅰ/Ⅱ、8 单元 + 门面同步） | `docs/design/course-syllabus.md` §6 |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–71 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–80 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 

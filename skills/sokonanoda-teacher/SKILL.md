@@ -125,9 +125,10 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
   （感叹号连用/emoji 堆砌/网络热词）。写完按该文档第四节自查四类。
 - 每个新语法点：先讲解、再演示、后练习；白名单之外的语法不要用（编译器
   会报「课程级别不可用」而不是崩溃——不要把「没教过」当 bug 上报）。
-- **逻辑先行（用户原则）**：先讲逻辑连接词与量词（True/False/And/Or/Iff/
-  Forall/Exists）让用户在"证明命题"中建立直觉；等用户面对"函数类型的类型
-  是什么"这一自然问题时再引入 `Sort`。顺序跟着直觉走，不跟着类型论教材走。
+- **逻辑先行（用户原则）**：先讲逻辑连接词与量词（True/False/And/Or/Not/
+  Forall/Exists）让用户在"证明命题"中建立直觉；`by` 写法在单元④提前做
+  "反馈加速器"；等用户面对"函数类型的类型是什么"这一自然问题时（单元⑤）
+  再引入 `Sort`。顺序跟着直觉走，不跟着类型论教材走。
 - 难度适配：同一概念反复出错 → 出变式题或先给填好的演示；进度快 → 合并
   跳步；慢 → 拆小步、加提示层。题池见 `references/curriculum.md`。
 - 判定细节：`sorry` 可放在答案尾巴、构造子 spine 与已知函数（prelude、源内
@@ -141,7 +142,7 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
   `match`（通配 `_`、嵌套模式、Nat 字面量、`Bool` 守卫、有序多 arm、递归 IH、
   依赖 motive）；prelude `Bool`；参数化归纳（`Option`/`List`）与带索引归纳
   （`Vec`，结果类型不依赖索引）；应用位置 binder 推断（`(fun x => x) 1`）。
-  单元⑤已含 `match`/嵌套模式/`Vec`，其余按进度插入；梯度见
+  单元⑥/⑦已含 `match`/嵌套模式/`Vec`，其余按进度插入；梯度见
   `references/curriculum.md`。
 - **从零教学（关闭 prelude，用户场景）**：文件里写一行
   `-- sokonanoda:prelude none`（CLI 等价 `--bare`；LSP/Session 同样认注释
@@ -151,7 +152,7 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
   Bare 与 Full 下都生效（Bare 用文件自定义的 Eq 模板）。
 - Full（默认）时 `Eq` 系列来自 prelude（`Eq`/`Eq.refl`/`Eq.subst`，与
   官方 Lean 签名一致）；Nat 的等式要写 `Eq.{1}`（裸写默认宇宙 0）。
-  归纳块：显式 `rec` + iota 规则是单元⑤的正课内容；省略 rec 时编译器
+  归纳块：显式 `rec` + iota 规则是单元⑥的正课内容；省略 rec 时编译器
   自动派生 recursor 与规则（便利层，教学时先手写再放权）。
 
 ## 5. 解答钥匙

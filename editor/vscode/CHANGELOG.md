@@ -1,3 +1,21 @@
+## [0.53.0] - 2026-09-16
+
+### Changed
+
+- **Course restructured to 8 units (P2 of the syllabus redesign)** —
+  - `by` tactics moved to **unit 4** (right after functions/arrows) so the tactic
+    toolbox and the Infoview goal state arrive early instead of at the end;
+  - the over-loaded induction unit is **split into Ⅰ/Ⅱ**: Ⅰ = explicit
+    `inductive`/`rec`/`iota`, recursion via hand-written `Nat.rec`, `match` on a
+    non-recursive inductive, recursive `match` with the auto-inserted IH;
+    Ⅱ = parameterized `Option A`, dependent `match` (= induction), nested /
+    literal / wildcard / guard patterns, indexed `Vec A n`.
+  - Totals: **units 8, checked 58, open 45, failed 0** (`checked` +1 because each
+    half redeclares its own `inductive Nat`).
+- Docs, skills and the extension README were synced; hand-written unit counts were
+  removed from the root README and the website prose (the number is generated from
+  `course/course.json`).
+
 ## [0.52.0] - 2026-09-16
 
 ### Changed

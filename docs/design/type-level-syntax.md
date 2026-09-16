@@ -32,7 +32,7 @@ hover 看到 `Type 0` 就是 `Sort 1`，两者指同一个项。
 
 ## 3. 三件套
 
-1. **课程**：`course/unit4-universes-sort.sokonanoda`（+ `course/en/` 镜像）
+1. **课程**：`course/unit5-universes-sort.sokonanoda`（+ `course/en/` 镜像）
    在宇宙小节写清 `Type n = Sort (n+1)`，并加一条 `#check (Type 0)`；
 2. **测试**：front 解析单测 + front 编译单测 + CLI e2e（`#check Type 0`）；
 3. **白名单/文档**：`docs/architecture.md` Expr 说明、`docs/teaching-session.md`

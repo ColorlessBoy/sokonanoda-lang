@@ -65,13 +65,14 @@ fn u64_field(event: &Value, field: &str) -> u64 {
 /// Per-unit golden counts in course.json order:
 /// (decl.checked, exercise.open, failed, expr.reduced) — identical to the
 /// course.rs golden (checked, open, reduced) with failed = 0 throughout.
-const GOLDEN: [(u64, u64, u64, u64); 7] = [
+const GOLDEN: [(u64, u64, u64, u64); 8] = [
     (13, 6, 0, 1),
     (2, 5, 0, 2),
     (2, 6, 0, 2),
-    (0, 6, 0, 1),
-    (13, 10, 0, 7),
     (13, 5, 0, 0),
+    (0, 6, 0, 1),
+    (7, 6, 0, 3),
+    (7, 4, 0, 4),
     (14, 7, 0, 1),
 ];
 
@@ -88,11 +89,11 @@ fn course_subcommand_aggregates_the_manifest() {
     let events = parse_lines(&stdout);
     assert_eq!(
         events.len(),
-        8,
-        "exactly 7 course.unit + 1 course.summary, got: {events:?}"
+        9,
+        "exactly 8 course.unit + 1 course.summary, got: {events:?}"
     );
     let units = typed(&events, "course.unit");
-    assert_eq!(units.len(), 7, "one course.unit per manifest entry");
+    assert_eq!(units.len(), 8, "one course.unit per manifest entry");
     let summaries = typed(&events, "course.summary");
     assert_eq!(summaries.len(), 1, "exactly one course.summary");
 
@@ -110,8 +111,8 @@ fn course_subcommand_aggregates_the_manifest() {
     }
 
     let summary = summaries[0];
-    assert_eq!(u64_field(summary, "units"), 7, "summary units");
-    assert_eq!(u64_field(summary, "checked"), 57, "summary checked");
+    assert_eq!(u64_field(summary, "units"), 8, "summary units");
+    assert_eq!(u64_field(summary, "checked"), 58, "summary checked");
     assert_eq!(u64_field(summary, "open"), 45, "summary open");
     assert_eq!(u64_field(summary, "failed"), 0, "summary failed");
 }

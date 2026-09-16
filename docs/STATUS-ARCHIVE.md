@@ -1,8 +1,35 @@
-# STATUS 归档（第 1–79 轮，2026-09-06 → 2026-09-16）
+# STATUS 归档（第 1–80 轮，2026-09-06 → 2026-09-16）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-16，第八十轮：Infoview 自研调色板（主题解析回退））
+
+> 用户反馈：Infoview 里 `Type`/`Prop` 没高亮、参数色与编辑器/hover 不一致，问能否
+> 与主题自动对齐。调研结论：VS Code **无稳定 API** 暴露主题 token 色（2026-06 只有
+> proposal #319754/#319753）；唯一路线是自己复刻主题解析。先按此实现了完整解析器
+> （`theme-colors.js` + 宿主解析主题 JSON + `colors` 消息 + 测试，18 项单测），
+> **用户判定代价过大** → 回退，改为 **Infoview 自研固定调色板**。
+
+1. **根因（已修）**：`.tok-sort` 用 `--vscode-symbolIcon-structForeground`，主题未定义
+   时回退 `--vscode-foreground` → `Prop`/`Type` 看着没高亮；`.tok-binder` 用 symbolIcon
+   palette，天然不同于编辑器的 parameter token 色。
+2. **调研**：官方仅有两个 proposal（`ColorTheme.tokenColors`、`languages.getDocumentTokens`）；
+   可行但昂贵的路线是读活动主题 JSON（含内置主题）展开 `include` + `tokenColors` +
+   `semanticTokenColors` + `editor.tokenColorCustomizations` 后做 TextMate 特异性匹配。
+3. **回退**：删除 `editor/vscode/theme-colors.js`、`test-theme-colors.js`、`colors` 消息
+   通道与宿主解析（grep 证明零悬空引用）。
+4. **落地**：Infoview 自研固定调色板——`:root` + 四个 `body[data-theme=…]` 定义
+   `--soko-{type,keyword,function,variable,parameter,number,enum,macro}`（dark/light 贴近
+   Dark+/Light+ token 色）；`.tok-*` **只**读 `--soko-*`（不再有 symbolIcon 优先链 →
+   任何主题必有着色）；workbench 前景/背景仍走 `--vscode-*`。
+5. **测试**：`infoview_palette_colours_every_kind_with_a_guaranteed_fallback`（每个
+   `.tok-<kind>` 解析到 `--soko-*` 且四个主题块都定义）；`test-webview.js` 10 项。
+6. **验收**：node 三套 + `cargo test -p sokonanoda-cli --test extension`（32）全绿；
+   `sokonanoda gate` PASS；版本 0.49.0 → **0.50.0**。
+7. **诚实边界**：Infoview 颜色与编辑器/hover **不逐像素相同**（后者是主题 token 色，
+   前者是自有色板）——这是平台限制 + 用户拍板的取舍，写入 `docs/design/highlighting.md` §3b。
 
 ## 本轮进度（2026-09-15，第七十九轮：共享缓存 + `build` / Infoview 稳定与反馈 / 高亮单一起源）
 

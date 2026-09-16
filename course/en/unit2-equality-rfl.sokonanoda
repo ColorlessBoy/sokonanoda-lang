@@ -30,7 +30,7 @@ def one : Nat := 1
 --                  -> Eq.{u} α a b -> p a -> p b
 -- Usage on this canvas:
 --   * A bare Eq defaults to u = 0; equalities over numbers must say Eq.{1}
---     explicitly. Why 1? Unit 4 explains — treat it as a mechanical rule for
+--     explicitly. Why 1? Unit 5 explains — treat it as a mechanical rule for
 --     now.
 --   * Implicit arguments are never auto-filled: pass them explicitly by
 --     position, e.g. Eq.refl.{1} Nat (1 + 1) — universe, then type, then the

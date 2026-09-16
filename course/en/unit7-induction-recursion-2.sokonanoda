@@ -1,0 +1,155 @@
+-- ==========================================================================
+-- unit7-induction-recursion-2.sokonanoda — Unit 7 · Induction & Recursion II
+--
+-- The ground rules:
+--
+--   * An exercise is a declaration whose value is `sorry`. Replace `sorry`
+--     with your answer, and let the kernel be the judge.
+--   * A partial answer is a legitimate state: write the first few `fun`
+--     layers, leave the last one as `sorry`, and the remaining goal stays
+--     open for you.
+--   * Everything you complete here is also valid in official Lean: the
+--     grammar you learn is a real subset of Lean 4.
+--
+-- This is the second half of "induction & recursion": the previous unit built
+-- the explicit Nat block and practised hand-written `Nat.rec` and recursive
+-- `match`; this one moves on to parameterized types (`Option`), dependent
+-- `match` (that is, mathematical induction), nested and wildcard patterns, and
+-- finally indexed `Vec`. The file stays self-sufficient: the same Nat block is
+-- repeated below.
+-- ==========================================================================
+
+-- The self-contained Nat inductive block (same as the previous unit, so this
+-- file compiles on its own).
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end
+
+-- ─────────────────────────────────────────────────────────────
+-- Parameterized inductives: a type can take parameters.
+-- `Option (A : Type)` means "maybe an A, maybe nothing": the parameter A is
+-- the element type, none carries no element, and some carries one A. The
+-- derived recursor Option.rec is synthesized by the front-end (parameters
+-- outermost). A match reads the parameter instance from the scrutinee's
+-- written type — here x : Option Nat, so a in the arm is a Nat.
+-- ─────────────────────────────────────────────────────────────
+
+inductive Option (A : Type) : Type
+ctor none : Option A
+ctor some (a : A) : Option A
+end
+
+-- Demo (already written): fromOption extracts a "maybe" value with a default.
+def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
+| none => d
+| some a => a
+
+-- Self-test: #reduce walks the Option.rec that match lowers to — the some
+-- arm is just the number inside.
+#reduce fromOption (some Nat (succ zero)) zero
+
+-- Exercise 1 — valueOrZero extracts a "maybe" value: a at some, zero at none.
+-- soko:hint approach: match lists none and some once, and every arm must produce a Nat.
+-- soko:hint goal shape: fun (x : Option Nat) => match x with | none => zero | some a => <some arm>; the parameter Nat is substituted from x's written type.
+-- soko:hint key piece: the arm's a has type Nat, substituted from the parameter A — hand it back as the Nat directly.
+def valueOrZero (x : Option Nat) : Nat := match x with
+| none => zero
+| some a => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- Dependent `match`: the result type varies with the scrutinee's value.
+-- Mathematical induction has exactly this shape: given a proposition `P`, a
+-- base `P zero`, and a step "from `P k` conclude `P (succ k)` for every k",
+-- you get `P n` for any n. Each arm has a different result type — the zero arm
+-- must prove `P zero`, the succ arm `P (succ k)`; crucially the induction
+-- hypothesis `ih` has type `P k` (a dependent IH).
+-- ─────────────────────────────────────────────────────────────
+
+theorem nat_induction (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => hs k ih
+
+-- Exercise 2 — the same induction, but you write the step yourself — in the
+-- succ arm `ih : P k`.
+-- soko:hint approach: match n splits into zero/succ: the zero arm hands over the base hz, the succ arm the step.
+-- soko:hint goal shape: the succ arm's goal is P (succ k), with k : Nat and ih : P k in context.
+-- soko:hint key piece: hs takes k and a proof of P k — hand it ih.
+theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
+    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+  match n with
+  | zero => hz
+  | succ k => sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- Nested patterns and wildcards: patterns can look *inside* a field.
+-- `some zero` and `some _` split "is the inner number zero?": the same
+-- constructor `some` may appear in several arms — in order, first match wins;
+-- `_` catches the rest.
+-- ─────────────────────────────────────────────────────────────
+
+-- Demo (given): inner zero becomes one, otherwise zero.
+def isZeroOpt (x : Option Nat) : Nat := match x with
+| some zero => succ zero
+| some _ => zero
+| none => zero
+
+-- Self-check: `#reduce` runs the outer Option match, then the nested Nat match.
+#reduce isZeroOpt (some Nat zero)
+#reduce isZeroOpt (some Nat (succ zero))
+
+-- Exercise 3 — predOpt returns the predecessor of the inner number — `some
+-- (succ k)` gives `k`, while `some zero` and `none` both give `zero`; use a
+-- nested pattern to bind the `succ` field `k`.
+-- soko:hint approach: some splits into two cases: whether the inside is zero or succ k.
+-- soko:hint goal shape: match x with | some zero => … | some (succ k) => … | none => ….
+-- soko:hint key piece: the succ arm binds the field k — hand it back as the Nat directly.
+def predOpt (x : Option Nat) : Nat := match x with
+| some zero => zero
+| some (succ k) => sorry
+| none => zero
+
+-- ─────────────────────────────────────────────────────────────
+-- Indexed inductives: a type can carry **indices** as well as parameters — an
+-- index varies per constructor. `Vec A n` is "a list of A of length n": `vnil`
+-- has length `zero`, and `vcons` prepends to a length-`n` tail, giving `succ n`.
+-- (v1 boundary: the match result type may not depend on the index itself.)
+-- ─────────────────────────────────────────────────────────────
+
+inductive Vec (A : Type) : Nat -> Type
+ctor vnil : Vec A zero
+ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
+end
+
+-- Demo (given): the length.
+def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
+| vnil => zero
+| vcons a m w => succ ih
+
+-- Self-check: `#reduce` runs through `Vec.rec`.
+#reduce vlen Nat (succ (succ zero)) (vcons Nat zero zero (vcons Nat (succ zero) zero (vnil Nat)))
+
+-- Exercise 4 — vhead returns the first element; the empty vector gives the
+-- default `d`.
+-- soko:hint approach: match v splits into vnil / vcons a m w.
+-- soko:hint goal shape: the vnil arm returns d; the vcons arm's result type is A.
+-- soko:hint key piece: vcons binds the head as a — hand a out directly.
+def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
+| vnil => d
+| vcons a m w => sorry

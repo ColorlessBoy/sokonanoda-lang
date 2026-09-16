@@ -93,6 +93,6 @@ def double_let : Nat -> Nat := fun (n : Nat) => let m : Nat := sorry; m
 -- soko:hint key piece: the body's goal is Nat and m is in context; hand back the let-bound m (any other Nat typechecks too but is not what the exercise asks for).
 def body_uses_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 5; sorry
 
--- A question to sit with (answered in Unit 4): you have been writing types
+-- A question to sit with (answered in Unit 5): you have been writing types
 -- like `Nat -> Nat`. But if everything has a type — what is the type of a
--- function type itself? Think for a minute, then open Unit 4.
+-- function type itself? Think for a minute, then open Unit 5.

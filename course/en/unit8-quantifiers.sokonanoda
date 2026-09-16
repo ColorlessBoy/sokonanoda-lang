@@ -1,5 +1,5 @@
 -- ==========================================================================
--- unit7-quantifiers.sokonanoda —— Unit 7 — Quantifiers: forall & exists
+-- unit8-quantifiers.sokonanoda — Unit 8 · Quantifiers: forall & exists
 --
 -- Unit 1's propositional logic only talks about a fixed few propositions. To
 -- say "everyone ..." or "at least one person ...", you need quantifiers
@@ -107,7 +107,7 @@ theorem and_forall (P : Person -> Prop) (Q : Person -> Prop) (h : And (forall (x
 -- conclusion Q. The conclusion Q must not mention w — while h is in use, it
 -- is unknown which person w is. This use rule is Exists.elim.
 --
--- In official Lean, Exists is an inductive (you will meet it in Unit 5 when
+-- In official Lean, Exists is an inductive (you will meet it in Units 6–7 when
 -- you write inductive yourself); here we follow Unit 1 and set up its two
 -- rules as axioms:
 -- ─────────────────────────────────────────────────────────────

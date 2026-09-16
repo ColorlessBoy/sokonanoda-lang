@@ -1,7 +1,7 @@
 # 设计：课程地图（sokonanoda course）+ REPL 历史持久化 + course 提示阶梯
 
 > **状态：已实现**（`crates/cli/src/course.rs`、REPL 历史、`sokonanoda.courseMap`、
-> 单元提示阶梯）。§4 的 golden 计数只是**示例**（非第二真源）——现为 7 单元，
+> 单元提示阶梯）。§4 的 golden 计数只是**示例**（非第二真源）——现为 8 单元，
 > 权威值在 `crates/cli/tests/course.rs`（`GOLDEN`）与
 > `crates/cli/tests/course_status.rs`（`GOLDEN` + 汇总）。
 
@@ -14,7 +14,7 @@
 1. **聚合在哪一侧？** 备选：LSP 自定义请求（服务器读工作区文件）vs CLI 子
    命令 + 客户端拉起。选 **CLI 子命令**：服务器是单文档模型（有意取舍，
     `docs/architecture.md` §8），让它读任意工作区文件是方向性扩张；CLI
-    聚合一次跑完 7 个单元天然并行、可被 CI/agent 直接消费；VS Code 端
+    聚合一次跑完 8 个单元天然并行、可被 CI/agent 直接消费；VS Code 端
    serverPath 发现机制已有，复用来定位二进制即可。
 2. **进度语义**：course 单元是「素材库」，学习者实际面对的是画布——因此
    课程地图是**给 agent/教师视角的可解性+内容地图**（每单元多少题、多少
@@ -42,12 +42,19 @@
 
 ```json
 {"type":"course.unit","file":"unit1-propositions-proofs.sokonanoda","title":"单元① 命题与证明项","unit":1,"checked":13,"open":6,"failed":0,"reduced":1}
-{"type":"course.summary","units":7,"checked":57,"open":45,"failed":0}
+{"type":"course.unit","file":"unit2-equality-rfl.sokonanoda","title":"单元② 等式与 rfl","unit":2,"checked":2,"open":5,"failed":0,"reduced":2}
+{"type":"course.unit","file":"unit3-functions-arrows.sokonanoda","title":"单元③ 函数与箭头","unit":3,"checked":2,"open":6,"failed":0,"reduced":2}
+{"type":"course.unit","file":"unit4-by-tactics.sokonanoda","title":"单元④ by 写法：tactic 证明","unit":4,"checked":13,"open":5,"failed":0,"reduced":0}
+{"type":"course.unit","file":"unit5-universes-sort.sokonanoda","title":"单元⑤ 宇宙：函数类型的类型","unit":5,"checked":0,"open":6,"failed":0,"reduced":1}
+{"type":"course.unit","file":"unit6-induction-recursion-1.sokonanoda","title":"单元⑥ 归纳与递归 Ⅰ","unit":6,"checked":7,"open":6,"failed":0,"reduced":3}
+{"type":"course.unit","file":"unit7-induction-recursion-2.sokonanoda","title":"单元⑦ 归纳与递归 Ⅱ","unit":7,"checked":7,"open":4,"failed":0,"reduced":4}
+{"type":"course.unit","file":"unit8-quantifiers.sokonanoda","title":"单元⑧ 量词：forall 与 exists","unit":8,"checked":14,"open":7,"failed":0,"reduced":1}
+{"type":"course.summary","units":8,"checked":58,"open":45,"failed":0}
 ```
 
 - 人类视图（无 --json）：逐单元一行
   `unit 1 单元① 命题与证明项 —— 13 checked · 6 open · 0 failed`；末行
-  `共 7 单元 —— 57 checked · 45 open · 0 failed`；
+  `共 8 单元 —— 58 checked · 45 open · 0 failed`；
 - CLI 接线：`Some("course") => positionals.get(1)`（--json 旗标同样适用）。
 
 ## 2. VS Code 课程地图
@@ -70,12 +77,12 @@
 
 ## 4. course/ 提示阶梯内容（素材库完善）
 
-- 七个单元的每个 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
+- 八个单元的每个 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
 - 钥匙来源：`course/solutions/`（全部经内核验证）；阶梯只给思路/形态/关键件；
 - **验收锚点（示例，权威见测试）**：`crates/cli/tests/course.rs::GOLDEN` 与
   `course_status.rs::GOLDEN` 的逐单元 `(checked, open, reduced)` 现为
-  （13,6,1 / 2,5,2 / 2,6,2 / 0,6,1 / 13,10,7 / 13,5,0 / 14,7,1）、汇总
-  `units=7 checked=57 open=45 failed=0`、solutions 零诊断——注释级改动不产事件
+  （13,6,1 / 2,5,2 / 2,6,2 / 13,5,0 / 0,6,1 / 7,6,3 / 7,4,4 / 14,7,1）、汇总
+  `units=8 checked=58 open=45 failed=0`、solutions 零诊断——注释级改动不产事件
   （playground 已验证）。
 
 ## 5. 文件分工（互斥清单）
@@ -86,4 +93,4 @@
 | E（course 聚合） | `crates/cli/src/course.rs`（新）、`crates/cli/tests/course_status.rs`（新）、`crates/cli/tests/common/mod.rs`（词汇 + course.unit/course.summary）、`crates/cli/src/json_report.rs`（仅当事件序列化需要） |
 | F（VS Code 课程地图） | `editor/vscode/{extension.js,package.json}`、`crates/cli/tests/extension.rs` |
 | G（REPL 历史） | `crates/cli/src/repl.rs`、`crates/cli/tests/cli.rs`（repl 测试追加） |
-| H（course 阶梯内容） | `course/unit*.sokonanoda`（7 个单元文件；**solutions/ 不动**） |
+| H（course 阶梯内容） | `course/unit*.sokonanoda`（8 个单元文件；**solutions/ 不动**） |

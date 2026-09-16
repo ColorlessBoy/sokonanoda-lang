@@ -1,8 +1,9 @@
 -- ==========================================================================
--- unit5-induction-nat-rec-solution.sokonanoda — Unit 5 answer key (agent only)
+-- unit6-induction-recursion-1-solution.sokonanoda — Unit 6 answer key (agent only)
 --
--- The solved twin of course/unit5-induction-nat-rec.sokonanoda: every sorry is
--- filled with a kernel-verified answer. Do not hand this directly to a learner.
+-- The solved twin of course/unit6-induction-recursion-1.sokonanoda: every sorry
+-- is filled with a kernel-verified answer. Do not hand this directly to a
+-- learner.
 -- ==========================================================================
 
 -- The explicit inductive block, as on the canvas — it replaces the prelude Nat
@@ -123,72 +124,3 @@ def recDouble (n : Nat) : Nat := match n with
 
 -- Extra internal self-checks:
 #reduce recDouble two
-
--- ─────────────────────────────────────────────────────────────
--- Parameterized inductives: Option (A : Type), the fromOption demo, and the
--- answer to Exercise 7.
--- ─────────────────────────────────────────────────────────────
-
-inductive Option (A : Type) : Type
-ctor none : Option A
-ctor some (a : A) : Option A
-end
-
--- Demo (same as the canvas): fromOption takes a default and extracts.
-def fromOption (x : Option Nat) (d : Nat) : Nat := match x with
-| none => d
-| some a => a
-
--- Self-test: #reduce walks the Option.rec that match lowers to — the some
--- arm is just the number inside.
-#reduce fromOption (some Nat (succ zero)) zero
-
--- Exercise 7: the some arm hands back the substituted field a directly.
-def valueOrZero (x : Option Nat) : Nat := match x with
-| none => zero
-| some a => a
-
--- Extra internal self-checks:
-#reduce valueOrZero (some Nat (succ zero))
-#reduce valueOrZero (none Nat)
-theorem nat_induction (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
-  match n with
-  | zero => hz
-  | succ k => hs k ih
-
-theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
-  match n with
-  | zero => hz
-  | succ k => hs k ih
-
--- Nested patterns and wildcards (mirrors the canvas tail):
-def isZeroOpt (x : Option Nat) : Nat := match x with
-| some zero => succ zero
-| some _ => zero
-| none => zero
-
-def predOpt (x : Option Nat) : Nat := match x with
-| some zero => zero
-| some (succ k) => k
-| none => zero
-
-#reduce isZeroOpt (some Nat zero)
-#reduce predOpt (some Nat (succ (succ zero)))
-
--- Indexed inductives (mirrors the canvas tail):
-inductive Vec (A : Type) : Nat -> Type
-ctor vnil : Vec A zero
-ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
-end
-
-def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat := match v with
-| vnil => zero
-| vcons a m w => succ ih
-
-def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with
-| vnil => d
-| vcons a m w => a
-
-#reduce vlen Nat (succ zero) (vcons Nat zero zero (vnil Nat))

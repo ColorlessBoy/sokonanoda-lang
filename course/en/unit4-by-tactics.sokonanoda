@@ -1,5 +1,5 @@
 -- ==========================================================================
--- unit6-by-tactics.sokonanoda —— Unit 6 — Proving with `by` (tactic blocks)
+-- unit4-by-tactics.sokonanoda — Unit 4 · Proving with `by` (tactic blocks)
 --
 -- Earlier units wrote proof terms directly: `:= fun (a : Prop) => ...`.
 -- This unit learns another way — `by` blocks: write a proof as a sequence of

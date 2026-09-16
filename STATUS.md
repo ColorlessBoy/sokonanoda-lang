@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-16（第八十二轮：课程大纲重构 P1（内容修补）+ 设计锁定；0.52.0）
+> 快照：2026-09-16（第八十三轮：课程大纲重构 P2（重排 + 拆分）；0.53.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -45,6 +45,32 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    版本 0.51.0 → **0.52.0**（课程内容可见改进，minor）。P2（重排+拆分 U5）、P3（新增两
    单元）、P4（游戏线）待做。
 
+## 本轮进度（2026-09-16，第八十三轮：课程大纲重构 P2（重排 + 拆分 U5））
+
+> 续 `docs/design/course-syllabus.md` §6 P2：把 `by` 提前、把过载的归纳单元拆开。
+
+1. **重排**：`by` 单元从第 6 提到**第 4**（紧跟函数/箭头之后），宇宙顺延为第 5；
+   量词为第 8。
+2. **拆分**：旧「显式归纳与递归」拆成 **Ⅰ**（显式 `inductive`/`rec`/`iota` + 手写
+   `Nat.rec` + `match` 非递归 + 递归 `match`+IH）与 **Ⅱ**（参数化 `Option` + 依赖
+   `match`=归纳 + 嵌套/字面量/通配/guard 模式 + 带索引 `Vec`）。两半各自**重声明**
+   `inductive Nat` 以保持自足（代价：`decl.checked` 57→58）。
+3. **文件/清单**：`git mv` 重命名 CN/EN 画布与 CN/EN solutions（`unit6-by→unit4-by`、
+   `unit4-univ→unit5-univ`、`unit5-ind→unit6/unit7-…`、`unit7-quant→unit8-quant`）；
+   `course.json` 8 条，`unit` 1..8。
+4. **测试**：两处 GOLDEN 改 8 行（`(13,6,1)(2,5,2)(2,6,2)(13,5,0)(0,6,1)(7,6,3)(7,4,4)(14,7,1)`）、
+   汇总 `units=8 checked=58 open=45`、`course_json_lists_the_eight_units_in_order`、
+   `cli.rs` 课程缓存金值 57→58。
+5. **门面同步**（硬规则）：`teaching-session.md`/`course-status.md`/`course-bilingual.md`/
+   `ROADMAP` I7/`course/README.md`/`infrastructure.md`/`type-level-syntax.md`/
+   `term-intro.md`/`remove-funintro.md`/`skills/`（teacher 两个文件）/`editor/vscode/README.md`
+   （7→8 单元，注明向锁定 10 单元演进）；并**移除**根 README 与 site 三处**手写单元数**
+   （改为不带数字，数字由 `course/course.json` 生成）。
+6. **验收**：course/course_status/skill + 全量 CLI 测试全绿；16 个 CN+EN 画布 exit 0；
+   双语画布与 solutions 事件计数逐项相等；`solution_covers_every_canvas_exercise` 通过；
+   版本 0.52.0 → **0.53.0**（结构可见变化，minor）。
+7. **待做**：P3 = 新增 #9 关系与联结词、#10 读证明与综合（锁定的 10 单元）。
+
 ## 本轮进度（2026-09-16，第八十一轮：`by` 块支持换行分隔 tactic）
 
 > 用户：能不能像 Lean4 一样用**分号或回车换行**两种分隔，从而省掉行尾的 `;`
@@ -64,31 +90,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    关键字开头的多行项会被切开（用括号/同行规避）；`sorry` 在下一行即视为新 tactic。
 7. **验收**：front 378 + CLI 全绿；`playground.sokonanoda` exit 0；`sokonanoda gate` PASS；
    版本 0.50.0 → **0.51.0**。
-
-## 本轮进度（2026-09-16，第八十轮：Infoview 自研调色板（主题解析回退））
-
-> 用户反馈：Infoview 里 `Type`/`Prop` 没高亮、参数色与编辑器/hover 不一致，问能否
-> 与主题自动对齐。调研结论：VS Code **无稳定 API** 暴露主题 token 色（2026-06 只有
-> proposal #319754/#319753）；唯一路线是自己复刻主题解析。先按此实现了完整解析器
-> （`theme-colors.js` + 宿主解析主题 JSON + `colors` 消息 + 测试，18 项单测），
-> **用户判定代价过大** → 回退，改为 **Infoview 自研固定调色板**。
-
-1. **根因（已修）**：`.tok-sort` 用 `--vscode-symbolIcon-structForeground`，主题未定义
-   时回退 `--vscode-foreground` → `Prop`/`Type` 看着没高亮；`.tok-binder` 用 symbolIcon
-   palette，天然不同于编辑器的 parameter token 色。
-2. **调研**：官方仅有两个 proposal（`ColorTheme.tokenColors`、`languages.getDocumentTokens`）；
-   可行但昂贵的路线是读活动主题 JSON（含内置主题）展开 `include` + `tokenColors` +
-   `semanticTokenColors` + `editor.tokenColorCustomizations` 后做 TextMate 特异性匹配。
-3. **回退**：删除 `editor/vscode/theme-colors.js`、`test-theme-colors.js`、`colors` 消息
-   通道与宿主解析（grep 证明零悬空引用）。
-4. **落地**：Infoview 自研固定调色板——`:root` + 四个 `body[data-theme=…]` 定义
-   `--soko-{type,keyword,function,variable,parameter,number,enum,macro}`（dark/light 贴近
-   Dark+/Light+ token 色）；`.tok-*` **只**读 `--soko-*`（不再有 symbolIcon 优先链 →
-   任何主题必有着色）；workbench 前景/背景仍走 `--vscode-*`。
-5. **测试**：`infoview_palette_colours_every_kind_with_a_guaranteed_fallback`（每个
-   `.tok-<kind>` 解析到 `--soko-*` 且四个主题块都定义）；`test-webview.js` 10 项。
-6. **验收**：node 三套 + `cargo test -p sokonanoda-cli --test extension`（32）全绿；
-   `sokonanoda gate` PASS；版本 0.49.0 → **0.50.0**。
-7. **诚实边界**：Infoview 颜色与编辑器/hover **不逐像素相同**（后者是主题 token 色，
-   前者是自有色板）——这是平台限制 + 用户拍板的取舍，写入 `docs/design/highlighting.md` §3b。
 
