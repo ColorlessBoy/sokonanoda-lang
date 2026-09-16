@@ -210,3 +210,15 @@
 - **贡献者自检**：`sokonanoda version`（bin）与仓库版本一致，再信 `gate` 的 anchor；
   否则用 `cargo run` 那条。
 
+## 用户可见改动 = VS Code + skills 同一轮一起改（2026-09-16，用户要求）
+
+- **教训**：0.40–0.51 连续 12 个版本做了大量用户可见改动（Infoview 落位/反馈/色板、
+  `match` 全形态、`Vec`、`build`、换行 tactic、gate 守卫…），`skills/` 三个技能却
+  没有同步——agent 读到的操作手册落后于产品，正是"门面漂移"的老毛病在 agent 侧的翻版。
+- **规矩**：任何用户可见改动（命令/键位/视图/反馈/语法/协议/发布形态）**同一轮**更新
+  `editor/vscode/`（README/CHANGELOG/package.json）**与** `skills/` 三个技能 +
+  `AGENTS.md` + `docs/vscode-dev-guide.md`；skills 是符号链接到仓库，改仓库即同步。
+- **code agent 适配是一等公民**：计划先问「agent 怎么用/怎么验证」——`--json` 输出、
+  能力写进 skill、命令可直接执行、`HANDOVER` 同步。
+- **skill 写法**：**确切可执行的一条命令** > "建议/可以考虑…"式散文；少 token。
+

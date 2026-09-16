@@ -281,8 +281,10 @@ theorem forall_and (P : Person -> Prop) (Q : Person -> Prop) (h : forall (x : Pe
 -- soko:hint 目标形态：最外层是 forall，先写 fun (x : Person)，剩余目标是 And (P x) (Q x)。
 -- soko:hint 关键件：And.left / And.right 从 h 里取出两个 forall，对 x 应用。
 theorem and_forall (P : Person -> Prop) (Q : Person -> Prop) (h : And (forall (x : Person), P x) (forall (x : Person), Q x)) : forall (x : Person), And (P x) (Q x) := by
-  intro x;
-  sorry
+  intro x
+  apply And.intro
+  apply And.left (forall (x : Person), P x) (forall (x : Person), Q x) h x
+  apply And.right (forall (x : Person), P x) (forall (x : Person), Q x) h x
 
 -- ─────────────────────────────────────────────────────────────
 -- 2.2 exists

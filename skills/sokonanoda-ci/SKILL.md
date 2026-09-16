@@ -42,7 +42,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 | `gh release upload` 非幂等 | 同名 asset 已存在 → 422 → `bash -e` 全 job 死 | 永远 `--clobber`（重跑覆盖） |
 | 强移 tag 前先想清楚 | release 上可能已有首跑传了一半的 asset | 上传步骤必须幂等后再强移 |
 | `vsce package --no-dependencies` | 跳过生产依赖收集 → 12 文件/21KB 空壳 VSIX | 冒烟用与 release.yml 相同的命令（无该 flag）；平台包正确基线 ≈327 文件（含 `bin/<target>/`） |
-| vsce publish Azure 超时 | `Request timeout: /_apis/gallery` 是**间歇性**网络问题 | 直接重跑该 job；连续两次超时再查代理 |
+| vsce publish Azure 超时 | `Request timeout: /_apis/gallery` 是**间歇性**网络问题 | publish 步骤已内置 **3 次重试**；仍失败就探活 `extensionquery`（200 即已恢复）后 `gh run rerun <id> --failed`，别改流水线 |
 | action 名拼写 | 多个 s / 复数错名 → action 不存在 | 新 action 首次使用先验证存在 |
 | run 步骤默认 `bash -e` | 任何一步非零退出 → 整个 step 死 | 想容忍的命令才加 `\|\| true`；别把 `bash -e` 当没有 |
 | 平台包 exec 位 | VSIX 的 zip 记录 unix mode；**Windows 上 `vsce package` 会丢执行位**（vsce #152/#512） | 只在 Linux/macOS 打包；stage 时 `chmod 755`；冒烟用 python `zipfile` 断言 `mode & 0o111` |
@@ -50,12 +50,15 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 | 版本门禁 | tag / `Cargo.toml` / `package.json` 三者不一致时 release 必须 fail（历史上靠人工） | release `package-vsix` 的 version gate + `cargo_and_extension_versions_match` 契约测试双保险；tag 前先 `cargo check` 更新 lock |
 | **job success ≠ 关键步骤跑过** | 条件不满足的步骤显示 `skipped`，其余步骤 success 会把 **job 抬绿**（v0.20.0 首发：8 平台构建真跑、Release/上架两步被 `if: github.event_name == 'push'` 静默跳过） | 核对必须逐步骤；`conclusion == "skipped"` 出现在创建/上传/发布步骤 = 发布半坏。条件按 **ref** 判（`startsWith(github.ref,'refs/tags/')`），别按 event 判 |
 | GITHUB_TOKEN 推 tag **不触发**其它 workflow | 防递归规则；但 `workflow_dispatch` / `repository_dispatch` 是**例外**，token 触发有效 | 自动发版 = 推 tag + 显式 `gh workflow run release.yml --ref v<tag>`（ci.yml 的 auto-tag job）；dispatch 还需 `actions: write`（只有 contents:write 会 403 "Resource not accessible by integration"） |
+| **发版默认全自动** | bump 两处版本（`Cargo.toml` + `editor/vscode/package.json`）→ push main → `ci.yml` 的 auto-tag 自动打 tag 并 dispatch `release.yml` | 正常发布**不要**手推 tag；手动打 tag 仅应急（tag 触发的 release 用 tag 指向 commit 上的文件）。发布形态与校验见 `docs/RELEASE.md` |
+| `upload-artifact@v7` `FinalizeArtifact` **403 Forbidden** | 上传成功后 finalize 被中介拒绝（`(403) Forbidden ... Error from intermediary`）是 GitHub Artifacts 服务**瞬时故障**，内容/代码无关（2026-09-15 v0.39.1：build 失败 → package-vsix/github-release 全 skipped） | 确认是 finalize（非 build/upload 内容）后 `gh run rerun <id> --failed`（下游依赖会随之重跑）；不改流水线 |
 | runner 上的未鉴权 GitHub API 调用会假 404/403 | 匿名额度按 IP 共享，限流/风控返回 403/404，与资源真实状态无关（pages 门禁曾因此误判"未启用"→ 部署全 skipped） | workflow 里查仓库状态一律 `gh api` + `GH_TOKEN: ${{ github.token }}` |
 
 ## 2. 触发与监控
 
 ```bash
-git push origin main                      # → ci（main）
+git push origin main   # bump 两处版本后 push = ci auto-tag 自动打 tag + dispatch release（默认发版）
+# 手动 tag 仅应急：
 git tag v0.4.x && git push origin v0.4.x  # → ci（tag）+ release
 gh run list --limit 5                     # 状态总览
 gh run view <id> --json jobs --jq '.jobs[] | {name, conclusion}'

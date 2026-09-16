@@ -18,8 +18,8 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 `docs/design/onboarding.md`）：
 
 ```bash
-sokonanoda setup     # 版本锁定的 CLI + LSP → ~/.local/share/sokonanoda/bin
-sokonanoda update    # 缓存过期/版本不匹配时强制刷新
+sokonanoda setup     # 按本二进制版本下载 CLI + LSP → 缓存（幂等）
+sokonanoda update    # = setup --force：强制刷新到本版本
 sokonanoda version   # 看版本 + 缓存里实际版本（--json）
 sokonanoda doctor    # 就绪诊断；--json 供机器读，0=就绪 3=未就绪
 ```
@@ -33,6 +33,9 @@ PATH，一般无需手动）：
 ```
 
 - 版本严格按仓库 `Cargo.toml` 锁定，**禁用 `releases/latest`**；
+- `sokonanoda version` 打印本二进制版本 + 缓存里实际版本；二者与仓库
+  `Cargo.toml` 不一致（旧下载缓存）是常见故障源——先 `sokonanoda update`
+  （`sokonanoda gate` 也会因版本不符 exit 3）；
 - **本技能全程零 cargo**；从源码构建（贡献者）见 `skills/sokonanoda-dev`。
 
 ⚠️ **不要用 `releases/latest`**：下载 URL 必须按仓库/插件版本锁定
@@ -62,6 +65,22 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
 - 语言能力速查：`sokonanoda --help` 自描述（def/theorem/axiom/example、
   `#check`、`#reduce`、宇宙参数、命名箭头、声明级 binder
   `theorem f (a : A) : B := v`）。
+- 值位 `let`：`let x : T := v; body`；缺注解 `let x := v` 只在有期望类型或能从
+  实参推断时才可省略（设计 `docs/design/elaborator-let-match.md`）。
+- `match`（值位）：`match e with | p => body …`；模式支持 `_` 通配、绑定名、
+  **嵌套构造子**（`some (succ k)`）、**Nat 字面量**（`| 0 =>`，脱糖 `succ^k zero`）、
+  **`Bool` 守卫**（`| succ k if p =>`）；arm **有序、首个匹配者胜**（同一构造子
+  可多条 arm）。递归字段自动获得 IH（`ih`/`ih2`…）；依赖 motive 可用；prelude
+  `Nat`/`Bool`、参数化与带索引归纳都可 match（带索引的 v1 结果类型不依赖索引）。
+- `match`（tactic）：`by match c with | … => <项>`——臂体是**项**（同值位），以
+  当前目标为期望类型判定；等价 `exact (match …)`。
+- `by` 块 tactic 集：`intro`/`exact`/`apply`/`assumption`/`rfl`/`match`/`sorry`；
+  tactic 之间用 `;` **或换行**分隔（可混用，无缩进敏感）。
+- prelude `Bool`：`Bool`/`Bool.true`/`Bool.false` + 派生 `Bool.rec`（非递归真实
+  可信归纳）；文件自带 `inductive Bool` 时让位。
+- 参数化归纳（`inductive Option (A : Type)`、`List`）与**带索引归纳**
+  （`inductive Vec (A : Type) : Nat -> Type`，`ctor vnil`/`vcons`；省略 `rec`
+  自动派生 recursor）。
 
 ## 2. 核心教学循环（3 步，循环）
 
@@ -114,6 +133,16 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
 - 判定细节：`sorry` 可放在答案尾巴、构造子 spine 与已知函数（prelude、源内
   axiom/def/theorem、归纳构造子）的**直接实参**位；嵌套洞（`f (g sorry)`）
   与 `n + sorry` 类非直接位置仍报 `elab-hole-misplaced`。
+- **tactic 可换行分隔**：`by` 块里 tactic 之间可用 `;` 或**换行**（可混用）；
+  规则是「下一个 token 在更晚行且是 tactic 关键字（intro/exact/apply/assumption/
+  rfl/match/sorry）即视为当前 tactic 结束」——仍**不缩进敏感**。同一行不写 `;`
+  不算分隔；续行若以 tactic 关键字开头会被切开（用 `;` 或括号规避）。
+- **可出题的新语法点**（白名单已开）：`let x : T := v; body`；值位/`by` 内
+  `match`（通配 `_`、嵌套模式、Nat 字面量、`Bool` 守卫、有序多 arm、递归 IH、
+  依赖 motive）；prelude `Bool`；参数化归纳（`Option`/`List`）与带索引归纳
+  （`Vec`，结果类型不依赖索引）；应用位置 binder 推断（`(fun x => x) 1`）。
+  单元⑤已含 `match`/嵌套模式/`Vec`，其余按进度插入；梯度见
+  `references/curriculum.md`。
 - **从零教学（关闭 prelude，用户场景）**：文件里写一行
   `-- sokonanoda:prelude none`（CLI 等价 `--bare`；LSP/Session 同样认注释
   指令），编译器不装任何内置声明。让学生自己写 `inductive Nat : Type`
@@ -146,6 +175,18 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
   （`by` 写法下逐 tactic；服务端选取，客户端只渲染）；
 - CodeLens 显示每个声明的练习状态（open / solved / failed）；
 - rename（F2）与 find-references 走语义解析（注释里的同名文本不受影响）；
+- **Infoview 目标面板**在**右侧辅助侧栏**，`sokonanoda: 打开目标面板 (Infoview)`
+  聚焦（需要 VS Code ≥1.106）：goal 行以 `⊢` 开头、假设逐行 `name : ty`；面板
+  **始终可见**（不再有 `when`），加载即骨架，并有状态行（`编译中…` /
+  `已就绪 · N 个声明` / `等待 .sokonanoda 文件`）；声明列表显示每条声明的类型
+  + 行号 `L<n>`（点击跳转已移除，它从未可靠工作）；
+- Infoview 用**自研固定调色板**（按 dark/light/高对比），**不跟随**编辑器主题
+  token 色——VS Code 没有稳定 API 暴露主题 token 色（平台限制，见
+  `docs/design/highlighting.md` §3b）；分类与 hover 同源（`front::semantic`），
+  颜色近似但非逐像素相同，这是设计如此；
+- `sokonanoda build [<file>|<dir>…]` 预热共享编译缓存，之后打开/判卷大文件更快
+  （`SOKONANODA_CACHE_DIR` 改缓存根、`SOKONANODA_NO_CACHE=1` 关闭；内核仍是
+  唯一判定者，设计 `docs/design/compile-cache.md`）；
 - `soko/goals` / `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供
   工具深挖 goal 视图、提示与光标处 goal（见 `docs/protocol.md`）。
 

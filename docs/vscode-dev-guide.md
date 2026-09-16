@@ -183,13 +183,17 @@ git tag v0.X.Y && git push origin v0.X.Y
 | `README.md` | Marketplace 页面正文 | 安装/获取方式、功能清单、agent 集成 |
 | `package.json` → `description` | 搜索列表的一行简介 | 一句话卖点（零安装门槛 + 教学 + agent）；**≤ 300 字符**，超了 Marketplace 硬截断（无省略号，切在词中间——见下） |
 | `CHANGELOG.md` | 页面"Changelog"标签 | 每个版本用户可感知的变化 |
+| `skills/sokonanoda-{teacher,dev,ci}/` | agent 加载的操作手册（符号链接到 `~/.agents/skills`） | 新能力/新命令/新坑：写成**可直接执行**的命令，少 token |
+| `AGENTS.md` + 本文 | 仓库/扩展开发入口 | 流程、门禁、同步义务 |
 
 ### 同步触发器（命中任一 = 同一 commit 里改门面）
 
 1. **安装/获取方式变化**：server 下载策略、发现顺序、缓存路径、新增设置项；
 2. **功能集变化**：新命令/键位/树/视图（对照 `package.json` contributes）；
 3. **反馈行为变化**：诊断分级、hover 内容、inlay（用户能在编辑器里"感觉到"的）；
-4. **agent 集成变化**：skills 增删、opencode 接线、CLI 事件面。
+4. **agent 集成变化**：skills 增删、opencode 接线、CLI 事件面；
+5. **任何用户可见改动**：同步 `editor/vscode/`（README/CHANGELOG/package.json）**与**
+   `skills/` 三个技能 —— 二者**同一轮一起改**，别留到"以后再补"。
 
 ### description 硬上限 300 字符（2026-09-15 教训）
 

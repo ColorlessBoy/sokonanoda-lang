@@ -101,3 +101,10 @@ tag 并 dispatch release（见 `docs/RELEASE.md`；手动推 tag 仅应急）。
   `docs/STATUS-ARCHIVE.md`；网站进度页自动读最新轮标题）；
 - 用户新要求追加进 `REQUIREMENTS.md` §9 并注明日期（冲突以该文件为准）；
 - 设计先行：新功能先写设计进 `docs/`，再动手；多用 subagent 并行调研。
+- **VS Code + skills 同步**：任何用户可见改动（命令/键位/视图/反馈/语法/协议/发布形态）
+  必须**同一轮**更新 `editor/vscode/`（README/CHANGELOG/package.json）**与** `skills/`
+  三个技能 + 本文 + `docs/vscode-dev-guide.md`；测试见 `crates/cli/tests/skill.rs`。
+- **code agent 适配是一等公民**：每个开发计划先问「agent 怎么用/怎么验证」——提供
+  `--json` 结构化输出、把能力写进 skills、命令可直接执行、`docs/HANDOVER.md` 同步。
+- **skill 写法**：命令用**确切可执行的一条命令**（`sokonanoda version --json`），
+  少用 token、少用"你应该考虑…"式散文；skill 是给 agent 执行的操作手册。

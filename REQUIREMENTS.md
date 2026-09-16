@@ -783,3 +783,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   测试 parser 5 项 + CLI 1 项；`playground.sokonanoda` 的 `forall_and` 去掉行尾 `;` 作活样例；
   边界/歧义写入 `docs/design/by-tactics.md` §11。版本 **0.51.0**。
 
+- 2026-09-16（八十二）：**开发流程规范（用户要求）**——(a) **VS Code 侧与 `skills/` 必须随
+  用户可见改动同步更新**（门面同步从 README/description/CHANGELOG 扩展到 `skills/` +
+  `AGENTS.md` + `docs/vscode-dev-guide.md`）；(b) **所有开发计划都要考虑 code agent 适配**
+  （机器可读输出、skills 覆盖新能力、命令可直接执行、`AGENTS.md`/`docs/HANDOVER.md` 同步）；
+  (c) **skill 里的命令要尽量少 token 且可直接执行**——能写一条确切命令就不要写成建议或
+  散文描述。已落 `AGENTS.md` 收尾义务、`docs/vscode-dev-guide.md` §7 同步触发器、
+  `skills/sokonanoda-dev` 工作流；并完成 0.40–0.51 三个 skill 的同步补课。
+

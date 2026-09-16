@@ -11,12 +11,30 @@
 | 2 | `unit2-equality-rfl.sokonanoda` | 等式与 rfl | 认识数字 Nat；`Eq.{1}` 机械规则（为什么是 1 → 单元④揭晓）；自己设计谓词 p 造 symm/trans |
 | 3 | `unit3-functions-arrows.sokonanoda` | 函数与箭头 | `fun`、binder 推断、高阶函数 `(Nat -> Nat) -> Nat -> Nat`；结尾埋"函数类型的类型？"悬念 |
 | 4 | `unit4-universes-sort.sokonanoda` | 宇宙 | Sort 由悬念揭晓：Prop = Sort 0（回收单元①）、Nat : Sort 1；`Eq.symm {u}` 毕业题 |
-| 5 | `unit5-induction-nat-rec.sokonanoda` | 显式归纳与递归 | `inductive Nat` 块、ctor/rec/iota、`Nat.rec` |
-| 6 | `unit6-by-tactics.sokonanoda` | by 写法 | `by` 块 + 五个 tactic（intro/exact/apply/assumption/rfl）；`by sorry` 占位；判定走 kernel |
+| 5 | `unit5-induction-nat-rec.sokonanoda` | 显式归纳与递归 | `inductive Nat` 块、ctor/rec/iota、`Nat.rec`；`match`（非递归枚举 / 递归自动 IH / 依赖 motive）；参数化 `Option`；嵌套模式与通配、带索引归纳 `Vec`（练习 9/10） |
+| 6 | `unit6-by-tactics.sokonanoda` | by 写法 | `by` 块 + tactic（intro/exact/apply/assumption/rfl）；`by sorry` 占位；判定走 kernel |
 | 7 | `unit7-quantifiers.sokonanoda` | 量词 | `forall` 引入=fun / 消去=应用；`Exists` 公理三件套（intro=证人、elim=函数，结论不提证人）；Person/someone 论域；∀/∃ 与 And 的分配、∀→∃、∃ 单调（7 题，含 ★/★★）；可紧跟单元①教学 |
 
 每个单元配 `solutions/unitN-*-solution.sokonanoda`（agent 专用钥匙，全部
 经完整内核验证；CI golden 钉死事件计数）。
+
+## 0.40–0.51 新增语言点（可随时出题）
+
+固定单元之后新开的能力；单元⑤ 已吸收 `match`/嵌套模式/`Vec`，其余按学习者
+进度插入（出题纪律见 SKILL.md §4）：
+
+- 值位 `let x : T := v; body`（设计 `elaborator-let-match.md`）；
+- `match` 模式：`_` 通配、嵌套构造子（`some (succ k)`）、Nat 字面量
+  （`| 0 =>`）、`Bool` 守卫（`| succ k if p =>`）、arm 有序首个匹配；
+  递归 IH、依赖 motive（`match-patterns.md`）；
+- `match` 作为 tactic（`by match c with | … => <项>`，`by-tactics.md` §2）；
+- `by` 块换行分隔 tactic（`;` 或换行，可混用，无缩进敏感；`by-tactics.md` §11）；
+- prelude `Bool`（`Bool.true`/`Bool.false`/`Bool.rec`，文件自带 `inductive Bool`
+  时让位；`match.md` §10 Phase 5）；
+- 参数化归纳（`Option`/`List`）与带索引归纳（`Vec`，v1 结果类型不依赖索引；
+  `indexed-inductives.md`）；
+- 应用位置 binder 类型推断（`(fun x => x) 1`、`(fun x y => x) 1 2`；
+  `elaborator-let-match.md` as-built）。
 
 ## 逻辑先行（用户原则，2026-09-07；单元排序已按此重排）
 
