@@ -292,3 +292,13 @@
 - **修复**：`gh run rerun 34959375797 --failed` 重跑失败 job（下游依赖随之重跑）。
 - **预防**：新增「artifact finalize 403」到重跑清单：确认是 finalize（不是 build/
   upload 内容）后直接 rerun；与 Azure gallery 超时一样属服务端间歇故障，不改流水线。
+
+## 2026-09-16 — v0.49.0 发布：marketplace-publish Azure gallery 超时（已知类，复发）
+
+- **现象**：`marketplace-publish` 的 `vsce publish sokonanoda-universal.vsix` 连续 3 次
+  `##[error]Request timeout: /_apis/gallery`，job 失败；`build`×8 / `package-vsix` /
+  `github-release` 全部成功（Release 26 资产齐全）。
+- **定位**：与代码无关，Azure DevOps gallery 服务端超时（`ci.yml` 内置 3 次重试仍不够）。
+- **修复**：探活 `extensionquery` 返回 200 后 `gh run rerun 35039642744 --failed` → 成功。
+- **预防**：沿用既有处置（探活 → rerun --failed）。若复发频率上升，考虑把发布步骤的
+  重试次数从 3 提到 5 并加指数退避。
