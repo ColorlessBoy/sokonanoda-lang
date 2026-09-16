@@ -13,7 +13,10 @@
 > 单元顺序遵循**逻辑先行**哲学（用户原则，REQUIREMENTS §6）：单元①直接
 > 证明命题；Sort 等"函数类型的类型是什么"这个问题自然出现时（单元④）
 > 才揭晓。题池不变，编排跟着直觉走。单元⑦（量词）是单元①的逻辑补充，
-> 可紧跟单元①教学；清单里按新增顺序排在末尾。
+> 可紧跟单元①教学；清单里按新增顺序排在末尾。**`by`（单元⑥）现在偏后，
+> 实际教学可按需提前**（P2 计划把它移到第 4 单元，见
+> `docs/design/course-syllabus.md` §0）。所有 `-- soko:hint` 只给触发条件与
+> 该用的引理/构造子名，**从不含完整答案**。
 
 | 路径 | 面向 | 说明 |
 |---|---|---|
@@ -30,8 +33,9 @@
 重构**的自然英文（用户原则，2026-09-09）：按英语语感重组句子与段落，不做
 中文逐行镜像；但知识点、提示阶梯条数与顺序与中文同构。改课程时必须**双语
 同步**：只改语言注释不改代码、只改代码不改注释都不行——`crates/cli/tests/
-course.rs` 的镜像守卫会比较中英两版的事件计数（decl.checked / exercise.open
-/ expr.reduced / diagnostic），任何一侧漂移都会显红。设计见
+course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件计数
+（decl.checked / exercise.open / expr.reduced / expr.typed / diagnostic），
+任何一侧漂移都会显红。设计见
 `docs/design/course-bilingual.md`。
 
 ## 约定
@@ -48,5 +52,7 @@ course.rs` 的镜像守卫会比较中英两版的事件计数（decl.checked / 
 
 1. `course/*.sokonanoda` 全部可编译（exit 0，stderr 无 `error[`）；
 2. 每单元的 `decl.checked` / `exercise.open` / `expr.reduced` 事件数与 golden 表精确一致；
-3. `solutions/*.sokonanoda` 全部 0 诊断、0 个 `exercise.open`（课程可解性证明）；
-4. `course.json` 恰好按序列出这 7 个文件、unit = 1..7。
+3. `solutions/*.sokonanoda` 全部 0 诊断、0 个 `exercise.open`（课程可解性证明），
+   且画布练习名都能在 solution 里找到同名声明（`solution_covers_every_canvas_exercise`）；
+4. `course.json` 恰好按序列出这 7 个文件、unit = 1..7；
+5. `course/en/` 镜像与中文画布、`course/en/solutions/` 与中文钥匙的事件计数逐项相等。

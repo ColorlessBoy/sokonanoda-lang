@@ -71,14 +71,14 @@ example (P : Person -> Prop) (h : forall (x : Person), P x) : (x : Person) -> P 
 -- Exercise 1 (warm-up): everyone ..., so this person ... too.
 -- soko:hint approach: a forall proof is a function, so elimination is application — apply h to w.
 -- soko:hint goal shape: the goal P w has no arrows to split; h already proves the statement for everyone.
--- soko:hint key piece: h w has type P w.
+-- soko:hint key piece: goal P w with h : forall (x : Person), P x in context — forall elimination is application: apply h to w.
 theorem forall_elim (P : Person -> Prop) (w : Person) (h : forall (x : Person), P x) : P w :=
   sorry
 
 -- Exercise 2: split "everyone satisfies P and Q" into two "everyone" statements.
 -- soko:hint approach: for any x, pull a pair of proofs out of h, then build the two foralls separately.
 -- soko:hint goal shape: the goal is an And; both halves are foralls, each opened with fun (x : Person).
--- soko:hint key piece: h x gives And (P x) (Q x); And.left / And.right take one half each, And.intro packs them.
+-- soko:hint key piece: each half is a forall — open with fun (x : Person); apply h to x for a pair of proofs, take one half each with And.left / And.right, and let And.intro pack them.
 theorem forall_and (P : Person -> Prop) (Q : Person -> Prop) (h : forall (x : Person), And (P x) (Q x)) : And (forall (x : Person), P x) (forall (x : Person), Q x) :=
   sorry
 
@@ -86,7 +86,7 @@ theorem forall_and (P : Person -> Prop) (Q : Person -> Prop) (h : forall (x : Pe
 -- "everyone satisfies both".
 -- soko:hint approach: split h in two, use each half on the same x, then join them with And.intro.
 -- soko:hint goal shape: the outermost layer is forall: write fun (x : Person), and the goal becomes And (P x) (Q x).
--- soko:hint key piece: And.left / And.right pull the two foralls out of h; apply them to x.
+-- soko:hint key piece: h : And (forall …) (forall …) — pull the two foralls out with And.left / And.right, then apply each to x.
 theorem and_forall (P : Person -> Prop) (Q : Person -> Prop) (h : And (forall (x : Person), P x) (forall (x : Person), Q x)) : forall (x : Person), And (P x) (Q x) :=
   sorry
 
@@ -149,7 +149,7 @@ theorem exists_elim_rule (P : Person -> Prop) (Q : Prop) (h : Exists Person P) (
 -- witness.
 -- soko:hint approach: eliminate h to get that someone satisfies P, then hand it over as the witness.
 -- soko:hint goal shape: the goal is Exists Person P; the witness is not among the parameters, so use someone.
--- soko:hint key piece: h someone is a proof of P someone; Exists.intro Person P someone still needs it.
+-- soko:hint key piece: goal Exists Person P with the witness someone — apply h to someone for a proof of P someone, and hand it to Exists.intro's evidence slot.
 theorem forall_exists (P : Person -> Prop) (h : forall (x : Person), P x) : Exists Person P :=
   sorry
 
@@ -157,6 +157,6 @@ theorem forall_exists (P : Person -> Prop) (h : forall (x : Person), P x) : Exis
 -- implies "there is someone satisfying Q".
 -- soko:hint approach: use Exists.elim on h to get some w with a proof of P w; apply f w to get Q w, and pack an Exists again.
 -- soko:hint goal shape: the goal is Exists Person Q; inside the function write fun (w : Person), then fun (hw : P w).
--- soko:hint key piece: Exists.elim consumes h; the body is Exists.intro Person Q w (f w hw).
+-- soko:hint key piece: goal Exists Person Q with h : Exists Person P and f in context — use Exists.elim for a witness w and a proof of P w, get Q w via f, and hand it to Exists.intro.
 theorem exists_mono (P : Person -> Prop) (Q : Person -> Prop) (f : forall (x : Person), P x -> Q x) (h : Exists Person P) : Exists Person Q :=
   sorry

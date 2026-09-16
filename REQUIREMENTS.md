@@ -791,3 +791,19 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   散文描述。已落 `AGENTS.md` 收尾义务、`docs/vscode-dev-guide.md` §7 同步触发器、
   `skills/sokonanoda-dev` 工作流；并完成 0.40–0.51 三个 skill 的同步补课。
 
+- 2026-09-16（八十三）：**课程大纲重构（设计 + P1，0.52.0）**——用户要求重新拆解
+  `course/`、全面深入调研形式化证明教材并设计教学大纲。交付
+  `docs/design/course-syllabus.md`：3 份并行调研（Lean 系 TPIL4/MIL/NNG/FPL/Lean4Game +
+  学习者障碍研究；Coq/Agda/Isabelle/Idris + 传统证明教材 SF/PLFA/Concrete Semantics/
+  TDD-Idris/Velleman/Hammack/Solow/Chartrand；本仓库现状与平台约束审计）、共享骨架与
+  三处分歧、12 个可偷教学装置、障碍对策、缺失能力（rw/simp/cases/induction/have/
+  structures/typeclasses/Iff/经典逻辑）的替代路线、硬约束、三套候选大纲、**锁定的 10 单元
+  目标结构**（`by` 提前到 #4、拆 U5 为 #6/#7、新增 #9 关系与联结词、#10 读证明与综合）、
+  P1–P4 阶段。本轮执行 **P1**（不改结构）：U4 增 2 题读 `#check` 判类型 + 1 题先预测再证；
+  U6 删与 `by_ex1` 重复的 `by_ex5`；U3 去歧义；全单元 hint 去泄题（关键件只写触发条件+
+  引理名）；删 U5 过期断言；solutions 同步并修 EN unit4 漂移；新增
+  `solution_covers_every_canvas_exercise`、`en_solutions_match_chinese_event_counts`
+  （画布**与** solutions 都比、含 `expr.typed`）；golden 同步（汇总 `open 43→45`）；
+  `teaching-session.md`/`course-status.md`/`ROADMAP` I7/`course-bilingual.md`/
+  `course/README.md`/`infrastructure.md` 文档漂移修正。版本 **0.52.0**。P2/P3/P4 待做。
+

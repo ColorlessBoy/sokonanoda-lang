@@ -166,7 +166,7 @@ report
 | I4 | 增量 v1 | 改声明 i → 重查后缀，事件带版本 | 追加一行只重编译受影响声明（日志可验） |
 | I5 | LSP server v1 | publishDiagnostics/hover/documentSymbol + didChange | 用 VS Code 打开课程文件：错误波浪线、悬停类型、练习状态 |
 | I6 | prelude 对齐 + elaborator 推进 | Bool/Eq/rfl、binder 推断、`let`、`match`（课程需要） | 新增语法 TDD 三件套 |
-| I7 | 第一门课（M4） | 5 单元课程 + golden | CI 全绿 |
+| I7 | 第一门课（M4） | 7 单元课程 + golden（演进计划 10 单元 → `course-syllabus.md` §0） | CI 全绿 |
 | I8 | goal 视图 / code action | `#prove` 逻辑入库 + LSP 命令 | 在编辑器里三步完成 `a -> a` |
 | I9 | agent 事件（L3 前哨） | 文档状态 → 结构化事件（已有 `--json` 词汇扩展 exercise.solved/failed） | agent 可据状态自动出下一题 |
 
@@ -203,7 +203,7 @@ report
 | I4 | 🔶 部分 | 事件按源码顺序；真正增量（check-then-add）待做 |
 | I5 | ✅ v1 | tower-lsp：diagnostics/hover/documentSymbol/codeLens/`intro` quick-fix |
 | I6 | ⬜ | prelude 对齐扩充 + elaborator（binder 推断/`let`/`match`） |
-| I7 | ⬜ | 第一门课 5 单元 × 3–8 练习 + golden |
+| I7 | ⬜ | 第一门课（现 7 单元，锁定演进计划 10 单元：`docs/design/course-syllabus.md` §0）+ golden |
 | I8 | ⬜ | goal 视图：`#prove` 入库 + 多洞 refine/code action（kernel 显式错误 D3-C 挂此） |
 | I9 | ⬜ | agent 事件：文档状态 → 结构化事件（exercise.solved/failed） |
 | L2/L3 | ⬜ | VS Code 打包、service 事件流、讲课 agent |

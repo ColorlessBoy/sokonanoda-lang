@@ -62,21 +62,21 @@ example (P : Person -> Prop) (h : forall (x : Person), P x) : (x : Person) -> P 
 -- 练习 1（热身）：每个人都会……，所以这个人也会……。
 -- soko:hint 思路：forall 的证明是函数，消去它就是应用——把 h 用到 w 上。
 -- soko:hint 目标形态：目标 P w 没有箭头要拆；h 已经是对每个人的证明。
--- soko:hint 关键件：h w 的类型就是 P w。
+-- soko:hint 关键件：目标 P w、上下文有 h : forall (x : Person), P x：forall 的消去就是应用——把 h 用到 w 上。
 theorem forall_elim (P : Person -> Prop) (w : Person) (h : forall (x : Person), P x) : P w :=
   sorry
 
 -- 练习 2：把“每个人同时满足 P 和 Q”分成两个“每个人”。
 -- soko:hint 思路：先对任意 x 从 h 取出一对证明，再分别组装两个 forall。
 -- soko:hint 目标形态：结论是 And，左右两半都是 forall；每半各写一层 fun (x : Person)。
--- soko:hint 关键件：h x 给出 And (P x) (Q x)；And.left / And.right 取一半，外面用 And.intro 包好。
+-- soko:hint 关键件：左右两半各是 forall，先 fun (x : Person)；再把 h 用到 x 上得到一对证明，用 And.left / And.right 各取一半，最后由 And.intro 组装。
 theorem forall_and (P : Person -> Prop) (Q : Person -> Prop) (h : forall (x : Person), And (P x) (Q x)) : And (forall (x : Person), P x) (forall (x : Person), Q x) :=
   sorry
 
 -- 练习 3：反过来：两个“每个人”合起来，得到“每个人同时满足”。
 -- soko:hint 思路：把 h 分成两半，各自用到同一个人 x 上，再用 And.intro 合起来。
 -- soko:hint 目标形态：最外层是 forall，先写 fun (x : Person)，剩余目标是 And (P x) (Q x)。
--- soko:hint 关键件：And.left / And.right 从 h 里取出两个 forall，对 x 应用。
+-- soko:hint 关键件：h : And (forall …) (forall …)：用 And.left / And.right 取出两个 forall，再分别作用到 x 上。
 theorem and_forall (P : Person -> Prop) (Q : Person -> Prop) (h : And (forall (x : Person), P x) (forall (x : Person), Q x)) : forall (x : Person), And (P x) (Q x) :=
   sorry
 
@@ -130,13 +130,13 @@ theorem exists_elim_rule (P : Person -> Prop) (Q : Prop) (h : Exists Person P) (
 -- 练习 6（★）：每个人都会……，所以存在一个会……的人；someone 就是证人。
 -- soko:hint 思路：消去 h 得到 someone 满足 P，再把它当证人装成 Exists。
 -- soko:hint 目标形态：结论是 Exists Person P；证人不在参数里，得用 someone。
--- soko:hint 关键件：h someone 是 P someone 的证明；Exists.intro Person P someone 还差这一份。
+-- soko:hint 关键件：目标 Exists Person P、证人用 someone：把 h 作用到 someone 上得到 P someone 的证明，再交给 Exists.intro 的证明位。
 theorem forall_exists (P : Person -> Prop) (h : forall (x : Person), P x) : Exists Person P :=
   sorry
 
 -- 练习 7（★★）：P 推出 Q，那么“存在满足 P 的人”推出“存在满足 Q 的人”。
 -- soko:hint 思路：用 Exists.elim 使用 h，拿到某个 w 和 P w 的证明，再用 f w 得到 Q w，装回一个 Exists。
 -- soko:hint 目标形态：结论是 Exists Person Q；函数体里先 fun (w : Person)，再 fun (hw : P w)。
--- soko:hint 关键件：用 Exists.elim 处理 h；体里 Exists.intro Person Q w (f w hw)。
+-- soko:hint 关键件：目标是 Exists Person Q、上下文有 h : Exists Person P 与 f：用 Exists.elim 拿到证人 w 与 P w 的证明，再经 f 得到 Q w，交给 Exists.intro。
 theorem exists_mono (P : Person -> Prop) (Q : Person -> Prop) (f : forall (x : Person), P x -> Q x) (h : Exists Person P) : Exists Person Q :=
   sorry

@@ -56,26 +56,20 @@ theorem by_ex1 : (a : Prop) -> a -> a := by sorry
 -- 练习 2：用 by 写「a 且 b 推出 a」。
 -- soko:hint 思路：intro 拆箭头拿到 h : And a b，再用 And.left 拆出 a 那一半。
 -- soko:hint 目标形态：intro a; intro b; intro h 之后，目标就是 a。
--- soko:hint 关键件：`exact And.left a b h` 一步结束；或 apply And.left 再 assumption。
+-- soko:hint 关键件：目标 a、上下文有 h : And a b：用 And.left 拆出左边（exact 交项，或 apply 后再 assumption）。
 theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry
 
 -- 练习 3（apply 拆目标）：目标是 a 或 b 时，apply Or.inl / Or.inr 选一边。
 -- soko:hint 思路：Or 是「二选一」——apply Or.inl 就只剩下证明左边。
 -- soko:hint 目标形态：先 intro 拿到 ha : a，再 apply Or.inl，最后 exact ha。
--- soko:hint 关键件：Or.inl 把 Or a b 的目标拆成只剩 a；exact ha 结束。
+-- soko:hint 关键件：目标形如 Or a b：apply Or.inl 或 Or.inr 先选一边，选完的子目标用上下文里的证明收尾。
 theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry
 
 -- 练习 4（apply And.intro 两个子目标）：And 需要左右两个证明都给出。
 -- soko:hint 思路：And.intro 要两份证明——apply 之后会出两个子目标，逐个 exact。
 -- soko:hint 目标形态：先 intro 拿到 ha : a、hb : b，apply And.intro 出两个子目标 a 和 b。
--- soko:hint 关键件：第一个子目标 exact ha，第二个子目标 exact hb；子目标按顺序解。
+-- soko:hint 关键件：apply And.intro 会拆出两个子目标（左右各一），按顺序分别用上下文里 a、b 的证明收尾。
 theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
-
--- 练习 5（挑战 ★）：a -> a -> a 用 assumption（assumption 会从内到外找）。
--- soko:hint 思路：两个 a 型假设同名不同层，assumption 取最内层那个。
--- soko:hint 目标形态：intro a; intro h; assumption——目标 a，上下文有 a 和 h 都是 a 型。
--- soko:hint 关键件：assumption 从内到外找第一个类型匹配的假设，即 h。
-theorem by_ex5 : (a : Prop) -> a -> a := by sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 6（综合）：把 by 的几个 tactic 串起来——intro 拆三层，exact 一次性收尾。
@@ -85,6 +79,6 @@ theorem by_ex5 : (a : Prop) -> a -> a := by sorry
 --
 -- soko:hint 思路：先用 intro 把 a、b、x 逐一引入，目标变成 And b a；再用 And.intro 构造。
 -- soko:hint 目标形态：intro a; intro b; intro x 之后目标 And b a，上下文有 x : And a b。
--- soko:hint 关键件：And.intro b a (And.right a b x) (And.left a b x)——注意 b 在前。
+-- soko:hint 关键件：目标 And b a、上下文有 x : And a b：用 And.intro 构造，两半分别由 And.right、And.left 从 x 取出——注意装回时 b 在前。
 theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by sorry
 

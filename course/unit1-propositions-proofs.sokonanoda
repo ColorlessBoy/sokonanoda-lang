@@ -46,16 +46,16 @@ example : Or True False := Or.inl True False True.intro
 theorem true_is_true : True := sorry
 
 -- 练习 2：假设 a、b 都成立，就能得到 And a b。
--- 提示：四层 fun，最后 And.intro a b ha hb。
+-- 提示：四层箭头就是四层 fun；目标是 And 形状，最后一步选对应的构造子。
 -- soko:hint 思路：类型里的箭头对应值里的 fun——写证明就是一串 fun 加最后一步构造。
 -- soko:hint 目标形态：最外层是四个箭头：先写 fun (a : Prop) =>，每写一层就看剩余目标。
--- soko:hint 关键件：最后一步用 And.intro，它吃 a、b 和两个证明，装出 And a b。
+-- soko:hint 关键件：当剩余目标形如 And a b 时，用 And.intro 这个构造子——它需要 a、b 与两份证明，四样都在上下文里。
 theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry
 
 -- 练习 3：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。
 -- soko:hint 思路：先把拿到的 And a b 拆开，再按新顺序装回去——先消去，再构造。
 -- soko:hint 目标形态：三层箭头：fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …，最后要造出 And b a。
--- soko:hint 关键件：And.left / And.right 从 h 里取出两半；And.intro b a … 换个顺序装回去。
+-- soko:hint 关键件：目标形如 And b a、上下文有 h : And a b：用 And.left / And.right 取出两半，再用 And.intro 按相反顺序装回。
 theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry
 
 -- 练习 4：False 没有证明（没有构造子），但可以“用”它：从矛盾推出任何 P。
@@ -64,11 +64,10 @@ theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry
 -- soko:hint 关键件：False.rec——它吃一个目标命题和一份 False 的证明，吐出那个命题的证明。
 theorem ex_falso : (P : Prop) -> False -> P := sorry
 
--- 练习 5（挑战 ★）：And a (Not a) 是自相矛盾的组合。拆开它，把 Not a 那一半
--- 当作函数应用到另一半。提示：Not a 会展开成 a -> False。
+-- 练习 5（挑战 ★）：And a (Not a) 是自相矛盾的组合——拆开它，从矛盾得到 False。
 -- soko:hint 思路：And 把 a 和 Not a 打包在一起；Not a 展开后是 a -> False——一个“吃 a”的函数。
 -- soko:hint 目标形态：两层 fun 拿到 a 和 h : And a (Not a) 之后，目标就是 False 本身。
--- soko:hint 关键件：And.right 取出 Not a 那一半、And.left 取出 a 那一半；把前者当函数应用于后者。
+-- soko:hint 关键件：目标形如 False、上下文有 h : And a (Not a)：用 And.right 取 Not a、And.left 取 a，再把前者当函数作用到后者上。
 theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -89,5 +88,5 @@ theorem demo_binders (a : Prop) (b : Prop) (h : And a b) : And b a :=
 -- 练习 6：用声明级 binder 再证一遍 and_intro_rule（这一次不用写 fun）。
 -- soko:hint 思路：四样东西 a、b、ha、hb 都已经在上下文里；直接装出 And a b。
 -- soko:hint 目标形态：目标就是 And a b，没有箭头要拆——不要再写 fun。
--- soko:hint 关键件：And.intro a b ha hb 一步结束。
+-- soko:hint 关键件：目标就是 And a b，而 a、b、ha、hb 四样都已在上下文里：用 And.intro 构造子一步装出。
 theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b := sorry

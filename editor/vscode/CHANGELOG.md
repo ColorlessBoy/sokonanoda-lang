@@ -1,3 +1,21 @@
+## [0.52.0] - 2026-09-16
+
+### Changed
+
+- **Course content revision (P1 of the syllabus redesign)** — see
+  `docs/design/course-syllabus.md`:
+  - U4 (universes) gained two "read `#check` output / judge the type" exercises and a
+    predict-then-prove `#reduce` exercise (it was previously 0 checked / 0 reduced);
+  - U6 lost `by_ex5`, an exact duplicate of `by_ex1`;
+  - U3's `three_args` / `body_uses_let` are no longer ambiguous (the expected return is
+    pinned);
+  - hint ladders no longer contain complete answers — the "key piece" line states the
+    trigger condition and which lemma/constructor to use;
+  - a stale in-file claim in U5 ("`match` only handles non-recursive inductives") is gone.
+- **Course test hardening**: new `solution_covers_every_canvas_exercise` and
+  `en_solutions_match_chinese_event_counts` (canvases *and* solutions are now compared,
+  including `expr.typed`, which caught a real EN-solution drift in U4).
+
 ## [0.51.0] - 2026-09-16
 
 ### Added

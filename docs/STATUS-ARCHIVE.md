@@ -1,8 +1,39 @@
-# STATUS 归档（第 1–78 轮，2026-09-06 → 2026-09-16）
+# STATUS 归档（第 1–79 轮，2026-09-06 → 2026-09-16）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十九轮：共享缓存 + `build` / Infoview 稳定与反馈 / 高亮单一起源）
+
+> 用户三轮反馈：(a) Infoview 面板"点几次才出现、很不稳定"，怀疑是编译卡住，要求
+> 面板 UI 必须保证出现、数据可显示"渲染中"/编译进度；(b) 去掉没生效的声明点击跳转，
+> 名字后加小字行号；(c) hover 的高亮与 Infoview 不一样、没有收拢。另要求
+> `sokonanoda build` 这类命令配合缓存。派出 5 个 subagent 分头实现（SA-1…SA-B）。
+
+1. **共享编译缓存（SA-1）**：缓存下沉到 `crates/front/src/compile/cache.rs`，
+   条目含 `report` + `output`；key = `CACHE_FORMAT|版本|二进制构建指纹|prelude 模式|源文本`；
+   `SOKONANODA_CACHE_DIR`/`SOKONANODA_NO_CACHE`；原子写；`compile_all_with` 一趟出两者。
+2. **`sokonanoda build`（SA-2）**：`build [--json] [--clean] [<file>|<dir>…]` 预热/清理
+   缓存并打印 hit/compiled/failed；`course` 与批量 `--json` 走 `compile_cached`
+   （冷热输出逐字节一致，有测试）；CLI 测试用临时 `SOKONANODA_CACHE_DIR` 隔离。
+3. **Infoview 稳定性根因（SA-3）**：视图原带 `when` + 扩展容器 `hideIfEmpty: true`
+   → 无激活 `.sokonanoda` 时容器整块隐藏；且 `activate()` **先 `await
+   resolveServerForStart` 才注册 provider** → 期间视图无 provider（"点几次才出现"）。
+   修：视图无 `when` + `visibility: visible`；`activationEvents` 加
+   `onView:sokonanoda.infoview`；provider/树**同步先注册**，慢解析后置并推 `status`；
+   `openInfoview` 先开辅助栏。契约测试锁死注册顺序。
+4. **UI 反馈（SA-3）**：webview 载入即骨架（`正在渲染…`），宿主推 `status`
+   （`编译中…`/`已就绪 · N 个声明`/`等待 .sokonanoda 文件`），绝不静默空白。
+5. **声明列表（SA-3）**：去掉点击跳转；名字后小字行号 `L<n>`（1-based）+ 类型提示。
+   新增 `editor/vscode/test-webview.js`（Node DOM shim 行为测试 8 项）并入 `test:unit`。
+6. **高亮单一起源（SA-A/SA-B）**：`SemanticKind::{ALL, as_str, tm_scope}` 唯一表；
+   `runs_to_text`/`goal_text`/`goal_runs` 单一文本生产者；hover 目标态改由 runs 投影
+   （不再手搓字符串）；TM 语法补齐 `variable.parameter` 等 scope；三处穷尽测试
+   （TM scope / CSS 类 / LSP legend）防漂移。设计 `docs/design/highlighting.md`，
+   并**写明平台限制**：markdown 只能 TM 着色 → 颜色近似而非全等。
+7. **验收**：`cargo test --workspace --locked` 全绿 + `sokonanoda gate` PASS；
+   `build` 冷/热/clean/目录/课程缓存冒烟通过；版本 0.48.0 → **0.49.0**。
 
 ## 本轮进度（2026-09-15，第七十八轮：编译结果缓存 + Infoview 细节）
 

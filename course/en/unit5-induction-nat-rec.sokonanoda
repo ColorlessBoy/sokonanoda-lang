@@ -58,8 +58,8 @@ def three : Nat := succ two
 -- soko:hint key piece: succ — the constructor that turns a Nat into its successor.
 def four : Nat := sorry
 
--- Exercise 2 (double, recursively) — zero maps to zero; at succ k, build
--- succ (succ ih) from the induction result ih. The motive is the constant
+-- Exercise 2 (double, recursively) — zero maps to zero; at succ k, obtain the
+-- double of succ k from the induction result ih. The motive is the constant
 -- function (fun (x : Nat) => Nat) throughout.
 -- Hint: mirror the shape of Nat.rec: motive -> mz -> ms -> n.
 -- soko:hint approach: a recursive definition is choosing Nat.rec's three pieces — the motive, the value at zero, and the step function — then feeding n.
@@ -68,7 +68,7 @@ def four : Nat := sorry
 def double : Nat -> Nat := sorry
 
 -- Exercise 3 (addition) — add m n inducts on m. At zero, return n ("count zero
--- times"); at succ k, build succ ih from ih ("one more layer").
+-- times"); at succ k, stack one more succ on ih ("one more layer").
 -- Hint: the induction variable is m — Nat.rec's first explicit argument takes n
 -- and its last takes m.
 -- soko:hint approach: same three pieces, but the induction variable is m — "counting zero times" is just n, "one more layer" is succ ih.
@@ -85,8 +85,7 @@ def add : Nat -> Nat -> Nat := sorry
 -- `match` — case on a non-recursive enum. The Color type below has just
 -- two constructors, red and green; as before we give its eliminator
 -- Color.rec and the iota rules, then use match to cover every
--- constructor once. v1 of match only handles **non-recursive** source
--- inductives, and the result type must be known.
+-- constructor once.
 -- ─────────────────────────────────────────────────────────────
 
 inductive Color : Type
@@ -118,13 +117,13 @@ def swap (c : Color) : Color := match c with
 -- Exercise 4 — relabel maps red to red and green to green (the identity).
 -- soko:hint approach: match lists red and green once, and each arm must produce a Color.
 -- soko:hint goal shape: fun (c : Color) => match c with …; arm order is free — the front-end reorders by declaration order.
--- soko:hint key piece: put red in the red arm and green in the green arm — that is the identity map.
+-- soko:hint key piece: match must cover red and green, and each arm's goal is Color; the identity map hands each constructor straight back.
 def relabel (c : Color) : Color := sorry
 
 -- Exercise 5 — leave a sorry inside one match arm; only the green arm is missing.
 -- soko:hint approach: the red arm already yields green; the green arm is pending, and its goal type is Color.
 -- soko:hint goal shape: match c with | red => green | green => <your answer>.
--- soko:hint key piece: put red in the green arm — that is exactly swap.
+-- soko:hint key piece: the green arm's goal is Color; to get swap (red and green exchanged), this arm hands over the other constructor.
 def swapOpen (c : Color) : Color := match c with
 | red => green
 | green => sorry
@@ -151,7 +150,7 @@ def addM (a b : Nat) : Nat := match a with
 -- succ (succ ih) from the induction hypothesis ih. Only the succ arm is missing.
 -- soko:hint approach: the recursive field m is followed by an auto-inserted induction hypothesis ih (its type is the result type Nat); the succ arm builds its result from it directly.
 -- soko:hint goal shape: match n with | zero => zero | succ m => <succ arm>; both arms must produce a Nat.
--- soko:hint key piece: write succ (succ ih) in the succ arm — two more succ layers on top of ih is exactly doubling.
+-- soko:hint key piece: the succ arm's goal is Nat and the auto-inserted induction hypothesis ih is in scope; doubling is two succ layers above ih.
 def recDouble (n : Nat) : Nat := match n with
 | zero => zero
 | succ m => sorry

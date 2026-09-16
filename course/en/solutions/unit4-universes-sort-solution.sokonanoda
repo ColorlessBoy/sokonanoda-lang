@@ -2,6 +2,12 @@
 #check Nat
 #check (Nat -> Nat)
 #check Prop
+#check (Type 0)
+#check (Type 1)
+
+def function_type_universe : Sort 1 := Nat -> Nat
+
+def type0_universe : Sort 2 := Type 0
 
 example : Sort 1 := Nat
 
@@ -13,3 +19,8 @@ theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> 
       fun (b : α) =>
         fun (h : Eq.{u} α a b) =>
           Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)
+
+def predict_then_prove : Eq.{1} Nat ((fun (x : Nat) => x + 1) 41) 42 :=
+  Eq.refl.{1} Nat 42
+
+#reduce (fun (x : Nat) => x + 1) 41

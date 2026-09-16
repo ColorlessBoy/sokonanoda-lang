@@ -54,7 +54,7 @@ def three : Nat := succ two
 def four : Nat := sorry
 
 -- 练习 2（递归定义 double）：对 zero 返回 zero；对 succ k，
--- 用归纳结果 ih 造出 succ (succ ih)。motive 全程是常函数 (fun (x : Nat) => Nat)。
+-- 由归纳结果 ih 得到 succ k 的翻倍。motive 全程是常函数 (fun (x : Nat) => Nat)。
 -- 提示：照抄 Nat.rec 的形状：motive -> mz -> ms -> n。
 -- soko:hint 思路：递归定义 = 选好 Nat.rec 的三样东西：motive、zero 处的值 mz、步进函数 ms，最后喂 n。
 -- soko:hint 目标形态：外层 fun (n : Nat) => Nat.rec … n；motive 全程是常函数 fun (x : Nat) => Nat，zero 处返回 zero。
@@ -62,7 +62,7 @@ def four : Nat := sorry
 def double : Nat -> Nat := sorry
 
 -- 练习 3（加法）：add m n 从 m 出发做归纳：zero 处返回 n（“数 zero 次”）；
--- succ k 处用 ih 造 succ ih（“多叠一层”）。
+-- succ k 处把 ih 再叠一层 succ（“多叠一层”）。
 -- 提示：注意归纳变量是 m：Nat.rec 的第一个显式参数放 n，最后一个放 m。
 -- soko:hint 思路：还是那三样东西，但归纳变量换成 m：“数 zero 次”就是 n 本身，“多叠一层”就是 succ ih。
 -- soko:hint 目标形态：fun (m : Nat) => fun (n : Nat) => Nat.rec … m——注意最后喂的是 m（归纳变量），n 是起点值。
@@ -77,7 +77,6 @@ def add : Nat -> Nat -> Nat := sorry
 -- `match` 分情况：对非递归枚举「看构造子办事」。
 -- 下面的 Color 只有两个构造子 red/green；我们照旧给出消去子
 -- Color.rec 与 iota 规则，再用 match 一次覆盖全部构造子。
--- v1 的 match 只做**非递归**的源内 inductive，且结果类型必须已知。
 -- ─────────────────────────────────────────────────────────────
 
 inductive Color : Type
@@ -109,13 +108,13 @@ def swap (c : Color) : Color := match c with
 -- 练习 4：relabel 把 red 映到 red、green 映到 green（原样返回）。
 -- soko:hint 思路：match 一次列全 red 与 green 两个构造子，每个分支给一个 Color。
 -- soko:hint 目标形态：fun (c : Color) => match c with …；分支顺序随意，前端按声明序重排。
--- soko:hint 关键件：red 分支写 red、green 分支写 green——这就是恒等映射。
+-- soko:hint 关键件：match 要覆盖 red 与 green，每个分支的目标类型都是 Color；恒等映射就是把每个构造子原样交回。
 def relabel (c : Color) : Color := sorry
 
 -- 练习 5：在 match 的一个分支里留 sorry —— 只需补上 green 这一支。
 -- soko:hint 思路：red 分支已经给出 green；green 分支待填，目标类型是 Color。
 -- soko:hint 目标形态：match c with | red => green | green => <你的答案>。
--- soko:hint 关键件：green 分支填 red——这样得到的正是 swap。
+-- soko:hint 关键件：green 分支的目标是 Color；要得到 swap（red 与 green 对调），这一支该交出另一个构造子。
 def swapOpen (c : Color) : Color := match c with
 | red => green
 | green => sorry
@@ -140,7 +139,7 @@ def addM (a b : Nat) : Nat := match a with
 -- 造出 succ (succ ih)。只需补 succ 分支。
 -- soko:hint 思路：递归字段 m 之后会自动多出一个归纳假设 ih（类型就是结果类型 Nat），succ 分支里直接用它拼结果。
 -- soko:hint 目标形态：match n with | zero => zero | succ m => <succ 分支>；两个分支的结果都必须是 Nat。
--- soko:hint 关键件：succ 分支写 succ (succ ih)——在 ih 的基础上再叠两层 succ，正好是翻倍。
+-- soko:hint 关键件：succ 分支的目标是 Nat，手里有自动插入的归纳假设 ih；翻倍就是比 ih 再高两层 succ。
 def recDouble (n : Nat) : Nat := match n with
 | zero => zero
 | succ m => sorry

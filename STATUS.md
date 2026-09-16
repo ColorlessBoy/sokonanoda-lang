@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-16（第八十一轮：`by` 块换行分隔 tactic；0.51.0）
+> 快照：2026-09-16（第八十二轮：课程大纲重构 P1（内容修补）+ 设计锁定；0.52.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,37 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-16，第八十二轮：课程大纲重构 P1）
+
+> 用户：重新拆解 course、全面调研形式化证明教材、设计教学大纲。先出设计
+> （`docs/design/course-syllabus.md`），本轮执行 **P1（不改结构，先修问题）**。
+
+1. **调研**（3 个 subagent 并行）：Lean 系（TPIL4/MIL/NNG/FPL/Lean4Game + 学习者
+   障碍研究）、Coq/Agda/Isabelle/Idris + 传统证明教材（SF/PLFA/Concrete Semantics/
+   TDD-Idris/Velleman/Hammack/Solow/Chartrand）+ 证明教育文献。结论：共享骨架
+   （数据+递归 → 先算后证 → 蕴涵=`intro` → 分情况 → 归纳≡递归 → 引理链 → 联结词即证据）、
+   三处分歧（逻辑先行 vs 计算先行 / 相等与关系谁先 / 自动化姿态，PLFA 明文禁用）、
+   12 个可偷装置、首因障碍（语法词汇、不看 proof state、迁移失败、tactic bashing）。
+2. **现状审计**：7 单元 golden/双语/solutions/skill 测试面 + 10 条内容/文档问题。
+3. **设计锁定**（`course-syllabus.md` §0）：**10 单元**目标结构（`by` 提前到 #4；旧 U5
+   拆 #6/#7；新增 #9 关系与联结词、#10 读证明与综合）+ 三套候选大纲（A 推荐 / B NNG
+   游戏线 / C PLFA 式进阶）+ P1–P4 阶段与硬约束（白名单、两处 golden、双语、solutions、
+   skill 锚点、CI）。
+4. **P1 内容**（subagent）：U4 增 2 题「读 `#check` 判类型」+ 1 题「先预测再证」（原
+   0 checked/0 reduced）；U6 删与 `by_ex1` 完全重复的 `by_ex5`；U3 两题去歧义；
+   全单元 hint 去泄题（关键件只写触发条件+引理名）；删 U5 过期断言；solutions 同步 +
+   修 EN unit4 漂移；新增 `solution_covers_every_canvas_exercise` +
+   `en_solutions_match_chinese_event_counts`。新 golden：U4 `(0,6,1)`、U6 `(13,5,0)`，
+   汇总 `units=7 checked=57 open=45 failed=0`（`cli.rs` 的 43→45 一并修）。
+5. **P1 文档**（subagent）：`teaching-session.md` §3 编号/练习名对齐真实单元、删 §5
+   的 `Or.rec/or_comm` 断言；`course-status.md` §4 golden 更新并标注"示例非第二真源"；
+   `ROADMAP` I7 改为 7 单元 + 指向锁定 10 单元演进；`course-bilingual.md` 口径与不变式
+   （画布**与** solutions 都比较、含 `expr.typed`）；`course/README.md`；本文 §2 逐条标注
+   `P1 已修/P2 待做`；另修 `infrastructure.md` 两处 5 单元口径。
+6. **验收**：course/course_status/skill + 全量 workspace 全绿；`sokonanoda gate` PASS；
+   版本 0.51.0 → **0.52.0**（课程内容可见改进，minor）。P2（重排+拆分 U5）、P3（新增两
+   单元）、P4（游戏线）待做。
 
 ## 本轮进度（2026-09-16，第八十一轮：`by` 块支持换行分隔 tactic）
 
@@ -60,35 +91,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `sokonanoda gate` PASS；版本 0.49.0 → **0.50.0**。
 7. **诚实边界**：Infoview 颜色与编辑器/hover **不逐像素相同**（后者是主题 token 色，
    前者是自有色板）——这是平台限制 + 用户拍板的取舍，写入 `docs/design/highlighting.md` §3b。
-
-## 本轮进度（2026-09-15，第七十九轮：共享缓存 + `build` / Infoview 稳定与反馈 / 高亮单一起源）
-
-> 用户三轮反馈：(a) Infoview 面板"点几次才出现、很不稳定"，怀疑是编译卡住，要求
-> 面板 UI 必须保证出现、数据可显示"渲染中"/编译进度；(b) 去掉没生效的声明点击跳转，
-> 名字后加小字行号；(c) hover 的高亮与 Infoview 不一样、没有收拢。另要求
-> `sokonanoda build` 这类命令配合缓存。派出 5 个 subagent 分头实现（SA-1…SA-B）。
-
-1. **共享编译缓存（SA-1）**：缓存下沉到 `crates/front/src/compile/cache.rs`，
-   条目含 `report` + `output`；key = `CACHE_FORMAT|版本|二进制构建指纹|prelude 模式|源文本`；
-   `SOKONANODA_CACHE_DIR`/`SOKONANODA_NO_CACHE`；原子写；`compile_all_with` 一趟出两者。
-2. **`sokonanoda build`（SA-2）**：`build [--json] [--clean] [<file>|<dir>…]` 预热/清理
-   缓存并打印 hit/compiled/failed；`course` 与批量 `--json` 走 `compile_cached`
-   （冷热输出逐字节一致，有测试）；CLI 测试用临时 `SOKONANODA_CACHE_DIR` 隔离。
-3. **Infoview 稳定性根因（SA-3）**：视图原带 `when` + 扩展容器 `hideIfEmpty: true`
-   → 无激活 `.sokonanoda` 时容器整块隐藏；且 `activate()` **先 `await
-   resolveServerForStart` 才注册 provider** → 期间视图无 provider（"点几次才出现"）。
-   修：视图无 `when` + `visibility: visible`；`activationEvents` 加
-   `onView:sokonanoda.infoview`；provider/树**同步先注册**，慢解析后置并推 `status`；
-   `openInfoview` 先开辅助栏。契约测试锁死注册顺序。
-4. **UI 反馈（SA-3）**：webview 载入即骨架（`正在渲染…`），宿主推 `status`
-   （`编译中…`/`已就绪 · N 个声明`/`等待 .sokonanoda 文件`），绝不静默空白。
-5. **声明列表（SA-3）**：去掉点击跳转；名字后小字行号 `L<n>`（1-based）+ 类型提示。
-   新增 `editor/vscode/test-webview.js`（Node DOM shim 行为测试 8 项）并入 `test:unit`。
-6. **高亮单一起源（SA-A/SA-B）**：`SemanticKind::{ALL, as_str, tm_scope}` 唯一表；
-   `runs_to_text`/`goal_text`/`goal_runs` 单一文本生产者；hover 目标态改由 runs 投影
-   （不再手搓字符串）；TM 语法补齐 `variable.parameter` 等 scope；三处穷尽测试
-   （TM scope / CSS 类 / LSP legend）防漂移。设计 `docs/design/highlighting.md`，
-   并**写明平台限制**：markdown 只能 TM 着色 → 颜色近似而非全等。
-7. **验收**：`cargo test --workspace --locked` 全绿 + `sokonanoda gate` PASS；
-   `build` 冷/热/clean/目录/课程缓存冒烟通过；版本 0.48.0 → **0.49.0**。
 

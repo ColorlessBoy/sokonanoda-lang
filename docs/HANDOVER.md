@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～八十一轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～八十二轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -53,6 +53,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 79 | 0.49.0 | 共享缓存 + `sokonanoda build` + Infoview 稳定/反馈 + 高亮单一起源 | `docs/design/{compile-cache,highlighting,webview-infoview}.md` |
 | 80 | 0.50.0 | Infoview 自研调色板（主题 token 解析回退） | `docs/design/highlighting.md` §3b |
 | 81 | 0.51.0 | `by` 块换行分隔 tactic（`;` 或换行） | `docs/design/by-tactics.md` §11 |
+| 82 | 0.52.0 | 课程大纲重构 P1（内容修补 + 测试加固 + 设计锁定） | `docs/design/course-syllabus.md` |
 
 > 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–71 轮原文）。
 

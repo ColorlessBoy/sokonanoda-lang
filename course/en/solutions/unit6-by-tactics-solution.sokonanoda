@@ -24,8 +24,6 @@ theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by intro a; intro b;
 
 theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb
 
-theorem by_ex5 : (a : Prop) -> a -> a := by intro a; intro h; assumption
-
 theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by intro a; intro b; intro h; exact And.intro b a (And.right a b h) (And.left a b h)
 
 axiom h_s : True -> True

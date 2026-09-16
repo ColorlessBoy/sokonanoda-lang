@@ -34,25 +34,25 @@ def double : Nat -> Nat := fun (n : Nat) => sorry
 
 -- 练习 2（高阶函数）：twice 接收一个函数 f，返回“把 f 用两次”的函数。
 -- 注意类型 (Nat -> Nat) -> Nat -> Nat：括号是分组不是应用。
--- 提示：答案需要两层 fun；先把 f 用在 x 上，再对结果再用一次 f。
+-- 提示：外层先剥掉函数箭头，返回的仍是一个函数——要再剥一层。
 -- soko:hint 思路：函数是一等公民——f 像普通值一样，可以被使用任意多次。
 -- soko:hint 目标形态：两层箭头：先 fun (f : Nat -> Nat) =>，再 fun (x : Nat) =>，最后返回一个 Nat。
--- soko:hint 关键件：把 f 用在 x 上得到一个 Nat，再对结果再用一次 f；括号是分组不是应用。
+-- soko:hint 关键件：目标形如 Nat、上下文有 f : Nat -> Nat 与 x : Nat：f 可直接应用——对 x 用一次，再对结果用一次；外层括号只是分组。
 def twice : (Nat -> Nat) -> Nat -> Nat := sorry
 
--- 练习 3：三个参数的函数。Nat -> Nat -> Nat -> Nat 一次吃三个 Nat。
+-- 练习 3：三个参数的函数。Nat -> Nat -> Nat -> Nat 一次吃三个 Nat，返回**第一个**参数 a。
 -- 提示：三层 fun，一层一层写；洞永远放在最后一层。
 -- soko:hint 思路：三个箭头就是三层 fun——一次吃三个 Nat，再交出一个 Nat。
 -- soko:hint 目标形态：一层一层写：fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => …，洞放在最后一层。
--- soko:hint 关键件：最后一层返回任意一个 Nat 就行——三个参数都是现成的 Nat，内核只判类型。
+-- soko:hint 关键件：最后一层的目标是 Nat；本题要交回的是第一个参数 a（已在上下文里）——返回别的 Nat 虽也过内核，但不是本题要求。
 def three_args : Nat -> Nat -> Nat -> Nat := sorry
 
 -- 练习 4：apply_twice 的输入本身是“一个函数”，输出也是“一个函数”。
 -- 因为箭头右结合，整体函数类型必须用括号括住：(Nat -> Nat) -> (Nat -> Nat)。
--- 提示：两层 fun，第一层拿函数 f，第二层拿 Nat n，返回“f 用两次”。
+-- 提示：返回类型本身还是箭头——外层 fun 写完还要再剥一层。
 -- soko:hint 思路：这次输入是函数、输出也是函数——注意返回类型 Nat -> Nat 本身还是个箭头。
 -- soko:hint 目标形态：两层 fun：第一层拿函数 f，写完发现剩余目标还是 Nat -> Nat——所以再写一层 fun 拿 n。
--- soko:hint 关键件：把 f 连用两次：先用在 n 上，再对结果用一次；最后一层返回的就是“f 用两次”的表达式。
+-- soko:hint 关键件：剩余目标 Nat -> Nat 时继续 fun 拿 n；到目标 Nat 时，f 可连续应用两次——先对 n，再对结果。
 def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -77,10 +77,10 @@ def add_two_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 2; m
 def double_let : Nat -> Nat := fun (n : Nat) => let m : Nat := sorry; m
 
 -- 练习 6：let 绑定之后，body 里就能直接用这个名字。
--- 洞在 let 的 body：m 已经是现成的 Nat，直接把它交出去。
+-- 洞在 let 的 body：本题要求把绑定出来的 m 原样交回（它是现成的 Nat）。
 -- soko:hint 思路：let 把 m 放进了作用域——body 里 m 就是一个普通的 Nat。
 -- soko:hint 目标形态：剩余目标还是 Nat；m 已经在局部上下文里。
--- soko:hint 关键件：body 直接写 m 即可（或者任何用 m 凑出的 Nat）。
+-- soko:hint 关键件：body 的目标类型是 Nat，而 m 已在上下文里；把 let 绑定出来的 m 交出去（别的 Nat 虽也过内核，但不是本题要求）。
 def body_uses_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 5; sorry
 
 -- ─────────────────────────────────────────────────────────────

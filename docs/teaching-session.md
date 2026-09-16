@@ -49,28 +49,48 @@
 
 > 逻辑骨架由画布内 axiom 提供（True/False/And/Or/Not，与官方 Lean 同构）；
 > Eq 三件套由 prelude 提供（`Eq`/`Eq.refl`/`Eq.subst`，签名与官方 Lean 一致）。
-> 排序哲学（REQUIREMENTS §6）：单元①直接证明命题，Sort 等"函数类型的类型"
+> 排序哲学（REQUIREMENTS §6）：单元①直接证明命题，Sort 等“函数类型的类型”
 > 问题自然出现时（单元④）才揭晓。
+>
+> 下表按**真实课程单元·题号**编号（`U1·1` = `course/unit1-*.sokonanoda`
+> 练习 1），不再用旧的 playground 顺序号；单元⑤的钥匙见 §5，单元⑦见第二课。
 
-| # | 练习 | 目标误解 | 钥匙（kernel 验证） |
+| 单元·题 | 练习 | 目标误解 | 钥匙（kernel 验证） |
 |---|---|---|---|
-| 1 | `theorem true_is_true : True := sorry` | 证明=项；True.intro 已经存在 | `True.intro` |
-| 2 | `and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry` | 类型箭头 ↔ 值 fun 一一对应 | `fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha hb` |
-| 3 | `and_swap : ... And a b -> And b a := sorry` | 先消去再构造 | `fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)` |
-| 4 | `ex_falso : (P : Prop) -> False -> P := sorry` | False 只能“用”不能“证” | `fun (P : Prop) => fun (h : False) => False.rec P h` |
-| 5 ★ | `and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry` | Not 是黑盒；部分应用陷阱 | `fun (a : Prop) => fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)` |
-| 6 | `def two : Nat := sorry` | “数字就是数字”——1+1 是会被内核计算的表达式 | `2`（或 `1 + 1`；`two_def` 闭环回判此值） |
-| 7 | `one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry` | rfl 不是咒语，是函数；conv 会计算 | `Eq.refl.{1} Nat (1 + 1)`（`Eq.refl.{1} Nat 2` 也过：conv 双向计算） |
-| 8 | `eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry` | 谓词 p 要自己设计（本场最深的一步） | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
-| 9 | `def double : Nat -> Nat := fun (n : Nat) => sorry` | 程序不必一次写完；洞下剩余目标 = Nat | `fun (n : Nat) => n + n` |
-| 10 | `def twice : (Nat -> Nat) -> Nat -> Nat := sorry` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |
-| 11 | `example : Sort 1 := sorry` | “类型没有类型”；Prop=Sort 0，Type=Sort 1 | `Nat` |
-| 12 ★ | `Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry` | 宇宙不可怕：就是 8 换成 α/.{u}，隐式 binder ↔ fun {..} | `fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : Eq.{u} α a b) => Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)` |
-| 13 | `and_left_by : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry` | by 块里先 intro 拆箭头再 exact；`sorry` 是占位 | `by intro a; intro b; intro h; exact And.left a b h` |
-| 14 ★ | `or_inl_by : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry` | apply 把目标套上构造子、拆子目标 | `by intro a; intro b; intro ha; apply Or.inl; exact ha` |
+| U1·1 | `theorem true_is_true : True := sorry` | 证明=项；True.intro 已经存在 | `True.intro` |
+| U1·2 | `theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry` | 类型箭头 ↔ 值 fun 一一对应 | `fun (a : Prop) => fun (b : Prop) => fun (ha : a) => fun (hb : b) => And.intro a b ha hb` |
+| U1·3 | `theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry` | 先消去再构造 | `fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => And.intro b a (And.right a b h) (And.left a b h)` |
+| U1·4 | `theorem ex_falso : (P : Prop) -> False -> P := sorry` | False 只能“用”不能“证” | `fun (P : Prop) => fun (h : False) => False.rec P h` |
+| U1·5 ★ | `theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry` | Not 是黑盒；部分应用陷阱 | `fun (a : Prop) => fun (h : And a (Not a)) => And.right a (Not a) h (And.left a (Not a) h)` |
+| U1·6 | `theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b := sorry` | 声明级 binder：同样一件事不用写 fun | `And.intro a b ha hb` |
+| U2·1 | `def two : Nat := sorry` | “数字就是数字”——1+1 是会被内核计算的表达式 | `2`（或 `1 + 1`；`two_def` 闭环回判此值） |
+| U2·2 | `theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry` | rfl 不是咒语，是函数；conv 会计算 | `Eq.refl.{1} Nat (1 + 1)`（`Eq.refl.{1} Nat 2` 也过：conv 双向计算） |
+| U2·3 | `theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry` | 谓词 p 要自己设计（本场最深的一步） | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
+| U2·4 | `theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b c -> Eq.{1} Nat a c := sorry` | 配方同 U2·3，只换谓词 | `fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => fun (h1 : Eq.{1} Nat a b) => fun (h2 : Eq.{1} Nat b c) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat a x) b c h2 h1` |
+| U2·5 | `theorem eq_refl_prop : {a : Prop} -> Eq.{1} Prop a a := sorry` | 等式对任何类型都成立，命题也一样 | `fun {a : Prop} => Eq.refl.{1} Prop a` |
+| U3·1 | `def double : Nat -> Nat := fun (n : Nat) => sorry` | 程序不必一次写完；洞下剩余目标 = Nat | `fun (n : Nat) => n + n` |
+| U3·2 | `def twice : (Nat -> Nat) -> Nat -> Nat := sorry` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |
+| U3·3 | `def three_args : Nat -> Nat -> Nat -> Nat := sorry` | 三层 fun；本题要求交回第一个参数 a | `fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => a` |
+| U3·4 | `def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := sorry` | 返回类型本身还是箭头，要再剥一层 | `fun (f : Nat -> Nat) => fun (n : Nat) => f (f n)` |
+| U3·5 | `def double_let : Nat -> Nat := fun (n : Nat) => let m : Nat := sorry; m` | let 给中间结果起名；洞在值位 | `fun (n : Nat) => let m : Nat := n + n; m` |
+| U3·6 | `def body_uses_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 5; sorry` | let 绑定后 body 里直接用 m | `fun (n : Nat) => let m : Nat := n + 5; m` |
+| U4·1 | `def function_type_universe : Sort 1 := sorry` | 读 `#check (Nat -> Nat)` 的输出判层 | `Nat -> Nat` |
+| U4·2 | `def type0_universe : Sort 2 := sorry` | 读 `#check (Type 0)` 的输出判层 | `Type 0` |
+| U4·3 | `example : Sort 1 := sorry` | “类型没有类型”；Prop=Sort 0，Type=Sort 1 | `Nat` |
+| U4·4 | `example : Sort 0 := sorry` | 等式就是命题 | `Eq.{1} Nat (1 + 1) 2` |
+| U4·5 ★ | `theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry` | 宇宙不可怕：Nat 换 α、.{1} 换 .{u}，隐式 binder ↔ fun {..} | `fun {α : Sort u} => fun (a : α) => fun (b : α) => fun (h : Eq.{u} α a b) => Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)` |
+| U4·6 | `def predict_then_prove : Eq.{1} Nat ((fun (x : Nat) => x + 1) 41) 42 := sorry` | 先预测 `#reduce` 的输出，再填出等式 | `Eq.refl.{1} Nat 42` |
+| U6·1 | `theorem by_ex1 : (a : Prop) -> a -> a := by sorry` | by 块里先 intro 拆箭头再用 assumption | `by intro a; intro h; assumption` |
+| U6·2 | `theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry` | intro 拆箭头后 exact 交项 | `by intro a; intro b; intro h; exact And.left a b h` |
+| U6·3 | `theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry` | apply 把目标套上构造子、拆子目标 | `by intro a; intro b; intro ha; apply Or.inl; exact ha` |
+| U6·4 | `theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry` | apply 出两个子目标，按序 exact | `by intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb` |
+| U6·6 | `theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by sorry` | 综合：intro 拆三层，exact 一次性收尾 | `by intro a; intro b; intro h; exact And.intro b a (And.right a b h) (And.left a b h)` |
+
+> 单元⑥原有 `by_ex5`（`(a : Prop) -> a -> a`，与 `by_ex1` 完全重复、hint
+> 描述也有误）已在 P1 删除，故上表没有 `U6·5`。
 
 收尾：`two_def : Eq.{1} Nat two (1 + 1) := Eq.refl.{1} Nat two` —— 画布里先
-注释着，练习 6 解出后放开；变绿 = 内核回判了练习 6 的值。
+注释着，U2·1 解出后放开；变绿 = 内核回判了 U2·1 的值。
 
 ### 第二课：量词（playground 练习 6–12；course/ 单元⑦）
 
@@ -106,12 +126,16 @@
    也是 `Sort 1`；`Type u`（宇宙变量）不支持，写 `Sort u`。
 6. **命名要防撞 prelude**：若画布自己声明 `Eq`/`Eq.refl`/`Eq.subst` 任一，
    整个 Eq prelude 跳过（all-or-nothing，与显式 `Nat` 块行为一致）。
-7. **本课不含排中律/or_comm**（Or 没有 rec；那是单元⑤的内容——别许诺）。
+7. **本课不含排中律/or_comm**（`Or` 只声明了 `Or.inl`/`Or.inr`，没有消去子
+   `Or.rec`——课程里至今未定义，别许诺；P2 计划在新增的「关系与联结词」单元
+   才引入）。
 
 ## 5. 后续课程（单元⑤⑥⑦已上线）
 
-`Or.rec` 与 `or_comm`、`eq_trans`、显式 `inductive Nat` 块 + `Nat.rec`/iota
-归纳已在 **course/ 单元⑤**；`by` 写法（tactic 证明）与值位
-`intro`/`apply` 对照在**单元⑥**（0.18.0 起）；量词（`forall`/`Exists`，
-Person 论域 + `Exists` 公理三件套）在**单元⑦**（0.26.0 起），就是画布的
-第二课。语料参照 `examples/py-nat.sokonanoda` 与 `examples/fol-basics.sokonanoda`。
+显式 `inductive Nat` 块 + `Nat.rec`/iota 归纳、`match` 分情况/递归、
+参数化 `Option`/依赖 match/带索引 `Vec` 在 **course/ 单元⑤**；手写
+`eq_trans`（以及 `eq_symm`、等式接力）在 **course/ 单元②**——单元⑤**没有**
+`Or.rec`/`or_comm`。`by` 写法（tactic 证明）与值位 `intro`/`apply` 对照在
+**单元⑥**（0.18.0 起）；量词（`forall`/`Exists`，Person 论域 + `Exists`
+公理三件套）在**单元⑦**（0.26.0 起），就是画布的第二课。语料参照
+`examples/py-nat.sokonanoda` 与 `examples/fol-basics.sokonanoda`。

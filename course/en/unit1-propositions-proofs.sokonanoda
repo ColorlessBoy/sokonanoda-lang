@@ -55,17 +55,17 @@ example : Or True False := Or.inl True False True.intro
 theorem true_is_true : True := sorry
 
 -- Exercise 2 — if a and b both hold, you can get And a b.
--- Hint: four layers of fun, finishing with And.intro a b ha hb.
+-- Hint: four arrows are four funs; the goal is an And shape, so the last step picks its constructor.
 -- soko:hint approach: arrows become fun — build the proof as a chain of funs with one final constructor step.
 -- soko:hint goal shape: the outermost layer has four arrows; open with fun (a : Prop) => and re-read the goal after every layer.
--- soko:hint key piece: finish with And.intro, which takes a, b and the two proofs, and assembles And a b.
+-- soko:hint key piece: when the remaining goal is And a b, reach for the And.intro constructor — it needs a, b and both proofs, all already in context.
 theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry
 
 -- Exercise 3 — pull h apart with And.left/And.right, then put it back together
 -- with And.intro, in the opposite order.
 -- soko:hint approach: take the And a b you hold and rebuild it the other way round — eliminate, then construct.
 -- soko:hint goal shape: three arrows: fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …, and the final goal is And b a.
--- soko:hint key piece: And.left / And.right each extract one half of h; And.intro b a … reassembles them swapped.
+-- soko:hint key piece: goal And b a with h : And a b in context — And.left / And.right take out the two halves, then And.intro puts them back swapped.
 theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry
 
 -- Exercise 4 — False has no proof (no constructor), yet it is far from
@@ -75,11 +75,11 @@ theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry
 -- soko:hint key piece: False.rec takes a target proposition and a proof of False, and yields a proof of that proposition.
 theorem ex_falso : (P : Prop) -> False -> P := sorry
 
--- Exercise 5 (challenge ★) — And a (Not a) is self-contradictory. Split it and
--- apply the Not a half to the other half. Hint: Not a expands to a -> False.
+-- Exercise 5 (challenge ★) — And a (Not a) is self-contradictory — split it and
+-- derive False from the contradiction.
 -- soko:hint approach: And packages a with Not a; Not a expands to a -> False, a function that eats an a.
 -- soko:hint goal shape: two layers of fun give you a and h : And a (Not a); the goal is then False itself.
--- soko:hint key piece: And.right yields the Not a half and And.left the a half; apply the former to the latter.
+-- soko:hint key piece: goal False with h : And a (Not a) in context — And.right yields the Not a half and And.left the a half; apply the former to the latter.
 theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -104,5 +104,5 @@ theorem demo_binders (a : Prop) (b : Prop) (h : And a b) : And b a :=
 -- (no `fun`s to write).
 -- soko:hint approach: a, b, ha and hb are all already in scope; assemble And a b directly.
 -- soko:hint goal shape: the goal is just And a b — no arrows left to split, and no fun to write.
--- soko:hint key piece: And.intro a b ha hb closes it in one step.
+-- soko:hint key piece: the goal is And a b and a, b, ha, hb are all in context — the And.intro constructor closes it in one step.
 theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b := sorry

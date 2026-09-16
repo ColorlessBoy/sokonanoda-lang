@@ -53,6 +53,31 @@ fn count_type(events: &[Value], ty: &str) -> usize {
         .count()
 }
 
+/// The `name` payload of every event of the given type, in order. Events
+/// without a `name` (notably an anonymous `example`'s `exercise.open`) are
+/// skipped — the vocabulary simply does not name them.
+fn event_names(events: &[Value], ty: &str) -> Vec<String> {
+    events
+        .iter()
+        .filter(|e| e.get("type").and_then(|v| v.as_str()) == Some(ty))
+        .filter_map(|e| e.get("name").and_then(|v| v.as_str()).map(str::to_owned))
+        .collect()
+}
+
+/// The `(decl.checked, exercise.open, expr.reduced, expr.typed, diagnostic)`
+/// tuple for a spawned check. `expr.typed` is included so a stray or missing
+/// `#check` cannot slip past the bilingual/solution parity checks.
+fn event_counts(out: &std::process::Output) -> (usize, usize, usize, usize, usize) {
+    let events = json_events(&String::from_utf8_lossy(&out.stdout));
+    (
+        count_type(&events, "decl.checked"),
+        count_type(&events, "exercise.open"),
+        count_type(&events, "expr.reduced"),
+        count_type(&events, "expr.typed"),
+        count_type(&events, "diagnostic"),
+    )
+}
+
 /// Per-unit golden event counts, measured with `sokonanoda --json` when the
 /// course layer landed (unit file -> (decl.checked, exercise.open,
 /// expr.reduced)). Learner canvases carry open exercises by design; the exact
@@ -62,9 +87,9 @@ const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit1-propositions-proofs.sokonanoda", (13, 6, 1)),
     ("unit2-equality-rfl.sokonanoda", (2, 5, 2)),
     ("unit3-functions-arrows.sokonanoda", (2, 6, 2)),
-    ("unit4-universes-sort.sokonanoda", (0, 3, 0)),
+    ("unit4-universes-sort.sokonanoda", (0, 6, 1)),
     ("unit5-induction-nat-rec.sokonanoda", (13, 10, 7)),
-    ("unit6-by-tactics.sokonanoda", (13, 6, 0)),
+    ("unit6-by-tactics.sokonanoda", (13, 5, 0)),
     ("unit7-quantifiers.sokonanoda", (14, 7, 1)),
 ];
 
@@ -164,6 +189,52 @@ fn every_solution_twin_is_fully_solved() {
     }
 }
 
+/// Every exercise on a learner canvas must exist as a declaration in that
+/// unit's solution twin. We compare the kernel event streams, never source
+/// text: the canvas reports each open exercise through `exercise.open.name`,
+/// and the solution reports the very same name through `decl.checked.name`.
+///
+/// Anonymous rule: an `example` that still carries a `sorry` emits an
+/// `exercise.open` with no `name` field (docs/protocol.md), so it cannot be
+/// matched by name. Such anonymous exercises are therefore skipped here; they
+/// are still covered by `every_solution_twin_is_fully_solved` and by the
+/// bilingual parity test.
+#[test]
+fn solution_covers_every_canvas_exercise() {
+    for &(name, _) in GOLDEN {
+        let canvas = format!("{COURSE_DIR}/{name}");
+        let solution = format!(
+            "{COURSE_DIR}/solutions/{}",
+            name.replace(".sokonanoda", "-solution.sokonanoda")
+        );
+        let canvas_out = run_binary(&["--json", &canvas]);
+        let solution_out = run_binary(&["--json", &solution]);
+        assert!(
+            canvas_out.status.success(),
+            "canvas {name} must compile to check its exercises"
+        );
+        assert!(
+            solution_out.status.success(),
+            "solution twin of {name} must compile"
+        );
+        let canvas_events = json_events(&String::from_utf8_lossy(&canvas_out.stdout));
+        let solution_events = json_events(&String::from_utf8_lossy(&solution_out.stdout));
+        let exercises = event_names(&canvas_events, "exercise.open");
+        let declarations = event_names(&solution_events, "decl.checked");
+        assert!(
+            !exercises.is_empty(),
+            "canvas {name} has no named exercises — nothing to cross-check"
+        );
+        for exercise in &exercises {
+            assert!(
+                declarations.iter().any(|d| d == exercise),
+                "canvas {name}: exercise {exercise:?} has no declaration in its solution twin \
+                 (solution declares {declarations:?})"
+            );
+        }
+    }
+}
+
 #[test]
 fn course_json_lists_the_seven_units_in_order() {
     let raw =
@@ -236,18 +307,9 @@ fn en_mirrors_match_chinese_event_counts() {
         let en = run_binary(&["--json", &en_path]);
         assert!(cn.status.success(), "CN canvas {name} failed");
         assert!(en.status.success(), "EN canvas {name} failed");
-        let count = |out: &std::process::Output| {
-            let events = json_events(&String::from_utf8_lossy(&out.stdout));
-            (
-                count_type(&events, "decl.checked"),
-                count_type(&events, "exercise.open"),
-                count_type(&events, "expr.reduced"),
-                count_type(&events, "diagnostic"),
-            )
-        };
         assert_eq!(
-            count(&cn),
-            count(&en),
+            event_counts(&cn),
+            event_counts(&en),
             "EN mirror drifted from CN twin for {name}"
         );
     }
@@ -296,6 +358,51 @@ fn en_mirrors_match_chinese_event_counts() {
             count_type(&events, "exercise.open"),
             0,
             "EN solution {name} must fill every sorry hole:\n{stdout}"
+        );
+    }
+}
+
+/// The bilingual contract extends to the answer keys: every CN solution under
+/// `course/solutions/` and its EN twin under `course/en/solutions/` must
+/// produce identical kernel event counts — `(decl.checked, exercise.open,
+/// expr.reduced, expr.typed, diagnostic)`. `expr.typed` is part of the tuple
+/// because it is exactly the class of drift that once dropped `#check (Type 0)`
+/// from the EN Unit 4 key while the four-tuple still matched.
+#[test]
+fn en_solutions_match_chinese_event_counts() {
+    fn soko_names(dir: &str) -> Vec<String> {
+        std::fs::read_dir(dir)
+            .unwrap_or_else(|e| panic!("read {dir}: {e}"))
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "sokonanoda")
+                    .unwrap_or(false)
+            })
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect()
+    }
+
+    let mut cn_sols = soko_names(&format!("{COURSE_DIR}/solutions"));
+    let mut en_sols = soko_names(&format!("{COURSE_DIR}/en/solutions"));
+    cn_sols.sort();
+    en_sols.sort();
+    assert_eq!(
+        cn_sols, en_sols,
+        "course/solutions/ and course/en/solutions/ must hold the same file names"
+    );
+    assert!(!cn_sols.is_empty(), "no solution twins found");
+
+    for name in &cn_sols {
+        let cn = run_binary(&["--json", &format!("{COURSE_DIR}/solutions/{name}")]);
+        let en = run_binary(&["--json", &format!("{COURSE_DIR}/en/solutions/{name}")]);
+        assert!(cn.status.success(), "CN solution {name} failed");
+        assert!(en.status.success(), "EN solution {name} failed");
+        assert_eq!(
+            event_counts(&cn),
+            event_counts(&en),
+            "EN solution {name} drifted from CN twin"
         );
     }
 }

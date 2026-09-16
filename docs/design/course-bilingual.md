@@ -1,12 +1,12 @@
 # 课程双语：course/ 英文镜像（design-course-bilingual）
 
-> **状态：已实现**（course/en/ 六单元镜像在线）。正文中的「5 个单元」是
-> 当时的规划口径，现为 6 单元。
+> **状态：已实现**（course/en/ 七单元镜像在线）。正文中的「5 个单元」等
+> 数字是当时的规划口径；现为 **7 单元**（`course/course.json`）。
 
 ## 1. 目标与定位
 
 用户要求教程文档提供**中文与英文两种版本**。范围（用户选定）：
-`course/` 单元课程为主——学习者直接面对的 5 个单元画布、解答钥匙与
+`course/` 单元课程为主——学习者直接面对的 7 个单元画布、解答钥匙与
 课程清单。`docs/` 下开发者文档不在本轮范围。
 
 形态（用户选定）：**中文/英文各一份独立文件**，不搞同文件内中英对照。
@@ -15,10 +15,13 @@
 
 1. **判定永远走 kernel**：英文镜像与中文版是**逐字节等价的代码**，
    仅 `--` 注释语言不同。声明体、axiom/def/theorem 类型、`sorry` 洞、
-   `#reduce` 自测、`-- soko:hint` 阶梯**全部与中文版逐字一致**。
+   `#check`/`#reduce` 自测、`-- soko:hint` 阶梯**全部与中文版逐字一致**。
    这是本设计最硬的不变量：英文文件放进中文判卷器、中文文件放进英文
-   判卷器，事件流（decl.checked / exercise.open / expr.reduced / diagnostic）
-   必须完全一致。
+   判卷器，事件流（decl.checked / exercise.open / expr.reduced / expr.typed /
+   diagnostic）必须完全一致。**画布与 solution 都要镜像对比**：规则由
+   `en_mirrors_match_chinese_event_counts`（画布）与
+   `en_solutions_match_chinese_event_counts`（钥匙）守护（`expr.typed` 纳入
+   比较，正是为拦住「掉了 `#check` 却四项仍相等」的漂移）。
 2. **注释按语义重构，不按字节翻译**（用户原则 2026-09-09）：英文注释是
    重新写就的自然英文教学文案，按英语语感重组句子与段落，**不做中文的
    逐行镜像**（行数、注释块布局、分句都允许不同）。但知识点内容、
@@ -35,10 +38,10 @@
 
 ```
 course/
-  unit1-….sokonanoda … unit5-….sokonanoda   (中文，原样不动)
+  unit1-….sokonanoda … unit7-….sokonanoda   (中文，原样不动)
   solutions/unitN-*-solution.sokonanoda       (中文钥匙，原样不动)
   en/                                          (英文镜像，本轮新增)
-    unit1-….sokonanoda … unit5-….sokonanoda
+    unit1-….sokonanoda … unit7-….sokonanoda
     solutions/unitN-*-solution.sokonanoda
   course.json                                  (增加英文标题字段)
   README.md                                    (增加双语布局说明)
@@ -53,19 +56,22 @@ course/
 
 现有条目 `{"file", "title", "unit"}`。`title` 保持中文（权威），新增
 `"title_en"` 字段承载英文标题，方便工具/LSP/前端按需取用，同时**不破坏**
-现有 `course.rs` 的 `course_json_lists_the_five_units_in_order` 断言
+现有 `course.rs` 的 `course_json_lists_the_seven_units_in_order` 断言
 （该测试只检查 file 与 unit，不看 title）。
 
 ## 5. CI 守卫：英文镜像一致性
 
-在 `crates/cli/tests/course.rs` 新增一条测试，守护"双语镜像"不变量：
+在 `crates/cli/tests/course.rs` 新增守卫测试，守护"双语镜像"不变量：
 
 - 对每个 `course/en/*.sokonanoda`，找到同名中文 `course/*.sokonanoda`，
   两者 **`--json` 事件计数**（decl.checked / exercise.open / expr.reduced /
-  diagnostic）必须逐项相等；
+  expr.typed / diagnostic）必须逐项相等（`en_mirrors_match_chinese_event_counts`）；
 - `course/en/solutions/*.sokonanoda` 必须 0 诊断、0 `exercise.open`，
-  与中文钥匙同款（可解性守护延伸）；
-- `course/en/` 顶层文件数 = `course/` 顶层文件数（5），且同名一一对应。
+  与中文钥匙同款（可解性守护延伸），且与中文钥匙**逐项事件计数相等**
+  （`en_solutions_match_chinese_event_counts`）；
+- `course/en/` 顶层文件数 = `course/` 顶层文件数（7），且同名一一对应。
+
+中文钥匙的练习名还须覆盖画布练习名（`solution_covers_every_canvas_exercise`）。
 
 这样任何"只改中文不改英文 / 只改英文不改中文"的漂移都会在 CI 显红。
 （判定走 kernel：比较事件计数而非比较注释文本，与项目"禁文本比对"纪律

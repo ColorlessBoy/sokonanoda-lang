@@ -59,28 +59,21 @@ theorem by_ex1 : (a : Prop) -> a -> a := by sorry
 -- Exercise 2: prove `a and b imply a` with `by`.
 -- soko:hint 思路：intro 拆箭头拿到 h : And a b，再用 And.left 拆出 a 那一半。
 -- soko:hint 目标形态：intro a; intro b; intro h 之后，目标就是 a。
--- soko:hint 关键件：`exact And.left a b h` 一步结束；或 apply And.left 再 assumption。
+-- soko:hint key piece: goal a with h : And a b in context — And.left extracts the left half (hand it over with exact, or apply then assumption).
 theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry
 
 -- Exercise 3 (apply splits the goal): when the goal is a or b, apply Or.inl /
 -- Or.inr to pick one side.
 -- soko:hint 思路：Or 是「二选一」——apply Or.inl 就只剩下证明左边。
 -- soko:hint 目标形态：先 intro 拿到 ha : a，再 apply Or.inl，最后 exact ha。
--- soko:hint 关键件：Or.inl 把 Or a b 的目标拆成只剩 a；exact ha 结束。
+-- soko:hint key piece: goal shaped Or a b — apply Or.inl or Or.inr to pick a side first, then close the chosen subgoal with a proof from context.
 theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry
 
 -- Exercise 4 (apply And.intro, two subgoals): And needs proofs of both sides.
 -- soko:hint 思路：And.intro 要两份证明——apply 之后会出两个子目标，逐个 exact。
 -- soko:hint 目标形态：先 intro 拿到 ha : a、hb : b，apply And.intro 出两个子目标 a 和 b。
--- soko:hint 关键件：第一个子目标 exact ha，第二个子目标 exact hb；子目标按顺序解。
+-- soko:hint key piece: apply And.intro splits the goal into two subgoals (left and right); close them in order with the proofs of a and b from context.
 theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
-
--- Exercise 5 (challenge ★): a -> a -> a with assumption (assumption searches
--- innermost-first).
--- soko:hint 思路：两个 a 型假设同名不同层，assumption 取最内层那个。
--- soko:hint 目标形态：intro a; intro h; assumption——目标 a，上下文有 a 和 h 都是 a 型。
--- soko:hint 关键件：assumption 从内到外找第一个类型匹配的假设，即 h。
-theorem by_ex5 : (a : Prop) -> a -> a := by sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- Exercise 6 (capstone): chain the `by` tactics — `intro` peels three layers,
@@ -90,8 +83,8 @@ theorem by_ex5 : (a : Prop) -> a -> a := by sorry
 -- `intro a; intro b; intro x` turns each arrow into a hypothesis until the goal
 -- shrinks to `And b a`; then `exact` hands over the complete proof term.
 --
--- soko:hint 思路：先用 intro 把 a、b、x 逐一引入，目标变成 And b a；再用 And.intro 构造。
--- soko:hint 目标形态：intro a; intro b; intro x 之后目标 And b a，上下文有 x : And a b。
--- soko:hint 关键件：And.intro b a (And.right a b x) (And.left a b x)——注意 b 在前。
+-- soko:hint approach: introduce a, b, x with intro one by one; the goal becomes And b a — build it with And.intro.
+-- soko:hint goal shape: after intro a; intro b; intro x the goal is And b a and x : And a b is in context.
+-- soko:hint key piece: goal And b a with x : And a b in context — use the And.intro constructor; take the two halves from x with And.right and And.left, and note b goes first when putting them back.
 theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by sorry
 

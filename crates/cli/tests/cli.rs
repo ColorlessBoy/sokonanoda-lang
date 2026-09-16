@@ -1684,5 +1684,5 @@ fn cli_course_is_stable_with_a_warm_cache() {
         "a warm cache must not change the course summary (cold {cold} vs warm {warm})"
     );
     assert_eq!(cold["checked"], 57, "golden checked total: {cold}");
-    assert_eq!(cold["open"], 43, "golden open total: {cold}");
+    assert_eq!(cold["open"], 45, "golden open total: {cold}");
 }

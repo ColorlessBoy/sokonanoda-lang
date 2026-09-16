@@ -391,10 +391,17 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - 验收：每个语法点走 TDD 三件套（front 单测 + CLI e2e + 课程用例），白名单同步更新。
 
 ### I7 —— 第一门课（M4，内容层）
-- 5 单元：① 表达式与类型 ② 函数与箭头 ③ 命题与证明项 ④ 等式与 `rfl`
-  ⑤ 归纳与 `match`；每单元 3–8 个练习。
-- 组织：`course/lesson-XX-*.sokonanoda`（正文+练习），`course/course.json` 顺序清单；
-  判定走 kernel（目标类型/化简断言），不做文本比对。
+- **现状（7 单元，`course/course.json`）**：① 命题与证明项 ② 等式与 `rfl`
+  ③ 函数与箭头 ④ 宇宙：函数类型的类型 ⑤ 显式归纳与递归 ⑥ `by` 写法
+  ⑦ 量词（`forall`/`Exists`）；每单元 5–10 个练习，汇总
+  `units=7 checked=57 open=45 failed=0`。
+- 组织：`course/unitN-*.sokonanoda`（中文权威）+ `course/en/`（英文镜像：
+  代码逐字节一致、`--` 注释可不同）+ `course/solutions/` 钥匙 +
+  `course/course.json` 顺序清单；判定走 kernel（目标类型/化简断言），
+  不做文本比对。
+- **演进计划（锁定，P2 待做）**：最终拆成 **10 单元**——`by` 提前到 #4、
+  现 U5 拆为 #6/#7、新增 #9 关系与联结词 / #10 读证明与综合；见
+  `docs/design/course-syllabus.md` §0（P1 只修内容、不动结构）。
 - 验收：零基础用户按顺序完成；CI 跑全部课程文件并比对 golden 事件。
 
 ### I8 —— 真正增量（服务层前置）

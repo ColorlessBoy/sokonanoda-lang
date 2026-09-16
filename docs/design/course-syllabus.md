@@ -7,6 +7,56 @@
 > 落地按 §6 分阶段（每阶段都能单独过 gate/发布）。约束面（白名单/双语/golden/skill）
 > 见 §4，任何改内容的计划必须先读它。
 
+## 0. 目标结构（**锁定** 2026-09-16，采用大纲 A）
+
+最终 10 单元（文件名为落地目标；P2 才真正改结构，P1 只修内容不动结构）：
+
+| # | 文件 | 标题（CN） | 来源 | 主要内容 |
+|---|---|---|---|---|
+| 1 | `unit1-propositions-proofs` | 命题与证明项 | 现 U1 | `Prop`/`True`/`False`/∧∨¬/证明=项/箭头↔fun/`False.rec`/声明 binder |
+| 2 | `unit2-equality-rfl` | 等式与 `rfl` | 现 U2 | `Nat` 与 `+`/`Eq`/`refl` 靠 conv/手写 `symm·trans·cong` |
+| 3 | `unit3-functions-arrows` | 函数与箭头 | 现 U3（修题） | 函数类型/右结合/`fun`/洞/高阶/`let` |
+| 4 | `unit4-by-tactics` | `by` 写法 | **现 U6 提前** | `by`/`intro·exact·assumption·apply·rfl·match`/换行分隔/多子目标 |
+| 5 | `unit5-universes-sort` | 宇宙 | 现 U4（增练） | `Sort n` 阶梯/`Type n` 糖/读 `#check`/`Eq.{1}`/隐式宇宙 binder |
+| 6 | `unit6-induction-recursion-1` | 归纳与递归 Ⅰ | **现 U5 前半** | `inductive`+`ctor`+`iota`/手写 `Nat.rec`/递归 `def`/`match` 分情况/递归 `match`+IH |
+| 7 | `unit7-induction-recursion-2` | 归纳与递归 Ⅱ | **现 U5 后半** | 参数化 `Option`/`List`/嵌套·字面量·通配·guard 模式/依赖 match=归纳/带索引 `Vec` |
+| 8 | `unit8-quantifiers` | 量词 | 现 U7 | 命名箭头/`forall`·`∀`/证明=fun·使用=应用/`Exists` 公理/见证与消去 |
+| 9 | `unit9-relations-connectives` | 关系与联结词 | **新增** | `Or`（+自写 `Or.rec`）/`↔` 定义/`≤`·`Even` 归纳定义/inversion 消去引理 |
+| 10 | `unit10-reading-proofs` | 读证明与综合 | **新增** | 自解释三问/formal↔informal 互译/Proof Evaluations/期末小项目 |
+
+依赖：1→2→3→4（`by` 需 1/2/3）→5（可随时插）→6→7→8→9→10。
+练习配额：每单元 5–8 题、≥3 种类型、**必含 R 或 X**（类型定义见 §5.2）；
+`-- soko:hint` 保持三段但「关键件」只写**触发条件 + 该用哪条引理**，不写完整项。
+
+### 0.1 P1 可执行清单（不改结构，先修问题）
+
+**内容（`course/**` + 课程测试）**
+1. U1：删答案泄漏（ex2 L49、ex5 L68-69 的"四层 fun…"），改成触发条件；
+2. U3：`three_args`/`body_uses_let` 去歧义（给定具体返回或改成有唯一正解的性质）；修 ex2/ex3 泄漏；
+3. U5：删 L80 过期断言（"v1 的 match 只做非递归"）；修 ex2/ex3 泄漏；
+4. U6：删与 `by_ex1` 完全重复的 `by_ex5`（并修其错误 hint），改 ex6 的"完整项"泄漏；
+5. U4：新增 ≥2 题练「读 `#check` 输出/判类型」+ 1 题 `#reduce` 对照（提升该单元密度）；
+6. 全单元 hint 复查：关键件=触发条件+引理名，不含完整项；
+7. solutions：随上面增删同步；**修 EN unit4 solution 漂移**（补 `#check (Type 0)`）；
+8. 测试：新增 `solution_covers_every_canvas_exercise`（画布练习名 ⊂ solution 声明名）+ CN/EN
+   solution 事件计数对比；两处 GOLDEN + 汇总同步。
+
+**文档（`docs/**`、`ROADMAP.md`、`course/README.md`）**
+9. `docs/teaching-session.md`：§3 编号与练习名对齐真实单元；删 §5 的 `Or.rec/or_comm` 断言；
+10. `docs/design/course-status.md` §4：旧 golden 示例更新；
+11. `ROADMAP.md` I7：改成 7→10 单元的现实口径（或标注为演进计划）；
+12. `docs/design/course-bilingual.md`：单元数口径；
+13. `course/README.md`：顺序与单元列表；14. 本文档 §2 的问题清单标注"P1 已修/待修"。
+
+**验收**：`cargo test -p sokonanoda-cli --test course --test course_status --locked` + 全量
+workspace + `sokonanoda gate`；双语镜像事件计数逐项相等；skills/VS Code 门面若受影响同步。
+
+> **状态（2026-09-16）：P1 已完成。** 内容 1–8 由课程内容修复落地（新增
+> `solution_covers_every_canvas_exercise` 与 `en_solutions_match_chinese_event_counts`，
+> `expr.typed` 纳入镜像比较）；文档 9–14 本轮补齐。两处 GOLDEN 与汇总同步为
+> `(13,6,1)/(2,5,2)/(2,6,2)/(0,6,1)/(13,10,7)/(13,5,0)/(14,7,1)`、
+> `units=7 checked=57 open=45 failed=0`。P2/P3/P4 未动。
+
 ## 1. 调研综合（Lean 系 / Coq·Agda·Isabelle·Idris / 传统证明教材）
 
 ### 1.1 成功教材共享的骨架
@@ -91,30 +141,33 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
 ## 2. 现状审计（摘要；细节见 §4 与 `crates/cli/tests/course.rs`）
 
 7 单元（`course/course.json`）：①命题与证明项 ②等式与 rfl ③函数与箭头 ④宇宙
-⑤显式归纳与递归 ⑥by 写法 ⑦量词。golden：
-`(13,6,1)/(2,5,2)/(2,6,2)/(0,3,0)/(13,10,7)/(13,6,0)/(14,7,1)`，汇总
-`units=7 checked=57 open=43 failed=0`。
+⑤显式归纳与递归 ⑥by 写法 ⑦量词。P1 修复后 golden（权威值见两处测试）：
+`(13,6,1)/(2,5,2)/(2,6,2)/(0,6,1)/(13,10,7)/(13,5,0)/(14,7,1)`，汇总
+`units=7 checked=57 open=45 failed=0`。
 
-**已确认的问题（改内容时一并修）**：
+**已确认的问题（改内容时一并修；每项末尾标注处置）**：
 1. **U5 过大**（253 行 / 10 题）：显式归纳 + iota + `match` + 递归 IH + 参数化 +
-   依赖 match + 嵌套模式 + 带索引 `Vec` 挤在一单元。
+   依赖 match + 嵌套模式 + 带索引 `Vec` 挤在一单元。 —— **P2 待做**（§0 拆为 #6/#7）
 2. **`by`（U6）来得太晚**：学习者到第 6 单元才见 tactic，而前 5 单元全靠 term——与
-   "即时反馈/低门槛"的调研结论相反。
+   "即时反馈/低门槛"的调研结论相反。 —— **P2 待做**（§0 提前到 #4）
 3. **U3 两题欠定义**（`three_args`/`body_uses_let` 返回"任意 Nat 即可"）；**`by_ex5`
-   与 `by_ex1` 完全重复**且 hint 描述有误。
+   与 `by_ex1` 完全重复**且 hint 描述有误。 —— **P1 已修**
 4. **散文常把答案写进提示**（违背 teacher skill「答案绝不写进提示」）：U1 ex2/ex5、
-   U3 ex2/ex3、U5 ex2/ex3、U6 ex6。
+   U3 ex2/ex3、U5 ex2/ex3、U6 ex6。 —— **P1 已修**（hint 改为触发条件 + 引理/构造子名）
 5. **U5 内有过期断言**（L80「v1 的 match 只做非递归」与它自己教的递归 match 矛盾）。
+   —— **P1 已修**
 6. **`Or` 只声明不练**（无 `Or.rec`、无 `Or` 练习；`Or.inr` 全域未用）；**`Iff`/`↔`
-   完全缺失**；skill 的"逻辑先行"清单却提了 Iff。
+   完全缺失**；skill 的"逻辑先行"清单却提了 Iff。 —— **P3 待做**（§0 新增单元 #9）
 7. **零"读证明/评阅/翻译"练习**：全是"填项/填 tactic"，没有 formal↔informal 互译、
-   没有"给错证明找错"、没有"展开定义后要证什么"。
+   没有"给错证明找错"、没有"展开定义后要证什么"。 —— **P3 待做**（§0 新增单元 #10）
 8. **U4 偏薄**（0 checked / 0 reduce，只有 `#check` 与两个 `example`），无"读取 `#check`
-   输出"的练习。
+   输出"的练习。 —— **P1 已修**（增 2 道读 `#check` + 1 道 `#reduce`，golden 变 `(0,6,1)`）
 9. **文档漂移**：`docs/teaching-session.md`（§3 numbering、§5 声称 U5 有 `Or.rec`/`or_comm`
    ——实际没有）、`docs/design/course-status.md` §4 旧 golden、`ROADMAP.md` I7 仍是
    5 单元/`lesson-XX` 旧计划、`course/README.md` 与 `course-bilingual.md` 的单元数口径。
+   —— **P1 已修**（本轮文档订正）
 10. 双语镜像的 solution 未做事件计数对比 → **EN unit4 solution 已漂移**（漏 `#check (Type 0)`）。
+    —— **P1 已修**（新增 `en_solutions_match_chinese_event_counts` + 补 EN unit4）
 
 ## 3. 三套候选大纲
 
