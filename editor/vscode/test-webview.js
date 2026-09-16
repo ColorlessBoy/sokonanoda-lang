@@ -24,6 +24,7 @@ function makeNode(tag) {
   const node = {
     tagName: tag,
     className: "",
+    attributes: {},
     _listeners: {},
     _text: "",
     childNodes: [],
@@ -36,7 +37,9 @@ function makeNode(tag) {
       if (index >= 0) this.childNodes.splice(index, 1);
       return child;
     },
-    setAttribute() {},
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    },
     addEventListener(type, handler) {
       this._listeners[type] = handler;
     },
@@ -98,7 +101,7 @@ function loadInfoview() {
     assert.ok(listeners.message, "infoview.js must register a window message listener");
     listeners.message({ data: message });
   };
-  return { root, messages, send };
+  return { document, root, messages, send };
 }
 
 // Depth-first descendants, including the node itself.
@@ -245,6 +248,38 @@ test("server: running snapshot renders version and pid without throwing", () => 
   const line = textOf(byClass(root, "server-line")[0]);
   assert.ok(line.includes("1.2.3"), `version expected in ${line}`);
   assert.ok(line.includes("pid 7"), `pid expected in ${line}`);
+});
+
+test("state: a sort run renders a tok-sort span (palette covers every kind)", () => {
+  // Regression for the reported uncoloured `Prop`/`Type`/`Sort`: the webview
+  // must emit the exact `tok-sort` class the stylesheet's guaranteed-fallback
+  // palette keys off (crates/cli/tests/extension.rs locks the CSS side).
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    goal: "Type",
+    goal_runs: [{ text: "Type", kind: "sort" }],
+  });
+  const toks = byClass(root, "tok-sort");
+  assert.strictEqual(toks.length, 1, "a sort run must be one tok-sort span");
+  assert.strictEqual(textOf(toks[0]), "Type");
+});
+
+test("theme: message keys the CSS palette off body[data-theme]", () => {
+  const { document, send } = loadInfoview();
+  send({ protocol: 1, type: "theme", kind: "light" });
+  assert.strictEqual(
+    document.body.attributes["data-theme"],
+    "light",
+    "the theme message must set body[data-theme]",
+  );
+  send({ protocol: 1, type: "theme" });
+  assert.strictEqual(
+    document.body.attributes["data-theme"],
+    "dark",
+    "a theme message without a kind must default to dark",
+  );
 });
 
 console.log(`\n${passed + failed} tests, ${passed} passed, ${failed} failed\n`);

@@ -1,5 +1,69 @@
 :root {
   color-scheme: light dark;
+  /* Infoview's own fixed semantic palette (docs/design/goal-rendering.md §2.2,
+   * docs/design/highlighting.md §2.1). VS Code never exposes editor token
+   * colours (`editor.tokenColors` / `editor.semanticTokenColors`) to webviews,
+   * so the Infoview does not try to follow the workbench's token colours: every
+   * `.tok-*` rule reads `--soko-<category>` and nothing else, and each theme
+   * kind redefines the whole palette in its own `body[data-theme=...]` block
+   * below. Dark+ is the default because infoview.html ships `data-theme="dark"`.
+   * Values approximate VS Code's default Dark+/Light+ token colours. */
+  --soko-type: #4ec9b0;
+  --soko-keyword: #569cd6;
+  --soko-function: #dcdcaa;
+  --soko-variable: #9cdcfe;
+  --soko-parameter: #9cdcfe;
+  --soko-number: #b5cea8;
+  --soko-enum: #4fc1ff;
+  --soko-macro: #ce9178;
+}
+
+/* Dark+ token colours (the default). */
+body[data-theme="dark"] {
+  --soko-type: #4ec9b0;
+  --soko-keyword: #569cd6;
+  --soko-function: #dcdcaa;
+  --soko-variable: #9cdcfe;
+  --soko-parameter: #9cdcfe;
+  --soko-number: #b5cea8;
+  --soko-enum: #4fc1ff;
+  --soko-macro: #ce9178;
+}
+
+/* Light+ token colours. */
+body[data-theme="light"] {
+  --soko-type: #267f99;
+  --soko-keyword: #0000ff;
+  --soko-function: #795e26;
+  --soko-variable: #001080;
+  --soko-parameter: #001080;
+  --soko-number: #098658;
+  --soko-enum: #0070c1;
+  --soko-macro: #a31515;
+}
+
+/* High Contrast (dark background): bright, readable values. */
+body[data-theme="high-contrast"] {
+  --soko-type: #4ec9b0;
+  --soko-keyword: #569cd6;
+  --soko-function: #dcdcaa;
+  --soko-variable: #9cdcfe;
+  --soko-parameter: #9cdcfe;
+  --soko-number: #b5cea8;
+  --soko-enum: #4fc1ff;
+  --soko-macro: #ce9178;
+}
+
+/* High Contrast Light (white background): dark, readable values. */
+body[data-theme="high-contrast-light"] {
+  --soko-type: #267f99;
+  --soko-keyword: #0000ff;
+  --soko-function: #795e26;
+  --soko-variable: #001080;
+  --soko-parameter: #001080;
+  --soko-number: #098658;
+  --soko-enum: #0070c1;
+  --soko-macro: #a31515;
 }
 
 body {
@@ -146,27 +210,28 @@ body {
   font: inherit;
 }
 
-/* Semantic colours (docs/design/goal-rendering.md §2.2). VS Code does not
- * expose TextMate/editor token colours to webviews, so this is the ONE mapping
- * from `front::semantic::SemanticKind` (wire name = the class suffix) to
- * theme-aware variables — approximated with the symbol-icon palette so it
- * follows light/dark/high-contrast themes. A Rust contract test asserts every
- * wire kind has a class here; hover gets its colours from the same
- * classification via the `sokonanoda` TextMate grammar. */
+/* Semantic colours (docs/design/goal-rendering.md §2.2,
+ * docs/design/highlighting.md §2.1). The Infoview owns this palette: VS Code
+ * exposes no editor token colours to webviews, so we do not try to follow the
+ * workbench's token colours. Each rule reads its `--soko-<category>` variable,
+ * which is defined for every theme kind above. A Rust contract test asserts
+ * every wire kind is coloured (`infoview_palette_colours_every_kind_with_a_
+ * guaranteed_fallback`); hover gets its colours from the same classification
+ * via the `sokonanoda` TextMate grammar. */
 .tok-keyword {
-  color: var(--vscode-symbolIcon-keywordForeground, var(--vscode-foreground));
+  color: var(--soko-keyword);
 }
 
 .tok-sort {
-  color: var(--vscode-symbolIcon-structForeground, var(--vscode-foreground));
+  color: var(--soko-type);
 }
 
 .tok-number {
-  color: var(--vscode-symbolIcon-numberForeground, var(--vscode-foreground));
+  color: var(--soko-number);
 }
 
 .tok-hole {
-  color: var(--vscode-symbolIcon-snippetForeground, var(--vscode-foreground));
+  color: var(--soko-macro);
   font-style: italic;
 }
 
@@ -174,24 +239,27 @@ body {
 .tok-def_use,
 .tok-theorem_name,
 .tok-theorem_use {
-  color: var(--vscode-symbolIcon-functionForeground, var(--vscode-foreground));
+  color: var(--soko-function);
 }
 
 .tok-axiom_name,
 .tok-axiom_use,
 .tok-inductive_name,
 .tok-inductive_use {
-  color: var(--vscode-symbolIcon-classForeground, var(--vscode-foreground));
+  color: var(--soko-type);
 }
 
 .tok-ctor_name,
 .tok-ctor_use {
-  color: var(--vscode-symbolIcon-enumMemberForeground, var(--vscode-foreground));
+  color: var(--soko-enum);
 }
 
-.tok-binder,
+.tok-binder {
+  color: var(--soko-parameter);
+}
+
 .tok-unknown_ident {
-  color: var(--vscode-symbolIcon-variableForeground, var(--vscode-foreground));
+  color: var(--soko-variable);
 }
 
 .solved {

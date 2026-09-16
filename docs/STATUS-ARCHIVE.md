@@ -1,8 +1,29 @@
-# STATUS 归档（第 1–76 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–77 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十七轮：带索引归纳）
+
+> 续 HANDOVER §3 B / ROADMAP I6 的最后一项：`inductive Vec (A : Type) : Nat -> Type`。
+
+1. **索引定义**（内核契约）：索引 = `ty` 在 `num_params` 之外的 Pi 望远镜
+   （`inductive.rs::check_inductive_spec_0th`）；内核本支持 `num_indices`，本轮
+   只补前端。设计 `docs/design/indexed-inductives.md`。
+2. **安装**：`install_inductive_block` 算 `index_binders`/`num_indices`，传入
+   `add_inductive`/`RecursorData`，存入 `InductiveInfo{num_indices,index_types}`；
+   `is_prop_block_ty` 先剥索引望远镜。
+3. **派生 recursor**：motive = `forall indices, Ind params indices -> Sort`；rec 绑定序
+   `params→motive→minors→indices→target`；minor = `motive <ctor 索引> (C 字段…)`；
+   iota 自调用带字段索引实参；字段名替换同时作用于字段类型与 ctor 结果索引实参。
+4. **match**：从 scrutinee 书写类型取索引实参；motive 先绑索引再绑 major；
+   应用 `Ind.rec params motive minors indices scrutinee`。顺带修既有 latent bug：
+   字段类型引用前面字段（`v : Vec A n`）时按「字段原名→用户绑定名」substitution。
+5. **边界**：结果类型依赖索引不做（sound 拒绝；另立设计）。
+6. **测试/课程**：front +3、CLI +1；课程 unit5 带索引 Vec 节 + 练习 10
+   （golden `(11,9,6)→(13,10,7)`、汇总 `checked 55→57 / open 42→43`）。
+7. **验收**：`sokonanoda gate` PASS；版本 0.46.0 → **0.47.0**（新语法 minor）。
 
 ## 本轮进度（2026-09-15，第七十六轮：`match` 作为 tactic）
 

@@ -175,3 +175,15 @@
   或直接 `sokonanoda gate`（它的 fmt 步骤本就只覆盖这三个 crate）。
 - **自检**：提交前 `git status --short | grep kernel` 必须为空。
 
+## 平台没给的颜色别硬造：先问"代价"（2026-09-16，0.50.0）
+
+- **背景**：Infoview（webview）拿不到主题 token 色，用户要求"和主题对齐"。
+- **尝试**：实现了完整的主题解析器（读活动主题 JSON/内置主题、展开 `include`、
+  `tokenColors`+`semanticTokenColors`+`editor.tokenColorCustomizations`、TextMate
+  特异性匹配、`colors` 消息、18 项单测）。功能可用，但**复刻 VS Code 主题解析**
+  的边角（`.tmTheme`、选择器、主题定向覆盖、HC）脆弱且昂贵。
+- **结论（用户拍板）**：**不解析**，Infoview 用**自研固定调色板**（按 off/light/HC
+  各一套），保证"必有着色"即可；并把决策与不可对齐的边界写进设计文档。
+- **教训**：平台未暴露的能力，先评估"复刻成本 vs 收益"再动手；能用固定方案替代时，
+  优先固定方案 + 明确边界说明。
+

@@ -762,3 +762,16 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   单一表 + hover 由 runs 投影 + TM/CSS/LSP 三处穷尽测试；平台限制写入
   `docs/design/highlighting.md`。版本 **0.49.0**。
 
+- 2026-09-16（八十）：**Infoview 自研调色板（主题 token 解析回退，0.50.0）**——用户指出
+  Infoview 里 `Type`/`Prop` 没高亮、参数色与编辑器/hover 不一致，问能否与主题自动对齐。
+  调研：VS Code 无稳定 API 暴露主题 token 色（2026-06 仅有 proposal #319754/#319753）；
+  唯一路线是自己复刻主题解析（读活动主题 JSON + include/tokenColors/semanticTokenColors +
+  `editor.tokenColorCustomizations` + TextMate 特异性匹配）。已实现完整解析器后被用户判定
+  **代价过大** → 回退。最终：**Infoview 自研固定调色板**（`--soko-*`，按
+  dark/light/high-contrast 各一套、贴近 Dark+/Light+ token 色），`.tok-*` 只读
+  `--soko-*`（删除 symbolIcon 优先链，修掉 `Prop` 回退成前景色的根因），任何主题必有着色；
+  workbench 前景/背景仍走 `--vscode-*`。测试
+  `infoview_palette_colours_every_kind_with_a_guaranteed_fallback` + `test-webview.js`。
+  版本 **0.50.0**；决策与边界写入 `docs/design/highlighting.md` §3b（Infoview 与
+  编辑器/hover 颜色永不逐像素相同）。
+

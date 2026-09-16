@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Learn theorem proving in a self-contained Lean-4-style language: real kernel grading, an Infoview goal panel, graded exercises, and agent skills that turn an LLM into your proof teacher. Zero setup - the language server ships inside the extension.",
-  "version": "0.49.0",
+  "version": "0.50.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {

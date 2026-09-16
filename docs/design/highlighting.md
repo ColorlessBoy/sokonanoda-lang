@@ -50,11 +50,47 @@ hover 的围栏内容 = `runs_to_text` 的投影（不再是另写一遍的 `for
 测试：LSP `hover_goal_text_equals_the_state_at_run_projection`（hover 文本 == stateAt
 runs 的文本投影）。
 
+## 3b. Infoview 的颜色：自研固定调色板（0.50.0 决策）
+
+**不做主题 token 颜色解析**（试过，代价过大，已回退）。理由与结论：
+
+- VS Code **没有稳定 API** 暴露 `editor.tokenColors` / `editor.semanticTokenColors`
+  —— 2026-06 只有两个 **proposal**（#319754 `ColorTheme.tokenColors`、
+  #319753 `languages.getDocumentTokens`），发布版不可用。
+- 唯一可行路线是**自己复刻 VS Code 的主题解析**（找活动主题扩展/内置主题 JSON →
+  展开 `include` → `tokenColors` + `semanticTokenColors` + 用户
+  `editor.tokenColorCustomizations` → 按 TextMate 特异性匹配）。可做，但
+  `.tmTheme`/`include`/选择器/主题定向覆盖/高分模式等边角太多，**脆弱且昂贵**；
+  权衡（用户拍板）：**在 Infoview 制定自己的一套固定颜色**。
+- 因此 Infoview **不跟随**主题的 token 色，而是按主题种类（`data-theme` =
+  `dark`/`light`/`high-contrast`/`high-contrast-light`）各一套固定调色板，
+  取值**贴近 Dark+/Light+ 的 token 色**（多数用户用默认主题，观感接近）：
+
+| 变量 | dark | light |
+|---|---|---|
+| `--soko-type`（sort/axiom/inductive） | `#4ec9b0` | `#267f99` |
+| `--soko-keyword` | `#569cd6` | `#0000ff` |
+| `--soko-function`（def/theorem） | `#dcdcaa` | `#795e26` |
+| `--soko-variable`（unknown_ident） | `#9cdcfe` | `#001080` |
+| `--soko-parameter`（binder） | `#9cdcfe` | `#001080` |
+| `--soko-number` | `#b5cea8` | `#098658` |
+| `--soko-enum`（ctor） | `#4fc1ff` | `#0070c1` |
+| `--soko-macro`（hole/`sorry`） | `#ce9178` | `#a31515` |
+
+- 视觉契约：`.tok-*` **只**读 `--soko-<category>`（不再有 `--vscode-symbolIcon-*`
+  优先链——那正是"`Prop` 回退成前景色 = 看着没高亮"的根因）。workbench 的颜色
+  （前景/背景/边框）仍走 `--vscode-*`，所以面板整体仍跟随明暗主题。
+- 测试 `infoview_palette_colours_every_kind_with_a_guaranteed_fallback`：每个
+  `.tok-<kind>` 必须解析到一个 `--soko-*`，且该变量在四个 `data-theme` 块里都被定义
+  —— 任何主题下**必有着色**。
+
 ## 4. 不可对齐的部分（平台限制，已声明）
 
-- **markdown 代码块只能 TextMate 着色**，且 TM 是正则、**没有名字解析** → 无法区分
-  「这个 `x` 是 def 还是 binder」。因此 hover 的颜色是**近似**（scope 级），
-  Infoview 是**精确**（kind 级）。
+- **markdown 代码块只能 TextMate 着色**（用 VS Code 的主题 token 色），且 TM 是正则、
+  **没有名字解析** → 无法区分「这个 `x` 是 def 还是 binder」。因此 hover 的颜色是
+  **近似**（scope 级），Infoview 是**精确**（kind 级）+ **自研固定色板**。
+- **hover/编辑器 vs Infoview 永不逐像素相同**：前者是主题 token 色，后者是 Infoview
+  自有色板（见 §3b）。
 - **行内代码**（单反引号）没有语言 id → 完全不着色；因此所有 hover 片段一律用
   ` ```sokonanoda `（围栏），散文里提到单个词（如 `sorry`）才用行内代码。
 - **刻意纯文本**（VS Code 不渲染 markdown / 无法着色）：诊断消息、inlay hint、

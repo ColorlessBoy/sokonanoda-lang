@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十九轮：共享缓存+build / Infoview 稳定与反馈 / 高亮单一起源；0.49.0）
+> 快照：2026-09-16（第八十轮：Infoview 自研调色板；主题解析回退；0.50.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,33 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-16，第八十轮：Infoview 自研调色板（主题解析回退））
+
+> 用户反馈：Infoview 里 `Type`/`Prop` 没高亮、参数色与编辑器/hover 不一致，问能否
+> 与主题自动对齐。调研结论：VS Code **无稳定 API** 暴露主题 token 色（2026-06 只有
+> proposal #319754/#319753）；唯一路线是自己复刻主题解析。先按此实现了完整解析器
+> （`theme-colors.js` + 宿主解析主题 JSON + `colors` 消息 + 测试，18 项单测），
+> **用户判定代价过大** → 回退，改为 **Infoview 自研固定调色板**。
+
+1. **根因（已修）**：`.tok-sort` 用 `--vscode-symbolIcon-structForeground`，主题未定义
+   时回退 `--vscode-foreground` → `Prop`/`Type` 看着没高亮；`.tok-binder` 用 symbolIcon
+   palette，天然不同于编辑器的 parameter token 色。
+2. **调研**：官方仅有两个 proposal（`ColorTheme.tokenColors`、`languages.getDocumentTokens`）；
+   可行但昂贵的路线是读活动主题 JSON（含内置主题）展开 `include` + `tokenColors` +
+   `semanticTokenColors` + `editor.tokenColorCustomizations` 后做 TextMate 特异性匹配。
+3. **回退**：删除 `editor/vscode/theme-colors.js`、`test-theme-colors.js`、`colors` 消息
+   通道与宿主解析（grep 证明零悬空引用）。
+4. **落地**：Infoview 自研固定调色板——`:root` + 四个 `body[data-theme=…]` 定义
+   `--soko-{type,keyword,function,variable,parameter,number,enum,macro}`（dark/light 贴近
+   Dark+/Light+ token 色）；`.tok-*` **只**读 `--soko-*`（不再有 symbolIcon 优先链 →
+   任何主题必有着色）；workbench 前景/背景仍走 `--vscode-*`。
+5. **测试**：`infoview_palette_colours_every_kind_with_a_guaranteed_fallback`（每个
+   `.tok-<kind>` 解析到 `--soko-*` 且四个主题块都定义）；`test-webview.js` 10 项。
+6. **验收**：node 三套 + `cargo test -p sokonanoda-cli --test extension`（32）全绿；
+   `sokonanoda gate` PASS；版本 0.49.0 → **0.50.0**。
+7. **诚实边界**：Infoview 颜色与编辑器/hover **不逐像素相同**（后者是主题 token 色，
+   前者是自有色板）——这是平台限制 + 用户拍板的取舍，写入 `docs/design/highlighting.md` §3b。
 
 ## 本轮进度（2026-09-15，第七十九轮：共享缓存 + `build` / Infoview 稳定与反馈 / 高亮单一起源）
 
@@ -66,25 +93,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    （`⊢`/wrap/uri 跳转）。
 6. **验收**：`sokonanoda gate` PASS；版本 0.47.0 → **0.48.0**（新能力 minor）；
    设计 `docs/design/compile-cache.md`。已知边界：不缓存 Session 快照、无 LRU。
-
-## 本轮进度（2026-09-15，第七十七轮：带索引归纳）
-
-> 续 HANDOVER §3 B / ROADMAP I6 的最后一项：`inductive Vec (A : Type) : Nat -> Type`。
-
-1. **索引定义**（内核契约）：索引 = `ty` 在 `num_params` 之外的 Pi 望远镜
-   （`inductive.rs::check_inductive_spec_0th`）；内核本支持 `num_indices`，本轮
-   只补前端。设计 `docs/design/indexed-inductives.md`。
-2. **安装**：`install_inductive_block` 算 `index_binders`/`num_indices`，传入
-   `add_inductive`/`RecursorData`，存入 `InductiveInfo{num_indices,index_types}`；
-   `is_prop_block_ty` 先剥索引望远镜。
-3. **派生 recursor**：motive = `forall indices, Ind params indices -> Sort`；rec 绑定序
-   `params→motive→minors→indices→target`；minor = `motive <ctor 索引> (C 字段…)`；
-   iota 自调用带字段索引实参；字段名替换同时作用于字段类型与 ctor 结果索引实参。
-4. **match**：从 scrutinee 书写类型取索引实参；motive 先绑索引再绑 major；
-   应用 `Ind.rec params motive minors indices scrutinee`。顺带修既有 latent bug：
-   字段类型引用前面字段（`v : Vec A n`）时按「字段原名→用户绑定名」substitution。
-5. **边界**：结果类型依赖索引不做（sound 拒绝；另立设计）。
-6. **测试/课程**：front +3、CLI +1；课程 unit5 带索引 Vec 节 + 练习 10
-   （golden `(11,9,6)→(13,10,7)`、汇总 `checked 55→57 / open 42→43`）。
-7. **验收**：`sokonanoda gate` PASS；版本 0.46.0 → **0.47.0**（新语法 minor）。
 

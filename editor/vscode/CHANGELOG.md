@@ -1,3 +1,14 @@
+## [0.50.0] - 2026-09-15
+
+### Changed
+
+- **The Infoview has its own fixed colour palette** (per dark/light/high-contrast),
+  tuned to look like VS Code's default Dark+/Light+ token colours. Every
+  `SemanticKind` is now guaranteed to be coloured — `Prop`/`Type`/`Sort` no longer
+  degrade to the plain foreground because a theme lacked a `symbolIcon` variable.
+  Rationale: VS Code exposes no stable API for editor token colours, and scraping
+  theme JSON was judged too costly; see `docs/design/highlighting.md` §3b.
+
 ## [0.49.0] - 2026-09-15
 
 ### Added

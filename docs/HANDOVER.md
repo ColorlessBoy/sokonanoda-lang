@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～七十九轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～八十轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -51,6 +51,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 77 | 0.47.0 | 带索引归纳（`Vec A n` 声明 + 派生 recursor + match） | `docs/design/indexed-inductives.md` |
 | 78 | 0.48.0 | 编译结果缓存（olean 式）+ Infoview 类型换行/`⊢`/点击跳转 | `docs/design/compile-cache.md` |
 | 79 | 0.49.0 | 共享缓存 + `sokonanoda build` + Infoview 稳定/反馈 + 高亮单一起源 | `docs/design/{compile-cache,highlighting,webview-infoview}.md` |
+| 80 | 0.50.0 | Infoview 自研调色板（主题 token 解析回退） | `docs/design/highlighting.md` §3b |
 
 > 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–71 轮原文）。
 

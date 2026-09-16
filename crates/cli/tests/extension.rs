@@ -1186,3 +1186,101 @@ fn infoview_webview_renders_a_status_skeleton_and_handles_status() {
         "extension.js must distinguish the no-document `idle` state from `ready`"
     );
 }
+
+/// Strip `/* … */` blocks so the selector/declaration parsing below never trips
+/// over prose in the stylesheet's comments.
+fn strip_css_comments(css: &str) -> String {
+    let mut out = String::with_capacity(css.len());
+    let mut rest = css;
+    while let Some(start) = rest.find("/*") {
+        out.push_str(&rest[..start]);
+        match rest[start + 2..].find("*/") {
+            Some(end) => rest = &rest[start + 2 + end + 2..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// `(selector, declarations)` pairs, in source order, from a comment-free
+/// stylesheet. One level of nesting is enough for this contract test.
+fn css_blocks(css: &str) -> Vec<(String, String)> {
+    let mut blocks = Vec::new();
+    let mut rest = css;
+    while let Some(open) = rest.find('{') {
+        let selector = rest[..open].trim().to_string();
+        let after = &rest[open + 1..];
+        let close = after.find('}').expect("every CSS block is closed");
+        blocks.push((selector, after[..close].to_string()));
+        rest = &after[close + 1..];
+    }
+    blocks
+}
+
+#[test]
+fn infoview_palette_colours_every_kind_with_a_guaranteed_fallback() {
+    // VS Code never exposes editor token colours to webviews, so the Infoview
+    // owns a fixed `--soko-*` palette (docs/design/highlighting.md §2.1/§4).
+    // Contract: every kind's `.tok-*` rule reads a `--soko-*` variable, and
+    // every referenced variable is defined for all four theme kinds.
+    let css = strip_css_comments(&media_file("infoview.css"));
+    let blocks = css_blocks(&css);
+
+    // (a) every wire kind has a `.tok-<kind>` rule coloured by `--soko-*`.
+    let mut referenced: Vec<String> = Vec::new();
+    for kind in sokonanoda_front::semantic::SemanticKind::ALL {
+        let class = format!(".tok-{}", kind.as_str());
+        let mut colour = None;
+        for (selector, body) in &blocks {
+            if !selector.split(',').any(|part| part.trim() == class) {
+                continue;
+            }
+            for declaration in body.split(';') {
+                let Some(value) = declaration.trim().strip_prefix("color:") else {
+                    continue;
+                };
+                colour = Some(value.trim().to_string());
+            }
+        }
+        let value = colour.unwrap_or_else(|| {
+            panic!("media/infoview.css must colour `{class}` (SemanticKind::{kind:?})")
+        });
+        let variable = value
+            .strip_prefix("var(")
+            .and_then(|rest| rest.split(')').next())
+            .filter(|name| name.starts_with("--soko-"))
+            .unwrap_or_else(|| {
+                panic!(
+                    "media/infoview.css: `{class}` (SemanticKind::{kind:?}) colour \
+                     `{value}` must be a `--soko-*` variable"
+                )
+            })
+            .to_string();
+        if !referenced.contains(&variable) {
+            referenced.push(variable);
+        }
+    }
+
+    // (b) every referenced `--soko-*` variable is defined for all four kinds.
+    for theme in ["dark", "light", "high-contrast", "high-contrast-light"] {
+        let selector = format!("body[data-theme=\"{theme}\"]");
+        let body = &blocks
+            .iter()
+            .find(|(sel, _)| sel == &selector)
+            .unwrap_or_else(|| {
+                panic!("media/infoview.css must define the palette selector `{selector}`")
+            })
+            .1;
+        for variable in &referenced {
+            assert!(
+                body.contains(&format!("{variable}:")),
+                "media/infoview.css: `{selector}` must define `{variable}` so every \
+                 kind resolves under `{theme}`"
+            );
+        }
+    }
+}
