@@ -5,6 +5,21 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static TEMP_HOME_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+const COURSE_MANIFEST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../course/course.json");
+
+/// A unique, empty compile-cache dir for one spawned binary. Tests isolate the
+/// shared on-disk cache so a run never observes another test's entries; pass
+/// the same dir to [`run_args_with_cache`] when a hit is the thing under test.
+fn cache_dir(tag: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-cli-cache-{tag}-{}-{}",
+        std::process::id(),
+        TEMP_HOME_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    dir
+}
+
 fn run(input: &str) -> std::process::Output {
     run_args(&[], Some(input))
 }
@@ -17,6 +32,7 @@ fn run_repl_in(home: &Path, input: &str) -> std::process::Output {
     let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .args(["repl"])
         .env("HOME", home)
+        .env("SOKONANODA_CACHE_DIR", cache_dir("repl"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -43,8 +59,15 @@ fn temp_home() -> PathBuf {
 }
 
 fn run_args(args: &[&str], input: Option<&str>) -> std::process::Output {
+    run_args_with_cache(args, input, &cache_dir("args"))
+}
+
+/// Like [`run_args`], but pins the compile cache to `cache` so a test can
+/// observe a warm hit across invocations.
+fn run_args_with_cache(args: &[&str], input: Option<&str>, cache: &Path) -> std::process::Output {
     let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .args(args)
+        .env("SOKONANODA_CACHE_DIR", cache)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -1500,4 +1523,141 @@ def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat :=
         stdout.contains("=> Nat.succ (Nat.succ 0)"),
         "indexed recursion must reduce through Vec.rec: {stdout}"
     );
+}
+
+// ---- persistent compile cache: `sokonanoda build` warms it; `course` stays
+// stable whether an entry is cold or warm (docs/protocol.md). ----
+
+fn json_events(stdout: &str) -> Vec<serde_json::Value> {
+    stdout
+        .lines()
+        .filter_map(|line| serde_json::from_str(line).ok())
+        .collect()
+}
+
+fn write_canvas(tag: &str) -> PathBuf {
+    let dir = temp_home();
+    let file = dir.join(format!("{tag}.sokonanoda"));
+    std::fs::write(&file, "def id : Prop -> Prop := fun (x : Prop) => x\n").expect("write canvas");
+    file
+}
+
+#[test]
+fn cli_build_warms_and_reuses_cache() {
+    let file = write_canvas("build-warm");
+    let path = file.to_str().expect("utf-8 path");
+    let cache = cache_dir("build-warm");
+
+    let first = run_args_with_cache(&["build", "--json", path], None, &cache);
+    assert!(
+        first.status.success(),
+        "first build must succeed, stderr: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let events = json_events(&String::from_utf8_lossy(&first.stdout));
+    let summary = events
+        .iter()
+        .find(|e| e["type"] == "build.summary")
+        .expect("build.summary must be emitted");
+    assert_eq!(summary["compiled"], 1, "cold build compiles: {summary}");
+    assert_eq!(summary["hit"], 0, "cold build cannot hit: {summary}");
+
+    let second = run_args_with_cache(&["build", "--json", path], None, &cache);
+    assert!(
+        second.status.success(),
+        "second build must succeed, stderr: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let events = json_events(&String::from_utf8_lossy(&second.stdout));
+    let file_event = events
+        .iter()
+        .find(|e| e["type"] == "build.file")
+        .expect("build.file must be emitted");
+    assert_eq!(
+        file_event["status"], "hit",
+        "second build reuses the entry: {file_event}"
+    );
+    let summary = events
+        .iter()
+        .find(|e| e["type"] == "build.summary")
+        .expect("build.summary must be emitted");
+    assert_eq!(summary["hit"], 1, "second build hits: {summary}");
+    assert_eq!(
+        summary["compiled"], 0,
+        "second build compiles nothing: {summary}"
+    );
+    assert_eq!(
+        summary["failed"], 0,
+        "second build fails nothing: {summary}"
+    );
+}
+
+#[test]
+fn cli_build_clean_removes_entries() {
+    let file = write_canvas("build-clean");
+    let path = file.to_str().expect("utf-8 path");
+    let cache = cache_dir("build-clean");
+
+    let built = run_args_with_cache(&["build", path], None, &cache);
+    assert!(
+        built.status.success(),
+        "warming build must succeed, stderr: {}",
+        String::from_utf8_lossy(&built.stderr)
+    );
+
+    let cleaned = run_args_with_cache(&["build", "--clean", "--json"], None, &cache);
+    assert!(
+        cleaned.status.success(),
+        "build --clean must succeed, stderr: {}",
+        String::from_utf8_lossy(&cleaned.stderr)
+    );
+    let events = json_events(&String::from_utf8_lossy(&cleaned.stdout));
+    let clean = events
+        .iter()
+        .find(|e| e["type"] == "build.clean")
+        .expect("build.clean must be emitted");
+    assert!(
+        clean["removed"].as_u64().unwrap_or(0) > 0,
+        "clean removes the warmed entry: {clean}"
+    );
+
+    let again = run_args_with_cache(&["build", "--clean", "--json"], None, &cache);
+    let events = json_events(&String::from_utf8_lossy(&again.stdout));
+    let clean = events
+        .iter()
+        .find(|e| e["type"] == "build.clean")
+        .expect("build.clean must be emitted");
+    assert_eq!(clean["removed"], 0, "a second clean finds nothing: {clean}");
+}
+
+#[test]
+fn cli_course_is_stable_with_a_warm_cache() {
+    let cache = cache_dir("course-warm");
+    let first = run_args_with_cache(&["course", COURSE_MANIFEST, "--json"], None, &cache);
+    assert!(
+        first.status.success(),
+        "course must succeed, stderr: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    let second = run_args_with_cache(&["course", COURSE_MANIFEST, "--json"], None, &cache);
+    assert!(
+        second.status.success(),
+        "course with a warm cache must succeed, stderr: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+
+    let summary = |out: &std::process::Output| {
+        json_events(&String::from_utf8_lossy(&out.stdout))
+            .into_iter()
+            .find(|e| e["type"] == "course.summary")
+            .expect("course.summary must be emitted")
+    };
+    let cold = summary(&first);
+    let warm = summary(&second);
+    assert_eq!(
+        cold, warm,
+        "a warm cache must not change the course summary (cold {cold} vs warm {warm})"
+    );
+    assert_eq!(cold["checked"], 57, "golden checked total: {cold}");
+    assert_eq!(cold["open"], 43, "golden open total: {cold}");
 }

@@ -46,7 +46,7 @@
 | host → webview | `theme` | `{kind}`（dark/light/high-contrast） |
 | webview → host | `ready` | 握手；宿主收到后回发 `state`/`decls` |
 | webview → host | `reveal` | `{uri, range}` → 执行 `sokonanoda.revealRange` |
-| webview → host | `focusExercise` | `{name}` → 展开练习树对应声明 |
+| host → webview | `status` | `{state: loading\|ready\|idle, decls?}`：`编译中…`/`已就绪 · N 个声明`/`等待 .sokonanoda 文件`（0.49.0） |
 
 - 每条消息带 `protocol`；`state` 的 `version` 与文档版本一致，webview
   **丢弃过期快照**（与宿主侧 `cursorRequestSeq` 同纪律）。
@@ -126,7 +126,7 @@ Rust 与扩展版本必须一致（契约测试 `cargo_and_extension_versions_ma
   `innerHTML`/远程 URL/eval/内联事件）。
 - **协议**（`protocol:1`）：host→webview `state`（`soko/stateAt` + `uri`）、
   `decls`（仅诊断/切文件）、`server`（`soko/version`）、`theme`；
-  webview→host `ready`/`reveal`/`focusExercise`；按 `version` 丢弃过期
+  webview→host `ready`/`reveal`；按 `version` 丢弃过期
   `state`。
 - **性能**：光标移动只发 `state`（去抖 200ms，复用既有 selection 监听），
   绝不因此发 `soko/goals`；provider 缓存最后 `state`/`decls`，
@@ -135,3 +135,22 @@ Rust 与扩展版本必须一致（契约测试 `cargo_and_extension_versions_ma
   CSP nonce、负断言）；`extension.test.js` 集成 smoke；`node test-server.js`
   18/18。
 - **版本** 0.29.0 → **0.30.0**（新 view + 命令 = minor）。
+
+## 11. as-built 增补（0.49.0）
+
+- **可见性根因与修复**：视图原带 `when: resourceLangId == sokonanoda`，而扩展容器
+  固定 `hideIfEmpty: true`（VS Code `viewsExtensionPoint.ts:416`）→ 无激活
+  `.sokonanoda` 文件时容器为空被隐藏，聚焦命令无效。现：视图**无 `when`** +
+  `visibility: visible`；`activationEvents` 增 `onView:sokonanoda.infoview`；
+  `openInfoview` 依次 `focusAuxiliaryBar` → `workbench.view.extension.sokonanoda`
+  → `sokonanoda.infoview.focus`。
+- **激活顺序**：`activate()` 原来先 `await resolveServerForStart`（读盘/可能下载，慢）
+  才注册 `registerWebviewViewProvider` → 期间视图无 provider（空白/"点几次才出现"）。
+  现：**同步注册 provider/树先**，服务解析与启动放到之后的异步续段（失败 `.catch`），
+  并向 webview 推送 `status`。契约测试
+  `infoview_provider_is_registered_before_the_server_resolution_await`。
+- **UI 反馈**：webview 载入即渲染骨架（`正在渲染…`）；宿主推 `status`，面板显示
+  编译进度，绝不静默空白。
+- **声明列表**：**去掉点击跳转**（未生效），改为名字后小字**行号** `L<n>`
+  （1-based，来自 `range.start.line + 1`）+ 类型提示（`ty_runs` 着色、可换行）。
+  测试 `test-webview.js`（Node DOM shim 行为测试）+ 静态契约。

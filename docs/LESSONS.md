@@ -145,3 +145,33 @@
 - 参考：`crates/front/src/compile/elab.rs`（`compile_pattern_body`/`guard_chain`）、
   `docs/design/match-patterns.md` §4/§10。
 
+## 视图 provider 必须在任何 await 之前注册（2026-09-15，0.49.0 Infoview）
+
+- **教训**：`activate()` 先 `await resolveServerForStart()`（读盘、可能下载）再
+  `registerWebviewViewProvider`，这段窗口里 webview 视图**没有 provider** →
+  用户看到空白/"点几次侧栏才突然出现"。视图贡献是声明式的，但**内容**要靠注册。
+- **规矩**：视图/树/provider 一律在 `activate` **最前面同步注册**；慢工作（解析、
+  下载、启动服务）放到之后异步续段，并用 `status` 消息把进度反馈给面板。
+- 另：扩展容器 `hideIfEmpty: true`，视图带 `when` 会在条件不满足时把**整个容器**
+  隐藏 → 面板"弹不出来"。要么别加 `when`，要么保证容器非空。
+- 参考：`editor/vscode/extension.js::activate`、`docs/design/webview-infoview.md` §11。
+
+## 高亮收拢：一个分类源，两张颜色表（2026-09-15，0.49.0）
+
+- **教训**：hover（markdown 围栏）只能 TextMate 着色，Infoview（webview）用 CSS 类；
+  若两处各自定义 scope/class，必然漂移（用户："样式不一样"）。
+- **做法**：`front::semantic` 导出 `SemanticKind::{ALL, as_str, tm_scope}` 与
+  `runs_to_text`/`goal_runs` —— **分类与文本一个出处**；两张颜色表都从 `ALL` 派生，
+  配**穷尽测试**（TM 语法必须含每个 `tm_scope()`、CSS 必须含每个 `.tok-<kind>`）。
+- **接受**：markdown 只能 scope 级近似（无名字解析），颜色永不 100% 相同；
+  详见 `docs/design/highlighting.md`。
+
+## 绝不 `cargo fmt --all`（冻结内核会被重排）（2026-09-16，0.49.0 收尾）
+
+- **教训**：收尾时手滑跑了 `cargo fmt --all`，它按仓库 `rustfmt.toml` 重排了
+  `crates/kernel/**`（20+ 文件）。虽是纯格式、语义中立，但**违反「kernel 冻结快照」硬规则**，
+  并污染提交历史（发现于提交后、推送前，已还原重做）。
+- **规矩**：只 fmt 教学 crates（`-p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp`）
+  或直接 `sokonanoda gate`（它的 fmt 步骤本就只覆盖这三个 crate）。
+- **自检**：提交前 `git status --short | grep kernel` 必须为空。
+

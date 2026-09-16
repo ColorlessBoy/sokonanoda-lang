@@ -59,6 +59,7 @@ sokonanoda grade playground.sokonanoda   # 判卷（--json 事件）
 sokonanoda gate     # = CI 门禁：fmt + clippy + test + playground 锚点
 # 或手动：
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
+# 禁止 `cargo fmt --all`：会重排**冻结内核**（kernel 快照不得改动）。只 fmt 教学 crates，或直接 `sokonanoda gate`。
 cargo clippy --workspace --all-targets
 cargo test --workspace --locked
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda

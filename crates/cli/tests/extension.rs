@@ -602,6 +602,34 @@ fn infoview_view_and_command_are_consistent() {
         Some("webview"),
         "sokonanoda.infoview must be a webview view"
     );
+    // HideIfEmpty regression: a `when` clause meant the container had 0 visible
+    // views without an active `.sokonanoda` editor, so VS Code hid it and the
+    // focus commands did nothing. The view must have no `when` and be visible.
+    assert!(
+        view.get("when").is_none(),
+        "sokonanoda.infoview must not carry a `when` (hideIfEmpty would hide the panel)"
+    );
+    assert_eq!(
+        view["visibility"].as_str(),
+        Some("visible"),
+        "sokonanoda.infoview must be marked `visibility: visible`"
+    );
+    // Activation: the panel comes up even with no `.sokonanoda` editor open.
+    let activation = manifest["activationEvents"]
+        .as_array()
+        .expect("activationEvents");
+    assert!(
+        activation
+            .iter()
+            .any(|event| event.as_str() == Some("onView:sokonanoda.infoview")),
+        "activationEvents must include onView:sokonanoda.infoview"
+    );
+    assert!(
+        activation
+            .iter()
+            .any(|event| event.as_str() == Some("onLanguage:sokonanoda")),
+        "activationEvents must keep onLanguage:sokonanoda"
+    );
     assert!(
         manifest["contributes"]["views"]["explorer"]
             .as_array()
@@ -792,10 +820,12 @@ fn rendered_language_text_uses_the_sokonanoda_fence() {
 }
 
 #[test]
-fn infoview_declaration_list_shows_types_and_jumps() {
+fn infoview_declaration_list_shows_types_and_line_hints() {
     // The declaration list renders each declaration's type as a small,
-    // syntax-coloured hint (same runs as the goal state) and clicking a row
-    // jumps the editor to it (range travels with `focusExercise`).
+    // syntax-coloured hint (same runs as the goal state) plus a 1-based line
+    // hint (`L12`, from `range.start.line`). Rows are read-only now: no click,
+    // no `focusExercise` postMessage and no host-side jump plumbing (jumping is
+    // the tree's job), so a row can never be mistaken for a button.
     let webview = media_file("infoview.js");
     assert!(
         webview.contains("ty_runs") && webview.contains("decl-ty"),
@@ -807,9 +837,16 @@ fn infoview_declaration_list_shows_types_and_jumps() {
         "the Infoview goal line must start with `⊢ `"
     );
     assert!(
-        webview.contains("message.range = decl.range")
-            && webview.contains("message.uri = declsUri"),
-        "clicking a declaration must send its uri+range so the host can jump"
+        webview.contains("range.start.line") && webview.contains("\"L\" + (line + 1)"),
+        "the declaration row must show a 1-based line hint derived from range.start.line"
+    );
+    assert!(
+        webview.contains("decl-line-hint"),
+        "the line hint must carry its own dedicated CSS class"
+    );
+    assert!(
+        !webview.contains("focusExercise") && !webview.contains("declsUri"),
+        "declaration rows must be non-interactive (no focusExercise jump plumbing)"
     );
     let css = media_file("infoview.css");
     assert!(
@@ -817,22 +854,24 @@ fn infoview_declaration_list_shows_types_and_jumps() {
         "the type hint must wrap (it was truncated before)"
     );
     assert!(
+        css.contains(".decl-line-hint"),
+        "the line hint must be styled small/dim via .decl-line-hint"
+    );
+    assert!(
         !css.contains("text-overflow: ellipsis"),
         "the type hint must no longer be ellipsised"
     );
     let script = entry_script();
-    // The webview has focus on click, so `activeTextEditor` is undefined:
-    // the jump must resolve the document from the message uri.
     assert!(
-        script.contains("jumpToRange") && script.contains("visibleTextEditors"),
-        "the host must jump via the message uri, not activeTextEditor"
+        !script.contains("jumpToRange") && !script.contains("focusExercise"),
+        "the host must not keep the removed click-to-jump plumbing"
     );
 }
 
 #[test]
 fn infoview_message_protocol_matches_design() {
     // Protocol table (docs/design/webview-infoview.md §3): host → webview
-    // state/decls/server/theme; webview → host ready/reveal/focusExercise.
+    // state/decls/status/server/theme; webview → host ready/reveal.
     // Cursor moves post only `state` (decls follows diagnostics/file change),
     // the view releases hidden context, and the client still consumes
     // soko/stateAt / soko/version.
@@ -842,11 +881,11 @@ fn infoview_message_protocol_matches_design() {
         "INFOVIEW_PROTOCOL",
         "\"state\"",
         "\"decls\"",
+        "\"status\"",
         "\"server\"",
         "\"theme\"",
         "\"ready\"",
         "\"reveal\"",
-        "\"focusExercise\"",
     ] {
         assert!(
             script.contains(needle),
@@ -856,17 +895,21 @@ fn infoview_message_protocol_matches_design() {
     for needle in [
         "\"state\"",
         "\"decls\"",
+        "\"status\"",
         "\"server\"",
         "\"theme\"",
         "\"ready\"",
         "\"reveal\"",
-        "\"focusExercise\"",
     ] {
         assert!(
             webview.contains(needle),
             "media/infoview.js must handle the Infoview message {needle}"
         );
     }
+    assert!(
+        !script.contains("focusExercise") && !webview.contains("focusExercise"),
+        "the click-to-jump focusExercise message must be gone from both sides"
+    );
     assert!(
         script.contains("retainContextWhenHidden: false"),
         "the Infoview must release hidden context (retainContextWhenHidden: false)"
@@ -931,6 +974,56 @@ fn alternation_words(grammar: &Value, rule: &str) -> Vec<String> {
     words
 }
 
+fn collect_scope_names(value: &Value, out: &mut Vec<String>) {
+    match value {
+        Value::Object(map) => {
+            for (key, val) in map {
+                if key == "name" {
+                    if let Some(scope) = val.as_str() {
+                        out.push(scope.to_string());
+                    }
+                } else {
+                    collect_scope_names(val, out);
+                }
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                collect_scope_names(item, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+#[test]
+fn tm_grammar_declares_every_semantic_scope() {
+    // docs/design/goal-rendering.md §2.2/§7: `front::semantic` is the single
+    // classification source, so the TM grammar (used by hover/Infoview fences)
+    // must actually emit every canonical `SemanticKind::tm_scope()`. A kind
+    // whose scope has no rule would render uncoloured in fences while the
+    // editor's semantic tokens coloured it — silent drift, caught here.
+    let raw = fs::read_to_string(
+        vscode_dir()
+            .join("syntaxes")
+            .join("sokonanoda.tmLanguage.json"),
+    )
+    .expect("syntaxes/sokonanoda.tmLanguage.json");
+    let grammar: Value = serde_json::from_str(&raw).expect("grammar is valid JSON");
+
+    let mut names = Vec::new();
+    collect_scope_names(&grammar, &mut names);
+
+    for kind in sokonanoda_front::semantic::SemanticKind::ALL {
+        let scope = kind.tm_scope();
+        assert!(
+            names.iter().any(|name| name == scope),
+            "syntaxes/sokonanoda.tmLanguage.json must emit `{scope}` for \
+             SemanticKind::{kind:?} (front::semantic is the single source)"
+        );
+    }
+}
+
 #[test]
 fn tm_grammar_keywords_follow_the_single_source() {
     // docs/design/goal-rendering.md §2.2/§7: hover colours its code fence with
@@ -968,5 +1061,128 @@ fn tm_grammar_keywords_follow_the_single_source() {
     assert_eq!(
         actual, expected,
         "the TM grammar word lists must mirror front::semantic (keywords + sorts + forall)"
+    );
+}
+
+#[test]
+fn tm_grammar_enriches_declarations_constructors_and_variables() {
+    // Hover highlighting (docs/design/goal-rendering.md §7): beyond the pinned
+    // keyword/sort word lists, the grammar must enrich declaration names,
+    // constructors/constants, holes/operators and variables so a fenced
+    // `sokonanoda` block is not flat. This is the "hover looks like the editor"
+    // half of the single source; the word-list equality is pinned separately.
+    let raw = fs::read_to_string(
+        vscode_dir()
+            .join("syntaxes")
+            .join("sokonanoda.tmLanguage.json"),
+    )
+    .expect("syntaxes/sokonanoda.tmLanguage.json");
+    let grammar: Value = serde_json::from_str(&raw).expect("grammar is valid JSON");
+    for rule in [
+        "declarations",
+        "constructors",
+        "constants",
+        "variables",
+        "operators",
+        "holes",
+    ] {
+        assert!(
+            grammar["repository"][rule].is_object(),
+            "grammar repository must define the enriched `{rule}` rule"
+        );
+    }
+    assert!(
+        grammar["repository"]["declarations"]["captures"].is_object(),
+        "the `declarations` rule must carry captures (keyword + entity name)"
+    );
+}
+
+#[test]
+fn infoview_provider_is_registered_before_the_server_resolution_await() {
+    // Root cause of the blank/late Infoview: `activate` used to `await
+    // resolveServerForStart` (filesystem probing, and a download on unbundled
+    // platforms) *before* `registerWebviewViewProvider`. VS Code registers
+    // extension view containers with `hideIfEmpty`, so with no provider the
+    // panel was blank/absent until a side-bar toggle re-triggered resolution
+    // and the late registration made it "suddenly appear". Registration must be
+    // synchronous and textually precede the first `await resolveServerForStart`.
+    let script = entry_script();
+    let start = script
+        .find("async function activate(context)")
+        .expect("extension.js must define activate");
+    let body = &script[start..];
+    let register = body
+        .find("registerWebviewViewProvider")
+        .expect("activate must register the Infoview provider");
+    let resolve = body
+        .find("await resolveServerForStart")
+        .expect("the async continuation must still resolve the server");
+    assert!(
+        register < resolve,
+        "registerWebviewViewProvider must run before `await resolveServerForStart`"
+    );
+    // The slow work must be a fire-and-forget continuation, never blocking the
+    // view: the resolver lives inside an async continuation with a `.catch`.
+    assert!(
+        body.contains("})().catch"),
+        "activation must fire-and-forget the async server startup with a .catch"
+    );
+}
+
+#[test]
+fn open_infoview_reveals_the_auxiliary_bar_then_container_then_view() {
+    // A view whose container is hidden cannot be focused: `openInfoview` must
+    // first show the auxiliary bar (`hideIfEmpty` containers need it), then
+    // reveal the `sokonanoda` container, then focus the view — in that order
+    // (docs/design/goal-rendering.md §2.3).
+    let script = entry_script();
+    let start = script
+        .find("async function openInfoview()")
+        .expect("extension.js must define openInfoview");
+    let body = &script[start..];
+    let aux = body
+        .find("workbench.action.focusAuxiliaryBar")
+        .expect("openInfoview must show the auxiliary bar first");
+    let container = body
+        .find("workbench.view.extension.sokonanoda")
+        .expect("openInfoview must reveal the sokonanoda container");
+    let view = body
+        .find("sokonanoda.infoview.focus")
+        .expect("openInfoview must focus the Infoview view");
+    assert!(
+        aux < container && container < view,
+        "openInfoview must issue focusAuxiliaryBar -> view.extension.sokonanoda -> infoview.focus, in order"
+    );
+}
+
+#[test]
+fn infoview_webview_renders_a_status_skeleton_and_handles_status() {
+    // Feedback UX: the webview must never be a silent blank. It renders a
+    // skeleton on load and consumes the host `status` message for progress.
+    let webview = media_file("infoview.js");
+    for needle in ["正在渲染…", "等待编译…"] {
+        assert!(
+            webview.contains(needle),
+            "media/infoview.js must render the on-load skeleton placeholder `{needle}`"
+        );
+    }
+    for needle in ["\"status\"", "编译中…", "已就绪", "等待 .sokonanoda 文件"] {
+        assert!(
+            webview.contains(needle),
+            "media/infoview.js must handle `status` ({needle})"
+        );
+    }
+    // The host posts `status`: loading when the soko/goals fetch starts, ready
+    // with the declaration count when it completes.
+    let script = entry_script();
+    assert!(
+        script.contains("\"status\"")
+            && script.contains("state: \"loading\"")
+            && script.contains("decls: decls.length"),
+        "extension.js must post status loading at fetch start and ready with the decl count"
+    );
+    assert!(
+        script.contains("\"idle\" : \"ready\""),
+        "extension.js must distinguish the no-document `idle` state from `ready`"
     );
 }

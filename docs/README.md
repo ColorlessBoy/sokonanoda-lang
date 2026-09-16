@@ -59,6 +59,7 @@
 - `elaborator-let-match.md` — elaborator `let`（Phase 1）/ `match`（Phase 2）设计（I6）
 - `spine-meta-a.md` — refine 子洞的 kernel 级期望类型（方案 A，I9 余项）
 - `webview-infoview.md` — VS Code webview goal 面板（方案 B）
+- `highlighting.md` — 高亮分类单一起源（kind→TM scope/CSS/LSP token 表 + 平台限制，0.49.0）
 - `compile-cache.md` — 编译结果落盘缓存（olean 式，LSP 打开免重编，0.48.0）
 - `goal-rendering.md` — 统一 goal 呈现（结构化 tag + 单一分类源）+ Infoview 落右侧 + fallback 修复（设计）
 - `match-patterns.md` — `match` 模式编译器（通配/嵌套/Nat 字面量/Bool 守卫，0.42.0）

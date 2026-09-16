@@ -34,6 +34,23 @@ body {
   color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #89d185));
 }
 
+/* Host progress line (`status`): the panel is never blank while data is
+ * being computed. `ready` is the normal resting state. */
+.status-line {
+  margin-bottom: 8px;
+  font-size: 0.85em;
+  opacity: 0.9;
+}
+
+.status-loading {
+  color: var(--vscode-descriptionForeground);
+}
+
+.status-idle {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+}
+
 .section {
   margin-bottom: 12px;
 }
@@ -193,6 +210,7 @@ body {
   gap: 2px;
 }
 
+/* Plain, non-interactive row (no hover/cursor: it is not a button). */
 .decl {
   display: block;
   width: 100%;
@@ -203,18 +221,21 @@ body {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 3px;
-  cursor: pointer;
-}
-
-.decl:hover {
-  background: var(--vscode-list-hoverBackground);
 }
 
 .decl-head {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: baseline;
+}
+
+/* 1-based source line hint (`L12`): small and dim, pushed to the right. */
+.decl-line-hint {
+  margin-left: auto;
+  font-size: 0.72em;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
 }
 
 /* The declaration's type: small, dim, monospace, one line with ellipsis so the

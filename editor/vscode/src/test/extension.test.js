@@ -300,12 +300,24 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   test("infoview command is registered and revealable", async () => {
     // 冒烟（docs/design/webview-infoview.md §8）：命令存在，聚焦 webview 不抛。
     // webview 本身由真实宿主渲染，这里只验证接线；数据/渲染由静态契约守护。
+    // openInfoview 依次走 auxiliary bar / 容器 / view 三个命令——它们必须都
+    // 已注册且可执行，否则「打不开面板」只会静默失败。
     const commands = await vscode.commands.getCommands(true);
     assert.ok(
       commands.includes("sokonanoda.openInfoview"),
       "sokonanoda.openInfoview must be registered",
     );
+    assert.ok(
+      commands.includes("workbench.view.extension.sokonanoda"),
+      "the sokonanoda container reveal command must be available",
+    );
+    assert.ok(
+      commands.includes("sokonanoda.infoview.focus"),
+      "the sokonanoda.infoview focus command must be available",
+    );
     await vscode.commands.executeCommand("sokonanoda.openInfoview");
+    await vscode.commands.executeCommand("workbench.view.extension.sokonanoda");
+    await vscode.commands.executeCommand("sokonanoda.infoview.focus");
   });
 
   test("doctor command returns a read-only source + version report", async () => {

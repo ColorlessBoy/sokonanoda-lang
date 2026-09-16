@@ -3,8 +3,9 @@
 use super::error::CompileError;
 use super::warning::CompileWarning;
 use crate::Span;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CheckEvent {
     DeclarationChecked { name: String },
     ExampleChecked,
@@ -15,13 +16,13 @@ pub enum CheckEvent {
 }
 
 /// 一次编译的性能计数（I8 增量的可验证性：改第 i 个声明只内核重查后缀）。
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompileStats {
     /// `try_check_declar` 的实际调用次数（受信任前缀不计入）。
     pub kernel_checks: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct CompileOutput {
     pub events: Vec<CheckEvent>,
     pub errors: Vec<CompileError>,

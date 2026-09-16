@@ -1,3 +1,32 @@
+## [0.49.0] - 2026-09-15
+
+### Added
+
+- **`sokonanoda build`** — compile files (or a directory) and persist the kernel
+  artifacts in a shared, content-addressed cache, so later opens/builds skip
+  recompiling. `--clean` clears it, `--json` reports hit/compiled/failed. The
+  course view and `sokonanoda --json` now reuse the same cache. Design:
+  `docs/design/compile-cache.md`.
+
+### Fixed
+
+- **Infoview panel is now reliably visible**: the view no longer carries a
+  `when` clause (VS Code hides an *empty* extension container, which is why it
+  "couldn't be popped open"), the extension is activated `onView`, and the host
+  registers the webview provider **before** the (possibly slow) server
+  resolution, which is what made the panel appear only after toggling the side
+  bar. `sokonanoda: 打开目标面板` also opens the auxiliary bar.
+- **The panel never shows a silent blank**: it renders a skeleton on load and a
+  live status line (`编译中…` / `已就绪 · N 个声明` / `等待 .sokonanoda 文件`).
+- **Declaration rows** no longer pretend to jump (it did not work reliably);
+  each now shows the declaration's line number (`L12`) in small text next to the
+  name, plus its type.
+- **One highlighting source**: hover goal text is now the projection of the same
+  semantic runs as the Infoview, and `SemanticKind` maps to TextMate scopes, CSS
+  classes and LSP token types from a single table guarded by exhaustive tests.
+  See `docs/design/highlighting.md` (markdown can only be TextMate-coloured, so
+  hover and Infoview colours are close but not identical by design).
+
 ## [0.48.0] - 2026-09-15
 
 ### Added

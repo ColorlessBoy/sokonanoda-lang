@@ -22,8 +22,6 @@ mod render;
 #[cfg(test)]
 mod testutil;
 
-mod cache;
-
 use actions::hole_range;
 use render::{
     bracket_hover, decl_at, decl_name, definition_at, diagnostic_from_compile,
@@ -31,6 +29,7 @@ use render::{
     semantic_kind_at, status_label, symbol_kind,
 };
 use serde::{Deserialize, Serialize};
+use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
     prelude_mode_from_source, ByStepState, CompileOptions, DeclState, DeclStatus, DocumentReport,
     GoalBinder, HoverType, PreludeMode,
@@ -229,17 +228,27 @@ impl Backend {
                 doc.session = Session::new(CompileOptions { prelude: mode });
                 doc.mode = mode;
             }
+            let options = CompileOptions { prelude: mode };
             let lsp_version = version.unwrap_or(0).max(0) as u64;
-            // Persistent compile cache (olean-like): identical
-            // (compiler version, prelude mode, text) reuses the kernel's report
-            // instead of recompiling. A miss compiles and stores the report.
-            let key = cache::key(env!("CARGO_PKG_VERSION"), mode == PreludeMode::Bare, &text);
-            if let Some(report) = cache::load(&key) {
+            // Shared persistent compile cache (`front::compile::cache`): the LSP
+            // and the CLI read/write the *same* on-disk entries, so warming the
+            // cache once (`sokonanoda build`, a prior `check`/`course`) also
+            // warms the editor. A hit only replays a report the kernel already
+            // produced for exactly this (compiler version, build, prelude mode,
+            // text) — nothing is ever *inferred* from the cache. Unit tests skip
+            // it (`cfg!(test)`), matching the CLI's policy, so `cargo test` never
+            // touches the developer's real cache.
+            let cached = if cfg!(test) {
+                None
+            } else {
+                cache::load(&text, &options)
+            };
+            if let Some(entry) = cached {
                 doc.text = text;
                 doc.version = version.unwrap_or(doc.version);
                 doc.parse_error = None;
-                let diagnostics = report_diagnostics(&report);
-                doc.report = Some(report);
+                let diagnostics = report_diagnostics(&entry.report);
+                doc.report = Some(entry.report);
                 diagnostics
             } else {
                 let update = doc.session.update(&text, lsp_version);
@@ -256,7 +265,16 @@ impl Backend {
                         doc.parse_error = None;
                         let report = update.report;
                         let diagnostics = report_diagnostics(&report);
-                        cache::store(&key, &report);
+                        if !cfg!(test) {
+                            cache::store(
+                                &doc.text,
+                                &options,
+                                &CachedCompile {
+                                    report: report.clone(),
+                                    output: None,
+                                },
+                            );
+                        }
                         doc.report = Some(report);
                         diagnostics
                     }
@@ -782,7 +800,12 @@ fn range_start_offset(text: &str, range: &Range) -> usize {
 /// already records (`by_steps`) — no re-check, no text scan. The whole tactic
 /// span is the trigger; the goal view's hypotheses make term hovers redundant
 /// inside it.
-fn tactic_goal_hover(report: &DocumentReport, text: &str, offset: usize) -> Option<Hover> {
+fn tactic_goal_hover(
+    report: &DocumentReport,
+    text: &str,
+    offset: usize,
+    decls: &[(String, SemanticKind)],
+) -> Option<Hover> {
     let d = report
         .decls
         .iter()
@@ -820,12 +843,8 @@ fn tactic_goal_hover(report: &DocumentReport, text: &str, offset: usize) -> Opti
             if n > 1 {
                 value.push_str(&format!("**目标 {}/{}**\n", i + 1, n));
             }
-            value.push_str("```sokonanoda\n");
-            for binder in &goal.binders {
-                value.push_str(&format!("{} : {}\n", binder.name, binder.ty));
-            }
-            value.push_str(&format!("⊢ {}\n", goal.ty));
-            value.push_str("```\n");
+            value.push_str(&goal_block(decls, &goal.binders, &goal.ty));
+            value.push('\n');
         }
     }
     Some(Hover {
@@ -889,14 +908,17 @@ fn code_block(text: &str) -> String {
 }
 
 /// Render a goal state (hypotheses + `⊢ goal`) as one `sokonanoda` code block —
-/// the same line model as the tactic hover and the Infoview.
-fn goal_block(binders: &[GoalBinder], goal: &str) -> String {
-    let mut body = String::new();
-    for binder in binders {
-        body.push_str(&format!("{} : {}\n", binder.name, binder.ty));
-    }
-    body.push_str(&format!("⊢ {goal}"));
-    code_block(&body)
+/// the same line model as the tactic hover and the Infoview. The fence text is
+/// the **text projection of the front goal runs** ([`goal_runs`] +
+/// [`runs_to_text`]), i.e. exactly the block the Infoview colours from the
+/// `soko/stateAt` `ty_runs`/`goal_runs`, so the two can never drift.
+fn goal_block(decls: &[(String, SemanticKind)], binders: &[GoalBinder], goal: &str) -> String {
+    let hyps: Vec<(String, String)> = binders
+        .iter()
+        .map(|b| (b.name.clone(), b.ty.clone()))
+        .collect();
+    let runs = sokonanoda_front::semantic::goal_runs(&hyps, goal, decls);
+    code_block(&sokonanoda_front::semantic::runs_to_text(&runs))
 }
 
 /// Build an LSP `Hover` from a resolved expression hover, carrying the
@@ -922,6 +944,7 @@ fn half_expression_goals_hover(
     report: &DocumentReport,
     text: &str,
     offset: usize,
+    decls: &[(String, SemanticKind)],
 ) -> Option<Hover> {
     use sokonanoda_front::compile::CompileOptions;
     use sokonanoda_front::proof::{parse_expr_text, peel_pi_layers, render_expr};
@@ -1033,7 +1056,10 @@ fn half_expression_goals_hover(
     let goal_block = code_block(
         &goals
             .iter()
-            .map(|g| format!("⊢ {g}"))
+            .map(|g| {
+                let runs = sokonanoda_front::semantic::goal_runs(&[], g, decls);
+                sokonanoda_front::semantic::runs_to_text(&runs)
+            })
             .collect::<Vec<_>>()
             .join("\n"),
     );
@@ -1151,15 +1177,18 @@ impl LanguageServer for Backend {
         let report = &report;
         let pos = params.text_document_position_params.position;
         let offset = position_to_offset(&doc.text, pos);
+        // Declaration table computed once per hover request and reused by every
+        // goal-block builder below (front goal runs need it for classification).
+        let decls = sokonanoda_front::semantic::declaration_kinds(&doc.text);
         // `by` tactic hover: show the goal state entering the tactic under the
         // cursor (Lean Infoview-style, user request). Before keyword suppression
         // below, because tactic words (intro/exact/…) are keywords.
-        if let Some(hover) = tactic_goal_hover(report, &doc.text, offset) {
+        if let Some(hover) = tactic_goal_hover(report, &doc.text, offset, &decls) {
             return Ok(Some(hover));
         }
         // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。
         // 只在 hover 请求时计算（不在按键路径），judge_infer 有缓存。
-        if let Some(hover) = half_expression_goals_hover(report, &doc.text, offset) {
+        if let Some(hover) = half_expression_goals_hover(report, &doc.text, offset, &decls) {
             return Ok(Some(hover));
         }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
@@ -1229,10 +1258,13 @@ impl LanguageServer for Backend {
                         (Some(goal), Some(sg)) if sg.ty.is_some() => value.push_str(&format!(
                             "\n此处 `sorry` 的期望类型：\n{}\n\n剩余目标：\n{}",
                             code_block(sg.ty.as_deref().unwrap_or_default()),
-                            goal_block(&d.binders, goal)
+                            goal_block(&decls, &d.binders, goal)
                         )),
                         (Some(goal), _) => {
-                            value.push_str(&format!("\n目标：\n{}", goal_block(&d.binders, goal)));
+                            value.push_str(&format!(
+                                "\n目标：\n{}",
+                                goal_block(&decls, &d.binders, goal)
+                            ));
                         }
                         (None, _) => value.push_str("\n待作答"),
                     }
@@ -2296,6 +2328,21 @@ mod tests {
 
     // F8 语义着色：能力 + UTF-16 编码 + 端到端分类。
 
+    #[test]
+    fn every_semantic_kind_maps_to_a_legend_entry() {
+        // `token_type_index` has an `.expect`, but make the totality explicit:
+        // every `SemanticKind::ALL` value resolves to an index inside the legend.
+        let legend = semantic_token_types();
+        for kind in SemanticKind::ALL {
+            let index = token_type_index(*kind) as usize;
+            assert!(
+                index < legend.len(),
+                "{kind:?} maps out of the legend (index {index}, len {})",
+                legend.len()
+            );
+        }
+    }
+
     /// 把相对 delta 编码还原成绝对 (line, start_utf16, length, token_type)。
     /// 解码逻辑独立实现（按 LSP 规范），用来交叉检验编码器。
     fn absolutize(tokens: &[SemanticToken]) -> Vec<(u32, u32, u32, SemanticTokenType)> {
@@ -2687,6 +2734,44 @@ mod tests {
             .iter()
             .filter_map(|run| run["kind"].as_str())
             .collect()
+    }
+
+    #[tokio::test]
+    async fn hover_goal_text_equals_the_state_at_run_projection() {
+        // One content producer (docs/design/goal-rendering.md §2.1): the hover's
+        // `sokonanoda` fence text must be the text projection of the very runs
+        // `soko/stateAt` hands the Infoview (`goals[].binders[].ty_runs` +
+        // `goals[].goal_runs`), so hover and Infoview can never drift.
+        let (mut service, mut socket) = test_service();
+        handshake(&mut service).await;
+        did_open(&mut service, BY_OPEN).await;
+        let _ = wait_diagnostics(&mut socket, "stateAt diagnostics").await;
+
+        let at = offset_of(BY_OPEN, "intro h");
+        let state = ask_state_at(&mut service, BY_OPEN, at).await;
+        let goals = state["goals"].as_array().expect("goals array");
+        assert!(!goals.is_empty(), "entering `intro h` has an open goal");
+        let mut projected = Vec::new();
+        for goal in goals {
+            let mut block = String::new();
+            for binder in goal["binders"].as_array().expect("binders array") {
+                block.push_str(binder["name"].as_str().expect("binder name"));
+                block.push_str(" : ");
+                block.push_str(&reconstruct_runs(&binder["ty_runs"]));
+                block.push('\n');
+            }
+            block.push_str("⊢ ");
+            block.push_str(&reconstruct_runs(&goal["goal_runs"]));
+            projected.push(block);
+        }
+        let markup = hover_markup_at(&mut service, BY_OPEN, at).await;
+        for block in &projected {
+            assert!(
+                markup.contains(block.as_str()),
+                "hover must contain the stateAt projection:\nhover={markup:?}\nblock={block:?}"
+            );
+        }
+        shutdown(&mut service).await;
     }
 
     #[tokio::test]

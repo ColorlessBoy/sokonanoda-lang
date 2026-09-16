@@ -186,7 +186,7 @@ class GoalsTreeDataProvider {
     this.declItems = undefined; // cached decl TreeItems from the last soko/goals
     this.onDecls = undefined; // (decls, uri) => void — feeds the Infoview decls message
     this.onState = undefined; // (uri, state) => void — feeds the Infoview state message
-    this.treeView = undefined; // set by activate, for focusExercise reveal
+    this.onStatus = undefined; // (status) => void — feeds the Infoview status message
   }
 
   // Full reload: the declarations themselves changed (new diagnostics or a
@@ -291,18 +291,14 @@ class GoalsTreeDataProvider {
     if (!this.declItems) await this.loadDeclarations();
   }
 
-  // `focusExercise` from the Infoview: reveal + expand the declaration node in
-  // the 练习 tree. Declarations come from `soko/goals` — never scan the source.
-  async focusDeclaration(name) {
-    if (!this.declItems) await this.ensureDeclarations();
-    const item = (this.declItems ?? []).find((entry) => entry.label === name);
-    if (!item || !this.treeView) return;
-    await this.treeView.reveal(item, { select: true, focus: true, expand: true });
-  }
-
   // Fetch `soko/goals` once per document/diagnostics version and cache the
   // built TreeItems; cursor movement reuses them (see `refreshCursor`).
   async loadDeclarations() {
+    // Feedback UX: tell the Infoview a fetch is in flight (host → webview
+    // `status`), then the resulting declaration count (or `idle` without a
+    // document). `soko/goals` is the only slow step in this path.
+    if (this.uri === undefined) this.onStatus?.({ state: "idle" });
+    else this.onStatus?.({ state: "loading" });
     const response = await this.requestGoals();
     const decls = response?.decls ?? [];
     this.openCount = decls.filter((d) => d.status === "open").length;
@@ -330,32 +326,11 @@ class GoalsTreeDataProvider {
       return item;
     });
     this.onDecls?.(decls, this.uri);
+    this.onStatus?.({
+      state: this.uri === undefined ? "idle" : "ready",
+      decls: decls.length,
+    });
   }
-}
-
-// Move the editor to `range` in `uriString` — `activeTextEditor` is undefined
-// while the Infoview webview has focus, so resolve the document explicitly
-// (already-open editors first, then open it).
-async function jumpToRange(uriString, range) {
-  if (!uriString || !range || !range.start || !range.end) return;
-  let editor = vscode.window.visibleTextEditors.find(
-    (e) => e.document.uri.toString() === uriString,
-  );
-  if (!editor) {
-    try {
-      const doc = await vscode.workspace.openTextDocument(vscode.Uri.parse(uriString));
-      editor = await vscode.window.showTextDocument(doc, { preview: false });
-    } catch {
-      return;
-    }
-  }
-  const start = new vscode.Position(range.start.line, range.start.character);
-  const end = new vscode.Position(range.end.line, range.end.character);
-  editor.selection = new vscode.Selection(start, start);
-  editor.revealRange(
-    new vscode.Range(start, end),
-    vscode.TextEditorRevealType.InCenterIfOutsideViewport,
-  );
 }
 
 // Every place the extension renders `.sokonanoda` text uses the same language
@@ -524,7 +499,7 @@ class InfoviewProvider {
     this._ready = false;
     this._lastState = undefined; // {uri, state} — replayed when the view returns
     this._lastDecls = undefined; // last soko/goals decls (cursor moves don't touch it)
-    this._lastDeclsUri = undefined; // document the decls belong to (click-to-jump)
+    this._lastStatus = undefined; // last {state, decls?} progress snapshot
   }
 
   resolveWebviewView(view) {
@@ -579,11 +554,18 @@ class InfoviewProvider {
     this._post(Object.assign({ type: "state", uri }, state));
   }
 
-  setDecls(decls, uri) {
+  setDecls(decls) {
     this._lastDecls = decls;
-    if (uri !== undefined) this._lastDeclsUri = uri;
     if (!this._view || !this._ready) return;
-    this._post({ type: "decls", decls, uri: this._lastDeclsUri });
+    this._post({ type: "decls", decls });
+  }
+
+  // Progress/feedback snapshot (host → webview `status`): the webview shows a
+  // skeleton until the first one arrives, so the panel is never silently blank.
+  setStatus(status) {
+    this._lastStatus = status;
+    if (!this._view || !this._ready) return;
+    this._post(Object.assign({ type: "status" }, status));
   }
 
   postTheme() {
@@ -606,13 +588,6 @@ class InfoviewProvider {
           );
         }
         break;
-      case "focusExercise":
-        if (typeof message.name === "string") {
-          await this._treeProvider.focusDeclaration(message.name);
-          await jumpToRange(message.uri, message.range);
-          await vscode.commands.executeCommand("sokonanoda.goals.focus");
-        }
-        break;
     }
   }
 
@@ -621,7 +596,8 @@ class InfoviewProvider {
     this.postTheme();
     this._pushDecls();
     this._pushState();
-    this._pushServer();
+    this.postStatus();
+    this.postServer();
   }
 
   _pushState() {
@@ -632,10 +608,23 @@ class InfoviewProvider {
 
   _pushDecls() {
     if (this._lastDecls !== undefined) {
-      this._post({ type: "decls", decls: this._lastDecls, uri: this._lastDeclsUri });
+      this._post({ type: "decls", decls: this._lastDecls });
     } else {
       this._treeProvider.ensureDeclarations().catch(() => {});
     }
+  }
+
+  // Replay the last status snapshot; before any snapshot the webview keeps its
+  // own `正在渲染…` skeleton.
+  postStatus() {
+    if (this._lastStatus === undefined) return;
+    this._post(Object.assign({ type: "status" }, this._lastStatus));
+  }
+
+  // Public (fire-and-forget) server snapshot, used by activation to move the
+  // panel's server line from "启动中…" to the resolved {version, pid}.
+  postServer() {
+    this._pushServer();
   }
 
   async _pushServer() {
@@ -651,16 +640,20 @@ class InfoviewProvider {
 // handshake to wait for and nothing to report: an unavailable webview degrades
 // silently to the tree's 「当前光标处」 group (§2.4).
 async function openInfoview() {
-  try {
-    await vscode.commands.executeCommand("workbench.view.extension.sokonanoda");
-  } catch {
-    // Older/headless hosts may not expose the container command; the view
-    // focus below still works when the view is already known.
-  }
-  try {
-    await vscode.commands.executeCommand("sokonanoda.infoview.focus");
-  } catch {
-    // Best-effort: falling back to the tree is the documented behaviour.
+  // The Infoview lives in the `sokonanoda` container on the right (secondary
+  // side bar). Revealing it takes three best-effort steps: make sure the
+  // auxiliary bar is shown, reveal the container, then focus the view.
+  for (const command of [
+    "workbench.action.focusAuxiliaryBar",
+    "workbench.view.extension.sokonanoda",
+    "sokonanoda.infoview.focus",
+  ]) {
+    try {
+      await vscode.commands.executeCommand(command);
+    } catch {
+      // Older/headless hosts may not expose some of these; the tree's
+      // 「当前光标处」 group remains the fallback.
+    }
   }
 }
 
@@ -1285,27 +1278,16 @@ function registerCommands(context, provider, courseProvider) {
 async function activate(context) {
   extensionRoot = context.extensionPath;
 
-  // Resolve the server (bundled bin first; explicit path only with
-  // `serverOverride` on; version-pinned download fallback). Same path as
-  // `restart server`.
-  const resolution = await resolveServerForStart(context);
-  if (resolution === undefined) return;
-  const command = resolution.command;
-
-  serverOptions = {
-    run: { command, transport: TransportKind.stdio },
-    debug: { command, transport: TransportKind.stdio },
-  };
-  client = new LanguageClient("sokonanoda", "sokonanoda", serverOptions, {
-    documentSelector: [{ language: "sokonanoda", scheme: "file" }],
-    synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/*.sokonanoda") },
-  });
-  client.onDidChangeState((event) => {
-    client.outputChannel.appendLine(`[client] ${stateNames[event.newState] ?? event.newState}`);
-  });
-  context.subscriptions.push(client);
-
-  // 练习面板 + 状态栏（消费 soko/goals；诊断更新即刷新）。
+  // ORDER IS LOAD-BEARING — every view/command is registered *before the
+  // first `await`. VS Code registers extension view containers with
+  // `hideIfEmpty`: while `sokonanoda.infoview` has no provider the container
+  // has no visible view and is hidden, so the panel is blank and
+  // `openInfoview` does nothing. Resolving the server first (filesystem
+  // probing, and a download on unbundled platforms) used to delay
+  // `registerWebviewViewProvider`, and that late registration is what made the
+  // panel "suddenly appear" on a side-bar toggle. The slow server startup now
+  // runs in the async continuation at the bottom of this function, which posts
+  // `status` to the Infoview as it progresses.
   const provider = new GoalsTreeDataProvider();
   const tree = vscode.window.createTreeView("sokonanoda.goals", {
     treeDataProvider: provider,
@@ -1318,11 +1300,11 @@ async function activate(context) {
   // Infoview webview (方案 B): the tree fans its single soko/stateAt snapshot
   // and its soko/goals declaration list out to the webview. Hidden context is
   // released (`retainContextWhenHidden: false`); the provider caches the last
-  // state/decls and replays them on the next `ready` (docs/design §5).
+  // state/decls/status and replays them on the next `ready` (docs/design §5).
   const infoviewProvider = new InfoviewProvider(context.extensionUri, provider);
-  provider.onDecls = (decls, uri) => infoviewProvider.setDecls(decls, uri);
+  provider.onDecls = (decls) => infoviewProvider.setDecls(decls);
   provider.onState = (uriString, state) => infoviewProvider.setState(uriString, state);
-  provider.treeView = tree;
+  provider.onStatus = (status) => infoviewProvider.setStatus(status);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("sokonanoda.infoview", infoviewProvider, {
       webviewOptions: { retainContextWhenHidden: false },
@@ -1379,13 +1361,49 @@ async function activate(context) {
   registerCommands(context, provider, courseProvider);
   courseProvider.refresh();
 
-  await client.start();
-  client.outputChannel.appendLine(
-    `[client] ready — server synchronized over stdio: ${command} (source=${resolution.source ?? "?"})`,
-  );
-  // Auto-run the read-only doctor once, after the first soko/version exchange,
-  // so version/source problems surface without the user hunting for them.
-  await runDoctor(context, { notify: true, show: false });
+  // Async continuation (fire-and-forget): resolve + start the server without
+  // blocking the view. This is the only slow path — the UI is already live and
+  // the Infoview shows progress until the first snapshot arrives.
+  (async () => {
+    infoviewProvider.setStatus({ state: "loading" });
+    infoviewProvider.postServer(); // server not running yet -> "启动中"
+    const resolution = await resolveServerForStart(context);
+    if (resolution === undefined) {
+      infoviewProvider.setStatus({ state: "idle" });
+      infoviewProvider.postServer();
+      return;
+    }
+    const command = resolution.command;
+    serverOptions = {
+      run: { command, transport: TransportKind.stdio },
+      debug: { command, transport: TransportKind.stdio },
+    };
+    client = new LanguageClient("sokonanoda", "sokonanoda", serverOptions, {
+      documentSelector: [{ language: "sokonanoda", scheme: "file" }],
+      synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/*.sokonanoda") },
+    });
+    client.onDidChangeState((event) => {
+      client.outputChannel.appendLine(`[client] ${stateNames[event.newState] ?? event.newState}`);
+    });
+    context.subscriptions.push(client);
+    await client.start();
+    client.outputChannel.appendLine(
+      `[client] ready — server synchronized over stdio: ${command} (source=${resolution.source ?? "?"})`,
+    );
+    // Server is up: refresh the panel's server line and warm the decl list.
+    infoviewProvider.postServer();
+    provider.ensureDeclarations().catch(() => {});
+    // Auto-run the read-only doctor once, after the first soko/version
+    // exchange, so version/source problems surface without the user hunting.
+    await runDoctor(context, { notify: true, show: false });
+  })().catch((error) => {
+    console.error(`[sokonanoda] activation failed: ${error?.stack ?? error}`);
+    try {
+      infoviewProvider.setStatus({ state: "idle" });
+    } catch {
+      // the view may not exist in a headless host — best-effort only
+    }
+  });
 }
 
 async function deactivate() {

@@ -43,6 +43,18 @@ fn write_source(path: &Path, content: &str) {
     std::fs::write(path, content).expect("write source");
 }
 
+/// A unique, empty compile-cache dir per spawned watch process so a run never
+/// reads another test's entries (`SOKONANODA_CACHE_DIR`).
+fn cache_dir(tag: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-watch-cache-{tag}-{}-{}",
+        std::process::id(),
+        TEMP_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    dir
+}
+
 /// Atomically replace a file's contents so the poller never observes a
 /// truncated/partial document (a rename never leaves a half-written file).
 fn replace_source(path: &Path, content: &str) {
@@ -73,6 +85,7 @@ impl Watch {
     fn spawn_inner(args: &[&str], stdin: Stdio) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
             .args(args)
+            .env("SOKONANODA_CACHE_DIR", cache_dir("watch"))
             .stdin(stdin)
             .stdout(Stdio::piped())
             .stderr(Stdio::null())

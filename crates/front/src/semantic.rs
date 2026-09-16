@@ -98,6 +98,30 @@ impl SemanticKind {
         SemanticKind::UnknownIdent,
     ];
 
+    /// Canonical TextMate scope for this kind. Provenance for the editor's
+    /// `.tmLanguage.json` (and the hover/executable fences): the grammar must
+    /// contain a rule for every value here (test-locked to [`SemanticKind::ALL`]).
+    pub fn tm_scope(self) -> &'static str {
+        match self {
+            SemanticKind::Keyword => "keyword.other.sokonanoda",
+            SemanticKind::Sort | SemanticKind::InductiveName | SemanticKind::InductiveUse => {
+                "storage.type.sokonanoda"
+            }
+            SemanticKind::Number => "constant.numeric.sokonanoda",
+            SemanticKind::Hole => "markup.inserted.sokonanoda",
+            SemanticKind::DefName
+            | SemanticKind::DefUse
+            | SemanticKind::TheoremName
+            | SemanticKind::TheoremUse => "entity.name.function.sokonanoda",
+            SemanticKind::AxiomName
+            | SemanticKind::AxiomUse
+            | SemanticKind::CtorName
+            | SemanticKind::CtorUse => "entity.name.type.sokonanoda",
+            SemanticKind::Binder => "variable.parameter.sokonanoda",
+            SemanticKind::UnknownIdent => "variable.other.sokonanoda",
+        }
+    }
+
     /// Stable lowercase wire name (single source for `soko/*` tagged runs and
     /// any other client that colours from [`SemanticKind`]).
     pub fn as_str(self) -> &'static str {
@@ -216,6 +240,55 @@ pub fn tag_runs(text: &str, decls: &[(String, SemanticKind)], binders: &[String]
 /// call shape (it holds the document text, not a name table).
 pub fn tag_expr(text: &str, file_src: &str, binders: &[String]) -> Vec<Run> {
     tag_runs(text, &declaration_kinds(file_src), binders)
+}
+
+/// Plain-text projection of runs: concatenate their `text`. This is the bridge
+/// that keeps hover fence content identical to the Infoview's run rendering —
+/// the projection of a block's runs *is* the block text, so the hover and the
+/// `tok-*` spans can never drift (`docs/design/goal-rendering.md` §2.1).
+pub fn runs_to_text(runs: &[Run]) -> String {
+    runs.iter().map(|r| r.text.as_str()).collect()
+}
+
+/// Canonical goal-state text: `name : ty` per hypothesis (in order), then
+/// `⊢ goal`. The one line model shared by the hover's `sokonanoda` fence and
+/// the Infoview, so both render the same content.
+pub fn goal_text(binders: &[(String, String)], goal: &str) -> String {
+    let mut out = String::new();
+    for (name, ty) in binders {
+        out.push_str(name);
+        out.push_str(" : ");
+        out.push_str(ty);
+        out.push('\n');
+    }
+    out.push_str("⊢ ");
+    out.push_str(goal);
+    out
+}
+
+/// [`goal_text`] tagged with [`tag_runs`], with the hypothesis names as the
+/// binders in scope. The `⊢` turnstile is not a `.sokonanoda` token, so each
+/// hypothesis line and the goal are tagged separately and the turnstile is a
+/// plain run. Invariant: `runs_to_text(&goal_runs(..)) == goal_text(..)`, so a
+/// caller renders the block either as a `sokonanoda` fence (hover) or as
+/// `tok-*` spans (Infoview) without a second content producer.
+pub fn goal_runs(
+    binders: &[(String, String)],
+    goal: &str,
+    decls: &[(String, SemanticKind)],
+) -> Vec<Run> {
+    let names: Vec<String> = binders.iter().map(|(name, _)| name.clone()).collect();
+    let hyps: String = binders
+        .iter()
+        .map(|(name, ty)| format!("{name} : {ty}\n"))
+        .collect();
+    let mut runs = tag_runs(&hyps, decls, &names);
+    runs.push(Run {
+        text: "⊢ ".to_string(),
+        kind: None,
+    });
+    runs.extend(tag_runs(goal, decls, &names));
+    runs
 }
 
 /// 词法收集到的 token；出错时只保留出错点之前的干净前缀（丢弃 Eof）。
@@ -875,6 +948,96 @@ end
                 kind: None,
             }]
         );
+    }
+
+    // ---- tm_scope / runs_to_text / goal_runs: the canonical kind→scope
+    // table and the one goal-block content producer ----
+
+    #[test]
+    fn tm_scope_is_total() {
+        // Exact scope per kind, in `ALL` declaration order — locks the table so
+        // a new kind cannot silently land in the wrong TextMate group.
+        let expected = [
+            "keyword.other.sokonanoda",
+            "storage.type.sokonanoda",
+            "constant.numeric.sokonanoda",
+            "markup.inserted.sokonanoda",
+            "entity.name.function.sokonanoda",
+            "entity.name.function.sokonanoda",
+            "entity.name.type.sokonanoda",
+            "storage.type.sokonanoda",
+            "entity.name.type.sokonanoda",
+            "variable.parameter.sokonanoda",
+            "entity.name.function.sokonanoda",
+            "entity.name.function.sokonanoda",
+            "entity.name.type.sokonanoda",
+            "storage.type.sokonanoda",
+            "entity.name.type.sokonanoda",
+            "variable.other.sokonanoda",
+        ];
+        let got: Vec<&str> = SemanticKind::ALL.iter().map(|k| k.tm_scope()).collect();
+        assert_eq!(got, expected, "tm_scope table drifted from ALL");
+        // Total and namespaced: every kind has a non-empty `.sokonanoda` scope.
+        for (kind, scope) in SemanticKind::ALL.iter().zip(&got) {
+            assert!(!scope.is_empty(), "{kind:?} has an empty scope");
+            assert!(
+                scope.ends_with(".sokonanoda"),
+                "{kind:?} scope is not namespaced: {scope:?}"
+            );
+        }
+        // Unique where expected: the exact set of distinct scopes is the
+        // documented 8 groups (no accidental cross-group sharing).
+        let mut unique = got.clone();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), 8, "distinct tm_scope count: {unique:?}");
+    }
+
+    #[test]
+    fn runs_to_text_round_trips() {
+        // The projection of `tag_runs`'s output is exactly its input.
+        let decls = vec![("P".to_string(), SemanticKind::DefUse)];
+        let binders = vec!["x".to_string()];
+        for text in ["P -> Nat", "fun (x : Nat) => x", "Sort 1", "sorry -> P"] {
+            let runs = tag_runs(text, &decls, &binders);
+            assert_eq!(runs_to_text(&runs), text, "round trip of {text:?}");
+        }
+    }
+
+    #[test]
+    fn goal_runs_projects_to_hypothesis_lines_then_turnstile() {
+        let binders = vec![
+            ("a".to_string(), "Prop".to_string()),
+            ("h".to_string(), "And a a".to_string()),
+        ];
+        let text = goal_text(&binders, "a");
+        assert_eq!(text, "a : Prop\nh : And a a\n⊢ a");
+        let decls = vec![("And".to_string(), SemanticKind::AxiomUse)];
+        let runs = goal_runs(&binders, "a", &decls);
+        // The invariant that keeps hover and Infoview identical: the runs'
+        // text projection is the plain block text.
+        assert_eq!(runs_to_text(&runs), text);
+        // Same classification rules as the editor/wire: hypothesis names are
+        // binders (and so is the goal's `a`), `Prop` is a sort, `And` is the
+        // declared axiom.
+        let tagged = tagged(&runs);
+        assert!(tagged
+            .iter()
+            .any(|(t, k)| *t == "a" && *k == SemanticKind::Binder));
+        assert!(tagged
+            .iter()
+            .any(|(t, k)| *t == "Prop" && *k == SemanticKind::Sort));
+        assert!(tagged
+            .iter()
+            .any(|(t, k)| *t == "And" && *k == SemanticKind::AxiomUse));
+        // The turnstile stays a plain run (it is not a source token).
+        assert!(runs.iter().any(|r| r.kind.is_none() && r.text == "⊢ "));
+    }
+
+    #[test]
+    fn goal_runs_with_no_hypotheses_is_just_the_turnstile_goal() {
+        let runs = goal_runs(&[], "P -> P", &[]);
+        assert_eq!(runs_to_text(&runs), "⊢ P -> P");
     }
 
     #[test]

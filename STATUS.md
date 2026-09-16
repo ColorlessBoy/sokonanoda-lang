@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-15（第七十八轮：编译结果缓存 + Infoview 细节；0.48.0）
+> 快照：2026-09-15（第七十九轮：共享缓存+build / Infoview 稳定与反馈 / 高亮单一起源；0.49.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,37 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-15，第七十九轮：共享缓存 + `build` / Infoview 稳定与反馈 / 高亮单一起源）
+
+> 用户三轮反馈：(a) Infoview 面板"点几次才出现、很不稳定"，怀疑是编译卡住，要求
+> 面板 UI 必须保证出现、数据可显示"渲染中"/编译进度；(b) 去掉没生效的声明点击跳转，
+> 名字后加小字行号；(c) hover 的高亮与 Infoview 不一样、没有收拢。另要求
+> `sokonanoda build` 这类命令配合缓存。派出 5 个 subagent 分头实现（SA-1…SA-B）。
+
+1. **共享编译缓存（SA-1）**：缓存下沉到 `crates/front/src/compile/cache.rs`，
+   条目含 `report` + `output`；key = `CACHE_FORMAT|版本|二进制构建指纹|prelude 模式|源文本`；
+   `SOKONANODA_CACHE_DIR`/`SOKONANODA_NO_CACHE`；原子写；`compile_all_with` 一趟出两者。
+2. **`sokonanoda build`（SA-2）**：`build [--json] [--clean] [<file>|<dir>…]` 预热/清理
+   缓存并打印 hit/compiled/failed；`course` 与批量 `--json` 走 `compile_cached`
+   （冷热输出逐字节一致，有测试）；CLI 测试用临时 `SOKONANODA_CACHE_DIR` 隔离。
+3. **Infoview 稳定性根因（SA-3）**：视图原带 `when` + 扩展容器 `hideIfEmpty: true`
+   → 无激活 `.sokonanoda` 时容器整块隐藏；且 `activate()` **先 `await
+   resolveServerForStart` 才注册 provider** → 期间视图无 provider（"点几次才出现"）。
+   修：视图无 `when` + `visibility: visible`；`activationEvents` 加
+   `onView:sokonanoda.infoview`；provider/树**同步先注册**，慢解析后置并推 `status`；
+   `openInfoview` 先开辅助栏。契约测试锁死注册顺序。
+4. **UI 反馈（SA-3）**：webview 载入即骨架（`正在渲染…`），宿主推 `status`
+   （`编译中…`/`已就绪 · N 个声明`/`等待 .sokonanoda 文件`），绝不静默空白。
+5. **声明列表（SA-3）**：去掉点击跳转；名字后小字行号 `L<n>`（1-based）+ 类型提示。
+   新增 `editor/vscode/test-webview.js`（Node DOM shim 行为测试 8 项）并入 `test:unit`。
+6. **高亮单一起源（SA-A/SA-B）**：`SemanticKind::{ALL, as_str, tm_scope}` 唯一表；
+   `runs_to_text`/`goal_text`/`goal_runs` 单一文本生产者；hover 目标态改由 runs 投影
+   （不再手搓字符串）；TM 语法补齐 `variable.parameter` 等 scope；三处穷尽测试
+   （TM scope / CSS 类 / LSP legend）防漂移。设计 `docs/design/highlighting.md`，
+   并**写明平台限制**：markdown 只能 TM 着色 → 颜色近似而非全等。
+7. **验收**：`cargo test --workspace --locked` 全绿 + `sokonanoda gate` PASS；
+   `build` 冷/热/clean/目录/课程缓存冒烟通过；版本 0.48.0 → **0.49.0**。
 
 ## 本轮进度（2026-09-15，第七十八轮：编译结果缓存 + Infoview 细节）
 
@@ -56,23 +87,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 6. **测试/课程**：front +3、CLI +1；课程 unit5 带索引 Vec 节 + 练习 10
    （golden `(11,9,6)→(13,10,7)`、汇总 `checked 55→57 / open 42→43`）。
 7. **验收**：`sokonanoda gate` PASS；版本 0.46.0 → **0.47.0**（新语法 minor）。
-
-## 本轮进度（2026-09-15，第七十六轮：`match` 作为 tactic）
-
-> 续 HANDOVER §3 B / ROADMAP I6：`by` 块内可用 `match`（设计与白名单此前待定）。
-
-1. **tactic 集**：`by` 白名单加 `match`——`match c with | p => <项> …`，臂体是
-   **项**（同值位 match），以当前目标为期望类型判定，语义等价 `exact (match …)`；
-   `parse_tactic` 复用 `parse_match` + `tactic_keyword_ahead` 纳入 `match`。
-2. **judge 修复（根因）**：`judge_terms` 合成文件原 `src: String::new()`，
-   `command.span().start` 前缀切片为空 → `match` 的宇宙查询（`judge_infer` 看
-   不到 `Color` 等声明）失败，报 `elab-match-no-expected-type`。改为把真实
-   `prefix_src` 作为文件 `src`、合成声明 span 放到前缀之后。副产品：
-   `by exact match …` 也可用。
-3. **测试**：parser `match_is_a_tactic_in_a_by_block`（白名单 + 降到 Exact）；
-   front `by_block_with_match_tactic_checks` / `by_block_with_exact_match_checks`；
-   CLI `cli_by_match_tactic_checks_via_kernel`。
-4. **文档**：`by-tactics.md` §2 表 + 0.46.0 更新、architecture、TESTING。
-5. **验收**：`sokonanoda gate` PASS；版本 0.45.0 → **0.46.0**（新语法 minor）。
-   注：臂体是「项」；「每个臂里再写一串 tactic」是后续可选扩展（设计 §9 留白）。
 

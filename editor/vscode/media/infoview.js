@@ -20,8 +20,6 @@
   // host-side cursorRequestSeq).
   let lastUri;
   let lastVersion = -1;
-  // Document the declaration list belongs to (for click-to-jump).
-  let declsUri;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -71,6 +69,7 @@
   // -- static chrome -------------------------------------------------------
 
   const serverLine = el("div", "server-line");
+  const statusLine = el("div", "status-line");
   const goalsBox = section("目标");
   const goalsBody = el("div", "goals");
   goalsBox.appendChild(goalsBody);
@@ -80,8 +79,17 @@
 
   clear(root);
   root.appendChild(serverLine);
+  root.appendChild(statusLine);
   root.appendChild(goalsBox);
   root.appendChild(declsBox);
+
+  // Skeleton on load (user feedback): never a silent blank. The host replaces
+  // each placeholder as data arrives (`status`/`server`/`state`/`decls`).
+  statusLine.appendChild(el("span", "status", "正在渲染…"));
+  serverLine.appendChild(el("span", "dot", "○"));
+  serverLine.appendChild(el("span", null, " 语言服务器启动中…"));
+  goalsBody.appendChild(el("p", "empty", "等待编译…"));
+  declsBody.appendChild(el("p", "empty", "等待编译…"));
 
   // -- renderers -----------------------------------------------------------
 
@@ -98,25 +106,47 @@
     }
   }
 
+  // Host `status` message (never a silent blank): `loading` while a soko/goals
+  // fetch is in flight, `ready` with the declaration count once it lands, and
+  // `idle` when there is no `.sokonanoda` document yet.
+  function renderStatus(status) {
+    clear(statusLine);
+    const state = (status && status.state) || "idle";
+    let text;
+    if (state === "ready") {
+      const count = typeof status.decls === "number" ? status.decls : 0;
+      text = "已就绪 · " + count + " 个声明";
+    } else if (state === "loading") {
+      text = "编译中…";
+    } else {
+      text = "等待 .sokonanoda 文件";
+    }
+    statusLine.appendChild(el("span", "status status-" + state, text));
+  }
+
   function renderGoals(msg) {
     clear(goalsBody);
     const decl = msg.decl || null;
-    if (!decl) {
-      goalsBody.appendChild(el("p", "empty", "光标不在任何声明内。"));
-      return;
+    if (decl) {
+      const line = el("div", "decl-line");
+      line.appendChild(el("span", "decl-name", decl.name || "?"));
+      line.appendChild(el("span", "decl-kind", decl.kind || ""));
+      line.appendChild(el("span", "decl-status", decl.status || ""));
+      goalsBody.appendChild(line);
     }
-    const line = el("div", "decl-line");
-    line.appendChild(el("span", "decl-name", decl.name || "?"));
-    line.appendChild(el("span", "decl-kind", decl.kind || ""));
-    line.appendChild(el("span", "decl-status", decl.status || ""));
-    goalsBody.appendChild(line);
 
     const goals = Array.isArray(msg.goals) && msg.goals.length > 0
       ? msg.goals
-      : (msg.goal ? [{ goal: msg.goal, binders: msg.binders || [] }] : []);
+      : (msg.goal
+        ? [{ goal: msg.goal, goal_runs: msg.goal_runs, binders: msg.binders || [] }]
+        : []);
 
     if (goals.length === 0) {
-      goalsBody.appendChild(el("p", "solved", "已无目标 ✓"));
+      if (decl) {
+        goalsBody.appendChild(el("p", "solved", "已无目标 ✓"));
+      } else {
+        goalsBody.appendChild(el("p", "empty", "光标不在任何声明内。"));
+      }
     } else {
       goals.forEach(function (state, index) {
         const goal = el("div", "goal");
@@ -180,8 +210,20 @@
     renderGoals(msg);
   }
 
-  function renderDecls(decls, uri) {
-    declsUri = typeof uri === "string" ? uri : undefined;
+  // 1-based source line (`L12`) from the declaration's start position, or ""
+  // when the server did not send a range.
+  function declLineHint(decl) {
+    const line = decl && decl.range && decl.range.start
+      ? decl.range.start.line
+      : undefined;
+    return typeof line === "number" ? "L" + (line + 1) : "";
+  }
+
+  // Declaration rows are plain, **non-interactive** rows: `name · kind · line`
+  // with the line in small dim text, over the syntax-coloured type line. The
+  // webview is a read-only presentation layer now — no click, no postMessage
+  // (jumping is the tree's job), so a row can never be mistaken for a button.
+  function renderDecls(decls) {
     clear(declsBody);
     const list = Array.isArray(decls) ? decls : [];
     if (list.length === 0) {
@@ -190,24 +232,19 @@
     }
     list.forEach(function (decl) {
       const name = decl && decl.name ? decl.name : "?";
-      const button = el("button", "decl " + ((decl && decl.status) || ""));
-      button.type = "button";
+      const row = el("div", "decl " + ((decl && decl.status) || ""));
       const head = el("div", "decl-head");
       head.appendChild(el("span", "decl-name", name));
       head.appendChild(el("span", "decl-kind", (decl && decl.kind) || ""));
-      button.appendChild(head);
+      const hint = declLineHint(decl);
+      if (hint) head.appendChild(el("span", "decl-line-hint", hint));
+      row.appendChild(head);
       // The declaration's type as a small, dim, syntax-coloured hint
       // (docs/design/goal-rendering.md §2.1: same runs as the goal state).
       if (decl && Array.isArray(decl.ty_runs) && decl.ty_runs.length > 0) {
-        button.appendChild(codeBlock("decl-ty", decl.ty_runs, (decl && decl.ty) || ""));
+        row.appendChild(codeBlock("decl-ty", decl.ty_runs, (decl && decl.ty) || ""));
       }
-      button.addEventListener("click", function () {
-        const message = { protocol: PROTOCOL, type: "focusExercise", name: name };
-        if (decl && decl.range) message.range = decl.range;
-        if (declsUri) message.uri = declsUri;
-        vscode.postMessage(message);
-      });
-      declsBody.appendChild(button);
+      declsBody.appendChild(row);
     });
   }
 
@@ -225,7 +262,10 @@
         renderState(msg);
         break;
       case "decls":
-        renderDecls(msg.decls, msg.uri);
+        renderDecls(msg.decls);
+        break;
+      case "status":
+        renderStatus(msg);
         break;
       case "server":
         renderServer(msg);

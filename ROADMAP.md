@@ -434,7 +434,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
       三族）+ 内核冷路径消息增强（`got:` 渲染）+ `#check`/`#reduce` panic
       守卫（此前会崩掉编译/LSP 进程）。审计见 subagent 报告，分类器
       `front::error::refine_kernel_kind`。
-- [x] **呈现面高亮统一（✅ 0.43.0）**：表达式/签名 hover 的
+- [x] **呈现面高亮统一（✅ 0.43.0 围栏统一；✅ 0.49.0 分类/文本单一起源 `tm_scope`+runs 投影）**：表达式/签名 hover 的
       ` ```text ` 围栏改 ` ```sokonanoda `；声明 hover 内联签名、补全 detail/文档、
       诊断内嵌类型、hints/quick-fix 预览、练习树 tooltip 统一走 `front::semantic`
       （围栏或 runs）；见 `docs/HANDOVER.md §3 A″`、`docs/design/goal-rendering.md`。

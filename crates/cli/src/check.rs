@@ -1,11 +1,12 @@
 //! Batch checking: parse and compile a source, then report events or diagnostics.
 
 use crate::json_report::{print_json_line, report_json, span_json};
+use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
-    compile_fol_with, prelude_mode_from_source, CheckEvent, CompileOptions, CompileOutput,
-    PreludeMode,
+    compile_all_with, prelude_mode_from_source, CheckEvent, CompileOptions, CompileOutput,
+    DocumentReport, PreludeMode,
 };
-use sokonanoda_front::parse;
+use sokonanoda_front::{parse, FolFile};
 
 pub(crate) fn check_source(src: &str, label: &str, json: bool, bare: bool) -> bool {
     let file = match parse(src) {
@@ -41,13 +42,40 @@ pub(crate) fn check_source(src: &str, label: &str, json: bool, bare: bool) -> bo
         prelude_mode_from_source(src)
     };
     let options = CompileOptions { prelude };
-    let output = compile_fol_with(&file, &options);
+    let (output, _report) = compile_cached(&file, src, &options);
     if json {
         report_json(&output, src);
     } else {
         report_output(&output, src, 0);
     }
     output.errors.is_empty()
+}
+
+/// Compile `file` (parsed from `src`) through the shared persistent cache,
+/// returning the same `(CompileOutput, DocumentReport)` a cold
+/// `compile_all_with` would. A hit only ever replays a report the kernel
+/// produced for the exact same `(version, build, prelude mode, source)`, so
+/// event ordering and error/warning handling are unchanged.
+pub(crate) fn compile_cached(
+    file: &FolFile,
+    src: &str,
+    options: &CompileOptions,
+) -> (CompileOutput, DocumentReport) {
+    if let Some(entry) = cache::load(src, options) {
+        if let Some(output) = entry.output {
+            return (output, entry.report);
+        }
+    }
+    let (output, report) = compile_all_with(file, options);
+    cache::store(
+        src,
+        options,
+        &CachedCompile {
+            report: report.clone(),
+            output: Some(output.clone()),
+        },
+    );
+    (output, report)
 }
 
 pub(crate) fn report_output(output: &CompileOutput, src: &str, seen_events: usize) {

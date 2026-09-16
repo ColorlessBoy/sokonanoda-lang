@@ -5,15 +5,32 @@
 //! mirrors must produce byte-identical event counts to their Chinese twins.
 //! See `course/README.md`.
 
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::Value;
 
 const COURSE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../course");
 
+static CACHE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// A unique, empty compile-cache dir so this suite never reads another run's
+/// entries (`SOKONANODA_CACHE_DIR`, docs/protocol.md).
+fn cache_dir(tag: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-course-cache-{tag}-{}-{}",
+        std::process::id(),
+        CACHE_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    dir
+}
+
 fn run_binary(args: &[&str]) -> std::process::Output {
     let child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .args(args)
+        .env("SOKONANODA_CACHE_DIR", cache_dir("course"))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

@@ -5,7 +5,7 @@
 //! Progress is not an error: open/failed exercises still exit 0 — only an
 //! unreadable manifest fails.
 
-use sokonanoda_front::compile::{compile_fol_with, CheckEvent, CompileOptions};
+use sokonanoda_front::compile::{CheckEvent, CompileOptions};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -113,9 +113,9 @@ pub(crate) fn course(manifest: &str, json: bool) -> ExitCode {
 /// course golden tests: full prelude, events counted, errors = failures).
 fn count_unit(src: &str) -> Result<UnitCounts, String> {
     // Reuse the CLI checker's parse stage so manifest maps never crash on
-    // unparseable units; compile_fol needs the parsed file anyway.
+    // unparseable units; compile_cached needs the parsed file anyway.
     let file = sokonanoda_front::parse(src).map_err(|e| e.message.to_string())?;
-    let out = compile_fol_with(&file, &CompileOptions::default());
+    let (out, _report) = crate::check::compile_cached(&file, src, &CompileOptions::default());
     let mut counts = UnitCounts {
         failed: out.errors.len(),
         ..UnitCounts::default()

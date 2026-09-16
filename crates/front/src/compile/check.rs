@@ -248,6 +248,15 @@ pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> Document
     run(file, options, true).1
 }
 
+/// One pass that yields both the CLI event output and the document report
+/// (currently `run(file, options, true)`).
+pub fn compile_all_with(
+    file: &FolFile,
+    options: &CompileOptions,
+) -> (CompileOutput, DocumentReport) {
+    run(file, options, true)
+}
+
 /// 值位若是 `by` 块，先用引擎降级成 lambda AST（可能带尾部 `sorry`）；
 /// 否则原样 clone。返回降级后的值位 + 引擎记录的 per-tactic 状态
 /// （非 by 块为空），交给既有 `open_goal`/`build_*` 分流。

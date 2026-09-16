@@ -1,8 +1,27 @@
-# STATUS 归档（第 1–75 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–76 轮，2026-09-06 → 2026-09-15）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十六轮：`match` 作为 tactic）
+
+> 续 HANDOVER §3 B / ROADMAP I6：`by` 块内可用 `match`（设计与白名单此前待定）。
+
+1. **tactic 集**：`by` 白名单加 `match`——`match c with | p => <项> …`，臂体是
+   **项**（同值位 match），以当前目标为期望类型判定，语义等价 `exact (match …)`；
+   `parse_tactic` 复用 `parse_match` + `tactic_keyword_ahead` 纳入 `match`。
+2. **judge 修复（根因）**：`judge_terms` 合成文件原 `src: String::new()`，
+   `command.span().start` 前缀切片为空 → `match` 的宇宙查询（`judge_infer` 看
+   不到 `Color` 等声明）失败，报 `elab-match-no-expected-type`。改为把真实
+   `prefix_src` 作为文件 `src`、合成声明 span 放到前缀之后。副产品：
+   `by exact match …` 也可用。
+3. **测试**：parser `match_is_a_tactic_in_a_by_block`（白名单 + 降到 Exact）；
+   front `by_block_with_match_tactic_checks` / `by_block_with_exact_match_checks`；
+   CLI `cli_by_match_tactic_checks_via_kernel`。
+4. **文档**：`by-tactics.md` §2 表 + 0.46.0 更新、architecture、TESTING。
+5. **验收**：`sokonanoda gate` PASS；版本 0.45.0 → **0.46.0**（新语法 minor）。
+   注：臂体是「项」；「每个臂里再写一串 tactic」是后续可选扩展（设计 §9 留白）。
 
 ## 本轮进度（2026-09-15，第七十五轮：应用位置 binder 类型推断）
 

@@ -1,5 +1,6 @@
 //! CLI entry: argument parsing, dispatch to file-check / repl / lsp / course.
 
+mod build;
 mod check;
 mod course;
 mod env;
@@ -20,6 +21,7 @@ fn main() -> ExitCode {
     let mut json = false;
     let mut bare = false;
     let mut force = false;
+    let mut clean = false;
     let mut doc: Option<String> = None;
     let mut workspace: Option<String> = None;
     let mut positionals: Vec<String> = Vec::new();
@@ -29,6 +31,7 @@ fn main() -> ExitCode {
             "--json" => json = true,
             "--bare" => bare = true,
             "--force" => force = true,
+            "--clean" => clean = true,
             "--doc" => match args.get(i + 1) {
                 Some(path) => {
                     doc = Some(path.clone());
@@ -75,6 +78,7 @@ fn main() -> ExitCode {
         Some("update") => env::update(),
         Some("grade") => env::grade(&positionals[1..]),
         Some("gate") => env::gate(),
+        Some("build") => build::build(&positionals[1..], json, clean),
         Some("repl") if !json => repl(),
         Some("repl") => {
             eprintln!("error: --json is only supported for batch checking, not the repl");

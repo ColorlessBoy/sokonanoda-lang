@@ -4,15 +4,32 @@
 //! exits 0 with an `error` field), and the only failure mode (unreadable
 //! manifest). Per-unit counts mirror the golden map in course.rs.
 
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::Value;
 
 const COURSE_MANIFEST: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../course/course.json");
 
+static CACHE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// A unique, empty compile-cache dir per spawned binary (docs/protocol.md
+/// build cache) so one test's entries never leak into another's.
+fn cache_dir(tag: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-course-status-cache-{tag}-{}-{}",
+        std::process::id(),
+        CACHE_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    dir
+}
+
 fn run_course(args: &[&str]) -> std::process::Output {
     let child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .args(args)
+        .env("SOKONANODA_CACHE_DIR", cache_dir("course"))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

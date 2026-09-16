@@ -174,7 +174,7 @@ sokonanoda-lang/
 - `sokonanoda --json <file>`：每条事件一行 JSON（agent/service 视图）。
 - `sokonanoda repl`：逐行累积 buffer，整体重新 `parse + compile_fol`（最小"增量"模型 = 声明累加）；支持 `#check/#reduce/#print/#env/#help`。
 - `#prove <goal>`：进入证明草稿（见 §5.5），`intro/exact/apply/assumption/lambda/done`（值位 `by` tactic：intro/exact/apply/assumption/rfl/match/sorry）。
-- **编译结果缓存（0.48.0）**：`crates/lsp/src/cache.rs` 把内核产出的
+- **编译结果缓存（0.48.0，0.49.0 共享化）**：`crates/front/src/compile/cache.rs`（LSP+CLI 共用） 把内核产出的
   `DocumentReport` 以 `(编译器版本, prelude 模式, 源文本)` 的稳定哈希落盘；打开
   未变文档直接复用，编辑则照走 Session 增量。诊断由 `report_diagnostics` 统一
   构造（命中与重编一致）。见 `docs/design/compile-cache.md`。

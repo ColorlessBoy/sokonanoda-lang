@@ -751,3 +751,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   重编（`SOKONANODA_NO_CACHE=1` 关闭 / `SOKONANODA_CACHE_DIR` 重定位；内核仍是唯一
   判定者）。front 报告类型加 serde。版本 **0.48.0**；设计 `docs/design/compile-cache.md`。
 
+- 2026-09-15（七十九）：**共享编译缓存 + `sokonanoda build` + Infoview 稳定/反馈 +
+  高亮单一起源（0.49.0）**——用户四项：(a) Infoview 面板"点几次才出现、很不稳定"，
+  要求面板 UI 必达、数据可"渲染中"/显示编译进度；(b) 去掉没生效的声明点击跳转，
+  名字后加小字行号；(c) hover 高亮与 Infoview 未收拢；(d) `sokonanoda build` 之类
+  命令配合缓存。落地：缓存下沉 `front::compile::cache`（report+output，key 含版本/
+  构建指纹/模式/源文本）+ `build [--json|--clean]`，`course`/`--json` 复用（冷热输出
+  一致）；Infoview 视图去 `when` + `visibility: visible` + `onView` 激活 + provider
+  **先于**慢解析注册 + `status` 反馈 + 骨架；声明行号 `L<n>`；`SemanticKind::tm_scope`
+  单一表 + hover 由 runs 投影 + TM/CSS/LSP 三处穷尽测试；平台限制写入
+  `docs/design/highlighting.md`。版本 **0.49.0**。
+

@@ -491,6 +491,29 @@ Human view: one line per unit (`unit 1 命题与证明 —— 12 checked · 5 op
 0 failed`) plus a totals line. Exit code is 0 even with open/failed
 exercises (progress is not an error); only an unreadable manifest fails.
 
+## Build cache: `sokonanoda build`
+
+`sokonanoda build [--json] [--clean] [<file> | <dir> ...]` warms (or clears)
+the shared persistent compile cache that `check`/`course`/LSP reads
+(`docs/design/compile-cache.md`). Each positional is a `.sokonanoda` file or a
+directory walked recursively (sorted) for `*.sokonanoda`; no positional means
+the current directory. A build is a hit when the same `(compiler version,
+build stamp, prelude mode, source text)` already produced a kernel report.
+Warming is best-effort and never changes the kernel's verdict; a read or parse
+failure counts as `failed` but does not abort the batch. Exit is 0 whenever at
+least one file resolved (nothing resolved is usage, exit non-zero).
+
+- `build --clean` removes every cached entry and prints `removed N cached
+  file(s)`;
+- `--json` emits one `build.file` per resolved file
+  (`{type, file, status}` with `status` ∈ `hit` / `compiled` / `failed`),
+  then `build.summary` (`{type, files, hit, compiled, failed}`); `build --clean
+  --json` emits `build.clean` (`{type, removed}`);
+- the human summary is `built K file(s) — H hit, M compiled, F failed`.
+
+Environment: `SOKONANODA_CACHE_DIR` relocates the cache root, and
+`SOKONANODA_NO_CACHE=1` disables it (loads always miss, stores are skipped).
+
 ## REPL history
 
 `sokonanoda repl` appends every non-empty input line to

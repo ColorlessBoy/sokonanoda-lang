@@ -12,7 +12,9 @@
 - **失效即重编**：key 里含 `CARGO_PKG_VERSION`（换二进制必 miss）与
   `CACHE_FORMAT`（报告 schema 变必 miss）；源文本变则 key 变。
 - **best-effort**：读写失败绝不使请求失败（缓存是优化，不是依赖）。
-- 零新增运行时依赖给用户：`serde`/`serde_json` 早已在 CLI/LSP 里；用户仍零 cargo。
+- 零新增运行时依赖给用户：`serde`/`serde_json` 在 workspace 内已被使用；用户仍零 cargo。
+- **归属（0.49.0）**：缓存模块在 **`crates/front/src/compile/cache.rs`**（不是 LSP 内部），
+  LSP 与 CLI **共用**同一份；条目同时容纳 `report` 与 `output`。
 
 ## 2. 键与文件
 
@@ -26,7 +28,8 @@
 
 ## 3. 接入点
 
-`crates/lsp/src/lib.rs::Backend::refresh`（didOpen/didChange 共用）：
+**LSP**：`crates/lsp/src/lib.rs::Backend::refresh`（didOpen/didChange 共用；`cfg!(test)` 时
+不碰真实缓存）：
 
 ```
 key = cache::key(VERSION, mode==Bare, text)
@@ -51,8 +54,22 @@ else:
 
 ## 5. 测试
 
-- `crates/lsp/src/cache.rs` 单测：key 稳定/敏感；store→load 往返 + key 作用域；
-  `format` 不匹配 miss（`_in` 目录参数版，避免 env 竞态）。
+**CLI**（0.49.0）：`crates/cli/src/build.rs::build`、`check.rs::compile_cached`；
+`course` 的 `count_unit` 与批量 `--json` 都走 `compile_cached`。`sokonanoda --json` 冷/热
+两次输出**逐字节一致**（有测试）。
+
+```
+sokonanoda build [--json] [--clean] [<file> | <dir> ...]
+```
+- 默认扫当前目录；目录递归收集 `*.sokonanoda`；
+- 人类输出 `built K file(s) — H hit, M compiled, F failed`；`--clean` 打印删除数；
+- `--json`：每文件 `{"type":"build.file",…}` + 末尾 `{"type":"build.summary",…}`；
+  `build --clean --json` → `{"type":"build.clean","removed":N}`。
+
+- 单测（`crates/front/src/compile/cache.rs`）：key 稳定/敏感；store→load 往返 + key 作用域；
+  `format` 不匹配 miss；`clean` 删除；用 `_in(dir,…)` 目录参数版，避免 env 竞态。
+- CLI 测试用**每进程临时 `SOKONANODA_CACHE_DIR`** 隔离：`cli_build_warms_and_reuses_cache`、
+  `cli_build_clean_removes_entries`、`cli_course_is_stable_with_a_warm_cache`。
 - 既有 LSP 测试全部经 `refresh`，即覆盖接线不崩。
 - `front` 报告类型加 `serde` derive（owned，无生命周期）。
 

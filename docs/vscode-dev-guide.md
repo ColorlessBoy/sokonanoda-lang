@@ -137,6 +137,17 @@ npm run clean:lsp
     （省去重复下载），并把服务器二进制所在目录塞进 `PATH`。此时
     `REPO_ROOT` 会退化，`bin/` staging 与 `PATH` 两个条件都得显式满足（见 13）。
 
+## 5b. Infoview/视图的硬规矩（0.49.0 教训）
+
+1. **provider 先注册**：`activate` 最前面同步 `registerWebviewViewProvider` / `createTreeView`，
+   任何 `await`（服务解析/下载/启动）放到之后；否则面板有一段"无 provider"的空白期。
+2. **别给 webview 视图加 `when`**：扩展容器 `hideIfEmpty: true`，条件不满足会隐藏整个
+   容器（面板"弹不出来"）。要常驻就 `visibility: visible` + 不写 `when`。
+3. **激活入口**：`activationEvents` 显式加 `onView:<viewId>`，保证没开 `.sokonanoda`
+   文件时点面板也能激活。
+4. **绝不静默**：面板先渲染骨架 + `status`（编译中/已就绪/等待文件）；契约测试见
+   `crates/cli/tests/extension.rs`。
+
 ## 6. 发布
 
 ```bash

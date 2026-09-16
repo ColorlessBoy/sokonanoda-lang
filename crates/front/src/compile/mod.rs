@@ -11,7 +11,12 @@ mod prelude;
 mod report;
 mod warning;
 
-pub use check::{check_document, check_document_with, compile_fol, compile_fol_with, render_expr};
+pub mod cache;
+
+pub use check::{
+    check_document, check_document_with, compile_all_with, compile_fol, compile_fol_with,
+    render_expr,
+};
 pub(crate) use check::{run_incremental, TrustPlan};
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};
