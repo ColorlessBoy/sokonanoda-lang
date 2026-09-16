@@ -1,8 +1,30 @@
-# STATUS 归档（第 1–77 轮，2026-09-06 → 2026-09-15）
+# STATUS 归档（第 1–78 轮，2026-09-06 → 2026-09-16）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-15，第七十八轮：编译结果缓存 + Infoview 细节）
+
+> 用户四项：(1) Infoview 类型小行允许换行；(2) 目标用 `⊢` 开头；(3) 点击
+> Infoview 跳转没生效；(4) 设计类似 Lean4 的编译结果文件（避免文件多了打开即编译慢）。
+
+1. **换行**：`media/infoview.css` 的 `.decl-ty` 由「单行省略」改 `pre-wrap` +
+   `word-break`（类型不再看不全）。
+2. **`⊢` 开头**：`infoview.js` 的 goal 代码块加前缀 `⊢ `（与 hover/树 tooltip 一致）。
+3. **点击跳转修复**：点了 webview 后 `activeTextEditor` 为空，旧实现据此直接失败。
+   改为 plumb 文档 uri（树的 `onDecls(decls, uri)` → `setDecls(decls, uri)` →
+   webview `focusExercise{uri,range}`），扩展用 `jumpToRange`（`visibleTextEditors`
+   优先、必要时 `openTextDocument`）跳转。
+4. **编译结果缓存（olean 式）**：`crates/lsp/src/cache.rs` 把内核产出的
+   `DocumentReport` 以稳定 FNV 哈希 `(CARGO_PKG_VERSION, prelude 模式, 源文本)`
+   落盘；`refresh` 命中则跳过 `session.update`，miss 则编译并落盘。诊断由
+   `report_diagnostics` 统一构造（命中/重编一致）。`SOKONANODA_NO_CACHE=1` 关闭、
+   `SOKONANODA_CACHE_DIR` 重定位；front 报告类型加 serde derive。
+5. **测试**：`cache.rs` 单测 3（key 稳定/作用域/format miss）；扩展契约更新
+   （`⊢`/wrap/uri 跳转）。
+6. **验收**：`sokonanoda gate` PASS；版本 0.47.0 → **0.48.0**（新能力 minor）；
+   设计 `docs/design/compile-cache.md`。已知边界：不缓存 Session 快照、无 LRU。
 
 ## 本轮进度（2026-09-15，第七十七轮：带索引归纳）
 

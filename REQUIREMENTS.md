@@ -775,3 +775,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   版本 **0.50.0**；决策与边界写入 `docs/design/highlighting.md` §3b（Infoview 与
   编辑器/hover 颜色永不逐像素相同）。
 
+- 2026-09-16（八十一）：**`by` 块换行分隔 tactic（0.51.0）**——用户要求像 Lean4 一样
+  支持「分号 **或** 回车换行」两种分隔，以便省掉行尾 `;`。规则：解析 tactic 时若下一
+  token 在更晚的行且是 tactic 关键字（`intro/exact/apply/assumption/rfl/match/sorry`），
+  当前表达式结束（否则 `exact f` 换行 `apply g` 会被贪婪读成应用 `f apply g`）。
+  实现 `Parser.by_depth` + `starts_atom` 边界 + `parse_by_block` 双分隔；仍未引入缩进敏感。
+  测试 parser 5 项 + CLI 1 项；`playground.sokonanoda` 的 `forall_and` 去掉行尾 `;` 作活样例；
+  边界/歧义写入 `docs/design/by-tactics.md` §11。版本 **0.51.0**。
+

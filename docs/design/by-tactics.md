@@ -191,9 +191,14 @@ struct ByStepState { span: Span, goal: Option<String>, binders: Vec<GoalBinder> 
 
 ## 9. 边界与不修项
 
-- 不做 `;` 组合子/`<;>`、`repeat`/`first`、`by_cases` 等；只做上表五个；
+- 不做 `;` **组合子语义**（Lean 的"对所有子目标施加下一 tactic"）/`<;>`、`repeat`/`first`、
+  `by_cases` 等；只做上表七个；
 - `apply` 不做完整高阶合一（只位置 spine），不支持时报教学错误；
-- 不引入缩进敏感；tactic 块跨行用 `;`；
+- **分隔符 = `;` 或换行**（0.51.0，Lean 风格，二者可混用）。**换行边界的精确定义**：
+  解析 tactic 时（`by_depth > 0`），若下一个 token 在**更晚的行**且是 **tactic 关键字**
+  （`intro`/`exact`/`apply`/`assumption`/`rfl`/`match`/`sorry`），当前 tactic 的表达式就
+  在此结束——这是为了让 `exact f` 换行 `apply g` 不被贪婪读成 `f apply g`。
+  仍**不引入缩进敏感**；续行只要不以 tactic 关键字开头就照常拼接（多行项可用 `;` 或括号）。
 - kernel 冻结：引擎全在 front 层（AST + judge 合成声明），kernel 一行不动；
 - webview goal 面板（方案 B）不在本轮实现，协议先行。
 
@@ -203,3 +208,17 @@ struct ByStepState { span: Span, goal: Option<String>, binders: Vec<GoalBinder> 
 - front + CLI + course 测试全绿，fmt/clippy 干净；
 - LSP `soko/stateAt` 端到端测试通过；VSCode「当前光标处」goal 组可渲染；
 - STATUS / REQUIREMENTS §9 / protocol.md 更新。
+
+## 11. as-built：换行分隔（0.51.0）
+
+- `Parser.by_depth`：解析 tactic 期间加一（`parse_tactic` 包一层，Ok/Err 都减）。
+- `starts_atom` 在 `by_depth > 0 && next_line_starts_a_tactic()` 时返回 false → 应用不吃下一
+  行 tactic；`parse_by_block` 在「`;`」或「下一行以 tactic 关键字开头」时继续。
+- 边界取舍（有意不支持的写法）：同一行内不写 `;` 不算分隔（`exact f apply g` 仍是应用）；
+  续行**以 tactic 关键字开头**的多行项会被切开（用同一种写法或括号规避）；`sorry` 在下一行
+  即视为新 tactic。注释不影响判定（按 token span 行号比较）。
+- 测试：parser `by_block_newlines_separate_tactics`、`by_block_newline_boundary_beats_application`、
+  `by_block_multiline_application_is_one_tactic`、`by_block_semicolons_still_work_and_mix_with_newlines`、
+  `by_block_does_not_consume_the_next_command`；CLI `cli_by_newline_separated_tactics_check_via_kernel`；
+  `playground.sokonanoda` 的 `forall_and` 去掉行尾 `;` 作为活样例。
+

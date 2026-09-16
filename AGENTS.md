@@ -57,6 +57,9 @@ sokonanoda grade playground.sokonanoda   # 判卷（--json 事件）
 
 ```bash
 sokonanoda gate     # = CI 门禁：fmt + clippy + test + playground 锚点
+# 注意：gate 的 anchor 用**运行中二进制**的内嵌编译器；若 `sokonanoda version` 与仓库
+# 版本不一致（旧缓存），gate 会直接 exit 3 —— 先 `sokonanoda update`，或用
+# `cargo run -q -p sokonanoda-cli --bin sokonanoda -- playground.sokonanoda`。
 # 或手动：
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 # 禁止 `cargo fmt --all`：会重排**冻结内核**（kernel 快照不得改动）。只 fmt 教学 crates，或直接 `sokonanoda gate`。

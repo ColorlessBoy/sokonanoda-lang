@@ -204,8 +204,48 @@ pub fn grade(paths: &[String]) -> ExitCode {
     }
 }
 
+/// The repo's `[workspace.package] version` from `Cargo.toml` in the cwd, when
+/// readable (contributors run `gate` from the repo root).
+fn repo_workspace_version() -> Option<String> {
+    let text = std::fs::read_to_string("Cargo.toml").ok()?;
+    let mut in_workspace_package = false;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') {
+            in_workspace_package = trimmed == "[workspace.package]";
+            continue;
+        }
+        if in_workspace_package {
+            if let Some(rest) = trimmed.strip_prefix("version") {
+                let value = rest.trim_start_matches([' ', '=']).trim().trim_matches('"');
+                if !value.is_empty() {
+                    return Some(value.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 /// `gate`: contributor CI gate (cargo required) + the playground anchor.
+///
+/// The anchor compiles `playground.sokonanoda` with **this binary's embedded
+/// compiler**. If the binary is a stale download-cache build (e.g. an old cache
+/// while the repo has moved on), the anchor would silently gate the repo with
+/// old logic — a 0.27.0 cache cannot parse newer syntax and the failure looks
+/// like a source bug. Refuse to run when the repo's version disagrees.
 pub fn gate() -> ExitCode {
+    if let Some(repo) = repo_workspace_version() {
+        let binary = env!("CARGO_PKG_VERSION");
+        if repo != binary {
+            eprintln!(
+                "sokonanoda: gate 用的是 v{binary} 二进制内嵌的编译逻辑，而仓库是 v{repo} \
+                 —— anchor 结果不可信。请 `sokonanoda update`，或改跑 \
+                 `cargo run -q -p sokonanoda-cli --bin sokonanoda -- playground.sokonanoda`。"
+            );
+            return ExitCode::from(3);
+        }
+    }
     const STEPS: [&[&str]; 3] = [
         &[
             "fmt",

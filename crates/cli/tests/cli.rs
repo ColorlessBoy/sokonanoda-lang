@@ -153,6 +153,31 @@ fn cli_by_tactic_partial_block_is_open_exercise() {
 }
 
 #[test]
+fn cli_by_newline_separated_tactics_check_via_kernel() {
+    // 换行也能分隔 tactic：末尾的 `;` 可以省略，判定仍走 kernel。
+    let src = concat!(
+        "axiom And : Prop -> Prop -> Prop\n",
+        "axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+        "theorem nl : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by\n",
+        "  intro a\n",
+        "  intro b\n",
+        "  intro ha\n",
+        "  intro hb\n",
+        "  apply And.intro\n",
+        "  exact ha\n",
+        "  exact hb\n",
+    );
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration nl"), "{stdout}");
+}
+
+#[test]
 fn cli_by_match_tactic_checks_via_kernel() {
     // `match` 作为 tactic：以当前目标为期望类型，臂体是项。
     let src = "\

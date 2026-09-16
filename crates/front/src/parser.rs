@@ -14,6 +14,9 @@ pub struct Parser {
     /// `match` 的 scrutinee 解析期间 > 0：让 `with` 停止 `parse_app` 的实参
     /// 收集（`with` 是普通标识符，否则会被当成 `c` 的实参吃掉）。
     scrutinee_depth: usize,
+    /// tactic 解析期间 > 0：让换行处的 tactic 关键字终止当前表达式，
+    /// 使 `by` 块可以省略分隔用的 `;`（tactic 之间换行即分隔）。
+    by_depth: usize,
 }
 
 /// 一个 `(a b c : T)` 多名字 binder 组（读回内核 pp 类型文本时用）。
@@ -52,6 +55,7 @@ impl Parser {
             tokens,
             cursor: 0,
             scrutinee_depth: 0,
+            by_depth: 0,
         }
     }
 
@@ -167,8 +171,9 @@ impl Parser {
         self.parse_expr()
     }
 
-    /// `by` 块：`by <tactic> (';' <tactic>)*`。tactic 之间用 `;` 分隔
-    ///（教学子集不引入缩进敏感语法）。
+    /// `by` 块：`by <tactic> ((';' | '\n') <tactic>)*`。tactic 之间既可用
+    /// `;` 分隔，也可直接换行（tactic 关键字出现在下一行即视为分隔），
+    /// 于是末尾的 `;` 可以省略。
     fn parse_by_block(&mut self) -> Result<Expr> {
         let by_tok = self.bump();
         let start = by_tok.span.start;
@@ -182,6 +187,9 @@ impl Parser {
                         self.bump();
                         continue;
                     }
+                    // 换行分隔：下一个 token 是下一行的 tactic 关键字。
+                    // 不 bump——交给下一次 `parse_tactic` 消费。
+                    _ if self.next_line_starts_a_tactic() => continue,
                     _ => break,
                 }
             }
@@ -198,17 +206,31 @@ impl Parser {
     }
 
     fn tactic_keyword_ahead(&self) -> bool {
-        matches!(
-            self.peek().kind,
-            TokenKind::Ident(ref kw)
-                if matches!(
-                    kw.as_str(),
-                    "intro" | "exact" | "apply" | "assumption" | "rfl" | "match" | "sorry"
-                )
-        )
+        matches!(&self.peek().kind, TokenKind::Ident(kw) if is_tactic_keyword(kw))
+    }
+
+    /// 刚消费完的 token（`cursor - 1`）的结束行；空输入返回 0。
+    fn last_token_end_line(&self) -> usize {
+        if self.cursor == 0 {
+            return 0;
+        }
+        self.tokens[self.cursor - 1].span.end.line
+    }
+
+    /// 下一个 token 是**换行后**出现的 tactic 关键字——tactic 边界。
+    fn next_line_starts_a_tactic(&self) -> bool {
+        matches!(&self.peek().kind, TokenKind::Ident(kw) if is_tactic_keyword(kw))
+            && self.peek().span.start.line > self.last_token_end_line()
     }
 
     fn parse_tactic(&mut self) -> Result<Tactic> {
+        self.by_depth += 1;
+        let result = self.parse_tactic_inner();
+        self.by_depth -= 1;
+        result
+    }
+
+    fn parse_tactic_inner(&mut self) -> Result<Tactic> {
         let tok = self.peek().clone();
         match &tok.kind {
             TokenKind::Ident(kw) if kw == "intro" => {
@@ -760,6 +782,10 @@ impl Parser {
     }
 
     fn starts_atom(&self) -> bool {
+        // tactic 解析期间：换行后的 tactic 关键字是边界，绝不能作为实参吃掉。
+        if self.by_depth > 0 && self.next_line_starts_a_tactic() {
+            return false;
+        }
         match &self.peek().kind {
             TokenKind::Ident(name) => {
                 let blocks_match = self.scrutinee_depth > 0 && name == "with";
@@ -1163,6 +1189,15 @@ pub fn parse(src: &str) -> Result<FolFile> {
 /// 绝不能被当成 `f` 应用到标识符 `let`。
 fn is_expr_keyword(name: &str) -> bool {
     matches!(name, "let" | "match")
+}
+
+/// `by` 块白名单里的 tactic 关键字（`parse_tactic_inner` 的 `match` 臂与
+/// 换行边界判定共用同一集合）。
+fn is_tactic_keyword(name: &str) -> bool {
+    matches!(
+        name,
+        "intro" | "exact" | "apply" | "assumption" | "rfl" | "match" | "sorry"
+    )
 }
 
 fn is_reserved_command(name: &str) -> bool {
@@ -1680,5 +1715,84 @@ end
         // `f match …`：`match` 必须让路成 term 关键字。
         let err = parse("def x : Color := red match c with | red => green\n").unwrap_err();
         assert!(!err.message.is_empty(), "err: {err:?}");
+    }
+
+    /// 取出首个 `def` 值位 `by` 块里的 tactics（无声明 binder 时直接是 By）。
+    fn by_tactics(src: &str) -> Vec<Tactic> {
+        let file = parse(src).unwrap();
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        let val = match val {
+            Expr::Lambda { body, .. } => body.as_ref(),
+            other => other,
+        };
+        let Expr::By { tactics, .. } = val else {
+            panic!("expected a by block, got {val:?}");
+        };
+        tactics.clone()
+    }
+
+    #[test]
+    fn by_block_newlines_separate_tactics() {
+        let tactics = by_tactics("def t : Prop := by\n  intro a\n  exact a\n  assumption\n");
+        assert_eq!(tactics.len(), 3, "tactics: {tactics:?}");
+        assert!(matches!(tactics[0], Tactic::Intro { .. }));
+        assert!(matches!(tactics[1], Tactic::Exact { .. }));
+        assert!(matches!(tactics[2], Tactic::Assumption { .. }));
+    }
+
+    #[test]
+    fn by_block_newline_boundary_beats_application() {
+        // `exact f` 换行 `apply g`：`apply` 是 tactic 关键字，不能吃成 f 的实参。
+        let tactics = by_tactics("def t : Prop := by\n  exact f\n  apply g\n");
+        assert_eq!(tactics.len(), 2, "tactics: {tactics:?}");
+        let Tactic::Exact { expr, .. } = &tactics[0] else {
+            panic!("expected Exact: {:?}", tactics[0]);
+        };
+        assert!(
+            matches!(expr, Expr::Ident { name, .. } if name == "f"),
+            "`exact f` must not absorb the next tactic: {expr:?}"
+        );
+        assert!(matches!(tactics[1], Tactic::Apply { .. }));
+    }
+
+    #[test]
+    fn by_block_multiline_application_is_one_tactic() {
+        // 续行以非关键字开头时仍是同一个应用（一个 tactic）。
+        let tactics = by_tactics("def t : Prop := by\n  exact f\n    a\n    b\n  assumption\n");
+        assert_eq!(tactics.len(), 2, "tactics: {tactics:?}");
+        let Tactic::Exact { expr, .. } = &tactics[0] else {
+            panic!("expected Exact: {:?}", tactics[0]);
+        };
+        assert!(
+            matches!(expr, Expr::App { .. }),
+            "multi-line application must stay one Exact: {expr:?}"
+        );
+        assert!(matches!(tactics[1], Tactic::Assumption { .. }));
+    }
+
+    #[test]
+    fn by_block_semicolons_still_work_and_mix_with_newlines() {
+        let tactics = by_tactics("def t : Prop := by intro a; exact a\n  assumption\n");
+        assert_eq!(tactics.len(), 3, "tactics: {tactics:?}");
+        assert!(matches!(tactics[0], Tactic::Intro { .. }));
+        assert!(matches!(tactics[1], Tactic::Exact { .. }));
+        assert!(matches!(tactics[2], Tactic::Assumption { .. }));
+    }
+
+    #[test]
+    fn by_block_does_not_consume_the_next_command() {
+        // by 块收尾后必须停下，不能把 `#check` 也吞进去/当成实参。
+        let file = parse("def t : Prop := by\n  exact a\n#check t\n").unwrap();
+        assert_eq!(file.commands.len(), 2, "commands: {:?}", file.commands);
+        let Command::Def { val, .. } = &file.commands[0] else {
+            panic!("expected def");
+        };
+        let Expr::By { tactics, .. } = val else {
+            panic!("expected by block, got {val:?}");
+        };
+        assert_eq!(tactics.len(), 1);
+        assert!(matches!(&file.commands[1], Command::Check { .. }));
     }
 }

@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-16（第八十轮：Infoview 自研调色板；主题解析回退；0.50.0）
+> 快照：2026-09-16（第八十一轮：`by` 块换行分隔 tactic；0.51.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -13,6 +13,26 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-16，第八十一轮：`by` 块支持换行分隔 tactic）
+
+> 用户：能不能像 Lean4 一样用**分号或回车换行**两种分隔，从而省掉行尾的 `;`
+> （举了 `playground.sokonanoda` 的 `forall_and` 为例）。
+
+1. **难点**：`exact`/`apply` 的表达式会贪婪跨行（换行只是空白），`exact f` 换行
+   `apply g` 会被读成应用 `f apply g`。
+2. **规则**：解析 tactic 时（`by_depth > 0`），若下一 token 在**更晚的行**且是
+   **tactic 关键字**（`intro/exact/apply/assumption/rfl/match/sorry`），当前表达式结束。
+3. **实现**：`Parser.by_depth`（`parse_tactic` 包一层，Ok/Err 都减）；
+   `starts_atom` 在边界处返回 false（应用不吞下一行 tactic）；`parse_by_block` 在
+   `;` 或「下一行 tactic 关键字」时继续。仍未引入缩进敏感。
+4. **测试**：parser 5 项（换行分隔 / 边界胜过应用 / 多行项仍是单 tactic / `;` 与换行混用 /
+   不吃下一个命令）；CLI `cli_by_newline_separated_tactics_check_via_kernel`。
+5. **活样例**：`playground.sokonanoda` 的 `forall_and` 去掉行尾 `;`（gate 仍跑该文件）。
+6. **有意不支持/歧义**（写入 by-tactics.md §11）：同行不写 `;` 不算分隔；续行以 tactic
+   关键字开头的多行项会被切开（用括号/同行规避）；`sorry` 在下一行即视为新 tactic。
+7. **验收**：front 378 + CLI 全绿；`playground.sokonanoda` exit 0；`sokonanoda gate` PASS；
+   版本 0.50.0 → **0.51.0**。
 
 ## 本轮进度（2026-09-16，第八十轮：Infoview 自研调色板（主题解析回退））
 
@@ -71,26 +91,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    并**写明平台限制**：markdown 只能 TM 着色 → 颜色近似而非全等。
 7. **验收**：`cargo test --workspace --locked` 全绿 + `sokonanoda gate` PASS；
    `build` 冷/热/clean/目录/课程缓存冒烟通过；版本 0.48.0 → **0.49.0**。
-
-## 本轮进度（2026-09-15，第七十八轮：编译结果缓存 + Infoview 细节）
-
-> 用户四项：(1) Infoview 类型小行允许换行；(2) 目标用 `⊢` 开头；(3) 点击
-> Infoview 跳转没生效；(4) 设计类似 Lean4 的编译结果文件（避免文件多了打开即编译慢）。
-
-1. **换行**：`media/infoview.css` 的 `.decl-ty` 由「单行省略」改 `pre-wrap` +
-   `word-break`（类型不再看不全）。
-2. **`⊢` 开头**：`infoview.js` 的 goal 代码块加前缀 `⊢ `（与 hover/树 tooltip 一致）。
-3. **点击跳转修复**：点了 webview 后 `activeTextEditor` 为空，旧实现据此直接失败。
-   改为 plumb 文档 uri（树的 `onDecls(decls, uri)` → `setDecls(decls, uri)` →
-   webview `focusExercise{uri,range}`），扩展用 `jumpToRange`（`visibleTextEditors`
-   优先、必要时 `openTextDocument`）跳转。
-4. **编译结果缓存（olean 式）**：`crates/lsp/src/cache.rs` 把内核产出的
-   `DocumentReport` 以稳定 FNV 哈希 `(CARGO_PKG_VERSION, prelude 模式, 源文本)`
-   落盘；`refresh` 命中则跳过 `session.update`，miss 则编译并落盘。诊断由
-   `report_diagnostics` 统一构造（命中/重编一致）。`SOKONANODA_NO_CACHE=1` 关闭、
-   `SOKONANODA_CACHE_DIR` 重定位；front 报告类型加 serde derive。
-5. **测试**：`cache.rs` 单测 3（key 稳定/作用域/format miss）；扩展契约更新
-   （`⊢`/wrap/uri 跳转）。
-6. **验收**：`sokonanoda gate` PASS；版本 0.47.0 → **0.48.0**（新能力 minor）；
-   设计 `docs/design/compile-cache.md`。已知边界：不缓存 Session 快照、无 LRU。
 

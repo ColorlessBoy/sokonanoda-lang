@@ -187,3 +187,26 @@
 - **教训**：平台未暴露的能力，先评估"复刻成本 vs 收益"再动手；能用固定方案替代时，
   优先固定方案 + 明确边界说明。
 
+## 换行当分隔符 = 表达式必须"知道在哪停"（2026-09-16，0.51.0）
+
+- **教训**：给 `by` 块加"换行也能分隔 tactic"看似只改分隔符，实际难点在**表达式贪婪**：
+  `exact f` 换行 `apply g` 会被读成应用 `f apply g`（换行只是空白）。
+- **做法**：在 tactic 上下文里，若下一 token 在**更晚的行**且是 **tactic 关键字**，则当前
+  表达式结束（`starts_atom` 返回 false + `parse_by_block` 据此继续）。不引入缩进敏感。
+- **代价/边界**：续行以 tactic 关键字开头的多行项会被切开；同行不写 `;` 不分隔。写进设计
+  文档 §11 与 `CHANGELOG`。
+- **普适**：任何"用换行/缩进做分隔"的语法，都要先定清"什么情况下换行**不**结束当前项"。
+
+## `gate` 的 anchor 用的是"运行中二进制"的内嵌编译器（2026-09-16，0.51.0 发现的坑）
+
+- **现象**：`sokonanoda gate` 报 playground `unknown identifier 'intro'`（新语法解析失败），
+  但 `cargo run -q -p sokonanoda-cli --bin sokonanoda -- playground.sokonanoda` exit 0。
+- **根因**：PATH 上的 `sokonanoda` 是**下载缓存里的旧版**（v0.27.0），而 `gate` 的 anchor
+  在**进程内**用该二进制的内嵌编译器检查 playground —— 旧解析器当然不认新语法。
+  cargo 三步（fmt/clippy/test）用的是本地源码，所以"测试全绿但 anchor 失败"。
+- **修复**：`gate` 启动时比对自身 `CARGO_PKG_VERSION` 与仓库 `Cargo.toml`
+  `[workspace.package] version`，不一致就**拒绝运行**（exit 3）并提示
+  `sokonanoda update` 或直接 `cargo run …`。
+- **贡献者自检**：`sokonanoda version`（bin）与仓库版本一致，再信 `gate` 的 anchor；
+  否则用 `cargo run` 那条。
+

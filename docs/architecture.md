@@ -101,7 +101,7 @@ sokonanoda-lang/
 - `--` 是行注释；`sorry` 是 Hole（未完成练习/占位符；旧的 `???` 已于 2026-09-07 移除）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）。
-- 值位关键字：只有 `by <tactic 序列>`（`Expr::By`，进内核前由 `crates/front/src/by.rs`
+- 值位关键字：只有 `by <tactic 序列>`（tactic 之间用 `;` **或换行**分隔，0.51.0）（`Expr::By`，进内核前由 `crates/front/src/by.rs`
 降级为 lambda）。历史：值位 `funapply`（0.22.0 移除）与 `funintro`（0.27.0 移除）
 均已删除，见 `docs/design/remove-funintro.md`。
 - **局部绑定 `let`**（term 关键字，Phase 1，同 `fun`/`forall` 挂 `parse_expr`）：

@@ -1,3 +1,20 @@
+## [0.51.0] - 2026-09-16
+
+### Added
+
+- **Newline-separated tactics** — inside `by` blocks you may now separate tactics
+  with a newline instead of `;` (Lean style), and mix both. A tactic's expression
+  ends when the next line starts with a tactic keyword, so `exact f` followed by
+  `apply g` on the next line stays two tactics. No indentation sensitivity.
+
+### Fixed
+
+- **`sokonanoda gate` refuses to run with a stale binary** — the playground anchor
+  compiles with the binary's *embedded* compiler, so a stale download cache (e.g.
+  v0.27.0 while the repo is newer) would silently gate with old logic and report a
+  bogus source error. `gate` now compares its own version against the repo's
+  `Cargo.toml` and exits 3 with an actionable message on mismatch.
+
 ## [0.50.0] - 2026-09-15
 
 ### Changed
