@@ -1,0 +1,161 @@
+-- ==========================================================================
+-- unit10-reading-proofs.sokonanoda — Unit 10 · Reading Proofs & Synthesis
+--
+-- Rules:
+--   * A declaration containing sorry is an exercise. Replace the sorry with
+--     your answer; the full kernel decides right or wrong.
+--   * Partial answers are a legal state: write the first few fun layers and
+--     leave the last one as sorry.
+--   * Judgment always goes through the kernel: every filled line stays valid
+--     in official Lean.
+--
+-- The first nine units were all about *writing*: writing terms, definitions,
+-- inductive proofs. This unit flips that around and practises *reading*:
+--   * read one proof line by line with the self-explanation questions;
+--   * translate back and forth between informal statements and formal
+--     declarations;
+--   * find the bug in a proof the kernel rejected and fix it;
+--   * finish with a small synthesis proof drawing on several earlier units.
+-- "Reading comprehension" is still judged by the kernel here: every finished
+-- exercise must be code the kernel accepts.
+-- ==========================================================================
+
+-- Skeleton (And axioms + Or inductive + Iff definition, all old friends from
+-- earlier units):
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+
+inductive Or (A : Prop) (B : Prop) : Prop
+ctor inl (a : A) : Or A B
+ctor inr (b : B) : Or A B
+end
+
+def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+
+-- ─────────────────────────────────────────────────────────────
+-- 10.1 Reading proofs: the three self-explanation questions
+--
+-- Hodds/Alcock/Inglis's self-explanation training asks a reader to actively
+-- answer three questions about every line of a proof:
+--
+--   (1) Why does this line hold? — what is its type, which rule / constructor
+--       produced it;
+--   (2) Which earlier line does it use? — make the dependencies explicit;
+--   (3) Which definition does it unfold, or which constructor does it use? —
+--       break the "magic" into named steps.
+--
+-- Below is a short four-step proof of and_comm. Read it with the three
+-- questions:
+-- === goal And B A ===
+--   the whole proof: And.intro B A (And.right A B h) (And.left A B h)
+--   (1) the goal has shape And B A, so use the constructor And.intro;
+--   (2) two of its explicit arguments are proofs drawn from h;
+--   (3) And.right unfolds to "take the right half of an And", And.left the
+--       left half.
+-- Once "how to read" becomes a habit, other people's proofs stop being scary
+-- walls of symbols.
+-- ─────────────────────────────────────────────────────────────
+
+-- Demo (filled in): swap the two halves of an And — the very proof just read.
+theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+  And.intro B A (And.right A B h) (And.left A B h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 10.2 formal ↔ informal: the same sentence, two ways
+--
+-- The informal statement is in the comments; the exercise target is to write
+-- the formal declaration and fill in a kernel-checkable proof. The key to
+-- translation is always: (a) are there quantifiers (arrows / forall);
+-- (b) what is each hypothesis; (c) which connective or relation does the
+-- conclusion use.
+-- ─────────────────────────────────────────────────────────────
+
+-- Exercise 1 (translate X): turn the sentence below into a formal declaration
+-- and prove it:
+--
+--   "If a proposition A holds, then A or B holds."
+--
+-- soko:hint approach: the informal sentence has "if … then", which is an arrow; the conclusion is "A or B".
+-- soko:hint goal shape: the declaration has shape (a : A) -> Or A B; write it as (A : Prop) -> (B : Prop) -> (a : A) -> Or A B.
+-- soko:hint key piece: the conclusion is Or A B and a proof of A is in hand: which Or constructor? Fill in the A, B parameters.
+theorem or_intro_x (A : Prop) (B : Prop) (a : A) : Or A B :=
+  sorry
+
+-- Exercise 2 (translate X): turn the sentence below into a formal declaration
+-- and prove it:
+--
+--   "If A implies B and B implies A, then A and B are equivalent (if and only
+--    if)."
+--
+-- Hint: "equivalent" is the Iff defined with And in this file.
+-- soko:hint approach: the two directions are two hypotheses (two arrows); the conclusion packs that pair of functions into an Iff.
+-- soko:hint goal shape: the conclusion has shape Iff A B, and Iff unfolds to And (A -> B) (B -> A).
+-- soko:hint key piece: the conclusion is Iff A B with mp : A -> B and mpr : B -> A in context: use And.intro (the kernel unfolds the Iff definition), putting the two directions in the two proof slots.
+theorem iff_intro_x (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
+  sorry
+
+-- Exercise 3 (translate X): turn the sentence below into a formal declaration
+-- and prove it:
+--
+--   "Every natural number is equal to itself."
+--
+-- soko:hint approach: "every natural number" is a forall (or a named arrow), and the conclusion is an equality.
+-- soko:hint goal shape: the conclusion has shape Eq.{1} Nat n n; an equality on numbers needs the right universe level .{1} (see Unit 5).
+-- soko:hint key piece: both sides are the same term the kernel computes to the same value: use the axiom Eq.refl, handing it the type Nat and that term.
+theorem nat_eq_self_x (n : Nat) : Eq.{1} Nat n n :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 10.3 Proof evaluation: find the bug in a rejected proof
+--
+-- Each wrong proof below is in a comment, and the kernel rejected it for a
+-- different reason: one match misses a constructor, the other hands the
+-- evidence to the wrong constructor. Your job is to write the corrected,
+-- kernel-checkable version — there is no automation, the fix must be
+-- explicit.
+-- ─────────────────────────────────────────────────────────────
+
+-- Exercise 4 (evaluate R): the or_comm below was rejected by the kernel;
+-- what is wrong?
+--
+--   theorem or_comm_wrong (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+--     match h with
+--     | inl a => inr B A a
+--
+-- Hint: a match must cover *every* constructor; Or has two.
+-- soko:hint approach: the first branch already packs the A-side evidence into Or B A; what is missing is the B side.
+-- soko:hint goal shape: the goal is Or B A; the other match branch has b : B in hand.
+-- soko:hint key piece: with h : Or A B in context, the other branch uses the inl constructor (this time with A, B in the conclusion's order), handing it b.
+theorem or_comm_fixed (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+  sorry
+
+-- Exercise 5 (evaluate R): the or_right below was rejected by the kernel;
+-- what is wrong?
+--
+--   theorem or_right_wrong (A : Prop) (B : Prop) (b : B) : Or A B :=
+--     inl A B b
+--
+-- Hint: inl takes a proof of A, but b is a proof of B.
+-- soko:hint approach: the conclusion is Or A B, and the evidence on the right side must use the "right" constructor.
+-- soko:hint goal shape: the goal is Or A B with b : B in hand.
+-- soko:hint key piece: the two Or constructors take a proof of A (inl) and a proof of B (inr) respectively: which one does b go to? Fill in the A, B parameters as before.
+theorem or_right_fixed (A : Prop) (B : Prop) (b : B) : Or A B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 10.4 Final project: a synthesis proof
+--
+-- The last exercise uses And (Unit 1), Or (Unit 9), match and let (Units
+-- 6/3) at once, and wires And elimination to Or construction. Work out "what
+-- does the goal look like" first, then choose a rule for each step.
+-- ─────────────────────────────────────────────────────────────
+
+-- Exercise 6 (synthesis ★★): one direction of distributivity — "A and (B or
+-- C)" implies "(A and B) or (A and C)".
+-- soko:hint approach: use let to name the right half of h (Or B C), then match on it; in both cases repack A with the matching half.
+-- soko:hint goal shape: the outer layer is fun (h : And A (Or B C)); write let bc : Or B C := And.right A (Or B C) h; then match bc.
+-- soko:hint key piece: take A from h with And.left and the branch evidence with And.right; the inl b branch packs And.intro A B and hands it to Or.inl, the inr c branch packs And.intro A C and hands it to Or.inr.
+theorem and_or_imp (A : Prop) (B : Prop) (C : Prop) : And A (Or B C) -> Or (And A B) (And A C) :=
+  sorry

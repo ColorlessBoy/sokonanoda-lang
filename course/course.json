@@ -46,5 +46,17 @@
     "title": "单元⑧ 量词：forall 与 exists",
     "title_en": "Unit 8 — Quantifiers: forall & exists",
     "unit": 8
+  },
+  {
+    "file": "unit9-relations-connectives.sokonanoda",
+    "title": "单元⑨ 关系与联结词",
+    "title_en": "Unit 9 — Relations & Connectives",
+    "unit": 9
+  },
+  {
+    "file": "unit10-reading-proofs.sokonanoda",
+    "title": "单元⑩ 读证明与综合",
+    "title_en": "Unit 10 — Reading Proofs & Synthesis",
+    "unit": 10
   }
 ]

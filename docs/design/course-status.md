@@ -1,7 +1,7 @@
 # 设计：课程地图（sokonanoda course）+ REPL 历史持久化 + course 提示阶梯
 
 > **状态：已实现**（`crates/cli/src/course.rs`、REPL 历史、`sokonanoda.courseMap`、
-> 单元提示阶梯）。§4 的 golden 计数只是**示例**（非第二真源）——现为 8 单元，
+> 单元提示阶梯）。§4 的 golden 计数只是**示例**（非第二真源）——现为 10 单元，
 > 权威值在 `crates/cli/tests/course.rs`（`GOLDEN`）与
 > `crates/cli/tests/course_status.rs`（`GOLDEN` + 汇总）。
 
@@ -49,12 +49,14 @@
 {"type":"course.unit","file":"unit6-induction-recursion-1.sokonanoda","title":"单元⑥ 归纳与递归 Ⅰ","unit":6,"checked":7,"open":6,"failed":0,"reduced":3}
 {"type":"course.unit","file":"unit7-induction-recursion-2.sokonanoda","title":"单元⑦ 归纳与递归 Ⅱ","unit":7,"checked":7,"open":4,"failed":0,"reduced":4}
 {"type":"course.unit","file":"unit8-quantifiers.sokonanoda","title":"单元⑧ 量词：forall 与 exists","unit":8,"checked":14,"open":7,"failed":0,"reduced":1}
-{"type":"course.summary","units":8,"checked":58,"open":45,"failed":0}
+{"type":"course.unit","file":"unit9-relations-connectives.sokonanoda","title":"单元⑨ 关系与联结词","unit":9,"checked":13,"open":8,"failed":0,"reduced":0}
+{"type":"course.unit","file":"unit10-reading-proofs.sokonanoda","title":"单元⑩ 读证明与综合","unit":10,"checked":7,"open":6,"failed":0,"reduced":0}
+{"type":"course.summary","units":10,"checked":78,"open":59,"failed":0}
 ```
 
 - 人类视图（无 --json）：逐单元一行
   `unit 1 单元① 命题与证明项 —— 13 checked · 6 open · 0 failed`；末行
-  `共 8 单元 —— 58 checked · 45 open · 0 failed`；
+  `共 10 单元 —— 78 checked · 59 open · 0 failed`；
 - CLI 接线：`Some("course") => positionals.get(1)`（--json 旗标同样适用）。
 
 ## 2. VS Code 课程地图
@@ -77,12 +79,13 @@
 
 ## 4. course/ 提示阶梯内容（素材库完善）
 
-- 八个单元的每个 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
+- 十个单元的每个 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
 - 钥匙来源：`course/solutions/`（全部经内核验证）；阶梯只给思路/形态/关键件；
 - **验收锚点（示例，权威见测试）**：`crates/cli/tests/course.rs::GOLDEN` 与
   `course_status.rs::GOLDEN` 的逐单元 `(checked, open, reduced)` 现为
-  （13,6,1 / 2,5,2 / 2,6,2 / 13,5,0 / 0,6,1 / 7,6,3 / 7,4,4 / 14,7,1）、汇总
-  `units=8 checked=58 open=45 failed=0`、solutions 零诊断——注释级改动不产事件
+  （13,6,1 / 2,5,2 / 2,6,2 / 13,5,0 / 0,6,1 / 7,6,3 / 7,4,4 / 14,7,1 /
+  13,8,0 / 7,6,0）、汇总
+  `units=10 checked=78 open=59 failed=0`、solutions 零诊断——注释级改动不产事件
   （playground 已验证）。
 
 ## 5. 文件分工（互斥清单）
@@ -93,4 +96,4 @@
 | E（course 聚合） | `crates/cli/src/course.rs`（新）、`crates/cli/tests/course_status.rs`（新）、`crates/cli/tests/common/mod.rs`（词汇 + course.unit/course.summary）、`crates/cli/src/json_report.rs`（仅当事件序列化需要） |
 | F（VS Code 课程地图） | `editor/vscode/{extension.js,package.json}`、`crates/cli/tests/extension.rs` |
 | G（REPL 历史） | `crates/cli/src/repl.rs`、`crates/cli/tests/cli.rs`（repl 测试追加） |
-| H（course 阶梯内容） | `course/unit*.sokonanoda`（8 个单元文件；**solutions/ 不动**） |
+| H（course 阶梯内容） | `course/unit*.sokonanoda`（10 个单元文件；**solutions/ 不动**） |

@@ -1,0 +1,209 @@
+-- ==========================================================================
+-- unit9-relations-connectives.sokonanoda —— 单元⑨ 关系与联结词
+--
+-- 规则：
+--   * 带 sorry 的声明是练习。把 sorry 换成你的答案，由完整内核判定对错。
+--   * 部分作答是合法状态：先写前几层 fun，最后一层留 sorry。
+--   * 判定永远走内核：填完的每一行放回官方 Lean 也合法。
+--
+-- 单元① 把 ∧ 与 ∨ 立成公理，只教了「怎么用」。本单元补上三块：
+--   * Or 升级为真正的 inductive —— 前端自动派生出消去子 Or.rec，
+--     分情况写 match 就是在用它；
+--   * Iff（当且仅当）是一个**定义**：展开后就是一对方向相反的箭头；
+--   * 关系 Le（≤）也是归纳定义，证明要对**证据**做归纳——这就是
+--     PLFA 的「消去 / inversion 引理」套路。
+-- 最后用 Even（偶数）再练一次「归纳定义关系 + 构造证据」。
+-- ==========================================================================
+
+-- 逻辑骨架（复用单元①/⑧的 And 公理）：
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+
+-- ─────────────────────────────────────────────────────────────
+-- 9.1 Or：从公理升级为真正的归纳类型
+--
+-- 单元① 里 Or 只是一条公理加两条引入规则，没有消去子，所以拿到一份
+-- Or A B 的证明也拆不开。现在把它声明成 inductive：内核由此知道它
+-- 只有 inl / inr 两个构造子；Or 不带索引，前端会自动派生消去子
+-- Or.rec（形状与单元⑥手写的 Nat.rec 相同：motive → 各分支 → 目标），
+-- 而 match 正是降低到它上面。拆 Or = 对两份可能的证据分情况。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Or (A : Prop) (B : Prop) : Prop
+ctor inl (a : A) : Or A B
+ctor inr (b : B) : Or A B
+end
+
+-- 演示（已写好）：构造子当函数用，参数按顺序全部给全。
+theorem or_intro_demo (A : Prop) (B : Prop) (a : A) : Or A B :=
+  inl A B a
+
+-- 练习 1：交换 Or 的两边。
+-- soko:hint 思路：match h 一次列全 inl / inr 两个构造子，每支把里面的证据装到另一边的构造子里。
+-- soko:hint 目标形态：目标是 Or B A；inl 支手里是 a : A，inr 支手里是 b : B。
+-- soko:hint 关键件：目标 Or B A、目标是拆开重装：inl 支用 inr 的构造子，inr 支用 inl 的构造子，两个构造子都要把 A、B 两个参数补全。
+theorem or_comm (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+  sorry
+
+-- 练习 2：显式使用消去子 Or.rec，把「两个方向都通向 C」合成「Or A B 通向 C」。
+-- soko:hint 思路：目标是 C、手里是 h : Or A B——消去子 Or.rec 正是「从 Or 得到任意命题」的工具。
+-- soko:hint 目标形态：Or.rec 的 motive 是常函数 fun (x : Or A B) => C；两个分支分别交出 f 与 g。
+-- soko:hint 关键件：Or.rec 吃五样：命题 A、命题 B、motive、吃 A 证明的左分支、吃 B 证明的右分支，最后喂 h；f、g 正好是两个分支。
+theorem or_elim (A : Prop) (B : Prop) (C : Prop) (h : Or A B) (f : A -> C) (g : B -> C) : C :=
+  sorry
+
+-- 练习 3（读/评阅 R）：下面这份 or_id 的证明被内核拒绝了，错在哪？
+--
+--   theorem or_id_wrong (A : Prop) (h : Or A A) : A :=
+--     match h with
+--     | inl a => a
+--
+-- 提示：一个 match 要覆盖**全部**构造子；Or 有两个。
+-- 请写出改正后、内核可判定的版本。
+-- soko:hint 思路：Or A A 拆开后两支都是 A 的证明；把缺掉的另一支补齐即可。
+-- soko:hint 目标形态：目标是 A；match 的每一支都必须是 A 的一个证明。
+-- soko:hint 关键件：上下文 h : Or A A：inl 与 inr 两个构造子各带一份 A 的证明，两份都能直接交出去。
+theorem or_id (A : Prop) (h : Or A A) : A :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 9.2 Iff：当且仅当是一个定义
+--
+-- 本教学语言没有 ↔ 记号，但「当且仅当」不需要新公理，它就是一个定义：
+--
+--     Iff A B 展开后 = And (A -> B) (B -> A)
+--
+-- 也就是说，一份 Iff A B 的证明就是一对函数：一个把 A 变成 B（正向，
+-- 常叫 mp），一个把 B 变成 A（反向，常叫 mpr）。证明它用 And.intro；
+-- 使用它用 And.left / And.right（内核会自动展开 Iff 这个定义）。
+-- ─────────────────────────────────────────────────────────────
+
+def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+
+-- 演示（已写好）：把两个方向打包成 Iff。
+theorem iff_intro_demo (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
+  And.intro (A -> B) (B -> A) mp mpr
+
+-- 练习 4：取出 Iff 的正向。
+-- soko:hint 思路：Iff A B 是定义，展开后是一个 And；正向就在它的左边。
+-- soko:hint 目标形态：目标是一个箭头 A -> B；h 展开后是 And (A -> B) (B -> A)。
+-- soko:hint 关键件：h : Iff A B（内核会展开定义）：用 And.left 取出左半，它就是 A -> B。
+theorem iff_mp (A : Prop) (B : Prop) (h : Iff A B) : A -> B :=
+  sorry
+
+-- 练习 5：取出 Iff 的反向。
+-- soko:hint 思路：与上一题对称——反向是展开后那个 And 的右边。
+-- soko:hint 目标形态：目标是箭头 B -> A；h 展开后仍是 And (A -> B) (B -> A)。
+-- soko:hint 关键件：h : Iff A B：用 And.right 取出右半，它就是 B -> A。
+theorem iff_mpr (A : Prop) (B : Prop) (h : Iff A B) : B -> A :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 9.3 Le：用归纳定义的关系
+--
+-- 关系「m ≤ n」也是归纳定义的类型，只不过它带**索引**：两个构造子分别
+-- 说明「n ≤ n」（自反）与「若 m ≤ n 则 m ≤ succ n」（后缀加一）。
+--
+--     le_refl n : Le n n
+--     le_succ m n : Le m n -> Le m (succ n)
+--
+-- 证明关于 Le 的命题，就是对那份**证据**做归纳。这里照单元⑥的老规矩
+-- 手写消去子 Le.rec（带索引关系在 v1 里不会自动派生）：它的三条
+-- 前提——motive、le_refl 处的分支、le_succ 处的分支（多一个对递归
+-- 证据的归纳假设 ih）——就是 PLFA 所说的 induction/inversion 原则。
+-- Nat 继续用 prelude 自带的（写成 Nat.zero / Nat.succ）。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Le : Nat -> Nat -> Prop
+ctor le_refl (n : Nat) : Le n n
+ctor le_succ (m : Nat) (n : Nat) : Le m n -> Le m (Nat.succ n)
+rec Le.rec :
+  (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) ->
+  (hr : (n : Nat) -> motive n n (le_refl n)) ->
+  (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) ->
+  (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h
+iota le_refl :=
+  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
+  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
+  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
+  fun (n : Nat) => hr n
+iota le_succ :=
+  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
+  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
+  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
+  fun (m : Nat) => fun (n : Nat) => fun (h : Le m n) =>
+  hs m n h (Le.rec motive hr hs m n h)
+end
+
+-- 演示（已写好）：自反性立刻给出「n ≤ n+1」的构造子链条。
+theorem le_succ_self (n : Nat) : Le n (Nat.succ n) :=
+  le_succ n n (le_refl n)
+
+-- 练习 6（自证 L）：零小于等于任何自然数——对 n 做归纳。
+-- soko:hint 思路：对 n 做 match：zero 支用自反性；succ 支把归纳假设 ih : Le Nat.zero k 经 le_succ 抬一层。
+-- soko:hint 目标形态：match n with | Nat.zero => … | Nat.succ k => …，两支的目标是 Le Nat.zero Nat.zero 与 Le Nat.zero (Nat.succ k)。
+-- soko:hint 关键件：zero 支用 le_refl；succ 支有 ih : Le Nat.zero k，用 le_succ 把它抬到 Le Nat.zero (Nat.succ k)。
+theorem le_zero (n : Nat) : Le Nat.zero n :=
+  sorry
+
+-- 练习 7（翻译 X）：下面这句非形式命题，请写成上面的 Le 版本并给出内核可判定的证明：
+--
+--   「对任意自然数 m、n、k：若 m ≤ n 且 n ≤ k，则 m ≤ k。」（≤ 的传递性）
+--
+-- (注意：这里说的「≤」就是本单元定义的 Le，自变量顺序是 Le 左小右大。)
+-- soko:hint 思路：要证 Le m k，对第二个证据 h2 : Le n k 用消去子 Le.rec 归纳，motive 取「Le m a -> Le m b」。
+-- soko:hint 目标形态：Le.rec 需要三样：motive、le_refl 处的分支、le_succ 处的分支（比前者多一个归纳假设 ih）。
+-- soko:hint 关键件：目标 Le m k：le_refl 支直接交 h1；le_succ 支对 hx : Le m a 先用 ih 得 Le m b、再用 le_succ 抬一层；对 (n, k, h2) 归纳后把 h1 应用上去。
+theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le m k :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 9.4 Even：再练一个归纳定义的关系
+--
+-- 「n 是偶数」同样是一个带索引的归纳关系：零是偶数；若 n 是偶数，则
+-- n+2 也是偶数。照旧手写消去子 Even.rec——它的 le_succ 式分支多一个
+-- 归纳假设，正是下一题「用 Even.rec 证性质」要用的东西。
+-- ─────────────────────────────────────────────────────────────
+
+inductive Even : Nat -> Prop
+ctor even_zero : Even Nat.zero
+ctor even_succ (n : Nat) : Even n -> Even (Nat.succ (Nat.succ n))
+rec Even.rec :
+  (motive : (n : Nat) -> Even n -> Prop) ->
+  (hz : motive Nat.zero even_zero) ->
+  (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) ->
+  (n : Nat) -> (h : Even n) -> motive n h
+iota even_zero :=
+  fun (motive : (n : Nat) -> Even n -> Prop) =>
+  fun (hz : motive Nat.zero even_zero) =>
+  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
+  hz
+iota even_succ :=
+  fun (motive : (n : Nat) -> Even n -> Prop) =>
+  fun (hz : motive Nat.zero even_zero) =>
+  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
+  fun (n : Nat) => fun (h : Even n) =>
+  hs n h (Even.rec motive hz hs n h)
+end
+
+-- 演示（已写好）：用构造子直接搭出「2 是偶数」。
+theorem even_two : Even (Nat.succ (Nat.succ Nat.zero)) :=
+  even_succ Nat.zero even_zero
+
+-- 演示（已写好）：用消去子 Even.rec 证明「偶数加二还是偶数」——motive
+-- 是「Even (succ (succ n))」，le_succ 式分支里的 ih 正好是这一性质。
+theorem even_plus_two (n : Nat) (h : Even n) : Even (Nat.succ (Nat.succ n)) :=
+  Even.rec
+    (fun (a : Nat) (x : Even a) => Even (Nat.succ (Nat.succ a)))
+    (even_succ Nat.zero even_zero)
+    (fun (a : Nat) (x : Even a) (ih : Even (Nat.succ (Nat.succ a))) => even_succ (Nat.succ (Nat.succ a)) ih)
+    n h
+
+-- 练习 8：搭出「4 是偶数」——在 even_two 的基础上再叠一次 even_succ。
+-- soko:hint 思路：even_succ 把「n 是偶数」变成「n+2 是偶数」；把 n 取成 2，前提就是上面证好的 even_two。
+-- soko:hint 目标形态：目标是 Even 4（写成构造子链是 succ (succ (succ (succ zero)))）。
+-- soko:hint 关键件：even_succ——它吃一个 Nat 和一份 Even Nat，交出 Even (Nat.succ (Nat.succ Nat))；前提用 even_two。
+theorem even_four : Even (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) :=
+  sorry

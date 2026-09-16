@@ -1,7 +1,7 @@
 //! The course layer (`course/`) is CI-guarded: every learner canvas must
 //! compile with its open exercises, the per-unit golden event counts must stay
 //! stable, every agent solution twin must be hole-free and diagnostic-free,
-//! `course.json` must list the eight units in order, and the bilingual `en/`
+//! `course.json` must list the ten units in order, and the bilingual `en/`
 //! mirrors must produce byte-identical event counts to their Chinese twins.
 //! See `course/README.md`.
 
@@ -92,6 +92,8 @@ const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit6-induction-recursion-1.sokonanoda", (7, 6, 3)),
     ("unit7-induction-recursion-2.sokonanoda", (7, 4, 4)),
     ("unit8-quantifiers.sokonanoda", (14, 7, 1)),
+    ("unit9-relations-connectives.sokonanoda", (13, 8, 0)),
+    ("unit10-reading-proofs.sokonanoda", (7, 6, 0)),
 ];
 
 #[test]
@@ -237,12 +239,12 @@ fn solution_covers_every_canvas_exercise() {
 }
 
 #[test]
-fn course_json_lists_the_eight_units_in_order() {
+fn course_json_lists_the_ten_units_in_order() {
     let raw =
         std::fs::read_to_string(format!("{COURSE_DIR}/course.json")).expect("read course.json");
     let entries: Vec<Value> = serde_json::from_str(&raw).expect("parse course.json");
 
-    let expected: [(&str, u64); 8] = [
+    let expected: [(&str, u64); 10] = [
         ("unit1-propositions-proofs.sokonanoda", 1),
         ("unit2-equality-rfl.sokonanoda", 2),
         ("unit3-functions-arrows.sokonanoda", 3),
@@ -251,12 +253,14 @@ fn course_json_lists_the_eight_units_in_order() {
         ("unit6-induction-recursion-1.sokonanoda", 6),
         ("unit7-induction-recursion-2.sokonanoda", 7),
         ("unit8-quantifiers.sokonanoda", 8),
+        ("unit9-relations-connectives.sokonanoda", 9),
+        ("unit10-reading-proofs.sokonanoda", 10),
     ];
 
     assert_eq!(
         entries.len(),
         expected.len(),
-        "course.json must list exactly the 8 course files"
+        "course.json must list exactly the 10 course files"
     );
     for (entry, (file, unit)) in entries.iter().zip(expected) {
         assert_eq!(

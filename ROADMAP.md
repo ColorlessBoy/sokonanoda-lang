@@ -369,7 +369,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
       README 同步。
 
 以上均已落地（I6–I9 全绿）：prelude（`Nat`/`Bool`/`Eq`）、elaborator（
-无注解 `let`、`match` 全形态含带索引、binder 推断）、第一门课 8 单元 + golden、
+无注解 `let`、`match` 全形态含带索引、binder 推断）、第一门课 10 单元 + golden、
 真增量（early cutoff）、goal 视图（树 + Infoview + 高亮统一）、VS Code 打包发布。
 剩余仅远期 L2/L3（协作/远程、compiler service 跨文件转播）与已文档化技术债
 （见 `docs/HANDOVER.md` §3 D / §4）。
@@ -390,22 +390,29 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   参数化/prelude `Nat`·`Eq` 待后续；嵌套/字面量/守卫模式 ✅ 0.42.0，见 `docs/design/match-patterns.md`）。
 - 验收：每个语法点走 TDD 三件套（front 单测 + CLI e2e + 课程用例），白名单同步更新。
 
-### I7 —— 第一门课（M4，内容层）
-- **现状（8 单元，`course/course.json`）**：① `unit1-propositions-proofs`
+### I7 —— 第一门课（M4，内容层）✅ 完成（锁定 10 单元）
+- **现状（10 单元，`course/course.json`）**：① `unit1-propositions-proofs`
   命题与证明项 ② `unit2-equality-rfl` 等式与 `rfl`
   ③ `unit3-functions-arrows` 函数与箭头 ④ `unit4-by-tactics` `by` 写法：
   tactic 证明 ⑤ `unit5-universes-sort` 宇宙：函数类型的类型
   ⑥ `unit6-induction-recursion-1` 归纳与递归 Ⅰ
   ⑦ `unit7-induction-recursion-2` 归纳与递归 Ⅱ
-  ⑧ `unit8-quantifiers` 量词（`forall`/`Exists`）；每单元 5–10 个练习，
-  汇总 `units=8 checked=58 open=45 failed=0`。
+  ⑧ `unit8-quantifiers` 量词（`forall`/`Exists`）
+  ⑨ `unit9-relations-connectives` 关系与联结词（`Or` 升级为真 inductive +
+  自动派生 `Or.rec`、`Iff` 定义、`Le`/`Even` 归纳关系 + 手写消去子）
+  ⑩ `unit10-reading-proofs` 读证明与综合（自解释三问、formal↔informal
+  互译、评阅错证明、期末小项目）；每单元 5–10 个练习，
+  汇总 `units=10 checked=78 open=59 failed=0`。
 - 组织：`course/unitN-*.sokonanoda`（中文权威）+ `course/en/`（英文镜像：
   代码逐字节一致、`--` 注释可不同）+ `course/solutions/` 钥匙 +
   `course/course.json` 顺序清单；判定走 kernel（目标类型/化简断言），
   不做文本比对。
-- **演进计划（锁定，P3 待做）**：最终 **10 单元**——#9 关系与联结词、
-  #10 读证明与综合；见 `docs/design/course-syllabus.md` §0
-  （P2 已完成 `by` 提前与现 U5 的 #6/#7 拆分）。
+- **已完成**：P1（内容修补 + 测试加固）/ P2（`by` 提前、现 U5 拆 Ⅰ/Ⅱ）/
+  P3（新增 #9 关系与联结词、#10 读证明与综合）全部落地，大纲按
+  `docs/design/course-syllabus.md` §0 锁定为 10 单元。单元⑨落地时发现两处
+  产品缺口——索引递归 `Prop` 的 recursor 自动派生失败、`inductive` 参数不
+  接受多名字 binder 组——记在 `docs/HANDOVER.md` §3（前者：`Le`/`Even` 需
+  手写 `rec`/`iota`）。
 - 验收：零基础用户按顺序完成；CI 跑全部课程文件并比对 golden 事件。
 
 ### I8 —— 真正增量（服务层前置）

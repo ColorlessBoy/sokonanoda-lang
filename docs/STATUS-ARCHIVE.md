@@ -4,6 +4,26 @@
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
 
+## 本轮进度（2026-09-16，第八十一轮：`by` 块支持换行分隔 tactic）
+
+> 用户：能不能像 Lean4 一样用**分号或回车换行**两种分隔，从而省掉行尾的 `;`
+> （举了 `playground.sokonanoda` 的 `forall_and` 为例）。
+
+1. **难点**：`exact`/`apply` 的表达式会贪婪跨行（换行只是空白），`exact f` 换行
+   `apply g` 会被读成应用 `f apply g`。
+2. **规则**：解析 tactic 时（`by_depth > 0`），若下一 token 在**更晚的行**且是
+   **tactic 关键字**（`intro/exact/apply/assumption/rfl/match/sorry`），当前表达式结束。
+3. **实现**：`Parser.by_depth`（`parse_tactic` 包一层，Ok/Err 都减）；
+   `starts_atom` 在边界处返回 false（应用不吞下一行 tactic）；`parse_by_block` 在
+   `;` 或「下一行 tactic 关键字」时继续。仍未引入缩进敏感。
+4. **测试**：parser 5 项（换行分隔 / 边界胜过应用 / 多行项仍是单 tactic / `;` 与换行混用 /
+   不吃下一个命令）；CLI `cli_by_newline_separated_tactics_check_via_kernel`。
+5. **活样例**：`playground.sokonanoda` 的 `forall_and` 去掉行尾 `;`（gate 仍跑该文件）。
+6. **有意不支持/歧义**（写入 by-tactics.md §11）：同行不写 `;` 不算分隔；续行以 tactic
+   关键字开头的多行项会被切开（用括号/同行规避）；`sorry` 在下一行即视为新 tactic。
+7. **验收**：front 378 + CLI 全绿；`playground.sokonanoda` exit 0；`sokonanoda gate` PASS；
+   版本 0.50.0 → **0.51.0**。
+
 ## 本轮进度（2026-09-16，第八十轮：Infoview 自研调色板（主题解析回退））
 
 > 用户反馈：Infoview 里 `Type`/`Prop` 没高亮、参数色与编辑器/hover 不一致，问能否
@@ -2268,3 +2288,4 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    - `docs/protocol.md` 补齐 6 个缺失 elab 错误码（doc-conformance 测试守护）。
 4. **文档**：新增 `REQUIREMENTS.md`（用户全部要求的权威总账）、
    `docs/TESTING.md`（测试资产地图）、`docs/notes/lsp-notes.md`、`docs/notes/vscode-notes.md`。
+

@@ -9,8 +9,8 @@
 
 ## 0. 目标结构（**锁定** 2026-09-16，采用大纲 A）
 
-最终 10 单元（文件名为落地目标；**P2 已真正改结构，落地 #1–#8**（`by` 提前、
-现 U5 拆为 #6/#7），P1 只修内容不动结构；#9/#10 仍 P3）：
+最终 10 单元（文件名为落地目标；**P1 只修内容不动结构，P2 改结构落地 #1–#8**
+（`by` 提前、现 U5 拆为 #6/#7），**P3 新增 #9/#10 已落地——10 单元锁定**）：
 
 | # | 文件 | 标题（CN） | 来源 | 主要内容 |
 |---|---|---|---|---|
@@ -52,15 +52,17 @@
 **验收**：`cargo test -p sokonanoda-cli --test course --test course_status --locked` + 全量
 workspace + `sokonanoda gate`；双语镜像事件计数逐项相等；skills/VS Code 门面若受影响同步。
 
-> **状态（2026-09-16）：P1 已完成，P2 已完成。** P1：内容 1–8 由课程内容修复落地
-> （新增 `solution_covers_every_canvas_exercise` 与
+> **状态（2026-09-16）：P1/P2/P3 均已完成，10 单元锁定。** P1：内容 1–8 由课程
+> 内容修复落地（新增 `solution_covers_every_canvas_exercise` 与
 > `en_solutions_match_chinese_event_counts`，`expr.typed` 纳入镜像比较）；文档
 > 9–14 补齐。P2：`by` 由旧单元⑥提前为 #4、现 U5（显式归纳）拆为 #6/#7，
 > `course.json`/两处 GOLDEN/顺序断言/双语镜像/solutions/skill/VS Code 门面全部
-> 同步（测试名 `course_json_lists_the_eight_units_in_order`）。两处 GOLDEN 与汇总
-> 现为 `(13,6,1)/(2,5,2)/(2,6,2)/(13,5,0)/(0,6,1)/(7,6,3)/(7,4,4)/(14,7,1)`、
-> `units=8 checked=58 open=45 failed=0`——拆分让 #6/#7 各自重声明一次显式
-> `inductive Nat`，故 `decl.checked` 57→58（open 不变）。P3/P4 未动。
+> 同步。P3：新增 #9 关系与联结词、#10 读证明与综合（CN/EN 画布 + solutions +
+> `course.json` + 两处 GOLDEN 同步；测试名
+> `course_json_lists_the_ten_units_in_order`）。两处 GOLDEN 与汇总现为
+> `(13,6,1)/(2,5,2)/(2,6,2)/(13,5,0)/(0,6,1)/(7,6,3)/(7,4,4)/(14,7,1)/(13,8,0)/(7,6,0)`、
+> `units=10 checked=78 open=59 failed=0`——P2 拆分让 #6/#7 各自重声明一次显式
+> `inductive Nat`（57→58）；P3 新增 #9/#10 各 +13/+7（58→78）。P4 未动。
 
 ## 1. 调研综合（Lean 系 / Coq·Agda·Isabelle·Idris / 传统证明教材）
 
@@ -132,6 +134,9 @@ TDD-with-Idris、Velleman/Hammack/Solow/Chartrand 的共同推进：
 namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿名构造子 `⟨⟩`、
 `Type u`（用 `Sort u`）。
 
+> 注：此清单是 **P1 审计口径**。P3 单元⑨起，`Iff` 已用 `def`（= `And (A -> B) (B -> A)`）
+> 补齐、`Or.rec` 由前端自动派生（`Or` 非索引 Prop）；其余各项仍缺。
+
 **替代路线（写进大纲）**：
 - 重写 → 手写 `Eq.symm/trans/cong/subst` 链 + 散文式等式接力；
 - 化简/自动判定 → `#reduce` 算闭项 + 精选算术引理库（`add_zero`/`zero_add`/`add_comm`…）
@@ -139,14 +144,15 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
 - `cases`/`inversion` → `match` 分情况 + 对证据写消去引理；
 - `induction` → **递归 helper 引理**（recursion = induction）；`#print` 展示归纳原理对照；
 - `have` → 顶层 helper `theorem`（并把"顺序与依赖"当证明工程来教）；
-- `Or`/`Iff`/`∃` → 用 `inductive` 定义（`Or` 需要自己的消去子；`Exists` 已用公理声明）；
+- `Or`/`Iff`/`∃` → 用 `inductive`/`def` 定义（P3 落地：`Or`（非索引 Prop）自动派生
+  消去子，带索引递归 Prop 需手写，见 §2.11；`Iff` 用 `def`；`Exists` 仍用公理声明）；
 - 依赖类型 → 把长度性质写成**普通命题**（`length (append xs ys) = …`），再用 `Vec` 做
   "类型级 vs 命题级"对照。
 
 ## 2. 现状审计（摘要；细节见 §4 与 `crates/cli/tests/course.rs`）
 
-> 下面是 P1 审计时的**旧口径**（7 单元）；P2 后的真实结构见 §0 表与
-> `course/course.json`——8 单元、汇总 `units=8 checked=58 open=45 failed=0`。
+> 下面是 P1 审计时的**旧口径**（7 单元）；P2/P3 后的真实结构见 §0 表与
+> `course/course.json`——10 单元、汇总 `units=10 checked=78 open=59 failed=0`。
 
 7 单元（`course/course.json`，P1 审计时）：①命题与证明项 ②等式与 rfl
 ③函数与箭头 ④宇宙 ⑤显式归纳与递归 ⑥by 写法 ⑦量词。P1 修复后 golden（当时值，
@@ -168,9 +174,12 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
 5. **U5 内有过期断言**（L80「v1 的 match 只做非递归」与它自己教的递归 match 矛盾）。
    —— **P1 已修**
 6. **`Or` 只声明不练**（无 `Or.rec`、无 `Or` 练习；`Or.inr` 全域未用）；**`Iff`/`↔`
-   完全缺失**；skill 的"逻辑先行"清单却提了 Iff。 —— **P3 待做**（§0 新增单元 #9）
+   完全缺失**；skill 的"逻辑先行"清单却提了 Iff。 —— **P3 已做**（#9 上线：`Or`
+   升级为真 inductive（自动派生 `Or.rec`）+ 练习 `or_comm`/`or_elim`/`or_id`；
+   `Iff` 用 `def` 定义为 `And (A -> B) (B -> A)`，在 #9/#10 练习；skill 已同步）
 7. **零"读证明/评阅/翻译"练习**：全是"填项/填 tactic"，没有 formal↔informal 互译、
-   没有"给错证明找错"、没有"展开定义后要证什么"。 —— **P3 待做**（§0 新增单元 #10）
+   没有"给错证明找错"、没有"展开定义后要证什么"。 —— **P3 已做**（#10 上线：
+   自解释三问、formal↔informal 互译、评阅两份错证明、期末小项目）
 8. **U4 偏薄**（0 checked / 0 reduce，只有 `#check` 与两个 `example`），无"读取 `#check`
    输出"的练习。 —— **P1 已修**（增 2 道读 `#check` + 1 道 `#reduce`，golden 变 `(0,6,1)`）
 9. **文档漂移**：`docs/teaching-session.md`（§3 numbering、§5 声称 U5 有 `Or.rec`/`or_comm`
@@ -179,6 +188,16 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
    —— **P1 已修**（本轮文档订正）
 10. 双语镜像的 solution 未做事件计数对比 → **EN unit4 solution 已漂移**（漏 `#check (Type 0)`）。
     —— **P1 已修**（新增 `en_solutions_match_chinese_event_counts` + 补 EN unit4）
+11. **产品缺口：`derive_recursor` 对「索引递归 `Prop` + small elimination」自动派生失败**
+    （P3 编写 #9 时发现）：`Le`/`Even` 是带索引、含递归字段、消除到 `Prop` 的
+    inductive，省略 `rec` 时前端派生出的 IH 形状被内核拒绝；`Or`（非索引 `Prop`）
+    与 `Vec`（索引 `Type`）的自动派生正常。故 #9 对 `Le`/`Even` **手写** `rec`/`iota`。
+    —— **P3 发现**（待修的产品缺口，记入 `docs/HANDOVER.md` §3）
+12. **产品缺口：`inductive` 参数不接受多名字 binder 组 `(A B : Prop)`**（P3 编写 #9 时
+    发现）：同型多名字组在 Pi/箭头位已支持（`parse_binder_group`），但 `inductive`
+    参数（与 `ctor` 字段）走单名 `parse_binder`，`(A B : Prop)` 无法解析；#9/#10
+    只能写成 `(A : Prop) (B : Prop)`。 —— **P3 发现**（次要解析器缺口，记入
+    `docs/HANDOVER.md` §3）
 
 ## 3. 三套候选大纲
 
@@ -300,8 +319,11 @@ inversion 引理 → 4 相等作为归纳类型（唯一 `refl`）→ 5 同构/�
 - **P1 修补（不改结构）**：§5.1 的 5/6/7（去歧义题、删重复题、hint 不泄题、删过期断言、
   文档漂移、solutions 一致性测试 + EN unit4 修复）。golden 若变动则同步两处。
 - **P2 重排 + 拆分（已完成）**：`by` 提前；U5 拆两单元；重编号与双语/solutions 同步；两个 GOLDEN、
-  `course.json`、顺序断言、汇总（`units=8 checked=58 open=45`）同步；skill/VS Code 门面同步。
-- **P3 新增两单元**：关系与联结词、读证明与综合（含可能需要的协议/事件扩展 → 先设计）。
+  `course.json`、顺序断言、汇总（`units=8 checked=58 open=45`；P3 后为
+  `units=10 checked=78 open=59`）同步；skill/VS Code 门面同步。
+- **P3 新增两单元（已完成）**：关系与联结词（#9）、读证明与综合（#10）——无需协议/
+  事件扩展：读证明题仍以「在注释里给错证明 + 写出内核可判定的改正版」承载，判定
+  照旧走 kernel。
 - **P4（可选）并列入口**：把大纲 B 做成"游戏线"（若决定做，需要 Lean4Game 式关卡元数据
   的轻量版与 Infoview 配合；另立设计）。
 

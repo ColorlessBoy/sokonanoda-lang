@@ -1,12 +1,12 @@
 # 课程双语：course/ 英文镜像（design-course-bilingual）
 
-> **状态：已实现**（course/en/ 八单元镜像在线）。正文中的「5 个单元」等
-> 数字是当时的规划口径；现为 **8 单元**（`course/course.json`）。
+> **状态：已实现**（course/en/ 十单元镜像在线）。正文中的「5 个单元」等
+> 数字是当时的规划口径；现为 **10 单元**（`course/course.json`）。
 
 ## 1. 目标与定位
 
 用户要求教程文档提供**中文与英文两种版本**。范围（用户选定）：
-`course/` 单元课程为主——学习者直接面对的 8 个单元画布、解答钥匙与
+`course/` 单元课程为主——学习者直接面对的 10 个单元画布、解答钥匙与
 课程清单。`docs/` 下开发者文档不在本轮范围。
 
 形态（用户选定）：**中文/英文各一份独立文件**，不搞同文件内中英对照。
@@ -38,10 +38,10 @@
 
 ```
 course/
-  unit1-….sokonanoda … unit8-….sokonanoda   (中文，原样不动)
+  unit1-….sokonanoda … unit10-….sokonanoda  (中文，原样不动)
   solutions/unitN-*-solution.sokonanoda       (中文钥匙，原样不动)
   en/                                          (英文镜像，本轮新增)
-    unit1-….sokonanoda … unit8-….sokonanoda
+    unit1-….sokonanoda … unit10-….sokonanoda
     solutions/unitN-*-solution.sokonanoda
   course.json                                  (增加英文标题字段)
   README.md                                    (增加双语布局说明)
@@ -56,7 +56,7 @@ course/
 
 现有条目 `{"file", "title", "unit"}`。`title` 保持中文（权威），新增
 `"title_en"` 字段承载英文标题，方便工具/LSP/前端按需取用，同时**不破坏**
-现有 `course.rs` 的 `course_json_lists_the_eight_units_in_order` 断言
+现有 `course.rs` 的 `course_json_lists_the_ten_units_in_order` 断言
 （该测试只检查 file 与 unit，不看 title）。
 
 ## 5. CI 守卫：英文镜像一致性
@@ -69,7 +69,7 @@ course/
 - `course/en/solutions/*.sokonanoda` 必须 0 诊断、0 `exercise.open`，
   与中文钥匙同款（可解性守护延伸），且与中文钥匙**逐项事件计数相等**
   （`en_solutions_match_chinese_event_counts`）；
-- `course/en/` 顶层文件数 = `course/` 顶层文件数（8），且同名一一对应。
+- `course/en/` 顶层文件数 = `course/` 顶层文件数（10），且同名一一对应。
 
 中文钥匙的练习名还须覆盖画布练习名（`solution_covers_every_canvas_exercise`）。
 

@@ -51,7 +51,8 @@
 > Eq 三件套由 prelude 提供（`Eq`/`Eq.refl`/`Eq.subst`，签名与官方 Lean 一致）。
 > 排序哲学（REQUIREMENTS §6）：单元①直接证明命题，Sort 等“函数类型的类型”
 > 问题自然出现时（单元⑤）才揭晓；`by` 写法提前到单元④（即时反馈加速器），
-> 归纳拆成单元⑥（Ⅰ）/⑦（Ⅱ），量词在单元⑧（见本节末尾“第二课”）。
+> 归纳拆成单元⑥（Ⅰ）/⑦（Ⅱ），量词在单元⑧（见本节末尾“第二课”），
+> 关系与联结词在单元⑨、读证明与综合在单元⑩（见本节末尾“第三课”）。
 >
 > 下表按**真实课程单元·题号**编号（`U1·1` = `course/unit1-*.sokonanoda`
 > 练习 1），不再用旧的 playground 顺序号。
@@ -124,6 +125,32 @@
 钥匙见 `course/solutions/unit8-quantifiers-solution.sokonanoda`；`#reduce`
 自测 `(fun (x : Person) => x) someone` 应化简为 `someone`。
 
+### 第三课：关系、联结词与读证明（course/ 单元⑨–⑩，2026-09-16 上线）
+
+> 单元⑨把单元①的 `Or` 从公理升级为真正的 `inductive`（前端自动派生
+> `Or.rec`），`Iff` 是 `And (A -> B) (B -> A)` 的 `def`，`Le`/`Even` 是带
+> 索引的归纳关系（各自**手写** `rec`/`iota`——见 HANDOVER §3 的 gap 1）；
+> 单元⑩不再新增语法，练「读」：自解释三问、formal↔informal 互译、评阅错
+> 证明、期末小项目——每道题的成品仍必须过内核。
+> 钥匙见 `course/solutions/unit{9,10}-*-solution.sokonanoda`。
+
+| 单元·题 | 练习 | 目标误解 | 钥匙（kernel 验证） |
+|---|---|---|---|
+| U9·1 | `theorem or_comm (A : Prop) (B : Prop) (h : Or A B) : Or B A := sorry` | `Or` 是归纳类型：`match` 拆开再装到另一边的构造子 | `match h with \| inl a => inr B A a \| inr b => inl B A b` |
+| U9·2 | `theorem or_elim (A B C : Prop) (h : Or A B) (f : A -> C) (g : B -> C) : C := sorry` | 显式用消去子 `Or.rec`：motive + 两分支 + 证据 | `Or.rec A B (fun (x : Or A B) => C) f g h` |
+| U9·3 R | `theorem or_id (A : Prop) (h : Or A A) : A := sorry` | `match` 必须覆盖**全部**构造子（原错证明只写了 `inl`） | `match h with \| inl a => a \| inr a => a` |
+| U9·4 | `theorem iff_mp (A B : Prop) (h : Iff A B) : A -> B := sorry` | `Iff` 是定义，展开成 `And`，正向在左 | `And.left (A -> B) (B -> A) h` |
+| U9·5 | `theorem iff_mpr (A B : Prop) (h : Iff A B) : B -> A := sorry` | 与上题对称：反向在右 | `And.right (A -> B) (B -> A) h` |
+| U9·6 L | `theorem le_zero (n : Nat) : Le Nat.zero n := sorry` | 对 `n` 归纳：zero 用自反，succ 支把 `ih` 经 `le_succ` 抬层 | `match n with \| Nat.zero => le_refl Nat.zero \| Nat.succ k => le_succ Nat.zero k ih` |
+| U9·7 X | `theorem le_trans (m n k : Nat) (h1 : Le m n) (h2 : Le n k) : Le m k := sorry` | 对**第二个证据** `h2` 用 `Le.rec` 归纳，motive 记着 `h1` | `(Le.rec (fun (a : Nat) (b : Nat) (h : Le a b) => Le m a -> Le m b) (fun (b : Nat) => fun (hx : Le m b) => hx) (fun (a : Nat) (b : Nat) (h : Le a b) (ih : Le m a -> Le m b) => fun (hx : Le m a) => le_succ m b (ih hx)) n k h2) h1` |
+| U9·8 | `theorem even_four : Even (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) := sorry` | `even_succ` 把「n 是偶数」抬成「n+2 是偶数」，前提用 `even_two` | `even_succ (Nat.succ (Nat.succ Nat.zero)) even_two` |
+| U10·1 X | `theorem or_intro_x (A B : Prop) (a : A) : Or A B := sorry` | 非形式「如果…那么…」→箭头；结论是 `Or`，用对应构造子 | `inl A B a` |
+| U10·2 X | `theorem iff_intro_x (A B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B := sorry` | 「等价」就是 `Iff`，把两个方向打包 | `And.intro (A -> B) (B -> A) mp mpr` |
+| U10·3 X | `theorem nat_eq_self_x (n : Nat) : Eq.{1} Nat n n := sorry` | 「每个自然数」=∀；等式自反，注意 `.{1}` | `Eq.refl.{1} Nat n` |
+| U10·4 R | `theorem or_comm_fixed (A B : Prop) (h : Or A B) : Or B A := sorry` | 原错证明 `match` 漏了 `inr` 支 | `match h with \| inl a => inr B A a \| inr b => inl B A b` |
+| U10·5 R | `theorem or_right_fixed (A B : Prop) (b : B) : Or A B := sorry` | 原错证明把 `b : B` 交给了 `inl`（吃 `A` 的证明） | `inr A B b` |
+| U10·6 综合 | `theorem and_or_imp (A B C : Prop) : And A (Or B C) -> Or (And A B) (And A C) := sorry` | 用 `let` 命名 `h` 的右半再 `match`，两种分支重新打包 | `fun (h : And A (Or B C)) => let bc : Or B C := And.right A (Or B C) h; match bc with \| inl b => inl (And A B) (And A C) (And.intro A B (And.left A (Or B C) h) b) \| inr c => inr (And A B) (And A C) (And.intro A C (And.left A (Or B C) h) c)` |
+
 ## 4. Gotchas（全部验证过，别踩）
 
 1. **裸 `Eq` 默认 u=0**（Prop 层）；Nat 级必须 `Eq.{1}`/`Eq.refl.{1}`/`Eq.subst.{1}`。
@@ -137,19 +164,23 @@
    也是 `Sort 1`；`Type u`（宇宙变量）不支持，写 `Sort u`。
 6. **命名要防撞 prelude**：若画布自己声明 `Eq`/`Eq.refl`/`Eq.subst` 任一，
    整个 Eq prelude 跳过（all-or-nothing，与显式 `Nat` 块行为一致）。
-7. **本课不含排中律/or_comm**（`Or` 只声明了 `Or.inl`/`Or.inr`，没有消去子
-   `Or.rec`——课程里至今未定义，别许诺；P3 计划在新增的「关系与联结词」单元
-   （#9）才引入）。
+7. **排中律不在课内**（`em`/`by_contra` 在白名单外）。`Or` 在**单元⑨**升级为
+   真正的 inductive（前端自动派生消去子 `Or.rec`），`or_comm`/`or_elim`/`or_id`
+   都是该单元的练习；**单元⑨之前**（画布第一课、单元①–⑧）不要许诺 `Or.rec`。
 
-## 5. 后续课程（单元④–⑧已上线）
+## 5. 后续课程（单元④–⑩已上线）
 
 `by` 写法（tactic 证明）与值位 `intro`/`apply` 对照在 **course/ 单元④**
 （0.18.0 起，P2 从旧单元⑥提前）；宇宙（`Sort n`/`Type n` 阶梯、`Eq.{1}`
 由来、`#check` 读输出）在 **单元⑤**。显式 `inductive Nat` 块 +
 `Nat.rec`/iota 归纳、`match` 分情况/递归在 **单元⑥**（归纳与递归 Ⅰ）；
 参数化 `Option`/依赖 match/嵌套与通配模式/带索引 `Vec` 在 **单元⑦**
-（归纳与递归 Ⅱ）——单元⑥/⑦**没有** `Or.rec`/`or_comm`。手写 `eq_trans`
-（以及 `eq_symm`、等式接力）在 **course/ 单元②**。量词
-（`forall`/`Exists`，Person 论域 + `Exists` 公理三件套）在**单元⑧**
-（0.26.0 起），就是画布的第二课。语料参照 `examples/py-nat.sokonanoda`
+（归纳与递归 Ⅱ）。手写 `eq_trans`（以及 `eq_symm`、等式接力）在
+**course/ 单元②**。量词（`forall`/`Exists`，Person 论域 + `Exists`
+公理三件套）在**单元⑧**（0.26.0 起），就是画布的第二课。关系与联结词
+（`Or` 升级为真 inductive + 自动派生 `Or.rec`、`Iff` 定义、`Le`/`Even`
+归纳关系 + 手写消去子）在**单元⑨**（P3，2026-09-16 上线，见“第三课”）；
+读证明与综合（自解释三问、formal↔informal 互译、评阅错证明、期末小项目）
+在**单元⑩**（P3）——`or_comm`/`or_elim`/`Or.rec` 都从单元⑨起才出现，
+单元①–⑧没有。语料参照 `examples/py-nat.sokonanoda`
 与 `examples/fol-basics.sokonanoda`。

@@ -65,7 +65,7 @@ fn u64_field(event: &Value, field: &str) -> u64 {
 /// Per-unit golden counts in course.json order:
 /// (decl.checked, exercise.open, failed, expr.reduced) — identical to the
 /// course.rs golden (checked, open, reduced) with failed = 0 throughout.
-const GOLDEN: [(u64, u64, u64, u64); 8] = [
+const GOLDEN: [(u64, u64, u64, u64); 10] = [
     (13, 6, 0, 1),
     (2, 5, 0, 2),
     (2, 6, 0, 2),
@@ -74,6 +74,8 @@ const GOLDEN: [(u64, u64, u64, u64); 8] = [
     (7, 6, 0, 3),
     (7, 4, 0, 4),
     (14, 7, 0, 1),
+    (13, 8, 0, 0),
+    (7, 6, 0, 0),
 ];
 
 #[test]
@@ -89,11 +91,11 @@ fn course_subcommand_aggregates_the_manifest() {
     let events = parse_lines(&stdout);
     assert_eq!(
         events.len(),
-        9,
-        "exactly 8 course.unit + 1 course.summary, got: {events:?}"
+        11,
+        "exactly 10 course.unit + 1 course.summary, got: {events:?}"
     );
     let units = typed(&events, "course.unit");
-    assert_eq!(units.len(), 8, "one course.unit per manifest entry");
+    assert_eq!(units.len(), 10, "one course.unit per manifest entry");
     let summaries = typed(&events, "course.summary");
     assert_eq!(summaries.len(), 1, "exactly one course.summary");
 
@@ -111,9 +113,9 @@ fn course_subcommand_aggregates_the_manifest() {
     }
 
     let summary = summaries[0];
-    assert_eq!(u64_field(summary, "units"), 8, "summary units");
-    assert_eq!(u64_field(summary, "checked"), 58, "summary checked");
-    assert_eq!(u64_field(summary, "open"), 45, "summary open");
+    assert_eq!(u64_field(summary, "units"), 10, "summary units");
+    assert_eq!(u64_field(summary, "checked"), 78, "summary checked");
+    assert_eq!(u64_field(summary, "open"), 59, "summary open");
     assert_eq!(u64_field(summary, "failed"), 0, "summary failed");
 }
 
@@ -133,7 +135,7 @@ fn course_subcommand_human_view_lists_units() {
     );
     let last = stdout.lines().last().unwrap_or_default();
     assert!(
-        last.contains("45") && last.contains("checked") && last.contains("failed"),
+        last.contains("59") && last.contains("checked") && last.contains("failed"),
         "the final line must be the totals, got: {last:?}"
     );
 }

@@ -51,11 +51,12 @@ skills.
   with `sokonanoda: 打开目标面板 (Infoview)` (needs VS Code 1.106+).
 - **Hint ladders** — each exercise carries 2–3 progressive hints
   (`-- soko:hint` directives); reveal them one at a time when stuck.
-- **Course map** — an 8-unit structured course with verified solutions
+- **Course map** — a 10-unit structured course with verified solutions
   (propositional logic first; `by` tactic blocks early for fast feedback;
   universes only when you naturally ask "what's the type of a function
-  type?"; induction split into two units; evolving toward the locked
-  10-unit plan in `docs/design/course-syllabus.md` §0).
+  type?"; induction split into two units; relations & connectives in unit 9
+  and reading proofs & synthesis in unit 10, per the locked 10-unit plan in
+  `docs/design/course-syllabus.md` §0).
 
 **A real editing experience**
 

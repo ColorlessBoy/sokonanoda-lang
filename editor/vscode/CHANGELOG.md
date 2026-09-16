@@ -1,3 +1,28 @@
+## [0.54.0] - 2026-09-16
+
+### Added
+
+- **Course completed to the locked 10 units (P3 of the syllabus redesign)** —
+  - **Unit 9「关系与联结词」**: `Or` as a real inductive (auto-derived `Or.rec`,
+    `match` lowers to it), `Iff` as a definition `And (A -> B) (B -> A)`,
+    and `Le` / `Even` as inductive relations with elimination/induction lemmas
+    (the explicit "inversion lemma" pattern).
+  - **Unit 10「读证明与综合」**: a self-explanation checklist applied to a worked
+    proof, formal↔informal translation pairs, two "fix this rejected proof"
+    evaluations (the wrong proof lives in a comment), and a cross-unit capstone.
+  - Totals: **units 10, checked 78, open 59, failed 0**. Every reading/evaluation
+    exercise still produces a kernel-checked declaration — no new protocol events,
+    no whitelist expansion.
+
+### Known issues (recorded)
+
+- `front`'s derived recursor is rejected by the kernel for an **indexed recursive
+  `Prop`** inductive (`Le`/`Even`) — the IH shape mismatches — so those units
+  hand-write `rec`/`iota`; `Or` (non-indexed `Prop`) and `Vec` (indexed `Type`)
+  derive fine. Fixable in `front` (not frozen), tracked in `docs/HANDOVER.md` §3 E.
+- `inductive` **multi-name parameter groups** (`(A B : Prop)`) do not parse
+  (Pi binders do); tracked in `docs/HANDOVER.md` §3 E.
+
 ## [0.53.0] - 2026-09-16
 
 ### Changed

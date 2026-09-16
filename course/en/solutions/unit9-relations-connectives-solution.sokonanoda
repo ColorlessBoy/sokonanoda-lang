@@ -1,0 +1,108 @@
+-- unit9-relations-connectives-solution — Unit 9 answer key (for agents)
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+
+inductive Or (A : Prop) (B : Prop) : Prop
+ctor inl (a : A) : Or A B
+ctor inr (b : B) : Or A B
+end
+
+def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+
+theorem or_intro_demo (A : Prop) (B : Prop) (a : A) : Or A B :=
+  inl A B a
+
+theorem or_comm (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+  match h with
+  | inl a => inr B A a
+  | inr b => inl B A b
+
+theorem or_elim (A : Prop) (B : Prop) (C : Prop) (h : Or A B) (f : A -> C) (g : B -> C) : C :=
+  Or.rec A B (fun (x : Or A B) => C) f g h
+
+theorem or_id (A : Prop) (h : Or A A) : A :=
+  match h with
+  | inl a => a
+  | inr a => a
+
+theorem iff_intro_demo (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
+  And.intro (A -> B) (B -> A) mp mpr
+
+theorem iff_mp (A : Prop) (B : Prop) (h : Iff A B) : A -> B :=
+  And.left (A -> B) (B -> A) h
+
+theorem iff_mpr (A : Prop) (B : Prop) (h : Iff A B) : B -> A :=
+  And.right (A -> B) (B -> A) h
+
+inductive Le : Nat -> Nat -> Prop
+ctor le_refl (n : Nat) : Le n n
+ctor le_succ (m : Nat) (n : Nat) : Le m n -> Le m (Nat.succ n)
+rec Le.rec :
+  (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) ->
+  (hr : (n : Nat) -> motive n n (le_refl n)) ->
+  (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) ->
+  (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h
+iota le_refl :=
+  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
+  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
+  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
+  fun (n : Nat) => hr n
+iota le_succ :=
+  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
+  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
+  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
+  fun (m : Nat) => fun (n : Nat) => fun (h : Le m n) =>
+  hs m n h (Le.rec motive hr hs m n h)
+end
+
+theorem le_succ_self (n : Nat) : Le n (Nat.succ n) :=
+  le_succ n n (le_refl n)
+
+theorem le_zero (n : Nat) : Le Nat.zero n :=
+  match n with
+  | Nat.zero => le_refl Nat.zero
+  | Nat.succ k => le_succ Nat.zero k ih
+
+theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le m k :=
+  (Le.rec
+    (fun (a : Nat) (b : Nat) (h : Le a b) => Le m a -> Le m b)
+    (fun (b : Nat) => fun (hx : Le m b) => hx)
+    (fun (a : Nat) (b : Nat) (h : Le a b) (ih : Le m a -> Le m b) =>
+       fun (hx : Le m a) => le_succ m b (ih hx))
+    n k h2) h1
+
+inductive Even : Nat -> Prop
+ctor even_zero : Even Nat.zero
+ctor even_succ (n : Nat) : Even n -> Even (Nat.succ (Nat.succ n))
+rec Even.rec :
+  (motive : (n : Nat) -> Even n -> Prop) ->
+  (hz : motive Nat.zero even_zero) ->
+  (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) ->
+  (n : Nat) -> (h : Even n) -> motive n h
+iota even_zero :=
+  fun (motive : (n : Nat) -> Even n -> Prop) =>
+  fun (hz : motive Nat.zero even_zero) =>
+  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
+  hz
+iota even_succ :=
+  fun (motive : (n : Nat) -> Even n -> Prop) =>
+  fun (hz : motive Nat.zero even_zero) =>
+  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
+  fun (n : Nat) => fun (h : Even n) =>
+  hs n h (Even.rec motive hz hs n h)
+end
+
+theorem even_two : Even (Nat.succ (Nat.succ Nat.zero)) :=
+  even_succ Nat.zero even_zero
+
+theorem even_plus_two (n : Nat) (h : Even n) : Even (Nat.succ (Nat.succ n)) :=
+  Even.rec
+    (fun (a : Nat) (x : Even a) => Even (Nat.succ (Nat.succ a)))
+    (even_succ Nat.zero even_zero)
+    (fun (a : Nat) (x : Even a) (ih : Even (Nat.succ (Nat.succ a))) => even_succ (Nat.succ (Nat.succ a)) ih)
+    n h
+
+theorem even_four : Even (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) :=
+  even_succ (Nat.succ (Nat.succ Nat.zero)) even_two

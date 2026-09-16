@@ -6,7 +6,7 @@
 > 按其反馈历史动态维护的画布（如根 `playground.sokonanoda`）。适配规则见
 > `docs/teaching-session.md` §0。
 
-把 playground 第一课拆成八个可独立编译的单元画布，并配上解答钥匙与 CI 守卫。
+把 playground 第一课拆成十个可独立编译的单元画布，并配上解答钥匙与 CI 守卫。
 
 ## 布局
 
@@ -16,14 +16,18 @@
 > `docs/design/course-syllabus.md` §5.1）；归纳拆成单元⑥（Ⅰ：显式
 > `inductive Nat`/手写 `Nat.rec`/递归 `match` 自动 IH）与单元⑦（Ⅱ：
 > 参数化 `Option`/依赖 `match`=归纳/嵌套通配模式/带索引 `Vec`）。单元⑧
-> （量词）是单元①的逻辑补充，可紧跟单元①教学；清单里按新增顺序排在末尾。
+> （量词）是单元①的逻辑补充，可紧跟单元①教学。单元⑨（关系与联结词，
+> P3 新增）把单元①的 `Or` 升级为真 `inductive`（自动派生 `Or.rec`）、用
+> `def` 给出 `Iff`、并把 `Le`/`Even` 作为归纳关系手写消去子；单元⑩
+> （读证明与综合，P3 新增）不教新语法，练自解释三问、formal↔informal
+> 互译、评阅错证明与期末小项目。清单按教学顺序排列。
 > 所有 `-- soko:hint` 只给触发条件与该用的引理/构造子名，**从不含完整答案**。
 
 | 路径 | 面向 | 说明 |
 |---|---|---|
 | `unitN-*.sokonanoda` | 学习者 | 教学画布（中文）：`--` 讲解 + 已写好的演示 + 带 `sorry` 的练习。带洞是合法状态（`exercise.open`），逐声明容错。 |
 | `en/unitN-*.sokonanoda` | 学习者 | 教学画布（英文镜像）：**与中文画布代码逐字节一致，仅 `--` 注释语言不同**；事件计数完全相同（CI 守卫）。 |
-| `course.json` | agent/工具 | 有序课程清单：`{"file", "title", "title_en", "unit"}`，unit = 1..8。 |
+| `course.json` | agent/工具 | 有序课程清单：`{"file", "title", "title_en", "unit"}`，unit = 1..10。 |
 | `solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（中文）：与对应画布一一对应，所有 `sorry` 已填入经完整内核验证的答案。**勿直接发给学习者**。 |
 | `en/solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（英文镜像）：代码与中文钥匙一致，仅注释为英文。 |
 
@@ -41,7 +45,7 @@ course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件�
 
 ## 约定
 
-* 八个单元文件风格与根 `playground.sokonanoda` 一致：`--` 讲解（中文在顶层、英文在 `en/`）、演示已填、练习留 `sorry`。
+* 十个单元文件风格与根 `playground.sokonanoda` 一致：`--` 讲解（中文在顶层、英文在 `en/`）、演示已填、练习留 `sorry`。
 * 每个单元至少一条 `#reduce` 自测（`#` 命令在课程文件里合法），保证 `expr.reduced` 事件可被 golden 测试观测。
 * 每个单元文件各自带所需 axiom/inductive 块，独立编译（unit6/unit7 的显式 `inductive Nat` 块会取代该文件内的 prelude Nat）。
 * 依赖洞的 `#reduce`（如 unit6 的 `#reduce add two two`）在画布里注释着，解出后放开；solution 文件里保持放开并带核对值。
@@ -55,5 +59,5 @@ course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件�
 2. 每单元的 `decl.checked` / `exercise.open` / `expr.reduced` 事件数与 golden 表精确一致；
 3. `solutions/*.sokonanoda` 全部 0 诊断、0 个 `exercise.open`（课程可解性证明），
    且画布练习名都能在 solution 里找到同名声明（`solution_covers_every_canvas_exercise`）；
-4. `course.json` 恰好按序列出这 8 个文件、unit = 1..8；
+4. `course.json` 恰好按序列出这 10 个文件、unit = 1..10；
 5. `course/en/` 镜像与中文画布、`course/en/solutions/` 与中文钥匙的事件计数逐项相等。

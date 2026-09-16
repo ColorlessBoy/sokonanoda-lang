@@ -14,6 +14,59 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-16，第八十四轮：课程大纲重构 P3——锁定 10 单元）
+
+> 续 `docs/design/course-syllabus.md` §6 P3：补齐锁定的最后两个单元。
+
+1. **#9 关系与联结词**（`unit9-relations-connectives`）：把 `Or` 作为**真实归纳**声明
+   （自动派生 `Or.rec`，`match` 降低到它）教「用」它；`Iff` 作为**定义**
+   `And (A->B) (B->A)` 练定义展开；`Le`/`Even` 作为归纳关系 + 消去/归纳引理
+   （PLFA inversion 套路）。8 题（T/R/L/X）。
+2. **#10 读证明与综合**（`unit10-reading-proofs`）：自解释三问（Hodges/Alcock/Inglis）
+   逐行读一份已证证明；formal↔informal 互译；两题「评阅错证明→写出能过内核的修正版」
+   （错证明只放注释）；一题跨单元 capstone。6 题（X/R/T）。
+   **判分口径**：不引入新协议事件——每道读/评阅题都要产出内核可判的声明（散文只在注释里、
+   不计数）。
+3. **规模**：unit9 `(13 checked, 8 open, 0 reduced)`、unit10 `(7,6,0)`；汇总
+   **units=10 checked=78 open=59 failed=0**；`course_json_lists_the_ten_units_in_order`；
+   `cli.rs` 缓存金值同步。
+4. **门面同步**（硬规则）：teaching-session（新增「第三课：关系、联结词与读证明」键表）、
+   course-status/course-bilingual/ROADMAP I7（改为「✅ 完成（锁定 10 单元）」）/
+   course/README/infrastructure + teacher skills（curriculum 行 9/10、SKILL 的
+   `Or`/`Iff` 归属）+ editor/vscode/README（10 单元）。
+5. **记录两个产品缺口**（写入 HANDOVER §3 E + 课程大纲 §2 第 11/12 条）：
+   (a) **带索引的递归 `Prop` 归纳**（`Le`/`Even`）自动派生 recursor 被内核拒（IH 形状不符），
+   只能手写 `rec`/`iota`（`Or` 非索引 Prop、`Vec` 带索引 Type 均正常）——front 未冻结，**可修**；
+   (b) `inductive` 的**多名字参数组** `(A B : Prop)` 不解析（Pi binder 支持）。
+6. **验收**：course/course_status/skill + 全量 CLI + 手动 fmt/clippy/test 全绿；20 个 CN+EN
+   画布 exit 0；双语画布与 solutions 逐项相等；版本 0.53.0 → **0.54.0**（课程达到锁定规模，minor）。
+
+## 本轮进度（2026-09-16，第八十三轮：课程大纲重构 P2（重排 + 拆分 U5））
+
+> 续 `docs/design/course-syllabus.md` §6 P2：把 `by` 提前、把过载的归纳单元拆开。
+
+1. **重排**：`by` 单元从第 6 提到**第 4**（紧跟函数/箭头之后），宇宙顺延为第 5；
+   量词为第 8。
+2. **拆分**：旧「显式归纳与递归」拆成 **Ⅰ**（显式 `inductive`/`rec`/`iota` + 手写
+   `Nat.rec` + `match` 非递归 + 递归 `match`+IH）与 **Ⅱ**（参数化 `Option` + 依赖
+   `match`=归纳 + 嵌套/字面量/通配/guard 模式 + 带索引 `Vec`）。两半各自**重声明**
+   `inductive Nat` 以保持自足（代价：`decl.checked` 57→58）。
+3. **文件/清单**：`git mv` 重命名 CN/EN 画布与 CN/EN solutions（`unit6-by→unit4-by`、
+   `unit4-univ→unit5-univ`、`unit5-ind→unit6/unit7-…`、`unit7-quant→unit8-quant`）；
+   `course.json` 8 条，`unit` 1..8。
+4. **测试**：两处 GOLDEN 改 8 行（`(13,6,1)(2,5,2)(2,6,2)(13,5,0)(0,6,1)(7,6,3)(7,4,4)(14,7,1)`）、
+   汇总 `units=8 checked=58 open=45`、`course_json_lists_the_eight_units_in_order`、
+   `cli.rs` 课程缓存金值 57→58。
+5. **门面同步**（硬规则）：`teaching-session.md`/`course-status.md`/`course-bilingual.md`/
+   `ROADMAP` I7/`course/README.md`/`infrastructure.md`/`type-level-syntax.md`/
+   `term-intro.md`/`remove-funintro.md`/`skills/`（teacher 两个文件）/`editor/vscode/README.md`
+   （7→8 单元，注明向锁定 10 单元演进）；并**移除**根 README 与 site 三处**手写单元数**
+   （改为不带数字，数字由 `course/course.json` 生成）。
+6. **验收**：course/course_status/skill + 全量 CLI 测试全绿；16 个 CN+EN 画布 exit 0；
+   双语画布与 solutions 事件计数逐项相等；`solution_covers_every_canvas_exercise` 通过；
+   版本 0.52.0 → **0.53.0**（结构可见变化，minor）。
+7. **待做**：P3 = 新增 #9 关系与联结词、#10 读证明与综合（锁定的 10 单元）。
+
 ## 本轮进度（2026-09-16，第八十二轮：课程大纲重构 P1）
 
 > 用户：重新拆解 course、全面调研形式化证明教材、设计教学大纲。先出设计
@@ -44,50 +97,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 6. **验收**：course/course_status/skill + 全量 workspace 全绿；`sokonanoda gate` PASS；
    版本 0.51.0 → **0.52.0**（课程内容可见改进，minor）。P2（重排+拆分 U5）、P3（新增两
    单元）、P4（游戏线）待做。
-
-## 本轮进度（2026-09-16，第八十三轮：课程大纲重构 P2（重排 + 拆分 U5））
-
-> 续 `docs/design/course-syllabus.md` §6 P2：把 `by` 提前、把过载的归纳单元拆开。
-
-1. **重排**：`by` 单元从第 6 提到**第 4**（紧跟函数/箭头之后），宇宙顺延为第 5；
-   量词为第 8。
-2. **拆分**：旧「显式归纳与递归」拆成 **Ⅰ**（显式 `inductive`/`rec`/`iota` + 手写
-   `Nat.rec` + `match` 非递归 + 递归 `match`+IH）与 **Ⅱ**（参数化 `Option` + 依赖
-   `match`=归纳 + 嵌套/字面量/通配/guard 模式 + 带索引 `Vec`）。两半各自**重声明**
-   `inductive Nat` 以保持自足（代价：`decl.checked` 57→58）。
-3. **文件/清单**：`git mv` 重命名 CN/EN 画布与 CN/EN solutions（`unit6-by→unit4-by`、
-   `unit4-univ→unit5-univ`、`unit5-ind→unit6/unit7-…`、`unit7-quant→unit8-quant`）；
-   `course.json` 8 条，`unit` 1..8。
-4. **测试**：两处 GOLDEN 改 8 行（`(13,6,1)(2,5,2)(2,6,2)(13,5,0)(0,6,1)(7,6,3)(7,4,4)(14,7,1)`）、
-   汇总 `units=8 checked=58 open=45`、`course_json_lists_the_eight_units_in_order`、
-   `cli.rs` 课程缓存金值 57→58。
-5. **门面同步**（硬规则）：`teaching-session.md`/`course-status.md`/`course-bilingual.md`/
-   `ROADMAP` I7/`course/README.md`/`infrastructure.md`/`type-level-syntax.md`/
-   `term-intro.md`/`remove-funintro.md`/`skills/`（teacher 两个文件）/`editor/vscode/README.md`
-   （7→8 单元，注明向锁定 10 单元演进）；并**移除**根 README 与 site 三处**手写单元数**
-   （改为不带数字，数字由 `course/course.json` 生成）。
-6. **验收**：course/course_status/skill + 全量 CLI 测试全绿；16 个 CN+EN 画布 exit 0；
-   双语画布与 solutions 事件计数逐项相等；`solution_covers_every_canvas_exercise` 通过；
-   版本 0.52.0 → **0.53.0**（结构可见变化，minor）。
-7. **待做**：P3 = 新增 #9 关系与联结词、#10 读证明与综合（锁定的 10 单元）。
-
-## 本轮进度（2026-09-16，第八十一轮：`by` 块支持换行分隔 tactic）
-
-> 用户：能不能像 Lean4 一样用**分号或回车换行**两种分隔，从而省掉行尾的 `;`
-> （举了 `playground.sokonanoda` 的 `forall_and` 为例）。
-
-1. **难点**：`exact`/`apply` 的表达式会贪婪跨行（换行只是空白），`exact f` 换行
-   `apply g` 会被读成应用 `f apply g`。
-2. **规则**：解析 tactic 时（`by_depth > 0`），若下一 token 在**更晚的行**且是
-   **tactic 关键字**（`intro/exact/apply/assumption/rfl/match/sorry`），当前表达式结束。
-3. **实现**：`Parser.by_depth`（`parse_tactic` 包一层，Ok/Err 都减）；
-   `starts_atom` 在边界处返回 false（应用不吞下一行 tactic）；`parse_by_block` 在
-   `;` 或「下一行 tactic 关键字」时继续。仍未引入缩进敏感。
-4. **测试**：parser 5 项（换行分隔 / 边界胜过应用 / 多行项仍是单 tactic / `;` 与换行混用 /
-   不吃下一个命令）；CLI `cli_by_newline_separated_tactics_check_via_kernel`。
-5. **活样例**：`playground.sokonanoda` 的 `forall_and` 去掉行尾 `;`（gate 仍跑该文件）。
-6. **有意不支持/歧义**（写入 by-tactics.md §11）：同行不写 `;` 不算分隔；续行以 tactic
-   关键字开头的多行项会被切开（用括号/同行规避）；`sorry` 在下一行即视为新 tactic。
-7. **验收**：front 378 + CLI 全绿；`playground.sokonanoda` exit 0；`sokonanoda gate` PASS；
-   版本 0.50.0 → **0.51.0**。
 

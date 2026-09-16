@@ -4,7 +4,7 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.53.0**（2026-09-16），最近一轮 **第八十三轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.54.0**（2026-09-16），最近一轮 **第八十四轮**。仓库根入口 `AGENTS.md`。
 
 ## 1. 30 秒接手
 
@@ -20,7 +20,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～八十三轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～八十四轮，全部已发布）
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -55,14 +55,16 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 81 | 0.51.0 | `by` 块换行分隔 tactic（`;` 或换行） | `docs/design/by-tactics.md` §11 |
 | 82 | 0.52.0 | 课程大纲重构 P1（内容修补 + 测试加固 + 设计锁定） | `docs/design/course-syllabus.md` |
 | 83 | 0.53.0 | 课程大纲重构 P2（`by` 提前到 #4、归纳拆 Ⅰ/Ⅱ、8 单元 + 门面同步） | `docs/design/course-syllabus.md` §6 |
+| 84 | 0.54.0 | 课程大纲重构 P3（#9 关系与联结词、#10 读证明与综合 → 锁定 10 单元） | `docs/design/course-syllabus.md` §0/§6 |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–80 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–81 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
-> **状态（2026-09-15）**：§3 A/A′/A″/B/C 的**可执行项已全部完成**（0.40.0–0.47.0）；
-> 仅剩 §3 D「远期 L2/L3」（协作/远程、compiler service 跨文件转播）与 §4 的
-> 已文档化技术债（多数需内核/pp 变更，违反 kernel 冻结）。
+> **状态（2026-09-16）**：§3 A/A′/A″/B/C 的**可执行项已全部完成**（0.40.0–0.47.0）；
+> §3 E 是课程 P3（新增单元 #9/#10）新发现的两个 front/parser 缺口（待办）；
+> §3 D「远期 L2/L3」与 §4 的已文档化技术债（多数需内核/pp 变更，违反 kernel
+> 冻结）仍在。
 
 ### A′. ~~统一 goal 呈现 + Infoview 落右侧~~ ✅ 已完成（0.40.0）
 - 单一分类源 `front::semantic`（`tag_runs`/`tag_expr`/`declaration_kinds` +
@@ -111,6 +113,19 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
   `docs/design/elaborator-let-match.md` as-built。
 - ~~`Nat.succ`/`Nat.add` 边界裸名 `#reduce` 测试~~ ✅ 已完成（0.42.0）：
   `bare_prelude_nat_names_stay_terminating`（裸 `#reduce Nat.add` 终止为常量）。
+
+### E. 课程层发现（P3 新增单元 #9，2026-09-16）
+- **`derive_recursor` 派生不了「索引递归 `Prop`」的 recursor**（TODO，产品缺口）：
+  `Le`/`Even`（带索引、含递归字段、small elimination 到 `Prop`）省略 `rec` 时，
+  前端 `derive_recursor`（`crates/front/src/compile/elab.rs`）派生出的 IH 形状被
+  内核拒绝；对照 `Or`（非索引 `Prop`）与 `Vec`（索引 `Type`）自动派生正常。现状
+  规避：课程 #9 对 `Le`/`Even` 手写 `rec`/`iota`（`course/unit9-*.sokonanoda`）。
+  修复只动 front 派生逻辑（内核冻结、不改语义），按 TDD 三层回归 + 课程用例。
+- **`inductive` 参数不接受多名字 binder 组**（次要解析器限制，既有语法缺口）：
+  `(A B : Prop)` 在 Pi/箭头位已支持（`crates/front/src/parser.rs` 的
+  `parse_binder_group`），但 `inductive` 参数与 `ctor` 字段走单名 `parse_binder`
+  （`parse_inductive_block`/`parse_ctor`），`(A B : Prop)` 解析失败；课程只能写
+  `(A : Prop) (B : Prop)`。非本轮引入，修 parser 后需补 front 单测 + 课程同步。
 
 ### D. 远期（L2/L3）
 - 协作/多用户、远程；compiler service 的跨文件转播 / `setContent`（v1 未做）。

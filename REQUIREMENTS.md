@@ -818,3 +818,15 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   全绿；16 画布 exit 0；双语画布与 solutions 逐项相等。版本 **0.53.0**。P3（#9 关系与联结词、
   #10 读证明与综合）待做。
 
+- 2026-09-16（八十五）：**课程大纲重构 P3（补齐锁定 10 单元，0.54.0）**——新增
+  **#9 关系与联结词**（`Or` 真实归纳 + 自动 `Or.rec`；`Iff` 作为定义；`Le`/`Even`
+  归纳关系 + 消去/归纳引理）与 **#10 读证明与综合**（自解释三问、formal↔informal 互译、
+  评阅错证明→内核可判的修正版、跨单元 capstone）。**判分口径**：不引入新协议事件，
+  每道读/评分类题都必须产出内核可判的声明（散文只在注释、不计数）。规模 unit9
+  `(13,8,0)`、unit10 `(7,6,0)`；汇总 **units=10 checked=78 open=59 failed=0**；
+  `course_json_lists_the_ten_units_in_order` 与 `cli.rs` 金值同步。门面同步（teaching-session
+  第三课键表、course-status/course-bilingual/ROADMAP I7 标完成、course/README、infrastructure、
+  teacher skills、editor/vscode/README）。**记录两个产品缺口**（HANDOVER §3 E + 课程大纲
+  §2 第 11/12 条）：带索引的递归 `Prop` 归纳自动派生 recursor 被内核拒（IH 形状不符，
+  `Or`/`Vec` 正常）——front 未冻结可修；`inductive` 多名字参数组不解析。版本 **0.54.0**。
+

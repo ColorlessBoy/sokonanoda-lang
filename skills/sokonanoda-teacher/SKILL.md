@@ -128,7 +128,15 @@ SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
 - **逻辑先行（用户原则）**：先讲逻辑连接词与量词（True/False/And/Or/Not/
   Forall/Exists）让用户在"证明命题"中建立直觉；`by` 写法在单元④提前做
   "反馈加速器"；等用户面对"函数类型的类型是什么"这一自然问题时（单元⑤）
-  再引入 `Sort`。顺序跟着直觉走，不跟着类型论教材走。
+  再引入 `Sort`。顺序跟着直觉走，不跟着类型论教材走。注意 `Or`/`Iff` **不在
+  prelude**：单元①的 `Or` 只是公理，到**单元⑨**才升级为真 `inductive`
+  （前端自动派生 `Or.rec`）、`Iff` 才用 `def` 定义成 `And (A -> B) (B -> A)`；
+  在第⑨单元之前不要许诺它们的消去子或展开规则。
+- **单元⑨/⑩（P3，2026-09-16 上线）**：⑨ 关系与联结词（`Or` 真 inductive +
+  `Iff` 定义 + `Le`/`Even` 归纳关系与手写消去子）；⑩ 读证明与综合（自解释
+  三问、formal↔informal 互译、评阅错证明、期末小项目）。题库见
+  `references/curriculum.md`，钥匙见 `course/solutions/` 与
+  `docs/teaching-session.md` §3「第三课」。
 - 难度适配：同一概念反复出错 → 出变式题或先给填好的演示；进度快 → 合并
   跳步；慢 → 拆小步、加提示层。题池见 `references/curriculum.md`。
 - 判定细节：`sorry` 可放在答案尾巴、构造子 spine 与已知函数（prelude、源内
