@@ -18,12 +18,24 @@
 #     printed type, which is the useful part for a tutor;
 #   * server diagnostics are NOT forwarded to the agent or the UI by DSH's LSP
 #     host, and the custom `soko/*` requests (goals/stateAt/hints) have no
-#     consumer here. Kernel feedback for grading therefore always comes from the
-#     CLI JSON stream: `scripts/soko grade <file> --json`.
+#     consumer here;
+#   * the MCP row below is what gives the model the kernel's judgement: six
+#     `mcp__sokonanoda__*` tools that forward to `scripts/soko query …`
+#     (`check`/`state`/`goals`/`holes`/`hints`/`reduce`).
+#
+# Both rows are OPT-IN and both are a trust decision:
+#   * the MCP row is a separate plugin row (`@deepseek-ai/dsh-mcp-client`) that
+#     spawns Node — DSH treats that child as trusted code outside its sandbox,
+#     which is why it is not enabled by default anywhere;
+#   * the MCP tools also flow through the normal tool pipeline, so guards and
+#     hooks can still deny `mcp__sokonanoda__*` names.
+# Delete the `mcp-sokonanoda` block below if you only want the LSP.
 #
 # The server command points at the repository launcher, which resolves the
 # version-pinned binary (repo build → cache → VS Code extension → pinned
-# download) and refuses to run a stale one.
+# download) and refuses to run a stale one. The MCP row sets `cwd` instead of
+# building an absolute path: the launcher (and the server it spawns) resolves
+# the repository from `process.cwd()`.
 #
 # Do NOT derive the path from `baseUrl`: DSH evaluates `!!js` against the
 # profile/home context, so `baseUrl` is `$DSH_HOME/profiles/`, not this file's
@@ -55,3 +67,19 @@
 
     - id: dsh-tool-lsp
       name: '@deepseek-ai/dsh-tool-lsp'
+
+    # Kernel truth for the model: `mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`.
+    # The server itself is a stateless JSON forwarder (dsh/mcp/server.js) — no
+    # Lean logic, so there is exactly one source of truth (front::query).
+    - id: mcp-sokonanoda
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        transport: stdio
+        serverName: sokonanoda
+        command: !!js process.getBuiltinModule('node:path').join(process.env.SOKO_REPO ?? process.cwd(), 'scripts', 'soko')
+        args: ['mcp']
+        cwd: !!js process.env.SOKO_REPO ?? process.cwd()
+        toolCallTimeoutMs: 60000
+        # A missing launcher must be loud (the entry goes inactive with a
+        # warning) rather than silently leaving the model without the tools.
+        failOnStartupError: true

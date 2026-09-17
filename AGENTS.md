@@ -20,10 +20,21 @@ harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deeps
 ```bash
 scripts/soko setup                        # 版本锁定的 CLI + LSP → 缓存（幂等）
 scripts/soko doctor --json                # 就绪诊断；0=就绪 3=未就绪
-scripts/soko grade playground.sokonanoda  # 判卷（--json 事件）
+scripts/soko grade playground.sokonanoda  # 判卷（--json 事件流）
+scripts/soko query check --file playground.sokonanoda   # 同一判卷的单 JSON 摘要
+scripts/soko query state --file playground.sokonanoda --line 327 --col 4
 scripts/soko version --json               # 仓库版本 + 解析来源 + 缓存标记
 scripts/soko update                       # 强制刷新到仓库版本
 ```
+
+- **判卷有两个视图，同一份真相**：`grade --json` = 全量事件流（既有消费者不变），
+  `query <op>` = 计数/目标/洞的**单 JSON 对象**（`check`/`state`/`goals`/`holes`/
+  `hints`/`reduce`）。要问"某处还差什么"就用 `query state`，别自己扫事件流。
+  契约见 `docs/protocol.md`；计数一致性由 `crates/cli/tests/query.rs` 钉死。
+  `ok:false` **不是**空结果；退出码 0=答上了 / 1=有内核拒绝 / 2=用法错误。
+- **DeepSeek Harness** 里那六个查询还包成 MCP 工具
+  （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，需
+  `dsh web --patch ./dsh/cordis.patch.yml`）：有工具就直接调，别绕 shell。
 
 - **`scripts/soko` 是 harness 中立的启动器**（零依赖 Node，跨平台、无 bash）：
   解析顺序 = `$SOKONANODA_BIN` → 版本**匹配**的仓库构建 → 缓存（标记

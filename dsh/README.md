@@ -36,8 +36,50 @@ SOKO_REPO=$PWD dsh web --patch ./dsh/cordis.patch.yml
 | **`soko/goals`、`soko/stateAt`、`soko/nextHole`、`soko/hints`** | ❌ | 自定义请求需要宿主插件；见设计文档 H5 backlog |
 | 判卷（内核判定 + 结构化事件） | ✅ 走 CLI | `scripts/soko grade playground.sokonanoda --json` |
 
-> **判卷永远走 CLI `--json`**，别等 LSP 诊断。这是 DSH 与 opencode/VS Code
-> 最大的能力差异，`AGENTS.md`、三个技能与设计文档都已写明。
+> **判卷永远走 CLI `--json` 或 `query`**，别等 LSP 诊断。这是 DSH 与
+> opencode/VS Code 最大的能力差异，`AGENTS.md`、三个技能与设计文档都已写明。
+
+## 内核真相查询（`query` 与 MCP）
+
+判卷有两种粒度，都是**同一个内核**产出的（`front::query` 是唯一真相）：
+
+```bash
+# 摘要/单点查询：一个 JSON 对象，agent 一次解析
+scripts/soko query check  --file playground.sokonanoda
+scripts/soko query state  --file playground.sokonanoda --line 327 --col 4
+scripts/soko query holes  --file playground.sokonanoda --direction next --offset 20460
+scripts/soko query hints  --file playground.sokonanoda --line 323 --col 3
+scripts/soko query reduce --file playground.sokonanoda --expr '1 + 1'
+
+# 全量事件流（既有通道，opencode/CI/脚本在用）
+scripts/soko grade playground.sokonanoda --json
+```
+
+**两个视图的计数由契约测试钉死一致**（`crates/cli/tests/query.rs`），所以不会
+出现"两套真相"。`query` 的契约见 `docs/protocol.md`（信封 `soko.query/1`、
+退出码语义、"`ok:false` 不是空结果"的区分）。
+
+要给**模型**用（而不是你自己跑 shell），`dsh/cordis.patch.yml` 里的 MCP 行把它
+包成六个工具：
+
+| MCP 工具（DSH 里看到的名字） | 转发到 |
+|---|---|
+| `mcp__sokonanoda__check` | `query check` |
+| `mcp__sokonanoda__state` | `query state`（Lean `goalsAt?` 语义） |
+| `mcp__sokonanoda__goals` | `query goals` |
+| `mcp__sokonanoda__holes` | `query holes`（稳定 id + 导航） |
+| `mcp__sokonanoda__hints` | `query hints`（`-- soko:hint` 阶梯） |
+| `mcp__sokonanoda__reduce` | `query reduce` |
+
+实测（本机 DSH headless）：模型调用 `mcp__sokonanoda__state`
+（`playground.sokonanoda:327:4`）拿到 `Exists Person P` —— 目标文本由内核渲染，
+模型不需要自己扫源码猜。
+
+**信任边界（要知情）**：MCP server 是 DSH 沙箱之外的**可信可执行代码**
+（`@deepseek-ai/dsh-mcp-client` 用 SDK 直接 spawn），所以它默认**关闭**，
+需要上面那行 `--patch` 才生效；只想要 LSP 的话删掉 `mcp-sokonanoda` 块即可。
+server 本身只是 JSON 转发器（`dsh/mcp/server.js`，零依赖、无 Lean 逻辑），
+且 MCP 工具仍走常规工具流水线，guard/hook 可以按 `mcp__sokonanoda__*` 名字拦。
 
 ## 常驻安装（可选）
 

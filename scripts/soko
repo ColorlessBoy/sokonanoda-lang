@@ -384,6 +384,7 @@ async function main(argv) {
           '  scripts/soko version [--json]      repo version + resolution + cache markers\n' +
           '  scripts/soko doctor [--json]       readiness report; exit 3 when not ready\n' +
           '  scripts/soko lsp                   run the language server on stdio\n' +
+          '  scripts/soko mcp                   run the MCP stdio server (harness tools)\n' +
           '  scripts/soko <anything else…>      forwarded to the sokonanoda CLI\n' +
           '                                     e.g. grade playground.sokonanoda --json\n' +
           '\n' +
@@ -480,6 +481,27 @@ async function main(argv) {
         process.stdout.write(`  ready:    ${ready ? 'yes' : 'no'}\n`)
       }
       return ready ? 0 : 3
+    }
+
+    case 'mcp': {
+      // MCP stdio server for harnesses (DSH `mcp__sokonanoda__*` tools). It is a
+      // plain Node script in this repository, so this branch needs no binary at
+      // all — but it does require the launcher to live in a checkout, which is
+      // exactly the contract (`cwd` = repo root, or SOKO_REPO).
+      const server = path.join(REPO, 'dsh', 'mcp', 'server.js')
+      if (!existsSync(server)) {
+        process.stderr.write(
+          `scripts/soko mcp: no MCP server at ${server}\n` +
+            'Run it from the repository checkout (or set SOKO_REPO to one).\n',
+        )
+        return 3
+      }
+      const result = spawnSync(process.execPath, [server, ...rest], { stdio: 'inherit' })
+      if (result.error) {
+        process.stderr.write(`scripts/soko mcp: failed to run ${server}: ${result.error.message}\n`)
+        return 3
+      }
+      return result.status ?? 3
     }
 
     default: {

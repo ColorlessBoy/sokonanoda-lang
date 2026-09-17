@@ -69,7 +69,13 @@ cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node �
   Electron 集成 `cd editor/vscode && npm test`（先 `cargo build -p sokonanoda-lsp`；
   无需另开 VS Code 实例）；
 - 协议防漂移：改事件/输出格式必须同步 `docs/protocol.md`
-  （`protocol.rs` / `skill.rs` conformance 测试会抓漂移）。
+  （`protocol.rs` / `skill.rs` conformance 测试会抓漂移）；
+- **真相层不得绕过**（`docs/design/agent-query-channel.md`）：任何"问内核"的
+  新能力都加在 `crates/front/src/query/`（`QueryDoc`），LSP / CLI `query` /
+  MCP 只做**映射与传输**；禁止在适配器里重算目标/洞的位置（那会产生第二份
+  真相，违反 §2.4）。门槛测试：`crates/cli/tests/query.rs` 的
+  `query_check_counts_match_the_json_event_stream` 钉死 `query` ≡ `--json`；
+  `crates/cli/tests/dsh.rs` 钉死 MCP 工具 ↔ `query` op 一一对应。
 
 ## 4. 环境搭建（新机器）
 

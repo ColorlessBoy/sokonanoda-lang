@@ -236,6 +236,70 @@ fn dsh_patch(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_else(|e| panic!("{} readable: {e}", path.display()))
 }
 
+/// The MCP bridge (H6-B): a stateless forwarder whose six tools map 1:1 onto
+/// `sokonanoda query` ops. If a tool name and a query op ever drift apart, the
+/// model gets a tool that the CLI cannot answer — hence this contract.
+#[test]
+fn dsh_mcp_server_forwards_every_query_op() {
+    let root = repo_root();
+    let server = root.join("dsh/mcp/server.js");
+    let text = fs::read_to_string(&server).expect("dsh/mcp/server.js readable");
+
+    for op in ["check", "state", "goals", "holes", "hints", "reduce"] {
+        assert!(
+            text.contains(&format!("queryText('{op}'")),
+            "dsh/mcp/server.js must forward `{op}` to `soko query {op}`"
+        );
+    }
+    // The MCP handshake facts the pinned client requires (verified against
+    // @modelcontextprotocol/client@2.0.0, see the file's header comment).
+    for needle in [
+        "server/discover", // the 2026-07-28 probe: must be refused fast
+        "capabilities",    // advertise tools or DSH registers none
+        "protocolVersion",
+        "isError", // tool failures stay model-visible
+    ] {
+        assert!(
+            text.contains(needle),
+            "dsh/mcp/server.js must keep `{needle}` (MCP protocol requirement)"
+        );
+    }
+    // No Lean logic in the bridge: it may *talk about* the kernel in prose, but
+    // it must not link the compiler or re-implement judgement (the truth lives
+    // behind `sokonanoda query`).
+    assert!(
+        !text.contains("sokonanoda_front")
+            && !text.contains("judge_")
+            && !text.contains("check_document"),
+        "the MCP server must stay a JSON forwarder — all judgement lives in front::query"
+    );
+    // It must resolve the repository the same way the launcher does.
+    for needle in ["SOKO_REPO", "scripts", "soko"] {
+        assert!(
+            text.contains(needle),
+            "dsh/mcp/server.js must resolve the launcher via `{needle}`"
+        );
+    }
+
+    // The patch wires it, and the launcher exposes it.
+    let patch = dsh_patch(&root.join("dsh/cordis.patch.yml"));
+    for needle in [
+        "@deepseek-ai/dsh-mcp-client",
+        "serverName: sokonanoda",
+        "'mcp'",
+    ] {
+        assert!(
+            patch.contains(needle),
+            "dsh/cordis.patch.yml must wire the MCP row (`{needle}`)"
+        );
+    }
+    let launcher = fs::read_to_string(root.join("scripts/soko")).expect("scripts/soko readable");
+    assert!(
+        launcher.contains("'mcp'"),
+        "scripts/soko must expose the `mcp` entry point"
+    );
+}
+
 #[test]
 fn dsh_patch_file_is_a_top_level_yaml_array() {
     let path = repo_root().join("dsh/cordis.patch.yml");

@@ -53,8 +53,25 @@ scripts/soko doctor --json    # 就绪诊断，0=就绪 3=未就绪
 
 ```bash
 scripts/soko grade playground.sokonanoda        # 人类可读
-scripts/soko grade playground.sokonanoda --json # JSON 事件（你的判卷接口）
+scripts/soko grade playground.sokonanoda --json # JSON 事件（全量事件流）
 ```
+
+**先问，别扫**——需要"某处还差什么 / 下一个洞在哪 / 这题的提示是什么"时用
+`query`（单 JSON 对象，一次解析；与事件流同源，计数由契约测试钉死一致）：
+
+```bash
+scripts/soko query check --file playground.sokonanoda               # 计数 + 失败 + 告警
+scripts/soko query state --file playground.sokonanoda --line 327 --col 4
+scripts/soko query holes --file playground.sokonanoda               # 全部洞（稳定 id）
+scripts/soko query hints --file playground.sokonanoda --line 323 --col 3
+scripts/soko query goals --file playground.sokonanoda               # 全文件声明概览
+```
+
+- 契约见 `docs/protocol.md`；`ok:false` **不是**空结果（空是 `goal:null`），
+  退出码 0=答上了、1=有内核拒绝、2=用法错误——**判据看 JSON，不看退出码**；
+- DeepSeek Harness 里这六个查询还包成了 MCP 工具
+  （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，需
+  `dsh web --patch ./dsh/cordis.patch.yml`）：**有 MCP 工具就直接调，别绕 shell**。
 
 - 若 `sokonanoda` 已经在 PATH 上（opencode 启动插件会注入缓存目录），
   `scripts/soko X` 与 `sokonanoda X` 等价；DSH 下没有 PATH 注入，所以用前者。
@@ -84,7 +101,9 @@ $SOKO watch playground.sokonanoda
 $SOKO repl
 ```
 
-- `--json` 每行一个 JSON 事件；这是你的**判卷接口**，读事件，别读 exit code。
+- `--json` 每行一个 JSON 事件（**全量事件流**）；`query <op>` 是同一份判卷的
+  **单对象视图**（计数/目标/洞）。两者由同一实现产出、计数由契约测试钉死一致；
+  "某处还差什么"这类问题用 `query state`，不要自己扫事件流重建状态。
 - 事件词汇是封闭的：`decl.checked` / `example.checked` / `expr.typed` /
   `expr.reduced` / `decl.printed` / `exercise.open` / `diagnostic`，
   形状见 `docs/protocol.md`；watch 流词汇见同文档 watch 一节。

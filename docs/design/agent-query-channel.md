@@ -329,28 +329,47 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 > 依赖顺序硬约束：**真相层先于一切适配器**（§0）。每阶段独立可验收、可发布。
 
-### H6-A —— 真相层 + CLI `query`（P0）
+### H6-A —— 真相层 + CLI `query`（P0）✅ 已完成（真相层 + CLI；LSP 见下）
 1. `front::query`：`QueryError`/`QueryAnswer` + `check`/`state`/`goals`/`holes`/`hints`/`reduce`，
    语义逐条对照 §4.2 的 LSP 行为（**先把 LSP 的实现平移过来，再删 LSP 侧重复**）。
+   ✅ `crates/front/src/query/{mod,types,tests}.rs`（`QueryDoc` + 16 个单测）。
 2. `front::query::render`：从 `crates/lsp/src/render.rs` 平移 runs/文本组装。
+   ✅ 收在 `QueryDoc::runs`（唯一分类源仍是 `front::semantic`），未单开文件。
 3. `cli::query` + `sokonanoda query …` + 退出码表 + `--compact`/`--text`。
-4. `docs/protocol.md` 新增"`query` 子命令"一节（§5.3 的契约）。
-5. **LSP 改为调用真相层**（本阶段就做完，否则欠债翻倍）：`soko/*` 处理函数只做
-   映射；`crates/lsp/src/lib.rs` 目标 ≤1200 行。
-6. 测试：front 单测（每个 op 的正常/边界/错误）；CLI e2e（`crates/cli/tests/query.rs`）；
-   **一致性契约**：同一文件同一光标，`query state` 与 `soko/stateAt` 字段级一致
-   （`goal`/`goals[]`/`binders`/`step`/`total`），`query goals` 与 `soko/goals` 一致。
+   ✅ `crates/cli/src/query.rs`；退出码收敛为"有没有答案"（结构化错误 0 / 内核拒绝 1 / 用法 2）。
+4. `docs/protocol.md` 新增"`query` 子命令"一节（§5.3 的契约）。✅
+5. **LSP 改为调用真相层**：`soko/*` 处理函数只做映射；`crates/lsp/src/lib.rs` 目标 ≤1200 行。
+   ⏳ 进行中（见 §9 的"范围修正"）。
+6. 测试：✅ front 单测；✅ CLI e2e（`crates/cli/tests/query.rs` 10 项，含
+   **`query check` ≡ `--json` 计数**的一致性契约）；⏳ `query state/goals` ≡ `soko/stateAt`/`soko/goals`
+   的字段级一致性随第 5 条一起落地。
 
-### H6-B —— MCP 传输 + DSH 接线（P1）
-1. `dsh/mcp/server.js`：MCP stdio（`initialize`/`tools/list`/`tools/call`），
-   六工具 schema，全部转发 `scripts/soko query …`；`--help` 可自描述。
-2. `scripts/soko mcp` 转发入口（复用既有解析链；二进制缺失→非零+可行动错误）。
-3. `dsh/cordis.patch.yml` 增 MCP 行（默认关闭，注释写清"可信可执行、按需开启"）；
-   `dsh/README.md` 增"内核真相查询"一节：**CLI 优先、MCP 可选**，并给出一句话验收。
-4. 测试（`crates/cli/tests/dsh.rs` 扩展）：server.js 存在、六个工具名与
-   `query` op 一一对应、schema 里有 `line`/`character`、无硬编码机器路径；
-   手工验收：DSH 会话里模型调用 `soko_state` 拿到当前目标。
-5. 版本 minor bump（新增用户可见能力）。
+### H6-B —— MCP 传输 + DSH 接线（P1）✅ 已完成
+1. `dsh/mcp/server.js`：✅ MCP stdio（`initialize`/`tools/list`/`tools/call`），
+   六工具 schema，全部转发 `scripts/soko query …`；零依赖、无 import（CJS/ESM 双兼容）。
+2. `scripts/soko mcp` 转发入口 ✅（直接起 Node 脚本，不经二进制解析链 ——
+   它本来就是仓库内的脚本；缺文件时非零 + 可行动错误）。
+3. `dsh/cordis.patch.yml` 增 MCP 行 ✅（默认关闭，注释写清信任边界）；
+   `dsh/README.md` 增"内核真相查询"一节 ✅（CLI 优先、MCP 可选、工具表、信任边界）。
+4. 测试 ✅（`crates/cli/tests/dsh.rs` 的 `dsh_mcp_server_forwards_every_query_op`）。
+   **实测验收**：DSH headless + `--patch`，模型调用 `mcp__sokonanoda__state`
+   （`playground.sokonanoda:327:4`）拿到 `Exists Person P`。
+5. 版本 bump：留到 H6-D 收尾统一做（本轮尚未发版）。
+
+#### H6-B 实测踩到的 MCP 坑（写进 server 头注释与本节，避免后人重踩）
+
+- **`server/discover` 探测**：DSH 的客户端在 `versionNegotiation: 'auto'` 下会先起一个
+  **一次性兄弟进程**，只发 `server/discover`（2026-07-28 修订）**而不发 `initialize`**，
+  然后 reap 它、再起真正服务的进程。**必须立刻用 JSON-RPC 错误（`-32601`）拒绝**：
+  沉默会等满 SDK 的 60 s 超时（实测 60,058 ms vs 76 ms）；**绝不能回 `-32022`**
+  （那会让它以为我们是现代版本而重试）。
+- **必须 advertise `capabilities.tools`**，否则 DSH 一个工具都不注册、连 `tools/list` 都不调。
+- 传输是**换行分隔 JSON**（无 `Content-Length`）；stdout 只能有 MCP 消息，日志走 stderr；
+  用 `process.exitCode` 而不是 `process.exit()`（保证 stdout 刷净）。
+- 模型可见的只有 `content[].text`（`structuredContent` 不进模型文本）→ 子进程的 JSON
+  原样放进 `text` 是最省事且正确的做法。
+- server 必须**无状态且可被起两次**（探测进程 + 服务进程，同 argv/env/cwd）：
+  不写 PID 文件、不做单例假设、不依赖首消息状态。
 
 ### H6-C —— 两个 TODO（P2，可与 A/B 并行但**必须在发布前**）
 
