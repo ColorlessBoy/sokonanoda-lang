@@ -92,6 +92,28 @@ curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/actions/runs
         x.steps.map(t=>t.number+":"+t.name+"="+t.conclusion).join(", "))})'
 ```
 
+补充（2026-09-17 本机实测，三坑一起踩过）：
+
+- **环境里的代理可能是坏的**：本机 shell/系统代理都指向 `127.0.0.1:7890`，但那里
+  **没有监听**——`curl` 会先收到 `HTTP/1.1 200 Connection established`（CONNECT
+  "成功"）再在 TLS 握手时 `SSL_ERROR_SYSCALL`，看起来像"GitHub 被墙"，其实
+  **直连是好的**（`curl --noproxy '*' https://api.github.com/rate_limit` → 200）。
+  `git push` 走 SSH，一直没受影响，更容易误判。规程：API/下载一律
+  `curl --noproxy '*'`（或 `unset HTTPS_PROXY HTTP_PROXY NODE_USE_ENV_PROXY`）。
+- **未认证额度只有 60 req/h**：带 job/step 的发布监控很容易打满
+  （轮询 60s × 双 run × step 详情）。规程：`/rate_limit`（不计数）先看 reset；
+  轮询间隔 ≥60s、只在状态**变化**时多查一次；额度耗尽时改用下面的 HTML 法。
+- **`gh` 在 PATH 上 ≠ 能用**：本机 `gh auth status` = token invalid（不改用户凭据），
+  所以监控仍按"无 gh"路径走。
+- **额度耗尽后的核 CI 办法（无需 API）**：Actions workflow 页 HTML 的 run 行里带
+  `aria-label="completed successfully: Run N of ci. <commit 标题>"` +
+  `octicon-check-circle-fill`（失败则是 `octicon-x-circle-fill`）——
+  `curl -sSL --noproxy '*' https://github.com/<owner>/<repo>/actions/workflows/ci.yml`
+  后对该 commit 短 SHA 取上下文即可判读；`git ls-remote --tags origin` 走 SSH，
+  核"tag 是否重复/指向哪个 commit"最省，也不受额度影响。
+- **tag 已存在时 auto-tag 会跳过**：docs-only 的后续 push 不会再发一次版——
+  用 `git ls-remote --tags` 确认同名 tag 只有一个、且指向 release commit。
+
 - **步骤日志拉不到（403）**：`/actions/runs/<id>/logs` 即使在公开仓库也要鉴权
   （2026-09-12 实测 403）。所以**能拿到的最强信号是 job/step 的 `conclusion`**；
   真要日志得让用户在网页端看，或本机装 `gh` 后 `gh auth login`。
