@@ -8,10 +8,11 @@ agent: build
 
 ```bash
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-sokonanoda grade "$ROOT/playground.sokonanoda"
+cd "$ROOT" && scripts/soko grade playground.sokonanoda
 ```
 
-`grade` 输出 `--json` 事件流（缺二进制时先跑 `sokonanoda setup`）。
+`grade` 输出 `--json` 事件流（缺二进制时先跑 `scripts/soko setup`；
+启动器会拒绝运行与仓库版本不符的旧缓存）。
 
 汇总并报告：
 

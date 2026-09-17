@@ -517,6 +517,32 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 > `docs/design/goal-list.md`（多目标显示）、`docs/design/tactic-hover.md`
 > （tactic 高亮与 hover goal state）。
 
+### I14 —— DeepSeek Harness 适配（设计已定稿，实现未开始）
+
+> 设计 + 计划：**`docs/design/deepseek-harness.md`**（2026-09-17 第八十六轮，
+> 只出计划）。一句话：产品内核与 harness 无关，要适配的是**接线层**
+> （技能发现路径、斜杠命令、LSP 接线、二进制可达性、工具链 deny、文档/契约测试
+> 的单 harness 假设）；**不需要改 Rust 语义代码**。
+
+- **H0 技能上架**（解 G1）：`.dsh/skills/<name>/SKILL.md` 薄网关（正文唯一留在
+  `skills/`）+ 新增 `crates/cli/tests/dsh.rs` 双向守卫。
+- **H1 二进制可达**（解 G5）：新增零依赖 Node 启动器 `scripts/soko`（解析链与
+  `.opencode/plugins/sokonanoda.ts` 同语义 + marker 版本守卫）；`AGENTS.md`
+  Setup 改 harness 中立。
+- **H2 LSP 接线**（解 G4 的可用部分）：项目自带 `dsh/cordis.patch.yml`
+  （`lsp` + `lsp-stdio` + `tool-lsp`，`extensionToLanguage[".sokonanoda"]`）+
+  `--patch` 用法；**显式写清 DSH 侧诊断不在通道内**（`publishDiagnostics` 被丢弃）。
+- **H3 命令与角色**（解 G2/G3）：把 `.opencode/command/**` 与
+  `.opencode/agent/teacher.md` 的正文并入 `sokonanoda-teacher` / `-dev`
+  （DSH 的技能名即斜杠命令）。
+- **H4 治理**（解 G6/G7/G8）：Lean 工具链 deny 的 DSH 形态（`tools/pre-execute`
+  插件或 hooks 桥，桥不做项目发现）、33 处文档去 opencode 单一化、门面同步。
+- **验收 A1–A6**：DSH 里"按 AGENTS.md 接手并当我的老师"能零 cargo 跑通判卷；
+  `/sokonanoda-teacher` 可用；`.sokonanoda` 能 hover/跳定义；全量测试 + gate 绿；
+  文档不再假定 opencode 唯一；反漂移契约测试绿。
+- **待拍板**：技能进 DSH 的方式（网关 vs `customSkillDirs`）、启动器形态
+  （与 REQUIREMENTS（三十二）删除 `scripts/soko.sh` 的边界）、deny 形态、版本号策略。
+
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、

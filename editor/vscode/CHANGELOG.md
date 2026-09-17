@@ -1,3 +1,35 @@
+## [0.55.0] - 2026-09-17
+
+### Added
+
+- **DeepSeek Harness support (agent-side; no extension feature change)** —
+  the repository now ships everything a DSH session needs, so the same teaching
+  loop works without opencode:
+  - `.agents/skills/{sokonanoda-teacher,sokonanoda-dev,sokonanoda-ci}/SKILL.md`
+    thin entries (DSH auto-discovers this directory; the skill name is the slash
+    command, e.g. `/sokonanoda-teacher`) pointing at the canonical
+    `skills/<name>/SKILL.md`;
+  - `scripts/soko`, a dependency-free Node launcher that resolves the
+    version-pinned CLI/LSP (repo build **verified by `--version`** → cache with a
+    matching marker → VS Code extension bundle → version-pinned download) and
+    refuses to run a stale cache. It is the harness-neutral command every skill
+    and `AGENTS.md` now uses. The extension itself is unchanged: it keeps using
+    its bundled server, and `scripts/soko` prefers a version-matching repo build
+    over the cache;
+  - `dsh/cordis.patch.yml` (`dsh web --patch ./dsh/cordis.patch.yml`) wiring the
+    `lsp` tool to `.sokonanoda` files, plus `dsh/README.md` documenting that
+    **server diagnostics are not delivered by DSH** — grading always goes through
+    the CLI `--json` stream;
+  - `dsh/hooks/` for the official-Lean-toolchain deny (the DSH equivalent of
+    `opencode.json`'s permission rule).
+- New contract test `crates/cli/tests/dsh.rs` (skill entries, launcher chain,
+  patch shape) and a `scripts/` prefix in the skill path guard.
+
+### Notes
+
+- Agent tooling only; the editor extension code is unchanged. Users who only use
+  VS Code need no action.
+
 ## [0.54.0] - 2026-09-16
 
 ### Added

@@ -1,0 +1,519 @@
+#!/usr/bin/env node
+// scripts/soko — harness-neutral launcher for the version-pinned sokonanoda
+// binaries (CLI + language server).
+//
+// Why this exists: DeepSeek Harness (and any non-opencode harness) cannot inject
+// a project directory into the model's PATH, and a repository cannot ship a
+// startup hook. So the agent needs one committed, executable path it can call
+// without any environment setup:
+//
+//   ./scripts/soko doctor --json
+//   ./scripts/soko grade playground.sokonanoda
+//   ./scripts/soko gate                 # contributors (calls cargo)
+//
+// It resolves the binaries exactly like `.opencode/plugins/sokonanoda.ts` does
+// (explicit override → repository build → cache with a matching version marker
+// → language server bundled by an installed VS Code extension → version-pinned
+// download) and then execs the resolved binary, passing every argument through.
+//
+// Zero dependencies, no shell, cross-platform (macOS / Linux / Windows; Node is
+// already present wherever DSH runs). Downloads are always pinned to the
+// repository version — the download URL is always tagged with that version, so
+// a mutable "latest" release can never be picked up. Set SOKONANODA_OFFLINE=1 to
+// refuse network access, SOKONANODA_BIN / SOKONANODA_LSP_BIN to override the
+// resolved path, SOKONANODA_CACHE_DIR to relocate the cache.
+// Design: docs/design/deepseek-harness.md (H1); docs/design/onboarding.md.
+
+import { spawnSync } from 'node:child_process'
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const RELEASES = 'https://github.com/ColorlessBoy/sokonanoda-lang/releases/download'
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+const REPO = path.dirname(HERE)
+
+// ── environment facts ────────────────────────────────────────────────────────
+
+function cacheDir() {
+  if (process.env.SOKONANODA_CACHE_DIR) return process.env.SOKONANODA_CACHE_DIR
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? ''
+  return path.join(home, '.local', 'share', 'sokonanoda', 'bin')
+}
+
+function binaryName(base) {
+  return process.platform === 'win32' ? `${base}.exe` : base
+}
+
+/// VS Code / vsce target for this host (the marker vocabulary too).
+function platformTarget() {
+  const { platform, arch } = process
+  if (platform === 'darwin') return arch === 'arm64' ? 'darwin-arm64' : 'darwin-x64'
+  if (platform === 'linux') {
+    const alpine = existsSync('/etc/alpine-release')
+    if (arch === 'arm64') return alpine ? 'alpine-arm64' : 'linux-arm64'
+    return alpine ? 'alpine-x64' : 'linux-x64'
+  }
+  if (platform === 'win32') return arch === 'arm64' ? 'win32-arm64' : 'win32-x64'
+  return undefined
+}
+
+/// Rust target triple used in release asset names.
+function rustTriple() {
+  switch (platformTarget()) {
+    case 'darwin-arm64': return 'aarch64-apple-darwin'
+    case 'darwin-x64': return 'x86_64-apple-darwin'
+    case 'linux-x64': return 'x86_64-unknown-linux-gnu'
+    case 'linux-arm64': return 'aarch64-unknown-linux-gnu'
+    case 'alpine-x64': return 'x86_64-unknown-linux-musl'
+    case 'alpine-arm64': return 'aarch64-unknown-linux-musl'
+    case 'win32-x64': return 'x86_64-pc-windows-msvc'
+    case 'win32-arm64': return 'aarch64-pc-windows-msvc'
+    default: return undefined
+  }
+}
+
+function offline() {
+  return Boolean(process.env.SOKONANODA_OFFLINE)
+}
+
+/// The repository version that every resolution must agree with.
+function repoVersion() {
+  try {
+    const text = readFileSync(path.join(REPO, 'Cargo.toml'), 'utf8')
+    return text.match(/^version = "([^"]+)"/m)?.[1]
+  } catch {
+    return undefined
+  }
+}
+
+function markerPath(base) {
+  return path.join(cacheDir(), `${base}.version`)
+}
+
+function readMarker(base) {
+  try {
+    return readFileSync(markerPath(base), 'utf8').trim()
+  } catch {
+    return undefined
+  }
+}
+
+/// A cache entry is usable only when its marker is `<version> <target>`
+/// (the same marker `sokonanoda setup` and the VSIX write).
+function markerMatches(base, version) {
+  const target = platformTarget()
+  if (!target) return false
+  return readMarker(base) === `${version} ${target}`
+}
+
+function writeMarker(base, version) {
+  writeFileSync(markerPath(base), `${version} ${platformTarget()}\n`)
+}
+
+// ── resolution chain ─────────────────────────────────────────────────────────
+
+/// Newest of the contributor builds (`target/release|debug`).
+function repoBuild(base) {
+  const name = binaryName(base)
+  let best
+  for (const profile of ['release', 'debug']) {
+    const candidate = path.join(REPO, 'target', profile, name)
+    try {
+      const mtime = statSync(candidate).mtimeMs
+      if (!best || mtime > best.mtime) best = { path: candidate, mtime }
+    } catch {
+      // not built
+    }
+  }
+  return best?.path
+}
+
+/// Semver-ish tuple from an extension folder name.
+function entryVersion(entry) {
+  const match = /^sokonanoda-lang\.sokonanoda-(\d+)\.(\d+)\.(\d+)/.exec(entry)
+  if (!match) return undefined
+  return [Number(match[1]), Number(match[2]), Number(match[3])]
+}
+
+/// Folder names VS Code marked for deletion; never resolve those.
+function obsoleteEntries(root) {
+  try {
+    const marked = JSON.parse(readFileSync(path.join(root, '.obsolete'), 'utf8'))
+    return new Set(Object.keys(marked).filter(name => marked[name]))
+  } catch {
+    return new Set()
+  }
+}
+
+function compareVersion(a, b) {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] - b[i]
+  }
+  return 0
+}
+
+/// Server bundled by an installed VS Code extension (zero network). Picks the
+/// highest version rather than the newest mtime: several versions stay on disk.
+function extensionServer(target) {
+  const home = process.env.HOME ?? process.env.USERPROFILE ?? ''
+  const roots = [
+    '.vscode/extensions',
+    '.vscode-insiders/extensions',
+    '.vscode-oss/extensions',
+    '.cursor/extensions',
+    '.windsurf/extensions',
+    '.vscode-server/extensions',
+  ].map(rel => path.join(home, rel))
+  const name = binaryName('sokonanoda-lsp')
+  const candidates = []
+  for (const root of roots) {
+    if (!existsSync(root)) continue
+    let entries
+    try {
+      entries = readdirSync(root)
+    } catch {
+      continue
+    }
+    const obsolete = obsoleteEntries(root)
+    for (const entry of entries) {
+      if (!entry.startsWith('sokonanoda-lang.sokonanoda-')) continue
+      if (obsolete.has(entry)) continue
+      const candidate = path.join(root, entry, 'bin', target, name)
+      try {
+        candidates.push({ path: candidate, version: entryVersion(entry), mtime: statSync(candidate).mtimeMs })
+      } catch {
+        // no binary for this target
+      }
+    }
+  }
+  candidates.sort((a, b) => {
+    if (a.version && b.version) return compareVersion(b.version, a.version) || b.mtime - a.mtime
+    if (a.version) return -1
+    if (b.version) return 1
+    return b.mtime - a.mtime
+  })
+  return candidates[0]?.path
+}
+
+/// Why the last download attempt failed, for the operator-facing message.
+/// Silence here is what turns "network needs a proxy" into a mystery.
+let lastDownloadError
+
+/// Fetch the tarball bytes. Node's `fetch` ignores HTTPS_PROXY, while a machine
+/// behind a proxy usually has a `curl` that honours it (and `curl` also handles
+/// the corporate CA bundle), so try curl first when it exists.
+function fetchTarball(url) {
+  if (!process.env.SOKONANODA_NO_CURL) {
+    const viaCurl = spawnSync(
+      'curl',
+      ['-fsSL', '--retry', '2', '--connect-timeout', '20', '--max-time', '600', '-o', '-', url],
+      { maxBuffer: 512 * 1024 * 1024 },
+    )
+    if (viaCurl.status === 0 && viaCurl.stdout?.length) return viaCurl.stdout
+    lastDownloadError = `curl exit ${viaCurl.status ?? 'n/a'}: ${(viaCurl.stderr ?? '').toString().trim().split('\n').pop() ?? ''}`
+  }
+  return fetch(url)
+    .then(res => (res.ok ? res.arrayBuffer().then(buf => Buffer.from(buf)) : Promise.reject(new Error(`HTTP ${res.status}`))))
+    .catch(error => {
+      lastDownloadError = `fetch failed: ${error?.message ?? error}`
+      return undefined
+    })
+}
+
+/// Version-pinned download + extract (`curl`-or-`fetch` + `tar`; no shell).
+async function download(base, version) {
+  const triple = rustTriple()
+  if (!triple) {
+    lastDownloadError = `unknown Rust target for ${platformTarget() ?? process.platform}/${process.arch}`
+    return undefined
+  }
+  if (offline()) {
+    lastDownloadError = 'SOKONANODA_OFFLINE is set'
+    return undefined
+  }
+  const pkg = base === 'sokonanoda-lsp' ? 'sokonanoda-lsp' : 'sokonanoda-cli'
+  const dest = path.join(cacheDir(), binaryName(base))
+  const url = `${RELEASES}/v${version}/${pkg}-${triple}.tar.gz`
+  lastDownloadError = undefined
+  let tmp
+  try {
+    const bytes = await fetchTarball(url)
+    if (!bytes) return undefined
+    tmp = mkdtempSync(path.join(tmpdir(), 'sokonanoda-'))
+    const tarball = path.join(tmp, 'asset.tar.gz')
+    writeFileSync(tarball, bytes)
+    const untar = spawnSync('tar', ['xzf', tarball, '-C', tmp], { stdio: 'ignore' })
+    if (untar.status !== 0) {
+      lastDownloadError = `tar exit ${untar.status ?? 'n/a'}`
+      return undefined
+    }
+    const extracted = path.join(tmp, binaryName(base))
+    if (!existsSync(extracted)) {
+      lastDownloadError = `asset ${pkg}-${triple}.tar.gz did not contain ${binaryName(base)}`
+      return undefined
+    }
+    mkdirSync(cacheDir(), { recursive: true })
+    copyFileSync(extracted, dest)
+    if (process.platform !== 'win32') {
+      try {
+        chmodSync(dest, 0o755)
+      } catch {
+        // read-only cache dir
+      }
+    }
+    writeMarker(base, version)
+    return existsSync(dest) ? dest : undefined
+  } catch (error) {
+    lastDownloadError = String(error?.message ?? error)
+    return undefined
+  } finally {
+    if (tmp) rmSync(tmp, { recursive: true, force: true })
+  }
+}
+
+/// The version a candidate CLI binary reports, or undefined when it cannot run
+/// or does not answer `--version`.
+function binaryVersion(candidate) {
+  try {
+    const out = spawnSync(candidate, ['--version'], { encoding: 'utf8', timeout: 10_000 })
+    if (out.status !== 0) return undefined
+    return /(\d+\.\d+\.\d+)/.exec(out.stdout ?? '')?.[1]
+  } catch {
+    return undefined
+  }
+}
+
+/// A repository build is trustworthy only when it reports the repository
+/// version. A stale `target/` from an earlier round is exactly the drift this
+/// launcher exists to prevent (the opencode plugin used mtime alone and would
+/// happily run it).
+function repoBuildForVersion(base, version) {
+  const build = repoBuild(base)
+  if (!build) return undefined
+  if (!version) return build
+  const reported = base === 'sokonanoda' ? binaryVersion(build) : undefined
+  if (base !== 'sokonanoda') {
+    // The language-server binary has no `--version`; trust a build only when
+    // the CLI build of the same tree already proved the version.
+    return binaryVersion(repoBuild('sokonanoda') ?? '') === version ? build : undefined
+  }
+  return reported === version ? build : undefined
+}
+
+/// How a binary was found, for `version`/`doctor` reporting.
+function resolver(base, override) {
+  const cached = path.join(cacheDir(), binaryName(base))
+  const version = repoVersion()
+  return {
+    override,
+    cached,
+    version,
+    /// Which link of the chain wins, without downloading anything.
+    probe() {
+      if (override && existsSync(override)) return { path: override, source: 'override' }
+      const build = repoBuildForVersion(base, version)
+      if (build) return { path: build, source: 'repo-build' }
+      if (existsSync(cached)) {
+        return markerMatches(base, version)
+          ? { path: cached, source: 'cache' }
+          : { path: cached, source: `cache(STALE: expected ${version} ${platformTarget()}, found ${readMarker(base) ?? 'no marker'})` }
+      }
+      return undefined
+    },
+    async resolve() {
+      const found = this.probe()
+      if (found && !found.source.startsWith('cache(STALE')) return found
+      if (!version) {
+        if (existsSync(cached)) return { path: cached, source: 'cache(unknown repo version)' }
+        return found
+      }
+      const downloaded = await download(base, version)
+      if (downloaded) return { path: downloaded, source: 'download' }
+      // Offline / failed download: reuse the cache, but say so loudly.
+      if (existsSync(cached)) {
+        return { path: cached, source: `cache(STALE: expected ${version} ${platformTarget()}, found ${readMarker(base) ?? 'no marker'})` }
+      }
+      return found
+    },
+  }
+}
+
+// ── commands ─────────────────────────────────────────────────────────────────
+
+async function ensure(base, override, { force = false } = {}) {
+  const r = resolver(base, override)
+  if (force && r.version) {
+    const downloaded = await download(base, r.version)
+    if (downloaded) return { path: downloaded, source: 'download(forced)' }
+  }
+  return r.resolve()
+}
+
+function report(target, result) {
+  process.stdout.write(`${target}: ${result ? `${result.path} [${result.source}]` : 'unresolved'}\n`)
+}
+
+async function main(argv) {
+  const [command, ...rest] = argv
+  const cliOverride = process.env.SOKONANODA_BIN
+  const lspOverride = process.env.SOKONANODA_LSP_BIN
+
+  switch (command) {
+    case undefined:
+    case '--help':
+    case '-h':
+      process.stdout.write(
+        'scripts/soko — harness-neutral launcher for the pinned sokonanoda binaries\n' +
+          '\n' +
+          'usage:\n' +
+          '  scripts/soko setup                 fetch CLI + LSP into the cache (idempotent)\n' +
+          '  scripts/soko update                force-refresh both to the repo version\n' +
+          '  scripts/soko version [--json]      repo version + resolution + cache markers\n' +
+          '  scripts/soko doctor [--json]       readiness report; exit 3 when not ready\n' +
+          '  scripts/soko lsp                   run the language server on stdio\n' +
+          '  scripts/soko <anything else…>      forwarded to the sokonanoda CLI\n' +
+          '                                     e.g. grade playground.sokonanoda --json\n' +
+          '\n' +
+          'env: SOKONANODA_BIN / SOKONANODA_LSP_BIN (path overrides), SOKONANODA_OFFLINE=1,\n' +
+          '     SOKONANODA_CACHE_DIR (default ~/.local/share/sokonanoda/bin)\n',
+      )
+      return 0
+
+    case 'setup':
+    case 'update': {
+      const force = command === 'update'
+      const cli = await ensure('sokonanoda', cliOverride, { force })
+      const lsp = await ensure('sokonanoda-lsp', lspOverride, { force })
+      report('cli', cli)
+      report('lsp', lsp)
+      const version = repoVersion()
+      const stale = [cli, lsp].filter(r => r.source.startsWith('cache(STALE'))
+      if (!cli || !lsp || stale.length) {
+        process.stderr.write(
+          `scripts/soko ${command}: could not provide matching binaries for v${version ?? '?'}\n` +
+            `  target:  ${rustTriple() ?? platformTarget() ?? 'unknown'}\n` +
+            `  offline: ${offline() ? 'yes (SOKONANODA_OFFLINE)' : 'no'}\n` +
+            (lastDownloadError ? `  download: ${lastDownloadError}\n` : '') +
+            `  release: ${RELEASES}/v${version ?? '?'}/\n` +
+            'Next: allow network access (behind a proxy, export HTTPS_PROXY so curl can use it),\n' +
+            '      or point SOKONANODA_BIN / SOKONANODA_LSP_BIN at existing binaries.\n',
+        )
+        return 3
+      }
+      return 0
+    }
+
+    case 'version': {
+      const cli = resolver('sokonanoda', cliOverride).probe()
+      const lsp = resolver('sokonanoda-lsp', lspOverride).probe()
+      if (rest.includes('--json')) {
+        process.stdout.write(
+          `${JSON.stringify(
+            {
+              version: repoVersion(),
+              target: platformTarget(),
+              rust_target: rustTriple(),
+              cache: cacheDir(),
+              offline: offline(),
+              cli: { path: cli?.path, source: cli?.source, marker: readMarker('sokonanoda') },
+              lsp: { path: lsp?.path, source: lsp?.source, marker: readMarker('sokonanoda-lsp') },
+            },
+            null,
+            2,
+          )}\n`,
+        )
+      } else {
+        process.stdout.write(`scripts/soko version\n`)
+        process.stdout.write(`  repo:   v${repoVersion() ?? '?'} (${platformTarget() ?? '?'}, ${rustTriple() ?? '?'})\n`)
+        process.stdout.write(`  cache:  ${cacheDir()}${offline() ? ' (offline)' : ''}\n`)
+        report('  cli', cli)
+        report('  lsp', lsp)
+      }
+      // `version` is a read-only report: it always succeeds and lets the caller
+      // decide. A stale marker shows up in the source text and in `doctor`.
+      return 0
+    }
+
+    case 'doctor': {
+      const cli = await resolver('sokonanoda', cliOverride).resolve()
+      const lsp = await resolver('sokonanoda-lsp', lspOverride).resolve()
+      const fresh = r => Boolean(r) && !r.source.startsWith('cache(STALE')
+      const ready = fresh(cli) && fresh(lsp)
+      if (rest.includes('--json')) {
+        process.stdout.write(
+          `${JSON.stringify(
+            {
+              ready,
+              version: repoVersion(),
+              target: platformTarget(),
+              rust_target: rustTriple(),
+              cache: cacheDir(),
+              offline: offline(),
+              launcher: path.join(REPO, 'scripts', 'soko'),
+              cli: { path: cli?.path, present: Boolean(cli), ready: fresh(cli), marker: readMarker('sokonanoda') },
+              lsp: { path: lsp?.path, present: Boolean(lsp), ready: fresh(lsp), marker: readMarker('sokonanoda-lsp') },
+            },
+            null,
+            2,
+          )}\n`,
+        )
+      } else {
+        process.stdout.write(`scripts/soko doctor\n`)
+        process.stdout.write(`  version:  v${repoVersion() ?? '?'}\n`)
+        process.stdout.write(`  platform: ${platformTarget() ?? '?'} (rust: ${rustTriple() ?? '?'})\n`)
+        process.stdout.write(`  cache:    ${cacheDir()}\n`)
+        report('  cli', cli)
+        report('  lsp', lsp)
+        process.stdout.write(`  ready:    ${ready ? 'yes' : 'no'}\n`)
+      }
+      return ready ? 0 : 3
+    }
+
+    default: {
+      // Everything else goes to the CLI: grade / gate / watch / course / repl /
+      // a bare file path / --json …
+      const base = command === 'lsp' ? 'sokonanoda-lsp' : 'sokonanoda'
+      const override = command === 'lsp' ? lspOverride : cliOverride
+      const found = await resolver(base, override).resolve()
+      if (!found) {
+        process.stderr.write(
+          `scripts/soko: no usable ${base} binary for v${repoVersion() ?? '?'} ` +
+            `(offline=${offline() ? 'yes' : 'no'}).\n` +
+            'Run `scripts/soko setup` first.\n',
+        )
+        return 3
+      }
+      if (found.source.startsWith('cache(STALE')) {
+        process.stderr.write(
+          `scripts/soko: refusing to run a stale binary — ${found.source}\n` +
+            'Run `scripts/soko update` to refresh the cache to the repository version.\n',
+        )
+        return 3
+      }
+      // `lsp` must reach the server binary; the CLI would re-dispatch it, but
+      // going straight there keeps stdout a pure LSP frame stream.
+      const args = command === 'lsp' ? rest : [command, ...rest]
+      const result = spawnSync(found.path, args, { stdio: 'inherit' })
+      if (result.error) {
+        process.stderr.write(`scripts/soko: failed to run ${found.path}: ${result.error.message}\n`)
+        return 3
+      }
+      return result.status ?? 3
+    }
+  }
+}
+
+process.exitCode = await main(process.argv.slice(2))

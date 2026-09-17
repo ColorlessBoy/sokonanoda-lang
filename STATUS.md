@@ -1,18 +1,106 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-16（第八十三轮：课程大纲重构 P2（重排 + 拆分）；0.53.0）
+> 快照：2026-09-17（第八十七轮：DeepSeek Harness 适配落地；0.55.0）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > 经验台账 = `docs/LESSONS.md`；CI 失败台账 = `docs/CI-FAILURES.md`；发布 = `docs/RELEASE.md`；
-> agent 入口 = `AGENTS.md` + `skills/`。
+> agent 入口 = `AGENTS.md` + `skills/`；**harness 适配 = `docs/design/deepseek-harness.md`**。
 
 ## 一句话
 
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-17，第八十七轮：DeepSeek Harness 适配落地 —— H0–H4）
+
+> 用户确认「按 H0 → H1 → H2 → H3 → H4 开始实现」，按
+> `docs/design/deepseek-harness.md` 五个阶段全部落地，版本 0.54.0 → **0.55.0**。
+
+1. **H0 技能上架**：`.agents/skills/{sokonanoda-teacher,dev,ci}/SKILL.md` 三个
+   **薄入口**（正文唯一源仍是 `skills/<name>/SKILL.md`，入口写明按仓库根解析）；
+   新增 `crates/cli/tests/dsh.rs`（6 测试：入口↔正文双向、kebab-case 名、DSH
+   frontmatter 白名单、指向正文且路径存在、`dsh/cordis.patch.yml` 形状、
+   `scripts/soko` 解析链）。**实测**：DSH 会话里三个技能自动出现，`/sokonanoda-*`
+   直接可用。
+2. **H1 二进制可达**：新增 **`scripts/soko`**（零依赖 Node、跨平台、可执行位入
+   git）——DSH 无 PATH 注入也无项目钩子，项目必须有一个可 commit 的入口。
+   解析链 = `$SOKONANODA_BIN` → **版本匹配**（跑 `--version` 校验）的仓库构建 →
+   缓存（marker 必须等于 `Cargo.toml` 版本）→ VS Code 扩展自带 → 版本锁定下载；
+   **缓存过期直接拒绝运行**；网络受限经 `curl` 走 `HTTPS_PROXY`，失败给可诊断原因。
+   `AGENTS.md` Setup 改 harness 中立；三个技能命令统一为 `scripts/soko …`。
+   实测：`setup` 把本机缓存 0.16.2/0.20.0 → 0.55.0，`doctor --json` `ready:true`，
+   `grade playground.sokonanoda` 出内核事件。
+3. **H2 LSP 接线**：`dsh/cordis.patch.yml`（`lsp` + `lsp-stdio` + `tool-lsp`，
+   `extensionToLanguage[".sokonanoda"]`，command 指向 `scripts/soko`）+
+   `dsh/README.md`。**实测**：以仓库为 workspace 启动 DSH 会话，`lsp` 工具 hover
+   `playground.sokonanoda:201:9` 返回内核打印的
+   `theorem and_swap : forall (a b : Prop), And a b -> And b a`。
+   踩到并记录三条新事实：`!!js` **必须单行**、`baseUrl` 是 profile 目录（不能用
+   它推导仓库路径）、`lsp` 工具只在会话 workspace 内解析 `file_path`。
+4. **H3 命令与角色**：`sokonanoda-teacher` §0 吸收角色与五条不可违反规则；
+   `.opencode/agent/teacher.md` 瘦身为指针，**并修掉它里面违反零 cargo 硬规则的
+   `cargo run` 判卷命令**；7 个 opencode 命令统一走 `scripts/soko`（`opencode.rs`
+   改为"gate 之外的命令必须 cargo-free + 全部走启动器"）。
+5. **H4 治理**：`dsh/hooks/{hooks.json,refuse-lean-toolchain.js}` 实现官方 Lean
+   工具链 deny（命令位匹配：拦 `lake build`/`$(lean …)`、放行 `grep lean`，
+   12 例实测）；`AGENTS.md` 硬规则第 2 条写明两 harness 的 deny 形态；
+   `skills/README.md` 重写为多 harness 安装矩阵；`docs/design/onboarding.md` §6
+   DSH 对照表；`site/assets/agent-prompt.js` 安装 prompt 改 `scripts/soko` 并说明
+   DSH；VS Code README/CHANGELOG/package.json 同步。
+6. **验收**：`cargo test --workspace --locked` 全绿（21 个测试目标，含新增
+   `dsh.rs`）；`cargo fmt --check` 绿；`clippy` 仅 kernel 既有 warning；
+   `scripts/soko gate` **PASS**；site 生成与卫生检查绿。版本 **0.55.0**。
+7. **本机环境坑（非仓库问题）**：Xcode 27 许可未接受时 `xcrun`/`ar` 被系统拦，
+   `cargo` 链接必失败；绕过用
+   `DEVELOPER_DIR=/Library/Developer/CommandLineTools cargo test …`，根治是
+   `sudo xcodebuild -license accept`。已记入 `docs/HANDOVER.md` §5。
+8. **待做**：`docs/design/deepseek-harness.md` §5 H5 backlog（Infoview 客户端插件 /
+   诊断通道 / 启动钩子 / npm 插件包）；§3 E 的两个 front 缺口仍在。
+
+## 本轮进度（2026-09-17，第八十六轮：DeepSeek Harness 适配——只出计划）
+
+> 用户接手项目：「很多地方还没适配 deepseek harness，先理解项目、分析要适配哪里、
+> 列一下计划文档」。**本轮只做调研 + 设计，不动实现、不 bump 版本。**
+
+1. **审计结论**：产品内核（kernel / `.sokonanoda` 前端 / `--json` 事件 / 三个技能）
+   与 harness 无关、可直接移植；要适配的是**接线层**——技能发现路径、斜杠命令、
+   编辑器 LSP 接线、环境与二进制可达性、工具链 deny、文档与契约测试的单 harness 假设。
+   **不需要改任何 Rust 语义代码**（Rust 侧唯一新增是契约测试 `crates/cli/tests/dsh.rs`）。
+2. **差距 G1–G10**：技能不能被 DSH 发现（P0）/ 七个 `/sokonanoda/*` 命令不存在 /
+   无 teacher 主 agent / `.sokonanoda` 无 LSP 接线 / 二进制不在 PATH 且 DSH 禁止项目
+   改 PATH（P0）/ Lean 工具链 deny 无对应物 / 33 处文档与契约测试只认 opencode /
+   `AGENTS.md` 的 code-agent 适配原则缺 DSH 条目 / 无项目级 provisioning /
+   用户级技能环境噪音。
+3. **DSH 侧关键事实（逐条带源码行号，文档 §1.2 共 23 条）**：技能根扫描含
+   `<repo>/.dsh/skills`(rank 100) 与 `.agents/skills`(200)；**技能名本身即斜杠命令**
+   （`/name` 注入正文，零 profile 配置）；frontmatter 路由词只能写 `description`
+   （`whenToUse` 是 camelCase 且只进人类 `/` 选单，**旧 camelCase 的
+   `disableModelInvocation` 等会让整条技能被丢弃**）；**LSP 不在任何 shipped bundle**，
+   且 DSH 的 LSP 只有 4 项只读操作，**`publishDiagnostics` 被显式丢弃**、`soko/*`
+   无消费者；工具调用 PATH 不可由项目配置（唯一例外是 LSP 自己的 `env`）；patch 为
+   顶层 YAML 数组（`- id:` 整块替换 config、会丢 `!!js`；空文件会 boot 失败），
+   `--patch` 可叠且**无项目级自动发现**；hooks 桥只有一个进程级 `configPath`、
+   **不做项目发现**；**符号链接是官方同款做法**（DSH 仓库自用
+   `.claude/skills -> ../.agents/skills`，watcher 默认跟随）。
+4. **计划 H0–H4（每阶段独立可验收）+ backlog H5**：H0 技能上架（`.agents/skills/`
+   放软链或薄网关、正文唯一留在 `skills/`、新增 `crates/cli/tests/dsh.rs` 守卫）→
+   H1 二进制可达（新增零依赖 Node 启动器 `scripts/soko`，解析链与 opencode 插件同语义
+   + marker 版本守卫；`AGENTS.md` Setup 改 harness 中立）→ H2 LSP 接线
+   （项目自带 `dsh/cordis.patch.yml` + `--patch` 用法，显式写清诊断不在通道内）→
+   H3 命令与角色并入技能（opencode 命令与 teacher agent 正文移进
+   `sokonanoda-teacher`）→ H4 治理（deny 形态、33 处文档去 opencode 单一化、门面同步）。
+5. **决策 D-1…D-6 与验收 A1–A6** 已列（技能进 DSH 的方式 / 启动器形态与
+   REQUIREMENTS（三十二）删除 `scripts/soko.sh` 的边界 / 是否自动 provisioning /
+   deny 形态 / `soko/*` 处置 / 版本号策略）。
+6. **实测现状**：`sokonanoda` 不在 PATH；缓存为旧版（marker `0.16.2 darwin-arm64`
+   vs 仓库 **0.54.0**），`doctor --json` 报 `ready:false`——历史「版本漂移致环境未就绪」
+   的故障模式当前正在发生，H1 的 marker 守卫正针对它。
+7. **验收**：本轮产物 = `docs/design/deepseek-harness.md` + `REQUIREMENTS.md` §9（八十六）
+   + `docs/HANDOVER.md` §3 F/§5/§6 + `docs/README.md` 设计清单 + 本文；不改代码，
+   不跑 gate（无代码改动）。
 
 ## 本轮进度（2026-09-16，第八十四轮：课程大纲重构 P3——锁定 10 单元）
 
@@ -40,61 +128,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    (b) `inductive` 的**多名字参数组** `(A B : Prop)` 不解析（Pi binder 支持）。
 6. **验收**：course/course_status/skill + 全量 CLI + 手动 fmt/clippy/test 全绿；20 个 CN+EN
    画布 exit 0；双语画布与 solutions 逐项相等；版本 0.53.0 → **0.54.0**（课程达到锁定规模，minor）。
-
-## 本轮进度（2026-09-16，第八十三轮：课程大纲重构 P2（重排 + 拆分 U5））
-
-> 续 `docs/design/course-syllabus.md` §6 P2：把 `by` 提前、把过载的归纳单元拆开。
-
-1. **重排**：`by` 单元从第 6 提到**第 4**（紧跟函数/箭头之后），宇宙顺延为第 5；
-   量词为第 8。
-2. **拆分**：旧「显式归纳与递归」拆成 **Ⅰ**（显式 `inductive`/`rec`/`iota` + 手写
-   `Nat.rec` + `match` 非递归 + 递归 `match`+IH）与 **Ⅱ**（参数化 `Option` + 依赖
-   `match`=归纳 + 嵌套/字面量/通配/guard 模式 + 带索引 `Vec`）。两半各自**重声明**
-   `inductive Nat` 以保持自足（代价：`decl.checked` 57→58）。
-3. **文件/清单**：`git mv` 重命名 CN/EN 画布与 CN/EN solutions（`unit6-by→unit4-by`、
-   `unit4-univ→unit5-univ`、`unit5-ind→unit6/unit7-…`、`unit7-quant→unit8-quant`）；
-   `course.json` 8 条，`unit` 1..8。
-4. **测试**：两处 GOLDEN 改 8 行（`(13,6,1)(2,5,2)(2,6,2)(13,5,0)(0,6,1)(7,6,3)(7,4,4)(14,7,1)`）、
-   汇总 `units=8 checked=58 open=45`、`course_json_lists_the_eight_units_in_order`、
-   `cli.rs` 课程缓存金值 57→58。
-5. **门面同步**（硬规则）：`teaching-session.md`/`course-status.md`/`course-bilingual.md`/
-   `ROADMAP` I7/`course/README.md`/`infrastructure.md`/`type-level-syntax.md`/
-   `term-intro.md`/`remove-funintro.md`/`skills/`（teacher 两个文件）/`editor/vscode/README.md`
-   （7→8 单元，注明向锁定 10 单元演进）；并**移除**根 README 与 site 三处**手写单元数**
-   （改为不带数字，数字由 `course/course.json` 生成）。
-6. **验收**：course/course_status/skill + 全量 CLI 测试全绿；16 个 CN+EN 画布 exit 0；
-   双语画布与 solutions 事件计数逐项相等；`solution_covers_every_canvas_exercise` 通过；
-   版本 0.52.0 → **0.53.0**（结构可见变化，minor）。
-7. **待做**：P3 = 新增 #9 关系与联结词、#10 读证明与综合（锁定的 10 单元）。
-
-## 本轮进度（2026-09-16，第八十二轮：课程大纲重构 P1）
-
-> 用户：重新拆解 course、全面调研形式化证明教材、设计教学大纲。先出设计
-> （`docs/design/course-syllabus.md`），本轮执行 **P1（不改结构，先修问题）**。
-
-1. **调研**（3 个 subagent 并行）：Lean 系（TPIL4/MIL/NNG/FPL/Lean4Game + 学习者
-   障碍研究）、Coq/Agda/Isabelle/Idris + 传统证明教材（SF/PLFA/Concrete Semantics/
-   TDD-Idris/Velleman/Hammack/Solow/Chartrand）+ 证明教育文献。结论：共享骨架
-   （数据+递归 → 先算后证 → 蕴涵=`intro` → 分情况 → 归纳≡递归 → 引理链 → 联结词即证据）、
-   三处分歧（逻辑先行 vs 计算先行 / 相等与关系谁先 / 自动化姿态，PLFA 明文禁用）、
-   12 个可偷装置、首因障碍（语法词汇、不看 proof state、迁移失败、tactic bashing）。
-2. **现状审计**：7 单元 golden/双语/solutions/skill 测试面 + 10 条内容/文档问题。
-3. **设计锁定**（`course-syllabus.md` §0）：**10 单元**目标结构（`by` 提前到 #4；旧 U5
-   拆 #6/#7；新增 #9 关系与联结词、#10 读证明与综合）+ 三套候选大纲（A 推荐 / B NNG
-   游戏线 / C PLFA 式进阶）+ P1–P4 阶段与硬约束（白名单、两处 golden、双语、solutions、
-   skill 锚点、CI）。
-4. **P1 内容**（subagent）：U4 增 2 题「读 `#check` 判类型」+ 1 题「先预测再证」（原
-   0 checked/0 reduced）；U6 删与 `by_ex1` 完全重复的 `by_ex5`；U3 两题去歧义；
-   全单元 hint 去泄题（关键件只写触发条件+引理名）；删 U5 过期断言；solutions 同步 +
-   修 EN unit4 漂移；新增 `solution_covers_every_canvas_exercise` +
-   `en_solutions_match_chinese_event_counts`。新 golden：U4 `(0,6,1)`、U6 `(13,5,0)`，
-   汇总 `units=7 checked=57 open=45 failed=0`（`cli.rs` 的 43→45 一并修）。
-5. **P1 文档**（subagent）：`teaching-session.md` §3 编号/练习名对齐真实单元、删 §5
-   的 `Or.rec/or_comm` 断言；`course-status.md` §4 golden 更新并标注"示例非第二真源"；
-   `ROADMAP` I7 改为 7 单元 + 指向锁定 10 单元演进；`course-bilingual.md` 口径与不变式
-   （画布**与** solutions 都比较、含 `expr.typed`）；`course/README.md`；本文 §2 逐条标注
-   `P1 已修/P2 待做`；另修 `infrastructure.md` 两处 5 单元口径。
-6. **验收**：course/course_status/skill + 全量 workspace 全绿；`sokonanoda gate` PASS；
-   版本 0.51.0 → **0.52.0**（课程内容可见改进，minor）。P2（重排+拆分 U5）、P3（新增两
-   单元）、P4（游戏线）待做。
-

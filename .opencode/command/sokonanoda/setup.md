@@ -3,11 +3,12 @@ description: 安装/更新与仓库版本锁定的 CLI + LSP 二进制（二进�
 agent: build
 ---
 
-从**任意目录**运行（`sokonanoda` 由 opencode 插件 provision 到缓存并注入 PATH）：
+从**仓库根目录**运行（`scripts/soko` 是 harness 中立启动器；opencode 插件也
+会把缓存目录注入 PATH，此时 `sokonanoda …` 等价）：
 
 ```bash
-sokonanoda setup
-sokonanoda doctor --json
+scripts/soko setup
+scripts/soko doctor --json
 ```
 
 向用户汇报 `doctor` 的 `ready` / `version` / `target` / `cache`；失败时贴出

@@ -12,57 +12,83 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 练习（带 `sorry` 洞的声明）；用户在洞里作答；**完整内核是唯一裁判**——
 你跑编译器读结构化事件来判卷和决策。判定永远走 kernel，绝不做文本比对。
 
+第一件事（被加载/被 `/sokonanoda-teacher` 唤起后）：
+
+1. 先按 §1 确认环境（`scripts/soko doctor --json`；未就绪就 `setup`）；
+2. 跑一次判卷拿当前状态（`scripts/soko grade playground.sokonanoda --json`）；
+3. 再按 `docs/teaching-session.md` 与 `references/` 的判卷事件表推进。
+
+不可违反的五条（其余规则都在本文件后面，但这五条任何时候都成立）：
+
+1. **判定永远走 kernel**——读 `--json` 结构化事件
+   （`decl.checked` / `exercise.open` / `diagnostic` + code + hint 等），
+   禁止文本比对、禁止"看起来对"就判过；
+2. `sorry`（含 `by` 块里的）是**合法开放状态**，不是错误；
+3. 出题必配 2–3 条 `-- soko:hint` 阶梯（思路 → 目标形态 → 关键件），
+   答案绝不进提示；
+4. 解答钥匙（`course/solutions/`）只在学生明确要求或卡壳 ≥3 轮时揭示；
+5. 具体执行层按学生实时适配（错误历史、节奏、兴趣），`course/` 只是素材库，
+   不是要照着念的固定课程。
+
+> harness 差异：opencode 有 `teacher` 主 agent（把上面这段当角色设定）；
+> DeepSeek Harness 没有项目级 agent 定义，**角色就由本技能承载**——
+> 输入 `/sokonanoda-teacher` 即等价。两者共用本文件，别分叉。
+
 ## 1. 环境搭建（agent 接手时先确认）
 
 一条命令（幂等；**零 cargo、不需要 VS Code 扩展**；设计见
-`docs/design/onboarding.md`）：
+`docs/design/onboarding.md`；harness 差异见 `docs/design/deepseek-harness.md`）。
+
+**在仓库根目录用 `scripts/soko`**（harness 中立启动器：解析版本匹配的仓库构建 →
+缓存 → VS Code 扩展自带 → 版本锁定下载；缓存过期会拒绝运行）：
 
 ```bash
-sokonanoda setup     # 按本二进制版本下载 CLI + LSP → 缓存（幂等）
-sokonanoda update    # = setup --force：强制刷新到本版本
-sokonanoda version   # 看版本 + 缓存里实际版本（--json）
-sokonanoda doctor    # 就绪诊断；--json 供机器读，0=就绪 3=未就绪
+scripts/soko setup     # 版本锁定的 CLI + LSP → 缓存（幂等）
+scripts/soko update    # 强制刷新到仓库版本
+scripts/soko version --json   # 仓库版本 + 解析来源 + 缓存标记
+scripts/soko doctor --json    # 就绪诊断，0=就绪 3=未就绪
 ```
 
-之后判卷直接用缓存里的二进制（opencode 启动插件会自动 setup 并把该目录注入
-PATH，一般无需手动）：
+判卷（`scripts/soko` 会把其余子命令原样转发给 CLI；下文一律用这个形式）：
 
 ```bash
-"$HOME/.local/share/sokonanoda/bin/sokonanoda" --json playground.sokonanoda
-# 等价：sokonanoda grade playground.sokonanoda
+scripts/soko grade playground.sokonanoda        # 人类可读
+scripts/soko grade playground.sokonanoda --json # JSON 事件（你的判卷接口）
 ```
 
+- 若 `sokonanoda` 已经在 PATH 上（opencode 启动插件会注入缓存目录），
+  `scripts/soko X` 与 `sokonanoda X` 等价；DSH 下没有 PATH 注入，所以用前者。
 - 版本严格按仓库 `Cargo.toml` 锁定，**禁用 `releases/latest`**；
-- `sokonanoda version` 打印本二进制版本 + 缓存里实际版本；二者与仓库
-  `Cargo.toml` 不一致（旧下载缓存）是常见故障源——先 `sokonanoda update`
-  （`sokonanoda gate` 也会因版本不符 exit 3）；
-- **本技能全程零 cargo**；从源码构建（贡献者）见 `skills/sokonanoda-dev`。
+- 缓存标记（`<version> <target>`）与仓库版本不一致（旧下载缓存）是**最常见的
+  故障源**——`scripts/soko doctor --json` 会报 `ready:false`，跑
+  `scripts/soko update` 修；启动器与 `gate` 都会因版本不符拒绝执行；
+- 网络受限时设 `HTTPS_PROXY`（启动器经 `curl` 下载，会用它）；
+- **本技能全程零 cargo**；从源码构建（贡献者）见 `sokonanoda-dev`。
 
-⚠️ **不要用 `releases/latest`**：下载 URL 必须按仓库/插件版本锁定
+⚠️ **不要用 `releases/latest`**：下载 URL 必须按仓库版本锁定
 （`v${V}`），否则会拿新服务器配旧插件，协议错配且不可复现。
 
 ## 2. 环境与命令速查（在仓库根目录执行）
 
 ```bash
-# 判卷二进制：`sokonanoda setup` 已就绪（opencode 插件自动 provisioning）。
-SOKO="$HOME/.local/share/sokonanoda/bin/sokonanoda"
+SOKO=scripts/soko   # 其余子命令原样转发给 sokonanoda CLI
 
 # 判卷（人类可读 + 机器事件两种视图）
-"$SOKO" playground.sokonanoda
-"$SOKO" --json playground.sokonanoda
+$SOKO grade playground.sokonanoda
+$SOKO grade playground.sokonanoda --json
 
 # 常驻监控（每版 delta 流；改文件自动重判）
-"$SOKO" watch playground.sokonanoda
+$SOKO watch playground.sokonanoda
 
 # 自建解释器 REPL（#check/#reduce/#print/#prove，调试用）
-"$SOKO" repl
+$SOKO repl
 ```
 
 - `--json` 每行一个 JSON 事件；这是你的**判卷接口**，读事件，别读 exit code。
 - 事件词汇是封闭的：`decl.checked` / `example.checked` / `expr.typed` /
   `expr.reduced` / `decl.printed` / `exercise.open` / `diagnostic`，
   形状见 `docs/protocol.md`；watch 流词汇见同文档 watch 一节。
-- 语言能力速查：`sokonanoda --help` 自描述（def/theorem/axiom/example、
+- 语言能力速查：`$SOKO --help` 自描述（def/theorem/axiom/example、
   `#check`、`#reduce`、宇宙参数、命名箭头、声明级 binder
   `theorem f (a : A) : B := v`）。
 - 值位 `let`：`let x : T := v; body`；缺注解 `let x := v` 只在有期望类型或能从

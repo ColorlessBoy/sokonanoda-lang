@@ -74,6 +74,9 @@
 - `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（**已废弃**：`char_steps` 基建随值位关键字一并删除）
 - `site.md` — 项目官网（GitHub Pages）方案与信息架构（已上线：site/ + pages.yml）
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
+- `deepseek-harness.md` — **DeepSeek Harness 适配（设计 + 计划 H0–H4）**：差距
+  G1–G10、DSH 侧事实（技能根/斜杠命令/LSP 只有 4 项只读操作且忽略诊断/patch 形状）、
+  验收 A1–A6 与待拍板决策 D-1…D-6（2026-09-17，实现未开始）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。
@@ -83,6 +86,9 @@
 - `research.md` — 教学型形式化证明语言与基础设施调研
 - `lsp-notes.md` / `vscode-notes.md` — LSP / VS Code 接入实践调研
 - `gap-analysis.md` — 业内标准差距审计
+- `dsh-project-assets.md` — **DeepSeek Harness 源码勘察记录**（技能根/斜杠命令/
+  LSP 能力/patch 形状/hooks/子 agent/客户端插件能否被项目自带，逐条 `path:line`；
+  配套设计 `docs/design/deepseek-harness.md`）
 - `inductive.md` — `inductive`/`ctor`/`rec`/`iota` 讲解
 - `rust-cross-platform-binary.md` — 为什么跨 OS 没有单一 Rust 二进制、引导器（`soko.sh`/插件）的角色
 
@@ -95,4 +101,6 @@
 - `playground.sokonanoda`（仓库根）— 共享教学画布
 - `scripts/install.sh` — 终端用户零 cargo 安装器（版本锁定 Release 资产，
   见 `docs/design/onboarding.md` §5）
+- `skills/` — 角色技能；**DeepSeek Harness 通过 skill 名即斜杠命令直接消费**
+  （`/sokonanoda-teacher` 等），适配计划见 `docs/design/deepseek-harness.md`
 - `.devcontainer/` — 仅贡献者的 Rust 容器（终端用户无需 Rust）

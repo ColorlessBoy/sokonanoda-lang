@@ -148,7 +148,10 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
         "scripts/soko.sh must be gone (the binary is the entrypoint)"
     );
 
-    // Commands live under the `sokonanoda/` namespace and call the binary.
+    // Commands live under the `sokonanoda/` namespace and go through the
+    // harness-neutral launcher. `gate` is the one documented exception: it is
+    // the contributor gate and drives cargo itself, so it must say so; every
+    // other command stays cargo-free (REQUIREMENTS §2 rule 9).
     for name in [
         "setup", "update", "version", "doctor", "check", "gate", "round",
     ] {
@@ -156,9 +159,20 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
         assert!(path.exists(), "missing namespaced command {name}");
         let body = fs::read_to_string(&path).expect("command readable");
         assert!(
-            !body.contains("cargo run") && !body.contains("cargo build"),
-            "{name} must stay cargo-free (user/agent path)"
+            body.contains("scripts/soko"),
+            "{name} must go through the harness-neutral launcher (scripts/soko)"
         );
+        if name == "gate" {
+            assert!(
+                body.contains("贡献者"),
+                "gate must stay labelled as the contributor path (it calls cargo)"
+            );
+        } else {
+            assert!(
+                !body.contains("cargo run") && !body.contains("cargo build"),
+                "{name} must stay cargo-free (user/agent path)"
+            );
+        }
         assert!(
             !body.contains("soko.sh"),
             "{name} must not reference the removed shell script"
@@ -174,8 +188,8 @@ fn opencode_layer_is_namespaced_thin_and_cargo_free() {
         let body = fs::read_to_string(root.join(format!(".opencode/command/sokonanoda/{name}.md")))
             .expect("command readable");
         assert!(
-            body.contains("sokonanoda"),
-            "{name} must call the sokonanoda binary"
+            body.contains("scripts/soko"),
+            "{name} must call the launcher (which forwards to the sokonanoda binary)"
         );
     }
     // The grading command resolves the repo root (cwd-independent file path).

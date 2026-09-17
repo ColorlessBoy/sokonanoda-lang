@@ -1,0 +1,57 @@
+# DeepSeek Harness overlay for sokonanoda-lang — wires the `.sokonanoda`
+# language server into a DSH session.
+#
+# LSP is not part of any shipped DSH bundle, and a repository cannot install a
+# project-local hook, so this file is the opt-in path:
+#
+#   dsh web --patch ./dsh/cordis.patch.yml
+#
+# or, to keep it for every session of a profile, copy the `insert:` list into
+# `$DSH_HOME/profiles/web/cordis.patch.yml` (a `- id:` override REPLACES that
+# row's whole config and drops any `!!js` inside it — copy the whole insert list
+# instead of overriding rows).
+#
+# What you get, and what you do NOT get (docs/design/deepseek-harness.md §1.2):
+#
+#   * the `lsp` model tool can hover and go to definition / references /
+#     implementation inside `.sokonanoda` files — hover shows the kernel's own
+#     printed type, which is the useful part for a tutor;
+#   * server diagnostics are NOT forwarded to the agent or the UI by DSH's LSP
+#     host, and the custom `soko/*` requests (goals/stateAt/hints) have no
+#     consumer here. Kernel feedback for grading therefore always comes from the
+#     CLI JSON stream: `scripts/soko grade <file> --json`.
+#
+# The server command points at the repository launcher, which resolves the
+# version-pinned binary (repo build → cache → VS Code extension → pinned
+# download) and refuses to run a stale one.
+#
+# Do NOT derive the path from `baseUrl`: DSH evaluates `!!js` against the
+# profile/home context, so `baseUrl` is `$DSH_HOME/profiles/`, not this file's
+# directory. The expression below resolves the repository from `$SOKO_REPO`
+# (set it when launching dsh from outside the repository) or from the invoking
+# directory, which is the default DSH workspace root:
+#
+#   SOKO_REPO=/path/to/sokonanoda-lang dsh web --patch ./dsh/cordis.patch.yml
+#
+# Keep the expression on ONE line: a folded multi-line scalar reaches the
+# evaluator with embedded newlines and stops producing a string.
+
+- insert:
+    - id: dsh-lsp
+      name: '@deepseek-ai/dsh-lsp'
+
+    - id: dsh-lsp-stdio
+      name: '@deepseek-ai/dsh-lsp-stdio'
+      config:
+        servers:
+          sokonanoda:
+            command: !!js process.getBuiltinModule('node:path').join(process.env.SOKO_REPO ?? process.cwd(), 'scripts', 'soko')
+            args: ['lsp']
+            extensionToLanguage:
+              '.sokonanoda': sokonanoda
+            # A .sokonanoda canvas is small; the defaults are generous. Raised
+            # only so a slow first compile (cold cache) cannot trip teardown.
+            shutdownTimeoutMs: 10000
+
+    - id: dsh-tool-lsp
+      name: '@deepseek-ai/dsh-tool-lsp'

@@ -1,17 +1,47 @@
 # skills/ —— 为 code agent 封装的操作知识
 
-本目录把"如何操作本项目"固化成 [Agent Skill](https://opencode.ai/docs/skills/)
-格式（SKILL.md + frontmatter），任何支持该格式的 code agent（opencode、
-Claude Code 等）都能一键加载。项目自身的 conformance 测试守护这些文件
-不会与真实工具漂移（`crates/cli/tests/skill.rs`）。
+本目录把"如何操作本项目"固化成 Agent Skill 格式（`SKILL.md` + frontmatter），
+任何支持该格式的 code agent（DeepSeek Harness、opencode、Claude Code 等）都能
+加载。本目录是**正文的唯一源**；各 harness 的入口见下方"安装"。
+conformance 测试守护这些文件不与真实工具漂移：`crates/cli/tests/skill.rs`
+（正文）与 `crates/cli/tests/dsh.rs`（DSH 入口 + 启动器 + LSP patch）。
 
 | Skill | 给谁 | 内容 |
 |---|---|---|
-| `sokonanoda-teacher/` | 当老师的 agent | 教学循环、判卷事件决策表、出题规范与适配规则、解答钥匙使用守则；参考件：`references/events.md`（事件形状）、`references/curriculum.md`（题池地图） |
+| `sokonanoda-teacher/` | 当老师的 agent | 角色定义与五条不可违反规则、教学循环、判卷事件决策表、出题规范与适配规则、解答钥匙使用守则；参考件：`references/events.md`（事件形状）、`references/curriculum.md`（题池地图）、`references/zh-style.md`（文风约束） |
 | `sokonanoda-dev/` | 接手开发的 agent | 接手清单、硬规则、TDD 三层与文档先行工作流、CI 门禁形态 |
 | `sokonanoda-ci/` | 推代码/发布/查 CI 的 agent | 本地验证纪律（退出码、无 grep 掩膜）、GitHub Actions 陷阱台账、`gh` 排错三板斧、失败必录 |
 
-## 安装
+三者都是纯 `name` + `description` 的 frontmatter——这是所有 harness 的交集。
+
+## 环境：一条命令，所有 harness 通用
+
+```bash
+scripts/soko setup          # 版本锁定的 CLI + LSP → 缓存（幂等；零 cargo）
+scripts/soko doctor --json  # 0=就绪 3=未就绪
+scripts/soko grade playground.sokonanoda --json   # 判卷
+scripts/soko gate           # 贡献者门禁（调用 cargo）
+```
+
+`scripts/soko` 是 harness 中立的启动器：解析"版本匹配"的仓库构建 → 缓存
+（标记必须等于 `Cargo.toml` 版本）→ VS Code 扩展自带 → 版本锁定下载；其余
+子命令原样转发给 `sokonanoda` CLI，**缓存过期直接拒绝运行**。`sokonanoda`
+已在 PATH 时二者等价。设计见 `docs/design/deepseek-harness.md`、`docs/design/binary-cli.md`。
+
+## 安装（按 harness）
+
+### DeepSeek Harness（项目级，零安装）
+
+DSH 自动发现 `<仓库根>/.agents/skills/`，而**技能名本身就是斜杠命令**：
+
+- 打开本仓库即可用：`/sokonanoda-teacher`、`/sokonanoda-dev`、`/sokonanoda-ci`；
+- `.agents/skills/<name>/SKILL.md` 是**薄入口**（正文在 `skills/<name>/SKILL.md`，
+  入口里写明按仓库根解析；`dsh.rs` 守住两边不漂移）；
+- LSP（hover / 跳定义 / 找引用）需显式启用：
+  `dsh web --patch ./dsh/cordis.patch.yml`（**服务端诊断不会进 agent**，
+  判卷一律走 CLI `--json`）：见 `dsh/README.md`；
+- Lean 工具链 deny 用 `dsh/hooks/hooks.json` + hooks 桥（需在 profile 里插一行，
+  因为 DSH 不做项目级 hook 发现）：见 `dsh/README.md`。
 
 ### opencode（项目级，零安装）
 
@@ -19,34 +49,37 @@ Claude Code 等）都能一键加载。项目自身的 conformance 测试守护�
 打开本项目时三者自动可加载，无需软链。同一配置还提供：
 
 - LSP：`.sokonanoda` 文件自动启动 `sokonanoda-lsp` 并消费 kernel 判定的诊断；
-- 命令：`/gate`（与 CI 一致的本地门禁）、`/check`（内核判卷并汇总事件）、
-  `/round`（按本仓库流程启动一轮开发）；
-- 主 agent `teacher`（Tab 切换）：在画布上充当 Lean 式证明老师；
+- 命令：`/sokonanoda/setup|update|version|doctor|check|gate|round`；
+- 主 agent `teacher`（Tab 切换）：加载同一份 `sokonanoda-teacher` 技能；
 - 权限：`lean`/`lake`/`elan`/`leanc` 命令 deny（硬规则落地为配置）。
 
-### Claude Code / 其他 harness（软链）
+### Claude Code / 其他 harness
 
-把 skill 目录放进你的 agent harness 的 skills 目录（软链或复制均可）：
+把 skill 目录链接进 harness 的技能根（`skills/` 本身不是标准位置，需要一次配置）：
 
 ```bash
 # Claude Code（用户级）
 ln -s "$PWD/skills/sokonanoda-teacher" ~/.claude/skills/sokonanoda-teacher
 
-# 其他读取 ~/.agents/skills 的 harness
+# 其他读取 ~/.agents/skills 的 harness（DSH 也扫这里，但与仓库内入口同源）
 ln -s "$PWD/skills/sokonanoda-teacher" ~/.agents/skills/sokonanoda-teacher
+
+# DeepSeek Harness：也可以不改仓库，直接把正文目录登记为额外技能根
+#   $DSH_HOME/profiles/web/cordis.patch.yml
+#   - id: skill-filesystem
+#     config:
+#       customSkillDirs: ["/abs/path/to/sokonanoda-lang/skills"]
 ```
 
-环境与编辑器反馈走**单一入口** `sokonanoda` 二进制（设计见
-`docs/design/binary-cli.md`）：`setup` 版本锁定下载 CLI+LSP（幂等、内嵌
-下载器）、`update` 强制刷新、`version`/`doctor` 就绪与版本诊断（`--json`，
-0=就绪 3=未就绪）、`grade` 判卷、`gate` 贡献者门禁、`lsp` 给编辑器用。
-opencode 由启动插件**直接接线原生 `sokonanoda-lsp`**（跨平台、零 bash；
-`opencode.json` 不再写 lsp 命令）；非 opencode harness 可用
-`.opencode/lsp/sokonanoda-lsp.sh` shim（→ `sokonanoda lsp`）。
+其他 harness 若需要 LSP：`.opencode/lsp/sokonanoda-lsp.sh` shim →
+`scripts/soko lsp`。
 
 ## 守护
 
-- `cargo test -p sokonanoda-cli --test skill`：frontmatter 合法、引用的仓库
+- `cargo test -p sokonanoda-cli --test skill`：正文 frontmatter 合法、引用的仓库
   路径真实存在、事件/方法词汇封闭且与 `docs/protocol.md` 一致；
+- `cargo test -p sokonanoda-cli --test dsh`：每个正文都有 `.agents/skills/` 入口
+  （双向、无孤儿）、入口 frontmatter 只用 DSH 认的键、入口指向正文且路径存在、
+  `dsh/cordis.patch.yml` 形状正确、`scripts/soko` 解析链完整且不写 `releases/latest`；
 - 协议词汇变更时先改 `docs/protocol.md` 与 `crates/cli/tests/common/mod.rs`，
   conformance 测试会指出 skill 侧需要跟改的位置。

@@ -6,9 +6,10 @@ agent: build
 从**任意目录**运行：
 
 ```bash
-sokonanoda doctor --json; echo "EXIT=$?"
+scripts/soko doctor --json; echo "EXIT=$?"
 ```
 
 汇报字段：`ready` / `version` / `target` / `rust_target` / `cache` /
-`offline` / `cli` / `lsp`。退出码 `0` = 就绪；`3` = 环境未就绪
-（下一步跑 `/sokonanoda/setup`）。
+`offline` / `launcher` / `cli` / `lsp`（后两者含 `path` / `present` / `ready` /
+`marker`）。退出码 `0` = 就绪；`3` = 环境未就绪（下一步跑
+`/sokonanoda/setup`）。

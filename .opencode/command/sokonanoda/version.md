@@ -6,14 +6,14 @@ agent: build
 从**任意目录**运行：
 
 ```bash
-sokonanoda version --json
+scripts/soko version --json
 ```
 
-汇报 `version`（本二进制版本）、`target`、以及 `cli` / `lsp` 的 `present`、
-`marker`（缓存里实际的 `<version> <target>`）与 `match`。
+汇报 `version`（仓库版本）、`target`、以及 `cli` / `lsp` 的 `path`、`source`
+（解析来源：`repo-build` / `cache` / `download` / `cache(STALE…)`）与 `marker`。
 
-- `match` 全为 `true` = 缓存与版本一致，无需更新；
-- 任一 `match` 为 `false`（或 `present` 为 `false`）→ 下一步跑
+- `source` 不含 `STALE` 且有 `path` = 就绪，无需更新；
+- 任一 `source` 为 `cache(STALE…)` 或 `path` 缺失 → 下一步跑
   `/sokonanoda/update`。
 
 命令**不修改**任何东西（只读）；不要用 `releases/latest`，不要要求用户安装

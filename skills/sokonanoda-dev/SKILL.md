@@ -51,18 +51,18 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 ```bash
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 # 禁止 `cargo fmt --all`：会重排**冻结内核**（kernel 快照不得改动）；
-# 只 fmt 教学 crates，或直接 `sokonanoda gate`。
+# 只 fmt 教学 crates，或直接 `scripts/soko gate`。
 cargo clippy --workspace --all-targets      # 教学 crates 经 [lints] deny；kernel 只 warning
-cargo test --workspace --locked             # 4 个 lib test target + 12 个集成测试文件
+cargo test --workspace --locked             # 4 个 lib test target + 13 个集成测试文件
 cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node 行为测试
 ```
 
 - 教学 crates 的严格度来自各自 `Cargo.toml` 的 `[lints.rust] warnings = "deny"`；
 - kernel 是冻结快照：其 lint 保持 warning 级，fmt 门禁不覆盖（rustfmt.toml
   需要 nightly）；
-- `sokonanoda gate` 的 playground 锚点用**运行中二进制的内嵌编译器**；若
-  `sokonanoda version` 与仓库 `Cargo.toml` 版本不一致（旧下载缓存），gate 会
-  直接 exit 3 —— 先 `sokonanoda update`，或直接跑
+- `scripts/soko gate` 的 playground 锚点用**运行中二进制的内嵌编译器**；若它与
+  仓库 `Cargo.toml` 版本不一致（旧下载缓存 / `target/` 旧构建），gate 会
+  直接 exit 3 —— 先 `scripts/soko update`，或直接跑
   `cargo run -q -p sokonanoda-cli --bin sokonanoda -- playground.sokonanoda`；
 - 编辑器测试三层：静态契约 `crates/cli/tests/extension.rs`（进 `cargo test`）、
   webview 纯 Node 行为 `editor/vscode/test-webview.js`（`npm run test:unit`）、
@@ -77,15 +77,16 @@ cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node �
 git clone https://github.com/ColorlessBoy/sokonanoda-lang.git && cd sokonanoda-lang
 
 # 方式 ①（agent / headless，与 VS Code 解耦）：一条命令
-sokonanoda setup     # 版本锁定下载 CLI + LSP（幂等；零 cargo；内嵌下载器）
-sokonanoda doctor    # 0=就绪 3=未就绪；--json 机器可读
+scripts/soko setup    # 版本锁定下载 CLI + LSP（幂等；零 cargo）
+scripts/soko doctor   # 0=就绪 3=未就绪；--json 机器可读
+# 网络受限时先 `export HTTPS_PROXY=…`（启动器经 curl 下载，会用它）。
 
 # 方式 ②（开发必需）：源码编译（CLI + LSP + 全量测试）
 cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
 export PATH="$PWD/target/release:$PATH"
 
 # 门禁（= CI：fmt + clippy + test + playground 锚点）
-sokonanoda gate
+scripts/soko gate
 ```
 
 Release 资产：**26 个**——`sokonanoda-lsp-<rust-triple>.tar.gz` ×8 +

@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${SOKO_REPO:-$PWD}/dsh/hooks/refuse-lean-toolchain.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "pwsh",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${SOKO_REPO:-$PWD}/dsh/hooks/refuse-lean-toolchain.js\""
+          }
+        ]
+      }
+    ]
+  }
+}

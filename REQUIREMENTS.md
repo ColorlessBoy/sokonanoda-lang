@@ -830,3 +830,86 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   §2 第 11/12 条）：带索引的递归 `Prop` 归纳自动派生 recursor 被内核拒（IH 形状不符，
   `Or`/`Vec` 正常）——front 未冻结可修；`inductive` 多名字参数组不解析。版本 **0.54.0**。
 
+- 2026-09-17（八十六）：**DeepSeek Harness 适配（用户要求）**——用户接手项目并
+  明确「很多地方还没适配 deepseek harness」，要求先理解项目、分析适配点、出计划
+  文档。产出 **设计 + 计划文档 `docs/design/deepseek-harness.md`**（本轮只出计划，
+  不动实现）：
+  - **审计结论**：产品内核（kernel / `.sokonanoda` 前端 / `--json` 事件 / 三个技能）
+    与 harness 无关，可直接移植；要适配的是**接线层**——技能发现路径、斜杠命令、
+    编辑器 LSP 接线、环境与二进制可达性、工具链 deny、以及只提 opencode 的文档与
+    契约测试。**不需要改任何 Rust 语义代码**（唯一 Rust 侧新增是契约测试
+    `crates/cli/tests/dsh.rs`）；
+  - **十个差距 G1–G10**：技能不能被 DSH 发现 / 七个 `/sokonanoda/*` 命令不存在 /
+    无 teacher 主 agent / `.sokonanoda` 无 LSP 接线 / 二进制不在 PATH 且 DSH 禁止
+    项目改 PATH / Lean 工具链 deny 无对应物 / 33 处文档与契约测试只认 opencode /
+    `AGENTS.md` 的 code-agent 适配原则缺 DSH 条目 / 无项目级 provisioning /
+    用户级技能环境噪音；
+  - **DSH 侧关键事实（带源码行号，见文档 §1.2）**：技能根扫描含
+    `<repo>/.dsh/skills`（rank 100）与 `<repo>/.agents/skills`（200），
+    **技能名本身即斜杠命令**（消息里的 `/name` 注入该技能正文，零 profile 配置），
+    bundle 内相对 `references/` 受支持；frontmatter 的路由词只能写 `description`
+    （`whenToUse` 是 camelCase，且只进人类 `/` 选单；**旧 camelCase 的
+    `disableModelInvocation` 等会让整条技能被丢弃**）；**LSP 不在任何 shipped bundle**
+    （须 profile patch 或 `--patch`），且 DSH 的 LSP 只有 4 项只读操作
+    （definition/references/implementation/hover），**服务端 `publishDiagnostics`
+    被显式忽略**、`workspace/applyEdit` 被拒、`soko/*` 自定义请求无消费者；
+    项目/家目录 `.env` 均不得设 `PATH`，`shell-env` 只收 `DSH_*`（唯一例外是 LSP
+    自己的 `servers.<id>.env`）；patch 是顶层 YAML 数组（`- id:` 覆写**整块** config
+    且会丢 `!!js`；空文件会 boot 失败），`--patch` 可重复叠加且**没有项目级自动发现**；
+    hooks 桥只有一个进程级 `configPath`、**不做项目发现**；**符号链接是官方同款做法**
+    （DSH 仓库自用 `.claude/skills -> ../.agents/skills`，技能 watcher 默认跟随）；
+  - **分阶段计划 H0–H4（每阶段独立可验收）+ H5 backlog**：H0 技能上架
+    （`.agents/skills/` 放软链或薄网关，正文唯一留在 `skills/`，配契约测试防漂移）、
+    H1 二进制可达（新增零依赖 Node 启动器 `scripts/soko`，解析链与 opencode 插件同
+    语义 + marker 版本守卫，`AGENTS.md` Setup 改 harness 中立）、H2 LSP 接线
+    （项目自带 `dsh/cordis.patch.yml` + `--patch` 用法，并**显式写清诊断不在通道内**、
+    判卷一律走 CLI `--json`）、H3 命令与角色并入技能（opencode 命令与
+    `.opencode/agent/teacher.md` 的正文移进 `sokonanoda-teacher`）、H4 治理
+    （Lean 工具链 deny 经 hooks 桥或文档禁令、文档去 opencode 单一化、门面同步）；
+  - **六个待拍板决策 D-1…D-6**、**A1–A6 验收标准**、风险表（技能双份漂移、DSH
+    developer preview 变更、诊断误期待、版本漂移、profile 改坏）全部落在文档 §6–§8；
+  - **本次实测现状**：`sokonanoda` 不在 PATH，缓存是旧版
+    （marker `0.16.2 darwin-arm64` vs 仓库 **0.54.0**），`doctor --json` 报
+    `ready:false`——历史「版本漂移致环境未就绪」的故障模式当前正在发生，H1 的
+    marker 守卫正是针对它。
+
+- 2026-09-17（八十七）：**DeepSeek Harness 适配落地（用户确认「按 H0 → H1 → H2 →
+  H3 → H4 开始实现」）**——设计文档 `docs/design/deepseek-harness.md` 的五个阶段
+  全部完成，版本 0.54.0 → **0.55.0**（新增用户可见的接入形态 = minor）：
+  - **H0 技能上架**：`.agents/skills/{sokonanoda-teacher,dev,ci}/SKILL.md` 三个薄入口
+    （正文唯一源仍是 `skills/<name>/SKILL.md`）；新增契约测试
+    `crates/cli/tests/dsh.rs`（入口↔正文双向对应、DSH frontmatter 白名单、
+    指向正文且路径存在、patch 形状、启动器解析链**只认版本匹配的仓库构建**）。
+    实测：DSH 会话里三个技能自动出现、`/sokonanoda-*` 即命令；
+  - **H1 二进制可达**：新增 **`scripts/soko`**（零依赖 Node，跨平台、可执行位入 git）
+    ——DSH 无 PATH 注入也无项目钩子，必须有一个可 commit 的入口。解析链 =
+    `$SOKONANODA_BIN` → **版本匹配**（跑 `--version` 校验）的仓库构建 → 缓存
+    （marker 必须等于 `Cargo.toml` 版本）→ VS Code 扩展自带 → 版本锁定下载；
+    **缓存过期直接拒绝运行**；网络受限时经 `curl` 走 `HTTPS_PROXY`，失败给出
+    可诊断原因。`AGENTS.md` Setup 改为 harness 中立，三个技能命令统一为
+    `scripts/soko …`；实测 `setup` 把本机缓存 0.16.2 → 0.55.0、`doctor --json`
+    `ready:true`、`grade playground.sokonanoda` 出内核事件；
+  - **H2 LSP 接线**：`dsh/cordis.patch.yml`（`lsp` + `lsp-stdio` + `tool-lsp`，
+    `extensionToLanguage[".sokonanoda"]`，command 指向 `scripts/soko`）+
+    `dsh/README.md`（用法、边界、常驻安装、deny 启用）。**实测**：以仓库为 workspace
+    启动 DSH 会话，`lsp` 工具 hover `playground.sokonanoda:201:9` 返回内核打印的
+    `theorem and_swap : forall (a b : Prop), And a b -> And b a`。同时把两条新踩的
+    DSH 事实记入设计文档 §1.2：**`!!js` 必须单行**、**`baseUrl` 是 profile 目录**
+    （不能用它推导仓库路径）、**`lsp` 工具只在会话 workspace 内解析 `file_path`**；
+  - **H3 命令与角色**：`sokonanoda-teacher` §0 吸收角色定义与五条不可违反规则；
+    `.opencode/agent/teacher.md` 瘦身为指针，**并修掉它里面违反零 cargo 硬规则的
+    `cargo run` 判卷命令**；7 个 opencode 命令统一走 `scripts/soko`；
+  - **H4 治理**：`dsh/hooks/{hooks.json,refuse-lean-toolchain.js}` 实现官方 Lean
+    工具链 deny（命令位匹配：拦 `lake build`/`$(lean …)`、放行 `grep lean`，
+    12 例实测）；`AGENTS.md` 硬规则第 2 条写明两 harness 的 deny 形态；
+    `skills/README.md` 重写为多 harness 安装矩阵；`docs/design/onboarding.md`
+    增 §6 DSH 对照表；`site/assets/agent-prompt.js` 安装 prompt 改 `scripts/soko`
+    并说明 DSH；VS Code `README/CHANGELOG/package.json` 版本同步；
+  - **验收**：`cargo test --workspace --locked` 全绿（21 个测试目标）、
+    `cargo fmt --check` 绿、`clippy` 仅 kernel 既有 warning、
+    `scripts/soko gate` **PASS**、site 生成与卫生检查绿。
+  - **本机环境坑（非仓库问题，已记入手册）**：Xcode 27 许可未接受时
+    `xcrun`/`ar` 被系统拦，`cargo` 链接必失败；绕过用
+    `DEVELOPER_DIR=/Library/Developer/CommandLineTools cargo test …`，
+    根治是 `sudo xcodebuild -license accept`。
+

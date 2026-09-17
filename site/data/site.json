@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 69,
-  "round_date": "2026-09-14",
-  "round_title": "judge_infer 类型往返健壮性",
+  "round": 87,
+  "round_date": "2026-09-17",
+  "round_title": "DeepSeek Harness 适配落地 —— H0–H4",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -32,33 +32,54 @@
       "unit": 3
     },
     {
-      "en_file": "course/en/unit4-universes-sort.sokonanoda",
-      "file": "unit4-universes-sort.sokonanoda",
-      "title": "单元④ 宇宙：函数类型的类型",
-      "title_en": "Unit 4 — Universes: the Type of a Function Type",
+      "en_file": "course/en/unit4-by-tactics.sokonanoda",
+      "file": "unit4-by-tactics.sokonanoda",
+      "title": "单元④ by 写法：tactic 证明",
+      "title_en": "Unit 4 — Proving with `by` (tactic blocks)",
       "unit": 4
     },
     {
-      "en_file": "course/en/unit5-induction-nat-rec.sokonanoda",
-      "file": "unit5-induction-nat-rec.sokonanoda",
-      "title": "单元⑤ 显式归纳与递归",
-      "title_en": "Unit 5 — Explicit Induction & Recursion",
+      "en_file": "course/en/unit5-universes-sort.sokonanoda",
+      "file": "unit5-universes-sort.sokonanoda",
+      "title": "单元⑤ 宇宙：函数类型的类型",
+      "title_en": "Unit 5 — Universes: the Type of a Function Type",
       "unit": 5
     },
     {
-      "en_file": "course/en/unit6-by-tactics.sokonanoda",
-      "file": "unit6-by-tactics.sokonanoda",
-      "title": "单元⑥ by 写法：tactic 证明",
-      "title_en": "Unit 6 — Proving with `by` (tactic blocks)",
+      "en_file": "course/en/unit6-induction-recursion-1.sokonanoda",
+      "file": "unit6-induction-recursion-1.sokonanoda",
+      "title": "单元⑥ 归纳与递归 Ⅰ",
+      "title_en": "Unit 6 — Induction & Recursion I",
       "unit": 6
     },
     {
-      "en_file": "course/en/unit7-quantifiers.sokonanoda",
-      "file": "unit7-quantifiers.sokonanoda",
-      "title": "单元⑦ 量词：forall 与 exists",
-      "title_en": "Unit 7 — Quantifiers: forall & exists",
+      "en_file": "course/en/unit7-induction-recursion-2.sokonanoda",
+      "file": "unit7-induction-recursion-2.sokonanoda",
+      "title": "单元⑦ 归纳与递归 Ⅱ",
+      "title_en": "Unit 7 — Induction & Recursion II",
       "unit": 7
+    },
+    {
+      "en_file": "course/en/unit8-quantifiers.sokonanoda",
+      "file": "unit8-quantifiers.sokonanoda",
+      "title": "单元⑧ 量词：forall 与 exists",
+      "title_en": "Unit 8 — Quantifiers: forall & exists",
+      "unit": 8
+    },
+    {
+      "en_file": "course/en/unit9-relations-connectives.sokonanoda",
+      "file": "unit9-relations-connectives.sokonanoda",
+      "title": "单元⑨ 关系与联结词",
+      "title_en": "Unit 9 — Relations & Connectives",
+      "unit": 9
+    },
+    {
+      "en_file": "course/en/unit10-reading-proofs.sokonanoda",
+      "file": "unit10-reading-proofs.sokonanoda",
+      "title": "单元⑩ 读证明与综合",
+      "title_en": "Unit 10 — Reading Proofs & Synthesis",
+      "unit": 10
     }
   ],
-  "version": "0.39.1"
+  "version": "0.55.0"
 }

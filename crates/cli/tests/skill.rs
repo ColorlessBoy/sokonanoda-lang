@@ -62,7 +62,16 @@ fn frontmatter_value(frontmatter: &str, key: &str) -> Option<String> {
 }
 
 /// Path-like tokens the skills may point at; each must exist in the repo.
-const PATH_PREFIXES: [&str; 5] = ["docs/", "course/", "crates/", "examples/", "skills/"];
+/// `scripts/` is included because the harness-neutral launcher (`scripts/soko`)
+/// is the command every skill is written against (docs/design/deepseek-harness.md).
+const PATH_PREFIXES: [&str; 6] = [
+    "docs/",
+    "course/",
+    "crates/",
+    "examples/",
+    "skills/",
+    "scripts/",
+];
 
 fn referenced_paths(text: &str) -> Vec<String> {
     let mut out = Vec::new();

@@ -136,3 +136,24 @@
   methods」补一句：CLI 是 Release 上的单文件静态二进制，`cargo binstall
   sokonanoda-cli` 与 `mise github:ColorlessBoy/sokonanoda-lang` 均可用；发布
   同时给出 `SHA256SUMS` + provenance 供核对。
+
+## 6. DSH 对照（2026-09-17 补，第八十七轮）
+
+**opencode 与 DeepSeek Harness 的接入是两条不同的路**，能力也不同；完整证据与
+计划见 `docs/design/deepseek-harness.md`，用户视角用法见 `dsh/README.md`。
+
+| | opencode | DeepSeek Harness |
+|---|---|---|
+| 启动时 provision | 启动插件自动（改写 `lsp.command` + `shell.env` 注入 PATH） | **无项目级插件/钩子**——用仓库自带的 `scripts/soko` |
+| 技能发现 | `opencode.json` 的 `skills.paths: ["./skills"]` | 自动扫 `<repo>/.agents/skills/`（本轮的薄入口） |
+| 斜杠命令 | `/sokonanoda/*`（markdown 命令文件） | 技能名即命令：`/sokonanoda-teacher` 等 |
+| 主 agent | `.opencode/agent/teacher.md`（primary） | 无项目级 agent 定义 → 角色并入 `sokonanoda-teacher` §0 |
+| LSP 诊断给 agent | ✅ 完整诊断 | ❌ DSH 显式忽略 `publishDiagnostics`；判卷走 CLI `--json` |
+| `soko/*` 自定义请求 | ✅ 插件/命令消费 | ❌ 无消费者（H5 backlog） |
+| Lean 工具链 deny | `opencode.json` 权限规则 | `dsh/hooks/hooks.json` + hooks 桥（需 profile 插一行） |
+
+**为什么加了 `scripts/soko`**：REQUIREMENTS（三十二）删掉的是**面向用户的
+`scripts/soko.sh`**（下载器已进二进制）；这里新增的是**agent/编辑器接入层的
+零依赖 Node 启动器**——DSH 没有 PATH 注入也没有项目钩子，项目必须有一个可
+commit、可执行、跨平台的入口。它的解析链与 opencode 插件同语义，并额外要求
+"仓库构建的版本必须 `--version` 匹配"（旧插件按 mtime 取新，会跑旧二进制）。

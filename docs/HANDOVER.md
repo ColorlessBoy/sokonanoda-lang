@@ -4,7 +4,9 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.54.0**（2026-09-16），最近一轮 **第八十四轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.55.0**（2026-09-17），最近一轮 **第八十七轮**。仓库根入口 `AGENTS.md`。
+> **DeepSeek Harness 适配已落地**：`docs/design/deepseek-harness.md`（H0–H4 全绿，
+> 用法见 `dsh/README.md`）；仅 H5（Infoview/诊断通道/插件包）留 backlog。
 
 ## 1. 30 秒接手
 
@@ -127,8 +129,24 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
   （`parse_inductive_block`/`parse_ctor`），`(A B : Prop)` 解析失败；课程只能写
   `(A : Prop) (B : Prop)`。非本轮引入，修 parser 后需补 front 单测 + 课程同步。
 
+### F. DeepSeek Harness 适配（第八十六–八十七轮，2026-09-17：✅ 已落地，0.55.0）
+- 设计与计划：**`docs/design/deepseek-harness.md`**（差距 G1–G10、DSH 侧事实
+  §1.2 共 25 条带源码行号、阶段 H0–H4 ✅ + backlog H5、决策 D-1…D-6、验收 A1–A6、
+  as-built §9）；用法：**`dsh/README.md`**；调研底稿：`docs/notes/dsh-project-assets.md`。
+- 现在能用的：DSH 打开本仓库 → 技能与 `/sokonanoda-*` 命令自动可用；
+  `scripts/soko doctor --json` 报就绪；`scripts/soko grade …` 判卷；
+  `dsh web --patch ./dsh/cordis.patch.yml` 后 `lsp` 工具可 hover/跳定义。
+- **三条最容易踩的 DSH 事实**：① 技能名本身即斜杠命令，但必须在
+  `<repo>/.agents/skills`；② DSH 的 LSP **只有** definition/references/
+  implementation/hover，**服务端诊断被忽略**、`soko/*` 无消费者，判卷一律走
+  CLI `--json`；③ 项目/家目录 `.env` 都**不能设 PATH**，也没有项目级钩子 →
+  一切走 `scripts/soko`。
+- H5 backlog：B1 Infoview 客户端插件、B2 诊断通道（DSH 演进或 MCP）、
+  B3 `SessionStart` provisioning、B4 把启动器+拦截+命令做成 npm 插件包。
+
 ### D. 远期（L2/L3）
 - 协作/多用户、远程；compiler service 的跨文件转播 / `setContent`（v1 未做）。
+- DSH 侧 Infoview/诊断通道（`docs/design/deepseek-harness.md` §5 H5 的 B1/B2）。
 
 ## 4. 已知限制 / 技术债
 
@@ -164,6 +182,13 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
   provenance；校验见 `docs/RELEASE.md` §6。
 - **本地 perf 哨兵在机器重载时会误报**（`incremental_edit_anywhere_is_fast` 受
   CPU 争用）；单跑通过即环境问题，重跑 `gate`。
+- **Xcode 许可未接受会让 cargo 直接构建失败**（2026-09-17 本机实测，Xcode 27）：
+  `xcrun --sdk macosx --show-sdk-path` 与 `ar` 都被系统拒绝（exit 69），链接必挂。
+  绕过（不改系统设置）：`DEVELOPER_DIR=/Library/Developer/CommandLineTools cargo test --workspace --locked`；
+  根治：`sudo xcodebuild -license accept`。与仓库代码无关。
+- **DSH 侧三条硬事实**（`docs/design/deepseek-harness.md` §1.2）：技能根只有
+  `.dsh/skills` / `.agents/skills`；LSP 只读且**丢掉服务端诊断**；项目不能改
+  工具调用的 PATH、也没有项目级钩子 → 一律用 `scripts/soko`。
 
 ## 6. 关键文档索引
 
