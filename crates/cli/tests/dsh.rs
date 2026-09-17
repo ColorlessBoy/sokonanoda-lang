@@ -273,6 +273,13 @@ fn dsh_mcp_server_forwards_every_query_op() {
             && !text.contains("check_document"),
         "the MCP server must stay a JSON forwarder — all judgement lives in front::query"
     );
+    // `serverInfo.version` must come from `Cargo.toml` (the single version
+    // source, `docs/RELEASE.md` §2): the host shows it in its MCP status, and a
+    // hand-written literal drifts silently. Regression guard for `version: '0.1.0'`.
+    assert!(
+        text.contains("Cargo.toml") && !text.contains("version: '0.1.0'"),
+        "dsh/mcp/server.js must report the repository version, not a hand-written one"
+    );
     // It must resolve the repository the same way the launcher does.
     for needle in ["SOKO_REPO", "scripts", "soko"] {
         assert!(

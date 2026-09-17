@@ -46,7 +46,27 @@ const fs = process.getBuiltinModule('node:fs')
 /** Legacy revisions the pinned client accepts; the client's choice is echoed. */
 const LEGACY_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05', '2024-10-07']
 const PROTOCOL_VERSION = '2025-11-25' // version-sensitive: SDK 2.0.0 LATEST_PROTOCOL_VERSION
-const SERVER_INFO = { name: 'sokonanoda', version: '0.1.0' }
+
+/**
+ * `serverInfo.version` is the **repository** version, read from `Cargo.toml`
+ * (the single version source, `docs/RELEASE.md` §2) — never a hand-written
+ * constant: the host shows this in its MCP status, and a stale literal is
+ * exactly the version-drift failure this repo keeps re-learning. `process.argv[1]`
+ * is used instead of `__dirname` so the file keeps working under both CJS and
+ * ESM. Unreadable manifest → `0.0.0` (the bridge still works; only the label
+ * is unknown).
+ */
+function repoVersion() {
+  try {
+    const script = process.argv[1] ?? ''
+    const manifest = path.join(path.dirname(script), '..', '..', 'Cargo.toml')
+    const match = /^version\s*=\s*"([^"]+)"/m.exec(fs.readFileSync(manifest, 'utf8'))
+    return match ? match[1] : '0.0.0'
+  } catch {
+    return '0.0.0'
+  }
+}
+const SERVER_INFO = { name: 'sokonanoda', version: repoVersion() }
 const CAPABILITIES = { tools: { listChanged: false } }
 const METHOD_NOT_FOUND = -32601
 const INVALID_PARAMS = -32602
