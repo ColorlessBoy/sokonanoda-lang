@@ -132,7 +132,7 @@
 | `crates/lsp/src/lib.rs` | **下降**：删掉查询/渲染实现，抽 wire 类型与 token 辅助，测试模块移出文件 | **4256 → 3988 → 1105**（≤1200 达标） |
 | `crates/lsp/src/protocol.rs` | `soko/*` 自定义请求的 wire 类型（从 lib.rs 抽出） | → **159** |
 | `crates/lsp/src/tokens.rs` | semantic token 的 legend/encoding（从 lib.rs 抽出；分类唯一源仍是 `front::semantic`） | → **107** |
-| `crates/lsp/src/tests.rs` / `by_sorry_range_tests.rs` | LSP 进程内 rpc 测试（从 lib.rs 移出，**断言一字未改**） | → **2567 / 60**（**已知债**：tests.rs 超过 ~500 行红线，拆分方案见 `docs/HANDOVER.md` §4） |
+| `crates/lsp/src/tests/`（`mod.rs` + 9 个特性文件）/ `by_sorry_range_tests.rs` | LSP 进程内 rpc 测试（0.56.0 从 lib.rs 移出、0.56.1 按特性拆分，**断言与测试名一字未改**） | → `mod.rs` **399**、最大子文件 **392** / **60** |
 | `dsh/mcp/server.js` | MCP stdio：`tools/list`、`tools/call`，JSON Schema 声明 | ~220（as-built **~350**，含五个实测坑的注释） |
 | `crates/cli/tests/query.rs` | CLI 端到端 + 与 LSP 一致性契约 | ~250 → **~600**（含真实 LSP 二进制的对拍与两个画布） |
 

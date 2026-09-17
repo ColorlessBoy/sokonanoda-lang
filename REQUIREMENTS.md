@@ -1005,3 +1005,24 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     与仓库一致、下载的 LSP 对无 `by` 的开放声明返回 `goal='a' binders=['a','h']`、
     已闭合返回 `goal=None`。A1–A7 见设计文档 §11；已知债：
     `crates/lsp/src/tests.rs` 2567 行（拆分方案见 `docs/HANDOVER.md` §4）。
+
+- 2026-09-17（九十）：**清除 HANDOVER §4 的 LSP 测试文件债 + 发布 0.56.1**（用户要求：
+  「继续 handover 吧，完成之后再 bump」）——第八十九轮登记的两笔结构债里，
+  `lib.rs ≤1200` 已在同轮清掉，本轮清剩下那笔：
+  - **`crates/lsp/src/tests.rs` 2567 行 → `crates/lsp/src/tests/`**：`mod.rs` 399 行
+    （31 个共享 const/fixture + `pub(crate) use` 再导出，子模块用 `use super::*;`
+    取用）+ 9 个特性文件（`hover` 392 / `lenses` 366 / `navigation` 280 / `state` 262 /
+    `goals` 252 / `lifecycle` 242 / `hover_brackets` 167 / `tokens` 122 / `perf` 117），
+    `by_sorry_range_tests.rs`（60）原地保留；`lib.rs` 保持 **1105 行**；
+  - **零语义改写**（TDD 纪律的极端情形：这次连一条断言都不能动）：107/107 顶层
+    item 逐字搬移、8/8 banner 保留、规范化行流多重集 2394 == 2394、函数名 95/95
+    一致、测试名各一次（76 个测试）、assert 记账 214 + 6 == 220；新增行只有模块 doc、
+    `use super::*;`、`pub(crate) use` 再导出与 `mod …;`；
+  - **验证**：拆分中途与最终态各一次 `cargo test -p sokonanoda-lsp --locked`
+    = 117/117、fmt exit 0（首次 fmt 零改动）、clippy `crates/lsp/**` 零 warning；
+    收尾 `cargo test --workspace --locked` 全绿 + `scripts/soko gate` PASS；
+  - **版本 0.56.0 → 0.56.1**（内部重构、无用户可见变更）：`Cargo.toml` 与
+    `editor/vscode/package.json` 同步、CHANGELOG 记"扩展行为不变"，按流程
+    push main → auto-tag → release 出全部产物；
+  - 文档同步：`docs/HANDOVER.md` §4（债 → 已清的最终布局）、`docs/TESTING.md` LSP 行、
+    `docs/design/agent-query-channel.md` §3.2、`ROADMAP.md` I15 备注、`STATUS.md` 第九十轮。

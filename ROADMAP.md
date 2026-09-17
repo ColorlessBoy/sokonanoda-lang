@@ -543,7 +543,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - **待拍板**：技能进 DSH 的方式（网关 vs `customSkillDirs`）、启动器形态
   （与 REQUIREMENTS（三十二）删除 `scripts/soko.sh` 的边界）、deny 形态、版本号策略。
 
-### I15 —— 内核真相查询通道（`query` 子命令 + MCP）✅ 0.56.0 落地（H6-E 留 backlog）
+### I15 —— 内核真相查询通道（`query` 子命令 + MCP）✅ 0.56.0 落地，结构债 0.56.1 清零（H6-E 留 backlog）
 
 > 设计 + 计划：**`docs/design/agent-query-channel.md`**（2026-09-17；H6-A…H6-D
 > 已按设计落地，H6-E 见下）。一句话：**"内核真相"此前只有 LSP 一条出口**，而
@@ -596,7 +596,8 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   > 过程留档：清理结构债时我曾**没量就**把"≤1200 行"作废（以为剩下的都是协议
   > 服务代码），量完发现 3988 行里 2638 行是测试模块——移出测试 + 抽两个模块
   > 即可达标。教训：**改验收标准之前先把被验收的东西量一遍**（`docs/LESSONS.md`）。
-  > 同轮已知债：`crates/lsp/src/tests.rs` 2567 行（拆分方案见 `docs/HANDOVER.md` §4）。
+  > 后续（0.56.1）：`crates/lsp/src/tests/` 按特性拆成 `mod.rs`（399 行）+ 9 个文件
+  > （最大 392 行），HANDOVER §4 登记的债清零。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。

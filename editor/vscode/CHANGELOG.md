@@ -1,3 +1,18 @@
+## [0.56.1] - 2026-09-17
+
+### Notes
+
+- **Internal refactor only — the extension behaves exactly as 0.56.0.** The language
+  server's in-process test suite was split from one 2567-line file into
+  `crates/lsp/src/tests/` (`mod.rs` plus nine feature files, largest 399 lines),
+  clearing the last structural-debt item recorded after 0.56.0
+  (`crates/lsp/src/lib.rs` had already come down from 4256 to 1105 lines).
+  Test bodies, assertions and test names are unchanged — verified by an
+  item-by-item move comparison (107/107 items, 95/95 test names, 220 `assert`
+  lines) with all 117 server tests green before and after.
+- No user action needed; the shipped server, its protocol and the diagnostics you
+  see are identical to 0.56.0.
+
 ## [0.56.0] - 2026-09-17
 
 ### Added

@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-17（第八十九轮：内核真相查询通道落地 H6-A/B/C + 门面收尾；版本 **0.56.0**）
+> 快照：2026-09-17（第九十轮：清 LSP 测试文件债 + 0.56.1 发布；内核真相查询通道 H6-A/B/C 已落地）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,43 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-17，第九十轮：清掉 HANDOVER §4 的 LSP 测试文件债 + 0.56.1 发布）
+
+> 用户：「继续 handover 吧，完成之后再 bump」。本轮 = 清第八十九轮登记的两笔结构债
+> 里剩下的那笔（`crates/lsp/src/tests.rs` 2567 行），然后 bump 发 **0.56.1**。
+
+1. **测试文件拆分（零语义改动）**：`crates/lsp/src/tests.rs` 2567 行 →
+   `crates/lsp/src/tests/` 一目录：`mod.rs` **399**（31 个共享 const/fixture +
+   `pub(crate) use` 再导出，子模块靠 `use super::*;` 取用）+ 9 个特性文件
+   （`hover` 392 / `lenses` 366 / `navigation` 280 / `state` 262 / `goals` 252 /
+   `lifecycle` 242 / `hover_brackets` 167 / `tokens` 122 / `perf` 117），
+   `by_sorry_range_tests.rs`（60）原地保留。`lib.rs` 仍 **1105 行**——
+   `#[cfg(test)] mod tests;` 自动解析到 `tests/mod.rs`，一行未改。
+2. **"移动而非改写"的证据**（这次也按上轮的标准自证）：HEAD 的 `tests.rs` 里
+   **107/107 顶层 item 逐字出现在新文件**、8/8 banner 注释保留、规范化代码行
+   多重集 **2394 == 2394**（only-in-old 0 / only-in-new 0）；函数名 **95/95 一致**、
+   测试名各出现一次（76 个测试：72 `#[tokio::test]` + 4 `#[test]`）、
+   assert 记账 **214（tests/）+ 6（by_sorry）== HEAD 的 214 + 6 = 220**。
+   新增行只有 plumbing：模块 doc 4 行、`use super::*;` ×10、`pub(crate) use` 再
+   导出块、`mod …;` ×9；编译期唯一被迫改动是去掉再导出里没人用的 `Value`。
+3. **两轮验证**：拆分中途（全部子文件首次编译通过）与冻结最终态各跑一遍
+   `cargo test -p sokonanoda-lsp --locked` = **117 passed / 0 failed**；
+   `cargo fmt --check` exit 0（**首次 fmt 没有改动任何文件**）；
+   `cargo clippy -p sokonanoda-lsp --all-targets` exit 0、`crates/lsp/**` 零 warning。
+4. **HANDOVER §4 的债清零**：`docs/HANDOVER.md` 该条从"已知债 + 拆分方案"改为
+   "0.56.1 已清 + 最终布局"；`docs/TESTING.md` 的 LSP 行、设计文档 §3.2 文件表、
+   `ROADMAP.md` I15 的备注同步到 `tests/` 新路径与新行数。
+5. **版本 0.56.0 → 0.56.1**（内部重构，无用户可见变更）：`Cargo.toml` +
+   `editor/vscode/package.json` 两处同步、`editor/vscode/CHANGELOG.md` 记
+   "内部重构（测试文件拆分），扩展行为不变"。按仓库流程 push main → `ci.yml`
+   auto-tag `v0.56.1` → `release.yml` 出八平台产物 + VSIX + marketplace。
+6. **验收**：`cargo test --workspace --locked` 全绿（756）、fmt 零 diff、
+   clippy 教学 crates 零 warning、`scripts/soko gate` **PASS**；发布 job 全绿后
+   用发布产物复验（同第八十九轮的做法）。
+7. **本轮产物**：`crates/lsp/src/tests/`（10 个文件）、`docs/HANDOVER.md`、
+   `docs/TESTING.md`、`docs/design/agent-query-channel.md`、`ROADMAP.md`、
+   `REQUIREMENTS.md` §9、`editor/vscode/CHANGELOG.md`、两处版本号。
 
 ## 本轮进度（2026-09-17，第八十九轮：内核真相查询通道落地 —— H6-A/H6-B/H6-C + 门面收尾）
 
@@ -151,49 +188,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 8. **本轮产物**：`docs/design/agent-query-channel.md`（新）+ `ROADMAP.md` I15 +
    `docs/design/deepseek-harness.md`（H5 的 B1/B2 指向新设计）+ `docs/HANDOVER.md`
    §3/§3E + `docs/README.md` + `REQUIREMENTS.md` §9（八十八）+ 本文。
-
-## 本轮进度（2026-09-17，第八十七轮：DeepSeek Harness 适配落地 —— H0–H4）
-
-> 用户确认「按 H0 → H1 → H2 → H3 → H4 开始实现」，按
-> `docs/design/deepseek-harness.md` 五个阶段全部落地，版本 0.54.0 → **0.55.0**。
-
-1. **H0 技能上架**：`.agents/skills/{sokonanoda-teacher,dev,ci}/SKILL.md` 三个
-   **薄入口**（正文唯一源仍是 `skills/<name>/SKILL.md`，入口写明按仓库根解析）；
-   新增 `crates/cli/tests/dsh.rs`（6 测试：入口↔正文双向、kebab-case 名、DSH
-   frontmatter 白名单、指向正文且路径存在、`dsh/cordis.patch.yml` 形状、
-   `scripts/soko` 解析链）。**实测**：DSH 会话里三个技能自动出现，`/sokonanoda-*`
-   直接可用。
-2. **H1 二进制可达**：新增 **`scripts/soko`**（零依赖 Node、跨平台、可执行位入
-   git）——DSH 无 PATH 注入也无项目钩子，项目必须有一个可 commit 的入口。
-   解析链 = `$SOKONANODA_BIN` → **版本匹配**（跑 `--version` 校验）的仓库构建 →
-   缓存（marker 必须等于 `Cargo.toml` 版本）→ VS Code 扩展自带 → 版本锁定下载；
-   **缓存过期直接拒绝运行**；网络受限经 `curl` 走 `HTTPS_PROXY`，失败给可诊断原因。
-   `AGENTS.md` Setup 改 harness 中立；三个技能命令统一为 `scripts/soko …`。
-   实测：`setup` 把本机缓存 0.16.2/0.20.0 → 0.55.0，`doctor --json` `ready:true`，
-   `grade playground.sokonanoda` 出内核事件。
-3. **H2 LSP 接线**：`dsh/cordis.patch.yml`（`lsp` + `lsp-stdio` + `tool-lsp`，
-   `extensionToLanguage[".sokonanoda"]`，command 指向 `scripts/soko`）+
-   `dsh/README.md`。**实测**：以仓库为 workspace 启动 DSH 会话，`lsp` 工具 hover
-   `playground.sokonanoda:201:9` 返回内核打印的
-   `theorem and_swap : forall (a b : Prop), And a b -> And b a`。
-   踩到并记录三条新事实：`!!js` **必须单行**、`baseUrl` 是 profile 目录（不能用
-   它推导仓库路径）、`lsp` 工具只在会话 workspace 内解析 `file_path`。
-4. **H3 命令与角色**：`sokonanoda-teacher` §0 吸收角色与五条不可违反规则；
-   `.opencode/agent/teacher.md` 瘦身为指针，**并修掉它里面违反零 cargo 硬规则的
-   `cargo run` 判卷命令**；7 个 opencode 命令统一走 `scripts/soko`（`opencode.rs`
-   改为"gate 之外的命令必须 cargo-free + 全部走启动器"）。
-5. **H4 治理**：`dsh/hooks/{hooks.json,refuse-lean-toolchain.js}` 实现官方 Lean
-   工具链 deny（命令位匹配：拦 `lake build`/`$(lean …)`、放行 `grep lean`，
-   12 例实测）；`AGENTS.md` 硬规则第 2 条写明两 harness 的 deny 形态；
-   `skills/README.md` 重写为多 harness 安装矩阵；`docs/design/onboarding.md` §6
-   DSH 对照表；`site/assets/agent-prompt.js` 安装 prompt 改 `scripts/soko` 并说明
-   DSH；VS Code README/CHANGELOG/package.json 同步。
-6. **验收**：`cargo test --workspace --locked` 全绿（21 个测试目标，含新增
-   `dsh.rs`）；`cargo fmt --check` 绿；`clippy` 仅 kernel 既有 warning；
-   `scripts/soko gate` **PASS**；site 生成与卫生检查绿。版本 **0.55.0**。
-7. **本机环境坑（非仓库问题）**：Xcode 27 许可未接受时 `xcrun`/`ar` 被系统拦，
-   `cargo` 链接必失败；绕过用
-   `DEVELOPER_DIR=/Library/Developer/CommandLineTools cargo test …`，根治是
-   `sudo xcodebuild -license accept`。已记入 `docs/HANDOVER.md` §5。
-8. **待做**：`docs/design/deepseek-harness.md` §5 H5 backlog（Infoview 客户端插件 /
-   诊断通道 / 启动钩子 / npm 插件包）；§3 E 的两个 front 缺口仍在。
