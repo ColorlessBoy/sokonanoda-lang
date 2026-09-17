@@ -79,8 +79,11 @@
    文本比对、禁止近似启发式判定。
 5. **可测试**：真相层走 front 单测；CLI 走端到端；MCP 走"声明即契约"的快照测试；
    LSP 与 CLI/MCP **逐字段一致**由契约测试钉死（防两套真相）。
-6. **顺手清债**：抽层后 `crates/lsp/src/lib.rs` 必须下降（目标 ≤ ~1200 行，
-   查询/渲染逻辑外移），`crates/front/src/query.rs` 自身 ≤ ~500 行。
+6. **顺手清债**：抽层后 `crates/lsp/src/lib.rs` 必须下降（查询/渲染逻辑外移），
+   `crates/front/src/query*.rs` 自身 ≤ ~500 行/文件。
+   **as-built 修正**：草案的"≤ ~1200 行"是拍脑袋的目标——实测查询/渲染逻辑只占
+   ~300 行，LSP 的 4256 行里绝大多数是 `tower-lsp` 服务实现、inlay/hover/code-action
+   等**与查询无关**的功能。真正落地的是"**零重复**"（见 §11 A5），不是行数指标。
 
 ---
 
@@ -119,7 +122,7 @@
 | `crates/front/src/query.rs` | 类型化查询：参数/结果结构 + `state_at`/`goals`/`holes`/`hints`/`check` 的**选择与判定** | ~450 |
 | `crates/front/src/query/render.rs` | 把 `semantic` runs 与文本组装成结果字段（从 LSP `render.rs` 平移） | ~250 |
 | `crates/cli/src/query.rs` | 子命令解析 + JSON 输出 + 退出码表 | ~300 |
-| `crates/lsp/src/lib.rs` | **下降**：删掉查询/渲染实现，只留协议映射与生命周期 | 4256 → ≤1200 |
+| `crates/lsp/src/lib.rs` | **下降**：删掉查询/渲染实现，只留协议映射与生命周期 | 4256 → 只删重复，**不追行数**（as-built：**4256 → 3988**，只删重复的实现，见 §4 as-built 3） |
 | `dsh/mcp/server.js` | MCP stdio：`tools/list`、`tools/call`，JSON Schema 声明 | ~220 |
 | `crates/cli/tests/query.rs` | CLI 端到端 + 与 LSP 一致性契约 | ~250 |
 
@@ -144,6 +147,26 @@
 >    会红，所以 H6-A 的 A4 一致性契约不是形式主义。
 > 2. 草案里的 `QueryAnswer<T>` 未落地：各 op 直接返回自己的类型（`StateAnswer` 自带
 >    `version`，其余由 CLI 信封统一带），少一层包装。
+> 3. **`select_state_at` 还有第二个分支要靠协议、不能靠直觉**（这一条是抽层时
+>    **穷举对拍**抓出来的，不是测试抓出来的）：
+>    - **没有 `by` 块**的声明（`axiom`、lambda 前缀 + `sorry` 的半成品、已证完的
+>      `:=` 证明）：`step: -1`、`total: 0`，且**退回声明自己的剩余目标/上下文**
+>      （`goal` + `binders`；已闭合时为 `[]` ⇒ wire `goal: null`）。
+>    - 它与"**根状态**"（上面第 1 条：`ty_text` + 空 binders）是**两回事**——根状态
+>      只属于"有 tactic 的声明，光标在第一条之前"。
+>    - 我最初把两者合成一个 `root()`，后果是：已证的声明凭空多出一个目标（Infoview
+>      显示"还剩目标"），半成品证明丢掉已引入的假设（`fun (a) (h) => sorry` 的
+>      `a`/`h` 消失）。
+>    - **怎么抓到的**：LSP 委派落地后，用**临时探针**把删掉前的 LSP 实现与
+>      `front::query::select_state_at` 在 5 个画布的**每一个光标 offset**（0..=len）
+>      上逐字段对拍，共 **709 次比较**：所有 `by` 声明完全一致，**424 处不一致全部
+>      落在这一个分支**。
+>    - **为什么既有测试没红**：LSP 唯一覆盖该分支的用例
+>      （`state_at_without_by_steps_returns_the_declaration_goal`）用的画布没有 lambda
+>      前缀，于是"剩余目标"恰好**等于**声明类型——两个语义在它上面取值相同。
+>      教训：**"新增的测试通过"不等于"新语义被测试"**；一致性契约必须覆盖**分支的
+>      判别性输入**（`crates/cli/tests/query.rs::query_state_and_lsp_agree_without_a_by_block`
+>      现在就是这么写的，front 侧另有两条红先单测）。
 
 ### 4.1 公共类型（草案）
 
@@ -353,11 +376,18 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 3. `cli::query` + `sokonanoda query …` + 退出码表 + `--compact`/`--text`。
    ✅ `crates/cli/src/query.rs`；退出码收敛为"有没有答案"（结构化错误 0 / 内核拒绝 1 / 用法 2）。
 4. `docs/protocol.md` 新增"`query` 子命令"一节（§5.3 的契约）。✅
-5. **LSP 改为调用真相层**：`soko/*` 处理函数只做映射；`crates/lsp/src/lib.rs` 目标 ≤1200 行。
-   ⏳ 进行中（见 §9 的"范围修正"）。
-6. 测试：✅ front 单测；✅ CLI e2e（`crates/cli/tests/query.rs` 10 项，含
-   **`query check` ≡ `--json` 计数**的一致性契约）；⏳ `query state/goals` ≡ `soko/stateAt`/`soko/goals`
-   的字段级一致性随第 5 条一起落地。
+5. **LSP 改为调用真相层**：`soko/*` 处理函数只做映射。
+   ✅ 已完成：`crates/lsp/src/query_map.rs` 只做"offset ↔ LSP `Range`/`Position`、
+   `QueryError` → 空结果"的映射，语义全部来自 `front::query`；LSP 侧的
+   `select_state_at` 实现已删除（`rg -n "fn select_state_at" crates/` 只命中 front）。
+   行数以"**零重复**"验收，不以行数验收（§11 A5；见 §4 as-built 3）。
+6. 测试：✅ front 单测 20 项（含 no-`by` 两条红先回归）；✅ CLI e2e
+   （`crates/cli/tests/query.rs` 12 项，含**`query check` ≡ `--json` 计数**契约与
+   **`query state` ≡ `soko/stateAt` 字段级**一致性，后者覆盖根状态 / tactic 之内 /
+   tactic 之后 / **无 `by` 两个分支**，且**跑真实 LSP 二进制**）。
+   ⚠️ 该一致性测试比较的是 `target/<profile>/sokonanoda-lsp`——**改了 front 却只跑
+   `cargo test -p sokonanoda-cli` 时会拿旧二进制对拍**。这是特性（陈旧构件会当场暴露）
+   也是坑（先 `cargo build --workspace` 或 `cargo test --workspace`）。
 
 ### H6-B —— MCP 传输 + DSH 接线（P1）✅ 已完成
 1. `dsh/mcp/server.js`：✅ MCP stdio（`initialize`/`tools/list`/`tools/call`），
@@ -492,16 +522,52 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
 6. **保留**（教学用，不是 workaround）：unit6/7 手写 `Nat`/`Color` 消去子
    （非索引，派生本来就正常）。
 
-### H6-D —— 文档/门面收尾（P2）
-1. `AGENTS.md` 命令段增 `query`（agent 首选查询方式）；teacher 技能补
-   "问目标用 `query state`，别整文件扫事件"；dev 技能补"真相层不得绕过"。
-2. `docs/ARCHITECTURE`/`TESTING`/`HANDOVER`/`ROADMAP` 同步；`REQUIREMENTS.md` §9 追加。
-3. 门面同步（硬规则）：VS Code README/CHANGELOG/package.json（若 LSP 行为无变化，
-   只在 CHANGELOG 记"内部重构，无行为变更"）+ `site/` 若提到 agent 用法。
+#### H6-C as-built（实现后回填，2026-09-17）
 
-### H6-E —— 远期（原 H5 其余项，不做承诺）
-- B1 Infoview 客户端插件（消费 `query goals/state`，需 out-of-tree npm 包 + 预构建 bundle）；
-- B3 `SessionStart` 自动 provisioning；B4 把启动器 + Lean deny 拦截 + 命令打包为 npm 插件。
+- ✅ 两条都按上面的根因修完，课程 9 个文件简化、golden 计数不变（unit9 `(13,8,0)`、
+  unit10 `(7,6,0)`、course 78/59），EN 与 CN 代码逐字节一致。
+- ✅ 测试三层齐：front 单测 5 条（箭头字段派生 / 具名字段孪生 / **真 iota 归约** /
+  单构造子 `Prop` / 多名字组 3 条在 `parser.rs`）+ CLI e2e 3 条；红先顺序保留。
+- ⚠️ **`is_k` 的修复自己引出了一个回归，被 CLI e2e 层抓住**——这是"三层缺一不可"的
+  实证：我第一版把内核判据近似成"单构造子 + 无索引 + 字段数 == 参数数"，而内核的
+  判据是 `pi_telescope_size(ctor.ty) == local_params.len()`，ctor 的内核类型又是
+  `forall (params ++ fields), result`，所以它等价于"**构造子没有自己的字段**"。
+  两个判别性反例（都在内核那一侧被拒）：
+  - `inductive Both (A B : Prop)` + `ctor mk (a : A) (b : B)`：字段数**恰好等于**
+    参数数（2 = 2）→ 我的近似说 `is_k: true`，内核算 `false`；
+  - `inductive Q : Nat -> Prop` + `ctor q : Q 0`：**有索引**但构造子无字段 →
+    我的"有索引就不是 K 目标"说 `false`，内核算 `true`。
+  现在的实现是逐字镜像（`is_prop_block_ty(ty) && ctor_field_binders(only_ctor).is_empty()`），
+  两个反例各有一条单测（`single_constructor_prop_with_fields_is_not_a_k_target`、
+  `single_constructor_indexed_prop_without_fields_is_a_k_target`）+ CLI e2e 里的
+  `cli_inductive_accepts_multi_name_binder_groups`。
+  **教训**：镜像内核的谓词时，不要写"看起来等价"的版本——把内核那行代码逐字翻译，
+  并为**每个能让两个版本取不同值的输入**写一条测试（`docs/LESSONS.md` 同款方法）。
+- ⚠️ `arrow_style_indexed_recursor_reduces` 第一版写成 `theorem pz_again : P 0 := pz`，
+  名字承诺 iota 却没碰 recursor；现已改为 `Type` 值的箭头字段索引族 + `match` +
+  `#reduce`（`Prop` 值多构造子族不允许消去到 `Type`，用它是**正确拒绝**，会误当回归）。
+
+### H6-D —— 文档/门面收尾（P2）✅ 已完成（随实现同一轮）
+1. ✅ `AGENTS.md` Setup 增 `query`（两个视图同一份真相 + 退出码 + MCP 六工具）；
+   `skills/sokonanoda-teacher` 增"**先问，别扫**"；`skills/sokonanoda-dev` 增
+   "**真相层不得绕过**"（新增语义必须进 `front::query`，适配器只做映射）。
+2. ✅ `docs/protocol.md`（`query` 子命令一节）、`docs/TESTING.md`（真相层 + 一致性契约
+   两行）、`docs/HANDOVER.md`、`ROADMAP.md` I15 as-built、`docs/LESSONS.md`
+   （全输入对拍的工作方法）；`REQUIREMENTS.md` §9 追加。
+3. ✅ 门面同步：VS Code `README/CHANGELOG/package.json`（扩展代码零改动；CHANGELOG
+   记"内部重构 + 两处边界对齐"）+ `site/assets/agent-prompt.js` 一句；
+   `dsh/README.md` 查询一节 + `dsh/cordis.patch.yml`。
+
+### H6-E —— 远期（原 H5 其余项，不做承诺）⏳ backlog
+- **B1 Infoview 客户端插件**：消费 `query goals/state` 在 DSH 里显示目标面板。
+  卡点：DSH 的编辑器 UI 扩展点（webview/侧栏）与 out-of-tree npm 包 + 预构建 bundle
+  的交付形态都还没勘察；且 DSH 的 LSP host 不投递诊断，插件要自己起 `query` 轮询。
+- **B3 `SessionStart` 自动 provisioning**：本仓库无项目级 hook 自动发现
+  （§9 第 1/2 条的同类限制），所以只能靠技能正文里的第一条命令（现状）或用户 profile
+  插一行；要自动化必须先有 DSH 侧的发现机制。
+- **B4 打包成 npm 插件**：把 `scripts/soko` 启动器 + `dsh/hooks/hooks.json` 的 Lean
+  工具链 deny + `/sokonanoda-*` 命令合成一个 `@sokonanoda/dsh-plugin`，让用户装一个包
+  就有全部接线（含 MCP 行）。需要先定发布账号/包名与版本对齐策略。
 
 ---
 
@@ -562,7 +628,7 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
 ## 11. 验收标准（可执行）
 
 - **A1（真相唯一）**：`rg -n "fn select_state_at|fn goal_decls" crates/` 只命中
-  `front/src/query.rs`（LSP 侧已无实现，只剩映射）。
+  `front/src/query/`（LSP 侧已无实现，只剩映射）。
 - **A2（CLI 可用）**：`scripts/soko query check --file playground.sokonanoda` 输出单 JSON，
   含事件计数与每个开放练习的 `goals[]`/`holes[].id`；`query state --line 201 --col 9`
   给出该处目标与假设；`query holes` 在 playground 上返回全部洞且 `id` 唯一。
@@ -571,8 +637,16 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
 - **A4（一致性，防两套真相）**：契约测试断言
   `query state` ≡ `soko/stateAt`、`query goals` ≡ `soko/goals`（字段级），
   并且 `query check` 的计数 ≡ `--json` 事件流的计数。
-- **A5（结构债）**：`crates/lsp/src/lib.rs` ≤1200 行；`crates/front/src/query*.rs` ≤500 行/文件；
-  `cargo clippy` 教学 crates 零 warning（`[lints] deny` 不变）。
+  **as-built 加强**：`state` 的一致性必须逐个覆盖选择器的**判别性输入**
+  （根状态 / tactic 之内 / tactic 之后 / 无 `by` 的开放与闭合），并跑**真实 LSP
+  二进制**——只测"两边都不为空的常见路径"会漏掉 §4 as-built 3 那种分支分歧。
+- **A5（结构债，按 as-built 修正）**：`crates/lsp/src/lib.rs` **不再有查询/渲染的
+  第二份实现**（`rg` 断言：`select_state_at`/`runs_of`/`decl_name` 等语义函数只存在于
+  `front::query`）；`crates/front/src/query*.rs` ≤500 行/文件；`cargo clippy`
+  教学 crates 零 warning（`[lints] deny` 不变）。
+  **放弃"≤1200 行"这个指标**：它假设 LSP 的体积主要来自查询逻辑，实测不成立——删掉
+  全部重复后仍有 4 千行级的协议服务代码，凑行数只会把无关功能拆成更难读的碎片。
+  结构债的正确指标是**重复度**，不是文件长度（模块化硬规则管的是"单一职责"，不是数字）。
 - **A6（两个 TODO）**：`Le`/`Even` 省略 `rec` 时自动派生通过内核（课程改为依赖自动派生，
   golden 同步）；`inductive Foo (A B : Prop)` 解析通过并有三层测试；
   两个修复各有"修复前红"的复现测试（输入见 §5 H6-C 的两段可复制用例）。
@@ -585,7 +659,7 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
 
 | 风险 | 影响 | 缓解 |
 |---|---|---|
-| 抽层时**语义漂移**（LSP 原行为与 `front::query` 不一致） | 编辑器与 agent 看到不同结论 | A4 的字段级一致性契约测试是硬门禁；先平移后删除，绝不同时改语义 |
+| 抽层时**语义漂移**（LSP 原行为与 `front::query` 不一致） | 编辑器与 agent 看到不同结论 | A4 的字段级一致性契约测试是硬门禁；先平移后删除，绝不同时改语义。**⚠️ 这个风险真的发生了**：no-`by` 分支在抽层时被判成"根状态"，而**当时没有任何测试会红**（§4 as-built 3）。补救不是"更小心"，而是把一致性测试扩到判别性输入 + 穷举对拍的工作方法（删除旧实现前，先在新旧两份实现上做全 offset 对拍） |
 | 两套真相（有人在 LSP 里"顺手"补逻辑） | 违反硬规则、长期不可维护 | A1 的 `rg` 断言收进 `crates/cli/tests/query.rs`；dev 技能写明"真相层不得绕过" |
 | `--json` 消费者被打断 | opencode/VSIX/CI 全红 | 事件流契约**只增不改**；`check` 是新增视图而非替换 |
 | MCP server 逃出沙箱/泄露凭据 | 安全事故 | 默认关闭 + 文档写明"信任边界"；server 只 spawn 仓库内二进制、不读凭据 |

@@ -947,3 +947,52 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     风险表（语义漂移、两套真相、事件流消费者被打断、MCP 信任面、golden 变更、
     LSP 重构回归）落在设计文档 §10–§12。
 
+
+- 2026-09-17（八十九）：**内核真相查询通道落地（H6-A/H6-B/H6-C）+ 门面收尾，0.56.0**——
+  按第八十八轮的设计逐项实现并测试（用户要求：「所有任务置顶成计划一项一项完成并测试，
+  多用 subagent、外部调研 + 头脑风暴」）：
+  - **H6-A 真相层 + CLI**：`crates/front/src/query/{mod,types,tests}.rs` 成为
+    **唯一语义源**（`check`/`state`/`goals`/`holes`/`hints`/`reduce`）；
+    `QueryError` 把"正常的没有"与"问不出来"分开；`crates/cli/src/query.rs` 输出
+    **单 JSON 对象**（`schema: soko.query/1`、`ok`、`data|error{code,message}`），
+    退出码 **0 答上了（含 `ok:false` 与开放 `sorry`）/ 1 内核拒绝 / 2 用法**；
+    契约写入 `docs/protocol.md`；
+  - **LSP 改为调用真相层（同一轮）**：`soko/goals`/`stateAt`/`nextHole`/`hints` 与
+    hover 的 tactic 视图全部委托；新增 `crates/lsp/src/query_map.rs` 只做形状映射；
+    删除 LSP 侧的 `select_state_at`/`runs_of`/`goal_decls` 主体/重复的 `decl_name` 与
+    探针逻辑，`crates/lsp/src/lib.rs` **4256 → 3988 行**。**结构债验收口径修正为
+    "没有第二份实现"**（`rg -n "fn select_state_at" crates/` 只命中 front），
+    放弃草案里拍脑袋的"≤1200 行"（LSP 剩下的体量是协议服务代码，不是查询逻辑）；
+  - **⚠️ 抽层出过一次语义漂移，并按"全输入对拍"抓出**：无 `by` 块的声明被错误统一成
+    "根状态"（已证声明多一个目标、半成品证明丢假设）；LSP 套件 117/117 全绿也照样发生。
+    方法：删除旧实现前，在 5 个画布的**每一个光标 offset** 上对拍新旧两份实现
+    （709 次比较、424 处不一致全在同一分支）。修法是把该分支按协议单列（`step: -1`、
+    `total: 0`，退回声明级目标 + 上下文，已闭合为空），并补 2 条 front 红先单测 +
+    把 CLI≡LSP 一致性契约扩到这两个**判别性输入**。教训进 `docs/LESSONS.md` 与设计
+    文档 §4 as-built 3 / §12；
+  - **H6-B MCP**：`dsh/mcp/server.js`（零依赖 stdio 桥，六工具全部转发
+    `scripts/soko query …`）+ `scripts/soko mcp` + `dsh/cordis.patch.yml` 的
+    `mcp-sokonanoda` 行（**默认关闭**）；实测 DSH headless 会话里模型调用
+    `mcp__sokonanoda__state` 成功。五个实测坑（探测进程要立刻 `-32601`、
+    必须 advertise `capabilities.tools`、换行分隔 JSON、只有 `content[].text` 进模型、
+    必须无状态可重启）写进设计与 `dsh/README.md`；
+  - **H6-C 两个 front 缺口修掉**（原 `docs/HANDOVER.md` §3 E）：① 索引 + 字段写在结果
+    箭头链里的归纳能自动派生递归子（`spine_of_codomain`）② `inductive` 参数/ctor 字段
+    吃多名字 binder 组。课程 unit9/unit10 随之去掉手写 `rec`/`iota`、`Or` 参数收敛成
+    `(A B : Prop)`，**golden 事件计数不变**；两条都有"修复前红"测试，并补齐 CLI e2e 层；
+  - **H6-C 追加发现（三层测试的价值实证）**：修 `is_k` 的第一版把它近似成"字段数 ==
+    参数数"，front 单测全绿但**内核拒了两个判别性形状**（`Both (A B : Prop)` +
+    `mk (a : A) (b : B)`；以及反向的 `Q : Nat -> Prop` + `q : Q 0`，它**是** K 目标），
+    被 CLI e2e 抓住。现按内核 `init_k_target` 逐字镜像
+    （`is_prop_block_ty(ty) && ctor_field_binders(only_ctor).is_empty()`）并为两个反例
+    各留一条测试；方法写进 `docs/LESSONS.md`；
+  - **两处刻意的 wire 边界对齐**（此前无测试覆盖）：`soko/hints` 的声明命中改为与
+    `stateAt` 一致的**含末尾**；由 offset 换算的 `Range` 改用 **UTF-16** 列（LSP 规范
+    口径，BMP 文本逐字节相同）。扩展侧无需改动；
+  - **H6-D 同步**：`AGENTS.md`、三个技能、`dsh/README.md`、`docs/protocol.md`、
+    `docs/TESTING.md`、`docs/HANDOVER.md`、`docs/architecture.md`、`ROADMAP.md` I15
+    as-built、`docs/LESSONS.md`、VS Code `README/CHANGELOG/package.json`、
+    `site/assets/agent-prompt.js`；版本 0.55.0 → **0.56.0**；
+  - **验收**：`cargo test --workspace --locked` 全绿、`cargo clippy --workspace
+    --all-targets` 教学 crates 零 warning、`cargo fmt`（教学 crates）零 diff、
+    `scripts/soko gate` PASS；A1–A7 见设计文档 §11。

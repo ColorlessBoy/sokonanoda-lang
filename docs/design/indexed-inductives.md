@@ -57,10 +57,31 @@ major_idx = num_params + num_motives + num_minors + num_indices
 - 索引本身含递归出现、相互/嵌套递归、宇宙多态参数、显式 `rec`/`iota` 的手写
   便利（可写但需与内核形状对齐）不做保证。
 
+### 3.1 已解除的限制（0.56.0，H6-C）
+
+- ~~字段写在结果箭头链里的 ctor 无法派生 recursor~~：`ctor ps (n : Nat) : P n -> P
+  (Nat.succ n)` 的索引实参读法从只认 Ident/App 的 `src_spine` 换成
+  `spine_of_codomain`（`docs/design/agent-query-channel.md` H6-C）。此前只有具名
+  字段 `(n : Nat) (h : P n)` 能派生，课程因此手写 `rec`/`iota`——现已删除。
+- ~~单构造子 `Prop` 的块派生不出 recursor~~：`RecursorData.is_k` 原写死 `false`。
+- **K 目标判据要逐字镜像内核**：`init_k_target` 判的是
+  `pi_telescope_size(ctor.ty) == local_params.len()`，而 ctor 的内核类型是
+  `forall (params ++ fields), result` → 等价于"构造子没有自己的字段"。近似成
+  "字段数 == 参数数"会拒掉 `Both (A B : Prop)` + `mk (a : A) (b : B)`；近似成
+  "有索引就不是 K 目标"会拒掉 `Q : Nat -> Prop` + `q : Q 0`（它是 K 目标）。
+  两个反例都有单测，见 `elab.rs::is_k_target` 的注释与 `docs/LESSONS.md`。
+
 ## 4. 测试 / 课程
 
 - front `indexed_vec_checks_and_derives_recursor`、`match_on_indexed_vec_computes_with_a_constant_motive`、
-  `match_field_types_follow_the_user_binder_names`；CLI `cli_indexed_vec_checks_and_reduces`。
+  `match_field_types_follow_the_user_binder_names`、
+  `indexed_inductive_with_arrow_style_field_derives_recursor`、
+  `indexed_inductive_with_named_field_derives_recursor`、
+  `arrow_style_indexed_recursor_reduces`（`Type` 值箭头字段 + `match` + `#reduce`，
+  真的过 recursor）；CLI `cli_indexed_vec_checks_and_reduces`、
+  `cli_arrow_style_indexed_field_derives_and_reduces`。
+  注：`Prop` 值 + 多构造子的索引族**不能**消去到 `Type`（singleton elimination），
+  写 iota 测试要用 `Type` 值的族，否则会把内核的正确拒绝当成回归。
 - 课程 unit5 增「带索引归纳 Vec」节 + 练习 10（zh/en + 两份 solutions；golden
   `(11,9,6) → (13,10,7)`，汇总 `checked 55→57 / open 42→43`）。
 - 白名单：`docs/architecture.md §4.1`。

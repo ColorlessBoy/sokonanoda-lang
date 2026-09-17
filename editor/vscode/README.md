@@ -123,6 +123,13 @@ kernel-checked diagnostics in the agent's own editor loop. The same
 `--json` event stream (`sokonanoda --json file`, `sokonanoda watch`)
 is the integration surface for any tooling you want to build.
 
+The same grading verdict is also available as **one JSON object**:
+`sokonanoda query <op>` (`check`/`state`/`goals`/`holes`/`hints`/`reduce`)
+answers a single question for agents and scripts — `query state` answers
+"what is still missing at this position" without scanning the whole event
+stream. `scripts/soko query …` is the harness-neutral form of the same
+command.
+
 ## The course map
 
 The 「课程」tree shells out to the `sokonanoda` CLI (it aggregates all course

@@ -4,6 +4,48 @@
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
 
+## 本轮进度（2026-09-17，第八十六轮：DeepSeek Harness 适配——只出计划）
+
+> 用户接手项目：「很多地方还没适配 deepseek harness，先理解项目、分析要适配哪里、
+> 列一下计划文档」。**本轮只做调研 + 设计，不动实现、不 bump 版本。**
+
+1. **审计结论**：产品内核（kernel / `.sokonanoda` 前端 / `--json` 事件 / 三个技能）
+   与 harness 无关、可直接移植；要适配的是**接线层**——技能发现路径、斜杠命令、
+   编辑器 LSP 接线、环境与二进制可达性、工具链 deny、文档与契约测试的单 harness 假设。
+   **不需要改任何 Rust 语义代码**（Rust 侧唯一新增是契约测试 `crates/cli/tests/dsh.rs`）。
+2. **差距 G1–G10**：技能不能被 DSH 发现（P0）/ 七个 `/sokonanoda/*` 命令不存在 /
+   无 teacher 主 agent / `.sokonanoda` 无 LSP 接线 / 二进制不在 PATH 且 DSH 禁止项目
+   改 PATH（P0）/ Lean 工具链 deny 无对应物 / 33 处文档与契约测试只认 opencode /
+   `AGENTS.md` 的 code-agent 适配原则缺 DSH 条目 / 无项目级 provisioning /
+   用户级技能环境噪音。
+3. **DSH 侧关键事实（逐条带源码行号，文档 §1.2 共 23 条）**：技能根扫描含
+   `<repo>/.dsh/skills`(rank 100) 与 `.agents/skills`(200)；**技能名本身即斜杠命令**
+   （`/name` 注入正文，零 profile 配置）；frontmatter 路由词只能写 `description`
+   （`whenToUse` 是 camelCase 且只进人类 `/` 选单，**旧 camelCase 的
+   `disableModelInvocation` 等会让整条技能被丢弃**）；**LSP 不在任何 shipped bundle**，
+   且 DSH 的 LSP 只有 4 项只读操作，**`publishDiagnostics` 被显式丢弃**、`soko/*`
+   无消费者；工具调用 PATH 不可由项目配置（唯一例外是 LSP 自己的 `env`）；patch 为
+   顶层 YAML 数组（`- id:` 整块替换 config、会丢 `!!js`；空文件会 boot 失败），
+   `--patch` 可叠且**无项目级自动发现**；hooks 桥只有一个进程级 `configPath`、
+   **不做项目发现**；**符号链接是官方同款做法**（DSH 仓库自用
+   `.claude/skills -> ../.agents/skills`，watcher 默认跟随）。
+4. **计划 H0–H4（每阶段独立可验收）+ backlog H5**：H0 技能上架（`.agents/skills/`
+   放软链或薄网关、正文唯一留在 `skills/`、新增 `crates/cli/tests/dsh.rs` 守卫）→
+   H1 二进制可达（新增零依赖 Node 启动器 `scripts/soko`，解析链与 opencode 插件同语义
+   + marker 版本守卫；`AGENTS.md` Setup 改 harness 中立）→ H2 LSP 接线
+   （项目自带 `dsh/cordis.patch.yml` + `--patch` 用法，显式写清诊断不在通道内）→
+   H3 命令与角色并入技能（opencode 命令与 teacher agent 正文移进
+   `sokonanoda-teacher`）→ H4 治理（deny 形态、33 处文档去 opencode 单一化、门面同步）。
+5. **决策 D-1…D-6 与验收 A1–A6** 已列（技能进 DSH 的方式 / 启动器形态与
+   REQUIREMENTS（三十二）删除 `scripts/soko.sh` 的边界 / 是否自动 provisioning /
+   deny 形态 / `soko/*` 处置 / 版本号策略）。
+6. **实测现状**：`sokonanoda` 不在 PATH；缓存为旧版（marker `0.16.2 darwin-arm64`
+   vs 仓库 **0.54.0**），`doctor --json` 报 `ready:false`——历史「版本漂移致环境未就绪」
+   的故障模式当前正在发生，H1 的 marker 守卫正针对它。
+7. **验收**：本轮产物 = `docs/design/deepseek-harness.md` + `REQUIREMENTS.md` §9（八十六）
+   + `docs/HANDOVER.md` §3 F/§5/§6 + `docs/README.md` 设计清单 + 本文；不改代码，
+   不跑 gate（无代码改动）。
+
 ## 本轮进度（2026-09-16，第八十四轮：课程大纲重构 P3——锁定 10 单元）
 
 > 续 `docs/design/course-syllabus.md` §6 P3：补齐锁定的最后两个单元。

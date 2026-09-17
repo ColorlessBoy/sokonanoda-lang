@@ -1,3 +1,35 @@
+## [0.56.0] - 2026-09-17
+
+### Added
+
+- **Agent-facing kernel-truth query channel (no extension feature change)** —
+  - `sokonanoda query <op>` (`check`/`state`/`goals`/`holes`/`hints`/`reduce`)
+    prints **one JSON object** (`{schema:"soko.query/1", op, version, ok,
+    data|error{code,message}}`) instead of the whole event stream; `--line/--col/
+    --offset/--text` target a single position, and the exit codes are 0 = answered
+    (including a structured `ok:false` and an open `sorry`), 1 = kernel-rejected,
+    2 = usage error. Contract: `docs/protocol.md`.
+  - the LSP's `soko/*` handlers **delegate** to that same editor-independent
+    truth layer (`front::query`, `crates/front/src/query/`), so query logic
+    exists once: the semantic functions left `crates/lsp/src/lib.rs`, and a thin
+    `crates/lsp/src/query_map.rs` only maps offsets to `Range`/`Position`;
+  - `dsh/mcp/server.js` + `scripts/soko mcp` expose the six queries as
+    `mcp__sokonanoda__{check,state,goals,holes,hints,reduce}` MCP tools for
+    DeepSeek Harness sessions (opt-in via `dsh/cordis.patch.yml`).
+- Two front-end gaps fixed: derived recursors keep index arguments written in a
+  constructor's result arrow chain (the course no longer hand-writes `Le`/`Even`
+  `rec`/`iota`), and `inductive` accepts multi-name binder groups `(A B : Prop)`.
+  `crates/cli/tests/query.rs` pins both views to one truth (`query check` counts
+  ≡ `--json` event counts; `query state` ≡ LSP `soko/stateAt`, field by field).
+
+### Notes
+
+- Agent tooling only: the extension code is unchanged, so VS Code users need no
+  action. Two boundary behaviours now match the rest of the protocol:
+  `soko/hints` at a caret exactly on a declaration's end offset (or past the last
+  line) returns the hint ladder instead of `[]`, and ranges computed from offsets
+  now use UTF-16 columns (identical for BMP text, different only for astral).
+
 ## [0.55.0] - 2026-09-17
 
 ### Added

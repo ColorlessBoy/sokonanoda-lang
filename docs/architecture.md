@@ -129,7 +129,9 @@ sokonanoda-lang/
   `docs/protocol.md`，判定仍完全交给 kernel（见 `docs/design/match.md`）。
 - **参数化归纳声明**（非带索引，`docs/design/parameterized-inductives.md`）：
   `inductive Option (A : Type) : Type` 在名字后、`:` 前解析零或多个 binder
-  作为类型参数（复用 `(A : Type)` / `{A : Type}` binder 语法）；参数对类型、
+  作为类型参数（复用 `(A : Type)` / `{A : Type}` binder 语法）；**参数与 ctor
+  字段都吃多名字 binder 组**（`(A B : Prop)`、`{A B : Type}`，0.56.0 起，
+  `parser.rs::parse_inductive_binders`；`(A)` 这种无类型组仍是显式报错）；参数对类型、
   每个构造子类型与显式 `rec`/`iota` 均在作用域内，参数个数交给内核
   （`num_params`，字段数严格为 `telescope − num_params`）。无显式 `rec` 时
   前端按内核期望形状自动派生递归子（**参数在最外层**）。`match` 对参数化
@@ -138,8 +140,10 @@ sokonanoda-lang/
   `inductive Vec (A : Type) : Nat -> Type`，索引 = `ty` 在 params 之外的 Pi 望远镜；
   派生 recursor 的 motive = `forall indices, Ind params indices -> Sort`、major 在索引之后；
   `match` 取 scrutinee 书写类型的索引实参；结果类型依赖索引不在 v1，见
-  `docs/design/indexed-inductives.md`）。带索引归纳
-  （`num_indices > 0`）与宇宙多态参数（`{u}` 级参数）仍不支持。
+  `docs/design/indexed-inductives.md`）。**索引 + 字段写在结果箭头链里**
+  （`ctor ps (n : Nat) : P n -> P (Nat.succ n)`）自 0.56.0 起也能自动派生
+  （此前只有具名字段能派生，课程因此手写 `rec`/`iota`，见 H6-C）；
+  带索引归纳（`num_indices > 0`）与宇宙多态参数（`{u}` 级参数）仍不支持。
 - **声明级 binder**（官方 Lean 风格）：`theorem f (a : A) (h : B a) : C := v` 在 parser 里降级为 `ty = Forall{binders → C}`、`val = Lambda{binders → v}`（`parser.rs::wrap_decl_binders`）；`by` 引擎把声明 binder 作为初始上下文（`run_by` 的 `initial_binders`），`:= sorry` 的剩余目标直接是 `C`。
 - **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。Pi（`A -> B`/`forall`）的 binder 必须**带显式类型**；lambda 的 binder 在**有期望望远镜**或**应用位置**（从实参类型，0.45.0）时可省略（`docs/design/elaborator-let-match.md` as-built）。
 - span 全程保留（offset/line/column），诊断带行列。

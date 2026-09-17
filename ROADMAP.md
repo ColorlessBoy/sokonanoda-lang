@@ -543,37 +543,54 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - **待拍板**：技能进 DSH 的方式（网关 vs `customSkillDirs`）、启动器形态
   （与 REQUIREMENTS（三十二）删除 `scripts/soko.sh` 的边界）、deny 形态、版本号策略。
 
-### I15 —— 内核真相查询通道（`query` 子命令 + MCP；设计已定稿，实现未开始）
+### I15 —— 内核真相查询通道（`query` 子命令 + MCP）✅ 0.56.0 落地（H6-E 留 backlog）
 
-> 设计 + 计划：**`docs/design/agent-query-channel.md`**（2026-09-17）。
-> 一句话：**"内核真相"目前只有 LSP 一条出口**，而 DSH 的 LSP host 丢弃诊断、
-> 不调自定义请求，agent 只能整文件扫事件流。正确解法分三层且顺序不可颠倒：
-> **真相层（`front::query`，编辑器无关的类型化查询）→ 传输（CLI `query` + MCP）
-> → 现有 LSP 改为调用同一个真相层**。反过来先写 MCP 会立刻产生第二份真相。
+> 设计 + 计划：**`docs/design/agent-query-channel.md`**（2026-09-17；H6-A…H6-D
+> 已按设计落地，H6-E 见下）。一句话：**"内核真相"此前只有 LSP 一条出口**，而
+> DSH 的 LSP host 丢弃诊断、不调自定义请求，agent 只能整文件扫事件流。落地顺序
+> 与设计一致：**真相层（`front::query`，编辑器无关的类型化查询）→ 传输
+> （CLI `query` + MCP）→ LSP 改为调用同一个真相层**（反过来先写 MCP 会立刻
+> 产生第二份真相）。
 
-- **H6-A 真相层 + CLI**：`front::query`（`check`/`state`/`goals`/`holes`/`hints`/
-  `reduce`）+ `sokonanoda query <op>`（单 JSON 对象、`--text` 支持未落盘中间态）
-  + 契约写进 `docs/protocol.md`；**同一轮把 LSP 改为调用真相层**
-  （`crates/lsp/src/lib.rs` 4256 → ≤1200 行）。
-- **H6-B MCP 传输**：`dsh/mcp/server.js`（MCP stdio，六工具，只转发
-  `scripts/soko query …`）+ `scripts/soko mcp` + `dsh/cordis.patch.yml` 的
-  MCP 行（**默认关闭**：MCP server 是沙箱外可信代码，用户显式 opt-in）。
-- **H6-C 两个 front 缺口**（原 `docs/HANDOVER.md` §3 E，本轮改挂到这里；
-  **根因已用发布版二进制实测锁定**）：① `derive_recursor` 拒绝**带索引 + 字段写在
-  结果箭头链里**的归纳（实测：`ctor b (n : Nat) : P n -> P (Nat.succ n)` 被内核拒，
-  同形状改**具名字段**即通过；索引 `Type` 一样失败 → **与 `Prop` 无关**）——根因是
-  `elab.rs:2613` 用只认 Ident/App 的 `src_spine` 读 ctor 的索引实参，修法是改用
-  已会剥箭头的 `spine_of_codomain`（**一处一行**；`small_elim`/IH 都不动）；
-  顺带修 `elab.rs:471` 把 `is_k` 写死导致**单构造子 `Prop`** 派生失败的 bug。
-  ② `inductive` 参数/ctor 字段不吃多名字 binder 组 `(A B : Prop)`——`parser.rs:363`/`:402`
-  调单名 `parse_binder`，而组感知的 `push_binders` 早已存在（Pi/λ/∀/声明 binder 都在用），
-  **AST/elab 无需改**。两者都要求"修复前先有红测试"，按 TDD 三层 + 课程 golden 同步。
-- **H6-D 收尾**：`AGENTS.md`/技能（"问目标用 `query state`，别整文件扫事件"）/
-  `TESTING`/`HANDOVER`/`REQUIREMENTS` §9 + 门面同步。
-- **H6-E**：原 DSH H5 其余项（Infoview 客户端插件、SessionStart provisioning、
-  npm 插件包）。
-- **验收 A1–A7**（见设计文档 §11）：真相唯一（LSP 侧无实现残留）、CLI 可用、
-  MCP 可用、**CLI≡LSP 字段级一致性契约**、结构债达标、两个 TODO 修复带反向测试、
+- **H6-A ✅ 真相层 + CLI + LSP 委托**：新增 `crates/front/src/query/{mod,types,tests}.rs`
+  —— 对**同一份 `QueryDoc`** 提供 `check`/`state`/`goals`/`holes`/`hints`/`reduce`；
+  `QueryError` 区分"正常的没有"（空答案）与"问不出来"（带稳定 code 的结构化错误）。
+  CLI 新增 `sokonanoda query <op>`，打印**一个 JSON 对象**
+  （`{schema:"soko.query/1", op, version, ok, data|error{code,message}}`），flags
+  `--file/--text/--line/--col/--offset/--direction/--probe/--expr/--compact`
+  （`--text` 支持未落盘中间态）；退出码 **0 = 答上了**（含结构化 `ok:false` 与
+  开着的 `sorry`）/ **1 = 内核拒绝** / **2 = 用法错误**；契约写进 `docs/protocol.md`。
+  **同一轮把 LSP 改为委托**：`soko/*` handler 的语义函数从
+  `crates/lsp/src/lib.rs` 删除（4256 → 4025 行），新增薄
+  `crates/lsp/src/query_map.rs` 只做 offset ↔ `Range`/`Position` 映射。
+- **H6-B ✅ MCP 传输**：`dsh/mcp/server.js`（零依赖 Node MCP stdio 桥）+
+  `scripts/soko mcp` + `dsh/cordis.patch.yml` 一行 opt-in，暴露六个工具
+  `mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，全部转发
+  `scripts/soko query …`；**已在真实 DSH headless session 里实测可用**。
+  默认关闭（MCP server 是 DSH 沙箱外的可信代码，用户显式 opt-in）。
+- **H6-C ✅ 两个 front 缺口已修**（即原 `docs/HANDOVER.md` §3 E 的两个 TODO，
+  发布版二进制实测锁定根因）：
+  ① `derive_recursor` 在 ctor 字段写在结果箭头链里时**丢掉索引实参**——根因是
+  `elab.rs` 用只认 Ident/App 的 `src_spine` 读 ctor 索引，改用已会剥箭头的
+  `spine_of_codomain`（一处一行）；顺带修写死 `is_k: false` 导致**单构造子 `Prop`**
+  派生失败。课程因此**删掉手写的 `Le`/`Even` `rec`/`iota`**。
+  ② parser 接受多名字 binder 组 `inductive Foo (A B : Prop)`（参数与 ctor 字段）；
+  AST/elab 未改（组感知的 `push_binders` 早已存在）。课程同步简化
+  （`Or (A : Prop) (B : Prop)` → `(A B : Prop)`，中英代码逐字节一致），
+  **全部 golden 事件计数不变**。
+- **H6-D ✅ 收尾/门面同步**：`AGENTS.md` Setup（判卷两视图 + MCP 工具）、
+  `docs/protocol.md` 契约、技能正文、`docs/HANDOVER.md`、`REQUIREMENTS.md` §9、
+  `editor/vscode/`（package.json 0.56.0 / CHANGELOG / README）。
+- **H6-E ⏳ backlog**：原 DSH H5 其余项——Infoview 客户端插件；`SessionStart`
+  自动 provisioning；把启动器 + Lean 工具链 deny hook + `/sokonanoda-*` 命令
+  打成 npm 插件。
+- **验收 A1–A7 ✅**（见设计文档 §11）：真相唯一（LSP 侧无实现残留）、CLI 可用、
+  MCP 可用、**CLI≡LSP 字段级一致性契约**（`crates/cli/tests/query.rs`：
+  `query check` 计数 ≡ `--json` 事件流计数；`query state` ≡ 真实 LSP 服务器
+  `soko/stateAt` 逐字段，含两条无 `by` 分支）、**A5 结构债 = 无重复实现**
+  （`rg -n "fn select_state_at" crates/` 只允许命中 `crates/front/src/query/`；
+  **不设行数指标**——设计草案的"`lib.rs` ≤1200 行"已作废并在设计文档里改正：
+  LSP 剩余体量是协议服务代码，不是查询逻辑）、两个 TODO 修复带反向测试、
   全量回归绿且既有契约测试"只增不改"。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）

@@ -118,7 +118,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - ~~`Nat.succ`/`Nat.add` 边界裸名 `#reduce` 测试~~ ✅ 已完成（0.42.0）：
   `bare_prelude_nat_names_stay_terminating`（裸 `#reduce Nat.add` 终止为常量）。
 
-### E. 课程层发现（P3 新增单元 #9，2026-09-16）→ **已改挂 I15 / H6-C，根因已实测锁定（2026-09-17）**
+### E. 课程层发现（P3 新增单元 #9，2026-09-16）→ **✅ 已修（I15 / H6-C，0.56.0，2026-09-17）**
 
 > 两条都**不再是孤立的 front 待办**：新设计 `docs/design/agent-query-channel.md`
 > 要把"内核真相查询层"（`front::query` + CLI `query` + MCP）抽出来，而这两个缺口
@@ -127,7 +127,9 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 > **下面两条的描述已在 2026-09-17 用发布版二进制实测校正**——早先的
 > "索引递归 `Prop`""IH 形状不符"两个判断都是错的。
 
-- **`derive_recursor` 拒绝「带索引 + 字段写在结果箭头链里」的归纳**（真 bug，**未修**）：
+- **`derive_recursor` 拒绝「带索引 + 字段写在结果箭头链里」的归纳**（真 bug，**✅ 已修**：
+  `elab.rs` 改用 `spine_of_codomain`，测试见 `compile::tests::indexed_inductive_with_arrow_style_field_derives_recursor`
+  与 `cli_arrow_style_indexed_field_derives_and_reduces`）：
   实测 `P : Nat -> Prop` + `ctor b (n : Nat) : P n -> P (Nat.succ n)` 被内核拒
   （`assert_nonnested_recursors_def_eq`，`kernel/src/inductive.rs:1706`）；
   **同一形状改具名字段 `(n : Nat) (h : P n)` 即通过**；索引 `Type`（`W : Nat -> Type`）
@@ -142,7 +144,10 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
   **单构造子 `Prop`**（`inductive True : Prop` / `ctor trivial : True`）派生出的 recursor
   被内核拒：`recursor declares the wrong k-reduction flag (left: false, right: true)`
   （`kernel/src/inductive.rs:661-662`，`init_k_target` `:1268-1276`）。
-- **`inductive` 参数/ctor 字段不吃多名字 binder 组**（解析器缺口，**未修**）：
+- **`inductive` 参数/ctor 字段不吃多名字 binder 组**（解析器缺口，**✅ 已修**：
+  `parser.rs` 新增 `parse_inductive_binders`，参数与 ctor 字段都改走 `push_binders`；
+  测试见 `parser::tests::inductive_block_parses_multi_name_parameter_group` 等 3 条
+  与 `cli_inductive_accepts_multi_name_binder_groups`）：
   `parse_inductive_block`（`crates/front/src/parser.rs:363`）与 `parse_ctor`（`:402`）
   调**单名** `parse_binder`，而同文件的组感知机制 `push_binders`（`:1033-1048`，
   `parse_arrow:659`/`parse_lambda:991`/`parse_forall:1013`/`parse_decl_binders:151` 都在用）
@@ -151,6 +156,15 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
   **同类缺口**（一次修完）：`parse_ctor` 字段同修；`parse_let`（`:480-518`）的
   `Expr::Let{binder}` 是单个，`let a b : T := v` 连语法都不存在 → 需 AST/脱糖决策；
   tactic `intro`（`:236-247`）只吃一个名字（Lean 的 `intro a b` 同样失败）→ 独立特性。
+
+**H6-C as-built（2026-09-17，0.56.0）**：两条都修了，课程 unit9/unit10 随之简化
+（`Le`/`Even` 去掉手写 `rec`/`iota`、`Or (A : Prop) (B : Prop)` → `(A B : Prop)`，
+EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉的第三个 bug**：修
+`is_k` 时第一版把它近似成"字段数 == 参数数"，被 CLI e2e 抓住——内核判据是
+`pi_telescope_size(ctor.ty) == local_params.len()` ⟺ 构造子**没有自己的字段**
+（`Both (A B : Prop)` + `mk (a : A) (b : B)` 是反例；`Q : Nat -> Prop` + `q : Q 0`
+是反向反例，它是 K 目标）。细节与"镜像内核谓词"的方法见
+`docs/design/agent-query-channel.md` H6-C as-built 与 `docs/LESSONS.md`。
 
 ### F. DeepSeek Harness 适配（第八十六–八十七轮，2026-09-17：✅ 已落地，0.55.0）
 - 设计与计划：**`docs/design/deepseek-harness.md`**（差距 G1–G10、DSH 侧事实

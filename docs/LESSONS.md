@@ -266,3 +266,46 @@
   写文件的命令）；② 要连续编辑同一个文件，就**先把编辑做完，最后统一跑 `fmt`**；
   ③ `fmt`/生成脚本/任何写文件的命令之后，之前读过的文件都视为"已过期"。
 
+
+## 抽层/去重时：**删除旧实现前，先做"全输入对拍"**（2026-09-17，H6-A 真相层）
+
+- **背景**：把 LSP 的 `soko/*` 语义平移进 `front::query` 再删旧实现（"单一真相"）。
+  平移后 LSP 套件 **117/117 全绿**，但真出了**语义漂移**：无 `by` 块的声明被
+  当成"根状态"，已证声明凭空多一个目标、半成品证明丢掉上下文。
+- **为什么测试没红**：LSP 唯一覆盖该分支的用例，其画布**没有 lambda 前缀**，
+  于是"剩余目标"与"声明类型"取值恰好相同——**新语义没有被测试**，
+  只是"新测试通过"。
+- **抓出它的方法（值得复用）**：删旧实现之前，写一个**临时探针**，对同一份输入
+  **穷举每一个输入位置**（这里是 5 个画布 × 每个光标 offset 0..=len，共 709 次）
+  逐字段比较新旧两份实现，再把不一致**按分支分组计数**（本次 424 处全落在同一分支，
+  定位只需一眼）。
+- **规矩**：① 语义函数搬家/去重，**先对拍再删除**，不要只靠既有测试套件"全绿"；
+  ② 一致性契约测试必须覆盖**判别性输入**（能让两条候选语义取不同值的输入），
+  否则等于没测；③ 适配器一致性测试要跑**真实构件**（这里是
+  `target/<profile>/sokonanoda-lsp`）——好处是陈旧构件会当场暴露，代价是改了 front
+  后只跑单个 crate 的测试会拿旧二进制对拍（先 `cargo build --workspace`）。
+- **守护位置**：`crates/front/src/query/tests.rs`（no-`by` 两条红先单测）、
+  `crates/cli/tests/query.rs::query_state_and_lsp_agree_without_a_by_block`
+  （端到端跑真实 LSP）、`docs/design/agent-query-channel.md` §4 as-built 3 / §12。
+
+## 镜像内核谓词：逐字翻译 + 给"判别性输入"写测试（2026-09-17，H6-C 的 `is_k`）
+
+- **背景**：front 要替内核算一些**元数据**（`is_k`、`is_recursive`、`num_fields`…），
+  内核会断言两边一致（`assert_eq!(rd.is_k, st.k_target)`），不一致就**整个块被拒**。
+  这类谓词是"镜像"，不是"独立设计"。
+- **踩的坑**：把 `init_k_target`（`kernel/src/inductive.rs:1268-1276`）近似成
+  "`Prop` + 单构造子 + 无索引 + 字段数 == 参数数"。内核的真判据是
+  `pi_telescope_size(ctor.ty) == local_params.len()`，而 ctor 的内核类型是
+  `forall (params ++ fields), result` → 真判据 ⟺ **构造子没有自己的字段**。
+  两个能让两个版本取不同值的形状立刻把它照出来：
+  ① `Both (A B : Prop)` + `mk (a : A) (b : B)`（字段数恰好等于参数数）；
+  ② `Q : Nat -> Prop` + `q : Q 0`（有索引但无字段，内核要 `is_k: true`）。
+  两条都在**内核那一侧**被拒，front 单测当时全绿。
+- **规矩**：① 镜像谓词要**逐字**翻译内核那几行（把内核的算式抄下来，别用自己的
+  直觉改写）；② 对它写测试时先问"**哪个输入会让我的版本和内核对不上**"，那种输入
+  才是判别性的（本次是"字段数 == 参数数"和"无字段的索引族"）；③ 这类 bug 常常
+  front 单测抓不到，**CLI e2e 层（真跑一遍内核）是必需的**——H6-C 就是被
+  `cli_inductive_accepts_multi_name_binder_groups` 抓住的。
+- **守护位置**：`crates/front/src/compile/elab.rs::is_k_target`（注释里写了两个反例）、
+  `crates/front/src/compile/tests.rs` 的两条 `*_k_target` 单测、
+  `crates/cli/tests/cli.rs::cli_inductive_accepts_multi_name_binder_groups`。

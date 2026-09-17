@@ -25,6 +25,10 @@
 | by tactic | `by` 块白名单（intro/exact/apply/assumption/rfl/**match**/sorry）：`match` 作为 tactic 以当前目标为期望类型判定；`judge_terms` 合成文件保留真实前缀（`match` 宇宙查询可用） | `crates/front/src/parser.rs` :: `match_is_a_tactic_in_a_by_block`；`crates/front/src/compile/tests.rs` :: `by_block_with_match_tactic_checks`、`by_block_with_exact_match_checks`；`crates/cli/tests/cli.rs` :: `cli_by_match_tactic_checks_via_kernel` | `cargo test -p sokonanoda-front by_block_with_match` |
 | LSP 协议 | publishDiagnostics / hover / completion / inlay / 自定义请求（goals/nextHole/hints/stateAt/version）/ codeLens / quick-fix 全部有进程内 rpc 测试（`test_service` 走完整 tower-lsp 栈）。codeLens：`code_lens_reflects_exercise_status`（标题）、`code_lens_ranges_match_each_declaration`（range + `sokonanoda.status`）。quick-fix 四族：exact（`code_action_offers_exact_for_matching_hypothesis`、`code_action_spine_hole_exact_targets_its_own_hole`、`code_action_exact_uses_kernel_defeq_not_text_match`）、refine（`code_action_offers_kernel_shaped_refine_skeleton`、`code_action_refine_edit_targets_the_hole`）、intro（`code_action_offers_intro_on_open_exercise`、`code_action_intro_still_offered_without_matching_hypothesis`）、restart/reset（`code_action_restarts_failed_decl_over_the_whole_value_span`、`code_action_restart_replaces_multiline_values_as_a_whole`、`code_action_non_lambda_answer_gets_only_restart`、`code_action_failed_eq_decl_offers_kernel_verified_rfl_first`）；无候选回退：`code_action_open_goal_without_a_next_step_offers_none`、`code_action_failed_decl_without_peelable_type_gets_none` | `crates/lsp/src/lib.rs`（lib 内 `#[cfg(test)]` 模块）与 `crates/lsp/src/inlay.rs`、`actions.rs` | `cargo test -p sokonanoda-lsp --lib` |
 | 语料 | 每份 `examples/*.sokonanoda` 必须被真实 CLI 整文件通过 | `crates/cli/tests/examples.rs` :: `every_example_lesson_is_a_valid_sokonanoda_file` | `cargo test -p sokonanoda-cli --test examples` |
+| 内核真相查询（`front::query`） | **唯一语义源**（LSP / CLI / MCP 都调它）：`state` 的 `goalsAt?` 选择（tactic 命中用**半开区间**；根状态 = 声明类型 + 空 binders；**无 `by` 的声明退回声明级目标 + 上下文**，已闭合则空）、洞 `id` 的稳定性与唯一性、`QueryError` 与「正常的没有」的区分（不可解析 / 不在声明内 / 越界）、坐标换算（UTF-16 列） | `crates/front/src/query/tests.rs` :: `state_at_root_before_any_tactic`、`state_at_inside_a_tactic_shows_the_entering_state`、`state_at_after_apply_lists_every_sub_goal`、`state_at_open_declaration_without_a_by_block_keeps_its_context`、`state_at_closed_declaration_without_a_by_block_has_no_goal`、`holes_are_addressable_and_stably_identified`、`check_counts_match_the_event_stream`、`next_hole_walks_forward_and_backward`、`probe_fills_sub_goal_types_that_the_walk_cannot_determine` | `cargo test -p sokonanoda-front --lib query::` |
+| `query` 子命令 + 两视图一致性 | 单 JSON 对象信封（`soko.query/1`）、退出码（0 答上了 / 1 内核拒绝 / 2 用法）、`ok:false` **不是**空结果、`--text` 支持未落盘中间态；**`query check` 计数 ≡ `--json` 事件计数**；**`query state` ≡ 真实 LSP 二进制的 `soko/stateAt`**（逐字段：step/total/goal/binders/goals），覆盖根状态 / tactic 之内 / tactic 之后 / **无 `by` 的开放与闭合** | `crates/cli/tests/query.rs` :: `query_check_counts_match_the_json_event_stream`、`query_state_agrees_with_the_lsp_state_at_request`、`query_state_and_lsp_agree_without_a_by_block`、`query_state_outside_a_declaration_is_a_structured_error`、`query_holes_lists_stable_ids_and_navigates`、`query_usage_errors_exit_two_without_a_payload` | `cargo test -p sokonanoda-cli --test query`（**先 `cargo build --workspace`**：它 spawn `target/<profile>/sokonanoda-lsp`，旧构件会对拍出假红） |
+| MCP 桥（DSH） | `dsh/mcp/server.js` 六工具与 `query` 六个 op 一一对应；`server/discover` **立刻**回 `-32601`（沉默 = 60 s 超时）；`initialize` 回显 legacy 版本并 advertise `capabilities.tools`；未知方法/工具 `-32601`；工具失败 `isError:true`；patch 与 `scripts/soko mcp` 接线 | `crates/cli/tests/dsh.rs` :: `dsh_mcp_server_forwards_every_query_op` | `cargo test -p sokonanoda-cli --test dsh` |
+| K 目标判据（镜像内核） | 单构造子 `Prop` / 索引 / 字段数的**判别性形状**都要与内核 `init_k_target` 逐字一致（字段数 == 参数数不是 K 目标；无字段的常量索引族**是** K 目标）；箭头写法索引字段能派生递归子并真归约（`match` + `#reduce`） | `crates/front/src/compile/tests.rs` :: `single_constructor_prop_derives_recursor`、`single_constructor_prop_with_fields_is_not_a_k_target`、`single_constructor_indexed_prop_without_fields_is_a_k_target`、`indexed_inductive_with_arrow_style_field_derives_recursor`、`indexed_inductive_with_named_field_derives_recursor`、`arrow_style_indexed_recursor_reduces`；`crates/cli/tests/cli.rs` :: `cli_inductive_accepts_multi_name_binder_groups`、`cli_arrow_style_indexed_field_derives_and_reduces`、`cli_single_constructor_prop_derives_recursor` | `cargo test -p sokonanoda-front k_target` && `cargo test -p sokonanoda-cli --test cli -- inductive` |
 | 文档一致性 | `docs/protocol.md` 必须列出每个 `ErrorKind` 的 code；parse 两个 code 也在文档里 | `crates/front/src/compile/tests.rs` :: `protocol_doc_lists_every_error_code`（自带不带通配的穷尽清单） | `cargo test -p sokonanoda-front protocol_doc` |
 | perf 冒烟 | 原生大整数路径（39 位大数 +1 归约）与 iota 链（`add two two` = 4 层 succ）不退化；30s canary 挡 debug 构建下的意外爆炸 | `crates/front/src/compile/tests.rs` :: `perf_smoke_native_and_iota_reduce` | `cargo test -p sokonanoda-front perf_smoke` |
 | proof/tactic | `#prove` 的 intro/exact/lambda 搭建；生成的 lambda 必须被完整 kernel 接受 | `crates/front/src/proof.rs` :: `intro_builds_lambda_text`、`exact_fills_the_hole`、`generated_lambda_passes_the_kernel` | `cargo test -p sokonanoda-front proof::` |
@@ -58,6 +62,16 @@
 3. `cli::` / `protocol.rs` 红了 → 输出格式或事件词汇变了，**先怀疑协议破坏**（`docs/protocol.md` 是契约）；
 4. `examples.rs` 红了 → 语料与前端能力漂移，绝不许"改语料让它过"，要修前端或明确废弃该语法点；
 5. `protocol_doc_lists_every_error_code` / `every_error_kind_*` 红了 → 错误码体系或文档契约变更，按 §2 处理。
+6. `query::` / `--test query` 红了 → 先分**语义**还是**两个视图漂移**：
+   - 只有 `query_state*_agree_with_the_lsp*` 红 ⇒ 真相层大概是对的、某个适配器没跟上；
+     **但先跑 `cargo build --workspace` 排除旧构件**（该测试 spawn
+     `target/<profile>/sokonanoda-lsp`，改了 front 只跑单 crate 会拿旧二进制对拍）；
+   - `front/src/query/tests.rs` 红 ⇒ 语义本身变了：**先逐字对照
+     `docs/protocol.md` §`soko/stateAt` 的原文**（半开区间、根状态、无 `by` 分支），
+     别照直觉"修"测试；两处都有的话，先修语义再重跑一致性契约。
+7. `k_target` / `is_k` 相关红 ⇒ **去读内核那几行**（`kernel/src/inductive.rs:1268-1276`
+   的 `init_k_target`）并逐字镜像，不要写"看起来等价"的判据；为每个能让两个版本
+   取不同值的输入补一条测试（H6-C 的教训，见 `docs/LESSONS.md`）。
 
 ## 4. 怎么加一个新语法点（TDD 三件套 checklist）
 
@@ -463,3 +477,26 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   版本锁定下载（无 `/latest/`）、shim 解析/失败可行动、插件/命令契约。
 - **发布注意**：二进制新增 TLS（rustls/ring）+ tar/gzip 依赖，需 release
   `workflow_dispatch` 干跑验证 8 平台交叉构建。
+
+## 2026-09-17 更新（第八十九轮：内核真相查询通道 H6-A/H6-B/H6-C，0.56.0）
+
+- **新增真相层 + 两条通道 + 一致性契约**：`front::query`（唯一语义源）→
+  `sokonanoda query <op>`（单 JSON 对象）→ `dsh/mcp/server.js`（六工具）。
+  分层守护见 §1 的三行新条目（内核真相查询 / `query` 子命令 + 两视图一致性 /
+  MCP 桥），排查入口见 §3 第 6–7 条。
+- **两条一致性契约**（防两套真相，本轮的核心资产）：
+  `crates/cli/tests/query.rs::query_check_counts_match_the_json_event_stream`
+  （`query check` 计数 ≡ `--json` 事件计数）与
+  `query_state_agrees_with_the_lsp_state_at_request` /
+  `query_state_and_lsp_agree_without_a_by_block`（**spawn 真实
+  `target/<profile>/sokonanoda-lsp`** 逐字段对拍 `soko/stateAt`，含无 `by` 两分支）。
+  跑法：`cargo build --workspace && cargo test -p sokonanoda-cli --test query`。
+- **H6-C 的三层**：front 单测（箭头字段派生 / 具名孪生 / 真 iota 归约 / 单构造子
+  `Prop` / K 目标两个判别性反例）+ CLI e2e（3 条）+ 课程语料 9 个文件简化后
+  `examples`/`course`/`course_status` 全绿（golden 计数不变）。
+- **总量（2026-09-17，`cargo test --workspace --locked`，全绿）**：
+  **756** 个测试 — kernel 43 + arena 1 + memory_api 7 = 51；front lib **406** +
+  perf 3 = 409；cli 单测 5 + 集成 **190**（cli 80 / course 6 / course_status 4 /
+  dsh 8 / examples 1 / extension 32 / opencode 8 / protocol 9 / **query 12** /
+  skill 4 / watch 10）= 195；lsp lib **117**；doc-tests 6 ignored（内核既有）。
+  测试目标共 18 个（cli 集成目标 11 个）。

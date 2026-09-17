@@ -19,7 +19,7 @@
       "\n" +
       "3. 按 skills/sokonanoda-teacher/SKILL.md 当老师：在 playground.sokonanoda 上出带 sorry 的练习，练习前挂 2-3 行 \"-- soko:hint ...\" 提示阶梯。（DeepSeek Harness 里仓库的 .agents/skills/ 会被自动发现，直接输入 /sokonanoda-teacher 即可；opencode 里技能与 /sokonanoda/* 命令同样自动可用。）\n" +
       "\n" +
-      "4. 判卷只认内核：跑 scripts/soko grade playground.sokonanoda --json，逐行读 JSON 事件（禁止文本比对）。讲解与反馈用简体中文。\n" +
+      "4. 判卷只认内核：跑 scripts/soko grade playground.sokonanoda --json，逐行读 JSON 事件（禁止文本比对）。问「某处还差什么」就用 scripts/soko query state --file playground.sokonanoda --line <行> --col <列>（单 JSON 对象），别自己扫事件流。讲解与反馈用简体中文。\n" +
       "\n" +
       "就绪后先跑一次判卷，告诉我当前状态，再按我的进度推进下一步。",
     en:
@@ -33,7 +33,7 @@
       "\n" +
       "3. Follow skills/sokonanoda-teacher/SKILL.md and teach me: add sorry exercises to playground.sokonanoda, each preceded by a 2-3 line \"-- soko:hint ...\" ladder. (DeepSeek Harness discovers the repository's .agents/skills/ automatically — type /sokonanoda-teacher; opencode loads the same skills and the /sokonanoda/* commands with no setup either.)\n" +
       "\n" +
-      "4. Grade only through the kernel: run scripts/soko grade playground.sokonanoda --json and read the JSON events line by line (never compare text). Explain in English.\n" +
+      "4. Grade only through the kernel: run scripts/soko grade playground.sokonanoda --json and read the JSON events line by line (never compare text). When you need to know what is still missing at this position, use scripts/soko query state --file playground.sokonanoda --line <line> --col <col> (one JSON object) instead of scanning the event stream. Explain in English.\n" +
       "\n" +
       "Once ready, run a grading pass first, tell me where I stand, then advance at my pace.",
   };
