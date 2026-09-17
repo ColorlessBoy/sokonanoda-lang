@@ -442,80 +442,63 @@ pub struct StateSelection {
     pub total: usize,
 }
 
-/// 见 [`QueryDoc::state_at`] 的语义说明。
+/// 光标处的状态选择（**Lean `goalsAt?` 语义的唯一实现**，协议原文见
+/// `docs/protocol.md` §`soko/stateAt`）：
+///
+/// - 光标落在某条 tactic 的 span 内（**半开区间** `start <= cursor < end`：光标
+///   恰在 tactic 末尾算"之后"，不算"之内"）→ 该 tactic **执行前**的状态，
+///   即第 `i-1` 条执行后的状态（`i == 0` 时为根状态）；
+/// - 否则取"最后一条在光标前（含恰好结束）结束的 tactic"之后的状态；
+/// - 根状态（`step: -1`）：**声明类型的内核渲染文本**（`ty_text`，未知时退回走查
+///   的剩余目标）+ **空 binders**，`span` = 声明范围。
+///
+/// 这三条都是协议规定、且 LSP 客户端（VS Code Infoview / 练习树）依赖的行为；
+/// 真相层必须与之逐字一致——先前这里的闭区间与"根状态带 binders/剩余目标"是
+/// 错的（`docs/design/agent-query-channel.md` 的 H6-A 一致性契约正是为此）。
 pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
-    let step_of = |i: usize, span: Option<Span>| StateSelection {
-        goals: d.by_steps[i].goals.clone(),
-        span,
-        step: i as i64,
+    let root = || StateSelection {
+        goals: d
+            .ty_text
+            .clone()
+            .or_else(|| d.goal.clone())
+            .map(|ty| ByGoalState {
+                ty,
+                binders: Vec::new(),
+            })
+            .into_iter()
+            .collect(),
+        span: Some(d.span),
+        step: -1,
         total: d.by_steps.len(),
     };
     if d.by_steps.is_empty() {
-        return StateSelection {
-            goals: d
-                .goal
-                .clone()
-                .map(|ty| ByGoalState {
-                    ty,
-                    binders: d.binders.clone(),
-                })
-                .into_iter()
-                .collect(),
-            span: Some(d.span),
-            step: -1,
-            total: 0,
-        };
+        return root();
     }
-    // 光标在某条 tactic 的 span 内 → **进入**该 tactic 之前的状态。
-    if let Some(i) = d
+    let selected = match d
         .by_steps
         .iter()
-        .position(|s| s.span.start.offset <= cursor && cursor <= s.span.end.offset)
+        .position(|s| s.span.start.offset <= cursor && cursor < s.span.end.offset)
     {
-        // 第 i 条 tactic 执行前的状态 = 第 i-1 条执行后的状态。
-        return if i == 0 {
-            StateSelection {
-                goals: d
-                    .goal
-                    .clone()
-                    .map(|ty| ByGoalState {
-                        ty,
-                        binders: d.binders.clone(),
-                    })
-                    .into_iter()
-                    .collect(),
-                span: Some(d.span),
-                step: -1,
-                total: d.by_steps.len(),
-            }
-        } else {
-            step_of(i - 1, Some(d.by_steps[i - 1].span))
-        };
-    }
-    // 否则：最后一条在光标前结束的 tactic 之后的状态。
-    match d
-        .by_steps
-        .iter()
-        .enumerate()
-        .filter(|(_, s)| s.span.end.offset <= cursor)
-        .map(|(i, _)| i)
-        .next_back()
-    {
-        Some(i) => step_of(i, Some(d.by_steps[i].span)),
-        None => StateSelection {
-            goals: d
-                .goal
-                .clone()
-                .map(|ty| ByGoalState {
-                    ty,
-                    binders: d.binders.clone(),
-                })
-                .into_iter()
-                .collect(),
-            span: Some(d.span),
-            step: -1,
-            total: d.by_steps.len(),
-        },
+        Some(i) => i as i64 - 1,
+        None => d
+            .by_steps
+            .iter()
+            .rposition(|s| s.span.end.offset <= cursor)
+            .map(|i| i as i64)
+            .unwrap_or(-1),
+    };
+    let Some(step) = usize::try_from(selected)
+        .ok()
+        .filter(|i| *i < d.by_steps.len())
+    else {
+        return root();
+    };
+    let s = &d.by_steps[step];
+    StateSelection {
+        goals: s.goals.clone(),
+        span: Some(s.span),
+        step: selected,
+        total: d.by_steps.len(),
     }
 }
 

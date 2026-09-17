@@ -130,6 +130,21 @@
 
 ## 4. 真相层：`front::query`
 
+> **as-built 补充（2026-09-17，实现后回填）**：落地为
+> `crates/front/src/query/{mod.rs,types.rs,tests.rs}`。两点与草案不同，都记在这里：
+>
+> 1. **`select_state_at` 的正确语义以协议 + LSP 为准**（我在草案里写错过，实现时被
+>    一致性检查抓出来）：
+>    - tactic 命中用**半开区间** `start <= cursor < end`——光标恰在某 tactic 的
+>      **结束偏移**上算"在该 tactic 之后"，不算"之内"；
+>    - **根状态**（`step: -1`）= `ty_text`（完整声明类型的内核渲染，退路是走查的
+>      剩余目标）+ **空 binders** + `span` = 声明范围。
+>    我最初写成闭区间、根状态用走查后的剩余目标 + 真实 binders——`docs/protocol.md`
+>    与 VS Code 客户端依赖的是前者。**这正是"两套真相"的活样本**：当时没有任何测试
+>    会红，所以 H6-A 的 A4 一致性契约不是形式主义。
+> 2. 草案里的 `QueryAnswer<T>` 未落地：各 op 直接返回自己的类型（`StateAnswer` 自带
+>    `version`，其余由 CLI 信封统一带），少一层包装。
+
 ### 4.1 公共类型（草案）
 
 ```rust

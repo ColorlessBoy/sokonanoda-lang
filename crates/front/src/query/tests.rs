@@ -39,17 +39,24 @@ fn state_at_root_before_any_tactic() {
         Some("and_swap")
     );
     assert_eq!(state.step, -1, "before the first tactic = the root state");
-    // 根状态的 goal 是**声明 binder 之后的剩余目标**（协议 `soko/stateAt` 的
-    // 语义：`span` = 声明范围、`step: -1`），不是整条声明类型文本。
+    // 协议 `soko/stateAt`：根状态（`step: -1`）= **完整声明类型的内核渲染文本**
+    // + **空 binders**，`span` = 声明范围（`docs/protocol.md`；VS Code 客户端
+    // 依赖这一条）。这不是"走查后的剩余目标"——那属于 tactic 之后的状态。
     assert_eq!(
         state.goal.as_deref(),
-        Some("And b a"),
-        "the root goal is the declared type's remaining goal"
+        Some("forall (a b : Prop), And a b -> And b a"),
+        "the root goal is the declared type, kernel-rendered"
     );
-    // 根状态已经带有 `intro` 出来的上下文（front 的 `goal`/`binders` 是**走查
-    // 之后**的剩余目标与假设）。
-    let names: Vec<&str> = state.binders.iter().map(|b| b.name.as_str()).collect();
-    assert_eq!(names, vec!["a", "b", "h"], "the intros are in scope");
+    assert!(
+        state.binders.is_empty(),
+        "the root state has no hypotheses yet: {:?}",
+        state.binders
+    );
+    assert_eq!(
+        state.span.map(|(s, e)| (s, e)),
+        state.decl.as_ref().map(|d| (d.start, d.end)),
+        "the root span is the declaration's range"
+    );
 }
 
 #[test]
