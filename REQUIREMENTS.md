@@ -913,3 +913,37 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     `DEVELOPER_DIR=/Library/Developer/CommandLineTools cargo test …`，
     根治是 `sudo xcodebuild -license accept`。
 
+- 2026-09-17（八十八）：**内核真相查询通道设计（用户要求：「从根上正确解决」+
+  「更新前人留下的两个 TODO」）**——产出 **`docs/design/agent-query-channel.md`**
+  （ROADMAP **I15** / H6-A…H6-E，本轮**只出设计，不动实现**）：
+  - **根因判断**：内核真相今天只有 LSP 一条出口，且 `goal_decls`/`state_at`/
+    `next_hole` 等**选择与判定逻辑长在 LSP 适配器内部**（`crates/lsp/src/lib.rs`
+    **4256 行**，远超 §4 的 ~500 行红线），CLI/MCP 无法复用。故正确解法**顺序不可
+    颠倒**：① 真相层 `front::query`（编辑器无关的类型化查询：`check`/`state`/
+    `goals`/`holes`/`hints`/`reduce`）→ ② 传输（`sokonanoda query <op>` 单 JSON
+    对象、零配置、所有 harness 通用；`scripts/soko mcp` + `dsh/mcp/server.js`
+    MCP stdio，六工具只转发 CLI）→ ③ **同一轮把 LSP 改为调用真相层**。反过来先写
+    MCP 会立刻产生第二份真相，违反硬规则（判定永远走 kernel）；
+  - **关键设计**：`QueryError`/`QueryAnswer` 把"正常的没有"与"问不出来"分开
+    （今天 LSP 用 `goal:null`+默认字段混合表达，agent 无法区分，是 agent 侧
+    `Q3` 差距的根源）；位置真相层用 offset、适配器负责坐标转换（MCP 表面用
+    `line`/`character` 与 DSH `lsp` 工具一致）；`query check` 是 `--json` 事件流的
+    **新增摘要视图**，事件流契约**只增不改**；
+  - **防两套真相的硬门禁**：契约测试断言 `query state` ≡ `soko/stateAt`、
+    `query goals` ≡ `soko/goals`（字段级）、`query check` 计数 ≡ `--json` 事件计数；
+    并有 `rg` 断言"LSP 侧不得残留查询实现"；
+  - **MCP 定位**：默认**关闭**、用户显式 `--patch`/profile opt-in（DSH 把 MCP
+    server 当沙箱外可信可执行代码，项目不替用户扩大信任面）；server 只做协议与
+    JSON Schema，不解析 Lean、不判卷；
+  - **两个 TODO 改挂**（用户明确要求）：原 `docs/HANDOVER.md` §3 E 的
+    ①索引递归 `Prop` 的 recursor 自动派生被内核拒（`Le`/`Even` 现靠课程手写
+    `rec`/`iota`）②`inductive` 参数不吃多名字 binder 组 `(A B : Prop)`，
+    **从孤立的 front 待办改挂 H6-C**：它们直接决定查询通道的"真相"完整性、以及
+    agent（主要作者）写出的合法 Lean 子集会不会被拒；两者都要求**先有"修复前红"
+    的复现测试**，按 TDD 三层 + 课程 golden 同步；HANDOVER §3 E 与 ROADMAP I15
+    已同步改挂；
+  - **决策点 QD-1…QD-7**（真相层落点 `front::query` / CLI 单 JSON / MCP 默认关闭 /
+    MCP 转发 CLI / 坐标系 / 两个 TODO 并入本轮 / 版本号策略）与 **验收 A1–A7**、
+    风险表（语义漂移、两套真相、事件流消费者被打断、MCP 信任面、golden 变更、
+    LSP 重构回归）落在设计文档 §10–§12。
+

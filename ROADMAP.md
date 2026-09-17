@@ -543,6 +543,33 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - **待拍板**：技能进 DSH 的方式（网关 vs `customSkillDirs`）、启动器形态
   （与 REQUIREMENTS（三十二）删除 `scripts/soko.sh` 的边界）、deny 形态、版本号策略。
 
+### I15 —— 内核真相查询通道（`query` 子命令 + MCP；设计已定稿，实现未开始）
+
+> 设计 + 计划：**`docs/design/agent-query-channel.md`**（2026-09-17）。
+> 一句话：**"内核真相"目前只有 LSP 一条出口**，而 DSH 的 LSP host 丢弃诊断、
+> 不调自定义请求，agent 只能整文件扫事件流。正确解法分三层且顺序不可颠倒：
+> **真相层（`front::query`，编辑器无关的类型化查询）→ 传输（CLI `query` + MCP）
+> → 现有 LSP 改为调用同一个真相层**。反过来先写 MCP 会立刻产生第二份真相。
+
+- **H6-A 真相层 + CLI**：`front::query`（`check`/`state`/`goals`/`holes`/`hints`/
+  `reduce`）+ `sokonanoda query <op>`（单 JSON 对象、`--text` 支持未落盘中间态）
+  + 契约写进 `docs/protocol.md`；**同一轮把 LSP 改为调用真相层**
+  （`crates/lsp/src/lib.rs` 4256 → ≤1200 行）。
+- **H6-B MCP 传输**：`dsh/mcp/server.js`（MCP stdio，六工具，只转发
+  `scripts/soko query …`）+ `scripts/soko mcp` + `dsh/cordis.patch.yml` 的
+  MCP 行（**默认关闭**：MCP server 是沙箱外可信代码，用户显式 opt-in）。
+- **H6-C 两个 front 缺口**（原 `docs/HANDOVER.md` §3 E，本轮改挂到这里）：
+  ① 索引递归 `Prop` 的 recursor 自动派生被内核拒（`Le`/`Even` 现靠手写
+  `rec`/`iota`）② `inductive` 参数不吃多名字 binder 组 `(A B : Prop)`；
+  两者都要求"修复前先有红测试"，按 TDD 三层 + 课程 golden 同步。
+- **H6-D 收尾**：`AGENTS.md`/技能（"问目标用 `query state`，别整文件扫事件"）/
+  `TESTING`/`HANDOVER`/`REQUIREMENTS` §9 + 门面同步。
+- **H6-E**：原 DSH H5 其余项（Infoview 客户端插件、SessionStart provisioning、
+  npm 插件包）。
+- **验收 A1–A7**（见设计文档 §11）：真相唯一（LSP 侧无实现残留）、CLI 可用、
+  MCP 可用、**CLI≡LSP 字段级一致性契约**、结构债达标、两个 TODO 修复带反向测试、
+  全量回归绿且既有契约测试"只增不改"。
+
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、

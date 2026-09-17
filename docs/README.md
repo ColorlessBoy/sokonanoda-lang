@@ -76,7 +76,11 @@
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 - `deepseek-harness.md` — **DeepSeek Harness 适配（设计 + 计划 H0–H4）**：差距
   G1–G10、DSH 侧事实（技能根/斜杠命令/LSP 只有 4 项只读操作且忽略诊断/patch 形状）、
-  验收 A1–A6 与待拍板决策 D-1…D-6（2026-09-17，实现未开始）
+  验收 A1–A6 与待拍板决策 D-1…D-6（2026-09-17，H0–H4 已落地）
+- `agent-query-channel.md` — **内核真相查询通道（设计 + 计划 H6-A…E）**：
+  把真相从 LSP 抽成 `front::query`，再上 CLI `query` 与 MCP 两个薄传输；
+  含两个 front 缺口（索引递归 `Prop` 的 recursor、多名字 binder 组）的改挂与修法
+  （2026-09-17，实现未开始；ROADMAP I15）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。

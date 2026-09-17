@@ -321,12 +321,19 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
    不再有"唯一 harness"式陈述；`sokonanoda gate` 全绿。
 
 ### H5 —— 远期（不做承诺，入 backlog）
+
+> **2026-09-17 更新**：B2「诊断通道」**已升级为独立设计与计划**——
+> `docs/design/agent-query-channel.md`（ROADMAP **I15** / H6-A…H6-E）：不再"等 DSH
+> 支持 `publishDiagnostics`"，而是把**内核真相查询层**从 LSP 里抽出来
+> （`front::query`），再上 CLI `query` 与 MCP 两个薄传输。B1/B3/B4 仍留在下面。
+
 - **B1 DSH 客户端插件复刻 Infoview**：把 `soko/goals`/`soko/stateAt` 接到 Web GUI
   的自定义视图（D9 证明现有 LSP 通道到不了；需要 DSH 客户端插件 + host handler）。
-- **B2 诊断通道**：两条可走的路——① 跟踪 DSH LSP 是否支持把
-  `publishDiagnostics` 投递给 agent/UI；② 走 **MCP**（`dsh-mcp-client` 把
-  `mcp__<server>__<tool>` 暴露给模型，D19），把判卷/诊断包成一个 MCP server。
-  在此之前 DSH 侧诊断一律经 CLI `--json`。
+  → 将消费 `front::query` 的结论（I15 H6-A），不必再走 LSP 自定义请求。
+- **B2 诊断通道**：**→ 已并入 I15**（`docs/design/agent-query-channel.md`）：
+  ① CLI `sokonanoda query check/state/goals/holes/hints/reduce`（单 JSON、零配置、
+     所有 harness 通用）；② MCP server（`scripts/soko mcp` + `dsh/mcp/server.js`，
+     DSH 官方通道，默认关闭需 opt-in）；③ 追踪 DSH LSP 是否支持诊断投递作为补充。
 - **B3 启动钩子**：`SessionStart` hook 自动 `setup`（注意 detached 语义，D17）。
 - **B4 `dsh` 插件包**：把 CLI 解析器 + `tools/pre-execute` 拦截 + 自定义命令做成
   一个 npm 包，**同一个包同时声明 `dsh.bundle.patch`（宿主层）与 `dsh.client`

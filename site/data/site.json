@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 87,
+  "round": 88,
   "round_date": "2026-09-17",
-  "round_title": "DeepSeek Harness 适配落地 —— H0–H4",
+  "round_title": "内核真相查询通道设计 + 两个 TODO 改挂",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",

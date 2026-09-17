@@ -1,8 +1,36 @@
-# STATUS 归档（第 1–84 轮，2026-09-06 → 2026-09-17）
+# STATUS 归档（第 1–86 轮，2026-09-06 → 2026-09-17）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-16，第八十四轮：课程大纲重构 P3——锁定 10 单元）
+
+> 续 `docs/design/course-syllabus.md` §6 P3：补齐锁定的最后两个单元。
+
+1. **#9 关系与联结词**（`unit9-relations-connectives`）：把 `Or` 作为**真实归纳**声明
+   （自动派生 `Or.rec`，`match` 降低到它）教「用」它；`Iff` 作为**定义**
+   `And (A->B) (B->A)` 练定义展开；`Le`/`Even` 作为归纳关系 + 消去/归纳引理
+   （PLFA inversion 套路）。8 题（T/R/L/X）。
+2. **#10 读证明与综合**（`unit10-reading-proofs`）：自解释三问（Hodges/Alcock/Inglis）
+   逐行读一份已证证明；formal↔informal 互译；两题「评阅错证明→写出能过内核的修正版」
+   （错证明只放注释）；一题跨单元 capstone。6 题（X/R/T）。
+   **判分口径**：不引入新协议事件——每道读/评阅题都要产出内核可判的声明（散文只在注释里、
+   不计数）。
+3. **规模**：unit9 `(13 checked, 8 open, 0 reduced)`、unit10 `(7,6,0)`；汇总
+   **units=10 checked=78 open=59 failed=0**；`course_json_lists_the_ten_units_in_order`；
+   `cli.rs` 缓存金值同步。
+4. **门面同步**（硬规则）：teaching-session（新增「第三课：关系、联结词与读证明」键表）、
+   course-status/course-bilingual/ROADMAP I7（改为「✅ 完成（锁定 10 单元）」）/
+   course/README/infrastructure + teacher skills（curriculum 行 9/10、SKILL 的
+   `Or`/`Iff` 归属）+ editor/vscode/README（10 单元）。
+5. **记录两个产品缺口**（写入 HANDOVER §3 E + 课程大纲 §2 第 11/12 条）：
+   (a) **带索引的递归 `Prop` 归纳**（`Le`/`Even`）自动派生 recursor 被内核拒（IH 形状不符），
+   只能手写 `rec`/`iota`（`Or` 非索引 Prop、`Vec` 带索引 Type 均正常）——front 未冻结，**可修**；
+   (b) `inductive` 的**多名字参数组** `(A B : Prop)` 不解析（Pi binder 支持）。
+6. **验收**：course/course_status/skill + 全量 CLI + 手动 fmt/clippy/test 全绿；20 个 CN+EN
+   画布 exit 0；双语画布与 solutions 逐项相等；版本 0.53.0 → **0.54.0**（课程达到锁定规模，minor）。
+
 
 ## 本轮进度（2026-09-16，第八十三轮：课程大纲重构 P2（重排 + 拆分 U5））
 

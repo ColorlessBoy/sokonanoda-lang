@@ -1,18 +1,60 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-17（第八十七轮：DeepSeek Harness 适配落地；0.55.0）
+> 快照：2026-09-17（第八十八轮：内核真相查询通道设计 + 两个 TODO 改挂；未 bump 版本）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
 > 架构/内核 = `docs/architecture.md`；协议 = `docs/protocol.md`；测试地图 = `docs/TESTING.md`；
 > 经验台账 = `docs/LESSONS.md`；CI 失败台账 = `docs/CI-FAILURES.md`；发布 = `docs/RELEASE.md`；
-> agent 入口 = `AGENTS.md` + `skills/`；**harness 适配 = `docs/design/deepseek-harness.md`**。
+> agent 入口 = `AGENTS.md` + `skills/`；**harness 适配 = `docs/design/deepseek-harness.md`**；
+> **agent 查询通道 = `docs/design/agent-query-channel.md`**（ROADMAP I15）。
 
 ## 一句话
 
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-17，第八十八轮：内核真相查询通道设计 + 两个 TODO 改挂）
+
+> 用户：「H5 backlog 里从 MCP 诊断通道入手……这个你来设计一下开发文档，从根上正确
+> 解决。同时看一下前人留下的两个 TODO，需要更新一下」。**本轮只出设计 + 改挂，
+> 不动实现、不 bump 版本。**
+
+1. **根因判断（为什么不能直接写 MCP server）**：内核真相今天**只有 LSP 一条出口**，
+   而且选择/判定逻辑长在 LSP 适配器内部（`goal_decls`/`state_at`/`next_hole` 在
+   `crates/lsp/src/lib.rs`，该文件 **4256 行**、远超 ~500 行红线）。直接写 MCP 会
+   要么反向依赖 LSP、要么复制出**第二份真相**（违反"判定永远走 kernel"硬规则）。
+2. **设计（`docs/design/agent-query-channel.md`，ROADMAP I15 / H6-A…H6-E）**：
+   顺序不可颠倒的三层——① 真相层 `front::query`（`check`/`state`/`goals`/`holes`/
+   `hints`/`reduce`，编辑器无关的类型化查询）；② 传输：`sokonanoda query <op>`
+   （**单 JSON 对象**、零配置、所有 harness 通用、`--text` 支持未落盘中间态）
+   + `scripts/soko mcp` / `dsh/mcp/server.js`（MCP stdio 六工具，只转发 CLI）；
+   ③ **同一轮把 LSP 改为调用真相层**（顺带把 4256 行降到 ≤1200）。
+3. **关键设计点**：`QueryError`/`QueryAnswer` 把"正常的没有"与"问不出来"分开
+   （今天 LSP 用 `goal:null`+默认字段混合表达，agent 无法区分——这正是 agent 侧
+   只能整文件扫事件流的根源）；位置在真相层用 offset、适配器转坐标（MCP 表面用
+   `line`/`character` 与 DSH `lsp` 工具一致）；`query check` 是 `--json` 事件流的
+   **新增摘要视图**，事件流契约**只增不改**；MCP **默认关闭**（DSH 视 MCP server
+   为沙箱外可信代码，项目不替用户扩大信任面）。
+4. **防两套真相的硬门禁**：契约测试断言 `query state` ≡ `soko/stateAt`、
+   `query goals` ≡ `soko/goals`（字段级）、`query check` 计数 ≡ `--json` 事件计数，
+   外加 `rg` 断言"LSP 侧不得残留查询实现"。
+5. **两个 TODO 改挂**（用户要求）：`docs/HANDOVER.md` §3 E 的
+   ①索引递归 `Prop` 的 recursor 自动派生被内核拒（`Le`/`Even` 靠课程手写
+   `rec`/`iota`）②`inductive` 参数不吃多名字 binder 组 `(A B : Prop)`，
+   从孤立 front 待办**改挂 H6-C**——它们决定查询通道"真相"的完整性与 agent
+   （主要作者）写出的合法子集会不会被拒；要求**先有"修复前红"的复现测试**，
+   按 TDD 三层 + 课程 golden 同步。ROADMAP I15、HANDOVER §3 表头/§3 E 已同步。
+6. **待调研补齐**（设计文档 §9，已派 subagent 取源码证据）：DSH MCP client 的完整
+   schema/传输/工具命名/失败语义与路径解析、项目侧可交付性，以及两个 TODO 的
+   精确根因（哪一行 IH 形状不对、parser 单名路径清单）。
+7. **验收口径 A1–A7**：真相唯一（LSP 无残留实现）、CLI/MCP 可用、CLI≡LSP 字段级
+   一致、结构债达标（LSP ≤1200 行、`front::query*` ≤500 行/文件）、两个 TODO 带
+   反向测试、全量回归绿且既有契约测试**只增不改**。
+8. **本轮产物**：`docs/design/agent-query-channel.md`（新）+ `ROADMAP.md` I15 +
+   `docs/design/deepseek-harness.md`（H5 的 B1/B2 指向新设计）+ `docs/HANDOVER.md`
+   §3/§3E + `docs/README.md` + `REQUIREMENTS.md` §9（八十八）+ 本文。
 
 ## 本轮进度（2026-09-17，第八十七轮：DeepSeek Harness 适配落地 —— H0–H4）
 
@@ -101,30 +143,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 7. **验收**：本轮产物 = `docs/design/deepseek-harness.md` + `REQUIREMENTS.md` §9（八十六）
    + `docs/HANDOVER.md` §3 F/§5/§6 + `docs/README.md` 设计清单 + 本文；不改代码，
    不跑 gate（无代码改动）。
-
-## 本轮进度（2026-09-16，第八十四轮：课程大纲重构 P3——锁定 10 单元）
-
-> 续 `docs/design/course-syllabus.md` §6 P3：补齐锁定的最后两个单元。
-
-1. **#9 关系与联结词**（`unit9-relations-connectives`）：把 `Or` 作为**真实归纳**声明
-   （自动派生 `Or.rec`，`match` 降低到它）教「用」它；`Iff` 作为**定义**
-   `And (A->B) (B->A)` 练定义展开；`Le`/`Even` 作为归纳关系 + 消去/归纳引理
-   （PLFA inversion 套路）。8 题（T/R/L/X）。
-2. **#10 读证明与综合**（`unit10-reading-proofs`）：自解释三问（Hodges/Alcock/Inglis）
-   逐行读一份已证证明；formal↔informal 互译；两题「评阅错证明→写出能过内核的修正版」
-   （错证明只放注释）；一题跨单元 capstone。6 题（X/R/T）。
-   **判分口径**：不引入新协议事件——每道读/评阅题都要产出内核可判的声明（散文只在注释里、
-   不计数）。
-3. **规模**：unit9 `(13 checked, 8 open, 0 reduced)`、unit10 `(7,6,0)`；汇总
-   **units=10 checked=78 open=59 failed=0**；`course_json_lists_the_ten_units_in_order`；
-   `cli.rs` 缓存金值同步。
-4. **门面同步**（硬规则）：teaching-session（新增「第三课：关系、联结词与读证明」键表）、
-   course-status/course-bilingual/ROADMAP I7（改为「✅ 完成（锁定 10 单元）」）/
-   course/README/infrastructure + teacher skills（curriculum 行 9/10、SKILL 的
-   `Or`/`Iff` 归属）+ editor/vscode/README（10 单元）。
-5. **记录两个产品缺口**（写入 HANDOVER §3 E + 课程大纲 §2 第 11/12 条）：
-   (a) **带索引的递归 `Prop` 归纳**（`Le`/`Even`）自动派生 recursor 被内核拒（IH 形状不符），
-   只能手写 `rec`/`iota`（`Or` 非索引 Prop、`Vec` 带索引 Type 均正常）——front 未冻结，**可修**；
-   (b) `inductive` 的**多名字参数组** `(A B : Prop)` 不解析（Pi binder 支持）。
-6. **验收**：course/course_status/skill + 全量 CLI + 手动 fmt/clippy/test 全绿；20 个 CN+EN
-   画布 exit 0；双语画布与 solutions 逐项相等；版本 0.53.0 → **0.54.0**（课程达到锁定规模，minor）。

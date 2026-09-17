@@ -63,8 +63,10 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 
 ## 3. 剩余 TODO（按建议顺序）
 
-> **状态（2026-09-16）**：§3 A/A′/A″/B/C 的**可执行项已全部完成**（0.40.0–0.47.0）；
-> §3 E 是课程 P3（新增单元 #9/#10）新发现的两个 front/parser 缺口（待办）；
+> **状态（2026-09-17）**：§3 A/A′/A″/B/C 的**可执行项已全部完成**（0.40.0–0.47.0）；
+> §3 E 的两个 front/parser 缺口**已改挂** ROADMAP **I15 → H6-C**
+> （`docs/design/agent-query-channel.md`）：它们决定查询通道给出的"真相"是否完整，
+> 不再是孤立的 front 待办（本轮只改挂与文档，未实现）。
 > §3 D「远期 L2/L3」与 §4 的已文档化技术债（多数需内核/pp 变更，违反 kernel
 > 冻结）仍在。
 
@@ -116,18 +118,26 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - ~~`Nat.succ`/`Nat.add` 边界裸名 `#reduce` 测试~~ ✅ 已完成（0.42.0）：
   `bare_prelude_nat_names_stay_terminating`（裸 `#reduce Nat.add` 终止为常量）。
 
-### E. 课程层发现（P3 新增单元 #9，2026-09-16）
-- **`derive_recursor` 派生不了「索引递归 `Prop`」的 recursor**（TODO，产品缺口）：
+### E. 课程层发现（P3 新增单元 #9，2026-09-16）→ **已改挂 I15 / H6-C（2026-09-17）**
+
+> 两条都**不再是孤立的 front 待办**：新设计 `docs/design/agent-query-channel.md`
+> 要把"内核真相查询层"（`front::query` + CLI `query` + MCP）抽出来，而这两个缺口
+> 直接决定查询通道给出的真相是否完整、以及 agent（主要作者）写出的合法 Lean 子集
+> 会不会被拒。**处置：并入 H6-C，与查询通道同轮修复并验收**（A6）。
+
+- **`derive_recursor` 派生不了「索引递归 `Prop`」的 recursor**（产品缺口，**未修**）：
   `Le`/`Even`（带索引、含递归字段、small elimination 到 `Prop`）省略 `rec` 时，
   前端 `derive_recursor`（`crates/front/src/compile/elab.rs`）派生出的 IH 形状被
   内核拒绝；对照 `Or`（非索引 `Prop`）与 `Vec`（索引 `Type`）自动派生正常。现状
   规避：课程 #9 对 `Le`/`Even` 手写 `rec`/`iota`（`course/unit9-*.sokonanoda`）。
-  修复只动 front 派生逻辑（内核冻结、不改语义），按 TDD 三层回归 + 课程用例。
-- **`inductive` 参数不接受多名字 binder 组**（次要解析器限制，既有语法缺口）：
+  修复只动 front 派生逻辑（内核冻结、不改语义），按 TDD 三层回归 + 课程用例；
+  **必须先有"修复前红"的复现测试**（H6-C 第 3 条）。
+- **`inductive` 参数不接受多名字 binder 组**（解析器缺口，**未修**）：
   `(A B : Prop)` 在 Pi/箭头位已支持（`crates/front/src/parser.rs` 的
   `parse_binder_group`），但 `inductive` 参数与 `ctor` 字段走单名 `parse_binder`
   （`parse_inductive_block`/`parse_ctor`），`(A B : Prop)` 解析失败；课程只能写
-  `(A : Prop) (B : Prop)`。非本轮引入，修 parser 后需补 front 单测 + 课程同步。
+  `(A : Prop) (B : Prop)`。修 parser 时**要一次修完所有走单名路径的位置**
+  （清单见 `docs/design/agent-query-channel.md` §9 的调研结论），补 front 单测 + 课程同步。
 
 ### F. DeepSeek Harness 适配（第八十六–八十七轮，2026-09-17：✅ 已落地，0.55.0）
 - 设计与计划：**`docs/design/deepseek-harness.md`**（差距 G1–G10、DSH 侧事实
