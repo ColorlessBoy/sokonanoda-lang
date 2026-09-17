@@ -247,18 +247,45 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 ### 6.3 接线（写入 `dsh/README.md`，作为 `--patch` 的一部分）
 
-DSH 侧的 MCP 行与 LSP 行放在同一个 overlay 里（细节以 §9 的调研为准）：
+**已核实**（`docs/config-catalog.md:1600-1650`、`docs/user/guide/mcp-memory.md`、
+`apps/cli/config/examples/mcp-memory/*.cordis.yml`）：
+
+- 插件是 **`@deepseek-ai/dsh-mcp-client`**，`config` 是 `StdioConfig | StreamableHttpConfig`
+  的**顶层联合**（没有嵌套 key）：`transport`（`'stdio'` / `'streamable-http'`）、
+  `serverName`、`command`、`args`、`env`、**`cwd`**、`toolCallTimeoutMs`、
+  `failOnStartupError`、`maxInstructionBytes`、`reconnect`。
+- 模型看到的工具名 = **`mcp__<serverName>__<rawName>`**；`serverName` 必须匹配
+  `[A-Za-z0-9_-]{1,32}` 且进程内唯一。
+- stdio 桥会**先剥掉凭据形状的环境变量与全部 `DSH_*`** 再启动子进程；其余环境继承。
+- DSH 只负责"启动命令/连接 URL + 发现工具"，**不下载 server、不装依赖**
+  （与我们的硬规则一致：server 就是仓库里已有的 Node 脚本）。
+
+于是 DSH 侧的一行是（与 LSP 行同处一个 overlay，**默认关闭**）：
 
 ```yaml
 - insert:
-    - id: mcp-client
+    - id: mcp-sokonanoda
       name: '@deepseek-ai/dsh-mcp-client'
       config:
-        # command 由 server 决定：'<repo>/scripts/soko' args: ['mcp']（绝对路径，
-        # 与 LSP 行同样的 !!js 单行表达式；不要依赖 PATH）
+        transport: stdio
+        serverName: sokonanoda
+        command: node
+        args: ['scripts/soko-mcp.js']      # 相对 cwd
+        cwd: !!js process.env.SOKO_REPO ?? process.cwd()   # 单行（D24）
+        toolCallTimeoutMs: 60000
+        failOnStartupError: true          # server 起不来就报错，别静默无工具
 ```
 
-- **默认关闭**：MCP server 是"沙箱之外的可信可执行代码"（DSH 的态度），
+**`cwd` 比 `command` 的绝对路径更干净**：`cwd` 把仓库根交给子进程，于是
+`scripts/soko` 的 `process.cwd()` 回退分支直接命中（与 LSP 行同样的解析逻辑，
+但不需要 `!!js` 拼路径）。代价：`cwd` 也要用 `!!js`，仍然**必须单行**
+（`docs/design/deepseek-harness.md` §1.2 D24 的实测结论）。
+
+**MCP server 在仓库里的位置**：`dsh/mcp/server.js`（与 LSP 接线、hooks 同属于
+`dsh/` 这个"harness 接线"目录），由 `scripts/soko mcp` 统一入口转发（保持
+"所有 harness 入口都经 `scripts/soko`"的纪律）；`args` 里引用它时按 `cwd` 相对化。
+
+- **默认关闭**：MCP server 是"沙箱之外的可信可执行代码"（DSH 的明确态度），
   所以它属于**用户显式 opt-in**（`--patch` 或 profile 行），不写进默认接线。
 - `scripts/soko mcp` 必须在二进制缺失时**退出非零并给出可行动错误**
   （让 DSH 的 MCP 客户端报出可读原因，而不是静默无工具）。
@@ -309,12 +336,91 @@ DSH 侧的 MCP 行与 LSP 行放在同一个 overlay 里（细节以 §9 的调�
 5. 版本 minor bump（新增用户可见能力）。
 
 ### H6-C —— 两个 TODO（P2，可与 A/B 并行但**必须在发布前**）
-1. TODO B（parser 多名字 binder 组）：按 §9 调研给出的"同类缺口清单"一次修完
-   （inductive 参数、ctor 字段，以及其它单名路径），补 front 单测 + 课程同步。
-2. TODO A（索引递归 `Prop` 的 recursor 派生）：修 front 派生逻辑到内核接受的
-   IH 形状；**三层回归**（front 单测 + CLI e2e + 课程语料），并把课程 #9 的
-   手写 `rec`/`iota` 收回为自动派生（golden 会变，按纪律同步）。
-3. 每个修复带"反向测试"：修复前必须有一条**红**测试（先复现，再修）。
+
+> **已核实的根因（2026-09-17，就地读代码，行号已复核）**：
+
+**TODO B（parser 多名字 binder 组）——根因明确、修法明确**
+
+- `parse_inductive_block`（`crates/front/src/parser.rs:357`）在 `:` 之前循环
+  `while matches!(peek, LParen | LBrace) { params.push(self.parse_binder()?) }`，
+  而 `parse_binder`（同文件 `:1063`）**只读一个名字**——所以 `(A B : Prop)` 在读到
+  `A` 后期望 `:`，撞上 `B` 就报错。
+- 同文件 `:723` 的 `parse_binder_group` 已经支持多名字，且返回 `BinderGroup{names, ty, style, span}`
+  （`names: Vec<String>`、`ty: Expr`）；`:659`（`parse_arrow` 的 `(a b c : T) -> body`）
+  与 `:1035` 已在用，展开成逐名字链——**这就是"Pi 位已支持"的原因**。
+- 修法：inductive 参数改用 `parse_binder_group()`，把 `group.names` 摊平成
+  `Vec<Binder>`（每个名字一个 `Binder{name, ty: Some(group.ty.clone()), style: group.style}`，
+  span 取 group 的；**注意 `Binder.ty` 是 `Option<Box<Expr>>`，`ast.rs:196`**）。
+- 同类缺口一并排查（`parse_ctor` 同文件 `:397` 同样只认 `LParen` + `parse_binder`）：
+  修复要把 **inductive 参数**与 **ctor 字段**两处都换成组感知；`let`/`match` 的 binder
+  路径需逐个确认（调研第 4 条列出）。
+
+**TODO A（索引递归 `Prop` 的 recursor 派生）——可疑点已定位，形状待最终确认**
+
+- `derive_recursor` 在 `crates/front/src/compile/elab.rs:2492`；决定"小消去"的判据是
+  `:2499`：`let small_elim = is_prop_block_ty(ty) && constructors.len() > 1;`
+- `is_prop_block_ty`（`:2429`）**已经**会剥掉索引望远镜（注释明写"带索引归纳的 `ty`
+  是索引望远镜"）——所以 `Le : Nat -> Nat -> Prop`、`Even : Nat -> Prop` 都判定为 Prop 块，
+  **且二者都恰好有 2 个 ctor，`constructors.len() > 1` 也为真** → `small_elim = true`。
+  也就是说：**问题不在"是否走小消去"，而在小消去分支里生成的
+  motive/IH/索引实参形状**（`Or` 非索引、`Vec` 索引但 `Type`（`small_elim = false`）
+  都不触发该分支，与现象吻合）。
+
+**已用发布版二进制实测（2026-09-17，可复制的复现）**
+
+- **TODO B 复现（parse 阶段就红）**：
+
+  ```sokonanoda
+  inductive Pair2 (A B : Prop) : Prop      -- 报 `expected binder type, found Ident("B")` @ 1:20
+  ctor mk2 (a : A) (b : B) : Pair2 A B
+  end
+  ```
+  对照组 `(A : Prop) (B : Prop)` 完全通过（`checked declaration Pair1`）。
+
+- **TODO A 复现（内核阶段红）**：把 `course/unit9-relations-connectives.sokonanoda`
+  的 `inductive Even : Nat -> Prop` + 两个 ctor **保留、去掉 `rec Even.rec` 块**，
+  再 `end`：
+
+  ```sokonanoda
+  inductive Even : Nat -> Prop
+  ctor even_zero : Even Nat.zero
+  ctor even_succ (n : Nat) : Even n -> Even (Nat.succ (Nat.succ n))
+  end
+  ```
+
+  实测（在自带 `inductive Nat` 的 Bare 上下文里）：
+
+  ```
+  kernel-rejected: 类型不匹配：期望 `Pi (motive : Pi (i : Nat), Pi (x : Even $0), Sort 0),
+    Pi (m0 : (($0 Nat.zero) even_zero)), Pi (m1 : Pi (n_ : Nat), Pi (x_ : Even $0),
+    Pi (ih : (($3 $1) $0)), ($4 ((even_succ …`，
+    实际是 `Pi (motive : Pi ( : Nat), Pi (t : Even $0), Sort 0),
+    Pi (even_zero : (($0 Nat.zero) even_zero)), Pi (even_succ : Pi (n : Nat), Pi ( : Even $0),
+    Pi (v_1_0 : (($3 $1) $0)), (($4 (…`
+  ```
+
+  **差异确实落在 IH/实参片段**（`Pi (m0 : …) Pi (m1 : …)` vs
+  `Pi (even_zero : …) Pi (even_succ : …)`，以及 `((… $3 $1) $0)` 之后的形状）。
+  手写 `rec Even.rec : (motive : (n : Nat) -> Even n -> Prop) -> …`（course #9 的做法）
+  则通过——**所以根因在派生器产出的这条 telescope，而不是索引或 ctor 本身**。
+- **下一步（H6-C 第 1 条）**：把上面两个类型分别用内核 `debug_print` 打印出来逐段对齐
+  （哪个 binder 多/少、哪个 de Bruijn 索引错位），再定修法。**不要**先动
+  `constructors.len() > 1` 这条判据——`Le`/`Even` 已经满足它，改它必然误伤。
+
+1. **先写复现测试**（两件都要求"修复前红"）：TODO B → `inductive Foo (A B : Prop)` 的
+   parser 单测；TODO A → 上面那段 `Even` 形状（省略 `rec`）作为 front 单测/CLI e2e 的
+   输入，断言派生成功且判定走通。
+2. 修 TODO B（parser，含 ctor 字段与同类路径），补 front 单测 + 课程同步。
+3. 修 TODO A（front 派生逻辑到内核接受的 IH 形状），**三层回归**
+   （front 单测 + CLI e2e + 课程语料），并把课程 #9 的手写 `rec`/`iota` 收回为自动派生
+   （golden 会变，按纪律同轮同步并记录理由）。
+4. 两个修复都不得触碰 kernel（冻结）；若发现必须改 kernel 才能修，**停下并回设计**
+   （那是范围变更，不是 bugfix）。
+
+> **顺带记录一个 Bare 模式口径**（实测）：文件自带 `inductive N2` 时，**点号构造子名
+> `N2.z2` 不可用**（`unknown identifier`），要用裸名（Bare 模式正是这样教的）；
+> 点号形式只对 prelude 内建（`Nat.zero`/`Bool.true`）成立。课程语料与 `match`
+> 分支写法以现有文档为准，此处仅备查，**不属于本轮改动**。
 
 ### H6-D —— 文档/门面收尾（P2）
 1. `AGENTS.md` 命令段增 `query`（agent 首选查询方式）；teacher 技能补
@@ -331,15 +437,25 @@ DSH 侧的 MCP 行与 LSP 行放在同一个 overlay 里（细节以 §9 的调�
 
 ## 9. 待调研确认（不阻塞 H6-A；开工前补齐）
 
-> 已派 subagent 逐条取源码证据，结论落回本节（含 `path:line`）。
+> **已就地核实（2026-09-17，本节第 1/2 条的核心部分）**：
+> `@deepseek-ai/dsh-mcp-client` 的 `Config` 是 `StdioConfig | StreamableHttpConfig`
+> 顶层联合，字段含 **`cwd`**（子进程工作目录）、`toolCallTimeoutMs`、
+> `failOnStartupError`；工具名 = `mcp__<serverName>__<rawName>`；stdio 桥先剥
+> 凭据形状变量与全部 `DSH_*`。证据：`docs/config-catalog.md:1600-1650`、
+> `docs/user/guide/mcp-memory.md`、`apps/cli/config/examples/mcp-memory/*.cordis.yml`。
+> 结论已写进 §6.3。**仍待确认的**：
 
-1. **DSH MCP client**：`packages/mcp/*` 的完整配置 schema、传输支持（stdio/SSE/HTTP）、
-   工具命名模式（`mcp__<server>__<tool>` 的确切拼法）、启动时机与失败语义
-   （server 挂掉是否会拖垮会话）、结果内容类型、schema/description 的传递与截断。
-2. **路径解析**：MCP 的 `command` 相对路径按 **patch 文件目录 / profile 目录 / 启动 cwd**
-   哪一处解析（决定 `dsh/cordis.patch.yml` 里能否用相对路径，或必须 `!!js` 绝对化）。
-3. **项目侧可交付性**：仓库能否自带 MCP 配置（DSH 是否读项目的 `.mcp.json`），
-   若不能则确认"用户 profile 插一行"是唯一路径（同 hooks 桥的结论）。
+1. ~~**DSH MCP client**：配置 schema、传输、工具命名、失败语义~~ → 已核实（见上）。
+   仍需：结果内容类型（text/image/resource/structured）与**是否支持 resources/prompts**
+   （`packages/mcp/mcp-resources` 的存在暗示支持，需确认模型能否 `resources/read`）、
+   以及 schema/description 传递时是否有截断。
+2. **路径解析**：`cwd` 的 `!!js` 求值上下文已确认与 LSP 行相同（**必须单行**）；
+   仍需确认 `args` 里的相对路径是相对 `cwd` 还是相对 DSH 启动目录
+   （决定 `args: ['scripts/soko-mcp.js']` 是否成立；不确定时改成 `!!js` 绝对路径）。
+3. **项目侧可交付性**：**已确认 DSH 不读项目级 MCP 配置**（官方工作示例一律
+   `--patch <文件>` 或并入用户 profile 层，`mcp-memory.md`「Enable one」），
+   与 hooks 桥结论一致 → **用户显式 opt-in 是唯一路径**（已写进 §6.3）。
+   若将来 DSH 支持项目级发现，本设计只需把同一段 YAML 挪个位置。
 4. **两个 TODO 的根因**：`derive_recursor` 的 IH 形状错在哪一行、
    parser 的单名路径清单（用于一次修完同类缺口）。
 
@@ -375,7 +491,7 @@ DSH 侧的 MCP 行与 LSP 行放在同一个 overlay 里（细节以 §9 的调�
   `cargo clippy` 教学 crates 零 warning（`[lints] deny` 不变）。
 - **A6（两个 TODO）**：`Le`/`Even` 省略 `rec` 时自动派生通过内核（课程改为依赖自动派生，
   golden 同步）；`inductive Foo (A B : Prop)` 解析通过并有三层测试；
-  两个修复各有"修复前红"的复现测试。
+  两个修复各有"修复前红"的复现测试（输入见 §5 H6-C 的两段可复制用例）。
 - **A7（回归）**：`cargo test --workspace --locked` 全绿；`scripts/soko gate` PASS；
   既有 `--json`/`soko/*` 契约测试**不改判据**（只加，不改）。
 
