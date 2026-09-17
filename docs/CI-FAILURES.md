@@ -310,3 +310,16 @@
 - **修复**：探活 `extensionquery` = 200 → `gh run rerun 35101032677 --failed` → 成功。
 - **观察**：这是本会话第 3 次同类复发，均为服务端瞬时；处置已固化为"探活 → rerun --failed"。
   若继续上升，考虑把 publish 重试 3→5 并加指数退避（记为待办，非本轮）。
+
+## 2026-09-17 — v0.55.0 发布：marketplace-publish Azure gallery 超时（已知类，第 4 次复发）
+
+- **现象**：`marketplace-publish` 的 `vsce publish sokonanoda-universal.vsix` **4 次全超时**
+  （`##[error]Request timeout: /_apis/gallery`，工作流内 `for attempt in 1 2 3 4` 全部用尽）；
+  `build`×8 / `package-vsix` / `github-release` 成功（Release 26 资产齐全，含 `SHA256SUMS`）。
+- **定位**：与代码无关（本轮改动只在 agent 接线层：`.agents/skills/`、`scripts/soko`、
+  `dsh/`、文档与契约测试）；Azure DevOps gallery 服务端瞬时不可用。
+- **修复**：探活 `extensionquery` = 200（0.36s）→ `gh run rerun 35166319431 --failed`。
+- **更正台账口径**：此前两条写"内置 3 次重试仍不够"，实际工作流已是 **4 次**
+  （`release.yml` 的 marketplace-publish 步骤）。故"重试 3→5"不再是对策——
+  4 次连续超时说明该窗口内服务端整体不可用，**探活 + rerun 才是有效手段**；
+  若单次窗口拖长，考虑把该步骤的 `timeout-minutes` 与重试间隔（当前 30s）拉大。
