@@ -29,6 +29,8 @@ struct Args {
     direction: Option<String>,
     expr: Option<String>,
     compact: bool,
+    /// `--root <dir>`：项目闭包的模块根（`--text` 里有 `import` 时必需）。
+    root: Option<String>,
 }
 
 /// 用法错误（退出码 2）。
@@ -46,6 +48,7 @@ fn parse_args(argv: &[String]) -> Result<Args, Usage> {
         direction: None,
         expr: None,
         compact: false,
+        root: None,
     };
     let mut i = 0;
     while i < argv.len() {
@@ -67,6 +70,7 @@ fn parse_args(argv: &[String]) -> Result<Args, Usage> {
         };
         match arg {
             "--file" => args.file = Some(value("--file")?),
+            "--root" => args.root = Some(value("--root")?),
             "--text" => args.text = Some(value("--text")?),
             "--line" => {
                 args.line = Some(
@@ -188,7 +192,7 @@ fn ok_envelope(op: &str, version: u64, data: Value) -> Value {
 }
 
 /// 入口：解析 → 执行 → 打印单 JSON 对象 → 退出码。
-pub(crate) fn run(argv: &[String]) -> ExitCode {
+pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
     let args = match parse_args(argv) {
         Ok(args) => args,
         Err(Usage(message)) => {
@@ -216,6 +220,9 @@ pub(crate) fn run(argv: &[String]) -> ExitCode {
         }
     };
     let mut doc = QueryDoc::new();
+    // 入口路径 / `--root`：只有带 `import` 的文档才会用到（项目闭包编译）。
+    doc.path = args.file.as_ref().map(std::path::PathBuf::from);
+    doc.root = args.root.as_deref().or(root).map(std::path::PathBuf::from);
     doc.set_text(&src, 1, None);
 
     let (payload, exit) = match args.op.as_str() {

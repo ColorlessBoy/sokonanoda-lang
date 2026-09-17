@@ -25,6 +25,8 @@ fn main() -> ExitCode {
     let mut clean = false;
     let mut doc: Option<String> = None;
     let mut workspace: Option<String> = None;
+    let mut root: Option<String> = None;
+    let mut no_project = false;
     let mut positionals: Vec<String> = Vec::new();
     let mut i = 0;
     while i < args.len() {
@@ -43,6 +45,17 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             },
+            "--root" => match args.get(i + 1) {
+                Some(path) => {
+                    root = Some(path.clone());
+                    i += 1;
+                }
+                None => {
+                    eprintln!("error: --root requires a directory");
+                    return ExitCode::FAILURE;
+                }
+            },
+            "--no-project" => no_project = true,
             "--workspace" => match args.get(i + 1) {
                 Some(root) => {
                     workspace = Some(root.clone());
@@ -81,12 +94,12 @@ fn main() -> ExitCode {
         Some("gate") => env::gate(),
         // 内核真相查询（agent/MCP 的"提问式"通道；单 JSON 对象）。
         // 设计：docs/design/agent-query-channel.md §5。
-        Some("query") if !json => query::run(&positionals[1..]),
+        Some("query") if !json => query::run(&positionals[1..], root.as_deref()),
         Some("query") => {
             eprintln!("error: query 自带 JSON 输出，不要加 --json");
             ExitCode::FAILURE
         }
-        Some("build") => build::build(&positionals[1..], json, clean),
+        Some("build") => build::build(&positionals[1..], json, clean, root.as_deref(), no_project),
         Some("repl") if !json => repl(),
         Some("repl") => {
             eprintln!("error: --json is only supported for batch checking, not the repl");
@@ -129,12 +142,18 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
-        None => check_path_or_stdin(None, json, bare),
-        Some(p) => check_path_or_stdin(Some(p), json, bare),
+        None => check_path_or_stdin(None, json, bare, root, no_project),
+        Some(p) => check_path_or_stdin(Some(p), json, bare, root, no_project),
     }
 }
 
-fn check_path_or_stdin(arg: Option<&str>, json: bool, bare: bool) -> ExitCode {
+fn check_path_or_stdin(
+    arg: Option<&str>,
+    json: bool,
+    bare: bool,
+    root: Option<String>,
+    no_project: bool,
+) -> ExitCode {
     let mut src = String::new();
     let read_result = match arg {
         None | Some("-") => std::io::stdin().read_to_string(&mut src),
@@ -151,7 +170,14 @@ fn check_path_or_stdin(arg: Option<&str>, json: bool, bare: bool) -> ExitCode {
         None | Some("-") => "<stdin>".to_string(),
         Some(path) => path.to_string(),
     };
-    if check_source(&src, &label, json, bare) {
+    if check_source(check::CheckRequest {
+        src: &src,
+        label: &label,
+        json,
+        bare,
+        root: root.map(std::path::PathBuf::from),
+        no_project,
+    }) {
         ExitCode::SUCCESS
     } else {
         ExitCode::FAILURE

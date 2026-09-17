@@ -49,6 +49,13 @@ pub struct QueryDoc {
     pub parse_error: Option<Diagnostic>,
     /// 文档版本（随每次 `set_text` 递增），供消费者丢弃过期答案。
     pub version: u64,
+    /// 入口文件路径（`--text`/stdin 为 `None`）：文本里有 `import` 时，
+    /// 项目闭包编译需要它来定位模块根（设计 §4.9）。
+    pub path: Option<std::path::PathBuf>,
+    /// `--root` 显式模块根（跳过清单发现）。
+    pub root: Option<std::path::PathBuf>,
+    /// 文本里有 `import` 且能定位入口时的项目编译结果。
+    project: Option<crate::project::ProjectReport>,
 }
 
 impl Default for QueryDoc {
@@ -66,6 +73,9 @@ impl QueryDoc {
             report: None,
             parse_error: None,
             version: 0,
+            path: None,
+            root: None,
+            project: None,
         }
     }
 
@@ -82,6 +92,32 @@ impl QueryDoc {
         let update = self.session.update(text, version);
         self.parse_error = update.parse_error;
         self.report = Some(update.report);
+        // 有 `import` 时环境来自整个闭包：单文件会话看不到被导入的声明，
+        // 所以这里覆盖成项目编译的入口报告（无 import 时零变化）。
+        self.project = self.project_compile(text);
+        if let Some(report) = self.project.as_ref().and_then(|p| p.entry_report()) {
+            self.report = Some(report.clone());
+        }
+    }
+
+    /// 文本里有 `import` 且能定位入口（`--file` 或 `--root`）时，编译整个
+    /// 闭包并返回项目报告；否则 `None`（单文件路径，行为与今天一致）。
+    fn project_compile(&self, text: &str) -> Option<crate::project::ProjectReport> {
+        let parsed = crate::parse(text).ok()?;
+        if !parsed.commands.iter().any(|command| command.is_import()) {
+            return None;
+        }
+        let root = self.root.as_deref();
+        let path = self
+            .path
+            .clone()
+            .or_else(|| root.map(|root| root.join("Main.sokonanoda")))?;
+        Some(crate::project::compile_project(
+            &path,
+            Some(text),
+            &self.options(),
+            root,
+        ))
     }
 
     /// 当前 prelude 模式对应的编译选项。
@@ -115,7 +151,13 @@ impl QueryDoc {
     /// 整文件判卷摘要。**与 `--json` 事件流同源**（同一个 `front::session` +
     /// 同一个 `compile_all_with`），契约测试断言两者计数一致（设计文档 A4）。
     pub fn check(&self) -> CheckSummary {
-        let (output, _) = compile_all_with(&parse_or_empty(&self.text), &self.options());
+        let output = match self.project_compile(&self.text) {
+            Some(project) => project
+                .entry_module()
+                .map(|module| module.events.clone())
+                .unwrap_or_default(),
+            None => compile_all_with(&parse_or_empty(&self.text), &self.options()).0,
+        };
         let mut counts = CheckCounts::default();
         for event in &output.events {
             use crate::compile::CheckEvent::*;
@@ -318,6 +360,11 @@ impl QueryDoc {
         let Some(report) = &self.report else {
             return DocumentReport::default();
         };
+        if self.project.is_some() {
+            // 项目模式下探针不适用：`probe_sub_goal_types` 会把文本当**单文件**
+            // 重编译，闭包环境会丢，期望类型会失真。宁可少给信息，不给错的。
+            return report.clone();
+        }
         let needs_probe = report
             .decls
             .iter()
@@ -406,7 +453,13 @@ impl QueryDoc {
     /// 对给定表达式求值（与 REPL `#reduce` 同一真相）。
     pub fn reduce(&self, expr: &str) -> Option<ReduceAnswer> {
         let src = format!("{}\n#reduce {expr}\n", self.text);
-        let (output, _) = compile_all_with(&parse_or_empty(&src), &self.options());
+        let output = match self.project_compile(&src) {
+            Some(project) => project
+                .entry_module()
+                .map(|module| module.events.clone())
+                .unwrap_or_default(),
+            None => compile_all_with(&parse_or_empty(&src), &self.options()).0,
+        };
         output.events.iter().find_map(|e| match e {
             crate::compile::CheckEvent::Reduced { text, .. } => Some(ReduceAnswer {
                 value: text.clone(),

@@ -152,5 +152,11 @@ impl ProjectReport {
                 }
             }
         }
+        // `events` 是报告的"批处理视图"（CLI/`--json` 打印它）：挂完项目级
+        // 诊断后必须同步，否则 import 行的红标记只在报告里、打印不出来。
+        for module in &mut self.modules {
+            module.events.errors = module.report.errors.clone();
+            module.events.warnings = module.report.warnings.clone();
+        }
     }
 }

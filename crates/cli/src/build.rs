@@ -12,7 +12,13 @@ use sokonanoda_front::compile::{compile_all_with, prelude_mode_from_source, Comp
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-pub(crate) fn build(args: &[String], json: bool, clean: bool) -> ExitCode {
+pub(crate) fn build(
+    args: &[String],
+    json: bool,
+    clean: bool,
+    root: Option<&str>,
+    no_project: bool,
+) -> ExitCode {
     if clean {
         let removed = cache::clean();
         if json {
@@ -48,7 +54,7 @@ pub(crate) fn build(args: &[String], json: bool, clean: bool) -> ExitCode {
     for file in &files {
         let status = std::fs::read_to_string(file)
             .map_err(|e| format!("cannot read: {e}"))
-            .and_then(|src| build_one(&src));
+            .and_then(|src| build_one(file, &src, root, no_project));
         let status = match status {
             Ok(status) => status,
             Err(message) => {
@@ -94,7 +100,12 @@ pub(crate) fn build(args: &[String], json: bool, clean: bool) -> ExitCode {
 /// Compile one source through the cache, returning `"hit"`, `"compiled"` or
 /// `"failed"`. Options mirror the batch checker (file-directive prelude mode)
 /// so a `build` warms exactly the entries `check`/`course` later load.
-fn build_one(src: &str) -> Result<&'static str, String> {
+fn build_one(
+    path: &Path,
+    src: &str,
+    root: Option<&str>,
+    no_project: bool,
+) -> Result<&'static str, String> {
     let options = CompileOptions {
         prelude: prelude_mode_from_source(src),
     };
@@ -110,6 +121,26 @@ fn build_one(src: &str) -> Result<&'static str, String> {
             ));
         }
     };
+    // 有 import ⇒ 项目闭包（v1 不进缓存：闭包键在 P4 落地；现在宁可重编译，
+    // 也不拿单文件键去缓存一个依赖别人环境的报告）。
+    if parsed.commands.iter().any(|command| command.is_import()) {
+        let root_override = if no_project {
+            path.parent().map(Path::to_path_buf)
+        } else {
+            root.map(PathBuf::from)
+        };
+        let project = sokonanoda_front::project::compile_project(
+            path,
+            Some(src),
+            &options,
+            root_override.as_deref(),
+        );
+        let ok = project
+            .entry_module()
+            .is_none_or(|module| module.events.errors.is_empty())
+            && !project.has_errors();
+        return Ok(if ok { "compiled" } else { "failed" });
+    }
     if let Some(entry) = cache::load(src, &options) {
         if entry.output.is_some() {
             return Ok("hit");

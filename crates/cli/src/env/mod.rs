@@ -187,7 +187,14 @@ pub fn grade(paths: &[String]) -> ExitCode {
     for path in paths {
         match std::fs::read_to_string(path) {
             Ok(src) => {
-                if !crate::check::check_source(&src, path, true, false) {
+                if !crate::check::check_source(crate::check::CheckRequest {
+                    src: &src,
+                    label: path,
+                    json: true,
+                    bare: false,
+                    root: None,
+                    no_project: false,
+                }) {
                     ok = false;
                 }
             }
@@ -278,7 +285,14 @@ pub fn gate() -> ExitCode {
     let anchor = "playground.sokonanoda";
     match std::fs::read_to_string(anchor) {
         Ok(src) => {
-            if crate::check::check_source(&src, anchor, true, false) {
+            if crate::check::check_source(crate::check::CheckRequest {
+                src: &src,
+                label: anchor,
+                json: true,
+                bare: false,
+                root: None,
+                no_project: false,
+            }) {
                 eprintln!("sokonanoda: gate PASS");
                 ExitCode::SUCCESS
             } else {
