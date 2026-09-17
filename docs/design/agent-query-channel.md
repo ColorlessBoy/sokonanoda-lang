@@ -388,6 +388,16 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
    ⚠️ 该一致性测试比较的是 `target/<profile>/sokonanoda-lsp`——**改了 front 却只跑
    `cargo test -p sokonanoda-cli` 时会拿旧二进制对拍**。这是特性（陈旧构件会当场暴露）
    也是坑（先 `cargo build --workspace` 或 `cargo test --workspace`）。
+7. **刻意留在 LSP 的适配器规则**（是坐标/呈现适配，不是第二份真相；**别"顺手统一"掉**）：
+   - `position_to_offset`：LSP 的 0-based、按字符计数的光标约定（真相层用字节
+     offset，并另给 1-based UTF-16 的 `line_col_of`/`offset_of_line_col`）；
+   - `render::decl_at`（**半开区间** `start <= p < end`）：hover 用；它由
+     `hover_on_closing_bracket_never_shows_neighbor_signature` 钉死"光标在声明末尾
+     不显示邻居签名"。而 `stateAt`/`hints` 的声明查找按协议是**闭区间**（含末尾，
+     末行行尾的光标也算在声明内）。两者取值不同是**故意的**；
+   - `range_of(Span)`：诊断 / hover / symbols / lens / folding / rename / references
+     这些直接读原始 `DocumentReport` 的路径仍用它；`soko/*` 的 Range 全部走
+     `query_map::range_of_offsets`（UTF-16 列，见 STATUS 第八十九轮第 7 条）。
 
 ### H6-B —— MCP 传输 + DSH 接线（P1）✅ 已完成
 1. `dsh/mcp/server.js`：✅ MCP stdio（`initialize`/`tools/list`/`tools/call`），
