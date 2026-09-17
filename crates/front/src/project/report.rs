@@ -119,6 +119,20 @@ impl ProjectReport {
         self.diagnostics.iter().any(|diag| diag.kind.is_error())
     }
 
+    /// "完全干净"：没有任何诊断（错误或警告）、也没有清单版本提示。
+    ///
+    /// 只有干净的项目才进缓存——缓存条目里只有**入口**的报告与事件，带诊断的
+    /// 项目回放不出依赖模块的诊断，而冷跑/热跑必须逐字节一致（A1 的多文件版）。
+    pub fn is_clean(&self) -> bool {
+        !self.has_errors()
+            && self.diagnostics.is_empty()
+            && self.requires_warning.is_none()
+            && self
+                .modules
+                .iter()
+                .all(|module| module.report.errors.is_empty() && module.report.warnings.is_empty())
+    }
+
     /// 把项目级诊断挂进对应模块的报告：错误进 `errors`、警告进 `warnings`，
     /// 于是 CLI / `--json` / LSP / `query` 都能像看普通诊断一样看到它们
     /// （入口文件的 `import` 行因此会有红/黄标记）。

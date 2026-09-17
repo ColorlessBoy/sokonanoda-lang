@@ -78,3 +78,26 @@ sokonanoda build [--json] [--clean] [<file> | <dir> ...]
 - 不做跨文件/增量持久化（不缓存 Session 快照，只缓存整份报告）。
 - 不做 LRU/容量上限（教学文件报告为 KB 级；如需后续再加）。
 - 不做与内核 `.olean` 等价的「已编译环境导入」。
+
+---
+
+## 7. 多文件闭包键（I16 P4，2026-09-17）
+
+有 `import` 的文件，编译单元是**整个项目闭包**（`docs/design/imports-and-projects.md`），
+所以键从"本文件源文本"升级为**闭包摘要**：
+
+```
+digest = FNV-1a64( "soko.project-iface/1",
+                   prelude 模式,
+                   for module in 拓扑序 { module 名 \0 module 源文本 \0 各 import 名 } )
+cache::key(digest, options)   # 仍然复用同一个 format|version|build|bare 前缀
+```
+
+- **依赖变了必然 miss**：摘要按拓扑序含每个模块的源文本，改一行库文件 ⇒ 入口的
+  摘要变 ⇒ 重编译（`crates/cli/tests/imports.rs` 有判别性测试：改依赖后 `#reduce`
+  必须给出新值）。
+- **单文件仍是原来的键**：没有 `import` 的文件走原路径，键与今天逐字节相同
+  （既有 warm-cache 测试不受影响）。
+- **只缓存"完全干净"的项目**（`ProjectReport::is_clean`）：条目里只有**入口**的
+  报告与事件，带诊断的项目回放不出依赖模块的诊断，而冷跑/热跑必须逐字节一致。
+- **不做**：deps 级 decl 产物（信任台账，见设计 §4.8 的可选项及其"先换强哈希"前置）。

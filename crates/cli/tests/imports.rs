@@ -31,11 +31,20 @@ fn write(dir: &Path, relative: &str, text: &str) {
 
 /// 隔离缓存目录，避免测试之间互相看到对方的编译结果。
 fn run(dir: &Path, args: &[&str], stdin: Option<&str>) -> std::process::Output {
-    let cache = dir.join(".cache");
+    run_with_cache(dir, &dir.join(".cache"), args, stdin)
+}
+
+/// 固定缓存目录：观察"热跑命中"与"依赖变更后失效"必须复用同一个缓存。
+fn run_with_cache(
+    dir: &Path,
+    cache: &Path,
+    args: &[&str],
+    stdin: Option<&str>,
+) -> std::process::Output {
     let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .args(args)
         .current_dir(dir)
-        .env("SOKONANODA_CACHE_DIR", &cache)
+        .env("SOKONANODA_CACHE_DIR", cache)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -297,6 +306,49 @@ fn query_resolves_imported_names_in_the_closure() {
         text.contains("\"decl_checked\": 1") && text.contains("\"ok\": true"),
         "the imported declaration is visible to the theorem: {text} stderr: {}",
         stderr(&out)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_project_cache_hits_and_a_dependency_change_invalidates_it() {
+    let dir = tmp_dir("cache");
+    let cache = dir.join(".cache");
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Bar\n\n#reduce bar\n",
+    );
+
+    // 冷跑：编译；热跑：命中，且输出逐字节一致。
+    let cold = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
+    let warm = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
+    assert_eq!(stdout(&cold), stdout(&warm), "warm output must match cold");
+    assert!(stdout(&cold).contains("\"value\":\"2\""), "{}", stdout(&cold));
+
+    // 改**依赖**（入口一字未动）：闭包哈希变 ⇒ 必须重编译，不能拿旧报告。
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 3\n");
+    let after = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
+    assert!(
+        stdout(&after).contains("\"value\":\"3\""),
+        "a dependency change must invalidate the entry's cached report: {}",
+        stdout(&after)
+    );
+
+    // `build` 也能看到 hit/compiled 的区别：入口（项目键）已经在上面热过，
+    // 所以第一次 build 只需编译没有 import 的 `Bar`，第二次两个都是 hit。
+    let build_first = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    assert!(
+        stdout(&build_first).contains("\"compiled\":1") && stdout(&build_first).contains("\"hit\":1"),
+        "the entry is a project hit, the plain file compiles: {}",
+        stdout(&build_first)
+    );
+    let build_second = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    assert!(
+        stdout(&build_second).contains("\"hit\":2"),
+        "everything is warm now: {}",
+        stdout(&build_second)
     );
     let _ = std::fs::remove_dir_all(&dir);
 }

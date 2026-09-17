@@ -129,16 +129,31 @@ fn build_one(
         } else {
             root.map(PathBuf::from)
         };
-        let project = sokonanoda_front::project::compile_project(
-            path,
-            Some(src),
-            &options,
-            root_override.as_deref(),
-        );
+        let plan =
+            sokonanoda_front::project::plan_project(path, Some(src), root_override.as_deref());
+        let digest = plan.digest(&options);
+        if let Some(entry) = cache::load(&digest, &options) {
+            if entry.output.is_some() {
+                return Ok("hit");
+            }
+        }
+        let project = sokonanoda_front::project::compile_plan(plan, &options);
         let ok = project
             .entry_module()
             .is_none_or(|module| module.events.errors.is_empty())
             && !project.has_errors();
+        if ok && project.is_clean() {
+            if let Some(entry) = project.entry_module() {
+                cache::store(
+                    &digest,
+                    &options,
+                    &CachedCompile {
+                        report: entry.report.clone(),
+                        output: Some(entry.events.clone()),
+                    },
+                );
+            }
+        }
         return Ok(if ok { "compiled" } else { "failed" });
     }
     if let Some(entry) = cache::load(src, &options) {

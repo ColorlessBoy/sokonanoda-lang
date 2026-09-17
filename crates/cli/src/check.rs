@@ -11,7 +11,7 @@ use sokonanoda_front::compile::{
     compile_all_with, prelude_mode_from_source, CheckEvent, CompileOptions, CompileOutput,
     DocumentReport, PreludeMode,
 };
-use sokonanoda_front::project::{compile_project, ProjectReport};
+use sokonanoda_front::project::ProjectReport;
 use sokonanoda_front::{parse, FolFile};
 
 /// 批检查的请求（`--root` / `--no-project` 只对有 `import` 的文件生效）。
@@ -83,8 +83,34 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         } else {
             root.clone()
         };
-        let project = compile_project(&entry, Some(src), &options, root_override.as_deref());
-        return report_project(&project, src, json);
+        // 闭包摘要先算（只做 IO/parse）：命中就整个跳过内核。
+        let plan = sokonanoda_front::project::plan_project(&entry, Some(src), root_override.as_deref());
+        let digest = plan.digest(&options);
+        if let Some(cached) = cache::load(&digest, &options) {
+            if let Some(output) = cached.output {
+                if json {
+                    report_json(&output, src);
+                } else {
+                    report_output(&output, src, 0);
+                }
+                return output.errors.is_empty();
+            }
+        }
+        let project = sokonanoda_front::project::compile_plan(plan, &options);
+        let ok = report_project(&project, src, json);
+        if project.is_clean() {
+            if let Some(entry) = project.entry_module() {
+                cache::store(
+                    &digest,
+                    &options,
+                    &CachedCompile {
+                        report: entry.report.clone(),
+                        output: Some(entry.events.clone()),
+                    },
+                );
+            }
+        }
+        return ok;
     }
 
     let (output, _report) = compile_cached(&file, src, &options);

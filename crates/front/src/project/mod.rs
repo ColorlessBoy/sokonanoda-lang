@@ -53,6 +53,69 @@ pub fn compile_project(
     options: &CompileOptions,
     root_override: Option<&Path>,
 ) -> ProjectReport {
+    compile_plan(plan_project(entry_path, entry_src, root_override), options)
+}
+
+/// 一次项目编译的**计划**：根、清单、闭包（都只做了读取与解析）。
+///
+/// 拆出来是为了缓存：闭包哈希必须在**编译之前**算出来（`plan.digest()`），
+/// 命中就整个跳过内核；而计划本身只做 IO 与 parse，反复算也不贵。
+pub struct ProjectPlan {
+    pub entry: PathBuf,
+    pub root: PathBuf,
+    pub manifest: Option<PathBuf>,
+    pub requires_warning: Option<String>,
+    /// 加载期诊断（找不到/环/语法错误），编译期诊断由 `compile_plan` 追加。
+    pub diagnostics: Vec<ProjectDiagnostic>,
+    closure: Closure,
+}
+
+impl ProjectPlan {
+    pub fn modules(&self) -> &[LoadedModule] {
+        &self.closure.modules
+    }
+
+    pub fn entry(&self) -> &str {
+        &self.closure.entry
+    }
+
+    /// 闭包摘要：**所有模块的源文本按拓扑序** + import 边 + prelude 模式。
+    /// 依赖变了 ⇒ 摘要变 ⇒ 入口的缓存键变（设计 §4.8 的 Merkle 链）。
+    /// 单文件（无 import）不走这条路：它用既有的"源文本"键。
+    pub fn digest(&self, options: &CompileOptions) -> String {
+        let mut hash = 0xcbf2_9ce4_8422_2325u64;
+        let mut mix = |bytes: &[u8]| {
+            for byte in bytes {
+                hash ^= u64::from(*byte);
+                hash = hash.wrapping_mul(0x100_0000_01b3);
+            }
+        };
+        mix(b"soko.project-iface/1");
+        mix(&[match options.prelude {
+            PreludeMode::Full => 1,
+            PreludeMode::Bare => 2,
+        }]);
+        for module in &self.closure.modules {
+            mix(module.name.as_bytes());
+            mix(b"\0");
+            mix(module.file.src.as_bytes());
+            mix(b"\0");
+            for (dep, _) in &module.imports {
+                mix(dep.as_bytes());
+                mix(b",");
+            }
+            mix(b"\n");
+        }
+        format!("closure-{hash:016x}")
+    }
+}
+
+/// 解析项目根、加载闭包（不编译）。
+pub fn plan_project(
+    entry_path: &Path,
+    entry_src: Option<&str>,
+    root_override: Option<&Path>,
+) -> ProjectPlan {
     let entry_dir = entry_path
         .parent()
         .map(Path::to_path_buf)
@@ -89,7 +152,26 @@ pub fn compile_project(
     };
 
     // 2) 闭包加载（解析 + 环 + 找不到 + 阻断传播）。
-    let mut closure = load_closure(&root, entry_path, entry_src);
+    let closure = load_closure(&root, entry_path, entry_src);
+
+    ProjectPlan {
+        entry: entry_path.to_path_buf(),
+        root,
+        manifest: manifest_path,
+        requires_warning,
+        diagnostics,
+        closure,
+    }
+}
+
+/// 执行计划：闭包级检查 → 一次编译 → 逐模块报告 → 挂诊断。
+pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectReport {
+    let entry_path = plan.entry.clone();
+    let root = plan.root.clone();
+    let manifest_path = plan.manifest.clone();
+    let requires_warning = plan.requires_warning.clone();
+    let mut diagnostics = std::mem::take(&mut plan.diagnostics);
+    let mut closure = plan.closure;
     diagnostics.append(&mut closure.diagnostics);
 
     // 3) 闭包级检查：重名 + prelude 冲突（都在入内核之前拦下，避免内核文案）。
@@ -172,7 +254,7 @@ pub fn compile_project(
     }
 
     let mut project = ProjectReport {
-        entry: entry_path.to_path_buf(),
+        entry: entry_path,
         root,
         manifest: manifest_path,
         modules,

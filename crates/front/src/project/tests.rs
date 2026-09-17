@@ -411,3 +411,59 @@ fn a_broken_manifest_is_a_project_error_not_a_panic() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// ── P4：闭包摘要（缓存键）─────────────────────────────────────────────────
+
+#[test]
+fn closure_digest_is_stable_and_dependency_sensitive() {
+    let dir = tmp_dir("digest");
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
+    write(&dir, "Main.sokonanoda", "import Bar\n\ndef two : Nat := bar\n");
+    let path = dir.join("Main.sokonanoda");
+    let options = CompileOptions::default();
+
+    let digest = |options: &CompileOptions| {
+        plan_project(&path, None, None).digest(options)
+    };
+    let first = digest(&options);
+    assert_eq!(first, digest(&options), "same inputs ⇒ same digest");
+
+    // 依赖变了 ⇒ 入口的键必须变（否则会拿旧报告当"检查过"）。
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 3\n");
+    assert_ne!(first, digest(&options), "a dependency edit invalidates it");
+
+    // 入口自己变了 ⇒ 也变。
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
+    write(&dir, "Main.sokonanoda", "import Bar\n\ndef two : Nat := bar + 0\n");
+    assert_ne!(first, digest(&options), "an entry edit invalidates it");
+
+    // prelude 模式变了 ⇒ 也变（Bare 下 `Nat` 根本不存在）。
+    let bare = CompileOptions {
+        prelude: PreludeMode::Bare,
+    };
+    assert_ne!(digest(&options), digest(&bare), "the prelude shape is part of the key");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn closure_digest_marks_the_module_set() {
+    let dir = tmp_dir("digest-set");
+    write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
+    write(&dir, "Main.sokonanoda", "import Bar\n\ndef two : Nat := bar\n");
+    let path = dir.join("Main.sokonanoda");
+    let options = CompileOptions::default();
+    let one_dep = plan_project(&path, None, None).digest(&options);
+
+    write(&dir, "Baz.sokonanoda", "def baz : Nat := 4\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Bar\nimport Baz\n\ndef two : Nat := bar + baz\n",
+    );
+    assert_ne!(
+        one_dep,
+        plan_project(&path, None, None).digest(&options),
+        "adding an import changes the closure"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
