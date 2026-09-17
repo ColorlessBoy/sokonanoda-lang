@@ -14,6 +14,16 @@ pub(crate) fn print_help() {
     );
     println!("  sokonanoda course <course.json> aggregate unit progress (JSON with --json)");
     println!("  sokonanoda build [path ...]     warm the compile cache (--clean clears it)");
+    println!("  sokonanoda query <op> [opts]    kernel truth as ONE JSON object (agent view):");
+    println!("      check                     counts + failures + warnings for the file");
+    println!("      state  --line L --col C   goal state at the caret (Lean goalsAt? semantics)");
+    println!("      goals  [--probe]          every declaration: type, status, goals, holes");
+    println!("      holes  [--offset N] [--direction next|prev]");
+    println!("                                addressable holes (stable ids), optional step");
+    println!("      hints  --line L --col C   the `-- soko:hint` ladder for that declaration");
+    println!("      reduce --expr E           kernel normal form of an expression");
+    println!("    input: --file <path> | --text <src> | stdin;  --compact for one line");
+    println!("    exit: 0 ok (open `sorry` is legal) · 1 kernel-rejected · 2 usage");
     println!("  sokonanoda --json <file>        emit JSON Lines events (agent/service view)");
     println!("  sokonanoda --bare <file>        compile with no prelude (file is self-contained);");
     println!(

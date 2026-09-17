@@ -6,6 +6,7 @@ mod course;
 mod env;
 mod help;
 mod json_report;
+mod query;
 mod repl;
 mod watch;
 
@@ -78,6 +79,13 @@ fn main() -> ExitCode {
         Some("update") => env::update(),
         Some("grade") => env::grade(&positionals[1..]),
         Some("gate") => env::gate(),
+        // 内核真相查询（agent/MCP 的"提问式"通道；单 JSON 对象）。
+        // 设计：docs/design/agent-query-channel.md §5。
+        Some("query") if !json => query::run(&positionals[1..]),
+        Some("query") => {
+            eprintln!("error: query 自带 JSON 输出，不要加 --json");
+            ExitCode::FAILURE
+        }
         Some("build") => build::build(&positionals[1..], json, clean),
         Some("repl") if !json => repl(),
         Some("repl") => {

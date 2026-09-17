@@ -545,3 +545,50 @@ An agent can drive the tool by:
 
 No editor-specific API is part of this protocol; the protocol is text/events
 only, so VS Code, CLI, tests and agents can share it.
+
+## `query` subcommand: kernel truth as one JSON object
+
+`--json` emits the **full event stream**; `query` emits the **same truth** as a
+single JSON object (counts, addressable holes, the goal state at a caret) so an
+agent or script parses once instead of reassembling state from lines. Both come
+from the same `front::session` compile, and a contract test asserts their
+counts agree.
+
+```
+sokonanoda query <op> [options]
+```
+
+| op | needs | answer (`data`) |
+|---|---|---|
+| `check` | — | `{version, counts{decl_checked,example_checked,exercise_open,expr_typed,expr_reduced,decl_printed}, failed[{code,message,start,end}], warnings[{code,message,hint,start,end}]}` |
+| `state` | `--line L --col C` or `--offset N` | `{version, decl{name,kind,status,start,end}\|null, goal, goal_runs, binders, goals[{goal,goal_runs,binders}], span[start,end]\|null, step, total}` |
+| `goals` | — (`--probe` runs the kernel probe) | `[{name,kind,status,start,end,ty,ty_runs,goal,goals,binders,hole[start,end]\|null,holes[{start,end,id}],sub_goals[{start,end,ty}],code_actions}]` |
+| `holes` | — (optional `--offset N --direction next\|prev`) | `{holes[{id,start,end,ty,decl}], navigated<hole>\|null}` |
+| `hints` | `--line L --col C` or `--offset N` | `{hints[string]}` |
+| `reduce` | `--expr E` | `{value, ty}` |
+
+Input: `--file <path>`, `--text <src>`, or stdin (a bare `-` also means stdin).
+`--compact` prints one line instead of pretty JSON.
+
+Envelope (every answer, success or failure):
+
+```json
+{"schema": "soko.query/1", "op": "state", "version": 1, "ok": true, "data": {…}}
+{"schema": "soko.query/1", "op": "state", "version": 1, "ok": false,
+ "error": {"code": "outside-declarations", "message": "该位置不在任何声明内部"}}
+```
+
+- **`ok:false` is not "empty"**: no remaining goal (`goal: null`) and "no next
+  hole" (`navigated: null`) are *successful* answers. `error.code` is one of
+  `not-parsable` / `outside-declarations` / `position-out-of-range`. Mixing the
+  two is what forced agents to re-derive state from text before.
+- **Exit codes**: `0` = answered (an open `sorry` exercise is a legal state),
+  `1` = the file has kernel-rejected declarations (or `reduce` failed),
+  `2` = usage error. **Decide on the JSON, not the exit code.**
+- Positions are 1-based `line`/`col` with **UTF-16** columns (the LSP `character`
+  convention); `--offset` is a byte offset. `holes[].id` (`<declName>:<index>`)
+  is the stable reference for programmatic consumers — two sub-goals of one
+  `apply` share a source position, so positional navigation steps over them as a
+  group (see the `soko/nextHole` limitation above).
+- Fields are **additive only**; renaming one is a breaking change (minor bump +
+  docs + tests). `soko.query/1` is the schema tag.
