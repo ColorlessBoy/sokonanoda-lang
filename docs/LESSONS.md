@@ -326,3 +326,27 @@
   （test/非 test 各多少行），而不是形容词。
 - **守护位置**：`docs/design/agent-query-channel.md` §3.2/§11 A5（最终数字）、
   `docs/TESTING.md` 的 LSP 行（测试文件位置）、本条目。
+
+## 静默成功是最坏的失败：`update` 刷新不了缓存却 exit 0（2026-09-17，第九十一轮实测）
+
+- **现象**：用户在 DSH 里敲 `/sokonanoda-update`；输出 `cli: … [repo-build]` /
+  `lsp: … [repo-build]`，**exit 0**，看起来一切正常——实际上一个字节都没写进缓存。
+- **真相（修好之后启动器自己说出来的）**：
+  `download: EPERM: operation not permitted, copyfile '/tmp/sokonanoda-XXXX/sokonanoda'
+  -> '~/.local/share/sokonanoda/bin/sokonanoda'`——curl 下载成功、tar 解包成功，
+  只有最后一步写缓存被沙箱拒绝。旧代码里 `ensure(force)` 的强制下载失败后
+  `resolve()` 会兜底到"版本匹配的仓库构建"；两者都非空、又都不是 `cache(STALE…)`，
+  于是 `report()` 打一行 `[repo-build]` 然后 **exit 0**，而 `lastDownloadError`
+  只在"结果缺失或 STALE"分支才打印 → 网络断、磁盘满、缓存目录只读**全都长得像成功**。
+- **规矩**：① **"命令有没有做到它承诺的那件事"必须与"这次有没有可用回退"分开判定**：
+  `update` 承诺的是"缓存写成功"，回退可用只意味着"还能干活"，不能抵消承诺；
+  ② 任何 `catch` 掉错误再回退的分支都要问"错误去哪了"——回退成功恰恰是最容易吞掉
+  错误的地方；③ 验收判据别拿"不是什么"当证据（`source` 不含 `STALE` 会被任何回退
+  路径满足），要拿"是什么"：缓存 `marker` + 缓存二进制自述版本 + 退出码。
+- **顺带揪出的第二个 bug**：`const stale = [cli, lsp].filter(r => r.source…)` 在
+  `cli` 为 `undefined`（完全无解）时抛 `TypeError` **崩栈 exit 1**，导致紧随其后的
+  "could not provide matching binaries … Next: allow network access" 这段可行动
+  消息**永远不可达**（死代码）。守卫写法：`r?.source`。
+- **守护位置**：`crates/cli/tests/launcher.rs`（3 条，**真跑 Node**：CI 缺 `node`
+  硬失败、本地缺则打印 skip）、`docs/TESTING.md` 的"启动器行为契约"行、
+  `skills/sokonanoda-update/SKILL.md` 的判据与"常见失败"节。

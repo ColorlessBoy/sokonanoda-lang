@@ -44,6 +44,10 @@ pub(crate) struct HoleInfo {
     /// (`<declName>:<index>`, docs/protocol.md); anonymous examples use the
     /// `example@<line>` name form.
     pub(crate) id: String,
+    /// This hole is a **redundant** `sorry` (deleting that line makes the whole
+    /// declaration check), not an unsolved goal
+    /// (`docs/design/redundant-sorry.md`).
+    pub(crate) redundant: bool,
 }
 
 #[derive(Debug, Serialize)]

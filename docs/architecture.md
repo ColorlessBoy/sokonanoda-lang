@@ -277,6 +277,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 |---|---|---|
 | `builder.rs` | **新增** `EnvBuilder` | 在 arena 内构造声明、最后一次性 `finish()` 成 `ExportFile`，绕开 `TcCtx` 自引用生命周期 |
 | `util.rs` | `ExportFile::empty`、`Config::default`、`CheckError`、`try_check_declar`（panic→Result）、`alloc_string/alloc_bignum/name_from_str` 公开 | 内存 API（M0 验收） |
+| `tc.rs` + `util.rs` | **显式限界终审（第九十一轮续）**：`ExportFile::check_declar_at(d, EnvLimit)` / `try_check_declar_at(d, EnvLimit)`。原 `check_declar` 用 `EnvLimit::ByName(d.info().name)` 定可见前缀，而**刻意不入环境**的合成声明（`redundant-sorry` 探针）名字没有 `decl_idx` → 取 0 → 空环境；新入口让 front 自己给 `EnvLimit::ByIndex(env_before)`。`check_declar` = `check_declar_at(d, EnvLimit::ByName(name))`，批量路径（`run_session_inner`）逐条显式传同一个 `ByName` ⇒ **行为逐字节不变**，热路径零改动。回归：`tests/memory_api.rs::synthetic_declaration_needs_an_explicit_environment_limit` + front/CLI/LSP 三层（设计见 `docs/design/redundant-sorry.md` §8） | 探针终审能看见它引用的前缀常量；「删掉这行 sorry 就能过内核」才敢说 |
 | `quote.rs` | `infer_closed_type` / `reduce_closed` | `#check` / `#reduce` 的 kernel 原语 |
 | `eval.rs` | `deep_reduce` | 教学 `#reduce` 完整归约 |
 | `tc.rs` | `ctx` 公开 + `TypeChecker::with_pp` | front 直接读写内核 arena |

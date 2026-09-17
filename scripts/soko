@@ -353,13 +353,20 @@ function resolver(base, override) {
 
 // ── commands ─────────────────────────────────────────────────────────────────
 
+/// Resolve a binary, optionally forcing a cache refresh first. The result
+/// carries `refreshed` so `update` can tell "I refreshed the cache" apart from
+/// "I handed you a fallback" — see the `setup`/`update` case.
 async function ensure(base, override, { force = false } = {}) {
   const r = resolver(base, override)
   if (force && r.version) {
     const downloaded = await download(base, r.version)
-    if (downloaded) return { path: downloaded, source: 'download(forced)' }
+    if (downloaded) return { path: downloaded, source: 'download(forced)', refreshed: true }
   }
-  return r.resolve()
+  const result = await r.resolve()
+  if (!result) return result
+  // `resolve()` downloads too whenever the cache is missing or stale, so every
+  // download source means the cache really was written.
+  return { ...result, refreshed: result.source.startsWith('download') }
 }
 
 function report(target, result) {
@@ -381,6 +388,7 @@ async function main(argv) {
           'usage:\n' +
           '  scripts/soko setup                 fetch CLI + LSP into the cache (idempotent)\n' +
           '  scripts/soko update                force-refresh both to the repo version\n' +
+          '                                     (exit 3 when the cache could not be written)\n' +
           '  scripts/soko version [--json]      repo version + resolution + cache markers\n' +
           '  scripts/soko doctor [--json]       readiness report; exit 3 when not ready\n' +
           '  scripts/soko lsp                   run the language server on stdio\n' +
@@ -397,11 +405,17 @@ async function main(argv) {
     case 'update': {
       const force = command === 'update'
       const cli = await ensure('sokonanoda', cliOverride, { force })
+      const cliDownloadError = lastDownloadError
       const lsp = await ensure('sokonanoda-lsp', lspOverride, { force })
+      const lspDownloadError = lastDownloadError
       report('cli', cli)
       report('lsp', lsp)
       const version = repoVersion()
-      const stale = [cli, lsp].filter(r => r.source.startsWith('cache(STALE'))
+      // `cli`/`lsp` can be undefined when nothing resolved at all. `report()`
+      // above already said so, and the message below is the actionable one —
+      // indexing them unguarded used to throw a TypeError, which killed the
+      // process and made that message unreachable.
+      const stale = [cli, lsp].filter(r => r?.source.startsWith('cache(STALE'))
       if (!cli || !lsp || stale.length) {
         process.stderr.write(
           `scripts/soko ${command}: could not provide matching binaries for v${version ?? '?'}\n` +
@@ -413,6 +427,35 @@ async function main(argv) {
             '      or point SOKONANODA_BIN / SOKONANODA_LSP_BIN at existing binaries.\n',
         )
         return 3
+      }
+      // `update` promises the refresh itself, so a usable fallback must not
+      // paper over a download that never happened. a read-only cache directory
+      // (or a dead network) used to make every write fail while `update` still
+      // printed a resolved path and exited 0 — the caller had no way to learn
+      // that nothing was refreshed.
+      if (force) {
+        const missed = [
+          ['cli', cli, cliDownloadError],
+          ['lsp', lsp, lspDownloadError],
+        ].filter(([, r]) => !r.refreshed)
+        if (missed.length) {
+          process.stderr.write(
+            `scripts/soko update: cache NOT refreshed for v${version ?? '?'}\n` +
+              missed
+                .map(
+                  ([name, r, error]) =>
+                    `  ${name}: ${r.path} [${r.source}] — download: ${error ?? 'unknown error'}\n`,
+                )
+                .join('') +
+              `  cache:  ${cacheDir()}\n` +
+              'The binaries above are usable, so nothing else is broken — but the cache you asked\n' +
+              'to refresh was not written.\n' +
+              'Next: make sure the cache directory is writable and the network is reachable\n' +
+              '      (behind a proxy, export HTTPS_PROXY so curl can use it), or point\n' +
+              '      SOKONANODA_CACHE_DIR at a writable directory.\n',
+          )
+          return 3
+        }
       }
       return 0
     }

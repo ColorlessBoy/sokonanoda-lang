@@ -23,13 +23,16 @@ SOKO_REPO=$PWD dsh web --patch ./dsh/cordis.patch.yml
   这两条都是实测踩出来的，见 `docs/design/deepseek-harness.md` §1.2 D24。
 
 技能与斜杠命令**不需要任何配置**：DSH 自动扫仓库根的 `.agents/skills/`，
-技能名就是命令。打开会话后直接输入 `/sokonanoda-teacher` 开始上课。
+技能名就是命令。打开会话后直接输入 `/sokonanoda-teacher` 开始上课；
+`/sokonanoda-update` 与 `/sokonanoda-doctor` 是两个人工运维命令（环境过期 /
+就绪诊断），模型目录里看不到它们——那是刻意的。
 
 ## 你会得到什么 / 不会得到什么
 
 | 能力 | DSH | 说明 |
 |---|---|---|
 | `/sokonanoda-teacher`、`/sokonanoda-dev`、`/sokonanoda-ci` | ✅ 零配置 | 技能名的斜杠命令；模型目录也能自动发现 |
+| `/sokonanoda-update`、`/sokonanoda-doctor` | ✅ 零配置 | **人工**运维命令（`disable-model-invocation`）：刷新缓存 / 只读就绪诊断。DSH 命令名不允许 `/`，所以 opencode 的 `/sokonanoda/update` 在这里写作 `/sokonanoda-update`。`update` 的退出码有语义：`0` = 缓存写成了，**`3` = 缓存没写成**（stderr 给 `download:` 原因，即使有可用回退也照报）——DSH 的沙箱常让 `~/.local/share` 不可写，这时按 `skills/sokonanoda-update/SKILL.md` 的"常见失败"处置 |
 | 模型的 `lsp` 工具 hover `.sokonanoda` | ✅ 需 `--patch` | hover 文本来自内核 pretty printer（真类型/真目标态） |
 | 跳定义 / 找引用 / 找实现 | ✅ 需 `--patch` | 比纯文本 grep 精确 |
 | **编辑器内诊断（`publishDiagnostics`）** | ❌ | DSH 的 LSP host 明确忽略服务端通知（`packages/lsp/lsp-stdio/src/connection.ts`） |
@@ -67,7 +70,7 @@ scripts/soko grade playground.sokonanoda --json
 | `mcp__sokonanoda__check` | `query check` |
 | `mcp__sokonanoda__state` | `query state`（Lean `goalsAt?` 语义） |
 | `mcp__sokonanoda__goals` | `query goals` |
-| `mcp__sokonanoda__holes` | `query holes`（稳定 id + 导航） |
+| `mcp__sokonanoda__holes` | `query holes`（稳定 id + 导航 + `redundant` 标记） |
 | `mcp__sokonanoda__hints` | `query hints`（`-- soko:hint` 阶梯） |
 | `mcp__sokonanoda__reduce` | `query reduce` |
 

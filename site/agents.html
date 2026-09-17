@@ -49,11 +49,14 @@
       <summary>它背后读什么（技能与协议）</summary>
       <ul>
         <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/AGENTS.md">AGENTS.md</a>：项目入口——先读什么、Setup、硬规则速记。</li>
-        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">skills/</a>：<b>sokonanoda-teacher</b> 是教学循环手册（出题、判卷、提示阶梯），另有 <b>dev</b> / <b>ci</b> 两个开发向技能。</li>
+        <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/skills">skills/</a>：<b>sokonanoda-teacher</b> 是教学循环手册（出题、判卷、提示阶梯），另有 <b>dev</b> / <b>ci</b> 两个开发向技能，以及 <b>update</b> / <b>doctor</b> 两个人工运维命令（刷新缓存、就绪诊断）。</li>
         <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/protocol.md">docs/protocol.md</a>：<code>--json</code> 事件流契约——人读诊断文本、agent 读 JSON 事件，同一份事实，不会各说各话。</li>
       </ul>
       <p>
         用 opencode 打开本仓库时，技能与 <code>/sokonanoda/*</code> 命令零配置可用；
+        DeepSeek Harness 同样零配置（技能名即 <code>/sokonanoda-teacher</code> 等命令，
+        运维命令写作 <code>/sokonanoda-update</code> / <code>/sokonanoda-doctor</code>——
+        DSH 的命令名不允许斜杠）；
         其它 harness 读技能文件即可。取用发布二进制一律按仓库版本锁定，禁用
         <code>releases/latest</code>。
       </p>

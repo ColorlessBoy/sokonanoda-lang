@@ -211,7 +211,8 @@ const TOOLS = {
   goals: {
     description:
       'Every declaration in the file with its kernel-rendered type, status, open goals and addressable holes. ' +
-      'Use it for a whole-file overview or to find the open exercises. Set `probe` to also fill each sub-hole expected type via a kernel probe.',
+      'Use it for a whole-file overview or to find the open exercises. Set `probe` to also fill each sub-hole expected type via a kernel probe. ' +
+      'A hole with `redundant: true` is a LEFTOVER `sorry` (the answer already proves the goal): say "delete that line", never "not yet solved".',
     inputSchema: {
       type: 'object',
       properties: { ...sourceProperties, probe: { type: 'boolean', description: 'Run the kernel probe to fill sub-goal expected types (slower).' } },
@@ -224,8 +225,9 @@ const TOOLS = {
   },
   holes: {
     description:
-      'List every `sorry` hole with a stable id (`declName:index`) and its expected type, optionally stepping to the next/previous hole. ' +
-      'Use the id — two sub-goals of one `apply` share a source position, so positional stepping crosses them as a group.',
+      'List every `sorry` hole with a stable id (`declName:index`), its expected type and a `redundant` flag, optionally stepping to the next/previous hole. ' +
+      'Use the id — two sub-goals of one `apply` share a source position, so positional stepping crosses them as a group. ' +
+      '`redundant: true` means the answer is already complete and that line must be deleted (docs/design/redundant-sorry.md).',
     inputSchema: {
       type: 'object',
       properties: {

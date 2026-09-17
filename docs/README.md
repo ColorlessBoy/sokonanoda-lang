@@ -81,6 +81,13 @@
   把真相从 LSP 抽成 `front::query`，再上 CLI `query` 与 MCP 两个薄传输；
   含两个 front 缺口（索引递归 `Prop` 的 recursor、多名字 binder 组）的改挂与修法
   （2026-09-17，实现未开始；ROADMAP I15）
+- `redundant-sorry.md` — **多余的 `sorry`（用户实测反馈，已落地）**：值位里"学生
+  已写完、只留了一行 `sorry`"被误报成"练习尚未解决"；候选规则 = 实参超出望远镜
+  且结果展不开箭头，终审 = kernel（删掉该实参后整条声明能过）。§8 记录了那个
+  5 分钟实验：**真根因不是 `NamePtr` 身份，而是 `EnvLimit::ByName(探针名)` 取到
+  `NO_DECL` ⇒ cutoff 0 ⇒ 空环境**；修法是内核**只加不改语义**的
+  `check_declar_at`/`try_check_declar_at` + front 传 `ByIndex(env_before)`
+  （2026-09-17，第九十一轮续落地；三层验收见 §8.4）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。

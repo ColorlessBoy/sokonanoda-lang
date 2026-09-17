@@ -301,6 +301,17 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
 5. 验收：DSH 里输入 `/sokonanoda-teacher` 即进入老师角色；`/sokonanoda-dev` 给出
    开发 SOP。
 
+> **as-built 追加（2026-09-17 第九十一轮）**：H0–H4 之后，用户指出
+> `/sokonanoda/*` 那 7 个 opencode 命令"DSH 侧一个都没有"。核对后确认
+> **真命令注册表也救不了这个拼法**：`ctx.commands.register` 的名字文法
+> `^[a-z][a-z0-9_-]*$` 同样禁止 `/`，而且项目仓库无法零配置注册真命令
+> （必须插件 + `--patch`）。因此采用**技能通道的平铺拼法**，只上架最常用的
+> 两个人工命令 `/sokonanoda-update`、`/sokonanoda-doctor`
+> （`disable-model-invocation: true`：人可见、模型目录不可见，因为模型侧的
+> 等价能力已经在 `AGENTS.md` 与三个角色技能里）。其余四个
+> （`setup`/`version`/`check`/`gate`）仍只在 opencode 有命令形态；DSH 侧由
+> `scripts/soko` 一行命令承担，需要时按同一模式增补。
+
 ### H4 —— 治理与收尾（解 G6/G7/G8；P2）
 1. **工具链 deny**（决策见 §6 D-4）：候选三条——
    (a) `tools/pre-execute` 的 native 插件（最干净，但要成一个插件包）；
@@ -403,6 +414,7 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
 | H3 命令与角色 | ✅ 完成 | teacher 技能 §0 吸收角色与五条不可违反规则；`.opencode/agent/teacher.md` 瘦身为指针（并修掉其中违反零 cargo 硬规则的 `cargo run` 判卷命令）；7 个 opencode 命令改用 `scripts/soko`；`AGENTS.md` 角色技能节改写；`opencode.rs` 改为"gate 之外的命令必须 cargo-free + 全部走启动器" |
 | H4 治理 | ✅ 完成 | `dsh/hooks/{hooks.json,refuse-lean-toolchain.js}`（命令位匹配，`lake build`/`$(lean …)` 拦、`grep lean` 放行，实测 12 例）；`AGENTS.md` 硬规则第 2 条写明两 harness 的 deny 形态；`skills/README.md` 重写为多 harness 安装矩阵；`docs/design/onboarding.md` §6 DSH 对照表；site 安装 prompt 改 `scripts/soko` + DSH 说明；VS Code README/CHANGELOG/package.json 与版本同步 |
 | H5 backlog | ⬜ 未做 | B1–B4 见上文 |
+| H3 追加（2026-09-17 第九十一轮） | ✅ 完成 | 人工运维命令上架：`skills/sokonanoda-{update,doctor}/SKILL.md`（正文）+ `.agents/skills/sokonanoda-{update,doctor}/SKILL.md`（薄入口，`user-invocable: true` + `disable-model-invocation: true`）。**为什么不能用 `/sokonanoda/update` 拼法**：DSH 的两条文法都不允许 `/`——命令注册表 `COMMAND_NAME = /^[a-z][a-z0-9_-]*$/u`（`packages/interaction/commands/src/index.ts:32`）、技能名 `SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/`（`packages/skill/skill/src/index.ts:21`）、手势必 `SKILL_GESTURE`（`packages/skill/tool-skill/src/index.ts:409`）。**人工通道已核实**：`tool-skill` 的手势预置边界只查 `isUserInvocable`（`src/index.ts:195`）并注入 `renderSkillContent`，与 `modelInvocable` 无关；`/` 菜单用 `description` 作标签，`!modelInvocable` 时前缀 `menu.userOnly`（`packages/client/ui-skill/src/client/index.ts:156`），行数据同时带 `whenToUse`（`packages/client/connection/src/client/fixture.ts:3894`）。守卫仍绿（`dsh.rs` 8/8、`skill.rs` 4/4） |
 | 回归 | ✅ 完成 | `cargo test --workspace --locked` 全绿（21 个测试目标，含新增 `dsh.rs`）；`cargo fmt --check` 绿；`cargo clippy --workspace --all-targets` 仅 kernel 既有 warning；`scripts/soko gate` **PASS**；`gen-site-data.py` + `check-site.py` 绿 |
 
 ### 落地时新增的实测事实（已并入 §1.2）

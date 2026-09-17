@@ -312,8 +312,9 @@ class GoalsTreeDataProvider {
       if (decl.status === "open") {
         item.contextValue = "openExercise";
         item.children = buildOpenChildren(decl, this.uri);
-        // soko/goals holes are `{range, id}` objects (docs/protocol.md) —
-        // the client reads positions through hole.range, never bare.
+        // soko/goals holes are `{range, id, redundant}` objects
+        // (docs/protocol.md) — the client reads positions through
+        // hole.range, never bare.
         const hole = decl.holes?.[0];
         if (hole) {
           item.command = {

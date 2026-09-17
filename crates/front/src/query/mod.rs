@@ -231,6 +231,9 @@ impl QueryDoc {
         } else {
             self.report.clone().unwrap_or_default()
         };
+        // 洞的"多余"标记来自**同一份报告**的 kernel 终审 warning，绝不另算
+        // （`docs/design/redundant-sorry.md`）。
+        let redundant_spans = redundant_hole_spans(&report);
         let decls = self.decl_kinds();
         report
             .decls
@@ -283,6 +286,7 @@ impl QueryDoc {
                                 start: span.start.offset,
                                 end: span.end.offset,
                                 id: format!("{}:{index}", decl_name(d)),
+                                redundant: hole_is_redundant(span, &redundant_spans),
                             })
                             .collect()
                     } else {
@@ -369,6 +373,8 @@ impl QueryDoc {
                         .find(|s| s.start == h.start && s.end == h.end)
                         .and_then(|s| s.ty.clone()),
                     decl: d.name.clone(),
+                    // 与 `HoleInfo` 同一来源（`goals` 里算好），不重复判定。
+                    redundant: h.redundant,
                 })
             })
             .collect();
@@ -440,6 +446,25 @@ pub fn status_str(status: DeclStatus) -> &'static str {
         DeclStatus::Open => "open",
         DeclStatus::Failed => "failed",
     }
+}
+
+/// 「多余的 `sorry`」的 warning span（内核终审过的那种，
+/// `docs/design/redundant-sorry.md`）。
+fn redundant_hole_spans(report: &DocumentReport) -> Vec<Span> {
+    report
+        .warnings
+        .iter()
+        .filter(|w| w.code() == "redundant-sorry")
+        .map(|w| w.span)
+        .collect()
+}
+
+/// 洞 span 与 warning span 形状未必相同（多余洞走 generic fallback 时洞是整段
+/// 值、warning 收窄到 `sorry` token）⇒ 用**包含**判定（与 LSP 侧同一条规则）。
+fn hole_is_redundant(hole: &Span, redundant: &[Span]) -> bool {
+    redundant
+        .iter()
+        .any(|r| hole.start.offset <= r.start.offset && r.end.offset <= hole.end.offset)
 }
 
 /// 把报告里的洞 span 转成 offset 区间（供 `holes`/`next_hole` 复用）。

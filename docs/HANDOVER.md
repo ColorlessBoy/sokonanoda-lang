@@ -4,7 +4,8 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.55.0**（2026-09-17），最近一轮 **第八十七轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.56.2**（2026-09-17，本地已 bump + CHANGELOG，**待 push**；见 §3 顶部），
+> 最近一轮 **第九十一轮续**（`redundant-sorry` 落地）。仓库根入口 `AGENTS.md`。
 > **DeepSeek Harness 适配已落地**：`docs/design/deepseek-harness.md`（H0–H4 全绿，
 > 用法见 `dsh/README.md`）；仅 H5（Infoview/诊断通道/插件包）留 backlog。
 
@@ -59,7 +60,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 83 | 0.53.0 | 课程大纲重构 P2（`by` 提前到 #4、归纳拆 Ⅰ/Ⅱ、8 单元 + 门面同步） | `docs/design/course-syllabus.md` §6 |
 | 84 | 0.54.0 | 课程大纲重构 P3（#9 关系与联结词、#10 读证明与综合 → 锁定 10 单元） | `docs/design/course-syllabus.md` §0/§6 |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–81 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–89 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
@@ -69,6 +70,25 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 > 不再是孤立的 front 待办（本轮只改挂与文档，未实现）。
 > §3 D「远期 L2/L3」与 §4 的已文档化技术债（多数需内核/pp 变更，违反 kernel
 > 冻结）仍在。
+
+### 0. 本地已就绪、只差 push：**0.56.2**（patch）——`redundant-sorry` 诊断
+
+- 内容：学习者把答案写全、只多留一行 `sorry` 时，不再说"还没证出来"，改报
+  `redundant-sorry`（CLI/`--json`/LSP 三处同一条 warning，span 收窄到那个 `token`；
+  语义不变，仍 `exercise.open`）；洞级 `redundant` 标记在 `query goals`/`holes`
+  与 `soko/goals` 两视图一致。设计与验收：`docs/design/redundant-sorry.md`。
+- **已完成**：两处版本号 = `0.56.2`（`Cargo.lock` 已由 `cargo check` 跟上）、
+  `editor/vscode/CHANGELOG.md` 的 `## [0.56.2]` 条目、`target/` 重建（CLI 自述
+  `sokonanoda 0.56.2`，启动器解析回 `repo-build`）、扩展纯 Node 单测 35 条全绿
+  （`npm run test:unit`）、`cargo test --workspace --locked` + `scripts/soko gate` 全绿。
+  **VSIX 打包与 `code --install-extension` 没在本地跑**（release 构建 + 装进你的
+  VS Code 属于有副作用的动作）：CI 的 release 会出全部 9 个 VSIX；要本地冒烟就
+  `cd editor/vscode && npm run package:host && code --install-extension sokonanoda.vsix --force`。
+- **只剩**：commit + push main → `ci.yml` auto-tag `v0.56.2` → release 出八平台产物
+  + VSIX + marketplace（用 `skills/sokonanoda-ci` 的三板斧看 CI；发布后按
+  `docs/RELEASE.md` §6 抽样核对 `SHA256SUMS` / attestation）。
+- 版本级别依据（`docs/vscode-dev-guide.md` §2）：**没多出新能力，只是反馈更正确
+  ⇒ patch**。
 
 ### A′. ~~统一 goal 呈现 + Infoview 落右侧~~ ✅ 已完成（0.40.0）
 - 单一分类源 `front::semantic`（`tag_runs`/`tag_expr`/`declaration_kinds` +
@@ -171,6 +191,9 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   §1.2 共 25 条带源码行号、阶段 H0–H4 ✅ + backlog H5、决策 D-1…D-6、验收 A1–A6、
   as-built §9）；用法：**`dsh/README.md`**；调研底稿：`docs/notes/dsh-project-assets.md`。
 - 现在能用的：DSH 打开本仓库 → 技能与 `/sokonanoda-*` 命令自动可用；
+  另有两个人**人工**运维命令 `/sokonanoda-update`（刷新缓存）与
+  `/sokonanoda-doctor`（只读诊断）——DSH 命令名文法不允许 `/`，所以 opencode 的
+  `/sokonanoda/update` 在 DSH 侧拼作 `/sokonanoda-update`（第九十一轮）；
   `scripts/soko doctor --json` 报就绪；`scripts/soko grade …` 判卷；
   `dsh web --patch ./dsh/cordis.patch.yml` 后 `lsp` 工具可 hover/跳定义。
 - **三条最容易踩的 DSH 事实**：① 技能名本身即斜杠命令，但必须在

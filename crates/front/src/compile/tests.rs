@@ -4791,3 +4791,140 @@ fn match_field_types_follow_the_user_binder_names() {
         .iter()
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "head_or")));
 }
+
+// ── 多余的 `sorry`（用户实测反馈，`docs/design/redundant-sorry.md`）────────────
+//
+// 学生把答案写在 `:=` 右边、却保留了原来那行 `sorry` 时，整条声明被解析成
+// `项 sorry`——洞变成了多出来的实参。它**不是**"还没证明出来"：前面的项往往
+// 已经完成了证明。判定 = sound 候选（实参超出望远镜且结果展不开箭头）
+// + kernel 终审（删掉该实参后整条声明必须能过）。
+
+/// `f h` 已经证明了目标，后面多留了一行 `sorry`（用户 playground 326–328 的形状）。
+#[test]
+fn a_leftover_sorry_after_a_complete_term_is_reported_as_redundant() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom f : A -> B\n\
+               theorem t (h : A) : B := f h\n\
+               \x20 sorry\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![], "warning must not be an error");
+
+    let codes: Vec<&str> = out.warnings.iter().map(|w| w.code()).collect();
+    assert!(
+        codes.contains(&"redundant-sorry"),
+        "多出来的 sorry 必须被单独指出来（否则学生以为是自己没证出来）：{codes:?}"
+    );
+    let w = out
+        .warnings
+        .iter()
+        .find(|w| w.code() == "redundant-sorry")
+        .expect("redundant-sorry warning");
+    assert_eq!(
+        &src[w.span.start.offset..w.span.end.offset],
+        "sorry",
+        "warning span 收窄到那个 sorry token"
+    );
+    assert!(!w.hint().is_empty());
+
+    // 语义不变：它仍然是一条开放练习（练习状态与洞的既有行为都不动）。
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::ExerciseOpen { name: Some(n) } if n == "t")),
+        "exercise.open 语义不得改变：{:?}",
+        out.events
+    );
+}
+
+/// λ 体里同样的形状（`fun (h : A) => f h` 后又接了一个 sorry）。
+#[test]
+fn a_leftover_sorry_in_a_lambda_body_is_reported_as_redundant() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom f : A -> B\n\
+               theorem t : A -> B := fun (h : A) => f h\n\
+               \x20 sorry\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![]);
+    assert!(
+        out.warnings.iter().any(|w| w.code() == "redundant-sorry"),
+        "{:?}",
+        out.warnings
+    );
+}
+
+/// 真缺口：`f` 需要一个 `A`，洞就是缺的那块——**不得**被说成多余。
+#[test]
+fn a_genuine_argument_hole_is_not_reported_as_redundant() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom f : A -> B\n\
+               theorem t (h : A) : B := f\n\
+               \x20 sorry\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![]);
+    let codes: Vec<&str> = out.warnings.iter().map(|w| w.code()).collect();
+    assert!(
+        !codes.contains(&"redundant-sorry"),
+        "真缺的实参不能被误报成多余：{codes:?}"
+    );
+}
+
+/// 真缺口：第二个证明还没写（`And.intro A B ha` 之后缺 `B` 的证明）。
+#[test]
+fn a_genuine_second_proof_hole_is_not_reported_as_redundant() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom ha : A\n\
+               axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a b : Prop) -> a -> b -> And a b\n\
+               theorem t : And A B := And.intro A B ha\n\
+               \x20 sorry\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![]);
+    let codes: Vec<&str> = out.warnings.iter().map(|w| w.code()).collect();
+    assert!(
+        !codes.contains(&"redundant-sorry"),
+        "第二项证明是缺的，不能被误报成多余：{codes:?}"
+    );
+}
+
+/// kernel 终审的护栏：项本身**不是**目标类型时，删掉 sorry 也过不了，
+/// 因此不许说"多余的 sorry"（保守，绝不误报）。
+#[test]
+fn a_leftover_sorry_whose_term_does_not_prove_the_goal_is_not_reported() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom C : Prop\n\
+               axiom g : A -> C\n\
+               theorem t (h : A) : B := g h\n\
+               \x20 sorry\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(out.errors, vec![]);
+    let codes: Vec<&str> = out.warnings.iter().map(|w| w.code()).collect();
+    assert!(
+        !codes.contains(&"redundant-sorry"),
+        "删掉 sorry 之后过不了内核，就不能说它多余：{codes:?}"
+    );
+}
+
+/// **可见前缀护栏**（`docs/design/redundant-sorry.md` §8.3）：与上面的正例
+/// 逐字同形，只把 `g` 挪到练习**后面**声明。探针的终审用
+/// `EnvLimit::ByIndex(env_before)`，前瞻引用照样看不见 ⇒ 删掉 sorry 还是过不了
+/// 内核（那条声明本体就是前瞻引用）⇒ **不得**说它多余。
+/// 谁哪天把限界放宽成"整份环境可见"，这条会红。
+#[test]
+fn a_leftover_sorry_with_a_forward_reference_is_not_reported_as_redundant() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               theorem t (h : A) : B := g h\n\
+               \x20 sorry\n\
+               axiom g : A -> B\n";
+    let out = compile_fol(&parse(src).unwrap());
+    let codes: Vec<&str> = out.warnings.iter().map(|w| w.code()).collect();
+    assert!(
+        !codes.contains(&"redundant-sorry"),
+        "前瞻引用不在可见前缀里，终审必须失败：{codes:?}"
+    );
+}

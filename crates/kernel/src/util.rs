@@ -660,9 +660,16 @@ impl<'p> ExportFile<'p> {
     /// wrapper classifies them as [`CheckError::Rejected`]. Replacing those
     /// panics with explicit propagation is a follow-up kernel task.
     pub fn try_check_declar(&self, d: &Declar<'p>) -> Result<(), CheckError> {
+        self.try_check_declar_at(d, EnvLimit::ByName(d.info().name))
+    }
+
+    /// Like [`Self::try_check_declar`], but with an explicit environment
+    /// cutoff — see [`ExportFile::check_declar_at`] for why a synthetic
+    /// declaration cannot derive its own cutoff from its name.
+    pub fn try_check_declar_at(&self, d: &Declar<'p>, limit: EnvLimit<'p>) -> Result<(), CheckError> {
         let previous_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(|_| {}));
-        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.check_declar(d)));
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.check_declar_at(d, limit)));
         std::panic::set_hook(previous_hook);
         match outcome {
             Ok(()) => Ok(()),

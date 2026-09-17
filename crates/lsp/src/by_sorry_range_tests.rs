@@ -1,6 +1,6 @@
 use crate::testutil::{did_open, handshake, shutdown, test_service, wait_diagnostics};
 use sokonanoda_front::parse;
-use tower_lsp::lsp_types::NumberOrString;
+use tower_lsp::lsp_types::{DiagnosticSeverity, NumberOrString};
 
 #[tokio::test]
 async fn by_sorry_warning_does_not_swallow_following_comments() {
@@ -57,4 +57,74 @@ async fn by_sorry_hole_points_at_sorry_token() {
         hole.start.offset, expected,
         "hole must be at the `sorry` token, not offset 0"
     );
+}
+
+/// 「多余的 `sorry`」（`docs/design/redundant-sorry.md` §6 验收 3）：答案已经
+/// 写全、只多留一行 `sorry` 时，编辑器**不再**说 "not yet solved"——改给一条
+/// `redundant-sorry`（含 hint），学生才知道该删的是那一行；而真缺口照旧。
+#[tokio::test]
+async fn redundant_sorry_replaces_the_not_yet_solved_warning() {
+    let codes_of = |diags: &tower_lsp::lsp_types::PublishDiagnosticsParams| -> Vec<String> {
+        diags
+            .diagnostics
+            .iter()
+            .filter_map(|d| match &d.code {
+                Some(NumberOrString::String(c)) => Some(c.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom f : A -> B\n\
+               theorem t (h : A) : B := f h\n\
+               \x20 sorry\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let diags = wait_diagnostics(&mut socket, "redundant sorry").await;
+    let codes = codes_of(&diags);
+    assert!(
+        codes.iter().any(|c| c == "redundant-sorry"),
+        "must report redundant-sorry: {codes:?}"
+    );
+    assert!(
+        !codes.iter().any(|c| c == "sorry"),
+        "不得再叠一条 not yet solved（否则学生以为是自己没做出来）: {codes:?}"
+    );
+    let warning = diags
+        .diagnostics
+        .iter()
+        .find(|d| matches!(&d.code, Some(NumberOrString::String(c)) if c == "redundant-sorry"))
+        .expect("redundant-sorry warning");
+    assert_eq!(warning.severity, Some(DiagnosticSeverity::WARNING));
+    assert!(
+        warning.message.contains("提示："),
+        "warning carries the teaching hint: {}",
+        warning.message
+    );
+
+    // 真缺口（`f` 缺一个实参）照旧报 "not yet solved"。
+    let genuine = "axiom A : Prop\n\
+                   axiom B : Prop\n\
+                   axiom f : A -> B\n\
+                   theorem t : B := f\n\
+                   \x20 sorry\n";
+    let (mut service2, mut socket2) = test_service();
+    handshake(&mut service2).await;
+    did_open(&mut service2, genuine).await;
+    let diags2 = wait_diagnostics(&mut socket2, "genuine hole").await;
+    let codes2 = codes_of(&diags2);
+    assert!(
+        codes2.iter().any(|c| c == "sorry"),
+        "a genuine hole keeps the not-yet-solved warning: {codes2:?}"
+    );
+    assert!(
+        !codes2.iter().any(|c| c == "redundant-sorry"),
+        "a genuine hole is not redundant: {codes2:?}"
+    );
+
+    shutdown(&mut service).await;
+    shutdown(&mut service2).await;
 }

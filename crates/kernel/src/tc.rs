@@ -73,7 +73,22 @@ pub struct TypeChecker<'x, 't, 'p> {
 impl<'p> ExportFile<'p> {
     /// The entry point for checking a declaration `d`.
     pub fn check_declar(&self, d: &Declar<'p>) {
-        self.with_ctx(|ctx, cache, bump| self.check_declar_with(ctx, cache, bump, d))
+        self.check_declar_at(d, EnvLimit::ByName(d.info().name))
+    }
+
+    /// Like [`Self::check_declar`], but the environment visible to the check is
+    /// cut off by `limit` instead of being derived from the declaration's own
+    /// name.
+    ///
+    /// `EnvLimit::ByName` resolves the cutoff through the name's declaration
+    /// index, which only exists once the declaration has been added to an
+    /// environment. Front-ends that check **synthetic** declarations — built to
+    /// answer a question but deliberately never added, e.g. the "redundant
+    /// `sorry`" probe — must pass the cutoff themselves; otherwise the name
+    /// resolves to "no declarations visible" and even the probe's own type is
+    /// rejected with `unknown const`.
+    pub fn check_declar_at(&self, d: &Declar<'p>, limit: EnvLimit<'p>) {
+        self.with_ctx(|ctx, cache, bump| self.check_declar_with(ctx, cache, bump, d, limit))
     }
 
     fn check_declar_with<'t>(
@@ -82,12 +97,13 @@ impl<'p> ExportFile<'p> {
         cache: &mut TcCache<'t, 't>,
         bump: &'t bumpalo::Bump,
         d: &Declar<'t>,
+        limit: EnvLimit<'p>,
     ) {
         use Declar::*;
         match d {
             Inductive(..) => self.check_inductive_declar(ctx, cache, bump, d),
             Quot { .. } => crate::quot::check_quot(ctx, cache, bump, d),
-            _ => self.check_simple_declar(ctx, cache, bump, d),
+            _ => self.check_simple_declar(ctx, cache, bump, d, limit),
         }
     }
 
@@ -97,9 +113,10 @@ impl<'p> ExportFile<'p> {
         cache: &mut TcCache<'t, 't>,
         bump: &'t bumpalo::Bump,
         d: &Declar<'t>,
+        limit: EnvLimit<'p>,
     ) {
         use Declar::*;
-        let env = self.new_env(EnvLimit::ByName(d.info().name));
+        let env = self.new_env(limit);
         let mut tc = TypeChecker::new(ctx, &env, bump, Some(*d.info()), cache);
         match d {
             Definition { val, .. } | Theorem { val, .. } | Opaque { val, .. } => tc.check_def_like_v(d, *val),
@@ -157,7 +174,9 @@ impl<'p> ExportFile<'p> {
                 while i < end {
                     let (_, d) = self.declars.get_index(i).expect("declaration index out of range");
                     i += 1;
-                    self.check_declar_with(tctx, cache, sbump.get(), d);
+                    // 批量检查路径逐条按声明自己的名字定限界（= 它的下标），
+                    // 与 `check_declar` 的历史行为逐字节一致。
+                    self.check_declar_with(tctx, cache, sbump.get(), d, EnvLimit::ByName(d.info().name));
                     if sbump.allocated_bytes() > SESSION_BUDGET {
                         pending = Some((i, end));
                         return false
