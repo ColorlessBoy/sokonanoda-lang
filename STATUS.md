@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-17（第九十轮：清 LSP 测试文件债 + 0.56.1 发布；内核真相查询通道 H6-A/B/C 已落地）
+> 快照：2026-09-17（第九十一轮：多文件 `import` 与项目管理设计 + 外部调研；0.56.1 已发布，本轮不动实现、不 bump）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,62 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-17，第九十一轮：多文件 `import` 与项目管理 —— 调研 + 设计 + 计划 I16）
+
+> 用户：「我想增加 代码import +project管理，帮我调研一下其他语言都是怎么分别处理单文件，
+> 和项目。项目如何维护。sokonanoda如何实现，具体执行方案是什么」。
+> **本轮只出调研 + 设计 + 计划，不动实现、不 bump 版本**（沿用第八十八轮先例）。
+> 设计文档 = **`docs/design/imports-and-projects.md`**（ROADMAP **I16**）。
+
+1. **调研（3 个并行 subagent，全部直抓官方文档/源码；`web_search` 无 API key 故走
+   `curl`/`web_fetch`）**：
+   - `docs/notes/multifile-prior-art.md` —— Coq/Rocq、Agda、Isabelle、Idris 2、Rust、Go、
+     Python、JS/TS、Haskell/OCaml、JVM 的"单文件 vs 项目"逐系统记录 + 5 问横向表 +
+     可抄模式/反模式（每条带官方 URL）。
+   - `docs/notes/project-roots-and-incremental-caches.md` —— LSP 契约（`rootUri` **可为 null**、
+     `didChangeWatchedFiles`、诊断"替换不合并"、**明文允许从缓存读诊断**）、9 个服务器/
+     扩展的根发现与错根症状、失效与产物（Lake trace / GHC 指纹 / OCaml `.cmi` 摘要 /
+     Coq `.vo` digest / `.tsbuildinfo`）、原子写与并发、**"缓存判定结果是否安全"的三条规则**。
+   - 代码接缝（只读勘察，`path:line`）：一次编译 = 一个 arena + 一个 `EnvBuilder`
+     （`compile/check.rs:424-425`）；内核名字身份 = **指针地址**（`kernel/util.rs:133-142`）
+     ⇒ 跨 arena 复用环境不可能；`EnvLimit` 只表达**扁平前缀环境**（`kernel/env.rs:224-234`）；
+     两遍 check-then-add（`check.rs:339-359`）；judge 只吃文本（`judge.rs:137-265`）；
+     LSP 单槽 `Mutex<Doc>`（`lsp/lib.rs:58-60,152-155`）。
+2. **设计一句话**：把**编译单元**从「一个文件」升级为「**项目闭包**」——`import Foo.Bar`
+   用真实 Lean 4 置顶语法、模块名↔路径用 Lean 同款规则（`-` 非法 → 教学 hint）、
+   项目根 = 最近祖先的 `sokonanoda.toml`（**向上搜索止于 `.git`/workspace 根**，
+   `--root` 覆盖，无清单退化为"入口文件目录 = 模块根"——**对真实 Lean 的刻意
+   divergence**：官方 `lean` 的搜索路径里**没有**文件自己的目录、cwd 只影响模块名
+   的计算，§2.1 有源码依据；Q2 保留改回严格对齐的选项）；跨模块声明由 front 在
+   **同一个 arena / 同一个 `EnvBuilder`** 里按拓扑序 `add_declar`（导入声明先入表，
+   索引 `0..k`），**内核一行不改**、`EnvLimit` 语义零改动。
+3. **硬边界与不变式**：① 无 `import` 的文件**行为逐字节不变**（缓存键、事件流、
+   两处 golden 计数全不动 —— A1 用 `--json` 对拍守住）；② 每个 `Span` 只属于一个文件
+   （**否掉源码拼接方案**）；③ 判定仍由内核终审；④ 用户路径零 cargo。
+4. **量化动机（实测）**：45 个语料文件 3851 行里 **1217 行（31.6%）** 落在"名字在
+   ≥2 个文件出现过"的声明块内；**71 个名字有 ≥2 种定义**、**20 个变体从未同单元共现**
+   （`Or` axiom vs inductive、`Iff` def vs axiom、`And.*` 三种 binder 类型）；
+   `course/unit6:21-36` 与 `unit7:16-31` 是**逐字节相同的 16 行 Nat 块**（中英共 4 份）；
+   `solutions/` 与画布骨架 19/19、19/19、27/27 逐一对应。结论：**值得做 import 的理由是
+   "同名不同义今天无法表达"，不是省行数**（最大 5 组重复一共只省 122 行）。
+5. **分阶段计划 P0–P7**：P0 设计契约（本轮）→ P1 语法/模块名/resolver（含 fuzz 一次）→
+   P2 闭包编译（一次 prelude、失败阻断、诊断归因）→ P3 CLI+协议（`--root`/`build`/`query`）→
+   P4 闭包哈希缓存（可选信任台账，**启用前必须换强哈希**）→ P5 LSP（多文档表、根发现、
+   反向后继重编、跨文件跳转、`didChangeWatchedFiles`）→ P6 第 11 单元 + 门面 + 发版 0.57.0 →
+   P7 backlog（decl 级产物、`namespace`、跨项目依赖、语料重构）。
+6. **风险清单里最值钱的三条**：① **三道"静默错误"门**（`front/tests/perf.rs:108` 的
+   `kernel_checks <= 1`、`cli/tests/watch.rs:292-298` 的每文件独立契约、judge/suggest
+   的静默无建议）；② **CI/Pages 不会发现"画布不再自包含"**（anchor 只在本地 `soko gate`，
+   `gen-site-demos.py` 只守产物新鲜）；③ `elab-duplicate-declaration` 被测试枚举过 4 次却
+   **从未真正触发**——而"同名到达两次"正是天真 import 实现的第一症状。
+7. **待用户拍板 Q1–Q7**：清单格式（TOML/JSON/纯标记）、无清单时是否允许 import、
+   prelude 模式决策者、是否做已检查声明的跨进程复用、课程语料是否同轮重构、
+   `watch`/`soko/project` 是否 v1 就做、产物位置（用户缓存目录 vs 项目内 `.soko/build`）。
+8. **本轮产物**：`docs/design/imports-and-projects.md`（新）、
+   `docs/notes/multifile-prior-art.md`（新）、`docs/notes/project-roots-and-incremental-caches.md`（新）、
+   `ROADMAP.md` I16、`REQUIREMENTS.md` §9（九十一）、`docs/README.md`（设计/笔记索引）、
+   `docs/HANDOVER.md` §3 G、本文；**零代码改动、零版本变更**。
 
 ## 本轮进度（2026-09-17，第九十轮：清掉 HANDOVER §4 的 LSP 测试文件债 + 0.56.1 发布）
 
@@ -147,44 +203,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
     `dsh/mcp/server.js`、`dsh/cordis.patch.yml`、`scripts/soko`（`mcp` 分支）、
     `crates/front/src/parser.rs` + `compile/elab.rs`（H6-C）、课程 9 个文件简化、
     文档/门面同步（见第 8 条），版本 0.56.0。
-
-## 本轮进度（2026-09-17，第八十八轮：内核真相查询通道设计 + 两个 TODO 改挂）
-
-> 用户：「H5 backlog 里从 MCP 诊断通道入手……这个你来设计一下开发文档，从根上正确
-> 解决。同时看一下前人留下的两个 TODO，需要更新一下」。**本轮只出设计 + 改挂，
-> 不动实现、不 bump 版本。**
-
-1. **根因判断（为什么不能直接写 MCP server）**：内核真相今天**只有 LSP 一条出口**，
-   而且选择/判定逻辑长在 LSP 适配器内部（`goal_decls`/`state_at`/`next_hole` 在
-   `crates/lsp/src/lib.rs`，该文件 **4256 行**、远超 ~500 行红线）。直接写 MCP 会
-   要么反向依赖 LSP、要么复制出**第二份真相**（违反"判定永远走 kernel"硬规则）。
-2. **设计（`docs/design/agent-query-channel.md`，ROADMAP I15 / H6-A…H6-E）**：
-   顺序不可颠倒的三层——① 真相层 `front::query`（`check`/`state`/`goals`/`holes`/
-   `hints`/`reduce`，编辑器无关的类型化查询）；② 传输：`sokonanoda query <op>`
-   （**单 JSON 对象**、零配置、所有 harness 通用、`--text` 支持未落盘中间态）
-   + `scripts/soko mcp` / `dsh/mcp/server.js`（MCP stdio 六工具，只转发 CLI）；
-   ③ **同一轮把 LSP 改为调用真相层**（顺带把 4256 行降到 ≤1200）。
-3. **关键设计点**：`QueryError`/`QueryAnswer` 把"正常的没有"与"问不出来"分开
-   （今天 LSP 用 `goal:null`+默认字段混合表达，agent 无法区分——这正是 agent 侧
-   只能整文件扫事件流的根源）；位置在真相层用 offset、适配器转坐标（MCP 表面用
-   `line`/`character` 与 DSH `lsp` 工具一致）；`query check` 是 `--json` 事件流的
-   **新增摘要视图**，事件流契约**只增不改**；MCP **默认关闭**（DSH 视 MCP server
-   为沙箱外可信代码，项目不替用户扩大信任面）。
-4. **防两套真相的硬门禁**：契约测试断言 `query state` ≡ `soko/stateAt`、
-   `query goals` ≡ `soko/goals`（字段级）、`query check` 计数 ≡ `--json` 事件计数，
-   外加 `rg` 断言"LSP 侧不得残留查询实现"。
-5. **两个 TODO 改挂**（用户要求）：`docs/HANDOVER.md` §3 E 的
-   ①索引递归 `Prop` 的 recursor 自动派生被内核拒（`Le`/`Even` 靠课程手写
-   `rec`/`iota`）②`inductive` 参数不吃多名字 binder 组 `(A B : Prop)`，
-   从孤立 front 待办**改挂 H6-C**——它们决定查询通道"真相"的完整性与 agent
-   （主要作者）写出的合法子集会不会被拒；要求**先有"修复前红"的复现测试**，
-   按 TDD 三层 + 课程 golden 同步。ROADMAP I15、HANDOVER §3 表头/§3 E 已同步。
-6. **待调研补齐**（设计文档 §9，已派 subagent 取源码证据）：DSH MCP client 的完整
-   schema/传输/工具命名/失败语义与路径解析、项目侧可交付性，以及两个 TODO 的
-   精确根因（哪一行 IH 形状不对、parser 单名路径清单）。
-7. **验收口径 A1–A7**：真相唯一（LSP 无残留实现）、CLI/MCP 可用、CLI≡LSP 字段级
-   一致、结构债达标（LSP ≤1200 行、`front::query*` ≤500 行/文件）、两个 TODO 带
-   反向测试、全量回归绿且既有契约测试**只增不改**。
-8. **本轮产物**：`docs/design/agent-query-channel.md`（新）+ `ROADMAP.md` I15 +
-   `docs/design/deepseek-harness.md`（H5 的 B1/B2 指向新设计）+ `docs/HANDOVER.md`
-   §3/§3E + `docs/README.md` + `REQUIREMENTS.md` §9（八十八）+ 本文。

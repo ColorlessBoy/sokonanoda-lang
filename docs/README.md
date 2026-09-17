@@ -81,6 +81,10 @@
   把真相从 LSP 抽成 `front::query`，再上 CLI `query` 与 MCP 两个薄传输；
   含两个 front 缺口（索引递归 `Prop` 的 recursor、多名字 binder 组）的改挂与修法
   （2026-09-17，实现未开始；ROADMAP I15）
+- `imports-and-projects.md` — **多文件 `import` 与项目管理（调研 + 设计 + 计划 I16）**：
+  10 个语言/证明助手的"单文件 vs 项目"横向调研、`import` 置顶语法与 Lean 同款
+  模块名规则、`sokonanoda.toml` 项目根、闭包编译与闭包哈希缓存、CLI/LSP/query
+  表面与第 11 单元教学计划（2026-09-17，实现未开始；ROADMAP I16）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。
@@ -95,6 +99,13 @@
   配套设计 `docs/design/deepseek-harness.md`）
 - `inductive.md` — `inductive`/`ctor`/`rec`/`iota` 讲解
 - `rust-cross-platform-binary.md` — 为什么跨 OS 没有单一 Rust 二进制、引导器（`soko.sh`/插件）的角色
+- `multifile-prior-art.md` — **多文件/项目模型的横向调研**（Coq/Rocq、Agda、Isabelle、
+  Idris 2、Rust、Go、Python、JS/TS、Haskell/OCaml、JVM：单文件模式、清单发现、模块身份、
+  产物与失效；配套设计 `docs/design/imports-and-projects.md`，I16）
+- `project-roots-and-incremental-caches.md` — **语言服务器根发现 + 增量缓存调研**
+  （LSP 契约、rust-analyzer/clangd/tsserver/pyright/gopls/ocaml-lsp/Agda/lean4 的根发现与
+  错根症状、Lake trace / GHC 指纹 / OCaml `.cmi` / Coq `.vo` digest / `.tsbuildinfo`、
+  "缓存判定结果安全吗"的三条规则）
 
 ## 关联目录
 

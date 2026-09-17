@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 88,
+  "round": 91,
   "round_date": "2026-09-17",
-  "round_title": "内核真相查询通道设计 + 两个 TODO 改挂",
+  "round_title": "多文件 import 与项目管理 —— 调研 + 设计 + 计划 I16",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -81,5 +81,5 @@
       "unit": 10
     }
   ],
-  "version": "0.55.0"
+  "version": "0.56.1"
 }

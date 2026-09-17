@@ -1026,3 +1026,40 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     push main → auto-tag → release 出全部产物；
   - 文档同步：`docs/HANDOVER.md` §4（债 → 已清的最终布局）、`docs/TESTING.md` LSP 行、
     `docs/design/agent-query-channel.md` §3.2、`ROADMAP.md` I15 备注、`STATUS.md` 第九十轮。
+
+- 2026-09-17（九十一）：**多文件 `import` 与项目管理（设计 + 计划，I16）**（用户要求：
+  「我想增加 代码import +project管理，帮我调研一下其他语言都是怎么分别处理单文件，
+  和项目。项目如何维护。sokonanoda如何实现，具体执行方案是什么」）——**本轮只出设计 +
+  计划，不动实现、不 bump 版本**（沿用第八十八轮先例）。设计文档 =
+  **`docs/design/imports-and-projects.md`**：
+  - **调研**（§2）：Lean 4 + Lake、Coq/Rocq、Agda、Isabelle、Idris 2、Rust、
+    Go、Python、JS/TS、Haskell/OCaml 的"单文件 vs 项目"做法横向对比，
+    外加 LSP 的项目根发现（clangd/cargo metadata/gopls/pyright/tsconfig）与
+    增量缓存/接口哈希（olean/`.hi`/dune digests/`.tsbuildinfo`）两条工程线；
+    结论落到"我们采纳哪些、为什么"。
+  - **用户要求的四条能力**：① 单文件**零配置不变**（45 个语料文件 + 
+    `playground.sokonanoda` 行为逐字节不变，缓存键与 golden 计数不动）；
+    ② `import Foo.Bar` 用**真实 Lean 4 置顶语法**、模块名↔路径用 Lean 同款规则
+    （`-` 非法 → 教学化 hint）；③ 项目根 = **最近祖先的 `sokonanoda.toml`**
+    （空文件也合法；`--root` 可覆盖；无清单时退化为"入口文件目录 = 模块根"，
+    两文件 demo 零配置）；④ 项目维护面：闭包编译（一个 arena / 一个 `EnvBuilder` /
+    拓扑序 / 闭包级 prelude 一次安装 / 失败即阻断并归因到正确文件）、
+    闭包哈希缓存（Merkle：依赖变 → 下游必 miss）、`build` 项目化、
+    `query` 闭包化、LSP 项目根发现 + 反向后继重编 + 跨文件跳转/引用/重命名。
+  - **硬边界**：**kernel 一行不改**（跨模块声明由 front 在同一个 arena 里按序
+    `add_declar`，正是 `EnvBuilder` 的既有能力）；判定仍由内核终审；
+    不调用官方 Lean 工具链；用户路径零 cargo（TOML 解析编译进二进制）。
+  - **量化动机**（本轮 subagent 实测）：45 个语料文件 3851 行里 **1217 行（31.6%）**
+    落在"名字在 ≥2 个文件出现过"的声明块内；**71 个名字有 ≥2 种定义**、
+    **20 个变体从未同单元共现**（`Or` 的 axiom/inductive 两义、`Iff` 的 def/axiom、
+    `And.*` 的三种 binder 类型）——**真正值得做 import 的理由是"同名不同义
+    今天无法表达"，不是省行数**（最大 5 组重复一共只省 122 行）。
+  - **分阶段**：P0 设计契约（本轮）→ P1 语法/模块名/resolver → P2 闭包编译 →
+    P3 CLI+协议 → P4 缓存/失效 → P5 LSP/编辑器 → P6 第 11 单元 + 门面 + 发版
+    0.57.0；P7（backlog）decl 级产物、`namespace`、跨项目依赖、语料重构。
+  - **验收 A1–A8**（可粘贴执行）：无 import 文件 `--json` 与 HEAD 逐字节对拍、
+    零配置两文件、清单/根发现、错误归因与单条阻断、闭包 prelude 四形状、
+    缓存 miss/hit 矩阵、LSP 跨文件跳转与下游刷新、第 11 单元 + 协议错误码契约。
+  - **待用户拍板 Q1–Q6**（每条已给推荐）：清单格式（TOML vs JSON vs 纯标记）、
+    无清单时是否允许 import、prelude 模式决策者、是否做"已检查声明"的跨进程复用、
+    课程语料是否同轮重构、`watch`/`soko/project` 是否 v1 就做。

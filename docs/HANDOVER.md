@@ -4,9 +4,12 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.55.0**（2026-09-17），最近一轮 **第八十七轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.56.1**（2026-09-17），最近一轮 **第九十一轮**。仓库根入口 `AGENTS.md`。
 > **DeepSeek Harness 适配已落地**：`docs/design/deepseek-harness.md`（H0–H4 全绿，
 > 用法见 `dsh/README.md`）；仅 H5（Infoview/诊断通道/插件包）留 backlog。
+> **内核真相查询通道**已落地：`docs/design/agent-query-channel.md`（I15，`query` + MCP）。
+> **多文件 `import` 与项目管理**：设计 + 调研已完成、未实现（I16，
+> `docs/design/imports-and-projects.md`，§3 G）。
 
 ## 1. 30 秒接手
 
@@ -180,6 +183,22 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   一切走 `scripts/soko`。
 - H5 backlog：B1 Infoview 客户端插件、B2 诊断通道（DSH 演进或 MCP）、
   B3 `SessionStart` provisioning、B4 把启动器+拦截+命令做成 npm 插件包。
+
+### G. 多文件 `import` 与项目管理（第九十一轮**设计**，ROADMAP I16，未实现）
+- 设计与计划：**`docs/design/imports-and-projects.md`**（调研 + 设计 D1–D12 + 计划 P0–P7 +
+  验收 A1–A8 + 待拍板 Q1–Q7）；调研底稿：`docs/notes/multifile-prior-art.md`、
+  `docs/notes/project-roots-and-incremental-caches.md`。
+- 一句话：编译单元从「一个文件」升级为「项目闭包」——`import Foo.Bar`（Lean 置顶语法）、
+  模块名↔路径（Lean 同款，`-` 非法）、项目根 = 最近祖先 `sokonanoda.toml`
+  （向上搜索**止于 `.git`/workspace 根**，`--root` 可覆盖，无清单退化为入口文件目录）；
+  跨模块声明在同一 arena/`EnvBuilder` 里按拓扑序入表（**内核零改动**）。
+- **不变式**：无 `import` 的文件行为**逐字节不变**（缓存键/事件流/golden 计数不动）。
+- 实施前必须知道的三条：① 三道"静默错误"门（`front/tests/perf.rs:108`、
+  `cli/tests/watch.rs:292-298`、judge/suggest 静默无建议）；② **CI/Pages 不会发现
+  "画布不再自包含"**（anchor 只在本地 `soko gate`）；③ `elab-duplicate-declaration`
+  被枚举却从未触发过——而它正是跨模块重名的第一症状。
+- **等用户拍板 Q1–Q7**（清单格式、无清单是否允许 import、prelude 决策者、是否做
+  跨进程复用已检查声明、语料是否同轮重构、`watch`/`soko/project` 是否 v1 就做、产物位置）。
 
 ### D. 远期（L2/L3）
 - 协作/多用户、远程；compiler service 的跨文件转播 / `setContent`（v1 未做）。

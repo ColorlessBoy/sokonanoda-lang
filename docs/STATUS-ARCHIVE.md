@@ -1,8 +1,49 @@
-# STATUS 归档（第 1–86 轮，2026-09-06 → 2026-09-17）
+# STATUS 归档（第 1–88 轮，2026-09-06 → 2026-09-17）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-17，第八十八轮：内核真相查询通道设计 + 两个 TODO 改挂）
+
+> 用户：「H5 backlog 里从 MCP 诊断通道入手……这个你来设计一下开发文档，从根上正确
+> 解决。同时看一下前人留下的两个 TODO，需要更新一下」。**本轮只出设计 + 改挂，
+> 不动实现、不 bump 版本。**
+
+1. **根因判断（为什么不能直接写 MCP server）**：内核真相今天**只有 LSP 一条出口**，
+   而且选择/判定逻辑长在 LSP 适配器内部（`goal_decls`/`state_at`/`next_hole` 在
+   `crates/lsp/src/lib.rs`，该文件 **4256 行**、远超 ~500 行红线）。直接写 MCP 会
+   要么反向依赖 LSP、要么复制出**第二份真相**（违反"判定永远走 kernel"硬规则）。
+2. **设计（`docs/design/agent-query-channel.md`，ROADMAP I15 / H6-A…H6-E）**：
+   顺序不可颠倒的三层——① 真相层 `front::query`（`check`/`state`/`goals`/`holes`/
+   `hints`/`reduce`，编辑器无关的类型化查询）；② 传输：`sokonanoda query <op>`
+   （**单 JSON 对象**、零配置、所有 harness 通用、`--text` 支持未落盘中间态）
+   + `scripts/soko mcp` / `dsh/mcp/server.js`（MCP stdio 六工具，只转发 CLI）；
+   ③ **同一轮把 LSP 改为调用真相层**（顺带把 4256 行降到 ≤1200）。
+3. **关键设计点**：`QueryError`/`QueryAnswer` 把"正常的没有"与"问不出来"分开
+   （今天 LSP 用 `goal:null`+默认字段混合表达，agent 无法区分——这正是 agent 侧
+   只能整文件扫事件流的根源）；位置在真相层用 offset、适配器转坐标（MCP 表面用
+   `line`/`character` 与 DSH `lsp` 工具一致）；`query check` 是 `--json` 事件流的
+   **新增摘要视图**，事件流契约**只增不改**；MCP **默认关闭**（DSH 视 MCP server
+   为沙箱外可信代码，项目不替用户扩大信任面）。
+4. **防两套真相的硬门禁**：契约测试断言 `query state` ≡ `soko/stateAt`、
+   `query goals` ≡ `soko/goals`（字段级）、`query check` 计数 ≡ `--json` 事件计数，
+   外加 `rg` 断言"LSP 侧不得残留查询实现"。
+5. **两个 TODO 改挂**（用户要求）：`docs/HANDOVER.md` §3 E 的
+   ①索引递归 `Prop` 的 recursor 自动派生被内核拒（`Le`/`Even` 靠课程手写
+   `rec`/`iota`）②`inductive` 参数不吃多名字 binder 组 `(A B : Prop)`，
+   从孤立 front 待办**改挂 H6-C**——它们决定查询通道"真相"的完整性与 agent
+   （主要作者）写出的合法子集会不会被拒；要求**先有"修复前红"的复现测试**，
+   按 TDD 三层 + 课程 golden 同步。ROADMAP I15、HANDOVER §3 表头/§3 E 已同步。
+6. **待调研补齐**（设计文档 §9，已派 subagent 取源码证据）：DSH MCP client 的完整
+   schema/传输/工具命名/失败语义与路径解析、项目侧可交付性，以及两个 TODO 的
+   精确根因（哪一行 IH 形状不对、parser 单名路径清单）。
+7. **验收口径 A1–A7**：真相唯一（LSP 无残留实现）、CLI/MCP 可用、CLI≡LSP 字段级
+   一致、结构债达标（LSP ≤1200 行、`front::query*` ≤500 行/文件）、两个 TODO 带
+   反向测试、全量回归绿且既有契约测试**只增不改**。
+8. **本轮产物**：`docs/design/agent-query-channel.md`（新）+ `ROADMAP.md` I15 +
+   `docs/design/deepseek-harness.md`（H5 的 B1/B2 指向新设计）+ `docs/HANDOVER.md`
+   §3/§3E + `docs/README.md` + `REQUIREMENTS.md` §9（八十八）+ 本文。
 
 ## 本轮进度（2026-09-17，第八十七轮：DeepSeek Harness 适配落地 —— H0–H4）
 

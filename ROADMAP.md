@@ -599,6 +599,40 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   > 后续（0.56.1）：`crates/lsp/src/tests/` 按特性拆成 `mod.rs`（399 行）+ 9 个文件
   > （最大 392 行），HANDOVER §4 登记的债清零。
 
+### I16 —— 多文件 `import` 与项目管理（设计已定稿，实现未开始）
+
+> 设计 + 计划：**`docs/design/imports-and-projects.md`**（2026-09-17 第九十一轮，
+> 只出设计 + 计划，不动实现、不 bump）。一句话：把**编译单元**从「一个文件」
+> 升级为「项目闭包」——`import Foo.Bar` 用真实 Lean 4 的置顶语法、模块名↔路径
+> 用 Lean 同款规则、项目根 = 最近祖先的 `sokonanoda.toml`；跨模块声明由 front 在
+> **同一个 arena / 同一个 `EnvBuilder`** 里按拓扑序构造，**内核一行不改**；
+> 无 `import` 的文件行为**逐字节不变**（缓存键、事件流、golden 计数全不动）。
+
+- **P1 语法与解析**：`Command::Import` + 置顶校验 + 模块名合法性（`-` 非法 → 教学 hint）
+  + `project/resolve.rs`（纯函数）+ 3 个错误码与 TDD 三层起步。
+- **P2 闭包编译（核心）**：`project/{manifest,graph,report}.rs` + `compile_project()`：
+  祖先发现、DFS 拓扑序、环检测、**闭包预扫描**、**prelude 闭包级只装一次**、
+  逐模块 check-then-add、开放 `sorry` 不入环境、依赖失败**单条**阻断并归因到正确文件。
+- **P3 CLI 与协议**：`--root` / `--no-project`；`build` 按 DAG 项目化；
+  `query <op>` 在闭包环境下求值；`docs/protocol.md` 错误码表（**只增不改**）。
+- **P4 缓存与失效**：`iface` 闭包哈希（依赖变 → 下游必 miss）+ per-module 报告落盘 +
+  warm cache `--json` 逐字节一致；（可选）"已检查声明"信任台账——**先量收益**再开。
+- **P5 LSP / 编辑器**：项目根发现（manifest → workspace → 单文件三层）、
+  反向后继重编（只 publish 已打开文档）、跨文件 `goToDefinition`/`findReferences`/
+  `rename`、`soko/project`（可选）。
+- **P6 教学与发布**：第 11 单元「模块与项目」（CN/EN/解答/`course.json`/两处 golden 表）
+  + `skills/`、VS Code、`site/` 门面同步 + 版本 **0.57.0**（minor，用户可见新能力）。
+- **量化动机（本轮 subagent 实测）**：45 个语料文件 3851 行里 **1217 行（31.6%）**
+  落在"名字在 ≥2 个文件出现过"的声明块内；**71 个名字有 ≥2 种定义**、
+  **20 个变体从未同单元共现**（`Or` 的 axiom/inductive 两义、`Iff` 的 def/axiom、
+  `And.*` 的三种 binder 类型）——**模块边界是让"哪个 `Or`？"可回答的唯一机制**；
+  `solutions/` 与画布声明骨架 19/19、19/19、27/27 逐一对应。
+- **验收 A1–A8**：见设计文档 §6。核心是 **A1**：无 `import` 的 45 个语料文件
+  `--json` 输出与 HEAD 逐字节一致、两处 golden 表零漂移。
+- **待拍板 Q1–Q6**（每条已给推荐）：清单格式（`sokonanoda.toml` vs JSON vs 纯标记）、
+  无清单时是否允许 `import`、prelude 模式的决策者、是否做已检查声明的跨进程复用、
+  课程语料是否同轮重构、`watch --workspace` / `soko/project` 是否 v1 就做。
+
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。
 - L1/L3：compiler service 事件流（`file.didChange` 等，见 protocol.md 未来事件名）、
