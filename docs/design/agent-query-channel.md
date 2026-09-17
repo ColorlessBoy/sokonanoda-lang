@@ -79,11 +79,15 @@
    文本比对、禁止近似启发式判定。
 5. **可测试**：真相层走 front 单测；CLI 走端到端；MCP 走"声明即契约"的快照测试；
    LSP 与 CLI/MCP **逐字段一致**由契约测试钉死（防两套真相）。
-6. **顺手清债**：抽层后 `crates/lsp/src/lib.rs` 必须下降（查询/渲染逻辑外移），
-   `crates/front/src/query*.rs` 自身 ≤ ~500 行/文件。
-   **as-built 修正**：草案的"≤ ~1200 行"是拍脑袋的目标——实测查询/渲染逻辑只占
-   ~300 行，LSP 的 4256 行里绝大多数是 `tower-lsp` 服务实现、inlay/hover/code-action
-   等**与查询无关**的功能。真正落地的是"**零重复**"（见 §11 A5），不是行数指标。
+6. **顺手清债**：抽层后 `crates/lsp/src/lib.rs` 必须下降（查询/渲染逻辑外移 +
+   按职责拆文件），`crates/front/src/query*.rs` 自身 ≤ ~500 行/文件。
+   **as-built（含一次我自己写错又改正的结论）**：删掉重复实现后 lib.rs 是 3988 行，
+   我**没量就**判定"≤1200 是拍脑袋的目标、剩下的都是协议服务代码"，并在四处文档里
+   把口径改成"不追行数"。这是错的：`wc -l` 一下就知道 3988 行里 **2638 行是
+   `#[cfg(test)]` 模块**，非测试代码只有 ~1350 行。把测试模块移出文件、再抽
+   `protocol.rs`（wire 类型）与 `tokens.rs`（semantic token 辅助），
+   **lib.rs = 1105 行，≤1200 达标**（`4256 → 3988 → 1105`）。
+   教训进 `docs/LESSONS.md`（**改验收标准之前先把被验收的东西量一遍**）。
 
 ---
 
@@ -125,7 +129,10 @@
 | `crates/front/src/query/types.rs` | wire 类型（`DeclInfo`/`StateAnswer`/`QueryError`/…） | ~220 → **217** |
 | `crates/front/src/query/tests.rs` | 真相层单测 | → **402** |
 | `crates/cli/src/query.rs` | 子命令解析 + JSON 输出 + 退出码表 | ~300 |
-| `crates/lsp/src/lib.rs` | **下降**：删掉查询/渲染实现，只留协议映射与生命周期 | 4256 → 只删重复，**不追行数**（as-built：**4256 → 3988**，只删重复的实现，见 §4 as-built 3） |
+| `crates/lsp/src/lib.rs` | **下降**：删掉查询/渲染实现，抽 wire 类型与 token 辅助，测试模块移出文件 | **4256 → 3988 → 1105**（≤1200 达标） |
+| `crates/lsp/src/protocol.rs` | `soko/*` 自定义请求的 wire 类型（从 lib.rs 抽出） | → **159** |
+| `crates/lsp/src/tokens.rs` | semantic token 的 legend/encoding（从 lib.rs 抽出；分类唯一源仍是 `front::semantic`） | → **107** |
+| `crates/lsp/src/tests.rs` / `by_sorry_range_tests.rs` | LSP 进程内 rpc 测试（从 lib.rs 移出，**断言一字未改**） | → **2567 / 60**（**已知债**：tests.rs 超过 ~500 行红线，拆分方案见 `docs/HANDOVER.md` §4） |
 | `dsh/mcp/server.js` | MCP stdio：`tools/list`、`tools/call`，JSON Schema 声明 | ~220（as-built **~350**，含五个实测坑的注释） |
 | `crates/cli/tests/query.rs` | CLI 端到端 + 与 LSP 一致性契约 | ~250 → **~600**（含真实 LSP 二进制的对拍与两个画布） |
 
@@ -374,7 +381,7 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 ### H6-A —— 真相层 + CLI `query`（P0）✅ 已完成（真相层 + CLI；LSP 见下）
 1. `front::query`：`QueryError`/`QueryAnswer` + `check`/`state`/`goals`/`holes`/`hints`/`reduce`，
    语义逐条对照 §4.2 的 LSP 行为（**先把 LSP 的实现平移过来，再删 LSP 侧重复**）。
-   ✅ `crates/front/src/query/{mod,types,tests}.rs`（`QueryDoc` + 16 个单测）。
+   ✅ `crates/front/src/query/{mod,types,state,pos,tests}.rs`（`QueryDoc` + 18 个单测）。
 2. `front::query::render`：从 `crates/lsp/src/render.rs` 平移 runs/文本组装。
    ✅ 收在 `QueryDoc::runs`（唯一分类源仍是 `front::semantic`），未单开文件。
 3. `cli::query` + `sokonanoda query …` + 退出码表 + `--compact`/`--text`。
@@ -384,7 +391,9 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
    ✅ 已完成：`crates/lsp/src/query_map.rs` 只做"offset ↔ LSP `Range`/`Position`、
    `QueryError` → 空结果"的映射，语义全部来自 `front::query`；LSP 侧的
    `select_state_at` 实现已删除（`rg -n "fn select_state_at" crates/` 只命中 front）。
-   行数以"**零重复**"验收，不以行数验收（§11 A5；见 §4 as-built 3）。
+   行数**双达标**：删重复后 3988 行，再把两个测试模块移出文件、抽出
+   `protocol.rs`（wire 类型）与 `tokens.rs`（semantic token 辅助）→ **lib.rs 1105 行**
+   （≤1200）。见我中途"没量就改标准"又改正的记录（§2.6 / §11 A5 / `docs/LESSONS.md`）。
 6. 测试：✅ front 单测 18 项（含 no-`by` 两条红先回归；`cargo test -p
    sokonanoda-front --lib query::`）；✅ CLI e2e
    （`crates/cli/tests/query.rs` 12 项，含**`query check` ≡ `--json` 计数**契约与
@@ -655,13 +664,15 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
   **as-built 加强**：`state` 的一致性必须逐个覆盖选择器的**判别性输入**
   （根状态 / tactic 之内 / tactic 之后 / 无 `by` 的开放与闭合），并跑**真实 LSP
   二进制**——只测"两边都不为空的常见路径"会漏掉 §4 as-built 3 那种分支分歧。
-- **A5（结构债，按 as-built 修正）**：`crates/lsp/src/lib.rs` **不再有查询/渲染的
-  第二份实现**（`rg` 断言：`select_state_at`/`runs_of`/`decl_name` 等语义函数只存在于
+- **A5（结构债）**：`crates/lsp/src/lib.rs` **≤1200 行且不再有查询/渲染的第二份实现**
+  （`rg` 断言：`select_state_at`/`runs_of`/`decl_name` 等语义函数只存在于
   `front::query`）；`crates/front/src/query*.rs` ≤500 行/文件；`cargo clippy`
   教学 crates 零 warning（`[lints] deny` 不变）。
-  **放弃"≤1200 行"这个指标**：它假设 LSP 的体积主要来自查询逻辑，实测不成立——删掉
-  全部重复后仍有 4 千行级的协议服务代码，凑行数只会把无关功能拆成更难读的碎片。
-  结构债的正确指标是**重复度**，不是文件长度（模块化硬规则管的是"单一职责"，不是数字）。
+  **as-built：两项都达标** —— `lib.rs` **4256 → 3988（删重复）→ 1105 行**。
+  中途我曾写下"放弃 ≤1200 行、只按重复度验收"，那是**没量就改标准**：`lib.rs` 的
+  3988 行里 2638 行是测试模块，移出测试 + 抽出 `protocol.rs`/`tokens.rs` 后
+  ≤1200 随手可达。正确做法是先 `wc -l` 量构成，再决定改标准还是改代码
+  （`docs/LESSONS.md`；结构债由"A5 两项"共同定义：**无重复** + **单文件不越红线**）。
 - **A6（两个 TODO）**：`Le`/`Even` 省略 `rec` 时自动派生通过内核（课程改为依赖自动派生，
   golden 同步）；`inductive Foo (A B : Prop)` 解析通过并有三层测试；
   两个修复各有"修复前红"的复现测试（输入见 §5 H6-C 的两段可复制用例）。

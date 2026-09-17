@@ -29,16 +29,20 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    输出**单 JSON 对象**（`{schema:"soko.query/1", op, version, ok, data|error}`），
    退出码 = **0 答上了（含 `ok:false` 与开放 `sorry`）/ 1 内核拒绝 / 2 用法**；
    `--text` 支持未落盘中间态。契约写进 `docs/protocol.md`。
-2. **LSP 改为调用真相层（同一轮完成，A1/A5）**：`soko/goals`/`stateAt`/`nextHole`/
-   `hints` 与 hover 的 tactic 视图全部改为调 `front::query`；新增
-   `crates/lsp/src/query_map.rs`（**唯一的形状映射点**：offset↔`Range`/`Position`、
-   `QueryError`→既有空结果），删除 `select_state_at`/`StateSelection`/`runs_of`/
-   `status_str`/重复的 `decl_name`/`goal_decls` 的 75 行主体等；
-   `crates/lsp/src/lib.rs` **4256 → 3988 行**（−268）。**验收口径按 as-built 修正**：
-   结构债的指标是"**没有第二份实现**"（`rg -n "fn select_state_at" crates/` 只命中
-   front），不是行数——设计草案的"≤1200 行"建立在"LSP 的体积主要来自查询逻辑"这个
-   错误假设上，实测删干净后剩下的协议服务代码仍有 4 千行级，凑数字只会把无关功能
-   拆碎（设计文档 §2.6/§11 A5 已改）。
+2. **LSP 改为调用真相层 + 结构债清零（同一轮完成，A1/A5）**：
+   `soko/goals`/`stateAt`/`nextHole`/`hints` 与 hover 的 tactic 视图全部改为调
+   `front::query`；新增 `crates/lsp/src/query_map.rs`（**唯一的形状映射点**：
+   offset↔`Range`/`Position`、`QueryError`→既有空结果），删除 `select_state_at`/
+   `StateSelection`/`runs_of`/`status_str`/重复的 `decl_name`/`goal_decls` 的 75 行
+   主体等 → `crates/lsp/src/lib.rs` **4256 → 3988 行**。再按模块化硬规则把两个测试
+   模块移出文件（`tests.rs` 2567 / `by_sorry_range_tests.rs` 60，**断言一字未改**，
+   214+6 条 assert 与 HEAD 逐行等价）并抽出 `protocol.rs`（wire 类型，159）与
+   `tokens.rs`（semantic token 辅助，107）→ **lib.rs 1105 行，≤1200 达标**。
+   ⚠️ **过程留档（我自己的错）**：删完重复后我曾**没量就**把"≤1200 行"作废，
+   理由是"剩下的都是协议服务代码"——`wc -l` 显示 3988 行里 **2638 行是
+   `#[cfg(test)]` 模块**，非测试代码只有 ~1350 行，移出测试随手就达标。教训
+   （**改验收标准之前先把被验收的东西量一遍**）进 `docs/LESSONS.md`；最终口径 =
+   "**无重复实现**" **且** "**单文件 ≤1200 行**"（设计文档 §2.6/§3.2/§11 A5 已改）。
 3. **⚠️ 抽层真的出过一次语义漂移（本轮最重要的教训，已进 `docs/LESSONS.md`）**：
    LSP 侧 117/117 全绿的情况下，**没有 `by` 块**的声明被错误地统一成"根状态"
    （已证声明凭空多出一个目标、半成品证明 `fun (a) (h) => sorry` 丢掉已引入的假设）。
@@ -96,8 +100,13 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 9. **H6-E backlog（不做承诺）**：DSH Infoview 客户端插件（消费 `query goals/state`）、
    `SessionStart` 自动 provisioning、把启动器 + Lean 工具链 deny 拦截 + `/sokonanoda-*`
    命令打成一个 npm 插件包。
-10. **本轮产物**：`crates/front/src/query/*`、`crates/cli/src/query.rs`、
-    `crates/cli/tests/query.rs`、`crates/lsp/src/query_map.rs`（+ lib/hints/render 收敛）、
+10. **发布**：CI 全绿 → auto-tag `v0.56.0` → release **11 个 job 全 success**
+    （8 平台 build + VSIX + **marketplace 发布一次成功** + GitHub Release），
+    26 个产物；并**用发布产物实测**（下载 CLI：`query state` 与仓库一致；下载 LSP：
+    无 `by` 的开放声明 `goal='a' binders=['a','h']`、已闭合 `goal=None`）。
+11. **本轮产物**：`crates/front/src/query/*`、`crates/cli/src/query.rs`、
+    `crates/cli/tests/query.rs`、`crates/lsp/src/query_map.rs` + `protocol.rs` +
+    `tokens.rs` + `tests.rs`/`by_sorry_range_tests.rs`（lib/hints/render 收敛）、
     `dsh/mcp/server.js`、`dsh/cordis.patch.yml`、`scripts/soko`（`mcp` 分支）、
     `crates/front/src/parser.rs` + `compile/elab.rs`（H6-C）、课程 9 个文件简化、
     文档/门面同步（见第 8 条），版本 0.56.0。

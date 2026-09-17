@@ -560,9 +560,11 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   `--file/--text/--line/--col/--offset/--direction/--probe/--expr/--compact`
   （`--text` 支持未落盘中间态）；退出码 **0 = 答上了**（含结构化 `ok:false` 与
   开着的 `sorry`）/ **1 = 内核拒绝** / **2 = 用法错误**；契约写进 `docs/protocol.md`。
-  **同一轮把 LSP 改为委托**：`soko/*` handler 的语义函数从
-  `crates/lsp/src/lib.rs` 删除（4256 → 4025 行），新增薄
-  `crates/lsp/src/query_map.rs` 只做 offset ↔ `Range`/`Position` 映射。
+  **同一轮把 LSP 改为委托并清掉结构债**：`soko/*` handler 的语义函数从
+  `crates/lsp/src/lib.rs` 删除，新增薄 `crates/lsp/src/query_map.rs`（只做
+  offset ↔ `Range`/`Position` 映射）；再把两个测试模块移出文件、抽出
+  `protocol.rs`（wire 类型）与 `tokens.rs`（semantic token 辅助），
+  **`lib.rs` 4256 → 3988（删重复）→ 1105 行**，A5 的 ≤1200 与"无重复实现"双达标。
 - **H6-B ✅ MCP 传输**：`dsh/mcp/server.js`（零依赖 Node MCP stdio 桥）+
   `scripts/soko mcp` + `dsh/cordis.patch.yml` 一行 opt-in，暴露六个工具
   `mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，全部转发
@@ -587,11 +589,14 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - **验收 A1–A7 ✅**（见设计文档 §11）：真相唯一（LSP 侧无实现残留）、CLI 可用、
   MCP 可用、**CLI≡LSP 字段级一致性契约**（`crates/cli/tests/query.rs`：
   `query check` 计数 ≡ `--json` 事件流计数；`query state` ≡ 真实 LSP 服务器
-  `soko/stateAt` 逐字段，含两条无 `by` 分支）、**A5 结构债 = 无重复实现**
-  （`rg -n "fn select_state_at" crates/` 只允许命中 `crates/front/src/query/`；
-  **不设行数指标**——设计草案的"`lib.rs` ≤1200 行"已作废并在设计文档里改正：
-  LSP 剩余体量是协议服务代码，不是查询逻辑）、两个 TODO 修复带反向测试、
+  `soko/stateAt` 逐字段，含两条无 `by` 分支）、**A5 结构债双达标**
+  （`rg -n "fn select_state_at" crates/` 只允许命中 `crates/front/src/query/`，
+  **且** `crates/lsp/src/lib.rs` **1105 行 ≤ 1200**）、两个 TODO 修复带反向测试、
   全量回归绿且既有契约测试"只增不改"。
+  > 过程留档：清理结构债时我曾**没量就**把"≤1200 行"作废（以为剩下的都是协议
+  > 服务代码），量完发现 3988 行里 2638 行是测试模块——移出测试 + 抽两个模块
+  > 即可达标。教训：**改验收标准之前先把被验收的东西量一遍**（`docs/LESSONS.md`）。
+  > 同轮已知债：`crates/lsp/src/tests.rs` 2567 行（拆分方案见 `docs/HANDOVER.md` §4）。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。

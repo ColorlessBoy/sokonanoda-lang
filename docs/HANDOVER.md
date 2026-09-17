@@ -197,6 +197,17 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   （`scripts/perf-arena.sh`）；见 `docs/PERF.md`。
 - **`TESTING.md §5` 盲区**：编辑器 codeLens/quick-fix 已补进程内 rpc；VS Code
   Electron 集成走 `editor/vscode/src/test/extension.test.js`。
+- **`crates/lsp/src/tests.rs` 2567 行**（0.56.0 把测试模块移出 `lib.rs` 时形成；
+  模块化红线是 ~500 行/文件）。它是 LSP **进程内 rpc 测试的唯一文件**，断言与 wire
+  契约绑定。拆分方案（已评估，当时判定"非纯机械"而留作独立任务）：`tests/mod.rs`
+  放共享常量与 helper（实测约 24 项被跨用例复用：`AND_NOT_ABSURD` 25 次、
+  `VALID` 22 次、`EXERCISE`/`BY_OPEN` 各 16 次、`open_and_wait` 13 次…），
+  其余按文件里已有的 banner 分到 `tests/{state,hover,goals,diagnostics,tokens,
+  inlay,actions,lifecycle}.rs`。两个坑：前 ~869 行**没有 banner**（initialize /
+  diagnostics / hover / symbols / codeLens / prelude / code actions 混在一起）、
+  若干 helper 定义在用例**之间**，且 `warnings = "deny"` 要求每个新文件有精确的
+  import 列表（要迭代剪枝）。**别为行数硬拆**——先读 `docs/LESSONS.md` 的
+  "改验收标准之前先把被验收的东西量一遍"。
 
 ## 5. 环境 / Gotchas（本会话实打实踩过）
 

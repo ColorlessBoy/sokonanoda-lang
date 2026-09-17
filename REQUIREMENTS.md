@@ -960,9 +960,13 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - **LSP 改为调用真相层（同一轮）**：`soko/goals`/`stateAt`/`nextHole`/`hints` 与
     hover 的 tactic 视图全部委托；新增 `crates/lsp/src/query_map.rs` 只做形状映射；
     删除 LSP 侧的 `select_state_at`/`runs_of`/`goal_decls` 主体/重复的 `decl_name` 与
-    探针逻辑，`crates/lsp/src/lib.rs` **4256 → 3988 行**。**结构债验收口径修正为
-    "没有第二份实现"**（`rg -n "fn select_state_at" crates/` 只命中 front），
-    放弃草案里拍脑袋的"≤1200 行"（LSP 剩下的体量是协议服务代码，不是查询逻辑）；
+    探针逻辑，`crates/lsp/src/lib.rs` **4256 → 3988 行**；再按模块化硬规则把两个
+    测试模块移出文件、抽出 `crates/lsp/src/protocol.rs`（wire 类型，159 行）与
+    `tokens.rs`（semantic token 辅助，107 行）→ **lib.rs 1105 行**。
+    **结构债 A5 双达标**："没有第二份实现"（`rg -n "fn select_state_at" crates/`
+    只命中 front）**且** ≤1200 行。**过程需留档**：我一度没量就把"≤1200 行"作废
+    （以为剩下的都是协议服务代码），量完发现 3988 行里 2638 行是 `#[cfg(test)]`
+    模块——"改验收标准之前先把被验收的东西量一遍"已写进 `docs/LESSONS.md`；
   - **⚠️ 抽层出过一次语义漂移，并按"全输入对拍"抓出**：无 `by` 块的声明被错误统一成
     "根状态"（已证声明多一个目标、半成品证明丢假设）；LSP 套件 117/117 全绿也照样发生。
     方法：删除旧实现前，在 5 个画布的**每一个光标 offset** 上对拍新旧两份实现
@@ -993,6 +997,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     `docs/TESTING.md`、`docs/HANDOVER.md`、`docs/architecture.md`、`ROADMAP.md` I15
     as-built、`docs/LESSONS.md`、VS Code `README/CHANGELOG/package.json`、
     `site/assets/agent-prompt.js`；版本 0.55.0 → **0.56.0**；
-  - **验收**：`cargo test --workspace --locked` 全绿、`cargo clippy --workspace
-    --all-targets` 教学 crates 零 warning、`cargo fmt`（教学 crates）零 diff、
-    `scripts/soko gate` PASS；A1–A7 见设计文档 §11。
+  - **验收（全部实测）**：`cargo test --workspace --locked` **756 绿**、
+    `cargo clippy --workspace --all-targets` 教学 crates 零 warning、
+    `cargo fmt`（教学 crates）零 diff、`scripts/soko gate` **PASS**；
+    **已发布 v0.56.0**（26 个产物：8 CLI + 8 LSP tarball + 9 VSIX + SHA256SUMS，
+    marketplace 首发即成功），并**用发布产物实测**：下载的 CLI 跑 `query state`
+    与仓库一致、下载的 LSP 对无 `by` 的开放声明返回 `goal='a' binders=['a','h']`、
+    已闭合返回 `goal=None`。A1–A7 见设计文档 §11；已知债：
+    `crates/lsp/src/tests.rs` 2567 行（拆分方案见 `docs/HANDOVER.md` §4）。
