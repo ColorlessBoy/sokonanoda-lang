@@ -1,0 +1,392 @@
+use super::*;
+
+#[tokio::test]
+async fn hover_returns_inferred_type() {
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, VALID).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+    // The `x` occurrence inside the lambda body (0-based position).
+    let pos = lsp_pos(VALID, VALID.rfind('x').expect("body `x` exists"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover must resolve inside the lambda body");
+    let markup = match hover.contents {
+        HoverContents::Markup(markup) => markup,
+        other => panic!("expected markup contents, got {other:?}"),
+    };
+    assert_eq!(markup.kind, MarkupKind::Markdown);
+    assert!(
+        markup.value.contains("Prop"),
+        "inferred type expected in hover markup: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_universe_applied_eq_prelude_constant_shows_signature() {
+    // 用户原始症状（playground.sokonanoda:233）：hover `Eq.subst.{1}` 只显示
+    // 源码切片。根因是内核 pp 对开项推断 panic、hover 文本被吞空；修复后
+    // 必须显示 `Eq.subst.{1} : forall … p a …` 的完整签名。
+    let src = concat!(
+        "theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=\n",
+        "  fun (a : Nat) (b : Nat) (h : Eq.{1} Nat a b) =>\n",
+        "    Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)\n",
+    );
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let params = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+    assert!(
+        params.diagnostics.is_empty(),
+        "valid theorem must publish no diagnostics: {:?}",
+        params.diagnostics
+    );
+    let offset = offset_of(src, "Eq.subst.{1}");
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(lsp_pos(src, offset)),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover must resolve on `Eq.subst.{1}`");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("Eq.subst.{1} :"),
+        "hover must show the signature, got: {:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("p a"),
+        "hover signature must mention the dependent codomain, got: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_sorry_in_overapplied_spine_shows_hole_expected_type() {
+    // 用户案例（playground 练习 5，0.25.0）：`(And.right a (Not a) x)
+    // sorry` 的 hover 必须显示洞的精确期望类型 `a`（经 def `Not` 展开
+    // `Not a` ⇒ `a -> False`），而不是整个声明类型。剩余目标 `False`。
+    let src = "axiom False : Prop\n\
+               axiom And : Prop -> Prop -> Prop\n\
+               axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
+               def Not : Prop -> Prop := fun (a : Prop) => a -> False\n\
+               theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False :=\n\
+                 fun (a : Prop) => fun (x : And a (Not a)) => (And.right a (Not a) x) sorry\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+    let pos = lsp_pos(src, offset_of(src, "sorry") + 2);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(4)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover must resolve on the sorry");
+    let markup = match hover.contents {
+        HoverContents::Markup(markup) => markup,
+        other => panic!("expected markup contents, got {other:?}"),
+    };
+    // 洞的精确期望类型（def 展开后的箭头定义域）。
+    assert!(
+        markup.value.contains("期望类型：") && markup.value.contains("```sokonanoda\na"),
+        "hole expected type must be `a` in a sokonanoda fence: {:?}",
+        markup.value
+    );
+    // 剩余目标 = 声明类型剥掉两层 lambda（goal 代码块内 `⊢ False`）。
+    assert!(
+        markup.value.contains("剩余目标：") && markup.value.contains("⊢ False"),
+        "remaining goal must be `False`: {:?}",
+        markup.value
+    );
+    // 上下文假设完整（goal 代码块内的 `x : And a (Not a)`）。
+    assert!(
+        markup.value.contains("x : And a (Not a)"),
+        "{:?}",
+        markup.value
+    );
+    // 不再把整个声明类型当目标展示。
+    assert!(
+        !markup.value.contains("目标：\n```sokonanoda\nforall"),
+        "declared type must not be shown as the goal: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_hole_shows_goal() {
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, EXERCISE).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen diagnostics").await;
+
+    let pos = lsp_pos(EXERCISE, offset_of(EXERCISE, "sorry") + 1);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(3)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover must resolve on the hole");
+    let markup = match hover.contents {
+        HoverContents::Markup(markup) => markup,
+        other => panic!("expected markup contents, got {other:?}"),
+    };
+    assert!(
+        markup.value.contains("目标"),
+        "goal label expected in hover markup: {:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("Prop -> Prop"),
+        "goal text expected in hover markup: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_partial_hole_lists_hypotheses() {
+    let src = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "partial hole diagnostics").await;
+
+    let hole = offset_of(src, "sorry");
+    let pos = lsp_pos(src, hole);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(20)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid hover");
+    let hover = hover.expect("hover at the hole");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("目标：") && markup.value.contains("⊢ a"),
+        "hover shows goal: {}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("a : Prop") && markup.value.contains("h : a"),
+        "hover lists hypotheses: {}",
+        markup.value
+    );
+}
+
+#[test]
+fn code_fences_always_use_the_sokonanoda_language() {
+    // docs/design/goal-rendering.md §7: one language id for every rendered
+    // code block, so the single TM grammar colours all of them.
+    assert_eq!(code_block("x : Nat"), "```sokonanoda\nx : Nat\n```");
+    assert!(!code_block("x").contains("```text"));
+}
+
+#[tokio::test]
+async fn hover_on_a_half_expression_shows_the_remaining_goals() {
+    // 用户需求：半截表达式（`And.intro b a` 还差两个前提）的 hover 不只给
+    // 报错——把推断出的剩余目标列成 `⊢ b`、`⊢ a`。按需计算 + judge 缓存，
+    // 不在按键路径上。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+               axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+               theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a :=\n\
+                 fun (a : Prop) => fun (b : Prop) => fun (x : And a b) => And.intro b a\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let at = src.rfind("And.intro").expect("value occurrence");
+    let hover = hover_opt_at(&mut service, src, at)
+        .await
+        .expect("hover on the half expression must answer");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("还差 2 个前提"),
+        "hover: {:?}",
+        markup.value
+    );
+    assert!(markup.value.contains("⊢ b"), "hover: {:?}", markup.value);
+    assert!(markup.value.contains("⊢ a"), "hover: {:?}", markup.value);
+    assert!(
+        markup.value.contains("```sokonanoda"),
+        "half-expression goals use the highlighted fence: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_keyword_returns_none() {
+    // 学习者反馈：光标在 fun/=>/theorem 上应该安静，而不是把某个
+    // 节点的类型行硬塞过来。
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, VALID).await;
+    let _ = wait_diagnostics(&mut socket, "keyword hover diagnostics").await;
+
+    let fun_at = VALID.find("fun").expect("fun exists");
+    let pos = lsp_pos(VALID, fun_at);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(80)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid hover");
+    assert!(hover.is_none(), "keyword hover must be silent");
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_binder_name_shows_its_type_not_the_lambda() {
+    // hover 到 binder 名字 `a`：显示 `a : Prop`，绝不吐整段 lambda。
+    let src = "axiom True : Prop\n\
+               def f : Prop -> Prop := fun (a : Prop) => a\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let a_name = src.find("(a").expect("binder") + 1;
+    let markup = hover_markup_at(&mut service, src, a_name).await;
+    assert!(
+        markup.contains("a : Prop"),
+        "hovering the binder name must show its type: {markup:?}"
+    );
+    assert!(
+        !markup.contains("fun (a : Prop) => a"),
+        "must not spill the whole lambda: {markup:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_binder_name_h_shows_declaration() {
+    // hover 到 `h` 的 binder 名字：`h : And a (Not a)`（binder 声明）。
+    let (mut service, _socket) = open_and_wait(AND_NOT_ABSURD).await;
+    let h_name = AND_NOT_ABSURD.find("(h").expect("binder h") + 1;
+    let markup = hover_markup_at(&mut service, AND_NOT_ABSURD, h_name).await;
+    assert!(
+        markup.contains("h : And a (Not a)"),
+        "binder name must show its declaration: {markup:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_binder_annotation_bracket_shows_declaration() {
+    // `(h : And a (Not a))` 的 `(` / `)`：显示 `h : And a (Not a)`
+    //（不再截断成 `And a (Not a : Prop`）。
+    let (mut service, _socket) = open_and_wait(AND_NOT_ABSURD).await;
+    let group_open = AND_NOT_ABSURD.find("(h : And a (Not a))").expect("group");
+    let group_close = group_open + "(h : And a (Not a))".len() - 1;
+    for offset in [group_open, group_close] {
+        let markup = hover_markup_at(&mut service, AND_NOT_ABSURD, offset).await;
+        assert!(
+            markup.contains("h : And a (Not a)"),
+            "bracket {offset} must show the declaration: {markup:?}"
+        );
+        assert!(
+            !markup.contains("And a (Not a :"),
+            "must not be truncated: {markup:?}"
+        );
+    }
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_on_binder_annotation_prop_shows_declaration() {
+    // `(a : Prop)` 的 `(`：显示 `a : Prop`。
+    let src = "axiom True : Prop\n\
+               def f : Prop -> Prop := fun (a : Prop) => a\n";
+    let (mut service, _socket) = open_and_wait(src).await;
+    let group_open = src.find("(a : Prop)").expect("group");
+    let markup = hover_markup_at(&mut service, src, group_open).await;
+    assert!(
+        markup.contains("a : Prop"),
+        "binder annotation bracket must show the declaration: {markup:?}"
+    );
+    shutdown(&mut service).await;
+}
+
+#[tokio::test]
+async fn hover_returns_range_highlighting_the_expression() {
+    // 括号 hover 与普通表达式 hover 都返回非空 range，且 range 覆盖光标。
+    let (mut service, _socket) = open_and_wait(AND_NOT_ABSURD).await;
+    // 括号：`(And.right a (Not a) h)` 的 `(`。
+    let group = AND_NOT_ABSURD.find("(And.right").expect("group");
+    let hov = hover_opt_at(&mut service, AND_NOT_ABSURD, group)
+        .await
+        .expect("bracket hover");
+    let range = hov.range.expect("bracket hover must carry a range");
+    let cursor = lsp_pos(AND_NOT_ABSURD, group);
+    assert!(
+        range.start <= cursor && cursor <= range.end,
+        "bracket range must contain the cursor: {range:?}"
+    );
+    // 普通表达式：hover 定理体内的 `And.right`（`(And.right` 之后那个）。
+    let and_right = AND_NOT_ABSURD.find("(And.right").expect("group") + 1;
+    let hov2 = hover_opt_at(&mut service, AND_NOT_ABSURD, and_right)
+        .await
+        .expect("expression hover");
+    let range2 = hov2.range.expect("expression hover must carry a range");
+    let cursor2 = lsp_pos(AND_NOT_ABSURD, and_right);
+    assert!(
+        range2.start <= cursor2 && cursor2 <= range2.end,
+        "expression range must contain the cursor: {range2:?}"
+    );
+    shutdown(&mut service).await;
+}
