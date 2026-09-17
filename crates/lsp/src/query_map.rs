@@ -11,7 +11,7 @@
 use sokonanoda_front::query as truth;
 use tower_lsp::lsp_types::{Position, Range};
 
-use super::{
+use super::protocol::{
     GoalBinderInfo, GoalDeclInfo, HoleInfo, RunInfo, StateAtResponse, StateDeclInfo, StateGoalInfo,
     SubGoalInfo,
 };
