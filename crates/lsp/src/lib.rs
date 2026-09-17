@@ -18,92 +18,128 @@
 mod actions;
 mod hints;
 mod inlay;
+mod query_map;
 mod render;
 #[cfg(test)]
 mod testutil;
 
-use actions::hole_range;
+// 声明名是真相层的词表（`docs/protocol.md`）：用它的实现，不再保逐字副本。
 use render::{
-    bracket_hover, decl_at, decl_name, definition_at, diagnostic_from_compile,
-    diagnostic_from_parse, expr_hover, highlight_uses, hover_type_at, range_of, scope_names_at,
-    semantic_kind_at, status_label, symbol_kind,
+    bracket_hover, decl_at, definition_at, diagnostic_from_compile, diagnostic_from_parse,
+    expr_hover, highlight_uses, hover_type_at, range_of, scope_names_at, semantic_kind_at,
+    status_label, symbol_kind,
 };
 use serde::{Deserialize, Serialize};
 use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
-    prelude_mode_from_source, ByStepState, CompileOptions, DeclState, DeclStatus, DocumentReport,
-    GoalBinder, HoverType, PreludeMode,
+    prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport, GoalBinder, HoverType,
+    PreludeMode,
 };
+use sokonanoda_front::query::{decl_name, QueryDoc};
 use sokonanoda_front::semantic::{
     semantic_tokens as front_semantic_tokens, SemanticKind, SemanticSpan,
 };
-use sokonanoda_front::session::Session;
 use std::sync::Mutex;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-#[derive(Debug)]
+/// 文档状态：真相层 [`QueryDoc`]（文本 + 会话式编译 + 报告 + 版本）的 LSP 薄包装。
+///
+/// 查询逻辑（目标/洞/状态/提示的选择）全部在 `sokonanoda_front::query`；这里
+/// 只提供 LSP 形状的访问器与 didOpen/didChange 的编译缓存路径。
 struct Doc {
-    text: String,
-    /// 会话式编译（I8）：持有上一版本的声明快照，编辑只重查受影响后缀。
-    session: Session,
-    mode: PreludeMode,
-    report: Option<DocumentReport>,
-    parse_error: Option<sokonanoda_front::Diagnostic>,
-    /// The document's LSP version; versioned `WorkspaceEdit`s (rename) must
-    /// carry it for atomic client-side application.
-    version: i32,
+    doc: QueryDoc,
 }
 
 impl Doc {
     fn new() -> Self {
         Self {
-            text: String::new(),
-            session: Session::new(CompileOptions::default()),
-            mode: PreludeMode::Full,
-            report: None,
-            parse_error: None,
-            version: 0,
+            doc: QueryDoc::new(),
         }
     }
-}
 
-/// 请求期 kernel 探针后的报告（design spine-meta-a.md §2/§4）：只把开放练习
-/// 里 `sub_goals[i].ty == None` 的项交给 `front::probe_sub_goal_types`
-/// 按洞 span 覆盖填充。**绝不进 didChange / keystroke 路径**——此函数只在
-/// `soko/goals` / inlay / hover 请求里调用；无待填类型时零探针（只 clone）。
-fn probed_report(doc: &Doc) -> DocumentReport {
-    let Some(report) = &doc.report else {
-        return DocumentReport::default();
-    };
-    let needs_probe = report
-        .decls
-        .iter()
-        .any(|d| d.status == DeclStatus::Open && d.sub_goals.iter().any(|s| s.ty.is_none()));
-    if !needs_probe {
-        return report.clone();
+    /// 当前文本（`doc.text()` 的读法）。
+    fn text(&self) -> &str {
+        &self.doc.text
     }
-    let options = CompileOptions { prelude: doc.mode };
-    let mut report = report.clone();
-    for d in &mut report.decls {
-        if d.status != DeclStatus::Open || !d.sub_goals.iter().any(|s| s.ty.is_none()) {
-            continue;
+
+    /// 真相层本体：`soko/*` 的每个查询入口（`goals` / `holes` / `next_hole` /
+    /// `hints_at` / `state_at` / …）都是它的方法，LSP 只做形状映射。
+    fn query(&self) -> &QueryDoc {
+        &self.doc
+    }
+
+    /// prelude 模式（`Full` / `Bare`，可由文件注释指令覆盖）。
+    fn mode(&self) -> PreludeMode {
+        self.doc.mode
+    }
+
+    /// 最近一次编译报告；`None` = 尚未编译过或 parse 失败（LSP 既有契约）。
+    fn report(&self) -> Option<&DocumentReport> {
+        self.doc.report.as_ref()
+    }
+
+    /// 最近一次 parse 诊断。
+    fn parse_error(&self) -> Option<&sokonanoda_front::Diagnostic> {
+        self.doc.parse_error.as_ref()
+    }
+
+    /// The document's LSP version; versioned `WorkspaceEdit`s (rename) must
+    /// carry it for atomic client-side application. LSP 的版本是 i32、真相层
+    /// 是 u64——`as` 在两个方向上对非负版本恒等（负版本按位往返）。
+    fn version(&self) -> i32 {
+        self.doc.version as i32
+    }
+
+    /// didOpen / didChange / didSave 路径：换文本、跑（或命中）共享编译缓存、
+    /// 更新真相层状态。
+    ///
+    /// 缓存（`front::compile::cache`）与 CLI 读同一份磁盘条目：`sokonanoda
+    /// build` / `check` 预热过的画布对编辑器同样有效。命中只**重放**内核已经为
+    /// 这个（编译器版本、构建、prelude 模式、文本）产出过的报告——绝不从缓存
+    /// 里**推断**任何东西。单元测试跳过它（`cfg!(test)`），与 CLI 同策略，所以
+    /// `cargo test` 不碰开发者的真实缓存。
+    fn set_text(&mut self, text: &str, lsp_version: i32, mode: Option<PreludeMode>) {
+        let mode = mode.unwrap_or(self.doc.mode);
+        let options = CompileOptions { prelude: mode };
+        let cached = if cfg!(test) {
+            None
+        } else {
+            cache::load(text, &options)
+        };
+        if let Some(entry) = cached {
+            self.doc.text = text.to_string();
+            // 会话保持原样：`Session::update` 自己会在 prelude 模式变化时重置
+            // （它按整文件重新判定模式），下一次未命中缓存时自愈。
+            self.doc.mode = mode;
+            self.doc.version = lsp_version as u64;
+            self.doc.parse_error = None;
+            self.doc.report = Some(entry.report);
+            return;
         }
-        let probed = sokonanoda_front::compile::probe_sub_goal_types(&doc.text, &options, d.span);
-        for sub in &mut d.sub_goals {
-            if sub.ty.is_none() {
-                if let Some(ty) = probed
-                    .iter()
-                    .find(|(offset, _)| *offset == sub.span.start.offset)
-                    .map(|(_, ty)| ty.clone())
-                {
-                    sub.ty = Some(ty);
-                }
+        // 原地复用会话（I8 增量的关键）：prelude 模式变化时由真相层重建。
+        self.doc.set_text(text, lsp_version as u64, Some(mode));
+        if self.doc.parse_error.is_some() {
+            // LSP 既有契约：parse 失败时**没有报告**（hover / documentSymbol /
+            // codeAction / inlayHint 等据此回答 `null`）。真相层用"空报告 +
+            // parse_error"表达同一件事，这里把它折回 LSP 形状。
+            self.doc.report = None;
+            return;
+        }
+        if !cfg!(test) {
+            if let Some(report) = &self.doc.report {
+                cache::store(
+                    text,
+                    &options,
+                    &CachedCompile {
+                        report: report.clone(),
+                        output: None,
+                    },
+                );
             }
         }
     }
-    report
 }
 
 struct Backend {
@@ -219,66 +255,17 @@ impl Backend {
     }
 
     async fn refresh(&self, uri: Url, text: String, version: Option<i32>) {
-        // 原地复用会话（I8 增量的关键）：prelude 模式变化时才重建。
         // 教学文档量级小，锁内同步编译可接受（此前也是同步全量编译）。
+        // 文本 →（缓存命中 / 会话式重编译）→ 状态全部由 `Doc::set_text` 负责；
+        // 诊断是那份状态的**视图**，与缓存命中路径逐字一致。
         let diagnostics = {
             let mut doc = self.doc.lock().expect("doc lock");
             let mode = prelude_mode_from_source(&text);
-            if doc.mode != mode {
-                doc.session = Session::new(CompileOptions { prelude: mode });
-                doc.mode = mode;
-            }
-            let options = CompileOptions { prelude: mode };
-            let lsp_version = version.unwrap_or(0).max(0) as u64;
-            // Shared persistent compile cache (`front::compile::cache`): the LSP
-            // and the CLI read/write the *same* on-disk entries, so warming the
-            // cache once (`sokonanoda build`, a prior `check`/`course`) also
-            // warms the editor. A hit only replays a report the kernel already
-            // produced for exactly this (compiler version, build, prelude mode,
-            // text) — nothing is ever *inferred* from the cache. Unit tests skip
-            // it (`cfg!(test)`), matching the CLI's policy, so `cargo test` never
-            // touches the developer's real cache.
-            let cached = if cfg!(test) {
-                None
-            } else {
-                cache::load(&text, &options)
-            };
-            if let Some(entry) = cached {
-                doc.text = text;
-                doc.version = version.unwrap_or(doc.version);
-                doc.parse_error = None;
-                let diagnostics = report_diagnostics(&entry.report);
-                doc.report = Some(entry.report);
-                diagnostics
-            } else {
-                let update = doc.session.update(&text, lsp_version);
-                doc.text = text;
-                doc.version = version.unwrap_or(doc.version);
-                match update.parse_error {
-                    Some(diag) => {
-                        let diagnostic = diagnostic_from_parse(&diag);
-                        doc.parse_error = Some(diag);
-                        doc.report = None;
-                        vec![diagnostic]
-                    }
-                    None => {
-                        doc.parse_error = None;
-                        let report = update.report;
-                        let diagnostics = report_diagnostics(&report);
-                        if !cfg!(test) {
-                            cache::store(
-                                &doc.text,
-                                &options,
-                                &CachedCompile {
-                                    report: report.clone(),
-                                    output: None,
-                                },
-                            );
-                        }
-                        doc.report = Some(report);
-                        diagnostics
-                    }
-                }
+            let lsp_version = version.unwrap_or_else(|| doc.version());
+            doc.set_text(&text, lsp_version, Some(mode));
+            match doc.parse_error() {
+                Some(diag) => vec![diagnostic_from_parse(diag)],
+                None => doc.report().map(report_diagnostics).unwrap_or_default(),
             }
         };
         let _ = self
@@ -294,80 +281,16 @@ impl Backend {
     /// 内核成本）。
     fn goal_decls(&self, probe: bool) -> Option<(String, Vec<GoalDeclInfo>)> {
         let doc = self.doc.lock().expect("doc lock");
-        doc.report.as_ref()?;
-        let report = if probe {
-            probed_report(&doc)
-        } else {
-            doc.report.clone().unwrap_or_default()
-        };
-        let decls_names = sokonanoda_front::semantic::declaration_kinds(&doc.text);
-        let decls = report
-            .decls
-            .iter()
-            .map(|d| {
-                let name = decl_name(d);
-                let binder_names: Vec<String> = d.binders.iter().map(|b| b.name.clone()).collect();
-                let ty_runs = d
-                    .ty_text
-                    .as_deref()
-                    .map(|ty| runs_of(ty, &decls_names, &binder_names))
-                    .unwrap_or_default();
-                GoalDeclInfo {
-                    name: name.clone(),
-                    kind: d.kind.as_str().to_string(),
-                    status: status_str(d.status).to_string(),
-                    range: range_of(d.span),
-                    ty: d.ty_text.clone(),
-                    ty_runs,
-                    goal: d.goal.clone(),
-                    goals: match d.status {
-                        DeclStatus::Open => d
-                            .by_steps
-                            .last()
-                            .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
-                            .unwrap_or_else(|| d.goal.clone().into_iter().collect()),
-                        _ => Vec::new(),
-                    },
-                    binders: d
-                        .binders
-                        .iter()
-                        .map(|b| GoalBinderInfo {
-                            name: b.name.clone(),
-                            ty: b.ty.clone(),
-                            ty_runs: runs_of(&b.ty, &decls_names, &binder_names),
-                        })
-                        .collect(),
-                    hole: match d.status {
-                        DeclStatus::Open => hole_range(&doc.text, d),
-                        _ => None,
-                    },
-                    holes: match d.status {
-                        DeclStatus::Open => d
-                            .holes
-                            .iter()
-                            .enumerate()
-                            .map(|(index, span)| HoleInfo {
-                                range: range_of(*span),
-                                id: format!("{name}:{index}"),
-                            })
-                            .collect(),
-                        _ => Vec::new(),
-                    },
-                    sub_goals: match d.status {
-                        DeclStatus::Open => d
-                            .sub_goals
-                            .iter()
-                            .map(|sub| SubGoalInfo {
-                                range: range_of(sub.span),
-                                ty: sub.ty.clone(),
-                            })
-                            .collect(),
-                        _ => Vec::new(),
-                    },
-                }
-            })
+        // LSP 契约：没有报告（尚未编译 / parse 失败）时 `soko/goals` 答空。
+        doc.report()?;
+        let text = doc.text();
+        let decls = doc
+            .query()
+            .goals(probe)
+            .into_iter()
+            .map(|decl| query_map::decl_info(decl, text))
             .collect();
-        Some((doc.text.clone(), decls))
+        Some((text.to_string(), decls))
     }
 
     async fn goals(&self, params: GoalsParams) -> Result<GoalsResponse> {
@@ -390,28 +313,16 @@ impl Backend {
         }))
     }
 
+    /// `soko/nextHole`：洞的定位与"下一个/上一个"的判定在真相层，这里只把
+    /// 字节区间折成 `Range`、把位置折成字节 offset。
     async fn next_hole(&self, params: NextHoleParams) -> Result<Option<Range>> {
-        let Some((text, decls)) = self.goal_decls(false) else {
-            return Ok(None);
-        };
+        let doc = self.doc.lock().expect("doc lock");
         let forward = params.forward.unwrap_or(true);
-        let cursor = position_to_offset(&text, params.position);
-        let mut holes: Vec<(usize, Range)> = decls
-            .iter()
-            .flat_map(|d| {
-                d.holes
-                    .iter()
-                    .map(|h| (range_start_offset(&text, &h.range), h.range))
-                    .collect::<Vec<_>>()
-            })
-            .collect();
-        holes.sort_by_key(|(off, _)| *off);
-        let found = if forward {
-            holes.iter().find(|(off, _)| *off > cursor)
-        } else {
-            holes.iter().rev().find(|(off, _)| *off < cursor)
-        };
-        Ok(found.map(|(_, range)| *range))
+        let cursor = position_to_offset(doc.text(), params.position);
+        Ok(doc
+            .query()
+            .next_hole(cursor, forward)
+            .map(|hole| query_map::range_of_offsets(doc.text(), hole.start, hole.end)))
     }
 
     /// Hint ladder for the declaration at the cursor (docs/design/hints-
@@ -426,78 +337,20 @@ impl Backend {
     /// inside a tactic shows the state **entering** that tactic; otherwise
     /// the state after the last tactic that ended before it. The response
     /// carries the document version so clients drop stale answers.
+    ///
+    /// 选择语义（在哪个声明里、哪条 tactic、根状态的目标）全部在真相层
+    /// （`QueryDoc::state_at`，`docs/protocol.md` §`soko/stateAt`）；这里只把
+    /// "问不出来"折成既有的空响应、把字节 offset 映射成 `Range`。
     async fn state_at(&self, params: StateAtParams) -> Result<StateAtResponse> {
         let doc = self.doc.lock().expect("doc lock");
-        let version = doc.version;
-        let Some(report) = doc.report.as_ref() else {
-            return Ok(StateAtResponse::empty(version));
-        };
-        let cursor = position_to_offset(&doc.text, params.position);
-        let Some(d) = report
-            .decls
-            .iter()
-            .find(|d| d.span.start.offset <= cursor && cursor <= d.span.end.offset)
-        else {
-            return Ok(StateAtResponse::empty(version));
-        };
-        let selection = select_state_at(d, cursor);
-        // One parse of the document, then pure classification per goal/binder
-        // (docs/design/goal-rendering.md §2.1).
-        let decls = sokonanoda_front::semantic::declaration_kinds(&doc.text);
-        let first = selection.goals.first();
-        let first_names: Vec<String> = first
-            .map(|g| g.binders.iter().map(|b| b.name.clone()).collect())
-            .unwrap_or_default();
-        Ok(StateAtResponse {
-            version,
-            decl: Some(StateDeclInfo {
-                name: decl_name(d),
-                kind: d.kind.as_str().to_string(),
-                status: status_str(d.status).to_string(),
-                range: range_of(d.span),
-            }),
-            // Single-value fields kept for older clients: the current goal
-            // (first of `goals`) and its hypotheses.
-            goal: first.map(|g| g.ty.clone()),
-            goal_runs: first
-                .map(|g| runs_of(&g.ty, &decls, &first_names))
-                .unwrap_or_default(),
-            binders: first
-                .map(|g| {
-                    g.binders
-                        .iter()
-                        .map(|b| GoalBinderInfo {
-                            name: b.name.clone(),
-                            ty: b.ty.clone(),
-                            ty_runs: runs_of(&b.ty, &decls, &first_names),
-                        })
-                        .collect()
-                })
-                .unwrap_or_default(),
-            goals: selection
-                .goals
-                .iter()
-                .map(|g| {
-                    let names: Vec<String> = g.binders.iter().map(|b| b.name.clone()).collect();
-                    StateGoalInfo {
-                        goal: g.ty.clone(),
-                        goal_runs: runs_of(&g.ty, &decls, &names),
-                        binders: g
-                            .binders
-                            .iter()
-                            .map(|b| GoalBinderInfo {
-                                name: b.name.clone(),
-                                ty: b.ty.clone(),
-                                ty_runs: runs_of(&b.ty, &decls, &names),
-                            })
-                            .collect(),
-                    }
-                })
-                .collect(),
-            span: selection.span.map(range_of),
-            step: selection.step,
-            total: selection.total,
-        })
+        let version = doc.version();
+        let cursor = position_to_offset(doc.text(), params.position);
+        match doc.query().state_at(cursor) {
+            // 报告缺失 / parse 失败 / 位置不在任何声明内 / 越界：LSP 的 wire 没有
+            // 错误通道，既有行为就是空响应（`decl: null` + 默认字段）。
+            Err(_) => Ok(StateAtResponse::empty(version)),
+            Ok(answer) => Ok(query_map::state_answer(doc.text(), answer)),
+        }
     }
 }
 
@@ -530,18 +383,6 @@ struct GoalBinderInfo {
     /// classification the editor's semantic tokens use, so hover and the
     /// Infoview can never drift.
     ty_runs: Vec<RunInfo>,
-}
-
-/// Classify `text` into wire runs. `decls` is the document's declaration table
-/// (computed once per request); `binders` are the names in scope.
-fn runs_of(text: &str, decls: &[(String, SemanticKind)], binders: &[String]) -> Vec<RunInfo> {
-    sokonanoda_front::semantic::tag_runs(text, decls, binders)
-        .into_iter()
-        .map(|run| RunInfo {
-            text: run.text,
-            kind: run.kind.map(|k| k.as_str().to_string()),
-        })
-        .collect()
 }
 
 #[derive(Debug, Serialize)]
@@ -665,114 +506,6 @@ impl StateAtResponse {
     }
 }
 
-/// Wire status string shared by `soko/goals` and `soko/stateAt`.
-fn status_str(status: DeclStatus) -> &'static str {
-    match status {
-        DeclStatus::Open => "open",
-        DeclStatus::Checked => "checked",
-        DeclStatus::Failed => "failed",
-    }
-}
-
-/// One goal of the selected state: its rendered type and in-scope hypotheses.
-struct SelectedGoal {
-    ty: String,
-    binders: Vec<GoalBinder>,
-}
-
-/// The declaration state selected for one cursor offset (`soko/stateAt`).
-struct StateSelection {
-    /// Every open goal at this position, current goal first (empty = closed).
-    goals: Vec<SelectedGoal>,
-    span: Option<sokonanoda_front::Span>,
-    /// Index of the selected per-tactic state; `-1` = root (before any tactic).
-    step: i64,
-    total: usize,
-}
-
-impl StateSelection {
-    fn root(d: &DeclState) -> Self {
-        // Root goal: the full declared type (kernel-rendered) when known,
-        // falling back to the remaining goal for plain open exercises.
-        let goals = d
-            .ty_text
-            .clone()
-            .or_else(|| d.goal.clone())
-            .map(|ty| SelectedGoal {
-                ty,
-                binders: Vec::new(),
-            })
-            .into_iter()
-            .collect();
-        Self {
-            goals,
-            span: Some(d.span),
-            step: -1,
-            total: 0,
-        }
-    }
-}
-
-/// Select the state at `cursor` (Lean `goalsAt?` semantics).
-///
-/// - No `by` steps: the declaration's remaining goal/context (the best the
-///   walk recovered; `step = -1`).
-/// - With steps: a cursor inside a tactic's span `[start, end)` shows the
-///   state **entering** that tactic (`steps[i-1]` after-state, or the root
-///   for the first tactic); otherwise the state after the last tactic whose
-///   span ends at or before the cursor (root when none has).
-fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
-    if d.by_steps.is_empty() {
-        let goals = d
-            .goal
-            .clone()
-            .map(|ty| SelectedGoal {
-                ty,
-                binders: d.binders.clone(),
-            })
-            .into_iter()
-            .collect();
-        return StateSelection {
-            goals,
-            span: Some(d.span),
-            step: -1,
-            total: 0,
-        };
-    }
-    let selected = match d
-        .by_steps
-        .iter()
-        .position(|s| s.span.start.offset <= cursor && cursor < s.span.end.offset)
-    {
-        Some(i) => i as i64 - 1,
-        None => d
-            .by_steps
-            .iter()
-            .rposition(|s| s.span.end.offset <= cursor)
-            .map(|i| i as i64)
-            .unwrap_or(-1),
-    };
-    let mut selection = StateSelection::root(d);
-    selection.total = d.by_steps.len();
-    if let Some(step) = usize::try_from(selected)
-        .ok()
-        .filter(|i| *i < d.by_steps.len())
-    {
-        let s: &ByStepState = &d.by_steps[step];
-        selection.goals = s
-            .goals
-            .iter()
-            .map(|g| SelectedGoal {
-                ty: g.ty.clone(),
-                binders: g.binders.clone(),
-            })
-            .collect();
-        selection.span = Some(s.span);
-        selection.step = selected;
-    }
-    selection
-}
-
 /// 0-based LSP position → byte offset（与本服务器的 char 计数约定一致）。
 fn position_to_offset(text: &str, position: Position) -> usize {
     let mut offset = 0usize;
@@ -788,10 +521,6 @@ fn position_to_offset(text: &str, position: Position) -> usize {
         offset += line.len() + 1;
     }
     text.len()
-}
-
-fn range_start_offset(text: &str, range: &Range) -> usize {
-    position_to_offset(text, range.start)
 }
 
 /// Hover on a `by` tactic shows the goal state **entering** that tactic
@@ -815,8 +544,9 @@ fn tactic_goal_hover(
         .iter()
         .position(|s| s.span.start.offset <= offset && offset <= s.span.end.offset)?;
     let step = &d.by_steps[step_index];
-    // `select_state_at` on the tactic's start returns the *entering* state.
-    let selection = select_state_at(d, step.span.start.offset);
+    // 真相层的选择器（`docs/protocol.md` §`soko/stateAt`）：tactic 起点处的
+    // 状态 = **进入**它的状态。
+    let selection = sokonanoda_front::query::select_state_at(d, step.span.start.offset);
     let tactic_text = text
         .get(step.span.start.offset..step.span.end.offset)
         .unwrap_or("")
@@ -1158,7 +888,7 @@ impl LanguageServer for Backend {
         // semantic_tokens 自身退化为纯词法分类，绝不复用过期报告。
         let text = {
             let doc = self.doc.lock().expect("doc lock");
-            doc.text.clone()
+            doc.text().to_string()
         };
         let spans = front_semantic_tokens(&text);
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
@@ -1169,31 +899,32 @@ impl LanguageServer for Backend {
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let doc = self.doc.lock().expect("doc lock");
-        if doc.report.is_none() {
+        if doc.report().is_none() {
             return Ok(None);
         }
         // 请求期探针：洞期望类型（含函数 spine 的 None 项）在 hover 时补齐。
-        let report = probed_report(&doc);
+        // 报告（含"哪些子洞要探、怎么对齐"）来自真相层 `QueryDoc::probed_report`。
+        let report = doc.query().probed_report();
         let report = &report;
         let pos = params.text_document_position_params.position;
-        let offset = position_to_offset(&doc.text, pos);
+        let offset = position_to_offset(doc.text(), pos);
         // Declaration table computed once per hover request and reused by every
         // goal-block builder below (front goal runs need it for classification).
-        let decls = sokonanoda_front::semantic::declaration_kinds(&doc.text);
+        let decls = sokonanoda_front::semantic::declaration_kinds(doc.text());
         // `by` tactic hover: show the goal state entering the tactic under the
         // cursor (Lean Infoview-style, user request). Before keyword suppression
         // below, because tactic words (intro/exact/…) are keywords.
-        if let Some(hover) = tactic_goal_hover(report, &doc.text, offset, &decls) {
+        if let Some(hover) = tactic_goal_hover(report, doc.text(), offset, &decls) {
             return Ok(Some(hover));
         }
         // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。
         // 只在 hover 请求时计算（不在按键路径），judge_infer 有缓存。
-        if let Some(hover) = half_expression_goals_hover(report, &doc.text, offset, &decls) {
+        if let Some(hover) = half_expression_goals_hover(report, doc.text(), offset, &decls) {
             return Ok(Some(hover));
         }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
         // 应该来自名字/表达式，而不是把关键字所在的某个节点硬塞过来。
-        if let Some(kind) = semantic_kind_at(&doc.text, pos.line, pos.character) {
+        if let Some(kind) = semantic_kind_at(doc.text(), pos.line, pos.character) {
             if matches!(kind, SemanticKind::Keyword) {
                 return Ok(None);
             }
@@ -1201,13 +932,13 @@ impl LanguageServer for Backend {
         // 括号优先：光标在 ( / ) 上 → 显示括号组包住的表达式及其类型
         //（`(表达式)` 的悬停 = `表达式 : 类型`）。必须先于精确命中——
         // 外层 lambda 行的 span 覆盖整个值表达式，会遮住括号组。
-        if let Some(res) = bracket_hover(&doc.text, &report.hovers, pos.line, pos.character) {
+        if let Some(res) = bracket_hover(doc.text(), &report.hovers, pos.line, pos.character) {
             return Ok(Some(hover_markup(res)));
         }
         if let Some(h) = hover_type_at(&report.hovers, pos.line, pos.character) {
             // 学习者需求：显示「表达式 : 类型」——表达式从源码按 span 切片
             //（括号平衡成良构），并返回表达式范围供编辑器高亮。
-            return Ok(Some(hover_markup(expr_hover(&doc.text, h))));
+            return Ok(Some(hover_markup(expr_hover(doc.text(), h))));
         }
         // 邻近回退：光标 ±2 字符内命中的最小外层表达式（运算符、空白
         // 边缘等结构符号也能看到所属类型）。数据来自 hover 表（span 嵌套）。
@@ -1234,7 +965,7 @@ impl LanguageServer for Backend {
                     (dist, len)
                 });
             if let Some(h) = nearest {
-                return Ok(Some(hover_markup(expr_hover(&doc.text, h))));
+                return Ok(Some(hover_markup(expr_hover(doc.text(), h))));
             }
         }
         if let Some(d) = decl_at(&report.decls, pos.line, pos.character) {
@@ -1292,12 +1023,12 @@ impl LanguageServer for Backend {
         // 逐级放大选中"先结合"的表达式。数据来自 hover 表——每个
         // AST 节点（含箭头/应用）都有行，span 天然嵌套。
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         let mut out = Vec::with_capacity(params.positions.len());
         for pos in &params.positions {
-            let offset = position_to_offset(&doc.text, *pos);
+            let offset = position_to_offset(doc.text(), *pos);
             let mut rows: Vec<&HoverType> = report
                 .hovers
                 .iter()
@@ -1340,7 +1071,7 @@ impl LanguageServer for Backend {
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
@@ -1358,7 +1089,7 @@ impl LanguageServer for Backend {
         params: DocumentHighlightParams,
     ) -> Result<Option<Vec<DocumentHighlight>>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
@@ -1381,7 +1112,7 @@ impl LanguageServer for Backend {
         _: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         let symbols = report
@@ -1404,7 +1135,7 @@ impl LanguageServer for Backend {
 
     async fn code_lens(&self, _: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         let lenses = report
@@ -1431,7 +1162,7 @@ impl LanguageServer for Backend {
         let pos = params.text_document_position.position;
         // In-scope binders at the cursor (smallest enclosing hover row);
         // outside any hover span the list stays keyword/prelude-only.
-        if let Some(report) = &doc.report {
+        if let Some(report) = doc.report() {
             if let Some(names) = scope_names_at(&report.hovers, pos.line, pos.character) {
                 for name in names {
                     if name.is_empty() {
@@ -1473,7 +1204,7 @@ impl LanguageServer for Backend {
             });
         }
         // The document's own declarations (anonymous examples excluded).
-        if let Some(report) = &doc.report {
+        if let Some(report) = doc.report() {
             for decl in &report.decls {
                 let Some(name) = &decl.name else {
                     continue;
@@ -1512,7 +1243,7 @@ impl LanguageServer for Backend {
 
     async fn folding_range(&self, _: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         let ranges = report
@@ -1540,13 +1271,13 @@ impl LanguageServer for Backend {
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         Ok(actions::code_actions(
             params.text_document.uri.clone(),
-            &doc.text,
-            doc.mode,
+            doc.text(),
+            doc.mode(),
             report,
             params.range.start,
         ))
@@ -1557,30 +1288,30 @@ impl LanguageServer for Backend {
         params: TextDocumentPositionParams,
     ) -> Result<Option<PrepareRenameResponse>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
-        Ok(render::prepare_rename(&doc.text, report, params.position))
+        Ok(render::prepare_rename(doc.text(), report, params.position))
     }
 
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Err(tower_lsp::jsonrpc::Error::invalid_params(
                 "当前文档无法解析，不能改名",
             ));
         };
-        render::rename(&doc.text, doc.version, report, params)
+        render::rename(doc.text(), doc.version(), report, params)
     }
 
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
         let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = &doc.report else {
+        let Some(report) = doc.report() else {
             return Ok(None);
         };
         Ok(render::find_references(
             params.text_document_position.text_document.uri.clone(),
-            &doc.text,
+            doc.text(),
             report,
             params.text_document_position.position,
             params.context.include_declaration,
@@ -1589,13 +1320,14 @@ impl LanguageServer for Backend {
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
         let doc = self.doc.lock().expect("doc lock");
-        if doc.report.is_none() {
+        if doc.report().is_none() {
             return Ok(None);
         }
-        // 请求期探针补齐函数 spine 子洞的期望类型（inlay 是惰性请求）。
-        let report = probed_report(&doc);
+        // 请求期探针补齐函数 spine 子洞的期望类型（inlay 是惰性请求）：
+        // 同 hover，直接用真相层的 `QueryDoc::probed_report`。
+        let report = doc.query().probed_report();
         let _ = params.range;
-        Ok(Some(inlay::document_hints(&doc.text, &report)))
+        Ok(Some(inlay::document_hints(doc.text(), &report)))
     }
 }
 

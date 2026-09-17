@@ -393,13 +393,6 @@ pub(crate) fn status_label(status: DeclStatus) -> &'static str {
     }
 }
 
-pub(crate) fn decl_name(d: &DeclState) -> String {
-    match &d.name {
-        Some(n) => n.clone(),
-        None => format!("{}@{}", d.kind.as_str(), d.span.start.line),
-    }
-}
-
 // ---- rename / references（docs/design/rename-inlay.md §2–§3）----
 
 /// The definition's name token span for a resolved target: a binder's own

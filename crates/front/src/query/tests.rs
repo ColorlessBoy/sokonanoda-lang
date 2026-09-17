@@ -53,10 +53,60 @@ fn state_at_root_before_any_tactic() {
         state.binders
     );
     assert_eq!(
-        state.span.map(|(s, e)| (s, e)),
+        state.span,
         state.decl.as_ref().map(|d| (d.start, d.end)),
         "the root span is the declaration's range"
     );
+}
+
+/// 没有 `by` 块的**半成品**证明（lambda 前缀 + `sorry`）：协议要求退回声明自己的
+/// 剩余目标与上下文（`step: -1`、`total: 0`），而不是"根状态"（那是有 tactic 的
+/// 声明在第一条之前的状态：目标 = 声明类型、binders 为空）。
+///
+/// 这是 `docs/protocol.md` §`soko/stateAt` 的原话（"For a declaration without a
+/// `by` block both are `-1`/`0` and the response falls back to the declaration's
+/// remaining goal/context"）；丢掉 binders 会让 Infoview 在半成品证明上看不到
+/// 已经引入的假设。
+#[test]
+fn state_at_open_declaration_without_a_by_block_keeps_its_context() {
+    let text = "example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n";
+    let doc = doc(text);
+    let state = doc.state_at(0).expect("answerable");
+    assert_eq!(state.step, -1, "no tactics → the declaration-level state");
+    assert_eq!(state.total, 0, "no tactics → no per-tactic states");
+    assert_eq!(
+        state.goals.len(),
+        1,
+        "the half-written proof still has a goal: {:?}",
+        state.goals
+    );
+    assert_eq!(state.goal.as_deref(), Some("a"), "the remaining goal");
+    let names: Vec<&str> = state.binders.iter().map(|b| b.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec!["a", "h"],
+        "the introduced hypotheses must survive: {:?}",
+        state.binders
+    );
+}
+
+/// 没有 `by` 块且**已闭合**的声明（`axiom`/已证完的声明）：协议规定 `goals: []`
+/// （wire 上 `goal: null` = "证明已闭合"）。若这里返回声明类型，客户端会把一条
+/// 已解决的声明显示成"还剩一个目标"。
+#[test]
+fn state_at_closed_declaration_without_a_by_block_has_no_goal() {
+    let doc = doc(CANVAS);
+    let offset = CANVAS.find("axiom And :").expect("decl start");
+    let state = doc.state_at(offset).expect("answerable");
+    assert_eq!(state.step, -1);
+    assert_eq!(state.total, 0);
+    assert!(
+        state.goals.is_empty(),
+        "a closed proof has no goals: {:?}",
+        state.goals
+    );
+    assert!(state.goal.is_none(), "no goal on a closed declaration");
+    assert!(state.binders.is_empty());
 }
 
 #[test]

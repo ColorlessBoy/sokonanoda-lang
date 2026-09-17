@@ -359,3 +359,268 @@ fn query_reads_source_from_stdin_and_accepts_compact() {
     let text = String::from_utf8_lossy(&out.stdout);
     assert_eq!(text.trim().lines().count(), 1, "compact = one JSON line");
 }
+
+// ── CLI ≡ LSP 一致性契约（设计文档 A4：防"两套真相"）────────────────────────
+//
+// `query state` 与 `soko/stateAt` 必须给出**同一份真相**：同一个位置、同样的
+// step/goal/binders。它们由 `front::query::select_state_at` 唯一实现，但这个测试
+// 存在的意义是——**上一次它们真的是两套**（真相层把"光标恰在某 tactic 末尾"
+// 判成"之内"，且根状态带了走查后的剩余目标），而当时没有任何测试会红。
+//
+// 走真 LSP over stdio（不是进程内 rpc），因为契约的另一半是 wire 形状。
+
+/// `sokonanoda-lsp` 与当前测试二进制同目录（`target/<profile>/`）。
+fn lsp_binary() -> PathBuf {
+    let mut dir = std::env::current_exe().expect("current exe");
+    dir.pop(); // deps/
+    dir.pop(); // <profile>/
+    let name = if cfg!(windows) {
+        "sokonanoda-lsp.exe"
+    } else {
+        "sokonanoda-lsp"
+    };
+    dir.join(name)
+}
+
+/// 一个极小的 LSP 客户端：发 `initialize` + `didOpen`，然后问一个自定义请求。
+fn lsp_request(
+    uri: &str,
+    text: &str,
+    method: &str,
+    params: serde_json::Value,
+) -> serde_json::Value {
+    use std::io::{BufRead, BufReader, Write};
+    let binary = lsp_binary();
+    if !binary.exists() {
+        // 只跑 `cargo test -p sokonanoda-cli` 时 LSP 二进制可能没编；不静默跳过，
+        // 但也别让无关的测试套件红——打印一条明确的提示。
+        eprintln!(
+            "skipping CLI≡LSP consistency check: {} not built (run `cargo build --workspace`)",
+            binary.display()
+        );
+        return serde_json::Value::Null;
+    }
+    let mut child = Command::new(&binary)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("spawn sokonanoda-lsp");
+    let mut stdin = child.stdin.take().expect("lsp stdin");
+    let stdout = child.stdout.take().expect("lsp stdout");
+    let mut reader = BufReader::new(stdout);
+
+    let send = |stdin: &mut std::process::ChildStdin, message: serde_json::Value| {
+        let body = serde_json::to_string(&message).expect("serialize");
+        write!(stdin, "Content-Length: {}\r\n\r\n{body}", body.len()).expect("write frame");
+        stdin.flush().expect("flush");
+    };
+    let read = |reader: &mut BufReader<std::process::ChildStdout>| -> serde_json::Value {
+        let mut length = 0usize;
+        loop {
+            let mut line = String::new();
+            if reader.read_line(&mut line).expect("read header") == 0 {
+                panic!("LSP closed the stream before answering");
+            }
+            if let Some(value) = line.strip_prefix("Content-Length:") {
+                length = value.trim().parse().expect("content length");
+            }
+            if line == "\r\n" || line == "\n" {
+                break;
+            }
+        }
+        let mut body = vec![0u8; length];
+        std::io::Read::read_exact(reader, &mut body).expect("read body");
+        serde_json::from_slice(&body).expect("parse json")
+    };
+
+    send(
+        &mut stdin,
+        serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+            "processId": null,
+            "rootUri": null,
+            "capabilities": {}
+        }}),
+    );
+    let _ = read(&mut reader); // initialize result
+    send(
+        &mut stdin,
+        serde_json::json!({"jsonrpc":"2.0","method":"initialized","params":{}}),
+    );
+    send(
+        &mut stdin,
+        serde_json::json!({"jsonrpc":"2.0","method":"textDocument/didOpen","params":{
+            "textDocument": {"uri": uri, "languageId": "sokonanoda", "version": 1, "text": text}
+        }}),
+    );
+    send(
+        &mut stdin,
+        serde_json::json!({"jsonrpc":"2.0","id":2,"method":method,"params":params}),
+    );
+    // 跳过诊断通知等，直到拿到 id == 2 的应答。
+    let answer = loop {
+        let message = read(&mut reader);
+        if message.get("id").and_then(|v| v.as_i64()) == Some(2) {
+            break message;
+        }
+        if message.get("id").is_some() {
+            panic!("unexpected LSP response: {message}");
+        }
+    };
+    drop(stdin);
+    let _ = child.wait();
+    answer
+}
+
+/// 与 `query state` 的同一位置比对：CLI 用 1-based（`--line/--col`，UTF-16 列），
+/// LSP 用 0-based（`line`/`character`）。
+fn assert_state_matches_lsp(canvas: &str, line_1based: usize, col_1based: usize) {
+    let (cli, code) = query(
+        &[
+            "state",
+            "--text",
+            canvas,
+            "--line",
+            &line_1based.to_string(),
+            "--col",
+            &col_1based.to_string(),
+        ],
+        None,
+    );
+    assert_eq!(code, 0);
+    assert_eq!(cli["ok"], true, "{cli}");
+
+    let lsp = lsp_request(
+        "file:///consistency.sokonanoda",
+        canvas,
+        "soko/stateAt",
+        serde_json::json!({
+            "textDocument": {"uri": "file:///consistency.sokonanoda"},
+            "position": {"line": line_1based - 1, "character": col_1based - 1},
+        }),
+    );
+    if lsp.is_null() {
+        return; // 二进制未编，已打印提示
+    }
+    let result = &lsp["result"];
+    let cli_data = &cli["data"];
+
+    assert_eq!(
+        cli_data["step"], result["step"],
+        "step must agree between `query state` and `soko/stateAt`\nCLI: {cli_data}\nLSP: {result}"
+    );
+    assert_eq!(
+        cli_data["total"], result["total"],
+        "total must agree\nCLI: {cli_data}\nLSP: {result}"
+    );
+    assert_eq!(
+        cli_data["goal"], result["goal"],
+        "the goal text must agree (same kernel rendering)\nCLI: {cli_data}\nLSP: {result}"
+    );
+    let cli_binders: Vec<&str> = cli_data["binders"]
+        .as_array()
+        .expect("cli binders")
+        .iter()
+        .map(|b| b["name"].as_str().unwrap())
+        .collect();
+    let lsp_binders: Vec<&str> = result["binders"]
+        .as_array()
+        .expect("lsp binders")
+        .iter()
+        .map(|b| b["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        cli_binders, lsp_binders,
+        "the hypothesis list must agree\nCLI: {cli_data}\nLSP: {result}"
+    );
+    // 多目标列表：长度与每项的目标文本都要对上（`apply` 之后两个子目标）。
+    let cli_goals: Vec<&str> = cli_data["goals"]
+        .as_array()
+        .expect("cli goals")
+        .iter()
+        .map(|g| g["goal"].as_str().unwrap())
+        .collect();
+    let lsp_goals: Vec<&str> = result["goals"]
+        .as_array()
+        .expect("lsp goals")
+        .iter()
+        .map(|g| g["goal"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        cli_goals, lsp_goals,
+        "the full goal list must agree\nCLI: {cli_data}\nLSP: {result}"
+    );
+}
+
+#[test]
+fn query_state_agrees_with_the_lsp_state_at_request() {
+    // 三个位置覆盖协议的三条分支：根状态、某 tactic 之内（进入它之前）、
+    // 以及"最后一条 tactic 之后"。
+    let decl_line = CANVAS
+        .lines()
+        .position(|l| l.contains("theorem and_swap"))
+        .map(|i| i + 1)
+        .expect("decl line");
+    assert_state_matches_lsp(CANVAS, decl_line, 1); // 根状态（step: -1）
+    assert_state_matches_lsp(CANVAS, decl_line + 4, 3); // `apply And.intro` 之内
+    assert_state_matches_lsp(CANVAS, decl_line + 6, 3); // 最后一个 sorry（apply 之后）
+}
+
+/// **没有 `by` 块**的两个分支。协议（`docs/protocol.md` §`soko/stateAt`）规定
+/// 这两条都 `step: -1`、`total: 0`：半成品退回声明自己的剩余目标/上下文；已闭合
+/// 的声明 `goals: []`（wire `goal: null`）。
+///
+/// 曾经真出过事：真相层把这两个分支当成"根状态"（目标 = 声明类型、binders 为空），
+/// 而 LSP 的既有实现是对的——一次"看起来等价"的重构把 Infoview 的半成品上下文
+/// 抹掉了、并给已证的声明安上一个假目标。**LSP 套件里没有任何用例覆盖它们**，
+/// 所以只有这条端到端一致性测试能挡住（H6-A 的 A4 契约）。
+const NO_BY_CANVAS: &str = "\
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+
+example : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry
+
+theorem closed_identity (a : Prop) : a -> a := fun (x : a) => x
+";
+
+#[test]
+fn query_state_and_lsp_agree_without_a_by_block() {
+    // 半成品（lambda 前缀 + `sorry`）：上下文必须还在。
+    let (value, code) = query(
+        &["state", "--text", NO_BY_CANVAS, "--line", "4", "--col", "1"],
+        None,
+    );
+    assert_eq!(code, 0, "{value}");
+    assert_eq!(value["data"]["step"], -1);
+    assert_eq!(
+        value["data"]["total"], 0,
+        "no tactics → no per-tactic states"
+    );
+    assert_eq!(value["data"]["goal"], "a", "the remaining goal: {value}");
+    let binders: Vec<&str> = value["data"]["binders"]
+        .as_array()
+        .expect("binders")
+        .iter()
+        .map(|b| b["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(binders, vec!["a", "h"], "the half-written proof's context");
+
+    // 已闭合、无 `by` 块：没有目标（不是"目标 = 声明类型"）。
+    let (value, code) = query(
+        &["state", "--text", NO_BY_CANVAS, "--line", "6", "--col", "1"],
+        None,
+    );
+    assert_eq!(code, 0, "{value}");
+    assert_eq!(value["data"]["step"], -1);
+    assert_eq!(value["data"]["total"], 0);
+    assert_eq!(
+        value["data"]["goals"].as_array().map(Vec::len),
+        Some(0),
+        "a closed proof has no goal: {value}"
+    );
+    assert!(value["data"]["goal"].is_null(), "{value}");
+
+    // 两侧逐字段一致（同一份真相的两个视图）。
+    assert_state_matches_lsp(NO_BY_CANVAS, 4, 1);
+    assert_state_matches_lsp(NO_BY_CANVAS, 6, 1);
+}

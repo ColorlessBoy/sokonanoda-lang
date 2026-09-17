@@ -306,7 +306,11 @@ impl QueryDoc {
 
     /// 请求期内核探针后的报告：只补开放练习里 `sub_goals[i].ty == None` 的项
     /// （`docs/design/spine-meta-a.md` §2/§4）。**绝不进 keystroke 路径**。
-    fn probed_report(&self) -> DocumentReport {
+    ///
+    /// 公开是给**需要原始报告**的适配器用的（LSP 的 hover / inlay 要 `hovers`、
+    /// `by_steps`、`ty_text`、`sub_goals`，这些不在类型化查询结果里）——它们必须
+    /// 复用这一份探针逻辑，不得各自再写一遍"哪些子洞要探、按什么键对齐"。
+    pub fn probed_report(&self) -> DocumentReport {
         let Some(report) = &self.report else {
             return DocumentReport::default();
         };
@@ -450,12 +454,33 @@ pub struct StateSelection {
 ///   即第 `i-1` 条执行后的状态（`i == 0` 时为根状态）；
 /// - 否则取"最后一条在光标前（含恰好结束）结束的 tactic"之后的状态；
 /// - 根状态（`step: -1`）：**声明类型的内核渲染文本**（`ty_text`，未知时退回走查
-///   的剩余目标）+ **空 binders**，`span` = 声明范围。
+///   的剩余目标）+ **空 binders**，`span` = 声明范围；
+/// - **没有 `by` 块的声明**（`axiom`、lambda 前缀 + `sorry` 的半成品、已证完的
+///   声明）：`step: -1`、`total: 0`，退回声明自己的剩余目标/上下文
+///   （`goal` + `binders`；已闭合时为 `[]` ⇒ wire `goal: null`）。这与"根状态"
+///   是两回事——根状态只属于有 tactic 的声明。
 ///
-/// 这三条都是协议规定、且 LSP 客户端（VS Code Infoview / 练习树）依赖的行为；
+/// 这些条款都是协议规定、且 LSP 客户端（VS Code Infoview / 练习树）依赖的行为；
 /// 真相层必须与之逐字一致——先前这里的闭区间与"根状态带 binders/剩余目标"是
 /// 错的（`docs/design/agent-query-channel.md` 的 H6-A 一致性契约正是为此）。
 pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
+    // 无 `by` ⇒ 没有 per-tactic 状态可选，协议规定退回声明级的目标/上下文。
+    if d.by_steps.is_empty() {
+        return StateSelection {
+            goals: d
+                .goal
+                .clone()
+                .map(|ty| ByGoalState {
+                    ty,
+                    binders: d.binders.clone(),
+                })
+                .into_iter()
+                .collect(),
+            span: Some(d.span),
+            step: -1,
+            total: 0,
+        };
+    }
     let root = || StateSelection {
         goals: d
             .ty_text
@@ -471,9 +496,6 @@ pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
         step: -1,
         total: d.by_steps.len(),
     };
-    if d.by_steps.is_empty() {
-        return root();
-    }
     let selected = match d
         .by_steps
         .iter()

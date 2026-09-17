@@ -6,7 +6,6 @@
 //! client owns progressive disclosure (reveal one hint at a time); the
 //! protocol never counts remaining hints.
 
-use super::render::decl_at;
 use super::Doc;
 use serde::{Deserialize, Serialize};
 use tower_lsp::lsp_types::{Position, TextDocumentIdentifier};
@@ -26,15 +25,15 @@ pub(crate) struct HintsResponse {
 }
 
 /// The declaration at `position`'s full ladder; empty when there is none.
+///
+/// "光标在哪个声明里" 是真相层的判定（`QueryDoc::hints_at`，含"没有报告 →
+/// 正常为空"）；这里只把 LSP 位置折成字节 offset、把阶梯原样搬进 wire。
 pub(crate) fn hints_for(doc: &Doc, params: HintsParams) -> HintsResponse {
-    let Some(report) = &doc.report else {
-        return HintsResponse { hints: Vec::new() };
-    };
     let position = params.position.unwrap_or_default();
-    let hints = decl_at(&report.decls, position.line, position.character)
-        .map(|d| d.hints.clone())
-        .unwrap_or_default();
-    HintsResponse { hints }
+    let cursor = super::position_to_offset(doc.text(), position);
+    HintsResponse {
+        hints: doc.query().hints_at(cursor),
+    }
 }
 
 #[cfg(test)]
