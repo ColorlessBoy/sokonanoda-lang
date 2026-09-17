@@ -117,17 +117,21 @@
 
 ### 3.2 文件布局（模块化硬规则）
 
-| 文件 | 职责 | 预估行数 |
+| 文件 | 职责 | 预估 → **as-built** 行数 |
 |---|---|---|
-| `crates/front/src/query.rs` | 类型化查询：参数/结果结构 + `state_at`/`goals`/`holes`/`hints`/`check` 的**选择与判定** | ~450 |
-| `crates/front/src/query/render.rs` | 把 `semantic` runs 与文本组装成结果字段（从 LSP `render.rs` 平移） | ~250 |
+| `crates/front/src/query/mod.rs` | `QueryDoc` + 六个 op 的选择与判定 + 小工具（`decl_name`/`status_str`/`parse_or_empty`/`span_offsets`） | ~450 → **452** |
+| `crates/front/src/query/state.rs` | `select_state_at` + `StateSelection`（`goalsAt?` 语义的唯一实现） | （原在 mod.rs）→ **93** |
+| `crates/front/src/query/pos.rs` | offset ↔ 1-based 行/列（UTF-16 列）换算 | （原在 mod.rs）→ **55** |
+| `crates/front/src/query/types.rs` | wire 类型（`DeclInfo`/`StateAnswer`/`QueryError`/…） | ~220 → **217** |
+| `crates/front/src/query/tests.rs` | 真相层单测 | → **402** |
 | `crates/cli/src/query.rs` | 子命令解析 + JSON 输出 + 退出码表 | ~300 |
 | `crates/lsp/src/lib.rs` | **下降**：删掉查询/渲染实现，只留协议映射与生命周期 | 4256 → 只删重复，**不追行数**（as-built：**4256 → 3988**，只删重复的实现，见 §4 as-built 3） |
-| `dsh/mcp/server.js` | MCP stdio：`tools/list`、`tools/call`，JSON Schema 声明 | ~220 |
-| `crates/cli/tests/query.rs` | CLI 端到端 + 与 LSP 一致性契约 | ~250 |
+| `dsh/mcp/server.js` | MCP stdio：`tools/list`、`tools/call`，JSON Schema 声明 | ~220（as-built **~350**，含五个实测坑的注释） |
+| `crates/cli/tests/query.rs` | CLI 端到端 + 与 LSP 一致性契约 | ~250 → **~600**（含真实 LSP 二进制的对拍与两个画布） |
 
-> `front::query` 若逼近 500 行，按 op 拆 `query/{state,goals,holes,hints}.rs`，
-> 公开 API 用 re-export 保持稳定（REQUIREMENTS §4）。
+> `front::query` 逼近 500 行时按"选择 / 坐标 / 类型 / 测试"拆文件，公开 API 用
+> re-export 保持稳定（REQUIREMENTS §4）。**as-built 已照此执行**：`mod.rs` 曾经
+> 581 行（加了 `select_state_at` 与位置换算之后），已拆出 `state.rs` 与 `pos.rs`。
 
 ---
 

@@ -12,8 +12,12 @@
 //!   返回 [`QueryError`]。两者绝不混用。
 //! - 所有文本来自完整内核（pretty print）或 `crate::semantic` 的唯一分类。
 
+mod pos;
+mod state;
 mod types;
 
+pub use pos::{line_col_of, offset_of_line_col};
+pub use state::{select_state_at, StateSelection};
 pub use types::{
     Answer, BinderInfo, CheckCounts, CheckSummary, CodeActionInfo, DeclHeader, DeclInfo,
     FailedDecl, GoalInfo, HoleInfo, LocatedHole, QueryError, ReduceAnswer, RunInfo, StateAnswer,
@@ -436,140 +440,6 @@ pub fn status_str(status: DeclStatus) -> &'static str {
         DeclStatus::Open => "open",
         DeclStatus::Failed => "failed",
     }
-}
-
-/// 光标处的状态选择（Lean `goalsAt?` 语义的唯一实现）。
-pub struct StateSelection {
-    pub goals: Vec<ByGoalState>,
-    pub span: Option<Span>,
-    pub step: i64,
-    pub total: usize,
-}
-
-/// 光标处的状态选择（**Lean `goalsAt?` 语义的唯一实现**，协议原文见
-/// `docs/protocol.md` §`soko/stateAt`）：
-///
-/// - 光标落在某条 tactic 的 span 内（**半开区间** `start <= cursor < end`：光标
-///   恰在 tactic 末尾算"之后"，不算"之内"）→ 该 tactic **执行前**的状态，
-///   即第 `i-1` 条执行后的状态（`i == 0` 时为根状态）；
-/// - 否则取"最后一条在光标前（含恰好结束）结束的 tactic"之后的状态；
-/// - 根状态（`step: -1`）：**声明类型的内核渲染文本**（`ty_text`，未知时退回走查
-///   的剩余目标）+ **空 binders**，`span` = 声明范围；
-/// - **没有 `by` 块的声明**（`axiom`、lambda 前缀 + `sorry` 的半成品、已证完的
-///   声明）：`step: -1`、`total: 0`，退回声明自己的剩余目标/上下文
-///   （`goal` + `binders`；已闭合时为 `[]` ⇒ wire `goal: null`）。这与"根状态"
-///   是两回事——根状态只属于有 tactic 的声明。
-///
-/// 这些条款都是协议规定、且 LSP 客户端（VS Code Infoview / 练习树）依赖的行为；
-/// 真相层必须与之逐字一致——先前这里的闭区间与"根状态带 binders/剩余目标"是
-/// 错的（`docs/design/agent-query-channel.md` 的 H6-A 一致性契约正是为此）。
-pub fn select_state_at(d: &DeclState, cursor: usize) -> StateSelection {
-    // 无 `by` ⇒ 没有 per-tactic 状态可选，协议规定退回声明级的目标/上下文。
-    if d.by_steps.is_empty() {
-        return StateSelection {
-            goals: d
-                .goal
-                .clone()
-                .map(|ty| ByGoalState {
-                    ty,
-                    binders: d.binders.clone(),
-                })
-                .into_iter()
-                .collect(),
-            span: Some(d.span),
-            step: -1,
-            total: 0,
-        };
-    }
-    let root = || StateSelection {
-        goals: d
-            .ty_text
-            .clone()
-            .or_else(|| d.goal.clone())
-            .map(|ty| ByGoalState {
-                ty,
-                binders: Vec::new(),
-            })
-            .into_iter()
-            .collect(),
-        span: Some(d.span),
-        step: -1,
-        total: d.by_steps.len(),
-    };
-    let selected = match d
-        .by_steps
-        .iter()
-        .position(|s| s.span.start.offset <= cursor && cursor < s.span.end.offset)
-    {
-        Some(i) => i as i64 - 1,
-        None => d
-            .by_steps
-            .iter()
-            .rposition(|s| s.span.end.offset <= cursor)
-            .map(|i| i as i64)
-            .unwrap_or(-1),
-    };
-    let Some(step) = usize::try_from(selected)
-        .ok()
-        .filter(|i| *i < d.by_steps.len())
-    else {
-        return root();
-    };
-    let s = &d.by_steps[step];
-    StateSelection {
-        goals: s.goals.clone(),
-        span: Some(s.span),
-        step: selected,
-        total: d.by_steps.len(),
-    }
-}
-
-/// 位置换算：字节 offset → **1-based** 行/列（列按 UTF-16 code unit，与 LSP 的
-/// `character` 口径一致）。适配器负责把它转成自己要的基数。
-pub fn line_col_of(text: &str, offset: usize) -> (usize, usize) {
-    let mut line = 1usize;
-    let mut col = 1usize;
-    for (i, ch) in text.char_indices() {
-        if i >= offset {
-            break;
-        }
-        if ch == '\n' {
-            line += 1;
-            col = 1;
-        } else {
-            col += ch.len_utf16();
-        }
-    }
-    (line, col)
-}
-
-/// 位置换算：**1-based** 行/列（列按 UTF-16 code unit）→ 字节 offset。
-/// 越界时返回 `None`（调用方把它变成 [`QueryError::PositionOutOfRange`]）。
-pub fn offset_of_line_col(text: &str, line: usize, col: usize) -> Option<usize> {
-    if line == 0 || col == 0 {
-        return None;
-    }
-    let mut cur_line = 1usize;
-    let mut cur_col = 1usize;
-    for (i, ch) in text.char_indices() {
-        if cur_line == line && cur_col == col {
-            return Some(i);
-        }
-        if ch == '\n' {
-            if cur_line == line {
-                // 请求的行在这一行的换行处结束：夹到行尾。
-                return Some(i);
-            }
-            cur_line += 1;
-            cur_col = 1;
-        } else {
-            cur_col += ch.len_utf16();
-        }
-    }
-    if cur_line == line {
-        return Some(text.len());
-    }
-    None
 }
 
 /// 把报告里的洞 span 转成 offset 区间（供 `holes`/`next_hole` 复用）。
