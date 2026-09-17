@@ -31,7 +31,7 @@ axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
 -- 而 match 正是降低到它上面。拆 Or = 对两份可能的证据分情况。
 -- ─────────────────────────────────────────────────────────────
 
-inductive Or (A : Prop) (B : Prop) : Prop
+inductive Or (A B : Prop) : Prop
 ctor inl (a : A) : Or A B
 ctor inr (b : B) : Or A B
 end
@@ -109,32 +109,16 @@ theorem iff_mpr (A : Prop) (B : Prop) (h : Iff A B) : B -> A :=
 --     le_refl n : Le n n
 --     le_succ m n : Le m n -> Le m (succ n)
 --
--- 证明关于 Le 的命题，就是对那份**证据**做归纳。这里照单元⑥的老规矩
--- 手写消去子 Le.rec（带索引关系在 v1 里不会自动派生）：它的三条
--- 前提——motive、le_refl 处的分支、le_succ 处的分支（多一个对递归
--- 证据的归纳假设 ih）——就是 PLFA 所说的 induction/inversion 原则。
--- Nat 继续用 prelude 自带的（写成 Nat.zero / Nat.succ）。
+-- 证明关于 Le 的命题，就是对那份**证据**做归纳。消去子 Le.rec 现在由
+-- 前端自动派生（带索引的关系也一样）：它的三条前提——motive、le_refl
+-- 处的分支、le_succ 处的分支（多一个对递归证据的归纳假设 ih）——正是
+-- PLFA 所说的 induction/inversion 原则。下面的 inductive 块只写构造子，
+-- rec/iota 交给前端。Nat 继续用 prelude 自带的（写成 Nat.zero / Nat.succ）。
 -- ─────────────────────────────────────────────────────────────
 
 inductive Le : Nat -> Nat -> Prop
 ctor le_refl (n : Nat) : Le n n
 ctor le_succ (m : Nat) (n : Nat) : Le m n -> Le m (Nat.succ n)
-rec Le.rec :
-  (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) ->
-  (hr : (n : Nat) -> motive n n (le_refl n)) ->
-  (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) ->
-  (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h
-iota le_refl :=
-  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
-  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
-  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
-  fun (n : Nat) => hr n
-iota le_succ :=
-  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
-  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
-  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
-  fun (m : Nat) => fun (n : Nat) => fun (h : Le m n) =>
-  hs m n h (Le.rec motive hr hs m n h)
 end
 
 -- 演示（已写好）：自反性立刻给出「n ≤ n+1」的构造子链条。
@@ -163,29 +147,13 @@ theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le 
 -- 9.4 Even：再练一个归纳定义的关系
 --
 -- 「n 是偶数」同样是一个带索引的归纳关系：零是偶数；若 n 是偶数，则
--- n+2 也是偶数。照旧手写消去子 Even.rec——它的 le_succ 式分支多一个
+-- n+2 也是偶数。Even.rec 同样由前端自动派生——它的 le_succ 式分支多一个
 -- 归纳假设，正是下一题「用 Even.rec 证性质」要用的东西。
 -- ─────────────────────────────────────────────────────────────
 
 inductive Even : Nat -> Prop
 ctor even_zero : Even Nat.zero
 ctor even_succ (n : Nat) : Even n -> Even (Nat.succ (Nat.succ n))
-rec Even.rec :
-  (motive : (n : Nat) -> Even n -> Prop) ->
-  (hz : motive Nat.zero even_zero) ->
-  (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) ->
-  (n : Nat) -> (h : Even n) -> motive n h
-iota even_zero :=
-  fun (motive : (n : Nat) -> Even n -> Prop) =>
-  fun (hz : motive Nat.zero even_zero) =>
-  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
-  hz
-iota even_succ :=
-  fun (motive : (n : Nat) -> Even n -> Prop) =>
-  fun (hz : motive Nat.zero even_zero) =>
-  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
-  fun (n : Nat) => fun (h : Even n) =>
-  hs n h (Even.rec motive hz hs n h)
 end
 
 -- 演示（已写好）：用构造子直接搭出「2 是偶数」。

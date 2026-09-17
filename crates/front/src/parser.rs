@@ -357,11 +357,11 @@ impl Parser {
     fn parse_inductive_block(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_ident("inductive name")?;
-        // 零或多个参数 binder（`(A : Type)` / `{A : Type}`），在 `:` 之前。
-        let mut params = Vec::new();
-        while matches!(self.peek().kind, TokenKind::LParen | TokenKind::LBrace) {
-            params.push(self.parse_binder()?);
-        }
+        // 零或多个参数 binder（`(A : Type)` / `(A B : Prop)` / `{A B : Type}`），
+        // 在 `:` 之前。走 `push_binders` 与箭头/λ/∀/声明 binder 同一套组语法
+        // （docs/design/agent-query-channel.md H6-C / TODO B）；组要求显式类型，
+        // 无类型的 `(A)` 仍然是错误。
+        let params = self.parse_inductive_binders("inductive 参数")?;
         self.expect_colon("inductive type")?;
         let ty = self.parse_expr()?;
         let mut constructors = Vec::new();
@@ -394,13 +394,31 @@ impl Parser {
         }
     }
 
+    /// `inductive` 参数与 `ctor` 字段共用的 binder 列表：单名走 `parse_binder`
+    /// （保留既有 span 语义），多名字组走 `push_binders` 展开。
+    fn parse_inductive_binders(&mut self, what: &str) -> Result<Vec<Binder>> {
+        let mut binders = Vec::new();
+        loop {
+            match self.peek().kind {
+                TokenKind::LParen | TokenKind::LBrace if self.named_group_ahead() => {
+                    self.push_binders(&mut binders)?;
+                }
+                TokenKind::LParen | TokenKind::LBrace => {
+                    let msg =
+                        format!("{what} 需要显式类型，例如 (a : Prop)；不支持无类型的 (a) 写法");
+                    return Err(self.error_here(&msg));
+                }
+                _ => break,
+            }
+        }
+        Ok(binders)
+    }
+
     fn parse_ctor(&mut self) -> Result<CtorDecl> {
         let start = self.bump().span.start;
         let name = self.expect_ident("constructor name")?;
-        let mut binders = Vec::new();
-        while self.peek().kind == TokenKind::LParen {
-            binders.push(self.parse_binder()?);
-        }
+        // 字段同样吃 `(A B : Prop)` 组（`parse_binder` 只看 `(`，这里补上 `{`）。
+        let binders = self.parse_inductive_binders("constructor 字段")?;
         self.expect_colon("constructor result type")?;
         let result = self.parse_expr()?;
         let span = Span::new(start, result.span().end);
@@ -1489,6 +1507,83 @@ end
         };
         assert_eq!(params.len(), 1);
         assert!(matches!(params[0].style, BinderKind::Implicit));
+    }
+
+    /// Pi/箭头位早就支持 `(A B : Prop)`（`parse_binder_group` +
+    /// `push_binders`）；inductive 参数与 ctor 字段走的是单名 `parse_binder`，
+    /// 于是同一写法在这里解析失败（docs/design/agent-query-channel.md H6-C / TODO B）。
+    #[test]
+    fn inductive_block_parses_multi_name_parameter_group() {
+        let src = "\
+inductive Or (A B : Prop) : Prop
+ctor inl (a : A) : Or A B
+ctor inr (b : B) : Or A B
+end
+";
+        let file = parse(src).unwrap();
+        let Command::InductiveBlock { params, .. } = &file.commands[0] else {
+            panic!("expected InductiveBlock");
+        };
+        assert_eq!(params.len(), 2, "one Binder per name in the group");
+        assert_eq!(params[0].name, "A");
+        assert_eq!(params[1].name, "B");
+        assert!(matches!(params[0].style, BinderKind::Explicit));
+        assert!(matches!(params[1].style, BinderKind::Explicit));
+        assert!(
+            params.iter().all(|p| p.ty.is_some()),
+            "every expanded binder carries the group's shared type"
+        );
+    }
+
+    #[test]
+    fn inductive_block_parses_implicit_multi_name_parameter_group() {
+        let src = "\
+inductive Pair {A B : Type} : Type
+ctor mk (a : A) (b : B) : Pair
+end
+";
+        let file = parse(src).unwrap();
+        let Command::InductiveBlock { params, .. } = &file.commands[0] else {
+            panic!("expected InductiveBlock");
+        };
+        assert_eq!(params.len(), 2);
+        assert!(params
+            .iter()
+            .all(|p| matches!(p.style, BinderKind::Implicit)));
+    }
+
+    #[test]
+    fn ctor_parses_multi_name_field_group() {
+        let src = "\
+inductive Both : Prop
+ctor mk (A B : Prop) (a : A) (b : B) : Both
+end
+";
+        let file = parse(src).unwrap();
+        let Command::InductiveBlock { constructors, .. } = &file.commands[0] else {
+            panic!("expected InductiveBlock");
+        };
+        assert_eq!(
+            constructors[0].binders.len(),
+            4,
+            "A, B (one Binder per name in the group) + a + b"
+        );
+        assert_eq!(constructors[0].binders[0].name, "A");
+        assert_eq!(constructors[0].binders[1].name, "B");
+        assert_eq!(constructors[0].binders[2].name, "a");
+        assert_eq!(constructors[0].binders[3].name, "b");
+    }
+
+    /// 组语法要求每个名字都有类型：`(A)` 仍然必须是解析错误（不能静默变成
+    /// 无类型 binder）。
+    #[test]
+    fn inductive_untyped_parameter_group_is_still_rejected() {
+        let src = "\
+inductive Bad (A) : Prop
+ctor mk : Bad A
+end
+";
+        assert!(parse(src).is_err(), "`(A)` without a type must not parse");
     }
 
     #[test]

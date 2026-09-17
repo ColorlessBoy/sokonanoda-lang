@@ -4576,6 +4576,102 @@ fn indexed_vec_checks_and_derives_recursor() {
     );
 }
 
+// ---- derive_recursor 的箭头写法字段（docs/design/agent-query-channel.md H6-C / TODO A）----
+
+/// 索引归纳的字段**写在结果的箭头链里**（`ctor b (n : Nat) : P n -> P (succ n)`）
+/// 时，派生出的 recursor 的 minor 结论曾丢掉索引实参，被内核拒。
+/// 对照：同一形状改成**具名字段** `(n : Nat) (h : P n)` 一直是通过的
+/// —— 两者只差 `ctor_indices`（`derive_recursor` 用了只认 Ident/App 的 `src_spine`
+/// 去读箭头链的头部）。
+const INDEXED_ARROW_FIELD: &str = "\
+inductive P : Nat -> Prop
+ctor pz : P 0
+ctor ps (n : Nat) : P n -> P (Nat.succ n)
+end
+";
+
+#[test]
+fn indexed_inductive_with_arrow_style_field_derives_recursor() {
+    let src = format!("{INDEXED_ARROW_FIELD}#check P.rec\n");
+    let out = compile_fol(&parse(&src).expect("parse indexed arrow form"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "arrow-style indexed fields must derive a kernel-accepted recursor: {:?}",
+        out.errors
+    );
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "P")),
+        "the inductive itself must be checked"
+    );
+    let types: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        types
+            .iter()
+            .any(|t| t.contains("motive") && t.contains("pz")),
+        "P.rec must mention the constructors: {types:?}"
+    );
+}
+
+/// 同一形状的**具名**字段孪生体：这是修复前就已经通过的对照，用来钉住
+/// "两种写法必须等价"。
+#[test]
+fn indexed_inductive_with_named_field_derives_recursor() {
+    let src = "\
+inductive P2 : Nat -> Prop
+ctor p2z : P2 0
+ctor p2s (n : Nat) (h : P2 n) : P2 (Nat.succ n)
+end
+#check P2.rec
+";
+    let out = compile_fol(&parse(src).expect("parse indexed named form"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+/// iota 规则也要跟着对：派生的 recursor 必须真的能算（不只类型对）。
+#[test]
+fn arrow_style_indexed_recursor_reduces() {
+    let src = format!(
+        "{INDEXED_ARROW_FIELD}\
+         theorem pz_again : P 0 := pz\n"
+    );
+    let out = compile_fol(&parse(&src).expect("parse"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+/// **单构造子 `Prop`** 的 recursor 曾被内核拒：
+/// `recursor declares the wrong k-reduction flag (left: false, right: true)` ——
+/// `install_inductive_block` 把 `is_k` 写死成 `false`（elab.rs:471）。
+#[test]
+fn single_constructor_prop_derives_recursor() {
+    let src = "\
+inductive True2 : Prop
+ctor trivial2 : True2
+end
+#check True2.rec
+";
+    let out = compile_fol(&parse(src).expect("parse single-ctor prop"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "a single-constructor Prop needs the K flag set: {:?}",
+        out.errors
+    );
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "True2")));
+}
+
 #[test]
 fn match_on_indexed_vec_computes_with_a_constant_motive() {
     let src = format!(

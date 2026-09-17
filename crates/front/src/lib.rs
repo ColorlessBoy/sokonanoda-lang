@@ -13,6 +13,7 @@ pub mod by;
 pub mod compile;
 pub mod judge;
 pub mod proof;
+pub mod query;
 pub mod references;
 pub mod semantic;
 pub mod session;

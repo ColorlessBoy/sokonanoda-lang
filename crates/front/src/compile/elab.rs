@@ -242,8 +242,9 @@ pub(crate) fn install_inductive_block<'a>(
             ty.span(),
         )
     })?;
-    // 带索引归纳：`ty` 在 params 之外的 Pi 望远镜就是索引（内核同一规则，
-    // `inductive.rs::check_inductive_spec_0th`）。设计 `parameterized-inductives.md`。
+    // 带索引归纳：`ty` 的 Pi 望远镜（本编译器把参数也一并记在这里，见
+    // `derive_recursor` 的索引命名与 `recursor_telescope`；`num_indices` 的
+    // 口径以既有行为为准，勿与内核的 `local_indices` 混为一谈）。
     let index_binders = result_chain_binders(ty);
     let num_indices = u16::try_from(index_binders.len()).map_err(|_| {
         CompileError::elab(
@@ -252,6 +253,9 @@ pub(crate) fn install_inductive_block<'a>(
             ty.span(),
         )
     })?;
+    // K 目标标志由块形状唯一决定，**显式 rec 与派生 rec 必须给同一个值**：
+    // 内核断言 `rd.is_k == st.k_target`（`kernel/src/inductive.rs:662`）。
+    let is_k = is_k_target(params, ty, constructors);
     // 显式 rec 优先：源里有 rec 时零行为变化；无 rec 时自动派生等价的
     // RecDecl + iota 规则（py-nat 手写版同构），再走同一条 elab 路径。
     let owned_rec;
@@ -468,7 +472,7 @@ pub(crate) fn install_inductive_block<'a>(
             num_motives: 1,
             num_minors: constructors.len() as u16,
             rec_rules: Arc::from(rules),
-            is_k: false,
+            is_k,
         });
         builder
             .add_declar(rec_declar.clone())
@@ -2387,6 +2391,22 @@ fn spine_of_codomain(ty: &Expr) -> Option<(String, Vec<Expr>)> {
 }
 
 fn result_chain_binders(result: &Expr) -> Vec<Binder> {
+    chain_binders_after(result, 0)
+}
+
+/// The **index** telescope of an inductive type: the Pi binders of `ty` after
+/// the first `params` many (the kernel splits the same way —
+/// `crates/kernel/src/inductive.rs:554-572` treats binders below
+/// `local_params.len()` as parameters and collects the rest as indices, then
+/// requires both sides to be defeq). An empty result means the block is
+/// **not indexed**, which is what the K-target predicate needs.
+fn index_binders_of(ty: &Expr, params: usize) -> Vec<Binder> {
+    chain_binders_after(ty, params)
+}
+
+/// The k-th (0-based) Pi binders of a possibly arrow/forall-chained type: the
+/// first `skip` are dropped. `A -> B` contributes one anonymous binder for `A`.
+fn chain_binders_after(result: &Expr, skip: usize) -> Vec<Binder> {
     let mut out = Vec::new();
     let mut current = result;
     loop {
@@ -2406,9 +2426,10 @@ fn result_chain_binders(result: &Expr) -> Vec<Binder> {
                 out.extend(binders.iter().cloned());
                 current = body;
             }
-            _ => return out,
+            _ => break,
         }
     }
+    out.split_off(skip.min(out.len()))
 }
 
 /// A name that no already-chosen binder uses (identifiers may shadow, so the
@@ -2423,6 +2444,34 @@ fn fresh_name(base: &str, taken: &mut HashSet<String>) -> String {
 }
 
 /// `Prop`/`Sort 0` written as the block's declared sort. The kernel then only
+/// Whether this block's recursor is a **K target** (`RecursorData.is_k`) —
+/// the front-side mirror of the kernel's `init_k_target`
+/// (`crates/kernel/src/inductive.rs:1268-1276`). The kernel asserts
+/// `rd.is_k == st.k_target` (`inductive.rs:662`), so a wrong flag makes
+/// every derived recursor for such a block get rejected
+/// (`recursor declares the wrong k-reduction flag`).
+///
+/// The kernel's predicate: the block is a `Prop` (`is_zero`), it is neither
+/// mutual nor nested (exactly one inductive), and its single constructor takes
+/// **only the block's parameters** as arguments — i.e. no fields of its own and
+/// no indices. `pi_telescope_size(ctor.ty) == params.len()` is exactly that
+/// count, and `ctor_field_binders` is the front's side of the same telescope.
+/// Without this, `inductive True : Prop` / `ctor trivial : True` was rejected
+/// (docs/design/agent-query-channel.md H6-C).
+fn is_k_target(params: &[Binder], ty: &Expr, constructors: &[CtorDecl]) -> bool {
+    let [only_ctor] = constructors else {
+        return false;
+    };
+    is_prop_block_ty(ty)
+        // No indices: every binder of `ty` is a parameter. (An indexed block is
+        // never `is_zero`, so this also mirrors the kernel's `is_zero` gate.)
+        && index_binders_of(ty, params.len()).is_empty()
+        // The single ctor takes only the block's parameters: no fields, no
+        // indices. Both sides count the same telescope (`ctor_field_binders` is
+        // the front's `pi_telescope_size(ctor.ty)`).
+        && ctor_field_binders(only_ctor).len() == params.len()
+}
+
 /// allows large elimination when the block is empty or has a single ctor with
 /// exclusively Prop-typed fields; a multi-ctor Prop block therefore gets a
 /// small-elimination recursor (no universe parameter, motive into `Prop`).
@@ -2610,7 +2659,13 @@ fn derive_recursor(
                     span: binder.span,
                 });
             }
-            let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
+            // A ctor's result may be written in the arrow chain
+            // (`ctor ps (n : Nat) : P n -> P (Nat.succ n)`); the indices live in
+            // the *codomain*, so read them through `spine_of_codomain`. Reading
+            // `ctor.result` with `src_spine` returned `None` for `Arrow`/`Forall`
+            // and silently dropped the minor's index arguments, which the kernel
+            // then rejected (docs/design/agent-query-channel.md H6-C / TODO A).
+            let ctor_indices: Vec<Expr> = spine_of_codomain(&ctor.result)
                 .filter(|(head, _)| head.as_str() == name)
                 .map(|(_, args)| {
                     args.into_iter()

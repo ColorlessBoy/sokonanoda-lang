@@ -20,7 +20,7 @@ axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
 axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
 axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
 
-inductive Or (A : Prop) (B : Prop) : Prop
+inductive Or (A B : Prop) : Prop
 ctor inl (a : A) : Or A B
 ctor inr (b : B) : Or A B
 end

@@ -39,7 +39,7 @@ axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
 -- analysis on the two possible pieces of evidence.
 -- ─────────────────────────────────────────────────────────────
 
-inductive Or (A : Prop) (B : Prop) : Prop
+inductive Or (A B : Prop) : Prop
 ctor inl (a : A) : Or A B
 ctor inr (b : B) : Or A B
 end
@@ -123,33 +123,18 @@ theorem iff_mpr (A : Prop) (B : Prop) (h : Iff A B) : B -> A :=
 --     le_refl n : Le n n
 --     le_succ m n : Le m n -> Le m (succ n)
 --
--- To prove a proposition about Le you induct on that *evidence*. Following
--- Unit 6's convention, write the eliminator Le.rec by hand here (indexed
--- relations are not auto-derived in v1): its three premises — the motive, the
--- branch at le_refl, and the branch at le_succ (with one induction hypothesis
--- ih for the recursive evidence) — are exactly PLFA's induction / inversion
--- principle. Nat keeps coming from the prelude (spelled Nat.zero / Nat.succ).
+-- To prove a proposition about Le you induct on that *evidence*. The
+-- eliminator Le.rec is now derived for you — indexed relations included: its
+-- three premises — the motive, the branch at le_refl, and the branch at
+-- le_succ (with one induction hypothesis ih for the recursive evidence) — are
+-- exactly PLFA's induction / inversion principle. The block below therefore
+-- lists the constructors only, leaving rec/iota to the front end. Nat keeps
+-- coming from the prelude (spelled Nat.zero / Nat.succ).
 -- ─────────────────────────────────────────────────────────────
 
 inductive Le : Nat -> Nat -> Prop
 ctor le_refl (n : Nat) : Le n n
 ctor le_succ (m : Nat) (n : Nat) : Le m n -> Le m (Nat.succ n)
-rec Le.rec :
-  (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) ->
-  (hr : (n : Nat) -> motive n n (le_refl n)) ->
-  (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) ->
-  (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h
-iota le_refl :=
-  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
-  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
-  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
-  fun (n : Nat) => hr n
-iota le_succ :=
-  fun (motive : (m : Nat) -> (n : Nat) -> Le m n -> Prop) =>
-  fun (hr : (n : Nat) -> motive n n (le_refl n)) =>
-  fun (hs : (m : Nat) -> (n : Nat) -> (h : Le m n) -> motive m n h -> motive m (Nat.succ n) (le_succ m n h)) =>
-  fun (m : Nat) => fun (n : Nat) => fun (h : Le m n) =>
-  hs m n h (Le.rec motive hr hs m n h)
 end
 
 -- Demo (filled in): reflexivity immediately gives the constructor chain for
@@ -182,30 +167,14 @@ theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le 
 -- 9.4 Even: one more inductively defined relation
 --
 -- "n is even" is likewise an indexed inductive relation: zero is even; and if
--- n is even then n+2 is even. As before, write the eliminator Even.rec by
--- hand — its le_succ-style branch carries one induction hypothesis, which is
--- exactly what the next exercise uses to prove a property with Even.rec.
+-- n is even then n+2 is even. Even.rec is auto-derived here too — its
+-- le_succ-style branch carries one induction hypothesis, which is exactly what
+-- the next exercise uses to prove a property with Even.rec.
 -- ─────────────────────────────────────────────────────────────
 
 inductive Even : Nat -> Prop
 ctor even_zero : Even Nat.zero
 ctor even_succ (n : Nat) : Even n -> Even (Nat.succ (Nat.succ n))
-rec Even.rec :
-  (motive : (n : Nat) -> Even n -> Prop) ->
-  (hz : motive Nat.zero even_zero) ->
-  (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) ->
-  (n : Nat) -> (h : Even n) -> motive n h
-iota even_zero :=
-  fun (motive : (n : Nat) -> Even n -> Prop) =>
-  fun (hz : motive Nat.zero even_zero) =>
-  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
-  hz
-iota even_succ :=
-  fun (motive : (n : Nat) -> Even n -> Prop) =>
-  fun (hz : motive Nat.zero even_zero) =>
-  fun (hs : (n : Nat) -> (h : Even n) -> motive n h -> motive (Nat.succ (Nat.succ n)) (even_succ n h)) =>
-  fun (n : Nat) => fun (h : Even n) =>
-  hs n h (Even.rec motive hz hs n h)
 end
 
 -- Demo (filled in): build "2 is even" straight from the constructors.
