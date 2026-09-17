@@ -251,3 +251,18 @@
   `cargo test --workspace --locked; echo $?`（各自 `$?`），空载重跑 `sokonanoda gate` 复核；
   只有单跑仍红且指向教学 crate 才动手（内核只读）。
 
+## DSH 的 `edit` 被拒（`file changed since it was read`）＝自己刚改过它（2026-09-17）
+
+- **现象**：DeepSeek Harness 里 `edit` 抛
+  `cannot edit "…": file changed since it was read`（错误码 `FS_STALE_VERSION`），
+  用户会以为工具坏了。
+- **机制**（不是 bug）：`read` 会记下该文件的版本，`edit`/`write` 必须基于同一版本
+  （`deepseek-harness/packages/fs/fs-local/src/index.ts:193,243`）。文件在读完与写入
+  之间被任何东西改动，守卫就拒绝——防止按过期内容覆盖别人的修改。
+- **本次真实原因**：我在 `edit` 之前刚跑过 **`cargo fmt -p sokonanoda-cli`**，
+  rustfmt 重排了同一个文件（`const DSH_REJECTED_KEYS` 折行、`assert!` 换行）；
+  于是"读→fmt→edit"必然触发。守卫还顺带让我看见了自己写错的多余右括号。
+- **规矩**：① 报错就**重新 `read` 再 `edit`**（同一轮内立刻做，中间别再跑任何会
+  写文件的命令）；② 要连续编辑同一个文件，就**先把编辑做完，最后统一跑 `fmt`**；
+  ③ `fmt`/生成脚本/任何写文件的命令之后，之前读过的文件都视为"已过期"。
+
