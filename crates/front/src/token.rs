@@ -32,6 +32,7 @@ pub struct Token {
 }
 
 pub struct Lexer<'a> {
+    src: &'a str,
     chars: std::iter::Peekable<std::str::Chars<'a>>,
     offset: usize,
     line: usize,
@@ -41,10 +42,32 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(src: &'a str) -> Self {
         Self {
+            src,
             chars: src.chars().peekable(),
             offset: 0,
             line: 1,
             column: 1,
+        }
+    }
+
+    /// 当前 token 之前的本行正文（用于把 `import` 行里的 `-` 认出来，
+    /// 见 `next_token` 的 `-` 分支）——只在错误冷路径调用。
+    fn line_prefix(&self) -> &'a str {
+        let before = &self.src[..self.offset.min(self.src.len())];
+        let start = before.rfind('\n').map_or(0, |index| index + 1);
+        &self.src[start..self.offset.min(self.src.len())]
+    }
+
+    /// 本行是不是一条 `import`（允许行尾 `--` 注释）。
+    fn on_import_line(&self) -> Option<&'a str> {
+        let line = self.line_prefix();
+        let code = line.split("--").next().unwrap_or(line).trim();
+        let rest = code.strip_prefix("import")?;
+        // `importFoo` 不算：import 后面必须是空白或文件结束。
+        if rest.is_empty() || rest.starts_with(char::is_whitespace) {
+            Some(rest.trim())
+        } else {
+            None
         }
     }
 
@@ -95,6 +118,20 @@ impl<'a> Lexer<'a> {
                             }
                             self.bump();
                         }
+                    } else if let Some(partial) = self.on_import_line() {
+                        // `import unit1-propositions-proofs`：文件名里的横线不是
+                        // 模块名字符（与官方 Lean 同规则），给专门的教学提示，
+                        // 而不是让通用的 "expected `->` or `--`" 糊过去。
+                        let end = self.pos();
+                        return Err(Diagnostic::new(
+                            DiagnosticKind::ImportNotAModuleName {
+                                module: format!("{partial}-"),
+                                message: format!("`import {partial}-…`：模块名里不能有 `-`"),
+                                hint: crate::project::module_name::DASH_HINT,
+                            },
+                            Span::new(start, end),
+                            format!("`import {partial}-…`：模块名里不能有 `-`"),
+                        ));
                     } else {
                         return Err(self.err_unexpected(start, "expected `->` or `--`", "-"));
                     }
@@ -181,6 +218,8 @@ impl<'a> Lexer<'a> {
                         span: Span::new(start, end),
                     })
                 } else {
+                    // 不可达：`-` 在跳过空白/注释的循环里就被消费或报错了
+                    // （见 `next_token` 顶部的 `Some('-')` 分支）。
                     Err(self.err_unexpected(start, "expected `->` or `--`", "-"))
                 }
             }
@@ -264,11 +303,13 @@ impl<'a> Lexer<'a> {
     }
 }
 
-fn is_ident_start(c: char) -> bool {
+/// 标识符起始字符（模块名分量复用同一份谓词，见 `crate::project::module_name`）。
+pub(crate) fn is_ident_start(c: char) -> bool {
     c.is_ascii_alphabetic() || c == '_' || (c as u32) >= 0x80
 }
 
-fn is_ident_continue(c: char) -> bool {
+/// 标识符续接字符（含 `.`——所以 `Foo.Bar` 在词法层是**一个** `Ident`）。
+pub(crate) fn is_ident_continue(c: char) -> bool {
     is_ident_start(c) || c.is_ascii_digit() || c == '\'' || c == '!' || c == '?' || c == '.'
 }
 

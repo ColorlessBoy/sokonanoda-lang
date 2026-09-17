@@ -225,27 +225,135 @@ fn inductive_signature(env: &mut ExportFile<'_>, declars: &[Declar<'_>]) -> Stri
     out
 }
 
+/// 一次编译要处理的**单元**（模块）。单文件编译 = 一个单元；项目闭包 =
+/// 拓扑序的多个单元、**入口在最后**（设计 `docs/design/imports-and-projects.md`
+/// §4.5：依赖的声明必须先入 `EnvBuilder`，入口才能引用它们）。
+#[derive(Debug, Clone, Copy)]
+pub struct SourceUnit<'a> {
+    /// 模块名（报告/诊断归因；单文件编译时可用文件标签）。
+    pub name: &'a str,
+    /// 源文件路径（stdin / 未落盘文本为 `None`）。
+    pub path: Option<&'a std::path::Path>,
+    pub file: &'a FolFile,
+}
+
+impl<'a> SourceUnit<'a> {
+    /// 单文件编译（今天 CLI/LSP 的默认路径）的便捷构造。
+    pub fn single(name: &'a str, file: &'a FolFile) -> Self {
+        Self {
+            name,
+            path: None,
+            file,
+        }
+    }
+}
+
+/// 每个单元在"扁平命令序"里的下标区间 `[start, end)`。
+pub fn unit_ranges(units: &[SourceUnit<'_>]) -> Vec<std::ops::Range<usize>> {
+    let mut ranges = Vec::with_capacity(units.len());
+    let mut start = 0;
+    for unit in units {
+        let end = start + unit.file.commands.len();
+        ranges.push(start..end);
+        start = end;
+    }
+    ranges
+}
+
+/// 把"扁平命令序"的报告按单元切开，并把 `cmd` 下标**重基**到模块内
+/// （单文件编译时是恒等变换）。入口文件的报告因此可以直接交给既有的
+/// 单文档消费者（Session / LSP / `query`）。
+///
+/// 归因一律走**命令下标**（`decl.cmd` / `hover_cmds` / `error_cmds` /
+/// `check.cmd`），不用 span：不同文件的 offset 不在同一个坐标空间里，
+/// 用 span 猜文件会在"入口第 1 行"和"依赖第 1 行"之间张冠李戴。
+pub fn split_report(
+    flat: DocumentReport,
+    error_cmds: &[usize],
+    units: &[SourceUnit<'_>],
+) -> Vec<DocumentReport> {
+    let ranges = unit_ranges(units);
+    let fallback = units.len().saturating_sub(1); // 归不到任何命令时算入口的
+    let unit_of_cmd = |cmd: usize| ranges.iter().position(|range| range.contains(&cmd));
+    let mut reports: Vec<DocumentReport> =
+        units.iter().map(|_| DocumentReport::default()).collect();
+    let DocumentReport {
+        decls,
+        hovers,
+        hover_cmds,
+        errors,
+        checks,
+        warnings: _,
+    } = flat;
+    for mut decl in decls {
+        let unit = unit_of_cmd(decl.cmd).unwrap_or(fallback);
+        decl.cmd -= ranges[unit].start;
+        reports[unit].decls.push(decl);
+    }
+    for (hover, cmd) in hovers.into_iter().zip(hover_cmds) {
+        let unit = unit_of_cmd(cmd).unwrap_or(fallback);
+        reports[unit].hovers.push(hover);
+        reports[unit].hover_cmds.push(cmd - ranges[unit].start);
+    }
+    debug_assert_eq!(
+        errors.len(),
+        error_cmds.len(),
+        "every error must carry its command index (CompileOutput::push_error)"
+    );
+    for (position, error) in errors.into_iter().enumerate() {
+        let cmd = error_cmds.get(position).copied().unwrap_or(usize::MAX);
+        let unit = unit_of_cmd(cmd).unwrap_or(fallback);
+        reports[unit].errors.push(error);
+    }
+    for check in checks {
+        let unit = unit_of_cmd(check.cmd).unwrap_or(fallback);
+        reports[unit].checks.push(check);
+    }
+    // 警告按单元重算（纯语法、与内核无关），既精确又不依赖 offset 猜测。
+    for (index, unit) in units.iter().enumerate() {
+        reports[index].warnings = super::warning::collect_warnings(unit.file);
+    }
+    reports
+}
+
 /// Compile and kernel-check a whole file in one arena session, returning the
 /// batch view (events + errors) that the CLI and tests consume.
 pub fn compile_fol(file: &FolFile) -> CompileOutput {
-    run(file, &CompileOptions::default(), false).0
+    run(
+        &[SourceUnit::single("", file)],
+        &CompileOptions::default(),
+        false,
+    )
+    .0
 }
 
 /// Compile with explicit options (e.g. `PreludeMode::Bare` for a fully bare
 /// teaching file that builds every concept from scratch).
 pub fn compile_fol_with(file: &FolFile, options: &CompileOptions) -> CompileOutput {
-    run(file, options, false).0
+    run(&[SourceUnit::single("", file)], options, false).0
 }
 
 /// Compile a file and return the detailed document report (per-declaration
 /// states, diagnostics, hover types) that the LSP and agents consume.
 pub fn check_document(file: &FolFile) -> DocumentReport {
-    run(file, &CompileOptions::default(), true).1
+    run(
+        &[SourceUnit::single("", file)],
+        &CompileOptions::default(),
+        true,
+    )
+    .1
+    .into_iter()
+    .next()
+    .unwrap_or_default()
 }
 
 /// `check_document` with explicit compile options.
 pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> DocumentReport {
-    run(file, options, true).1
+    run(&[SourceUnit::single("", file)], options, true)
+        .1
+        .into_iter()
+        .next()
+        .unwrap_or_default()
 }
 
 /// One pass that yields both the CLI event output and the document report
@@ -254,7 +362,18 @@ pub fn compile_all_with(
     file: &FolFile,
     options: &CompileOptions,
 ) -> (CompileOutput, DocumentReport) {
-    run(file, options, true)
+    let (out, mut reports) = run(&[SourceUnit::single("", file)], options, true);
+    (out, reports.pop().unwrap_or_default())
+}
+
+/// 项目闭包编译的唯一入口：`units` 按拓扑序排列、**入口在最后**。
+/// 返回扁平事件流 + 与 `units` 同序（且 `cmd` 已重基）的逐模块报告。
+/// 单文件编译走同一条路径（一个单元），行为与 `compile_all_with` 逐字节一致。
+pub fn compile_all_units(
+    units: &[SourceUnit<'_>],
+    options: &CompileOptions,
+) -> (CompileOutput, Vec<DocumentReport>) {
+    run(units, options, true)
 }
 
 /// 值位若是 `by` 块，先用引擎降级成 lambda AST（可能带尾部 `sorry`）；
@@ -330,18 +449,23 @@ fn user_top_level_names(file: &FolFile) -> std::collections::HashSet<String> {
             Command::Example { .. }
             | Command::Check { .. }
             | Command::Reduce { .. }
-            | Command::Print { .. } => None,
+            | Command::Print { .. }
+            | Command::Import { .. } => None,
         })
         .collect()
 }
 
-fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutput, DocumentReport) {
+fn run(
+    units: &[SourceUnit<'_>],
+    options: &CompileOptions,
+    collect: bool,
+) -> (CompileOutput, Vec<DocumentReport>) {
     // Pass 1 checks everything. Kernel-rejected declarations still occupy
     // their names in pass 1, which lets later declarations reference them —
     // unsound for teaching. Pass 2 recomputes in a fresh session with the
     // kernel-failed declarations removed (check-then-add semantics): their
     // names are free again and dependents fail with a proper diagnosis.
-    let pass = run_pass(file, options, collect, None, None);
+    let pass = run_pass(units, options, collect, None, None);
     let mut out = pass.out;
     out.stats.kernel_checks = pass.checks;
     if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
@@ -349,13 +473,16 @@ fn run(file: &FolFile, options: &CompileOptions, collect: bool) -> (CompileOutpu
             eprintln!("pass1 failed cmd {idx}: {} ({:?})", err.message, err.kind);
         }
     }
-    if pass.failed.is_empty() {
-        return (out, pass.report);
-    }
-    let pass2 = run_pass(file, options, collect, Some(&pass.failed), None);
-    let mut out2 = pass2.out;
-    out2.stats.kernel_checks = pass.checks + pass2.checks;
-    (out2, pass2.report)
+    let (out, flat) = if pass.failed.is_empty() {
+        (out, pass.report)
+    } else {
+        let pass2 = run_pass(units, options, collect, Some(&pass.failed), None);
+        let mut out2 = pass2.out;
+        out2.stats.kernel_checks = pass.checks + pass2.checks;
+        (out2, pass2.report)
+    };
+    let reports = split_report(flat, &out.error_cmds, units);
+    (out, reports)
 }
 
 /// Incremental entry (I8): `trust` marks the reusable prefix `[0, before)`;
@@ -381,11 +508,17 @@ pub(crate) fn run_incremental(
     Vec<Option<String>>,
     usize,
 ) {
-    let pass1 = run_pass(file, options, true, Some(prefix_failures), Some(trust));
+    // 增量路径保持**单文件**语义（I8）：闭包编译不使用 TrustPlan（v1），
+    // 所以这里始终是一个单元。
+    let units = [SourceUnit::single("", file)];
+    let pass1 = run_pass(&units, options, true, Some(prefix_failures), Some(trust));
     if pass1.failed.is_empty() {
         let mut out = pass1.out;
         out.stats.kernel_checks = pass1.checks;
-        return (out, pass1.report, pass1.checks, pass1.sigs, pass1.cutoff);
+        let report = split_report(pass1.report, &out.error_cmds, &units)
+            .pop()
+            .unwrap_or_default();
+        return (out, report, pass1.checks, pass1.sigs, pass1.cutoff);
     }
     if std::env::var("SOKO_DEBUG_PASS1").is_ok() {
         for (idx, err) in &pass1.failed {
@@ -405,17 +538,20 @@ pub(crate) fn run_incremental(
         text_unchanged: Vec::new(),
         allow_cutoff: false,
     };
-    let pass2 = run_pass(file, options, true, Some(&skip2), Some(&trust2));
+    let pass2 = run_pass(&units, options, true, Some(&skip2), Some(&trust2));
     let checks = pass1.checks + pass2.checks;
     let mut out = pass2.out;
     out.stats.kernel_checks = checks;
-    (out, pass2.report, checks, pass2.sigs, pass2.cutoff)
+    let report = split_report(pass2.report, &out.error_cmds, &units)
+        .pop()
+        .unwrap_or_default();
+    (out, report, checks, pass2.sigs, pass2.cutoff)
 }
 
 type KernelFailed = HashMap<usize, CompileError>;
 
 fn run_pass(
-    file: &FolFile,
+    units: &[SourceUnit<'_>],
     options: &CompileOptions,
     collect: bool,
     skip: Option<&KernelFailed>,
@@ -428,22 +564,32 @@ fn run_pass(
     match options.prelude {
         PreludeMode::Bare => {}
         PreludeMode::Full => {
-            let explicit_nat = file.commands.iter().any(
-                |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"),
-            );
+            // 闭包级预扫描（设计 §4.6）：**任一**单元自带顶层 `inductive Nat`
+            // 就让位；单文件编译时这就是今天的行为（一个单元 = 一个文件）。
+            let explicit_nat = units.iter().any(|unit| {
+                unit.file.commands.iter().any(
+                    |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"),
+                )
+            });
             if !explicit_nat {
                 // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
                 // Nat.rec 登记进 `known` 与 `match` 的 InductiveTable。
                 install_prelude(&mut builder, &mut known_universes, &mut inductives);
             }
-            let explicit_bool = file.commands.iter().any(
-                |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Bool"),
-            );
+            let explicit_bool = units.iter().any(|unit| {
+                unit.file.commands.iter().any(
+                    |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Bool"),
+                )
+            });
             if !explicit_bool {
                 // Bool 同法（非递归）：文件自带 `inductive Bool` 时让位。
                 install_bool_prelude(&mut builder, &mut known_universes, &mut inductives);
             }
-            let taken = user_top_level_names(file);
+            // `Eq` 的"被占用名字"取整个闭包的并集（设计 §4.6）。
+            let mut taken: std::collections::HashSet<String> = std::collections::HashSet::new();
+            for unit in units {
+                taken.extend(user_top_level_names(unit.file));
+            }
             install_eq_prelude(&mut builder, &mut known_universes, &taken);
         }
     }
@@ -455,17 +601,37 @@ fn run_pass(
     let mut cmd_hovers: Vec<CmdHover<'_>> = Vec::new();
     let mut decl_states: Vec<DeclState> = Vec::new();
     let mut example_idx = 0usize;
-    let templates = GoalTemplates::new_for(file, options);
+    let all_templates: Vec<GoalTemplates> = units
+        .iter()
+        .map(|unit| GoalTemplates::new_for(unit.file, options))
+        .collect();
+
+    // 扁平命令序：先依赖、后入口（单文件就是一个单元）。
+    let flat: Vec<(usize, &Command)> = units
+        .iter()
+        .enumerate()
+        .flat_map(|(unit, source)| source.file.commands.iter().map(move |c| (unit, c)))
+        .collect();
+    let unit_of_cmd: Vec<usize> = flat.iter().map(|(unit, _)| *unit).collect();
 
     let mut failed_cmds: KernelFailed = HashMap::new();
     let mut built_inductives: Vec<Declar<'_>> = Vec::new();
     let mut kernel_checks = 0usize;
-    for (idx, command) in file.commands.iter().enumerate() {
+    for (idx, (unit_idx, command)) in flat.iter().enumerate() {
+        let unit = &units[*unit_idx];
+        let templates = &all_templates[*unit_idx];
         let trusted = trust.is_some_and(|t| idx < t.before);
         let env_before = builder.declaration_count();
         // `match` 的宇宙查询用前缀源码（与 `by` 同一条合成 `#check` 路线）。
-        let prefix_src = file.src.get(..command.span().start.offset).unwrap_or("");
+        let prefix_src = unit
+            .file
+            .src
+            .get(..command.span().start.offset)
+            .unwrap_or("");
         match command {
+            // `import` 自身不产生声明：被导入模块的命令由项目层按拓扑序
+            // 先送进同一个 EnvBuilder（docs/design/imports-and-projects.md §4.5）。
+            Command::Import { .. } => continue,
             Command::Def {
                 name,
                 universe,
@@ -478,10 +644,11 @@ fn run_pass(
                     options,
                     inductives: &inductives,
                 };
-                let lowered = match lower_value(ty, val, &file.src, span.start.offset, options) {
+                let lowered = match lower_value(ty, val, &unit.file.src, span.start.offset, options)
+                {
                     Ok(v) => v,
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(
                             DeclKind::Definition,
                             Some(name.clone()),
@@ -499,7 +666,7 @@ fn run_pass(
                     // Cached failures keep the name free (check-then-add);
                     // open exercises never enter the environment anyway.
                     if skip.is_some_and(|s| s.contains_key(&idx))
-                        || open_goal(ty, val, &templates).is_some()
+                        || open_goal(ty, val, templates).is_some()
                     {
                         continue;
                     }
@@ -521,7 +688,7 @@ fn run_pass(
                 }
                 if let Some(err) = skipped(
                     skip,
-                    &mut out.errors,
+                    &mut out,
                     idx,
                     DeclKind::Definition,
                     Some(name.clone()),
@@ -530,7 +697,7 @@ fn run_pass(
                     decl_states.push(err);
                     continue;
                 }
-                let open_info = open_goal(ty, val, &templates);
+                let open_info = open_goal(ty, val, templates);
                 if let Some(info) = open_info {
                     let declared_ty = elab_expr(
                         &mut builder,
@@ -585,7 +752,7 @@ fn run_pass(
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             let err =
                                 CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, *span);
-                            out.errors.push(err.clone());
+                            out.push_error(idx, err.clone());
                             decl_states.push(failed_state(
                                 DeclKind::Definition,
                                 Some(name_owned.clone()),
@@ -612,7 +779,7 @@ fn run_pass(
                         });
                     }
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(
                             DeclKind::Definition,
                             Some(name.clone()),
@@ -635,10 +802,11 @@ fn run_pass(
                     options,
                     inductives: &inductives,
                 };
-                let lowered = match lower_value(ty, val, &file.src, span.start.offset, options) {
+                let lowered = match lower_value(ty, val, &unit.file.src, span.start.offset, options)
+                {
                     Ok(v) => v,
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(
                             DeclKind::Theorem,
                             Some(name.clone()),
@@ -653,7 +821,7 @@ fn run_pass(
                 let by_steps = by_step_states(&lowered.1);
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
-                        || open_goal(ty, val, &templates).is_some()
+                        || open_goal(ty, val, templates).is_some()
                     {
                         continue;
                     }
@@ -675,7 +843,7 @@ fn run_pass(
                 }
                 if let Some(err) = skipped(
                     skip,
-                    &mut out.errors,
+                    &mut out,
                     idx,
                     DeclKind::Theorem,
                     Some(name.clone()),
@@ -688,7 +856,7 @@ fn run_pass(
                 // 无法分解时（如超量应用、def 展开间接调用），如果值里有
                 // 洞 → 生成 **generic open exercise**（整值 = 一个洞，目标 =
                 // 声明类型）。学习者看到的是一个可填充的练习而不是报错。
-                let open_info = open_goal(ty, val, &templates);
+                let open_info = open_goal(ty, val, templates);
                 let open_info = match open_info {
                     Some(info) => Some(info),
                     None if expr_has_hole(val) => {
@@ -748,7 +916,7 @@ fn run_pass(
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             let err =
                                 CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, *span);
-                            out.errors.push(err.clone());
+                            out.push_error(idx, err.clone());
                             decl_states.push(failed_state(
                                 DeclKind::Theorem,
                                 Some(name_owned.clone()),
@@ -775,7 +943,7 @@ fn run_pass(
                         });
                     }
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(
                             DeclKind::Theorem,
                             Some(name.clone()),
@@ -818,7 +986,7 @@ fn run_pass(
                 }
                 if let Some(err) = skipped(
                     skip,
-                    &mut out.errors,
+                    &mut out,
                     idx,
                     DeclKind::Axiom,
                     Some(name.clone()),
@@ -842,7 +1010,7 @@ fn run_pass(
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             let err =
                                 CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, *span);
-                            out.errors.push(err.clone());
+                            out.push_error(idx, err.clone());
                             decl_states.push(failed_state(
                                 DeclKind::Axiom,
                                 Some(name_owned.clone()),
@@ -869,7 +1037,7 @@ fn run_pass(
                         });
                     }
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(
                             DeclKind::Axiom,
                             Some(name.clone()),
@@ -886,10 +1054,11 @@ fn run_pass(
                     options,
                     inductives: &inductives,
                 };
-                let lowered = match lower_value(ty, val, &file.src, span.start.offset, options) {
+                let lowered = match lower_value(ty, val, &unit.file.src, span.start.offset, options)
+                {
                     Ok(v) => v,
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(DeclKind::Example, None, *span, e, idx));
                         continue;
                     }
@@ -898,7 +1067,7 @@ fn run_pass(
                 let by_steps = by_step_states(&lowered.1);
                 if trusted {
                     if skip.is_some_and(|s| s.contains_key(&idx))
-                        || open_goal(ty, val, &templates).is_some()
+                        || open_goal(ty, val, templates).is_some()
                     {
                         continue;
                     }
@@ -918,9 +1087,7 @@ fn run_pass(
                     }
                     continue;
                 }
-                if let Some(err) =
-                    skipped(skip, &mut out.errors, idx, DeclKind::Example, None, *span)
-                {
+                if let Some(err) = skipped(skip, &mut out, idx, DeclKind::Example, None, *span) {
                     decl_states.push(err);
                     continue;
                 }
@@ -928,7 +1095,7 @@ fn run_pass(
                 // 无法分解时（如超量应用、def 展开间接调用），如果值里有
                 // 洞 → 生成 **generic open exercise**（整值 = 一个洞，目标 =
                 // 声明类型）。学习者看到的是一个可填充的练习而不是报错。
-                let open_info = open_goal(ty, val, &templates);
+                let open_info = open_goal(ty, val, templates);
                 let open_info = match open_info {
                     Some(info) => Some(info),
                     None if expr_has_hole(val) => {
@@ -988,7 +1155,7 @@ fn run_pass(
                         if let Err(e) = builder.add_declar(decl.clone()) {
                             let err =
                                 CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, *span);
-                            out.errors.push(err.clone());
+                            out.push_error(idx, err.clone());
                             decl_states.push(failed_state(
                                 DeclKind::Example,
                                 None,
@@ -1014,7 +1181,7 @@ fn run_pass(
                         });
                     }
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(DeclKind::Example, None, *span, e, idx));
                     }
                 }
@@ -1059,7 +1226,7 @@ fn run_pass(
                 }
                 if let Some(err) = skipped(
                     skip,
-                    &mut out.errors,
+                    &mut out,
                     idx,
                     DeclKind::Inductive,
                     Some(name.clone()),
@@ -1100,7 +1267,7 @@ fn run_pass(
                         });
                     }
                     Err(e) => {
-                        out.errors.push(e.clone());
+                        out.push_error(idx, e.clone());
                         decl_states.push(failed_state(
                             DeclKind::Inductive,
                             Some(name.clone()),
@@ -1141,7 +1308,7 @@ fn run_pass(
                             cmd: idx,
                         });
                     }
-                    Err(e) => out.errors.push(e),
+                    Err(e) => out.push_error(idx, e),
                 }
             }
             Command::Reduce { expr, span: _ } => {
@@ -1174,7 +1341,7 @@ fn run_pass(
                             cmd: idx,
                         });
                     }
-                    Err(e) => out.errors.push(e),
+                    Err(e) => out.push_error(idx, e),
                 }
             }
             Command::Print { name, span } => {
@@ -1194,7 +1361,7 @@ fn run_pass(
     // suppression path would try to infer types of open binder bodies.
     env.config.pp_options.proofs = true;
 
-    let n = file.commands.len();
+    let n = flat.len();
     let want_sigs = trust.is_some();
     let before = trust.map_or(0, |t| t.before);
     let mut allow_cutoff = trust.is_some_and(|t| t.allow_cutoff);
@@ -1344,7 +1511,7 @@ fn run_pass(
                             allow_cutoff = false;
                             op_failed = true;
                             failed_cmds.insert(cmd, err.clone());
-                            out.errors.push(err.clone());
+                            out.push_error(j, err.clone());
                             decl_states.push(failed_state(kind, name, span, err, cmd));
                         }
                     }
@@ -1399,7 +1566,7 @@ fn run_pass(
                             allow_cutoff = false;
                             op_failed = true;
                             failed_cmds.insert(cmd, err.clone());
-                            out.errors.push(err.clone());
+                            out.push_error(j, err.clone());
                             decl_states.push(failed_state(
                                 DeclKind::Inductive,
                                 Some(name),
@@ -1425,11 +1592,14 @@ fn run_pass(
                         })
                     }) {
                         Ok(text) => out.push_event(cmd, CheckEvent::TypeChecked { text, span }),
-                        Err(msg) => out.errors.push(CompileError::kernel(
-                            refine_kernel_kind(&msg),
-                            format!("类型检查失败：{msg}"),
-                            span,
-                        )),
+                        Err(msg) => out.push_error(
+                            j,
+                            CompileError::kernel(
+                                refine_kernel_kind(&msg),
+                                format!("类型检查失败：{msg}"),
+                                span,
+                            ),
+                        ),
                     }
                 }
                 PendingOp::Reduce {
@@ -1445,11 +1615,14 @@ fn run_pass(
                         })
                     }) {
                         Ok(text) => out.push_event(cmd, CheckEvent::Reduced { text, span }),
-                        Err(msg) => out.errors.push(CompileError::kernel(
-                            refine_kernel_kind(&msg),
-                            format!("化简失败：{msg}"),
-                            span,
-                        )),
+                        Err(msg) => out.push_error(
+                            j,
+                            CompileError::kernel(
+                                refine_kernel_kind(&msg),
+                                format!("化简失败：{msg}"),
+                                span,
+                            ),
+                        ),
                     }
                 }
                 PendingOp::Print {
@@ -1461,11 +1634,14 @@ fn run_pass(
                     let printed = env.with_pp(|pp| pp.pp_declar(ptr));
                     match printed {
                         Some(text) => out.push_event(cmd, CheckEvent::Printed { name, text }),
-                        None => out.errors.push(CompileError::elab(
-                            ErrorKind::ElabUnknownIdentifier,
-                            format!("unknown declaration `{name}`"),
-                            span,
-                        )),
+                        None => out.push_error(
+                            j,
+                            CompileError::elab(
+                                ErrorKind::ElabUnknownIdentifier,
+                                format!("unknown declaration `{name}`"),
+                                span,
+                            ),
+                        ),
                     }
                 }
             }
@@ -1484,13 +1660,14 @@ fn run_pass(
         // Open/failed states are recorded during the command walk while
         // checked states come from the kernel phase; keep source order.
         let mut states = decl_states;
-        states.sort_by_key(|d| d.span.start.offset);
+        // 多个单元时先按单元、再按文件内 offset 排序：不同文件的 offset 不在
+        // 同一个坐标空间里，混排会把入口的声明插到依赖的声明之间。
+        states.sort_by_key(|d| (unit_of_cmd[d.cmd], d.span.start.offset));
         report.decls = states;
-        report.errors = out.errors.clone();
         // Name use → definition: top-level targets were recorded with a
         // placeholder span during elaboration; backfill them from the file's
         // name → def-span map (prelude names resolve to nothing).
-        let defs = top_level_def_spans(file);
+        let defs = top_level_def_spans_over(units);
         for cmd in &mut cmd_hovers {
             for node in &mut cmd.nodes {
                 if let Some(ResolvedTarget::Declaration { name, .. }) = &node.resolution {
@@ -1508,19 +1685,27 @@ fn run_pass(
             .events
             .iter()
             .zip(out.event_cmds.iter())
-            .filter_map(|(event, _)| match event {
+            .filter_map(|(event, cmd)| match event {
                 CheckEvent::TypeChecked { text, span } => Some(super::report::CheckInfo {
                     span: *span,
                     text: text.clone(),
+                    cmd: *cmd,
                 }),
                 _ => None,
             })
             .collect();
     }
+    // 报告里的错误**始终**与 `out.errors` 平行（即使 `collect == false`，
+    // 报告会被丢弃）：`split_report` 依赖 `errors[i] ↔ error_cmds[i]` 的严格
+    // 平行关系做跨文件归因。
+    report.errors = out.errors.clone();
     // Syntax-level warnings are independent of the kernel pass: compute them
     // once for the whole file so every return path (batch output + report)
     // carries the same list.
-    report.warnings = super::warning::collect_warnings(file);
+    report.warnings = units
+        .iter()
+        .flat_map(|unit| super::warning::collect_warnings(unit.file))
+        .collect();
     out.warnings = report.warnings.clone();
     let _ = built_inductives;
     PassResult {
@@ -1535,8 +1720,21 @@ fn run_pass(
 
 /// Every top-level name this file declares, mapped to the span of the command
 /// that first defines it (defs/axioms/inductives, plus constructors and
+/// 闭包范围内"顶层名字 → 定义处 span"：名字在闭包里全局唯一（重名是
+/// `import-name-collision`），所以先到者胜。单文件编译时与
+/// `top_level_def_spans` 等价。`project` 层也用它做闭包级检查（单一实现）。
+pub(crate) fn top_level_def_spans_over(units: &[SourceUnit<'_>]) -> HashMap<String, Span> {
+    let mut defs: HashMap<String, Span> = HashMap::new();
+    for unit in units {
+        for (name, span) in top_level_def_spans(unit.file) {
+            defs.entry(name).or_insert(span);
+        }
+    }
+    defs
+}
+
 /// recursors of inductive blocks). Prelude names are absent by construction.
-fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
+pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
     let mut defs: HashMap<String, Span> = HashMap::new();
     for command in &file.commands {
         match command {
@@ -1563,7 +1761,8 @@ fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
             Command::Example { .. }
             | Command::Check { .. }
             | Command::Reduce { .. }
-            | Command::Print { .. } => {}
+            | Command::Print { .. }
+            | Command::Import { .. } => {}
         }
     }
     defs
@@ -1593,14 +1792,16 @@ fn quiet_catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 /// (it was kernel-rejected in pass 1; keep that error verbatim).
 fn skipped(
     skip: Option<&KernelFailed>,
-    errors: &mut Vec<CompileError>,
+    out: &mut CompileOutput,
     idx: usize,
     kind: DeclKind,
     name: Option<String>,
     span: Span,
 ) -> Option<DeclState> {
     let error = skip?.get(&idx)?;
-    errors.push(error.clone());
+    // 经 `push_error`：`error_cmds` 与 `errors` 必须严格平行，否则跨文件
+    // 归因会失去依据（见 `split_report` 的注释）。
+    out.push_error(idx, error.clone());
     Some(failed_state(kind, name, span, error.clone(), idx))
 }
 

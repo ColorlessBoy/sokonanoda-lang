@@ -6,6 +6,8 @@ use crate::Span;
 /// Which pipeline stage produced an error.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompileStage {
+    /// 项目层的 import 解析（找不到模块、成环、依赖失败…）。
+    Import,
     Elab,
     Kernel,
 }
@@ -13,6 +15,7 @@ pub enum CompileStage {
 impl CompileStage {
     pub fn code(self) -> &'static str {
         match self {
+            CompileStage::Import => "import",
             CompileStage::Elab => "elab",
             CompileStage::Kernel => "kernel",
         }
@@ -56,6 +59,20 @@ pub enum ErrorKind {
     KernelRecRuleMismatch,
     KernelRejected,
     KernelInternal,
+    /// 找不到被 `import` 的模块（模块根下没有对应文件）。
+    ImportNotFound,
+    /// `import` 成环（含自导入）。
+    ImportCycle,
+    /// 被导入的模块没有编译成功：下游不编译，只在 import 行上报一条。
+    ImportDependencyFailed,
+    /// 两个模块（或本文件与某个模块）声明了同一个顶层名字。
+    ImportNameCollision,
+    /// 闭包内的 prelude 形状冲突（入口 Bare 而依赖 Full、依赖占用了 prelude 名字…）。
+    ImportPreludeConflict,
+    /// `sokonanoda.toml` 读不了或不是合法 TOML。
+    ManifestInvalid,
+    /// 被导入的模块文件本身有语法错误（parse 阶段失败）。
+    ImportModuleInvalid,
 }
 
 impl ErrorKind {
@@ -95,6 +112,13 @@ impl ErrorKind {
             | KernelRecRuleMismatch
             | KernelRejected
             | KernelInternal => CompileStage::Kernel,
+            ImportNotFound
+            | ImportCycle
+            | ImportDependencyFailed
+            | ImportNameCollision
+            | ImportPreludeConflict
+            | ManifestInvalid
+            | ImportModuleInvalid => CompileStage::Import,
         }
     }
 
@@ -134,6 +158,13 @@ impl ErrorKind {
             KernelRecRuleMismatch => "kernel-rec-rule-mismatch",
             KernelRejected => "kernel-rejected",
             KernelInternal => "kernel-internal",
+            ImportNotFound => "import-not-found",
+            ImportCycle => "import-cycle",
+            ImportDependencyFailed => "import-dependency-failed",
+            ImportNameCollision => "import-name-collision",
+            ImportPreludeConflict => "import-prelude-conflict",
+            ManifestInvalid => "manifest-invalid",
+            ImportModuleInvalid => "import-module-invalid",
         }
     }
 
@@ -240,6 +271,27 @@ impl ErrorKind {
             }
             KernelInternal => {
                 "内核内部错误（这不是你的代码问题）。请把这段代码反馈给工具作者。"
+            }
+            ImportNotFound => {
+                "找不到这个模块。`import Foo.Bar` 对应模块根下的 `Foo/Bar.sokonanoda`；检查名字拼写与文件位置（名字里不能有 `-`）。"
+            }
+            ImportCycle => {
+                "import 成环了：A 依赖 B、B 又（直接或间接）依赖 A。把公共部分抽到一个更底层的模块里。"
+            }
+            ImportDependencyFailed => {
+                "被导入的模块自己还有错误，所以这里先不编译——修好那个文件的第一条错误再看这里。"
+            }
+            ImportNameCollision => {
+                "同一个名字在两个模块里各声明了一次。改掉其中一个，或把它移到一个公共模块里只声明一次。"
+            }
+            ImportPreludeConflict => {
+                "prelude（内置基元）是整个编译单元的属性：入口文件的设置与依赖模块冲突了。统一成一种（要么都用内置 prelude，要么都在入口声明 `-- sokonanoda:prelude none`）。"
+            }
+            ManifestInvalid => {
+                "`sokonanoda.toml` 读不了或不是合法 TOML。它只需要可选的 `name` / `requires` / `src` 三个键；不想要项目就把文件删掉（单文件模式仍然可用）。"
+            }
+            ImportModuleInvalid => {
+                "被导入的文件本身没解析成功：先打开它、修好那里的语法错误，再回来看这里（下游不会替你猜）。"
             }
         }
     }

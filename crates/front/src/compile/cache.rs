@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// Bump when the on-disk entry schema changes (invalidates old entries).
-pub const CACHE_FORMAT: u32 = 1;
+pub const CACHE_FORMAT: u32 = 2;
 
 /// One cached compile: the document report (for the LSP) and, when the
 /// producer computed it, the CLI event output.

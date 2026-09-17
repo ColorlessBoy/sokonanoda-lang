@@ -37,6 +37,13 @@ pub struct CompileOptions {
 /// `-- sokonanoda:prelude full` selects `Full`. The flag stays declarative:
 /// it is a comment, so the file remains a plain text canvas.
 pub fn prelude_mode_from_source(src: &str) -> PreludeMode {
+    explicit_prelude_mode(src).unwrap_or(PreludeMode::Full)
+}
+
+/// 文件**显式**写了 `-- sokonanoda:prelude …` 指令时返回它，否则 `None`。
+/// 项目闭包里"没写指令"= 继承入口的模式（设计 §4.6），只有**显式冲突**
+/// 才是 `import-prelude-conflict`。
+pub fn explicit_prelude_mode(src: &str) -> Option<PreludeMode> {
     for line in src.lines() {
         let trimmed = line.trim_start();
         let Some(comment) = trimmed.strip_prefix("--") else {
@@ -47,12 +54,12 @@ pub fn prelude_mode_from_source(src: &str) -> PreludeMode {
             continue;
         };
         let value = rest.trim();
-        return match value {
+        return Some(match value {
             "none" | "bare" => PreludeMode::Bare,
             _ => PreludeMode::Full,
-        };
+        });
     }
-    PreludeMode::Full
+    None
 }
 
 /// Trusted equality primitives, written in the teaching syntax itself and

@@ -777,6 +777,13 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::KernelRecRuleMismatch
                 | ErrorKind::KernelRejected
                 | ErrorKind::KernelInternal
+                | ErrorKind::ImportNotFound
+                | ErrorKind::ImportCycle
+                | ErrorKind::ImportDependencyFailed
+                | ErrorKind::ImportNameCollision
+                | ErrorKind::ImportPreludeConflict
+                | ErrorKind::ManifestInvalid
+                | ErrorKind::ImportModuleInvalid
         )
     };
     let all = [
@@ -803,6 +810,13 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::KernelRecRuleMismatch,
         ErrorKind::KernelRejected,
         ErrorKind::KernelInternal,
+        ErrorKind::ImportNotFound,
+        ErrorKind::ImportCycle,
+        ErrorKind::ImportDependencyFailed,
+        ErrorKind::ImportNameCollision,
+        ErrorKind::ImportPreludeConflict,
+        ErrorKind::ManifestInvalid,
+        ErrorKind::ImportModuleInvalid,
     ];
     for kind in all {
         let code = kind.code();
@@ -818,6 +832,13 @@ fn every_error_kind_has_stable_code_and_hint() {
                 assert!(
                     code.starts_with("kernel-") && !code.starts_with("elab-"),
                     "{kind:?} is a kernel kind but its code is `{code}`"
+                );
+            }
+            CompileStage::Import => {
+                // 项目层两种家族：import-*（模块解析）与 manifest-*（清单）。
+                assert!(
+                    code.starts_with("import-") || code.starts_with("manifest-"),
+                    "{kind:?} is a project kind but its code is `{code}`"
                 );
             }
         }
@@ -1444,6 +1465,13 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::KernelRecRuleMismatch,
         ErrorKind::KernelRejected,
         ErrorKind::KernelInternal,
+        ErrorKind::ImportNotFound,
+        ErrorKind::ImportCycle,
+        ErrorKind::ImportDependencyFailed,
+        ErrorKind::ImportNameCollision,
+        ErrorKind::ImportPreludeConflict,
+        ErrorKind::ManifestInvalid,
+        ErrorKind::ImportModuleInvalid,
     ];
     // Genuine exhaustiveness guard: a `match` with no wildcard arm fails to
     // compile when a new `ErrorKind` variant is added, forcing this list (and
@@ -1483,6 +1511,13 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::KernelRecRuleMismatch => {}
         ErrorKind::KernelRejected => {}
         ErrorKind::KernelInternal => {}
+        ErrorKind::ImportNotFound => {}
+        ErrorKind::ImportCycle => {}
+        ErrorKind::ImportDependencyFailed => {}
+        ErrorKind::ImportNameCollision => {}
+        ErrorKind::ImportPreludeConflict => {}
+        ErrorKind::ManifestInvalid => {}
+        ErrorKind::ImportModuleInvalid => {}
     };
     let undocumented: Vec<&str> = all
         .iter()

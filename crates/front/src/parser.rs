@@ -7,6 +7,7 @@ use super::ast::{
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
 use super::span::Span;
 use super::token::{tokenize, Token, TokenKind};
+use crate::project::{ModuleName, ModuleNameError};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -61,8 +62,21 @@ impl Parser {
 
     pub fn parse_file(&mut self, src: &str) -> Result<FolFile> {
         let mut commands = Vec::new();
+        let mut seen_declaration = false;
         while !self.at_eof() {
-            commands.push(self.parse_command()?);
+            let command = self.parse_command()?;
+            if command.is_import() {
+                if seen_declaration {
+                    return Err(Diagnostic::new(
+                        DiagnosticKind::ImportMustPrecedeDeclarations,
+                        command.span(),
+                        "`import` 必须写在所有声明之前".to_string(),
+                    ));
+                }
+            } else {
+                seen_declaration = true;
+            }
+            commands.push(command);
         }
         Ok(FolFile {
             commands,
@@ -73,6 +87,7 @@ impl Parser {
     fn parse_command(&mut self) -> Result<Command> {
         let tok = self.peek().clone();
         match &tok.kind {
+            TokenKind::Ident(kw) if kw == "import" => self.parse_import(),
             TokenKind::Ident(kw) if kw == "def" => self.parse_def(),
             TokenKind::Ident(kw) if kw == "theorem" => self.parse_theorem(),
             TokenKind::Ident(kw) if kw == "example" => self.parse_example(),
@@ -85,6 +100,66 @@ impl Parser {
                 Err(self
                     .error_at_current(&format!("expected a .sokonanoda command, found {tok:?}")))
             }
+        }
+    }
+
+    /// `import Foo.Bar`：一行一个点分模块名，且必须是合法标识符分量。
+    /// 置顶规则在 `parse_file` 里统一判定（这里只管单条命令的形状）。
+    fn parse_import(&mut self) -> Result<Command> {
+        let start = self.bump().span.start;
+        let tok = self.bump();
+        let (raw, name_span) = match tok.kind {
+            TokenKind::Ident(name) => (name, tok.span),
+            // 以数字开头的"名字"被词法层切成 Num：这仍然是**模块名不合法**，
+            // 不是写法残缺（教学上要指到"不能以数字开头"）。
+            TokenKind::Num(raw) => {
+                let err = ModuleNameError::BadStart {
+                    component: raw.clone(),
+                    ch: raw.chars().next().unwrap_or('0'),
+                };
+                return Err(Diagnostic::new(
+                    DiagnosticKind::ImportNotAModuleName {
+                        module: raw.clone(),
+                        message: format!("`import {raw}`：{}", err.message()),
+                        hint: err.hint(),
+                    },
+                    tok.span,
+                    format!("`import {raw}`：{}", err.message()),
+                ));
+            }
+            other => {
+                return Err(Diagnostic::new(
+                    DiagnosticKind::ImportMalformed {
+                        detail: format!("`import` 后面要跟模块名，这里found {other:?}"),
+                    },
+                    tok.span,
+                    format!("`import` 后面要跟模块名，found {other:?}"),
+                ))
+            }
+        };
+        // 一行一个：模块名之后必须换行（或文件结束）。
+        let next = self.peek().clone();
+        if next.kind != TokenKind::Eof && next.span.start.line == name_span.end.line {
+            return Err(Diagnostic::new(
+                DiagnosticKind::ImportMalformed {
+                    detail: format!("`import {raw}` 后面还有内容"),
+                },
+                next.span,
+                format!("`import {raw}` 后面还有内容：一行只能写一个模块名"),
+            ));
+        }
+        let span = Span::new(start, name_span.end);
+        match ModuleName::parse(&raw) {
+            Ok(_) => Ok(Command::Import { module: raw, span }),
+            Err(err) => Err(Diagnostic::new(
+                DiagnosticKind::ImportNotAModuleName {
+                    module: raw.clone(),
+                    message: format!("`import {raw}`：{}", err.message()),
+                    hint: err.hint(),
+                },
+                span,
+                format!("`import {raw}`：{}", err.message()),
+            )),
         }
     }
 
@@ -1221,7 +1296,8 @@ fn is_tactic_keyword(name: &str) -> bool {
 fn is_reserved_command(name: &str) -> bool {
     matches!(
         name,
-        "def"
+        "import"
+            | "def"
             | "theorem"
             | "example"
             | "axiom"
@@ -1889,5 +1965,101 @@ end
         };
         assert_eq!(tactics.len(), 1);
         assert!(matches!(&file.commands[1], Command::Check { .. }));
+    }
+
+    // ---- `import`（I16 P1：语法 + 置顶规则 + 模块名校验）------------------
+
+    #[test]
+    fn parses_a_leading_import_with_a_dotted_module_name() {
+        let file = parse("import Lesson.Logic\n\ndef x : Nat := 1\n").expect("parses");
+        assert_eq!(file.commands.len(), 2);
+        let Command::Import { module, span } = &file.commands[0] else {
+            panic!("expected import, got {:?}", file.commands[0]);
+        };
+        assert_eq!(module, "Lesson.Logic");
+        assert_eq!(span.start.line, 1);
+        assert_eq!(file.commands[1].import_module(), None);
+    }
+
+    #[test]
+    fn parses_several_imports_before_declarations() {
+        let file = parse("import A\nimport B.C\ndef x : Nat := 1\n").expect("parses");
+        assert_eq!(file.commands.len(), 3);
+        assert!(file.commands[0].is_import());
+        assert!(file.commands[1].is_import());
+        assert!(!file.commands[2].is_import());
+    }
+
+    #[test]
+    fn import_after_a_declaration_is_rejected() {
+        let err = parse("def x : Nat := 1\nimport A\n").expect_err("late import");
+        assert_eq!(err.kind, DiagnosticKind::ImportMustPrecedeDeclarations);
+        assert_eq!(
+            err.span.start.line, 2,
+            "the error points at the import line"
+        );
+        assert!(err.hint().contains("任何声明之前"));
+    }
+
+    #[test]
+    fn import_without_a_name_is_malformed() {
+        let err = parse("import\n").expect_err("missing module name");
+        assert_eq!(err.code(), "import-malformed");
+    }
+
+    #[test]
+    fn import_with_trailing_tokens_on_the_same_line_is_malformed() {
+        let err = parse("import A B\n").expect_err("one module per line");
+        assert_eq!(err.code(), "import-malformed");
+        assert!(err.message.contains("一行只能写一个模块名"));
+    }
+
+    #[test]
+    fn import_of_an_invalid_module_name_carries_the_module_hint() {
+        let err = parse("import Foo.\n").expect_err("empty component");
+        assert_eq!(err.code(), "import-not-a-valid-module-name");
+        assert!(err.hint().contains("点分"), "hint: {}", err.hint());
+
+        let err = parse("import 1Foo\n").expect_err("digit start");
+        assert_eq!(err.code(), "import-not-a-valid-module-name");
+        assert!(err.hint().contains("数字"), "hint: {}", err.hint());
+    }
+
+    #[test]
+    fn import_name_with_a_dash_is_rejected_with_the_dash_hint() {
+        // `-` 不是标识符续接字符，词法层就会拒绝；它必须仍给出 import 专用的
+        // 教学提示，而不是通用的 "expected `->` or `--`"。
+        let err = parse("import unit1-propositions-proofs\n").expect_err("dash");
+        assert_eq!(err.code(), "import-not-a-valid-module-name");
+        assert!(
+            err.hint().contains("`-` 不是模块名字符"),
+            "hint: {}",
+            err.hint()
+        );
+    }
+
+    #[test]
+    fn dash_outside_an_import_line_keeps_the_generic_hint() {
+        let err = parse("def x : Nat := 1 - 2\n").expect_err("dash in an expression");
+        assert_eq!(err.code(), "unexpected-token");
+        assert!(!err.hint().contains("模块名"));
+    }
+
+    #[test]
+    fn import_is_a_reserved_command_in_expression_position() {
+        // 与其它命令关键字同一条规则：表达式位出现 `import` 必须报
+        // "command keyword ... cannot appear inside an expression"，
+        // 这样 `def x : Nat := 1\nimport A` 里的 `import` 不会被吞进上一个表达式
+        // （否则"import 必须置顶"的诊断根本触发不了）。
+        let err = parse("def x : Nat := import\n").expect_err("import in a value");
+        assert_eq!(err.code(), "unexpected-token");
+        assert!(
+            err.message.contains("cannot appear inside an expression"),
+            "message: {}",
+            err.message
+        );
+        // 名字位与其它命令关键字一样宽松（`def theorem := …` 今天也合法）：
+        // 这里刻意只钉住"表达式位被拒"这一条语义。
+        assert!(parse("def theorem : Nat := 1\n").is_ok());
     }
 }

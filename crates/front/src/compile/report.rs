@@ -166,6 +166,10 @@ pub struct HoverType {
 pub struct CheckInfo {
     pub span: Span,
     pub text: String,
+    /// 产生它的命令下标（`file.commands[cmd]`）。跨文件编译时按它归因；
+    /// 不进序列化（缓存条目只服务单文件，协议形状保持不变）。
+    #[serde(skip)]
+    pub cmd: usize,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

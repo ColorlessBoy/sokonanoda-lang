@@ -562,6 +562,8 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
                 checks.push(crate::compile::CheckInfo {
                     span: *span,
                     text: text.clone(),
+                    // 会话快照按命令归属重建；`cmd` 在这里没有意义（单文档）。
+                    cmd: 0,
                 });
             }
         }

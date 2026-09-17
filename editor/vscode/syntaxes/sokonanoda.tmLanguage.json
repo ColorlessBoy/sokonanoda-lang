@@ -2,27 +2,131 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "sokonanoda",
   "patterns": [
-    {"include": "#comments"}, {"include": "#declarations"}, {"include": "#keywords"}, {"include": "#commands"}, {"include": "#sorts"}, {"include": "#constructors"}, {"include": "#constants"}, {"include": "#numbers"}, {"include": "#holes"}, {"include": "#operators"}, {"include": "#binders"}, {"include": "#variables"}
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#commands"
+    },
+    {
+      "include": "#sorts"
+    },
+    {
+      "include": "#constructors"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#holes"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#binders"
+    },
+    {
+      "include": "#variables"
+    }
   ],
   "repository": {
-    "comments": {"patterns": [{"match": "--.*$", "name": "comment.line.double-dash.sokonanoda"}]},
-    "declarations": {"match": "\\b(def|theorem|axiom|inductive|ctor|rec|iota)\\s+([A-Za-z_][A-Za-z0-9_'.]*)", "captures": {"1": {"name": "keyword.other.sokonanoda"}, "2": {"name": "entity.name.function.sokonanoda"}}},
-    "keywords": {"match": "\\b(def|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|intro|exact|apply|assumption|rfl|forall|∀)\\b", "name": "keyword.other.sokonanoda"},
-    "commands": {"match": "(#check|#reduce|#print)\\b", "name": "keyword.control.sokonanoda"},
-    "sorts": {"match": "\\b(Prop|Type|Sort)\\b", "name": "storage.type.sokonanoda"},
-    "constructors": {"match": "\\b[A-Z][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)+\\b", "name": "entity.name.type.sokonanoda"},
-    "constants": {"match": "\\b[A-Z][A-Za-z0-9_']*\\b", "name": "entity.name.type.sokonanoda"},
-    "numbers": {"match": "\\b[0-9]+\\b", "name": "constant.numeric.sokonanoda"},
-    "holes": {"match": "\\bsorry\\b", "name": "markup.inserted.sokonanoda"},
-    "operators": {
+    "comments": {
       "patterns": [
-        {"match": "->|=>", "name": "keyword.operator.sokonanoda"},
-        {"match": ":=|\\|", "name": "keyword.operator.sokonanoda"},
-        {"match": ":", "name": "punctuation.separator.sokonanoda"}
+        {
+          "match": "--.*$",
+          "name": "comment.line.double-dash.sokonanoda"
+        }
       ]
     },
-    "binders": {"patterns": [{"match": "\\(\\s*([a-zA-Z_][A-Za-z0-9_']*)\\s*(?=:)", "captures": {"1": {"name": "variable.parameter.sokonanoda"}}}, {"match": "\\{\\s*([a-zA-Z_][A-Za-z0-9_']*)\\s*(?=[}:])", "captures": {"1": {"name": "variable.parameter.sokonanoda"}}}]},
-    "variables": {"match": "\\b[a-z_][A-Za-z0-9_']*\\b", "name": "variable.other.sokonanoda"}
+    "declarations": {
+      "match": "\\b(def|theorem|axiom|inductive|ctor|rec|iota)\\s+([A-Za-z_][A-Za-z0-9_'.]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.other.sokonanoda"
+        },
+        "2": {
+          "name": "entity.name.function.sokonanoda"
+        }
+      }
+    },
+    "keywords": {
+      "match": "\\b(import|def|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|intro|exact|apply|assumption|rfl|forall|∀)\\b",
+      "name": "keyword.other.sokonanoda"
+    },
+    "commands": {
+      "match": "(#check|#reduce|#print)\\b",
+      "name": "keyword.control.sokonanoda"
+    },
+    "sorts": {
+      "match": "\\b(Prop|Type|Sort)\\b",
+      "name": "storage.type.sokonanoda"
+    },
+    "constructors": {
+      "match": "\\b[A-Z][A-Za-z0-9_']*(\\.[A-Za-z_][A-Za-z0-9_']*)+\\b",
+      "name": "entity.name.type.sokonanoda"
+    },
+    "constants": {
+      "match": "\\b[A-Z][A-Za-z0-9_']*\\b",
+      "name": "entity.name.type.sokonanoda"
+    },
+    "numbers": {
+      "match": "\\b[0-9]+\\b",
+      "name": "constant.numeric.sokonanoda"
+    },
+    "holes": {
+      "match": "\\bsorry\\b",
+      "name": "markup.inserted.sokonanoda"
+    },
+    "operators": {
+      "patterns": [
+        {
+          "match": "->|=>",
+          "name": "keyword.operator.sokonanoda"
+        },
+        {
+          "match": ":=|\\|",
+          "name": "keyword.operator.sokonanoda"
+        },
+        {
+          "match": ":",
+          "name": "punctuation.separator.sokonanoda"
+        }
+      ]
+    },
+    "binders": {
+      "patterns": [
+        {
+          "match": "\\(\\s*([a-zA-Z_][A-Za-z0-9_']*)\\s*(?=:)",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.sokonanoda"
+            }
+          }
+        },
+        {
+          "match": "\\{\\s*([a-zA-Z_][A-Za-z0-9_']*)\\s*(?=[}:])",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.sokonanoda"
+            }
+          }
+        }
+      ]
+    },
+    "variables": {
+      "match": "\\b[a-z_][A-Za-z0-9_']*\\b",
+      "name": "variable.other.sokonanoda"
+    }
   },
   "scopeName": "source.sokonanoda"
 }

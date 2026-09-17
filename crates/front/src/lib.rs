@@ -12,6 +12,7 @@
 pub mod by;
 pub mod compile;
 pub mod judge;
+pub mod project;
 pub mod proof;
 pub mod query;
 pub mod references;

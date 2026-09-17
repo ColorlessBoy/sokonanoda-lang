@@ -74,18 +74,25 @@ Example:
 can re-run or display it without re-parsing.
 
 `warning` events use the same span shape as diagnostics but carry no `stage`
-and never change the exit code. The only code today is
-`reserved-declaration-name`: `Prop` / `Sort` / `Type` are already defined by
+and never change the exit code. The codes today are
+`reserved-declaration-name` (`Prop` / `Sort` / `Type` are already defined by
 the kernel and cannot be declared again, so a top-level declaration with one
-of those names is accepted but never used
-(`docs/design/reserved-decl-warning.md`).
+of those names is accepted but never used —
+`docs/design/reserved-decl-warning.md`) and `import-has-open-exercises` (the
+imported module still has `sorry`s; their declarations never enter the
+environment, so downstream code cannot see those names —
+`docs/design/imports-and-projects.md` §4.5).
 
 ## Error staging and codes
 
 Errors carry a stable machine `code` and a stage. Codes are fine-grained so
 that a model or editor can react to the *kind* of mistake, not the wording:
 
-- `parse` stage — `unexpected-token`, `unexpected-eof`;
+- `parse` stage — `unexpected-token`, `unexpected-eof`, plus the `import`
+  shape errors `import-malformed` (missing module name, or more than one thing
+  on the line), `import-not-a-valid-module-name` (a component is not an
+  identifier — the classic case is a `-` from a file name) and
+  `import-must-precede-declarations` (an `import` after a declaration);
 - `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-constant`,
   `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
@@ -122,7 +129,20 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   explicitly declared recursor/`iota` rule set does not match the
   kernel-derived one — rules missing, out of constructor order, wrong rule
   value, or a wrong recursor name), plus `kernel-internal` (a kernel
-  bug; never a learner mistake).
+  bug; never a learner mistake);
+- `import` stage — project-level resolution of `import Foo.Bar`
+  (`docs/design/imports-and-projects.md`): `import-not-found` (no
+  `<module root>/Foo/Bar.sokonanoda`; the message lists the path that was tried,
+  and the hint carries "did you mean" clues for a case mismatch or a dashed
+  file name), `import-cycle` (the message spells the cycle), and the three
+  closure rules `import-dependency-failed` (an imported module did not compile,
+  so its importers are not compiled either — the error sits on the `import`
+  line and points at the dependency's first problem),
+  `import-name-collision` (two modules declare the same top-level name) and
+  `import-prelude-conflict` (the closure disagrees about the built-in
+  prelude); `manifest-invalid` reports an unreadable or malformed
+  `sokonanoda.toml`, and `import-module-invalid` reports an imported file that
+  does not parse at all.
 
 Human output prints `error[<code>]: <message>`; JSON diagnostics carry
 `stage`, `code`, `message` and a `hint`. The LSP maps the same data onto

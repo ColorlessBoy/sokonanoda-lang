@@ -25,12 +25,14 @@ pub struct CompileStats {
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct CompileOutput {
     pub events: Vec<CheckEvent>,
+    /// 与 `events` 平行：每条事件归属于哪条命令（索引）。
+    pub event_cmds: Vec<usize>,
     pub errors: Vec<CompileError>,
+    /// 与 `errors` 平行：每条错误归属于哪条命令（索引）。跨文件编译时
+    /// **必须**用它归因——不同文件的 offset 不在同一个坐标空间里。
+    pub error_cmds: Vec<usize>,
     /// 语法级警告（如声明名撞内核已定义的名字）。不影响 `ok()` / 退出码。
     pub warnings: Vec<CompileWarning>,
-    /// 与 `events` 平行：每条事件归属于哪条命令（索引）。
-    /// 增量会话用它复用未变化前缀的事件；CLI/JSON 视图不消费。
-    pub event_cmds: Vec<usize>,
     pub stats: CompileStats,
 }
 
@@ -43,5 +45,11 @@ impl CompileOutput {
     pub(crate) fn push_event(&mut self, cmd: usize, event: CheckEvent) {
         self.events.push(event);
         self.event_cmds.push(cmd);
+    }
+
+    /// 记录一条错误及其归属命令（两数组严格平行，永不失配）。
+    pub(crate) fn push_error(&mut self, cmd: usize, error: CompileError) {
+        self.errors.push(error);
+        self.error_cmds.push(cmd);
     }
 }

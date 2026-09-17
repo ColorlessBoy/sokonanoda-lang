@@ -203,6 +203,12 @@ pub struct Binder {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
+    /// `import Foo.Bar`（文件级命令，必须出现在所有声明之前）。
+    /// `module` 存**原始**点分名字；合法性由 `project::ModuleName` 判定。
+    Import {
+        module: String,
+        span: Span,
+    },
     Def {
         name: String,
         universe: Vec<String>,
@@ -279,7 +285,8 @@ pub struct IotaRule {
 impl Command {
     pub fn span(&self) -> Span {
         match self {
-            Command::Def { span, .. }
+            Command::Import { span, .. }
+            | Command::Def { span, .. }
             | Command::Theorem { span, .. }
             | Command::Example { span, .. }
             | Command::Axiom { span, .. }
@@ -287,6 +294,19 @@ impl Command {
             | Command::Check { span, .. }
             | Command::Reduce { span, .. }
             | Command::Print { span, .. } => *span,
+        }
+    }
+
+    /// 这条命令是不是 `import`（用于"import 必须置顶"与项目加载）。
+    pub fn is_import(&self) -> bool {
+        matches!(self, Command::Import { .. })
+    }
+
+    /// `import` 声明的模块名。
+    pub fn import_module(&self) -> Option<&str> {
+        match self {
+            Command::Import { module, .. } => Some(module),
+            _ => None,
         }
     }
 }

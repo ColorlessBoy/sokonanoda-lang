@@ -13,12 +13,15 @@ pub const RESERVED_SORT_NAMES: [&str; 3] = ["Prop", "Sort", "Type"];
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WarningKind {
     ReservedDeclarationName,
+    /// `import` 的模块里还有未完成的练习：它们对下游不可见（洞不污染环境）。
+    ImportHasOpenExercises,
 }
 
 impl WarningKind {
     pub fn code(self) -> &'static str {
         match self {
             WarningKind::ReservedDeclarationName => "reserved-declaration-name",
+            WarningKind::ImportHasOpenExercises => "import-has-open-exercises",
         }
     }
 
@@ -27,6 +30,9 @@ impl WarningKind {
         match self {
             WarningKind::ReservedDeclarationName => {
                 "删掉这一行即可；要写命题或类型，直接用内核已经有的 Prop / Sort / Type。"
+            }
+            WarningKind::ImportHasOpenExercises => {
+                "被导入文件里还有 `sorry`：这些声明对下游不可见（未完成的洞不进入环境），下游看不到它们的名字。"
             }
         }
     }
@@ -64,7 +70,8 @@ pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
             Command::Example { .. }
             | Command::Check { .. }
             | Command::Reduce { .. }
-            | Command::Print { .. } => continue,
+            | Command::Print { .. }
+            | Command::Import { .. } => continue,
         };
         if !RESERVED_SORT_NAMES.contains(&name.as_str()) {
             continue;

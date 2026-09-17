@@ -40,6 +40,7 @@ pub struct SemanticSpan {
 }
 
 const KEYWORDS: &[&str] = &[
+    "import",
     "def",
     "theorem",
     "example",
@@ -178,7 +179,8 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
             Command::Example { .. }
             | Command::Check { .. }
             | Command::Reduce { .. }
-            | Command::Print { .. } => {}
+            | Command::Print { .. }
+            | Command::Import { .. } => {}
         }
     }
     out
@@ -369,6 +371,9 @@ impl Names {
 fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
     for cmd in &file.commands {
         match cmd {
+            // `import` 不声明名字、也没有表达式要着色（模块名 token 落在
+            // 未知标识符的默认样式里）。
+            Command::Import { .. } => {}
             Command::Def {
                 name,
                 ty,
