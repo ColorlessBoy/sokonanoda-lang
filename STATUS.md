@@ -2,8 +2,9 @@
 
 > 快照：2026-09-17（第九十一轮：DSH 人工运维命令 `/sokonanoda-update` / `-doctor` 上架；
 > 第九十一轮**续**：`redundant-sorry`（多余的 `sorry`）落地 = 5 分钟实验定位 + 内核
-> 显式限界 + 会话 warning 快照 + 洞级 `redundant` 标记，**版本已 bump 到 0.56.2
-> 待 push**；上一轮 0.56.1 = 清 LSP 测试文件债）
+> 显式限界 + 会话 warning 快照 + 洞级 `redundant` 标记，**0.56.2 已发布**
+> （Release 26 资产 + Marketplace 收录，发布产物实测过）；上一轮 0.56.1 = 清
+> LSP 测试文件债）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -69,7 +70,17 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    **同一份**报告的 kernel 终审 warning，用与 LSP 相同的包含规则），`soko/goals`
    wire 同字段；`crates/cli/tests/query.rs` 的**两视图契约**逐字段对拍
    `query goals`/`holes` ≡ `soko/goals`（真缺口为对照组）。
-9. **本轮产物**：`crates/kernel/src/{tc,util}.rs`、`crates/kernel/tests/memory_api.rs`、
+9. **发布（全自动，本机实测）**：push `dd1902d` → `ci` 绿（lint / test / auto-tag）
+   → auto-tag `v0.56.2` + dispatch `release` → **11 个 job 全 success**（build ×8、
+   package-vsix、github-release、marketplace-publish；**首次没撞 Azure gallery
+   超时**，此前 4 次同版本窗口都超时过）。双页核对：GitHub Release **26 资产**
+   （lsp ×8 / cli ×8 / vsix ×9 / SHA256SUMS，非 draft）；Marketplace
+   `lastUpdated=09:17Z`、versions 出现 `0.56.2`（索引延迟 ≈5 分钟，符合台账）。
+   **发布产物实测**：下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz` →
+   `shasum -a 256 -c` OK（exec 位在）→ `./sokonanoda --version` = **0.56.2** →
+   对"`f h` + 多留一行 sorry"的文件 `--json` 出
+   `warning[redundant-sorry]`（span 收窄到该 token）、`exercise.open` 照旧、exit 0。
+10. **本轮产物**：`crates/kernel/src/{tc,util}.rs`、`crates/kernel/tests/memory_api.rs`、
    `crates/front/src/compile/{check,goals,tests,warning}.rs`、`crates/front/src/session.rs`、
    `crates/front/src/query/{mod,types,tests}.rs`、`crates/lsp/src/{lib,protocol,query_map,by_sorry_range_tests}.rs`、
    `crates/cli/tests/{protocol,cli,query}.rs`、`docs/design/redundant-sorry.md`、

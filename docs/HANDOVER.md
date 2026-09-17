@@ -4,8 +4,9 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.56.2**（2026-09-17，本地已 bump + CHANGELOG，**待 push**；见 §3 顶部），
-> 最近一轮 **第九十一轮续**（`redundant-sorry` 落地）。仓库根入口 `AGENTS.md`。
+> 快照：**v0.56.2**（2026-09-17 已发布：Release 26 资产 + Marketplace 收录；
+> 见 §3 顶部），最近一轮 **第九十一轮续**（`redundant-sorry` 落地）。
+> 仓库根入口 `AGENTS.md`。
 > **DeepSeek Harness 适配已落地**：`docs/design/deepseek-harness.md`（H0–H4 全绿，
 > 用法见 `dsh/README.md`）；仅 H5（Infoview/诊断通道/插件包）留 backlog。
 
@@ -71,7 +72,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 > §3 D「远期 L2/L3」与 §4 的已文档化技术债（多数需内核/pp 变更，违反 kernel
 > 冻结）仍在。
 
-### 0. 本地已就绪、只差 push：**0.56.2**（patch）——`redundant-sorry` 诊断
+### 0. ✅ 已发布 **0.56.2**（patch，2026-09-17）——`redundant-sorry` 诊断
 
 - 内容：学习者把答案写全、只多留一行 `sorry` 时，不再说"还没证出来"，改报
   `redundant-sorry`（CLI/`--json`/LSP 三处同一条 warning，span 收窄到那个 `token`；
@@ -84,9 +85,11 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
   **VSIX 打包与 `code --install-extension` 没在本地跑**（release 构建 + 装进你的
   VS Code 属于有副作用的动作）：CI 的 release 会出全部 9 个 VSIX；要本地冒烟就
   `cd editor/vscode && npm run package:host && code --install-extension sokonanoda.vsix --force`。
-- **只剩**：commit + push main → `ci.yml` auto-tag `v0.56.2` → release 出八平台产物
-  + VSIX + marketplace（用 `skills/sokonanoda-ci` 的三板斧看 CI；发布后按
-  `docs/RELEASE.md` §6 抽样核对 `SHA256SUMS` / attestation）。
+- **已发布**：push `dd1902d` → `ci` 绿（含 auto-tag）→ `release` **11 job 全 success**
+  → Release **26 资产**（lsp ×8 / cli ×8 / vsix ×9 / `SHA256SUMS`）+ Marketplace
+  收录 `0.56.2`（索引延迟 ≈5 分钟）。**发布产物实测**：下载 darwin-arm64 CLI →
+  `shasum -c` OK → `--version` = 0.56.2 → 对"多留一行 sorry"的文件 `--json` 出
+  `warning[redundant-sorry]`。这次 **没有**撞上那 4 次复发的 Azure gallery 超时。
 - 版本级别依据（`docs/vscode-dev-guide.md` §2）：**没多出新能力，只是反馈更正确
   ⇒ patch**。
 
