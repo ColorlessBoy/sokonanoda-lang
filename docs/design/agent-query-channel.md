@@ -231,6 +231,23 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 ### 6.2 工具映射（工具名 + 模型可见描述 = 契约）
 
+**DSH 侧已核实的硬事实（2026-09-17 源码勘察，`path:line` 见 §9）**：
+
+| 事实 | 对设计的影响 |
+|---|---|
+| 模型看到的工具名 = `mcp__<serverName>__<rawName>`；`serverName` 只能 `[A-Za-z0-9_-]{1,32}`，**没有 prefix 选项**；名字超 64 字符会被截断并附 12 位哈希 | 用 `serverName: sokonanoda` → 工具名如 `mcp__sokonanoda__state`；**原始工具名要短**（`state` 而不是 `get_goal_state_at_cursor`），哈希只在超限时出现 |
+| **启动是 eager**：`apply` 里 `startConnection` + `await connection.ready`；stdio 下 SDK 会**先起一个一次性探测进程**、再起真正服务的进程 | server 必须**启动快、可被起两次**（幂等、无副作用、不要预编译/预下载）；也解释了为什么 server 只做 JSON 转发——预热成本必须接近零 |
+| 连接失败 → 警告 + 重连退避（默认 500ms→30s，10 次）；`failOnStartupError: true` 在**内置 profile 里也不会让 boot 失败**，只是该行 inactive + 带标签警告 | 我们仍设 `true`（要响），但**不能依赖它阻断**；server 侧启动即失败要有清晰 stderr |
+| `toolCallTimeoutMs` 默认 60000，**连接/协商/发现没有 DSH 自己的超时**（走 SDK 默认 60s） | 保持默认；我们的 server 转发是"有界的一次子进程调用"，不会挂住 |
+| 模型可见内容 = `content[].text` 拼接；`structuredContent` **不进模型可见文本**（只对程序化/PTC 调用者可见） | **所有模型要读的 JSON 必须放在 `content[].text` 里**（我们本来就是这个设计：原样转发的 JSON 文本） |
+| `description` 与 `inputSchema` **逐字传递、无截断**（唯一体积上限是 `maxInstructionBytes` 管 server instructions） | schema 可以写全约束；但描述要精简（进 KV cache，越短越好） |
+| **server instructions 是一条独立的 system prompt 段**（`### MCP server: <name>` + 文本，上限 32768 字节） | 用它交代"`sorry` 是合法状态""判定走内核""坐标是 1-based UTF-16"——比塞进每个工具的 description 更省 token |
+| 资源走 **`mcp-resources` 的三个固定工具**（`list_mcp_resources`/`list_mcp_resource_templates`/`read_mcp_resource`，都要显式 `server`）；**MCP prompts 完全不支持**；服务端**无法 push**（除 tools/list_changed） | 可选增量：把画布/课程/协议文档当 MCP resource 暴露，模型按需 `read_mcp_resource`。**不做 prompt 模板**（不支持），**不做推送**（不可能） |
+| stdio 子进程 env = 洗净后的父 env + `config.env`；`/KEY\|PASSWORD\|SECRET\|TOKEN/i` 与全部 `DSH_*` **都被剥掉** | 我们的 server 只依赖 `cwd` 与仓库内相对路径，**不依赖任何环境变量**；文档里提醒 `SOKO_REPO` 若要用必须写进 `config.env` |
+| **MCP server 不在沙箱内**（SDK 的 cross-spawn，不经 `ctx.subprocess`/sandbox），以用户全权运行 | 与"默认关闭 + 可信代码"的判断一致，文档必须写明这一条信任边界 |
+| `--patch` 的相对路径按**DSH 启动目录**解析（`path.resolve`），`command`/`cwd` 也从不按 patch 文件目录解析；**没有项目级 MCP 自动发现** | 用户必须从仓库根启动（或 `config.env` 传 `SOKO_REPO`）；`cwd: !!js process.cwd()` 是官方同款写法 |
+
+
 | MCP 工具 | 转发 | 关键参数（JSON Schema） |
 |---|---|---|
 | `soko_check` | `query check` | `file?`, `text?`, `bare?` |
@@ -300,8 +317,8 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 | TODO | 现状 | 与本设计的关系 | 处置 |
 |---|---|---|---|
-| **A. `derive_recursor` 派生不了「索引递归 `Prop`」的 recursor**（`Le`/`Even` 省略 `rec` 时 IK 形状被内核拒；`Or`（非索引 Prop）、`Vec`（索引 Type）正常） | 课程 #9 手写 `rec`/`iota` 规避 | `goals`/`holes` 的期望类型与 `check` 的失败诊断都会经过 recursor/iota 路径；派生错误会让"真相"在课程最常见的关系类归纳上失真 | **修 front 派生逻辑**（kernel 冻结不动），按 TDD 三层 + 课程用例；见 H6-C 与 §8 |
-| **B. `inductive` 参数不吃多名字 binder 组**（`(A B : Prop)`；Pi/箭头位已支持） | 课程只能写 `(A : Prop) (B : Prop)` | 解析器能力缺口会让 agent 写出的合法 Lean 子集被拒——**agent 是主要作者**，这个缺口对查询通道的可用性影响更大 | **修 parser**（含同类缺口全量排查），见 H6-C 与 §8 |
+| **A. `derive_recursor` 拒绝「带索引 + 箭头写法字段」的归纳**（实测：`P : Nat -> Prop` + `ctor b (n : Nat) : P n -> P (Nat.succ n)` 被内核拒；同形状改**具名字段**即通过；索引 `Type` 一样失败；**与 `Prop` 无关**） | 课程 #9 手写 `rec`/`iota` 规避 | `goals`/`holes` 的期望类型与 `check` 的失败诊断都会经过 recursor/iota 路径；派生错误会让"真相"在课程最常见的关系类归纳上失真 | **修 front 一处**（`elab.rs:2613` 的 `src_spine` → `spine_of_codomain`）+ 顺带修 `is_k` 写死；见 H6-C |
+| **B. `inductive` 参数不吃多名字 binder 组**（`(A B : Prop)`；Pi/箭头位已支持） | 课程只能写 `(A : Prop) (B : Prop)` | 解析器能力缺口会让 agent 写出的合法 Lean 子集被拒——**agent 是主要作者**，这个缺口对查询通道的可用性影响更大 | **修 parser 两处**（`parser.rs:363`/`:402` 改调 `push_binders`；AST/elab 不用动）；见 H6-C |
 
 > 更新动作（本轮已做）：`docs/HANDOVER.md` §3 E 两条标注"并入 ROADMAP I15 /
 > `docs/design/agent-query-channel.md` H6-C"，不再作为孤立 front 待办。
@@ -337,90 +354,109 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 ### H6-C —— 两个 TODO（P2，可与 A/B 并行但**必须在发布前**）
 
-> **已核实的根因（2026-09-17，就地读代码，行号已复核）**：
+> **根因已用发布版二进制实测锁定（2026-09-17）—— 并且推翻了本设计早先的三个猜测**。
+> 下面每条都带 `file:line` 与可复制用例；实现时**照这里做，不要照直觉做**。
 
-**TODO B（parser 多名字 binder 组）——根因明确、修法明确**
+#### TODO A —— 触发条件是「**带索引 + 至少一个字段写在结果的箭头链里**」，与 `Prop` 无关
 
-- `parse_inductive_block`（`crates/front/src/parser.rs:357`）在 `:` 之前循环
-  `while matches!(peek, LParen | LBrace) { params.push(self.parse_binder()?) }`，
-  而 `parse_binder`（同文件 `:1063`）**只读一个名字**——所以 `(A B : Prop)` 在读到
-  `A` 后期望 `:`，撞上 `B` 就报错。
-- 同文件 `:723` 的 `parse_binder_group` 已经支持多名字，且返回 `BinderGroup{names, ty, style, span}`
-  （`names: Vec<String>`、`ty: Expr`）；`:659`（`parse_arrow` 的 `(a b c : T) -> body`）
-  与 `:1035` 已在用，展开成逐名字链——**这就是"Pi 位已支持"的原因**。
-- 修法：inductive 参数改用 `parse_binder_group()`，把 `group.names` 摊平成
-  `Vec<Binder>`（每个名字一个 `Binder{name, ty: Some(group.ty.clone()), style: group.style}`，
-  span 取 group 的；**注意 `Binder.ty` 是 `Option<Box<Expr>>`，`ast.rs:196`**）。
-- 同类缺口一并排查（`parse_ctor` 同文件 `:397` 同样只认 `LParen` + `parse_binder`）：
-  修复要把 **inductive 参数**与 **ctor 字段**两处都换成组感知；`let`/`match` 的 binder
-  路径需逐个确认（调研第 4 条列出）。
+**先纠正两个曾写错的判断**（本文档早期版本与 `docs/HANDOVER.md` 都错了）：
 
-**TODO A（索引递归 `Prop` 的 recursor 派生）——可疑点已定位，形状待最终确认**
+- ❌ 不是"`small_elim`/`is_prop_block_ty` 判据不对"：`elab.rs:2499` 的
+  `is_prop_block_ty(ty) && constructors.len() > 1` **在因果链之外**——索引 `Type`
+  一样失败（下面矩阵第 3 行）。
+- ❌ 不是"IH 形状不符"：IH 用的是**已会剥箭头的** `spine_of_codomain(field_ty)`
+  （`elab.rs:2648-2650`），**IH 是对的**；错的是 **minor 结论里的索引实参**。
 
-- `derive_recursor` 在 `crates/front/src/compile/elab.rs:2492`；决定"小消去"的判据是
-  `:2499`：`let small_elim = is_prop_block_ty(ty) && constructors.len() > 1;`
-- `is_prop_block_ty`（`:2429`）**已经**会剥掉索引望远镜（注释明写"带索引归纳的 `ty`
-  是索引望远镜"）——所以 `Le : Nat -> Nat -> Prop`、`Even : Nat -> Prop` 都判定为 Prop 块，
-  **且二者都恰好有 2 个 ctor，`constructors.len() > 1` 也为真** → `small_elim = true`。
-  也就是说：**问题不在"是否走小消去"，而在小消去分支里生成的
-  motive/IH/索引实参形状**（`Or` 非索引、`Vec` 索引但 `Type`（`small_elim = false`）
-  都不触发该分支，与现象吻合）。
+**实测矩阵**（发布版 0.55.0 二进制，Bare 上下文自带 `inductive Nat`）：
 
-**已用发布版二进制实测（2026-09-17，可复制的复现）**
+| 用例 | 结果 |
+|---|---|
+| `P : Nat -> Prop`，`ctor b (n : Nat) : P n -> P (Nat.succ n)`（**箭头写法**） | ❌ `kernel-rejected` |
+| 同一形状改**具名** `ctor b (n : Nat) (h : P n) : P (Nat.succ n)` | ✅ `checked declaration P` |
+| `W : Nat -> Type`，`ctor wb (n : Nat) : W n -> W (Nat.succ n)` | ❌（**与 Prop 无关**） |
+| `Or2 (A : Prop) (B : Prop)`（**非索引**，箭头字段） | ✅（`num_indices = 0`，没有索引可丢） |
+| `inductive T1 : Prop` + `ctor t1 : T1`（单构造子） | ❌ `recursor declares the wrong k-reduction flag`（另一个 bug，见下） |
 
-- **TODO B 复现（parse 阶段就红）**：
+**根因（一行代码）**：`derive_recursor` 用**只认 Ident/App 的** `src_spine` 去读
+ctor 结果的索引实参——
 
-  ```sokonanoda
-  inductive Pair2 (A B : Prop) : Prop      -- 报 `expected binder type, found Ident("B")` @ 1:20
-  ctor mk2 (a : A) (b : B) : Pair2 A B
-  end
-  ```
-  对照组 `(A : Prop) (B : Prop)` 完全通过（`checked declaration Pair1`）。
+```rust
+// crates/front/src/compile/elab.rs:2613
+let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
+```
 
-- **TODO A 复现（内核阶段红）**：把 `course/unit9-relations-connectives.sokonanoda`
-  的 `inductive Even : Nat -> Prop` + 两个 ctor **保留、去掉 `rec Even.rec` 块**，
-  再 `end`：
+而箭头写法下 `ctor.result` **就是** `P n -> P (Nat.succ n)`（箭头域被
+`ctor_field_binders`，`elab.rs:2367-2371`，当作字段并进 `result_chain_binders`），
+`src_spine` 对 `Arrow` 命中 `_ => None`（`elab.rs:1733`）→ `ctor_indices = []`
+→ minor 结论退化成 `motive (C params fields)`，**索引实参被丢掉**。
+失败点：内核 `assert_nonnested_recursors_def_eq` → `assert_def_eq(imported, new.ty)`
+（`crates/kernel/src/inductive.rs:1706`，期望形状由 `mk_minors1group`
+`inductive.rs:1418-1457` 的 `:1441-1442` 给出 `motive <ctor indices> (C …)`）。
 
-  ```sokonanoda
-  inductive Even : Nat -> Prop
-  ctor even_zero : Even Nat.zero
-  ctor even_succ (n : Nat) : Even n -> Even (Nat.succ (Nat.succ n))
-  end
-  ```
+**最小修法（front 一处，kernel 不动）**：`elab.rs:2613` 把
+`src_spine(&ctor.result)` 换成 **`spine_of_codomain(&ctor.result)`**
+（`elab.rs:2378-2387`，它已经会剥 `Arrow` 与 `Forall`），其余
+（`.filter(head == name)` / `skip(params.len())` / `substitute_names(...)`）不动。
+**不要**改 `small_elim` / binder 顺序 / motive / iota——它们已经符合内核契约。
+验收依据：每个失败用例的**具名孪生体今天就通过**，两者只差 `ctor_indices`。
 
-  实测（在自带 `inductive Nat` 的 Bare 上下文里）：
+**同一个函数里顺带发现的第二个 bug（同一轮修掉）**：`elab.rs:471` 把
+`is_k: false` **写死**，于是**单构造子 `Prop`**（如 `inductive True : Prop` /
+`ctor trivial : True`）派生出的 recursor 被内核拒：
+`recursor declares the wrong k-reduction flag (left: false, right: true)`
+（`kernel/src/inductive.rs:661-662`，`init_k_target` 在 `:1268-1276`）。
+判据应是"目标类型是 `Prop` 且只有一个构造子"（Lean 的 `K` 语义）——具体形状在
+实现时按内核 `init_k_target` 对齐，**仍不动 kernel**。
 
-  ```
-  kernel-rejected: 类型不匹配：期望 `Pi (motive : Pi (i : Nat), Pi (x : Even $0), Sort 0),
-    Pi (m0 : (($0 Nat.zero) even_zero)), Pi (m1 : Pi (n_ : Nat), Pi (x_ : Even $0),
-    Pi (ih : (($3 $1) $0)), ($4 ((even_succ …`，
-    实际是 `Pi (motive : Pi ( : Nat), Pi (t : Even $0), Sort 0),
-    Pi (even_zero : (($0 Nat.zero) even_zero)), Pi (even_succ : Pi (n : Nat), Pi ( : Even $0),
-    Pi (v_1_0 : (($3 $1) $0)), (($4 (…`
-  ```
+#### TODO B —— parser 单名路径，修法明确
 
-  **差异确实落在 IH/实参片段**（`Pi (m0 : …) Pi (m1 : …)` vs
-  `Pi (even_zero : …) Pi (even_succ : …)`，以及 `((… $3 $1) $0)` 之后的形状）。
-  手写 `rec Even.rec : (motive : (n : Nat) -> Even n -> Prop) -> …`（course #9 的做法）
-  则通过——**所以根因在派生器产出的这条 telescope，而不是索引或 ctor 本身**。
-- **下一步（H6-C 第 1 条）**：把上面两个类型分别用内核 `debug_print` 打印出来逐段对齐
-  （哪个 binder 多/少、哪个 de Bruijn 索引错位），再定修法。**不要**先动
-  `constructors.len() > 1` 这条判据——`Le`/`Even` 已经满足它，改它必然误伤。
+- `parse_inductive_block`（`parser.rs:357-395`）参数循环 **361-364** 与
+  `parse_ctor`（`:397-413`）字段循环 **400-403** 都调**单名** `parse_binder`
+  （`:1063-1109`，LParen 分支 `:1066-1079` 读完一个名字就要 `:`）。
+- 组感知机制早就存在：`parse_binder_group`（`:723-753`）、
+  `BinderGroup{names: Vec<String>, ty, style, span}`（`:23-28`）、
+  **`push_binders`（`:1033-1048`，一个名字一个 `Binder`、共享组 span）**；
+  `parse_arrow:659` / `parse_lambda:991` / `parse_forall:1013` /
+  `parse_decl_binders:151` 都在用——**这就是"Pi 位能写 `(A B : Prop)`、inductive 不能"的原因**。
+- **AST 与 elab/kernel 都不用改**：`Command::InductiveBlock.params: Vec<Binder>`
+  （`ast.rs:235`）、`CtorDecl.binders: Vec<Binder>`（`ast.rs:259`）已是展开形态；
+  `install_inductive_block` 取 `params: &[Binder]`（`elab.rs:230`）并据此算
+  `num_params = params.len()`（`:238`）。
+- **最小修法**：两处循环体换成 `self.push_binders(&mut params/binders)?`
+  （照 `parse_decl_binders` `:148-160` 的写法，含 `(A)` 这种无类型组的显式报错）；
+  每个名字得到自己的 `Binder`，类型/风格/span 共享组的值。
+- **同类缺口清单（一次修完）**：① `parse_ctor` 字段（`:402`，真 bug，同修）；
+  ② `parse_let`（`:480-518`）：`Expr::Let{binder}` 是**单个**，`let a b : T := v`
+  连语法都不存在 → 需要 AST/脱糖决策（嵌套 let vs `Vec<Binder>`），**非 parser 替换**；
+  ③ tactic `intro`（`:236-247`）只吃一个名字（Lean 的 `intro a b` 也会失败）→
+  属于 by 引擎的独立特性；④ `axiom`（`:295+`）无 binder 望远镜，无需改；
+  ⑤ `match` 模式（`:592-653`）已是"每个原子一个名字"（`| C a b =>` 可用），无缺口；
+  ⑥ `rec`/`iota` 的类型是表达式，✅；⑦ 宇宙参数 `{u, v}` 已是多名字（`:332-355`）。
+  **本轮只修 ①+inductive 参数**；②③单独立项（写进 `docs/HANDOVER.md` §3 E 备查）。
 
-1. **先写复现测试**（两件都要求"修复前红"）：TODO B → `inductive Foo (A B : Prop)` 的
-   parser 单测；TODO A → 上面那段 `Even` 形状（省略 `rec`）作为 front 单测/CLI e2e 的
-   输入，断言派生成功且判定走通。
-2. 修 TODO B（parser，含 ctor 字段与同类路径），补 front 单测 + 课程同步。
-3. 修 TODO A（front 派生逻辑到内核接受的 IH 形状），**三层回归**
-   （front 单测 + CLI e2e + 课程语料），并把课程 #9 的手写 `rec`/`iota` 收回为自动派生
-   （golden 会变，按纪律同轮同步并记录理由）。
-4. 两个修复都不得触碰 kernel（冻结）；若发现必须改 kernel 才能修，**停下并回设计**
-   （那是范围变更，不是 bugfix）。
+#### 实现与验收
 
-> **顺带记录一个 Bare 模式口径**（实测）：文件自带 `inductive N2` 时，**点号构造子名
-> `N2.z2` 不可用**（`unknown identifier`），要用裸名（Bare 模式正是这样教的）；
-> 点号形式只对 prelude 内建（`Nat.zero`/`Bool.true`）成立。课程语料与 `match`
-> 分支写法以现有文档为准，此处仅备查，**不属于本轮改动**。
+1. **先写复现测试**（"修复前红"）：TODO B → `crates/front/src/parser.rs` 的
+   `mod tests`（`:1222`，邻居 `:1449-1477`/`:1480-1492`）加参数组与 ctor 字段组、
+   `{A B : Type}` 隐式组、`(A)` 仍报错；TODO A →
+   `crates/front/src/compile/tests.rs` §带索引归纳（`:4537-4625`，目前只有具名的
+   `INDEXED_VEC` `:4541-4544`）加**箭头写法**的 `Even`/`Le` 常量 + 用派生
+   `Even.rec` 证一条 + `#reduce`（同时守住类型形状与 iota）。
+2. CLI e2e：`crates/cli/tests/cli.rs` §带索引归纳（`:1521-1550`）加箭头写法孪生；
+   §参数化归纳（`:1389+`）加组参数变体。
+3. 修 TODO B → 修 TODO A（含 `is_k`）→ 课程简化：unit9 的 `Le`/`Even`
+   去掉手写 `rec`/`iota`（`:119-138`、`:170-189` 及 EN 镜像与 2 份钥匙，
+   见下），课程散文（`course/README.md:21`、unit9 的 v1 说明 `:112-115`）同步改写；
+   `Or (A : Prop) (B : Prop)` 收敛成 `(A B : Prop)`（8 处文件）。
+   **golden 复核**：`crates/cli/tests/course.rs:86-97`（unit9 `(13,8,0)`）、
+   `course_status.rs:105-118`（78/59）——`rec`/`iota` 不产事件，计数**应当不变**；
+   变了就说明改错。
+4. 文档同步：`docs/architecture.md` §4.1 与参数化归纳段（`:131-135`）、
+   `docs/design/indexed-inductives.md` §2/§3、`docs/HANDOVER.md` §3 E、`STATUS.md`。
+5. 两者都**不碰 `crates/kernel/`**（冻结）：A 依赖内核既有的 recursor 契约，
+   B 根本到不了内核。若发现必须改 kernel → **停下回设计**（范围变更）。
+6. **保留**（教学用，不是 workaround）：unit6/7 手写 `Nat`/`Color` 消去子
+   （非索引，派生本来就正常）。
 
 ### H6-D —— 文档/门面收尾（P2）
 1. `AGENTS.md` 命令段增 `query`（agent 首选查询方式）；teacher 技能补
@@ -435,29 +471,43 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 
 ---
 
-## 9. 待调研确认（不阻塞 H6-A；开工前补齐）
+## 9. 已核实的 DSH 事实（原"待调研"，2026-09-17 关闭）
 
-> **已就地核实（2026-09-17，本节第 1/2 条的核心部分）**：
-> `@deepseek-ai/dsh-mcp-client` 的 `Config` 是 `StdioConfig | StreamableHttpConfig`
-> 顶层联合，字段含 **`cwd`**（子进程工作目录）、`toolCallTimeoutMs`、
-> `failOnStartupError`；工具名 = `mcp__<serverName>__<rawName>`；stdio 桥先剥
-> 凭据形状变量与全部 `DSH_*`。证据：`docs/config-catalog.md:1600-1650`、
-> `docs/user/guide/mcp-memory.md`、`apps/cli/config/examples/mcp-memory/*.cordis.yml`。
-> 结论已写进 §6.3。**仍待确认的**：
+> 全部来自对 DSH checkout（`0d1f50007f`）的只读勘察 + 本会话实测；`path:line` 为证据。
+> 设计结论已并入 §6.2/§6.3。**仍开放的**只有第 4 条（两个 TODO 的根因已另行实测锁定，
+> 见 H6-C）。
 
-1. ~~**DSH MCP client**：配置 schema、传输、工具命名、失败语义~~ → 已核实（见上）。
-   仍需：结果内容类型（text/image/resource/structured）与**是否支持 resources/prompts**
-   （`packages/mcp/mcp-resources` 的存在暗示支持，需确认模型能否 `resources/read`）、
-   以及 schema/description 传递时是否有截断。
-2. **路径解析**：`cwd` 的 `!!js` 求值上下文已确认与 LSP 行相同（**必须单行**）；
-   仍需确认 `args` 里的相对路径是相对 `cwd` 还是相对 DSH 启动目录
-   （决定 `args: ['scripts/soko-mcp.js']` 是否成立；不确定时改成 `!!js` 绝对路径）。
-3. **项目侧可交付性**：**已确认 DSH 不读项目级 MCP 配置**（官方工作示例一律
-   `--patch <文件>` 或并入用户 profile 层，`mcp-memory.md`「Enable one」），
-   与 hooks 桥结论一致 → **用户显式 opt-in 是唯一路径**（已写进 §6.3）。
-   若将来 DSH 支持项目级发现，本设计只需把同一段 YAML 挪个位置。
-4. **两个 TODO 的根因**：`derive_recursor` 的 IH 形状错在哪一行、
-   parser 的单名路径清单（用于一次修完同类缺口）。
+1. **MCP client 配置**（`packages/mcp/mcp-client/src/index.ts:119-142`，接口 `:52-101`）：
+   `transport`（`stdio`|`streamable-http`，**只有这两种**；无 SSE/WebSocket）、
+   `serverName`（`/^[A-Za-z0-9_-]{1,32}$/`）、`command`/`args`/`env`/`cwd`（stdio）、
+   `url`/`headers`（http）、`toolCallTimeoutMs`（默认 60000）、`failOnStartupError`
+   （默认 false）、`maxInstructionBytes`（默认 32768）、`reconnect`
+   （`enabled`/`initialDelayMs` 500/`maxDelayMs` 30000/`maxAttempts` 10）。
+   工具名 `mcp__<serverName>__<rawName>`（`src/tools.ts:81-87`，超 64 字符加哈希）。
+   资源工具来自**另一个插件** `@deepseek-ai/dsh-mcp-resources`
+   （`mcp-resources/src/tools.ts:33-60`，base bundle 已挂一次，无需我们配）。
+2. **启动/失败/超时**：eager 启动 + await ready（`index.ts:181,199`；stdio 先起一次性
+   探测进程 `connection.ts:262`）；失败→警告+退避（`connection.ts:211-245`）；
+   `failOnStartupError` 只让该行 inactive（`packages/boot/app-boot/README.md:43,80`，
+   required id 列表 `app-boot/src/index.ts:711-718` 不含任何 MCP）。
+3. **模型可见面**：`content[].text` 才是模型读到的（`tools.ts:461-511`；
+   `structuredContent` 不进，`tools.ts:250-266` + `core/tools/src/index.ts:1802-1813`）；
+   `description`/`inputSchema` 逐字无截断（`tools.ts:131-136`、`core/tools/src/index.ts:1261-1273`）；
+   server instructions 成独立 system prompt 段（`connection.ts:318-319`、
+   `server-context.ts:32-39`）；prompts 不支持、无 push（`mcp-client/README.md:12,209`）。
+4. ~~**两个 TODO 的根因**~~ → **已实测锁定**（见 H6-C：`elab.rs:2613` 的 `src_spine`
+   vs `spine_of_codomain`；`parser.rs:363/402` 的单名路径），并顺带发现 `elab.rs:471`
+   的 `is_k` 写死 bug。证据方法：发布版二进制 + 孪生对照矩阵（具名/箭头、Prop/Type、
+   索引/非索引、单构造子），全部可复现。
+
+### 仍然开放的小问题（不阻塞 H6-A/B）
+
+- `args` 里的相对路径是否相对 `cwd` 解析：勘察结论是"由 `cross-spawn`/Node 相对**子进程
+  cwd** 解析"，但被标为**经验性、非文档契约**。→ **实现时规避**：`args` 用
+  `!!js` 单行绝对路径（`path.join(process.env.SOKO_REPO ?? process.cwd(), 'dsh', 'mcp', 'server.js')`），
+  与 `cwd` 双保险。
+- `dsh-mcp-resources` 是否真能为我们的 server 暴露 resource：需要实测一次
+  （设计里列为 H6-B 的可选项，不是必需）。
 
 ---
 

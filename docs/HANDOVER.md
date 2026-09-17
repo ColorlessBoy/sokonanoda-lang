@@ -118,26 +118,39 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - ~~`Nat.succ`/`Nat.add` 边界裸名 `#reduce` 测试~~ ✅ 已完成（0.42.0）：
   `bare_prelude_nat_names_stay_terminating`（裸 `#reduce Nat.add` 终止为常量）。
 
-### E. 课程层发现（P3 新增单元 #9，2026-09-16）→ **已改挂 I15 / H6-C（2026-09-17）**
+### E. 课程层发现（P3 新增单元 #9，2026-09-16）→ **已改挂 I15 / H6-C，根因已实测锁定（2026-09-17）**
 
 > 两条都**不再是孤立的 front 待办**：新设计 `docs/design/agent-query-channel.md`
 > 要把"内核真相查询层"（`front::query` + CLI `query` + MCP）抽出来，而这两个缺口
 > 直接决定查询通道给出的真相是否完整、以及 agent（主要作者）写出的合法 Lean 子集
 > 会不会被拒。**处置：并入 H6-C，与查询通道同轮修复并验收**（A6）。
+> **下面两条的描述已在 2026-09-17 用发布版二进制实测校正**——早先的
+> "索引递归 `Prop`""IH 形状不符"两个判断都是错的。
 
-- **`derive_recursor` 派生不了「索引递归 `Prop`」的 recursor**（产品缺口，**未修**）：
-  `Le`/`Even`（带索引、含递归字段、small elimination 到 `Prop`）省略 `rec` 时，
-  前端 `derive_recursor`（`crates/front/src/compile/elab.rs`）派生出的 IH 形状被
-  内核拒绝；对照 `Or`（非索引 `Prop`）与 `Vec`（索引 `Type`）自动派生正常。现状
-  规避：课程 #9 对 `Le`/`Even` 手写 `rec`/`iota`（`course/unit9-*.sokonanoda`）。
-  修复只动 front 派生逻辑（内核冻结、不改语义），按 TDD 三层回归 + 课程用例；
-  **必须先有"修复前红"的复现测试**（H6-C 第 3 条）。
-- **`inductive` 参数不接受多名字 binder 组**（解析器缺口，**未修**）：
-  `(A B : Prop)` 在 Pi/箭头位已支持（`crates/front/src/parser.rs` 的
-  `parse_binder_group`），但 `inductive` 参数与 `ctor` 字段走单名 `parse_binder`
-  （`parse_inductive_block`/`parse_ctor`），`(A B : Prop)` 解析失败；课程只能写
-  `(A : Prop) (B : Prop)`。修 parser 时**要一次修完所有走单名路径的位置**
-  （清单见 `docs/design/agent-query-channel.md` §9 的调研结论），补 front 单测 + 课程同步。
+- **`derive_recursor` 拒绝「带索引 + 字段写在结果箭头链里」的归纳**（真 bug，**未修**）：
+  实测 `P : Nat -> Prop` + `ctor b (n : Nat) : P n -> P (Nat.succ n)` 被内核拒
+  （`assert_nonnested_recursors_def_eq`，`kernel/src/inductive.rs:1706`）；
+  **同一形状改具名字段 `(n : Nat) (h : P n)` 即通过**；索引 `Type`（`W : Nat -> Type`）
+  一样失败、非索引（`Or` 带箭头字段）正常 → **触发条件是"有索引可丢"，与 `Prop` 无关**。
+  根因在 `derive_recursor` 用只认 Ident/App 的 `src_spine` 读 ctor 结果的索引实参
+  （`crates/front/src/compile/elab.rs:2613`；`src_spine` 对 `Arrow`/`Forall` 返回 `None`，
+  `:1733`），箭头写法下 `ctor.result` 就是箭头链 → `ctor_indices = []` → minor 结论
+  **丢掉索引实参**。修法：改用已会剥箭头的 `spine_of_codomain(&ctor.result)`
+  （`:2378-2387`），**一处一行**；`small_elim`/`is_prop_block_ty`（`:2499`/`:2429`）
+  与 IH 路径**都不动**（IH 用的 `spine_of_codomain` 本来就是对的）。
+- **顺带发现（同函数，同轮修）**：`elab.rs:471` 把 `is_k: false` **写死**，导致
+  **单构造子 `Prop`**（`inductive True : Prop` / `ctor trivial : True`）派生出的 recursor
+  被内核拒：`recursor declares the wrong k-reduction flag (left: false, right: true)`
+  （`kernel/src/inductive.rs:661-662`，`init_k_target` `:1268-1276`）。
+- **`inductive` 参数/ctor 字段不吃多名字 binder 组**（解析器缺口，**未修**）：
+  `parse_inductive_block`（`crates/front/src/parser.rs:363`）与 `parse_ctor`（`:402`）
+  调**单名** `parse_binder`，而同文件的组感知机制 `push_binders`（`:1033-1048`，
+  `parse_arrow:659`/`parse_lambda:991`/`parse_forall:1013`/`parse_decl_binders:151` 都在用）
+  早就支持 → 这就是"Pi 位能写、inductive 不能"的原因。修法：两处循环体换成
+  `self.push_binders(&mut …)?`（**AST/elab/kernel 都不用改**）。
+  **同类缺口**（一次修完）：`parse_ctor` 字段同修；`parse_let`（`:480-518`）的
+  `Expr::Let{binder}` 是单个，`let a b : T := v` 连语法都不存在 → 需 AST/脱糖决策；
+  tactic `intro`（`:236-247`）只吃一个名字（Lean 的 `intro a b` 同样失败）→ 独立特性。
 
 ### F. DeepSeek Harness 适配（第八十六–八十七轮，2026-09-17：✅ 已落地，0.55.0）
 - 设计与计划：**`docs/design/deepseek-harness.md`**（差距 G1–G10、DSH 侧事实

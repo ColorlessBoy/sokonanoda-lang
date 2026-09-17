@@ -558,10 +558,16 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - **H6-B MCP 传输**：`dsh/mcp/server.js`（MCP stdio，六工具，只转发
   `scripts/soko query …`）+ `scripts/soko mcp` + `dsh/cordis.patch.yml` 的
   MCP 行（**默认关闭**：MCP server 是沙箱外可信代码，用户显式 opt-in）。
-- **H6-C 两个 front 缺口**（原 `docs/HANDOVER.md` §3 E，本轮改挂到这里）：
-  ① 索引递归 `Prop` 的 recursor 自动派生被内核拒（`Le`/`Even` 现靠手写
-  `rec`/`iota`）② `inductive` 参数不吃多名字 binder 组 `(A B : Prop)`；
-  两者都要求"修复前先有红测试"，按 TDD 三层 + 课程 golden 同步。
+- **H6-C 两个 front 缺口**（原 `docs/HANDOVER.md` §3 E，本轮改挂到这里；
+  **根因已用发布版二进制实测锁定**）：① `derive_recursor` 拒绝**带索引 + 字段写在
+  结果箭头链里**的归纳（实测：`ctor b (n : Nat) : P n -> P (Nat.succ n)` 被内核拒，
+  同形状改**具名字段**即通过；索引 `Type` 一样失败 → **与 `Prop` 无关**）——根因是
+  `elab.rs:2613` 用只认 Ident/App 的 `src_spine` 读 ctor 的索引实参，修法是改用
+  已会剥箭头的 `spine_of_codomain`（**一处一行**；`small_elim`/IH 都不动）；
+  顺带修 `elab.rs:471` 把 `is_k` 写死导致**单构造子 `Prop`** 派生失败的 bug。
+  ② `inductive` 参数/ctor 字段不吃多名字 binder 组 `(A B : Prop)`——`parser.rs:363`/`:402`
+  调单名 `parse_binder`，而组感知的 `push_binders` 早已存在（Pi/λ/∀/声明 binder 都在用），
+  **AST/elab 无需改**。两者都要求"修复前先有红测试"，按 TDD 三层 + 课程 golden 同步。
 - **H6-D 收尾**：`AGENTS.md`/技能（"问目标用 `query state`，别整文件扫事件"）/
   `TESTING`/`HANDOVER`/`REQUIREMENTS` §9 + 门面同步。
 - **H6-E**：原 DSH H5 其余项（Infoview 客户端插件、SessionStart provisioning、
