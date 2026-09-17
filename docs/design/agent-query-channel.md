@@ -385,7 +385,8 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
    `QueryError` → 空结果"的映射，语义全部来自 `front::query`；LSP 侧的
    `select_state_at` 实现已删除（`rg -n "fn select_state_at" crates/` 只命中 front）。
    行数以"**零重复**"验收，不以行数验收（§11 A5；见 §4 as-built 3）。
-6. 测试：✅ front 单测 20 项（含 no-`by` 两条红先回归）；✅ CLI e2e
+6. 测试：✅ front 单测 18 项（含 no-`by` 两条红先回归；`cargo test -p
+   sokonanoda-front --lib query::`）；✅ CLI e2e
    （`crates/cli/tests/query.rs` 12 项，含**`query check` ≡ `--json` 计数**契约与
    **`query state` ≡ `soko/stateAt` 字段级**一致性，后者覆盖根状态 / tactic 之内 /
    tactic 之后 / **无 `by` 两个分支**，且**跑真实 LSP 二进制**）。
