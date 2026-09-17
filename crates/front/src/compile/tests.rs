@@ -4637,15 +4637,36 @@ end
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
 }
 
-/// iota 规则也要跟着对：派生的 recursor 必须真的能算（不只类型对）。
+/// iota 规则也要跟着对：派生的 recursor 必须真的能**算**（不只类型对）。
+///
+/// 这里必须是 **`Type` 值**的索引族：`Prop` 值 + 多构造子的归纳在内核里只允许
+/// 消去到 `Prop`（singleton elimination），所以匹配到 `Nat` 会被内核正当地拒
+/// （`期望 Pi (i : Nat), Pi (x : P i), Sort(0)`）——用 `Prop` 族写这个测试会
+/// 误把"正确的拒绝"当成回归。字段故意写成**箭头链**（`W A n -> W A (succ n)`），
+/// 这正是修（`src_spine` → `spine_of_codomain`）之前丢掉索引实参的形状。
 #[test]
 fn arrow_style_indexed_recursor_reduces() {
-    let src = format!(
-        "{INDEXED_ARROW_FIELD}\
-         theorem pz_again : P 0 := pz\n"
-    );
-    let out = compile_fol(&parse(&src).expect("parse"));
+    let src = "\
+inductive W (A : Type) : Nat -> Type
+ctor wnil : W A 0
+ctor wcons (a : A) (n : Nat) : W A n -> W A (Nat.succ n)
+end
+def wlen (A : Type) (n : Nat) (w : W A n) : Nat :=
+  match w with
+  | wnil => 0
+  | wcons a m t => Nat.succ ih
+#reduce wlen Nat 2 (wcons Nat 1 1 (wcons Nat 2 0 (wnil Nat)))
+";
+    let out = compile_fol(&parse(src).expect("parse"));
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "Nat.succ (Nat.succ 0)"
+        )),
+        "the derived recursor must compute on an arrow-style indexed field: {:?}",
+        out.events
+    );
 }
 
 /// **单构造子 `Prop`** 的 recursor 曾被内核拒：
@@ -4670,6 +4691,57 @@ end
         .events
         .iter()
         .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "True2")));
+}
+
+/// **K 目标判据必须逐字镜像内核，不能按"像不像单例"猜**。
+///
+/// 内核的判据是 `pi_telescope_size(ctor.ty) == local_params.len()`
+/// （`crates/kernel/src/inductive.rs:1268-1276`）加上 `Prop` 与"只有这一个归纳"；
+/// 而构造子的内核类型是 `forall (params ++ fields), result`，所以那个等式 ⟺
+/// **构造子没有自己的字段**（结果箭头链上的字段也算字段）。
+///
+/// 这里 `mk` 的**字段数恰好等于参数数**（2 = 2）：按"字段数 vs 参数数"比对就会
+/// 误判成 K 目标，内核立刻以 `recursor declares the wrong k-reduction flag`
+/// 拒掉整个块。这条是 H6-C 的 `is_k` 修复自己引入的回归，被 CLI e2e 层抓住
+/// （`crates/cli/tests/cli.rs::cli_inductive_accepts_multi_name_binder_groups`）。
+#[test]
+fn single_constructor_prop_with_fields_is_not_a_k_target() {
+    let src = "\
+inductive Both (A B : Prop) : Prop
+ctor mk (a : A) (b : B) : Both A B
+end
+#check Both.rec
+";
+    let out = compile_fol(&parse(src).expect("parse single-ctor prop with fields"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "a ctor with fields is not a K target, even when field count == param count: {:?}",
+        out.errors
+    );
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "Both")));
+}
+
+/// 反向边界：**带索引**但单构造子、且构造子没有自己的字段（索引是常量
+/// `Q 0`）时，内核算出的 `is_k` 是 **`true`**（`pi_telescope_size = 0` 等于
+/// 参数个数 `0`）。曾按"有索引 ⇒ 不是 K 目标"多判了一层，同样被内核拒。
+#[test]
+fn single_constructor_indexed_prop_without_fields_is_a_k_target() {
+    let src = "\
+inductive Q : Nat -> Prop
+ctor q : Q 0
+end
+#check Q.rec
+";
+    let out = compile_fol(&parse(src).expect("parse constant-index prop"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "Q")));
 }
 
 #[test]

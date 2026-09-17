@@ -1550,6 +1550,99 @@ def vlen (A : Type) (n : Nat) (v : Vec A n) : Nat :=
     );
 }
 
+#[test]
+fn cli_arrow_style_indexed_field_derives_and_reduces() {
+    // H6-C 回归（ROADMAP I15）：ctor 的**索引实参写在结果的箭头链里**
+    // （`W A n -> W A (Nat.succ n)`）时，递归子派生曾丢掉索引实参、被内核拒
+    // （`assert_nonnested_recursors_def_eq`）；课程里的 `Le`/`Even` 因此只能手写
+    // `rec`/`iota`。这里从 CLI 端到端钉住"能派生 + 能算"。
+    let src = "\
+inductive W (A : Type) : Nat -> Type
+ctor wnil : W A 0
+ctor wcons (a : A) (n : Nat) : W A n -> W A (Nat.succ n)
+end
+def wlen (A : Type) (n : Nat) (w : W A n) : Nat :=
+  match w with
+  | wnil => 0
+  | wcons a m t => Nat.succ ih
+#reduce wlen Nat 2 (wcons Nat 1 1 (wcons Nat 2 0 (wnil Nat)))
+";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration W"), "{stdout}");
+    assert!(stdout.contains("checked declaration wlen"), "{stdout}");
+    assert!(
+        stdout.contains("=> Nat.succ (Nat.succ 0)"),
+        "arrow-style indexed recursion must reduce through W.rec: {stdout}"
+    );
+}
+
+#[test]
+fn cli_single_constructor_prop_derives_recursor() {
+    // H6-C 另一半：`install_inductive_block` 曾把 `is_k` 写死成 `false`，于是
+    // **单构造子 `Prop`** 的归纳被内核以
+    // `recursor declares the wrong k-reduction flag (left: false, right: true)` 拒。
+    let out = run("\
+inductive True2 : Prop
+ctor trivial2 : True2
+end
+#check True2.rec
+");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration True2"), "{stdout}");
+    assert!(
+        stdout.contains("True2.rec"),
+        "the derived recursor must be printed: {stdout}"
+    );
+}
+
+#[test]
+fn cli_inductive_accepts_multi_name_binder_groups() {
+    // H6-C（解析器缺口）：`inductive` 的参数与 ctor 字段此前只吃单名 binder，
+    // 而 Pi/λ/∀/声明 binder 早就支持 `(A B : Prop)`——agent 是主要作者，
+    // 合法子集被拒的代价最大。
+    //
+    // 顺带钉住 K 目标判据：`Both` 的 `mk` **字段数恰好等于参数数**（2 = 2），
+    // 按"字段数 vs 参数数"比对就会误判成 K 目标，被内核以
+    // `recursor declares the wrong k-reduction flag` 拒掉整个块（这一层就是这么
+    // 抓到这个回归的；front 单测见
+    // `compile::tests::single_constructor_prop_with_fields_is_not_a_k_target`）。
+    let out = run("\
+inductive Both (A B : Prop) : Prop
+ctor mk (a : A) (b : B) : Both A B
+end
+inductive Pair2 (A : Prop) : Prop
+ctor mk2 (a b : A) : Pair2 A
+end
+theorem both_symm (A B : Prop) (h : Both A B) : Both B A :=
+  match h with
+  | mk a b => mk B A b a
+theorem pair2_refl (A : Prop) (a : A) : Pair2 A := mk2 A a a
+");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for name in ["Both", "Pair2", "both_symm", "pair2_refl"] {
+        assert!(
+            stdout.contains(&format!("checked declaration {name}")),
+            "{stdout}"
+        );
+    }
+}
+
 // ---- persistent compile cache: `sokonanoda build` warms it; `course` stays
 // stable whether an entry is cold or warm (docs/protocol.md). ----
 

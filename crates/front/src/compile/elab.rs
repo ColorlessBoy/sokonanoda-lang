@@ -255,7 +255,7 @@ pub(crate) fn install_inductive_block<'a>(
     })?;
     // K 目标标志由块形状唯一决定，**显式 rec 与派生 rec 必须给同一个值**：
     // 内核断言 `rd.is_k == st.k_target`（`kernel/src/inductive.rs:662`）。
-    let is_k = is_k_target(params, ty, constructors);
+    let is_k = is_k_target(ty, constructors);
     // 显式 rec 优先：源里有 rec 时零行为变化；无 rec 时自动派生等价的
     // RecDecl + iota 规则（py-nat 手写版同构），再走同一条 elab 路径。
     let owned_rec;
@@ -2394,16 +2394,6 @@ fn result_chain_binders(result: &Expr) -> Vec<Binder> {
     chain_binders_after(result, 0)
 }
 
-/// The **index** telescope of an inductive type: the Pi binders of `ty` after
-/// the first `params` many (the kernel splits the same way —
-/// `crates/kernel/src/inductive.rs:554-572` treats binders below
-/// `local_params.len()` as parameters and collects the rest as indices, then
-/// requires both sides to be defeq). An empty result means the block is
-/// **not indexed**, which is what the K-target predicate needs.
-fn index_binders_of(ty: &Expr, params: usize) -> Vec<Binder> {
-    chain_binders_after(ty, params)
-}
-
 /// The k-th (0-based) Pi binders of a possibly arrow/forall-chained type: the
 /// first `skip` are dropped. `A -> B` contributes one anonymous binder for `A`.
 fn chain_binders_after(result: &Expr, skip: usize) -> Vec<Binder> {
@@ -2451,25 +2441,24 @@ fn fresh_name(base: &str, taken: &mut HashSet<String>) -> String {
 /// every derived recursor for such a block get rejected
 /// (`recursor declares the wrong k-reduction flag`).
 ///
-/// The kernel's predicate: the block is a `Prop` (`is_zero`), it is neither
-/// mutual nor nested (exactly one inductive), and its single constructor takes
-/// **only the block's parameters** as arguments — i.e. no fields of its own and
-/// no indices. `pi_telescope_size(ctor.ty) == params.len()` is exactly that
-/// count, and `ctor_field_binders` is the front's side of the same telescope.
-/// Without this, `inductive True : Prop` / `ctor trivial : True` was rejected
-/// (docs/design/agent-query-channel.md H6-C).
-fn is_k_target(params: &[Binder], ty: &Expr, constructors: &[CtorDecl]) -> bool {
+/// The kernel's predicate is exactly: the block lives in `Prop` (`is_zero`),
+/// it is neither mutual nor nested (exactly one inductive in the block), and
+/// `pi_telescope_size(only_ctor.ty) == local_params.len()`. The ctor's kernel
+/// type is assembled below as `forall (params ++ fields), result`, so that
+/// equality means **the single constructor has no fields of its own** — the
+/// result's arrow chain counts as fields too. Mirror it literally:
+/// `ctor_field_binders` is the front's side of that same telescope.
+///
+/// Do **not** approximate this predicate. Two shapes that "look singleton-ish"
+/// are *not* K targets and get rejected if flagged: a ctor whose field count
+/// merely equals the parameter count (`Both (A B : Prop)` / `mk (a : A)
+/// (b : B)`), and — in the other direction — an *indexed* family with a single
+/// field-less ctor (`Q : Nat -> Prop` / `q : Q 0`) which **is** a K target.
+fn is_k_target(ty: &Expr, constructors: &[CtorDecl]) -> bool {
     let [only_ctor] = constructors else {
         return false;
     };
-    is_prop_block_ty(ty)
-        // No indices: every binder of `ty` is a parameter. (An indexed block is
-        // never `is_zero`, so this also mirrors the kernel's `is_zero` gate.)
-        && index_binders_of(ty, params.len()).is_empty()
-        // The single ctor takes only the block's parameters: no fields, no
-        // indices. Both sides count the same telescope (`ctor_field_binders` is
-        // the front's `pi_telescope_size(ctor.ty)`).
-        && ctor_field_binders(only_ctor).len() == params.len()
+    is_prop_block_ty(ty) && ctor_field_binders(only_ctor).is_empty()
 }
 
 /// allows large elimination when the block is empty or has a single ctor with
