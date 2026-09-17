@@ -13,12 +13,21 @@ description: Ship and monitor GitHub Actions for sokonanoda-lang without repeat 
 ## 0. 推送前的本地验证（必须逐条、必须看真退出码）
 
 ```bash
-# 与 CI 完全一致的命令（.github/workflows/ci.yml），顺序执行：
+# 一条命令跑完 CI 门禁（fmt + clippy + test + playground 锚点，需要 cargo）：
+scripts/soko gate; echo "EXIT=$?"
+
+# 或与 CI 完全一致的命令（.github/workflows/ci.yml），顺序执行：
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 cargo clippy --workspace --all-targets -q; echo "EXIT=$?"
 cargo test --workspace --locked -q; echo "EXIT=$?"
-cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
+scripts/soko grade playground.sokonanoda --json
 ```
+
+> **`gate` 与 `grade` 都会用"解析到的 `sokonanoda` 二进制"；`scripts/soko` 只认
+> 版本匹配（`--version` 校验）的仓库构建与缓存**，所以先 `cargo build`，
+> 否则 gate 会以 exit 3 拒绝跑旧二进制。
+> 本机若 Xcode 许可未接受（`xcrun`/`ar` 被系统拦），加
+> `DEVELOPER_DIR=/Library/Developer/CommandLineTools` 再跑 cargo（`docs/HANDOVER.md` §5）。
 
 纪律：
 
