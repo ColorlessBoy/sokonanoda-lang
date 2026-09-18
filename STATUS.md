@@ -62,10 +62,17 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `split_report` / `compile_all_units`，单文件也走同一条路径）。
    第二刀：`check.rs` 变目录模块，`run_pass` **尾部**（内核阶段 + 报告装配，
    ≈360 行）整体切进 `check/kernel_phase.rs`（`Walked` 结构体接原局部变量，
-   代码原样搬移、行为逐字节不变）；`check.rs` 1918 → `check/mod.rs`
-   **1521** + `check/kernel_phase.rs` **420**。余下 = `run_pass` 命令走查主循环
-   （≈750 行）抽成 `check/walk.rs` 的阶段方法（`elab → check-then-add → events`
-   每命令一个 arm），每刀用事件计数契约 + golden 对拍（计划见 `docs/HANDOVER.md` §4）。
+   代码原样搬移、行为逐字节不变）。
+   **第三刀（本轮收尾）**：`run_pass` 的命令走查主循环（≈750 行）切进
+   `check/walk.rs` —— `Walk`（可变累加器）/ `CmdCtx`（每命令派生的前缀、模板、
+   信任位）/ 每命令一个方法（`def`/`theorem`/`axiom`/`example`/`inductive_block`/
+   `check`/`reduce`/`print`），arm 里的 `continue` 改 `return`（8 个 arm 都没有内层
+   循环）。单文件仍走 `Cow::Borrowed` 前缀，零额外分配（A1 不变）。
+   最终：`check/mod.rs` **794** + `walk.rs` **975** + `kernel_phase.rs` **417**
+   （原 1918 行单文件、≈1174 行单函数）。
+   对拍验收：`cargo test --workspace --locked` **862 passed / 0 failed**；
+   **二进制对拍** —— 用改动前后两个 CLI 跑全部 58 个 `.sokonanoda` + `--root` /
+   `--no-project` / stdin / `query check|goals|holes`，输出**逐字节相同**。
 10. **下一批**：批次 3 余下（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。
 
 ## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）

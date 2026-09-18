@@ -248,20 +248,30 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   移到 `crates/front/src/compile/units.rs`（108 行）；第二刀把 `check.rs` 改成
   目录模块，`run_pass` **尾部**（`EnvBuilder::finish` 之后的内核阶段 + 签名/cutoff
   + 报告装配，≈360 行）原样搬进 **`check/kernel_phase.rs`**（`Walked` 结构体接原
-  局部变量，`finish_pass(walked) -> PassResult`）。现状：`check/mod.rs` 1522 行
-  （`run_pass` 主体 553–1305 仍是 ≈750 行单函数）、`check/kernel_phase.rs` 417 行。
-  **下一步**：把命令走查主循环按每命令一个 arm 抽成 `check/walk.rs` 的阶段方法
-  （`elab → check-then-add → events`，`continue` 改 `return`，需要 `&mut` 状态
-  结构体），每刀用 `protocol.rs`/`course.rs`/`query.rs` 的事件计数契约 + golden
-  对拍，一次只动位置不动语义。
+  局部变量，`finish_pass(walked) -> PassResult`）。
+  第三刀（**批次 3 完成**）：命令走查主循环（≈750 行）进 **`check/walk.rs`** ——
+  `Walk` 持可变累加器（builder / known_universes / inductives / out / ops /
+  cmd_hovers / decl_states / example_idx / built_inductives），`CmdCtx` 持每命令
+  派生的只读上下文（idx / templates / `Cow` 前缀 / trusted / env_before / options /
+  skip），每个 `Command` 变体一个方法，arm 的 `continue` 改 `return`。
+  现状：`check/mod.rs` **794** + `walk.rs` **975** + `kernel_phase.rs` **417**
+  （原 1918 行单文件、`run_pass` ≈1174 行）。
+  **坑（写在这里省下一次 debug）**：`CmdCtx` 的 `&'x T` 字段直接拷进 `ElabCtx` 会让
+  `ElabCtx<'arena, 'b>` 的 `'b` 被统一到 `'x`，于是 `'arena: 'x` 变成方法签名上
+  无法证明的义务（rustc 会提示 "add explicit lifetime `'arena` to the type of `c`"）；
+  两个解法都用上了：`&'a UnivMap<'a>` 那种"两个寿命写成同一个"的字段要拆开（或者
+  干脆就地建空表，`HashMap::new()` 不分配），其余引用过一次恒等函数 `local()`
+  重借成局部寿命。**不要**用 `&*c.field`——`clippy::borrow_deref_ref` 是 deny。
+  验收：`cargo test --workspace --locked` 862 passed；**二进制对拍**（改动前后两个
+  CLI 跑全部 58 个 `.sokonanoda` + `--root`/`--no-project`/stdin/`query check|goals|
+  holes`）输出逐字节相同。
 - **（0.57.0 新增，结构债，部分清偿）`crates/front/src/compile/check/` 1940 行**：I16 把闭包
   编译加在这里（`compile_all_units` / `split_report` / `unit_ranges` /
   `top_level_def_spans_over`，+201 行），`run_pass` 一度是 553–1726 行的单个函数
-  （≈1174 行，main 时已 ≈970 行）；批次 3 已把尾部（约 360 行）切到
-  `check/kernel_phase.rs`，主体命令走查仍待切 `check/walk.rs`。拆分计划：按阶段切
-  `parse → elab → check-then-add → events → report`，每切一刀用现有 golden/事件计数
-  对拍（`protocol.rs`、`course.rs`、`query.rs` 的计数契约就是现成的验收）；
-  **不要在一轮里同时改语义与位置**。触发点：任何再往 `run_pass` 里加分支的需求。
+  （≈1174 行，main 时已 ≈970 行）。**批次 3 已清**：尾部 → `check/kernel_phase.rs`、
+  命令走查 → `check/walk.rs`，`run_pass` 现在只剩闭包装配 + 前缀合成 + 调用两段
+  （见上一节）。教训：位置搬移要配"二进制对拍"（同一批输入的 stdout 逐字节比较），
+  比 golden 单测覆盖面大得多；`cargo fmt` 会重排搬过去的代码，对拍前先归一化空白。触发点：任何再往 `run_pass` 里加分支的需求。
 - **（0.57.0 已闭环）多文件 LSP 的跨文件失效与跨文件改名**：改依赖 ⇒ 含它的打开
   文档自动重编译重发；`references`/`rename` 都跨文件；未落盘的依赖编辑通过**内存
   覆盖**（`load_closure_with_overlay` / `QueryDoc::set_text_with_overlay`）进入闭包，
