@@ -574,6 +574,32 @@ fn ci_stages_the_bundled_server_for_integration_tests() {
 }
 
 #[test]
+fn unit_test_script_covers_every_node_layer() {
+    // `npm run test:unit` 是扩展在**没有 Electron**的情况下唯一能跑的行为测试层：
+    // server 解析 / 下载回退 / webview 渲染 / 扩展宿主接线（stub host）。
+    // 少一个就会被 CI 静默放过——这里把清单钉死。
+    let manifest = manifest();
+    let script = manifest["scripts"]["test:unit"]
+        .as_str()
+        .expect("package.json declares scripts.test:unit");
+    for file in [
+        "test-server.js",
+        "test-download.js",
+        "test-webview.js",
+        "test-extension-host.js",
+    ] {
+        assert!(
+            script.contains(file),
+            "scripts.test:unit must run {file}: {script}"
+        );
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../editor/vscode")
+            .join(file);
+        assert!(path.exists(), "{file} must exist at {}", path.display());
+    }
+}
+
+#[test]
 fn infoview_view_and_command_are_consistent() {
     // Infoview webview (docs/design/goal-rendering.md §2.3): package.json
     // declares a webview view inside the `sokonanoda` secondary-side-bar

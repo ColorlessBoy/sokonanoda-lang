@@ -183,6 +183,7 @@ class GoalsTreeDataProvider {
     this.openCount = 0;
     this.cursorState = undefined; // {uri, state} from soko/stateAt
     this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
+    this._pendingDecls = undefined; // in-flight soko/goals load (concurrency merge)
     this.declItems = undefined; // cached decl TreeItems from the last soko/goals
     this.onDecls = undefined; // (decls, uri) => void — feeds the Infoview decls message
     this.onState = undefined; // (uri, state) => void — feeds the Infoview state message
@@ -242,11 +243,11 @@ class GoalsTreeDataProvider {
     return items;
   }
 
-  async requestGoals() {
-    if (!client || !this.uri) return undefined;
+  async requestGoals(uri = this.uri) {
+    if (!client || !uri) return undefined;
     try {
       return await client.sendRequest("soko/goals", {
-        textDocument: { uri: this.uri },
+        textDocument: { uri },
       });
     } catch (error) {
       client.outputChannel.appendLine(`[client] soko/goals failed: ${error?.message ?? error}`);
@@ -293,13 +294,30 @@ class GoalsTreeDataProvider {
 
   // Fetch `soko/goals` once per document/diagnostics version and cache the
   // built TreeItems; cursor movement reuses them (see `refreshCursor`).
+  //
+  // 并发合并：一次诊断事件里 `refresh()` 之后树会自己 resolve 一次，同时
+  // `ensureDeclarations()` 也会来一次——原先是两次 `soko/goals`（单文件模式下
+  // 每次还带请求期内核探针）。这里把并发调用合并成同一个 promise。
   async loadDeclarations() {
+    if (this._pendingDecls) return this._pendingDecls;
+    this._pendingDecls = this._loadDeclarations().finally(() => {
+      this._pendingDecls = undefined;
+    });
+    return this._pendingDecls;
+  }
+
+  async _loadDeclarations() {
+    // 请求发起时就把文档钉住：`soko/goals` 是异步的，期间用户切到别的文件时
+    // `this.uri` 会变；若拿响应回来后的 `this.uri` 建节点，树上的行会是 A 的
+    // 声明、点击却 `revealRange(B, A 的洞)`（实测复现过）。答案属于旧文档 ⇒ 丢弃。
+    const requestedUri = this.uri;
     // Feedback UX: tell the Infoview a fetch is in flight (host → webview
     // `status`), then the resulting declaration count (or `idle` without a
     // document). `soko/goals` is the only slow step in this path.
-    if (this.uri === undefined) this.onStatus?.({ state: "idle" });
+    if (requestedUri === undefined) this.onStatus?.({ state: "idle" });
     else this.onStatus?.({ state: "loading" });
-    const response = await this.requestGoals();
+    const response = await this.requestGoals(requestedUri);
+    if (requestedUri !== this.uri) return;
     const decls = response?.decls ?? [];
     this.openCount = decls.filter((d) => d.status === "open").length;
     updateStatusBar(this);
@@ -311,7 +329,7 @@ class GoalsTreeDataProvider {
       item.iconPath = statusIcon(decl.status);
       if (decl.status === "open") {
         item.contextValue = "openExercise";
-        item.children = buildOpenChildren(decl, this.uri);
+        item.children = buildOpenChildren(decl, requestedUri);
         // soko/goals holes are `{range, id}` objects (docs/protocol.md) —
         // the client reads positions through hole.range, never bare.
         const hole = decl.holes?.[0];
@@ -319,18 +337,35 @@ class GoalsTreeDataProvider {
           item.command = {
             command: "sokonanoda.revealRange",
             title: "",
-            arguments: [this.uri, hole.range],
+            arguments: [requestedUri, hole.range],
           };
         }
       }
       return item;
     });
-    this.onDecls?.(decls, this.uri);
+    this.onDecls?.(decls, requestedUri);
     this.onStatus?.({
-      state: this.uri === undefined ? "idle" : "ready",
+      state: requestedUri === undefined ? "idle" : "ready",
       decls: decls.length,
     });
   }
+}
+
+// 诊断事件全窗口共享；只有这些 URI 属于本扩展。
+function isSokonanodaFile(uri) {
+  return uri?.scheme === "file" && String(uri.fsPath ?? "").endsWith(".sokonanoda");
+}
+
+// `decls` 是整表重建的输入；用一个便宜且稳定的指纹判断"内容真的变了吗"。
+// 字段顺序固定，避免同一份数据因键序不同而误判为新内容。
+function declsFingerprint(decls) {
+  if (!Array.isArray(decls)) return "[]";
+  return JSON.stringify(decls.map((decl) => [
+    decl?.name ?? null,
+    decl?.kind ?? null,
+    decl?.status ?? null,
+    decl?.holes?.[0]?.id ?? null,
+  ]));
 }
 
 // Every place the extension renders `.sokonanoda` text uses the same language
@@ -556,6 +591,11 @@ class InfoviewProvider {
 
   setDecls(decls) {
     this._lastDecls = decls;
+    // Webview 的 `decls` 是整表重建（50 条 ≈ 1200 个 DOM 节点）：内容没变就别发。
+    // 一次诊断事件原本会发两遍（树 + ensureDeclarations 各一次）。
+    const fingerprint = declsFingerprint(decls);
+    if (fingerprint === this._lastDeclsFingerprint) return;
+    this._lastDeclsFingerprint = fingerprint;
     if (!this._view || !this._ready) return;
     this._post({ type: "decls", decls });
   }
@@ -741,6 +781,12 @@ function runCourseCommand(command, manifestPath) {
   });
 }
 
+// 课程树的一次完整刷新 = 一个 CLI 进程编译 11 个单元（实测 release 热缓存
+// ~320ms）。树在结果回来前是空的，而 VS Code 会在展开/可见性变化时重新 resolve
+// 根节点——没有缓存就会反复起进程、反复空白。30s 内的重复 resolve 直接复用结果，
+// `sokonanoda.courseRefresh`（refresh()）与激活时强制重跑。
+const COURSE_CACHE_MS = 30000;
+
 class CourseTreeDataProvider {
   constructor() {
     this._emitter = new vscode.EventEmitter();
@@ -748,9 +794,11 @@ class CourseTreeDataProvider {
     this.manifestDir = undefined;
     this.units = [];
     this._pending = undefined;
+    this._loadedAt = 0;
   }
 
   refresh() {
+    this._loadedAt = 0; // 显式刷新（命令/激活）⇒ 丢掉缓存
     this._emitter.fire();
   }
 
@@ -764,11 +812,14 @@ class CourseTreeDataProvider {
   }
 
   async loadUnits() {
-    if (!this._pending) {
-      this._pending = this.runCourse().finally(() => {
-        this._pending = undefined;
-      });
+    if (this._pending) return this._pending;
+    if (this._loadedAt !== 0 && Date.now() - this._loadedAt < COURSE_CACHE_MS) {
+      return this.units;
     }
+    this._pending = this.runCourse().finally(() => {
+      this._pending = undefined;
+      this._loadedAt = Date.now();
+    });
     return this._pending;
   }
 
@@ -1320,6 +1371,8 @@ async function activate(context) {
     provider.setCursorState(uriString, editor.selection.active);
   };
   let selectionTimer;
+  let diagnosticsTimer;
+  const DIAGNOSTICS_DEBOUNCE_MS = 150;
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       provider.trackEditor(editor);
@@ -1337,14 +1390,26 @@ async function activate(context) {
         200,
       );
     }),
-    vscode.languages.onDidChangeDiagnostics(() => {
-      provider.refresh();
-      // decls follow diagnostics/file changes only (never cursor moves): the
-      // webview gets the fresh declaration list through the onDecls hook.
-      provider.ensureDeclarations().catch(() => {});
-      requestCursorForEditor(); // the document may have been re-checked
+    vscode.languages.onDidChangeDiagnostics((event) => {
+      // 只理 `.sokonanoda`：诊断事件是**全窗口**的，别的扩展（TS/ESLint/
+      // rust-analyzer）报一次错不该让我们跑 soko/goals 并重建树/面板。
+      if (!event.uris.some(isSokonanodaFile)) return;
+      // 事件会连着来（项目模式一次编辑可能发多份文档的诊断）⇒ 合并成一次刷新。
+      clearTimeout(diagnosticsTimer);
+      diagnosticsTimer = setTimeout(() => {
+        provider.refresh();
+        // decls follow diagnostics/file changes only (never cursor moves): the
+        // webview gets the fresh declaration list through the onDecls hook.
+        provider.ensureDeclarations().catch(() => {});
+        requestCursorForEditor(); // the document may have been re-checked
+      }, DIAGNOSTICS_DEBOUNCE_MS);
     }),
-    { dispose: () => clearTimeout(selectionTimer) },
+    {
+      dispose: () => {
+        clearTimeout(selectionTimer);
+        clearTimeout(diagnosticsTimer);
+      },
+    },
   );
   provider.trackEditor(vscode.window.activeTextEditor);
   requestCursorForEditor();

@@ -242,7 +242,7 @@
     "package": "vsce package --out sokonanoda.vsix",
     "package:host": "node scripts/stage-lsp.js --package",
     "package:universal": "npm run clean:lsp && vsce package --out sokonanoda-universal.vsix",
-    "test:unit": "node test-server.js && node test-download.js && node test-webview.js",
+    "test:unit": "node test-server.js && node test-download.js && node test-webview.js && node test-extension-host.js",
     "test": "vscode-test"
   },
   "dependencies": {

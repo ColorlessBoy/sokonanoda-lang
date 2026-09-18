@@ -29,7 +29,9 @@ const fs = require("fs");
 const http = require("http");
 const https = require("https");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const execFileAsync = promisify(execFile);
 
 const RELEASES_BASE = "https://github.com/ColorlessBoy/sokonanoda-lang/releases";
 
@@ -329,7 +331,9 @@ async function downloadLspBinary(options) {
   });
 
   try {
-    execSync(`tar xzf "${tmp}" -C "${dir}"`, { stdio: "pipe" });
+    // 异步解包：execSync 会**卡住整个扩展宿主**（下载回退路径才会走到，
+    // 但一旦走到就是几秒的 UI 冻结）。
+    await execFileAsync("tar", ["xzf", tmp, "-C", dir]);
     fs.unlinkSync(tmp);
     if (!fs.existsSync(dest)) throw new Error("tar extracted but binary not found");
     // Release tarballs may carry 0644 (artifact round-trips strip the exec
