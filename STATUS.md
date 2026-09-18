@@ -83,6 +83,17 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
      入口文本 ⇒ 项目入口里对导入名字给不出建议（同一文件放进单文件就有
      `refine And.intro …`，放进项目入口是 `null`；真 LSP 探针复现）。
      记在 `docs/TESTING.md` §7b 与 `docs/design/imports-and-projects.md` P7。
+8. **用户第三轮提问：单文件与项目文件能自动区分吗（单文件不找项目配置、像脚本一样跑）**
+   ——是，规则写进设计文档 **§4.4b** 并由 `crates/cli/tests/single_file_vs_project.rs`
+   四条测试钉住：① 无 `import` 的文件**从不读 `sokonanoda.toml`**（同目录坏清单、
+   `--root`、`--no-project` 全是空操作）；② 同一个坏清单在有 `import` 的文件上必须报
+   `manifest-invalid`，但仍以入口目录把闭包编完；③ **依赖自己的清单永不参与**；
+   ④ 零配置能 import、stdin 与文件逐字节一致、stdin 带 `import` 给出 `--root` 提示。
+   **同时修掉一个真 bug（编辑器与 CLI 不一致）**：LSP 把 `initialize` 的**工作区根**
+   当模块根传下去（等于跳过清单发现），于是 VS Code 打开仓库根、再打开
+   `course/unit11-project/Canvas.sokonanoda` 会报 `import-not-found`，而同一文件在
+   CLI 下正常。现在编辑器与 CLI 同一套发现规则（最近清单 → 入口目录），
+   回归测试 `a_nested_project_resolves_against_its_own_manifest`。
 
 ## 本轮进度（2026-09-18，第九十二轮：I16 落地 —— `import` 闭包 + 项目管理，0.57.0）
 

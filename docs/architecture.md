@@ -178,7 +178,9 @@ sokonanoda-lang/
 
 ### 4.5 多文件项目（0.57.0，I16：`import` + `sokonanoda.toml`）
 
-一个文件只要**没有** `import`，走的仍是 §4.4 的单文件路径（逐字节不变）。
+一个文件只要**没有** `import`，走的仍是 §4.4 的单文件路径（逐字节不变），而且
+**从不发现/读取 `sokonanoda.toml`**——单文件就该像脚本一样直接跑（契约与测试见
+`docs/design/imports-and-projects.md` §4.4b 与 `crates/cli/tests/single_file_vs_project.rs`）。
 第一行出现 `import Foo.Bar` 后，编译单元从「一个文件」升级为「入口 + import 闭包」：
 
 1. **解析**：`parse` 把 `import` 收成前置命令（`Command::Import`，占位 span）；
@@ -366,7 +368,10 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
     `crates/cli/tests/imports.rs` 的 stdin/文件同字节断言守住）；③ 内存覆盖与诊断
     发布：覆盖的路径要 `canonicalize` 后再比（macOS `/var` vs `/private/var`），
     构建覆盖时**先把当前文档的新文本替进去**（否则下游重编译看到的还是上一版依赖
-    ——实测踩过），多文档测试要边处理边排空（见 §4.5 末与 `docs/TESTING.md` §5.7）。
+    ——实测踩过），多文档测试要边处理边排空（见 §4.5 末与 `docs/TESTING.md` §5.7）；
+    ④ **编辑器不许自己发明模块根**：LSP 的 `initialize` 工作区根不是模块根
+    （把工作区根当 `root_override` 等于跳过清单发现，工作区里嵌套的项目会
+    `import-not-found` 而 CLI 正常）；一律交给 front 按 CLI 同款规则发现。
 
 ---
 

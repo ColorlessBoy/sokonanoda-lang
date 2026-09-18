@@ -461,6 +461,21 @@ src = "."                 # 可选：模块根，默认 = 本文件所在目录
 - **为什么"空文件也合法"**：标记本身是特性（零学习成本）；TOML 只用来承载可选的
   元数据与将来的 `[deps]`。**这是待拍板 Q1/Q2**（TOML vs JSON vs 纯标记）。
 
+### 4.4b 自动区分：触发条件是 `import`，不是清单（2026-09-18 明确）
+
+| 情形 | 走哪条路 | 会不会读 `sokonanoda.toml` |
+|---|---|---|
+| 文件里**没有任何 `import`** | 单文件流水线（今天的路径，逐字节不变） | **从不读**（同目录/祖先目录里的清单再坏也无关；`--root` / `--no-project` 是空操作） |
+| 文件里有 `import` | 项目闭包 | 从**入口目录**向上找最近清单（止于 `.git`/HOME）；找不到就零配置（模块根 = 入口目录） |
+| 被 import 的依赖模块 | 闭包的一部分 | **它自己的清单永远不参与**（模块根只由入口决定；`import Sub.Lib` 直接解析 `Sub/Lib.sokonanoda`） |
+| stdin（`-`） | 无 `import` 时与文件等价 | 不适用；**带 `import` 时明确报错**并提示 `--root`（没有路径就没有模块根） |
+
+所以"单文件像脚本一样直接跑"是**契约**，由
+`crates/cli/tests/single_file_vs_project.rs` 四条测试钉住；编辑器侧 LSP 用同一套
+规则（`initialize` 的工作区根**不**当模块根用——那会跳过清单发现，让嵌套项目在
+编辑器里报 `import-not-found` 而 CLI 正常；回归见
+`crates/lsp/src/tests/project.rs::a_nested_project_resolves_against_its_own_manifest`）。
+
 ### 4.5 D4 —— 编译模型：一个闭包、一个 arena、拓扑序、失败即阻断
 
 1. **解析闭包**：从入口出发 DFS（按 import 书写顺序），得到拓扑序（依赖在前）；
@@ -820,7 +835,10 @@ iface(module) = H( CACHE_FORMAT,
 1. **§4.12/P4 里的 `project/iface.rs` 没有单独成文件**：闭包摘要就是
    `ProjectPlan::digest(&CompileOptions)`（`crates/front/src/project/mod.rs`），
    没必要为 30 行多开一层模块。其余文件名与设计一致。
-2. **P5 全部落地（含第一版"挂住"的真相）**：`initialize` 捕获 root、
+2. **P5 全部落地（含第一版"挂住"的真相，以及后来修掉的模块根错位）**：
+   `initialize` 只记会话（**不再把工作区根当模块根**——那会跳过清单发现，让工作区里
+   嵌套的项目在编辑器里报 `import-not-found` 而 CLI 正常；现在编辑器与 CLI 同一套
+   发现规则，见 §4.4b）、
    `Docs{map,order,root,active}`、按 URI publish、跨文件 `definition`/`references`/
    `rename`、**改依赖自动重编译下游**都完成。两条与设计不同的实现选择：
    ① 下游重编译不是"反向后继图调度"，而是**每次通知把所有打开文档当覆盖重新编译

@@ -1138,3 +1138,16 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     `elab-tactic-failed: unknown identifier`）。现在按拓扑序把依赖声明文本接进前缀；
     单文件模式逐字节不变（A1）。
   - **登记未修**：项目入口里的 quick-fix（`front::suggest` 同一根因，见 §7b）。
+- 2026-09-18（九十三·再续）：**单文件 vs 项目的自动区分契约**（用户要求：「单文件和
+  项目文件编译器能自动区分吗？比如单文件不会找项目配置文件，能像脚本一样直接跑」）：
+  - **是，触发条件是 `import` 而不是清单**：没有 `import` 的文件走单文件流水线，
+    **从不发现/读取 `sokonanoda.toml`**（同目录或祖先目录里的清单再坏也无关，
+    `--root`/`--no-project` 对它都是空操作）；有 `import` 才从入口目录向上找清单，
+    找不到就零配置（模块根 = 入口目录）；**依赖自己的清单永不参与**；stdin 无
+    `import` 时与文件逐字节一致（脚本式直跑），带 `import` 时明确提示 `--root`。
+    契约写进 `docs/design/imports-and-projects.md` §4.4b，测试
+    `crates/cli/tests/single_file_vs_project.rs`（4 条）。
+  - **顺带修掉编辑器/CLI 的模块根错位**：LSP 曾把 `initialize` 的工作区根当模块根
+    （= 跳过清单发现）⇒ 工作区里嵌套的项目在 VS Code 报 `import-not-found`，CLI 却
+    正常。现在两边同一套发现规则；回归
+    `crates/lsp/src/tests/project.rs::a_nested_project_resolves_against_its_own_manifest`。
