@@ -792,7 +792,13 @@ iface(module) = H( CACHE_FORMAT,
 - decl 级编译产物（跨进程复用已检查环境，`.olean` 等价物）；
 - `namespace`/`open`（真实 Lean 子集，需各自三件套）；`import all`；
 - 跨项目依赖（`[deps]` 的 path/git 形态）与 `sokonanoda new` 脚手架；
-- 课程语料重构（`solutions/` 改为复用 + golden 重钉）；
+- ~~课程语料重构（`solutions/` 改为复用 + golden 重钉）~~ → **2026-09-18 只做了安全
+  的那一半**：画布**保持自给自足**（教学属性 + golden/镜像/课程树契约都不动），
+  但把逐字重复的块提取成 `course/shared/` 子项目（And / Or / Nat 三个规范模块 +
+  `Demo.sokonanoda` 入口 + `sokonanoda.toml`），并用双向漂移守护
+  （`crates/cli/tests/course_shared.rs`）钉住 24/12/8 份副本。整包 import 化仍然不做
+  ——收益（约 8% 行数）远小于代价（可独立性、golden 重钉、学习者要追模块）。
+- 项目入口里的 quick-fix（`front::suggest` 看不到导入名字，见 `docs/TESTING.md` §7b）；
 - `watch` 的项目模式（协议要不要带 DAG 顺序，见 Q6）；
 - `didChangeWatchedFiles`（编辑器**外**改文件不触发刷新，要重开文件）与
   `soko/project`（P5 剩下的两项，均已在 0.57.0 登记为 P7）；

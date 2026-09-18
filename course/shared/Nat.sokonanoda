@@ -1,0 +1,24 @@
+-- Nat.sokonanoda —— 单元⑥/⑦ 里那个**显式 Nat 归纳块**的规范文本
+-- （类型 + 构造子 + 手写消去子 Nat.rec + 两条 iota 规则 + end；逐字来自画布）。
+--
+-- 它是本教学语言里"自己搭一遍自然数"的范例：文件里出现这个块之后，
+-- 整个闭包都用它取代 prelude 的 Nat。
+
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} :
+  (motive : (n : Nat) -> Sort u) ->
+  (mz : motive zero) ->
+  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
+  (n : Nat) -> motive n
+iota zero :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ :=
+  fun (motive : (n : Nat) -> Sort u) =>
+  fun (mz : motive zero) =>
+  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end

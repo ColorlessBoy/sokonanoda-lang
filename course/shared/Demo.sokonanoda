@@ -1,0 +1,26 @@
+import And
+import Or
+import Nat
+
+-- Demo.sokonanoda —— 共享库子项目的**自检入口**：真的 import 两个模块并判卷。
+-- 判卷：scripts/soko grade course/shared/Demo.sokonanoda
+-- （也由 crates/cli/tests/course_shared.rs 在 CI 里跑真 CLI。）
+
+-- ① 用 And 模块的公理证明交换律（跨模块导出）。
+theorem and_comm_demo (A : Prop) (B : Prop) (h : And A B) : And B A :=
+  And.intro B A (And.right A B h) (And.left A B h)
+
+-- ② 用 Or 模块的归纳类型做分情况（match 降低到 Or.rec）。
+theorem or_comm_demo (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+  match h with
+  | inl a => inr B A a
+  | inr b => inl B A b
+
+-- ③ 用 Nat 模块的显式归纳块写递归定义（手写 Nat.rec 展开，与单元⑥同一手法；
+--    `.{1}` 是动机所在的宇宙，与单元⑥ 的提示一致）。
+def double (n : Nat) : Nat :=
+  Nat.rec.{1} (fun (_ : Nat) => Nat) zero (fun (k : Nat) (ih : Nat) => succ (succ ih)) n
+
+-- ④ 自测：两条 #reduce 把"真的算出来了"变成可观测事件（课程文件同款做法）。
+#reduce double zero
+#reduce double (succ (succ zero))

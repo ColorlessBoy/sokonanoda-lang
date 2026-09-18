@@ -1,0 +1,11 @@
+-- And.sokonanoda —— 单元①/④/⑧/⑨/⑩/⑪ 里那四行 And 公理的**规范文本**
+-- （逐字来自课程画布；`crates/cli/tests/course_shared.rs` 守住 24 份副本一致）。
+--
+-- 为什么画布不直接 import 它：单元画布**故意各自自给自足**——学习者打开一个文件
+-- 就能看到全部前置声明（README「十个可独立编译的单元画布」）。这里的模块是同一段
+-- 文本的"规范副本"：既能被 import（见 Demo.sokonanoda），也让"改一处漏一处"变成红测试。
+
+axiom And : Prop -> Prop -> Prop
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
+axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
+axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b

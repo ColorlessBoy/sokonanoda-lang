@@ -36,6 +36,7 @@
 | `solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（中文）：与对应画布一一对应，所有 `sorry` 已填入经完整内核验证的答案。**勿直接发给学习者**。 |
 | `en/solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（英文镜像）：代码与中文钥匙一致，仅注释为英文。 |
 | `unit11-project/` | 学习者 | 单元⑪的**可运行多文件项目**：`sokonanoda.toml` + 库模块 `Logic.sokonanoda` + 入口 `Canvas.sokonanoda` + 跨文件练习 `Exercises.sokonanoda`（答案在它的 `solutions/`）。它不在 `course.json` 里，也不进 golden 表——判卷命令写在单元⑪的 11.6 节。 |
+| `shared/` | 维护者 + agent | **课程共享库子项目**（`sokonanoda.toml` + `And/Or/Nat` 三个规范模块 + 自检入口 `Demo.sokonanoda`）。它不参与教学主线，作用是：① 让"课程内容 import 化"有个可运行样例（`scripts/soko grade course/shared/Demo.sokonanoda`）；② 给逐字重复的声明块一个**唯一规范副本**，由 `crates/cli/tests/course_shared.rs` 双向守住 24/12/8 份拷贝不漂移。 |
 
 ## 双语布局（2026-09-09，用户要求）
 
@@ -48,6 +49,24 @@ course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件�
 （decl.checked / exercise.open / expr.reduced / expr.typed / diagnostic），
 任何一侧漂移都会显红。设计见
 `docs/design/course-bilingual.md`。
+
+## 为什么画布不 import（以及 `shared/` 存在的理由）
+
+单元画布**故意各自自给自足**：学习者打开一个文件就能看到全部前置声明，不用追
+模块；golden 表、中英镜像契约、课程树与网站进度也都按"一单元一文件"钉着。把画布
+改成 `import` 会同时打破这四件事，换来的只有约 **8%** 的行数（232/2974 行是逐字
+重复的声明块）——不划算。
+
+但复制粘贴有另一半成本：**改一处漏一处没有任何测试能发现**（事件计数只看得见
+语义变化，改个 binder 风格照样全绿）。所以：
+
+* 逐字重复的块在 `shared/` 里各有一份**规范副本**（`And` 24 份拷贝、`Or` 12 份、
+  显式 `Nat` 块 8 份，含中英与解答钥匙）；
+* `crates/cli/tests/course_shared.rs` 双向检查：规范文本变了而某份拷贝没跟上 ⇒ 红；
+  某个文件抄了这段却没登记 ⇒ 也红；
+* 画布里出现 `import` 同样红（挡住"顺手改成 import 库"的回归）；
+* `Demo.sokonanoda` 是这套共享库的自检入口（跨模块公理 / 跨模块 `match` /
+  跨模块递归 + `#reduce`），判卷：`scripts/soko grade course/shared/Demo.sokonanoda`。
 
 ## 约定
 
