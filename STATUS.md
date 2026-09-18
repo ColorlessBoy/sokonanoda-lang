@@ -74,7 +74,21 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `e2e-ledger` 的 needs 同步带上两条。顺带加固 `scripts/e2e-merge.py` 的去重键
    （加 `host.system`/`machine`：ubuntu 与 macos 的 1.138.0 腿同秒完成时不会被当成
    重复条目丢掉）。合并树先推一个**临时预检分支**跑一遍 CI（workflow 校验 +
-   ubuntu 两条腿 + 全部其它 job），绿了再 push main。
+   ubuntu 两条腿 + 全部其它 job），绿了再 push main——**这一步立刻回本**：
+   - 预检确认 workflow 被接受（job 级 `if` 引用 `matrix` 的写法确实不能用），
+     `e2e-macos` 在分支 push 上如预期 **skipped**，两条 ubuntu e2e 腿
+     （1.138.0 与 1.106.0，含 runner 上现下老版本 VS Code）**全绿**，
+     `e2e-ledger` 也如预期只在 main 跑；
+   - 但 `test` job 假红：`crates/front/tests/perf.rs` 的
+     `check_document_scaling_is_linear` 报 ratio ≥ 12×，而同一棵树本地全量
+     `888 passed / 0 failed`。本地复现定位：**并行**（cargo 默认）跑三个 perf 用例时
+     400/50 比 = 10.9×，`--test-threads=1` 或单跑该用例 = 7.8×（8× 规模 ⇒ 线性）
+     ——算法没回归，是同一个测试二进制里的重活互相抢 CPU 把长的那一档抬高了。
+     修法（阈值不动，只改采样口径）：`front/tests/perf.rs` 加**进程内互斥锁串行** +
+     **轮转 best-of-N 取最小**，每键延迟改用**中位数 + 最坏值天花板**；
+     `lsp/src/tests/perf.rs` 的单文件/项目请求延迟改 **best-of-3**（那 130+ 用例
+     并行的 lib 二进制里，10ms 阈值单次采样迟早会红）。台账
+     `docs/CI-FAILURES.md`（2026-09-18 条）+ `docs/PERF.md` 采样口径段同步。
 5. **发布**：push `main` → `ci.yml` 的 auto-tag 打 `v0.58.0` 并 dispatch
    `release.yml`（8 平台 CLI/LSP tarball + 9 个 VSIX）。`v0.56.2` 的 tag 与其
    功能都保留在历史里，0.58.0 的 CHANGELOG 补记"多余的 `sorry` 已并入"。
@@ -84,7 +98,9 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `editor/vscode/CHANGELOG.md`、`docs/protocol.md`（warning 码三个并列）、
    `skills/sokonanoda-teacher/references/events.md`、
    `docs/design/deepseek-harness.md`（H3 追加行）、`docs/E2E.md` §5/§7（两个 e2e job 与
-   版本升级三处）、`.github/workflows/ci.yml` 注释。
+   版本升级三处）、`.github/workflows/ci.yml` 注释、`docs/CI-FAILURES.md`、
+   `docs/PERF.md`（采样口径）、`scripts/gen-site-data.py`（轮次头解析改成"只认第一条
+   + 解析失败即报错"——本轮标题里的全角括号曾让网站 round 静默停在 97）。
 
 ## 本轮进度（2026-09-18，第九十七轮：真 VS Code 集成测试例行化 + 结果台账）
 

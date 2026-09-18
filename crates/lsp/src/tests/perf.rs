@@ -1,5 +1,22 @@
 use super::*;
 
+/// best-of-N 的最小值（`docs/PERF.md`「噪声地板与采样口径」）。
+///
+/// 这个 lib 测试二进制里 130+ 个用例是**并行**跑的（cargo 默认按 CPU 数开线程），
+/// 单次计时会被邻居抢 CPU 放大——2026-09-18 CI 上 front 的缩放哨兵就是这么假红的。
+/// `min` 过滤瞬态争抢，而**不**削弱判别力：算法级回归每一轮都慢。
+macro_rules! best_ms {
+    ($rounds:expr, $body:block) => {{
+        let mut best = u128::MAX;
+        for _ in 0..$rounds {
+            let start = std::time::Instant::now();
+            $body
+            best = best.min(start.elapsed().as_millis());
+        }
+        best
+    }};
+}
+
 #[tokio::test]
 async fn perf_did_change_latency() {
     // didChange → 诊断落地的每次延迟 < 50ms（50 声明文件）。
@@ -19,11 +36,18 @@ async fn perf_did_change_latency() {
     let step: TypedStep = (offset, old_line.len(), new_line);
     type_step(&mut service, &mut socket, &mut cur, &mut version, step).await;
 
-    let start = std::time::Instant::now();
-    // 再触发一次编辑（恢复原文→再编辑），量测 round-trip
+    // 量测 round-trip：来回编辑 3 次取最小（见 best_ms 的口径说明）。
     let step_back: TypedStep = (offset, new_line.len(), old_line);
-    type_step(&mut service, &mut socket, &mut cur, &mut version, step_back).await;
-    let elapsed = start.elapsed().as_millis();
+    let mut round = 0usize;
+    let elapsed = best_ms!(3, {
+        let step = if round.is_multiple_of(2) {
+            step_back
+        } else {
+            step
+        };
+        type_step(&mut service, &mut socket, &mut cur, &mut version, step).await;
+        round += 1;
+    });
     println!("PERF lsp didChange round-trip: {elapsed}ms (threshold 50ms)");
     assert!(
         elapsed < 50,
@@ -42,16 +66,15 @@ async fn perf_completion_and_hover_latency() {
     let _ = wait_diagnostics(&mut socket, "perf: initial").await;
 
     let at = offset_of(&src, "sorry");
-    // completion
-    let start = std::time::Instant::now();
-    let _ = request_completions_at(&mut service, lsp_pos(&src, at)).await;
-    let c_ms = start.elapsed().as_millis();
+    // completion / hover 各量 3 次取最小（见 best_ms 的口径说明）
+    let c_ms = best_ms!(3, {
+        let _ = request_completions_at(&mut service, lsp_pos(&src, at)).await;
+    });
     println!("PERF lsp completion: {c_ms}ms (threshold 10ms)");
     assert!(c_ms < 10, "completion took {c_ms}ms (threshold 10ms)");
-    // hover
-    let start = std::time::Instant::now();
-    let _ = hover_opt_at(&mut service, &src, at).await;
-    let h_ms = start.elapsed().as_millis();
+    let h_ms = best_ms!(3, {
+        let _ = hover_opt_at(&mut service, &src, at).await;
+    });
     println!("PERF lsp hover: {h_ms}ms (threshold 10ms)");
     assert!(h_ms < 10, "hover took {h_ms}ms (threshold 10ms)");
     shutdown(&mut service).await;
@@ -68,9 +91,10 @@ async fn perf_state_at_latency() {
     let _ = wait_diagnostics(&mut socket, "perf: initial").await;
 
     let at = offset_of(&src, "sorry");
-    let start = std::time::Instant::now();
-    let result = ask_state_at(&mut service, &src, at).await;
-    let elapsed = start.elapsed().as_millis();
+    let mut result = serde_json::Value::Null;
+    let elapsed = best_ms!(3, {
+        result = ask_state_at(&mut service, &src, at).await;
+    });
     assert!(
         result.get("goals").and_then(|g| g.as_array()).is_some(),
         "stateAt response shape: {result:?}"
@@ -92,20 +116,23 @@ async fn perf_goals_view_latency() {
     did_open(&mut service, &src).await;
     let _ = wait_diagnostics(&mut socket, "perf: initial").await;
 
-    let start = std::time::Instant::now();
-    let result = call(
-        &mut service,
-        tower_lsp::jsonrpc::Request::build("soko/goals")
-            .params(serde_json::json!({
-                "textDocument": {"uri": "file:///perf.sokonanoda"},
-                "position": null
-            }))
-            .id(90)
-            .finish(),
-    )
-    .await
-    .expect("soko/goals must answer");
-    let elapsed = start.elapsed().as_millis();
+    let mut result = serde_json::Value::Null;
+    let mut id = 90i64;
+    let elapsed = best_ms!(3, {
+        result = call(
+            &mut service,
+            tower_lsp::jsonrpc::Request::build("soko/goals")
+                .params(serde_json::json!({
+                    "textDocument": {"uri": "file:///perf.sokonanoda"},
+                    "position": null
+                }))
+                .id(id)
+                .finish(),
+        )
+        .await
+        .expect("soko/goals must answer");
+        id += 1;
+    });
     // 响应必须真的带 decls（防止测了个错误响应）
     assert!(
         result.get("decls").and_then(|d| d.as_array()).is_some(),
@@ -291,39 +318,39 @@ async fn perf_project_requests_are_interactive() {
             .id(id)
             .finish()
     };
-    let start = std::time::Instant::now();
-    let hover = call(&mut service, req("textDocument/hover", 91))
-        .await
-        .expect("hover answers");
-    let hover_ms = start.elapsed().as_millis();
-    assert!(!hover.is_null(), "hover on an imported name must answer");
+    let hover_ms = best_ms!(3, {
+        let hover = call(&mut service, req("textDocument/hover", 91))
+            .await
+            .expect("hover answers");
+        assert!(!hover.is_null(), "hover on an imported name must answer");
+    });
 
-    let start = std::time::Instant::now();
-    let definition = call(&mut service, req("textDocument/definition", 92))
-        .await
-        .expect("definition answers");
-    let def_ms = start.elapsed().as_millis();
-    let target: Location = serde_json::from_value(definition).expect("a Location");
-    assert!(
-        target.uri != entry_uri,
-        "the cursor is on an imported name → jump into the dependency"
-    );
+    let def_ms = best_ms!(3, {
+        let definition = call(&mut service, req("textDocument/definition", 92))
+            .await
+            .expect("definition answers");
+        let target: Location = serde_json::from_value(definition).expect("a Location");
+        assert!(
+            target.uri != entry_uri,
+            "the cursor is on an imported name → jump into the dependency"
+        );
+    });
 
-    let start = std::time::Instant::now();
-    let goals = call(
-        &mut service,
-        tower_lsp::jsonrpc::Request::build("soko/goals")
-            .params(serde_json::json!({"textDocument": {"uri": entry_uri}}))
-            .id(93)
-            .finish(),
-    )
-    .await
-    .expect("goals answers");
-    let goals_ms = start.elapsed().as_millis();
-    assert!(
-        goals["decls"].as_array().is_some_and(|d| !d.is_empty()),
-        "{goals:?}"
-    );
+    let goals_ms = best_ms!(3, {
+        let goals = call(
+            &mut service,
+            tower_lsp::jsonrpc::Request::build("soko/goals")
+                .params(serde_json::json!({"textDocument": {"uri": entry_uri}}))
+                .id(93)
+                .finish(),
+        )
+        .await
+        .expect("goals answers");
+        assert!(
+            goals["decls"].as_array().is_some_and(|d| !d.is_empty()),
+            "{goals:?}"
+        );
+    });
 
     println!(
         "PERF project lsp requests: hover {hover_ms}ms · definition {def_ms}ms · goals {goals_ms}ms"

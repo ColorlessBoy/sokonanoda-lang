@@ -1387,7 +1387,12 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     2 版本；`e2e-macos` = macos × 1.138.0，github-only 条件、只 main），
     `auto-tag`/`e2e-ledger` 的 `needs` 同步；`scripts/e2e-merge.py` 去重键加宿主，
     避免两条 1.138.0 腿同秒完成时被当重复丢掉。合并树先推**临时预检分支**跑一遍 CI
-    （workflow 能被接受 + ubuntu 两条腿 + 其它 job 全绿）再 push main。
+    （workflow 能被接受 + ubuntu 两条腿 + 其它 job 全绿）再 push main。预检立刻抓到
+    两件事：① workflow 校验与两条 ubuntu e2e 腿（含 runner 上现下老版本 VS Code）
+    全绿、`e2e-macos` 按预期只在 main 跑；② `test` job 里 front 的缩放哨兵**假红**
+    （并行口径下 400/50 = 10.9× vs 串行 7.8×，阈值 12×）——修法是把性能哨兵的采样
+    口径改成"用例间串行 + best-of-N 取最小"（阈值不动），LSP 延迟断言改 best-of-3，
+    记进 `docs/CI-FAILURES.md` 与 `docs/PERF.md`。
   - **发布**：push `main` → `ci.yml` auto-tag 打 `v0.58.0` → dispatch `release.yml`
     （8 平台 CLI/LSP tarball + 9 个 VSIX）。0.56.2 的功能与 tag 都保留在历史里，
     0.58.0 的 CHANGELOG 补记"多余的 `sorry` 已并入"。

@@ -333,3 +333,29 @@
 - **修复**：`cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp`，
   重跑 gate PASS（772 passed / 0 failed / 6 ignored）。
 - **预防**：写完测试先跑一次 fmt（或直接 gate），别等推送。
+
+## 2026-09-18 — 合并树预检：front 缩放哨兵在 CI 上假红（单次采样被并行邻居放大）
+
+- **现象**：临时预检分支 `preflight-v0.58.0`（合并提交 `ed05f0d`）的 `test` job 里，
+  `sokonanoda-front --test perf` 的 `check_document_scaling_is_linear` **FAILED**
+  （断言 `ratio < 12.0`），同一棵树的本地全量 `cargo test --workspace --locked`
+  = 888 passed / 0 failed，本地怎么跑都绿。CI 只报 `test ... FAILED`，**没有** panic
+  详情（`cargo test` 的失败输出没进 step 日志；完整日志在 `cargo-test-log` artifact 里，
+  但那条断言的消息也没被捕获——cargo 只打印 summary）。
+- **定位（本地复现）**：把三个 perf 用例**并行**跑（cargo 默认）实测 400/50 的缩放比
+  = **10.9×**（贴着 12× 阈值）；`--test-threads=1` 或只跑单个用例时 = **7.8×**
+  （8× 规模 ⇒ 线性）。也就是说：算法是线性的（没有回归），是**同一个测试二进制里
+  三个重活互相抢 CPU** 把长的那一档（400 声明）抬高了。12× 的余量（相对线性 8×
+  只有 1.5×）在并行口径下根本不够。
+- **修复**（代码对齐 `docs/PERF.md` 早已写明的口径）：`crates/front/tests/perf.rs`
+  三个用例改成 **进程内互斥锁串行 + 轮转 best-of-N 取最小**；每键延迟断言从
+  "每一次都 < 50ms" 改为**中位数 < 50ms + 最坏值 < 250ms**（并行邻居偶尔插一脚不是
+  产品回归，算法级回归会把中位数顶上去）。同时把 `crates/lsp/src/tests/perf.rs` 的
+  单文件延迟断言（didChange/completion/hover/stateAt/goals）从**单次采样**改为
+  best-of-3——同一个 lib 测试二进制里 130+ 用例并行跑，10ms 阈值单次采样迟早要红。
+  阈值**没有放宽**（12× / 8× / 50ms / 10ms 都不动），改的只是采样口径。
+- **预防**：① 性能哨兵一律"取最小/中位数 + 用例间串行"，绝不用单次采样下结论
+  （`docs/PERF.md` 已写、本轮把代码补齐）；② 大改动（尤其会触发发版的 main push）
+  先推**临时预检分支**跑一遍 CI——这次假红就挡在发版之前，main 与 release 都没被污染；
+  ③ 失败详情拿不到时先下 `cargo-test-log` artifact，别对着 summary 猜。
+

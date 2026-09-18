@@ -167,8 +167,11 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 所以纪律是：① **`scripts/perf-ledger.sh` / `perf-report.sh` 一律带
 `--test-threads=1`**（2026-09-18 起）——更早的台账条目与 `docs/PERF.md` 里 90–110ms
 一类的数字都是**并行口径**，只能和同口径条目比；② 用例内部用 **best-of-N 取最小**
-（`front/tests/perf.rs`、`perf_project.rs` 的 keystroke/overlay/judge 与 LSP perf
-都是；`perf_project.rs` 的分阶段/缩放在 2026-09-18 改为 `measure_best(…, 3)`）；
+（`perf_project.rs` 的分阶段/缩放在 2026-09-18 改为 `measure_best(…, 3)`；
+`front/tests/perf.rs` 的三个用例在 **2026-09-18 CI 假红后**改为"进程内互斥锁串行 +
+轮转 best-of-N"，每键延迟断言改用**中位数 + 最坏值天花板**；LSP 的单文件延迟
+（didChange/completion/hover/stateAt/goals）与项目请求延迟改为 **best-of-3**——
+它们跑在 130+ 用例并行的 lib 测试二进制里，单次采样必然偶发假红）；
 ③ 比较台账数字先看是否落在 ±25% 内，超出再复测，别拿单次差异下结论；
 ④ **优先比 `best_ms`**：串行口径下多数指标两次记录相差 ≤17%，但 `worst_ms`
 （5 次取最大）这类 max 统计量能差 45%——`keystroke_recompile_closure` 因此同时
