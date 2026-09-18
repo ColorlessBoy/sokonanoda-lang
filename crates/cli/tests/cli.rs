@@ -152,6 +152,39 @@ fn cli_by_tactic_partial_block_is_open_exercise() {
     assert!(String::from_utf8_lossy(&out.stdout).contains("exercise open"));
 }
 
+/// 人类视图（`docs/design/redundant-sorry.md` §6）：多留一行 `sorry` 时，
+/// stdout 仍是 `exercise open`（语义不变），stderr 多一行
+/// `行:列: warning[redundant-sorry]: …`，退出码保持 0。
+#[test]
+fn cli_redundant_sorry_warns_on_stderr_and_stays_successful() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom f : A -> B\n\
+               theorem t (h : A) : B := f h\n\
+               \x20 sorry\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "a warning must not change the exit code:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("exercise open"), "{stdout}");
+    assert!(
+        !stdout.contains("redundant-sorry"),
+        "warnings are stderr-only in the human view: {stdout}"
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let warn_line = stderr
+        .lines()
+        .find(|l| l.contains("warning[redundant-sorry]"))
+        .unwrap_or_else(|| panic!("human view needs one redundant-sorry warning line: {stderr}"));
+    assert!(
+        warn_line.starts_with("5:"),
+        "warning points at the leftover `sorry` line: {warn_line}"
+    );
+}
+
 #[test]
 fn cli_by_newline_separated_tactics_check_via_kernel() {
     // 换行也能分隔 tactic：末尾的 `;` 可以省略，判定仍走 kernel。

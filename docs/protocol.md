@@ -74,14 +74,21 @@ Example:
 can re-run or display it without re-parsing.
 
 `warning` events use the same span shape as diagnostics but carry no `stage`
-and never change the exit code. The codes today are
-`reserved-declaration-name` (`Prop` / `Sort` / `Type` are already defined by
-the kernel and cannot be declared again, so a top-level declaration with one
-of those names is accepted but never used —
-`docs/design/reserved-decl-warning.md`) and `import-has-open-exercises` (the
-imported module still has `sorry`s; their declarations never enter the
-environment, so downstream code cannot see those names —
-`docs/design/imports-and-projects.md` §4.5).
+and never change the exit code. Codes today:
+
+- `reserved-declaration-name`: `Prop` / `Sort` / `Type` are already defined by
+  the kernel and cannot be declared again, so a top-level declaration with one
+  of those names is accepted but never used
+  (`docs/design/reserved-decl-warning.md`).
+- `redundant-sorry`: the value already proves the goal and the `sorry` is an
+  extra argument tacked onto a complete term, so deleting that line is what
+  makes the declaration check. The declaration stays `exercise.open` (semantics
+  unchanged) — the warning only says *which* line is the leftover. The verdict
+  is the kernel's: the term with that argument removed must pass a full check
+  of the declaration (`docs/design/redundant-sorry.md`).
+- `import-has-open-exercises`: the imported module still has `sorry`s; their
+  declarations never enter the environment, so downstream code cannot see
+  those names (`docs/design/imports-and-projects.md` §4.5).
 
 ## Error staging and codes
 
@@ -256,7 +263,7 @@ Response:
   "binders": [{"name": "a", "ty": "Prop", "ty_runs": [{"text": "Prop", "kind": "sort"}]},
               {"name": "h", "ty": "And a b", "ty_runs": [...]}],
   "hole": {"start": {...}, "end": {...}},
-  "holes": [{"start": {...}, "end": {...}}, ...],
+  "holes": [{"start": {...}, "end": {...}, "id": "and_swap:0", "redundant": false}, ...],
   "sub_goals": [{"range": {"start": {...}, "end": {...}}, "ty": "b"}, ...]
 }]}
 ```
@@ -273,10 +280,16 @@ Response:
   declaration-level counterpart of `soko/stateAt`'s per-cursor `goals` — a
   multi-subgoal `apply` shows all of its sub-goals here, not just one;
 - `holes` lists every `sorry` (multi-hole constructor/function spines
-  included) as objects `{"range": {…}, "id": "<declName>:<index>"}` — the id
+  included) as objects
+  `{"range": {…}, "id": "<declName>:<index>", "redundant": false}` — the id
   is stable per (declaration, hole order) within a document version
   (anonymous examples use the `example@<line>` name form) and is the stable
-  reference for external tools; `sub_goals` pairs each hole with its
+  reference for external tools; `redundant: true` marks a **leftover** `sorry`
+  (the answer already proves the goal, deleting that line is what makes the
+  declaration check — `docs/design/redundant-sorry.md`), so an agent must say
+  "delete this line", never "not yet solved"; `false` also covers "no verdict"
+  (the kernel probe did not run or did not pass);
+  `sub_goals` pairs each hole with its
   expected type (server-side walk: constructor parameter positions expect
   the goal's own argument, proof positions the instantiated field type;
   function argument holes expect the function binder's type instantiated at
@@ -636,8 +649,8 @@ sokonanoda query <op> [options]
 |---|---|---|
 | `check` | — | `{version, counts{decl_checked,example_checked,exercise_open,expr_typed,expr_reduced,decl_printed}, failed[{code,message,start,end}], warnings[{code,message,hint,start,end}]}` |
 | `state` | `--line L --col C` or `--offset N` | `{version, decl{name,kind,status,start,end}\|null, goal, goal_runs, binders, goals[{goal,goal_runs,binders}], span[start,end]\|null, step, total}` |
-| `goals` | — (`--probe` runs the kernel probe) | `[{name,kind,status,start,end,ty,ty_runs,goal,goals,binders,hole[start,end]\|null,holes[{start,end,id}],sub_goals[{start,end,ty}],code_actions}]` |
-| `holes` | — (optional `--offset N --direction next\|prev`) | `{holes[{id,start,end,ty,decl}], navigated<hole>\|null}` |
+| `goals` | — (`--probe` runs the kernel probe) | `[{name,kind,status,start,end,ty,ty_runs,goal,goals,binders,hole[start,end]\|null,holes[{start,end,id,redundant}],sub_goals[{start,end,ty}],code_actions}]` |
+| `holes` | — (optional `--offset N --direction next\|prev`) | `{holes[{id,start,end,ty,decl,redundant}], navigated<hole>\|null}` |
 | `hints` | `--line L --col C` or `--offset N` | `{hints[string]}` |
 | `reduce` | `--expr E` | `{value, ty}` |
 | `project` | — (optional `--root <dir>`) | `{project: <ProjectView>\|null, reason: "no-imports"\|"no-path"\|"parse-error"\|null}` — the closure around this file: root, manifest, modules with status (`compiled`/`load-failed`/`blocked`) + imports + counts, project diagnostics. `project: null` is a legal answer (a single file), never an error. Same view as `soko/project` (`docs/design/project-view.md`) |

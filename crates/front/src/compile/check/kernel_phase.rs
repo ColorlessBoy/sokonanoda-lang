@@ -13,7 +13,7 @@ use super::{
 use crate::compile::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileError, ErrorKind};
 use crate::compile::event::{CheckEvent, CompileOutput};
 use crate::compile::report::{DeclKind, DeclState, DeclStatus, DocumentReport, ResolvedTarget};
-use crate::compile::units::SourceUnit;
+use crate::compile::units::{unit_ranges, SourceUnit};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::EnvLimit;
 
@@ -106,6 +106,8 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     name,
                     kind,
                     universe,
+                    env_before,
+                    redundant_probes,
                     declared_ty,
                     goal,
                     binders,
@@ -117,6 +119,30 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     cmd,
                 } => {
                     out.push_event(cmd, CheckEvent::ExerciseOpen { name: name.clone() });
+                    // 「多余的 sorry」的终审：把候选实参删掉后，整条声明必须能被
+                    // 完整内核接受。过了才报；过不了就维持"练习尚未解决"（保守）。
+                    // 探针**不入环境** ⇒ 名字没有 `decl_idx`，必须显式给可见前缀
+                    // `env_before`（= 该声明若补完时会占的下标）；否则
+                    // `EnvLimit::ByName(探针名)` 取 0 → 空环境 → 假 `unknown const`
+                    // （`docs/design/redundant-sorry.md` §8）。
+                    for (declar, hole_span) in redundant_probes {
+                        kernel_checks += 1;
+                        if env
+                            .try_check_declar_at(&declar, EnvLimit::ByIndex(env_before))
+                            .is_ok()
+                        {
+                            out.push_warning(
+                                cmd,
+                                crate::compile::warning::CompileWarning {
+                                    kind: crate::compile::warning::WarningKind::RedundantSorry,
+                                    message: "这一行的 sorry 是多余的：前面的项已经完成了证明，\
+                                              sorry 不能再接在这里。"
+                                        .to_string(),
+                                    span: hole_span,
+                                },
+                            );
+                        }
+                    }
                     let ty_text = declared_ty.and_then(|ty| {
                         quiet_catch(|| {
                             env.with_tc(EnvLimit::Empty, |tc| tc.with_pp(|pp| pp.pp_expr(ty)))
@@ -397,11 +423,25 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
     // Syntax-level warnings are independent of the kernel pass: compute them
     // once for the whole file so every return path (batch output + report)
     // carries the same list.
-    report.warnings = units
-        .iter()
-        .flat_map(|unit| crate::compile::warning::collect_warnings(unit.file))
-        .collect();
+    // 语法级 warning 在前（顺序稳定、可断言；每个单元算一次，归属到该单元的
+    // 首条命令——归因只要落到正确的单元，warning 自身没有命令下标），pass 2
+    // 内核终审过的 `redundant-sorry` 追加在后；batch 输出与 report 共用同一份
+    // 列表，`warning_cmds` 与 `warnings` 严格平行（跨文件归因靠它）。
+    let ranges = unit_ranges(units);
+    let mut warnings = Vec::new();
+    let mut warning_cmds = Vec::new();
+    for (i, unit) in units.iter().enumerate() {
+        for warning in crate::compile::warning::collect_warnings(unit.file) {
+            warning_cmds.push(ranges[i].start);
+            warnings.push(warning);
+        }
+    }
+    warnings.append(&mut out.warnings);
+    warning_cmds.append(&mut out.warning_cmds);
+    debug_assert_eq!(warnings.len(), warning_cmds.len());
+    report.warnings = warnings;
     out.warnings = report.warnings.clone();
+    out.warning_cmds = warning_cmds;
     PassResult {
         out,
         report,

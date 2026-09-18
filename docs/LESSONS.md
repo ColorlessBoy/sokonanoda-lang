@@ -327,6 +327,29 @@
 - **守护位置**：`docs/design/agent-query-channel.md` §3.2/§11 A5（最终数字）、
   `docs/TESTING.md` 的 LSP 行（测试文件位置）、本条目。
 
+## 静默成功是最坏的失败：`update` 刷新不了缓存却 exit 0（2026-09-17，第九十一轮实测）
+
+- **现象**：用户在 DSH 里敲 `/sokonanoda-update`；输出 `cli: … [repo-build]` /
+  `lsp: … [repo-build]`，**exit 0**，看起来一切正常——实际上一个字节都没写进缓存。
+- **真相（修好之后启动器自己说出来的）**：
+  `download: EPERM: operation not permitted, copyfile '/tmp/sokonanoda-XXXX/sokonanoda'
+  -> '~/.local/share/sokonanoda/bin/sokonanoda'`——curl 下载成功、tar 解包成功，
+  只有最后一步写缓存被沙箱拒绝。旧代码里 `ensure(force)` 的强制下载失败后
+  `resolve()` 会兜底到"版本匹配的仓库构建"；两者都非空、又都不是 `cache(STALE…)`，
+  于是 `report()` 打一行 `[repo-build]` 然后 **exit 0**，而 `lastDownloadError`
+  只在"结果缺失或 STALE"分支才打印 → 网络断、磁盘满、缓存目录只读**全都长得像成功**。
+- **规矩**：① **"命令有没有做到它承诺的那件事"必须与"这次有没有可用回退"分开判定**：
+  `update` 承诺的是"缓存写成功"，回退可用只意味着"还能干活"，不能抵消承诺；
+  ② 任何 `catch` 掉错误再回退的分支都要问"错误去哪了"——回退成功恰恰是最容易吞掉
+  错误的地方；③ 验收判据别拿"不是什么"当证据（`source` 不含 `STALE` 会被任何回退
+  路径满足），要拿"是什么"：缓存 `marker` + 缓存二进制自述版本 + 退出码。
+- **顺带揪出的第二个 bug**：`const stale = [cli, lsp].filter(r => r.source…)` 在
+  `cli` 为 `undefined`（完全无解）时抛 `TypeError` **崩栈 exit 1**，导致紧随其后的
+  "could not provide matching binaries … Next: allow network access" 这段可行动
+  消息**永远不可达**（死代码）。守卫写法：`r?.source`。
+- **守护位置**：`crates/cli/tests/launcher.rs`（3 条，**真跑 Node**：CI 缺 `node`
+  硬失败、本地缺则打印 skip）、`docs/TESTING.md` 的"启动器行为契约"行、
+  `skills/sokonanoda-update/SKILL.md` 的判据与"常见失败"节。
 ## 测试里别写死"当前版本"（2026-09-18，0.57.0 bump 当天变红）
 
 - **踩的坑**：`crates/front/src/project/manifest.rs::requires_compares_major_minor_only`
@@ -417,3 +440,60 @@
   "上次跑是绿的"只是记忆。
 - **守护位置**：`editor/vscode/extension.js`（`e2eLog`）、`scripts/vscode-e2e.sh`、
   `docs/E2E.md`、`docs/vscode-dev-guide.md` 坑 19/20/21、本条目。
+
+## 合并并行线时：新增的"每命令输出通道"要检查**所有**消费者（2026-09-18，0.58.0 合并轮）
+
+- **背景**：两条线并行开发——本线（I16 项目闭包 + 批次 1–4）与 0.56.2 线
+  （`redundant-sorry`）。合并时逐文件手心合并，代码都编过了、两边各自的测试也
+  都绿，但合起来仍有一个**只在项目模式下**才现形的缺口。
+- **踩的坑**：0.56.2 给 `CompileOutput.warnings` 加了第一批"pass 2 现算、带命令
+  归属"的警告；本线的 `split_report`（把扁平报告切成每模块报告）当时是**按单元
+  重算语法级 warning** 的——它压根不看扁平列表。于是内核终审的
+  `warning[redundant-sorry]` 在单文件下正常、**项目入口里被静默丢掉**：
+  两边的测试都覆盖了自己那一半，谁也没覆盖"内核 warning × 多单元"这个交叉点。
+- **修法**：把 warning 变成与其他输出通道同款的**平行数组**（`warnings` ↔
+  `warning_cmds`，配 `push_warning(cmd, w)`，与 `event_cmds`/`error_cmds` 一个
+  不变量），`split_report` 按命令下标归因；语法级 warning 由 `kernel_phase` 钉在
+  所属单元的命令区间上（不猜 span）。回归：`compile::tests::warnings_are_attributed_to_the_unit_that_produced_them`。
+- **为什么值得记**：① 合并的验证不能只跑"两边的测试"——真正的新风险在**交叉点**，
+  要对每个"每命令的输出通道"（events / errors / **warnings** / hovers）都问一遍
+  "多单元时它归到哪个模块？"；② 平行的第 N 个通道出现时，先看前两个通道的
+  `push_*` 不变量，照抄比"就地重算"安全；③ 只断言"总数对"抓不到这类 bug——
+  新回归要断言**每个单元的归属**（span 落在自己文件的坐标里）。
+- **守护位置**：`crates/front/src/compile/{event,units}.rs`（平行数组 + `split_report`）、
+  `docs/architecture.md` §4.5 第 5 条与 §8 第 10 条、`docs/TESTING.md` §1「输出通道的
+  跨模块归因」行、本条目。
+
+## workflow 的"上下文可用性"只有推上去才会被校验（2026-09-18，0.58.0 合并轮预检）
+
+- **踩的坑**：为了让 macOS 的 e2e 腿"只在 main 上跑"，我在**同一个 job 的矩阵**里写了
+  job 级条件 `if: matrix.os != 'macos-latest' || (push && main)`。它能通过本地的一切
+  检查（YAML 解析、`bash -n`、逐条跑 `run:` 内容），因为本地没有东西知道
+  **`jobs.<job_id>.if` 的可用上下文里没有 `matrix`**（GitHub 的 contexts 表只给
+  `github`/`needs`/`vars`/`inputs`；`runs-on`/`continue-on-error` 才有 `matrix`）。
+  真推上去的两种可能结局都不好：条件按空值求值（该腿白跑），或者被判成未识别命名值
+  让**整个 workflow 校验失败**——那样一条 CI 都不会跑。
+- **规矩**：① 按矩阵值筛腿，条件要么放 **step 级**（有 `matrix`），要么拆**独立 job**
+  只写 `github` 条件；② workflow 改动的验证分两段——本地能验的（YAML 结构、
+  `run:` 里的 shell）必验，**上下文可用性/表达式语义只能靠真推一次**，所以大 push
+  （尤其会触发发版的 main push）前先推**临时预检分支**，看 workflow 是否被接受、
+  哪些 job 真的被调度；③ 预检分支还能顺带验证"CI 环境特有"的风险（如老版本 VS Code
+  的下载在 runner 上是否稳定），把失败挡在 main 之前。
+- **守护位置**：`.github/workflows/ci.yml`（`e2e` + `e2e-macos` 两个 job 的注释里写明
+  原因）、`docs/E2E.md` §7、`skills/sokonanoda-ci` §1 陷阱表、本条目。
+
+## 机器可读块的解析失败要**报错**，不能"退回到上一个能解析的"（2026-09-18，第九十八轮）
+
+- **踩的坑**：`scripts/gen-site-data.py` 从 `STATUS.md` 的轮次标题里读网站进度页的
+  `round/date/title`（`docs/design/site.md` §2 写明的机器可读块）。它用的是
+  "全文 `re.search` 第一个能匹配的标题"，而标题正则的标题部分排除了全角右括号——
+  本轮标题里加了一对 `（多余的 sorry）`，最新轮失配，正则就**继续往下匹配到上一轮**：
+  网站 round 静默停在 97，生成器 exit 0、`check-site.py` 也全绿。
+- **规矩**：① 机器可读块"定位失败"与"解析失败"都要**失败得响亮**（这里改成只认
+  文件里**第一条** `## 本轮进度` 头 + `fullmatch`，不匹配就打印期望形状并 exit≠0）；
+  ② 正则别对内容做无谓限制（标题允许括号/标点），限制要写在**形状**上（日期、
+  `第N轮：`）；③ `re.search` 的"找到就算数"是最容易埋静默回退的写法——需要的是
+  "**期望位置**上的那一条"，用锚点或先定位再 `fullmatch`。
+- **守护位置**：`scripts/gen-site-data.py::get_round`（失败即 `SystemExit`）、
+  `docs/design/site.md` §2 机制第 3 条、本条目。
+

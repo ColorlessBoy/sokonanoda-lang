@@ -42,11 +42,12 @@ use render::{
 };
 use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
-    prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport, GoalBinder, HoverType,
-    PreludeMode, ResolvedTarget,
+    prelude_mode_from_source, CompileOptions, DeclState, DeclStatus, DocumentReport, GoalBinder,
+    HoverType, PreludeMode, ResolvedTarget,
 };
 use sokonanoda_front::query::{decl_name, QueryDoc};
 use sokonanoda_front::semantic::{semantic_tokens as front_semantic_tokens, SemanticKind};
+use sokonanoda_front::Span;
 use std::sync::Mutex;
 use tokens::{encode_semantic_tokens, semantic_token_options};
 use tower_lsp::jsonrpc::Result;
@@ -675,12 +676,34 @@ fn tactic_goal_hover(
 /// cached open produces exactly the same diagnostics as a recompile.
 fn report_diagnostics(report: &sokonanoda_front::compile::DocumentReport) -> Vec<Diagnostic> {
     let mut diagnostics: Vec<_> = report.errors.iter().map(diagnostic_from_compile).collect();
+    // 「多余的 `sorry`」（`docs/design/redundant-sorry.md`）：那个洞不是"还没
+    // 证出来"，而是多写了一行——由 `redundant-sorry` 那条 warning（带 hint）
+    // 说明。声明**全部**洞都属于这种情况时，不再叠一条 "not yet solved"，
+    // 否则学生以为是自己没做出来。还有真缺口的声明照旧报。
+    let redundant_spans: Vec<Span> = report
+        .warnings
+        .iter()
+        .filter(|w| w.code() == "redundant-sorry")
+        .map(|w| w.span)
+        .collect();
+    // 洞 span 与 warning span 形状未必相同（多余洞走 generic fallback 时洞是
+    // 整段值、warning 收窄到 `sorry` token），所以用**包含**判定。
+    let hole_is_redundant = |hole: &Span| {
+        redundant_spans
+            .iter()
+            .any(|r| hole.start.offset <= r.start.offset && r.end.offset <= hole.end.offset)
+    };
+    let all_holes_redundant =
+        |d: &DeclState| !d.holes.is_empty() && d.holes.iter().all(hole_is_redundant);
     if report
         .decls
         .iter()
         .any(|d| d.status == DeclStatus::Open && !d.holes.is_empty())
     {
         for d in report.decls.iter().filter(|d| d.status == DeclStatus::Open) {
+            if all_holes_redundant(d) {
+                continue;
+            }
             let name = d.name.as_deref().unwrap_or("(anonymous)");
             diagnostics.push(Diagnostic {
                 range: range_of(d.span),

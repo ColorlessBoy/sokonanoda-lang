@@ -27,7 +27,10 @@ skills.
 - **Honest warnings** — a declaration named `Prop`, `Sort` or `Type` still
   compiles, but those names are already defined by the kernel, so the name
   can never be used; the editor flags it with a `reserved-declaration-name`
-  warning.
+  warning. And when the answer is already complete but a leftover `sorry`
+  line follows it, the editor flags that exact line with a `redundant-sorry`
+  warning — the declaration stays open, and the fix is to delete the line
+  rather than keep proving.
 
 **Guided exercises**
 

@@ -67,6 +67,8 @@ scripts/soko query hints --file playground.sokonanoda --line 323 --col 3
 scripts/soko query goals --file playground.sokonanoda               # 全文件声明概览
 ```
 
+- 洞级「多余的 `sorry`」也有标记：`query holes`/`goals` 的 `redundant: true`
+  = 答案已经写全、只多留了这一行（要说"删掉它"，不是"还没证出来"）；
 - 契约见 `docs/protocol.md`；`ok:false` **不是**空结果（空是 `goal:null`），
   退出码 0=答上了、1=有内核拒绝、2=用法错误——**判据看 JSON，不看退出码**；
 - DeepSeek Harness 里这七个查询还包成了 MCP 工具
@@ -169,6 +171,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 | `elab-hole-misplaced` | 洞不在可恢复位置（嵌套洞/非直接实参，如 `n + sorry`；答案尾巴、构造子 spine 与已知函数直接实参都合法） | 讲「洞只能放答案末尾，或已知函数/构造子的直接实参位」 |
 | `kernel-rejected`（带期望/实际） | 填了类型而非证明项 / 方向反 / 宇宙忘了 `.{1}` / 忘了 `Not` 会展开 | 让用户对比声明类型与所填项的形状，逐参数预言类型 |
 | `warning`（`reserved-declaration-name`） | 声明名撞内核已定义的名字（`Prop`/`Sort`/`Type`）：声明仍 `decl.checked`，但永不被引用 | 非致命，不影响判卷；说明这行只是占位，练习照常推进 |
+| `warning`（`redundant-sorry`） | 答案其实写全了，那行 `sorry` 是**多接的一个实参**（删掉它声明就过内核）；事件仍是 `exercise.open` | 直接说「把这一行的 `sorry` 删掉就完成了」——**不要**说"还没证出来"；然后照常出下一题 |
 | 无诊断但语义不对 | 内核只判类型不判意图（如 `double := fun n => n`） | 设计「证明形状」需求：另出一题用 `Eq` 回判该定义的值 |
 
 诊断自带教学 `hint` 字段——那是给学习者的第一句话，转述即可，不要照本

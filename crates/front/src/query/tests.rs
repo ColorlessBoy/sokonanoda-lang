@@ -640,3 +640,39 @@ fn project_view_is_none_for_single_files_with_a_reason() {
     assert!(broken.project_view().is_none());
     assert_eq!(broken.project_view_reason(), "parse-error");
 }
+
+/// 「多余的 `sorry`」标记（`docs/design/redundant-sorry.md`）：洞级"这是多写的
+/// 一行"必须能从查询层问出来，且与真缺口区分开。判定来自**同一条** kernel 终审
+/// warning（不另算），所以标记与 warning 永不漂移。
+#[test]
+fn holes_carry_the_redundant_sorry_mark() {
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom f : A -> B\n\
+               theorem t (h : A) : B := f h\n\
+               \x20 sorry\n\
+               theorem genuine (h : A) : B := f\n\
+               \x20 sorry\n";
+    let doc = doc(src);
+    let holes = doc.holes();
+    assert_eq!(holes.len(), 2, "one hole per declaration: {holes:?}");
+    let marked: Vec<(&str, bool)> = holes.iter().map(|h| (h.id.as_str(), h.redundant)).collect();
+    assert_eq!(
+        marked,
+        vec![("t:0", true), ("genuine:0", false)],
+        "the leftover line is redundant; the missing argument is not: {holes:?}"
+    );
+    // `state`/`goals` 的洞是同一份数据（同一个 `HoleInfo`）。
+    let goals = doc.goals(false);
+    let t = goals.iter().find(|d| d.name == "t").expect("decl t");
+    assert!(t.holes.iter().all(|h| h.redundant), "{:?}", t.holes);
+    let genuine = goals
+        .iter()
+        .find(|d| d.name == "genuine")
+        .expect("decl genuine");
+    assert!(
+        genuine.holes.iter().all(|h| !h.redundant),
+        "{:?}",
+        genuine.holes
+    );
+}

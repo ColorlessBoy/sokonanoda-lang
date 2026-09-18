@@ -58,7 +58,10 @@ GitHub Releases API 在 CI 里生成。官网是这些事实的**视图**，不�
 3. CI 的 pages workflow 里用 **python3（已具备，标准库）** 生成 `site/data/site.json`：
    - `version` ← `Cargo.toml` 的 `[workspace.package].version`（**不是**手写）；
    - `units` ← `course/course.json`（单元数、标题、是否英文镜像）；
-   - `round / date / title` ← `STATUS.md` 的机器可读块；
+   - `round / date / title` ← `STATUS.md` **最新那条** `## 本轮进度（YYYY-MM-DD，第N轮：标题）`
+     头（标题里可以带全角括号）；头解析不了时生成器**直接报错退出**，不静默退回
+     上一轮（2026-09-18 实测踩过：标题里加了一对 `（多余的 sorry）`，网站 round
+     悄悄停在 97）；
    - `lesson files` ← `examples/*.sokonanoda` 列表。
 4. **版本与下载链接在浏览器端查 GitHub Releases API**
    （`https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/releases/latest`），

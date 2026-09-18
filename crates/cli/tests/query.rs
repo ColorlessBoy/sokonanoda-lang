@@ -552,6 +552,99 @@ fn assert_state_matches_lsp(canvas: &str, line_1based: usize, col_1based: usize)
     );
 }
 
+/// 「多余的 `sorry`」的洞级标记（`docs/design/redundant-sorry.md` §5）：
+/// `query goals`/`query holes` 与 LSP 的 `soko/goals` 必须给出同一个
+/// `redundant: true`——agent 侧据此说"删掉这一行"，而不是"你还没证出来"。
+/// 真缺口是同一条 op 上的对照组（标记为 `false`）。
+#[test]
+fn query_and_the_lsp_agree_on_the_redundant_mark() {
+    for (canvas, expected) in [(REDUNDANT_CANVAS, true), (GENUINE_CANVAS, false)] {
+        let (value, code) = query(&["goals", "--text", canvas], None);
+        assert_eq!(code, 0, "{value}");
+        let cli_decl = value["data"]
+            .as_array()
+            .expect("cli decls")
+            .iter()
+            .find(|d| d["name"] == "t")
+            .expect("decl t");
+        let cli_holes: Vec<(String, bool)> = cli_decl["holes"]
+            .as_array()
+            .expect("cli holes")
+            .iter()
+            .map(|h| {
+                (
+                    h["id"].as_str().unwrap().to_string(),
+                    h["redundant"].as_bool().unwrap_or(false),
+                )
+            })
+            .collect();
+        assert_eq!(
+            cli_holes,
+            vec![("t:0".to_string(), expected)],
+            "query goals must mark the hole: {value}"
+        );
+
+        let lsp = lsp_request(
+            "file:///redundant.sokonanoda",
+            canvas,
+            "soko/goals",
+            serde_json::json!({
+                "textDocument": {"uri": "file:///redundant.sokonanoda"},
+            }),
+        );
+        if lsp.is_null() {
+            return; // 二进制未编，已打印提示
+        }
+        let lsp_decl = lsp["result"]["decls"]
+            .as_array()
+            .expect("lsp decls")
+            .iter()
+            .find(|d| d["name"] == "t")
+            .expect("decl t");
+        let lsp_holes: Vec<(String, bool)> = lsp_decl["holes"]
+            .as_array()
+            .expect("lsp holes")
+            .iter()
+            .map(|h| {
+                (
+                    h["id"].as_str().unwrap().to_string(),
+                    h["redundant"].as_bool().unwrap_or(false),
+                )
+            })
+            .collect();
+        assert_eq!(
+            cli_holes, lsp_holes,
+            "`query goals` and `soko/goals` must agree on the mark\nCLI: {value}\nLSP: {lsp}"
+        );
+
+        // `query holes` 是同一个洞的另一种问法（共用真相层）。
+        let (holes, code) = query(&["holes", "--text", canvas], None);
+        assert_eq!(code, 0, "{holes}");
+        assert_eq!(
+            holes["data"]["holes"][0]["redundant"], expected,
+            "query holes must agree too: {holes}"
+        );
+    }
+}
+
+/// 「多余的 `sorry`」（答案写全、只多留一行）与真缺口（`f` 缺一个实参）——
+/// 洞级标记的正反两个样本。
+const REDUNDANT_CANVAS: &str = "\
+axiom A : Prop
+axiom B : Prop
+axiom f : A -> B
+theorem t (h : A) : B := f h
+ sorry
+";
+
+const GENUINE_CANVAS: &str = "\
+axiom A : Prop
+axiom B : Prop
+axiom f : A -> B
+theorem t : B := f
+ sorry
+";
+
 #[test]
 fn query_state_agrees_with_the_lsp_state_at_request() {
     // 三个位置覆盖协议的三条分支：根状态、某 tactic 之内（进入它之前）、

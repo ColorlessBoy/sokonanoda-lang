@@ -1,6 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-18（第九十七轮：真 VS Code 集成测试例行化 + 结果台账；版本 **0.58.0**）
+> 快照：2026-09-18（第九十八轮：合并 0.56.2 线（多余的 `sorry`）+ push 主线；
+> 版本 **0.58.0** —— 两条并行线已合并：本线 I16 项目管理 + 0.56.2 的
+> `redundant-sorry`，`v0.56.2` 的功能与 tag 都在历史里）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +16,75 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 一句话
+
+`.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
+练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
+CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-18，第九十八轮：合并 0.56.2 线（多余的 `sorry`）+ push 主线 —— 0.58.0 发布）
+
+> 用户：「你来搞吧，push」——本线（I16 项目管理 → 0.58.0）与 `origin/main`
+> （0.56.2 = `redundant-sorry` 线）已经**分叉**：远端 3 个 commit（`dd1902d`
+> release 0.56.2 / `f66fee3` 0.56.2 发布文档 / `74cdbda` CI skill），本线 53 个。
+> 不能强推（会丢掉 0.56.2 的功能与已发布的 `v0.56.2`），所以**先合并再 push**。
+
+1. **合并过程（scratch worktree，19 个文件冲突逐个手心合并）**：`git worktree add
+   /tmp/soko-merge` 从本线 HEAD 建 `i16-merge`，`git merge origin/main`；合并树验证
+   全绿后再 `merge --ff-only` 回本线（主线保持线性、无 merge 提交噪音）。
+   - **内核（冻结快照）**：0.56.2 只加不改语义（`check_declar_at` /
+     `try_check_declar_at` 显式限界入口），`crates/kernel/{tc,util}.rs` 取远端；
+     三层回归测试一并并入（`memory_api` 7 → 8）。
+   - **前端**：`open_goal` 增第 4 个参数（候选"多余洞" sink，`Vec<Span>`）；
+     `PendingOp::OpenExercise` 增 `env_before`（探针终审的可见前缀）+
+     `redundant_probes`（pass 1 造、pass 2 查、**不入环境**）。
+   - **搬进模块化的树**：0.56.2 写在旧 `check.rs`（1918 行）里的探针代码要手工搬到
+     本线的 `check/{walk,kernel_phase}.rs`：`build_redundant_probes` → `walk.rs`，
+     终审循环（`try_check_declar_at(…, EnvLimit::ByIndex(env_before))`）+
+     warning 装配 → `kernel_phase.rs`；旧 `check.rs` 在合并树里 `git rm`，
+     `Cargo.lock` 取本线后 `cargo metadata` 重生成。
+2. **合并暴露的一处真 bug（已修 + 已加回归）—— warning 的跨模块归因**：
+   `redundant-sorry` 是 pass 2 **现算**的 warning（带命令下标就有归因依据），
+   而 `split_report` 原先只按单元**重算语法级** warning ⇒ 项目入口里"多写了一行
+   `sorry`"会被静默丢掉（单文件看不出来）。修法：`CompileOutput` 增平行数组
+   `warning_cmds` + `push_warning(cmd, w)`（与 `event_cmds` / `error_cmds` 同款
+   不变量：两数组严格平行、永不失配），`split_report` 按**命令下标**归因
+   （不猜 span——不同文件的 offset 不在同一个坐标空间）；语法级 warning 由
+   `kernel_phase` 钉在所属单元的区间上。回归：
+   `compile::tests::warnings_are_attributed_to_the_unit_that_produced_them`
+   （依赖 2 条 = 语法级 + 内核终审、入口 1 条，span 各落在自己文件的坐标里）。
+3. **验收（合并树上真跑）**：`cargo test --workspace --locked` **888 passed /
+   0 failed / 6 ignored**（27 个测试目标 + 3 个 doc-test 目标；kernel 52 =
+   lib 43 + arena 1 + memory_api 8；front 475 = lib 466 + perf 3 + perf_project 6；
+   cli 223 = 单元 5 + 集成 17 个目标 218；lsp 138）；`cargo fmt` / clippy 干净。
+   四个纯 Node 套件 18 / 7 / 10 / 11；真 VS Code 例行化（`scripts/vscode-e2e.sh`，
+   1.138.0 与 1.106.0 各一轮）**14/14**；`scripts/e2e-merge.py --check`、
+   `scripts/check-site.py`、`scripts/soko gate` 全绿。0.56.2 的功能在合并树上逐条
+   复验：`redundant-sorry` 正例 / 真缺口反例 / 前瞻引用护栏（front 5 条）、
+   `--json` warning 事件、`query goals|holes` 的洞级 `redundant` 标记、
+   LSP 不再叠 "not yet solved"。
+4. **push 前的 CI 预检（发现并修掉一个 workflow 设计错误）**：原先把三条 e2e 腿
+   放在**同一个 job 的矩阵**里、用 job 级 `if: matrix.os != 'macos-latest' || …`
+   表达"macOS 只在 main 上跑"——但 GitHub 的 contexts 可用性表里
+   `jobs.<job_id>.if` **不含 `matrix`**，这个条件要么按空值求值（macOS 腿在 PR 上也
+   跑），要么被判成未识别命名值让**整个 workflow 校验失败**（那样一条 CI 都不会跑）。
+   现在拆成两个 job：`e2e`（ubuntu × 2 版本，每个 PR/分支 push）+
+   `e2e-macos`（macos × 1.138.0，github-only 条件、只 main）；`auto-tag` 的 needs 与
+   `e2e-ledger` 的 needs 同步带上两条。顺带加固 `scripts/e2e-merge.py` 的去重键
+   （加 `host.system`/`machine`：ubuntu 与 macos 的 1.138.0 腿同秒完成时不会被当成
+   重复条目丢掉）。合并树先推一个**临时预检分支**跑一遍 CI（workflow 校验 +
+   ubuntu 两条腿 + 全部其它 job），绿了再 push main。
+5. **发布**：push `main` → `ci.yml` 的 auto-tag 打 `v0.58.0` 并 dispatch
+   `release.yml`（8 平台 CLI/LSP tarball + 9 个 VSIX）。`v0.56.2` 的 tag 与其
+   功能都保留在历史里，0.58.0 的 CHANGELOG 补记"多余的 `sorry` 已并入"。
+6. **文档**：本文件（第九十五轮移入归档 + 0.56.2 线的第九十一轮续一并归档）、
+   `docs/STATUS-ARCHIVE.md`、`REQUIREMENTS.md` §9（九十八）、`docs/HANDOVER.md`、
+   `docs/TESTING.md`（合并后的测试构成）、`docs/LESSONS.md`、
+   `editor/vscode/CHANGELOG.md`、`docs/protocol.md`（warning 码三个并列）、
+   `skills/sokonanoda-teacher/references/events.md`、
+   `docs/design/deepseek-harness.md`（H3 追加行）、`docs/E2E.md` §5/§7（两个 e2e job 与
+   版本升级三处）、`.github/workflows/ci.yml` 注释。
 
 ## 本轮进度（2026-09-18，第九十七轮：真 VS Code 集成测试例行化 + 结果台账）
 
@@ -138,47 +209,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 7. **批次 1–4 全部完成**。剩下的只有 P7 长尾（`[deps]`、`namespace`/`open`、
    `watch` 项目模式、decl 级产物）与 `docs/HANDOVER.md` §4 的结构债清单
    （`compile/tests.rs` 4828 / `elab.rs` 2854 / `parser.rs` 2065 / `lsp/lib.rs` 1554）。
-
-## 本轮进度（2026-09-18，第九十五轮：待办批次 3 完成 —— 拆 `run_pass` + 项目整理）
-
-> 用户：「可以，前三个你先做完，把项目理干净」（批次 1/2 已在第九十四轮完成）。
-> 本轮 = **批次 3**（`run_pass` ≈1174 行单函数 → 三个模块，三次提交，每刀只动位置）
-> + **一轮仓库整理**（死代码、过期文档、模块地图、经验台账、STATUS 归档）。
-
-1. **第一刀 —— 闭包装配件出 `check.rs`**：`SourceUnit` / `unit_ranges` /
-   `split_report` / `compile_all_units` → `compile/units.rs`（108 行；单文件也走同一条路径）。
-2. **第二刀 —— `run_pass` 尾部出 `check/kernel_phase.rs`**：`builder.finish()` 之后的
-   内核 check-then-add + 事件/错误 + 每命令签名与 early cutoff + 报告装配（≈360 行）
-   原样搬进 `finish_pass(Walked)`；`check.rs` 1918 → `check/mod.rs` **1522**。
-3. **第三刀 —— 命令走查出 `check/walk.rs`**：`Walk`（可变累加器：builder /
-   known_universes / inductives / out / ops / cmd_hovers / decl_states / example_idx）、
-   `CmdCtx`（每命令派生的 `Cow` 前缀、模板、信任位）、每个 `Command` 变体一个方法；
-   arm 里的 `continue` 改 `return`（8 个 arm 都没有内层循环）。最终
-   `check/mod.rs` **791** + `walk.rs` **951** + `kernel_phase.rs` **413**；
-   单文件仍走 `Cow::Borrowed` 前缀（零新增分配，A1 不变）。
-4. **验收（方法论收获）**：除 `cargo test --workspace --locked` **862 passed / 0 failed**
-   外，做**二进制对拍**——`git worktree` 取改动前的树，两个 CLI 对同一批输入
-   （全部 58 个 `.sokonanoda` + `--root` / `--no-project` / stdin /
-   `query check|goals|holes`）输出**逐字节相同**；8 个 arm 另做"逐字符同构"
-   （空白无关）比较。方法与两个坑（`cargo fmt` 会重排；**两个 worktree 别共用
-   `CARGO_TARGET_DIR`**——后建的树会静默覆盖前者的二进制）写进
-   `docs/TESTING.md`「二进制对拍」与 `docs/LESSONS.md`。
-5. **整理（死代码）**：删掉只写状态 `built_inductives`（唯一消费者是文件尾的
-   `let _ = …`；顺带去掉归纳块每次的无用 `Vec` 克隆）与 `def` 开练习路径里推**空**
-   `CmdHover` 的空操作（`resolve_hovers` 只读 `nodes`）——同样过二进制对拍。
-6. **整理（性能台账口径）**：复盘台账发现**采样口径**问题——项目层 perf 套件在同一
-   测试二进制里**并行**跑，把单次操作成本放大 3–4×（同一份代码：单跑 32.4ms /
-   串行 33–38ms / 默认并行 118–152ms；LSP didOpen+按键 12+12ms vs 64+50ms）。
-   修法：`scripts/perf-ledger.sh` / `perf-report.sh` 一律 `--test-threads=1`、
-   `perf_project` 的分阶段/缩放改 `measure_best(…, 3)`；`docs/PERF.md` 的基线表
-   按**串行口径**重写（教学规模 2/3/5 × 12 声明一次按键 **14/16/24ms**，4×20 编译
-   32–38ms）并写明"跨口径不可比"；教训进 `docs/LESSONS.md`。**旧台账条目是并行口径，
-   比较时先看是否落在 ±25% 内。**
-7. **整理（文档）**：HANDOVER 里"项目入口 quick-fix 仍未做"的过期段落更正；§4 新增
-   剩余结构债盘点（`compile/tests.rs` 4828 / `elab.rs` 2854 / `parser.rs` 2065 /
-   `lsp/lib.rs` 1554 / `vscode/extension.js` 1493，按建议顺序）与
-   "开练习的类型子表达式没有 hover 行"（**刻意保留现状**，含补法）；`architecture.md`
-   仓库地图 + §4.2 补"阶段 ↔ 模块"对照；`TESTING.md` 新增「二进制对拍」小节 +
-   精确测试构成（kernel 51 / front 462 / cli 214 / lsp 135）；本文件归档第九十二轮。
-8. **批次 3 完成 ⇒ 待办只剩批次 4**：`soko/project` 项目状态可视化（协议 + VS Code
-   状态/树：模块根、清单来源、闭包模块、失败模块）。

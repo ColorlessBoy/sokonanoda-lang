@@ -20,6 +20,15 @@
   `sokonanoda query project [--file … | --text … | -]` prints one JSON object
   (`{project, reason}`) and the MCP bridge grew a matching `project` tool.
 
+- **A leftover `sorry` is now named as such** (ported from the 0.56.2 line): when
+  the answer already proves the goal and a `sorry` merely follows it, the editor
+  flags that line with a `redundant-sorry` warning instead of "exercise not yet
+  solved". `soko/goals` holes carry `redundant: true`, `sokonanoda query
+  goals`/`holes` and the MCP tools expose the same field, and `--json` emits
+  `{"type":"warning","code":"redundant-sorry",…}` with a teaching hint. The
+  verdict is the kernel's: the term with that argument removed must pass a full
+  check of the declaration (`docs/design/redundant-sorry.md`).
+
 ### Notes
 
 - Rust workspace and extension versions are bumped together (0.58.0), as the
@@ -93,6 +102,31 @@
 - Known limitation (recorded for the next round): a file changed *outside the
   editor* (git checkout, another tool) is not noticed until it is reopened —
   `didChangeWatchedFiles` is not wired yet.
+## [0.56.2] - 2026-09-17
+
+### Added
+
+- **A leftover `sorry` is no longer called "not yet solved".** When the answer
+  already proves the goal and a `sorry` merely follows it (the `f h` line plus a
+  stray `sorry`), the editor now flags **that line** with a `redundant-sorry`
+  warning telling you to delete it, instead of
+  `declaration '…' uses 'sorry' (exercise not yet solved)`. The declaration is
+  still open — the verdict is the kernel's: the term with that argument removed
+  must pass a full check of the declaration
+  (`docs/design/redundant-sorry.md`).
+- The mark is machine-readable too: `soko/goals` holes carry `redundant: true`
+  (`sokonanoda query goals` / `query holes` and the DSH MCP tools expose the same
+  field), so an agent says "delete that line" rather than "keep proving".
+- `sokonanoda --json` emits `{"type":"warning","code":"redundant-sorry",…}` with a
+  teaching hint; the human view prints one `line:col: warning[redundant-sorry]`
+  line on stderr and the exit code stays 0.
+
+### Notes
+
+- Genuine holes are untouched: a missing argument or proof still warns as before,
+  and a term that does not prove the goal never gets the mark (both pinned by
+  tests, including a forward-reference guard: a constant declared *after* the
+  exercise is not visible to the verdict).
 
 ## [0.56.1] - 2026-09-17
 

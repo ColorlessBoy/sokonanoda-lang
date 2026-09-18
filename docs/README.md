@@ -86,6 +86,13 @@
   10 个语言/证明助手的"单文件 vs 项目"横向调研、`import` 置顶语法与 Lean 同款
   模块名规则、`sokonanoda.toml` 项目根、闭包编译与闭包哈希缓存、CLI/LSP/query
   表面与第 11 单元教学计划（2026-09-17，实现未开始；ROADMAP I16）
+- `redundant-sorry.md` — **多余的 `sorry`（用户实测反馈，已落地）**：值位里"学生
+  已写完、只留了一行 `sorry`"被误报成"练习尚未解决"；候选规则 = 实参超出望远镜
+  且结果展不开箭头，终审 = kernel（删掉该实参后整条声明能过）。§8 记录了那个
+  5 分钟实验：**真根因不是 `NamePtr` 身份，而是 `EnvLimit::ByName(探针名)` 取到
+  `NO_DECL` ⇒ cutoff 0 ⇒ 空环境**；修法是内核**只加不改语义**的
+  `check_declar_at`/`try_check_declar_at` + front 传 `ByIndex(env_before)`
+  （2026-09-17，第九十一轮续落地；三层验收见 §8.4）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。

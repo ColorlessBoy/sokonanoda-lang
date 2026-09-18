@@ -51,6 +51,7 @@ pub fn unit_ranges(units: &[SourceUnit<'_>]) -> Vec<std::ops::Range<usize>> {
 pub fn split_report(
     flat: DocumentReport,
     error_cmds: &[usize],
+    warning_cmds: &[usize],
     units: &[SourceUnit<'_>],
 ) -> Vec<DocumentReport> {
     let ranges = unit_ranges(units);
@@ -64,7 +65,7 @@ pub fn split_report(
         hover_cmds,
         errors,
         checks,
-        warnings: _,
+        warnings,
     } = flat;
     for mut decl in decls {
         let unit = unit_of_cmd(decl.cmd).unwrap_or(fallback);
@@ -90,9 +91,18 @@ pub fn split_report(
         let unit = unit_of_cmd(check.cmd).unwrap_or(fallback);
         reports[unit].checks.push(check);
     }
-    // 警告按单元重算（纯语法、与内核无关），既精确又不依赖 offset 猜测。
-    for (index, unit) in units.iter().enumerate() {
-        reports[index].warnings = super::warning::collect_warnings(unit.file);
+    // 警告同法按命令归因：语法级的被 `kernel_phase` 钉在所属单元的首条命令上，
+    // 内核终审过的（`redundant-sorry`）带真实命令下标——两者都只依赖命令区间，
+    // 不猜 offset（不同文件的 offset 不在同一个坐标空间里）。
+    debug_assert_eq!(
+        warnings.len(),
+        warning_cmds.len(),
+        "every warning must carry its command index (CompileOutput::push_warning)"
+    );
+    for (position, warning) in warnings.into_iter().enumerate() {
+        let cmd = warning_cmds.get(position).copied().unwrap_or(usize::MAX);
+        let unit = unit_of_cmd(cmd).unwrap_or(fallback);
+        reports[unit].warnings.push(warning);
     }
     reports
 }

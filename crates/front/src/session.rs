@@ -86,6 +86,9 @@ struct CmdSnapshot {
     events: Vec<CheckEvent>,
     /// 归属本命令、但不属于声明状态的错误（如 `#check` 的 elab 失败）。
     errors: Vec<CompileError>,
+    /// 归属本命令的**内核终审** warning（`redundant-sorry`）。语法级 warning
+    /// 每次 update 由 `collect_warnings` 重算，不进快照（否则重复报）。
+    warnings: Vec<crate::compile::CompileWarning>,
     /// I8 依赖精确化（early cutoff）：本命令对环境的贡献签名（已过内核的
     /// 声明非空）。open/失败/非声明命令为 `None`（无环境贡献）。
     signature: Option<String>,
@@ -196,7 +199,9 @@ impl Session {
             // 提示阶梯是注释级数据：零重编译路径也要按当前文本刷新
             // （hint 指令的增删只移动 span，不触发重编译）。
             crate::compile::hints::attach_hints_to_report(src, &mut report);
-            report.warnings = crate::compile::collect_warnings(&file);
+            let mut warnings = crate::compile::collect_warnings(&file);
+            warnings.append(&mut report.warnings);
+            report.warnings = warnings;
             let events = all_events(&self.snaps);
             return SessionUpdate {
                 report,
@@ -299,7 +304,9 @@ impl Session {
 
         let mut report = assemble_report(&new_snaps);
         crate::compile::hints::attach_hints_to_report(src, &mut report);
-        report.warnings = crate::compile::collect_warnings(&file);
+        let mut warnings = crate::compile::collect_warnings(&file);
+        warnings.append(&mut report.warnings);
+        report.warnings = warnings;
         let events = all_events(&new_snaps);
         let delta = diff_decls(&old_states, &report.decls, version);
         self.keys = new_keys;
@@ -361,6 +368,9 @@ fn remap_snapshots(
         }
         for err in &mut snap.errors {
             err.span = remap_span(err.span, old_c, new_c, new_src);
+        }
+        for warning in &mut snap.warnings {
+            warning.span = remap_span(warning.span, old_c, new_c, new_src);
         }
     }
 }
@@ -526,6 +536,13 @@ fn build_suffix_snapshots(
             snaps[j].errors.push(err.clone());
         }
     }
+    // 内核终审过的 warning 同法归属（`out.warnings` 里还混着语法级的，
+    // 那些由 `collect_warnings` 每轮重算，不能进快照）。
+    for warning in out.warnings.iter().filter(|w| w.kind.is_kernel_verified()) {
+        if let Some(j) = containing_command(commands, warning.span.start.offset) {
+            snaps[j].warnings.push(warning.clone());
+        }
+    }
     snaps
 }
 
@@ -547,6 +564,7 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
     let mut hovers = Vec::new();
     let mut hover_cmds = Vec::new();
     let mut errors = Vec::new();
+    let mut warnings = Vec::new();
     let mut checks = Vec::new();
     for (j, snap) in snaps.iter().enumerate() {
         if let Some(state) = &snap.state {
@@ -557,6 +575,7 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
             hover_cmds.push(j);
         }
         errors.extend(snap.errors.iter().cloned());
+        warnings.extend(snap.warnings.iter().cloned());
         for event in &snap.events {
             if let CheckEvent::TypeChecked { text, span } = event {
                 checks.push(crate::compile::CheckInfo {
@@ -574,9 +593,9 @@ fn assemble_report(snaps: &[CmdSnapshot]) -> DocumentReport {
         hover_cmds,
         errors,
         checks,
-        // Warnings are recomputed per document update from the parsed file
-        // (`collect_warnings`); snapshots do not cache them.
-        warnings: Vec::new(),
+        // 内核终审过的 warning 来自快照（跨版本复用）；语法级的由调用方
+        // 用 `collect_warnings` 在整文件上重算后拼在前面。
+        warnings,
     }
 }
 
@@ -991,6 +1010,44 @@ def five : Nat := 5
         assert_eq!(
             u2.report.warnings[0].span.start.offset,
             u1.report.warnings[0].span.start.offset + "-- 讲解\n".len()
+        );
+    }
+
+    /// 「多余的 `sorry`」是**内核终审**过的 warning：会话路径必须把它带出来
+    /// （`session.rs` 曾经只重算语法级 warning，把它丢了 → LSP 看不到），
+    /// 而且增量编辑后要随快照活下来（信任前缀不会重跑探针），span 随前文平移。
+    #[test]
+    fn session_keeps_kernel_verified_warnings_across_edits() {
+        let mut session = Session::new(CompileOptions::default());
+        let src1 = "axiom A : Prop\n\
+                    axiom B : Prop\n\
+                    axiom f : A -> B\n\
+                    theorem t (h : A) : B := f h\n\
+                    \x20 sorry\n";
+        let u1 = update(&mut session, src1, 1);
+        let codes: Vec<&str> = u1.report.warnings.iter().map(|w| w.code()).collect();
+        assert_eq!(codes, vec!["redundant-sorry"], "{:?}", u1.report.warnings);
+        let span1 = u1.report.warnings[0].span;
+        assert_eq!(&src1[span1.start.offset..span1.end.offset], "sorry");
+
+        // 注释级编辑（命令内容不变 → 零重编译）：warning 仍在，span 平移。
+        let comment = "-- 讲解：这一行的 sorry 是多余的\n";
+        let src2 = format!("{comment}{src1}");
+        let u2 = update(&mut session, &src2, 2);
+        assert_eq!(u2.recompiled_from, None, "comment-only edit");
+        let codes: Vec<&str> = u2.report.warnings.iter().map(|w| w.code()).collect();
+        assert_eq!(codes, vec!["redundant-sorry"], "{:?}", u2.report.warnings);
+        let span2 = u2.report.warnings[0].span;
+        assert_eq!(span2.start.offset, span1.start.offset + comment.len());
+        assert_eq!(&src2[span2.start.offset..span2.end.offset], "sorry");
+
+        // 删掉那一行 → 声明通过内核，warning 消失。
+        let fixed = src2.replace(" sorry\n", "\n");
+        let u3 = update(&mut session, &fixed, 3);
+        assert!(
+            u3.report.warnings.is_empty(),
+            "固定后不该再有 warning：{:?}",
+            u3.report.warnings
         );
     }
 

@@ -333,6 +333,70 @@ fn reserved_declaration_name_warns_but_stays_successful() {
 }
 
 #[test]
+fn redundant_sorry_warns_and_the_declaration_stays_open() {
+    // 用户实测形状（`playground.sokonanoda` 326–328）：答案写全了、只多留一行
+    // `sorry`（`docs/design/redundant-sorry.md`）。
+    let src = "axiom A : Prop\n\
+               axiom B : Prop\n\
+               axiom f : A -> B\n\
+               theorem t (h : A) : B := f h\n\
+               \x20 sorry\n";
+    let (out, events) = run_json_stdin(src);
+    assert!(
+        out.status.success(),
+        "a warning must not fail the run; stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let warnings: Vec<&Value> = events
+        .iter()
+        .filter(|e| event_type(e) == "warning")
+        .collect();
+    assert_eq!(warnings.len(), 1, "exactly one warning: {events:?}");
+    let w = warnings[0];
+    assert_eq!(w["code"], "redundant-sorry");
+    non_empty_str(w, "message", "warning");
+    non_empty_str(w, "hint", "warning");
+    let start = w["span"]["start"]["offset"].as_u64().expect("start offset") as usize;
+    let end = w["span"]["end"]["offset"].as_u64().expect("end offset") as usize;
+    assert_eq!(
+        &src[start..end],
+        "sorry",
+        "warning span narrows to the redundant `sorry` token: {w}"
+    );
+    // 语义不变：它仍然是一条**开放练习**（不是 error，也不改 exercise.open）。
+    assert!(
+        events
+            .iter()
+            .any(|e| event_type(e) == "exercise.open" && e["name"] == "t"),
+        "exercise.open semantics must not change: {events:?}"
+    );
+    assert!(
+        diagnostics(&events).is_empty(),
+        "a redundant sorry is a warning, not a diagnostic: {events:?}"
+    );
+
+    // 删掉那一行 → 完整通过内核，零 warning。
+    let fixed = src.replace(" sorry\n", "");
+    let (out, events) = run_json_stdin(&fixed);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| event_type(e) == "decl.checked" && e["name"] == "t"),
+        "deleting the leftover line must check the declaration: {events:?}"
+    );
+    assert!(
+        events.iter().all(|e| event_type(e) != "warning"),
+        "the fixed file carries no warning: {events:?}"
+    );
+}
+
+#[test]
 fn protocol_document_lists_every_emitted_type() {
     let doc = std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),

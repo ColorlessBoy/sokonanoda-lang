@@ -33,6 +33,11 @@ pub struct HoleInfo {
     pub start: usize,
     pub end: usize,
     pub id: String,
+    /// 这个洞是**多余的** `sorry`（删掉它整条声明就过内核），而不是"还没证
+    /// 出来"——`docs/design/redundant-sorry.md`。`false` 也可能只是没有判定
+    /// 依据（保守）。
+    #[serde(default)]
+    pub redundant: bool,
 }
 
 /// 构造子 spine 子洞的期望类型（服务端走查；`ty: None` = 走查无法确定）。
@@ -122,6 +127,9 @@ pub struct LocatedHole {
     pub ty: Option<String>,
     /// 所属声明名（匿名 `example` 用 `example@<line>` 形式）。
     pub decl: String,
+    /// 见 [`HoleInfo::redundant`]：这是"多写的一行"而不是"还没证出来"。
+    #[serde(default)]
+    pub redundant: bool,
 }
 
 /// 一次判卷的摘要（`query check`；事件流的**视图**，不是替代品）。

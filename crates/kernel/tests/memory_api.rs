@@ -4,7 +4,7 @@
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{ConstructorData, Declar, DeclarInfo, EnvLimit, RecRule, RecursorData, ReducibilityHint};
 use sokonanoda::expr::{BinderStyle, Expr};
-use sokonanoda::util::{Config, ExportFile};
+use sokonanoda::util::{CheckError, Config, ExportFile};
 use stumpalo::Arena;
 
 /// 回归测试（conv 快路径 soundness 修复）：
@@ -389,4 +389,83 @@ fn rejects_iota_rule_count_short_of_constructors() {
         msg.contains("iota rule count does not match the constructor count"),
         "unexpected message: {msg}"
     );
+}
+
+/// 「合成的、**刻意不入环境**的声明」必须显式给限界
+/// （`docs/design/redundant-sorry.md` §8：`redundant-sorry` 探针卡在这里）。
+///
+/// 环境：`axiom A : Prop`、`axiom B : Prop`、`axiom f : A -> B`；
+/// 合成声明（**不** `add_declar`）：`_soko_redundant_sorry_0 : (h : A) -> B :=
+/// fun (h : A) => f h`——就是"学生把答案写全了、只多留一行 `sorry`"的形状。
+///
+/// 三层含义：
+/// 1. `try_check_declar`（名字自己定限界）→ 它的名字没有 `decl_idx`，
+///    `EnvLimit::ByName` 取 0 ⇒ **空环境** ⇒ 连环境里明明有的 `A` 都
+///    `unknown const`（这就是那个坑）；
+/// 2. `try_check_declar_at(_, ByIndex(探针若入环境会占的下标))` → 通过；
+/// 3. 真实声明两条入口同结果（`ByName(真名)` 与它入环境时的下标等价）。
+#[test]
+fn synthetic_declaration_needs_an_explicit_environment_limit() {
+    let arena = Arena::new();
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let prop = b.mk_sort(b.zero());
+    let empty = b.alloc_levels_slice(&[]);
+    let name_a = b.name_from_str("A");
+    let name_b = b.name_from_str("B");
+    let axiom = |name| Declar::Axiom {
+        info: DeclarInfo {
+            name,
+            uparams: empty,
+            ty: prop,
+        },
+    };
+    b.add_declar(axiom(name_a)).expect("add A");
+    b.add_declar(axiom(name_b)).expect("add B");
+    let a = b.mk_const(name_a, empty);
+    let b_ty = b.mk_const(name_b, empty);
+    let name_f = b.name_from_str("f");
+    let f_ty = b.mk_pi(name_a, BinderStyle::Default, a, b_ty);
+    let axiom_f = Declar::Axiom {
+        info: DeclarInfo {
+            name: name_f,
+            uparams: empty,
+            ty: f_ty,
+        },
+    };
+    b.add_declar(axiom_f.clone()).expect("add f");
+    // 探针若真的进环境，它会占这个下标（= 前端 `env_before`）。
+    let env_before = b.declaration_count();
+    let h = b.name_from_str("h");
+    let probe_ty = b.mk_pi(h, BinderStyle::Default, a, b_ty);
+    let const_f = b.mk_const(name_f, empty);
+    let var_h = b.mk_var(0);
+    let f_h = b.mk_app(const_f, var_h);
+    let probe_val = b.mk_lambda(h, BinderStyle::Default, a, f_h);
+    let probe = Declar::Definition {
+        info: DeclarInfo {
+            name: b.name_from_str("_soko_redundant_sorry_0"),
+            uparams: empty,
+            ty: probe_ty,
+        },
+        val: probe_val,
+        hint: ReducibilityHint::Regular(0),
+    };
+    // **故意**不 `add_declar(probe)`：合成声明绝不入环境。
+    let env = b.finish();
+
+    let trapped = env.try_check_declar(&probe);
+    let msg = format!("{trapped:?}");
+    assert!(
+        matches!(trapped, Err(CheckError::Rejected(ref m)) if m.contains("unknown const")),
+        "name-derived limit must collapse to an empty environment: {msg}"
+    );
+
+    env.try_check_declar_at(&probe, EnvLimit::ByIndex(env_before))
+        .expect("explicit limit must see the prefix the probe was built against");
+
+    // 等价性：真实声明用 `ByName(真名)` 与用它入环境时的下标同结果。
+    env.try_check_declar_at(&axiom_f, EnvLimit::ByName(name_f))
+        .expect("real declaration checks under its own name-derived limit");
+    env.try_check_declar_at(&axiom_f, EnvLimit::ByIndex(env_before - 1))
+        .expect("real declaration checks under its own index");
 }

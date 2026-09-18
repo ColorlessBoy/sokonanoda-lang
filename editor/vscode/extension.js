@@ -355,9 +355,13 @@ class GoalsTreeDataProvider {
       item.iconPath = statusIcon(decl.status);
       if (decl.status === "open") {
         item.contextValue = "openExercise";
+        // 请求发起时钉住的 URI（`requestedUri`），**不是** `this.uri`：
+        // 切文件竞态的修复（docs/vscode-dev-guide.md 坑 15）在 0.57.0；另一条线
+        // （0.56.2）这里还是旧的 `this.uri`。合并时保留修好的那版。
         item.children = buildOpenChildren(decl, requestedUri);
-        // soko/goals holes are `{range, id}` objects (docs/protocol.md) —
-        // the client reads positions through hole.range, never bare.
+        // soko/goals holes are `{range, id, redundant}` objects
+        // (docs/protocol.md) — the client reads positions through
+        // hole.range, never bare.
         const hole = decl.holes?.[0];
         if (hole) {
           item.command = {

@@ -16,11 +16,11 @@ use super::{
 };
 use crate::compile::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
-    ElabCtx, ElabScope, InductiveTable, UnivMap,
+    ElabCtx, ElabScope, HoverNode, InductiveTable, UnivMap,
 };
 use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
-use crate::compile::goals::{expr_has_hole, open_goal, GoalTemplates};
+use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
 use crate::compile::report::{DeclKind, DeclState};
 use crate::compile::units::SourceUnit;
@@ -207,7 +207,8 @@ impl<'arena> Walk<'arena> {
             // Trusted prefix: keep the environment, skip the kernel.
             // Cached failures keep the name free (check-then-add);
             // open exercises never enter the environment anyway.
-            if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val, templates).is_some()
+            if skip.is_some_and(|s| s.contains_key(&idx))
+                || open_goal(ty, val, templates, &mut Vec::new()).is_some()
             {
                 return;
             }
@@ -239,7 +240,8 @@ impl<'arena> Walk<'arena> {
             self.decl_states.push(err);
             return;
         }
-        let open_info = open_goal(ty, val, templates);
+        let mut redundant_spans: Vec<Span> = Vec::new();
+        let open_info = open_goal(ty, val, templates, &mut redundant_spans);
         if let Some(info) = open_info {
             let declared_ty = elab_expr(
                 &mut self.builder,
@@ -257,6 +259,16 @@ impl<'arena> Walk<'arena> {
                 name: Some(name.to_string()),
                 kind: DeclKind::Definition,
                 universe: universe.to_vec(),
+                redundant_probes: build_redundant_probes(
+                    &mut self.builder,
+                    universe,
+                    ty,
+                    val,
+                    &redundant_spans,
+                    &self.known_universes,
+                    &elab_ctx,
+                ),
+                env_before: c.env_before,
                 declared_ty,
                 goal: Some(info.goal),
                 binders: info.binders,
@@ -367,7 +379,8 @@ impl<'arena> Walk<'arena> {
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1);
         if trusted {
-            if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val, templates).is_some()
+            if skip.is_some_and(|s| s.contains_key(&idx))
+                || open_goal(ty, val, templates, &mut Vec::new()).is_some()
             {
                 return;
             }
@@ -403,7 +416,8 @@ impl<'arena> Walk<'arena> {
         // 无法分解时（如超量应用、def 展开间接调用），如果值里有
         // 洞 → 生成 **generic open exercise**（整值 = 一个洞，目标 =
         // 声明类型）。学习者看到的是一个可填充的练习而不是报错。
-        let open_info = open_goal(ty, val, templates);
+        let mut redundant_spans: Vec<Span> = Vec::new();
+        let open_info = open_goal(ty, val, templates, &mut redundant_spans);
         let open_info = match open_info {
             Some(info) => Some(info),
             None if expr_has_hole(val) => {
@@ -435,6 +449,16 @@ impl<'arena> Walk<'arena> {
                 name: Some(name.to_string()),
                 kind: DeclKind::Theorem,
                 universe: universe.to_vec(),
+                redundant_probes: build_redundant_probes(
+                    &mut self.builder,
+                    universe,
+                    ty,
+                    val,
+                    &redundant_spans,
+                    &self.known_universes,
+                    &elab_ctx,
+                ),
+                env_before: c.env_before,
                 declared_ty,
                 goal: Some(info.goal),
                 binders: info.binders,
@@ -632,7 +656,8 @@ impl<'arena> Walk<'arena> {
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1);
         if trusted {
-            if skip.is_some_and(|s| s.contains_key(&idx)) || open_goal(ty, val, templates).is_some()
+            if skip.is_some_and(|s| s.contains_key(&idx))
+                || open_goal(ty, val, templates, &mut Vec::new()).is_some()
             {
                 return;
             }
@@ -660,7 +685,8 @@ impl<'arena> Walk<'arena> {
         // 无法分解时（如超量应用、def 展开间接调用），如果值里有
         // 洞 → 生成 **generic open exercise**（整值 = 一个洞，目标 =
         // 声明类型）。学习者看到的是一个可填充的练习而不是报错。
-        let open_info = open_goal(ty, val, templates);
+        let mut redundant_spans: Vec<Span> = Vec::new();
+        let open_info = open_goal(ty, val, templates, &mut redundant_spans);
         let open_info = match open_info {
             Some(info) => Some(info),
             None if expr_has_hole(val) => {
@@ -692,6 +718,16 @@ impl<'arena> Walk<'arena> {
                 name: None,
                 kind: DeclKind::Example,
                 universe: Vec::new(),
+                redundant_probes: build_redundant_probes(
+                    &mut self.builder,
+                    &[],
+                    ty,
+                    val,
+                    &redundant_spans,
+                    &self.known_universes,
+                    &elab_ctx,
+                ),
+                env_before: c.env_before,
                 declared_ty,
                 goal: Some(info.goal),
                 binders: info.binders,
@@ -948,4 +984,46 @@ impl<'arena> Walk<'arena> {
             cmd: idx,
         });
     }
+}
+
+/// 「多余的 `sorry`」的 kernel 探针（`docs/design/redundant-sorry.md` §4）：
+/// 对每个候选洞，把那个实参从应用 spine 上删掉、按原声明的类型合成一条
+/// **不会进入环境**的声明；pass 2 用 `try_check_declar_at` 终审——过了才说明
+/// "删掉这行 sorry 就通过"，也就是"它不是你要证的东西"。
+/// 造不出来（elab 失败/形状不认识）就跳过：绝不猜。
+///
+/// **注意（§8.1）**：探针不入环境 ⇒ 它的名字没有 `decl_idx` ⇒
+/// `try_check_declar` 内部的 `EnvLimit::ByName(探针名)` 取 0（空环境），
+/// 终审必然 `unknown const`。修法见 §8.3（终审显式传 `EnvLimit::ByIndex(env_before)`）。
+#[allow(clippy::too_many_arguments)]
+fn build_redundant_probes<'arena>(
+    builder: &mut EnvBuilder<'arena>,
+    universe: &[String],
+    ty: &Expr,
+    val: &Expr,
+    spans: &[Span],
+    known: &HashMap<String, Vec<String>>,
+    ctx: &ElabCtx<'arena, '_>,
+) -> Vec<(Declar<'arena>, Span)> {
+    let mut probes = Vec::new();
+    for (i, span) in spans.iter().enumerate() {
+        let Some(modified) = spine_without_arg(val, *span) else {
+            continue;
+        };
+        let mut hovers: Vec<HoverNode<'arena>> = Vec::new();
+        let name = format!("_soko_redundant_sorry_{i}");
+        if let Ok(declar) = build_def(
+            builder,
+            &name,
+            universe,
+            ty,
+            &modified,
+            known,
+            &mut hovers,
+            ctx,
+        ) {
+            probes.push((declar, *span));
+        }
+    }
+    probes
 }

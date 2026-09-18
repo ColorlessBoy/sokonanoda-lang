@@ -28,12 +28,19 @@
 {"type": "warning", "human": "warning[reserved-declaration-name]: …",
  "code": "reserved-declaration-name", "message": "`Prop` 内核已经定义过了，不能再声明一次。…",
  "hint": "删掉这一行即可；…", "span": {"start": {...}, "end": {...}}}
+{"type": "warning", "human": "warning[redundant-sorry]: …",
+ "code": "redundant-sorry", "message": "这一行的 sorry 是多余的：前面的项已经完成了证明，…",
+ "hint": "删掉这一行 sorry，这条声明就会通过内核检查；…", "span": {"start": {...}, "end": {...}}}
 ```
 
 - `span` 是 1-based 行列 + 字节 offset；`--json` 的所有诊断带 `code` 与 `hint`。
 - `warning` 不改变退出码、不把文件判成错误。`reserved-declaration-name`
   表示顶层声明名撞上了内核已定义的名字（`Prop`/`Sort`/`Type`）：声明本身
   仍会 `decl.checked`，但这个名字永远不会被用到。
+- `redundant-sorry`：值其实已经把目标证完了，那个 `sorry` 是**多接在后面
+  的一个实参**（删掉这一行声明就能过内核）。它**仍然照常 `exercise.open`**：
+  要说的是"删掉这一行"，不是"你还没证出来"；span 收窄到那个 `sorry` token
+  （`docs/design/redundant-sorry.md`）。
   多文件项目里还有 `import-has-open-exercises`：依赖模块仍留着 `sorry` 时，
   入口的 `import` 行得到这条 warning（依赖里没解出的名字不会进入口环境）。
 - 多文件项目（0.57.0）的诊断带 `file`/`module` 字段，属于**别的文件**；`stage`

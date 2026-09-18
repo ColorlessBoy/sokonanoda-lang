@@ -59,6 +59,15 @@ pub(crate) enum PendingOp<'a> {
         cmd: usize,
         /// Per-tactic states for a `by` value (empty otherwise).
         by_steps: Vec<ByStepState>,
+        /// 探针终审用的**环境可见前缀**：本练习若真被补完，它的名字会在
+        /// `add_declar` 时占这个下标（= `builder.declaration_count()`），
+        /// 所以 `EnvLimit::ByName(真名)` 与 `ByIndex(env_before)` 等价。
+        /// 探针不入环境、名字没有 `decl_idx`，只能显式给这个限界
+        /// （`docs/design/redundant-sorry.md` §8）。
+        env_before: usize,
+        /// 「多余的 `sorry`」的 kernel 探针：pass 1 造、pass 2 查、**不入环境**。
+        /// 过了才报 `redundant-sorry`（`docs/design/redundant-sorry.md`）。
+        redundant_probes: Vec<(Declar<'a>, Span)>,
     },
     Check {
         expr: ExprPtr<'a>,
@@ -383,7 +392,7 @@ pub(crate) fn run(
         out2.stats.kernel_checks = pass.checks + pass2.checks;
         (out2, pass2.report)
     };
-    let reports = split_report(flat, &out.error_cmds, units);
+    let reports = split_report(flat, &out.error_cmds, &out.warning_cmds, units);
     (out, reports)
 }
 
@@ -417,7 +426,7 @@ pub(crate) fn run_incremental(
     if pass1.failed.is_empty() {
         let mut out = pass1.out;
         out.stats.kernel_checks = pass1.checks;
-        let report = split_report(pass1.report, &out.error_cmds, &units)
+        let report = split_report(pass1.report, &out.error_cmds, &out.warning_cmds, &units)
             .pop()
             .unwrap_or_default();
         return (out, report, pass1.checks, pass1.sigs, pass1.cutoff);
@@ -444,7 +453,7 @@ pub(crate) fn run_incremental(
     let checks = pass1.checks + pass2.checks;
     let mut out = pass2.out;
     out.stats.kernel_checks = checks;
-    let report = split_report(pass2.report, &out.error_cmds, &units)
+    let report = split_report(pass2.report, &out.error_cmds, &out.warning_cmds, &units)
         .pop()
         .unwrap_or_default();
     (out, report, checks, pass2.sigs, pass2.cutoff)

@@ -323,7 +323,8 @@ theorem exists_use_demo (P : Person -> Prop) (h : Exists Person P) : True :=
 -- soko:hint 思路：存在命题的证明要交两样东西：证人，以及性质对证人成立的证明。
 -- soko:hint 目标形态：目标 Exists Person P 没有箭头要拆，直接用构造规则。
 -- soko:hint 关键件：Exists.intro 吃四样：论域 Person、性质 P、证人 w、证明 hw。
-theorem exists_intro_rule (P : Person -> Prop) (w : Person) (hw : P w) : Exists Person P :=
+theorem exists_intro_rule (P : Person -> Prop) (w : Person) (hw : P w) : Exists Person P := 
+  Exists.intro Person P w hw
   sorry
 
 -- 练习 10：把 h 交给 f，让 f 处理里面的证人和证据。

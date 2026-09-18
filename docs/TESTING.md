@@ -20,6 +20,8 @@
 | elab | 未知标识符/常量、宇宙层级未声明/个数不符、binder 类型要求、`@id.{0}` 显式宇宙应用、隐式 binder 风格、双宇宙参数 axiom、`ErrorKind` 穷尽性与 code/hint 形状 | `crates/front/src/compile/tests.rs` :: `checks_universe_*`、`rejects_undeclared_universe_variable`、`rejects_wrong_number_of_universe_arguments`、`checks_at_marker_and_implicit_binders_in_py_fol_style`、`parses_implicit_binder_styles`、`checks_axiom_with_two_universe_params`、`checks_explicit_universe_application`、`every_error_kind_has_stable_code_and_hint` | `cargo test -p sokonanoda-front compile::tests::` |
 | kernel 检查 | 整文件过完整 kernel、拒绝带 span、拒绝消息形状（不是 panic 栈）、py-fol / py-nat 移植用例正反两面、显式 inductive / Nat 块、`#check`/`#reduce`/`#print`、原生大整数路径 | `crates/front/src/compile/tests.rs` :: `checks_a_valid_file_end_to_end`、`reports_kernel_rejection_with_span`、`kernel_rejection_message_is_not_a_panic_trace`、`checks_from_scratch_fol_proofs`、`checks_ported_py_fol_core`、`py_core_checks*` / `py_rejects_*` 系列、`explicit_inductive_block_compiles`、`explicit_nat_block_overrides_builtin_prelude`、`ported_nat_fol_add_two_two_reduces`、`checks_nat_literals_and_reduces_addition`；kernel 自身：`crates/kernel/src/tests/*` + `crates/kernel/tests/memory_api.rs` | `cargo test -p sokonanoda-front compile::tests::`；`cargo test -p sokonanoda` |
 | 事件与报告 | `CheckEvent` 流（checked/open/typed/reduced/printed）、`DocumentReport` 状态机（Checked/Open/Failed 按源码序、Failed 带 error、errors 计数）、open 练习不污染 env、hover 类型图、`render_expr` 往返 | `crates/front/src/compile/tests.rs` :: `checks_dependent_forall_with_lambda`、`accepts_open_exercise`、`document_report_tracks_open_checked_failed_decls`、`document_report_states_in_source_order`、`open_exercise_does_not_pollute_env`、`document_report_produces_hover_types_for_subexpressions`、`hover_map_covers_subexpressions`、`render_expr_round_trips` | `cargo test -p sokonanoda-front compile::tests::` |
+| 「多余的 `sorry`」（`redundant-sorry`） | 候选 = 实参超出函数望远镜且结果展不开箭头；**终审走完整 kernel**（删掉该实参后整条声明能过才报）。守护：正例报 warning 且 span 收窄到 `sorry` token、真缺口/项不对/前瞻引用**不得**误报；探针**不入环境** ⇒ 终审必须显式给可见前缀 `EnvLimit::ByIndex(env_before)`（`ByName(探针名)` 会取 0 ⇒ 空环境 ⇒ 假 `unknown const`）；会话快照按命令缓存**内核终审过的** warning（增量编辑后仍在、span 随前文平移）；洞级 `redundant` 标记在 `query goals`/`holes` 与 LSP `soko/goals` **两视图一致**（agent 据此说"删掉这一行"） | kernel：`crates/kernel/tests/memory_api.rs` :: `synthetic_declaration_needs_an_explicit_environment_limit`；front：`crates/front/src/compile/tests.rs` :: `a_leftover_sorry_*`（正 2 + 反 3）；session：`crates/front/src/session.rs` :: `session_keeps_kernel_verified_warnings_across_edits`；CLI：`crates/cli/tests/protocol.rs` :: `redundant_sorry_warns_and_the_declaration_stays_open`、`crates/cli/tests/cli.rs` :: `cli_redundant_sorry_warns_on_stderr_and_stays_successful`；LSP：`crates/lsp/src/by_sorry_range_tests.rs` :: `redundant_sorry_replaces_the_not_yet_solved_warning`；真相层：`crates/front/src/query/tests.rs` :: `holes_carry_the_redundant_sorry_mark`；两视图：`crates/cli/tests/query.rs` :: `query_and_the_lsp_agree_on_the_redundant_mark` | `cargo test -p sokonanoda-front leftover_sorry` && `cargo test -p sokonanoda-cli redundant` && `cargo test -p sokonanoda-lsp redundant`（`docs/design/redundant-sorry.md`） |
+| 输出通道的跨模块归因（0.58.0 合并轮） | 每命令的**平行数组**不变量：`events`↔`event_cmds`、`errors`↔`error_cmds`、**`warnings`↔`warning_cmds`**（内核终审的 warning 是 pass 2 现算的，`split_report` 必须按**命令下标**把它放回产生它的模块——按单元重算语法级 warning 会把它丢掉；语法级 warning 钉在所属单元的命令区间上，不猜 span）。单文件恒等（逐字节不变） | `crates/front/src/compile/tests.rs` :: `warnings_are_attributed_to_the_unit_that_produced_them` | `cargo test -p sokonanoda-front warnings_are_attributed` |
 | CLI 人类视图 | stdin/文件批处理、`line:col: error[code]: message` 格式、REPL 声明累积 / `#env` / `#help` / `#prove` | `crates/cli/tests/cli.rs` :: `cli_checks_a_valid_file_via_stdin`、`cli_rejects_a_bad_declaration`、`cli_reports_parse_errors_with_positions`、`cli_prints_*`、`repl_*`、`human_errors_carry_the_pipeline_stage`、`cli_help_is_self_documenting` | `cargo test -p sokonanoda-cli --test cli` |
 | CLI JSON 协议 | `--json` 词汇封闭（8 种事件，含 `warning`）、diagnostic 形状（stage/code/hint/span）、`protocol.md` 列出全部事件类型、exercise.open 是成功态、warning 不改退出码 | `crates/cli/tests/protocol.rs` :: `every_example_stream_is_closed_vocabulary`、`kernel_rejection_diagnostic_shape`、`protocol_document_lists_every_emitted_type`、`elab_unknown_identifier_diagnostic`、`open_exercise_is_success_state`、`reserved_declaration_name_warns_but_stays_successful`；另有 `cli.rs` :: `json_mode_*` | `cargo test -p sokonanoda-cli` |
 | by tactic | `by` 块白名单（intro/exact/apply/assumption/rfl/**match**/sorry）：`match` 作为 tactic 以当前目标为期望类型判定；`judge_terms` 合成文件保留真实前缀（`match` 宇宙查询可用） | `crates/front/src/parser.rs` :: `match_is_a_tactic_in_a_by_block`；`crates/front/src/compile/tests.rs` :: `by_block_with_match_tactic_checks`、`by_block_with_exact_match_checks`；`crates/cli/tests/cli.rs` :: `cli_by_match_tactic_checks_via_kernel` | `cargo test -p sokonanoda-front by_block_with_match` |
@@ -524,6 +526,9 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 
 ## 2026-09-17 更新（第八十九轮：内核真相查询通道 H6-A/H6-B/H6-C，0.56.0）
 
+- **`redundant-sorry`（第九十一轮续）**：分层见 §1 新行。设计与那 5 分钟实验
+  （真根因 = `EnvLimit::ByName(探针名)` → `NO_DECL` → cutoff 0 → 空环境，不是
+  `NamePtr` 身份）见 `docs/design/redundant-sorry.md` §8。
 - **新增真相层 + 两条通道 + 一致性契约**：`front::query`（唯一语义源）→
   `sokonanoda query <op>`（单 JSON 对象）→ `dsh/mcp/server.js`（七工具）。
   分层守护见 §1 的三行新条目（内核真相查询 / `query` 子命令 + 两视图一致性 /
@@ -543,12 +548,11 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   辅助；0.56.1：`tests.rs` 2567 行拆成 `tests/` 一目录，最大文件 399 行）。
   每一步都零断言改动（220 条 assert 记账相等、95/95 测试名一致、规范化行流只差
   plumbing），117/117 全程保持全绿。测试文件位置见 §1 的 LSP 行。
-- **总量（2026-09-17，`cargo test --workspace --locked`，全绿）**：
-  **756** 个测试 — kernel 43 + arena 1 + memory_api 7 = 51；front lib **406** +
-  perf 3 = 409；cli 单测 5 + 集成 **190**（cli 80 / course 6 / course_status 4 /
-  dsh 8 / examples 1 / extension 32 / opencode 8 / protocol 9 / **query 12** /
-  skill 4 / watch 10）= 195；lsp lib **117**；doc-tests 6 ignored（内核既有）。
-  测试目标共 18 个（cli 集成目标 11 个）。
+- **总量（2026-09-17，两条并行线各自的快照）**：合并前本线 **756**、0.56.2 线
+  **772**（多了 `redundant-sorry` 的 8 条、摘掉 2 条 `#[ignore]`）；合并后的真数以
+  本文件第九十八轮与 `STATUS.md` 为准。两边共同的底数：kernel 43 + arena 1 +
+  memory_api = 51；front lib 406 + perf 3 = 409；cli 单元 5 + 集成 190；lsp lib 117；
+  doc-tests 6 ignored（内核既有）。
 
 ## 2026-09-18 更新（第九十五轮：批次 3 拆分 `run_pass` + 「二进制对拍」验收手段）
 
@@ -593,3 +597,26 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   single_file_vs_project 4 / perf_project 2 / examples 1）；lsp 137（lib）。
   另有四个纯 Node 套件：server 18 / download 7 / webview 10 / extension-host 11。
 - **版本 0.58.0**（Rust 与扩展同步 bump；`cargo_and_extension_versions_match` 守着）。
+
+## 2026-09-18 更新（第九十八轮：合并 0.56.2 线 + 跨模块 warning 归因修复）
+
+- **合并**：`origin/main`（0.56.2 = `redundant-sorry`）与本线（I16 项目管理 +
+  批次 1–4，0.58.0）在 scratch worktree 里合并，19 个文件冲突手心合并；0.56.2
+  写在旧 `check.rs` 的探针代码手工搬进本线的 `check/{walk,kernel_phase}.rs`。
+  §1 的「多余的 `sorry`」一行仍然成立（正 2 + 反 3、会话快照、两视图一致）。
+- **合并暴露并修掉一个真 bug**：内核终审的 warning 在**项目模式**下会丢归因
+  （`split_report` 原先只按单元重算语法级 warning）。修法 = `CompileOutput` 增
+  平行数组 `warning_cmds` + `push_warning(cmd, w)`，`split_report` 按命令下标归因；
+  §1 新增一行守护（`warnings_are_attributed_to_the_unit_that_produced_them`）。
+- **测试构成（2026-09-18 合并树，`cargo test --workspace --locked`，全绿）**：
+  **888** 个测试 / 0 failed / 6 ignored（内核既有）—— kernel 52（lib 43 + arena 1 +
+  memory_api 8）；front 475（lib 466 + perf 3 + perf_project 6）；cli 223（单元 5 +
+  集成 17 个目标 218：cli 81 / extension 33 / project_features 14 / imports 13 /
+  query 13 / protocol 10 / watch 10 / dsh 8 / opencode 8 / course 6 / course_shared 4 /
+  course_status 4 / skill 4 / single_file_vs_project 4 / launcher 3 / perf_project 2 /
+  examples 1）；lsp 138（lib）。测试目标 27 个 + 3 个 doc-test 目标。
+  另有四个纯 Node 套件：server 18 / download 7 / webview 10 / extension-host 11；
+  真 VS Code 例行化（`scripts/vscode-e2e.sh`）在 1.138.0 与 1.106.0 上各 14/14
+  （台账 `docs/e2e/ledger.jsonl`）。
+- **版本 0.58.0**：合并后 push `main` → auto-tag `v0.58.0` → release（0.56.2 的
+  `v0.56.2` 与其功能都在历史里；CHANGELOG 的 0.58.0 条目补记 `redundant-sorry`）。

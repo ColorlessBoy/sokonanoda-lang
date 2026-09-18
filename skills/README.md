@@ -11,8 +11,15 @@ conformance 测试守护这些文件不与真实工具漂移：`crates/cli/tests
 | `sokonanoda-teacher/` | 当老师的 agent | 角色定义与五条不可违反规则、教学循环、判卷事件决策表、出题规范与适配规则、解答钥匙使用守则；参考件：`references/events.md`（事件形状）、`references/curriculum.md`（题池地图）、`references/zh-style.md`（文风约束） |
 | `sokonanoda-dev/` | 接手开发的 agent | 接手清单、硬规则、TDD 三层与文档先行工作流、CI 门禁形态 |
 | `sokonanoda-ci/` | 推代码/发布/查 CI 的 agent | 本地验证纪律（退出码、无 grep 掩膜）、GitHub Actions 陷阱台账、`gh` 排错三板斧、失败必录 |
+| `sokonanoda-update/` | **人工**运维命令 | 把缓存的 CLI + LSP 刷到仓库版本：何时需要、确切命令、**退出码语义**（`0` = 缓存写成了；`3` = `cache NOT refreshed` + `download:` 原因，即使有可用回退）、唯一可信判据（缓存 `marker` + 缓存二进制自述版本；`source` 不含 `STALE` **不算**）、"缓存写不进去"的三种处置 |
+| `sokonanoda-doctor/` | **人工**运维命令 | 只读就绪诊断：`scripts/soko doctor --json`、退出码语义、要汇报的字段、下一步指向 `setup`/`update` |
 
-三者都是纯 `name` + `description` 的 frontmatter——这是所有 harness 的交集。
+前三个是**角色技能**（模型按任务加载）；后两个是**运维命令**（只给人用）：
+DSH 入口带 `disable-model-invocation: true`，所以它们不进模型目录——模型侧的
+等价能力写在 `AGENTS.md` 与三个角色技能里，不需要额外加载。
+
+五个正文都只用 `name` + `description` frontmatter（加 `whenToUse` 供人工菜单），
+这是所有 harness 的交集；harness 专属的调用策略只出现在各自的入口文件里。
 
 ## 环境：一条命令，所有 harness 通用
 
@@ -35,6 +42,11 @@ scripts/soko gate           # 贡献者门禁（调用 cargo）
 DSH 自动发现 `<仓库根>/.agents/skills/`，而**技能名本身就是斜杠命令**：
 
 - 打开本仓库即可用：`/sokonanoda-teacher`、`/sokonanoda-dev`、`/sokonanoda-ci`；
+- 两个**人工**运维命令：`/sokonanoda-update`（刷新缓存）、
+  `/sokonanoda-doctor`（就绪诊断）——入口带 `user-invocable: true` +
+  `disable-model-invocation: true`，只在人的 `/` 菜单里出现；
+- **DSH 的命令名文法不允许 `/`**（`COMMAND_NAME` 与技能名都是 kebab-case），
+  所以 opencode 的 `/sokonanoda/update` 在 DSH 侧写作 `/sokonanoda-update`；
 - `.agents/skills/<name>/SKILL.md` 是**薄入口**（正文在 `skills/<name>/SKILL.md`，
   入口里写明按仓库根解析；`dsh.rs` 守住两边不漂移）；
 - LSP（hover / 跳定义 / 找引用）需显式启用：

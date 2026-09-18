@@ -126,25 +126,33 @@ def _cn_to_int(token):
 
 
 def get_round():
-    """Parse the most recent '## 本轮进度（日期，第N轮：标题）' header.
+    """Parse the newest '## 本轮进度（日期，第N轮：标题）' header.
 
-    STATUS.md orders rounds newest-first, so the first match in the file is the
-    current round.
+    STATUS.md orders rounds newest-first, so the header we want is the **first**
+    `## 本轮进度` line in the file. 只认第一个头、解析不了就**报错退出**：
+    以前是"全文搜索第一个能匹配的头"，于是标题里带全角括号（`（多余的 sorry）`）
+    让最新轮失配时，网站会**静默退回上一轮**（2026-09-18 实测：round 停在 97）。
+    标题是 `docs/design/site.md` §2 写明的机器可读块，坏了要立刻被看见。
     """
     text = _read("STATUS.md")
     if not text:
         return {}
-    m = re.search(
-        r"^##\s*本轮进度（(\d{4}-\d{2}-\d{2})，第([^轮]+)轮：([^）]*)）\s*$",
-        text,
-        re.M,
+    header = re.search(r"^##\s*本轮进度.*$", text, re.M)
+    if not header:
+        return {}
+    m = re.fullmatch(
+        r"##\s*本轮进度（(\d{4}-\d{2}-\d{2})，第([^轮]+)轮：(.*)）",
+        header.group(0).strip(),
     )
     if not m:
-        return {}
-    round_num = _cn_to_int(m.group(2))
+        raise SystemExit(
+            "STATUS.md 最新一轮的标题解析不了（标题是网站进度页的机器可读块）：\n"
+            f"  {header.group(0).strip()}\n"
+            "期望形状：## 本轮进度（YYYY-MM-DD，第N轮：标题）"
+        )
     return {
         "round_date": m.group(1),
-        "round": round_num,
+        "round": _cn_to_int(m.group(2)),
         "round_title": m.group(3).replace("`", "").strip(),
     }
 

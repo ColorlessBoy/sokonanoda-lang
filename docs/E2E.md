@@ -95,12 +95,13 @@ soko/project ok: project=Main (2 modules) reason=null
 | --- | --- | --- |
 | 本地例行（默认） | **1.138.0**（已知良好） | `scripts/vscode-e2e.sh` 里的 `default_version` |
 | 本地试新 | `stable` / `insiders` / 任意具体版本 | `--version <v>` 或 `SOKO_VSCODE_TEST_VERSION=<v>` |
-| CI（ubuntu） | 矩阵显式给：`1.138.0`（当前稳定）+ **`1.106.0`（声明的最低版本）** | `.github/workflows/ci.yml` 的 `e2e.matrix` |
-| CI（macOS） | `1.138.0`，**只在 push 到 main 时跑** | 同上（job 级 `if`） |
+| CI（ubuntu） | 矩阵显式给：`1.138.0`（当前稳定）+ **`1.106.0`（声明的最低版本）** | `.github/workflows/ci.yml` 的 `e2e.matrix`（job `e2e`） |
+| CI（macOS） | `1.138.0`，**只在 push 到 main 时跑** | 独立的 job `e2e-macos`（github-only 条件；版本写在它的 `env` 与 cache key 里） |
 | 声明的最低版本（`engines.vscode ^1.106.0`） | ✅ **2026-09-18 本地已验证 14/14**（台账 `b0bcba3` 那条，VS Code 1.106.0 + bundled 0.58.0；项目树三条同样绿），随后进 CI 矩阵 | `--version 1.106.0` |
 
 > 升级流程：先 `--version <新版本>` 本地跑绿 → 改 `scripts/vscode-e2e.sh` 的
-> `default_version` 与 `ci.yml` 的 `e2e.matrix`（两处）+ 记一条台账。
+> `default_version`、`ci.yml` 的 `e2e.matrix`，以及 `e2e-macos` job 里的版本
+> （`env`/cache key/artifact 名，三处）+ 记一条台账。
 
 ## 6. 已知环境坑
 
@@ -137,14 +138,21 @@ soko/project ok: project=Main (2 modules) reason=null
 
 ## 7. 与 CI 的关系（0.58.0 起：CI 也跑这条命令）
 
-CI 有独立的 **`e2e` job**（`.github/workflows/ci.yml`）：
+CI 有**两个** e2e job（`.github/workflows/ci.yml`），合计 3 条腿：
 
-* **矩阵（3 条腿）**：`ubuntu-latest` × VS Code `1.138.0`（当前稳定）与 `1.106.0`
-  （声明的最低版本）**每个 PR/分支 push 都跑**（`xvfb-run -a`）；
-  `macos-latest` × `1.138.0` **只在 push 到 main 时跑**（macOS 差异值得守，但每个 PR
-  多 ~10 分钟不划算）；
-* **同一条命令**：两步都是 `scripts/vscode-e2e.sh`（构建 release → stage → 真宿主 →
-  记账）——本地与 CI 不会漂；
+* **`e2e`（Linux 腿，2 条）**：`ubuntu-latest` × VS Code `1.138.0`（当前稳定）与
+  `1.106.0`（声明的最低版本）**每个 PR/分支 push 都跑**（`xvfb-run -a`）；
+* **`e2e-macos`（1 条）**：`macos-latest` × `1.138.0`，**只在 push 到 main 时跑**
+  （macOS 差异值得守，但每个 PR 多 ~10 分钟不划算）。
+  **为什么是两个 job 而不是一个矩阵**：GitHub 的 contexts 可用性表里
+  `jobs.<job_id>.if` 只有 `github`/`needs`/`vars`/`inputs`，**不含 `matrix`**——
+  在 job 级写 `if: matrix.os != 'macos-latest' || …` 要么按空值求值（macOS 腿在 PR
+  上也跑），要么直接被判成未识别命名值让整个 workflow 校验失败。所以"只在 main 上
+  跑 macOS"靠**第二个 job 的 github-only 条件**（`github.event_name == 'push' &&
+  github.ref == 'refs/heads/main'`），代价是那段步骤写两份（各 job 的版本号也各写
+  一处，改的时候一起改）。
+* **同一条命令**：两个 job 都是 `scripts/vscode-e2e.sh`（构建 release → stage →
+  真宿主 → 记账）——本地与 CI 不会漂；
 * **留档**：`docs/e2e/` 作为 artifact 上传（`e2e-<os>-vscode-<version>`），并把
   `scripts/e2e-summary.py` 的渲染写进 **job summary**（结果/版本/服务器/LSP 指纹/log）；
 * **回提交仓库（只 main）**：收尾 job `e2e-ledger` 下载全部 artifact →
@@ -156,7 +164,7 @@ CI 有独立的 **`e2e` job**（`.github/workflows/ci.yml`）：
   （浅克隆 rebase 会缺 parent 对象）；push 失败先 rebase 再重试（最多 3 次），
   rebase 冲突就打印冲突文件、`rebase --abort` 并**报红**（重跑该 job 即可）；
   `GITHUB_TOKEN` 推的提交不再触发 workflow，不会自激；
-* **门禁**：`auto-tag` 的 `needs` 含 `e2e` ⇒ **e2e 红了就不发版**
+* **门禁**：`auto-tag` 的 `needs` 是 `[lint, test, e2e, e2e-macos]` ⇒ **任何一条 e2e 腿红了就不发版**
   （`e2e-ledger` 只是记账，不在 `auto-tag` 的 needs 里，避免与自己推的提交互相等待）。
 
 > **这两条路径都本地演练过**（2026-09-18，临时 bare remote + 两个 clone）：

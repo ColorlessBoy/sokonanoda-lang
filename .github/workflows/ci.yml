@@ -37,7 +37,7 @@ jobs:
   # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
   # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
   auto-tag:
-    needs: [lint, test, e2e]
+    needs: [lint, test, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -220,34 +220,30 @@ jobs:
       # 见文件末尾：它跑的是 `scripts/vscode-e2e.sh`（构建 release + stage +
       # 真宿主 + 记账），并用 `needs` 卡住 auto-tag。
 
-  # 真 VS Code 集成测试（e2e）：与本地例行同一条命令
+  # 真 VS Code 集成测试（e2e · Linux 腿）：与本地例行同一条命令
   # （`scripts/vscode-e2e.sh` = 构建 release → stage → 真宿主 → 记
-  # `docs/e2e/`），矩阵覆盖 Linux（xvfb）/macOS 与**声明的最低 VS Code 版本**
-  # + 当前稳定版。结果进 job summary 与 artifact（CI 不回提交仓库）。
+  # `docs/e2e/`），覆盖**当前稳定版**与**声明的最低 VS Code 版本**。
+  # 结果进 job summary 与 artifact（回提交仓库的是收尾的 `e2e-ledger` job）。
+  #
+  # 为什么 macOS 是**另一个 job** 而不是同一矩阵里的一条腿：**job 级 `if` 不能
+  # 引用 `matrix` 上下文**（GitHub 的 contexts 可用性表里 `jobs.<job_id>.if` 只有
+  # `github`/`needs`/`vars`/`inputs`）——在 job 级写 `if: matrix.os != '…'` 属于
+  # 未识别命名值，workflow 直接校验失败（整个 CI 一条都不会跑）。所以"只在 main
+  # 上跑 macOS"只能靠第二个 job 的 github-only 条件；两条腿的步骤因此各写一份
+  # （比再引一层 `workflow_call` 少一个文件、也少一处需要同步的版本号）。
   e2e:
     name: e2e (${{ matrix.os }} · VS Code ${{ matrix.vscode }})
     runs-on: ${{ matrix.os }}
-    # PR/分支 push：只跑 Ubuntu（快反馈，等价于本地例行）；
-    # main 的 push：加跑 macOS 腿（真宿主差异：/var→/private/var 符号链接、
-    # 大小写不敏感文件系统——这些只有 macOS 才暴露；每个 PR 都跑不划算）。
-    if: >-
-      matrix.os != 'macos-latest'
-      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             vscode: "1.138.0"
-            launcher: xvfb-run -a
           # 声明的最低版本（engines.vscode ^1.106.0）：2026-09-18 本地 14/14 验过
           # （docs/e2e 有那条台账），守"用的 API 没超出声明范围"。
           - os: ubuntu-latest
             vscode: "1.106.0"
-            launcher: xvfb-run -a
-          - os: macos-latest
-            vscode: "1.138.0"
-            launcher: ""
     steps:
       - uses: actions/checkout@v5
 
@@ -283,7 +279,8 @@ jobs:
         # Linux 上 Electron 需要显示器，xvfb 在 ubuntu-latest 镜像里预装。
         env:
           SOKO_VSCODE_TEST_VERSION: ${{ matrix.vscode }}
-        run: ${{ matrix.launcher }} scripts/vscode-e2e.sh
+        # Linux 上 Electron 需要显示器，xvfb 在 ubuntu-latest 镜像里预装。
+        run: xvfb-run -a scripts/vscode-e2e.sh
 
       - name: Job summary (VS Code integration)
         # 渲染逻辑在 `scripts/e2e-summary.py`（YAML 的多行 heredoc 会把终止符缩进掉，
@@ -306,12 +303,70 @@ jobs:
           include-hidden-files: false
           if-no-files-found: warn
 
+  # macOS 腿（**只 main**）：真宿主差异（`/var`→`/private/var` 符号链接、大小写
+  # 不敏感文件系统）只有 macOS 才暴露，值得守；但每个 PR 多 ~10 分钟不划算。
+  # 条件只用 `github` 上下文（原因见上面 `e2e` 的注释）。
+  e2e-macos:
+    name: e2e (macos-latest · VS Code 1.138.0)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Node for editor integration tests
+        uses: actions/setup-node@v5
+        with:
+          # @vscode/test-electron 3.x 要求 node >= 22。
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editor/vscode/package-lock.json
+
+      - name: Cache the VS Code download
+        uses: actions/cache@v4
+        with:
+          path: editor/vscode/.vscode-test/vscode-*
+          key: vscode-${{ runner.os }}-1.138.0
+
+      - name: Install editor test dependencies
+        working-directory: editor/vscode
+        run: npm ci --no-fund --no-audit
+
+      - name: Real VS Code integration tests (recorded)
+        env:
+          SOKO_VSCODE_TEST_VERSION: "1.138.0"
+        run: scripts/vscode-e2e.sh
+
+      - name: Job summary (VS Code integration)
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### VS Code 集成测试 · macos-latest · VS Code 1.138.0"
+            echo
+            python3 scripts/e2e-summary.py
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload e2e record (always)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-macos-latest-vscode-1.138.0
+          path: docs/e2e/
+          include-hidden-files: false
+          if-no-files-found: warn
+
   # 台账回提交（**只 main**）：矩阵各腿把 `docs/e2e/` 传成 artifact，这里**一次**
   # 合并成一条提交——多腿各自提交会同时改同一个 ledger.jsonl（互相覆盖/冲突）。
   # 用 GITHUB_TOKEN 推的提交不会再触发 workflow（防递归规则），所以不会自激。
   e2e-ledger:
     name: e2e ledger (commit back on main)
-    needs: [e2e]
+    needs: [e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

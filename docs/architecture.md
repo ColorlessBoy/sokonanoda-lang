@@ -209,10 +209,14 @@ check-then-add → 事件/错误 → 每命令签名与 early cutoff → 报告�
 4. **一次编译**：`compile::check::compile_all_units` 在**同一个 arena + 同一个
    `EnvBuilder`** 里按序跑完所有 unit 的命令——import 的命令先于本地命令入环境，
    所以内核 `EnvLimit` 下标不受影响，**kernel 一行未改**。
-5. **归属**：错误按**命令下标**（`CompileOutput.error_cmds`）而不是 span 归属到
-   文件（不同文件的偏移会撞车），`split_report` 再按 unit 的 `cmd` 区间还原成
-   每个文件的 `DocumentReport` 与事件流；闭包级检查（重名 / prelude 冲突）与
-   依赖阻断（`import-dependency-failed`）都在这一步。
+5. **归属**：错误**与警告**都按**命令下标**（`CompileOutput.error_cmds` /
+   `warning_cmds`）而不是 span 归属到文件（不同文件的偏移会撞车），`split_report`
+   再按 unit 的 `cmd` 区间还原成每个文件的 `DocumentReport` 与事件流；闭包级检查
+   （重名 / prelude 冲突）与依赖阻断（`import-dependency-failed`）都在这一步。
+   三个平行数组的不变量（`events`↔`event_cmds`、`errors`↔`error_cmds`、
+   `warnings`↔`warning_cmds`）各自带一个 `push_*` 入口，**永不失配**——内核终审的
+   `redundant-sorry` 是 pass 2 现算的 warning，0.58.0 合并轮之前它在项目模式下
+   会被丢掉（`split_report` 当时只重算语法级 warning）。
 6. **缓存**：`ProjectPlan::digest(options)` = 拓扑序上每个模块的 (名字, 源,
    imports) + prelude 模式的稳定哈希；依赖改动必然改摘要（`docs/design/compile-cache.md` §7）。
 7. **对外视图**：`query::QueryDoc::project_view()` 把这次编译的闭包状态派生成
@@ -338,6 +342,7 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 |---|---|---|
 | `builder.rs` | **新增** `EnvBuilder` | 在 arena 内构造声明、最后一次性 `finish()` 成 `ExportFile`，绕开 `TcCtx` 自引用生命周期 |
 | `util.rs` | `ExportFile::empty`、`Config::default`、`CheckError`、`try_check_declar`（panic→Result）、`alloc_string/alloc_bignum/name_from_str` 公开 | 内存 API（M0 验收） |
+| `tc.rs` + `util.rs` | **显式限界终审（第九十一轮续）**：`ExportFile::check_declar_at(d, EnvLimit)` / `try_check_declar_at(d, EnvLimit)`。原 `check_declar` 用 `EnvLimit::ByName(d.info().name)` 定可见前缀，而**刻意不入环境**的合成声明（`redundant-sorry` 探针）名字没有 `decl_idx` → 取 0 → 空环境；新入口让 front 自己给 `EnvLimit::ByIndex(env_before)`。`check_declar` = `check_declar_at(d, EnvLimit::ByName(name))`，批量路径（`run_session_inner`）逐条显式传同一个 `ByName` ⇒ **行为逐字节不变**，热路径零改动。回归：`tests/memory_api.rs::synthetic_declaration_needs_an_explicit_environment_limit` + front/CLI/LSP 三层（设计见 `docs/design/redundant-sorry.md` §8） | 探针终审能看见它引用的前缀常量；「删掉这行 sorry 就能过内核」才敢说 |
 | `quote.rs` | `infer_closed_type` / `reduce_closed` | `#check` / `#reduce` 的 kernel 原语 |
 | `eval.rs` | `deep_reduce` | 教学 `#reduce` 完整归约 |
 | `tc.rs` | `ctx` 公开 + `TypeChecker::with_pp` | front 直接读写内核 arena |
@@ -384,8 +389,11 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 7. **打印偏好**：教学文本 ASCII `->`；`pp_options.proofs=true` 由 `compile_fol` 设置（否则打印会把证明项压成 `_`）。
 8. **tactic/编辑器判定走 `front::judge`**（合成完整声明交完整 kernel 裁决），不要新增文本比对；`proof.rs::assumption` 的文本比对实现已删除。建议生成（`front::suggest`：exact/rfl/refine/intro）与逐洞判定（`judge_hole_fill`：把洞替换候选后整份声明交 kernel）都只是结构生成 + kernel 终审。
 9. **kernel lint**：`lib.rs` 的 `cast_possible_truncation` 已降为 warn（上游代码自身未过）；clippy 严格门禁在各教学 crate 的 `[lints.rust] warnings = "deny"`，CI 的 fmt 门禁只覆盖教学 crates（kernel 的 rustfmt.toml 需要 nightly）。
-10. **多文件项目（I16）的三个坑**：① 错误归属只能按**命令下标**（`error_cmds`），
-    绝不能按 span——不同文件的字节偏移会互相命中；② **不要**给 `import`-free 的
+10. **多文件项目（I16）的三个坑**：① 错误**与警告**归属只能按**命令下标**
+    （`error_cmds` / `warning_cmds`），绝不能按 span——不同文件的字节偏移会互相
+    命中；新增"每命令输出通道"时先看 `split_report` 与
+    `session::build_suffix_snapshots` 两个消费者（0.58.0 合并轮就踩过 warning 丢
+    归因）；② **不要**给 `import`-free 的
     文件加任何项目开销（`plan_project` 只在解析出 import 后才被调用，A1 回归由
     `crates/cli/tests/imports.rs` 的 stdin/文件同字节断言守住）；③ 内存覆盖与诊断
     发布：覆盖的路径要 `canonicalize` 后再比（macOS `/var` vs `/private/var`），

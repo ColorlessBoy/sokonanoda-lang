@@ -1,8 +1,53 @@
-# STATUS 归档（第 1–94 轮，2026-09-06 → 2026-09-18）
+# STATUS 归档（第 1–95 轮，2026-09-06 → 2026-09-18；另收 0.56.2 线的
+# 第九十一轮续）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-18，第九十五轮：待办批次 3 完成 —— 拆 `run_pass` + 项目整理）
+
+> 用户：「可以，前三个你先做完，把项目理干净」（批次 1/2 已在第九十四轮完成）。
+> 本轮 = **批次 3**（`run_pass` ≈1174 行单函数 → 三个模块，三次提交，每刀只动位置）
+> + **一轮仓库整理**（死代码、过期文档、模块地图、经验台账、STATUS 归档）。
+
+1. **第一刀 —— 闭包装配件出 `check.rs`**：`SourceUnit` / `unit_ranges` /
+   `split_report` / `compile_all_units` → `compile/units.rs`（108 行；单文件也走同一条路径）。
+2. **第二刀 —— `run_pass` 尾部出 `check/kernel_phase.rs`**：`builder.finish()` 之后的
+   内核 check-then-add + 事件/错误 + 每命令签名与 early cutoff + 报告装配（≈360 行）
+   原样搬进 `finish_pass(Walked)`；`check.rs` 1918 → `check/mod.rs` **1522**。
+3. **第三刀 —— 命令走查出 `check/walk.rs`**：`Walk`（可变累加器：builder /
+   known_universes / inductives / out / ops / cmd_hovers / decl_states / example_idx）、
+   `CmdCtx`（每命令派生的 `Cow` 前缀、模板、信任位）、每个 `Command` 变体一个方法；
+   arm 里的 `continue` 改 `return`（8 个 arm 都没有内层循环）。最终
+   `check/mod.rs` **791** + `walk.rs` **951** + `kernel_phase.rs` **413**；
+   单文件仍走 `Cow::Borrowed` 前缀（零新增分配，A1 不变）。
+4. **验收（方法论收获）**：除 `cargo test --workspace --locked` **862 passed / 0 failed**
+   外，做**二进制对拍**——`git worktree` 取改动前的树，两个 CLI 对同一批输入
+   （全部 58 个 `.sokonanoda` + `--root` / `--no-project` / stdin /
+   `query check|goals|holes`）输出**逐字节相同**；8 个 arm 另做"逐字符同构"
+   （空白无关）比较。方法与两个坑（`cargo fmt` 会重排；**两个 worktree 别共用
+   `CARGO_TARGET_DIR`**——后建的树会静默覆盖前者的二进制）写进
+   `docs/TESTING.md`「二进制对拍」与 `docs/LESSONS.md`。
+5. **整理（死代码）**：删掉只写状态 `built_inductives`（唯一消费者是文件尾的
+   `let _ = …`；顺带去掉归纳块每次的无用 `Vec` 克隆）与 `def` 开练习路径里推**空**
+   `CmdHover` 的空操作（`resolve_hovers` 只读 `nodes`）——同样过二进制对拍。
+6. **整理（性能台账口径）**：复盘台账发现**采样口径**问题——项目层 perf 套件在同一
+   测试二进制里**并行**跑，把单次操作成本放大 3–4×（同一份代码：单跑 32.4ms /
+   串行 33–38ms / 默认并行 118–152ms；LSP didOpen+按键 12+12ms vs 64+50ms）。
+   修法：`scripts/perf-ledger.sh` / `perf-report.sh` 一律 `--test-threads=1`、
+   `perf_project` 的分阶段/缩放改 `measure_best(…, 3)`；`docs/PERF.md` 的基线表
+   按**串行口径**重写（教学规模 2/3/5 × 12 声明一次按键 **14/16/24ms**，4×20 编译
+   32–38ms）并写明"跨口径不可比"；教训进 `docs/LESSONS.md`。**旧台账条目是并行口径，
+   比较时先看是否落在 ±25% 内。**
+7. **整理（文档）**：HANDOVER 里"项目入口 quick-fix 仍未做"的过期段落更正；§4 新增
+   剩余结构债盘点（`compile/tests.rs` 4828 / `elab.rs` 2854 / `parser.rs` 2065 /
+   `lsp/lib.rs` 1554 / `vscode/extension.js` 1493，按建议顺序）与
+   "开练习的类型子表达式没有 hover 行"（**刻意保留现状**，含补法）；`architecture.md`
+   仓库地图 + §4.2 补"阶段 ↔ 模块"对照；`TESTING.md` 新增「二进制对拍」小节 +
+   精确测试构成（kernel 51 / front 462 / cli 214 / lsp 135）；本文件归档第九十二轮。
+8. **批次 3 完成 ⇒ 待办只剩批次 4**：`soko/project` 项目状态可视化（协议 + VS Code
+   状态/树：模块根、清单来源、闭包模块、失败模块）。
 
 ## 本轮进度（2026-09-18，第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新）
 
@@ -246,6 +291,76 @@
    `docs/notes/multifile-prior-art.md`（新）、`docs/notes/project-roots-and-incremental-caches.md`（新）、
    `ROADMAP.md` I16、`REQUIREMENTS.md` §9（九十一）、`docs/README.md`（设计/笔记索引）、
    `docs/HANDOVER.md` §3 G、本文；**零代码改动、零版本变更**。
+
+## 本轮进度（2026-09-17，第九十一轮续：`redundant-sorry` 落地 —— 5 分钟实验定位 + 内核显式限界 + 会话快照）
+
+> 用户：「`docs/design/redundant-sorry.md` §8 直接做那个 5 分钟实验」→ 实验一次定位
+> 真根因（旧假说被推翻）；用户：「继续」→ 按修正后的修法落地并补三层验收。
+> **设计到实现的全过程在 `docs/design/redundant-sorry.md`（§8.1 根因 / §8.2 实验 /
+> §8.3 修法 / §8.4 验收）。**
+
+1. **实验（决定性，三行证据）**：同一 env、同一份探针，`as_is` 报的未知常量地址
+   **正好等于**环境里 `A` 的规范节点地址（身份没问题）；只把探针 `info.name` 换成
+   下一条真实声明 `g`（`decl_idx = 15` = 该练习的 `env_before`）、`ty`/`val` 一字未动
+   → `Ok(())`。**旧假说"`NamePtr` 身份不对"作废**。
+2. **真根因**：`check_simple_declar` 用 `EnvLimit::ByName(d.info().name)` 定可见前缀，
+   而 `EnvLimit::ByName` 对没进过环境的名字取 **0**（`env.rs:257-260`）；探针**故意
+   不入环境** ⇒ 空环境 ⇒ 连 `A` 都 `unknown const`。真实声明没事是因为它的名字有
+   `decl_idx`。
+3. **kernel（只加不改语义，已进 `docs/architecture.md` §6 适配表）**：新增
+   `ExportFile::check_declar_at(d, EnvLimit)` / `try_check_declar_at(d, EnvLimit)`；
+   `check_declar` 保持原行为，批量路径（`run_session_inner`）显式传同一个 `ByName`
+   ⇒ 行为逐字节不变、热路径零改动。回归：`crates/kernel/tests/memory_api.rs`
+   `synthetic_declaration_needs_an_explicit_environment_limit`（同时钉住"名字定限界
+   = 空环境"这个坑与 `ByIndex`/`ByName` 等价）。
+4. **front**：`PendingOp::OpenExercise` 带上 pre-pass 已有的 `env_before`，终审改
+   `try_check_declar_at(_, EnvLimit::ByIndex(env_before))`（与真实声明的 cutoff
+   **同一个值** ⇒ sound：前瞻引用照样不可见），探针检查计入 `stats.kernel_checks`；
+   两条验收测试摘掉 `#[ignore]`，另加一条**可见前缀护栏**（同一形状只把 `g` 挪到
+   练习后面 → 前瞻引用不可见 ⇒ 不报；经验配对实测 1 条 vs 0 条）。
+5. **会话/LSP 的真实缺口**：`session.rs` 每轮只用 `collect_warnings` 重算语法级
+   warning，**把内核终审过的 warning 丢了**（LSP 因此看不到 `redundant-sorry`）。
+   修法：`CmdSnapshot.warnings` 按 span 归属命令、随快照跨版本复用并做坐标重映射，
+   `WarningKind::is_kernel_verified()` 明确区分两类；LSP 侧该声明**不再**叠
+   "not yet solved"（洞 span 与 warning span 形状不同 → 用包含判定），真缺口照旧报。
+6. **验收**：`cargo test --workspace --locked` **全绿**（kernel 8 / front 413 /
+   lsp 118 / cli …，0 failed；6 ignored = 缺 fixture 的 kernel 老用例）；
+   `scripts/soko gate` **PASS**。用户 playground 326–328 的形状现在产出
+   `warning[redundant-sorry]`（span 收窄到那个 `sorry`），语义不变（仍
+   `exercise.open`、退出码 0）。测试账：**新增 6 条**（kernel 1 / front 1 新 +
+   2 条摘 `#[ignore]` / CLI 2 / LSP 1 / session 1）。
+7. **同步 + 发版准备**：`docs/architecture.md` §6、`docs/protocol.md`（warning 码
+   清单 + `holes[].redundant` 字段 + `query` 两张表）、`docs/TESTING.md`（新行 +
+   总量 772）、`skills/sokonanoda-teacher/{SKILL.md,references/events.md}`、
+   `dsh/mcp/server.js`（工具描述教 agent 读 `redundant`）、`dsh/README.md`、
+   `editor/vscode/README.md`（"Honest warnings"）+ `extension.js` 注释。
+   **版本已 bump 到 0.56.2（patch）**：`Cargo.toml` + `editor/vscode/package.json`
+   两处 + `Cargo.lock`（`cargo check` 跟上）+ `editor/vscode/CHANGELOG.md`
+   `## [0.56.2]`，并**重建 `target/`**（`sokonanoda 0.56.2`，启动器解析回
+   `repo-build`；否则会撞 `docs/vscode-dev-guide.md` 陷阱 13）。**只剩 commit + push**
+   （auto-tag `v0.56.2` → release）。
+8. **洞级标记（`query` 层）**：`HoleInfo`/`LocatedHole` 加 `redundant`（判定来自
+   **同一份**报告的 kernel 终审 warning，用与 LSP 相同的包含规则），`soko/goals`
+   wire 同字段；`crates/cli/tests/query.rs` 的**两视图契约**逐字段对拍
+   `query goals`/`holes` ≡ `soko/goals`（真缺口为对照组）。
+9. **发布（全自动，本机实测）**：push `dd1902d` → `ci` 绿（lint / test / auto-tag）
+   → auto-tag `v0.56.2` + dispatch `release` → **11 个 job 全 success**（build ×8、
+   package-vsix、github-release、marketplace-publish；**首次没撞 Azure gallery
+   超时**，此前 4 次同版本窗口都超时过）。双页核对：GitHub Release **26 资产**
+   （lsp ×8 / cli ×8 / vsix ×9 / SHA256SUMS，非 draft）；Marketplace
+   `lastUpdated=09:17Z`、versions 出现 `0.56.2`（索引延迟 ≈5 分钟，符合台账）。
+   **发布产物实测**：下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz` →
+   `shasum -a 256 -c` OK（exec 位在）→ `./sokonanoda --version` = **0.56.2** →
+   对"`f h` + 多留一行 sorry"的文件 `--json` 出
+   `warning[redundant-sorry]`（span 收窄到该 token）、`exercise.open` 照旧、exit 0。
+10. **本轮产物**：`crates/kernel/src/{tc,util}.rs`、`crates/kernel/tests/memory_api.rs`、
+   `crates/front/src/compile/{check,goals,tests,warning}.rs`、`crates/front/src/session.rs`、
+   `crates/front/src/query/{mod,types,tests}.rs`、`crates/lsp/src/{lib,protocol,query_map,by_sorry_range_tests}.rs`、
+   `crates/cli/tests/{protocol,cli,query}.rs`、`docs/design/redundant-sorry.md`、
+   `docs/{architecture,protocol,TESTING}.md`、`skills/sokonanoda-teacher/*`、
+   `dsh/{README.md,mcp/server.js}`、`editor/vscode/{README.md,CHANGELOG.md,package.json,extension.js}`、
+   `Cargo.toml`/`Cargo.lock`、`REQUIREMENTS.md` §9、`STATUS.md`
+   （+ 第八十九轮归档进 `docs/STATUS-ARCHIVE.md`）。
 
 ## 本轮进度（2026-09-17，第九十轮：清掉 HANDOVER §4 的 LSP 测试文件债 + 0.56.1 发布）
 

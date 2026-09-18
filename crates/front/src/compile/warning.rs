@@ -15,6 +15,10 @@ pub enum WarningKind {
     ReservedDeclarationName,
     /// `import` 的模块里还有未完成的练习：它们对下游不可见（洞不污染环境）。
     ImportHasOpenExercises,
+    /// 值位里"多出来"的 `sorry`：前面的项已经完成了证明，它接在一个不是
+    /// 函数的项后面，填什么都不可能是良类型的应用。与"真缺口"（洞有期望
+    /// 类型）是两件事，见 `docs/design/redundant-sorry.md`。
+    RedundantSorry,
 }
 
 impl WarningKind {
@@ -22,6 +26,7 @@ impl WarningKind {
         match self {
             WarningKind::ReservedDeclarationName => "reserved-declaration-name",
             WarningKind::ImportHasOpenExercises => "import-has-open-exercises",
+            WarningKind::RedundantSorry => "redundant-sorry",
         }
     }
 
@@ -34,6 +39,24 @@ impl WarningKind {
             WarningKind::ImportHasOpenExercises => {
                 "被导入文件里还有 `sorry`：这些声明对下游不可见（未完成的洞不进入环境），下游看不到它们的名字。"
             }
+            WarningKind::RedundantSorry => {
+                "删掉这一行 sorry，这条声明就会通过内核检查；若还想继续写，请把它换成真正缺少的那部分。"
+            }
+        }
+    }
+
+    /// 这条 warning 是**内核终审**过的，还是每次 update 由 [`collect_warnings`]
+    /// 重算的语法级提示？
+    ///
+    /// 内核终审过的（[`WarningKind::RedundantSorry`]）必须按命令进会话快照
+    /// 跨版本复用——增量编辑时信任前缀不会重跑探针，只有快照记得它；
+    /// 语法级的每次重算，不能进快照（否则会重复报）。
+    pub fn is_kernel_verified(self) -> bool {
+        match self {
+            WarningKind::ReservedDeclarationName => false,
+            // 项目层警告是语法级重算的（不来自内核终审）。
+            WarningKind::ImportHasOpenExercises => false,
+            WarningKind::RedundantSorry => true,
         }
     }
 }

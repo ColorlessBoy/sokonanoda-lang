@@ -28,7 +28,7 @@ scripts/soko query check --file playground.sokonanoda   # 同一判卷的单 JSO
 scripts/soko query state --file playground.sokonanoda --line 327 --col 4
 scripts/soko query project --file course/unit11-project/Exercises.sokonanoda  # 项目闭包状态（根/清单/模块）
 scripts/soko version --json               # 仓库版本 + 解析来源 + 缓存标记
-scripts/soko update                       # 强制刷新到仓库版本
+scripts/soko update                       # 刷新缓存；0=写成了 3=没写成（stderr 给 download 原因）
 ```
 
 - **判卷有两个视图，同一份真相**：`grade --json` = 全量事件流（既有消费者不变），
@@ -54,8 +54,12 @@ scripts/soko update                       # 强制刷新到仓库版本
   `/sokonanoda/version` `/sokonanoda/doctor` `/sokonanoda/check`
   `/sokonanoda/gate`，以及启动插件自动 provision。
 - DeepSeek Harness 额外有：技能目录自动发现（`.agents/skills/`），技能名即
-  `/sokonanoda-teacher` 等命令；编辑器 LSP 需显式
+  `/sokonanoda-teacher` 等命令；两个**人工**运维命令
+  `/sokonanoda-update`（刷新缓存）与 `/sokonanoda-doctor`（就绪诊断）也已上架
+  （`disable-model-invocation`，不进模型目录）；编辑器 LSP 需显式
   `dsh web --patch ./dsh/cordis.patch.yml`（详见 `dsh/README.md`）。
+  DSH 的斜杠命令文法不允许 `/`，所以 opencode 的 `/sokonanoda/update` 在 DSH
+  侧只能拼成 `/sokonanoda-update`。
 - 贡献者（需要 Rust）：`scripts/soko gate`（= fmt + clippy + test + playground
   锚点）或 `cargo build/test`（见 `skills/sokonanoda-dev`）。
 - 网络受限时设代理（`HTTPS_PROXY=http://127.0.0.1:7890` 之类），启动器会把它
@@ -71,6 +75,10 @@ scripts/soko update                       # 强制刷新到仓库版本
 - **做开发**：加载 `sokonanoda-dev`——冻结内核、TDD 三层、文档先行。
 - **推代码/发布/查 CI**：加载 `sokonanoda-ci`——本地验证纪律
   （退出码、无 grep 掩膜）、workflow 陷阱、`gh` 排错三板斧、失败必录。
+- **运维（人工命令）**：`sokonanoda-update`（把缓存的 CLI + LSP 刷到仓库
+  版本）与 `sokonanoda-doctor`（只读就绪诊断）——它们**只给人用**
+  （DSH 入口带 `disable-model-invocation: true`，模型目录里没有）；模型侧
+  等价能力已经写在本文与三个角色技能里，不属于需要"加载"的技能。
 
 > 技能在 DeepSeek Harness 下经 `.agents/skills/<name>/SKILL.md` 被自动发现
 > （薄入口，正文仍以 `skills/<name>/SKILL.md` 为唯一源）；`crates/cli/tests/dsh.rs`

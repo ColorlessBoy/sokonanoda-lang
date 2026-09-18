@@ -323,3 +323,13 @@
   （`release.yml` 的 marketplace-publish 步骤）。故"重试 3→5"不再是对策——
   4 次连续超时说明该窗口内服务端整体不可用，**探活 + rerun 才是有效手段**；
   若单次窗口拖长，考虑把该步骤的 `timeout-minutes` 与重试间隔（当前 30s）拉大。
+
+## 2026-09-17 — v0.56.2 推前 gate 红：新测试没跑 fmt（本地，非 CI）
+
+- **现象**：`scripts/soko gate` 在 fmt 步 exit 1，两处 diff 都在本轮新写的
+  `crates/front/src/query/tests.rs`（长表达式该折行/该并一行）。
+- **定位**：不是 CI 机制问题，是"新写测试后没跑 rustfmt"。gate 的顺序（fmt 在最前）
+  正是为了让这一类在推前暴露。
+- **修复**：`cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp`，
+  重跑 gate PASS（772 passed / 0 failed / 6 ignored）。
+- **预防**：写完测试先跑一次 fmt（或直接 gate），别等推送。

@@ -1027,6 +1027,88 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - 文档同步：`docs/HANDOVER.md` §4（债 → 已清的最终布局）、`docs/TESTING.md` LSP 行、
     `docs/design/agent-query-channel.md` §3.2、`ROADMAP.md` I15 备注、`STATUS.md` 第九十轮。
 
+- 2026-09-17（九十一）：**DSH 侧上架两个人工运维命令**（用户要求：「deepseek harness
+  没有类似 opencode 一样的 command 机制吗？比如我这边输入 `/sokonanoda/update`
+  就能执行升级命令」；同轮先按用户指示 `scripts/soko update` 把过期缓存
+  0.54.0 → **0.56.1** 刷到 `ready:true`）：
+  - **机制结论（本轮用当前 checkout 源码复核，不引旧笔记）**：DSH 有真命令注册表
+    `ctx.commands.register`，但**只由插件注册、没有文件发现**（无
+    `.opencode/command/*.md` 等价物、无 `.dsh/commands` 根）；项目仓库**零配置**
+    能自带命令的唯一通道是 **skills**（技能名即 `/name`）。而命令名文法
+    `^[a-z][a-z0-9_-]*$`（`packages/interaction/commands/src/index.ts:32`）、技能名
+    文法 `^[a-z0-9]+(?:-[a-z0-9]+)*$`（`packages/skill/skill/src/index.ts:21`）与手势
+    正则（`packages/skill/tool-skill/src/index.ts:409`）**都不允许 `/`** →
+    opencode 的 `/sokonanoda/update` 在 DSH 侧只能拼成 **`/sokonanoda-update`**；
+  - **人工通道已核实**：手势预置边界只查 `isUserInvocable` 后注入技能正文，
+    与 `modelInvocable` 无关；`/` 菜单用 `description` 作标签（`!modelInvocable`
+    时前缀 `menu.userOnly`），行数据带 `whenToUse`；
+  - **落地**：`skills/sokonanoda-{update,doctor}/SKILL.md`（正文，全部走
+    `scripts/soko`；判据写死"无 `STALE`、`marker` 等于 `Cargo.toml`"）+
+    `.agents/skills/sokonanoda-{update,doctor}/SKILL.md`（薄入口，
+    `user-invocable: true` + `disable-model-invocation: true` = **人可见、不进模型
+    目录**；模型侧等价能力已在 `AGENTS.md` 与三个角色技能里）；
+  - **边界**：`setup`/`version`/`check`/`gate` 暂不铺 DSH 命令形态（需要时同模式
+    增补）；opencode 的 `.opencode/command/sokonanoda/*.md` 与 Rust 语义代码
+    **零改动**；**不 bump 版本**（接线层改动、无产品面变化）；
+  - **验收**：`cargo test -p sokonanoda-cli --test dsh --test skill` = 8 + 4 全绿。
+
+- 2026-09-17（九十一 · 续）：**上面两个命令第一次真用就暴露了两个启动器 bug，用户拍板「1 + 2」全修**
+  （用户原话：「1 + 2」——即改手册 + 改启动器）：
+  - **实测现象**：在 DSH 里敲 `/sokonanoda-update`，输出 `[repo-build]`、**exit 0**，
+    看起来正常，实际**一个字节都没写进缓存**；
+  - **bug ①（静默成功）**：`ensure(force)` 的强制下载失败后，`resolve()` 兜底到
+    "版本匹配的仓库构建"，两者都非空又不是 `cache(STALE…)`，于是只打一行
+    `[repo-build]` 就 **exit 0**；`lastDownloadError` 只在"结果缺失或 STALE"分支
+    才打印 → 断网、磁盘满、缓存目录只读**全都长得像成功**。修法：`ensure()` 回传
+    `refreshed`（是否真的走过 download 路径），`update` 在**任一**目标未刷新时
+    打 `cache NOT refreshed` + 每个失败的 `download: <原因>` + 实际使用的回退，
+    并 **exit 3**；`setup`（只承诺"就绪"）行为不变；
+  - **bug ②（崩栈顶掉可行动消息）**：`[cli, lsp].filter(r => r.source…)` 在
+    `cli === undefined`（完全无解）时抛 `TypeError`、**exit 1 崩栈**，使紧随其后的
+    "could not provide matching binaries … Next: allow network access" **永远
+    不可达**（死代码）。修法：`r?.source`；
+  - **根因实证**（修好后启动器自己吐出来的）：
+    `download: EPERM: operation not permitted, copyfile '/tmp/sokonanoda-XXXX/sokonanoda'
+    -> '~/.local/share/sokonanoda/bin/sokonanoda'`——curl 下载与 tar 解包都成功，
+    只有最后写缓存被沙箱拒绝（DSH 会话的 workspace-write 不管 `~/.local/share`）；
+  - **测试（红先）**：新增 `crates/cli/tests/launcher.rs` = **首个真跑 Node 的行为
+    契约**（`dsh.rs` 只断言文件形状）：① 空缓存 + `SOKONANODA_OFFLINE=1` + 可用回退
+    仍须 exit 3 + `cache NOT refreshed` + `download:` 原因；② 完全无解须 exit 3 +
+    可行动消息而**不是** TypeError；③ `setup` 允许静默回退 exit 0。三条先红后绿
+    （红：exit 0 / exit 1）；
+  - **手册同步（同一轮）**：`skills/sokonanoda-update/SKILL.md` 判据改为"退出码 +
+    缓存 `marker` + 缓存二进制自述版本"（**明确否掉**"`source` 不含 `STALE`"这个
+    会被任何回退满足的弱证据），新增"常见失败：缓存写不进去（EPERM）"与三种处置；
+    DSH 薄入口、`AGENTS.md` Setup、`skills/README.md`、`dsh/README.md`、
+    `docs/TESTING.md`（新增"启动器行为契约"行）、`docs/LESSONS.md`
+    （"静默成功是最坏的失败"）同步；
+  - **验收**：`cargo test -p sokonanoda-cli --test launcher` = 3 全绿（先红后绿已留档）；
+    真实路径复验：同一命令现在 exit 3 并打出上面那行 EPERM；全量回归与
+    `scripts/soko gate` 见 `STATUS.md` 第九十一轮。
+- 2026-09-17（九十一 · 再续）：**「多写了一个 sorry」与「还没证明出来」必须分开**
+  （用户原话：「326和327行有问题。编译器的信息应该是 sorry 没有用，而不是
+  `declaration 'exists_intro_rule' uses 'sorry' (exercise not yet solved)`。sorry
+  去掉你试试，就能编译通过了。差别很大，会让用户觉得没有证明出来。」）：
+  - 判定走 kernel：把候选实参从应用 spine 上删掉、按原声明类型合成一条**不入
+    环境**的探针声明，整条交内核终审；过了才报 `redundant-sorry`（带 hint、span
+    收窄到那个 `sorry` token）。**语义不变**：声明仍然 `exercise.open`，退出码 0
+    （`docs/design/redundant-sorry.md`）；
+  - 用户第二轮要求：「§8 直接做那个 5 分钟实验」→ 实验一次定位真根因（**不是**
+    `NamePtr` 身份，而是 `EnvLimit::ByName(探针名)` 取到 `NO_DECL` ⇒ cutoff 0 ⇒
+    空环境）；随后「继续」→ 按修正后的修法落地：内核**只加不改语义**的
+    `check_declar_at`/`try_check_declar_at`（进 `docs/architecture.md` §6 适配表），
+    front 传 `EnvLimit::ByIndex(env_before)`（与真实声明的 cutoff 同值 ⇒ sound）；
+  - 会话/LSP 侧顺带补一个真缺口：`session.rs` 曾把内核终审过的 warning 丢掉
+    （只重算语法级），现按命令进快照 + 坐标重映射，LSP 该声明不再叠
+    "not yet solved"（真缺口照旧报）；
+  - **验收**：kernel/front/CLI/LSP/session 五层新增 6 条测试（含"真缺口不得误报"
+    与"前瞻引用不得可见"两条护栏），`cargo test --workspace --locked` 全绿、
+    `scripts/soko gate` PASS；用户 playground 326–328 的形状现在报
+    `warning[redundant-sorry]`；洞级 `redundant` 标记在 `query goals`/`holes` 与
+    `soko/goals` 两视图一致（`crates/cli/tests/query.rs` 逐字段对拍）；
+  - **版本 0.56.2（patch）已 bump**：`Cargo.toml` + `editor/vscode/package.json`
+    两处 + `Cargo.lock` + `editor/vscode/CHANGELOG.md` 的 `## [0.56.2]`，`target/`
+    已重建；只剩 commit + push 触发 auto-tag（`docs/HANDOVER.md` §3.0）。
 - 2026-09-17（九十一）：**多文件 `import` 与项目管理（设计 + 计划，I16）**（用户要求：
   「我想增加 代码import +project管理，帮我调研一下其他语言都是怎么分别处理单文件，
   和项目。项目如何维护。sokonanoda如何实现，具体执行方案是什么」）——**本轮只出设计 +
@@ -1267,10 +1349,45 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - **版本策略（调研）**：上游 `@vscode/test-cli` 的 `version` 默认 **stable 频道**
     （官方文档/官方 sample 均不钉具体版本）——生态惯例是跟频道；但台账要求可复现，
     故本地例行默认钉 **1.138.0**、CI 矩阵显式给版本，升级流程见 `docs/E2E.md` §5；
-    声明的最低版本（`^1.106.0`）腿待补（本机下载老版本 zip 反复中断，未验证）。
+    声明的最低版本（`^1.106.0`）腿已本地跑出 14/14（用上面那两个 npm 代理变量解决
+    老版本 zip 下载中断）并加进 CI 矩阵（ubuntu × 1.106.0，每个 PR 都跑）。
   - **缓存清理**：删 `.vscode-test/vscode-darwin-arm64-1.137.0`（898MB）、旧 VSIX×5、
     `.ruff_cache/`（.vscode-test 从 1.8G → 916M）。
   - **文档**：新增 `docs/E2E.md`（手册：一条命令、四层分工、台账字段、卡住时判读、
     版本策略、环境坑、与 CI 的关系）+ `scripts/e2e-summary.py`（台账渲染，CI 与本地共用）；`docs/vscode-dev-guide.md`（测试三层 + 坑 19/20/21 + 坑 14
     更新）、`docs/TESTING.md` 集成测试小节、`AGENTS.md` 命令面、`skills/sokonanoda-dev`、
     `docs/README.md` 地图同轮同步。
+
+- 2026-09-18（九十八）：**合并 0.56.2 线（多余的 `sorry`）+ push 主线 —— 0.58.0 发布**
+  （用户：「你来搞吧，push」）：
+  - **为什么必须合并**：`origin/main` 已有 0.56.2 的 3 个 commit（`dd1902d` release
+    0.56.2 / `f66fee3` 发布文档 / `74cdbda` CI skill），本线 53 个 —— 强推会丢掉
+    0.56.2 的功能与已发布的 `v0.56.2`。做法：scratch worktree（`/tmp/soko-merge`）
+    里 merge + 全量验证，再 `merge --ff-only` 回主线（历史保持线性）。
+  - **19 个文件冲突手心合并**：内核（冻结）取远端（`check_declar_at` /
+    `try_check_declar_at`，"只加不改语义"）；`open_goal` 4 参 + `PendingOp::OpenExercise`
+    的 `env_before`/`redundant_probes` 并入本线模块化的 `check/{mod,walk,kernel_phase}.rs`
+    （0.56.2 写在旧 `check.rs` 的探针代码手工搬运）；旧 `check.rs` 在合并树里删除；
+    `Cargo.lock` 取本线后由 `cargo metadata` 重生成；文档冲突一律"两条线的记录都留"
+    （第九十五轮与 0.56.2 线的第九十一轮续进 `docs/STATUS-ARCHIVE.md`）。
+  - **合并暴露并修掉一个真 bug（跨模块 warning 归因）**：`redundant-sorry` 是 pass 2
+    现算、带命令下标的 warning，而 `split_report` 原先只按单元重算语法级 warning ⇒
+    项目入口"多写了一行 `sorry`"被静默丢掉。修法：`CompileOutput` 增平行数组
+    `warning_cmds` + `push_warning(cmd, w)`（与 `event_cmds`/`error_cmds` 同款不变量），
+    `split_report` 按命令下标归因；语法级 warning 钉在所属单元的命令区间上（单文件
+    逐字节等价）。回归 `compile::tests::warnings_are_attributed_to_the_unit_that_produced_them`。
+  - **验收**：`cargo test --workspace --locked` **888 passed / 0 failed / 6 ignored**；
+    `scripts/soko gate` PASS；四个纯 Node 套件 18/7/10/11；真 VS Code
+    （`scripts/vscode-e2e.sh`，1.138.0 与 1.106.0）**14/14** ×2；`scripts/e2e-merge.py
+    --check`、`scripts/check-site.py` 全绿。
+  - **push 前 CI 预检（修掉一个 workflow 设计错误）**：三条 e2e 腿原先挤在同一个
+    job 的矩阵里、用 job 级 `if: matrix.os != 'macos-latest' || …` 表达"macOS 只在
+    main 上跑"——GitHub 的 contexts 表里 `jobs.<job_id>.if` **不含 `matrix`**，该条件
+    要么按空值求值、要么让整个 workflow 校验失败。拆成两个 job（`e2e` = ubuntu ×
+    2 版本；`e2e-macos` = macos × 1.138.0，github-only 条件、只 main），
+    `auto-tag`/`e2e-ledger` 的 `needs` 同步；`scripts/e2e-merge.py` 去重键加宿主，
+    避免两条 1.138.0 腿同秒完成时被当重复丢掉。合并树先推**临时预检分支**跑一遍 CI
+    （workflow 能被接受 + ubuntu 两条腿 + 其它 job 全绿）再 push main。
+  - **发布**：push `main` → `ci.yml` auto-tag 打 `v0.58.0` → dispatch `release.yml`
+    （8 平台 CLI/LSP tarball + 9 个 VSIX）。0.56.2 的功能与 tag 都保留在历史里，
+    0.58.0 的 CHANGELOG 补记"多余的 `sorry` 已并入"。

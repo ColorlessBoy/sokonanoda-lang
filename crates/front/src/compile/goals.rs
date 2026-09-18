@@ -233,13 +233,18 @@ pub(crate) struct OpenGoalInfo {
 /// `None` means "no hole" or "hole in a place the goal cannot be recovered
 /// from" (the latter falls through to normal elaboration, which reports
 /// `elab-hole-misplaced` at the hole).
-pub(crate) fn open_goal(ty: &Expr, val: &Expr, templates: &GoalTemplates) -> Option<OpenGoalInfo> {
+pub(crate) fn open_goal(
+    ty: &Expr,
+    val: &Expr,
+    templates: &GoalTemplates,
+    redundant: &mut Vec<Span>,
+) -> Option<OpenGoalInfo> {
     if !expr_has_hole(val) {
         return None;
     }
     let mut locals = HashMap::new();
     local_func_templates(val, &mut locals);
-    goal_under_binders(ty, val, templates, &locals, None, &[])
+    goal_under_binders(ty, val, templates, &locals, None, &[], redundant)
 }
 
 /// 请求期 kernel 探针的上下文（design spine-meta-a §2）：前缀源码 +
@@ -301,7 +306,15 @@ pub fn probe_sub_goal_types_with(
         extra_prefix,
         options,
     };
-    let Some(info) = goal_under_binders(ty, val, &templates, &locals, Some(&env), &[]) else {
+    let Some(info) = goal_under_binders(
+        ty,
+        val,
+        &templates,
+        &locals,
+        Some(&env),
+        &[],
+        &mut Vec::new(),
+    ) else {
         return Vec::new();
     };
     info.sub_goals
@@ -902,6 +915,7 @@ fn ctor_spine_case(
 /// `binder_tys[i]` 把前 i 个 binder 名替换成 `v1..vi`（含宇宙层级替换）。
 /// 前置实参本身是洞时该洞类型无法确定 → `None`（面板显示 `?`）。
 /// 判定仍是完整内核的事：这里只生成建议，形状是否真的对由填洞后的内核裁决。
+#[allow(clippy::too_many_arguments)]
 fn func_spine_case(
     ty: &Expr,
     val: &Expr,
@@ -910,6 +924,7 @@ fn func_spine_case(
     locals: &HashMap<String, FuncTemplate>,
     probe: Option<&ProbeEnv>,
     ctx: &[GoalBinder],
+    redundant: &mut Vec<Span>,
 ) -> Option<OpenGoalInfo> {
     let (val_head, val_args) = spine_head_args(val)?;
     // 全局优先，局部假设（值位 `funapply` 引入的覆盖层）兜底。
@@ -985,7 +1000,16 @@ fn func_spine_case(
                     }
                     res = *codomain;
                 }
-                _ => return None,
+                _ => {
+                    // 结果类型展不开箭头：这个实参（以及它后面的每一个）都
+                    // 不可能被消费——不是"缺一块"，是"多一块"。候选交给 sink，
+                    // 是否真的多余由 kernel 终审（`docs/design/redundant-sorry.md`）。
+                    // 行为不变：这里仍然交回 generic fallback。
+                    if let Expr::Hole { span } = arg {
+                        redundant.push(*span);
+                    }
+                    return None;
+                }
             }
         }
     } else {
@@ -1134,6 +1158,7 @@ fn goal_under_binders(
     locals: &HashMap<String, FuncTemplate>,
     probe: Option<&ProbeEnv>,
     ctx: &[GoalBinder],
+    redundant: &mut Vec<Span>,
 ) -> Option<OpenGoalInfo> {
     match val {
         Expr::Hole { span } => {
@@ -1191,14 +1216,18 @@ fn goal_under_binders(
             let mut child_ctx = ctx.to_vec();
             child_ctx.push(introduced.clone());
             let mut info = if binders_rest.is_empty() {
-                goal_under_binders(&rest_ty, body, templates, locals, probe, &child_ctx)?
+                goal_under_binders(
+                    &rest_ty, body, templates, locals, probe, &child_ctx, redundant,
+                )?
             } else {
                 let rest_val = Expr::Lambda {
                     binders: binders_rest.to_vec(),
                     body: body.clone(),
                     span: Span::default(),
                 };
-                goal_under_binders(&rest_ty, &rest_val, templates, locals, probe, &child_ctx)?
+                goal_under_binders(
+                    &rest_ty, &rest_val, templates, locals, probe, &child_ctx, redundant,
+                )?
             };
             info.binders.insert(0, introduced);
             Some(info)
@@ -1214,7 +1243,8 @@ fn goal_under_binders(
             if expr_has_hole(let_val) {
                 // 值位洞的期望类型 = binder 注解 T；整体剩余目标仍是声明类型。
                 let ty_ast = binder.ty.as_deref()?;
-                let precise = goal_under_binders(ty_ast, let_val, templates, locals, probe, ctx);
+                let precise =
+                    goal_under_binders(ty_ast, let_val, templates, locals, probe, ctx, redundant);
                 let (holes, precise_goals) = match precise {
                     Some(info) => (info.holes, info.sub_goals),
                     None => {
@@ -1251,7 +1281,8 @@ fn goal_under_binders(
                 };
                 let mut child_ctx = ctx.to_vec();
                 child_ctx.push(introduced.clone());
-                let mut info = goal_under_binders(ty, body, templates, locals, probe, &child_ctx)?;
+                let mut info =
+                    goal_under_binders(ty, body, templates, locals, probe, &child_ctx, redundant)?;
                 info.binders.insert(0, introduced);
                 Some(info)
             }
@@ -1318,7 +1349,9 @@ fn goal_under_binders(
                     _ => ty.clone(),
                 };
                 let arm_r = render_expr(&arm_ty);
-                match goal_under_binders(&arm_ty, &arm.body, templates, locals, probe, ctx) {
+                match goal_under_binders(
+                    &arm_ty, &arm.body, templates, locals, probe, ctx, redundant,
+                ) {
                     Some(info) => {
                         for (i, span) in info.holes.iter().enumerate() {
                             holes.push(*span);
@@ -1355,7 +1388,53 @@ fn goal_under_binders(
             })
         }
         // 构造子语义优先（参数位可由目标自动判定，信息更多）；函数兜底。
-        _ => ctor_spine_case(ty, val, Vec::new(), templates)
-            .or_else(|| func_spine_case(ty, val, Vec::new(), templates, locals, probe, ctx)),
+        _ => ctor_spine_case(ty, val, Vec::new(), templates).or_else(|| {
+            func_spine_case(
+                ty,
+                val,
+                Vec::new(),
+                templates,
+                locals,
+                probe,
+                ctx,
+                redundant,
+            )
+        }),
     }
+}
+
+/// 去掉应用 spine 上恰好是 `span` 的那个洞实参，得到"学生其实写完的样子"
+/// （`f a1 … an`）。只在**顶层应用**上工作；形状不认识或找不到该洞就返回
+/// `None`（保守：拿不到候选就不报）。供 `redundant-sorry` 的 kernel 探针用。
+pub(crate) fn spine_without_arg(val: &Expr, span: Span) -> Option<Expr> {
+    // 声明级 binder 会被 parser 折成 lambda（`theorem t (h : A) : T := v`
+    // ⇒ `fun (h : A) => v`）：剥掉包装层再改体，改完按原样装回去。
+    if let Expr::Lambda {
+        binders,
+        body,
+        span: lam_span,
+    } = val
+    {
+        let body = spine_without_arg(body, span)?;
+        return Some(Expr::Lambda {
+            binders: binders.clone(),
+            body: Box::new(body),
+            span: *lam_span,
+        });
+    }
+    let (_, args) = spine_head_args(val)?;
+    let target = |a: &&Expr| matches!(a, Expr::Hole { span: s } if *s == span);
+    if !args.iter().any(target) {
+        return None;
+    }
+    let mut out = spine_base(val)?.clone();
+    for arg in args.iter().filter(|a| !target(a)) {
+        let arg_span = arg.span();
+        out = Expr::App {
+            fun: Box::new(out),
+            arg: Box::new((*arg).clone()),
+            span: arg_span,
+        };
+    }
+    Some(out)
 }

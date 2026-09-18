@@ -61,6 +61,7 @@ scripts/soko grade playground.sokonanoda --json
 | GITHUB_TOKEN 推 tag **不触发**其它 workflow | 防递归规则；但 `workflow_dispatch` / `repository_dispatch` 是**例外**，token 触发有效 | 自动发版 = 推 tag + 显式 `gh workflow run release.yml --ref v<tag>`（ci.yml 的 auto-tag job）；dispatch 还需 `actions: write`（只有 contents:write 会 403 "Resource not accessible by integration"） |
 | **发版默认全自动** | bump 两处版本（`Cargo.toml` + `editor/vscode/package.json`）→ push main → `ci.yml` 的 auto-tag 自动打 tag 并 dispatch `release.yml` | 正常发布**不要**手推 tag；手动打 tag 仅应急（tag 触发的 release 用 tag 指向 commit 上的文件）。发布形态与校验见 `docs/RELEASE.md` |
 | `upload-artifact@v7` `FinalizeArtifact` **403 Forbidden** | 上传成功后 finalize 被中介拒绝（`(403) Forbidden ... Error from intermediary`）是 GitHub Artifacts 服务**瞬时故障**，内容/代码无关（2026-09-15 v0.39.1：build 失败 → package-vsix/github-release 全 skipped） | 确认是 finalize（非 build/upload 内容）后 `gh run rerun <id> --failed`（下游依赖会随之重跑）；不改流水线 |
+| **job 级 `if` 引用 `matrix`** | `jobs.<job_id>.if` 的可用上下文只有 `github`/`needs`/`vars`/`inputs`，**没有 `matrix`**（`runs-on`/`continue-on-error` 才有）。写 `if: matrix.os != 'macos-latest'` 要么按空值求值（该腿在 PR 上也跑），要么被判成未识别命名值让**整个 workflow 校验失败**（一条 job 都不会跑） | 想按矩阵值筛腿：把条件放到 **step 级**（那里有 `matrix`），或拆成**独立的 job** 只用 `github` 条件（`github.event_name == 'push' && github.ref == 'refs/heads/main'`）；改完先推**临时分支**验证 workflow 能被接受（本地 YAML 解析查不出上下文可用性） |
 | runner 上的未鉴权 GitHub API 调用会假 404/403 | 匿名额度按 IP 共享，限流/风控返回 403/404，与资源真实状态无关（pages 门禁曾因此误判"未启用"→ 部署全 skipped） | workflow 里查仓库状态一律 `gh api` + `GH_TOKEN: ${{ github.token }}` |
 
 ## 2. 触发与监控
@@ -91,6 +92,28 @@ curl -sS "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/actions/runs
       for(const x of j.jobs) console.log(x.name, x.status, x.conclusion, "|",
         x.steps.map(t=>t.number+":"+t.name+"="+t.conclusion).join(", "))})'
 ```
+
+补充（2026-09-17 本机实测，三坑一起踩过）：
+
+- **环境里的代理可能是坏的**：本机 shell/系统代理都指向 `127.0.0.1:7890`，但那里
+  **没有监听**——`curl` 会先收到 `HTTP/1.1 200 Connection established`（CONNECT
+  "成功"）再在 TLS 握手时 `SSL_ERROR_SYSCALL`，看起来像"GitHub 被墙"，其实
+  **直连是好的**（`curl --noproxy '*' https://api.github.com/rate_limit` → 200）。
+  `git push` 走 SSH，一直没受影响，更容易误判。规程：API/下载一律
+  `curl --noproxy '*'`（或 `unset HTTPS_PROXY HTTP_PROXY NODE_USE_ENV_PROXY`）。
+- **未认证额度只有 60 req/h**：带 job/step 的发布监控很容易打满
+  （轮询 60s × 双 run × step 详情）。规程：`/rate_limit`（不计数）先看 reset；
+  轮询间隔 ≥60s、只在状态**变化**时多查一次；额度耗尽时改用下面的 HTML 法。
+- **`gh` 在 PATH 上 ≠ 能用**：本机 `gh auth status` = token invalid（不改用户凭据），
+  所以监控仍按"无 gh"路径走。
+- **额度耗尽后的核 CI 办法（无需 API）**：Actions workflow 页 HTML 的 run 行里带
+  `aria-label="completed successfully: Run N of ci. <commit 标题>"` +
+  `octicon-check-circle-fill`（失败则是 `octicon-x-circle-fill`）——
+  `curl -sSL --noproxy '*' https://github.com/<owner>/<repo>/actions/workflows/ci.yml`
+  后对该 commit 短 SHA 取上下文即可判读；`git ls-remote --tags origin` 走 SSH，
+  核"tag 是否重复/指向哪个 commit"最省，也不受额度影响。
+- **tag 已存在时 auto-tag 会跳过**：docs-only 的后续 push 不会再发一次版——
+  用 `git ls-remote --tags` 确认同名 tag 只有一个、且指向 release commit。
 
 - **步骤日志拉不到（403）**：`/actions/runs/<id>/logs` 即使在公开仓库也要鉴权
   （2026-09-12 实测 403）。所以**能拿到的最强信号是 job/step 的 `conclusion`**；

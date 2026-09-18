@@ -32,10 +32,19 @@ LOGS = E2E_DIR / "logs"
 
 
 def key(entry: dict) -> tuple:
+    """幂等合并的去重键。
+
+    含 host.system/machine：同一个 commit + 同一个 VS Code 版本会在 **两个 os 腿**
+    （ubuntu 与 macos 各一条 1.138.0）上各记一条——如果两条腿的 `date` 恰好同秒
+    （矩阵并行时不罕见），不含宿主就会把其中一条当重复丢掉，台账静默少一条腿。
+    """
     tests = entry.get("tests", {})
+    host = entry.get("host") or {}
     return (
         entry.get("commit"),
         entry.get("vscode"),
+        host.get("system"),
+        host.get("machine"),
         entry.get("kind"),
         entry.get("exit"),
         tests.get("passed"),

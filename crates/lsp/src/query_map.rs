@@ -55,6 +55,7 @@ pub(crate) fn hole_info(hole: truth::HoleInfo, text: &str) -> HoleInfo {
     HoleInfo {
         range: range_of_offsets(text, hole.start, hole.end),
         id: hole.id,
+        redundant: hole.redundant,
     }
 }
 
