@@ -819,11 +819,11 @@ iface(module) = H( CACHE_FORMAT,
 - ~~`didChangeWatchedFiles`（编辑器外改文件不触发刷新）~~ ✅ 2026-09-18 完成
   （只重编译"闭包里含该路径"的已打开文档；缓冲优先）；
 - `soko/project`（P5 剩下的那项，仍留 P7）；
-- **`crates/front/src/compile/check.rs` 的结构债（本轮加剧）**：1717 → **1918** 行，
-  其中 `run_pass` 一个函数占 553–1726 行（≈1174 行）。本轮只往里加了"多 unit
-  顺序执行 + 命令下标归因"（`compile_all_units` / `split_report` / `unit_ranges` /
-  `top_level_def_spans_over`），没有趁机拆函数——拆 `run_pass` 是独立一轮的活
-  （要保证事件流与增量语义逐字节不变），已登记 `docs/HANDOVER.md` §4。
+- ~~**`crates/front/src/compile/check.rs` 的结构债（本轮加剧）**：1717 → **1918** 行，
+  其中 `run_pass` 一个函数占 553–1726 行（≈1174 行）~~ ✅ **2026-09-18（第九十五轮）
+  已拆完**：`compile/units.rs`（闭包装配）+ `check/{mod,walk,kernel_phase}.rs`
+  （794/975/417 行），事件流与增量语义逐字节不变（862 条测试 + 二进制对拍，
+  方法见 `docs/TESTING.md`）。
 
 ---
 
@@ -863,9 +863,10 @@ iface(module) = H( CACHE_FORMAT,
    仍以诊断形式带 `file`/`module` 归因；想要某模块自己的事件，把它当入口跑一遍即可
    （`query check --file <任何模块>` 同样成立）。`build --json` 另给逐文件状态。
    验收 A2 的正文已按此改写，`docs/protocol.md` 写明。
-5. **新增一笔结构债（已登记）**：`crates/front/src/compile/check.rs` 从 1717 行涨到
-   1918 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里，但拆分 `run_pass`
-   需要独立一轮（事件流/增量语义不能漂），记录在 `docs/HANDOVER.md` §4 与 P7 backlog。
+5. **新增一笔结构债（已登记，第九十五轮已还清）**：`crates/front/src/compile/check.rs`
+   从 1717 行涨到 1918 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里，
+   拆分留到独立一轮（事件流/增量语义不能漂）；**2026-09-18 第九十五轮拆完**：
+   `check/{mod,walk,kernel_phase}.rs` + `compile/units.rs`，只动位置不动语义。
 
 **交付物（可核对）**
 
