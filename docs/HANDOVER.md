@@ -4,7 +4,7 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.58.0**（2026-09-18），最近一轮 **第九十六轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.58.0**（2026-09-18），最近一轮 **第九十七轮**。仓库根入口 `AGENTS.md`。
 > **DeepSeek Harness 适配已落地**：`docs/design/deepseek-harness.md`（H0–H4 全绿，
 > 用法见 `dsh/README.md`）；仅 H5（Infoview/诊断通道/插件包）留 backlog。
 > **内核真相查询通道**已落地：`docs/design/agent-query-channel.md`（I15，`query` + MCP）。
@@ -71,7 +71,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 83 | 0.53.0 | 课程大纲重构 P2（`by` 提前到 #4、归纳拆 Ⅰ/Ⅱ、8 单元 + 门面同步） | `docs/design/course-syllabus.md` §6 |
 | 84 | 0.54.0 | 课程大纲重构 P3（#9 关系与联结词、#10 读证明与综合 → 锁定 10 单元） | `docs/design/course-syllabus.md` §0/§6 |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–92 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–94 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 

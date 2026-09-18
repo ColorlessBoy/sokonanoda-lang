@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 96,
+  "round": 97,
   "round_date": "2026-09-18",
-  "round_title": "待办批次 4 —— 项目状态视图，0.58.0",
+  "round_title": "真 VS Code 集成测试例行化 + 结果台账",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",

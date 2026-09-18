@@ -398,3 +398,22 @@
   ③ 发现 stub 不忠实时**先修 stub 再改产品代码**——反过来会把产品改成迎合 stub。
 - **守护位置**：`editor/vscode/test-extension-host.js` 的 `fake vscode` 段、
   `crates/cli/tests/extension.rs::unit_test_script_covers_every_node_layer`（清单）、本条目。
+
+## 真宿主 e2e 的第一现场：给扩展一条**文件日志**（2026-09-18，例行化 VS Code 集成测试）
+
+- **踩的坑**：本地首次跑真 VS Code 集成测试，10 个用例集体超时 30s。扩展宿主里
+  `console.log` **不会**出现在 `vscode-test` 的输出里（只有测试文件自己的 console 会），
+  LanguageClient 的 output channel 也拿不到文件——"服务器到底起没起、用的是哪个二进制"
+  全靠猜。
+- **做法**：扩展侧加一个 env 开关的日志（`SOKO_E2E_LOG` → 追加一行文件），记录
+  解析到的服务器命令/来源、客户端状态迁移、活跃文档、`soko/project` 结果；生产路径
+  只多一次 `undefined` 判断。有了它，同一晚就把"起不来"定位到**我自己的测试钩子**：
+  为了给测试暴露 provider 在 `activate()` 中间 `return` 了，而 `client.start()` 挂在
+  函数尾部的异步续段——服务器永远不会启动。
+- **规矩**：① 集成/e2e 层要有一条**独立于 UI 的观察通道**（文件日志/doctor），别指望
+  把 UI 的 console 捞出来；② stub 层测不到的"顺序/生命周期"问题，正是真宿主层存在的
+  理由（stub 的 `activate` 里没有异步续段）；③ 钩子代码要放在生命周期**末尾**，并写
+  注释说明为什么不能提前返回；④ 真宿主层要**记账**（`docs/e2e/ledger.jsonl`），否则
+  "上次跑是绿的"只是记忆。
+- **守护位置**：`editor/vscode/extension.js`（`e2eLog`）、`scripts/vscode-e2e.sh`、
+  `docs/E2E.md`、`docs/vscode-dev-guide.md` 坑 19/20/21、本条目。

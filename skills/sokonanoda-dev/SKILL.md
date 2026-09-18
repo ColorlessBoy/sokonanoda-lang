@@ -76,9 +76,10 @@ cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node �
   直接 exit 3 —— 先 `scripts/soko update`，或直接跑
   `cargo run -q -p sokonanoda-cli --bin sokonanoda -- playground.sokonanoda`；
 - 编辑器测试三层：静态契约 `crates/cli/tests/extension.rs`（进 `cargo test`）、
-  webview 纯 Node 行为 `editor/vscode/test-webview.js`（`npm run test:unit`）、
-  Electron 集成 `cd editor/vscode && npm test`（先 `cargo build -p sokonanoda-lsp`；
-  无需另开 VS Code 实例）；
+  webview/stub 宿主纯 Node 行为（`cd editor/vscode && npm run test:unit`）、
+  **真 VS Code 集成** `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`
+  （自动构建 release + stage + 跑 + 记 `docs/e2e/ledger.jsonl`；手册 `docs/E2E.md`。
+  改了 `editor/vscode/` 就跑它——被 ignore 的 `bin/` 会让测试静默测旧二进制）；
 - 协议防漂移：改事件/输出格式必须同步 `docs/protocol.md`
   （`protocol.rs` / `skill.rs` conformance 测试会抓漂移）；
 - **真相层不得绕过**（`docs/design/agent-query-channel.md`）：任何"问内核"的

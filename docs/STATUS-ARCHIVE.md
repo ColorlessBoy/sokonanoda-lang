@@ -1,8 +1,55 @@
-# STATUS 归档（第 1–93 轮，2026-09-06 → 2026-09-18）
+# STATUS 归档（第 1–94 轮，2026-09-06 → 2026-09-18）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-18，第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新）
+
+> 用户：「还有没有做的TODO吗？fix修复或者优化体验的设计」→ 我列出 A/B/C/D 四组未做项
+> 与四个设计 → 用户选「批次 1（推荐）」并要求「按照你的计划，从上到下依次改进」。
+> 本轮 = 批次 1（A1 + C3 + B3 与 A2）。
+
+1. **判据前缀抽成真相层（C3）**：`judge.rs` 四个合成判定入口各增 `extra_prefix`
+   变体（`judge_terms_with` / `judge_infer_with` / `judge_hole_fill_with` /
+   `judge_value_replace_with`；旧签名委托 `""` ⇒ 单文件逐字节不变，缓存键含前缀）。
+   `QueryDoc::judge_prefix(offset)` 是唯一真相入口（依赖源码去 `import` 行、拓扑序）；
+   `importless_source` 从 `check.rs` 私有函数提成 `project::importless_source` 一份实现。
+2. **项目入口恢复 quick-fix（A1）**：`front::suggest_with`、`probe_sub_goal_types_with`
+   接前缀，LSP 的 code action 传 `doc.query().judge_prefix(...)`。真 LSP 探针：
+   修复前 `null` → 修复后 `refine And.intro a b sorry sorry`（与单文件同形）。
+3. **第三层根因**：`run_pass` 的 `GoalTemplates`（refine/intro 的构造子索引）按
+   **单个单元**构建 ⇒ 项目入口看不见导入的构造子，建议凭空消失；现在按"拓扑序前缀 +
+   本单元"的命令表构建（`new_for` 只读命令表，`src` 是占位）。
+4. **项目模式子洞探针（B3）**：`probed_report` 不再因项目模式整段跳过；
+   `query goals --probe` 在项目入口给出 `spine_x` 两个子洞期望类型 `a`/`b`（与单文件一致）。
+5. **编辑器外改动自动刷新（A2）**：LSP 实现 `workspace/didChangeWatchedFiles`
+   （扩展早已声明 `**/*.sokonanoda` watcher，服务端此前静默忽略）：只重编译
+   **闭包里含该路径**的已打开文档、缓冲区优先；缺失模块也记着期望路径，所以
+   "文件被创建出来"同样触发刷新。真二进制探针：模拟 `git checkout` 改坏依赖 →
+   入口立刻报 `elab-unknown-identifier`。
+6. **测试**：LSP `code_actions_work_in_a_project_entry`、
+   `an_external_change_to_a_dependency_refreshes_the_open_entry`；front
+   `project_documents_expose_a_judge_prefix_and_probe_sub_goals`。
+   `cargo test --workspace --locked` **860 passed / 0 failed**；项目 perf 复测无回退
+   （4×20 compile 131ms、缩放 1.9×、按键 139ms）。
+7. **文档**：`TESTING.md` §7b 标闭环（三层根因 + 守护）、多文件 LSP 行扩写；
+   架构 §4.5 判据前缀段改写；设计 P7 两项划掉；`vscode-dev-guide` 坑 15 更新；
+   本文件与 `REQUIREMENTS.md` §9（九十四）。
+8. **批次 2（同轮完成）—— `query` 走项目缓存 + 协议身份回显**：
+   - `query` 与 `check`/`build` 共用 `crates/cli/src/project_cache.rs` 的闭包摘要键；
+     `QueryDoc::check()` 不再二次编译（复用 `set_text` 存下的 `CompileOutput`，新增
+     `set_cached_entry` / `compiled_output`）。3×12 实测：`query check` 冷 49→**25ms**、
+     热 37→**3.4ms**；`build --json` 立刻看到入口是同一份键的 hit。
+   - `soko/goals` 回显 `uri`+`version`、`soko/stateAt` 回显 `uri`；VS Code 扩展比对后
+     丢弃不匹配答案（stub 宿主 8/8），协议写进 `docs/protocol.md`。
+   - 测试：CLI `query_uses_the_same_project_cache_as_check_and_build`、LSP
+     `custom_responses_echo_the_requested_document_identity`、扩展宿主
+     `an answer that names another document is dropped`。
+9. **批次 3（同轮起步）**：第一、二刀（`units.rs` + `check/kernel_phase.rs`）同轮完成，
+   第三刀与收尾清理见**第九十五轮**。
+10. **下一批**：批次 3 余下 → 批次 4（`soko/project` 项目状态可视化）。批次 3 已在
+    第九十五轮完成；**批次 4 待做**。
 
 ## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）
 

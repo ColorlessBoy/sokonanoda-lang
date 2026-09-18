@@ -31,6 +31,21 @@ let client;
 let serverOptions;
 let extensionRoot;
 let lastResolution; // {command, source} of the last successful resolveServerForStart
+
+// 例行化 e2e 的诊断日志：`scripts/vscode-e2e.sh` 设 `SOKO_E2E_LOG` 时启用。
+// 为什么需要它：扩展宿主的 `console` 在 vscode-test 的输出里**看不到**，
+// output channel 的文件也拿不到，而"服务器到底起没起、用的是哪个二进制"是
+// e2e 卡住时的第一现场（第一次例行跑就是靠这条线索定位的）。未设环境变量
+// 时每处调用只做一次 `undefined` 判断，生产零成本。
+const e2eLogPath = process.env.SOKO_E2E_LOG;
+function e2eLog(line) {
+  if (!e2eLogPath) return;
+  try {
+    fs.appendFileSync(e2eLogPath, `${new Date().toISOString()} ${line}\n`);
+  } catch {
+    // 诊断日志写不进去不影响任何功能
+  }
+}
 let overrideNoticeShown = false; // one-time "your serverPath is ignored" notice
 let doctorChannel; // shared read-only doctor output channel
 
@@ -866,9 +881,13 @@ function projectStatusText(answer) {
 
 /// 取回项目视图（只读请求；服务器不可用时保留上一次的视图，不假装"没有项目"）。
 async function loadProject() {
-  if (!projectProvider || !client) return;
+  if (!projectProvider || !client) {
+    e2eLog(`loadProject skipped (provider=${!!projectProvider} client=${!!client})`);
+    return;
+  }
   const uri = projectProvider.uri;
   if (!uri) {
+    e2eLog("loadProject: no active .sokonanoda document");
     projectStatusLine = undefined;
     updateStatusBar(goalProvider);
     return;
@@ -877,9 +896,16 @@ async function loadProject() {
     const answer = await client.sendRequest("soko/project", {
       textDocument: { uri },
     });
-    if (!projectProvider.setAnswer(uri, answer)) return; // 答的是另一份文档
+    if (!projectProvider.setAnswer(uri, answer)) {
+      e2eLog(`soko/project answer for another document: ${answer?.uri}`);
+      return;
+    }
     projectStatusLine = projectStatusText(answer);
-  } catch {
+    e2eLog(
+      `soko/project ok: project=${answer?.project ? `${answer.project.entry} (${answer.project.counts?.modules} modules)` : "null"} reason=${answer?.reason ?? "null"}`,
+    );
+  } catch (error) {
+    e2eLog(`soko/project failed for ${uri}: ${error?.message ?? error}`);
     return;
   }
   updateStatusBar(goalProvider);
@@ -1438,7 +1464,10 @@ async function activate(context) {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       provider.trackEditor(editor);
-      if (projectProvider.trackEditor(editor)) loadProject();
+      if (projectProvider.trackEditor(editor)) {
+        e2eLog(`active document changed: ${projectProvider.uri ?? "(none)"}`);
+        loadProject();
+      }
       requestCursorForEditor(editor);
     }),
     vscode.window.onDidChangeTextEditorSelection((event) => {
@@ -1495,6 +1524,21 @@ async function activate(context) {
   registerCommands(context, provider, courseProvider);
   courseProvider.refresh();
 
+  // Test-only surface: when the real VS Code host runs the integration suite
+  // (`vscode-test` sets `ExtensionMode.Test`), `activate()` returns the tree
+  // providers so the suite can assert **real** rows built from **real**
+  // `soko/project` answers. Production hosts ignore the return value.
+  //
+  // NOTE: return it at the **end** of activate() — returning here would skip
+  // the async continuation below and the language server would never start
+  // (the whole suite then times out with no diagnostics; cost me one debug
+  // cycle, hence this comment).
+  const testMode = vscode.ExtensionMode ? vscode.ExtensionMode.Test : undefined;
+  const testApi =
+    testMode !== undefined && context.extensionMode === testMode
+      ? { goals: provider, project: projectProvider, course: courseProvider }
+      : undefined;
+
   // Async continuation (fire-and-forget): resolve + start the server without
   // blocking the view. This is the only slow path — the UI is already live and
   // the Infoview shows progress until the first snapshot arrives.
@@ -1503,6 +1547,7 @@ async function activate(context) {
     infoviewProvider.postServer(); // server not running yet -> "启动中"
     const resolution = await resolveServerForStart(context);
     if (resolution === undefined) {
+      e2eLog("server resolution failed (no command)");
       infoviewProvider.setStatus({ state: "idle" });
       infoviewProvider.postServer();
       return;
@@ -1516,8 +1561,15 @@ async function activate(context) {
       documentSelector: [{ language: "sokonanoda", scheme: "file" }],
       synchronize: { fileEvents: vscode.workspace.createFileSystemWatcher("**/*.sokonanoda") },
     });
+    // 扩展宿主控制台（测试/开发可见）：例行 e2e 卡住时，第一现场是"服务器到底
+    // 起没起、用的是哪个二进制"——output channel 在测试里读不到，控制台能。
+    console.log(`[sokonanoda] server command: ${command} (source=${resolution.source ?? "?"})`);
+    e2eLog(`server command: ${command} (source=${resolution.source ?? "?"})`);
     client.onDidChangeState((event) => {
-      client.outputChannel.appendLine(`[client] ${stateNames[event.newState] ?? event.newState}`);
+      const name = stateNames[event.newState] ?? event.newState;
+      client.outputChannel.appendLine(`[client] ${name}`);
+      console.log(`[sokonanoda] client state: ${name}`);
+      e2eLog(`client state: ${name}`);
     });
     context.subscriptions.push(client);
     await client.start();
@@ -1532,6 +1584,7 @@ async function activate(context) {
     // exchange, so version/source problems surface without the user hunting.
     await runDoctor(context, { notify: true, show: false });
   })().catch((error) => {
+    e2eLog(`activation failed: ${error?.stack ?? error}`);
     console.error(`[sokonanoda] activation failed: ${error?.stack ?? error}`);
     try {
       infoviewProvider.setStatus({ state: "idle" });
@@ -1539,6 +1592,8 @@ async function activate(context) {
       // the view may not exist in a headless host — best-effort only
     }
   });
+
+  return testApi;
 }
 
 async function deactivate() {

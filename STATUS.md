@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-18（第九十六轮：待办批次 4 —— 项目状态视图；版本 **0.58.0**）
+> 快照：2026-09-18（第九十七轮：真 VS Code 集成测试例行化 + 结果台账；版本 **0.58.0**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,45 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-18，第九十七轮：真 VS Code 集成测试例行化 + 结果台账）
+
+> 用户：「你配置相关套件，启动 VSCode 实际验证一下，本来就应该做成例行化检测。
+> 远程不行，本地例行化也可以接收。」——原来只有 `cd editor/vscode && npm test`
+> 这条"想起来才跑"的手工路径，且极易测到旧二进制；本轮把它做成**一条命令 +
+> 提交进仓库的台账**，并用它真跑了一遍。
+
+1. **一条命令**：`SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh` ——
+   构建 release（被测的就是发布形态）→ `node scripts/stage-lsp.js` stage 到
+   `bin/<target>/` → `npm test`（真 VS Code + 真 LSP + 真扩展宿主）→ 记账。
+   退出码 0/1/2/3（全绿/用例失败/用法/前置缺失）。
+2. **台账（提交进仓库）**：`docs/e2e/ledger.jsonl`（`schema: soko.e2e/1`：
+   version/commit/dirty/host/VS Code 版本/`tests{passed,failed,pending}`/exit/
+   doctor 的服务器版本行/被测 LSP `sha256` 前 16 位/裁剪日志路径）+
+   `docs/e2e/latest.json` + `docs/e2e/logs/<date>-<sha>.log`（doctor 块 + 用例
+   清单 + 扩展接线日志 + 失败详情）。
+3. **本轮实测（真宿主）**：**14/14 全绿**，用时 ~1s（外加 VS Code 启动与首次
+   下载）；doctor 自述 `0.58.0 (pid …) == 扩展 v0.58.0 (source=bundled)`。
+   新增 4 条用例：`.sokonanoda` 语言 id 守卫 + **项目树三条**（真 `soko/project`
+   答案渲染的行：闭包 / 单文件占位 / 缺模块根因与错误图标）。
+4. **过程里修掉三个真问题**：
+   - `.vscode-test.mjs` 把 `--user-data-dir`/`--extensions-dir` 指到
+     `<tmpdir>/soko-vscode-test`：macOS 的 unix socket 路径上限 103 字符，本仓库
+     的长路径原先直接 `EINVAL` 起不来（老文档让你把扩展拷到 `/tmp/v`，现在不必）；
+   - 扩展的 test-mode 返回钩子**提前 `return` 掐掉了 `client.start()`**——测试宿主里
+     服务器永不启动，10 个用例集体超时（stub 层看不见这类生命周期问题）；改成
+     **函数末尾**返回并写清为什么；
+   - 新增 `SOKO_E2E_LOG` 文件日志（env 开关、生产零成本）：扩展宿主的 `console`
+     在 `vscode-test` 输出里取不到，这条日志是 e2e 卡住时的第一现场（本轮正是靠它
+     定位到上面那条）。
+5. **文档**：新增 **`docs/E2E.md`**（一条命令、四层分工、台账字段、判读口径、
+   环境坑、与 CI 的关系）；`docs/vscode-dev-guide.md`（测试三层 + 坑 19/20/21 +
+   坑 14 更新为"配置已自解"）、`docs/TESTING.md` 集成测试小节、`AGENTS.md`
+   （命令 + 扩展改动后的例行三层）、`skills/sokonanoda-dev`、`docs/README.md`
+   地图、`docs/LESSONS.md`（"给扩展一条文件日志"）同轮同步。
+6. **与 CI 的关系**：CI（ubuntu + `xvfb-run`）跑同一套用例，但不记台账；本地的
+   价值是**随时复跑 + 钉 VS Code 版本 + macOS 真宿主差异（`/var`→`/private/var`
+   这类符号链接问题只有真宿主才暴露）**。
 
 ## 本轮进度（2026-09-18，第九十六轮：待办批次 4 —— 项目状态视图，0.58.0）
 
@@ -106,50 +145,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    精确测试构成（kernel 51 / front 462 / cli 214 / lsp 135）；本文件归档第九十二轮。
 8. **批次 3 完成 ⇒ 待办只剩批次 4**：`soko/project` 项目状态可视化（协议 + VS Code
    状态/树：模块根、清单来源、闭包模块、失败模块）。
-
-## 本轮进度（2026-09-18，第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新）
-
-> 用户：「还有没有做的TODO吗？fix修复或者优化体验的设计」→ 我列出 A/B/C/D 四组未做项
-> 与四个设计 → 用户选「批次 1（推荐）」并要求「按照你的计划，从上到下依次改进」。
-> 本轮 = 批次 1（A1 + C3 + B3 与 A2）。
-
-1. **判据前缀抽成真相层（C3）**：`judge.rs` 四个合成判定入口各增 `extra_prefix`
-   变体（`judge_terms_with` / `judge_infer_with` / `judge_hole_fill_with` /
-   `judge_value_replace_with`；旧签名委托 `""` ⇒ 单文件逐字节不变，缓存键含前缀）。
-   `QueryDoc::judge_prefix(offset)` 是唯一真相入口（依赖源码去 `import` 行、拓扑序）；
-   `importless_source` 从 `check.rs` 私有函数提成 `project::importless_source` 一份实现。
-2. **项目入口恢复 quick-fix（A1）**：`front::suggest_with`、`probe_sub_goal_types_with`
-   接前缀，LSP 的 code action 传 `doc.query().judge_prefix(...)`。真 LSP 探针：
-   修复前 `null` → 修复后 `refine And.intro a b sorry sorry`（与单文件同形）。
-3. **第三层根因**：`run_pass` 的 `GoalTemplates`（refine/intro 的构造子索引）按
-   **单个单元**构建 ⇒ 项目入口看不见导入的构造子，建议凭空消失；现在按"拓扑序前缀 +
-   本单元"的命令表构建（`new_for` 只读命令表，`src` 是占位）。
-4. **项目模式子洞探针（B3）**：`probed_report` 不再因项目模式整段跳过；
-   `query goals --probe` 在项目入口给出 `spine_x` 两个子洞期望类型 `a`/`b`（与单文件一致）。
-5. **编辑器外改动自动刷新（A2）**：LSP 实现 `workspace/didChangeWatchedFiles`
-   （扩展早已声明 `**/*.sokonanoda` watcher，服务端此前静默忽略）：只重编译
-   **闭包里含该路径**的已打开文档、缓冲区优先；缺失模块也记着期望路径，所以
-   "文件被创建出来"同样触发刷新。真二进制探针：模拟 `git checkout` 改坏依赖 →
-   入口立刻报 `elab-unknown-identifier`。
-6. **测试**：LSP `code_actions_work_in_a_project_entry`、
-   `an_external_change_to_a_dependency_refreshes_the_open_entry`；front
-   `project_documents_expose_a_judge_prefix_and_probe_sub_goals`。
-   `cargo test --workspace --locked` **860 passed / 0 failed**；项目 perf 复测无回退
-   （4×20 compile 131ms、缩放 1.9×、按键 139ms）。
-7. **文档**：`TESTING.md` §7b 标闭环（三层根因 + 守护）、多文件 LSP 行扩写；
-   架构 §4.5 判据前缀段改写；设计 P7 两项划掉；`vscode-dev-guide` 坑 15 更新；
-   本文件与 `REQUIREMENTS.md` §9（九十四）。
-8. **批次 2（同轮完成）—— `query` 走项目缓存 + 协议身份回显**：
-   - `query` 与 `check`/`build` 共用 `crates/cli/src/project_cache.rs` 的闭包摘要键；
-     `QueryDoc::check()` 不再二次编译（复用 `set_text` 存下的 `CompileOutput`，新增
-     `set_cached_entry` / `compiled_output`）。3×12 实测：`query check` 冷 49→**25ms**、
-     热 37→**3.4ms**；`build --json` 立刻看到入口是同一份键的 hit。
-   - `soko/goals` 回显 `uri`+`version`、`soko/stateAt` 回显 `uri`；VS Code 扩展比对后
-     丢弃不匹配答案（stub 宿主 8/8），协议写进 `docs/protocol.md`。
-   - 测试：CLI `query_uses_the_same_project_cache_as_check_and_build`、LSP
-     `custom_responses_echo_the_requested_document_identity`、扩展宿主
-     `an answer that names another document is dropped`。
-9. **批次 3（同轮起步）**：第一、二刀（`units.rs` + `check/kernel_phase.rs`）同轮完成，
-   第三刀与收尾清理见**第九十五轮**。
-10. **下一批**：批次 3 余下 → 批次 4（`soko/project` 项目状态可视化）。批次 3 已在
-    第九十五轮完成；**批次 4 待做**。

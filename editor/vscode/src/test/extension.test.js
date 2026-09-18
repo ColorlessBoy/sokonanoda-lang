@@ -1,8 +1,9 @@
 // VS Code 集成测试：扩展在真实 VS Code（@vscode/test-electron）里跑，
 // 由 `vscode-test`（@vscode/test-cli）经 .vscode-test.mjs 启动。
-// 前置条件：`cargo build -p sokonanoda-lsp` 必须先执行——测试自身绝不构建
-// 服务器，只假设二进制已在 target/debug|release 或 PATH（CI 与本地都先
-// 构建）。找不到二进制时整组 skip（不是 fail）：激活能过但服务器起不来，
+// 前置条件：被测服务器必须先构建并 stage 到 `bin/<target>/`——测试自身绝不构建
+// 服务器（扩展解析 bundled-first，所以 stage 是必须的）。例行入口：
+// `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`（构建 + stage + 跑 +
+// 记账），手册 `docs/E2E.md`。找不到二进制时整组 skip（不是 fail）：激活能过但服务器起不来，
 // 诊断/hover 只会无限等待直到超时，那不是被测代码的回归。
 // 判定全部走真实 kernel：诊断是服务器发布的，hover 是服务器算的；这里不
 // 复刻任何前端逻辑（客户端不做文本判定的教训同样适用于测试）。
@@ -65,6 +66,7 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   // 测试文档写到系统临时目录：file:// URI 能被 documentSelector 命中，
   // 且不污染夹具工作区。
   let tmpDir;
+  let extensionApi;
 
   suiteSetup(async () => {
     console.log(`sokonanoda-lsp binary: ${SERVER_BINARY}`);
@@ -72,6 +74,20 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     assert.ok(ext, `extension ${EXTENSION_ID} must be present in the test instance`);
     await ext.activate();
     assert.ok(ext.isActive, "extension must report active after activate()");
+    // activate() returns the tree providers when the host runs in test mode
+    // (extension.js: `ExtensionMode.Test`) — this suite asserts real tree rows
+    // built from real `soko/project` answers, so it needs them.
+    extensionApi = ext.exports;
+    // Print the extension's own view of the world once per run: the doctor
+    // report names the resolved server (`source=`), which is the first thing to
+    // look at when a run hangs (the suite is skipped only when *no* binary
+    // exists — a wrong-but-existing binary shows up as timeouts).
+    try {
+      const report = await vscode.commands.executeCommand("sokonanoda.doctor");
+      console.log(`--- doctor ---\n${report}`);
+    } catch (error) {
+      console.log(`--- doctor failed: ${error?.message ?? error}`);
+    }
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sokonanoda-vscode-test-"));
   });
 
@@ -87,6 +103,44 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const file = path.join(tmpDir, name);
     fs.writeFileSync(file, content);
     return vscode.Uri.file(file);
+  }
+
+  /// 写一个小项目（多文件）到子目录，返回 文件名 → URI。
+  async function writeProject(tag, files) {
+    const dir = path.join(tmpDir, tag);
+    fs.mkdirSync(dir, { recursive: true });
+    const uris = {};
+    for (const [name, content] of Object.entries(files)) {
+      const file = path.join(dir, name);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, content);
+      uris[name] = vscode.Uri.file(file);
+    }
+    return uris;
+  }
+
+  /// 打开并聚焦一个文档（项目树只跟踪**活跃**编辑器）。
+  async function showDoc(uri) {
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false });
+  }
+
+  /// 项目树的第一行（等真实 `soko/project` 答案到达）。
+  ///
+  /// 单文件是**一条占位行**（没有 children），项目是一条根行（有 children）——
+  /// 两者都算"答案到了"，所以这里只等"不再是 loading 占位"。
+  async function projectRoot(desc) {
+    assert.ok(
+      extensionApi && extensionApi.project,
+      "activate() must expose the project provider in test mode",
+    );
+    await vscode.commands.executeCommand("sokonanoda.project.refresh");
+    await waitFor(`project rows for ${desc}`, async () => {
+      const rows = await extensionApi.project.getChildren();
+      return rows.length === 1 && String(rows[0].label) !== "正在读取项目状态…";
+    });
+    const rows = await extensionApi.project.getChildren();
+    return rows[0];
   }
 
   function sleep(ms) {
@@ -140,6 +194,22 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     if (!trusted || typeof trusted !== "object") return false;
     return Array.isArray(trusted.enabledCommands) && trusted.enabledCommands.includes(command);
   }
+
+  test(".sokonanoda files get the sokonanoda language id", async () => {
+    // 一切 LSP 交互的前提：文件被判成 `sokonanoda` 语言（`languages` 贡献 +
+    // extension.js 的 documentSelector）。这条断言先跑，失败时后面全是超时，
+    // 报错信息会指出根因而不是"等不到诊断"。
+    const uri = await writeDoc("langid.sokonanoda", "def two : Nat := 2\n");
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const registered = (await vscode.languages.getLanguages()).filter((id) =>
+      String(id).includes("soko"),
+    );
+    assert.strictEqual(
+      doc.languageId,
+      "sokonanoda",
+      `the extension must map .sokonanoda to the sokonanoda language (registered ids: ${registered.join(", ") || "none"})`,
+    );
+  });
 
   test("confusable-character highlight is off for sokonanoda files", async () => {
     // α/β/γ 是教学语言的 binder 名；扩展用语言级默认关掉 VS Code 的
@@ -318,6 +388,90 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     await vscode.commands.executeCommand("sokonanoda.openInfoview");
     await vscode.commands.executeCommand("workbench.view.extension.sokonanoda");
     await vscode.commands.executeCommand("sokonanoda.infoview.focus");
+  });
+
+  test("the project tree shows the real closure of an imported module", async () => {
+    // 0.58.0 批次 4 的真宿主验证：真 VS Code + 真 LSP + 真 provider。
+    // 数据来自服务器 `soko/project`（只读派生），这里断言**用户看到的行**。
+    const uris = await writeProject("proj-ok", {
+      "Lib.sokonanoda": "def lib_value : Nat := 2\n",
+      "Main.sokonanoda": "import Lib\n\ndef two : Nat := lib_value\n",
+    });
+    await showDoc(uris["Main.sokonanoda"]);
+    const root = await projectRoot("Main.sokonanoda");
+    assert.ok(
+      String(root.label).includes("proj-ok"),
+      `the root is named after the module root: ${root.label}`,
+    );
+    assert.ok(
+      String(root.description).includes("2 模块"),
+      `the root counts the closure: ${root.description}`,
+    );
+    assert.ok(
+      String(root.tooltip).includes("零配置"),
+      `no manifest ⇒ the tooltip says zero config: ${root.tooltip}`,
+    );
+    const modules = await extensionApi.project.getChildren(root);
+    assert.deepStrictEqual(
+      modules.map((row) => String(row.label)),
+      ["Lib", "Main"],
+      "topological order, entry last",
+    );
+    assert.strictEqual(String(modules[0].description), "依赖 · 1 声明");
+    assert.strictEqual(String(modules[1].description), "入口 · 1 声明");
+    assert.strictEqual(modules[0].command.command, "vscode.open", "clicking opens the module");
+    // 服务器给出的路径是 canonicalize 过的绝对路径（macOS 上 /var 是 /private/var
+    // 的符号链接）——CLI 与 LSP 因此对同一文件给出逐字相同的答案。
+    assert.strictEqual(
+      fs.realpathSync(modules[0].command.arguments[0].fsPath),
+      fs.realpathSync(uris["Lib.sokonanoda"].fsPath),
+      "the row opens the imported module's file",
+    );
+  });
+
+  test("the project tree names the file a single-file document is", async () => {
+    const uri = await writeDoc("single.sokonanoda", "def two : Nat := 2\n");
+    await showDoc(uri);
+    const root = await projectRoot("single.sokonanoda");
+    assert.strictEqual(
+      String(root.label),
+      "单文件（无 import）",
+      "a file without imports is a legal state, not an empty tree",
+    );
+    assert.deepStrictEqual(await extensionApi.project.getChildren(root), []);
+  });
+
+  test("the project tree marks a broken import as the root cause", async () => {
+    // 缺失的模块 ⇒ 入口行说清缺哪个名字（status=blocked/load-failed 都由
+    // 服务器判定，客户端只渲染）。这里同时验证"未保存/新写的文件也能立刻
+    // 得到项目视图"（LSP 每次都重编译闭包）。
+    const uris = await writeProject("proj-broken", {
+      "Main.sokonanoda": "import Missing\n\ndef two : Nat := 2\n",
+    });
+    await showDoc(uris["Main.sokonanoda"]);
+    const root = await projectRoot("broken project");
+    const modules = await extensionApi.project.getChildren(root);
+    const missing = modules.find((row) => String(row.tooltip).includes("Missing"));
+    assert.ok(
+      missing,
+      `the failure story must name the missing module: ${modules
+        .map((row) => `${row.label} :: ${row.tooltip}`)
+        .join(" | ")}`,
+    );
+    assert.strictEqual(
+      missing.iconPath.id,
+      "error",
+      "the module that could not be loaded carries the error icon",
+    );
+    assert.ok(
+      String(missing.description).startsWith("入口"),
+      `the root cause here IS the entry (the missing module never loads): ${missing.description}`,
+    );
+    assert.strictEqual(
+      root.iconPath.id,
+      "warning",
+      "the project root flags that something failed",
+    );
   });
 
   test("doctor command returns a read-only source + version report", async () => {

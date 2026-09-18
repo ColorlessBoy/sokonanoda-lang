@@ -95,6 +95,8 @@ scripts/soko update                       # 强制刷新到仓库版本
 ```bash
 scripts/soko gate   # = CI 门禁：fmt + clippy + test + playground 锚点
 scripts/perf-ledger.sh   # 性能台账：跑全部 perf 套件 → docs/perf/ledger.jsonl（提交它）
+SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh
+#   真 VS Code 集成测试（构建 release → stage → npm test）→ docs/e2e/ledger.jsonl（提交它）；手册 docs/E2E.md
 # 注意：gate 的 anchor 用**运行中二进制**的内嵌编译器；若它与仓库版本不一致
 # （旧缓存/旧构建），gate 会直接 exit 3 —— 先 `scripts/soko update`，或用
 # `cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda`。
@@ -140,6 +142,9 @@ tag 并 dispatch release（见 `docs/RELEASE.md`；手动推 tag 仅应急）。
 
 改 `editor/vscode/` 下的任何文件前，先读 `docs/vscode-dev-guide.md`
 （版本纪律 / 测试三层 / 常见坑）。版本号必须随功能改动同步 bump。
+扩展改动后的例行三层：`scripts/soko gate`（Rust/契约）→
+`node editor/vscode/test-extension-host.js`（stub 宿主）→ `scripts/vscode-e2e.sh`
+（**真 VS Code**，结果记进 `docs/e2e/`；手册 `docs/E2E.md`）。
 
 ## CI 失败记录
 

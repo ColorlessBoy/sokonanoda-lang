@@ -23,10 +23,11 @@
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
 | `RELEASE.md` | 发布手册（main 全绿自动 tag、8 平台 + 9 VSIX、Marketplace） | 发版前 |
-| `STATUS-ARCHIVE.md` | STATUS 的历史轮次归档（第 1–92 轮原文） | 查旧轮/缺陷修复时间线 |
+| `STATUS-ARCHIVE.md` | STATUS 的历史轮次归档（第 1–94 轮原文） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
 | `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |
+| `E2E.md` | **真 VS Code 集成测试的例行化**（`scripts/vscode-e2e.sh`、`docs/e2e/` 台账、`SOKO_E2E_LOG` 判读） | 改 `editor/vscode/` 后；真宿主回归 |
 | `CI-FAILURES.md` | CI 失败台账（原因/修复/预防） | CI 红时；同类不二犯 |
 | `teaching-session.md` | 教学循环与解答钥匙（agent 老师用） | 讲课时 |
 

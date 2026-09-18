@@ -64,10 +64,12 @@
 | 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、bundled 解析/版本一致/市场元数据 | `crates/cli/tests/extension.rs` |
 | 打包冒烟 | CI `Package host VSIX` step | `bin/<target>/` 入包、exec 位、`TargetPlatform` | ci.yml |
 | 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存、**项目树三态**（闭包渲染 / 单文件占位 / 丢弃他人答案）。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
-| 集成测试 | `npm test`（@vscode/test-electron） | 扩展激活、诊断到达、hover 内容、sorry warning（CI 先 stage bundled） | `editor/vscode/src/test/extension.test.js` |
+| 集成测试（**例行化**） | `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`（内部 `npm test` → @vscode/test-electron） | 真宿主端到端：激活、语言 id、诊断、inlay/hover、重启、Infoview、doctor、**项目树**（真 `soko/project` 答案渲染的行）；结果记进 `docs/e2e/ledger.jsonl`（`soko.e2e/1`）。手册 = `docs/E2E.md` | `editor/vscode/src/test/extension.test.js` |
 | 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全、安装态离线） | — |
 
 **commit 前**：至少跑静态契约 + 集成测试；**发 tag 前**：三层全跑。
+**扩展改动后**：`scripts/soko gate`（Rust + 契约层）+ `node test-extension-host.js`（stub 层）+
+`scripts/vscode-e2e.sh`（真宿主层，~1 分钟；结果进 `docs/e2e/`）。
 
 ## 4. 开发循环
 
@@ -133,8 +135,10 @@ npm run clean:lsp
     `findServerBinary()`：它只认「测试文件上四级的 `target/debug|release`」
     与 `PATH`，与扩展的解析顺序**不是同一套**——两处都要能满足。
 14. **仓库路径过长时 VS Code 集成测试起不来**——`IPC handle ... is longer
-    than 103 chars`（macOS socket 上限）。把扩展拷到短路径（如 `/tmp/v`）再
-    跑：`rsync -a --exclude node_modules --exclude .vscode-test --exclude bin
+    than 103 chars`（macOS socket 上限）。**0.58.0 起 `.vscode-test.mjs` 自己把
+    `--user-data-dir`/`--extensions-dir` 指到 `<tmpdir>/soko-vscode-test`，本仓库的
+    长路径可以直接跑**（socket 路径因此只有 ~90 字符）；只有 `tmpdir` 本身也过长时
+    才需要下面这套拷贝法：`rsync -a --exclude node_modules --exclude .vscode-test --exclude bin
     editor/vscode/ /tmp/v/`，再 `ln -s` 回 `node_modules` 与 `.vscode-test`
     （省去重复下载），并把服务器二进制所在目录塞进 `PATH`。此时
     `REPO_ROOT` 会退化，`bin/` staging 与 `PATH` 两个条件都得显式满足（见 13）。
@@ -171,6 +175,22 @@ npm run clean:lsp
     根节点，所以必须缓存（现在 30s TTL；`sokonanoda.courseRefresh` 与激活强制重跑）。
     另外 `server.js` 的下载回退里**不能**用 `execSync`（会冻结整个扩展宿主），
     已改 `await execFile`。
+19. **`activate()` 里的提前 `return` 会掐掉语言服务器（0.58.0 踩过）**——异步续段
+    （`(async () => { … client.start() … })()`）挂在 `activate` 的**尾部**；为了给集成
+    测试暴露 provider 而在中间 `return`，测试宿主里就**永远不起服务器**：整套用例集体
+    超时，且 `SOKO_E2E_LOG` 里连 `server command` 都没有。规矩：test-mode 的返回值在
+    函数**最后**返回（`const testApi = …; … (async () => …)(); return testApi;`）。
+    延伸纪律：真宿主测试必须能回答"服务器起没起"——doctor 的 `server-version` 行 +
+    `SOKO_E2E_LOG` 就是那两个答案。
+20. **真宿主 e2e 的第一现场是 `SOKO_E2E_LOG`**——扩展宿主的 `console`/output channel
+    在 `vscode-test` 的输出里取不到。`scripts/vscode-e2e.sh` 会设这个环境变量，扩展据此
+    把"解析到的服务器命令、客户端状态、活跃文档、`soko/project` 结果"写进文件；判读口径
+    见 `docs/E2E.md` §4。生产路径零开销（环境变量不存在时只做一次 `undefined` 判断）。
+21. **被 ignore 的 `bin/` 会悄悄变旧**——扩展 bundled-first，集成测试测的就是
+    `bin/<target>/`；它不在 git 里，很容易停在几天前的构建上（第一次例行跑：14 条里
+    10 条超时，对着 0.20.0 的服务器断言 0.58.0 的行为）。`scripts/vscode-e2e.sh` 把
+    "构建 release + stage" 做成固定步骤，台账里另记 `lsp_sha256_16` 与 doctor 的
+    `server-version` 行，用来证明"测的是当前构建"。
 
 ## 5b. Infoview/视图的硬规矩（0.49.0 教训）
 

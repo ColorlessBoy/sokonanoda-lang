@@ -1227,3 +1227,25 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     LESSONS 同轮同步。
   - **剩余**：只有 P7 的长尾（`[deps]`、`namespace`/`open`、`watch` 项目模式、
     decl 级产物）与 `docs/HANDOVER.md` §4 登记的结构债（大文件拆分）。
+
+- 2026-09-18（九十七）：**真 VS Code 集成测试例行化 + 结果台账**（用户要求：
+  「你配置相关套件，启动 VSCode 实际验证一下，本来就应该做成例行化检测。远程不行，
+  本地例行化也可以接收」）：
+  - **一条命令**：`SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh` ——
+    构建 release（被测就是发布形态）→ stage 到 `bin/<target>/`（扩展 bundled-first，
+    ignore 的 `bin/` 极易变旧）→ 跑真 VS Code（`@vscode/test-cli` + `@vscode/test-electron`）
+    → 记账。
+  - **台账**：`docs/e2e/ledger.jsonl`（`schema: soko.e2e/1`：version/commit/dirty/
+    host/VS Code 版本/用例数/exit/doctor 的服务器版本行/被测 LSP 的 sha256 前 16 位/
+    裁剪日志路径）+ `docs/e2e/latest.json` + `docs/e2e/logs/<date>-<sha>.log`。
+  - **本轮实测**：真宿主 **14/14 全绿**（含新增 4 条：`.sokonanoda` 语言 id 守卫 +
+    项目树三条——闭包 / 单文件占位 / 缺模块根因），用时 ~1s（外加 VS Code 启动）；
+    doctor 自述 `0.58.0 (pid …) == 扩展 v0.58.0 (source=bundled)`。
+  - **顺带修的真问题**：① `.vscode-test.mjs` 把 `--user-data-dir`/`--extensions-dir`
+    指到短路径（macOS unix socket 上限 103 字符，长仓库路径原本起不来）；
+    ② 扩展的 test-mode 返回钩子**提前 return 掐掉了 `client.start()`**（集成层才暴露；
+    已改为末尾返回 + 注释）；③ 新增 `SOKO_E2E_LOG` 文件日志（env 开关、生产零成本）。
+  - **文档**：新增 `docs/E2E.md`（手册：一条命令、四层分工、台账字段、卡住时判读、
+    环境坑、与 CI 的关系）；`docs/vscode-dev-guide.md`（测试三层 + 坑 19/20/21 + 坑 14
+    更新）、`docs/TESTING.md` 集成测试小节、`AGENTS.md` 命令面、`skills/sokonanoda-dev`、
+    `docs/README.md` 地图同轮同步。
