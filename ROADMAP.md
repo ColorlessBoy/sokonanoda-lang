@@ -640,7 +640,9 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   `references`/`rename`、`soko/project`、`watch` 项目模式、`[deps]`、`namespace`
   等留在 P7 backlog。交付清单：`crates/front/src/project/`（6 文件 18 单测）、
   `crates/cli/tests/imports.rs`（12 e2e）、`crates/lsp/src/tests/project.rs`（4 e2e）、
-  单元⑪ + `course/unit11-project/`、三处文档层同步。
+  单元⑪ + `course/unit11-project/`、三处文档层同步。**新增结构债（已登记）**：
+  `crates/front/src/compile/check.rs` 1717 → 1918 行（`run_pass` 单函数 ≈1174 行），
+  拆分计划见 `docs/HANDOVER.md` §4——本轮**不再往 `run_pass` 里加分支**，加之前先拆。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。

@@ -793,7 +793,12 @@ iface(module) = H( CACHE_FORMAT,
 - `namespace`/`open`（真实 Lean 子集，需各自三件套）；`import all`；
 - 跨项目依赖（`[deps]` 的 path/git 形态）与 `sokonanoda new` 脚手架；
 - 课程语料重构（`solutions/` 改为复用 + golden 重钉）；
-- `watch` 的项目模式（协议要不要带 DAG 顺序，见 Q6）。
+- `watch` 的项目模式（协议要不要带 DAG 顺序，见 Q6）；
+- **`crates/front/src/compile/check.rs` 的结构债（本轮加剧）**：1717 → **1918** 行，
+  其中 `run_pass` 一个函数占 553–1726 行（≈1174 行）。本轮只往里加了"多 unit
+  顺序执行 + 命令下标归因"（`compile_all_units` / `split_report` / `unit_ranges` /
+  `top_level_def_spans_over`），没有趁机拆函数——拆 `run_pass` 是独立一轮的活
+  （要保证事件流与增量语义逐字节不变），已登记 `docs/HANDOVER.md` §4。
 
 ---
 
@@ -820,6 +825,10 @@ iface(module) = H( CACHE_FORMAT,
    另有两条实现期决定：`import` 必须加入 `is_reserved_command`（否则行首
    `import` 会被当成应用的实参吞掉）；加载器的后序 `visit` 返回
    `VisitOutcome::Cycle`，保证入口在拓扑序最后。
+
+4. **新增一笔结构债（已登记）**：`crates/front/src/compile/check.rs` 从 1717 行涨到
+   1918 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里，但拆分 `run_pass`
+   需要独立一轮（事件流/增量语义不能漂），记录在 `docs/HANDOVER.md` §4 与 P7 backlog。
 
 **交付物（可核对）**
 

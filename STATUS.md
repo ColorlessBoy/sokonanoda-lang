@@ -63,6 +63,10 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 8. **没做什么（有意）**：课程语料不回填 import（除新增单元⑪）；`watch --workspace`
    与 `soko/project` 不项目化；不做跨进程 decl 复用（v1 只缓存报告）；产物仍在用户
    缓存目录；`namespace`/`open`/`[deps]` 留 P7。
+9. **新增一笔结构债（已登记，不静默）**：`crates/front/src/compile/check.rs`
+   1717 → **1918** 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里但没趁机
+   拆函数（拆它要独立一轮，事件流/增量语义不能漂）。计划与验收见
+   `docs/HANDOVER.md` §4 与 `docs/design/imports-and-projects.md` P7。
 
 ## 本轮进度（2026-09-17，第九十一轮：多文件 `import` 与项目管理 —— 调研 + 设计 + 计划 I16）
 

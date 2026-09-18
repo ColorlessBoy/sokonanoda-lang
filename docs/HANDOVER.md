@@ -222,6 +222,13 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   （`scripts/perf-arena.sh`）；见 `docs/PERF.md`。
 - **`TESTING.md §5` 盲区**：编辑器 codeLens/quick-fix 已补进程内 rpc；VS Code
   Electron 集成走 `editor/vscode/src/test/extension.test.js`。
+- **（0.57.0 新增，结构债）`crates/front/src/compile/check.rs` 1918 行**：I16 把闭包
+  编译加在这里（`compile_all_units` / `split_report` / `unit_ranges` /
+  `top_level_def_spans_over`，+201 行），但**`run_pass` 仍是 553–1726 行的单个函数**
+  （≈1174 行，main 时已 ≈970 行）。拆分计划：按阶段切 `parse → elab → check-then-add
+  → events → report`，每切一刀用现有 golden/事件计数对拍（`protocol.rs`、
+  `course.rs`、`query.rs` 的计数契约就是现成的验收）；**不要在一轮里同时改语义与
+  位置**。触发点：任何再往 `run_pass` 里加分支的需求。
 - **（I16 P5 余项，0.57.0 唯一开口）多文件 LSP 的跨文件自动失效**：依赖文件改动后，
   **其它**已打开文档不会被自动重编译（第一版实现会在 tower-lsp 串行通知 + 客户端
   socket 缓冲下挂住，已回退并测试删除）。当前语义：改动的文档自己重编译，其它文档
