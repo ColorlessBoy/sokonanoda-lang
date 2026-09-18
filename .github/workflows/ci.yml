@@ -305,3 +305,60 @@ jobs:
           path: docs/e2e/
           include-hidden-files: false
           if-no-files-found: warn
+
+  # 台账回提交（**只 main**）：矩阵各腿把 `docs/e2e/` 传成 artifact，这里**一次**
+  # 合并成一条提交——多腿各自提交会同时改同一个 ledger.jsonl（互相覆盖/冲突）。
+  # 用 GITHUB_TOKEN 推的提交不会再触发 workflow（防递归规则），所以不会自激。
+  e2e-ledger:
+    name: e2e ledger (commit back on main)
+    needs: [e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download every leg's e2e record
+        uses: actions/download-artifact@v5
+        with:
+          pattern: e2e-*
+          path: /tmp/e2e-artifacts
+
+      - name: Merge into docs/e2e (idempotent)
+        id: merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=$(python3 scripts/e2e-merge.py /tmp/e2e-artifacts)
+          echo "$out"
+          python3 scripts/e2e-merge.py --check
+          subject=$(printf '%s\n' "$out" | sed -n 's/^e2e-merge-subject: //p')
+          echo "subject=$subject" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push when the ledger changed
+        shell: bash
+        env:
+          SUBJECT: ${{ steps.merge.outputs.subject }}
+        run: |
+          set -euo pipefail
+          git add docs/e2e
+          if git diff --cached --quiet; then
+            echo "::notice::台账没有新条目（重跑或重复），不提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "perf(e2e): 台账 ${GITHUB_SHA:0:7} —— ${SUBJECT:-CI}" \
+            -m "由 ci.yml 的 e2e-ledger job 合并各腿 artifact（scripts/e2e-merge.py）。"
+          # main 上可能有人刚推过：rebase 再来一次，两次都失败就当**真失败**（不静默）。
+          for attempt in 1 2; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "::notice::e2e 台账已回提交（${SUBJECT:-CI}）"
+              exit 0
+            fi
+            echo "::warning::push 失败（第 ${attempt} 次），rebase 后重试"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+          done
+          echo "::error::e2e 台账回提交失败（两次尝试）"
+          exit 1

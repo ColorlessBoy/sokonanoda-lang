@@ -113,7 +113,9 @@ if [ -n "$lsp_path" ]; then
 fi
 
 mkdir -p docs/e2e/logs
-trimmed="docs/e2e/logs/${date%%T*}-${short_sha}.log"
+# 文件名带 VS Code 版本：CI 矩阵同一天同一 commit 会跑多个版本（1.138.0 / 1.106.0 …），
+# 不带版本号会互相覆盖（`scripts/e2e-merge.py` 也按记录里的这个名字回填日志）。
+trimmed="docs/e2e/logs/${date%%T*}-${short_sha}-vc${test_version}.log"
 {
   echo "# scripts/vscode-e2e.sh — VS Code $vscode_version · extension v$version · $sha"
   echo "# 结果：$passing passing / $failing failing / $pending pending（exit=${status}）"

@@ -66,13 +66,23 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    （ubuntu × 1.106.0，每个 PR 都跑）。顺带把"test-electron 只认
    `npm_config_proxy`/`npm_config_https_proxy`、不读 `HTTPS_PROXY`"写进
    `docs/E2E.md` §5/§6。
-8. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
+8. **CI 台账回提交（用户：「验证好就让 CI 往仓库追加吧」）**：新增收尾 job
+   `e2e-ledger`（只 main，`contents: write`）——下载各腿 artifact →
+   `scripts/e2e-merge.py` 合并（**幂等**：重复条目跳过、日志按记录名回填、
+   台账按 date 排序）→ 一条提交推回 main（标题带各腿结果）。为什么不是每条腿各推：
+   矩阵并发改同一个 `ledger.jsonl` 会互相覆盖；push 前 rebase 重试一次，
+   两次都失败就报错（不静默）；`GITHUB_TOKEN` 推的提交不再触发 workflow（不自激）；
+   `e2e-ledger` **不**进 `auto-tag` 的 needs（免得与它自己推的提交互相等待）。
+   日志文件名同时改成带版本（`<date>-<sha>-vc<version>.log`），否则矩阵里同一天
+   同一 commit 的多个版本会互相覆盖。合并逻辑在本地用**伪造 artifact** 验过：
+   追加 2 条 → 再合并 0 条（幂等）→ `--check` 排序/唯一/日志齐全。
+9. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
    （[官方文档](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
    与官方 sample 都不钉具体版本，示例用的是 `insiders`）——生态惯例是跟频道。但这一层
    的产物是**台账**：宿主随 stable 漂就没法比历史，所以本地例行默认钉 **1.138.0**
    （`--version stable` 可跟随），CI 矩阵显式给版本；升级流程与"最低版本
    （`engines.vscode ^1.106.0`）腿待补"写在 `docs/E2E.md` §5。
-9. **顺手清掉不再需要的缓存**：`editor/vscode/.vscode-test/vscode-darwin-arm64-1.137.0`
+10. **顺手清掉不再需要的缓存**：`editor/vscode/.vscode-test/vscode-darwin-arm64-1.137.0`
    （898MB，已换 1.138.0）、旧 VSIX×5（0.18/0.19/0.20 + universal + `sokonanoda.vsix`，
    `docs/RELEASE.md` 的发布流程会重新产出）、`.ruff_cache/`（仓库没有 ruff 配置）。
 

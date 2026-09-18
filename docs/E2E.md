@@ -8,6 +8,9 @@
 
 ```bash
 scripts/vscode-e2e.sh                     # 默认钉住"已知良好"版本（当前 1.138.0）
+scripts/e2e-merge.py --check              # 校验台账（排序/唯一/日志齐全）
+scripts/e2e-merge.py --print              # 打印台账趋势
+scripts/e2e-merge.py <artifact 目录>...   # 合并 CI artifact（CI job 用它，本地也可复现）
 scripts/vscode-e2e.sh --version stable    # 跟随最新稳定版（升级当天会重下 ~300MB）
 scripts/vscode-e2e.sh --version 1.106.0   # 试声明的最低版本（engines.vscode）
 ```
@@ -144,8 +147,19 @@ CI 有独立的 **`e2e` job**（`.github/workflows/ci.yml`）：
   记账）——本地与 CI 不会漂；
 * **留档**：`docs/e2e/` 作为 artifact 上传（`e2e-<os>-vscode-<version>`），并把
   `scripts/e2e-summary.py` 的渲染写进 **job summary**（结果/版本/服务器/LSP 指纹/log）；
-  CI **不回提交**仓库（本地那份 `docs/e2e/ledger.jsonl` 由人提交）；
-* **门禁**：`auto-tag` 的 `needs` 含 `e2e` ⇒ **e2e 红了就不发版**。
+* **回提交仓库（只 main）**：收尾 job `e2e-ledger` 下载全部 artifact →
+  `scripts/e2e-merge.py` 合并（幂等：重复条目跳过、日志按记录名回填、台账按日期排序）→
+  一条提交推回 main，标题形如
+  `perf(e2e): 台账 <sha> —— VS Code 1.138.0 14/14 · VS Code 1.106.0 14/14`。
+  一次提交而不是每条腿各推一次（多腿并发改同一个 `ledger.jsonl` 会互相覆盖）；
+  push 前 rebase 重试一次，两次都失败就**当失败报出来**（不静默）；
+  `GITHUB_TOKEN` 推的提交不再触发 workflow，不会自激；
+* **门禁**：`auto-tag` 的 `needs` 含 `e2e` ⇒ **e2e 红了就不发版**
+  （`e2e-ledger` 只是记账，不在 `auto-tag` 的 needs 里，避免与自己推的提交互相等待）。
+
+本地与 CI 的台账因此汇进同一个 `docs/e2e/ledger.jsonl`：本地 `scripts/vscode-e2e.sh`
+直接追加（人工提交），CI 由 `e2e-ledger` job 合并提交。两者用同一个 schema 与同一份
+渲染（`scripts/e2e-summary.py`）。
 
 本地的不可替代之处：macOS 的真宿主差异（`/var`→`/private/var` 符号链接、大小写不敏感
 文件系统）、换 VS Code 版本复现历史、以及"钉住版本 + 提交台账"这件事本身（CI 的

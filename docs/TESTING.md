@@ -329,8 +329,9 @@
 > **项目树**三条（真 `soko/project` 答案渲染的行：闭包 / 单文件占位 / 缺模块根因）。
 > **CI 也跑同一条命令**（独立 `e2e` job，3 条腿：ubuntu × VS Code 1.138.0 /
 > **1.106.0（声明的最低版本，2026-09-18 本地 14/14 验过）**，macOS × 1.138.0 只在
-> push 到 main 时跑；结果进 job summary 与 artifact；`auto-tag` 的 `needs` 含它 ⇒
-> e2e 红了不发版）。
+> push 到 main 时跑；结果进 job summary 与 artifact，main 上再由 `e2e-ledger` job
+> 用 `scripts/e2e-merge.py` **合并成一条提交推回仓库**；`auto-tag` 的 `needs` 含
+> `e2e` ⇒ e2e 红了不发版）。
 
 扩展在**真实 VS Code**（Electron）里跑测试，补上此前只有静态契约
 （`crates/cli/tests/extension.rs`）与手测的缺口。框架为官方推荐组合：
