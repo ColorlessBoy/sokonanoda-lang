@@ -639,7 +639,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   重编译其它已打开文档（P5 余项，登记 `docs/TESTING.md` §5.7）；跨文件
   `references`/`rename`、`soko/project`、`watch` 项目模式、`[deps]`、`namespace`
   等留在 P7 backlog。交付清单：`crates/front/src/project/`（6 文件 18 单测）、
-  `crates/cli/tests/imports.rs`（12 e2e）、`crates/lsp/src/tests/project.rs`（3 e2e）、
+  `crates/cli/tests/imports.rs`（12 e2e）、`crates/lsp/src/tests/project.rs`（4 e2e）、
   单元⑪ + `course/unit11-project/`、三处文档层同步。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）

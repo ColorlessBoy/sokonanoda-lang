@@ -31,7 +31,8 @@ axiom And.left : forall (a b : Prop), And a b -> a\n\
 axiom And.right : forall (a b : Prop), And a b -> b\n";
 
 const CANVAS: &str = "import Logic\n\n\
-theorem and_swap (a b : Prop) (h : And a b) : And b a := And.intro b a (And.right a b h) (And.left a b h)\n";
+theorem and_swap (a b : Prop) (h : And a b) : And b a := And.intro b a (And.right a b h) (And.left a b h)\n\
+theorem swap_back (a b : Prop) (h : And a b) : And a b := and_swap b a (and_swap a b h)\n";
 
 #[tokio::test]
 async fn an_imported_module_is_visible_to_the_entry() {
@@ -103,6 +104,41 @@ async fn definition_jumps_into_the_imported_module() {
     assert_eq!(
         location.uri, logic,
         "the definition lives in the imported module"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn definition_stays_in_the_entry_for_local_names() {
+    let dir = tmp_dir("local");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    testutil::did_open_at(&mut service, &canvas, CANVAS).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &canvas, "canvas diagnostics").await;
+
+    // 项目模式不能把**本文件**的跳转弄丢：`and_swap` 声明在入口里，
+    // 光标落在 `swap_back` 体内对它的使用上，目标必须仍是入口自己。
+    let use_site = testutil::offset_of(CANVAS, "and_swap b a");
+    let pos = testutil::lsp_pos(CANVAS, use_site + 3);
+    let req = RpcRequest::build("textDocument/definition")
+        .params(serde_json::json!({
+            "textDocument": {"uri": canvas},
+            "position": testutil::position_json(pos),
+        }))
+        .id(3)
+        .finish();
+    let result = testutil::call(&mut service, req)
+        .await
+        .expect("definition answers");
+    let location: tower_lsp::lsp_types::Location =
+        serde_json::from_value(result).expect("a Location");
+    assert_eq!(
+        location.uri, canvas,
+        "a name declared in the entry resolves to the entry, not to a module"
     );
     let _ = std::fs::remove_dir_all(&dir);
 }

@@ -830,12 +830,12 @@ iface(module) = H( CACHE_FORMAT,
 | 编译驱动 | `crates/front/src/compile/check.rs`（`units: &[SourceUnit]`、`split_report`、命令下标归因） | 内核零改动 |
 | 缓存 | `ProjectPlan::digest` + `cache::key`（`CACHE_FORMAT` 1→2） | `docs/design/compile-cache.md` §7 |
 | CLI/协议 | `--root`/`--no-project`、`build` 项目化、`query` 闭包、`help.rs` 多文件段 | `crates/cli/tests/imports.rs` 12 e2e |
-| LSP | 多文档、按 URI publish、跨文件定义 | `crates/lsp/src/tests/project.rs` 3 e2e |
+| LSP | 多文档、按 URI publish、跨文件定义（本地名不误跳） | `crates/lsp/src/tests/project.rs` 4 e2e |
 | 教学面 | `course/unit11-modules-projects.sokonanoda`（+EN+solution）、`course/unit11-project/` 可运行两文件项目、`course.json` | golden：画布 (7,6,0)、solution (12,0,0) |
 | 文档 | `docs/architecture.md` §4.5/§8.10、`docs/protocol.md`、`docs/TESTING.md` 三行 + §5.7、`docs/HANDOVER.md`、`ROADMAP.md` I16、三个 skills、`AGENTS.md`、`dsh/README.md`、VS Code README/CHANGELOG | 本轮同一 commit 同步 |
 
 **验收（全部实测通过）**：`scripts/soko gate` PASS；`cargo test --workspace --locked`
-全绿（front 448 / LSP 120 / CLI 191+）；A1 由
+全绿（front 448 / LSP 121 / CLI 191+）；A1 由
 `import_free_files_are_byte_identical_to_the_single_file_path` 守住；零 cargo 的
 用户路径仍只走 Release 二进制（新能力不引入任何工具链依赖）。
 

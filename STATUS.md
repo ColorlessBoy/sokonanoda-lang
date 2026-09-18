@@ -44,7 +44,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 5. **LSP（P5）**：`Docs{map,order,root,active}` 多文档、`initialize` 捕获 root、
    按 URI publish、`did_close` 清理、**跨文件 `goto_definition`**
    （`QueryDoc::project_definition`）；项目模式下补挂 `-- soko:hint` 阶梯
-   （否则带 import 的入口答不出 hints）。`crates/lsp/src/tests/project.rs` 3 条 e2e。
+   （否则带 import 的入口答不出 hints）。`crates/lsp/src/tests/project.rs` 4 条 e2e（导入可见 / 缺失 import 只报错 / 跨文件跳转 / 本地名仍留在入口）。
    **唯一缺口**：依赖变更后不自动重编译其它已打开文档（第一版在 tower-lsp 串行
    通知 + socket 缓冲下挂住，已回退；余项登记 `docs/TESTING.md` §5.7）。
 6. **教学面与门面（P6）**：单元⑪「模块与项目」（CN/EN + 两份 solution，199/249 行）
