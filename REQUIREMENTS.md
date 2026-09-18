@@ -1182,3 +1182,18 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - 验收：`cargo test --workspace --locked` 862 passed / 0 failed；台账重录
     （`docs/perf/ledger.jsonl`）。
   - 继续：批次 3（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。
+
+- 2026-09-18（九十五）：**待办批次 3 完成（拆 `run_pass`）+ 一轮项目整理**（用户：
+  「可以，前三个你先做完，把项目理干净」——批次 1/2 已在九十四轮完成，本轮收批次 3，
+  然后做仓库整理）：
+  - **`run_pass` 拆完（≈1174 行单函数 → 三个模块）**：闭包装配件 `compile/units.rs`；
+    `check.rs` 变目录模块，尾部（内核 check-then-add + 签名/cutoff + 报告装配）
+    → `check/kernel_phase.rs`，命令走查（每命令一个方法）→ `check/walk.rs`。
+    只动位置不动语义；单文件仍走 `Cow::Borrowed` 前缀（A1 逐字节不变）。
+  - **验收手段升级**：除 862 条测试外，做**二进制对拍**——改动前后两个 CLI 跑全部
+    58 个 `.sokonanoda` 文件 + `--root` / `--no-project` / stdin /
+    `query check|goals|holes`，stdout 逐字节相同。方法记入 `docs/TESTING.md`。
+  - **整理**：删掉只写状态 `built_inductives`（原来只被 `let _ = …` 消费）与
+    `def` 开练习路径里推空 `CmdHover` 的空操作；HANDOVER 里"项目入口 quick-fix
+    仍未做"的过期段落更正；模块地图/LESSONS 同步。
+  - **下一批**：批次 4（`soko/project` 项目状态可视化）。

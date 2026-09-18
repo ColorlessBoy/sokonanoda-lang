@@ -552,7 +552,6 @@ fn run_pass(
     };
 
     let failed_cmds: KernelFailed = HashMap::new();
-    let built_inductives: Vec<Declar<'_>> = Vec::new();
     let kernel_checks = 0usize;
     // 命令走查（elaborate → `PendingOp`）：批次 3 第三刀切到 `walk.rs`；
     // 这里的累加器按值交给 `Walk`，内核阶段再从 `walk` 取回（见文件尾）。
@@ -565,7 +564,6 @@ fn run_pass(
         cmd_hovers,
         decl_states,
         example_idx,
-        built_inductives,
     };
     walk.run(
         units,
@@ -590,7 +588,6 @@ fn run_pass(
         decl_states: walk.decl_states,
         failed_cmds,
         kernel_checks,
-        built_inductives: walk.built_inductives,
     })
 }
 

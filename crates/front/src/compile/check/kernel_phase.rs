@@ -15,7 +15,7 @@ use crate::compile::event::{CheckEvent, CompileOutput};
 use crate::compile::report::{DeclKind, DeclState, DeclStatus, DocumentReport, ResolvedTarget};
 use crate::compile::units::SourceUnit;
 use sokonanoda::builder::EnvBuilder;
-use sokonanoda::env::{Declar, EnvLimit};
+use sokonanoda::env::EnvLimit;
 
 /// 命令走完后交给内核阶段的一切（原 `run_pass` 尾部读到的全部局部变量）。
 pub(super) struct Walked<'a, 'arena> {
@@ -34,8 +34,6 @@ pub(super) struct Walked<'a, 'arena> {
     pub(super) decl_states: Vec<DeclState>,
     pub(super) failed_cmds: KernelFailed,
     pub(super) kernel_checks: usize,
-    /// 归纳块构建出的声明（只用于延长生命周期，见函数尾部的 `let _`）。
-    pub(super) built_inductives: Vec<Declar<'arena>>,
 }
 
 pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
@@ -53,7 +51,6 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         mut decl_states,
         mut failed_cmds,
         mut kernel_checks,
-        built_inductives,
     } = walked;
     let mut env = builder.finish();
     // Print proof terms as terms instead of suppressing them to `_`; the
@@ -405,7 +402,6 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         .flat_map(|unit| crate::compile::warning::collect_warnings(unit.file))
         .collect();
     out.warnings = report.warnings.clone();
-    let _ = built_inductives;
     PassResult {
         out,
         report,

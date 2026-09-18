@@ -73,6 +73,9 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    对拍验收：`cargo test --workspace --locked` **862 passed / 0 failed**；
    **二进制对拍** —— 用改动前后两个 CLI 跑全部 58 个 `.sokonanoda` + `--root` /
    `--no-project` / stdin / `query check|goals|holes`，输出**逐字节相同**。
+   顺手清掉两处死代码（同样过二进制对拍）：只写状态 `built_inductives`
+   （原来只被 `let _ = …` 消费，含归纳块每次的 `Vec` 克隆）与 `def` 开练习路径里
+   推**空** `CmdHover` 的空操作（`resolve_hovers` 只读 `nodes`，空表不产生任何 hover 行）。
 10. **下一批**：批次 3 余下（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。
 
 ## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）

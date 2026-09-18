@@ -41,8 +41,6 @@ pub(super) struct Walk<'arena> {
     pub(super) decl_states: Vec<DeclState>,
     /// `example` 的内部名计数器（`_example_N`，按出现次序）。
     pub(super) example_idx: usize,
-    /// 归纳块装进 env 的声明（与 `ops` 里的同源，只为延长生命周期）。
-    pub(super) built_inductives: Vec<Declar<'arena>>,
 }
 
 /// 单个命令的派生上下文：每个命令算一次，arm 里按需取用。
@@ -254,16 +252,7 @@ impl<'arena> Walk<'arena> {
                 None,
                 &elab_ctx,
             )
-            .inspect(|_| {
-                // hover 行也要：类型子表达式进 hover 表
-                self.cmd_hovers.push(CmdHover {
-                    env_at: self.builder.declaration_count(),
-                    nodes: Vec::new(),
-                    cmd: idx,
-                });
-            })
             .ok();
-            let _ = &declared_ty;
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Definition,
@@ -784,9 +773,11 @@ impl<'arena> Walk<'arena> {
             if skip.is_some_and(|s| s.contains_key(&idx)) {
                 return;
             }
+            // 失败已经记在会话缓存里（`skip`），这里不重复报错；env 自己持有
+            // 声明副本，返回的 `Declar` 只是给内核阶段用的句柄，丢弃即可。
             let mut hovers = Vec::new();
             let mut built: Vec<Declar<'_>> = Vec::new();
-            if install_inductive_block(
+            let _ = install_inductive_block(
                 &mut self.builder,
                 &mut self.known_universes,
                 &mut self.inductives,
@@ -800,11 +791,7 @@ impl<'arena> Walk<'arena> {
                 iota_rules,
                 &mut hovers,
                 &mut built,
-            )
-            .is_ok()
-            {
-                self.built_inductives.extend(built);
-            }
+            );
             return;
         }
         if let Some(err) = skipped(
@@ -836,7 +823,6 @@ impl<'arena> Walk<'arena> {
             &mut built,
         ) {
             Ok(()) => {
-                self.built_inductives.extend(built.iter().cloned());
                 self.ops.push(PendingOp::InductiveBlock {
                     name: name.to_string(),
                     declars: built,
