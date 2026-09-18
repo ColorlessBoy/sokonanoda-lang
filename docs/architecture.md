@@ -58,7 +58,12 @@ sokonanoda-lang/
 │   │   ├── tests/memory_api.rs  # M0 内存 API 验收
 │   │   └── test_resources/ # 上游 NDJSON fixtures（部分测试的输入）
 │   ├── front/              # .sokonanoda 前端
-│   │   ├── src/{lib.rs,compile.rs,proof.rs}
+│   │   ├── src/{lib.rs,proof.rs,parser.rs,judge.rs,suggest.rs,session.rs}
+│   │   ├── src/compile/    # 单文件流水线（§4.2）：mod.rs（入口+闭包装配）
+│   │   │                   #   ├── walk.rs         命令走查：每命令一个方法 → PendingOp
+│   │   │                   #   ├── kernel_phase.rs  内核 check-then-add + 签名/cutoff + 报告装配
+│   │   │                   #   ├── units.rs         闭包级装配（单元/区间/报告切分，§4.5）
+│   │   │                   #   └── elab.rs/goals.rs/report.rs/event.rs/error.rs/prelude.rs/cache.rs
 │   │   └── src/project/    # 【新增】import 闭包：模块名/解析/清单/拓扑序/报告（§4.5）
 │   ├── cli/                # `sokonanoda` 二进制（文件检查 / repl / --json / query / build）
 │   │   ├── src/main.rs
@@ -140,7 +145,7 @@ sokonanoda-lang/
 - **命名箭头**：`(x : A) -> B` = 带 binder 的 `forall`；`{x : A} -> B` = 隐式 binder 的 forall；`A -> B -> C` = 匿名 binder 右结合 Pi。Pi（`A -> B`/`forall`）的 binder 必须**带显式类型**；lambda 的 binder 在**有期望望远镜**或**应用位置**（从实参类型，0.45.0）时可省略（`docs/design/elaborator-let-match.md` as-built）。
 - span 全程保留（offset/line/column），诊断带行列。
 
-### 4.2 Elaboration（`crates/front/src/compile.rs`）
+### 4.2 Elaboration（`crates/front/src/compile/`）
 
 `compile_fol(file) -> CompileOutput { events: Vec<CheckEvent>, errors: Vec<CompileError> }`：
 
@@ -157,6 +162,13 @@ sokonanoda-lang/
    - `#check`：`tc.infer_closed_type(expr)` + `pp.pp_expr(ty)` → `TypeChecked{text}`。
    - `#reduce`：`tc.reduce_closed(expr)`（kernel 新增的 deep reduce）+ pretty print → `Reduced{text}`。
    - `#print`：`env.with_pp(pp.pp_declar(ptr))` → `Printed{name,text}` 或 "unknown declaration" 错误。
+
+**阶段 ↔ 模块（2026-09-18 拆分，只动位置不动语义）**：第 3 步 = `compile/walk.rs`
+（`Walk` 持可变累加器、`CmdCtx` 持每命令派生的前缀/模板/信任位，每个 `Command`
+变体一个方法）；第 5 步 = `compile/kernel_phase.rs`（`finish_pass(Walked)`：内核
+check-then-add → 事件/错误 → 每命令签名与 early cutoff → 报告装配）；`compile/mod.rs`
+只剩单文件入口（`compile_fol`/`check_document`）、闭包装配与助手函数；多单元装配在
+`compile/units.rs`。搬移的验收方式见 `docs/TESTING.md`「二进制对拍」。
 
 ### 4.3 事件与错误（协议的第一版实现）
 

@@ -342,3 +342,25 @@
   （本次正是靠全量跑才在提交前抓住）。
 - **守护位置**：`crates/front/src/project/manifest.rs`（注释里写明为什么从运行版本
   推导）、本条目。
+
+## 大函数"只动位置"的搬移：用**二进制对拍**验收，不要只信测试全绿（2026-09-18，批次 3）
+
+- **背景**：把 `run_pass`（≈1174 行单函数）拆成 `walk.rs`（命令走查，每命令一个
+  方法）+ `kernel_phase.rs`（内核阶段 + 报告装配）。三刀都是"只动位置不动语义"，
+  每刀后 `cargo test --workspace --locked` 全绿（862 条）。
+- **为什么光靠测试不够**：契约测试只覆盖它**断言过**的那些面（事件计数、golden
+  锚点、课程输出）；一个 arm 里被漏掉的 `push_error`、少一个 `cmd_hovers` 条目、
+  条件写反，可能没有任何测试扫到。
+- **做法（值得复用）**：`git worktree add /tmp/base HEAD` 拿改动前的树，构建出
+  旧 CLI；对**同一批输入**同时跑新旧两个二进制，stdout 逐字节比对。本次输入 =
+  全部 58 个 `.sokonanoda`（`git ls-files '*.sokonanoda'`）+ `--root` /
+  `--no-project` / stdin / `query check|goals|holes`，`fail=0`。（改 LSP 时同理，
+  对拍对象换成 `target/<profile>/sokonanoda-lsp` 的 JSON-RPC 应答。）
+- **两个坑**：① `cargo fmt` 会把搬过去的代码重排（换行/尾逗号），所以**文本级**
+  对拍要先归一化空白（`"".join(text.split())`），否则满屏假差异；② **两个 worktree
+  别共用 `CARGO_TARGET_DIR`**——cargo 的 fresh 判定按包路径分键、但输出文件名相同，
+  后建的那棵树会**静默覆盖**前者的二进制（本次 `cargo build` 报 "Finished in 0.07s"
+  却把基线二进制留在 `target/debug/`）。要么各自 target dir，要么 `touch` 源文件
+  强制重建后再比。
+- **守护位置**：`docs/TESTING.md`「二进制对拍」小节、`docs/HANDOVER.md` §4 结构债、
+  本条目。

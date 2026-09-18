@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-18（第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新；版本 **0.57.0**）
+> 快照：2026-09-18（第九十五轮：待办批次 3 完成 —— 拆 `run_pass` + 项目整理；版本 **0.57.0**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,42 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-18，第九十五轮：待办批次 3 完成 —— 拆 `run_pass` + 项目整理）
+
+> 用户：「可以，前三个你先做完，把项目理干净」（批次 1/2 已在第九十四轮完成）。
+> 本轮 = **批次 3**（`run_pass` ≈1174 行单函数 → 三个模块，三次提交，每刀只动位置）
+> + **一轮仓库整理**（死代码、过期文档、模块地图、经验台账、STATUS 归档）。
+
+1. **第一刀 —— 闭包装配件出 `check.rs`**：`SourceUnit` / `unit_ranges` /
+   `split_report` / `compile_all_units` → `compile/units.rs`（108 行；单文件也走同一条路径）。
+2. **第二刀 —— `run_pass` 尾部出 `check/kernel_phase.rs`**：`builder.finish()` 之后的
+   内核 check-then-add + 事件/错误 + 每命令签名与 early cutoff + 报告装配（≈360 行）
+   原样搬进 `finish_pass(Walked)`；`check.rs` 1918 → `check/mod.rs` **1522**。
+3. **第三刀 —— 命令走查出 `check/walk.rs`**：`Walk`（可变累加器：builder /
+   known_universes / inductives / out / ops / cmd_hovers / decl_states / example_idx）、
+   `CmdCtx`（每命令派生的 `Cow` 前缀、模板、信任位）、每个 `Command` 变体一个方法；
+   arm 里的 `continue` 改 `return`（8 个 arm 都没有内层循环）。最终
+   `check/mod.rs` **794** + `walk.rs` **975** + `kernel_phase.rs` **417**；
+   单文件仍走 `Cow::Borrowed` 前缀（零新增分配，A1 不变）。
+4. **验收（方法论收获）**：除 `cargo test --workspace --locked` **862 passed / 0 failed**
+   外，做**二进制对拍**——`git worktree` 取改动前的树，两个 CLI 对同一批输入
+   （全部 58 个 `.sokonanoda` + `--root` / `--no-project` / stdin /
+   `query check|goals|holes`）输出**逐字节相同**；8 个 arm 另做"逐字符同构"
+   （空白无关）比较。方法与两个坑（`cargo fmt` 会重排；**两个 worktree 别共用
+   `CARGO_TARGET_DIR`**——后建的树会静默覆盖前者的二进制）写进
+   `docs/TESTING.md`「二进制对拍」与 `docs/LESSONS.md`。
+5. **整理（死代码）**：删掉只写状态 `built_inductives`（唯一消费者是文件尾的
+   `let _ = …`；顺带去掉归纳块每次的无用 `Vec` 克隆）与 `def` 开练习路径里推**空**
+   `CmdHover` 的空操作（`resolve_hovers` 只读 `nodes`）——同样过二进制对拍。
+6. **整理（文档）**：HANDOVER 里"项目入口 quick-fix 仍未做"的过期段落更正；§4 新增
+   剩余结构债盘点（`compile/tests.rs` 4828 / `elab.rs` 2854 / `parser.rs` 2065 /
+   `lsp/lib.rs` 1554 / `vscode/extension.js` 1493，按建议顺序）与
+   "开练习的类型子表达式没有 hover 行"（**刻意保留现状**，含补法）；`architecture.md`
+   仓库地图 + §4.2 补"阶段 ↔ 模块"对照；`TESTING.md` 新增「二进制对拍」小节 +
+   精确测试构成（kernel 51 / front 462 / cli 214 / lsp 135）；本文件归档第九十二轮。
+7. **批次 3 完成 ⇒ 待办只剩批次 4**：`soko/project` 项目状态可视化（协议 + VS Code
+   状态/树：模块根、清单来源、闭包模块、失败模块）。
 
 ## 本轮进度（2026-09-18，第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新）
 
@@ -57,26 +93,10 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    - 测试：CLI `query_uses_the_same_project_cache_as_check_and_build`、LSP
      `custom_responses_echo_the_requested_document_identity`、扩展宿主
      `an answer that names another document is dropped`。
-9. **批次 3（同轮推进，逐刀提交）**：闭包级装配件出 `check.rs` —— 新增
-   `crates/front/src/compile/units.rs`（108 行：`SourceUnit` / `unit_ranges` /
-   `split_report` / `compile_all_units`，单文件也走同一条路径）。
-   第二刀：`check.rs` 变目录模块，`run_pass` **尾部**（内核阶段 + 报告装配，
-   ≈360 行）整体切进 `check/kernel_phase.rs`（`Walked` 结构体接原局部变量，
-   代码原样搬移、行为逐字节不变）。
-   **第三刀（本轮收尾）**：`run_pass` 的命令走查主循环（≈750 行）切进
-   `check/walk.rs` —— `Walk`（可变累加器）/ `CmdCtx`（每命令派生的前缀、模板、
-   信任位）/ 每命令一个方法（`def`/`theorem`/`axiom`/`example`/`inductive_block`/
-   `check`/`reduce`/`print`），arm 里的 `continue` 改 `return`（8 个 arm 都没有内层
-   循环）。单文件仍走 `Cow::Borrowed` 前缀，零额外分配（A1 不变）。
-   最终：`check/mod.rs` **794** + `walk.rs` **975** + `kernel_phase.rs` **417**
-   （原 1918 行单文件、≈1174 行单函数）。
-   对拍验收：`cargo test --workspace --locked` **862 passed / 0 failed**；
-   **二进制对拍** —— 用改动前后两个 CLI 跑全部 58 个 `.sokonanoda` + `--root` /
-   `--no-project` / stdin / `query check|goals|holes`，输出**逐字节相同**。
-   顺手清掉两处死代码（同样过二进制对拍）：只写状态 `built_inductives`
-   （原来只被 `let _ = …` 消费，含归纳块每次的 `Vec` 克隆）与 `def` 开练习路径里
-   推**空** `CmdHover` 的空操作（`resolve_hovers` 只读 `nodes`，空表不产生任何 hover 行）。
-10. **下一批**：批次 3 余下（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。
+9. **批次 3（同轮起步）**：第一、二刀（`units.rs` + `check/kernel_phase.rs`）同轮完成，
+   第三刀与收尾清理见**第九十五轮**。
+10. **下一批**：批次 3 余下 → 批次 4（`soko/project` 项目状态可视化）。批次 3 已在
+    第九十五轮完成；**批次 4 待做**。
 
 ## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）
 
@@ -157,64 +177,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `course/unit11-project/Canvas.sokonanoda` 会报 `import-not-found`，而同一文件在
    CLI 下正常。现在编辑器与 CLI 同一套发现规则（最近清单 → 入口目录），
    回归测试 `a_nested_project_resolves_against_its_own_manifest`。
-
-## 本轮进度（2026-09-18，第九十二轮：I16 落地 —— `import` 闭包 + 项目管理，0.57.0）
-
-> 用户：「新产生一个 git 分支吧，全部按照建议，你给我完整做完一版我看看。这个变化比较大。」
-> 分支 **`i16-imports-and-projects`**；设计文档 §8 的 Q1–Q7 **全部按推荐执行**；
-> P0–P6 全部落地（P7 = backlog）。设计 + as-built =
-> **`docs/design/imports-and-projects.md`**（§5.1 有三处与设计的偏差与 P5 的实现选择）。
-
-1. **语法与解析（P1）**：`Command::Import`（AST + token）、置顶校验、模块名合法性
-   （`import 1Foo`/尾点/`-` 都被拒，`-` 给教学 hint）；3 个 parse 期错误码
-   `import-malformed` / `import-not-a-valid-module-name` /
-   `import-must-precede-declarations`。`import` 进 `is_reserved_command`，
-   否则行首 `import` 会被当作应用实参吞掉。
-2. **闭包编译（P2，核心）**：`crates/front/src/project/`（`mod`/`module_name`/`resolve`/
-   `manifest`/`graph`/`report` 六文件，18 单测）。`plan_project` 定根（`--root` >
-   最近 `sokonanoda.toml`（上溯止于 `.git`/HOME）> 入口目录——**无清单也能 import**，
-   对真 Lean 的有意分歧）；后序 DFS 装载拓扑序（`VisitOutcome::Cycle` 保证入口最后）；
-   `compile_all_units` 在**同一个 arena + 同一个 `EnvBuilder`** 按序跑完，
-   import 命令先入环境 ⇒ `EnvLimit` 下标不变，**内核一行未改**。诊断**按命令下标**
-   （`CompileOutput.error_cmds`）归属文件，`split_report` 还原每文件报告与事件；
-   闭包级重名/prelude 冲突/依赖阻断（`import-dependency-failed` 只报一条）。
-3. **CLI 与协议（P3）**：`--root` / `--no-project`、`build` 项目化、`query` 闭包内求值、
-   `help` 增「multi-file projects」段；`docs/protocol.md` 补全部新码 + warning
-   `import-has-open-exercises`；新增 `crates/cli/tests/imports.rs`（**12 条 e2e**，
-   含 A1：无 import 文件与单文件路径逐字节一致）。
-4. **缓存（P4）**：`ProjectPlan::digest(options)` = 拓扑序上每个模块 (名字, 源, imports)
-   + prelude 模式的稳定哈希；`CACHE_FORMAT` 1→2；依赖改动必然 miss（e2e 实测）。
-5. **LSP（P5，全做完）**：`Docs{map,order,root,active}` 多文档、`initialize` 捕获
-   root、按 URI publish、`did_close` 清理、跨文件 `goto_definition` / `references` /
-   `rename`（新 `project_refs.rs`：跨文件身份 = 名字、定义名 token 来自
-   `front::references`、编辑按模块分组、改名成项目里已有名字先被拦下）；项目模式下
-   补挂 `-- soko:hint` 阶梯（否则带 import 的入口答不出 hints）。**跨文件失效**：
-   改依赖 ⇒ 含它的打开文档用"内存覆盖"（`load_closure_with_overlay`，按
-   `canonicalize` 匹配）重编译重发，**未落盘的依赖编辑也可见**；诊断只在真的变化时
-   才 publish（`Doc::published`）。第一版"挂住"的根因是**测试写法**（一次通知连发
-   多条诊断时先等通知再读 socket ⇒ 死锁），修法是 `testutil::notify_with_drain`——
-   教训写进 `docs/TESTING.md` §5.7 与架构 §8.10。`crates/lsp/src/tests/project.rs`
-   8 条 e2e + `project_refs.rs` 2 条单测；真实二进制探针复核过引用/改名/依赖失效。
-6. **教学面与门面（P6）**：单元⑪「模块与项目」（CN/EN + 两份 solution，199/249 行）
-   + 可运行两文件项目 `course/unit11-project/`（`sokonanoda.toml` + Logic/Canvas/
-   Exercises + solution）+ `course.json`/`course/README.md`；goldens 重钉
-   （画布 (7,6,0) 双语、solution (12,0,0)；总计 11 单元 / checked 85 / open 65 /
-   failed 0）；`site/data/site.json` 重新生成。
-7. **收尾**：版本 **0.56.1 → 0.57.0**（`Cargo.toml` + `editor/vscode/package.json` +
-   VS Code CHANGELOG）；文档同步 `docs/architecture.md`（新增 §4.5 项目流水线 +
-   §8.10 两个坑，仓库地图指向 TESTING）、`docs/TESTING.md`（3 行项目守护 + §5.7 盲区）、
-   `docs/design/compile-cache.md` §7、`ROADMAP.md` I16、`REQUIREMENTS.md` §9（九十二）、
-   `docs/HANDOVER.md`、三个 skills（teacher 多文件命令 + events 新码 + curriculum 单元⑪）、
-   `AGENTS.md`、`dsh/README.md`、`editor/vscode/README.md`、
-   `docs/design/deepseek-harness.md`；`scripts/soko gate` PASS +
-   `cargo test --workspace --locked` 全绿。
-8. **没做什么（有意）**：课程语料不回填 import（除新增单元⑪）；`watch --workspace`
-   与 `soko/project` 不项目化；不做跨进程 decl 复用（v1 只缓存报告）；产物仍在用户
-   缓存目录；`namespace`/`open`/`[deps]` 留 P7。
-9. **LSP 侧只剩 P7 项**：`didChangeWatchedFiles`（编辑器**外**改文件不触发刷新，
-   要重开文件）、`soko/project`、跨文件改名的"重命名文件/模块"形态；`watch` 项目
-   模式、`[deps]`、`namespace`/`open` 同样留 P7。
-10. **新增一笔结构债（已登记，不静默）**：`crates/front/src/compile/check.rs`
-   1717 → **1918** 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里但没趁机
-   拆函数（拆它要独立一轮，事件流/增量语义不能漂）。计划与验收见
-   `docs/HANDOVER.md` §4 与 `docs/design/imports-and-projects.md` P7。

@@ -64,7 +64,7 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 83 | 0.53.0 | 课程大纲重构 P2（`by` 提前到 #4、归纳拆 Ⅰ/Ⅱ、8 单元 + 门面同步） | `docs/design/course-syllabus.md` §6 |
 | 84 | 0.54.0 | 课程大纲重构 P3（#9 关系与联结词、#10 读证明与综合 → 锁定 10 单元） | `docs/design/course-syllabus.md` §0/§6 |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–81 轮原文）。
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–92 轮原文）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
@@ -208,9 +208,9 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   （规范模块 `And`/`Or`/`Nat` + 自检入口 `Demo.sokonanoda`），画布保持自给自足；
   `crates/cli/tests/course_shared.rs` 双向守护 24/12/8 份副本。整包 import 化明确不做。
 - **判据前缀（0.57.0 修的坑）**：项目模式下 `match`/`by` 的前缀必须含依赖声明
-  （`run_pass` 的 `closure_prefixes`），否则入口看不见导入的名字——这条在
-  `docs/architecture.md` §4.5 有专段，改判据相关代码前先读。**仍未做**：项目入口的
-  quick-fix（`front::suggest` 同一根因，`docs/TESTING.md` §7b）。
+  （`walk.rs` 里的 `closure_prefixes` → `CmdCtx::prefix_src`），否则入口看不见导入的
+  名字——这条在 `docs/architecture.md` §4.5 有专段，改判据相关代码前先读。项目入口的
+  quick-fix 已修（批次 1），§7b 已闭环。
 - **LSP 能力（0.57.0 完整）**：多文档、跨文件 `definition`/`references`/`rename`、
   改依赖自动刷新下游（未落盘编辑经内存覆盖可见）、诊断只在变化时重发。
   留 P7 backlog 的只有：`soko/project`、`watch` 项目模式、`[deps]`、`namespace`。
@@ -226,6 +226,19 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 
 ## 4. 已知限制 / 技术债
 
+- **剩余结构债（按建议顺序，2026-09-18 盘点）**：`run_pass` 已拆完（批次 3），
+  仓库里仍超 ~500 行惯例的大文件按优先级排：
+  ① `front/src/compile/tests.rs` 4828（**测试**模块，按 `walk`/`kernel_phase`/
+  `units` 分文件最省事）；② `front/src/compile/elab.rs` 2854（elaborator 本体，
+  可按 `build_def`/`build_theorem`/`install_inductive_block`/`ElabScope` 切）；
+  ③ `front/src/parser.rs` 2065；④ `lsp/src/lib.rs` 1554；⑤ `editor/vscode/extension.js`
+  1493。切割一律"只动位置不动语义 + 事件计数契约 + 二进制对拍"，一次一刀。
+- **开练习的类型子表达式没有 hover 行**（本轮盘点发现，**刻意保留现状**）：
+  `def`/`theorem`/`example` 的开练习路径把 `elab_expr` 的 hovers 收进一次性
+  `Vec::new()`（`def` 曾额外推一个 `nodes: Vec::new()` 的空 `CmdHover`——纯空操作，
+  本轮删除），所以"练习签名里的 `And`/`Nat` 悬停只有源码切片、没有类型行"。
+  真要补：把 `hovers` 收进 `CmdHover` 即可（`env_at` 有效），但那是行为变更，
+  需配 LSP 回归 + 扩展现有 `hover` 测试。
 - **spine meta 方案 A** 仍有缺口：更深嵌套、`def` 包裹结果类型的 whnf 展开
   （需内核/pp 暴露 whnf，违反冻结）→ 仍走 B′；见 `docs/design/spine-meta-a.md`。
 - **参数化归纳 v1**：带索引、宇宙多态参数、互/嵌套递归不做。

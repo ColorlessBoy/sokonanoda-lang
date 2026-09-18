@@ -127,8 +127,8 @@
    排空，处理完再取走队列里剩下的），或用 `did_open_at_drained` /
    `did_change_at_drained`。**写多文档测试一律用排空版**——`did_open_at` +
    `wait_diagnostics_for` 只对"一次通知最多一条诊断"的单文档场景安全。
-   仍未做的（P7）：`didChangeWatchedFiles`（编辑器外改文件不触发刷新）、
-   `soko/project`。
+   仍未做的（P7）：只剩 `soko/project`（`didChangeWatchedFiles` 已在批次 1 落地：
+   编辑器外改依赖 ⇒ 只重编译闭包里含该路径的已打开文档）。
 
 ## 6. 初始规模快照（历史，最新数字以 STATUS.md 各轮为准）
 
@@ -538,3 +538,31 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   dsh 8 / examples 1 / extension 32 / opencode 8 / protocol 9 / **query 12** /
   skill 4 / watch 10）= 195；lsp lib **117**；doc-tests 6 ignored（内核既有）。
   测试目标共 18 个（cli 集成目标 11 个）。
+
+## 2026-09-18 更新（第九十五轮：批次 3 拆分 `run_pass` + 「二进制对拍」验收手段）
+
+- **拆分落点**（只动位置不动语义，三刀三次提交）：`front/src/compile/check.rs`
+  → 目录模块 `check/{mod,walk,kernel_phase}.rs`，加上先前的 `compile/units.rs`。
+  现状 `check/mod.rs` 794 + `walk.rs` 975 + `kernel_phase.rs` 417（原 1918 行单文件、
+  ≈1174 行单函数）。`run_pass` 现在只剩闭包装配 + 前缀合成 + 两段调用。
+- **二进制对拍（位置搬移类改动的首选验收，比 golden 覆盖面大）**：
+  ```bash
+  git worktree add --detach /tmp/soko-base HEAD      # 改动前的树
+  (cd /tmp/soko-base && cargo build -p sokonanoda-cli --bin sokonanoda --locked)
+  cargo build -p sokonanoda-cli --bin sokonanoda --locked
+  # 对全部语料 + 项目/模式开关 + stdin + query 逐字节比对 stdout
+  ```
+  本次输入 = `git ls-files '*.sokonanoda'`（58 个）+ `--root course/shared` +
+  `--no-project` + `playground` 走 stdin + `query check|goals|holes`；`fail=0`。
+  三个注意点：① `cargo fmt` 会重排搬过去的代码，**文本级**对拍先归一化空白；
+  ② **两个 worktree 不要共用 `CARGO_TARGET_DIR`**（cargo 按包路径分键做 fresh 判定
+  但输出同名，后建的树会静默覆盖前者的二进制 → `touch` 源文件强制重建再比）；
+  ③ 顺手删死代码（如只写状态 `built_inductives`、推空 `CmdHover` 的空操作）同样
+  过一遍对拍——这类改动**没有**测试会红。
+- **总量（2026-09-18，`cargo test --workspace --locked`，全绿）**：**862** 个测试 ——
+  kernel 51（lib 43 + arena 1 + memory_api 7）；front 462（lib 453 + perf 3 +
+  perf_project 6）；cli 214（单元 5 + 集成 16 个目标 209：cli 80 / extension 33 /
+  imports 13 / query 12 / project_features 11 / watch 10 / protocol 9 / dsh 8 /
+  opencode 8 / course 6 / course_shared 4 / course_status 4 / skill 4 /
+  single_file_vs_project 4 / perf_project 2 / examples 1）；lsp 135（lib）。
+  测试目标 26 个（+ doc-tests 3 个目标，6 ignored 属内核既有）。
