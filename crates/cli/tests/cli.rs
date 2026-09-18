@@ -356,6 +356,10 @@ fn cli_help_is_self_documenting() {
     assert!(stdout.contains("sokonanoda repl"));
     assert!(stdout.contains("#check"));
     assert!(stdout.contains("#print"));
+    // I16：import 与项目根开关必须自文档化（用户第一次遇到 import 报错时查这里）。
+    assert!(stdout.contains("import Logic"), "stdout: {stdout}");
+    assert!(stdout.contains("--root <dir>"), "stdout: {stdout}");
+    assert!(stdout.contains("--no-project"), "stdout: {stdout}");
 }
 
 #[test]
@@ -1776,6 +1780,6 @@ fn cli_course_is_stable_with_a_warm_cache() {
         cold, warm,
         "a warm cache must not change the course summary (cold {cold} vs warm {warm})"
     );
-    assert_eq!(cold["checked"], 78, "golden checked total: {cold}");
-    assert_eq!(cold["open"], 59, "golden open total: {cold}");
+    assert_eq!(cold["checked"], 85, "golden checked total: {cold}");
+    assert_eq!(cold["open"], 65, "golden open total: {cold}");
 }

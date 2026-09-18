@@ -1,0 +1,20 @@
+import Logic
+
+-- Exercises.sokonanoda —— 项目里的**跨文件练习**：本文件不声明任何公理，
+-- 所有名字都来自 `import Logic`。把 sorry 换成你的答案再判卷：
+--   scripts/soko course/unit11-project/Exercises.sokonanoda
+-- 答案在 solutions/Exercises-solution.sokonanoda（agent 专用）。
+
+-- 练习 A（跨文件导出）：用库里导入的公理写出交换律（箭头形式）。
+-- soko:hint 思路：结论外层是箭头，先 fun (h : And A B) 把假设拿进来。
+-- soko:hint 目标形态：fun 之后目标是 And B A，用 And.intro B A 补两个证明位。
+-- soko:hint 关键件：两份证据都来自 h：And.right A B h 与 And.left A B h。
+theorem and_comm_x (A : Prop) (B : Prop) : And A B -> And B A :=
+  sorry
+
+-- 练习 B（跨文件复用）：不要重抄证明——直接调用库里 import 进来的 and_comm。
+-- soko:hint 思路：本文件没有任何公理，能用的定理只有从 Logic 进来的那几条。
+-- soko:hint 目标形态：目标 And B A，而 and_comm 的结论正是 And B A。
+-- soko:hint 关键件：把 A、B、h 三个显式参数按顺序喂给它：and_comm A B h。
+theorem and_comm_via_library_x (A : Prop) (B : Prop) (h : And A B) : And B A :=
+  sorry

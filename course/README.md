@@ -6,7 +6,7 @@
 > 按其反馈历史动态维护的画布（如根 `playground.sokonanoda`）。适配规则见
 > `docs/teaching-session.md` §0。
 
-把 playground 第一课拆成十个可独立编译的单元画布，并配上解答钥匙与 CI 守卫。
+把 playground 第一课拆成十一个可独立编译的单元画布，并配上解答钥匙与 CI 守卫。
 
 ## 布局
 
@@ -21,16 +21,21 @@
 > `def` 给出 `Iff`、并把 `Le`/`Even` 立为归纳关系（`Le.rec`/`Even.rec` 也
 > 由前端自动派生）；单元⑩
 > （读证明与综合，P3 新增）不教新语法，练自解释三问、formal↔informal
-> 互译、评阅错证明与期末小项目。清单按教学顺序排列。
+> 互译、评阅错证明与期末小项目。单元⑪（模块与项目，I16 新增）把编译单元
+> 从「一个文件」升级为「入口文件 + import 闭包」：教 `import Foo.Bar` 置顶
+> 规则、模块名↔路径（`-` 不是模块名字符）、`sokonanoda.toml` 项目根与零配置
+> 退路、闭包级的重名/成环/依赖阻断/prelude 规则，并附一个可运行的
+> `unit11-project/` 两文件项目。清单按教学顺序排列。
 > 所有 `-- soko:hint` 只给触发条件与该用的引理/构造子名，**从不含完整答案**。
 
 | 路径 | 面向 | 说明 |
 |---|---|---|
 | `unitN-*.sokonanoda` | 学习者 | 教学画布（中文）：`--` 讲解 + 已写好的演示 + 带 `sorry` 的练习。带洞是合法状态（`exercise.open`），逐声明容错。 |
 | `en/unitN-*.sokonanoda` | 学习者 | 教学画布（英文镜像）：**与中文画布代码逐字节一致，仅 `--` 注释语言不同**；事件计数完全相同（CI 守卫）。 |
-| `course.json` | agent/工具 | 有序课程清单：`{"file", "title", "title_en", "unit"}`，unit = 1..10。 |
+| `course.json` | agent/工具 | 有序课程清单：`{"file", "title", "title_en", "unit"}`，unit = 1..11。 |
 | `solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（中文）：与对应画布一一对应，所有 `sorry` 已填入经完整内核验证的答案。**勿直接发给学习者**。 |
 | `en/solutions/unitN-*-solution.sokonanoda` | **agent 专用** | 解答钥匙（英文镜像）：代码与中文钥匙一致，仅注释为英文。 |
+| `unit11-project/` | 学习者 | 单元⑪的**可运行多文件项目**：`sokonanoda.toml` + 库模块 `Logic.sokonanoda` + 入口 `Canvas.sokonanoda` + 跨文件练习 `Exercises.sokonanoda`（答案在它的 `solutions/`）。它不在 `course.json` 里，也不进 golden 表——判卷命令写在单元⑪的 11.6 节。 |
 
 ## 双语布局（2026-09-09，用户要求）
 
@@ -46,9 +51,10 @@ course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件�
 
 ## 约定
 
-* 十个单元文件风格与根 `playground.sokonanoda` 一致：`--` 讲解（中文在顶层、英文在 `en/`）、演示已填、练习留 `sorry`。
-* 每个单元至少一条 `#reduce` 自测（`#` 命令在课程文件里合法），保证 `expr.reduced` 事件可被 golden 测试观测。
+* 十一个单元文件风格与根 `playground.sokonanoda` 一致：`--` 讲解（中文在顶层、英文在 `en/`）、演示已填、练习留 `sorry`。
+* 每个单元至少一条 `#reduce` 自测（`#` 命令在课程文件里合法），保证 `expr.reduced` 事件可被 golden 测试观测；单元⑩/⑪ 不教新语法、也不引入 `#` 命令，所以它们的 `expr.reduced` 是 0（golden 表如实记录）。
 * 每个单元文件各自带所需 axiom/inductive 块，独立编译（unit6/unit7 的显式 `inductive Nat` 块会取代该文件内的 prelude Nat）。
+* 单元⑪ 的画布自身仍是单文件（课程单元就是一个文件）；它的**跨文件**练习放在 `unit11-project/Exercises.sokonanoda`，那里第一行就是 `import Logic`。
 * 依赖洞的 `#reduce`（如 unit6 的 `#reduce add two two`）在画布里注释着，解出后放开；solution 文件里保持放开并带核对值。
 * 事件词汇见 `docs/protocol.md`；教学决策表见 `docs/teaching-session.md`。
 
@@ -60,5 +66,5 @@ course.rs` 的镜像守卫会比较中英两版的**画布与 solution** 事件�
 2. 每单元的 `decl.checked` / `exercise.open` / `expr.reduced` 事件数与 golden 表精确一致；
 3. `solutions/*.sokonanoda` 全部 0 诊断、0 个 `exercise.open`（课程可解性证明），
    且画布练习名都能在 solution 里找到同名声明（`solution_covers_every_canvas_exercise`）；
-4. `course.json` 恰好按序列出这 10 个文件、unit = 1..10；
+4. `course.json` 恰好按序列出这 11 个文件、unit = 1..11；
 5. `course/en/` 镜像与中文画布、`course/en/solutions/` 与中文钥匙的事件计数逐项相等。

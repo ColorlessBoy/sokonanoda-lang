@@ -1,0 +1,5 @@
+# sokonanoda.toml —— 存在即「这个目录是项目根」（内容可以全空）。
+# 三个键都是可选的：
+name = "unit11-project"
+# requires = "0.56"   # 钉工具链版本：与当前二进制不一致时只给 warning
+# src = "src"         # 模块根，默认 "."（相对本文件所在目录）

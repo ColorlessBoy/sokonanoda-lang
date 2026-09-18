@@ -315,17 +315,17 @@ fn a_project_cache_hits_and_a_dependency_change_invalidates_it() {
     let dir = tmp_dir("cache");
     let cache = dir.join(".cache");
     write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
-    write(
-        &dir,
-        "Main.sokonanoda",
-        "import Bar\n\n#reduce bar\n",
-    );
+    write(&dir, "Main.sokonanoda", "import Bar\n\n#reduce bar\n");
 
     // 冷跑：编译；热跑：命中，且输出逐字节一致。
     let cold = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
     let warm = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
     assert_eq!(stdout(&cold), stdout(&warm), "warm output must match cold");
-    assert!(stdout(&cold).contains("\"value\":\"2\""), "{}", stdout(&cold));
+    assert!(
+        stdout(&cold).contains("\"value\":\"2\""),
+        "{}",
+        stdout(&cold)
+    );
 
     // 改**依赖**（入口一字未动）：闭包哈希变 ⇒ 必须重编译，不能拿旧报告。
     write(&dir, "Bar.sokonanoda", "def bar : Nat := 3\n");
@@ -340,7 +340,8 @@ fn a_project_cache_hits_and_a_dependency_change_invalidates_it() {
     // 所以第一次 build 只需编译没有 import 的 `Bar`，第二次两个都是 hit。
     let build_first = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
     assert!(
-        stdout(&build_first).contains("\"compiled\":1") && stdout(&build_first).contains("\"hit\":1"),
+        stdout(&build_first).contains("\"compiled\":1")
+            && stdout(&build_first).contains("\"hit\":1"),
         "the entry is a project hit, the plain file compiles: {}",
         stdout(&build_first)
     );

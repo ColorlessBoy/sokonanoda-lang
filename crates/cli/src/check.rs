@@ -84,7 +84,8 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
             root.clone()
         };
         // 闭包摘要先算（只做 IO/parse）：命中就整个跳过内核。
-        let plan = sokonanoda_front::project::plan_project(&entry, Some(src), root_override.as_deref());
+        let plan =
+            sokonanoda_front::project::plan_project(&entry, Some(src), root_override.as_deref());
         let digest = plan.digest(&options);
         if let Some(cached) = cache::load(&digest, &options) {
             if let Some(output) = cached.output {

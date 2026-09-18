@@ -418,13 +418,15 @@ fn a_broken_manifest_is_a_project_error_not_a_panic() {
 fn closure_digest_is_stable_and_dependency_sensitive() {
     let dir = tmp_dir("digest");
     write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
-    write(&dir, "Main.sokonanoda", "import Bar\n\ndef two : Nat := bar\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Bar\n\ndef two : Nat := bar\n",
+    );
     let path = dir.join("Main.sokonanoda");
     let options = CompileOptions::default();
 
-    let digest = |options: &CompileOptions| {
-        plan_project(&path, None, None).digest(options)
-    };
+    let digest = |options: &CompileOptions| plan_project(&path, None, None).digest(options);
     let first = digest(&options);
     assert_eq!(first, digest(&options), "same inputs ⇒ same digest");
 
@@ -434,14 +436,22 @@ fn closure_digest_is_stable_and_dependency_sensitive() {
 
     // 入口自己变了 ⇒ 也变。
     write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
-    write(&dir, "Main.sokonanoda", "import Bar\n\ndef two : Nat := bar + 0\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Bar\n\ndef two : Nat := bar + 0\n",
+    );
     assert_ne!(first, digest(&options), "an entry edit invalidates it");
 
     // prelude 模式变了 ⇒ 也变（Bare 下 `Nat` 根本不存在）。
     let bare = CompileOptions {
         prelude: PreludeMode::Bare,
     };
-    assert_ne!(digest(&options), digest(&bare), "the prelude shape is part of the key");
+    assert_ne!(
+        digest(&options),
+        digest(&bare),
+        "the prelude shape is part of the key"
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -449,7 +459,11 @@ fn closure_digest_is_stable_and_dependency_sensitive() {
 fn closure_digest_marks_the_module_set() {
     let dir = tmp_dir("digest-set");
     write(&dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
-    write(&dir, "Main.sokonanoda", "import Bar\n\ndef two : Nat := bar\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Bar\n\ndef two : Nat := bar\n",
+    );
     let path = dir.join("Main.sokonanoda");
     let options = CompileOptions::default();
     let one_dep = plan_project(&path, None, None).digest(&options);

@@ -1,0 +1,8 @@
+-- Exercises-solution —— course/unit11-project/Exercises.sokonanoda 的解答钥匙（agent 专用）
+import Logic
+
+theorem and_comm_x (A : Prop) (B : Prop) : And A B -> And B A :=
+  fun (h : And A B) => And.intro B A (And.right A B h) (And.left A B h)
+
+theorem and_comm_via_library_x (A : Prop) (B : Prop) (h : And A B) : And B A :=
+  and_comm A B h
