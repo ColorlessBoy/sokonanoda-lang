@@ -1201,3 +1201,29 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     report 脚本改 `--test-threads=1`，分阶段/缩放改 `measure_best(…, 3)`，
     `docs/PERF.md` 基线表按串行口径重写并注明"跨口径不可比"。
   - **下一批**：批次 4（`soko/project` 项目状态可视化）。
+
+- 2026-09-18（九十六）：**待办批次 4 —— 项目状态视图（`query project` / `soko/project`
+  / VS Code 项目树，0.58.0）**（承九十四/九十五的批次计划，ROADMAP I16 的 P7 项
+  `soko/project` 落地）：
+  - **真相层**：`project::ModuleStatus {Compiled, LoadFailed, Blocked}` 让"编译过
+    （可能有错）/ 加载失败（根因）/ 被上游拖住（受害者）"三者可区分；
+    `query::ProjectView` + `QueryDoc::project_view()` / `project_view_reason()`
+    从**已编译的**报告派生（不重跑内核），单文件 = `project: null` + `no-imports`
+    （合法状态，不是错误），路径 canonicalize 成绝对路径。
+  - **三个传输同一份真相**：CLI `query project`（`soko.query/1`，恒退出 0）、
+    MCP 工具 `project`（`mcp__sokonanoda__project`）、LSP `soko/project`
+    （回显 uri/version，走 `focus_request` + 未保存缓冲）。
+  - **VS Code 0.58.0**：资源管理器「项目」树（新模块 `editor/vscode/project-tree.js`：
+    根 = 模块根 + 清单来源 + 计数，子 = 拓扑序模块 + 状态图标 + message；点击开模块/
+    开清单）+ 状态栏 tooltip 项目行 + `sokonanoda: refresh project view` 命令；
+    答案指名别的文档 ⇒ 丢弃（沿用 `soko/goals` 纪律）。
+  - **验收**：`cargo test --workspace --locked` **871 passed / 0 failed**
+    （front 466（457 + perf 3 + perf_project 6）/ cli 217 / lsp 137 / kernel 51）；
+    `node editor/vscode/test-extension-host.js`
+    **11/11**；`scripts/soko gate` PASS；Rust 与扩展版本同步 0.58.0。
+  - **文档**：新增设计 `docs/design/project-view.md`（§9 明确不做依赖图/写操作/
+    模块级缓存）；`docs/protocol.md`（`query` op 表 + `soko/project` 小节）；
+    TESTING/architecture/HANDOVER/AGENTS/skills/dsh README/vscode README+CHANGELOG/
+    LESSONS 同轮同步。
+  - **剩余**：只有 P7 的长尾（`[deps]`、`namespace`/`open`、`watch` 项目模式、
+    decl 级产物）与 `docs/HANDOVER.md` §4 登记的结构债（大文件拆分）。

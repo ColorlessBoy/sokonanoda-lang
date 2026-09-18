@@ -374,6 +374,49 @@ Request params: `{"textDocument": {"uri"}, "position"}` (the caret). Response
   `soko/goals` is unaffected.
 
 
+### `soko/project`
+
+Request params: `{"textDocument": {"uri"}}`. Response:
+
+```json
+{"uri": "<the requested document>", "version": 3,
+ "project": {"entry": "Canvas", "root": "/abs/project", "manifest": "/abs/sokonanoda.toml",
+             "requires_warning": null,
+             "modules": [{"name": "Logic", "path": "/abs/Logic.sokonanoda",
+                          "status": "compiled", "entry": false, "imports": [],
+                          "decls": 5, "errors": 0, "warnings": 0, "open_exercises": 0,
+                          "message": null}],
+             "diagnostics": [{"code": "import-not-found", "message": "…",
+                              "module": "Canvas", "start": 7, "end": 14}],
+             "counts": {"modules": 2, "compiled": 2, "failed": 0, "blocked": 0,
+                        "decls": 7, "errors": 0, "warnings": 0, "open_exercises": 2}},
+ "reason": null}
+```
+
+- The **project closure state** around the document: module root, which
+  `sokonanoda.toml` (if any) is in effect, every module in topological order
+  (dependencies first, entry last) with its status, the project-level
+  diagnostics and the counts the editor/tree needs. Paths are **absolute**
+  (`canonicalize`d when the path exists), so a client can open them directly.
+- `status` is `compiled` (it took part in the compile — the report may still
+  contain errors), `load-failed` (its own load failed: missing file, parse
+  error, `import` cycle) or `blocked` (it never compiled because an upstream
+  module failed, or its result was discarded because a dependency's *compile*
+  failed). `message` names the cause for the two failure states.
+- `project: null` + `reason` is a **legal answer, not an error**: `no-imports`
+  (a single file — the same code path as before projects existed),
+  `no-path` (the document has `import` but no entry path: stdin / unsaved
+  buffer without `--root`) or `parse-error` (fix the syntax first). The
+  extension renders the first two as a one-line placeholder instead of an
+  empty tree.
+- Read-only derivation: the answer comes from the already-compiled closure
+  (no recompile, no cache write, no digest). `uri`/`version` are echoed so a
+  client can drop answers for another document (same discipline as
+  `soko/goals`). Design: `docs/design/project-view.md`.
+- Consumers: the VS Code **project tree** (`sokonanoda.project`) and its status
+  bar tooltip; `sokonanoda query project` and the MCP `project` tool are the
+  CLI/agent transports of the same view.
+
 ### `soko/version`
 
 Request params: `{}`. Response: `{"version": "<CARGO_PKG_VERSION>",
@@ -595,6 +638,7 @@ sokonanoda query <op> [options]
 | `holes` | — (optional `--offset N --direction next\|prev`) | `{holes[{id,start,end,ty,decl}], navigated<hole>\|null}` |
 | `hints` | `--line L --col C` or `--offset N` | `{hints[string]}` |
 | `reduce` | `--expr E` | `{value, ty}` |
+| `project` | — (optional `--root <dir>`) | `{project: <ProjectView>\|null, reason: "no-imports"\|"no-path"\|"parse-error"\|null}` — the closure around this file: root, manifest, modules with status (`compiled`/`load-failed`/`blocked`) + imports + counts, project diagnostics. `project: null` is a legal answer (a single file), never an error. Same view as `soko/project` (`docs/design/project-view.md`) |
 
 Input: `--file <path>`, `--text <src>`, or stdin (a bare `-` also means stdin).
 `--compact` prints one line instead of pretty JSON.

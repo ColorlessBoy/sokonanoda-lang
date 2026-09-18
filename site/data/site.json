@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 95,
+  "round": 96,
   "round_date": "2026-09-18",
-  "round_title": "待办批次 3 完成 —— 拆 run_pass + 项目整理",
+  "round_title": "待办批次 4 —— 项目状态视图，0.58.0",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -88,5 +88,5 @@
       "unit": 11
     }
   ],
-  "version": "0.57.0"
+  "version": "0.58.0"
 }

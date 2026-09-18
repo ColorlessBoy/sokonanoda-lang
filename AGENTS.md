@@ -26,17 +26,19 @@ scripts/soko grade --root <模块根> <入口.sokonanoda>  # 显式模块根（�
 scripts/soko grade --no-project <文件>    # 忽略 sokonanoda.toml，模块根 = 入口目录
 scripts/soko query check --file playground.sokonanoda   # 同一判卷的单 JSON 摘要
 scripts/soko query state --file playground.sokonanoda --line 327 --col 4
+scripts/soko query project --file course/unit11-project/Exercises.sokonanoda  # 项目闭包状态（根/清单/模块）
 scripts/soko version --json               # 仓库版本 + 解析来源 + 缓存标记
 scripts/soko update                       # 强制刷新到仓库版本
 ```
 
 - **判卷有两个视图，同一份真相**：`grade --json` = 全量事件流（既有消费者不变），
-  `query <op>` = 计数/目标/洞的**单 JSON 对象**（`check`/`state`/`goals`/`holes`/
-  `hints`/`reduce`）。要问"某处还差什么"就用 `query state`，别自己扫事件流。
+  `query <op>` = 计数/目标/洞/项目状态的**单 JSON 对象**（`check`/`state`/`goals`/
+  `holes`/`hints`/`reduce`/`project`）。要问"某处还差什么"就用 `query state`，
+  要问"哪个模块拖坏了入口"就用 `query project`，别自己扫事件流。
   契约见 `docs/protocol.md`；计数一致性由 `crates/cli/tests/query.rs` 钉死。
   `ok:false` **不是**空结果；退出码 0=答上了 / 1=有内核拒绝 / 2=用法错误。
-- **DeepSeek Harness** 里那六个查询还包成 MCP 工具
-  （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，需
+- **DeepSeek Harness** 里那七个查询还包成 MCP 工具
+  （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce,project}`，需
   `dsh web --patch ./dsh/cordis.patch.yml`）：有工具就直接调，别绕 shell。
 
 - **`scripts/soko` 是 harness 中立的启动器**（零依赖 Node，跨平台、无 bash）：
@@ -122,6 +124,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 
 goal 视图走自定义请求
 `soko/goals` / `soko/hints` / `soko/nextHole` / `soko/stateAt` /
+`soko/project`（项目闭包状态：根/清单来源/模块表/每模块状态）/
 `soko/version`（服务器自述 {version,pid}，重启命令用）
 （`docs/protocol.md`）——**目前只有 VS Code 扩展与 opencode 消费它们**，
 DSH 侧无消费者（属于 `docs/design/deepseek-harness.md` 的 H5 backlog）。

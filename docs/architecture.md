@@ -64,12 +64,14 @@ sokonanoda-lang/
 │   │   │                   #   ├── kernel_phase.rs  内核 check-then-add + 签名/cutoff + 报告装配
 │   │   │                   #   ├── units.rs         闭包级装配（单元/区间/报告切分，§4.5）
 │   │   │                   #   └── elab.rs/goals.rs/report.rs/event.rs/error.rs/prelude.rs/cache.rs
-│   │   └── src/project/    # 【新增】import 闭包：模块名/解析/清单/拓扑序/报告（§4.5）
+│   │   ├── src/project/    # 【新增】import 闭包：模块名/解析/清单/拓扑序/报告（§4.5）
+│   │   └── src/query/      # 内核真相查询层（§4.6）：mod.rs + state/pos/types/project.rs
 │   ├── cli/                # `sokonanoda` 二进制（文件检查 / repl / --json / query / build）
 │   │   ├── src/main.rs
 │   │   └── tests/{cli.rs,imports.rs,query.rs,examples.rs}
-│   └── lsp/                # `sokonanoda-lsp`：tower-lsp 服务器（诊断/hover/符号/练习状态）
+│   └── lsp/                # `sokonanoda-lsp`：tower-lsp 服务器（诊断/hover/符号/练习状态/项目状态）
 ├── editor/vscode/          # VS Code 扩展（per-target VSIX + universal，Marketplace 上架）
+│                           #   extension.js（接线）+ project-tree.js（项目树渲染）+ server.js
 └── examples/               # 入库课程文件（lesson-01/02、fol-basics、py-fol-core、py-nat）
 ```
 
@@ -213,6 +215,11 @@ check-then-add → 事件/错误 → 每命令签名与 early cutoff → 报告�
    依赖阻断（`import-dependency-failed`）都在这一步。
 6. **缓存**：`ProjectPlan::digest(options)` = 拓扑序上每个模块的 (名字, 源,
    imports) + prelude 模式的稳定哈希；依赖改动必然改摘要（`docs/design/compile-cache.md` §7）。
+7. **对外视图**：`query::QueryDoc::project_view()` 把这次编译的闭包状态派生成
+   `ProjectView`（根 / 清单来源 / 拓扑序模块表 + 每模块 `status`
+   （`compiled` / `load-failed` / `blocked`）/ 项目级诊断 / 计数）——**只读派生，
+   不重跑内核**。三个传输共用它：CLI `query project`、MCP `project`、LSP
+   `soko/project`（VS Code「项目」树渲染它）。设计 = `docs/design/project-view.md`。
 
 消费方：CLI（`--root`/`--no-project`）、`query`（项目模式）、LSP（多文档 +
 跨文件 `definition`/`references`/`rename`）、`build`（暖缓存）。设计全文与错误码表见

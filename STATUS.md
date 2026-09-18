@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-18（第九十五轮：待办批次 3 完成 —— 拆 `run_pass` + 项目整理；版本 **0.57.0**）
+> 快照：2026-09-18（第九十六轮：待办批次 4 —— 项目状态视图；版本 **0.58.0**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,54 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-18，第九十六轮：待办批次 4 —— 项目状态视图，0.58.0）
+
+> 承第九十四轮定下的批次计划（用户「按照你的计划，从上到下依次改进」）：
+> **批次 1/2/3 已完成，本轮做批次 4 = `soko/project` 项目状态可视化**。
+> 「我在哪个项目里、根在哪、清单是谁、哪个模块拖坏了入口」以前只能靠 CLI 反复
+> 跑或读文档推；现在它是一个只读、机器可判的查询，编辑器与 agent 同一份真相。
+
+1. **真相层（front）**：新增 `project::ModuleStatus {Compiled, LoadFailed, Blocked}`
+   + `ModuleReport::status`——此前"编译过（可能有错）/ 加载失败 / 被上游拖住"三者
+   都表现为空报告，消费者分不清**根因与受害者**；`compile_plan` 按
+   `failed`/`blocked`/`result_blocked` 三个已知集合填状态。
+   `query::ProjectView`（wire）+ `QueryDoc::project_view()` /
+   `project_view_reason()`：从**已编译的** `ProjectReport` 派生（不重跑内核、
+   不算摘要、不碰缓存），路径 `canonicalize` 成绝对路径（CLI 与 LSP 对同一文件
+   给出逐字相同答案）；单文件是**另一种合法状态**（`None` + `no-imports` /
+   `no-path` / `parse-error`），不是错误。
+2. **三个传输同一份真相**：CLI `query project`（`soko.query/1` 信封、
+   `data = {project, reason}`、恒退出 0）+ help 行；MCP 工具 `project`
+   （`mcp__sokonanoda__project`，薄转发，`dsh.rs` 契约从六工具改七工具）；
+   LSP `soko/project`（回显 `uri`/`version`，走 `focus_request` + 未保存缓冲）。
+3. **VS Code 0.58.0**：资源管理器新增「项目」树（新模块
+   `editor/vscode/project-tree.js`：渲染与请求分离）——根 = 模块根 + **清单来源**
+   （`sokonanoda.toml` 或"零配置"）+ 计数；子 = 拓扑序模块 + `入口`/`依赖` +
+   声明/练习/错误 + 状态图标 + `message`（根因说出来缺哪个模块）；点击开模块、
+   点根开清单；单文件一条占位行；状态栏 tooltip 加项目行（不新开 item）；
+   `sokonanoda: refresh project view` 命令 + view/title 按钮；答案指名别的文档
+   ⇒ 丢弃（沿用 `soko/goals` 的身份纪律）。
+4. **测试（三层）**：front 4 条（闭包/清单/失败 vs 被阻断/单文件原因）；
+   CLI 3 条 e2e（真二进制：字段齐全、根因 vs 受害者、`project:null`+reason）；
+   LSP 2 条（身份回显 + 未落盘编辑改坏 import ⇒ 入口 `load-failed`）；
+   扩展 stub 宿主 3 条（渲染闭包/单文件占位/丢弃他人答案）。
+   顺手修好 stub 的两处不忠实（`MarkdownString` 吞掉构造参数——**测试因此看不见
+   tooltip 内容**；`createStatusBarItem` 不返回实例）并清掉 5 行遗留 DEBUG 打印。
+5. **版本与文档**：0.57.0 → **0.58.0**（Rust 与扩展同步，契约测试逼出来的）；
+   新增设计 `docs/design/project-view.md`（§9 明确不做依赖图/写操作/模块级缓存）；
+   `docs/protocol.md`（`query` op 表 + `soko/project` 小节）、TESTING（新行 +
+   七工具）、architecture（仓库地图 + §4.5 第 7 步）、HANDOVER（LSP 能力/新字段）、
+   AGENTS（命令面 + 七工具 + 自定义请求表）、skills、dsh/README、
+   扩展 README/CHANGELOG、LESSONS（stub 忠实性）、本文件与 `REQUIREMENTS.md`
+   §9（九十六）。
+6. **验收**：`cargo test --workspace --locked` **871 passed / 0 failed**
+   （front 466（457 + perf 3 + perf_project 6）/ cli 217 / lsp 137 / kernel 51）；
+   `node editor/vscode/test-extension-host.js` **11/11**（另三个 Node 套件
+   18/18、7/7、10/10）；`scripts/soko gate` PASS；site 数据重新生成。
+7. **批次 1–4 全部完成**。剩下的只有 P7 长尾（`[deps]`、`namespace`/`open`、
+   `watch` 项目模式、decl 级产物）与 `docs/HANDOVER.md` §4 的结构债清单
+   （`compile/tests.rs` 4828 / `elab.rs` 2854 / `parser.rs` 2065 / `lsp/lib.rs` 1554）。
 
 ## 本轮进度（2026-09-18，第九十五轮：待办批次 3 完成 —— 拆 `run_pass` + 项目整理）
 
@@ -105,83 +153,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    第三刀与收尾清理见**第九十五轮**。
 10. **下一批**：批次 3 余下 → 批次 4（`soko/project` 项目状态可视化）。批次 3 已在
     第九十五轮完成；**批次 4 待做**。
-
-## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）
-
-> 用户：「各个环节的性能例行化检测并记录在案，方便后续分析检查。再多增加点项目相关
-> 的测试，功能和性能，包括 vscode 前端会不会卡，有没有实现不对的地方。」
-> 本轮 = **可复现的性能台账**（分阶段、机器可读、提交进仓库）+ 项目层功能/性能测试
-> 扩充 + 对扩展前端做了一次审计并把查出的**两处真 bug** 修掉。
-
-1. **性能例行化（分阶段 + 台账）**：新增 `crates/front/tests/perf_project.rs`
-   （plan / digest / compile / 一次按键 / 内存覆盖 / 线性缩放）、
-   `crates/cli/tests/perf_project.rs`（冷、热、依赖改动必 miss、`build`+`query`）、
-   `crates/lsp/src/tests/perf.rs` 的三条项目例（didOpen / 按键 / 改依赖刷新下游 /
-   请求延迟）。每个阶段打印 `PERFJSON`（`schema: soko.perf/1`），
-   **`scripts/perf-ledger.sh` → `docs/perf/ledger.jsonl`**（追加式、带
-   version/commit/日期/宿主/`cli_profile`）；`docs/perf/latest.json` 便于直读。
-   CI 的 "Performance report" 与 `scripts/perf-report.sh` 同步收录这三段。
-2. **实测基线（教学规模无感）**：front 4×20 项目 compile 90–110ms、一次按键
-   96–123ms、缩放线性（4× 规模 ⇒ 2.4–3.0×）；**教学规模 2/3/5 模块 × 12 声明
-   一次按键 12–46ms**；LSP 项目按键 25–49ms 且**每次按键只发 1 份诊断**；
-   CLI release 冷 23.5ms / 热 4.4ms；内存覆盖与读盘同价（33.1 vs 33.2ms）。
-3. **扩展前端审计（两个真 bug，已修 + 已加回归）**：
-   - **切文件竞态**：`loadDeclarations()` 在 `await` 之后读 `this.uri` 建树节点——
-     A 的请求、切到 B 之后回来，树上那行的标签是 A 的声明、点击却是
-     `revealRange(B, A 的洞)`（stub host 复现）。现在请求发起时钉住 URI、回来先比对。
-   - **诊断监听器全窗口且无去抖/去重**：别的扩展（TS/ESLint）报错也会跑一整轮
-     `soko/goals`；项目模式一次编辑的事件里会跑 **2 次** goals + 2 次 Infoview
-     整表重建。现在按 URI 过滤（只理 `.sokonanoda`）+ 150ms 去抖 + 并发合并 +
-     载荷指纹去重。
-   - 顺手：课程树缓存一次 CLI 运行（30s TTL，热缓存一次 ~320ms / 11 个单元）、
-     `server.js` 下载回退的 `execSync tar` 改 `await execFile`（不再冻结宿主）。
-   - **新增测试层** `editor/vscode/test-extension-host.js`（stub 的
-     vscode/languageclient/child_process + 假定时器跑真 `extension.js`，7 例，
-     零依赖毫秒级），接入 `npm run test:unit`；对着**修复前**的代码 5/7 会红
-     （证据）。`crates/cli/tests/extension.rs` 新增契约守住这四个 Node 文件都在册。
-4. **项目层功能测试**：新增 `crates/cli/tests/project_features.rs`（11 例：两级嵌套
-   模块名、菱形依赖 + 缓存失效、两个入口共享依赖且缓存不串台、依赖解析错误归因、
-   文件/目录同名、import 位置与形态错误、`build` 逐文件状态、嵌套项目的
-   `query` 计数一致、入口拒绝退出 1 而依赖 `sorry` 退出 0）。
-5. **顺手修掉的缺陷**：`import my-lib` 的报错文案把横线写了两次（`my--…` →
-   `my-…`，front token 层 + 单测）；`docs/protocol.md` 的人类输出口径写成
-   `error[<code>]`，实际是 `error[<stage>]`；设计 §6 A2 承诺的"依赖 `decl.checked`
-   事件带 module"与实现不符——按实现改口径（只输出入口事件，依赖的问题走诊断，
-   §5.1 偏差④）。
-6. **测试与门禁**：`cargo test --workspace --locked` 全绿（front 450+ / LSP 130+ /
-   CLI 200+，含新增 4 个 perf 例、11 个功能例、7 个宿主例）；
-   `node editor/vscode/test-extension-host.js` 7/7；`scripts/soko gate` PASS。
-7. **用户第二轮追加：真跑一遍性能 + 教学内容 import 化**。性能：`scripts/perf-ledger.sh`
-   11 条记录（front 4×20 compile 111ms / 按键 130ms；缩放 2.8×；LSP 项目按键 46ms
-   且 1 份诊断；CLI release 冷 31.9 / 热 3.3 / 依赖改动后 27.7ms；新增"判据前缀"
-   一条：入口 10 处 `match` 导入归纳类型 82.6ms）。教学内容：
-   - 先量了一遍：44 个语料文件里**逐字重复**的声明块只有 232/2974 行（8%），
-     And 公理 24 份、`Or` 块 12 份、显式 `Nat` 块 8 份（含中英与解答钥匙）。
-     结论：**整包 import 化不划算**（会打破"单元自给自足"、golden/镜像/课程树契约
-     全要重钉），但复制粘贴的漂移风险是真的。
-   - 于是新增 **`course/shared/` 子项目**（`sokonanoda.toml` + 规范模块
-     `And`/`Or`/`Nat` + 自检入口 `Demo.sokonanoda`，真的 import 并判卷），
-     配 `crates/cli/tests/course_shared.rs` 的**双向漂移守护**（少了=副本没跟上、
-     多了=抄了没登记、画布出现 `import` 也红）。画布一行未改，golden 零漂移。
-   - **过程中挖出并修掉两个真 bug（同一根因）**：`match` 的宇宙层级、`by` tactic 的
-     `apply`/`exact` 都靠 `judge_infer(prefix_src, …)` 合成前缀文件问内核，而项目
-     模式的前缀只含**入口自己**的源码 ⇒ 入口里 `match` 被导入的归纳类型报
-     `elab-match-no-expected-type`、`by apply And.intro`（导入的公理）报
-     `elab-tactic-failed: unknown identifier`。修法：`run_pass` 按拓扑序预计算
-     `closure_prefixes`（依赖源码去掉 `import` 行后相接 + 本文件前缀），
-     单文件模式不构造（A1 逐字节不变）。两条回归测试入 `project/tests.rs`。
-   - **发现但未修（已登记，P5 余项）**：编辑器 quick-fix 的 `front::suggest` 也只吃
-     入口文本 ⇒ 项目入口里对导入名字给不出建议（同一文件放进单文件就有
-     `refine And.intro …`，放进项目入口是 `null`；真 LSP 探针复现）。
-     记在 `docs/TESTING.md` §7b 与 `docs/design/imports-and-projects.md` P7。
-8. **用户第三轮提问：单文件与项目文件能自动区分吗（单文件不找项目配置、像脚本一样跑）**
-   ——是，规则写进设计文档 **§4.4b** 并由 `crates/cli/tests/single_file_vs_project.rs`
-   四条测试钉住：① 无 `import` 的文件**从不读 `sokonanoda.toml`**（同目录坏清单、
-   `--root`、`--no-project` 全是空操作）；② 同一个坏清单在有 `import` 的文件上必须报
-   `manifest-invalid`，但仍以入口目录把闭包编完；③ **依赖自己的清单永不参与**；
-   ④ 零配置能 import、stdin 与文件逐字节一致、stdin 带 `import` 给出 `--root` 提示。
-   **同时修掉一个真 bug（编辑器与 CLI 不一致）**：LSP 把 `initialize` 的**工作区根**
-   当模块根传下去（等于跳过清单发现），于是 VS Code 打开仓库根、再打开
-   `course/unit11-project/Canvas.sokonanoda` 会报 `import-not-found`，而同一文件在
-   CLI 下正常。现在编辑器与 CLI 同一套发现规则（最近清单 → 入口目录），
-   回归测试 `a_nested_project_resolves_against_its_own_manifest`。

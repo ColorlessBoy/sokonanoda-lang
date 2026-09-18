@@ -69,7 +69,7 @@ scripts/soko query goals --file playground.sokonanoda               # 全文件�
 
 - 契约见 `docs/protocol.md`；`ok:false` **不是**空结果（空是 `goal:null`），
   退出码 0=答上了、1=有内核拒绝、2=用法错误——**判据看 JSON，不看退出码**；
-- DeepSeek Harness 里这六个查询还包成了 MCP 工具
+- DeepSeek Harness 里这七个查询还包成了 MCP 工具
   （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，需
   `dsh web --patch ./dsh/cordis.patch.yml`）：**有 MCP 工具就直接调，别绕 shell**。
 

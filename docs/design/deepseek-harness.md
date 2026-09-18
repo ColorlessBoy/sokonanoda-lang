@@ -331,7 +331,7 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
   的自定义视图（D9 证明现有 LSP 通道到不了；需要 DSH 客户端插件 + host handler）。
   → 将消费 `front::query` 的结论（I15 H6-A），不必再走 LSP 自定义请求。
 - **B2 诊断通道**：**→ 已并入 I15**（`docs/design/agent-query-channel.md`）：
-  ① CLI `sokonanoda query check/state/goals/holes/hints/reduce`（单 JSON、零配置、
+  ① CLI `sokonanoda query check/state/goals/holes/hints/reduce/project`（单 JSON、零配置、
      所有 harness 通用）；② MCP server（`scripts/soko mcp` + `dsh/mcp/server.js`，
      DSH 官方通道，默认关闭需 opt-in）；③ 追踪 DSH LSP 是否支持诊断投递作为补充。
 - **B3 启动钩子**：`SessionStart` hook 自动 `setup`（注意 detached 语义，D17）。
@@ -403,7 +403,7 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
 | H3 命令与角色 | ✅ 完成 | teacher 技能 §0 吸收角色与五条不可违反规则；`.opencode/agent/teacher.md` 瘦身为指针（并修掉其中违反零 cargo 硬规则的 `cargo run` 判卷命令）；7 个 opencode 命令改用 `scripts/soko`；`AGENTS.md` 角色技能节改写；`opencode.rs` 改为"gate 之外的命令必须 cargo-free + 全部走启动器" |
 | H4 治理 | ✅ 完成 | `dsh/hooks/{hooks.json,refuse-lean-toolchain.js}`（命令位匹配，`lake build`/`$(lean …)` 拦、`grep lean` 放行，实测 12 例）；`AGENTS.md` 硬规则第 2 条写明两 harness 的 deny 形态；`skills/README.md` 重写为多 harness 安装矩阵；`docs/design/onboarding.md` §6 DSH 对照表；site 安装 prompt 改 `scripts/soko` + DSH 说明；VS Code README/CHANGELOG/package.json 与版本同步 |
 | H5 backlog | ⬜ 未做 | B1–B4 见上文 |
-| 多文件项目（I16，0.57.0） | ✅ 无忧 | MCP 六工具转发到 `query`，而 `query` 已闭包化：**`file:` 参数走真实路径**即可解析 `import`（模块根 = 最近 `sokonanoda.toml`，否则该文件目录）；`text:` 是 stdin 语义，带 `import` 时会明确报错而不是猜目录。用法写进 `dsh/README.md` 与 teacher 技能 §2。**DSH 侧不需要新能力、不需要新接线。** |
+| 多文件项目（I16，0.57.0） | ✅ 无忧 | MCP 七工具转发到 `query`，而 `query` 已闭包化：**`file:` 参数走真实路径**即可解析 `import`（模块根 = 最近 `sokonanoda.toml`，否则该文件目录）；`text:` 是 stdin 语义，带 `import` 时会明确报错而不是猜目录。用法写进 `dsh/README.md` 与 teacher 技能 §2。**DSH 侧不需要新能力、不需要新接线。** |
 | 回归 | ✅ 完成 | `cargo test --workspace --locked` 全绿（21 个测试目标，含新增 `dsh.rs`）；`cargo fmt --check` 绿；`cargo clippy --workspace --all-targets` 仅 kernel 既有 warning；`scripts/soko gate` **PASS**；`gen-site-data.py` + `check-site.py` 绿 |
 
 ### 落地时新增的实测事实（已并入 §1.2）

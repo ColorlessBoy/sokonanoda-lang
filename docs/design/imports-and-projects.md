@@ -818,7 +818,10 @@ iface(module) = H( CACHE_FORMAT,
 - `watch` 的项目模式（协议要不要带 DAG 顺序，见 Q6）；
 - ~~`didChangeWatchedFiles`（编辑器外改文件不触发刷新）~~ ✅ 2026-09-18 完成
   （只重编译"闭包里含该路径"的已打开文档；缓冲优先）；
-- `soko/project`（P5 剩下的那项，仍留 P7）；
+- ~~`soko/project`（P5 剩下的那项）~~ ✅ **2026-09-18（0.58.0 批次 4）落地**：
+  只读项目状态视图 = `QueryDoc::project_view()`，三个传输（CLI `query project` /
+  MCP `project` / LSP `soko/project`）+ VS Code 项目树；设计 =
+  `docs/design/project-view.md`。
 - ~~**`crates/front/src/compile/check.rs` 的结构债（本轮加剧）**：1717 → **1918** 行，
   其中 `run_pass` 一个函数占 553–1726 行（≈1174 行）~~ ✅ **2026-09-18（第九十五轮）
   已拆完**：`compile/units.rs`（闭包装配）+ `check/{mod,walk,kernel_phase}.rs`
@@ -848,8 +851,8 @@ iface(module) = H( CACHE_FORMAT,
    ② 诊断**只在真的变化时才发**（`Doc::published` 比对）。第一版"会挂住"的根因
    不是实现而是**测试写法**：服务端一次通知可能连发多条诊断，而测试先等通知结束
    再读 socket ⇒ 死锁；修法是 `testutil::notify_with_drain`（边处理边排空）。
-   仍未做（P7）：`didChangeWatchedFiles`（编辑器外改文件不触发刷新）、
-   `soko/project`。细节登记在 `docs/TESTING.md` §5.7。
+   两项后来都落地了：`didChangeWatchedFiles` 在 0.57.0（批次 1）、`soko/project`
+   在 0.58.0（批次 4，`docs/design/project-view.md`）。细节见 `docs/TESTING.md` §5.7。
 3. **`import-prelude-conflict` 的判据细化**：没有 prelude 指令的模块视为
    **继承**入口模式，只有"显式指令与闭包决定不一致"才报错（设计 §4.6 只写了
    "闭包内不一致"，实现时需要区分"未声明"与"显式声明"两次预扫描）。

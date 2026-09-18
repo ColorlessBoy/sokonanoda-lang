@@ -384,3 +384,17 @@
 - **守护位置**：`docs/PERF.md`「噪声地板与采样口径」（含三行对照表）、
   `scripts/perf-ledger.sh`（`--test-threads=1`）、`crates/front/tests/perf_project.rs`
   的 `measure_best`、本条目。
+
+## stub 宿主必须忠实真实 API：构造函数不是装饰（2026-09-18，批次 4 项目树）
+
+- **踩的坑**：`test-extension-host.js` 的 `MarkdownString` stub 写成
+  `constructor() { this.value = ""; }`——把构造参数**丢掉**了。于是"状态栏 tooltip
+  带项目行"的断言永远读到空串：不是扩展没写 tooltip，是测试看不见它写的内容。
+  同一次还发现 stub 的 `createStatusBarItem` 不返回实例，测试根本拿不到 item。
+- **为什么危险**：stub 的偏差会**伪装成功能缺陷**（我去查了两遍 `updateStatusBar`
+  的调用顺序），也会伪装成**通过**——如果断言恰好是"为空则跳过"。
+- **规矩**：① stub 的最小实现也要尊重真实签名（构造参数、返回值、`event()` 返回
+  disposable）；② 新增断言前先在脑子里过一遍"这个 stub 会不会把我要断言的信息吃掉"；
+  ③ 发现 stub 不忠实时**先修 stub 再改产品代码**——反过来会把产品改成迎合 stub。
+- **守护位置**：`editor/vscode/test-extension-host.js` 的 `fake vscode` 段、
+  `crates/cli/tests/extension.rs::unit_test_script_covers_every_node_layer`（清单）、本条目。

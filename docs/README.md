@@ -102,6 +102,8 @@
 - `multifile-prior-art.md` — **多文件/项目模型的横向调研**（Coq/Rocq、Agda、Isabelle、
   Idris 2、Rust、Go、Python、JS/TS、Haskell/OCaml、JVM：单文件模式、清单发现、模块身份、
   产物与失效；配套设计 `docs/design/imports-and-projects.md`，I16）
+- `project-view.md` — **项目状态视图**（`query project` / `soko/project` / VS Code 项目树：
+  根、清单来源、闭包模块表、每模块状态与项目诊断；0.58.0 批次 4）
 - `project-roots-and-incremental-caches.md` — **语言服务器根发现 + 增量缓存调研**
   （LSP 契约、rust-analyzer/clangd/tsserver/pyright/gopls/ocaml-lsp/Agda/lean4 的根发现与
   错根症状、Lake trace / GHC 指纹 / OCaml `.cmi` / Coq `.vo` digest / `.tsbuildinfo`、

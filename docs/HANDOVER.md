@@ -4,14 +4,18 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.57.0**（2026-09-18），最近一轮 **第九十二轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.58.0**（2026-09-18），最近一轮 **第九十六轮**。仓库根入口 `AGENTS.md`。
 > **DeepSeek Harness 适配已落地**：`docs/design/deepseek-harness.md`（H0–H4 全绿，
 > 用法见 `dsh/README.md`）；仅 H5（Infoview/诊断通道/插件包）留 backlog。
 > **内核真相查询通道**已落地：`docs/design/agent-query-channel.md`（I15，`query` + MCP）。
 > **多文件 `import` 与项目管理**已落地（I16，0.57.0）：`import Foo.Bar` + 可选
 > `sokonanoda.toml`、闭包编译（内核零改动）、闭包哈希缓存、CLI `--root`/`--no-project`、
 > LSP 多文档 + 跨文件跳转/引用/改名 + 改依赖自动刷新下游、单元⑪ +
-> `course/unit11-project/`；**余项**见 §3 G 与 `docs/TESTING.md` §5.7（只剩 P7 项）。
+> `course/unit11-project/`。
+> **项目状态视图**已落地（0.58.0）：`query project` / MCP `project` /
+> LSP `soko/project` / VS Code「项目」树（根、清单来源、闭包模块 + 状态、诊断）；
+> 设计 = `docs/design/project-view.md`。**余项**见 §3 G 与 `docs/TESTING.md` §5.7
+> （只剩 P7 项）。
 
 ## 1. 30 秒接手
 
@@ -28,6 +32,9 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
 ## 2. 本会话完成的工作（第五十三～八十四轮，全部已发布）
+
+> 第八十五轮之后（`query` 通道、I16 项目层、批次 1–4）逐轮记录在 **`STATUS.md`**
+> 与下文 §3；本表保留早期轮次不重复。
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -211,9 +218,11 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   （`walk.rs` 里的 `closure_prefixes` → `CmdCtx::prefix_src`），否则入口看不见导入的
   名字——这条在 `docs/architecture.md` §4.5 有专段，改判据相关代码前先读。项目入口的
   quick-fix 已修（批次 1），§7b 已闭环。
-- **LSP 能力（0.57.0 完整）**：多文档、跨文件 `definition`/`references`/`rename`、
-  改依赖自动刷新下游（未落盘编辑经内存覆盖可见）、诊断只在变化时重发。
-  留 P7 backlog 的只有：`soko/project`、`watch` 项目模式、`[deps]`、`namespace`。
+- **LSP 能力（0.58.0 完整）**：多文档、跨文件 `definition`/`references`/`rename`、
+  改依赖自动刷新下游（未落盘编辑经内存覆盖可见）、诊断只在变化时重发、
+  **`soko/project` 项目状态视图**（根/清单来源/闭包模块表/每模块状态；VS Code
+  项目树 + 状态栏 tooltip；CLI `query project` 与 MCP `project` 同源）。
+  留 P7 backlog 的只有：`watch` 项目模式、`[deps]`、`namespace`。
   编辑器外的改动（`git checkout`/脚本）自 2026-09-18 起会自动刷新已打开文档
   （`workspace/didChangeWatchedFiles`：只重编译闭包里含该路径的那些，缓冲优先）。
   多文档测试必须用 `testutil::notify_with_drain`（原因见 `docs/TESTING.md` §5.7）。
@@ -226,6 +235,11 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 
 ## 4. 已知限制 / 技术债
 
+- **0.58.0 新增（批次 4，已完成）**：项目状态视图 `query project` / 对应 MCP 工具
+  `project` / LSP `soko/project` / VS Code「项目」树 + 状态栏 tooltip；
+  `ModuleReport::status`（`compiled`/`load-failed`/`blocked`）是**新增字段**，
+  改项目层报告时别丢它（`ModuleStatus` 的 code 就是协议）。设计 =
+  `docs/design/project-view.md`（§9 写明不做依赖图/写操作/模块级缓存）。
 - **剩余结构债（按建议顺序，2026-09-18 盘点）**：`run_pass` 已拆完（批次 3），
   仓库里仍超 ~500 行惯例的大文件按优先级排：
   ① `front/src/compile/tests.rs` 4828（**测试**模块，按 `walk`/`kernel_phase`/
@@ -290,7 +304,8 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   覆盖**（`load_closure_with_overlay` / `QueryDoc::set_text_with_overlay`）进入闭包，
   也进闭包摘要。曾经"实现会挂"的结论是**测试写法**问题：服务端一次通知可能连发
   多条诊断，测试必须先排空再等通知（`testutil::notify_with_drain`）。细节与教训见
-  `docs/TESTING.md` §5.7。仍未做（P7）：`soko/project`、`[deps]`、`namespace`/`open`。
+  `docs/TESTING.md` §5.7。`soko/project` 已在 0.58.0 落地（`docs/design/project-view.md`）；
+  仍未做（P7）：`[deps]`、`namespace`/`open`。
 - **（0.56.1 已清）`crates/lsp` 测试文件的拆分**：0.56.0 把测试模块移出 `lib.rs`
   时形成过 `tests.rs` 2567 行的债，0.56.1 已按"`tests/mod.rs`（共享夹具）+
   按特性分文件"拆完：`mod.rs` 399 行（31 个共享 const/fixture + `pub(crate) use`

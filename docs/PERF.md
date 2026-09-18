@@ -124,7 +124,7 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 的数字（实测同一 3×12 项目：release 冷 24ms / debug 冷 405ms）。CLI 一律
 `--release`，台账里记 `cli_profile`。
 
-### 当前基线（2026-09-18，v0.57.0，Apple Silicon，`cli_profile=release`）
+### 当前基线（2026-09-18，v0.58.0，Apple Silicon，`cli_profile=release`）
 
 口径：**2026-09-18 起为串行**（`--test-threads=1` + 用例内 best-of-N）。
 更早的基线（front compile 90–110ms、LSP 按键 25–49ms 等）是并行口径，约偏高 3–4×。

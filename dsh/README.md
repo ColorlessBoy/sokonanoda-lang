@@ -60,7 +60,7 @@ scripts/soko grade playground.sokonanoda --json
 退出码语义、"`ok:false` 不是空结果"的区分）。
 
 要给**模型**用（而不是你自己跑 shell），`dsh/cordis.patch.yml` 里的 MCP 行把它
-包成六个工具：
+包成七个工具：
 
 | MCP 工具（DSH 里看到的名字） | 转发到 |
 |---|---|
@@ -70,6 +70,7 @@ scripts/soko grade playground.sokonanoda --json
 | `mcp__sokonanoda__holes` | `query holes`（稳定 id + 导航） |
 | `mcp__sokonanoda__hints` | `query hints`（`-- soko:hint` 阶梯） |
 | `mcp__sokonanoda__reduce` | `query reduce` |
+| `mcp__sokonanoda__project` | `query project`（项目闭包：根/清单/模块状态） |
 
 实测（本机 DSH headless）：模型调用 `mcp__sokonanoda__state`
 （`playground.sokonanoda:327:4`）拿到 `Exists Person P` —— 目标文本由内核渲染，
@@ -77,7 +78,7 @@ scripts/soko grade playground.sokonanoda --json
 
 **多文件项目（0.57.0）走 MCP 时用 `file:` 而不是 `text:`**：`import Foo` 的解析
 需要真实路径（模块根 = 最近 `sokonanoda.toml`，否则该文件所在目录）；`text:` 是
-stdin 语义，带 `import` 时会明确报错而不是猜目录。六个工具与 `query` 一样接受
+stdin 语义，带 `import` 时会明确报错而不是猜目录。七个工具与 `query` 一样接受
 `file`（仓库根相对路径），所以 `mcp__sokonanoda__check {"file":
 "course/unit11-project/Exercises.sokonanoda"}` 会编译整个闭包，诊断里带
 `file`/`module` 字段指出是谁的错。CLI 侧的对应形式：
