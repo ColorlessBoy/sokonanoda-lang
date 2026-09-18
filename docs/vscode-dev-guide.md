@@ -137,6 +137,16 @@ npm run clean:lsp
     （省去重复下载），并把服务器二进制所在目录塞进 `PATH`。此时
     `REPO_ROOT` 会退化，`bin/` staging 与 `PATH` 两个条件都得显式满足（见 13）。
 
+15. **多文件项目改变了"一个文档一次编译"的假设（0.57.0，I16）**——LSP 现在
+    同时跟踪多个文档（`Docs{map,order,root,active}`），而**入口文档的诊断是整个
+    import 闭包的结果**：诊断里带 `file`/`module` 的属于**别的文件**，`goto_definition`
+    可能返回另一个文档的 `Location`（扩展的跳转不要假设同文件）。另外两条实测语义：
+    ① 改动的文档自己重编译，**其它已打开文档不会因依赖变更自动刷新**（第一版会在
+    tower-lsp 串行通知 + socket 缓冲下挂住，已回退）；② `initialize` 的 `rootUri`
+    决定模块根，多根工作区目前只取第一个 folder。补测试的起点：
+    `crates/lsp/src/testutil.rs` 的 `handshake_with_root` / `did_open_at` /
+    `did_change_at` / `wait_diagnostics_for` 与 `crates/lsp/src/tests/project.rs`。
+
 ## 5b. Infoview/视图的硬规矩（0.49.0 教训）
 
 1. **provider 先注册**：`activate` 最前面同步 `registerWebviewViewProvider` / `createTreeView`，
