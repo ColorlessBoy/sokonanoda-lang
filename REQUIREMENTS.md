@@ -1151,3 +1151,23 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     （= 跳过清单发现）⇒ 工作区里嵌套的项目在 VS Code 报 `import-not-found`，CLI 却
     正常。现在两边同一套发现规则；回归
     `crates/lsp/src/tests/project.rs::a_nested_project_resolves_against_its_own_manifest`。
+
+- 2026-09-18（九十四）：**待办批次 1 —— 项目入口 quick-fix + 编辑器外改动自动刷新**
+  （用户：「还有没有做的TODO吗？fix修复或者优化体验的设计」→ 选定批次 1 并要求
+  「按照你的计划，从上到下依次改进」）：
+  - **判据前缀抽成真相层**：`judge_*` 四个合成入口增 `extra_prefix` 变体（旧签名
+    委托空串 ⇒ 单文件逐字节不变）；`QueryDoc::judge_prefix(offset)` 成为唯一入口；
+    `importless_source` 归一为 `project::importless_source` 一份实现。
+  - **项目入口恢复 quick-fix**：`suggest_with` / `probe_sub_goal_types_with` 接前缀，
+    LSP code action 传前缀；并修掉第三层根因——`GoalTemplates`（refine/intro 的
+    构造子索引）原先按单单元构建，现按"拓扑序前缀 + 本单元"构建。真 LSP 探针：
+    `null` → `refine And.intro a b sorry sorry`。
+  - **项目模式子洞探针**：`probed_report` 不再整段跳过；`query goals --probe` 在项目
+    入口给出子洞期望类型（与单文件一致）。
+  - **编辑器外改动自动刷新**：LSP 实现 `workspace/didChangeWatchedFiles`（扩展早已
+    声明 watcher，服务端此前忽略）：只重编译闭包里含该路径的已打开文档、缓冲区优先。
+  - **验收**：`cargo test --workspace --locked` 860 passed / 0 failed；项目 perf 无回退；
+    新增 LSP 2 条 + front 1 条回归测试；文档（TESTING §7b 闭环、架构 §4.5、设计 P7、
+    vscode-dev-guide 坑 15、STATUS 第九十四轮、HANDOVER）同轮同步。
+  - **继续**：批次 2（`query` 走项目缓存 + `goals`/`stateAt` 回显 `uri`/`version`）→
+    批次 3（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。

@@ -400,3 +400,51 @@ fn prelude_mode_switch_recompiles_in_bare_mode() {
     assert_eq!(doc.version, 2);
     assert!(doc.goals(false).len() == 1);
 }
+
+/// 项目模式下的判据前缀与子洞探针（I16 待办批次 1）。
+///
+/// 单文件文档：前缀为空（行为与今天逐字节相同）。
+/// 项目文档：前缀 = 依赖模块的源码（去 `import` 行）——`suggest` 的 quick-fix 与
+/// 子洞探针都靠它看见被导入的名字；探针不再因为"项目模式"被整段跳过。
+#[test]
+fn project_documents_expose_a_judge_prefix_and_probe_sub_goals() {
+    let dir = std::env::temp_dir().join(format!("soko-query-probe-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    std::fs::write(
+        dir.join("Logic.sokonanoda"),
+        "axiom And : Prop -> Prop -> Prop\n\
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+    )
+    .expect("write dep");
+    let entry_text = "import Logic\n\n\
+theorem spine_x (a b : Prop) (h : a) (k : b) : And a b :=\n\
+  And.intro a b sorry sorry\n";
+    let entry = dir.join("Main.sokonanoda");
+    std::fs::write(&entry, entry_text).expect("write entry");
+
+    // 单文件：没有闭包前缀。
+    let single = doc("theorem t : Prop -> Prop := fun (p : Prop) => p\n");
+    assert_eq!(single.judge_prefix(0), "");
+
+    // 项目：前缀含依赖声明、不含 `import` 行。
+    let mut project = QueryDoc::new();
+    project.path = Some(entry);
+    project.set_text(entry_text, 1, None);
+    let prefix = project.judge_prefix(0);
+    assert!(prefix.contains("axiom And.intro"), "{prefix}");
+    assert!(!prefix.contains("import Logic"), "{prefix}");
+
+    // 探针在项目模式下也生效：`And.intro` 的两个 spine 洞拿到期望类型。
+    let goals = project.goals(true);
+    let spine = goals
+        .iter()
+        .find(|d| d.name == "spine_x")
+        .expect("spine_x listed");
+    assert!(
+        spine.sub_goals.iter().filter(|s| s.ty.is_some()).count() >= 2,
+        "the probe must fill the imported constructor's sub-goal types: {:?}",
+        spine.sub_goals
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

@@ -932,6 +932,43 @@ impl LanguageServer for Backend {
         }
     }
 
+    /// **编辑器外**的改动（`git checkout`、脚本、另一个编辑器）：`synchronize.fileEvents`
+    /// 已经让客户端在 `**/*.sokonanoda` 变化时发这个通知，服务端此前没有 handler，
+    /// 于是打开的文件一直显示旧诊断，要重开才刷新（0.57.0 审计 RISK）。
+    ///
+    /// 语义：只重编译**闭包里含这个路径**的已打开文档（未打开的文档不产生诊断）；
+    /// 缓冲区内容优先——打开着的文档不受磁盘改动影响（VS Code 会在文件重载后自己
+    /// 发 didChange）。闭包里的失败/缺失模块也记着期望路径，所以"文件被创建出来"
+    /// 同样会触发刷新。
+    async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        let changed: Vec<std::path::PathBuf> = params
+            .changes
+            .iter()
+            .filter_map(|event| event.uri.to_file_path().ok())
+            .collect();
+        if changed.is_empty() {
+            return;
+        }
+        let affected: Vec<(Url, String, i32)> = {
+            let docs = self.doc.lock().expect("doc lock");
+            docs.order
+                .iter()
+                .filter_map(|uri| {
+                    let doc = docs.map.get(uri)?;
+                    let in_closure = doc.query().project_modules().is_some_and(|modules| {
+                        modules
+                            .iter()
+                            .any(|module| changed.iter().any(|path| same_file(&module.path, path)))
+                    });
+                    in_closure.then(|| (uri.clone(), doc.text().to_string(), doc.version()))
+                })
+                .collect()
+        };
+        for (uri, text, version) in affected {
+            self.refresh(uri, text, Some(version)).await;
+        }
+    }
+
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         if let Some(text) = params.text {
             self.refresh(params.text_document.uri, text, None).await;
@@ -1377,6 +1414,8 @@ impl LanguageServer for Backend {
             doc.mode(),
             report,
             params.range.start,
+            // 项目模式下把闭包前缀交给 suggest：入口里对导入名字也有 quick-fix。
+            &|offset| doc.query().judge_prefix(offset),
         ))
     }
 

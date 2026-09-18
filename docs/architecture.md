@@ -213,8 +213,11 @@ sokonanoda-lang/
 `elab-match-no-expected-type`、`by apply And.intro`（导入的公理）报
 `elab-tactic-failed: unknown identifier`。实现：`run_pass` 按拓扑序预计算
 `closure_prefixes`（各依赖源码去掉 `import` 行后相接），单文件模式不构造
-（A1 逐字节不变）。**仍未覆盖**：编辑器 quick-fix 的 `front::suggest` 路径只吃
-入口文本 ⇒ 项目入口里对导入名字给不出建议（`docs/TESTING.md` §5.8）。
+（A1 逐字节不变）。闭包前缀同一条也喂给**建议与探针**：`QueryDoc::judge_prefix(offset)` 是真相层入口，
+`suggest_with`（quick-fix）与 `probe_sub_goal_types_with`（子洞期望类型）都接它；
+`run_pass` 里 `GoalTemplates`（refine/intro 的构造子索引）也改成按"拓扑序前缀 +
+本单元"的命令表构建——否则项目入口的 refine 建议会凭空消失（这三层是一个根因，
+2026-09-18 一次修完，守护见 `docs/TESTING.md` §7b）。
 
 **编辑器里的依赖编辑（未落盘）**：LSP 把**所有打开文档的当前文本**做成"内存覆盖"
 （`load_closure_with_overlay`，按 `canonicalize` 后的路径匹配），改依赖时下游文档用

@@ -603,10 +603,26 @@ fn run_pass(
     let mut cmd_hovers: Vec<CmdHover<'_>> = Vec::new();
     let mut decl_states: Vec<DeclState> = Vec::new();
     let mut example_idx = 0usize;
-    let all_templates: Vec<GoalTemplates> = units
-        .iter()
-        .map(|unit| GoalTemplates::new_for(unit.file, options))
-        .collect();
+    // 建议材料（refine/intro 的构造子与函数索引）按**闭包前缀**构建：单文件时就是
+    // 本文件；项目模式下每个单元看到的是"拓扑序在它之前的单元 + 它自己"。
+    // 否则入口看不见被导入的构造子（`And.intro`），项目入口的 refine 建议会凭空
+    // 消失——而同一个文件放进单文件就有（2026-09-18 真 LSP 探针实测）。
+    // 注：`GoalTemplates::new_for` 只读命令表，`src` 仅作占位。
+    let all_templates: Vec<GoalTemplates> = if units.len() == 1 {
+        vec![GoalTemplates::new_for(units[0].file, options)]
+    } else {
+        let mut commands: Vec<Command> = Vec::new();
+        let mut templates = Vec::with_capacity(units.len());
+        for unit in units {
+            commands.extend(unit.file.commands.iter().cloned());
+            let combined = FolFile {
+                commands: commands.clone(),
+                src: String::new(),
+            };
+            templates.push(GoalTemplates::new_for(&combined, options));
+        }
+        templates
+    };
 
     // 扁平命令序：先依赖、后入口（单文件就是一个单元）。
     let flat: Vec<(usize, &Command)> = units
@@ -627,7 +643,7 @@ fn run_pass(
         let mut accumulated = String::new();
         for unit in units {
             prefixes.push(accumulated.clone());
-            accumulated.push_str(&importless_source(&unit.file.src));
+            accumulated.push_str(&crate::project::importless_source(&unit.file.src));
             if !accumulated.ends_with('\n') {
                 accumulated.push('\n');
             }
@@ -657,7 +673,7 @@ fn run_pass(
             Some(deps) if !deps.is_empty() => {
                 // 本文件前缀里的 `import` 行也要去掉：合成文件里它已经不在文件
                 // 开头，留着会让合成文件解析失败（那正是上一次尝试踩的坑）。
-                with_deps = format!("{deps}{}", importless_source(own_prefix));
+                with_deps = format!("{deps}{}", crate::project::importless_source(own_prefix));
                 &with_deps
             }
             _ => own_prefix,
@@ -1803,25 +1819,6 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
 /// internal errors) become `Err(message)` instead of unwinding through the
 /// pipeline, so the caller can classify them like any other rejection.
 /// Same contract as `resolve_hovers`.
-/// 合成前缀用：去掉 `import` 命令行。
-///
-/// 闭包前缀是"多个模块源码首尾相接"，而 `import` 语义上必须排在文件最前——
-/// 直接拼接会在第二个模块处出现文件中间的 `import`，合成文件连解析都过不去。
-/// 只过滤**代码行**（`--` 注释里的 "import" 字样保留：它们不影响语义，但也不
-/// 该被误伤成"代码"）。
-fn importless_source(source: &str) -> String {
-    let mut out = String::with_capacity(source.len());
-    for line in source.lines() {
-        let trimmed = line.trim_start();
-        if trimmed.starts_with("import ") || trimmed == "import" {
-            continue;
-        }
-        out.push_str(line);
-        out.push('\n');
-    }
-    out
-}
-
 fn quiet_catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
     let previous_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));

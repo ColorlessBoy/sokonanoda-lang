@@ -32,6 +32,9 @@ pub(crate) fn code_actions(
     mode: PreludeMode,
     report: &DocumentReport,
     pos: Position,
+    // 判据前缀提供者（**闭包上下文**）：项目模式下 `suggest` 靠它看见被导入的
+    // 名字；单文件传 `&|_| String::new()`。按声明起点问，便于将来按偏移裁剪。
+    judge_prefix: &dyn Fn(usize) -> String,
 ) -> Option<CodeActionResponse> {
     let d = decl_at(&report.decls, pos.line, pos.character)?;
     if d.status == DeclStatus::Checked {
@@ -45,7 +48,13 @@ pub(crate) fn code_actions(
         if d.error.is_some() {
             let decl_src =
                 &text[d.span.start.offset.min(text.len())..d.span.end.offset.min(text.len())];
-            let suggestions = suggest::suggest(src, Some(decl_src), &options, d);
+            let suggestions = suggest::suggest_with(
+                &judge_prefix(d.span.start.offset),
+                src,
+                Some(decl_src),
+                &options,
+                d,
+            );
             // 三类失败声明建议都替换整个值位。
             if let Some(range) = value_range_at(text, d) {
                 for suggestion in suggestions {
@@ -83,7 +92,9 @@ pub(crate) fn code_actions(
             }
         }
     } else {
-        for suggestion in suggest::suggest(src, None, &options, d) {
+        for suggestion in
+            suggest::suggest_with(&judge_prefix(d.span.start.offset), src, None, &options, d)
+        {
             match &suggestion.kind {
                 SuggestionKind::Exact { binder, hole } => {
                     let Some(range) = hole_range_at(text, d, *hole) else {

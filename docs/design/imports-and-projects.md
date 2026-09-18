@@ -813,10 +813,12 @@ iface(module) = H( CACHE_FORMAT,
   `Demo.sokonanoda` 入口 + `sokonanoda.toml`），并用双向漂移守护
   （`crates/cli/tests/course_shared.rs`）钉住 24/12/8 份副本。整包 import 化仍然不做
   ——收益（约 8% 行数）远小于代价（可独立性、golden 重钉、学习者要追模块）。
-- 项目入口里的 quick-fix（`front::suggest` 看不到导入名字，见 `docs/TESTING.md` §7b）；
+- ~~项目入口里的 quick-fix~~ ✅ 2026-09-18 完成（闭包判据前缀 + 闭包级建议材料表，
+  见 `docs/TESTING.md` §7b）；
 - `watch` 的项目模式（协议要不要带 DAG 顺序，见 Q6）；
-- `didChangeWatchedFiles`（编辑器**外**改文件不触发刷新，要重开文件）与
-  `soko/project`（P5 剩下的两项，均已在 0.57.0 登记为 P7）；
+- ~~`didChangeWatchedFiles`（编辑器外改文件不触发刷新）~~ ✅ 2026-09-18 完成
+  （只重编译"闭包里含该路径"的已打开文档；缓冲优先）；
+- `soko/project`（P5 剩下的那项，仍留 P7）；
 - **`crates/front/src/compile/check.rs` 的结构债（本轮加剧）**：1717 → **1918** 行，
   其中 `run_pass` 一个函数占 553–1726 行（≈1174 行）。本轮只往里加了"多 unit
   顺序执行 + 命令下标归因"（`compile_all_units` / `split_report` / `unit_ranges` /

@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 93,
+  "round": 94,
   "round_date": "2026-09-18",
-  "round_title": "项目层性能例行化 + 测试扩充 + 编辑器审计修复",
+  "round_title": "待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",

@@ -23,6 +23,25 @@ use crate::compile::{
 };
 
 pub use graph::{load_closure, Closure, LoadedModule};
+
+/// 去掉 `import` 代码行（注释行原样保留）。
+///
+/// 用途：把多个模块的源码**首尾相接**成合成文件（`judge_*` 的闭包前缀、LSP 的
+/// 判据前缀）。`import` 语义上必须排在文件最前，直接拼接会让第二个模块的
+/// `import` 出现在文件中间——合成文件连解析都过不去。只过滤**代码行**
+/// （`--` 注释里的 "import" 字样保留：它不影响语义，也不该被误伤）。
+pub(crate) fn importless_source(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    for line in source.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("import ") || trimmed == "import" {
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    out
+}
 pub use manifest::{find_manifest, Manifest, MANIFEST_FILE};
 pub use module_name::{ModuleName, ModuleNameError, DASH_HINT, MODULE_EXTENSION};
 pub use report::{ModuleReport, ProjectDiagnostic, ProjectKind, ProjectReport};

@@ -25,8 +25,8 @@ pub use types::{
 };
 
 use crate::compile::{
-    compile_all_with, probe_sub_goal_types, ByGoalState, CompileOptions, DeclState, DeclStatus,
-    DocumentReport, PreludeMode,
+    compile_all_with, probe_sub_goal_types_with, ByGoalState, CompileOptions, DeclState,
+    DeclStatus, DocumentReport, PreludeMode,
 };
 use crate::semantic::{self, SemanticKind};
 use crate::session::Session;
@@ -141,6 +141,30 @@ impl QueryDoc {
             root,
             &self.overlay,
         ))
+    }
+
+    /// **判据前缀**：`judge_*` 合成文件时要放在文档前缀之前的"闭包上下文"。
+    ///
+    /// 项目模式 = 各依赖模块的源码（去掉 `import` 行，拓扑序）拼起来；单文件 = 空串。
+    /// 有了它，`front::suggest`（quick-fix）、`probe_sub_goal_types`（子洞期望类型）
+    /// 与 `match`/`by` 的判据才看得见被导入的名字（`docs/TESTING.md` §7b）。
+    ///
+    /// `offset` 是**入口文档坐标**：只用于判断调用方想要哪一段前缀（当前实现返回
+    /// 整个闭包前缀，与偏移无关；保留参数是为了将来按偏移裁剪依赖）。
+    pub fn judge_prefix(&self, offset: usize) -> String {
+        let _ = offset;
+        let Some(modules) = self.project_modules() else {
+            return String::new();
+        };
+        let mut out = String::new();
+        // 入口是最后一个模块（拓扑序）——它的文本由 `self.text` 提供，不在这里拼。
+        for module in modules.iter().take(modules.len().saturating_sub(1)) {
+            out.push_str(&crate::project::importless_source(&module.source));
+            if !out.ends_with('\n') {
+                out.push('\n');
+            }
+        }
+        out
     }
 
     /// 项目闭包的模块列表（拓扑序、入口最后）；单文件文档为 `None`。
@@ -406,11 +430,6 @@ impl QueryDoc {
         let Some(report) = &self.report else {
             return DocumentReport::default();
         };
-        if self.project.is_some() {
-            // 项目模式下探针不适用：`probe_sub_goal_types` 会把文本当**单文件**
-            // 重编译，闭包环境会丢，期望类型会失真。宁可少给信息，不给错的。
-            return report.clone();
-        }
         let needs_probe = report
             .decls
             .iter()
@@ -423,7 +442,12 @@ impl QueryDoc {
             if d.status != DeclStatus::Open || !d.sub_goals.iter().any(|s| s.ty.is_none()) {
                 continue;
             }
-            let probed = probe_sub_goal_types(&self.text, &self.options(), d.span);
+            let probed = probe_sub_goal_types_with(
+                &self.judge_prefix(d.span.start.offset),
+                &self.text,
+                &self.options(),
+                d.span,
+            );
             for sub in &mut d.sub_goals {
                 if sub.ty.is_none() {
                     if let Some(ty) = probed

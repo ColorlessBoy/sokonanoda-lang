@@ -140,7 +140,20 @@ pub fn judge_terms(
     open: &OpenGoalSpec,
     terms: &[&str],
 ) -> Vec<Judgement> {
+    judge_terms_with("", prefix_src, options, open, terms)
+}
+
+/// 同 [`judge_terms`]，但把 `extra_prefix`（闭包上下文：被导入模块的声明文本）
+/// 拼在文档前缀之前——项目模式下 quick-fix 才看得见导入的名字。
+pub fn judge_terms_with(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    open: &OpenGoalSpec,
+    terms: &[&str],
+) -> Vec<Judgement> {
     let key = judge_cache_key(&[
+        extra_prefix,
         prefix_src,
         &options_key(options),
         &format!("{open:?}"),
@@ -149,12 +162,13 @@ pub fn judge_terms(
     if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
         return j;
     }
-    let j = judge_terms_uncached(prefix_src, options, open, terms);
+    let j = judge_terms_uncached(extra_prefix, prefix_src, options, open, terms);
     judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
     j
 }
 
 fn judge_terms_uncached(
+    extra_prefix: &str,
     prefix_src: &str,
     options: &CompileOptions,
     open: &OpenGoalSpec,
@@ -194,7 +208,8 @@ fn judge_terms_uncached(
             ]
         }
     };
-    let Ok(prefix_file) = parse_prefix(prefix_src) else {
+    let full_prefix = synthesized_prefix(extra_prefix, prefix_src);
+    let Ok(prefix_file) = parse_prefix(&full_prefix) else {
         return vec![
             Judgement::Error {
                 code: "parse".to_string(),
@@ -211,7 +226,7 @@ fn judge_terms_uncached(
     // `command.span().start`-based prefix lookup (which `match`'s universe query
     // uses) sees the real declarations again (`Color`, …). Without this, a
     // `by exact match c with …` judgement would fail `elab-match-no-expected-type`.
-    let prefix_len = prefix_src.len();
+    let prefix_len = full_prefix.len();
     let after_prefix = Span::new(
         Pos {
             offset: prefix_len,
@@ -241,7 +256,7 @@ fn judge_terms_uncached(
     let report = check_document_with(
         &FolFile {
             commands,
-            src: prefix_src.to_string(),
+            src: full_prefix,
         },
         options,
     );
@@ -268,7 +283,19 @@ pub fn judge_infer(
     binders: &[GoalBinderSpec],
     term: &str,
 ) -> Result<String, Judgement> {
+    judge_infer_with("", prefix_src, options, binders, term)
+}
+
+/// 同 [`judge_infer`]，但把 `extra_prefix`（闭包上下文）拼在文档前缀之前。
+pub fn judge_infer_with(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Result<String, Judgement> {
     let key = judge_cache_key(&[
+        extra_prefix,
         prefix_src,
         &options_key(options),
         &format!("{binders:?}"),
@@ -277,12 +304,13 @@ pub fn judge_infer(
     if let Some(JudgeCacheValue::Infer(r)) = judge_cache_get(key) {
         return r;
     }
-    let r = judge_infer_uncached(prefix_src, options, binders, term);
+    let r = judge_infer_uncached(extra_prefix, prefix_src, options, binders, term);
     judge_cache_put(key, JudgeCacheValue::Infer(r.clone()));
     r
 }
 
 fn judge_infer_uncached(
+    extra_prefix: &str,
     prefix_src: &str,
     options: &CompileOptions,
     binders: &[GoalBinderSpec],
@@ -305,7 +333,7 @@ fn judge_infer_uncached(
     text.push_str("=> ");
     text.push_str(term);
     text.push('\n');
-    let mut src = prefix_src.to_string();
+    let mut src = synthesized_prefix(extra_prefix, prefix_src);
     src.push_str(&text);
     let Ok(file) = crate::parse(&src) else {
         return Err(Judgement::Error {
@@ -404,7 +432,20 @@ pub fn judge_hole_fill(
     hole_span: Span,
     candidates: &[&str],
 ) -> Vec<Judgement> {
+    judge_hole_fill_with("", doc_src, options, decl_span, hole_span, candidates)
+}
+
+/// 同 [`judge_hole_fill`]，但把 `extra_prefix`（闭包上下文）拼在文档前缀之前。
+pub fn judge_hole_fill_with(
+    extra_prefix: &str,
+    doc_src: &str,
+    options: &CompileOptions,
+    decl_span: Span,
+    hole_span: Span,
+    candidates: &[&str],
+) -> Vec<Judgement> {
     let key = judge_cache_key(&[
+        extra_prefix,
         doc_src,
         &options_key(options),
         &format!("{decl_span:?}"),
@@ -414,12 +455,20 @@ pub fn judge_hole_fill(
     if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
         return j;
     }
-    let j = judge_hole_fill_uncached(doc_src, options, decl_span, hole_span, candidates);
+    let j = judge_hole_fill_uncached(
+        extra_prefix,
+        doc_src,
+        options,
+        decl_span,
+        hole_span,
+        candidates,
+    );
     judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
     j
 }
 
 fn judge_hole_fill_uncached(
+    extra_prefix: &str,
     doc_src: &str,
     options: &CompileOptions,
     decl_span: Span,
@@ -525,7 +574,10 @@ fn judge_hole_fill_uncached(
         }
     }
     // 前缀命令表 + 合成声明，走与 judge_terms 一致的完整流水线。
-    let Ok(mut file) = parse_prefix(&doc_src[..decl_start]) else {
+    // `extra_prefix`（闭包上下文）拼在文档前缀之前：项目模式下合成声明才能看见
+    // 被导入的声明（否则 `And.intro` 之类会报未定义标识符）。
+    let full_prefix = synthesized_prefix(extra_prefix, &doc_src[..decl_start]);
+    let Ok(mut file) = parse_prefix(&full_prefix) else {
         return all_parse_error("前缀源码无法解析".to_string());
     };
     file.commands.extend(commands);
@@ -541,6 +593,18 @@ fn judge_hole_fill_uncached(
         *judgement = judgement_of(&report, k);
     }
     judgements
+}
+
+/// 合成判定文件的完整前缀：**闭包上下文**（被导入模块的声明文本）+ 文档前缀。
+///
+/// 项目模式下 `judge_*` 合成的文件只有文档本身时，内核看不见被导入的名字
+/// （`front::suggest` 因此给不出 quick-fix，`match`/`by` 也会报未定义）。
+/// `extra_prefix` 为空（单文件）时与今天逐字节相同。
+fn synthesized_prefix(extra_prefix: &str, doc_prefix: &str) -> String {
+    let mut out = String::with_capacity(extra_prefix.len() + doc_prefix.len());
+    out.push_str(extra_prefix);
+    out.push_str(doc_prefix);
+    out
 }
 
 fn parse_prefix(prefix_src: &str) -> Result<FolFile, ()> {
@@ -589,6 +653,17 @@ fn decl_name_segment(
 /// 宇宙参数与值位之前的命令头原样保留；`example` 声明仍按首 token 换名。
 /// 解析失败一律报 [`Judgement::Error`]，绝不 panic。
 pub fn judge_value_replace(
+    doc_src: &str,
+    options: &CompileOptions,
+    decl_span: Span,
+    candidates: &[&str],
+) -> Vec<Judgement> {
+    judge_value_replace_with("", doc_src, options, decl_span, candidates)
+}
+
+/// 同 [`judge_value_replace`]，但把 `extra_prefix`（闭包上下文）拼在文档前缀之前。
+pub fn judge_value_replace_with(
+    extra_prefix: &str,
     doc_src: &str,
     options: &CompileOptions,
     decl_span: Span,
@@ -677,8 +752,10 @@ pub fn judge_value_replace(
             }
         }
     }
-    // 前缀命令表 + 合成声明，走与 judge_terms 一致的完整流水线。
-    let Ok(mut file) = parse_prefix(&doc_src[..decl_start]) else {
+    // 前缀命令表 + 合成声明，走与 judge_terms 一致的完整流水线
+    // （`extra_prefix` 见 [`judge_hole_fill_with`]）。
+    let full_prefix = synthesized_prefix(extra_prefix, &doc_src[..decl_start]);
+    let Ok(mut file) = parse_prefix(&full_prefix) else {
         return all_parse_error("前缀源码无法解析".to_string());
     };
     file.commands.extend(commands);

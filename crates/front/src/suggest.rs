@@ -25,7 +25,8 @@
 
 use crate::compile::{render_expr, CompileOptions, DeclState, DeclStatus};
 use crate::judge::{
-    judge_hole_fill, judge_terms, judge_value_replace, GoalBinderSpec, Judgement, OpenGoalSpec,
+    judge_hole_fill_with, judge_terms_with, judge_value_replace_with, GoalBinderSpec, Judgement,
+    OpenGoalSpec,
 };
 use crate::proof::parse_expr_text;
 use crate::token::{tokenize, Token, TokenKind};
@@ -76,6 +77,19 @@ pub fn suggest(
     options: &CompileOptions,
     d: &DeclState,
 ) -> Vec<Suggestion> {
+    suggest_with("", prefix_src, decl_src, options, d)
+}
+
+/// 同 [`suggest`]，但把 `extra_prefix`（**闭包上下文**：被导入模块的声明文本）
+/// 交给判定层——项目模式下 quick-fix 才看得见导入的名字（`And.intro` 等）。
+/// 前缀只进 `judge_*` 合成文件，**不参与**返回建议的任何坐标（span 仍是文档坐标）。
+pub fn suggest_with(
+    extra_prefix: &str,
+    prefix_src: &str,
+    decl_src: Option<&str>,
+    options: &CompileOptions,
+    d: &DeclState,
+) -> Vec<Suggestion> {
     if d.status == DeclStatus::Failed {
         // 失败声明没有洞可填：建议梯子 = [kernel 验证项] → 部分重启 →
         // 整值重启。rfl 候选必须先经 judge_value_replace（完整 kernel）
@@ -84,7 +98,13 @@ pub fn suggest(
         let mut out: Vec<Suggestion> = Vec::new();
         if let Some(decl_src) = decl_src {
             if let Some(term) = decl_type_text(decl_src).and_then(|ty| eq_refl_candidate(ty, d)) {
-                let judgements = judge_value_replace(prefix_src, options, d.span, &[term.as_str()]);
+                let judgements = judge_value_replace_with(
+                    extra_prefix,
+                    prefix_src,
+                    options,
+                    d.span,
+                    &[term.as_str()],
+                );
                 if judgements.first() == Some(&Judgement::Match) {
                     out.push(Suggestion {
                         kind: SuggestionKind::Rfl { term },
@@ -134,14 +154,26 @@ pub fn suggest(
         let refs: Vec<&str> = terms.iter().map(String::as_str).collect();
         let judgements = if d.sub_goals.is_empty() {
             // 主洞：judge_terms 语义。
-            judge_terms(judge_prefix, options, &open_spec(d, &expected), &refs)
+            judge_terms_with(
+                extra_prefix,
+                judge_prefix,
+                options,
+                &open_spec(d, &expected),
+                &refs,
+            )
         } else if single_hole {
             // spine 只剩一个洞：填好的整份证明交完整 kernel 裁决。
-            judge_hole_fill(prefix_src, options, d.span, *hole, &refs)
+            judge_hole_fill_with(extra_prefix, prefix_src, options, d.span, *hole, &refs)
         } else {
             // 多洞 spine：按子洞期望类型逐洞判定（其余洞保持原样时 kernel
             // 无从整体裁决——见模块注释）。
-            judge_terms(judge_prefix, options, &open_spec(d, &expected), &refs)
+            judge_terms_with(
+                extra_prefix,
+                judge_prefix,
+                options,
+                &open_spec(d, &expected),
+                &refs,
+            )
         };
         // 每洞最多 1 条 exact：第一个 kernel 通过的 binder。
         if let Some(pos) = judgements

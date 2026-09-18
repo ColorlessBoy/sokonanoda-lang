@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-18（第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复；版本 **0.57.0**，P0–P6 完成）
+> 快照：2026-09-18（第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新；版本 **0.57.0**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,41 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-18，第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新）
+
+> 用户：「还有没有做的TODO吗？fix修复或者优化体验的设计」→ 我列出 A/B/C/D 四组未做项
+> 与四个设计 → 用户选「批次 1（推荐）」并要求「按照你的计划，从上到下依次改进」。
+> 本轮 = 批次 1（A1 + C3 + B3 与 A2）。
+
+1. **判据前缀抽成真相层（C3）**：`judge.rs` 四个合成判定入口各增 `extra_prefix`
+   变体（`judge_terms_with` / `judge_infer_with` / `judge_hole_fill_with` /
+   `judge_value_replace_with`；旧签名委托 `""` ⇒ 单文件逐字节不变，缓存键含前缀）。
+   `QueryDoc::judge_prefix(offset)` 是唯一真相入口（依赖源码去 `import` 行、拓扑序）；
+   `importless_source` 从 `check.rs` 私有函数提成 `project::importless_source` 一份实现。
+2. **项目入口恢复 quick-fix（A1）**：`front::suggest_with`、`probe_sub_goal_types_with`
+   接前缀，LSP 的 code action 传 `doc.query().judge_prefix(...)`。真 LSP 探针：
+   修复前 `null` → 修复后 `refine And.intro a b sorry sorry`（与单文件同形）。
+3. **第三层根因**：`run_pass` 的 `GoalTemplates`（refine/intro 的构造子索引）按
+   **单个单元**构建 ⇒ 项目入口看不见导入的构造子，建议凭空消失；现在按"拓扑序前缀 +
+   本单元"的命令表构建（`new_for` 只读命令表，`src` 是占位）。
+4. **项目模式子洞探针（B3）**：`probed_report` 不再因项目模式整段跳过；
+   `query goals --probe` 在项目入口给出 `spine_x` 两个子洞期望类型 `a`/`b`（与单文件一致）。
+5. **编辑器外改动自动刷新（A2）**：LSP 实现 `workspace/didChangeWatchedFiles`
+   （扩展早已声明 `**/*.sokonanoda` watcher，服务端此前静默忽略）：只重编译
+   **闭包里含该路径**的已打开文档、缓冲区优先；缺失模块也记着期望路径，所以
+   "文件被创建出来"同样触发刷新。真二进制探针：模拟 `git checkout` 改坏依赖 →
+   入口立刻报 `elab-unknown-identifier`。
+6. **测试**：LSP `code_actions_work_in_a_project_entry`、
+   `an_external_change_to_a_dependency_refreshes_the_open_entry`；front
+   `project_documents_expose_a_judge_prefix_and_probe_sub_goals`。
+   `cargo test --workspace --locked` **860 passed / 0 failed**；项目 perf 复测无回退
+   （4×20 compile 131ms、缩放 1.9×、按键 139ms）。
+7. **文档**：`TESTING.md` §7b 标闭环（三层根因 + 守护）、多文件 LSP 行扩写；
+   架构 §4.5 判据前缀段改写；设计 P7 两项划掉；`vscode-dev-guide` 坑 15 更新；
+   本文件与 `REQUIREMENTS.md` §9（九十四）。
+8. **下一批（未做，按计划继续）**：批次 2 = `query` 走项目闭包缓存 + `goals`/`stateAt`
+   回显 `uri`/`version`；批次 3 = 拆 `run_pass`；批次 4 = `soko/project` 项目状态可视化。
 
 ## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）
 
@@ -155,59 +190,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    1717 → **1918** 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里但没趁机
    拆函数（拆它要独立一轮，事件流/增量语义不能漂）。计划与验收见
    `docs/HANDOVER.md` §4 与 `docs/design/imports-and-projects.md` P7。
-
-## 本轮进度（2026-09-17，第九十一轮：多文件 `import` 与项目管理 —— 调研 + 设计 + 计划 I16）
-
-> 用户：「我想增加 代码import +project管理，帮我调研一下其他语言都是怎么分别处理单文件，
-> 和项目。项目如何维护。sokonanoda如何实现，具体执行方案是什么」。
-> **本轮只出调研 + 设计 + 计划，不动实现、不 bump 版本**（沿用第八十八轮先例）。
-> 设计文档 = **`docs/design/imports-and-projects.md`**（ROADMAP **I16**）。
-
-1. **调研（3 个并行 subagent，全部直抓官方文档/源码；`web_search` 无 API key 故走
-   `curl`/`web_fetch`）**：
-   - `docs/notes/multifile-prior-art.md` —— Coq/Rocq、Agda、Isabelle、Idris 2、Rust、Go、
-     Python、JS/TS、Haskell/OCaml、JVM 的"单文件 vs 项目"逐系统记录 + 5 问横向表 +
-     可抄模式/反模式（每条带官方 URL）。
-   - `docs/notes/project-roots-and-incremental-caches.md` —— LSP 契约（`rootUri` **可为 null**、
-     `didChangeWatchedFiles`、诊断"替换不合并"、**明文允许从缓存读诊断**）、9 个服务器/
-     扩展的根发现与错根症状、失效与产物（Lake trace / GHC 指纹 / OCaml `.cmi` 摘要 /
-     Coq `.vo` digest / `.tsbuildinfo`）、原子写与并发、**"缓存判定结果是否安全"的三条规则**。
-   - 代码接缝（只读勘察，`path:line`）：一次编译 = 一个 arena + 一个 `EnvBuilder`
-     （`compile/check.rs:424-425`）；内核名字身份 = **指针地址**（`kernel/util.rs:133-142`）
-     ⇒ 跨 arena 复用环境不可能；`EnvLimit` 只表达**扁平前缀环境**（`kernel/env.rs:224-234`）；
-     两遍 check-then-add（`check.rs:339-359`）；judge 只吃文本（`judge.rs:137-265`）；
-     LSP 单槽 `Mutex<Doc>`（`lsp/lib.rs:58-60,152-155`）。
-2. **设计一句话**：把**编译单元**从「一个文件」升级为「**项目闭包**」——`import Foo.Bar`
-   用真实 Lean 4 置顶语法、模块名↔路径用 Lean 同款规则（`-` 非法 → 教学 hint）、
-   项目根 = 最近祖先的 `sokonanoda.toml`（**向上搜索止于 `.git`/workspace 根**，
-   `--root` 覆盖，无清单退化为"入口文件目录 = 模块根"——**对真实 Lean 的刻意
-   divergence**：官方 `lean` 的搜索路径里**没有**文件自己的目录、cwd 只影响模块名
-   的计算，§2.1 有源码依据；Q2 保留改回严格对齐的选项）；跨模块声明由 front 在
-   **同一个 arena / 同一个 `EnvBuilder`** 里按拓扑序 `add_declar`（导入声明先入表，
-   索引 `0..k`），**内核一行不改**、`EnvLimit` 语义零改动。
-3. **硬边界与不变式**：① 无 `import` 的文件**行为逐字节不变**（缓存键、事件流、
-   两处 golden 计数全不动 —— A1 用 `--json` 对拍守住）；② 每个 `Span` 只属于一个文件
-   （**否掉源码拼接方案**）；③ 判定仍由内核终审；④ 用户路径零 cargo。
-4. **量化动机（实测）**：45 个语料文件 3851 行里 **1217 行（31.6%）** 落在"名字在
-   ≥2 个文件出现过"的声明块内；**71 个名字有 ≥2 种定义**、**20 个变体从未同单元共现**
-   （`Or` axiom vs inductive、`Iff` def vs axiom、`And.*` 三种 binder 类型）；
-   `course/unit6:21-36` 与 `unit7:16-31` 是**逐字节相同的 16 行 Nat 块**（中英共 4 份）；
-   `solutions/` 与画布骨架 19/19、19/19、27/27 逐一对应。结论：**值得做 import 的理由是
-   "同名不同义今天无法表达"，不是省行数**（最大 5 组重复一共只省 122 行）。
-5. **分阶段计划 P0–P7**：P0 设计契约（本轮）→ P1 语法/模块名/resolver（含 fuzz 一次）→
-   P2 闭包编译（一次 prelude、失败阻断、诊断归因）→ P3 CLI+协议（`--root`/`build`/`query`）→
-   P4 闭包哈希缓存（可选信任台账，**启用前必须换强哈希**）→ P5 LSP（多文档表、根发现、
-   反向后继重编、跨文件跳转、`didChangeWatchedFiles`）→ P6 第 11 单元 + 门面 + 发版 0.57.0 →
-   P7 backlog（decl 级产物、`namespace`、跨项目依赖、语料重构）。
-6. **风险清单里最值钱的三条**：① **三道"静默错误"门**（`front/tests/perf.rs:108` 的
-   `kernel_checks <= 1`、`cli/tests/watch.rs:292-298` 的每文件独立契约、judge/suggest
-   的静默无建议）；② **CI/Pages 不会发现"画布不再自包含"**（anchor 只在本地 `soko gate`，
-   `gen-site-demos.py` 只守产物新鲜）；③ `elab-duplicate-declaration` 被测试枚举过 4 次却
-   **从未真正触发**——而"同名到达两次"正是天真 import 实现的第一症状。
-7. **待用户拍板 Q1–Q7**：清单格式（TOML/JSON/纯标记）、无清单时是否允许 import、
-   prelude 模式决策者、是否做已检查声明的跨进程复用、课程语料是否同轮重构、
-   `watch`/`soko/project` 是否 v1 就做、产物位置（用户缓存目录 vs 项目内 `.soko/build`）。
-8. **本轮产物**：`docs/design/imports-and-projects.md`（新）、
-   `docs/notes/multifile-prior-art.md`（新）、`docs/notes/project-roots-and-incremental-caches.md`（新）、
-   `ROADMAP.md` I16、`REQUIREMENTS.md` §9（九十一）、`docs/README.md`（设计/笔记索引）、
-   `docs/HANDOVER.md` §3 G、本文；**零代码改动、零版本变更**。

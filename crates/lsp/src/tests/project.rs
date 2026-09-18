@@ -426,3 +426,92 @@ async fn a_nested_project_resolves_against_its_own_manifest() {
     );
     let _ = std::fs::remove_dir_all(&ws);
 }
+
+/// 项目入口也有 quick-fix（回归：`front::suggest` 的判定与建议材料都要看得见
+/// **被导入**的声明——判据前缀 + 闭包级 refine 模板表）。
+///
+/// 修复前：同一个文件放进单文件给得出 `refine And.intro a b sorry sorry`，
+/// 放进项目入口是 `null`（2026-09-18 真 LSP 探针实测）。
+#[tokio::test]
+async fn code_actions_work_in_a_project_entry() {
+    let dir = tmp_dir("project-actions");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let entry_text = "import Logic\n\n\
+theorem and_intro_x (a b : Prop) (h : a) (k : b) : And a b :=\n  sorry\n";
+    let entry = write(&dir, "Main.sokonanoda", entry_text);
+    testutil::did_open_at(&mut service, &entry, entry_text).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &entry, "project entry").await;
+
+    let offset = testutil::offset_of(entry_text, "sorry");
+    let pos = testutil::lsp_pos(entry_text, offset + 1);
+    let req = RpcRequest::build("textDocument/codeAction")
+        .params(serde_json::json!({
+            "textDocument": {"uri": entry},
+            "range": {"start": testutil::position_json(pos), "end": testutil::position_json(pos)},
+            "context": {"diagnostics": []},
+        }))
+        .id(30)
+        .finish();
+    let result = testutil::call(&mut service, req)
+        .await
+        .expect("code actions answer");
+    let actions: Vec<serde_json::Value> = serde_json::from_value(result).expect("an action list");
+    let titles: Vec<String> = actions
+        .iter()
+        .filter_map(|action| action["title"].as_str().map(str::to_string))
+        .collect();
+    assert!(
+        titles
+            .iter()
+            .any(|title| title.contains("refine And.intro")),
+        "the imported constructor must produce a refine quick-fix: {titles:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// 编辑器**外**的改动也要刷新打开的项目文档（`workspace/didChangeWatchedFiles`）。
+///
+/// 场景：`git checkout` / 脚本 / 另一个编辑器改了被 import 的模块——扩展早就声明了
+/// `**/*.sokonanoda` 的 watcher，但服务端此前忽略这个通知，于是入口一直显示旧诊断，
+/// 要重开文件才刷新（0.57.0 编辑器审计 RISK）。
+#[tokio::test]
+async fn an_external_change_to_a_dependency_refreshes_the_open_entry() {
+    let dir = tmp_dir("watched");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    let opened = testutil::did_open_at_drained(&mut service, &mut socket, &canvas, CANVAS).await;
+    assert!(opened.iter().all(|params| params.diagnostics.is_empty()));
+
+    // 磁盘上改坏依赖（模拟编辑器外的操作；打开的缓冲区不参与这条路径）。
+    let logic_path = logic.to_file_path().expect("file path");
+    std::fs::write(&logic_path, LOGIC.replace("And.intro", "And.mk")).expect("rewrite dep");
+
+    let published = testutil::notify_with_drain(
+        &mut service,
+        &mut socket,
+        "workspace/didChangeWatchedFiles",
+        serde_json::json!({"changes": [{"uri": logic, "type": 2}]}),
+    )
+    .await;
+    let canvas_after = published
+        .iter()
+        .find(|params| params.uri == canvas)
+        .unwrap_or_else(|| panic!("the entry must be re-published: {published:?}"));
+    assert!(
+        canvas_after
+            .diagnostics
+            .iter()
+            .any(|diag| testutil::code_of(diag) == "elab-unknown-identifier"),
+        "the entry must see the on-disk change: {:?}",
+        canvas_after.diagnostics
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

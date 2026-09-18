@@ -11,7 +11,7 @@
 use super::prelude::{CompileOptions, PreludeMode, PRELUDE_EQ_SRC};
 use super::report::{GoalBinder, SubGoal};
 use crate::ast::MatchArm;
-use crate::judge::{judge_infer, GoalBinderSpec};
+use crate::judge::{judge_infer_with, GoalBinderSpec};
 use crate::proof::{parse_expr_text, render_expr};
 use crate::spine::{mentions, spine_of};
 use crate::{Binder, Command, Expr, FolFile, Span};
@@ -247,6 +247,8 @@ pub(crate) fn open_goal(ty: &Expr, val: &Expr, templates: &GoalTemplates) -> Opt
 /// `#check fun <intros> => <部分应用>` 走完整内核，结果按有界指纹缓存。
 pub(crate) struct ProbeEnv<'a> {
     prefix_src: &'a str,
+    /// 闭包上下文（被导入模块的声明文本）；单文件为空。
+    extra_prefix: &'a str,
     options: &'a CompileOptions,
 }
 
@@ -260,6 +262,17 @@ pub(crate) struct ProbeEnv<'a> {
 /// 路径；`open_goal` 的廉价 AST 走查仍是「是否 Open + 洞 span」的唯一来源。
 /// 算不出（深层嵌套、无类型 binder 等）就返回空——不倒退、永不比 B′ 差。
 pub fn probe_sub_goal_types(
+    doc_src: &str,
+    options: &CompileOptions,
+    decl_span: Span,
+) -> Vec<(usize, String)> {
+    probe_sub_goal_types_with("", doc_src, options, decl_span)
+}
+
+/// 同 [`probe_sub_goal_types`]，但把 `extra_prefix`（闭包上下文）交给探针：
+/// 项目模式下子洞期望类型才会用**闭包环境**算（否则被导入的名字看不见）。
+pub fn probe_sub_goal_types_with(
+    extra_prefix: &str,
     doc_src: &str,
     options: &CompileOptions,
     decl_span: Span,
@@ -285,6 +298,7 @@ pub fn probe_sub_goal_types(
     local_func_templates(val, &mut locals);
     let env = ProbeEnv {
         prefix_src: &doc_src[..decl_start],
+        extra_prefix,
         options,
     };
     let Some(info) = goal_under_binders(ty, val, &templates, &locals, Some(&env), &[]) else {
@@ -330,7 +344,7 @@ fn probe_arg_type(
     }
     let mut specs: Vec<GoalBinderSpec> = ctx.iter().map(binder_spec).collect();
     specs.extend(lifted.iter().map(binder_spec));
-    let ty = judge_infer(env.prefix_src, env.options, &specs, &term).ok()?;
+    let ty = judge_infer_with(env.extra_prefix, env.prefix_src, env.options, &specs, &term).ok()?;
     peel_pi_domain_text(&ty)
 }
 

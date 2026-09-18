@@ -144,8 +144,9 @@ npm run clean:lsp
     可能返回另一个文档的 `Location`（扩展的跳转不要假设同文件）。另外两条实测语义：
     ① 改依赖会**立刻**让含它的打开文档重编译重发（未落盘编辑经内存覆盖可见），
     诊断只在真的变化时才发；② `initialize` 的 `rootUri` 决定模块根，多根工作区
-    目前只取第一个 folder；③ 编辑器**外**改文件（git checkout / 别的工具）没有
-    `didChangeWatchedFiles`，要重开文件才刷新（P7）。写多文档测试必须用
+    目前只取第一个 folder；③ 编辑器**外**改文件（git checkout / 别的工具）现在会
+    触发刷新（服务端实现了 `workspace/didChangeWatchedFiles`：只重编译闭包里含该
+    路径的已打开文档，缓冲区优先）。写多文档测试必须用
     `testutil::notify_with_drain`（先等通知再读 socket 会死锁，见
     `docs/TESTING.md` §5.7）；夹具起点：`handshake_with_root` /
     `did_open_at_drained` / `did_change_at_drained` 与 `crates/lsp/src/tests/project.rs`。

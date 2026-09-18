@@ -213,8 +213,9 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   quick-fix（`front::suggest` 同一根因，`docs/TESTING.md` §7b）。
 - **LSP 能力（0.57.0 完整）**：多文档、跨文件 `definition`/`references`/`rename`、
   改依赖自动刷新下游（未落盘编辑经内存覆盖可见）、诊断只在变化时重发。
-  留 P7 backlog 的只有：`didChangeWatchedFiles`（编辑器外改文件不触发刷新）、
-  `soko/project`、`watch` 项目模式、`[deps]`、`namespace`。
+  留 P7 backlog 的只有：`soko/project`、`watch` 项目模式、`[deps]`、`namespace`。
+  编辑器外的改动（`git checkout`/脚本）自 2026-09-18 起会自动刷新已打开文档
+  （`workspace/didChangeWatchedFiles`：只重编译闭包里含该路径的那些，缓冲优先）。
   多文档测试必须用 `testutil::notify_with_drain`（原因见 `docs/TESTING.md` §5.7）。
 - 三道"静默错误"门仍在（`front/tests/perf.rs`、`cli/tests/watch.rs`、judge/suggest
   静默无建议）：改项目层时别让它们变成假绿。
@@ -235,6 +236,9 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   （`scripts/perf-arena.sh`）；见 `docs/PERF.md`。
 - **`TESTING.md §5` 盲区**：编辑器 codeLens/quick-fix 已补进程内 rpc；VS Code
   Electron 集成走 `editor/vscode/src/test/extension.test.js`。
+- **（2026-09-18 已闭环，留档）项目入口没有 quick-fix / 子洞探针**：三层根因都补齐
+  ——判据前缀（`QueryDoc::judge_prefix`）、`suggest_with`/`probe_sub_goal_types_with`、
+  闭包级 `GoalTemplates`；`didChangeWatchedFiles` 同批完成。见 `docs/TESTING.md` §7b。
 - **（0.57.0 登记）`query` 不走项目闭包缓存**：`check` 热 3.2ms，`query check` 热
   37.2ms（每次重新编译闭包）——`front::query::QueryDoc` 与 LSP 一样跳过项目缓存。
   修法：把 `crates/cli/src/check.rs` 的闭包摘要缓存判定搬进 `crates/cli/src/query.rs`
@@ -251,8 +255,7 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   覆盖**（`load_closure_with_overlay` / `QueryDoc::set_text_with_overlay`）进入闭包，
   也进闭包摘要。曾经"实现会挂"的结论是**测试写法**问题：服务端一次通知可能连发
   多条诊断，测试必须先排空再等通知（`testutil::notify_with_drain`）。细节与教训见
-  `docs/TESTING.md` §5.7。仍未做（P7）：`didChangeWatchedFiles`（编辑器外改文件
-  不触发刷新）、`soko/project`、`[deps]`、`namespace`/`open`。
+  `docs/TESTING.md` §5.7。仍未做（P7）：`soko/project`、`[deps]`、`namespace`/`open`。
 - **（0.56.1 已清）`crates/lsp` 测试文件的拆分**：0.56.0 把测试模块移出 `lib.rs`
   时形成过 `tests.rs` 2567 行的债，0.56.1 已按"`tests/mod.rs`（共享夹具）+
   按特性分文件"拆完：`mod.rs` 399 行（31 个共享 const/fixture + `pub(crate) use`
