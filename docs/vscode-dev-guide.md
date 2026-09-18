@@ -70,6 +70,8 @@
 **commit 前**：至少跑静态契约 + 集成测试；**发 tag 前**：三层全跑。
 **扩展改动后**：`scripts/soko gate`（Rust + 契约层）+ `node test-extension-host.js`（stub 层）+
 `scripts/vscode-e2e.sh`（真宿主层，~1 分钟；结果进 `docs/e2e/`）。
+CI 的 `e2e` job 跑的是**同一条命令**（矩阵 ubuntu + macos，`auto-tag` 等它）——
+本地跑绿基本等于 CI 绿；红了的排查顺序见 `docs/E2E.md` §4。
 
 ## 4. 开发循环
 

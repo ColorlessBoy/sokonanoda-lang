@@ -323,11 +323,12 @@
 
 ## VS Code 集成测试（@vscode/test-electron，2026-09-08 新增；0.58.0 起例行化）
 
-> **例行化入口**：`SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`
-> （构建 release → stage 到 `bin/<target>/` → `npm test` → 记 `docs/e2e/ledger.jsonl`
-> + 裁剪日志）。手册 = **`docs/E2E.md`**；0.58.0 起 14 条用例，含 `.sokonanoda`
-> 语言 id 与**项目树**三条（真 `soko/project` 答案渲染的行：闭包 / 单文件占位 /
-> 缺模块根因）。
+> **例行化入口**：`scripts/vscode-e2e.sh`（构建 release → stage 到 `bin/<target>/`
+> → `npm test` → 记 `docs/e2e/ledger.jsonl` + 裁剪日志；默认钉 VS Code 1.138.0）。
+> 手册 = **`docs/E2E.md`**；0.58.0 起 14 条用例，含 `.sokonanoda` 语言 id 与
+> **项目树**三条（真 `soko/project` 答案渲染的行：闭包 / 单文件占位 / 缺模块根因）。
+> **CI 也跑同一条命令**（独立 `e2e` job，矩阵 ubuntu+macos，结果进 job summary 与
+> artifact；`auto-tag` 的 `needs` 含它 ⇒ e2e 红了不发版）。
 
 扩展在**真实 VS Code**（Electron）里跑测试，补上此前只有静态契约
 （`crates/cli/tests/extension.rs`）与手测的缺口。框架为官方推荐组合：

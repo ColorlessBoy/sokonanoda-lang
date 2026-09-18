@@ -13,9 +13,14 @@
 #      输出里看不到，这是 e2e 卡住时的第一现场。
 #
 # 用法：
-#   scripts/vscode-e2e.sh                       # 默认 VS Code `stable`
-#   scripts/vscode-e2e.sh --version 1.138.0     # 钉住版本（例行复跑更快：免下载）
-#   SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh
+#   scripts/vscode-e2e.sh                       # 默认钉住下面这个"已知良好"版本
+#   scripts/vscode-e2e.sh --version stable      # 跟随最新稳定版（每次升级会重下 ~300MB）
+#   scripts/vscode-e2e.sh --version 1.106.0     # 试某个具体版本（如声明的最低版本）
+#
+# 版本策略（0.58.0 定的，理由见 docs/E2E.md §5）：上游 `@vscode/test-cli` 的默认是
+# **stable 频道**（官方文档与官方 sample 都不钉版本），但"例行化 + 台账"要求可复现：
+# 同一份代码在 stable 升级那天会突然换宿主，历史条目没法比。所以本地默认钉一个
+# 已知良好版本，CI 矩阵显式给版本（**改这里时同步改 ci.yml 的 e2e matrix**）。
 #
 # 前置：`editor/vscode` 已 `npm install`；macOS/Linux 桌面会话（Linux CI 用
 # `xvfb-run -a` 包一层，见 `.github/workflows/ci.yml` 的同一套用例）。
@@ -23,7 +28,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-test_version="${SOKO_VSCODE_TEST_VERSION:-stable}"
+default_version="1.138.0"
+test_version="${SOKO_VSCODE_TEST_VERSION:-$default_version}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --version)

@@ -37,7 +37,7 @@ jobs:
   # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
   # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
   auto-tag:
-    needs: [lint, test]
+    needs: [lint, test, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -216,8 +216,73 @@ jobs:
                   print(f"host VSIX ok: {name} mode={oct(mode)} size={info.file_size}")
           PY
 
-      - name: VS Code extension integration tests
-        # Linux 上 Electron 需要显示器：xvfb 在 ubuntu-latest 镜像里预装，
-        # 按 @vscode/test-electron 文档用 xvfb-run 包一层。
+      # 真 VS Code 集成测试已移到独立的 `e2e` job（多 OS/多版本矩阵 + 留档），
+      # 见文件末尾：它跑的是 `scripts/vscode-e2e.sh`（构建 release + stage +
+      # 真宿主 + 记账），并用 `needs` 卡住 auto-tag。
+
+  # 真 VS Code 集成测试（e2e）：与本地例行同一条命令
+  # （`scripts/vscode-e2e.sh` = 构建 release → stage → 真宿主 → 记
+  # `docs/e2e/`），矩阵覆盖 Linux（xvfb）/macOS 与**声明的最低 VS Code 版本**
+  # + 当前稳定版。结果进 job summary 与 artifact（CI 不回提交仓库）。
+  e2e:
+    name: e2e (${{ matrix.os }} · VS Code ${{ matrix.vscode }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            vscode: "1.138.0"
+            launcher: xvfb-run -a
+          - os: macos-latest
+            vscode: "1.138.0"
+            launcher: ""
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Node for editor integration tests
+        uses: actions/setup-node@v5
+        with:
+          # @vscode/test-electron 3.x 要求 node >= 22。
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editor/vscode/package-lock.json
+
+      - name: Install editor test dependencies
         working-directory: editor/vscode
-        run: xvfb-run -a npm test
+        run: npm ci --no-fund --no-audit
+
+      - name: Real VS Code integration tests (recorded)
+        # 与本地同一条命令：构建 release（被测即发布形态）→ stage 到
+        # bin/<target>/ → vscode-test → docs/e2e/{ledger.jsonl,latest.json,logs}。
+        # Linux 上 Electron 需要显示器，xvfb 在 ubuntu-latest 镜像里预装。
+        env:
+          SOKO_VSCODE_TEST_VERSION: ${{ matrix.vscode }}
+        run: ${{ matrix.launcher }} scripts/vscode-e2e.sh
+
+      - name: Job summary (VS Code integration)
+        # 渲染逻辑在 `scripts/e2e-summary.py`（YAML 的多行 heredoc 会把终止符缩进掉，
+        # 所以不在 workflow 里写 python 内联脚本）；本地同一条命令也能看。
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### VS Code 集成测试 · ${{ matrix.os }} · VS Code ${{ matrix.vscode }}"
+            echo
+            python3 scripts/e2e-summary.py
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload e2e record (always)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-${{ matrix.os }}-vscode-${{ matrix.vscode }}
+          path: docs/e2e/
+          include-hidden-files: false
+          if-no-files-found: warn

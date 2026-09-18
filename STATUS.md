@@ -50,9 +50,20 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    坑 14 更新为"配置已自解"）、`docs/TESTING.md` 集成测试小节、`AGENTS.md`
    （命令 + 扩展改动后的例行三层）、`skills/sokonanoda-dev`、`docs/README.md`
    地图、`docs/LESSONS.md`（"给扩展一条文件日志"）同轮同步。
-6. **与 CI 的关系**：CI（ubuntu + `xvfb-run`）跑同一套用例，但不记台账；本地的
-   价值是**随时复跑 + 钉 VS Code 版本 + macOS 真宿主差异（`/var`→`/private/var`
-   这类符号链接问题只有真宿主才暴露）**。
+6. **CI 也跑这条命令（0.58.0 同日）**：新增独立 **`e2e` job**（矩阵
+   `ubuntu-latest` + `xvfb-run` 与 `macos-latest`，各自钉 VS Code 版本），跑的就是
+   `scripts/vscode-e2e.sh`；`docs/e2e/` 上传为 artifact，`scripts/e2e-summary.py`
+   的渲染写进 **job summary**；`auto-tag` 的 `needs` 加上 `e2e` ⇒ **e2e 红了不发版**。
+   原来 `test` job 里那条 `xvfb-run npm test` 删除（避免同一套用例跑两遍）。
+7. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
+   （[官方文档](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
+   与官方 sample 都不钉具体版本，示例用的是 `insiders`）——生态惯例是跟频道。但这一层
+   的产物是**台账**：宿主随 stable 漂就没法比历史，所以本地例行默认钉 **1.138.0**
+   （`--version stable` 可跟随），CI 矩阵显式给版本；升级流程与"最低版本
+   （`engines.vscode ^1.106.0`）腿待补"写在 `docs/E2E.md` §5。
+8. **顺手清掉不再需要的缓存**：`editor/vscode/.vscode-test/vscode-darwin-arm64-1.137.0`
+   （898MB，已换 1.138.0）、旧 VSIX×5（0.18/0.19/0.20 + universal + `sokonanoda.vsix`，
+   `docs/RELEASE.md` 的发布流程会重新产出）、`.ruff_cache/`（仓库没有 ruff 配置）。
 
 ## 本轮进度（2026-09-18，第九十六轮：待办批次 4 —— 项目状态视图，0.58.0）
 

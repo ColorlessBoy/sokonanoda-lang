@@ -7,8 +7,9 @@
 ## 1. 一条命令
 
 ```bash
-SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh   # 钉版本，免下载
-scripts/vscode-e2e.sh                                     # 默认 stable（与 CI 一致）
+scripts/vscode-e2e.sh                     # 默认钉住"已知良好"版本（当前 1.138.0）
+scripts/vscode-e2e.sh --version stable    # 跟随最新稳定版（升级当天会重下 ~300MB）
+scripts/vscode-e2e.sh --version 1.106.0   # 试声明的最低版本（engines.vscode）
 ```
 
 脚本做四件事（缺一步都会得出"看起来像回归、其实是环境"的结论）：
@@ -71,23 +72,55 @@ soko/project ok: project=Main (2 modules) reason=null
 `server-version` 行与 `bin/` 是否 stage 过）；完全没有日志 ⇒ `activate()` 没走到异步续段
 （见 `docs/vscode-dev-guide.md` 坑 19）。
 
-## 5. 已知环境坑
+## 5. VS Code 版本策略（调研结论 + 我们的选择）
+
+**上游默认是什么**：`@vscode/test-cli` 的 `version` 选项**默认 `stable` 频道**
+（官方文档：*"version - The version of VS Code to use for running tests
+(defaults to stable)"*）；[官方文档](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
+的高级示例写的是 `version: 'insiders'`，[官方 sample](https://github.com/microsoft/vscode-extension-samples)
+（`helloworld-test-cli-sample`）**不写 `version`**，即接受默认。也就是说：
+**"把某个具体版本设成默认"不是生态惯例**——惯例是跟频道（stable/insiders），
+只有需要复现时才钉版本（钉法：配置里的 `version: '1.85.0'`，或
+`@vscode/test-electron` 的 `downloadAndUnzipVSCode('1.85.0')`）。
+
+**我们的选择**（0.58.0）：*本地例行*与 *CI* 都**钉一个具体版本**，理由是这一层的
+产物是**台账**——`docs/e2e/ledger.jsonl` 要回答"哪次开始红的"，如果宿主跟着 stable
+漂，历史条目就不可比（stable 一升级，同一份代码的宿主、DOM、API 全换了）。
+具体做法：
+
+| 场景 | 版本 | 怎么给 |
+| --- | --- | --- |
+| 本地例行（默认） | **1.138.0**（已知良好） | `scripts/vscode-e2e.sh` 里的 `default_version` |
+| 本地试新 | `stable` / `insiders` / 任意具体版本 | `--version <v>` 或 `SOKO_VSCODE_TEST_VERSION=<v>` |
+| CI | 矩阵显式给（当前 `1.138.0`） | `.github/workflows/ci.yml` 的 `e2e.matrix` |
+| 声明的最低版本（`engines.vscode ^1.106.0`） | **待补**：`--version 1.106.0` 在本机下载老版本 zip 反复中断（网络），未验证；验证过再进 CI 矩阵 | 见 `docs/HANDOVER.md` §4 |
+
+> 升级流程：先 `--version <新版本>` 本地跑绿 → 改 `scripts/vscode-e2e.sh` 的
+> `default_version` 与 `ci.yml` 的 `e2e.matrix`（两处）+ 记一条台账。
+
+## 6. 已知环境坑
 
 * **macOS 的 unix socket 路径上限 103 字符**：`.vscode-test.mjs` 自己把
   `--user-data-dir` / `--extensions-dir` 指到 `<tmpdir>/soko-vscode-test`，所以本仓库
   的长路径可以直接跑（0.58.0 修）；若 `tmpdir` 本身很长，退回"拷到 `/tmp/v`"的老办法
   （`docs/vscode-dev-guide.md` 坑 14）。
-* **VS Code 版本**：默认 `stable`，stable 升级会重新下载 ~300MB；例行复跑建议
-  `SOKO_VSCODE_TEST_VERSION=1.138.0`（或任何已缓存版本）钉住。
+* **缓存会变大**：每个版本一份 ~900MB 的 VS Code；换钉版本后旧的可以删
+  （`editor/vscode/.vscode-test/vscode-<platform>-<version>/`）。
 * **Linux 无显示器**：CI 用 `xvfb-run -a npm test`；本地无头环境同理。
 * **`code` CLI 冲突**：macOS 上若报 "another instance running"，先关掉正在跑的 VS Code。
 
-## 6. 与 CI 的关系
+## 7. 与 CI 的关系（0.58.0 起：CI 也跑这条命令）
 
-CI 的 `VS Code extension integration tests` 步骤（ubuntu + `xvfb-run`）跑的是**同一套
-用例**，但：
+CI 有独立的 **`e2e` job**（`.github/workflows/ci.yml`）：
 
-* CI 不记录 `docs/e2e/ledger.jsonl`（那份台账由本地脚本写，提交进仓库）；
-* CI 每次用 `stable`（跟随升级），本地可以钉版本复现历史结果；
-* CI 只有 Linux；**macOS/Windows 的真宿主行为只能靠本文这条本地例行**（macOS 的
-  文件系统大小写、`/var`→`/private/var` 符号链接等差异正是真宿主才会暴露的）。
+* **矩阵**：`ubuntu-latest`（`xvfb-run -a`）与 `macos-latest`，各自钉 VS Code 版本；
+* **同一条命令**：两步都是 `scripts/vscode-e2e.sh`（构建 release → stage → 真宿主 →
+  记账）——本地与 CI 不会漂；
+* **留档**：`docs/e2e/` 作为 artifact 上传（`e2e-<os>-vscode-<version>`），并把
+  `scripts/e2e-summary.py` 的渲染写进 **job summary**（结果/版本/服务器/LSP 指纹/log）；
+  CI **不回提交**仓库（本地那份 `docs/e2e/ledger.jsonl` 由人提交）；
+* **门禁**：`auto-tag` 的 `needs` 含 `e2e` ⇒ **e2e 红了就不发版**。
+
+本地的不可替代之处：macOS 的真宿主差异（`/var`→`/private/var` 符号链接、大小写不敏感
+文件系统）、换 VS Code 版本复现历史、以及"钉住版本 + 提交台账"这件事本身（CI 的
+runner 每次都是干净的，历史趋势只在仓库里）。

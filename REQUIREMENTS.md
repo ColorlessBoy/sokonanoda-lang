@@ -1245,7 +1245,18 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     指到短路径（macOS unix socket 上限 103 字符，长仓库路径原本起不来）；
     ② 扩展的 test-mode 返回钩子**提前 return 掐掉了 `client.start()`**（集成层才暴露；
     已改为末尾返回 + 注释）；③ 新增 `SOKO_E2E_LOG` 文件日志（env 开关、生产零成本）。
+  - **CI 也跑这条命令（同日追加，用户：「CI如果可以做 e2e 的测试那就太好了，多用多用」）**：
+    独立 `e2e` job，矩阵 `ubuntu-latest`（`xvfb-run`）+ `macos-latest`，各自钉 VS Code
+    版本，跑 `scripts/vscode-e2e.sh`；`docs/e2e/` 进 artifact，`scripts/e2e-summary.py`
+    渲染进 job summary；`auto-tag` 的 `needs` 加 `e2e`（e2e 红了不发版）；删掉 `test`
+    job 里重复的那条 `xvfb-run npm test`。
+  - **版本策略（调研）**：上游 `@vscode/test-cli` 的 `version` 默认 **stable 频道**
+    （官方文档/官方 sample 均不钉具体版本）——生态惯例是跟频道；但台账要求可复现，
+    故本地例行默认钉 **1.138.0**、CI 矩阵显式给版本，升级流程见 `docs/E2E.md` §5；
+    声明的最低版本（`^1.106.0`）腿待补（本机下载老版本 zip 反复中断，未验证）。
+  - **缓存清理**：删 `.vscode-test/vscode-darwin-arm64-1.137.0`（898MB）、旧 VSIX×5、
+    `.ruff_cache/`（.vscode-test 从 1.8G → 916M）。
   - **文档**：新增 `docs/E2E.md`（手册：一条命令、四层分工、台账字段、卡住时判读、
-    环境坑、与 CI 的关系）；`docs/vscode-dev-guide.md`（测试三层 + 坑 19/20/21 + 坑 14
+    版本策略、环境坑、与 CI 的关系）+ `scripts/e2e-summary.py`（台账渲染，CI 与本地共用）；`docs/vscode-dev-guide.md`（测试三层 + 坑 19/20/21 + 坑 14
     更新）、`docs/TESTING.md` 集成测试小节、`AGENTS.md` 命令面、`skills/sokonanoda-dev`、
     `docs/README.md` 地图同轮同步。
