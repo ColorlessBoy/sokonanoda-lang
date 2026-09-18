@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-17（第九十一轮：多文件 `import` 与项目管理设计 + 外部调研；0.56.1 已发布，本轮不动实现、不 bump）
+> 快照：2026-09-18（第九十二轮：I16 落地 —— `import` 闭包 + 项目管理，版本 **0.57.0**；P0–P6 完成，P7 = backlog）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,55 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-18，第九十二轮：I16 落地 —— `import` 闭包 + 项目管理，0.57.0）
+
+> 用户：「新产生一个 git 分支吧，全部按照建议，你给我完整做完一版我看看。这个变化比较大。」
+> 分支 **`i16-imports-and-projects`**；设计文档 §8 的 Q1–Q7 **全部按推荐执行**；
+> P0–P6 全部落地（P7 = backlog）。设计 + as-built =
+> **`docs/design/imports-and-projects.md`**（§5.1 有三处与设计的偏差与唯一能力缺口）。
+
+1. **语法与解析（P1）**：`Command::Import`（AST + token）、置顶校验、模块名合法性
+   （`import 1Foo`/尾点/`-` 都被拒，`-` 给教学 hint）；3 个 parse 期错误码
+   `import-malformed` / `import-not-a-valid-module-name` /
+   `import-must-precede-declarations`。`import` 进 `is_reserved_command`，
+   否则行首 `import` 会被当作应用实参吞掉。
+2. **闭包编译（P2，核心）**：`crates/front/src/project/`（`mod`/`module_name`/`resolve`/
+   `manifest`/`graph`/`report` 六文件，18 单测）。`plan_project` 定根（`--root` >
+   最近 `sokonanoda.toml`（上溯止于 `.git`/HOME）> 入口目录——**无清单也能 import**，
+   对真 Lean 的有意分歧）；后序 DFS 装载拓扑序（`VisitOutcome::Cycle` 保证入口最后）；
+   `compile_all_units` 在**同一个 arena + 同一个 `EnvBuilder`** 按序跑完，
+   import 命令先入环境 ⇒ `EnvLimit` 下标不变，**内核一行未改**。诊断**按命令下标**
+   （`CompileOutput.error_cmds`）归属文件，`split_report` 还原每文件报告与事件；
+   闭包级重名/prelude 冲突/依赖阻断（`import-dependency-failed` 只报一条）。
+3. **CLI 与协议（P3）**：`--root` / `--no-project`、`build` 项目化、`query` 闭包内求值、
+   `help` 增「multi-file projects」段；`docs/protocol.md` 补全部新码 + warning
+   `import-has-open-exercises`；新增 `crates/cli/tests/imports.rs`（**12 条 e2e**，
+   含 A1：无 import 文件与单文件路径逐字节一致）。
+4. **缓存（P4）**：`ProjectPlan::digest(options)` = 拓扑序上每个模块 (名字, 源, imports)
+   + prelude 模式的稳定哈希；`CACHE_FORMAT` 1→2；依赖改动必然 miss（e2e 实测）。
+5. **LSP（P5）**：`Docs{map,order,root,active}` 多文档、`initialize` 捕获 root、
+   按 URI publish、`did_close` 清理、**跨文件 `goto_definition`**
+   （`QueryDoc::project_definition`）；项目模式下补挂 `-- soko:hint` 阶梯
+   （否则带 import 的入口答不出 hints）。`crates/lsp/src/tests/project.rs` 3 条 e2e。
+   **唯一缺口**：依赖变更后不自动重编译其它已打开文档（第一版在 tower-lsp 串行
+   通知 + socket 缓冲下挂住，已回退；余项登记 `docs/TESTING.md` §5.7）。
+6. **教学面与门面（P6）**：单元⑪「模块与项目」（CN/EN + 两份 solution，199/249 行）
+   + 可运行两文件项目 `course/unit11-project/`（`sokonanoda.toml` + Logic/Canvas/
+   Exercises + solution）+ `course.json`/`course/README.md`；goldens 重钉
+   （画布 (7,6,0) 双语、solution (12,0,0)；总计 11 单元 / checked 85 / open 65 /
+   failed 0）；`site/data/site.json` 重新生成。
+7. **收尾**：版本 **0.56.1 → 0.57.0**（`Cargo.toml` + `editor/vscode/package.json` +
+   VS Code CHANGELOG）；文档同步 `docs/architecture.md`（新增 §4.5 项目流水线 +
+   §8.10 两个坑，仓库地图指向 TESTING）、`docs/TESTING.md`（3 行项目守护 + §5.7 盲区）、
+   `docs/design/compile-cache.md` §7、`ROADMAP.md` I16、`REQUIREMENTS.md` §9（九十二）、
+   `docs/HANDOVER.md`、三个 skills（teacher 多文件命令 + events 新码 + curriculum 单元⑪）、
+   `AGENTS.md`、`dsh/README.md`、`editor/vscode/README.md`、
+   `docs/design/deepseek-harness.md`；`scripts/soko gate` PASS +
+   `cargo test --workspace --locked` 全绿。
+8. **没做什么（有意）**：课程语料不回填 import（除新增单元⑪）；`watch --workspace`
+   与 `soko/project` 不项目化；不做跨进程 decl 复用（v1 只缓存报告）；产物仍在用户
+   缓存目录；`namespace`/`open`/`[deps]` 留 P7。
 
 ## 本轮进度（2026-09-17，第九十一轮：多文件 `import` 与项目管理 —— 调研 + 设计 + 计划 I16）
 
@@ -107,99 +156,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 7. **本轮产物**：`crates/lsp/src/tests/`（10 个文件）、`docs/HANDOVER.md`、
    `docs/TESTING.md`、`docs/design/agent-query-channel.md`、`ROADMAP.md`、
    `REQUIREMENTS.md` §9、`editor/vscode/CHANGELOG.md`、两处版本号。
-
-## 本轮进度（2026-09-17，第八十九轮：内核真相查询通道落地 —— H6-A/H6-B/H6-C + 门面收尾）
-
-> 续第八十八轮的设计（`docs/design/agent-query-channel.md`，ROADMAP **I15**）。按
-> **H6-A → H6-B → H6-C** 逐项实现并测试，收尾做 H6-D 文档/门面同步；版本
-> **0.55.0 → 0.56.0**（agent 可见的新能力 `query`，QD-7）。
-
-1. **H6-A 真相层 + CLI（`front::query` + `sokonanoda query <op>`）**：
-   `crates/front/src/query/{mod.rs,types.rs,tests.rs}` = **编辑器无关的唯一真相**
-   （`QueryDoc` + `check`/`state`/`goals`/`holes`/`hints`/`reduce`）；
-   `QueryError{NotParsable,OutsideDeclarations,PositionOutOfRange}` 把"正常的没有"
-   与"问不出来"分开（各带稳定 code + 中文 message）。`crates/cli/src/query.rs`
-   输出**单 JSON 对象**（`{schema:"soko.query/1", op, version, ok, data|error}`），
-   退出码 = **0 答上了（含 `ok:false` 与开放 `sorry`）/ 1 内核拒绝 / 2 用法**；
-   `--text` 支持未落盘中间态。契约写进 `docs/protocol.md`。
-2. **LSP 改为调用真相层 + 结构债清零（同一轮完成，A1/A5）**：
-   `soko/goals`/`stateAt`/`nextHole`/`hints` 与 hover 的 tactic 视图全部改为调
-   `front::query`；新增 `crates/lsp/src/query_map.rs`（**唯一的形状映射点**：
-   offset↔`Range`/`Position`、`QueryError`→既有空结果），删除 `select_state_at`/
-   `StateSelection`/`runs_of`/`status_str`/重复的 `decl_name`/`goal_decls` 的 75 行
-   主体等 → `crates/lsp/src/lib.rs` **4256 → 3988 行**。再按模块化硬规则把两个测试
-   模块移出文件（`tests.rs` 2567 / `by_sorry_range_tests.rs` 60，**断言一字未改**，
-   214+6 条 assert 与 HEAD 逐行等价）并抽出 `protocol.rs`（wire 类型，159）与
-   `tokens.rs`（semantic token 辅助，107）→ **lib.rs 1105 行，≤1200 达标**。
-   ⚠️ **过程留档（我自己的错）**：删完重复后我曾**没量就**把"≤1200 行"作废，
-   理由是"剩下的都是协议服务代码"——`wc -l` 显示 3988 行里 **2638 行是
-   `#[cfg(test)]` 模块**，非测试代码只有 ~1350 行，移出测试随手就达标。教训
-   （**改验收标准之前先把被验收的东西量一遍**）进 `docs/LESSONS.md`；最终口径 =
-   "**无重复实现**" **且** "**单文件 ≤1200 行**"（设计文档 §2.6/§3.2/§11 A5 已改）。
-3. **⚠️ 抽层真的出过一次语义漂移（本轮最重要的教训，已进 `docs/LESSONS.md`）**：
-   LSP 侧 117/117 全绿的情况下，**没有 `by` 块**的声明被错误地统一成"根状态"
-   （已证声明凭空多出一个目标、半成品证明 `fun (a) (h) => sorry` 丢掉已引入的假设）。
-   抓出它的不是测试而是**穷举对拍**：删除旧实现前，在 5 个画布的**每一个光标
-   offset**（0..=len）上比较新旧两份实现，**709 次比较 / 424 处不一致全落在这一个
-   分支**。既有测试没红是因为 LSP 唯一覆盖它的用例，画布**没有 lambda 前缀**，
-   "剩余目标"恰好等于声明类型——**"新测试通过"不等于"新语义被测试"**。
-   修法：`by_steps.is_empty()` 单独走"声明级目标 + 上下文"（协议 `docs/protocol.md`
-   原文），红先单测 2 条（开/闭两分支）钉死，并把 CLI≡LSP 一致性契约扩到这两个
-   **判别性输入**。教训同时写进设计文档 §4 as-built 3 / §12 风险表。
-4. **H6-B MCP 传输 + DSH 接线**：`dsh/mcp/server.js`（零依赖 stdio 桥，
-   `initialize`/`tools/list`/`tools/call`，六工具全部转发 `scripts/soko query …`；
-   `server/discover` **立刻**用 `-32601` 拒绝——沉默会等满 SDK 的 60 s 超时）、
-   `scripts/soko mcp`、`dsh/cordis.patch.yml` 的 `mcp-sokonanoda` 行（**默认关闭**，
-   注释写清信任边界：MCP server 是 DSH 沙箱外的可信代码）。
-   五个实测坑写进设计文档 §H6-B（探测进程/`capabilities.tools`/换行分隔 JSON/
-   只有 `content[].text` 进模型/必须无状态可重启）。**实测验收**：DSH headless
-   会话里模型调用 `mcp__sokonanoda__state` 拿到目标。
-5. **H6-C 两个 front 缺口修掉**（原 `docs/HANDOVER.md` §3 E）：
-   ① `derive_recursor` 在"**带索引 + 字段写在结果箭头链里**"时用只认 Ident/App 的
-   `src_spine` 读索引实参 → 改为已会剥箭头的 `spine_of_codomain`（`elab.rs`），
-   并顺带修掉写死的 `is_k: false`（单构造子 `Prop` 归纳因此被内核拒）；
-   ② `inductive` 参数/ctor 字段不吃多名字 binder 组 `(A B : Prop)` → 解析器改调
-   组感知的 `push_binders`（AST/elab 未动）。**课程随之简化**：unit9/unit10 的
-   `Le`/`Even` 不再手写 `rec`/`iota`、`Or (A : Prop) (B : Prop)` 收成 `(A B : Prop)`，
-   中英代码逐字节一致、**golden 事件计数不变**（unit9 `(13,8,0)`、unit10 `(7,6,0)`）。
-   两条修复都先有"修复前红"的复现测试（`indexed_inductive_with_arrow_style_field_derives_recursor`
-   等 4 条）；CLI e2e 三条 + 解析器三条补齐三层。
-   **⚠️ 追加发现（"三层缺一不可"的实证）**：`is_k` 的第一版把它近似成"单构造子 +
-   无索引 + 字段数 == 参数数"，front 单测全绿，但**内核拒了两个判别性形状**——
-   `Both (A B : Prop)` + `mk (a : A) (b : B)`（字段数恰好等于参数数 → 内核要
-   `is_k: false`），以及反向的 `Q : Nat -> Prop` + `q : Q 0`（**有索引但无字段 →
-   内核要 `is_k: true`**）。抓出它的是新加的 CLI e2e 层。现按内核
-   `init_k_target` 逐字镜像（`is_prop_block_ty(ty) && ctor_field_binders(only_ctor).is_empty()`），
-   两个反例各留一条单测；方法（镜像内核谓词 = 逐字翻译 + 给判别性输入写测试）进
-   `docs/LESSONS.md`。另外首版 `arrow_style_indexed_recursor_reduces` 名字承诺 iota
-   却没碰 recursor（`theorem pz_again : P 0 := pz`），已改为 `Type` 值索引族 +
-   `match` + `#reduce`。
-6. **一致性契约（A4，防两套真相）**：`crates/cli/tests/query.rs` 12 项，其中
-   `query_check_counts_match_the_json_event_stream` 钉"同一份判卷两个视图"，新
-   `query_state_agrees_with_the_lsp_state_at_request` / `query_state_and_lsp_agree_without_a_by_block`
-   **起真实 `sokonanoda-lsp` 二进制**做字段级对拍（根状态 / tactic 之内 / tactic 之后 /
-   无 `by` 的开放与闭合）。注意：它比对的 `target/<profile>/sokonanoda-lsp` 可能是旧
-   构件——**改了 front 只跑单 crate 测试会拿旧二进制对拍**（先 `cargo build --workspace`），
-   这是特性也是坑，已写进设计与教训台账。
-7. **两处刻意的 wire 边界对齐**（此前无测试覆盖，已记录）：`soko/hints` 的声明命中
-   与 `stateAt` 统一为**含末尾**（旧路径开区间：光标恰在声明末偏移/末行行尾之后返回
-   `[]`，现在返回阶梯）；由 offset 换算的 `Range` 改用**UTF-16** 列（LSP 规范口径，
-   与其它响应一致；BMP 文本逐字节相同，仅增补平面字符不同）。扩展侧无需改动。
-8. **H6-D 同步**：`AGENTS.md` Setup（`query` 两视图 + 六个 MCP 工具）、
-   `skills/sokonanoda-teacher`（"先问，别扫"）、`skills/sokonanoda-dev`（"真相层不得
-   绕过"）、`dsh/README.md`（查询一节 + 信任边界）、`docs/protocol.md`、
-   `docs/TESTING.md`、`docs/HANDOVER.md`、`ROADMAP.md` I15 as-built、VS Code
-   README/CHANGELOG/`package.json` 版本同步、`site/` agent prompt 一句。
-9. **H6-E backlog（不做承诺）**：DSH Infoview 客户端插件（消费 `query goals/state`）、
-   `SessionStart` 自动 provisioning、把启动器 + Lean 工具链 deny 拦截 + `/sokonanoda-*`
-   命令打成一个 npm 插件包。
-10. **发布**：CI 全绿 → auto-tag `v0.56.0` → release **11 个 job 全 success**
-    （8 平台 build + VSIX + **marketplace 发布一次成功** + GitHub Release），
-    26 个产物；并**用发布产物实测**（下载 CLI：`query state` 与仓库一致；下载 LSP：
-    无 `by` 的开放声明 `goal='a' binders=['a','h']`、已闭合 `goal=None`）。
-11. **本轮产物**：`crates/front/src/query/*`、`crates/cli/src/query.rs`、
-    `crates/cli/tests/query.rs`、`crates/lsp/src/query_map.rs` + `protocol.rs` +
-    `tokens.rs` + `tests.rs`/`by_sorry_range_tests.rs`（lib/hints/render 收敛）、
-    `dsh/mcp/server.js`、`dsh/cordis.patch.yml`、`scripts/soko`（`mcp` 分支）、
-    `crates/front/src/parser.rs` + `compile/elab.rs`（H6-C）、课程 9 个文件简化、
-    文档/门面同步（见第 8 条），版本 0.56.0。

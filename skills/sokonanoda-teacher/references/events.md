@@ -34,6 +34,14 @@
 - `warning` 不改变退出码、不把文件判成错误。`reserved-declaration-name`
   表示顶层声明名撞上了内核已定义的名字（`Prop`/`Sort`/`Type`）：声明本身
   仍会 `decl.checked`，但这个名字永远不会被用到。
+  多文件项目里还有 `import-has-open-exercises`：依赖模块仍留着 `sorry` 时，
+  入口的 `import` 行得到这条 warning（依赖里没解出的名字不会进入口环境）。
+- 多文件项目（0.57.0）的诊断带 `file`/`module` 字段，属于**别的文件**；`stage`
+  为 `import`（`import-not-found`/`import-cycle`/`import-dependency-failed`/
+  `import-name-collision`/`import-prelude-conflict`/`import-module-invalid`）或
+  `parse` 的 `import-malformed`/`import-not-a-valid-module-name`/
+  `import-must-precede-declarations`/`manifest-invalid`。判卷时先修依赖文件，
+  入口的 `import-dependency-failed` 会随之消失。
 - `elab-*` 错误码封闭清单见 `docs/protocol.md`（doc-conformance 测试守护）。
 
 ## 判卷读法（伪代码）

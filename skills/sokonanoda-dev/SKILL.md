@@ -28,13 +28,20 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 4. 判定永远走 kernel：新增功能禁止文本比对（`front::judge` 是合成声明走
    完整流水线的范例）；
 5. 反馈即功能：类型/化简/打印/错误都要结构化输出，人和模型都能无文档驱动。
+6. 多文件项目（0.57.0，I16）：闭包编译在 `crates/front/src/project/`，错误
+   **按命令下标**归属到文件（`CompileOutput.error_cmds`）——绝不能按 span，不同
+   文件的偏移会互相命中；**无 `import` 的文件必须逐字节走原单文件路径**
+   （A1，`crates/cli/tests/imports.rs` 守住）；内核一行未改（一个 arena 顺序
+   跑完拓扑序的 unit）。设计：`docs/design/imports-and-projects.md`；架构
+   §4.5；测试地图 `docs/TESTING.md` 的三行「多文件 …」。
 
 ## 2. 工作流（TDD 三层 + 文档先行）
 
 - **先写设计**：新功能先出设计方案落 `docs/`（含取舍与验收标准），再动手；
 - **测试三层**：front 单元测试（`crates/front/src/compile/tests.rs` 等模块内
   `#[cfg(test)]`）→ CLI e2e（`crates/cli/tests/`）→ 语料/协议/golden 守护
-  （`examples.rs` / `protocol.rs` / `course.rs` / `skill.rs`）；
+  （`examples.rs` / `protocol.rs` / `course.rs` / `skill.rs`）；多文件特性再加一层
+  `crates/cli/tests/imports.rs`（真 CLI 跑两文件项目 + 缓存失效 + A1 字节一致）；
 - **多用 subagent**：探索/调研/机械重构派出去并行，主会话做核心设计编码，
   产出后主会话验证（编译 + 全量测试）;
 - **模块化**：任何文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；

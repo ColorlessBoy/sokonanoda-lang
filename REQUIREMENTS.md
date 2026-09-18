@@ -1063,3 +1063,28 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - **待用户拍板 Q1–Q6**（每条已给推荐）：清单格式（TOML vs JSON vs 纯标记）、
     无清单时是否允许 import、prelude 模式决策者、是否做"已检查声明"的跨进程复用、
     课程语料是否同轮重构、`watch`/`soko/project` 是否 v1 就做。
+
+- 2026-09-18（九十二）：**多文件 `import` 与项目管理落地（I16 P0–P6，版本 0.57.0）**
+  （用户要求：「新产生一个git分支吧，全部按照建议，你给我完整做完一版我看看。这个
+  变化比较大。」）——第九十一轮设计文档 §8 的 **Q1–Q7 全部按推荐执行**，实现在分支
+  `i16-imports-and-projects` 上分阶段落 commit：
+  - **交付**：`import Foo.Bar`（置顶、模块名↔路径、`-` 非法）+ 可选
+    `sokonanoda.toml`（**无清单也能 import**：模块根退化为入口文件目录，对真 Lean 的
+    有意分歧）+ 闭包编译（同一 arena/`EnvBuilder`，拓扑序，**kernel 一行未改**）
+    + 闭包哈希缓存（依赖变必 miss）+ CLI `--root`/`--no-project`/`build`/`query`
+    + LSP 多文档与**跨文件跳转** + 单元⑪「模块与项目」与可运行两文件项目
+    `course/unit11-project/`。
+  - **纪律**：诊断按**命令下标**归属文件（绝不按 span）；无 `import` 的文件行为
+    **逐字节不变**（A1，由 CLI e2e 对拍守住）；判定仍由内核终审，不引入官方 Lean
+    工具链，用户路径零 cargo；命令面新增只在 `soko`/`sokonanoda` 二进制内。
+  - **本轮唯一能力缺口（已登记，非静默）**：依赖文件变更后 LSP 不自动重编译
+    **其它**已打开文档（第一版实现会在 tower-lsp 串行通知 + socket 缓冲下挂住，
+    已回退留档）；跨文件 `findReferences`/`rename`、`soko/project`、`watch` 项目模式、
+    `[deps]`、`namespace`/`open` 留 P7 backlog。余项位置：
+    `docs/TESTING.md` §5.7、`crates/lsp/src/tests/project.rs` 文件头。
+  - **收尾**：版本 0.56.1 → **0.57.0**（minor，用户可见新能力；`Cargo.toml` +
+    `editor/vscode/package.json` + VS Code CHANGELOG）；同一轮同步
+    `docs/architecture.md`、`docs/protocol.md`、`docs/TESTING.md`、`docs/HANDOVER.md`、
+    `ROADMAP.md`、`STATUS.md`、三个 skills、`AGENTS.md`、`dsh/README.md`、
+    `editor/vscode/README.md`、`docs/design/deepseek-harness.md`、`site/data/site.json`；
+    `scripts/soko gate` PASS + `cargo test --workspace --locked` 全绿。

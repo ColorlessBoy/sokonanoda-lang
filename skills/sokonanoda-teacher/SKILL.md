@@ -126,6 +126,24 @@ $SOKO repl
 - 参数化归纳（`inductive Option (A : Type)`、`List`）与**带索引归纳**
   （`inductive Vec (A : Type) : Nat -> Type`，`ctor vnil`/`vcons`；省略 `rec`
   自动派生 recursor）。
+- **多文件（0.57.0）**：文件第一行可写 `import Logic`——模块名 = 相对模块根的
+  路径（`Logic.sokonanoda` ↔ `Logic`、`Lib/And.sokonanoda` ↔ `Lib.And`；`-`
+  不是模块名字符），且 import 必须排在所有声明之前。判卷命令不变，多了 `--root`：
+
+```bash
+$SOKO grade course/unit11-project/Exercises.sokonanoda         # 从入口目录解析 import
+$SOKO grade --root course/unit11-project <任意入口.sokonanoda>  # 显式指定模块根
+$SOKO query check --file <入口> --root <模块根>                 # 单对象视图同样支持
+$SOKO grade --no-project <文件>                                 # 忽略 sokonanoda.toml
+```
+
+  规则要点：**没有 `sokonanoda.toml` 也能 import**（模块根 = 入口文件所在目录，
+  与真 Lean 的有意分歧）；依赖里的开放练习只产生 warning
+  （`import-has-open-exercises`），不阻断入口；依赖编译失败时导入者只报一条
+  `import-dependency-failed`；闭包内重名 / prelude 不一致在 import 行报错。
+  编辑器里打开入口即可看到整个闭包，**定义能跳到被导入模块**（改依赖后其它已打开
+  文件要再编辑一次才刷新——已知余项）。教学画布本身保持单文件；用户想练分模块时
+  照 `course/unit11-project/` 起一个两文件小项目。
 
 ## 2. 核心教学循环（3 步，循环）
 

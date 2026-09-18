@@ -1,6 +1,7 @@
 # 设计：多文件 `import` 与项目管理（设计 + 计划 I16）
 
-> 状态：**设计已定稿，实现未开始**（ROADMAP **I16**）。
+> 状态：**已落地（0.57.0，2026-09-18）**——P0–P6 完成，P7 为 backlog；实现实况与
+> 三处偏差见 §5.1「as-built」（ROADMAP **I16**）。
 > 触发（用户 2026-09-17）：「我想增加 代码import +project管理，帮我调研一下其他语言
 > 都是怎么分别处理单文件，和项目。项目如何维护。sokonanoda如何实现，具体执行方案
 > 是什么」。
@@ -793,6 +794,50 @@ iface(module) = H( CACHE_FORMAT,
 - 跨项目依赖（`[deps]` 的 path/git 形态）与 `sokonanoda new` 脚手架；
 - 课程语料重构（`solutions/` 改为复用 + golden 重钉）；
 - `watch` 的项目模式（协议要不要带 DAG 顺序，见 Q6）。
+
+---
+
+## 5.1 as-built（2026-09-18 落地，版本 0.57.0）
+
+用户 2026-09-18 指示「新产生一个 git 分支，全部按照建议，你给我完整做完一版」——
+§8 的 Q1–Q7 全部按推荐执行。**P0–P6 全部落地**，P7 仍是 backlog（本轮未承诺）。
+
+**与本文设计的偏差（三条，都是实现时才发现的事实）**
+
+1. **§4.12/P4 里的 `project/iface.rs` 没有单独成文件**：闭包摘要就是
+   `ProjectPlan::digest(&CompileOptions)`（`crates/front/src/project/mod.rs`），
+   没必要为 30 行多开一层模块。其余文件名与设计一致。
+2. **P5 只做到"多文档 + 跨文件定义"**：`initialize` 捕获 root、
+   `Docs{map,order,root,active}`、按 URI publish、`goto_definition` 跨文件都完成；
+   **反向后继图 / 重编调度 / `didChangeWatchedFiles` / `soko/project` /
+   跨文件 `references`+`rename` 未做**——第一版"依赖变更后重编译其它打开文档"
+   会在 tower-lsp 的串行通知 + 客户端 socket 缓冲下挂住（已回退，测试删除）。
+   当前语义与余项的补测起点登记在 `docs/TESTING.md` §5.7 与
+   `crates/lsp/src/tests/project.rs` 文件头。**这是本轮唯一的能力缺口。**
+3. **`import-prelude-conflict` 的判据细化**：没有 prelude 指令的模块视为
+   **继承**入口模式，只有"显式指令与闭包决定不一致"才报错（设计 §4.6 只写了
+   "闭包内不一致"，实现时需要区分"未声明"与"显式声明"两次预扫描）。
+   另有两条实现期决定：`import` 必须加入 `is_reserved_command`（否则行首
+   `import` 会被当成应用的实参吞掉）；加载器的后序 `visit` 返回
+   `VisitOutcome::Cycle`，保证入口在拓扑序最后。
+
+**交付物（可核对）**
+
+| 层 | 位置 | 规模 |
+|---|---|---|
+| 语法/解析 | `crates/front/src/parser.rs`、`token.rs`、`ast.rs`（`Command::Import`） | 3 个 parse 期错误码 |
+| 闭包编译 | `crates/front/src/project/{mod,module_name,resolve,manifest,graph,report}.rs` | 6 文件 + 18 单测 |
+| 编译驱动 | `crates/front/src/compile/check.rs`（`units: &[SourceUnit]`、`split_report`、命令下标归因） | 内核零改动 |
+| 缓存 | `ProjectPlan::digest` + `cache::key`（`CACHE_FORMAT` 1→2） | `docs/design/compile-cache.md` §7 |
+| CLI/协议 | `--root`/`--no-project`、`build` 项目化、`query` 闭包、`help.rs` 多文件段 | `crates/cli/tests/imports.rs` 12 e2e |
+| LSP | 多文档、按 URI publish、跨文件定义 | `crates/lsp/src/tests/project.rs` 3 e2e |
+| 教学面 | `course/unit11-modules-projects.sokonanoda`（+EN+solution）、`course/unit11-project/` 可运行两文件项目、`course.json` | golden：画布 (7,6,0)、solution (12,0,0) |
+| 文档 | `docs/architecture.md` §4.5/§8.10、`docs/protocol.md`、`docs/TESTING.md` 三行 + §5.7、`docs/HANDOVER.md`、`ROADMAP.md` I16、三个 skills、`AGENTS.md`、`dsh/README.md`、VS Code README/CHANGELOG | 本轮同一 commit 同步 |
+
+**验收（全部实测通过）**：`scripts/soko gate` PASS；`cargo test --workspace --locked`
+全绿（front 448 / LSP 120 / CLI 191+）；A1 由
+`import_free_files_are_byte_identical_to_the_single_file_path` 守住；零 cargo 的
+用户路径仍只走 Release 二进制（新能力不引入任何工具链依赖）。
 
 ---
 

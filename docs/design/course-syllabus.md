@@ -12,6 +12,11 @@
 最终 10 单元（文件名为落地目标；**P1 只修内容不动结构，P2 改结构落地 #1–#8**
 （`by` 提前、现 U5 拆为 #6/#7），**P3 新增 #9/#10 已落地——10 单元锁定**）：
 
+> **后续（2026-09-18，I16）**：本大纲锁定的 10 单元之后**追加**了单元⑪「模块与
+> 项目」（`unit11-modules-projects.sokonanoda`，CN/EN + 两份解答 + `course.json`），
+> 它不在 P1–P3 的重构范围内、不改动 #1–#10 的任何内容与计数；设计见
+> `docs/design/imports-and-projects.md` §4.10。
+
 | # | 文件 | 标题（CN） | 来源 | 主要内容 |
 |---|---|---|---|---|
 | 1 | `unit1-propositions-proofs` | 命题与证明项 | 现 U1 | `Prop`/`True`/`False`/∧∨¬/证明=项/箭头↔fun/`False.rec`/声明 binder |
@@ -52,7 +57,8 @@
 **验收**：`cargo test -p sokonanoda-cli --test course --test course_status --locked` + 全量
 workspace + `sokonanoda gate`；双语镜像事件计数逐项相等；skills/VS Code 门面若受影响同步。
 
-> **状态（2026-09-16）：P1/P2/P3 均已完成，10 单元锁定。** P1：内容 1–8 由课程
+> **状态（2026-09-16）：P1/P2/P3 均已完成，10 单元锁定；2026-09-18 由 I16 追加
+> 单元⑪（本大纲之外的新增，不改 #1–#10）。** P1：内容 1–8 由课程
 > 内容修复落地（新增 `solution_covers_every_canvas_exercise` 与
 > `en_solutions_match_chinese_event_counts`，`expr.typed` 纳入镜像比较）；文档
 > 9–14 补齐。P2：`by` 由旧单元⑥提前为 #4、现 U5（显式归纳）拆为 #6/#7，
@@ -152,7 +158,8 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
 ## 2. 现状审计（摘要；细节见 §4 与 `crates/cli/tests/course.rs`）
 
 > 下面是 P1 审计时的**旧口径**（7 单元）；P2/P3 后的真实结构见 §0 表与
-> `course/course.json`——10 单元、汇总 `units=10 checked=78 open=59 failed=0`。
+> `course/course.json`——10 单元（+I16 的⑪ = 11）、汇总
+> `units=11 checked=85 open=65 failed=0`（权威值：`crates/cli/tests/course_status.rs`）。
 
 7 单元（`course/course.json`，P1 审计时）：①命题与证明项 ②等式与 rfl
 ③函数与箭头 ④宇宙 ⑤显式归纳与递归 ⑥by 写法 ⑦量词。P1 修复后 golden（当时值，

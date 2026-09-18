@@ -58,26 +58,18 @@ sokonanoda-lang/
 │   │   ├── tests/memory_api.rs  # M0 内存 API 验收
 │   │   └── test_resources/ # 上游 NDJSON fixtures（部分测试的输入）
 │   ├── front/              # .sokonanoda 前端
-│   │   └── src/{lib.rs,compile.rs,proof.rs}
-│   ├── cli/                # `sokonanoda` 二进制（文件检查 / repl / --json）
+│   │   ├── src/{lib.rs,compile.rs,proof.rs}
+│   │   └── src/project/    # 【新增】import 闭包：模块名/解析/清单/拓扑序/报告（§4.5）
+│   ├── cli/                # `sokonanoda` 二进制（文件检查 / repl / --json / query / build）
 │   │   ├── src/main.rs
-│   │   └── tests/{cli.rs,examples.rs}
+│   │   └── tests/{cli.rs,imports.rs,query.rs,examples.rs}
 │   └── lsp/                # `sokonanoda-lsp`：tower-lsp 服务器（诊断/hover/符号/练习状态）
 ├── editor/vscode/          # VS Code 扩展（per-target VSIX + universal，Marketplace 上架）
 └── examples/               # 入库课程文件（lesson-01/02、fol-basics、py-fol-core、py-nat）
 ```
 
-测试数量（2026-09-06，`cargo test --workspace` 全绿）：
-
-| 层 | 数量 | 位置 |
-|---|---|---|
-| kernel 单元测试 | 41（2 ignored：缺 fixture） | `crates/kernel/src/*` 内 `#[cfg(test)]` |
-| arena 集成测试 | 1（需 `LEAN_KERNEL_ARENA`） | `crates/kernel/tests/arena.rs` |
-| 内存 API 测试 | 1 | `crates/kernel/tests/memory_api.rs` |
-| front 单元测试 | 49 | `crates/front/src/{lib,compile,proof}.rs` |
-| CLI 端到端 | 21 | `crates/cli/tests/cli.rs` |
-| 课程语料 | 1（遍历全部 examples） | `crates/cli/tests/examples.rs` |
-| LSP（文档服务层） | 手动 smoke（诊断/hover/符号/code action） | `crates/lsp` |
+测试分层、实时数量与"哪条测试守哪条契约"的权威地图在 **`docs/TESTING.md`**
+（本文只讲结构，不重复数字——数字会漂。
 
 ---
 
@@ -183,6 +175,34 @@ sokonanoda-lang/
   未变文档直接复用，编辑则照走 Session 增量。诊断由 `report_diagnostics` 统一
   构造（命中与重编一致）。见 `docs/design/compile-cache.md`。
 - `sokonanoda-lsp`：编辑器路径的**唯一反馈通道**（文件无 `#` 命令）——publishDiagnostics、hover（表达式类型 / `sorry` 的目标）、documentSymbol、codeLens（练习状态）、quick-fix `引入 N 个 binder`（把 `sorry` 变成 `fun (x : T) => sorry`；I13-S1 由 `intro` 改名）。
+
+### 4.5 多文件项目（0.57.0，I16：`import` + `sokonanoda.toml`）
+
+一个文件只要**没有** `import`，走的仍是 §4.4 的单文件路径（逐字节不变）。
+第一行出现 `import Foo.Bar` 后，编译单元从「一个文件」升级为「入口 + import 闭包」：
+
+1. **解析**：`parse` 把 `import` 收成前置命令（`Command::Import`，占位 span）；
+   违规形态在 parse 阶段就报（`import-malformed` / `import-not-a-valid-module-name`
+   / `import-must-precede-declarations`）。
+2. **定位模块根**：`project::plan_project(entry, src, root_override)`——
+   `--root` 显式指定 > 最近的 `sokonanoda.toml`（向上走到 `.git`/HOME 即停）>
+   入口文件所在目录（**无清单也能用 import**，这是与真 Lean 的有意分歧）。
+3. **装载闭包**：`project::resolve` 后序遍历依赖（`VisitOutcome` 检出环），
+   得到拓扑序 `SourceUnit` 列表：依赖在前、入口最后；每个模块名 = 相对模块根的
+   路径（`Foo/Bar.sokonanoda` → `Foo.Bar`，`-` 不是模块名字符）。
+4. **一次编译**：`compile::check::compile_all_units` 在**同一个 arena + 同一个
+   `EnvBuilder`** 里按序跑完所有 unit 的命令——import 的命令先于本地命令入环境，
+   所以内核 `EnvLimit` 下标不受影响，**kernel 一行未改**。
+5. **归属**：错误按**命令下标**（`CompileOutput.error_cmds`）而不是 span 归属到
+   文件（不同文件的偏移会撞车），`split_report` 再按 unit 的 `cmd` 区间还原成
+   每个文件的 `DocumentReport` 与事件流；闭包级检查（重名 / prelude 冲突）与
+   依赖阻断（`import-dependency-failed`）都在这一步。
+6. **缓存**：`ProjectPlan::digest(options)` = 拓扑序上每个模块的 (名字, 源,
+   imports) + prelude 模式的稳定哈希；依赖改动必然改摘要（`docs/design/compile-cache.md` §7）。
+
+消费方：CLI（`--root`/`--no-project`）、`query`（项目模式）、LSP（多文档 +
+跨文件 `textDocument/definition`）、`build`（暖缓存）。设计全文与错误码表见
+`docs/design/imports-and-projects.md`，协议见 `docs/protocol.md`。
 
 ---
 
@@ -323,6 +343,12 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 7. **打印偏好**：教学文本 ASCII `->`；`pp_options.proofs=true` 由 `compile_fol` 设置（否则打印会把证明项压成 `_`）。
 8. **tactic/编辑器判定走 `front::judge`**（合成完整声明交完整 kernel 裁决），不要新增文本比对；`proof.rs::assumption` 的文本比对实现已删除。建议生成（`front::suggest`：exact/rfl/refine/intro）与逐洞判定（`judge_hole_fill`：把洞替换候选后整份声明交 kernel）都只是结构生成 + kernel 终审。
 9. **kernel lint**：`lib.rs` 的 `cast_possible_truncation` 已降为 warn（上游代码自身未过）；clippy 严格门禁在各教学 crate 的 `[lints.rust] warnings = "deny"`，CI 的 fmt 门禁只覆盖教学 crates（kernel 的 rustfmt.toml 需要 nightly）。
+10. **多文件项目（I16）的两个坑**：错误归属只能按**命令下标**（`error_cmds`），
+    绝不能按 span——不同文件的字节偏移会互相命中；以及**不要**给
+    `import`-free 的文件加任何项目开销（`plan_project` 只在解析出 import 后才被
+    调用，A1 回归由 `crates/cli/tests/imports.rs` 的 stdin/文件同字节断言守住）。
+    余项：依赖文件变更后 LSP 不会自动重编译**其它**已打开文档（见
+    `crates/lsp/src/tests/project.rs` 文件头）。
 
 ---
 

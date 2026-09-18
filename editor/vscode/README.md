@@ -51,17 +51,29 @@ skills.
   with `sokonanoda: 打开目标面板 (Infoview)` (needs VS Code 1.106+).
 - **Hint ladders** — each exercise carries 2–3 progressive hints
   (`-- soko:hint` directives); reveal them one at a time when stuck.
-- **Course map** — a 10-unit structured course with verified solutions
+- **Multi-file projects** — start a file with `import Logic` and the whole
+  import closure is compiled as one program: declarations from imported
+  modules are in scope for diagnostics, hover, completion and code actions,
+  and **go to definition jumps into the imported module**. An optional
+  `sokonanoda.toml` at the project root names the module root (`Logic` ↔
+  `Logic.sokonanoda`, `Lib/And.sokonanoda` ↔ `Lib.And`); without a manifest
+  the entry file's own directory is the root, so two files next to each
+  other just work. Errors are attributed to the file that caused them
+  (`import-not-found`, `import-cycle`, …). Known limit: after editing a
+  *dependency*, other already-open files refresh on their next edit.
+- **Course map** — an 11-unit structured course with verified solutions
   (propositional logic first; `by` tactic blocks early for fast feedback;
   universes only when you naturally ask "what's the type of a function
-  type?"; induction split into two units; relations & connectives in unit 9
-  and reading proofs & synthesis in unit 10, per the locked 10-unit plan in
-  `docs/design/course-syllabus.md` §0).
+  type?"; induction split into two units; relations & connectives in unit 9,
+  reading proofs & synthesis in unit 10, modules & projects in unit 11 — per
+  the locked plan in `docs/design/course-syllabus.md` §0 and unit 11 in
+  `docs/design/imports-and-projects.md`).
 
 **A real editing experience**
 
 - Completions (keywords, in-scope binders, prelude names)
-- Go-to-definition, document highlight, rename, find references
+- Go-to-definition (including **across imported modules**), document
+  highlight, rename, find references
 - Inlay hints showing the expected type at each hole — and the result of
   every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style)
 - Code actions: introduce-and-refine templates, `exact` suggestions,
@@ -133,10 +145,10 @@ command.
 ## The course map
 
 The 「课程」tree shells out to the `sokonanoda` CLI (it aggregates all course
-units — the language server stays single-document). The CLI ships in the same
-platform package as the server, so it works out of the box; in a development
-host without a staged `bin/`, a workspace `target/{debug,release}` build is
-used instead.
+units — the language server itself tracks several documents but answers one
+project closure at a time). The CLI ships in the same platform package as the
+server, so it works out of the box; in a development host without a staged
+`bin/`, a workspace `target/{debug,release}` build is used instead.
 
 ## Requirements
 

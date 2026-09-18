@@ -326,3 +326,19 @@
   （test/非 test 各多少行），而不是形容词。
 - **守护位置**：`docs/design/agent-query-channel.md` §3.2/§11 A5（最终数字）、
   `docs/TESTING.md` 的 LSP 行（测试文件位置）、本条目。
+
+## 测试里别写死"当前版本"（2026-09-18，0.57.0 bump 当天变红）
+
+- **踩的坑**：`crates/front/src/project/manifest.rs::requires_compares_major_minor_only`
+  为了测 `requires` 只比 major.minor，写了 `requires = "0.57"` 并注释"0.57 != 0.56
+  at this point in history"。它作为 I16 的新测试**在 0.56.1 上全绿**；bump 到
+  0.57.0 的同一轮，这条断言自己变成"匹配"，全量测试 447/448。
+- **为什么 CI 没提前抓**：这类测试只在"版本恰好跨过断点"的那一刻红——门禁全绿、
+  分阶段 commit 也全绿，bump 是**唯一**触发点。它是版本 bump 的隐藏耦合项。
+- **规矩**：① 测"版本不匹配"的用例必须**从 `env!("CARGO_PKG_VERSION")` 推出**一个
+  必然不同的版本（major 或 minor ±1），不能写死字面量；② 反过来说，测"匹配"的
+  用例可以直接用 `env!("CARGO_PKG_VERSION")`——它跟着版本走；③ **bump 版本号时
+  把全量 `cargo test --workspace --locked` 当必跑项**，不要只跑改动 crate
+  （本次正是靠全量跑才在提交前抓住）。
+- **守护位置**：`crates/front/src/project/manifest.rs`（注释里写明为什么从运行版本
+  推导）、本条目。

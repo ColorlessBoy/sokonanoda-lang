@@ -599,7 +599,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   > 后续（0.56.1）：`crates/lsp/src/tests/` 按特性拆成 `mod.rs`（399 行）+ 9 个文件
   > （最大 392 行），HANDOVER §4 登记的债清零。
 
-### I16 —— 多文件 `import` 与项目管理（设计已定稿，实现未开始）
+### I16 —— 多文件 `import` 与项目管理 ✅ 0.57.0 落地（P0–P6 完成，P7 = backlog）
 
 > 设计 + 计划：**`docs/design/imports-and-projects.md`**（2026-09-17 第九十一轮，
 > 只出设计 + 计划，不动实现、不 bump）。一句话：把**编译单元**从「一个文件」
@@ -632,6 +632,15 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - **待拍板 Q1–Q6**（每条已给推荐）：清单格式（`sokonanoda.toml` vs JSON vs 纯标记）、
   无清单时是否允许 `import`、prelude 模式的决策者、是否做已检查声明的跨进程复用、
   课程语料是否同轮重构、`watch --workspace` / `soko/project` 是否 v1 就做。
+- **as-built（2026-09-18，0.57.0，用户指示「全部按建议做完一版」）**：Q1–Q7 全按
+  推荐执行；P1–P6 逐阶段落 commit（`feat(front)` → `feat(cli)` → `feat(front,cli)`
+  → `feat(lsp,front)` → `feat(course,cli)` → 文档/门面轮），实现实况见设计文档
+  **§5.1 as-built**（含三处与设计的偏差）。**唯一能力缺口**：依赖变更后不自动
+  重编译其它已打开文档（P5 余项，登记 `docs/TESTING.md` §5.7）；跨文件
+  `references`/`rename`、`soko/project`、`watch` 项目模式、`[deps]`、`namespace`
+  等留在 P7 backlog。交付清单：`crates/front/src/project/`（6 文件 18 单测）、
+  `crates/cli/tests/imports.rs`（12 e2e）、`crates/lsp/src/tests/project.rs`（3 e2e）、
+  单元⑪ + `course/unit11-project/`、三处文档层同步。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）
 - L2：VS Code 扩展打包（语法、进度树、goal 面板），接 LSP 事件。

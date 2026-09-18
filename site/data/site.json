@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 91,
-  "round_date": "2026-09-17",
-  "round_title": "多文件 import 与项目管理 —— 调研 + 设计 + 计划 I16",
+  "round": 92,
+  "round_date": "2026-09-18",
+  "round_title": "I16 落地 —— import 闭包 + 项目管理，0.57.0",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
@@ -88,5 +88,5 @@
       "unit": 11
     }
   ],
-  "version": "0.56.1"
+  "version": "0.57.0"
 }

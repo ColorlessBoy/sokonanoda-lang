@@ -1,7 +1,8 @@
 # 课程双语：course/ 英文镜像（design-course-bilingual）
 
-> **状态：已实现**（course/en/ 十单元镜像在线）。正文中的「5 个单元」等
-> 数字是当时的规划口径；现为 **10 单元**（`course/course.json`）。
+> **状态：已实现**（course/en/ 十一单元镜像在线）。正文中的「5 个单元」等
+> 数字是当时的规划口径；现为 **11 单元**（`course/course.json`；⑪ 由 I16 追加，
+> 见 `docs/design/imports-and-projects.md` §4.10——它同样有 EN 镜像与解答）。
 
 ## 1. 目标与定位
 

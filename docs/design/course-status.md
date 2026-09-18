@@ -1,7 +1,8 @@
 # 设计：课程地图（sokonanoda course）+ REPL 历史持久化 + course 提示阶梯
 
 > **状态：已实现**（`crates/cli/src/course.rs`、REPL 历史、`sokonanoda.courseMap`、
-> 单元提示阶梯）。§4 的 golden 计数只是**示例**（非第二真源）——现为 10 单元，
+> 单元提示阶梯）。§4 的 golden 计数只是**示例**（非第二真源）——现为 11 单元
+> （⑪ = I16 追加），
 > 权威值在 `crates/cli/tests/course.rs`（`GOLDEN`）与
 > `crates/cli/tests/course_status.rs`（`GOLDEN` + 汇总）。
 
@@ -56,7 +57,7 @@
 
 - 人类视图（无 --json）：逐单元一行
   `unit 1 单元① 命题与证明项 —— 13 checked · 6 open · 0 failed`；末行
-  `共 10 单元 —— 78 checked · 59 open · 0 failed`；
+  `共 11 单元 —— 85 checked · 65 open · 0 failed`；
 - CLI 接线：`Some("course") => positionals.get(1)`（--json 旗标同样适用）。
 
 ## 2. VS Code 课程地图
@@ -79,7 +80,7 @@
 
 ## 4. course/ 提示阶梯内容（素材库完善）
 
-- 十个单元的每个 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
+- 每个单元的 open 练习挂 2–3 条 `-- soko:hint`（规范同 playground）；
 - 钥匙来源：`course/solutions/`（全部经内核验证）；阶梯只给思路/形态/关键件；
 - **验收锚点（示例，权威见测试）**：`crates/cli/tests/course.rs::GOLDEN` 与
   `course_status.rs::GOLDEN` 的逐单元 `(checked, open, reduced)` 现为

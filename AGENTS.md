@@ -21,6 +21,9 @@ harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deeps
 scripts/soko setup                        # 版本锁定的 CLI + LSP → 缓存（幂等）
 scripts/soko doctor --json                # 就绪诊断；0=就绪 3=未就绪
 scripts/soko grade playground.sokonanoda  # 判卷（--json 事件流）
+scripts/soko grade course/unit11-project/Exercises.sokonanoda  # 多文件项目（import 闭包）
+scripts/soko grade --root <模块根> <入口.sokonanoda>  # 显式模块根（默认：最近 sokonanoda.toml，否则入口目录）
+scripts/soko grade --no-project <文件>    # 忽略 sokonanoda.toml，模块根 = 入口目录
 scripts/soko query check --file playground.sokonanoda   # 同一判卷的单 JSON 摘要
 scripts/soko query state --file playground.sokonanoda --line 327 --col 4
 scripts/soko version --json               # 仓库版本 + 解析来源 + 缓存标记

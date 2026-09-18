@@ -4,12 +4,14 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.56.1**（2026-09-17），最近一轮 **第九十一轮**。仓库根入口 `AGENTS.md`。
+> 快照：**v0.57.0**（2026-09-18），最近一轮 **第九十二轮**。仓库根入口 `AGENTS.md`。
 > **DeepSeek Harness 适配已落地**：`docs/design/deepseek-harness.md`（H0–H4 全绿，
 > 用法见 `dsh/README.md`）；仅 H5（Infoview/诊断通道/插件包）留 backlog。
 > **内核真相查询通道**已落地：`docs/design/agent-query-channel.md`（I15，`query` + MCP）。
-> **多文件 `import` 与项目管理**：设计 + 调研已完成、未实现（I16，
-> `docs/design/imports-and-projects.md`，§3 G）。
+> **多文件 `import` 与项目管理**已落地（I16，0.57.0）：`import Foo.Bar` + 可选
+> `sokonanoda.toml`、闭包编译（内核零改动）、闭包哈希缓存、CLI `--root`/`--no-project`、
+> LSP 多文档 + 跨文件跳转、单元⑪ + `course/unit11-project/`；**余项**见 §3 G 与
+> `docs/TESTING.md` §5.7（依赖变更不自动刷新其它已打开文档）。
 
 ## 1. 30 秒接手
 
@@ -184,21 +186,25 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 - H5 backlog：B1 Infoview 客户端插件、B2 诊断通道（DSH 演进或 MCP）、
   B3 `SessionStart` provisioning、B4 把启动器+拦截+命令做成 npm 插件包。
 
-### G. 多文件 `import` 与项目管理（第九十一轮**设计**，ROADMAP I16，未实现）
-- 设计与计划：**`docs/design/imports-and-projects.md`**（调研 + 设计 D1–D12 + 计划 P0–P7 +
-  验收 A1–A8 + 待拍板 Q1–Q7）；调研底稿：`docs/notes/multifile-prior-art.md`、
+### G. 多文件 `import` 与项目管理（I16，**0.57.0 已落地**）
+- 设计 + 调研 + **as-built**：**`docs/design/imports-and-projects.md`**（§5.1 有三处与
+  设计的偏差、交付物清单、唯一能力缺口）；调研底稿：`docs/notes/multifile-prior-art.md`、
   `docs/notes/project-roots-and-incremental-caches.md`。
 - 一句话：编译单元从「一个文件」升级为「项目闭包」——`import Foo.Bar`（Lean 置顶语法）、
-  模块名↔路径（Lean 同款，`-` 非法）、项目根 = 最近祖先 `sokonanoda.toml`
-  （向上搜索**止于 `.git`/workspace 根**，`--root` 可覆盖，无清单退化为入口文件目录）；
-  跨模块声明在同一 arena/`EnvBuilder` 里按拓扑序入表（**内核零改动**）。
-- **不变式**：无 `import` 的文件行为**逐字节不变**（缓存键/事件流/golden 计数不动）。
-- 实施前必须知道的三条：① 三道"静默错误"门（`front/tests/perf.rs:108`、
-  `cli/tests/watch.rs:292-298`、judge/suggest 静默无建议）；② **CI/Pages 不会发现
-  "画布不再自包含"**（anchor 只在本地 `soko gate`）；③ `elab-duplicate-declaration`
-  被枚举却从未触发过——而它正是跨模块重名的第一症状。
-- **等用户拍板 Q1–Q7**（清单格式、无清单是否允许 import、prelude 决策者、是否做
-  跨进程复用已检查声明、语料是否同轮重构、`watch`/`soko/project` 是否 v1 就做、产物位置）。
+  模块名↔路径（Lean 同款，`-` 非法）、模块根 = `--root` > 最近 `sokonanoda.toml`
+  （上溯止于 `.git`/HOME）> 入口文件目录（**无清单也能 import**）；跨模块声明在同一
+  arena/`EnvBuilder` 里按拓扑序入表（**内核零改动**）。
+- **不变式**：无 `import` 的文件行为**逐字节不变**（缓存键/事件流/golden 计数不动），
+  由 `crates/cli/tests/imports.rs::import_free_files_are_byte_identical_to_the_single_file_path` 守住。
+- **接手前必须知道的三条**：① 诊断**按命令下标**归属文件（`CompileOutput.error_cmds`），
+  按 span 会串文件；② 项目模式只对"解析出 import"的文件启用（A1 是硬不变量）；
+  ③ `crates/front/src/project/` 是唯一闭包实现，改它先读 `docs/architecture.md` §4.5。
+- **缺口（唯一）**：依赖变更后 LSP 不自动重编译**其它**已打开文档（第一版会在
+  tower-lsp 串行通知 + socket 缓冲下挂住，已回退）；跨文件 `findReferences`/`rename`、
+  `soko/project`、`watch` 项目模式、`[deps]`、`namespace` 留 P7 backlog。
+  补测试从 `crates/lsp/src/testutil.rs` 的 `did_change_at` + `wait_diagnostics_for` 起步。
+- 三道"静默错误"门仍在（`front/tests/perf.rs`、`cli/tests/watch.rs`、judge/suggest
+  静默无建议）：改项目层时别让它们变成假绿。
 
 ### D. 远期（L2/L3）
 - 协作/多用户、远程；compiler service 的跨文件转播 / `setContent`（v1 未做）。
@@ -216,6 +222,12 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   （`scripts/perf-arena.sh`）；见 `docs/PERF.md`。
 - **`TESTING.md §5` 盲区**：编辑器 codeLens/quick-fix 已补进程内 rpc；VS Code
   Electron 集成走 `editor/vscode/src/test/extension.test.js`。
+- **（I16 P5 余项，0.57.0 唯一开口）多文件 LSP 的跨文件自动失效**：依赖文件改动后，
+  **其它**已打开文档不会被自动重编译（第一版实现会在 tower-lsp 串行通知 + 客户端
+  socket 缓冲下挂住，已回退并测试删除）。当前语义：改动的文档自己重编译，其它文档
+  在下一次**自身**编辑时看到新环境。同一处未做的还有跨文件 `findReferences`/`rename`
+  与 `soko/project`；一并登记在 `docs/TESTING.md` §5.7、`ROADMAP.md` I16 as-built、
+  `crates/lsp/src/tests/project.rs` 文件头。
 - **（0.56.1 已清）`crates/lsp` 测试文件的拆分**：0.56.0 把测试模块移出 `lib.rs`
   时形成过 `tests.rs` 2567 行的债，0.56.1 已按"`tests/mod.rs`（共享夹具）+
   按特性分文件"拆完：`mod.rs` 399 行（31 个共享 const/fixture + `pub(crate) use`

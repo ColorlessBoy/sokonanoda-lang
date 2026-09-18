@@ -81,7 +81,7 @@
   把真相从 LSP 抽成 `front::query`，再上 CLI `query` 与 MCP 两个薄传输；
   含两个 front 缺口（索引递归 `Prop` 的 recursor、多名字 binder 组）的改挂与修法
   （2026-09-17，实现未开始；ROADMAP I15）
-- `imports-and-projects.md` — **多文件 `import` 与项目管理（调研 + 设计 + 计划 I16）**：
+- `imports-and-projects.md` — **多文件 `import` 与项目管理（调研 + 设计 + 计划 + as-built I16，0.57.0 已落地）**：
   10 个语言/证明助手的"单文件 vs 项目"横向调研、`import` 置顶语法与 Lean 同款
   模块名规则、`sokonanoda.toml` 项目根、闭包编译与闭包哈希缓存、CLI/LSP/query
   表面与第 11 单元教学计划（2026-09-17，实现未开始；ROADMAP I16）

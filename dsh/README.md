@@ -75,6 +75,18 @@ scripts/soko grade playground.sokonanoda --json
 （`playground.sokonanoda:327:4`）拿到 `Exists Person P` —— 目标文本由内核渲染，
 模型不需要自己扫源码猜。
 
+**多文件项目（0.57.0）走 MCP 时用 `file:` 而不是 `text:`**：`import Foo` 的解析
+需要真实路径（模块根 = 最近 `sokonanoda.toml`，否则该文件所在目录）；`text:` 是
+stdin 语义，带 `import` 时会明确报错而不是猜目录。六个工具与 `query` 一样接受
+`file`（仓库根相对路径），所以 `mcp__sokonanoda__check {"file":
+"course/unit11-project/Exercises.sokonanoda"}` 会编译整个闭包，诊断里带
+`file`/`module` 字段指出是谁的错。CLI 侧的对应形式：
+
+```bash
+scripts/soko query check --file course/unit11-project/Exercises.sokonanoda
+scripts/soko query check --file <入口> --root <模块根>     # 清单之外的显式根
+```
+
 **信任边界（要知情）**：MCP server 是 DSH 沙箱之外的**可信可执行代码**
 （`@deepseek-ai/dsh-mcp-client` 用 SDK 直接 spawn），所以它默认**关闭**，
 需要上面那行 `--patch` 才生效；只想要 LSP 的话删掉 `mcp-sokonanoda` 块即可。

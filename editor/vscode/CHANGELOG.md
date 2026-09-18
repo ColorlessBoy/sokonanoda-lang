@@ -1,3 +1,37 @@
+## [0.57.0] - 2026-09-18
+
+### Added
+
+- **Multi-file projects: `import Foo.Bar` + optional `sokonanoda.toml`.** A
+  `.sokonanoda` file may now start with `import` lines that load sibling modules
+  (dependencies first, the importing file last, one shared kernel environment).
+  Imports work with no manifest at all — the module root is then the entry file's
+  directory; a `sokonanoda.toml` (or `--root <dir>`) sets it explicitly, and
+  `--no-project` ignores the manifest. Every project diagnostic is attributed to
+  the file that caused it (`import-not-found`, `import-cycle`,
+  `import-dependency-failed`, `import-name-collision`, `import-prelude-conflict`,
+  `import-module-invalid`, `manifest-invalid`), and an imported module that still
+  has open exercises adds a warning instead of failing the entry.
+- **The language server follows the import closure.** Opening an entry file
+  compiles its whole project: declarations from imported modules are visible for
+  diagnostics, hover, completion and code actions, and **go to definition jumps
+  into the imported module**. Multiple documents are tracked at once; editing one
+  re-publishes its own diagnostics.
+- **Compile cache is project-aware.** The cache key covers every module in the
+  closure (names, sources, imports, order) plus the prelude mode, so touching a
+  dependency can never serve a stale entry report.
+- Single-file behaviour is untouched: a file with no `import` takes the exact same
+  code path and produces byte-identical output.
+
+### Notes
+
+- New course unit ⑪ ("modules and projects") with a runnable two-file example
+  project at `course/unit11-project/`.
+- `sokonanoda --help` documents `import`, `--root` and `--no-project`.
+- Known limitation (recorded for the next round): if a *dependency* changes, other
+  already-open documents are not recompiled automatically — they refresh on their
+  next edit.
+
 ## [0.56.1] - 2026-09-17
 
 ### Notes

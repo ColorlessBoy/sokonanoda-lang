@@ -17,6 +17,7 @@
 | 8 | `unit8-quantifiers.sokonanoda` | 量词 | `forall` 引入=fun / 消去=应用；`Exists` 公理三件套（intro=证人、elim=函数，结论不提证人）；Person/someone 论域；∀/∃ 与 And 的分配、∀→∃、∃ 单调（7 题，含 ★/★★）；可紧跟单元①教学 |
 | 9 | `unit9-relations-connectives.sokonanoda` | 关系与联结词 | `Or` 升级为真 `inductive`（前端自动派生 `Or.rec`；`match` 降低到它）；`Iff` 是 `def Iff A B := And (A -> B) (B -> A)`；`Le`/`Even` 带索引归纳关系 + **手写** `rec`/`iota`（自动派生对索引递归 Prop 有缺口，见 `docs/HANDOVER.md` §3）；消去/inversion 引理。练习：`or_comm` / `or_elim` / `or_id`(R) / `iff_mp` / `iff_mpr` / `le_zero`(L) / `le_trans`(X) / `even_four`（8 题） |
 | 10 | `unit10-reading-proofs.sokonanoda` | 读证明与综合 | 不教新语法，练「读」：自解释三问（Hodds/Alcock/Inglis）；formal↔informal 翻译对；评阅两份被内核拒绝的错证明并写出改正版；期末小项目。练习：`or_intro_x`(X) / `iff_intro_x`(X) / `nat_eq_self_x`(X) / `or_comm_fixed`(R) / `or_right_fixed`(R) / `and_or_imp`(综合)（6 题）；成品仍必须过内核 |
+| 11 | `unit11-modules-projects.sokonanoda` | 模块与项目 | `import Foo.Bar` 置顶规则；模块名 ↔ 路径（`-` 不是模块名字符）；模块根 = `--root` > 最近的 `sokonanoda.toml` > 入口目录（**无清单也能 import**）；闭包级重名/成环/依赖阻断/prelude 规则；开放练习不进导入者环境。跨文件练习在可运行项目 `course/unit11-project/`（`Logic` + `Canvas` + `Exercises`，6 题，判卷命令见该单元 11.6 节） |
 
 每个单元配 `solutions/unitN-*-solution.sokonanoda`（agent 专用钥匙，全部
 经完整内核验证；CI golden 钉死事件计数）。
