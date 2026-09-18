@@ -822,7 +822,7 @@ iface(module) = H( CACHE_FORMAT,
 - ~~**`crates/front/src/compile/check.rs` 的结构债（本轮加剧）**：1717 → **1918** 行，
   其中 `run_pass` 一个函数占 553–1726 行（≈1174 行）~~ ✅ **2026-09-18（第九十五轮）
   已拆完**：`compile/units.rs`（闭包装配）+ `check/{mod,walk,kernel_phase}.rs`
-  （794/975/417 行），事件流与增量语义逐字节不变（862 条测试 + 二进制对拍，
+  （791/951/413 行），事件流与增量语义逐字节不变（862 条测试 + 二进制对拍，
   方法见 `docs/TESTING.md`）。
 
 ---

@@ -644,7 +644,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   `crates/front/src/compile/check.rs` 1717 → 1918 行（`run_pass` 单函数 ≈1174 行），
   拆分计划见 `docs/HANDOVER.md` §4——本轮**不再往 `run_pass` 里加分支**，加之前先拆。
   **✅ 2026-09-18（第九十五轮）已还清**：`check.rs` → `check/{mod,walk,kernel_phase}.rs`
-  + `compile/units.rs`（794/975/417 行），`run_pass` 只剩装配与两段调用；
+  + `compile/units.rs`（791/951/413 行），`run_pass` 只剩装配与两段调用；
   验收 = 862 条测试 + **二进制对拍**（见 `docs/TESTING.md`）。
 
 ### L2/L3 —— 编辑器与 agent（M5+，远期）

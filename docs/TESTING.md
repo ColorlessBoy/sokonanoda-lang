@@ -543,7 +543,7 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
 
 - **拆分落点**（只动位置不动语义，三刀三次提交）：`front/src/compile/check.rs`
   → 目录模块 `check/{mod,walk,kernel_phase}.rs`，加上先前的 `compile/units.rs`。
-  现状 `check/mod.rs` 794 + `walk.rs` 975 + `kernel_phase.rs` 417（原 1918 行单文件、
+  现状 `check/mod.rs` 791 + `walk.rs` 951 + `kernel_phase.rs` 413（原 1918 行单文件、
   ≈1174 行单函数）。`run_pass` 现在只剩闭包装配 + 前缀合成 + 两段调用。
 - **二进制对拍（位置搬移类改动的首选验收，比 golden 覆盖面大）**：
   ```bash

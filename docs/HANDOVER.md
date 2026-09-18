@@ -267,7 +267,7 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   cmd_hovers / decl_states / example_idx / built_inductives），`CmdCtx` 持每命令
   派生的只读上下文（idx / templates / `Cow` 前缀 / trusted / env_before / options /
   skip），每个 `Command` 变体一个方法，arm 的 `continue` 改 `return`。
-  现状：`check/mod.rs` **794** + `walk.rs` **975** + `kernel_phase.rs` **417**
+  现状：`check/mod.rs` **791** + `walk.rs` **951** + `kernel_phase.rs` **413**
   （原 1918 行单文件、`run_pass` ≈1174 行）。
   **坑（写在这里省下一次 debug）**：`CmdCtx` 的 `&'x T` 字段直接拷进 `ElabCtx` 会让
   `ElabCtx<'arena, 'b>` 的 `'b` 被统一到 `'x`，于是 `'arena: 'x` 变成方法签名上

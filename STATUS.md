@@ -30,7 +30,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    known_universes / inductives / out / ops / cmd_hovers / decl_states / example_idx）、
    `CmdCtx`（每命令派生的 `Cow` 前缀、模板、信任位）、每个 `Command` 变体一个方法；
    arm 里的 `continue` 改 `return`（8 个 arm 都没有内层循环）。最终
-   `check/mod.rs` **794** + `walk.rs` **975** + `kernel_phase.rs` **417**；
+   `check/mod.rs` **791** + `walk.rs` **951** + `kernel_phase.rs` **413**；
    单文件仍走 `Cow::Borrowed` 前缀（零新增分配，A1 不变）。
 4. **验收（方法论收获）**：除 `cargo test --workspace --locked` **862 passed / 0 failed**
    外，做**二进制对拍**——`git worktree` 取改动前的树，两个 CLI 对同一批输入
