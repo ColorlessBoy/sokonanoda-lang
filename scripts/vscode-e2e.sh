@@ -97,7 +97,17 @@ failing=$(grep -oE '^ +[0-9]+ failing' "$raw_log" | tail -1 | grep -oE '[0-9]+' 
 pending=$(grep -oE '^ +[0-9]+ pending' "$raw_log" | tail -1 | grep -oE '[0-9]+' || echo 0)
 vscode_version=$(grep -m1 -oE 'Validated version: [0-9.]+' "$raw_log" | grep -oE '[0-9.]+' || echo "unknown")
 server_line=$(grep -m1 'server-version：' "$raw_log" | sed 's/.*server-version：//' || true)
-lsp_sha=$(shasum -a 256 editor/vscode/bin/*/sokonanoda-lsp 2>/dev/null | cut -c1-16 || echo "unknown")
+# macOS 有 shasum、Linux 常用 sha256sum——两个都试，取不到就记 unknown（不让记账
+# 因为一个哈希工具缺失而整个失败）。
+lsp_path=$(ls editor/vscode/bin/*/sokonanoda-lsp 2>/dev/null | head -1 || true)
+lsp_sha="unknown"
+if [ -n "$lsp_path" ]; then
+  if command -v sha256sum >/dev/null 2>&1; then
+    lsp_sha=$(sha256sum "$lsp_path" | cut -c1-16)
+  elif command -v shasum >/dev/null 2>&1; then
+    lsp_sha=$(shasum -a 256 "$lsp_path" | cut -c1-16)
+  fi
+fi
 
 mkdir -p docs/e2e/logs
 trimmed="docs/e2e/logs/${date%%T*}-${short_sha}.log"

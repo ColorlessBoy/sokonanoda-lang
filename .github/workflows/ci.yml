@@ -254,6 +254,14 @@ jobs:
           cache: npm
           cache-dependency-path: editor/vscode/package-lock.json
 
+      - name: Cache the VS Code download
+        # 每个版本 ~300MB/平台；钉住版本后这份缓存长期有效（key 含 OS 与版本）。
+        # 只缓存 VS Code 本体（`vscode-*`），不缓存 user-data（测试状态每次干净）。
+        uses: actions/cache@v4
+        with:
+          path: editor/vscode/.vscode-test/vscode-*
+          key: vscode-${{ runner.os }}-${{ matrix.vscode }}
+
       - name: Install editor test dependencies
         working-directory: editor/vscode
         run: npm ci --no-fund --no-audit
