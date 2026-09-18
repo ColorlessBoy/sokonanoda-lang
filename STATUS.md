@@ -55,13 +55,21 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `scripts/vscode-e2e.sh`；`docs/e2e/` 上传为 artifact，`scripts/e2e-summary.py`
    的渲染写进 **job summary**；`auto-tag` 的 `needs` 加上 `e2e` ⇒ **e2e 红了不发版**。
    原来 `test` job 里那条 `xvfb-run npm test` 删除（避免同一套用例跑两遍）。
-7. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
+7. **CI 的 macOS 腿只在 push 到 main 时跑**（用户定：PR/分支只跑 Ubuntu，快反馈；
+   main 上才加跑 macOS——真宿主差异值得守，但每个 PR 多 ~10 分钟不划算）。
+   e2e job 用 job 级 `if`（`matrix.os != 'macos-latest' || push && main`），
+   被跳过的腿不影响 `auto-tag` 的 `needs`。`run:` 块逐个过 `bash -n`，
+   YAML 解析校验通过（GH Actions 本身推不了，没法在这里真跑）。
+   最低版本 1.106.0 腿按用户规矩**先本地验证再进 CI**：本机到
+   `update.code.visualstudio.com` 反复 `Recv failure: Connection reset`（curl 也断，
+   87M/147M 处），暂缓；预置缓存的绕法已写进 `docs/E2E.md` §6。
+8. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
    （[官方文档](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
    与官方 sample 都不钉具体版本，示例用的是 `insiders`）——生态惯例是跟频道。但这一层
    的产物是**台账**：宿主随 stable 漂就没法比历史，所以本地例行默认钉 **1.138.0**
    （`--version stable` 可跟随），CI 矩阵显式给版本；升级流程与"最低版本
    （`engines.vscode ^1.106.0`）腿待补"写在 `docs/E2E.md` §5。
-8. **顺手清掉不再需要的缓存**：`editor/vscode/.vscode-test/vscode-darwin-arm64-1.137.0`
+9. **顺手清掉不再需要的缓存**：`editor/vscode/.vscode-test/vscode-darwin-arm64-1.137.0`
    （898MB，已换 1.138.0）、旧 VSIX×5（0.18/0.19/0.20 + universal + `sokonanoda.vsix`，
    `docs/RELEASE.md` 的发布流程会重新产出）、`.ruff_cache/`（仓库没有 ruff 配置）。
 

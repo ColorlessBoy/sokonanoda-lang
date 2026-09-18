@@ -227,6 +227,12 @@ jobs:
   e2e:
     name: e2e (${{ matrix.os }} · VS Code ${{ matrix.vscode }})
     runs-on: ${{ matrix.os }}
+    # PR/分支 push：只跑 Ubuntu（快反馈，等价于本地例行）；
+    # main 的 push：加跑 macOS 腿（真宿主差异：/var→/private/var 符号链接、
+    # 大小写不敏感文件系统——这些只有 macOS 才暴露；每个 PR 都跑不划算）。
+    if: >-
+      matrix.os != 'macos-latest'
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     strategy:
       fail-fast: false
       matrix:

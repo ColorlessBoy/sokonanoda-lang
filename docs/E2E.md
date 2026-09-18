@@ -93,7 +93,7 @@ soko/project ok: project=Main (2 modules) reason=null
 | 本地例行（默认） | **1.138.0**（已知良好） | `scripts/vscode-e2e.sh` 里的 `default_version` |
 | 本地试新 | `stable` / `insiders` / 任意具体版本 | `--version <v>` 或 `SOKO_VSCODE_TEST_VERSION=<v>` |
 | CI | 矩阵显式给（当前 `1.138.0`） | `.github/workflows/ci.yml` 的 `e2e.matrix` |
-| 声明的最低版本（`engines.vscode ^1.106.0`） | **待补**：`--version 1.106.0` 在本机下载老版本 zip 反复中断（网络），未验证；验证过再进 CI 矩阵 | 见 `docs/HANDOVER.md` §4 |
+| 声明的最低版本（`engines.vscode ^1.106.0`） | **待补**（用户定的规矩：**本地验证过再进 CI**）：`--version 1.106.0` 在本机下载老版本 zip 会被 `@vscode/test-electron` 的 15s 无数据超时打断（新版本 1.138 反而正常）；先用 curl 预置缓存再验，见 §6 | 见 `docs/HANDOVER.md` §4 |
 
 > 升级流程：先 `--version <新版本>` 本地跑绿 → 改 `scripts/vscode-e2e.sh` 的
 > `default_version` 与 `ci.yml` 的 `e2e.matrix`（两处）+ 记一条台账。
@@ -106,6 +106,20 @@ soko/project ok: project=Main (2 modules) reason=null
   （`docs/vscode-dev-guide.md` 坑 14）。
 * **缓存会变大**：每个版本一份 ~900MB 的 VS Code；换钉版本后旧的可以删
   （`editor/vscode/.vscode-test/vscode-<platform>-<version>/`）。
+* **下载老版本可能被 15s 无数据超时打断**：`@vscode/test-electron` 的下载超时是
+  `timeout: 15_000`（**无数据** 15 秒即 abort，与总时长无关），本机拉 1.106.0 时反复
+  `aborted`，而 1.138.0 正常。绕过办法是**预置缓存**（等价于它自己做完的事）：
+  ```bash
+  v=1.106.0; d=editor/vscode/.vscode-test/vscode-darwin-arm64-$v
+  curl -L --retry 5 -C - -o /tmp/vscode-$v.zip \
+    "https://update.code.visualstudio.com/$v/darwin-arm64/stable"
+  mkdir -p "$d" && unzip -q /tmp/vscode-$v.zip -d "$d" && touch "$d/is-complete"
+  SOKO_VSCODE_TEST_VERSION=$v scripts/vscode-e2e.sh
+  ```
+  > 2026-09-18 实测：本机到该 CDN 的 **curl 也**反复 `Recv failure: Connection
+  > reset by peer`（下载 87M/147M 后中断，重试仍断），所以最低版本腿的本地验证
+  > **暂时做不了**（用户定的规矩：本地验证过再进 CI）。网络好的时候按上面三步
+  > 预置缓存即可，之后再决定加不加 CI 腿。
 * **Linux 无显示器**：CI 用 `xvfb-run -a npm test`；本地无头环境同理。
 * **`code` CLI 冲突**：macOS 上若报 "another instance running"，先关掉正在跑的 VS Code。
 
@@ -113,7 +127,9 @@ soko/project ok: project=Main (2 modules) reason=null
 
 CI 有独立的 **`e2e` job**（`.github/workflows/ci.yml`）：
 
-* **矩阵**：`ubuntu-latest`（`xvfb-run -a`）与 `macos-latest`，各自钉 VS Code 版本；
+* **矩阵**：`ubuntu-latest`（`xvfb-run -a`）**每个 PR/分支 push 都跑**；
+  `macos-latest` **只在 push 到 main 时跑**（macOS 差异值得守，但每个 PR 多 ~10 分钟
+  不划算），各自钉 VS Code 版本；
 * **同一条命令**：两步都是 `scripts/vscode-e2e.sh`（构建 release → stage → 真宿主 →
   记账）——本地与 CI 不会漂；
 * **留档**：`docs/e2e/` 作为 artifact 上传（`e2e-<os>-vscode-<version>`），并把
