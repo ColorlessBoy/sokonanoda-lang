@@ -196,21 +196,29 @@ fn project_keystroke_recompiles_the_closure_within_budget() {
     let base = std::fs::read_to_string(&entry).expect("read entry");
     // 模拟"改最后一条声明的名字"（编辑器里的一次按键最终就是一次整文件重编译）。
     let edited = base.replace("main_s19", "main_s19x");
+    // 记录两个统计量：`worst`（5 次里最慢，断言用的保守上界）与 `best`（5 次里最快，
+    // 跨版本比较用——max 统计量天然抖，同一提交两次记录实测能差 45%）。
     let mut worst = 0.0f64;
+    let mut best = f64::MAX;
     for _ in 0..5 {
         let started = Instant::now();
         let report = compile_project(&entry, Some(&edited), &options, None);
         let elapsed = ms(started.elapsed());
         assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
         worst = worst.max(elapsed);
+        best = best.min(elapsed);
     }
-    println!("PERF project keystroke: recompile closure (4 modules × 20 decls) worst {worst:.1}ms");
+    println!(
+        "PERF project keystroke: recompile closure (4 modules × 20 decls) \
+         best {best:.1}ms · worst {worst:.1}ms"
+    );
     perf_json(serde_json::json!({
         "schema": "soko.perf/1",
         "scope": "front-project",
         "case": "keystroke_recompile_closure",
         "modules": 4,
         "decls_per_module": 20,
+        "best_ms": (best * 100.0).round() / 100.0,
         "worst_ms": (worst * 100.0).round() / 100.0,
     }));
     assert!(

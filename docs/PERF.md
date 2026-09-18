@@ -133,7 +133,7 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 | --- | --- |
 | front 分阶段（4 模块 × 20 声明） | plan 0.3ms · digest ~0.004ms · **compile 32–38ms** · total ≈ 33–39ms |
 | front 缩放（4/8/16 模块 × 10 声明） | 19 / 35 / 65 ms，4× 规模 ⇒ 3.0–3.4×（线性） |
-| front 一次按键（4×20，全部重编译） | 39–70ms（记录 5 次里的**最差**一次，故偏保守） |
+| front 一次按键（4×20，全部重编译） | **best 33–39ms**（同轮 `worst` 34–70ms，作为保守上界） |
 | front 教学规模一次按键（2/3/5 模块 × 12 声明） | **14 / 16 / 24ms** |
 | front 内存覆盖 vs 读盘（4×20） | 38.7 vs 38.8ms（覆盖无额外成本） |
 | front 判据前缀（入口 10 处 `match` 导入的归纳类型，2 模块） | 70–83ms（每次判据都合成"闭包前缀"；judge 缓存按前缀+项命中） |
@@ -169,7 +169,10 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 一类的数字都是**并行口径**，只能和同口径条目比；② 用例内部用 **best-of-N 取最小**
 （`front/tests/perf.rs`、`perf_project.rs` 的 keystroke/overlay/judge 与 LSP perf
 都是；`perf_project.rs` 的分阶段/缩放在 2026-09-18 改为 `measure_best(…, 3)`）；
-③ 比较台账数字先看是否落在 ±25% 内，超出再复测，别拿单次差异下结论。
+③ 比较台账数字先看是否落在 ±25% 内，超出再复测，别拿单次差异下结论；
+④ **优先比 `best_ms`**：串行口径下多数指标两次记录相差 ≤17%，但 `worst_ms`
+（5 次取最大）这类 max 统计量能差 45%——`keystroke_recompile_closure` 因此同时
+记 `best_ms`（对比用）与 `worst_ms`（哨兵用的保守上界）。
 
 **`query` 与 `check`/`build` 共用闭包缓存（2026-09-18 修复）**：三条命令都走
 `crates/cli/src/project_cache.rs`（键 = `ProjectPlan::digest(options)`）。另外
