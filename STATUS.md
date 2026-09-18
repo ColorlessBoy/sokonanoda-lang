@@ -20,7 +20,7 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 > 用户：「新产生一个 git 分支吧，全部按照建议，你给我完整做完一版我看看。这个变化比较大。」
 > 分支 **`i16-imports-and-projects`**；设计文档 §8 的 Q1–Q7 **全部按推荐执行**；
 > P0–P6 全部落地（P7 = backlog）。设计 + as-built =
-> **`docs/design/imports-and-projects.md`**（§5.1 有三处与设计的偏差与唯一能力缺口）。
+> **`docs/design/imports-and-projects.md`**（§5.1 有三处与设计的偏差与 P5 的实现选择）。
 
 1. **语法与解析（P1）**：`Command::Import`（AST + token）、置顶校验、模块名合法性
    （`import 1Foo`/尾点/`-` 都被拒，`-` 给教学 hint）；3 个 parse 期错误码

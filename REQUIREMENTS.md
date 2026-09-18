@@ -1077,11 +1077,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - **纪律**：诊断按**命令下标**归属文件（绝不按 span）；无 `import` 的文件行为
     **逐字节不变**（A1，由 CLI e2e 对拍守住）；判定仍由内核终审，不引入官方 Lean
     工具链，用户路径零 cargo；命令面新增只在 `soko`/`sokonanoda` 二进制内。
-  - **本轮唯一能力缺口（已登记，非静默）**：依赖文件变更后 LSP 不自动重编译
-    **其它**已打开文档（第一版实现会在 tower-lsp 串行通知 + socket 缓冲下挂住，
-    已回退留档）；跨文件 `findReferences`/`rename`、`soko/project`、`watch` 项目模式、
-    `[deps]`、`namespace`/`open` 留 P7 backlog。余项位置：
-    `docs/TESTING.md` §5.7、`crates/lsp/src/tests/project.rs` 文件头。
+  - **LSP（P5）全做完**：多文档 + 跨文件 `definition`/`references`/`rename` +
+    **改依赖自动重编译下游**（未落盘的依赖编辑经"内存覆盖"可见、进闭包摘要；
+    诊断只在真的变化时才 publish）。第一版"会挂住"的根因查明为**测试写法**
+    （服务端一次通知可能连发多条诊断，测试先等通知再读 socket ⇒ 死锁），修法是
+    `testutil::notify_with_drain`——教训与守护位置见 `docs/TESTING.md` §5.7。
+  - **留下的 P7 项（均已登记）**：`didChangeWatchedFiles`（编辑器**外**改文件不触发
+    刷新）、`soko/project`、跨文件改名的"重命名文件/模块"形态、`watch` 项目模式、
+    `[deps]`、`namespace`/`open`（`docs/design/imports-and-projects.md` P7）。
   - **收尾**：版本 0.56.1 → **0.57.0**（minor，用户可见新能力；`Cargo.toml` +
     `editor/vscode/package.json` + VS Code CHANGELOG）；同一轮同步
     `docs/architecture.md`、`docs/protocol.md`、`docs/TESTING.md`、`docs/HANDOVER.md`、
