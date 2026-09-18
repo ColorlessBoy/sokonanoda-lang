@@ -33,10 +33,16 @@ pub(crate) fn print_help() {
     println!();
     println!("multi-file projects (import + optional sokonanoda.toml):");
     println!("  import Logic                   load another module first (must precede");
-    println!("                                 declarations; module name = file path, `-` not allowed)");
+    println!(
+        "                                 declarations; module name = file path, `-` not allowed)"
+    );
     println!("  --root <dir>                   module root for `import` resolution (else the");
-    println!("                                 nearest sokonanoda.toml walking up, else the file's dir)");
-    println!("  --no-project                   ignore sokonanoda.toml; module root = the file's dir");
+    println!(
+        "                                 nearest sokonanoda.toml walking up, else the file's dir)"
+    );
+    println!(
+        "  --no-project                   ignore sokonanoda.toml; module root = the file's dir"
+    );
     println!();
     println!("language commands (same in files and REPL):");
     println!("  def <name> : <type> := <value>");

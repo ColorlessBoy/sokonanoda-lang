@@ -216,18 +216,32 @@ mod tests {
 
     #[test]
     fn requires_compares_major_minor_only() {
+        // 不要写死版本：写死的 "0.57" 在 0.57.0 发版当天自己变成"匹配"。
+        // 这里从运行版本推出一个必然不同的 minor。
+        let running = env!("CARGO_PKG_VERSION");
+        let mut parts = running.split('.');
+        let major: u64 = parts.next().expect("major").parse().expect("numeric major");
+        let minor: u64 = parts.next().expect("minor").parse().expect("numeric minor");
+        let other = format!("{major}.{}", minor + 1);
+
         let manifest = Manifest {
-            requires: Some("0.57".into()),
+            requires: Some(other.clone()),
             ..Manifest::default()
         };
-        let warning = version_warning(&manifest).expect("0.57 != 0.56 at this point in history");
-        assert!(warning.contains("0.57"), "{warning}");
+        let warning = version_warning(&manifest)
+            .unwrap_or_else(|| panic!("requires {other} must warn against {running}"));
+        assert!(warning.contains(&other), "{warning}");
 
-        let running = env!("CARGO_PKG_VERSION");
+        // 只有 major.minor 参与比较：补一个补丁号仍然算匹配。
+        let same_minor = Manifest {
+            requires: Some(format!("{major}.{minor}")),
+            ..Manifest::default()
+        };
         let same = Manifest {
             requires: Some(running.to_string()),
             ..Manifest::default()
         };
+        assert_eq!(version_warning(&same_minor), None);
         assert_eq!(version_warning(&same), None);
         assert_eq!(version_warning(&Manifest::default()), None);
     }
