@@ -831,7 +831,13 @@ iface(module) = H( CACHE_FORMAT,
    `import` 会被当成应用的实参吞掉）；加载器的后序 `visit` 返回
    `VisitOutcome::Cycle`，保证入口在拓扑序最后。
 
-4. **新增一笔结构债（已登记）**：`crates/front/src/compile/check.rs` 从 1717 行涨到
+4. **§6 A2 的事件契约按实现改口径（第四条偏差）**：设计原写"`--json` 里能看到 B 的
+   `decl.checked`（事件带 `module: "B"`）"，实现选择的是**只输出入口模块的事件**：
+   依赖的已通过声明不刷屏（一个 12 声明的依赖会把入口的答题流淹没），依赖的**问题**
+   仍以诊断形式带 `file`/`module` 归因；想要某模块自己的事件，把它当入口跑一遍即可
+   （`query check --file <任何模块>` 同样成立）。`build --json` 另给逐文件状态。
+   验收 A2 的正文已按此改写，`docs/protocol.md` 写明。
+5. **新增一笔结构债（已登记）**：`crates/front/src/compile/check.rs` 从 1717 行涨到
    1918 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里，但拆分 `run_pass`
    需要独立一轮（事件流/增量语义不能漂），记录在 `docs/HANDOVER.md` §4 与 P7 backlog。
 
@@ -866,8 +872,10 @@ iface(module) = H( CACHE_FORMAT,
   `cargo test --workspace --locked` 全绿（含 `course.rs`/`course_status.rs`
   两处 golden 表与 756 条既有测试）。
 - **A2（零配置两文件）**：临时目录里只放 `A.sokonanoda`（`import B`）与
-  `B.sokonanoda`，**没有 manifest**：`$SOKO A.sokonanoda` 退出码 0 且
-  `--json` 里能看到 B 的 `decl.checked`（事件带 `module: "B"`）。
+  `B.sokonanoda`，**没有 manifest**：`$SOKO A.sokonanoda` 退出码 0，A 的
+  `decl.checked` 正常输出；B 里已通过的声明**不进**事件流（避免依赖的几十条
+  声明淹没入口），B 的问题以**诊断**形式带 `file`/`module` 出现（见 §5.1 偏差④；
+  要看某个模块自己的事件就把它当入口：`$SOKO B.sokonanoda`）。
 - **A3（清单与根发现）**：深层目录 `proj/src/Lesson/Logic.sokonanoda` +
   `proj/sokonanoda.toml`（`src = "src"`）：在 `proj` 下任意子目录执行
   `$SOKO src/Playground.sokonanoda` 都能解析到同一模块；

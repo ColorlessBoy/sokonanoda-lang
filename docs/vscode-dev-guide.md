@@ -62,6 +62,7 @@
 | 纯 Node 单测 | `npm run test:unit` | server.js 解析顺序/版本锁定 URL/exec 位修复、重定向、解压 | `test-server.js` / `test-download.js` |
 | 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、bundled 解析/版本一致/市场元数据 | `crates/cli/tests/extension.rs` |
 | 打包冒烟 | CI `Package host VSIX` step | `bin/<target>/` 入包、exec 位、`TargetPlatform` | ci.yml |
+| 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
 | 集成测试 | `npm test`（@vscode/test-electron） | 扩展激活、诊断到达、hover 内容、sorry warning（CI 先 stage bundled） | `editor/vscode/src/test/extension.test.js` |
 | 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全、安装态离线） | — |
 
@@ -148,6 +149,26 @@ npm run clean:lsp
     `testutil::notify_with_drain`（先等通知再读 socket 会死锁，见
     `docs/TESTING.md` §5.7）；夹具起点：`handshake_with_root` /
     `did_open_at_drained` / `did_change_at_drained` 与 `crates/lsp/src/tests/project.rs`。
+
+16. **诊断事件是"全窗口"的，必须自己过滤（0.57.0 实测）**——`onDidChangeDiagnostics`
+    会把**别的扩展**（TS/ESLint/rust-analyzer）的诊断也报给你；它也不做内容 diff
+    （`DiagnosticCollection.set` 每次都触发）。早先的监听器收到任何事件都
+    `refresh() + ensureDeclarations() + stateAt`，于是：一个无关 `.ts` 文件报错会跑
+    一整轮 `soko/goals`；项目模式一次编辑发多份文档 ⇒ 一次事件里跑 **2 次**
+    `soko/goals` + 2 次 Infoview 整表重建。现在：`event.uris` 里必须有
+    `.sokonanoda` + 150ms 去抖 + 并发请求合并 + 载荷指纹去重。
+    守护：`editor/vscode/test-extension-host.js` 的前两例（对着旧代码会红）。
+17. **异步请求回来时文档可能已经换了（0.57.0 实测）**——`loadDeclarations()` 曾在
+    `await` **之后**读 `this.uri` 建树节点：请求是 A 发的、回来时用户切到 B，
+    结果树上那行的标签是 A 的声明、点击命令却是 `revealRange(B, A 的洞)`。
+    规矩：**请求发起时把 URI 钉住**（`const requestedUri = this.uri`），`await` 之后
+    先比对再落地（`requestCursorState` 早就是这么做的）；跨文件跳转的目标 URI
+    必须来自钉住的那份文档。守护：`test-extension-host.js` 的"切文件丢弃过期答案"。
+18. **一次课程树 resolve = 一个 CLI 进程 = 11 个单元编译**（release 热缓存实测
+    ~320ms）——树在结果回来前是空的，而 VS Code 会在展开/可见性变化时重新 resolve
+    根节点，所以必须缓存（现在 30s TTL；`sokonanoda.courseRefresh` 与激活强制重跑）。
+    另外 `server.js` 的下载回退里**不能**用 `execSync`（会冻结整个扩展宿主），
+    已改 `await execFile`。
 
 ## 5b. Infoview/视图的硬规矩（0.49.0 教训）
 

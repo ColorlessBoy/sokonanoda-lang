@@ -4,7 +4,13 @@
 三层结构、阈值设计原则与当前基线；**每次 push 都会在 CI 上例行执行**，
 回归即红，且每版留档（`perf-report` artifact，带版本 + commit SHA）。
 
-## 三层结构
+## 分层结构
+
+> I16（0.57.0）起，项目层（`import` 闭包）与**编辑器宿主**各自多了一层探测；
+> 分阶段的**机器可读台账**在 `docs/perf/ledger.jsonl`（`scripts/perf-ledger.sh`），
+> 详见本文末「项目层与编辑器宿主」一节。
+
+### 第 1 层：阈值断言（回归哨兵，CI 强制）
 
 ### 第 1 层：阈值断言（回归哨兵，CI 强制）
 
@@ -80,3 +86,77 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
   每键 × 每块。judge 结果指纹缓存（封顶 128）兜底 by 块 tactic 同源问题。
 - 纪律（`docs/LESSONS.md`）：**front 降低/判定路径禁止 per-keystroke 的
   全文档重编译**；需要内核信息的特性要么缓存、要么只在显式请求时计算。
+
+---
+
+## 项目层与编辑器宿主（I16，0.57.0）
+
+`import` 闭包让"一次按键"的成本从"一个文件"变成"**整个闭包**"（项目模式不走
+单文件增量路径，见 `docs/architecture.md` §4.5）。所以项目层单独有一套哨兵，
+并且**每个阶段**都留一行机器可读记录。
+
+### 新哨兵（第 1 层，CI 强制）
+
+| 测试 | 位置 | 断言 |
+| --- | --- | --- |
+| `project_closure_stage_costs_are_recorded` | `crates/front/tests/perf_project.rs` | 4×20 项目总成本 < 2000ms（数量级哨兵）；`plan+digest` 不主导编译成本 |
+| `project_closure_compile_scales_linearly` | 同上 | 模块数 ×4 ⇒ 时间 < 6.4×（线性 4×，O(n²) 16×） |
+| `project_keystroke_recompiles_the_closure_within_budget` | 同上 | 改一行重编译整个闭包 < 2000ms（数量级哨兵） |
+| `project_compile_with_overlay_costs_the_same_order` | 同上 | 内存覆盖（LSP 每次通知走它）不得比读盘慢一个量级 |
+| `project_cli_cold_and_warm_costs_are_recorded` | `crates/cli/tests/perf_project.rs` | 热缓存必须快于冷跑；依赖改动后必 miss |
+| `project_cli_query_and_build_costs_are_recorded` | 同上 | `build` 之后 `query` 必命中 |
+| `perf_project_did_open_and_keystroke` | `crates/lsp/src/tests/perf.rs` | 一次按键 < 300ms，且**只发一份文档的诊断**（`publishes_per_keystroke == 1`） |
+| `perf_project_dependency_edit_refreshes_dependents` | 同上 | 改依赖 ⇒ 下游被重发；扇出不超过已打开文档数 |
+| `perf_project_requests_are_interactive` | 同上 | 项目入口的 hover / definition / goals 各 < 50ms |
+| `editor/vscode/test-extension-host.js`（7 例） | 扩展宿主 stub | 诊断过滤/合并、并发 goals 合并、切文件丢弃过期答案、webview 去重、课程树缓存 |
+
+### 台账：`scripts/perf-ledger.sh` → `docs/perf/ledger.jsonl`
+
+每个测试打印一行 `PERFJSON {…}`（`schema: soko.perf/1`），脚本把它们连同
+`{version, commit, date, cli_profile, host{system,machine}}` 追加进
+`docs/perf/ledger.jsonl`（**提交进仓库**：跨版本/跨机器对比"哪一环退化了"），
+并覆盖一份 `docs/perf/latest.json`。人读版仍由 `scripts/perf-report.sh` / CI 的
+"Performance report" 步骤产出（两者都包含项目层三段）。
+
+**为什么 CLI 用 release、front/lsp 用测试 profile**：`[profile.test] opt-level = 3`，
+所以 front/lsp 的测试数值已经接近发布；而 `cargo test` 为 CLI 集成测试编的
+**二进制**走 `[profile.dev]`（opt-level 0），冷编译会慢一个量级——那不是用户看到
+的数字（实测同一 3×12 项目：release 冷 24ms / debug 冷 405ms）。CLI 一律
+`--release`，台账里记 `cli_profile`。
+
+### 当前基线（2026-09-18，v0.57.0，Apple Silicon，`cli_profile=release`）
+
+| 场景 | 实测 |
+| --- | --- |
+| front 分阶段（4 模块 × 20 声明） | plan 0.3–0.7ms · digest ~0.005ms · **compile 90–110ms** · total ≈ 91–111ms |
+| front 缩放（4/8/16 模块 × 10 声明） | 46–65 / 73–87 / 135–152 ms，4× 规模 ⇒ 2.4–3.0×（线性） |
+| front 一次按键（4×20，全部重编译） | 96–123ms |
+| front 教学规模一次按键（2/3/5 模块 × 12 声明） | **12–46ms**（负载敏感；空载 12.7 / 16.2 / 24.0ms） |
+| front 内存覆盖 vs 读盘（4×20） | 33.1 vs 33.2ms（覆盖无额外成本） |
+| LSP 项目 didOpen / 一次按键（2×12） | 34–72ms / **25–49ms，每次按键 1 份诊断** |
+| LSP 改依赖 ⇒ 下游刷新（3×12，两文档打开） | 2 份诊断，2ms；下游 1 条 `import-dependency-failed` |
+| LSP 项目 hover / definition / goals | 各 < 1ms |
+| CLI 项目冷 / 热 / 依赖改动后（3×12，release） | **29.8ms / 3.2ms / 24.1ms**（必 miss） |
+| CLI `build` / `query` 冷 / `query` 热（3×12） | 50.7ms / 48.8ms / 37.2ms（见下方"query 不走项目缓存"） |
+| 扩展：一次诊断事件（修复后） | **1 × `soko/goals` + 1 × `soko/stateAt`**（修复前 2 goals + 2 次 webview 整表重建） |
+| 扩展：无关语言（`.ts`）的诊断事件 | 0 次请求（修复前 1 × goals） |
+| 扩展：光标移动（200ms 去抖） | 1 × `stateAt`，~1KB / 49 DOM 节点 / 0.17ms |
+| 扩展：Infoview `decls` 整表重建（50 条） | 28.6KB / 1200 节点 / 1.2–2.1ms（内容不变时不发） |
+| 扩展：课程树一次 CLI 运行（11 单元，release 热缓存） | ~320ms；现在 30s 内复用（原来每次 resolve 都重跑） |
+| 键盘路径的客户端合并 | `vscode-languageclient` 9.x FULL sync **250ms trailing** 批量：连打只发一次最终文本 |
+
+**测量纪律（踩过）**：macOS 上**刚构建出来的二进制第一次 spawn 要付 ~425ms**
+（代码签名校验/页缓存，`--version` 也一样），与编译无关。CLI 性能测试必须先
+`warm_up()` 打掉它，否则"冷跑"记的是首次执行成本（第一次写这套测试时记成了
+527ms，真实值 29.8ms）。同理，front 的 perf 测试都有显式预热。
+
+**已知不一致（记录待办）**：`check` 走闭包缓存（热 3.2ms），而 **`query` 不走**
+（热 37.2ms，每次重新编译闭包）——`front::query::QueryDoc` 与 LSP 一样跳过项目
+缓存（因为 `--text` 的中间态文本不在磁盘上）。对 agent 的调用频率来说 37ms 可接受，
+但 `query --file <未改动的文件>` 本可以命中；修法是把 `check` 的闭包缓存判定搬进
+`crates/cli/src/query.rs`（或让 `QueryDoc` 接受一个可选的闭包摘要）。已登记
+`docs/HANDOVER.md` §4。
+
+结论：**教学规模（2–5 个模块、每模块 ~12 条声明）一次按键 12–46ms，编辑器无感**；
+4×20 的"大项目"约 0.1s，属于可接受但值得盯的量级。项目模式没有跨模块增量——
+真要优化，方向是"按模块复用已查环境"（设计 §1.3 已明确 v1 不做，见 P7）。

@@ -200,6 +200,10 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 - **接手前必须知道的三条**：① 诊断**按命令下标**归属文件（`CompileOutput.error_cmds`），
   按 span 会串文件；② 项目模式只对"解析出 import"的文件启用（A1 是硬不变量）；
   ③ `crates/front/src/project/` 是唯一闭包实现，改它先读 `docs/architecture.md` §4.5。
+- **性能例行化（0.57.0）**：`scripts/perf-ledger.sh` 跑全部 perf 套件并把分阶段
+  记录追加进 `docs/perf/ledger.jsonl`（跨版本对比"哪一环退化"）；基线见
+  `docs/PERF.md`「项目层与编辑器宿主」。扩展侧新增宿主层行为测试
+  `editor/vscode/test-extension-host.js`（stub host，7 例）。
 - **LSP 能力（0.57.0 完整）**：多文档、跨文件 `definition`/`references`/`rename`、
   改依赖自动刷新下游（未落盘编辑经内存覆盖可见）、诊断只在变化时重发。
   留 P7 backlog 的只有：`didChangeWatchedFiles`（编辑器外改文件不触发刷新）、
@@ -224,6 +228,10 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   （`scripts/perf-arena.sh`）；见 `docs/PERF.md`。
 - **`TESTING.md §5` 盲区**：编辑器 codeLens/quick-fix 已补进程内 rpc；VS Code
   Electron 集成走 `editor/vscode/src/test/extension.test.js`。
+- **（0.57.0 登记）`query` 不走项目闭包缓存**：`check` 热 3.2ms，`query check` 热
+  37.2ms（每次重新编译闭包）——`front::query::QueryDoc` 与 LSP 一样跳过项目缓存。
+  修法：把 `crates/cli/src/check.rs` 的闭包摘要缓存判定搬进 `crates/cli/src/query.rs`
+  （或让 `QueryDoc` 接受可选的摘要 + 覆盖）。数字见 `docs/PERF.md`。
 - **（0.57.0 新增，结构债）`crates/front/src/compile/check.rs` 1918 行**：I16 把闭包
   编译加在这里（`compile_all_units` / `split_report` / `unit_ranges` /
   `top_level_def_spans_over`，+201 行），但**`run_pass` 仍是 553–1726 行的单个函数**

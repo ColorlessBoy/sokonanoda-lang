@@ -1,6 +1,6 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-18（第九十二轮：I16 落地 —— `import` 闭包 + 项目管理，版本 **0.57.0**；P0–P6 完成，P7 = backlog）
+> 快照：2026-09-18（第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复；版本 **0.57.0**，P0–P6 完成）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -14,6 +14,52 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）
+
+> 用户：「各个环节的性能例行化检测并记录在案，方便后续分析检查。再多增加点项目相关
+> 的测试，功能和性能，包括 vscode 前端会不会卡，有没有实现不对的地方。」
+> 本轮 = **可复现的性能台账**（分阶段、机器可读、提交进仓库）+ 项目层功能/性能测试
+> 扩充 + 对扩展前端做了一次审计并把查出的**两处真 bug** 修掉。
+
+1. **性能例行化（分阶段 + 台账）**：新增 `crates/front/tests/perf_project.rs`
+   （plan / digest / compile / 一次按键 / 内存覆盖 / 线性缩放）、
+   `crates/cli/tests/perf_project.rs`（冷、热、依赖改动必 miss、`build`+`query`）、
+   `crates/lsp/src/tests/perf.rs` 的三条项目例（didOpen / 按键 / 改依赖刷新下游 /
+   请求延迟）。每个阶段打印 `PERFJSON`（`schema: soko.perf/1`），
+   **`scripts/perf-ledger.sh` → `docs/perf/ledger.jsonl`**（追加式、带
+   version/commit/日期/宿主/`cli_profile`）；`docs/perf/latest.json` 便于直读。
+   CI 的 "Performance report" 与 `scripts/perf-report.sh` 同步收录这三段。
+2. **实测基线（教学规模无感）**：front 4×20 项目 compile 90–110ms、一次按键
+   96–123ms、缩放线性（4× 规模 ⇒ 2.4–3.0×）；**教学规模 2/3/5 模块 × 12 声明
+   一次按键 12–46ms**；LSP 项目按键 25–49ms 且**每次按键只发 1 份诊断**；
+   CLI release 冷 23.5ms / 热 4.4ms；内存覆盖与读盘同价（33.1 vs 33.2ms）。
+3. **扩展前端审计（两个真 bug，已修 + 已加回归）**：
+   - **切文件竞态**：`loadDeclarations()` 在 `await` 之后读 `this.uri` 建树节点——
+     A 的请求、切到 B 之后回来，树上那行的标签是 A 的声明、点击却是
+     `revealRange(B, A 的洞)`（stub host 复现）。现在请求发起时钉住 URI、回来先比对。
+   - **诊断监听器全窗口且无去抖/去重**：别的扩展（TS/ESLint）报错也会跑一整轮
+     `soko/goals`；项目模式一次编辑的事件里会跑 **2 次** goals + 2 次 Infoview
+     整表重建。现在按 URI 过滤（只理 `.sokonanoda`）+ 150ms 去抖 + 并发合并 +
+     载荷指纹去重。
+   - 顺手：课程树缓存一次 CLI 运行（30s TTL，热缓存一次 ~320ms / 11 个单元）、
+     `server.js` 下载回退的 `execSync tar` 改 `await execFile`（不再冻结宿主）。
+   - **新增测试层** `editor/vscode/test-extension-host.js`（stub 的
+     vscode/languageclient/child_process + 假定时器跑真 `extension.js`，7 例，
+     零依赖毫秒级），接入 `npm run test:unit`；对着**修复前**的代码 5/7 会红
+     （证据）。`crates/cli/tests/extension.rs` 新增契约守住这四个 Node 文件都在册。
+4. **项目层功能测试**：新增 `crates/cli/tests/project_features.rs`（11 例：两级嵌套
+   模块名、菱形依赖 + 缓存失效、两个入口共享依赖且缓存不串台、依赖解析错误归因、
+   文件/目录同名、import 位置与形态错误、`build` 逐文件状态、嵌套项目的
+   `query` 计数一致、入口拒绝退出 1 而依赖 `sorry` 退出 0）。
+5. **顺手修掉的缺陷**：`import my-lib` 的报错文案把横线写了两次（`my--…` →
+   `my-…`，front token 层 + 单测）；`docs/protocol.md` 的人类输出口径写成
+   `error[<code>]`，实际是 `error[<stage>]`；设计 §6 A2 承诺的"依赖 `decl.checked`
+   事件带 module"与实现不符——按实现改口径（只输出入口事件，依赖的问题走诊断，
+   §5.1 偏差④）。
+6. **测试与门禁**：`cargo test --workspace --locked` 全绿（front 450+ / LSP 130+ /
+   CLI 200+，含新增 4 个 perf 例、11 个功能例、7 个宿主例）；
+   `node editor/vscode/test-extension-host.js` 7/7；`scripts/soko gate` PASS。
 
 ## 本轮进度（2026-09-18，第九十二轮：I16 落地 —— `import` 闭包 + 项目管理，0.57.0）
 
@@ -131,40 +177,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `docs/notes/multifile-prior-art.md`（新）、`docs/notes/project-roots-and-incremental-caches.md`（新）、
    `ROADMAP.md` I16、`REQUIREMENTS.md` §9（九十一）、`docs/README.md`（设计/笔记索引）、
    `docs/HANDOVER.md` §3 G、本文；**零代码改动、零版本变更**。
-
-## 本轮进度（2026-09-17，第九十轮：清掉 HANDOVER §4 的 LSP 测试文件债 + 0.56.1 发布）
-
-> 用户：「继续 handover 吧，完成之后再 bump」。本轮 = 清第八十九轮登记的两笔结构债
-> 里剩下的那笔（`crates/lsp/src/tests.rs` 2567 行），然后 bump 发 **0.56.1**。
-
-1. **测试文件拆分（零语义改动）**：`crates/lsp/src/tests.rs` 2567 行 →
-   `crates/lsp/src/tests/` 一目录：`mod.rs` **399**（31 个共享 const/fixture +
-   `pub(crate) use` 再导出，子模块靠 `use super::*;` 取用）+ 9 个特性文件
-   （`hover` 392 / `lenses` 366 / `navigation` 280 / `state` 262 / `goals` 252 /
-   `lifecycle` 242 / `hover_brackets` 167 / `tokens` 122 / `perf` 117），
-   `by_sorry_range_tests.rs`（60）原地保留。`lib.rs` 仍 **1105 行**——
-   `#[cfg(test)] mod tests;` 自动解析到 `tests/mod.rs`，一行未改。
-2. **"移动而非改写"的证据**（这次也按上轮的标准自证）：HEAD 的 `tests.rs` 里
-   **107/107 顶层 item 逐字出现在新文件**、8/8 banner 注释保留、规范化代码行
-   多重集 **2394 == 2394**（only-in-old 0 / only-in-new 0）；函数名 **95/95 一致**、
-   测试名各出现一次（76 个测试：72 `#[tokio::test]` + 4 `#[test]`）、
-   assert 记账 **214（tests/）+ 6（by_sorry）== HEAD 的 214 + 6 = 220**。
-   新增行只有 plumbing：模块 doc 4 行、`use super::*;` ×10、`pub(crate) use` 再
-   导出块、`mod …;` ×9；编译期唯一被迫改动是去掉再导出里没人用的 `Value`。
-3. **两轮验证**：拆分中途（全部子文件首次编译通过）与冻结最终态各跑一遍
-   `cargo test -p sokonanoda-lsp --locked` = **117 passed / 0 failed**；
-   `cargo fmt --check` exit 0（**首次 fmt 没有改动任何文件**）；
-   `cargo clippy -p sokonanoda-lsp --all-targets` exit 0、`crates/lsp/**` 零 warning。
-4. **HANDOVER §4 的债清零**：`docs/HANDOVER.md` 该条从"已知债 + 拆分方案"改为
-   "0.56.1 已清 + 最终布局"；`docs/TESTING.md` 的 LSP 行、设计文档 §3.2 文件表、
-   `ROADMAP.md` I15 的备注同步到 `tests/` 新路径与新行数。
-5. **版本 0.56.0 → 0.56.1**（内部重构，无用户可见变更）：`Cargo.toml` +
-   `editor/vscode/package.json` 两处同步、`editor/vscode/CHANGELOG.md` 记
-   "内部重构（测试文件拆分），扩展行为不变"。按仓库流程 push main → `ci.yml`
-   auto-tag `v0.56.1` → `release.yml` 出八平台产物 + VSIX + marketplace。
-6. **验收**：`cargo test --workspace --locked` 全绿（756）、fmt 零 diff、
-   clippy 教学 crates 零 warning、`scripts/soko gate` **PASS**；发布 job 全绿后
-   用发布产物复验（同第八十九轮的做法）。
-7. **本轮产物**：`crates/lsp/src/tests/`（10 个文件）、`docs/HANDOVER.md`、
-   `docs/TESTING.md`、`docs/design/agent-query-channel.md`、`ROADMAP.md`、
-   `REQUIREMENTS.md` §9、`editor/vscode/CHANGELOG.md`、两处版本号。

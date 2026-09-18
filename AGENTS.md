@@ -92,6 +92,7 @@ scripts/soko update                       # 强制刷新到仓库版本
 
 ```bash
 scripts/soko gate   # = CI 门禁：fmt + clippy + test + playground 锚点
+scripts/perf-ledger.sh   # 性能台账：跑全部 perf 套件 → docs/perf/ledger.jsonl（提交它）
 # 注意：gate 的 anchor 用**运行中二进制**的内嵌编译器；若它与仓库版本不一致
 # （旧缓存/旧构建），gate 会直接 exit 3 —— 先 `scripts/soko update`，或用
 # `cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda`。

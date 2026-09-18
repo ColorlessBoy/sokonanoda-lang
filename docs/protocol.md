@@ -144,7 +144,9 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `sokonanoda.toml`, and `import-module-invalid` reports an imported file that
   does not parse at all.
 
-Human output prints `error[<code>]: <message>`; JSON diagnostics carry
+Human output prints `error[<stage>]: <message>` — the bracket carries the
+**pipeline stage** (`parse`/`import`/`elab`/`kernel`), not the code; the stable
+code and the teaching `hint` are JSON-only (`--json`). JSON diagnostics carry
 `stage`, `code`, `message` and a `hint`. The LSP maps the same data onto
 `publishDiagnostics` (message + hint, code, range) and `hover` (type map /
 goal text); see `docs/design/infrastructure.md` F1–F8.

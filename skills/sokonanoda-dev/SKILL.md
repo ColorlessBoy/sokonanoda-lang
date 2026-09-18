@@ -47,6 +47,10 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 - **模块化**：任何文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
 - **交接友好**：落 commit 前先更新 `STATUS.md`；用户新要求追加进
   `REQUIREMENTS.md` §9 并注明日期，冲突时以该文件为准。
+- **性能例行化**：动编译/项目/LSP 路径后跑 `scripts/perf-ledger.sh`
+  （分阶段 `PERFJSON` → `docs/perf/ledger.jsonl`，提交这份记录）；口径与阈值
+  原则见 `docs/PERF.md`「项目层与编辑器宿主」。扩展有独立的宿主层行为测试
+  `editor/vscode/test-extension-host.js`（在 `npm run test:unit` 里）。
 - **VS Code + skills 同步**：用户可见改动必须**同一轮**改 `editor/vscode/` **与**
   `skills/` 三个技能 + `AGENTS.md` + `docs/vscode-dev-guide.md`（测试 `crates/cli/tests/skill.rs`）。
 - **code agent 适配是一等公民**：计划里先定「agent 怎么用/验证」——`--json` 结构化输出、

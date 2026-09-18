@@ -26,6 +26,25 @@
 - Single-file behaviour is untouched: a file with no `import` takes the exact same
   code path and produces byte-identical output.
 
+### Fixed
+
+- **The exercise tree and Infoview could describe the wrong file.** Switching
+  documents while a `soko/goals` request was in flight built the rows from the
+  *new* file's URI but the *old* file's declarations — clicking a row then
+  jumped to a range in the wrong document. The request now pins its document and
+  a stale answer is dropped.
+- **Any extension's diagnostics re-ran our analysis.** The diagnostics listener
+  was global (a TypeScript error from another extension triggered
+  `soko/goals` + a full tree/Infoview rebuild) and fired up to twice per project
+  edit. It now only reacts to `.sokonanoda` files, debounces 150 ms, merges
+  concurrent requests, and skips re-posting an unchanged declaration list to the
+  Infoview.
+- The course tree re-ran the CLI (11 unit compiles, ~320 ms warm) on every root
+  resolve; results are now reused for 30 s and re-run on
+  `sokonanoda: refresh course map`.
+- The universal-VSIX download fallback no longer blocks the extension host while
+  unpacking (`execSync tar` → async).
+
 ### Notes
 
 - New course unit ⑪ ("modules and projects") with a runnable two-file example

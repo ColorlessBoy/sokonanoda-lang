@@ -1091,3 +1091,33 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     `ROADMAP.md`、`STATUS.md`、三个 skills、`AGENTS.md`、`dsh/README.md`、
     `editor/vscode/README.md`、`docs/design/deepseek-harness.md`、`site/data/site.json`；
     `scripts/soko gate` PASS + `cargo test --workspace --locked` 全绿。
+
+- 2026-09-18（九十三）：**项目层性能例行化 + 测试扩充 + 编辑器审计修复**（用户要求：
+  「各个环节的性能例行化检测并记录在案，方便后续分析检查。再多增加点项目相关的测试，
+  功能和性能，包括 vscode 前端会不会卡，有没有实现不对的地方」）：
+  - **性能例行化**：每个阶段（front plan/digest/compile/按键/内存覆盖/缩放、CLI
+    冷/热/依赖改动必 miss/`build`+`query`、LSP 项目 didOpen/按键/改依赖刷新下游/请求
+    延迟）都有阈值哨兵 + 一行 `PERFJSON`；`scripts/perf-ledger.sh` 把记录连同
+    version/commit/日期/宿主/`cli_profile` 追加进 **`docs/perf/ledger.jsonl`**
+    （提交进仓库，供跨版本分析"哪一环退化了"），`docs/perf/latest.json` 直读；
+    CI 的 Performance report 与 `scripts/perf-report.sh` 同步收录。口径与基线见
+    `docs/PERF.md`「项目层与编辑器宿主」。
+  - **实测结论**：教学规模（2–5 模块 × 12 声明）一次按键 **12–46ms**（编辑器无感）；
+    4×20 的项目 96–123ms；LSP 每次按键只发 1 份诊断；CLI release 冷 23.5ms / 热 4.4ms；
+    键盘路径由 `vscode-languageclient` 以 250ms trailing 批量合并，扩展自身零按键开销。
+  - **编辑器审计修复（两处真 bug）**：① 切文件竞态——`loadDeclarations()` 在 `await`
+    之后读 `this.uri`，会产出"标签是 A 的声明、点击跳 B"的树行；现在请求发起时钉住
+    URI 并丢弃过期答案。② 诊断监听器全窗口、无去抖/去重——别的扩展的诊断也会触发
+    `soko/goals`，项目模式一次编辑触发 2 次 goals + 2 次 Infoview 整表重建；现在按
+    URI 过滤 + 150ms 去抖 + 并发合并 + 载荷指纹去重。附带：课程树缓存一次 CLI 运行
+    （30s TTL；热缓存一次 ~320ms 编译 11 个单元）、下载回退的 `execSync tar` 改异步。
+  - **测试新增**：`editor/vscode/test-extension-host.js`（stub 宿主的 7 例行为测试，
+    接入 `npm run test:unit`；对修复前代码 5/7 会红）、
+    `crates/cli/tests/project_features.rs`（11 例 CLI 项目功能）、
+    4 个 front/CLI 项目 perf 例、3 个 LSP 项目 perf 例、1 个扩展契约例
+    （四个 Node 测试文件必须在 `test:unit` 在册）。
+  - **顺手修**：`import my-lib` 文案双横线（`my--…` → `my-…`）；
+    `docs/protocol.md` 人类输出的 `error[<stage>]` 口径；设计 §6 A2 的事件契约按实现
+    改口径（入口事件 only，依赖问题走诊断，§5.1 偏差④）。
+  - **门禁**：`cargo test --workspace --locked` 全绿 + `scripts/soko gate` PASS +
+    `node editor/vscode/test-extension-host.js` 7/7。

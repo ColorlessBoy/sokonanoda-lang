@@ -1,8 +1,45 @@
-# STATUS 归档（第 1–89 轮，2026-09-06 → 2026-09-17）
+# STATUS 归档（第 1–90 轮，2026-09-06 → 2026-09-18）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-17，第九十轮：清掉 HANDOVER §4 的 LSP 测试文件债 + 0.56.1 发布）
+
+> 用户：「继续 handover 吧，完成之后再 bump」。本轮 = 清第八十九轮登记的两笔结构债
+> 里剩下的那笔（`crates/lsp/src/tests.rs` 2567 行），然后 bump 发 **0.56.1**。
+
+1. **测试文件拆分（零语义改动）**：`crates/lsp/src/tests.rs` 2567 行 →
+   `crates/lsp/src/tests/` 一目录：`mod.rs` **399**（31 个共享 const/fixture +
+   `pub(crate) use` 再导出，子模块靠 `use super::*;` 取用）+ 9 个特性文件
+   （`hover` 392 / `lenses` 366 / `navigation` 280 / `state` 262 / `goals` 252 /
+   `lifecycle` 242 / `hover_brackets` 167 / `tokens` 122 / `perf` 117），
+   `by_sorry_range_tests.rs`（60）原地保留。`lib.rs` 仍 **1105 行**——
+   `#[cfg(test)] mod tests;` 自动解析到 `tests/mod.rs`，一行未改。
+2. **"移动而非改写"的证据**（这次也按上轮的标准自证）：HEAD 的 `tests.rs` 里
+   **107/107 顶层 item 逐字出现在新文件**、8/8 banner 注释保留、规范化代码行
+   多重集 **2394 == 2394**（only-in-old 0 / only-in-new 0）；函数名 **95/95 一致**、
+   测试名各出现一次（76 个测试：72 `#[tokio::test]` + 4 `#[test]`）、
+   assert 记账 **214（tests/）+ 6（by_sorry）== HEAD 的 214 + 6 = 220**。
+   新增行只有 plumbing：模块 doc 4 行、`use super::*;` ×10、`pub(crate) use` 再
+   导出块、`mod …;` ×9；编译期唯一被迫改动是去掉再导出里没人用的 `Value`。
+3. **两轮验证**：拆分中途（全部子文件首次编译通过）与冻结最终态各跑一遍
+   `cargo test -p sokonanoda-lsp --locked` = **117 passed / 0 failed**；
+   `cargo fmt --check` exit 0（**首次 fmt 没有改动任何文件**）；
+   `cargo clippy -p sokonanoda-lsp --all-targets` exit 0、`crates/lsp/**` 零 warning。
+4. **HANDOVER §4 的债清零**：`docs/HANDOVER.md` 该条从"已知债 + 拆分方案"改为
+   "0.56.1 已清 + 最终布局"；`docs/TESTING.md` 的 LSP 行、设计文档 §3.2 文件表、
+   `ROADMAP.md` I15 的备注同步到 `tests/` 新路径与新行数。
+5. **版本 0.56.0 → 0.56.1**（内部重构，无用户可见变更）：`Cargo.toml` +
+   `editor/vscode/package.json` 两处同步、`editor/vscode/CHANGELOG.md` 记
+   "内部重构（测试文件拆分），扩展行为不变"。按仓库流程 push main → `ci.yml`
+   auto-tag `v0.56.1` → `release.yml` 出八平台产物 + VSIX + marketplace。
+6. **验收**：`cargo test --workspace --locked` 全绿（756）、fmt 零 diff、
+   clippy 教学 crates 零 warning、`scripts/soko gate` **PASS**；发布 job 全绿后
+   用发布产物复验（同第八十九轮的做法）。
+7. **本轮产物**：`crates/lsp/src/tests/`（10 个文件）、`docs/HANDOVER.md`、
+   `docs/TESTING.md`、`docs/design/agent-query-channel.md`、`ROADMAP.md`、
+   `REQUIREMENTS.md` §9、`editor/vscode/CHANGELOG.md`、两处版本号。
 
 ## 本轮进度（2026-09-17，第八十九轮：内核真相查询通道落地 —— H6-A/H6-B/H6-C + 门面收尾）
 

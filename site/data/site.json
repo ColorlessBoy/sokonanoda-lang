@@ -6,9 +6,9 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 92,
+  "round": 93,
   "round_date": "2026-09-18",
-  "round_title": "I16 落地 —— import 闭包 + 项目管理，0.57.0",
+  "round_title": "项目层性能例行化 + 测试扩充 + 编辑器审计修复",
   "units": [
     {
       "en_file": "course/en/unit1-propositions-proofs.sokonanoda",
