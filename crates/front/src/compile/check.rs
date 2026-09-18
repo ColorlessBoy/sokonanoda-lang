@@ -384,13 +384,11 @@ pub fn compile_all_units(
 fn lower_by_val(
     ty: &Expr,
     val: &Expr,
-    src: &str,
-    span_start: usize,
+    prefix_src: &str,
     options: &CompileOptions,
 ) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
     if let Some((binders, by)) = crate::by::split_by_value(val) {
-        let prefix = src.get(..span_start).unwrap_or("");
-        crate::by::run_by(ty, by, &binders, prefix, options).map(|o| (o.expr, o.steps))
+        crate::by::run_by(ty, by, &binders, prefix_src, options).map(|o| (o.expr, o.steps))
     } else {
         Ok((val.clone(), Vec::new()))
     }
@@ -401,14 +399,18 @@ fn lower_by_val(
 pub(crate) type LoweredValue = (Expr, Vec<crate::by::ByStep>);
 
 /// 值位是 `by` 块时走 tactic 引擎；其它值原样透传。
+///
+/// `prefix_src` 是**已经算好的**前缀源码（闭包模式下含依赖声明，见 `run_pass`
+/// 里的 `closure_prefixes`）。tactic 引擎靠它合成 `#check` 文件来解析
+/// `apply` 的函数类型、`exact` 的项——只给本文件前缀时，入口里
+/// `apply And.intro` 会报 `elab-tactic-failed: unknown identifier`（实测）。
 fn lower_value(
     ty: &Expr,
     val: &Expr,
-    src: &str,
-    span_start: usize,
+    prefix_src: &str,
     options: &CompileOptions,
 ) -> Result<LoweredValue, CompileError> {
-    lower_by_val(ty, val, src, span_start, options)
+    lower_by_val(ty, val, prefix_src, options)
 }
 
 /// 引擎的 per-step 状态 → 报告层 wire 形状（binder 类型渲染成文本）。
@@ -614,6 +616,27 @@ fn run_pass(
         .collect();
     let unit_of_cmd: Vec<usize> = flat.iter().map(|(unit, _)| *unit).collect();
 
+    // `match` 的宇宙层级、`apply` 的函数类型等都靠"合成一个前缀文件再问内核"
+    // （`judge_infer`）。项目模式下被导入模块的声明**不在本文件源码里**，只拼
+    // 本文件前缀会让内核看不到它们——入口里对导入归纳类型做 `match` 就会报
+    // `elab-match-no-expected-type`（实测：`import Logic` + `match h with … Or …`）。
+    // 所以这里按拓扑序把**前面每个单元的声明文本**接成闭包前缀；单文件模式
+    // （`units.len() == 1`）不构造，行为与今天逐字节相同（A1）。
+    let closure_prefixes: Vec<String> = if units.len() > 1 {
+        let mut prefixes = Vec::with_capacity(units.len());
+        let mut accumulated = String::new();
+        for unit in units {
+            prefixes.push(accumulated.clone());
+            accumulated.push_str(&importless_source(&unit.file.src));
+            if !accumulated.ends_with('\n') {
+                accumulated.push('\n');
+            }
+        }
+        prefixes
+    } else {
+        Vec::new()
+    };
+
     let mut failed_cmds: KernelFailed = HashMap::new();
     let mut built_inductives: Vec<Declar<'_>> = Vec::new();
     let mut kernel_checks = 0usize;
@@ -622,12 +645,23 @@ fn run_pass(
         let templates = &all_templates[*unit_idx];
         let trusted = trust.is_some_and(|t| idx < t.before);
         let env_before = builder.declaration_count();
-        // `match` 的宇宙查询用前缀源码（与 `by` 同一条合成 `#check` 路线）。
-        let prefix_src = unit
+        // `match` 的宇宙查询用前缀源码（与 `by` 同一条合成 `#check` 路线）：
+        // 闭包模式 = 依赖声明文本 + 本文件到当前命令为止的前缀。
+        let own_prefix = unit
             .file
             .src
             .get(..command.span().start.offset)
             .unwrap_or("");
+        let with_deps;
+        let prefix_src: &str = match closure_prefixes.get(*unit_idx) {
+            Some(deps) if !deps.is_empty() => {
+                // 本文件前缀里的 `import` 行也要去掉：合成文件里它已经不在文件
+                // 开头，留着会让合成文件解析失败（那正是上一次尝试踩的坑）。
+                with_deps = format!("{deps}{}", importless_source(own_prefix));
+                &with_deps
+            }
+            _ => own_prefix,
+        };
         match command {
             // `import` 自身不产生声明：被导入模块的命令由项目层按拓扑序
             // 先送进同一个 EnvBuilder（docs/design/imports-and-projects.md §4.5）。
@@ -644,8 +678,7 @@ fn run_pass(
                     options,
                     inductives: &inductives,
                 };
-                let lowered = match lower_value(ty, val, &unit.file.src, span.start.offset, options)
-                {
+                let lowered = match lower_value(ty, val, prefix_src, options) {
                     Ok(v) => v,
                     Err(e) => {
                         out.push_error(idx, e.clone());
@@ -802,8 +835,7 @@ fn run_pass(
                     options,
                     inductives: &inductives,
                 };
-                let lowered = match lower_value(ty, val, &unit.file.src, span.start.offset, options)
-                {
+                let lowered = match lower_value(ty, val, prefix_src, options) {
                     Ok(v) => v,
                     Err(e) => {
                         out.push_error(idx, e.clone());
@@ -1054,8 +1086,7 @@ fn run_pass(
                     options,
                     inductives: &inductives,
                 };
-                let lowered = match lower_value(ty, val, &unit.file.src, span.start.offset, options)
-                {
+                let lowered = match lower_value(ty, val, prefix_src, options) {
                     Ok(v) => v,
                     Err(e) => {
                         out.push_error(idx, e.clone());
@@ -1772,6 +1803,25 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
 /// internal errors) become `Err(message)` instead of unwinding through the
 /// pipeline, so the caller can classify them like any other rejection.
 /// Same contract as `resolve_hovers`.
+/// 合成前缀用：去掉 `import` 命令行。
+///
+/// 闭包前缀是"多个模块源码首尾相接"，而 `import` 语义上必须排在文件最前——
+/// 直接拼接会在第二个模块处出现文件中间的 `import`，合成文件连解析都过不去。
+/// 只过滤**代码行**（`--` 注释里的 "import" 字样保留：它们不影响语义，但也不
+/// 该被误伤成"代码"）。
+fn importless_source(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    for line in source.lines() {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("import ") || trimmed == "import" {
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    out
+}
+
 fn quiet_catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
     let previous_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));

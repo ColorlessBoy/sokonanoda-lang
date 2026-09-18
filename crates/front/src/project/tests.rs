@@ -534,3 +534,78 @@ axiom And.mk : forall (a b : Prop), a -> b -> And a b\n"
     assert_ne!(plan.digest(&options), overlaid.digest(&options));
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn match_on_an_imported_inductive_infers_its_universe() {
+    // 回归：入口里对**被导入模块**声明的归纳类型做 `match`。宇宙层级查询走
+    // `judge_infer(prefix_src, …)` 合成一个前缀文件再问内核；前缀只拼本文件时
+    // 内核看不见被导入的 `Or`，于是报 `elab-match-no-expected-type`
+    // （2026-09-18 实测：`import Logic` + `match h with | inl … | inr …`）。
+    // 修法：闭包模式下前缀 = 前面各单元的声明文本（去掉 `import` 行）+ 本文件前缀。
+    let dir = tmp_dir("match-imported");
+    write(
+        &dir,
+        "Logic.sokonanoda",
+        "inductive Or (A B : Prop) : Prop\nctor inl (a : A) : Or A B\nctor inr (b : B) : Or A B\nend\n",
+    );
+    let entry = write(
+        &dir,
+        "Main.sokonanoda",
+        "import Logic\n\n\
+theorem or_comm (A : Prop) (B : Prop) (h : Or A B) : Or B A :=\n\
+  match h with\n\
+  | inl a => inr B A a\n\
+  | inr b => inl B A b\n",
+    );
+    let report = compile_project(&entry, None, &CompileOptions::default(), None);
+    assert!(report.diagnostics.is_empty(), "{:?}", codes(&report));
+    let entry_errors: Vec<&'static str> = report
+        .entry_module()
+        .map(|module| {
+            module
+                .report
+                .errors
+                .iter()
+                .map(|error| error.code())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(entry_errors.is_empty(), "{entry_errors:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn by_tactics_read_imported_types_through_the_judge_prefix() {
+    // 同一条前缀也喂给 `apply`（它要读被应用函数的类型）与 binder 推断。
+    // 依赖里声明、入口里 `apply`：闭包前缀必须让 judge 看见 `And.intro`。
+    let dir = tmp_dir("judge-imported");
+    write(
+        &dir,
+        "Logic.sokonanoda",
+        "axiom And : Prop -> Prop -> Prop\n\
+axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n",
+    );
+    let entry = write(
+        &dir,
+        "Main.sokonanoda",
+        "import Logic\n\n\
+theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := by\n\
+  apply And.intro\n\
+  exact h\n\
+  exact k\n",
+    );
+    let report = compile_project(&entry, None, &CompileOptions::default(), None);
+    let entry_errors: Vec<&'static str> = report
+        .entry_module()
+        .map(|module| {
+            module
+                .report
+                .errors
+                .iter()
+                .map(|error| error.code())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(entry_errors.is_empty(), "{entry_errors:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
