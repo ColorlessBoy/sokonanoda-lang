@@ -123,14 +123,22 @@ impl<'a> Lexer<'a> {
                         // 模块名字符（与官方 Lean 同规则），给专门的教学提示，
                         // 而不是让通用的 "expected `->` or `--`" 糊过去。
                         let end = self.pos();
+                        // `partial` 是**当前行已经写下的部分**，扫描到 `-` 才停，
+                        // 所以它通常已经带上了这个横线——再补一个就成了 `my--…`
+                        // （实测踩过）。这里只在真的缺横线时补。
+                        let shown = if partial.ends_with('-') {
+                            partial.to_string()
+                        } else {
+                            format!("{partial}-")
+                        };
                         return Err(Diagnostic::new(
                             DiagnosticKind::ImportNotAModuleName {
-                                module: format!("{partial}-"),
-                                message: format!("`import {partial}-…`：模块名里不能有 `-`"),
+                                module: shown.clone(),
+                                message: format!("`import {shown}…`：模块名里不能有 `-`"),
                                 hint: crate::project::module_name::DASH_HINT,
                             },
                             Span::new(start, end),
-                            format!("`import {partial}-…`：模块名里不能有 `-`"),
+                            format!("`import {shown}…`：模块名里不能有 `-`"),
                         ));
                     } else {
                         return Err(self.err_unexpected(start, "expected `->` or `--`", "-"));
@@ -415,6 +423,22 @@ mod tests {
         let toks = tokenize("α'1").unwrap();
         assert_eq!(toks[0].kind, TokenKind::Ident("α'1".into()));
         assert_eq!(toks[1].kind, TokenKind::Eof);
+    }
+
+    /// `import my-lib`：模块名里的横线要被专门指出来，且**只显示一个**横线
+    /// （回归：`partial` 已经含掉当前这个 `-`，早先又补了一个，消息成了 `my--…`）。
+    #[test]
+    fn dashed_import_module_name_is_shown_once() {
+        let err = tokenize("import my-lib\n").expect_err("dash must be rejected");
+        let DiagnosticKind::ImportNotAModuleName {
+            module, message, ..
+        } = &err.kind
+        else {
+            panic!("expected ImportNotAModuleName, got {:?}", err.kind);
+        };
+        assert_eq!(module, "my-", "the module name keeps exactly one dash");
+        assert!(message.contains("`import my-…`"), "{message}");
+        assert!(!message.contains("my--"), "{message}");
     }
 
     #[test]
