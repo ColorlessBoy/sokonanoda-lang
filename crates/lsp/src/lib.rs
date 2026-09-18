@@ -20,6 +20,7 @@ mod actions;
 mod by_sorry_range_tests;
 mod hints;
 mod inlay;
+mod project_refs;
 mod protocol;
 mod query_map;
 mod render;
@@ -255,6 +256,40 @@ impl Docs {
     fn version(&self) -> i32 {
         self.active().map(Doc::version).unwrap_or(0)
     }
+}
+
+/// 闭包里每个模块的 LSP 视图（跨文件引用/改名用）。
+///
+/// 打开的文档用**内存里的最新文本**（它的报告就是刚编译的那份），未打开的用
+/// `ModuleReport::source`（编译时文本）——两者都与各自的报告自洽，span 可以直接
+/// 当成编辑范围。打开的文档若 parse 失败（没有报告），该项**跳过**：宁可不改，
+/// 也不拿过期 span 去编辑用户的缓冲区。
+fn project_views(docs: &Docs) -> Option<Vec<project_refs::ModuleView<'_>>> {
+    let modules = docs.query().project_modules()?;
+    let mut views = Vec::with_capacity(modules.len());
+    for module in modules {
+        let uri = Url::from_file_path(&module.path).ok()?;
+        match docs.map.get(&uri) {
+            Some(doc) => {
+                let Some(report) = doc.report() else {
+                    continue;
+                };
+                views.push(project_refs::ModuleView {
+                    uri,
+                    text: doc.text(),
+                    version: Some(doc.version()),
+                    report,
+                });
+            }
+            None => views.push(project_refs::ModuleView {
+                uri,
+                text: &module.source,
+                version: None,
+                report: &module.report,
+            }),
+        }
+    }
+    (!views.is_empty()).then_some(views)
 }
 
 struct Backend {
@@ -1227,25 +1262,77 @@ impl LanguageServer for Backend {
     }
 
     async fn rename(&self, params: RenameParams) -> Result<Option<WorkspaceEdit>> {
-        let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = doc.report() else {
+        let request_uri = params.text_document_position.text_document.uri.clone();
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus(&request_uri);
+        let Some(report) = docs.report() else {
             return Err(tower_lsp::jsonrpc::Error::invalid_params(
                 "当前文档无法解析，不能改名",
             ));
         };
-        render::rename(doc.text(), doc.version(), report, params)
+        let position = params.text_document_position.position;
+        // 项目模式：顶层声明的名字在**整个闭包**里改写（I16 P5）。
+        // 光标在 binder（局部名字）上 / 单文件文档 → 走下面的单文件路径。
+        if let Some(ResolvedTarget::Declaration { name, .. }) =
+            sokonanoda_front::references::resolve_at(
+                &report.hovers,
+                position.line,
+                position.character,
+            )
+        {
+            if let Some(views) = project_views(&docs) {
+                if views.len() > 1 {
+                    render::ensure_valid_new_name(&params.new_name)?;
+                    if project_refs::declared_elsewhere(&views, &params.new_name, &request_uri) {
+                        return Err(tower_lsp::jsonrpc::Error::invalid_params(format!(
+                            "「{}」在这个项目里已经有同名声明——改名的结果会是重名错误",
+                            params.new_name
+                        )));
+                    }
+                    let edits = project_refs::rename_edits(&views, &name, &params.new_name);
+                    if edits.is_empty() {
+                        return Ok(None);
+                    }
+                    return Ok(Some(WorkspaceEdit {
+                        document_changes: Some(DocumentChanges::Edits(edits)),
+                        ..Default::default()
+                    }));
+                }
+            }
+        }
+        render::rename(docs.text(), docs.version(), report, params)
     }
 
     async fn references(&self, params: ReferenceParams) -> Result<Option<Vec<Location>>> {
-        let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = doc.report() else {
+        let request_uri = params.text_document_position.text_document.uri.clone();
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus(&request_uri);
+        let Some(report) = docs.report() else {
             return Ok(None);
         };
+        let position = params.text_document_position.position;
+        if let Some(ResolvedTarget::Declaration { name, .. }) =
+            sokonanoda_front::references::resolve_at(
+                &report.hovers,
+                position.line,
+                position.character,
+            )
+        {
+            if let Some(views) = project_views(&docs) {
+                if views.len() > 1 {
+                    return Ok(Some(project_refs::references(
+                        &views,
+                        &name,
+                        params.context.include_declaration,
+                    )));
+                }
+            }
+        }
         Ok(render::find_references(
-            params.text_document_position.text_document.uri.clone(),
-            doc.text(),
+            request_uri,
+            docs.text(),
             report,
-            params.text_document_position.position,
+            position,
             params.context.include_declaration,
         ))
     }

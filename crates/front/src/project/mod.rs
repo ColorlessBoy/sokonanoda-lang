@@ -223,6 +223,7 @@ pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectR
                     name: module.name.clone(),
                     path: module.path.clone(),
                     imports,
+                    source: module.file.src.clone(),
                     report: reports[slot].clone(),
                     events,
                 });
@@ -231,6 +232,7 @@ pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectR
                 name: module.name.clone(),
                 path: module.path.clone(),
                 imports,
+                source: module.file.src.clone(),
                 report: DocumentReport::default(),
                 events: CompileOutput::default(),
             }),

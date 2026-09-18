@@ -68,6 +68,11 @@ pub struct ModuleReport {
     pub path: PathBuf,
     /// 该模块 import 的模块名（书写顺序，去重）。
     pub imports: Vec<String>,
+    /// **编译时用的源文本**（入口可能是未落盘的中间态；依赖是读盘那一刻的内容）。
+    ///
+    /// 跨文件引用/改名（LSP）必须按"编译器看到的那份文本"计算名字 token 的
+    /// span——重新读盘可能与报告不一致。
+    pub source: String,
     pub report: DocumentReport,
     pub events: CompileOutput,
 }

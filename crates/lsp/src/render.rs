@@ -431,12 +431,7 @@ pub(crate) fn rename(
     report: &DocumentReport,
     params: RenameParams,
 ) -> tower_lsp::jsonrpc::Result<Option<WorkspaceEdit>> {
-    if !is_valid_new_name(&params.new_name) {
-        return Err(tower_lsp::jsonrpc::Error::invalid_params(format!(
-            "「{}」不是合法标识符：只能包含字母/数字/下划线/非 ASCII 字符，且不能以数字开头",
-            params.new_name
-        )));
-    }
+    ensure_valid_new_name(&params.new_name)?;
     let position = params.text_document_position.position;
     let Some(target) = resolve_at(&report.hovers, position.line, position.character) else {
         return Err(tower_lsp::jsonrpc::Error::invalid_params(
@@ -503,6 +498,17 @@ pub(crate) fn find_references(
             })
             .collect(),
     )
+}
+
+/// 新名字的合法性（单文件与跨文件改名共用同一条规则与同一句报错）。
+pub(crate) fn ensure_valid_new_name(name: &str) -> tower_lsp::jsonrpc::Result<()> {
+    if is_valid_new_name(name) {
+        Ok(())
+    } else {
+        Err(tower_lsp::jsonrpc::Error::invalid_params(format!(
+            "「{name}」不是合法标识符：只能包含字母/数字/下划线/非 ASCII 字符，且不能以数字开头"
+        )))
+    }
 }
 
 /// A rename target must lex as exactly one identifier token spanning the

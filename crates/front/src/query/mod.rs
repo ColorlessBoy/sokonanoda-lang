@@ -125,6 +125,14 @@ impl QueryDoc {
         ))
     }
 
+    /// 项目闭包的模块列表（拓扑序、入口最后）；单文件文档为 `None`。
+    /// LSP 的跨文件引用/改名按它遍历每个模块的报告（I16 P5）。
+    pub fn project_modules(&self) -> Option<&[crate::project::ModuleReport]> {
+        self.project
+            .as_ref()
+            .map(|project| project.modules.as_slice())
+    }
+
     /// 项目模式下：这个名字由**哪个模块**声明（返回模块路径与声明 span）。
     /// 跨文件跳转用（LSP `textDocument/definition`，I16 P5）；单文件模式返回
     /// `None`（调用方回退到请求文档自身）。
