@@ -21,6 +21,9 @@ fn tmp_dir(tag: &str) -> std::path::PathBuf {
 
 fn write(dir: &std::path::Path, name: &str, text: &str) -> Url {
     let path = dir.join(name);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("create parent");
+    }
     std::fs::write(&path, text).expect("write file");
     Url::from_file_path(&path).expect("file url")
 }
@@ -394,4 +397,32 @@ async fn each_request_answers_for_its_own_document() {
         "goal view for Logic must not list the entry's declarations: {logic_goals:?}"
     );
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// 编辑器里的模块根必须与 CLI 同一套发现规则（最近 `sokonanoda.toml` → 入口目录）。
+///
+/// 回归：LSP 早先把 `initialize` 的**工作区根**当模块根传下去（等于跳过清单发现），
+/// 于是"工作区里嵌套的项目"——VS Code 打开仓库根、再打开
+/// `course/unit11-project/Canvas.sokonanoda`——会报 `import-not-found`，而同一个
+/// 文件在 CLI 下编译正常（2026-09-18 真二进制实测）。
+#[tokio::test]
+async fn a_nested_project_resolves_against_its_own_manifest() {
+    let ws = tmp_dir("nested-ws");
+    // 工作区根**没有**清单；项目在子目录里，清单与模块都在那儿。
+    let root = Url::from_directory_path(&ws).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _logic = write(&ws, "proj/Lib.sokonanoda", "axiom Q : Prop\n");
+    let _manifest = write(&ws, "proj/sokonanoda.toml", "name = \"proj\"\n");
+    let entry_text = "import Lib\n\ntheorem v : Q -> Q := fun (h : Q) => h\n";
+    let entry = write(&ws, "proj/Main.sokonanoda", entry_text);
+    testutil::did_open_at(&mut service, &entry, entry_text).await;
+    let diags = testutil::wait_diagnostics_for(&mut socket, &entry, "nested entry").await;
+    assert!(
+        diags.diagnostics.is_empty(),
+        "the entry must resolve `Lib` through its own manifest (workspace root has none): {:?}",
+        diags.diagnostics
+    );
+    let _ = std::fs::remove_dir_all(&ws);
 }

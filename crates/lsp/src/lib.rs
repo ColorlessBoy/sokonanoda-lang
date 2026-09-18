@@ -127,7 +127,6 @@ impl Doc {
         lsp_version: i32,
         mode: Option<PreludeMode>,
         path: Option<std::path::PathBuf>,
-        root: Option<std::path::PathBuf>,
         overlay: &[(std::path::PathBuf, String)],
     ) {
         let mode = mode.unwrap_or(self.doc.mode);
@@ -138,7 +137,8 @@ impl Doc {
             .map(|file| file.commands.iter().any(|command| command.is_import()))
             .unwrap_or(false);
         self.doc.path = path;
-        self.doc.root = root;
+        // `root` 留给 CLI 的 `--root`；编辑器一律走发现规则（见 `entry_path`）。
+        self.doc.root = None;
         let cached = if cfg!(test) || has_imports {
             None
         } else {
@@ -187,7 +187,6 @@ impl Doc {
 struct Docs {
     map: std::collections::HashMap<Url, Doc>,
     order: Vec<Url>,
-    root: Option<std::path::PathBuf>,
     active: Option<Url>,
 }
 
@@ -196,7 +195,6 @@ impl Docs {
         Self {
             map: std::collections::HashMap::new(),
             order: Vec::new(),
-            root: None,
             active: None,
         }
     }
@@ -249,11 +247,11 @@ impl Docs {
         overlay: &[(std::path::PathBuf, String)],
     ) {
         let path = uri.to_file_path().ok();
-        let root = self.root.clone();
         let Some(doc) = self.map.get_mut(uri) else {
             return;
         };
-        doc.set_text(text, version, mode, path, root, overlay);
+        // 模块根交给 front 按 CLI 同款规则发现（清单 → 入口目录）。
+        doc.set_text(text, version, mode, path, overlay);
     }
 
     /// 请求入口：把活跃文档切到请求指向的那份（带 URI 的请求都该先调它）。
@@ -264,10 +262,16 @@ impl Docs {
         self.focus(uri);
     }
 
-    /// 入口路径与模块根：来自文档 URI 的目录与会话根。
-    fn entry_context(&self) -> (Option<std::path::PathBuf>, Option<std::path::PathBuf>) {
-        let path = self.active.as_ref().and_then(|uri| uri.to_file_path().ok());
-        (path, self.root.clone())
+    /// 入口文件路径（来自文档 URI）。
+    ///
+    /// **不返回"模块根"**：模块根必须与 CLI 用同一套发现规则（最近的
+    /// `sokonanoda.toml` → 入口文件所在目录，`--no-project` 时只用后者）。
+    /// 早先这里把 `initialize` 的工作区根当模块根传下去（`root_override`），
+    /// 等于**跳过清单发现**——工作区里嵌套的项目（如仓库根的 workspace 打开
+    /// `course/unit11-project/Canvas.sokonanoda`）就会报 `import-not-found`，
+    /// 而同一个文件在 CLI 下编译正常（2026-09-18 实测）。
+    fn entry_path(&self) -> Option<std::path::PathBuf> {
+        self.active.as_ref().and_then(|uri| uri.to_file_path().ok())
     }
 
     // ---- 与旧 `Doc` 同形的访问器（作用在活跃文档上）----
@@ -363,7 +367,7 @@ impl Backend {
             docs.focus_or_open(&uri);
             let mode = prelude_mode_from_source(&text);
             let lsp_version = version.unwrap_or_else(|| docs.version());
-            let (path, root) = docs.entry_context();
+            let path = docs.entry_path();
             // **打开文档的内存文本就是编译器该看到的文本**（未保存的编辑也算）：
             // 先收齐覆盖，再逐份编译——依赖改了，下游文档的下一次编译就能看到它。
             // **打开文档的内存文本就是编译器该看到的文本**（未保存的编辑也算）。
@@ -387,7 +391,7 @@ impl Backend {
                 }
             }
             if let Some(doc) = docs.active_mut() {
-                doc.set_text(&text, lsp_version, Some(mode), path, root, &overlay);
+                doc.set_text(&text, lsp_version, Some(mode), path, &overlay);
             }
             let diagnostics = docs.active_doc().diagnostics();
             if let Some(doc) = docs.active_mut() {
@@ -858,10 +862,9 @@ impl LanguageServer for Backend {
                     .and_then(|folders| folders.first())
                     .and_then(|folder| folder.uri.to_file_path().ok())
             });
-        {
-            let mut docs = self.doc.lock().expect("doc lock");
-            docs.root = root;
-        }
+        // 工作区根**不**当模块根用（见 `Docs::entry_path`）：同一份项目在
+        // 编辑器与 CLI 下必须解析到同一个模块根，否则"编辑器绿、CI 红"。
+        let _workspace_root = root;
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
