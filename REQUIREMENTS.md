@@ -1251,9 +1251,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     渲染进 job summary；`auto-tag` 的 `needs` 加 `e2e`（e2e 红了不发版）；删掉 `test`
     job 里重复的那条 `xvfb-run npm test`。
   - **CI 编排（用户定）**：macOS 腿**只在 push 到 main 时跑**（PR/分支只跑 Ubuntu），
-    `auto-tag` 仍等整个 e2e job；最低版本 1.106.0 腿**本地验证过再进 CI**——
-    2026-09-18 本机到 `update.code.visualstudio.com` 反复 connection reset（curl
-    同样断在 87M/147M），暂缓；预置缓存的绕法写在 `docs/E2E.md` §6。
+    `auto-tag` 仍等整个 e2e job。最低版本 1.106.0 腿**本地验证过再进 CI**：
+    2026-09-18 用 `npm_config_https_proxy=http://127.0.0.1:7890`（test-electron 只认
+    这两个 npm 代理变量，不读 `HTTPS_PROXY`）在 VS Code **1.106.0 上跑出 14/14**，
+    台账见 `docs/e2e/ledger.jsonl`（`b0bcba3`），随后加进 CI 矩阵（ubuntu × 1.106.0，
+    每个 PR 都跑）；详细命令与预置缓存备用法在 `docs/E2E.md` §5/§6。
   - **版本策略（调研）**：上游 `@vscode/test-cli` 的 `version` 默认 **stable 频道**
     （官方文档/官方 sample 均不钉具体版本）——生态惯例是跟频道；但台账要求可复现，
     故本地例行默认钉 **1.138.0**、CI 矩阵显式给版本，升级流程见 `docs/E2E.md` §5；

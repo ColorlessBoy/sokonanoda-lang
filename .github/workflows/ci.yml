@@ -240,6 +240,11 @@ jobs:
           - os: ubuntu-latest
             vscode: "1.138.0"
             launcher: xvfb-run -a
+          # 声明的最低版本（engines.vscode ^1.106.0）：2026-09-18 本地 14/14 验过
+          # （docs/e2e 有那条台账），守"用的 API 没超出声明范围"。
+          - os: ubuntu-latest
+            vscode: "1.106.0"
+            launcher: xvfb-run -a
           - os: macos-latest
             vscode: "1.138.0"
             launcher: ""

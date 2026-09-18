@@ -92,8 +92,9 @@ soko/project ok: project=Main (2 modules) reason=null
 | --- | --- | --- |
 | 本地例行（默认） | **1.138.0**（已知良好） | `scripts/vscode-e2e.sh` 里的 `default_version` |
 | 本地试新 | `stable` / `insiders` / 任意具体版本 | `--version <v>` 或 `SOKO_VSCODE_TEST_VERSION=<v>` |
-| CI | 矩阵显式给（当前 `1.138.0`） | `.github/workflows/ci.yml` 的 `e2e.matrix` |
-| 声明的最低版本（`engines.vscode ^1.106.0`） | **待补**（用户定的规矩：**本地验证过再进 CI**）：`--version 1.106.0` 在本机下载老版本 zip 会被 `@vscode/test-electron` 的 15s 无数据超时打断（新版本 1.138 反而正常）；先用 curl 预置缓存再验，见 §6 | 见 `docs/HANDOVER.md` §4 |
+| CI（ubuntu） | 矩阵显式给：`1.138.0`（当前稳定）+ **`1.106.0`（声明的最低版本）** | `.github/workflows/ci.yml` 的 `e2e.matrix` |
+| CI（macOS） | `1.138.0`，**只在 push 到 main 时跑** | 同上（job 级 `if`） |
+| 声明的最低版本（`engines.vscode ^1.106.0`） | ✅ **2026-09-18 本地已验证 14/14**（台账 `b0bcba3` 那条，VS Code 1.106.0 + bundled 0.58.0；项目树三条同样绿），随后进 CI 矩阵 | `--version 1.106.0` |
 
 > 升级流程：先 `--version <新版本>` 本地跑绿 → 改 `scripts/vscode-e2e.sh` 的
 > `default_version` 与 `ci.yml` 的 `e2e.matrix`（两处）+ 记一条台账。
@@ -106,6 +107,15 @@ soko/project ok: project=Main (2 modules) reason=null
   （`docs/vscode-dev-guide.md` 坑 14）。
 * **缓存会变大**：每个版本一份 ~900MB 的 VS Code；换钉版本后旧的可以删
   （`editor/vscode/.vscode-test/vscode-<platform>-<version>/`）。
+* **网络受限时用 npm 的代理变量**：`@vscode/test-electron` 只读
+  **`npm_config_proxy` / `npm_config_https_proxy`**（源码 `util.js` 里建
+  `HttpProxyAgent`/`HttpsProxyAgent` 就是这两个），**不读 `HTTPS_PROXY`**。
+  实测（2026-09-18）：直连 `vscode.download.prss.microsoft.com` 反复
+  `Recv failure: Connection reset by peer`，加
+  `npm_config_https_proxy=http://127.0.0.1:7890` 后 1.106.0 一次重试就下完、14/14 全绿：
+  ```bash
+  npm_config_https_proxy=http://127.0.0.1:7890 scripts/vscode-e2e.sh --version 1.106.0
+  ```
 * **下载老版本可能被 15s 无数据超时打断**：`@vscode/test-electron` 的下载超时是
   `timeout: 15_000`（**无数据** 15 秒即 abort，与总时长无关），本机拉 1.106.0 时反复
   `aborted`，而 1.138.0 正常。绕过办法是**预置缓存**（等价于它自己做完的事）：
@@ -116,10 +126,9 @@ soko/project ok: project=Main (2 modules) reason=null
   mkdir -p "$d" && unzip -q /tmp/vscode-$v.zip -d "$d" && touch "$d/is-complete"
   SOKO_VSCODE_TEST_VERSION=$v scripts/vscode-e2e.sh
   ```
-  > 2026-09-18 实测：本机到该 CDN 的 **curl 也**反复 `Recv failure: Connection
-  > reset by peer`（下载 87M/147M 后中断，重试仍断），所以最低版本腿的本地验证
-  > **暂时做不了**（用户定的规矩：本地验证过再进 CI）。网络好的时候按上面三步
-  > 预置缓存即可，之后再决定加不加 CI 腿。
+  > 这条预置法是 2026-09-18 直连反复被 reset 时的备用手段；同一天用上面那个
+  > `npm_config_https_proxy` 就正常下完了（**优先用代理**，预置法留给代理也不可用的
+  > 环境）。
 * **Linux 无显示器**：CI 用 `xvfb-run -a npm test`；本地无头环境同理。
 * **`code` CLI 冲突**：macOS 上若报 "another instance running"，先关掉正在跑的 VS Code。
 
@@ -127,9 +136,10 @@ soko/project ok: project=Main (2 modules) reason=null
 
 CI 有独立的 **`e2e` job**（`.github/workflows/ci.yml`）：
 
-* **矩阵**：`ubuntu-latest`（`xvfb-run -a`）**每个 PR/分支 push 都跑**；
-  `macos-latest` **只在 push 到 main 时跑**（macOS 差异值得守，但每个 PR 多 ~10 分钟
-  不划算），各自钉 VS Code 版本；
+* **矩阵（3 条腿）**：`ubuntu-latest` × VS Code `1.138.0`（当前稳定）与 `1.106.0`
+  （声明的最低版本）**每个 PR/分支 push 都跑**（`xvfb-run -a`）；
+  `macos-latest` × `1.138.0` **只在 push 到 main 时跑**（macOS 差异值得守，但每个 PR
+  多 ~10 分钟不划算）；
 * **同一条命令**：两步都是 `scripts/vscode-e2e.sh`（构建 release → stage → 真宿主 →
   记账）——本地与 CI 不会漂；
 * **留档**：`docs/e2e/` 作为 artifact 上传（`e2e-<os>-vscode-<version>`），并把

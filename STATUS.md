@@ -60,9 +60,12 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    e2e job 用 job 级 `if`（`matrix.os != 'macos-latest' || push && main`），
    被跳过的腿不影响 `auto-tag` 的 `needs`。`run:` 块逐个过 `bash -n`，
    YAML 解析校验通过（GH Actions 本身推不了，没法在这里真跑）。
-   最低版本 1.106.0 腿按用户规矩**先本地验证再进 CI**：本机到
-   `update.code.visualstudio.com` 反复 `Recv failure: Connection reset`（curl 也断，
-   87M/147M 处），暂缓；预置缓存的绕法已写进 `docs/E2E.md` §6。
+   最低版本 1.106.0 腿按用户规矩**先本地验证再进 CI**——同一天用
+   `npm_config_https_proxy=http://127.0.0.1:7890` 验过：**VS Code 1.106.0 上
+   14/14 全绿**（含项目树三条），台账 `b0bcba3`；随后把它加进 CI 矩阵
+   （ubuntu × 1.106.0，每个 PR 都跑）。顺带把"test-electron 只认
+   `npm_config_proxy`/`npm_config_https_proxy`、不读 `HTTPS_PROXY`"写进
+   `docs/E2E.md` §5/§6。
 8. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
    （[官方文档](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
    与官方 sample 都不钉具体版本，示例用的是 `insiders`）——生态惯例是跟频道。但这一层

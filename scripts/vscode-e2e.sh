@@ -24,6 +24,9 @@
 #
 # 前置：`editor/vscode` 已 `npm install`；macOS/Linux 桌面会话（Linux CI 用
 # `xvfb-run -a` 包一层，见 `.github/workflows/ci.yml` 的同一套用例）。
+# 网络受限时加 npm 的代理变量（`@vscode/test-electron` **只认**这两个，不读
+# `HTTPS_PROXY`）：
+#   npm_config_https_proxy=http://127.0.0.1:7890 scripts/vscode-e2e.sh --version 1.106.0
 # 退出码：0 = 全绿；1 = 有用例失败；2 = 用法错误；3 = 前置缺失（cargo/npm/node_modules）。
 set -euo pipefail
 cd "$(dirname "$0")/.."
