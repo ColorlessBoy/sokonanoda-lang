@@ -375,7 +375,7 @@ pub(crate) fn parse_def_eq_mismatch(msg: &str) -> Option<(String, String)> {
 pub(crate) fn refine_kernel_kind(msg: &str) -> ErrorKind {
     let payload = msg.strip_prefix("rejected: ").unwrap_or(msg);
 
-    // def_eq mismatches: check.rs re-renders both sides from the marker;
+    // def_eq mismatches: check/kernel_phase.rs re-renders both sides from the marker;
     // the classifier must not interfere with them.
     if payload.starts_with("def_eq failed:") || payload.starts_with(DEF_EQ_MARKER) {
         return ErrorKind::KernelRejected;

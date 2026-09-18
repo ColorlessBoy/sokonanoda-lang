@@ -1,7 +1,8 @@
 //! 闭包级（多单元）编译的装配件：单元描述、命令区间、报告切分。
 //!
-//! 与 `check.rs` 的分工：`check.rs` 是**单文件流水线**（parse → elab →
-//! check-then-add → events/report），这里负责把多个单元拼成"扁平命令序"、
+//! 与 `check/` 的分工：`check/mod.rs` + `check/walk.rs` + `check/kernel_phase.rs`
+//! 是**单文件流水线**（parse → elab → check-then-add → events/report），
+//! 这里负责把多个单元拼成"扁平命令序"、
 //! 再把结果按单元切回去（`docs/architecture.md` §4.5 的第 3–5 步）。
 //! 单文件编译也走同一条路径（`units.len() == 1`，逐字节等价）。
 
