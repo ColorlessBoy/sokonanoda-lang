@@ -128,8 +128,8 @@
    排空，处理完再取走队列里剩下的），或用 `did_open_at_drained` /
    `did_change_at_drained`。**写多文档测试一律用排空版**——`did_open_at` +
    `wait_diagnostics_for` 只对"一次通知最多一条诊断"的单文档场景安全。
-   仍未做的（P7）：只剩 `soko/project`（`didChangeWatchedFiles` 已在批次 1 落地：
-   编辑器外改依赖 ⇒ 只重编译闭包里含该路径的已打开文档）。
+   这两项后来都做完了：`didChangeWatchedFiles` 在批次 1（0.57.0），`soko/project`
+   在批次 4（0.58.0，见 §1「项目状态视图」行与 `docs/design/project-view.md`）。
 
 ## 6. 初始规模快照（历史，最新数字以 STATUS.md 各轮为准）
 

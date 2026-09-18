@@ -102,8 +102,9 @@ $SOKO repl
 ```
 
 - `--json` 每行一个 JSON 事件（**全量事件流**）；`query <op>` 是同一份判卷的
-  **单对象视图**（计数/目标/洞）。两者由同一实现产出、计数由契约测试钉死一致；
-  "某处还差什么"这类问题用 `query state`，不要自己扫事件流重建状态。
+  **单对象视图**（计数/目标/洞/项目状态）。两者由同一实现产出、计数由契约测试
+  钉死一致；"某处还差什么"这类问题用 `query state`，不要自己扫事件流重建状态；
+  多文件画布"哪个模块拖坏了入口"用 `query project`。
 - 事件词汇是封闭的：`decl.checked` / `example.checked` / `expr.typed` /
   `expr.reduced` / `decl.printed` / `exercise.open` / `diagnostic`，
   形状见 `docs/protocol.md`；watch 流词汇见同文档 watch 一节。
