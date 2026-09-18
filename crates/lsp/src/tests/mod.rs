@@ -397,3 +397,4 @@ async fn open_and_wait(src: &str) -> (LspService<Backend>, ClientSocket) {
     let _ = wait_diagnostics(&mut socket, "bracket suite diagnostics").await;
     (service, socket)
 }
+mod project;

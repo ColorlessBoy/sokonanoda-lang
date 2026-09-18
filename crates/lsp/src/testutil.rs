@@ -123,6 +123,81 @@ pub(crate) async fn handshake(service: &mut LspService<Backend>) {
     );
 }
 
+/// `initialize` 带会话根（I16 P5：项目模式要它来定位模块根）。
+pub(crate) async fn handshake_with_root(service: &mut LspService<Backend>, root: &Url) {
+    let init = RpcRequest::build("initialize")
+        .params(json!({"capabilities": {}, "rootUri": root}))
+        .id(1)
+        .finish();
+    call(service, init).await.expect("initialize must answer");
+}
+
+/// 指定 URI 的 didOpen（多文件项目测试用；`did_open` 固定单 URI 夹具）。
+pub(crate) async fn did_open_at(service: &mut LspService<Backend>, uri: &Url, text: &str) {
+    notify(
+        service,
+        "textDocument/didOpen",
+        json!({"textDocument": {
+            "uri": uri, "languageId": "sokonanoda", "version": 1, "text": text
+        }}),
+    )
+    .await;
+}
+
+/// 指定 URI 的 didChange（多文件项目测试用；`did_change` 固定单 URI 夹具）。
+///
+/// 当前没有测试消费它：跨文件失效测试属于 P5 余项（见
+/// `crates/lsp/src/tests/project.rs` 末尾说明），等那条测试落地时它会立刻有用。
+#[allow(dead_code)]
+pub(crate) async fn did_change_at(
+    service: &mut LspService<Backend>,
+    uri: &Url,
+    version: i32,
+    text: &str,
+) {
+    notify(
+        service,
+        "textDocument/didChange",
+        json!({
+            "textDocument": {"uri": uri, "version": version},
+            "contentChanges": [{"text": text}],
+        }),
+    )
+    .await;
+}
+
+/// 指定 URI 的 didClose（当前没有测试消费它：多文档刷新是 P5 余项，
+/// 见 `crates/lsp/src/tests/project.rs` 末尾的说明）。
+#[allow(dead_code)]
+pub(crate) async fn did_close_at(service: &mut LspService<Backend>, uri: &Url) {
+    notify(
+        service,
+        "textDocument/didClose",
+        json!({"textDocument": {"uri": uri}}),
+    )
+    .await;
+}
+
+/// Drain until a publishDiagnostics for `uri` arrives (any order across docs).
+pub(crate) async fn wait_diagnostics_for(
+    socket: &mut ClientSocket,
+    uri: &Url,
+    waiting_for: &str,
+) -> PublishDiagnosticsParams {
+    loop {
+        let msg = next_socket(socket, waiting_for).await;
+        if msg.method() != "textDocument/publishDiagnostics" {
+            continue;
+        }
+        let params: PublishDiagnosticsParams =
+            serde_json::from_value(msg.params().cloned().unwrap_or(json!(null)))
+                .expect("valid PublishDiagnosticsParams");
+        if &params.uri == uri {
+            return params;
+        }
+    }
+}
+
 pub(crate) async fn shutdown(service: &mut LspService<Backend>) {
     let req = RpcRequest::build("shutdown").id(i64::MAX).finish();
     let result = call(service, req).await;

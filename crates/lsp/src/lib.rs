@@ -41,7 +41,7 @@ use render::{
 use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
     prelude_mode_from_source, CompileOptions, DeclStatus, DocumentReport, GoalBinder, HoverType,
-    PreludeMode,
+    PreludeMode, ResolvedTarget,
 };
 use sokonanoda_front::query::{decl_name, QueryDoc};
 use sokonanoda_front::semantic::{semantic_tokens as front_semantic_tokens, SemanticKind};
@@ -107,10 +107,24 @@ impl Doc {
     /// 这个（编译器版本、构建、prelude 模式、文本）产出过的报告——绝不从缓存
     /// 里**推断**任何东西。单元测试跳过它（`cfg!(test)`），与 CLI 同策略，所以
     /// `cargo test` 不碰开发者的真实缓存。
-    fn set_text(&mut self, text: &str, lsp_version: i32, mode: Option<PreludeMode>) {
+    fn set_text(
+        &mut self,
+        text: &str,
+        lsp_version: i32,
+        mode: Option<PreludeMode>,
+        path: Option<std::path::PathBuf>,
+        root: Option<std::path::PathBuf>,
+    ) {
         let mode = mode.unwrap_or(self.doc.mode);
         let options = CompileOptions { prelude: mode };
-        let cached = if cfg!(test) {
+        // 有 `import` 的文档走**项目闭包**：单文件缓存键会张冠李戴（依赖不在
+        // 键里），所以这里既不复用也不写入单文件缓存（I16 P5）。
+        let has_imports = sokonanoda_front::parse(text)
+            .map(|file| file.commands.iter().any(|command| command.is_import()))
+            .unwrap_or(false);
+        self.doc.path = path;
+        self.doc.root = root;
+        let cached = if cfg!(test) || has_imports {
             None
         } else {
             cache::load(text, &options)
@@ -134,7 +148,7 @@ impl Doc {
             self.doc.report = None;
             return;
         }
-        if !cfg!(test) {
+        if !cfg!(test) && !has_imports {
             if let Some(report) = &self.doc.report {
                 cache::store(
                     text,
@@ -149,16 +163,110 @@ impl Doc {
     }
 }
 
+/// 打开的文档表 + 会话级根（`initialize` 的 `rootUri`/`workspaceFolders`）。
+///
+/// 访问器面与旧的单文档 `Doc` 一致（都作用在**当前活跃文档**上）：19 处
+/// `self.doc.lock()` 的既有 handler 因此不用逐个改；带 URI 的 handler 只要
+/// 先 `focus(&uri)` 就能拿到正确的那一份（I16 P5）。
+struct Docs {
+    map: std::collections::HashMap<Url, Doc>,
+    order: Vec<Url>,
+    root: Option<std::path::PathBuf>,
+    active: Option<Url>,
+}
+
+impl Docs {
+    fn new() -> Self {
+        Self {
+            map: std::collections::HashMap::new(),
+            order: Vec::new(),
+            root: None,
+            active: None,
+        }
+    }
+
+    /// 打开（或复用）一份文档并把焦点切到它。
+    fn focus_or_open(&mut self, uri: &Url) {
+        if !self.map.contains_key(uri) {
+            self.map.insert(uri.clone(), Doc::new());
+            self.order.push(uri.clone());
+        }
+        self.active = Some(uri.clone());
+    }
+
+    /// 把焦点切到某份已打开的文档；没有就保持现状（单文档客户端也照旧工作）。
+    fn focus(&mut self, uri: &Url) {
+        if self.map.contains_key(uri) {
+            self.active = Some(uri.clone());
+        }
+    }
+
+    fn active(&self) -> Option<&Doc> {
+        self.active.as_ref().and_then(|uri| self.map.get(uri))
+    }
+
+    fn active_mut(&mut self) -> Option<&mut Doc> {
+        let uri = self.active.clone()?;
+        self.map.get_mut(&uri)
+    }
+
+    fn remove(&mut self, uri: &Url) {
+        self.map.remove(uri);
+        self.order.retain(|item| item != uri);
+        if self.active.as_ref() == Some(uri) {
+            self.active = self.order.first().cloned();
+        }
+    }
+
+    /// 入口路径与模块根：来自文档 URI 的目录与会话根。
+    fn entry_context(&self) -> (Option<std::path::PathBuf>, Option<std::path::PathBuf>) {
+        let path = self.active.as_ref().and_then(|uri| uri.to_file_path().ok());
+        (path, self.root.clone())
+    }
+
+    // ---- 与旧 `Doc` 同形的访问器（作用在活跃文档上）----
+    fn text(&self) -> &str {
+        self.active().map(Doc::text).unwrap_or("")
+    }
+
+    /// 活跃文档本体；没有打开任何文档时退化为一个空的只读文档
+    /// （`soko/*` 的既有语义：没文档 ⇒ 答空，而不是报错）。
+    fn active_doc(&self) -> &Doc {
+        static EMPTY: std::sync::OnceLock<Doc> = std::sync::OnceLock::new();
+        self.active().unwrap_or_else(|| EMPTY.get_or_init(Doc::new))
+    }
+
+    fn query(&self) -> &QueryDoc {
+        self.active_doc().query()
+    }
+
+    fn report(&self) -> Option<&DocumentReport> {
+        self.active().and_then(Doc::report)
+    }
+
+    fn parse_error(&self) -> Option<&sokonanoda_front::Diagnostic> {
+        self.active().and_then(Doc::parse_error)
+    }
+
+    fn mode(&self) -> PreludeMode {
+        self.active().map(Doc::mode).unwrap_or(PreludeMode::Full)
+    }
+
+    fn version(&self) -> i32 {
+        self.active().map(Doc::version).unwrap_or(0)
+    }
+}
+
 struct Backend {
     client: Client,
-    doc: Mutex<Doc>,
+    doc: Mutex<Docs>,
 }
 
 impl Backend {
     fn new(client: Client) -> Self {
         Self {
             client,
-            doc: Mutex::new(Doc::new()),
+            doc: Mutex::new(Docs::new()),
         }
     }
 
@@ -166,20 +274,50 @@ impl Backend {
         // 教学文档量级小，锁内同步编译可接受（此前也是同步全量编译）。
         // 文本 →（缓存命中 / 会话式重编译）→ 状态全部由 `Doc::set_text` 负责；
         // 诊断是那份状态的**视图**，与缓存命中路径逐字一致。
-        let diagnostics = {
-            let mut doc = self.doc.lock().expect("doc lock");
+        let (diagnostics, others) = {
+            let mut docs = self.doc.lock().expect("doc lock");
+            docs.focus_or_open(&uri);
             let mode = prelude_mode_from_source(&text);
-            let lsp_version = version.unwrap_or_else(|| doc.version());
-            doc.set_text(&text, lsp_version, Some(mode));
-            match doc.parse_error() {
-                Some(diag) => vec![diagnostic_from_parse(diag)],
-                None => doc.report().map(report_diagnostics).unwrap_or_default(),
+            let lsp_version = version.unwrap_or_else(|| docs.version());
+            let (path, root) = docs.entry_context();
+            if let Some(doc) = docs.active_mut() {
+                doc.set_text(&text, lsp_version, Some(mode), path, root);
             }
+            let diagnostics = match docs.parse_error() {
+                Some(diag) => vec![diagnostic_from_parse(diag)],
+                None => docs.report().map(report_diagnostics).unwrap_or_default(),
+            };
+            // 依赖变了 ⇒ 打开着的下游文档要跟着刷新（v1：全部重编译重发；
+            // 教学项目里同时打开的文档很少，正确性优先，见设计 §4.9）。
+            // v1 语义（I16 P5）：变更的那份文档自己重编译；其它打开文档**重发**
+            // 上次的诊断（不发就永远停在旧状态）。真正的"依赖变了 ⇒ 下游自动
+            // 重编译"（跨文件失效）是 P5 余项——写在这里的第一版会在 tower-lsp
+            // 的串行通知里挂住，先按能保证的语义发布，并在设计文档里登记。
+            let others: Vec<(Url, Vec<Diagnostic>)> = docs
+                .order
+                .iter()
+                .filter(|other| **other != uri)
+                .filter_map(|other| {
+                    let doc = docs.map.get(other)?;
+                    let diagnostics = match doc.parse_error() {
+                        Some(diag) => vec![diagnostic_from_parse(diag)],
+                        None => doc.report().map(report_diagnostics).unwrap_or_default(),
+                    };
+                    Some((other.clone(), diagnostics))
+                })
+                .collect();
+            (diagnostics, others)
         };
         let _ = self
             .client
             .publish_diagnostics(uri, diagnostics, version)
             .await;
+        for (other, diagnostics) in others {
+            let _ = self
+                .client
+                .publish_diagnostics(other, diagnostics, None)
+                .await;
+        }
     }
 
     // ---- I9 goal 视图协议：结构化 goal 请求（coq-lsp `proof/goals` 模式）----
@@ -237,7 +375,7 @@ impl Backend {
     /// suggestions.md). Stateless: the client owns progressive disclosure.
     async fn hints(&self, params: hints::HintsParams) -> Result<hints::HintsResponse> {
         let doc = self.doc.lock().expect("doc lock");
-        Ok(hints::hints_for(&doc, params))
+        Ok(hints::hints_for(doc.active_doc(), params))
     }
 
     /// Per-tactic goal state at the cursor (`soko/stateAt`,
@@ -560,7 +698,25 @@ fn half_expression_goals_hover(
 
 #[tower_lsp::async_trait]
 impl LanguageServer for Backend {
-    async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
+    async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
+        // 会话根：`rootUri`（旧字段，仍被广泛使用）优先，其次第一个 workspace folder。
+        // 单文件打开时两者都可能是 null —— 那不是错误（LSP 明文如此），
+        // 此时模块根由每个文档自己的目录决定（零配置退路）。
+        let root = params
+            .root_uri
+            .as_ref()
+            .and_then(|uri| uri.to_file_path().ok())
+            .or_else(|| {
+                params
+                    .workspace_folders
+                    .as_ref()
+                    .and_then(|folders| folders.first())
+                    .and_then(|folder| folder.uri.to_file_path().ok())
+            });
+        {
+            let mut docs = self.doc.lock().expect("doc lock");
+            docs.root = root;
+        }
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
@@ -634,7 +790,12 @@ impl LanguageServer for Backend {
         }
     }
 
-    async fn did_close(&self, _: DidCloseTextDocumentParams) {}
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        // 关掉的文档从表里移除：它不该再被别人的变更"顺带刷新"（否则会给
+        // 已关闭的 URI 推送诊断）。客户端自己会清掉该文档的诊断。
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.remove(&params.text_document.uri);
+    }
 
     async fn semantic_tokens_full(
         &self,
@@ -826,16 +987,31 @@ impl LanguageServer for Backend {
         &self,
         params: GotoDefinitionParams,
     ) -> Result<Option<GotoDefinitionResponse>> {
-        let doc = self.doc.lock().expect("doc lock");
-        let Some(report) = doc.report() else {
+        let request_uri = params
+            .text_document_position_params
+            .text_document
+            .uri
+            .clone();
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus(&request_uri);
+        let Some(report) = docs.report() else {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
         let Some(target) = definition_at(&report.hovers, pos.line, pos.character) else {
             return Ok(None);
         };
+        // 跨文件：项目模式下目标可能住在被 import 的模块里（I16 P5）。
+        // 声明名 → 模块路径由真相层回答（它握着整个闭包的报告）。
+        let cross_file = match &target {
+            ResolvedTarget::Declaration { name, .. } => docs
+                .query()
+                .project_definition(name)
+                .and_then(|(path, _)| Url::from_file_path(path).ok()),
+            ResolvedTarget::Binder(_) => None,
+        };
         Ok(Some(GotoDefinitionResponse::Scalar(Location {
-            uri: params.text_document_position_params.text_document.uri,
+            uri: cross_file.unwrap_or(request_uri),
             range: range_of(target.span()),
         })))
     }

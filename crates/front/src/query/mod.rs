@@ -96,7 +96,12 @@ impl QueryDoc {
         // 所以这里覆盖成项目编译的入口报告（无 import 时零变化）。
         self.project = self.project_compile(text);
         if let Some(report) = self.project.as_ref().and_then(|p| p.entry_report()) {
-            self.report = Some(report.clone());
+            let mut report = report.clone();
+            // 项目编译走的是 `compile_all_units`，不经过 Session 的 hint 挂接：
+            // 这里补上，否则带 `import` 的入口会丢掉 `-- soko:hint` 阶梯
+            // （`soko/hints` 与 MCP `hints` 都会答空）。
+            crate::compile::attach_hints_to_report(text, &mut report);
+            self.report = Some(report);
         }
     }
 
@@ -118,6 +123,21 @@ impl QueryDoc {
             &self.options(),
             root,
         ))
+    }
+
+    /// 项目模式下：这个名字由**哪个模块**声明（返回模块路径与声明 span）。
+    /// 跨文件跳转用（LSP `textDocument/definition`，I16 P5）；单文件模式返回
+    /// `None`（调用方回退到请求文档自身）。
+    pub fn project_definition(&self, name: &str) -> Option<(std::path::PathBuf, crate::Span)> {
+        let project = self.project.as_ref()?;
+        for module in &project.modules {
+            for decl in &module.report.decls {
+                if decl.name.as_deref() == Some(name) && decl.status != DeclStatus::Failed {
+                    return Some((module.path.clone(), decl.span));
+                }
+            }
+        }
+        None
     }
 
     /// 当前 prelude 模式对应的编译选项。
