@@ -92,7 +92,18 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 5. **发布**：push `main` → `ci.yml` 的 auto-tag 打 `v0.58.0` 并 dispatch
    `release.yml`（8 平台 CLI/LSP tarball + 9 个 VSIX）。`v0.56.2` 的 tag 与其
    功能都保留在历史里，0.58.0 的 CHANGELOG 补记"多余的 `sorry` 已并入"。
-6. **文档**：本文件（第九十五轮移入归档 + 0.56.2 线的第九十一轮续一并归档）、
+6. **发布结果（2026-09-18 实测）**：push `main` → CI **8/8 job 全绿**
+   （lint / test / e2e ubuntu×2 / **e2e macos-latest 第一次真跑** / e2e-ledger /
+   auto-tag / pages）→ auto-tag 打 **`v0.58.0`** 并 dispatch `release` →
+   release **11 job 全 success** → Release **26 资产**（lsp ×8 / cli ×8 / vsix ×9 /
+   `SHA256SUMS`）+ Marketplace 收录 **0.58.0**（10:21Z）。**发布产物实测**：
+   下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz` → `shasum -c` **OK** →
+   `--version` = 0.58.0 → 对 `playground.sokonanoda` 报出
+   `warning[redundant-sorry]`（第 328 行，正是用户最初报的那一行）+
+   `query project` 在 `course/unit11-project/` 上给出根与两个 `compiled` 模块。
+   `e2e-ledger` 把三条 CI 腿的台账（Linux×2 + Darwin×1，各 14/14、`dirty=false`）
+   自动回提交进 `docs/e2e/ledger.jsonl`（共 10 条）；官网进度页已换到第九十八轮。
+7. **文档**：本文件（第九十五轮移入归档 + 0.56.2 线的第九十一轮续一并归档）、
    `docs/STATUS-ARCHIVE.md`、`REQUIREMENTS.md` §9（九十八）、`docs/HANDOVER.md`、
    `docs/TESTING.md`（合并后的测试构成）、`docs/LESSONS.md`、
    `editor/vscode/CHANGELOG.md`、`docs/protocol.md`（warning 码三个并列）、

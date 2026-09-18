@@ -1393,6 +1393,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     （并行口径下 400/50 = 10.9× vs 串行 7.8×，阈值 12×）——修法是把性能哨兵的采样
     口径改成"用例间串行 + best-of-N 取最小"（阈值不动），LSP 延迟断言改 best-of-3，
     记进 `docs/CI-FAILURES.md` 与 `docs/PERF.md`。
-  - **发布**：push `main` → `ci.yml` auto-tag 打 `v0.58.0` → dispatch `release.yml`
-    （8 平台 CLI/LSP tarball + 9 个 VSIX）。0.56.2 的功能与 tag 都保留在历史里，
-    0.58.0 的 CHANGELOG 补记"多余的 `sorry` 已并入"。
+  - **发布（已完成）**：push `main` → CI 全绿（含 macOS e2e 腿第一次真跑）→
+    auto-tag 打 **`v0.58.0`** → dispatch `release.yml` → **11 job success**、
+    Release **26 资产**、Marketplace 收录 0.58.0；发布产物实测（下载 → `shasum -c` OK
+    → `--version` = 0.58.0 → playground 报 `redundant-sorry`、`query project` 正常）。
+    `e2e-ledger` 把三条 CI 腿台账自动回提交（`docs/e2e/ledger.jsonl` 共 10 条）。
+    0.56.2 的功能与 tag 都保留在历史里，0.58.0 的 CHANGELOG 补记"多余的 `sorry`
+    已并入"。
