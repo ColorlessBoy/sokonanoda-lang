@@ -1259,7 +1259,10 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - **台账回提交（用户：「验证好就让 CI 往仓库追加吧」）**：main 上的收尾 job
     `e2e-ledger`（`contents: write`）把各腿 artifact 用 `scripts/e2e-merge.py`
     合并成**一条**提交推回仓库（幂等：重复条目跳过、日志按记录名回填、按日期排序；
-    rebase 重试一次；失败报错不静默；`GITHUB_TOKEN` 推的提交不触发 workflow）。
+    `concurrency: e2e-ledger` + `fetch-depth: 0`；push 失败 rebase 重试 3 次，
+    冲突则打印 `UU` 文件、abort 并报红（重跑即可）；`GITHUB_TOKEN` 推的提交不触发
+    workflow。两条路径用临时 bare remote + 两个 clone 本地演练过（抢占 push 成功重试 /
+    同文件冲突 → 干净 abort + 退出码 1）。
     裁剪日志名带 VS Code 版本，避免矩阵内互相覆盖。
   - **版本策略（调研）**：上游 `@vscode/test-cli` 的 `version` 默认 **stable 频道**
     （官方文档/官方 sample 均不钉具体版本）——生态惯例是跟频道；但台账要求可复现，

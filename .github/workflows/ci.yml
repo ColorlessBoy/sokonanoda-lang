@@ -316,8 +316,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # 同一时刻只允许一个"写台账"的 job：两次 main push 挨得近时，串行化比抢 push 简单
+    # （cancel-in-progress: false —— 不取消正在跑的那次，排队执行）。
+    concurrency:
+      group: e2e-ledger
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
+        with:
+          # rebase 需要我们提交的 parent 对象；默认 depth=1 的浅克隆会 rebase 失败。
+          fetch-depth: 0
 
       - name: Download every leg's e2e record
         uses: actions/download-artifact@v5
@@ -351,14 +359,21 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "perf(e2e): 台账 ${GITHUB_SHA:0:7} —— ${SUBJECT:-CI}" \
             -m "由 ci.yml 的 e2e-ledger job 合并各腿 artifact（scripts/e2e-merge.py）。"
-          # main 上可能有人刚推过：rebase 再来一次，两次都失败就当**真失败**（不静默）。
-          for attempt in 1 2; do
+          # main 上可能有人刚推过：rebase 后重试（最多 3 次）。都失败才报红——
+          # 记账失败值得被看见，但要给出可诊断的信息（rebase 冲突时列出来）。
+          for attempt in 1 2 3; do
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then
               echo "::notice::e2e 台账已回提交（${SUBJECT:-CI}）"
               exit 0
             fi
             echo "::warning::push 失败（第 ${attempt} 次），rebase 后重试"
-            git pull --rebase origin "${GITHUB_REF_NAME}"
+            if ! git pull --rebase origin "${GITHUB_REF_NAME}"; then
+              echo "::error::rebase 冲突——台账文件被别人同时改了（多半是另一次 main push 的台账提交）"
+              git status --short | head -20
+              git rebase --abort || true
+              exit 1
+            fi
+            sleep $((attempt * 3))
           done
-          echo "::error::e2e 台账回提交失败（两次尝试）"
+          echo "::error::e2e 台账回提交失败（3 次尝试）；重跑本 job 即可"
           exit 1

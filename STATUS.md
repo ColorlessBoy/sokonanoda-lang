@@ -76,6 +76,11 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    日志文件名同时改成带版本（`<date>-<sha>-vc<version>.log`），否则矩阵里同一天
    同一 commit 的多个版本会互相覆盖。合并逻辑在本地用**伪造 artifact** 验过：
    追加 2 条 → 再合并 0 条（幂等）→ `--check` 排序/唯一/日志齐全。
+   加固（同日）：`concurrency: e2e-ledger`（同一时刻只有一个写台账的 job）+
+   `fetch-depth: 0`（浅克隆 rebase 缺 parent）+ push 重试 3 次、冲突时报出
+   `UU` 文件并 abort。**两条路径都用临时 bare remote + 两个 clone 演练过**：
+   ① 抢占 push → rebase → 第二次成功；② 同一文件冲突 → abort + 退出码 1、
+   工作区干净（重跑即可）。
 9. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
    （[官方文档](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
    与官方 sample 都不钉具体版本，示例用的是 `insiders`）——生态惯例是跟频道。但这一层

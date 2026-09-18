@@ -152,10 +152,18 @@ CI 有独立的 **`e2e` job**（`.github/workflows/ci.yml`）：
   一条提交推回 main，标题形如
   `perf(e2e): 台账 <sha> —— VS Code 1.138.0 14/14 · VS Code 1.106.0 14/14`。
   一次提交而不是每条腿各推一次（多腿并发改同一个 `ledger.jsonl` 会互相覆盖）；
-  push 前 rebase 重试一次，两次都失败就**当失败报出来**（不静默）；
+  job 有 `concurrency: e2e-ledger`（同一时刻只有一个写台账的 job）与 `fetch-depth: 0`
+  （浅克隆 rebase 会缺 parent 对象）；push 失败先 rebase 再重试（最多 3 次），
+  rebase 冲突就打印冲突文件、`rebase --abort` 并**报红**（重跑该 job 即可）；
   `GITHUB_TOKEN` 推的提交不再触发 workflow，不会自激；
 * **门禁**：`auto-tag` 的 `needs` 含 `e2e` ⇒ **e2e 红了就不发版**
   （`e2e-ledger` 只是记账，不在 `auto-tag` 的 needs 里，避免与自己推的提交互相等待）。
+
+> **这两条路径都本地演练过**（2026-09-18，临时 bare remote + 两个 clone）：
+> ① 人类抢先推 main → CI 侧 push 失败 → `pull --rebase` → 第二次 push 成功，
+> 远端两条都在；② 人类改的是**同一个台账文件** → rebase 冲突 → 打印 `UU
+> docs/e2e/ledger.jsonl`、abort、退出码 1（工作区干净，重跑即可）。做法同样适用于
+> 任何"CI 回提交"的场景。
 
 本地与 CI 的台账因此汇进同一个 `docs/e2e/ledger.jsonl`：本地 `scripts/vscode-e2e.sh`
 直接追加（人工提交），CI 由 `e2e-ledger` job 合并提交。两者用同一个 schema 与同一份
