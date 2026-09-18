@@ -794,6 +794,8 @@ iface(module) = H( CACHE_FORMAT,
 - 跨项目依赖（`[deps]` 的 path/git 形态）与 `sokonanoda new` 脚手架；
 - 课程语料重构（`solutions/` 改为复用 + golden 重钉）；
 - `watch` 的项目模式（协议要不要带 DAG 顺序，见 Q6）；
+- `didChangeWatchedFiles`（编辑器**外**改文件不触发刷新，要重开文件）与
+  `soko/project`（P5 剩下的两项，均已在 0.57.0 登记为 P7）；
 - **`crates/front/src/compile/check.rs` 的结构债（本轮加剧）**：1717 → **1918** 行，
   其中 `run_pass` 一个函数占 553–1726 行（≈1174 行）。本轮只往里加了"多 unit
   顺序执行 + 命令下标归因"（`compile_all_units` / `split_report` / `unit_ranges` /
@@ -812,13 +814,16 @@ iface(module) = H( CACHE_FORMAT,
 1. **§4.12/P4 里的 `project/iface.rs` 没有单独成文件**：闭包摘要就是
    `ProjectPlan::digest(&CompileOptions)`（`crates/front/src/project/mod.rs`），
    没必要为 30 行多开一层模块。其余文件名与设计一致。
-2. **P5 只做到"多文档 + 跨文件定义"**：`initialize` 捕获 root、
-   `Docs{map,order,root,active}`、按 URI publish、`goto_definition` 跨文件都完成；
-   **反向后继图 / 重编调度 / `didChangeWatchedFiles` / `soko/project` /
-   跨文件 `references`+`rename` 未做**——第一版"依赖变更后重编译其它打开文档"
-   会在 tower-lsp 的串行通知 + 客户端 socket 缓冲下挂住（已回退，测试删除）。
-   当前语义与余项的补测起点登记在 `docs/TESTING.md` §5.7 与
-   `crates/lsp/src/tests/project.rs` 文件头。**这是本轮唯一的能力缺口。**
+2. **P5 全部落地（含第一版"挂住"的真相）**：`initialize` 捕获 root、
+   `Docs{map,order,root,active}`、按 URI publish、跨文件 `definition`/`references`/
+   `rename`、**改依赖自动重编译下游**都完成。两条与设计不同的实现选择：
+   ① 下游重编译不是"反向后继图调度"，而是**每次通知把所有打开文档当覆盖重新编译
+   需要的那一份**（教学项目规模下更简单、也更正确：未落盘的依赖编辑必须可见）；
+   ② 诊断**只在真的变化时才发**（`Doc::published` 比对）。第一版"会挂住"的根因
+   不是实现而是**测试写法**：服务端一次通知可能连发多条诊断，而测试先等通知结束
+   再读 socket ⇒ 死锁；修法是 `testutil::notify_with_drain`（边处理边排空）。
+   仍未做（P7）：`didChangeWatchedFiles`（编辑器外改文件不触发刷新）、
+   `soko/project`。细节登记在 `docs/TESTING.md` §5.7。
 3. **`import-prelude-conflict` 的判据细化**：没有 prelude 指令的模块视为
    **继承**入口模式，只有"显式指令与闭包决定不一致"才报错（设计 §4.6 只写了
    "闭包内不一致"，实现时需要区分"未声明"与"显式声明"两次预扫描）。
@@ -839,12 +844,12 @@ iface(module) = H( CACHE_FORMAT,
 | 编译驱动 | `crates/front/src/compile/check.rs`（`units: &[SourceUnit]`、`split_report`、命令下标归因） | 内核零改动 |
 | 缓存 | `ProjectPlan::digest` + `cache::key`（`CACHE_FORMAT` 1→2） | `docs/design/compile-cache.md` §7 |
 | CLI/协议 | `--root`/`--no-project`、`build` 项目化、`query` 闭包、`help.rs` 多文件段 | `crates/cli/tests/imports.rs` 12 e2e |
-| LSP | 多文档、按 URI publish、跨文件定义（本地名不误跳） | `crates/lsp/src/tests/project.rs` 4 e2e |
+| LSP | 多文档、按 URI publish、跨文件定义/引用/改名、改依赖自动刷新下游、内存覆盖（未落盘编辑） | `crates/lsp/src/tests/project.rs` 8 e2e + `project_refs.rs` 2 单测 |
 | 教学面 | `course/unit11-modules-projects.sokonanoda`（+EN+solution）、`course/unit11-project/` 可运行两文件项目、`course.json` | golden：画布 (7,6,0)、solution (12,0,0) |
 | 文档 | `docs/architecture.md` §4.5/§8.10、`docs/protocol.md`、`docs/TESTING.md` 三行 + §5.7、`docs/HANDOVER.md`、`ROADMAP.md` I16、三个 skills、`AGENTS.md`、`dsh/README.md`、VS Code README/CHANGELOG | 本轮同一 commit 同步 |
 
 **验收（全部实测通过）**：`scripts/soko gate` PASS；`cargo test --workspace --locked`
-全绿（front 448 / LSP 121 / CLI 191+）；A1 由
+全绿（front 449 / LSP 127 / CLI 191+）；A1 由
 `import_free_files_are_byte_identical_to_the_single_file_path` 守住；零 cargo 的
 用户路径仍只走 Release 二进制（新能力不引入任何工具链依赖）。
 

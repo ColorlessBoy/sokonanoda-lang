@@ -255,3 +255,60 @@ async fn rename_rejects_a_name_that_already_exists_in_the_project() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[tokio::test]
+async fn editing_a_dependency_refreshes_the_open_entry() {
+    let dir = tmp_dir("invalidate");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    // 依赖先打开、入口后打开（编辑器里的常见顺序）。这两步都可能一次发多份诊断，
+    // 所以用"边处理边排空"的通知（见 testutil::notify_with_drain 的说明）。
+    let opened = testutil::did_open_at_drained(&mut service, &mut socket, &logic, LOGIC).await;
+    assert_eq!(opened.len(), 1, "只有刚打开的这份要发诊断");
+    let opened = testutil::did_open_at_drained(&mut service, &mut socket, &canvas, CANVAS).await;
+    assert_eq!(
+        opened.len(),
+        1,
+        "依赖没变 ⇒ 不重复发它的诊断（publish-on-change）"
+    );
+    assert!(
+        opened[0].diagnostics.is_empty(),
+        "{:?}",
+        opened[0].diagnostics
+    );
+
+    // 改**依赖**（未落盘）：把 `And.intro` 改名。入口里的使用点必须立刻报未知标识符——
+    // 这就是跨文件失效：不重编译下游的话，入口会停在"全绿"的旧状态。
+    let renamed = LOGIC.replace("And.intro", "And.mk");
+    let msgs =
+        testutil::did_change_at_drained(&mut service, &mut socket, &logic, 2, &renamed).await;
+    let broken = msgs
+        .iter()
+        .find(|params| params.uri == canvas)
+        .unwrap_or_else(|| panic!("the entry must be republished: {msgs:?}"));
+    assert!(
+        broken
+            .diagnostics
+            .iter()
+            .any(|diag| testutil::code_of(diag) == "elab-unknown-identifier"),
+        "the entry must see the renamed dependency: {:?}",
+        broken.diagnostics
+    );
+
+    // 依赖改回来 ⇒ 入口重新变干净（证明是真的重编译，而不是"一旦报错就锁死"）。
+    let msgs = testutil::did_change_at_drained(&mut service, &mut socket, &logic, 3, LOGIC).await;
+    let healed = msgs
+        .iter()
+        .find(|params| params.uri == canvas)
+        .expect("the entry is republished when the dependency heals");
+    assert!(
+        healed.diagnostics.is_empty(),
+        "the entry recovers once the dependency does: {:?}",
+        healed.diagnostics
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

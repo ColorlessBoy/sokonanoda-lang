@@ -635,10 +635,10 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 - **as-built（2026-09-18，0.57.0，用户指示「全部按建议做完一版」）**：Q1–Q7 全按
   推荐执行；P1–P6 逐阶段落 commit（`feat(front)` → `feat(cli)` → `feat(front,cli)`
   → `feat(lsp,front)` → `feat(course,cli)` → 文档/门面轮），实现实况见设计文档
-  **§5.1 as-built**（含三处与设计的偏差）。**唯一能力缺口**：依赖变更后不自动
-  重编译其它已打开文档（P5 余项，登记 `docs/TESTING.md` §5.7）；跨文件
-  `references`/`rename`、`soko/project`、`watch` 项目模式、`[deps]`、`namespace`
-  等留在 P7 backlog。交付清单：`crates/front/src/project/`（6 文件 18 单测）、
+  **§5.1 as-built**（含三处与设计的偏差）。**P5 全部做完**：多文档、跨文件
+  `definition`/`references`/`rename`、改依赖自动刷新下游（未落盘编辑经内存覆盖
+  可见、诊断只在变化时重发）。留 P7 backlog 的只有：`didChangeWatchedFiles`、
+  `soko/project`、`watch` 项目模式、`[deps]`、`namespace`。交付清单：`crates/front/src/project/`（6 文件 18 单测）、
   `crates/cli/tests/imports.rs`（12 e2e）、`crates/lsp/src/tests/project.rs`（4 e2e）、
   单元⑪ + `course/unit11-project/`、三处文档层同步。**新增结构债（已登记）**：
   `crates/front/src/compile/check.rs` 1717 → 1918 行（`run_pass` 单函数 ≈1174 行），

@@ -141,11 +141,13 @@ npm run clean:lsp
     同时跟踪多个文档（`Docs{map,order,root,active}`），而**入口文档的诊断是整个
     import 闭包的结果**：诊断里带 `file`/`module` 的属于**别的文件**，`goto_definition`
     可能返回另一个文档的 `Location`（扩展的跳转不要假设同文件）。另外两条实测语义：
-    ① 改动的文档自己重编译，**其它已打开文档不会因依赖变更自动刷新**（第一版会在
-    tower-lsp 串行通知 + socket 缓冲下挂住，已回退）；② `initialize` 的 `rootUri`
-    决定模块根，多根工作区目前只取第一个 folder。补测试的起点：
-    `crates/lsp/src/testutil.rs` 的 `handshake_with_root` / `did_open_at` /
-    `did_change_at` / `wait_diagnostics_for` 与 `crates/lsp/src/tests/project.rs`。
+    ① 改依赖会**立刻**让含它的打开文档重编译重发（未落盘编辑经内存覆盖可见），
+    诊断只在真的变化时才发；② `initialize` 的 `rootUri` 决定模块根，多根工作区
+    目前只取第一个 folder；③ 编辑器**外**改文件（git checkout / 别的工具）没有
+    `didChangeWatchedFiles`，要重开文件才刷新（P7）。写多文档测试必须用
+    `testutil::notify_with_drain`（先等通知再读 socket 会死锁，见
+    `docs/TESTING.md` §5.7）；夹具起点：`handshake_with_root` /
+    `did_open_at_drained` / `did_change_at_drained` 与 `crates/lsp/src/tests/project.rs`。
 
 ## 5b. Infoview/视图的硬规矩（0.49.0 教训）
 

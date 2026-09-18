@@ -59,7 +59,24 @@ impl Closure {
 ///
 /// `entry_path` 用于推导入口模块名（`--text` 时可传一个约定的占位路径）；
 /// `entry_src` 是入口的源文本（`None` = 从磁盘读）。
+/// 内存覆盖：`(路径, 文本)`。命中时**不读盘**——编辑器里未保存的缓冲区就是
+/// 编译器该看到的那份文本（LSP 跨文件失效的前提，I16 P5）。
+///
+/// 路径按 `canonicalize` 比较：同一个文件在 macOS 上可能是 `/var/...` 与
+/// `/private/var/...` 两种写法，直接比字符串会漏命中。
+pub type Overlay = Vec<(PathBuf, String)>;
+
 pub fn load_closure(root: &Path, entry_path: &Path, entry_src: Option<&str>) -> Closure {
+    load_closure_with_overlay(root, entry_path, entry_src, &[])
+}
+
+/// 带内存覆盖的闭包加载（LSP 用；`overlay` 为空时与 [`load_closure`] 等价）。
+pub fn load_closure_with_overlay(
+    root: &Path,
+    entry_path: &Path,
+    entry_src: Option<&str>,
+    overlay: &[(PathBuf, String)],
+) -> Closure {
     let entry_name = module_name_of_path(root, entry_path);
     let mut modules: Vec<LoadedModule> = Vec::new();
     let mut by_name: HashMap<String, usize> = HashMap::new();
@@ -72,6 +89,7 @@ pub fn load_closure(root: &Path, entry_path: &Path, entry_src: Option<&str>) -> 
         &entry_name,
         entry_path,
         entry_src,
+        overlay,
         &mut modules,
         &mut by_name,
         &mut diagnostics,
@@ -159,6 +177,7 @@ fn visit(
     name: &str,
     path: &Path,
     src: Option<&str>,
+    overlay: &[(PathBuf, String)],
     modules: &mut Vec<LoadedModule>,
     by_name: &mut HashMap<String, usize>,
     diagnostics: &mut Vec<ProjectDiagnostic>,
@@ -175,10 +194,10 @@ fn visit(
         return VisitOutcome::Cycle(cycle);
     }
 
-    // 读源文本（入口可以用调用方给的中间态文本）。
+    // 读源文本（入口可以用调用方给的中间态文本；其它模块先看内存覆盖，再读盘）。
     let text = match src {
         Some(text) => text.to_string(),
-        None => match std::fs::read_to_string(path) {
+        None => match read_module_text(path, overlay) {
             Ok(text) => text,
             Err(err) => {
                 diagnostics.push(ProjectDiagnostic {
@@ -277,6 +296,7 @@ fn visit(
                     &dep_name.as_str(),
                     &found,
                     None,
+                    overlay,
                     modules,
                     by_name,
                     diagnostics,
@@ -365,4 +385,21 @@ fn push_module(
         blocked: false,
     });
     by_name.insert(name.to_string(), index);
+}
+
+/// 模块源文本：内存覆盖优先（不读盘），否则读盘。
+fn read_module_text(path: &Path, overlay: &[(PathBuf, String)]) -> std::io::Result<String> {
+    if overlay.is_empty() {
+        return std::fs::read_to_string(path);
+    }
+    let key = canonical(path);
+    overlay
+        .iter()
+        .find(|(candidate, _)| canonical(candidate) == key)
+        .map(|(_, text)| Ok(text.clone()))
+        .unwrap_or_else(|| std::fs::read_to_string(path))
+}
+
+fn canonical(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }

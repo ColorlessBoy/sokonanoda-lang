@@ -41,12 +41,17 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    含 A1：无 import 文件与单文件路径逐字节一致）。
 4. **缓存（P4）**：`ProjectPlan::digest(options)` = 拓扑序上每个模块 (名字, 源, imports)
    + prelude 模式的稳定哈希；`CACHE_FORMAT` 1→2；依赖改动必然 miss（e2e 实测）。
-5. **LSP（P5）**：`Docs{map,order,root,active}` 多文档、`initialize` 捕获 root、
-   按 URI publish、`did_close` 清理、**跨文件 `goto_definition`**
-   （`QueryDoc::project_definition`）；项目模式下补挂 `-- soko:hint` 阶梯
-   （否则带 import 的入口答不出 hints）。`crates/lsp/src/tests/project.rs` 4 条 e2e（导入可见 / 缺失 import 只报错 / 跨文件跳转 / 本地名仍留在入口）。
-   **唯一缺口**：依赖变更后不自动重编译其它已打开文档（第一版在 tower-lsp 串行
-   通知 + socket 缓冲下挂住，已回退；余项登记 `docs/TESTING.md` §5.7）。
+5. **LSP（P5，全做完）**：`Docs{map,order,root,active}` 多文档、`initialize` 捕获
+   root、按 URI publish、`did_close` 清理、跨文件 `goto_definition` / `references` /
+   `rename`（新 `project_refs.rs`：跨文件身份 = 名字、定义名 token 来自
+   `front::references`、编辑按模块分组、改名成项目里已有名字先被拦下）；项目模式下
+   补挂 `-- soko:hint` 阶梯（否则带 import 的入口答不出 hints）。**跨文件失效**：
+   改依赖 ⇒ 含它的打开文档用"内存覆盖"（`load_closure_with_overlay`，按
+   `canonicalize` 匹配）重编译重发，**未落盘的依赖编辑也可见**；诊断只在真的变化时
+   才 publish（`Doc::published`）。第一版"挂住"的根因是**测试写法**（一次通知连发
+   多条诊断时先等通知再读 socket ⇒ 死锁），修法是 `testutil::notify_with_drain`——
+   教训写进 `docs/TESTING.md` §5.7 与架构 §8.10。`crates/lsp/src/tests/project.rs`
+   8 条 e2e + `project_refs.rs` 2 条单测；真实二进制探针复核过引用/改名/依赖失效。
 6. **教学面与门面（P6）**：单元⑪「模块与项目」（CN/EN + 两份 solution，199/249 行）
    + 可运行两文件项目 `course/unit11-project/`（`sokonanoda.toml` + Logic/Canvas/
    Exercises + solution）+ `course.json`/`course/README.md`；goldens 重钉
@@ -63,7 +68,10 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 8. **没做什么（有意）**：课程语料不回填 import（除新增单元⑪）；`watch --workspace`
    与 `soko/project` 不项目化；不做跨进程 decl 复用（v1 只缓存报告）；产物仍在用户
    缓存目录；`namespace`/`open`/`[deps]` 留 P7。
-9. **新增一笔结构债（已登记，不静默）**：`crates/front/src/compile/check.rs`
+9. **LSP 侧只剩 P7 项**：`didChangeWatchedFiles`（编辑器**外**改文件不触发刷新，
+   要重开文件）、`soko/project`、跨文件改名的"重命名文件/模块"形态；`watch` 项目
+   模式、`[deps]`、`namespace`/`open` 同样留 P7。
+10. **新增一笔结构债（已登记，不静默）**：`crates/front/src/compile/check.rs`
    1717 → **1918** 行（`run_pass` 单函数 ≈1174 行）——多 unit 泛化加在这里但没趁机
    拆函数（拆它要独立一轮，事件流/增量语义不能漂）。计划与验收见
    `docs/HANDOVER.md` §4 与 `docs/design/imports-and-projects.md` P7。

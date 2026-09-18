@@ -3,7 +3,7 @@
 //! live next to the tests that use them.
 
 use crate::Backend;
-use futures::StreamExt;
+use futures::{FutureExt, StreamExt};
 use serde_json::{json, Value};
 use std::time::Duration;
 use tower::Service;
@@ -132,6 +132,47 @@ pub(crate) async fn handshake_with_root(service: &mut LspService<Backend>, root:
     call(service, init).await.expect("initialize must answer");
 }
 
+/// 通知 + **并发排空**：服务器可能在一次通知里连发多条诊断（多文档项目里改
+/// 依赖会同时刷新下游），而客户端 socket 缓冲有限——测试若先 `await` 通知处理完
+/// 再去读，服务端的 send 就会等测试、测试又在等通知，直接死锁（I16 P5 实测：
+/// 两条文档时必挂）。这里边处理边收，处理完再把队列里剩下的取走（不等待新消息）。
+pub(crate) async fn notify_with_drain(
+    service: &mut LspService<Backend>,
+    socket: &mut ClientSocket,
+    method: &'static str,
+    params: Value,
+) -> Vec<PublishDiagnosticsParams> {
+    let mut collected: Vec<PublishDiagnosticsParams> = Vec::new();
+    {
+        let notify = notify(service, method, params);
+        tokio::pin!(notify);
+        loop {
+            tokio::select! {
+                _ = &mut notify => break,
+                msg = socket.next() => match msg {
+                    Some(msg) => push_diagnostics(&mut collected, msg),
+                    None => break,
+                },
+            }
+        }
+    }
+    // 服务端处理完 ⇒ 它发的消息都已经在队列里，直接取（非阻塞）。
+    while let Some(Some(msg)) = socket.next().now_or_never() {
+        push_diagnostics(&mut collected, msg);
+    }
+    collected
+}
+
+fn push_diagnostics(collected: &mut Vec<PublishDiagnosticsParams>, msg: RpcRequest) {
+    if msg.method() != "textDocument/publishDiagnostics" {
+        return;
+    }
+    let params: PublishDiagnosticsParams =
+        serde_json::from_value(msg.params().cloned().unwrap_or(json!(null)))
+            .expect("valid PublishDiagnosticsParams");
+    collected.push(params);
+}
+
 /// 指定 URI 的 didOpen（多文件项目测试用；`did_open` 固定单 URI 夹具）。
 pub(crate) async fn did_open_at(service: &mut LspService<Backend>, uri: &Url, text: &str) {
     notify(
@@ -164,6 +205,44 @@ pub(crate) async fn did_change_at(
         }),
     )
     .await;
+}
+
+/// 排空版 didOpen：返回这一次通知里服务器发出的全部诊断（可能不止一份文档）。
+pub(crate) async fn did_open_at_drained(
+    service: &mut LspService<Backend>,
+    socket: &mut ClientSocket,
+    uri: &Url,
+    text: &str,
+) -> Vec<PublishDiagnosticsParams> {
+    notify_with_drain(
+        service,
+        socket,
+        "textDocument/didOpen",
+        json!({"textDocument": {
+            "uri": uri, "languageId": "sokonanoda", "version": 1, "text": text
+        }}),
+    )
+    .await
+}
+
+/// 排空版 didChange（多文档项目：改一份会让下游重新编译并再发诊断）。
+pub(crate) async fn did_change_at_drained(
+    service: &mut LspService<Backend>,
+    socket: &mut ClientSocket,
+    uri: &Url,
+    version: i32,
+    text: &str,
+) -> Vec<PublishDiagnosticsParams> {
+    notify_with_drain(
+        service,
+        socket,
+        "textDocument/didChange",
+        json!({
+            "textDocument": {"uri": uri, "version": version},
+            "contentChanges": [{"text": text}],
+        }),
+    )
+    .await
 }
 
 /// 指定 URI 的 didClose（当前没有测试消费它：多文档刷新是 P5 余项，

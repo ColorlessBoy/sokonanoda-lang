@@ -56,6 +56,21 @@ pub fn compile_project(
     compile_plan(plan_project(entry_path, entry_src, root_override), options)
 }
 
+/// 带**内存覆盖**的闭包编译（LSP 跨文件失效用）：`overlay` 里的路径不读盘，
+/// 直接用给定文本——编辑器未保存的依赖编辑因此对入口可见。
+pub fn compile_project_with_overlay(
+    entry_path: &Path,
+    entry_src: Option<&str>,
+    options: &CompileOptions,
+    root_override: Option<&Path>,
+    overlay: &[(PathBuf, String)],
+) -> ProjectReport {
+    compile_plan(
+        plan_project_with_overlay(entry_path, entry_src, root_override, overlay),
+        options,
+    )
+}
+
 /// 一次项目编译的**计划**：根、清单、闭包（都只做了读取与解析）。
 ///
 /// 拆出来是为了缓存：闭包哈希必须在**编译之前**算出来（`plan.digest()`），
@@ -116,6 +131,16 @@ pub fn plan_project(
     entry_src: Option<&str>,
     root_override: Option<&Path>,
 ) -> ProjectPlan {
+    plan_project_with_overlay(entry_path, entry_src, root_override, &[])
+}
+
+/// 解析项目根、加载闭包（不编译）——`overlay` 提供打开文档的内存文本。
+pub fn plan_project_with_overlay(
+    entry_path: &Path,
+    entry_src: Option<&str>,
+    root_override: Option<&Path>,
+    overlay: &[(PathBuf, String)],
+) -> ProjectPlan {
     let entry_dir = entry_path
         .parent()
         .map(Path::to_path_buf)
@@ -152,7 +177,7 @@ pub fn plan_project(
     };
 
     // 2) 闭包加载（解析 + 环 + 找不到 + 阻断传播）。
-    let closure = load_closure(&root, entry_path, entry_src);
+    let closure = graph::load_closure_with_overlay(&root, entry_path, entry_src, overlay);
 
     ProjectPlan {
         entry: entry_path.to_path_buf(),

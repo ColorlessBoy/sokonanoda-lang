@@ -59,8 +59,9 @@ skills.
   `Logic.sokonanoda`, `Lib/And.sokonanoda` ↔ `Lib.And`); without a manifest
   the entry file's own directory is the root, so two files next to each
   other just work. Errors are attributed to the file that caused them
-  (`import-not-found`, `import-cycle`, …). Known limit: after editing a
-  *dependency*, other already-open files refresh on their next edit.
+  (`import-not-found`, `import-cycle`, …). Editing an imported module re-checks
+  the files that depend on it right away — unsaved edits included — and find
+  references / rename work across the whole project.
 - **Course map** — an 11-unit structured course with verified solutions
   (propositional logic first; `by` tactic blocks early for fast feedback;
   universes only when you naturally ask "what's the type of a function
@@ -72,8 +73,8 @@ skills.
 **A real editing experience**
 
 - Completions (keywords, in-scope binders, prelude names)
-- Go-to-definition (including **across imported modules**), document
-  highlight, rename, find references
+- Go-to-definition, rename and find references — all **across imported
+  modules**; document highlight stays within the file
 - Inlay hints showing the expected type at each hole — and the result of
   every `#check` (`#check Nat` → `Nat : Type 0`, Lean-Infoview style)
 - Code actions: introduce-and-refine templates, `exact` suggestions,

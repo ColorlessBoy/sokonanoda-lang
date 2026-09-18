@@ -14,9 +14,12 @@
   has open exercises adds a warning instead of failing the entry.
 - **The language server follows the import closure.** Opening an entry file
   compiles its whole project: declarations from imported modules are visible for
-  diagnostics, hover, completion and code actions, and **go to definition jumps
-  into the imported module**. Multiple documents are tracked at once; editing one
-  re-publishes its own diagnostics.
+  diagnostics, hover, completion and code actions, and **go to definition, find
+  references and rename all work across files**. Multiple documents are tracked
+  at once, and **editing an imported module immediately re-checks the files that
+  depend on it** — unsaved edits included, because the compiler sees open buffers
+  through an in-memory overlay. Diagnostics are re-published only when they
+  actually change.
 - **Compile cache is project-aware.** The cache key covers every module in the
   closure (names, sources, imports, order) plus the prelude mode, so touching a
   dependency can never serve a stale entry report.
@@ -28,9 +31,9 @@
 - New course unit ⑪ ("modules and projects") with a runnable two-file example
   project at `course/unit11-project/`.
 - `sokonanoda --help` documents `import`, `--root` and `--no-project`.
-- Known limitation (recorded for the next round): if a *dependency* changes, other
-  already-open documents are not recompiled automatically — they refresh on their
-  next edit.
+- Known limitation (recorded for the next round): a file changed *outside the
+  editor* (git checkout, another tool) is not noticed until it is reopened —
+  `didChangeWatchedFiles` is not wired yet.
 
 ## [0.56.1] - 2026-09-17
 

@@ -201,8 +201,15 @@ sokonanoda-lang/
    imports) + prelude 模式的稳定哈希；依赖改动必然改摘要（`docs/design/compile-cache.md` §7）。
 
 消费方：CLI（`--root`/`--no-project`）、`query`（项目模式）、LSP（多文档 +
-跨文件 `textDocument/definition`）、`build`（暖缓存）。设计全文与错误码表见
+跨文件 `definition`/`references`/`rename`）、`build`（暖缓存）。设计全文与错误码表见
 `docs/design/imports-and-projects.md`，协议见 `docs/protocol.md`。
+
+**编辑器里的依赖编辑（未落盘）**：LSP 把**所有打开文档的当前文本**做成"内存覆盖"
+（`load_closure_with_overlay`，按 `canonicalize` 后的路径匹配），改依赖时下游文档用
+同一份覆盖重编译并重发诊断——所以未保存的依赖改动对入口可见，覆盖也进闭包摘要。
+诊断**只在真的变化时**才 publish（`Doc::published`）。测试多文档必须用
+`testutil::notify_with_drain`：一次通知可能连发多条诊断，先等通知再读 socket 会死锁
+（`docs/TESTING.md` §5.7）。
 
 ---
 
@@ -343,12 +350,13 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 7. **打印偏好**：教学文本 ASCII `->`；`pp_options.proofs=true` 由 `compile_fol` 设置（否则打印会把证明项压成 `_`）。
 8. **tactic/编辑器判定走 `front::judge`**（合成完整声明交完整 kernel 裁决），不要新增文本比对；`proof.rs::assumption` 的文本比对实现已删除。建议生成（`front::suggest`：exact/rfl/refine/intro）与逐洞判定（`judge_hole_fill`：把洞替换候选后整份声明交 kernel）都只是结构生成 + kernel 终审。
 9. **kernel lint**：`lib.rs` 的 `cast_possible_truncation` 已降为 warn（上游代码自身未过）；clippy 严格门禁在各教学 crate 的 `[lints.rust] warnings = "deny"`，CI 的 fmt 门禁只覆盖教学 crates（kernel 的 rustfmt.toml 需要 nightly）。
-10. **多文件项目（I16）的两个坑**：错误归属只能按**命令下标**（`error_cmds`），
-    绝不能按 span——不同文件的字节偏移会互相命中；以及**不要**给
-    `import`-free 的文件加任何项目开销（`plan_project` 只在解析出 import 后才被
-    调用，A1 回归由 `crates/cli/tests/imports.rs` 的 stdin/文件同字节断言守住）。
-    余项：依赖文件变更后 LSP 不会自动重编译**其它**已打开文档（见
-    `crates/lsp/src/tests/project.rs` 文件头）。
+10. **多文件项目（I16）的三个坑**：① 错误归属只能按**命令下标**（`error_cmds`），
+    绝不能按 span——不同文件的字节偏移会互相命中；② **不要**给 `import`-free 的
+    文件加任何项目开销（`plan_project` 只在解析出 import 后才被调用，A1 回归由
+    `crates/cli/tests/imports.rs` 的 stdin/文件同字节断言守住）；③ 内存覆盖与诊断
+    发布：覆盖的路径要 `canonicalize` 后再比（macOS `/var` vs `/private/var`），
+    构建覆盖时**先把当前文档的新文本替进去**（否则下游重编译看到的还是上一版依赖
+    ——实测踩过），多文档测试要边处理边排空（见 §4.5 末与 `docs/TESTING.md` §5.7）。
 
 ---
 

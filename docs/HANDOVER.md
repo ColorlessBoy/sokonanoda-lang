@@ -10,8 +10,8 @@
 > **内核真相查询通道**已落地：`docs/design/agent-query-channel.md`（I15，`query` + MCP）。
 > **多文件 `import` 与项目管理**已落地（I16，0.57.0）：`import Foo.Bar` + 可选
 > `sokonanoda.toml`、闭包编译（内核零改动）、闭包哈希缓存、CLI `--root`/`--no-project`、
-> LSP 多文档 + 跨文件跳转、单元⑪ + `course/unit11-project/`；**余项**见 §3 G 与
-> `docs/TESTING.md` §5.7（依赖变更不自动刷新其它已打开文档）。
+> LSP 多文档 + 跨文件跳转/引用/改名 + 改依赖自动刷新下游、单元⑪ +
+> `course/unit11-project/`；**余项**见 §3 G 与 `docs/TESTING.md` §5.7（只剩 P7 项）。
 
 ## 1. 30 秒接手
 
@@ -188,7 +188,8 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 
 ### G. 多文件 `import` 与项目管理（I16，**0.57.0 已落地**）
 - 设计 + 调研 + **as-built**：**`docs/design/imports-and-projects.md`**（§5.1 有三处与
-  设计的偏差、交付物清单、唯一能力缺口）；调研底稿：`docs/notes/multifile-prior-art.md`、
+  设计的偏差、交付物清单、P5 的实现选择与剩余 P7 项）；调研底稿：
+  `docs/notes/multifile-prior-art.md`、
   `docs/notes/project-roots-and-incremental-caches.md`。
 - 一句话：编译单元从「一个文件」升级为「项目闭包」——`import Foo.Bar`（Lean 置顶语法）、
   模块名↔路径（Lean 同款，`-` 非法）、模块根 = `--root` > 最近 `sokonanoda.toml`
@@ -199,10 +200,11 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 - **接手前必须知道的三条**：① 诊断**按命令下标**归属文件（`CompileOutput.error_cmds`），
   按 span 会串文件；② 项目模式只对"解析出 import"的文件启用（A1 是硬不变量）；
   ③ `crates/front/src/project/` 是唯一闭包实现，改它先读 `docs/architecture.md` §4.5。
-- **缺口（唯一）**：依赖变更后 LSP 不自动重编译**其它**已打开文档（第一版会在
-  tower-lsp 串行通知 + socket 缓冲下挂住，已回退）；跨文件 `findReferences`/`rename`、
-  `soko/project`、`watch` 项目模式、`[deps]`、`namespace` 留 P7 backlog。
-  补测试从 `crates/lsp/src/testutil.rs` 的 `did_change_at` + `wait_diagnostics_for` 起步。
+- **LSP 能力（0.57.0 完整）**：多文档、跨文件 `definition`/`references`/`rename`、
+  改依赖自动刷新下游（未落盘编辑经内存覆盖可见）、诊断只在变化时重发。
+  留 P7 backlog 的只有：`didChangeWatchedFiles`（编辑器外改文件不触发刷新）、
+  `soko/project`、`watch` 项目模式、`[deps]`、`namespace`。
+  多文档测试必须用 `testutil::notify_with_drain`（原因见 `docs/TESTING.md` §5.7）。
 - 三道"静默错误"门仍在（`front/tests/perf.rs`、`cli/tests/watch.rs`、judge/suggest
   静默无建议）：改项目层时别让它们变成假绿。
 
@@ -229,12 +231,13 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   → events → report`，每切一刀用现有 golden/事件计数对拍（`protocol.rs`、
   `course.rs`、`query.rs` 的计数契约就是现成的验收）；**不要在一轮里同时改语义与
   位置**。触发点：任何再往 `run_pass` 里加分支的需求。
-- **（I16 P5 余项，0.57.0 唯一开口）多文件 LSP 的跨文件自动失效**：依赖文件改动后，
-  **其它**已打开文档不会被自动重编译（第一版实现会在 tower-lsp 串行通知 + 客户端
-  socket 缓冲下挂住，已回退并测试删除）。当前语义：改动的文档自己重编译，其它文档
-  在下一次**自身**编辑时看到新环境。同一处未做的还有跨文件 `findReferences`/`rename`
-  与 `soko/project`；一并登记在 `docs/TESTING.md` §5.7、`ROADMAP.md` I16 as-built、
-  `crates/lsp/src/tests/project.rs` 文件头。
+- **（0.57.0 已闭环）多文件 LSP 的跨文件失效与跨文件改名**：改依赖 ⇒ 含它的打开
+  文档自动重编译重发；`references`/`rename` 都跨文件；未落盘的依赖编辑通过**内存
+  覆盖**（`load_closure_with_overlay` / `QueryDoc::set_text_with_overlay`）进入闭包，
+  也进闭包摘要。曾经"实现会挂"的结论是**测试写法**问题：服务端一次通知可能连发
+  多条诊断，测试必须先排空再等通知（`testutil::notify_with_drain`）。细节与教训见
+  `docs/TESTING.md` §5.7。仍未做（P7）：`didChangeWatchedFiles`（编辑器外改文件
+  不触发刷新）、`soko/project`、`[deps]`、`namespace`/`open`。
 - **（0.56.1 已清）`crates/lsp` 测试文件的拆分**：0.56.0 把测试模块移出 `lib.rs`
   时形成过 `tests.rs` 2567 行的债，0.56.1 已按"`tests/mod.rs`（共享夹具）+
   按特性分文件"拆完：`mod.rs` 399 行（31 个共享 const/fixture + `pub(crate) use`

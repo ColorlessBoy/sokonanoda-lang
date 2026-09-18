@@ -56,6 +56,9 @@ pub struct QueryDoc {
     pub root: Option<std::path::PathBuf>,
     /// 文本里有 `import` 且能定位入口时的项目编译结果。
     project: Option<crate::project::ProjectReport>,
+    /// 最近一次编译用的内存覆盖（打开文档的路径 → 文本）。`check`/`reduce`
+    /// 会重跑闭包编译，必须复用同一份覆盖，否则答案与 `report` 不同源。
+    overlay: Vec<(std::path::PathBuf, String)>,
 }
 
 impl Default for QueryDoc {
@@ -76,11 +79,25 @@ impl QueryDoc {
             path: None,
             root: None,
             project: None,
+            overlay: Vec::new(),
         }
     }
 
     /// 换文本并重编译（版本递增）。`mode` 为 `None` 时沿用当前模式。
     pub fn set_text(&mut self, text: &str, version: u64, mode: Option<PreludeMode>) {
+        self.set_text_with_overlay(text, version, mode, &[]);
+    }
+
+    /// 同 [`Self::set_text`]，但项目闭包编译时把 `overlay`（打开文档的内存文本）
+    /// 当成依赖的源文本——编辑器未保存的依赖编辑因此对这份文档可见（I16 P5）。
+    pub fn set_text_with_overlay(
+        &mut self,
+        text: &str,
+        version: u64,
+        mode: Option<PreludeMode>,
+        overlay: &[(std::path::PathBuf, String)],
+    ) {
+        self.overlay = overlay.to_vec();
         if let Some(mode) = mode {
             if mode != self.mode {
                 self.mode = mode;
@@ -117,11 +134,12 @@ impl QueryDoc {
             .path
             .clone()
             .or_else(|| root.map(|root| root.join("Main.sokonanoda")))?;
-        Some(crate::project::compile_project(
+        Some(crate::project::compile_project_with_overlay(
             &path,
             Some(text),
             &self.options(),
             root,
+            &self.overlay,
         ))
     }
 

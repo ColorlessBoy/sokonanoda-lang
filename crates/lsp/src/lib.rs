@@ -58,12 +58,30 @@ use tower_lsp::{Client, LanguageServer, LspService, Server};
 /// 只提供 LSP 形状的访问器与 didOpen/didChange 的编译缓存路径。
 struct Doc {
     doc: QueryDoc,
+    /// 上一次**发出去**的诊断：只有真的变了才再发。多文档项目里一次通知可能
+    /// 让好几份文档重新编译，但"没变的就别发"能省掉大量无谓的 publish
+    /// （也避免服务端在测试/慢客户端上被自己的通知堵住）。
+    published: Vec<Diagnostic>,
 }
 
 impl Doc {
     fn new() -> Self {
         Self {
             doc: QueryDoc::new(),
+            published: Vec::new(),
+        }
+    }
+
+    /// 这份文档现在该发的诊断（parse 错误优先，与既有契约一致）。
+    fn diagnostics(&self) -> Vec<Diagnostic> {
+        match self.doc.parse_error.as_ref() {
+            Some(diag) => vec![diagnostic_from_parse(diag)],
+            None => self
+                .doc
+                .report
+                .as_ref()
+                .map(report_diagnostics)
+                .unwrap_or_default(),
         }
     }
 
@@ -88,11 +106,6 @@ impl Doc {
         self.doc.report.as_ref()
     }
 
-    /// 最近一次 parse 诊断。
-    fn parse_error(&self) -> Option<&sokonanoda_front::Diagnostic> {
-        self.doc.parse_error.as_ref()
-    }
-
     /// The document's LSP version; versioned `WorkspaceEdit`s (rename) must
     /// carry it for atomic client-side application. LSP 的版本是 i32、真相层
     /// 是 u64——`as` 在两个方向上对非负版本恒等（负版本按位往返）。
@@ -115,6 +128,7 @@ impl Doc {
         mode: Option<PreludeMode>,
         path: Option<std::path::PathBuf>,
         root: Option<std::path::PathBuf>,
+        overlay: &[(std::path::PathBuf, String)],
     ) {
         let mode = mode.unwrap_or(self.doc.mode);
         let options = CompileOptions { prelude: mode };
@@ -141,7 +155,8 @@ impl Doc {
             return;
         }
         // 原地复用会话（I8 增量的关键）：prelude 模式变化时由真相层重建。
-        self.doc.set_text(text, lsp_version as u64, Some(mode));
+        self.doc
+            .set_text_with_overlay(text, lsp_version as u64, Some(mode), overlay);
         if self.doc.parse_error.is_some() {
             // LSP 既有契约：parse 失败时**没有报告**（hover / documentSymbol /
             // codeAction / inlayHint 等据此回答 `null`）。真相层用"空报告 +
@@ -245,10 +260,6 @@ impl Docs {
         self.active().and_then(Doc::report)
     }
 
-    fn parse_error(&self) -> Option<&sokonanoda_front::Diagnostic> {
-        self.active().and_then(Doc::parse_error)
-    }
-
     fn mode(&self) -> PreludeMode {
         self.active().map(Doc::mode).unwrap_or(PreludeMode::Full)
     }
@@ -256,6 +267,14 @@ impl Docs {
     fn version(&self) -> i32 {
         self.active().map(Doc::version).unwrap_or(0)
     }
+}
+
+/// 同一个文件？按 `canonicalize` 比较（macOS 上 `/var` 与 `/private/var`
+/// 是两种写法；`didOpen` 的 URI 与解析器拼出来的路径不保证逐字相同）。
+fn same_file(left: &std::path::Path, right: &std::path::Path) -> bool {
+    let canonical =
+        |path: &std::path::Path| std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    canonical(left) == canonical(right)
 }
 
 /// 闭包里每个模块的 LSP 视图（跨文件引用/改名用）。
@@ -315,32 +334,90 @@ impl Backend {
             let mode = prelude_mode_from_source(&text);
             let lsp_version = version.unwrap_or_else(|| docs.version());
             let (path, root) = docs.entry_context();
-            if let Some(doc) = docs.active_mut() {
-                doc.set_text(&text, lsp_version, Some(mode), path, root);
-            }
-            let diagnostics = match docs.parse_error() {
-                Some(diag) => vec![diagnostic_from_parse(diag)],
-                None => docs.report().map(report_diagnostics).unwrap_or_default(),
-            };
-            // 依赖变了 ⇒ 打开着的下游文档要跟着刷新（v1：全部重编译重发；
-            // 教学项目里同时打开的文档很少，正确性优先，见设计 §4.9）。
-            // v1 语义（I16 P5）：变更的那份文档自己重编译；其它打开文档**重发**
-            // 上次的诊断（不发就永远停在旧状态）。真正的"依赖变了 ⇒ 下游自动
-            // 重编译"（跨文件失效）是 P5 余项——写在这里的第一版会在 tower-lsp
-            // 的串行通知里挂住，先按能保证的语义发布，并在设计文档里登记。
-            let others: Vec<(Url, Vec<Diagnostic>)> = docs
+            // **打开文档的内存文本就是编译器该看到的文本**（未保存的编辑也算）：
+            // 先收齐覆盖，再逐份编译——依赖改了，下游文档的下一次编译就能看到它。
+            // **打开文档的内存文本就是编译器该看到的文本**（未保存的编辑也算）。
+            // 注意：这份 map 里当前文档还是**旧**文本，必须先把新文本替进去，
+            // 否则下游重编译看到的还是上一版依赖（实测踩过：改了依赖但入口没反应）。
+            let mut overlay: Vec<(std::path::PathBuf, String)> = docs
                 .order
                 .iter()
-                .filter(|other| **other != uri)
-                .filter_map(|other| {
-                    let doc = docs.map.get(other)?;
-                    let diagnostics = match doc.parse_error() {
-                        Some(diag) => vec![diagnostic_from_parse(diag)],
-                        None => doc.report().map(report_diagnostics).unwrap_or_default(),
-                    };
-                    Some((other.clone(), diagnostics))
+                .filter_map(|open| {
+                    let path = open.to_file_path().ok()?;
+                    let doc = docs.map.get(open)?;
+                    (!doc.text().is_empty()).then(|| (path, doc.text().to_string()))
                 })
                 .collect();
+            if let Ok(changed) = uri.to_file_path() {
+                if let Some(entry) = overlay
+                    .iter_mut()
+                    .find(|(path, _)| same_file(path, &changed))
+                {
+                    entry.1 = text.clone();
+                }
+            }
+            if let Some(doc) = docs.active_mut() {
+                doc.set_text(&text, lsp_version, Some(mode), path, root, &overlay);
+            }
+            let diagnostics = docs.active_doc().diagnostics();
+            if let Some(doc) = docs.active_mut() {
+                doc.published = diagnostics.clone();
+            }
+            // 依赖变了 ⇒ 打开着的下游文档跟着重编译（I16 P5 跨文件失效）。
+            // 只重编译**闭包里含这份改动**的文档（其余文档重发上次诊断即可），
+            // 全部同步做完再发通知：`docs` 锁不跨 await，tower-lsp 的串行通知
+            // 不会因此卡住。
+            let changed = uri.to_file_path().ok();
+            let order = docs.order.clone();
+            let mut others: Vec<(Url, Vec<Diagnostic>)> = Vec::new();
+            for other in order {
+                if other == uri {
+                    continue;
+                }
+                let stale = changed.as_deref().is_some_and(|changed| {
+                    docs.map
+                        .get(&other)
+                        .and_then(|doc| doc.query().project_modules())
+                        .is_some_and(|modules| {
+                            modules
+                                .iter()
+                                .any(|module| same_file(&module.path, changed))
+                        })
+                });
+                let other_path = other.to_file_path().ok();
+                if stale {
+                    let (other_text, other_version) = match docs.map.get(&other) {
+                        Some(doc) => (doc.text().to_string(), doc.version()),
+                        None => continue,
+                    };
+                    let other_mode = prelude_mode_from_source(&other_text);
+                    let root = docs.root.clone();
+                    docs.focus(&other);
+                    if let Some(doc) = docs.active_mut() {
+                        doc.set_text(
+                            &other_text,
+                            other_version,
+                            Some(other_mode),
+                            other_path,
+                            root,
+                            &overlay,
+                        );
+                    }
+                }
+                let Some(doc) = docs.map.get(&other) else {
+                    continue;
+                };
+                let diagnostics = doc.diagnostics();
+                // 没变就不发：多文档项目里"改 A 也重编译 B"是常态，
+                // 但只有真的受影响的那些文档才值得打扰客户端。
+                if diagnostics == doc.published {
+                    continue;
+                }
+                if let Some(doc) = docs.map.get_mut(&other) {
+                    doc.published = diagnostics.clone();
+                }
+                others.push((other, diagnostics));
+            }
             (diagnostics, others)
         };
         let _ = self

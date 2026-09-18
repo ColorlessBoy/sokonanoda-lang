@@ -169,9 +169,15 @@ theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := And.intro a b h
 
     /// 真闭包（临时目录里两文件、走完整 project 流水线）——跨文件的名字必须
     /// 由**编译出来的报告**回答，手搓报告测不出真语义。
-    fn closure() -> (ProjectReport, std::path::PathBuf) {
-        let dir =
-            std::env::temp_dir().join(format!("soko-lsp-project-refs-{}", std::process::id()));
+    ///
+    /// 目录名必须带**每个测试自己的 tag**：同进程里两个测试并行跑，共用 `pid`
+    /// 目录时一个的 `remove_dir_all` 会把另一个的文件删掉（实测 25 次里红 3 次
+    /// ——这是测试自己的 race，不是被测代码的）。
+    fn closure(tag: &str) -> (ProjectReport, std::path::PathBuf) {
+        let dir = std::env::temp_dir().join(format!(
+            "soko-lsp-project-refs-{tag}-{}",
+            std::process::id()
+        ));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("temp dir");
         std::fs::write(dir.join("Logic.sokonanoda"), LOGIC).expect("write");
@@ -203,7 +209,7 @@ theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := And.intro a b h
 
     #[test]
     fn references_span_modules_in_closure_order() {
-        let (report, dir) = closure();
+        let (report, dir) = closure("references");
         let modules = views(&report);
         assert_eq!(modules.len(), 2, "Logic 在前、入口在后");
         assert!(modules[0].uri.as_str().ends_with("Logic.sokonanoda"));
@@ -221,7 +227,7 @@ theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := And.intro a b h
 
     #[test]
     fn rename_edits_cover_every_module_that_uses_the_name() {
-        let (report, dir) = closure();
+        let (report, dir) = closure("rename");
         let modules = views(&report);
         let edits = rename_edits(&modules, "And.intro", "And.mk");
         assert_eq!(edits.len(), 2, "{edits:?}");

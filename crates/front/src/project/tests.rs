@@ -481,3 +481,56 @@ fn closure_digest_marks_the_module_set() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn an_overlay_makes_unsaved_dependency_edits_visible() {
+    let dir = tmp_dir("overlay");
+    write(
+        &dir,
+        "Logic.sokonanoda",
+        "axiom And : Prop -> Prop -> Prop\n\
+axiom And.intro : forall (a b : Prop), a -> b -> And a b\n",
+    );
+    let canvas = write(
+        &dir,
+        "Canvas.sokonanoda",
+        "import Logic\n\n\
+theorem t (a b : Prop) (h : a) (k : b) : And a b := And.intro a b h k\n",
+    );
+    let options = CompileOptions::default();
+    let clean = compile_project(&canvas, None, &options, None);
+    assert!(clean.diagnostics.is_empty(), "{:?}", codes(&clean));
+
+    // 依赖的**未落盘**改名（编辑器里的中间态）通过覆盖进入闭包：
+    // 入口里的 `And.intro` 立刻变成未知标识符。
+    let overlay = vec![(
+        dir.join("Logic.sokonanoda"),
+        "axiom And : Prop -> Prop -> Prop\n\
+axiom And.mk : forall (a b : Prop), a -> b -> And a b\n"
+            .to_string(),
+    )];
+    let broken = compile_project_with_overlay(&canvas, None, &options, None, &overlay);
+    // 入口的 elab 错误挂在**入口模块的报告**里（`ProjectReport::diagnostics`
+    // 只装闭包级规则：找不到/环/重名/依赖阻断）。
+    let entry_errors: Vec<&'static str> = broken
+        .entry_module()
+        .map(|module| module.report.errors.iter().map(|e| e.code()).collect())
+        .unwrap_or_default();
+    assert!(
+        entry_errors.contains(&"elab-unknown-identifier"),
+        "{entry_errors:?}"
+    );
+    // 覆盖里的模块文本本身也进报告（跨文件引用/改名按它算 span）。
+    let logic = broken
+        .modules
+        .iter()
+        .find(|module| module.name == "Logic")
+        .expect("Logic in the closure");
+    assert!(logic.source.contains("And.mk"), "{}", logic.source);
+    assert!(!logic.source.contains("And.intro"), "{}", logic.source);
+    // 覆盖也进闭包摘要：编辑器里的中间态不会命中磁盘上那份旧缓存。
+    let plan = plan_project(&canvas, None, None);
+    let overlaid = plan_project_with_overlay(&canvas, None, None, &overlay);
+    assert_ne!(plan.digest(&options), overlaid.digest(&options));
+    let _ = std::fs::remove_dir_all(&dir);
+}
