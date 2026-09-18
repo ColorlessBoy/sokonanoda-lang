@@ -47,8 +47,18 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 7. **文档**：`TESTING.md` §7b 标闭环（三层根因 + 守护）、多文件 LSP 行扩写；
    架构 §4.5 判据前缀段改写；设计 P7 两项划掉；`vscode-dev-guide` 坑 15 更新；
    本文件与 `REQUIREMENTS.md` §9（九十四）。
-8. **下一批（未做，按计划继续）**：批次 2 = `query` 走项目闭包缓存 + `goals`/`stateAt`
-   回显 `uri`/`version`；批次 3 = 拆 `run_pass`；批次 4 = `soko/project` 项目状态可视化。
+8. **批次 2（同轮完成）—— `query` 走项目缓存 + 协议身份回显**：
+   - `query` 与 `check`/`build` 共用 `crates/cli/src/project_cache.rs` 的闭包摘要键；
+     `QueryDoc::check()` 不再二次编译（复用 `set_text` 存下的 `CompileOutput`，新增
+     `set_cached_entry` / `compiled_output`）。3×12 实测：`query check` 冷 49→**25ms**、
+     热 37→**3.4ms**；`build --json` 立刻看到入口是同一份键的 hit。
+   - `soko/goals` 回显 `uri`+`version`、`soko/stateAt` 回显 `uri`；VS Code 扩展比对后
+     丢弃不匹配答案（stub 宿主 8/8），协议写进 `docs/protocol.md`。
+   - 测试：CLI `query_uses_the_same_project_cache_as_check_and_build`、LSP
+     `custom_responses_echo_the_requested_document_identity`、扩展宿主
+     `an answer that names another document is dropped`。
+9. **下一批（按计划继续）**：批次 3 = 拆 `run_pass`（1918 行文件、≈1174 行单函数）；
+   批次 4 = `soko/project` 项目状态可视化。
 
 ## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）
 

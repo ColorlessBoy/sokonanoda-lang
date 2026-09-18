@@ -82,6 +82,11 @@ pub(crate) struct SubGoalInfo {
 #[derive(Debug, Serialize)]
 pub(crate) struct GoalsResponse {
     pub(crate) decls: Vec<GoalDeclInfo>,
+    /// **回显请求指向的文档 URI 与版本**（`docs/protocol.md` §soko/goals）：
+    /// 多文档下客户端据此丢弃"答的是另一份文档"的过期响应，不必只靠本地守卫
+    /// （服务端已按请求 URI 聚焦，这是给客户端自证用的）。
+    pub(crate) uri: String,
+    pub(crate) version: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -124,6 +129,8 @@ pub(crate) struct StateGoalInfo {
 #[derive(Debug, Serialize)]
 pub(crate) struct StateAtResponse {
     pub(crate) version: i32,
+    /// 回显请求指向的文档 URI（见 `GoalsResponse::uri`）。
+    pub(crate) uri: String,
     pub(crate) decl: Option<StateDeclInfo>,
     /// `None` = no remaining goals (the proof is closed at this position).
     /// Single-value, equal to `goals[0].goal`; kept for older clients.
@@ -143,8 +150,9 @@ pub(crate) struct StateAtResponse {
 }
 
 impl StateAtResponse {
-    pub(crate) fn empty(version: i32) -> Self {
+    pub(crate) fn empty(uri: &str, version: i32) -> Self {
         Self {
+            uri: uri.to_string(),
             version,
             decl: None,
             goal: None,

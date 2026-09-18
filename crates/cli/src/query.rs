@@ -139,6 +139,44 @@ fn load_source(args: &Args) -> Result<String, String> {
 }
 
 /// 把 `--offset` / `--line --col` 解析成字节 offset。
+/// 装配查询文档：**项目文件优先走闭包缓存**（与 `check`/`build` 同一份摘要键）。
+///
+/// 之前 `query` 每次都重编译整个闭包（热跑 37ms，而 `check` 热跑 3ms）；现在
+/// 命中就直接用缓存里的入口报告与事件，未命中则编译一次并把同一份键写回缓存，
+/// 下次 `check`/`build`/`query` 都能用。`--text`（磁盘上没有对应源码）不缓存。
+fn load_document(doc: &mut QueryDoc, src: &str) {
+    let options = sokonanoda_front::compile::CompileOptions {
+        prelude: sokonanoda_front::compile::prelude_mode_from_source(src),
+    };
+    let project_entry = doc.path.clone().filter(|_| has_imports(src));
+    let Some(entry) = project_entry else {
+        doc.set_text(src, 1, None);
+        return;
+    };
+    let (plan, digest) =
+        crate::project_cache::plan(&entry, Some(src), doc.root.as_deref(), &options);
+    if let Some(cached) = crate::project_cache::load(&digest, &options) {
+        if let Some(output) = cached.output {
+            doc.set_cached_entry(src, 1, cached.report, output);
+            return;
+        }
+    }
+    doc.set_text(src, 1, None);
+    if let Some(module) = doc.project_modules().and_then(|modules| modules.last()) {
+        let output = doc.compiled_output().clone();
+        let clean = output.errors.is_empty() && module.report.errors.is_empty();
+        let _ = plan; // 计划已在上面算过摘要；编译走 QueryDoc 自己的路径
+        crate::project_cache::store_if_clean(&digest, &options, module, clean);
+    }
+}
+
+/// 文本里有没有 `import`（触发项目闭包路径的唯一条件）。
+fn has_imports(src: &str) -> bool {
+    sokonanoda_front::parse(src)
+        .map(|file| file.commands.iter().any(|command| command.is_import()))
+        .unwrap_or(false)
+}
+
 fn cursor_of(args: &Args, doc: &QueryDoc) -> Result<usize, Value> {
     if let Some(offset) = args.offset {
         return Ok(offset);
@@ -223,7 +261,7 @@ pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
     // 入口路径 / `--root`：只有带 `import` 的文档才会用到（项目闭包编译）。
     doc.path = args.file.as_ref().map(std::path::PathBuf::from);
     doc.root = args.root.as_deref().or(root).map(std::path::PathBuf::from);
-    doc.set_text(&src, 1, None);
+    load_document(&mut doc, &src);
 
     let (payload, exit) = match args.op.as_str() {
         "check" => {

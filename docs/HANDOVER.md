@@ -239,10 +239,10 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 - **（2026-09-18 已闭环，留档）项目入口没有 quick-fix / 子洞探针**：三层根因都补齐
   ——判据前缀（`QueryDoc::judge_prefix`）、`suggest_with`/`probe_sub_goal_types_with`、
   闭包级 `GoalTemplates`；`didChangeWatchedFiles` 同批完成。见 `docs/TESTING.md` §7b。
-- **（0.57.0 登记）`query` 不走项目闭包缓存**：`check` 热 3.2ms，`query check` 热
-  37.2ms（每次重新编译闭包）——`front::query::QueryDoc` 与 LSP 一样跳过项目缓存。
-  修法：把 `crates/cli/src/check.rs` 的闭包摘要缓存判定搬进 `crates/cli/src/query.rs`
-  （或让 `QueryDoc` 接受可选的摘要 + 覆盖）。数字见 `docs/PERF.md`。
+- **（2026-09-18 已闭环，留档）`query` 不走项目闭包缓存**：现在 `check`/`build`/`query`
+  共用 `crates/cli/src/project_cache.rs` 的同一份摘要键，且 `QueryDoc::check()` 不再
+  二次编译（复用 `set_text` 存下的 `CompileOutput`）。3×12 项目实测：冷 49→25ms、
+  热 37→3.4ms。`--text` 中间态仍不缓存。数字见 `docs/PERF.md`。
 - **（0.57.0 新增，结构债）`crates/front/src/compile/check.rs` 1918 行**：I16 把闭包
   编译加在这里（`compile_all_units` / `split_report` / `unit_ranges` /
   `top_level_def_spans_over`，+201 行），但**`run_pass` 仍是 553–1726 行的单个函数**

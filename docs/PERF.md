@@ -138,7 +138,7 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 | LSP 改依赖 ⇒ 下游刷新（3×12，两文档打开） | 2 份诊断，2ms；下游 1 条 `import-dependency-failed` |
 | LSP 项目 hover / definition / goals | 各 < 1ms |
 | CLI 项目冷 / 热 / 依赖改动后（3×12，release） | **29.8ms / 3.2ms / 24.1ms**（必 miss） |
-| CLI `build` / `query` 冷 / `query` 热（3×12） | 50.7ms / 48.8ms / 37.2ms（见下方"query 不走项目缓存"） |
+| CLI `build` / `query` 冷 / `query` 热（3×12） | 50.7ms / **25ms** / **4–5ms**（0.57.0 起 query 与 check/build 共用闭包缓存，见下） |
 | 扩展：一次诊断事件（修复后） | **1 × `soko/goals` + 1 × `soko/stateAt`**（修复前 2 goals + 2 次 webview 整表重建） |
 | 扩展：无关语言（`.ts`）的诊断事件 | 0 次请求（修复前 1 × goals） |
 | 扩展：光标移动（200ms 去抖） | 1 × `stateAt`，~1KB / 49 DOM 节点 / 0.17ms |
@@ -151,12 +151,12 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 `warm_up()` 打掉它，否则"冷跑"记的是首次执行成本（第一次写这套测试时记成了
 527ms，真实值 29.8ms）。同理，front 的 perf 测试都有显式预热。
 
-**已知不一致（记录待办）**：`check` 走闭包缓存（热 3.2ms），而 **`query` 不走**
-（热 37.2ms，每次重新编译闭包）——`front::query::QueryDoc` 与 LSP 一样跳过项目
-缓存（因为 `--text` 的中间态文本不在磁盘上）。对 agent 的调用频率来说 37ms 可接受，
-但 `query --file <未改动的文件>` 本可以命中；修法是把 `check` 的闭包缓存判定搬进
-`crates/cli/src/query.rs`（或让 `QueryDoc` 接受一个可选的闭包摘要）。已登记
-`docs/HANDOVER.md` §4。
+**`query` 与 `check`/`build` 共用闭包缓存（2026-09-18 修复）**：三条命令都走
+`crates/cli/src/project_cache.rs`（键 = `ProjectPlan::digest(options)`）。另外
+`QueryDoc::check()` 原先会**再编译一遍**（项目模式下等于整个闭包重编译两次），现在
+直接复用 `set_text` 存下的 `CompileOutput`。实测 3×12 项目：`query check` 冷
+49→25ms、热 37→3.4ms（台账 `docs/perf/ledger.jsonl` 同轮记录）；`--text` 的中间态
+仍不缓存（磁盘上没有对应源码，摘要会失真）。
 
 结论：**教学规模（2–5 个模块、每模块 ~12 条声明）一次按键 12–46ms，编辑器无感**；
 4×20 的"大项目"约 0.1s，属于可接受但值得盯的量级。项目模式没有跨模块增量——

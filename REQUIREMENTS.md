@@ -1171,3 +1171,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     vscode-dev-guide 坑 15、STATUS 第九十四轮、HANDOVER）同轮同步。
   - **继续**：批次 2（`query` 走项目缓存 + `goals`/`stateAt` 回显 `uri`/`version`）→
     批次 3（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。
+
+- 2026-09-18（九十四·续）：**待办批次 2 —— `query` 走项目闭包缓存 + 协议身份回显**：
+  - 新增 `crates/cli/src/project_cache.rs`：`check`/`build`/`query` 共用一份闭包摘要键；
+    `QueryDoc::check()` 不再二次编译（复用 `set_text` 存下的 `CompileOutput`），
+    新增 `set_cached_entry` / `compiled_output`。3×12 项目实测：`query check` 冷
+    49→25ms、热 37→3.4ms；`build --json` 看到同一份键的 hit。`--text` 中间态不缓存。
+  - `soko/goals` 回显 `uri`/`version`、`soko/stateAt` 回显 `uri`；VS Code 扩展据此丢弃
+    "答的是另一份文档"的过期答案（stub 宿主 8/8）；协议写入 `docs/protocol.md`。
+  - 验收：`cargo test --workspace --locked` 862 passed / 0 failed；台账重录
+    （`docs/perf/ledger.jsonl`）。
+  - 继续：批次 3（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。

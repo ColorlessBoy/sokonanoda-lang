@@ -236,10 +236,17 @@ capabilities):
 ### `soko/goals`
 
 Request params: `{"textDocument": {"uri"}, "position"}` (position reserved).
+
+**文档身份回显**（0.57.0）：响应带 `uri`（请求指向的文档）与 `version`（答的是哪一版）。
+多文档下客户端据此丢弃"答的是另一份文档/更旧版本"的过期响应——服务端已经按请求 URI
+聚焦（`Docs::focus_request`），回显是给客户端**自证**用的（VS Code 扩展会比对，
+不匹配就当过期答案丢掉）。`soko/stateAt` 同样回显 `uri`（它的 `version` 早就有）。
+
 Response:
 
 ```json
-{"decls": [{
+{"uri": "file:///…/playground.sokonanoda", "version": 7,
+ "decls": [{
   "name": "and_swap", "kind": "theorem", "status": "open",
   "range": {"start": {...}, "end": {...}},
   "ty": "And a b -> And b a",

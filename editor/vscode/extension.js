@@ -246,9 +246,15 @@ class GoalsTreeDataProvider {
   async requestGoals(uri = this.uri) {
     if (!client || !uri) return undefined;
     try {
-      return await client.sendRequest("soko/goals", {
+      const response = await client.sendRequest("soko/goals", {
         textDocument: { uri },
       });
+      // 服务端回显了它答的是哪份文档：不是我们问的那份 ⇒ 当作过期答案丢弃
+      // （快速切换文件时，树上不能出现另一份文件的声明）。
+      if (response && response.uri !== undefined && response.uri !== uri) {
+        return undefined;
+      }
+      return response;
     } catch (error) {
       client.outputChannel.appendLine(`[client] soko/goals failed: ${error?.message ?? error}`);
       return undefined;
@@ -268,6 +274,10 @@ class GoalsTreeDataProvider {
       });
       if (seq !== this.cursorRequestSeq) return undefined;
       if (uriString !== this.uri) return undefined;
+      // 同一份身份回显也用在 stateAt 上（目标面板/当前光标处）。
+      if (state && state.uri !== undefined && state.uri !== uriString) {
+        return undefined;
+      }
       return state;
     } catch (error) {
       client.outputChannel.appendLine(`[client] soko/stateAt failed: ${error?.message ?? error}`);

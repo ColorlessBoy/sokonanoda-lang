@@ -107,8 +107,9 @@ pub(crate) fn goal_info(goal: truth::GoalInfo) -> StateGoalInfo {
 }
 
 /// `soko/stateAt` 响应（`Backend::state_at` 的唯一出口）。
-pub(crate) fn state_answer(text: &str, answer: truth::StateAnswer) -> StateAtResponse {
+pub(crate) fn state_answer(uri: &str, text: &str, answer: truth::StateAnswer) -> StateAtResponse {
     StateAtResponse {
+        uri: uri.to_string(),
         // LSP wire 的版本是 i32（见 `Doc::version`）；真相层是 u64。
         version: answer.version as i32,
         decl: answer.decl.map(|decl| StateDeclInfo {

@@ -480,15 +480,23 @@ impl Backend {
     }
 
     async fn goals(&self, params: GoalsParams) -> Result<GoalsResponse> {
+        let request_uri = params.text_document.uri.clone();
+        let version;
         {
             let mut docs = self.doc.lock().expect("doc lock");
-            docs.focus_request(&params.text_document.uri);
+            docs.focus_request(&request_uri);
+            version = docs.version();
         }
         let decls = self
             .goal_decls(true)
             .map(|(_, decls)| decls)
             .unwrap_or_default();
-        Ok(GoalsResponse { decls })
+        Ok(GoalsResponse {
+            decls,
+            // 回显请求的文档身份：客户端据此丢弃"答的是另一份文档"的过期响应。
+            uri: request_uri.to_string(),
+            version,
+        })
     }
 
     /// 服务器自述：版本 + 进程号。`sokonanoda: restart server` 用它在重启前后
@@ -535,16 +543,21 @@ impl Backend {
     /// （`QueryDoc::state_at`，`docs/protocol.md` §`soko/stateAt`）；这里只把
     /// "问不出来"折成既有的空响应、把字节 offset 映射成 `Range`。
     async fn state_at(&self, params: StateAtParams) -> Result<StateAtResponse> {
+        let request_uri = params.text_document.uri.clone();
         let mut docs = self.doc.lock().expect("doc lock");
-        docs.focus_request(&params.text_document.uri);
+        docs.focus_request(&request_uri);
         let doc = &*docs;
         let version = doc.version();
         let cursor = position_to_offset(doc.text(), params.position);
         match doc.query().state_at(cursor) {
             // 报告缺失 / parse 失败 / 位置不在任何声明内 / 越界：LSP 的 wire 没有
             // 错误通道，既有行为就是空响应（`decl: null` + 默认字段）。
-            Err(_) => Ok(StateAtResponse::empty(version)),
-            Ok(answer) => Ok(query_map::state_answer(doc.text(), answer)),
+            Err(_) => Ok(StateAtResponse::empty(request_uri.as_str(), version)),
+            Ok(answer) => Ok(query_map::state_answer(
+                request_uri.as_str(),
+                doc.text(),
+                answer,
+            )),
         }
     }
 }

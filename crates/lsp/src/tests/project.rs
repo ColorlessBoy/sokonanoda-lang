@@ -515,3 +515,45 @@ async fn an_external_change_to_a_dependency_refreshes_the_open_entry() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// `soko/goals` / `soko/stateAt` 回显请求的文档身份（uri + version）：多文档下
+/// 客户端据此丢弃"答的是另一份文档"的过期响应（docs/protocol.md）。
+#[tokio::test]
+async fn custom_responses_echo_the_requested_document_identity() {
+    let dir = tmp_dir("echo");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    testutil::did_open_at(&mut service, &canvas, CANVAS).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &canvas, "canvas diagnostics").await;
+
+    let goals = testutil::call(
+        &mut service,
+        RpcRequest::build("soko/goals")
+            .params(serde_json::json!({"textDocument": {"uri": canvas}}))
+            .id(40)
+            .finish(),
+    )
+    .await
+    .expect("goals answers");
+    assert_eq!(goals["uri"], serde_json::json!(canvas.as_str()));
+    assert_eq!(goals["version"], serde_json::json!(1));
+
+    let state = testutil::call(
+        &mut service,
+        RpcRequest::build("soko/stateAt")
+            .params(serde_json::json!({
+                "textDocument": {"uri": canvas},
+                "position": {"line": 0, "character": 0},
+            }))
+            .id(41)
+            .finish(),
+    )
+    .await
+    .expect("stateAt answers");
+    assert_eq!(state["uri"], serde_json::json!(canvas.as_str()));
+    let _ = std::fs::remove_dir_all(&dir);
+}

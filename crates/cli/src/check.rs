@@ -84,10 +84,10 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
             root.clone()
         };
         // 闭包摘要先算（只做 IO/parse）：命中就整个跳过内核。
-        let plan =
-            sokonanoda_front::project::plan_project(&entry, Some(src), root_override.as_deref());
-        let digest = plan.digest(&options);
-        if let Some(cached) = cache::load(&digest, &options) {
+        // 键与 `build`/`query` 共用（`crate::project_cache`）。
+        let (plan, digest) =
+            crate::project_cache::plan(&entry, Some(src), root_override.as_deref(), &options);
+        if let Some(cached) = crate::project_cache::load(&digest, &options) {
             if let Some(output) = cached.output {
                 if json {
                     report_json(&output, src);
@@ -99,17 +99,8 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         }
         let project = sokonanoda_front::project::compile_plan(plan, &options);
         let ok = report_project(&project, src, json);
-        if project.is_clean() {
-            if let Some(entry) = project.entry_module() {
-                cache::store(
-                    &digest,
-                    &options,
-                    &CachedCompile {
-                        report: entry.report.clone(),
-                        output: Some(entry.events.clone()),
-                    },
-                );
-            }
+        if let Some(entry) = project.entry_module() {
+            crate::project_cache::store_if_clean(&digest, &options, entry, project.is_clean());
         }
         return ok;
     }

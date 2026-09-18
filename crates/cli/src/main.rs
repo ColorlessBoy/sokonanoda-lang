@@ -6,6 +6,7 @@ mod course;
 mod env;
 mod help;
 mod json_report;
+mod project_cache;
 mod query;
 mod repl;
 mod watch;

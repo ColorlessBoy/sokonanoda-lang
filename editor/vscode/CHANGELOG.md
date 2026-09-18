@@ -44,6 +44,19 @@
   `sokonanoda: refresh course map`.
 - The universal-VSIX download fallback no longer blocks the extension host while
   unpacking (`execSync tar` → async).
+- **Quick fixes work inside multi-file projects again.** The suggestions (refine /
+  exact / rfl) were computed against the entry file's text alone, so a file that
+  used an imported constructor offered nothing at the `sorry` — the language
+  server now hands the whole import closure to the suggestion engine, and the
+  exercise tree / Infoview get sub-goal expected types in projects too.
+- **Changes made outside the editor now refresh open files.** The client already
+  watches `**/*.sokonanoda`; the server now handles
+  `workspace/didChangeWatchedFiles`, so after a `git checkout` (or any tool
+  rewriting an imported module) the open entry re-checks itself instead of
+  showing stale diagnostics until you reopen it.
+- `soko/goals` / `soko/stateAt` echo the document they describe (`uri`, and
+  `version` for goals); the extension drops an answer that names another
+  document, so switching files quickly can never show the other file's exercises.
 
 ### Notes
 

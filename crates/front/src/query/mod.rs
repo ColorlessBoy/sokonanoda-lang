@@ -56,6 +56,11 @@ pub struct QueryDoc {
     pub root: Option<std::path::PathBuf>,
     /// 文本里有 `import` 且能定位入口时的项目编译结果。
     project: Option<crate::project::ProjectReport>,
+    /// 最近一次编译的**事件流**（单文件来自会话增量、项目来自入口模块）。
+    ///
+    /// `check()` 以前会为了一次计数再编译一遍（项目模式下等于每次查询重编译整个
+    /// 闭包）——现在直接读这里；`query check` 冷跑因此省掉一次完整编译。
+    output: crate::compile::CompileOutput,
     /// 最近一次编译用的内存覆盖（打开文档的路径 → 文本）。`check`/`reduce`
     /// 会重跑闭包编译，必须复用同一份覆盖，否则答案与 `report` 不同源。
     overlay: Vec<(std::path::PathBuf, String)>,
@@ -79,6 +84,7 @@ impl QueryDoc {
             path: None,
             root: None,
             project: None,
+            output: crate::compile::CompileOutput::default(),
             overlay: Vec::new(),
         }
     }
@@ -108,10 +114,24 @@ impl QueryDoc {
         self.text = text.to_string();
         let update = self.session.update(text, version);
         self.parse_error = update.parse_error;
+        self.output = crate::compile::CompileOutput {
+            events: update.events.clone(),
+            errors: update.report.errors.clone(),
+            warnings: update.report.warnings.clone(),
+            ..Default::default()
+        };
         self.report = Some(update.report);
         // 有 `import` 时环境来自整个闭包：单文件会话看不到被导入的声明，
         // 所以这里覆盖成项目编译的入口报告（无 import 时零变化）。
         self.project = self.project_compile(text);
+        if let Some(output) = self
+            .project
+            .as_ref()
+            .and_then(|p| p.entry_module())
+            .map(|module| module.events.clone())
+        {
+            self.output = output;
+        }
         if let Some(report) = self.project.as_ref().and_then(|p| p.entry_report()) {
             let mut report = report.clone();
             // 项目编译走的是 `compile_all_units`，不经过 Session 的 hint 挂接：
@@ -165,6 +185,33 @@ impl QueryDoc {
             }
         }
         out
+    }
+
+    /// 用**闭包缓存**里的入口报告与事件装配文档（命中时零内核工作）。
+    ///
+    /// CLI `query --file` 用它与 `check`/`build` 共用同一份摘要键；`project` 结构
+    /// 不参与（`query` 的六个 op 都只读入口报告；跨文件能力由 LSP 走另一条路径）。
+    /// 报告里的 `-- soko:hint` 阶梯这里补挂（缓存里存的是原始报告）。
+    pub fn set_cached_entry(
+        &mut self,
+        text: &str,
+        version: u64,
+        report: crate::compile::DocumentReport,
+        output: crate::compile::CompileOutput,
+    ) {
+        self.version = version;
+        self.text = text.to_string();
+        self.parse_error = None;
+        self.project = None;
+        self.output = output;
+        let mut report = report;
+        crate::compile::attach_hints_to_report(text, &mut report);
+        self.report = Some(report);
+    }
+
+    /// 最近一次编译的产物（CLI 在项目编译后据此写缓存）。
+    pub fn compiled_output(&self) -> &crate::compile::CompileOutput {
+        &self.output
     }
 
     /// 项目闭包的模块列表（拓扑序、入口最后）；单文件文档为 `None`。
@@ -221,13 +268,9 @@ impl QueryDoc {
     /// 整文件判卷摘要。**与 `--json` 事件流同源**（同一个 `front::session` +
     /// 同一个 `compile_all_with`），契约测试断言两者计数一致（设计文档 A4）。
     pub fn check(&self) -> CheckSummary {
-        let output = match self.project_compile(&self.text) {
-            Some(project) => project
-                .entry_module()
-                .map(|module| module.events.clone())
-                .unwrap_or_default(),
-            None => compile_all_with(&parse_or_empty(&self.text), &self.options()).0,
-        };
+        // 用最近一次编译的产物：`set_text` 已经算过（项目模式是整个闭包），
+        // 这里再编译一遍纯属浪费——`query check` 冷跑曾因此慢一倍。
+        let output = self.output.clone();
         let mut counts = CheckCounts::default();
         for event in &output.events {
             use crate::compile::CheckEvent::*;

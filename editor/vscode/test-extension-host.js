@@ -464,6 +464,33 @@ test("identical declaration lists are not posted to the Infoview twice", async (
   void context;
 });
 
+test("an answer that names another document is dropped", async () => {
+  await activateExtension();
+  const canvas = fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda");
+  focus(canvas);
+  await Promise.resolve();
+  requests.length = 0;
+
+  // 服务端会回显它答的是哪份文档：这里故意答另一份 ⇒ 必须丢弃，不能让树显示
+  // 别的文件的声明（快速切换文件时最危险）。
+  stubbedResponses["soko/goals"] = () => ({
+    uri: "file:///repo/course/unit11-project/Logic.sokonanoda",
+    version: 1,
+    decls: [{ name: "stale_decl", kind: "theorem", status: "open", holes: [] }],
+  });
+  listeners.diagnostics.fire({ uris: [canvas.uri] });
+  fireTimers();
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+
+  stubbedResponses["soko/goals"] = () => ({ decls: [] });
+  const tree = vscodeStub.__trees?.["sokonanoda.goals"];
+  const labels = ((await tree.getChildren()) ?? []).map((item) => String(item.label));
+  assert.ok(
+    !labels.includes("stale_decl"),
+    `a mismatched answer must be dropped: ${labels.join(", ")}`,
+  );
+});
+
 test("cursor moves ask only for the caret state", async () => {
   await activateExtension();
   const document = fakeDocument("/repo/playground.sokonanoda");

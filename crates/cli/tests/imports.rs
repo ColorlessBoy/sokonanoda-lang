@@ -353,3 +353,82 @@ fn a_project_cache_hits_and_a_dependency_change_invalidates_it() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn query_uses_the_same_project_cache_as_check_and_build() {
+    // `query` 曾自己重编译整个闭包（热跑 37ms，`check` 热跑 3ms）。现在三条命令
+    // 共用 `crate::project_cache` 的同一份摘要键：query 冷跑写缓存，`build` 立刻
+    // 就能看到入口是 hit；query 冷/热计数一致、且与 `--json` 事件计数相同。
+    let dir = tmp_dir("query-cache");
+    let cache = dir.join(".cache");
+    write(&dir, "Lib.sokonanoda", "axiom P : Prop\naxiom proofP : P\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Lib\n\ntheorem main_s : P := proofP\ntheorem open_x : P := sorry\n",
+    );
+
+    let cold = run_with_cache(
+        &dir,
+        &cache,
+        &["query", "check", "--file", "Main.sokonanoda"],
+        None,
+    );
+    assert!(cold.status.success(), "{}", stderr(&cold));
+    let counts: serde_json::Value = serde_json::from_slice(&cold.stdout).expect("one JSON object");
+    let counts = counts["data"]["counts"].clone();
+
+    // `build` 与 query 用同一份键：入口（项目）应当是 hit，纯文件才需要编译。
+    let build = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    let summary = stdout(&build)
+        .lines()
+        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+        .find(|event| event["type"] == "build.summary")
+        .expect("build prints a summary");
+    assert!(
+        summary["hit"].as_u64().unwrap_or(0) >= 1,
+        "the project entry must be a cache hit after `query` warmed it: {summary}"
+    );
+
+    // 热跑与冷跑逐字节一致；且计数与 `--json` 事件流相同。
+    let warm = run_with_cache(
+        &dir,
+        &cache,
+        &["query", "check", "--file", "Main.sokonanoda"],
+        None,
+    );
+    assert_eq!(stdout(&cold), stdout(&warm), "warm must match cold");
+    let events = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
+    let mut expected = serde_json::json!({
+        "decl_checked": 0, "example_checked": 0, "exercise_open": 0,
+        "expr_typed": 0, "expr_reduced": 0, "decl_printed": 0,
+    });
+    for line in stdout(&events).lines() {
+        let event: serde_json::Value = serde_json::from_str(line).expect("json line");
+        let key = match event["type"].as_str().unwrap_or("") {
+            "decl.checked" => "decl_checked",
+            "example.checked" => "example_checked",
+            "exercise.open" => "exercise_open",
+            "expr.typed" => "expr_typed",
+            "expr.reduced" => "expr_reduced",
+            "decl.printed" => "decl_printed",
+            _ => continue,
+        };
+        expected[key] = serde_json::json!(expected[key].as_u64().unwrap_or(0) + 1);
+    }
+    assert_eq!(counts, expected, "query counts must equal the event stream");
+
+    // 改依赖 ⇒ 摘要变 ⇒ 不能拿旧结果。
+    write(&dir, "Lib.sokonanoda", "axiom Q : Prop\naxiom proofQ : Q\n");
+    let after = run_with_cache(
+        &dir,
+        &cache,
+        &["query", "check", "--file", "Main.sokonanoda"],
+        None,
+    );
+    assert!(
+        !after.status.success() || !stderr(&after).is_empty() || stdout(&after) != stdout(&cold),
+        "a dependency change must invalidate the entry's cached report"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
