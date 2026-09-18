@@ -243,7 +243,14 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   共用 `crates/cli/src/project_cache.rs` 的同一份摘要键，且 `QueryDoc::check()` 不再
   二次编译（复用 `set_text` 存下的 `CompileOutput`）。3×12 项目实测：冷 49→25ms、
   热 37→3.4ms。`--text` 中间态仍不缓存。数字见 `docs/PERF.md`。
-- **（0.57.0 新增，结构债）`crates/front/src/compile/check.rs` 1918 行**：I16 把闭包
+- **（批次 3 进行中，2026-09-18 第一刀）闭包级装配件已出**：`SourceUnit` /
+  `unit_ranges` / `split_report` / `compile_all_units` 从 `check.rs` 移到新的
+  `crates/front/src/compile/units.rs`（108 行；`check.rs` 1918 → 1865）。
+  **下一步**：`run_pass` 仍是 ≈1174 行单函数（现在的 `check.rs` 里从 553 行起），
+  按 `parse → elab → check-then-add → events → report` 逐段抽成 `RunState` 上的
+  阶段方法；每刀用 `protocol.rs`/`course.rs`/`query.rs` 的事件计数契约 + golden 对拍，
+  一次只动位置不动语义。
+- **（0.57.0 新增，结构债，部分清偿）`crates/front/src/compile/check.rs` 1918 行**：I16 把闭包
   编译加在这里（`compile_all_units` / `split_report` / `unit_ranges` /
   `top_level_def_spans_over`，+201 行），但**`run_pass` 仍是 553–1726 行的单个函数**
   （≈1174 行，main 时已 ≈970 行）。拆分计划：按阶段切 `parse → elab → check-then-add

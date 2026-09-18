@@ -9,13 +9,14 @@ mod goals;
 pub mod hints;
 mod prelude;
 mod report;
+mod units;
 mod warning;
 
 pub mod cache;
 
 pub use check::{
-    check_document, check_document_with, compile_all_units, compile_all_with, compile_fol,
-    compile_fol_with, render_expr, split_report, unit_ranges, SourceUnit,
+    check_document, check_document_with, compile_all_with, compile_fol, compile_fol_with,
+    render_expr,
 };
 pub(crate) use check::{run_incremental, top_level_def_spans, TrustPlan};
 pub use error::{CompileError, CompileStage, ErrorKind};
@@ -29,6 +30,7 @@ pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
     GoalBinder, HoverType, ResolvedTarget, SubGoal,
 };
+pub use units::{compile_all_units, split_report, unit_ranges, SourceUnit};
 pub use warning::{collect_warnings, CompileWarning, WarningKind, RESERVED_SORT_NAMES};
 
 #[cfg(test)]
