@@ -172,11 +172,15 @@ class ProjectTreeProvider {
     root.description = projectSummary(project);
     const tooltip = [`项目根：\`${project.root}\``, manifestSource(project)];
     if (project.requires_warning) tooltip.push(`⚠ ${project.requires_warning}`);
-    const broken = project.diagnostics.filter((diag) =>
-      ["import-not-found", "import-cycle", "import-dependency-failed", "manifest-invalid",
-       "import-module-invalid", "import-name-collision", "import-prelude-conflict"].includes(diag.code),
-    );
-    if (broken.length > 0) tooltip.push(`项目诊断 ${broken.length} 条`);
+    // Count by severity, not by a hard-coded code list: a new project-level code
+    // must show up in this tooltip without touching this file.
+    const diagnostics = project.diagnostics || [];
+    const errors = diagnostics.filter((diag) => diag.severity !== "warning").length;
+    const warnings = diagnostics.length - errors;
+    if (diagnostics.length > 0) {
+      tooltip.push(`项目诊断：${errors} 错误 · ${warnings} 警告`);
+      if (diagnostics[0].message) tooltip.push(`第一条：${diagnostics[0].message}`);
+    }
     root.tooltip = tooltip.join("\n\n");
     root.iconPath = new vscode.ThemeIcon(
       project.counts && project.counts.failed + project.counts.blocked > 0

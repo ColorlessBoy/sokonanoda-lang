@@ -47,7 +47,7 @@ ProjectView {
   manifest: String | null  // 生效清单；null = 零配置（根 = 入口目录）
   requires_warning: String | null
   modules: [ModuleView]    // 拓扑序，入口在最后（与 ProjectReport 同序）
-  diagnostics: [ {code, message, module, start, end} ]   // 项目级（含 import 行）
+  diagnostics: [ {code, message, module, severity, start, end} ]  // 项目级（含 import 行）
   counts: { modules, compiled, failed, blocked, decls, errors, warnings, open_exercises }
 }
 
@@ -65,6 +65,8 @@ ModuleView {
 }
 ```
 
+* `severity`（`error`/`warning`）让消费者自己数错/警——**不要**在客户端维护
+  一份项目 code 清单（项目层确实有 warning，例如依赖里的开放练习）。
 * 数据来源：`ProjectReport`（`modules` 已按拓扑序含被阻断模块）+ 新增的
   `ModuleReport::status`（见 §4）+ 每模块 `report.decls/errors/warnings`。
 * `QueryDoc::project_view()` 返回 `Option<ProjectView>`；`None` 时

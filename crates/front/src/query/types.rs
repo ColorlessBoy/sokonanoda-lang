@@ -251,6 +251,9 @@ pub struct ProjectDiagnosticInfo {
     pub message: String,
     /// 归属模块名。
     pub module: String,
+    /// `error` 或 `warning`：消费者要能自己数错/警，不必维护一份 code 清单
+    /// （项目层 warning 是真实存在的，例如依赖里的开放练习）。
+    pub severity: String,
     pub start: usize,
     pub end: usize,
 }

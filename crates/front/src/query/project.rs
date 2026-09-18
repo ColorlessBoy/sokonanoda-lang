@@ -112,6 +112,12 @@ impl ProjectView {
                     code: diag.code().to_string(),
                     message: diag.message.clone(),
                     module: diag.module.clone(),
+                    severity: if diag.kind.is_error() {
+                        "error"
+                    } else {
+                        "warning"
+                    }
+                    .to_string(),
                     start: diag.span.map(|span| span.start.offset).unwrap_or(0),
                     end: diag.span.map(|span| span.end.offset).unwrap_or(0),
                 })

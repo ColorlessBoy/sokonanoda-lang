@@ -386,8 +386,8 @@ Request params: `{"textDocument": {"uri"}}`. Response:
                           "status": "compiled", "entry": false, "imports": [],
                           "decls": 5, "errors": 0, "warnings": 0, "open_exercises": 0,
                           "message": null}],
-             "diagnostics": [{"code": "import-not-found", "message": "…",
-                              "module": "Canvas", "start": 7, "end": 14}],
+             "diagnostics": [{"code": "import-not-found", "message": "…", "module": "Canvas",
+                              "severity": "error", "start": 7, "end": 14}],
              "counts": {"modules": 2, "compiled": 2, "failed": 0, "blocked": 0,
                         "decls": 7, "errors": 0, "warnings": 0, "open_exercises": 2}},
  "reason": null}
@@ -398,6 +398,8 @@ Request params: `{"textDocument": {"uri"}}`. Response:
   (dependencies first, entry last) with its status, the project-level
   diagnostics and the counts the editor/tree needs. Paths are **absolute**
   (`canonicalize`d when the path exists), so a client can open them directly.
+- Each project diagnostic carries `severity` (`error`/`warning`) so a consumer
+  can count failures without keeping a list of codes.
 - `status` is `compiled` (it took part in the compile — the report may still
   contain errors), `load-failed` (its own load failed: missing file, parse
   error, `import` cycle) or `blocked` (it never compiled because an upstream
