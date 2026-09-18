@@ -557,3 +557,114 @@ async fn custom_responses_echo_the_requested_document_identity() {
     assert_eq!(state["uri"], serde_json::json!(canvas.as_str()));
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// `soko/project`（0.58.0 批次 4）：这个文档所在闭包的只读状态视图。
+///
+/// 契约：身份回显（uri/version）+ `project` 的模块表（拓扑序、入口标记、状态）
+/// 与 `reason`。视图与 CLI `query project` 同源（`front::query::project_view`），
+/// 字段名就是 `docs/protocol.md` 的那一份。
+async fn project_answer(service: &mut LspService<Backend>, uri: &Url) -> serde_json::Value {
+    let req = RpcRequest::build("soko/project")
+        .params(serde_json::json!({"textDocument": {"uri": uri}}))
+        .id(22)
+        .finish();
+    testutil::call(service, req).await.expect("project answer")
+}
+
+#[tokio::test]
+async fn project_request_describes_the_closure_of_the_requested_document() {
+    let dir = tmp_dir("view");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    let _ = testutil::did_open_at_drained(&mut service, &mut socket, &logic, LOGIC).await;
+    let _ = testutil::did_open_at_drained(&mut service, &mut socket, &canvas, CANVAS).await;
+
+    let answer = project_answer(&mut service, &canvas).await;
+    assert_eq!(
+        answer["uri"].as_str(),
+        Some(canvas.as_str()),
+        "the answer echoes the requested document: {answer}"
+    );
+    assert!(answer["version"].as_i64().unwrap_or(0) >= 1);
+    assert_eq!(answer["reason"], serde_json::Value::Null);
+    let project = &answer["project"];
+    assert_eq!(project["entry"], "Canvas");
+    let modules = project["modules"].as_array().expect("modules");
+    assert_eq!(
+        modules
+            .iter()
+            .map(|module| module["name"].as_str().unwrap_or_default())
+            .collect::<Vec<_>>(),
+        vec!["Logic", "Canvas"],
+        "topological order, entry last: {project}"
+    );
+    assert_eq!(modules[1]["entry"], true);
+    assert_eq!(modules[0]["status"], "compiled");
+    assert_eq!(project["counts"]["modules"], 2);
+    assert_eq!(project["counts"]["errors"], 0, "{project}");
+
+    // 依赖文档**自己**不是入口：它是一个单文件（无 `import`）⇒ 答 reason。
+    let logic_answer = project_answer(&mut service, &logic).await;
+    assert_eq!(logic_answer["uri"].as_str(), Some(logic.as_str()));
+    assert_eq!(logic_answer["project"], serde_json::Value::Null);
+    assert_eq!(logic_answer["reason"], "no-imports");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[tokio::test]
+async fn project_request_follows_the_unsaved_buffer_and_reports_failures() {
+    let dir = tmp_dir("view-edit");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    let _ = testutil::did_open_at_drained(&mut service, &mut socket, &canvas, CANVAS).await;
+
+    // 未落盘的编辑：把 import 改成不存在的模块（编辑器里的当前状态就是真相）。
+    let broken = CANVAS.replace("import Logic", "import Missing");
+    let published =
+        testutil::did_change_at_drained(&mut service, &mut socket, &canvas, 2, &broken).await;
+    assert!(
+        published
+            .iter()
+            .flat_map(|params| &params.diagnostics)
+            .any(|diag| testutil::code_of(diag) == "import-not-found"),
+        "the unsaved edit is what the compiler sees: {published:?}"
+    );
+
+    let answer = project_answer(&mut service, &canvas).await;
+    let project = &answer["project"];
+    let entry = project["modules"]
+        .as_array()
+        .expect("modules")
+        .iter()
+        .find(|module| module["entry"] == true)
+        .cloned()
+        .expect("entry module");
+    assert_eq!(
+        entry["status"], "load-failed",
+        "the entry's own import is missing: {project}"
+    );
+    assert!(
+        entry["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Missing"),
+        "the view names the missing module: {entry}"
+    );
+    assert!(
+        project["diagnostics"]
+            .as_array()
+            .expect("diagnostics")
+            .iter()
+            .any(|diag| diag["code"] == "import-not-found"),
+        "project-level diagnostics are part of the view: {project}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

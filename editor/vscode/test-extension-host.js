@@ -107,8 +107,10 @@ const vscodeStub = {
     }
   },
   MarkdownString: class MarkdownString {
-    constructor() {
-      this.value = "";
+    constructor(value = "") {
+      // Faithful to the real API: `new MarkdownString(text)` starts with that
+      // text (the extension builds status-bar tooltips this way).
+      this.value = value;
     }
     appendCodeblock(text) {
       this.value += text;
@@ -156,7 +158,11 @@ const vscodeStub = {
       vscodeStub.__trees[id] = options?.treeDataProvider;
       return { dispose() {}, reveal: async () => {} };
     },
-    createStatusBarItem: () => ({ show() {}, hide() {}, dispose() {}, text: "", tooltip: "" }),
+    createStatusBarItem: () => {
+      const item = { show() {}, hide() {}, dispose() {}, text: "", tooltip: "" };
+      vscodeStub.__statusBar = item;
+      return item;
+    },
     createOutputChannel: () => ({ appendLine() {}, append() {}, show() {}, dispose() {} }),
     registerWebviewViewProvider: (_id, provider) => {
       vscodeStub.__infoview = provider;
@@ -220,8 +226,9 @@ const vscodeLanguageclientStub = {
 
 // Handler map: tests replace entries to control answers.
 const stubbedResponses = {
-  "soko/version": () => ({ version: "0.57.0", pid: 4242 }),
+  "soko/version": () => ({ version: "0.58.0", pid: 4242 }),
   "soko/goals": () => ({ decls: [] }),
+  "soko/project": () => ({ uri: "", version: 1, project: null, reason: "no-imports" }),
   "soko/stateAt": () => ({ decls: [], goals: [] }),
   "soko/nextHole": () => null,
   "soko/hints": () => ({ hints: [] }),
@@ -305,7 +312,7 @@ async function activateExtension() {
   const context = {
     subscriptions: [],
     extensionPath: __dirname,
-    extension: { packageJSON: { version: "0.57.0" } },
+    extension: { packageJSON: { version: "0.58.0" } },
     globalState: { get: () => undefined, update: async () => undefined },
     workspaceState: { get: () => undefined, update: async () => undefined },
   };
@@ -315,6 +322,10 @@ async function activateExtension() {
   for (let i = 0; i < 50; i++) await Promise.resolve();
   requests.length = 0;
   return context;
+}
+
+function statusBarStub() {
+  return vscodeStub.__statusBar;
 }
 
 function goalsRequests() {
@@ -376,20 +387,16 @@ test("concurrent loads share a single soko/goals round trip", async () => {
   focus(fakeDocument("/repo/playground.sokonanoda"));
   await Promise.resolve();
   requests.length = 0;
-  console.log("DEBUG after focus:", requests.map((r) => r.method), "declItems:", vscodeStub.__treeProvider?.declItems);
 
   // One diagnostics event makes both the tree (which re-resolves its root)
   // and the debounced refresh ask for declarations at the same time.
   const tree = vscodeStub.__trees?.["sokonanoda.goals"];
   assert.ok(tree, "the exercise tree must be registered");
   listeners.diagnostics.fire({ uris: [vscodeStub.Uri.file("/repo/playground.sokonanoda")] });
-  console.log("DEBUG after fire:", requests.map((r) => r.method));
   const resolving = tree.getChildren(); // the view re-resolves immediately
-  console.log("DEBUG after getChildren call:", requests.map((r) => r.method));
   fireTimers(); // …and the debounced refresh fires while that is in flight
   await resolving;
   for (let i = 0; i < 20; i++) await Promise.resolve();
-  console.log("DEBUG concurrent goals:", goalsRequests().length);
   assert.strictEqual(goalsRequests().length, 1, "in-flight calls must be merged");
 });
 
@@ -430,7 +437,6 @@ test("switching documents mid-flight drops the stale answer", async () => {
   const tree = vscodeStub.__trees?.["sokonanoda.goals"];
   assert.ok(tree, "the exercise tree must be registered");
   const labels = ((await tree.getChildren()) ?? []).map((item) => String(item.label));
-  console.log("DEBUG prefixed labels:", JSON.stringify(labels), "goals:", goalsRequests().length);
   assert.ok(
     !labels.includes("stale_decl"),
     `a row built from the stale answer leaked into the new document: ${labels.join(", ")}`,
@@ -489,6 +495,111 @@ test("an answer that names another document is dropped", async () => {
     !labels.includes("stale_decl"),
     `a mismatched answer must be dropped: ${labels.join(", ")}`,
   );
+});
+
+test("the project tree renders the closure the server describes", async () => {
+  await activateExtension();
+  const canvas = fakeDocument("/repo/course/unit11-project/Exercises.sokonanoda");
+  focus(canvas);
+  await Promise.resolve();
+
+  stubbedResponses["soko/project"] = () => ({
+    uri: canvas.uri.toString(),
+    version: 3,
+    project: {
+      entry: "Exercises",
+      root: "/repo/course/unit11-project",
+      manifest: "/repo/course/unit11-project/sokonanoda.toml",
+      requires_warning: null,
+      counts: { modules: 2, compiled: 2, failed: 0, blocked: 0, decls: 7, errors: 0, warnings: 0, open_exercises: 2 },
+      diagnostics: [],
+      modules: [
+        { name: "Logic", path: "/repo/course/unit11-project/Logic.sokonanoda", status: "compiled", entry: false, imports: [], decls: 5, errors: 0, warnings: 0, open_exercises: 0, message: null },
+        { name: "Exercises", path: "/repo/course/unit11-project/Exercises.sokonanoda", status: "compiled", entry: true, imports: ["Logic"], decls: 2, errors: 0, warnings: 0, open_exercises: 2, message: null },
+      ],
+    },
+    reason: null,
+  });
+  listeners.diagnostics.fire({ uris: [canvas.uri] });
+  fireTimers();
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+
+  const tree = vscodeStub.__trees?.["sokonanoda.project"];
+  assert.ok(tree, "the project tree must be registered");
+  const roots = await tree.getChildren();
+  assert.strictEqual(roots.length, 1, "one root node describes the project");
+  assert.strictEqual(String(roots[0].label), "unit11-project");
+  assert.strictEqual(String(roots[0].description), "2 模块 · 2 练习");
+  assert.ok(
+    String(roots[0].tooltip).includes("清单：/repo/course/unit11-project/sokonanoda.toml"),
+    `the root must name the manifest source: ${roots[0].tooltip}`,
+  );
+  const modules = await tree.getChildren(roots[0]);
+  assert.deepStrictEqual(
+    modules.map((item) => String(item.label)),
+    ["Logic", "Exercises"],
+    "topological order, entry last",
+  );
+  assert.strictEqual(String(modules[0].description), "依赖 · 5 声明");
+  assert.strictEqual(String(modules[1].description), "入口 · 2 声明 · 2 练习");
+  assert.strictEqual(modules[0].command.command, "vscode.open", "clicking opens the module");
+  assert.strictEqual(modules[0].command.arguments[0].fsPath, "/repo/course/unit11-project/Logic.sokonanoda");
+
+  // 状态栏 tooltip 带上项目那一行（不新开第二个 status item）。
+  const tooltip = statusBarStub()?.tooltip;
+  assert.ok(tooltip, "a status bar item carries a tooltip");
+  assert.ok(
+    String(tooltip.value ?? tooltip).includes("项目：/repo/course/unit11-project"),
+    `the status bar tooltip carries the project line: ${tooltip?.value ?? tooltip}`,
+  );
+  stubbedResponses["soko/project"] = () => ({ uri: "", version: 1, project: null, reason: "no-imports" });
+});
+
+test("a single file shows the placeholder instead of an empty project tree", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/playground.sokonanoda");
+  focus(document);
+  await Promise.resolve();
+  stubbedResponses["soko/project"] = () => ({
+    uri: document.uri.toString(),
+    version: 1,
+    project: null,
+    reason: "no-imports",
+  });
+  listeners.diagnostics.fire({ uris: [document.uri] });
+  fireTimers();
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+
+  const tree = vscodeStub.__trees?.["sokonanoda.project"];
+  const roots = await tree.getChildren();
+  assert.strictEqual(roots.length, 1);
+  assert.strictEqual(String(roots[0].label), "单文件（无 import）");
+  assert.deepStrictEqual(await tree.getChildren(roots[0]), []);
+  stubbedResponses["soko/project"] = () => ({ uri: "", version: 1, project: null, reason: "no-imports" });
+});
+
+test("a project answer for another document is dropped", async () => {
+  await activateExtension();
+  const canvas = fakeDocument("/repo/course/unit11-project/Exercises.sokonanoda");
+  focus(canvas);
+  await Promise.resolve();
+  stubbedResponses["soko/project"] = () => ({
+    uri: "file:///repo/somewhere-else.sokonanoda",
+    version: 9,
+    project: { entry: "Other", root: "/repo", manifest: null, requires_warning: null, counts: { modules: 1 }, diagnostics: [], modules: [] },
+    reason: null,
+  });
+  listeners.diagnostics.fire({ uris: [canvas.uri] });
+  fireTimers();
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+
+  const tree = vscodeStub.__trees?.["sokonanoda.project"];
+  const roots = await tree.getChildren();
+  assert.ok(
+    roots.length === 0 || String(roots[0].label) !== "repo",
+    `an answer for another document must not paint this tree: ${roots.map((r) => r.label)}`,
+  );
+  stubbedResponses["soko/project"] = () => ({ uri: "", version: 1, project: null, reason: "no-imports" });
 });
 
 test("cursor moves ask only for the caret state", async () => {

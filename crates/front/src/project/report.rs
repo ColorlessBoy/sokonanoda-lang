@@ -60,6 +60,31 @@ impl ProjectDiagnostic {
     }
 }
 
+/// 一个模块在这次项目编译里的**状态**（`soko/project` 视图与扩展项目树用）。
+///
+/// 三者必须可区分：`blocked` 的模块报告是空的，但"上游没编译成功"与"模块自己
+/// 就是空的"是两回事——消费者（编辑器/agent）要靠它决定说什么话。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ModuleStatus {
+    /// 参与编译（报告里**可能仍有错误**，错误数看 `report.errors`）。
+    Compiled,
+    /// 闭包加载期就失败：文件找不到 / 解析错误 / `import` 环。
+    LoadFailed,
+    /// 没参与编译（上游加载失败），或编译过但结果被上游的编译失败丢弃。
+    Blocked,
+}
+
+impl ModuleStatus {
+    /// 协议里的稳定机器码（`docs/protocol.md`）。
+    pub fn code(self) -> &'static str {
+        match self {
+            ModuleStatus::Compiled => "compiled",
+            ModuleStatus::LoadFailed => "load-failed",
+            ModuleStatus::Blocked => "blocked",
+        }
+    }
+}
+
 /// 一个模块的编译结果。
 #[derive(Debug, Clone)]
 pub struct ModuleReport {
@@ -75,6 +100,8 @@ pub struct ModuleReport {
     pub source: String,
     pub report: DocumentReport,
     pub events: CompileOutput,
+    /// 见 [`ModuleStatus`]。`blocked` 的模块报告为空，状态由 `compile_plan` 填。
+    pub status: ModuleStatus,
 }
 
 impl ModuleReport {

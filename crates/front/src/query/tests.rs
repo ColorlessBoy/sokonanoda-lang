@@ -448,3 +448,195 @@ theorem spine_x (a b : Prop) (h : a) (k : b) : And a b :=\n\
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// ── 项目视图（`query project` / `soko/project`，0.58.0 批次 4）───────────────
+//
+// 语义守护：模块状态三分（compiled / load-failed / blocked）、拓扑序 + 入口标记、
+// 单文件是"另一种合法状态"（`None` + reason）而不是错误。
+// 设计：`docs/design/project-view.md`。
+
+fn project_dir(tag: &str) -> std::path::PathBuf {
+    let dir = std::env::temp_dir().join(format!("soko-query-project-{tag}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create temp dir");
+    dir
+}
+
+/// 视图里的路径是 `canonicalize` 过的（macOS 上 `/var` → `/private/var`），
+/// 断言也要走同一条路，否则测试只在某些平台上红。
+fn canon(path: &std::path::Path) -> String {
+    std::fs::canonicalize(path)
+        .unwrap_or_else(|_| path.to_path_buf())
+        .display()
+        .to_string()
+}
+
+/// 写一组文件并返回"打开入口"的 QueryDoc（`set_text` 之前设好 path）。
+fn project_doc(dir: &std::path::Path, entry: &str, files: &[(&str, &str)]) -> QueryDoc {
+    let mut entry_path = None;
+    for (name, text) in files {
+        let path = dir.join(name);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).expect("create parent");
+        }
+        std::fs::write(&path, text).expect("write module");
+        if *name == entry {
+            entry_path = Some(path);
+        }
+    }
+    let path = entry_path.expect("entry file written");
+    let text = std::fs::read_to_string(&path).expect("read entry");
+    let mut doc = QueryDoc::new();
+    doc.path = Some(path);
+    doc.set_text(&text, 1, None);
+    doc
+}
+
+#[test]
+fn project_view_lists_the_closure_with_statuses() {
+    let dir = project_dir("ok");
+    let doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[
+            ("Lib.sokonanoda", "def lib_value : Nat := 2\n"),
+            (
+                "Main.sokonanoda",
+                "import Lib\n\ndef two : Nat := lib_value\n\ntheorem later (a : Prop) : a -> a := by\n  intro h\n  exact h\n\nexample : Nat := sorry\n",
+            ),
+        ],
+    );
+    let view = doc.project_view().expect("a project view");
+    assert_eq!(view.entry, "Main");
+    assert_eq!(view.root, canon(&dir));
+    assert_eq!(
+        view.manifest, None,
+        "zero-config: no manifest, root = entry dir"
+    );
+    assert_eq!(
+        view.modules
+            .iter()
+            .map(|module| (module.name.as_str(), module.status.as_str(), module.entry))
+            .collect::<Vec<_>>(),
+        vec![("Lib", "compiled", false), ("Main", "compiled", true)],
+        "topological order, entry last and marked"
+    );
+    assert!(
+        view.modules[0].path.ends_with("Lib.sokonanoda"),
+        "module paths are absolute file paths: {}",
+        view.modules[0].path
+    );
+    assert_eq!(view.modules[1].imports, vec!["Lib"]);
+    assert_eq!(view.counts.modules, 2);
+    assert_eq!(view.counts.compiled, 2);
+    assert_eq!(view.counts.failed, 0);
+    assert_eq!(view.counts.open_exercises, 1);
+    assert_eq!(
+        view.counts.errors, 0,
+        "clean project: {:?}",
+        view.diagnostics
+    );
+    assert!(view.diagnostics.is_empty());
+    assert_eq!(doc.project_view_reason(), "available");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn project_view_reports_the_manifest_when_one_exists() {
+    let dir = project_dir("manifest");
+    let doc = project_doc(
+        &dir,
+        "src/Main.sokonanoda",
+        &[
+            ("sokonanoda.toml", "[project]\nname = \"demo\"\n"),
+            ("src/Lib.sokonanoda", "def lib_value : Nat := 2\n"),
+            (
+                "src/Main.sokonanoda",
+                "import Lib\n\ndef two : Nat := lib_value\n",
+            ),
+        ],
+    );
+    let view = doc.project_view().expect("a project view");
+    assert_eq!(
+        view.manifest.as_deref(),
+        Some(canon(&dir.join("sokonanoda.toml")).as_str()),
+        "the manifest walks up from the entry file"
+    );
+    assert_eq!(view.root, canon(&dir));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn project_view_separates_load_failure_from_being_blocked() {
+    let dir = project_dir("broken");
+    let doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[
+            ("A.sokonanoda", "def a : Nat := 1\n"),
+            // B 自己加载失败（它 import 的模块不存在）——根因在 B。
+            ("B.sokonanoda", "import Missing\n\ndef b : Nat := 1\n"),
+            // C 只是被 B 拖住——它是受害者，不是根因。
+            ("C.sokonanoda", "import B\n\ndef c : Nat := 1\n"),
+            (
+                "Main.sokonanoda",
+                "import A\nimport B\nimport C\n\ndef main_value : Nat := a\n",
+            ),
+        ],
+    );
+    let view = doc.project_view().expect("a project view");
+    let status = |name: &str| {
+        view.modules
+            .iter()
+            .find(|module| module.name == name)
+            .map(|module| (module.status.clone(), module.message.clone()))
+            .unwrap_or_else(|| panic!("module {name} missing"))
+    };
+    assert_eq!(status("A").0, "compiled", "A is untouched");
+    let (b_status, b_message) = status("B");
+    assert_eq!(b_status, "load-failed", "B's own import is missing");
+    let names_the_cause = b_message
+        .as_deref()
+        .is_some_and(|message| message.contains("Missing"));
+    assert!(
+        names_the_cause,
+        "the root cause must name the missing module: {b_message:?}"
+    );
+    let (c_status, c_message) = status("C");
+    assert_eq!(c_status, "blocked", "C only suffers from B");
+    let points_upstream = c_message
+        .as_deref()
+        .is_some_and(|message| message.contains('B'));
+    assert!(
+        points_upstream,
+        "the blocked module points at its broken dependency: {c_message:?}"
+    );
+    assert!(view.counts.failed >= 1 && view.counts.blocked >= 1);
+    assert!(
+        view.diagnostics
+            .iter()
+            .any(|diag| diag.code == "import-not-found"),
+        "the missing module is a project diagnostic: {:?}",
+        view.diagnostics
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn project_view_is_none_for_single_files_with_a_reason() {
+    let single = doc(CANVAS);
+    assert!(single.project_view().is_none());
+    assert_eq!(single.project_view_reason(), "no-imports");
+
+    // 有 `import` 但定位不到入口（stdin / `--text` 且没有 `--root`）。
+    let mut text_only = QueryDoc::new();
+    text_only.set_text("import Lib\n\ndef two : Nat := 2\n", 1, None);
+    assert!(text_only.project_view().is_none());
+    assert_eq!(text_only.project_view_reason(), "no-path");
+
+    // 解析不了：先修语法，和"单文件"是两回事。
+    let mut broken = QueryDoc::new();
+    broken.set_text("theorem : : :\n", 1, None);
+    assert!(broken.project_view().is_none());
+    assert_eq!(broken.project_view_reason(), "parse-error");
+}

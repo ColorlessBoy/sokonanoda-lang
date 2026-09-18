@@ -25,6 +25,7 @@ const path = require("path");
 const vscode = require("vscode");
 const { LanguageClient, State, TransportKind } = require("vscode-languageclient/node");
 const server = require("./server");
+const projectTree = require("./project-tree");
 
 let client;
 let serverOptions;
@@ -845,17 +846,55 @@ class CourseTreeDataProvider {
 }
 
 let statusBar;
+let projectProvider;
+let goalProvider;
+// 状态栏 tooltip 里的项目那一行（由 `soko/project` 的答案派生）。
+let projectStatusLine;
+
+/// 项目状态摘要：`项目：<根>（清单/零配置）· N 模块 · M 失败`。
+function projectStatusText(answer) {
+  const project = answer?.project;
+  if (!project) {
+    const reason = answer?.reason;
+    if (reason === "parse-error") return "项目：先修语法错误";
+    if (reason === "no-path") return "项目：有 import，但没有入口路径";
+    return "项目：单文件（无 import）";
+  }
+  const manifest = projectTree.manifestSource(project);
+  return `项目：${project.root}（${manifest}）· ${projectTree.projectSummary(project)}`;
+}
+
+/// 取回项目视图（只读请求；服务器不可用时保留上一次的视图，不假装"没有项目"）。
+async function loadProject() {
+  if (!projectProvider || !client) return;
+  const uri = projectProvider.uri;
+  if (!uri) {
+    projectStatusLine = undefined;
+    updateStatusBar(goalProvider);
+    return;
+  }
+  try {
+    const answer = await client.sendRequest("soko/project", {
+      textDocument: { uri },
+    });
+    if (!projectProvider.setAnswer(uri, answer)) return; // 答的是另一份文档
+    projectStatusLine = projectStatusText(answer);
+  } catch {
+    return;
+  }
+  updateStatusBar(goalProvider);
+}
 
 function updateStatusBar(provider) {
   if (!statusBar) return;
-  if (provider.uri === undefined) {
+  if (!provider || provider.uri === undefined) {
     statusBar.hide();
     return;
   }
   statusBar.text = `$(circle-outline) ${provider.openCount}`;
-  statusBar.tooltip = new vscode.MarkdownString(
-    `sokonanoda：${provider.openCount} 个练习未完成（点击查看练习面板）`,
-  );
+  const lines = [`sokonanoda：${provider.openCount} 个练习未完成（点击查看练习面板）`];
+  if (projectStatusLine) lines.push(projectStatusLine);
+  statusBar.tooltip = new vscode.MarkdownString(lines.join("\n\n"));
   statusBar.show();
 }
 
@@ -1318,6 +1357,10 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand("sokonanoda.nextHole", () => nextHole(false)),
     vscode.commands.registerCommand("sokonanoda.previousHole", () => nextHole(true)),
     vscode.commands.registerCommand("sokonanoda.goals.refresh", () => provider.refresh()),
+    vscode.commands.registerCommand("sokonanoda.project.refresh", () => {
+      projectProvider.refresh();
+      loadProject();
+    }),
     vscode.commands.registerCommand("sokonanoda.courseRefresh", () => courseProvider.refresh()),
     vscode.commands.registerCommand("sokonanoda.openInfoview", () => openInfoview()),
     vscode.commands.registerCommand("sokonanoda.revealRange", revealRange),
@@ -1358,6 +1401,15 @@ async function activate(context) {
   statusBar.command = "sokonanoda.goals.focus";
   context.subscriptions.push(tree, statusBar);
 
+  // 项目树（0.58.0）：只读呈现服务端 `soko/project` 的答案——模块根、清单来源、
+  // 闭包模块与各自状态。注册同样在第一次 await 之前（见上面的 ORDER 注释）。
+  projectProvider = new projectTree.ProjectTreeProvider();
+  const projectView = vscode.window.createTreeView("sokonanoda.project", {
+    treeDataProvider: projectProvider,
+    showCollapseAll: true,
+  });
+  context.subscriptions.push(projectView);
+
   // Infoview webview (方案 B): the tree fans its single soko/stateAt snapshot
   // and its soko/goals declaration list out to the webview. Hidden context is
   // released (`retainContextWhenHidden: false`); the provider caches the last
@@ -1386,6 +1438,7 @@ async function activate(context) {
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       provider.trackEditor(editor);
+      if (projectProvider.trackEditor(editor)) loadProject();
       requestCursorForEditor(editor);
     }),
     vscode.window.onDidChangeTextEditorSelection((event) => {
@@ -1408,6 +1461,10 @@ async function activate(context) {
       clearTimeout(diagnosticsTimer);
       diagnosticsTimer = setTimeout(() => {
         provider.refresh();
+        // 项目视图描述的是"刚编译过的闭包"：诊断到来说明服务器已经重编译，
+        // 重取一次即可（含"改依赖 ⇒ 入口状态变了"的场景）。
+        projectProvider.refresh();
+        loadProject();
         // decls follow diagnostics/file changes only (never cursor moves): the
         // webview gets the fresh declaration list through the onDecls hook.
         provider.ensureDeclarations().catch(() => {});
@@ -1422,6 +1479,8 @@ async function activate(context) {
     },
   );
   provider.trackEditor(vscode.window.activeTextEditor);
+  goalProvider = provider;
+  projectProvider.trackEditor(vscode.window.activeTextEditor);
   requestCursorForEditor();
 
   // 课程面板：数据来自 CLI 子进程（跨文件聚合）；不挂诊断刷新——诊断是
@@ -1468,6 +1527,7 @@ async function activate(context) {
     // Server is up: refresh the panel's server line and warm the decl list.
     infoviewProvider.postServer();
     provider.ensureDeclarations().catch(() => {});
+    loadProject();
     // Auto-run the read-only doctor once, after the first soko/version
     // exchange, so version/source problems surface without the user hunting.
     await runDoctor(context, { notify: true, show: false });

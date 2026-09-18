@@ -1,3 +1,30 @@
+## [0.58.0] - 2026-09-18
+
+### Added
+
+- **Project tree (`项目` view) + project state in the status bar tooltip.**
+  The Explorer now shows the import closure around the active file straight
+  from the language server's new `soko/project` request: the module root and
+  its source (a `sokonanoda.toml` path, or "zero config" when the entry file's
+  directory is the root), every module in topological order with its status
+  (`compiled` / `load-failed` / `blocked`), declaration, error and
+  open-exercise counts, the project-level diagnostics, and the modules'
+  `import` edges. A module that only *suffers* from another module's failure is
+  marked `blocked` and points at its broken dependency, so "which module is
+  the root cause?" is answered without reading the raw event stream. Clicking a
+  module opens it (`vscode.open`), clicking the root opens the manifest, and
+  `sokonanoda: refresh project view` refetches. A file without `import` shows a
+  single "single file (no import)" row instead of an empty tree, and answers
+  for another document are dropped using the echoed document identity.
+- The same closure view is available to scripts and agents:
+  `sokonanoda query project [--file … | --text … | -]` prints one JSON object
+  (`{project, reason}`) and the MCP bridge grew a matching `project` tool.
+
+### Notes
+
+- Rust workspace and extension versions are bumped together (0.58.0), as the
+  release pipeline builds both from the same tag.
+
 ## [0.57.0] - 2026-09-18
 
 ### Added

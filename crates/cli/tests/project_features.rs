@@ -541,3 +541,151 @@ fn entry_rejection_exits_one_while_a_dependency_sorry_exits_zero() {
     let _ = std::fs::remove_dir_all(&rejected);
     let _ = std::fs::remove_dir_all(&open);
 }
+
+// ── `query project`：项目状态视图（0.58.0 批次 4）────────────────────────────
+//
+// 与 LSP `soko/project` 共用 `front::query::QueryDoc::project_view()`：这里是
+// CLI 侧 e2e（真二进制），字段名与退出码是对外契约（`docs/protocol.md`）。
+
+/// 单个 JSON 对象 + 退出码；`query project` 的包装。
+fn query_project(dir: &Path) -> (serde_json::Value, i32) {
+    let out = run(
+        dir,
+        &["query", "project", "--file", "Main.sokonanoda"],
+        None,
+    );
+    let value: serde_json::Value = serde_json::from_str(&stdout(&out)).unwrap_or_else(|e| {
+        panic!(
+            "query project 必须输出单个 JSON 对象（{e}）：{}",
+            stdout(&out)
+        )
+    });
+    (value, out.status.code().unwrap_or(-1))
+}
+
+#[test]
+fn query_project_describes_root_manifest_and_module_statuses() {
+    let dir = tmp_dir("query-project-view");
+    write(&dir, "sokonanoda.toml", "[project]\nname = \"demo\"\n");
+    write(&dir, "Lib.sokonanoda", "def lib_value : Nat := 2\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Lib\n\ndef two : Nat := lib_value\n\nexample : Nat := sorry\n",
+    );
+    let (value, code) = query_project(&dir);
+    assert_eq!(code, 0, "单文件/项目都要退出 0；收到 {value}");
+    assert_eq!(value["schema"], "soko.query/1");
+    assert_eq!(value["op"], "project");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["reason"], serde_json::Value::Null);
+    let project = &value["data"]["project"];
+    assert_eq!(project["entry"], "Main");
+    assert!(
+        project["root"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with("query-project-view-")
+            || !project["root"].as_str().unwrap_or_default().is_empty()
+    );
+    assert_eq!(
+        project["counts"]["modules"], 2,
+        "闭包两个模块（依赖在前、入口在后）：{project}"
+    );
+    assert_eq!(project["counts"]["compiled"], 2);
+    assert_eq!(project["counts"]["failed"], 0);
+    assert_eq!(project["counts"]["open_exercises"], 1);
+    let modules = project["modules"].as_array().expect("modules array");
+    assert_eq!(modules[0]["name"], "Lib");
+    assert_eq!(modules[0]["status"], "compiled");
+    assert_eq!(modules[0]["entry"], false);
+    assert_eq!(modules[1]["name"], "Main");
+    assert_eq!(modules[1]["entry"], true);
+    assert_eq!(modules[1]["imports"], serde_json::json!(["Lib"]));
+    assert!(
+        modules[0]["path"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with("Lib.sokonanoda"),
+        "模块路径要能直接用来开文件：{modules:?}"
+    );
+    assert!(
+        project["manifest"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with("sokonanoda.toml"),
+        "有清单时 manifest 指向它：{project}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_project_separates_the_broken_module_from_the_blocked_ones() {
+    let dir = tmp_dir("query-project-blocked");
+    write(&dir, "A.sokonanoda", "def a : Nat := 1\n");
+    // B 自己坏（依赖的文件不存在）⇒ 根因；C 只是被拖住 ⇒ 受害者。
+    write(&dir, "B.sokonanoda", "import Missing\n\ndef b : Nat := 1\n");
+    write(&dir, "C.sokonanoda", "import B\n\ndef c : Nat := 1\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import A\nimport B\nimport C\n\ndef main_value : Nat := a\n",
+    );
+    let (value, code) = query_project(&dir);
+    assert_eq!(code, 0, "有失败模块也是给答案（退出码只区分用途/环境）");
+    let project = &value["data"]["project"];
+    let module = |name: &str| {
+        project["modules"]
+            .as_array()
+            .expect("modules")
+            .iter()
+            .find(|module| module["name"] == name)
+            .unwrap_or_else(|| panic!("module {name} missing: {project}"))
+            .clone()
+    };
+    assert_eq!(module("A")["status"], "compiled");
+    assert_eq!(module("B")["status"], "load-failed");
+    assert!(
+        module("B")["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Missing"),
+        "根因要说出缺哪个模块：{}",
+        module("B")
+    );
+    assert_eq!(module("C")["status"], "blocked");
+    assert!(project["counts"]["failed"].as_u64().unwrap_or(0) >= 1);
+    assert!(project["counts"]["blocked"].as_u64().unwrap_or(0) >= 1);
+    assert!(
+        project["diagnostics"]
+            .as_array()
+            .expect("diagnostics")
+            .iter()
+            .any(|diag| diag["code"] == "import-not-found"),
+        "缺模块进项目级诊断：{project}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn query_project_answers_null_with_a_reason_for_single_files() {
+    let dir = tmp_dir("query-project-single");
+    write(&dir, "Main.sokonanoda", "def two : Nat := 2\n");
+    let (value, code) = query_project(&dir);
+    assert_eq!(code, 0, "单文件是合法答案，不是错误：{value}");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["project"], serde_json::Value::Null);
+    assert_eq!(value["data"]["reason"], "no-imports");
+
+    // 有 `import` 但入口定位不到（stdin）：另一种原因，同样退出 0。
+    let out = run(
+        &dir,
+        &["query", "project"],
+        Some("import Lib\n\ndef two : Nat := 2\n"),
+    );
+    let value: serde_json::Value = serde_json::from_str(&stdout(&out)).expect("json");
+    assert_eq!(out.status.code(), Some(0));
+    assert_eq!(value["data"]["project"], serde_json::Value::Null);
+    assert_eq!(value["data"]["reason"], "no-path");
+    let _ = std::fs::remove_dir_all(&dir);
+}

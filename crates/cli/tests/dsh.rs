@@ -236,7 +236,7 @@ fn dsh_patch(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_else(|e| panic!("{} readable: {e}", path.display()))
 }
 
-/// The MCP bridge (H6-B): a stateless forwarder whose six tools map 1:1 onto
+/// The MCP bridge (H6-B): a stateless forwarder whose tools map 1:1 onto
 /// `sokonanoda query` ops. If a tool name and a query op ever drift apart, the
 /// model gets a tool that the CLI cannot answer — hence this contract.
 #[test]
@@ -245,7 +245,9 @@ fn dsh_mcp_server_forwards_every_query_op() {
     let server = root.join("dsh/mcp/server.js");
     let text = fs::read_to_string(&server).expect("dsh/mcp/server.js readable");
 
-    for op in ["check", "state", "goals", "holes", "hints", "reduce"] {
+    for op in [
+        "check", "state", "goals", "holes", "hints", "reduce", "project",
+    ] {
         assert!(
             text.contains(&format!("queryText('{op}'")),
             "dsh/mcp/server.js must forward `{op}` to `soko query {op}`"

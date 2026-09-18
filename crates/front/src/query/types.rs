@@ -215,3 +215,72 @@ pub struct Answer<T> {
     pub version: u64,
     pub data: T,
 }
+
+// ── 项目视图（`query project` / `soko/project`，0.58.0 批次 4）─────────────────
+//
+// 形状与不变量见 `docs/design/project-view.md`：只读派生（不重跑内核）、单文件是
+// **另一种合法状态**（`project: null` + `reason`）而不是错误、路径一律绝对路径。
+
+/// 闭包里的一个模块（拓扑序；入口在最后）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectModule {
+    pub name: String,
+    /// 模块文件绝对路径。
+    pub path: String,
+    /// `compiled` / `load-failed` / `blocked`（`ModuleStatus::code()`）。
+    pub status: String,
+    /// 是不是这次编译的入口。
+    pub entry: bool,
+    /// 它 `import` 的模块名（书写顺序，去重）。
+    pub imports: Vec<String>,
+    /// 报告里的声明数（含开放练习）。
+    pub decls: usize,
+    pub errors: usize,
+    pub warnings: usize,
+    /// 未闭合的 `sorry` 练习数。
+    pub open_exercises: usize,
+    /// 状态的一句话解释：`load-failed`/`blocked` 时取该模块的第一条项目诊断，
+    /// 其余为 `None`。
+    pub message: Option<String>,
+}
+
+/// 一条项目级诊断（归属到导入方模块）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectDiagnosticInfo {
+    pub code: String,
+    pub message: String,
+    /// 归属模块名。
+    pub module: String,
+    pub start: usize,
+    pub end: usize,
+}
+
+/// 闭包计数（视图的地图/徽章用；比让消费者自己数 `modules` 更省事）。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectCounts {
+    pub modules: usize,
+    pub compiled: usize,
+    pub failed: usize,
+    pub blocked: usize,
+    pub decls: usize,
+    pub errors: usize,
+    pub warnings: usize,
+    pub open_exercises: usize,
+}
+
+/// 项目状态视图：**根、清单来源、闭包模块表、每模块状态、项目级诊断**。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectView {
+    /// 入口模块名（点分）。
+    pub entry: String,
+    /// 模块根（绝对路径）。
+    pub root: String,
+    /// 生效的清单路径；`None` = 零配置（根 = 入口文件目录）。
+    pub manifest: Option<String>,
+    /// 清单 `requires` 与当前版本不一致时的提示（不阻断）。
+    pub requires_warning: Option<String>,
+    /// 拓扑序，入口在最后。
+    pub modules: Vec<ProjectModule>,
+    pub diagnostics: Vec<ProjectDiagnosticInfo>,
+    pub counts: ProjectCounts,
+}

@@ -103,7 +103,8 @@ fn parse_args(argv: &[String]) -> Result<Args, Usage> {
     }
     if args.op.is_empty() {
         return Err(Usage(
-            "用法：sokonanoda query <check|state|goals|holes|hints|reduce> [选项]".to_string(),
+            "用法：sokonanoda query <check|state|goals|holes|hints|reduce|project> [选项]"
+                .to_string(),
         ));
     }
     Ok(args)
@@ -241,10 +242,10 @@ pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
     // 先校验 op 名：未知 op 要报"未知 op"，而不是在下游报"缺输入源"。
     if !matches!(
         args.op.as_str(),
-        "check" | "state" | "goals" | "holes" | "hints" | "reduce"
+        "check" | "state" | "goals" | "holes" | "hints" | "reduce" | "project"
     ) {
         eprintln!(
-            "error: 未知的 query op `{}`（支持 check/state/goals/holes/hints/reduce）",
+            "error: 未知的 query op `{}`（支持 check/state/goals/holes/hints/reduce/project）",
             args.op
         );
         return ExitCode::from(2);
@@ -321,6 +322,23 @@ pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
             };
             let hints = doc.hints_at(cursor);
             (json!({ "hints": hints }), 0)
+        }
+        // 项目状态视图：只读派生（不重跑内核）。单文件不是错误——
+        // `project: null` + `reason` 是**合法答案**，退出码仍是 0。
+        "project" => {
+            let view = doc.project_view();
+            let reason = if view.is_none() {
+                Value::String(doc.project_view_reason().to_string())
+            } else {
+                Value::Null
+            };
+            (
+                json!({
+                    "project": serde_json::to_value(&view).unwrap_or(Value::Null),
+                    "reason": reason,
+                }),
+                0,
+            )
         }
         "reduce" => {
             let Some(expr) = args.expr.as_deref() else {

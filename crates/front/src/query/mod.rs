@@ -13,6 +13,7 @@
 //! - 所有文本来自完整内核（pretty print）或 `crate::semantic` 的唯一分类。
 
 mod pos;
+mod project;
 mod state;
 mod types;
 
@@ -20,8 +21,9 @@ pub use pos::{line_col_of, offset_of_line_col};
 pub use state::{select_state_at, StateSelection};
 pub use types::{
     Answer, BinderInfo, CheckCounts, CheckSummary, CodeActionInfo, DeclHeader, DeclInfo,
-    FailedDecl, GoalInfo, HoleInfo, LocatedHole, QueryError, ReduceAnswer, RunInfo, StateAnswer,
-    SubGoalInfo, WarningInfo,
+    FailedDecl, GoalInfo, HoleInfo, LocatedHole, ProjectCounts, ProjectDiagnosticInfo,
+    ProjectModule, ProjectView, QueryError, ReduceAnswer, RunInfo, StateAnswer, SubGoalInfo,
+    WarningInfo,
 };
 
 use crate::compile::{

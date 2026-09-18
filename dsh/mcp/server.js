@@ -258,6 +258,21 @@ const TOOLS = {
       return queryText('hints', [...flags, ...positionFlags(args)], stdin)
     },
   },
+  project: {
+    description:
+      'The project closure around one file: module root, which `sokonanoda.toml` (if any) is in effect, every module in topological order with status (`compiled` / `load-failed` / `blocked`), imports, declaration/error/open-exercise counts and the project-level diagnostics. ' +
+      'Use it to answer "why does this entry fail — which module is the root cause?" without walking the raw event stream. A file with no `import` answers `project: null` with `reason: "no-imports"` (a legal state, not an error).',
+    inputSchema: {
+      type: 'object',
+      properties: { ...sourceProperties, root: { type: 'string', description: 'Explicit module root (overrides `sokonanoda.toml` discovery).' } },
+      additionalProperties: false,
+    },
+    run: args => {
+      const { flags, stdin } = sourceFlags(args)
+      const extra = typeof args.root === 'string' ? ['--root', args.root] : []
+      return queryText('project', [...flags, ...extra], stdin)
+    },
+  },
   reduce: {
     description:
       'Evaluate an expression with the kernel and return its normal form. Use it to check what a definition computes to, e.g. `1 + 1`.',

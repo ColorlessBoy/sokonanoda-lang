@@ -44,7 +44,7 @@ pub(crate) fn importless_source(source: &str) -> String {
 }
 pub use manifest::{find_manifest, Manifest, MANIFEST_FILE};
 pub use module_name::{ModuleName, ModuleNameError, DASH_HINT, MODULE_EXTENSION};
-pub use report::{ModuleReport, ProjectDiagnostic, ProjectKind, ProjectReport};
+pub use report::{ModuleReport, ModuleStatus, ProjectDiagnostic, ProjectKind, ProjectReport};
 pub use resolve::{resolve_module, Lookup, MissingModule};
 
 /// Full 模式下由 prelude 安装、因而**不能被普通声明占用**的名字
@@ -270,6 +270,7 @@ pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectR
                     source: module.file.src.clone(),
                     report: reports[slot].clone(),
                     events,
+                    status: ModuleStatus::Compiled,
                 });
             }
             None => modules.push(ModuleReport {
@@ -279,6 +280,13 @@ pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectR
                 source: module.file.src.clone(),
                 report: DocumentReport::default(),
                 events: CompileOutput::default(),
+                // 自己加载失败（缺失/解析/环）vs 被上游拖住——报告都是空的，
+                // 状态必须分开，否则项目树会把"根因"说成"受害者"。
+                status: if module.failed {
+                    ModuleStatus::LoadFailed
+                } else {
+                    ModuleStatus::Blocked
+                },
             }),
         }
     }
@@ -296,6 +304,7 @@ pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectR
         if result_blocked.contains(&module.name) {
             module.report = DocumentReport::default();
             module.events = CompileOutput::default();
+            module.status = ModuleStatus::Blocked;
         }
     }
 

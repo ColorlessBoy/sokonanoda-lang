@@ -32,7 +32,8 @@ mod tokens;
 
 // 声明名是真相层的词表（`docs/protocol.md`）：用它的实现，不再保逐字副本。
 use protocol::{
-    GoalDeclInfo, GoalsParams, GoalsResponse, NextHoleParams, StateAtParams, StateAtResponse,
+    GoalDeclInfo, GoalsParams, GoalsResponse, NextHoleParams, ProjectParams, ProjectResponse,
+    StateAtParams, StateAtResponse,
 };
 use render::{
     bracket_hover, decl_at, definition_at, diagnostic_from_compile, diagnostic_from_parse,
@@ -496,6 +497,32 @@ impl Backend {
             // 回显请求的文档身份：客户端据此丢弃"答的是另一份文档"的过期响应。
             uri: request_uri.to_string(),
             version,
+        })
+    }
+
+    /// `soko/project`：这个文档所在闭包的只读状态视图（根、清单来源、模块表、
+    /// 每模块状态）。只读派生——不重跑内核、不算摘要（设计 §2 第 5 条）。
+    ///
+    /// 单文件答 `project: null` + `reason: "no-imports"`：扩展据此显示"单文件"
+    /// 占位，而不是把它当成错误。
+    async fn project(&self, params: ProjectParams) -> Result<ProjectResponse> {
+        let request_uri = params.text_document.uri.clone();
+        let (version, project, reason) = {
+            let mut docs = self.doc.lock().expect("doc lock");
+            docs.focus_request(&request_uri);
+            let version = docs.version();
+            let query = docs.query();
+            let view = query.project_view();
+            let reason = view
+                .is_none()
+                .then(|| query.project_view_reason().to_string());
+            (version, view, reason)
+        };
+        Ok(ProjectResponse {
+            uri: request_uri.to_string(),
+            version,
+            project,
+            reason,
         })
     }
 
@@ -1548,6 +1575,7 @@ pub async fn run() {
         .custom_method("soko/nextHole", Backend::next_hole)
         .custom_method("soko/hints", Backend::hints)
         .custom_method("soko/stateAt", Backend::state_at)
+        .custom_method("soko/project", Backend::project)
         .custom_method("soko/version", Backend::version)
         .finish();
     Server::new(stdin, stdout, socket).serve(service).await;

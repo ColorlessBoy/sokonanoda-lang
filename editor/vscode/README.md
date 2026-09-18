@@ -62,6 +62,16 @@ skills.
   (`import-not-found`, `import-cycle`, …). Editing an imported module re-checks
   the files that depend on it right away — unsaved edits included — and find
   references / rename work across the whole project.
+- **Project tree** — an Explorer view (`项目`) shows the import closure around
+  the active file: the **module root and where it came from** (a
+  `sokonanoda.toml` path, or "zero config: the entry file's directory"), every
+  module in topological order with its status — `compiled`, `load-failed`
+  (the root cause, e.g. a missing import), or `blocked` (a victim of another
+  module's failure) — plus per-module declaration/error counts and the
+  project-level diagnostics. Click a module to open it; click the root to open
+  the manifest. The status bar tooltip names the project too, and a single
+  file (no `import`) says so instead of showing an empty tree. Refresh with
+  the view's refresh button or `sokonanoda: refresh project view`.
 - **Course map** — an 11-unit structured course with verified solutions
   (propositional logic first; `by` tactic blocks early for fast feedback;
   universes only when you naturally ask "what's the type of a function

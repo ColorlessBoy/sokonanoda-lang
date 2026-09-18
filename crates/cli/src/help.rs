@@ -22,6 +22,8 @@ pub(crate) fn print_help() {
     println!("                                addressable holes (stable ids), optional step");
     println!("      hints  --line L --col C   the `-- soko:hint` ladder for that declaration");
     println!("      reduce --expr E           kernel normal form of an expression");
+    println!("      project                   project closure: root, manifest, modules, statuses");
+    println!("                                (single file ⇒ project:null + reason)");
     println!("    input: --file <path> | --text <src> | stdin;  --compact for one line");
     println!("    exit: 0 ok (open `sorry` is legal) · 1 kernel-rejected · 2 usage");
     println!("  sokonanoda --json <file>        emit JSON Lines events (agent/service view)");

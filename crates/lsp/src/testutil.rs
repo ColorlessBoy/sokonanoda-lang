@@ -13,13 +13,14 @@ use tower_lsp::lsp_types::*;
 use tower_lsp::{ClientSocket, LspService};
 
 /// 带全部自定义方法注册的服务（soko/goals、soko/nextHole、soko/hints、
-/// soko/stateAt）。
+/// soko/stateAt、soko/project、soko/version）。
 pub(crate) fn test_service() -> (LspService<Backend>, ClientSocket) {
     LspService::build(Backend::new)
         .custom_method("soko/goals", Backend::goals)
         .custom_method("soko/nextHole", Backend::next_hole)
         .custom_method("soko/hints", Backend::hints)
         .custom_method("soko/stateAt", Backend::state_at)
+        .custom_method("soko/project", Backend::project)
         .custom_method("soko/version", Backend::version)
         .finish()
 }

@@ -89,6 +89,28 @@ pub(crate) struct GoalsResponse {
     pub(crate) version: i32,
 }
 
+/// `soko/project` 请求（0.58.0 批次 4）：这个文档所在闭包的只读状态视图。
+#[derive(Debug, Deserialize)]
+pub(crate) struct ProjectParams {
+    #[serde(rename = "textDocument")]
+    #[allow(dead_code)]
+    pub(crate) text_document: TextDocumentIdentifier,
+}
+
+/// `soko/project` 响应：项目视图 + 请求身份回显。
+///
+/// `project: None` **不是**错误：单文件（无 `import`）/ 定位不到入口都是合法
+/// 状态，机器码见 `reason`（`docs/design/project-view.md` §5）。
+#[derive(Debug, Serialize)]
+pub(crate) struct ProjectResponse {
+    /// 回显请求指向的文档 URI 与版本（见 [`GoalsResponse::uri`]）。
+    pub(crate) uri: String,
+    pub(crate) version: i32,
+    pub(crate) project: Option<sokonanoda_front::query::ProjectView>,
+    /// `no-imports` / `no-path` / `parse-error`；有项目时为 `None`。
+    pub(crate) reason: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct NextHoleParams {
     #[serde(rename = "textDocument")]
