@@ -82,6 +82,24 @@ fn measure_stages(entry: &Path) -> (f64, f64, f64, f64) {
     )
 }
 
+/// 同一项目重复 `rounds` 轮分阶段测量，取 `total` 最小的那一轮。
+///
+/// 为什么需要：这些用例在**同一个测试进程里并行**跑（`cargo test` 默认多线程），
+/// 单次采样会被同进程的其他重活抢占——实测**同一份代码**两次记录相差 25%
+/// （见 `docs/PERF.md`「噪声地板」）。取最小轮 = "这个阶段最少要多久"，
+/// 与 `perf.rs` / LSP perf 的 best-of-N 口径一致。真正要求准确时用
+/// `--test-threads=1`（`scripts/perf-ledger.sh` 已带）。
+fn measure_best(entry: &Path, rounds: usize) -> (f64, f64, f64, f64) {
+    let mut best = measure_stages(entry);
+    for _ in 1..rounds {
+        let candidate = measure_stages(entry);
+        if candidate.3 < best.3 {
+            best = candidate;
+        }
+    }
+    best
+}
+
 fn perf_json(value: serde_json::Value) {
     println!("PERFJSON {value}");
 }
@@ -97,7 +115,7 @@ fn project_closure_stage_costs_are_recorded() {
         let _ = std::fs::remove_dir_all(&dir);
     }
     let (dir, entry) = gen_project("stages", 4, 20);
-    let (plan_ms, digest_ms, compile_ms, total_ms) = measure_stages(&entry);
+    let (plan_ms, digest_ms, compile_ms, total_ms) = measure_best(&entry, 3);
     println!(
         "PERF project stages: plan {plan_ms:.1}ms · digest {digest_ms:.2}ms · \
          compile {compile_ms:.1}ms · total {total_ms:.1}ms (4 modules × 20 decls)"
@@ -140,7 +158,7 @@ fn project_closure_compile_scales_linearly() {
     let mut times = Vec::new();
     for modules in [4usize, 8, 16] {
         let (dir, entry) = gen_project(&format!("scale-{modules}"), modules, 10);
-        let (_, _, compile_ms, _) = measure_stages(&entry);
+        let (_, _, compile_ms, _) = measure_best(&entry, 3);
         times.push(compile_ms);
         let _ = std::fs::remove_dir_all(&dir);
     }

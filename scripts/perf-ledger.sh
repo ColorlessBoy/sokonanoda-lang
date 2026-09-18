@@ -44,20 +44,20 @@ raw=$(mktemp)
 trap 'rm -f "$raw"' EXIT
 
 echo "+ compiler (single file): crates/front/tests/perf.rs"
-cargo test -q -p sokonanoda-front --test perf --locked -- --nocapture 2>&1 \
+cargo test -q -p sokonanoda-front --test perf --locked -- --nocapture --test-threads=1 2>&1 \
   | grep -E '^PERF' | tee -a "$raw" || true
 echo "+ compiler (project closure): crates/front/tests/perf_project.rs"
-cargo test -q -p sokonanoda-front --test perf_project --locked -- --nocapture 2>&1 \
+cargo test -q -p sokonanoda-front --test perf_project --locked -- --nocapture --test-threads=1 2>&1 \
   | grep -E '^PERF' | tee -a "$raw" || true
 echo "+ editor interaction (LSP, incl. project): crates/lsp/src/tests/perf.rs"
-cargo test -q -p sokonanoda-lsp --lib --locked -- perf_ --nocapture 2>&1 \
+cargo test -q -p sokonanoda-lsp --lib --locked -- perf_ --nocapture --test-threads=1 2>&1 \
   | grep -E '^PERF' | tee -a "$raw" || true
 echo "+ CLI end-to-end (project, $cli_profile binary): crates/cli/tests/perf_project.rs"
 if [ "$cli_profile" = "release" ]; then
-  cargo test -q --release -p sokonanoda-cli --test perf_project --locked -- --nocapture 2>&1 \
+  cargo test -q --release -p sokonanoda-cli --test perf_project --locked -- --nocapture --test-threads=1 2>&1 \
     | grep -E '^PERF' | tee -a "$raw" || true
 else
-  cargo test -q -p sokonanoda-cli --test perf_project --locked -- --nocapture 2>&1 \
+  cargo test -q -p sokonanoda-cli --test perf_project --locked -- --nocapture --test-threads=1 2>&1 \
     | grep -E '^PERF' | tee -a "$raw" || true
 fi
 

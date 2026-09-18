@@ -42,13 +42,21 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 5. **整理（死代码）**：删掉只写状态 `built_inductives`（唯一消费者是文件尾的
    `let _ = …`；顺带去掉归纳块每次的无用 `Vec` 克隆）与 `def` 开练习路径里推**空**
    `CmdHover` 的空操作（`resolve_hovers` 只读 `nodes`）——同样过二进制对拍。
-6. **整理（文档）**：HANDOVER 里"项目入口 quick-fix 仍未做"的过期段落更正；§4 新增
+6. **整理（性能台账口径）**：复盘台账发现**采样口径**问题——项目层 perf 套件在同一
+   测试二进制里**并行**跑，把单次操作成本放大 3–4×（同一份代码：单跑 32.4ms /
+   串行 33–38ms / 默认并行 118–152ms；LSP didOpen+按键 12+12ms vs 64+50ms）。
+   修法：`scripts/perf-ledger.sh` / `perf-report.sh` 一律 `--test-threads=1`、
+   `perf_project` 的分阶段/缩放改 `measure_best(…, 3)`；`docs/PERF.md` 的基线表
+   按**串行口径**重写（教学规模 2/3/5 × 12 声明一次按键 **14/16/24ms**，4×20 编译
+   32–38ms）并写明"跨口径不可比"；教训进 `docs/LESSONS.md`。**旧台账条目是并行口径，
+   比较时先看是否落在 ±25% 内。**
+7. **整理（文档）**：HANDOVER 里"项目入口 quick-fix 仍未做"的过期段落更正；§4 新增
    剩余结构债盘点（`compile/tests.rs` 4828 / `elab.rs` 2854 / `parser.rs` 2065 /
    `lsp/lib.rs` 1554 / `vscode/extension.js` 1493，按建议顺序）与
    "开练习的类型子表达式没有 hover 行"（**刻意保留现状**，含补法）；`architecture.md`
    仓库地图 + §4.2 补"阶段 ↔ 模块"对照；`TESTING.md` 新增「二进制对拍」小节 +
    精确测试构成（kernel 51 / front 462 / cli 214 / lsp 135）；本文件归档第九十二轮。
-7. **批次 3 完成 ⇒ 待办只剩批次 4**：`soko/project` 项目状态可视化（协议 + VS Code
+8. **批次 3 完成 ⇒ 待办只剩批次 4**：`soko/project` 项目状态可视化（协议 + VS Code
    状态/树：模块根、清单来源、闭包模块、失败模块）。
 
 ## 本轮进度（2026-09-18，第九十四轮：待办批次 1 —— 项目 quick-fix + 编辑器外改动刷新）

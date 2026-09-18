@@ -20,16 +20,16 @@ out="${1:-perf-report-v${version}-${sha}.txt}"
   echo "# 下面是本轮实测值（front = 编译器内核路径，lsp = 编辑器交互路径）。"
   echo ""
   echo "## compiler (crates/front/tests/perf.rs)"
-  cargo test -p sokonanoda-front --test perf -- --nocapture 2>&1 | grep "^PERF" || true
+  cargo test -p sokonanoda-front --test perf -- --nocapture --test-threads=1 2>&1 | grep "^PERF" || true
   echo ""
   echo "## lsp interaction (crates/lsp/src/tests/perf.rs perf_*)"
-  cargo test -p sokonanoda-lsp --lib -- perf_ --nocapture 2>&1 | grep "^PERF" || true
+  cargo test -p sokonanoda-lsp --lib -- perf_ --nocapture --test-threads=1 2>&1 | grep "^PERF" || true
   echo ""
   echo "## compiler — project closure (crates/front/tests/perf_project.rs)"
-  cargo test -p sokonanoda-front --test perf_project --locked -- --nocapture 2>&1 | grep "^PERF" || true
+  cargo test -p sokonanoda-front --test perf_project --locked -- --nocapture --test-threads=1 2>&1 | grep "^PERF" || true
   echo ""
   echo "## cli — project end-to-end, release binary (crates/cli/tests/perf_project.rs)"
-  cargo test -q --release -p sokonanoda-cli --test perf_project --locked -- --nocapture 2>&1 | grep "^PERF" || true
+  cargo test -q --release -p sokonanoda-cli --test perf_project --locked -- --nocapture --test-threads=1 2>&1 | grep "^PERF" || true
   echo ""
   echo "## extension host wiring (editor/vscode/test-extension-host.js)"
   node editor/vscode/test-extension-host.js 2>&1 | tail -1 || true

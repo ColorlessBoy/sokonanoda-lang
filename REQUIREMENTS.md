@@ -1193,7 +1193,11 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   - **验收手段升级**：除 862 条测试外，做**二进制对拍**——改动前后两个 CLI 跑全部
     58 个 `.sokonanoda` 文件 + `--root` / `--no-project` / stdin /
     `query check|goals|holes`，stdout 逐字节相同。方法记入 `docs/TESTING.md`。
-  - **整理**：删掉只写状态 `built_inductives`（原来只被 `let _ = …` 消费）与
+  - **整理（代码）**：删掉只写状态 `built_inductives`（原来只被 `let _ = …` 消费）与
     `def` 开练习路径里推空 `CmdHover` 的空操作；HANDOVER 里"项目入口 quick-fix
     仍未做"的过期段落更正；模块地图/LESSONS 同步。
+  - **整理（性能台账口径）**：发现项目层 perf 套件**同进程并行**跑，把单次操作成本
+    放大 3–4×（同一代码：单跑 32.4ms / 串行 33–38ms / 并行 118–152ms）；台账与
+    report 脚本改 `--test-threads=1`，分阶段/缩放改 `measure_best(…, 3)`，
+    `docs/PERF.md` 基线表按串行口径重写并注明"跨口径不可比"。
   - **下一批**：批次 4（`soko/project` 项目状态可视化）。
