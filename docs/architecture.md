@@ -204,6 +204,16 @@ sokonanoda-lang/
 跨文件 `definition`/`references`/`rename`）、`build`（暖缓存）。设计全文与错误码表见
 `docs/design/imports-and-projects.md`，协议见 `docs/protocol.md`。
 
+**判据前缀（closure judge prefix）**：`match` 的宇宙层级、`by` tactic 的
+`apply`/`exact`、无注解 binder 的推断都走"合成一个前缀文件再问内核"
+（`judge_infer(prefix_src, …)`）。项目模式下前缀**必须**包含依赖的声明文本，
+否则内核看不见被导入的名字——实测两个症状：入口里 `match` 导入的归纳类型报
+`elab-match-no-expected-type`、`by apply And.intro`（导入的公理）报
+`elab-tactic-failed: unknown identifier`。实现：`run_pass` 按拓扑序预计算
+`closure_prefixes`（各依赖源码去掉 `import` 行后相接），单文件模式不构造
+（A1 逐字节不变）。**仍未覆盖**：编辑器 quick-fix 的 `front::suggest` 路径只吃
+入口文本 ⇒ 项目入口里对导入名字给不出建议（`docs/TESTING.md` §5.8）。
+
 **编辑器里的依赖编辑（未落盘）**：LSP 把**所有打开文档的当前文本**做成"内存覆盖"
 （`load_closure_with_overlay`，按 `canonicalize` 后的路径匹配），改依赖时下游文档用
 同一份覆盖重编译并重发诊断——所以未保存的依赖改动对入口可见，覆盖也进闭包摘要。

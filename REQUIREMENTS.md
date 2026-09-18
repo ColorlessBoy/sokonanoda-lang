@@ -1121,3 +1121,20 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     改口径（入口事件 only，依赖问题走诊断，§5.1 偏差④）。
   - **门禁**：`cargo test --workspace --locked` 全绿 + `scripts/soko gate` PASS +
     `node editor/vscode/test-extension-host.js` 7/7。
+- 2026-09-18（九十三·续）：**教学内容 import 化 + 再跑一遍性能**（用户要求：
+  「你来测试性能一下。顺便重构教学内容呢，前后import之类的，这个是不是适合一个
+  外接的子项目」）：
+  - **性能实测**（`scripts/perf-ledger.sh`，11 条记录进 `docs/perf/ledger.jsonl`）：
+    front 4×20 项目 compile 111ms、一次按键 130ms、缩放 4×规模 ⇒ 2.8×（线性）；
+    LSP 项目按键 46ms 且每次按键 1 份诊断；CLI release 冷 31.9 / 热 3.3ms；
+    新增"判据前缀"成本 82.6ms/10 处 `match`。
+  - **教学内容结论**：逐字重复只占 8%（232/2974 行），**整包 import 化不做**——
+    单元画布的自给自足是教学属性，且 golden/镜像/课程树都按一单元一文件钉着。
+    改为新增 **`course/shared/` 共享库子项目**（规范模块 `And`/`Or`/`Nat` +
+    `Demo.sokonanoda` 入口 + 清单），并用 `crates/cli/tests/course_shared.rs`
+    双向守护 24/12/8 份副本与规范文本逐字一致（画布零改动、golden 零漂移）。
+  - **修掉两个真 bug（同一根因）**：项目模式下 `match`/`by` 的判据前缀只含入口源码
+    ⇒ 看不见被导入的名字（`elab-match-no-expected-type` /
+    `elab-tactic-failed: unknown identifier`）。现在按拓扑序把依赖声明文本接进前缀；
+    单文件模式逐字节不变（A1）。
+  - **登记未修**：项目入口里的 quick-fix（`front::suggest` 同一根因，见 §7b）。

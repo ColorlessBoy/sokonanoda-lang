@@ -204,6 +204,13 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   记录追加进 `docs/perf/ledger.jsonl`（跨版本对比"哪一环退化"）；基线见
   `docs/PERF.md`「项目层与编辑器宿主」。扩展侧新增宿主层行为测试
   `editor/vscode/test-extension-host.js`（stub host，7 例）。
+- **课程共享库（0.57.0）**：`course/shared/` 是"教学内容 import 化"的安全形态
+  （规范模块 `And`/`Or`/`Nat` + 自检入口 `Demo.sokonanoda`），画布保持自给自足；
+  `crates/cli/tests/course_shared.rs` 双向守护 24/12/8 份副本。整包 import 化明确不做。
+- **判据前缀（0.57.0 修的坑）**：项目模式下 `match`/`by` 的前缀必须含依赖声明
+  （`run_pass` 的 `closure_prefixes`），否则入口看不见导入的名字——这条在
+  `docs/architecture.md` §4.5 有专段，改判据相关代码前先读。**仍未做**：项目入口的
+  quick-fix（`front::suggest` 同一根因，`docs/TESTING.md` §7b）。
 - **LSP 能力（0.57.0 完整）**：多文档、跨文件 `definition`/`references`/`rename`、
   改依赖自动刷新下游（未落盘编辑经内存覆盖可见）、诊断只在变化时重发。
   留 P7 backlog 的只有：`didChangeWatchedFiles`（编辑器外改文件不触发刷新）、

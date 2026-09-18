@@ -60,6 +60,29 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 6. **测试与门禁**：`cargo test --workspace --locked` 全绿（front 450+ / LSP 130+ /
    CLI 200+，含新增 4 个 perf 例、11 个功能例、7 个宿主例）；
    `node editor/vscode/test-extension-host.js` 7/7；`scripts/soko gate` PASS。
+7. **用户第二轮追加：真跑一遍性能 + 教学内容 import 化**。性能：`scripts/perf-ledger.sh`
+   11 条记录（front 4×20 compile 111ms / 按键 130ms；缩放 2.8×；LSP 项目按键 46ms
+   且 1 份诊断；CLI release 冷 31.9 / 热 3.3 / 依赖改动后 27.7ms；新增"判据前缀"
+   一条：入口 10 处 `match` 导入归纳类型 82.6ms）。教学内容：
+   - 先量了一遍：44 个语料文件里**逐字重复**的声明块只有 232/2974 行（8%），
+     And 公理 24 份、`Or` 块 12 份、显式 `Nat` 块 8 份（含中英与解答钥匙）。
+     结论：**整包 import 化不划算**（会打破"单元自给自足"、golden/镜像/课程树契约
+     全要重钉），但复制粘贴的漂移风险是真的。
+   - 于是新增 **`course/shared/` 子项目**（`sokonanoda.toml` + 规范模块
+     `And`/`Or`/`Nat` + 自检入口 `Demo.sokonanoda`，真的 import 并判卷），
+     配 `crates/cli/tests/course_shared.rs` 的**双向漂移守护**（少了=副本没跟上、
+     多了=抄了没登记、画布出现 `import` 也红）。画布一行未改，golden 零漂移。
+   - **过程中挖出并修掉两个真 bug（同一根因）**：`match` 的宇宙层级、`by` tactic 的
+     `apply`/`exact` 都靠 `judge_infer(prefix_src, …)` 合成前缀文件问内核，而项目
+     模式的前缀只含**入口自己**的源码 ⇒ 入口里 `match` 被导入的归纳类型报
+     `elab-match-no-expected-type`、`by apply And.intro`（导入的公理）报
+     `elab-tactic-failed: unknown identifier`。修法：`run_pass` 按拓扑序预计算
+     `closure_prefixes`（依赖源码去掉 `import` 行后相接 + 本文件前缀），
+     单文件模式不构造（A1 逐字节不变）。两条回归测试入 `project/tests.rs`。
+   - **发现但未修（已登记，P5 余项）**：编辑器 quick-fix 的 `front::suggest` 也只吃
+     入口文本 ⇒ 项目入口里对导入名字给不出建议（同一文件放进单文件就有
+     `refine And.intro …`，放进项目入口是 `null`；真 LSP 探针复现）。
+     记在 `docs/TESTING.md` §7b 与 `docs/design/imports-and-projects.md` P7。
 
 ## 本轮进度（2026-09-18，第九十二轮：I16 落地 —— `import` 闭包 + 项目管理，0.57.0）
 

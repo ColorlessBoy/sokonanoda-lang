@@ -281,3 +281,63 @@ fn project_sizes_teaching_scale_keystroke_cost() {
         "ms": records.iter().map(|(_, ms)| *ms).collect::<Vec<_>>(),
     }));
 }
+
+// ── 6. 判据前缀成本：`match`/`by` 每次都要把闭包前缀交给内核 ──────────────
+
+/// 入口里对**被导入**归纳类型做 `match`：每次 match 都要合成"闭包前缀 + 本文件
+/// 前缀"再问内核（`judge_infer`，见 `docs/architecture.md` §4.5）。这是"课程内容
+/// import 化"的真实成本：前缀里现在带着依赖的声明文本。
+#[test]
+fn judge_prefix_with_imported_declarations_stays_within_budget() {
+    let dir = std::env::temp_dir().join(format!("soko-perf-judge-prefix-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp dir");
+    std::fs::write(
+        dir.join("Logic.sokonanoda"),
+        "inductive Or (A B : Prop) : Prop\n\
+ctor inl (a : A) : Or A B\n\
+ctor inr (b : B) : Or A B\n\
+end\n",
+    )
+    .expect("write logic");
+    let mut entry = String::from("import Logic\n\n");
+    for i in 0..10 {
+        entry.push_str(&format!(
+            "theorem or_comm_{i} (A : Prop) (B : Prop) (h : Or A B) : Or B A :=\n\
+  match h with\n\
+  | inl a => inr B A a\n\
+  | inr b => inl B A b\n"
+        ));
+    }
+    let entry_path = dir.join("Main.sokonanoda");
+    std::fs::write(&entry_path, &entry).expect("write entry");
+
+    let options = CompileOptions::default();
+    // 预热（首次执行/首次判据缓存都算冷启动）。
+    let _ = compile_project(&entry_path, Some(&entry), &options, None);
+    let mut best = f64::MAX;
+    for _ in 0..5 {
+        let started = Instant::now();
+        let plan = plan_project(&entry_path, Some(&entry), None);
+        let report = compile_plan(plan, &options);
+        best = best.min(ms(started.elapsed()));
+        assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    }
+    println!(
+        "PERF project judge prefix: 10 matches over an imported inductive {best:.1}ms \
+         (2 modules, closure prefix in every judge call)"
+    );
+    perf_json(serde_json::json!({
+        "schema": "soko.perf/1",
+        "scope": "front-project",
+        "case": "judge_prefix_with_imports",
+        "modules": 2,
+        "matches": 10,
+        "ms": (best * 100.0).round() / 100.0,
+    }));
+    assert!(
+        best < 3000.0,
+        "10 matches over an imported inductive took {best:.1}ms — judge prefix regression?"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
