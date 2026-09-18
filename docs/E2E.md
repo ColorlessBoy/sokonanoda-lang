@@ -163,7 +163,11 @@ CI 有**两个** e2e job（`.github/workflows/ci.yml`），合计 3 条腿：
   job 有 `concurrency: e2e-ledger`（同一时刻只有一个写台账的 job）与 `fetch-depth: 0`
   （浅克隆 rebase 会缺 parent 对象）；push 失败先 rebase 再重试（最多 3 次），
   rebase 冲突就打印冲突文件、`rebase --abort` 并**报红**（重跑该 job 即可）；
-  `GITHUB_TOKEN` 推的提交不再触发 workflow，不会自激；
+  `GITHUB_TOKEN` 推的提交不再触发 workflow，不会自激——**代价是它没有任何
+  check-run**，main 的 HEAD 会挂一个黄点（`Expected — Waiting for status to be
+  reported`），看起来像「CI 没成功」。所以回提交成功后由本 job 给新提交补一条
+  `e2e-ledger` 成功状态（`permissions: statuses: write`）；这条状态是诚实的：
+  本 job 的 `needs: [e2e, e2e-macos]` 全绿才会走到这里；
 * **门禁**：`auto-tag` 的 `needs` 是 `[lint, test, e2e, e2e-macos]` ⇒ **任何一条 e2e 腿红了就不发版**
   （`e2e-ledger` 只是记账，不在 `auto-tag` 的 needs 里，避免与自己推的提交互相等待）。
 

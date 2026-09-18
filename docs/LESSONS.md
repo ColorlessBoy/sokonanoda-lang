@@ -497,3 +497,20 @@
 - **守护位置**：`scripts/gen-site-data.py::get_round`（失败即 `SystemExit`）、
   `docs/design/site.md` §2 机制第 3 条、本条目。
 
+## CI 自己推的提交没有 check-run ⇒ 仓库首页挂黄点，看起来像「CI 没成功」（2026-09-18，第九十八轮）
+
+- **踩的坑**：`e2e-ledger` job 用 `GITHUB_TOKEN` 把台账回提交到 main（这是设计：
+  防递归，不会自激）。但这类提交**不触发任何 workflow**，因此没有任何 check-run，
+  仓库首页/main 的 HEAD 就显示 `Expected — Waiting for status to be reported`
+  （`commits/<sha>/status` 也是 `pending`）——一眼看到的就是「CI 没成功」
+  （0.58.0 的两次台账回提交都这样）。
+- **规矩**：① 凡是「CI 机器人往被展示的分支回提交」的设计，都要先问**新提交的状态
+  从哪来**——补一条 commit status（`gh api .../statuses/<sha>`，需要
+  `statuses: write`），并在描述里写明它由哪次全绿产生；② 排查「CI 红/黄」要分清
+  三件事：**workflow 列表里的 run**、**提交上的 check-run**、**提交上的 status**
+  （前两者走 Actions API，第三者走 statuses API）——0.58.0 这次真正的红只有一条
+  **临时预检分支**上的 run（它抓到了性能哨兵假红并已修复，见
+  `docs/CI-FAILURES.md`），main / release / pages 全程绿。
+- **守护位置**：`.github/workflows/ci.yml` 的 `e2e-ledger`（`statuses: write` +
+  回提交后补状态）、`docs/E2E.md` §7、`skills/sokonanoda-ci` §1 陷阱表、本条目。
+

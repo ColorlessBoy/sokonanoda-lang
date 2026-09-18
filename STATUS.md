@@ -102,7 +102,13 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `warning[redundant-sorry]`（第 328 行，正是用户最初报的那一行）+
    `query project` 在 `course/unit11-project/` 上给出根与两个 `compiled` 模块。
    `e2e-ledger` 把三条 CI 腿的台账（Linux×2 + Darwin×1，各 14/14、`dirty=false`）
-   自动回提交进 `docs/e2e/ledger.jsonl`（共 10 条）；官网进度页已换到第九十八轮。
+   自动回提交进 `docs/e2e/ledger.jsonl`（共 10 条，随后的 docs push 又追加 3 条）；
+   官网进度页已换到第九十八轮。**回提交的副作用已修**：`GITHUB_TOKEN` 推的提交
+   不触发 workflow ⇒ 没有 check-run、main 的 HEAD 挂黄点（`Expected — Waiting for
+   status to be reported`），看起来像「CI 没成功」；现在 `e2e-ledger` 回提交成功后
+   会给新提交补一条 `e2e-ledger` 成功状态（`statuses: write`），并已给已有的两个
+   台账提交补上状态。那条临时预检分支上的**真红**（性能哨兵假红）已按
+   `docs/CI-FAILURES.md` 修掉、该 run 也已删除；main / release / pages 现在全绿。
 7. **文档**：本文件（第九十五轮移入归档 + 0.56.2 线的第九十一轮续一并归档）、
    `docs/STATUS-ARCHIVE.md`、`REQUIREMENTS.md` §9（九十八）、`docs/HANDOVER.md`、
    `docs/TESTING.md`（合并后的测试构成）、`docs/LESSONS.md`、

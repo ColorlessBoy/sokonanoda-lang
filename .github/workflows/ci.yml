@@ -371,6 +371,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # 回提交后要给它补一条 commit status：GITHUB_TOKEN 推的提交**不触发** workflow，
+      # 因而没有任何 check-run，仓库首页/main 的 HEAD 会挂着一个黄点
+      # （"Expected — Waiting for status to be reported"），看起来像"CI 没成功"。
+      # 2026-09-18 实测踩过（两次台账回提交都让 main 的 HEAD 显示 pending）。
+      statuses: write
     # 同一时刻只允许一个"写台账"的 job：两次 main push 挨得近时，串行化比抢 push 简单
     # （cancel-in-progress: false —— 不取消正在跑的那次，排队执行）。
     concurrency:
@@ -403,6 +408,7 @@ jobs:
         shell: bash
         env:
           SUBJECT: ${{ steps.merge.outputs.subject }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git add docs/e2e
@@ -419,6 +425,15 @@ jobs:
           for attempt in 1 2 3; do
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then
               echo "::notice::e2e 台账已回提交（${SUBJECT:-CI}）"
+              # 给刚推的提交补一条状态：它由 GITHUB_TOKEN 推、不会触发 workflow，
+              # 没有 check-run 的提交在仓库首页显示 pending（见上面的 permissions 注释）。
+              # 这条状态是诚实的：本 job 的 `needs: [e2e, e2e-macos]` 全绿才会走到这里。
+              sha=$(git rev-parse HEAD)
+              gh api "repos/${GITHUB_REPOSITORY}/statuses/${sha}" \
+                -f state=success \
+                -f context=e2e-ledger \
+                -f description="台账回提交（e2e 各腿全绿）" >/dev/null
+              echo "::notice::已为 ${sha:0:7} 补 e2e-ledger 成功状态"
               exit 0
             fi
             echo "::warning::push 失败（第 ${attempt} 次），rebase 后重试"
