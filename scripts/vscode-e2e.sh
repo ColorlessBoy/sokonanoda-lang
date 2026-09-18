@@ -62,6 +62,10 @@ command -v node >/dev/null 2>&1 || {
 version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
 sha=$(git rev-parse HEAD)
 short_sha=$(git rev-parse --short HEAD)
+# `dirty` 的语义是"这条结果对应的代码比 commit 新"——必须在**跑之前**取，
+# 否则下面写出的裁剪日志（新文件）会让每次记录都变成 dirty=true（第一版就这么错过）。
+dirty="false"
+if [ -n "$(git status --porcelain)" ]; then dirty="true"; fi
 date=$(date -u +%FT%TZ)
 run_dir=$(mktemp -d)
 trap 'rm -rf "$run_dir"' EXIT
@@ -109,9 +113,6 @@ trimmed="docs/e2e/logs/${date%%T*}-${short_sha}.log"
     sed -n '/^  [0-9]*) sokonanoda extension/,$p' "$raw_log" | head -120
   fi
 } >"$trimmed"
-
-dirty="false"
-if [ -n "$(git status --porcelain)" ]; then dirty="true"; fi
 
 VERSION="$version" SHA="$sha" SHORT_SHA="$short_sha" DATE="$date" \
 DIRTY="$dirty" STATUS="$status" PASSING="$passing" FAILING="$failing" PENDING="$pending" \
