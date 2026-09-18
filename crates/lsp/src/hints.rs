@@ -8,15 +8,21 @@
 
 use super::Doc;
 use serde::{Deserialize, Serialize};
-use tower_lsp::lsp_types::{Position, TextDocumentIdentifier};
+use tower_lsp::lsp_types::{Position, TextDocumentIdentifier, Url};
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct HintsParams {
     #[serde(rename = "textDocument")]
-    #[allow(dead_code)]
     text_document: TextDocumentIdentifier,
     #[serde(default)]
     position: Option<Position>,
+}
+
+impl HintsParams {
+    /// 请求指向的文档（多文档下每个请求必须先聚焦自己的文档）。
+    pub(crate) fn text_document_uri(&self) -> &Url {
+        &self.text_document.uri
+    }
 }
 
 #[derive(Debug, Serialize)]

@@ -234,6 +234,36 @@ impl Docs {
         }
     }
 
+    /// 换某份**已打开**文档的文本并重编译，**不动活跃文档**。
+    ///
+    /// 依赖变更后刷新下游必须用它：早先的写法是 `focus(&other)` 再改，结果活跃
+    /// 文档被留在下游文件上——下一次 hover / goals / codeLens 就会答出**另一份**
+    /// 文档的结果（多文档下的静默错答，I16 P5 实测）。路径与根都从这份文档自己的
+    /// URI 推，不借用活跃文档的。
+    fn set_text_at(
+        &mut self,
+        uri: &Url,
+        text: &str,
+        version: i32,
+        mode: Option<PreludeMode>,
+        overlay: &[(std::path::PathBuf, String)],
+    ) {
+        let path = uri.to_file_path().ok();
+        let root = self.root.clone();
+        let Some(doc) = self.map.get_mut(uri) else {
+            return;
+        };
+        doc.set_text(text, version, mode, path, root, overlay);
+    }
+
+    /// 请求入口：把活跃文档切到请求指向的那份（带 URI 的请求都该先调它）。
+    ///
+    /// 多文档下"活跃文档"只是没有 URI 时的回退；每个请求都必须显式指向自己的
+    /// 文档，否则会答出另一份文档的 hover / goals / 符号表。
+    fn focus_request(&mut self, uri: &Url) {
+        self.focus(uri);
+    }
+
     /// 入口路径与模块根：来自文档 URI 的目录与会话根。
     fn entry_context(&self) -> (Option<std::path::PathBuf>, Option<std::path::PathBuf>) {
         let path = self.active.as_ref().and_then(|uri| uri.to_file_path().ok());
@@ -384,25 +414,19 @@ impl Backend {
                                 .any(|module| same_file(&module.path, changed))
                         })
                 });
-                let other_path = other.to_file_path().ok();
                 if stale {
                     let (other_text, other_version) = match docs.map.get(&other) {
                         Some(doc) => (doc.text().to_string(), doc.version()),
                         None => continue,
                     };
                     let other_mode = prelude_mode_from_source(&other_text);
-                    let root = docs.root.clone();
-                    docs.focus(&other);
-                    if let Some(doc) = docs.active_mut() {
-                        doc.set_text(
-                            &other_text,
-                            other_version,
-                            Some(other_mode),
-                            other_path,
-                            root,
-                            &overlay,
-                        );
-                    }
+                    docs.set_text_at(
+                        &other,
+                        &other_text,
+                        other_version,
+                        Some(other_mode),
+                        &overlay,
+                    );
                 }
                 let Some(doc) = docs.map.get(&other) else {
                     continue;
@@ -452,7 +476,10 @@ impl Backend {
     }
 
     async fn goals(&self, params: GoalsParams) -> Result<GoalsResponse> {
-        let _ = params;
+        {
+            let mut docs = self.doc.lock().expect("doc lock");
+            docs.focus_request(&params.text_document.uri);
+        }
         let decls = self
             .goal_decls(true)
             .map(|(_, decls)| decls)
@@ -474,7 +501,9 @@ impl Backend {
     /// `soko/nextHole`：洞的定位与"下一个/上一个"的判定在真相层，这里只把
     /// 字节区间折成 `Range`、把位置折成字节 offset。
     async fn next_hole(&self, params: NextHoleParams) -> Result<Option<Range>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let forward = params.forward.unwrap_or(true);
         let cursor = position_to_offset(doc.text(), params.position);
         Ok(doc
@@ -486,7 +515,9 @@ impl Backend {
     /// Hint ladder for the declaration at the cursor (docs/design/hints-
     /// suggestions.md). Stateless: the client owns progressive disclosure.
     async fn hints(&self, params: hints::HintsParams) -> Result<hints::HintsResponse> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(params.text_document_uri());
+        let doc = &*docs;
         Ok(hints::hints_for(doc.active_doc(), params))
     }
 
@@ -500,7 +531,9 @@ impl Backend {
     /// （`QueryDoc::state_at`，`docs/protocol.md` §`soko/stateAt`）；这里只把
     /// "问不出来"折成既有的空响应、把字节 offset 映射成 `Range`。
     async fn state_at(&self, params: StateAtParams) -> Result<StateAtResponse> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let version = doc.version();
         let cursor = position_to_offset(doc.text(), params.position);
         match doc.query().state_at(cursor) {
@@ -911,13 +944,14 @@ impl LanguageServer for Backend {
 
     async fn semantic_tokens_full(
         &self,
-        _: SemanticTokensParams,
+        params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
         // 始终对当前存储的文本重新计算：解析失败时 front 的
         // semantic_tokens 自身退化为纯词法分类，绝不复用过期报告。
         let text = {
-            let doc = self.doc.lock().expect("doc lock");
-            doc.text().to_string()
+            let mut docs = self.doc.lock().expect("doc lock");
+            docs.focus_request(&params.text_document.uri);
+            docs.text().to_string()
         };
         let spans = front_semantic_tokens(&text);
         Ok(Some(SemanticTokensResult::Tokens(SemanticTokens {
@@ -927,7 +961,9 @@ impl LanguageServer for Backend {
     }
 
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document_position_params.text_document.uri);
+        let doc = &*docs;
         if doc.report().is_none() {
             return Ok(None);
         }
@@ -1051,7 +1087,9 @@ impl LanguageServer for Backend {
         // 优先级可视化（学习者需求）：光标放在某个符号/运算符上，
         // 逐级放大选中"先结合"的表达式。数据来自 hover 表——每个
         // AST 节点（含箭头/应用）都有行，span 天然嵌套。
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let Some(report) = doc.report() else {
             return Ok(None);
         };
@@ -1132,7 +1170,9 @@ impl LanguageServer for Backend {
         &self,
         params: DocumentHighlightParams,
     ) -> Result<Option<Vec<DocumentHighlight>>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document_position_params.text_document.uri);
+        let doc = &*docs;
         let Some(report) = doc.report() else {
             return Ok(None);
         };
@@ -1153,9 +1193,11 @@ impl LanguageServer for Backend {
 
     async fn document_symbol(
         &self,
-        _: DocumentSymbolParams,
+        params: DocumentSymbolParams,
     ) -> Result<Option<DocumentSymbolResponse>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let Some(report) = doc.report() else {
             return Ok(None);
         };
@@ -1177,8 +1219,10 @@ impl LanguageServer for Backend {
         Ok(Some(DocumentSymbolResponse::Nested(symbols)))
     }
 
-    async fn code_lens(&self, _: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
-        let doc = self.doc.lock().expect("doc lock");
+    async fn code_lens(&self, params: CodeLensParams) -> Result<Option<Vec<CodeLens>>> {
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let Some(report) = doc.report() else {
             return Ok(None);
         };
@@ -1199,7 +1243,9 @@ impl LanguageServer for Backend {
     }
 
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document_position.text_document.uri);
+        let doc = &*docs;
         let mut items: Vec<CompletionItem> = Vec::new();
         // In-scope binders at the cursor (smallest enclosing hover row);
         // outside any hover span the list stays keyword/prelude-only.
@@ -1285,8 +1331,10 @@ impl LanguageServer for Backend {
         Ok(Some(CompletionResponse::Array(items)))
     }
 
-    async fn folding_range(&self, _: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
-        let doc = self.doc.lock().expect("doc lock");
+    async fn folding_range(&self, params: FoldingRangeParams) -> Result<Option<Vec<FoldingRange>>> {
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let Some(report) = doc.report() else {
             return Ok(None);
         };
@@ -1314,7 +1362,9 @@ impl LanguageServer for Backend {
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let Some(report) = doc.report() else {
             return Ok(None);
         };
@@ -1331,7 +1381,9 @@ impl LanguageServer for Backend {
         &self,
         params: TextDocumentPositionParams,
     ) -> Result<Option<PrepareRenameResponse>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         let Some(report) = doc.report() else {
             return Ok(None);
         };
@@ -1415,7 +1467,9 @@ impl LanguageServer for Backend {
     }
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
-        let doc = self.doc.lock().expect("doc lock");
+        let mut docs = self.doc.lock().expect("doc lock");
+        docs.focus_request(&params.text_document.uri);
+        let doc = &*docs;
         if doc.report().is_none() {
             return Ok(None);
         }

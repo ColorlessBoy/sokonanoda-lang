@@ -312,3 +312,86 @@ async fn editing_a_dependency_refreshes_the_open_entry() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// 请求某文档的符号名列表（documentSymbol）。
+async fn symbol_names(service: &mut LspService<Backend>, uri: &Url) -> Vec<String> {
+    let req = RpcRequest::build("textDocument/documentSymbol")
+        .params(serde_json::json!({"textDocument": {"uri": uri}}))
+        .id(20)
+        .finish();
+    let result = testutil::call(service, req).await.expect("symbols answer");
+    let symbols: Vec<serde_json::Value> = serde_json::from_value(result).expect("a symbol list");
+    symbols
+        .into_iter()
+        .filter_map(|symbol| symbol["name"].as_str().map(str::to_string))
+        .collect()
+}
+
+/// 请求某文档的 goal 视图声明名列表（`soko/goals`）。
+async fn goal_names(service: &mut LspService<Backend>, uri: &Url) -> Vec<String> {
+    let req = RpcRequest::build("soko/goals")
+        .params(serde_json::json!({"textDocument": {"uri": uri}}))
+        .id(21)
+        .finish();
+    let result = testutil::call(service, req).await.expect("goals answer");
+    result["decls"]
+        .as_array()
+        .map(|decls| {
+            decls
+                .iter()
+                .filter_map(|decl| decl["name"].as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// 多文档下每个请求都必须答**它自己那份**文档——尤其是刚被"顺带刷新"过的场景。
+///
+/// 回归：`refresh` 早先刷新下游时用 `focus(&other)` 改文本，活跃文档被留在下游
+/// 文件上；此后不带 URI 逻辑的请求（symbols / goals / codeLens / hover）会答出
+/// **另一份**文档的结果。修法是 `Docs::set_text_at`（不动活跃文档）+
+/// `Docs::focus_request`（带 URI 的请求各自聚焦）。
+#[tokio::test]
+async fn each_request_answers_for_its_own_document() {
+    let dir = tmp_dir("focus");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let logic = write(&dir, "Logic.sokonanoda", LOGIC);
+    let canvas = write(&dir, "Canvas.sokonanoda", CANVAS);
+    let _ = testutil::did_open_at_drained(&mut service, &mut socket, &logic, LOGIC).await;
+    let _ = testutil::did_open_at_drained(&mut service, &mut socket, &canvas, CANVAS).await;
+
+    // 改依赖 ⇒ 入口（**不是**请求目标）在后台被重编译。这一步最容易把活跃文档
+    // 挪到入口上；之后对 Logic 的请求必须仍然答 Logic。
+    let renamed = LOGIC.replace("And.left", "And.left_renamed");
+    let _ = testutil::did_change_at_drained(&mut service, &mut socket, &logic, 2, &renamed).await;
+
+    let logic_names = symbol_names(&mut service, &logic).await;
+    assert!(
+        logic_names.iter().any(|name| name == "And.left_renamed"),
+        "the request for Logic must answer Logic's own symbols: {logic_names:?}"
+    );
+    assert!(
+        !logic_names.iter().any(|name| name == "and_swap"),
+        "Logic must not answer with the entry's declarations: {logic_names:?}"
+    );
+    let canvas_names = symbol_names(&mut service, &canvas).await;
+    assert!(
+        canvas_names.iter().any(|name| name == "and_swap"),
+        "the request for the entry must answer the entry: {canvas_names:?}"
+    );
+
+    // 自定义请求（goal 视图）同样按 URI 取文档。
+    let logic_goals = goal_names(&mut service, &logic).await;
+    assert!(
+        logic_goals.iter().any(|name| name == "And"),
+        "goal view for Logic: {logic_goals:?}"
+    );
+    assert!(
+        !logic_goals.iter().any(|name| name == "and_swap"),
+        "goal view for Logic must not list the entry's declarations: {logic_goals:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
