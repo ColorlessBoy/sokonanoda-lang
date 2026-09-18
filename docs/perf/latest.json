@@ -1,9 +1,9 @@
 {
   "schema": "soko.perf-ledger/1",
   "version": "0.58.0",
-  "commit": "9cc43faea0858f8ba4c7b26f18bacf78beaf5d13",
+  "commit": "d36a89b8137c1319f0a1d9fcd0b8db845b08db1d",
   "dirty": false,
-  "date": "2026-09-18T06:59:49Z",
+  "date": "2026-09-18T07:04:25Z",
   "cli_profile": "release",
   "host": {
     "system": "Darwin",
@@ -15,7 +15,7 @@
       "case": "judge_prefix_with_imports",
       "matches": 10,
       "modules": 2,
-      "ms": 82.81,
+      "ms": 72.1,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
@@ -28,42 +28,42 @@
         16
       ],
       "ms": [
-        19.36,
-        34.94,
-        64.98
+        16.56,
+        29.34,
+        57.91
       ],
-      "ratio_4x": 3.36,
+      "ratio_4x": 3.5,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
     {
       "case": "closure_stages",
-      "compile_ms": 38.16,
+      "compile_ms": 38.08,
       "decls_per_module": 20,
       "digest_ms": 0.004,
       "modules": 4,
-      "plan_ms": 0.25,
+      "plan_ms": 0.26,
       "schema": "soko.perf/1",
       "scope": "front-project",
-      "total_ms": 38.41
+      "total_ms": 38.34
     },
     {
       "case": "overlay_overhead",
       "decls_per_module": 20,
-      "disk_ms": 38.52,
+      "disk_ms": 38.49,
       "modules": 4,
-      "overlay_ms": 33.0,
+      "overlay_ms": 38.61,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
     {
-      "best_ms": 32.93,
+      "best_ms": 33.88,
       "case": "keystroke_recompile_closure",
       "decls_per_module": 20,
       "modules": 4,
       "schema": "soko.perf/1",
       "scope": "front-project",
-      "worst_ms": 33.72
+      "worst_ms": 39.08
     },
     {
       "case": "teaching_scale_keystroke",
@@ -74,9 +74,9 @@
         5
       ],
       "ms": [
-        12.13,
-        18.9,
-        28.02
+        14.25,
+        18.87,
+        27.9
       ],
       "schema": "soko.perf/1",
       "scope": "front-project"
@@ -113,15 +113,15 @@
     },
     {
       "case": "cold_warm_check",
-      "cold_ms": 25.11,
+      "cold_ms": 27.39,
       "decls_per_module": 12,
       "modules": 3,
       "schema": "soko.perf/1",
       "scope": "cli-project",
-      "warm_ms": 3.64
+      "warm_ms": 3.22
     },
     {
-      "after_dependency_edit_ms": 22.06,
+      "after_dependency_edit_ms": 22.28,
       "case": "dependency_edit_cache_miss",
       "decls_per_module": 12,
       "modules": 3,
@@ -129,12 +129,12 @@
       "scope": "cli-project"
     },
     {
-      "build_ms": 31.16,
+      "build_ms": 29.27,
       "case": "query_and_build",
       "decls_per_module": 12,
       "modules": 3,
-      "query_cold_ms": 20.42,
-      "query_warm_ms": 3.15,
+      "query_cold_ms": 20.8,
+      "query_warm_ms": 2.76,
       "schema": "soko.perf/1",
       "scope": "cli-project"
     }
