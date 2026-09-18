@@ -57,12 +57,15 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    - 测试：CLI `query_uses_the_same_project_cache_as_check_and_build`、LSP
      `custom_responses_echo_the_requested_document_identity`、扩展宿主
      `an answer that names another document is dropped`。
-9. **批次 3 第一刀（同轮完成）**：闭包级装配件出 `check.rs` —— 新增
+9. **批次 3（同轮推进，逐刀提交）**：闭包级装配件出 `check.rs` —— 新增
    `crates/front/src/compile/units.rs`（108 行：`SourceUnit` / `unit_ranges` /
-   `split_report` / `compile_all_units`，单文件也走同一条路径），`check.rs`
-   1918 → **1865** 行。`run_pass`（≈1174 行单函数）仍是下一步：按
-   `parse → elab → check-then-add → events → report` 抽成 `RunState` 的阶段方法，
-   每刀用事件计数契约 + golden 对拍（计划写在 `docs/HANDOVER.md` §4）。
+   `split_report` / `compile_all_units`，单文件也走同一条路径）。
+   第二刀：`check.rs` 变目录模块，`run_pass` **尾部**（内核阶段 + 报告装配，
+   ≈360 行）整体切进 `check/kernel_phase.rs`（`Walked` 结构体接原局部变量，
+   代码原样搬移、行为逐字节不变）；`check.rs` 1918 → `check/mod.rs`
+   **1521** + `check/kernel_phase.rs` **420**。余下 = `run_pass` 命令走查主循环
+   （≈750 行）抽成 `check/walk.rs` 的阶段方法（`elab → check-then-add → events`
+   每命令一个 arm），每刀用事件计数契约 + golden 对拍（计划见 `docs/HANDOVER.md` §4）。
 10. **下一批**：批次 3 余下（拆 `run_pass`）→ 批次 4（`soko/project` 项目状态可视化）。
 
 ## 本轮进度（2026-09-18，第九十三轮：项目层性能例行化 + 测试扩充 + 编辑器审计修复）

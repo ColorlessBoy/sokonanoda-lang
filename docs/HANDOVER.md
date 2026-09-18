@@ -243,20 +243,25 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   共用 `crates/cli/src/project_cache.rs` 的同一份摘要键，且 `QueryDoc::check()` 不再
   二次编译（复用 `set_text` 存下的 `CompileOutput`）。3×12 项目实测：冷 49→25ms、
   热 37→3.4ms。`--text` 中间态仍不缓存。数字见 `docs/PERF.md`。
-- **（批次 3 进行中，2026-09-18 第一刀）闭包级装配件已出**：`SourceUnit` /
-  `unit_ranges` / `split_report` / `compile_all_units` 从 `check.rs` 移到新的
-  `crates/front/src/compile/units.rs`（108 行；`check.rs` 1918 → 1865）。
-  **下一步**：`run_pass` 仍是 ≈1174 行单函数（现在的 `check.rs` 里从 553 行起），
-  按 `parse → elab → check-then-add → events → report` 逐段抽成 `RunState` 上的
-  阶段方法；每刀用 `protocol.rs`/`course.rs`/`query.rs` 的事件计数契约 + golden 对拍，
-  一次只动位置不动语义。
-- **（0.57.0 新增，结构债，部分清偿）`crates/front/src/compile/check.rs` 1918 行**：I16 把闭包
+- **（批次 3 进行中，2026-09-18 第二刀完成）`run_pass` 尾部已出**：
+  第一刀把 `SourceUnit` / `unit_ranges` / `split_report` / `compile_all_units`
+  移到 `crates/front/src/compile/units.rs`（108 行）；第二刀把 `check.rs` 改成
+  目录模块，`run_pass` **尾部**（`EnvBuilder::finish` 之后的内核阶段 + 签名/cutoff
+  + 报告装配，≈360 行）原样搬进 **`check/kernel_phase.rs`**（`Walked` 结构体接原
+  局部变量，`finish_pass(walked) -> PassResult`）。现状：`check/mod.rs` 1522 行
+  （`run_pass` 主体 553–1305 仍是 ≈750 行单函数）、`check/kernel_phase.rs` 417 行。
+  **下一步**：把命令走查主循环按每命令一个 arm 抽成 `check/walk.rs` 的阶段方法
+  （`elab → check-then-add → events`，`continue` 改 `return`，需要 `&mut` 状态
+  结构体），每刀用 `protocol.rs`/`course.rs`/`query.rs` 的事件计数契约 + golden
+  对拍，一次只动位置不动语义。
+- **（0.57.0 新增，结构债，部分清偿）`crates/front/src/compile/check/` 1940 行**：I16 把闭包
   编译加在这里（`compile_all_units` / `split_report` / `unit_ranges` /
-  `top_level_def_spans_over`，+201 行），但**`run_pass` 仍是 553–1726 行的单个函数**
-  （≈1174 行，main 时已 ≈970 行）。拆分计划：按阶段切 `parse → elab → check-then-add
-  → events → report`，每切一刀用现有 golden/事件计数对拍（`protocol.rs`、
-  `course.rs`、`query.rs` 的计数契约就是现成的验收）；**不要在一轮里同时改语义与
-  位置**。触发点：任何再往 `run_pass` 里加分支的需求。
+  `top_level_def_spans_over`，+201 行），`run_pass` 一度是 553–1726 行的单个函数
+  （≈1174 行，main 时已 ≈970 行）；批次 3 已把尾部（约 360 行）切到
+  `check/kernel_phase.rs`，主体命令走查仍待切 `check/walk.rs`。拆分计划：按阶段切
+  `parse → elab → check-then-add → events → report`，每切一刀用现有 golden/事件计数
+  对拍（`protocol.rs`、`course.rs`、`query.rs` 的计数契约就是现成的验收）；
+  **不要在一轮里同时改语义与位置**。触发点：任何再往 `run_pass` 里加分支的需求。
 - **（0.57.0 已闭环）多文件 LSP 的跨文件失效与跨文件改名**：改依赖 ⇒ 含它的打开
   文档自动重编译重发；`references`/`rename` 都跨文件；未落盘的依赖编辑通过**内存
   覆盖**（`load_closure_with_overlay` / `QueryDoc::set_text_with_overlay`）进入闭包，
