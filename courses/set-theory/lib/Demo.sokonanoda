@@ -1,0 +1,61 @@
+-- Demo.sokonanoda —— 课程库自检入口：import 全部 lib 模块并各留一条冒烟定理。
+-- 门禁（tools/check.py）会判它：任何 lib 模块坏了，这里第一时间变红。
+import lib.Logic
+import lib.Set
+import lib.Exists
+import lib.Prod
+import lib.Rel
+import lib.Fun
+import lib.Image
+import lib.Equiv
+
+-- Logic：联结词
+theorem demo_and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+  And.intro B A (And.right A B h) (And.left A B h)
+
+-- Set：定义展开
+theorem demo_subset_unfold (α : Type) (A B : Set α) :
+    Iff (Set.subset α A B) (forall (x : α), A x -> B x) :=
+  Set.subset_def α A B
+
+theorem demo_mem_powerset (α : Type) (A B : Set α) (h : Set.subset α B A) :
+    Set.mem (Set α) B (Set.powerset α A) :=
+  Iff.mpr (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A)
+    (Set.mem_powerset_iff α A B) h
+
+-- Exists：真归纳（G-03 已修，0.59.0；规范名 Exists.intro + 由 Exists.rec 定义的 Exists.elim）
+theorem demo_exists_intro : Exists Nat (fun (n : Nat) => Eq.{1} Nat n n) :=
+  Exists.intro Nat (fun (n : Nat) => Eq.{1} Nat n n) 0 (Eq.refl.{1} Nat 0)
+
+theorem demo_exists_elim (Q : Prop) (h : Q) : Q :=
+  Exists.elim Nat (fun (n : Nat) => Eq.{1} Nat n n) Q
+    (Exists.intro Nat (fun (n : Nat) => Eq.{1} Nat n n) 0 (Eq.refl.{1} Nat 0))
+    (fun (w : Nat) => fun (_ : Eq.{1} Nat w w) => h)
+
+-- Prod：inductive + 投影（G-02：构造子叫 prod_mk）
+theorem demo_prod_fst (A B : Type) (a : A) (b : B) :
+    Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a :=
+  Prod.fst_mk A B a b
+
+-- Rel：关系词汇
+theorem demo_rel_inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
+    Iff (Rel.inv B A (Rel.inv A B r) a b) (r a b) :=
+  Rel.inv_inv_apply A B r a b
+
+-- Fun：函数词汇
+theorem demo_fun_comp_apply (α β γ : Type) (f : α -> β) (g : β -> γ) (x : α) :
+    Eq.{1} γ (Function.comp α β γ g f x) (g (f x)) :=
+  Function.comp_apply α β γ g f x
+
+-- Image：像与原像
+theorem demo_mem_preimage (α β : Type) (f : α -> β) (B : Set β) (x : α) :
+    Iff (Set.mem α x (Set.preimage α β f B)) (Set.mem β (f x) B) :=
+  Set.mem_preimage α β f B x
+
+-- Equiv：等势（数据版，Prop 值；见 L-06）
+theorem demo_equiv_refl (α : Type) (A : Set α) : Set.Equiv α α A A :=
+  Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
+    (fun (x : α) => fun (hx : A x) => hx)
+    (fun (x : α) => fun (hx : A x) => hx)
+    (fun (x : α) => fun (hx : A x) => Eq.refl.{1} α x)
+    (fun (x : α) => fun (hx : A x) => Eq.refl.{1} α x)

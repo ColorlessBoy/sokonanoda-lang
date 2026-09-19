@@ -4,9 +4,36 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.58.0**（2026-09-18 **已发布**：Release 26 资产 + Marketplace 收录，
-> 发布产物实测过），最近一轮 **第九十八轮**（把 0.56.2 线合并进主线并 push：
-> 本线 I16 项目管理 + 0.56.2 的 `redundant-sorry` 现在同一棵树）。
+> 快照：**v0.59.0**（2026-09-19 **收尾完成、待发布**：两处版本号已 bump、`Cargo.lock`
+> 跟上、文档同轮同步；push main 后 `ci.yml` auto-tag → `release.yml` 出 26 资产 +
+> VSIX ×9；上一个已发布版本是 0.58.0）。最近一轮 **第一百〇六轮：0.59.0 收尾
+> （语言线五刀 + 课程门禁 + 站点页）**。**这一版装了什么（全部用户可见）**：
+> * **签名受检**（G-01 / WO-004）：值位是 `sorry` 时签名也过内核的类型/Prop 判定；
+>   坏签名 = 一条 diagnostic + 声明 `Failed` + **不发** `exercise.open`。判卷只认
+>   `decl.checked`/`diagnostic`——`exercise.open` 计数对签名腐烂**永远是盲的**。
+> * **构造子命名空间**（G-02 / WO-005）：规范名 `Ind.mk`，裸名降为**闭包级解析别名**
+>   （撞名报 `elab-ambiguous-ctor-alias`）；源文件自带 `inductive Nat` 的归约形态变化
+>   已逐条实测重钉（课程零改动）。
+> * **Prop + Type 参数 + 单构造子归纳**（G-03 / WO-006）：派生 recursor 的宇宙参数
+>   **逐字镜像内核**（不再 panic）；课程侧 `courses/set-theory/lib/Exists.sokonanoda`
+>   已从公理三件套升级成**真归纳**（名字与签名逐字不变）。
+> * **L1 prelude**（L-01/L-02）：Full 模式自带逻辑与等式骨架 **30 个名字**
+>   （`PRELUDE_NAMES` 12 → 42），**族粒度让位** ⇒ 入门课"自建骨架"的教学零改动。
+> * **用户自定义记法第一刀**（G-04 / WO-011）：`infix:N`/`infixl:N`/`infixr:N`/`notation`；
+>   数学符号独立 token、elab 内源到源重写（自动补前导类型参数）；**文件内作用域**、
+>   **零事件**、点名形式永久可用。**第二刀未做**：`𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`、跨 `import`
+>   的记法、binder 记法、记法重载。
+> * **`course` 认 `import`**（G-06 / WO-007）与 **`query check` 同口径**（G-10 + G-17 /
+>   WO-003）：解析不了不再假绿（`failed[]` + **exit 1**）——**有意的契约变更**。
+> * **课程门禁**（G1–G5，`courses/set-theory/tools/check.py`）已接进 **`scripts/soko gate`
+>   与 CI**（`test` job 的 step + report artifact）；**缺口台账门禁**（`scripts/gap.py
+>   selftest` + `check`，`repro_expect` 支持"修好 = 判红"）同轮接入，24 条缺口
+>   18 条关账、`check` 全绿；**站点有卷 I 页面**
+>   `site/set-theory.html`（数据由 `scripts/gen-site-data.py` 生成，计数由门禁实测）。
+> 前几轮：第一百〇五轮 = G-04 记法第一刀；第一百〇四轮 = L-01/L-02（L1 prelude）；
+> 第一百〇三轮 = G-03（派生 recursor 的宇宙参数）；第一百〇二轮 = G-02（构造子命名空间）；
+> 第一百〇一轮 = G-01（开练习的签名纳入类型检查）；第一百轮 = G-10 + G-17；
+> 第九十九轮 = G-06（`course` 认 `import`）。
 > 仓库根入口 `AGENTS.md`。
 > **`redundant-sorry` 已并入 0.58.0**（原 0.56.2 线，2026-09-17 已单独发布过
 > `v0.56.2`）：值位"多接了一行 `sorry`"由 kernel 终审（删掉该实参后整条声明必须能
@@ -32,6 +59,8 @@
 sokonanoda setup        # 用户/agent：版本锁定下载 CLI+LSP（零 cargo，幂等）
 sokonanoda doctor       # 0=就绪 3=未就绪
 sokonanoda gate         # 贡献者门禁：fmt + clippy + test + playground 锚点（需要 cargo）
+                        #   + 课程门禁（卷 I，python3）+ 缺口台账门禁（python3）；探不到 python3 ⇒ exit 3
+python3 scripts/gap.py check      # 单跑台账契约：每条缺口的复现必须与 status 一致（含 repro_expect 覆盖）
 cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文件）
 ```
 
@@ -40,10 +69,10 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
 
-## 2. 本会话完成的工作（第五十三～八十四轮，全部已发布）
+## 2. 本会话完成的工作（第五十三～八十四轮的已发布项；第九十九～一百〇六轮 = 0.59.0 这一批）
 
-> 第八十五轮之后（`query` 通道、I16 项目层、批次 1–4）逐轮记录在 **`STATUS.md`**
-> 与下文 §3；本表保留早期轮次不重复。
+> 第八十五～九十八轮（`query` 通道、I16 项目层、0.58.0 批次 1–4）逐轮记录在
+> **`STATUS.md`** 与下文 §3；本表只列这两段。
 
 | 轮 | 版本 | 内容 | 设计 / 证据 |
 |---|---|---|---|
@@ -79,18 +108,27 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
 | 82 | 0.52.0 | 课程大纲重构 P1（内容修补 + 测试加固 + 设计锁定） | `docs/design/course-syllabus.md` |
 | 83 | 0.53.0 | 课程大纲重构 P2（`by` 提前到 #4、归纳拆 Ⅰ/Ⅱ、8 单元 + 门面同步） | `docs/design/course-syllabus.md` §6 |
 | 84 | 0.54.0 | 课程大纲重构 P3（#9 关系与联结词、#10 读证明与综合 → 锁定 10 单元） | `docs/design/course-syllabus.md` §0/§6 |
+| 99 | 0.59.0 | **`course` 认 `import`**（WO-007 / G-06：聚合与本单元 `grade` 同判、共用闭包摘要键） | `docs/gaps/WO-007-course-import.md` |
+| 100 | 0.59.0 | **查询通道不再假绿**（WO-003 / G-10 + G-17；`query check` 退出码 0→1，**有意的契约变更**） | `docs/design/agent-query-channel.md` |
+| 101 | 0.59.0 | **开练习的签名纳入类型检查**（WO-004 / G-01：坏签名 = diagnostic + Failed + 不发 `exercise.open`） | `docs/gaps/WO-004-open-exercise-signature.md` |
+| 102 | 0.59.0 | **构造子进入类型命名空间**（WO-005 / G-02：规范名 `Ind.ctor` + 裸名闭包级别名） | `docs/design/ctor-namespace.md` |
+| 103 | 0.59.0 | **派生 recursor 的宇宙参数镜像内核**（WO-006 / G-03）；课程侧 `lib/Exists` 升级真归纳 | `docs/design/prop-large-elim-mirror.md` |
+| 104 | 0.59.0 | **L1 prelude**（L-01/L-02：逻辑与等式骨架 30 名字 + 族粒度让位；P1/P2/P3） | `docs/design/prelude-l1-proposal.md`（含 as-built） |
+| 105 | 0.59.0 | **用户自定义记法第一刀**（WO-011 / G-04：`infix`/`infixl`/`infixr`/`notation`；文件内作用域 + 自动补前导类型参数；课程零改动） | `docs/design/notation-subset.md` |
+| 106 | 0.59.0 | **0.59.0 收尾**：版本 bump（`Cargo.toml`/`package.json`/`Cargo.lock`）+ 课程清单 `requires 0.59` + **课程门禁接 `gate` 与 CI** + **站点卷 I 页面** + STATUS/HANDOVER/课程 README/teaching-project/REQUIREMENTS 同步 | `docs/design/course-gate-in-ci.md`、`STATUS.md` 第一百〇六轮 |
 
-> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–95 轮原文，
+> 更早轮次见 `STATUS.md`（最近 3 轮）+ `docs/STATUS-ARCHIVE.md`（第 1–103 轮原文，
 > 另收 0.56.2 线的第九十一轮续）。
 
 ## 3. 剩余 TODO（按建议顺序）
 
-> **状态（2026-09-17）**：§3 A/A′/A″/B/C 的**可执行项已全部完成**（0.40.0–0.47.0）；
-> §3 E 的两个 front/parser 缺口**已改挂** ROADMAP **I15 → H6-C**
-> （`docs/design/agent-query-channel.md`）：它们决定查询通道给出的"真相"是否完整，
-> 不再是孤立的 front 待办（本轮只改挂与文档，未实现）。
-> §3 D「远期 L2/L3」与 §4 的已文档化技术债（多数需内核/pp 变更，违反 kernel
-> 冻结）仍在。
+> **状态（2026-09-19，0.59.0 收尾）**：§3 A/A′/A″/B/C 的**可执行项已全部完成**
+> （0.40.0–0.47.0）；§3 E 的两个 front/parser 缺口**已改挂** ROADMAP **I15 → H6-C**
+> 并**已修**（0.56.0）；§3 G 的语言线项（G-01/G-02/G-03/G-04/G-06/G-10/G-17 +
+> L-01/L-02 + 课程门禁 + 站点卷 I 页）**已全部落地并关账**（0.59.0）。
+> **只剩**：§3 B/C 的"v1 不做"边界（`as`/or 模式、多 scrutinee、`if/then/else`、
+> 宇宙多态参数、互/嵌套递归）、§3 D 的远期 L2/L3、§3 G 的 P7 backlog（`watch` 项目模式、
+> `[deps]`、`namespace`），以及 §4 的已文档化技术债（多数需内核/pp 变更，违反 kernel 冻结）。
 
 ### 0. ✅ **0.56.2**（patch，2026-09-17）——`redundant-sorry` 诊断 （已并入 0.58.0，见 §3 G/本轮第九十八轮）
 
@@ -248,6 +286,32 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
 - **课程共享库（0.57.0）**：`course/shared/` 是"教学内容 import 化"的安全形态
   （规范模块 `And`/`Or`/`Nat` + 自检入口 `Demo.sokonanoda`），画布保持自给自足；
   `crates/cli/tests/course_shared.rs` 双向守护 24/12/8 份副本。整包 import 化明确不做。
+- **课程聚合认 `import`（WO-007 / G-06，语言线本轮）**：`sokonanoda course <course.json>`
+  对**有 `import` 的单元**走同一份项目闭包（与 `grade`/`query check`/`build` 共用
+  `ProjectPlan::digest` 摘要键）：计数只取入口模块、`failed` = 闭包内所有模块的
+  `events.errors` 之和（⇒ `failed == 0` ⇔ `grade <该单元>` exit 0）；模块根 = 单元最近的
+  `sokonanoda.toml`（嵌套子项目优先），没有则回退 `course.json` 所在目录；**无 `import`
+  的单元仍逐字节走单文件** ⇒ `course/course.json` 的两处 GOLDEN 不动。回归
+  `crates/cli/tests/course_project.rs`（8 例：夹具转绿 / 与 grade·query 同判 / 负例不假绿 /
+  模块根回退与嵌套优先 / cwd 无关 / 与 `build` 共用缓存）；复现
+  `docs/gaps/repro/G06-course-import.sh` 修后 = exit 1（行为已变，`gap.py close` 的前置）。
+  卷 I 实测：`node scripts/soko course "$PWD/courses/set-theory/course.json" --json`
+  = 12 单元全 compiled、`checked:63 / open:93 / failed:0`。
+- **查询通道的 parse 假绿清零（WO-003 / G-10 + G-17，语言线本轮）**：`front::query`
+  的 `parse_error` 原先**只写不读**——`check` 把"这份文本解析不了"答成全零 +
+  `failed: []`（退出码 0），`goals`/`holes` 答空数组 + `ok:true`，而同一份文本走
+  `grade` 是对的。现在：`check` 把 parse 诊断合成进 `failed[]`（`counts` 保持全 0、
+  `ok:true`、退出码 1）；`goals`/`holes`/`next_hole` 改返回 `Result<_, QueryError>`，
+  解析失败 = `not-parsable` + `ok:false` + 退出码 1（"正常的没有"仍是空数组/`None`）。
+  LSP 侧不改 wire：parse 诊断继续走 `publishDiagnostics`，`soko/goals` 答空
+  （`.unwrap_or_default()`），`soko/nextHole` 答 `null`。测试三层：front 单测 3 条
+  （含"缓存只存 clean"的不变量）+ CLI e2e 4 条（`--text`/`--file` 两条输入通道、
+  G-17、坏依赖项目回归、真课程单元⑤ 正例/反例与 `grade` 对拍）；复现
+  `docs/gaps/repro/G10-query-check-parse-error.sh` 与新增的
+  `docs/gaps/repro/G17-query-goals-holes-parse-error.sh` 修后都 = exit 1。
+  `--json` 事件流与两处课程 GOLDEN **一字未动**（改动全在 `front::query` 的摘要视图
+  与 CLI 信封）。**注意 `query check` 的退出码 0→1 是有意的契约变更**（minor）。
+  as-built 说明同步在 `docs/protocol.md` 与 `docs/design/agent-query-channel.md`。
 - **判据前缀（0.57.0 修的坑）**：项目模式下 `match`/`by` 的前缀必须含依赖声明
   （`walk.rs` 里的 `closure_prefixes` → `CmdCtx::prefix_src`），否则入口看不见导入的
   名字——这条在 `docs/architecture.md` §4.5 有专段，改判据相关代码前先读。项目入口的
@@ -270,6 +334,105 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   `split_report` 与 `session::build_suffix_snapshots` 两个消费者。
 - 三道"静默错误"门仍在（`front/tests/perf.rs`、`cli/tests/watch.rs`、judge/suggest
   静默无建议）：改项目层时别让它们变成假绿。
+- **开练习的签名纳入类型检查（WO-004 / G-01，语言线本轮）**：`def`/`theorem`/`example`
+  值位是 `sorry` 时，签名过去**从来没过类型检查**（`walk.rs` 三处 `elab_expr(…).ok()`
+  吞错），于是 `theorem t : 3 := sorry` 报 `exercise.open` + 0 诊断 + exit 0——与
+  "还没做"无法区分，158 条课程练习的签名腐烂对判卷不可见。现在签名先 elaborate
+  （`Err` 走既有失败通道），再由内核终审「是不是类型」（探针 axiom 过
+  `try_check_declar_at`）与「`theorem` 的是不是 Prop」（`TypeChecker::is_proposition`）；
+  不过 ⇒ 一条 diagnostic（span 取签名自身，G-15）+ 声明 `failed` + **不发**
+  `exercise.open`。**判据纪律**：`exercise.open` 计数对签名腐烂永远是盲的——判卷只认
+  `decl.checked` / `diagnostic`。全仓 105 个 `.sokonanoda` 对拍**新增诊断 0 条**、
+  两处课程 GOLDEN 未动、课程门禁仍 315 checked · 96 open · 0 判负；
+  **内核零改动**（探针走既有公开 API）。复现
+  `docs/gaps/repro/G01-open-exercise-signature.sokonanoda`（修后 = exit 1）+
+  `docs/gaps/repro/G01-course-signature-mutations.sokonanoda`（课程级变异体）。
+  同轮把 14 处**夹具**里本来就不合法的签名（`theorem t : Prop := …`、
+  `theorem bad : Prop -> Prop := sorry` 等）改成合法写法——判据一个字没放宽。
+
+- **构造子进入类型命名空间（WO-005 / G-02，语言线本轮）**：`ctor mk` 的**规范名**是
+  `Ind.mk`（源名已含点则原样 ⇒ prelude 的 `Nat.zero`/`Bool.true` 零改动）；裸名保留为
+  **解析别名**（闭包内唯一时解析，重复报新码 `elab-ambiguous-ctor-alias`，真实声明优先）
+  ——这是**教学子集的扩展、不是 Lean 语义**（Lean 里裸 `mk` 不可解析），日落与 37 个文件的
+  机械改名一起开 WO-005b。派生 recursor 的 minor/iota 规则名、`top_level_def_spans`、
+  `import-name-collision` 都跟着走规范名；`match` 分支与显式 `iota` 仍按**源名**匹配。
+  **归约形态变化（实测）**：源文件自带 `inductive Nat` 时 `#reduce add two two` 从纯
+  `succ` 链变成混合表示 `Nat.succ (Nat.succ (Nat.succ 1))`——19 处文本断言按实测逐条重钉，
+  未做机械替换。**课程零改动**。设计 `docs/design/ctor-namespace.md`。
+- **Prop + Type 参数 + 单构造子的归纳（WO-006 / G-03，语言线本轮）**：`derive_recursor`
+  的 `small_elim = is_prop_block_ty && 多构造子` 是**源码近似**，内核真值还要看
+  `large_elim_test_aux`（单构造子）⇒ `inductive Bar (A : Type) : Prop` + `ctor mk (a : A)`
+  （= `Exists` 的形状）被内核断言拒（`left: 1 / right: 0`）。修法：把"派生 recursor"推迟到
+  构造子类型 elaborate 之后、判据**逐字镜像内核**，"字段类型是不是 Prop 值"交给**真内核**
+  （`judge_infer` 问排序）——不写第二套近似、不做"试探 + 回退"。**用户可见契约**：这种块
+  派生的 recursor 带 **0 个**宇宙参数（`Bar.rec` 不接受宇宙参数），而字段就是结果索引的
+  仍是 1 个。**顺带修掉一个 oracle bug**：`judge_infer` 取的是事件流里**第一条**
+  `TypeChecked`，前缀里只要已有 `#check` 就拿回旧答案（同样影响 `match` 的 motive 层级）；
+  改为按 `event_cmds` 取**最后一条命令**的事件。课程侧出口已收：
+  `courses/set-theory/lib/Exists.sokonanoda` 升级为真归纳（名字/签名逐字不变，units 零改动；
+  "大消去"仍不可用且**是正确的行为**——motive 只能落 `Prop`，台账 L-06）。
+  设计 `docs/design/prop-large-elim-mirror.md`。
+- **用户自定义记法第一刀（WO-011 / G-04，语言线本轮）**：`infix:N`/`infixl:N`/`infixr:N`/
+  零元 `notation` 四条命令；数学符号成为**独立 token**（码点类 `U+2200–22FF` /
+  `U+2A00–2AFF` / `\`，最大咬合），记法在 elab 内**源到源**重写成 `App` 形状并**自己补
+  前导类型参数**（只做裸变量匹配，不引入元变量）。**文件内作用域**（不跨 `import`）、
+  **不是声明**（零事件、不进声明表/goal 视图；`SemanticKind::ALL` 与 `tm_scope` 逐字节不变）、
+  符号文本全标识符字符报 `notation-shape`、未声明符号报 `notation-unknown-symbol`、
+  解不出类型参数报 `elab-notation-argument-unsolved`。**兼容护城河**：点名形式永久可用，
+  两种写法判卷一致（省 `α` 的 `Set.mem a A` 改前改后同样被拒）。**课程零改动**（画布仍点名；
+  `units/notation-cheatsheet.sokonanoda` 是"点名 ↔ 记法"对照页，也进同一套判据）。
+  **第二刀未做**：`𝒫`/`ᶜ`（Unicode 字母不是符号）、`''`/`⁻¹'`/`×ˢ`、跨 `import` 的记法、
+  binder 记法、记法重载。设计 `docs/design/notation-subset.md`；e2e `crates/cli/tests/notation.rs`。
+- **L1 prelude（L-01/L-02，0.59.0 / 第一百〇四轮）**：Full 模式自带 Lean core 的逻辑与
+  等式骨架 **30 个名字**（`PRELUDE_NAMES` 12 → 42），分 B1–B7 七族，`And`/`Or` 是**真归纳块**
+  （点号构造子，可 `match`）。**让位粒度 = 族**、族间按依赖闭包（B5→B2、B6→B3、B7→Eq），
+  触发集合 = 闭包的顶层名字并集（含构造子/递归子）⇒ 入门课单元①④⑤⑧⑨⑩⑪ 的"自建骨架"
+  教学**一个字不改**（`course_shared.rs` 44 份副本一致性测试未改而全绿）。两处 as-built 修正：
+  **先 Eq 后 L1**（B7 的定义体引用 `Eq.subst`/`Eq.refl`）；**`L1_INSTALL_DEPTH` 重入闸**
+  （否则装 `And` 归纳块时内层 `compile_fol_with` 再装 L1 ⇒ stack overflow）。
+  `PRELUDE_NAMES`（材料）与 `PRELUDE_NEVER_YIELDS`（碰撞检查豁免面，只含 Nat/Bool）拆成两个
+  常量；parser 白名单零改动。卷 I 的 `lib/Logic` 26 条**一条没删**（文件头注明 prelude 自带哪些）。
+  设计 `docs/design/prelude-l1-proposal.md`（含 as-built）。
+- **课程门禁接进 gate 与 CI（P-C6，0.59.0 / 第一百〇六轮）**：判据 **G1–G5**
+  （每个目标 `grade` 退出码 0 / 目标存在 / 解答 0 open 且 checked>0 / 解答覆盖画布每个具名
+  练习 / lib+Demo 0 open）——**与规模无关、不锁计数**；唯一真相是
+  `courses/set-theory/tools/check.py`（python3，零 cargo）。`scripts/soko gate` = cargo 门禁
+  绿了再跑课程门禁与缺口台账门禁（`scripts/gap.py selftest` + `check`；探不到 python3 ⇒
+  **exit 3**，绝不静默跳过；课程那一跑把二进制经 `SOKONANODA_BIN` 透传解析结果，
+  **台账那一跑刻意不透传**——G-11/G-16 测的就是启动器的解析链，覆盖会短路夹具）；`ci.yml` 的 `test` job 加 `--selftest` + `--annotations --report --summary`
+  step（用当轮 `target/debug` 二进制、`timeout-minutes: 5`、`course-gate-report` artifact）
+  ——**不新建 job**，课程红自动挡住 `auto-tag` 的发布。当轮实测
+  **36 目标 · 355 checked · 99 open · 0 判负**。设计/as-built `docs/design/course-gate-in-ci.md`；
+  入口 `courses/set-theory/README.md`；判卷三纪律（退出码 / 绝对路径 / span 只作参考）在
+  `courses/set-theory/AGENTS.md`。
+- **缺口台账门禁（0.59.0 / 第一百〇六轮，主线收尾）**：「缺口即测试」从人肉纪律变成门禁——
+  `scripts/soko gate` 第四步 = `python3 scripts/gap.py selftest` + `check`；`ci.yml` 的
+  `test` job 同款 step `Gap ledger is consistent (docs/gaps)`（~3 s、不新建 job）。
+  台账新增 **`repro_expect`**（`clean`/`rejected`/`exit0`/`nonzero`）：期望默认由 `status`
+  推出，但**有些缺口的「修好」恰恰是判红**——G-01 即为 `"rejected"`；取值与复现类型不匹配
+  直接判不一致，`gap.py selftest` 14 条判据钉住判定规则。当轮 **G-09 关账**（包装层已有稳定码
+  `kernel-internal` + 「这不是你的代码问题」提示；唯一已知可达触发路径随 G-03 关闭 ⇒
+  撤下 `repro`、改判 `fixed`）。结果：`gap.py check` **exit 0 全绿**，24 条里 17 条
+  `fixed_in = 0.59.0`（含 WO-010 / G-15），未关账 6 条（L-04 `workaround` + L-03/G-05/G-07/G-08/L-06）。
+  协议 `docs/gaps/README.md`，设计 `docs/design/teaching-project.md` §6。
+- **诊断坐标自描述（WO-010 / G-15，0.59.0）**：`query check` 的 `failed[]`/`warnings[]`
+  **新增** 1 基 `start_line`/`start_col`/`end_line`/`end_col`（**只加不删**：`start`/`end` 仍是
+  字节 offset、坐标空间 = **入口文件**；schema 号、事件种类、双 GOLDEN 都不动）。台账原记的
+  「内核 span 漂到别的声明」是**量具缺陷**（复现脚本把字节 offset 当字符下标），真缺口是坐标
+  不自带单位。守护三层：front 两条（span 的字节切片逐字等于出错命令——原来那条只断言
+  `line >= 1`）、CLI e2e 一条（`failed[]` 行列 ≡ `grade --json` 的 span；依赖只以入口
+  `import-dependency-failed` 出现）、复现重写（修前 exit 0 / 修后 exit 1，双二进制对照）。
+  同轮 `docs/protocol.md`、`docs/TESTING.md`、`courses/set-theory/AGENTS.md`、`dsh/mcp/server.js`。
+- **课程跟随 prelude（P4，0.59.0）**：`courses/set-theory/lib/Logic.sokonanoda` 的 26 条声明
+  **退化成只有注释的空壳**（prelude 已自带同名 30 个；34 处 `import lib.Logic` 一字未改），
+  课程侧 **65 处项位裸名** `inl`/`inr` → `Or.inl`/`Or.inr`。课程门禁 **36 目标 · 329 checked ·
+  99 open · 0 判负**（差额 26 = 删掉的重复脚手架；`open` 不变 ⇒ 没删练习、没加 `sorry`）。
+  设计与 as-built：`docs/design/prelude-l1-proposal.md` §6、`docs/design/course-stdlib.md` §3。
+- **站点卷 I 页面（P5，0.59.0 / 第一百〇六轮）**：`site/set-theory.html`（零构建 HTML）
+  从 `site/data/site.json` 的 `set_theory` 块渲染单元表 + 每单元计数；那份数据由
+  `scripts/gen-site-data.py` 生成——版本读 `Cargo.toml`、轮次读 `STATUS.md`、
+  **计数由课程门禁 `--json` 实测**（`counts_source: "gate"`），三样都不许手写；
+  `python3 scripts/check-site.py` 绿（10 页、链接与版本干净）。
 
 ### D. 远期（L2/L3）
 - 协作/多用户、远程；compiler service 的跨文件转播 / `setContent`（v1 未做）。

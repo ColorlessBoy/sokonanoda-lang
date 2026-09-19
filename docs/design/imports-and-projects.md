@@ -174,9 +174,13 @@
   `[name]: no configuration file with a supported extension:`（源码逐字，`Load/Package.lean:93-119`）。
 - **同一个生态里两条不同的"向上"规则（很有启发）**：**Lake 不向上找包，但 elan 向上找
   `lean-toolchain`**（"walking up through parent directories until a toolchain version is
-  found"）——**工具链是继承的，包根不是**。⇒ 我们把这两件事分开：
-  **根** = 最近祖先的 `sokonanoda.toml`（§4.4）；**版本钉** = manifest 里的 `requires`
-  （v1 只警告），而不是像 `lean-toolchain` 那样独立成向上继承的文件。
+  found"）——**工具链是继承的，包根不是**。⇒ 我们把这两件事分开（WO-001 定稿）：
+  **根** = 最近祖先的 `sokonanoda.toml`（§4.4，会向上找）；**版本钉** = 仓根的
+  `sokonanoda-version.txt`（`SOKONANODA_VERSION` → `sokonanoda-version.txt` →
+  `requires`（完整 `x.y.z`）→ `Cargo.toml`），**只在启动器自己所在的仓库根，不沿
+  父目录找**——是"同目录的自述文件"，不是 elan 式继承。`sokonanoda.toml` 的
+  `requires` 仍是**项目清单契约**（front 侧对二进制版本 warn-only、v1 不改语义），
+  启动器只是在没有更硬的钉时把完整 `x.y.z` 当下载锚点用。
   manifest 版本错误也可以照抄它的语气（`invalid version '{ver}'; you may need to update
   your 'lean-toolchain'`）——**"告诉用户改哪个文件"** 是这些文案的共同点。
 
@@ -188,7 +192,8 @@
 - ⇒ **"孤立文件也有根、以单文件模式服务"** 是 Lean 编辑器的既有行为，
   我们的三层发现（manifest → workspace → 文件目录）与它同形（§4.9）。
   差异：我们**不引入** `lean-toolchain`-式"根但无工具链"的中间状态，
-  而是把版本钉在 `requires`（Q6，v1 只警告）。
+  而是把版本钉在仓根的 `sokonanoda-version.txt`（启动器读它，见上；`requires` 保留
+  为清单契约，Q6，v1 只警告）。
 - **服务端怎么起（对 DSH/VSCode 接线有参考价值）**：有 lakefile 时
   `lake serve --`，否则 `lean --server`（`leanclient.ts:834-840`）；**cwd = 项目根**；
   扩展**不设** `LEAN_PATH`、**不传** `--root`，只把 `~/.elan/bin` 前置进 PATH
@@ -291,7 +296,7 @@ Coq 的 `-Q`+`From`、TS 的配置矩阵）。这直接支持 **Q2 的建议（�
 | 单文件默认 | 除 Isabelle 外都能裸文件跑 | **采纳**（不变式 1：无 `import` 逐字节不变） | 初学者路径最短；我们已经是这样 |
 | 项目标记与发现 | Agda/Rocq-IDE/Cargo 向上找；Dune/Isabelle 强制清单；**Lean 的搜索路径里没有文件自己的目录**（§2.1） | **采纳"向上找 + 硬边界"**（§4.4）：最近 `sokonanoda.toml`，止于 `.git`/workspace 根，`--root` 覆盖，无清单退化到入口文件目录（**对 Lean 的刻意 divergence，Q2 拍板**） | 编辑器里"打开任意文件就能用"；硬边界避免 `$HOME` 流浪 marker（§2.4 的共同坑）；不用 cwd 做语义 → 判卷/agent 的 cwd 不可控 |
 | 模块身份 | 路径推导（OCaml/Python/Coq+映射）vs 声明+校验（Haskell/Idris/Isabelle） | **采纳路径推导**（= Lean 同款） | 一个文件一个规范名，零漂移；声明式要两处同步（Idris 的代价） |
-| 清单形态 | Lake 三件套（`lakefile` + `lean-toolchain` + `lake-manifest.json`） | **一个文件 + 可选元数据**（`sokonanoda.toml`；`requires` 对应 `lean-toolchain` 的**意图**，v1 只警告） | 无外部依赖 ⇒ 不需要 manifest/lock 那套；教学只要"标记 + 少量元数据" |
+| 清单形态 | Lake 三件套（`lakefile` + `lean-toolchain` + `lake-manifest.json`） | **一个文件 + 可选元数据**（`sokonanoda.toml`；`requires` 对应 `lean-toolchain` 的**意图**，v1 只警告），工具链**钉**另放仓根 `sokonanoda-version.txt`（启动器读；WO-001） | 无外部依赖 ⇒ 不需要 manifest/lock 那套；教学只要"标记 + 少量元数据" |
 | 产物位置 | 源旁边（Coq/OCaml/GHC）／中央构建目录（Lake/Cargo/dune）／用户缓存（clangd/本仓库） | **保持用户缓存目录**，不引入 `.soko/build/` | 零仓库污染、只读源码树可用、`git status` 干净；代价是不跨机器共享（我们不需要） |
 | 缓存键 | GHC/Coq/Lake 都是"内容 + **每个依赖的接口哈希** + 选项/版本" | **采纳**（§4.8 的 iface 链） | 这是"缓存判定结果"安全的三条件之一（§2.4），也是唯一能防"改了依赖却命中"的形状 |
 | 哈希强度 | Lake 的 UInt64 被官方标 TODO；Coq/GHC/OCaml 用强摘要 | 报告缓存沿用 FNV-1a 64；**信任台账必须先换强哈希** | 与现状同一信任线；碰撞在"跳过内核重查"下等于判定漏洞 |
@@ -342,7 +347,7 @@ Coq 的 `-Q`+`From`、TS 的配置矩阵）。这直接支持 **Q2 的建议（�
 | 缓存 | key 只含自身文本 | 依赖变了必须 miss；依赖没变必须 hit；键怎么算（§4.8） |
 | LSP | 单文档 | 项目根从哪来？改动一个库文件后**谁**重编？跨文件跳转/引用/重命名 |
 | `query`/MCP | `--file` 单文件 | 查询环境要包含闭包（否则 `state` 看不到 import 来的名字） |
-| `watch`/`build`/`course` | 每文件独立 | `build` 要按 DAG 顺序；`course` 的 golden 不能动 |
+| `watch`/`build`/`course` | 每文件独立 | `build` 要按 DAG 顺序；`course` 的 golden 不能动（**as-built，WO-007**：`course` 认 `import`——有 `import` 的单元走同一份闭包，无 `import` 的单元仍走单文件 ⇒ `course/course.json` 的 golden 依旧不动） |
 | 教学面 | 单画布 | 第 11 单元 + 新错误码 hint + `docs/protocol.md` 契约 |
 
 ---
@@ -430,13 +435,29 @@ theorem my_lemma : ... := ...
 ```toml
 # sokonanoda.toml —— 存在即"这个目录是项目根"
 name = "my-proofs"        # 可选
-requires = "0.57"         # 可选：工具链钉版本（类似 lean-toolchain），不匹配给 warning/error
+requires = "0.57"         # 可选：工具链约束（类似 lean-toolchain 的意图），不匹配给 warning/error
+                          # 真正的"钉"是仓根 sokonanoda-version.txt（完整 x.y.z，启动器按它下载）
 src = "."                 # 可选：模块根，默认 = 本文件所在目录
 ```
 
 - **发现规则**：从**入口文件所在目录**向上找最近的 `sokonanoda.toml`；找到就用它，
   找不到就走**零配置退路**：模块根 = 入口文件所在目录（所以"两个文件互相 import"
   不需要任何清单，符合本项目"单文件是默认、项目是 opt-in"的产品性格）。
+  - **入口路径先绝对化（2026-09-18 补，G-12；`plan_project_with_overlay` 的第一步）**：
+    `cwd` 只在"把入口变绝对"这一步用**一次**，此后不参与任何判定；`entry_dir` 与
+    `--root` 覆盖值（`root_override`）都由绝对化后的结果派生——**两者必须同轮绝对化**，
+    否则 `module_name_of_path` 的 `path.strip_prefix(root)` 失配、模块名退化成裸
+    `file_stem`、闭包摘要（缓存键）跟着漂。绝对化用**词法**手段（`current_dir()` 拼接，
+    不碰文件系统）：stdin + `--root` 会合成一个磁盘上不存在的入口路径，
+    `canonicalize` 必然失败并回落成相对路径，反而制造"绝对 entry + 相对 root"的混搭；
+    `canonicalize` 是**视图层**的职责（`crates/front/src/query/project.rs` 的
+    `absolute()`，`docs/protocol.md` 的 "Paths are absolute" 由它实现）。
+  - 为什么必须有这条：相对入口目录向上走到空分量 `""` 时
+    `Path::new("").join("sokonanoda.toml")` = `sokonanoda.toml`，等于"去问 CWD 要清单"；
+    清单路径没有目录分量 ⇒ 模块根退化成**空路径** ⇒ `fs::read_dir("")` ENOENT ⇒
+    每个 `import` 都 `import-not-found`。更糟的是它让"入口写相对还是绝对"改变解析
+    结果——正是本节要消灭的 cwd 隐状态。护栏两条：`find_manifest` 不把空目录分量
+    当上溯的一站；`module_root` 把空 `parent()` 当 `.`。
   > **这是对真实 Lean 的刻意 divergence**（§2.1 实测事实：`lean` 的搜索路径里
   > **没有**文件自己的目录，cwd 只影响模块名的计算，`lean foo.lean` + 旁边的
   > `Bar.lean` + `import Bar` 在官方 Lean 下会直接失败）。理由：教学默认路径要
@@ -466,7 +487,7 @@ src = "."                 # 可选：模块根，默认 = 本文件所在目录
 | 情形 | 走哪条路 | 会不会读 `sokonanoda.toml` |
 |---|---|---|
 | 文件里**没有任何 `import`** | 单文件流水线（今天的路径，逐字节不变） | **从不读**（同目录/祖先目录里的清单再坏也无关；`--root` / `--no-project` 是空操作） |
-| 文件里有 `import` | 项目闭包 | 从**入口目录**向上找最近清单（止于 `.git`/HOME）；找不到就零配置（模块根 = 入口目录） |
+| 文件里有 `import` | 项目闭包 | 从**入口目录**向上找最近清单（止于 `.git`/HOME）；找不到就零配置（模块根 = 入口目录）。入口目录 = 入口路径**词法绝对化**后的目录，`cwd` 只参与绝对化那一步 |
 | 被 import 的依赖模块 | 闭包的一部分 | **它自己的清单永远不参与**（模块根只由入口决定；`import Sub.Lib` 直接解析 `Sub/Lib.sokonanoda`） |
 | stdin（`-`） | 无 `import` 时与文件等价 | 不适用；**带 `import` 时明确报错**并提示 `--root`（没有路径就没有模块根） |
 
@@ -606,7 +627,7 @@ iface(module) = H( CACHE_FORMAT,
 | `watch --workspace` | **语义不动**（每文件独立、跨文件无全序）；项目感知的 watch 由 LSP 承担（v1 不扩 CLI watch，避免协议震动） |
 | LSP | ① 项目根发现（manifest 向上 / workspace 根 / 单文件三层；`initialize` 现在**丢弃参数**（`crates/lsp/src/lib.rs:563`），必须捕获 `rootUri`/`workspaceFolders`）；② `Doc` 从**单槽 `Mutex<Doc>`**（`:58-60,152-155`，19 处 `self.doc.lock()`）改为按 URI 的多文档表，`did_close`（`:637` 空实现）负责清理，publish 按 URI；③ 变更一个库文件 → **反向后继**重编（防抖 + 只 publish 已打开文档），并挂 `didChangeWatchedFiles`（客户端已 watch `**/*.sokonanoda`，`editor/vscode/extension.js:1383`，服务端无 handler）；④ 跨文件 `goToDefinition`/`findReferences`/`rename`——结论里的目标要带文件身份（`compile/report.rs:131-133` 今天明写 "same file"），四个处理器不能再把请求 URI 贴到单槽结论上（`:838,1034,1055-1060,1069`）；⑤ `code_action` 路径把文档切片喂 `judge_infer`（`lsp/src/lib.rs:480-495`、`actions.rs:39-41`）⇒ judge 的导入上下文必须一起接；⑥ `soko/goals`/`stateAt`/`hints` 在闭包环境里求值，并真正解析 `textDocument.uri`（`protocol.rs:14` 等今天是死字段）；⑦ 新增只读请求 `soko/project`（根、manifest、模块表、依赖边、每模块状态）供扩展画/导航（可选，P5）；⑧ LSP 是**多线程 tokio**（`:1093`）而内核 `catch_unwind` 会换全局 panic hook ⇒ 子 agent 报告的"抢 hook"风险必须在这层防（编译串行化在 per-document 锁内，不要并行跑多份内核检查） |
 | MCP | 六个工具**签名不变**，语义变为"在该文件的闭包环境下回答"；`dsh/README.md` 补一句 |
-| `course` | **不动**（golden 表是硬门禁） |
+| `course` | **as-built（WO-007）**：有 `import` 的单元走项目闭包（与 `grade`/`query check`/`build` 同一份闭包、同一个模块根与 `ProjectPlan::digest` 摘要键），计数只取入口模块、`failed` 与 `grade` 退出码同判；**无 `import` 的单元仍逐字节走单文件**（golden 表因此依旧不动）。模块根 = 入口最近的 `sokonanoda.toml`，否则 `course.json` 所在目录 |
 
 ### 4.10 D9 —— 教学面：第 11 单元 + 白名单三件套
 

@@ -349,12 +349,26 @@ fn judge_infer_uncached(
             message: e.message.clone(),
         });
     }
+    // 取**最后一条命令**的 `TypeChecked`：合成的前缀里可能本来就有 `#check`
+    // （课程/playground 里很常见），它们的事件排在前面；而我们要的是刚追加的
+    // 那条查询。按命令号过滤，不做文本比对。
+    let last_cmd = file.commands.len().checked_sub(1);
     let ty = report
         .events
         .iter()
-        .find_map(|e| match e {
+        .zip(report.event_cmds.iter())
+        .filter(|(_, cmd)| Some(**cmd) == last_cmd)
+        .find_map(|(e, _)| match e {
             CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
             _ => None,
+        })
+        .or_else(|| {
+            // 兜底：`event_cmds` 理论上总是与 `events` 平行；若命令号对不上
+            // （例如解析把查询并进了别的命令），退回「最后一条 TypeChecked」。
+            report.events.iter().rev().find_map(|e| match e {
+                CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
+                _ => None,
+            })
         })
         .ok_or_else(|| Judgement::Error {
             code: "judge-infer-none".to_string(),

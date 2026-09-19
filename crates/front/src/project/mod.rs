@@ -19,7 +19,8 @@ use std::path::{Path, PathBuf};
 
 use crate::compile::{
     compile_all_units, explicit_prelude_mode, unit_ranges, CompileOptions, CompileOutput,
-    DeclStatus, DocumentReport, ErrorKind, PreludeMode, SourceUnit, WarningKind, PRELUDE_NAMES,
+    DeclStatus, DocumentReport, ErrorKind, PreludeMode, SourceUnit, WarningKind,
+    PRELUDE_NEVER_YIELDS,
 };
 
 pub use graph::{load_closure, Closure, LoadedModule};
@@ -153,6 +154,26 @@ pub fn plan_project(
     plan_project_with_overlay(entry_path, entry_src, root_override, &[])
 }
 
+/// **词法**绝对化：`cwd` 只在这里用一次，此后不参与任何判定（G-12；设计 §4.4）。
+///
+/// * 相对路径 ⇒ `current_dir().join(path)`：尾部原样保留，**不**解析 `..`、不碰
+///   符号链接——`canonicalize` 是**视图层**的职责（`query/project.rs` 的
+///   `absolute()`），而且 stdin + `--root` 会合成一个磁盘上不存在的入口路径，
+///   `canonicalize` 必然失败并回落成相对路径，反而制造"绝对 entry + 相对 root"；
+/// * 空路径 ⇒ `cwd`（`--root ''`、裸文件名的空 `parent()` 都不是合法模块根，
+///   语义上等于 cwd）⇒ 返回值**永不**为空；
+/// * 已经绝对 ⇒ 原样。
+fn absolute_lexical(path: &Path) -> PathBuf {
+    let cwd = || std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    if path.as_os_str().is_empty() {
+        return cwd();
+    }
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    cwd().join(path)
+}
+
 /// 解析项目根、加载闭包（不编译）——`overlay` 提供打开文档的内存文本。
 pub fn plan_project_with_overlay(
     entry_path: &Path,
@@ -160,6 +181,10 @@ pub fn plan_project_with_overlay(
     root_override: Option<&Path>,
     overlay: &[(PathBuf, String)],
 ) -> ProjectPlan {
+    // G-12：入口路径与 `root_override` **一起**词法绝对化——只绝对化一个，
+    // `module_name_of_path` 的 `strip_prefix(root)` 就失配，模块名退化成裸
+    // `file_stem`（`units.u` → `u`），`ProjectPlan::digest`（缓存键）跟着漂。
+    let entry_path = absolute_lexical(entry_path);
     let entry_dir = entry_path
         .parent()
         .map(Path::to_path_buf)
@@ -173,7 +198,7 @@ pub fn plan_project_with_overlay(
 
     // 1) 项目根：显式覆盖 > 最近祖先清单 > 入口文件目录（零配置退路）。
     let (root, manifest_path, requires_warning) = match root_override {
-        Some(root) => (root.to_path_buf(), None, None),
+        Some(root) => (absolute_lexical(root), None, None),
         None => match find_manifest(&entry_dir) {
             Some(path) => match manifest::load(&path) {
                 Ok(manifest) => {
@@ -196,10 +221,10 @@ pub fn plan_project_with_overlay(
     };
 
     // 2) 闭包加载（解析 + 环 + 找不到 + 阻断传播）。
-    let closure = graph::load_closure_with_overlay(&root, entry_path, entry_src, overlay);
+    let closure = graph::load_closure_with_overlay(&root, &entry_path, entry_src, overlay);
 
     ProjectPlan {
-        entry: entry_path.to_path_buf(),
+        entry: entry_path,
         root,
         manifest: manifest_path,
         requires_warning,
@@ -329,8 +354,11 @@ fn check_name_collisions(closure: &mut Closure, diagnostics: &mut Vec<ProjectDia
         let name = module.name.clone();
         let path = module.path.clone();
         for (declared, span) in crate::compile::top_level_def_spans(&module.file) {
-            // prelude 的名字由 prelude 自己占（另有专门的冲突检查）。
-            if PRELUDE_NAMES.contains(&declared.as_str()) {
+            // `Nat`/`Bool` 家族由 prelude 自己占，**永不**让位（另有专门的
+            // 冲突检查 `check_prelude_conflicts`）。L1 名字**不在**这里：
+            // 它们按族合法让位（`PRELUDE_NEVER_YIELDS` 的文档，设计 §2.3-2），
+            // 所以两个模块各自声明 `True` 仍要报友好的 `import-name-collision`。
+            if PRELUDE_NEVER_YIELDS.contains(&declared.as_str()) {
                 continue;
             }
             match seen.get(&declared) {

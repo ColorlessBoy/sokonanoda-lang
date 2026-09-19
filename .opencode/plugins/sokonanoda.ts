@@ -8,7 +8,11 @@
 //
 // Cross-platform (macOS/Linux/Windows): uses fetch + `tar` (present on
 // Windows 10+, macOS, Linux), never bash. Failures never block the session.
-// Offline opt-out: SOKONANODA_OFFLINE=1. Design: docs/design/onboarding.md.
+// Offline opt-out: SOKONANODA_OFFLINE=1. The repo root is marked by
+// `Cargo.toml` (language repo) or by the version pin / project manifest of a
+// course repo; the version chain is
+// `SOKONANODA_VERSION` → `sokonanoda-version.txt` → `requires` → `Cargo.toml`
+// and mirrors `scripts/soko` exactly (WO-001). Design: docs/design/onboarding.md.
 import { spawnSync } from "node:child_process"
 import {
   chmodSync,
@@ -36,13 +40,17 @@ function binaryName(base: string): string {
   return process.platform === "win32" ? `${base}.exe` : base
 }
 
-/// opencode may be opened in a repo subdirectory; walk up to the root.
+/// opencode may be opened in a repo subdirectory; walk up to the root. The
+/// language repository is marked by `Cargo.toml`; a course repository (a
+/// separate checkout that only consumes released binaries) is marked by its
+/// version pin or project manifest — see `readVersion` below.
 function findRepoRoot(start: string): string | undefined {
   let dir = start
   for (;;) {
     if (
-      existsSync(path.join(dir, "Cargo.toml")) &&
-      existsSync(path.join(dir, ".opencode", "plugins", "sokonanoda.ts"))
+      existsSync(path.join(dir, "Cargo.toml")) ||
+      existsSync(path.join(dir, "sokonanoda-version.txt")) ||
+      existsSync(path.join(dir, "sokonanoda.toml"))
     )
       return dir
     const parent = path.dirname(dir)
@@ -51,6 +59,55 @@ function findRepoRoot(start: string): string | undefined {
   }
 }
 
+/// Version pin/"constraint" of the repository — the same chain `scripts/soko`
+/// implements (WO-001), so the two entry points never disagree:
+/// `$SOKONANODA_VERSION` → `<repo>/sokonanoda-version.txt` →
+/// `<repo>/sokonanoda.toml`'s `requires` → `<repo>/Cargo.toml`.
+/// `version` is only set for a *complete* x.y.z (the value a release tag can be
+/// built from); `constraint` may be a major.minor requirement.
+function readVersionSource(repo: string): { version?: string; constraint?: string } {
+  const full = (text: string | undefined): string | undefined => {
+    const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(text ?? "").trim())
+    return match ? `${match[1]}.${match[2]}.${match[3]}` : undefined
+  }
+  const read = (name: string): string | undefined => {
+    try {
+      return readFileSync(path.join(repo, name), "utf8")
+    } catch {
+      return undefined
+    }
+  }
+  const env = full(process.env.SOKONANODA_VERSION)
+  if (env) return { version: env }
+  const pinned = (read("sokonanoda-version.txt") ?? "").split(/\r?\n/).map((l) => l.trim()).find((l) => l && !l.startsWith("#"))
+  const fromTxt = full(pinned)
+  if (fromTxt) return { version: fromTxt }
+  const requires = /^\s*requires\s*=\s*["']([^"']+)["']/m.exec(read("sokonanoda.toml") ?? "")?.[1]?.trim()
+  const fromManifest = full(requires)
+  if (fromManifest) return { version: fromManifest }
+  const cargo = /^version = "([^"]+)"/m.exec(read("Cargo.toml") ?? "")?.[1]
+  const fromCargo = full(cargo)
+  if (fromCargo) return { version: fromCargo }
+  const majorMinor = /^v?(\d+)\.(\d+)$/.exec(String(requires ?? "").trim())
+  return { constraint: majorMinor ? `${majorMinor[1]}.${majorMinor[2]}` : undefined }
+}
+
+function readVersion(repo: string): string | undefined {
+  return readVersionSource(repo).version
+}
+
+/// A cached marker matches only against the pinned version: a constraint
+/// (`0.58`) accepts any patch of that release line, an anchor (`0.58.0`)
+/// requires exactly the marker the download wrote.
+function versionSatisfied(version: string | undefined, marker: string): boolean {
+  if (!version) return false
+  const found = /^(\d+)\.(\d+)(?:\.(\d+))?/.exec(marker.trim())
+  if (!found) return false
+  const pinned = /^(\d+)\.(\d+)(?:\.(\d+))?$/.exec(version)
+  if (!pinned) return false
+  if (found[1] !== pinned[1] || found[2] !== pinned[2]) return false
+  return pinned[3] === undefined || found[3] === pinned[3]
+}
 /// VS Code / vsce target for this host.
 function platformTarget(): string | undefined {
   const { platform, arch } = process
@@ -79,14 +136,6 @@ function rustTriple(): string | undefined {
   }
 }
 
-function readVersion(repo: string): string | undefined {
-  try {
-    return readFileSync(path.join(repo, "Cargo.toml"), "utf8").match(/^version = "([^"]+)"/m)?.[1]
-  } catch {
-    return undefined
-  }
-}
-
 function markerPath(dir: string, base: string): string {
   return path.join(dir, `${base}.version`)
 }
@@ -94,11 +143,13 @@ function markerPath(dir: string, base: string): string {
 /// True when the cached binary's version marker matches `<version> <target>`
 /// (the same marker the CLI's `setup`/`update` writes). A missing/stale marker
 /// means the cached binary must be refreshed from the version-pinned release.
-function markerMatches(dir: string, base: string, version: string): boolean {
+function markerMatches(dir: string, base: string, version: string | undefined): boolean {
   const target = platformTarget()
   if (!target) return false
   try {
-    return readFileSync(markerPath(dir, base), "utf8").trim() === `${version} ${target}`
+    const marker = readFileSync(markerPath(dir, base), "utf8").trim()
+    const [found, markerTarget] = marker.split(/\s+/)
+    return markerTarget === target && versionSatisfied(version, found ?? "")
   } catch {
     return false
   }
@@ -251,17 +302,17 @@ async function resolveServer(repo: string | undefined): Promise<string | undefin
   }
   const cached = path.join(cacheDir(), binaryName("sokonanoda-lsp"))
   const version = repo ? readVersion(repo) : undefined
-  // Use the cache when we cannot determine the expected version, or when its
-  // marker matches. A stale cache is refreshed from the pinned release.
-  if (
-    existsSync(cached) &&
-    (!version || markerMatches(cacheDir(), "sokonanoda-lsp", version))
-  )
-    return cached
-  if (!version) return existsSync(cached) ? cached : undefined
+  // The cache is usable only when its marker matches the pinned version. With
+  // no pin there is nothing to compare against, so the cache must not be used
+  // (G-16: a silently exec'd old binary is worse than no language server — the
+  // repository build above and the extension bundle are the version-checked
+  // paths, and SOKONANODA_LSP_BIN stays the explicit escape hatch).
+  if (existsSync(cached) && markerMatches(cacheDir(), "sokonanoda-lsp", version)) return cached
+  if (!version) return undefined
   const downloaded = await downloadBinary(version, "sokonanoda-lsp", "sokonanoda-lsp")
-  // Offline / download failure: fall back to the (possibly stale) cache.
-  return downloaded ?? (existsSync(cached) ? cached : undefined)
+  // Offline / download failure: the matching cache entry (if any) was already
+  // returned above, so there is nothing safe left to fall back to.
+  return downloaded
 }
 
 export const Sokonanoda: Plugin = async ({ directory }) => {

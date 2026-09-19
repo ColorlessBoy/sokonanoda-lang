@@ -33,8 +33,143 @@ pub(crate) struct MatchField<'a> {
 /// One constructor of a source-declared inductive, in declaration order.
 #[derive(Debug, Clone)]
 pub(crate) struct MatchCtor<'a> {
+    /// The name as written in the source (`prod_mk`) — `match` arms match on
+    /// this spelling (R3, source-level).
     pub name: String,
+    /// The installed kernel name (`Prod.prod_mk`, R1) — recursor rules and
+    /// hover/goto use it.
+    pub canonical: String,
     pub fields: Vec<MatchField<'a>>,
+}
+
+/// What a name in the `known` table resolves to.
+///
+/// `Decl` is a real declaration (or a prelude name): its canonical spelling is
+/// the key itself. `Alias` is the **subset extension** (R2): a bare constructor
+/// name that is unique in the closure resolves to its canonical name — it must
+/// never become a second kernel constant. `Ambiguous` is a bare name two
+/// constructors claim (G-02's `mk`): it does not resolve at all.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum KnownName {
+    Decl { universes: Vec<String> },
+    Alias { canonical: String },
+    Ambiguous { candidates: Vec<String> },
+}
+
+impl KnownName {
+    /// The universes a real declaration was installed with (aliases carry the
+    /// canonical declaration's own arity, so they elab the same way).
+    pub(crate) fn universes(&self) -> &[String] {
+        match self {
+            KnownName::Decl { universes } => universes,
+            KnownName::Alias { .. } | KnownName::Ambiguous { .. } => &[],
+        }
+    }
+}
+
+/// The name table threaded through elaboration: source spelling → resolution.
+/// Closure-level and flat (module scoping is G-05), matching the flat
+/// `check_name_collisions` contract.
+pub(crate) type KnownTable = HashMap<String, KnownName>;
+
+/// R1: the canonical (installed) constructor name. A ctor whose source name
+/// already carries a dot is kept verbatim — that protects the prelude
+/// (`Nat.zero`/`Bool.true`) and any explicit dotted spelling.
+pub(crate) fn canonical_ctor_name(ind: &str, ctor: &str) -> String {
+    if ctor.contains('.') {
+        ctor.to_string()
+    } else {
+        format!("{ind}.{ctor}")
+    }
+}
+
+/// R2: register one bare-name alias. The first constructor to claim a bare
+/// name owns it; a second one turns it `Ambiguous` (never silently wins). Real
+/// declarations are never overwritten by an alias.
+pub(crate) fn insert_ctor_alias(known: &mut KnownTable, source_name: &str, canonical: &str) {
+    if source_name.contains('.') {
+        return; // already the canonical spelling: nothing to alias
+    }
+    match known.get(source_name) {
+        Some(KnownName::Decl { .. }) => {} // a real declaration wins (R2)
+        Some(KnownName::Alias { canonical: first }) if first != canonical => {
+            let mut candidates = vec![first.clone()];
+            candidates.push(canonical.to_string());
+            known.insert(source_name.to_string(), KnownName::Ambiguous { candidates });
+        }
+        Some(KnownName::Ambiguous { .. }) | Some(KnownName::Alias { .. }) => {}
+        None => {
+            known.insert(
+                source_name.to_string(),
+                KnownName::Alias {
+                    canonical: canonical.to_string(),
+                },
+            );
+        }
+    }
+}
+
+/// Resolve one `Expr::Ident` spelling to its canonical kernel name.
+///
+/// * a real declaration resolves to itself;
+/// * a **unique** bare constructor alias resolves to its canonical name (R2);
+/// * an ambiguous bare alias is an error naming both candidates;
+/// * an unknown name is the ordinary `elab-unknown-identifier`.
+pub(crate) fn resolve_known(
+    known: &KnownTable,
+    name: &str,
+    span: Span,
+) -> Result<String, CompileError> {
+    match known.get(name) {
+        Some(KnownName::Decl { .. }) => Ok(name.to_string()),
+        Some(KnownName::Alias { canonical }) => Ok(canonical.clone()),
+        Some(KnownName::Ambiguous { candidates }) => Err(CompileError::elab(
+            ErrorKind::ElabAmbiguousCtorAlias,
+            format!(
+                "构造子名 `{name}` 有歧义：{} 都声明了它；请写全前缀名",
+                candidates
+                    .iter()
+                    .map(|c| format!("`{c}`"))
+                    .collect::<Vec<_>>()
+                    .join(" 与 ")
+            ),
+            span,
+        )),
+        None => Err(CompileError::elab(
+            ErrorKind::ElabUnknownIdentifier,
+            format!("unknown identifier `{name}`"),
+            span,
+        )),
+    }
+}
+
+/// Same as [`resolve_known`], with the constant-flavoured unknown code
+/// (`#check Nat.add.{1}` / `Foo.{u}` style uses).
+pub(crate) fn resolve_known_constant(
+    known: &KnownTable,
+    name: &str,
+    span: Span,
+) -> Result<String, CompileError> {
+    match known.get(name) {
+        Some(KnownName::Ambiguous { candidates }) => Err(CompileError::elab(
+            ErrorKind::ElabAmbiguousCtorAlias,
+            format!(
+                "构造子名 `{name}` 有歧义：{} 都声明了它；请写全前缀名",
+                candidates
+                    .iter()
+                    .map(|c| format!("`{c}`"))
+                    .collect::<Vec<_>>()
+                    .join(" 与 ")
+            ),
+            span,
+        )),
+        Some(_) => resolve_known(known, name, span),
+        None => Err(CompileError::elab(
+            ErrorKind::ElabUnknownConstant,
+            format!("unknown constant `{name}`"),
+            span,
+        )),
+    }
 }
 
 /// Source-declared inductive metadata that `match` lowering reads (kernel frozen).
@@ -222,7 +357,7 @@ pub(crate) fn record_binder_hover<'a>(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn install_inductive_block<'a>(
     builder: &mut EnvBuilder<'a>,
-    known: &mut HashMap<String, Vec<String>>,
+    known: &mut KnownTable,
     table: &mut InductiveTable<'a>,
     prefix_src: &str,
     options: &CompileOptions,
@@ -256,19 +391,6 @@ pub(crate) fn install_inductive_block<'a>(
     // K 目标标志由块形状唯一决定，**显式 rec 与派生 rec 必须给同一个值**：
     // 内核断言 `rd.is_k == st.k_target`（`kernel/src/inductive.rs:662`）。
     let is_k = is_k_target(ty, constructors);
-    // 显式 rec 优先：源里有 rec 时零行为变化；无 rec 时自动派生等价的
-    // RecDecl + iota 规则（py-nat 手写版同构），再走同一条 elab 路径。
-    let owned_rec;
-    let owned_rules;
-    let (recursor, iota_rules): (&RecDecl, &[crate::IotaRule]) = match recursor {
-        Some(rec) => (rec, iota_rules),
-        None => {
-            let (rec, rules) = derive_recursor(name, params, ty, constructors);
-            owned_rec = rec;
-            owned_rules = rules;
-            (&owned_rec, &owned_rules)
-        }
-    };
     let empty: UnivMap = UnivMap::new();
     // 归纳声明自身内部出现 `match` 的情形按「本块尚未登记」处理（递归类型本就
     // 不在 v1 支持内）。这里借用既有登记表，插入在本函数末尾进行。
@@ -279,6 +401,8 @@ pub(crate) fn install_inductive_block<'a>(
     };
     // 归纳类型 = `forall params, ty`：params 是内核 Pi 望远镜最外层（顺序与
     // 声明的 binder 风格一致），ty 在它们的作用域内 elaborate。
+    // `ind_ty_src` 供 `derive_recursor` 判「块是不是 Prop / 有没有索引」——
+    // 那是**源级**问题，必须用参数未剥离的源类型。
     let ind_ty_src = if params.is_empty() {
         ty.clone()
     } else {
@@ -288,7 +412,7 @@ pub(crate) fn install_inductive_block<'a>(
             span: ty.span(),
         }
     };
-    let ty = elab_expr(
+    let kernel_ind_ty = elab_expr(
         builder,
         &ind_ty_src,
         &mut ElabScope::new(),
@@ -300,9 +424,15 @@ pub(crate) fn install_inductive_block<'a>(
         &elab_ctx,
     )?;
     let ind_name = builder.name_from_str(name);
-    let ctor_names: Vec<NamePtr<'a>> = constructors
+    // R1：安装名（规范名）= 内核里的构造子名。源名 `c.name` 仍用于源级匹配
+    // （`iota` 规则、`match` 分支），别名（R2）只在解析层。
+    let ctor_canonical: Vec<String> = constructors
         .iter()
-        .map(|c| builder.name_from_str(&c.name))
+        .map(|c| canonical_ctor_name(name, &c.name))
+        .collect();
+    let ctor_names: Vec<NamePtr<'a>> = ctor_canonical
+        .iter()
+        .map(|canonical| builder.name_from_str(canonical))
         .collect();
     // 内核按「构造子 binder 类型里是否提到归纳名」自算 is_recursive 并断言
     // 一致（inductive.rs::end_block）——这里从源码 AST 做同规则镜像，非递归
@@ -320,7 +450,7 @@ pub(crate) fn install_inductive_block<'a>(
             DeclarInfo {
                 name: ind_name,
                 uparams: no_uparams,
-                ty,
+                ty: kernel_ind_ty,
             },
             is_recursive,
             num_params,
@@ -330,9 +460,17 @@ pub(crate) fn install_inductive_block<'a>(
         )
         .map_err(|e| CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, Span::default()))?;
     built.push(ind_declar);
-    known.insert(name.to_string(), Vec::new());
+    known.insert(
+        name.to_string(),
+        KnownName::Decl {
+            universes: Vec::new(),
+        },
+    );
 
     let mut match_ctors: Vec<MatchCtor<'a>> = Vec::with_capacity(constructors.len());
+    // 每个构造子已 elaborate 的**内核** Pi 望远镜（`params ++ fields`）——派生
+    // recursor 的 large-elimination 判据要读它（见 `kernel_large_elim_test`）。
+    let mut kernel_ctor_tys: Vec<ExprPtr<'a>> = Vec::with_capacity(constructors.len());
     for (idx, ctor) in constructors.iter().enumerate() {
         // ctor 类型 = `forall (params ++ fields), result`：参数先于字段，且必须
         // 与归纳声明的参数逐位同形（内核 check_ctor 会 def_eq 断言）。
@@ -372,8 +510,10 @@ pub(crate) fn install_inductive_block<'a>(
             .collect();
         match_ctors.push(MatchCtor {
             name: ctor.name.clone(),
+            canonical: ctor_canonical[idx].clone(),
             fields,
         });
+        kernel_ctor_tys.push(ctor_ty);
         let ctor_name = ctor_names[idx];
         let no_uparams = builder.alloc_levels_slice(&[]);
         // 内核把构造子类型整体当 Pi 望远镜数字段（result 箭头链的 domain
@@ -401,8 +541,47 @@ pub(crate) fn install_inductive_block<'a>(
             .add_declar(ctor_declar.clone())
             .map_err(|e| CompileError::elab(ErrorKind::ElabDuplicateDeclaration, e, ctor.span))?;
         built.push(ctor_declar);
-        known.insert(ctor.name.clone(), Vec::new());
+        // R1：规范名进解析表；R2：裸名作为**别名键**（唯一才可解析）。
+        known.insert(
+            ctor_canonical[idx].clone(),
+            KnownName::Decl {
+                universes: Vec::new(),
+            },
+        );
+        insert_ctor_alias(known, &ctor.name, &ctor_canonical[idx]);
     }
+
+    // 显式 rec 优先：源里有 rec 时零行为变化；无 rec 时自动派生等价的
+    // RecDecl + iota 规则（py-nat 手写版同构），再走同一条 elab 路径。
+    //
+    // 派生**推迟到这里**（ctor 类型 elaborate 之后，策略 A）：recursor 要不要
+    // 额外宇宙参数，由内核 `large_elim_test` 的镜像判据决定，而它要读每个构造子
+    // 已 elaborate 的**内核**字段类型与结果实参（G-03 / WO-006，设计
+    // docs/design/prop-large-elim-mirror.md §3）。
+    let owned_rec;
+    let owned_rules;
+    let (recursor, iota_rules): (&RecDecl, &[crate::IotaRule]) = match recursor {
+        Some(rec) => (rec, iota_rules),
+        None => {
+            // `ty` 是**源级结果排序**（`Prop` / `A -> Prop`），参数不在其中：
+            // `derive_recursor` 的索引望远镜与 `is_prop_block_ty` 都以此为口径。
+            let block_is_prop = is_prop_block_ty(ty);
+            let wants_u = large_elim_test_mirror(
+                &elab_ctx,
+                builder,
+                params,
+                name,
+                constructors,
+                &kernel_ctor_tys,
+                block_is_prop,
+            );
+            let (rec, rules) =
+                derive_recursor(name, params, ty, constructors, &ctor_canonical, wants_u);
+            owned_rec = rec;
+            owned_rules = rules;
+            (&owned_rec, &owned_rules)
+        }
+    };
 
     let rec_name_text = recursor.name.clone();
     let rec_universe_arity = recursor.universe.len();
@@ -422,13 +601,22 @@ pub(crate) fn install_inductive_block<'a>(
         )?;
         let rec_name = builder.name_from_str(&rec.name);
         let known_rec_universes = rec.universe.clone();
-        known.insert(rec.name.clone(), known_rec_universes.clone());
+        known.insert(
+            rec.name.clone(),
+            KnownName::Decl {
+                universes: known_rec_universes.clone(),
+            },
+        );
 
         let mut rules = Vec::with_capacity(iota_rules.len());
         for rule in iota_rules {
+            // R3：显式 `iota` 规则按**源名**匹配（`iota zero :=` 里的 `zero`）；
+            // 派生规则带的是规范名，两种拼写都命中。迁移轮把 `ctor zero` 改写成
+            // `ctor Nat.zero` 时，同文件的 `iota` 也必须跟着写点名前缀。
             let ctor_idx = constructors
                 .iter()
-                .position(|c| c.name == rule.ctor_name)
+                .enumerate()
+                .position(|(i, c)| c.name == rule.ctor_name || ctor_canonical[i] == rule.ctor_name)
                 .ok_or_else(|| {
                     CompileError::elab(
                         ErrorKind::ElabUnknownCtorForIota,
@@ -510,7 +698,7 @@ pub(crate) fn build_def<'a>(
     universe: &[String],
     ty: &Expr,
     val: &Expr,
-    known: &HashMap<String, Vec<String>>,
+    known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
@@ -550,7 +738,7 @@ pub(crate) fn build_theorem<'a>(
     universe: &[String],
     ty: &Expr,
     val: &Expr,
-    known: &HashMap<String, Vec<String>>,
+    known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
@@ -587,7 +775,7 @@ pub(crate) fn build_example<'a>(
     name: &str,
     ty: &Expr,
     val: &Expr,
-    known: &HashMap<String, Vec<String>>,
+    known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
@@ -625,7 +813,7 @@ pub(crate) fn build_axiom<'a>(
     name: &str,
     universe: &[String],
     ty: &Expr,
-    known: &HashMap<String, Vec<String>>,
+    known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<Declar<'a>, CompileError> {
@@ -689,6 +877,310 @@ pub(crate) fn kernel_binder_style(kind: &BinderKind) -> BinderStyle {
         BinderKind::Explicit => BinderStyle::Default,
         BinderKind::Implicit => BinderStyle::Implicit,
     }
+}
+
+/// 记法展开（G-04 / WO-011，设计 N4）：把记号节点降级成 `App` 形状。
+///
+/// 目标 telescope 比操作数多出来的**前导参数**（`Set.mem (α : Type) …` 的
+/// `α`）按固定顺序补全：
+///
+/// 1. 由**操作数**解出：第 2 个参数的类型就是裸变量 `α` ⇒ `α := typeof(a)`；
+/// 2. 无操作数时由**期望类型**解出：`Set.empty : (α) → Set α` 对上期望
+///    `Set α₀` ⇒ `α := α₀`。
+///
+/// 解不出 ⇒ `elab-notation-argument-unsolved`（hint 教点名写法）。
+/// 目标名不存在 ⇒ `elab-notation-unknown-target`。
+///
+/// **补全只发生在这条路径上**：点名写法（`Set.mem a A`，省 `α`）继续被内核
+/// 拒绝（设计 N4.3 的护城河）。
+#[allow(clippy::too_many_arguments)]
+fn elab_notation<'a>(
+    builder: &mut EnvBuilder<'a>,
+    symbol: &str,
+    target: &str,
+    operands: &[&Expr],
+    span: Span,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<ExprPtr<'a>, CompileError> {
+    let canonical = resolve_known(known, target, span).map_err(|_| {
+        CompileError::elab(
+            ErrorKind::ElabNotationUnknownTarget,
+            format!("记法 `{symbol}` 指向的目标 `{target}` 不存在：检查记法命令里的名字（要写点名，例如 Set.mem）"),
+            span,
+        )
+    })?;
+    // 目标自身的签名（`forall (α : Type 0), α -> Set α -> Prop`）由内核 pp
+    // 渲染：与 `judge_infer` 读 `apply` 的函数类型同一条路（不做文本比对）。
+    let binders = scope.judge_binders();
+    let target_text = render_expr(&Expr::Ident {
+        name: canonical.clone(),
+        span,
+    });
+    let signature =
+        judge_infer(ctx.prefix_src, ctx.options, &binders, &target_text).map_err(|j| {
+            CompileError::elab(
+                ErrorKind::ElabNotationUnknownTarget,
+                format!(
+                    "读不到记法 `{symbol}` 的目标 `{target}` 的类型：{}",
+                    judgement_message(&j)
+                ),
+                span,
+            )
+        })?;
+    let Some(prefix_args) = notation_prefix_args(&signature, operands, expected_src, ctx, scope)?
+    else {
+        return Err(CompileError::elab(
+            ErrorKind::ElabNotationArgumentUnsolved,
+            format!(
+                "记法 `{symbol}` 展开成 `{target}` 时补不出前面的类型参数：请写出点名形式（例如 {target} α …）"
+            ),
+            span,
+        ));
+    };
+    // 操作数的**期望类型**：`∅ ⊆ A` 里的 `∅` 自己也是零元记法，只有拿到
+    // 「这里是 `Set α`」才知道补什么（设计 N4.2 ② 在嵌套位置上的同一规则）。
+    // 期望类型文本由内核 pp 给出（`judge_infer` 读目标签名），再按前导参数
+    // 的实例代换。
+    let operand_expected = notation_operand_expected(&signature, &prefix_args, operands.len());
+    // 源到源拼出完整应用，再交给**既有** elaborate 路径——类型错、`@`、
+    // 宇宙参数等语义一字不改地复用。
+    let const_name = builder.name_from_str(&canonical);
+    let levels = builder.alloc_levels_slice(&[]);
+    let mut app = builder.mk_const(const_name, levels);
+    for arg in &prefix_args {
+        let arg = elab_expr(builder, arg, scope, univ, known, hovers, None, None, ctx)?;
+        app = builder.mk_app(app, arg);
+    }
+    for (i, operand) in operands.iter().enumerate() {
+        let expected_src = operand_expected.get(i).and_then(|t| t.as_ref());
+        let operand = elab_expr(
+            builder,
+            operand,
+            scope,
+            univ,
+            known,
+            hovers,
+            None,
+            expected_src,
+            ctx,
+        )?;
+        app = builder.mk_app(app, operand);
+    }
+    Ok(app)
+}
+
+fn judgement_message(j: &crate::judge::Judgement) -> String {
+    match j {
+        crate::judge::Judgement::Error { message, .. } => message.clone(),
+        crate::judge::Judgement::Mismatch { expected, actual } => {
+            format!("期望 `{expected}`，实际是 `{actual}`")
+        }
+        crate::judge::Judgement::Match => "类型推断没有给出类型".to_string(),
+    }
+}
+
+/// 补出目标 telescope 的**前导参数**（设计 N4.2 的裸变量匹配）。
+///
+/// 返回 `None` ⇒ 补不出（调用方报 `elab-notation-argument-unsolved`）。
+/// 返回 `Some(vec![])` ⇒ 不需要补（目标参数个数正好等于操作数个数）。
+///
+/// 两条求解路径，都是同一个**头部匹配 + 从实参位提取裸变量**：
+///
+/// ① **由操作数解出**：找第一个 `j > i` 且域里提到参数名 `n` 的 binder，
+///    把它的域与「第 j 个 binder 对应的那个操作数的类型」头部匹配
+///    （`Set.mem` 的第 2 个参数域是裸变量 `α` ⇒ `α := typeof(a)`；
+///    `Set.subset` 的第 2 个参数域是 `Set α`、`typeof(A) = Set α₀`
+///    ⇒ `α := α₀`）。
+/// ② **由期望类型解出**（零操作数时唯一的路）：把已解出的参数代进 telescope
+///    剩余部分，与期望类型头部匹配（`Set.empty : (α) → Set α` 对上
+///    `Set α₀` ⇒ `α := α₀`）。
+fn notation_prefix_args(
+    signature: &str,
+    operands: &[&Expr],
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'_, '_>,
+    scope: &ElabScope<'_>,
+) -> Result<Option<Vec<Expr>>, CompileError> {
+    let Ok(sig) = crate::proof::parse_expr_text(signature) else {
+        return Ok(None);
+    };
+    let mut layers: Vec<(String, Expr)> = Vec::new();
+    let mut result = sig;
+    while let Some(pi) = crate::spine::peel_pi(&result) {
+        layers.push((pi.name, pi.domain));
+        result = pi.body;
+    }
+    // 操作数对齐到**最后** `operands.len()` 个参数；多出来的前导参数要补。
+    let Some(missing) = layers.len().checked_sub(operands.len()) else {
+        // 操作数比参数还多：交给既有应用路径报错（elab/kernel 的既有诊断）。
+        return Ok(Some(Vec::new()));
+    };
+    if missing == 0 {
+        return Ok(Some(Vec::new()));
+    }
+    // 只在参数是**显式**形态时补：隐式 binder（`{α : Type}`）在 v1 的展开里
+    // 不插实参（语言不插入隐式实参，设计 §1 第 3 条）。
+    let mut solved: Vec<Expr> = Vec::with_capacity(missing);
+    for i in 0..missing {
+        let name = layers[i].0.clone();
+        if name.is_empty() {
+            return Ok(None);
+        }
+        // ① 由操作数解出：第一个提到 `name` 的**后续** binder 的域。
+        let mut arg: Option<Expr> = None;
+        for (j, layer) in layers.iter().enumerate().skip(i + 1) {
+            let Some(operand) = operands.get(j - missing) else {
+                continue;
+            };
+            if !mentions_ident(&layer.1, &name) {
+                continue;
+            }
+            let Some(actual) = infer_type_text(ctx, scope, operand)
+                .and_then(|text| crate::proof::parse_expr_text(&text).ok())
+            else {
+                continue;
+            };
+            if let Some(found) = unify_extract(&layer.1, &actual, &name) {
+                arg = Some(found);
+                break;
+            }
+        }
+        // ② 由期望类型解出：把已解出的参数代入 telescope 剩余部分。
+        if arg.is_none() {
+            if let Some(expected) = expected_src {
+                let rest = substitute_prefix_params(&layers, &solved, i, &result);
+                arg = unify_extract(&rest, expected, &name);
+            }
+        }
+        let Some(arg) = arg else {
+            return Ok(None);
+        };
+        solved.push(arg);
+    }
+    Ok(Some(solved))
+}
+
+/// 目标 telescope 里**操作数位**的期望类型（源级 AST），按已解出的前导参数
+/// 代换：`Set.mem : (α) → (a : α) → (A : Set α) → Prop`、`α := Nat`
+/// ⇒ `[Nat, Set Nat]`。解析不出时该位为 `None`（操作数照旧无期望类型地
+/// elaborate，与今天的行为一致——绝不比既有路径差）。
+fn notation_operand_expected(
+    signature: &str,
+    prefix_args: &[Expr],
+    operand_count: usize,
+) -> Vec<Option<Expr>> {
+    let mut out: Vec<Option<Expr>> = vec![None; operand_count];
+    let Ok(sig) = crate::proof::parse_expr_text(signature) else {
+        return out;
+    };
+    let mut layers: Vec<(String, Expr)> = Vec::new();
+    let mut result = sig;
+    while let Some(pi) = crate::spine::peel_pi(&result) {
+        layers.push((pi.name, pi.domain));
+        result = pi.body;
+    }
+    let Some(missing) = layers.len().checked_sub(operand_count) else {
+        return out;
+    };
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (k, arg) in prefix_args.iter().enumerate() {
+        if let Some((name, _)) = layers.get(k) {
+            sigma.insert(name.clone(), arg.clone());
+        }
+    }
+    for (i, slot) in out.iter_mut().enumerate() {
+        let Some((_, domain)) = layers.get(missing + i) else {
+            continue;
+        };
+        *slot = Some(super::goals::substitute_names(
+            domain,
+            &sigma,
+            &HashMap::new(),
+        ));
+    }
+    out
+}
+
+/// 把 `solved` 里已经解出的前导参数代入 telescope 的第 `i+1` 个 binder 起
+/// 的剩余部分（**不含**正在求解的第 `i` 层：那一层正是要被消掉的），得到「结果类型」模板：`(α : Type) → Set α` 代入 `α := α₀`
+/// ⇒ `Set α₀`。
+fn substitute_prefix_params(
+    layers: &[(String, Expr)],
+    solved: &[Expr],
+    i: usize,
+    result: &Expr,
+) -> Expr {
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (k, arg) in solved.iter().enumerate() {
+        sigma.insert(layers[k].0.clone(), arg.clone());
+    }
+    let mut rest = result.clone();
+    for (name, domain) in layers[(i + 1).min(layers.len())..].iter().rev() {
+        rest = Expr::Forall {
+            binders: vec![Binder {
+                name: name.clone(),
+                ty: Some(Box::new(super::goals::substitute_names(
+                    domain,
+                    &sigma,
+                    &HashMap::new(),
+                ))),
+                style: BinderKind::Explicit,
+                span: Span::default(),
+            }],
+            body: Box::new(rest),
+            span: Span::default(),
+        };
+    }
+    super::goals::substitute_names(&rest, &sigma, &HashMap::new())
+}
+
+/// 问内核要 `operand` 在**当前 binder 上下文**里的类型文本（与 `apply`
+/// 读被应用函数类型同一条路：`judge_infer`，不做文本比对）。
+fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr) -> Option<String> {
+    let binders = scope.judge_binders();
+    judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
+}
+
+/// 头部匹配 + 提取裸变量：`template` 是 `name` 本身 ⇒ 取 `actual`；两者是
+/// 同头、同实参个数的应用链且某个实参位恰好是裸变量 `name` ⇒ 取 `actual`
+/// 对应位的实参。其余形状返回 `None`（v1 不做一般合一，设计 N4.2）。
+fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
+    if let Expr::Ident { name: n, .. } = template {
+        if n == name {
+            return Some(actual.clone());
+        }
+    }
+    let (head, template_args) = crate::spine::spine_of(template);
+    let (actual_head, actual_args) = crate::spine::spine_of(actual);
+    let Expr::Ident {
+        name: head_name, ..
+    } = head
+    else {
+        return None;
+    };
+    let Expr::Ident {
+        name: actual_head_name,
+        ..
+    } = actual_head
+    else {
+        return None;
+    };
+    if head_name != actual_head_name || template_args.len() != actual_args.len() {
+        return None;
+    }
+    for (template_arg, actual_arg) in template_args.iter().zip(actual_args.iter()) {
+        if let Expr::Ident { name: n, .. } = template_arg {
+            if n == name {
+                return Some((*actual_arg).clone());
+            }
+        }
+    }
+    None
 }
 
 /// Peel one Pi layer off the expected type: returns the binder style, the
@@ -778,7 +1270,7 @@ pub(crate) fn elab_expr<'a>(
     expr: &Expr,
     scope: &mut ElabScope<'a>,
     univ: &UnivMap<'a>,
-    known: &HashMap<String, Vec<String>>,
+    known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     expected: Option<ExprPtr<'a>>,
     expected_src: Option<&Expr>,
@@ -864,23 +1356,20 @@ pub(crate) fn elab_expr<'a>(
                     )
                 }
                 None => {
-                    let params = known.get(name).ok_or_else(|| {
-                        CompileError::elab(
-                            ErrorKind::ElabUnknownIdentifier,
-                            format!("unknown identifier `{name}`"),
-                            *span,
-                        )
-                    })?;
+                    // R1/R2：裸名别名解析到**规范名**——只往 `known` 里加一个
+                    // 裸名键会造出第二个内核常量（`mk` ≠ `P1.mk`）。
+                    let canonical = resolve_known(known, name, *span)?;
                     // The defining command's span is backfilled in `run_pass`
                     // (placeholder survives until then; prelude names resolve
                     // to no source definition and drop the record there).
                     let target = ResolvedTarget::Declaration {
-                        name: name.clone(),
+                        name: canonical.clone(),
                         span: Span::default(),
                     };
+                    let params = known[&canonical].universes();
                     let levels: Vec<LevelPtr<'a>> = params.iter().map(|_| builder.zero()).collect();
                     let levels = builder.alloc_levels_slice(&levels);
-                    let name = builder.name_from_str(name);
+                    let name = builder.name_from_str(&canonical);
                     (builder.mk_const(name, levels), Some(target))
                 }
             };
@@ -888,13 +1377,8 @@ pub(crate) fn elab_expr<'a>(
             Ok(out)
         }
         Expr::UniverseApp { name, levels, span } => {
-            let params = known.get(name).ok_or_else(|| {
-                CompileError::elab(
-                    ErrorKind::ElabUnknownConstant,
-                    format!("unknown constant `{name}`"),
-                    *span,
-                )
-            })?;
+            let canonical = resolve_known_constant(known, name, *span)?;
+            let params = known[&canonical].universes();
             if params.len() != levels.len() {
                 return Err(CompileError::elab(
                     ErrorKind::ElabUniverseArity,
@@ -911,7 +1395,7 @@ pub(crate) fn elab_expr<'a>(
                 resolved.push(level_ptr(builder, level, univ, *span)?);
             }
             let levels = builder.alloc_levels_slice(&resolved);
-            let name = builder.name_from_str(name);
+            let name = builder.name_from_str(&canonical);
             let out = builder.mk_const(name, levels);
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
@@ -1102,6 +1586,38 @@ pub(crate) fn elab_expr<'a>(
             let rhs = elab_expr(builder, rhs, scope, univ, known, hovers, None, None, ctx)?;
             let applied = builder.mk_app(add_const, lhs);
             let out = builder.mk_app(applied, rhs);
+            record_hover(hovers, scope, *span, out, None);
+            Ok(out)
+        }
+        // 记号节点（G-04 / WO-011，设计 N4）：源到源降级成 `App` 形状。
+        // 目标 telescope 比操作数多出来的**前导参数**由操作数类型 / 期望类型
+        // 解出（裸变量匹配）；补全只发生在这条路径上——点名写法省参数**仍然
+        // 被内核拒绝**（设计 N4.3 的护城河）。
+        Expr::Notation {
+            symbol,
+            target,
+            lhs,
+            rhs,
+            span,
+            ..
+        } => {
+            let operands: Vec<&Expr> = [lhs.as_deref(), rhs.as_deref()]
+                .into_iter()
+                .flatten()
+                .collect();
+            let out = elab_notation(
+                builder,
+                symbol,
+                target,
+                &operands,
+                *span,
+                scope,
+                univ,
+                known,
+                hovers,
+                expected_src,
+                ctx,
+            )?;
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
         }
@@ -1843,17 +2359,29 @@ fn ident_expr(name: &str, span: Span) -> Expr {
     }
 }
 
+/// 错误消息里列出的构造子拼写：源名与规范名都给（R1 之后源名已不是内核名，
+/// 学员按提示写哪一个都能过 —— R3）。
 fn ctor_names_text_from(info: &InductiveInfo) -> String {
     info.ctors
         .iter()
-        .map(|c| format!("`{}`", c.name))
+        .map(|c| {
+            if c.name == c.canonical {
+                format!("`{}`", c.name)
+            } else {
+                format!("`{}`（或 `{}`）", c.canonical, c.name)
+            }
+        })
         .collect::<Vec<_>>()
         .join("、")
 }
 
-/// 构造子下标：全名 `Nat.succ` 命中，或唯一的裸名 `succ`。
+/// 构造子下标：源名（`succ`，R3 的源级写法）、规范名（`Nat.succ`，R1）与
+/// 该归纳内唯一的裸后缀都命中。
 fn ctor_index(info: &InductiveInfo, name: &str) -> Option<usize> {
     if let Some(i) = info.ctors.iter().position(|c| c.name == name) {
+        return Some(i);
+    }
+    if let Some(i) = info.ctors.iter().position(|c| c.canonical == name) {
         return Some(i);
     }
     if name.contains('.') {
@@ -1863,7 +2391,7 @@ fn ctor_index(info: &InductiveInfo, name: &str) -> Option<usize> {
         .ctors
         .iter()
         .enumerate()
-        .filter(|(_, c)| c.name.rsplit('.').next() == Some(name))
+        .filter(|(_, c)| c.canonical.rsplit('.').next() == Some(name))
         .map(|(i, _)| i)
         .collect();
     if hits.len() == 1 {
@@ -1924,7 +2452,7 @@ fn resolve_pattern(pat: &Pattern, col: &ColVar) -> Result<Resolved, CompileError
                         return Err(bad_arm(
                             &format!(
                                 "构造子 `{}` 有 {} 个字段，但这一支写了 {} 个子模式；请写满字段",
-                                info.ctors[ci].name,
+                                info.ctors[ci].canonical,
                                 want,
                                 args.len()
                             ),
@@ -2309,6 +2837,11 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
                 })
         }
         Expr::By { .. } => false, // by 块在 elab 前已被引擎降级为普通表达式
+        // 记号节点（G-04 / WO-011）：符号与目标名不是标识符，只走操作数。
+        Expr::Notation { lhs, rhs, .. } => {
+            lhs.as_deref().is_some_and(|e| mentions_ident(e, name))
+                || rhs.as_deref().is_some_and(|e| mentions_ident(e, name))
+        }
     }
 }
 
@@ -2523,18 +3056,220 @@ fn e_universe_app(name: &str, levels: &[String], span: Span) -> Expr {
     }
 }
 
+/// The front's mirror of the kernel's `large_elim_test`
+/// (`crates/kernel/src/inductive.rs:1201-1223`): does this block's recursor
+/// carry an extra universe parameter?
+///
+/// The kernel *computes* that answer and then asserts the front's derived
+/// recursor agrees (`assert_nonnested_recursors_def_eq` → `subst_expr_levels`
+/// compares `rec_uparams`). A source-level approximation ("is the field type
+/// spelled `Prop`?") therefore becomes a hard rejection wherever the two
+/// disagree — the G-03 bug: `inductive Bar (A : Type) : Prop` +
+/// `ctor mk (a : A) : Bar A` got a `Sort u` motive from the front while the
+/// kernel wanted `Prop`.
+///
+/// Mirror the kernel literally:
+///
+/// * a block whose result sort is not `Prop` (`is_nonzero`) eliminates large;
+/// * an **empty** Prop block (`[] => true`) eliminates large;
+/// * a Prop block with **more than one** constructor does not (`_ => false`);
+/// * a single-constructor Prop block asks [`large_elim_test_aux_mirror`].
+///
+/// Only the last case can disagree with the rule this replaced
+/// (`is_prop_block_ty(ty) && constructors.len() > 1`), so the semantic work is
+/// confined to it.
+fn large_elim_test_mirror<'a>(
+    ctx: &ElabCtx,
+    builder: &mut EnvBuilder<'a>,
+    params: &[Binder],
+    name: &str,
+    constructors: &[CtorDecl],
+    kernel_ctor_tys: &[ExprPtr<'a>],
+    block_is_prop: bool,
+) -> bool {
+    if !block_is_prop {
+        // `is_nonzero`: the block lives in `Type <n>` and eliminates large.
+        return true;
+    }
+    debug_assert_eq!(constructors.len(), kernel_ctor_tys.len());
+    match (kernel_ctor_tys, constructors) {
+        // An empty Prop block eliminates large (`[] => true`).
+        ([], _) => true,
+        // Exactly one constructor: the kernel's `large_elim_test_aux`.
+        ([only], [ctor]) => large_elim_test_aux_mirror(ctx, builder, params, name, ctor, only),
+        // More than one constructor: no large elimination.
+        _ => false,
+    }
+}
+
+/// The front's mirror of the kernel's `large_elim_test_aux`
+/// (`crates/kernel/src/inductive.rs:1164-1199`) for one constructor.
+///
+/// The kernel walks the constructor's Pi telescope, skips the first
+/// `num_params` binders, and records the de Bruijn *level* of every remaining
+/// domain whose sort is not `Prop` (`is_prop_type`). It then asks whether each
+/// of those fields, taken as a variable, occurs among the arguments of the
+/// constructor's result type (`ind params ++ indices`). A non-`Prop` field that
+/// is not one of the inductive's own arguments means the block only eliminates
+/// into `Prop`.
+///
+/// Two kernel facts this mirror must not "improve" on:
+///
+/// * the subset test is **syntactic** (`unfold_apps` + pointer equality), so a
+///   field must *be* the result's own argument: `PA A (ident A a)` does not
+///   count as `a` even though `ident A a` reduces to it;
+/// * "is this domain a `Prop`" is the kernel's `is_prop_type`, i.e. the sort of
+///   the domain is `Sort 0`. Impredicativity is included, so `P -> Q` and
+///   `forall (x : Nat), P` are `Prop`-typed (P10/P11) while `A` is not (P1).
+fn large_elim_test_aux_mirror<'a>(
+    ctx: &ElabCtx,
+    builder: &mut EnvBuilder<'a>,
+    params: &[Binder],
+    name: &str,
+    ctor: &CtorDecl,
+    ctor_ty: &ExprPtr<'a>,
+) -> bool {
+    let (domains, result) = peel_pi_telescope(*ctor_ty);
+    let num_params = params.len();
+    let depth = u16::try_from(domains.len()).expect("constructor telescope exceeds u16");
+    // 源级字段（显式 binder ++ 结果箭头链）与内核的 Pi 望远镜逐位同序。
+    let src_fields = ctor_field_binders(ctor);
+    debug_assert_eq!(domains.len(), num_params + src_fields.len());
+    // 内核的 `is_prop_type` 需要「参数 + 前序字段」这个 binder 语境。
+    let mut scope = ElabScope::new();
+    for (binder, domain) in params.iter().zip(domains.iter()) {
+        scope.push(
+            binder.name.clone(),
+            *domain,
+            binder.ty.as_deref().cloned(),
+            binder.span,
+        );
+    }
+    let mut non_prop: Vec<ExprPtr<'a>> = Vec::new();
+    for (offset, (src, domain)) in src_fields
+        .iter()
+        .zip(domains[num_params..].iter())
+        .enumerate()
+    {
+        let level = u16::try_from(num_params + offset).expect("telescope level exceeds u16");
+        if !field_type_is_prop(ctx, &scope, name, src) {
+            non_prop.push(builder.mk_var(depth - 1 - level));
+        }
+        scope.push(
+            src.name.clone(),
+            *domain,
+            src.ty.as_deref().cloned(),
+            src.span,
+        );
+    }
+    let (_, args) = unfold_apps(result);
+    non_prop.iter().all(|field| args.contains(field))
+}
+
+/// The kernel's `is_prop_type` for one constructor field: does the field's own
+/// type live in `Sort 0`?
+///
+/// * A reference to the block's own inductive is a proposition: the caller only
+///   reaches this for a `Prop` block, and the inductive is not yet in the
+///   `judge_infer` prefix (it is being defined right now), so this case cannot
+///   go to the kernel. A recursive field such as `h : Bar A` is a proof, not
+///   data, and must not be mistaken for one.
+/// * Everything else is semantic — a `Prop` parameter, `P -> Q`, a `forall`
+///   ending in a proposition (impredicativity: `imax(_, 0) == 0`), a **named**
+///   `Prop` definition — and is asked of the kernel. A syntactic "does the
+///   source say `Prop`" test gets P10/P11/P13/P14 wrong and would trade this
+///   assertion for another (`left:0/right:1`).
+fn field_type_is_prop(ctx: &ElabCtx, scope: &ElabScope, ind_name: &str, field: &Binder) -> bool {
+    let Some(src_ty) = field.ty.as_deref() else {
+        // 无类型标注的字段：elaborate 阶段已报 `elab-untyped-binder`，这里按
+        // 非 Prop 保守处理，不吞掉内核本该给出的诊断。
+        return false;
+    };
+    if head_ident(src_ty).as_deref() == Some(ind_name) {
+        return true;
+    }
+    field_sort_via_kernel(ctx, scope, src_ty)
+}
+
+/// Ask the kernel for the sort of `src_ty` and report whether it is `Prop`.
+///
+/// `judge_infer` synthesizes `#check fun <binders> => <src_ty>` and compiles it
+/// with the real kernel, so this is a kernel verdict rather than a text test —
+/// the same oracle `match` uses for its motive level
+/// ([`infer_expected_level`]). It correctly answers `Prop` for a `Prop`
+/// parameter, for `P -> Q`, and for a **named** `Prop` definition
+/// (`def Named : Prop := …`), which a syntactic "does it say `Prop`" check
+/// would get wrong and thereby trade this assertion for another.
+///
+/// A failed query yields `false` (non-`Prop`), keeping the kernel's own
+/// diagnostic for the block instead of masking it.
+fn field_sort_via_kernel(ctx: &ElabCtx, scope: &ElabScope, src_ty: &Expr) -> bool {
+    let term = render_expr(src_ty);
+    let mut binders = scope.judge_binders_for(src_ty);
+    if binders.is_empty() {
+        // 与 `infer_expected_level` 同法：`judge_infer` 要剥掉一层 binder 才能
+        // 把答案读成「term 的类型」。
+        binders.push(GoalBinderSpec {
+            name: "_soko_field_sort".to_string(),
+            ty: Some("Prop".to_string()),
+        });
+    }
+    let Ok(text) = judge_infer(ctx.prefix_src, ctx.options, &binders, &term) else {
+        return false;
+    };
+    sort_text_level(&text) == Some(0)
+}
+
+/// Peel a Pi telescope into `(domains, body)`, in declaration order.
+fn peel_pi_telescope<'a>(mut ty: ExprPtr<'a>) -> (Vec<ExprPtr<'a>>, ExprPtr<'a>) {
+    let mut domains = Vec::new();
+    loop {
+        match &*ty {
+            sokonanoda::expr::Expr::Pi {
+                binder_type, body, ..
+            } => {
+                domains.push(*binder_type);
+                ty = *body;
+            }
+            _ => return (domains, ty),
+        }
+    }
+}
+
+/// `f a₀ … aₙ` → `(f, [a₀, …, aₙ])` over elaborated expressions. The kernel's
+/// subset test uses its own `TcCtx::unfold_apps`; expressions are hash-consed in
+/// the arena, so pointer equality is structural equality here just as there.
+fn unfold_apps<'a>(mut e: ExprPtr<'a>) -> (ExprPtr<'a>, Vec<ExprPtr<'a>>) {
+    let mut args = Vec::new();
+    while let sokonanoda::expr::Expr::App { fun, arg, .. } = *e {
+        args.push(arg);
+        e = fun;
+    }
+    args.reverse();
+    (e, args)
+}
+
 /// Synthesize the recursor declaration and one iota rule per constructor for
 /// a block written without `rec`. Every binder name is picked fresh against
 /// the names the synthesized terms must reference (inductive, constructors,
 /// source fields), so no derived binder can shadow a reference.
+///
+/// `large_elim` is the **kernel's own** large-elimination verdict for this block
+/// ([`large_elim_test_mirror`], a literal mirror of
+/// `kernel/src/inductive.rs::large_elim_test`). The kernel asserts that the
+/// derived recursor carries exactly the universe parameters it computed
+/// (`assert_nonnested_recursors_def_eq` → `subst_expr_levels`), so this flag —
+/// not a source-level approximation — decides the recursor's shape.
 fn derive_recursor(
     name: &str,
     params: &[Binder],
     ty: &Expr,
     constructors: &[CtorDecl],
+    ctor_canonical: &[String],
+    large_elim: bool,
 ) -> (RecDecl, Vec<IotaRule>) {
     let ty_span = ty.span();
-    let small_elim = is_prop_block_ty(ty) && constructors.len() > 1;
+    let small_elim = !large_elim;
     let universe: Vec<String> = if small_elim {
         Vec::new()
     } else {
@@ -2706,8 +3441,9 @@ fn derive_recursor(
     // 每个构造子的 minor 前提：forall (字段… ih…), motive <ctor 索引实参> (C 字段…)。
     let minor_types: Vec<Expr> = constructors
         .iter()
+        .enumerate()
         .zip(&derived)
-        .map(|(ctor, d)| {
+        .map(|((i, ctor), d)| {
             let mut binders = d.fields.clone();
             for (field_name, telescope, field_indices) in &d.rec_args {
                 let field_app = telescope
@@ -2734,11 +3470,12 @@ fn derive_recursor(
                     span: ctor.span,
                 });
             }
-            let mut c_app = params
-                .iter()
-                .fold(e_ident(&ctor.name, ctor.span), |acc, p| {
-                    e_app(acc, e_ident(&p.name, ctor.span), ctor.span)
-                });
+            // R1：minor 里生成的 `C params fields` 项必须用**规范名**——
+            // 内核按名字重建比对 recursor 的 minor 与 iota 规则。
+            let canonical = &ctor_canonical[i];
+            let mut c_app = params.iter().fold(e_ident(canonical, ctor.span), |acc, p| {
+                e_app(acc, e_ident(&p.name, ctor.span), ctor.span)
+            });
             c_app = d.fields.iter().fold(c_app, |acc, field| {
                 e_app(acc, e_ident(&field.name, ctor.span), ctor.span)
             });
@@ -2843,7 +3580,9 @@ fn derive_recursor(
                 body = e_app(body, self_call, ctor.span);
             }
             IotaRule {
-                ctor_name: ctor.name.clone(),
+                // 内核断言 `rule.ctor_name == ctor.name`（inductive.rs:1590），
+                // 而 ctor.name 已是安装名（规范名）——这里必须同步。
+                ctor_name: ctor_canonical[i].clone(),
                 val: e_lambda(binders, body, ctor.span),
                 span: ctor.span,
             }

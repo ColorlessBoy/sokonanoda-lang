@@ -20,6 +20,12 @@ skills.
   type checker (not text matching or heuristics). Solved exercises show
   as solved; `sorry` placeholders are graded as warnings, real mistakes
   as errors.
+- **A broken signature is never mistaken for "not done yet"** — an exercise's
+  signature is type-checked too, `sorry` or not: `theorem t : 3 := sorry`
+  reports `kernel-expected-sort` on the signature, and a `theorem`'s type must
+  be a `Prop` (`kernel-theorem-not-prop`). A typo'd lemma name or a wrong
+  conclusion in a 100-exercise canvas surfaces as a diagnostic instead of a
+  silently "open" exercise.
 - **Types on hover, with real names** — hover any expression (including
   inside parentheses) for `expression : type`; partial applications
   print your actual binder names, definition heads stay folded
@@ -54,6 +60,13 @@ skills.
   with `sokonanoda: 打开目标面板 (Infoview)` (needs VS Code 1.106+).
 - **Hint ladders** — each exercise carries 2–3 progressive hints
   (`-- soko:hint` directives); reveal them one at a time when stuck.
+- **Your own notation** — declare `infix:50 " ∈ " => Set.mem` (or `infixl:`,
+  `infixr:`, and the nullary `notation "∅" => Set.empty`) and write
+  `a ∈ A` instead of `Set.mem α a A`. Mathematical symbols are first-class
+  tokens, declared symbols are highlighted as operators, and notation is pure
+  sugar: it emits no event, and the pointful spelling keeps grading
+  identically. Scope is per file, after the declaration (not across `import`
+  yet).
 - **Multi-file projects** — start a file with `import Logic` and the whole
   import closure is compiled as one program: declarations from imported
   modules are in scope for diagnostics, hover, completion and code actions,

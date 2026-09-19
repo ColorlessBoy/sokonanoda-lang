@@ -130,9 +130,10 @@ async function queryText(op, flags, source) {
   } catch {
     throw new Error(`sokonanoda query ${op} returned non-JSON output: ${text.slice(0, 200)}`)
   }
-  // Exit 0 = answered (an open `sorry` is a legal state), 1 = the file has
-  // kernel-rejected declarations, 2 = usage. All three carry a usable payload,
-  // so forward it; the envelope's `ok`/`data.failed` tells the model the rest.
+  // Exit 0 = answered (an open `sorry` is a legal state), 1 = the file was
+  // rejected (kernel-rejected declarations or a parse failure), 2 = usage. All
+  // three carry a usable payload, so forward it; the envelope's
+  // `ok`/`data.failed`/`error.code` tells the model the rest.
   if (code !== 0 && code !== 1) {
     throw new Error(`sokonanoda query ${op} failed (exit ${code})${stderr.trim() ? `: ${stderr.trim()}` : ''}`)
   }
@@ -181,8 +182,10 @@ function positionFlags(args) {
 const TOOLS = {
   check: {
     description:
-      'Grade a whole .sokonanoda file with the real kernel and get counts, kernel rejections and warnings as one JSON object. ' +
-      'Use this first, or after editing, to see whether declarations pass. An open `sorry` exercise is a legal state (it appears in `counts.exercise_open`), not an error.',
+      'Grade a whole .sokonanoda file with the real kernel and get counts, rejections (parse or kernel) and warnings as one JSON object. ' +
+      'Use this first, or after editing, to see whether declarations pass. An open `sorry` exercise is a legal state (it appears in `counts.exercise_open`), not an error. ' +
+      'A file that does not parse is NOT an empty file: `failed[]` then carries the parse diagnostic (e.g. `unexpected-token`, `name: null`), `counts` stay all-zero and the call exits 1 — the same verdict as `grade`. ' +
+      'Every `failed[]`/`warnings[]` entry carries both byte offsets (`start`/`end`, into the **entry** file) and 1-based `start_line`/`start_col`/`end_line`/`end_col` — read the line/column instead of counting offsets yourself (offsets are bytes, so slicing by *characters* lands somewhere else). A broken dependency shows up only as `import-dependency-failed` on the entry import line; its own error lives in that file.',
     inputSchema: {
       type: 'object',
       properties: { ...sourceProperties },
@@ -212,7 +215,8 @@ const TOOLS = {
     description:
       'Every declaration in the file with its kernel-rendered type, status, open goals and addressable holes. ' +
       'Use it for a whole-file overview or to find the open exercises. Set `probe` to also fill each sub-hole expected type via a kernel probe. ' +
-      'A hole with `redundant: true` is a LEFTOVER `sorry` (the answer already proves the goal): say "delete that line", never "not yet solved".',
+      'A hole with `redundant: true` is a LEFTOVER `sorry` (the answer already proves the goal): say "delete that line", never "not yet solved". ' +
+      'If the file does not parse the answer is `ok:false` with `error.code: "not-parsable"` (never an empty declaration list).',
     inputSchema: {
       type: 'object',
       properties: { ...sourceProperties, probe: { type: 'boolean', description: 'Run the kernel probe to fill sub-goal expected types (slower).' } },
@@ -227,7 +231,8 @@ const TOOLS = {
     description:
       'List every `sorry` hole with a stable id (`declName:index`), its expected type and a `redundant` flag, optionally stepping to the next/previous hole. ' +
       'Use the id — two sub-goals of one `apply` share a source position, so positional stepping crosses them as a group. ' +
-      '`redundant: true` means the answer is already complete and that line must be deleted (docs/design/redundant-sorry.md).',
+      '`redundant: true` means the answer is already complete and that line must be deleted (docs/design/redundant-sorry.md). ' +
+      'If the file does not parse the answer is `ok:false` with `error.code: "not-parsable"` (never `holes: []`).',
     inputSchema: {
       type: 'object',
       properties: {

@@ -94,7 +94,10 @@ pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
             | Command::Check { .. }
             | Command::Reduce { .. }
             | Command::Print { .. }
-            | Command::Import { .. } => continue,
+            | Command::Import { .. }
+            // 记法命令不是声明（设计 N6）：没有声明名可查，也就不会有
+            // 「占了内核保留名」这类 warning。
+            | Command::Notation { .. } => continue,
         };
         if !RESERVED_SORT_NAMES.contains(&name.as_str()) {
             continue;

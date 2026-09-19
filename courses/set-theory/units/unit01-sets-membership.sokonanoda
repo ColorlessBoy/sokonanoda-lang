@@ -1,0 +1,83 @@
+-- ==========================================================================
+-- unit01-sets-membership.sokonanoda —— 卷 I 单元① 集合与隶属
+--
+-- 本单元只允许：`fun` / `exact` / `apply` / `rfl`，加 lib/ 里已备好的引理
+-- （`Set.subset_def`、`Set.mem_singleton_iff`、`Eq.symm`、…）。
+-- **不需要**自己写 `Eq.symm`/`Or.elim`/`Iff.mp` 这类东西——那是标准库的一部分
+-- （见 docs/design/course-stdlib.md）。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+
+-- ─────────────────────────────────────────────────────────────
+-- 1.1 集合就是"论域上的谓词"
+--
+-- 记法对照（语言还没有 notation，见台账 G-04）：
+--     x ∈ A   ↔  Set.mem α x A   ↔  A x
+--     A ⊆ B   ↔  Set.subset α A B ↔  ∀ x, A x → B x
+-- 于是"隶属"不是新东西，就是**函数应用**；"子集"就是**全称箭头**。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好）：子集的定义展开是"定义上相等"。
+theorem demo_subset_def (α : Type) (A B : Set α) :
+    Iff (Set.subset α A B) (forall (x : α), A x -> B x) :=
+  Set.subset_def α A B
+
+-- 演示（已写好）：隶属 = 应用。
+theorem demo_mem_def (α : Type) (a : α) (A : Set α) : Iff (Set.mem α a A) (A a) :=
+  Iff.intro (Set.mem α a A) (A a) (fun (h : Set.mem α a A) => h) (fun (h : A a) => h)
+
+-- 练习 1（T 类）：元素落在子集里。
+-- soko:hint 思路：手里 h 是 A ⊆ B，目标是一个元素命题；把 h 当函数用。
+-- soko:hint 目标形态：目标是 Set.mem α a B（也就是 B a）。
+-- soko:hint 关键件：Set.subset_def α A B 的右方向把 h 变成 (fun x hx => …)，喂 a 与 ha。
+theorem mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B) (a : α) :
+    Set.mem α a A -> Set.mem α a B :=
+  sorry
+
+-- 练习 2（X 类：形式 ↔ 散文）：把下面这句散文翻译成定理并证明。
+--
+--   "A set is determined by its elements: if two sets have exactly the same
+--    elements, they are equal."
+--
+-- soko:hint 思路：这句话就是外延性；库里已作为公理 Set.ext 备好。
+-- soko:hint 目标形态：目标是 Eq.{1} (Set α) A B，前提是 forall x, Iff (A x) (B x)。
+-- soko:hint 关键件：Set.ext α A B 吃一个 (fun (x : α) => Iff (A x) (B x))。
+theorem eq_of_same_elements (α : Type) (A B : Set α) (h : forall (x : α), Iff (A x) (B x)) :
+    Eq.{1} (Set α) A B :=
+  sorry
+
+-- 练习 3（T 类）：{a} ⊆ A 推出 a ∈ A。（**这一步用不到第 4 题**）
+-- soko:hint 思路：子集给每个元素一条通道；把 a 自己喂进去。
+-- soko:hint 目标形态：目标是 Set.mem α a A。
+-- soko:hint 关键件：需要先造出 a ∈ {a}——那正是 Set.mem_singleton_self α a（库里）。
+theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
+    (h : Set.subset α (Set.singleton α a) A) : Set.mem α a A :=
+  sorry
+
+-- 练习 4（T 类）：a ∈ A 推出 {a} ⊆ A。
+-- soko:hint 思路：目标是全称命题；intro 一个元素与"它在 {a} 里"。
+-- soko:hint 目标形态：intro 之后手里有 hx : Set.mem α x (Set.singleton α a)，目标是 A x。
+-- soko:hint 关键件：Set.mem_singleton_iff α x a 把 hx 变成等式 Eq.{1} α x a； 再用 Eq.symm（库里）与 Eq.subst 把它搬到 A a 上。
+theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : Set.mem α a A) :
+    Set.subset α (Set.singleton α a) A :=
+  sorry
+
+-- 练习 5（L 类）：把练习 3 与 4 合成一条"当且仅当"。
+-- soko:hint 思路：Iff 就是一对箭头，两边分别用前两题。
+-- soko:hint 目标形态：Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)。
+-- soko:hint 关键件：Iff.intro 吃两个方向；左到右 = mem_of_subset_singleton，右到左 = subset_of_mem_singleton。
+theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
+    Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A) :=
+  sorry
+
+-- 练习 6（D 类）：下面两条哪条为真？
+--   (i)  若 {a} = {b}，则 a = b。
+--   (ii) 若 a = b，则 {a} = {b}。
+-- 为真的证明，为假的说明理由（写在注释里）。
+-- soko:hint 思路：(i) 用"a ∈ {a}"沿等式搬过去再展开；(ii) 展开两边的定义再交给 Eq.subst。
+-- soko:hint 目标形态：(i) Eq.{1} α a b；(ii) Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)。
+-- soko:hint 关键件：(i) Eq.subst 把 Set.mem α a (Set.singleton α a) 搬到 {b} 上， 再用 Set.mem_singleton_iff 取出等式；(ii) 对每个 x 用 Set.ext + Eq.subst。
+theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
+    Iff (Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (Eq.{1} α a b) :=
+  sorry

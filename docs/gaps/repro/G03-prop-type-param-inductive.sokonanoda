@@ -1,0 +1,41 @@
+-- G-03 最小复现：**「Prop 结果 + Type 参数 + 单构造子 + 构造子自有字段」的
+-- inductive 被内核断言拒绝**（不是正常的错误消息，是 assert 失败）。
+--
+-- 期望（官方 Lean 4 语义）：这就是 `Exists` 的形状，Lean 里完全合法：
+--     inductive Exists {α : Sort u} (p : α → Prop) : Prop where
+--       | intro (w : α) (h : p w)
+-- 它是 Prop、单构造子、带一个 Type 参数，字段里有一个 `α`（Type 值）。
+--
+-- 今天的表现（0.58.0 实测）：
+--     rejected: assertion `left == right` failed
+--       left: 1
+--      right: 0
+-- 后果：`Exists` 只能立成**公理三件套**（course/unit8-quantifiers.sokonanoda:101-103），
+-- 从 0.4x 一路绕到今天，从未进过 backlog —— 这正是本台账要拦下的东西。
+--
+-- **0.59.0 起本文件干净判卷**（`scripts/soko grade` 退出码 0，`decl.checked Bar`）。
+-- 根因与修法（G-03 / WO-006，设计 `docs/design/prop-large-elim-mirror.md`）：
+-- 前端 `derive_recursor` 的 `small_elim` 曾用源码近似（`is_prop_block_ty && 多构造子`），
+-- 与内核 `large_elim_test`（`kernel/src/inductive.rs:1201`）对「单构造子 Prop 块」
+-- 的判据不一致；修法是把这个判据**逐字镜像**内核，在构造子类型 elaborate 之后
+-- 决定 recursor 要不要额外宇宙参数。本形状 ⇒ 0 个宇宙参数、motive 落 `Prop`。
+-- 注意：下面的块**逐字保留**（它是本台账的契约，不是可随手改的样例）。
+--
+-- 已实测的边界（同一台二进制，帮修复者二分）：
+--   ✅ 通过  `inductive Bar (A : Type) : Prop` + `ctor mk : Bar A`          （构造子无自有字段）
+--   ✅ 通过  `inductive Baz (P : Prop) : Prop` + `ctor mk (p : P) : Baz P`  （参数是 Prop）
+--   ✅ 通过  `inductive Sub… (A : Type) (P : A -> Prop) : Type` + `mk (a : A) (h : P a)`（结果是 Type）
+--   ✅ 通过  `inductive Bar (A : Type) : Prop` + `ctor mk1 (a : A) : Bar A` + `ctor mk2 : Bar A`（两个构造子）
+--   ✅ 通过  `inductive Bar (n : Nat) : Prop` + `ctor mk : Bar n`           （无自有字段）
+--   ✅ 通过  下面这个形状（0.59.0 起；0.58.0 时是唯一失败形状）
+--
+-- 判据的判别性形状（修好后必须同时成立，见 WO-006 的 P3/P9）：
+--   P3 `inductive P3 (A : Type) : A -> Prop` + `ctor c3 (a : A) (b : A) : P3 A a`
+--      ⇒ `b` 既不是参数也不是索引 ⇒ **0** 个宇宙参数
+--   P9 `inductive P9 (A : Type) : A -> Prop` + `ctor c9 (a : A) : P9 A a`
+--      ⇒ `a` 就是结果的索引 ⇒ **1** 个宇宙参数
+--   两者形状只差一个字段，用"看起来像同一类"的近似必然翻面。
+
+inductive Bar (A : Type) : Prop
+ctor mk (a : A) : Bar A
+end

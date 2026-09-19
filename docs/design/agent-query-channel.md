@@ -202,11 +202,17 @@ pub struct QueryAnswer<T> { pub version: u64, pub data: T }
 今天 LSP 用 `goal: null` + 默认字段混合表达两者，agent 无法区分——**这正是 Q3 的
 根源**，新通道必须分开。
 
+> **as-built（0.59.0，WO-003/G-10 + G-17）**：这条原则原先有两个漏洞——解析失败时
+> `check` 答"全零 + `failed: []`"、`goals`/`holes` 答空数组，都是 `ok:true`。现在
+> `goals`/`holes` 走 `QueryError::NotParsable`（`ok:false`），`check` 把 parse 诊断
+> 合成进 `failed[]`（`check` 是唯一例外：它的**答案**就是"这份文本解析不了"，所以
+> `ok` 保持 `true`，见 §5.2 as-built）。
+
 ### 4.2 六个操作（语义 = 今天的 LSP 行为，逐条对照）
 
 | op | 语义（唯一真相） | 结果要点 |
 |---|---|---|
-| `check` | 整文件判卷（= CLI `--json` 的**汇总**，不改变事件流契约） | 各事件计数、每个开放练习的 `name`/`goals[]`/`holes[].id`、诊断 `{stage,code,message,span,hint}`、`warning` |
+| `check` | 整文件判卷（= CLI `--json` 的**汇总**，不改变事件流契约） | 各事件计数、每个开放练习的 `name`/`goals[]`/`holes[].id`、诊断 `{stage,code,message,span,hint}`、`warning`。**as-built**：摘要层的 `FailedDecl` 今天只有 `{name,code,message,start,end}`（无 `stage`/`hint`），**同时**承载内核拒绝与 parse 诊断（用 `code` 区分；解析失败时 `name: null`、`counts` 全 0、退出码 1） |
 | `state` | 光标处状态，**Lean `goalsAt?`**：光标在某 tactic 的 span 内 → **进入**该 tactic 之前的状态；否则停在"最后一条在光标前结束的 tactic"之后；首个 tactic 之前 → 根状态 | `decl{name,kind,status,range}`、`goals[{goal,goal_runs,binders[]}]`（**全部**剩余目标，当前在前）、`step`/`total`、`span` |
 | `goals` | 声明级：一个文档里每个声明的类型/状态/开放目标/洞；**含请求期内核探针**补的子洞期望类型（`front::goals::probe_sub_goal_types`） | `decls[{name,kind,status,range,ty,ty_runs,goals[],holes[{range,id}],sub_goals[{range,ty}],code_actions[]}]` |
 | `holes` | 洞导航与寻址 | `holes[{id,range,ty,decl}]`（文件序）+ `next`/`prev`（相对给定 `--offset`），**id 是唯一稳定引用**（`soko/nextHole` 的同址限制在文档里已注明，这里以 id 为准） |
@@ -252,9 +258,14 @@ sokonanoda query reduce --file playground.sokonanoda --text '1 + 1'
 | code | 含义 |
 |---|---|
 | 0 | 查询成功（**含 `check` 有开放练习**，与 `--json` 一致：`sorry` 是合法状态） |
-| 1 | `check` 有内核拒绝的声明（`failed > 0`） |
+| 1 | 这份文件被拒：`check` 有内核拒绝的声明（`failed > 0`）**或源文本解析失败**（`failed[]` 里就是 parse 诊断；`goals`/`holes` 答 `not-parsable`） |
 | 2 | 用法错误（未知 op / 缺参数 / 位置越界） |
 | 3 | 环境未就绪或二进制不可用（与 `doctor`/启动器一致） |
+
+**as-built（0.59.0，WO-003/G-10 + G-17）**：解析失败不再假绿——`check` 把
+`QueryDoc::parse_error` 合成进 `failed[]`（`counts` 保持全 0、`ok:true`、退出码 1），
+`goals`/`holes` 走 `QueryError::NotParsable`（`ok:false` + 退出码 1）；"正常的没有"
+（空数组 / `navigated: null`）仍是 `ok:true`。
 
 **判据永远是 JSON 内容，不是退出码**（`skills/sokonanoda-teacher` 已如此要求）。
 
@@ -664,6 +675,11 @@ let ctor_indices: Vec<Expr> = src_spine(&ctor.result)
   **as-built 加强**：`state` 的一致性必须逐个覆盖选择器的**判别性输入**
   （根状态 / tactic 之内 / tactic 之后 / 无 `by` 的开放与闭合），并跑**真实 LSP
   二进制**——只测"两边都不为空的常见路径"会漏掉 §4 as-built 3 那种分支分歧。
+  **as-built（0.59.0）**：一致性还包含**失败口径**——同一份解析不了的文本，
+  `query check` 的 `failed[]` 与 `grade --json` 的 parse 诊断同 code/同 span、
+  退出码同为 1（`crates/cli/tests/query.rs` 的
+  `query_check_reports_parse_errors_with_exit_one` /
+  `query_check_matches_grade_on_a_real_course_unit`）。
 - **A5（结构债）**：`crates/lsp/src/lib.rs` **≤1200 行且不再有查询/渲染的第二份实现**
   （`rg` 断言：`select_state_at`/`runs_of`/`decl_name` 等语义函数只存在于
   `front::query`）；`crates/front/src/query*.rs` ≤500 行/文件；`cargo clippy`

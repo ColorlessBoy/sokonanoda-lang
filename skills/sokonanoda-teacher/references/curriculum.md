@@ -7,8 +7,8 @@
 
 | # | 文件 | 主题 | 关键概念 |
 |---|---|---|---|
-| 1 | `unit1-propositions-proofs.sokonanoda` | 命题与证明项 | 证明=项；axiom 骨架 True/False/And/Or/Not；False.rec；声明级 binder（`theorem f (a : A) : B := v`）两种拼写；先证明命题，不谈 Sort |
-| 2 | `unit2-equality-rfl.sokonanoda` | 等式与 rfl | 认识数字 Nat；`Eq.{1}` 机械规则（为什么是 1 → 单元⑤揭晓）；自己设计谓词 p 造 symm/trans |
+| 1 | `unit1-propositions-proofs.sokonanoda` | 命题与证明项 | 证明=项；axiom 骨架 True/False/And/Or/Not；False.rec；声明级 binder（`theorem f (a : A) : B := v`，**`axiom` 同样接受参数表**，0.59.0 起）两种拼写；先证明命题，不谈 Sort |
+| 2 | `unit2-equality-rfl.sokonanoda` | 等式与 rfl | 认识数字 Nat；`Eq.{1}` 机械规则（为什么是 1 → 单元⑤揭晓）；自己设计谓词 p 造 symm/trans；**本单元拿到完整 L1**（不声明任何 L1 名字）——`eq_symm_demo` 用 prelude 的 `Eq.symm` 示范，两题 hint 是「两解对照」 |
 | 3 | `unit3-functions-arrows.sokonanoda` | 函数与箭头 | `fun`、binder 推断、高阶函数 `(Nat -> Nat) -> Nat -> Nat`；结尾埋"函数类型的类型？"悬念 |
 | 4 | `unit4-by-tactics.sokonanoda` | by 写法 | `by` 块 + tactic（intro/exact/apply/assumption/rfl）；换行分隔 tactic；`by sorry` 占位；判定走 kernel（P2 从旧单元⑥提前） |
 | 5 | `unit5-universes-sort.sokonanoda` | 宇宙 | Sort 由悬念揭晓：Prop = Sort 0（回收单元①）、Nat : Sort 1；读 `#check` 输出；`Eq.symm {u}` 毕业题 |
@@ -35,6 +35,10 @@
 - `by` 块换行分隔 tactic（`;` 或换行，可混用，无缩进敏感；`by-tactics.md` §11）；
 - prelude `Bool`（`Bool.true`/`Bool.false`/`Bool.rec`，文件自带 `inductive Bool`
   时让位；`match.md` §10 Phase 5）；
+- **L1 逻辑与等式骨架（0.59.0）**：`True`/`False`/`And`/`Or`/`Not`/`absurd`/`Iff`/
+  `Eq.symm`/`Eq.trans`/`congrArg` 等 30 个名字由 prelude 自带（族粒度让位：
+  单元①④⑤⑧⑨⑩⑪ 自带骨架 ⇒ 整族让位、照常生效；单元②③⑥⑦ 拿到完整 L1。
+  设计 `docs/design/prelude-l1-proposal.md`）；
 - 参数化归纳（`Option`/`List`）与带索引归纳（`Vec`，v1 结果类型不依赖索引；
   `indexed-inductives.md`）；
 - 应用位置 binder 类型推断（`(fun x => x) 1`、`(fun x y => x) 1 2`；

@@ -1,0 +1,138 @@
+-- ==========================================================================
+-- notation-cheatsheet-solution.sokonanoda —— 记法对照页的**解答钥匙**（agent 专用）
+--
+-- 对应画布 `units/notation-cheatsheet.sokonanoda`：同名的 9 对演示（已证）+ 3 道练习
+-- （这里填好）。判据：`exercise.open == 0` 且每个画布练习名都在 `decl.checked` 里。
+--
+-- 记法纪律与画布逐字相同：**文件内作用域** ⇒ 解答自己声明一遍（跨 import 不生效）；
+-- 目标名照 `lib/Set.sokonanoda` 的定义名，一个字母不改。
+-- 画布页首那四条（糖 / 两种写法判卷一致 / 判卷一致≠打印一致 / 文件内作用域）
+-- 与两条边界（点名形式不补前导 `α`；`∅` 在 `Eq` 的操作数位置补不出 `α`）在这里同样成立。
+--
+-- 提示：三题的证明都只用 term 风格（fun / Or.elim / Or.inl / Or.inr / Iff.intro /
+-- False.elim），与单元②③的点名版是**同一批证明**——换的只是签名上的写法。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+
+-- ─────────────────────────────────────────────────────────────
+-- 记法定义（本文件作用域；与画布、lib/Set.sokonanoda 同名）
+-- ─────────────────────────────────────────────────────────────
+
+infix:50 " ∈ " => Set.mem
+infix:50 " ⊆ " => Set.subset
+infixl:65 " ∪ " => Set.union
+notation "∅" => Set.empty
+
+#check fun (α : Type) (A B : Set α) => A ⊆ B
+
+-- ─────────────────────────────────────────────────────────────
+-- 演示 1–2：定义展开
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_mem_pointful (α : Type) (a : α) (A : Set α) : Set.mem α a A -> A a :=
+  fun (h : Set.mem α a A) => h
+
+theorem demo_mem_notation (α : Type) (a : α) (A : Set α) : a ∈ A -> A a :=
+  fun (h : a ∈ A) => h
+
+theorem demo_subset_pointful (α : Type) (A B : Set α) :
+    Set.subset α A B -> (forall (x : α), A x -> B x) :=
+  fun (h : Set.subset α A B) => h
+
+theorem demo_subset_notation (α : Type) (A B : Set α) :
+    A ⊆ B -> (forall (x : α), A x -> B x) :=
+  fun (h : A ⊆ B) => h
+
+-- ─────────────────────────────────────────────────────────────
+-- 演示 3–5：包含三律的一条 + 空集的两个身份
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_trans_pointful (α : Type) (A B C : Set α)
+    (h1 : Set.subset α A B) (h2 : Set.subset α B C) : Set.subset α A C :=
+  fun (x : α) => fun (hx : A x) => h2 x (h1 x hx)
+
+theorem demo_trans_notation (α : Type) (A B C : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C :=
+  fun (x : α) => fun (hx : A x) => h2 x (h1 x hx)
+
+theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
+    Set.subset α (Set.empty α) A :=
+  fun (x : α) => fun (hx : Set.mem α x (Set.empty α)) => False.elim (A x) hx
+
+theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A :=
+  fun (x : α) => fun (hx : Set.mem α x (Set.empty α)) => False.elim (A x) hx
+
+theorem demo_notMem_empty_pointful (α : Type) (a : α) :
+    Not (Set.mem α a (Set.empty α)) :=
+  Set.notMem_empty α a
+
+theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) :=
+  Set.notMem_empty α a
+
+-- ─────────────────────────────────────────────────────────────
+-- 演示 6–8：并集 + 外延性
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_union_left_pointful (α : Type) (A B : Set α) :
+    Set.subset α A (Set.union α A B) :=
+  fun (x : α) => fun (hx : A x) => Or.inl (A x) (B x) hx
+
+theorem demo_union_left_notation (α : Type) (A B : Set α) : A ⊆ A ∪ B :=
+  fun (x : α) => fun (hx : A x) => Or.inl (A x) (B x) hx
+
+theorem demo_mem_union_pointful (α : Type) (a : α) (A B : Set α) :
+    Set.mem α a (Set.union α A B) -> Or (Set.mem α a A) (Set.mem α a B) :=
+  fun (h : Set.mem α a (Set.union α A B)) => h
+
+theorem demo_mem_union_notation (α : Type) (a : α) (A B : Set α) :
+    a ∈ A ∪ B -> Or (a ∈ A) (a ∈ B) :=
+  fun (h : a ∈ A ∪ B) => h
+
+theorem demo_ext_pointful (α : Type) (A B : Set α)
+    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B :=
+  Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
+
+theorem demo_ext_notation (α : Type) (A B : Set α)
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : Eq.{1} (Set α) A B :=
+  Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 演示 9：优先级与结合性
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_precedence_pointful (α : Type) (A B C : Set α) :
+    Set.subset α A (Set.union α (Set.union α A B) C) :=
+  fun (x : α) => fun (hx : A x) => Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+
+theorem demo_precedence_notation (α : Type) (A B C : Set α) : A ⊆ A ∪ B ∪ C :=
+  fun (x : α) => fun (hx : A x) => Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习解答（签名与画布逐字相同；`sorry` 换成证明项）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1：∅ ∪ A ⊆ A。关键件：Or.elim 两支；`x ∈ ∅` 那支的前提就是 False。
+theorem empty_union_subset (α : Type) (A : Set α) : ∅ ∪ A ⊆ A :=
+  fun (x : α) => fun (hx : x ∈ ∅ ∪ A) =>
+    Or.elim (x ∈ ∅) (x ∈ A) (x ∈ A)
+      (fun (h : x ∈ ∅) => False.elim (x ∈ A) h)
+      (fun (h : x ∈ A) => h) hx
+
+-- 练习 2：a ∈ A ∪ B -> a ∈ B ∪ A。关键件：Or.elim 两支各自 Or.inl / Or.inr 到交换后的位置。
+theorem mem_union_comm (α : Type) (a : α) (A B : Set α) : a ∈ A ∪ B -> a ∈ B ∪ A :=
+  fun (h : a ∈ A ∪ B) =>
+    Or.elim (a ∈ A) (a ∈ B) (a ∈ B ∪ A)
+      (fun (ha : a ∈ A) => Or.inr (a ∈ B) (a ∈ A) ha)
+      (fun (hb : a ∈ B) => Or.inl (a ∈ B) (a ∈ A) hb) h
+
+-- 练习 3：A ∪ ∅ = A。关键件：Set.ext + Iff.intro；→ 方向 Or.elim（∅ 那支 False.elim），
+-- ← 方向 Or.inl。结论里的 `∅` 在 `∪` 的右操作数位置 ⇒ 记法可用（页首边界）。
+theorem union_empty_right (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ ∅) A :=
+  Set.ext α (A ∪ ∅) A (fun (x : α) =>
+    Iff.intro (x ∈ A ∪ ∅) (A x)
+      (fun (hx : x ∈ A ∪ ∅) =>
+        Or.elim (A x) (x ∈ ∅) (A x)
+          (fun (h : A x) => h)
+          (fun (h : x ∈ ∅) => False.elim (A x) h) hx)
+      (fun (hx : A x) => Or.inl (A x) (x ∈ ∅) hx))

@@ -51,6 +51,14 @@
       <li>卡住时，文件里的 <code>-- soko:hint</code> 提示是分级的，一次揭开一条。</li>
       <li>真正的答案（解答钥匙）只给 agent 用，不直接发给学习者——你的练习由内核判，不靠对照答案。</li>
     </ul>
+
+    <h2 class="section-title">学完之后：卷 I《集合论》</h2>
+    <p>
+      这一门教的是<b>语言本身</b>。学完它（或已有等价的 Lean 4 式证明经验）之后，
+      接着走 <a href="set-theory.html">卷 I《集合论》</a>：同一门语言、同一个内核、同一套判卷方式，
+      但换成为数学而写——从「集合 = 谓词」出发，经集合运算、外延性、序对与积、关系与函数、
+      像与原像、等势，一路做到 Cantor 定理与 Russell 悖论。每单元的画布结构与这里的单元完全一致。
+    </p>
   </main>
 
   <footer class="site-footer">
@@ -74,6 +82,12 @@
   <script>
   (function () {
     var RAW_BASE = "https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/course/";
+    var REPO_BLOB = "https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/";
+    // 逐段编码：`encodeURIComponent` 会把 `/` 编成 `%2F`，而 GitHub 的 blob
+    // 路由不把 `%2F` 当路径分隔符——英文镜像（`course/en/…`）的链接会 404。
+    function encodePath(p) {
+      return String(p || "").split("/").map(encodeURIComponent).join("/");
+    }
     var wrap = document.getElementById("units");
     fetch("data/site.json").then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (d) {
@@ -92,14 +106,14 @@
           meta.className = "unit-meta";
           var a = document.createElement("a");
           a.className = "unit-link";
-          a.href = RAW_BASE + encodeURIComponent(u.file);
+          a.href = RAW_BASE + encodePath(u.file);
           a.target = "_blank"; a.rel = "noopener";
           a.textContent = "查看单元文件 →";
           meta.appendChild(a);
           if (u.en_file) {
             var e = document.createElement("a");
             e.className = "unit-en-link";
-            e.href = "https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/" + encodeURIComponent(u.en_file);
+            e.href = REPO_BLOB + encodePath(u.en_file);
             e.target = "_blank"; e.rel = "noopener";
             e.textContent = "English";
             meta.appendChild(e);

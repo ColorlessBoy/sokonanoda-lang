@@ -93,6 +93,59 @@ fn manifest_moves_the_module_root_and_nested_names_resolve() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+// ── G-12：入口与模块根必须**一起**绝对化（cwd 只参与这一步）──────────────
+
+#[test]
+fn absolute_lexical_is_a_pure_text_operation() {
+    let cwd = std::env::current_dir().expect("cwd");
+    let relative = absolute_lexical(Path::new("units/u.sokonanoda"));
+    assert!(relative.is_absolute(), "{relative:?}");
+    assert_eq!(relative, cwd.join("units/u.sokonanoda"), "尾部原样保留");
+    // 已经绝对 ⇒ 原样返回（`..` 与符号链接的解析**不**在词法层的职责里）。
+    let already = std::env::temp_dir().join("../u.sokonanoda");
+    assert_eq!(absolute_lexical(&already), already);
+    // 空路径归一为 CWD（`--root ''`、裸文件名的空 parent）：结果永远绝对且非空。
+    assert_eq!(absolute_lexical(Path::new("")), cwd);
+    assert!(!absolute_lexical(Path::new("")).as_os_str().is_empty());
+}
+
+#[test]
+fn a_plan_keeps_entry_and_root_on_the_same_absolute_footing() {
+    // "修一半"陷阱：只绝对化 entry、不绝对化 `--root` / `--no-project` 传下来的
+    // `root_override` ⇒ `module_name_of_path` 的 `strip_prefix(root)` 失配 ⇒
+    // 模块名退化成裸 `file_stem` ⇒ `ProjectPlan::digest`（缓存键）跟着漂。
+    let plan = plan_project_with_overlay(
+        Path::new("src/units/u.sokonanoda"),
+        Some("def one : Nat := 1\n"),
+        Some(Path::new("src")),
+        &[],
+    );
+    assert!(plan.entry.is_absolute(), "entry: {:?}", plan.entry);
+    assert!(plan.root.is_absolute(), "root: {:?}", plan.root);
+    assert!(!plan.root.as_os_str().is_empty(), "模块根永不为空");
+    assert_eq!(
+        plan.entry.strip_prefix(&plan.root),
+        Ok(Path::new("units/u.sokonanoda")),
+        "entry 必须落在 root 下，模块名才有目录前缀"
+    );
+    assert_eq!(
+        plan.entry(),
+        "units.u",
+        "模块名跟着 root 走，不许退化成裸 file_stem"
+    );
+
+    // 零配置退路（没有 root_override、没有清单）：root = 入口目录，同样绝对。
+    let zero_config = plan_project_with_overlay(
+        Path::new("src/units/u.sokonanoda"),
+        Some("def one : Nat := 1\n"),
+        None,
+        &[],
+    );
+    assert!(zero_config.entry.is_absolute(), "{:?}", zero_config.entry);
+    assert!(zero_config.root.is_absolute(), "{:?}", zero_config.root);
+    assert!(!zero_config.root.as_os_str().is_empty());
+}
+
 #[test]
 fn missing_module_reports_the_path_and_dash_hint() {
     let dir = tmp_dir("missing");
@@ -607,5 +660,79 @@ theorem and_intro_demo (a b : Prop) (h : a) (k : b) : And a b := by\n\
         })
         .unwrap_or_default();
     assert!(entry_errors.is_empty(), "{entry_errors:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// G-02 的第二道闸（WO-005 验收「项目级」第 6 条）：A/B 两个模块各声明
+/// `inductive A/B` + `ctor mk`，入口 import 两者 ⇒ **不得**出现
+/// `import-name-collision`（规范名 `A.mk`/`B.mk` 在闭包里天然不同）。
+#[test]
+fn ctors_in_two_modules_do_not_collide_after_namespacing() {
+    let dir = tmp_dir("ctor-namespace");
+    write(
+        &dir,
+        "A.sokonanoda",
+        "inductive A : Type\nctor mk : A\nend\n",
+    );
+    write(
+        &dir,
+        "B.sokonanoda",
+        "inductive B : Type\nctor mk : B\nend\n",
+    );
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import A\nimport B\n\ndef useA : A := A.mk\ndef useB : B := B.mk\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+    assert!(
+        !codes(&report).contains(&"import-name-collision"),
+        "namespaced ctors must not collide: {:?}",
+        codes(&report)
+    );
+    assert!(
+        !report.has_errors(),
+        "the closure must compile: {:?}",
+        codes(&report)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// 对照（R2 的闭包级口径）：两个模块各有一个**同名裸** ctor ⇒ 裸名在闭包里
+/// 歧义、不可解析；写全规范名照常。这正是 `elab-ambiguous-ctor-alias` 的
+/// 闭包级场景（模块作用域属 G-05，本轮别名天然是闭包级的）。
+#[test]
+fn a_duplicated_bare_ctor_across_modules_is_ambiguous() {
+    let dir = tmp_dir("ctor-alias-ambiguous");
+    write(
+        &dir,
+        "A.sokonanoda",
+        "inductive A : Type\nctor mk : A\nend\n",
+    );
+    write(
+        &dir,
+        "B.sokonanoda",
+        "inductive B : Type\nctor mk : B\nend\n",
+    );
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import A\nimport B\n\ndef bad : A := mk\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+    // elab 错误挂在**入口模块的报告**里（`diagnostics` 只装闭包级规则）。
+    let entry_errors: Vec<&'static str> = report
+        .entry_module()
+        .map(|module| module.report.errors.iter().map(|e| e.code()).collect())
+        .unwrap_or_default();
+    assert!(
+        entry_errors.contains(&"elab-ambiguous-ctor-alias"),
+        "the bare name is ambiguous in the closure: {entry_errors:?}"
+    );
+    assert!(
+        !codes(&report).contains(&"import-name-collision"),
+        "the canonical names differ, so the modules do not collide: {:?}",
+        codes(&report)
+    );
     let _ = std::fs::remove_dir_all(&dir);
 }

@@ -1,0 +1,123 @@
+-- ==========================================================================
+-- unit05 解答钥匙（agent 专用；画布不 import 它，画布与它各自自足）
+--
+-- 与画布 courses/set-theory/units/unit05-pairs-products.sokonanoda 的练习**同名一一对应**：
+--     prod_fst_mk · prod_snd_mk · prod_mk_inj · prod_mk_eq_iff ·
+--     mem_prod_iff · prod_set_swap_ne · kura_degenerate
+--
+-- 本文件自带 `def Set.prod`：画布里的同一条定义是**给定词汇**（不是练习），而两个文件
+-- 之间无法共享名字（模块名不能带 `-`，台账 G-12 的同一族限制；同名重声明会被内核判
+-- import-name-collision），所以这里原样抄一遍。因此本文件的 decl_checked = 7 条练习 + 1 条 def。
+--
+-- 每条证明只用到 lib/ 与 prelude 里已备好的东西（Prod.fst_mk / Prod.snd_mk / Eq.subst /
+-- Set.ext / Or.elim / Set.mem_singleton_self …），学习者不需要任何"额外的数学"。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+import lib.Prod
+
+-- 画布 5.2 的给定定义（笛卡尔积），此处原样重抄，供下面的练习使用。
+def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
+  fun (p : Prod A B) => And (s (Prod.fst A B p)) (t (Prod.snd A B p))
+
+-- 练习 1（T 类）：投影算在构造子上（直接点名库里的展开引理）。
+theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
+    Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a :=
+  Prod.fst_mk A B a b
+
+-- 练习 2（T 类）：第二个投影同款。
+theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
+    Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b :=
+  Prod.snd_mk A B a b
+
+-- 练习 3（L 类）：配对定理 —— 序对相等沿两个投影各搬一次。
+theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
+    Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1) ->
+    And (Eq.{1} A a a1) (Eq.{1} B b b1) :=
+  fun (h : Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1)) =>
+    And.intro (Eq.{1} A a a1) (Eq.{1} B b b1)
+      (Eq.subst.{1} (Prod A B) (fun (p : Prod A B) => Eq.{1} A a (Prod.fst A B p))
+        (prod_mk A B a b) (prod_mk A B a1 b1) h (Eq.refl.{1} A a))
+      (Eq.subst.{1} (Prod A B) (fun (p : Prod A B) => Eq.{1} B b (Prod.snd A B p))
+        (prod_mk A B a b) (prod_mk A B a1 b1) h (Eq.refl.{1} B b))
+
+-- 练习 4（L 类）：配对定理的完整形态；← 方向对两个坐标各做一次 Eq.subst。
+theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
+    Iff (Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1))
+        (And (Eq.{1} A a a1) (Eq.{1} B b b1)) :=
+  Iff.intro (Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1))
+    (And (Eq.{1} A a a1) (Eq.{1} B b b1))
+    (prod_mk_inj A B a a1 b b1)
+    (fun (h : And (Eq.{1} A a a1) (Eq.{1} B b b1)) =>
+      Eq.subst.{1} B
+        (fun (y : B) => Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 y))
+        b b1 (And.right (Eq.{1} A a a1) (Eq.{1} B b b1) h)
+        (Eq.subst.{1} A
+          (fun (x : A) => Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B x b))
+          a a1 (And.left (Eq.{1} A a a1) (Eq.{1} B b b1) h)
+          (Eq.refl.{1} (Prod A B) (prod_mk A B a b))))
+
+-- 练习 5（T 类）：A × B 的成员刻画 —— 两边定义上相等，两个方向都是恒等函数。
+theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
+    Iff (Set.mem (Prod A B) p (Set.prod A B s t))
+        (And (s (Prod.fst A B p)) (t (Prod.snd A B p))) :=
+  Iff.intro (Set.mem (Prod A B) p (Set.prod A B s t))
+    (And (s (Prod.fst A B p)) (t (Prod.snd A B p)))
+    (fun (h : Set.mem (Prod A B) p (Set.prod A B s t)) => h)
+    (fun (h : And (s (Prod.fst A B p)) (t (Prod.snd A B p))) => h)
+
+-- 练习 6（D 类）：A × B = B × A 的反例（同一类型上 s = {a}、t = {b}）。
+-- 把 (a,b) ∈ {a} × {b} 沿假设的等式搬到 {b} × {a} 上，搬完它就变成 a = b ∧ b = a。
+theorem prod_set_swap_ne (A : Type) (a b : A) (h : Not (Eq.{1} A a b)) :
+    Not (Eq.{1} (Set (Prod A A))
+      (Set.prod A A (Set.singleton A a) (Set.singleton A b))
+      (Set.prod A A (Set.singleton A b) (Set.singleton A a))) :=
+  fun (e : Eq.{1} (Set (Prod A A))
+      (Set.prod A A (Set.singleton A a) (Set.singleton A b))
+      (Set.prod A A (Set.singleton A b) (Set.singleton A a))) =>
+    h (And.left (Eq.{1} A a b) (Eq.{1} A b a)
+        (Eq.subst.{1} (Set (Prod A A))
+          (fun (S : Set (Prod A A)) => Set.mem (Prod A A) (prod_mk A A a b) S)
+          (Set.prod A A (Set.singleton A a) (Set.singleton A b))
+          (Set.prod A A (Set.singleton A b) (Set.singleton A a))
+          e
+          (And.intro (Set.mem A a (Set.singleton A a)) (Set.mem A b (Set.singleton A b))
+            (Set.mem_singleton_self A a) (Set.mem_singleton_self A b))))
+
+-- 练习 7（R 类）：Kuratowski 编码的退化情形 —— a = b 时 {{a},{a,b}} 塌缩成 {{a}}。
+-- 外层 Set.ext 逐元素 X : Set α 证 Iff；右到左直接 Or.inl；左到右 Or.elim，
+-- 其中 X = {a,b} 那一支要再用一次 Set.ext（把 {a,b} 与 {a} 逐点比较）。
+theorem kura_degenerate (α : Type) (a b : α) (h : Eq.{1} α a b) :
+    Eq.{1} (Set (Set α))
+      (Set.pair (Set α) (Set.singleton α a) (Set.pair α a b))
+      (Set.singleton (Set α) (Set.singleton α a)) :=
+  Set.ext (Set α)
+    (Set.pair (Set α) (Set.singleton α a) (Set.pair α a b))
+    (Set.singleton (Set α) (Set.singleton α a))
+    (fun (X : Set α) =>
+      Iff.intro
+        (Or (Eq.{1} (Set α) X (Set.singleton α a)) (Eq.{1} (Set α) X (Set.pair α a b)))
+        (Eq.{1} (Set α) X (Set.singleton α a))
+        (fun (hX : Or (Eq.{1} (Set α) X (Set.singleton α a))
+                      (Eq.{1} (Set α) X (Set.pair α a b))) =>
+          Or.elim (Eq.{1} (Set α) X (Set.singleton α a))
+            (Eq.{1} (Set α) X (Set.pair α a b))
+            (Eq.{1} (Set α) X (Set.singleton α a))
+            (fun (h1 : Eq.{1} (Set α) X (Set.singleton α a)) => h1)
+            (fun (h2 : Eq.{1} (Set α) X (Set.pair α a b)) =>
+              Eq.trans.{1} (Set α) X (Set.pair α a b) (Set.singleton α a) h2
+                (Set.ext α (Set.pair α a b) (Set.singleton α a)
+                  (fun (x : α) =>
+                    Iff.intro (Or (Eq.{1} α x a) (Eq.{1} α x b)) (Eq.{1} α x a)
+                      (fun (hx : Or (Eq.{1} α x a) (Eq.{1} α x b)) =>
+                        Or.elim (Eq.{1} α x a) (Eq.{1} α x b) (Eq.{1} α x a)
+                          (fun (hxa : Eq.{1} α x a) => hxa)
+                          (fun (hxb : Eq.{1} α x b) =>
+                            Eq.trans.{1} α x b a hxb (Eq.symm.{1} α a b h))
+                          hx)
+                      (fun (hxa : Eq.{1} α x a) =>
+                        Or.inl (Eq.{1} α x a) (Eq.{1} α x b) hxa))))
+            hX)
+        (fun (h1 : Eq.{1} (Set α) X (Set.singleton α a)) =>
+          Or.inl (Eq.{1} (Set α) X (Set.singleton α a))
+            (Eq.{1} (Set α) X (Set.pair α a b)) h1))

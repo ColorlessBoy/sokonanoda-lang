@@ -82,6 +82,33 @@ pub enum Expr {
         arms: Vec<MatchArm>,
         span: Span,
     },
+    /// 记法使用点（G-04 / WO-011）：`lhs sym rhs` 或零元的 `sym`。
+    ///
+    /// parser 只记下**写下来的东西**（符号 + 目标名 + 操作数）；elaborator 把它
+    /// 源到源降级成 `App` 形状（设计 `docs/design/notation-subset.md` §2 N4）。
+    /// 操作数顺序**保持**（与 Lean `infix` 糖一致）；零元记法的 `lhs`/`rhs`
+    /// 都是 `None`。
+    Notation {
+        symbol: String,
+        target: String,
+        assoc: NotationAssoc,
+        lhs: Option<Box<Expr>>,
+        rhs: Option<Box<Expr>>,
+        span: Span,
+    },
+}
+
+/// 记法命令的结合性 / 元数（`docs/design/notation-subset.md` N1）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NotationAssoc {
+    /// `infix:N`：无结合，两边同级。
+    Infix,
+    /// `infixl:N`：左结合。
+    Infixl,
+    /// `infixr:N`：右结合。
+    Infixr,
+    /// `notation "∅" => …`：零元常量记法（无优先级）。
+    Nullary,
 }
 
 /// `match` 的一条分支：`| <pattern> [if <guard>] => <body>`
@@ -140,7 +167,8 @@ impl Expr {
             | Expr::Plus { span, .. }
             | Expr::Let { span, .. }
             | Expr::By { span, .. }
-            | Expr::Match { span, .. } => *span,
+            | Expr::Match { span, .. }
+            | Expr::Notation { span, .. } => *span,
         }
     }
 }
@@ -257,6 +285,19 @@ pub enum Command {
         name: String,
         span: Span,
     },
+    /// `infix:N " sym " => name` / `infixl` / `infixr` / `notation " sym " => name`
+    /// （G-04 / WO-011）。
+    ///
+    /// **不是声明**（N6）：不产生 `decl.checked`/`exercise.open`/`expr.typed`，
+    /// 也不进声明表——与 `Command::Import` 同族（有命令、无声明）。
+    /// `precedence` 只有零元记法为 `None`。
+    Notation {
+        symbol: String,
+        precedence: Option<u16>,
+        assoc: NotationAssoc,
+        target: String,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -293,7 +334,8 @@ impl Command {
             | Command::InductiveBlock { span, .. }
             | Command::Check { span, .. }
             | Command::Reduce { span, .. }
-            | Command::Print { span, .. } => *span,
+            | Command::Print { span, .. }
+            | Command::Notation { span, .. } => *span,
         }
     }
 

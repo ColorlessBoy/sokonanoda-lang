@@ -1,0 +1,169 @@
+-- ==========================================================================
+-- unit04-extensionality-identities.sokonanoda —— 卷 I 单元④ 外延性与集合等式
+--
+-- 靶子：Tao §3.1（Avigad《Logic and Proof》11.2 的布尔恒等式表）。
+-- 概念顺序：外延证明套路（Set.ext + 逐元素 Iff）→ 布尔代数恒等式表 → 形式↔散文互译。
+--
+-- **本单元只允许用**：
+--   · 语言子集：`fun` / `exact` / `apply` / `assumption` / `rfl` / `intro` / `match`
+--     （项风格或 `by` 块都行）；没有记法（G-04），一律点名
+--     Set.mem α x A · Set.union α A B · Set.inter α A B · Set.sdiff α A B ·
+--     Set.empty α · Set.univ α；
+--   · 等式必须显式宇宙：`Eq.{1} (Set α) s t`（裸 `Eq` 默认 u=0，会被内核拒）；
+--   · lib.Logic：True/False/False.elim、Eq.symm/Eq.trans/Eq.subst/congrArg、
+--     And（intro/left/right/elim）、Or（构造子点号名 Or.inl/Or.inr）/Or.elim、
+--     Not/Not.intro/Not.elim、absurd、Iff（intro/mp/mpr/refl/symm/trans）；
+--   · lib.Set：Set/mem/subset/empty/univ/singleton/pair/union/inter/sdiff/compl/powerset、
+--     公理 Set.ext，以及展开引理 Set.mem_empty_iff_false · Set.notMem_empty ·
+--     Set.mem_univ · Set.mem_union · Set.mem_inter_iff · Set.mem_sdiff；
+--   · 本单元**不 import 别的单元**，也不借前几单元的结论：每条等式都从
+--     Set.ext 加逐元素 Iff 现场推出来（这正是本单元要练的手艺）。
+--
+-- 练习配额：X 类 4 条（形式↔散文互译，散文写在题面注释里）· T 类 2 条（项填空）·
+-- R 类 2 条（读·评译）—— 其中第 8 条承担本单元的 **D 类必破**：
+-- `(A ∪ B) \ B = A` 是**假**的，要给出反例并把"不相等"证出来。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+
+-- ─────────────────────────────────────────────────────────────
+-- 4.1 外延证明套路：要证两个集合相等，就逐元素证 Iff
+--
+--     A = B  ⟺  ∀ x, (x ∈ A ↔ x ∈ B)
+--
+-- 这就是公理 Set.ext 的形状。本单元后面每一条等式都走这一条路：
+-- 先 Set.ext 把集合等式换成"对任意 x 的 Iff"，再对 x 做命题逻辑。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好）：外延套路本身——逐元素 Iff 进，集合相等出。
+theorem demo_ext_pattern (α : Type) (A B : Set α) (h : forall (x : α), Iff (A x) (B x)) :
+    Eq.{1} (Set α) A B :=
+  Set.ext α A B h
+
+-- 演示（已写好）：X 类长什么样——散文「A 与全集的并还是全集」译成形式等式。
+theorem demo_union_univ (α : Type) (A : Set α) :
+    Eq.{1} (Set α) (Set.union α A (Set.univ α)) (Set.univ α) :=
+  Set.ext α (Set.union α A (Set.univ α)) (Set.univ α) (fun (x : α) =>
+    Iff.intro (Or (A x) (Set.mem α x (Set.univ α))) (Set.mem α x (Set.univ α))
+      (fun (h : Or (A x) (Set.mem α x (Set.univ α))) =>
+        Or.elim (A x) (Set.mem α x (Set.univ α)) (Set.mem α x (Set.univ α))
+          (fun (ha : A x) => Set.mem_univ α x)
+          (fun (hu : Set.mem α x (Set.univ α)) => hu)
+          h)
+      (fun (hu : Set.mem α x (Set.univ α)) =>
+        Or.inr (A x) (Set.mem α x (Set.univ α)) hu))
+
+-- 演示（已写好）：散文「A 去掉自己什么都不剩」译成形式等式。
+theorem demo_sdiff_self (α : Type) (A : Set α) :
+    Eq.{1} (Set α) (Set.sdiff α A A) (Set.empty α) :=
+  Set.ext α (Set.sdiff α A A) (Set.empty α) (fun (x : α) =>
+    Iff.intro (And (A x) (Not (A x))) (Set.mem α x (Set.empty α))
+      (fun (h : And (A x) (Not (A x))) =>
+        And.right (A x) (Not (A x)) h (And.left (A x) (Not (A x)) h))
+      (fun (hf : Set.mem α x (Set.empty α)) =>
+        And.intro (A x) (Not (A x)) (False.elim (A x) hf) (fun (ha : A x) => hf)))
+
+-- 练习 1（T 类）：并交换律。
+-- soko:hint 思路：集合等式先走外延，再把"两支谁在前"互换。
+-- soko:hint 目标形态：Eq.{1} (Set α) (Set.union α A B) (Set.union α B A)；逐元素是 Iff (Or (A x) (B x)) (Or (B x) (A x))。
+-- soko:hint 关键件：Set.ext 吃逐元素 Iff；两个方向都对 Or 用 Or.elim，左支交 Or.inr、右支交 Or.inl（构造子点号名，要写全两支的类型）。
+theorem union_comm (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) (Set.union α A B) (Set.union α B A) :=
+  sorry
+
+-- 练习 2（T 类）：交交换律。
+-- soko:hint 思路：与练习 1 同构，只是 Or 换成 And。
+-- soko:hint 目标形态：逐元素 Iff (And (A x) (B x)) (And (B x) (A x))。
+-- soko:hint 关键件：And.left / And.right 各取一支，再 And.intro 换序装回。
+theorem inter_comm (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) (Set.inter α A B) (Set.inter α B A) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 4.2 形式↔散文互译（X 类）怎么答
+--
+-- 题面给一条等式 + 一句中文散文（"并交分配律"这种）。要求两边互译：
+--   · 散文 → 形式：读注释里的那句话，说出它对应哪条等式（本题已替你写好签名）；
+--   · 形式 → 散文：证完之后能反过来把等式读成那句话（写在笔记里，不必进文件）。
+-- 判卷只看形式证明：签名不许动，把值位置上的空缺换成真的证明项。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 3（R 类：读·评译）：幂等律。
+--
+--   "一个集合与它自己的并、与它自己的交，都还是它自己。"
+--
+-- 请把这句话拆成两条等式（打包成一条 And 陈述），并证明。
+-- soko:hint 思路：散文里是"并与交两个动作各说一遍"——先用 And.intro 分成两条，每条各自走外延。
+-- soko:hint 目标形态：And (Eq.{1} (Set α) (Set.union α A A) A) (Eq.{1} (Set α) (Set.inter α A A) A)。
+-- soko:hint 关键件：并那条的逐元素目标是 Iff (Or (A x) (A x)) (A x)，两支同一目标；交那条是 Iff (And (A x) (A x)) (A x)，用 And.left 取一支即可。
+theorem union_inter_idem (α : Type) (A : Set α) :
+    And (Eq.{1} (Set α) (Set.union α A A) A) (Eq.{1} (Set α) (Set.inter α A A) A) :=
+  sorry
+
+-- 练习 4（X 类）：交对并分配律。
+--
+--   "交对并分配：A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C)。"
+--
+-- soko:hint 思路：外延之后两边都是复合命题——→ 方向对 B ∪ C 分情况，← 方向对 (A ∩ B) ∪ (A ∩ C) 分情况。
+-- soko:hint 目标形态：逐元素 Iff (And (A x) (Or (B x) (C x))) (Or (And (A x) (B x)) (And (A x) (C x)))。
+-- soko:hint 关键件：两次 Or.elim（第二支要先给出目标类型）；And.intro / And.left / And.right 拆装合取；→ 方向要先把交点里的 A x 取出来留用。
+theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
+    Eq.{1} (Set α) (Set.inter α A (Set.union α B C))
+      (Set.union α (Set.inter α A B) (Set.inter α A C)) :=
+  sorry
+
+-- 练习 5（X 类）：吸收律。
+--
+--   "吸收律：A ∪ (A ∩ B) = A——交出来的东西本来就在 A 里，并回去等于没加。"
+--
+-- soko:hint 思路：→ 方向从 A ∪ (A ∩ B) 出来只有两种可能，第二种自带 A x；← 方向把 A x 放进并的左支。
+-- soko:hint 目标形态：逐元素 Iff (Or (A x) (And (A x) (B x))) (A x)。
+-- soko:hint 关键件：Or.elim 的两个分支函数（第一支直接交出去，第二支用 And.left）；反方向用 Or.inl。
+theorem union_inter_self (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) (Set.union α A (Set.inter α A B)) A :=
+  sorry
+
+-- 练习 6（X 类）：差的差。
+--
+--   "(A \ B) \ C = A \ (B ∪ C)：先去掉 B 再去掉 C，等于一次去掉 B 与 C 的并。"
+--
+-- soko:hint 思路：两边展开都是"A x 加若干否定"；→ 方向要把 ¬B 与 ¬C 合成"连 B ∪ C 都不在"，← 方向反过来把那个否定拆给两支。
+-- soko:hint 目标形态：逐元素 Iff (And (And (A x) (Not (B x))) (Not (C x))) (And (A x) (Not (Or (B x) (C x))))。
+-- soko:hint 关键件：合取用 And.intro / And.left / And.right 拆装；把两个否定合成一个否定 = 对假设的 Or 做 Or.elim 得到 False；反过来是把 Or.inl / Or.inr 喂给这个否定。
+theorem sdiff_sdiff (α : Type) (A B C : Set α) :
+    Eq.{1} (Set α) (Set.sdiff α (Set.sdiff α A B) C)
+      (Set.sdiff α A (Set.union α B C)) :=
+  sorry
+
+-- 练习 7（X 类）：空集是并的单位元。
+--
+--   "A ∪ ∅ = A——把空集并进来，等于什么都没加。"
+--
+-- soko:hint 思路：→ 方向从 A ∪ ∅ 出来，右支是"x ∈ ∅"；← 方向走左支。
+-- soko:hint 目标形态：逐元素 Iff (Or (A x) (Set.mem α x (Set.empty α))) (A x)。
+-- soko:hint 关键件：Or.elim 第二支的目标可以由 False 得到（x ∈ ∅ 展开就是 False，用 False.elim）；反方向用 Or.inl。
+theorem union_empty (α : Type) (A : Set α) :
+    Eq.{1} (Set α) (Set.union α A (Set.empty α)) A :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 4.3 必破（D 类）：看起来像恒等式，其实是假的
+--
+-- 下面这句话在课堂上出现频率极高：
+--
+--   "(A ∪ B) \ B = A：把 A ∪ B 里属于 B 的部分抹掉，就回到 A。"
+--
+-- 请判断真假。若为假，就给出**反例**——并把"这两边确实不相等"落成下面这条
+-- 形式定理（反例已经固定在签名里：α = Nat、A = B = Set.univ Nat）。
+-- 提醒：否定一条集合等式 = 假设它成立、再推出 False（矛盾）。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（R/D 类：读·评译 + 证伪）。
+-- soko:hint 思路：这条**是假的**——A 与 B 相交时，(A ∪ B) \ B 会把 A 里落在 B 上的元素也一起抹掉；反例里左右差在哪个元素，就是矛盾的来源。
+-- soko:hint 目标形态：Not (Eq.{1} (Set Nat) (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)) (Set.univ Nat))，即"假设相等 → False"。
+-- soko:hint 关键件：intro 那个等式假设；用 Eq.symm + Eq.subst 把一个具体元素（Set.mem_univ Nat Nat.zero）沿假设搬到左边；左边展开后是 And … (Not …)，用 And.right 取出矛盾再应用一次。
+theorem union_sdiff_univ_ne_univ :
+    Not (Eq.{1} (Set Nat)
+      (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))
+      (Set.univ Nat)) :=
+  sorry

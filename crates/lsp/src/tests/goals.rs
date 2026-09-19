@@ -178,7 +178,8 @@ async fn goals_request_probes_one_level_nested_hole() {
     // 请求期探针填上 `g` 的定义域。
     let src = "axiom g : (a : Prop) -> Prop\n\
                axiom h : (b : Prop) -> Prop\n\
-               theorem t : Prop := h (g sorry)\n";
+               axiom P : Prop\n\
+               theorem t : P := h (g sorry)\n";
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     did_open(&mut service, src).await;
@@ -199,7 +200,9 @@ async fn goals_request_ids_holes_by_decl_and_order() {
     // id = "<declName>:<index>" (docs/protocol.md): named declarations use
     // their name; anonymous examples use the `example@<line>` name form
     // (render::decl_name); the index counts holes in offset order.
-    let src = "theorem named : Prop := sorry\nexample : Prop := sorry\n";
+    // G-01 起 `theorem` 的签名必须是**真命题**：`Eq.{1} Nat 0 0` 是 prelude 里
+    // 现成的命题，不用额外加声明（原来写的 `Prop` 会被内核拒）。
+    let src = "theorem named : Eq.{1} Nat 0 0 := sorry\nexample : Prop := sorry\n";
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     did_open(&mut service, src).await;

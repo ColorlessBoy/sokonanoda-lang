@@ -1,0 +1,32 @@
+-- 对照（不是缺口）：**今天的语法已经能写「集合论骨架」** [0.58.0 实测 10 checked / 0 failed]
+--
+-- 这个文件是「集合论课程可行性」的正向证据：Set 当谓词、隶属当应用、
+-- 子集当全称箭头、并集靠 inductive Or、传递性/并集左包含的证明都是
+-- 纯 term 写法（不需要任何新语法）。
+--
+-- 它同时是 G-01/G-04/G-05 的"如果修好了会长成什么样"的起点：
+-- 一旦有了 notation，`Set.subset α A B` 就写成 `A ⊆ B`；
+-- 一旦有了 namespace，`Set.mem` 里的 `Set.` 前缀就由 `namespace Set` + `open` 提供。
+
+axiom False : Prop
+axiom False.rec : (C : Prop) -> False -> C
+
+inductive Or (A B : Prop) : Prop
+ctor inl (a : A) : Or A B
+ctor inr (b : B) : Or A B
+end
+
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+def Set.empty (α : Type) : Set α := fun (x : α) => False
+def Set.union (α : Type) (A B : Set α) : Set α := fun (x : α) => Or (A x) (B x)
+def Set.power (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => Set.subset α B A
+
+theorem subset_trans (α : Type) (A B C : Set α) (h1 : Set.subset α A B) (h2 : Set.subset α B C) :
+    Set.subset α A C :=
+  fun (x : α) => fun (hx : A x) => h2 x (h1 x hx)
+
+-- 注意：构造子是**裸名** `inl`（`Or.inl` 是 G-02：构造子没有命名空间）。
+theorem subset_union_left (α : Type) (A B : Set α) : Set.subset α A (Set.union α A B) :=
+  fun (x : α) => fun (hx : A x) => inl (A x) (B x) hx

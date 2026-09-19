@@ -1,0 +1,2 @@
+-- P1: `axiom` 带 binder 参数表 → 静默解析失败（MCP `check` 报 ok:true / decl_checked 0）
+axiom Foo (α : Type) : Prop

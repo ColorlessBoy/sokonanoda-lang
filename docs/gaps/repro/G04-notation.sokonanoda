@@ -1,0 +1,28 @@
+-- G-04 最小复现：**用户自定义记法（notation / infix）**
+--
+-- 期望（官方 Lean 4 语义）：Lean 允许在文件里声明记法，集合论课程全靠它：
+--     infix:50 " ∈ " => mem
+--     notation "∅" => emptySet
+--     notation A " ⊆ " B => subset A B
+-- 官方 Lean 里这三条都是合法的 `notation`/`infix` 命令（`infix` 是 `notation` 的糖）。
+--
+-- 历史表现（0.58.0）：parse 阶段 `unexpected-token`，
+-- "expected a valid .sokonanoda token"。`ROADMAP.md:145` 把
+-- "notation / macro / typeclass / 完整 tactic" 明确写成"课程未到之前不进入白名单"——
+-- **集合论课程就是那个"课程到了"的时刻**。
+-- 后果：`Set.mem α a A` / `Set.subset α A B` 这种前缀写法要写满整本教材，
+-- 与纸笔数学（`a ∈ A`、`A ⊆ B`）的迁移成本极高。
+--
+-- 本轮已修（G-04 第一刀，设计 `docs/design/notation-subset.md`）：
+-- `infix:N` / `infixl:N` / `infixr:N` / `notation` 四条命令进入教学语法子集，
+-- 文件内声明、声明之后可用；符号是**独立 token**，与点名形式并存。
+-- 下面第 21 行起是**修复后的期望形状**：这份文件必须判卷干净（退出码 0 +
+-- 有 `decl.checked` + 无 diagnostic，见 `scripts/gap.py` 的判据）。
+-- 记法**不产生任何事件**（不是声明）——所以这里只有 `mem` 与 `use` 两条
+-- `decl.checked`，`infix` 那一行静默。
+
+def mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a
+
+infix:50 " ∈ " => mem
+
+def use (α : Type) (a : α) (A : α -> Prop) : Prop := a ∈ A

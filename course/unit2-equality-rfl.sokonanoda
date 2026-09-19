@@ -41,6 +41,19 @@ def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
 -- 自测：#reduce 会把证明项算到最简形状。
 #reduce demo_refl
 
+-- ─────────────────────────────────────────────────────────────
+-- prelude 现在自带等式与逻辑的整套骨架（官方 Lean core 级）：
+--   Eq.symm / Eq.trans / congrArg（等式的对称、传递、同函数搬运）
+--   True / False / And / Or / Not / absurd / Iff（真伪与联结词）
+-- 它们由语言 prelude 提供，**不需要你自己造**——练习 3、4 要你手写一遍，
+-- 是为了练 Eq.subst 的谓词设计，不是因为语言里缺这些东西。
+-- 下面这个演示直接用现成的 Eq.symm（与练习 3 是同一件事的两种写法）。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好，无需改动）：用 prelude 的 Eq.symm 证明对称，一行即可。
+def eq_symm_demo : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=
+  fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.symm.{1} Nat a b h
+
 -- 练习 1（热身）：定义 two : Nat。提示：写字面量 2，或写 1 + 1 都可以。
 -- soko:hint 思路：这个洞里放的不是证明，是一个类型为 Nat 的普通表达式。
 -- soko:hint 目标形态：目标就是 Nat 本身，没有箭头也没有假设——直接给值。
@@ -58,7 +71,7 @@ theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry
 -- 关键一步：subst 需要你**自己设计**谓词 p。取
 --   p := fun (x : Nat) => Eq.{1} Nat x a
 -- 于是 p a = “a = a”（用 Eq.refl 证），而 p b 恰好是目标“b = a”。
--- soko:hint 思路：没有现成的“对称”引理——要自己设计一个谓词 p，交给 Eq.subst 沿 h 替换。
+-- soko:hint 思路：本题练的是 Eq.subst 的谓词设计：自己设计一个 p，交给 subst 沿 h 替换。（prelude 的 Eq.symm 是它的现成版——上方 eq_symm_demo 就是；两种都写一遍对照。）
 -- soko:hint 目标形态：三层 fun 拿到 a、b、h 之后，目标是 b = a；选一个 p，让 p b 恰好是它、p a 又容易证。
 -- soko:hint 关键件：Eq.subst.{1} 按签名给全参数；p 的配方就是上方讲解里“x = a”的形状。
 theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry
@@ -66,7 +79,7 @@ theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a
 -- 练习 4（自己造“传递”）：从 a = b 和 b = c 推出 a = c。
 -- 配方同练习 3，但这次取 p := fun (x : Nat) => Eq.{1} Nat a x：
 -- 对 h2 : b = c 用 subst，p b = “a = b”（你的 h1 直接顶上），得到 p c = “a = c”。
--- soko:hint 思路：配方与“对称”完全一样，只是这次要串起两个等式——沿哪条 h 替换，决定 p 的形状。
+-- soko:hint 思路：配方与“对称”完全一样，只是这次要串起两个等式——沿哪条 h 替换，决定 p 的形状。（prelude 的 Eq.trans 是现成版，两种都写一遍对照。）
 -- soko:hint 目标形态：五层 fun 拿到 a、b、c、h1、h2 之后，目标是 a = c；选一个 p，让 p c 恰好是它、而 p b 正好是 h1 能证的。
 -- soko:hint 关键件：还是 Eq.subst.{1}——对 h2 : b = c 用 subst，谓词里 x 的位置填 a；p a 那头留给 h1。
 theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat)

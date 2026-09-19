@@ -1,0 +1,474 @@
+-- ==========================================================================
+-- unit12-synthesis.sokonanoda —— 卷 I 单元⑫ 综合与读证明（期末单元）
+--
+-- 靶子：Tao《Analysis I》§3 全书（§3.1 集合 · §3.3 关系与函数 · §3.4 像与原像 ·
+--       §3.6 等势与 Cantor——基数那一环由 12.3 的小项目补上）。
+-- 先修：单元①–⑪（本单元是它们的**综合**，不引入任何新概念）。
+--
+-- 概念顺序（本文件的编排）：
+--   12.0 演示（已写好，3 条）：关系复合结合律 · 单射假设的展开读法 · 复合算在点上
+--   12.1 形式↔散文互译（X 类 4 题）：散文写在题面注释里，形式版判卷通过
+--   12.2 给错证明找错 · 法证式评阅（R 类 3 题，其中第 7 题承担 D 类必破）
+--   12.3 期末小项目（P 类 2 题）：串起「集合 → 关系 → 函数 → 基数」的一条链
+--        （7 环：环 1–5 见 12.0–12.2，环 6 是等势演示，环 7 是基数收口题）
+--
+-- 练习配额：**X 4 · R 3 · P 2 = 9 题**（X = 题 1/2/3/4；R = 题 5/6/7；P = 题 8/9）。
+--
+-- **本单元只允许用**：
+--   · 语言子集：term 风格（`fun (x : A) => …`）或 by 块；tactic 只有
+--     intro / exact / apply / assumption / rfl / match / sorry；
+--   · 没有记法（G-04），一律点名：Set.mem α a A · Set.subset α A B ·
+--     Set.union α A B · Set.inter α A B · Set.compl α A · Set.empty α · Set.univ α ·
+--     Set.singleton α a · Set.image α β f A · Set.preimage α β f B ·
+--     Rel.comp A B C r s · Rel.inv A B r · Function.comp α β γ g f；
+--   · 等式必须显式宇宙：Eq.{1} α a b / Eq.refl.{1} / Eq.subst.{1}（裸 Eq 默认 u=0，会被内核拒）；
+--   · lib.Logic：True/False/False.elim、Eq.symm/Eq.trans/congrArg、And（intro/left/right/elim）、
+--     Or（构造子点号名 Or.inl/Or.inr）/Or.elim、Not、absurd、Iff（intro/mp/mpr/refl/symm/trans）；
+--   · lib.Set：Set 一族（含 12.3 基数环用到的 Set.powerset α A 与 Set.sdiff α A B）
+--     + 公理 Set.ext + 展开引理 Set.mem_empty_iff_false ·
+--     Set.notMem_empty · Set.mem_univ · Set.mem_singleton_iff · Set.mem_singleton_self ·
+--     Set.mem_union · Set.mem_inter_iff · Set.mem_sdiff · Set.mem_powerset_iff；
+--   · lib.Exists：Exists / Exists.intro / Exists.elim / Exists.imp；
+--   · lib.Equiv（本单元新增的 import，单元⑨ 的词汇）：四条条件 Set.MapsTo /
+--     Set.LeftInvOn / Set.RightInvOn · 等势 Set.Equiv · 构造子 Set.Equiv.mk
+--     （读法见 lib/Equiv.sokonanoda 文件头：**拿**数据靠 Exists.elim 两次，**造**数据靠 mk）；
+--   · lib.Rel：Rel / Rel.inv / Rel.comp / **公理 Rel.ext** / Rel.inv_apply · Rel.comp_apply ·
+--     Rel.inv_inv_apply；
+--   · lib.Fun：Function.comp / Injective / Surjective / Bijective / LeftInverse /
+--     RightInverse / Inverse 及它们的定义展开引理；
+--   · lib.Image：Set.image / Set.preimage 及 Set.mem_image · Set.mem_preimage ·
+--     Set.image_subset_iff · Set.image_mono。
+--   · 本单元**不 import 别的单元**（units/ 之间互相独立），也**不新建概念**（def /
+--     inductive / 公理一律不加；12.3 的环 6 是一条**演示定理**，不是新概念）：
+--     反例一律落在 `Set Nat` 上——∅ 与 univ 现成可分辨（Set.mem_univ 把 0 送进 univ，
+--     Set.notMem_empty 挡住 ∅），既不用新增归纳类型，也不需要 Decidable。
+--   · 语言里**不存在**的（别去找）：funext、propext、Classical.choice、Decidable、
+--     `have` / `obtain`；`let` 存在（term 位置 `let x : T := v; body`，能过内核），
+--     但本单元的子集不含它——卷 I 一律不用。四条后果：
+--       (a) 两个**函数**相等只能靠"两边展开后是同一个 λ"（定义相等），不许逐点证；
+--       (b) 两个**关系**相等用公理 Rel.ext 逐点证 Iff，两个**集合**相等用 Set.ext 逐点证 Iff；
+--       (c) 证明项里不能像 Lean 的 `have` 那样命名中间结果——每个证明项是一口气写完的
+--           （本单元题面因此偏长，读法见 12.2）；
+--       (d) **应用脊是平的**：一个参数本身若是应用（如 `Exists.elim …`），必须用括号
+--           把它整个包住；否则它会散成外层脊上的好几个参数（12.3 的长证明项靠这一条读）。
+--
+-- ── 两条"看起来对"的错证明（12.2 要评的对象；名字都是本课程真有的）──────────────
+--
+-- 【错证明 A】命题：对任意 f : α → β 与 C : Set β，有
+--                  Set.image α β f (Set.preimage α β f C) = C 。
+--   证明（**错**）：
+--     "→"：设 y ∈ f '' (f ⁻¹' C)。按 Set.mem_image 展开，存在 x 使 x ∈ f ⁻¹' C
+--          且 f x = y；按 Set.mem_preimage，x ∈ f ⁻¹' C 就是 f x ∈ C。
+--          沿 f x = y 用 Eq.subst 搬过去，得 y ∈ C。✓
+--     "←"：设 y ∈ C。**取 x 使 f x = y**（"y 的原像"），则 f x ∈ C，即 x ∈ f ⁻¹' C，
+--          于是 y = f x ∈ f '' (f ⁻¹' C)。✓
+--     两边互相包含，故相等。∎
+--
+-- 【错证明 B】命题：对任意 f : α → β 与 A B : Set α，有
+--                  Set.image α β f (Set.inter α A B)
+--                    = Set.inter β (Set.image α β f A) (Set.image α β f B) 。
+--   证明（**错**）：
+--     "→"：设 y ∈ f '' (A ∩ B)。存在 x ∈ A ∩ B 使 f x = y；由 Set.mem_inter_iff，
+--          x ∈ A 且 x ∈ B，于是 y 同时落在 f '' A 与 f '' B 里。✓
+--     "←"：设 y ∈ f '' A ∩ f '' B。存在 x1 ∈ A 与 x2 ∈ B 使 f x1 = y、f x2 = y。
+--          由 f x1 = y = f x2 **得 x1 = x2**，这个点既在 A 里又在 B 里，
+--          所以 y ∈ f '' (A ∩ B)。✓
+--     两边互相包含，故相等。∎
+--
+-- 评阅任务（12.2）：两条都**假**。错在"哪一条推理"上、反例长什么样，由下面三道题
+-- （练习 5、6、7）分别负责：改正版 + 证伪。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+import lib.Exists
+import lib.Equiv
+import lib.Rel
+import lib.Fun
+import lib.Image
+
+-- ─────────────────────────────────────────────────────────────
+-- 12.0 演示（已写好）：三条读法，后面 9 道题反复用
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示 1（已写好）：**关系复合结合律**——期末小项目那条链的第一环。
+-- 它是"两个方向的 ∃ 拆装"的样板：关系等式先用公理 Rel.ext 换成"逐点的 Iff"，
+-- 每个方向再用 Exists.elim 拆证人（Q 取目标那个 Exists）、Exists.intro 装回去。
+-- 注意两边**不是**定义相等：把 ∃ 从"先 c 后 b"换成"先 b 后 c"，是要证的数学内容。
+theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    Eq.{1} (Rel A D) (Rel.comp A C D (Rel.comp A B C r s) t)
+      (Rel.comp A B D r (Rel.comp B C D s t)) :=
+  Rel.ext A D (Rel.comp A C D (Rel.comp A B C r s) t)
+    (Rel.comp A B D r (Rel.comp B C D s t))
+    (fun (a : A) => fun (d : D) =>
+      Iff.intro
+        (Exists C (fun (c : C) =>
+          And (Exists B (fun (b : B) => And (r a b) (s b c))) (t c d)))
+        (Exists B (fun (b : B) =>
+          And (r a b) (Exists C (fun (c : C) => And (s b c) (t c d)))))
+        (fun (h : Exists C (fun (c : C) =>
+            And (Exists B (fun (b : B) => And (r a b) (s b c))) (t c d))) =>
+          Exists.elim C
+            (fun (c : C) =>
+              And (Exists B (fun (b : B) => And (r a b) (s b c))) (t c d))
+            (Exists B (fun (b : B) =>
+              And (r a b) (Exists C (fun (c2 : C) => And (s b c2) (t c2 d))))) h
+            (fun (c : C) =>
+              fun (hc : And (Exists B (fun (b : B) => And (r a b) (s b c))) (t c d)) =>
+                Exists.elim B (fun (b : B) => And (r a b) (s b c))
+                  (Exists B (fun (b : B) =>
+                    And (r a b) (Exists C (fun (c2 : C) => And (s b c2) (t c2 d)))))
+                  (And.left (Exists B (fun (b : B) => And (r a b) (s b c))) (t c d) hc)
+                  (fun (b : B) => fun (hb : And (r a b) (s b c)) =>
+                    Exists.intro B
+                      (fun (b2 : B) =>
+                        And (r a b2) (Exists C (fun (c2 : C) => And (s b2 c2) (t c2 d)))) b
+                      (And.intro (r a b)
+                        (Exists C (fun (c2 : C) => And (s b c2) (t c2 d)))
+                        (And.left (r a b) (s b c) hb)
+                        (Exists.intro C (fun (c2 : C) => And (s b c2) (t c2 d)) c
+                          (And.intro (s b c) (t c d)
+                            (And.right (r a b) (s b c) hb)
+                            (And.right (Exists B (fun (b2 : B) => And (r a b2) (s b2 c)))
+                              (t c d) hc)))))))
+        (fun (h : Exists B (fun (b : B) =>
+            And (r a b) (Exists C (fun (c : C) => And (s b c) (t c d))))) =>
+          Exists.elim B
+            (fun (b : B) => And (r a b) (Exists C (fun (c : C) => And (s b c) (t c d))))
+            (Exists C (fun (c : C) =>
+              And (Exists B (fun (b2 : B) => And (r a b2) (s b2 c))) (t c d))) h
+            (fun (b : B) =>
+              fun (hb : And (r a b) (Exists C (fun (c : C) => And (s b c) (t c d)))) =>
+                Exists.elim C (fun (c : C) => And (s b c) (t c d))
+                  (Exists C (fun (c : C) =>
+                    And (Exists B (fun (b2 : B) => And (r a b2) (s b2 c))) (t c d)))
+                  (And.right (r a b)
+                    (Exists C (fun (c : C) => And (s b c) (t c d))) hb)
+                  (fun (c : C) => fun (hc : And (s b c) (t c d)) =>
+                    Exists.intro C
+                      (fun (c2 : C) =>
+                        And (Exists B (fun (b2 : B) => And (r a b2) (s b2 c2))) (t c2 d)) c
+                      (And.intro (Exists B (fun (b2 : B) => And (r a b2) (s b2 c))) (t c d)
+                        (Exists.intro B (fun (b2 : B) => And (r a b2) (s b2 c)) b
+                          (And.intro (r a b) (s b c)
+                            (And.left (r a b)
+                              (Exists C (fun (c2 : C) => And (s b c2) (t c2 d))) hb)
+                            (And.left (s b c) (t c d) hc)))
+                        (And.right (s b c) (t c d) hc))))))
+
+-- 演示 2（已写好）：**单射假设怎么"读"**——`Function.Injective α β f` 展开后就是
+-- `forall x y, f x = f y -> x = y`，所以它本身就是"吃两个点加一条等式"的函数。
+-- 后面凡是手里有单射、又要用它降一层的地方（练习 3、练习 6）都是这个读法。
+theorem demo_injective_unpack (α β : Type) (f : α -> β)
+    (hf : Function.Injective α β f) :
+    forall (x : α), forall (y : α), Eq.{1} β (f x) (f y) -> Eq.{1} α x y :=
+  fun (x : α) => fun (y : α) => fun (h : Eq.{1} β (f x) (f y)) => hf x y h
+
+-- 演示 3（已写好）：**复合算在点上**——`Function.comp α β γ g f x` 就是 `g (f x)`
+-- （库里的 Function.comp_apply 是 rfl 级）。所以"复合相等"与"g (f x) = g (f y)"
+-- 定义上就是同一句话，用的时候不必先改写（练习 3 就靠这一条省掉一次搬运）。
+theorem demo_fun_comp_apply (α β γ : Type) (f : α -> β) (g : β -> γ) (x : α) :
+    Eq.{1} γ (Function.comp α β γ g f x) (g (f x)) :=
+  Function.comp_apply α β γ g f x
+
+-- ─────────────────────────────────────────────────────────────
+-- 12.1 形式↔散文互译（X 类 4 题）
+--
+-- 怎么答：题面给一句中文散文；签名里的形式版已经替你写好（不许改），
+-- 你要做的是"读懂它"，然后把值位置上的 sorry 换成真的证明项。
+-- 读法提示：散文里的"并且/或者/不是"对应 And/Or/Not，"存在"对应 Exists，
+-- "相等"要看成两个方向（Iff/Set.ext/Rel.ext）。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（X 类：形式↔散文互译）。散文：
+--
+--   「x 既不在 A 里、也不在 B 里」与「x 不在 A ∪ B 里」是同一句话。
+--
+-- （这就是 De Morgan 律在集合上的那一半；形式版已经在签名里。）
+-- soko:hint 思路：集合等式先走外延，再在同一个 x 上做命题逻辑——两个方向各是一次"否定与或"的拆装。
+-- soko:hint 目标形态：Eq.{1} (Set α) (Set.compl α (Set.union α A B)) (Set.inter α (Set.compl α A) (Set.compl α B))；逐元素是 Iff (Not (Or (A x) (B x))) (And (Not (A x)) (Not (B x)))。
+-- soko:hint 关键件：触发条件是"目标已经是逐元素 Iff"（Set.ext 只吃这个）；→ 方向把 Or.inl / Or.inr 分别喂给那个否定，← 方向对 Or (A x) (B x) 用 Or.elim 拆两支（目标取 False），两支分别交给 And.left / And.right。
+theorem xlat_compl_union (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) (Set.compl α (Set.union α A B))
+      (Set.inter α (Set.compl α A) (Set.compl α B)) :=
+  sorry
+
+-- 练习 2（X 类：形式↔散文互译）。散文：
+--
+--   「关系先复合、再取逆，等于把两个关系各自取逆、再按**相反的顺序**复合。」
+--
+-- （读法：Rel.comp A B C r s 里 r : Rel A B 先走、s : Rel B C 后走；Rel.inv 把两个
+--   参数对调。所以形式版右边先出现 s 的逆、后出现 r 的逆——顺序正是"相反"。）
+-- soko:hint 思路：两个关系相等只能用公理 Rel.ext 逐点证 Iff；把"逆"与"复合"都展开成 Exists 之后，剩下的只是 And 的两支换序。
+-- soko:hint 目标形态：Eq.{1} (Rel C A) (Rel.inv A C (Rel.comp A B C r s)) (Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r))；逐点是 Iff (Exists B (fun (b : B) => And (r a b) (s b c))) (Exists B (fun (b : B) => And (s b c) (r a b)))，其中参数顺序 c a 与 Rel.inv 对调有关。
+-- soko:hint 关键件：触发条件是"要证的是两个 Rel 相等"⇒ Rel.ext（它吃"每个 c a 的 Iff"）；每个方向一次 Exists.elim 拆证人（Q 取目标那个 Exists），再用 And.left / And.right 换序、Exists.intro 装回；展开可用 Rel.comp_apply / Rel.inv_apply，也可以直接让定义展开。
+theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    Eq.{1} (Rel C A) (Rel.inv A C (Rel.comp A B C r s))
+      (Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r)) :=
+  sorry
+
+-- 练习 3（X 类：形式↔散文互译）。散文：
+--
+--   「单射复合单射，还是单射。」
+--
+-- （先作用的 f : α → β，后作用的 g : β → γ；复合写作 Function.comp α β γ g f。）
+-- soko:hint 思路：单射是全称命题：先 intro 两个点，再 intro"它们在复合下相等"这条假设，然后从外到内用掉两个单射。
+-- soko:hint 目标形态：Function.Injective α γ (Function.comp α β γ g f)；intro 之后手里是 g (f x) = g (f y)（Function.comp 展开后的样子），目标是 x = y。
+-- soko:hint 关键件：触发条件是假设形如"复合相等"；`hg (f x) (f y) …` 把它降到 f x = f y，再交给 `hf x y …`——复合相等与 `g (f x) = g (f y)` 定义上相等，不必先搬运（见演示 2、演示 3）。
+theorem xlat_injective_comp (α β γ : Type) (f : α -> β) (g : β -> γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (Function.comp α β γ g f) :=
+  sorry
+
+-- 练习 4（X 类：形式↔散文互译）。散文：
+--
+--   「复合函数的原像，就是先把外层拉回来、再把内层拉回来。」
+--
+-- （Set.preimage α β f B 是回拉：x ∈ f ⁻¹' B 当且仅当 f x ∈ B。）
+-- soko:hint 思路：两边展开后逐点是同一个命题，不需要真的"推理"——外延加 Iff.refl 就够。
+-- soko:hint 目标形态：Eq.{1} (Set α) (Set.preimage α β f (Set.preimage β γ g C)) (Set.preimage α γ (Function.comp α β γ g f) C)；逐元素时两边都展开成 C (g (f x))。
+-- soko:hint 关键件：触发条件是"两边定义上相等"（Set.preimage 与 Function.comp 都是 λ）；Set.ext 之后逐元素交 Iff.refl 就行了（这是本单元唯一不用拆 Exists 的题）。
+theorem xlat_preimage_comp (α β γ : Type) (f : α -> β) (g : β -> γ) (C : Set γ) :
+    Eq.{1} (Set α) (Set.preimage α β f (Set.preimage β γ g C))
+      (Set.preimage α γ (Function.comp α β γ g f) C) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 12.2 给错证明找错 · 法证式评阅（R 类 3 题）
+--
+-- 评阅的规矩（本单元的训练目标）：
+--   1. 先判**真假**（假命题再漂亮的推理也是白搭）；
+--   2. 再定位**哪一条推理**坏了——要能指出"这一步用了一个没有的前提"；
+--   3. 最后给**改正版**（补上前提/换掉结论）或**反例**（把它形式化，判卷通过）。
+-- 上头【错证明 A】【错证明 B】就是评阅对象；练习 5、6 写改正版，练习 7 写证伪。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 5（R 类：读·评译 + 改正）。【错证明 A】的"←"方向靠的是
+--   "y ∈ C ⇒ 取 x 使 f x = y"——这一步需要 `C` 的每个点都在 f 的像里。
+-- 改正的做法就是**把这个前提摆到台面上**（签名里的 hC），再走两个方向。
+-- soko:hint 思路：先判 A 的错在哪：假的是"←"（反向）——它偷用了"C 里每个点都有原像"；把它写成参数 hC 之后，→ 方向照旧、← 方向由 hC 供料。
+-- soko:hint 目标形态：Eq.{1} (Set β) (Set.image α β f (Set.preimage α β f C)) C，前提 hC : Set.subset β C (Set.image α β f (Set.univ α))；逐元素是 Iff (Set.mem β y (Set.image α β f (Set.preimage α β f C))) (Set.mem β y C)。
+-- soko:hint 关键件：→ 方向用 Exists.elim 拆出 x 与 `And (x ∈ f ⁻¹' C) (f x = y)`，再用 Eq.subst 沿 `f x = y` 把 `x ∈ f ⁻¹' C` 搬到 y 上（注意搬的方向）；← 方向 `hC y hy` 本身就是目标那个 Exists（univ 那一支永远成立），装回像里时 **`f x = y` 与 `y ∈ C` 不能直接互换**，要用 Eq.subst（这一步正是错证明里被跳过的地方）。
+theorem fix_image_preimage (α β : Type) (f : α -> β) (C : Set β)
+    (hC : Set.subset β C (Set.image α β f (Set.univ α))) :
+    Eq.{1} (Set β) (Set.image α β f (Set.preimage α β f C)) C :=
+  sorry
+
+-- 练习 6（R 类：读·评译 + 改正）。【错证明 B】的"←"方向靠的是
+--   "f x1 = y 且 f x2 = y ⇒ x1 = x2"——这一步正是**单射**。
+-- 改正的做法：把缺的前提（签名里的 hf）补上，等号才是真的。
+-- soko:hint 思路：先指出坏掉的那一步是"f x1 = f x2 ⟹ x1 = x2"（那需要单射）；补上 hf 后，→ 方向照旧，← 方向用它把两个不同的原像捏成同一个。
+-- soko:hint 目标形态：Eq.{1} (Set β) (Set.image α β f (Set.inter α A B)) (Set.inter β (Set.image α β f A) (Set.image α β f B))，前提 hf : Function.Injective α β f；逐元素是 Iff (Set.mem β y (Set.image α β f (Set.inter α A B))) (And (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B)))。
+-- soko:hint 关键件：→ 方向把 `x ∈ A ∩ B` 用 And.left / And.right 拆给两个 Exists.intro；← 方向两次 Exists.elim（x1 ∈ A 与 x2 ∈ B 各一次，Q 都取目标那个 Exists），先由 `f x1 = y`、`f x2 = y` 经 Eq.trans / Eq.symm 凑出 `f x1 = f x2` 交给 hf，再用 Eq.subst 沿 `x2 = x1` 把 `B x2` 搬到 `B x1`，最后 And.intro 现装 `x1 ∈ A ∩ B`。
+theorem fix_image_inter (α β : Type) (f : α -> β) (A B : Set α)
+    (hf : Function.Injective α β f) :
+    Eq.{1} (Set β) (Set.image α β f (Set.inter α A B))
+      (Set.inter β (Set.image α β f A) (Set.image α β f B)) :=
+  sorry
+
+-- 练习 7（D 类：必破——判断真假并给反例）。请对【错证明 A】【错证明 B】的结论各判一次，
+-- 并把两个反例**形式化**成下面这条合取（签名不许改）：
+--   · 第一条反例：f 取常函数 `fun (_ : Set Nat) => Set.empty Nat`（把一切都送到 ∅），
+--     C 取 `Set.univ (Set Nat)`；此时 `Set.univ Nat` 是 C 的点，却**没有原像**；
+--   · 第二条反例：同一个 f，A 取 `Set.singleton (Set Nat) (Set.empty Nat)`、
+--     B 取 `Set.singleton (Set Nat) (Set.univ Nat)`；此时 A ∩ B = ∅，两个像却都含 ∅。
+-- 判词：两条等式**都假**（详情与"错在哪一步"写在上面 12.2 的评阅规矩里）。
+-- soko:hint 思路：每条都是 intro 一个等式假设、再从"某个元素被搬过去"造出 False：第一条用 `Set.univ Nat`（它不在像里），第二条用 `Set.empty Nat`（两个像的共同点）。
+-- soko:hint 目标形态：And (Not (Eq.{1} (Set (Set Nat)) (Set.image …(Set.preimage …(Set.univ (Set Nat)))) (Set.univ (Set Nat)))) (Not (Eq.{1} (Set (Set Nat)) (Set.image …(Set.inter …{∅}…{univ}…)) (Set.inter …(Set.image …{∅})…(Set.image …{univ})…)))；每个 Not 里要证的都是 False。
+-- soko:hint 关键件：触发条件是"等式两边只差一个具体元素"⇒ 先备好成员证据（第一条 `Set.mem_univ (Set Nat) (Set.univ Nat)`，第二条两个 Exists.intro + Eq.refl 打进 `∩`），再沿 `Eq.symm` 过的等式用 Eq.subst 搬成员关系，最后 Exists.elim 拆出"∅ 与 univ 撞上"：第一条用 Set.notMem_empty Nat 0 与 Set.mem_univ Nat 0，第二条由 `x = ∅`、`x = univ` 经 Eq.trans / Eq.symm 合成 ∅ = univ 再照第一条收尾。
+theorem flawed_equalities_refuted :
+    And
+      (Not (Eq.{1} (Set (Set Nat))
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.univ (Set Nat))))
+        (Set.univ (Set Nat))))
+      (Not (Eq.{1} (Set (Set Nat))
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+            (Set.singleton (Set Nat) (Set.univ Nat))))
+        (Set.inter (Set Nat)
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.singleton (Set Nat) (Set.empty Nat)))
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.singleton (Set Nat) (Set.univ Nat)))))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 12.3 期末小项目：串起「集合 → 关系 → 函数 → 基数」的一条链
+--
+-- 这条链由本文件里七个声明组成，一环扣一环（已经判卷通过的那些，你可以直接用它们的**读法**，
+-- 但小项目的两道题必须自己写完）：
+--   环 1（关系）  demo_rel_comp_assoc     ：关系复合的结合律（∃ 拆装的样板）
+--   环 2（关系）  练习 2 xlat_rel_inv_comp ：复合的逆 = 逆的反序复合
+--   环 3（函数）  demo_fun_comp_apply     ：复合算在点上（g ∘ f) x = g (f x)
+--   环 4（函数）  练习 3 xlat_injective_comp：单射在复合下封闭
+--   环 5（集合）  练习 4 xlat_preimage_comp：复合的原像 = 先拉后拉
+--   环 6（基数）  demo_equiv_comp（已写好，就在下面）：等势的复合仍是等势（单元⑨）
+--   环 7（基数）  练习 9 project_chain_cardinal：等势沿集合相等搬运（⑨）＋ Cantor（⑩）
+-- 收口题（练习 8）把前五环钉在一起：**函数的图像本身是关系**，
+-- 两个函数的图像做关系复合，得到的就是复合函数的图像（关系层）；
+-- 而复合函数的像，等于先取内层像、再取外层像（集合层）。
+-- 基数环（练习 9）把单元⑨⑩ 钉在一起：等势对"复合 / 沿相等搬运"是封闭的（环 6 与 9①），
+-- 但到幂集那一档就断了——`C'` 与 𝒫C' 永远不等势（练习 9②，这就是 Cantor 定理）。
+--
+-- 关于"是不是重复"（写作纪律：与已有练习撞车就改造成更综合的那条，不为凑数硬加）：
+--   环 6 确实与单元⑨ 练习 2 同题，所以它**不算新题、也不进配额**——它在画布上是
+--   **演示（已写好）**，作用只是把"用等势"的读法带到本单元（综合单元不引入新概念，
+--   但必须让读者手上有一份可用的等势数据）；
+--   环 7 那道题**不是**任何已有练习的复制：9① 是单元⑨ 练习 4（Set.equivOfEq）的
+--   跨论域 ＋ 真映射版（那里来回都是恒等映射，这里 h 的两把映射照用），9② 是单元⑩
+--   练习 4（Cantor）从 univ 推广到**任意** C' 的版本（对角线集要先用差集约束成子集，
+--   反向映射的域条件第一次真的用上）。理由都写在练习 9 的题面注释里。
+-- ─────────────────────────────────────────────────────────────
+
+-- 环 6（已写好）：**等势的复合仍是等势**——两条等势接起来还是等势。
+-- （单元⑨ 练习 2 证过它；这里在综合单元里重写一遍，作基数环的起点与"用等势"的样板。）
+-- 读法四条（与 lib/Equiv 文件头一致）：
+--   · **拿**等势只有一条路：Exists.elim 两次，把一对映射 (f, g) 与四条条件取出来
+--     （每层结论 `Set.Equiv α γ A C` 都不提证人，所以合法）；
+--   · **造**等势只有一条路：Set.Equiv.mk 吃"一对映射 + 四条条件"，顺序就是 ①②③④；
+--   · 复合时正向**先内后外**（f 去、f2 再去），反向**反序**（g2 回、g 再回）；
+--   · 两条互逆律的中间一步要 congrArg 把内层的等式推到外层映射下，再用 Eq.trans 接上。
+theorem demo_equiv_comp (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : Set.Equiv α β A B) (h2 : Set.Equiv β γ B C) :
+    Set.Equiv α γ A C :=
+  Exists.elim (α -> β)
+    (fun (f : α -> β) =>
+      And (Set.MapsTo α β f A B)
+        (Exists (β -> α) (fun (g : β -> α) =>
+          And (Set.MapsTo β α g B A)
+            (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+    (Set.Equiv α γ A C) h1
+    (fun (f : α -> β) =>
+      fun (hf : And (Set.MapsTo α β f A B)
+          (Exists (β -> α) (fun (g : β -> α) =>
+            And (Set.MapsTo β α g B A)
+              (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))) =>
+        Exists.elim (β -> α)
+          (fun (g : β -> α) =>
+            And (Set.MapsTo β α g B A)
+              (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))
+          (Set.Equiv α γ A C)
+          (And.right (Set.MapsTo α β f A B)
+            (Exists (β -> α) (fun (g : β -> α) =>
+              And (Set.MapsTo β α g B A)
+                (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))) hf)
+          (fun (g : β -> α) =>
+            fun (hg : And (Set.MapsTo β α g B A)
+                (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))) =>
+              Exists.elim (β -> γ)
+                (fun (f2 : β -> γ) =>
+                  And (Set.MapsTo β γ f2 B C)
+                    (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                      And (Set.MapsTo γ β g2 C B)
+                        (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)))))
+                (Set.Equiv α γ A C) h2
+                (fun (f2 : β -> γ) =>
+                  fun (hf2 : And (Set.MapsTo β γ f2 B C)
+                      (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                        And (Set.MapsTo γ β g2 C B)
+                          (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))))) =>
+                    Exists.elim (γ -> β)
+                      (fun (g2 : γ -> β) =>
+                        And (Set.MapsTo γ β g2 C B)
+                          (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)))
+                      (Set.Equiv α γ A C)
+                      (And.right (Set.MapsTo β γ f2 B C)
+                        (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                          And (Set.MapsTo γ β g2 C B)
+                            (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)))) hf2)
+                      (fun (g2 : γ -> β) =>
+                        fun (hg2 : And (Set.MapsTo γ β g2 C B)
+                            (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))) =>
+                          Set.Equiv.mk α γ A C
+                            (Function.comp α β γ f2 f)
+                            (Function.comp γ β α g g2)
+                            (fun (x : α) => fun (hx : Set.mem α x A) =>
+                              And.left (Set.MapsTo β γ f2 B C)
+                                (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                                  And (Set.MapsTo γ β g2 C B)
+                                    (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))))
+                                hf2 (f x)
+                                (And.left (Set.MapsTo α β f A B)
+                                  (Exists (β -> α) (fun (g : β -> α) =>
+                                    And (Set.MapsTo β α g B A)
+                                      (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))
+                                  hf x hx))
+                            (fun (z : γ) => fun (hz : Set.mem γ z C) =>
+                              And.left (Set.MapsTo β α g B A)
+                                (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))
+                                hg
+                                (g2 z)
+                                (And.left (Set.MapsTo γ β g2 C B)
+                                  (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))
+                                  hg2 z hz))
+                            (fun (x : α) => fun (hx : Set.mem α x A) =>
+                              Eq.trans.{1} α (g (g2 (f2 (f x)))) (g (f x)) x
+                                (congrArg.{1} β α g (g2 (f2 (f x))) (f x)
+                                  (And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)
+                                    (And.right (Set.MapsTo γ β g2 C B)
+                                      (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)) hg2)
+                                    (f x)
+                                    (And.left (Set.MapsTo α β f A B)
+                                      (Exists (β -> α) (fun (g : β -> α) =>
+                                        And (Set.MapsTo β α g B A)
+                                          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))
+                                      hf x hx)))
+                                (And.left (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)
+                                  (And.right (Set.MapsTo β α g B A)
+                                    (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)) hg)
+                                  x hx))
+                            (fun (z : γ) => fun (hz : Set.mem γ z C) =>
+                              Eq.trans.{1} γ (f2 (f (g (g2 z)))) (f2 (g2 z)) z
+                                (congrArg.{1} β γ f2 (f (g (g2 z))) (g2 z)
+                                  (And.right (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)
+                                    (And.right (Set.MapsTo β α g B A)
+                                      (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)) hg)
+                                    (g2 z)
+                                    (And.left (Set.MapsTo γ β g2 C B)
+                                      (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))
+                                      hg2 z hz)))
+                                (And.right (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)
+                                  (And.right (Set.MapsTo γ β g2 C B)
+                                    (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)) hg2)
+                                  z hz))))))
+
+-- 练习 8（P 类：期末小项目 · 收口）。两个合取：
+--   · 关系层：把 f 读成关系 `fun (a : α) => fun (b : β) => Eq.{1} β (f a) b`，
+--     把 g 读成 `fun (b : β) => fun (c : γ) => Eq.{1} γ (g b) c`；
+--     则两者的 Rel.comp 恰好是复合函数 `Function.comp α β γ g f` 的图像。
+--   · 集合层：`Set.image α γ (Function.comp α β γ g f) A`
+--               = `Set.image β γ g (Set.image α β f A)`。
+-- soko:hint 思路：两个合取各自"先 ext、再逐点拆 Exists"：关系那半用 Rel.ext（逐点 Iff 的两向就是 ∃ 的拆与装），集合那半用 Set.ext（← 方向要把外层的 b 与它的内层原像先后拆出来）。
+-- soko:hint 目标形态：And (Eq.{1} (Rel α γ) (Rel.comp α β γ (fun (a : α) => fun (b : β) => Eq.{1} β (f a) b) (fun (b : β) => fun (c : γ) => Eq.{1} γ (g b) c)) (fun (a : α) => fun (c : γ) => Eq.{1} γ (g (f a)) c)) (Eq.{1} (Set γ) (Set.image α γ (Function.comp α β γ g f) A) (Set.image β γ g (Set.image α β f A)))，用 And.intro 分成两块。
+-- soko:hint 关键件：关系那半：→ 方向 Exists.elim 拆出 b 与 `And (f a = b) (g b = c)`，用 congrArg 把 `f a = b` 抬过 g 再与 `g b = c` 经 Eq.trans 接起来；← 方向证人取 `f a`（两条证据一条是 Eq.refl）。集合那半：← 方向两次 Exists.elim（先拆 `b ∈ f '' A` 的 b，再拆 `b = f x` 的 x，Q 都取目标那个 Exists），最后 Exists.intro 交内层的 x；→ 方向证人取 `f x`。
+theorem project_chain (α β γ : Type) (f : α -> β) (g : β -> γ) (A : Set α) :
+    And
+      (Eq.{1} (Rel α γ)
+        (Rel.comp α β γ (fun (a : α) => fun (b : β) => Eq.{1} β (f a) b)
+          (fun (b : β) => fun (c : γ) => Eq.{1} γ (g b) c))
+        (fun (a : α) => fun (c : γ) => Eq.{1} γ (g (f a)) c))
+      (Eq.{1} (Set γ) (Set.image α γ (Function.comp α β γ g f) A)
+        (Set.image β γ g (Set.image α β f A))) :=
+  sorry
+
+-- 练习 9（P 类：期末小项目 · 基数环）。把单元⑨ 的等势与单元⑩ 的 Cantor 钉在一起，两半：
+--   · ① **搬运**：`h : A ≈ C` 与 `hC : C = C'` 给出 `A ≈ C'`。
+--     **这不是单元⑨ 练习 4 的重复**：那里两边同论域、来回都取恒等映射，要搬的只是成员关系；
+--     这里 h 给的那两把映射**照用**（不必重新挑映射），只有"落在哪一侧"的域条件沿 hC 搬家，
+--     两条互逆律原样交回——是那条练习的**跨论域 ＋ 真映射**版。
+--   · ② **天花板**：`C'` 与它的幂集 𝒫C' 不等势（⑩ 的对角线论证）。
+--     **这也不是单元⑩ 练习 4 的重复**：那里集合固定为 univ（对角线集直接写成
+--     `fun (y : γ) => Not (f y y)`）；这里集合是**任意** C'，于是对角线集必须先把自己约束成
+--     C' 的子集，才够格当 𝒫C' 的元素——差集 `Set.sdiff γ C' (fun (y : γ) => f y y)` 正好是这个
+--     形状；代价是反向映射的域条件**第一次真的用上**（它保证 `g D` 落在 C' 里，缺了它矛盾合不上）。
+-- 两半合起来说的一句话：等势对复合与搬运封闭，但对幂集永远差一档。
+-- soko:hint 思路：① 走"拆 h 拿两把映射、再 mk 重新打包"，只在成员关系上用 hC 搬三处；② 反证——假设有等势，取对角线集 D，用反向映射把它拉回一点，撞出"某个命题等于自己的否定"。
+-- soko:hint 目标形态：And (Set.Equiv α γ A C') (Not (Set.Equiv γ (Set γ) C' (Set.powerset γ C')))；② 拆开后目标是 False，手里有 f : γ -> Set γ、g : Set γ -> γ 与四条条件，对角线集取 D := Set.sdiff γ C' (fun (y : γ) => f y y)。
+-- soko:hint 关键件：① 触发条件是"两个集合只差一条等式"⇒ 成员关系用 Eq.subst 搬（motive 取 `fun (X : Set γ) => Set.mem γ z X`），反侧那一处先把 hC 用 Eq.symm 掉头；打包仍用 Set.Equiv.mk（两条互逆律不必动）。② D 属于 𝒫C' 的证据是一行 And.left（`D y` 展开就是 `And (C' y) (Not (f y y))`）；④号互逆律在 D 上给出 `f (g D) = D`，用 congrArg 把它作用到 `g D` 上，得到"`(f (g D)) (g D)` 与 `D (g D)` 相等"这条**命题等式**，再用 Eq.subst 两个方向互喂（`D (g D)` 展开后用 And.right 取否定那一半；反向映射的域条件给出 `C' (g D)`，正是 And.intro 缺的那一半）。
+theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
+    (h : Set.Equiv α γ A C) (hC : Eq.{1} (Set γ) C C') :
+    And
+      (Set.Equiv α γ A C')
+      (Not (Set.Equiv γ (Set γ) C' (Set.powerset γ C'))) :=
+  sorry

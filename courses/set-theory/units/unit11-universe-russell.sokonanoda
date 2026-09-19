@@ -1,0 +1,203 @@
+-- ==========================================================================
+-- unit11-universe-russell.sokonanoda —— 卷 I 单元⑪ 论域与 Russell 悖论
+--
+-- 靶子：Tao《Analysis》§3.2（Russell 悖论，标 Optional）+ epilogue（ZFSet 对照）。
+-- 概念顺序：概括公理为什么不能在类型论里写 → Russell 集 → 类型论的答案
+--           （每个类型有自己的全集 Set.univ α，所以「包含一切集合的集合」
+--           只在类型内成立）→ 与 ZF 的对照。
+--
+-- **本单元只允许用**：
+--   · 语言子集：`fun` / `intro` / `exact` / `apply` / `assumption` / `rfl` / `match`
+--     （项风格或 `by` 块都行）；没有记法（G-04），一律点名：
+--     Set.mem α a A · Set.subset α A B · Set.powerset α A · Set.univ α ·
+--     Set.empty α · Set.union α A B · Set.inter α A B；
+--   · 等式必须显式宇宙：`Eq.{1} (Set α) A B`（裸 `Eq` 默认 u=0，会被内核拒）；
+--   · lib.Logic：True/True.intro、False/False.elim、Eq.refl/Eq.symm/Eq.trans/
+--     Eq.subst/congrArg、And（intro/left/right/elim）、Or（构造子点号名 Or.inl/Or.inr）、
+--     Not/Not.intro/Not.elim、absurd、Iff（intro/mp/mpr/refl/symm/trans）；
+--   · lib.Set：Set/mem/subset/empty/univ/singleton/pair/union/inter/sdiff/compl/
+--     powerset、公理 Set.ext，以及展开引理 Set.mem_univ · Set.mem_powerset_iff ·
+--     Set.mem_empty_iff_false · Set.notMem_empty · Set.subset_def；
+--   · lib.Exists：Exists / Exists.intro / Exists.elim（真归纳，G-03 已修，0.59.0；
+--     点名用法与公理时代逐字相同）——「存在一个包含一切的集合」这句话只有靠它才写得出来；
+--   · 本单元不 import 别的单元，也不借前几单元的结论：用到的包含关系都在这里
+--     现推（演示 1 起头），这样单元⑪ 可以插在单元④ 之后的任何位置。
+--
+-- 演示 3 条（已写好、判卷通过）：subset_univ · univ_subset_iff · exists_univ。
+-- 练习 5 条：R 类 3 条（读·评译，第 1 条承担本单元的**必破**——判断真假并证伪）
+--           · X 类 2 条（形式 ↔ 散文互译，散文写在题面注释里）。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+import lib.Exists
+
+-- ─────────────────────────────────────────────────────────────
+-- 11.1 概括公理为什么在这里写不出来
+--
+-- 概括公理（comprehension axiom）说：给定任何性质 P，都有集合
+--
+--     { x | P x }
+--
+-- 把恰好满足 P 的对象装起来。Tao §3.2 的 Russell 论证取
+--
+--     P x := 「x 不属于 x」，
+--
+-- 得到 Ω = { x | x ∉ x }，然后问「Ω 属不属于 Ω」：答「属于」就说明 Ω 满足
+-- P，按定义它不该属于；答「不属于」就说明它不满足 P，按定义它该属于。
+--
+-- 这条论证在本语言里第一步就走不动。卡住的地方是记法：
+--
+--   · 集合是 `Set α`，也就是 `α -> Prop`：它总是**某个固定类型 α 的**谓词。
+--     隶属判定 `Set.mem α a A` 要求 a : α、A : Set α，两个参数的类型必须对上。
+--   · 于是「x ∈ x」要成立，同一个 x 得同时是 α 与 Set α——两个不同的类型，
+--     写不出来。Russell 集 { x | x ∉ x } 因此连**写**都写不出，更谈不上判真假。
+--   · 「一切集合」同样不是一个类型：Set α 与 Set β 是两个类型，Type 不是 Type。
+--     「存在一个集合包含一切集合」这句里的量词没有落脚的地方。
+--
+-- 类型论对「一切」的处置是**逐层给全集**：11.2 就是它。
+-- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+-- 11.2 类型论的答案：每个类型有自己的全集
+--
+-- `Set.univ α` 的定义是「不管来什么元素都答 True」，所以它是本类型里最大的
+-- 集合（最大元），也就是这个类型的论域（universe of discourse）。下面三条
+-- 把「最大」和「唯一」两件事做出来，第三条把 11.1 里写不出的那句话限制到
+-- 一个类型内，于是它变成真的。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示 1（已写好）：本类型里每个集合都被 univ 包含——univ 是「⊆」下的最大元。
+-- 目标展开是 ∀ x, A x → Set.univ α x，而 Set.univ α x 就是 True，
+-- 每个元素交 True.intro 即可（Set.mem_univ 正是这条）。
+theorem subset_univ (α : Type) (A : Set α) : Set.subset α A (Set.univ α) :=
+  fun (x : α) => fun (hx : A x) => Set.mem_univ α x
+
+-- 演示 2（已写好）：反方向也成立——能包含 univ 的集合只有 univ 自己。
+-- 两条合起来读：本类型内「包含一切集合的集合」只有一个，就是 univ。
+-- → 方向走 Set.ext，逐元素证 Iff (A x) (Set.univ α x)：左到右交 True.intro，
+-- 右到左把 h 用到 x 与 True.intro 上；← 方向把 x ∈ univ 沿 Eq.symm 搬回 A。
+theorem univ_subset_iff (α : Type) (A : Set α) :
+    Iff (Set.subset α (Set.univ α) A) (Eq.{1} (Set α) A (Set.univ α)) :=
+  Iff.intro (Set.subset α (Set.univ α) A) (Eq.{1} (Set α) A (Set.univ α))
+    (fun (h : Set.subset α (Set.univ α) A) =>
+      Set.ext α A (Set.univ α) (fun (x : α) =>
+        Iff.intro (A x) (Set.mem α x (Set.univ α))
+          (fun (ha : A x) => Set.mem_univ α x)
+          (fun (hu : Set.mem α x (Set.univ α)) => h x (Set.mem_univ α x))))
+    (fun (h : Eq.{1} (Set α) A (Set.univ α)) =>
+      fun (x : α) => fun (hu : Set.mem α x (Set.univ α)) =>
+        Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α x X)
+          (Set.univ α) A
+          (Eq.symm.{1} (Set α) A (Set.univ α) h)
+          (Set.mem_univ α x))
+
+-- 演示 3（已写好）：把 11.1 里那句话限制在**一个类型内**，它确实成立——
+-- 本类型内存在一个包含一切（本类型）集合的集合，证人就是 Set.univ α。
+-- 存在量词消去用 Exists.elim、构造用 Exists.intro，两项都要把类型与谓词写全。
+theorem exists_univ (α : Type) :
+    Exists (Set α) (fun (U : Set α) => forall (A : Set α), Set.subset α A U) :=
+  Exists.intro (Set α) (fun (U : Set α) => forall (A : Set α), Set.subset α A U)
+    (Set.univ α) (fun (A : Set α) => subset_univ α A)
+
+-- ─────────────────────────────────────────────────────────────
+-- 11.3 必破（D 类）：把「一切」放大到跨论域，或者加强成「严格更大」
+--
+-- 题面就是 Tao §3.2 的那句话：
+--
+--     「存在一个集合，它包含一切集合。」
+--
+-- 请分三层回答，答案本身就是这道题的收获：
+--
+--   ① 跨论域读法（「一切集合」= 所有类型的集合）：**写不出来**。集合总是
+--      `Set α`，量词必须先固定一个 α；没有一个类型能装下所有类型的集合。
+--   ② 类型内读法（「一切集合」= 本类型的集合）：**真**，就是演示 3。
+--   ③ 类型内，但把「包含」加强成「严格大于每个集合」：**假**。这就是练习 1，
+--      它的证明里藏着 Russell 论证的那一步——把候选者自己代进去。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（R/D 类：必破的证伪落点）。
+-- soko:hint 思路：要证一个 Not，先把里面的存在命题 intro 进来，再消去存在量词，拿到候选者 U 与它的承诺。
+-- soko:hint 目标形态：消去之后手上有 U : Set α 与 hU : ∀ A, A ⊆ U 且 A ≠ U，目标是 False。
+-- soko:hint 关键件：触发条件是「hU 对**每个**集合都成立，而 U 自己也是本类型的一个集合」；消去存在量词用 Exists.elim（结论位置写 False），矛盾那一击来自 And.right 与 Eq.refl.{1} (Set α) U。
+theorem no_univ_strictly_larger (α : Type) :
+    Not (Exists (Set α) (fun (U : Set α) =>
+      forall (A : Set α), And (Set.subset α A U) (Not (Eq.{1} (Set α) A U)))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 11.4 「一切集合」在类型论里的合法落点
+--
+-- 概括公理要的是「把满足性质 P 的对象收成一个集合」。类型论里能收的只有
+-- **本类型**的对象；要收「本类型的一切集合」，收出来的东西类型就升一层：
+--
+--     Set.powerset α (Set.univ α) : Set (Set α)
+--
+-- 它就是「一切集合的集合」在这里的合法读音：里面装着本类型的每个集合，
+-- 而它自己属于 Set (Set α)，不是 α 的元素。于是「它属不属于它自己」这句话
+-- 不成形。这里绕开 Russell 的办法就是让自指落不到类型上。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 2（R 类：读·评译）。
+-- soko:hint 思路：目标是「A 属于 𝒫(univ)」，而库里已经把幂集隶属换成了包含关系，先把这步换算用掉。
+-- soko:hint 目标形态：Set.mem (Set α) A (Set.powerset α (Set.univ α))，它展开后就是 Set.subset α A (Set.univ α)。
+-- soko:hint 关键件：触发条件是「目标形如 A ∈ 𝒫 B」；用 Set.mem_powerset_iff 换成 A ⊆ B，再把 A ⊆ univ 这一步交出去（演示 1，或就地 intro 后给 True.intro）。
+theorem mem_powerset_univ (α : Type) (A : Set α) :
+    Set.mem (Set α) A (Set.powerset α (Set.univ α)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 11.5 与 ZF 的对照：没有那个 V，只有一条类型阶梯
+--
+-- ZF 里没有「一切集合的集合」：V = { x | x = x } 是真类（proper class），
+-- 不是集合（Tao 的 epilogue 另起一套公理化的 ZF 集合论，Mathlib 里对应 ZFSet）。
+-- 本语言的处置不同：**每一层都有自己的全集**，没有一个「太大」的东西需要被
+-- 排除在集合之外——
+--
+--     Set.univ α              : Set α          （α 的一切元素）
+--     Set.univ (Set α)        : Set (Set α)    （α 的一切集合）
+--     Set.univ (Set (Set α))  : Set (Set (Set α))
+--
+-- 每一层的全集都是**上一层**的一个元素，所以「一切」这个词永远要先回答
+-- 「哪一层的一切」。（设计判断）这条阶梯与 ZF 的累积层做的是同一件事：
+-- 把「一切」分层。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 3（R 类：读·评译）。
+-- soko:hint 思路：本题问的是「Set α 的全集」在**上一层类型**里算不算成员，而上层的隶属判定由上一层的全集给出。
+-- soko:hint 目标形态：Set.mem (Set (Set α)) (Set.univ (Set α)) (Set.univ (Set (Set α)))，两边的东西都属于类型 Set (Set α)。
+-- soko:hint 关键件：触发条件是「目标是『某元素属于该类型的 Set.univ』」；用 Set.mem_univ，类型参数写 Set (Set α)，元素参数写 Set.univ (Set α)。
+theorem univ_mem_univ_of_sets (α : Type) :
+    Set.mem (Set (Set α)) (Set.univ (Set α)) (Set.univ (Set (Set α))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 11.6 形式 ↔ 散文互译（X 类）
+--
+-- 每题给一句中文，要求把它的形式版写出来并证明；证完再反过来把形式读回中文
+-- （反向那半写在笔记里就行，判卷只看形式证明）。签名已经替你写好，别改类型，
+-- 只把值位置上的 `sorry` 换成真的证明项。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（X 类）：把下面这句散文译成一条 And 陈述并证明。
+--
+--   「全集装得下每一个集合；反过来，装得下全集的集合只能是全集自己。」
+--
+-- soko:hint 思路：散文两个分句分别对应 And 的两支——第一支是包含，第二支是 Iff（互为条件），不是等式。
+-- soko:hint 目标形态：And (Set.subset α A (Set.univ α)) (Iff (Set.subset α (Set.univ α) A) (Eq.{1} (Set α) A (Set.univ α)))，逐元素展开都发生在第二支里面。
+-- soko:hint 关键件：And.intro 要吃齐四样（两个命题各写一遍，再交两个证明）；两个证明分别就是演示 1 与演示 2 的名字。
+theorem univ_top_iff (α : Type) (A : Set α) :
+    And (Set.subset α A (Set.univ α))
+        (Iff (Set.subset α (Set.univ α) A) (Eq.{1} (Set α) A (Set.univ α))) :=
+  sorry
+
+-- 练习 5（X 类）：把下面这句散文译成一条等式并证明。
+--
+--   「全集的幂集就是上一层的全集：本类型的每个集合都在它里面，而它自己
+--     到了上一层只是一个元素。」
+--
+-- soko:hint 思路：两边都是 Set (Set α) 的集合，用外延性把集合等式化成逐元素的 Iff，再分别对付两个方向。
+-- soko:hint 目标形态：Eq.{1} (Set (Set α)) (Set.powerset α (Set.univ α)) (Set.univ (Set α))，逐元素是 Iff (Set.subset α A (Set.univ α)) True。
+-- soko:hint 关键件：触发条件是「目标是两个 Set (Set α) 的等式」；用 Set.ext（第一个参数写 Set α），左到右一步到 True（Set.mem_univ），右到左要交出 A ⊆ univ（演示 1，或就地 intro 给 True.intro）。
+theorem powerset_univ_eq_univ_of_sets (α : Type) :
+    Eq.{1} (Set (Set α)) (Set.powerset α (Set.univ α)) (Set.univ (Set α)) :=
+  sorry

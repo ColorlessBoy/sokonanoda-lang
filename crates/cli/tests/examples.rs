@@ -71,7 +71,8 @@ fn every_example_lesson_is_a_valid_sokonanoda_file() {
         }
         if name == "py-nat.sokonanoda" {
             assert!(
-                stdout.contains("add two two => succ (succ (succ (succ zero)))"),
+                // 实测：规范名让源 `Nat` 的 succ 链走内核 NatRed 快路径。
+                stdout.contains("add two two => Nat.succ (Nat.succ (Nat.succ 1))"),
                 "nat lesson should reduce add two two:\n{stdout}"
             );
         }

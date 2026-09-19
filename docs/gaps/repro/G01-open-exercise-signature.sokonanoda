@@ -1,0 +1,19 @@
+-- G-01 最小复现：**开练习的签名不做类型检查**
+--
+-- 期望（官方 Lean 4 语义）：`theorem t9 : 3 := sorry` 里 `3 : Nat` 不是命题，
+-- `theorem` 的类型必须是 `Prop`（或消去到 Prop 的类型），Lean 会报
+-- "type mismatch / expected Prop"。也就是说：签名本身必须能 elaborate。
+--
+-- 修复前的表现（0.58.0 实测）：报 `exercise.open`，**0 条诊断**；
+-- `scripts/soko query goals` 还会给出一个 `⊢ 3` 的目标。
+-- 后果：>100 题的课程里，签名错字（改名、拼错引理）与"还没做"无法区分。
+--
+-- 修后预期（WO-004 / G-01，0.59.0）：`scripts/soko grade <本文件>`
+--   exit 1 · `{"type":"diagnostic","stage":"kernel","code":"kernel-expected-sort",
+--             "message":"rejected: expected a sort, got: Nat.[]", "span": 覆盖签名 `3`}`
+--   · **没有** `exercise.open`（签名不过 ⇒ 不是练习，`sorry` 救不回来）。
+-- 所以：本文件现在**应该**判红——它钉的是"签名受检"这个契约，不是"能过"。
+-- `scripts/gap.py check` 对本条修前修后都报「仍有失败」（判据是
+-- "干净判卷 **且** 有 decl.checked"，本文件两条都不满足），别误判成回退。
+
+theorem t9 : 3 := sorry

@@ -24,8 +24,9 @@ scripts/soko update
 scripts/soko version --json
 ```
 
-`update` 按 `Cargo.toml` 的版本强制重下 CLI + LSP 到缓存（幂等、跨平台、
-零 cargo）。**它的契约是"缓存被写成功"，所以：**
+`update` 按**版本钉**（`SOKONANODA_VERSION` → `sokonanoda-version.txt` →
+`sokonanoda.toml` 的 `requires`（完整 `x.y.z`）→ `Cargo.toml`）强制重下
+CLI + LSP 到缓存（幂等、跨平台、零 cargo）。**它的契约是"缓存被写成功"，所以：**
 
 - 写成功 → exit `0`，两个 `source` 是 `download(forced)`（或 `download`）；
 - **没写成功 → exit `3`**，stderr 打 `cache NOT refreshed` + 每个失败的

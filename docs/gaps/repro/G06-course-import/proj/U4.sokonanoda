@@ -1,0 +1,11 @@
+-- G-06 复现：单元画布 import 共享库并使用库里的定理。
+-- * 项目模式判卷（正确路径）：
+--     scripts/soko query check --file docs/gaps/repro/G06-course-import/proj/U4.sokonanoda --compact
+--   → 1 checked / 0 failed
+-- * 课程聚合（G-06 的落点；WO-007 之前 course 走单文件编译，`mythm` 解析不到）：
+--     scripts/soko course docs/gaps/repro/G06-course-import/course.json --json
+--   → 修前：checked:0 / failed:1；修后（WO-007）：checked:1 / failed:0
+import Lib2
+
+theorem use2 (A : Prop) (B : Prop) (h : And2 A B) : And2 A B :=
+  mythm A B h

@@ -35,10 +35,20 @@
 ## 1. `sokonanoda course <course.json>`
 
 - 输入：course.json（`[{file, title, unit}]`，相对 course.json 所在目录解析
-  单元文件路径）；
-- 对每个单元：`compile_fol_with(unit_src, Full)` 聚合
-  `decl.checked` / `exercise.open` / failed / `expr.reduced` 计数 + 单元
-  标题；单元文件缺失/解析失败 → `course.unit` 带 `"error"` 字段并继续；
+  单元文件路径；清单路径先 `canonicalize`，单元路径随之绝对化 ⇒ 不依赖 cwd）；
+- 对每个单元（as-built，WO-007 起）：
+  - **无 `import`**：`check::compile_cached(&file, src, options)`（单文件缓存键 =
+    源文本；输出逐字节不变）；
+  - **有 `import`**：`project_cache::plan/load` + `front::project::compile_plan`
+    ——与 `grade`/`query check`/`build` 同一份闭包、同一个模块根（入口最近的
+    `sokonanoda.toml`，否则 `course.json` 所在目录）与同一个 `ProjectPlan::digest`
+    摘要键；计数只取**入口模块**的事件，`failed` = 闭包内所有模块 `events.errors`
+    之和（项目级错误由 `attach_diagnostics` 挂进某个模块）⇒ `failed == 0` ⇔
+    `grade <该单元>` exit 0；
+  - prelude 模式一律按文件的 `-- sokonanoda:prelude` 指令（与 `check`/`query`/
+    `build` 一致；`courses/**`、`course/**` 今天都没有该指令）；
+  - 聚合 `decl.checked` / `exercise.open` / failed / `expr.reduced` 计数 + 单元
+    标题；单元文件缺失/解析失败 → `course.unit` 带 `"error"` 字段并继续；
 - 输出（JSON Lines，stdout）：
 
 ```json

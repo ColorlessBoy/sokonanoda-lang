@@ -1,0 +1,371 @@
+-- ==========================================================================
+-- unit06 解答钥匙（agent 专用）—— 卷 I 单元⑥ 关系
+--
+-- 与画布 courses/set-theory/units/unit06-relations.sokonanoda **同名一一对应**：
+-- 画布上 8 道练习（4 T + 2 L + 2 D）在这里全部填满（0 个 sorry）。
+-- 为了能独立判卷，本文件把画布上"给好的"东西也重复了一遍：
+--   三律与空关系的定义、3 条演示、等价类/划分的定义、ℕ 判别工具箱、反例关系 nearStep。
+--
+-- 判卷（一律绝对路径，G-12）：
+--   node scripts/soko grade "$PWD/courses/set-theory/units/solutions/unit06-solution.sokonanoda"
+-- ==========================================================================
+import lib.Logic
+import lib.Exists
+import lib.Set
+import lib.Rel
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.1 关系与三律（画布上给好的定义 + 3 条演示）
+-- ─────────────────────────────────────────────────────────────────────────
+def Reflexive (A : Type) (r : Rel A A) : Prop := forall (a : A), r a a
+
+def Symmetric (A : Type) (r : Rel A A) : Prop := forall (a b : A), r a b -> r b a
+
+def Transitive (A : Type) (r : Rel A A) : Prop := forall (a b c : A), r a b -> r b c -> r a c
+
+def EmptyRelation (A : Type) : Rel A A := fun (a b : A) => False
+
+theorem demo_eq_reflexive (A : Type) : Reflexive A (fun (a b : A) => Eq.{1} A a b) :=
+  fun (a : A) => Eq.refl.{1} A a
+
+theorem demo_empty_symmetric (A : Type) : Symmetric A (EmptyRelation A) :=
+  fun (a : A) => fun (b : A) => fun (h : EmptyRelation A a b) => h
+
+theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) :=
+  fun (a : A) => fun (b : A) => fun (c : A) =>
+    fun (h1 : EmptyRelation A a b) => fun (h2 : EmptyRelation A b c) => h1
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.2 练习 1（T）：逆的逆
+-- 逆换两次参数就回到原处，所以这是**定义等式**：证据就是 r 本身。
+-- ─────────────────────────────────────────────────────────────────────────
+theorem rel_inv_inv (A B : Type) (r : Rel A B) :
+    Eq.{1} (Rel A B) (Rel.inv B A (Rel.inv A B r)) r :=
+  Eq.refl.{1} (Rel A B) r
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.2 练习 2（T）：复合的结合律
+-- 两条复合不是定义等式（∃ 要先交换两个证人的出场顺序），所以必须请出 Rel.ext：
+-- 逐对 (a, d) 证 Iff，每个方向都做"拆 Exists → 换顺序 → 重新打包"。
+-- 注意 Exists.elim 的结论 Q 里不能出现被拆掉的证人——两个方向都满足。
+-- ─────────────────────────────────────────────────────────────────────────
+theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    Eq.{1} (Rel A D) (Rel.comp A B D r (Rel.comp B C D s t))
+        (Rel.comp A C D (Rel.comp A B C r s) t) :=
+  Rel.ext A D
+    (Rel.comp A B D r (Rel.comp B C D s t))
+    (Rel.comp A C D (Rel.comp A B C r s) t)
+    (fun (a : A) => fun (d : D) =>
+      Iff.intro
+        (Rel.comp A B D r (Rel.comp B C D s t) a d)
+        (Rel.comp A C D (Rel.comp A B C r s) t a d)
+        -- →：先拆出 b，再拆出 c，然后按 c、b 的顺序重新打包
+        (fun (h : Rel.comp A B D r (Rel.comp B C D s t) a d) =>
+          Exists.elim B
+            (fun (b : B) => And (r a b) (Rel.comp B C D s t b d))
+            (Rel.comp A C D (Rel.comp A B C r s) t a d)
+            h
+            (fun (b : B) => fun (hb : And (r a b) (Rel.comp B C D s t b d)) =>
+              Exists.elim C
+                (fun (c : C) => And (s b c) (t c d))
+                (Rel.comp A C D (Rel.comp A B C r s) t a d)
+                (And.right (r a b) (Rel.comp B C D s t b d) hb)
+                (fun (c : C) => fun (hc : And (s b c) (t c d)) =>
+                  Exists.intro C
+                    (fun (c2 : C) => And (Rel.comp A B C r s a c2) (t c2 d))
+                    c
+                    (And.intro
+                      (Rel.comp A B C r s a c)
+                      (t c d)
+                      (Exists.intro B
+                        (fun (b2 : B) => And (r a b2) (s b2 c))
+                        b
+                        (And.intro (r a b) (s b c)
+                          (And.left (r a b) (Rel.comp B C D s t b d) hb)
+                          (And.left (s b c) (t c d) hc)))
+                      (And.right (s b c) (t c d) hc)))))
+        -- ←：先拆出 c，再拆出 b，然后按 b、c 的顺序重新打包
+        (fun (h : Rel.comp A C D (Rel.comp A B C r s) t a d) =>
+          Exists.elim C
+            (fun (c : C) => And (Rel.comp A B C r s a c) (t c d))
+            (Rel.comp A B D r (Rel.comp B C D s t) a d)
+            h
+            (fun (c : C) => fun (hc : And (Rel.comp A B C r s a c) (t c d)) =>
+              Exists.elim B
+                (fun (b : B) => And (r a b) (s b c))
+                (Rel.comp A B D r (Rel.comp B C D s t) a d)
+                (And.left (Rel.comp A B C r s a c) (t c d) hc)
+                (fun (b : B) => fun (hb : And (r a b) (s b c)) =>
+                  Exists.intro B
+                    (fun (b2 : B) => And (r a b2) (Rel.comp B C D s t b2 d))
+                    b
+                    (And.intro (r a b) (Rel.comp B C D s t b d)
+                      (And.left (r a b) (s b c) hb)
+                      (Exists.intro C
+                        (fun (c2 : C) => And (s b c2) (t c2 d))
+                        c
+                        (And.intro (s b c) (t c d)
+                          (And.right (r a b) (s b c) hb)
+                          (And.right (Rel.comp A B C r s a c) (t c d) hc))))))))
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.3 练习 3（T）：逆保持传递（三律性质之一）
+-- Transitive A (Rel.inv A A r) 展开后是 `forall x y z, r y x -> r z y -> r z x`：
+-- 想得到 `r a c`，三个人依次填 c、b、a。两个方向的代码一样（这正是"逆"的作用）。
+-- ─────────────────────────────────────────────────────────────────────────
+theorem transitive_inv (A : Type) (r : Rel A A) :
+    Iff (Transitive A (Rel.inv A A r)) (Transitive A r) :=
+  Iff.intro (Transitive A (Rel.inv A A r)) (Transitive A r)
+    (fun (h : Transitive A (Rel.inv A A r)) => fun (a b c : A) =>
+      fun (hab : r a b) => fun (hbc : r b c) => h c b a hbc hab)
+    (fun (h : Transitive A r) => fun (a b c : A) =>
+      fun (hab : Rel.inv A A r a b) => fun (hbc : Rel.inv A A r b c) => h c b a hbc hab)
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.4 等价类（画布上给好的定义）
+-- ─────────────────────────────────────────────────────────────────────────
+def EquivClass (A : Type) (r : Rel A A) (a : A) : Set A := fun (x : A) => r a x
+
+-- 6.4 练习 4（T）：自己的元素在自己的等价类里 —— 展开后就是自反律 hrefl a。
+theorem mem_equivClass_self (A : Type) (r : Rel A A) (hrefl : Reflexive A r) (a : A) :
+    Set.mem A a (EquivClass A r a) :=
+  hrefl a
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.4 练习 5（L）：等价类相同 ⟺ 元素相关
+-- ←：Set.ext 逐元素；→ 用 hsymm，← 用 htrans。
+-- →：a 在自己的类里（练习 4），沿等式搬到 b 的类里得到 r b a，再 hsymm。
+-- ─────────────────────────────────────────────────────────────────────────
+theorem equivClass_eq_iff (A : Type) (r : Rel A A)
+    (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) (a b : A) :
+    Iff (Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b)) (r a b) :=
+  Iff.intro
+    (Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b))
+    (r a b)
+    (fun (h : Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b)) =>
+      hsymm b a
+        (Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A a X)
+          (EquivClass A r a) (EquivClass A r b) h (hrefl a)))
+    (fun (hab : r a b) =>
+      Set.ext A (EquivClass A r a) (EquivClass A r b)
+        (fun (x : A) => Iff.intro (r a x) (r b x)
+          (fun (hax : r a x) => htrans b a x (hsymm a b hab) hax)
+          (fun (hbx : r b x) => htrans a b x hab hbx)))
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.5 划分（画布上给好的定义）
+-- `classes A r` 是"等价类全体"：C 是某个 a 的等价类。
+-- `IsPartition` 三条：① 无空块；② 覆盖；③ **不相等就不交**（写成"不相等 ⇒ 无公共
+-- 元素"，而不是"或者相等或者不交"——后者要排中律，我们没有）。
+-- ─────────────────────────────────────────────────────────────────────────
+def classes (A : Type) (r : Rel A A) : Set (Set A) :=
+  fun (C : Set A) => Exists A (fun (a : A) => Eq.{1} (Set A) C (EquivClass A r a))
+
+def IsPartition (A : Type) (P : Set (Set A)) : Prop :=
+  And (forall (C : Set A), Set.mem (Set A) C P -> Not (Eq.{1} (Set A) C (Set.empty A)))
+      (And (forall (a : A),
+              Exists (Set A) (fun (C : Set A) =>
+                And (Set.mem (Set A) C P) (Set.mem A a C)))
+           (forall (C D : Set A), Set.mem (Set A) C P -> Set.mem (Set A) D P ->
+              Not (Eq.{1} (Set A) C D) ->
+              Not (Exists A (fun (x : A) => And (Set.mem A x C) (Set.mem A x D)))))
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.5 练习 6（L）：等价类构成划分（划分 ↔ 等价关系的一个方向）
+-- ① 拆开 `C ∈ classes`（一个 Exists）拿到 a 与 C = [a]；若 C = ∅，则 a ∈ [a] = ∅，
+--    撞 Set.notMem_empty。
+-- ② 覆盖：证人取 [a] 本身，它属于 classes（证人 a、证据 Eq.refl），且 a ∈ [a]。
+-- ③ 不交：拆两层 classes 拿到 a、b 与 C = [a]、D = [b]，再拆公共元素 x；
+--    r a x 与 r b x 经 hsymm/htrans 逼出 r a b，练习 5 把它变成 [a] = [b]，
+--    于是 C = D，与 hne 相撞。
+-- ─────────────────────────────────────────────────────────────────────────
+theorem classes_isPartition (A : Type) (r : Rel A A)
+    (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) :
+    IsPartition A (classes A r) :=
+  And.intro
+    (forall (C : Set A), Set.mem (Set A) C (classes A r) -> Not (Eq.{1} (Set A) C (Set.empty A)))
+    (And (forall (a : A),
+            Exists (Set A) (fun (C : Set A) =>
+              And (Set.mem (Set A) C (classes A r)) (Set.mem A a C)))
+         (forall (C D : Set A), Set.mem (Set A) C (classes A r) -> Set.mem (Set A) D (classes A r) ->
+            Not (Eq.{1} (Set A) C D) ->
+            Not (Exists A (fun (x : A) => And (Set.mem A x C) (Set.mem A x D)))))
+    -- ① 无空块
+    (fun (C : Set A) => fun (hC : Set.mem (Set A) C (classes A r)) =>
+      Exists.elim A
+        (fun (a : A) => Eq.{1} (Set A) C (EquivClass A r a))
+        (Not (Eq.{1} (Set A) C (Set.empty A)))
+        hC
+        (fun (a : A) => fun (ha : Eq.{1} (Set A) C (EquivClass A r a)) =>
+          fun (hEmpty : Eq.{1} (Set A) C (Set.empty A)) =>
+            let hEmpty2 : Eq.{1} (Set A) (EquivClass A r a) (Set.empty A) :=
+              Eq.trans.{1} (Set A) (EquivClass A r a) C (Set.empty A)
+                (Eq.symm.{1} (Set A) C (EquivClass A r a) ha) hEmpty;
+            let hBad : Set.mem A a (Set.empty A) :=
+              Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A a X)
+                (EquivClass A r a) (Set.empty A) hEmpty2 (hrefl a);
+            Set.notMem_empty A a hBad))
+    (And.intro
+      (forall (a : A),
+          Exists (Set A) (fun (C : Set A) =>
+            And (Set.mem (Set A) C (classes A r)) (Set.mem A a C)))
+      (forall (C D : Set A), Set.mem (Set A) C (classes A r) -> Set.mem (Set A) D (classes A r) ->
+         Not (Eq.{1} (Set A) C D) ->
+         Not (Exists A (fun (x : A) => And (Set.mem A x C) (Set.mem A x D))))
+      -- ② 覆盖
+      (fun (a : A) =>
+        Exists.intro (Set A)
+          (fun (C : Set A) => And (Set.mem (Set A) C (classes A r)) (Set.mem A a C))
+          (EquivClass A r a)
+          (And.intro
+            (Set.mem (Set A) (EquivClass A r a) (classes A r))
+            (Set.mem A a (EquivClass A r a))
+            (Exists.intro A
+              (fun (a2 : A) => Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r a2))
+              a (Eq.refl.{1} (Set A) (EquivClass A r a)))
+            (hrefl a)))
+      -- ③ 不相等就不交
+      (fun (C D : Set A) =>
+        fun (hC : Set.mem (Set A) C (classes A r)) =>
+        fun (hD : Set.mem (Set A) D (classes A r)) =>
+        fun (hne : Not (Eq.{1} (Set A) C D)) =>
+        fun (hCommon : Exists A (fun (x : A) => And (Set.mem A x C) (Set.mem A x D))) =>
+          Exists.elim A
+            (fun (a : A) => Eq.{1} (Set A) C (EquivClass A r a))
+            False
+            hC
+            (fun (a : A) => fun (ha : Eq.{1} (Set A) C (EquivClass A r a)) =>
+              Exists.elim A
+                (fun (b : A) => Eq.{1} (Set A) D (EquivClass A r b))
+                False
+                hD
+                (fun (b : A) => fun (hb : Eq.{1} (Set A) D (EquivClass A r b)) =>
+                  Exists.elim A
+                    (fun (x : A) => And (Set.mem A x C) (Set.mem A x D))
+                    False
+                    hCommon
+                    (fun (x : A) => fun (hx : And (Set.mem A x C) (Set.mem A x D)) =>
+                      let rax : r a x :=
+                        Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A x X)
+                          C (EquivClass A r a) ha
+                          (And.left (Set.mem A x C) (Set.mem A x D) hx);
+                      let rbx : r b x :=
+                        Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A x X)
+                          D (EquivClass A r b) hb
+                          (And.right (Set.mem A x C) (Set.mem A x D) hx);
+                      let rab : r a b := htrans a x b rax (hsymm b x rbx);
+                      let hab : Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b) :=
+                        Iff.mpr
+                          (Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b))
+                          (r a b)
+                          (equivClass_eq_iff A r hrefl hsymm htrans a b)
+                          rab;
+                      let hCD : Eq.{1} (Set A) C D :=
+                        Eq.trans.{1} (Set A) C (EquivClass A r b) D
+                          (Eq.trans.{1} (Set A) C (EquivClass A r a) (EquivClass A r b) ha hab)
+                          (Eq.symm.{1} (Set A) D (EquivClass A r b) hb);
+                      hne hCD)))))
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.6 D 类：ℕ 判别工具箱（画布上给好的工具）
+-- 官方 Lean 里"两个不同的构造子不相等"由自动生成的 `Nat.noConfusion` 一步给出；
+-- 我们的 prelude 里没有这类判别工具（Nat 只有 Nat.zero / Nat.succ / Nat.rec 与原生 Nat.add），
+-- 所以手写两件：
+--   · Nat.isZero：把 0 与 succ 分开的 Prop 值判别器（配合 Eq.subst 用）；
+--   · Nat.pred：succ 的前驱（配合 congrArg 得到 succ 的单射性）。
+-- ─────────────────────────────────────────────────────────────────────────
+def Nat.isZero (n : Nat) : Prop := match n with
+| zero => True
+| succ m => False
+
+def Nat.pred (n : Nat) : Nat := match n with
+| zero => Nat.zero
+| succ m => m
+
+theorem Nat.zero_ne_succ (n : Nat) : Not (Eq.{1} Nat 0 (Nat.succ n)) :=
+  fun (h : Eq.{1} Nat 0 (Nat.succ n)) =>
+    Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
+
+theorem Nat.succ.inj (a b : Nat) (h : Eq.{1} Nat (Nat.succ a) (Nat.succ b)) : Eq.{1} Nat a b :=
+  congrArg.{1} Nat Nat Nat.pred (Nat.succ a) (Nat.succ b) h
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.6 D 类用的反例关系：ℕ 上"相差不超过 1"（实数上"距离 < 1"的离散版）
+-- ─────────────────────────────────────────────────────────────────────────
+def nearStep (a b : Nat) : Prop :=
+  Or (Eq.{1} Nat a b) (Or (Eq.{1} Nat (Nat.succ a) b) (Eq.{1} Nat a (Nat.succ b)))
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.6 练习 7（D）：自反 + 对称 ⇏ 传递（反例：nearStep）
+-- 自反：第一个析取项 a = a。对称：三个析取项分别换边（第一个用 Eq.symm）。
+-- 非传递：假设传递，作用在 0、1、2 上得到 nearStep 0 2，再逐条否掉它的三个析取项。
+-- ─────────────────────────────────────────────────────────────────────────
+theorem nearStep_counterexample :
+    And (Reflexive Nat nearStep)
+        (And (Symmetric Nat nearStep) (Not (Transitive Nat nearStep))) :=
+  And.intro (Reflexive Nat nearStep)
+    (And (Symmetric Nat nearStep) (Not (Transitive Nat nearStep)))
+    (fun (a : Nat) =>
+      Or.inl (Eq.{1} Nat a a)
+        (Or (Eq.{1} Nat (Nat.succ a) a) (Eq.{1} Nat a (Nat.succ a)))
+        (Eq.refl.{1} Nat a))
+    (And.intro (Symmetric Nat nearStep) (Not (Transitive Nat nearStep))
+      (fun (a b : Nat) => fun (h : nearStep a b) =>
+        Or.elim (Eq.{1} Nat a b)
+          (Or (Eq.{1} Nat (Nat.succ a) b) (Eq.{1} Nat a (Nat.succ b)))
+          (nearStep b a)
+          (fun (hab : Eq.{1} Nat a b) =>
+            Or.inl (Eq.{1} Nat b a)
+              (Or (Eq.{1} Nat (Nat.succ b) a) (Eq.{1} Nat b (Nat.succ a)))
+              (Eq.symm.{1} Nat a b hab))
+          (fun (h2 : Or (Eq.{1} Nat (Nat.succ a) b) (Eq.{1} Nat a (Nat.succ b))) =>
+            Or.elim (Eq.{1} Nat (Nat.succ a) b) (Eq.{1} Nat a (Nat.succ b))
+              (nearStep b a)
+              (fun (h2a : Eq.{1} Nat (Nat.succ a) b) =>
+                Or.inr (Eq.{1} Nat b a)
+                  (Or (Eq.{1} Nat (Nat.succ b) a) (Eq.{1} Nat b (Nat.succ a)))
+                  (Or.inr (Eq.{1} Nat (Nat.succ b) a) (Eq.{1} Nat b (Nat.succ a))
+                    (Eq.symm.{1} Nat (Nat.succ a) b h2a)))
+              (fun (h2b : Eq.{1} Nat a (Nat.succ b)) =>
+                Or.inr (Eq.{1} Nat b a)
+                  (Or (Eq.{1} Nat (Nat.succ b) a) (Eq.{1} Nat b (Nat.succ a)))
+                  (Or.inl (Eq.{1} Nat (Nat.succ b) a) (Eq.{1} Nat b (Nat.succ a))
+                    (Eq.symm.{1} Nat a (Nat.succ b) h2b)))
+              h2)
+          h)
+      (fun (htrans : Transitive Nat nearStep) =>
+        let notNear02 : Not (nearStep 0 2) :=
+          fun (h : nearStep 0 2) =>
+            Or.elim (Eq.{1} Nat 0 2) (Or (Eq.{1} Nat 1 2) (Eq.{1} Nat 0 3)) False
+              (fun (h02 : Eq.{1} Nat 0 2) => Nat.zero_ne_succ 1 h02)
+              (fun (h2 : Or (Eq.{1} Nat 1 2) (Eq.{1} Nat 0 3)) =>
+                Or.elim (Eq.{1} Nat 1 2) (Eq.{1} Nat 0 3) False
+                  (fun (h12 : Eq.{1} Nat 1 2) =>
+                    Nat.zero_ne_succ 0 (Nat.succ.inj 0 1 h12))
+                  (fun (h03 : Eq.{1} Nat 0 3) => Nat.zero_ne_succ 2 h03)
+                  h2)
+              h;
+        let p01 : nearStep 0 1 :=
+          Or.inr (Eq.{1} Nat 0 1)
+            (Or (Eq.{1} Nat (Nat.succ 0) 1) (Eq.{1} Nat 0 (Nat.succ 1)))
+            (Or.inl (Eq.{1} Nat (Nat.succ 0) 1) (Eq.{1} Nat 0 (Nat.succ 1))
+              (Eq.refl.{1} Nat 1));
+        let p12 : nearStep 1 2 :=
+          Or.inr (Eq.{1} Nat 1 2)
+            (Or (Eq.{1} Nat (Nat.succ 1) 2) (Eq.{1} Nat 1 (Nat.succ 2)))
+            (Or.inl (Eq.{1} Nat (Nat.succ 1) 2) (Eq.{1} Nat 1 (Nat.succ 2))
+              (Eq.refl.{1} Nat 2));
+        notNear02 (htrans 0 1 2 p01 p12)))
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.6 练习 8（D）：对称 + 传递 ⇏ 自反
+-- 反例：**非空**论域（取 Nat）上的空关系——两条前提空洞成立，自反却要求真有元素。
+-- 演示 2、3 正是那两条前提（对任意 A 成立），这里实例化到 Nat。
+-- ─────────────────────────────────────────────────────────────────────────
+theorem not_symm_trans_implies_refl :
+    Not (forall (A : Type) (r : Rel A A),
+      Symmetric A r -> Transitive A r -> Reflexive A r) :=
+  fun (h : forall (A : Type) (r : Rel A A),
+      Symmetric A r -> Transitive A r -> Reflexive A r) =>
+    h Nat (EmptyRelation Nat)
+      (demo_empty_symmetric Nat) (demo_empty_transitive Nat) 0

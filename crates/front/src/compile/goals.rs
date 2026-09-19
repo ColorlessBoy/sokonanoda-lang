@@ -8,7 +8,7 @@
 //!
 //! 全部产物只是**建议**：判定永远由完整内核在填洞后终审（REQUIREMENTS §2 第 8 条）。
 
-use super::prelude::{CompileOptions, PreludeMode, PRELUDE_EQ_SRC};
+use super::prelude::{l1_family_of, CompileOptions, PreludeMode, PRELUDE_EQ_SRC, PRELUDE_L1_SRC};
 use super::report::{GoalBinder, SubGoal};
 use crate::ast::MatchArm;
 use crate::judge::{judge_infer_with, GoalBinderSpec};
@@ -39,6 +39,9 @@ struct FuncTemplate {
 struct CtorTemplate {
     /// 构造子自身名字（`And.intro`），refine 骨架用。
     name: String,
+    /// R1 的**规范名**（`Pair.mk`）：骨架显示它，解析靠别名兜底（R2）。
+    /// 源内 axiom 视图没有安装名（它就是自己），此时与 `name` 相同。
+    canonical_name: String,
     binder_names: Vec<String>,
     binder_tys: Vec<Option<Expr>>,
     result_arg_names: Vec<Option<String>>,
@@ -74,39 +77,68 @@ impl GoalTemplates {
                 }
             }
         }
+        // L1 同法（设计 §4.1）：按**同样的让位规则**吃 L1 源文本，否则
+        // `refine`/`intro` 建议里没有 `And.intro`/`Or.inl`。
+        //
+        // 闭包级 vs 单文件（as-built 的边界，设计 §4.1 标为"中风险"）：
+        // `new_for` 拿到的是**本单元的命令表**，而让位是**闭包级**的
+        // （`run_pass` 的 `taken` 取整个闭包）。这里的 `file` 在项目模式下
+        // 已经是"拓扑序在它之前的单元 + 它自己"的**合成命令表**
+        // （`check/mod.rs` 的 `all_templates`），所以依赖模块占用的族照样
+        // 会让位——单文件与项目两种口径因此一致。
+        if options.prelude == PreludeMode::Full {
+            let taken = file_owns_l1(file);
+            if let Ok(parsed) = crate::parse(PRELUDE_L1_SRC) {
+                for command in &parsed.commands {
+                    match command {
+                        Command::InductiveBlock {
+                            name, constructors, ..
+                        } => {
+                            if l1_family_of(name).is_none()
+                                || super::prelude::family_yields_by_name(name, &taken)
+                            {
+                                continue;
+                            }
+                            templates.insert_inductive_block(name, constructors);
+                        }
+                        Command::Axiom {
+                            name, universe, ty, ..
+                        } => {
+                            if l1_family_of(name).is_none()
+                                || super::prelude::family_yields_by_name(name, &taken)
+                            {
+                                continue;
+                            }
+                            templates.insert_func(name, universe, ty);
+                        }
+                        Command::Def {
+                            name,
+                            universe,
+                            ty,
+                            val,
+                            ..
+                        } => {
+                            if l1_family_of(name).is_none()
+                                || super::prelude::family_yields_by_name(name, &taken)
+                            {
+                                continue;
+                            }
+                            templates.insert_def_func(name, universe, ty, Some(val.clone()));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
         for command in &file.commands {
             match command {
                 Command::InductiveBlock {
                     name, constructors, ..
                 } => {
-                    for ctor in constructors {
-                        let binder_names = ctor.binders.iter().map(|b| b.name.clone()).collect();
-                        let binder_tys = ctor
-                            .binders
-                            .iter()
-                            .map(|b| b.ty.as_deref().cloned())
-                            .collect();
-                        templates.ctors.entry(name.clone()).or_insert(CtorTemplate {
-                            name: ctor.name.clone(),
-                            binder_names,
-                            binder_tys,
-                            result_arg_names: Vec::new(),
-                        });
-                        templates.funcs.insert(
-                            ctor.name.clone(),
-                            FuncTemplate {
-                                universe: Vec::new(),
-                                binder_names: ctor.binders.iter().map(|b| b.name.clone()).collect(),
-                                binder_tys: ctor
-                                    .binders
-                                    .iter()
-                                    .map(|b| b.ty.as_deref().cloned())
-                                    .collect(),
-                                result_ty: None,
-                                def_body: None,
-                            },
-                        );
-                    }
+                    // `funcs` 同时按源名（`mk`）与规范名（`Pair.mk`）登记；
+                    // 裸名歧义时（两个 `ctor mk`）不登记裸名键——那时裸名
+                    // 根本不可解析，模板也不该假装能解析（R2）。
+                    templates.insert_inductive_block(name, constructors);
                 }
                 Command::Def {
                     name,
@@ -151,6 +183,7 @@ impl GoalTemplates {
                                 .collect();
                             templates.ctors.entry(head).or_insert(CtorTemplate {
                                 name: name.clone(),
+                                canonical_name: name.clone(),
                                 binder_names,
                                 binder_tys,
                                 result_arg_names,
@@ -166,6 +199,44 @@ impl GoalTemplates {
 
     fn insert_func(&mut self, name: &str, universe: &[String], ty: &Expr) {
         self.insert_def_func(name, universe, ty, None);
+    }
+
+    /// 归纳块 → `ctors`/`funcs` 两个索引（与 `new_for` 里 `Command::InductiveBlock`
+    /// 分支逐字同规则）。抽出来是因为 L1 prelude 的 `And`/`Or` 也要走它。
+    fn insert_inductive_block(&mut self, name: &str, constructors: &[crate::CtorDecl]) {
+        for ctor in constructors {
+            let canonical = super::elab::canonical_ctor_name(name, &ctor.name);
+            let binder_names = ctor.binders.iter().map(|b| b.name.clone()).collect();
+            let binder_tys = ctor
+                .binders
+                .iter()
+                .map(|b| b.ty.as_deref().cloned())
+                .collect();
+            self.ctors.entry(name.to_string()).or_insert(CtorTemplate {
+                name: ctor.name.clone(),
+                canonical_name: canonical.clone(),
+                binder_names,
+                binder_tys,
+                result_arg_names: Vec::new(),
+            });
+            let func = FuncTemplate {
+                universe: Vec::new(),
+                binder_names: ctor.binders.iter().map(|b| b.name.clone()).collect(),
+                binder_tys: ctor
+                    .binders
+                    .iter()
+                    .map(|b| b.ty.as_deref().cloned())
+                    .collect(),
+                result_ty: None,
+                def_body: None,
+            };
+            if !ctor.name.contains('.') && !self.funcs.contains_key(&canonical) {
+                self.funcs
+                    .entry(ctor.name.clone())
+                    .or_insert_with(|| func.clone());
+            }
+            self.funcs.insert(canonical, func);
+        }
     }
 
     /// def/theorem/axiom 共用：剥望远镜存层，def 另存体；结果 = 望远镜
@@ -214,6 +285,33 @@ fn file_owns_eq(file: &FolFile) -> bool {
         | Command::InductiveBlock { name, .. } => EQ_NAMES.contains(&name.as_str()),
         _ => false,
     })
+}
+
+/// 文件占用的**闭包级**顶层名字集合，用于让 L1 模板复现同一条让位规则
+/// （`install_l1_prelude` 的 `taken` 口径：`top_level_def_spans_over` 的键集，
+/// 含构造子与递归子）。
+fn file_owns_l1(file: &FolFile) -> std::collections::HashSet<String> {
+    let mut taken: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for command in &file.commands {
+        match command {
+            Command::Def { name, .. }
+            | Command::Theorem { name, .. }
+            | Command::Axiom { name, .. }
+            | Command::InductiveBlock { name, .. } => {
+                taken.insert(name.clone());
+            }
+            _ => {}
+        }
+        if let Command::InductiveBlock {
+            name, constructors, ..
+        } = command
+        {
+            for ctor in constructors {
+                taken.insert(super::elab::canonical_ctor_name(name, &ctor.name));
+            }
+        }
+    }
+    taken
 }
 
 /// The walk's answer for an open exercise: the remaining goal (rendered), the
@@ -476,6 +574,10 @@ pub(crate) fn expr_has_hole(e: &Expr) -> bool {
                     arm.guard.as_ref().is_some_and(expr_has_hole) || expr_has_hole(&arm.body)
                 })
         }
+        // 记号节点（G-04 / WO-011）：洞可以在操作数里。
+        Expr::Notation { lhs, rhs, .. } => {
+            lhs.as_deref().is_some_and(expr_has_hole) || rhs.as_deref().is_some_and(expr_has_hole)
+        }
         _ => false,
     }
 }
@@ -524,6 +626,15 @@ fn collect_hole_spans(e: &Expr, out: &mut Vec<Span>) {
                     collect_hole_spans(guard, out);
                 }
                 collect_hole_spans(&arm.body, out);
+            }
+        }
+        // 记号节点（G-04 / WO-011）：洞可以在操作数里。
+        Expr::Notation { lhs, rhs, .. } => {
+            if let Some(lhs) = lhs {
+                collect_hole_spans(lhs, out);
+            }
+            if let Some(rhs) = rhs {
+                collect_hole_spans(rhs, out);
             }
         }
         _ => {}
@@ -699,6 +810,26 @@ pub(crate) fn substitute_names(
         }
         Expr::Num { .. } | Expr::Hole { .. } => expr.clone(),
         Expr::By { .. } => expr.clone(), // by 块在 elab 前已降级，不应出现在此
+        // 记号节点（G-04 / WO-011）：只深代换操作数（符号与目标名不是名字）。
+        Expr::Notation {
+            symbol,
+            target,
+            assoc,
+            lhs,
+            rhs,
+            ..
+        } => Expr::Notation {
+            symbol: symbol.clone(),
+            target: target.clone(),
+            assoc: *assoc,
+            lhs: lhs
+                .as_ref()
+                .map(|e| Box::new(substitute_names(e, map, levels))),
+            rhs: rhs
+                .as_ref()
+                .map(|e| Box::new(substitute_names(e, map, levels))),
+            span: expr.span(),
+        },
         Expr::Match {
             scrutinee,
             arms,
@@ -827,6 +958,22 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             span,
         },
         Expr::By { tactics, .. } => Expr::By { tactics, span },
+        // 记号节点（G-04 / WO-011）：换根 span，保留符号/目标/结合性与操作数。
+        Expr::Notation {
+            symbol,
+            target,
+            assoc,
+            lhs,
+            rhs,
+            ..
+        } => Expr::Notation {
+            symbol,
+            target,
+            assoc,
+            lhs,
+            rhs,
+            span,
+        },
     }
 }
 
@@ -881,8 +1028,11 @@ fn ctor_spine_case(
     let (val_head, val_args) = spine_head_args(val)?;
     let (ty_head, ty_args) = spine_head_args(ty)?;
     let template = templates.ctors.get(&ty_head)?;
-    // 值的头必须是该族的构造子（如目标头 `And` ↔ 构造子 `And.intro`）。
-    if template.name != val_head || val_args.len() > template.binder_names.len() {
+    // 值的头必须是该族的构造子（如目标头 `And` ↔ 构造子 `And.intro`）；
+    // R3：源名与规范名两种拼写都认（迁移期两种都能跑）。
+    if (template.name != val_head && template.canonical_name != val_head)
+        || val_args.len() > template.binder_names.len()
+    {
         return None;
     }
     let mut holes = Vec::new();
@@ -1134,7 +1284,7 @@ fn refine_template_for(ty: &Expr, templates: &GoalTemplates) -> Option<String> {
     if !any_hole {
         return None; // the goal is fully determined; nothing to refine
     }
-    Some(format!("{} {}", template.name, args.join(" ")))
+    Some(format!("{} {}", template.canonical_name, args.join(" ")))
 }
 
 /// 依赖 `match` 的 goal 走查：取局部变量 `x` 在上下文里的书写类型

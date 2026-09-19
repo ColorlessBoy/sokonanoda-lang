@@ -1,0 +1,29 @@
+-- G-14 最小复现：**宇宙层级 binder 只吃一个花括号组**
+-- G-18 同场复现（本文件第 3 段）：`def f.{u}` 被静默解析成名字 `f.`，声明消失且不报错。
+--
+-- 期望（官方 Lean 4 语义）：`def f {u v} …` / `def f {u} {v} …` / `def f {u, v} …`
+-- 三种拼写等价；跨宇宙的 `congrArg`、`Function.comp`、`Set.image` 都靠它。
+--
+-- ── 修后状态（本文件在 G-14/G-18 修好后必须判卷通过）────────────────────
+-- 判据（scripts/gap.py 的 .sokonanoda 口径）：exit 0 + 有 decl.checked + **无 diagnostic**。
+-- 下面三条都是**修后应有的形状**，所以本文件在缺口复发时会立刻重新变红：
+--   * ① `{u v}`（同组空格分隔）——修前 parse `unexpected-token`
+--     "声明 binder 需要显式类型…found LBrace"（`universe_params_ahead` 见到 `u` 后面
+--     不是 `,`/`}` 就返回 false）；
+--   * ② `{u} {v}`（连排两组）——修前第二组没处放，同样报错；
+--   * ③ `{u, v}`（同组逗号分隔）——修前就能过，留作防回归；
+--   * ④（负例，注释掉的）`def f.{u} …`——修前被静默吃成名字 `f.` 并 checked（G-18）。
+--     这条**不能**写成本文件里的真实声明：修后它是 parse 错误，会把整份复现染红。
+--     它由 `crates/front/src/parser.rs` 的 `def_cannot_end_with_a_dot` 与
+--     `crates/cli/tests/cli.rs` 的 `cli_universe_param_name_cannot_end_with_a_dot` 钉死。
+--
+-- 用法（仓库根）：scripts/soko grade docs/gaps/repro/G14-single-universe-binder.sokonanoda
+
+def id_comma_levels {u, v} (α : Sort u) (β : Sort v) (a : α) : α := a
+
+def id_two_levels {u v} (α : Sort u) (β : Sort v) (a : α) : α := a
+
+def id_split_levels {u} {v} (α : Sort u) (β : Sort v) (a : α) : α := a
+
+-- ④ G-18 负例（修后必须报 parse 错，报错文案含「声明名不许以 `.` 结尾」）：
+-- def f.{u} (α : Sort u) : α -> α := fun a => a

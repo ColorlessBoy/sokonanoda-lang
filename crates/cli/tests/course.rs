@@ -85,7 +85,7 @@ fn event_counts(out: &std::process::Output) -> (usize, usize, usize, usize, usiz
 /// golden update.
 const GOLDEN: &[(&str, (usize, usize, usize))] = &[
     ("unit1-propositions-proofs.sokonanoda", (13, 6, 1)),
-    ("unit2-equality-rfl.sokonanoda", (2, 5, 2)),
+    ("unit2-equality-rfl.sokonanoda", (3, 5, 2)),
     ("unit3-functions-arrows.sokonanoda", (2, 6, 2)),
     ("unit4-by-tactics.sokonanoda", (13, 5, 0)),
     ("unit5-universes-sort.sokonanoda", (0, 6, 1)),

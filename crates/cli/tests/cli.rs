@@ -274,6 +274,100 @@ fn cli_untyped_decl_binder_is_a_parse_error() {
 }
 
 #[test]
+fn cli_axiom_decl_binders_compile() {
+    // WO-008 / G-13：axiom 的参数表（1/2/3/4 号写法）+ 一条 `:= sorry` 练习
+    // + 一条消费该公理的闭合定理，全部要走内核判过（比结果，不比文本）。
+    // 注意判据是**内核**：闭命题直接重推会被内核展开成 `Sort(0)`，所以消费
+    // 定理一律把命题放在前提里（与既有 `cli_decl_binders_compile_and_open` 同款）。
+    // G-01 起开练习的签名也受检：`Baz α β` 是 Type（`Sort 1`），不是 Prop
+    // ⇒ 练习位用 `def`（`theorem` 只接命题，与 checked 路径同判）。
+    let src = "axiom Foo (α : Type) : Prop\n\
+               axiom Bar {α : Type} : Prop\n\
+               axiom Baz (α β : Type) : Sort 1\n\
+               axiom Qux {u} (α : Sort u) : Prop\n\
+               theorem use_foo (α : Type) (h : Foo α) : Foo α := h\n\
+               def practice (α β : Type) : Baz α β := sorry\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "axiom declaration binders must compile:\n{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for name in ["Foo", "Bar", "Baz", "Qux", "use_foo"] {
+        assert!(
+            stdout.contains(&format!("checked declaration {name}")),
+            "missing checked {name}: {stdout}"
+        );
+    }
+    assert!(stdout.contains("exercise open"), "{stdout}");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(!stderr.contains("error[parse]"), "stderr: {stderr}");
+}
+
+#[test]
+fn cli_axiom_untyped_decl_binder_is_a_parse_error() {
+    let out = run("axiom Foo (α) : Prop\n");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("显式类型"), "stderr: {stderr}");
+}
+
+#[test]
+fn cli_axiom_curried_forms_still_compile() {
+    // 防回归：7/8/9 号写法（柯里化 + 宇宙参数 + 无 binder）逐字不变。
+    let src = "axiom Foo : (α : Type) -> Prop\n\
+               axiom Bar {u} : (α : Sort u) -> Prop\n\
+               axiom Plain : Prop\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for name in ["Foo", "Bar", "Plain"] {
+        assert!(
+            stdout.contains(&format!("checked declaration {name}")),
+            "{stdout}"
+        );
+    }
+}
+
+#[test]
+fn cli_space_separated_and_split_universe_params_compile() {
+    // WO-009 表 3/4/9/11：{u v} / {u} {v} 在 def/theorem/axiom 上都要过。
+    let src = "def idTwo {u v} (α : Sort u) (β : Sort v) (a : α) : α := a\n\
+               theorem thmTwo {u v} (α : Sort u) (β : Sort v) (a : α) :\
+               Eq.{u} α a a := Eq.refl.{u} α a\n\
+               axiom AxTwo {u} {v} : Sort u\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("checked declaration idTwo"), "{stdout}");
+    assert!(stdout.contains("checked declaration thmTwo"), "{stdout}");
+    assert!(stdout.contains("checked declaration AxTwo"), "{stdout}");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(!stderr.contains("error[parse]"), "stderr: {stderr}");
+}
+
+#[test]
+fn cli_universe_param_name_cannot_end_with_a_dot() {
+    // G-18：`def f.{u}` 曾把名字静默吃成 `f.`；现在必须报 parse 错。
+    let out = run("def f.{u} (α : Sort u) : α -> α := fun a => a\n");
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("声明名"), "stderr: {stderr}");
+    assert!(stderr.contains("error[parse]"), "stderr: {stderr}");
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(!stdout.contains("checked declaration f."), "{stdout}");
+}
+
+#[test]
 fn cli_untyped_lambda_binder_is_inferred_from_the_argument() {
     // I6：应用位置的 `fun x => …` 从实参类型推断 binder（kernel-backed）。
     let src = "\
@@ -499,7 +593,8 @@ fn cli_checks_ported_nat_fol_and_reduces_add() {
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("checked declaration add"));
-    assert!(stdout.contains("add two two => succ (succ (succ (succ zero)))"));
+    // 实测（规范名让源 `Nat` 的 succ 链走内核 NatRed 快路径 ⇒ 混合表示）。
+    assert!(stdout.contains("add two two => Nat.succ (Nat.succ (Nat.succ 1))"));
 }
 
 #[test]
@@ -853,6 +948,102 @@ fn eq_prelude_is_available_by_default() {
     assert!(String::from_utf8_lossy(&out.stdout).contains("checked declaration refl_two"));
 }
 
+// ---- L1 prelude（docs/design/prelude-l1-proposal.md P2）：CLI e2e ----
+
+/// 只用 L1 名字、且不自己声明任何 L1 名字的文件（否则整族让位）。
+const L1_E2E_SRC: &str = "\
+def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := And.intro b a hb ha
+def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h
+def l1_iff (a b : Prop) (h : Iff a b) : b -> a := Iff.mpr a b h
+def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := absurd a b ha hna
+def l1_true : True := True.intro
+def l1_eq_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h
+def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat (f a) (f b) :=
+  congrArg.{1} Nat Nat f a b h
+";
+
+#[test]
+fn l1_prelude_is_available_in_full_mode() {
+    let out = run_args(&["--json"], Some(L1_E2E_SRC));
+    assert!(
+        out.status.success(),
+        "L1 prelude must install by default: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let events = json_events(&String::from_utf8_lossy(&out.stdout));
+    let checked = events
+        .iter()
+        .filter(|e| e["type"] == "decl.checked")
+        .count();
+    assert_eq!(checked, 7, "every L1 probe declaration must be checked");
+}
+
+#[test]
+fn l1_prelude_is_absent_under_bare_flag() {
+    let out = run_args(&["--bare"], Some(L1_E2E_SRC));
+    assert!(!out.status.success(), "Bare mode must not install L1");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[elab-unknown-identifier]:"),
+        "bare mode must report unknown identifiers: {stderr}"
+    );
+}
+
+#[test]
+fn l1_prelude_is_absent_under_the_bare_directive() {
+    let out = run(&format!("-- sokonanoda:prelude none\n{L1_E2E_SRC}"));
+    assert!(
+        !out.status.success(),
+        "the bare directive must not install L1"
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[elab-unknown-identifier]:"),
+        "the bare directive must report unknown identifiers: {stderr}"
+    );
+}
+
+/// 同一份文件的两个视图必须一致：`query check` 的 `decl_checked` 与事件流。
+#[test]
+fn l1_query_check_counts_match_the_event_stream() {
+    let path = std::env::temp_dir().join(format!(
+        "sokonanoda-cli-l1-{}-{}.sokonanoda",
+        std::process::id(),
+        TEMP_HOME_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::write(&path, L1_E2E_SRC).expect("write L1 canvas");
+    let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .args([
+            "query",
+            "check",
+            "--file",
+            path.to_str().expect("utf-8 path"),
+            "--compact",
+        ])
+        .env("SOKONANODA_CACHE_DIR", cache_dir("l1-query"))
+        .output()
+        .expect("run query check");
+    assert!(
+        out.status.success(),
+        "query check must answer: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let value: serde_json::Value =
+        serde_json::from_slice(&out.stdout).expect("query check emits one JSON object");
+    let stream = run_args(&["--json"], Some(L1_E2E_SRC));
+    let events = json_events(&String::from_utf8_lossy(&stream.stdout));
+    let checked = events
+        .iter()
+        .filter(|e| e["type"] == "decl.checked")
+        .count();
+    assert_eq!(
+        value["data"]["counts"]["decl_checked"].as_u64().unwrap() as usize,
+        checked,
+        "query check and --json must agree on decl.checked for L1"
+    );
+    let _ = std::fs::remove_file(&path);
+}
+
 // ---- 内核错误分类学：kernel-* 细粒度错误码（e2e）----
 
 #[test]
@@ -1088,7 +1279,79 @@ fn cli_accepts_bool_with_auto_derived_recursor() {
         stdout.contains("checked declaration not"),
         "stdout: {stdout}"
     );
-    assert!(stdout.contains("=> ff"), "stdout: {stdout}");
+    assert!(stdout.contains("=> Bool.ff"), "stdout: {stdout}");
+}
+
+#[test]
+fn cli_accepts_prop_inductive_with_type_parameter() {
+    // G-03 / WO-006：`inductive Bar (A : Type) : Prop` + `ctor mk (a : A)`。
+    // 派生 recursor 的宇宙参数必须**逐字镜像**内核 `large_elim_test`：
+    // `a` 不是参数也不是索引 ⇒ 不 large eliminate ⇒ recursor 无宇宙参数、
+    // motive 落在 `Prop`。修前内核拒（`left:1/right:0`）。
+    let src = "inductive Bar (A : Type) : Prop\n\
+         ctor mk (a : A) : Bar A\n\
+         end\n\
+         #check Bar.rec\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "a Prop inductive with a Type parameter must compile: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // 签名断言：`#check Bar.rec` 的输出里 motive 落在 `Prop`（不是 `Sort u`）。
+    // 这是本缺口的本质——recursor 的**形状**，不是"声明得过"。
+    assert!(
+        stdout.contains("motive : Bar A -> Prop"),
+        "the derived recursor's motive must land in Prop: {stdout}"
+    );
+    assert!(
+        !stdout.contains("Sort u"),
+        "the derived recursor must not be universe-polymorphic: {stdout}"
+    );
+}
+
+#[test]
+fn cli_prop_recursor_without_universe_parameter_computes() {
+    // 同一条块上再走一次 `match`：0 级 recursor 常量与 iota 规则都要真的对
+    // （不只是"声明得过"）。结果类型写成 `Bar A`（Prop 值），motive codomain
+    // 才会落在 `Sort 0`。
+    let src = "inductive Bar (A : Type) : Prop\n\
+         ctor mk (a : A) : Bar A\n\
+         end\n\
+         def bar_id (A : Type) (b : Bar A) : Bar A :=\n\
+         \x20 match b with\n\
+         \x20 | mk a => b\n\
+         #check bar_id\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "match on the G-03 shape must compile: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("Bar"), "stdout: {stdout}");
+}
+
+#[test]
+fn cli_rejects_universe_argument_on_a_zero_universe_recursor() {
+    // 反例守卫（判别性）：同一条块若**错误地**拿到 1 个宇宙参数，下面这句
+    // `Bar.rec.{0}` 就会通过。它必须报 arity 0 —— 把 recursor 的形状钉死。
+    let src = "inductive Bar (A : Type) : Prop\n\
+         ctor mk (a : A) : Bar A\n\
+         end\n\
+         #check Bar.rec.{0}\n";
+    let out = run(src);
+    assert!(
+        !out.status.success(),
+        "`Bar.rec.{{0}}` must be an arity error on a 0-universe recursor"
+    );
+    // 诊断走 stderr（stdout 只有 `checked declaration Bar`）。
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("elab-universe-arity"),
+        "a 0-universe recursor must reject a universe argument: {stderr}"
+    );
 }
 
 // ---- match（design docs/design/match.md，v1）----
@@ -1177,7 +1440,10 @@ fn cli_match_reduces_through_kernel() {
         String::from_utf8_lossy(&out.stderr)
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
-    assert!(stdout.contains("swap red => green"), "stdout: {stdout}");
+    assert!(
+        stdout.contains("swap red => Color.green"),
+        "stdout: {stdout}"
+    );
 }
 
 /// The course-style explicit `Nat` (inductive + `rec`/`iota`), mirroring
@@ -1255,7 +1521,7 @@ fn cli_match_recursive_reduces_through_the_ih() {
     );
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(
-        stdout.contains("addM two three => succ (succ (succ (succ (succ zero))))"),
+        stdout.contains("addM two three => Nat.succ (Nat.succ 3)"),
         "stdout: {stdout}"
     );
 }
@@ -1366,11 +1632,11 @@ def flip (o : Outer) : Inner := match o with
         "stdout: {stdout}"
     );
     assert!(
-        stdout.contains("=> ib"),
+        stdout.contains("=> Inner.ib"),
         "nested `oi ia` must pick the first arm: {stdout}"
     );
     assert!(
-        stdout.contains("=> ia"),
+        stdout.contains("=> Inner.ia"),
         "nested `oi ib` must fall to `oi _`: {stdout}"
     );
 }
@@ -1813,6 +2079,112 @@ fn cli_course_is_stable_with_a_warm_cache() {
         cold, warm,
         "a warm cache must not change the course summary (cold {cold} vs warm {warm})"
     );
-    assert_eq!(cold["checked"], 85, "golden checked total: {cold}");
+    assert_eq!(cold["checked"], 86, "golden checked total: {cold}");
     assert_eq!(cold["open"], 65, "golden open total: {cold}");
+}
+
+// ---- 构造子命名空间（G-02 / WO-005；design docs/design/ctor-namespace.md）----
+
+#[test]
+fn cli_ctor_names_are_namespaced() {
+    // 复现件同构：两个块各 `ctor mk`，规范名 `P1.mk`/`P2.mk` 并存不冲突。
+    // 修前：`duplicate declaration mk` + `unknown identifier P1.mk`（exit 1）。
+    let src = "inductive P1 (A : Type) : Type\n\
+         ctor mk (a : A) : P1 A\n\
+         end\n\
+         inductive P2 (A : Type) : Type\n\
+         ctor mk (a : A) : P2 A\n\
+         end\n\
+         def first (A : Type) (a : A) : P1 A := P1.mk A a\n\
+         def second (A : Type) (a : A) : P2 A := P2.mk A a\n\
+         #check P1.mk\n";
+    let out = run(src);
+    assert!(
+        out.status.success(),
+        "namespaced ctors must compile: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration P1") && stdout.contains("checked declaration P2"),
+        "both blocks must check: {stdout}"
+    );
+    assert!(
+        stdout.contains("P1.mk: "),
+        "the canonical name must be resolvable and checkable: {stdout}"
+    );
+}
+
+#[test]
+fn cli_grades_the_g02_repro_clean() {
+    // 「缺口即测试」：复现件本身从此是 e2e 的一行（WO-005 验收 CLI 第 3 条）。
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../docs/gaps/repro/G02-ctor-namespace.sokonanoda"
+    );
+    let out = run_args(&[path], None);
+    assert!(
+        out.status.success(),
+        "the repro must grade clean: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration first"),
+        "`first` (using `P1.mk`) must check: {stdout}"
+    );
+    assert!(
+        !stdout.contains("diagnostic"),
+        "no diagnostics expected: {stdout}"
+    );
+}
+
+#[test]
+fn cli_keeps_bare_ctor_aliases_working() {
+    // R2 兼容 e2e：课程/示例原文不改（裸名 `none`/`some`）仍 exit 0。
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../course/unit7-induction-recursion-2.sokonanoda"
+    );
+    let out = run_args(&[path], None);
+    assert!(
+        out.status.success(),
+        "the bare-name course canvas must stay green: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let py_nat = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../examples/py-nat.sokonanoda"
+    );
+    let out = run_args(&[py_nat], None);
+    assert!(
+        out.status.success(),
+        "examples/py-nat.sokonanoda must stay green: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+#[test]
+fn cli_reports_an_ambiguous_bare_ctor_alias() {
+    // R2：两个类型各声明一次裸名 `mk` ⇒ 裸名不可解析，报稳定的新码
+    // `elab-ambiguous-ctor-alias`（**不是** unknown identifier），消息点名两个候选。
+    let src = "inductive P1 : Type\n\
+         ctor mk : P1\n\
+         end\n\
+         inductive P2 : Type\n\
+         ctor mk : P2\n\
+         end\n\
+         def bad : P1 := mk\n";
+    let out = run(src);
+    assert!(!out.status.success(), "the bare name is ambiguous");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains("error[elab-ambiguous-ctor-alias]:"),
+        "stderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("P1.mk") && stderr.contains("P2.mk"),
+        "both candidates are named: {stderr}"
+    );
 }

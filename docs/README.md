@@ -93,6 +93,33 @@
   `NO_DECL` ⇒ cutoff 0 ⇒ 空环境**；修法是内核**只加不改语义**的
   `check_declar_at`/`try_check_declar_at` + front 传 `ByIndex(env_before)`
   （2026-09-17，第九十一轮续落地；三层验收见 §8.4）
+- `teaching-project.md` — **第二大课「从集合论到分析」总体计划**（2026-09-18，
+  只出计划；**2026-09-19 / 0.59.0 已对账**）：靶子标定（analysis 的规模与可移植项）、
+  集合论可行性实测（11 声明全绿）、**24 条课程驱动缺口**的分诊（附录 A 逐条标 0.59.0
+  状态）、§6 **缺口台账协议**（`docs/gaps/` 台账 + 最小复现 + 工作单 WO + 「缺口即测试」，
+  已接进门禁）、分期 P0–P7（P1/P2 ✅）、验收与待拍板 D-1…D-6
+- `course-stdlib.md` — **课程标准库的分层与「消除暴力」方案**（2026-09-18）：L1 prelude /
+  L2 课程标准库 / L3 单元练习的三层判据（"Mathlib 有且没有数学内容才归库"）、
+  L1 的 16 条清单与落地要求、L2 规范、与语言缺口的关系、落地顺序 P-C1…P-C5
+- `set-theory-syllabus.md` — **卷 I《集合论》十二单元大纲（锁定）**：教材取证综合
+  （Hammack/Macbeth/Avigad/Velleman/Solow/Cummings 的真实目录）、证明助手先例
+  （MIL/MoP/Logic and Proof/FM/LPA）、学习障碍、每单元"必证/必破"、记法引入顺序
+  与无记法替代、与缺口台账的联动（2026-09-18）
+- `prop-large-elim-mirror.md` — **派生 recursor 的 large-elimination 判据逐字镜像内核**
+  （G-03 / WO-006，0.59.0 落地）：`inductive Bar (A : Type) : Prop` + `ctor mk (a : A)`
+  曾被内核断言拒绝（`left:1/right:0`）⇒ `Exists` 只能立成公理；根因是前端
+  `small_elim` 的源码近似，修法是把它推迟到构造子 elaborate 之后并镜像
+  `large_elim_test`（"字段是不是 Prop 值"问真内核）；顺带修掉 `judge_infer`
+  取第一条 `TypeChecked` 的既有 oracle bug；**内核零改动**（2026-09-19）
+- `ctor-namespace.md` — 构造子进入类型的命名空间（G-02 / WO-005，0.59.0 落地）：
+  规范名 `Ind.ctor` + 裸名解析别名、`elab-ambiguous-ctor-alias`、归约形态实测；
+  §"基线口径订正"记录了课程门禁的**实测**基线 315 checked · 96 open（2026-09-19）
+- `notation-subset.md` — **用户自定义记法子集**（G-04 / WO-011 第一刀，0.59.0 落地）：
+  `infix:N`/`infixl:N`/`infixr:N`/零元 `notation` 四条命令、数学符号独立 token 的
+  码点类、优先级梯子（`p`/`p+1`、`p+1`/`p`）、elab 内**源到源**展开 + 自动补前导
+  类型参数（裸变量匹配，不引入元变量）、文件内作用域、记法**不是声明**（零事件）、
+  兼容护城河（点名省 `α` 仍被拒）、与 Lean 的 7 条已知差异、第二刀清单；
+  §9 是 as-built（`∅ ⊆ A` 逼出的"操作数也吃期望类型"等八条）（2026-09-19）
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。
@@ -116,16 +143,35 @@
   （LSP 契约、rust-analyzer/clangd/tsserver/pyright/gopls/ocaml-lsp/Agda/lean4 的根发现与
   错根症状、Lake trace / GHC 指纹 / OCaml `.cmi` / Coq `.vo` digest / `.tsbuildinfo`、
   "缓存判定结果安全吗"的三条规则）
+- `docs/gaps/spike/README.md`（见 `docs/gaps/README.md`）— **卷 I 试做稿**：2 个单元 + 66 条标准库，
+  全部真内核判卷（0 failed），逐条标出 `L-xx` 标准库欠账
+- `settheory-survey/` — **集合论教学调研**（2026-09-18，教学项目 P0 的两路调研，共 ~2,200 行）：
+  `set-theory-teaching-survey.zh.md`（教材顺序之争：集合/逻辑、有序对、幂集、关系 vs 函数、
+  基数 vs 选择、Russell 六组取证 + 推荐十单元）、`prior-art-report.md`（证明助手先例：
+  MIL/MoP/L&P/FM/LPA、**`djvelleman/stg4` 集合论游戏 8 世界 51 关**、analysis §3 逐节解剖）、
+  `proof-book-tocs.md`（Hammack/Macbeth/Avigad/Velleman/Solow/Cummings 的真实目录取证 +
+  五处前提勘误）、`lean4-sets-functions-prior-art.md`（长版底稿）、
+  **`learning-difficulties.md`（学习障碍实证：2874 行 / ~190 条来源、逐条核验级别
+  [F]/[A]/[M]；含两条实测的否定结果——有序对与选择公理没有任何实证研究）**、
+  `repro/`（内核实测：`lib.sokonanoda` 29 checked / 0 failed；调研探针 P1 产出台账 G-13）。
+  结论已综合进 `docs/design/set-theory-syllabus.md`
 
 ## 关联目录
 
 - `ROADMAP.md`（仓库根）— 里程碑与 §10 验收标准
 - `AGENTS.md`（仓库根）— agent 入口 + 硬规则速记
 - `skills/` — 角色技能（`sokonanoda-teacher` / `-dev` / `-ci`）
-- `course/` — 课程素材库（agent 用，非用户直接消费）
+- `course/` — 入门课素材库（11 单元，agent 用，非用户直接消费）
+- **`courses/set-theory/`** — **卷 I《集合论》**（第二大课，已建）：`lib/`（L2 课程标准库）+
+  `units/`（画布与解答）+ `gaps/`（发现端）+ `tools/check.py`（本地门禁）；
+  入口 `courses/set-theory/README.md`，判卷 `python3 courses/set-theory/tools/check.py`
+- `docs/gaps/` — **课程驱动的缺口台账**（`ledger.jsonl` + `repro/` 最小复现 +
+  `WO-*.md` 工作单）；协议见 `docs/design/teaching-project.md` §6
 - `playground.sokonanoda`（仓库根）— 共享教学画布
 - `scripts/install.sh` — 终端用户零 cargo 安装器（版本锁定 Release 资产，
   见 `docs/design/onboarding.md` §5）
+- `scripts/new-course-repo.sh` — **生成「独立课程仓」骨架**（教学项目 P0.0；生成器留在
+  语言仓是因为它编码版本钉约定，见 `docs/design/teaching-project.md` §3.5）
 - `skills/` — 角色技能；**DeepSeek Harness 通过 skill 名即斜杠命令直接消费**
   （`/sokonanoda-teacher` 等），适配计划见 `docs/design/deepseek-harness.md`
 - `.devcontainer/` — 仅贡献者的 Rust 容器（终端用户无需 Rust）

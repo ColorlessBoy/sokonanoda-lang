@@ -24,6 +24,16 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
    依赖 GitHub Release 资产（`sokonanoda-cli-*.tar.gz` / `sokonanoda-lsp-*.tar.gz`）
    或平台 VSIX 插件，**不要求 Rust/cargo**；cargo 仅贡献者开发需要。面向
    用户/agent 的文档、技能与错误文案不得把 cargo 当使用前提。
+10. **课程标准库三层分界**（2026-09-18 用户确认「进硬规则」）：写课程内容时，
+   每一条陈述必须先归层——**L1 prelude**（Lean core 级：逻辑与等式骨架）/
+   **L2 课程标准库**（集合的词汇 + 定义展开，Mathlib 里是 `rfl` 或一行、**没有数学内容**）/
+   **L3 单元练习**（一切**有数学内容**的陈述）。判据只有一条：
+   **「Mathlib 有 ≠ 我们不该练；Mathlib 有且没有数学内容（纯定义展开）才归库。」**
+   违反的样子 = 让学习者在证明里手写 `Eq.symm`/`Or.elim`/`mem_union` 这类东西（"暴力"）；
+   证据与方案见 `docs/design/course-stdlib.md`，现场见 `docs/gaps/spike/README.md`，
+   欠账见台账 `L-01…L-05`。配套的**引用纪律**：课程文档里的每句教学主张要么给出处、
+   要么显式标"设计判断"；**有序对与选择公理没有任何实证研究**（实测否定结果），
+   不得写成"研究表明…"（细则见 `docs/design/set-theory-syllabus.md` §1.4）。
 
 ## 3. 内核性能是产品优势（2026-09-06，用户要求）
 
@@ -1400,3 +1410,315 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     `e2e-ledger` 把三条 CI 腿台账自动回提交（`docs/e2e/ledger.jsonl` 共 10 条）。
     0.56.2 的功能与 tag 都保留在历史里，0.58.0 的 CHANGELOG 补记"多余的 `sorry`
     已并入"。
+- 2026-09-18（第九十九轮，用户）：**基于本项目复刻一个更大的教学项目**（对标用户
+  自己的 `analysis` 仓库：Lean 4 + Mathlib、124,491 行、≈5,300 声明），先做
+  **「集合论」教程**；**制作过程中持续搜集 sokonanoda-lang 自身的不足，交给另一个
+  agent 实现**；要求"足够多的细分的计划"。落地：
+  - 计划 = **`docs/design/teaching-project.md`**（靶子标定 + 可行性实测 + 缺口分诊 +
+    缺口台账协议 + 分期 P0–P7 + 验收 + 待拍板 D-1…D-6）；
+  - 台账 = **`docs/gaps/`**（`ledger.jsonl` + `repro/` 最小复现 + `WO-*.md` 工作单；
+    协议见设计 §6，含"缺口即测试"的防漂移机制）；
+  - 本轮实测出 **10 条课程驱动缺口**（G-01…G-10，其中 5 条 blocker：`query check`
+    对解析失败假绿、开练习签名不校验、构造子无命名空间、Prop+Type 参数归纳被内核
+    断言拒绝、`course` 聚合不认 `import`），并给出集合论可行性的正向探针
+    （`docs/gaps/repro/OK-set-spike.sokonanoda`，11 声明全绿）；
+  - **落点/语法增量/双语/站点/交接方式等待用户拍板**（设计 §11 的 D-1…D-6），
+    未拍板前不动 `course/` 与任何 Rust 语义代码。
+- 2026-09-18（第九十九轮续，用户）：「**这个项目可能要完全单独一个文件夹，甚至本身
+  一个子仓库。也需要调研更多集合论的教程。**」落地：
+  - **D-1 落点已定：独立文件夹 / 独立仓库**（同级于 `sokonanoda-lang`）——设计 §3 重写
+    （三种形态取舍、§3.4 课程仓骨架、§3.4 仓库边界表、§3.5 建仓清单），子仓库
+    （submodule）形态留作将来的只读挂载；
+  - **建仓做成一条命令**：新增 `scripts/new-course-repo.sh`（生成 README/AGENTS/版本源/
+    清单/共享库 `lib/{Logic,Set,Demo}`/`units/`/`gaps/`/vendored 启动器/本地门禁/CI，
+    可选 `git init`），**已实测**：样例仓 3 checked / 0 failed / exit 0，无二进制时给
+    G-11 人话提示；
+  - **新实测出两条独立仓库的入场券缺口**（台账 G-11/G-12，均为 blocker）：
+    G-11 启动器在非 Rust 仓库没有版本源（只读 `Cargo.toml`，课程仓拒绝运行且只报裸
+    `ENOENT`）；G-12 **相对路径入口 + 祖先清单 ⇒ 模块根退化成空路径**，`units/` 里
+    任何 `import` 都报 `import-not-found`（同文件换绝对路径即绿，`query project`
+    的 `root=''` 是证据）——正是课程仓的布局，修好前课程仓门禁一律用绝对路径；
+  - **集合论教学调研已完成**（两路，~2,200 行，落 `docs/notes/settheory-survey/`）：
+    教材顺序之争六组取证（Hammack/Macbeth/Avigad/Velleman/Solow/Cummings + analysis §3
+    逐节解剖）、证明助手先例（MIL/MoP/L&P/FM/LPA）、**`djvelleman/stg4` 集合论游戏
+    8 世界 51 关**（可偷：逐步解锁语法 / 三层 Hint / `Branch` 死路）、内核实测
+    （`repro/lib.sokonanoda` 29 checked / 0 failed；探针产出台账 **G-13**：
+    `axiom` 不吃 binder 参数表）；明确标注未核实项（**中文教材目录一份未取到**、
+    教育研究文献未取证、Jech/Kunen 未取到、其他证明助手大面积未核实）；
+  - 综合结论已落 **`docs/design/set-theory-syllabus.md`（v2，锁定 12 单元）**：
+    每单元"必证/必破"、记法引入顺序与无记法替代、**课程写作红线五条（全部实测）**、
+    与缺口台账的联动表、5 条待拍板 D-S1…D-S5。
+
+- 2026-09-18（第九十九轮再续，用户）：「**你的教程出的题目，在做的时候，你会发现要补充很多
+  其他的定理，边边角角的定理，这个是在其他的教程里头会认为是天然应该知道的，或者说是标准
+  库里已经实现的。这个我感觉有点暴力，所以我需要你去用这个项目，然后重新做一遍，然后才能
+  把这些暴力给消除掉。你要记录下这些其实是需要实现的，其实是没有的。**」落地：
+  - **真做一遍**：卷 I 单元①② 试做稿落 `docs/gaps/spike/README.md`——`lib/Logic`(26) + `lib/Set`(40)
+    共 **66 条标准库**、`units/` 两个单元 **16 道练习**（含解答），**全部真内核判卷 0 failed**；
+  - **新缺口 7 条**：**G-14** 一个声明只允许一个宇宙层级 binder（跨宇宙引理写不出来）；
+    **G-15** 内核拒绝的诊断 span 与出错声明范围不一致（试做时连修错两次才发现）；
+    **L-01/L-02** prelude 缺 Lean core 的 16 条逻辑与等式骨架（True/False/And.elim/Or.elim/
+    Not/absurd/Iff/Eq.symm/trans/congrArg）；**L-03** `Eq.subst` motive 只能 `α → Prop`
+    ⇒ Type 层重写（`Eq.mp`/`cast`）不可表达；**L-04** 课程标准库缺 8 条 Set 定义展开引理；
+    **L-05** 方法学：16 条"内容型"引理被误放进库（应当是练习）；
+  - **锁定分层判据**（新设计 `docs/design/course-stdlib.md`）：**L1 prelude**（Lean core 级）/
+    **L2 课程标准库**（定义展开级）/ **L3 单元练习**（有数学内容的一切）；判据 =
+    **"Mathlib 有 ≠ 我们不该练；Mathlib 有且没有数学内容（纯定义展开）才归库"**；
+  - **台账扩展**：`kind` 新增 **`library`**（标准库欠账，带 `owner`: `prelude`/`course-lib`/
+    `exercise` 与 `lean_names`），共 20 条；`scripts/gap.py check` 全绿；
+  - **调研补全**：其他证明助手（Isabelle/ZF、Metamath、Mizar、Coq、Agda、ACL2、HOL）
+    已第二轮取证，结论 **"没有任何主流证明助手提供独立的集合论教学层"**（生态位确认）。
+
+- 2026-09-18（第九十九轮三续）：**学习障碍实证调研完成**（`docs/notes/settheory-survey/
+  learning-difficulties.md`，2874 行 / ~190 条来源，逐条标 [F] 全文 / [A] 逐字摘要 /
+  [M] 仅元数据）。落地：`docs/design/set-theory-syllabus.md` §1.3 改写为**实证版**
+  （每条教学动作指到出处）并新增 **§1.4 引用纪律**——① 有序对与选择公理**无实证研究**
+  （ERIC 实测否定结果），不得写成"研究表明…"；② 不得过度断言（Sfard 1991 仅元数据、
+  Tall 措辞未核实、APOS 的实证基础是微积分而非集合论）；③ 两条流行线索是幻觉
+  （Piatek-Jimenez 2004、Cusi & Malara 2007 均不存在）；④ **中文语境空白**（实证全为英文）。
+  试做稿同步：单元② 新增第 7 题（**单元素 `{a} ∈ {{a}}`**，实证上最脆弱的一点）——
+  画布 10 题、解答 10 checked 全绿。
+
+- 2026-09-18（第九十九轮四续，用户）：「**进硬规则，课程建在当前项目内新建一个文件夹**」落地：
+  - **D-S6 → 硬规则 10**：课程标准库三层分界（L1 prelude / L2 课程标准库 / L3 单元练习）
+    与判据「**Mathlib 有 ≠ 我们不该练；Mathlib 有且没有数学内容（纯定义展开）才归库**」
+    写进 `REQUIREMENTS.md` §2 第 10 条（并附引用纪律）；
+  - **D-1a → 课程建在语言仓内**：`courses/set-theory/`（README / AGENTS / `sokonanoda.toml` /
+    `course.json` / `lib/` / `units/`+`solutions/` / `gaps/` / `tools/check.py`）；
+    独立仓库形态改为"将来抽取"（清单一节 + `scripts/new-course-repo.sh` 保留）；
+  - **内容搬家与改名**：`lib/Set` 改用 **Loogle 取证名**（`Set.notMem_empty`、
+    `Set.mem_powerset_iff`、`Set.mem_sdiff`、`Set.Subset.refl/trans/antisymm`…）；
+    **L3 拆分第一刀**——6 条内容型引理移出 lib 进单元②（台账 L-05）；
+  - **门禁**：`python3 courses/set-theory/tools/check.py` = lib 自检 + 2 单元 + 2 解答
+    = **22 checked · 16 open · 0 判负**。
+
+- 2026-09-18（第九十九轮五续，用户）：「**尽可能多的拆分任务，让子代理闭环实现并测试**」。落地：
+  - **两轮 workflow 共 31 个子代理**：第一轮 2 个基础库 + 10 个单元（实现）+ 5 个独立复核
+    （重判/清单核查/就地修），第二轮 10 张 WO + 4 份设计/调研；
+  - **课程从 2 单元长到 12 单元**：`courses/set-theory/` 现为 8 个 lib 文件
+    （Logic/Set/Exists/Prod/Rel/Fun/Image/Equiv + Demo 自检）+ 12 画布 + 12 解答，
+    门禁实测 **34 目标 · 308 checked · 93 open · 0 判负**；93 道练习的三段 `soko:hint` 全部可被
+    hints 工具完整读出（复核发现并批量修掉"提示换行被解析器截断"的系统性缺陷）；
+  - **10 张工作单落盘**：`docs/gaps/WO-001…WO-010.md`（G-11/G-12/G-10/G-01/G-02/G-03/G-06/
+    G-13/G-14/G-15），台账对应 10 条转 `wo-filed` 并挂上 `wo` 指针；
+  - **子代理纠正了主线 agent 的两处错误（已复核）**：① `{u, v}`（逗号）**可以**用 ⇒ G-14 降为 nice；
+    ② 我记的 G-15「内核错误 span 漂移」是**假缺口**——把**字节 offset 当字符下标**切字符串造成的
+    （已改名为「query check 的 failed[] 只给裸字节 offset」，教训进 `docs/LESSONS.md`）；
+  - **新增 4 条缺口**（都来自实测）：G-16（启动器在版本未知时 exec 陈旧二进制，绕过"过期即拒绝"）、
+    G-17（`query goals`/`holes` 对解析失败假绿）、G-18（`def f.{u}` 被静默解析成 `f.`）、
+    L-06（无累积性 + `Exists.elim` 只能 Prop ⇒ 等势只能 Prop 值、取数据的引理写不出来，课程统一改数据版）；
+  - **设计/调研产出**：`docs/design/prelude-l1-proposal.md`（L1 28 个名字 + 三件套 + GOLDEN 预测）、
+    `docs/design/course-gate-in-ci.md`（门禁不进 golden、避开 G-10/G-12/G-15、CI 挂 test job 新 step）、
+    `docs/notes/settheory-survey/chinese-textbooks.md`（中文教材/大纲：关系先于函数 6:2、
+    哈工大 MOOC 函数先、复旦讲义有 Russell 逐字证据，并**更正**"徐明曜/赵春来《集合论》"查无此书）、
+    `docs/design/course-stdlib.md` 更新到 8 模块真实计数；
+  - **大纲回填实测偏差**：单元③ 的 D 类原稿有数学错误（`A ∈ 𝒫A` 是真命题）已勘误、
+    单元⑦ 的选择公理边界、单元⑨ 的 Prop 值等势、单元⑫ 的链条缺基数一环。
+
+- 2026-09-18（第九十九轮（语言线），用户）：「实现工作单里描述的那个缺口」——
+  **G-06 / WO-007 落地：课程聚合认 `import`**（用户可见行为变化）。
+  `sokonanoda course <course.json>` 对**有 `import` 的单元**走项目闭包：与
+  `grade`/`query check`/`build` 同一份闭包、同一个模块根、同一个
+  `ProjectPlan::digest` 摘要键；计数只取**入口模块**（依赖的声明不算单元成绩），
+  `failed` = 闭包内所有模块 `events.errors` 之和 ⇒ `failed == 0` ⇔
+  `grade <该单元>` exit 0。模块根 = 单元最近的 `sokonanoda.toml`（嵌套子项目优先），
+  没有则回退 **`course.json` 所在目录**；清单路径先 `canonicalize`（与 cwd 无关）。
+  **无 `import` 的单元逐字节走单文件** ⇒ `course/course.json` 的两处 GOLDEN
+  （`crates/cli/tests/{course,course_status}.rs`）一字未改。`course.unit` /
+  `course.summary` 键集与退出码契约不变（progress is not an error）。
+  实测：`node scripts/soko course "$PWD/courses/set-theory/course.json" --json`
+  = `{"checked":63,"failed":0,"open":93,"units":12}`（修前 `checked:1 / failed:63`，
+  12 单元全假红）；`python3 courses/set-theory/tools/check.py` 仍 0。
+  回归 `crates/cli/tests/course_project.rs`（8 例）；复现
+  `docs/gaps/repro/G06-course-import.sh` 由 exit 0 → **exit 1**（行为已变，
+  `gap.py close G-06` 的前置；版本号由主线 bump 后填）。
+
+- 2026-09-18（第一百轮（语言线），用户）：「实现工作单里描述的那个缺口」——
+  **G-10 / WO-003 落地（+ 同族 G-17 顺带修）：agent 查询通道对解析失败不再假绿**
+  （用户可见行为变化）。`query check` 的 `failed[]` 现在**同时**承载内核拒绝与
+  parse 诊断：解析失败时 `counts` 全 0、`failed` 恰含一条 parse 诊断
+  （`name: null`、`start`/`end` = 诊断 span 字节 offset）、`ok` 仍是 `true`
+  （"问出来了"——答案就是"这份文本解析不了"）、**退出码 1**，与同一份文本的
+  `grade` 逐项同口径。同族的 `query goals`/`holes`（原先答空数组 + `ok:true`）
+  改答 `ok:false` + `error.code:"not-parsable"` + 退出码 1；"正常的没有"
+  （空数组 / `navigated: null`）仍是 `ok:true`。`query state` 的形状未动。
+  协议同步在 `docs/protocol.md`（`check`/`goals`/`holes` 行 + 退出码段）；
+  复现 `docs/gaps/repro/G10-query-check-parse-error.sh`（重写为修后形状）与新增
+  `docs/gaps/repro/G17-query-goals-holes-parse-error.sh`，修后都 = exit 1。
+  事件流与两处课程 GOLDEN 未动；退出码 0→1 是有意的契约变更 ⇒ 版本级别 minor。
+
+
+- 2026-09-18（第一百轮（语言线），用户）：「实现工作单里描述的那个缺口」——
+  **G-11 / WO-001 落地（+ 同文件第二缺陷 G-16）：课程仓的版本钉源链 + 「无期望版本
+  绝不 exec」守卫**（工具链行为变化，非 Lean 语义）。用户可见契约三处：
+  ① **版本钉不再只认 `Cargo.toml`**——链 = `$SOKONANODA_VERSION`（release tag，
+  带不带 `v` 都收）→ `<repo>/sokonanoda-version.txt` → `<repo>/sokonanoda.toml`
+  的 `requires`（**完整 `x.y.z` 才算钉**；`0.58` 只是约束、不能当下载锚点）→
+  `<repo>/Cargo.toml`；锚点是**启动器自身所在仓库根**（vendored 到课程仓即指向
+  课程仓），不是 cwd，也**不沿父目录找**；所有出现的源必须一致（`major.minor`
+  口径），不一致**指名文件**报错；② **解析不出期望版本就绝不 exec** 缓存/仓库构建
+  （G-16：`cache(unknown repo version)` 这条静默通道删除），exit 3 + 人话（期望版本 /
+  来源 / marker / 该改哪个文件）；**缓存 marker 必须与钉一致**才可执行
+  （`0.58` 约束接受同 release line，`0.58.0` 锚点只认精确标记）；③ 可观测性：
+  `version --json` 新增 `version_source`/`version_constraint`/`version_error`，
+  `version` 不再缺键；`doctor --json` 的 `ready` 与执行守卫同判据；`setup`/`update`
+  的下载 URL 用链条解出的版本（不再出现 `v?`），并共用 CLI 已有的
+  `SOKONANODA_RELEASE_BASE`（下载基址覆盖）。
+  **不动**：内核/front/CLI 源码、`requires` 在 front 的 warn-only 语义、
+  `sokonanoda.toml` 三键封闭、`SOKONANODA_BIN`/扩展自带/离线三条既有解析链、
+  release 产物形态（永不 `latest`）。同轮同步 `.opencode/plugins/sokonanoda.ts`
+  （同一条链 + 同一条拒绝规则）、`scripts/new-course-repo.sh`（撤掉 G-11 兜底文案，
+  门禁判据改为"版本钉解析得出"）、`skills/` 与 `docs/design/` 相关段落、
+  `AGENTS.md` Setup。三层测试落 `crates/cli/tests/launcher.rs`（8 例，其中 5 例新增：
+  版本钉解析 / 陈旧缓存拒绝 / 无版本源拒绝 / 优先级与冲突 / 无网络下载路径）；
+  复现 `docs/gaps/repro/G11-launcher-version-source.sh` 由 exit 0 → **exit 1**
+  （行为已变，`gap.py close G-11` 的前置；版本号由主线 bump 后填）。
+  事件流与两处课程 GOLDEN 未动。
+- 2026-09-19：**开放练习的签名纳入类型检查（G-01 / WO-004）**——修的是违反硬规则 3
+  （教学语法是真实 Lean 4 的子集，填完洞的声明放进官方 Lean 依然合法）的行为：
+  值位是 `sorry` 不再让签名免检。**用户可见契约**：`def`/`theorem`/`example` 的签名
+  先 elaborate（失败 ⇒ `elab-unknown-identifier` 等，原来被 `.ok()` 吞掉），再由内核
+  终审「是不是一个类型」（`kernel-expected-sort`）；`theorem` 另问「是不是 Prop」
+  （`kernel-theorem-not-prop`）。签名不过 ⇒ 声明 `failed`、报一条 diagnostic、
+  **不发** `exercise.open`（与值位 elaborate 失败同罪；不做成 warning，因为 warning
+  不改退出码，课程侧就发现不了签名腐烂）。诊断 span 取**签名自身**的源范围
+  （G-15：不照抄内核消息里的 span）。**判据纪律**：`exercise.open` 计数对签名腐烂
+  永远是盲的——判卷只认 `decl.checked` 与 `diagnostic`。**兼容性实测**：入门课 +
+  卷 I 共 158 条开放练习签名本来就合法，全仓 105 个 `.sokonanoda` 文件逐条对拍
+  （新旧二进制），**新增诊断 0 条**、`decl.checked`/`exercise.open`/`expr.reduced`
+  三列不变（双 GOLDEN 未改）、课程门禁仍是 315 checked · 96 open · 0 判负。
+  内核（冻结快照）未改一个字节。
+
+- 2026-09-19：**构造子的命名空间（G-02 / WO-005）**——修的是违反硬规则 3
+  （教学语法是真实 Lean 4 的子集）的缺口：构造子过去以**裸名**进环境且**全项目
+  唯一**，`ctor mk` 之后只有裸 `mk`、`Pair.mk` 报 unknown identifier，两个块各写
+  `ctor mk` 直接撞 `duplicate declaration mk`，于是大库只能给构造子起
+  `prod_mk`/`exists_intro` 这类假唯一名。**用户可见契约**：构造子的**规范名**是
+  `Ind.ctor`（源名**已含点**则原样——保护 prelude 的 `Nat.zero`/`Bool.true`），
+  `#check`/`#reduce`/`#print`/hover/Infoview 目标文本/refine 骨架/语义高亮都显示
+  规范名；裸名降级为**解析别名**（只在解析层、绝不进内核），唯一时可解析、重复时
+  报新码 `elab-ambiguous-ctor-alias`、真实声明优先于别名；源级写法（`match` 分支、
+  显式 `iota`）继续按源名匹配（R3）。**这是本子集的一条扩展、不是 Lean 语义**
+  （Lean 里裸 `mk` 不可解析，除非 `open` 了命名空间），日落与 37 个文件的机械改名
+  一起开 WO-005b。**兼容性**：课程内容一字不改（`course/` 与
+  `courses/set-theory/` 零改动），课程门禁 315 checked · 96 open · 0 判负、
+  双 GOLDEN 计数不变。**归约形态变化（实测）**：源文件自带 `inductive Nat` 时，
+  ctor 叫 `Nat.succ` 会命中内核 name cache 的 `NatRed::Succ` 快路径 ⇒
+  `#reduce add two two` 从 `succ (succ (succ (succ zero)))` 变成混合表示
+  `Nat.succ (Nat.succ (Nat.succ 1))`（逐条实测值见 `docs/design/ctor-namespace.md`
+  §2.1；文本断言按实测重钉，未做机械替换）。内核（冻结快照）未改一个字节。
+
+- 2026-09-19（续）：**Prop 结果 + Type 参数 + 单构造子的归纳（G-03 / WO-006）**——
+  修的是"本来该编过的程序编不过"：`inductive Bar (A : Type) : Prop` +
+  `ctor mk (a : A) : Bar A`（就是 `Exists` 的形状，Lean 4 里完全合法）被内核以
+  `rejected: assertion 'left == right' failed (left: 1, right: 0)` 拒绝，于是
+  `courses/set-theory/lib/Exists.sokonanoda` 只能把 `Exists` 立成**公理三件套**。
+  **根因在前端派生侧、不在内核**：`derive_recursor` 的 `small_elim` 是源码近似
+  （`is_prop_block_ty && 多构造子`），而内核 `large_elim_test` 对**单构造子 Prop 块**
+  还要看 `large_elim_test_aux`（非 Prop 字段必须都是结果应用的语法成员）。两者不一致
+  ⇒ 前端声明 1 个宇宙参数、内核要 0 个 ⇒ `subst_expr_levels` 的长度断言炸成 panic。
+  **用户可见契约**：无 `rec` 的块派生的 recursor 带**内核算出的**宇宙参数个数——
+  `Bar` 这种形状是 **0** 个（motive 落 `Prop`，`Bar.rec` 不接受宇宙参数），
+  而 `inductive P9 (A : Type) : A -> Prop` + `ctor c9 (a : A) : P9 A a`（字段**就是**
+  结果的索引）仍是 **1** 个；字段类型是 `P -> Q` / `forall (x : Nat), P` /
+  具名 `def … : Prop` 的块**保持** 1 个（这些是 Prop **值**，源码近似会误判）。
+  **实现纪律**：判据逐字镜像内核那几行，且"字段类型是不是 Prop 值"这步**问真内核**
+  （`judge_infer` 问排序），不写第二套近似；不做"试探 + 回退"（WO 明令禁止——那等于
+  把判据推给内核，会把真正的教学错误磨成同一条断言）。**顺带修掉一个既有 oracle
+  bug**：`judge_infer` 取事件流里**第一条** `TypeChecked`，而它的查询是**最后一条**
+  命令——前缀里只要已有一条 `#check`（课程/playground 常见），拿回的就是旧答案；
+  实测前缀有 `#check Nat` 时 P10/P13 立刻退化成 `left:0/right:1`。改为按 `event_cmds`
+  取最后一条命令的事件（不做文本比对）；该 bug 同样影响 `match` 的 motive 层级查询。
+  **兼容性**：`course/`（入门课）两份 GOLDEN 计数不变（本 WO 只让"今天必定失败"的
+  输入变绿，不改任何已通过块的 recursor 形状）；卷 I 课程门禁 **315 checked · 96 open ·
+  0 判负**，与修前**同数**（WO 正文写的 296/93 是陈旧口径，实测基线见
+  `docs/design/ctor-namespace.md:73`）；`cargo test --workspace` 全绿（972 passed /
+  0 failed）。复现件
+  `docs/gaps/repro/G03-prop-type-param-inductive.sokonanoda` 重写成修后形状（**块本身
+  逐字不动**），`scripts/soko grade` 退出码 0。**课程侧出口留到下一轮**：
+  `lib/Exists.sokonanoda:68-71` 的公理三件套可升级成真归纳（`Exists` + `intro` +
+  自动派生的 `Exists.rec`），名字与签名逐字不变 ⇒ `units/unit06…unit12` 预期 0 改动。
+  内核（冻结快照）未改一个字节。
+- 2026-09-19（第一百〇四轮，语言线）：**L-01/L-02 落地 —— L1 prelude**（设计
+  `docs/design/prelude-l1-proposal.md`，台账 L-01/L-02 关账于 0.59.0）。prelude
+  在 Full 模式下自带 Lean core 的逻辑与等式骨架：**30 个顶层名字**（`PRELUDE_NAMES`
+  12 → 42），分 B1–B7 七族，`And`/`Or` 是**真归纳块**（点号构造子，可 `match`）。
+  **让位规则**（本提案的核心）：粒度 = 族、依赖闭包（B5→B2、B6→B3、B7→Eq）、
+  触发集合 = 整个闭包的顶层名字并集（含构造子/递归子）；谁声明谁拥有 ⇒ 入门课
+  单元①④⑤⑧⑨⑩⑪ 的"自建逻辑骨架"教学**一个字不用改**，`course_shared.rs` 44 份
+  副本一致性测试未改而全绿。`PRELUDE_NAMES`（补全/材料）与 `PRELUDE_NEVER_YIELDS`
+  （碰撞检查豁免面，只含 Nat/Bool）**拆成两个常量**。parser 白名单零改动。
+  **课程用例**：单元② 中英画布 + 两份解答加 `eq_symm_demo` 与"两解对照"hint；
+  两处 GOLDEN **据实重算**（`unit2 = (3,5,2)`、summary `checked 85→86`），并发现
+  第三处（`cli.rs` 的 warm-cache 断言）。**课程侧兜底保留**：`courses/set-theory/
+  lib/Logic.sokonanoda` 的 28 条**一条没删**，文件头注明"prelude 现在自带哪些"，
+  卷 I 门禁复跑 315 checked · 96 open · 0 判负（与落地前同数）。**P4（课程仓 74 处
+  `inl`/`inr` 项位改点号名、`lib/Logic` 退化成空壳）未做**；**L-03 仍 open**
+  （Type 层重写：`Eq.subst` 的 motive 仍是 `α -> Prop`）。三层测试：front 10 条 +
+  CLI 4 条 + 复现件 2 个（`docs/gaps/repro/L01-*.sh`、`L02-*.sh`，修后形状 = exit 1）。
+  内核（冻结快照）未改一个字节。
+
+- 2026-09-19（第一百〇六轮，收尾）：**0.59.0 发布收尾 —— 语言线五刀 + 课程门禁 + 站点页**。
+  本条把这一版**用户可见**的变化收在一起（逐条的前置记录见上文各轮）：
+  * **版本**：两处版本号 = `0.59.0`（`Cargo.toml` + `editor/vscode/package.json`，契约测试
+    `crates/cli/tests/extension.rs::cargo_and_extension_versions_match` 守着），
+    `Cargo.lock` 由 `cargo metadata` 跟上；课程清单 `courses/set-theory/sokonanoda.toml`
+    的 `requires` 0.58 → 0.59。发布仍全自动（push main → `ci.yml` auto-tag →
+    `release.yml` 26 资产 + VSIX ×9 + SLSA provenance）。
+  * **签名受检（G-01 / WO-004）**：值位是 `sorry` 的 `def`/`theorem`/`example`，签名也要
+    过内核的类型/Prop 判定；坏签名 = 一条 diagnostic（span 取签名自身）+ 声明 `Failed` +
+    **不发** `exercise.open`。**判卷纪律随之上调**：只认 `decl.checked` 与 `diagnostic`
+    ——`exercise.open` 计数对签名腐烂**永远是盲的**。
+  * **构造子命名空间（G-02 / WO-005）**：`ctor mk` 的**规范名**是 `Ind.mk`（源名已含点则
+    原样）；裸名保留为**闭包级解析别名**（唯一时可用，重复报 `elab-ambiguous-ctor-alias`）。
+    用户可见：`#check`/`#reduce`/`#print`、hover、Infoview goal 文本、refine 骨架、
+    语义高亮都改为打规范名；源文件自带 `inductive Nat` 时 `#reduce` 显示混合表示
+    （`Nat.succ (Nat.succ (Nat.succ 1))`，实测已文档化）。
+  * **Prop 结果 + Type 参数 + 单构造子归纳（G-03 / WO-006）**：`Exists` 形状的归纳块不再被
+    内核断言拒绝；派生的 recursor 宇宙参数与内核一致（这种块 **0 个**，`Bar.rec` 不接受
+    宇宙参数）。课程仓 `courses/set-theory/lib/Exists.sokonanoda` 同步从公理三件套升级为
+    **真归纳**（名字与签名逐字不变 ⇒ units 的点名调用零改动）。
+  * **L1 prelude（L-01/L-02）**：Full 模式自带 Lean core 的逻辑与等式骨架 **30 个名字**
+    （`PRELUDE_NAMES` 12 → 42），**族粒度让位** ⇒ 自带同名声明的画布（入门课 7 个单元）
+    行为逐字节不变，`course_shared.rs` 的 44 份副本一致性测试未改而全绿。
+  * **用户自定义记法第一刀（G-04 / WO-011）**：`infix:N`/`infixl:N`/`infixr:N`/零元
+    `notation` 可用（`∈`/`⊆`/`∅` 等）；数学符号是独立 token；**文件内作用域**（不跨
+    `import`）、**不是声明**（零事件、不进声明表/goal 视图）、点名形式永久可用且两种写法
+    判卷一致。`𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`、跨 `import` 的记法、binder 记法与重载留第二刀。
+  * **`course` 认 `import`（G-06 / WO-007）与 `query check` 同口径（G-10 + G-17 / WO-003）**：
+    课程聚合对**有 `import` 的单元**走同一份项目闭包（`failed == 0` ⇔ 该单元 `grade` exit 0）；
+    解析不了的文本在 `query check` 里不再假绿——`failed[]` 带 parse 诊断、
+    **exit 0 → 1**（**有意的契约变更**），从此可作 `grade` 的交叉复核；`goals`/`holes`
+    解析失败答 `not-parsable` + `ok:false`（"正常的没有"仍是空数组）。
+  * **课程门禁（G1–G5）接进 `scripts/soko gate` 与 CI**：判据与规模无关、**不锁计数**
+    （`grade` 退出码 / 目标存在 / 解答 0 open 且 checked>0 / 解答覆盖画布每个具名练习 /
+    lib+Demo 0 open）；`--selftest`（判据通道自检，故意坏的单元必须被拒）、`--bisect`
+    （不依赖诊断 span 的定位）、`--json`/`--report`/`--summary`/`--annotations`；探不到
+    python3 ⇒ gate **exit 3**（无法判定 ≠ 绿）；CI 用当轮 `target/debug` 二进制，
+    课程红自动挡住 `auto-tag` 的发布。当轮实测 **36 目标 · 355 checked · 99 open · 0 判负**。
+  * **站点有卷 I 页面**：`site/set-theory.html` 显示 12 单元目录 + 每单元计数；数据由
+    `scripts/gen-site-data.py` 生成（版本读 `Cargo.toml`、轮次读 `STATUS.md`、**计数由课程
+    门禁实测**）——**永不手写**；`scripts/check-site.py` 绿。
+  * **缺口台账成为门禁（同日主线收尾）**：「缺口即测试」从人肉纪律升级为**执行契约**——
+    `scripts/soko gate` 第四步 = `python3 scripts/gap.py selftest` + `check`，`ci.yml` 的
+    `test` job 同款 step `Gap ledger is consistent (docs/gaps)`（~3 s，不新建 job）。
+    台账新增 `repro_expect`（`clean`/`rejected`/`exit0`/`nonzero`）：期望默认由 `status`
+    推出，**但有些缺口的「修好」恰恰是判红**（G-01 = `rejected`，它钉的是「签名写错必须
+    被拒」）；取值与复现类型不匹配直接判不一致，`gap.py selftest` 14 条判据钉住判定规则。
+    **G-09 关账**：包装层已有稳定码 `kernel-internal` + 「这不是你的代码问题」提示，唯一
+    已知可达触发路径随 G-03 关闭 ⇒ 改判 `fixed` 并撤下 `repro`（与 G-03 共用、已转绿），
+    边界写进 `notes`（内核冻结下「断言永不外泄」是不变量；再现可达反例按新条目记）。
+    收口后 `gap.py check` **exit 0 全绿**：24 条里 **18 条 `fixed_in = 0.59.0`**、未关账
+    6 条（L-04 `workaround` + L-03/G-05/G-07/G-08/L-06，全是 `painful`/`nice`）。
+  * **诊断坐标自描述（G-15 / WO-010）**：`query check` 的 `failed[]`/`warnings[]` **新增** 1 基
+    `start_line`/`start_col`/`end_line`/`end_col`（**只加不删**：`start`/`end` 仍是字节 offset，
+    坐标空间 = 入口文件；schema 号与事件种类都不动，双 GOLDEN 未改）——课程线与 agent 不必再猜
+    单位；台账原记的「span 漂到别的声明」是**量具缺陷**（把字节 offset 当字符下标），真缺口是
+    坐标没自带单位。守护三层：front 两条（span 字节切片逐字等于出错命令）、CLI e2e 一条
+    （`failed[]` 行列 ≡ `grade --json` 的 span）、复现脚本重写（修前 exit 0 / 修后 exit 1）。
+  * **课程跟随 prelude（P4）**：`courses/set-theory/lib/Logic.sokonanoda` 那 26 条**退化成只有
+    注释的空壳**（prelude 已自带同样的 30 个名字；34 处 `import lib.Logic` 一字未改），
+    课程侧 65 处项位裸名 `inl`/`inr` 改点号名 `Or.inl`/`Or.inr`（G-02 定形后裸项名不存在）；
+    课程门禁 **329 checked · 99 open · 0 判负**（多出来的 26 条正是删掉的重复脚手架）。
+  * **不变的**：内核（冻结快照）**一个字节未改**；不调用官方 Lean 工具链；用户/agent 路径
+    仍是零 cargo（`scripts/soko setup/grade/query/course`）。

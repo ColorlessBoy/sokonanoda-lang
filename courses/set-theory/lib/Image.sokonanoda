@@ -1,0 +1,91 @@
+-- Image.sokonanoda —— 卷 I 的**像/原像词汇库**（L2 层）
+--
+-- 分层判据（docs/design/course-stdlib.md §1）：
+--   L2（本文件）= 词汇 + **定义展开**：Mathlib 里是 `rfl` 或一行、**没有数学内容**；
+--   L3（units/）= 一切**有数学内容**的陈述（原像保并交补、像只保并、`image_subset_iff`、
+--                 `f '' (A ∩ B) = f '' A ∩ f '' B` 的反例…）——哪怕 Mathlib 早就有，
+--                 课程就是要让学习者自己证一遍（教训见台账 L-05：把 L3 放进 lib，
+--                 答案就提前躺在库里，练习作废）。
+--   所以本文件**故意只有 2 条定义 + 4 条展开引理**，一条数学定理都不放。
+--
+-- 名字取证（docs/design/course-stdlib.md §3.1，名字照抄真名）：
+--   `Set.image` / `Set.preimage` / `Set.mem_image` / `Set.mem_preimage` /
+--   `Set.image_subset_iff` = Mathlib（Mathlib/Data/Set/Image.lean / Defs.lean）逐字同款，
+--   含参数顺序：`Set.image α β f A`、`Set.preimage α β f B`。
+--
+-- 记法对照（语言还没有 notation，G-04）：
+--   Set.image α β f A    ↔  f '' A   ↔  f(A)      （Tao §3.4 的前推）
+--   Set.preimage α β f B ↔  f ⁻¹' B  ↔  f^{-1}(B) （Tao §3.4 的回拉）
+--   注意 `image α β f A` 里 α/β/f 都要点名——这是卷 I 后半段所有映射题的书写纪律。
+--
+-- 依赖方向：本模块只依赖 lib/Logic 与 lib/Exists、lib/Set（像的定义要 `Exists`）。
+-- 单元⑧之前没有别的模块引用它；`lib/Demo.sokonanoda` 的自检行不在本次归属范围内。
+import lib.Logic
+import lib.Exists
+import lib.Set
+
+-- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）──────────────────
+-- 像（前推）：`y` 落在 `f '' A` 里，就是**存在**一个 `x : α`，它在 `A` 里且 `f x = y`。
+--   注意 `y` 的论域是 β、等式是 `Eq.{1} β (f x) y`——等式必须显式给宇宙（红线 4）。
+def Set.image (α β : Type) (f : α -> β) (A : Set α) : Set β :=
+  fun (y : β) => Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))
+
+-- 原像（回拉）：`x` 落在 `f ⁻¹' B` 里，就是 `f x` 落在 `B` 里。
+--   没有存在量词，只有一个函数应用——所以原像"全保"（保并交补），而像只保并。
+def Set.preimage (α β : Type) (f : α -> β) (B : Set β) : Set α :=
+  fun (x : α) => B (f x)
+
+-- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）──────────────────
+-- 与 lib/Set 的 `Set.mem_union` 同款：展开后就是 `fun h => h`，所以证明项是两边互交。
+-- 写练习时点这条名字，就等于**一次性把 `image` 的定义摊开**，不必手写 `fun h => h`。
+
+theorem Set.mem_image (α β : Type) (f : α -> β) (A : Set α) (y : β) :
+    Iff (Set.mem β y (Set.image α β f A))
+      (Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))) :=
+  Iff.intro (Set.mem β y (Set.image α β f A))
+    (Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y)))
+    (fun (h : Set.mem β y (Set.image α β f A)) => h)
+    (fun (h : Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))) => h)
+
+theorem Set.mem_preimage (α β : Type) (f : α -> β) (B : Set β) (x : α) :
+    Iff (Set.mem α x (Set.preimage α β f B)) (Set.mem β (f x) B) :=
+  Iff.intro (Set.mem α x (Set.preimage α β f B)) (Set.mem β (f x) B)
+    (fun (h : Set.mem α x (Set.preimage α β f B)) => h)
+    (fun (h : Set.mem β (f x) B) => h)
+
+-- ── 两条"判据"引理（L2：纯管道，没有数学内容）────────────────────────────
+-- 这两条是**包装**，不是数学：把"子集"换成"逐元素"，把"∈ 像"换成"存在原像"。
+-- 之所以要收进库（而不是当练习）：它们的存在是为了让学习者**不必**在每道涉及
+-- 映射的题里手写一遍 `fun y hy => …` 的拆装——那是库该消掉的"暴力"。
+-- 有数学内容的方向（比如"像不保交"）全部留在 units/ 里。
+
+-- 像的单调性（`fun` 版，便于直接接受一个"逐点"假设）：`A ⊆ B` 推出 `f '' A ⊆ f '' B`。
+-- 收进库的理由与上一条同款：它是 image_subset_iff 的推论式包装（把 h 逐点喂进 Exists），
+-- 不含"想一下"的内容；单元里的两次真正用场（练习 6 的真方向）都在 units/ 里。
+theorem Set.image_mono (α β : Type) (f : α -> β) (A B : Set α)
+    (h : forall (x : α), A x -> B x) : Set.subset β (Set.image α β f A) (Set.image α β f B) :=
+  fun (y : β) => fun (hy : Set.mem β y (Set.image α β f A)) =>
+    Exists.elim α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))
+      (Set.mem β y (Set.image α β f B)) hy
+      (fun (x : α) => fun (hx : And (A x) (Eq.{1} β (f x) y)) =>
+        Exists.intro α (fun (t : α) => And (B t) (Eq.{1} β (f t) y)) x
+          (And.intro (B x) (Eq.{1} β (f x) y)
+            (h x (And.left (A x) (Eq.{1} β (f x) y) hx))
+            (And.right (A x) (Eq.{1} β (f x) y) hx)))
+
+-- 像落在 B 里 ⟺ A 里的每个点都被 f 送到 B 里。（Mathlib 同名：`Set.image_subset_iff`）
+theorem Set.image_subset_iff (α β : Type) (f : α -> β) (A : Set α) (B : Set β) :
+    Iff (Set.subset β (Set.image α β f A) B) (Set.subset α A (Set.preimage α β f B)) :=
+  Iff.intro (Set.subset β (Set.image α β f A) B)
+    (Set.subset α A (Set.preimage α β f B))
+    (fun (h : Set.subset β (Set.image α β f A) B) =>
+      fun (x : α) => fun (hx : A x) =>
+        h (f x) (Exists.intro α (fun (t : α) => And (A t) (Eq.{1} β (f t) (f x)))
+          x (And.intro (A x) (Eq.{1} β (f x) (f x)) hx (Eq.refl.{1} β (f x)))))
+    (fun (h : Set.subset α A (Set.preimage α β f B)) =>
+      fun (y : β) => fun (hy : Set.mem β y (Set.image α β f A)) =>
+        Exists.elim α (fun (x : α) => And (A x) (Eq.{1} β (f x) y)) (Set.mem β y B) hy
+          (fun (x : α) => fun (hx : And (A x) (Eq.{1} β (f x) y)) =>
+            Eq.subst.{1} β (fun (z : β) => Set.mem β z B) (f x) y
+              (And.right (A x) (Eq.{1} β (f x) y) hx)
+              (h x (And.left (A x) (Eq.{1} β (f x) y) hx))))

@@ -86,6 +86,10 @@ sokonanoda-lang/
 2. **无官方工具依赖**：运行/构建/测试都不调 `lean`/`lake`/`lean4export`/`leanc`/`elan`；所有语料入库。
 3. **教学语法是真实 Lean 4 的子集**：在 `.sokonanoda` 里学会的写法放进官方 Lean 依然合法。
 4. **语法白名单即课程**：parser 只认课程引入过的语法点；新增语法必须伴随课程单元。
+   记法（`infix`/`infixl`/`infixr`/`notation`，0.59.0）**是糖不是新语义**：它只把
+   源文本重写成既有的 `App` 形状，点名形式永久可用（`docs/design/notation-subset.md`）。
+   （**prelude 名字不属于语法白名单**：L1 的 30 个名字是 `PRELUDE_NAMES` 里的受信任
+   声明，parser 零改动——见 §5.4.1。）
 5. **分层推进**：L0（编译器）→ L1（服务）→ L2（编辑器）→ L3（agent 协作），每层只依赖下一层公开接口。
 6. **TDD 与重复测试**：单元、kernel 端到端、CLI 三层重复覆盖同一行为。
 7. **反馈即功能**：类型、化简、打印、环境、错误都结构化输出，人和模型都能无文档驱动工具。
@@ -96,10 +100,26 @@ sokonanoda-lang/
 
 ### 4.1 词法/语法（`crates/front/src/lib.rs`）
 
-- `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。
+- `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Str/Sym/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。**数学符号是独立 token**（`Sym`，0.59.0）：`U+2200–U+22FF`（运算符）与 `U+2A00–U+2AFF`（补充运算符）加 `\`，最大咬合；字符串字面量（`Str`）只用于记法声明里的符号文本（`" ∈ "`），未闭合报 `unterminated-string`（span 在开引号）。
 - `--` 是行注释；`sorry` 是 Hole（未完成练习/占位符；旧的 `???` 已于 2026-09-07 移除）。
-- `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` 块 / `#check` / `#reduce` / `#print`。
-- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）。
+- `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` / `#check` / `#reduce` / `#print` / **记法声明 `infix:N` / `infixl:N` / `infixr:N` / `notation`**（0.59.0）。
+- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）、**`Notation`**（`lhs symbol rhs` 与零元 `symbol`；0.59.0）。
+- **用户自定义记法**（0.59.0，设计 `docs/design/notation-subset.md`，台账 G-04 第一刀）：
+  `infix:N " ∈ " => Set.mem`（`infixl` = 左结合、`infixr` = 右结合、零元用
+  `notation "∅" => Set.empty`）。规则 N1–N7 摘要：符号**必须是独立 token**
+  （声明里的文本去掉首尾空白后不能全是标识符字符）；优先级 `N ∈ 1..=1000`
+  插在 `parse_arrow`（最松）与 `parse_app`（最紧）之间的梯子上，`infix:N` 的
+  左右是 `N`/`N+1`、`infixl:N` 是 `N`/`N+1`（同级左结合）、`infixr:N` 是
+  `N+1`/`N`；**文件内作用域**（声明之后、同文件生效，不跨 `import`）；
+  **记法不是声明**——不发任何事件、不进声明表、不进 goal 视图。展开在 elab 内
+  **源到源**重写成 `App` 形状，并**自己补前导类型参数**（只做裸变量匹配，不引入
+  元变量/一般合一）：先从操作数类型解、再从期望类型解，解不出报
+  `elab-notation-argument-unsolved`。**兼容护城河**：点名形式永久可用，且省 `α`
+  的点名写法（`Set.mem a A`）今天被内核拒绝、改后仍被拒绝。
+  `SemanticKind::ALL` 与 `tm_scope` 表**逐字节不变**（记法符号在语义层分类为
+  `Keyword`；未声明的符号不产生 run，所以目标文本里的 `⊢` 仍是普通 run）。
+  **第二刀（未做）**：`𝒫`/`ᶜ`（Unicode 字母，非符号）、`''`/`⁻¹'`（`'` 是标识符
+  续字符）、`×ˢ`、跨 `import` 的记法、binder 记法、记法重载。
 - 值位关键字：只有 `by <tactic 序列>`（tactic 之间用 `;` **或换行**分隔，0.51.0）（`Expr::By`，进内核前由 `crates/front/src/by.rs`
 降级为 lambda）。历史：值位 `funapply`（0.22.0 移除）与 `funintro`（0.27.0 移除）
 均已删除，见 `docs/design/remove-funintro.md`。
@@ -156,7 +176,7 @@ sokonanoda-lang/
 3. 顺序处理每条命令：
    - `def/theorem/example/axiom` → `build_*` 把 AST elaborate 成 kernel `Declar`，`builder.add_declar` 入表（记录每条声明在环境里的索引），随后 push `PendingOp`。
    - `#check/#reduce` → 先 elaborate 表达式并记住 `decl_before`（当前声明数），稍后用 `EnvLimit::ByIndex(decl_before)` 检查，保证 `#check` 只看到它之前的声明。
-   - `inductive ... end` → `install_inductive_block`：先加 `Inductive`，再逐个加 `Constructor`，有 `rec` 则加 `Recursor`（带 `RecRule` 列表，每条 iota 规则按构造子索引绑定）。
+   - `inductive ... end` → `install_inductive_block`：先加 `Inductive`，再逐个加 `Constructor`，有 `rec` 则加 `Recursor`（带 `RecRule` 列表，每条 iota 规则按构造子索引绑定）；**无 `rec` 时自动派生**等价的 `RecDecl` + iota 规则（构造子类型 elaborate 之后，判据镜像内核 `large_elim_test`，见 §8 gotcha 0b）。
    - `example : T := sorry` → 不建声明，直接产出 `CheckEvent::ExerciseOpen`。
 4. 若 elaboration 阶段已有错误，直接返回（不碰 kernel）。
 5. 否则 `builder.finish()` 得到 `ExportFile`，设 `pp_options.proofs = true`（打印证明项本体而不是 `_`），然后逐个执行 PendingOp：
@@ -226,7 +246,8 @@ check-then-add → 事件/错误 → 每命令签名与 early cutoff → 报告�
    `soko/project`（VS Code「项目」树渲染它）。设计 = `docs/design/project-view.md`。
 
 消费方：CLI（`--root`/`--no-project`）、`query`（项目模式）、LSP（多文档 +
-跨文件 `definition`/`references`/`rename`）、`build`（暖缓存）。设计全文与错误码表见
+跨文件 `definition`/`references`/`rename`）、`build`（暖缓存）、`course`
+（有 `import` 的单元走闭包；无 `import` 的单元仍走单文件）。设计全文与错误码表见
 `docs/design/imports-and-projects.md`，协议见 `docs/protocol.md`。
 
 **判据前缀（closure judge prefix）**：`match` 的宇宙层级、`by` tactic 的
@@ -311,6 +332,14 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 - `EnvBuilder::finish()` 会 `dag.mk_name_cache(anon)`：在 intern 表里按名字找到 `Nat.succ/Nat.add/...`，给 `NameNode` 打 `NatRed` 标记。此后求值遇到这些头时，`unfold_value_go` 先走 `do_nat_red` **原生大整数运算**（`num-bigint`）；构造子 `Nat.succ` 在 `apply` 里还会把已是一元链的参数折叠成 `NatLit`。这就是 `#reduce 1 + 2 => 3` 与 `#reduce Nat.succ (Nat.succ Nat.zero) => 2` 的来源。`Nat.add` 仍必须是 `Definition`（Unfoldable）而非 `Axiom`，原生快路径才会接管。
 - `Expr::Num` 在 front 被 elaborate 成 `NatLit`（bignum 指针）；`a + b` 是 `Nat.add a b` 的语法糖。
 - **风险/待对齐**：`Nat.add` 的体是"自引用占位"，语义上等价于公理 + 原生快路径；上游真身是正常递归定义。教学 prelude 必须保证这些名字**只在有实参时被原生快路径接管**、裸名字（如 `#reduce Nat.add`）不会被 delta 无限展开——当前实测 `#reduce Nat.add => Nat.add` 可终止，但这是要长期盯住的边界（见 `docs/design/infrastructure.md` 的 prelude 工作流）。另一个已知现象：`Nat.rec` 的 `NatLit` 快路径会先给递归结果套一层未归约的一元链，`deep_reduce` 不再回收，所以 `match` 递归结果可能呈混合表示（如 `2 + 1 => Nat.succ (Nat.succ 1)`），def-eq 上仍等于 3。
+**构造子命名空间（G-02 / WO-005，0.59.0）**：源内 `inductive` 的构造子也走同一条
+「点名前缀 = 规范名」的路（`Ind.ctor`），所以**源文件自带 `inductive Nat` 时**，
+ctor 一旦叫 `Nat.zero`/`Nat.succ`，name cache 的 `NatRed::Succ` 快路径就会接管 ——
+`#reduce` 的输出从 `succ (succ (succ (succ zero)))` 变成**混合表示**
+`Nat.succ (Nat.succ (Nat.succ 1))`（`apply` 把已是一元链的参数折成 `NatLit`）。
+`Bool`/`Color` 这类没有 NatRed 的归纳只是纯改名（`ff` → `Bool.ff`）。逐条实测值见
+`docs/design/ctor-namespace.md` §2.1。
+
 `install_bool_prelude` 同法装入 `Bool`（**非递归**）：`Bool.true`/`Bool.false` 真构造子 +
 派生 `Bool.rec`（两分支消去子，无 IH），登记进 `known` 与 `match` 的 `InductiveTable`。
 名字必须是 `Bool`/`Bool.true`/`Bool.false`：内核 name cache 已预留这两个 ctor 槽位
@@ -318,6 +347,46 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
 `inductive Bool` 时 prelude 不装（与 `Nat` 同一闸；否则重复声明 panic）。
 
 - `nat_extension` 由 `Config::default()` 默认打开；`StringLit` 类似（`string_extension`）。
+
+#### 5.4.1 L1：逻辑与等式骨架（0.59.0；设计 `docs/design/prelude-l1-proposal.md`）
+
+`install_l1_prelude` 在 Full 模式下把 Lean core 的逻辑与等式骨架也作为受信任预置装入
+（规范源文本 `PRELUDE_L1_SRC`，与用户声明走**同一条 elaborator**：`build_axiom`/
+`build_def`/`install_inductive_block`）。30 个顶层名字分 7 个**族**：
+
+| 族 | 名字 | 形态 | 依赖（被让位时本族也让位） |
+|---|---|---|---|
+| B1 真伪 | `True`, `True.intro` | axiom | — |
+| B2 假与爆炸 | `False`, `False.rec`, `False.elim` | axiom + def | — |
+| B3 且 | `And`, `And.intro`, `And.left`, `And.right`, `And.elim` (+`And.rec`) | **真归纳块** + def | — |
+| B4 或 | `Or`, `Or.inl`, `Or.inr`, `Or.elim` (+`Or.rec`) | **真归纳块** + def | — |
+| B5 非 | `Not`, `Not.intro`, `Not.elim`, `absurd` | def | **B2** |
+| B6 当且仅当 | `Iff`, `Iff.intro`, `Iff.mp`, `Iff.mpr`, `Iff.refl`, `Iff.symm`, `Iff.trans` | def | **B3** |
+| B7 Eq 引理 | `Eq.symm`, `Eq.trans`, `congrArg` | def | **Eq prelude** |
+
+**让位规则（谁声明谁拥有）**：粒度 = 族，不是单名；触发集合 `taken` =
+整个闭包的顶层名字并集（`top_level_def_spans_over` 的键集，**含构造子与递归子**）。
+命中任一名 ⇒ 该族 + 依赖它的族一起不装。依赖边的方向是**被依赖者被占用则依赖者让位**
+（`Iff.mp` 的定义体用 `And.left`，所以文件声明 `And` ⇒ `Iff` 消失；反过来不成立）。
+
+**两个实现要点（as-built，都是实测出来的）**：
+
+1. **安装顺序是先 Eq 后 L1**：B7 的定义体引用 `Eq.subst`/`Eq.refl`，必须等 Eq 进环境；
+   两者读同一个 `taken`，所以顺序不影响让位结果。
+2. **重入闸 `L1_INSTALL_DEPTH`**：装 `And` 归纳块时 `install_inductive_block` 要用
+   `large_elim_test_mirror` 问内核「字段类型是不是 Prop」（`field_sort_via_kernel` →
+   `judge_infer` → **内层 `compile_fol_with`**），内层又会装一遍 L1 ⇒ 无限递归
+   （实测 `stack overflow, SIGABRT`）。计数 > 0 时 `install_l1_prelude` 直接返回；
+   L1 安装期间的探针只需内建的 `Prop`，不需要任何 L1 名字。
+
+**白名单与豁免面**：`PRELUDE_NAMES`（补全/材料，42 条）与 `PRELUDE_NEVER_YIELDS`
+（只含 `Nat`/`Bool` 家族，给 `check_name_collisions` 用）**是两个常量**。L1 名字按族
+合法让位，所以**不能**进 `PRELUDE_NEVER_YIELDS`——否则两个模块各自声明 `True` 就不再报
+友好的 `import-name-collision`，退化成内核裸错。parser 白名单零改动（L1 不引入新语法）。
+
+**已知边界**：`congrArg` 只能同宇宙层级（G-14）；签名显式给全参数（隐式实参不自动插入），
+所以填好的项不能逐字粘进官方 Lean——那是一次签名变更，届时另开提案。
+`#check`/hover 对 prelude 名与 `Nat`/`Eq` 同状（受信任安装、无 `DeclState`）。
 
 ### 5.5 `#prove`：tactic 只是"帮你搭 lambda"（`crates/front/src/proof.rs`）
 
@@ -378,12 +447,19 @@ def       Nat.add  : Nat -> Nat -> Nat := Nat.add ← 占位自引用体
    自算 `is_recursive`（构造子 telescope binder 类型是否提到归纳名——含
    result 箭头链的 domain）并断言 front 传入值一致；内核还要求每块注册
    `Recursor` 声明（`<ind>.rec`，每构造子一条 iota 规则）。front 侧镜像：
-   `elab.rs` 从源码 AST 同规则计算 `is_recursive`；缺 `rec` 的块在**入环境
-   之前**报 `elab-missing-inductive-rec`（check-then-add 语义保持）。
+   `elab.rs` 从源码 AST 同规则计算 `is_recursive`；**缺 `rec` 的块自动派生**
+   `RecDecl` + iota 规则（0.58.0 起；`elab-missing-inductive-rec` 已不存在）。
+   **派生判据必须与内核同规则镜像**，不能近似——两条已钉死的：
+   `is_k` 镜像 `init_k_target`（H6-C），recursor 的**宇宙参数个数**镜像
+   `large_elim_test`（G-03 / `docs/design/prop-large-elim-mirror.md`）；
+   两条都各自带判别性成对测试。
 1. **arena 生命周期**：`EnvBuilder`/`ExportFile`/`ExprPtr` 都挂在同一个 `stumpalo::Arena` 上，arena 必须活得比任何检查会话久；front 在 `compile_fol` 内开 arena 并一次跑完所有 PendingOp。Session（`front/src/session.rs`）每次 update 都开新 arena——跨 update 只复用渲染后的快照（DeclState/hover/事件文本），不复用内核对象。
 2. **kernel 拒绝 = panic → Result**：内核仍用 `assert!` panic 报拒绝（如 `def_eq failed`），`try_check_declar` 用 `catch_unwind` 包装成 `CheckError::Rejected/Internal`。conv 失败的 def_eq 消息带 `expected/actual`，front 解析填充 `CompileError.expected/actual`（I9 已闭环）；更细粒度的 kernel 错误仍是后续任务（见 design doc）。
-3. **elab 仍受限**：binder 可由声明类型推断（I6；应用位置的未注解 `fun x => …` 也可从实参类型推断，0.45.0）、值位 `let`（Phase 1）、值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）与**非带索引参数化归纳**（`inductive Option (A : Type)`，含对它的 `match`；`docs/design/parameterized-inductives.md`）已落地，但未做无注解 `let`、依赖 motive、**带索引**归纳与宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、notation/macro（见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
+3. **elab 仍受限**：binder 可由声明类型推断（I6；应用位置的未注解 `fun x => …` 也可从实参类型推断，0.45.0）、值位 `let`（Phase 1）、值位 `match`（Phase 2，源内 inductive 与 prelude `Nat`，含递归 IH `ih`/`ih2`…）与**非带索引参数化归纳**（`inductive Option (A : Type)`，含对它的 `match`；`docs/design/parameterized-inductives.md`）已落地，但未做无注解 `let`、依赖 motive、**带索引**归纳与宇宙多态参数、prelude `Eq` 的 match、`match` tactic、结构/类型类、**macro**（`notation` 已于 0.59.0 落地，见 `docs/design/notation-subset.md`；见 `docs/design/elaborator-let-match.md`、`docs/design/match.md`）。
 4. **语法白名单是边界**：想加语法，先加课程 + 测试；`sorry` 只允许出现在声明（def/theorem/example）的值位。
+   记法（0.59.0）是**唯一的例外面**：它不引入新语义，只是用户自定义的源级糖，
+   所以它的"课程"是使用者自己写的声明行，边界由设计文档 N1–N7 钉住
+   （`docs/design/notation-subset.md`）。
 5. **不用官方工具链**：CI 与本地一律 `cargo`；不要引入 `lean`/`lake`/`lean4export`。
 6. **新错误要带 stage/code 与 span**：CLI 已按 `error[stage]:` 输出，`--json` 是 agent 视图；改输出格式要同步 `docs/protocol.md` 与 `crates/cli/tests/cli.rs`。
 7. **打印偏好**：教学文本 ASCII `->`；`pp_options.proofs=true` 由 `compile_fol` 设置（否则打印会把证明项压成 `_`）。

@@ -155,5 +155,8 @@
 **为什么加了 `scripts/soko`**：REQUIREMENTS（三十二）删掉的是**面向用户的
 `scripts/soko.sh`**（下载器已进二进制）；这里新增的是**agent/编辑器接入层的
 零依赖 Node 启动器**——DSH 没有 PATH 注入也没有项目钩子，项目必须有一个可
-commit、可执行、跨平台的入口。它的解析链与 opencode 插件同语义，并额外要求
-"仓库构建的版本必须 `--version` 匹配"（旧插件按 mtime 取新，会跑旧二进制）。
+commit、可执行、跨平台的入口。它的解析链与 opencode 插件同语义（含 **版本源链**：
+`SOKONANODA_VERSION` → `sokonanoda-version.txt` → `requires` → `Cargo.toml`，
+见 `docs/design/imports-and-projects.md` §2.5），并额外要求
+"仓库构建的版本必须 `--version` 匹配"（旧插件按 mtime 取新，会跑旧二进制）；
+两者在**解析不出期望版本时都拒绝使用缓存**（G-16）。

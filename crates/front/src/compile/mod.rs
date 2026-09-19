@@ -19,12 +19,14 @@ pub use check::{
     render_expr,
 };
 pub(crate) use check::{run_incremental, top_level_def_spans, TrustPlan};
+pub(crate) use elab::canonical_ctor_name;
 pub use error::{CompileError, CompileStage, ErrorKind};
 pub use event::{CheckEvent, CompileOutput, CompileStats};
 pub use goals::{probe_sub_goal_types, probe_sub_goal_types_with};
 pub use hints::{attach_hints, attach_hints_to_report, source_hints};
 pub use prelude::{
     explicit_prelude_mode, prelude_mode_from_source, CompileOptions, PreludeMode, PRELUDE_NAMES,
+    PRELUDE_NEVER_YIELDS,
 };
 pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,

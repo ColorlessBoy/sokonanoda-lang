@@ -1,0 +1,170 @@
+-- ==========================================================================
+-- unit03-union-inter-powerset.sokonanoda —— 卷 I 单元③ 并、交、差与幂集
+--
+-- 靶子：Tao《Analysis I》§3.1 后半。概念顺序：三个二元运算（并/交/差分别用
+-- Or / And / Not 定义）→ 幂集（定义为"子集谓词"）→ 成员判定与单调性。
+-- 题库参照 MIL 4.1 与 FM2024 Sheet1（A ⊆ A ∪ B、A ∩ B ⊆ A、
+-- A ⊆ B → A ⊆ C → A ⊆ B ∩ C 同款）。
+--
+-- 本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）：
+--   · 证明：term 风格 `fun`，或 by 块里的 intro / exact / apply / assumption /
+--     rfl / match / sorry（本单元全部题目 term 风格就能做完）；
+--   · 库里已备好、直接用（lib.Logic + lib.Set）：
+--       True / True.intro / False / False.elim / Not / absurd /
+--       And / And.intro / And.left / And.right / And.elim /
+--       Or（构造子是**点号名** Or.inl / Or.inr）/ Or.elim /
+--       Iff / Iff.intro / Iff.mp / Iff.mpr / Iff.refl / Iff.symm / Iff.trans /
+--       Eq.symm / Eq.trans / congrArg / Eq.subst（等式一律写**显式宇宙**：Eq.{1} α a b）/
+--       Set / Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton / Set.pair /
+--       Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset、公理 Set.ext、
+--       以及展开引理 Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty /
+--       Set.mem_univ / Set.mem_singleton_iff / Set.mem_union / Set.mem_inter_iff /
+--       Set.mem_sdiff / Set.mem_powerset_iff；
+--   · 只允许引用**前面已经出现**的声明（声明顺序 = 依赖顺序）。
+-- 本单元**不允许**（语言还没有 notation，台账 G-04）：∈ ⊆ ∪ ∩ \ 𝒫 ∅ 这些记号——一律点名
+--   Set.mem α a A · Set.subset α A B · Set.union α A B · Set.inter α A B ·
+--   Set.sdiff α A B · Set.powerset α A · Set.empty α · Set.univ α。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+
+-- ─────────────────────────────────────────────────────────────
+-- 3.0 成员判定（演示，已写好）：运算与幂集"里面装的是什么"
+--
+-- 这一层是"定义展开"（L2，没有数学内容），所以直接交给你；练习从 3.1 起。
+-- 差的成员判定 Set.mem_sdiff 形状相同，留给练习 8 自己展开着用。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示：x ∈ A ∪ B 当且仅当 x ∈ A 或 x ∈ B。
+theorem demo_mem_union (α : Type) (a : α) (A B : Set α) :
+    Iff (Set.mem α a (Set.union α A B)) (Or (Set.mem α a A) (Set.mem α a B)) :=
+  Set.mem_union α a A B
+
+-- 演示：x ∈ A ∩ B 当且仅当 x ∈ A 且 x ∈ B。
+theorem demo_mem_inter (α : Type) (a : α) (A B : Set α) :
+    Iff (Set.mem α a (Set.inter α A B)) (And (Set.mem α a A) (Set.mem α a B)) :=
+  Set.mem_inter_iff α a A B
+
+-- 演示：X ∈ 𝒫 A 当且仅当 X ⊆ A（注意 X 与 A 同为 Set α，而 𝒫 A 是 Set (Set α)）。
+theorem demo_mem_powerset (α : Type) (A B : Set α) :
+    Iff (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A) :=
+  Set.mem_powerset_iff α A B
+
+-- ─────────────────────────────────────────────────────────────
+-- 3.1 并：两个"塞进去"的包含，以及 ∪ 的**泛性质**（A ∪ B 是最小的公共上界）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：左项被并包含。
+-- soko:hint 思路：目标是全称命题——intro 一个元素 x 与"x ∈ A"，要交出的结论是"或"。
+-- soko:hint 目标形态：展开后是 forall (x : α), A x -> Or (A x) (B x)。
+-- soko:hint 关键件：Or 的构造子是点号名 Or.inl / Or.inr；左项走 Or.inl，别忘了它要显式吃 Or 的两个参数。
+theorem subset_union_left (α : Type) (A B : Set α) : Set.subset α A (Set.union α A B) :=
+  sorry
+
+-- 练习 2（T 类）：右项被并包含（与练习 1 对称，换一支构造子）。
+-- soko:hint 思路：与练习 1 同形，只是证据要放进"或"的右边。
+-- soko:hint 目标形态：展开后是 forall (x : α), B x -> Or (A x) (B x)。
+-- soko:hint 关键件：Or.inr (A x) (B x)。
+theorem subset_union_right (α : Type) (A B : Set α) : Set.subset α B (Set.union α A B) :=
+  sorry
+
+-- 练习 3（L 类）：并的**泛性质**——A ∪ B ⊆ C 当且仅当 A ⊆ C 且 B ⊆ C。
+-- soko:hint 思路：两个方向分开做——→ 把 h 分别用在"从 A 来"与"从 B 来"的元素上；← 手里是一对包含，对 x ∈ A ∪ B 分情况。
+-- soko:hint 目标形态：Iff (Set.subset α (Set.union α A B) C) (And (Set.subset α A C) (Set.subset α B C))；→ 的目标是一个 And，← 的目标是 forall (x : α), Or (A x) (B x) -> C x。
+-- soko:hint 关键件：→ 用 And.intro，两支分别把 Or.inl / Or.inr 造出的证据喂给 h；← 用 Or.elim (A x) (B x) (C x)，两个包含用 And.left / And.right 取出。
+theorem union_subset_iff (α : Type) (A B C : Set α) :
+    Iff (Set.subset α (Set.union α A B) C) (And (Set.subset α A C) (Set.subset α B C)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 3.2 交：与 3.1 恰好对偶（两条包含从 ∩ 出来，一条包含进 ∩，外加 ∩ 的泛性质）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 4（T 类）：交是左项的子集。
+-- soko:hint 思路：x ∈ A ∩ B 是"一对证据"，目标只要其中左边那一半。
+-- soko:hint 目标形态：展开后是 forall (x : α), And (A x) (B x) -> A x。
+-- soko:hint 关键件：And.left (A x) (B x)。
+theorem inter_subset_left (α : Type) (A B : Set α) : Set.subset α (Set.inter α A B) A :=
+  sorry
+
+-- 练习 5（T 类）：交是右项的子集。
+-- soko:hint 思路：与练习 4 同形，取"一对证据"里的另一半。
+-- soko:hint 目标形态：展开后是 forall (x : α), And (A x) (B x) -> B x。
+-- soko:hint 关键件：And.right (A x) (B x)。
+theorem inter_subset_right (α : Type) (A B : Set α) : Set.subset α (Set.inter α A B) B :=
+  sorry
+
+-- 练习 6（L 类）：两条包含给出到交的包含（**练习 4/5 的逆向**）。
+-- soko:hint 思路：目标是"且"——分别向两条假设要证据，再拼起来。
+-- soko:hint 目标形态：forall (x : α), A x -> And (B x) (C x)。
+-- soko:hint 关键件：h1 x hx : B x 与 h2 x hx : C x，交给 And.intro (B x) (C x)。
+theorem subset_inter (α : Type) (A B C : Set α)
+    (h1 : Set.subset α A B) (h2 : Set.subset α A C) : Set.subset α A (Set.inter α B C) :=
+  sorry
+
+-- 练习 7（L 类）：∩ 的**泛性质**——练习 3 在交这边的对偶：A ⊆ B ∩ C 当且仅当
+-- A ⊆ B 且 A ⊆ C。（练习 6 正是这条的 ← 方向：拿到一对包含就能造出到交的包含。）
+-- soko:hint 思路：两个方向分开——→ 把"整条包含"按交的两个坐标劈成两条包含；← 把一对包含合成一条"落进交里"的包含。
+-- soko:hint 目标形态：Iff (Set.subset α A (Set.inter α B C)) (And (Set.subset α A B) (Set.subset α A C))；→ 的目标是一个 And（两条都是 forall），← 的目标是 forall (x : α), A x -> And (B x) (C x)。
+-- soko:hint 关键件：→ 任给 x 与 hx : A x：h x hx 给出的是一对证据（成员判定 Set.mem_inter_iff 说它展开就是 And），And.left / And.right 各取一半交出去；← 两条包含用 And.left h / And.right h 取出，喂同一个 x hx 之后交给 And.intro (B x) (C x) 装回一对。
+theorem subset_inter_iff (α : Type) (A B C : Set α) :
+    Iff (Set.subset α A (Set.inter α B C)) (And (Set.subset α A B) (Set.subset α A C)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 3.3 差：A \ B 是 A 与"B 的补"的交，所以它当然落在 A 里
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 8（T 类）：差是左项的子集。
+-- soko:hint 思路：x ∈ A \ B 也是"且"（A 的证据 + B 的否证），目标只要前半。
+-- soko:hint 目标形态：展开后是 forall (x : α), And (A x) (Not (B x)) -> A x。
+-- soko:hint 关键件：Set.mem_sdiff α x A B 是这一层的成员判定，展开后 And.left (A x) (Not (B x))。
+theorem sdiff_subset (α : Type) (A B : Set α) : Set.subset α (Set.sdiff α A B) A :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 3.4 幂集：𝒫 关于 ⊆ **单调**（幂集元素是上一层类型的集合，注意层数）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 9（T 类）：A ⊆ B 推出 𝒫 A ⊆ 𝒫 B。
+-- soko:hint 思路：𝒫 A 的元素是"A 的子集"；要证 𝒫 A ⊆ 𝒫 B，就是任给 X ⊆ A 去证 X ⊆ B——逐元素把 X 里的证据经 A ⊆ B 送一程。
+-- soko:hint 目标形态：两层 intro 之后是 forall (x : α), X x -> B x，手里有 hX : Set.subset α X A 与 h : Set.subset α A B。
+-- soko:hint 关键件：Set.mem_powerset_iff（成员判定，**第一个参数是"大集合"**）把两边的"X ∈ 𝒫 ?"换成包含；最后一步用 h x。
+theorem powerset_mono (α : Type) (A B : Set α) (h : Set.subset α A B) :
+    Set.subset (Set α) (Set.powerset α A) (Set.powerset α B) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 3.5 D 类：真假要自己判——两条都**不能**按字面写成 theorem
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（D 类）：判断真假，假的给出反例。
+--
+--   命题："(A ∪ B) ⊆ (A ∩ B)"（也就是 3.1/3.2 那两条包含的**逆**）。
+--   判断：**假**。反例：取 A = 全集、B = 空集——只要 α 里有一个元素 a，
+--   它就在 A ∪ B 里，却不在 A ∩ B 里。
+--   下面把这条反例写成"原命题的否定"：假命题本身不能当 theorem 的靶子
+--   （那样只会留下一个永远填不上的 sorry）。
+-- soko:hint 思路：否定就是一个箭头——intro 假设 hsub（那条包含），目标是 False。
+-- soko:hint 目标形态：展开之后目标是 False，手里有 hsub : Set.subset α (Set.union α (Set.univ α) (Set.empty α)) (Set.inter α (Set.univ α) (Set.empty α))。
+-- soko:hint 关键件：先造 a ∈ univ ∪ ∅——Set.mem_univ α a 配上 Or.inl；把它喂给 hsub a 之后用 And.right 取出后半（展开即 False）。
+theorem union_subset_inter_false (α : Type) (a : α) :
+    Not (Set.subset α (Set.union α (Set.univ α) (Set.empty α))
+                       (Set.inter α (Set.univ α) (Set.empty α))) :=
+  sorry
+
+-- 练习 11（D 类）：判断真假并说明理由（本题把**真的那条**写成定理）。
+--
+--   命题甲：A ∈ 𝒫 A。   命题乙：A ⊆ 𝒫 A。
+--   甲：**真**——`Set.mem (Set α) A (Set.powerset α A)` 展开就是 A ⊆ A。
+--   乙：**连类型都不对**——𝒫 A : Set (Set α) 的元素类型是 Set α，比 A : Set α 高一层，
+--       所以它当不了 Set.subset α A ? 的右参数。这正是"∈ 与 ⊆ 混淆"在幂集上的样子：
+--       要写的是"属于"，不是"包含"。（Tao §3.1 的散文里 A ⊆ 𝒫A 有意义但一般不真；
+--       我们的编码用类型层把它提前挡住——本课程的设计判断。）
+--   （大纲单元③把"A ∈ 𝒫A"列为假命题：那是笔误，随本题解答一并更正。）
+-- soko:hint 思路：目标展开就是 A ⊆ A——intro 一个元素与它的证据，问问自己还需要做什么。
+-- soko:hint 目标形态：Set.mem (Set α) A (Set.powerset α A)，展开是 forall (x : α), A x -> A x。
+-- soko:hint 关键件：Set.mem_powerset_iff α A A（成员判定）把目标换成 Set.subset α A A；剩下的形状与单元②的子集自反同形，不需要新引理。
+theorem powerset_self_mem (α : Type) (A : Set α) :
+    Set.mem (Set α) A (Set.powerset α A) :=
+  sorry

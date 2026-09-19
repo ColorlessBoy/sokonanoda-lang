@@ -38,6 +38,7 @@ pub enum ErrorKind {
     ElabInvalidNatLiteral,
     ElabTooManyCtorFields,
     ElabUnknownCtorForIota,
+    ElabAmbiguousCtorAlias,
     ElabTacticFailed,
     ElabApplyNeedsATerm,
     ElabApplyNotApplicable,
@@ -48,6 +49,12 @@ pub enum ErrorKind {
     ElabMatchNonExhaustive,
     ElabMatchParameterizedUnsupported,
     ElabLetTypeQueryFailed,
+    /// 记法命令指向的目标名不存在（`infix:50 " ∈ " => Set.mem` 但 `Set.mem`
+    /// 没声明）。G-04 / WO-011，设计 `docs/design/notation-subset.md` N1。
+    ElabNotationUnknownTarget,
+    /// 记号展开时补不出目标 telescope 的**前导类型参数**（v1 只做裸变量匹配，
+    /// 不做一般合一）。hint 教点名写法。设计 N4.2。
+    ElabNotationArgumentUnsolved,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -91,6 +98,7 @@ impl ErrorKind {
             | ElabInvalidNatLiteral
             | ElabTooManyCtorFields
             | ElabUnknownCtorForIota
+            | ElabAmbiguousCtorAlias
             | ElabTacticFailed
             | ElabApplyNeedsATerm
             | ElabApplyNotApplicable
@@ -100,7 +108,9 @@ impl ErrorKind {
             | ElabMatchRecursiveUnsupported
             | ElabMatchNonExhaustive
             | ElabMatchParameterizedUnsupported
-            | ElabLetTypeQueryFailed => CompileStage::Elab,
+            | ElabLetTypeQueryFailed
+            | ElabNotationUnknownTarget
+            | ElabNotationArgumentUnsolved => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -137,6 +147,7 @@ impl ErrorKind {
             ElabInvalidNatLiteral => "elab-invalid-nat-literal",
             ElabTooManyCtorFields => "elab-too-many-ctor-fields",
             ElabUnknownCtorForIota => "elab-unknown-ctor-for-iota",
+            ElabAmbiguousCtorAlias => "elab-ambiguous-ctor-alias",
             ElabTacticFailed => "elab-tactic-failed",
             ElabApplyNeedsATerm => "elab-apply-needs-a-term",
             ElabApplyNotApplicable => "elab-apply-not-applicable",
@@ -147,6 +158,8 @@ impl ErrorKind {
             ElabMatchNonExhaustive => "elab-match-non-exhaustive",
             ElabMatchParameterizedUnsupported => "elab-match-parameterized-unsupported",
             ElabLetTypeQueryFailed => "elab-let-type-query-failed",
+            ElabNotationUnknownTarget => "elab-notation-unknown-target",
+            ElabNotationArgumentUnsolved => "elab-notation-argument-unsolved",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -209,6 +222,9 @@ impl ErrorKind {
             ElabUnknownCtorForIota => {
                 "iota 规则引用了一个不存在的构造子。检查构造子名字是否与 ctor 声明一致。"
             }
+            ElabAmbiguousCtorAlias => {
+                "这个裸构造子名被两个类型各声明了一次，无法判断是哪一个。写全前缀名（例如 `P1.mk`），或给其中一个构造子换个名字。"
+            }
             ElabTacticFailed => {
                 "`by` 块里的 tactic 失败了：请检查当前目标与已引入的假设。"
             }
@@ -238,6 +254,12 @@ impl ErrorKind {
             }
             ElabLetTypeQueryFailed => {
                 "无法从值推断出 `let` 绑定的类型；补上类型标注即可，例如 `let x : Nat := 1; x`。"
+            }
+            ElabNotationUnknownTarget => {
+                "记法命令指向的目标名不存在。检查 infix/notation 行里 `=>` 后面的名字拼写（要写点名，例如 Set.mem），并确认它已经声明过。"
+            }
+            ElabNotationArgumentUnsolved => {
+                "这个记法展开时补不出前面的类型参数（本子集只按操作数的类型补，不做一般推断）。改用点名写法把参数写全，例如 Set.mem α a A；或在两边都是已知类型的上下文里使用记法。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"

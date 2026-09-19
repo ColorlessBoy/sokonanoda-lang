@@ -301,6 +301,17 @@ pub fn render_expr(expr: &Expr) -> String {
                 rendered.join(" ")
             )
         }
+        // 记号节点（G-04 / WO-011）：打回**记法**写法（`lhs ∈ rhs`）。这是
+        // 源级打印，与冻结内核的 pp 无关——goal/hover 里的类型文本仍由内核
+        // 产出点名形式（设计 N7）。
+        Expr::Notation {
+            symbol, lhs, rhs, ..
+        } => match (lhs, rhs) {
+            (Some(lhs), Some(rhs)) => {
+                format!("{} {symbol} {}", render_atom(lhs), render_atom(rhs))
+            }
+            _ => symbol.clone(),
+        },
     }
 }
 
@@ -346,7 +357,8 @@ fn render_fun_position(expr: &Expr) -> String {
         | Expr::Arrow { .. }
         | Expr::Plus { .. }
         | Expr::Let { .. }
-        | Expr::Match { .. } => format!("({s})"),
+        | Expr::Match { .. }
+        | Expr::Notation { .. } => format!("({s})"),
         _ => s,
     }
 }
@@ -360,7 +372,8 @@ fn render_atom(expr: &Expr) -> String {
         | Expr::Arrow { .. }
         | Expr::Plus { .. }
         | Expr::Let { .. }
-        | Expr::Match { .. } => format!("({s})"),
+        | Expr::Match { .. }
+        | Expr::Notation { .. } => format!("({s})"),
         _ => s,
     }
 }

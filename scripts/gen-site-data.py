@@ -13,17 +13,38 @@ This script pulls each from its real source so the numbers cannot drift:
   round_date   <-   (same header)
   round_title  <-   (same header)
   examples     <- examples/*.sokonanoda  filenames
+  set_theory   <- courses/set-theory/course.json + **measured** by the course's
+                  own gate (courses/set-theory/tools/check.py --json)
+
+Counts are never hand-written anywhere: the 卷 I block is measured by running the
+course gate, and every unit carries the gate's own `status`/`checked`/`open`.
+Measurement never triggers a toolchain download (`SOKONANODA_OFFLINE=1`) — the
+repo explicitly refuses "在 CI 里 setup 下载二进制" (docs/design/course-gate-in-ci.md
+§8) — so when no pinned CLI is resolvable the counts of the *previous* run are
+carried over, and with nothing to carry the fields are simply left out.
 
 Every field is parsed; if a source is missing or unparseable the field is left
 out rather than fabricated. Output is deterministic (sorted keys, stable order).
 """
 
+import datetime
 import glob
 import json
 import os
 import re
+import subprocess
+import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 卷 I《集合论》：单元清单 + 课程门禁（判据的唯一真相，见
+# docs/design/teaching-project.md §P5 与 docs/design/course-gate-in-ci.md §2.4）。
+SET_THEORY_DIR = os.path.join("courses", "set-theory")
+SET_THEORY_GATE = os.path.join(SET_THEORY_DIR, "tools", "check.py")
+SITE_JSON = os.path.join("site", "data", "site.json")
+# 门禁的墙上时间预算：整卷暖缓存十几秒，给冷启动留足余量。不按目标数写死——
+# 目标数由课程自己长（曾经写成 "34 targets"，课程长到 36 个时它就成了假的）。
+GATE_TIMEOUT_S = 300
 
 
 def _read(rel_path):
@@ -48,15 +69,8 @@ def get_version():
     return mm.group(1) if mm else None
 
 
-def get_units():
-    """Return the ordered unit list from course/course.json.
-
-    Each item carries file/title/title_en/unit, and an extra `en_file` key when
-    an English mirror exists under course/en/.
-    """
-    text = _read("course/course.json")
-    if not text:
-        return []
+def _parse_units(text):
+    """Parse a flat course JSON (list of {file,title,title_en,unit})."""
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
@@ -68,16 +82,12 @@ def get_units():
     for entry in data:
         if not isinstance(entry, dict):
             continue
-        item = {
+        units.append({
             "file": entry.get("file", ""),
             "title": entry.get("title", ""),
             "title_en": entry.get("title_en", ""),
             "unit": entry.get("unit"),
-        }
-        en_path = os.path.join("course", "en", entry.get("file", ""))
-        if entry.get("file") and os.path.exists(os.path.join(REPO_ROOT, en_path)):
-            item["en_file"] = en_path
-        units.append(item)
+        })
 
     # Stable ordering by unit number (entries without a numeric unit sort last).
     units.sort(
@@ -86,6 +96,183 @@ def get_units():
         else (True, 0)
     )
     return units
+
+
+def get_units():
+    """Return the ordered unit list from course/course.json.
+
+    Each item carries file/title/title_en/unit, and an extra `en_file` key when
+    an English mirror exists under course/en/.
+    """
+    units = _parse_units(_read(os.path.join("course", "course.json")))
+    for unit in units:
+        en_path = os.path.join("course", "en", unit["file"])
+        if unit["file"] and os.path.exists(os.path.join(REPO_ROOT, en_path)):
+            unit["en_file"] = en_path
+    return units
+
+
+def _first_line(text):
+    """First non-empty line, for turning a subprocess failure into one sentence."""
+    for line in (text or "").splitlines():
+        if line.strip():
+            return line.strip()
+    return ""
+
+
+def measure_set_theory():
+    """Grade 卷 I through the course's own gate.
+
+    Returns `({"rows": {file: {status, checked, open}}, "totals": {...}}, "")` on
+    success, or `(None, reason)` when the gate could not be run.
+
+    Two deliberate rules (both from docs/design/course-gate-in-ci.md):
+
+    * the judging logic is **not** reimplemented here — counts only ever come
+      from `check.py --json` ("判据双实现必然漂移", §2.3);
+    * `SOKONANODA_OFFLINE=1` + a `scripts/soko doctor` pre-flight, because the
+      repo explicitly does not download a toolchain to run the course gate (§8).
+      Generating a page must never turn into a several-MB download; when no
+      pinned CLI resolves, we report "not measured" instead of guessing.
+    """
+    launcher = os.path.join(REPO_ROOT, "scripts", "soko")
+    gate = os.path.join(REPO_ROOT, SET_THEORY_GATE)
+    for path in (launcher, gate):
+        if not os.path.isfile(path):
+            return None, f"缺少 {os.path.relpath(path, REPO_ROOT)}"
+    env = dict(os.environ, SOKONANODA_OFFLINE="1")
+
+    def run(argv, timeout):
+        try:
+            return subprocess.run(
+                argv, capture_output=True, text=True,
+                timeout=timeout, cwd=REPO_ROOT, env=env,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return exc
+
+    probe = run([launcher, "doctor", "--json"], timeout=120)
+    if isinstance(probe, Exception):
+        return None, f"启动器跑不起来：{probe}"
+    if probe.returncode != 0:
+        return None, (
+            f"判卷环境未就绪（scripts/soko doctor 退出码 {probe.returncode}）："
+            f"{_first_line(probe.stderr) or _first_line(probe.stdout)}"
+        )
+
+    proc = run([sys.executable or "python3", gate, "--json"], timeout=GATE_TIMEOUT_S)
+    if isinstance(proc, Exception):
+        return None, f"课程门禁跑不起来：{proc}"
+    try:
+        report = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return None, (
+            f"课程门禁输出不是 JSON（退出码 {proc.returncode}）："
+            f"{_first_line(proc.stderr)}"
+        )
+
+    targets = [
+        t for t in report.get("targets", [])
+        if isinstance(t, dict) and t.get("file")
+    ]
+    if not targets:
+        return None, "课程门禁报告里没有目标"
+
+    rows = {
+        t["file"]: {
+            "status": t.get("status", "unknown"),
+            "checked": int(t.get("checked", 0) or 0),
+            "open": int(t.get("open", 0) or 0),
+        }
+        for t in targets
+    }
+    # 总数优先用门禁自己的 summary（schema v2 起随报告给出）；没有时按它的**目标
+    # 列表**求和，不按 `rows`（后者按文件去重）：门禁把 `lib/Demo` 判两次
+    # （glob 一次 + 显式自检一次），所以它的汇总行比按文件去重的 `rows` 多出
+    # 那几个目标 —— 这里必须与读者跑同一条命令看到的数字一致。
+    #
+    # 注释里同样不写死计数：本文件存在的理由就是数字只从实测来，写死的示例
+    # 数字会随课程长大而变成谎言。
+    summary = report.get("summary")
+    if isinstance(summary, dict):
+        totals = {
+            "targets": int(summary.get("targets", len(targets))),
+            "checked": int(summary.get("checked", 0)),
+            "open": int(summary.get("open", 0)),
+            "failed": int(summary.get("rejected", report.get("failed", 0) or 0)),
+        }
+    else:
+        totals = {
+            "targets": len(targets),
+            "checked": sum(int(t.get("checked", 0) or 0) for t in targets),
+            "open": sum(int(t.get("open", 0) or 0) for t in targets),
+            "failed": int(report.get("failed", 0) or 0),
+        }
+    # 全体判负且零声明通过 = 判卷环境不可信（版本不符/二进制坏），不是"课程全坏"。
+    # 官网上宁可不报数，也不把一次坏环境渲染成"整卷判负"。
+    if totals["failed"] >= len(targets) and totals["checked"] == 0:
+        return None, "全部目标判负且零声明通过（判卷环境不可信）"
+    return {"rows": rows, "totals": totals}, ""
+
+
+def _previous_set_theory():
+    """The `set_theory` block already in site/data/site.json (last run), if any."""
+    try:
+        data = json.loads(_read(SITE_JSON) or "null")
+    except json.JSONDecodeError:
+        return {}
+    block = data.get("set_theory") if isinstance(data, dict) else None
+    return block if isinstance(block, dict) else {}
+
+
+def get_set_theory():
+    """Build the `set_theory` block: units from course.json + measured counts."""
+    units = _parse_units(_read(os.path.join(SET_THEORY_DIR, "course.json")))
+    if not units:
+        return None
+
+    measured, reason = measure_set_theory()
+    block = {"course": SET_THEORY_DIR, "gate": SET_THEORY_GATE}
+    if measured is not None:
+        rows, totals = measured["rows"], measured["totals"]
+        block["counts_source"] = "gate"
+        block["measured_at"] = datetime.date.today().isoformat()
+        block["totals"] = totals
+        print(
+            "set_theory: 门禁实测 "
+            f"{totals['targets']} 目标 · {totals['checked']} checked · "
+            f"{totals['open']} open · {totals['failed']} 判负"
+        )
+    else:
+        previous = _previous_set_theory()
+        rows = {
+            u["file"]: u for u in previous.get("units", [])
+            if isinstance(u, dict) and u.get("file") and "open" in u
+        }
+        totals = None
+        if rows:
+            block["counts_source"] = "previous-run"
+            for key in ("measured_at", "totals"):
+                if key in previous:
+                    block[key] = previous[key]
+            print(
+                f"set_theory: 未实测（{reason}）——沿用上次实测的计数"
+                + (f"（{previous.get('measured_at')}）" if previous.get("measured_at") else "")
+            )
+        else:
+            block["counts_source"] = "none"
+            print(f"set_theory: 未实测（{reason}）——本次不带计数")
+
+    out_units = []
+    for unit in units:
+        row = rows.get(unit["file"]) if rows else None
+        if row is not None:
+            unit["status"] = row.get("status", "unknown")
+            unit["checked"] = int(row.get("checked", 0) or 0)
+            unit["open"] = int(row.get("open", 0) or 0)
+        out_units.append(unit)
+    block["units"] = out_units
+    return block
 
 
 _CN_DIGITS = {
@@ -133,6 +320,9 @@ def get_round():
     以前是"全文搜索第一个能匹配的头"，于是标题里带全角括号（`（多余的 sorry）`）
     让最新轮失配时，网站会**静默退回上一轮**（2026-09-18 实测：round 停在 97）。
     标题是 `docs/design/site.md` §2 写明的机器可读块，坏了要立刻被看见。
+
+    轮次号后允许一个限定语（`第一百轮（语言线）：…`）——并行线（语言线/课程线）
+    各自记轮是既有事实，限定语原样保留进标题，不丢信息；除此之外的形状仍然报错。
     """
     text = _read("STATUS.md")
     if not text:
@@ -141,7 +331,7 @@ def get_round():
     if not header:
         return {}
     m = re.fullmatch(
-        r"##\s*本轮进度（(\d{4}-\d{2}-\d{2})，第([^轮]+)轮：(.*)）",
+        r"##\s*本轮进度（(\d{4}-\d{2}-\d{2})，第([^轮]+)轮(（[^）]*）)?：(.*)）",
         header.group(0).strip(),
     )
     if not m:
@@ -150,10 +340,12 @@ def get_round():
             f"  {header.group(0).strip()}\n"
             "期望形状：## 本轮进度（YYYY-MM-DD，第N轮：标题）"
         )
+    qualifier = (m.group(3) or "").strip()
+    title = m.group(4).replace("`", "").strip()
     return {
         "round_date": m.group(1),
         "round": _cn_to_int(m.group(2)),
-        "round_title": m.group(3).replace("`", "").strip(),
+        "round_title": f"{qualifier}{title}" if qualifier else title,
     }
 
 
@@ -173,6 +365,10 @@ def main():
     units = get_units()
     if units:
         data["units"] = units
+
+    set_theory = get_set_theory()
+    if set_theory:
+        data["set_theory"] = set_theory
 
     data.update(get_round())  # round / round_date / round_title (only if found)
 

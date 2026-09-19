@@ -1,0 +1,84 @@
+-- unit02 解答钥匙（agent 专用）。
+-- 前 6 题的证明**原先住在 lib/Set.sokonanoda 里**——那是分层错误（台账 L-05）：
+-- Mathlib 有它们，但它们有数学内容，属于练习。现在它们只在这里与画布里。
+import lib.Logic
+import lib.Set
+
+theorem subset_refl (α : Type) (A : Set α) : Set.subset α A A :=
+  fun (x : α) => fun (hx : A x) => hx
+
+theorem subset_trans (α : Type) (A B C : Set α)
+    (h1 : Set.subset α A B) (h2 : Set.subset α B C) : Set.subset α A C :=
+  fun (x : α) => fun (hx : A x) => h2 x (h1 x hx)
+
+theorem subset_antisymm (α : Type) (A B : Set α)
+    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B :=
+  Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
+
+theorem empty_subset (α : Type) (A : Set α) : Set.subset α (Set.empty α) A :=
+  fun (x : α) => fun (hx : Set.mem α x (Set.empty α)) => False.elim (A x) hx
+
+theorem subset_empty_iff (α : Type) (A : Set α) :
+    Iff (Set.subset α A (Set.empty α)) (Eq.{1} (Set α) A (Set.empty α)) :=
+  Iff.intro (Set.subset α A (Set.empty α)) (Eq.{1} (Set α) A (Set.empty α))
+    (fun (h : Set.subset α A (Set.empty α)) =>
+      subset_antisymm α A (Set.empty α) h (empty_subset α A))
+    (fun (h : Eq.{1} (Set α) A (Set.empty α)) =>
+      Eq.subst.{1} (Set α) (fun (X : Set α) => Set.subset α X (Set.empty α))
+        (Set.empty α) A (Eq.symm.{1} (Set α) A (Set.empty α) h)
+        (subset_refl α (Set.empty α)))
+
+theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
+    Iff (Eq.{1} (Set α) A (Set.empty α)) (forall (x : α), Not (A x)) :=
+  Iff.intro (Eq.{1} (Set α) A (Set.empty α)) (forall (x : α), Not (A x))
+    (fun (h : Eq.{1} (Set α) A (Set.empty α)) => fun (x : α) =>
+      Eq.subst.{1} (Set α) (fun (X : Set α) => Not (Set.mem α x X))
+        (Set.empty α) A (Eq.symm.{1} (Set α) A (Set.empty α) h)
+        (Set.notMem_empty α x))
+    (fun (h : forall (x : α), Not (A x)) =>
+      subset_antisymm α A (Set.empty α)
+        (fun (x : α) => fun (hx : A x) =>
+          False.elim (Set.mem α x (Set.empty α)) (h x hx))
+        (empty_subset α A))
+
+theorem singleton_ne_empty (α : Type) (a : α) :
+    Not (Eq.{1} (Set α) (Set.singleton α a) (Set.empty α)) :=
+  fun (h : Eq.{1} (Set α) (Set.singleton α a) (Set.empty α)) =>
+    Set.notMem_empty α a
+      (Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X)
+        (Set.singleton α a) (Set.empty α) h (Set.mem_singleton_self α a))
+
+theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
+    Iff (Set.subset α (Set.pair α a b) A) (And (Set.mem α a A) (Set.mem α b A)) :=
+  Iff.intro (Set.subset α (Set.pair α a b) A) (And (Set.mem α a A) (Set.mem α b A))
+    (fun (h : Set.subset α (Set.pair α a b) A) =>
+      And.intro (Set.mem α a A) (Set.mem α b A)
+        (h a (Or.inl (Eq.{1} α a a) (Eq.{1} α a b) (Eq.refl.{1} α a)))
+        (h b (Or.inr (Eq.{1} α b a) (Eq.{1} α b b) (Eq.refl.{1} α b))))
+    (fun (h : And (Set.mem α a A) (Set.mem α b A)) =>
+      fun (x : α) => fun (hx : Set.mem α x (Set.pair α a b)) =>
+        Or.elim (Eq.{1} α x a) (Eq.{1} α x b) (A x)
+          (fun (hxa : Eq.{1} α x a) =>
+            Eq.subst.{1} α (fun (y : α) => A y) a x (Eq.symm.{1} α x a hxa)
+              (And.left (Set.mem α a A) (Set.mem α b A) h))
+          (fun (hxb : Eq.{1} α x b) =>
+            Eq.subst.{1} α (fun (y : α) => A y) b x (Eq.symm.{1} α x b hxb)
+              (And.right (Set.mem α a A) (Set.mem α b A) h))
+          hx)
+
+theorem pair_comm (α : Type) (a b : α) :
+    Eq.{1} (Set α) (Set.pair α a b) (Set.pair α b a) :=
+  Set.ext α (Set.pair α a b) (Set.pair α b a) (fun (x : α) =>
+    Iff.intro (Or (Eq.{1} α x a) (Eq.{1} α x b)) (Or (Eq.{1} α x b) (Eq.{1} α x a))
+      (fun (h : Or (Eq.{1} α x a) (Eq.{1} α x b)) =>
+        Or.elim (Eq.{1} α x a) (Eq.{1} α x b) (Or (Eq.{1} α x b) (Eq.{1} α x a))
+          (fun (ha : Eq.{1} α x a) => Or.inr (Eq.{1} α x b) (Eq.{1} α x a) ha)
+          (fun (hb : Eq.{1} α x b) => Or.inl (Eq.{1} α x b) (Eq.{1} α x a) hb) h)
+      (fun (h : Or (Eq.{1} α x b) (Eq.{1} α x a)) =>
+        Or.elim (Eq.{1} α x b) (Eq.{1} α x a) (Or (Eq.{1} α x a) (Eq.{1} α x b))
+          (fun (hb : Eq.{1} α x b) => Or.inr (Eq.{1} α x a) (Eq.{1} α x b) hb)
+          (fun (ha : Eq.{1} α x a) => Or.inl (Eq.{1} α x a) (Eq.{1} α x b) ha) h))
+
+theorem singleton_of_singleton (a : Nat) :
+    Set.mem (Set Nat) (Set.singleton Nat a) (Set.singleton (Set Nat) (Set.singleton Nat a)) :=
+  Eq.refl.{1} (Set Nat) (Set.singleton Nat a)

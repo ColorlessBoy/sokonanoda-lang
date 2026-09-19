@@ -475,6 +475,10 @@ impl Backend {
         let decls = doc
             .query()
             .goals(probe)
+            // 解析失败（`NotParsable`）与"还没有报告"同答空：LSP 的 parse 诊断
+            // 走 `publishDiagnostics`（`Doc::diagnostics` 已经是 parse 优先），
+            // `soko/goals` 的 wire 形状不改（G-17 只动 CLI/MCP 的 ok 信封）。
+            .unwrap_or_default()
             .into_iter()
             .map(|decl| query_map::decl_info(decl, text))
             .collect();
@@ -546,9 +550,12 @@ impl Backend {
         let doc = &*docs;
         let forward = params.forward.unwrap_or(true);
         let cursor = position_to_offset(doc.text(), params.position);
+        // 解析失败 ⇒ 没有洞可导航（`Ok(None)`），与"这个方向上没有洞"同形：
+        // LSP 侧的错误通道是诊断通知，不是 `soko/nextHole` 的应答。
         Ok(doc
             .query()
             .next_hole(cursor, forward)
+            .unwrap_or(None)
             .map(|hole| query_map::range_of_offsets(doc.text(), hole.start, hole.end)))
     }
 

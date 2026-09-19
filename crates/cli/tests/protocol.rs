@@ -283,6 +283,60 @@ fn parse_error_diagnostic_shape() {
     );
 }
 
+/// 记法家族的新诊断码（G-04 / WO-011）：都落在 `parse` / `elab` 分级里，
+/// `ok:false` 与退出码语义**不变**（`docs/protocol.md` 的 error staging）。
+#[test]
+fn notation_diagnostics_stage_as_parse_and_elab() {
+    // parse 家族三码：未闭合字符串 / 命令形状 / 未声明符号。
+    let parse_cases = [
+        ("infix:50 \" ∈ => mem\n", "unterminated-string"),
+        ("infix \" ∈ \" => mem\n", "notation-shape"),
+        ("def p : Prop := a ∈ b\n", "notation-unknown-symbol"),
+    ];
+    for (text, expected) in parse_cases {
+        let (out, events) = run_json_stdin(text);
+        assert!(!out.status.success(), "{expected} must be a rejection");
+        let diags = diagnostics(&events);
+        assert_eq!(diags.len(), 1, "{expected}: {events:?}");
+        assert_eq!(diags[0]["stage"], "parse", "{expected}: {:?}", diags[0]);
+        assert_eq!(diags[0]["code"], expected, "{:?}", diags[0]);
+        assert_diagnostic_shape(diags[0], expected);
+        assert!(
+            !non_empty_str(diags[0], "hint", expected).is_empty(),
+            "{expected} carries a teaching hint"
+        );
+    }
+    // elab 家族两码：未知目标 / 补不出类型参数。
+    //
+    // as-built 边界（记在这里，不当成没发生）：记号路径先解操作数、再补类型
+    // 参数，所以**操作数本身**是未定义标识符时报的是既有的
+    // `elab-unknown-identifier`（那条诊断更准确）——`...-argument-unsolved`
+    // 留给"操作数都合法、但类型参数补不出来"的形状（例如 `#check ∅`）。
+    let elab_cases = [
+        (
+            "def mem : Prop -> Prop -> Prop := fun (a : Prop) => fun (b : Prop) => a\n\
+             infix:50 \" ∈ \" => mem\n\
+             def p : Prop := a ∈ b\n",
+            "elab-unknown-identifier",
+        ),
+        (
+            "def mem : Prop -> Prop -> Prop := fun (a : Prop) => fun (b : Prop) => a\n\
+             infix:50 \" ∈ \" => men\n\
+             def p (a : Prop) (b : Prop) : Prop := a ∈ b\n",
+            "elab-notation-unknown-target",
+        ),
+    ];
+    for (text, expected) in elab_cases {
+        let (out, events) = run_json_stdin(text);
+        assert!(!out.status.success(), "{expected} must be a rejection");
+        let diags = diagnostics(&events);
+        assert_eq!(diags.len(), 1, "{expected}: {events:?}");
+        assert_eq!(diags[0]["stage"], "elab", "{expected}: {:?}", diags[0]);
+        assert_eq!(diags[0]["code"], expected, "{:?}", diags[0]);
+        assert_diagnostic_shape(diags[0], expected);
+    }
+}
+
 #[test]
 fn open_exercise_is_success_state() {
     let (out, events) = run_json_stdin("example : Prop -> Prop := sorry\n");
@@ -300,6 +354,85 @@ fn open_exercise_is_success_state() {
         diagnostics(&events).is_empty(),
         "an open exercise must not produce diagnostics: {events:?}"
     );
+}
+
+/// G-01 / WO-004：开练习的**签名**也受内核检查（与值位错误同罪）。
+///
+/// 与上面 `open_exercise_is_success_state` 构成**一组通过/失败边界对照**：
+/// 合法签名（`Prop -> Prop` 做 `example`）⇒ exit 0 + `exercise.open` + 无诊断；
+/// 坏签名 ⇒ exit 1 + 一条诊断 + **没有** `exercise.open`。以后谁把两边一起
+/// 放松（比如又把签名错误吞掉），这条对照就会红。
+#[test]
+fn open_exercise_with_a_bad_signature_is_a_diagnostic() {
+    // (源文本, 诊断 code, stage, 签名在源文本里的切片)
+    let cases = [
+        (
+            "theorem t : 3 := sorry\n",
+            "kernel-expected-sort",
+            "kernel",
+            "3",
+        ),
+        (
+            "theorem t : Nat := sorry\n",
+            "kernel-theorem-not-prop",
+            "kernel",
+            "Nat",
+        ),
+        (
+            "theorem t : Bogus := sorry\n",
+            "elab-unknown-identifier",
+            "elab",
+            "Bogus",
+        ),
+        (
+            "def d : 3 := sorry\n",
+            "kernel-expected-sort",
+            "kernel",
+            "3",
+        ),
+        (
+            "example : 3 := sorry\n",
+            "kernel-expected-sort",
+            "kernel",
+            "3",
+        ),
+        // `by` 路径与直接值位共用同一处签名检查。
+        (
+            "theorem t : 3 := by sorry\n",
+            "kernel-expected-sort",
+            "kernel",
+            "3",
+        ),
+    ];
+    for (src, code, stage, sig) in cases {
+        let (out, events) = run_json_stdin(src);
+        assert_eq!(
+            out.status.code(),
+            Some(1),
+            "{src:?} must fail (a bad signature is not an open exercise); stderr: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        let diags = diagnostics(&events);
+        assert_eq!(
+            diags.len(),
+            1,
+            "{src:?}: exactly one diagnostic: {events:?}"
+        );
+        assert_eq!(diags[0]["code"], code, "{src:?}: {events:?}");
+        assert_eq!(diags[0]["stage"], stage, "{src:?}");
+        // 诊断 span 落在**签名**上（G-01：签名受检，报在签名自身的范围）。
+        let start = diags[0]["span"]["start"]["offset"].as_u64().unwrap() as usize;
+        let end = diags[0]["span"]["end"]["offset"].as_u64().unwrap() as usize;
+        assert_eq!(
+            &src[start..end],
+            sig,
+            "{src:?}: span must cover the signature"
+        );
+        assert!(
+            !events.iter().any(|e| event_type(e) == "exercise.open"),
+            "{src:?}: a rejected signature must not open an exercise: {events:?}"
+        );
+    }
 }
 
 #[test]

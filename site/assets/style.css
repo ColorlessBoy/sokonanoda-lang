@@ -189,6 +189,15 @@ details.agent-details[open] summary { margin-bottom: 6px; }
 }
 .unit-card a.unit-en-link:hover { background: var(--accent-soft); color: var(--accent-ink); text-decoration: none; }
 
+/* ---- set-theory page: 门禁实测状态 ---- */
+.status-pill {
+  display: inline-block; font-size: 12.5px; line-height: 1.5;
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px;
+  color: var(--ink-soft); background: #fafafa; white-space: nowrap;
+}
+.status-pill.ok { color: var(--accent-ink); border-color: #bfdcc9; background: var(--accent-soft); }
+.status-pill.bad { color: #8a1f1f; border-color: #e6c3c3; background: #fdf3f3; }
+
 /* ---- architecture diagram (pure CSS) ---- */
 .diagram {
   background: var(--surface); border: 1px solid var(--line);

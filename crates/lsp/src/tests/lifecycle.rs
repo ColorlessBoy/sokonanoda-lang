@@ -169,7 +169,10 @@ async fn version_request_reports_version_and_pid() {
 async fn sorry_produces_warning_not_error() {
     // Lean 4 对齐：含 sorry 的声明产出 warning（不是 error），
     // 让学习者知道"文件编译但有缺口"。
-    let src = "theorem t : True := sorry\n";
+    // G-01 起 `theorem` 的签名必须是真命题：`True` 不是 prelude 名字
+    // ⇒ 用一个显式公理当命题（原写法 `theorem t : True := sorry` 现在会被
+    // 内核拒，那样测的就不是 sorry warning 了）。
+    let src = "axiom True : Prop\ntheorem t : True := sorry\n";
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     did_open(&mut service, src).await;

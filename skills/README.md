@@ -31,8 +31,11 @@ scripts/soko gate           # 贡献者门禁（调用 cargo）
 ```
 
 `scripts/soko` 是 harness 中立的启动器：解析"版本匹配"的仓库构建 → 缓存
-（标记必须等于 `Cargo.toml` 版本）→ VS Code 扩展自带 → 版本锁定下载；其余
-子命令原样转发给 `sokonanoda` CLI，**缓存过期直接拒绝运行**。`sokonanoda`
+（标记必须等于**版本钉**）→ VS Code 扩展自带 → 按版本钉锁定下载；其余
+子命令原样转发给 `sokonanoda` CLI，**缓存过期或解析不出期望版本就直接拒绝运行**。
+版本钉的源链 = `$SOKONANODA_VERSION` → `<repo>/sokonanoda-version.txt` →
+`<repo>/sokonanoda.toml` 的 `requires`（完整 `x.y.z`）→ `<repo>/Cargo.toml`
+（课程仓没有 `Cargo.toml` 也能自钉）。`sokonanoda`
 已在 PATH 时二者等价。设计见 `docs/design/deepseek-harness.md`、`docs/design/binary-cli.md`。
 
 ## 安装（按 harness）

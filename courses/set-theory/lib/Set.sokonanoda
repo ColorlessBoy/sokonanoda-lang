@@ -1,0 +1,122 @@
+-- Set.sokonanoda —— 卷 I 的**集合标准库**（L2 层：**只有词汇 + 定义展开**）
+--
+-- 分层判据（docs/design/course-stdlib.md）：
+--   L2（本文件）= 集合的**词汇 + 定义展开**：Mathlib 里是 `rfl` 或一行、**没有数学内容**；
+--   L3（units/）= 一切**有数学内容**的陈述（包含三律、最小元、分配律、像/原像…）——
+--                 哪怕 Mathlib 早就有，课程就是要让学习者自己证一遍。
+-- 台账 L-04 记录了这一层缺什么；L-05 记录了"把 L3 误放进库"的教训。
+--
+-- **L-05 第二刀（2026-09-19）后的完整清单**——本文件只允许留这三类：
+--   · 12 个定义：Set / Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton /
+--     Set.pair / Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset；
+--   · 1 条公理：Set.ext（Mathlib 由 propext + funext 推出，我们两者都没有）；
+--   · 10 条定义展开引理：Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty /
+--     Set.mem_univ / Set.mem_singleton_iff / Set.mem_singleton_self / Set.mem_union /
+--     Set.mem_inter_iff / Set.mem_sdiff / Set.mem_powerset_iff。
+--   往这里加声明之前先问一句：**它有数学内容吗**？有 → 写进 units/ 当练习，不进库。
+--
+-- L-05 那批**内容型**引理一条都不在本文件里，全在单元中（同名进解答、自证、不引用 lib 版本）：
+--   · 单元①：singleton_subset_iff；
+--   · 单元②：subset_refl / subset_trans / subset_antisymm / empty_subset /
+--             subset_empty_iff / eq_empty_iff_forall_notMem；
+--   · 单元③：subset_union_left / subset_union_right / union_subset_iff /
+--             inter_subset_left / inter_subset_right / subset_inter / subset_inter_iff /
+--             sdiff_subset / powerset_mono；
+--   · 单元④：union_comm / inter_comm / inter_union_distrib_left。
+--   例外核查（2026-09-19）：`grep -rn` 扫过整个 lib/，以上名字**零出现**——Image/Equiv/Fun/Rel
+--   等模块都不依赖内容型集合引理，所以没有"为别的模块保留"的例外。
+--   本刀新增练习：**subset_inter_iff**（原先 12 条里唯一画布与解答都没覆盖的一条）。
+--   残留待决定：台账 L-05 原表里的 subset_antisymm_iff 至今没有单独立题——它的两半已被
+--   单元② 的 subset_antisymm 与单元④ 的外延套路覆盖（这是设计判断，不是遗漏的证明）；
+--   要不要像 eq_empty_iff_forall_notMem 那样再包一条 iff，留待下一刀定。
+--
+-- 名字一律用 **Loogle 取证版**（docs/design/course-stdlib.md §3.1）：
+--   Set.notMem_empty（大写 M）、Set.mem_powerset_iff（不是 power）、Set.mem_sdiff（不是 diff）、
+--   Set.Subset.refl/trans/antisymm（点号在 Subset 上）。
+--
+-- 记法对照（语言还没有 notation，G-04）：
+--   Set.mem α a A ↔ a ∈ A   ·   Set.subset α A B ↔ A ⊆ B   ·   Set.empty α ↔ ∅
+--   Set.union α A B ↔ A ∪ B ·   Set.powerset α A ↔ 𝒫 A
+import lib.Logic
+
+-- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）────────────────────
+def Set (α : Type) : Type := α -> Prop
+
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+
+def Set.empty (α : Type) : Set α := fun (x : α) => False
+
+def Set.univ (α : Type) : Set α := fun (x : α) => True
+
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
+
+def Set.pair (α : Type) (a b : α) : Set α :=
+  fun (x : α) => Or (Eq.{1} α x a) (Eq.{1} α x b)
+
+def Set.union (α : Type) (A B : Set α) : Set α := fun (x : α) => Or (A x) (B x)
+
+def Set.inter (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (B x)
+
+def Set.sdiff (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (Not (B x))
+
+def Set.compl (α : Type) (A : Set α) : Set α := fun (x : α) => Not (A x)
+
+def Set.powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => Set.subset α B A
+
+-- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
+axiom Set.ext : (α : Type) -> (A B : Set α) ->
+  (forall (x : α), Iff (A x) (B x)) -> Eq.{1} (Set α) A B
+
+-- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）────────────────────
+theorem Set.subset_def (α : Type) (A B : Set α) :
+    Iff (Set.subset α A B) (forall (x : α), A x -> B x) :=
+  Iff.intro (Set.subset α A B) (forall (x : α), A x -> B x)
+    (fun (h : Set.subset α A B) => h)
+    (fun (h : forall (x : α), A x -> B x) => h)
+
+theorem Set.mem_empty_iff_false (α : Type) (a : α) :
+    Iff (Set.mem α a (Set.empty α)) False :=
+  Iff.intro (Set.mem α a (Set.empty α)) False
+    (fun (h : Set.mem α a (Set.empty α)) => h)
+    (fun (h : False) => h)
+
+theorem Set.notMem_empty (α : Type) (a : α) : Not (Set.mem α a (Set.empty α)) :=
+  fun (h : Set.mem α a (Set.empty α)) => h
+
+theorem Set.mem_univ (α : Type) (a : α) : Set.mem α a (Set.univ α) := True.intro
+
+theorem Set.mem_singleton_iff (α : Type) (a b : α) :
+    Iff (Set.mem α a (Set.singleton α b)) (Eq.{1} α a b) :=
+  Iff.intro (Set.mem α a (Set.singleton α b)) (Eq.{1} α a b)
+    (fun (h : Set.mem α a (Set.singleton α b)) => h)
+    (fun (h : Eq.{1} α a b) => h)
+
+theorem Set.mem_singleton_self (α : Type) (a : α) : Set.mem α a (Set.singleton α a) :=
+  Eq.refl.{1} α a
+
+theorem Set.mem_union (α : Type) (a : α) (A B : Set α) :
+    Iff (Set.mem α a (Set.union α A B)) (Or (Set.mem α a A) (Set.mem α a B)) :=
+  Iff.intro (Set.mem α a (Set.union α A B)) (Or (Set.mem α a A) (Set.mem α a B))
+    (fun (h : Set.mem α a (Set.union α A B)) => h)
+    (fun (h : Or (Set.mem α a A) (Set.mem α a B)) => h)
+
+theorem Set.mem_inter_iff (α : Type) (a : α) (A B : Set α) :
+    Iff (Set.mem α a (Set.inter α A B)) (And (Set.mem α a A) (Set.mem α a B)) :=
+  Iff.intro (Set.mem α a (Set.inter α A B)) (And (Set.mem α a A) (Set.mem α a B))
+    (fun (h : Set.mem α a (Set.inter α A B)) => h)
+    (fun (h : And (Set.mem α a A) (Set.mem α a B)) => h)
+
+theorem Set.mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    Iff (Set.mem α a (Set.sdiff α A B)) (And (Set.mem α a A) (Not (Set.mem α a B))) :=
+  Iff.intro (Set.mem α a (Set.sdiff α A B))
+    (And (Set.mem α a A) (Not (Set.mem α a B)))
+    (fun (h : Set.mem α a (Set.sdiff α A B)) => h)
+    (fun (h : And (Set.mem α a A) (Not (Set.mem α a B))) => h)
+
+theorem Set.mem_powerset_iff (α : Type) (A B : Set α) :
+    Iff (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A) :=
+  Iff.intro (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A)
+    (fun (h : Set.mem (Set α) B (Set.powerset α A)) => h)
+    (fun (h : Set.subset α B A) => h)

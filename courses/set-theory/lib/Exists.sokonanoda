@@ -1,0 +1,102 @@
+-- Exists.sokonanoda —— 卷 I 的**存在量词库**（L2 层）
+--
+-- 分层判据（docs/design/course-stdlib.md §1）：
+--   L2（本文件）= 量词的**词汇 + 用法规则**：Mathlib 里是 `rfl`、一行或纯管道，
+--                 **没有数学内容**；
+--   L3（units/）= 一切**有数学内容**的陈述（存在性的构造与使用、`not_exists`、
+--                 像/原像的存在命题、选择公理…）——哪怕 Mathlib 早就有，课程就是要
+--                 让学习者自己证一遍（教训见台账 L-05：把 L3 放进 lib，答案就提前
+--                 躺在库里，练习作废）。
+--
+-- ══ 2026-09-19：**公理三件套已升级为真归纳**（台账 G-03 关账，fixed_in 0.59.0）══
+--
+-- 本文件从 0.4x 起一直是**公理三件套**（`axiom Exists` / `Exists.intro` /
+-- `Exists.elim`），那是 G-03 的临时形态：**Prop 结果 + Type 参数 + 单构造子 +
+-- 构造子自有字段**的 inductive 当时会被内核断言拒绝（
+-- `rejected: assertion \`left == right\ failed / left: 1 / right: 0`，
+-- 最小复现 docs/gaps/repro/G03-prop-type-param-inductive.sokonanoda）。
+--
+-- G-03 修好之后（前端 `derive_recursor` 的 `small_elim` 判据**逐字镜像**内核
+-- `large_elim_test`，设计 docs/design/prop-large-elim-mirror.md），这个形状立得起来了，
+-- 本文件于是写成官方 Lean 4 的**逐字同形**版：
+--
+--     inductive Exists (A : Type) (p : A -> Prop) : Prop
+--     ctor intro (w : A) (h : p w) : Exists A p
+--     end
+--
+--   （官方：`inductive Exists {α : Sort u} (p : α → Prop) : Prop | intro (w : α) (h : p w)`；
+--     只差宇宙多态，理由见下面「论域」一节。）
+--
+-- 升级换来三样东西：
+--   · `Exists` 不再是**不透明公理**，`Exists.intro` 是归纳块自动给出的**规范名**
+--     （G-02 已修：构造子进类型自己的命名空间；裸名 `intro` 仍作别名解析）；
+--   · `Exists.elim` 由自动派生的 `Exists.rec` **定义**出来（照 lib/Logic.sokonanoda
+--     里 `Or.elim` 的样子），消去不再是"再立一条公理"；
+--   · **上层零改动**：`Exists` / `Exists.intro` / `Exists.elim` 的名字与签名**逐字不变**，
+--     units/ 里 186 处点名调用（`Exists.intro A p w hw` / `Exists.elim A p Q h f`）
+--     一行都不用改——这正是当年把这一层"立成公理三件套"的收益。
+--
+-- ⚠️ **大消去仍然不可用，而且这是正确的行为——不要试图绕过。**
+-- 自动派生的递归子实测形状（**0 个宇宙参数**，与 `Prod.rec.{1}` 不同）：
+--     Exists.rec : (A : Type) -> (p : A -> Prop) ->
+--                  (motive : (Exists A p) -> Sort 0) ->
+--                  (forall (w : A) (h : p w), motive (Exists.intro A p w h)) ->
+--                  (target : Exists A p) -> motive target
+-- motive 只到 **`Sort 0`**（= Prop），所以**取数据**的写法被内核拒（实测）：
+--     def Exists.witness (A : Type) (p : A -> Prop) (h : Exists A p) : A :=
+--       Exists.rec A p (fun (_ : Exists A p) => A) (fun (w : A) (hw : p w) => w) h
+--   → kernel-rejected：期望 `Pi (x : Exists A p), Sort(0)`，实际 `… Sort(1)`
+-- **这正是官方 Lean 4 的规则**：`Exists.rec` 的 motive 在 Lean core 里同样只到 `Prop`。
+-- 理由是证明无关性：`Exists A p` 落在 Prop，它的两个证明必须相等；若允许大消去把证人
+-- 取出来，`Exists.intro A p w1 h1 = Exists.intro A p w2 h2` 就会逼出 `w1 = w2`
+-- ——「存在」变成「所有证人相等」，显然不成立。
+-- ⇒ 要从"存在"里**取出数据**，只能请**选择公理**上场（`Classical.choice` /
+--   `Exists.choose`，两者成对）；本课程在**单元⑩ §10.6** 正面碰它一次（练习 7 是全卷
+--   唯一允许用它的题）。台账 **L-06** 记的正是这条边界，**不是** lib/Exists 的缺陷。
+--
+-- 论域：`(A : Type)` 就是 `Type 0`（与入门课 course/unit8-quantifiers.sokonanoda
+-- 的三件套逐字一致）。卷 I 的用法——`Exists α …`、`Exists (Set α) …`、
+-- `Exists (α -> β) …`、`Exists (Prod α β) …`——论域都落在 Type 0，够用。
+-- 论域本身在更高宇宙的 `Exists.{u}` 今天仍写不出来，**但原因与 G-14 无关**（G-14 已修：
+-- `{u v}` / `{u, v}` / `{u} {v}` 对 def/theorem/axiom 等价）：**inductive 头部今天不吃
+-- 宇宙 binder**——`inductive Exists {u} (A : Sort u) : Prop` 报 parse
+-- （`inductive 参数 需要显式类型…found LBrace`），去掉 binder 写 `(A : Sort u)` 报
+-- `elab-unknown-universe-level`。所以这一层今天只能是**单宇宙**（卷 I 不受影响）。
+--
+-- 名字取证（docs/design/course-stdlib.md §3.1，名字照抄真名）：
+--   `Exists` / `Exists.intro` / `Exists.elim` = Lean core（Init/Logic.lean）；
+--   `Exists.imp` = Mathlib（Logic/Basic.lean，逐字：
+--       theorem Exists.imp (h : ∃ a, p a) : (∀ a, p a → q a) → ∃ a, q a）
+--
+-- 记法对照（记法第一刀已落地，G-04；见 docs/design/notation-subset.md）：
+--   `Exists α p` ↔ `∃ x : α, p x` ；`Exists α (fun (x : α) => p x)` 就是官方 Lean 的
+--   `∃ x, p x`。**binder 记法（`∃ x,`）还没做**，所以卷 I 一律点名，不写 ∃。
+--
+-- 自检：冒烟用法在 lib/Demo.sokonanoda（`demo_exists_intro` 造、`demo_exists_elim` 用）。
+import lib.Logic
+
+-- ── 存在量词（Lean core: `Exists` / `Exists.intro` / `Exists.elim`）────────────
+-- 读法三条：
+--   · `Exists A p` = "有 w : A 使 p w 成立"；
+--   · `Exists.intro` = 造：交**证人** w 与**证据** p w，四样凑齐（A、p、w、hw）；
+--   · `Exists.elim` = 用：把它交给一个函数，函数收到匿名的证人 w 与证据 p w，
+--     产出结论 Q。**Q 不许提到 w**——使用 h 的时候，w 是哪一个还不知道。
+--     （这条限制就是官方 Lean 里 `obtain ⟨w, hw⟩ := h` 只能"用完即弃"的原因；
+--      它现在来自 `Exists.rec` 的 motive 只能落 Prop，见文件头"大消去"一节。）
+inductive Exists (A : Type) (p : A -> Prop) : Prop
+ctor intro (w : A) (h : p w) : Exists A p
+end
+
+-- `Exists.elim` = 常值 motive 的小消去：由自动派生的 `Exists.rec` 定义
+-- （与 lib/Logic 的 `Or.elim` 同款）。签名与公理版**逐字相同**，所以调用点零改动。
+def Exists.elim (A : Type) (p : A -> Prop) (Q : Prop) (h : Exists A p)
+    (f : (w : A) -> p w -> Q) : Q :=
+  Exists.rec A p (fun (_ : Exists A p) => Q) f h
+
+-- ── 便利引理（L2：一行、纯管道、无数学内容）──────────────────────────────────
+-- ∃ 的函子性：证人不动，只把性质换掉（p w → q w）。单元 8 的像的单调性与
+-- "像保并"直接吃这条：把"x ∈ A 且 f x = y"换成更弱的性质，存在性跟着走。
+theorem Exists.imp (A : Type) (p q : A -> Prop) (h : Exists A p)
+    (f : forall (w : A), p w -> q w) : Exists A q :=
+  Exists.elim A p (Exists A q) h
+    (fun (w : A) => fun (hw : p w) => Exists.intro A q w (f w hw))

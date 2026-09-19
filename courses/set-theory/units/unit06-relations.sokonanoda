@@ -1,0 +1,216 @@
+-- ==========================================================================
+-- unit06-relations.sokonanoda —— 卷 I 单元⑥ 关系
+--
+-- 靶子：Tao《Analysis I》§3.3 前半。
+-- 概念顺序：关系 = A -> B -> Prop → 逆与复合 → 等价关系三律 → 等价类 → 划分 ↔ 等价关系。
+--
+-- 本单元只允许用（stg4 的逐步解锁——清单之外的一切都当作"还没解锁"）：
+--   · 声明形式：def / theorem / example / axiom / inductive…ctor…end / import；
+--     证明项推荐写 fun (x : T) => …；要写 by 块，里面只能用
+--     intro / exact / apply / assumption / rfl / match / sorry；
+--   · 等式：Eq.{1} α a b（α : Type 时必须显式写宇宙层级 1；裸 Eq 默认 u=0，会被内核拒）、
+--     Eq.refl.{1} / Eq.symm.{1} / Eq.trans.{1} / Eq.subst.{1} / congrArg.{1}；
+--   · 逻辑（lib.Logic）：True / True.intro / False / False.rec / False.elim、And 一族、
+--     Or（构造子是点号名 Or.inl / Or.inr）/ Or.elim、Not 一族、absurd、Iff 一族；
+--   · 存在量词（lib.Exists）：Exists / Exists.intro / Exists.elim / Exists.imp。
+--     ⚠ 没有选择公理（也没有 Exists.choose）：本单元所有"存在"都要**构造**出来；
+--   · 集合（lib.Set）：Set / Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton /
+--     Set.pair / Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset、公理 Set.ext，
+--     以及 Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty /
+--     Set.mem_singleton_iff / Set.mem_singleton_self / Set.mem_univ / Set.mem_union /
+--     Set.mem_inter_iff / Set.mem_sdiff / Set.mem_powerset_iff；
+--   · 关系（lib.Rel，本单元新解锁）：Rel / Rel.inv / Rel.comp、展开引理
+--     Rel.inv_apply / Rel.comp_apply，以及**外延性公理 Rel.ext**——要证"两条关系相等"
+--     只能靠它（funext 与 propext 都不在语言里；它与 lib/Set 的 Set.ext 同款）；
+--   · 本文件里给好的：三律 / 空关系 / 等价类 / 等价类全体 / 划分的定义、
+--     6.1 的三条演示、6.6 的 ℕ 判别工具箱与反例关系 nearStep；
+--   · 记法：一律点名（没有 ∈ ⊆ ∪ ∩ ∘ ⁻¹ ∅ 这些符号，也没有 ∃ 记法）；
+--   · 不能用：propext、funext、选择公理、商类型、序数、基数。
+--
+-- 练习一览（共 8 题：T-4 · L-2 · D-2）：
+--   6.2 练习 1(T) 逆的逆            · 6.2 练习 2(T) 复合结合律
+--   6.3 练习 3(T) 逆保持传递        · 6.4 练习 4(T) 自己在自己的等价类里
+--   6.4 练习 5(L) 等价类相同 ⟺ 相关 · 6.5 练习 6(L) 等价类构成划分
+--   6.6 练习 7(D) 自反+对称 ⇏ 传递  · 6.6 练习 8(D) 对称+传递 ⇏ 自反
+-- ==========================================================================
+import lib.Logic
+import lib.Exists
+import lib.Set
+import lib.Rel
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.1 三律与三条演示
+--
+-- 关系就是"两元谓词"：`Rel A B` 与 `A -> B -> Prop` 是同一个东西（lib/Rel 的定义等式）。
+-- Tao 说的"自反 / 对称 / 传递"在这里写成三个 def——它们是**词汇**，内容全在练习里。
+-- 注意三律都是"对关系而言"的：同一个 r 换一个论域，三律的真假可以完全不同。
+-- ─────────────────────────────────────────────────────────────────────────
+def Reflexive (A : Type) (r : Rel A A) : Prop := forall (a : A), r a a
+
+def Symmetric (A : Type) (r : Rel A A) : Prop := forall (a b : A), r a b -> r b a
+
+def Transitive (A : Type) (r : Rel A A) : Prop := forall (a b c : A), r a b -> r b c -> r a c
+
+-- 空关系：没有任何一对元素相关（练习 8 的反例主角；对照单元② 的空集）。
+def EmptyRelation (A : Type) : Rel A A := fun (a b : A) => False
+
+-- 演示 1：等号本身（"恒等关系"）是自反的——三律的最简例子。
+theorem demo_eq_reflexive (A : Type) : Reflexive A (fun (a b : A) => Eq.{1} A a b) :=
+  fun (a : A) => Eq.refl.{1} A a
+
+-- 演示 2：空关系是对称的（前提永远不成立，所以"空洞成立"）。
+theorem demo_empty_symmetric (A : Type) : Symmetric A (EmptyRelation A) :=
+  fun (a : A) => fun (b : A) => fun (h : EmptyRelation A a b) => h
+
+-- 演示 3：空关系是传递的（同款空洞成立）。
+theorem demo_empty_transitive (A : Type) : Transitive A (EmptyRelation A) :=
+  fun (a : A) => fun (b : A) => fun (c : A) =>
+    fun (h1 : EmptyRelation A a b) => fun (h2 : EmptyRelation A b c) => h1
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.2 逆与复合（lib/Rel 给的两个运算）
+--
+--   Rel.inv A B r b a ↔ r a b        （r ⁻¹：把两个参数对调）
+--   Rel.comp A B C r s a c ↔ ∃ b, r a b ∧ s b c   （先走 r 再走 s）
+-- 两条展开引理 Rel.inv_apply / Rel.comp_apply 在 lib/Rel 里（证明是 Iff.refl）。
+-- ─────────────────────────────────────────────────────────────────────────
+
+-- 练习 1（T 类）：逆的逆。
+-- soko:hint 思路：把 `Rel.inv B A (Rel.inv A B r)` 当成函数作用一次——外层换一次 b、a，里层又换回来。
+-- soko:hint 目标形态：Eq.{1} (Rel A B) (Rel.inv B A (Rel.inv A B r)) r；两边逐元素展开都是同一个 r a b，是**定义等式**。
+-- soko:hint 关键件：这是定义等式，不需要任何引理——Eq.refl 那一族里有一条正好能用（别去动 Rel.ext）。
+theorem rel_inv_inv (A B : Type) (r : Rel A B) :
+    Eq.{1} (Rel A B) (Rel.inv B A (Rel.inv A B r)) r :=
+  sorry
+
+-- 练习 2（T 类）：复合的结合律（本单元的必证题）。
+-- soko:hint 思路：两条关系相等只能请 Rel.ext：逐对 (a, d) 把目标化归成一个 Iff；每个方向都是"拆 Exists → 换两个证人的出场顺序 → 重新打包"。
+-- soko:hint 目标形态：Rel.ext 之后是 forall (a : A) (d : D), Iff (∃ b, r a b ∧ (∃ c, s b c ∧ t c d)) (∃ c, (∃ b, r a b ∧ s b c) ∧ t c d)。
+-- soko:hint 关键件：拆用 Exists.elim（它的结论里不能出现被拆掉的证人——这里正好满足），两块用 And.left / And.right 取，最后 Exists.intro 按新顺序把证人交回去。
+theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D) :
+    Eq.{1} (Rel A D) (Rel.comp A B D r (Rel.comp B C D s t))
+        (Rel.comp A C D (Rel.comp A B C r s) t) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.3 三律的性质（等价关系的三条法则不是孤立的——先看"逆"对它们做了什么）
+-- ─────────────────────────────────────────────────────────────────────────
+
+-- 练习 3（T 类）：逆关系保持传递性（三律性质之一）。
+-- soko:hint 思路：Iff 的两个方向都要做；`Transitive A (Rel.inv A A r)` 展开后，三个参数与前提的顺序整个反了过来。
+-- soko:hint 目标形态：左端展开是 forall a b c, r b a -> r c b -> r c a；右端是 forall a b c, r a b -> r b c -> r a c。
+-- soko:hint 关键件：先弄清 h 展开后三个参数各占什么位置（它的结论是"第三个参数与第一个参数"），再决定三个位置分别填谁；两个方向写出来会几乎一样。
+theorem transitive_inv (A : Type) (r : Rel A A) :
+    Iff (Transitive A (Rel.inv A A r)) (Transitive A r) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.4 等价类
+--
+-- 等价类就是"与 a 相关的那些 x"（课上点名 `EquivClass`；Mathlib 里这个集合直接写成
+-- `{x | r a x}` 这种集合建构式，我们还没有记法，所以立成一个 def）：
+--     EquivClass A r a = fun (x : A) => r a x
+-- 注意它是 `Set A`，所以"x 在 a 的类里"与"r a x"是同一个命题（定义等式）。
+-- ─────────────────────────────────────────────────────────────────────────
+def EquivClass (A : Type) (r : Rel A A) (a : A) : Set A := fun (x : A) => r a x
+
+-- 练习 4（T 类）：自己的元素在自己的等价类里。
+-- soko:hint 思路：类里装的是"与 a 相关的 x"；把 x 取成 a，问题就只剩 a 与 a 相不相关。
+-- soko:hint 目标形态：Set.mem A a (EquivClass A r a)，展开就是 r a a。
+-- soko:hint 关键件：这一步归**自反律**管——手里只有 hrefl 一条前提，想想它能对哪个元素说话。
+theorem mem_equivClass_self (A : Type) (r : Rel A A) (hrefl : Reflexive A r) (a : A) :
+    Set.mem A a (EquivClass A r a) :=
+  sorry
+
+-- 练习 5（L 类）：等价类相同 ⟺ 两个元素相关（"等价类互斥或相同"里的"相同"那一半）。
+-- soko:hint 思路：← 方向用 Set.ext 逐元素把 r a x 与 r b x 互推；→ 方向把"a 在自己的类里"沿等式搬到 b 的类里去。
+-- soko:hint 目标形态：Iff (Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b)) (r a b)。
+-- soko:hint 关键件：← 是 Set.ext + Iff.intro（两个方向分别用 htrans 与 hsymm+htrans）；→ 用 Eq.subst.{1}（动机是"a 属于谁"）+ hsymm。
+theorem equivClass_eq_iff (A : Type) (r : Rel A A)
+    (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) (a b : A) :
+    Iff (Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b)) (r a b) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.5 划分 ↔ 等价关系
+--
+-- `classes A r` 是"等价类全体"：C 属于它，当且仅当 C 是某个 a 的等价类。
+-- `IsPartition` 是"划分"（Mathlib 的 `Setoid.IsPartition` 三条）：
+--   ① 没有空块（写成"不是空集"，**不是**"有元素"——从 ① 里取不出见证）；
+--   ② 覆盖（每个元素落在某块里）；③ 两块不相等就不交。
+-- ⚠ 第 ③ 条为什么写成"不相等 ⇒ 无公共元素"，而不是"或者相等、或者不交"？
+--   后者要**排中律**（先判定两块相不相等），我们没有；前者是构造性的，而且更强：
+--   一旦有公共元素，两块就**必然**相等。这一条正是"划分 ↔ 等价关系"的接缝。
+-- ─────────────────────────────────────────────────────────────────────────
+def classes (A : Type) (r : Rel A A) : Set (Set A) :=
+  fun (C : Set A) => Exists A (fun (a : A) => Eq.{1} (Set A) C (EquivClass A r a))
+
+def IsPartition (A : Type) (P : Set (Set A)) : Prop :=
+  And (forall (C : Set A), Set.mem (Set A) C P -> Not (Eq.{1} (Set A) C (Set.empty A)))
+      (And (forall (a : A),
+              Exists (Set A) (fun (C : Set A) =>
+                And (Set.mem (Set A) C P) (Set.mem A a C)))
+           (forall (C D : Set A), Set.mem (Set A) C P -> Set.mem (Set A) D P ->
+              Not (Eq.{1} (Set A) C D) ->
+              Not (Exists A (fun (x : A) => And (Set.mem A x C) (Set.mem A x D)))))
+
+-- 练习 6（L 类）：等价关系给出的等价类全体是一个划分（"划分 ↔ 等价关系"的一个方向）。
+-- soko:hint 思路：IsPartition 是三条 And，一条一条来；每条都要先把 `C ∈ classes` 拆成一个 Exists（拿到 a 与 C = [a]）。
+-- soko:hint 目标形态：And (无空块) (And (覆盖) (不相等 ⇒ 无公共元素))——① 与 ③ 的假设里都有一个"坏东西"，把矛盾造出来即可。
+-- soko:hint 关键件：① 用 Set.notMem_empty 撞 hrefl a；② 覆盖的证人取 EquivClass A r a 本身；③ 公共元素 x 经 hsymm/htrans 逼出 r a b，再用练习 5 的 equivClass_eq_iff 逼出 C = D，与 hne 相撞。
+theorem classes_isPartition (A : Type) (r : Rel A A)
+    (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) :
+    IsPartition A (classes A r) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- 6.6 两道 D 类题的 ℕ 判别工具箱
+--
+-- 官方 Lean 里"0 与 succ n 不相等"由自动派生的 `Nat.noConfusion` 一步给出；
+-- 我们的 prelude 里没有这类判别工具（Nat 只有构造子 Nat.zero / Nat.succ、递归子 Nat.rec，
+-- 外加原生 Nat.add），所以手写两件工具（已写好，直接用）：
+--   · Nat.isZero：把 0 与 succ 分开的 Prop 值判别器（配合 Eq.subst 用）；
+--   · Nat.pred：succ 的前驱（配合 congrArg 就得到 succ 的单射性）。
+-- 用 match 定义（模式就是 `zero` / `succ m`）。
+-- ─────────────────────────────────────────────────────────────────────────
+def Nat.isZero (n : Nat) : Prop := match n with
+| zero => True
+| succ m => False
+
+def Nat.pred (n : Nat) : Nat := match n with
+| zero => Nat.zero
+| succ m => m
+
+theorem Nat.zero_ne_succ (n : Nat) : Not (Eq.{1} Nat 0 (Nat.succ n)) :=
+  fun (h : Eq.{1} Nat 0 (Nat.succ n)) =>
+    Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
+
+theorem Nat.succ.inj (a b : Nat) (h : Eq.{1} Nat (Nat.succ a) (Nat.succ b)) : Eq.{1} Nat a b :=
+  congrArg.{1} Nat Nat Nat.pred (Nat.succ a) (Nat.succ b) h
+
+-- 反例关系：ℕ 上"相差不超过 1"（把 n 与 n+1 连起来那张图的邻接关系，再加上相等）。
+-- 在实数上它就是"距离 < 1"的离散版；它正是练习 7 要找的反例。
+def nearStep (a b : Nat) : Prop :=
+  Or (Eq.{1} Nat a b) (Or (Eq.{1} Nat (Nat.succ a) b) (Eq.{1} Nat a (Nat.succ b)))
+
+-- 练习 7（D 类）：判断真假 —— 「自反 + 对称 ⇒ 传递」。
+-- nearStep 就是上面这条"相差不超过 1"。请判断：它满足三律里的哪几条？
+-- 把判断写成反例：前两条成立、第三条不成立。
+-- soko:hint 思路：自反由第一个析取项直接命中；对称是把三个析取项换边（第一个要用 Eq.symm）；非传递要在 0、1、2 三点上撞：0 ~ 1、1 ~ 2，但 0 ≁ 2。
+-- soko:hint 目标形态：And (Reflexive Nat nearStep) (And (Symmetric Nat nearStep) (Not (Transitive Nat nearStep)))；最后一段是"假设传递，把它作用在 0、1、2 上"。
+-- soko:hint 关键件：要否掉 0 ≁ 2 的三个析取项——Eq 0 2 与 Eq 0 3 交给 Nat.zero_ne_succ，Eq 1 2 先用 Nat.succ.inj 降成 Eq 0 1 再交给 Nat.zero_ne_succ。
+theorem nearStep_counterexample :
+    And (Reflexive Nat nearStep)
+        (And (Symmetric Nat nearStep) (Not (Transitive Nat nearStep))) :=
+  sorry
+
+-- 练习 8（D 类）：判断真假 —— 「对称 + 传递 ⇒ 自反」。
+-- 这一题**不给你反例**：要证的是"这条推理对一切论域、一切关系都不成立"，
+-- 你得自己指出论域 A 与关系 r（并说明为什么它的两条前提成立、自反不成立）。
+-- soko:hint 思路：反例要在**有元素**的论域上找——空论域上"自反"会空洞成立；而"对称/传递"这两条在某种关系上恰好是空洞成立的。
+-- soko:hint 目标形态：Not (forall (A : Type) (r : Rel A A), Symmetric A r -> Transitive A r -> Reflexive A r)，也就是交出一个具体的 A、r 与两条前提，再撞第五条。
+-- soko:hint 关键件：演示 2、演示 3 是现成的两条前提（对任意 A 成立，实例化到有元素的类型即可）；最后把"自反"用在一个具体元素上收尾。
+theorem not_symm_trans_implies_refl :
+    Not (forall (A : Type) (r : Rel A A),
+      Symmetric A r -> Transitive A r -> Reflexive A r) :=
+  sorry

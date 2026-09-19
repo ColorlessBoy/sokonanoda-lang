@@ -12,9 +12,20 @@ use crate::token::{tokenize, TokenKind};
 /// that declares `name` (`def`/`theorem`/`axiom` and inductive ctors/recs).
 /// The first identifier matching `name` after the leading keyword is the
 /// defining occurrence — declaration names precede their types by grammar.
+///
+/// G-02 / WO-005：构造子的**规范名**（`Wrap.mk`）在源里写的是裸名
+/// （`ctor mk`），所以按全名找不到时回退匹配**最后一段** —— 仍是词法精确
+/// 匹配（token 相等），不是文本扫描。
 pub fn decl_name_span(doc: &str, decl_span: Span, name: &str) -> Option<Span> {
     let slice = slice_of(doc, decl_span)?;
-    first_ident_span(slice, doc, decl_span.start.offset, Some(name))
+    if let Some(span) = first_ident_span(slice, doc, decl_span.start.offset, Some(name)) {
+        return Some(span);
+    }
+    let tail = name.rsplit('.').next()?;
+    if tail == name {
+        return None; // no dot: the full-name lookup above already covered it
+    }
+    first_ident_span(slice, doc, decl_span.start.offset, Some(tail))
 }
 
 /// The binder name token's span (document coordinates) inside a binder's
@@ -178,6 +189,40 @@ mod tests {
         assert_eq!(uses.len(), 1, "the `#check id` use: {uses:?}");
         assert_eq!(&DOC[uses[0].start.offset..uses[0].end.offset], "id");
         assert_eq!(uses[0].start.offset, 52);
+    }
+
+    /// G-02 / WO-005：构造子的定义名 token 在**源**里是裸名（`ctor mk`），而
+    /// 解析目标带的是规范名（`Wrap.mk`）——`decl_name_span` 必须回退匹配最后
+    /// 一段，否则 ctor 的 prepareRename/goto 会静默失效。
+    #[test]
+    fn decl_name_span_finds_the_source_token_of_a_canonical_ctor_name() {
+        const CTOR_DOC: &str =
+            "inductive Wrap : Type\nctor mk : Wrap\nend\ndef w : Wrap := Wrap.mk\n";
+        let report =
+            crate::compile::check_document(&crate::parser::parse(CTOR_DOC).expect("parses"));
+        let decl = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some("Wrap"))
+            .expect("the Wrap declaration");
+        let span = decl_name_span(CTOR_DOC, decl.span, "Wrap.mk")
+            .expect("the ctor's source token must be found under its canonical name");
+        assert_eq!(&CTOR_DOC[span.start.offset..span.end.offset], "mk");
+        // 使用点解析到规范名（hover/goto 回填）。
+        let uses: Vec<&str> = report
+            .hovers
+            .iter()
+            .filter_map(|h| match h.resolution.as_ref() {
+                Some(ResolvedTarget::Declaration { name, span }) if span.start.offset > 0 => {
+                    Some(name.as_str())
+                }
+                _ => None,
+            })
+            .collect();
+        assert!(
+            uses.contains(&"Wrap.mk"),
+            "the use must resolve to the canonical name: {uses:?}"
+        );
     }
 
     #[test]

@@ -67,8 +67,8 @@
 | U1·6 | `theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b := sorry` | 声明级 binder：同样一件事不用写 fun | `And.intro a b ha hb` |
 | U2·1 | `def two : Nat := sorry` | “数字就是数字”——1+1 是会被内核计算的表达式 | `2`（或 `1 + 1`；`two_def` 闭环回判此值） |
 | U2·2 | `theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry` | rfl 不是咒语，是函数；conv 会计算 | `Eq.refl.{1} Nat (1 + 1)`（`Eq.refl.{1} Nat 2` 也过：conv 双向计算） |
-| U2·3 | `theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry` | 谓词 p 要自己设计（本场最深的一步） | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
-| U2·4 | `theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b c -> Eq.{1} Nat a c := sorry` | 配方同 U2·3，只换谓词 | `fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => fun (h1 : Eq.{1} Nat a b) => fun (h2 : Eq.{1} Nat b c) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat a x) b c h2 h1` |
+| U2·3 | `theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry` | 谓词 p 要自己设计（本场最深的一步）；**prelude 现在有现成版 `Eq.symm`**（画布上的 `eq_symm_demo` 就是），两解对照 | `fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat x a) a b h (Eq.refl.{1} Nat a)` |
+| U2·4 | `theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b c -> Eq.{1} Nat a c := sorry` | 配方同 U2·3，只换谓词；**prelude 现在有现成版 `Eq.trans`** | `fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => fun (h1 : Eq.{1} Nat a b) => fun (h2 : Eq.{1} Nat b c) => Eq.subst.{1} Nat (fun (x : Nat) => Eq.{1} Nat a x) b c h2 h1` |
 | U2·5 | `theorem eq_refl_prop : {a : Prop} -> Eq.{1} Prop a a := sorry` | 等式对任何类型都成立，命题也一样 | `fun {a : Prop} => Eq.refl.{1} Prop a` |
 | U3·1 | `def double : Nat -> Nat := fun (n : Nat) => sorry` | 程序不必一次写完；洞下剩余目标 = Nat | `fun (n : Nat) => n + n` |
 | U3·2 | `def twice : (Nat -> Nat) -> Nat -> Nat := sorry` | 函数是一等公民；括号是分组不是应用 | `fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)` |

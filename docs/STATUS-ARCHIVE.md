@@ -1,9 +1,279 @@
-# STATUS 归档（第 1–95 轮，2026-09-06 → 2026-09-18；另收 0.56.2 线的
+# STATUS 归档（第 1–103 轮，2026-09-06 → 2026-09-19；另收 0.56.2 线的
 # 第九十一轮续）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-19，第一百〇三轮（语言线）：WO-006 / G-03 落地 —— 派生 recursor 的宇宙参数判据镜像内核）
+
+> 台账 blocker：`inductive Bar (A : Type) : Prop` + `ctor mk (a : A) : Bar A`
+> （= `Exists` 的形状）被内核断言拒绝（`left: 1 / right: 0`），于是 `Exists` 只能立成
+> **公理三件套**。工作单 `docs/gaps/WO-006-prop-type-param-inductive.md`，
+> 设计 `docs/design/prop-large-elim-mirror.md`。
+
+1. **根因**：前端 `derive_recursor` 的 `small_elim = is_prop_block_ty(ty) &&
+   constructors.len() > 1` 是**源码近似**，内核 `large_elim_test` 的真值是
+   「非 Prop ⇒ large；空块 ⇒ large；多构造子 ⇒ small；**单构造子 ⇒
+   `large_elim_test_aux`**」。单构造子 Prop 块上两者不一致 ⇒ 前端声明 1 个宇宙参数、
+   内核要 0 个 ⇒ `assert_nonnected_recursors_def_eq` → `subst_expr_levels` 的长度
+   断言炸成 panic。
+2. **修法（策略 A，front-only，内核零改动）**：把「派生 recursor」推迟到构造子类型
+   elaborate **之后**（此时内核 Pi 望远镜在手），判据 `large_elim_test_mirror` +
+   `large_elim_test_aux_mirror` 逐字镜像内核那几行；「字段类型是不是 Prop 值」这步
+   交给**真内核**（`judge_infer` 问排序，与 `match` 判 motive 层级同一个 oracle）——
+   因为它是**语义**问题：`P -> Q`、`forall (x : Nat), P`、具名 `def … : Prop` 都是
+   Prop 值，源码近似会把 P10/P11/P13/P14 从 1 个宇宙参数改成 0 个。
+   `is_k_target` / `is_prop_block_ty` 一行未动。
+3. **顺带修掉一个既有 oracle bug**：`judge_infer` 取事件流里**第一条** `TypeChecked`，
+   而它的查询是**最后一条**命令——前缀里只要已有一条 `#check`（课程/playground 常见），
+   拿回的就是旧答案。实测：前缀有 `#check Nat` 时 P10/P13 立刻退化成
+   `left:0/right:1`。改为按 `event_cmds` 取**最后一条命令**的事件（不做文本比对）。
+   该 bug 同样影响 `match` 的 motive 层级查询。
+4. **测试三层**：front 单测 4 条（复现形状 + 表驱动 P1–P14 语料 16/16 +
+   判别性成对 P3/P9 与 P10/P11/P13/P14 不许回归 + 0 级 recursor 的 `match` 真算）+
+   CLI e2e 3 条（形状断言 `motive : Bar A -> Prop`、`match` 真跑、`Bar.rec.{0}` 必须
+   arity 报错）+ 课程用例（卷 I 12 单元 · 34 目标 · **315 checked · 96 open** · 0 判负，
+   与修前**同数**——WO 正文写的 296/93 是陈旧口径，实测基线见
+   `docs/design/ctor-namespace.md:73`）。复现件 `docs/gaps/repro/G03-…sokonanoda` 重写成修后形状
+   （**块本身逐字不动**），`scripts/soko grade` 退出码 0。
+5. **影响面 / golden**：`course/`（入门课）两份 GOLDEN **未变**（checked/open/reduced
+   与 failed 全同）——本 WO 只让"今天必定失败"的输入变绿，不改任何已通过块的
+   recursor 形状。`cargo test --workspace` 全绿。
+6. **课程侧出口（下一轮，本轮明确不碰课程）**：
+   `courses/set-theory/lib/Exists.sokonanoda:68-71` 的公理三件套可以升级成真归纳
+   （`Exists` + `intro` 构造子 + 自动派生的 `Exists.rec`），名字与签名逐字不变 ⇒
+   `units/unit06…unit12` 的证明文本预期 0 改动。前置：**G-02**（已落地，构造子
+   `Exists.intro` 的规范名）与**依赖消去**（`Exists.rec` 的 motive 要能提到证人，
+   见 `lib/Exists.sokonanoda:27-29` 的清单）。
+
+## 本轮进度（2026-09-19，第一百〇二轮（语言线）：WO-005 / G-02 落地 —— 构造子进入类型的命名空间）
+
+> 台账 blocker：构造子以**裸名**进环境且**全项目唯一**——`ctor mk` 之后只有裸 `mk`、
+> `Pair.mk` 报 unknown identifier，两个块各写 `ctor mk` 直接撞
+> `duplicate declaration mk`，于是 `Prod`/`Subtype`/`Exists` 这种大库只能给构造子起
+> `prod_mk`/`exists_intro` 这类**假唯一名**，与真实 Lean 4 写法脱节（违反硬规则 3）。
+> 工作单 `docs/gaps/WO-005-ctor-namespace.md`，设计 `docs/design/ctor-namespace.md`。
+
+1. **R1 规范名**：源 `ctor mk` 进内核叫 `Ind.mk`（源名**已含点**则原样 ⇒ prelude 的
+   `Nat.zero`/`Bool.true` 与既有显式写法零改动）。规范名是**唯一声明身份**：进
+   `Declar::Constructor`、`all_ctor_names`、派生 recursor 的 minor 项与 iota 规则名
+   （内核断言 `rule.ctor_name == ctor.name`，漏改 = 派生的 rec 一律对不上）、
+   `top_level_def_spans`（闭包唯一性 + hover/goto 回填 + `import-name-collision`
+   的第二道闸）。
+2. **R2 裸名别名（子集扩展，只在解析层）**：`known` 的值类型从 `Vec<String>` 换成
+   `KnownName::{Decl, Alias, Ambiguous}`；唯一裸名解析到**规范名**（绝不造第二个内核
+   常量），重复裸名报新码 **`elab-ambiguous-ctor-alias`**，真实声明优先于别名。
+   别名是**闭包级扁平**的（与 `check_name_collisions` 同口径；模块作用域属 G-05）。
+3. **R3 源级写法不动**：`match` 分支（`| none =>`）与显式 `iota zero :=` 继续按
+   **源名**匹配（`ctor_index` 两种拼写都认）；注释/文案不动。
+4. **高风险实测（照 WO 要求先测后改）**：源文件自带 `inductive Nat` 时，ctor 叫
+   `Nat.succ` 会命中内核 name cache 的 `NatRed::Succ` 快路径 ⇒ 归约从
+   `succ (succ (succ (succ zero)))` 变成**混合表示** `Nat.succ (Nat.succ (Nat.succ 1))`
+   （`apply` 把一元链折成 `NatLit`）；`Bool`/`Color` 是纯改名（`Bool.ff`/`Color.green`）；
+   `Option.some` 场景不变。**逐条实测后重钉 19 处文本断言，未做机械替换**
+   （表见设计文档 §2.1）。
+5. **顺带照出一条 WO 范围表没写的漏项**：`references.rs::decl_name_span` 按**全名**
+   匹配定义 token，而 ctor 在源里写的是裸名 ⇒ 不补回退，ctor 的
+   prepareRename/goto/references 会**静默失效**（`ctor mk` 里找不到 `Wrap.mk`）。
+   已补"回退匹配最后一段"（仍是词法精确匹配）+ front 回归 1 条 + LSP 回归 3 条。
+6. **三层测试**：front 单测 12 条（前缀名+共存、别名唯一/歧义、真实声明优先、
+   不重复加前缀、派生 rec 的 iota 名、显式 rec 源名对照、两种 match 拼写、
+   hover 回填、`#print` 别名、ctor spine 两种拼写、`decl_name_span` 回退）+
+   项目级 2 条（两模块各 `ctor mk` **不得**报 `import-name-collision`；跨模块同名裸名
+   报歧义）+ CLI e2e 3 条（`cli_ctor_names_are_namespaced`、
+   **`cli_grades_the_g02_repro_clean`**（复现件从此是"缺口即测试"）、
+   `cli_keeps_bare_ctor_aliases_working`）+ 语义高亮 1 条。
+7. **课程内容一字未改**（R2 别名撑住了）：`python3 courses/set-theory/tools/check.py`
+   = **34 目标 · 315 checked · 96 open · 0 判负**，入门课双 GOLDEN
+   （`course.rs`/`course_status.rs`）**计数未改**。**口径订正**：WO 正文写的
+   296/93 是 09-18 的数字，课程之后继续生长；本刀用**同一棵树**把 `crates/` 回退到
+   HEAD 重建二进制做对照，跑出同样是 **315/96/0** ⇒ 差额与本刀无关。
+8. **复现件更新成"修后期望形状"**：`docs/gaps/repro/G02-ctor-namespace.sokonanoda`
+   现在 exit 0 + 4 条 checked + 0 诊断，并把 R1 共存 / R2 歧义（负向断言，注释形态）
+   写成契约；`python3 scripts/gap.py check` 里 G-02 如期报
+   "已判卷通过 ← 台账写的是「仍有失败」，请更新"（关账前置）。
+9. **文档同轮**：新建 `docs/design/ctor-namespace.md`（设计先行）、
+   `docs/architecture.md` §4.2/§5.4、`docs/protocol.md`（新错误码）、
+   `skills/sokonanoda-teacher`、`editor/vscode/CHANGELOG.md`（0.59.0 条目，版本号由
+   主线统一 bump）、`REQUIREMENTS.md` §9、`docs/HANDOVER.md`、本文件。
+10. **验收**：`cargo test --workspace --locked` 全绿（front 508 + cli 各套 + lsp 141 +
+    kernel 43）、课程门禁绿、`gap.py check` 只有 G-02 如期提醒。**未跑
+    `scripts/soko gate`**（仓库约定：主线收尾统一跑）；内核目录**零改动**。
+
+## 本轮进度（2026-09-19，第一百〇一轮（语言线）：WO-004 / G-01 落地 —— 开练习的签名不再免检）
+
+> 台账里最贵的 blocker：值位写 `sorry` 时**签名从来没过类型检查**——`theorem t : 3 :=
+> sorry` 报 `exercise.open` + 0 诊断 + exit 0，与"还没做"逐字无法区分；158 条课程
+> 练习的签名腐烂对判卷完全不可见（`docs/gaps/WO-004-open-exercise-signature.md`）。
+> 修的是**违反硬规则 3** 的行为（填完洞的声明放进官方 Lean 必须合法）。
+
+1. **front：三处吞错点改成"与值位同罪"**。`walk.rs` 的 `def`/`theorem`/`example` 开
+   练习路径原来 `elab_expr(…).ok()` 把签名 elaborate 的 `Err` 丢掉、也从不问内核
+   "它是不是类型/命题"；现在统一走新助手 `open_signature`：签名先 elaborate
+   （`Err` ⇒ 既有失败通道 + `failed_state`，**不**登记 `OpenExercise`），再交给
+   内核阶段终审。顺带修掉一个既有小缺陷：签名原来用**空宇宙表** elaborate，
+   `{u}` 签名的 `ty_text` 渲染不出来——现在与 checked 路径共用 `make_univ_map`。
+2. **内核阶段：两步终审，判据全部走内核**（冻结内核零改动）。① 探针
+   `_soko_signature_probe`（同签名的 `Declar::Axiom`，**不入环境**）过
+   `try_check_declar_at(ByIndex(env_before))` ⇒ `ensure_sort_v` 的消息族与 checked
+   路径同源（`kernel-expected-sort`）；② `theorem` 再用内核公开判据
+   `TypeChecker::is_proposition` 问"是不是 Prop"，`false` ⇒ 合成与内核同形的
+   `theorem type must be Prop (sort 0): …`（`kernel-theorem-not-prop`）。顺序不能反
+   （`is_prop_type` 对非类型会 panic），第 ② 步套 `quiet_catch` 且失败**保守放过**。
+   签名不过 ⇒ 声明 `failed`、报一条 diagnostic、**不发** `exercise.open`
+   （不做成 warning：warning 不改退出码，课程侧永远发现不了腐烂）。
+3. **诊断 span 取签名自身**（`ty.span()`），不照抄内核消息里的 span（G-15）。
+4. **三层测试**：front 8 条（坏签名 5 类 + 防修过头的合法边界 + env 不污染 +
+   report 状态）；CLI e2e：`protocol.rs` 一对通过/失败边界（`example : Prop -> Prop
+   := sorry` exit 0 vs 6 个坏签名变体 exit 1 + code + span + 无 `exercise.open`）、
+   `query.rs` 钉 `query check` 与 `--json` 在同一失败形状上仍一致；课程层：真二进制
+   全仓对拍。
+5. **兼容性实测（本 WO 最大风险）**：**新增诊断 0 条**。入门课 + 卷 I 的 158 条开放
+   练习签名本来就合法——用新旧二进制逐条对拍全仓 105 个 `.sokonanoda` 文件，
+   唯一变化的只有 G-01 自己的复现件（0→1）；`courses/set-theory/tools/check.py`
+   仍是 **315 checked · 96 open · 0 判负**；两处课程 GOLDEN（`course.rs` /
+   `course_status.rs`）**未改**（`decl.checked`/`exercise.open`/`expr.reduced` 三列
+   逐行不变）。课程级变异实测：`mem_of_subset` 的签名改成拼错引理名 ⇒
+   `elab-unknown-identifier` + exit 1；结论改成 `Set α` ⇒ `kernel-theorem-not-prop`
+   + exit 1（修前两者都是 6×`exercise.open` + 0 诊断 + exit 0）。
+6. **被这刀照出来的既有假绿（同轮修正，均为测试夹具写错，不是新缺口）**：
+   `theorem t : Prop := h (g sorry)` 拿**命题本身**当命题的证明、`theorem t :
+   Nat -> Nat := …`、`theorem bad : Prop -> Prop := sorry`（`Prop -> Prop` 是
+   Type 层的 Pi）、`Or`/`And`/`True`/`False` 等未声明名字——共 14 处测试夹具与
+   `cli_axiom_decl_binders_compile` 的一处课程用例改用合法签名（`def` 或真命题
+   `P`/`Eq.{1} Nat 0 0`）。**没有一条是"放宽检查"**：改的是夹具，判据一个字没动。
+7. **复现件更新成"修后期望形状"**：`docs/gaps/repro/G01-open-exercise-signature.sokonanoda`
+   补了修后预期（现在**应该** exit 1，它钉的是契约不是"能过"）；新增课程级变异体
+   `docs/gaps/repro/G01-course-signature-mutations.sokonanoda`（两种签名腐烂各一条）。
+8. **文档同轮**：`docs/protocol.md`（`exercise.open` 的边界 + `kernel-theorem-not-prop`
+   适用面 + `redundant-sorry` 对照段）、`skills/sokonanoda-teacher`（判卷只认
+   `decl.checked`/`diagnostic`，签名诊断单列一行决策）、`skills/sokonanoda-dev`
+   （「签名/命名类」bug 的三层回归范例）、`AGENTS.md` 硬规则 3 补一句、
+   `REQUIREMENTS.md` §9（2026-09-19）、`editor/vscode`（README + CHANGELOG 0.59.0
+   条目，版本号由主线统一 bump）、`docs/design/teaching-project.md` §6.4 补
+   as-built 对照表、WO 的"修好后输出"节。
+9. **验收**：`cargo test --workspace --locked` 全绿（front 493 + …、cli、lsp 138、
+   kernel 51）、`cargo clippy`（教学 crates）绿、`cargo fmt --check`（教学 crates）绿、
+   课程门禁绿、`python3 scripts/gap.py check` 全绿。**未跑 `scripts/soko gate`**
+   （仓库约定：主线收尾统一跑）。
+
+## 本轮进度（2026-09-18，第九十九轮（语言线）：缺口台账并行清零中 —— WO-007 / G-06 落地）
+
+- **G-06 / WO-007：`sokonanoda course` 认 `import`（本轮实跑验收）**。有 `import` 的
+  单元走项目闭包（与 `grade`/`query check`/`build` 同一份闭包、同一个模块根与
+  `ProjectPlan::digest` 摘要键，见 `crates/cli/src/project_cache.rs`）；计数只取
+  **入口模块**，`failed` = 闭包内所有模块 `events.errors` 之和（项目级错误由
+  `attach_diagnostics` 挂进某个模块）⇒ `failed == 0` ⇔ `grade <单元>` exit 0；
+  模块根 = 单元最近的 `sokonanoda.toml`（嵌套子项目优先），没有则回退 `course.json`
+  所在目录；清单路径先 `canonicalize` ⇒ 与 cwd 无关。**无 `import` 的单元逐字节
+  走单文件** ⇒ 两处 GOLDEN（`crates/cli/tests/course.rs`、`course_status.rs`）未改。
+  实测：`node scripts/soko course "$PWD/courses/set-theory/course.json" --json`
+  = `{"checked":63,"failed":0,"open":93,"units":12}`（修前 `checked:1 / failed:63`，
+  12 单元全假红）；`python3 courses/set-theory/tools/check.py` 仍 exit 0。
+  新增 `crates/cli/tests/course_project.rs`（8 例：夹具转绿、与 `grade`/`query check`
+  同判、依赖缺失/内核报错不假绿、模块根回退与嵌套优先、相对路径与 cwd 无关、
+  闭包摘要与 `build` 共用）；复现 `docs/gaps/repro/G06-course-import.sh`
+  从 exit 0 → **exit 1**（行为已变 = `gap.py close G-06` 的前置）。
+  文档：`docs/protocol.md` Course map、`docs/design/{imports-and-projects,course-status,
+  compile-cache,teaching-project}.md`、`docs/architecture.md` §4.5 消费方、
+  `skills/sokonanoda-{teacher,dev}`、`AGENTS.md`、`docs/HANDOVER.md` §G。
+
+## 本轮进度（2026-09-18，第九十八轮：合并 0.56.2 线（多余的 `sorry`）+ push 主线 —— 0.58.0 发布）
+
+> 用户：「你来搞吧，push」——本线（I16 项目管理 → 0.58.0）与 `origin/main`
+> （0.56.2 = `redundant-sorry` 线）已经**分叉**：远端 3 个 commit（`dd1902d`
+> release 0.56.2 / `f66fee3` 0.56.2 发布文档 / `74cdbda` CI skill），本线 53 个。
+> 不能强推（会丢掉 0.56.2 的功能与已发布的 `v0.56.2`），所以**先合并再 push**。
+
+1. **合并过程（scratch worktree，19 个文件冲突逐个手心合并）**：`git worktree add
+   /tmp/soko-merge` 从本线 HEAD 建 `i16-merge`，`git merge origin/main`；合并树验证
+   全绿后再 `merge --ff-only` 回本线（主线保持线性、无 merge 提交噪音）。
+   - **内核（冻结快照）**：0.56.2 只加不改语义（`check_declar_at` /
+     `try_check_declar_at` 显式限界入口），`crates/kernel/{tc,util}.rs` 取远端；
+     三层回归测试一并并入（`memory_api` 7 → 8）。
+   - **前端**：`open_goal` 增第 4 个参数（候选"多余洞" sink，`Vec<Span>`）；
+     `PendingOp::OpenExercise` 增 `env_before`（探针终审的可见前缀）+
+     `redundant_probes`（pass 1 造、pass 2 查、**不入环境**）。
+   - **搬进模块化的树**：0.56.2 写在旧 `check.rs`（1918 行）里的探针代码要手工搬到
+     本线的 `check/{walk,kernel_phase}.rs`：`build_redundant_probes` → `walk.rs`，
+     终审循环（`try_check_declar_at(…, EnvLimit::ByIndex(env_before))`）+
+     warning 装配 → `kernel_phase.rs`；旧 `check.rs` 在合并树里 `git rm`，
+     `Cargo.lock` 取本线后 `cargo metadata` 重生成。
+2. **合并暴露的一处真 bug（已修 + 已加回归）—— warning 的跨模块归因**：
+   `redundant-sorry` 是 pass 2 **现算**的 warning（带命令下标就有归因依据），
+   而 `split_report` 原先只按单元**重算语法级** warning ⇒ 项目入口里"多写了一行
+   `sorry`"会被静默丢掉（单文件看不出来）。修法：`CompileOutput` 增平行数组
+   `warning_cmds` + `push_warning(cmd, w)`（与 `event_cmds` / `error_cmds` 同款
+   不变量：两数组严格平行、永不失配），`split_report` 按**命令下标**归因
+   （不猜 span——不同文件的 offset 不在同一个坐标空间）；语法级 warning 由
+   `kernel_phase` 钉在所属单元的区间上。回归：
+   `compile::tests::warnings_are_attributed_to_the_unit_that_produced_them`
+   （依赖 2 条 = 语法级 + 内核终审、入口 1 条，span 各落在自己文件的坐标里）。
+3. **验收（合并树上真跑）**：`cargo test --workspace --locked` **888 passed /
+   0 failed / 6 ignored**（27 个测试目标 + 3 个 doc-test 目标；kernel 52 =
+   lib 43 + arena 1 + memory_api 8；front 475 = lib 466 + perf 3 + perf_project 6；
+   cli 223 = 单元 5 + 集成 17 个目标 218；lsp 138）；`cargo fmt` / clippy 干净。
+   四个纯 Node 套件 18 / 7 / 10 / 11；真 VS Code 例行化（`scripts/vscode-e2e.sh`，
+   1.138.0 与 1.106.0 各一轮）**14/14**；`scripts/e2e-merge.py --check`、
+   `scripts/check-site.py`、`scripts/soko gate` 全绿。0.56.2 的功能在合并树上逐条
+   复验：`redundant-sorry` 正例 / 真缺口反例 / 前瞻引用护栏（front 5 条）、
+   `--json` warning 事件、`query goals|holes` 的洞级 `redundant` 标记、
+   LSP 不再叠 "not yet solved"。
+4. **push 前的 CI 预检（发现并修掉一个 workflow 设计错误）**：原先把三条 e2e 腿
+   放在**同一个 job 的矩阵**里、用 job 级 `if: matrix.os != 'macos-latest' || …`
+   表达"macOS 只在 main 上跑"——但 GitHub 的 contexts 可用性表里
+   `jobs.<job_id>.if` **不含 `matrix`**，这个条件要么按空值求值（macOS 腿在 PR 上也
+   跑），要么被判成未识别命名值让**整个 workflow 校验失败**（那样一条 CI 都不会跑）。
+   现在拆成两个 job：`e2e`（ubuntu × 2 版本，每个 PR/分支 push）+
+   `e2e-macos`（macos × 1.138.0，github-only 条件、只 main）；`auto-tag` 的 needs 与
+   `e2e-ledger` 的 needs 同步带上两条。顺带加固 `scripts/e2e-merge.py` 的去重键
+   （加 `host.system`/`machine`：ubuntu 与 macos 的 1.138.0 腿同秒完成时不会被当成
+   重复条目丢掉）。合并树先推一个**临时预检分支**跑一遍 CI（workflow 校验 +
+   ubuntu 两条腿 + 全部其它 job），绿了再 push main——**这一步立刻回本**：
+   - 预检确认 workflow 被接受（job 级 `if` 引用 `matrix` 的写法确实不能用），
+     `e2e-macos` 在分支 push 上如预期 **skipped**，两条 ubuntu e2e 腿
+     （1.138.0 与 1.106.0，含 runner 上现下老版本 VS Code）**全绿**，
+     `e2e-ledger` 也如预期只在 main 跑；
+   - 但 `test` job 假红：`crates/front/tests/perf.rs` 的
+     `check_document_scaling_is_linear` 报 ratio ≥ 12×，而同一棵树本地全量
+     `888 passed / 0 failed`。本地复现定位：**并行**（cargo 默认）跑三个 perf 用例时
+     400/50 比 = 10.9×，`--test-threads=1` 或单跑该用例 = 7.8×（8× 规模 ⇒ 线性）
+     ——算法没回归，是同一个测试二进制里的重活互相抢 CPU 把长的那一档抬高了。
+     修法（阈值不动，只改采样口径）：`front/tests/perf.rs` 加**进程内互斥锁串行** +
+     **轮转 best-of-N 取最小**，每键延迟改用**中位数 + 最坏值天花板**；
+     `lsp/src/tests/perf.rs` 的单文件/项目请求延迟改 **best-of-3**（那 130+ 用例
+     并行的 lib 二进制里，10ms 阈值单次采样迟早会红）。台账
+     `docs/CI-FAILURES.md`（2026-09-18 条）+ `docs/PERF.md` 采样口径段同步。
+5. **发布**：push `main` → `ci.yml` 的 auto-tag 打 `v0.58.0` 并 dispatch
+   `release.yml`（8 平台 CLI/LSP tarball + 9 个 VSIX）。`v0.56.2` 的 tag 与其
+   功能都保留在历史里，0.58.0 的 CHANGELOG 补记"多余的 `sorry` 已并入"。
+6. **发布结果（2026-09-18 实测）**：push `main` → CI **8/8 job 全绿**
+   （lint / test / e2e ubuntu×2 / **e2e macos-latest 第一次真跑** / e2e-ledger /
+   auto-tag / pages）→ auto-tag 打 **`v0.58.0`** 并 dispatch `release` →
+   release **11 job 全 success** → Release **26 资产**（lsp ×8 / cli ×8 / vsix ×9 /
+   `SHA256SUMS`）+ Marketplace 收录 **0.58.0**（10:21Z）。**发布产物实测**：
+   下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz` → `shasum -c` **OK** →
+   `--version` = 0.58.0 → 对 `playground.sokonanoda` 报出
+   `warning[redundant-sorry]`（第 328 行，正是用户最初报的那一行）+
+   `query project` 在 `course/unit11-project/` 上给出根与两个 `compiled` 模块。
+   `e2e-ledger` 把三条 CI 腿的台账（Linux×2 + Darwin×1，各 14/14、`dirty=false`）
+   自动回提交进 `docs/e2e/ledger.jsonl`（共 10 条，随后的 docs push 又追加 3 条）；
+   官网进度页已换到第九十八轮。**回提交的副作用已修**：`GITHUB_TOKEN` 推的提交
+   不触发 workflow ⇒ 没有 check-run、main 的 HEAD 挂黄点（`Expected — Waiting for
+   status to be reported`），看起来像「CI 没成功」；现在 `e2e-ledger` 回提交成功后
+   会给新提交补一条 `e2e-ledger` 成功状态（`statuses: write`），并已给已有的两个
+   台账提交补上状态。那条临时预检分支上的**真红**（性能哨兵假红）已按
+   `docs/CI-FAILURES.md` 修掉、该 run 也已删除；main / release / pages 现在全绿。
+7. **文档**：本文件（第九十五轮移入归档 + 0.56.2 线的第九十一轮续一并归档）、
+   `docs/STATUS-ARCHIVE.md`、`REQUIREMENTS.md` §9（九十八）、`docs/HANDOVER.md`、
+   `docs/TESTING.md`（合并后的测试构成）、`docs/LESSONS.md`、
+   `editor/vscode/CHANGELOG.md`、`docs/protocol.md`（warning 码三个并列）、
+   `skills/sokonanoda-teacher/references/events.md`、
+   `docs/design/deepseek-harness.md`（H3 追加行）、`docs/E2E.md` §5/§7（两个 e2e job 与
+   版本升级三处）、`.github/workflows/ci.yml` 注释、`docs/CI-FAILURES.md`、
+   `docs/PERF.md`（采样口径）、`scripts/gen-site-data.py`（轮次头解析改成"只认第一条
+   + 解析失败即报错"——本轮标题里的全角括号曾让网站 round 静默停在 97）。
 
 ## 本轮进度（2026-09-18，第九十五轮：待办批次 3 完成 —— 拆 `run_pass` + 项目整理）
 
@@ -2995,3 +3265,159 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
 4. **文档**：新增 `REQUIREMENTS.md`（用户全部要求的权威总账）、
    `docs/TESTING.md`（测试资产地图）、`docs/notes/lsp-notes.md`、`docs/notes/vscode-notes.md`。
 
+## 本轮进度（2026-09-18，第九十七轮：真 VS Code 集成测试例行化 + 结果台账）
+
+> 用户：「你配置相关套件，启动 VSCode 实际验证一下，本来就应该做成例行化检测。
+> 远程不行，本地例行化也可以接收。」——原来只有 `cd editor/vscode && npm test`
+> 这条"想起来才跑"的手工路径，且极易测到旧二进制；本轮把它做成**一条命令 +
+> 提交进仓库的台账**，并用它真跑了一遍。
+
+1. **一条命令**：`SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh` ——
+   构建 release（被测的就是发布形态）→ `node scripts/stage-lsp.js` stage 到
+   `bin/<target>/` → `npm test`（真 VS Code + 真 LSP + 真扩展宿主）→ 记账。
+   退出码 0/1/2/3（全绿/用例失败/用法/前置缺失）。
+2. **台账（提交进仓库）**：`docs/e2e/ledger.jsonl`（`schema: soko.e2e/1`：
+   version/commit/dirty/host/VS Code 版本/`tests{passed,failed,pending}`/exit/
+   doctor 的服务器版本行/被测 LSP `sha256` 前 16 位/裁剪日志路径）+
+   `docs/e2e/latest.json` + `docs/e2e/logs/<date>-<sha>.log`（doctor 块 + 用例
+   清单 + 扩展接线日志 + 失败详情）。
+3. **本轮实测（真宿主）**：**14/14 全绿**，用时 ~1s（外加 VS Code 启动与首次
+   下载）；doctor 自述 `0.58.0 (pid …) == 扩展 v0.58.0 (source=bundled)`。
+   新增 4 条用例：`.sokonanoda` 语言 id 守卫 + **项目树三条**（真 `soko/project`
+   答案渲染的行：闭包 / 单文件占位 / 缺模块根因与错误图标）。
+4. **过程里修掉三个真问题**：
+   - `.vscode-test.mjs` 把 `--user-data-dir`/`--extensions-dir` 指到
+     `<tmpdir>/soko-vscode-test`：macOS 的 unix socket 路径上限 103 字符，本仓库
+     的长路径原先直接 `EINVAL` 起不来（老文档让你把扩展拷到 `/tmp/v`，现在不必）；
+   - 扩展的 test-mode 返回钩子**提前 `return` 掐掉了 `client.start()`**——测试宿主里
+     服务器永不启动，10 个用例集体超时（stub 层看不见这类生命周期问题）；改成
+     **函数末尾**返回并写清为什么；
+   - 新增 `SOKO_E2E_LOG` 文件日志（env 开关、生产零成本）：扩展宿主的 `console`
+     在 `vscode-test` 输出里取不到，这条日志是 e2e 卡住时的第一现场（本轮正是靠它
+     定位到上面那条）。
+5. **文档**：新增 **`docs/E2E.md`**（一条命令、四层分工、台账字段、判读口径、
+   环境坑、与 CI 的关系）；`docs/vscode-dev-guide.md`（测试三层 + 坑 19/20/21 +
+   坑 14 更新为"配置已自解"）、`docs/TESTING.md` 集成测试小节、`AGENTS.md`
+   （命令 + 扩展改动后的例行三层）、`skills/sokonanoda-dev`、`docs/README.md`
+   地图、`docs/LESSONS.md`（"给扩展一条文件日志"）同轮同步。
+6. **CI 也跑这条命令（0.58.0 同日）**：新增独立 **`e2e` job**（矩阵
+   `ubuntu-latest` + `xvfb-run` 与 `macos-latest`，各自钉 VS Code 版本），跑的就是
+   `scripts/vscode-e2e.sh`；`docs/e2e/` 上传为 artifact，`scripts/e2e-summary.py`
+   的渲染写进 **job summary**；`auto-tag` 的 `needs` 加上 `e2e` ⇒ **e2e 红了不发版**。
+   原来 `test` job 里那条 `xvfb-run npm test` 删除（避免同一套用例跑两遍）。
+7. **CI 的 macOS 腿只在 push 到 main 时跑**（用户定：PR/分支只跑 Ubuntu，快反馈；
+   main 上才加跑 macOS——真宿主差异值得守，但每个 PR 多 ~10 分钟不划算）。
+   e2e job 用 job 级 `if`（`matrix.os != 'macos-latest' || push && main`），
+   被跳过的腿不影响 `auto-tag` 的 `needs`。`run:` 块逐个过 `bash -n`，
+   YAML 解析校验通过（GH Actions 本身推不了，没法在这里真跑）。
+   最低版本 1.106.0 腿按用户规矩**先本地验证再进 CI**——同一天用
+   `npm_config_https_proxy=http://127.0.0.1:7890` 验过：**VS Code 1.106.0 上
+   14/14 全绿**（含项目树三条），台账 `b0bcba3`；随后把它加进 CI 矩阵
+   （ubuntu × 1.106.0，每个 PR 都跑）。顺带把"test-electron 只认
+   `npm_config_proxy`/`npm_config_https_proxy`、不读 `HTTPS_PROXY`"写进
+   `docs/E2E.md` §5/§6。
+8. **CI 台账回提交（用户：「验证好就让 CI 往仓库追加吧」）**：新增收尾 job
+   `e2e-ledger`（只 main，`contents: write`）——下载各腿 artifact →
+   `scripts/e2e-merge.py` 合并（**幂等**：重复条目跳过、日志按记录名回填、
+   台账按 date 排序）→ 一条提交推回 main（标题带各腿结果）。为什么不是每条腿各推：
+   矩阵并发改同一个 `ledger.jsonl` 会互相覆盖；push 前 rebase 重试一次，
+   两次都失败就报错（不静默）；`GITHUB_TOKEN` 推的提交不再触发 workflow（不自激）；
+   `e2e-ledger` **不**进 `auto-tag` 的 needs（免得与它自己推的提交互相等待）。
+   日志文件名同时改成带版本（`<date>-<sha>-vc<version>.log`），否则矩阵里同一天
+   同一 commit 的多个版本会互相覆盖。合并逻辑在本地用**伪造 artifact** 验过：
+   追加 2 条 → 再合并 0 条（幂等）→ `--check` 排序/唯一/日志齐全。
+   加固（同日）：`concurrency: e2e-ledger`（同一时刻只有一个写台账的 job）+
+   `fetch-depth: 0`（浅克隆 rebase 缺 parent）+ push 重试 3 次、冲突时报出
+   `UU` 文件并 abort。**两条路径都用临时 bare remote + 两个 clone 演练过**：
+   ① 抢占 push → rebase → 第二次成功；② 同一文件冲突 → abort + 退出码 1、
+   工作区干净（重跑即可）。
+9. **版本策略（调研后决定）**：`@vscode/test-cli` 的 `version` **默认 stable 频道**
+   （[官方文档](https://code.visualstudio.com/api/working-with-extensions/testing-extension)
+   与官方 sample 都不钉具体版本，示例用的是 `insiders`）——生态惯例是跟频道。但这一层
+   的产物是**台账**：宿主随 stable 漂就没法比历史，所以本地例行默认钉 **1.138.0**
+   （`--version stable` 可跟随），CI 矩阵显式给版本；升级流程与"最低版本
+   （`engines.vscode ^1.106.0`）腿待补"写在 `docs/E2E.md` §5。
+10. **顺手清掉不再需要的缓存**：`editor/vscode/.vscode-test/vscode-darwin-arm64-1.137.0`
+   （898MB，已换 1.138.0）、旧 VSIX×5（0.18/0.19/0.20 + universal + `sokonanoda.vsix`，
+   `docs/RELEASE.md` 的发布流程会重新产出）、`.ruff_cache/`（仓库没有 ruff 配置）。
+
+## 本轮进度（2026-09-18，第九十六轮：待办批次 4 —— 项目状态视图，0.58.0）
+
+> 承第九十四轮定下的批次计划（用户「按照你的计划，从上到下依次改进」）：
+> **批次 1/2/3 已完成，本轮做批次 4 = `soko/project` 项目状态可视化**。
+> 「我在哪个项目里、根在哪、清单是谁、哪个模块拖坏了入口」以前只能靠 CLI 反复
+> 跑或读文档推；现在它是一个只读、机器可判的查询，编辑器与 agent 同一份真相。
+
+1. **真相层（front）**：新增 `project::ModuleStatus {Compiled, LoadFailed, Blocked}`
+   + `ModuleReport::status`——此前"编译过（可能有错）/ 加载失败 / 被上游拖住"三者
+   都表现为空报告，消费者分不清**根因与受害者**；`compile_plan` 按
+   `failed`/`blocked`/`result_blocked` 三个已知集合填状态。
+   `query::ProjectView`（wire）+ `QueryDoc::project_view()` /
+   `project_view_reason()`：从**已编译的** `ProjectReport` 派生（不重跑内核、
+   不算摘要、不碰缓存），路径 `canonicalize` 成绝对路径（CLI 与 LSP 对同一文件
+   给出逐字相同答案）；单文件是**另一种合法状态**（`None` + `no-imports` /
+   `no-path` / `parse-error`），不是错误。
+2. **三个传输同一份真相**：CLI `query project`（`soko.query/1` 信封、
+   `data = {project, reason}`、恒退出 0）+ help 行；MCP 工具 `project`
+   （`mcp__sokonanoda__project`，薄转发，`dsh.rs` 契约从六工具改七工具）；
+   LSP `soko/project`（回显 `uri`/`version`，走 `focus_request` + 未保存缓冲）。
+3. **VS Code 0.58.0**：资源管理器新增「项目」树（新模块
+   `editor/vscode/project-tree.js`：渲染与请求分离）——根 = 模块根 + **清单来源**
+   （`sokonanoda.toml` 或"零配置"）+ 计数；子 = 拓扑序模块 + `入口`/`依赖` +
+   声明/练习/错误 + 状态图标 + `message`（根因说出来缺哪个模块）；点击开模块、
+   点根开清单；单文件一条占位行；状态栏 tooltip 加项目行（不新开 item）；
+   `sokonanoda: refresh project view` 命令 + view/title 按钮；答案指名别的文档
+   ⇒ 丢弃（沿用 `soko/goals` 的身份纪律）。
+4. **测试（三层）**：front 4 条（闭包/清单/失败 vs 被阻断/单文件原因）；
+   CLI 3 条 e2e（真二进制：字段齐全、根因 vs 受害者、`project:null`+reason）；
+   LSP 2 条（身份回显 + 未落盘编辑改坏 import ⇒ 入口 `load-failed`）；
+   扩展 stub 宿主 3 条（渲染闭包/单文件占位/丢弃他人答案）。
+   顺手修好 stub 的两处不忠实（`MarkdownString` 吞掉构造参数——**测试因此看不见
+   tooltip 内容**；`createStatusBarItem` 不返回实例）并清掉 5 行遗留 DEBUG 打印。
+5. **版本与文档**：0.57.0 → **0.58.0**（Rust 与扩展同步，契约测试逼出来的）；
+   新增设计 `docs/design/project-view.md`（§9 明确不做依赖图/写操作/模块级缓存）；
+   `docs/protocol.md`（`query` op 表 + `soko/project` 小节）、TESTING（新行 +
+   七工具）、architecture（仓库地图 + §4.5 第 7 步）、HANDOVER（LSP 能力/新字段）、
+   AGENTS（命令面 + 七工具 + 自定义请求表）、skills、dsh/README、
+   扩展 README/CHANGELOG、LESSONS（stub 忠实性）、本文件与 `REQUIREMENTS.md`
+   §9（九十六）。
+6. **验收**：`cargo test --workspace --locked` **871 passed / 0 failed**
+   （front 466（457 + perf 3 + perf_project 6）/ cli 217 / lsp 137 / kernel 51）；
+   `node editor/vscode/test-extension-host.js` **11/11**（另三个 Node 套件
+   18/18、7/7、10/10）；`scripts/soko gate` PASS；site 数据重新生成。
+7. **批次 1–4 全部完成**。剩下的只有 P7 长尾（`[deps]`、`namespace`/`open`、
+   `watch` 项目模式、decl 级产物）与 `docs/HANDOVER.md` §4 的结构债清单
+   （`compile/tests.rs` 4828 / `elab.rs` 2854 / `parser.rs` 2065 / `lsp/lib.rs` 1554）。
+
+---
+
+   （仓库约定：主线收尾统一跑）。
+
+## 本轮进度（2026-09-18，第一百轮（语言线）：WO-003 / G-10（+ 同族 G-17）落地 —— 查询通道不再假绿）
+
+- **G-10：`query check` 对解析失败报 parse 诊断 + exit 1**。病根是
+  `front::query::QueryDoc.parse_error` **只写不读**（只在 `set_text` 写、
+  `set_cached_entry` 置 `None`，全 `front::query` 没有读者）：`check` 只读
+  `self.output`，于是"这份文本解析不了"被答成"全零 + `failed: []` + `ok:true` +
+  exit 0"，而同一份文本走 `grade` 是对的。现在 `check` 把 `parse_error` 合成进
+  `failed[]`（`name: null`、`code`/`message`/span 与 `--json` 同源；`counts` 保持
+  全 0 = 诚实、`ok` 保持 `true` = "问出来了"，退出码由 `failed` 数量推导 ⇒ 1）。
+  缓存路径的不变量（`set_cached_entry` 清 `parse_error` 之所以安全）钉进了 front 单测。
+- **G-17（同族，顺带）：`query goals`/`holes` 对解析失败不再答空数组**。两者与
+  `next_hole` 改返回 `Result<_, QueryError>`：解析失败 = `NotParsable` ⇒ CLI 答
+  `ok:false` + `error.code:"not-parsable"` + exit 1（"空数组 / `None`" 仍然只表示
+  "正常的没有"）。`state` 不动（它本来就 `ok:false`，WO-003 明确排除其形状变更）。
+  LSP wire 不变（parse 诊断走 `publishDiagnostics`；`soko/goals` 空、`soko/nextHole`
+  `null`）。
+- **测试三层**：front 单测 3 条（`check_reports_a_parse_error_instead_of_all_zeros`、
+  缓存不变量、`goals_and_holes_report_a_parse_error_instead_of_empty_answers`）+
+  CLI e2e 4 条（`--text`/`--file` 两条通道、G-17 三调用 + 对照、坏依赖项目回归、
+  真课程单元⑤ 正例 5 checked/7 open + 反例与 `grade` 同 code/span/退出码）+
+  课程门禁 `python3 courses/set-theory/tools/check.py` 同数（34 目标 · 308 checked ·
+  93 open · 0 判负）。复现 `docs/gaps/repro/G10-query-check-parse-error.sh`（重写成
+  修后形状，exit 1）与新写的 `G17-...sh`（exit 1）。
+- **契约变更（用户可见）**：`query check` 的退出码 0→1（解析失败）；`query goals`/
+  `holes` 退出码 0→1 且 `ok:false`。`--json` 事件流与两处课程 GOLDEN **一字未动**
+  （改动全在 `front::query` 摘要视图 + CLI 信封）⇒ minor（0.59.0，版本号由主线 bump）。
+  文档 as-built：`docs/protocol.md`、`docs/design/agent-query-channel.md`、
+  `dsh/mcp/server.js` 三个工具描述、`skills/sokonanoda-teacher/SKILL.md`。

@@ -1,0 +1,60 @@
+-- Logic.sokonanoda —— 卷 I 的**逻辑词汇入口**（P4 之后：**只有注释的空壳模块**）
+--
+-- ⚠️ **本文件不再声明任何东西。** 它现在的唯一作用是让历史上写下的
+-- `import lib.Logic` 继续能被解析（实测：空模块可被 import，闭环判卷 exit 0）。
+-- 30 个顶层名字现在由 **prelude**（Full 模式）自带，课程侧不再抄一遍。
+--
+-- ── prelude 现在自带哪 30 个名字（`PRELUDE_NAMES`，出处
+--    `crates/front/src/compile/prelude.rs` 的 `PRELUDE_L1_SRC`）──────────────
+--     B1 真伪      True / True.intro
+--     B2 假与爆炸  False / False.rec / False.elim
+--     B3 且        And / And.intro / And.left / And.right / And.elim（+ 派生 And.rec）
+--     B4 或        Or / Or.inl / Or.inr / Or.elim（+ 派生 Or.rec）
+--     B5 非        Not / Not.intro / Not.elim / absurd
+--     B6 当且仅当  Iff / Iff.intro / Iff.mp / Iff.mpr / Iff.refl / Iff.symm / Iff.trans
+--     B7 Eq 引理   Eq.symm / Eq.trans / congrArg（随 Eq prelude 一起让位）
+--   这 30 个名字与「为什么是它们」的逐字签名见
+--   `docs/design/prelude-l1-proposal.md` §1.1（台账 L-01/L-02 已关账）。
+--
+-- ── 为什么这个文件不再声明它们 ──────────────────────────────────────────
+-- 这一层原本存在的理由是**补语言没有的东西**：上面每一条在官方 Lean 4 core /
+-- Mathlib 里都是现成的（出处见下），任何一本 Lean 教程都直接拿来用，不会让
+-- 学习者手写。prelude 落地前我们只能在这里抄一遍（这就是要消除的"暴力"）；
+-- 0.59.0 起 prelude 自带，于是这里**退化成空壳**——留着它比删掉它更划算：
+-- **34 个** `import lib.Logic` 一行都不用改（实测：空模块可被 import，闭环 exit 0）；
+-- 等课程侧愿意时再删文件、删 import。
+-- **它不再是"标准库欠账"**：不要再把这里的空缺当语言缺口（台账 L-01/L-02 = fixed）。
+--
+-- ── 让位规则（谁声明谁拥有；prelude 只在"文件没自带"时接管）──────────────
+-- prelude 按**族**让位、并按依赖做闭包：本文件当年自己声明了 B1–B7 的名字，
+-- 所以那时 prelude 的**整族**都不装（B5 依赖 B2、B6 依赖 B3、B7 依赖 Eq prelude）。
+-- 今天本文件一条声明都没有 ⇒ 这些名字**全部来自 prelude**，签名以
+-- `PRELUDE_L1_SRC` 为准。反过来说：任何**别的**模块只要自己声明了某个族里的
+-- 一个名字，整个编译闭包里的那一族就都改由该文件提供——这条闭包级的连锁
+-- 是 prelude 设计的固有面（`docs/design/prelude-l1-proposal.md` §2.2、§5 风险 2）。
+--
+-- ── 与当年这份抄本的两处**定形差异**（已随 P4 抹平，不是缺口）─────────────
+--   * `And`：这里是 axiom 族（G-02 时代的写法），prelude 里是**真归纳块**
+--     （构造子 `And.intro`、自动派生 `And.rec`）——调用点写法不变；
+--   * `Or` 的构造子：这里曾是**裸名** `inl`/`inr`，prelude 里是**点号名**
+--     `Or.inl`/`Or.inr`（G-02 定形后的唯一可行解）。裸**项**名 G-02 之后不再
+--     存在，所以课程侧（lib + units + solutions + 记法对照页）的项位一律改成
+--     `Or.inl`/`Or.inr`；裸**模式** `| inl a =>` 仍被接受，课程里没有模式用法。
+--   * 唯一**没变**的是调用形状：prelude 的签名照旧不给隐式实参，`Or.inl` 仍
+--     要显式吃两个 `Or` 的参数（`Or.inl (A x) (B x) hx`）——G-14/隐式插入未落地。
+--
+-- ── 名字出处（保留当年的台账对照，读旧注释时用）─────────────────────────
+--   L-01 `True`/`True.intro`/`False`/`False.rec`/`False.elim`/`And.*`/`Or.*`/
+--        `Not.*`/`absurd`/`Iff.*` —— Lean core 真名；
+--   L-02 `Eq.symm`/`Eq.trans`/`congrArg` —— Lean core；
+--   L-03 `Eq.mp`/`Eq.mpr`/`Eq.rec`/`cast` —— **仍然写不出来**（`Eq.subst` 的
+--        motive 只能落 Prop），prelude 也**不**提供；这条留在台账里，不是本文件的活；
+--   `Iff.refl`/`Iff.symm`/`Iff.trans` —— Mathlib 级，写集合等式天天用。
+--
+-- 分层判据（`docs/design/course-stdlib.md`）：
+--   L1 语言 prelude **已自带**（Lean core 级）→ 本文件（空壳，只作入口）
+--   L2 课程标准库提供（Mathlib Set/Function 级）→ lib/Set.sokonanoda
+--   L3 真正该由学习者手写的 → units/ 里的练习
+--
+-- 判卷自检（绝对路径；G-12）：
+--   scripts/soko grade "$PWD/courses/set-theory/lib/Logic.sokonanoda"   # 空模块：exit 0

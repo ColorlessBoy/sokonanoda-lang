@@ -247,7 +247,14 @@ fn a_parse_error_in_a_dependency_is_attributed_to_its_file() {
         .iter()
         .find(|e| e["code"] == "import-module-invalid")
         .expect("import-module-invalid");
-    assert_eq!(parse_error["file"], "Bad.sokonanoda");
+    // G-12 后依赖模块的路径也是绝对的（入口先绝对化再解析）：按后缀断言，
+    // 与同文件 `build.file` 的 `ends_with` 写法一致。
+    assert!(
+        parse_error["file"]
+            .as_str()
+            .is_some_and(|file| file.ends_with("Bad.sokonanoda")),
+        "依赖诊断带它的绝对路径：{parse_error}"
+    );
     assert_eq!(parse_error["module"], "Bad");
     assert_eq!(parse_error["stage"], "import");
     assert_eq!(parse_error["span"]["start"]["line"], 1, "{parse_error}");

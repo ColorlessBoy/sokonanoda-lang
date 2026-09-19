@@ -5,8 +5,9 @@
 //! 全量事件流（既有消费者不变），`query` 是"摘要 + 可寻址"的单 JSON 对象，
 //! 供 agent/脚本一次解析。两者都由 `front::query` 同一实现产出。
 //!
-//! 退出码：`0` 成功（含开放的 `sorry` 练习——那是合法状态）、`1` 有内核拒绝、
-//! `2` 用法错误、`3` 环境/输入不可用。**判据永远是 JSON 内容**，不是退出码。
+//! 退出码：`0` 成功（含开放的 `sorry` 练习——那是合法状态）、`1` 有拒绝
+//! （内核拒绝的声明**或**源文本解析失败）、`2` 用法错误、`3` 环境/输入不可用。
+//! **判据永远是 JSON 内容**，不是退出码。
 
 use std::io::Read;
 use std::process::ExitCode;
@@ -230,6 +231,17 @@ fn ok_envelope(op: &str, version: u64, data: Value) -> Value {
     })
 }
 
+/// 报告类 op（`goals`/`holes`）"问不出来"的统一出口：`ok:false` + 退出码 1。
+///
+/// 今天只有一种情形走到这里：源文本解析失败（`QueryError::NotParsable`，G-17）。
+/// 空数组是**答案**（"这份画布没有声明 / 没有洞"），解析失败不是——所以它绝不
+/// 能答空数组 + `ok:true`。退出码 1 与 `check` 同义："这份文件被拒了"，写成
+/// `query goals … && 继续` 的脚本必须在坏文件上停下。
+fn unable_to_answer(err: QueryError, doc: &QueryDoc, args: &Args) -> ExitCode {
+    let envelope = error_envelope(&args.op, err, doc.version, None);
+    print(envelope, args, 1)
+}
+
 /// 入口：解析 → 执行 → 打印单 JSON 对象 → 退出码。
 pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
     let args = match parse_args(argv) {
@@ -288,14 +300,19 @@ pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
                 }
             }
         }
-        "goals" => (
+        "goals" => {
             // 探针默认关闭（每次请求都要跑内核，见 `spine-meta-a.md`）；
             // `holes` 因为**需要**期望类型，内部总是开。
-            serde_json::to_value(doc.goals(args.probe)).unwrap_or(Value::Null),
-            0,
-        ),
+            match doc.goals(args.probe) {
+                Ok(decls) => (serde_json::to_value(decls).unwrap_or(Value::Null), 0),
+                Err(err) => return unable_to_answer(err, &doc, &args),
+            }
+        }
         "holes" => {
-            let holes = doc.holes();
+            let holes = match doc.holes() {
+                Ok(holes) => holes,
+                Err(err) => return unable_to_answer(err, &doc, &args),
+            };
             let next = match (args.offset, args.direction.as_deref()) {
                 (Some(from), Some(dir)) => {
                     let forward = match dir {
@@ -306,7 +323,10 @@ pub(crate) fn run(argv: &[String], root: Option<&str>) -> ExitCode {
                             return ExitCode::from(2);
                         }
                     };
-                    serde_json::to_value(doc.next_hole(from, forward)).unwrap_or(Value::Null)
+                    match doc.next_hole(from, forward) {
+                        Ok(hole) => serde_json::to_value(hole).unwrap_or(Value::Null),
+                        Err(err) => return unable_to_answer(err, &doc, &args),
+                    }
                 }
                 _ => Value::Null,
             };

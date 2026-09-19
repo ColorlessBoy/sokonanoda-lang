@@ -173,7 +173,7 @@ fn state_at_past_the_end_is_out_of_range() {
 #[test]
 fn holes_are_addressable_and_stably_identified() {
     let doc = doc(CANVAS);
-    let holes = doc.holes();
+    let holes = doc.holes().expect("the canvas parses");
     assert_eq!(
         holes.len(),
         3,
@@ -200,7 +200,7 @@ fn holes_are_addressable_and_stably_identified() {
 #[test]
 fn next_hole_walks_forward_and_backward() {
     let doc = doc(CANVAS);
-    let holes = doc.holes();
+    let holes = doc.holes().expect("the canvas parses");
     // 实测布局（文件序）：`apply And.intro` 之后的两个子目标洞在最前且**同址**
     // （`assemble` 给每个叶子洞同一个 hole_span），`open_one` 的洞在其后。
     let ids: Vec<&str> = holes.iter().map(|h| h.id.as_str()).collect();
@@ -217,26 +217,32 @@ fn next_hole_walks_forward_and_backward() {
     // 第一个洞（`and_swap` 的子目标组）之后，位置更靠后的是 `open_one` 的洞。
     let found = doc
         .next_hole(holes[0].start, true)
+        .expect("the canvas parses")
         .expect("another hole exists");
     assert_eq!(found.id, "open_one:0");
     // 同址组内**按位置无法逐个前进**：这正是协议记录的已知限制
     // （`docs/protocol.md` 的 `soko/nextHole` 一节）——组里的第二个洞只能整组
     // 跨过，要逐个寻址就用 `holes[i].id`。
     assert_eq!(
-        doc.next_hole(holes[0].start + 1, true).map(|h| h.id),
+        doc.next_hole(holes[0].start + 1, true)
+            .expect("the canvas parses")
+            .map(|h| h.id),
         Some("open_one:0".to_string()),
         "the same-site pair is stepped over as a group"
     );
     // 往回走：从 `open_one` 的位置回退到子目标组。
     let back = doc
         .next_hole(holes[2].start, false)
+        .expect("the canvas parses")
         .expect("a hole before it");
     assert_eq!(
         back.id, "and_swap:1",
         "backward lands on the group's last hole"
     );
     assert!(
-        doc.next_hole(holes[0].start, false).is_none(),
+        doc.next_hole(holes[0].start, false)
+            .expect("the canvas parses")
+            .is_none(),
         "nothing before the first hole"
     );
 }
@@ -290,7 +296,9 @@ fn check_counts_match_the_event_stream() {
 
 #[test]
 fn check_reports_kernel_failures() {
-    let open = doc("theorem bad : Prop -> Prop := sorry\n");
+    // `Prop -> Prop` 是 Type 层的 Pi，做 `theorem` 签名会被内核拒（G-01）；
+    // 这里要的是"合法开放练习" ⇒ 用 `example`（签名只需是个类型）。
+    let open = doc("example : Prop -> Prop := sorry\n");
     // `sorry` 是合法开放状态，不是失败。
     assert!(open.check().failed.is_empty());
     let rejected = doc("example : Prop := 1\n");
@@ -300,12 +308,135 @@ fn check_reports_kernel_failures() {
         "a kernel-rejected declaration must be reported: {:?}",
         summary
     );
+    // G-10 回归：parse 诊断与内核拒绝是**两类**失败，谁也不吞谁。这里只分辨
+    // `code`（摘要层的失败条目今天没有 `stage`，见 WO-003 的修法 A/B）。
+    // 语法错误夹具：`infix:50 " e " => mem` 曾经是"随便一条解析不了的文本"，
+    // 0.59.0 起它是一条**有意义**的 `notation-shape` 诊断（记法符号不能是标识符
+    // 词，G-04 / WO-011）——这里要的是通用 parse 错误，所以换成括号不配对。
+    let unparsable = doc("def p : Prop := (a\n");
+    let summary = unparsable.check();
+    assert_eq!(summary.failed.len(), 1, "{summary:?}");
+    assert_eq!(
+        summary.failed[0].code, "unexpected-token",
+        "the parse code, not a kernel code: {summary:?}"
+    );
+}
+
+/// G-10：解析失败必须作为诊断出现在 `check().failed` 里。`ok:true` 只表示
+/// "问出来了"（答案就是"这份文本解析不了"），不能吞成"全零 + 没有失败"的假绿；
+/// `--json` 事件流今天就是对的（`stage:"parse"`），摘要视图必须追上它。
+///
+/// 退出码由 `failed` 的数量推导（`crates/cli/src/query.rs`），所以"`failed` 非空"
+/// 这一条同时就是"exit 1"的根据。
+#[test]
+fn check_reports_a_parse_error_instead_of_all_zeros() {
+    // 夹具见上一条测试的注释：`infix:50 " e " => mem` 现在是 `notation-shape`
+    // 诊断，不再是通用 parse 错误。
+    let bad = doc("def p : Prop := (a\n");
+    let summary = bad.check();
+    assert_eq!(
+        summary.failed.len(),
+        1,
+        "exactly the parse diagnostic: {summary:?}"
+    );
+    let diag = &summary.failed[0];
+    assert_eq!(diag.code, "unexpected-token");
+    assert_eq!(
+        diag.name, None,
+        "解析失败时没有可信的声明名（硬凑一个会误导 agent）: {diag:?}"
+    );
+    assert_eq!(
+        (diag.start, diag.end),
+        (19, 19),
+        "the byte-offset span: {diag:?}"
+    );
+    assert!(
+        !diag.message.is_empty(),
+        "the parse message travels verbatim: {diag:?}"
+    );
+    assert_eq!(
+        summary.counts,
+        CheckCounts::default(),
+        "nothing was actually checked — the counts stay honestly zero"
+    );
+    assert_eq!(summary.version, 1);
+}
+
+/// G-10 的**缓存路径不变量**：`set_cached_entry` 显式把 `parse_error` 置 `None`
+/// （缓存命中的文档按"能解析"处理）。这安全，靠三条合起来：
+///   ① 只有带 `import` 的文档才走缓存（`crates/cli/src/query.rs::load_document`）；
+///   ② `has_imports` 对解析失败的文本返回 `false`（`parse(..).unwrap_or(false)`）
+///      ⇒ 坏文本必然走 `set_text`，`parse_error` 必然被写；
+///   ③ 缓存只写 clean 产物（`crates/cli/src/project_cache.rs::store_if_clean`）。
+/// 这里把"进得了缓存的文本必然能解析"这条**隐式**前提钉死：谁将来把带诊断的结果
+/// 也缓存，这条测试先红，而不是让 G-10 的假绿悄悄复活。
+#[test]
+fn a_cache_entry_can_never_carry_a_parse_error() {
+    let mut cached = QueryDoc::new();
+    let src = "import Lib\n\ndef two : Nat := 2\n";
+    assert!(
+        crate::parse(src).is_ok(),
+        "a cache hit's text parses by construction (has_imports only sees parsed files)"
+    );
+    cached.set_cached_entry(
+        src,
+        1,
+        DocumentReport::default(),
+        crate::compile::CompileOutput::default(),
+    );
+    assert!(
+        cached.parse_error.is_none(),
+        "cache hits never carry a parse error"
+    );
+    assert!(
+        cached.check().failed.is_empty(),
+        "and `check` stays quiet for a clean cache hit"
+    );
+    // 真正的坏文本走 `set_text`（CLI 两条输入通道的合流点）：必然被记录。
+    let mut fresh = QueryDoc::new();
+    fresh.set_text("infix:50 \" e \" => mem\n", 1, None);
+    assert!(
+        fresh.parse_error.is_some(),
+        "bad text always sets `parse_error`"
+    );
+    assert_eq!(fresh.check().failed.len(), 1);
+}
+
+/// G-17：解析失败的源文本对 `goals`/`holes` 也必须"问不出来"（`NotParsable`），
+/// 不能返回空数组 + `ok:true` 假装"这份画布没有声明、没有洞"。
+///
+/// 协议把"正常的没有"（空数组 / `None`）与"问不出来"（`QueryError`）严格分开
+/// （`docs/design/agent-query-channel.md` §4.1）——解析失败属于后者。
+#[test]
+fn goals_and_holes_report_a_parse_error_instead_of_empty_answers() {
+    let bad = doc("infix:50 \" e \" => mem\n");
+    for probe in [false, true] {
+        assert_eq!(
+            bad.goals(probe).expect_err("no declaration is knowable"),
+            QueryError::NotParsable,
+            "probe = {probe}"
+        );
+    }
+    assert_eq!(
+        bad.holes().expect_err("no hole is knowable"),
+        QueryError::NotParsable
+    );
+    assert_eq!(
+        bad.next_hole(0, true).expect_err("not parsable"),
+        QueryError::NotParsable
+    );
+    assert_eq!(QueryError::NotParsable.code(), "not-parsable");
+    // 对照组：「正常的没有」仍是空数组 / `None`，不是错误。
+    let empty = doc("-- 只有注释\n");
+    assert!(empty.goals(false).expect("parsable").is_empty());
+    assert!(empty.holes().expect("parsable").is_empty());
+    assert_eq!(empty.next_hole(0, true).expect("parsable"), None);
 }
 
 #[test]
 fn goals_lists_every_declaration_with_its_type() {
     let doc = doc(CANVAS);
-    let goals = doc.goals(false);
+    let goals = doc.goals(false).expect("the canvas parses");
     assert_eq!(goals.len(), 5, "3 axioms + 2 theorems: {goals:?}");
     let swap = goals
         .iter()
@@ -335,7 +466,7 @@ fn goals_lists_every_declaration_with_its_type() {
 #[test]
 fn probe_fills_sub_goal_types_that_the_walk_cannot_determine() {
     let doc = doc(CANVAS);
-    let with_probe = doc.goals(true);
+    let with_probe = doc.goals(true).expect("the canvas parses");
     let swap = with_probe
         .iter()
         .find(|d| d.name == "and_swap")
@@ -381,7 +512,7 @@ fn status_and_name_helpers_match_the_protocol_vocabulary() {
     assert_eq!(status_str(DeclStatus::Failed), "failed");
     // 匿名 example 用 `example@<line>`（协议既有形式）。
     let doc = doc("example : Prop := sorry\n");
-    let goals = doc.goals(false);
+    let goals = doc.goals(false).expect("parsable");
     assert_eq!(goals.len(), 1);
     assert!(
         goals[0].name.starts_with("example@"),
@@ -398,7 +529,7 @@ fn prelude_mode_switch_recompiles_in_bare_mode() {
     // 切到 Bare 后 `Nat` 之类不再存在——这里只断言切换本身不 panic 且版本前进。
     doc.set_text("axiom P : Prop\n", 2, Some(PreludeMode::Bare));
     assert_eq!(doc.version, 2);
-    assert!(doc.goals(false).len() == 1);
+    assert!(doc.goals(false).expect("parsable").len() == 1);
 }
 
 /// 项目模式下的判据前缀与子洞探针（I16 待办批次 1）。
@@ -436,7 +567,7 @@ theorem spine_x (a b : Prop) (h : a) (k : b) : And a b :=\n\
     assert!(!prefix.contains("import Logic"), "{prefix}");
 
     // 探针在项目模式下也生效：`And.intro` 的两个 spine 洞拿到期望类型。
-    let goals = project.goals(true);
+    let goals = project.goals(true).expect("the project parses");
     let spine = goals
         .iter()
         .find(|d| d.name == "spine_x")
@@ -654,7 +785,7 @@ fn holes_carry_the_redundant_sorry_mark() {
                theorem genuine (h : A) : B := f\n\
                \x20 sorry\n";
     let doc = doc(src);
-    let holes = doc.holes();
+    let holes = doc.holes().expect("the canvas parses");
     assert_eq!(holes.len(), 2, "one hole per declaration: {holes:?}");
     let marked: Vec<(&str, bool)> = holes.iter().map(|h| (h.id.as_str(), h.redundant)).collect();
     assert_eq!(
@@ -663,7 +794,7 @@ fn holes_carry_the_redundant_sorry_mark() {
         "the leftover line is redundant; the missing argument is not: {holes:?}"
     );
     // `state`/`goals` 的洞是同一份数据（同一个 `HoleInfo`）。
-    let goals = doc.goals(false);
+    let goals = doc.goals(false).expect("the canvas parses");
     let t = goals.iter().find(|d| d.name == "t").expect("decl t");
     assert!(t.holes.iter().all(|h| h.redundant), "{:?}", t.holes);
     let genuine = goals

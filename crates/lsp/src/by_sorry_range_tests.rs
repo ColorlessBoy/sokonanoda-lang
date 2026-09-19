@@ -11,7 +11,7 @@ async fn by_sorry_warning_does_not_swallow_following_comments() {
                theorem a : (a : Prop) -> And a a -> a := by sorry\n\
                -- 练习 14 注释\n\
                -- soko:hint 思路：funapply\n\
-               theorem b : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry\n";
+               theorem b : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry\n";
     let (mut service, mut socket) = test_service();
     handshake(&mut service).await;
     did_open(&mut service, src).await;

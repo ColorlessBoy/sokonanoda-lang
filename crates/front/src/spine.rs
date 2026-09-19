@@ -116,6 +116,11 @@ pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
                         || mentions(name, &arm.body)
                 })
         }
+        // 记号节点（G-04 / WO-011）：符号与目标名不是标识符，只走操作数。
+        Expr::Notation { lhs, rhs, .. } => {
+            lhs.as_deref().is_some_and(|e| mentions(name, e))
+                || rhs.as_deref().is_some_and(|e| mentions(name, e))
+        }
         Expr::By { .. } => false,
     }
 }
@@ -271,6 +276,22 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
         }
         Expr::By { tactics, span } => Expr::By {
             tactics: tactics.clone(),
+            span: *span,
+        },
+        // 记号节点（G-04 / WO-011）：只代换操作数。
+        Expr::Notation {
+            symbol,
+            target,
+            assoc,
+            lhs,
+            rhs,
+            span,
+        } => Expr::Notation {
+            symbol: symbol.clone(),
+            target: target.clone(),
+            assoc: *assoc,
+            lhs: lhs.as_ref().map(|e| Box::new(substitute(e, sigma))),
+            rhs: rhs.as_ref().map(|e| Box::new(substitute(e, sigma))),
             span: *span,
         },
     }

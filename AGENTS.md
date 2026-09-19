@@ -15,6 +15,17 @@
 `site/`（数据由 `scripts/gen-site-data.py` 生成，永不手写版本号）。
 harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deepseek-harness.md`**。
 
+**第二大课（卷 I 集合论）已建在 `courses/set-theory/`**：入口
+`courses/set-theory/README.md`；写课程内容前先读**硬规则 10**（课程标准库三层分界，
+`REQUIREMENTS.md` §2）与 `docs/design/course-stdlib.md`；判卷一条命令
+`python3 courses/set-theory/tools/check.py`（它的内部用绝对路径 + `grade` 退出码——
+原因见台账 G-12；G-10 已修：`query check` 现在也带 parse 诊断并 exit 1，与 `grade` 同口径）。
+判据是 **G1–G5**（每个目标 `grade` 退出码 0 / 目标存在 / 解答 0 open 且 checked>0 /
+解答覆盖画布每个具名练习 / lib+Demo 0 open），**与规模无关、不锁计数**；
+`--selftest` 自检判据通道（故意坏的单元必须被拒），`--json` 出计数，
+`--only "<标签>" --bisect` 二分到第一个判红的声明（不依赖诊断 span——G-15）。
+这门课的判卷已接进 `scripts/soko gate` 与 CI（设计 `docs/design/course-gate-in-ci.md`）。
+
 ## Setup（用户/agent 零 cargo；一条命令，任何 harness 都能用）
 
 ```bash
@@ -24,6 +35,7 @@ scripts/soko grade playground.sokonanoda  # 判卷（--json 事件流）
 scripts/soko grade course/unit11-project/Exercises.sokonanoda  # 多文件项目（import 闭包）
 scripts/soko grade --root <模块根> <入口.sokonanoda>  # 显式模块根（默认：最近 sokonanoda.toml，否则入口目录）
 scripts/soko grade --no-project <文件>    # 忽略 sokonanoda.toml，模块根 = 入口目录
+scripts/soko course "$PWD/courses/set-theory/course.json" --json  # 整门课进度（有 import 的单元走同一份闭包，failed 与 grade 同判）
 scripts/soko query check --file playground.sokonanoda   # 同一判卷的单 JSON 摘要
 scripts/soko query state --file playground.sokonanoda --line 327 --col 4
 scripts/soko query project --file course/unit11-project/Exercises.sokonanoda  # 项目闭包状态（根/清单/模块）
@@ -36,16 +48,21 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
   `holes`/`hints`/`reduce`/`project`）。要问"某处还差什么"就用 `query state`，
   要问"哪个模块拖坏了入口"就用 `query project`，别自己扫事件流。
   契约见 `docs/protocol.md`；计数一致性由 `crates/cli/tests/query.rs` 钉死。
-  `ok:false` **不是**空结果；退出码 0=答上了 / 1=有内核拒绝 / 2=用法错误。
+  `ok:false` **不是**空结果；退出码 0=答上了 / 1=有拒绝（内核拒绝**或**解析失败）/
+  2=用法错误。
 - **DeepSeek Harness** 里那七个查询还包成 MCP 工具
   （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce,project}`，需
   `dsh web --patch ./dsh/cordis.patch.yml`）：有工具就直接调，别绕 shell。
 
 - **`scripts/soko` 是 harness 中立的启动器**（零依赖 Node，跨平台、无 bash）：
   解析顺序 = `$SOKONANODA_BIN` → 版本**匹配**的仓库构建 → 缓存（标记
-  `<version> <target>` 必须等于 `Cargo.toml` 版本）→ VS Code 扩展自带 →
-  按仓库版本锁定下载；其余子命令原样转发给 `sokonanoda` CLI。
-  缓存**过期就拒绝运行并提示**（它是历史上最常见的故障源）。
+  `<version> <target>` 必须与**版本钉**一致）→ VS Code 扩展自带 →
+  按版本钉锁定下载；其余子命令原样转发给 `sokonanoda` CLI。
+  **版本钉的源链**（课程仓没有 `Cargo.toml` 也能自钉）= `$SOKONANODA_VERSION` →
+  `<repo>/sokonanoda-version.txt` → `<repo>/sokonanoda.toml` 的 `requires`（完整
+  `x.y.z` 才算钉，`0.58` 只是约束）→ `<repo>/Cargo.toml`；出现多个源必须一致，
+  不一致就指名文件报错。**解析不出期望版本就绝不 exec**（缓存/仓库构建都拒绝，
+  exit 3 + 人话）；缓存**过期就拒绝运行并提示**（它是历史上最常见的故障源）。
 - 已经有 `sokonanoda` 在 PATH 上时，上表的 `scripts/soko …` 可换成
   `sokonanoda …`（等价）；DSH 里没有项目级 PATH 注入，所以文档一律先给启动器形式。
 - 环境能力本身是 `sokonanoda` 二进制的子命令（内嵌下载器，跨平台；旧的
@@ -61,7 +78,9 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
   DSH 的斜杠命令文法不允许 `/`，所以 opencode 的 `/sokonanoda/update` 在 DSH
   侧只能拼成 `/sokonanoda-update`。
 - 贡献者（需要 Rust）：`scripts/soko gate`（= fmt + clippy + test + playground
-  锚点）或 `cargo build/test`（见 `skills/sokonanoda-dev`）。
+  锚点 **+ 课程门禁** `courses/set-theory/tools/check.py` **+ 缺口台账门禁**
+  `scripts/gap.py check`；后两步要 python3，探不到就 **exit 3**、绝不静默跳过）
+  或 `cargo build/test`（见 `skills/sokonanoda-dev`）。
 - 网络受限时设代理（`HTTPS_PROXY=http://127.0.0.1:7890` 之类），启动器会把它
   交给 `curl` 下载。
 - 禁止：`releases/latest`、为使用仓库安装 Rust/cargo（REQUIREMENTS §2 第 9 条）。
@@ -92,6 +111,14 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
    `PreToolUse` 拦截（需在 profile 插一行启用，见 `dsh/README.md`），未启用时
    退回文档纪律**；
 3. 教学语法是真实 Lean 4 的子集；新增语法 = 课程 + 测试 + 白名单三件套；
+   **签名也受检**（G-01/0.59.0）：值位是 `sorry` 不免检签名——签名 elaborate 不了、
+   不是类型、或 `theorem` 的不是 Prop ⇒ 一条 diagnostic + 声明 Failed + **不发**
+   `exercise.open`。判卷只认 `decl.checked` 与 `diagnostic`，别拿 `exercise.open`
+   计数当"签名没坏"的证据；
+   **记法是例外面**（G-04/0.59.0）：`infix:N`/`infixl:N`/`infixr:N`/`notation`
+   是用户自定义的源级糖——不引入新语义、不产生事件，点名形式永久可用且两种写法
+   判卷一致；边界（文件内作用域、补前导类型参数、第二刀未做项）见
+   `docs/design/notation-subset.md`；
 4. 判定永远走 kernel——**禁止文本比对**（tactic 判定范例：`front::judge`）；
 5. 模块化：文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
 6. **用户/agent 路径零工具链依赖**：获取与运行只用 Release 二进制或平台
@@ -101,7 +128,11 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
 ## 命令（贡献者：需要 Rust；用户/agent 用 `scripts/soko` / `sokonanoda` 子命令）
 
 ```bash
-scripts/soko gate   # = CI 门禁：fmt + clippy + test + playground 锚点
+scripts/soko gate   # = CI 门禁：fmt + clippy + test + playground 锚点 + 课程门禁（卷 I）+ 缺口台账门禁（python3）
+python3 courses/set-theory/tools/check.py --selftest   # 课程判据通道自检（故意坏文件必须被拒）
+python3 courses/set-theory/tools/check.py --only "单元 5" --bisect   # 二分到第一个判红的声明
+python3 scripts/gap.py selftest   # 台账判据自检（judge() 的期望推导 / repro_expect / 非法值）
+python3 scripts/gap.py check      # 台账契约：每条缺口的复现必须与 status 一致（gate 已含，单跑用这条）
 scripts/perf-ledger.sh   # 性能台账：跑全部 perf 套件 → docs/perf/ledger.jsonl（提交它）
 SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh
 #   真 VS Code 集成测试（构建 release → stage → npm test）→ docs/e2e/ledger.jsonl（提交它）；手册 docs/E2E.md

@@ -59,6 +59,13 @@ pub fn find_manifest(start: &Path) -> Option<PathBuf> {
     let home = std::env::var_os("HOME").map(PathBuf::from);
     let mut current = Some(start);
     while let Some(dir) = current {
+        // G-12 护栏：空目录分量既不是起点也不是"上溯的一站"。
+        // `Path::new("").join("sokonanoda.toml")` = `"sokonanoda.toml"`，语义上等于
+        // "去问 CWD 要清单"——那是本层不该有的隐状态（入口绝对化之后这里到不了，
+        // 护栏防的是别处再传空路径进来）。
+        if dir.as_os_str().is_empty() {
+            return None;
+        }
         let candidate = dir.join(MANIFEST_FILE);
         if candidate.is_file() {
             return Some(candidate);
@@ -109,11 +116,15 @@ pub fn load(path: &Path) -> Result<Manifest, ManifestError> {
 }
 
 /// 清单目录 + `src` = 模块根。
+///
+/// 清单路径没有目录分量（`Path::new("sokonanoda.toml").parent()` = `Some("")`）时
+/// 目录当 `.`——模块根**永不为空**（G-12：空 root 会让 `resolve_module` 的
+/// `read_dir("")` ENOENT、让 `query project` 把 root 渲染成 `''`）。
 pub fn module_root(manifest_path: &Path, manifest: &Manifest) -> PathBuf {
-    let dir = manifest_path
-        .parent()
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from("."));
+    let dir = match manifest_path.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent.to_path_buf(),
+        _ => PathBuf::from("."),
+    };
     match &manifest.src {
         Some(src) => dir.join(src),
         None => dir,
@@ -158,6 +169,52 @@ mod tests {
         let dir = tmp_dir("none");
         assert_eq!(find_manifest(&dir), None);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// G-12 病根：`Path::new("").join("sokonanoda.toml")` = `"sokonanoda.toml"`，
+    /// 语义上等于"去问 CWD 要清单"。空目录分量既不能当上溯的起点，也不能当一站。
+    ///
+    /// 这里直接钉住 `find_manifest` 的返回：**空路径必须在看 CWD 之前就返回 `None`**
+    /// （CWD 里恰好有清单时，缺护栏的实现在这里就会红）。形状①的端到端现场
+    /// （相对入口 + 祖先清单）由 `crates/cli/tests/imports.rs` 的用例钉死——单元
+    /// 测试不能安全地改进程 CWD。
+    #[test]
+    fn an_empty_directory_component_is_not_an_ancestor_step() {
+        let cwd_manifest = std::env::current_dir().expect("cwd").join(MANIFEST_FILE);
+        assert_eq!(
+            find_manifest(Path::new("")),
+            None,
+            "空路径不许命中 CWD 里的 {cwd_manifest:?}"
+        );
+        // 裸文件名与单层相对目录的 `parent()` 就是空分量：同样到此为止，不跨过去。
+        assert_eq!(
+            find_manifest(Path::new("units").parent().expect("parent")),
+            None
+        );
+        assert_eq!(
+            find_manifest(Path::new("u.sokonanoda").parent().expect("parent")),
+            None
+        );
+    }
+
+    /// 清单路径没有目录分量时（`module_root("sokonanoda.toml")`）模块根必须是 `.`，
+    /// **永不**是空 `PathBuf`：空 root 会让 `resolve_module` 的 `read_dir("")` ENOENT
+    /// （G-12），也让 `query project` 的 `canonicalize("")` 失败、把 root 渲染成 `''`。
+    #[test]
+    fn a_manifest_without_a_directory_component_roots_at_dot() {
+        assert_eq!(
+            module_root(Path::new(MANIFEST_FILE), &Manifest::default()),
+            Path::new(".")
+        );
+        // `src` 也照样挂在 `.` 上（相对路径保持相对，绝对化是 `plan_project` 的事）。
+        let with_src = Manifest {
+            src: Some("src".to_string()),
+            ..Manifest::default()
+        };
+        assert_eq!(
+            module_root(Path::new(MANIFEST_FILE), &with_src),
+            Path::new(".").join("src")
+        );
     }
 
     #[test]

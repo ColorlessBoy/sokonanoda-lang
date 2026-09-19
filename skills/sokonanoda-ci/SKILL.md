@@ -13,7 +13,8 @@ description: Ship and monitor GitHub Actions for sokonanoda-lang without repeat 
 ## 0. 推送前的本地验证（必须逐条、必须看真退出码）
 
 ```bash
-# 一条命令跑完 CI 门禁（fmt + clippy + test + playground 锚点，需要 cargo）：
+# 一条命令跑完 CI 门禁（fmt + clippy + test + playground 锚点 + **课程门禁** +
+# **缺口台账门禁**，需要 cargo；后两段还要 python3，探不到即 exit 3——无法判定 ≠ 绿）：
 scripts/soko gate; echo "EXIT=$?"
 
 # 或与 CI 完全一致的命令（.github/workflows/ci.yml），顺序执行：
@@ -45,6 +46,8 @@ scripts/soko grade playground.sokonanoda --json
 
 | 陷阱 | 事实 | 规程 |
 |---|---|---|
+| **课程门禁（卷 I）在 `test` job 的 step 里** | 判据 G1–G5 的唯一真相是 `courses/set-theory/tools/check.py`（python3）；CI 先 `--selftest` 再全量，`SOKONANODA_BIN` 指当轮 `target/debug/sokonanoda`，report 进 `course-gate-report` artifact。**不新建 job** ⇒ 课程红自动挡 `auto-tag` 发布 | 课程红了先看 step summary / artifact，再本地复跑 `scripts/soko gate`（等价；python3 探不到 ⇒ exit 3，不是绿）。设计 `docs/design/course-gate-in-ci.md` |
+| **缺口台账门禁是同一个 job 的下一步** | `Gap ledger is consistent (docs/gaps)` step 跑 `scripts/gap.py selftest` + `check`——每条缺口的复现必须与台账 `status` 一致（`fixed` ⇒ 应转绿；`open` ⇒ 应仍复现；`repro_expect` 可显式覆盖，例如 G-01 的「修好 = 判红」） | 红了说明语言变了而台账没跟上：按输出改 `docs/gaps/ledger.jsonl` 的 `status`/`fixed_in`/`repro_expect`/`repro`，别改复现件去迎合旧结论。本地等价命令 `python3 scripts/gap.py check` |
 | `download-artifact@v4` 不带 `name:` | 每个 artifact 下载进**同名目录**（`lsp-<target>/`、`sokonanoda-vsix/`），不是平铺 | 引用路径前先确认落盘布局；要平铺用 `pattern:` + `merge-multiple: true` |
 | tag 触发的 workflow 用**哪个文件** | 用 **tag 指向的 commit** 上的文件，不是 main 最新 | 修 workflow 后要重跑 release：`git tag -f v<ver> <fix-commit> && git push -f origin v<ver>`；`gh run rerun` 只会重放旧文件 |
 | `gh release create` 非幂等 | 已存在 → 422 | 永远 `|| true`（存在即跳过） |

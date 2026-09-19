@@ -7,6 +7,9 @@ def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
 
 #reduce demo_refl
 
+def eq_symm_demo : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=
+  fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.symm.{1} Nat a b h
+
 def two : Nat := 2
 
 theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := Eq.refl.{1} Nat (1 + 1)

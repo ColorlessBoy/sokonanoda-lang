@@ -1,0 +1,28 @@
+-- G-01 的**课程级反向**复现（WO-004 验收：坏签名必须变红）。
+--
+-- 这是 `courses/set-theory/units/unit01-sets-membership.sokonanoda` 的
+-- `mem_of_subset`（第 34-36 行）的两个**签名变异体**，自包含（不 import lib/，
+-- 所以可以直接 `grade` 单文件；`Set.subset` 等用公理补齐，只缺 `Set.subsets`）：
+--
+--   * `bad_lemma_name`：引理名拼错（`Set.subset` → `Set.subsets`，后者不存在）
+--     ⇒ `elab-unknown-identifier`（elaborate 阶段就过不去，span 落在 `Set.subsets`）；
+--   * `bad_conclusion`：结论写成 `Set α`（Type，不是 Prop）⇒
+--     `kernel-theorem-not-prop`（签名 elaborate 过了，但内核说它不是命题）。
+--
+-- 修前（0.58.0）：两条都是 `exercise.open` + 0 诊断 + exit 0（假绿）。
+-- 修后（0.59.0）：两条各报一条 diagnostic、exit 1、**没有** `exercise.open`。
+-- 变异体故意留在 repro 里当契约（课程目录里不留坏文件）。
+
+axiom Set : Type -> Type
+axiom Set.subset : (α : Type) -> Set α -> Set α -> Prop
+axiom Set.mem : (α : Type) -> α -> Set α -> Prop
+
+-- 引理名拼错：签名里的 `Set.subsets` 不存在 ⇒ `elab-unknown-identifier`。
+theorem bad_lemma_name (α : Type) (A B : Set α) (h : Set.subsets α A B) (a : α) :
+    Set.mem α a A -> Set.mem α a B :=
+  sorry
+
+-- 结论不是 Prop（`Set α` 是 Type）⇒ `kernel-theorem-not-prop`。
+theorem bad_conclusion (α : Type) (A B : Set α) :
+    Set α :=
+  sorry

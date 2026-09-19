@@ -1,3 +1,83 @@
+## [0.59.0] - 2026-09-19
+
+### Fixed
+
+- **An exercise's signature is type-checked too (`sorry` no longer hides it).**
+  `theorem t : 3 := sorry` used to be graded as an open exercise with zero
+  diagnostics — a typo'd lemma name, a conclusion that is not a `Prop`, or a
+  signature that does not elaborate at all looked exactly like "not done yet"
+  in a 100-exercise canvas. The signature is now elaborated and run through the
+  kernel's own type test before an exercise opens: a bad signature is a
+  `diagnostic` on the signature's own range (`kernel-expected-sort`,
+  `kernel-theorem-not-prop`, or `elab-unknown-identifier`), the declaration is
+  `failed`, and **no** `exercise.open` is emitted. Legal open exercises are
+  unchanged. Ledger `G-01`, work order `docs/gaps/WO-004-open-exercise-signature.md`.
+
+- **Constructors live in their type's namespace (`Pair.mk`, `Or.inl`).**
+  `ctor mk` used to be installed under its bare name and had to be unique in
+  the whole project, so `Prod.mk`/`Subtype.mk`/`Exists.intro` could not
+  coexist and libraries had to invent fake-unique names (`prod_mk`). A
+  constructor is now installed as `Ind.ctor` (a source name that already
+  contains a dot is kept verbatim, which protects `Nat.zero`/`Bool.true`).
+  The **bare name stays a resolution alias** (a teaching-subset extension,
+  not Lean semantics): it resolves when it is unique in the closure, and
+  reports the new `elab-ambiguous-ctor-alias` when two types claim it.
+  Existing canvases (the 11-unit intro course, the set-theory volume,
+  `examples/`) need no edits. **User-visible:** `#check`/`#reduce`/`#print`,
+  hover, the Infoview goal text, refine skeletons and semantic highlighting
+  now print canonical names — and because a source `inductive Nat` with
+  `Nat.succ` now hits the kernel's native-Nat fast path, `#reduce add two two`
+  prints the mixed form `Nat.succ (Nat.succ (Nat.succ 1))` instead of
+  `succ (succ (succ (succ zero)))`. Ledger `G-02`, work order
+  `docs/gaps/WO-005-ctor-namespace.md`.
+
+### Added
+
+- **User-defined notation (`infix:N` / `infixl:N` / `infixr:N` / `notation`).**
+  A canvas can now declare its own notation and write paper mathematics instead
+  of prefix applications:
+
+  ```sokonanoda
+  infix:50 " ∈ " => Set.mem
+  notation "∅" => Set.empty
+  def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A
+  ```
+
+  Mathematical symbols (`∈`, `⊆`, `∅`, … — `U+2200–22FF` and `U+2A00–2AFF`
+  plus `\`) are now their own token instead of being eaten as identifier
+  characters, and a declaration's symbol text is a real string literal. Scope
+  is **per file, after the declaration** (notation does not cross `import`
+  yet). Notation is **sugar, not a declaration**: it emits no event, never
+  appears in the declaration table or the goal view, and the two spellings
+  grade **identically** — the pointful form keeps working forever. The
+  expansion supplies the leading type parameter itself (bare-variable matching
+  against the operand types, then the expected type), so `Set.mem`'s `α` is
+  never written; when nothing determines it, the new
+  `elab-notation-argument-unsolved` says so. Using an undeclared symbol is
+  `notation-unknown-symbol` with a hint naming both ways out. **The shipped
+  course canvases are deliberately unchanged** this round (they still write
+  the pointful form) — a notation-version comparison is a separate round. Not
+  yet supported (second cut): `𝒫`/`ᶜ` (Unicode letters, not symbols),
+  `''`/`⁻¹'`/`×ˢ`, notation across `import`, binder notation, and overloaded
+  symbols. **User-visible:** semantic highlighting colours declared notation
+  symbols as operators, and the TextMate grammar grew a math-symbol rule.
+  Ledger `G-04`, work order `docs/gaps/WO-011-notation.md`, design
+  `docs/design/notation-subset.md`.
+
+- **The prelude now ships the logic and equality skeleton (`And`, `Or`, `Not`,
+  `Iff`, `True`/`False`, `absurd`, `Eq.symm`/`Eq.trans`/`congrArg`).** Thirty
+  names that official Lean 4 keeps in `Init.Core`/`Init.Logic` are installed by
+  default, so a canvas can use `And.intro`/`Or.elim`/`Iff.mp`/`absurd` without
+  declaring them — `And`/`Or` are **real inductive blocks** (so `match` on them
+  works and lowers to their derived recursor). **User-visible:** the
+  completion list grows by 30 prelude names.
+  A family **yields as a whole** when the file declares any of its names
+  (whoever declares owns it; dependency-closed: `Not` needs `False`, `Iff`
+  needs `And`, the `Eq` lemmas need the `Eq` prelude), so the intro course's
+  units that deliberately build these axioms themselves are unaffected, and
+  the set-theory library keeps working unchanged. Ledger `L-01`/`L-02`, design
+  `docs/design/prelude-l1-proposal.md`.
+
 ## [0.58.0] - 2026-09-18
 
 ### Added

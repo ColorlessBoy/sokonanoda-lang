@@ -46,6 +46,23 @@ def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
 -- Self-test: #reduce flattens the proof term to its simplest shape.
 #reduce demo_refl
 
+-- ─────────────────────────────────────────────────────────────
+-- The prelude now ships the whole equality-and-logic skeleton (official
+-- Lean core level):
+--   Eq.symm / Eq.trans / congrArg (symmetry, transitivity, congruence)
+--   True / False / And / Or / Not / absurd / Iff (truth and connectives)
+-- The language prelude provides them, so you do **not** have to build them
+-- yourself — exercises 3 and 4 ask you to write them by hand to practise
+-- designing the predicate for Eq.subst, not to fill a language gap.
+-- The demo below uses the ready-made Eq.symm (the same job as exercise 3,
+-- written the other way).
+-- ─────────────────────────────────────────────────────────────
+
+-- Demo (already written, nothing to change): symmetry via the prelude's
+-- Eq.symm, in one line.
+def eq_symm_demo : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=
+  fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.symm.{1} Nat a b h
+
 -- Exercise 1 (warm-up) — define two : Nat. Hint: either the literal 2 or 1 + 1.
 -- soko:hint approach: this hole wants a plain expression of type Nat, not a proof.
 -- soko:hint goal shape: the goal is Nat itself — no arrows, no assumptions; just give a value.
@@ -64,7 +81,7 @@ theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry
 --   p := fun (x : Nat) => Eq.{1} Nat x a
 -- Then p a is "a = a" (provable by Eq.refl), and p b is exactly the goal
 -- "b = a".
--- soko:hint approach: there is no ready-made symmetry lemma — design a predicate p yourself and hand it to Eq.subst to rewrite along h.
+-- soko:hint approach: this exercise drills the predicate design for Eq.subst — design a p yourself and rewrite along h. (The prelude's Eq.symm is the ready-made version; eq_symm_demo above is it. Write both and compare.)
 -- soko:hint goal shape: three arrows give you a, b, h; the goal is b = a — pick a p whose p b is exactly that and whose p a is easy.
 -- soko:hint key piece: Eq.subst.{1} with its full argument list; the recipe for p is the "x = a" shape from the explanation above.
 theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry
@@ -72,7 +89,7 @@ theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a
 -- Exercise 4 (build transitivity yourself) — from a = b and b = c deduce a = c.
 -- Same recipe, but this time p := fun (x : Nat) => Eq.{1} Nat a x: apply subst
 -- to h2 : b = c, and p b = "a = b" is exactly your h1.
--- soko:hint approach: the recipe matches symmetry, only you now chain two equalities — which h you rewrite along fixes the shape of p.
+-- soko:hint approach: the recipe matches symmetry, only you now chain two equalities — which h you rewrite along fixes the shape of p. (The prelude's Eq.trans is the ready-made version; write both and compare.)
 -- soko:hint goal shape: five arrows give you a, b, c, h1, h2; the goal is a = c — pick p so that p c is the goal and p b is exactly h1.
 -- soko:hint key piece: still Eq.subst.{1} — rewrite along h2 : b = c, put a in the predicate's x slot, and let h1 cover the p a side.
 theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat)

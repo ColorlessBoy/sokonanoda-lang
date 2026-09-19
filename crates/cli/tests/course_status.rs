@@ -67,7 +67,7 @@ fn u64_field(event: &Value, field: &str) -> u64 {
 /// course.rs golden (checked, open, reduced) with failed = 0 throughout.
 const GOLDEN: [(u64, u64, u64, u64); 11] = [
     (13, 6, 0, 1),
-    (2, 5, 0, 2),
+    (3, 5, 0, 2),
     (2, 6, 0, 2),
     (13, 5, 0, 0),
     (0, 6, 0, 1),
@@ -115,7 +115,7 @@ fn course_subcommand_aggregates_the_manifest() {
 
     let summary = summaries[0];
     assert_eq!(u64_field(summary, "units"), 11, "summary units");
-    assert_eq!(u64_field(summary, "checked"), 85, "summary checked");
+    assert_eq!(u64_field(summary, "checked"), 86, "summary checked");
     assert_eq!(u64_field(summary, "open"), 65, "summary open");
     assert_eq!(u64_field(summary, "failed"), 0, "summary failed");
 }

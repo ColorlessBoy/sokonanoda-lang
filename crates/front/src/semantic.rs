@@ -55,6 +55,10 @@ const KEYWORDS: &[&str] = &[
     "match",
     "with",
     "by",
+    "infix",
+    "infixl",
+    "infixr",
+    "notation",
     "intro",
     "exact",
     "apply",
@@ -173,7 +177,14 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
             } => {
                 out.push((name.clone(), SemanticKind::InductiveUse));
                 for ctor in constructors {
+                    // G-02：内核渲染的目标文本里构造子是**规范名**（`Prod.mk`），
+                    // 所以高亮表必须收规范名；**源名也收**（R3：源级写法继续按
+                    // 源名，学员的 `| none =>` 与 `ctor none` 都还要着色）。
                     out.push((ctor.name.clone(), SemanticKind::CtorUse));
+                    let canonical = crate::compile::canonical_ctor_name(name, &ctor.name);
+                    if canonical != ctor.name {
+                        out.push((canonical, SemanticKind::CtorUse));
+                    }
                 }
             }
             Command::Example { .. }
@@ -181,6 +192,9 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
             | Command::Reduce { .. }
             | Command::Print { .. }
             | Command::Import { .. } => {}
+            // 记法命令不声明名字（设计 N6）：`declaration_kinds` 只服务
+            // goal/hypothesis 文本的着色，符号本身在那里不出现。
+            Command::Notation { .. } => {}
         }
     }
     out
@@ -224,6 +238,11 @@ pub fn tag_runs(text: &str, decls: &[(String, SemanticKind)], binders: &[String]
             TokenKind::Num(_) => Some(SemanticKind::Number),
             TokenKind::Hole => Some(SemanticKind::Hole),
             TokenKind::Forall => Some(SemanticKind::Keyword),
+            // 记法符号：已声明 → `Keyword`，未声明 → 不产 run（与 `->`/`=>`
+            // 一致）。内核渲染的目标文本里可能出现 `⊢`（U+22A2，落在数学符号
+            // 码点类里），它必须保持 plain run（设计 §3.4）。
+            TokenKind::Sym(symbol) => names.notations.get(symbol).copied(),
+            TokenKind::Str(_) => None,
             _ => None,
         };
         runs.push(Run {
@@ -332,6 +351,13 @@ struct Names {
     special: HashMap<usize, SemanticKind>,
     /// `Name.{…}` 宇宙应用的完整 span：其中除首名外的 level token 一律跳过。
     universes: Vec<Span>,
+    /// 本文件已声明记法的**符号** → kind（G-04 / WO-011）。
+    ///
+    /// 已声明的符号归 [`SemanticKind::Keyword`]（先例：`∀` 的 `Forall` token）；
+    /// **未声明**的符号不产 run（与 `->`/`=>` 一致）——所以 `⊢` 这类只出现在
+    /// 内核渲染文本里的符号不会被染成「未知标识符」（设计 §3.4）。
+    /// v1 **不新增** `SemanticKind`。
+    notations: HashMap<String, SemanticKind>,
 }
 
 impl Names {
@@ -450,7 +476,12 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
                 }
                 walk_expr(ty, toks, names);
                 for ctor in constructors {
+                    // 源名（`mk`，R3 的源级写法）与规范名（`Wrap.mk`，R1）都
+                    // 归 `ctor_use`（protocol 词汇不变）。
                     names.ctors.insert(ctor.name.clone());
+                    names
+                        .ctors
+                        .insert(crate::compile::canonical_ctor_name(name, &ctor.name));
                     names.add_special(
                         toks,
                         &ctor.name,
@@ -474,6 +505,16 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
                 walk_expr(expr, toks, names)
             }
             Command::Print { .. } => {}
+            // 记法命令（G-04 / WO-011）：登记**符号**（符号本身归 `Keyword`，
+            // 与 `∀` 的 `Forall` token 同族）。目标名不在这里登记——它是**使用**
+            // 点，`names.decls` 已由目标自己的声明命令填好（未知目标就该落
+            // `UnknownIdent`，与点名写法同判）。
+            // **不新增 `SemanticKind`**（设计 §4：`ALL` 与 `tm_scope` 表逐字不变）。
+            Command::Notation { symbol, .. } => {
+                names
+                    .notations
+                    .insert(symbol.clone(), SemanticKind::Keyword);
+            }
         }
     }
 }
@@ -534,6 +575,17 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
                     walk_expr(guard, toks, names);
                 }
                 walk_expr(&arm.body, toks, names);
+            }
+        }
+        // 记号节点（G-04 / WO-011）：操作数照常着色；符号本身由 `classify`
+        // 按「已声明 → Keyword」处理（不在这里登记，因为 `walk_expr` 可能被
+        // 内核渲染文本的 tag_runs 走到，那里没有文件级的记法表）。
+        Expr::Notation { lhs, rhs, .. } => {
+            if let Some(lhs) = lhs {
+                walk_expr(lhs, toks, names);
+            }
+            if let Some(rhs) = rhs {
+                walk_expr(rhs, toks, names);
             }
         }
     }
@@ -627,6 +679,16 @@ fn classify(toks: &[Token], names: Option<&Names>) -> Vec<SemanticSpan> {
             TokenKind::Num(_) => SemanticKind::Number,
             TokenKind::Hole => SemanticKind::Hole,
             TokenKind::Forall => SemanticKind::Keyword,
+            // 记法符号（G-04 / WO-011）：**已声明** → `Keyword`（与 `∀` 同族）；
+            // 未声明 → 不产 run（与 `->`/`=>` 一致）。`⊢` 这类内核渲染文本里的
+            // 符号因此不会被染成「未知标识符」（设计 §3.4）。
+            TokenKind::Sym(symbol) => match names.notations.get(symbol) {
+                Some(kind) => *kind,
+                None => continue,
+            },
+            // 字符串字面量只出现在记法命令里，不进语义 token 流
+            // （`keyword.other` 由 `infix`/`notation` 关键字本身给出）。
+            TokenKind::Str(_) => continue,
             _ => continue,
         };
         out.push(SemanticSpan {
@@ -943,6 +1005,30 @@ end
         );
     }
 
+    /// G-02 / WO-005：内核渲染的目标文本里构造子是**规范名**（`Wrap.mk`），
+    /// 而源里写的是裸名；两种拼写都要归到 `ctor_use`（protocol 词汇不变）。
+    #[test]
+    fn tag_expr_classifies_canonical_and_bare_ctor_spellings() {
+        let src = "inductive Wrap : Type\nctor mk : Wrap\nend\n";
+        for spelling in ["Wrap.mk", "mk"] {
+            let runs = tag_expr(spelling, src, &[]);
+            assert_eq!(
+                tagged(&runs),
+                vec![(spelling, SemanticKind::CtorUse)],
+                "`{spelling}` must be a ctor use"
+            );
+        }
+        // 点号 token 也要能被 lexer 当成一个 ident（`Wrap.mk` 是一个 token）。
+        assert_eq!(
+            semantic_tokens("inductive Wrap : Type\nctor mk : Wrap\nend\n")
+                .iter()
+                .filter(|s| s.kind == SemanticKind::CtorName)
+                .count(),
+            1,
+            "the ctor declaration name keeps its own kind"
+        );
+    }
+
     #[test]
     fn tag_runs_degrades_on_a_lex_error_instead_of_panicking() {
         let runs = tag_runs("$", &[], &[]);
@@ -1043,6 +1129,67 @@ end
     fn goal_runs_with_no_hypotheses_is_just_the_turnstile_goal() {
         let runs = goal_runs(&[], "P -> P", &[]);
         assert_eq!(runs_to_text(&runs), "⊢ P -> P");
+    }
+
+    // ---- 记法（G-04 / WO-011，设计 §4）：符号归 Keyword、未声明不产 run ----
+
+    #[test]
+    fn a_declared_notation_symbol_is_a_keyword() {
+        let src = "def mem : Prop -> Prop -> Prop := fun (a : Prop) => fun (b : Prop) => a\n\
+                   infix:50 \" ∈ \" => mem\n\
+                   def p (a : Prop) (A : Prop) : Prop := a ∈ A\n";
+        let spans = semantic_tokens(src);
+        // 使用点（`a ∈ A`）的符号是 `Sym` token ⇒ Keyword（与 `∀` 同族）。
+        // `kinds_of` 按**源码切片**匹配，所以它也会命中声明行字符串字面量里的
+        // 那一个 `∈`——那里是 `Str` token 的内部，`classify` 按 offset 切出的
+        // 是 `UnknownIdent`（`Str` 不产 run，但它的字节仍落在文本里）。
+        // 这里只钉**使用点**（`Sym` token）的分类。
+        let use_offset = src.rfind("a ∈ A").expect("use site") + 2;
+        let use_span = spans
+            .iter()
+            .find(|s| s.span.start.offset == use_offset)
+            .expect("a run for the used symbol");
+        assert_eq!(use_span.kind, SemanticKind::Keyword);
+        // `infix` 是关键字。
+        assert_eq!(find(src, &spans, "infix").kind, SemanticKind::Keyword);
+        // 目标名 `mem` 在记法命令里仍是它的 def_use。
+        assert_eq!(
+            kinds_of(src, &spans, "mem"),
+            vec![SemanticKind::DefName, SemanticKind::DefUse]
+        );
+    }
+
+    #[test]
+    fn an_undeclared_symbol_produces_no_semantic_run() {
+        // `⊢`（U+22A2）落在数学符号码点类里，但它只是**内核渲染文本**里的
+        // turnstile：未声明 ⇒ 不产 run（与 `->`/`=>` 一致）。否则 goal 面板
+        // 会被染成「未知标识符」（设计 §3.4）。
+        let src = "def p : Prop := Prop\n";
+        let spans = semantic_tokens(src);
+        assert!(
+            spans
+                .iter()
+                .all(|s| &src[s.span.start.offset..s.span.end.offset] != "⊢"),
+            "the turnstile must not become a semantic run: {spans:?}"
+        );
+        // 同一个 token 直接分类时也不产 run（`a` 仍是 UnknownIdent——那是
+        // 既有行为，与本刀无关；这里只钉 turnstile）。
+        let tagged = tag_runs("⊢ a", &[], &[]);
+        assert_eq!(
+            tagged.first(),
+            Some(&Run {
+                text: "⊢".to_string(),
+                kind: None,
+            }),
+            "tag_runs must leave the turnstile plain: {tagged:?}"
+        );
+        assert_eq!(runs_to_text(&tagged), "⊢ a");
+    }
+
+    #[test]
+    fn notation_does_not_add_a_semantic_kind() {
+        // v1 **不新增** `SemanticKind`：锁表逐字不变（设计 §4）。
+        assert_eq!(SemanticKind::ALL.len(), 16);
     }
 
     #[test]

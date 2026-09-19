@@ -1,0 +1,148 @@
+-- Equiv.sokonanoda —— 卷 I 的**等势标准库**（L2 层）
+--
+-- 分层判据（docs/design/course-stdlib.md）：
+--   L2（本文件）= 等势的**词汇 + 定义展开**：四条条件各自的定义
+--                 （`Set.MapsTo` / `Set.LeftInvOn` / `Set.RightInvOn`，Mathlib 里
+--                 都是一行、没有数学内容）、等势 `Set.Equiv` 的**数据形状**，
+--                 以及它的构造子 `Set.Equiv.mk`（Mathlib 的 `Equiv.mk` 就是结构
+--                 构造子：纯管道、**没有数学内容**）；
+--   L3（units/unit09-*.sokonanoda）= 一切**有数学内容**的陈述：等势的自反/对称/
+--                 传递、具体双射（单元素集、无限集上的真子集）、从单射 + 右逆
+--                 构造等势、"真子集一定严格更小"的反例、等势搬运"非空"……
+--                 全部在画布上由学习者自己证（教训见台账 L-05：把 L3 放进 lib，
+--                 答案就提前躺在库里，练习作废）。
+--
+-- ── 名字出处（docs/notes/settheory-survey/prior-art-report.md）────────────────
+--   四条条件的名字**逐字照抄 Mathlib**（全在 `Mathlib/Data/Set/Function.lean`，
+--   该文件头 docstring 自己就把这 7 个概念列成一张清单）：
+--       Mathlib: `Set.MapsTo f s t := ∀ ⦃a⦄, a ∈ s → f a ∈ t`
+--       Mathlib: `Set.LeftInvOn f' f s := ∀ ⦃x⦄, x ∈ s → f' (f x) = x`
+--       Mathlib: `Set.RightInvOn f f' t := ∀ ⦃y⦄, y ∈ t → f (f' y) = y`
+--   只有把它们写成点名形式（本语言没有隐式 binder 风格的记法，G-04）：
+--   论域 α β 提到最前、集合跟在映射后面，与 lib/Set 里 `Set.subset α A B` 同款。
+--   顺带一个漂亮的巧合：`Set.subset α A B` 与
+--   `Set.MapsTo α α (fun (x : α) => x) A B` **是同一个东西**（定义展开后逐字相同）
+--   ——"子集 = 恒等映射的 MapsTo"，单元⑨ 最后会用到这个视角。
+--
+--   **`Set.Equiv` 不是 Mathlib 的名字**：Loogle 精确查询 `Set.Equiv` 返回
+--   `unknown identifier`（`Set.EquivalentOn` 同样不存在）。Mathlib 里最近的三个
+--   真名是 `Equiv`（Type 层的结构）、`Equiv.Set.singleton`/`Equiv.Set.union` 一族
+--   与 `Set.equivOfEq`。本课程要的是"两个集合之间"的等势（syllabus §4 第 10 行
+--   的记法 `A ≈ B`），于是术语收在 `Set.Equiv`；构造子照 `Equiv.mk` 命名。
+--
+-- ── 为什么是"一对互逆映射 + 域条件"的数据，而不是"存在双射" ────────────────
+-- 若把等势定义成 `Exists (α -> β) (fun (f : α -> β) => And (单射 f) (满射 f))`：
+--   · **对称性证不出来**：从"满射"回到"有原像"要**挑**一个原像——那正是选择
+--     公理；卷 I 直到单元⑩ 才正面讲选择公理，本单元没有它；
+--   · **传递性同样证不出来**：复合两条时每一步都要先挑原像。
+-- 于是等势在这里是**数据**：正向映射、反向映射、两条互逆律（都限制在集合上）。
+-- 反向映射既然已经拿在手里，"交换两个映射"与"复合两个映射"就只是重新打包，
+-- 一个 `Exists.intro` 都不需要挑东西。这就是 Tao §3.6 前半的立场：
+-- **必须亲手写出那个映射**（Hamza & O'Shea 2011 的实证也指向同一点：
+-- 援引"双射判据"的学生极少真的把映射写出来）。
+--
+-- ── 形状：嵌套 And 的四条件（外层用两次 Exists 绑住那一对映射）──────────────
+--   Set.Equiv α β A B 展开为
+--     Exists (α -> β) (fun (f : α -> β) =>
+--       And (Set.MapsTo α β f A B)                                    -- ① 正向：A 送进 B
+--         (Exists (β -> α) (fun (g : β -> α) =>
+--           And (Set.MapsTo β α g B A)                                -- ② 反向：B 送进 A
+--             (And (Set.LeftInvOn α β g f A)                          -- ③ 左互逆律（在 A 上）
+--                  (Set.RightInvOn α β f g B)))))                     -- ④ 右互逆律（在 B 上）
+--
+-- 为什么外层非要两次 `Exists`：本语言今天没有结构体、也没有可用的 Sigma
+-- （`Prod` 在 lib/Prod 里只能装 Type 值，而四条条件都是 Prop ⇒ 装不进 `Prod`）。
+-- 一对映射必须**一起**绑住，两条互逆律才能引用同一个 `f` 与 `g`；能一起绑的
+-- 只有 `Exists`（论域是 Type 0，而 `α -> β`、`β -> α` 都落在 Type 0，够用）。
+-- 台账 G-03 修好（`Exists` 从公理三件套改成真正的 inductive）之后，**本文件与
+-- 整个单元一行都不用改**：`Exists.intro`/`Exists.elim` 的名字与签名保持不变
+-- （见 lib/Exists 的文件头）。
+--
+-- ⚠ 为什么收在 `Prop` 而不是 `Type`（与任务书的 `: Type` 差一档，实测依据）：
+--   本语言**没有累积性**（no cumulativity），于是 `def X : Type := <一个 Prop>`
+--   会被内核直接拒：`类型不匹配：期望 Sort(1)，实际是 Sort(0)`（最小复现：
+--   `axiom P : Prop` 加一行 `def T : Type := P`）。而 `And`（lib/Logic 的公理）
+--   与 `Exists`（lib/Exists 的公理）**都落在 Prop**，所以"嵌套 And 的四条件"
+--   只能是 Prop。要把它立成 `Type` 就得改设计：要么换 inductive 结构体
+--   （撞 G-01/G-02：单构造子 + 自有字段 + 构造子裸名；lib/Exists 文件头记着
+--   同类失败），要么自定义一个 Type 版合取——两者都丢掉"嵌套 And"这一条。
+--   取 Prop 另有一条收益：本语言的 `theorem` 只能证 Prop，而四条条件本来就都是
+--   命题，于是上层（画布与解答）能继续用 `theorem … := sorry` 的写法。
+--   **"数据"这一层没有丢**：那一对映射被 `Exists` 的证人位装着，用完
+--   `Exists.elim` 就能拿到（这是本单元所有练习的主力动作）。
+--
+-- ── 用法三条（读法纪律）──────────────────────────────────────────────────
+--   · **造**：`Set.Equiv.mk α β A B f g ① ② ③ ④` —— 四样证据缺一不可，
+--     顺序就是上面 ①②③④；
+--   · **用**：拿 `h : Set.Equiv α β A B` 时只能走 `Exists.elim` 两次，
+--     而且每次的结论 `Q` **不许提到证人** `f` / `g`（lib/Exists 文件头写明：
+--     用的时候"证人是哪一个"还不知道）。于是所有"用等势"的结论都必须是
+--     只谈 A 与 B 的 Prop——这正是等势该有的样子；
+--   · **展开**：`Set.MapsTo`/`Set.LeftInvOn`/`Set.RightInvOn` 都是透明的
+--     `forall` 定义，内核直接展开，**不需要** rfl 级展开引理（不像 lib/Set 的
+--     `Set.subset_def` 那样要显式给一条：那是给"想点名展开"的人用的）。
+--
+-- 记法对照（语言还没有 notation，台账 G-04）：
+--   Set.Equiv α β A B ↔ A ≈ B（跨论域版本：A : Set α，B : Set β；
+--   α = β 时就是同一论域里两个集合等势）。
+import lib.Logic
+import lib.Exists
+import lib.Set
+
+-- ── 四条条件（Mathlib: Data/Set/Function.lean；L2：一行 forall，没有数学内容）──
+-- ① 正向映射的域条件：A 里每个点都被 f 送进 B。
+--    （`Set.subset α A B` 就是 `Set.MapsTo α α (fun (x : α) => x) A B`——逐字相同。）
+def Set.MapsTo (α β : Type) (f : α -> β) (A : Set α) (B : Set β) : Prop :=
+  forall (x : α), Set.mem α x A -> Set.mem β (f x) B
+
+-- ③ 左互逆律：g 是 f 在 A 上的左逆（先 f 后 g，回到原地）。
+--    Mathlib 的读法是 `Set.LeftInvOn f' f s`：第一个参数是"左逆"那一把。
+def Set.LeftInvOn (α β : Type) (g : β -> α) (f : α -> β) (A : Set α) : Prop :=
+  forall (x : α), Set.mem α x A -> Eq.{1} α (g (f x)) x
+
+-- ④ 右互逆律：f 是 g 在 B 上的右逆（先 g 后 f，回到原地）。
+--    Mathlib 的读法是 `Set.RightInvOn f f' t`：先写的那个是"后作用"的那把。
+def Set.RightInvOn (α β : Type) (f : α -> β) (g : β -> α) (B : Set β) : Prop :=
+  forall (y : β), Set.mem β y B -> Eq.{1} β (f (g y)) y
+
+-- ── 等势（数据版）──────────────────────────────────────────────────────────
+-- `Set.Equiv α β A B` 是**一对互逆映射 + 域条件**的打包（不是"存在双射"的
+-- ∃-命题：那需要选择公理，见文件头）。四条件按 ①②③④ 嵌在嵌套 `And` 里。
+def Set.Equiv (α β : Type) (A : Set α) (B : Set β) : Prop :=
+  Exists (α -> β) (fun (f : α -> β) =>
+    And (Set.MapsTo α β f A B)
+      (Exists (β -> α) (fun (g : β -> α) =>
+        And (Set.MapsTo β α g B A)
+          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+
+-- ── 构造子（Mathlib: `Equiv.mk`；L2：把四条件按 ①②③④ 装进嵌套 And）───────
+-- 名字与参数顺序都照着 `Equiv.mk` 的读法：先两把映射（f 去、g 回），
+-- 再四条条件（去的域条件、回的域条件、两条互逆律）。
+theorem Set.Equiv.mk (α β : Type) (A : Set α) (B : Set β)
+    (f : α -> β) (g : β -> α)
+    (hf : Set.MapsTo α β f A B)
+    (hg : Set.MapsTo β α g B A)
+    (hgf : Set.LeftInvOn α β g f A)
+    (hfg : Set.RightInvOn α β f g B) :
+    Set.Equiv α β A B :=
+  Exists.intro (α -> β)
+    (fun (f : α -> β) =>
+      And (Set.MapsTo α β f A B)
+        (Exists (β -> α) (fun (g : β -> α) =>
+          And (Set.MapsTo β α g B A)
+            (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+    f
+    (And.intro (Set.MapsTo α β f A B)
+      (Exists (β -> α) (fun (g : β -> α) =>
+        And (Set.MapsTo β α g B A)
+          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))
+      hf
+      (Exists.intro (β -> α)
+        (fun (g : β -> α) =>
+          And (Set.MapsTo β α g B A)
+            (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))
+        g
+        (And.intro (Set.MapsTo β α g B A)
+          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))
+          hg
+          (And.intro (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B) hgf hfg))))

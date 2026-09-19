@@ -43,7 +43,7 @@
 ```text
 ProjectView {
   entry: String            // 入口模块名（点分）
-  root: String             // 模块根（绝对路径）
+  root: String             // 模块根（绝对路径，永不空）
   manifest: String | null  // 生效清单；null = 零配置（根 = 入口目录）
   requires_warning: String | null
   modules: [ModuleView]    // 拓扑序，入口在最后（与 ProjectReport 同序）

@@ -1,0 +1,19 @@
+-- G-05 最小复现：**没有 namespace / open**
+--
+-- 期望（官方 Lean 4 语义）：大库靠命名空间分节，且 `open` 之后短名可用：
+--     namespace Set
+--     def mem (a : α) (A : Set α) : Prop := A a
+--     end Set
+--     open Set
+--
+-- 今天的表现（0.58.0 实测）：parse 阶段 `unexpected-token`（`namespace` 不是命令）。
+-- 今天**可以**绕：声明名本身允许带点（`def Set.mem …` 实测可判卷），
+-- 所以库里用「伪命名空间」点名（`Set.mem`/`Set.subset`）是现状的替代方案。
+-- 缺的是：`open`（短名）、`end`、以及 `namespace` 带来的名字作用域与消歧。
+-- 后果：painful 而非 blocker——但它与 G-02 叠加时（构造子不能带点）就没有退路了。
+
+namespace Foo
+def x : Prop := Prop
+end Foo
+
+open Foo

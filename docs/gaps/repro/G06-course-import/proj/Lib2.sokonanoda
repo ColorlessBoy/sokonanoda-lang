@@ -1,0 +1,4 @@
+-- G-06 复现用的共享库模块（模块名 = 文件名去掉扩展名 ⇒ 下游写 `import Lib2`）。
+axiom And2 : Prop -> Prop -> Prop
+axiom And2.mk : (a : Prop) -> (b : Prop) -> a -> b -> And2 a b
+theorem mythm (A : Prop) (B : Prop) (h : And2 A B) : And2 A B := h

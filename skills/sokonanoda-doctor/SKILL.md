@@ -20,11 +20,16 @@ scripts/soko doctor --json; echo "EXIT=$?"
 
 ## 汇报字段
 
-`ready` / `version`（仓库版本，来自 `Cargo.toml`）/ `target` /
-`rust_target` / `cache` / `offline` / `launcher` / `cli` / `lsp`；后两者各含
-`path` / `present` / `ready` / `marker`。
+`ready` / `version` / `version_source` / `version_constraint` / `version_error` /
+`target` / `rust_target` / `cache` / `offline` / `launcher` / `cli` / `lsp`；后两者
+各含 `path` / `present` / `ready` / `marker`。
 
-`marker` 形如 `<version> <target>`，必须等于 `Cargo.toml` 的版本；不等就是
+`version` 来自**版本钉源链**（`SOKONANODA_VERSION` → `sokonanoda-version.txt` →
+`sokonanoda.toml` 的 `requires` → `Cargo.toml`），`version_source` 指名中的哪个；
+`version_error` 非空（`version` 为 `null`）= 源缺失/冲突，此时 `ready` 必为
+`false`——**解析不出期望版本就绝不 exec 缓存**（不是"再试一次"能好的事）。
+
+`marker` 形如 `<version> <target>`，必须与 `version` 一致；不等就是
 缓存过期。`present: true` 但 `ready: false` 正是"文件在、版本不对"这一种情形。
 
 ## 纪律

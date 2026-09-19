@@ -1,0 +1,126 @@
+-- unit07 解答钥匙（agent 专用；画布不 import 它）。
+--
+-- 9 条练习的证明全部只用 lib/ 与 prelude 里已备好的东西，且全部是 **term 风格**
+-- （没有一个 `by` 块）——与画布"推荐 term 风格"一致。
+--
+-- 唯一"证不出来"的是**存在版** bijective_iff_inverse 的另一半
+--     Bijective f -> Exists (β -> α) (fun g => Inverse f g)
+-- 它等价于选择公理（每个满射都可裂），本语言没有 Classical.choice / funext / propext，
+-- 所以画布第 6 题证的是**数据版**：逆函数 g 与右逆证据 hg 由调用者交出，此时 Iff
+-- 两个方向都成立（见下面 bijective_iff_inverse）。这条边界记在单元报告的 unprovable。
+import lib.Logic
+import lib.Set
+import lib.Exists
+import lib.Fun
+
+-- 题 1：两边 delta/beta 展开后是同一个 λ，所以 `Eq.refl` 直接成立（没有 funext，
+-- 这是本语言里唯一能证函数等式的方式）。
+theorem comp_assoc (α β γ δ : Type) (f : α -> β) (g : β -> γ) (h : γ -> δ) :
+    Eq.{1} (α -> δ) (Function.comp α γ δ h (Function.comp α β γ g f))
+      (Function.comp α β δ (Function.comp β γ δ h g) f) :=
+  Eq.refl.{1} (α -> δ) (Function.comp α β δ (Function.comp β γ δ h g) f)
+
+-- 题 2：先把复合等式经 g 的单射降到 f 层，再交给 f 的单射。
+theorem injective_comp (α β γ : Type) (f : α -> β) (g : β -> γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (Function.comp α β γ g f) :=
+  fun (x : α) => fun (y : α) =>
+    fun (h : Eq.{1} γ (Function.comp α β γ g f x) (Function.comp α β γ g f y)) =>
+      hf x y (hg (f x) (f y) h)
+
+-- 题 3：两次 Exists.elim 拆证人（Q 都取目标那个 Exists），等式用 congrArg 抬过 g。
+theorem surjective_comp (α β γ : Type) (f : α -> β) (g : β -> γ)
+    (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
+    Function.Surjective α γ (Function.comp α β γ g f) :=
+  fun (z : γ) =>
+    Exists.elim β (fun (y : β) => Eq.{1} γ (g y) z)
+      (Exists α (fun (x : α) => Eq.{1} γ (Function.comp α β γ g f x) z))
+      (hg z)
+      (fun (y : β) => fun (hy : Eq.{1} γ (g y) z) =>
+        Exists.elim α (fun (x : α) => Eq.{1} β (f x) y)
+          (Exists α (fun (x : α) => Eq.{1} γ (Function.comp α β γ g f x) z))
+          (hf y)
+          (fun (x : α) => fun (hx : Eq.{1} β (f x) y) =>
+            Exists.intro α (fun (x2 : α) => Eq.{1} γ (Function.comp α β γ g f x2) z) x
+              (Eq.trans.{1} γ (g (f x)) (g y) z (congrArg.{1} β γ g (f x) y hx) hy)))
+
+-- 题 4：x ← g (f x) → g (f y) → y，两段用 Eq.trans 接。
+theorem leftInverse_injective (α β : Type) (f : α -> β) (g : β -> α)
+    (h : Function.LeftInverse α β g f) : Function.Injective α β f :=
+  fun (x : α) => fun (y : α) => fun (hxy : Eq.{1} β (f x) (f y)) =>
+    Eq.trans.{1} α x (g (f x)) y
+      (Eq.symm.{1} α (g (f x)) x (h x))
+      (Eq.trans.{1} α (g (f x)) (g (f y)) y
+        (congrArg.{1} β α g (f x) (f y) hxy)
+        (h y))
+
+-- 题 5：原像是现成的——g y；证据就是右逆 h 本身。
+theorem surjective_of_rightInverse (α β : Type) (f : α -> β) (g : β -> α)
+    (h : Function.RightInverse α β g f) : Function.Surjective α β f :=
+  fun (y : β) => Exists.intro α (fun (x : α) => Eq.{1} β (f x) y) (g y) (h y)
+
+-- 题 6：数据版 iff。
+--   "→"：有单射与右逆 hg ⇒ 左逆：对每个 x，用单射把目标 `g (f x) = x` 化成
+--         `f (g (f x)) = f x`，而那正是 hg (f x)。
+--   "←"：双边逆 ⇒ 单射（题 4）∧ 满射（题 5）。
+theorem bijective_iff_inverse (α β : Type) (f : α -> β) (g : β -> α)
+    (hg : Function.RightInverse α β g f) :
+    Iff (Function.Bijective α β f) (Function.Inverse α β f g) :=
+  Iff.intro (Function.Bijective α β f) (Function.Inverse α β f g)
+    (fun (hb : Function.Bijective α β f) =>
+      And.intro (Function.LeftInverse α β g f) (Function.RightInverse α β g f)
+        (fun (x : α) =>
+          (And.left (Function.Injective α β f) (Function.Surjective α β f) hb)
+            (g (f x)) x (hg (f x)))
+        hg)
+    (fun (hi : Function.Inverse α β f g) =>
+      And.intro (Function.Injective α β f) (Function.Surjective α β f)
+        (leftInverse_injective α β f g
+          (And.left (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi))
+        (surjective_of_rightInverse α β f g
+          (And.right (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)))
+
+-- 题 7：题 2 的逆命题方向；congrArg 把 f 层等式抬成复合等式。
+theorem injective_of_comp_injective (α β γ : Type) (f : α -> β) (g : β -> γ)
+    (h : Function.Injective α γ (Function.comp α β γ g f)) : Function.Injective α β f :=
+  fun (x : α) => fun (y : α) => fun (hxy : Eq.{1} β (f x) (f y)) =>
+    h x y (congrArg.{1} β γ g (f x) (f y) hxy)
+
+-- 题 8：换序的恒真方向：拆出证人 y（Exists.elim，Q 取目标那个 Exists），逐个取用。
+theorem swap_exists_forall (α β : Type) (P : α -> β -> Prop)
+    (h : Exists β (fun (y : β) => forall (x : α), P x y)) :
+    forall (x : α), Exists β (fun (y : β) => P x y) :=
+  fun (x : α) =>
+    Exists.elim β (fun (y : β) => forall (x2 : α), P x2 y)
+      (Exists β (fun (y : β) => P x y)) h
+      (fun (y : β) => fun (hy : forall (x2 : α), P x2 y) =>
+        Exists.intro β (fun (y2 : β) => P x y2) y (hy x))
+
+-- 题 9：反例的形式化。把 P 取成 Set Nat 上的恒等关系：
+--   · 前提：每个 x 都有 y（取 y := x，Eq.refl）；
+--   · 结论：拆出 y 与 hy : ∀ x, x = y，用 hy univ 与 hy ∅ 得 univ = ∅；
+--     再把 0 ∈ univ（Set.mem_univ）沿等式搬到 0 ∈ ∅，与 Set.notMem_empty 矛盾。
+-- 前半段写成直接作用的 λ（本文件不额外引入辅助声明，保持"声明数 = 练习数 9"）。
+theorem swap_converse_false :
+    Not (forall (P : Set Nat -> Set Nat -> Prop),
+      (forall (x : Set Nat), Exists (Set Nat) (fun (y : Set Nat) => P x y)) ->
+      Exists (Set Nat) (fun (y : Set Nat) => forall (x : Set Nat), P x y)) :=
+  fun (h : forall (P : Set Nat -> Set Nat -> Prop),
+      (forall (x : Set Nat), Exists (Set Nat) (fun (y : Set Nat) => P x y)) ->
+      Exists (Set Nat) (fun (y : Set Nat) => forall (x : Set Nat), P x y)) =>
+    (fun (bad : Exists (Set Nat) (fun (y : Set Nat) => forall (x : Set Nat), Eq.{1} (Set Nat) x y)) =>
+      Exists.elim (Set Nat) (fun (y : Set Nat) => forall (x : Set Nat), Eq.{1} (Set Nat) x y)
+        False bad
+        (fun (y : Set Nat) => fun (hy : forall (x : Set Nat), Eq.{1} (Set Nat) x y) =>
+          Set.notMem_empty Nat 0
+            (Eq.subst.{1} (Set Nat)
+              (fun (X : Set Nat) => Set.mem Nat 0 X)
+              (Set.univ Nat) (Set.empty Nat)
+              (Eq.trans.{1} (Set Nat) (Set.univ Nat) y (Set.empty Nat)
+                (hy (Set.univ Nat))
+                (Eq.symm.{1} (Set Nat) (Set.empty Nat) y (hy (Set.empty Nat))))
+              (Set.mem_univ Nat 0))))
+      (h (fun (x : Set Nat) => fun (y : Set Nat) => Eq.{1} (Set Nat) x y)
+        (fun (x : Set Nat) =>
+          Exists.intro (Set Nat) (fun (y : Set Nat) => Eq.{1} (Set Nat) x y) x
+            (Eq.refl.{1} (Set Nat) x)))

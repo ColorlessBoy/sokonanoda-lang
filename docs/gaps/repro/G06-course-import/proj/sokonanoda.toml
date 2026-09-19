@@ -1,0 +1,21 @@
+# G-06 最小复现：`sokonanoda course <manifest>` 只按**单文件**编译，不认 `import`
+#
+# 复现（在仓库根跑）：
+#   scripts/soko course docs/gaps/repro/G06-course-import/course.json --json
+# 今天的输出：
+#   {"checked":0,"failed":1,...,"type":"course.unit","unit":1}
+#   {"checked":0,"failed":1,"type":"course.summary","units":1}
+#
+# 对照（同一个文件，走项目模式判卷是**绿的**）：
+#   scripts/soko query check --file docs/gaps/repro/G06-course-import/proj/U4.sokonanoda --compact
+#   → decl_checked: 1, failed: []
+#
+# 根因（读代码定位，非推测）：crates/cli/src/course.rs:118 的 count_unit 把源码文本
+# 交给 `compile_cached(&file, src, &CompileOptions::default())`，而
+# `CompileOptions`（crates/front/src/compile/prelude.rs:31）只有 `prelude` 一个字段——
+# 没有路径/模块根，所以项目闭包根本没被加载，`mythm` 就成了 unknown identifier。
+#
+# 后果：任何"画布 import 共享库"的课程都无法用 `sokonanoda course` 聚合进度；
+# 卷 I 的 10 个单元若共用 lib/，聚合器会全线报 failed。
+
+name = "spike-lib"

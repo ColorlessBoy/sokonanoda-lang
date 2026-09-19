@@ -1,0 +1,13 @@
+-- G-08 最小复现：**没有 abbrev（可展开的类型别名）**
+--
+-- 期望（官方 Lean 4 语义）：`abbrev Set (α : Type) : Type := α → Prop` 是
+-- "定义上可展开"的别名，写在类型位置时对 elaboration 透明（Lean 里
+-- `Set α` 与 `α → Prop` 可以互换着用，不需要 `show`/`change`）。
+--
+-- 今天的表现（0.58.0 实测）：parse 阶段 `unexpected-token`（`abbrev` 不是命令）。
+-- 今天**够用**的替代是 `def`：实测 `def Set (α : Type) : Type := α -> Prop`
+-- 之后 `def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a` 能判卷，
+-- 因为应用位置会走内核 def-eq 展开（见 OK-set-spike.sokonanoda）。
+-- 所以这条是 nice：等真的撞上"类型位置不展开"的具体案例再修。
+
+abbrev Set (α : Type) : Type := α -> Prop

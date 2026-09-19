@@ -1,0 +1,584 @@
+-- unit12 解答钥匙（agent 专用；画布不 import 它）。
+--
+-- 与 unit12-synthesis.sokonanoda 的 9 条练习**同名一一对应**（X 类 4 · R 类 3 · P 类 2）：
+--   X：xlat_compl_union · xlat_rel_inv_comp · xlat_injective_comp · xlat_preimage_comp
+--   R：fix_image_preimage · fix_image_inter · flawed_equalities_refuted（必破 D 类）
+--   P：project_chain（期末小项目：集合 → 关系 → 函数的串联）
+--      project_chain_cardinal（期末小项目 · 基数环：等势搬运 + Cantor，串单元⑨⑩）
+--
+-- 全部是 **term 风格**，且**不引入任何辅助声明**——声明数 = 练习数 = 9。
+-- 画布 12.3 的环 6 `demo_equiv_comp`（等势的复合仍是等势）是**演示**、画布上已写好，
+-- 本文件不重复它；它是环 7 那道题的读法样板（本文件里 Set.Equiv 的用法与它同款）。
+--
+-- 反例一律落在 `Set Nat` 上（∅ 与 univ 两个元素现成可分辨：Set.mem_univ / Set.notMem_empty），
+-- 这样既不用新增归纳类型，也不需要 Decidable/classical（语言里都没有）。
+import lib.Logic
+import lib.Set
+import lib.Exists
+import lib.Equiv
+import lib.Rel
+import lib.Fun
+import lib.Image
+
+-- X1：De Morgan——"既不 A 也不 B"就是"不（A 或 B）"。逐元素做命题逻辑。
+theorem xlat_compl_union (α : Type) (A B : Set α) :
+    Eq.{1} (Set α) (Set.compl α (Set.union α A B))
+      (Set.inter α (Set.compl α A) (Set.compl α B)) :=
+  Set.ext α (Set.compl α (Set.union α A B))
+    (Set.inter α (Set.compl α A) (Set.compl α B))
+    (fun (x : α) =>
+      Iff.intro (Not (Or (A x) (B x))) (And (Not (A x)) (Not (B x)))
+        (fun (h : Not (Or (A x) (B x))) =>
+          And.intro (Not (A x)) (Not (B x))
+            (fun (ha : A x) => h (Or.inl (A x) (B x) ha))
+            (fun (hb : B x) => h (Or.inr (A x) (B x) hb)))
+        (fun (h : And (Not (A x)) (Not (B x))) =>
+          fun (hor : Or (A x) (B x)) =>
+            Or.elim (A x) (B x) False
+              (fun (ha : A x) => And.left (Not (A x)) (Not (B x)) h ha)
+              (fun (hb : B x) => And.right (Not (A x)) (Not (B x)) h hb)
+              hor))
+
+-- X2：复合的逆 = 逆的反序复合。两个方向都是"拆一个 ∃、换序 ∧、再装回 ∃"。
+theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
+    Eq.{1} (Rel C A) (Rel.inv A C (Rel.comp A B C r s))
+      (Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r)) :=
+  Rel.ext C A (Rel.inv A C (Rel.comp A B C r s))
+    (Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r))
+    (fun (c : C) => fun (a : A) =>
+      Iff.intro (Exists B (fun (b : B) => And (r a b) (s b c)))
+        (Exists B (fun (b : B) => And (s b c) (r a b)))
+        (fun (h : Exists B (fun (b : B) => And (r a b) (s b c))) =>
+          Exists.elim B (fun (b : B) => And (r a b) (s b c))
+            (Exists B (fun (b : B) => And (s b c) (r a b))) h
+            (fun (b : B) => fun (hb : And (r a b) (s b c)) =>
+              Exists.intro B (fun (b2 : B) => And (s b2 c) (r a b2)) b
+                (And.intro (s b c) (r a b)
+                  (And.right (r a b) (s b c) hb)
+                  (And.left (r a b) (s b c) hb))))
+        (fun (h : Exists B (fun (b : B) => And (s b c) (r a b))) =>
+          Exists.elim B (fun (b : B) => And (s b c) (r a b))
+            (Exists B (fun (b : B) => And (r a b) (s b c))) h
+            (fun (b : B) => fun (hb : And (s b c) (r a b)) =>
+              Exists.intro B (fun (b2 : B) => And (r a b2) (s b2 c)) b
+                (And.intro (r a b) (s b c)
+                  (And.right (s b c) (r a b) hb)
+                  (And.left (s b c) (r a b) hb)))))
+
+-- X3：单射在复合下封闭——先用外层的单射把等式降一层，再交给内层。
+theorem xlat_injective_comp (α β γ : Type) (f : α -> β) (g : β -> γ)
+    (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
+    Function.Injective α γ (Function.comp α β γ g f) :=
+  fun (x : α) => fun (y : α) =>
+    fun (h : Eq.{1} γ (Function.comp α β γ g f x) (Function.comp α β γ g f y)) =>
+      hf x y (hg (f x) (f y) h)
+
+-- X4：复合的原像 = 先拉后拉。两边展开后是同一个命题，所以逐元素是 Iff.refl。
+theorem xlat_preimage_comp (α β γ : Type) (f : α -> β) (g : β -> γ) (C : Set γ) :
+    Eq.{1} (Set α) (Set.preimage α β f (Set.preimage β γ g C))
+      (Set.preimage α γ (Function.comp α β γ g f) C) :=
+  Set.ext α (Set.preimage α β f (Set.preimage β γ g C))
+    (Set.preimage α γ (Function.comp α β γ g f) C)
+    (fun (x : α) => Iff.refl (C (g (f x))))
+
+-- R1：错证明 A 的改正版——"反向显然"里偷用的前提被摆到台面上（hC）。
+theorem fix_image_preimage (α β : Type) (f : α -> β) (C : Set β)
+    (hC : Set.subset β C (Set.image α β f (Set.univ α))) :
+    Eq.{1} (Set β) (Set.image α β f (Set.preimage α β f C)) C :=
+  Set.ext β (Set.image α β f (Set.preimage α β f C)) C
+    (fun (y : β) =>
+      Iff.intro (Set.mem β y (Set.image α β f (Set.preimage α β f C))) (Set.mem β y C)
+        (fun (hy : Set.mem β y (Set.image α β f (Set.preimage α β f C))) =>
+          Exists.elim α
+            (fun (x : α) => And (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y))
+            (Set.mem β y C) hy
+            (fun (x : α) =>
+              fun (hx : And (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y)) =>
+                Eq.subst.{1} β (fun (z : β) => Set.mem β z C) (f x) y
+                  (And.right (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y) hx)
+                  (And.left (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y) hx)))
+        (fun (hy : Set.mem β y C) =>
+          Exists.elim α (fun (x : α) => And (Set.mem α x (Set.univ α)) (Eq.{1} β (f x) y))
+            (Set.mem β y (Set.image α β f (Set.preimage α β f C))) (hC y hy)
+            (fun (x : α) =>
+              fun (hx : And (Set.mem α x (Set.univ α)) (Eq.{1} β (f x) y)) =>
+                Exists.intro α
+                  (fun (t : α) =>
+                    And (Set.mem α t (Set.preimage α β f C)) (Eq.{1} β (f t) y)) x
+                  (And.intro (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y)
+                    (Eq.subst.{1} β (fun (z : β) => Set.mem β z C) y (f x)
+                      (Eq.symm.{1} β (f x) y
+                        (And.right (Set.mem α x (Set.univ α)) (Eq.{1} β (f x) y) hx))
+                      hy)
+                    (And.right (Set.mem α x (Set.univ α)) (Eq.{1} β (f x) y) hx)))))
+
+-- R2：错证明 B 的改正版——补上偷用的单射假设 hf，等号才是真的。
+theorem fix_image_inter (α β : Type) (f : α -> β) (A B : Set α)
+    (hf : Function.Injective α β f) :
+    Eq.{1} (Set β) (Set.image α β f (Set.inter α A B))
+      (Set.inter β (Set.image α β f A) (Set.image α β f B)) :=
+  Set.ext β (Set.image α β f (Set.inter α A B))
+    (Set.inter β (Set.image α β f A) (Set.image α β f B))
+    (fun (y : β) =>
+      Iff.intro (Set.mem β y (Set.image α β f (Set.inter α A B)))
+        (And (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B)))
+        (fun (hy : Set.mem β y (Set.image α β f (Set.inter α A B))) =>
+          Exists.elim α
+            (fun (x : α) => And (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y))
+            (And (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))) hy
+            (fun (x : α) =>
+              fun (hx : And (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y)) =>
+                And.intro (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))
+                  (Exists.intro α (fun (t : α) => And (A t) (Eq.{1} β (f t) y)) x
+                    (And.intro (A x) (Eq.{1} β (f x) y)
+                      (And.left (A x) (B x)
+                        (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))
+                      (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx)))
+                  (Exists.intro α (fun (t : α) => And (B t) (Eq.{1} β (f t) y)) x
+                    (And.intro (B x) (Eq.{1} β (f x) y)
+                      (And.right (A x) (B x)
+                        (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))
+                      (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx)))))
+        (fun (hy : And (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))) =>
+          Exists.elim α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))
+            (Set.mem β y (Set.image α β f (Set.inter α A B)))
+            (And.left (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B)) hy)
+            (fun (x1 : α) => fun (hx1 : And (A x1) (Eq.{1} β (f x1) y)) =>
+              Exists.elim α (fun (x : α) => And (B x) (Eq.{1} β (f x) y))
+                (Set.mem β y (Set.image α β f (Set.inter α A B)))
+                (And.right (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B)) hy)
+                (fun (x2 : α) => fun (hx2 : And (B x2) (Eq.{1} β (f x2) y)) =>
+                  Exists.intro α
+                    (fun (t : α) =>
+                      And (Set.mem α t (Set.inter α A B)) (Eq.{1} β (f t) y)) x1
+                    (And.intro (Set.mem α x1 (Set.inter α A B)) (Eq.{1} β (f x1) y)
+                      (And.intro (A x1) (B x1)
+                        (And.left (A x1) (Eq.{1} β (f x1) y) hx1)
+                        (Eq.subst.{1} α (fun (t : α) => B t) x2 x1
+                          (Eq.symm.{1} α x1 x2
+                            (hf x1 x2
+                              (Eq.trans.{1} β (f x1) y (f x2)
+                                (And.right (A x1) (Eq.{1} β (f x1) y) hx1)
+                                (Eq.symm.{1} β (f x2) y
+                                  (And.right (B x2) (Eq.{1} β (f x2) y) hx2)))))
+                          (And.left (B x2) (Eq.{1} β (f x2) y) hx2)))
+                      (And.right (A x1) (Eq.{1} β (f x1) y) hx1))))))
+
+-- R3（必破 D 类）：两条"看起来对"的等式都是假的。反例里的 f 一律取常函数
+--     fc := fun (_ : Set Nat) => Set.empty Nat   （把一切都送到 ∅）
+-- 第一条（像 ∘ 原像）：C 取 univ——`Set.univ Nat` 是 C 的点，却没有原像；
+-- 第二条（像保交）：A 取 {∅}、B 取 {univ}——A ∩ B = ∅，两个像却都含 ∅。
+-- 两处的矛盾都由 "∅ ≠ univ" 提供：Set.mem_univ Nat 0 把 0 送进 univ，
+-- Set.notMem_empty Nat 0 再把它挡回来（本语言没有 Decidable，这是最省的分辨手段）。
+theorem flawed_equalities_refuted :
+    And
+      (Not (Eq.{1} (Set (Set Nat))
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.univ (Set Nat))))
+        (Set.univ (Set Nat))))
+      (Not (Eq.{1} (Set (Set Nat))
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+            (Set.singleton (Set Nat) (Set.univ Nat))))
+        (Set.inter (Set Nat)
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.singleton (Set Nat) (Set.empty Nat)))
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.singleton (Set Nat) (Set.univ Nat)))))) :=
+  And.intro
+    (Not (Eq.{1} (Set (Set Nat))
+      (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+        (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.univ (Set Nat))))
+      (Set.univ (Set Nat))))
+    (Not (Eq.{1} (Set (Set Nat))
+      (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+        (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+          (Set.singleton (Set Nat) (Set.univ Nat))))
+      (Set.inter (Set Nat)
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.singleton (Set Nat) (Set.empty Nat)))
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.singleton (Set Nat) (Set.univ Nat))))))
+    (fun (h : Eq.{1} (Set (Set Nat))
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.univ (Set Nat))))
+        (Set.univ (Set Nat))) =>
+      Exists.elim (Set Nat)
+        (fun (x : Set Nat) =>
+          And
+            (Set.mem (Set Nat) x
+              (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                (Set.univ (Set Nat))))
+            (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat)))
+        False
+        (Eq.subst.{1} (Set (Set Nat))
+          (fun (X : Set (Set Nat)) => Set.mem (Set Nat) (Set.univ Nat) X)
+          (Set.univ (Set Nat))
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+              (Set.univ (Set Nat))))
+          (Eq.symm.{1} (Set (Set Nat))
+            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+              (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                (Set.univ (Set Nat))))
+            (Set.univ (Set Nat)) h)
+          (Set.mem_univ (Set Nat) (Set.univ Nat)))
+        (fun (x : Set Nat) =>
+          fun (hx : And
+            (Set.mem (Set Nat) x
+              (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                (Set.univ (Set Nat))))
+            (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))) =>
+            Set.notMem_empty Nat 0
+              (Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) => Set.mem Nat 0 Z)
+                (Set.univ Nat) (Set.empty Nat)
+                (Eq.symm.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x)
+                  (Set.univ Nat)
+                  (And.right
+                    (Set.mem (Set Nat) x
+                      (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                        (Set.univ (Set Nat))))
+                    (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.univ Nat))
+                    hx))
+                (Set.mem_univ Nat 0))))
+    (fun (h : Eq.{1} (Set (Set Nat))
+        (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+            (Set.singleton (Set Nat) (Set.univ Nat))))
+        (Set.inter (Set Nat)
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.singleton (Set Nat) (Set.empty Nat)))
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.singleton (Set Nat) (Set.univ Nat))))) =>
+      Exists.elim (Set Nat)
+        (fun (x : Set Nat) =>
+          And
+            (Set.mem (Set Nat) x
+              (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+                (Set.singleton (Set Nat) (Set.univ Nat))))
+            (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat)))
+        False
+        (Eq.subst.{1} (Set (Set Nat))
+          (fun (X : Set (Set Nat)) => Set.mem (Set Nat) (Set.empty Nat) X)
+          (Set.inter (Set Nat)
+            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+              (Set.singleton (Set Nat) (Set.empty Nat)))
+            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+              (Set.singleton (Set Nat) (Set.univ Nat))))
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+            (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+              (Set.singleton (Set Nat) (Set.univ Nat))))
+          (Eq.symm.{1} (Set (Set Nat))
+            (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+              (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+                (Set.singleton (Set Nat) (Set.univ Nat))))
+            (Set.inter (Set Nat)
+              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                (Set.singleton (Set Nat) (Set.empty Nat)))
+              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                (Set.singleton (Set Nat) (Set.univ Nat))))
+            h)
+          (And.intro
+            (Set.mem (Set Nat) (Set.empty Nat)
+              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                (Set.singleton (Set Nat) (Set.empty Nat))))
+            (Set.mem (Set Nat) (Set.empty Nat)
+              (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+                (Set.singleton (Set Nat) (Set.univ Nat))))
+            (Exists.intro (Set Nat)
+              (fun (x : Set Nat) =>
+                And (Set.mem (Set Nat) x (Set.singleton (Set Nat) (Set.empty Nat)))
+                  (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat)))
+              (Set.empty Nat)
+              (And.intro
+                (Set.mem (Set Nat) (Set.empty Nat) (Set.singleton (Set Nat) (Set.empty Nat)))
+                (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) (Set.empty Nat))
+                  (Set.empty Nat))
+                (Eq.refl.{1} (Set Nat) (Set.empty Nat))
+                (Eq.refl.{1} (Set Nat) (Set.empty Nat))))
+            (Exists.intro (Set Nat)
+              (fun (x : Set Nat) =>
+                And (Set.mem (Set Nat) x (Set.singleton (Set Nat) (Set.univ Nat)))
+                  (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat)))
+              (Set.univ Nat)
+              (And.intro
+                (Set.mem (Set Nat) (Set.univ Nat) (Set.singleton (Set Nat) (Set.univ Nat)))
+                (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) (Set.univ Nat))
+                  (Set.empty Nat))
+                (Eq.refl.{1} (Set Nat) (Set.univ Nat))
+                (Eq.refl.{1} (Set Nat) (Set.empty Nat))))))
+        (fun (x : Set Nat) =>
+          fun (hx : And
+            (Set.mem (Set Nat) x
+              (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+                (Set.singleton (Set Nat) (Set.univ Nat))))
+            (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))) =>
+            Set.notMem_empty Nat 0
+              (Eq.subst.{1} (Set Nat) (fun (Z : Set Nat) => Set.mem Nat 0 Z)
+                (Set.univ Nat) (Set.empty Nat)
+                (Eq.trans.{1} (Set Nat) (Set.univ Nat) x (Set.empty Nat)
+                  (Eq.symm.{1} (Set Nat) x (Set.univ Nat)
+                    (And.right
+                      (Set.mem (Set Nat) x (Set.singleton (Set Nat) (Set.empty Nat)))
+                      (Set.mem (Set Nat) x (Set.singleton (Set Nat) (Set.univ Nat)))
+                      (And.left
+                        (Set.mem (Set Nat) x
+                          (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+                            (Set.singleton (Set Nat) (Set.univ Nat))))
+                        (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x)
+                          (Set.empty Nat))
+                        hx)))
+                  (And.left
+                    (Set.mem (Set Nat) x (Set.singleton (Set Nat) (Set.empty Nat)))
+                    (Set.mem (Set Nat) x (Set.singleton (Set Nat) (Set.univ Nat)))
+                    (And.left
+                      (Set.mem (Set Nat) x
+                        (Set.inter (Set Nat) (Set.singleton (Set Nat) (Set.empty Nat))
+                          (Set.singleton (Set Nat) (Set.univ Nat))))
+                      (Eq.{1} (Set Nat) ((fun (_ : Set Nat) => Set.empty Nat) x) (Set.empty Nat))
+                      hx)))
+                (Set.mem_univ Nat 0))))
+
+-- P1（期末小项目）：一条链把三层串起来。
+--   关系层：函数的图像（`fun a b => f a = b`）也是关系，复合图像的**关系复合** = 复合函数的图像；
+--   集合层：复合函数的**像** = 先取内层像、再取外层像。
+theorem project_chain (α β γ : Type) (f : α -> β) (g : β -> γ) (A : Set α) :
+    And
+      (Eq.{1} (Rel α γ)
+        (Rel.comp α β γ (fun (a : α) => fun (b : β) => Eq.{1} β (f a) b)
+          (fun (b : β) => fun (c : γ) => Eq.{1} γ (g b) c))
+        (fun (a : α) => fun (c : γ) => Eq.{1} γ (g (f a)) c))
+      (Eq.{1} (Set γ) (Set.image α γ (Function.comp α β γ g f) A)
+        (Set.image β γ g (Set.image α β f A))) :=
+  And.intro
+    (Eq.{1} (Rel α γ)
+      (Rel.comp α β γ (fun (a : α) => fun (b : β) => Eq.{1} β (f a) b)
+        (fun (b : β) => fun (c : γ) => Eq.{1} γ (g b) c))
+      (fun (a : α) => fun (c : γ) => Eq.{1} γ (g (f a)) c))
+    (Eq.{1} (Set γ) (Set.image α γ (Function.comp α β γ g f) A)
+      (Set.image β γ g (Set.image α β f A)))
+    (Rel.ext α γ
+      (Rel.comp α β γ (fun (a : α) => fun (b : β) => Eq.{1} β (f a) b)
+        (fun (b : β) => fun (c : γ) => Eq.{1} γ (g b) c))
+      (fun (a : α) => fun (c : γ) => Eq.{1} γ (g (f a)) c)
+      (fun (a : α) => fun (c : γ) =>
+        Iff.intro (Exists β (fun (b : β) => And (Eq.{1} β (f a) b) (Eq.{1} γ (g b) c)))
+          (Eq.{1} γ (g (f a)) c)
+          (fun (h : Exists β (fun (b : β) => And (Eq.{1} β (f a) b) (Eq.{1} γ (g b) c))) =>
+            Exists.elim β (fun (b : β) => And (Eq.{1} β (f a) b) (Eq.{1} γ (g b) c))
+              (Eq.{1} γ (g (f a)) c) h
+              (fun (b : β) => fun (hb : And (Eq.{1} β (f a) b) (Eq.{1} γ (g b) c)) =>
+                Eq.trans.{1} γ (g (f a)) (g b) c
+                  (congrArg.{1} β γ g (f a) b
+                    (And.left (Eq.{1} β (f a) b) (Eq.{1} γ (g b) c) hb))
+                  (And.right (Eq.{1} β (f a) b) (Eq.{1} γ (g b) c) hb)))
+          (fun (h : Eq.{1} γ (g (f a)) c) =>
+            Exists.intro β (fun (b : β) => And (Eq.{1} β (f a) b) (Eq.{1} γ (g b) c)) (f a)
+              (And.intro (Eq.{1} β (f a) (f a)) (Eq.{1} γ (g (f a)) c)
+                (Eq.refl.{1} β (f a)) h))))
+    (Set.ext γ (Set.image α γ (Function.comp α β γ g f) A)
+      (Set.image β γ g (Set.image α β f A))
+      (fun (y : γ) =>
+        Iff.intro (Set.mem γ y (Set.image α γ (Function.comp α β γ g f) A))
+          (Set.mem γ y (Set.image β γ g (Set.image α β f A)))
+          (fun (hy : Set.mem γ y (Set.image α γ (Function.comp α β γ g f) A)) =>
+            Exists.elim α
+              (fun (x : α) => And (A x) (Eq.{1} γ (Function.comp α β γ g f x) y))
+              (Set.mem γ y (Set.image β γ g (Set.image α β f A))) hy
+              (fun (x : α) =>
+                fun (hx : And (A x) (Eq.{1} γ (Function.comp α β γ g f x) y)) =>
+                  Exists.intro β
+                    (fun (b : β) =>
+                      And (Set.mem β b (Set.image α β f A)) (Eq.{1} γ (g b) y)) (f x)
+                    (And.intro (Set.mem β (f x) (Set.image α β f A)) (Eq.{1} γ (g (f x)) y)
+                      (Exists.intro α (fun (t : α) => And (A t) (Eq.{1} β (f t) (f x))) x
+                        (And.intro (A x) (Eq.{1} β (f x) (f x))
+                          (And.left (A x) (Eq.{1} γ (Function.comp α β γ g f x) y) hx)
+                          (Eq.refl.{1} β (f x))))
+                      (And.right (A x) (Eq.{1} γ (Function.comp α β γ g f x) y) hx))))
+          (fun (hy : Set.mem γ y (Set.image β γ g (Set.image α β f A))) =>
+            Exists.elim β
+              (fun (b : β) =>
+                And (Set.mem β b (Set.image α β f A)) (Eq.{1} γ (g b) y))
+              (Set.mem γ y (Set.image α γ (Function.comp α β γ g f) A)) hy
+              (fun (b : β) =>
+                fun (hb : And (Set.mem β b (Set.image α β f A)) (Eq.{1} γ (g b) y)) =>
+                  Exists.elim α (fun (x : α) => And (A x) (Eq.{1} β (f x) b))
+                    (Set.mem γ y (Set.image α γ (Function.comp α β γ g f) A))
+                    (And.left (Set.mem β b (Set.image α β f A)) (Eq.{1} γ (g b) y) hb)
+                    (fun (x : α) =>
+                      fun (hx : And (A x) (Eq.{1} β (f x) b)) =>
+                        Exists.intro α
+                          (fun (t : α) =>
+                            And (A t) (Eq.{1} γ (Function.comp α β γ g f t) y)) x
+                          (And.intro (A x) (Eq.{1} γ (Function.comp α β γ g f x) y)
+                            (And.left (A x) (Eq.{1} β (f x) b) hx)
+                            (Eq.trans.{1} γ (g (f x)) (g b) y
+                              (congrArg.{1} β γ g (f x) b
+                                (And.right (A x) (Eq.{1} β (f x) b) hx))
+                              (And.right (Set.mem β b (Set.image α β f A))
+                                (Eq.{1} γ (g b) y) hb))))))))
+
+-- P2（期末小项目 · 基数环）：把单元⑨ 的等势与单元⑩ 的 Cantor 钉在一起。
+--   ① 搬运：h 给的两把映射**照用**，只有"落在哪一侧"的域条件沿 hC 搬家
+--      （三处 Eq.subst：正向一处、反向两处；两条互逆律原样交回，不必动）；
+--   ② Cantor 推广到**任意** C'（单元⑩ 练习 4 的 univ 版是它的特例）：
+--      对角线集取差集 D := C' \ {y | y ∈ f y}（`Set.sdiff` 展开正好是
+--      `And (C' y) (Not (f y y))`）；D ⊆ C' 让它有资格当 𝒫C' 的元素（hD 一行 And.left），
+--      ④号互逆律在 D 上把 `f (g D)` 与 `D` 接起来，congrArg 作用到 `g D` 上得到
+--      "`(f (g D)) (g D)` 与 `D (g D)` 相等"这条**命题等式**，再用 Eq.subst 两个方向互喂；
+--      反向映射的域条件给出 `C' (g D)`——它正是 And.intro 缺的那一半（这条题里它第一次真用上）。
+--
+-- 写法提醒（本文件里最容易踩的一条，实测）：**应用脊是平的**——一个参数本身若是应用，
+-- 必须用括号整个包住（`(Exists.elim …)`、`(And.right … hg D hD)` 都算），
+-- 否则那些参数会散成外层脊上的参数，内核报出来的是一条"类型不匹配"的怪消息。
+theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
+    (h : Set.Equiv α γ A C) (hC : Eq.{1} (Set γ) C C') :
+    And
+      (Set.Equiv α γ A C')
+      (Not (Set.Equiv γ (Set γ) C' (Set.powerset γ C'))) :=
+  And.intro
+    (Set.Equiv α γ A C')
+    (Not (Set.Equiv γ (Set γ) C' (Set.powerset γ C')))
+    (Exists.elim (α -> γ)
+        (fun (f : α -> γ) =>
+          And (Set.MapsTo α γ f A C)
+            (Exists (γ -> α) (fun (g : γ -> α) =>
+              And (Set.MapsTo γ α g C A)
+                (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)))))
+        (Set.Equiv α γ A C') h
+        (fun (f : α -> γ) =>
+          fun (hf : And (Set.MapsTo α γ f A C)
+              (Exists (γ -> α) (fun (g : γ -> α) =>
+                And (Set.MapsTo γ α g C A)
+                  (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C))))) =>
+            Exists.elim (γ -> α)
+              (fun (g : γ -> α) =>
+                And (Set.MapsTo γ α g C A)
+                  (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)))
+              (Set.Equiv α γ A C')
+              (And.right (Set.MapsTo α γ f A C)
+                (Exists (γ -> α) (fun (g : γ -> α) =>
+                  And (Set.MapsTo γ α g C A)
+                    (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)))) hf)
+              (fun (g : γ -> α) =>
+                fun (hg : And (Set.MapsTo γ α g C A)
+                    (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C))) =>
+                  Set.Equiv.mk α γ A C' f g
+                    (fun (x : α) => fun (hx : Set.mem α x A) =>
+                      Eq.subst.{1} (Set γ) (fun (X : Set γ) => Set.mem γ (f x) X) C C' hC
+                        (And.left (Set.MapsTo α γ f A C)
+                          (Exists (γ -> α) (fun (g : γ -> α) =>
+                            And (Set.MapsTo γ α g C A)
+                              (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)))) hf x hx))
+                    (fun (z : γ) => fun (hz : Set.mem γ z C') =>
+                      And.left (Set.MapsTo γ α g C A)
+                        (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C))
+                        hg z
+                        (Eq.subst.{1} (Set γ) (fun (X : Set γ) => Set.mem γ z X) C' C
+                          (Eq.symm.{1} (Set γ) C C' hC) hz))
+                    (And.left (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)
+                      (And.right (Set.MapsTo γ α g C A)
+                        (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)) hg))
+                    (fun (z : γ) => fun (hz : Set.mem γ z C') =>
+                      And.right (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)
+                        (And.right (Set.MapsTo γ α g C A)
+                          (And (Set.LeftInvOn α γ g f A) (Set.RightInvOn α γ f g C)) hg)
+                        z
+                        (Eq.subst.{1} (Set γ) (fun (X : Set γ) => Set.mem γ z X) C' C
+                          (Eq.symm.{1} (Set γ) C C' hC) hz)))))
+    (fun (h2 : Set.Equiv γ (Set γ) C' (Set.powerset γ C')) =>
+        Exists.elim (γ -> Set γ)
+          (fun (f : γ -> Set γ) =>
+            And (Set.MapsTo γ (Set γ) f C' (Set.powerset γ C'))
+              (Exists (Set γ -> γ) (fun (g : Set γ -> γ) =>
+                And (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                  (And (Set.LeftInvOn γ (Set γ) g f C')
+                    (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C'))))))
+          False h2
+          (fun (f : γ -> Set γ) =>
+            fun (hf : And (Set.MapsTo γ (Set γ) f C' (Set.powerset γ C'))
+                (Exists (Set γ -> γ) (fun (g : Set γ -> γ) =>
+                  And (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                    (And (Set.LeftInvOn γ (Set γ) g f C')
+                      (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C')))))) =>
+              Exists.elim (Set γ -> γ)
+                (fun (g : Set γ -> γ) =>
+                  And (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                    (And (Set.LeftInvOn γ (Set γ) g f C')
+                      (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C'))))
+                False
+                (And.right (Set.MapsTo γ (Set γ) f C' (Set.powerset γ C'))
+                  (Exists (Set γ -> γ) (fun (g : Set γ -> γ) =>
+                    And (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                      (And (Set.LeftInvOn γ (Set γ) g f C')
+                        (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C'))))) hf)
+                (fun (g : Set γ -> γ) =>
+                  fun (hg : And (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                      (And (Set.LeftInvOn γ (Set γ) g f C')
+                        (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C')))) =>
+                    (fun (ptnp : Not ((f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                        (g (Set.sdiff γ C' (fun (y : γ) => f y y))))) =>
+                      ptnp
+                        (Eq.subst.{1} Prop (fun (Q : Prop) => Q)
+                          ((Set.sdiff γ C' (fun (y : γ) => f y y))
+                            (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                          ((f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                            (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                          (Eq.symm.{1} Prop
+                            ((f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                              (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                            ((Set.sdiff γ C' (fun (y : γ) => f y y))
+                              (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                            (congrArg.{1} (Set γ) Prop
+                              (fun (S : Set γ) => S (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                              (f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                              (Set.sdiff γ C' (fun (y : γ) => f y y))
+                              (And.right (Set.LeftInvOn γ (Set γ) g f C')
+                                (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C'))
+                                (And.right (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                                  (And (Set.LeftInvOn γ (Set γ) g f C')
+                                    (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C'))) hg)
+                                (Set.sdiff γ C' (fun (y : γ) => f y y))
+                                (fun (y : γ) => fun (hy : And (C' y) (Not (f y y))) =>
+                                  And.left (C' y) (Not (f y y)) hy))))
+                          (And.intro
+                            (C' (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                            (Not ((f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                              (g (Set.sdiff γ C' (fun (y : γ) => f y y)))))
+                            (And.left (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                              (And (Set.LeftInvOn γ (Set γ) g f C')
+                                (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C')))
+                              hg
+                              (Set.sdiff γ C' (fun (y : γ) => f y y))
+                              (fun (y : γ) => fun (hy : And (C' y) (Not (f y y))) =>
+                                And.left (C' y) (Not (f y y)) hy))
+                            ptnp)))
+                    (fun (p : (f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                        (g (Set.sdiff γ C' (fun (y : γ) => f y y)))) =>
+                      And.right
+                        (C' (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                        (Not ((f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                          (g (Set.sdiff γ C' (fun (y : γ) => f y y)))))
+                        (Eq.subst.{1} Prop (fun (Q : Prop) => Q)
+                          ((f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                            (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                          ((Set.sdiff γ C' (fun (y : γ) => f y y))
+                            (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                          (congrArg.{1} (Set γ) Prop
+                            (fun (S : Set γ) => S (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                            (f (g (Set.sdiff γ C' (fun (y : γ) => f y y))))
+                            (Set.sdiff γ C' (fun (y : γ) => f y y))
+                            (And.right (Set.LeftInvOn γ (Set γ) g f C')
+                              (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C'))
+                              (And.right (Set.MapsTo (Set γ) γ g (Set.powerset γ C') C')
+                                (And (Set.LeftInvOn γ (Set γ) g f C')
+                                  (Set.RightInvOn γ (Set γ) f g (Set.powerset γ C'))) hg)
+                              (Set.sdiff γ C' (fun (y : γ) => f y y))
+                              (fun (y : γ) => fun (hy : And (C' y) (Not (f y y))) =>
+                                And.left (C' y) (Not (f y y)) hy)))
+                          p)
+                        p))))

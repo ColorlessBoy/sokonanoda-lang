@@ -9,7 +9,7 @@
 //
 //   ./scripts/soko doctor --json
 //   ./scripts/soko grade playground.sokonanoda
-//   ./scripts/soko gate                 # contributors (calls cargo)
+//   ./scripts/soko gate                 # contributors: cargo gate + course gate
 //
 // It resolves the binaries exactly like `.opencode/plugins/sokonanoda.ts` does
 // (explicit override → repository build → cache with a matching version marker
@@ -17,11 +17,20 @@
 // download) and then execs the resolved binary, passing every argument through.
 //
 // Zero dependencies, no shell, cross-platform (macOS / Linux / Windows; Node is
-// already present wherever DSH runs). Downloads are always pinned to the
-// repository version — the download URL is always tagged with that version, so
+// already present wherever DSH runs). Downloads are always pinned to the version
+// in the chain below — the download URL is always tagged with that version, so
 // a mutable "latest" release can never be picked up. Set SOKONANODA_OFFLINE=1 to
 // refuse network access, SOKONANODA_BIN / SOKONANODA_LSP_BIN to override the
 // resolved path, SOKONANODA_CACHE_DIR to relocate the cache.
+//
+// The version pin has its own chain (WO-001 / G-11 + G-16). A course repository
+// has no `Cargo.toml`, so the pin is: `$SOKONANODA_VERSION` (release tag, with
+// or without a leading `v`) → `<repo>/sokonanoda-version.txt` →
+// `<repo>/sokonanoda.toml`'s `requires` → `<repo>/Cargo.toml`. Every source that
+// is *present* must agree on major.minor, and two files that disagree are a
+// named-file error rather than a silent winner. Without a pinned version there
+// is no such thing as a matching cache entry, so the launcher refuses to run a
+// cached or repository binary instead of guessing.
 // Design: docs/design/deepseek-harness.md (H1); docs/design/onboarding.md.
 
 import { spawnSync } from 'node:child_process'
@@ -41,7 +50,14 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const RELEASES = 'https://github.com/ColorlessBoy/sokonanoda-lang/releases/download'
+/// Default release download base; `SOKONANODA_RELEASE_BASE` overrides it (the
+/// same switch the CLI's own downloader reads — crates/cli/src/env/target.rs).
+const DEFAULT_RELEASES = 'https://github.com/ColorlessBoy/sokonanoda-lang/releases/download'
+
+function releaseBase() {
+  return process.env.SOKONANODA_RELEASE_BASE || DEFAULT_RELEASES
+}
+
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO = path.dirname(HERE)
 
@@ -89,16 +105,202 @@ function offline() {
   return Boolean(process.env.SOKONANODA_OFFLINE)
 }
 
-/// The repository version that every resolution must agree with.
-function repoVersion() {
+/// `"x.y.z"` / `"x.y"` / an optional leading `v`; anything else is not a version.
+function parseVersion(text) {
+  const match = /^v?(\d+)\.(\d+)(?:\.(\d+))?$/.exec(String(text).trim())
+  if (!match) return undefined
+  const [major, minor] = [Number(match[1]), Number(match[2])]
+  return {
+    major,
+    minor,
+    patch: match[3] === undefined ? undefined : Number(match[3]),
+    text: match[3] === undefined ? `${major}.${minor}` : `${major}.${minor}.${match[3]}`,
+  }
+}
+
+function readTextFile(file) {
   try {
-    const text = readFileSync(path.join(REPO, 'Cargo.toml'), 'utf8')
-    return text.match(/^version = "([^"]+)"/m)?.[1]
+    return readFileSync(file, 'utf8')
   } catch {
     return undefined
   }
 }
 
+/// A download anchor is a *complete* version: the release tag is `v0.58.0`, so
+/// `0.58` can never become one (that is the "constraint, not a pin" case).
+function fullVersion(text) {
+  const parsed = parseVersion(text)
+  return parsed && parsed.patch !== undefined ? parsed : undefined
+}
+
+/// A version pin in a file: the first line that is exactly a version. Comments
+/// and blank lines are allowed so a generated file stays human-editable.
+function versionFromText(file) {
+  const text = readTextFile(file)
+  if (text === undefined) return undefined
+  for (const line of text.split(/\r?\n/)) {
+    const value = line.trim()
+    if (value.startsWith('#') || !value) continue
+    const found = fullVersion(value)
+    if (found) return found
+    return { invalid: value }
+  }
+  return undefined
+}
+
+/// The three-key manifest is parsed with a *minimal* single-line reader, not a
+/// TOML parser: the launcher is zero-dependency Node and must not spawn a
+/// binary it has not resolved yet. Only a top-level `requires` is read.
+function manifestRequires(file) {
+  const text = readTextFile(file)
+  if (text === undefined) return undefined
+  for (const line of text.split(/\r?\n/)) {
+    const value = /^\s*requires\s*=\s*["']([^"']+)["']/.exec(line)?.[1]
+    if (value !== undefined) return value.trim()
+  }
+  return undefined
+}
+
+function cargoVersion(file) {
+  const text = readTextFile(file)
+  if (text === undefined) return undefined
+  return text.match(/^version = "([^"]+)"/m)?.[1]?.trim()
+}
+
+function candidateFile(name) {
+  return path.join(REPO, name)
+}
+
+/// The files the chain looked for, so every message can name them.
+function versionSourceFiles() {
+  return {
+    env: 'SOKONANODA_VERSION',
+    versionTxt: candidateFile('sokonanoda-version.txt'),
+    manifest: candidateFile('sokonanoda.toml'),
+    cargo: candidateFile('Cargo.toml'),
+  }
+}
+
+/// How to pin a version, spelled out for the operator (the actionable half of
+/// every refusal below).
+function pinAdvice() {
+  const files = versionSourceFiles()
+  return (
+    `Pin the toolchain: export SOKONANODA_VERSION=x.y.z, or write a complete version to\n` +
+    `  ${files.versionTxt} (one line), or set requires = "x.y.z" in ${files.manifest}.`
+  )
+}
+
+function versionError(message) {
+  return { message: `${message}\n${pinAdvice()}` }
+}
+
+/// The version source chain (WO-001): `$SOKONANODA_VERSION` → the repository's
+/// own `sokonanoda-version.txt` → `requires` in `sokonanoda.toml` → `Cargo.toml`.
+/// `REPO` is the *launcher's* repository (a vendored launcher points at the
+/// course repository), never `cwd`.
+///
+/// Returns `{version?, source?, constraint?, error?}`:
+///   * every source that is present must agree on major.minor, otherwise this is
+///     a named-file error — never a silent winner;
+///   * `requires = "0.58"` is a constraint, not a download anchor, so it can
+///     satisfy a marker check but never build a `v0.58` release URL;
+///   * no useful source at all ⇒ no `version`: the caller must refuse to run a
+///     cached/repository binary rather than guess an expected version (G-16).
+function versionSource() {
+  const found = []
+  const problems = []
+  const push = (source, raw) => {
+    if (raw === undefined) return
+    const parsed = fullVersion(raw)
+    if (!parsed) {
+      problems.push({ source, raw })
+      return
+    }
+    found.push({ source, version: parsed })
+  }
+
+  push('env', process.env.SOKONANODA_VERSION)
+
+  const files = versionSourceFiles()
+  const fromTxt = versionFromText(files.versionTxt)
+  if (fromTxt?.invalid !== undefined) problems.push({ source: 'version.txt', raw: fromTxt.invalid })
+  else if (fromTxt) found.push({ source: 'version.txt', version: fromTxt })
+
+  let constraint
+  const required = manifestRequires(files.manifest)
+  if (required !== undefined) {
+    const parsed = parseVersion(required)
+    if (parsed) constraint = parsed
+    else problems.push({ source: 'manifest.requires', raw: required })
+  }
+
+  const cargo = cargoVersion(files.cargo)
+  if (cargo !== undefined) push('Cargo.toml', cargo)
+
+  if (problems.length) {
+    return {
+      constraint: constraint?.text,
+      error: versionError(
+        problems
+          .map(problem => `${problem.source}: "${problem.raw}" is not a version (expected x.y.z).`)
+          .join('\n'),
+      ),
+    }
+  }
+
+  const anchors = [...found]
+  if (constraint) {
+    if (constraint.patch !== undefined) anchors.push({ source: 'manifest.requires', version: constraint })
+  }
+  if (!anchors.length) {
+    const files = versionSourceFiles()
+    if (constraint) {
+      return {
+        constraint: constraint.text,
+        error: versionError(
+          `sokonanoda.toml requires ${constraint.text} — a major.minor *constraint*, not a version pin:\n` +
+            `  there is no release tag for it (${releaseBase()}/v${constraint.text}/ is not a release).\n` +
+            `  ${files.manifest} keeps requires = "${constraint.text}" as the project contract.`,
+        ),
+      }
+    }
+    return {
+      error: versionError(
+        `no version source found. Looked for:\n` +
+          `  $SOKONANODA_VERSION (unset)\n` +
+          `  ${files.versionTxt} (missing)\n` +
+          `  ${files.manifest} + requires (missing)\n` +
+          `  ${files.cargo} (missing)`,
+      ),
+    }
+  }
+
+  // Every present source has to speak about the same major.minor.
+  const pairs = new Set(anchors.map(entry => `${entry.version.major}.${entry.version.minor}`))
+  if (pairs.size > 1) {
+    return {
+      constraint: constraint?.text,
+      error: versionError(
+        `version sources disagree:\n` +
+          anchors
+            .map(anchor => `  ${anchor.source}: ${anchor.version.text}`)
+            .join('\n') +
+          `\nUpdate them so every pin names the same major.minor.`,
+      ),
+    }
+  }
+
+  const winner = anchors.find(anchor => anchor.source !== 'manifest.requires') ?? anchors[0]
+  return { version: winner.version, source: winner.source, constraint: constraint?.text }
+}
+
+/// The repository version every resolution must agree with (`string`), kept for
+/// the call sites that only need the number. `undefined` when there is no pin —
+/// callers must then refuse to exec rather than guess (see `versionSource`).
+function repoVersion() {
+  return versionSource().version?.text
+}
 function markerPath(base) {
   return path.join(cacheDir(), `${base}.version`)
 }
@@ -114,9 +316,22 @@ function readMarker(base) {
 /// A cache entry is usable only when its marker is `<version> <target>`
 /// (the same marker `sokonanoda setup` and the VSIX write).
 function markerMatches(base, version) {
+  return markerExpected(version, readMarker(base))
+}
+
+/// True when a cached marker can be verified against the pinned version. A
+/// constraint (`0.58`) accepts any patch of that release line; an anchor
+/// (`0.58.0`) accepts exactly the marker its own download writes — never an
+/// arbitrary other patch, which is the drift this guard exists for.
+function markerExpected(version, marker) {
   const target = platformTarget()
-  if (!target) return false
-  return readMarker(base) === `${version} ${target}`
+  if (!target || !version || typeof marker !== 'string') return false
+  const fields = marker.trim().split(/\s+/)
+  if (fields[1] !== target) return false
+  const found = parseVersion(fields[0])
+  if (!found) return false
+  if (found.major !== version.major || found.minor !== version.minor) return false
+  return version.patch === undefined || found.patch === version.patch
 }
 
 function writeMarker(base, version) {
@@ -246,7 +461,7 @@ async function download(base, version) {
   }
   const pkg = base === 'sokonanoda-lsp' ? 'sokonanoda-lsp' : 'sokonanoda-cli'
   const dest = path.join(cacheDir(), binaryName(base))
-  const url = `${RELEASES}/v${version}/${pkg}-${triple}.tar.gz`
+  const url = `${releaseBase()}/v${version}/${pkg}-${triple}.tar.gz`
   lastDownloadError = undefined
   let tmp
   try {
@@ -296,30 +511,43 @@ function binaryVersion(candidate) {
   }
 }
 
-/// A repository build is trustworthy only when it reports the repository
-/// version. A stale `target/` from an earlier round is exactly the drift this
-/// launcher exists to prevent (the opencode plugin used mtime alone and would
-/// happily run it).
+/// True when a binary reporting `reported` satisfies the pinned version. A
+/// constraint (`0.58`) is satisfied by any patch of that line; an anchor
+/// (`0.58.0`) requires exactly that version.
+function versionSatisfied(version, reported) {
+  if (!version || !reported) return false
+  if (reported === version.text) return true
+  const found = parseVersion(reported)
+  if (!found || found.patch === undefined) return false
+  return found.major === version.major && found.minor === version.minor &&
+    (version.patch === undefined || found.patch === version.patch)
+}
+
+/// A repository build is trustworthy only when it reports the pinned version.
+/// A stale `target/` from an earlier round is exactly the drift this launcher
+/// exists to prevent (the opencode plugin used mtime alone and would happily
+/// run it).
 function repoBuildForVersion(base, version) {
   const build = repoBuild(base)
   if (!build) return undefined
-  if (!version) return build
-  const reported = base === 'sokonanoda' ? binaryVersion(build) : undefined
+  if (!version) return undefined
   if (base !== 'sokonanoda') {
     // The language-server binary has no `--version`; trust a build only when
     // the CLI build of the same tree already proved the version.
-    return binaryVersion(repoBuild('sokonanoda') ?? '') === version ? build : undefined
+    return versionSatisfied(version, binaryVersion(repoBuild('sokonanoda') ?? '')) ? build : undefined
   }
-  return reported === version ? build : undefined
+  return versionSatisfied(version, binaryVersion(build)) ? build : undefined
 }
 
 /// How a binary was found, for `version`/`doctor` reporting.
 function resolver(base, override) {
   const cached = path.join(cacheDir(), binaryName(base))
-  const version = repoVersion()
+  const pin = versionSource()
+  const version = pin.version
   return {
     override,
     cached,
+    pin,
     version,
     /// Which link of the chain wins, without downloading anything.
     probe() {
@@ -327,28 +555,111 @@ function resolver(base, override) {
       const build = repoBuildForVersion(base, version)
       if (build) return { path: build, source: 'repo-build' }
       if (existsSync(cached)) {
-        return markerMatches(base, version)
-          ? { path: cached, source: 'cache' }
-          : { path: cached, source: `cache(STALE: expected ${version} ${platformTarget()}, found ${readMarker(base) ?? 'no marker'})` }
+        const marker = readMarker(base)
+        if (markerMatches(base, version)) return { path: cached, source: 'cache' }
+        if (!version) {
+          return {
+            path: cached,
+            source: `cache(${pin.constraint ? `unverified: requires ${pin.constraint}` : 'unknown repo version'}: found ${marker ?? 'no marker'})`,
+          }
+        }
+        return { path: cached, source: `cache(STALE: expected ${version.text} ${platformTarget()}, found ${marker ?? 'no marker'})` }
       }
       return undefined
     },
     async resolve() {
       const found = this.probe()
-      if (found && !found.source.startsWith('cache(STALE')) return found
-      if (!version) {
-        if (existsSync(cached)) return { path: cached, source: 'cache(unknown repo version)' }
-        return found
+      // Resolution walks the *same* order as the probe and stops at the first
+      // executable link. Only a stale/missing cache needs the network, so a
+      // usable override, repository build or matching cache entry never waits on
+      // a download (re-downloading a binary we already have is exactly the stall
+      // that made `grade` hang for a minute behind a proxy-less network).
+      if (canExec(found)) return found
+      if (version?.patch !== undefined) {
+        const downloaded = await download(base, version.text)
+        if (downloaded) return { path: downloaded, source: 'download' }
       }
-      const downloaded = await download(base, version)
-      if (downloaded) return { path: downloaded, source: 'download' }
-      // Offline / failed download: reuse the cache, but say so loudly.
-      if (existsSync(cached)) {
-        return { path: cached, source: `cache(STALE: expected ${version} ${platformTarget()}, found ${readMarker(base) ?? 'no marker'})` }
-      }
+      // Offline / failed download / constraint-only: hand back what is on disk
+      // so the caller can report *what* it is — `canExec()` above is the single
+      // gate that decides whether it may actually run.
       return found
     },
   }
+}
+
+/// The one execution gate (G-16). Only a candidate from a *trusted* source may
+/// be exec'd:
+///   * an explicit `SOKONANODA_BIN` / `SOKONANODA_LSP_BIN` override — the user
+///     chose that binary, so its version is their business (documented escape
+///     hatch; `scripts/new-course-repo.sh` used to need it);
+///   * the VS Code extension bundle — it belongs to an installed extension and
+///     carries its own version in its folder name;
+///   * a repository build or cache entry that was verified against the pinned
+///     version;
+///   * a binary the launcher just downloaded for that pinned version.
+/// A cache entry is *not* trusted just because it exists: without a pinned
+/// version there is nothing to compare its marker to, so it must be refused
+/// (that silent exec is exactly G-16).
+function canExec(result) {
+  if (!result) return false
+  if (result.source === 'override' || result.source === 'extension') return true
+  if (result.source === 'repo-build') return true
+  return result.source === 'cache' || result.source.startsWith('download')
+}
+
+/// Human-readable summary of the pin, for every refusal message.
+function pinReport(pin) {
+  const files = versionSourceFiles()
+  const lines = [
+    `  expected version: ${pin.version?.text ?? 'unresolved'}${pin.version ? ` (from ${pin.source})` : ''}`,
+  ]
+  if (pin.constraint) lines.push(`  constraint:       requires = "${pin.constraint}" in ${files.manifest}`)
+  if (pin.error) lines.push(...pin.error.message.split('\n').map(line => `  ${line}`))
+  return lines.join('\n')
+}
+
+/// One refusal path for every untrusted candidate: nothing resolved, a cache
+/// whose marker does not match the pin, or — G-16 — a cache that cannot be
+/// verified because there is no pinned version at all. The old code rewrote the
+/// probe's `cache(STALE …)` into `cache(unknown repo version)` and then exec'd
+/// it, which is how a 0.55.0 binary ran inside a repository that pins 0.58.0.
+function refuseUntrusted(base, found, pin) {
+  const files = versionSourceFiles()
+  process.stderr.write(
+    `scripts/soko: refusing to run an unverified ${base} binary — ` +
+      `${found ? `${found.path} [${found.source}]` : 'nothing resolved'} ` +
+      `(offline=${offline() ? 'yes' : 'no'}).\n` +
+      `${pinReport(pin)}\n` +
+      `  cache:            ${cacheDir()} (marker: ${readMarker(base) ?? 'none'})\n` +
+      (pin.error
+        ? ''
+        : `Next: run \`scripts/soko update\` to refresh the cache to the pinned version, or\n` +
+          `      fix the file named above so every pin agrees.\n`) +
+      `  ${files.versionTxt} is the pin for a course repository.\n`,
+  )
+  return 3
+}
+
+/// The Python interpreter the course gate needs (`python3`, or Windows' `py -3`
+/// / a `python` that is really Python 3). `undefined` means the gate must refuse
+/// (exit 3) instead of silently skipping the course layer.
+function pythonCommand() {
+  const candidates =
+    process.platform === 'win32'
+      ? [['py', ['-3']], ['python3', []], ['python', []]]
+      : [['python3', []], ['python', []]]
+  for (const [cmd, args] of candidates) {
+    let probe
+    try {
+      probe = spawnSync(cmd, [...args, '--version'], { encoding: 'utf8', timeout: 15_000 })
+    } catch {
+      continue
+    }
+    if (probe.status !== 0) continue
+    const said = `${probe.stdout ?? ''}${probe.stderr ?? ''}`
+    if (/Python 3\./.test(said)) return { cmd, args, version: said.trim() }
+  }
+  return undefined
 }
 
 // ── commands ─────────────────────────────────────────────────────────────────
@@ -393,16 +704,32 @@ async function main(argv) {
           '  scripts/soko doctor [--json]       readiness report; exit 3 when not ready\n' +
           '  scripts/soko lsp                   run the language server on stdio\n' +
           '  scripts/soko mcp                   run the MCP stdio server (harness tools)\n' +
+          '  scripts/soko gate                  contributor gate: cargo (fmt/clippy/test/anchor)\n' +
+          '                                     + the set-theory course gate (python3; exit 3\n' +
+          '                                     when python3 is missing — never a silent skip)\n' +
           '  scripts/soko <anything else…>      forwarded to the sokonanoda CLI\n' +
           '                                     e.g. grade playground.sokonanoda --json\n' +
           '\n' +
           'env: SOKONANODA_BIN / SOKONANODA_LSP_BIN (path overrides), SOKONANODA_OFFLINE=1,\n' +
-          '     SOKONANODA_CACHE_DIR (default ~/.local/share/sokonanoda/bin)\n',
+          '     SOKONANODA_CACHE_DIR (default ~/.local/share/sokonanoda/bin),\n' +
+          '     SOKONANODA_RELEASE_BASE (download base override),\n' +
+          '     SOKONANODA_VERSION (version pin; default: <repo>/sokonanoda-version.txt →\n' +
+          '     <repo>/sokonanoda.toml requires → <repo>/Cargo.toml)\n',
       )
       return 0
 
     case 'setup':
     case 'update': {
+      const pin = versionSource()
+      if (!pin.version && (cliOverride || lspOverride)) {
+        // No pin, but the user brought their own binary: that is the documented
+        // escape hatch, so `setup` is as done as it can be. Say what happened.
+        process.stderr.write(
+          `scripts/soko ${command}: no pinned version — using the explicit SOKONANODA_BIN\n` +
+            'override as-is (nothing was downloaded or verified).\n',
+        )
+        return 0
+      }
       const force = command === 'update'
       const cli = await ensure('sokonanoda', cliOverride, { force })
       const cliDownloadError = lastDownloadError
@@ -410,19 +737,22 @@ async function main(argv) {
       const lspDownloadError = lastDownloadError
       report('cli', cli)
       report('lsp', lsp)
-      const version = repoVersion()
+      const version = pin.version?.text
       // `cli`/`lsp` can be undefined when nothing resolved at all. `report()`
       // above already said so, and the message below is the actionable one —
       // indexing them unguarded used to throw a TypeError, which killed the
-      // process and made that message unreachable.
-      const stale = [cli, lsp].filter(r => r?.source.startsWith('cache(STALE'))
+      // process and made that message unreachable. Without a pin nothing is
+      // executable (`canExec`), and the message has to stay reachable — that is
+      // the shape `launcher.rs` pins.
+      const stale = pin.version ? [cli, lsp].filter(r => r && !canExec(r)) : []
       if (!cli || !lsp || stale.length) {
         process.stderr.write(
           `scripts/soko ${command}: could not provide matching binaries for v${version ?? '?'}\n` +
             `  target:  ${rustTriple() ?? platformTarget() ?? 'unknown'}\n` +
             `  offline: ${offline() ? 'yes (SOKONANODA_OFFLINE)' : 'no'}\n` +
+            (version ? `  release: ${releaseBase()}/v${version}/\n` : '') +
             (lastDownloadError ? `  download: ${lastDownloadError}\n` : '') +
-            `  release: ${RELEASES}/v${version ?? '?'}/\n` +
+            (pin.error ? `${pinReport(pin)}\n` : '') +
             'Next: allow network access (behind a proxy, export HTTPS_PROXY so curl can use it),\n' +
             '      or point SOKONANODA_BIN / SOKONANODA_LSP_BIN at existing binaries.\n',
         )
@@ -461,13 +791,17 @@ async function main(argv) {
     }
 
     case 'version': {
+      const pin = versionSource()
       const cli = resolver('sokonanoda', cliOverride).probe()
       const lsp = resolver('sokonanoda-lsp', lspOverride).probe()
       if (rest.includes('--json')) {
         process.stdout.write(
           `${JSON.stringify(
             {
-              version: repoVersion(),
+              version: pin.version?.text,
+              version_source: pin.version ? pin.source : undefined,
+              version_constraint: pin.constraint,
+              version_error: pin.error?.message,
               target: platformTarget(),
               rust_target: rustTriple(),
               cache: cacheDir(),
@@ -481,10 +815,14 @@ async function main(argv) {
         )
       } else {
         process.stdout.write(`scripts/soko version\n`)
-        process.stdout.write(`  repo:   v${repoVersion() ?? '?'} (${platformTarget() ?? '?'}, ${rustTriple() ?? '?'})\n`)
+        process.stdout.write(
+          `  repo:   v${pin.version?.text ?? '?'}${pin.version ? ` (from ${pin.source})` : ''}` +
+            ` (${platformTarget() ?? '?'}, ${rustTriple() ?? '?'})\n`,
+        )
         process.stdout.write(`  cache:  ${cacheDir()}${offline() ? ' (offline)' : ''}\n`)
         report('  cli', cli)
         report('  lsp', lsp)
+        if (pin.error) process.stdout.write(`${pin.error.message}\n`)
       }
       // `version` is a read-only report: it always succeeds and lets the caller
       // decide. A stale marker shows up in the source text and in `doctor`.
@@ -492,23 +830,28 @@ async function main(argv) {
     }
 
     case 'doctor': {
+      const pin = versionSource()
       const cli = await resolver('sokonanoda', cliOverride).resolve()
       const lsp = await resolver('sokonanoda-lsp', lspOverride).resolve()
-      const fresh = r => Boolean(r) && !r.source.startsWith('cache(STALE')
-      const ready = fresh(cli) && fresh(lsp)
+      // `canExec` is the same gate the forwarded command uses, so the report
+      // can never call something ready that the launcher would then refuse.
+      const ready = Boolean(pin.version) && canExec(cli) && canExec(lsp)
       if (rest.includes('--json')) {
         process.stdout.write(
           `${JSON.stringify(
             {
               ready,
-              version: repoVersion(),
+              version: pin.version?.text,
+              version_source: pin.version ? pin.source : undefined,
+              version_constraint: pin.constraint,
+              version_error: pin.error?.message,
               target: platformTarget(),
               rust_target: rustTriple(),
               cache: cacheDir(),
               offline: offline(),
               launcher: path.join(REPO, 'scripts', 'soko'),
-              cli: { path: cli?.path, present: Boolean(cli), ready: fresh(cli), marker: readMarker('sokonanoda') },
-              lsp: { path: lsp?.path, present: Boolean(lsp), ready: fresh(lsp), marker: readMarker('sokonanoda-lsp') },
+              cli: { path: cli?.path, present: Boolean(cli), ready: canExec(cli), marker: readMarker('sokonanoda') },
+              lsp: { path: lsp?.path, present: Boolean(lsp), ready: canExec(lsp), marker: readMarker('sokonanoda-lsp') },
             },
             null,
             2,
@@ -516,7 +859,9 @@ async function main(argv) {
         )
       } else {
         process.stdout.write(`scripts/soko doctor\n`)
-        process.stdout.write(`  version:  v${repoVersion() ?? '?'}\n`)
+        process.stdout.write(
+          `  version:  v${pin.version?.text ?? '?'}${pin.version ? ` (from ${pin.source})` : ''}\n`,
+        )
         process.stdout.write(`  platform: ${platformTarget() ?? '?'} (rust: ${rustTriple() ?? '?'})\n`)
         process.stdout.write(`  cache:    ${cacheDir()}\n`)
         report('  cli', cli)
@@ -524,6 +869,78 @@ async function main(argv) {
         process.stdout.write(`  ready:    ${ready ? 'yes' : 'no'}\n`)
       }
       return ready ? 0 : 3
+    }
+
+    case 'gate': {
+      // Contributor gate = the CLI's cargo gate (fmt + clippy + test + playground
+      // anchor) **plus** the course gate (`courses/set-theory/tools/check.py`,
+      // criteria G1–G5). Design: docs/design/course-gate-in-ci.md §2.4 / §7 S3.
+      //
+      // python3 is probed *before* anything expensive: a missing interpreter is
+      // exit 3 and never a silent skip — a local "green" that skipped the course
+      // layer would be a lie (CI is the backstop, not the excuse).
+      const python = pythonCommand()
+      if (!python) {
+        process.stderr.write(
+          'scripts/soko gate: 找不到 python3 —— 课程门禁无法判定（不静默跳过，exit 3）。\n' +
+            '  装法：macOS `brew install python3` · Debian/Ubuntu `sudo apt install python3` ·\n' +
+            '        Windows `winget install Python.Python.3`（`py -3` 也认）。\n' +
+            '  课程判据的唯一真相是 courses/set-theory/tools/check.py（硬规则 6：课程线零 cargo）。\n',
+        )
+        return 3
+      }
+      const r = resolver('sokonanoda', cliOverride)
+      const found = await r.resolve()
+      if (!canExec(found)) return refuseUntrusted('sokonanoda', found, r.pin)
+      const cargoGate = spawnSync(found.path, ['gate', ...rest], { stdio: 'inherit' })
+      if (cargoGate.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${found.path}: ${cargoGate.error.message}\n`)
+        return 3
+      }
+      const cargoStatus = cargoGate.status ?? 3
+      if (cargoStatus !== 0) return cargoStatus
+      const courseCheck = path.join(REPO, 'courses', 'set-theory', 'tools', 'check.py')
+      if (!existsSync(courseCheck)) {
+        // A checkout without the course is a legitimate state (the course can be
+        // extracted into its own repository); say so rather than pretend green.
+        // The ledger below still runs — `docs/gaps/` travels with the language repo.
+        process.stderr.write(
+          `scripts/soko gate: 跳过课程门禁 —— 本检出里没有 ${path.relative(REPO, courseCheck)}。\n` +
+            '  （课程在仓库里时这一步必须跑；缺文件不会静默当作绿。）\n',
+        )
+      } else {
+        // Hand the *resolved* binary to check.py: 34 targets must not each
+        // re-resolve the launcher (that re-probe was half the per-target cost).
+        const course = spawnSync(python.cmd, [...python.args, courseCheck], {
+          stdio: 'inherit',
+          cwd: REPO,
+          env: { ...process.env, SOKONANODA_BIN: found.path },
+        })
+        if (course.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${courseCheck}: ${course.error.message}\n`)
+          return 3
+        }
+        if ((course.status ?? 3) !== 0) return course.status ?? 3
+      }
+      // Ledger contract: every gap's repro must still agree with its recorded
+      // status (`docs/gaps/ledger.jsonl`, docs/gaps/README.md). Cheap (~3 s) and
+      // it is the only thing that keeps "fixed_in" honest as the language moves.
+      //
+      // Deliberately **no** SOKONANODA_BIN here (unlike the course gate above):
+      // half of these repros test the launcher's own resolution chain, and an
+      // exported override short-circuits their fixtures (that reddened this step
+      // the first time it ran under `gate`). `gap.py` also strips it itself.
+      const ledgerCheck = path.join(REPO, 'scripts', 'gap.py')
+      if (!existsSync(ledgerCheck)) return 0
+      const ledger = spawnSync(python.cmd, [...python.args, ledgerCheck, 'check'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (ledger.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${ledgerCheck}: ${ledger.error.message}\n`)
+        return 3
+      }
+      return ledger.status ?? 3
     }
 
     case 'mcp': {
@@ -552,21 +969,14 @@ async function main(argv) {
       // a bare file path / --json …
       const base = command === 'lsp' ? 'sokonanoda-lsp' : 'sokonanoda'
       const override = command === 'lsp' ? lspOverride : cliOverride
-      const found = await resolver(base, override).resolve()
-      if (!found) {
-        process.stderr.write(
-          `scripts/soko: no usable ${base} binary for v${repoVersion() ?? '?'} ` +
-            `(offline=${offline() ? 'yes' : 'no'}).\n` +
-            'Run `scripts/soko setup` first.\n',
-        )
-        return 3
-      }
-      if (found.source.startsWith('cache(STALE')) {
-        process.stderr.write(
-          `scripts/soko: refusing to run a stale binary — ${found.source}\n` +
-            'Run `scripts/soko update` to refresh the cache to the repository version.\n',
-        )
-        return 3
+      const r = resolver(base, override)
+      const found = await r.resolve()
+      const pin = r.pin
+      if (!canExec(found)) {
+        // One refusal path for every untrusted candidate: nothing resolved, a
+        // cache whose marker does not match the pin, or — G-16 — a cache that
+        // cannot be verified because there is no pinned version at all.
+        return refuseUntrusted(base, found, pin)
       }
       // `lsp` must reach the server binary; the CLI would re-dispatch it, but
       // going straight there keeps stdout a pure LSP frame stream.

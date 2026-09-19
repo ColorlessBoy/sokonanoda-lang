@@ -760,6 +760,89 @@ mod tests {
         assert_eq!(placeholder, "id");
     }
 
+    // ---- G-02 / WO-005：构造子的规范名与裸名两种写法 ----
+
+    // 两种写法各用一次：`Wrap.mk`（R1 规范名）与裸 `mk`（R2 别名）。
+    const CTOR_DOC: &str = "inductive Wrap : Type\nctor mk : Wrap\nend\n\
+def viaPrefix : Wrap := Wrap.mk\ndef viaAlias : Wrap := mk\n";
+    // ctor 源 token `mk` at (1,5); uses at (3,21) and (4,20).
+
+    fn ctor_use_offset(src: &str, needle: &str) -> usize {
+        // 最后一个出现点（定义 token 在前，使用点在后）。
+        src.rfind(needle)
+            .unwrap_or_else(|| panic!("`{needle}` not found in `{src}`"))
+    }
+
+    #[tokio::test]
+    async fn prepare_rename_from_a_use_covers_the_ctors_source_token() {
+        // 解析目标是**规范名** `Wrap.mk`，源里写的却是裸名 `mk`：
+        // `decl_name_span` 必须回退到源 token，否则 ctor 静默不可改名。
+        let src = CTOR_DOC;
+        let (mut service, _socket) = setup(src).await;
+        let offset = ctor_use_offset(src, "Wrap.mk");
+        let resp = prepare_at(&mut service, src, offset)
+            .await
+            .expect("the constructor use is renameable");
+        let PrepareRenameResponse::RangeWithPlaceholder { range, placeholder } = resp else {
+            panic!("expected range with placeholder, got {resp:?}");
+        };
+        assert_eq!(placeholder, "mk", "the source spelling is the placeholder");
+        let def = offset_of(src, "ctor mk") + 5;
+        assert_eq!(range.start, lsp_pos(src, def));
+        assert_eq!(range.end, lsp_pos(src, def + 2));
+    }
+
+    #[tokio::test]
+    async fn rename_a_ctor_rewrites_the_source_token_and_both_uses() {
+        let src = CTOR_DOC;
+        let (mut service, _socket) = setup(src).await;
+        let edit = rename_at(&mut service, src, ctor_use_offset(src, "Wrap.mk"), "pair")
+            .await
+            .expect("rename answers");
+        let DocumentChanges::Edits(edits) = edit.document_changes.expect("edits") else {
+            panic!("expected text edits");
+        };
+        let ranges: Vec<Range> = edits
+            .into_iter()
+            .flat_map(|e| {
+                e.edits.into_iter().filter_map(|x| match x {
+                    OneOf::Left(edit) => Some(edit.range),
+                    OneOf::Right(_) => None,
+                })
+            })
+            .collect();
+        // 定义侧两条（ctor 命令 span + 定义名 token —— 既有口径，实测基线同形）
+        // + 两种写法的使用点各一处。
+        assert_eq!(
+            ranges.len(),
+            4,
+            "ctor command span + name token + two uses: {ranges:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn references_resolve_a_ctor_from_both_spellings() {
+        let src = CTOR_DOC;
+        let (mut service, _socket) = setup(src).await;
+        let canonical = references_at(&mut service, src, ctor_use_offset(src, "Wrap.mk"), true)
+            .await
+            .expect("references answer");
+        let bare = references_at(&mut service, src, ctor_use_offset(src, ":= mk") + 3, true)
+            .await
+            .expect("references answer");
+        // 定义点：ctor 的**命令 span**（`ctor mk : Wrap`）与名字 token 各一条
+        // （`include_declaration` 的既有口径，与 def 一致）+ 两个使用点。
+        assert_eq!(
+            canonical.len(),
+            4,
+            "ctor command span + name token + two uses: {canonical:?}"
+        );
+        assert_eq!(
+            canonical, bare,
+            "both spellings resolve to the same declaration"
+        );
+    }
+
     #[tokio::test]
     async fn prepare_rename_is_null_for_prelude_names() {
         let (mut service, _socket) = setup(NO_USE).await;

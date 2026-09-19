@@ -291,7 +291,8 @@ theorem t : And p q := by apply imp\n";
         // 一层嵌套洞 `h (g sorry)`：洞 span 是内层 sorry，类型来自探针。
         let src = "axiom g : (a : Prop) -> Prop\n\
                    axiom h : (b : Prop) -> Prop\n\
-                   theorem t : Prop := h (g sorry)\n";
+                   axiom P : Prop\n\
+                   theorem t : P := h (g sorry)\n";
         let (mut service, mut socket) = test_service();
         handshake(&mut service).await;
         did_open(&mut service, src).await;

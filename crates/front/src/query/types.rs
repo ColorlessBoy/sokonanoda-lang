@@ -160,8 +160,17 @@ pub struct FailedDecl {
     pub name: Option<String>,
     pub code: String,
     pub message: String,
+    /// 诊断起点的**字节** offset（坐标空间 = 入口文件；字段名与语义是协议，
+    /// 只加不删，见 `docs/protocol.md` 的 `check` 行）。
     pub start: usize,
+    /// 诊断终点的**字节** offset（同上）。
     pub end: usize,
+    /// 起点 1 基行号 / 列号（与 `--json` 事件 `span.start` 同一批数字）。
+    pub start_line: u32,
+    pub start_col: u32,
+    /// 终点 1 基行号 / 列号（与 `--json` 事件 `span.end` 同一批数字）。
+    pub end_line: u32,
+    pub end_col: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -169,8 +178,15 @@ pub struct WarningInfo {
     pub code: String,
     pub message: String,
     pub hint: Option<String>,
+    /// 见 [`FailedDecl::start`]：字节 offset，坐标空间 = 入口文件。
     pub start: usize,
+    /// 见 [`FailedDecl::end`]。
     pub end: usize,
+    /// 见 [`FailedDecl::start_line`]。
+    pub start_line: u32,
+    pub start_col: u32,
+    pub end_line: u32,
+    pub end_col: u32,
 }
 
 /// 求值答案（`query reduce`）。

@@ -17,7 +17,7 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 8. `docs/design/` 设计文档 —— 已确认方案的 as-built 记录；近期实现见
    `goal-rendering` / `highlighting` / `compile-cache` / `match-patterns` /
    `indexed-inductives` / `by-tactics`（§11 换行分隔 tactic） /
-   `elaborator-let-match`。
+   `elaborator-let-match` / `notation-subset`（用户自定义记法，0.59.0）。
 
 ## 1. 不可动摇的硬规则（REQUIREMENTS §2，违者返工）
 
@@ -25,6 +25,10 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
    `docs/architecture.md` §6（bugfix 须带三层回归测试）；
 2. 无官方 Lean 工具链依赖（lean/lake/lean4export 一律不调用）；
 3. 教学语法是真实 Lean 4 的子集；新增语法 = 课程 + 测试 + 白名单三件套；
+   加新语法点照 `docs/TESTING.md` §4 的七步 checklist（lex → parse → elab/kernel
+   → ErrorKind/`docs/protocol.md` → CLI e2e → 语料 → 白名单）。**记法是例外面**：
+   `infix`/`infixl`/`infixr`/`notation`（0.59.0，设计 `docs/design/notation-subset.md`）
+   不引入新语义、只做源到源重写，所以它的"课程"是使用者自己写的声明行；
 4. 判定永远走 kernel：新增功能禁止文本比对（`front::judge` 是合成声明走
    完整流水线的范例）；
 5. 反馈即功能：类型/化简/打印/错误都要结构化输出，人和模型都能无文档驱动。
@@ -41,7 +45,19 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 - **测试三层**：front 单元测试（`crates/front/src/compile/tests.rs` 等模块内
   `#[cfg(test)]`）→ CLI e2e（`crates/cli/tests/`）→ 语料/协议/golden 守护
   （`examples.rs` / `protocol.rs` / `course.rs` / `skill.rs`）；多文件特性再加一层
-  `crates/cli/tests/imports.rs`（真 CLI 跑两文件项目 + 缓存失效 + A1 字节一致）；
+  `crates/cli/tests/imports.rs`（真 CLI 跑两文件项目 + 缓存失效 + A1 字节一致）
+  与 `course_project.rs`（`course` 对有 `import` 的单元走闭包：`failed` 与 `grade`
+  退出码同判、计数与 `query check` 同源、模块根回退、闭包摘要与 `build` 共用）；
+- **「签名/命名类」bug 的三层回归范例**（G-01 / WO-004 的形状，照抄即可）：
+  ① front 单测一对**通过/失败边界**（合法签名仍 `exercise.open` + 0 诊断；
+  坏签名 1 条诊断 + 声明 `Failed` + **没有** `exercise.open`）+ 一条 span 断言
+  （诊断必须落在**签名**的源范围，见 G-15）；② CLI e2e 在 `protocol.rs` 里用
+  **同一个来源**的两种写法做对照（`example : Prop -> Prop := sorry` exit 0 vs
+  `theorem t : 3 := sorry` exit 1 + code + 无 `exercise.open`），
+  并在 `query.rs` 钉「`query check` 的 `failed`/计数与 `--json` 事件流一致」；
+  ③ 语料层跑真二进制**全仓扫一遍**（`python3 courses/set-theory/tools/check.py`
+  + 入门课 `course.rs`/`course_status.rs` 的双 GOLDEN）——**预测「新增诊断 0 条」
+  必须实测**，逐条判「真腐烂」还是「超出子集边界」；
 - **多用 subagent**：探索/调研/机械重构派出去并行，主会话做核心设计编码，
   产出后主会话验证（编译 + 全量测试）;
 - **模块化**：任何文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
@@ -66,6 +82,9 @@ cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 cargo clippy --workspace --all-targets      # 教学 crates 经 [lints] deny；kernel 只 warning
 cargo test --workspace --locked             # 4 个 lib test target + 13 个集成测试文件
 cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node 行为测试
+python3 courses/set-theory/tools/check.py --selftest   # 课程门禁（卷 I，判据 G1–G5；gate 已含，单跑用这条）
+python3 scripts/gap.py selftest             # 台账判据自检（judge() 的期望推导 / repro_expect / 非法值）
+python3 scripts/gap.py check                # 台账契约：缺口复现必须与 status 一致（gate 已含，单跑用这条）
 ```
 
 - 教学 crates 的严格度来自各自 `Cargo.toml` 的 `[lints.rust] warnings = "deny"`；
@@ -95,15 +114,19 @@ cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node �
 git clone https://github.com/ColorlessBoy/sokonanoda-lang.git && cd sokonanoda-lang
 
 # 方式 ①（agent / headless，与 VS Code 解耦）：一条命令
-scripts/soko setup    # 版本锁定下载 CLI + LSP（幂等；零 cargo）
+scripts/soko setup    # 按版本钉下载 CLI + LSP（幂等；零 cargo）
 scripts/soko doctor   # 0=就绪 3=未就绪；--json 机器可读
+scripts/soko version --json  # version / version_source（env|version.txt|manifest.requires|Cargo.toml）
+# 版本钉源链同上；课程仓（无 Cargo.toml）靠仓根 sokonanoda-version.txt；
+# 解析不出期望版本时启动器拒绝 exec（G-11/G-16），别加 SOKONANODA_BIN 绕过。
 # 网络受限时先 `export HTTPS_PROXY=…`（启动器经 curl 下载，会用它）。
 
 # 方式 ②（开发必需）：源码编译（CLI + LSP + 全量测试）
 cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
 export PATH="$PWD/target/release:$PATH"
 
-# 门禁（= CI：fmt + clippy + test + playground 锚点）
+# 门禁（= CI：fmt + clippy + test + playground 锚点 **+ 课程门禁 + 缺口台账门禁**；
+# 后两步要 python3，探不到即 exit 3——无法判定 ≠ 绿）
 scripts/soko gate
 ```
 

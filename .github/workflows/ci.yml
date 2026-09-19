@@ -162,6 +162,60 @@ jobs:
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
 
+      - name: Setup Node for the course gate
+        # 课程门禁的判据在 courses/set-theory/tools/check.py（python3）；判卷通道是
+        # `grade`（node 启动器解析二进制，或直接用下面给的当轮二进制）。
+        # 显式钉 node 22（与 editor 集成测试同口径），不用 runner 的默认版本。
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      # 课程门禁（卷 I《集合论》）：判据 G1–G5，**与规模无关**（不锁计数——课程还在长）。
+      # 唯一真相是课程自己的 check.py（硬规则 6：课程线零 cargo），它内部只认
+      # `grade` 的退出码（G-10）、一律绝对路径（G-12）、失败时给不依赖 span 的
+      # `--bisect`（G-15）。--selftest 先跑：故意坏的单元必须被判负，判据通道失效时
+      # 这一步自己红。
+      #
+      # 二进制用**当轮 cargo 刚编出来的** target/debug：版本天然一致、零下载
+      # （`scripts/soko setup` 在版本 bump 的 main push 上必然 404）。
+      # 为什么是 test job 里的一个 step 而不是独立 job：见
+      # docs/design/course-gate-in-ci.md §2（独立 job 要么自己再编一份 Rust、要么
+      # 下载还不存在的 release，且很容易漏进 auto-tag 的 needs ⇒ 假绿发布）。
+      - name: Course gate (set-theory, G1–G5)
+        timeout-minutes: 5
+        env:
+          SOKONANODA_BIN: ${{ github.workspace }}/target/debug/sokonanoda
+        shell: bash
+        run: |
+          python3 "$GITHUB_WORKSPACE/courses/set-theory/tools/check.py" --selftest
+          python3 "$GITHUB_WORKSPACE/courses/set-theory/tools/check.py" \
+            --annotations \
+            --report /tmp/course-gate.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload course gate report (always)
+        # 判负时也要拿到全量报告（`--json` 的落盘版）：artifact + step summary 是
+        # 公开仓库上无需 token 的自助诊断通道（同 cargo-test-log 的先例）。
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: course-gate-report
+          path: /tmp/course-gate.json
+          include-hidden-files: false
+          if-no-files-found: warn
+
+      - name: Gap ledger is consistent (docs/gaps)
+        # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
+        # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。跑得很快，但只有它能让
+        # `fixed_in` 不随语言演进悄悄腐烂——`scripts/soko gate` 的第四步是同一条。
+        timeout-minutes: 3
+        env:
+          SOKONANODA_BIN: ${{ github.workspace }}/target/debug/sokonanoda
+        shell: bash
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
+          python3 "$GITHUB_WORKSPACE/scripts/gap.py" check
+
       - name: Machine events are well-formed JSON
         run: |
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \

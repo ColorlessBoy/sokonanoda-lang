@@ -50,6 +50,12 @@
   `import-must-precede-declarations`/`manifest-invalid`。判卷时先修依赖文件，
   入口的 `import-dependency-failed` 会随之消失。
 - `elab-*` 错误码封闭清单见 `docs/protocol.md`（doc-conformance 测试守护）。
+- **`exercise.open` 只说明"这是个练习"，它不保证签名没坏**（G-01 / 0.59.0 起，
+  反过来：签名坏就**不会**出现 `exercise.open`）。签名 elaborate 不了、不是一个类型、
+  或 `theorem` 的不是 Prop ⇒ 一条 `diagnostic`（`elab-unknown-identifier` /
+  `kernel-expected-sort` / `kernel-theorem-not-prop`）+ 声明 `failed`，**span 落在
+  签名上**（不是值位）。判卷永远看 `diagnostic`，不要用 `exercise.open` 计数推断
+  "签名没腐烂"。
 
 ## 判卷读法（伪代码）
 
@@ -58,8 +64,10 @@ events = run(`sokonanoda --json canvas.sokonanoda`)
 for e in events:
   if e.type == "decl.checked" and e.name in 我的练习名: 记为解出
   if e.type == "exercise.open":        记为待作答（e.name 可能为 null：example）
+                                       —— 走到这里说明**签名已经受检且合法**
   if e.type == "diagnostic":           按 code 分类（见 SKILL.md §3 决策表）
                                        e.hint 是给学习者的第一句话
+                                       span 在签名上 ⇒ 先修签名（不是"还没做"）
 ```
 
 ## 增量语义（服务层事实）

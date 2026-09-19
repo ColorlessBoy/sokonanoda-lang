@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>卷 I 集合论 — sokonanoda</title>
+  <meta name="description" content="卷 I《集合论》：入门课之后的第二卷，从「集合 = 谓词」一路走到 Cantor 定理与 Russell 悖论。单元目录、练习数与判卷状态由课程门禁实测生成，不在此手写。">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
+      <nav class="nav" aria-label="主导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html" class="active" aria-current="page">课程</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html" class="lang">English</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap prose">
+    <h1>卷 I《集合论》</h1>
+    <p>
+      入门课之后的<b>第二卷</b>。它不再教语言本身，而是用这门语言做数学：把「集合」当成论域上的谓词，
+      从隶属与子集出发，经由并、交、差、幂集、序对与笛卡尔积，走到关系、函数、像与原像，
+      最后到等势、Cantor 定理与 Russell 悖论。每一单元一份画布文件：讲解 + 已写好的演示 +
+      留着 <code>sorry</code> 的练习，洞由内核判定，提示分级（<code>soko:hint</code>）一次揭开一条。
+    </p>
+
+    <div class="note">
+      这条路线的教学取舍写在 <code>docs/design/teaching-project.md</code> 与
+      <code>docs/design/set-theory-syllabus.md</code>；
+      课程标准库与练习的分界（哪些该进库、哪些该自己证）见
+      <code>docs/design/course-stdlib.md</code>。
+    </div>
+
+    <h2 class="section-title">怎么判卷（一条命令）</h2>
+    <p>
+      在仓库根跑课程自己的门禁：它把标准库自检、全部单元画布、全部解答各判一遍，
+      并打印一张表。
+    </p>
+    <pre><code>python3 courses/set-theory/tools/check.py          # 人读的表 + 汇总
+python3 courses/set-theory/tools/check.py --json   # 同一份结果的机器可读版</code></pre>
+    <p>
+      判卷永远走<b>内核</b>：门禁对每个目标调用 <code>grade</code>、看它的退出码，
+      不做文本比对、也不对照答案；它另外要求目标文件都在、解答不留 <code>sorry</code>
+      且覆盖画布上的每个具名练习（判据与课程规模无关，不锁计数）。门禁内部给判卷器的是
+      <b>绝对路径</b>：相对路径会让模块根解析错位，整个 <code>import</code> 闭包跟着失效。
+      退出码：0 = 全绿，1 = 有目标判负，2 = 判卷环境缺失（这时不判绿）。
+      要单独判一个文件：
+    </p>
+    <pre><code>node scripts/soko grade "$PWD/courses/set-theory/units/unit01-sets-membership.sokonanoda"</code></pre>
+    <p>
+      还没装环境？<a href="get-started.html#learner">装 VS Code 扩展</a>就能在编辑器里写这些练习：
+      扩展内嵌了本平台的判卷器，不需要 Rust、Lean 或任何工具链。
+    </p>
+
+    <h2 class="section-title">与入门课的关系</h2>
+    <p>
+      两卷共用同一门语言、同一个内核、同一套判卷命令，差别在<b>教什么</b>与<b>先修</b>：
+      入门课教语言（命题与证明项、等式、函数、<code>by</code>、宇宙、归纳、量词），
+      卷 I 用这门语言做集合论。卷 I <b>假设读者已学完入门课</b>，所以不再解释
+      <code>by</code>、<code>induction</code>、量词是什么，直接从「集合 = 谓词」开始。
+    </p>
+    <table class="compare">
+      <thead>
+        <tr><th></th><th>入门课（<code>course/</code>）</th><th>卷 I《集合论》（<code>courses/set-theory/</code>）</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>教什么</th>
+          <td>语言本身：命题与证明项 → 等式 → 函数 → <code>by</code> → 宇宙 → 归纳 → 量词</td>
+          <td>数学：隶属与子集 → 集合运算 → 外延性 → 序对与积 → 关系与函数 → 像与原像 → 等势与 Cantor → 论域与 Russell</td>
+        </tr>
+        <tr>
+          <th>先修</th>
+          <td>无（从这里开始）</td>
+          <td>入门课（或等价的 Lean 4 式证明经验）</td>
+        </tr>
+        <tr>
+          <th>语言</th>
+          <td>中文 + 英文镜像（代码逐字节一致）</td>
+          <td>中文；英文镜像等本卷冻结后再做</td>
+        </tr>
+        <tr>
+          <th>判卷</th>
+          <td><code>node scripts/soko grade &lt;画布&gt;</code></td>
+          <td>同上；另有课程门禁 <code>python3 courses/set-theory/tools/check.py</code></td>
+        </tr>
+        <tr>
+          <th>入口</th>
+          <td><a href="course.html">课程页</a> · <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/course" target="_blank" rel="noopener">仓库 course/</a></td>
+          <td><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory" target="_blank" rel="noopener">仓库 courses/set-theory/</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title">单元目录</h2>
+    <p class="section-sub">
+      编号、标题、练习数与判卷状态都由课程门禁<b>实测</b>生成（本页不写死任何计数）：
+      生成器跑 <code>courses/set-theory/tools/check.py --json</code>，把每个单元的实际判卷结果填进
+      <code>data/site.json</code>。「练习」= 画布上还留着 <code>sorry</code> 的声明数（一条练习 = 一个待填的声明），
+      「已判通过」= 该单元里内核已接受的声明数（定义与演示）。
+      「判卷状态」是课程门禁的判定（通过 / 判负 / 目标文件缺失）：它的判据与课程规模无关——
+      每个目标判卷退出码为 0、目标文件都在、解答不留 <code>sorry</code> 且覆盖画布上的每个具名练习、
+      标准库与自检不留 <code>sorry</code>。
+    </p>
+    <div class="stats">
+      <div class="stat"><div class="n" id="stat-units">—</div><div class="l">本卷单元</div></div>
+      <div class="stat"><div class="n" id="stat-exercises">—</div><div class="l">画布练习（<code>sorry</code>）</div></div>
+      <div class="stat"><div class="n" id="stat-targets">—</div><div class="l">门禁判卷目标（含标准库与解答）</div></div>
+      <div class="stat"><div class="n" id="stat-failed">—</div><div class="l">被判负</div></div>
+    </div>
+    <p class="section-sub" id="measure-note"></p>
+    <table class="compare">
+      <thead>
+        <tr><th>#</th><th>单元</th><th>练习</th><th>已判通过</th><th>判卷状态</th></tr>
+      </thead>
+      <tbody id="unit-rows">
+        <tr><td colspan="5">单元数据加载中…</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="section-title">卷里有什么</h2>
+    <ul>
+      <li><code>lib/</code> —— 课程标准库：集合的词汇 + 定义展开引理。名字按 Lean 4 标准库取证（<code>Set.notMem_empty</code>、<code>Set.mem_powerset_iff</code>、<code>Set.Subset.refl</code>…），所以这里学到的写法在 Lean 4 里同样成立。</li>
+      <li><code>units/</code> —— 单元画布：演示（已证）+ 练习（<code>sorry</code>）+ 分级提示。</li>
+      <li><code>units/solutions/</code> —— 解答钥匙（agent 专用；画布不引用它，学习者不必先看答案）。</li>
+      <li><code>tools/check.py</code> —— 本地门禁，就是上面那条命令。</li>
+      <li><code>course.json</code> —— 单元清单（顺序与标题），本页目录的数据源。</li>
+    </ul>
+
+    <div class="note">
+      本页的数字与状态全部由 <code>scripts/gen-site-data.py</code> 在生成
+      <code>site/data/site.json</code> 时实测填入，页面只负责显示——官网永不手写计数。
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <nav class="fnav" aria-label="页脚导航">
+        <a href="index.html">首页</a>
+        <a href="get-started.html">快速开始</a>
+        <a href="course.html">课程</a>
+        <a href="set-theory.html">卷 I 集合论</a>
+        <a href="vision.html">愿景</a>
+        <a href="progress.html">进展</a>
+        <a href="agents.html">给 Agent</a>
+        <a href="docs.html">文档</a>
+        <a href="about.html">关于</a>
+        <a href="en/index.html">English</a>
+      </nav>
+      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
+      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+    </div>
+  </footer>
+
+  <script>
+  (function () {
+    var BLOB_BASE = "https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/courses/set-theory/";
+    var TREE = "https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory";
+    function setText(id, t) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = t;
+    }
+    function encodePath(p) {
+      return String(p || "").split("/").map(encodeURIComponent).join("/");
+    }
+    function statusCell(cell, status) {
+      var pill = document.createElement("span");
+      pill.className = "status-pill";
+      if (status === "ok") { pill.className += " ok"; pill.textContent = "通过"; }
+      else if (status === "rejected") { pill.className += " bad"; pill.textContent = "判负"; }
+      else if (status === "missing") { pill.className += " bad"; pill.textContent = "文件缺失"; }
+      else { pill.textContent = "未实测"; }
+      cell.appendChild(pill);
+    }
+    function render(block) {
+      var units = block.units || [];
+      var rows = document.getElementById("unit-rows");
+      var exercises = 0, measured = 0;
+      rows.innerHTML = "";
+      units.forEach(function (u) {
+        var tr = document.createElement("tr");
+        var num = document.createElement("td");
+        num.textContent = (u.unit == null) ? "—" : String(u.unit);
+        var title = document.createElement("td");
+        var a = document.createElement("a");
+        a.href = BLOB_BASE + encodePath(u.file);
+        a.target = "_blank"; a.rel = "noopener";
+        a.textContent = u.title || u.file;
+        title.appendChild(a);
+        var ex = document.createElement("td");
+        var chk = document.createElement("td");
+        if (typeof u.open === "number") {
+          ex.textContent = String(u.open);
+          chk.textContent = String(u.checked);
+          exercises += u.open;
+          measured += 1;
+        } else {
+          ex.textContent = "—";
+          chk.textContent = "—";
+        }
+        var st = document.createElement("td");
+        statusCell(st, u.status);
+        tr.appendChild(num); tr.appendChild(title); tr.appendChild(ex);
+        tr.appendChild(chk); tr.appendChild(st);
+        rows.appendChild(tr);
+      });
+      if (!units.length) {
+        rows.innerHTML = '<tr><td colspan="5">单元清单为空，见仓库 <a href="' + TREE + '">courses/set-theory/</a>。</td></tr>';
+      }
+
+      setText("stat-units", String(units.length));
+      setText("stat-exercises", measured ? String(exercises) : "—");
+      var totals = block.totals || null;
+      setText("stat-targets", totals ? String(totals.targets) : "—");
+      setText("stat-failed", totals ? String(totals.failed) : "—");
+
+      var when = block.measured_at ? "（实测日期 " + block.measured_at + "）" : "";
+      if (block.counts_source === "gate") {
+        setText("measure-note", "上表由课程门禁在生成站点数据时实测" + when + "。");
+      } else if (block.counts_source === "previous-run") {
+        setText("measure-note", "本次生成没有可用的判卷环境，沿用上一次门禁实测的计数" + when + "；状态以课程门禁的实际运行为准。");
+      } else {
+        setText("measure-note", "本次生成没有可用的判卷环境，计数留空；跑一次课程门禁即可得到上表。");
+      }
+    }
+    fetch("data/site.json").then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+      .then(function (d) {
+        var block = d.set_theory;
+        if (!block || !(block.units || []).length) throw new Error("no set_theory data");
+        render(block);
+      }).catch(function () {
+        document.getElementById("unit-rows").innerHTML =
+          '<tr><td colspan="5">单元数据加载失败，请在仓库里跑 <code>python3 courses/set-theory/tools/check.py</code>，' +
+          '或前往 <a href="' + TREE + '">courses/set-theory/</a> 查看。</td></tr>';
+        setText("measure-note", "单元数据加载失败。");
+      });
+  })();
+  </script>
+</body>
+</html>

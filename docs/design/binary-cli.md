@@ -25,7 +25,12 @@
 
 约定：`SOKONANODA_CACHE_DIR`、`SOKONANODA_OFFLINE=1`、
 `SOKONANODA_RELEASE_BASE`（测试/自托管覆盖下载基址，默认 GitHub Releases）。
-版本严格锁定 `v<本二进制版本>`，**禁用 `latest`**。缓存版本标记与
+二进制自己的版本源是 `CARGO_PKG_VERSION`；**启动器侧**另有版本源链
+`SOKONANODA_VERSION` → `<repo>/sokonanoda-version.txt` → `<repo>/sokonanoda.toml`
+的 `requires` → `<repo>/Cargo.toml`（WO-001），启动器共用这里的
+`SOKONANODA_RELEASE_BASE` 名字（`scripts/install.sh` 另有面向人的
+`SOKONANODA_BASE_URL`；两者暂未统一，登记在此）。
+版本严格锁定 `v<解出的版本>`，**禁用 `latest`**。缓存版本标记与
 `VSIX`/插件一致：`<version> <vsce-target>`，文件 `<name>.version`。
 
 ## 2. 为什么内嵌下载器能成立（bootstrap 边界）

@@ -1,0 +1,73 @@
+-- Prod.sokonanoda —— 卷 I 的**序对标准库**（L2 层）
+--
+-- 分层判据（docs/design/course-stdlib.md）：
+--   L2（本文件）= 序对的**类型 + 词汇 + 定义展开**：`Prod`、构造子、两个投影、
+--                 以及"投影算在构造子上"的展开引理 —— 每一条在 Mathlib 里都是
+--                 `rfl` 或一行、**没有数学内容**；
+--   L3（units/）= 一切**有数学内容**的陈述（配对定理 `(a,b) = (a',b') → a = a' ∧ b = b'`、
+--                 `A × B` 的成员刻画、`A × B = B × A` 的反例…）——哪怕 Mathlib 早就有，
+--                 课程就是要让学习者自己证一遍（那是单元⑤ 的练习）。
+--
+-- 名字一律照抄 **Mathlib 取证名**（docs/design/set-theory-syllabus.md §4 第 7 行）：
+--   Prod A B  ↔ A × B   ·   prod_mk A B a b ↔ (a, b)
+--   Prod.fst A B p ↔ p.1  ·  Prod.snd A B p ↔ p.2
+--
+-- ── 构造子为什么叫 `prod_mk`（台账 G-02：必须点名的语言缺陷）────────────────
+-- 今天的教学语言里**构造子是裸名、且全项目唯一**：官方 Lean 4 的
+-- `inductive Prod (A B : Type) where | mk : A → B → Prod A B` 会让构造子自动进入
+-- 类型自己的命名空间、叫 **`Prod.mk`**，于是 `Prod.mk` / `Subtype.mk` / `Exists.intro`
+-- 可以同时存在；我们没有命名空间（也没有 `namespace`/`open`，见 G-05），两个
+-- `ctor mk` 会直接撞成 `duplicate declaration mk`（最小复现：
+-- docs/gaps/repro/G02-ctor-namespace.sokonanoda）。
+-- ⇒ 本文件里的构造子只能是**假唯一名** `prod_mk`（台账 G-02 的 workaround）。
+-- **G-02 修好之后，本文件的构造子应当机械改名回 `Prod.mk`**（syllabus §4 与 §5 的
+-- 联动表都记着这条：裸名降级为别名、前缀名 `Prod.mk` 转正），届时
+-- `prod_mk A B a b` → `Prod.mk A B a b`，`Prod.fst_mk` / `Prod.snd_mk` 的名字不变。
+--
+-- ── 递归子：参数在最前、motive 在后（务必带显式宇宙层级）───────────────────
+-- 自动派生的递归子（`inductive` / `ctor` / `end`，不用手写 `rec`/`iota`）形状是
+--     Prod.rec.{u} : (A B : Type) -> (motive : (Prod A B) -> Sort u) ->
+--                    (forall (a : A) (b : B), motive (prod_mk A B a b)) ->
+--                    (target : Prod A B) -> motive target
+-- 即**参数 A B 在最外层、motive 在其后**（与 `Or.rec a b (fun (_ : Or a b) => c) f g h`、
+-- `Option.rec A motive …` 同一约定）；投影的 motive 是**常值**——结果 A（或 B）
+-- 与"是哪个序对"无关，所以 binder 写通配 `fun (_ : Prod A B) => A`。
+--
+-- ⚠ 必须在调用点上写 **`Prod.rec.{1}`**：motive 落在 `Sort u`（Prod 在 Type，可大消去），
+-- 省略层级时前端把 `u` 取默认 `0`，于是内核看到 `motive : Prod A B -> Sort 0` 而
+-- `A : Type 0 = Sort 1`，报「期望 `Sort(0)`，实际是 `Sort(1)`」。同类命题型归纳
+-- （`Or`/`False`）目标本来就在 `Prop`，默认 `0` 恰好够用，所以只在投影这种
+-- **Type 值**的消去上会咬人。
+import lib.Logic
+
+-- ── 类型与构造子（Mathlib: Mathlib/Data/Prod.lean，逐字同款语义）─────────────
+inductive Prod (A B : Type) : Type
+ctor prod_mk (a : A) (b : B) : Prod A B
+end
+
+-- ── 投影（消去子：参数在前、motive 在后；Motive 常量 ⇒ 通配 binder）──────────
+def Prod.fst (A B : Type) (p : Prod A B) : A :=
+  Prod.rec.{1} A B (fun (_ : Prod A B) => A) (fun (a : A) (b : B) => a) p
+
+def Prod.snd (A B : Type) (p : Prod A B) : B :=
+  Prod.rec.{1} A B (fun (_ : Prod A B) => B) (fun (a : A) (b : B) => b) p
+
+-- ── 展开引理（L2：证明全是 `rfl`，即 iota 计算——投影算在构造子上就还原）────
+-- Mathlib 里对应的名字是 `Prod.fst_mk` / `Prod.snd_mk`（`rfl` 级，`simp` 也用它）。
+theorem Prod.fst_mk (A B : Type) (a : A) (b : B) :
+    Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a :=
+  Eq.refl.{1} A a
+
+theorem Prod.snd_mk (A B : Type) (a : A) (b : B) :
+    Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b :=
+  Eq.refl.{1} B b
+
+-- ── 演示（库自检）：两条展开引理合起来 = 序对的两个坐标都被还原。────────────
+-- 单元⑤ 的配对定理（从 (a,b) = (a',b') 推出 a = a' ∧ b = b'）**不在这里**：
+-- 那是 L3，属于画布上的练习。
+theorem Prod.fst_snd_mk (A B : Type) (a : A) (b : B) :
+    And (Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a)
+        (Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b) :=
+  And.intro (Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a)
+    (Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b)
+    (Prod.fst_mk A B a b) (Prod.snd_mk A B a b)

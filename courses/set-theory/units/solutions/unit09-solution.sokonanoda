@@ -1,0 +1,396 @@
+-- ==========================================================================
+-- unit09-solution.sokonanoda —— 卷 I 单元⑨ 的解答钥匙（agent 专用）
+--
+-- 与画布 units/unit09-equinumerosity.sokonanoda **同名一一对应**：
+--   演示 2 条（Set.Equiv.refl、Set.Equiv.of_inj_surj）
+--   + 反例脚手架 4 条（Nat.isZero、Nat.pred、Nat.succ_ne_zero、nonzero）
+--   + 练习 7 条（T2 · L3 · D2）。
+-- 练习名：Set.Equiv.symm · Set.Equiv.trans · Set.Equiv.singleton ·
+--         Set.equivOfEq · not_equiv_empty_singleton ·
+--         equiv_nonempty_iff · proper_subset_counterexample
+-- ==========================================================================
+import lib.Logic
+import lib.Exists
+import lib.Set
+import lib.Equiv
+
+-- ─────────────────────────────────────────────────────────────
+-- 演示（画布上已写好，这里逐字同款）
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示 1（必证①）：等势自反——恒等映射，四条条件都是一行。
+theorem Set.Equiv.refl (α : Type) (A : Set α) : Set.Equiv α α A A :=
+  Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
+    (fun (x : α) => fun (hx : Set.mem α x A) => hx)
+    (fun (y : α) => fun (hy : Set.mem α y A) => hy)
+    (fun (x : α) => fun (hx : Set.mem α x A) => Eq.refl.{1} α x)
+    (fun (y : α) => fun (hy : Set.mem α y A) => Eq.refl.{1} α y)
+
+-- 演示 2（必证④）：从单射 + 右逆（**满射的数据形式**）构造等势。
+-- 缺的那条左互逆律由单射补上：f (g (f x)) = f x 是因为 g 在 B 上是右逆，
+-- 再把 hinj 用在 g (f x) 与 x 上即可。注意"满射"这里必须给**数据**（右逆 g）：
+-- ∃-形式的满射要挑原像，那是选择公理（lib/Equiv 文件头）。
+theorem Set.Equiv.of_inj_surj (α β : Type) (A : Set α) (B : Set β)
+    (f : α -> β) (g : β -> α)
+    (hf : Set.MapsTo α β f A B)
+    (hg : Set.MapsTo β α g B A)
+    (hinj : forall (x1 x2 : α), Eq.{1} β (f x1) (f x2) -> Eq.{1} α x1 x2)
+    (hsec : Set.RightInvOn α β f g B) :
+    Set.Equiv α β A B :=
+  Set.Equiv.mk α β A B f g hf hg
+    (fun (x : α) => fun (hx : Set.mem α x A) =>
+      hinj (g (f x)) x (hsec (f x) (hf x hx)))
+    hsec
+
+-- ─────────────────────────────────────────────────────────────
+-- 反例脚手架（画布上也有）：只为把"无限集上的真子集"陈述并判出来。
+-- 两条是 Nat 上的递归定义，一条是 succ ≠ 0，一条是"非零自然数之集"。
+-- 它们**不是本单元的内容**，画布上标成脚手架。
+-- ─────────────────────────────────────────────────────────────
+
+def Nat.isZero (n : Nat) : Prop := match n with
+  | Nat.zero => False
+  | Nat.succ k => True
+
+def Nat.pred (n : Nat) : Nat := match n with
+  | Nat.zero => Nat.zero
+  | Nat.succ k => k
+
+-- succ n ≠ 0：把 n 送进"是不是 0"的谓词里，succ 那一支给 True、zero 那一支给
+-- False；于是 Eq.subst 把 succ n 处的 True.intro 搬到 zero 处，得到 False。
+theorem Nat.succ_ne_zero (n : Nat) : Not (Eq.{1} Nat (Nat.succ n) Nat.zero) :=
+  fun (h : Eq.{1} Nat (Nat.succ n) Nat.zero) =>
+    Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
+
+-- 非零自然数之集（自定名：Mathlib 里没有"非零自然数"这个名字的 Set Nat）。
+def nonzero : Set Nat := fun (n : Nat) => Not (Eq.{1} Nat n Nat.zero)
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类，必证②）：等势对称——交换两把映射。
+-- 结论 `Set.Equiv β α B A` 里不出现 f、g，正好满足 Exists.elim 的纪律。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
+    (h : Set.Equiv α β A B) : Set.Equiv β α B A :=
+  Exists.elim (α -> β)
+    (fun (f : α -> β) =>
+      And (Set.MapsTo α β f A B)
+        (Exists (β -> α) (fun (g : β -> α) =>
+          And (Set.MapsTo β α g B A)
+            (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+    (Set.Equiv β α B A)
+    h
+    (fun (f : α -> β) =>
+      fun (hf : And (Set.MapsTo α β f A B)
+                    (Exists (β -> α) (fun (g : β -> α) =>
+                      And (Set.MapsTo β α g B A)
+                        (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))) =>
+        Exists.elim (β -> α)
+          (fun (g : β -> α) =>
+            And (Set.MapsTo β α g B A)
+              (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))
+          (Set.Equiv β α B A)
+          (And.right (Set.MapsTo α β f A B)
+            (Exists (β -> α) (fun (g : β -> α) =>
+              And (Set.MapsTo β α g B A)
+                (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))) hf)
+          (fun (g : β -> α) =>
+            fun (hg : And (Set.MapsTo β α g B A)
+                          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))) =>
+              Set.Equiv.mk β α B A g f
+                (And.left (Set.MapsTo β α g B A)
+                  (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)) hg)
+                (And.left (Set.MapsTo α β f A B)
+                  (Exists (β -> α) (fun (g : β -> α) =>
+                    And (Set.MapsTo β α g B A)
+                      (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))) hf)
+                (And.right (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)
+                  (And.right (Set.MapsTo β α g B A)
+                    (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)) hg))
+                (And.left (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)
+                  (And.right (Set.MapsTo β α g B A)
+                    (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)) hg))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 2（T 类，必证③）：等势传递——复合两把映射。
+-- 正向 f2 ∘ f1，反向 g1 ∘ g2；两条互逆律中间那一步用 congrArg 把等式
+-- 推进（拉出）外层映射，再用 Eq.trans 串起来。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : Set.Equiv α β A B) (h2 : Set.Equiv β γ B C) : Set.Equiv α γ A C :=
+  Exists.elim (α -> β)
+    (fun (f1 : α -> β) =>
+      And (Set.MapsTo α β f1 A B)
+        (Exists (β -> α) (fun (g1 : β -> α) =>
+          And (Set.MapsTo β α g1 B A)
+            (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)))))
+    (Set.Equiv α γ A C)
+    h1
+    (fun (f1 : α -> β) =>
+      fun (hf1 : And (Set.MapsTo α β f1 A B)
+                     (Exists (β -> α) (fun (g1 : β -> α) =>
+                       And (Set.MapsTo β α g1 B A)
+                         (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B))))) =>
+        Exists.elim (β -> α)
+          (fun (g1 : β -> α) =>
+            And (Set.MapsTo β α g1 B A)
+              (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)))
+          (Set.Equiv α γ A C)
+          (And.right (Set.MapsTo α β f1 A B)
+            (Exists (β -> α) (fun (g1 : β -> α) =>
+              And (Set.MapsTo β α g1 B A)
+                (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)))) hf1)
+          (fun (g1 : β -> α) =>
+            fun (hg1 : And (Set.MapsTo β α g1 B A)
+                           (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B))) =>
+              Exists.elim (β -> γ)
+                (fun (f2 : β -> γ) =>
+                  And (Set.MapsTo β γ f2 B C)
+                    (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                      And (Set.MapsTo γ β g2 C B)
+                        (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)))))
+                (Set.Equiv α γ A C)
+                h2
+                (fun (f2 : β -> γ) =>
+                  fun (hf2 : And (Set.MapsTo β γ f2 B C)
+                                 (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                                   And (Set.MapsTo γ β g2 C B)
+                                     (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))))) =>
+                    Exists.elim (γ -> β)
+                      (fun (g2 : γ -> β) =>
+                        And (Set.MapsTo γ β g2 C B)
+                          (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)))
+                      (Set.Equiv α γ A C)
+                      (And.right (Set.MapsTo β γ f2 B C)
+                        (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                          And (Set.MapsTo γ β g2 C B)
+                            (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)))) hf2)
+                      (fun (g2 : γ -> β) =>
+                        fun (hg2 : And (Set.MapsTo γ β g2 C B)
+                                       (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))) =>
+                          Set.Equiv.mk α γ A C
+                            (fun (x : α) => f2 (f1 x))
+                            (fun (z : γ) => g1 (g2 z))
+                            (fun (x : α) => fun (hx : Set.mem α x A) =>
+                              And.left (Set.MapsTo β γ f2 B C)
+                                (Exists (γ -> β) (fun (g2 : γ -> β) =>
+                                  And (Set.MapsTo γ β g2 C B)
+                                    (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)))) hf2
+                                (f1 x)
+                                (And.left (Set.MapsTo α β f1 A B)
+                                  (Exists (β -> α) (fun (g1 : β -> α) =>
+                                    And (Set.MapsTo β α g1 B A)
+                                      (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)))) hf1
+                                  x hx))
+                            (fun (z : γ) => fun (hz : Set.mem γ z C) =>
+                              And.left (Set.MapsTo β α g1 B A)
+                                (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B))
+                                hg1
+                                (g2 z)
+                                (And.left (Set.MapsTo γ β g2 C B)
+                                  (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))
+                                  hg2 z hz))
+                            (fun (x : α) => fun (hx : Set.mem α x A) =>
+                              Eq.trans.{1} α (g1 (g2 (f2 (f1 x)))) (g1 (f1 x)) x
+                                (congrArg.{1} β α g1 (g2 (f2 (f1 x))) (f1 x)
+                                  (And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)
+                                    (And.right (Set.MapsTo γ β g2 C B)
+                                      (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)) hg2)
+                                    (f1 x)
+                                    (And.left (Set.MapsTo α β f1 A B)
+                                      (Exists (β -> α) (fun (g1 : β -> α) =>
+                                        And (Set.MapsTo β α g1 B A)
+                                          (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)))) hf1
+                                      x hx)))
+                                (And.left (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)
+                                  (And.right (Set.MapsTo β α g1 B A)
+                                    (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)) hg1)
+                                  x hx))
+                            (fun (z : γ) => fun (hz : Set.mem γ z C) =>
+                              Eq.trans.{1} γ (f2 (f1 (g1 (g2 z)))) (f2 (g2 z)) z
+                                (congrArg.{1} β γ f2 (f1 (g1 (g2 z))) (g2 z)
+                                  (And.right (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)
+                                    (And.right (Set.MapsTo β α g1 B A)
+                                      (And (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)) hg1)
+                                    (g2 z)
+                                    (And.left (Set.MapsTo γ β g2 C B)
+                                      (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C))
+                                      hg2 z hz)))
+                                (And.right (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)
+                                  (And.right (Set.MapsTo γ β g2 C B)
+                                    (And (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)) hg2)
+                                  z hz))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 3（L 类）：任意两个单元素集都等势——亲手写那对映射。
+-- 正向是常函数 x ↦ b，反向是常函数 y ↦ a；两条互逆律都要把
+-- "x ∈ {a}"（就是一个等式 x = a）掉个头。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
+    Set.Equiv α β (Set.singleton α a) (Set.singleton β b) :=
+  Set.Equiv.mk α β (Set.singleton α a) (Set.singleton β b)
+    (fun (x : α) => b) (fun (y : β) => a)
+    (fun (x : α) => fun (hx : Set.mem α x (Set.singleton α a)) => Eq.refl.{1} β b)
+    (fun (y : β) => fun (hy : Set.mem β y (Set.singleton β b)) => Eq.refl.{1} α a)
+    (fun (x : α) => fun (hx : Set.mem α x (Set.singleton α a)) => Eq.symm.{1} α x a hx)
+    (fun (y : β) => fun (hy : Set.mem β y (Set.singleton β b)) => Eq.symm.{1} β y b hy)
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 4（L 类）：集合相等蕴涵等势（Mathlib 真名 `Set.equivOfEq`）。
+-- 两把映射都取恒等，四条条件里"送进"的两条要把成员关系沿等式搬过去
+-- （Eq.subst），反向那条搬的是 Eq.symm 过的等式。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.equivOfEq (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) :
+    Set.Equiv α α A B :=
+  Set.Equiv.mk α α A B (fun (x : α) => x) (fun (x : α) => x)
+    (fun (x : α) => fun (hx : Set.mem α x A) =>
+      Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α x X) A B h hx)
+    (fun (y : α) => fun (hy : Set.mem α y B) =>
+      Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α y X) B A
+        (Eq.symm.{1} (Set α) A B h) hy)
+    (fun (x : α) => fun (hx : Set.mem α x A) => Eq.refl.{1} α x)
+    (fun (y : α) => fun (hy : Set.mem α y B) => Eq.refl.{1} α y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 5（L 类）：空集与单元素集不等势——用数据反驳。
+-- 假设有等势，把反向映射用在 b ∈ {b} 上，得到 g b ∈ ∅，而 ∅ 没有元素。
+-- 结论 False 里不出现 f、g，所以两次 Exists.elim 都合法。
+-- ─────────────────────────────────────────────────────────────
+theorem not_equiv_empty_singleton (α β : Type) (b : β) :
+    Not (Set.Equiv α β (Set.empty α) (Set.singleton β b)) :=
+  fun (h : Set.Equiv α β (Set.empty α) (Set.singleton β b)) =>
+    Exists.elim (α -> β)
+      (fun (f : α -> β) =>
+        And (Set.MapsTo α β f (Set.empty α) (Set.singleton β b))
+          (Exists (β -> α) (fun (g : β -> α) =>
+            And (Set.MapsTo β α g (Set.singleton β b) (Set.empty α))
+              (And (Set.LeftInvOn α β g f (Set.empty α))
+                   (Set.RightInvOn α β f g (Set.singleton β b))))))
+      False
+      h
+      (fun (f : α -> β) =>
+        fun (hf : And (Set.MapsTo α β f (Set.empty α) (Set.singleton β b))
+                      (Exists (β -> α) (fun (g : β -> α) =>
+                        And (Set.MapsTo β α g (Set.singleton β b) (Set.empty α))
+                          (And (Set.LeftInvOn α β g f (Set.empty α))
+                               (Set.RightInvOn α β f g (Set.singleton β b)))))) =>
+          Exists.elim (β -> α)
+            (fun (g : β -> α) =>
+              And (Set.MapsTo β α g (Set.singleton β b) (Set.empty α))
+                (And (Set.LeftInvOn α β g f (Set.empty α))
+                     (Set.RightInvOn α β f g (Set.singleton β b))))
+            False
+            (And.right (Set.MapsTo α β f (Set.empty α) (Set.singleton β b))
+              (Exists (β -> α) (fun (g : β -> α) =>
+                And (Set.MapsTo β α g (Set.singleton β b) (Set.empty α))
+                  (And (Set.LeftInvOn α β g f (Set.empty α))
+                       (Set.RightInvOn α β f g (Set.singleton β b))))) hf)
+            (fun (g : β -> α) =>
+              fun (hg : And (Set.MapsTo β α g (Set.singleton β b) (Set.empty α))
+                            (And (Set.LeftInvOn α β g f (Set.empty α))
+                                 (Set.RightInvOn α β f g (Set.singleton β b)))) =>
+                And.left (Set.MapsTo β α g (Set.singleton β b) (Set.empty α))
+                  (And (Set.LeftInvOn α β g f (Set.empty α))
+                       (Set.RightInvOn α β f g (Set.singleton β b))) hg
+                  b (Set.mem_singleton_self β b)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 6（D 类，判断：**真**）：等势的集合同时空、同时不空。
+-- 两个方向各用一次"用等势"：正向把 A 的元素推到 B，反向把 B 的元素推回 A。
+-- 每个方向的结论（Exists β B 或 Exists α A）都不提证人，两次嵌套 elim 都合法。
+-- ─────────────────────────────────────────────────────────────
+theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
+    (h : Set.Equiv α β A B) : Iff (Exists α A) (Exists β B) :=
+  Iff.intro (Exists α A) (Exists β B)
+    (fun (ha : Exists α A) =>
+      Exists.elim α A (Exists β B) ha
+        (fun (x : α) => fun (hx : Set.mem α x A) =>
+          Exists.elim (α -> β)
+            (fun (f : α -> β) =>
+              And (Set.MapsTo α β f A B)
+                (Exists (β -> α) (fun (g : β -> α) =>
+                  And (Set.MapsTo β α g B A)
+                    (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+            (Exists β B)
+            h
+            (fun (f : α -> β) =>
+              fun (hf : And (Set.MapsTo α β f A B)
+                            (Exists (β -> α) (fun (g : β -> α) =>
+                              And (Set.MapsTo β α g B A)
+                                (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))) =>
+                Exists.intro β B (f x)
+                  (And.left (Set.MapsTo α β f A B)
+                    (Exists (β -> α) (fun (g : β -> α) =>
+                      And (Set.MapsTo β α g B A)
+                        (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))) hf x hx))))
+    (fun (hb : Exists β B) =>
+      Exists.elim β B (Exists α A) hb
+        (fun (y : β) => fun (hy : Set.mem β y B) =>
+          Exists.elim (α -> β)
+            (fun (f : α -> β) =>
+              And (Set.MapsTo α β f A B)
+                (Exists (β -> α) (fun (g : β -> α) =>
+                  And (Set.MapsTo β α g B A)
+                    (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+            (Exists α A)
+            h
+            (fun (f : α -> β) =>
+              fun (hf : And (Set.MapsTo α β f A B)
+                            (Exists (β -> α) (fun (g : β -> α) =>
+                              And (Set.MapsTo β α g B A)
+                                (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))) =>
+                Exists.elim (β -> α)
+                  (fun (g : β -> α) =>
+                    And (Set.MapsTo β α g B A)
+                      (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))
+                  (Exists α A)
+                  (And.right (Set.MapsTo α β f A B)
+                    (Exists (β -> α) (fun (g : β -> α) =>
+                      And (Set.MapsTo β α g B A)
+                        (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))) hf)
+                  (fun (g : β -> α) =>
+                    fun (hg : And (Set.MapsTo β α g B A)
+                                  (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))) =>
+                      Exists.intro α A (g y)
+                        (And.left (Set.MapsTo β α g B A)
+                          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)) hg y hy)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 7（D 类，判断：**假**）："真子集一定严格更小"——反例。
+-- 本语言没有基数序，"严格更小"只能表述成"真子集且不等势"；于是反例要三段：
+--   ① 非零自然数之集 ⊆ Nat（真子集那一半的包含）；
+--   ② 它 ≠ Nat（真子集那一半的严格性：0 在右边不在左边）；
+--   ③ 它与 Nat 等势（正向 pred、反向 succ——无限集上的"整体与真部分一样大"）。
+-- 左互逆律 pred (succ x) = x 要对 x 分情况：succ 那一支靠 iota 直接算，
+-- zero 那一支被 x ∈ nonzero 直接否掉（这就是为什么脚手架里要有 succ_ne_zero）。
+-- ─────────────────────────────────────────────────────────────
+theorem proper_subset_counterexample :
+    And (Set.subset Nat nonzero (Set.univ Nat))
+      (And (Not (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))
+           (Set.Equiv Nat Nat nonzero (Set.univ Nat))) :=
+  And.intro (Set.subset Nat nonzero (Set.univ Nat))
+    (And (Not (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))
+         (Set.Equiv Nat Nat nonzero (Set.univ Nat)))
+    (fun (x : Nat) => fun (hx : Set.mem Nat x nonzero) => True.intro)
+    (And.intro (Not (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))
+      (Set.Equiv Nat Nat nonzero (Set.univ Nat))
+      (fun (h : Eq.{1} (Set Nat) nonzero (Set.univ Nat)) =>
+        (fun (h0 : Set.mem Nat Nat.zero nonzero) => h0 (Eq.refl.{1} Nat Nat.zero))
+          (Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Set.mem Nat Nat.zero X)
+            (Set.univ Nat) nonzero
+            (Eq.symm.{1} (Set Nat) nonzero (Set.univ Nat) h)
+            (Set.mem_univ Nat Nat.zero)))
+      (Set.Equiv.mk Nat Nat nonzero (Set.univ Nat) Nat.pred Nat.succ
+        (fun (x : Nat) => fun (hx : Set.mem Nat x nonzero) => True.intro)
+        (fun (y : Nat) => fun (hy : Set.mem Nat y (Set.univ Nat)) => Nat.succ_ne_zero y)
+        (fun (x : Nat) => fun (hx : Set.mem Nat x nonzero) =>
+          Nat.rec.{0}
+            (fun (k : Nat) => Set.mem Nat k nonzero -> Eq.{1} Nat (Nat.succ (Nat.pred k)) k)
+            (fun (hz : Set.mem Nat Nat.zero nonzero) =>
+              False.elim (Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)
+                (hz (Eq.refl.{1} Nat Nat.zero)))
+            (fun (k : Nat) =>
+              fun (ih : Set.mem Nat k nonzero -> Eq.{1} Nat (Nat.succ (Nat.pred k)) k) =>
+                fun (hs : Set.mem Nat (Nat.succ k) nonzero) =>
+                  Eq.refl.{1} Nat (Nat.succ k))
+            x hx)
+        (fun (y : Nat) => fun (hy : Set.mem Nat y (Set.univ Nat)) => Eq.refl.{1} Nat y)))

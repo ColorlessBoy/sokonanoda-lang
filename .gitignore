@@ -12,3 +12,7 @@ editor/vscode/bin/
 
 # 本地 agent 会话记忆（工作台私有，不入库）
 .workbuddy/
+
+# python 工具（courses/set-theory/tools/check.py、scripts/gap.py、gen-site-data.py）
+__pycache__/
+*.pyc

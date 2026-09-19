@@ -85,10 +85,44 @@ fn checks_axioms_and_theorems_over_axioms() {
 
 #[test]
 fn reports_kernel_rejection_with_span() {
-    let file = parse("def bad : Prop -> Type := fun (x : Prop) => x\n").unwrap();
+    let src = "def bad : Prop -> Type := fun (x : Prop) => x\n";
+    let file = parse(src).unwrap();
     let out = compile_fol(&file);
     assert!(!out.errors.is_empty(), "expected a kernel rejection");
-    assert!(out.errors[0].span.start.line >= 1);
+    let e = &out.errors[0];
+    assert_eq!(e.code(), "kernel-rejected");
+    // 收紧（G-15 / WO-010）：span 必须**逐字**等于出错的那条命令，而不只是
+    // `line >= 1`（旧断言等于没断言——任何漂移都能过）。按**字节**切片，
+    // 因为 `span.offset` 是字节偏移（`crates/front/src/token.rs`）。
+    assert_eq!(
+        &src[e.span.start.offset..e.span.end.offset],
+        "def bad : Prop -> Type := fun (x : Prop) => x"
+    );
+}
+
+/// G-15 的真实判据（WO-010）：内核拒绝的 span == **出错命令**的范围，不许溢到
+/// 相邻声明上。三条声明、坏的夹在中间；span 一旦漂到 `good`/`after` 就红。
+#[test]
+fn kernel_rejection_span_is_the_failing_command_range() {
+    let src = "def good : Prop -> Prop := fun (p : Prop) => p\n\
+               def bad : Prop -> Type := fun (x : Prop) => x\n\
+               def after : Prop -> Prop := fun (p : Prop) => p\n";
+    let file = parse(src).unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors.len(),
+        1,
+        "exactly the middle declaration: {:?}",
+        out.errors
+    );
+    let e = &out.errors[0];
+    assert_eq!(e.code(), "kernel-rejected");
+    assert_eq!(
+        &src[e.span.start.offset..e.span.end.offset],
+        "def bad : Prop -> Type := fun (x : Prop) => x"
+    );
+    assert_eq!(e.span.start.line, 2, "the command starts on line 2");
+    assert_eq!(e.span.end.line, 2, "and ends on it: no overflow");
 }
 
 #[test]
@@ -249,6 +283,61 @@ fn checks_axiom_with_two_universe_params() {
     .expect("parse two universe params");
     let out = compile_fol(&file);
     assert_eq!(out.errors, vec![]);
+}
+
+#[test]
+fn checks_axiom_with_decl_binders() {
+    // WO-008 / G-13：axiom 的 binder 糖与柯里化等价（1/2/3/4 号写法都要 checked）。
+    for src in [
+        "axiom Foo (α : Type) : Prop\n",
+        "axiom Foo (α β : Type) : Prop\n",
+        "axiom Foo {α : Type} : Prop\n",
+        "axiom Foo {u} (α : Sort u) : Prop\n",
+    ] {
+        let out = compile_fol(&parse(src).expect("parse axiom with decl binders"));
+        assert_eq!(out.errors, vec![], "{src:?}");
+    }
+}
+
+#[test]
+fn axiom_decl_binders_match_arrow_style_outcomes() {
+    // 同一条公理的两种拼写各写一份，再用一条闭合定理消费两者：
+    // 四条都必须 Checked（比结果，不比文本——硬规则 4）。
+    let src = "axiom And : Prop -> Prop -> Prop\n\
+         axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b\n\
+         axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
+         axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b\n\
+         axiom And.comm (a : Prop) (b : Prop) : And a b -> And b a\n\
+         axiom And.comm_arrow : (a : Prop) -> (b : Prop) -> And a b -> And b a\n\
+         theorem use_them (a : Prop) (b : Prop) (h : And a b) : And b a := \
+         And.comm a b h\n\
+         theorem use_them_arrow (a : Prop) (b : Prop) (h : And a b) : And b a := \
+         And.comm_arrow a b h\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    for name in ["And.comm", "And.comm_arrow", "use_them", "use_them_arrow"] {
+        let d = report
+            .decls
+            .iter()
+            .find(|d| d.name.as_deref() == Some(name))
+            .unwrap_or_else(|| panic!("decl {name}"));
+        assert_eq!(d.status, DeclStatus::Checked, "{name} must check");
+    }
+}
+
+#[test]
+fn checks_space_separated_and_split_universe_params() {
+    // WO-009 表 3/4/6/9/11：{u v}、{u} {v}、{u} {α : Type}、theorem、axiom 都要 checked。
+    for src in [
+        "def f {u v} (α : Sort u) (β : Sort v) (a : α) : α := a\n",
+        "def f {u} {v} (α : Sort u) (β : Sort v) (a : α) : α := a\n",
+        "def f {u} {α : Type} (a : α) : α := a\n",
+        "theorem t {u v} (α : Sort u) (β : Sort v) (a : α) : Eq.{u} α a a := Eq.refl.{u} α a\n",
+        "axiom A {u} {v} : Sort u\n",
+    ] {
+        let out = compile_fol(&parse(src).expect("parse universe params"));
+        assert_eq!(out.errors, vec![], "{src:?}");
+    }
 }
 
 #[test]
@@ -517,15 +606,15 @@ def not : Bool -> Bool := fun (b : Bool) => Bool.rec.{1} (fun (x : Bool) => Bool
     assert!(
         out.events
             .iter()
-            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "ff")),
-        "`not tt` must reduce to ff: {:?}",
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Bool.ff")),
+        "`not tt` must reduce to Bool.ff: {:?}",
         out.events
     );
     assert!(
         out.events
             .iter()
-            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "tt")),
-        "`not ff` must reduce to tt: {:?}",
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Bool.tt")),
+        "`not ff` must reduce to Bool.tt: {:?}",
         out.events
     );
 }
@@ -552,9 +641,9 @@ def add : Nat -> Nat -> Nat :=
     assert!(
         out.events.iter().any(|e| matches!(
             e,
-            CheckEvent::Reduced { text, .. } if text == "succ (succ (succ (succ zero)))"
+            CheckEvent::Reduced { text, .. } if text == "Nat.succ (Nat.succ (Nat.succ 1))"
         )),
-        "expected the 4-deep succ chain for `add two two`, got {:?}",
+        "expected the measured mixed NatLit form for `add two two`, got {:?}",
         out.events
     );
 }
@@ -583,7 +672,7 @@ def myAdd : MyNat -> MyNat -> MyNat :=
     assert!(
         out.events.iter().any(|e| matches!(
             e,
-            CheckEvent::Reduced { text, .. } if text == "z"
+            CheckEvent::Reduced { text, .. } if text == "MyNat.z"
         )),
         "events: {:?}",
         out.events
@@ -591,7 +680,7 @@ def myAdd : MyNat -> MyNat -> MyNat :=
     assert!(
         out.events.iter().any(|e| matches!(
             e,
-            CheckEvent::Reduced { text, .. } if text == "s z"
+            CheckEvent::Reduced { text, .. } if text == "MyNat.s MyNat.z"
         )),
         "events: {:?}",
         out.events
@@ -599,7 +688,7 @@ def myAdd : MyNat -> MyNat -> MyNat :=
     assert!(
         out.events.iter().any(|e| matches!(
             e,
-            CheckEvent::Reduced { text, .. } if text == "s (s (s z))"
+            CheckEvent::Reduced { text, .. } if text == "MyNat.s (MyNat.s (MyNat.s MyNat.z))"
         )),
         "events: {:?}",
         out.events
@@ -625,9 +714,9 @@ def oneNat : Nat := succ zero
     assert!(
         out.events.iter().any(|e| matches!(
             e,
-            CheckEvent::Reduced { text, .. } if text == "succ zero"
+            CheckEvent::Reduced { text, .. } if text == "1"
         )),
-        "events: {:?}",
+        "explicit Nat + canonical ctors reduce through the Nat fast path: {:?}",
         out.events
     );
 }
@@ -645,7 +734,7 @@ fn ported_nat_fol_add_two_two_reduces() {
     assert!(
         out.events.iter().any(|e| matches!(
             e,
-            CheckEvent::Reduced { text, .. } if text == "succ (succ (succ (succ zero)))"
+            CheckEvent::Reduced { text, .. } if text == "Nat.succ (Nat.succ (Nat.succ 1))"
         )),
         "events: {:?}",
         out.events
@@ -766,6 +855,7 @@ fn every_error_kind_has_stable_code_and_hint() {
                 | ErrorKind::ElabInvalidNatLiteral
                 | ErrorKind::ElabTooManyCtorFields
                 | ErrorKind::ElabUnknownCtorForIota
+                | ErrorKind::ElabAmbiguousCtorAlias
                 | ErrorKind::KernelExpectedSort
                 | ErrorKind::KernelExpectedPi
                 | ErrorKind::KernelTheoremNotProp
@@ -799,6 +889,7 @@ fn every_error_kind_has_stable_code_and_hint() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::ElabAmbiguousCtorAlias,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1013,6 +1104,7 @@ fn sorry_in_argument_position_within_open_exercise_is_accepted() {
     // 走查因超量应用（通过 `Not` def 间接获得函数类型）无法分解，但值里有
     // 洞 → fallback 生成 generic open exercise（整值 = 一个洞）。
     let src = "axiom P : Prop\n\
+               axiom False : Prop\n\
                axiom Not : Prop -> Prop\n\
                axiom And : Prop -> Prop -> Prop\n\
                axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a\n\
@@ -1444,6 +1536,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral,
         ErrorKind::ElabTooManyCtorFields,
         ErrorKind::ElabUnknownCtorForIota,
+        ErrorKind::ElabAmbiguousCtorAlias,
         ErrorKind::ElabTacticFailed,
         ErrorKind::ElabApplyNeedsATerm,
         ErrorKind::ElabApplyNotApplicable,
@@ -1454,6 +1547,8 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabMatchNonExhaustive,
         ErrorKind::ElabMatchParameterizedUnsupported,
         ErrorKind::ElabLetTypeQueryFailed,
+        ErrorKind::ElabNotationUnknownTarget,
+        ErrorKind::ElabNotationArgumentUnsolved,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1490,6 +1585,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabInvalidNatLiteral => {}
         ErrorKind::ElabTooManyCtorFields => {}
         ErrorKind::ElabUnknownCtorForIota => {}
+        ErrorKind::ElabAmbiguousCtorAlias => {}
         ErrorKind::ElabTacticFailed => {}
         ErrorKind::ElabApplyNeedsATerm => {}
         ErrorKind::ElabApplyNotApplicable => {}
@@ -1500,6 +1596,8 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabMatchNonExhaustive => {}
         ErrorKind::ElabMatchParameterizedUnsupported => {}
         ErrorKind::ElabLetTypeQueryFailed => {}
+        ErrorKind::ElabNotationUnknownTarget => {}
+        ErrorKind::ElabNotationArgumentUnsolved => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}
@@ -1574,9 +1672,9 @@ fn perf_smoke_native_and_iota_reduce() {
     assert!(
         out.events.iter().any(|e| matches!(
             e,
-            CheckEvent::Reduced { text, .. } if text == "succ (succ (succ (succ zero)))"
+            CheckEvent::Reduced { text, .. } if text == "Nat.succ (Nat.succ (Nat.succ 1))"
         )),
-        "expected the 4-deep succ chain for `add two two`, got {:?}",
+        "expected the measured mixed NatLit form for `add two two`, got {:?}",
         out.events
     );
 
@@ -1608,6 +1706,291 @@ fn eq_prelude_symm_derivable_from_subst() {
     .unwrap();
     let out = compile_fol(&file);
     assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+// ---------------------------------------------------------------------------
+// L1 prelude（docs/design/prelude-l1-proposal.md P1）：逻辑与等式骨架
+// ---------------------------------------------------------------------------
+
+/// 一段只用 L1 名字的完整文件：B1–B7 各用一次（`And.intro`/`Or.elim`/
+/// `Iff.mp`/`absurd`/`Eq.symm`），并且不自己声明任何 L1 名字（否则整族让位）。
+const L1_USER_SRC: &str = "\
+def l1_and (a b : Prop) (ha : a) (hb : b) : And b a := And.intro b a hb ha
+def l1_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h
+def l1_iff (a b : Prop) (h : Iff a b) : b -> a := Iff.mpr a b h
+def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := absurd a b ha hna
+def l1_true : True := True.intro
+def l1_false (h : False) : False := h
+def l1_false_elim (c : Prop) (h : False) : c := False.elim c h
+def l1_not_intro (a : Prop) (f : a -> False) : Not a := Not.intro a f
+def l1_not_elim (a c : Prop) (h : Not a) (ha : a) : c := Not.elim a c h ha
+def l1_iff_refl (a : Prop) : Iff a a := Iff.refl a
+def l1_iff_symm (a b : Prop) (h : Iff a b) : Iff b a := Iff.symm a b h
+def l1_iff_trans (a b c : Prop) (h1 : Iff a b) (h2 : Iff b c) : Iff a c := Iff.trans a b c h1 h2
+def l1_and_elim (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := And.elim a b c f h
+def l1_and_left (a b : Prop) (h : And a b) : a := And.left a b h
+def l1_and_right (a b : Prop) (h : And a b) : b := And.right a b h
+def l1_or_inl (a b : Prop) (ha : a) : Or a b := Or.inl a b ha
+def l1_or_inr (a b : Prop) (hb : b) : Or a b := Or.inr a b hb
+def l1_eq_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h
+def l1_eq_trans (a b c : Nat) (h1 : Eq.{1} Nat a b) (h2 : Eq.{1} Nat b c) : Eq.{1} Nat a c :=
+  Eq.trans.{1} Nat a b c h1 h2
+def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : Eq.{1} Nat a b) :
+    Eq.{1} Nat (f a) (f b) := congrArg.{1} Nat Nat f a b h
+";
+
+fn l1_names_missing(errors: &[CompileError]) -> Vec<String> {
+    errors
+        .iter()
+        .filter(|e| {
+            matches!(
+                e.kind,
+                ErrorKind::ElabUnknownIdentifier | ErrorKind::ElabUnknownConstant
+            )
+        })
+        .map(|e| e.message.clone())
+        .collect()
+}
+
+/// P1 的核心：Full 模式下 L1 全族可用（0 errors），且每条声明都真的过内核。
+#[test]
+fn l1_prelude_is_available_in_full_mode() {
+    let file = parse(L1_USER_SRC).unwrap();
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "L1 prelude must install in Full mode; unknown-identifier leftovers: {:?}",
+        l1_names_missing(&out.errors)
+    );
+    let checked = out
+        .events
+        .iter()
+        .filter(|e| matches!(e, CheckEvent::DeclarationChecked { .. }))
+        .count();
+    assert_eq!(checked, 20, "every L1 probe declaration must be checked");
+}
+
+/// `Or`/`And` 是**真归纳块**：`match` 的两种模式拼写（点号名与裸名）都必须过。
+/// 这条钉住 `InductiveTable` 的注册（`Or.elim` 本身走的是派生 `Or.rec`）。
+#[test]
+fn l1_or_is_a_real_inductive_for_match() {
+    for patterns in [
+        (
+            "| Or.inl ha => Or.inr b a ha",
+            "| Or.inr hb => Or.inl b a hb",
+        ),
+        ("| inl ha => Or.inr b a ha", "| inr hb => Or.inl b a hb"),
+    ] {
+        let src = format!(
+            "def l1_or_comm (a b : Prop) (h : Or a b) : Or b a :=\n\
+             match h with\n{}\n{}\n",
+            patterns.0, patterns.1
+        );
+        let file = parse(&src).unwrap();
+        let out = compile_fol(&file);
+        assert_eq!(
+            out.errors,
+            vec![],
+            "patterns {:?}: {:?}",
+            patterns,
+            out.errors
+        );
+    }
+}
+
+/// 让位是**族粒度 + 依赖闭包**（设计 §2.2 的依赖表：B6→B3、B5→B2、B7→Eq）：
+/// 文件声明 `And`（B3）⇒ 依赖它的 `Iff.*`（B6）一起不装，而独立的
+/// `Or.elim`（B4）/`Eq.symm`（B7）仍在。
+///
+/// 注意方向：依赖边是「B6 用 `And.left`」而不是反过来，所以声明 `Iff` 只让位
+/// B6、**不**让位 B3（提案 §3.2 的措辞把这条写反了；§2.2 的表是规范）。
+#[test]
+fn l1_family_yield_is_dependency_closed() {
+    // 文件只声明 B3 的族头 `And`（不透明定义即可：重点是让位，不是展开形状）。
+    let src = "\
+inductive And (a b : Prop) : Prop\n\
+ctor And.intro (ha : a) (hb : b) : And a b\n\
+end\n\
+def probe_or (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.elim a b c f g h\n\
+def probe_eq (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(
+        out.errors,
+        vec![],
+        "Or/Eq families must survive a B3 yield: {:?}",
+        out.errors
+    );
+    // 反向：`Iff.mpr` 随 B3 的依赖闭包让位 ⇒ 用它必须报未知标识符。
+    let src = format!("{src}def probe_iff (a b : Prop) (h : Iff a b) : b -> a := Iff.mpr a b h\n");
+    let out = compile_fol(&parse(&src).unwrap());
+    assert!(
+        l1_names_missing(&out.errors)
+            .iter()
+            .any(|m| m.contains("Iff")),
+        "B6 must be gone once B3 yielded: {:?}",
+        out.errors
+    );
+    // 对照（同一条依赖边的另一头）：只声明 `Iff` ⇒ 只让位 B6，B3 照常装着。
+    let src = "\
+def Iff (A B : Prop) : Prop := A -> B\n\
+def probe_and (a b : Prop) (ha : a) (hb : b) : And a b := And.intro a b ha hb\n";
+    let out = compile_fol(&parse(src).unwrap());
+    assert_eq!(
+        out.errors,
+        vec![],
+        "a B6 yield must not take B3 down with it: {:?}",
+        out.errors
+    );
+}
+
+/// 只声明族里的**一个**名字，整族让位（不是单名）。
+#[test]
+fn l1_yield_needs_the_whole_family() {
+    // `And.left` 只声明名字、不提 `And`（否则文件自己就先撞上让位后的空环境）。
+    let file = parse(
+        "def And.left (x : Prop) : Prop := x\n\
+         def probe (a b : Prop) (ha : a) (hb : b) : And a b := And.intro a b ha hb\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    assert!(
+        l1_names_missing(&out.errors)
+            .iter()
+            .any(|m| m.contains("And")),
+        "declaring And.left alone must yield the whole B3 family: {:?}",
+        out.errors
+    );
+}
+
+/// 让位触发集合 = 整个闭包的顶层名字并集，且必须**含构造子与递归子**
+/// （设计 §2.3-1：`taken` 从 `user_top_level_names` 换成
+/// `top_level_def_spans_over` 的键集）。
+#[test]
+fn l1_taken_includes_ctors_and_recursors() {
+    let file = parse(
+        "inductive Pair : Prop\n\
+         ctor Or.inl : Pair\n\
+         end\n\
+         def probe (a b : Prop) (ha : a) : Or a b := Or.inl a b ha\n",
+    )
+    .unwrap();
+    let out = compile_fol(&file);
+    assert!(
+        l1_names_missing(&out.errors)
+            .iter()
+            .any(|m| m.contains("Or")),
+        "a file-declared `ctor Or.inl` must take the B4 family over: {:?}",
+        out.errors
+    );
+}
+
+/// 白名单 ↔ 实际安装防漂移：`PRELUDE_NAMES` 必须逐条真的在环境里。
+#[test]
+fn prelude_names_match_installs() {
+    // 设计 §3.3 的守卫：数字变了必须是有意为之（review 时一眼看见）。
+    // 12（Nat/Bool/Eq）+ 30（L1：28 条声明 + 派生的 And.rec/Or.rec）= 42。
+    assert_eq!(
+        super::PRELUDE_NAMES.len(),
+        42,
+        "PRELUDE_NAMES drifted: {:?}",
+        super::PRELUDE_NAMES
+    );
+    for name in super::PRELUDE_NAMES {
+        // `#check` 对已安装的名字给 `expr.typed`；未知名字给 diagnostic。
+        let out = compile_fol(&parse(&format!("#check {name}\n")).unwrap());
+        assert!(
+            out.errors.is_empty(),
+            "PRELUDE_NAMES lists `{name}` but the prelude does not install it: {:?}",
+            out.errors
+        );
+    }
+}
+
+/// `Eq.symm` 不只**可导出**（既有测试），它现在**已安装**。
+#[test]
+fn eq_symm_is_installed() {
+    let out = compile_fol(
+        &parse("def probe (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n")
+            .unwrap(),
+    );
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+/// 建议材料层（`GoalTemplates::new_for`）也吃 L1：开放练习里对 prelude 的
+/// `And.intro` 做 spine 应用时，子洞期望类型必须由模板算出来（设计 §4.1 的
+/// `goals.rs` 行）。**边界（as-built）**：归纳块的 `CtorTemplate.result_arg_names`
+/// 一直是空的（既有行为，见 `ctor_spine_accepts_both_spellings` 的注释），
+/// 所以这里断言的是 `sub_goals` 的期望类型，不是 `refine_template`。
+#[test]
+fn l1_ctor_templates_feed_sub_goal_types() {
+    let src = "def probe (a b : Prop) : And a b := And.intro sorry sorry\n";
+    let report = check_document(&parse(src).expect("parse"));
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let open = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("probe"))
+        .expect("open");
+    let tys: Vec<Option<&str>> = open.sub_goals.iter().map(|s| s.ty.as_deref()).collect();
+    assert_eq!(
+        tys,
+        vec![Some("a"), Some("b")],
+        "the prelude's And.intro must feed the ctor spine template"
+    );
+}
+
+/// Bare 模式（`--bare` 与 `-- sokonanoda:prelude none`）没有 L1。
+#[test]
+fn bare_mode_has_no_l1() {
+    let options = CompileOptions {
+        prelude: PreludeMode::Bare,
+    };
+    let file = parse("def probe (a b : Prop) (ha : a) (hb : b) : And a b := And.intro a b ha hb\n")
+        .unwrap();
+    let out = compile_fol_with(&file, &options);
+    assert!(!out.errors.is_empty(), "Bare mode must not install L1");
+}
+
+/// 项目模式：**依赖模块**声明 B3（`inductive And`）⇒ 入口也没有 prelude 的
+/// `And.elim`（让位是闭包级的，设计 §2.2）。注意入口能看见依赖声明的 `And`
+/// 本身——被隐藏的是 prelude 那一族的**其余名字**（族粒度，不是单名）。
+#[test]
+fn l1_yield_is_closure_wide() {
+    use crate::project::compile_project;
+    use std::path::PathBuf;
+
+    let dir = std::env::temp_dir().join(format!("soko-front-l1-closure-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("create temp dir");
+    std::fs::write(
+        dir.join("Dep.sokonanoda"),
+        "inductive And (a b : Prop) : Prop\nctor And.intro (ha : a) (hb : b) : And a b\nend\n",
+    )
+    .expect("write Dep");
+    std::fs::write(
+        dir.join("Main.sokonanoda"),
+        "import Dep\n\ndef probe (a b c : Prop) (f : a -> b -> c) (h : And a b) : c :=\n  And.elim a b c f h\n",
+    )
+    .expect("write Main");
+    let entry: PathBuf = dir.join("Main.sokonanoda");
+    let report = compile_project(&entry, None, &CompileOptions::default(), None);
+    let entry_errors: Vec<&'static str> = report
+        .entry_module()
+        .map(|m| m.report.errors.iter().map(|e| e.code()).collect())
+        .unwrap_or_default();
+    assert!(
+        entry_errors.contains(&"elab-unknown-identifier"),
+        "the closure-level yield must hide prelude `And.elim` from the entry: {entry_errors:?}"
+    );
+    // 对照：同一入口在单文件模式（没有依赖模块占用 B3）里照常通过。
+    let solo = crate::parse(
+        "def probe (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := And.elim a b c f h\n",
+    )
+    .unwrap();
+    let out = compile_fol(&solo);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -2399,9 +2782,11 @@ fn source_axiom_argument_holes_use_the_function_telescope() {
 
 #[test]
 fn user_defined_function_argument_hole_gets_its_binder_type() {
+    // `theorem` 要求签名是 Prop（G-01 起开练习也受检），
+    // 这里考的是参数位置洞的 binder 类型 ⇒ 用 `def`。
     let src = concat!(
         "def add1 : Nat -> Nat := fun n => n + 1\n",
-        "theorem t : Nat -> Nat := fun (n : Nat) => add1 (sorry)\n",
+        "def t : Nat -> Nat := fun (n : Nat) => add1 (sorry)\n",
     );
     let report = check_document(&parse(src).expect("parse"));
     let open = open_exercise(&report, 1);
@@ -2496,10 +2881,12 @@ fn probe_fills_dependent_field_via_substitution() {
 #[test]
 fn probe_fills_one_level_nested_hole_expected_type() {
     // 一层嵌套洞 `h (g sorry)`：廉价 walk 给出**内层** sorry 的 span，
-    // 类型交给请求期探针（`g` 的定义域）。
+    // 类型交给请求期探针（`g` 的定义域）。目标宣称成真命题 `P`
+    // （G-01 起 `theorem` 的签名必须真的是 Prop，不能再拿 `Prop` 当目标）。
     let src = "axiom g : (a : Prop) -> Prop\n\
                axiom h : (b : Prop) -> Prop\n\
-               theorem t : Prop := h (g sorry)\n";
+               axiom P : Prop\n\
+               theorem t : P := h (g sorry)\n";
     let report = check_document(&parse(src).expect("parse"));
     let d = report
         .decls
@@ -2524,10 +2911,12 @@ fn probe_fills_one_level_nested_hole_expected_type() {
 fn probe_deeper_than_one_level_falls_back_to_none() {
     // v1 上限：超过一层的嵌套不识别为精确子洞，走既有 generic fallback
     // （整值 = 一个洞，sub_goals 为空），探针也返回空——绝不比 B′ 差。
+    // 目标同样用真命题 `P`（见上一个测试的说明）。
     let src = "axiom k : (a : Prop) -> Prop\n\
                axiom g : (a : Prop) -> Prop\n\
                axiom h : (b : Prop) -> Prop\n\
-               theorem t : Prop := h (g (k sorry))\n";
+               axiom P : Prop\n\
+               theorem t : P := h (g (k sorry))\n";
     let report = check_document(&parse(src).expect("parse"));
     let d = report
         .decls
@@ -2596,7 +2985,10 @@ fn sub_goal_field_types_substitute_compound_binders() {
     // 原样渲染的模板名 `And a b`（旧实现只处理裸 Ident 字段类型）。
     let report = check_document(
         &parse(
-            "axiom Pair : Prop -> Prop -> Prop\n\
+            "axiom And : Prop -> Prop -> Prop\n\
+             axiom True : Prop\n\
+             axiom False : Prop\n\
+             axiom Pair : Prop -> Prop -> Prop\n\
              axiom Pair.mk : (a : Prop) -> (b : Prop) -> And a b -> Pair a b\n\
              example : Pair True False := Pair.mk True False sorry\n",
         )
@@ -2658,9 +3050,10 @@ fn sub_goal_field_types_respect_binder_shadowing() {
 #[test]
 fn spine_holes_without_a_known_template_stay_open() {
     // 没有兄弟 axiom/ctor 模板也能合法多洞（子目标类型缺省）。
+    // 注意 `A` 必须是**命题**（`(A : Prop -> Prop) -> A -> A` 里的 `A` 是函数，
+    // 不是类型——G-01 起这种签名会被内核拒）。
     let report = check_document(
-        &parse("example : (A : Prop -> Prop) -> A -> A := fun (A : Prop -> Prop) => sorry\n")
-            .expect("parse"),
+        &parse("example : (A : Prop) -> A -> A := fun (A : Prop) => sorry\n").expect("parse"),
     );
     let open = report
         .decls
@@ -2676,7 +3069,8 @@ fn spine_holes_without_a_known_template_stay_open() {
 #[test]
 fn sorry_is_a_hole_and_stays_an_open_exercise() {
     let report = check_document(
-        &parse("theorem t : Prop -> Prop := fun (x : Prop) => sorry\n").expect("parse"),
+        &parse("theorem t : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => sorry\n")
+            .expect("parse"),
     );
     let open = report
         .decls
@@ -3716,7 +4110,7 @@ fn match_unknown_bare_name_is_a_binding() {
     assert!(
         out.events
             .iter()
-            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "green")),
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Color.green")),
         "a variable pattern shadows later arms: {:?}",
         out.events
     );
@@ -3762,7 +4156,7 @@ fn match_duplicate_ctor_falls_through_in_order() {
     assert!(
         out.events
             .iter()
-            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "green")),
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Color.green")),
         "the first matching arm must win: {:?}",
         out.events
     );
@@ -3801,9 +4195,11 @@ fn match_recursive_inductive_uses_the_induction_hypothesis() {
         );
     }
     assert!(
-        out.events
-            .iter()
-            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "s (s (s (s z)))")),
+        out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. }
+                if text == "Nat2.s (Nat2.s (Nat2.s (Nat2.s Nat2.z)))"
+        )),
         "recursion via the IH must compute: {:?}",
         out.events
     );
@@ -3847,7 +4243,7 @@ fn match_and_handwritten_recursor_agree() {
             _ => None,
         })
         .collect();
-    assert_eq!(reduced, vec!["green", "green"]);
+    assert_eq!(reduced, vec!["Color.green", "Color.green"]);
 }
 
 #[test]
@@ -4046,7 +4442,7 @@ def negate (b : Bool) : Bool := match b with
     assert!(
         out.events
             .iter()
-            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "ff")),
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Bool.ff")),
         "source `Bool` must reduce with its own ctors: {:?}",
         out.events
     );
@@ -4087,7 +4483,12 @@ fn match_wildcard_falls_through_by_order() {
             _ => None,
         })
         .collect();
-    assert_eq!(reduced, vec!["green", "blue"], "{:?}", out.events);
+    assert_eq!(
+        reduced,
+        vec!["Color.green", "Color.blue"],
+        "{:?}",
+        out.events
+    );
 }
 
 #[test]
@@ -4113,7 +4514,12 @@ fn match_nested_patterns_use_the_inner_values() {
             _ => None,
         })
         .collect();
-    assert_eq!(reduced, vec!["ib", "ia", "ia"], "{:?}", out.events);
+    assert_eq!(
+        reduced,
+        vec!["Inner.ib", "Inner.ia", "Inner.ia"],
+        "{:?}",
+        out.events
+    );
 }
 
 #[test]
@@ -4132,7 +4538,7 @@ fn match_nested_wildcard_binds_and_defaults() {
     assert!(
         out.events
             .iter()
-            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "ia")),
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Inner.ia")),
         "{:?}",
         out.events
     );
@@ -4210,10 +4616,13 @@ fn match_nested_arity_mismatch_reports_bad_arm() {
     assert_eq!(out.errors[0].code(), "elab-match-bad-arm");
 }
 
+/// 文件自带 `inductive Nat` 时 prelude 不装，源块自己登记。**语义在本刀变了**
+/// （WO-005 第 5 条）：分支名仍是**源名** `zero`/`succ`（R3 不动），但内核里的
+/// ctor 已是规范名 `Nat.zero`/`Nat.succ` ⇒ 归约走内核 name cache 的 NatRed 快
+/// 路径，输出变成**混合表示**（`docs/architecture.md` §5.4 记过这个现象）。
+/// 修前的断言是 `succ (succ (succ zero))`；新值**实测**自真实二进制。
 #[test]
-fn match_source_inductive_nat_still_uses_bare_ctors() {
-    // 文件自带 `inductive Nat` 时 prelude 不装，源块自己登记：分支仍是裸名
-    // `zero`/`succ`（不是 `Nat.zero`/`Nat.succ`），且不受 prelude 影响。
+fn match_source_inductive_nat_reduces_through_the_nat_fast_path() {
     let src = "\
 inductive Nat : Type
 ctor zero : Nat
@@ -4231,9 +4640,9 @@ def addS (a b : Nat) : Nat := match a with
     assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
     assert!(
         out.events.iter().any(
-            |e| matches!(e, CheckEvent::Reduced { text, .. } if text == "succ (succ (succ zero))")
+            |e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Nat.succ (Nat.succ 1)")
         ),
-        "source `Nat` must still reduce with bare ctors: {:?}",
+        "source `Nat` + bare match arms must reduce through the Nat fast path: {:?}",
         out.events
     );
 }
@@ -4704,6 +5113,277 @@ def wlen (A : Type) (n : Nat) (w : W A n) : Nat :=
     );
 }
 
+// ── 派生 recursor 的 large-elimination 判据（G-03 / WO-006）────────────────────
+//
+// 前端曾用 `is_prop_block_ty(ty) && constructors.len() > 1` 近似内核的
+// `large_elim_test`（`crates/kernel/src/inductive.rs`）。两者只在"单构造子 Prop
+// 且该构造子确实 large-eliminate"时巧合一致；不一致时前端声明的 recursor
+// 宇宙参数个数 ≠ 内核算出的 `st.rec_uparams` 个数，内核在
+// `subst_expr_levels`（`expr.rs:381-394`）的 `assert_eq!` 上炸成 panic 载荷
+// `left: 1 / right: 0` —— 学习者看到的是内部断言，没有任何可行动的提示。
+//
+// 修法是**问内核**（设计 `docs/design/prop-large-elim-mirror.md` §3）：把块临时
+// 交给内核探一次，从拒绝载荷里读出它自己算的个数，再按答案派生。
+//
+// 判据是**判别性**的，不许用近似替换（WO-006 的 P1–P14 对拍表）：
+//   · 不能按"字段类型语法上是不是 Prop"——P10 `P -> Q`、P11 `forall (x : Nat), P`、
+//     P13 `Named`、P14 `Rel 0` 都**是** Prop 值，近似会把它们从 1 个宇宙参数改成
+//     0 个，换成镜像方向的 `left:0/right:1`；
+//   · 不能按"字段数 vs 参数数"或"有没有索引"——P3 与 P9 是一对判别性形状。
+
+/// 复现件形状（`docs/gaps/repro/G03-prop-type-param-inductive.sokonanoda:29-31`）：
+/// `Prop` 结果 + `Type` 参数 + **恰好一个**构造子 + 构造子自有字段。
+///
+/// 内核对它算 `large_elim_test_aux == false`（自有字段 `a` 不是 Prop 值、也不在
+/// 结果实参 `[A]` 里）⇒ `rec_uparams` 为空 ⇒ 派生的 recursor **不许**带宇宙参数。
+#[test]
+fn prop_type_param_single_ctor_derives_a_zero_universe_recursor() {
+    let src = "\
+inductive Bar (A : Type) : Prop
+ctor mk (a : A) : Bar A
+end
+#check Bar.rec
+";
+    let out = compile_fol(&parse(src).expect("parse G-03 shape"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "Bar")),
+        "the G-03 block must be checked: {:?}",
+        out.events
+    );
+    // 形状断言（关键）：只断 `decl.checked` 不够——本缺口的本质是 recursor 的
+    // **形状**错了。`#check Bar.rec` 的类型里不许出现宇宙参数，motive 必须落在
+    // `Prop`（内核对这个块给的就是 0 级 recursor）。
+    let types: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    let rec_ty = types
+        .iter()
+        .find(|t| t.contains("motive") && t.contains("Bar"))
+        .unwrap_or_else(|| panic!("Bar.rec must be type-checked: {types:?}"));
+    assert!(
+        !rec_ty.contains("{u}") && !rec_ty.contains("Sort u"),
+        "a non-large-eliminating Prop block must derive a recursor with no universe parameter: {rec_ty}"
+    );
+    assert!(
+        rec_ty.contains("-> Prop"),
+        "the derived motive must land in Prop: {rec_ty}"
+    );
+}
+
+/// **表驱动对拍**：WO-006 的整份语料（`Named`/`Rel` + P1–P14，共 16 条声明）。
+///
+/// 修前 13 checked / 3 failed（失败恰为 P1/P2/P3），修后必须 16/16。
+/// 每一条都是内核判据的一侧边界，别删条目——判别性就在这里。
+#[test]
+fn derived_recursor_universe_mirrors_the_kernel_large_elim_test() {
+    let src = "\
+def Named : Prop := forall (x : Nat), forall (y : Nat), Eq.{1} Nat x y
+def Rel (n : Nat) : Prop := forall (m : Nat), Eq.{1} Nat m n
+inductive P1 (A : Type) : Prop
+ctor c1 (a : A) : P1 A
+end
+inductive P2 (A : Type) : Prop
+ctor c2 (a : A) (b : A) : P2 A
+end
+inductive P3 (A : Type) : A -> Prop
+ctor c3 (a : A) (b : A) : P3 A a
+end
+inductive P4 (A : Type) : Prop
+ctor c4 : P4 A
+end
+inductive P5 (P : Prop) : Prop
+ctor c5 (p : P) : P5 P
+end
+inductive P6 (A : Type) (P : A -> Prop) : Type
+ctor c6 (a : A) (h : P a) : P6 A P
+end
+inductive P7 (A : Type) : Prop
+ctor c7a (a : A) : P7 A
+ctor c7b : P7 A
+end
+inductive P8 (n : Nat) : Prop
+ctor c8 : P8 n
+end
+inductive P9 (A : Type) : A -> Prop
+ctor c9 (a : A) : P9 A a
+end
+inductive P10 (A : Type) (P Q : Prop) : Prop
+ctor c10 (h : P -> Q) : P10 A P Q
+end
+inductive P11 (A : Type) (P : Prop) : Prop
+ctor c11 (f : forall (x : Nat), P) : P11 A P
+end
+inductive P12 (A : Type) : Prop
+end
+inductive P13 (A : Type) : Prop
+ctor c13 (h : Named) : P13 A
+end
+inductive P14 (A : Type) : Prop
+ctor c14 (h : Rel 0) : P14 A
+end
+";
+    let out = compile_fol(&parse(src).expect("parse the WO-006 corpus"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "the whole corpus must mirror the kernel: {:?}",
+        out.errors
+    );
+    let checked: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::DeclarationChecked { name } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    for name in [
+        "Named", "Rel", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10", "P11", "P12",
+        "P13", "P14",
+    ] {
+        assert!(
+            checked.contains(&name),
+            "`{name}` must be checked (16/16 after the fix): {checked:?}"
+        );
+    }
+}
+
+/// 判别性反例，**成对**点名（`docs/architecture.md` §8 gotcha 0b）：
+///
+/// * **P3 vs P9** —— 两条都是"`A -> Prop` + 一个字段"，只差字段**是不是结果的
+///   索引**。内核 `large_elim_test_aux` 的判据是"非 Prop 字段必须是
+///   `params ++ indices` 的**语法**成员"：P9 的 `a` 就是索引 `a`（⇒ 可 large
+///   eliminate ⇒ 1 个宇宙参数），P3 的 `b` 不在 `[A, a]` 里（⇒ 0 个）。
+///   按"看起来像同一类"的近似写就会让其中一条翻面。
+/// * **P10/P11/P13/P14** —— 字段类型分别是 `P -> Q`、`forall (x : Nat), P`、
+///   具名 `def … : Prop`、具名 Prop 定义的应用，**都**是 Prop 值（⇒ 1 个宇宙
+///   参数）。按"字段类型语法上是不是 `Prop`"近似就会把它们全部翻成 0 个。
+///
+/// 两组合起来钉住：判据只能来自内核本身，不能来自源码形状。
+#[test]
+fn discriminative_pairs_pin_the_large_elim_test_to_the_kernel() {
+    // P3 / P9：索引成员判据（语法，不展开定义）。两者形状只差一个字段是否
+    // 出现在结果实参里，所以 recursor 的**宇宙参数个数**是唯一判别式：
+    // `#check` 会把 `u` 实例化成 0 并打印成 `Prop`，文本比对分辨不出来，
+    // 于是用 `.{0}` 这个显式宇宙应用去问内核真实 arity。
+    let p3p9 = "\
+inductive P3 (A : Type) : A -> Prop
+ctor c3 (a : A) (b : A) : P3 A a
+end
+inductive P9 (A : Type) : A -> Prop
+ctor c9 (a : A) : P9 A a
+end
+#check P3.rec.{0}
+#check P9.rec.{0}
+";
+    let out = compile_fol(&parse(p3p9).expect("parse P3/P9"));
+    // P3：`b` 既不是参数也不是索引 ⇒ 不 large eliminate ⇒ recursor 有 **0** 个
+    // 宇宙参数 ⇒ `P3.rec.{0}` 是 arity 错误。
+    assert!(
+        out.errors
+            .iter()
+            .any(|e| e.code() == "elab-universe-arity" && e.message.contains("P3.rec")),
+        "P3's non-index field `b` must keep the recursor at Prop (0 universe params): {:?}",
+        out.errors
+    );
+    // P9：`a` **就是**索引 ⇒ large eliminate ⇒ **1** 个宇宙参数 ⇒ `.{0}` 合法。
+    assert!(
+        !out.errors.iter().any(|e| e.message.contains("P9.rec")),
+        "P9's field `a` is the index, so its recursor is universe-polymorphic: {:?}",
+        out.errors
+    );
+    assert!(
+        out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::TypeChecked { text, .. } if text.contains("P9")
+        )),
+        "P9.rec.{{0}} must be type-checked: {:?}",
+        out.events
+    );
+
+    // P10/P11/P13/P14：字段类型都是 Prop **值** ⇒ 都 large eliminate ⇒ 每个
+    // recursor 都带 1 个宇宙参数，`.{0}` 全部合法。
+    let prop_fields = "\
+def Named : Prop := forall (x : Nat), forall (y : Nat), Eq.{1} Nat x y
+def Rel (n : Nat) : Prop := forall (m : Nat), Eq.{1} Nat m n
+inductive P10 (A : Type) (P Q : Prop) : Prop
+ctor c10 (h : P -> Q) : P10 A P Q
+end
+inductive P11 (A : Type) (P : Prop) : Prop
+ctor c11 (f : forall (x : Nat), P) : P11 A P
+end
+inductive P13 (A : Type) : Prop
+ctor c13 (h : Named) : P13 A
+end
+inductive P14 (A : Type) : Prop
+ctor c14 (h : Rel 0) : P14 A
+end
+#check P10.rec.{0}
+#check P11.rec.{0}
+#check P13.rec.{0}
+#check P14.rec.{0}
+";
+    let out = compile_fol(&parse(prop_fields).expect("parse Prop-field shapes"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "Prop-typed fields must keep large elimination: {:?}",
+        out.errors
+    );
+    for ind in ["P10", "P11", "P13", "P14"] {
+        assert!(
+            out.events.iter().any(|e| matches!(
+                e,
+                CheckEvent::TypeChecked { text, .. } if text.contains(ind)
+            )),
+            "{ind}.rec.{{0}} must be type-checked: {:?}",
+            out.events
+        );
+    }
+}
+
+/// 修好后 G-03 形状走**0 级 recursor 分支**（`elab.rs` 的
+/// `rec_universe_arity == 0`）：`match` 消去到 `Prop` 必须真的算出来。
+///
+/// 这条守住"派生 recursor 不只是声明得过"——0 级常量与 iota 规则都得对。
+///
+/// 注意结果类型写成 `Bar A`（一个 **Prop 值**）而不是裸 `Prop`：motive 的
+/// codomain 必须是 `Sort 0`，写 `Prop` 会要求 motive 落在 `Sort 1`，那与
+/// large-elimination 无关，是另一件事（既有行为，基线同样拒绝）。
+#[test]
+fn zero_universe_prop_recursor_computes_through_match() {
+    let src = "\
+inductive Bar (A : Type) : Prop
+ctor mk (a : A) : Bar A
+end
+def bar_id (A : Type) (b : Bar A) : Bar A :=
+  match b with
+  | mk a => b
+";
+    let out = compile_fol(&parse(src).expect("parse G-03 match"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "a Prop-motived match on the G-03 shape must compile: {:?}",
+        out.errors
+    );
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "bar_id")),
+        "the match-based elimination must be checked: {:?}",
+        out.events
+    );
+}
+
 /// **单构造子 `Prop`** 的 recursor 曾被内核拒：
 /// `recursor declares the wrong k-reduction flag (left: false, right: true)` ——
 /// `install_inductive_block` 把 `is_k` 写死成 `false`（elab.rs:471）。
@@ -5025,5 +5705,684 @@ fn warnings_are_attributed_to_the_unit_that_produced_them() {
     assert!(
         out.warning_cmds[0] < dep.commands.len(),
         "第一条（依赖的语法级警告）属于依赖的命令区间"
+    );
+}
+
+// ── G-01 / WO-004：开练习的签名必须过 elaborate ────────────────────────────
+//
+// 值位是 `sorry` 不再让签名免检：签名 elaborate 不了、签名不是一个类型、
+// 或 `theorem` 的签名不是 Prop，都必须与「还没做」区分开——报一条诊断、
+// 不再发 `exercise.open`。判定全部走内核（探针不入环境）；
+// 合法开放练习（签名本来就过得去）一个字节都不变。
+
+/// 开练习的签名不是类型（`3 : Nat`）⇒ `kernel-expected-sort`，
+/// 与值位写真实值的孪生声明（`theorem t : 3 := 3`）同一条内核判据、同一个 code；
+/// 诊断 span 取**签名**的源范围（不是整条命令）。
+#[test]
+fn open_theorem_with_non_type_signature_is_rejected() {
+    let src = "theorem t : 3 := sorry\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors.len(), 1, "errors: {:?}", out.errors);
+    assert_eq!(out.errors[0].code(), "kernel-expected-sort");
+    let span = out.errors[0].span;
+    assert_eq!(
+        &file.src[span.start.offset..span.end.offset],
+        "3",
+        "诊断 span 必须落在签名上"
+    );
+    assert!(
+        !out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::ExerciseOpen { .. })),
+        "签名不过就不能再发 exercise.open：{:?}",
+        out.events
+    );
+}
+
+/// 签名里的未定义名：`declared_ty` 的 elaborate 失败必须上报（原来是 `.ok()` 吞掉）。
+#[test]
+fn open_theorem_with_unknown_identifier_in_signature_is_rejected() {
+    let src = "theorem t : Bogus := sorry\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors.len(), 1, "errors: {:?}", out.errors);
+    assert_eq!(out.errors[0].code(), "elab-unknown-identifier");
+    let span = out.errors[0].span;
+    assert_eq!(&file.src[span.start.offset..span.end.offset], "Bogus");
+    assert!(
+        !out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::ExerciseOpen { .. })),
+        "{:?}",
+        out.events
+    );
+}
+
+/// 三处吞错点都要覆盖：`def` 与 `example` 的开路径同样受检。
+#[test]
+fn open_def_and_example_with_non_type_signature_are_rejected() {
+    for src in ["def d : 3 := sorry\n", "example : 3 := sorry\n"] {
+        let file = parse(src).expect("parse");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors.len(), 1, "{src}: {:?}", out.errors);
+        assert_eq!(out.errors[0].code(), "kernel-expected-sort", "{src}");
+        let span = out.errors[0].span;
+        assert_eq!(&file.src[span.start.offset..span.end.offset], "3", "{src}");
+        assert!(
+            !out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::ExerciseOpen { .. })),
+            "{src}: {:?}",
+            out.events
+        );
+    }
+}
+
+/// `by` 路径（`theorem t : 3 := by sorry`）与直接值位共用同一处签名检查。
+#[test]
+fn open_theorem_by_sorry_shares_the_signature_gate() {
+    let file = parse("theorem t : 3 := by sorry\n").expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors.len(), 1, "errors: {:?}", out.errors);
+    assert_eq!(out.errors[0].code(), "kernel-expected-sort");
+    assert!(!out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::ExerciseOpen { .. })));
+}
+
+/// 签名是类型但不是 Prop：内核的 theorem 规则必须生效（镜像
+/// `theorem t : Nat := 3` 的 checked 路径）。
+#[test]
+fn open_theorem_with_non_prop_signature_is_rejected() {
+    for src in [
+        "theorem t : Nat := sorry\n",
+        // `forall (α : Type), α -> α` 是 Type 层的 Pi，不是 Prop。
+        "theorem t : forall (α : Type), α -> α := sorry\n",
+        "theorem t : Prop -> Type := sorry\n",
+    ] {
+        let file = parse(src).expect("parse");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors.len(), 1, "{src}: {:?}", out.errors);
+        assert_eq!(out.errors[0].code(), "kernel-theorem-not-prop", "{src}");
+        let span = out.errors[0].span;
+        assert_eq!(
+            &file.src[span.start.offset..span.end.offset],
+            src.trim_end_matches('\n')
+                .split_once(" : ")
+                .expect("signature")
+                .1
+                .trim_end_matches(" := sorry"),
+            "{src}: 诊断 span 必须落在签名上"
+        );
+        assert!(!out
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::ExerciseOpen { .. })));
+    }
+}
+
+/// 防修过头：签名本来就合法的开放练习一条诊断都不许多，事件仍是 `exercise.open`。
+#[test]
+fn legal_open_exercises_still_pass_the_signature_gate() {
+    for src in [
+        "example : Prop -> Prop := sorry\n",
+        "example : Nat := sorry\n",
+        "theorem t : (a : Prop) -> a -> a := sorry\n",
+        "theorem t : forall (a : Prop), a -> a := sorry\n",
+        "theorem t : forall (α : Type) (A : α -> Prop), (forall (x : α), A x) -> (forall (x : α), A x) := sorry\n",
+        "def d : Nat -> Nat := sorry\n",
+        // 宇宙参数必须在签名的作用域里（与 checked 路径同一套 elaborate）：
+        // 原来这里传空宇宙表，`{u}` 签名连 `ty_text` 都渲染不出来。
+        "theorem t {u} (α : Sort u) (a : α) : forall (P : α -> Prop), P a -> P a := sorry\n",
+        "def d {u} (α : Sort u) (a : α) : α := sorry\n",
+    ] {
+        let file = parse(src).expect("parse");
+        let out = compile_fol(&file);
+        assert_eq!(out.errors, vec![], "{src}");
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::ExerciseOpen { .. })),
+            "{src}: {:?}",
+            out.events
+        );
+    }
+}
+
+/// 合法开放练习照样**不进环境**（`tests.rs` 既有语义），且签名检查不改这一点。
+#[test]
+fn signature_gate_keeps_open_exercises_out_of_the_env() {
+    let file = parse(
+        "theorem open_one : (a : Prop) -> a -> a := sorry\n\
+         theorem ok : (a : Prop) -> a -> a := fun (a : Prop) => fun (h : a) => h\n",
+    )
+    .expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+    assert!(out.events.iter().any(
+        |e| matches!(e, CheckEvent::ExerciseOpen { name } if name.as_deref() == Some("open_one"))
+    ));
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "ok")));
+}
+
+/// 声明级 report：签名不过 ⇒ 状态是 Failed（不是 Open），错误与 `out.errors` 同一条。
+#[test]
+fn signature_failure_marks_the_declaration_failed() {
+    let file = parse("theorem t : 3 := sorry\n").expect("parse");
+    let report = check_document(&file);
+    assert_eq!(report.decls.len(), 1, "{:?}", report.decls);
+    assert_eq!(report.decls[0].status, DeclStatus::Failed);
+    assert_eq!(
+        report.decls[0].error.as_ref().map(|e| e.code()),
+        Some("kernel-expected-sort")
+    );
+}
+
+// ---- 构造子命名空间（G-02 / WO-005；design docs/design/ctor-namespace.md）----
+
+/// R1 的最小复现同构：两个块各写 `ctor mk`，规范名 `P1.mk`/`P2.mk` 并存不冲突。
+/// 修前：第二个 `ctor mk` 撞 `elab-duplicate-declaration`，`P1.mk` 报
+/// `elab-unknown-identifier`（复现件 docs/gaps/repro/G02-ctor-namespace.sokonanoda）。
+#[test]
+fn ctor_names_are_namespaced_after_their_inductive() {
+    let src = "\
+inductive P1 (A : Type) : Type
+ctor mk (a : A) : P1 A
+end
+
+inductive P2 (A : Type) : Type
+ctor mk (a : A) : P2 A
+end
+
+def first (A : Type) (a : A) : P1 A := P1.mk A a
+def second (A : Type) (a : A) : P2 A := P2.mk A a
+";
+    let out = compile_fol(&parse(src).expect("parse namespaced ctors"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    for name in ["P1", "P2", "first", "second"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` must check: {:?}",
+            out.events
+        );
+    }
+}
+
+/// R1：ctor 名**已含点**则原样（不重复加前缀）——prelude 与既有显式写法靠这条。
+#[test]
+fn ctor_name_with_a_dot_is_kept_verbatim() {
+    let src = "\
+inductive Foo : Type
+ctor Foo.bar : Foo
+end
+def f : Foo := Foo.bar
+";
+    let out = compile_fol(&parse(src).expect("parse dotted ctor"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        !out.errors.iter().any(|e| e.message.contains("Foo.Foo.bar")),
+        "the prefix must not be doubled: {:?}",
+        out.errors
+    );
+}
+
+/// R2：唯一的裸名解析为别名（既有课程/示例零改动继续绿），且**别名解析到
+/// 规范名**（不是造出第二个内核常量）。
+#[test]
+fn a_unique_bare_ctor_name_resolves_through_the_alias() {
+    let src = "\
+inductive Wrap : Type
+ctor mk : Wrap
+end
+def w : Wrap := mk
+#print mk
+";
+    let out = compile_fol(&parse(src).expect("parse bare alias"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let printed = out.events.iter().find_map(|event| match event {
+        CheckEvent::Printed { name, text } => Some((name.as_str(), text.as_str())),
+        _ => None,
+    });
+    // 实测（真实二进制）：别名解析到规范名 ⇒ 打印的正是规范声明。
+    assert_eq!(
+        printed,
+        Some(("Wrap.mk", "constructor Wrap.mk : Wrap")),
+        "the alias must print the canonical declaration: {:?}",
+        out.events
+    );
+}
+
+/// R2：裸名被两个构造子占用 ⇒ 不可解析，报稳定的新码
+/// `elab-ambiguous-ctor-alias`（**不是** unknown identifier）。
+#[test]
+fn a_duplicated_bare_ctor_name_is_ambiguous() {
+    let src = "\
+inductive P1 (A : Type) : Type
+ctor mk (a : A) : P1 A
+end
+inductive P2 (A : Type) : Type
+ctor mk (a : A) : P2 A
+end
+def first (A : Type) (a : A) : P1 A := mk A a
+";
+    let out = compile_fol(&parse(src).expect("parse ambiguous alias"));
+    assert_eq!(
+        out.errors.first().map(|e| e.code()),
+        Some("elab-ambiguous-ctor-alias"),
+        "errors: {:?}",
+        out.errors
+    );
+    let message = &out.errors[0].message;
+    assert!(
+        message.contains("P1.mk") && message.contains("P2.mk"),
+        "the message must name both candidates: {message}"
+    );
+}
+
+/// R2：真实声明优先于构造子别名（裸名被 def 占用时，def 照常解析）。
+#[test]
+fn a_real_declaration_wins_over_a_bare_ctor_alias() {
+    let src = "\
+inductive Wrap : Type
+ctor mk : Wrap
+end
+def mk : Wrap := Wrap.mk
+def w : Wrap := mk
+";
+    let out = compile_fol(&parse(src).expect("parse shadowing decl"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+/// R1 + 派生 recursor：无显式 rec 的块，派生的 iota 规则名必须是**规范名**
+/// （内核断言 `rule.ctor_name == ctor.name`；漏改 = 派生 rec 一律对不上规则）。
+/// 顺带实测归约形态：源 `Nat` 的 ctor 叫 `Nat.succ` ⇒ 内核 name cache 的
+/// NatRed 快路径把一元链折成 NatLit（`docs/architecture.md` §5.4）。
+#[test]
+fn derived_recursor_uses_canonical_ctor_names() {
+    let src = "\
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+end
+def one : Nat := succ zero
+def two : Nat := succ one
+def add : Nat -> Nat -> Nat :=
+  fun (m : Nat) => fun (n : Nat) =>
+    Nat.rec.{1} (fun (x : Nat) => Nat) n
+      (fun (k : Nat) => fun (ih : Nat) => succ ih) m
+#reduce add two two
+";
+    let out = compile_fol(&parse(src).expect("parse derived recursor"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    // 实测（真实二进制）：规范名让 `succ` 链走原生 Nat 快路径 —— 混合表示。
+    assert!(
+        out.events.iter().any(|e| matches!(
+            e,
+            CheckEvent::Reduced { text, .. } if text == "Nat.succ (Nat.succ (Nat.succ 1))"
+        )),
+        "expected the measured mixed NatLit form, got {:?}",
+        out.events
+    );
+}
+
+/// R3 对照：显式 `rec` + `iota` 规则继续按**源名**匹配（`iota zero :=` 里的
+/// `zero` 不是 ctor 名，是源级匹配键），且规范名让归约走 NatLit。
+#[test]
+fn explicit_iota_rules_still_match_by_source_name() {
+    let src = "\
+inductive Nat : Type
+ctor zero : Nat
+ctor succ (n : Nat) : Nat
+rec Nat.rec {u} : (motive : (n : Nat) -> Sort u) -> (mz : motive zero) -> (ms : (n : Nat) -> motive n -> motive (succ n)) -> (n : Nat) -> motive n
+iota zero := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+iota succ := fun (motive : (n : Nat) -> Sort u) => fun (mz : motive zero) => fun (ms : (n : Nat) -> motive n -> motive (succ n)) => fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
+end
+def oneNat : Nat := succ zero
+#reduce Nat.rec.{1} (fun (n : Nat) => Nat) zero (fun (n : Nat) => fun (ih : Nat) => succ n) (succ zero)
+";
+    let out = compile_fol(&parse(src).expect("parse explicit rec"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "1")),
+        "explicit iota + canonical ctors must reduce through the Nat fast path: {:?}",
+        out.events
+    );
+}
+
+/// R3：`match` 的分支可以写**规范名**，也可以继续写源名（迁移期两种都能跑）。
+#[test]
+fn match_arms_accept_both_spellings() {
+    let canonical = "\
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+end
+def swap (c : Color) : Color := match c with
+| Color.red => Color.green
+| Color.green => Color.red
+#reduce swap red
+";
+    let out = compile_fol(&parse(canonical).expect("parse canonical arms"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Reduced { text, .. } if text == "Color.green")),
+        "canonical arm spelling must reduce: {:?}",
+        out.events
+    );
+
+    let bare = "\
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+end
+def swap (c : Color) : Color := match c with
+| red => green
+| green => red
+#reduce swap red
+";
+    let out = compile_fol(&parse(bare).expect("parse bare arms"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+}
+
+/// hover/goto 回填（`check/kernel_phase.rs` 的 name→def-span 表）：
+/// 规范名与前缀名两种写法都要指回定义。
+#[test]
+fn hover_resolution_uses_the_canonical_definition_span() {
+    let src = "\
+inductive Wrap : Type
+ctor mk : Wrap
+end
+def viaPrefix : Wrap := Wrap.mk
+def viaAlias : Wrap := mk
+";
+    let report = check_document(&parse(src).expect("parse hover"));
+    assert!(report.errors.is_empty(), "errors: {:?}", report.errors);
+    let resolved: Vec<&str> = report
+        .hovers
+        .iter()
+        .filter_map(|h| match h.resolution.as_ref() {
+            Some(ResolvedTarget::Declaration { name, span }) if span.start.offset > 0 => {
+                Some(name.as_str())
+            }
+            _ => None,
+        })
+        .collect();
+    assert!(
+        resolved.iter().filter(|n| **n == "Wrap.mk").count() >= 2,
+        "both spellings must resolve to the canonical name: {resolved:?}"
+    );
+}
+
+/// 构造子 spine 的**规范名拼写**（R1）：`Pair.mk sorry sorry` 与裸 `mk sorry sorry`
+/// 都拿到同样的子洞期望类型（`goals.rs` 的 `funcs` 两种拼写都登记）。
+///
+/// 注意（as-built，与 WO 范围表的差异）：归纳块的 `CtorTemplate.result_arg_names`
+/// 一直是空的（只有 axiom 视图填），所以 `refine_template` 对源内归纳构造子本来
+/// 就是 `None` —— 本刀不改这条既有边界，只保证骨架一旦产出就用规范名
+/// （`canonical_name`；axiom 视图里两者相同）。
+#[test]
+fn ctor_spine_accepts_both_spellings() {
+    let spellings = [
+        "def probe (A B : Type) : Pair A B := Pair.mk sorry sorry\n",
+        "def probe (A B : Type) : Pair A B := mk sorry sorry\n",
+    ];
+    for body in spellings {
+        let src = format!(
+            "inductive Pair (A B : Type) : Type\n\
+ctor mk (a : A) (b : B) : Pair A B\n\
+end\n{body}"
+        );
+        let report = check_document(&parse(&src).expect("parse spine"));
+        assert!(report.errors.is_empty(), "errors: {:?}", report.errors);
+        let open = report
+            .decls
+            .iter()
+            .find(|d| d.status == DeclStatus::Open)
+            .expect("open");
+        let tys: Vec<Option<&str>> = open.sub_goals.iter().map(|s| s.ty.as_deref()).collect();
+        assert_eq!(
+            tys,
+            vec![Some("A"), Some("B")],
+            "both spellings must resolve the ctor template: {body:?}"
+        );
+    }
+}
+
+/// `#print` 走别名：`#print mk` 打印的是规范声明（不是 unknown declaration）。
+#[test]
+fn print_resolves_a_bare_ctor_alias_to_the_canonical_name() {
+    let src = "\
+inductive Wrap : Type
+ctor mk : Wrap
+end
+#print mk
+#print Wrap.mk
+";
+    let out = compile_fol(&parse(src).expect("parse prints"));
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    let printed: Vec<(&str, &str)> = out
+        .events
+        .iter()
+        .filter_map(|event| match event {
+            CheckEvent::Printed { name, text } => Some((name.as_str(), text.as_str())),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(printed.len(), 2, "{:?}", out.events);
+    assert!(
+        printed[0].1.contains("Wrap.mk") && printed[1].1.contains("Wrap.mk"),
+        "both spellings print the canonical declaration: {printed:?}"
+    );
+}
+
+// ---- 记法（G-04 / WO-011，docs/design/notation-subset.md §2 N4/N7）--------
+//
+// 判据一律走内核（REQUIREMENTS §2.8）：等价性看**事件序列**，护城河看**内核
+// 拒绝**——不做文本比对。
+
+/// 课程库形状的最小夹具（与 `courses/set-theory/lib/Set.sokonanoda` 同签名：
+/// `α` 是**显式**前导参数，所以记法展开必须自己补它）。
+const NOTATION_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x\n\
+def Set.empty (α : Type) : Set α := fun (x : α) => False\n";
+
+/// 事件序列（类型 + 名字/文本），用于「两种写法判卷一致」的**逐一**比对。
+fn event_shapes(out: &CompileOutput) -> Vec<String> {
+    out.events.iter().map(|e| format!("{e:?}")).collect()
+}
+
+fn compile_ok(src: &str) -> CompileOutput {
+    let file = parse(src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "errors: {:?}\n{src}", out.errors);
+    out
+}
+
+#[test]
+fn notation_and_pointful_spellings_compile_identically() {
+    // N7 教学契约：同一命题的两种写法——点名 `Set.mem α a A` 与记法 `a ∈ A`
+    // ——**判卷结果一致**（事件序列逐一相等）。
+    let pointful = format!(
+        "{NOTATION_LIB}\
+         def p (α : Type) (a : α) (A : Set α) : Prop := Set.mem α a A\n\
+         def s (α : Type) (A B : Set α) (h : Set.subset α A B) : Set.subset α A B := h\n\
+         def e (α : Type) : Set α := Set.empty α\n"
+    );
+    let notation = format!(
+        "{NOTATION_LIB}\
+         infix:50 \" ∈ \" => Set.mem\n\
+         infix:50 \" ⊆ \" => Set.subset\n\
+         notation \"∅\" => Set.empty\n\
+         def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n\
+         def s (α : Type) (A B : Set α) (h : A ⊆ B) : A ⊆ B := h\n\
+         def e (α : Type) : Set α := ∅\n"
+    );
+    let pointful_out = compile_ok(&pointful);
+    let notation_out = compile_ok(&notation);
+    assert_eq!(
+        event_shapes(&pointful_out),
+        event_shapes(&notation_out),
+        "the two spellings must produce the same events"
+    );
+    assert!(
+        pointful_out
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { .. })),
+        "the fixture must actually check declarations"
+    );
+}
+
+#[test]
+fn notation_nullary_completes_the_leading_type_parameter_from_the_expected_type() {
+    // `notation "∅" => Set.empty`：`Set.empty : (α : Type) → Set α`，零操作数
+    // ⇒ 只能从**期望类型**补 `α`（设计 N4.2 ②）。
+    let src = format!(
+        "{NOTATION_LIB}\
+         notation \"∅\" => Set.empty\n\
+         def e (α : Type) : Set α := ∅\n"
+    );
+    let out = compile_ok(&src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "e")),
+        "the notation must check: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn notation_nullary_without_an_expected_type_is_unsolved() {
+    // `#check ∅`（无期望类型）⇒ `elab-notation-argument-unsolved`（设计 N4.2）。
+    let src = format!(
+        "{NOTATION_LIB}\
+         notation \"∅\" => Set.empty\n\
+         #check ∅\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    let codes: Vec<&str> = out.errors.iter().map(|e| e.code()).collect();
+    assert_eq!(
+        codes,
+        vec!["elab-notation-argument-unsolved"],
+        "errors: {:?}",
+        out.errors
+    );
+    assert!(
+        out.errors[0].hint().contains("点名写法"),
+        "the hint must teach the pointful spelling: {}",
+        out.errors[0].hint()
+    );
+}
+
+#[test]
+fn notation_unknown_target_is_a_dedicated_diagnostic() {
+    // 目标名解析发生在**使用点**（`check/walk.rs` 对 `Command::Notation`
+    // 是 no-op：记法命令不 elaborate、不产 PendingOp——设计 N6）。
+    let src = format!(
+        "{NOTATION_LIB}\
+         infix:50 \" ∈ \" => Set.men\n\
+         def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-notation-unknown-target"],
+        "errors: {:?}",
+        out.errors
+    );
+    assert!(
+        out.errors[0].message.contains("Set.men"),
+        "the message names the missing target: {}",
+        out.errors[0].message
+    );
+}
+
+#[test]
+fn pointful_application_without_the_leading_type_parameter_is_still_rejected() {
+    // **护城河**（设计 N4.3）：补全只挂在记号展开路径上——点名写法省 `α`
+    // 今天被内核拒绝，改后必须**仍**被拒绝（同码同 stage）。
+    let src = format!(
+        "{NOTATION_LIB}\
+         def p (α : Type) (a : α) (A : Set α) : Prop := Set.mem a A\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["kernel-rejected"],
+        "the moat must hold: {:?}",
+        out.errors
+    );
+    assert_eq!(out.errors[0].stage(), crate::compile::CompileStage::Kernel);
+}
+
+#[test]
+fn notation_records_a_hover_row_covering_the_whole_notation() {
+    // 记号节点整段 `lhs sym rhs` 一条 hover 行（设计 §4）。
+    let src = format!(
+        "{NOTATION_LIB}\
+         infix:50 \" ∈ \" => Set.mem\n\
+         def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n"
+    );
+    let file = parse(&src).expect("parse");
+    let report = check_document(&file);
+    let decl = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("p"))
+        .expect("decl p");
+    let span = decl.span;
+    let notation_start = src.find("a ∈ A").expect("notation text");
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.span.start.offset == notation_start
+                && h.span.end.offset == notation_start + "a ∈ A".len()
+                && h.span.start.offset >= span.start.offset
+        }),
+        "a hover row must cover the whole `a ∈ A`: {:?}",
+        report
+            .hovers
+            .iter()
+            .map(|h| (h.span.start.offset, h.span.end.offset))
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn notation_command_emits_no_events_and_is_not_a_declaration() {
+    // N6：记法命令不产生 decl.checked/exercise.open/expr.typed/expr.reduced，
+    // 也不进声明表。
+    let src = format!("{NOTATION_LIB}infix:50 \" ∈ \" => Set.mem\nnotation \"∅\" => Set.empty\n");
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![]);
+    assert_eq!(
+        out.events.len(),
+        4,
+        "only the four declarations are events: {:?}",
+        out.events
+    );
+    let report = check_document(&file);
+    assert_eq!(
+        report.decls.len(),
+        4,
+        "notation commands must not appear in the declaration table: {:?}",
+        report.decls.iter().map(|d| &d.name).collect::<Vec<_>>()
     );
 }

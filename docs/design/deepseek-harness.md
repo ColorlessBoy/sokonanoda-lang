@@ -255,8 +255,17 @@ Lean 老师"，agent 能自己把环境弄就绪并跑出一次判卷。**（见
    → 报错并给出可复制的下一步。**语义与 `.opencode/plugins/sokonanoda.ts` 的解析链
    完全一致**，抽出的正是它的 `findRepoRoot`/`repoBuild`/`extensionServer`/`markerMatches`。
    - 子命令直通：`scripts/soko doctor --json`、`scripts/soko grade playground.sokonanoda`。
-   - **版本守卫**：缓存 marker（`<version> <target>`）与 `Cargo.toml` 不一致时，
-     默认**不静默使用**，而是打印"缓存是 X，仓库是 Y，跑 `scripts/soko update`"。
+   - **版本源链**（WO-001 / G-11）：`$SOKONANODA_VERSION`（release tag，带不带 `v`
+     都收）→ `<repo>/sokonanoda-version.txt` → `<repo>/sokonanoda.toml` 的 `requires`
+     （完整 `x.y.z` 才能当下载锚点，`0.58` 只是约束）→ `<repo>/Cargo.toml`（语言仓
+     现状，回归不变）。锚点 = **启动器自身所在仓库根**，不是 cwd；所有出现的源必须
+     一致（`major.minor` 口径），不一致就**指名文件**报错。下载 URL 用链条解出的版本
+     （`$SOKONANODA_RELEASE_BASE` 可覆盖基址），永不出现 `v?` 或 `/latest/`。
+   - **版本守卫**：缓存 marker（`<version> <target>`）与版本钉不一致时，默认
+     **不静默使用**，而是打印"缓存是 X，钉是 Y，跑 `scripts/soko update`"；**解析
+     不出期望版本时绝不 exec 缓存或仓库构建**（G-16：那条
+     `cache(unknown repo version)` 的静默通道已删除），而是 exit 3 + 人话
+     （期望版本 / 来源 / marker / 该改哪个文件）。
 2. `AGENTS.md` Setup 章节改为 harness 中立：先给 `scripts/soko …` 一条命令，
    再写 opencode 等价物与 DSH 等价物。
 3. teacher/dev 技能里的命令统一改成 `scripts/soko …`（零 cargo 保持）。

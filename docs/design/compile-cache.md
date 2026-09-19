@@ -55,7 +55,11 @@ else:
 ## 5. 测试
 
 **CLI**（0.49.0）：`crates/cli/src/build.rs::build`、`check.rs::compile_cached`；
-`course` 的 `count_unit` 与批量 `--json` 都走 `compile_cached`。`sokonanoda --json` 冷/热
+批量 `--json` 走 `compile_cached`。**无 `import` 的** `course` 单元同样走
+`compile_cached`（键不变）；**有 `import` 的**单元（WO-007 起）走闭包分支——
+`project_cache::plan/load` + `compile_plan`，与 `check`/`build`/`query` 共用
+`ProjectPlan::digest` 摘要键（`project_cache.rs`），于是 `course` 冷跑一次之后
+`build` 报 `hit`（`crates/cli/tests/course_project.rs` 钉住）。`sokonanoda --json` 冷/热
 两次输出**逐字节一致**（有测试）。
 
 ```

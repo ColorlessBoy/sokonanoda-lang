@@ -1,0 +1,192 @@
+-- ==========================================================================
+-- unit09-equinumerosity.sokonanoda —— 卷 I 单元⑨ 等势（基数 Ⅰ）
+--
+-- 靶子：Tao《Analysis I》§3.6 前半（等势 / 基数的开头）。
+-- 先修：单元①② 的集合词汇（本单元只用 lib.Logic / lib.Exists / lib.Set / lib.Equiv）。
+--
+-- 本单元**只允许用**（对应 stg4 的逐步解锁）：
+--   · lib.Logic：True/False、And/Or/Not/Iff、Eq.refl/Eq.symm/Eq.trans/Eq.subst/
+--     congrArg、absurd、False.elim；
+--   · lib.Exists：Exists / Exists.intro / Exists.elim
+--     （**纪律**：elim 的结论 Q 不许提到证人——"用的时候证人是哪一个还不知道"）；
+--   · lib.Set：Set 与 mem/subset/empty/univ/singleton/pair/union/inter/sdiff/
+--     compl/powerset、公理 Set.ext、以及全部展开引理；
+--   · lib.Equiv（本单元新增）：四条条件 Set.MapsTo / Set.LeftInvOn /
+--     Set.RightInvOn、等势 Set.Equiv、构造子 Set.Equiv.mk；
+--   · prelude 的 Nat 只用在 §9.3 的**反例脚手架**上（否则无限集的反例没法陈述）。
+--
+-- 不允许用：选择公理（本课程还没有）、商、函数外延性（没有）、
+-- Schröder–Bernstein（需要不动点构造，超出本语言；见文末"本单元不做什么"）。
+--
+-- 记法：语言还没有 ∈ ⊆ ≈ 这些记号（台账 G-04），一律点名：
+--   Set.mem α x A ↔ x ∈ A · Set.subset α A B ↔ A ⊆ B
+--   Set.Equiv α β A B ↔ A ≈ B（跨论域：A : Set α，B : Set β）
+--
+-- ── 等势为什么是"数据"，不是"存在双射" ──────────────────────────────────
+-- 完整理由与读法在 lib/Equiv.sokonanoda 的文件头（先读它）。一句话版：
+-- 若定义成 ∃f (单射 f ∧ 满射 f)，那么"对称"要从满射取回一个原像——那是选择
+-- 公理，本单元没有，于是**对称性根本证不出来**。所以等势在这里是**数据**：
+-- 一对互逆映射（f 去、g 回）+ 四条带域条件的命题，全部装在 Set.Equiv 里。
+-- 拿数据的方法只有一条：Exists.elim 两次；造数据的方法是 Set.Equiv.mk。
+-- 读法四条（造/用/展开）见 lib/Equiv 文件头，动手前务必先看一遍。
+--
+-- 为什么每题都要求"亲手写出那对映射"（出处：Hamza & O'Shea 2011, MEI 4:192–202）：
+-- 该研究里**援引"双射判据"的学生没有一个在所有题上都真的用它，且极少把映射写出来**；
+-- 所以本单元的 7 条练习没有一条能靠"显然存在双射"蒙过去——四条条件都要落地。
+-- ==========================================================================
+import lib.Logic
+import lib.Exists
+import lib.Set
+import lib.Equiv
+
+-- ─────────────────────────────────────────────────────────────
+-- 9.1 演示 1（必证①）：等势自反——恒等映射。
+--
+-- 这是本单元第一次看 Set.Equiv 的数据形状：一对映射 + 四条条件，交给 mk。
+-- 两条互逆律在这里是一条计算（Eq.refl），因为 g (f x) 与 f (g x) 都算成 x。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.refl (α : Type) (A : Set α) : Set.Equiv α α A A :=
+  Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
+    (fun (x : α) => fun (hx : Set.mem α x A) => hx)
+    (fun (y : α) => fun (hy : Set.mem α y A) => hy)
+    (fun (x : α) => fun (hx : Set.mem α x A) => Eq.refl.{1} α x)
+    (fun (y : α) => fun (hy : Set.mem α y A) => Eq.refl.{1} α y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 9.2 演示 2（必证④）：从单射 + 满射（**数据**）构造等势。
+--
+-- 注意"满射"在这里给的是**右逆**（hsec：先 g 后 f 回到原地），不是 ∃-形式：
+-- ∃-形式要挑原像（选择公理）。有了右逆，缺的那条左互逆律由单射补：
+-- f (g (f x)) = f x 用 hsec，再把 hinj 用在 g (f x) 与 x 上。
+-- 这条演示同时示范：hinj、hsec 都是普通的函数/命题参数，不需要拆 Exists。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.of_inj_surj (α β : Type) (A : Set α) (B : Set β)
+    (f : α -> β) (g : β -> α)
+    (hf : Set.MapsTo α β f A B)
+    (hg : Set.MapsTo β α g B A)
+    (hinj : forall (x1 x2 : α), Eq.{1} β (f x1) (f x2) -> Eq.{1} α x1 x2)
+    (hsec : Set.RightInvOn α β f g B) :
+    Set.Equiv α β A B :=
+  Set.Equiv.mk α β A B f g hf hg
+    (fun (x : α) => fun (hx : Set.mem α x A) =>
+      hinj (g (f x)) x (hsec (f x) (hf x hx)))
+    hsec
+
+-- ─────────────────────────────────────────────────────────────
+-- 9.3 反例脚手架（演示，已写好）：只为把"无限集上的真子集"陈述出来。
+--
+-- 「真子集一定严格更小」在无限集上是**假**的，而本语言没有基数序，"更小"
+-- 只能表述成"不等势"。要给出反例就需要 Nat 上的"减一"与"succ 不为 0"：
+-- 这两条**不是本单元的内容**，属于脚手架（单元⑥ 的 match/Nat.rec 手法）。
+--   · Nat.isZero：把"是不是 0"做成一个 Prop 值的谓词（succ 支给 True，
+--     zero 支给 False）——它是下面 succ ≠ 0 的搬运工具；
+--   · Nat.pred：前驱（zero 支给 zero，succ k 支给 k）；
+--   · Nat.succ_ne_zero：succ n ≠ 0（把 Eq.subst 沿 Nat.isZero 走一趟）；
+--   · nonzero：非零自然数之集（自定名：Mathlib 里没有这个名字的 Set Nat），
+--     就是反例里的"真子集"那一半。
+-- ─────────────────────────────────────────────────────────────
+def Nat.isZero (n : Nat) : Prop := match n with
+  | Nat.zero => False
+  | Nat.succ k => True
+
+def Nat.pred (n : Nat) : Nat := match n with
+  | Nat.zero => Nat.zero
+  | Nat.succ k => k
+
+theorem Nat.succ_ne_zero (n : Nat) : Not (Eq.{1} Nat (Nat.succ n) Nat.zero) :=
+  fun (h : Eq.{1} Nat (Nat.succ n) Nat.zero) =>
+    Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
+
+def nonzero : Set Nat := fun (n : Nat) => Not (Eq.{1} Nat n Nat.zero)
+
+-- ═════════════════════════════════════════════════════════════
+-- 9.4 练习（7 条：T2 · L3 · D2）
+-- 把 sorry 换成你的答案；判定永远走完整内核。
+-- ═════════════════════════════════════════════════════════════
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 1（T 类，必证②）：等势是对称的——交换两把映射。
+-- soko:hint 思路：先把 h 拆开拿到两把映射与它们的四条条件，再用 mk 以"反向的那把"去、"正向的那把"回，重新打包。
+-- soko:hint 目标形态：Set.Equiv β α B A——展开后仍是一对映射 + 四条条件，只是 α 与 β、A 与 B 整体对调。
+-- soko:hint 关键件：外层连用两次 Exists.elim 取证人（结论 Set.Equiv β α B A 不提证人，合法）；四条件用 And.left/And.right 拆；装配用 Set.Equiv.mk，注意两条互逆律的位置要对调。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
+    (h : Set.Equiv α β A B) : Set.Equiv β α B A :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 2（T 类，必证③）：等势是传递的——复合两把映射。
+-- soko:hint 思路：两条等势各自拆成 (f1,g1) 与 (f2,g2)，复合出正向 f2 ∘ f1、反向 g1 ∘ g2，再打包。
+-- soko:hint 目标形态：Set.Equiv α γ A C；拿 h1 : A ≈ B 与 h2 : B ≈ C，四条条件都要自己接起来。
+-- soko:hint 关键件：四次 Exists.elim 取四个证人（每层的结论 Set.Equiv α γ A C 都不提证人）；两条互逆律中间那一步要用 congrArg 把内层等式推到外层映射下，再用 Eq.trans 接另一条律。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
+    (h1 : Set.Equiv α β A B) (h2 : Set.Equiv β γ B C) : Set.Equiv α γ A C :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 3（L 类）：任意两个单元素集都等势——亲手写出那对映射。
+-- soko:hint 思路：单元素集之间的映射没得挑：正向把一切都送到 b，反向把一切都送回 a。
+-- soko:hint 目标形态：Set.Equiv α β (Set.singleton α a) (Set.singleton β b)；两条"送进"条件是展开后的一行。
+-- soko:hint 关键件：两条互逆律的前提 hx : Set.mem α x (Set.singleton α a) 展开就是 Eq.{1} α x a，要用 Eq.symm 掉头（另一侧同理）；四条条件交给 Set.Equiv.mk。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
+    Set.Equiv α β (Set.singleton α a) (Set.singleton β b) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 4（L 类）：集合相等蕴涵等势（Mathlib 真名 Set.equivOfEq）。
+-- soko:hint 思路：A = B 时两把映射都可以取恒等；要做的是把成员关系沿等式搬运。
+-- soko:hint 目标形态：Set.Equiv α α A B，四条条件里两条互逆律是计算（恒等复合恒等）。
+-- soko:hint 关键件：成员关系要沿等式从 A 挪到 B，得用 Eq.subst 且 motive 自己写（一个 Set α -> Prop 的谓词，问 x 属不属于它）；B → A 那一侧搬的等式先用 Eq.symm 掉头；装配用 Set.Equiv.mk。
+-- ─────────────────────────────────────────────────────────────
+theorem Set.equivOfEq (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) :
+    Set.Equiv α α A B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 5（L 类）：空集与单元素集不等势——用等势的数据去反驳。
+-- soko:hint 思路：假设有等势，把它的反向映射用在 b ∈ {b} 上，就把 b 推进了空集，撞 False。
+-- soko:hint 目标形态：Not (Set.Equiv α β (Set.empty α) (Set.singleton β b))，展开后是"等势 → False"。
+-- soko:hint 关键件：两次 Exists.elim 的结论都取 False（不提证人，合法）；反向那条 MapsTo 作用在 b 上、前提是 Set.mem_singleton_self β b；它吐出的 Set.mem α (g b) (Set.empty α) 展开就是 False。
+-- ─────────────────────────────────────────────────────────────
+theorem not_equiv_empty_singleton (α β : Type) (b : β) :
+    Not (Set.Equiv α β (Set.empty α) (Set.singleton β b)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 6（D 类，先判断再证明）：「两个集合等势，则它们同时空、同时不空」。
+-- 判断：**真**。这是"等势搬运什么"的第一个例子：它把"有元素"搬过去也搬回来。
+-- soko:hint 思路：两个方向各用等势的一把映射：A 有元素 x 就送成 f x ∈ B；B 有元素 y 就送回 g y ∈ A。
+-- soko:hint 目标形态：Iff (Exists α A) (Exists β B)——注意 Exists 的论域就是 α 与 β，集合本身就是谓词。
+-- soko:hint 关键件：Iff.intro 分两个方向；每个方向都要 Exists.elim 两次（先取元素、再取映射），结论里不出现证人；交出元素用 Exists.intro 配上那条 MapsTo。
+-- ─────────────────────────────────────────────────────────────
+theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
+    (h : Set.Equiv α β A B) : Iff (Exists α A) (Exists β B) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 练习 7（D 类，先判断再证明）：「真子集一定严格更小」。
+-- 判断：**假**（无限集上）。本语言没有基数序，"严格更小"只能写成"真子集且不等势"，
+-- 于是反例要三段一起给：nonzero ⊆ Nat（包含）、nonzero ≠ Nat（真）、nonzero ≈ Nat（等势）。
+-- 这就是"整体与真部分一样大"在本语言里的第一个可判例子（**设计判断**：先给反例，
+-- 不在这里谈"无限"的定义——那需要"有限"，本语言还没有）。
+-- soko:hint 思路：反例取 nonzero 与 Set.univ Nat：正向映射做"减一"（Nat.pred），反向映射做"加一"（Nat.succ）。
+-- soko:hint 目标形态：And（① Set.subset Nat nonzero (Set.univ Nat)）（And（② Not (Eq.{1} (Set Nat) nonzero (Set.univ Nat))）（③ Set.Equiv Nat Nat nonzero (Set.univ Nat))）。
+-- soko:hint 关键件：① 目标是 Set.univ，True.intro 即可；② 拿 0 做见证——用 Eq.subst 与 Eq.symm 沿假设把 Set.mem_univ 搬成 0 ∈ nonzero，再喂 Eq.refl；③ 反向那条 MapsTo 用 Nat.succ_ne_zero，左互逆律要对 x 分情况：Nat.rec.{0} 配依赖 motive（zero 支被 hx 直接否掉，succ 支靠 Nat.pred 的 iota 算）。
+-- ─────────────────────────────────────────────────────────────
+theorem proper_subset_counterexample :
+    And (Set.subset Nat nonzero (Set.univ Nat))
+      (And (Not (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))
+           (Set.Equiv Nat Nat nonzero (Set.univ Nat))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 本单元**不做什么**（写下来免得以为漏了）：
+--   · Schröder–Bernstein（A ↪ B 且 B ↪ A ⟹ A ≈ B）：要不动点构造与Type 层的
+--     重写，本语言都还没有（台账 L-03/L-06），留到卷 II；
+--   · 选择公理与"满射 ⟹ 有右逆"：那是单元⑩ 的正题；
+--   · 有限集与鸽笼原理：需要枚举/Fin 式结构，本单元只做等势（基数 Ⅰ）。
+-- 另外，"真子集一定严格更小"这句话在**有限**集上是真的——但"有限"这个概念
+-- 本语言今天还没有，所以练习 7 只破无限集那一半。
+-- ─────────────────────────────────────────────────────────────

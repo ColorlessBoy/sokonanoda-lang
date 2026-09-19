@@ -54,7 +54,13 @@ scripts/soko doctor --json    # 就绪诊断，0=就绪 3=未就绪
 ```bash
 scripts/soko grade playground.sokonanoda        # 人类可读
 scripts/soko grade playground.sokonanoda --json # JSON 事件（全量事件流）
+scripts/soko course "$PWD/courses/set-theory/course.json" --json  # 整门课进度（每单元一行 + summary）
 ```
+
+- `course` 的**有 `import` 的单元**走项目闭包（与 `grade`/`query check` 同一份闭包、
+  同一个模块根、同一份缓存）：`failed == 0` ⇔ `grade <该单元>` exit 0，计数只算入口
+  模块自己的声明/练习；无 `import` 的单元仍走单文件（数字与 `grade` 逐字节同源）。
+  模块根 = 单元最近的 `sokonanoda.toml`，没有则 `course.json` 所在目录。
 
 **先问，别扫**——需要"某处还差什么 / 下一个洞在哪 / 这题的提示是什么"时用
 `query`（单 JSON 对象，一次解析；与事件流同源，计数由契约测试钉死一致）：
@@ -69,15 +75,22 @@ scripts/soko query goals --file playground.sokonanoda               # 全文件�
 
 - 洞级「多余的 `sorry`」也有标记：`query holes`/`goals` 的 `redundant: true`
   = 答案已经写全、只多留了这一行（要说"删掉它"，不是"还没证出来"）；
+- **解析失败不假绿**（≥0.59.0）：文本解析不了时 `check` 的 `failed[]` 里是 parse
+  诊断（`code` 如 `unexpected-token`、`name: null`）、`counts` 全 0、退出码 1——
+  与 `grade` 同口径；`goals`/`holes` 则答 `ok:false` + `error.code:"not-parsable"`
+  （退出码 1）。`ok:true` 只表示"问出来了"；
 - 契约见 `docs/protocol.md`；`ok:false` **不是**空结果（空是 `goal:null`），
-  退出码 0=答上了、1=有内核拒绝、2=用法错误——**判据看 JSON，不看退出码**；
+  退出码 0=答上了、1=有拒绝（内核拒绝**或**解析失败）、2=用法错误——**判据看 JSON，
+  不看退出码**；
 - DeepSeek Harness 里这七个查询还包成了 MCP 工具
   （`mcp__sokonanoda__{check,state,goals,holes,hints,reduce}`，需
   `dsh web --patch ./dsh/cordis.patch.yml`）：**有 MCP 工具就直接调，别绕 shell**。
 
 - 若 `sokonanoda` 已经在 PATH 上（opencode 启动插件会注入缓存目录），
   `scripts/soko X` 与 `sokonanoda X` 等价；DSH 下没有 PATH 注入，所以用前者。
-- 版本严格按仓库 `Cargo.toml` 锁定，**禁用 `releases/latest`**；
+- 版本严格按**版本钉**锁定（`SOKONANODA_VERSION` → `sokonanoda-version.txt` →
+  `sokonanoda.toml` 的 `requires` → `Cargo.toml`），**禁用 `releases/latest`**；
+  版本对不上时启动器**拒绝运行**并给出该改哪个文件——照它说的改，别用旧的缓存二进制；
 - 缓存标记（`<version> <target>`）与仓库版本不一致（旧下载缓存）是**最常见的
   故障源**——`scripts/soko doctor --json` 会报 `ready:false`，跑
   `scripts/soko update` 修；启动器与 `gate` 都会因版本不符拒绝执行；
@@ -110,9 +123,35 @@ $SOKO repl
 - 事件词汇是封闭的：`decl.checked` / `example.checked` / `expr.typed` /
   `expr.reduced` / `decl.printed` / `exercise.open` / `diagnostic`，
   形状见 `docs/protocol.md`；watch 流词汇见同文档 watch 一节。
+- **判卷只认两个信号**：`decl.checked`（做出来了）与 `diagnostic`（有问题）。
+  `exercise.open` 只是"还是个练习"——它**只有签名合法时才会出现**（签名
+  elaborate 不了 / 不是一个类型 / `theorem` 签名不是 `Prop` ⇒ 一条
+  `diagnostic`、声明 Failed、不发 `exercise.open`）。所以判断"签名有没有腐烂"
+  永远看 `diagnostic`，不要看 open 计数。
+- **用户自定义记法（0.59.0，G-04 第一刀；设计 `docs/design/notation-subset.md`）**：
+  文件里可以自己声明记法，让画布写纸笔数学而不是前缀形式：
+
+  ```
+  infix:50 " ∈ " => Set.mem       -- 左结合用 infixl:N、右结合用 infixr:N
+  notation "∅" => Set.empty        -- 零元记法（不带 :N）
+  def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A
+  ```
+
+  要点：① 符号**必须是独立 token**（`∈`/`⊆`/`∅` 这类数学符号加 `\`；
+  `U+2200–22FF` 与 `U+2A00–2AFF`）；② **文件内作用域**——声明写在所有 `import`
+  之后、使用之前，**不跨 `import`**；③ 记法**不是声明**：不产生任何事件、不进
+  声明表与 goal 视图，判卷计数与点名写法**逐项相同**；④ 展开时**自动补前导类型
+  参数**（`Set.mem` 的 `α` 不用写），补不出来报 `elab-notation-argument-unsolved`
+  （例如 `#check ∅` 这种没有期望类型的裸用）；⑤ **点名形式永久可用**，两种写法
+  判卷一致——省 `α` 的点名写法（`Set.mem a A`）**今天被内核拒绝、以后也拒绝**；
+  ⑥ 未声明就用报 `notation-unknown-symbol`（hint 给"先声明"与"点名写法"两条出路）；
+  ⑦ **第二刀未做**：`𝒫`/`ᶜ`（Unicode 字母不是符号）、`''`/`⁻¹'`、`×ˢ`、跨 `import`
+  的记法、binder 记法（`∃ x,`）。**课程画布本轮不重写**（仍写点名形式）。
 - 语言能力速查：`$SOKO --help` 自描述（def/theorem/axiom/example、
-  `#check`、`#reduce`、宇宙参数、命名箭头、声明级 binder
-  `theorem f (a : A) : B := v`）。
+  `#check`、`#reduce`、宇宙参数（`{u}` / `{u, v}` / `{u v}` / `{u} {v}`）、
+  命名箭头、声明级 binder `theorem f (a : A) : B := v`——**`axiom` 也吃
+  参数表**（`axiom f (a : A) : Sort 1`，0.59.0 起；codomain 要落 `Sort n`）；
+  声明名不许以 `.` 结尾（`def f.{u}` 是 parse 错误）。
 - 值位 `let`：`let x : T := v; body`；缺注解 `let x := v` 只在有期望类型或能从
   实参推断时才可省略（设计 `docs/design/elaborator-let-match.md`）。
 - `match`（值位）：`match e with | p => body …`；模式支持 `_` 通配、绑定名、
@@ -129,6 +168,11 @@ $SOKO repl
 - 参数化归纳（`inductive Option (A : Type)`、`List`）与**带索引归纳**
   （`inductive Vec (A : Type) : Nat -> Type`，`ctor vnil`/`vcons`；省略 `rec`
   自动派生 recursor）。
+- **构造子命名空间（0.59.0，G-02）**：`ctor mk` 的**规范名**是 `Ind.mk`
+  （`#check`/`#reduce`/hover 都显示它；源名已含点则原样）。**裸名是解析别名**
+  （教学子集扩展）：唯一时可解析，两个类型各声明一次同名裸构造子 ⇒
+  `elab-ambiguous-ctor-alias`（写全前缀名即可）。课程画布里的 `inl`/`inr`/
+  `prod_mk` 等裸名**不用改**，照旧判卷。
 - **多文件（0.57.0）**：文件第一行可写 `import Logic`——模块名 = 相对模块根的
   路径（`Logic.sokonanoda` ↔ `Logic`、`Lib/And.sokonanoda` ↔ `Lib.And`；`-`
   不是模块名字符），且 import 必须排在所有声明之前。判卷命令不变，多了 `--root`：
@@ -136,7 +180,7 @@ $SOKO repl
 ```bash
 $SOKO grade course/unit11-project/Exercises.sokonanoda         # 从入口目录解析 import
 $SOKO grade --root course/unit11-project <任意入口.sokonanoda>  # 显式指定模块根
-$SOKO query check --file <入口> --root <模块根>                 # 单对象视图同样支持
+$SOKO query check --file <入口> --root <模块根>                 # 单对象视图同样支持（failed[] 含 parse 诊断）
 $SOKO grade --no-project <文件>                                 # 忽略 sokonanoda.toml
 ```
 
@@ -165,8 +209,9 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 | 事件 / code | 解读 | 动作 |
 |---|---|---|
 | `decl.checked`（原练习名） | 解出 | 肯定 + 追加下一个概念/练习 |
-| `exercise.open` 持续 | 未做/卡住 | 指向编辑器「提示」节点逐条揭示（画布 `-- soko:hint` 阶梯）；需要时追加新 hint；永不直接给答案 |
-| `elab-unknown-identifier` | 拼写错，或引用了还没解出的练习 | 先查 open 列表，再判拼写；必要时「先做练习 N」 |
+| `exercise.open` 持续 | 未做/卡住（**签名合法**才会走到这里） | 指向编辑器「提示」节点逐条揭示（画布 `-- soko:hint` 阶梯）；需要时追加新 hint；永不直接给答案 |
+| 诊断落在**签名**上（`kernel-expected-sort` / `kernel-theorem-not-prop`，span 在 `:` 之后） | 签名自己写坏了（拿 `Nat`/`Type` 当命题、结论不是 Prop）：`sorry` 救不回来，**不是**"还没做" | 先修签名：把诊断的 `hint` 转述给学习者，指认签名哪一段不合法；修好前不要给证明方向的提示 |
+| `elab-unknown-identifier`（span 落在签名里） | 签名里的名字拼错，或引用了还没解出的练习 | 先查 open 列表，再判拼写；必要时「先做练习 N」 |
 | `elab-duplicate-declaration` | 重名 | 讲「单赋值世界」，换名 |
 | `elab-hole-misplaced` | 洞不在可恢复位置（嵌套洞/非直接实参，如 `n + sorry`；答案尾巴、构造子 spine 与已知函数直接实参都合法） | 讲「洞只能放答案末尾，或已知函数/构造子的直接实参位」 |
 | `kernel-rejected`（带期望/实际） | 填了类型而非证明项 / 方向反 / 宇宙忘了 `.{1}` / 忘了 `Not` 会展开 | 让用户对比声明类型与所填项的形状，逐参数预言类型 |
@@ -225,6 +270,21 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （`zero`/`succ`；省略 `rec` 时自动派生 recursor）与
   `axiom Eq : Nat -> Nat -> Prop`、`Eq.refl`、`Eq.subst`。函数实参洞在
   Bare 与 Full 下都生效（Bare 用文件自定义的 Eq 模板）。
+- **L1 prelude（0.59.0，设计 `docs/design/prelude-l1-proposal.md`）**：Full 模式下
+  prelude 自带 Lean core 的逻辑与等式骨架，**不要再让学习者手写**：
+  * 真伪 `True`/`True.intro`/`False`/`False.rec`/`False.elim`；
+  * 联结词 `And`/`And.intro`/`And.left`/`And.right`/`And.elim`、
+    `Or`/`Or.inl`/`Or.inr`/`Or.elim`（`And`/`Or` 是**真归纳块**，可 `match`）、
+    `Not`/`Not.intro`/`Not.elim`/`absurd`、
+    `Iff`/`Iff.intro`/`Iff.mp`/`Iff.mpr`/`Iff.refl`/`Iff.symm`/`Iff.trans`；
+  * 等式 `Eq.symm`/`Eq.trans`/`congrArg`（`congrArg` **只能同宇宙**）。
+  **让位规则（谁声明谁拥有，族粒度 + 依赖闭包）**：文件自己声明某族的任一名
+  ⇒ prelude 的**整族**不装（B5 依赖 B2、B6 依赖 B3、B7 依赖 Eq）——入门课
+  单元①④⑤⑧⑨⑩⑪ 故意自带这些骨架（教学内容），它们**照常生效**；
+  单元②③⑥⑦ 不声明 ⇒ 拿到完整 L1（单元② 的 `eq_symm_demo` 是示范）。
+  静默后果要会说清：文件写了 `And` 却想用 `And.elim` 会得到
+  `unknown identifier`（本轮只做文档，不做新 warning）。
+  Bare（`-- sokonanoda:prelude none`）下 L1 一律不在。
 - Full（默认）时 `Eq` 系列来自 prelude（`Eq`/`Eq.refl`/`Eq.subst`，与
   官方 Lean 签名一致）；Nat 的等式要写 `Eq.{1}`（裸写默认宇宙 0）。
   归纳块：显式 `rec` + iota 规则是单元⑥的正课内容；省略 rec 时编译器
@@ -232,7 +292,9 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 
 ## 5. 解答钥匙
 
-单元地图在 `course/course.json`；`course/solutions/` 与
+单元地图在 `course/course.json`（整门课的进度一条命令：
+`scripts/soko course <course.json> --json`——`import` 共享库的单元也认，见 §1）；
+`course/solutions/` 与
 `docs/teaching-session.md` §3 有全部练习的、经完整内核验证的钥匙。
 **agent 专用**：用于核对「这题确实可解」和给多层提示；只有用户明确要求
 答案、或同一关卡反复卡住（≥3 轮）时才逐层揭底，永远不要一次性贴出

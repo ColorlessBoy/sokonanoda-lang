@@ -7,6 +7,10 @@ use crate::span::{Pos, Span};
 pub enum TokenKind {
     Ident(String),
     Num(String),
+    /// 字符串字面量（`" ∈ "`）。只给记法命令用：表达式里没有字符串。
+    Str(String),
+    /// 记法符号（`∈`/`⊆`/`∅`/`\`…）。见 `is_math_symbol`。
+    Sym(String),
     Hole,
     Colon,
     ColonEq,
@@ -214,6 +218,9 @@ impl<'a> Lexer<'a> {
             ';' => self.single(TokenKind::Semicolon, start),
             '+' => self.single(TokenKind::Plus, start),
             '|' => self.single(TokenKind::Pipe, start),
+            '"' => self.lex_string(start),
+            // `∀`（U+2200）落在数学符号码点类里，但它今天就是一个 token：
+            // 这一臂必须留在符号分支之前，否则关键字失效。
             '∀' => self.single(TokenKind::Forall, start),
             '@' => self.single(TokenKind::At, start),
             '-' => {
@@ -246,6 +253,7 @@ impl<'a> Lexer<'a> {
             }
             ch if ch.is_ascii_digit() => self.lex_number(start),
             ch if is_ident_start(ch) => self.lex_ident(start),
+            ch if is_math_symbol(ch) => self.lex_symbol(start),
             other => {
                 self.bump();
                 Err(self.err_unexpected(start, "a valid .sokonanoda token", &other.to_string()))
@@ -259,6 +267,53 @@ impl<'a> Lexer<'a> {
         Ok(Token {
             kind,
             span: Span::new(start, end),
+        })
+    }
+
+    /// `"…"`：字符串字面量（记法命令的符号）。未闭合给专用诊断，span 指向
+    /// **开引号**（学习者要看到的是那个没配对的引号）。
+    fn lex_string(&mut self, start: Pos) -> Result<Token> {
+        self.bump(); // 开引号
+        let mut text = String::new();
+        loop {
+            match self.peek() {
+                Some('"') => {
+                    self.bump();
+                    return Ok(Token {
+                        kind: TokenKind::Str(text),
+                        span: Span::new(start, self.pos()),
+                    });
+                }
+                Some('\n') | None => {
+                    return Err(Diagnostic::new(
+                        DiagnosticKind::UnterminatedString,
+                        Span::new(start, start),
+                        "字符串没有闭合：记法命令里的符号要写在一对引号之间，例如 infix:50 \" ∈ \" => Set.mem".to_string(),
+                    ));
+                }
+                Some(ch) => {
+                    text.push(ch);
+                    self.bump();
+                }
+            }
+        }
+    }
+
+    /// 连续数学符号字符算**一个** `Sym`（最大吞噬）：`⁻¹'` 是一个 token，
+    /// `∈` 也是。见 `is_math_symbol` 的码点类。
+    fn lex_symbol(&mut self, start: Pos) -> Result<Token> {
+        let mut text = String::new();
+        while let Some(ch) = self.peek() {
+            if is_math_symbol(ch) {
+                text.push(ch);
+                self.bump();
+            } else {
+                break;
+            }
+        }
+        Ok(Token {
+            kind: TokenKind::Sym(text),
+            span: Span::new(start, self.pos()),
         })
     }
 
@@ -312,13 +367,31 @@ impl<'a> Lexer<'a> {
 }
 
 /// 标识符起始字符（模块名分量复用同一份谓词，见 `crate::project::module_name`）。
+///
+/// **数学符号码点不是标识符字符**（G-04 / WO-011）：否则 `a∈b` 会是一个
+/// `Ident`，记法永远不可能被 parser 看见。希腊字母与数学斜体字母（`α`、`𝒫`、
+/// `ᶜ`）**仍然是**标识符字符——它们不在符号码点类里。
 pub(crate) fn is_ident_start(c: char) -> bool {
-    c.is_ascii_alphabetic() || c == '_' || (c as u32) >= 0x80
+    c.is_ascii_alphabetic() || c == '_' || ((c as u32) >= 0x80 && !is_math_symbol(c))
 }
 
 /// 标识符续接字符（含 `.`——所以 `Foo.Bar` 在词法层是**一个** `Ident`）。
 pub(crate) fn is_ident_continue(c: char) -> bool {
     is_ident_start(c) || c.is_ascii_digit() || c == '\'' || c == '!' || c == '?' || c == '.'
+}
+
+/// 记法符号字符的码点类（`docs/design/notation-subset.md` §3.2）：
+///
+/// * `U+2200–U+22FF`：数学算子（`∈`U+2208 / `⊆`U+2286 / `∅`U+2205 /
+///   `∪`U+222A / `∩`U+2229 / `∘`U+2218 …）；
+/// * `U+2A00–U+2AFF`：为第二刀的 `⋃`/`⋂` 预留；
+/// * `\`（U+005C）：今天直接是词法错误，改成符号 token 后 parser 能报
+///   「未声明符号」——比「不是一个合法 token」更教学。
+///
+/// **`𝒫`（U+1D4AB）与 `ᶜ`（U+1D9C）是 Unicode 字母，不在本类里**：它们仍是
+/// 标识符字符，第二刀要另设计（设计 §3.4）。
+pub(crate) fn is_math_symbol(c: char) -> bool {
+    matches!(c as u32, 0x2200..=0x22FF | 0x2A00..=0x2AFF) || c == '\\'
 }
 
 pub fn tokenize(src: &str) -> Result<Vec<Token>> {
@@ -461,5 +534,98 @@ mod tests {
         assert_eq!(toks[0].kind, TokenKind::Ident("#check".into()));
         assert_eq!(toks[1].kind, TokenKind::Ident("#reduce".into()));
         assert_eq!(toks[2].kind, TokenKind::Ident("#print".into()));
+    }
+
+    // ---- 记法（G-04 / WO-011，docs/design/notation-subset.md §3）----------
+
+    #[test]
+    fn notation_command_lexes_with_a_string_literal() {
+        // WO-011 验收：`infix:50 " ∈ " => mem` 的 token 形状。
+        let toks = tokenize("infix:50 \" ∈ \" => mem").unwrap();
+        let kinds: Vec<_> = toks.iter().map(|t| t.kind.clone()).collect();
+        assert_eq!(
+            kinds,
+            vec![
+                TokenKind::Ident("infix".into()),
+                TokenKind::Colon,
+                TokenKind::Num("50".into()),
+                TokenKind::Str(" ∈ ".into()),
+                TokenKind::FatArrow,
+                TokenKind::Ident("mem".into()),
+                TokenKind::Eof,
+            ]
+        );
+    }
+
+    #[test]
+    fn math_symbols_lex_as_sym_not_as_part_of_an_ident() {
+        // 今天 `a∈b` 是**一个** Ident（`is_ident_start` 把 ≥0x80 一律当标识符
+        // 首字符）⇒ 记号永远不可能被 parser 看见。收窄之后必须是三个 token。
+        let toks = tokenize("x∈A").unwrap();
+        let kinds: Vec<_> = toks.iter().map(|t| t.kind.clone()).collect();
+        assert_eq!(
+            kinds,
+            vec![
+                TokenKind::Ident("x".into()),
+                TokenKind::Sym("∈".into()),
+                TokenKind::Ident("A".into()),
+                TokenKind::Eof,
+            ]
+        );
+        // 无空格同样切得开（v1 比「要求两侧空格」更强，设计 §3.3）。
+        let toks = tokenize("A⊆B").unwrap();
+        assert_eq!(toks[1].kind, TokenKind::Sym("⊆".into()));
+        let toks = tokenize("∅").unwrap();
+        assert_eq!(toks[0].kind, TokenKind::Sym("∅".into()));
+    }
+
+    #[test]
+    fn consecutive_symbol_characters_are_one_sym_token() {
+        // 最大吞噬：连续符号字符算一个 token。这里用 `⋃⋂`（都在
+        // U+2200–U+22FF 内）钉住规则本身；第二刀的真实多字符符号（`×ˢ`）
+        // 还牵涉码点类之外的字符，见设计 §7。
+        let toks = tokenize("A ⋃⋂ B").unwrap();
+        assert_eq!(toks[1].kind, TokenKind::Sym("⋃⋂".into()));
+    }
+
+    #[test]
+    fn backslash_is_a_sym_token_not_a_lex_error() {
+        // 今天 `\` 直接落进 `other =>` 报 unexpected-token；改成符号 token 后
+        // parser 能报「未声明符号」——比「不是一个合法 token」更教学。
+        let toks = tokenize("A \\ B").unwrap();
+        assert_eq!(toks[1].kind, TokenKind::Sym("\\".into()));
+    }
+
+    #[test]
+    fn greek_and_math_italic_letters_stay_identifiers() {
+        // `α` 与 `α'1` 逐字不变（既有回归）；`𝒫`/`ᶜ` 是 Unicode **字母**，
+        // 不在数学符号码点类里 ⇒ 仍是标识符字符（设计 §3.4，第二刀另设计）。
+        for text in ["α", "α'1", "𝒫", "ᶜ", "β2"] {
+            let toks = tokenize(text).unwrap();
+            assert_eq!(
+                toks[0].kind,
+                TokenKind::Ident(text.into()),
+                "`{text}` must stay one identifier"
+            );
+            assert_eq!(toks[1].kind, TokenKind::Eof);
+        }
+    }
+
+    #[test]
+    fn forall_keeps_its_own_token_inside_the_symbol_range() {
+        // `∀` U+2200 落在数学符号码点类里，但它今天就是一个 token：符号分支
+        // 必须让路，否则 `∀` 会变成 `Sym` 而关键字失效。
+        let toks = tokenize("∀ (a : Prop), a").unwrap();
+        assert_eq!(toks[0].kind, TokenKind::Forall);
+        let toks = tokenize("⊢ a").unwrap();
+        assert_eq!(toks[0].kind, TokenKind::Sym("⊢".into()));
+    }
+
+    #[test]
+    fn unterminated_string_is_a_parse_diagnostic_at_the_opening_quote() {
+        let err = tokenize("infix:50 \" ∈ => mem").expect_err("unterminated string");
+        assert_eq!(err.code(), "unterminated-string");
+        assert_eq!(err.span.start.column, 10, "span points at the opening `\"`");
+        assert_eq!(err.span.start.line, 1);
     }
 }

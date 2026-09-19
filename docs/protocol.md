@@ -57,9 +57,17 @@ payload fields are additive and machine-meaningful.
 | `expr.typed` | `text` (source slice), `inferred_type`, `span` | `#check` |
 | `expr.reduced` | `text` (source slice), `value`, `span` | `#reduce` |
 | `decl.printed` | `name`, `text` | `#print` |
-| `exercise.open` | `name` (optional) | an open answer slot (`def`/`theorem`/`example` with `sorry` value) |
+| `exercise.open` | `name` (optional) | an open answer slot (`def`/`theorem`/`example` with `sorry` value) whose **signature elaborated and passed the kernel's type test** |
 | `diagnostic` | `stage`, `code`, `message`, `span` | any error |
 | `warning` | `code`, `message`, `hint`, `span` | a non-fatal lint (never affects the exit code) |
+
+**`exercise.open` 的边界（G-01，2026-09-19）**：签名**不是**"值位是 `sorry`
+就免检"的——签名 elaborate 不了、不是一个类型，或 `theorem` 的签名不是 `Prop`，
+都会（与值位错误同罪）变成一条 `diagnostic`、声明是 Failed、**不**发
+`exercise.open`。所以 `exercise.open` 的计数**不能**单独用来判断"签名有没有腐烂"：
+判据要看 `diagnostic` / `failed`（这也正是 `docs/design/teaching-project.md` §6.4
+那条纪律的样板）。签名诊断的 `span` 取**签名自身**的源范围，不照抄内核消息里的
+span（G-15）。
 
 Example:
 
@@ -86,6 +94,10 @@ and never change the exit code. Codes today:
   unchanged) — the warning only says *which* line is the leftover. The verdict
   is the kernel's: the term with that argument removed must pass a full check
   of the declaration (`docs/design/redundant-sorry.md`).
+  **对照**：`redundant-sorry` 是"值位已经证完、声明仍是 `exercise.open`"；
+  签名的毛病是**另一个方向**——签名不过就不是练习，必须报 diagnostic
+  （修 G-01 时明确**不**把它做成 warning：warning 不改退出码，
+  课程侧就永远发现不了签名腐烂）。
 - `import-has-open-exercises`: the imported module still has `sorry`s; their
   declarations never enter the environment, so downstream code cannot see
   those names (`docs/design/imports-and-projects.md` §4.5).
@@ -100,11 +112,22 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   on the line), `import-not-a-valid-module-name` (a component is not an
   identifier — the classic case is a `-` from a file name) and
   `import-must-precede-declarations` (an `import` after a declaration);
+  plus the notation family (G-04 / WO-011, `docs/design/notation-subset.md`):
+  `unterminated-string` (a `"` with no closing quote in a notation command —
+  the span points at the **opening** quote), `notation-shape` (a malformed
+  notation command: missing precedence, missing `=>`, an identifier-word or
+  empty symbol, out-of-range precedence, a `notation:N` spelling, or a
+  duplicate symbol) and `notation-unknown-symbol` (a symbol used with no
+  `infix`/`notation` declaration before it — the hint teaches both "declare it
+  first" and the pointful spelling);
 - `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-constant`,
   `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
   `elab-nat-literal-disabled`, `elab-invalid-nat-literal`,
   `elab-too-many-ctor-fields`, `elab-unknown-ctor-for-iota`,
+  `elab-ambiguous-ctor-alias` (裸构造子名被两个类型各声明了一次——G-02 之后
+  构造子的**规范名**是 `Ind.ctor`，裸名只是解析别名（子集扩展），重复即歧义；
+  消息点名两个候选，写全前缀名即可解决),
   `elab-tactic-failed` (`by` 块里的一个 tactic 失败：目标形状不匹配 /
   内核拒绝，消息带期望/实际), `elab-apply-needs-a-term` (apply 类 tactic
   后面缺少要应用的项), `elab-apply-not-applicable` (要应用的项的结论不是
@@ -118,13 +141,19 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   没有兜底),
   `elab-match-parameterized-unsupported` (`match` 参数化归纳时，被匹配项不是
   一个书写类型为 `T 参数…` 的局部变量——拿不到参数实例),
-  `elab-let-type-query-failed` (无类型标注的 `let` 无法从值推断绑定类型);
+  `elab-let-type-query-failed` (无类型标注的 `let` 无法从值推断绑定类型),
+  `elab-notation-unknown-target` (记法命令 `=>` 后面的目标名不存在),
+  `elab-notation-argument-unsolved` (记号展开时补不出目标 telescope 的
+  **前导类型参数**：v1 只按操作数/期望类型做裸变量匹配，不做一般推断；
+  hint 教点名写法。G-04 / WO-011);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),
   `kernel-expected-pi` (a non-function value was used as a function, or an
   application was over-applied), `kernel-theorem-not-prop` (a theorem whose
-  type is not a proposition), `kernel-inductive-non-positive` (a recursive
+  type is not a proposition — **也出现在开练习上**：签名不是 Prop 的
+  `theorem … := sorry` 报这一条，而不是 `exercise.open`，见上文的边界),
+  `kernel-inductive-non-positive` (a recursive
   occurrence in a negative position of a constructor argument),
   `kernel-ctor-result-mismatch` (a constructor does not return a full
   application of its inductive), `kernel-ctor-arg-invalid-app` (a recursive
@@ -411,6 +440,10 @@ Request params: `{"textDocument": {"uri"}}`. Response:
   (dependencies first, entry last) with its status, the project-level
   diagnostics and the counts the editor/tree needs. Paths are **absolute**
   (`canonicalize`d when the path exists), so a client can open them directly.
+  `root` is **never empty**: the entry path is made absolute *before* the
+  ancestor-manifest ascent (the working directory is used exactly once, there),
+  so whether a client spells the entry relatively or absolutely — and from
+  which directory it runs — never changes the root or the module names.
 - Each project diagnostic carries `severity` (`error`/`warning`) so a consumer
   can count failures without keeping a list of codes.
 - `status` is `compiled` (it took part in the compile — the report may still
@@ -565,13 +598,25 @@ written to the same stdout event stream:
 
 Aggregates the units of `course/course.json` (the agent-facing material
 library) into a progress map; the VS Code course tree consumes it. Unit
-paths resolve relative to the manifest's directory.
+paths resolve relative to the manifest's directory (the manifest path is
+canonicalized first, so `course` does not depend on the cwd).
+
+A unit that declares `import` is compiled through the **project closure** —
+the same closure, module root and `ProjectPlan::digest` cache key as
+`grade`/`query check`/`build`. Its module root is the nearest
+`sokonanoda.toml` above the unit (a unit inside a nested sub-project keeps
+its own manifest), falling back to the **directory holding `course.json`**
+so the usual `<course>/{course.json,lib/,units/}` layout resolves
+`import lib.Set`. A unit without `import` keeps the single-file pipeline.
 
 - `course.unit` (`{type, file, title, unit, checked, open, failed, reduced[,
   error]}`) — per-unit counts (`checked` = `decl.checked`, `open` = open
-  exercises, `failed` = declarations the kernel/elab rejected, `reduced` =
-  `expr.reduced`); `error` carries a message when the unit file could not
-  be read or parsed;
+  exercises, `reduced` = `expr.reduced`) taken from the **entry module
+  only** (a dependency's declarations are not part of the unit's score;
+  `example.checked` stays out of `checked` as before); `failed` counts the
+  entry's rejections **plus** the closure-level ones, so `failed == 0` ⇔
+  `grade <unit>` exits 0; `error` carries a message when the unit file
+  could not be read or parsed;
 - `course.summary` (`{type, units, checked, open, failed}`) — totals.
 
 Human view: one line per unit (`unit 1 命题与证明 —— 12 checked · 5 open ·
@@ -647,10 +692,10 @@ sokonanoda query <op> [options]
 
 | op | needs | answer (`data`) |
 |---|---|---|
-| `check` | — | `{version, counts{decl_checked,example_checked,exercise_open,expr_typed,expr_reduced,decl_printed}, failed[{code,message,start,end}], warnings[{code,message,hint,start,end}]}` |
+| `check` | — | `{version, counts{decl_checked,example_checked,exercise_open,expr_typed,expr_reduced,decl_printed}, failed[{name,code,message,start,end,start_line,start_col,end_line,end_col}], warnings[{code,message,hint,start,end,start_line,start_col,end_line,end_col}]}`. **Two coordinate systems per entry, both spelled out** (G-15 / WO-010): `start`/`end` are **byte** offsets into the **entry file**, and `start_line`/`start_col`/`end_line`/`end_col` are the same 1-based line/column pair the `--json` event `span` prints — no counting on the consumer side (measuring a byte offset as a *char* index is what produced the G-15 false gap). Dependencies live in their own coordinate space: a broken module surfaces **only** as `import-dependency-failed` on the entry's `import` line (use `grade --json`, whose diagnostic carries `file`/`module`, or `query project` for the dependency's own error). `failed[]` carries **both** kernel rejections and parse diagnostics: when the source text does not parse, `counts` stays all-zero (nothing was checked), `failed[]` has exactly the parse diagnostic (`code` one of `unexpected-token`/`unexpected-eof`/`import-malformed`/`import-not-a-valid-module-name`/`import-must-precede-declarations`, `name: null`), `ok` stays `true` (the query *was* answered) and the exit code is `1` — the same verdict `grade` gives |
 | `state` | `--line L --col C` or `--offset N` | `{version, decl{name,kind,status,start,end}\|null, goal, goal_runs, binders, goals[{goal,goal_runs,binders}], span[start,end]\|null, step, total}` |
-| `goals` | — (`--probe` runs the kernel probe) | `[{name,kind,status,start,end,ty,ty_runs,goal,goals,binders,hole[start,end]\|null,holes[{start,end,id,redundant}],sub_goals[{start,end,ty}],code_actions}]` |
-| `holes` | — (optional `--offset N --direction next\|prev`) | `{holes[{id,start,end,ty,decl,redundant}], navigated<hole>\|null}` |
+| `goals` | — (`--probe` runs the kernel probe) | `[{name,kind,status,start,end,ty,ty_runs,goal,goals,binders,hole[start,end]\|null,holes[{start,end,id,redundant}],sub_goals[{start,end,ty}],code_actions}]`; if the source text does not parse the whole answer is the failure envelope `ok:false` + `error.code: "not-parsable"` (exit `1`) — an empty array would read as "this canvas has no declarations" |
+| `holes` | — (optional `--offset N --direction next\|prev`) | `{holes[{id,start,end,ty,decl,redundant}], navigated<hole>\|null}`; on a parse failure the same `not-parsable` failure envelope as `goals` (never `holes: []` + `navigated: null`) |
 | `hints` | `--line L --col C` or `--offset N` | `{hints[string]}` |
 | `reduce` | `--expr E` | `{value, ty}` |
 | `project` | — (optional `--root <dir>`) | `{project: <ProjectView>\|null, reason: "no-imports"\|"no-path"\|"parse-error"\|null}` — the closure around this file: root, manifest, modules with status (`compiled`/`load-failed`/`blocked`) + imports + counts, project diagnostics. `project: null` is a legal answer (a single file), never an error. Same view as `soko/project` (`docs/design/project-view.md`) |
@@ -669,12 +714,27 @@ Envelope (every answer, success or failure):
 - **`ok:false` is not "empty"**: no remaining goal (`goal: null`) and "no next
   hole" (`navigated: null`) are *successful* answers. `error.code` is one of
   `not-parsable` / `outside-declarations` / `position-out-of-range`. Mixing the
-  two is what forced agents to re-derive state from text before.
+  two is what forced agents to re-derive state from text before. A source text
+  that does not parse is **never** answered with an empty result: `check` reports
+  the parse diagnostic in `failed[]`, `goals`/`holes` answer `not-parsable`.
 - **Exit codes**: `0` = answered (an open `sorry` exercise is a legal state),
-  `1` = the file has kernel-rejected declarations (or `reduce` failed),
-  `2` = usage error. **Decide on the JSON, not the exit code.**
-- Positions are 1-based `line`/`col` with **UTF-16** columns (the LSP `character`
-  convention); `--offset` is a byte offset. `holes[].id` (`<declName>:<index>`)
+  `1` = the file was rejected — kernel-rejected declarations, a **parse failure**
+  (its `check.failed[]` carries the parse diagnostic; `goals`/`holes` answer
+  `not-parsable`), or `reduce` failed — `2` = usage error. **Decide on the JSON,
+  not the exit code.**
+- Positions are 1-based `line`/`col`; `--offset` is a **byte** offset. The column
+  counts `char`s today (`crates/front/src/token.rs`) — identical to the LSP's
+  UTF-16 `character` for BMP text (all course material), and one short per astral
+  character (emoji); that drift is a separate, separately tracked gap, not
+  something a consumer of this protocol should compensate for. Every position in
+  this document (event `span`, `query check`'s `start_line`/`start_col`/…, LSP
+  diagnostics) is the **same** number, so read it, don't recompute it.
+- `query check`'s `failed[]`/`warnings[]` report in the **entry file**'s
+  coordinate space. A dependency module's own error is not in `failed[]`; it
+  appears there only as `import-dependency-failed` (on the entry's `import`
+  line). For the dependency's error use `grade --json` (its diagnostic carries
+  `file`/`module`) or `query project` (per-module `errors`).
+- `holes[].id` (`<declName>:<index>`)
   is the stable reference for programmatic consumers — two sub-goals of one
   `apply` share a source position, so positional navigation steps over them as a
   group (see the `soko/nextHole` limitation above).

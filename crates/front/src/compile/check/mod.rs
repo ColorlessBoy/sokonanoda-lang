@@ -3,12 +3,13 @@
 mod kernel_phase;
 mod walk;
 
-use super::elab::{HoverNode, InductiveTable};
+use super::elab::{canonical_ctor_name, HoverNode, InductiveTable, KnownTable};
 use super::error::CompileError;
 use super::event::CompileOutput;
 use super::goals::GoalTemplates;
 use super::prelude::{
-    install_bool_prelude, install_eq_prelude, install_prelude, CompileOptions, PreludeMode,
+    install_bool_prelude, install_eq_prelude, install_l1_prelude, install_prelude, CompileOptions,
+    PreludeMode,
 };
 use super::report::{
     ByGoalState, ByStepState, DeclKind, DeclState, DeclStatus, DocumentReport, GoalBinder,
@@ -50,6 +51,17 @@ pub(crate) enum PendingOp<'a> {
         /// Elaborated declared type (kernel expr) — rendered into
         /// `DeclState.ty_text` during the check phase.
         declared_ty: Option<ExprPtr<'a>>,
+        /// 签名终审探针（G-01 / WO-004）：一条**不入环境**的同签名 axiom，
+        /// 内核阶段用 `try_check_declar_at` 问「这个签名是不是一个类型」，
+        /// `theorem` 再问「是不是 Prop」。签名不过 ⇒ 声明 Failed，
+        /// **不**发 `ExerciseOpen`（与值位 elaborate 失败同罪）。
+        ///
+        /// `Box`：`Declar` 比本枚举的其它变体大一圈（`large_enum_variant`），
+        /// 而探针只在签名检查里用一次——间接一层没有代价。
+        sig_probe: Box<Declar<'a>>,
+        /// 签名诊断的 span（**签名自身**的源范围——G-01 要求把错报到签名上，
+        /// 而不是照抄内核消息的 span；G-15 已修后内核 span 本身是精确的）。
+        sig_span: Span,
         goal: Option<String>,
         binders: Vec<GoalBinder>,
         holes: Vec<Span>,
@@ -347,25 +359,6 @@ fn by_step_states(steps: &[crate::by::ByStep]) -> Vec<ByStepState> {
         .collect()
 }
 
-/// Top-level names the file itself declares; used to keep the prelude from
-/// shadowing a user declaration (e.g. a file that defines its own `Eq`).
-fn user_top_level_names(file: &FolFile) -> std::collections::HashSet<String> {
-    file.commands
-        .iter()
-        .filter_map(|command| match command {
-            Command::Def { name, .. }
-            | Command::Theorem { name, .. }
-            | Command::Axiom { name, .. }
-            | Command::InductiveBlock { name, .. } => Some(name.clone()),
-            Command::Example { .. }
-            | Command::Check { .. }
-            | Command::Reduce { .. }
-            | Command::Print { .. }
-            | Command::Import { .. } => None,
-        })
-        .collect()
-}
-
 pub(crate) fn run(
     units: &[SourceUnit<'_>],
     options: &CompileOptions,
@@ -470,7 +463,7 @@ fn run_pass(
 ) -> PassResult {
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
-    let mut known_universes: HashMap<String, Vec<String>> = HashMap::new();
+    let mut known: KnownTable = KnownTable::new();
     let mut inductives = InductiveTable::new();
     match options.prelude {
         PreludeMode::Bare => {}
@@ -485,7 +478,7 @@ fn run_pass(
             if !explicit_nat {
                 // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
                 // Nat.rec 登记进 `known` 与 `match` 的 InductiveTable。
-                install_prelude(&mut builder, &mut known_universes, &mut inductives);
+                install_prelude(&mut builder, &mut known, &mut inductives);
             }
             let explicit_bool = units.iter().any(|unit| {
                 unit.file.commands.iter().any(
@@ -494,14 +487,23 @@ fn run_pass(
             });
             if !explicit_bool {
                 // Bool 同法（非递归）：文件自带 `inductive Bool` 时让位。
-                install_bool_prelude(&mut builder, &mut known_universes, &mut inductives);
+                install_bool_prelude(&mut builder, &mut known, &mut inductives);
             }
-            // `Eq` 的"被占用名字"取整个闭包的并集（设计 §4.6）。
-            let mut taken: std::collections::HashSet<String> = std::collections::HashSet::new();
-            for unit in units {
-                taken.extend(user_top_level_names(unit.file));
-            }
-            install_eq_prelude(&mut builder, &mut known_universes, &taken);
+            // `Eq` 与 L1 的"被占用名字"取整个闭包的并集（设计 §4.6）。
+            //
+            // 口径（设计 §2.3-1）：用 `top_level_def_spans_over` 的**键集**，
+            // 而不是 `user_top_level_names`——后者只看 `Command::*{name}`，
+            // 漏掉 `ctor`/`rec`。L1 之后这会漏掉"文件在别的归纳块里写了
+            // `ctor Or.inl` ⇒ 与 prelude 的 `Or.inl` 撞车"。
+            let taken: std::collections::HashSet<String> =
+                top_level_def_spans_over(units).into_keys().collect();
+            // 顺序（as-built，与提案 §6 的措辞略有出入）：**先 Eq，后 L1**。
+            // B7 的 `Eq.symm`/`Eq.trans`/`congrArg` 的定义体直接引用
+            // `Eq.subst`/`Eq.refl`，所以它们必须在 Eq 已进环境之后才装；
+            // 两者的让位读同一个 `taken`（B7 的 `EQ` 依赖），所以先后顺序
+            // 不影响让位结果。
+            install_eq_prelude(&mut builder, &mut known, &taken);
+            install_l1_prelude(&mut builder, &mut known, &mut inductives, &taken);
         }
     }
     let out = CompileOutput::default();
@@ -566,7 +568,7 @@ fn run_pass(
     // 这里的累加器按值交给 `Walk`，内核阶段再从 `walk` 取回（见文件尾）。
     let mut walk = walk::Walk {
         builder,
-        known_universes,
+        known,
         inductives,
         out,
         ops,
@@ -634,7 +636,10 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
             } => {
                 defs.entry(name.clone()).or_insert(*span);
                 for ctor in constructors {
-                    defs.entry(ctor.name.clone()).or_insert(ctor.span);
+                    // R1：闭包唯一性、hover/goto 回填、`import-name-collision`
+                    // 的第二道闸都按**规范名**走（源名只活在解析层）。
+                    defs.entry(canonical_ctor_name(name, &ctor.name))
+                        .or_insert(ctor.span);
                 }
                 if let Some(rec) = recursor {
                     defs.entry(rec.name.clone()).or_insert(rec.span);
@@ -644,7 +649,10 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
             | Command::Check { .. }
             | Command::Reduce { .. }
             | Command::Print { .. }
-            | Command::Import { .. } => {}
+            | Command::Import { .. }
+            // 记法命令不是声明（设计 N6）：不进 `top_level_def_spans`，
+            // 所以它既不占名字、也不参与闭包级重名检查。
+            | Command::Notation { .. } => {}
         }
     }
     defs

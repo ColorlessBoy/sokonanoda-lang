@@ -1,0 +1,120 @@
+-- ==========================================================================
+-- unit02-subsets-empty.sokonanoda —— 卷 I 单元② 子集、空集与包含三律
+--
+-- 本单元的"该学的定理"：⊆ 是**偏序**（自反/传递/反对称）、空集是**最小元**、
+-- 单元素集与配对集的成员判定。
+--
+-- 注意（分层，见 docs/design/course-stdlib.md）：本单元前 6 题**曾经被我放进 lib**，
+-- 那是错的——Mathlib 有它们，但它们**有数学内容**，所以属于练习（台账 L-05）。
+-- ==========================================================================
+import lib.Logic
+import lib.Set
+
+-- ─────────────────────────────────────────────────────────────
+-- 2.1 包含三律：⊆ 是偏序（先做这三题，后面的题会用到）
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 1（L 类）：自反。
+-- soko:hint 思路：目标是全称命题，intro 一个元素与"它在 A 里"。
+-- soko:hint 目标形态：Set.subset α A A，展开后是 ∀ x, A x → A x。
+-- soko:hint 关键件：intros 之后手里就是目标，直接交出去。
+theorem subset_refl (α : Type) (A : Set α) : Set.subset α A A :=
+  sorry
+
+-- 练习 2（L 类）：传递。
+-- soko:hint 思路：目标要 A x；先把 x 交给第一条包含，再交给第二条。
+-- soko:hint 目标形态：Set.subset α A C，即 ∀ x, A x → C x。
+-- soko:hint 关键件：h1 x hx : B x，再 h2 x (h1 x hx) : C x。
+theorem subset_trans (α : Type) (A B C : Set α)
+    (h1 : Set.subset α A B) (h2 : Set.subset α B C) : Set.subset α A C :=
+  sorry
+
+-- 练习 3（L 类）：反对称——两条包含给出相等（**外延性的第一个用法**）。
+-- soko:hint 思路：集合相等用 Set.ext，逐元素把两条包含拼成 Iff。
+-- soko:hint 目标形态：Eq.{1} (Set α) A B。
+-- soko:hint 关键件：Set.ext α A B 需要 forall x, Iff (A x) (B x)；Iff.intro 的两个方向就是 h1 x 与 h2 x。
+theorem subset_antisymm (α : Type) (A B : Set α)
+    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 2.2 空集：没有任何元素，因而被一切集合包含
+--
+-- 实证提醒（Hendriyanto et al. 2024）：许多学生**不接受 ∅ 是集合**，理由是
+-- "里面没有元素可以被指认"。所以这两题不是形式练习，是要把"∅ 是集合"这件事做实。
+-- ─────────────────────────────────────────────────────────────
+
+-- 演示（已写好）：空集没有元素。
+theorem demo_notMem_empty (α : Type) (a : α) : Not (Set.mem α a (Set.empty α)) :=
+  Set.notMem_empty α a
+
+-- 练习 4（L 类）：∅ ⊆ A（**空洞蕴含**：前提永远不成立）。
+-- soko:hint 思路：目标是 ∀ x, x ∈ ∅ → A x；把前提拿进来，它其实是 False。
+-- soko:hint 目标形态：intro 之后手里有 hx : Set.mem α x (Set.empty α)，目标是 A x。
+-- soko:hint 关键件：hx 展开就是 False；用 False.elim (A x) hx 交出目标。
+theorem empty_subset (α : Type) (A : Set α) : Set.subset α (Set.empty α) A :=
+  sorry
+
+-- 练习 5（L 类）：A ⊆ ∅ 当且仅当 A = ∅（**用第 3 题的反对称**）。
+-- soko:hint 思路：一边是"互相包含"；另一边是把 A = ∅ 代进自反性。
+-- soko:hint 目标形态：Iff (Set.subset α A (Set.empty α)) (Eq.{1} (Set α) A (Set.empty α))。
+-- soko:hint 关键件：→ 用 subset_antisymm（第 3 题）+ empty_subset（第 4 题）； ← 用 Eq.subst 与 Eq.symm 把 A = ∅ 代进 subset_refl（第 1 题）。
+theorem subset_empty_iff (α : Type) (A : Set α) :
+    Iff (Set.subset α A (Set.empty α)) (Eq.{1} (Set α) A (Set.empty α)) :=
+  sorry
+
+-- 练习 6（L 类）：A = ∅ 当且仅当 A 没有元素。
+-- soko:hint 思路：→ 方向把 A = ∅ 代进"∅ 没有元素"；← 方向用反对称 + 空洞蕴含。
+-- soko:hint 目标形态：Iff (Eq.{1} (Set α) A (Set.empty α)) (forall (x : α), Not (A x))。
+-- soko:hint 关键件：→ 用 Eq.subst 与 Set.notMem_empty；← 用 subset_antisymm + empty_subset， 其中 A ⊆ ∅ 这一步要 man 每 x 把"没有元素"变成 False（False.elim）。
+theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
+    Iff (Eq.{1} (Set α) A (Set.empty α)) (forall (x : α), Not (A x)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 2.3 单元素集与配对集
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 7（L 类）：单元素集不是空集。
+-- soko:hint 思路：要证"不相等"，就假设相等，然后制造矛盾。
+-- soko:hint 目标形态：Not (Eq.{1} (Set α) (Set.singleton α a) (Set.empty α))。
+-- soko:hint 关键件：把 a ∈ {a}（Set.mem_singleton_self）沿假设搬到 a ∈ ∅， 再交给 Set.notMem_empty 得到 False。
+theorem singleton_ne_empty (α : Type) (a : α) :
+    Not (Eq.{1} (Set α) (Set.singleton α a) (Set.empty α)) :=
+  sorry
+
+-- 练习 8（L 类）：{a, b} ⊆ A 当且仅当 a ∈ A 且 b ∈ A。
+-- soko:hint 思路：配对集展开是"两个等式取或"；→ 方向分别喂 a、b；← 方向对 Or 分情况。
+-- soko:hint 目标形态：Iff (Set.subset α (Set.pair α a b) A) (And (Set.mem α a A) (Set.mem α b A))。
+-- soko:hint 关键件：→ 用 Or.inl/Or.inr 造出 a ∈ {a,b} 与 b ∈ {a,b}； ← 用 Or.elim（库里）配合 Eq.subst 把等式搬到 A 上。
+theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
+    Iff (Set.subset α (Set.pair α a b) A) (And (Set.mem α a A) (Set.mem α b A)) :=
+  sorry
+
+-- 练习 9（L 类）：{a, b} = {b, a}。
+-- soko:hint 思路：外延 + 逐元素把"两个等式取或"的两支互换。
+-- soko:hint 目标形态：Eq.{1} (Set α) (Set.pair α a b) (Set.pair α b a)。
+-- soko:hint 关键件：Set.ext + Iff.intro，两边都用 Or.elim 把 Or.inl 换成 Or.inr、Or.inr 换成 Or.inl。
+theorem pair_comm (α : Type) (a b : α) :
+    Eq.{1} (Set α) (Set.pair α a b) (Set.pair α b a) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 2.4 元素 vs 单元素（**实证上最脆弱的一点**）
+--
+-- Hendriyanto et al. 2024（183 名学生）：`r ∈ M` / `s ∉ M` 几乎人人答对，
+-- 但 **`{r} ∈ M` 没有一个人给出正确理由**。所以这里单独练它。
+-- ─────────────────────────────────────────────────────────────
+
+-- 练习 10（D/R 类）：下面这条是学生最常写错的形状——它**连类型都不对**：
+--
+--     theorem wrong (a : Nat) : Set.mem Nat (Set.singleton Nat a) (Set.singleton Nat a) := sorry
+--
+-- 请回答：(1) 为什么它类型不对（写在注释里）；(2) 写出**正确**的那条并证明它
+-- ——"`{a}` 是 `{{a}}` 的元素"。
+-- soko:hint 思路：`Set.mem α x A` 要求 x : α；这里 A 是 Set Nat，所以 x 必须是 Set Nat， 而 `{a}` 恰好是 Set Nat——目标只能是"`{a}` 属于一个**装着集合**的集合"。
+-- soko:hint 目标形态：Set.mem (Set Nat) (Set.singleton Nat a) (Set.singleton (Set Nat) (Set.singleton Nat a))，展开后是一个等式。
+-- soko:hint 关键件：Eq.refl.{1} (Set Nat) (Set.singleton Nat a)。
+theorem singleton_of_singleton (a : Nat) :
+    Set.mem (Set Nat) (Set.singleton Nat a) (Set.singleton (Set Nat) (Set.singleton Nat a)) :=
+  sorry

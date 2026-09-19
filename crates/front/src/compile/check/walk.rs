@@ -16,7 +16,8 @@ use super::{
 };
 use crate::compile::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
-    ElabCtx, ElabScope, HoverNode, InductiveTable, UnivMap,
+    make_univ_map, resolve_known, ElabCtx, ElabScope, HoverNode, InductiveTable, KnownName,
+    KnownTable, UnivMap,
 };
 use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
@@ -27,13 +28,13 @@ use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::Declar;
+use sokonanoda::util::ExprPtr;
 use std::borrow::Cow;
-use std::collections::HashMap;
 
 /// 命令走查的**可变累加器**（原 `run_pass` 主循环里被 arm 改写的局部变量）。
 pub(super) struct Walk<'arena> {
     pub(super) builder: EnvBuilder<'arena>,
-    pub(super) known_universes: HashMap<String, Vec<String>>,
+    pub(super) known: KnownTable,
     pub(super) inductives: InductiveTable<'arena>,
     pub(super) out: CompileOutput,
     pub(super) ops: Vec<PendingOp<'arena>>,
@@ -157,6 +158,9 @@ impl<'arena> Walk<'arena> {
                 Command::Check { expr, span: _ } => self.check(&c, expr),
                 Command::Reduce { expr, span: _ } => self.reduce(&c, expr),
                 Command::Print { name, span } => self.print(&c, name, *span),
+                // 记法命令**不是声明**（设计 N6）：不 elaborate、不产
+                // PendingOp、不进声明表——与 `Command::Import` 同族。
+                Command::Notation { .. } => {}
             }
         }
     }
@@ -173,8 +177,6 @@ impl<'arena> Walk<'arena> {
         span: Span,
     ) {
         let idx = c.idx;
-        // 空中缀宇宙表：`HashMap::new()` 不分配，逐命令建一张的代价是零。
-        let no_universe: UnivMap<'_> = UnivMap::new();
         let templates = c.templates;
         // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
         // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
@@ -219,13 +221,17 @@ impl<'arena> Walk<'arena> {
                 universe,
                 ty,
                 val,
-                &self.known_universes,
+                &self.known,
                 &mut hovers,
                 &elab_ctx,
             ) {
                 let _ = self.builder.add_declar(decl);
-                self.known_universes
-                    .insert(name.to_string(), universe.to_vec());
+                self.known.insert(
+                    name.to_string(),
+                    KnownName::Decl {
+                        universes: universe.to_vec(),
+                    },
+                );
             }
             return;
         }
@@ -243,18 +249,22 @@ impl<'arena> Walk<'arena> {
         let mut redundant_spans: Vec<Span> = Vec::new();
         let open_info = open_goal(ty, val, templates, &mut redundant_spans);
         if let Some(info) = open_info {
-            let declared_ty = elab_expr(
-                &mut self.builder,
-                ty,
-                &mut ElabScope::new(),
-                &no_universe,
-                &self.known_universes,
-                &mut Vec::new(),
-                None,
-                None,
-                &elab_ctx,
-            )
-            .ok();
+            // G-01：签名必须先过 elaborate；`Err` 与值位 elaborate 失败同罪。
+            let signature =
+                match open_signature(&mut self.builder, universe, ty, &self.known, &elab_ctx) {
+                    Ok(sig) => sig,
+                    Err(e) => {
+                        self.out.push_error(idx, e.clone());
+                        self.decl_states.push(failed_state(
+                            DeclKind::Definition,
+                            Some(name.to_string()),
+                            span,
+                            e,
+                            idx,
+                        ));
+                        return;
+                    }
+                };
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Definition,
@@ -265,11 +275,13 @@ impl<'arena> Walk<'arena> {
                     ty,
                     val,
                     &redundant_spans,
-                    &self.known_universes,
+                    &self.known,
                     &elab_ctx,
                 ),
                 env_before: c.env_before,
-                declared_ty,
+                declared_ty: Some(signature.declared_ty),
+                sig_probe: signature.probe,
+                sig_span: signature.span,
                 goal: Some(info.goal),
                 binders: info.binders,
                 holes: info.holes,
@@ -288,7 +300,7 @@ impl<'arena> Walk<'arena> {
             universe,
             ty,
             val,
-            &self.known_universes,
+            &self.known,
             &mut hovers,
             &elab_ctx,
         ) {
@@ -306,8 +318,12 @@ impl<'arena> Walk<'arena> {
                     ));
                     return;
                 }
-                self.known_universes
-                    .insert(name_owned.clone(), universe.to_vec());
+                self.known.insert(
+                    name_owned.clone(),
+                    KnownName::Decl {
+                        universes: universe.to_vec(),
+                    },
+                );
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
                     name: Some(name_owned),
@@ -348,8 +364,6 @@ impl<'arena> Walk<'arena> {
         span: Span,
     ) {
         let idx = c.idx;
-        // 空中缀宇宙表：`HashMap::new()` 不分配，逐命令建一张的代价是零。
-        let no_universe: UnivMap<'_> = UnivMap::new();
         let templates = c.templates;
         // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
         // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
@@ -391,13 +405,17 @@ impl<'arena> Walk<'arena> {
                 universe,
                 ty,
                 val,
-                &self.known_universes,
+                &self.known,
                 &mut hovers,
                 &elab_ctx,
             ) {
                 let _ = self.builder.add_declar(decl);
-                self.known_universes
-                    .insert(name.to_string(), universe.to_vec());
+                self.known.insert(
+                    name.to_string(),
+                    KnownName::Decl {
+                        universes: universe.to_vec(),
+                    },
+                );
             }
             return;
         }
@@ -433,18 +451,22 @@ impl<'arena> Walk<'arena> {
             _ => None,
         };
         if let Some(info) = open_info {
-            let declared_ty = elab_expr(
-                &mut self.builder,
-                ty,
-                &mut ElabScope::new(),
-                &no_universe,
-                &self.known_universes,
-                &mut Vec::new(),
-                None,
-                None,
-                &elab_ctx,
-            )
-            .ok();
+            // G-01：签名必须先过 elaborate；`Err` 与值位 elaborate 失败同罪。
+            let signature =
+                match open_signature(&mut self.builder, universe, ty, &self.known, &elab_ctx) {
+                    Ok(sig) => sig,
+                    Err(e) => {
+                        self.out.push_error(idx, e.clone());
+                        self.decl_states.push(failed_state(
+                            DeclKind::Theorem,
+                            Some(name.to_string()),
+                            span,
+                            e,
+                            idx,
+                        ));
+                        return;
+                    }
+                };
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Theorem,
@@ -455,11 +477,13 @@ impl<'arena> Walk<'arena> {
                     ty,
                     val,
                     &redundant_spans,
-                    &self.known_universes,
+                    &self.known,
                     &elab_ctx,
                 ),
                 env_before: c.env_before,
-                declared_ty,
+                declared_ty: Some(signature.declared_ty),
+                sig_probe: signature.probe,
+                sig_span: signature.span,
                 goal: Some(info.goal),
                 binders: info.binders,
                 holes: info.holes,
@@ -478,7 +502,7 @@ impl<'arena> Walk<'arena> {
             universe,
             ty,
             val,
-            &self.known_universes,
+            &self.known,
             &mut hovers,
             &elab_ctx,
         ) {
@@ -496,8 +520,12 @@ impl<'arena> Walk<'arena> {
                     ));
                     return;
                 }
-                self.known_universes
-                    .insert(name_owned.clone(), universe.to_vec());
+                self.known.insert(
+                    name_owned.clone(),
+                    KnownName::Decl {
+                        universes: universe.to_vec(),
+                    },
+                );
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
                     name: Some(name_owned),
@@ -551,13 +579,17 @@ impl<'arena> Walk<'arena> {
                 name,
                 universe,
                 ty,
-                &self.known_universes,
+                &self.known,
                 &mut hovers,
                 &elab_ctx,
             ) {
                 let _ = self.builder.add_declar(decl);
-                self.known_universes
-                    .insert(name.to_string(), universe.to_vec());
+                self.known.insert(
+                    name.to_string(),
+                    KnownName::Decl {
+                        universes: universe.to_vec(),
+                    },
+                );
             }
             return;
         }
@@ -578,7 +610,7 @@ impl<'arena> Walk<'arena> {
             name,
             universe,
             ty,
-            &self.known_universes,
+            &self.known,
             &mut hovers,
             &elab_ctx,
         ) {
@@ -596,8 +628,12 @@ impl<'arena> Walk<'arena> {
                     ));
                     return;
                 }
-                self.known_universes
-                    .insert(name_owned.clone(), universe.to_vec());
+                self.known.insert(
+                    name_owned.clone(),
+                    KnownName::Decl {
+                        universes: universe.to_vec(),
+                    },
+                );
                 let env_after = self.builder.declaration_count();
                 self.ops.push(PendingOp::Decl {
                     name: Some(name_owned),
@@ -630,8 +666,6 @@ impl<'arena> Walk<'arena> {
     #[allow(clippy::too_many_arguments)]
     fn example(&mut self, c: &CmdCtx<'_>, ty: &Expr, val: &Expr, span: Span) {
         let idx = c.idx;
-        // 空中缀宇宙表：`HashMap::new()` 不分配，逐命令建一张的代价是零。
-        let no_universe: UnivMap<'_> = UnivMap::new();
         let templates = c.templates;
         // 注意用 `&c.prefix_src`（Deref，借 `c` 的寿命）而不是 `Cow::as_ref()`
         // （后者返回的是 `Cow` 自身的寿命参数，会把 `ElabCtx` 逼到 `'arena`）。
@@ -669,7 +703,7 @@ impl<'arena> Walk<'arena> {
                 &internal_name,
                 ty,
                 val,
-                &self.known_universes,
+                &self.known,
                 &mut hovers,
                 &elab_ctx,
             ) {
@@ -702,18 +736,17 @@ impl<'arena> Walk<'arena> {
             _ => None,
         };
         if let Some(info) = open_info {
-            let declared_ty = elab_expr(
-                &mut self.builder,
-                ty,
-                &mut ElabScope::new(),
-                &no_universe,
-                &self.known_universes,
-                &mut Vec::new(),
-                None,
-                None,
-                &elab_ctx,
-            )
-            .ok();
+            // G-01：`example` 没有宇宙参数，签名同样必须先过 elaborate。
+            let signature = match open_signature(&mut self.builder, &[], ty, &self.known, &elab_ctx)
+            {
+                Ok(sig) => sig,
+                Err(e) => {
+                    self.out.push_error(idx, e.clone());
+                    self.decl_states
+                        .push(failed_state(DeclKind::Example, None, span, e, idx));
+                    return;
+                }
+            };
             self.ops.push(PendingOp::OpenExercise {
                 name: None,
                 kind: DeclKind::Example,
@@ -724,11 +757,13 @@ impl<'arena> Walk<'arena> {
                     ty,
                     val,
                     &redundant_spans,
-                    &self.known_universes,
+                    &self.known,
                     &elab_ctx,
                 ),
                 env_before: c.env_before,
-                declared_ty,
+                declared_ty: Some(signature.declared_ty),
+                sig_probe: signature.probe,
+                sig_span: signature.span,
                 goal: Some(info.goal),
                 binders: info.binders,
                 holes: info.holes,
@@ -748,7 +783,7 @@ impl<'arena> Walk<'arena> {
             &internal_name,
             ty,
             val,
-            &self.known_universes,
+            &self.known,
             &mut hovers,
             &elab_ctx,
         ) {
@@ -815,7 +850,7 @@ impl<'arena> Walk<'arena> {
             let mut built: Vec<Declar<'_>> = Vec::new();
             let _ = install_inductive_block(
                 &mut self.builder,
-                &mut self.known_universes,
+                &mut self.known,
                 &mut self.inductives,
                 prefix_src,
                 options,
@@ -845,7 +880,7 @@ impl<'arena> Walk<'arena> {
         let mut built: Vec<Declar<'_>> = Vec::new();
         match install_inductive_block(
             &mut self.builder,
-            &mut self.known_universes,
+            &mut self.known,
             &mut self.inductives,
             prefix_src,
             options,
@@ -901,7 +936,7 @@ impl<'arena> Walk<'arena> {
             expr,
             &mut ElabScope::new(),
             &no_universe,
-            &self.known_universes,
+            &self.known,
             &mut hovers,
             None,
             None,
@@ -945,7 +980,7 @@ impl<'arena> Walk<'arena> {
             expr,
             &mut ElabScope::new(),
             &no_universe,
-            &self.known_universes,
+            &self.known,
             &mut hovers,
             None,
             None,
@@ -976,15 +1011,88 @@ impl<'arena> Walk<'arena> {
     #[allow(clippy::too_many_arguments)]
     fn print(&mut self, c: &CmdCtx<'_>, name: &str, span: Span) {
         let idx = c.idx;
-        let ptr = self.builder.name_from_str(name);
+        // R2：`#print mk` 与 `#print Wrap.mk` 打印同一条声明（别名解析到规范名）；
+        // 歧义/未知走各自稳定的错误码，与 `#check` 同源。
+        let canonical = match resolve_known(&self.known, name, span) {
+            Ok(canonical) => canonical,
+            Err(e) => {
+                self.out.push_error(idx, e);
+                return;
+            }
+        };
+        let ptr = self.builder.name_from_str(&canonical);
         self.ops.push(PendingOp::Print {
-            name: name.to_string(),
+            name: canonical,
             ptr,
             span,
             cmd: idx,
         });
     }
 }
+
+/// 开练习的签名检查产物（G-01 / WO-004）。
+///
+/// 值位是 `sorry` 不再让签名免检：签名必须先 elaborate 成内核类型
+/// （`elab_expr` 的 `Err` 由调用方走既有失败通道上报），再由内核阶段用
+/// [`Self::probe`] 终审「它是不是一个类型 / 是不是 Prop」。
+pub(super) struct OpenSignature<'arena> {
+    /// 签名 elaborate 后的内核表达式（只用来渲染 `DeclState.ty_text`）。
+    pub(super) declared_ty: ExprPtr<'arena>,
+    /// 「签名是不是一个类型」的探针：一条**不入环境**的同签名 axiom。
+    /// 内核的 `check_declar_info_v` 先 `ensure_sort_v`，消息族与 checked
+    /// 路径同源（`Declar::Axiom` 不需要值，正适合签名这种"没有值"的声明）。
+    pub(super) probe: Box<Declar<'arena>>,
+    /// 诊断 span：**签名**的 AST 范围（G-01 要求报在签名上；G-15 已修，内核 span 本身精确）。
+    pub(super) span: Span,
+}
+
+/// 开练习的签名检查（G-01 / WO-004）：把签名 elaborate 成内核类型并造终审探针。
+///
+/// 与 checked 路径用**同一套** elaborate 上下文：宇宙参数在作用域里
+/// （原来这里传的是空宇宙表 `UnivMap::new()`，`{u}` 签名的 `ty_text`
+/// 因此渲染不出来——签名检查顺带把它对齐）。`Err` = 签名 elaborate 不过，
+/// 调用方必须把它当失败上报，**不要**登记开放练习。
+fn open_signature<'arena>(
+    builder: &mut EnvBuilder<'arena>,
+    universe: &[String],
+    ty: &Expr,
+    known: &KnownTable,
+    ctx: &ElabCtx<'arena, '_>,
+) -> Result<OpenSignature<'arena>, CompileError> {
+    let univ = make_univ_map(builder, universe);
+    let mut hovers: Vec<HoverNode<'arena>> = Vec::new();
+    let declared_ty = elab_expr(
+        builder,
+        ty,
+        &mut ElabScope::new(),
+        &univ,
+        known,
+        &mut hovers,
+        None,
+        None,
+        ctx,
+    )?;
+    // 探针重新 elaborate 一次签名：`build_axiom` 是现成的**无值**声明构造器，
+    // 复用它的宇宙参数登记（`collect_uparams`），免得在这里重造一遍。
+    let probe = build_axiom(
+        builder,
+        SIG_PROBE_NAME,
+        universe,
+        ty,
+        known,
+        &mut Vec::new(),
+        ctx,
+    )?;
+    Ok(OpenSignature {
+        declared_ty,
+        probe: Box::new(probe),
+        span: ty.span(),
+    })
+}
+
+/// 签名探针的内部名（不入环境，不会与用户名字冲突；对照
+/// `_soko_redundant_sorry_N`）。
+const SIG_PROBE_NAME: &str = "_soko_signature_probe";
 
 /// 「多余的 `sorry`」的 kernel 探针（`docs/design/redundant-sorry.md` §4）：
 /// 对每个候选洞，把那个实参从应用 spine 上删掉、按原声明的类型合成一条
@@ -1002,7 +1110,7 @@ fn build_redundant_probes<'arena>(
     ty: &Expr,
     val: &Expr,
     spans: &[Span],
-    known: &HashMap<String, Vec<String>>,
+    known: &KnownTable,
     ctx: &ElabCtx<'arena, '_>,
 ) -> Vec<(Declar<'arena>, Span)> {
     let mut probes = Vec::new();

@@ -78,6 +78,7 @@ GitHub Releases API 在 CI 里生成。官网是这些事实的**视图**，不�
 | `get-started.html` | 三类人各一条路径：**学习者**（装 VS Code 扩展）/ **agent**（技能）/ **贡献者**（源码） | `editor/vscode/README.md`、`README.md`、`skills/README.md`、`AGENTS.md` §Setup | **重写**（现三类混排） |
 | `course.html` | 6 单元导航 + 明确的「从这里开始」 | `course/course.json`、`course/README.md`、`playground.sokonanoda`、`examples/lesson-0*.sokonanoda` | 部分新写 |
 | `vision.html` | 远大目标：要做什么、为什么这么做 | `ROADMAP.md` §0/§1/§2、`REQUIREMENTS.md` §1、`docs/notes/research.md` §3、`docs/architecture.md` §1 | **必须新写**（现有全是 agent 口吻，术语密集） |
+| `set-theory.html` | **第二大课（卷 I《集合论》）入口**：12 单元表 + 每单元计数 + 判卷命令 | `courses/set-theory/course.json`、`courses/set-theory/README.md`；计数来自 `site/data/site.json` 的 `set_theory` 块（`counts_source: "gate"`，由 `scripts/gen-site-data.py` 跑课程门禁实测） | **生成**（§3，永不手写计数） |
 | `progress.html` | 现状 + 时间线 + 路线图 | `STATUS.md`（+ `site.json`）、`ROADMAP.md` §10、`docs/notes/gap-analysis.md`、Releases API | **生成**（§3） |
 | `agents.html` | 差异化卖点：给 code agent 的技能与协议 | `skills/README.md`、`AGENTS.md`、`docs/protocol.md`、`skills/sokonanoda-teacher/SKILL.md` | 部分新写 |
 | `docs.html` | 深度文档入口（**只给链接，不复制正文**） | `docs/README.md` 的分层表 | 少量新写 |

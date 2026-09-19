@@ -14,8 +14,10 @@ use crate::compile::error::{parse_def_eq_mismatch, refine_kernel_kind, CompileEr
 use crate::compile::event::{CheckEvent, CompileOutput};
 use crate::compile::report::{DeclKind, DeclState, DeclStatus, DocumentReport, ResolvedTarget};
 use crate::compile::units::{unit_ranges, SourceUnit};
+use crate::Span;
 use sokonanoda::builder::EnvBuilder;
-use sokonanoda::env::EnvLimit;
+use sokonanoda::env::{Declar, EnvLimit};
+use sokonanoda::util::{ExportFile, ExprPtr};
 
 /// 命令走完后交给内核阶段的一切（原 `run_pass` 尾部读到的全部局部变量）。
 pub(super) struct Walked<'a, 'arena> {
@@ -109,6 +111,8 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     env_before,
                     redundant_probes,
                     declared_ty,
+                    sig_probe,
+                    sig_span,
                     goal,
                     binders,
                     holes,
@@ -118,54 +122,78 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                     span,
                     cmd,
                 } => {
-                    out.push_event(cmd, CheckEvent::ExerciseOpen { name: name.clone() });
-                    // 「多余的 sorry」的终审：把候选实参删掉后，整条声明必须能被
-                    // 完整内核接受。过了才报；过不了就维持"练习尚未解决"（保守）。
-                    // 探针**不入环境** ⇒ 名字没有 `decl_idx`，必须显式给可见前缀
-                    // `env_before`（= 该声明若补完时会占的下标）；否则
-                    // `EnvLimit::ByName(探针名)` 取 0 → 空环境 → 假 `unknown const`
-                    // （`docs/design/redundant-sorry.md` §8）。
-                    for (declar, hole_span) in redundant_probes {
-                        kernel_checks += 1;
-                        if env
-                            .try_check_declar_at(&declar, EnvLimit::ByIndex(env_before))
-                            .is_ok()
-                        {
-                            out.push_warning(
+                    // 签名终审（G-01 / WO-004）：开练习的签名先过内核的
+                    // 「它是不是一个类型」（`theorem` 还要过「是不是 Prop」）。
+                    // 不过 ⇒ 与值位 elaborate 失败完全同罪：报诊断、声明
+                    // Failed、**不**发 `exercise.open`（`sorry` 救不回来）。
+                    match open_signature_failure(
+                        &env,
+                        &sig_probe,
+                        kind,
+                        declared_ty,
+                        env_before,
+                        sig_span,
+                    ) {
+                        Some(err) => {
+                            allow_cutoff = false;
+                            op_failed = true;
+                            failed_cmds.insert(cmd, err.clone());
+                            out.push_error(j, err.clone());
+                            decl_states.push(failed_state(kind, name, sig_span, err, cmd));
+                        }
+                        None => {
+                            out.push_event(cmd, CheckEvent::ExerciseOpen { name: name.clone() });
+                            // 「多余的 sorry」的终审：把候选实参删掉后，整条声明必须能被
+                            // 完整内核接受。过了才报；过不了就维持"练习尚未解决"（保守）。
+                            // 探针**不入环境** ⇒ 名字没有 `decl_idx`，必须显式给可见前缀
+                            // `env_before`（= 该声明若补完时会占的下标）；否则
+                            // `EnvLimit::ByName(探针名)` 取 0 → 空环境 → 假 `unknown const`
+                            // （`docs/design/redundant-sorry.md` §8）。
+                            for (declar, hole_span) in redundant_probes {
+                                kernel_checks += 1;
+                                if env
+                                    .try_check_declar_at(&declar, EnvLimit::ByIndex(env_before))
+                                    .is_ok()
+                                {
+                                    out.push_warning(
+                                        cmd,
+                                        crate::compile::warning::CompileWarning {
+                                            kind: crate::compile::warning::WarningKind::RedundantSorry,
+                                            message: "这一行的 sorry 是多余的：前面的项已经完成了证明，\
+                                                      sorry 不能再接在这里。"
+                                                .to_string(),
+                                            span: hole_span,
+                                        },
+                                    );
+                                }
+                            }
+                            let ty_text = declared_ty.and_then(|ty| {
+                                quiet_catch(|| {
+                                    env.with_tc(EnvLimit::Empty, |tc| {
+                                        tc.with_pp(|pp| pp.pp_expr(ty))
+                                    })
+                                })
+                                .ok()
+                            });
+                            decl_states.push(DeclState {
+                                kind,
+                                name,
+                                span,
+                                status: DeclStatus::Open,
+                                error: None,
+                                goal,
+                                binders,
                                 cmd,
-                                crate::compile::warning::CompileWarning {
-                                    kind: crate::compile::warning::WarningKind::RedundantSorry,
-                                    message: "这一行的 sorry 是多余的：前面的项已经完成了证明，\
-                                              sorry 不能再接在这里。"
-                                        .to_string(),
-                                    span: hole_span,
-                                },
-                            );
+                                universe,
+                                holes,
+                                sub_goals,
+                                refine_template,
+                                by_steps,
+                                hints: Vec::new(),
+                                ty_text,
+                            });
                         }
                     }
-                    let ty_text = declared_ty.and_then(|ty| {
-                        quiet_catch(|| {
-                            env.with_tc(EnvLimit::Empty, |tc| tc.with_pp(|pp| pp.pp_expr(ty)))
-                        })
-                        .ok()
-                    });
-                    decl_states.push(DeclState {
-                        kind,
-                        name,
-                        span,
-                        status: DeclStatus::Open,
-                        error: None,
-                        goal,
-                        binders,
-                        cmd,
-                        universe,
-                        holes,
-                        sub_goals,
-                        refine_template,
-                        by_steps,
-                        hints: Vec::new(),
-                        ty_text,
-                    });
                 }
                 PendingOp::Decl {
                     name,
@@ -450,4 +478,50 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
         sigs,
         cutoff,
     }
+}
+
+/// 开练习的**签名终审**（G-01 / WO-004）：`None` = 签名通过。
+///
+/// 两步都走内核，消息/判据与 checked 路径同源：
+///
+/// 1. **是不是一个类型**——`try_check_declar_at(&sig_probe, ByIndex(env_before))`。
+///    探针是同签名的 `Declar::Axiom`（**不入环境**），内核的
+///    `check_declar_info_v` 会先 `ensure_sort_v`；失败消息原样进
+///    `refine_kernel_kind`（`expected a sort…` ⇒ `kernel-expected-sort`），
+///    与值位有真值时 `theorem t : 3 := 3` 收到的诊断逐字同族。
+/// 2. **是不是 Prop**（只对 `theorem`）——内核公开判据
+///    `TypeChecker::is_proposition`；`false` ⇒ `kernel-theorem-not-prop`，
+///    消息形状与内核 `theorem type must be Prop (sort 0): …` 一致
+///    （类型用内核自己的 pretty printer 渲染）。
+///
+/// 顺序不能反：`is_prop_type` 对**不是类型**的值会 panic
+/// （`conv.rs` 的 `expected a sort in conversion`），所以第 1 步先挡。
+/// 第 2 步外面套 `quiet_catch`：探针内部若 panic（不该发生——签名已经
+/// 过第 1 步），按**保守**处理（判为通过），绝不让合法练习被误拒。
+fn open_signature_failure<'t>(
+    env: &ExportFile<'t>,
+    sig_probe: &Declar<'t>,
+    kind: DeclKind,
+    declared_ty: Option<ExprPtr<'t>>,
+    env_before: usize,
+    span: Span,
+) -> Option<CompileError> {
+    let limit = EnvLimit::ByIndex(env_before);
+    if let Err(e) = env.try_check_declar_at(sig_probe, limit) {
+        let msg = format!("{e}");
+        return Some(CompileError::kernel(refine_kernel_kind(&msg), msg, span));
+    }
+    if kind != DeclKind::Theorem {
+        return None;
+    }
+    // 签名 elaborate 成功 ⇒ `declared_ty` 必然在（`?` 只是防御）。
+    let ty = declared_ty?;
+    let is_prop = quiet_catch(|| env.with_tc(limit, |tc| tc.is_proposition(ty))).ok()?;
+    if is_prop {
+        return None;
+    }
+    let rendered = quiet_catch(|| env.with_tc(limit, |tc| tc.with_pp(|pp| pp.pp_expr(ty))))
+        .unwrap_or_default();
+    let msg = format!("rejected: theorem type must be Prop (sort 0): {rendered}");
+    Some(CompileError::kernel(refine_kernel_kind(&msg), msg, span))
 }

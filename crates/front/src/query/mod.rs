@@ -116,6 +116,13 @@ impl QueryDoc {
         self.text = text.to_string();
         let update = self.session.update(text, version);
         self.parse_error = update.parse_error;
+        // 注意：这里手工装配 `CompileOutput`，绕过 `push_event`/`push_error`/
+        // `push_warning` ⇒ `event_cmds`/`error_cmds`/`warning_cmds` 三个平行数组
+        // 在**本文件内**是空的（与 `units.rs` 的 `debug_assert_eq!` 不变量字面
+        // 冲突，WO-010 的 R4）。今天无害：`check()` 只读 `errors`/`warnings`，
+        // 而它们已经**按入口文件**归因（项目模式下下面会整个换成入口模块的
+        // `CompileOutput`，平行数组在那里是齐的）。谁要在这里读 `*_cmds`，先改
+        // 成走 `push_*`，别静默拿空数组当"没有归属"。
         self.output = crate::compile::CompileOutput {
             events: update.events.clone(),
             errors: update.report.errors.clone(),
@@ -269,6 +276,17 @@ impl QueryDoc {
 
     /// 整文件判卷摘要。**与 `--json` 事件流同源**（同一个 `front::session` +
     /// 同一个 `compile_all_with`），契约测试断言两者计数一致（设计文档 A4）。
+    ///
+    /// `failed` 含**两类**失败：内核拒绝的声明 + 源文本的 parse 诊断（G-10）。
+    /// 解析失败时 `counts` 仍是全 0（诚实：一条声明都没验过），而 parse 诊断
+    /// 让摘要不再"假绿"——它的 `code`/`message`/span 与 `--json` 事件流同源
+    /// （`crate::Diagnostic` 的唯一真相）。
+    ///
+    /// 每条失败/警告同时给出**两种坐标**（G-15 / WO-010）：`start`/`end` 是
+    /// **字节** offset（坐标空间 = 入口文件），`start_line`/`start_col`/
+    /// `end_line`/`end_col` 是 1 基行列（与事件 `span` 同一批数字）。加字段是
+    /// 协议允许的（`docs/protocol.md`：fields are additive only），`start`/`end`
+    /// 的名字与字节语义**不许改**——`--offset`、缓存摘要、LSP 着色都依赖它。
     pub fn check(&self) -> CheckSummary {
         // 用最近一次编译的产物：`set_text` 已经算过（项目模式是整个闭包），
         // 这里再编译一遍纯属浪费——`query check` 冷跑曾因此慢一倍。
@@ -285,26 +303,58 @@ impl QueryDoc {
                 Printed { .. } => counts.decl_printed += 1,
             }
         }
-        let failed = output
+        let mut failed: Vec<FailedDecl> = output
             .errors
             .iter()
-            .map(|e| FailedDecl {
-                name: None,
-                code: e.kind.code().to_string(),
-                message: e.message.clone(),
-                start: e.span.start.offset,
-                end: e.span.end.offset,
+            .map(|e| {
+                let (start_line, start_col, end_line, end_col) = line_col(e.span);
+                FailedDecl {
+                    name: None,
+                    code: e.kind.code().to_string(),
+                    message: e.message.clone(),
+                    start: e.span.start.offset,
+                    end: e.span.end.offset,
+                    start_line,
+                    start_col,
+                    end_line,
+                    end_col,
+                }
             })
             .collect();
+        // 解析失败时 `output` 是空产物（`session` 的 parse 失败分支），唯一真相
+        // 是 `self.parse_error`。不合成进 `failed`，agent 的主判卷通道就会把
+        // "这份文本根本解析不了"读成"文件里什么都没有"（G-10）。
+        // `name` 保持 `None`：解析失败时没有可信的声明名。
+        if let Some(diag) = &self.parse_error {
+            let (start_line, start_col, end_line, end_col) = line_col(diag.span);
+            failed.push(FailedDecl {
+                name: None,
+                code: diag.code().to_string(),
+                message: diag.message.clone(),
+                start: diag.span.start.offset,
+                end: diag.span.end.offset,
+                start_line,
+                start_col,
+                end_line,
+                end_col,
+            });
+        }
         let warnings = output
             .warnings
             .iter()
-            .map(|w| WarningInfo {
-                code: w.code().to_string(),
-                message: w.message.clone(),
-                hint: Some(w.hint().to_string()),
-                start: w.span.start.offset,
-                end: w.span.end.offset,
+            .map(|w| {
+                let (start_line, start_col, end_line, end_col) = line_col(w.span);
+                WarningInfo {
+                    code: w.code().to_string(),
+                    message: w.message.clone(),
+                    hint: Some(w.hint().to_string()),
+                    start: w.span.start.offset,
+                    end: w.span.end.offset,
+                    start_line,
+                    start_col,
+                    end_line,
+                    end_col,
+                }
             })
             .collect();
         CheckSummary {
@@ -313,6 +363,19 @@ impl QueryDoc {
             failed,
             warnings,
         }
+    }
+
+    /// 源文本可解析？不可解析 ⇒ [`QueryError::NotParsable`]（"问不出来"）。
+    ///
+    /// 这是"正常的没有"（空数组 / `None`）与"问不出来"（`QueryError`）分界的
+    /// 唯一入口（设计 §4.1）：报告类查询（`goals`/`holes`）在解析失败时必须
+    /// 走这里，而不是答一个空数组（G-17）。`check` **不**调它——`check` 的答案
+    /// 就是"这份文本解析不了"，它把 `parse_error` 合成进 `failed`。
+    fn parsable(&self) -> Result<(), QueryError> {
+        if self.parse_error.is_some() {
+            return Err(QueryError::NotParsable);
+        }
+        Ok(())
     }
 
     // ── state（Lean `goalsAt?` 语义）─────────────────────────────────────────
@@ -382,7 +445,11 @@ impl QueryDoc {
 
     /// 每个声明的类型/状态/开放目标/洞。`probe: true` 时用请求期内核探针补
     /// 子洞期望类型（`docs/design/spine-meta-a.md`）。
-    pub fn goals(&self, probe: bool) -> Vec<DeclInfo> {
+    ///
+    /// 解析失败 ⇒ [`QueryError::NotParsable`]（不是"空的声明列表"）：这份文本里
+    /// 有多少声明**问不出来**，与"画布上确实没有声明"是两件事（G-17）。
+    pub fn goals(&self, probe: bool) -> Result<Vec<DeclInfo>, QueryError> {
+        self.parsable()?;
         let report = if probe {
             self.probed_report()
         } else {
@@ -392,7 +459,7 @@ impl QueryDoc {
         // （`docs/design/redundant-sorry.md`）。
         let redundant_spans = redundant_hole_spans(&report);
         let decls = self.decl_kinds();
-        report
+        Ok(report
             .decls
             .iter()
             .map(|d| {
@@ -466,7 +533,7 @@ impl QueryDoc {
                     code_actions: Vec::new(),
                 }
             })
-            .collect()
+            .collect())
     }
 
     /// 请求期内核探针后的报告：只补开放练习里 `sub_goals[i].ty == None` 的项
@@ -519,8 +586,11 @@ impl QueryDoc {
     /// `id`（`<declName>:<index>`）是程序化消费者的唯一稳定引用——同一源码位置
     /// 可能有多个子目标，`soko/nextHole` 的按位置导航在那种情形下不可用
     /// （`docs/protocol.md` 的 Known limitation）。
-    pub fn holes(&self) -> Vec<LocatedHole> {
-        let decls = self.goals(true);
+    ///
+    /// 解析失败 ⇒ [`QueryError::NotParsable`]（不是"没有洞"）：空数组是**答案**，
+    /// 不能让 agent 把不可解析的画布读成"没有剩下的洞"（G-17）。
+    pub fn holes(&self) -> Result<Vec<LocatedHole>, QueryError> {
+        let decls = self.goals(true)?;
         let mut out: Vec<LocatedHole> = decls
             .iter()
             .flat_map(|d| {
@@ -541,17 +611,19 @@ impl QueryDoc {
             })
             .collect();
         out.sort_by_key(|h| (h.start, h.end));
-        out
+        Ok(out)
     }
 
     /// 相对 `from` 的下一个（`forward`）或上一个洞——服务端定位，客户端不扫文本。
-    pub fn next_hole(&self, from: usize, forward: bool) -> Option<LocatedHole> {
-        let holes = self.holes();
-        if forward {
+    ///
+    /// 解析失败 ⇒ [`QueryError::NotParsable`]；`Ok(None)` 才是"这个方向上没有洞了"。
+    pub fn next_hole(&self, from: usize, forward: bool) -> Result<Option<LocatedHole>, QueryError> {
+        let holes = self.holes()?;
+        Ok(if forward {
             holes.into_iter().find(|h| h.start > from)
         } else {
             holes.into_iter().rev().find(|h| h.start < from)
-        }
+        })
     }
 
     // ── hints ─────────────────────────────────────────────────────────────
@@ -638,6 +710,21 @@ fn hole_is_redundant(hole: &Span, redundant: &[Span]) -> bool {
 /// 把报告里的洞 span 转成 offset 区间（供 `holes`/`next_hole` 复用）。
 pub fn span_offsets(span: Span) -> (usize, usize) {
     (span.start.offset, span.end.offset)
+}
+
+/// 诊断 span 的 wire 行列（G-15 / WO-010）：`(start_line, start_col, end_line,
+/// end_col)`，1 基，与 `--json` 事件的 `span.{start,end}` **同一批数字**。
+///
+/// `start`/`end` 仍是**字节** offset（`FailedDecl`/`WarningInfo` 的既有字段，
+/// 语义不许改）；这四个字段只是把同一位置的另一种坐标一起给出来，省得消费者
+/// 自己拿字符下标去换算（那正是 G-15 的假缺口现场）。
+fn line_col(span: Span) -> (u32, u32, u32, u32) {
+    (
+        span.start.line as u32,
+        span.start.column as u32,
+        span.end.line as u32,
+        span.end.column as u32,
+    )
 }
 
 #[cfg(test)]

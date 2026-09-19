@@ -1,0 +1,48 @@
+-- G-02 最小复现：**构造子没有命名空间，且名字全局唯一** —— 已修（WO-005）
+--
+-- 期望（官方 Lean 4 语义）：归纳类型的构造子自动进入**类型自己的命名空间**：
+-- `inductive Pair (A B : Type) where | mk : A → B → Pair A B` 之后，构造子叫
+-- `Pair.mk`；`Subtype.mk`、`Prod.mk`、`Exists.intro` 可以同时存在，
+-- 互不冲突（Lean 里到处都这么写）。
+--
+-- 修前表现（0.58.0 实测）：
+--   * `Pair.mk` → `unknown identifier \`Pair.mk\``（只有裸名 `mk` 可用）；
+--   * 两个 inductive 各写 `ctor mk` → `duplicate declaration mk`。
+-- 后果：一个大库（Prod / Subtype / Exists / Quot / List …）根本无法生长，
+-- 只能给构造子起 `prod_mk` / `exists_intro` 这种**假的唯一名**，
+-- 与真实 Lean 4 的写法脱节（硬规则 3：教学语法是真实 Lean 4 的子集）。
+--
+-- 修后契约（WO-005 / docs/design/ctor-namespace.md）——本文件从此是「缺口即测试」，
+-- 三条断言都由**内核**判定（禁止文本比对），`crates/cli/tests/cli.rs` 里
+-- `cli_grades_the_g02_repro_clean` 直接跑它：
+--   R1 规范名：源 `ctor mk` 装进内核的名字是 `P1.mk` / `P2.mk`；
+--   R1 共存：两个块各写 `ctor mk` **不再撞名**，两块 + 两个 def 全部 checked；
+--   R2 别名（子集扩展）：裸名 `mk` 在**唯一**时仍可解析，重复即歧义
+--      （`elab-ambiguous-ctor-alias`，见下面的对照块）。
+
+inductive P1 (A : Type) : Type
+ctor mk (a : A) : P1 A
+end
+
+inductive P2 (A : Type) : Type
+ctor mk (a : A) : P2 A
+end
+
+-- 修前这一行报 `unknown identifier P1.mk`；现在它是规范名，正常 checked。
+def first (A : Type) (a : A) : P1 A := P1.mk A a
+
+-- 规范名共存：第二个块用 `P2.mk` 构造，互不冲突。
+def second (A : Type) (a : A) : P2 A := P2.mk A a
+
+-- R2 别名：裸名 `mk` 现在**有歧义**（P1 与 P2 各声明了一次）⇒ 这一行必须报
+-- `elab-ambiguous-ctor-alias`（不是 unknown identifier）。它是**负向断言**，
+-- 所以整份文件判卷时保留注释形态：复现件的判据是「干净判卷 + 有 checked 声明」
+-- （scripts/gap.py:71-80），歧义行必须留在注释里。
+--
+-- 对照（唯一裸名仍可解析）——单独的文件里跑，例如：
+--   inductive Wrap : Type
+--   ctor mk : Wrap
+--   end
+--   def w : Wrap := mk        -- 别名解析到 Wrap.mk，checked
+--
+-- def ambiguous (A : Type) (a : A) : P1 A := mk A a   -- ← 报 elab-ambiguous-ctor-alias

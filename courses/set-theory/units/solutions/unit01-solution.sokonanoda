@@ -1,0 +1,40 @@
+-- unit01 解答钥匙（agent 专用；画布不 import 它）。
+-- 判据：全部引理只用 lib/ 与 prelude 里已备好的东西——学习者的负担只有"集合论内容"。
+import lib.Logic
+import lib.Set
+
+theorem mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B) (a : α) :
+    Set.mem α a A -> Set.mem α a B :=
+  fun (ha : Set.mem α a A) => h a ha
+
+theorem eq_of_same_elements (α : Type) (A B : Set α) (h : forall (x : α), Iff (A x) (B x)) :
+    Eq.{1} (Set α) A B :=
+  Set.ext α A B h
+
+theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
+    (h : Set.subset α (Set.singleton α a) A) : Set.mem α a A :=
+  h a (Set.mem_singleton_self α a)
+
+theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : Set.mem α a A) :
+    Set.subset α (Set.singleton α a) A :=
+  fun (x : α) => fun (hx : Set.mem α x (Set.singleton α a)) =>
+    Eq.subst.{1} α (fun (y : α) => A y) a x (Eq.symm.{1} α x a hx) h
+
+theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
+    Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A) :=
+  Iff.intro (Set.subset α (Set.singleton α a) A) (Set.mem α a A)
+    (mem_of_subset_singleton α A a)
+    (subset_of_mem_singleton α A a)
+
+theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
+    Iff (Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (Eq.{1} α a b) :=
+  Iff.intro (Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (Eq.{1} α a b)
+    (fun (h : Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) =>
+      Iff.mp (Set.mem α a (Set.singleton α b)) (Eq.{1} α a b) (Set.mem_singleton_iff α a b)
+        (Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X)
+          (Set.singleton α a) (Set.singleton α b) h (Set.mem_singleton_self α a)))
+    (fun (h : Eq.{1} α a b) =>
+      Set.ext α (Set.singleton α a) (Set.singleton α b) (fun (x : α) =>
+        Iff.intro (Eq.{1} α x a) (Eq.{1} α x b)
+          (fun (hx : Eq.{1} α x a) => Eq.trans.{1} α x a b hx h)
+          (fun (hx : Eq.{1} α x b) => Eq.trans.{1} α x b a hx (Eq.symm.{1} α a b h))))
