@@ -259,9 +259,17 @@ async fn perf_project_did_open_and_keystroke() {
         "keystroke_ms": key_ms,
         "publishes_per_keystroke": publishes,
     }));
+    // 预算 800ms：这不是"放宽到不红"，而是按**实测分布**标定（GitHub 托管 runner 的
+    // 机器方差本身就有 4×）。同一份代码在 CI 上的实测（详见 `docs/PERF.md` §采样口径）：
+    //   0.58.0 单次采样 85ms · 0.59.0 best-of-3 + 串行 134ms / 153ms / **336ms（红）**；
+    //   本地（M 系 mac）单跑 17ms、满负载并行 17–20ms。
+    // 300ms 落在噪声带内 ⇒ 会 1/3 概率假红；800ms 对最慢一次实测仍有 2.4× 余量，
+    // 而哨兵要抓的是**量级**回归（整闭包重编译退化成 O(n²) 会是秒级）——判别力没丢。
+    // 先做两件事再调阈值（这次都做了）：① 采样口径改 best-of-N + 重活串行；
+    // ② 与 pre-batch 二进制同夹具对拍（best 26ms vs 25ms）排除产品回归。
     assert!(
-        key_ms < 300,
-        "one keystroke cost {key_ms}ms on a 2×12 project (editor lag)"
+        key_ms < 800,
+        "one keystroke cost {key_ms}ms on a 2×12 project (editor lag; CI budget 800ms)"
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
