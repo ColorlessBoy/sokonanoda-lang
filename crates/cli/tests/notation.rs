@@ -583,3 +583,201 @@ fn the_shipped_course_still_uses_the_pointful_spelling() {
         "the shipped unit keeps the pointful signature"
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 第三刀（G-04 剩余项，设计 `docs/design/notation-subset.md` §12）
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// 第三刀的夹具：集合 + `Exists`（真归纳，与课程库 `lib/Exists` 同形）+
+/// `Set.singleton` / `Set.pair`。
+const THIRD_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
+def Set.pair (α : Type) (a b : α) : Set α := fun (x : α) => Or (Eq.{1} α x a) (Eq.{1} α x b)
+inductive Exists (A : Type) (p : A -> Prop) : Prop
+ctor intro (w : A) (h : p w) : Exists A p
+end
+";
+
+/// 同一命题两种写法的判卷契约（N7 的五元计数一致 + 都 exit 0）。
+fn assert_same_counts(pointful: &str, notation: &str, tag: &str) {
+    let pointful_path = temp_file(&format!("{tag}-pointful"), pointful);
+    let notation_path = temp_file(&format!("{tag}-notation"), notation);
+    let (pointful_code, pointful_events) = grade_json(&pointful_path);
+    let (notation_code, notation_events) = grade_json(&notation_path);
+    assert_eq!(
+        pointful_code, 0,
+        "[{tag}] the pointful canvas must grade clean: {pointful_events:?}"
+    );
+    assert_eq!(
+        notation_code, 0,
+        "[{tag}] the notation canvas must grade clean: {notation_events:?}"
+    );
+    assert_eq!(
+        counts(&pointful_events),
+        counts(&notation_events),
+        "[{tag}] the two spellings must produce identical five-way counts"
+    );
+    let (checked, _, _, _, diagnostics) = counts(&notation_events);
+    assert!(checked >= 1, "[{tag}] declarations must actually check");
+    assert_eq!(diagnostics, 0, "[{tag}] {notation_events:?}");
+}
+
+#[test]
+fn set_literals_grade_like_the_pointful_singleton_and_pair() {
+    // §12.4：`{a}` / `{a, b}` 是**新语法**（不是记法），展开成点名形式。
+    let pointful = format!(
+        "{THIRD_LIB}\
+def one (α : Type) (a : α) : Set α := Set.singleton α a\n\
+def two (α : Type) (a b : α) : Set α := Set.pair α a b\n"
+    );
+    let literals = format!(
+        "{THIRD_LIB}\
+def one (α : Type) (a : α) : Set α := {{a}}\n\
+def two (α : Type) (a b : α) : Set α := {{a, b}}\n"
+    );
+    assert_same_counts(&pointful, &literals, "set-literal");
+}
+
+#[test]
+fn binder_notation_grades_like_the_pointful_exists() {
+    // §12.1：`∃ (n : Nat), p` 展开成 `Exists Nat (fun (n : Nat) => p)`。
+    let pointful = format!(
+        "{THIRD_LIB}\
+def p : Prop := Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n)\n\
+theorem t : Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n) :=\n\
+  Exists.intro Nat (fun (n : Nat) => Eq.{{1}} Nat n n) 0 (Eq.refl.{{1}} Nat 0)\n"
+    );
+    let notation = format!(
+        "{THIRD_LIB}\
+binder_notation \"∃\" => Exists\n\
+def p : Prop := ∃ (n : Nat), Eq.{{1}} Nat n n\n\
+theorem t : Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n) :=\n\
+  Exists.intro Nat (fun (n : Nat) => Eq.{{1}} Nat n n) 0 (Eq.refl.{{1}} Nat 0)\n"
+    );
+    assert_same_counts(&pointful, &notation, "binder");
+}
+
+#[test]
+fn two_stage_binders_grade_like_the_pointful_guard() {
+    // §12.1：两段式 `∀ x ∈ s, p` / `∃ x ∈ s, p` = `x ∈ s -> p` / `x ∈ s ∧ p`。
+    let pointful = format!(
+        "{THIRD_LIB}\
+def all (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+  forall (x : α), Set.mem α x s -> p x\n\
+def some (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+  Exists α (fun (x : α) => And (Set.mem α x s) (p x))\n"
+    );
+    let notation = format!(
+        "{THIRD_LIB}\
+infix:50 \" ∈ \" => Set.mem\n\
+binder_notation \"∃\" => Exists\n\
+def all (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+  ∀ x ∈ s, p x\n\
+def some (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+  ∃ x ∈ s, p x\n"
+    );
+    assert_same_counts(&pointful, &notation, "two-stage");
+}
+
+#[test]
+fn a_scoped_notation_grades_only_after_open_scoped() {
+    // §12.3：`scoped` 默认不生效（未 open scoped ⇒ notation-unknown-symbol +
+    // exit 1），`open scoped Foo` 之后与普通记法一样判卷。
+    let inactive = format!(
+        "{THIRD_LIB}\
+namespace Foo\n\
+scoped infix:50 \" ∈ \" => Set.mem\n\
+end Foo\n\
+def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n"
+    );
+    let path = temp_file("scoped-inactive", &inactive);
+    let (code, events) = grade_json(&path);
+    assert_eq!(code, 1, "{events:?}");
+    let diags: Vec<&Value> = events
+        .iter()
+        .filter(|e| e["type"] == "diagnostic")
+        .collect();
+    assert_eq!(diags.len(), 1, "{events:?}");
+    assert_eq!(
+        diags[0]["code"], "notation-unknown-symbol",
+        "{:?}",
+        diags[0]
+    );
+
+    let active = format!(
+        "{THIRD_LIB}\
+namespace Foo\n\
+scoped infix:50 \" ∈ \" => Set.mem\n\
+end Foo\n\
+open scoped Foo\n\
+def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n"
+    );
+    let pointful = format!(
+        "{THIRD_LIB}\
+def p (α : Type) (a : α) (A : Set α) : Prop := Set.mem α a A\n"
+    );
+    assert_same_counts(&pointful, &active, "scoped");
+}
+
+#[test]
+fn an_overload_grades_by_expected_type_and_reports_ambiguity() {
+    // §12.2：同符号两条记法（同形状）= 重载，按期望类型选；选不出给专用码。
+    let picked = format!(
+        "{THIRD_LIB}\
+def Bag (α : Type) : Type := α -> Prop\n\
+def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+prefix:100 \" ι \" => Set.singleton\n\
+prefix:100 \" ι \" => Bag.singleton\n\
+def s (α : Type) (a : α) : Set α := ι a\n\
+def b (α : Type) (a : α) : Bag α := ι a\n"
+    );
+    let path = temp_file("overload-picked", &picked);
+    let (code, events) = grade_json(&path);
+    assert_eq!(
+        code, 0,
+        "the overload must pick by expected type: {events:?}"
+    );
+
+    let ambiguous = format!(
+        "{THIRD_LIB}\
+def Bag (α : Type) : Type := α -> Prop\n\
+def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+prefix:100 \" ι \" => Set.singleton\n\
+prefix:100 \" ι \" => Bag.singleton\n\
+#check ι 1\n"
+    );
+    let path = temp_file("overload-ambiguous", &ambiguous);
+    let (code, events) = grade_json(&path);
+    assert_eq!(code, 1, "{events:?}");
+    let diags: Vec<&Value> = events
+        .iter()
+        .filter(|e| e["type"] == "diagnostic")
+        .collect();
+    assert_eq!(diags.len(), 1, "{events:?}");
+    assert_eq!(
+        diags[0]["code"], "elab-notation-ambiguous",
+        "{:?}",
+        diags[0]
+    );
+    assert_eq!(diags[0]["stage"], "elab", "{:?}", diags[0]);
+}
+
+#[test]
+fn the_shipped_course_demos_the_binder_notation() {
+    // 课程侧的用法守护（第三刀）：单元⑧ 用 `∃ (x : …), …` 写了一条**演示**
+    // （`example`，不是练习——练习数量与题意一字未动，`open` 计数由课程门禁钉住）。
+    let unit8 = std::fs::read_to_string(
+        repo_root().join("courses/set-theory/units/unit08-images-preimages.sokonanoda"),
+    )
+    .expect("read unit 8");
+    assert!(
+        unit8.contains("binder_notation"),
+        "unit 8 must declare the binder notation it demos"
+    );
+    assert!(
+        unit8.contains("∃ ("),
+        "unit 8 must demo the two-stage / annotated binder notation"
+    );
+}

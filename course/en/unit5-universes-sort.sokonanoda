@@ -24,6 +24,12 @@
 -- `Type 0` is `Sort 1`, `Type 1` is `Sort 2`, and a bare `Type` is `Sort 1`.
 -- Both spellings name the same thing. Ask the kernel for the type of anything
 -- with #check:
+--
+-- Universe levels also take arithmetic: `Sort (u+1)` (or `Sort u+1`) is the
+-- step above `Sort u`, and `Eq.{u+1}` instantiates Eq's universe argument with
+-- it. This is how the prelude's `Eq.mp`/`Eq.mpr`/`cast` are typed: they move
+-- between two *types* `α β : Sort u`, so the equality proof they take is
+-- `Eq.{u+1} (Sort u) α β` (the types themselves live one step up).
 
 #check Nat
 #check (Nat -> Nat)

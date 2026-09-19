@@ -20,6 +20,12 @@
   **`quota.exercises` 与画布实际练习数的差额只报告、绝不判红**——课程门禁的
   设计原则是「只判形状、不锁计数」（设计 §2/§4.2）。
 
+**成本台账**（设计 `docs/design/course-manifest-v2.md` §4.6）：`--ledger [路径]` 把
+每次跑完的**机器可读**记录追加进 `docs/courses/ledger.jsonl`
+（`soko.course-ledger/1`：日期 / 课程名 / 目标数 / checked / open / 判负 / 用时 ms /
+版本）。**默认关闭**——CI 不该往仓库里写文件（写进仓库的只有人工收尾跑的那一次）；
+`--selftest` 按 `LEDGER_FIELDS` 判字段齐全，守护不许漂移。
+
 清单两种格式都读（台账 G-07，`docs/design/course-manifest-v2.md`）：v1 扁平数组与
 v2 `{schema, volumes[].chapters[].units[]}`；`flatten_manifest()` 把 v2 展平成
 **与 v1 同形**的单元列表，所以 G1–G5 的判定代码一行未改。
@@ -38,10 +44,11 @@ v2 `{schema, volumes[].chapters[].units[]}`；`flatten_manifest()` 把 v2 展平
 
 ```bash
 python3 courses/set-theory/tools/check.py                    # 人读表 + 汇总
-python3 courses/set-theory/tools/check.py --selftest         # 判据通道自检（G-12 cwd 自检 + G6 清单自检）
+python3 courses/set-theory/tools/check.py --selftest         # 判据通道自检（G-12 cwd 自检 + G6 清单自检 + 台账字段）
 python3 courses/set-theory/tools/check.py --json             # 机器可读（含计数）
 python3 courses/set-theory/tools/check.py --only "单元 5" --bisect   # 二分定位
 python3 courses/set-theory/tools/check.py --report /tmp/gate.json --summary "$GITHUB_STEP_SUMMARY" --annotations
+python3 courses/set-theory/tools/check.py --ledger           # 追加一条成本台账（默认 docs/courses/ledger.jsonl；默认关闭）
 ```
 
 退出码：**0** 全绿 / **1** 有目标被判负 / **2** 前置缺失或用法错误（无法判定 ≠ 绿）。
@@ -57,6 +64,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -69,6 +77,11 @@ SOLUTION_DIR = COURSE / "units" / "solutions"
 SCHEMA = "soko.course.check/2"
 LEDGER_SCHEMA = "soko.course-ledger/1"
 LEDGER_DEFAULT = "docs/courses/ledger.jsonl"
+# 成本台账一条记录必须带的**机器可读**字段（设计 course-manifest-v2.md §4.6）：
+# 日期 / 课程名 / 目标数 / checked / open / 判负 / 用时 ms / 版本。
+# `--selftest` 与 `tools/test_manifest_v2.py` 都按这份清单判（守护不许漂移）。
+LEDGER_FIELDS = ("schema", "version", "commit", "date", "course", "targets",
+                 "checked", "open", "rejected", "elapsed_ms", "solutions_open")
 GRADE_TIMEOUT = 180  # 单个目标判卷的墙钟上限（秒）；与课程规模无关
 
 # 顶层声明的行首关键字（--bisect 的边界；设计 §8 未决①：namespace/section 也算边界）。
@@ -281,6 +294,8 @@ class ManifestInfo:
     volumes: int = 0
     chapters: list[Chapter] = field(default_factory=list)
     v2: bool = False
+    # v2 清单的 `name`（课程 id）；v1 没有名字 ⇒ 空串，台账退回目录名。
+    name: str = ""
 
 
 def _string_list(value) -> list[str]:
@@ -328,6 +343,8 @@ def flatten_manifest(value, source: Path) -> tuple[list[dict], list[str], Manife
         raise Prerequisite("course.json 的 volumes 必须是数组")
     info.v2 = True
     info.volumes = len(volumes)
+    name = value.get("name")
+    info.name = name if isinstance(name, str) else ""
 
     problems: list[str] = []
     units: list[dict] = []
@@ -785,6 +802,20 @@ def selftest(channel: Channel, check_py: Path) -> int:
     # ④ G6 清单自检：三类结构非法必须判负 + 一份合法 v2 清单必须判绿。
     selftest_g6(failures, tmp)
 
+    # ⑤ 成本台账契约（设计 course-manifest-v2.md §4.6）：一条合成记录必须带齐
+    #    日期/课程名/目标数/checked/open/判负/用时 ms/版本。默认**不写**文件——
+    #    `--ledger [路径]` 才追加（CI 不往仓库里写）。
+    sample = json.loads(ledger_entry(
+        [{"label": "单元 1", "status": "ok", "checked": 2, "open": 1}],
+        {"targets": 1, "checked": 2, "open": 1, "rejected": 0, "solutions_open": 0},
+        repo_root() or COURSE, course="selftest", elapsed_ms=1,
+    ))
+    missing = [key for key in LEDGER_FIELDS if key not in sample]
+    if missing:
+        failures.append(f"成本台账缺字段（{LEDGER_SCHEMA}）：{missing}")
+    elif sample["elapsed_ms"] != 1 or sample["course"] != "selftest":
+        failures.append(f"成本台账字段值不对：{sample}")
+
     print(f"--selftest：判卷通道 [{channel.source}] {channel.path}"
           + (f"（v{channel.version}）" if channel.version else ""))
     if failures:
@@ -793,7 +824,8 @@ def selftest(channel: Channel, check_py: Path) -> int:
         print("--selftest FAIL：判据通道不可信，门禁不判绿。")
         return 1
     print("  ✓ 正控制（另一个 cwd + import lib.*）判绿 · ✓ 故意坏的单元被判负 · "
-          "✓ 二分点名坏声明 · ✓ G6 三类结构非法被判负 + 合法 v2 判绿")
+          "✓ 二分点名坏声明 · ✓ G6 三类结构非法被判负 + 合法 v2 判绿 · "
+          "✓ 成本台账字段齐全")
     print("--selftest PASS")
     return 0
 
@@ -854,17 +886,26 @@ def git_commit(root: Path) -> str | None:
     return proc.stdout.strip() if proc.returncode == 0 else None
 
 
-def ledger_entry(rows: list[dict], summary: dict, root: Path) -> str:
+def ledger_entry(rows: list[dict], summary: dict, root: Path, *,
+                 course: str, elapsed_ms: int) -> str:
+    """一条**机器可读**的成本台账记录（设计 course-manifest-v2.md §4.6）。
+
+    字段：日期（UTC ISO-8601）/ 课程名 / 目标数 / checked / open / 判负 /
+    用时 ms / 版本（外加 `schema`/`commit`/`solutions_open`/逐目标 `rows`）。
+    **默认不写**：`--ledger [路径]` 才追加——CI 不该往仓库里写文件（见 §4.6）。
+    """
     pin, _ = repo_pin(root)
     entry = {
         "schema": LEDGER_SCHEMA,
         "version": pin,
         "commit": git_commit(root),
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "course": course,
         "targets": summary["targets"],
         "checked": summary["checked"],
         "open": summary["open"],
         "rejected": summary["rejected"],
+        "elapsed_ms": elapsed_ms,
         "solutions_open": summary["solutions_open"],
         "rows": [{"label": row["label"], "status": row["status"],
                   "checked": row["checked"], "open": row["open"]} for row in rows],
@@ -892,14 +933,16 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--report", metavar="路径", help="把 --json 报告写到文件（CI artifact）")
     parser.add_argument("--summary", metavar="路径", help="把 markdown 表追加到文件（$GITHUB_STEP_SUMMARY）")
     parser.add_argument("--ledger", nargs="?", const=LEDGER_DEFAULT, metavar="路径",
-                        help=f"追加一条台账（默认 {LEDGER_DEFAULT}）")
+                        help=f"追加一条成本台账（默认 {LEDGER_DEFAULT}）；"
+                             "**默认关闭**——CI 不往仓库里写文件，人工收尾才跑")
     parser.add_argument("--bin", metavar="路径", dest="bin_path",
                         help="判卷二进制（默认取 $SOKONANODA_BIN，再退回 scripts/soko）")
     return parser.parse_args(argv)
 
 
 def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, check_py: Path,
-        info: ManifestInfo | None = None, manifest: list[dict] | None = None) -> int:
+        info: ManifestInfo | None = None, manifest: list[dict] | None = None,
+        elapsed_ms: int = 0) -> int:
     evaluate(rows, judge)
 
     summary = {
@@ -978,12 +1021,15 @@ def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, che
         except OSError as error:
             print(f"warning: 写不了 step summary（{args.summary}）：{error}", file=sys.stderr)
     if args.ledger is not None:
+        # 课程名：v2 清单的 `name` 优先，其次课程目录名（v1 清单没有名字）。
+        course_name = (info.name if info and info.name else COURSE.name)
         path = Path(args.ledger)
         if not path.is_absolute():
             path = (repo_root() or COURSE) / path
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "a", encoding="utf-8") as handle:
-            handle.write(ledger_entry(rows, summary, repo_root() or COURSE) + "\n")
+            handle.write(ledger_entry(rows, summary, repo_root() or COURSE,
+                                      course=course_name, elapsed_ms=elapsed_ms) + "\n")
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
@@ -1026,6 +1072,8 @@ def main(argv: list[str] | None = None) -> int:
         channel = resolve_channel(root, args.bin_path)
         if args.selftest:
             return selftest(channel, check_py)
+        # 成本台账的时钟：只量**判卷这一段**（通道解析/版本探针不算课程成本）。
+        started = time.monotonic()
         targets, problems, unit_count, info, units = discover()
     except Prerequisite as error:
         print(f"error: 前置缺失，门禁不判绿（exit 2）：\n{error}", file=sys.stderr)
@@ -1085,7 +1133,8 @@ def main(argv: list[str] | None = None) -> int:
     if unit_count == 0:
         print("error: course.json 里没有可判的单元", file=sys.stderr)
         return 2
-    return run(rows, judge, channel, args, check_py, info, units)
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    return run(rows, judge, channel, args, check_py, info, units, elapsed_ms=elapsed_ms)
 
 
 if __name__ == "__main__":

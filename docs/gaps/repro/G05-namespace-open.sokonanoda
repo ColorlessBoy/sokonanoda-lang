@@ -14,8 +14,9 @@
 -- 修后契约（G-05 / docs/design/namespace-open.md）——本文件从此是「缺口即测试」，
 -- 判据由 `scripts/gap.py` 给出：**干净判卷**（退出码 0 + 有 `decl.checked` +
 -- 无 diagnostic）。三条命令**都不是声明**：`namespace`/`end`/`open` 一行事件都
--- 不产生，所以下面只有 8 条 `decl.checked`（`Foo.x` / `use_short` / `A.y` /
--- `A.B.y` / `A.B.z` / `A.Set.mem` / `pointful` / `nested`）。
+-- 不产生，所以下面只有 12 条 `decl.checked`（`Foo.x` / `use_short` / `A.y` /
+-- `A.B.y` / `A.B.z` / `A.Set.mem` / `pointful` / `nested` / 第二刀的 `use_only` /
+-- `use_renamed` / `use_local` / `use_exported`）。
 --   N3 声明名加前缀：`namespace Foo` 里的 `def x` 全局名是 `Foo.x`；
 --   N4 解析顺序：① 命名空间链从内到外（`A.B` 里的 `y` ⇒ `A.B.y`，不是 `A.y`）
 --      → ② 精确名 → ③ `open` 的前缀；
@@ -46,3 +47,18 @@ def Set.mem : Type := Prop
 end A
 def pointful : Type := A.Set.mem
 def nested : Type := A.B.z
+
+-- 第二刀（0.60.x）——同一份契约的延伸：`open` 的子句、局部 open、`export`。
+--   `open Foo (x)` 只让 `x` 进来；`hiding a b` 反过来；`renaming a => b` 换名
+--   （原短名随之失效）；`open … in <命令>` 只对那一条命令生效；`export` 在文件内
+--   与 `open` 同判，额外跨 `import`（本文件不 import，只演示文件内那一半）。
+open Foo (x)
+def use_only : Type := x
+
+open Foo renaming x => short
+def use_renamed : Type := short
+
+open Foo in def use_local : Type := x
+
+export Foo
+def use_exported : Type := x

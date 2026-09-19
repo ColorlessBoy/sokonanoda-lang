@@ -225,7 +225,7 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
 | 3 | `x∈A`（无空格）可用——**我们更宽松** | 待确认 3 |
 | 4 | `notation` 不接 `:N`；`infix` 族 `N` 必填 | 待确认 6 |
 | 5 | ~~记法**不跨 `import`**（Lean 里全局）~~ **已修（第二刀，0.60.0）**：记法随 `import` 传播，见 §10.3/§11.7 | N5 + 闭包加载顺序 |
-| 6 | 重复声明同一符号是**错误**（Lean 允许重载） | 待确认 5；v1 自定 |
+| 6 | ~~重复声明同一符号是**错误**（Lean 允许重载）~~ **已升级（第三刀 §14.2）**：同符号、**同形状**（结合性 + 优先级一致）= 记法重载（按期望类型选候选）；**不同形状**仍是错误；重声明 **import 来的**符号仍是错误（§11.8 原样保留） | 待确认 5；v1 自定，第三刀改 |
 | 7 | 记号路径**先解操作数、后补类型参数**：操作数未定义时报既有的 `elab-unknown-identifier`，只有"操作数合法但补不出参数"才报 `elab-notation-argument-unsolved` | §2 N4 的 as-built |
 
 ## 7. 第二刀（明确不在本轮）——**已落地，见 §10–§12**
@@ -524,15 +524,170 @@ Set α` 的第 2 个参数域是 `Set α`，与 `typeof(A) = Set α₀` 头部�
 把**真课程库**复制到临时目录、写一个**不重声明**任何记法的单元（`𝒫 A` / `Aᶜ` /
 `by rfl`）⇒ exit 0、3 条 `decl.checked`、0 诊断。
 
-## 12. 第二刀仍未做（明确销不掉的）
+## 12. 第二刀仍未做 —— **第三刀已落（第三刀 = 本节逐条销账）**
+
+> 本节是第二刀留下的清单（原文与理由**保留**，作为历史）；**第三刀**（0.60.x，
+> 设计与 as-built 见 §14）逐条销账，结论写在下面第三列。销不掉的移到 §13。
+> 第 5 条（print-back）按任务要求**明确不做**、连理由一起进 §13.1。
+
+| # | 第二刀未做项（原文理由保留） | 第三刀结论 |
+|---|---|---|
+| 1 | **binder 记法**（`∃ x, …`、`∀ x ∈ s, …`、`notation3`）——"它要动的是 **binder 位置的解析**（`parse_decl_binders`/`forall`/`exists` 的共享路径），与"算子梯子上的糖"不是同一层。第二刀的预扫描/符号表对它一点用都没有；值得单独一刀（台账原话就是「另立」）" | **已落（§14.1）**：新命令 `binder_notation "∃" => Exists`；`∃ (x : α), p` 与两段式 `∃ x ∈ s, p` 落地，`∀ x ∈ s, p` 走**同一条共享 binder 路径**（`parse_binder_prefix`）。`notation3`（dependent binder）仍在 §13.2 |
+| 2 | **记法重载**（同一符号多个目标，按期望类型选）——"v1 的重复声明是**错误**……重载要求展开期做候选选择 + 歧义诊断，是**语义**增量；而记法的卖点正是"零语义"。真要做，先想清楚"选错了报什么"" | **已落（§14.2）**：同符号、同形状 = 重载，按**期望类型**选；"选错了报什么"= 两个专用码 `elab-notation-ambiguous`（≥2 个候选都说得通）与 `elab-notation-no-candidate`（一个都对不上），消息列候选与各自结果类型、hint 教点名写法 |
+| 3 | **`scoped` / `open scoped`**——"依赖'重载 + 作用域栈'两件都没做的事；课程侧不需要" | **已落（§14.3）**：作用域名 = 声明点所在 `namespace` 的全前缀（复用 G-05 的栈）；`open scoped Foo` **只**开记法、不开名字 |
+| 4 | **集合字面量 `{a}` / `{a,b}`**——"这是**新语法**（不是记法）：`{}` 今天是 binder/宇宙参数的定界符，`{a}` 与 `{x : T}` 的消歧要新的 lookahead 规则" | **已落（§14.4）**：`Expr::SetLiteral` + `set_literal_ahead`（`{x : T}` 形状让路给 binder）；展开成点名形式 `Set.singleton α a` / `Set.pair α a b` |
+| 5 | **源码级 print-back**（goal/hover 显示 `Aᶜ` 而不是 `Set.compl α A`）——"与第一刀同一条：类型文本由**冻结内核的 pp** 产出，记法不进内核" | **不做，移到 §13.1**（任务明确要求）：内核冻结下销不掉，理由在 §13.1 |
+| 6 | **一元记法在实参位免括号**——"§11.10 的设计选择；免括号要求 `parse_app` 与算子梯子合并，收益（少两个括号）不值这个复杂度" | **前缀已落（§14.5）**：`f 𝒫 A` 不再报错（今天它是响亮的 parse 错 ⇒ 纯增量）。**后缀明确不做**，移到 §13.4（`f Aᶜ` 今天读作 `(f A)ᶜ`，改了会**悄悄重分组**既有程序） |
+| 7 | **编辑器里 `abbrev`/记法符号的语义高亮**——"`front::semantic::KEYWORDS` 与 `editor/vscode` 的 TM 语法词表必须**同一轮**加……而本轮 `editor/vscode/**` 禁改" | **已落（主线收尾轮）**：新拼写 `prefix`/`postfix`/`binder_notation`/`scoped`（连同 `abbrev`）进 `KEYWORDS` + TM 语法词表**同一轮**同步、两份逐字相等；as-built 见 §13.6 与 `docs/design/abbrev.md` §4 |
+
+
+## 13. 第三刀仍未做 / 不该做（明确销不掉的）
+
+> 与 §12 同一条纪律：**逐条给理由**，不写"没时间"。**本节的项一律不在第三刀**。
 
 | # | 未做项 | 理由（不是"没时间"） |
 |---|---|---|
-| 1 | **binder 记法**（`∃ x, …`、`∀ x ∈ s, …`、`notation3`） | 它要动的是 **binder 位置的解析**（`parse_decl_binders`/`forall`/`exists` 的共享路径），与"算子梯子上的糖"不是同一层。第二刀的预扫描/符号表对它一点用都没有；值得单独一刀（台账原话就是「另立」） |
-| 2 | **记法重载**（同一符号多个目标，按期望类型选） | v1 的重复声明是**错误**，第二刀把这条延伸到继承来的符号（§11.8）。重载要求展开期做候选选择 + 歧义诊断，是**语义**增量；而记法的卖点正是"零语义"。真要做，先想清楚"选错了报什么" |
-| 3 | **`scoped` / `open scoped`**（记法的局部开关） | 依赖"重载 + 作用域栈"两件都没做的事；课程侧不需要（全课程一套符号） |
-| 4 | **集合字面量 `{a}` / `{a,b}`** | 这是**新语法**（不是记法）：`{}` 今天是 binder/宇宙参数的定界符，`{a}` 与 `{x : T}` 的消歧要新的 lookahead 规则 |
-| 5 | **源码级 print-back**（goal/hover 显示 `Aᶜ` 而不是 `Set.compl α A`） | 与第一刀同一条：类型文本由**冻结内核的 pp** 产出，记法不进内核 |
-| 6 | **一元记法在实参位免括号** | §11.10 的设计选择；免括号要求 `parse_app` 与算子梯子合并，收益（少两个括号）不值这个复杂度 |
-| 7 | **编辑器里 `abbrev`/记法符号的语义高亮** | `front::semantic::KEYWORDS` 与 `editor/vscode` 的 TM 语法词表必须**同一轮**加（`tm_grammar_keywords_follow_the_single_source` 是守护），而本轮 `editor/vscode/**` 禁改 ⇒ 交给主线同步。声明过的符号本身**已经**按 `Keyword` 着色（第一刀），第二刀不改这条 |
+| 1 | **源码级 print-back**（goal/hover 显示 `∃ x, …` / `{a}` / `Aᶜ` 而不是点名形式） | **内核冻结下销不掉**：类型文本由**冻结内核的 pp** 产出（硬规则 1：`crates/kernel/**` 一个字节不许动），而记法**不进内核**——内核只看见 `Exists α (fun …)`。要做得二选一：① 改内核 pp（违反硬规则 1）；② 在 elab 保留"源 → 核"的映射、把所有 pp 消费点（goal 面板、hover、错误文本、`#check`、`by` 回读）换成源级渲染——那是**两套真相**，且回读路径（§11.9）会立刻分叉。收益（面板好看一点）不抵成本与风险。**任务明确要求这一项不做**，故记在这里 |
+| 2 | **`notation3` / 一般 binder 记法**（`⋃ i, f i`、`∑ i, …`、多 binder 两段式 `∀ x y ∈ s, p`） | 这类 binder 的**类型依赖前一个 binder**（`⋃ i : ι, f i` 里 `f i` 的域随 `i` 变），要求记法命令能声明**依赖 telescope** 并做代换；v1 的 binder 记法只有两个类型来源（**标注** `∃ (x : α), p` 与 **guard** `∃ x ∈ s, p`，§14.1）。课程卷 I 的 `∃`/`∀` 两段式不需要它 ⇒ 留给需要 `⋃ i,` 的那一刀 |
+| 3 | **一般隐式实参推断 / 元变量 / 一般合一**（第一刀 §7 的老边界，第三刀没动） | 直接后果：① 一段式 `∃ x, p` 的 x 类型**必须**写出来（`∃ (x : α), p`）或由 guard 给；② `{a, b, c}`（≥3 元素）不做折叠；③ 重载只看**结果类型**（§14.2）。要动它就得引入元变量与合一，那是 elaborate 的架构级增量，且与"记法零语义"的卖点冲突 |
+| 4 | **一元后缀记法在实参位免括号**（`f Aᶜ` = `f (Aᶜ)`） | `f Aᶜ` **今天有确定读法**：后置算子在梯子上吸收整个应用 ⇒ `(f A)ᶜ`。改成 `f (Aᶜ)` 是**悄悄重分组既有程序**（违反"只加不删"），而且两者形状完全一样、无法只放行一种。要"少写括号"就写 `f (Aᶜ)`（§11.10 的选择**只对前缀松动**） |
+| 5 | **`open scoped` 的子命名空间传播**（`open scoped A` 是否带进 `A.B` 的 scoped 记法） | v1 按**精确名字**匹配（`open scoped Foo` 只开 `Foo`）。理由：静默带进一整个子树的符号与"教学语法要能一眼看出名字从哪来"冲突；Lean 的精确语义**未取证**（无网络），所以先钉最保守的一条 |
+| 6 | ~~**编辑器词表同步**（`binder_notation` / `scoped` 进 `front::semantic::KEYWORDS` + TM 语法）~~ **已销（主线收尾轮）** | 原文理由（历史）：两边必须**同一轮**改（`crates/cli/tests/extension.rs::tm_grammar_keywords_follow_the_single_source` 是守护），第三刀禁改 `editor/vscode/package.json` 的版本号 ⇒ 本轮不进 `KEYWORDS`，交给主线同一轮加。**as-built**：主线把 `abbrev` + `prefix`/`postfix`/`binder_notation`/`scoped` 同一轮加进 `KEYWORDS` 与 TM 语法 `keywords` 词表（`declarations` 规则也认 `abbrev`），守护测试绿；落点与验证见 `docs/design/abbrev.md` §4 |
 
+## 14. 第三刀（0.60.x）——设计与 as-built
+
+> 状态：**已落地（as-built）**。落点全部在 `crates/front/**`（+ 课程单元⑧的一条演示
+> + `docs/protocol.md` 的错误码表）；**`crates/kernel/**` 一个字节未动**。语义规则
+> N1–N7 继续有效，本节只写增量（记 N8–N12）。
+
+### 14.1 binder 记法（N8）
+
+```
+binder_notation "∃" => Exists        -- 命令形状与 notation 同族（不写优先级）
+```
+
+- **出现位置**：**binder 位置**（表达式开头），与 `∀` 同一层（`parse_expr` 直接分派）；
+  它一直吃到表达式结尾。落在算子位上是教学错误（"binder 记法要写在表达式开头"）。
+- **一段式**：`∃ (x : α), p` ⇒ `Exists α (fun (x : α) => p)`；`∃ x : α, p` 同义。
+  binder 的类型**必须**写出来（或由 guard 给）——记法不引入元变量/一般合一（§13.3），
+  解不出报 `elab-binder-notation-unsolved`（hint 教补标注或点名写法）。
+- **两段式**：`∃ x ∈ s, p` ⇒ `Exists α (fun (x : α) => And (x ∈ s) p)`。`∈` 不必专门
+  声明给 binder：它是**普通的二元记法**（`infix:50 " ∈ " => Set.mem`），binder 名当
+  它的左操作数；`∀ x ∈ s, p` ⇒ `∀ x, x ∈ s -> p`（**原生 `∀`**，共享 `parse_binder_prefix`）。
+- **binder 类型的来源**（两条，都不做合一）：① 标注；② 两段式由 guard 的关系目标
+  （`Set.mem` 的 telescope）**反解**——用 guard 的**其它**操作数解前导参数、取 binder
+  那一层的域（`Set.mem` 的第 2 个参数域是 `α` ⇒ `x : α₀`）。
+- **零事件**：命令进不了声明表（N6 不变）；点名形式 `Exists α (fun …)` 永久可用，
+  两种写法判卷一致（N7）。
+- **命名（as-built）**：任务建议的 `notation-binder` **在本语言的词法下拼不出来**
+  ——`-` 不是标识符字符（`is_ident_continue` 只收字母/`_`/数字/`'`/`!`/`?`/`.`），
+  `notation-binder` 会被切成 `Ident("notation")` + `-` + `Ident("binder")`（实测：
+  词法报 `expected -> or --, found -`）。定形为 **`binder_notation`**（单标识符，
+  与语言里 `Set.mem_singleton_iff` 的 `_` 命名一致）。
+
+### 14.2 记法重载（N9）
+
+- **判据**：同符号、**同形状**（结合性 + 优先级都相同）的重复声明 = **重载**；
+  不同形状仍是 `notation-shape` 错（`a ⊕ b` 与 `⊕ a` 在同一个符号上没法同时成立）。
+- **重声明 import 来的符号**仍是错误（§11.8 原样保留）：判卷通道把闭包首尾相接，
+  两个模块各声明一次会在那里撞车；同文件内的重载则两条通道看到同一组候选。
+- **选择**：按**期望类型**筛候选——读每个候选目标签名的**结果类型**，与期望类型做
+  **头部匹配**（头同名 + 实参个数相同；模板是裸变量算通配）。恰好一个 ⇒ 选它；
+  ≥2 个（或没有期望类型却有多个候选）⇒ `elab-notation-ambiguous`；一个都不匹配 ⇒
+  `elab-notation-no-candidate`（消息列候选与各自的结果类型）。**"选错了报什么"**：
+  两个码都带人话 hint——先写点名形式消歧，或把表达式放到带类型标注的位置。
+- **单候选 = 第二刀行为逐字节**：`Expr::Notation` 只**新增** `alternatives: Vec<String>`
+  字段（单候选时为空向量），展开路径一行不改。
+
+### 14.3 `scoped` / `open scoped`（N10）
+
+- **作用域名 = 声明点所在 `namespace` 的累积全前缀**（复用 G-05 的栈）；
+  `scoped` 写在 `namespace` 外是 parse 错（专用 hint 教包一层 namespace）。
+- `scoped <记法命令>` 默认**不生效**（在 `open scoped` 之前用该符号报
+  `notation-unknown-symbol`，与"声明之前使用"同码）；`open scoped Foo` 把 `Foo`
+  作用域下**已声明**的 scoped 记法搬进生效表，之后在同作用域里声明的也直接生效。
+- `open scoped` **只**开记法，**不**开名字前缀（`Foo.bar` 仍不能写成 `bar`）——
+  与 Lean 一致；接线在 `compile/check/walk.rs`（`scoped: true` 不进 `ns.open`）。
+- **跨 `import`**：scoped 记法随继承表传播，但**挂起**（`Parser::scoped_pending`），
+  入口文件要自己 `open scoped <作用域名>`；判卷通道（`judge.rs` 收前缀记法表）按
+  "前缀里有没有 `open scoped`"过滤，与主通道同口径。
+
+### 14.4 集合字面量 `{a}` / `{a, b}`（N11）
+
+- **新语法**（不是记法）：`Expr::SetLiteral { elements }`，**内建糖**——展开成点名形式
+  `Set.singleton α a` / `Set.pair α a b`（与 `+` → `Nat.add` 同族，目标名写死在 elab 里）。
+- **消歧**：`{` 后面是 binder 形状（`{x : T}` / `{x y : T}`，判据 `brace_binder_ahead`）
+  就**不是**字面量（照旧走 binder 路径）；否则是字面量。因此 `starts_atom` 对 `{`
+  返回 true 只在字面量形状上（`f {a}` 合法，`f {x : T}` 的报错一字未变）。
+- **1–2 个元素**；空 `{}` 与 ≥3 元素给专用 parse 码 `set-literal-shape`（hint 教
+  `Set.empty α` / `Set.pair` 点名嵌套）。
+- **展开**复用记法路径（前导参数补全 + 操作数期望类型传播），多一条**回退解**：
+  期望类型 `Set α₀` ⇒ `α := α₀`（`{∅}` 这类"元素自己的类型也只能从期望类型解"的嵌套）。
+- 目标不存在（没 import 卷 I 的 `lib/Set`）⇒ `elab-set-literal-unknown-target`（hint 教
+  import 或点名），不是"未知标识符"。
+
+### 14.5 一元前缀记法在实参位免括号（N12）
+
+- `f 𝒫 A` 现在读作 `f (𝒫 A)`（实参 = 前缀记法 + 它自己的操作数，优先级仍按 §10.1 的
+  表：操作数走 `parse_operators(N)`）。
+- **纯增量**：这一形状今天报**响亮的 parse 错**（"前缀记法不能夹在两个操作数中间"），
+  没有任何既有程序依赖它。
+- **代价（明说）**：`A 𝒫 B` 与 `f 𝒫 A` 形状完全一样，无法只放行后者 ⇒ `A 𝒫 B` 也从
+  报错变成 `A (𝒫 B)`。**后缀不动**（§13.4）。
+- 括号形式 `f (𝒫 A)` 逐字照旧可用（两种写法同判）。
+
+### 14.6 as-built（实现时才暴露出来的事实）
+
+1. **`unify_extract` 只认 `Arrow` 会漏掉内核 pp 的 `forall`**：`infer_type_text` 对
+   `fun (n : Nat) => Eq n n` 返回 **`forall (n : Nat), Eq n n`**（pp 的写法），而签名里
+   的 `A -> Prop` 解析成 `Expr::Arrow` ⇒ 前导参数 `A` 一个都解不出（实测
+   `elab-notation-argument-unsolved`）。修法：剥层改用 `spine::peel_pi`（`Forall` 与
+   `Arrow` 的**唯一**共用剥层，多 binder 折叠也归它）。**这条是第一/二刀就潜伏的**。
+2. **集合字面量的元素类型回退**：`{∅}` 里 `∅` 自己的类型解不出（judge 没有期望类型），
+   而既有路径的结构化匹配够不着"结果类型 vs 期望类型"（`rest` 是折叠后的 Arrow 望远镜）
+   ⇒ 给 `elab_notation` 加一个**只增不改**的 `fallback_prefix_args` 参数（既有调用点
+   全传 `None`，行为逐字节不变）。
+3. **`scoped` 的两处接线**：`walk.rs`（`open scoped` 不进 `ns.open`）与 `judge.rs`
+   （按前缀里的 `open scoped` 过滤继承记法）——两处都只加分支，既有路径不变。
+4. **`judge_cache` 容量是 FIFO 的 128**：第三刀新增的记法测试把缓存填到上限，
+   `judge::tests::judge_cache_returns_identical_results_and_stores_entries` 里
+   "长度变大 ⇒ 键进去了"的判据**假红**（第二刀也踩过同一条，当时靠拆出 `type_cache`
+   缓解）。改成**直接问键在不在**（新增 `#[cfg(test)] judge_cache_contains`），
+   与容量无关——判据更准，不是放宽。
+5. **`∃` 与 `∀` 的**不对称是设计**：`∀` 是语言关键字（`TokenKind::Forall`，原生 Pi），
+   `∃` 是**库里的归纳**（`lib/Exists`），所以 `∃` 必须由 `binder_notation` 说出目标名；
+   两者在 binder 位置上共享同一条解析路径（`parse_binder_prefix`）。
+6. **课程侧演示写成 `example`**（与第二刀 §11.12 同款）：单元⑧ 的 `∃ (x : α), …` 演示
+   不产生 `decl.checked` ⇒ 课程门禁计数**逐项不动**（实测见 §14.7）。
+7. **`semantic::KEYWORDS` 在第三刀一字未改**（§13.6）：新拼写当时不进编辑器词表，
+   `SemanticKind::ALL`、`tm_scope` 表、TM 语法词表锁全部**逐字节不变**；声明过的符号
+   仍按 `Keyword` 着色。**主线收尾轮已销**：`abbrev` 与 `prefix`/`postfix`/
+   `binder_notation`/`scoped` 同一轮进 `KEYWORDS` + TM 语法（`docs/design/abbrev.md` §4），
+   第三刀当时的 as-built 结论本身不变。
+
+### 14.7 验收（实测）
+
+| 命令 | 结果 |
+|---|---|
+| `DEVELOPER_DIR=… cargo test --workspace --locked` | **exit 0**（front lib 627 条、CLI 全绿） |
+| `cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check` | **exit 0** |
+| `cargo clippy -p sokonanoda-front -p sokonanoda-cli --all-targets --locked` | **exit 0** |
+| `python3 courses/set-theory/tools/check.py` | **exit 0**，**36 目标 · 329 checked · 99 open · 0 判负**（改前/改后逐项相同） |
+| `python3 courses/set-theory/tools/check.py --selftest` | **exit 0** |
+| `python3 scripts/gap.py check` | **exit 0** |
+| `node editor/vscode/test-extension-host.js` | **exit 0** |
+
+五项各自的判卷（真二进制 + `--json`，两种写法五元计数逐一相等）：
+
+| 项 | 记法写法 | 点名写法 | 结论 |
+|---|---|---|---|
+| §14.1 binder | `∃ (n : Nat), Eq.{1} Nat n n` | `Exists Nat (fun (n : Nat) => Eq.{1} Nat n n)` | exit 0，计数相等（`crates/cli/tests/notation.rs::binder_notation_grades_like_the_pointful_exists`） |
+| §14.1 两段式 | `∀ x ∈ s, p x` / `∃ x ∈ s, p x` | `forall (x : α), Set.mem α x s -> p x` / `Exists α (fun (x : α) => And (Set.mem α x s) (p x))` | exit 0，计数相等（`two_stage_binders_grade_like_the_pointful_guard`） |
+| §14.2 重载 | `prefix:100 " ι "` 两条 + 期望类型 | —— | exit 0（选得对）；歧义 ⇒ `elab-notation-ambiguous` + exit 1（`an_overload_grades_by_expected_type_and_reports_ambiguity`） |
+| §14.3 scoped | `namespace Foo` + `scoped infix…` + `open scoped Foo` | 同命题点名版 | 未 open ⇒ `notation-unknown-symbol` + exit 1；open 后 exit 0、计数相等（`a_scoped_notation_grades_only_after_open_scoped`） |
+| §14.4 集合字面量 | `{a}` / `{a, b}` | `Set.singleton α a` / `Set.pair α a b` | exit 0，计数相等（`set_literals_grade_like_the_pointful_singleton_and_pair`） |
+| §14.5 实参位免括号 | `f α 𝒫 A` | `f α (𝒫 A)` | exit 0（`a_prefix_notation_argument_keeps_the_parenthesised_spelling_working`） |
+
+课程侧：单元⑧ 加一条**演示**（`binder_notation "∃" => Exists` + `example … := ∃ (x : α), …`），
+练习数量与题意一字未动 ⇒ 门禁的 36/329/99/0 **逐项相同**；
+`crates/cli/tests/notation.rs::the_shipped_course_demos_the_binder_notation` 把这条钉住。

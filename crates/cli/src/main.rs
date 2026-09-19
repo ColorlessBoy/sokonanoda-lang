@@ -28,6 +28,7 @@ fn main() -> ExitCode {
     let mut workspace: Option<String> = None;
     let mut root: Option<String> = None;
     let mut no_project = false;
+    let mut all = false;
     let mut positionals: Vec<String> = Vec::new();
     let mut i = 0;
     while i < args.len() {
@@ -57,6 +58,9 @@ fn main() -> ExitCode {
                 }
             },
             "--no-project" => no_project = true,
+            // 多清单聚合（设计 `docs/design/course-manifest-v2.md` §4.5）：
+            // 只对 `course` 有意义，下面有专门的形状检查。
+            "--all" => all = true,
             "--workspace" => match args.get(i + 1) {
                 Some(root) => {
                     workspace = Some(root.clone());
@@ -83,6 +87,10 @@ fn main() -> ExitCode {
         && positionals.first().map(String::as_str) != Some("watch")
     {
         eprintln!("error: --doc/--workspace are only valid with `sokonanoda watch`");
+        return ExitCode::FAILURE;
+    }
+    if all && positionals.first().map(String::as_str) != Some("course") {
+        eprintln!("error: --all is only valid with `sokonanoda course`");
         return ExitCode::FAILURE;
     }
     match positionals.first().map(String::as_str) {
@@ -136,13 +144,7 @@ fn main() -> ExitCode {
                 }
             },
         },
-        Some("course") => match positionals.get(1) {
-            Some(manifest) => course::course(manifest, json),
-            None => {
-                eprintln!("usage: sokonanoda course <course.json>");
-                ExitCode::FAILURE
-            }
-        },
+        Some("course") => course::course(&positionals[1..], all, json),
         None => check_path_or_stdin(None, json, bare, root, no_project),
         Some(p) => check_path_or_stdin(Some(p), json, bare, root, no_project),
     }

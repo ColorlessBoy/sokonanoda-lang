@@ -161,6 +161,17 @@ pub(crate) fn judge_cache_len() -> usize {
     judge_cache().lock().expect("judge cache").0.len()
 }
 
+/// 某个键**在不在**缓存里（第三刀：容量是 FIFO 的 `JUDGE_CACHE_CAP`，用
+/// "长度变大了"当"键进去了"的判据会被别的测试挤爆——直接问键，与容量无关）。
+#[cfg(test)]
+pub(crate) fn judge_cache_contains(key: u64) -> bool {
+    judge_cache()
+        .lock()
+        .expect("judge cache")
+        .0
+        .contains_key(&key)
+}
+
 fn options_key(options: &CompileOptions) -> String {
     format!("{:?}", options.prelude)
 }
@@ -233,11 +244,30 @@ fn judge_terms_uncached(
             terms.len()
         ];
     };
-    let notations: Vec<crate::ast::NotationDecl> = prefix_file
-        .commands
-        .iter()
-        .filter_map(|command| command.notation_decl())
-        .collect();
+    // 记法表按**声明顺序**收，`scoped` 的按「前缀里有没有 `open scoped`」过滤
+    // （第三刀 §12.3）：主通道是位置敏感的（声明点之后才生效），回读通道只有
+    // 一份前缀，所以取"前缀结束时生效的那些"——`open scoped` 写在用之前是
+    // 主通道也要求的写法。
+    let mut opened_scopes: Vec<String> = Vec::new();
+    let mut notations: Vec<crate::ast::NotationDecl> = Vec::new();
+    for command in &prefix_file.commands {
+        if let crate::ast::Command::Open {
+            name, scoped: true, ..
+        } = command
+        {
+            if !opened_scopes.contains(name) {
+                opened_scopes.push(name.clone());
+            }
+            continue;
+        }
+        let Some(decl) = command.notation_decl() else {
+            continue;
+        };
+        match &decl.scope {
+            Some(scope) if !opened_scopes.contains(scope) => {}
+            _ => notations.push(decl),
+        }
+    }
     let Ok(goal) = crate::proof::parse_expr_text_with(&open.ty, &notations) else {
         return vec![
             Judgement::Error {
@@ -1068,14 +1098,26 @@ mod tests {
         assert!(judge_cache_len() >= before, "the request must be cached");
 
         // 不同 prelude 模式是指纹的一部分：不串台。
+        // 判据是**键在不在**（不是"缓存变长了"）：容量是 FIFO 的
+        // `JUDGE_CACHE_CAP`，别的测试把缓存填满时长度不再增长，旧判据会假红
+        // （第三刀实测：新增的记法测试把缓存填到上限）。
         let bare = CompileOptions {
             prelude: crate::compile::PreludeMode::Bare,
         };
         let _ = judge_infer(prefix, &bare, &binders, "h");
+        // 键的组成与 `judge_infer_with` 逐字一致（`extra_prefix` 是空串）。
+        let bare_key = judge_cache_key(&[
+            "",
+            prefix,
+            &options_key(&bare),
+            &format!("{binders:?}"),
+            "h",
+        ]);
         assert!(
-            judge_cache_len() > before,
+            judge_cache_contains(bare_key),
             "different options = different key"
         );
+        assert!(judge_cache_len() >= before);
     }
 
     #[test]

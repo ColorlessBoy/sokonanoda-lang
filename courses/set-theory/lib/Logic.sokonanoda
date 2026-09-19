@@ -47,8 +47,9 @@
 --   L-01 `True`/`True.intro`/`False`/`False.rec`/`False.elim`/`And.*`/`Or.*`/
 --        `Not.*`/`absurd`/`Iff.*` —— Lean core 真名；
 --   L-02 `Eq.symm`/`Eq.trans`/`congrArg` —— Lean core；
---   L-03 `Eq.mp`/`Eq.mpr`/`Eq.rec`/`cast` —— **仍然写不出来**（`Eq.subst` 的
---        motive 只能落 Prop），prelude 也**不**提供；这条留在台账里，不是本文件的活；
+--   L-03 `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast` —— **prelude 已自带**
+--        （B8 族，0.60.0 起；0.61.0 层级算术 `u+1` 落地后 `Eq.mp`/`Eq.mpr`/`cast`
+--        是宇宙多态的，签名与 Lean core 逐字对齐）；
 --   `Iff.refl`/`Iff.symm`/`Iff.trans` —— Mathlib 级，写集合等式天天用。
 --
 -- 分层判据（`docs/design/course-stdlib.md`）：

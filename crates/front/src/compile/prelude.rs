@@ -77,8 +77,10 @@ pub fn explicit_prelude_mode(src: &str) -> Option<PreludeMode> {
 /// declarations of [`PRELUDE_L1_SRC`] plus the two derived recursors
 /// (`And.rec`/`Or.rec`, which `install_inductive_block` generates).
 ///
-/// B8（L-03，2026-09-19）再加 3 条：`Eq.rec` 与由它定义的 `Eq.mp`/`Eq.mpr`
-/// （Type 层重写；设计 `docs/design/eq-type-level-rewriting.md`）。
+/// B8（L-03，2026-09-19；0.61.0 扩族）再加 5 条：`Eq.rec`、由它定义的
+/// `Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`（Type 层重写；设计
+/// `docs/design/eq-type-level-rewriting.md`）。`Eq.mp`/`Eq.mpr`/`cast` 是
+/// **宇宙多态**的（层级算术 `u+1` 落地后，签名与 Lean core 逐字对齐）。
 pub const PRELUDE_NAMES: &[&str] = &[
     "Nat",
     "Nat.zero",
@@ -130,8 +132,10 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "congrArg",
     // ---- L1: Eq 大消去 / Type 层重写 (B8) ----
     "Eq.rec",
+    "Eq.ndrec",
     "Eq.mp",
     "Eq.mpr",
+    "cast",
 ];
 
 /// Full 模式下**永不**让位的 prelude 名字（`Nat`/`Bool` 家族）。
@@ -174,13 +178,20 @@ axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -
 /// `axiom` 一律柯里化（G-13）；构造子写点号名（G-02 的可行解）；
 /// 隐式实参不自动插入，所以签名显式给全参数。
 ///
-/// **B8（`Eq.rec`/`Eq.mp`/`Eq.mpr`，L-03，2026-09-19）**：Eq prelude 的 `Eq` 是
-/// **公理**（不是归纳块），所以内核不会为它派生消去子（`Eq.rec` 实测
-/// `elab-unknown-constant`）；而本语言的 `inductive` 头部今天不吃宇宙 binder，
-/// 没法把 `Eq` 立成宇宙多态的归纳块。因此 B8 走**公理**：`axiom Eq.rec {u, v}`
-/// 的签名与 Lean core 的 `Eq.rec.{u, v}` 逐字同形（`docs/design/eq-type-level-rewriting.md`
-/// §3 有实测与取舍）。`Eq.mp`/`Eq.mpr` 由它定义，是 **Type 0 实例**——源码层级
-/// 语法没有 `u+1`（实测 parse 错），宇宙多态的 `Eq.mp` 写不出来（同设计 §4）。
+/// **B8（`Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`，L-03，2026-09-19）**：
+/// Eq prelude 的 `Eq` 是**公理**（不是归纳块），所以内核不会为它派生消去子
+/// （`Eq.rec` 实测 `elab-unknown-constant`）；而本语言的 `inductive` 头部今天
+/// 不吃宇宙 binder，没法把 `Eq` 立成宇宙多态的归纳块。因此 B8 走**公理**：
+/// `axiom Eq.rec {u, v}` 的签名与 Lean core 的 `Eq.rec.{u, v}` 逐字同形
+/// （`docs/design/eq-type-level-rewriting.md` §3 有实测与取舍）。
+///
+/// 其余四条都是 `def`（不新增信任面）：`Eq.ndrec` 是 Lean core 的
+/// **非依赖消去子**（motive 不吃证明，Lean 里它是 `abbrev`），
+/// `Eq.mp`/`Eq.mpr`/`cast` 是 `Eq.rec` 在 `Sort u` 上的实例——Lean core 里
+/// `cast h a` 就是 `Eq.mp h a`（`h.rec a`），三条签名逐字对齐：
+/// `{α β : Sort u} (h : @Eq.{u+1} (Sort u) α β)`。**层级算术 `u+1` 落地后**
+/// （`docs/design/type-level-syntax.md` §5）它们才是宇宙多态的；此前是
+/// Type 0 实例（0.60.0 的残留边界，设计 §4-1 已销账）。
 pub(crate) const PRELUDE_L1_SRC: &str = "\
 axiom True : Prop
 axiom True.intro : True
@@ -213,8 +224,10 @@ def Eq.symm {u} (α : Sort u) (a b : α) (h : Eq.{u} α a b) : Eq.{u} α b a := 
 def Eq.trans {u} (α : Sort u) (a b c : α) (h1 : Eq.{u} α a b) (h2 : Eq.{u} α b c) : Eq.{u} α a c := Eq.subst.{u} α (fun (x : α) => Eq.{u} α a x) b c h2 h1
 def congrArg {u} (α : Sort u) (β : Sort u) (f : α -> β) (a b : α) (h : Eq.{u} α a b) : Eq.{u} β (f a) (f b) := Eq.subst.{u} α (fun (x : α) => Eq.{u} β (f a) (f x)) a b h (Eq.refl.{u} β (f a))
 axiom Eq.rec {u, v} : {α : Sort u} -> (a : α) -> (motive : (anon : α) -> Sort v) -> (ha : motive a) -> (b : α) -> (h : @Eq.{u} α a b) -> motive b
-def Eq.mp (α β : Type) (h : @Eq.{2} Type α β) : α -> β := @Eq.rec.{2, 1} Type α (fun (x : Type) => α -> x) (fun (a : α) => a) β h
-def Eq.mpr (α β : Type) (h : @Eq.{2} Type α β) : β -> α := @Eq.rec.{2, 1} Type α (fun (x : Type) => x -> α) (fun (a : α) => a) β h
+def Eq.ndrec {u, v} (α : Sort u) (a : α) (motive : α -> Sort v) (m : motive a) (b : α) (h : @Eq.{u} α a b) : motive b := @Eq.rec.{u, v} α a motive m b h
+def Eq.mp {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) : α -> β := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => α -> x) (fun (a : α) => a) β h
+def Eq.mpr {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) : β -> α := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => x -> α) (fun (a : α) => a) β h
+def cast {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq.mp.{u} α β h a
 ";
 
 /// 让位的粒度 = **族**，族之间按依赖做闭包让位（设计 §2.2）。
@@ -291,7 +304,7 @@ pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
     },
     PreludeFamily {
         name: "B8",
-        names: &["Eq.rec", "Eq.mp", "Eq.mpr"],
+        names: &["Eq.rec", "Eq.ndrec", "Eq.mp", "Eq.mpr", "cast"],
         deps: &["EQ"],
     },
 ];

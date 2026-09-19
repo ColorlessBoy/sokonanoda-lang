@@ -1658,6 +1658,18 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   CLI 4 条 + 复现件 2 个（`docs/gaps/repro/L01-*.sh`、`L02-*.sh`，修后形状 = exit 1）。
   内核（冻结快照）未改一个字节。
 
+- 2026-09-19（第一百〇八轮，用户）：「**设计文档里的东西都做了吧。**」落地：把 `docs/design/` 各篇
+  「未做 / 第二刀 / 残留边界」里不违反硬规则的项目全部实现——**记法第三刀**（binder 记法 `∃ x, p`、
+  记法重载、`scoped`/`open scoped`、集合字面量 `{a}`/`{a,b}`、一元记法实参位免括号）、
+  **`namespace`/`open` 扩展**（`only`/`hiding`/`renaming` 子句、`open … in`、`export`、遮蔽 warning）、
+  **层级算术 `u+1` + `Eq.mp`/`Eq.mpr` 宇宙多态 + `cast`/`Eq.ndrec`**、**编辑器词表同轮同步**
+  （`abbrev`/`prefix`/`postfix`/`binder_notation`/`scoped`）、**课程多清单聚合 + 成本台账**
+  `docs/courses/ledger.jsonl`（`--ledger` 默认关）。保留为**有理由的边界**（都有实测）：累积性与
+  Prop 大消去（内核冻结）、源码级 print-back（内核 pp）、`section`/`variable`（无隐式参数插入）、
+  `u+v`/`max`（内核无公开构造入口）。版本 **0.61.0**（两处 + 课程 `requires`）；
+  `scripts/soko gate` exit 0（**1163 passed / 0 failed**；课程 36 目标 · 329 checked · 99 open ·
+  0 判负；台账门禁全绿）；内核零改动。
+
 - 2026-09-19（第一百〇七轮，用户）：「**vscode 还是没有 sokonanoda: build 或者 sokonanoda: rebuild
   的命令。你这个剩下的没做的也要做。**」落地：
   * **编辑器命令补齐**：`sokonanoda: build`（`alt+b`）与 `sokonanoda: rebuild`（`alt+shift+b`，先

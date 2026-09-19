@@ -24,9 +24,9 @@ use crate::compile::event::CompileOutput;
 use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
 use crate::compile::report::{DeclKind, DeclState};
-use crate::compile::scope::NamespaceScope;
+use crate::compile::scope::{NamespaceScope, OpenEntry};
 use crate::compile::units::SourceUnit;
-use crate::{Binder, Command, CtorDecl, Expr, IotaRule, RecDecl, Span};
+use crate::{Binder, Command, CtorDecl, Expr, IotaRule, OpenFilter, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::Declar;
 use sokonanoda::util::ExprPtr;
@@ -48,6 +48,9 @@ pub(super) struct Walk<'arena> {
     /// 作用域，不跨 `import`（设计 N5）；`namespace` 由 parser 校验闭合，所以
     /// 单元边界上栈必然为空。
     pub(super) ns: NamespaceScope,
+    /// **跨单元导出表**（第二刀 §N7）：`export Foo` 记在这里，单元切换时重放。
+    /// 依赖按拓扑序排在入口之前，所以入口文件在文件头就能用依赖导出的短名。
+    pub(super) exports: Vec<OpenEntry>,
 }
 
 /// 单个命令的派生上下文：每个命令算一次，arm 里按需取用。
@@ -65,6 +68,9 @@ struct CmdCtx<'a> {
     /// 内核 pp（`docs/design/namespace-open.md` §4.6）。没碰命名空间的文件
     /// 零额外开销、行为逐字不变。
     canonical_goal: bool,
+    /// 本单元源码（`open … in …` 的合成前缀要按**源码文本**补一行 open，
+    /// 见 [`Walk::open_in`]）。
+    src: &'a str,
 }
 
 /// 把一个引用重借成**局部寿命**。
@@ -92,14 +98,19 @@ impl<'arena> Walk<'arena> {
         closure_prefixes: &[String],
     ) {
         // G-05：每个单元是否用了 namespace/open（`by` 引擎的根目标规范化开关，
-        // 每单元算一次；没用到的文件零开销）。
+        // 每单元算一次；没用到的文件零开销）。第二刀：`open … in` 与 `export`
+        // 同样会改引用解析，所以一并计入。
         let unit_uses_namespaces: Vec<bool> = units
             .iter()
             .map(|unit| {
                 unit.file.commands.iter().any(|command| {
                     matches!(
                         command,
-                        Command::Namespace { .. } | Command::End { .. } | Command::Open { .. }
+                        Command::Namespace { .. }
+                            | Command::End { .. }
+                            | Command::Open { .. }
+                            | Command::OpenIn { .. }
+                            | Command::Export { .. }
                     )
                 })
             })
@@ -109,8 +120,14 @@ impl<'arena> Walk<'arena> {
             // G-05 N5：单元（文件）切换处清空作用域——`open` 与 `namespace`
             // 都是文件内的（`import` 不做模块限定，但被导入模块的**全局名**
             // 本来就可见，所以入口里的 `open Set` 对依赖的 `Set.mem` 仍然有效）。
+            // 第二刀 §N7：`export` 是**唯一**跨 `import` 的那一半——清空之后
+            // 重放导出表（依赖按拓扑序排在入口之前，此时它的导出已经齐了）。
             if idx == 0 || flat[idx - 1].0 != unit_idx {
                 self.ns.reset();
+                let exports = self.exports.clone();
+                for entry in exports {
+                    self.ns.open_entry(entry);
+                }
             }
             let trusted = trust.is_some_and(|t| idx < t.before);
             let env_before = self.builder.declaration_count();
@@ -141,65 +158,138 @@ impl<'arena> Walk<'arena> {
                 options,
                 skip,
                 canonical_goal: unit_uses_namespaces[unit_idx],
+                src: &unit.file.src,
             };
-            match command {
-                // `import` 自身不产生声明：被导入模块的命令由项目层按拓扑序
-                // 先送进同一个 EnvBuilder（docs/design/imports-and-projects.md §4.5）。
-                Command::Import { .. } => {}
-                Command::Def {
-                    name,
-                    universe,
-                    ty,
-                    val,
-                    span,
-                } => self.def(&c, name, universe, ty, val, *span),
-                Command::Theorem {
-                    name,
-                    universe,
-                    ty,
-                    val,
-                    span,
-                } => self.theorem(&c, name, universe, ty, val, *span),
-                Command::Axiom {
-                    name,
-                    universe,
-                    ty,
-                    span,
-                } => self.axiom(&c, name, universe, ty, *span),
-                Command::Example { ty, val, span } => self.example(&c, ty, val, *span),
-                Command::InductiveBlock {
-                    name,
-                    params,
-                    ty,
-                    constructors,
-                    recursor,
-                    iota_rules,
-                    span,
-                } => self.inductive_block(
-                    &c,
-                    name,
-                    params,
-                    ty,
-                    constructors,
-                    recursor,
-                    iota_rules,
-                    *span,
-                ),
-                Command::Check { expr, span: _ } => self.check(&c, expr),
-                Command::Reduce { expr, span: _ } => self.reduce(&c, expr),
-                Command::Print { name, span } => self.print(&c, name, *span),
-                // 记法命令**不是声明**（设计 N6）：不 elaborate、不产
-                // PendingOp、不进声明表——与 `Command::Import` 同族。
-                Command::Notation { .. } => {}
-                // G-05：三条作用域命令同样不是声明。声明名加前缀在 parser 里
-                // 已经落定（N3），这里只维护**引用解析**用的作用域（N4）：
-                // `namespace` 压栈、`end` 弹栈、`open` 进可省略前缀集合。
-                // trusted 前缀也要走（否则后半段的解析会丢作用域）。
-                Command::Namespace { name, .. } => self.ns.push(name),
-                Command::End { .. } => self.ns.pop(),
-                Command::Open { name, .. } => self.ns.open(name),
+            self.command(&c, command);
+        }
+    }
+
+    /// 一条命令的分发（原 `run` 主循环里的 `match`，逐字搬过来）。
+    ///
+    /// 抽成方法的**唯一**原因：`open Foo in <命令>` 要把被包住的命令按同一个
+    /// 上下文再走一遍（见 [`Walk::open_in`]）；arm 里的 `return` 语义不变
+    /// （每个 arm 都没有内层循环，返回后 `run` 继续下一条命令）。
+    fn command(&mut self, c: &CmdCtx<'_>, command: &Command) {
+        match command {
+            // `import` 自身不产生声明：被导入模块的命令由项目层按拓扑序
+            // 先送进同一个 EnvBuilder（docs/design/imports-and-projects.md §4.5）。
+            Command::Import { .. } => {}
+            Command::Def {
+                name,
+                universe,
+                ty,
+                val,
+                span,
+            } => self.def(c, name, universe, ty, val, *span),
+            Command::Theorem {
+                name,
+                universe,
+                ty,
+                val,
+                span,
+            } => self.theorem(c, name, universe, ty, val, *span),
+            Command::Axiom {
+                name,
+                universe,
+                ty,
+                span,
+            } => self.axiom(c, name, universe, ty, *span),
+            Command::Example { ty, val, span } => self.example(c, ty, val, *span),
+            Command::InductiveBlock {
+                name,
+                params,
+                ty,
+                constructors,
+                recursor,
+                iota_rules,
+                span,
+            } => self.inductive_block(
+                c,
+                name,
+                params,
+                ty,
+                constructors,
+                recursor,
+                iota_rules,
+                *span,
+            ),
+            Command::Check { expr, span: _ } => self.check(c, expr),
+            Command::Reduce { expr, span: _ } => self.reduce(c, expr),
+            Command::Print { name, span } => self.print(c, name, *span),
+            // 记法命令**不是声明**（设计 N6）：不 elaborate、不产
+            // PendingOp、不进声明表——与 `Command::Import` 同族。
+            Command::Notation { .. } => {}
+            // G-05：三条作用域命令同样不是声明。声明名加前缀在 parser 里
+            // 已经落定（N3），这里只维护**引用解析**用的作用域（N4）：
+            // `namespace` 压栈、`end` 弹栈、`open` 进可省略前缀集合。
+            // trusted 前缀也要走（否则后半段的解析会丢作用域）。
+            Command::Namespace { name, .. } => self.ns.push(name),
+            Command::End { .. } => self.ns.pop(),
+            // `open scoped <名字>`（第三刀 §12.3）**只**打开记法作用域
+            // （副作用在 parser 里已经落定），**不**打开名字前缀——与 Lean
+            // 一致（`open scoped Foo` 不会让 `Foo.bar` 能写成 `bar`）。
+            Command::Open {
+                name,
+                scoped: false,
+                filter,
+                ..
+            } => self.ns.open_entry(OpenEntry::new(name, filter.clone())),
+            Command::Open { scoped: true, .. } => {}
+            // `open Foo in <命令>`（第二刀 §N7）：局部 open。
+            Command::OpenIn {
+                name,
+                filter,
+                inner,
+                header,
+                ..
+            } => self.open_in(c, name, filter, inner, *header),
+            // `export Foo`（第二刀 §N7）：本文件内与 `open` 逐字相同，额外
+            // 记进导出表（跨 `import` 生效）。
+            Command::Export { name, filter, .. } => {
+                let entry = OpenEntry::new(name, filter.clone());
+                self.ns.open_entry(entry.clone());
+                if !self.exports.contains(&entry) {
+                    self.exports.push(entry);
+                }
             }
         }
+    }
+
+    /// `open <name> [<子句>] in <命令>`（第二刀 §N7）：把 open 压进作用域、
+    /// 走一遍被包住的命令、再撤销。
+    ///
+    /// 被包住的命令用**同一个 `CmdCtx`**，只把合成前缀补一行 open 的源码文本
+    /// （`open Foo hiding a`）——`by` 引擎的根目标规范化（`judge_render_type`）
+    /// 与 `judge_terms` 都是"前缀源码 + 合成命令"再走一遍流水线，前缀里没有这
+    /// 一行，短名在那里就解析不了（退回源 AST 是安全的，但 `apply` 的文本对齐
+    /// 会失准）。补的是**源码原文**，不是重建的文本，所以子句逐字保真。
+    fn open_in(
+        &mut self,
+        c: &CmdCtx<'_>,
+        name: &str,
+        filter: &OpenFilter,
+        inner: &Command,
+        header: Span,
+    ) {
+        let mark = self.ns.opens_mark();
+        self.ns.open_entry(OpenEntry::new(name, filter.clone()));
+        let header_text = c
+            .src
+            .get(header.start.offset..header.end.offset)
+            .unwrap_or("");
+        let inner_ctx = CmdCtx {
+            idx: c.idx,
+            templates: c.templates,
+            prefix_src: Cow::Owned(format!("{}{header_text}\n", c.prefix_src)),
+            trusted: c.trusted,
+            env_before: c.env_before,
+            options: c.options,
+            skip: c.skip,
+            canonical_goal: c.canonical_goal,
+            src: c.src,
+        };
+        self.command(&inner_ctx, inner);
+        self.ns.rollback_opens(mark);
     }
 
     /// `def name : T := v`：elaborate 成 `PendingOp::Decl`（或开练习）。

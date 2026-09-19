@@ -7,7 +7,7 @@ use super::scope::NamespaceScope;
 use crate::ast::{MatchArm, Pattern};
 use crate::judge::{judge_infer, GoalBinderSpec};
 use crate::proof::render_expr;
-use crate::{Binder, BinderKind, CtorDecl, Expr, IotaRule, RecDecl, SortKind, Span};
+use crate::{Binder, BinderKind, CtorDecl, Expr, IotaRule, NotationAssoc, RecDecl, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{
     ConstructorData, Declar, DeclarInfo, RecRule, RecursorData, ReducibilityHint,
@@ -868,27 +868,48 @@ pub(crate) fn collect_uparams<'a>(
     builder.alloc_levels_slice(&levels)
 }
 
+/// 层级**文本** → 内核层级（`EnvBuilder` 的公开 API：`zero`/`succ`/
+/// `level_param`，硬规则 1 内核零改动）。
+///
+/// 文本语法（parser 的 `parse_level_text`，设计 `docs/design/type-level-syntax.md` §5）：
+/// `3`、`u`、`u+1`、`u+1+1`——首段是数字或已声明的宇宙参数，其余每段必须是
+/// 数字（各加一次 `succ`）。`u+v`/`max` 不在语法面内，落到 `unknown universe
+/// level` 诊断。
 pub(crate) fn level_ptr<'a>(
     builder: &mut EnvBuilder<'a>,
     level: &str,
     univ: &UnivMap<'a>,
     span: Span,
 ) -> Result<LevelPtr<'a>, CompileError> {
-    if let Ok(n) = level.parse::<u64>() {
+    let unknown = |level: &str| {
+        CompileError::elab(
+            ErrorKind::ElabUnknownUniverseLevel,
+            format!("unknown universe level `{level}`"),
+            span,
+        )
+    };
+    let mut parts = level.split('+');
+    let head = parts.next().unwrap_or(level);
+    let mut out = if let Ok(n) = head.parse::<u64>() {
         let mut out = builder.zero();
         for _ in 0..n {
             out = builder.succ(out);
         }
-        Ok(out)
-    } else if let Some(level) = univ.get(level).copied() {
-        Ok(level)
+        out
+    } else if let Some(level) = univ.get(head).copied() {
+        level
     } else {
-        Err(CompileError::elab(
-            ErrorKind::ElabUnknownUniverseLevel,
-            format!("unknown universe level `{level}`"),
-            span,
-        ))
+        return Err(unknown(level));
+    };
+    for part in parts {
+        let Ok(n) = part.parse::<u64>() else {
+            return Err(unknown(level));
+        };
+        for _ in 0..n {
+            out = builder.succ(out);
+        }
     }
+    Ok(out)
 }
 
 pub(crate) fn kernel_binder_style(kind: &BinderKind) -> BinderStyle {
@@ -924,6 +945,7 @@ fn elab_notation<'a>(
     known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
     expected_src: Option<&Expr>,
+    fallback_prefix_args: Option<&[Expr]>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<ExprPtr<'a>, CompileError> {
     let canonical = resolve_known(known, ctx.ns, target, span).map_err(|_| {
@@ -953,15 +975,23 @@ fn elab_notation<'a>(
                 span,
             )
         })?;
-    let Some(prefix_args) = notation_prefix_args(&signature, operands, expected_src, ctx, scope)?
-    else {
-        return Err(CompileError::elab(
-            ErrorKind::ElabNotationArgumentUnsolved,
-            format!(
-                "记法 `{symbol}` 展开成 `{target}` 时补不出前面的类型参数：请写出点名形式（例如 {target} α …）"
-            ),
-            span,
-        ));
+    // 前导参数：先走既有的裸变量匹配；解不出时用调用方给的**回退**
+    // （第三刀 §12.4 的集合字面量：`{∅}` 的元素类型只能从期望类型解，
+    // 既有路径的结构化匹配在这里够不着——回退只加解、不改既有解）。
+    let prefix_args = match notation_prefix_args(&signature, operands, expected_src, ctx, scope)? {
+        Some(args) => args,
+        None => match fallback_prefix_args {
+            Some(args) => args.to_vec(),
+            None => {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabNotationArgumentUnsolved,
+                    format!(
+                        "记法 `{symbol}` 展开成 `{target}` 时补不出前面的类型参数：请写出点名形式（例如 {target} α …）"
+                    ),
+                    span,
+                ));
+            }
+        },
     };
     // 操作数的**期望类型**：`∅ ⊆ A` 里的 `∅` 自己也是零元记法，只有拿到
     // 「这里是 `Set α`」才知道补什么（设计 N4.2 ② 在嵌套位置上的同一规则）。
@@ -993,6 +1023,364 @@ fn elab_notation<'a>(
         app = builder.mk_app(app, operand);
     }
     Ok(app)
+}
+
+/// 两段式 binder 的 guard 形状判据：`guard` 是**以 binder 名为左操作数**的
+/// 记号表达式（`x ∈ s`）。
+fn guard_is_binder(guard: &Expr, binder_name: &str) -> bool {
+    matches!(
+        guard,
+        Expr::Notation { lhs: Some(lhs), .. }
+            if matches!(lhs.as_ref(), Expr::Ident { name, .. } if name == binder_name)
+    )
+}
+
+/// `∀ x ∈ s, p` 的 body 是 `Arrow (x ∈ s) p` ⇒ 取出 guard（第三刀 §12.1）。
+fn split_arrow_guard<'a>(body: &'a Expr, binder_name: &str) -> Option<&'a Expr> {
+    match body {
+        Expr::Arrow { domain, .. } if guard_is_binder(domain, binder_name) => Some(domain),
+        _ => None,
+    }
+}
+
+/// `∃ x ∈ s, p` 的 body 是 `And (x ∈ s) p` ⇒ 取出 guard（第三刀 §12.1）。
+fn split_and_guard<'a>(body: &'a Expr, binder_name: &str) -> Option<&'a Expr> {
+    let Expr::App { fun, .. } = body else {
+        return None;
+    };
+    let Expr::App {
+        fun: head,
+        arg: guard,
+        ..
+    } = fun.as_ref()
+    else {
+        return None;
+    };
+    let is_and = matches!(head.as_ref(), Expr::Ident { name, .. } if name == "And");
+    (is_and && guard_is_binder(guard, binder_name)).then_some(guard)
+}
+
+/// binder 记法的操作数（`fun (x : A) => …`）在 binder 没写类型时**由 guard
+/// 反解**出类型并填进注解（第三刀 §12.1）。不需要动 ⇒ `None`（走原路径）；
+/// guard 在、但解不出 ⇒ `elab-binder-notation-unsolved`。
+fn binder_notation_operand(
+    symbol: &str,
+    operand: Option<&Expr>,
+    scope: &ElabScope<'_>,
+    known: &KnownTable,
+    ctx: &ElabCtx<'_, '_>,
+) -> Result<Option<Expr>, CompileError> {
+    let Some(Expr::Lambda {
+        binders,
+        body,
+        span,
+    }) = operand
+    else {
+        return Ok(None);
+    };
+    let [binder] = binders.as_slice() else {
+        return Ok(None);
+    };
+    if binder.ty.is_some() {
+        return Ok(None);
+    }
+    let ty = match split_and_guard(body, &binder.name) {
+        // 两段式：由 guard 的关系（`∈`）反解；解不出是**专用诊断**（不猜）。
+        Some(guard) => {
+            let Some(ty) = guarded_binder_type(guard, &binder.name, scope, known, ctx) else {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabBinderNotationUnsolved,
+                    format!(
+                        "binder 记法 `{symbol}` 里 `{}` 的类型从 guard `{}` 反解不出来：给 binder 补类型标注（例如 {symbol} ({} : α) ∈ s, p），或改用点名写法",
+                        binder.name,
+                        render_expr(guard),
+                        binder.name
+                    ),
+                    binder.span,
+                ));
+            };
+            ty
+        }
+        // 一段式 `∃ x, p`：binder **必须自己带类型标注**——记法不引入元变量
+        // 与一般合一（第一刀 N4.2 的边界），裸 `∃ x, p` 的 x 类型没有来源。
+        // 与语言里既有的 `∀ x, p` 同规则（那边报 `elab-untyped-binder`）。
+        None => {
+            return Err(CompileError::elab(
+                ErrorKind::ElabBinderNotationUnsolved,
+                format!(
+                    "binder 记法 `{symbol}` 里 `{}` 没有类型：一段式要写标注（{symbol} ({} : α), p），两段式靠 guard（{symbol} {} ∈ s, p）",
+                    binder.name, binder.name, binder.name
+                ),
+                binder.span,
+            ));
+        }
+    };
+    let mut binder = binder.clone();
+    binder.ty = Some(Box::new(ty));
+    Ok(Some(Expr::Lambda {
+        binders: vec![binder],
+        body: body.clone(),
+        span: *span,
+    }))
+}
+
+/// 集合字面量的**前导参数回退解**（第三刀 §12.4）：期望类型 `Set α₀` ⇒
+/// `Set.singleton`/`Set.pair` 的 `α := α₀`。元素自己的类型解不出时（`{∅}`）
+/// 只能走这条路——它是"期望类型传播"的又一处具体形态，不是新语义。
+fn set_literal_prefix_args(
+    target: &str,
+    expected_src: Option<&Expr>,
+    span: Span,
+    known: &KnownTable,
+    ctx: &ElabCtx<'_, '_>,
+) -> Option<Vec<Expr>> {
+    let expected = expected_src?;
+    let canonical = resolve_known(known, ctx.ns, target, span).ok()?;
+    let text = render_expr(&Expr::Ident {
+        name: canonical,
+        span,
+    });
+    let signature = crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &text).ok()?;
+    let (layers, result) = notation_telescope(&signature)?;
+    let param = layers.first()?.0.clone();
+    if param.is_empty() {
+        return None;
+    }
+    let found = unify_extract(&result, expected, &param)?;
+    Some(vec![found])
+}
+
+/// **两段式 binder 的变量类型反解**（第三刀 §12.1）：`∀ x ∈ s, p` /
+/// `∃ x ∈ s, p` 里 x 的类型由 guard 的关系（`∈`）反解——
+///
+/// 1. 读 guard 目标（`Set.mem`）的签名，拆出 Pi 望远镜；
+/// 2. 用 guard 的**其它**操作数（容器 `s`）解前导类型参数（跳过 binder 自己：
+///    它还没有类型，问不出类型文本）；
+/// 3. binder 那一层的**域**就是 x 的类型（`Set.mem` 的第 2 个参数域是 `α`
+///    ⇒ `x : α₀`）。
+///
+/// 解不出 ⇒ `None`（调用方报专用诊断，绝不猜）。
+fn guarded_binder_type(
+    guard: &Expr,
+    binder_name: &str,
+    scope: &ElabScope<'_>,
+    known: &KnownTable,
+    ctx: &ElabCtx<'_, '_>,
+) -> Option<Expr> {
+    let Expr::Notation {
+        target,
+        lhs,
+        rhs,
+        span,
+        ..
+    } = guard
+    else {
+        return None;
+    };
+    let operands: Vec<&Expr> = [lhs.as_deref(), rhs.as_deref()]
+        .into_iter()
+        .flatten()
+        .collect();
+    if operands.len() != 2 {
+        return None;
+    }
+    let Expr::Ident { name, .. } = operands[0] else {
+        return None;
+    };
+    if name != binder_name {
+        return None;
+    }
+    let canonical = resolve_known(known, ctx.ns, target, *span).ok()?;
+    let text = render_expr(&Expr::Ident {
+        name: canonical,
+        span: *span,
+    });
+    let signature = crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &text).ok()?;
+    let (layers, _) = notation_telescope(&signature)?;
+    let missing = layers.len().checked_sub(operands.len())?;
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for i in 0..missing {
+        let param = layers[i].0.clone();
+        if param.is_empty() {
+            return None;
+        }
+        let mut solved: Option<Expr> = None;
+        for (j, layer) in layers.iter().enumerate().skip(i + 1) {
+            // 操作数位 `k = j - missing`；`k == 0` 是 binder 自己（跳过）。
+            let Some(k) = j.checked_sub(missing) else {
+                continue;
+            };
+            if k == 0 || !mentions_ident(&layer.1, &param) {
+                continue;
+            }
+            let Some(operand) = operands.get(k) else {
+                continue;
+            };
+            let Some(actual) = infer_type_text(ctx, scope, operand)
+                .and_then(|text| crate::proof::parse_expr_text(&text).ok())
+            else {
+                continue;
+            };
+            if let Some(found) = unify_extract(&layer.1, &actual, &param) {
+                solved = Some(found);
+                break;
+            }
+        }
+        sigma.insert(param, solved?);
+    }
+    let (_, domain) = layers.get(missing)?;
+    Some(super::goals::substitute_names(
+        domain,
+        &sigma,
+        &HashMap::new(),
+    ))
+}
+
+/// **记法重载的候选选择**（第三刀 §12.2）。
+///
+/// 单候选 ⇒ 原样返回（零开销；展开路径逐字节等于第二刀）。多候选 ⇒ 按
+/// **期望类型**筛：
+///
+/// 1. 读每个候选的签名（`judge_type_of`，内核 pp），取 telescope 的**结果
+///    类型**，与期望类型做**头部匹配**（裸变量模板算通配——v1 不做一般合一）；
+/// 2. 恰好一个 ⇒ 选它；
+/// 3. 一个都不匹配 ⇒ `elab-notation-no-candidate`（列出每个候选的结果类型）；
+/// 4. 还剩 ≥2 个（或压根没有期望类型却有多候选）⇒ `elab-notation-ambiguous`。
+///
+/// 判据只用**内核给的签名文本**（不比对源文本）：候选的取舍是"这个目标的
+/// 结果类型能不能长成期望的样子"，与操作数类型对不对是**两件事**——后者仍由
+/// 既有展开路径（`elab-notation-argument-unsolved`）与内核终审。
+#[allow(clippy::too_many_arguments)]
+fn choose_notation_target<'a>(
+    candidates: &[&'a str],
+    symbol: &str,
+    span: Span,
+    known: &KnownTable,
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'_, '_>,
+) -> Result<&'a str, CompileError> {
+    let Some((first, rest)) = candidates.split_first() else {
+        return Err(CompileError::elab(
+            ErrorKind::ElabNotationUnknownTarget,
+            format!("记法 `{symbol}` 没有候选目标"),
+            span,
+        ));
+    };
+    if rest.is_empty() {
+        return Ok(first);
+    }
+    let mut results: Vec<(&'a str, Option<Expr>)> = Vec::with_capacity(candidates.len());
+    for candidate in candidates {
+        let result = resolve_known(known, ctx.ns, candidate, span)
+            .ok()
+            .and_then(|canonical| {
+                let text = render_expr(&Expr::Ident {
+                    name: canonical,
+                    span,
+                });
+                crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &text).ok()
+            })
+            .and_then(|signature| notation_telescope(&signature).map(|(_, result)| result));
+        results.push((candidate, result));
+    }
+    let viable: Vec<&'a str> = match expected_src {
+        Some(expected) => results
+            .iter()
+            .filter(|(_, result)| {
+                result
+                    .as_ref()
+                    .is_some_and(|result| notation_result_matches(result, expected))
+            })
+            .map(|(candidate, _)| *candidate)
+            .collect(),
+        None => candidates.to_vec(),
+    };
+    match viable.len() {
+        1 => Ok(viable[0]),
+        0 => Err(CompileError::elab(
+            ErrorKind::ElabNotationNoCandidate,
+            format!(
+                "记法 `{symbol}` 的候选目标（{}）没有一个能对上这里的期望类型：{}",
+                candidate_list(candidates),
+                describe_candidate_results(&results)
+            ),
+            span,
+        )),
+        _ => Err(CompileError::elab(
+            ErrorKind::ElabNotationAmbiguous,
+            format!(
+                "记法 `{symbol}` 有多个候选目标都能用（{}），{}看不出该选哪个",
+                viable.join("、"),
+                match expected_src {
+                    Some(_) => "期望类型",
+                    None => "这里没有期望类型，",
+                }
+            ),
+            span,
+        )),
+    }
+}
+
+/// `Set.mem`、`List.mem` 这样的人话候选清单。
+fn candidate_list(candidates: &[&str]) -> String {
+    candidates
+        .iter()
+        .map(|candidate| format!("`{candidate}`"))
+        .collect::<Vec<_>>()
+        .join("、")
+}
+
+/// `Set.mem → Prop；Set.singleton → Set α` 这样的候选结果类型清单（读不到
+/// 签名的候选标 `?`）。
+fn describe_candidate_results(results: &[(&str, Option<Expr>)]) -> String {
+    results
+        .iter()
+        .map(|(candidate, result)| match result {
+            Some(result) => format!("`{candidate}` 的结果类型是 `{}`", render_expr(result)),
+            None => format!("`{candidate}` 的签名读不到"),
+        })
+        .collect::<Vec<_>>()
+        .join("；")
+}
+
+/// 候选的**结果类型**与期望类型的头部匹配（v1 只做一层：头同名 + 实参个数
+/// 相同；模板是裸变量 `α` 时算通配）。与 `unify_extract` 同族的"不做一般
+/// 合一"取舍——宁可判**歧义**（报专用码 + 教点名写法），也不猜。
+fn notation_result_matches(template: &Expr, expected: &Expr) -> bool {
+    if let Expr::Ident { .. } = template {
+        return true;
+    }
+    if let (
+        Expr::Arrow {
+            domain: template_domain,
+            codomain: template_codomain,
+            ..
+        },
+        Expr::Arrow {
+            domain: expected_domain,
+            codomain: expected_codomain,
+            ..
+        },
+    ) = (template, expected)
+    {
+        return notation_result_matches(template_domain, expected_domain)
+            && notation_result_matches(template_codomain, expected_codomain);
+    }
+    let (template_head, template_args) = crate::spine::spine_of(template);
+    let (expected_head, expected_args) = crate::spine::spine_of(expected);
+    if template_args.len() != expected_args.len() {
+        return false;
+    }
+    match (template_head, expected_head) {
+        (Expr::Ident { name: t, .. }, Expr::Ident { name: e, .. }) => {
+            t == e
+                && template_args
+                    .iter()
+                    .zip(expected_args.iter())
+                    .all(|(t, e)| notation_result_matches(t, e))
+        }
+        _ => false,
+    }
 }
 
 fn judgement_message(j: &crate::judge::Judgement) -> String {
@@ -1217,21 +1605,17 @@ fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
             return Some(actual.clone());
         }
     }
-    if let (
-        Expr::Arrow {
-            domain: template_domain,
-            codomain: template_codomain,
-            ..
-        },
-        Expr::Arrow {
-            domain: actual_domain,
-            codomain: actual_codomain,
-            ..
-        },
-    ) = (template, actual)
-    {
-        return unify_extract(template_domain, actual_domain, name)
-            .or_else(|| unify_extract(template_codomain, actual_codomain, name));
+    // `->` 也算一个二元头（第二刀 §10.4 的实测增量）……而且 **`forall` 与 `->`
+    // 必须等价**：内核 pp 把 lambda 的类型打成 `forall (n : Nat), Eq n n`，而
+    // 签名里的 `A -> Prop` 解析成 `Expr::Arrow`——只认 Arrow 的话
+    // `∃ (n : Nat), …` 的前导参数解不出来（第三刀实测）。`peel_pi` 是两者
+    // 的唯一共用剥层（内核 pp 的多 binder 折叠也由它处理）。
+    if let (Some(template_pi), Some(actual_pi)) = (
+        crate::spine::peel_pi(template),
+        crate::spine::peel_pi(actual),
+    ) {
+        return unify_extract(&template_pi.domain, &actual_pi.domain, name)
+            .or_else(|| unify_extract(&template_pi.body, &actual_pi.body, name));
     }
     let (head, template_args) = crate::spine::spine_of(template);
     let (actual_head, actual_args) = crate::spine::spine_of(actual);
@@ -1406,13 +1790,19 @@ pub(crate) fn elab_expr<'a>(
             sort: SortKind::Level(name),
             span,
         } => {
-            let level = univ.get(name).copied().ok_or_else(|| {
-                CompileError::elab(
-                    ErrorKind::ElabUnknownUniverseLevel,
-                    format!("universe variable `{name}` is not declared in this declaration"),
-                    *span,
-                )
-            })?;
+            // `Sort u`（纯名字）与 `Sort (u+1)`（层级算术）走同一条：名字先在
+            // 本声明的宇宙参数里找；带 `+` 的层级文本交给 `level_ptr`。
+            let level = match univ.get(name).copied() {
+                Some(level) => level,
+                None if name.contains('+') => level_ptr(builder, name, univ, *span)?,
+                None => {
+                    return Err(CompileError::elab(
+                        ErrorKind::ElabUnknownUniverseLevel,
+                        format!("universe variable `{name}` is not declared in this declaration"),
+                        *span,
+                    ));
+                }
+            };
             let out = builder.mk_sort(level);
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
@@ -1599,13 +1989,23 @@ pub(crate) fn elab_expr<'a>(
                     Some(ty) => {
                         elab_expr(builder, ty, scope, univ, known, hovers, None, None, ctx)?
                     }
-                    None => {
-                        return Err(CompileError::elab(
-                            ErrorKind::ElabUntypedBinder,
-                            "types must be written explicitly on Pi binders",
-                            binder.span,
-                        ));
-                    }
+                    // 无注解的 Pi binder：**只有**两段式 binder 的 guard
+                    // （`∀ x ∈ s, p`）能反解出 x 的类型（第三刀 §12.1）。
+                    // 其余无注解 binder 走**逐字不变**的 `elab-untyped-binder`。
+                    None => match split_arrow_guard(body, &binder.name).and_then(|guard| {
+                        guarded_binder_type(guard, &binder.name, scope, known, ctx)
+                    }) {
+                        Some(source_ty) => elab_expr(
+                            builder, &source_ty, scope, univ, known, hovers, None, None, ctx,
+                        )?,
+                        None => {
+                            return Err(CompileError::elab(
+                                ErrorKind::ElabUntypedBinder,
+                                "types must be written explicitly on Pi binders",
+                                binder.span,
+                            ));
+                        }
+                    },
                 };
                 let name = builder.name_from_str(&binder.name);
                 tys.push(ty);
@@ -1674,15 +2074,70 @@ pub(crate) fn elab_expr<'a>(
         Expr::Notation {
             symbol,
             target,
+            assoc,
             lhs,
             rhs,
+            alternatives,
             span,
-            ..
         } => {
-            let operands: Vec<&Expr> = [lhs.as_deref(), rhs.as_deref()]
-                .into_iter()
-                .flatten()
-                .collect();
+            // binder 记法（第三刀 §12.1）：操作数是 `fun (x : A) => p`（两段式
+            // 时 body 是 `And (x ∈ s) p`）。binder 没写类型时**先由 guard 反解**
+            // 出类型、填进源级 AST 的 binder 注解，之后走与前缀记法**逐字相同**
+            // 的展开路径（`notation_operand_expected` 给出 `A -> Prop`）。
+            let annotated = if *assoc == NotationAssoc::Binder {
+                binder_notation_operand(symbol, rhs.as_deref(), scope, known, ctx)?
+            } else {
+                None
+            };
+            let rhs = annotated.as_ref().or(rhs.as_deref());
+            let operands: Vec<&Expr> = [lhs.as_deref(), rhs].into_iter().flatten().collect();
+            // 记法重载（第三刀 §12.2）：`target` 是主候选，`alternatives` 是其余。
+            let mut candidates: Vec<&str> = Vec::with_capacity(1 + alternatives.len());
+            candidates.push(target.as_str());
+            candidates.extend(alternatives.iter().map(String::as_str));
+            let chosen =
+                choose_notation_target(&candidates, symbol, *span, known, expected_src, ctx)?;
+            let out = elab_notation(
+                builder,
+                symbol,
+                chosen,
+                &operands,
+                *span,
+                scope,
+                univ,
+                known,
+                hovers,
+                expected_src,
+                None,
+                ctx,
+            )?;
+            record_hover(hovers, scope, *span, out, None);
+            Ok(out)
+        }
+        // **集合字面量**（第三刀 §12.4）：新语法，内建糖——展开成点名形式
+        // `Set.singleton α a` / `Set.pair α a b`（与 `+` → `Nat.add` 同族）。
+        // 复用记法展开的前导参数补全与操作数期望类型传播：`α` 由元素类型或
+        // 期望类型解出（`{∅}` 走期望类型那条路）。
+        Expr::SetLiteral { elements, span } => {
+            let (symbol, target) = if elements.len() == 1 {
+                ("{a}", "Set.singleton")
+            } else {
+                ("{a, b}", "Set.pair")
+            };
+            if resolve_known(known, ctx.ns, target, *span).is_err() {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabSetLiteralUnknownTarget,
+                    format!(
+                        "集合字面量 `{symbol}` 展开成点名形式 `{target}`，但这个文件里没有 `{target}`：先 `import` 提供它的库（卷 I 的 `lib/Set`），或改用点名写法"
+                    ),
+                    *span,
+                ));
+            }
+            let operands: Vec<&Expr> = elements.iter().collect();
+            // 元素类型 `α` 的**回退解**：期望类型 `Set α₀` ⇒ `α := α₀`。
+            // `{∅}` 这类"元素自己的类型也要从期望类型解"的嵌套只有这条路
+            // （元素类型的裸变量匹配结构上够不着，见 `set_literal_prefix_args`）。
+            let fallback = set_literal_prefix_args(target, expected_src, *span, known, ctx);
             let out = elab_notation(
                 builder,
                 symbol,
@@ -1694,6 +2149,7 @@ pub(crate) fn elab_expr<'a>(
                 known,
                 hovers,
                 expected_src,
+                fallback.as_deref(),
                 ctx,
             )?;
             record_hover(hovers, scope, *span, out, None);
@@ -2893,6 +3349,9 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
         Expr::Arrow {
             domain, codomain, ..
         } => mentions_ident(domain, name) || mentions_ident(codomain, name),
+        Expr::SetLiteral { elements, .. } => {
+            elements.iter().any(|element| mentions_ident(element, name))
+        }
         Expr::Plus { lhs, rhs, .. } => mentions_ident(lhs, name) || mentions_ident(rhs, name),
         Expr::Let {
             binder, val, body, ..

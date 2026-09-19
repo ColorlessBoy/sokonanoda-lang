@@ -55,6 +55,19 @@ pub enum ErrorKind {
     /// 记号展开时补不出目标 telescope 的**前导类型参数**（v1 只做裸变量匹配，
     /// 不做一般合一）。hint 教点名写法。设计 N4.2。
     ElabNotationArgumentUnsolved,
+    /// **记法重载**选不出候选（第三刀 §12.2）：期望类型筛完还剩 ≥2 个候选
+    /// （或根本没有期望类型却有多个候选）。hint 列候选 + 教点名写法消歧。
+    ElabNotationAmbiguous,
+    /// **记法重载**一个候选都对不上期望类型（第三刀 §12.2）：hint 列候选与
+    /// 各自的**结果类型**，让学习者看见"为什么都不匹配"。
+    ElabNotationNoCandidate,
+    /// **binder 记法**的 binder 类型解不出（第三刀 §12.1）：`∀ x ∈ s, p` /
+    /// `∃ x ∈ s, p` 的 `x` 类型由 guard 的关系（`∈`）反解，反解不出时报这条；
+    /// hint 教补 `(x : α)` 标注或写点名形式。
+    ElabBinderNotationUnsolved,
+    /// **集合字面量**（第三刀 §12.4）展开成的点名目标不在本文件里
+    /// （`Set.singleton` / `Set.pair` 是卷 I 的库定义）。hint 教 import 或点名。
+    ElabSetLiteralUnknownTarget,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -116,7 +129,11 @@ impl ErrorKind {
             | ElabMatchParameterizedUnsupported
             | ElabLetTypeQueryFailed
             | ElabNotationUnknownTarget
-            | ElabNotationArgumentUnsolved => CompileStage::Elab,
+            | ElabNotationArgumentUnsolved
+            | ElabNotationAmbiguous
+            | ElabNotationNoCandidate
+            | ElabBinderNotationUnsolved
+            | ElabSetLiteralUnknownTarget => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -167,6 +184,10 @@ impl ErrorKind {
             ElabLetTypeQueryFailed => "elab-let-type-query-failed",
             ElabNotationUnknownTarget => "elab-notation-unknown-target",
             ElabNotationArgumentUnsolved => "elab-notation-argument-unsolved",
+            ElabNotationAmbiguous => "elab-notation-ambiguous",
+            ElabNotationNoCandidate => "elab-notation-no-candidate",
+            ElabBinderNotationUnsolved => "elab-binder-notation-unsolved",
+            ElabSetLiteralUnknownTarget => "elab-set-literal-unknown-target",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -268,6 +289,18 @@ impl ErrorKind {
             }
             ElabNotationArgumentUnsolved => {
                 "这个记法展开时补不出前面的类型参数（本子集只按操作数的类型补，不做一般推断）。改用点名写法把参数写全，例如 Set.mem α a A；或在两边都是已知类型的上下文里使用记法。"
+            }
+            ElabNotationAmbiguous => {
+                "同一个符号声明了多条记法（重载），这里从期望类型看不出该用哪一条。写出点名形式（例如 Set.mem α a A）就消歧了；或者把这个表达式放到一个带类型标注的位置（例如 def … : T := 这里），让期望类型能定下来。"
+            }
+            ElabNotationNoCandidate => {
+                "同一个符号的几条记法候选，结果类型都对不上这里的期望类型。对照错误里列出的候选结果类型，检查是不是用错了符号，或者改用点名形式。"
+            }
+            ElabBinderNotationUnsolved => {
+                "binder 记法里的变量类型解不出：`∀ x ∈ s, p` / `∃ x ∈ s, p` 的 x 类型是从 `∈` 两边反解的。给 binder 补上类型标注（例如 ∀ (x : α) ∈ s, p），或改用点名写法（forall (x : α), Set.mem α x s -> p）。"
+            }
+            ElabSetLiteralUnknownTarget => {
+                "集合字面量 `{a}` / `{a, b}` 展开成点名形式 Set.singleton / Set.pair，但这个文件里没有它们。先 `import` 提供它们的库（卷 I 的 lib/Set），或改用点名写法。"
             }
             KernelExpectedSort => {
                 "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"

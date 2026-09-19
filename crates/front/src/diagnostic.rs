@@ -50,6 +50,11 @@ pub enum DiagnosticKind {
     NamespaceShape {
         detail: String,
     },
+    /// **集合字面量**（第三刀 §12.4）形状不合法：空 `{}`、三个及以上元素、
+    /// 缺 `}`。`detail` 是逐原因的正文。
+    SetLiteralShape {
+        detail: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -82,6 +87,7 @@ impl Diagnostic {
             DiagnosticKind::NamespaceMismatch { .. } => "parse-namespace-mismatch",
             DiagnosticKind::NamespaceUnclosed { .. } => "parse-namespace-unclosed",
             DiagnosticKind::NamespaceShape { .. } => "parse-namespace-shape",
+            DiagnosticKind::SetLiteralShape { .. } => "set-literal-shape",
         }
     }
 
@@ -122,7 +128,10 @@ impl Diagnostic {
                 "这个 `namespace` 一直没有闭合。在文件末尾（或块结束处）补一行 `end <名字>`，名字与 `namespace` 那行相同。"
             }
             DiagnosticKind::NamespaceShape { .. } => {
-                "三条命令的形状是：namespace Foo（开块）、end Foo（收块，名字必须写出）、open Foo（短名可用）。名字可以是点分的（A.B）。"
+                "作用域命令的形状是：namespace Foo（开块）、end Foo（收块，名字必须写出）、open Foo（短名可用，可加点分名字 A.B）。`open` 还能挑名字：open Foo (a b)（只要这两个）、open Foo hiding a b（挡掉这两个）、open Foo renaming a => b（改名），以及只影响一条命令的 open Foo in <命令>；export Foo 同形，但导入本文件的文件也看得到。"
+            }
+            DiagnosticKind::SetLiteralShape { .. } => {
+                "集合字面量的形状是 {a}（单元素）或 {a, b}（两元素）：元素之间用 `,` 隔开，最后用 `}` 收尾；空集写 Set.empty α，三个及以上用 Set.pair 点名嵌套。"
             }
         }
     }

@@ -130,7 +130,7 @@ impl GoalTemplates {
                 }
             }
         }
-        for command in &file.commands {
+        for command in crate::ast::effective_commands(file) {
             match command {
                 Command::InductiveBlock {
                     name, constructors, ..
@@ -278,13 +278,15 @@ impl GoalTemplates {
 /// 的 all-or-nothing 规则镜像；此时 prelude 整体跳过）。
 fn file_owns_eq(file: &FolFile) -> bool {
     const EQ_NAMES: [&str; 3] = ["Eq", "Eq.refl", "Eq.subst"];
-    file.commands.iter().any(|command| match command {
-        Command::Def { name, .. }
-        | Command::Theorem { name, .. }
-        | Command::Axiom { name, .. }
-        | Command::InductiveBlock { name, .. } => EQ_NAMES.contains(&name.as_str()),
-        _ => false,
-    })
+    crate::ast::effective_commands(file)
+        .iter()
+        .any(|command| match command {
+            Command::Def { name, .. }
+            | Command::Theorem { name, .. }
+            | Command::Axiom { name, .. }
+            | Command::InductiveBlock { name, .. } => EQ_NAMES.contains(&name.as_str()),
+            _ => false,
+        })
 }
 
 /// 文件占用的**闭包级**顶层名字集合，用于让 L1 模板复现同一条让位规则
@@ -292,7 +294,7 @@ fn file_owns_eq(file: &FolFile) -> bool {
 /// 含构造子与递归子）。
 fn file_owns_l1(file: &FolFile) -> std::collections::HashSet<String> {
     let mut taken: std::collections::HashSet<String> = std::collections::HashSet::new();
-    for command in &file.commands {
+    for command in crate::ast::effective_commands(file) {
         match command {
             Command::Def { name, .. }
             | Command::Theorem { name, .. }
@@ -384,16 +386,19 @@ pub fn probe_sub_goal_types_with(
         return Vec::new();
     };
     let decl_start = decl_span.start.offset.min(doc_src.len());
-    let Some((ty, val)) = file.commands.iter().find_map(|command| match command {
-        Command::Def { ty, val, span, .. }
-        | Command::Theorem { ty, val, span, .. }
-        | Command::Example { ty, val, span, .. }
-            if span.start.offset == decl_start || *span == decl_span =>
-        {
-            Some((ty, val))
-        }
-        _ => None,
-    }) else {
+    let Some((ty, val)) = crate::ast::effective_commands(&file)
+        .into_iter()
+        .find_map(|command| match command {
+            Command::Def { ty, val, span, .. }
+            | Command::Theorem { ty, val, span, .. }
+            | Command::Example { ty, val, span, .. }
+                if span.start.offset == decl_start || *span == decl_span =>
+            {
+                Some((ty, val))
+            }
+            _ => None,
+        })
+    else {
         return Vec::new();
     };
     let templates = GoalTemplates::new_for(&file, options);
@@ -743,6 +748,14 @@ pub(crate) fn substitute_names(
             rhs: Box::new(substitute_names(rhs, map, levels)),
             span: expr.span(),
         },
+        // 集合字面量（第三刀 §12.4）：逐元素代换。
+        Expr::SetLiteral { elements, span } => Expr::SetLiteral {
+            elements: elements
+                .iter()
+                .map(|element| substitute_names(element, map, levels))
+                .collect(),
+            span: *span,
+        },
         Expr::Lambda {
             binders,
             body,
@@ -817,11 +830,13 @@ pub(crate) fn substitute_names(
             assoc,
             lhs,
             rhs,
+            alternatives,
             ..
         } => Expr::Notation {
             symbol: symbol.clone(),
             target: target.clone(),
             assoc: *assoc,
+            alternatives: alternatives.clone(),
             lhs: lhs
                 .as_ref()
                 .map(|e| Box::new(substitute_names(e, map, levels))),
@@ -923,6 +938,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
         Expr::UniverseApp { name, levels, .. } => Expr::UniverseApp { name, levels, span },
         Expr::Num { value, .. } => Expr::Num { value, span },
         Expr::Hole { .. } => Expr::Hole { span },
+        Expr::SetLiteral { elements, .. } => Expr::SetLiteral { elements, span },
         Expr::App { fun, arg, .. } => Expr::App { fun, arg, span },
         Expr::Lambda { binders, body, .. } => Expr::Lambda {
             binders,
@@ -965,6 +981,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             assoc,
             lhs,
             rhs,
+            alternatives,
             ..
         } => Expr::Notation {
             symbol,
@@ -972,6 +989,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             assoc,
             lhs,
             rhs,
+            alternatives,
             span,
         },
     }

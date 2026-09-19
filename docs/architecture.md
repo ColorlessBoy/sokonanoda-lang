@@ -86,8 +86,11 @@ sokonanoda-lang/
 2. **无官方工具依赖**：运行/构建/测试都不调 `lean`/`lake`/`lean4export`/`leanc`/`elan`；所有语料入库。
 3. **教学语法是真实 Lean 4 的子集**：在 `.sokonanoda` 里学会的写法放进官方 Lean 依然合法。
 4. **语法白名单即课程**：parser 只认课程引入过的语法点；新增语法必须伴随课程单元。
-   记法（`infix`/`infixl`/`infixr`/`notation`，0.59.0）**是糖不是新语义**：它只把
-   源文本重写成既有的 `App` 形状，点名形式永久可用（`docs/design/notation-subset.md`）。
+   记法（`infix`/`infixl`/`infixr`/`notation`，0.59.0；`prefix`/`postfix`/`binder_notation`/
+   `scoped`，0.60.0）**是糖不是新语义**：它只把源文本重写成既有的 `App` 形状，点名形式
+   永久可用（`docs/design/notation-subset.md`）。**层级算术 `u+1`**（`Sort (u+1)` /
+   `Eq.{u+1}` / `Type (u+1)`，0.61.0）是真语法增量，白名单 =
+   `docs/design/type-level-syntax.md` §5（parser + elab，内核零改动）。
    （**prelude 名字不属于语法白名单**：L1 的 30 个名字是 `PRELUDE_NAMES` 里的受信任
    声明，parser 零改动——见 §5.4.1。）
 5. **分层推进**：L0（编译器）→ L1（服务）→ L2（编辑器）→ L3（agent 协作），每层只依赖下一层公开接口。
@@ -102,8 +105,8 @@ sokonanoda-lang/
 
 - `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Str/Sym/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。**数学符号是独立 token**（`Sym`，0.59.0）：`U+2200–U+22FF`（运算符）与 `U+2A00–U+2AFF`（补充运算符）加 `\`，最大咬合；字符串字面量（`Str`）只用于记法声明里的符号文本（`" ∈ "`），未闭合报 `unterminated-string`（span 在开引号）。
 - `--` 是行注释；`sorry` 是 Hole（未完成练习/占位符；旧的 `???` 已于 2026-09-07 移除）。
-- `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / **`abbrev`**（G-08：与 `def` **同语义**的拼写，共用 `parse_def`，设计 `docs/design/abbrev.md`）/ `theorem` / `example` / `axiom` / `inductive ... end` / `#check` / `#reduce` / `#print` / **记法声明 `infix:N` / `infixl:N` / `infixr:N` / `notation`**（0.59.0）/ **一元记法 `prefix:N` / `postfix:N`**（0.60.0）/ **作用域命令 `namespace <name>` / `end <name>` / `open <name>`**（0.60.0）。
-- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）、**`Notation`**（`lhs symbol rhs` 与零元 `symbol`；0.59.0）。
+- `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / **`abbrev`**（G-08：与 `def` **同语义**的拼写，共用 `parse_def`，设计 `docs/design/abbrev.md`）/ `theorem` / `example` / `axiom` / `inductive ... end` / `#check` / `#reduce` / `#print` / **记法声明 `infix:N` / `infixl:N` / `infixr:N` / `notation`**（0.59.0）/ **一元记法 `prefix:N` / `postfix:N`**（0.60.0）/ **binder 记法 `binder_notation "∃" => Exists`**（第三刀）/ **作用域命令 `namespace <name>` / `end <name>` / `open <name>` / `open scoped <name>`**（0.60.0 + 第三刀 + 第二刀：`open` 的 `(a b)` / `hiding a b` / `renaming a => b` 三条互斥子句、只影响一条命令的 `open <name> … in <命令>`、跨 `import` 的 `export <name> [<子句>]`）/ **`scoped <记法命令>`**（第三刀）。
+- 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）、**`Notation`**（`lhs symbol rhs` 与零元 `symbol`；0.59.0；第三刀加 `alternatives` 字段做**重载**候选表）、**`SetLiteral`**（`{a}` / `{a, b}`，第三刀——**新语法**，展开成点名形式 `Set.singleton` / `Set.pair`）。
 - **用户自定义记法**（0.59.0，设计 `docs/design/notation-subset.md`，台账 G-04 第一刀）：
   `infix:N " ∈ " => Set.mem`（`infixl` = 左结合、`infixr` = 右结合、零元用
   `notation "∅" => Set.empty`）。规则 N1–N7 摘要：符号**必须是独立 token**
@@ -127,8 +130,20 @@ sokonanoda-lang/
   parse 失败但写了 import"也走闭包）；**一元记法的优先级**（`prefix:N` 的操作数按
   `parse_operators(N)`、`postfix:N` 在爬升里 `N >= min_precedence` 才吸收 ⇒ N 越大
   绑得越紧）；展开期用 `judge::judge_type_of` 读目标签名（**不能**用 `judge_infer`
-  ——它剥 binder 时目标本身是函数会错位）。**仍未做**：binder 记法、记法重载、
-  `scoped`、集合字面量、源码级 print-back（设计 §12 逐条给了理由）。
+  ——它剥 binder 时目标本身是函数会错位）。
+  **第三刀（已落地，同一篇设计 §13–§14）**：**binder 记法** `binder_notation "∃" => Exists`
+  （`∃ (x : α), p` ⇒ `Exists α (fun (x : α) => p)`；两段式 `∃ x ∈ s, p` ⇒
+  `Exists α (fun (x : α) => And (x ∈ s) p)`，`∀ x ∈ s, p` ⇒ `∀ x, x ∈ s -> p`；binder
+  类型只从**标注**或 **guard** 来——不做元变量/合一，解不出报 `elab-binder-notation-unsolved`；
+  命令拼写是 `binder_notation` 而不是 `notation-binder`，因为 `-` 不是标识符字符）；
+  **记法重载**（同符号**同形状**多目标，按**期望类型的结果类型**选候选；选不出
+  `elab-notation-ambiguous` / `elab-notation-no-candidate`；重声明 import 来的符号仍是错误）；
+  **`scoped` / `open scoped`**（作用域名 = 声明点所在 namespace 的全前缀；`open scoped`
+  **只**开记法不开名字）；**集合字面量** `{a}` / `{a, b}`（`set-literal-shape`；
+  目标缺失报 `elab-set-literal-unknown-target`）；**前缀记法实参位免括号** `f 𝒫 A`
+  （后缀**明确不做**：`f Aᶜ` 今天读作 `(f A)ᶜ`，改了会悄悄重分组）。**仍未做**：
+  源码级 print-back（内核冻结下销不掉）、`notation3`/依赖 binder、一般隐式实参推断、
+  `open scoped` 的子命名空间传播、编辑器词表同步（设计 §13 逐条给了理由）。
 - **namespace / open**（0.60.0，设计 `docs/design/namespace-open.md`，台账 G-05）：
   `namespace A` … `end A` 之间的**声明名**自动带前缀（`def mem` ⇒ 全局名
   `A.mem`；名字本身带点则拼接 `A.Set.mem`）——前缀在 **parser** 里落定
@@ -146,6 +161,21 @@ sokonanoda-lang/
   且**用了 namespace/open 的文件**里 `by` 块的根目标先过一遍内核 pp
   （`judge_render_type`）——`apply` 的 spine 对齐是文本比较，源里的短名与内核
   渲染的全名必须同源。
+- **open 的子句 / 局部 open / export**（第二刀，同一篇设计 §N7/N8）：
+  `open A (a b)`（only）、`open A hiding a b`、`open A renaming a => b`
+  （三条**互斥**，先过滤后改名；原短名被改名占位 ⇒ 不再是候选）；
+  `open A … in <命令>` 只对紧跟的那一条**叶子命令**（声明或
+  `#check`/`#reduce`/`#print`）生效，`Walk` 用 mark/rollback 撤销
+  （`compile/scope.rs` 的 `opens_mark`/`rollback_opens`），并且给合成前缀补一行
+  **源码原文**的 open 头（`by` 引擎要看到同一个作用域）；`export A [<子句>]`
+  文件内与 `open` **逐字相同**，额外记进 `Walk::exports`，单元切换（`reset`）
+  时重放 ⇒ **跨 `import`**（`open` 不跨，N5）。子句与 `export` 同样是
+  **作用域命令**（零事件、不进声明表）；`open … in <声明>` 包住的声明由
+  `ast::effective_commands` 展开给所有**声明级** pass（`top_level_def_spans`、
+  `GoalTemplates`、着色、警告）——它照样是声明，只是作用域多一层。
+  **遮蔽警告**（`open-shadowed-name`，语法级、只看本文件）：两个 `open` 给出
+  同一个短名、或短名与根上的同名声明撞车时给一条 warning（不是 error），
+  解析顺序（N4）照旧静默取第一个。
 - 值位关键字：只有 `by <tactic 序列>`（tactic 之间用 `;` **或换行**分隔，0.51.0）（`Expr::By`，进内核前由 `crates/front/src/by.rs`
 降级为 lambda）。历史：值位 `funapply`（0.22.0 移除）与 `funintro`（0.27.0 移除）
 均已删除，见 `docs/design/remove-funintro.md`。
@@ -405,14 +435,19 @@ ctor 一旦叫 `Nat.zero`/`Nat.succ`，name cache 的 `NatRed::Succ` 快路径�
    （实测 `stack overflow, SIGABRT`）。计数 > 0 时 `install_l1_prelude` 直接返回；
    L1 安装期间的探针只需内建的 `Prop`，不需要任何 L1 名字。
 
-**白名单与豁免面**：`PRELUDE_NAMES`（补全/材料，42 条）与 `PRELUDE_NEVER_YIELDS`
+**白名单与豁免面**：`PRELUDE_NAMES`（补全/材料，47 条）与 `PRELUDE_NEVER_YIELDS`
 （只含 `Nat`/`Bool` 家族，给 `check_name_collisions` 用）**是两个常量**。L1 名字按族
 合法让位，所以**不能**进 `PRELUDE_NEVER_YIELDS`——否则两个模块各自声明 `True` 就不再报
-友好的 `import-name-collision`，退化成内核裸错。parser 白名单零改动（L1 不引入新语法）。
+友好的 `import-name-collision`，退化成内核裸错。parser 白名单：L1（B1–B8）不引入新语法；
+0.61.0 的**层级算术** `u+1`（`Sort (u+1)` / `Eq.{u+1}`）是唯一例外，白名单 =
+`docs/design/type-level-syntax.md` §5（parser + elab，内核零改动）。
 
 **已知边界**：`congrArg` 只能同宇宙层级（G-14）；签名显式给全参数（隐式实参不自动插入），
 所以填好的项不能逐字粘进官方 Lean——那是一次签名变更，届时另开提案。
 `#check`/hover 对 prelude 名与 `Nat`/`Eq` 同状（受信任安装、无 `DeclState`）。
+by 引擎的判定合成声明不带宇宙参数（`by.rs::spec_of` 的 `universe: Vec::new()`），
+所以**目标里出现宇宙变量**时 tactic 判定失败（`Sort u` 自 0.60.0 起、`Sort (u+1)`
+继承同一条；`suggest`/`judge_terms` 走 `DeclState.universe`，不受影响）。
 
 ### 5.5 `#prove`：tactic 只是"帮你搭 lambda"（`crates/front/src/proof.rs`）
 

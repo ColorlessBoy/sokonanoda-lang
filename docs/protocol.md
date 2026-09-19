@@ -101,6 +101,13 @@ and never change the exit code. Codes today:
 - `import-has-open-exercises`: the imported module still has `sorry`s; their
   declarations never enter the environment, so downstream code cannot see
   those names (`docs/design/imports-and-projects.md` §4.5).
+- `open-shadowed-name`: an `open`/`export` gave a short name a **second**
+  candidate (two opens claim the same short name, or the short name collides
+  with a root declaration). This language resolves by a fixed order and
+  silently takes the first candidate, so the warning says *which* one wins
+  (`docs/design/namespace-open.md` §N8). It is syntax-level and file-local: a
+  candidate declared by an *imported* module is not visible to the warning
+  pass, so that case is not reported.
 
 ## Error staging and codes
 
@@ -125,8 +132,12 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   open `namespace`, or an `end` with nothing to close),
   `parse-namespace-unclosed` (the file ends inside a `namespace` — the span
   points back at that `namespace` line) and `parse-namespace-shape` (a
-  `namespace`/`end`/`open` with a missing or malformed name; a bare `end` is
-  this code too, because the name is required in this subset);
+  `namespace`/`end`/`open`/`export` with a missing or malformed name; a bare
+  `end` is this code too, because the name is required in this subset; since
+  the second cut it also covers the `open`/`export` clauses — `open Foo ()`,
+  `open Foo hiding` with no names, `renaming a b` without `=>`, a dotted name
+  in a clause (clauses take **short** names), and an `open … in` body that is
+  not a leaf command);
 - `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-constant`,
   `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
@@ -152,7 +163,16 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-notation-unknown-target` (记法命令 `=>` 后面的目标名不存在),
   `elab-notation-argument-unsolved` (记号展开时补不出目标 telescope 的
   **前导类型参数**：v1 只按操作数/期望类型做裸变量匹配，不做一般推断；
-  hint 教点名写法。G-04 / WO-011);
+  hint 教点名写法。G-04 / WO-011),
+  `elab-notation-ambiguous` / `elab-notation-no-candidate` (**记法重载**：
+  同一符号多条记法按**期望类型**选候选——≥2 个候选都说得通时报前者，一个
+  都对不上时报后者；消息列出候选与各自的结果类型，hint 教点名写法消歧。
+  第三刀 `docs/design/notation-subset.md` §12.2),
+  `elab-binder-notation-unsolved` (binder 记法 `∀ x ∈ s, p` / `∃ x ∈ s, p`
+  里 x 的类型从 `∈` 两边反解不出来；hint 教补 `(x : α)` 或点名。§12.1),
+  `elab-set-literal-unknown-target` (集合字面量 `{a}` / `{a, b}` 展开成
+  `Set.singleton` / `Set.pair`，但本文件里没有它们；hint 教 `import` 或点名。
+  §12.4);
 - `kernel` stage — `kernel-rejected` (kernel said no; conversion failures
   carry the expected/actual sides), and the fine-grained families
   `kernel-expected-sort` (a term appeared where a type was required),
@@ -605,12 +625,32 @@ written to the same stdout event stream:
 - EOF on stdin is not fatal: the command channel closes and watching continues
   (this is the default when stdin is `/dev/null`).
 
-## Course map: `sokonanoda course <course.json>`
+## Course map: `sokonanoda course <path>... [--all]`
 
-Aggregates the units of the course manifest (the agent-facing material
-library) into a progress map; the VS Code course tree consumes it. Unit
-paths resolve relative to the manifest's directory (the manifest path is
-canonicalized first, so `course` does not depend on the cwd).
+Aggregates the units of one or more course manifests (the agent-facing material
+library) into a progress map; the VS Code course tree consumes it. Each
+positional is a manifest file or a **directory holding `course.json`**; `--all`
+walks each directory **recursively** for every `course.json` (sorted by path;
+hidden directories, `target/` and `node_modules/` are skipped), and `--all`
+without a positional means `.`. Unit paths resolve relative to their manifest's
+directory (the manifest path is canonicalized first, so `course` does not depend
+on the cwd).
+
+**Several manifests at once** (additive; design
+`docs/design/course-manifest-v2.md` §4.5 — the §7 "不做" item):
+
+* every manifest is read and parsed **before any event is emitted**: one
+  unreadable or refused manifest fails the run with **no events** (a batch never
+  prints half a map), and `--all` finding no manifest is an error too — an empty
+  map would look like a green course;
+* `course.unit` gains `manifest` (the path as built from the arguments) **only
+  when more than one manifest is aggregated**; a single-manifest run keeps the
+  frozen unit shape byte for byte;
+* `course.summary` gains `manifests` (the number of manifests aggregated —
+  always present, `1` for the classic single-manifest invocation);
+* the same manifest given twice (file + directory, or two spellings of one path)
+  is reported **once**; the first spelling wins. No new event type: consumers
+  group by the `manifest` field.
 
 **Two manifest shapes, both read** (ledger G-07; design
 `docs/design/course-manifest-v2.md`):
@@ -646,12 +686,18 @@ so the usual `<course>/{course.json,lib/,units/}` layout resolves
   **v2 additions** (present only for a v2 manifest): `volume`
   (`{id, title}`), `chapter` (`{id, title, tags}`) and `tags` (a flat copy
   of the chapter's tags, so a tag filter need not descend);
+  **aggregation addition** (present only when >1 manifest is aggregated):
+  `manifest` (the manifest path);
 - `course.summary` (`{type, units, checked, open, failed, volumes,
-  chapters}`) — totals; `volumes`/`chapters` are structure counts, always
-  present and `0` for a v1 manifest.
+  chapters, manifests}`) — totals; `volumes`/`chapters` are structure counts
+  and `manifests` is the number of aggregated manifests — all three always
+  present, `volumes`/`chapters` being `0` and `manifests` `1` for a classic
+  single-manifest invocation.
 
 Human view: one line per unit (`unit 1 命题与证明 —— 12 checked · 5 open ·
-0 failed`; a v2 unit appends `（卷 … / 章 …）`) plus a totals line. Exit code
+0 failed`; a v2 unit appends `（卷 … / 章 …）`) plus a totals line; aggregating
+several manifests prints a `── <manifest> ──` header per manifest and
+`共 2 份清单 · 23 单元 …` in the totals. Exit code
 is 0 even with open/failed exercises (progress is not an error); only an
 unreadable manifest fails.
 

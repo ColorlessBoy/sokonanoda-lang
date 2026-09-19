@@ -276,8 +276,11 @@ fn checks_explicit_literal_universe_application() {
 
 #[test]
 fn checks_axiom_with_two_universe_params() {
+    // 名字不叫 `cast`：`cast` 自 B8 扩族起是 prelude 名字（Lean core 的
+    // `cast h a = Eq.mp h a`），声明它会**整族让位**——这条测的是"两个宇宙
+    // 参数的公理"，用一个文件自己的名字才测得到它（L-03 设计 §4）。
     let file = parse(
-        "axiom cast {u, v} :\n\
+        "axiom transport {u, v} :\n\
          forall (α : Sort u), forall (β : Sort v), α -> β\n",
     )
     .expect("parse two universe params");
@@ -1549,6 +1552,10 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabLetTypeQueryFailed,
         ErrorKind::ElabNotationUnknownTarget,
         ErrorKind::ElabNotationArgumentUnsolved,
+        ErrorKind::ElabNotationAmbiguous,
+        ErrorKind::ElabNotationNoCandidate,
+        ErrorKind::ElabBinderNotationUnsolved,
+        ErrorKind::ElabSetLiteralUnknownTarget,
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
@@ -1599,6 +1606,10 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabLetTypeQueryFailed => {}
         ErrorKind::ElabNotationUnknownTarget => {}
         ErrorKind::ElabNotationArgumentUnsolved => {}
+        ErrorKind::ElabNotationAmbiguous => {}
+        ErrorKind::ElabNotationNoCandidate => {}
+        ErrorKind::ElabBinderNotationUnsolved => {}
+        ErrorKind::ElabSetLiteralUnknownTarget => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}
@@ -1892,10 +1903,10 @@ fn l1_taken_includes_ctors_and_recursors() {
 fn prelude_names_match_installs() {
     // 设计 §3.3 的守卫：数字变了必须是有意为之（review 时一眼看见）。
     // 12（Nat/Bool/Eq）+ 30（L1：28 条声明 + 派生的 And.rec/Or.rec）
-    // + 3（B8：Eq.rec/Eq.mp/Eq.mpr，L-03）= 45。
+    // + 5（B8：Eq.rec/Eq.ndrec/Eq.mp/Eq.mpr/cast，L-03）= 47。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        45,
+        47,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
@@ -1921,9 +1932,10 @@ fn eq_symm_is_installed() {
 }
 
 /// **L-03 / B8**：`Eq.rec` 装上后，**Type 层重写**在 Full 模式下真的可用。
-/// 两个用途各钉一次，都是 `Eq.subst`（motive 只能落 Prop）做不到的：
+/// 三个用途各钉一次，都是 `Eq.subst`（motive 只能落 Prop）做不到的：
 /// ① 沿 `Eq.{1} Nat m n` 把 `Vec A m` 搬到 `Vec A n`（motive 落 `Sort 1`）；
-/// ② `Eq.mp`/`Eq.mpr` 在 Type 0 上搬两个类型。
+/// ② `Eq.mp`/`Eq.mpr`/`cast` 搬两个类型（**宇宙多态**：`{u} (α β : Sort u)`）；
+/// ③ `Eq.ndrec` 走 Lean core 的非依赖消去子。
 #[test]
 fn eq_rec_transports_at_type_level() {
     let src = "\
@@ -1933,20 +1945,56 @@ ctor Vec.cons (n : Nat) (a : A) (v : Vec A n) : Vec A (Nat.succ n)\n\
 end\n\
 def Vec.cast (A : Type) (m n : Nat) (h : Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=\n\
   @Eq.rec.{1, 1} Nat m (fun (k : Nat) => Vec A k) v n h\n\
-def id_mp (A : Type) : A -> A := Eq.mp A A (Eq.refl.{2} Type A)\n\
-def id_mpr (A : Type) : A -> A := Eq.mpr A A (Eq.refl.{2} Type A)\n";
+def id_mp (A : Type) : A -> A := Eq.mp.{1} A A (Eq.refl.{2} Type A)\n\
+def id_mpr (A : Type) : A -> A := Eq.mpr.{1} A A (Eq.refl.{2} Type A)\n\
+def id_cast (A : Type) : A -> A := cast.{1} A A (Eq.refl.{2} Type A)\n\
+def nd_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=\n\
+  Eq.ndrec.{1, 0} Nat a (fun (x : Nat) => Eq.{1} Nat x a) (Eq.refl.{1} Nat a) b h\n";
     let out = compile_fol(&parse(src).expect("parse B8 use"));
     assert_eq!(
         out.errors,
         vec![],
-        "Type-level rewriting must work through the prelude's Eq.rec/Eq.mp/Eq.mpr: {:?}",
+        "Type-level rewriting must work through the prelude's Eq.rec/Eq.ndrec/Eq.mp/Eq.mpr/cast: {:?}",
         out.errors
     );
 }
 
-/// **L-03 / B8 的让位**：文件自己声明 `Eq.rec` ⇒ B8 整族（含 `Eq.mp`/`Eq.mpr`）让位，
-/// 而 `Eq` prelude 与 B7（`Eq.symm`）照常装着——B8 的依赖是 EQ（`Eq` 公理族），
-/// 不是 B7。这条同时钉住"族粒度"与"依赖方向"。
+/// **L-03 / B8 + 层级算术**：`Eq.mp`/`Eq.mpr`/`cast` 是**宇宙多态**的——
+/// `{u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β)`（Lean core 的签名）。
+/// 这条同时钉住层级算术的两个位置：`Sort (u+1)`（类型位）与 `.{u+1}`（宇宙实参）。
+#[test]
+fn eq_mp_is_universe_polymorphic() {
+    let src = "\
+def poly_mp {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=\n\
+  Eq.mp.{u} α β h a\n\
+def poly_mpr {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (b : β) : α :=\n\
+  Eq.mpr.{u} α β h b\n\
+def poly_cast {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=\n\
+  cast.{u} α β h a\n\
+def step {u} (α : Sort u) (a : α) : Sort (u+1) := Sort u\n";
+    let out = compile_fol(&parse(src).expect("parse polymorphic Eq.mp"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "Eq.mp/Eq.mpr/cast must be universe polymorphic (design §2 as-built): {:?}",
+        out.errors
+    );
+    // 边界（as-built）：本语言不给隐式实参、也不给宇宙推断 ⇒ **裸写** `Eq.mp`
+    // 仍按 u=0 实例化（与 `Eq.symm`/`Eq.rec` 同一条既有规则）。Type 0 的调用
+    // 形状因此从 0.60.0 的 `Eq.mp α β h` 变成 `Eq.mp.{1} α β h`（签名变更）。
+    let out = compile_fol(
+        &parse("def id_mp (A : Type) : A -> A := Eq.mp A A (Eq.refl.{2} Type A)\n").unwrap(),
+    );
+    assert!(
+        out.errors.iter().any(|e| e.message.contains("Sort(0)")),
+        "bare Eq.mp must instantiate u := 0 (no universe inference): {:?}",
+        out.errors
+    );
+}
+
+/// **L-03 / B8 的让位**：文件自己声明 `Eq.rec` ⇒ B8 整族（含 `Eq.ndrec`/`Eq.mp`/
+/// `Eq.mpr`/`cast`）让位，而 `Eq` prelude 与 B7（`Eq.symm`）照常装着——B8 的依赖
+/// 是 EQ（`Eq` 公理族），不是 B7。这条同时钉住"族粒度"与"依赖方向"。
 #[test]
 fn eq_rec_family_yields_when_the_file_declares_it() {
     let src = "\
@@ -1967,6 +2015,19 @@ def probe_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} 
             .iter()
             .any(|m| m.contains("Eq.mp")),
         "declaring Eq.rec alone must yield the whole B8 family: {:?}",
+        out.errors
+    );
+    // `cast`/`Eq.ndrec` 也在 B8 里：声明 `cast` 同样整族让位（设计 §2 的族规则）。
+    let src = "\
+axiom cast {u} : {α : Sort u} -> {β : Sort u} -> @Eq.{u+1} (Sort u) α β -> α -> β\n\
+def probe_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n\
+#check Eq.mp\n";
+    let out = compile_fol(&parse(src).expect("parse B8 cast yield"));
+    assert!(
+        l1_names_missing(&out.errors)
+            .iter()
+            .any(|m| m.contains("Eq.mp")),
+        "declaring `cast` alone must yield the whole B8 family: {:?}",
         out.errors
     );
 }
@@ -6892,6 +6953,285 @@ end A\n";
     );
 }
 
+// ---- 第二刀：open 的子句 / `open … in` / `export`（设计 §N7/N8）------------
+//
+// 判据与上面同款：正例看**内核接受了什么**（事件里的名字），反例看**稳定错误
+// 码**，警告看 `WarningKind`/code/hint——不做文本比对。
+
+#[test]
+fn open_only_hiding_and_renaming_resolve_the_right_names() {
+    // 三条子句的**正例**：`only` 留下的、`hiding` 之外的、改名后的短名都能用，
+    // 而且解析到的是同一个全局名（`A.x`）。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+def w : Type := Prop\n\
+end A\n\
+open A (x)\n\
+def use_only : Type := x\n\
+open A hiding w\n\
+def use_hiding : Type := x\n\
+open A renaming x => zz\n\
+def use_renaming : Type := zz\n";
+    let out = compile_ok(src);
+    let names: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::DeclarationChecked { name } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    for expected in ["A.x", "A.w", "use_only", "use_hiding", "use_renaming"] {
+        assert!(names.contains(&expected), "missing {expected}: {names:?}");
+    }
+}
+
+#[test]
+fn open_only_keeps_the_other_short_names_out() {
+    // 反例：`open A (x)` 之后 `w` 不是候选 ⇒ 普通 `elab-unknown-identifier`。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+def w : Type := Prop\n\
+end A\n\
+open A (x)\n\
+def use : Type := w\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    let codes: Vec<&str> = out.errors.iter().map(|e| e.code()).collect();
+    assert_eq!(
+        codes,
+        vec!["elab-unknown-identifier"],
+        "events: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn open_renaming_takes_the_original_short_name_away() {
+    // 反例：`renaming x => zz` 之后原短名 `x` 不再是候选（改名是替换，不是新增）。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+open A renaming x => zz\n\
+def ok : Type := zz\n\
+def bad : Type := x\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    let codes: Vec<&str> = out.errors.iter().map(|e| e.code()).collect();
+    assert_eq!(
+        codes,
+        vec!["elab-unknown-identifier"],
+        "events: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn open_in_is_local_to_that_one_command() {
+    // 正例：`open A in def …` 里短名可用；反例：命令结束即撤销（下一行同一条
+    // 引用必须报未知标识符）。这条测试就是「局部」二字的判据。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+open A in def inside : Type := x\n\
+def outside : Type := x\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "inside")),
+        "the wrapped declaration must check: {:?}",
+        out.events
+    );
+    let codes: Vec<&str> = out.errors.iter().map(|e| e.code()).collect();
+    assert_eq!(
+        codes,
+        vec!["elab-unknown-identifier"],
+        "the local open must not leak past its command: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn open_in_body_is_still_a_real_declaration_for_templates_and_hover() {
+    // `open … in <声明>` 包住的声明**照样是声明**：进 `top_level_def_spans`
+    // （hover/goto 回填）与声明表（事件里的名字是全局名）。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+open A in def inside : Type := x\n\
+def use : Type := inside\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "inside")),
+        "events: {:?}",
+        out.events
+    );
+    let file = parse(src).expect("parse");
+    let report = check_document(&file);
+    let resolved: Vec<&str> = report
+        .hovers
+        .iter()
+        .filter_map(|h| match &h.resolution {
+            Some(ResolvedTarget::Declaration { name, .. }) => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        resolved.contains(&"inside"),
+        "the wrapped declaration must be a hover target: {resolved:?}"
+    );
+}
+
+#[test]
+fn a_by_block_inside_a_local_open_sees_the_same_scope() {
+    // §9.2 边界 3：`open A in def … := by …` 的 `by` 引擎合成的是「前缀源码 +
+    // 合成命令」，前缀里必须补上那行 open（源码原文）——否则 `apply` 的文本
+    // 对齐会拿源里的短名去比内核 pp 的全名。这里 `apply h` 的目标是短名
+    // `mem α a s`，只有补了 open 才能被 `judge_render_type` 规范化成 `A.mem …`。
+    let src = "\
+namespace A\n\
+def mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a\n\
+end A\n\
+open A in theorem t (α : Type) (a : α) (s : α -> Prop) : mem α a s -> mem α a s := by intro h; apply h\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "apply inside a local open must see the same scope: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn export_short_names_are_visible_to_later_declarations() {
+    // `export` 的文件内一半：与 `open` 逐字相同（对后续命令生效）。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+export A\n\
+def use : Type := x\n";
+    let out = compile_ok(src);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "use")));
+}
+
+#[test]
+fn open_shadowed_names_warn_but_do_not_fail() {
+    // N8：两个 `open` 都提供 `x` ⇒ 一条 `open-shadowed-name` **warning**
+    // （不是 error）：判定照旧（`y : Type` 取 `A.x`），`ok()` 仍为真。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+namespace B\n\
+def x : Prop := forall (p : Prop), p -> p\n\
+end B\n\
+open A\n\
+open B\n\
+def y : Type := x\n";
+    let out = compile_ok(src);
+    assert!(out.ok(), "a shadow warning must not fail the file");
+    let warnings: Vec<&CompileWarning> = out
+        .warnings
+        .iter()
+        .filter(|w| w.kind == WarningKind::OpenShadowedName)
+        .collect();
+    assert_eq!(warnings.len(), 1, "warnings: {:?}", out.warnings);
+    assert_eq!(warnings[0].code(), "open-shadowed-name");
+    assert!(
+        warnings[0].message.contains("A.x") && warnings[0].message.contains("B.x"),
+        "the message must name both candidates: {}",
+        warnings[0].message
+    );
+    assert!(!warnings[0].hint().is_empty(), "a hint is required");
+    // span 收窄到 `open B` 的名字 token。
+    let src_text = &src[warnings[0].span.start.offset..warnings[0].span.end.offset];
+    assert_eq!(src_text, "B", "the warning must point at the name token");
+}
+
+#[test]
+fn a_short_name_colliding_with_the_root_declaration_warns() {
+    // 「短名与全局名撞车」：候选 ②（精确名）在 `open` 之前，所以这条 `open`
+    // 对 `x` 等于没写——必须有一条 warning 说清楚（而不是静默）。
+    let src = "\
+def x : Type := Prop\n\
+namespace A\n\
+def x : Prop := forall (p : Prop), p -> p\n\
+end A\n\
+open A\n\
+def y : Type := x\n";
+    let out = compile_ok(src);
+    let warnings: Vec<&CompileWarning> = out
+        .warnings
+        .iter()
+        .filter(|w| w.kind == WarningKind::OpenShadowedName)
+        .collect();
+    assert_eq!(warnings.len(), 1, "warnings: {:?}", out.warnings);
+    assert!(
+        warnings[0].message.contains("根"),
+        "the message must say the root name wins: {}",
+        warnings[0].message
+    );
+}
+
+#[test]
+fn a_non_colliding_open_produces_no_warning() {
+    // 反例（负向钉住"别乱报警"）：短名各不相同 ⇒ 一条 warning 都没有。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+namespace B\n\
+def y : Type := Prop\n\
+end B\n\
+open A\n\
+open B\n\
+def use : Type := x\n";
+    let out = compile_ok(src);
+    assert!(
+        !out.warnings
+            .iter()
+            .any(|w| w.kind == WarningKind::OpenShadowedName),
+        "no collision ⇒ no warning: {:?}",
+        out.warnings
+    );
+}
+
+#[test]
+fn open_and_export_commands_stay_event_free() {
+    // N6 对第二刀的延伸：子句与 `export` 同样不是声明（零事件），
+    // `open … in <声明>` 只有那条声明的事件。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+open A (x)\n\
+open A hiding x\n\
+open A renaming x => zz\n\
+export A\n\
+open A in def y : Type := zz\n";
+    let out = compile_ok(src);
+    assert_eq!(
+        event_kinds(&out),
+        vec!["checked A.x".to_string(), "checked y".to_string()],
+        "scope commands must not produce events: {:?}",
+        out.events
+    );
+}
+
 // ---- abbrev（G-08，docs/design/abbrev.md）---------------------------------
 //
 // 判据一律走内核：`abbrev` 与 `def` 的等价性看**事件序列**，别名透明看
@@ -7232,4 +7572,355 @@ fn a_by_block_whose_goal_carries_notation_still_judges() {
         "a by block over a notation goal must judge: {:?}",
         out.errors
     );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 第三刀（G-04 剩余项，`docs/design/notation-subset.md` §12）
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// 第三刀的课程形状夹具：集合 + `Exists`（真归纳，与 `lib/Exists` 同形）。
+const THIRD_CUT_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a\n\
+def Set.pair (α : Type) (a b : α) : Set α := fun (x : α) => Or (Eq.{1} α x a) (Eq.{1} α x b)\n\
+inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
+ctor intro (w : A) (h : p w) : Exists A p\n\
+end\n";
+
+fn third_cut_codes(src: &str) -> Vec<&'static str> {
+    let file = parse(src).unwrap_or_else(|e| panic!("parse: {e:?}\n{src}"));
+    compile_fol(&file).errors.iter().map(|e| e.code()).collect()
+}
+
+/// §12.4：`{a}` / `{a, b}` 展开成点名形式 `Set.singleton α a` / `Set.pair α a b`，
+/// 与点名写法**事件序列逐一相等**。
+#[test]
+fn set_literals_expand_to_the_pointful_singleton_and_pair() {
+    let pointful = format!(
+        "{THIRD_CUT_LIB}\
+         def one (α : Type) (a : α) : Set α := Set.singleton α a\n\
+         def two (α : Type) (a b : α) : Set α := Set.pair α a b\n"
+    );
+    let literals = format!(
+        "{THIRD_CUT_LIB}\
+         def one (α : Type) (a : α) : Set α := {{a}}\n\
+         def two (α : Type) (a b : α) : Set α := {{a, b}}\n"
+    );
+    let pointful_out = compile_ok(&pointful);
+    let literals_out = compile_ok(&literals);
+    assert_eq!(
+        event_shapes(&pointful_out),
+        event_shapes(&literals_out),
+        "`{{a}}` / `{{a, b}}` must expand to the pointful spelling"
+    );
+}
+
+/// §12.4：没有 `Set.singleton` 的文件报**专用**诊断（hint 教 import 或点名）。
+#[test]
+fn a_set_literal_without_the_library_is_a_dedicated_diagnostic() {
+    let codes = third_cut_codes("#check {1}\n");
+    assert_eq!(codes, vec!["elab-set-literal-unknown-target"], "{codes:?}");
+}
+
+/// §12.4：元素个数由**期望类型**解出（`{∅}` 这类嵌套记法走这条路）。
+#[test]
+fn a_set_literal_solves_the_element_type_from_the_expected_type() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         notation \"∅\" => Set.empty\n\
+         def Set.empty (α : Type) : Set α := fun (x : α) => False\n\
+         def e (α : Type) : Set (Set α) := {{∅}}\n"
+    );
+    let out = compile_ok(&src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "e")),
+        "the nested nullary notation must be solved from the expected type: {:?}",
+        out.events
+    );
+}
+
+/// §12.1：`∃ (x : A), p` 与点名 `Exists A (fun (x : A) => p)` 判卷一致。
+/// 记法表示的是**命题本身**（`∃ x, p : Prop`），所以两边都写在类型位。
+#[test]
+fn binder_notation_expands_to_the_pointful_exists() {
+    let pointful = format!(
+        "{THIRD_CUT_LIB}\
+         def p : Prop := Exists Nat (fun (n : Nat) => Eq.{{1}} Nat n n)\n"
+    );
+    let notation = format!(
+        "{THIRD_CUT_LIB}\
+         binder_notation \"∃\" => Exists\n\
+         def p : Prop := ∃ (n : Nat), Eq.{{1}} Nat n n\n"
+    );
+    let pointful_out = compile_ok(&pointful);
+    let notation_out = compile_ok(&notation);
+    assert_eq!(
+        event_shapes(&pointful_out),
+        event_shapes(&notation_out),
+        "`∃ (n : Nat), …` must expand to the pointful `Exists` application"
+    );
+}
+
+/// §12.1：一段式的 binder **必须**带类型标注——本子集不引入元变量与一般合一
+/// （与语言里既有的 `∀ x, p` 同规则），裸 `∃ x, p` 报专用诊断。
+#[test]
+fn a_one_stage_binder_without_an_annotation_is_a_dedicated_diagnostic() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         binder_notation \"∃\" => Exists\n\
+         def p : Prop := ∃ n, Eq.{{1}} Nat n n\n"
+    );
+    let codes = third_cut_codes(&src);
+    assert_eq!(codes, vec!["elab-binder-notation-unsolved"], "{codes:?}");
+}
+
+/// §12.1：两段式 `∃ x ∈ s, p` = `Exists A (fun (x : A) => And (x ∈ s) p)`，
+/// binder 的类型由 `∈` 反解；`∀ x ∈ s, p` = `∀ x, x ∈ s -> p`。
+#[test]
+fn two_stage_binders_expand_to_guard_and_implication() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         infix:50 \" ∈ \" => Set.mem\n\
+         binder_notation \"∃\" => Exists\n\
+         def all (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+           ∀ x ∈ s, p x\n\
+         def some (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+           ∃ x ∈ s, p x\n"
+    );
+    let pointful = format!(
+        "{THIRD_CUT_LIB}\
+         def all (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+           forall (x : α), Set.mem α x s -> p x\n\
+         def some (α : Type) (s : Set α) (p : α -> Prop) : Prop :=\n\
+           Exists α (fun (x : α) => And (Set.mem α x s) (p x))\n"
+    );
+    let notation_out = compile_ok(&src);
+    let pointful_out = compile_ok(&pointful);
+    assert_eq!(
+        event_shapes(&pointful_out),
+        event_shapes(&notation_out),
+        "the two-stage binders must expand to the pointful guard forms"
+    );
+}
+
+/// §12.1：两段式里反解不出 binder 类型 ⇒ **专用**诊断（不猜）。
+#[test]
+fn a_two_stage_binder_without_a_solvable_guard_is_a_dedicated_diagnostic() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         binder_notation \"∃\" => Exists\n\
+         axiom rel (β : Type) (x : β) (n : Nat) : Prop\n\
+         infix:50 \" ≈ \" => rel\n\
+         def some (n : Nat) (p : Nat -> Prop) : Prop :=\n\
+           ∃ x ≈ n, p x\n"
+    );
+    let codes = third_cut_codes(&src);
+    assert_eq!(codes, vec!["elab-binder-notation-unsolved"], "{codes:?}");
+}
+
+/// §12.2：同符号同形状的重复声明 = **重载**，按期望类型选候选。
+#[test]
+fn notation_overloads_pick_the_candidate_whose_result_matches_the_expected_type() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         def Bag (α : Type) : Type := α -> Prop\n\
+         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+         prefix:100 \" ι \" => Set.singleton\n\
+         prefix:100 \" ι \" => Bag.singleton\n\
+         def s (α : Type) (a : α) : Set α := ι a\n\
+         def b (α : Type) (a : α) : Bag α := ι a\n"
+    );
+    let out = compile_ok(&src);
+    for name in ["s", "b"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` must check through the overload: {:?}",
+            out.events
+        );
+    }
+}
+
+/// §12.2：选不出（≥2 个候选都说得通）⇒ `elab-notation-ambiguous` + 人话 hint。
+#[test]
+fn an_ambiguous_overload_is_a_dedicated_diagnostic() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         def Bag (α : Type) : Type := α -> Prop\n\
+         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+         prefix:100 \" ι \" => Set.singleton\n\
+         prefix:100 \" ι \" => Bag.singleton\n\
+         #check ι 1\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    let codes: Vec<&str> = out.errors.iter().map(|e| e.code()).collect();
+    assert_eq!(codes, vec!["elab-notation-ambiguous"], "{:?}", out.errors);
+    assert!(
+        out.errors[0].hint().contains("点名形式"),
+        "the hint must teach the pointful spelling: {}",
+        out.errors[0].hint()
+    );
+}
+
+/// §12.2：一个候选都对不上期望类型 ⇒ `elab-notation-no-candidate`（消息列出
+/// 每个候选的结果类型）。
+#[test]
+fn an_overload_with_no_matching_candidate_is_a_dedicated_diagnostic() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         def Bag (α : Type) : Type := α -> Prop\n\
+         def Bag.singleton (α : Type) (a : α) : Bag α := fun (x : α) => Eq.{{1}} α x a\n\
+         prefix:100 \" ι \" => Set.singleton\n\
+         prefix:100 \" ι \" => Bag.singleton\n\
+         def bad (α : Type) (a : α) : Nat := ι a\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    let codes: Vec<&str> = out.errors.iter().map(|e| e.code()).collect();
+    assert_eq!(
+        codes,
+        vec!["elab-notation-no-candidate"],
+        "{:?}",
+        out.errors
+    );
+    assert!(
+        out.errors[0].message.contains("Set.singleton")
+            && out.errors[0].message.contains("Bag.singleton"),
+        "the message must list every candidate: {}",
+        out.errors[0].message
+    );
+}
+
+/// §12.2：同一符号的**不同形状**（这里 `notation` vs `infix`）仍然是错误。
+#[test]
+fn two_shapes_on_one_symbol_are_still_a_parse_error() {
+    let file = parse("prefix:100 \" ι \" => Set.singleton\ninfix:50 \" ι \" => Set.mem\n");
+    let err = file.expect_err("two shapes on one symbol");
+    assert_eq!(err.code(), "notation-shape");
+    assert!(err.message.contains("形状"), "message: {}", err.message);
+}
+
+/// §12.3：`scoped` 记法默认**不生效**（未 `open scoped` 前用它是
+/// `notation-unknown-symbol`），`open scoped Foo` 之后生效。
+#[test]
+fn scoped_notation_needs_open_scoped() {
+    let inactive = format!(
+        "{THIRD_CUT_LIB}\
+         namespace Foo\n\
+         scoped infix:50 \" ∈ \" => Set.mem\n\
+         end Foo\n\
+         def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n"
+    );
+    let err = parse(&inactive).expect_err("a scoped notation is inactive by default");
+    assert_eq!(
+        err.code(),
+        "notation-unknown-symbol",
+        "message: {}",
+        err.message
+    );
+
+    let active = format!(
+        "{THIRD_CUT_LIB}\
+         namespace Foo\n\
+         scoped infix:50 \" ∈ \" => Set.mem\n\
+         end Foo\n\
+         open scoped Foo\n\
+         def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n"
+    );
+    let out = compile_ok(&active);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "p")),
+        "`open scoped Foo` must activate the notation: {:?}",
+        out.events
+    );
+}
+
+/// §12.3：`open scoped` **不**打开名字前缀（与 `open` 区分）。
+#[test]
+fn open_scoped_does_not_open_the_namespace_for_names() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         namespace Foo\n\
+         def bar : Prop := True\n\
+         end Foo\n\
+         open scoped Foo\n\
+         def p : Prop := bar\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    let codes: Vec<&str> = out.errors.iter().map(|e| e.code()).collect();
+    assert_eq!(codes, vec!["elab-unknown-identifier"], "{:?}", out.errors);
+}
+
+/// §12.3：`scoped` 写在 `namespace` 外面是**专用** parse 错。
+#[test]
+fn scoped_outside_a_namespace_is_a_parse_error() {
+    let err = parse("scoped infix:50 \" ∈ \" => Set.mem\n").expect_err("scoped needs a namespace");
+    assert_eq!(err.code(), "notation-shape");
+    assert!(
+        err.message.contains("namespace"),
+        "message: {}",
+        err.message
+    );
+}
+
+/// §12.5：前缀记法在实参位免括号后，**点名形式与括号形式都照旧**。
+#[test]
+fn a_prefix_notation_argument_keeps_the_parenthesised_spelling_working() {
+    let src = format!(
+        "{THIRD_CUT_LIB}\
+         def Set.powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => True\n\
+         prefix:100 \" 𝒫 \" => Set.powerset\n\
+         def f (α : Type) (X : Set (Set α)) : Prop := True\n\
+         def a (α : Type) (A : Set α) : Prop := f α (𝒫 A)\n\
+         def b (α : Type) (A : Set α) : Prop := f α 𝒫 A\n"
+    );
+    let out = compile_ok(&src);
+    for name in ["a", "b"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` must check: {:?}",
+            out.events
+        );
+    }
+}
+
+/// §12.3 跨 `import`：被导入模块声明的 `scoped` 记法**挂起**，入口要自己
+/// `open scoped <作用域名>` 才生效（继承表 + 作用域栈的合成行为）。
+#[test]
+fn an_inherited_scoped_notation_needs_the_entrys_own_open_scoped() {
+    let library = "namespace Foo\n\
+                   scoped infix:50 \" ∈ \" => Set.mem\n\
+                   end Foo\n";
+    let library_file = parse(&format!(
+        "def Set (α : Type) : Type := α -> Prop\n\
+         def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+         {library}"
+    ))
+    .expect("parse library");
+    let inherited: Vec<crate::ast::NotationDecl> = library_file
+        .commands
+        .iter()
+        .filter_map(|command| command.notation_decl())
+        .collect();
+    assert_eq!(inherited.len(), 1, "the library declares one notation");
+    assert_eq!(inherited[0].scope.as_deref(), Some("Foo"));
+
+    let entry = "def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n";
+    let err = crate::parser::parse_with_inherited(entry, &inherited)
+        .expect_err("an inherited scoped notation is suspended");
+    assert_eq!(err.code(), "notation-unknown-symbol");
+
+    let opened = format!("open scoped Foo\n{entry}");
+    crate::parser::parse_with_inherited(&opened, &inherited)
+        .expect("`open scoped Foo` activates the inherited notation");
 }

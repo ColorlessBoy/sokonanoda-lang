@@ -520,8 +520,12 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 > 实测：门禁 `36 目标 · 329 checked · 99 open · 0 判负`（**与 v2 之前逐个相同**，
 > 只多出配额报告行）；`node editor/vscode/test-extension-host.js` 14/14；
 > 站点 `gen-site-data.py` + `check-site.py` 绿；台账 `gap.py check` 全绿。
-> **仍未做**：多卷聚合（`volumes[]` 已在格式里，CLI 仍只报本清单的卷数——
-> 属于本期的看板工作）、成本台账 `docs/courses/ledger.jsonl`。
+> **收尾轮已补**（0.60.x，原"仍未做"两条销账）：多卷聚合 = CLI
+> `course <path>… [--all]` 一次报多份清单（>1 份才加 `course.unit.manifest`、
+> summary 加 `manifests`；坏清单一票否决且零事件），成本台账 =
+> `docs/courses/ledger.jsonl`（`check.py --ledger`，默认关闭、人工收尾跑一次；
+> 仓库里已有第一条实测：36 目标 · 329 checked · 99 open · 0 判负 · 20024 ms）。
+> as-built 见 `docs/design/course-manifest-v2.md` §4.5/§4.6/§8.1。
 
 - 进度看板：`sokonanoda course` 的计数 + 缺口燃尽（`gap.py list --stats`）；
 - 成本台账：每单元 agent 轮次/耗时（照 `docs/perf/ledger.jsonl` 的做法记进 `docs/courses/ledger.jsonl`）；
@@ -601,7 +605,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 | G-14 | ~~painful~~ **nice**（勘误） | 一个声明只允许一个宇宙层级 binder（`{u v}`/`{u} {v}` 都解析失败）⇒ 跨宇宙引理写不出来——**0.59.0 已修**（WO-009：`{u v}` / `{u, v}` / `{u} {v}` 等价） | `repro/G14-single-universe-binder.sokonanoda` |
 | G-15 | painful | **重新定义**（勘误）：`query check` 的 `failed[]` / `warnings[]` 只给裸字节 offset（没有行列、没有单位）——**0.59.0 已修**（WO-010：additive 加 1 基 `start_line/start_col/end_line/end_col`，`start/end` 仍是字节 offset、坐标空间 = 入口文件；`--bisect` 仍是解析失败/多条错误时的定位手段） | `repro/G15-query-check-bare-offsets.sh`（修后 exit 1） |
 | L-01/L-02 | blocker（库） | prelude 缺 Lean core 的逻辑与等式骨架（True/False/And.elim/Or.elim/Not/absurd/Iff/Eq.symm/trans/congrArg）——**0.59.0 已修**（P1/P2/P3，`PRELUDE_NAMES` 12 → 42；P4 课程仓跟随同日完成：`lib/Logic` 空壳 + 65 处点号名） | `repro/L01-l1-prelude-logic-skeleton.sh`、`repro/L02-eq-core-lemmas.sh` |
-| L-03 | painful（库） | `Eq.subst` 的 motive 只能 `α → Prop` ⇒ Type 层重写（`Eq.mp`/`cast`）不可表达——**0.59.0 仍 open** | —（最小反例在台账里） |
+| L-03 | painful（库） | `Eq.subst` 的 motive 只能 `α → Prop` ⇒ Type 层重写（`Eq.mp`/`cast`）不可表达——**已修**（0.60.0：B8 = `Eq.rec`/`Eq.mp`/`Eq.mpr`；0.61.0：层级算术 `u+1` 落地 ⇒ `Eq.mp`/`Eq.mpr`/`cast` 宇宙多态 + `Eq.ndrec`，B8 = 5 条、`PRELUDE_NAMES` 47） | `repro/L03-eq-type-level.sokonanoda` |
 | L-04 | blocker（库） | 课程标准库缺 8 条 Set 定义展开引理——**0.59.0 仍 `workaround`**：课程把 8 条写进自己的 `lib/Set.sokonanoda`（自己的库自己补），prelude 不给 | — |
 | L-05 | painful（方法学） | 16 条**内容型**引理被误放进库——应当是练习——**0.59.0 第一刀已修**（6 条移出 lib 进单元②；`lib/Set` 还剩 10 条待移，记账在 P-C 遗留） | — |
 | G-16 | blocker | 启动器在「版本未知」时会 exec 缓存里的陈旧二进制（绕过「过期即拒绝」守卫）——**0.59.0 已修**（WO-001 同族：解析不出期望版本 ⇒ 缓存与仓库构建都拒绝） | `repro/G11-launcher-version-source.sh`（同一夹具的第二处缺陷） |

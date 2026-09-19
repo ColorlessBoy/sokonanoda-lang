@@ -22,6 +22,9 @@
 3. 五个消费者同一轮跟上：CLI `course`（additive 事件字段）、课程门禁
    `tools/check.py`（展平 + 新判据 **G6**）、VS Code 课程树（卷→章→单元分组）、
    站点生成器 + 卷 I 页面（按卷/章分组，计数仍**实测**自门禁）、文档。
+4. **收尾轮补上的两条**（原 §7 的"不做"，见 §4.5/§4.6）：CLI 一次聚合**多个
+   清单**（`course <path>... [--all]`，additive 事件字段），以及**成本台账**
+   `docs/courses/ledger.jsonl`（`check.py --ledger`，默认关闭）。
 
 ## 1. 现状（改前，[实测]）
 
@@ -171,6 +174,77 @@ pub(crate) struct Manifest { pub units: Vec<UnitEntry>, pub volumes: usize, pub 
   单元行照旧（练习数 / 已判通过 / 判卷状态）。
 * `python3 scripts/check-site.py` 必须绿（链接 + 无写死版本号）。
 
+### 4.5 CLI 多清单聚合 `sokonanoda course <path>... [--all]`（as-built，收尾轮）
+
+§7 的「不做多卷聚合」在本轮销账：CLI 现在一次能报**多个清单**（`crates/cli/src/course/mod.rs`）。
+
+* **形态**（additive 契约写在 `docs/protocol.md`）：每个位置参数是清单文件，或
+  **含 `course.json` 的目录**；`--all` 把目录**递归**展开成它下面每一个
+  `course.json`（按路径字典序；跳过隐藏目录、`target/`、`node_modules/`），
+  不给位置参数时 `--all` = `.`。`--all` 是 `course` 专属——别的子命令给 `--all`
+  直接报错，不静默忽略。
+* **聚合语义**：**先全部读完解析再发事件**——一批里有一份读不了/不是清单 ⇒
+  整体 exit 1 且**零事件**（不报半张表）；`--all` 一个都没找到同样是错误
+  （空报告会被误读成"课程全绿"）。同一份清单给两次（文件 + 目录、同一路径的
+  两种拼写）只报一次，第一次的拼写胜出。
+* **事件（只加不删）**：>1 份清单时每个 `course.unit` 多出 `manifest`（按实参
+  拼出来的路径）；`course.summary` 多出 `manifests`（**始终存在**的计数，单清单
+  时是 `1`——与 `volumes`/`chapters` 同一条"计数是数字、不是有没有"的规则）。
+  **单清单调用的 `course.unit` 一个键都不多**（兼容性钉子：
+  `crates/cli/tests/course_manifest.rs::several_manifests_aggregate_in_order_and_tag_each_unit`）。
+* **不新增事件类型** [设计判断]：消费者按 `manifest` 字段分组即可；加一个
+  `course.manifest` 事件会让每个既有消费者都要处理一种新类型，而它想携带的
+  信息（课程名/卷数）在清单侧本来就能读到。
+* **人读视图**：每份清单前一行 `── <清单> ──`，结尾 `共 N 份清单 · M 单元…`。
+
+实测（0.60.0，`target/debug/sokonanoda`，[实测]）：
+
+```bash
+./target/debug/sokonanoda course course/course.json courses/set-theory
+#   exit 0 · 「共 2 份清单 · 23 单元（1 卷 4 章） —— 151 checked · 161 open · 0 failed」
+./target/debug/sokonanoda course --all courses --json | tail -1
+#   {"type":"course.summary","units":12,"checked":65,"open":96,"failed":0,
+#    "volumes":1,"chapters":4,"manifests":1}   # exit 0
+./target/debug/sokonanoda course --all --json          # 仓库根：递归发现全部清单
+#   exit 0 · 3 份清单 · 24 单元 —— 152 checked · 161 open · 0 failed
+#   （course/ · courses/set-theory/ · docs/gaps/repro/G06-course-import/ 的夹具清单）
+```
+
+### 4.6 成本台账 `docs/courses/ledger.jsonl`（as-built，收尾轮）
+
+`docs/design/teaching-project.md` §P6 预定的成本台账在本轮落地（`--ledger`
+早在 S1 就接进了 `check.py`，本轮补齐**字段**并真跑一次留下第一条）。
+
+* **开关**：`python3 courses/set-theory/tools/check.py --ledger [路径]`；
+  默认路径 `docs/courses/ledger.jsonl`（相对仓库根）。**默认关闭**。
+* **一条记录**（`soko.course-ledger/1`，JSONL 一行）：
+  `schema` / `version`（仓库版本钉）/ `commit` / `date`（UTC ISO-8601）/
+  `course`（v2 清单的 `name`，v1 退回课程目录名）/ `targets` / `checked` /
+  `open` / `rejected` / `elapsed_ms`（**只量判卷那一段**——通道解析与版本探针
+  不算课程成本）/ `solutions_open` / `rows`（逐目标的 status/checked/open）。
+* **为什么默认关** [设计判断]：跑门禁的机器**不该往仓库里写文件**。若 CI 默认
+  写，就会二选一：要么"每次 CI 都改一个文件"的噪音提交，要么给 CI 开写权限并
+  自动提交（`course-gate-in-ci.md` §7 S4 的幂等/rebase/补 status 三件套复杂度）。
+  所以 `--ledger` 是**人工收尾**动作（发版/里程碑跑一次，把那一行提交进仓库当
+  趋势点）；CI 与本地 gate 的默认跑法只打印、不落盘。
+* **守护（新）**：`--selftest` 按 `LEDGER_FIELDS` 判一条**合成**记录字段齐全；
+  `tools/test_manifest_v2.py::case_cost_ledger_fields_and_committed_file` 判同样
+  的字段，并在台账文件存在时逐行判"合法 JSON + 字段齐全 + `date`/`version` 形状
+  对"（写坏的那一行会让它红）。**`version` 只判 `x.y.z`、不比对当前版本钉**
+  [设计判断]：台账是**历史**——版本 bump 之后旧条目天然带旧版本号，拿它跟当前钉
+  比会让守护在每次 bump 时假红。
+
+实测（本轮真跑一次，仓库里现在就是这一条，[实测]）：
+
+```bash
+python3 courses/set-theory/tools/check.py --bin "$PWD/target/debug/sokonanoda" --ledger
+#   exit 0 · 36 目标 · 329 checked · 99 open · 0 判负
+python3 -c "import json;print(json.loads(open('docs/courses/ledger.jsonl').read()))"
+#   course=set-theory · targets=36 · checked=329 · open=99 · rejected=0 ·
+#   elapsed_ms=20024 · version=0.60.0 · date=2026-09-19T10:18:26Z · rows=36
+python3 courses/set-theory/tools/test_manifest_v2.py   # exit 0 · 12/12（含台账用例）
+```
+
 ## 5. 判据（怎么知道这件事做完了）
 
 1. `DEVELOPER_DIR=… cargo test --workspace --locked`（至少
@@ -189,6 +263,18 @@ pub(crate) struct Manifest { pub units: Vec<UnitEntry>, pub volumes: usize, pub 
 5. `python3 scripts/gen-site-data.py && python3 scripts/check-site.py` ⇒ 绿；
 6. `python3 scripts/gap.py check` ⇒ 全绿（G-07 的 repro 翻成 exit 1）。
 
+**收尾轮补的两条（§4.5/§4.6）各自的判据**：
+
+7. 多清单聚合：`cargo test -p sokonanoda-cli --test course_manifest` 全绿——
+   新增三条（`several_manifests_aggregate_in_order_and_tag_each_unit` /
+   `all_discovers_every_manifest_under_a_root` /
+   `a_bad_manifest_in_the_batch_fails_the_whole_run`）覆盖「>1 才加 `manifest`、
+   单清单一个键都不多」「`--all` 递归发现 + 跳过隐藏/`target`/`node_modules` +
+   去重」「坏清单整批零事件 + 空 `--all` 报错」；
+8. 成本台账：`check.py --selftest` ⇒ exit 0（含台账字段自检）；
+   `tools/test_manifest_v2.py` ⇒ exit 0（含已提交台账逐行合法）；
+   仓库里 `docs/courses/ledger.jsonl` 有且只有人工跑出来的记录。
+
 ## 6. 复现件（`.sh`，`docs/gaps/repro/G07-course-manifest-v2.sh`）
 
 约定（`docs/gaps/README.md`）：**exit 0 = 缺口仍在 · exit 1 = 已修 · exit 2 = 环境不满足**。
@@ -204,11 +290,16 @@ pub(crate) struct Manifest { pub units: Vec<UnitEntry>, pub volumes: usize, pub 
 
 ## 7. 不做的事（明确排除）
 
+> **收尾轮更新**：原第 4 条「不做多卷聚合」已**销账**——CLI 多清单聚合落在 §4.5，
+> 成本台账落在 §4.6。下面留下的都是仍然排除的。
+
 * **不动内核**（`crates/kernel/**` 一个字节不改——硬规则 1）；
 * **不改入门课** `course/course.json`（v1 继续是合法格式，它就是兼容性的活体测试）；
 * **不给 `quota` 判红**（设计原则：只判形状、不锁计数）；
-* **不做多卷聚合**（`blocks` 里的「多课程/多卷聚合」属于 P6 看板；v2 只是让它
-  成为可能：格式里已经有 `volumes[]`，但 CLI 仍只报**本清单**的卷数）；
+* **不做跨清单的单元合并/去重**：同一个单元文件挂在两份清单里就报两次——每份清单
+  是它自己课程的真相，跨课程的合并语义属于 P6 看板（§4.5 只做"一次报多份"）；
+* **不在 CI / 本地 gate 里默认写台账**（§4.6 的理由：跑门禁的机器不往仓库里写
+  文件；`--ledger` 是人工收尾动作）；
 * **不改版本号**（`Cargo.toml` / `package.json` 由主线统一 bump——本单只写
   `fixed_in: 0.60.0`）。
 
@@ -242,3 +333,30 @@ python3 scripts/gap.py check
 `targets[]` 的 `(label, kind, checked, open, status)` 与 v1 时**逐个相同**
 （比对脚本在改前/改后两份报告上跑过），只多出 `course.volumes`/`course.chapters`
 与 `quota_notes` 两个**报告面**字段。
+
+### 8.1 收尾轮（多清单聚合 + 成本台账）的实测
+
+```bash
+DEVELOPER_DIR=… cargo test -p sokonanoda-cli --test course_manifest --locked
+#   exit 0 · 8/8（原 5 条 + 聚合 3 条）
+DEVELOPER_DIR=… cargo test --workspace --locked        # exit 0（全绿）
+./target/debug/sokonanoda course course/course.json courses/set-theory
+#   exit 0 · 2 份清单 · 23 单元（1 卷 4 章）—— 151 checked · 161 open · 0 failed
+./target/debug/sokonanoda course --all courses --json | tail -1
+#   exit 0 · {"type":"course.summary",…,"manifests":1,"units":12,"volumes":1,"chapters":4}
+python3 courses/set-theory/tools/check.py --bin "$PWD/target/debug/sokonanoda"
+#   exit 0 · 36 目标 · 329 checked · 99 open · 0 判负（**与改前逐个相同**）
+python3 courses/set-theory/tools/check.py --bin "$PWD/target/debug/sokonanoda" --ledger
+#   exit 0 · 追加一条 docs/courses/ledger.jsonl：
+#   course=set-theory · targets=36 · checked=329 · open=99 · rejected=0 ·
+#   elapsed_ms=20024 · version=0.60.0 · date=2026-09-19T10:18:26Z · rows=36
+python3 courses/set-theory/tools/check.py --bin "$PWD/target/debug/sokonanoda" --selftest
+#   exit 0（+ 台账字段齐全）
+python3 courses/set-theory/tools/test_manifest_v2.py
+#   exit 0 · 12/12（+ 已提交台账逐行合法）
+python3 scripts/gap.py check                            # exit 0
+node editor/vscode/test-extension-host.js               # exit 0
+```
+
+> **判卷计数再次不变**：多清单聚合与台账都不碰判卷路径——`course` 的事件计数与
+> `check.py` 的 36/329/99/0 与上一轮**逐项相同**（新增的只有事件字段与报告面）。

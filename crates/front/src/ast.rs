@@ -94,6 +94,19 @@ pub enum Expr {
         assoc: NotationAssoc,
         lhs: Option<Box<Expr>>,
         rhs: Option<Box<Expr>>,
+        /// **记法重载**（第三刀 §12.2）：同一符号的其它候选目标（声明顺序）。
+        /// 单候选时为空（绝大多数程序），此时展开路径逐字节等于第二刀。
+        alternatives: Vec<String>,
+        span: Span,
+    },
+    /// **集合字面量**（第三刀 §12.4）：`{a}` / `{a, b}`。
+    ///
+    /// 新语法（不是记法）：展开成点名形式 `Set.singleton α a` /
+    /// `Set.pair α a b`（与 `+` → `Nat.add` 同族的**内建糖**）。
+    /// `{}` 今天是 binder / 宇宙参数定界符，消歧在 `parse_atom` 的 lookahead
+    /// 里（`{x : T}` 形状不是字面量）。
+    SetLiteral {
+        elements: Vec<Expr>,
         span: Span,
     },
 }
@@ -113,6 +126,13 @@ pub enum NotationAssoc {
     Postfix,
     /// `notation "∅" => …`：零元常量记法（无优先级）。
     Nullary,
+    /// `notation-binder "∃" => Exists`（第三刀）：**binder 位置**的记法——
+    /// `∃ x, p` 展开成 `Exists A (fun (x : A) => p)`；两段式 `∃ x ∈ s, p`
+    /// 展开成 `Exists A (fun (x : A) => And (x ∈ s) p)`。没有优先级。
+    ///
+    /// 与 `Prefix` 的区别只在**出现位置**与**渲染**：展开路径完全一样
+    /// （一个操作数 = 一个 lambda），见 `docs/design/notation-subset.md` §12.1。
+    Binder,
 }
 
 impl NotationAssoc {
@@ -136,6 +156,73 @@ pub struct NotationDecl {
     pub precedence: Option<u16>,
     pub assoc: NotationAssoc,
     pub target: String,
+    /// **`scoped` 记法的作用域名**（第三刀 §12.3）：`Some("Foo")` ⇒ 这条记法
+    /// 默认**不生效**，要 `open scoped Foo` 才生效；`None` ⇒ 一直生效（第二刀
+    /// 行为）。作用域名 = 声明点所在 `namespace` 的累积全前缀。
+    pub scope: Option<String>,
+}
+
+/// `open` / `export` 的**过滤与改名子句**（第二刀，设计
+/// `docs/design/namespace-open.md` §N7）。三条子句互斥，最多出现一条。
+///
+/// 语义（`compile/scope.rs` 是唯一实现）：短名 = 声明名最后一段。
+/// **先过滤、后改名**——`only`/`hiding` 决定哪些声明短名能进来，`renaming`
+/// 再把进来的那些换个可见名（原短名随之失效）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct OpenFilter {
+    /// `open Foo (a b)`：只让这些短名进来；`None` = 全部。
+    pub only: Option<Vec<String>>,
+    /// `open Foo hiding a b`：把这些短名挡在外面。
+    pub hiding: Vec<String>,
+    /// `open Foo renaming a => b`：`from`（声明短名）在引用位置写成 `to`。
+    pub renaming: Vec<(String, String)>,
+}
+
+impl OpenFilter {
+    /// 没有子句（`open Foo` / `export Foo`）。
+    pub fn is_empty(&self) -> bool {
+        self.only.is_none() && self.hiding.is_empty() && self.renaming.is_empty()
+    }
+
+    /// 声明短名 `decl` 在这条子句下的**可见短名**；`None` = 被过滤掉。
+    ///
+    /// `renaming` 的目标名也占位：`renaming a => b` 之后，名字 `b` 指的是
+    /// `Foo.a`，`Foo.b`（若真有）不再作为 `b` 的候选（一条 open 对一个短名
+    /// 只给一个候选——与「第一个命中即止」的解析顺序同款，见设计 §N7）。
+    pub fn visible_short(&self, decl: &str) -> Option<String> {
+        if let Some((_, to)) = self.renaming.iter().find(|(from, _)| from == decl) {
+            return Some(to.clone());
+        }
+        if self.renaming.iter().any(|(_, to)| to == decl) {
+            return None;
+        }
+        match &self.only {
+            Some(only) => only.contains(&decl.to_string()).then(|| decl.to_string()),
+            None => (!self.hiding.iter().any(|hidden| hidden == decl)).then(|| decl.to_string()),
+        }
+    }
+
+    /// 人话写法（诊断/合成前缀用）：`""` / `" (a b)"` / `" hiding a b"` /
+    /// `" renaming a => b"`。
+    pub fn source_text(&self) -> String {
+        let names = |names: &[String]| names.join(" ");
+        if let Some(only) = &self.only {
+            return format!(" ({})", names(only));
+        }
+        if !self.hiding.is_empty() {
+            return format!(" hiding {}", names(&self.hiding));
+        }
+        if !self.renaming.is_empty() {
+            let pairs = self
+                .renaming
+                .iter()
+                .map(|(from, to)| format!("{from} => {to}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            return format!(" renaming {pairs}");
+        }
+        String::new()
+    }
 }
 
 /// `match` 的一条分支：`| <pattern> [if <guard>] => <body>`
@@ -195,7 +282,8 @@ impl Expr {
             | Expr::Let { span, .. }
             | Expr::By { span, .. }
             | Expr::Match { span, .. }
-            | Expr::Notation { span, .. } => *span,
+            | Expr::Notation { span, .. }
+            | Expr::SetLiteral { span, .. } => *span,
         }
     }
 }
@@ -323,6 +411,8 @@ pub enum Command {
         precedence: Option<u16>,
         assoc: NotationAssoc,
         target: String,
+        /// `scoped` 记法的作用域名（第三刀 §12.3）；`None` ⇒ 一直生效。
+        scope: Option<String>,
         span: Span,
     },
     /// `namespace <name>`（G-05，设计 `docs/design/namespace-open.md`）。
@@ -343,8 +433,43 @@ pub enum Command {
     },
     /// `open <name>`（G-05）：把 `<name>.` 加进**可省略前缀**集合。
     /// 只影响引用解析（N4），不重命名任何东西、不产生事件。
+    ///
+    /// `open scoped <name>`（第三刀 §12.3）：`scoped: true` ⇒ **只**打开记法
+    /// 作用域（把该作用域里 `scoped` 声明的记法搬进生效表），**不**打开名字
+    /// 前缀——与 Lean 一致。两条的**副作用都在解析期**（elab 只忽略它）。
+    ///
+    /// `filter`（第二刀 §N7）：`open Foo (a b)` / `open Foo hiding a b` /
+    /// `open Foo renaming a => b` 三条互斥子句。`scoped: true` 时恒为空
+    /// （`open scoped` 不吃子句）。
     Open {
         name: String,
+        scoped: bool,
+        filter: OpenFilter,
+        span: Span,
+    },
+    /// `open <name> [<子句>] in <命令>`（第二刀 §N7）：**局部 open**——只对
+    /// 紧跟的那一条命令生效，命令结束即撤销。
+    ///
+    /// `header` 只覆盖 open 头部（`open Foo hiding a`，不含 `in`）：`by` 引擎
+    /// 的合成前缀要按**源码文本**补一行 open（`walk.rs`），而 `span` 是整条
+    /// 命令（含被包住的命令），用于错误归因与排序。
+    OpenIn {
+        name: String,
+        filter: OpenFilter,
+        inner: Box<Command>,
+        header: Span,
+        span: Span,
+    },
+    /// `export <name> [<子句>]`（第二刀 §N7）：把命名空间里的短名**导出**。
+    ///
+    /// 本语言没有模块系统，所以语义钉成两条：① **本文件**里对**后续命令**
+    /// 与 `open` 完全一样（同一份候选表、同一个位次）；② 它**跨 `import`**——
+    /// 导入本文件的入口文件在文件头就能用这些短名（`open` 不跨，见 N5）。
+    /// 因此 `export` 是 `open` 的**传播版**，不是第二个名字真相：内核里的名字
+    /// 一个都没变（设计 §N7 与 §6 差异 5）。
+    Export {
+        name: String,
+        filter: OpenFilter,
         span: Span,
     },
 }
@@ -387,13 +512,27 @@ impl Command {
             | Command::Notation { span, .. }
             | Command::Namespace { span, .. }
             | Command::End { span, .. }
-            | Command::Open { span, .. } => *span,
+            | Command::Open { span, .. }
+            | Command::OpenIn { span, .. }
+            | Command::Export { span, .. } => *span,
         }
     }
 
     /// 这条命令是不是 `import`（用于"import 必须置顶"与项目加载）。
     pub fn is_import(&self) -> bool {
         matches!(self, Command::Import { .. })
+    }
+
+    /// `open … in <命令>` 包住的那条命令（其余命令 ⇒ `None`）。
+    ///
+    /// 声明级 pass（模板、hover 回填、着色、警告）用它展开——局部 open 包住的
+    /// 声明**照样是声明**；作用域级 pass（`Walk`）不展开，`OpenIn` 自己负责
+    /// 压/弹作用域。
+    pub fn wrapped_command(&self) -> Option<&Command> {
+        match self {
+            Command::OpenIn { inner, .. } => Some(inner),
+            _ => None,
+        }
     }
 
     /// `import` 声明的模块名。
@@ -413,12 +552,14 @@ impl Command {
                 precedence,
                 assoc,
                 target,
+                scope,
                 ..
             } => Some(NotationDecl {
                 symbol: symbol.clone(),
                 precedence: *precedence,
                 assoc: *assoc,
                 target: target.clone(),
+                scope: scope.clone(),
             }),
             _ => None,
         }
@@ -431,4 +572,26 @@ pub struct FolFile {
     /// 源文件原文（`parse` 时填入）。`by` 引擎按命令 span 切片取前缀源码
     /// 供 `judge_terms` 判定；judge 合成的 FolFile 置空。
     pub src: String,
+}
+
+/// 文件里的**有效命令**（第二刀 §N7）：`open … in <命令>` 展开成它包住的
+/// 命令（`OpenIn` 自己也在序列里，它没有名字、对声明级 pass 是空操作）。
+/// 嵌套（`open A in open B in def …`）逐层展开。
+///
+/// 用途：所有"按命令找声明/表达式"的 pass（`top_level_def_spans`、
+/// `GoalTemplates`、着色、警告）。**不**用于 `Walk`——那里 `OpenIn` 要负责
+/// 压/弹作用域，展开会把局部 open 变成全局。
+pub fn effective_commands(file: &FolFile) -> Vec<&Command> {
+    let mut out = Vec::with_capacity(file.commands.len());
+    for command in &file.commands {
+        let mut current = command;
+        loop {
+            out.push(current);
+            match current.wrapped_command() {
+                Some(inner) => current = inner,
+                None => break,
+            }
+        }
+    }
+    out
 }

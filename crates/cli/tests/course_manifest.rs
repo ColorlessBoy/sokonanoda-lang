@@ -35,8 +35,13 @@ fn cache_dir(tag: &str) -> PathBuf {
 }
 
 fn run_course(manifest: &str) -> std::process::Output {
+    run_course_args(&["course", manifest, "--json"])
+}
+
+/// 任意实参的 `course` 调用（多清单聚合要一次给多个路径 / `--all`）。
+fn run_course_args(args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
-        .args(["course", manifest, "--json"])
+        .args(args)
         .env("SOKONANODA_CACHE_DIR", cache_dir("manifest"))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -79,7 +84,19 @@ fn fixture(tag: &str, manifest: &str) -> PathBuf {
         std::process::id(),
         CACHE_COUNTER.fetch_add(1, Ordering::Relaxed)
     ));
-    let _ = std::fs::remove_dir_all(&dir);
+    write_fixture(&dir, manifest);
+    dir
+}
+
+/// 在指定目录下造一份课程夹具——多清单聚合（`course --all`）的测试要共用一棵树。
+fn fixture_in(root: &Path, name: &str, manifest: &str) -> PathBuf {
+    let dir = root.join(name);
+    write_fixture(&dir, manifest);
+    dir
+}
+
+fn write_fixture(dir: &Path, manifest: &str) {
+    let _ = std::fs::remove_dir_all(dir);
     std::fs::create_dir_all(dir.join("lib")).expect("lib dir");
     std::fs::create_dir_all(dir.join("units")).expect("units dir");
     std::fs::write(dir.join("sokonanoda.toml"), "name = \"fixture\"\n").expect("manifest");
@@ -92,7 +109,6 @@ fn fixture(tag: &str, manifest: &str) -> PathBuf {
     std::fs::write(dir.join("units/a.sokonanoda"), unit).expect("unit a");
     std::fs::write(dir.join("units/b.sokonanoda"), unit).expect("unit b");
     std::fs::write(dir.join("course.json"), manifest).expect("course.json");
-    dir
 }
 
 fn manifest_path(dir: &Path) -> String {
@@ -341,4 +357,191 @@ fn intro_course_manifest_stays_v1() {
             "v1 entries carry no v2 metadata: {entry}"
         );
     }
+}
+
+// ── 多清单聚合（`course <path>… [--all]`；设计 course-manifest-v2.md §4.5）──
+
+/// 两份清单一次报：每个单元带 `manifest`，summary 带 `manifests`；
+/// **单清单**调用仍然一个 `manifest` 键都不多（向后兼容的硬要求）。
+#[test]
+fn several_manifests_aggregate_in_order_and_tag_each_unit() {
+    let manifest = r#"[
+      {"file":"units/a.sokonanoda","title":"A","unit":1},
+      {"file":"units/b.sokonanoda","title":"B","unit":2}
+    ]"#;
+    let one = fixture("agg-one", manifest);
+    let two = fixture("agg-two", manifest);
+    let one_path = manifest_path(&one);
+    let two_path = manifest_path(&two);
+
+    // 单清单：既有事件形状逐字节不变（summary 只多出 `manifests: 1` 这个计数）。
+    let single = run_course(&one_path);
+    assert!(single.status.success(), "single manifest must exit 0");
+    let events = parse_lines(&String::from_utf8_lossy(&single.stdout));
+    for unit in typed(&events, "course.unit") {
+        assert!(
+            unit.get("manifest").is_none(),
+            "a single-manifest run must not add `manifest`: {unit}"
+        );
+    }
+    let summary = typed(&events, "course.summary")[0];
+    assert_eq!(u64_field(summary, "manifests"), 1, "{summary}");
+    assert_eq!(u64_field(summary, "units"), 2, "{summary}");
+
+    // 两份清单：4 个单元，前两个来自第一份、后两个来自第二份（调用序）。
+    let out = run_course_args(&["course", &one_path, &two_path, "--json"]);
+    assert!(
+        out.status.success(),
+        "aggregating two manifests must exit 0, stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let events = parse_lines(&String::from_utf8_lossy(&out.stdout));
+    let units = typed(&events, "course.unit");
+    assert_eq!(
+        units.len(),
+        4,
+        "one course.unit per unit of both: {events:?}"
+    );
+    for unit in &units[..2] {
+        assert_eq!(
+            unit.get("manifest").and_then(|v| v.as_str()),
+            Some(one_path.as_str()),
+            "the first manifest's units are tagged with its path: {unit}"
+        );
+    }
+    for unit in &units[2..] {
+        assert_eq!(
+            unit.get("manifest").and_then(|v| v.as_str()),
+            Some(two_path.as_str()),
+            "the second manifest's units are tagged with its path: {unit}"
+        );
+    }
+    let summaries = typed(&events, "course.summary");
+    assert_eq!(summaries.len(), 1, "exactly one aggregate summary");
+    let summary = summaries[0];
+    assert_eq!(u64_field(summary, "manifests"), 2, "{summary}");
+    assert_eq!(u64_field(summary, "units"), 4, "{summary}");
+    assert_eq!(u64_field(summary, "checked"), 4, "4 units × 1 checked");
+    assert_eq!(u64_field(summary, "failed"), 0, "{summary}");
+
+    let _ = std::fs::remove_dir_all(&one);
+    let _ = std::fs::remove_dir_all(&two);
+}
+
+/// `--all <dir>` 递归发现 `course.json`（跳过隐藏目录/`target`/`node_modules`），
+/// 目录路径（不带 `--all`）读 `<dir>/course.json`，重复的清单只报一次。
+#[test]
+fn all_discovers_every_manifest_under_a_root() {
+    let manifest = r#"[{"file":"units/a.sokonanoda","title":"A","unit":1}]"#;
+    let root = std::env::temp_dir().join(format!(
+        "sokonanoda-course-all-{}-{}",
+        std::process::id(),
+        CACHE_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    fixture_in(&root, "beta", manifest);
+    fixture_in(&root, "alpha", manifest);
+    // 干扰项：隐藏目录、`target/`、`node_modules/` 里的清单都不该被捡到。
+    for noise in [".hidden", "target", "node_modules"] {
+        fixture_in(&root, &format!("{noise}/nested"), manifest);
+    }
+    let root_arg = root.to_string_lossy().into_owned();
+
+    // 目录路径 = 那个目录里的 course.json（不必写文件名）。
+    let dir_only = run_course_args(&["course", &root.join("alpha").to_string_lossy(), "--json"]);
+    assert!(
+        dir_only.status.success(),
+        "a directory path reads <dir>/course.json, stderr: {}",
+        String::from_utf8_lossy(&dir_only.stderr)
+    );
+    let events = parse_lines(&String::from_utf8_lossy(&dir_only.stdout));
+    assert_eq!(typed(&events, "course.unit").len(), 1, "{events:?}");
+
+    // `--all`：两份真清单（alpha/beta），按路径字典序；干扰项不进。
+    let out = run_course_args(&["course", "--all", &root_arg, "--json"]);
+    assert!(
+        out.status.success(),
+        "--all must aggregate every manifest, stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let events = parse_lines(&String::from_utf8_lossy(&out.stdout));
+    let units = typed(&events, "course.unit");
+    assert_eq!(units.len(), 2, "alpha + beta only: {events:?}");
+    let tagged: Vec<&str> = units
+        .iter()
+        .map(|unit| unit.get("manifest").and_then(|v| v.as_str()).unwrap_or(""))
+        .collect();
+    assert!(
+        tagged[0].ends_with("alpha/course.json") && tagged[1].ends_with("beta/course.json"),
+        "discovery is sorted and skips .hidden/target/node_modules: {tagged:?}"
+    );
+    let summary = typed(&events, "course.summary")[0];
+    assert_eq!(u64_field(summary, "manifests"), 2, "{summary}");
+
+    // 同一份清单给两次（文件 + 目录）只算一次。
+    let dup = run_course_args(&[
+        "course",
+        &root.join("alpha/course.json").to_string_lossy(),
+        &root.join("alpha").to_string_lossy(),
+        "--json",
+    ]);
+    let events = parse_lines(&String::from_utf8_lossy(&dup.stdout));
+    assert_eq!(
+        typed(&events, "course.unit").len(),
+        1,
+        "a duplicated manifest is reported once: {events:?}"
+    );
+    assert_eq!(
+        u64_field(typed(&events, "course.summary")[0], "manifests"),
+        1
+    );
+
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// 一批里有一份读不了 ⇒ 整体失败且**不发任何事件**（原子：不报半张表）；
+/// `--all` 找不到任何清单同样是错误（不是"空报告成功"）。
+#[test]
+fn a_bad_manifest_in_the_batch_fails_the_whole_run() {
+    let good = fixture("agg-good", r#"[{"file":"units/a.sokonanoda","unit":1}]"#);
+    let bad = fixture("agg-bad", r#"{"schema":"soko.course/99","volumes":[]}"#);
+    let good_path = manifest_path(&good);
+    let bad_path = manifest_path(&bad);
+
+    let out = run_course_args(&["course", &good_path, &bad_path, "--json"]);
+    assert!(
+        !out.status.success(),
+        "an unreadable manifest in the batch must fail the run"
+    );
+    assert!(
+        String::from_utf8_lossy(&out.stdout).is_empty(),
+        "nothing is emitted when any manifest is refused: {}",
+        String::from_utf8_lossy(&out.stdout)
+    );
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        stderr.contains(&bad_path),
+        "stderr names the refused manifest: {stderr}"
+    );
+
+    let empty = std::env::temp_dir().join(format!(
+        "sokonanoda-course-all-empty-{}-{}",
+        std::process::id(),
+        CACHE_COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(&empty).expect("empty dir");
+    let out = run_course_args(&["course", "--all", &empty.to_string_lossy()]);
+    assert!(
+        !out.status.success(),
+        "--all with no manifest is an error, not an empty success"
+    );
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("course.json"),
+        "stderr says what was not found: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+
+    let _ = std::fs::remove_dir_all(&good);
+    let _ = std::fs::remove_dir_all(&bad);
+    let _ = std::fs::remove_dir_all(&empty);
 }

@@ -1,7 +1,31 @@
-## [Unreleased]
+## [0.61.0] - 2026-09-19
 
 ### Added
 
+- **`abbrev` and the notation spellings are highlighted as keywords (and
+  completed).** `abbrev` (the Lean spelling of `def`), `prefix` / `postfix`
+  (second-cut notations) and `binder_notation` / `scoped` (third cut) now sit in
+  the single keyword source `front::semantic::KEYWORDS`, so the TextMate grammar,
+  the semantic tokens, the Infoview code fences and the LSP completion list all
+  colour and offer them in the same round — the two word lists are pinned equal
+  by `crates/cli/tests/extension.rs::tm_grammar_keywords_follow_the_single_source`.
+  The grammar's `declarations` rule also colours the name an `abbrev` declares.
+  Design: `docs/design/abbrev.md` §4 and `docs/design/notation-subset.md` §13.6
+  (both were the explicit "hand to the main line" sync items).
+- **Universe-level arithmetic `u+1`, and `cast` / `Eq.ndrec` in the prelude.**
+  `Sort (u+1)` (also `Sort u+1`), `Type (u+1)` and `Eq.{u+1}` are now accepted
+  everywhere a universe level is written (`Eq.{u+1}`, `@Eq.rec.{u+1, u}`, …),
+  so the prelude's `Eq.mp` / `Eq.mpr` / `cast` are **universe polymorphic** —
+  their signatures now match Lean core's (`{α β : Sort u} (h : α = β)`) instead
+  of being Type 0 instances. `cast h a` (Lean core's `Eq.mp h a`) and
+  `Eq.ndrec` (the non-dependent recursor) join the prelude, so `Eq.mp`,
+  `Eq.mpr`, `cast` and `Eq.ndrec` are available as completions. **Calling
+  change**: a bare `Eq.mp α β h` still instantiates `u := 0` (this language
+  inserts no implicit arguments and infers no universes), so the Type 0 shape
+  becomes `Eq.mp.{1} α β h`. Ledger `L-03`; design
+  `docs/design/eq-type-level-rewriting.md` §4 and
+  `docs/design/type-level-syntax.md` §5; regression canvas
+  `docs/gaps/repro/L03-eq-type-level.sokonanoda`.
 - **The course tree groups 卷 → 章 → 单元 for a v2 course manifest.** A course
   manifest can now be the structured `soko.course/2` object (volume → chapter →
   unit, with chapter `prereqs` / `tags` / planned `quota.exercises`); the CLI's

@@ -261,7 +261,10 @@ AGENTS.md 点名「缓存过期是历史上最常见的故障源」，`gate` 也
   在干净检出上这个 CI step 会因找不到 `check.py` 而红——**落 commit 时必须 `git add
   courses/`（含 `tools/check.py`）与 `site/set-theory.html`、`scripts/gap.py`、
   `docs/gaps/`，否则这一版一发出去 CI 就先红在课程门禁 / 台账门禁上**。
-- **S4**（main-only 台账回提交）未做；`--ledger` 已实现，只等人手动跑。
+- **S4**（main-only 台账回提交）**仍未做**（CI 不该往仓库里写文件）；`--ledger` 已实现，
+  收尾轮**人工跑了一次**：`docs/courses/ledger.jsonl` 第一条 = set-theory · 36 目标 ·
+  329 checked · 99 open · 0 判负 · 20024 ms · v0.60.0（字段与理由见
+  `docs/design/course-manifest-v2.md` §4.6）。
 - ~~**skills 未同步**~~ ✅ **已同步（第一百〇六轮 / 0.59.0 收尾）**：
   `skills/sokonanoda-dev`（§3 门禁清单加 `check.py --selftest` 一行、§4 setup 写明
   `scripts/soko gate` 含课程门禁且 python3 探不到即 exit 3）与 `skills/sokonanoda-ci`

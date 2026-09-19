@@ -161,7 +161,10 @@
    （两_def 初期报错即此——所以 two_def 先注释）。
 4. **kernel 只判类型**：`double := fun n => n` 也能过；语义要求用证明形状表达。
 5. **`Type n` = `Sort (n + 1)`**：`Type 0` 等于 `Sort 1`，单独一个 `Type`
-   也是 `Sort 1`；`Type u`（宇宙变量）不支持，写 `Sort u`。
+   也是 `Sort 1`；`Type u`（宇宙变量）不支持，写 `Sort u`。层级算术
+   （0.61.0）支持 `Sort (u+1)` / `Sort u+1` / `Type (u+1)` / `Eq.{u+1}`
+   ——`Eq.mp`/`Eq.mpr`/`cast` 的签名就用它（白名单
+   `docs/design/type-level-syntax.md` §5）。
 6. **命名要防撞 prelude**：若画布自己声明 `Eq`/`Eq.refl`/`Eq.subst` 任一，
    整个 Eq prelude 跳过（all-or-nothing，与显式 `Nat` 块行为一致）。
 7. **排中律不在课内**（`em`/`by_contra` 在白名单外）。`Or` 在**单元⑨**升级为

@@ -51,18 +51,33 @@
 >
 > ## ✅ B8 补记（2026-09-19，L-03 落地）
 >
-> L1 再加**一族**：**B8 = `Eq.rec`/`Eq.mp`/`Eq.mpr`**（Type 层重写）。
-> 本文 §5 的「不做 `Eq.mp`/`Eq.mpr`/`Eq.rec`/`cast`」**作废一半**：实测发现内核的
+> L1 再加**一族**：**B8 = `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`**（Type 层重写）。
+> 本文 §5 的「不做 `Eq.mp`/`Eq.mpr`/`Eq.rec`/`cast`」**作废**：实测发现内核的
 > large-elimination 规则**给** Eq 形状（`EqT.rec.{1}` 的 motive 落 `Type 0`），
 > 堵路的是"prelude 的 `Eq` 是公理"与两条语法边界（`inductive` 头部不吃宇宙 binder、
 > 层级语法没有 `u+1`）——所以 B8 走**公理** `axiom Eq.rec {u, v}`（签名与 Lean core
-> 逐字同形）+ 由它定义的 `Eq.mp`/`Eq.mpr`（Type 0 实例）。
+> 逐字同形）+ 由它定义的四条 `def`。
 > 设计/实测/残留边界见 **`docs/design/eq-type-level-rewriting.md`**；
 > 复现件 `docs/gaps/repro/L03-eq-type-level.sokonanoda`（`scripts/soko grade` exit 0）。
 > 三件套同轮落地：`PRELUDE_L1_SRC` + `L1_FAMILIES`（B8，`deps = ["EQ"]`）+
 > `PRELUDE_NAMES` 42 → **45** + front 单测 2 条（`eq_rec_transports_at_type_level`、
 > `eq_rec_family_yields_when_the_file_declares_it`）。让位/建议材料（`goals.rs`）
 > 因为都按 `L1_FAMILIES` 走，**零改动**。
+>
+> ## ✅ B8 扩族补记（2026-09-19 同轮，层级算术 `u+1` 落地）
+>
+> 层级算术 `u+1` 落地（`docs/design/type-level-syntax.md` §5，parser + elab，
+> 内核零改动）后，B8 从 3 条扩到 **5 条**、`PRELUDE_NAMES` 45 → **47**：
+>
+> - `Eq.mp`/`Eq.mpr` 从 **Type 0 实例**改成**宇宙多态**，签名与 Lean core 的
+>   `def Eq.mp {α β : Sort u} (h : α = β) (a : α) : β` 逐字对齐
+>   （`{u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β)`）——**签名变更**：
+>   裸写 `Eq.mp α β h` 仍按 u = 0 实例化，Type 0 的调用形状变成 `Eq.mp.{1} α β h`；
+> - `cast` 装上（Lean core 里 `cast h a` 就是 `Eq.mp h a`；硬规则 3 的精神：
+>   真 Lean 代码要能直接编）；
+> - `Eq.ndrec` 装上（Lean core 的非依赖消去子，`def` 自 `Eq.rec`，不新增信任面）。
+>
+> 复现件扩到 **10 checked · 0 diagnostic**；白名单/课程/测试三件套见设计 §3。
 
 ## 0. 一句话
 
@@ -304,9 +319,9 @@ unit2 一个都不带；unit3/6/7 同样不带，但都在它之后）——只�
 **不做**
 - 不装 `Exists`/`Prod`/`Subtype`/`Set`（L2 = 课程标准库的活，`course-stdlib.md` §3）；
 - ~~不装 `Eq.mp`/`Eq.mpr`/`Eq.rec`/`cast`（**L-03**：`Eq.subst` 的 motive 只能落 Prop，写不出来，
-  要改签名=设计先行）~~ —— **已作废（2026-09-19，B8）**：`Eq.rec`/`Eq.mp`/`Eq.mpr`
-  已作为 **B8 族**装上（见文首 B8 补记与 `docs/design/eq-type-level-rewriting.md`）；
-  `cast` 仍不装（与 `Eq.mp` 同义，理由见该文 §4-2）；
+  要改签名=设计先行）~~ —— **已作废（2026-09-19，B8）**：`Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`
+  已作为 **B8 族**装上（见文首两条 B8 补记与 `docs/design/eq-type-level-rewriting.md`）；
+  `Eq.mp`/`Eq.mpr`/`cast` 是**宇宙多态**（层级算术 `u+1` 落地后，签名与 Lean core 逐字对齐），
 - 不做 `notation`/infix（G-04）、不做 `namespace`/`open`（G-05）、不做隐式实参；
 - 不动内核、不动 tactic 白名单、不动 `by` 块；
 - 不新增 prelude 档案指令（`core`/`full`）——**备选方案 B**：如果将来"同一门课既要教自建、

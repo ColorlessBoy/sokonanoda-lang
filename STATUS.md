@@ -20,6 +20,42 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-19，第一百〇八轮：0.61.0 —— 设计文档里「未做」的全部收口）
+
+> 用户要求：**「设计文档里的东西都做了吧。」** 本轮把 `docs/design/` 各篇「未做 / 第二刀 / 残留边界」
+> 里**不违反硬规则**的项目全部实现；只有两条内核冻结项（累积性、Prop 大消去）与一条内核 pp 项
+> （源码级 print-back）保留为**有理由的边界**。
+
+1. **记法第三刀**（`docs/design/notation-subset.md` §12 → as-built + §13）：**binder 记法**
+   （`binder_notation`，`∃ x, p` / `∀ x, p`；命令拼写为什么不是 `notation-binder`：`-` 不是本语言
+   标识符字符，实测被切碎）、**记法重载**（同符号同形状按期望类型选候选；歧义/无候选两个专用码 +
+   人话 hint；重声明 import 来的符号仍是错误）、**`scoped` / `open scoped`**、**集合字面量 `{a}`/`{a,b}`**
+   （新语法，`{}` 与 binder 定界符消歧）、**一元记法在实参位免括号**。课程单元⑧ 加一条 `example` 演示
+   （练习数量与题意不动）。print-back 保留为「内核 pp 冻结 ⇒ 销不掉」（§13.1）。
+2. **`namespace`/`open` 扩展**（`docs/design/namespace-open.md` §7 → as-built）：**子句**
+   （`only`/`hiding`/`renaming` 互斥、先过滤后改名）、**`open Foo in <cmd>`**（限叶子命令，
+   合成前缀补源码原文 `open` 头，做过变异验证）、**`export`**（文件内同 open + 跨 `import` 重放导出表；
+   `open` 不跨）、**`open scoped`** 接线、**遮蔽 warning**（非 error）。
+   `section`/`variable` 评估为**做不动**并给实测（`#check id Nat` ⇒ `Nat -> Nat`、`def u : Nat := id Nat`
+   内核拒绝 ⇒ 本语言无隐式参数插入，auto-bound 落不出 Lean 体验）；`namespace` 跨文件传播澄清为"无需做"。
+3. **层级算术与 Eq 多态**（`docs/design/eq-type-level-rewriting.md` §4）：宇宙层级支持**数字后缀加法**
+   （`u+1`；`u+v`/`max` 给专用诊断——内核 `Level::Max` 无公开构造入口），`Eq.mp`/`Eq.mpr` 从 Type 0
+   实例升级成**宇宙多态**（签名对齐 Lean core），装上 **`cast`** 与 **`Eq.ndrec`**（真 Lean 子集兼容；
+   `cast` 原来是 front 单测里的自定义公理名，已改名）。`PRELUDE_NAMES` 45 → 47，B8 族让位照旧；
+   L-03 复现件扩到 **10 checked / 0 diagnostic**。
+4. **编辑器词表与课程工具**：`front::semantic::KEYWORDS` 与 `editor/vscode` TM 语法**同轮**加入
+   `abbrev`/`prefix`/`postfix`/`binder_notation`/`scoped`（守护
+   `tm_grammar_keywords_follow_the_single_source` 绿）；CLI `course` 支持**多清单聚合**
+   （`course <path>… [--all]`，多份才加 `course.unit.manifest` 与 `summary.manifests`，单清单一个键不多）；
+   课程门禁新增 `--ledger`（**默认关**，避免 CI 写仓库）产出成本台账 `docs/courses/ledger.jsonl`
+   （已真跑一条：36/329/99/0 · 20024ms · v0.60.0）。
+5. **保留的边界（有实测理由，非"没时间"）**：累积性与 Prop 大消去（内核冻结，硬规则 1）、
+   源码级 print-back（类型文本由内核 pp 产出，记法不进内核）、`section`/`variable`（无隐式参数插入）、
+   `u+v`/`max`（内核无公开构造入口）。
+6. **验收**：`scripts/soko gate` exit 0（`cargo test --workspace --locked` **1163 passed / 0 failed**；
+   课程门禁 **36 目标 · 329 checked · 99 open · 0 判负**；缺口台账门禁全绿）；版本 0.61.0（两处）+
+   课程 `requires = "0.61"`；内核零改动。
+
 ## 本轮进度（2026-09-19，第一百〇七轮：0.60.0 —— 编辑器 build/rebuild + 五个缺口收口）
 
 > 用户要求：**「vscode 还是没有 sokonanoda: build 或者 sokonanoda: rebuild 的命令。你这个剩下的没做的也要做。」**

@@ -11,10 +11,11 @@
 
 ```bash
 python3 courses/set-theory/tools/check.py             # 判据 G1–G6 + 人读表 + 汇总
-python3 courses/set-theory/tools/check.py --selftest  # 判据通道自检（故意坏文件必须被拒 + G6 清单自检）
+python3 courses/set-theory/tools/check.py --selftest  # 判据通道自检（故意坏文件必须被拒 + G6 清单自检 + 台账字段）
 python3 courses/set-theory/tools/check.py --json      # 机器可读（含计数；CI 用 --report 落盘）
 python3 courses/set-theory/tools/check.py --only "单元 5" --bisect   # 二分到第一个判红的声明
-python3 courses/set-theory/tools/test_manifest_v2.py  # 清单 v2 / G6 的单测（秒级、零工具链）
+python3 courses/set-theory/tools/check.py --ledger    # 追加一条成本台账（默认 docs/courses/ledger.jsonl；默认关闭）
+python3 courses/set-theory/tools/test_manifest_v2.py  # 清单 v2 / G6 / 台账的单测（秒级、零工具链）
 ```
 
 **判红只有六条，全部与课程规模无关**（设计 `docs/design/course-gate-in-ci.md` §3、
@@ -31,8 +32,25 @@ python3 courses/set-theory/tools/test_manifest_v2.py  # 清单 v2 / G6 的单测
 
 计数（checked / open / diagnostics）与**配额差额**只进报告与台账，从不参与判红：
 课程还在长，锁死 `checked == N`（或 `quota.exercises == N`）会让门禁从质量闸退化成
-记账本。台账用 `--ledger [路径]` 追加一条 JSONL（默认 `docs/courses/ledger.jsonl`，
-只在该跑的时候手动跑）。
+记账本。
+
+**成本台账**（设计 `docs/design/course-manifest-v2.md` §4.6）：`--ledger [路径]`
+追加一条 `soko.course-ledger/1`（日期 / 课程名 / 目标数 / checked / open / 判负 /
+用时 ms / 版本 + 逐目标 `rows`）到 `docs/courses/ledger.jsonl`。**默认关闭**——
+跑门禁的机器不该往仓库里写文件（CI 不写、也不自动提交），`--ledger` 是**人工收尾**
+动作：发版/里程碑时跑一次，把那一行提交进仓库当趋势点。
+
+**一次报多份清单**（§4.5，多课程/多卷聚合）：`sokonanoda course` 现在收多个路径，
+每个路径是清单文件或**含 `course.json` 的目录**；`--all` 把目录**递归**展开成它下面
+每一个 `course.json`：
+
+```bash
+node scripts/soko course "$PWD/course/course.json" "$PWD/courses/set-theory"   # 两份一起报
+node scripts/soko course --all "$PWD/courses" --json                            # courses/ 下所有清单
+```
+
+>1 份清单时每个 `course.unit` 多出 `manifest`、`course.summary` 多出 `manifests`
+（单清单调用一个键都不多）；一批里有一份读不了 ⇒ 整体失败且**零事件**。
 
 退出码：**0** 全绿 / **1** 有目标被判负 / **2** 前置缺失（判卷二进制与仓库版本不一致、
 `--only` 没匹配到目标等——**无法判定 ≠ 绿**）。
@@ -68,9 +86,11 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 | `lib/Set.sokonanoda` **末尾的记法块** | 卷 I 的五个**集合论专用**数学符号（G-04 第二刀，0.60.0）：`𝒫`（`prefix:100`）/ `ᶜ`（`postfix:100`）/ `''`（`infixr:80`）/ `⁻¹'`（`infixr:80`）/ `×ˢ`（`infixr:80`）。**记法不是声明**（零事件、不进声明表），所以这一段**不改变任何计数**；它随 `import lib.Set` 传播到每个单元（跨 `import` 的记法，见下） |
 | `units/solutions/` | 解答钥匙（agent 专用；画布不 import 它） |
 | `gaps/` | 本卷撞到的**新**缺口（收编进 `docs/gaps/ledger.jsonl`） |
-| `tools/check.py` | 课程门禁（判据 G1–G6，与规模无关；`--selftest` / `--bisect` / `--json`） |
-| `tools/test_manifest_v2.py` | 清单 v2 展平 + G6 的单测（`check.py` 的纯清单面，零工具链） |
+| `tools/check.py` | 课程门禁（判据 G1–G6，与规模无关；`--selftest` / `--bisect` / `--json` / `--ledger`） |
+| `tools/test_manifest_v2.py` | 清单 v2 展平 + G6 + 成本台账字段的单测（`check.py` 的纯清单面，零工具链） |
 | `course.json` | **单元清单 v2**（`schema: soko.course/2`：卷 → 章 → 单元 + 先修/标签/配额） |
+
+台账文件在课程目录外：`docs/courses/ledger.jsonl`（仓库根；`--ledger` 人工跑一次追加一行）。
 
 ## 清单 v2（`course.json`，台账 G-07）
 
@@ -108,7 +128,10 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 `lib_open` 0；P4 前是 355 checked —— 差额 = `lib/Logic` 空壳化少掉的 26 条声明，**open 不变**。
 清单 v2（G-07）**不改判卷计数**：展平后与 v1 的目标/计数逐个相同，只多出卷/章结构与配额报告）。
 数字只作现状记录——门禁本身不锁计数（课程还在长），所以这份表随每次重算更新，
-**不手写旧数字**。
+**不手写旧数字**。收尾轮（多清单聚合 + 成本台账）同样**不改判卷计数**：
+`node scripts/soko course --all "$PWD/courses" --json` 报 `manifests: 1` / 12 单元，
+`docs/courses/ledger.jsonl` 的第一条就是本轮实测（36 目标 · 329 checked · 99 open ·
+0 判负 · 20024 ms · v0.60.0）。
 
 按清单 v2 的**卷 → 章**分组（配额 = `quota.exercises`，门禁只报告差额、绝不判红）：
 

@@ -478,9 +478,9 @@ fn run_pass(
             // 闭包级预扫描（设计 §4.6）：**任一**单元自带顶层 `inductive Nat`
             // 就让位；单文件编译时这就是今天的行为（一个单元 = 一个文件）。
             let explicit_nat = units.iter().any(|unit| {
-                unit.file.commands.iter().any(
-                    |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"),
-                )
+                crate::ast::effective_commands(unit.file)
+                    .iter()
+                    .any(|command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"))
             });
             if !explicit_nat {
                 // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
@@ -488,9 +488,9 @@ fn run_pass(
                 install_prelude(&mut builder, &mut known, &mut inductives);
             }
             let explicit_bool = units.iter().any(|unit| {
-                unit.file.commands.iter().any(
-                    |command| matches!(command, Command::InductiveBlock { name, .. } if name == "Bool"),
-                )
+                crate::ast::effective_commands(unit.file)
+                    .iter()
+                    .any(|command| matches!(command, Command::InductiveBlock { name, .. } if name == "Bool"))
             });
             if !explicit_bool {
                 // Bool 同法（非递归）：文件自带 `inductive Bool` 时让位。
@@ -583,8 +583,10 @@ fn run_pass(
         decl_states,
         example_idx,
         // G-05：命名空间栈 + open 集合按源码顺序驱动；单元切换处 reset
-        // （`open` 是文件作用域，不跨 `import`——设计 N5）。
+        // （`open` 是文件作用域，不跨 `import`——设计 N5）。第二刀：导出表
+        // 是唯一的跨单元例外（`export`，设计 §N7）。
         ns: crate::compile::NamespaceScope::new(),
+        exports: Vec::new(),
     };
     walk.run(
         units,
@@ -630,7 +632,9 @@ pub(crate) fn top_level_def_spans_over(units: &[SourceUnit<'_>]) -> HashMap<Stri
 /// recursors of inductive blocks). Prelude names are absent by construction.
 pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
     let mut defs: HashMap<String, Span> = HashMap::new();
-    for command in &file.commands {
+    // 第二刀 §N7：`open … in <声明>` 包住的声明照样要进这张表（hover/goto
+    // 回填与闭包级重名检查都读它）。
+    for command in crate::ast::effective_commands(file) {
         match command {
             Command::Def { name, span, .. }
             | Command::Theorem { name, span, .. }
@@ -663,11 +667,16 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
             // 记法命令不是声明（设计 N6）：不进 `top_level_def_spans`，
             // 所以它既不占名字、也不参与闭包级重名检查。G-05 的
             // namespace/end/open 同理（声明名加前缀已经在 parser 里落定，
-            // 所以这里的 `name` 已经是**全局名**）。
+            // 所以这里的 `name` 已经是**全局名**）。第二刀：`open … in` 与
+            // `export` 同样是**作用域命令**——`open … in` 包住的那条声明
+            // 由它自己的变体（`inner`）承载，所以这里不递归进去（`inner`
+            // 的声明名已经在 parser 里加了前缀，span 也是它自己的）。
             | Command::Notation { .. }
             | Command::Namespace { .. }
             | Command::End { .. }
-            | Command::Open { .. } => {}
+            | Command::Open { .. }
+            | Command::OpenIn { .. }
+            | Command::Export { .. } => {}
         }
     }
     defs

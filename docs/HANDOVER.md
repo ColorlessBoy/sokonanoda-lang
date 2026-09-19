@@ -4,7 +4,7 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.60.0**（2026-09-19 第一百〇七轮：用户报「vscode 没有 build/rebuild 命令」⇒ 补齐，并把台账剩下的 G-05/G-07/G-08/L-03/L-06 与记法第二刀全部收口；台账 **24 条 = 22 fixed + 2 workaround、open 归零**；`scripts/soko gate` exit 0：`cargo test --workspace --locked` 1107 passed、课程门禁 36 目标 · 329 checked · 99 open · 0 判负、台账门禁全绿；版本 0.60.0 两处 + 课程 `requires = "0.60"`；上一个已发布版本是 0.59.0）。
+> 快照：**v0.61.0**（2026-09-19 第一百〇八轮：用户要求「设计文档里的东西都做了吧」⇒ 把各篇设计的「未做/第二刀/残留边界」里不违反硬规则的全部实现：记法第三刀（binder 记法/重载/scoped/集合字面量/一元实参位）、namespace 扩展（子句/open…in/export/遮蔽 warning）、层级算术 + Eq 多态 + cast/Eq.ndrec、编辑器词表同轮 + 课程多清单聚合 + 成本台账；保留的只有内核冻结三项；`scripts/soko gate` exit 0：1163 passed、课程 36·329·99·0、台账全绿；上一个已发布版本是 0.60.0）。
 > （语言线五刀 + 课程门禁 + 站点页）**。**这一版装了什么（全部用户可见）**：
 > * **签名受检**（G-01 / WO-004）：值位是 `sorry` 时签名也过内核的类型/Prop 判定；
 >   坏签名 = 一条 diagnostic + 声明 `Failed` + **不发** `exercise.open`。判卷只认

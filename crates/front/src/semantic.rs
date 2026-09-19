@@ -42,6 +42,9 @@ pub struct SemanticSpan {
 const KEYWORDS: &[&str] = &[
     "import",
     "def",
+    // `abbrev` 是 `def` 的 Lean 拼写（同一个 parser 入口、同一条流水线；
+    // 设计 `docs/design/abbrev.md`）。进词表 ⇒ 语义高亮与补全自动跟上。
+    "abbrev",
     "theorem",
     "example",
     "axiom",
@@ -58,7 +61,14 @@ const KEYWORDS: &[&str] = &[
     "infix",
     "infixl",
     "infixr",
+    // 记法相关的新拼写（第二刀 `prefix`/`postfix`、第三刀
+    // `binder_notation`/`scoped`）：与 `NOTATION_COMMANDS` 同集合，
+    // 设计 `docs/design/notation-subset.md` §13.6。
+    "prefix",
+    "postfix",
     "notation",
+    "binder_notation",
+    "scoped",
     "intro",
     "exact",
     "apply",
@@ -167,7 +177,7 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
         return Vec::new();
     };
     let mut out: Vec<(String, SemanticKind)> = Vec::new();
-    for cmd in &file.commands {
+    for cmd in crate::ast::effective_commands(&file) {
         match cmd {
             Command::Def { name, .. } => out.push((name.clone(), SemanticKind::DefUse)),
             Command::Theorem { name, .. } => out.push((name.clone(), SemanticKind::TheoremUse)),
@@ -198,6 +208,10 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
             // 记法命令不声明名字（设计 N6）：`declaration_kinds` 只服务
             // goal/hypothesis 文本的着色，符号本身在那里不出现。
             Command::Notation { .. } => {}
+            // 第二刀 §N7：`open … in <命令>` 自己不是声明——它包住的那条命令
+            // 由 `effective_commands` 展开后**单独**走到这里（所以这里的
+            // `inner` 不会被漏掉，也不会被数两次）。
+            Command::OpenIn { .. } | Command::Export { .. } => {}
         }
     }
     out
@@ -398,7 +412,7 @@ impl Names {
 }
 
 fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
-    for cmd in &file.commands {
+    for cmd in crate::ast::effective_commands(file) {
         match cmd {
             // `import` 不声明名字、也没有表达式要着色（模块名 token 落在
             // 未知标识符的默认样式里）。
@@ -521,6 +535,9 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
             // G-05：三条作用域命令不声明名字、没有表达式要着色（命令参数
             // `Foo` 不是引用）——与 `Command::Import` 同族。
             Command::Namespace { .. } | Command::End { .. } | Command::Open { .. } => {}
+            // 第二刀 §N7：同 `declaration_kinds`——`OpenIn` 包住的命令由
+            // `effective_commands` 展开后单独着色。
+            Command::OpenIn { .. } | Command::Export { .. } => {}
         }
     }
 }
@@ -592,6 +609,12 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
             }
             if let Some(rhs) = rhs {
                 walk_expr(rhs, toks, names);
+            }
+        }
+        // 集合字面量（第三刀 §12.4）：元素照常着色；`{`/`}`/`,` 是标点。
+        Expr::SetLiteral { elements, .. } => {
+            for element in elements {
+                walk_expr(element, toks, names);
             }
         }
     }
@@ -801,6 +824,37 @@ mod tests {
             assert!(
                 !kinds.is_empty() && kinds.iter().all(|k| *k == SemanticKind::Keyword),
                 "`{kw}` must be a keyword, got {kinds:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn keyword_table_covers_abbrev_and_the_notation_spellings() {
+        // 同步项（设计 `docs/design/abbrev.md` §4、`notation-subset.md` §13.6）：
+        // `abbrev`（= `def` 的 Lean 拼写）与记法相关的新拼写——第二刀的
+        // `prefix`/`postfix`、第三刀的 `binder_notation`/`scoped`——必须进
+        // **单一词表** `front::semantic::KEYWORDS`。TM 语法与它逐字相等
+        // （守护：`crates/cli/tests/extension.rs::tm_grammar_keywords_follow_the_single_source`），
+        // 所以两份词表只能同一轮改。
+        for keyword in ["abbrev", "prefix", "postfix", "binder_notation", "scoped"] {
+            assert!(
+                keywords().contains(&keyword),
+                "`{keyword}` must be in the single keyword table: {KEYWORDS:?}"
+            );
+        }
+        let src = "abbrev A : Type := Prop\n\
+                   prefix:100 \" ι \" => A\n\
+                   postfix:100 \" ᶜ \" => A\n\
+                   binder_notation \" ∃ \" => A\n\
+                   namespace Foo\n\
+                   scoped infix:50 \" ⊕ \" => A\n\
+                   end Foo\n";
+        let spans = semantic_tokens(src);
+        for keyword in ["abbrev", "prefix", "postfix", "binder_notation", "scoped"] {
+            let kinds = kinds_of(src, &spans, keyword);
+            assert!(
+                !kinds.is_empty() && kinds.iter().all(|k| *k == SemanticKind::Keyword),
+                "`{keyword}` must be classified as Keyword, got {kinds:?}"
             );
         }
     }

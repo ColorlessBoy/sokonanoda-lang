@@ -19,13 +19,17 @@ python3 courses/set-theory/tools/test_manifest_v2.py     # exit 0 = 全绿
 * **G6 判红的四类结构非法**：volume id 重复、chapter id 重复、
   同一 unit 挂在两个章、`prereqs` 指向不存在的 chapter id；
 * **G6 只报告不判红的**：`quota.exercises` 与画布练习数的差额、空章；
-* **G1–G5 语义不变**：展平后的目标标签/顺序与 v1 清单逐个相同。
+* **G1–G5 语义不变**：展平后的目标标签/顺序与 v1 清单逐个相同；
+* **成本台账**（`docs/courses/ledger.jsonl`，设计 §4.6）：合成记录的字段齐全，
+  已提交的台账逐行合法、字段齐全、`date`/`version` 形状对（没跑过 `--ledger`
+  就没有文件——默认关闭；`version` 只判 `x.y.z`，历史条目允许与当前版本钉不同）。
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -297,6 +301,55 @@ def case_unknown_schema_is_a_prerequisite_error() -> None:
         fail("未知 schema 必须走 Prerequisite（不判绿、也不静默当 v1）")
 
 
+def case_cost_ledger_fields_and_committed_file() -> None:
+    """成本台账（设计 course-manifest-v2.md §4.6）：字段齐全 + 已提交的台账合法。
+
+    `--ledger` 默认关闭（CI 不往仓库里写文件），所以这里判两件事：
+    ① 合成一条记录必须带齐 `LEDGER_FIELDS`（日期/课程名/目标数/checked/open/
+    判负/用时 ms/版本），且值就是给进去的；
+    ② 仓库里**已经**有 `docs/courses/ledger.jsonl` 时，每一行都是合法 JSON、
+    字段齐全、`date`/`version` 形状对（人工追加的那一次不许写坏）。
+
+    `version` 只判形状 `x.y.z`、**不**要求等于当前版本钉：台账是**历史**，版本
+    bump 之后旧条目天然带着旧版本号——拿它跟当前钉比会在每次 bump 时假红。
+    """
+    entry = json.loads(check.ledger_entry(
+        [{"label": "单元 1", "status": "ok", "checked": 2, "open": 1}],
+        {"targets": 1, "checked": 2, "open": 1, "rejected": 0, "solutions_open": 0},
+        check.repo_root() or check.COURSE, course="fixture", elapsed_ms=42,
+    ))
+    missing = [key for key in check.LEDGER_FIELDS if key not in entry]
+    expect(not missing, f"成本台账缺字段：{missing}")
+    expect(entry.get("course") == "fixture", f"课程名要原样写进去：{entry}")
+    expect(entry.get("elapsed_ms") == 42, f"用时 ms 要原样写进去：{entry}")
+    expect(entry.get("rejected") == 0 and entry.get("targets") == 1,
+           f"目标数/判负要对上 summary：{entry}")
+
+    ledger = (check.repo_root() or check.COURSE) / check.LEDGER_DEFAULT
+    if not ledger.is_file():
+        return  # 没跑过 --ledger 就没有文件——默认关闭，这不是失败
+    for number, line in enumerate(ledger.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError as error:
+            fail(f"{ledger.name} 第 {number} 行不是 JSON：{error}")
+            continue
+        missing = [key for key in check.LEDGER_FIELDS if key not in record]
+        expect(not missing, f"{ledger.name} 第 {number} 行缺字段：{missing}")
+        expect(record.get("schema") == check.LEDGER_SCHEMA,
+               f"{ledger.name} 第 {number} 行 schema 不对：{record.get('schema')!r}")
+        version = record.get("version")
+        expect(version is None or (isinstance(version, str) and re.fullmatch(r"\d+\.\d+\.\d+", version)),
+               f"{ledger.name} 第 {number} 行 version 不是 x.y.z（历史条目允许与当前钉不同）：{version!r}")
+        date = record.get("date")
+        expect(isinstance(date, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", date),
+               f"{ledger.name} 第 {number} 行 date 不是 UTC ISO-8601：{date!r}")
+        expect(isinstance(record.get("elapsed_ms"), int) and record["elapsed_ms"] >= 0,
+               f"{ledger.name} 第 {number} 行 elapsed_ms 不是非负整数：{record.get('elapsed_ms')!r}")
+
+
 CASES = [
     case_flatten_matches_v1,
     case_v2_units_keep_v1_shape,
@@ -309,6 +362,7 @@ CASES = [
     case_empty_chapter_is_allowed,
     case_v1_manifest_has_no_g6_problems,
     case_unknown_schema_is_a_prerequisite_error,
+    case_cost_ledger_fields_and_committed_file,
 ]
 
 

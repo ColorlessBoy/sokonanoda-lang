@@ -52,7 +52,7 @@
       ]
     },
     "declarations": {
-      "match": "\\b(def|theorem|axiom|inductive|ctor|rec|iota)\\s+([A-Za-z_][A-Za-z0-9_'.]*)",
+      "match": "\\b(def|abbrev|theorem|axiom|inductive|ctor|rec|iota)\\s+([A-Za-z_][A-Za-z0-9_'.]*)",
       "captures": {
         "1": {
           "name": "keyword.other.sokonanoda"
@@ -63,7 +63,7 @@
       }
     },
     "keywords": {
-      "match": "\\b(import|def|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|infix|infixl|infixr|notation|intro|exact|apply|assumption|rfl|forall|∀)\\b",
+      "match": "\\b(import|def|abbrev|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|infix|infixl|infixr|prefix|postfix|notation|binder_notation|scoped|intro|exact|apply|assumption|rfl|forall|∀)\\b",
       "name": "keyword.other.sokonanoda"
     },
     "commands": {

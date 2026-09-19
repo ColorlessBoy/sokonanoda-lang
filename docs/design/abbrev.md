@@ -106,7 +106,7 @@ Lean 的 `abbrev` = `@[reducible]` 的定义，`def` = semireducible：差别体
 | AST / elab / 内核 | —— | **零改动**：`abbrev` 产出与 `def` **逐字段相同**的 `Command::Def`，后续流水线一字不改 |
 | 白名单 | `crates/cli/src/help.rs` | 语言命令表加一行 `abbrev <name> : <type> := <value>`（注明 = `def`） |
 | 白名单 | `docs/architecture.md` §4.1 | 命令清单加 `abbrev` |
-| 词法高亮 | —— | **不动** `front::semantic::KEYWORDS`：TM 语法在 `editor/vscode/**`（本轮禁改），而 `crates/cli/tests/extension.rs::tm_grammar_keywords_follow_the_single_source` 把两份词表钉成逐字相等。加进 `KEYWORDS` 会立刻把那个测试判红 ⇒ `abbrev` 目前**只**是 parser 命令，编辑器里不高亮成关键字（见 §4 的同步项） |
+| 词法高亮 | `crates/front/src/semantic.rs` + `editor/vscode/syntaxes/sokonanoda.tmLanguage.json` | **已同步（主线收尾轮，见 §4）**：`abbrev` 进 `front::semantic::KEYWORDS`，同一轮进 TM 语法的 `keywords` 词表（两份逐字相等由 `crates/cli/tests/extension.rs::tm_grammar_keywords_follow_the_single_source` 钉住）与 `declarations` 规则（`abbrev` 声明的名字照 `def` 着 `entity.name.function`）；LSP 补全吃同一份 `KEYWORDS`，因此自动跟上 |
 
 `abbrev` 与 `def` 共享 `parse_def`，所以**自动**继承 `def` 的一切既有形状：
 宇宙参数（`abbrev f {u} …`）、声明级 binder、`namespace` 前缀（`namespace A` 里
@@ -120,14 +120,27 @@ Lean 的 `abbrev` = `@[reducible]` 的定义，`def` = semireducible：差别体
 | 2 | 必须写类型注解：`abbrev x := 1` 报 parse 错 | 与 `def` **共享**的既有边界（`parse_def` 的 `expect_colon`），不是 abbrev 特有 |
 | 3 | 不支持递归 `abbrev` | 与 `def` 共享（§1.5） |
 | 4 | `#print` 显示 `def Set …` 而不是 `abbrev Set …` | 与差异 1 同源：核心里只有一种 Definition，pp 不带 hint 字样 |
-| 5 | 编辑器不把 `abbrev` 高亮成关键字 | §2 的 TM 语法同步项（本轮禁改 `editor/vscode/**`） |
+| 5 | ~~编辑器不把 `abbrev` 高亮成关键字~~ | **已销（主线收尾轮）**：§4 的同步项落地，`abbrev` 与 `def` 在编辑器里同样着色/补全 |
 
-## 4. 同步项（交给主线，本轮刻意不做）
+## 4. 同步项 —— **已销（主线收尾轮，as-built）**
 
-* `front::semantic::KEYWORDS` + `editor/vscode` 的 TM 语法词表**同一轮**加
-  `abbrev`（两份必须逐字相等，`tm_grammar_keywords_follow_the_single_source`
-  是守护）。本轮 `editor/vscode/**` 与 `skills/**` 禁改，所以留给主线统一同步。
-* VS Code 补全候选（如果主线愿意把 `abbrev` 放进 snippet）。
+> 原文（留给历史）：`front::semantic::KEYWORDS` + `editor/vscode` 的 TM 语法词表
+> **同一轮**加 `abbrev`（两份必须逐字相等，`tm_grammar_keywords_follow_the_single_source`
+> 是守护）；本轮 `editor/vscode/**` 与 `skills/**` 禁改，所以留给主线统一同步。
+> VS Code 补全候选（如果主线愿意把 `abbrev` 放进 snippet）。
+
+**as-built**（同一轮把 `notation-subset.md` §13.6 的记法拼写一起销账）：
+
+| 落点 | 改动 |
+|---|---|
+| `crates/front/src/semantic.rs` | `KEYWORDS` 加 `abbrev`（紧跟 `def`）与记法拼写 `prefix`/`postfix`/`binder_notation`/`scoped`（与 `NOTATION_COMMANDS` 同集合）；单测 `semantic::tests::keyword_table_covers_abbrev_and_the_notation_spellings` 同时钉住「在词表里」与「着成 `Keyword`」 |
+| `editor/vscode/syntaxes/sokonanoda.tmLanguage.json` | `keywords` 词表同一轮加这五个词；`declarations` 规则加 `abbrev`（声明的名字着 `entity.name.function.sokonanoda`，与 `def` 一致） |
+| 补全 | 不需要额外改：LSP 的补全列表直接读 `front::semantic::keywords()`（`crates/lsp/src/lib.rs`），加词表即加补全；扩展没有自己的 snippet 表 |
+| `editor/vscode/CHANGELOG.md` | `[Unreleased] / Added` 一条（**不动** `package.json` 的版本号——由主线统一 bump） |
+
+**验证**：`cargo test -p sokonanoda-cli --test extension` ⇒ exit 0（
+`tm_grammar_keywords_follow_the_single_source` 绿，两份词表逐字相等）；
+`cargo test -p sokonanoda-front --lib semantic::tests` ⇒ exit 0。
 
 ## 5. 测试（TDD 三层）
 

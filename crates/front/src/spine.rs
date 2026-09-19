@@ -90,6 +90,7 @@ pub(crate) fn mentions(name: &str, expr: &Expr) -> bool {
             false
         }
         Expr::App { fun, arg, .. } => mentions(name, fun) || mentions(name, arg),
+        Expr::SetLiteral { elements, .. } => elements.iter().any(|e| mentions(name, e)),
         Expr::Lambda { binders, body, .. } | Expr::Forall { binders, body, .. } => {
             binders
                 .iter()
@@ -174,6 +175,11 @@ pub(crate) fn collect_pattern_binds(pat: &crate::ast::Pattern, out: &mut Vec<Str
 
 pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, Expr>) -> Expr {
     match expr {
+        // 集合字面量（第三刀 §12.4）：逐元素代换。
+        Expr::SetLiteral { elements, span } => Expr::SetLiteral {
+            elements: elements.iter().map(|e| substitute(e, sigma)).collect(),
+            span: *span,
+        },
         Expr::Ident { name, span } => match sigma.get(name) {
             Some(repl) => repl.clone(),
             None => Expr::Ident {
@@ -285,6 +291,7 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             assoc,
             lhs,
             rhs,
+            alternatives,
             span,
         } => Expr::Notation {
             symbol: symbol.clone(),
@@ -292,6 +299,7 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             assoc: *assoc,
             lhs: lhs.as_ref().map(|e| Box::new(substitute(e, sigma))),
             rhs: rhs.as_ref().map(|e| Box::new(substitute(e, sigma))),
+            alternatives: alternatives.clone(),
             span: *span,
         },
     }

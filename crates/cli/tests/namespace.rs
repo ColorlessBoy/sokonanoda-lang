@@ -206,3 +206,165 @@ fn an_unclosed_namespace_is_a_dedicated_parse_error_with_exit_1() {
         "events: {events:?}"
     );
 }
+
+// ---- 第二刀：open 的子句 / `open … in` / `export`（设计 §N7/N8）------------
+
+/// 事件里的 warning 码（`--json` 的 `warning` 事件）。
+fn warning_codes(events: &[Value]) -> Vec<String> {
+    events
+        .iter()
+        .filter(|e| e["type"] == "warning")
+        .map(|e| e["code"].as_str().unwrap_or_default().to_string())
+        .collect()
+}
+
+#[test]
+fn open_in_is_local_to_one_command() {
+    // `open Set in <命令>` 只影响紧跟的那一条命令：`inside` 过，`outside` 报
+    // 未知标识符（退出码 1 是**反例**那一行造成的，不是局部 open 本身）。
+    let dir = temp_dir("open-in");
+    write(&dir, "Set.sokonanoda", SET_LIB);
+    let main = write(
+        &dir,
+        "Main.sokonanoda",
+        "import Set\n\n\
+         open Set in def inside (α : Type) (a : α) (A : α -> Prop) : Prop := mem α a A\n\
+         def outside (α : Type) (a : α) (A : α -> Prop) : Prop := mem α a A\n",
+    );
+    let (code, events) = grade_json(&main);
+    assert_eq!(code, 1, "events: {events:?}");
+    assert_eq!(
+        diagnostic_codes(&events),
+        vec!["elab-unknown-identifier".to_string()],
+        "the local open must not leak: {events:?}"
+    );
+    assert!(
+        checked_names(&events).contains(&"inside".to_string()),
+        "the wrapped declaration must be checked: {events:?}"
+    );
+}
+
+#[test]
+fn open_only_hiding_and_renaming_grade_like_the_pointful_names() {
+    // 子句版与点名版是**同一批事件**（判据走内核，不做文本比对）：
+    // `open Set (mem)` / `hiding subset` / `renaming mem => mem'` 都让
+    // `use` 解析到被导入模块声明的 `Set.mem`。
+    let dir = temp_dir("open-clauses");
+    write(&dir, "Set.sokonanoda", SET_LIB);
+    let main_src = |body: &str, short: &str| {
+        format!(
+            "import Set\n\n{body}\
+             def use (α : Type) (a : α) (A : α -> Prop) : Prop := {short} α a A\n"
+        )
+    };
+    for (tag, body, short) in [
+        ("only", "open Set (mem)\n", "mem"),
+        ("hiding", "open Set hiding subset\n", "mem"),
+        ("renaming", "open Set renaming mem => mem'\n", "mem'"),
+    ] {
+        let main = write(&dir, &format!("{tag}.sokonanoda"), &main_src(body, short));
+        let (code, events) = grade_json(&main);
+        assert_eq!(code, 0, "{tag}: {events:?}");
+        assert_eq!(counts(&events).4, 0, "{tag}: no diagnostics: {events:?}");
+        assert!(
+            checked_names(&events).contains(&"use".to_string()),
+            "{tag}: {events:?}"
+        );
+    }
+    // 反例：`only` 之外的短名不在候选里 ⇒ 退出码 1 + 未知标识符。
+    let main = write(
+        &dir,
+        "OnlyNegative.sokonanoda",
+        "import Set\n\n\
+         open Set (mem)\n\
+         def use (α : Type) (a : α) (A : α -> Prop) : Prop := subset α A A\n",
+    );
+    let (code, events) = grade_json(&main);
+    assert_eq!(code, 1, "events: {events:?}");
+    assert_eq!(
+        diagnostic_codes(&events),
+        vec!["elab-unknown-identifier".to_string()],
+        "events: {events:?}"
+    );
+}
+
+#[test]
+fn export_reaches_the_importing_file_while_open_does_not() {
+    // N7：`export` 是**唯一**跨 `import` 的那一半；`open` 不跨（既有的
+    // `open_does_not_leak_out_of_the_module_that_wrote_it` 钉的是后者）。
+    let dir = temp_dir("export");
+    write(&dir, "Set.sokonanoda", &format!("{SET_LIB}export Set\n"));
+    let main = write(
+        &dir,
+        "Main.sokonanoda",
+        "import Set\n\n\
+         def use (α : Type) (a : α) (A : α -> Prop) : Prop := mem α a A\n",
+    );
+    let (code, events) = grade_json(&main);
+    assert_eq!(code, 0, "`export` must reach the importer: {events:?}");
+    assert_eq!(counts(&events).4, 0, "no diagnostics: {events:?}");
+}
+
+#[test]
+fn open_shadowed_names_warn_but_still_exit_0() {
+    // N8：遮蔽只给 warning（不是 error）——退出码 0，且 `y : Type` 说明内核
+    // 真的按「先开的 `open A` 赢」判的。
+    let dir = temp_dir("shadow");
+    let file = write(
+        &dir,
+        "Shadow.sokonanoda",
+        "namespace A\n\
+         def x : Type := Prop\n\
+         end A\n\
+         namespace B\n\
+         def x : Prop := forall (p : Prop), p -> p\n\
+         end B\n\
+         open A\n\
+         open B\n\
+         def y : Type := x\n",
+    );
+    let (code, events) = grade_json(&file);
+    assert_eq!(
+        code, 0,
+        "a shadow warning must not fail the file: {events:?}"
+    );
+    assert_eq!(
+        warning_codes(&events),
+        vec!["open-shadowed-name".to_string()],
+        "events: {events:?}"
+    );
+    let warning = events
+        .iter()
+        .find(|e| e["type"] == "warning")
+        .expect("the warning event");
+    assert!(
+        warning["hint"].as_str().is_some_and(|h| !h.is_empty()),
+        "every warning carries a hint: {warning:?}"
+    );
+    assert!(
+        checked_names(&events).contains(&"y".to_string()),
+        "the judgement still runs: {events:?}"
+    );
+}
+
+#[test]
+fn open_clause_shape_errors_are_dedicated_with_exit_1() {
+    for (tag, src) in [
+        ("empty-only", "open Foo ()\n"),
+        ("renaming-no-arrow", "open Foo renaming a b\n"),
+        ("import-body", "open Foo in import Bar\n"),
+        ("export-in", "export Foo in #check x\n"),
+        ("combined-clauses", "open Foo (a b) renaming a => c\n"),
+    ] {
+        let dir = temp_dir(tag);
+        let file = write(&dir, "Bad.sokonanoda", src);
+        let (code, events) = grade_json(&file);
+        assert_eq!(code, 1, "{tag}: {events:?}");
+        assert_eq!(
+            diagnostic_codes(&events),
+            vec!["parse-namespace-shape".to_string()],
+            "{tag}: {events:?}"
+        );
+        assert_eq!(counts(&events).0, 0, "{tag}: nothing may be checked");
+    }
+}

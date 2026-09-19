@@ -10,8 +10,19 @@ use crate::span::{Pos, Span};
 
 /// 记法命令的拼写（`parser::is_reserved_command` 与
 /// [`scan_notation_symbols`] 共用**同一份**清单）。
-pub(crate) const NOTATION_COMMANDS: &[&str] =
-    &["infix", "infixl", "infixr", "prefix", "postfix", "notation"];
+///
+/// 第三刀（§12）加 `binder_notation`：它的符号出现在 **binder 位置**
+/// （`∃ x, p`），但符号本身照样是声明驱动的（`∃` 在数学符号类里，
+/// 而 `binder_notation "Π" => …` 这类字母符号要靠预扫描进符号表）。
+pub(crate) const NOTATION_COMMANDS: &[&str] = &[
+    "infix",
+    "infixl",
+    "infixr",
+    "prefix",
+    "postfix",
+    "notation",
+    "binder_notation",
+];
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {

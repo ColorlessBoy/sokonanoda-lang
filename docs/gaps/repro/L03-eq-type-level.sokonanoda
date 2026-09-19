@@ -1,4 +1,4 @@
--- L-03 最小复现：**Type 层重写**（`Eq.rec` / `Eq.mp` / `Eq.mpr`）。
+-- L-03 最小复现：**Type 层重写**（`Eq.rec` / `Eq.ndrec` / `Eq.mp` / `Eq.mpr` / `cast`）。
 --
 -- 期望（官方 Lean 4 语义）：`Eq.rec` 的 motive 可以是任意 `α → Sort v`，于是
 -- 能在**类型层**搬运（`Eq.mp`、`cast`）；这是 Mathlib 风格库（跨类型结论、
@@ -16,22 +16,34 @@
 -- **0.60.0 起本文件干净判卷**（`scripts/soko grade` 退出码 0）：prelude 的 L1
 -- 新增 **B8 族**（`axiom Eq.rec {u, v}` + 由它定义的 `Eq.mp`/`Eq.mpr`），
 -- 签名与 Lean core 的 `Eq.rec.{u, v}` 逐字同形；B8 按族让位（文件自己声明
--- `Eq.rec`/`Eq.mp`/`Eq.mpr` 任一 ⇒ 整族让位），并依赖 Eq 公理族（`Eq` 被占用
--- 时随 B7 一起让位）。
+-- `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast` 任一 ⇒ 整族让位），并依赖 Eq
+-- 公理族（`Eq` 被占用时随 B7 一起让位）。
 --
--- 判据（本台账的契约）：下面三条**必须** checked——
+-- **0.61.0 起层级算术 `u+1` 落地**（设计 `docs/design/type-level-syntax.md` §5），
+-- B8 扩到五条：`Eq.mp`/`Eq.mpr`/`cast` 改成**宇宙多态**（`{u} (α β : Sort u)
+-- (h : @Eq.{u+1} (Sort u) α β)`，与 Lean core 的 `Eq.mp`/`Eq.mpr`/`cast` 逐字
+-- 对齐），并补上 `Eq.ndrec`（Lean core 的非依赖消去子）。
+-- **签名变更**：裸写 `Eq.mp α β h` 仍按 u = 0 实例化（本语言不给隐式实参、
+-- 也不给宇宙推断）——Type 0 的调用形状从 `Eq.mp α β h` 变成 `Eq.mp.{1} α β h`。
+--
+-- 判据（本台账的契约）：下面这些**必须** checked——
 --   ① `Vec.cast`：`@Eq.rec.{1, 1}` 沿 `Eq.{1} Nat m n` 把 `Vec A m` 搬到 `Vec A n`
 --      （motive 落 `Sort 1`，是 `Eq.subst` 的 Prop motive 做不到的）；
---   ② `id_mp` / `id_mpr`：prelude 的 `Eq.mp`/`Eq.mpr`（Type 0 实例）；
---   ③ `symm_still_there`：B7 与 Eq 公理族**不受** B8 影响（对照）。
+--   ② `id_mp` / `id_mpr` / `id_cast`：prelude 的 `Eq.mp`/`Eq.mpr`/`cast`
+--      （Type 0 实例，显式 `.{1}`）；
+--   ③ `poly_mp` / `poly_mpr` / `poly_cast`：**宇宙多态**版——`{u} (α β : Sort u)`
+--      + `@Eq.{u+1} (Sort u) α β`（层级算术 `u+1` 的两个位置：类型位与宇宙实参）；
+--   ④ `nd_symm`：`Eq.ndrec`（Lean core 的非依赖消去子）在 `Sort 0` motive 上搬运；
+--   ⑤ `symm_still_there`：B7 与 Eq 公理族**不受** B8 影响（对照）。
 --
 -- 已实测的边界（同设计 §4）：
---   · `Eq.mp`/`Eq.mpr` 是 **Type 0 实例**——源码层级语法没有 `u+1`
---     （`Eq.{u+1}` → parse `expected , or } in universe arguments, found Plus`），
---     而两个独立层级 binder 不被内核合一（`期望 Sort(v)，实际是 Sort(u + 1)`），
---     所以宇宙多态的 `Eq.mp` 今天写不出来；**通用的** `Eq.rec` 不受影响。
---   · `cast` 不另立名字：Lean core 里 `cast h a` 就是 `Eq.mp h a`，本语言不装
---     同义名（且 `cast` 已被既有测试用作自定义公理名）。
+--   · 层级加法只收**数字后缀**（Lean 的 `u+n`）：`u+v`/`max u v` 要内核的
+--     `Level::Max`，而 `EnvBuilder` 没有公开构造入口（硬规则 1：内核零改动），
+--     所以它们不在语法面内（parser 报专用诊断）。
+--   · by 引擎的判定合成声明**不带宇宙参数**（`by.rs::spec_of` 的
+--     `universe: Vec::new()`），所以目标里出现宇宙变量的 tactic 判定仍然失败
+--     （`Sort u` 在 0.60.0 就失败；`u+1` 继承同一条边界，不是本次引入）。
+--     `suggest`（快速修复）与 `judge_terms` 走 `DeclState.universe`，不受影响。
 
 inductive Vec (A : Type) : Nat -> Type
 ctor Vec.nil : Vec A Nat.zero
@@ -41,9 +53,23 @@ end
 def Vec.cast (A : Type) (m n : Nat) (h : Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=
   @Eq.rec.{1, 1} Nat m (fun (k : Nat) => Vec A k) v n h
 
-def id_mp (A : Type) : A -> A := Eq.mp A A (Eq.refl.{2} Type A)
+def id_mp (A : Type) : A -> A := Eq.mp.{1} A A (Eq.refl.{2} Type A)
 
-def id_mpr (A : Type) : A -> A := Eq.mpr A A (Eq.refl.{2} Type A)
+def id_mpr (A : Type) : A -> A := Eq.mpr.{1} A A (Eq.refl.{2} Type A)
+
+def id_cast (A : Type) : A -> A := cast.{1} A A (Eq.refl.{2} Type A)
+
+def poly_mp {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=
+  Eq.mp.{u} α β h a
+
+def poly_mpr {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (b : β) : α :=
+  Eq.mpr.{u} α β h b
+
+def poly_cast {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=
+  cast.{u} α β h a
+
+def nd_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=
+  Eq.ndrec.{1, 0} Nat a (fun (x : Nat) => Eq.{1} Nat x a) (Eq.refl.{1} Nat a) b h
 
 def symm_still_there (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=
   Eq.symm.{1} Nat a b h

@@ -2,7 +2,7 @@
 
 use super::ast::{
     Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, MatchArm, NotationAssoc,
-    NotationDecl, Pattern, RecDecl, SortKind, Tactic,
+    NotationDecl, OpenFilter, Pattern, RecDecl, SortKind, Tactic,
 };
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
 use super::span::Span;
@@ -22,15 +22,23 @@ const PLUS_PRECEDENCE: u16 = 65;
 /// 记法优先级的合法范围（N1）：严格落在 `->` 与函数应用之间。
 const NOTATION_PRECEDENCE_RANGE: std::ops::RangeInclusive<u16> = 1..=1000;
 
-/// 一条已声明的记法（`infix` 族或零元 `notation`）。
+/// 一条已声明的记法（`infix` 族 / 一元 / 零元 / binder）。
 #[derive(Debug, Clone)]
 struct NotationEntry {
     symbol: String,
-    /// 零元记法为 `None`。
+    /// 零元与 binder 记法为 `None`。
     precedence: Option<u16>,
     assoc: NotationAssoc,
     /// 点名目标（`Set.mem`）。解析期只记下来，elaborate 期才解析。
     target: String,
+}
+
+/// 一条 `scoped` 声明（第三刀 §12.3）：**默认不生效**，等
+/// `open scoped <scope>` 把它搬进 [`Parser::notations`]。
+#[derive(Debug, Clone)]
+struct ScopedNotation {
+    scope: String,
+    entry: NotationEntry,
 }
 
 /// 表达式位上的一个二元算子：内建 `+` 或一条已声明的记法。
@@ -39,8 +47,8 @@ struct BinaryOp {
     precedence: u16,
     assoc: NotationAssoc,
     symbol: String,
-    target: String,
     /// `true` ⇒ 产出 `Expr::Plus`（内建保留项），否则产出 `Expr::Notation`。
+    /// 目标候选表在构造 `Expr::Notation` 时由 `notation_node` 现取（唯一来源）。
     builtin_plus: bool,
 }
 
@@ -53,10 +61,22 @@ pub struct Parser {
     /// tactic 解析期间 > 0：让换行处的 tactic 关键字终止当前表达式，
     /// 使 `by` 块可以省略分隔用的 `;`（tactic 之间换行即分隔）。
     by_depth: usize,
-    /// **本文件已声明**的记法：符号 → 条目。作用域 = 文件内、声明之后
-    /// （`docs/design/notation-subset.md` N5），外加**继承表**里的跨 `import`
-    /// 记法（第二刀 §10.3：被导入模块声明的记法从文件头就可用）。
-    notations: HashMap<String, NotationEntry>,
+    /// **本文件已声明**的记法：符号 → 条目（声明顺序）。作用域 = 文件内、
+    /// 声明之后（`docs/design/notation-subset.md` N5），外加**继承表**里的跨
+    /// `import` 记法（第二刀 §10.3：被导入模块声明的记法从文件头就可用）。
+    ///
+    /// **同符号多条 = 记法重载**（第三刀 §12.2）：形状（结合性 + 优先级）必须
+    /// 完全一致，展开期按**期望类型**选候选。`scoped` 声明不在表里——它们在
+    /// [`Parser::scoped_pending`] 等 `open scoped`。
+    notations: HashMap<String, Vec<NotationEntry>>,
+    /// 声明过 `scoped`、还没被 `open scoped <scope>` 打开的记法（第三刀 §12.3）。
+    scoped_pending: Vec<ScopedNotation>,
+    /// 已经 `open scoped` 的作用域名（按出现顺序、去重）。
+    opened_scopes: Vec<String>,
+    /// **继承来的**符号（第二刀 §11.8）：本文件重声明它们是错误，不是重载——
+    /// 判卷通道把闭包首尾相接成一份合成源码，两个模块各声明一次会在那里撞车；
+    /// 与其让同一个程序在两条通道上得到不同答案，不如在源头就说不许。
+    inherited_symbols: std::collections::HashSet<String>,
     /// **未闭合的 `namespace` 栈**（G-05）：从外到内。声明名加前缀（N3）与
     /// `end` 同名校验（N2）都读它；`parse_file` 在文件尾校验闭合。
     namespaces: Vec<OpenNamespace>,
@@ -120,18 +140,32 @@ impl Parser {
 
     /// 带**继承记法表**的 parser（第二刀 §10.3）：被导入模块声明的记法在入口
     /// 文件里从文件头就可用（与 Lean 的 import 一致）。空继承表 ⇒ [`Parser::new`]。
+    ///
+    /// `scoped` 的继承项（`decl.scope.is_some()`）**不进**生效表，进
+    /// [`Parser::scoped_pending`]——入口文件要自己写 `open scoped <scope>`
+    /// （第三刀 §12.3）。
     pub fn with_inherited(tokens: Vec<Token>, inherited: &[NotationDecl]) -> Self {
-        let mut notations: HashMap<String, NotationEntry> = HashMap::new();
+        let mut notations: HashMap<String, Vec<NotationEntry>> = HashMap::new();
+        let mut scoped_pending: Vec<ScopedNotation> = Vec::new();
+        let mut inherited_symbols = std::collections::HashSet::new();
         for decl in inherited {
-            notations.insert(
-                decl.symbol.clone(),
-                NotationEntry {
-                    symbol: decl.symbol.clone(),
-                    precedence: decl.precedence,
-                    assoc: decl.assoc,
-                    target: decl.target.clone(),
-                },
-            );
+            let entry = NotationEntry {
+                symbol: decl.symbol.clone(),
+                precedence: decl.precedence,
+                assoc: decl.assoc,
+                target: decl.target.clone(),
+            };
+            inherited_symbols.insert(decl.symbol.clone());
+            match &decl.scope {
+                None => notations
+                    .entry(decl.symbol.clone())
+                    .or_default()
+                    .push(entry),
+                Some(scope) => scoped_pending.push(ScopedNotation {
+                    scope: scope.clone(),
+                    entry,
+                }),
+            }
         }
         Self {
             tokens,
@@ -139,8 +173,28 @@ impl Parser {
             scrutinee_depth: 0,
             by_depth: 0,
             notations,
+            scoped_pending,
+            opened_scopes: Vec::new(),
+            inherited_symbols,
             namespaces: Vec::new(),
         }
+    }
+
+    /// 该符号的**主**条目（声明顺序第一条）。所有候选的形状（结合性 +
+    /// 优先级）一致（重载的前提，见 [`Parser::register_notation`]），所以
+    /// 形状问题问第一条即权威；一条都没有 ⇒ `None`。
+    fn notation(&self, symbol: &str) -> Option<&NotationEntry> {
+        self.notations
+            .get(symbol)
+            .and_then(|entries| entries.first())
+    }
+
+    /// 该符号的**全部候选目标**（声明顺序）。单候选 ⇒ 长度 1 的向量。
+    fn notation_targets(&self, symbol: &str) -> Vec<String> {
+        self.notations
+            .get(symbol)
+            .map(|entries| entries.iter().map(|e| e.target.clone()).collect())
+            .unwrap_or_default()
     }
 
     pub fn parse_file(&mut self, src: &str) -> Result<FolFile> {
@@ -210,16 +264,25 @@ impl Parser {
             TokenKind::Ident(kw) if kw == "#reduce" => self.parse_hash_reduce(),
             TokenKind::Ident(kw) if kw == "#print" => self.parse_hash_print(),
             TokenKind::Ident(kw) if kw == "infix" || kw == "infixl" || kw == "infixr" => {
-                self.parse_infix_command()
+                self.parse_infix_command(None)
             }
             // 一元记法（第二刀 §10.1）：`prefix:N " 𝒫 " => Set.powerset`。
             TokenKind::Ident(kw) if kw == "prefix" || kw == "postfix" => {
-                self.parse_unary_notation_command()
+                self.parse_unary_notation_command(None)
             }
-            TokenKind::Ident(kw) if kw == "notation" => self.parse_notation_command(),
+            TokenKind::Ident(kw) if kw == "notation" => self.parse_notation_command(None),
+            // binder 记法（第三刀 §12.1）：`binder_notation "∃" => Exists`。
+            TokenKind::Ident(kw) if kw == "binder_notation" => {
+                self.parse_binder_notation_command(None)
+            }
+            // `scoped <记法命令>`（第三刀 §12.3）：默认不生效，等 `open scoped`。
+            TokenKind::Ident(kw) if kw == "scoped" => self.parse_scoped_notation_command(),
             TokenKind::Ident(kw) if kw == "namespace" => self.parse_namespace_command(),
             TokenKind::Ident(kw) if kw == "end" => self.parse_end_command(),
             TokenKind::Ident(kw) if kw == "open" => self.parse_open_command(),
+            // `export <名字> [<子句>]`（第二刀 §N7）：把命名空间的短名导出给
+            // **后续命令 + 导入本文件的调用方**（`open` 只对本文件）。
+            TokenKind::Ident(kw) if kw == "export" => self.parse_export_command(),
             _ => {
                 Err(self
                     .error_at_current(&format!("expected a .sokonanoda command, found {tok:?}")))
@@ -313,11 +376,305 @@ impl Parser {
     }
 
     /// `open <Ident>`（G-05 N1）：把 `<Ident>.` 加进可省略前缀集合。
+    ///
+    /// `open scoped <名字>`（第三刀 §12.3）：**只**打开记法作用域（把该作用域下
+    /// 已声明的 `scoped` 记法搬进生效表），**不**打开名字前缀——与 Lean 一致
+    /// （`open scoped Foo` 不会让 `Foo.bar` 能写成 `bar`）。
+    ///
+    /// 第二刀（§N7）加三条互斥子句与 `in` 形式：
+    ///
+    /// ```text
+    /// open Foo (a b)              -- only：只让 a、b 两个短名进来
+    /// open Foo hiding a b         -- 挡掉 a、b
+    /// open Foo renaming a => b    -- 把 a 改名叫 b
+    /// open Foo in <命令>           -- 局部：只对这一条命令生效
+    /// ```
     fn parse_open_command(&mut self) -> Result<Command> {
         let kw = self.bump();
+        if matches!(&self.peek().kind, TokenKind::Ident(word) if word == "scoped") {
+            self.bump();
+            let name = self.expect_namespace_name("open scoped")?;
+            let span = Span::new(kw.span.start, self.tokens[self.cursor - 1].span.end);
+            // `open scoped … in …` 明确不做（设计 §7）：记法生效表是 **parse 期
+            // 全局副作用**（`notations` / `scoped_pending` / `opened_scopes`），
+            // 回滚要克隆整张表；而名字 open 的 `in` 是 elab 期集合，代价为零。
+            if matches!(&self.peek().kind, TokenKind::Ident(word) if word == "in") {
+                let tok = self.peek().clone();
+                return Err(self.namespace_shape_error(
+                    "`open scoped … in …` 本轮不做：把这条命令单独写在一行即可（`open scoped Foo` 之后本文件都能用）",
+                    tok.span,
+                ));
+            }
+            self.activate_scope(&name);
+            return Ok(Command::Open {
+                name,
+                scoped: true,
+                filter: OpenFilter::default(),
+                span,
+            });
+        }
         let name = self.expect_namespace_name("open")?;
-        let span = Span::new(kw.span.start, self.tokens[self.cursor - 1].span.end);
-        Ok(Command::Open { name, span })
+        let filter = self.parse_open_filter("open")?;
+        self.reject_a_second_clause("open")?;
+        // open 头部的 span（到最后一个子句 token 为止）：`open … in …` 的合成
+        // 前缀要按源码文本补一行 open（`walk.rs`），所以**不含** `in`。
+        let header = Span::new(kw.span.start, self.tokens[self.cursor - 1].span.end);
+        if matches!(&self.peek().kind, TokenKind::Ident(word) if word == "in") {
+            self.bump();
+            let inner = self.parse_command()?;
+            if !is_open_in_body(&inner) {
+                return Err(self.namespace_shape_error(
+                    "`open … in` 后面只能跟一条声明或 `#check`/`#reduce`/`#print`",
+                    inner.span(),
+                ));
+            }
+            let span = Span::new(kw.span.start, inner.span().end);
+            return Ok(Command::OpenIn {
+                name,
+                filter,
+                inner: Box::new(inner),
+                header,
+                span,
+            });
+        }
+        Ok(Command::Open {
+            name,
+            scoped: false,
+            filter,
+            span: header,
+        })
+    }
+
+    /// `export <Ident> [<子句>]`（第二刀 §N7）：与 `open` 共用子句文法，
+    /// 但不吃 `in`（导出是**跨文件**的长期声明，不是一条命令的临时作用域）。
+    fn parse_export_command(&mut self) -> Result<Command> {
+        let kw = self.bump();
+        let name = self.expect_namespace_name("export")?;
+        let filter = self.parse_open_filter("export")?;
+        self.reject_a_second_clause("export")?;
+        if matches!(&self.peek().kind, TokenKind::Ident(word) if word == "in") {
+            let tok = self.peek().clone();
+            return Err(self.namespace_shape_error(
+                "`export` 不吃 `in`：要只影响一条命令请用 `open Foo in <命令>`",
+                tok.span,
+            ));
+        }
+        Ok(Command::Export {
+            name,
+            filter,
+            span: Span::new(kw.span.start, self.tokens[self.cursor - 1].span.end),
+        })
+    }
+
+    /// 子句**最多一条**（§N7.1）：`open Foo (a b) renaming a => c` 这类组合的
+    /// 先后顺序（先过滤还是先改名）本轮**没有取证**（硬规则 2），所以不猜、
+    /// 直接报**专用**形状错——不落进通用 `unexpected-token`（那个错会让人以为
+    /// 是拼写问题）。
+    fn reject_a_second_clause(&mut self, keyword: &str) -> Result<()> {
+        let tok = self.peek().clone();
+        let second = match &tok.kind {
+            TokenKind::LParen => true,
+            TokenKind::Ident(word) => word == "hiding" || word == "renaming",
+            _ => false,
+        };
+        if second {
+            return Err(self.namespace_shape_error(
+                &format!(
+                    "`{keyword}` 的子句最多写一条：`(a b)`（only）/ `hiding a b` / `renaming a => b` 三条**互斥**——组合起来的先后顺序本轮没取证，所以不猜"
+                ),
+                tok.span,
+            ));
+        }
+        Ok(())
+    }
+
+    /// `open`/`export` 后面的**互斥子句**（§N7）：`(a b)` / `hiding a b` /
+    /// `renaming a => b, c => d`，最多一条；一条都没有 ⇒ 空子句。
+    ///
+    /// 为什么互斥：组合（`open Foo (a b) renaming a => c`）在 Lean 里能写，
+    /// 但两条规则的**先后**（先过滤后改名 vs 反过来）没有取证（硬规则 2），
+    /// 教学语法不落没取证的语义（设计 §6 差异 7）。
+    fn parse_open_filter(&mut self, keyword: &str) -> Result<OpenFilter> {
+        let tok = self.peek().clone();
+        match &tok.kind {
+            TokenKind::LParen => {
+                self.bump();
+                let mut names = Vec::new();
+                loop {
+                    match self.peek().kind.clone() {
+                        TokenKind::Ident(_) => {
+                            names.push(self.expect_short_name(keyword)?);
+                        }
+                        TokenKind::RParen => {
+                            self.bump();
+                            break;
+                        }
+                        other => {
+                            return Err(self.namespace_shape_error(
+                                &format!(
+                                    "`{keyword} Foo (a b)` 里只能是短名，found {other:?}（例如 `{keyword} Foo (mem union)`）"
+                                ),
+                                self.peek().span,
+                            ))
+                        }
+                    }
+                }
+                if names.is_empty() {
+                    return Err(self.namespace_shape_error(
+                        &format!("`{keyword} Foo ()` 是空的：要么写名字，要么整条子句去掉"),
+                        tok.span,
+                    ));
+                }
+                Ok(OpenFilter {
+                    only: Some(names),
+                    ..OpenFilter::default()
+                })
+            }
+            TokenKind::Ident(word) if word == "hiding" => {
+                self.bump();
+                let mut names = Vec::new();
+                // 只吃**短名**：`def`/`#check`/`in` 这些关键字（以及 `open A
+                // hiding x` 后面那条命令的开头）不是列表的一部分。
+                while self.short_name_ahead() {
+                    names.push(self.expect_short_name(keyword)?);
+                }
+                if names.is_empty() {
+                    return Err(self.namespace_shape_error(
+                        &format!("`{keyword} Foo hiding` 后面要跟至少一个短名"),
+                        tok.span,
+                    ));
+                }
+                Ok(OpenFilter {
+                    hiding: names,
+                    ..OpenFilter::default()
+                })
+            }
+            TokenKind::Ident(word) if word == "renaming" => {
+                self.bump();
+                let mut pairs = Vec::new();
+                loop {
+                    let from = self.expect_short_name(keyword)?;
+                    if self.peek().kind != TokenKind::FatArrow {
+                        let tok = self.peek().clone();
+                        return Err(self.namespace_shape_error(
+                            &format!(
+                                "`{keyword} Foo renaming a => b` 里 `a` 与 `b` 之间要写 `=>`，found {:?}",
+                                tok.kind
+                            ),
+                            tok.span,
+                        ));
+                    }
+                    self.bump();
+                    let to = self.expect_short_name(keyword)?;
+                    pairs.push((from, to));
+                    if self.peek().kind == TokenKind::Comma {
+                        self.bump();
+                        continue;
+                    }
+                    break;
+                }
+                Ok(OpenFilter {
+                    renaming: pairs,
+                    ..OpenFilter::default()
+                })
+            }
+            _ => Ok(OpenFilter::default()),
+        }
+    }
+
+    /// 下一个 token 是不是子句列表里的短名（`hiding a b` 的列表边界）。
+    ///
+    /// `hiding`/`renaming` 在这里当**子句关键字**：列表到它们就停，于是
+    /// `open Foo hiding a renaming b => c`（组合子句）会落到
+    /// [`Parser::reject_a_second_clause`] 的专用形状错，而不是把 `renaming`
+    /// 当成一个短名默默吞掉。代价：命名空间里叫 `hiding`/`renaming` 的成员
+    /// 不能用 `hiding` 列表挡（`(hiding renaming)` 的 only 列表照旧可用）。
+    fn short_name_ahead(&self) -> bool {
+        matches!(
+            &self.peek().kind,
+            TokenKind::Ident(name)
+                if !is_namespace_name_keyword(name)
+                    && name != "in"
+                    && name != "hiding"
+                    && name != "renaming"
+        )
+    }
+
+    /// `open`/`export` 子句里的**短名**（不带点）：`Foo.mem` 这种点名在子句里
+    /// 没有意义（候选会变成 `Foo.Foo.mem`），所以直接报形状错。
+    fn expect_short_name(&mut self, keyword: &str) -> Result<String> {
+        let tok = self.peek().clone();
+        match tok.kind.clone() {
+            TokenKind::Ident(name) if !name.ends_with('.') && !is_namespace_name_keyword(&name) => {
+                if name.contains('.') {
+                    return Err(self.namespace_shape_error(
+                        &format!("`{keyword}` 的子句里只写**短名**（不带前缀）：`{name}` 去掉点前面的部分"),
+                        tok.span,
+                    ));
+                }
+                self.bump();
+                Ok(name)
+            }
+            other => Err(self.namespace_shape_error(
+                &format!("`{keyword}` 的子句里要跟短名，found {other:?}"),
+                tok.span,
+            )),
+        }
+    }
+
+    /// `open scoped <scope>`：把该作用域下**已经声明**的记法搬进生效表，并记住
+    /// 「这个作用域开着」——之后在同作用域里声明的 `scoped` 记法直接生效。
+    fn activate_scope(&mut self, scope: &str) {
+        if !self.opened_scopes.iter().any(|open| open == scope) {
+            self.opened_scopes.push(scope.to_string());
+        }
+        let mut index = 0;
+        while index < self.scoped_pending.len() {
+            if self.scoped_pending[index].scope == scope {
+                let pending = self.scoped_pending.remove(index);
+                self.push_entry(pending.entry);
+            } else {
+                index += 1;
+            }
+        }
+    }
+
+    /// 把一条记法追加进生效表（同符号 = 重载的又一个候选）。
+    fn push_entry(&mut self, entry: NotationEntry) {
+        self.notations
+            .entry(entry.symbol.clone())
+            .or_default()
+            .push(entry);
+    }
+
+    /// `scoped <记法命令>`（第三刀 §12.3）：作用域名 = 声明点所在 `namespace`
+    /// 的累积全前缀（与 Lean 一致：`namespace Foo` 里的 `scoped` 记法由
+    /// `open scoped Foo` 打开）。
+    fn parse_scoped_notation_command(&mut self) -> Result<Command> {
+        let kw = self.bump();
+        let Some(scope) = self.current_namespace().map(str::to_string) else {
+            return Err(self.notation_shape_error(
+                "`scoped` 要写在 `namespace` 里：作用域名就是那个命名空间，之后用 `open scoped <名字>` 打开它",
+                kw.span,
+            ));
+        };
+        let tok = self.peek().clone();
+        match &tok.kind {
+            TokenKind::Ident(word) if word == "infix" || word == "infixl" || word == "infixr" => {
+                self.parse_infix_command(Some(scope))
+            }
+            TokenKind::Ident(word) if word == "prefix" || word == "postfix" => {
+                self.parse_unary_notation_command(Some(scope))
+            }
+            TokenKind::Ident(word) if word == "notation" => self.parse_notation_command(Some(scope)),
+            TokenKind::Ident(word) if word == "binder_notation" => {
+                self.parse_binder_notation_command(Some(scope))
+            }
+            _ => Err(self.notation_shape_error(
+                "`scoped` 后面要跟一条记法命令（infix/infixl/infixr/prefix/postfix/notation/binder_notation）",
+                tok.span,
+            )),
+        }
     }
 
     /// `namespace` / `open` 后面那个点分名字（N1）。
@@ -341,7 +698,7 @@ impl Parser {
     /// `infix:N " sym " => name` / `infixl` / `infixr`（G-04 / WO-011）。
     /// `N` 必填且落在 `NOTATION_PRECEDENCE_RANGE`；符号是字符串字面量，
     /// 取 `trim` 后的内容（两侧空格是书写习惯）。
-    fn parse_infix_command(&mut self) -> Result<Command> {
+    fn parse_infix_command(&mut self, scope: Option<String>) -> Result<Command> {
         let kw_tok = self.bump();
         let TokenKind::Ident(keyword) = kw_tok.kind.clone() else {
             unreachable!("parse_infix_command is only called on an infix keyword");
@@ -363,6 +720,7 @@ impl Parser {
             Some(precedence),
             assoc,
             target.clone(),
+            scope.clone(),
             span,
         )?;
         Ok(Command::Notation {
@@ -370,6 +728,7 @@ impl Parser {
             precedence: Some(precedence),
             assoc,
             target,
+            scope,
             span,
         })
     }
@@ -377,7 +736,7 @@ impl Parser {
     /// `prefix:N " sym " => name` / `postfix:N " sym " => name`（第二刀 §10.1）：
     /// 一元记法。命令形状与 `infix` 族**逐段共用**（优先级必填、符号是字符串
     /// 字面量、`=>` 指目标），只有结合性字段不同。
-    fn parse_unary_notation_command(&mut self) -> Result<Command> {
+    fn parse_unary_notation_command(&mut self, scope: Option<String>) -> Result<Command> {
         let kw_tok = self.bump();
         let TokenKind::Ident(keyword) = kw_tok.kind.clone() else {
             unreachable!("parse_unary_notation_command is only called on a unary keyword");
@@ -398,6 +757,7 @@ impl Parser {
             Some(precedence),
             assoc,
             target.clone(),
+            scope.clone(),
             span,
         )?;
         Ok(Command::Notation {
@@ -405,12 +765,13 @@ impl Parser {
             precedence: Some(precedence),
             assoc,
             target,
+            scope,
             span,
         })
     }
 
     /// `notation " sym " => name`（零元常量记法；不写优先级，照 core 的 `∅` 行）。
-    fn parse_notation_command(&mut self) -> Result<Command> {
+    fn parse_notation_command(&mut self, scope: Option<String>) -> Result<Command> {
         let kw_tok = self.bump();
         // `notation:max` 这类写法 v1 不支持（设计「已知差异 4」）：报专用诊断
         // 而不是让 `:max` 落进通用错误。
@@ -430,6 +791,7 @@ impl Parser {
             None,
             NotationAssoc::Nullary,
             target.clone(),
+            scope.clone(),
             span,
         )?;
         Ok(Command::Notation {
@@ -437,6 +799,41 @@ impl Parser {
             precedence: None,
             assoc: NotationAssoc::Nullary,
             target,
+            scope,
+            span,
+        })
+    }
+
+    /// `binder_notation " sym " => name`（第三刀 §12.1）：**binder 位置**的
+    /// 记法。与 `notation` 同形（不写优先级），只是结合性字段是
+    /// [`NotationAssoc::Binder`]，使用形态是 `∃ x, p` / `∃ x ∈ s, p`。
+    fn parse_binder_notation_command(&mut self, scope: Option<String>) -> Result<Command> {
+        let kw_tok = self.bump();
+        if self.peek().kind == TokenKind::Colon {
+            return Err(self.notation_shape_error(
+                "binder_notation 不写优先级（binder 记法没有左右操作数）：写 binder_notation \"∃\" => Exists 即可",
+                self.peek().span,
+            ));
+        }
+        let (symbol, _) = self.parse_notation_symbol("binder_notation")?;
+        self.expect_notation_arrow("binder_notation")?;
+        let target = self.expect_ident("a notation target name")?;
+        let end = self.tokens[self.cursor - 1].span.end;
+        let span = Span::new(kw_tok.span.start, end);
+        self.register_notation(
+            symbol.clone(),
+            None,
+            NotationAssoc::Binder,
+            target.clone(),
+            scope.clone(),
+            span,
+        )?;
+        Ok(Command::Notation {
+            symbol,
+            precedence: None,
+            assoc: NotationAssoc::Binder,
+            target,
+            scope,
             span,
         })
     }
@@ -533,45 +930,85 @@ impl Parser {
         }
     }
 
-    /// 登记一条记法；同一符号重复声明是 v1 的**错误**（设计「已知差异 6」：
-    /// Lean 允许重载，本子集不做）。
+    /// 登记一条记法。三条规则（第三刀 §12.2/§12.3 的合成）：
     ///
-    /// 第二刀把这条规则**延伸到继承来的符号**：本文件重声明一个 import 来的
-    /// 符号也报错。理由不只是"少一条规则"——判卷通道会把闭包**首尾相接**成
-    /// 一份合成源码（`judge.rs` 的前缀），两个模块各声明一次 `∪` 在那里必然
-    /// 撞车；与其让同一个程序在两条通道上得到不同答案，不如在源头就说不许。
-    /// 想要换目标就换个符号（或改依赖）。
+    /// 1. **继承来的符号**（import 带的）重声明是错误（第二刀 §11.8，原样保留）；
+    /// 2. **本文件里同符号、同形状**（结合性 + 优先级一致）⇒ **重载**：又一个
+    ///    候选目标，展开期按期望类型选（第三刀 §12.2）；
+    /// 3. **同符号、不同形状** ⇒ 错误：`a ⊕ b` 与 `⊕ a` 是两种读法，parser
+    ///    没法在同一个符号上同时成立（要两种形状就换符号）。
+    ///
+    /// `scope` 是 `Some(作用域名)` 时先挂起（`scoped` 声明），等
+    /// `open scoped <作用域名>` 搬进生效表。
     fn register_notation(
         &mut self,
         symbol: String,
         precedence: Option<u16>,
         assoc: NotationAssoc,
         target: String,
+        scope: Option<String>,
         span: Span,
     ) -> Result<()> {
-        if self.notations.contains_key(&symbol) {
+        if self.inherited_symbols.contains(&symbol) {
             return Err(self.notation_shape_error(
                 &format!(
-                    "符号 `{symbol}` 已经声明过记法了（本文件里写过，或由 import 带进来）：同一符号只能声明一次；换个符号，或改依赖"
+                    "符号 `{symbol}` 已经声明过记法了（由 import 带进来）：同一个符号在**同一文件**里可以重载，但不能覆盖 import 来的记法；换个符号，或改依赖"
                 ),
                 span,
             ));
         }
-        self.notations.insert(
-            symbol.clone(),
-            NotationEntry {
-                symbol,
-                precedence,
-                assoc,
-                target,
-            },
-        );
+        let clash = self
+            .notations
+            .get(&symbol)
+            .and_then(|entries| entries.first())
+            .map(|entry| (entry.assoc, entry.precedence))
+            .or_else(|| {
+                self.scoped_pending
+                    .iter()
+                    .find(|pending| pending.entry.symbol == symbol)
+                    .map(|pending| (pending.entry.assoc, pending.entry.precedence))
+            });
+        if let Some((existing_assoc, existing_precedence)) = clash {
+            if existing_assoc != assoc || existing_precedence != precedence {
+                return Err(self.notation_shape_error(
+                    &format!(
+                        "符号 `{symbol}` 已经用另一种形状声明过了：同一个符号上的重载必须形状一致（结合性与优先级都相同）；要换形状就换个符号"
+                    ),
+                    span,
+                ));
+            }
+        }
+        let entry = NotationEntry {
+            symbol,
+            precedence,
+            assoc,
+            target,
+        };
+        match scope {
+            Some(scope) if !self.opened_scopes.contains(&scope) => {
+                self.scoped_pending.push(ScopedNotation { scope, entry });
+            }
+            _ => self.push_entry(entry),
+        }
         Ok(())
     }
 
     fn notation_shape_error(&self, detail: &str, span: Span) -> Diagnostic {
         Diagnostic::new(
             DiagnosticKind::NotationShape {
+                detail: detail.to_string(),
+            },
+            span,
+            detail.to_string(),
+        )
+    }
+
+    /// 作用域命令（`namespace`/`end`/`open`/`export`）的形状错：与
+    /// `namespace`/`end` 共用 `parse-namespace-shape` 与同一段 hint（第二刀
+    /// 的子句/`in` 也是这三条命令的形状的一部分）。
+    fn namespace_shape_error(&self, detail: &str, span: Span) -> Diagnostic {
+        Diagnostic::new(
+            DiagnosticKind::NamespaceShape {
                 detail: detail.to_string(),
             },
             span,
@@ -1088,6 +1525,11 @@ impl Parser {
     fn parse_expr(&mut self) -> Result<Expr> {
         match &self.peek().kind {
             TokenKind::Forall => self.parse_forall(),
+            // binder 记法（第三刀 §12.1）：`∃ x, p`。与 `∀` 同一层——它一直
+            // 吃到表达式结尾（body = `parse_expr`）。
+            TokenKind::Sym(symbol) if self.is_binder_notation(symbol) => {
+                self.parse_binder_notation()
+            }
             TokenKind::Ident(kw) if kw == "fun" => self.parse_lambda(),
             TokenKind::Ident(kw) if kw == "let" => self.parse_let(),
             TokenKind::Ident(kw) if kw == "match" => self.parse_match(),
@@ -1386,7 +1828,13 @@ impl Parser {
     /// `p + 1`（右结合）。`infix` 与 `infixl` 在这一层同形；`infix` 的
     /// 「不许连写」由 `parse_notation_operand` 的**同级检查**实现。
     fn parse_operators(&mut self, min_precedence: u16) -> Result<Expr> {
-        let mut lhs = self.parse_app()?;
+        let lhs = self.parse_app()?;
+        self.parse_operators_from(lhs, min_precedence)
+    }
+
+    /// 从**已经解析好的**左操作数继续爬升。两段式 binder 的 guard（`x ∈ s`）
+    /// 需要它：binder 名已经在手，不必再当原子读一遍（第三刀 §12.1）。
+    fn parse_operators_from(&mut self, mut lhs: Expr, min_precedence: u16) -> Result<Expr> {
         loop {
             // **后缀记法**（第二刀 §10.1）：`Aᶜ`。与二元算子共用同一条梯子——
             // `N >= min_precedence` 才吸收，所以 N 越大绑得越紧（`A ∪ Bᶜ` 在
@@ -1395,21 +1843,20 @@ impl Parser {
                 let entry = entry.clone();
                 let tok = self.bump();
                 let span = Span::new(lhs.span().start, tok.span.end);
-                lhs = Expr::Notation {
-                    symbol: entry.symbol.clone(),
-                    target: entry.target.clone(),
-                    assoc: NotationAssoc::Postfix,
-                    lhs: Some(Box::new(lhs)),
-                    rhs: None,
+                lhs = self.notation_node(
+                    &entry.symbol,
+                    NotationAssoc::Postfix,
+                    Some(Box::new(lhs)),
+                    None,
                     span,
-                };
+                );
                 continue;
             }
             // 未声明符号：报**专用**诊断（hint 给「先声明」与「点名写法」），
             // 而不是让 `parse_file`/`parse_command` 用通用的 unexpected-token
             // 糊过去（设计 N2/N5）。
             if let TokenKind::Sym(symbol) = &self.peek().kind {
-                if !self.notations.contains_key(symbol) {
+                if self.notation(symbol).is_none() {
                     let span = self.peek().span;
                     let symbol = symbol.clone();
                     return Err(self.unknown_symbol_error(&symbol, span));
@@ -1420,9 +1867,13 @@ impl Parser {
                 // 只在它**在这个层级本来就该被吸收**时报（`N >= min_precedence`）：
                 // 绑得更松的一元符号要让爬升照常结束，交给外层吸收——
                 // `A ∪ Bᶜ`（`ᶜ`=50 < `∪`=65）正是靠这一条读成 `(A ∪ B)ᶜ`。
-                if let Some(entry) = self.notations.get(symbol) {
+                if let Some(entry) = self.notation(symbol) {
                     let binds_here = entry.precedence.is_some_and(|p| p >= min_precedence);
-                    if !entry.assoc.is_binary() && binds_here {
+                    // binder 记法没有优先级，永远不在算子位上：`binds_here` 对它
+                    // 恒为假，所以单独放行（第三刀 §12.1）。
+                    if entry.assoc == NotationAssoc::Binder
+                        || (!entry.assoc.is_binary() && binds_here)
+                    {
                         let span = self.peek().span;
                         let message = match entry.assoc {
                             NotationAssoc::Prefix => format!(
@@ -1430,6 +1881,9 @@ impl Parser {
                             ),
                             NotationAssoc::Nullary => format!(
                                 "`{symbol}` 是零元记法（一个常量），不能当算子用"
+                            ),
+                            NotationAssoc::Binder => format!(
+                                "`{symbol}` 是 **binder 记法**：它要写在表达式**开头**（例如 {symbol} x, p），不能夹在两个操作数中间"
                             ),
                             _ => format!("`{symbol}` 不能出现在这里"),
                         };
@@ -1455,14 +1909,13 @@ impl Parser {
                     span,
                 }
             } else {
-                Expr::Notation {
-                    symbol: op.symbol.clone(),
-                    target: op.target.clone(),
-                    assoc: op.assoc,
-                    lhs: Some(Box::new(lhs)),
-                    rhs: Some(Box::new(rhs)),
+                self.notation_node(
+                    &op.symbol,
+                    op.assoc,
+                    Some(Box::new(lhs)),
+                    Some(Box::new(rhs)),
                     span,
-                }
+                )
             };
         }
         Ok(lhs)
@@ -1496,14 +1949,13 @@ impl Parser {
                 precedence: PLUS_PRECEDENCE,
                 assoc: NotationAssoc::Infixl,
                 symbol: "+".to_string(),
-                target: "Nat.add".to_string(),
                 builtin_plus: true,
             },
             TokenKind::Sym(symbol) => {
                 // 未声明符号：**不是**算子（`None`）——留给 `starts_atom`/调用方
                 // 报「未声明符号」的专用诊断，而不是在这里假装爬升结束。
-                let entry = self.notations.get(symbol)?;
-                // 只有**二元**结合性在梯子上（第二刀：前缀/后缀/零元都不在）。
+                let entry = self.notation(symbol)?;
+                // 只有**二元**结合性在梯子上（第二刀：前缀/后缀/零元/binder 都不在）。
                 if !entry.assoc.is_binary() {
                     return None;
                 }
@@ -1512,7 +1964,6 @@ impl Parser {
                     precedence,
                     assoc: entry.assoc,
                     symbol: entry.symbol.clone(),
-                    target: entry.target.clone(),
                     builtin_plus: false,
                 }
             }
@@ -1527,7 +1978,7 @@ impl Parser {
         let TokenKind::Sym(symbol) = &self.peek().kind else {
             return None;
         };
-        let entry = self.notations.get(symbol)?;
+        let entry = self.notation(symbol)?;
         if entry.assoc != NotationAssoc::Postfix {
             return None;
         }
@@ -1541,17 +1992,32 @@ impl Parser {
 
     /// 零元记法：`Sym(s)` 且已声明为 `Nullary` ⇒ 记号节点。
     fn parse_nullary_notation(&mut self, symbol: &str, tok: &Token) -> Expr {
-        let entry = self
-            .notations
-            .get(symbol)
-            .expect("parse_nullary_notation is only called for a declared nullary notation");
+        self.notation_node(symbol, NotationAssoc::Nullary, None, None, tok.span)
+    }
+
+    /// 拼一个记号节点：**目标候选表**（第三刀 §12.2 的重载）从当前生效表里取，
+    /// 第一个是主目标，其余进 `alternatives`（单候选时为空）。
+    fn notation_node(
+        &self,
+        symbol: &str,
+        assoc: NotationAssoc,
+        lhs: Option<Box<Expr>>,
+        rhs: Option<Box<Expr>>,
+        span: Span,
+    ) -> Expr {
+        let targets = self.notation_targets(symbol);
+        let (target, alternatives) = match targets.split_first() {
+            Some((first, rest)) => (first.clone(), rest.to_vec()),
+            None => (String::new(), Vec::new()),
+        };
         Expr::Notation {
-            symbol: entry.symbol.clone(),
-            target: entry.target.clone(),
-            assoc: NotationAssoc::Nullary,
-            lhs: None,
-            rhs: None,
-            span: tok.span,
+            symbol: symbol.to_string(),
+            target,
+            assoc,
+            lhs,
+            rhs,
+            alternatives,
+            span,
         }
     }
 
@@ -1570,8 +2036,20 @@ impl Parser {
 
     fn parse_app(&mut self) -> Result<Expr> {
         let mut fun = self.parse_prefix_head()?;
-        while self.starts_atom() {
-            let arg = self.parse_atom()?;
+        loop {
+            // **一元前缀记法在实参位免括号**（第三刀 §12.5）：`f 𝒫 A` 就是
+            // `f (𝒫 A)`。今天它是**响亮的 parse 错**（"前缀记法不能夹在两个
+            // 操作数中间"），所以放开是纯增量——不改任何既有程序的分组。
+            //
+            // **后缀**不在此列：`f Aᶜ` 今天读成 `(f A)ᶜ`（后置算子在梯子上
+            // 吸收整个应用），改了会**悄悄重分组**既有程序。
+            let arg = if self.starts_atom() {
+                self.parse_atom()?
+            } else if self.prefix_notation_ahead() {
+                self.parse_prefix_head()?
+            } else {
+                break;
+            };
             let span = Span::new(fun.span().start, arg.span().end);
             fun = Expr::App {
                 fun: Box::new(fun),
@@ -1582,12 +2060,22 @@ impl Parser {
         Ok(fun)
     }
 
+    /// 下一个 token 是不是**已声明的前缀记法符号**（实参位免括号的判据）。
+    fn prefix_notation_ahead(&self) -> bool {
+        match &self.peek().kind {
+            TokenKind::Sym(symbol) => self
+                .notation(symbol)
+                .is_some_and(|entry| entry.assoc == NotationAssoc::Prefix),
+            _ => false,
+        }
+    }
+
     /// **前缀记法**（第二刀 §10.1）：`𝒫 A`。操作数按 `parse_operators(N)` 解析，
     /// 所以 N 越大绑得越紧（`𝒫 A ∪ B` 在 `𝒫`=100 时是 `(𝒫 A) ∪ B`，在 50 时
     /// 是 `𝒫 (A ∪ B)`）。不是前缀记法 ⇒ 普通原子。
     fn parse_prefix_head(&mut self) -> Result<Expr> {
         let entry = match &self.peek().kind {
-            TokenKind::Sym(symbol) => match self.notations.get(symbol) {
+            TokenKind::Sym(symbol) => match self.notation(symbol) {
                 Some(entry) if entry.assoc == NotationAssoc::Prefix => entry.clone(),
                 _ => return self.parse_atom(),
             },
@@ -1596,14 +2084,13 @@ impl Parser {
         let tok = self.bump();
         let operand = self.parse_operators(entry.precedence.unwrap_or(0))?;
         let span = Span::new(tok.span.start, operand.span().end);
-        Ok(Expr::Notation {
-            symbol: entry.symbol,
-            target: entry.target,
-            assoc: NotationAssoc::Prefix,
-            lhs: None,
-            rhs: Some(Box::new(operand)),
+        Ok(self.notation_node(
+            &entry.symbol,
+            NotationAssoc::Prefix,
+            None,
+            Some(Box::new(operand)),
             span,
-        })
+        ))
     }
 
     fn starts_atom(&self) -> bool {
@@ -1618,20 +2105,104 @@ impl Parser {
             }
             TokenKind::Num(_) | TokenKind::Hole | TokenKind::LParen | TokenKind::At => true,
             TokenKind::Forall => true,
+            // 集合字面量（第三刀 §12.4）：`{a}` / `{a, b}` 是原子（`f {a}`
+            // 合法）；`{x : T}` 形状**不是**（那是 binder，binder 位置在
+            // `∀`/`fun`/声明里，见 `set_literal_ahead`）。
+            TokenKind::LBrace => self.set_literal_ahead(),
             // 记法符号**不得**被当作应用实参：已声明的**零元**记法是一个原子
             // （`f ∅` 合法），二元/前缀记法与未声明符号都让路（设计 N2/N3、
             // 第二刀 §10.1——`f 𝒫 A` 要写成 `f (𝒫 A)`）。
             TokenKind::Sym(symbol) => self
-                .notations
-                .get(symbol)
+                .notation(symbol)
                 .is_some_and(|entry| entry.assoc == NotationAssoc::Nullary),
             _ => false,
         }
     }
 
+    /// `{a}` / `{a, b}` 的 lookahead（第三刀 §12.4）：`{` 后面**不是** binder
+    /// 形状（`{x : T}` / `{x y : T}`，判据与 `push_binders` 的
+    /// `named_group_ahead` 同一份）就算集合字面量。
+    fn set_literal_ahead(&self) -> bool {
+        if self.peek().kind != TokenKind::LBrace {
+            return false;
+        }
+        !self.brace_binder_ahead()
+    }
+
+    /// `{` 里是不是 binder 形状 `{x : T}` / `{x y : T}`（G-05 的
+    /// `named_group_ahead` 只看 `(`/`{` 两种，这里只问 `{`）。
+    fn brace_binder_ahead(&self) -> bool {
+        let toks = &self.tokens;
+        let mut i = self.cursor;
+        if !matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::LBrace)) {
+            return false;
+        }
+        i += 1;
+        if matches!(
+            toks.get(i).map(|t| &t.kind),
+            Some(TokenKind::Ident(name)) if is_expr_keyword(name) || name.as_str() == "fun"
+        ) {
+            return false;
+        }
+        let mut saw_ident = false;
+        while matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Ident(_))) {
+            saw_ident = true;
+            i += 1;
+        }
+        saw_ident && matches!(toks.get(i).map(|t| &t.kind), Some(TokenKind::Colon))
+    }
+
+    /// `{a}` / `{a, b}`（第三刀 §12.4）：1–2 个元素，展开成点名形式
+    /// `Set.singleton α a` / `Set.pair α a b`（elab 侧，与 `+` → `Nat.add` 同族）。
+    /// 空 `{}` 与三个以上元素给**专用诊断**（v1 不做 `insert` 链）。
+    fn parse_set_literal(&mut self, open: Span) -> Result<Expr> {
+        if self.peek().kind == TokenKind::RBrace {
+            let close = self.peek().span;
+            return Err(Diagnostic::new(
+                DiagnosticKind::SetLiteralShape {
+                    detail: "空集合字面量 `{}`".to_string(),
+                },
+                Span::new(open.start, close.end),
+                "空集合字面量 `{}` 不合法：空集请写点名形式 Set.empty α".to_string(),
+            ));
+        }
+        let mut elements = vec![self.parse_expr()?];
+        while self.peek().kind == TokenKind::Comma {
+            self.bump();
+            elements.push(self.parse_expr()?);
+        }
+        let close = self.peek().clone();
+        if close.kind != TokenKind::RBrace {
+            return Err(Diagnostic::new(
+                DiagnosticKind::SetLiteralShape {
+                    detail: format!("expected `}}`, found {:?}", close.kind),
+                },
+                close.span,
+                "集合字面量要写成 {a} 或 {a, b}：元素之间用 `,` 隔开，最后用 `}` 收尾".to_string(),
+            ));
+        }
+        self.bump();
+        if elements.len() > 2 {
+            return Err(Diagnostic::new(
+                DiagnosticKind::SetLiteralShape {
+                    detail: format!("{} elements", elements.len()),
+                },
+                Span::new(open.start, close.span.end),
+                "集合字面量 v1 只支持 1–2 个元素（`{a}` / `{a, b}`）：三个及以上请用点名形式 Set.pair 自己嵌套"
+                    .to_string(),
+            ));
+        }
+        Ok(Expr::SetLiteral {
+            elements,
+            span: Span::new(open.start, close.span.end),
+        })
+    }
+
     fn parse_atom(&mut self) -> Result<Expr> {
         let tok = self.bump();
         match tok.kind {
+            // 集合字面量（第三刀 §12.4）：`{a}` / `{a, b}`。
+            TokenKind::LBrace => self.parse_set_literal(tok.span),
             TokenKind::At => {
                 let tok = self.bump();
                 match tok.kind {
@@ -1660,7 +2231,7 @@ impl Parser {
             // 落在算子位上（`parse_operators` 消费），前缀记法在 `parse_app`
             // 头部消费；未声明符号在这里报专用诊断（**不是** `unknown
             // identifier`，设计 N2/N5）。
-            TokenKind::Sym(ref symbol) => match self.notations.get(symbol) {
+            TokenKind::Sym(ref symbol) => match self.notation(symbol) {
                 Some(entry) if entry.assoc == NotationAssoc::Nullary => {
                     Ok(self.parse_nullary_notation(symbol, &tok))
                 }
@@ -1685,36 +2256,34 @@ impl Parser {
             TokenKind::Ident(name) if name == "Type" => {
                 // `Type` 单独出现是 `Sort 1`；`Type n` 是 Lean 记法，等于
                 // `Sort (n + 1)`（Lean 里 `Type u = Sort (u + 1)`）。
-                let next_num = match &self.peek().kind {
-                    TokenKind::Num(value) => Some(value.clone()),
-                    _ => None,
-                };
-                if let Some(value) = next_num {
-                    let level_tok = self.bump();
-                    let n = value.parse::<u64>().map_err(|_| {
-                        Diagnostic::new(
-                            DiagnosticKind::UnexpectedToken {
-                                found: value.clone(),
-                                expected: "a universe level".to_string(),
-                            },
-                            level_tok.span,
-                            "Type expects a universe level".to_string(),
-                        )
-                    })?;
-                    let n = n.checked_add(1).ok_or_else(|| {
-                        Diagnostic::new(
-                            DiagnosticKind::UnexpectedToken {
-                                found: value.clone(),
-                                expected: "a universe level".to_string(),
-                            },
-                            level_tok.span,
-                            "universe level is too large".to_string(),
-                        )
-                    })?;
-                    return Ok(Expr::Sort {
-                        sort: SortKind::Sort(n),
-                        span: Span::new(tok.span.start, level_tok.span.end),
-                    });
+                //
+                // 层级算术（`Type (u+1)`，见 `parse_level_text`）：只吃**数字**或
+                // **括号**开头的层级，**不吃**裸标识符——`Eq.refl.{2} Type A`
+                // 这类「`Type` 作实参、紧跟另一个实参」的既有写法必须保持
+                // 应用语义（`Type u` 仍按不支持处理，见设计 §5）。
+                let paren_or_num =
+                    matches!(self.peek().kind, TokenKind::Num(_) | TokenKind::LParen);
+                if paren_or_num {
+                    let start = tok.span.start;
+                    let text = self.parse_level_text()?;
+                    let end = self.tokens[self.cursor - 1].span.end;
+                    let span = Span::new(start, end);
+                    let sort = match text.parse::<u64>() {
+                        // `Type 0` 与 `Type (0)` 走同一条（`SortKind::Sort`）。
+                        Ok(n) => SortKind::Sort(
+                            n.checked_add(1)
+                                .ok_or_else(|| self.level_too_large_error(&text, span))?,
+                        ),
+                        // 纯数字但超出 u64：仍是**解析期**的"层级过大"诊断
+                        // （与 0.59.0 的 `Type <巨大数字>` 同一条），不许静默
+                        // 降级成 elab 期的 `unknown universe level`。
+                        Err(_) if text.chars().all(|c| c.is_ascii_digit()) => {
+                            return Err(self.level_too_large_error(&text, span));
+                        }
+                        // `Type (u+1)` = `Sort (u+1+1)`。
+                        Err(_) => SortKind::Level(format!("{text}+1")),
+                    };
+                    return Ok(Expr::Sort { sort, span });
                 }
                 Ok(Expr::Sort {
                     sort: SortKind::Type,
@@ -1722,39 +2291,20 @@ impl Parser {
                 })
             }
             TokenKind::Ident(name) if name == "Sort" => {
-                let level_tok = self.bump();
-                let level = match level_tok.kind {
-                    TokenKind::Num(value) => value.parse::<u64>().map_err(|_| {
-                        Diagnostic::new(
-                            DiagnosticKind::UnexpectedToken {
-                                found: value,
-                                expected: "a universe level".to_string(),
-                            },
-                            level_tok.span,
-                            "Sort expects a universe level".to_string(),
-                        )
-                    })?,
-                    TokenKind::Ident(name) => {
-                        return Ok(Expr::Sort {
-                            sort: SortKind::Level(name),
-                            span: Span::new(tok.span.start, level_tok.span.end),
-                        });
+                // `Sort u`、`Sort 1`、`Sort (u+1)`、`Sort u+1`（层级算术，
+                // 见 `parse_level_text`）。
+                let start = tok.span.start;
+                let text = self.parse_level_text()?;
+                let end = self.tokens[self.cursor - 1].span.end;
+                let span = Span::new(start, end);
+                let sort = match text.parse::<u64>() {
+                    Ok(n) => SortKind::Sort(n),
+                    Err(_) if text.chars().all(|c| c.is_ascii_digit()) => {
+                        return Err(self.level_too_large_error(&text, span));
                     }
-                    other => {
-                        return Err(Diagnostic::new(
-                            DiagnosticKind::UnexpectedToken {
-                                found: format!("{other:?}"),
-                                expected: "a universe level".to_string(),
-                            },
-                            level_tok.span,
-                            "Sort expects a universe level".to_string(),
-                        ));
-                    }
+                    Err(_) => SortKind::Level(text),
                 };
-                Ok(Expr::Sort {
-                    sort: SortKind::Sort(level),
-                    span: Span::new(tok.span.start, level_tok.span.end),
-                })
+                Ok(Expr::Sort { sort, span })
             }
             TokenKind::Ident(name) if name.ends_with('.') => self.finish_const(name, tok.span),
             TokenKind::Ident(name) if is_reserved_command(&name) => Err(Diagnostic::new(
@@ -1794,20 +2344,9 @@ impl Parser {
                 self.bump();
                 let mut levels = Vec::new();
                 loop {
-                    let level = self.bump();
-                    match level.kind {
-                        TokenKind::Ident(name) | TokenKind::Num(name) => levels.push(name),
-                        other => {
-                            return Err(Diagnostic::new(
-                                DiagnosticKind::UnexpectedToken {
-                                    found: format!("{other:?}"),
-                                    expected: "a universe level".to_string(),
-                                },
-                                level.span,
-                                "expected a universe level".to_string(),
-                            ));
-                        }
-                    }
+                    // 层级算术（`Eq.{u+1}`）：`parse_level_text` 是 Ident/Num 的
+                    // 超集，报错文案与旧版逐字相同（"expected a universe level"）。
+                    levels.push(self.parse_level_text()?);
                     match self.peek().kind {
                         TokenKind::Comma => {
                             self.bump();
@@ -1835,6 +2374,78 @@ impl Parser {
         Ok(Expr::Ident { name, span })
     }
 
+    /// 源码层**宇宙层级表达式**：`u`、`3`、`u+1`、`u+1+1`（括号可省/可加）。
+    ///
+    /// 语法面（设计 `docs/design/type-level-syntax.md` §5，白名单同轮更新）：
+    /// 层级 = 原子 (`+` 数字)*；原子 = 数字 | 标识符 | `(` 层级 `)`。`+` 右边
+    /// **只收数字**（Lean 的 `u+n` 形式）——`u+v`/`max u v` 要内核的
+    /// `Level::Max`，而 `EnvBuilder` 没有公开构造入口（硬规则 1：内核零改动），
+    /// 所以它们不在语法面内，报一条专用诊断。
+    ///
+    /// 返回**层级文本**（如 `"u+1"`）：AST 的层级槽位本来就是文本
+    /// （`SortKind::Level` 与 `UniverseApp.levels`），这里只把"名字"放宽成
+    /// "名字 + 数字后缀"，翻译成内核层级由 elab 的 `level_ptr` 一处完成。
+    fn parse_level_text(&mut self) -> Result<String> {
+        let mut text = self.parse_level_atom()?;
+        while self.peek().kind == TokenKind::Plus {
+            self.bump();
+            let tok = self.bump();
+            match tok.kind {
+                TokenKind::Num(n) => {
+                    text.push('+');
+                    text.push_str(&n);
+                }
+                other => {
+                    return Err(Diagnostic::new(
+                        DiagnosticKind::UnexpectedToken {
+                            found: format!("{other:?}"),
+                            expected: "a numeral after `+`".to_string(),
+                        },
+                        tok.span,
+                        "层级加法只收数字后缀（例如 `u+1`）；`max`/`u+v` 不在本语言的层级语法面内"
+                            .to_string(),
+                    ));
+                }
+            }
+        }
+        Ok(text)
+    }
+
+    /// 层级数字超出 `u64`（`Sort 999…` / `Type 999…`）的解析期诊断：与
+    /// 0.59.0 的 `Type <巨大数字>` 同一条，不 panic、也不降级成 elab 期错误。
+    fn level_too_large_error(&self, text: &str, span: Span) -> Diagnostic {
+        Diagnostic::new(
+            DiagnosticKind::UnexpectedToken {
+                found: text.to_string(),
+                expected: "a universe level".to_string(),
+            },
+            span,
+            "universe level is too large".to_string(),
+        )
+    }
+
+    /// [`parse_level_text`] 的原子：数字、标识符或括号层级。
+    fn parse_level_atom(&mut self) -> Result<String> {
+        let tok = self.bump();
+        match tok.kind {
+            TokenKind::Num(value) => Ok(value),
+            TokenKind::Ident(name) => Ok(name),
+            TokenKind::LParen => {
+                let inner = self.parse_level_text()?;
+                self.expect_kind(&TokenKind::RParen, "`)`")?;
+                Ok(inner)
+            }
+            other => Err(Diagnostic::new(
+                DiagnosticKind::UnexpectedToken {
+                    found: format!("{other:?}"),
+                    expected: "a universe level".to_string(),
+                },
+                tok.span,
+                "expected a universe level".to_string(),
+            )),
+        }
+    }
+
     fn parse_lambda(&mut self) -> Result<Expr> {
         let start = self.bump().span.start;
         let mut binders = Vec::new();
@@ -1859,24 +2470,135 @@ impl Parser {
 
     fn parse_forall(&mut self) -> Result<Expr> {
         let start = self.bump().span.start;
-        let mut binders = Vec::new();
-        loop {
-            self.push_binders(&mut binders)?;
-            if self.peek().kind == TokenKind::Comma {
-                self.bump();
-                break;
-            }
-            if self.peek().kind == TokenKind::Eof {
-                return Err(self.error_here("unexpected end of file inside `∀` binders"));
-            }
-        }
+        let (binders, guard) = self.parse_binder_prefix("∀")?;
         let body = self.parse_expr()?;
         let span = Span::new(start, body.span().end);
+        // 两段式（第三刀 §12.1）：`∀ x ∈ s, p` 就是 `∀ x, x ∈ s -> p`。
+        // binder 的类型由 `x ∈ s` 反解（elab 侧，`guarded_binder_type`）。
+        let body = match guard {
+            Some(guard) => Expr::Arrow {
+                domain: Box::new(guard),
+                codomain: Box::new(body),
+                span,
+            },
+            None => body,
+        };
         Ok(Expr::Forall {
             binders,
             body: Box::new(body),
             span,
         })
+    }
+
+    /// binder 位置的**共享解析路径**（第三刀 §12.1）：`∀`（关键字）与
+    /// `binder_notation` 声明的符号都走这里，返回 `(binders, guard)`；
+    /// `guard` 是两段式 `x ∈ s` 里的 `x ∈ s`（没有就是 `None`）。
+    ///
+    /// 两段式的判据：binder 后面紧跟一个**已声明的二元记法符号**（`∈`）——
+    /// 于是 `∀ x ∈ s, p` 不必为每个关系再立一条命令，guard 就是一条普通的
+    /// 记号表达式（`x ∈ s`），binder 名当它的左操作数。
+    fn parse_binder_prefix(&mut self, keyword: &str) -> Result<(Vec<Binder>, Option<Expr>)> {
+        let mut binders = Vec::new();
+        loop {
+            self.push_binders(&mut binders)?;
+            if self.peek().kind == TokenKind::Comma {
+                self.bump();
+                return Ok((binders, None));
+            }
+            if self.binder_guard_ahead() {
+                let last = binders
+                    .last()
+                    .expect("push_binders always appends at least one binder")
+                    .clone();
+                let lhs = Expr::Ident {
+                    name: last.name.clone(),
+                    span: last.span,
+                };
+                let guard = self.parse_operators_from(lhs, 0)?;
+                if self.peek().kind == TokenKind::Comma {
+                    self.bump();
+                    return Ok((binders, Some(guard)));
+                }
+                return Err(self.error_here(&format!(
+                    "两段式 binder（`{keyword} x ∈ s, p`）里的关系式后面要写 `,`"
+                )));
+            }
+            // 两段式的关系符号**没声明**（`∀ x ∈ s, p` 但本文件没有 `∈`）：
+            // 报「未声明符号」的专用诊断（hint 教先声明或点名），而不是让
+            // `push_binders` 报一句 "expected a binder"（第三刀）。
+            if let TokenKind::Sym(symbol) = &self.peek().kind {
+                let span = self.peek().span;
+                let symbol = symbol.clone();
+                return Err(self.unknown_symbol_error(&symbol, span));
+            }
+            if self.peek().kind == TokenKind::Eof {
+                return Err(self.error_here(&format!(
+                    "unexpected end of file inside `{keyword}` binders"
+                )));
+            }
+        }
+    }
+
+    /// 下一个 token 是不是**已声明的二元记法符号**（两段式 binder 的关系）。
+    fn binder_guard_ahead(&self) -> bool {
+        match &self.peek().kind {
+            TokenKind::Sym(symbol) => self
+                .notation(symbol)
+                .is_some_and(|entry| entry.assoc.is_binary()),
+            _ => false,
+        }
+    }
+
+    /// 该符号是不是 `binder_notation` 声明的 **binder 记法**（第三刀 §12.1）。
+    fn is_binder_notation(&self, symbol: &str) -> bool {
+        self.notation(symbol)
+            .is_some_and(|entry| entry.assoc == NotationAssoc::Binder)
+    }
+
+    /// `∃ x, p` / `∃ x ∈ s, p`（第三刀 §12.1）：展开成
+    /// `Exists A (fun (x : A) => p)` / `Exists A (fun (x : A) => And (x ∈ s) p)`。
+    ///
+    /// parser 只构造**源级形状**（一个 lambda 操作数），binder 的类型与目标
+    /// 前导参数的补全都在 elaborator 里走**与前缀记法逐字相同**的路径。
+    fn parse_binder_notation(&mut self) -> Result<Expr> {
+        let tok = self.bump();
+        let TokenKind::Sym(symbol) = tok.kind.clone() else {
+            unreachable!("parse_binder_notation is only called on a declared binder symbol");
+        };
+        let (binders, guard) = self.parse_binder_prefix(&symbol)?;
+        let body = self.parse_expr()?;
+        let span = Span::new(tok.span.start, body.span().end);
+        let body = match guard {
+            // 两段式 = guard ∧ body（`∃` 的读法，与 Lean 的 `∃ x ∈ s, p` 同义）。
+            Some(guard) => {
+                let and_span = guard.span();
+                Expr::App {
+                    fun: Box::new(Expr::App {
+                        fun: Box::new(Expr::Ident {
+                            name: "And".to_string(),
+                            span: and_span,
+                        }),
+                        arg: Box::new(guard),
+                        span: and_span,
+                    }),
+                    arg: Box::new(body),
+                    span,
+                }
+            }
+            None => body,
+        };
+        let operand = Expr::Lambda {
+            binders,
+            body: Box::new(body),
+            span,
+        };
+        Ok(self.notation_node(
+            &symbol,
+            NotationAssoc::Binder,
+            None,
+            Some(Box::new(operand)),
+            span,
+        ))
     }
 
     /// 向 `binders` 追加一个 binder（单名 `(a : T)`）或展开一个多名字组
@@ -2134,7 +2856,8 @@ fn is_reserved_command(name: &str) -> bool {
     NOTATION_COMMANDS.contains(&name)
         || matches!(
             name,
-            "import"
+            "scoped"
+                | "import"
                 | "def"
                 | "abbrev"
                 | "theorem"
@@ -2147,10 +2870,33 @@ fn is_reserved_command(name: &str) -> bool {
                 | "end"
                 | "namespace"
                 | "open"
+                | "export"
                 | "#check"
                 | "#reduce"
                 | "#print"
         )
+}
+
+/// `open … in <命令>` 后面允许跟的命令（§N7）：**叶子命令**——声明或
+/// `#check`/`#reduce`/`#print`。
+///
+/// 排除 `import`（置顶规则）、`namespace`/`end`（块结构会跨出 `in` 的作用域）、
+/// 嵌套 `open`/`export`（作用域命令对一条命令没有意义）、记法命令（不是声明、
+/// 也不解析引用）。判错给**专用形状码**，不落进通用 `unexpected-token`。
+fn is_open_in_body(command: &Command) -> bool {
+    matches!(
+        command,
+        Command::Def { .. }
+            | Command::Theorem { .. }
+            | Command::Axiom { .. }
+            | Command::Example { .. }
+            | Command::InductiveBlock { .. }
+            | Command::Check { .. }
+            | Command::Reduce { .. }
+            | Command::Print { .. }
+            // 嵌套的 `open A in open B in <叶子>`：内层已经按同一条规则校验过。
+            | Command::OpenIn { .. }
+    )
 }
 
 #[cfg(test)]
@@ -2262,6 +3008,87 @@ example : Prop -> Prop := sorry
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn level_arithmetic_parses_in_sort_and_universe_args() {
+        // 层级算术（设计 `docs/design/type-level-syntax.md` §5）：
+        // `Sort (u+1)`、`Sort u+1`、`Type (u+1)`、`Eq.{u+1}` 都产出层级文本。
+        let file = parse(
+            "axiom A {u} : Sort (u+1)\n\
+             axiom B {u} : Sort u+1\n\
+             axiom C {u} : Type (u+1)\n\
+             axiom D {u} : Eq.{u+1} (Sort u) Prop Prop\n",
+        )
+        .unwrap();
+        let sort_of = |i: usize| match &file.commands[i] {
+            Command::Axiom {
+                ty: Expr::Sort { sort, .. },
+                ..
+            } => sort.clone(),
+            other => panic!("expected Sort at {i}: {other:?}"),
+        };
+        assert_eq!(sort_of(0), SortKind::Level("u+1".to_string()));
+        // `Sort u+1` 与 `Sort (u+1)` 逐字同形（层级文本规范化掉空白）。
+        assert_eq!(sort_of(1), SortKind::Level("u+1".to_string()));
+        // `Type (u+1)` = `Sort (u+1+1)`。
+        assert_eq!(sort_of(2), SortKind::Level("u+1+1".to_string()));
+        let Command::Axiom { ty, .. } = &file.commands[3] else {
+            panic!("expected axiom");
+        };
+        fn head(expr: &Expr) -> &Expr {
+            match expr {
+                Expr::App { fun, .. } => head(fun),
+                other => other,
+            }
+        }
+        let Expr::UniverseApp { levels, .. } = head(ty) else {
+            panic!("expected UniverseApp head, got {ty:?}");
+        };
+        assert_eq!(levels, &["u+1".to_string()]);
+    }
+
+    #[test]
+    fn level_arithmetic_keeps_plain_forms_byte_identical() {
+        // 既有拼写的 AST 逐字不变：`Sort 3` 仍是 `SortKind::Sort(3)`、
+        // `Sort u` 仍是 `SortKind::Level("u")`、`Type 2` 仍是 `Sort(3)`。
+        let file = parse("axiom A : Sort 3\naxiom B {u} : Sort u\naxiom C : Type 2\n").unwrap();
+        let sort_of = |i: usize| match &file.commands[i] {
+            Command::Axiom {
+                ty: Expr::Sort { sort, .. },
+                ..
+            } => sort.clone(),
+            other => panic!("expected Sort at {i}: {other:?}"),
+        };
+        assert_eq!(sort_of(0), SortKind::Sort(3));
+        assert_eq!(sort_of(1), SortKind::Level("u".to_string()));
+        assert_eq!(sort_of(2), SortKind::Sort(3));
+        // `Type` 后跟**裸标识符**仍是应用（`Eq.refl.{2} Type A` 的既有写法）：
+        // `Type` 只吃数字或括号开头的层级（设计 §5 的边界）。
+        let file = parse("axiom T : Prop -> Prop\n#check T Type A\n").unwrap();
+        let Command::Check { expr, .. } = &file.commands[1] else {
+            panic!("expected #check");
+        };
+        assert!(
+            matches!(expr, Expr::App { .. }),
+            "`Type A` must stay an application, got {expr:?}"
+        );
+    }
+
+    #[test]
+    fn level_arithmetic_rejects_non_numeric_suffix() {
+        // `+` 右边只收数字（Lean 的 `u+n`）：`u+v`/`max` 不在语法面内，
+        // 报专用诊断而不是静默吞掉（内核 `Level::Max` 无公开构造入口）。
+        for src in [
+            "axiom A {u, v} : Sort (u+v)\n",
+            "axiom A {u, v} : Eq.{u+v} Prop Prop Prop\n",
+        ] {
+            let err = parse(src).unwrap_err();
+            assert!(
+                err.message.contains("层级加法只收数字后缀"),
+                "{src:?} → {err:?}"
+            );
+        }
     }
 
     #[test]
@@ -3522,6 +4349,129 @@ end
         assert_eq!(err.code(), "unexpected-token");
     }
 
+    // ── 第二刀：open 的子句 / `open … in` / `export`（设计 §N7）────────────
+
+    #[test]
+    fn open_clauses_parse_into_the_filter() {
+        let file = parse(
+            "open Foo\n\
+             open Bar (x y)\n\
+             open Baz hiding z\n\
+             open Qux renaming a => b, c => d\n",
+        )
+        .expect("parse");
+        let Command::Open { filter, .. } = &file.commands[0] else {
+            panic!("expected an open command: {:?}", file.commands[0]);
+        };
+        assert!(filter.is_empty(), "no clause => empty filter");
+        let Command::Open { filter, .. } = &file.commands[1] else {
+            panic!("expected an open command");
+        };
+        assert_eq!(
+            filter.only.as_deref(),
+            Some(&["x".to_string(), "y".to_string()][..])
+        );
+        let Command::Open { filter, .. } = &file.commands[2] else {
+            panic!("expected an open command");
+        };
+        assert_eq!(filter.hiding, vec!["z".to_string()]);
+        let Command::Open { filter, .. } = &file.commands[3] else {
+            panic!("expected an open command");
+        };
+        assert_eq!(
+            filter.renaming,
+            vec![
+                ("a".to_string(), "b".to_string()),
+                ("c".to_string(), "d".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn open_clause_names_may_collide_with_command_keywords_in_other_positions() {
+        // `hiding` 后面那条命令的关键字（`def`/`#check`）不是列表的一部分。
+        let file = parse("open Foo hiding x\ndef y : Type := Prop\n").expect("parse");
+        assert_eq!(file.commands.len(), 2, "{:?}", file.commands);
+        let Command::Open { filter, .. } = &file.commands[0] else {
+            panic!("expected an open command");
+        };
+        assert_eq!(filter.hiding, vec!["x".to_string()]);
+    }
+
+    #[test]
+    fn open_in_wraps_the_next_command_and_records_the_header() {
+        let file = parse("open Foo hiding x in def y : Type := Prop\n").expect("parse");
+        assert_eq!(file.commands.len(), 1, "{:?}", file.commands);
+        let Command::OpenIn {
+            name,
+            filter,
+            inner,
+            header,
+            span,
+        } = &file.commands[0]
+        else {
+            panic!("expected `open … in`: {:?}", file.commands[0]);
+        };
+        assert_eq!(name, "Foo");
+        assert_eq!(filter.hiding, vec!["x".to_string()]);
+        assert!(
+            matches!(inner.as_ref(), Command::Def { name, .. } if name == "y"),
+            "the wrapped command must be the declaration: {inner:?}"
+        );
+        // header 只覆盖 open 头部（合成前缀要按它补一行 open），span 覆盖整条。
+        let src = "open Foo hiding x in def y : Type := Prop\n";
+        assert_eq!(
+            &src[header.start.offset..header.end.offset],
+            "open Foo hiding x"
+        );
+        assert_eq!(&src[span.start.offset..span.end.offset], src.trim_end());
+    }
+
+    #[test]
+    fn nested_open_in_chains_unwrap() {
+        let file = parse("open A in open B in #check x\n").expect("parse");
+        let Command::OpenIn { inner, .. } = &file.commands[0] else {
+            panic!("expected the outer `open … in`");
+        };
+        assert!(
+            matches!(inner.as_ref(), Command::OpenIn { name, .. } if name == "B"),
+            "inner: {inner:?}"
+        );
+    }
+
+    #[test]
+    fn export_parses_like_open_without_in() {
+        let file = parse("export Foo (x)\n").expect("parse");
+        let Command::Export { name, filter, .. } = &file.commands[0] else {
+            panic!("expected an export command: {:?}", file.commands[0]);
+        };
+        assert_eq!(name, "Foo");
+        assert_eq!(filter.only.as_deref(), Some(&["x".to_string()][..]));
+    }
+
+    #[test]
+    fn open_and_export_clause_shape_errors_are_dedicated() {
+        for (src, tag) in [
+            ("open Foo ()\n", "empty only list"),
+            ("open Foo hiding\n", "empty hiding list"),
+            ("open Foo renaming a b\n", "renaming without `=>`"),
+            ("open Foo (A.b)\n", "dotted name in the only list"),
+            ("open Foo (a b) renaming a => c\n", "two clauses combined"),
+            ("open Foo hiding a hiding b\n", "the same clause twice"),
+            ("open Foo in import Bar\n", "import as the body"),
+            ("open Foo in namespace A\n", "namespace as the body"),
+            (
+                "open Foo in infix:50 \" + \" => Plus.plus\n",
+                "notation as the body",
+            ),
+            ("open scoped Foo in #check x\n", "open scoped with `in`"),
+            ("export Foo in #check x\n", "export with `in`"),
+        ] {
+            let err = parse(src).unwrap_err();
+            assert_eq!(err.code(), "parse-namespace-shape", "{tag}: {err:?}");
+        }
+    }
+
     // ---- abbrev（G-08，docs/design/abbrev.md）------------------------------
 
     /// 去掉 Debug 文本里的 `Span { … }` 段：`def` 与 `abbrev` 的**源码偏移
@@ -3660,14 +4610,57 @@ end
     }
 
     #[test]
-    fn a_prefix_symbol_in_operator_position_is_a_teaching_error() {
+    fn a_binder_symbol_in_operator_position_is_a_teaching_error() {
+        // 第三刀 §12.1：**binder** 记法符号落在算子位上仍然是教学错误
+        // （它没有优先级、也不在爬升梯子上）。
         let err = parse(
+            "binder_notation \" ∃ \" => Exists\n\
+             axiom bad : Prop -> Prop -> Prop\n\
+             axiom p : Prop\n\
+             axiom q : Prop\n\
+             #check p ∃ q\n",
+        )
+        .expect_err("binder symbol in operator position");
+        assert_eq!(err.code(), "unexpected-token");
+        assert!(err.message.contains("binder"), "message: {}", err.message);
+    }
+
+    /// 第三刀 §12.1：两段式 binder 的关系符号没声明时，报的是**未声明符号**
+    /// 的专用诊断（不是通用的 "expected a binder"）。
+    #[test]
+    fn an_undeclared_two_stage_binder_relation_is_an_unknown_symbol() {
+        let err = parse("axiom p : Prop -> Prop\n#check forall x ∈ p, p x\n")
+            .expect_err("an undeclared relation symbol");
+        assert_eq!(err.code(), "notation-unknown-symbol");
+        assert!(err.message.contains('∈'), "message: {}", err.message);
+    }
+
+    /// 第三刀 §12.5：一元**前缀**记法在实参位免括号——`f 𝒫 A` 就是
+    /// `f (𝒫 A)`。副作用（已记进设计 §13）：`A 𝒫 B` 也从"响亮的 parse 错"
+    /// 变成 `A (𝒫 B)`——两者形状完全一样，无法只放行前者。
+    #[test]
+    fn a_prefix_notation_is_an_argument_without_parentheses() {
+        let file = parse(
             "prefix:100 \" 𝒫 \" => Set.powerset\n\
              def bad (α : Type) (A B : Set α) : Set (Set α) := A 𝒫 B\n",
         )
-        .expect_err("prefix symbol in operator position");
-        assert_eq!(err.code(), "unexpected-token");
-        assert!(err.message.contains("前缀"), "message: {}", err.message);
+        .expect("prefix notation in argument position");
+        let crate::ast::Command::Def { val, .. } = &file.commands[1] else {
+            panic!("expected a def");
+        };
+        // 声明 binder 会把值位包成 lambda 望远镜，取最内层的 body。
+        let mut body = val;
+        while let Expr::Lambda { body: inner, .. } = body {
+            body = inner;
+        }
+        let Expr::App { fun, arg, .. } = body else {
+            panic!("expected an application, got {body:?}");
+        };
+        assert!(matches!(fun.as_ref(), Expr::Ident { name, .. } if name == "A"));
+        assert!(
+            matches!(arg.as_ref(), Expr::Notation { symbol, .. } if symbol == "𝒫"),
+            "the argument is the prefix notation: {arg:?}"
+        );
     }
 
     #[test]

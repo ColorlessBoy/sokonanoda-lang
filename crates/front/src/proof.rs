@@ -229,6 +229,10 @@ pub fn render_expr(expr: &Expr) -> String {
             SortKind::Prop => "Prop".to_string(),
             SortKind::Type => "Type".to_string(),
             SortKind::Sort(n) => format!("Sort {n}"),
+            // 层级算术文本（`u+1`）加括号：`Sort (u+1)` 与 `Sort u+1` 都能回读
+            // （parser 的 `parse_level_text`），但带括号的形态在 render→parse
+            // 往返里没有歧义（设计 `docs/design/type-level-syntax.md` §5）。
+            SortKind::Level(name) if name.contains('+') => format!("Sort ({name})"),
             SortKind::Level(name) => format!("Sort {name}"),
         },
         Expr::Ident { name, .. } => name.clone(),
@@ -329,12 +333,41 @@ pub fn render_expr(expr: &Expr) -> String {
             (crate::ast::NotationAssoc::Postfix, Some(operand), _) => {
                 format!("{} {symbol}", render_atom(operand))
             }
+            // binder 记法（第三刀 §12.1）：`∃ x, p`。操作数是一个 lambda，
+            // 它的 binder 就是记法的 binder——渲染回 Lean 形状（不是点名）。
+            (crate::ast::NotationAssoc::Binder, _, Some(operand)) => {
+                render_binder_notation(symbol, operand)
+            }
             (_, Some(lhs), Some(rhs)) => {
                 format!("{} {symbol} {}", render_atom(lhs), render_atom(rhs))
             }
             _ => symbol.clone(),
         },
+        // 集合字面量（第三刀 §12.4）：渲染回 `{a}` / `{a, b}`。
+        Expr::SetLiteral { elements, .. } => format!(
+            "{{{}}}",
+            elements
+                .iter()
+                .map(render_expr)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
     }
+}
+
+/// 渲染 binder 记法：操作数是 `fun (x : A) => body`（两段式时 body 是
+/// `And guard body`）⇒ 打回 `∃ x, body` / `∃ x, guard ∧ body` 的源级形状。
+/// 打不出（操作数不是 lambda）⇒ 退回记法符号本身。
+fn render_binder_notation(symbol: &str, operand: &Expr) -> String {
+    let Expr::Lambda { binders, body, .. } = operand else {
+        return symbol.to_string();
+    };
+    let names = binders
+        .iter()
+        .map(|binder| binder.name.clone())
+        .collect::<Vec<_>>()
+        .join(" ");
+    format!("{symbol} {names}, {}", render_expr(body))
 }
 
 /// Render a `match` pattern back to teaching syntax (used by hover/error text).
@@ -380,7 +413,8 @@ fn render_fun_position(expr: &Expr) -> String {
         | Expr::Plus { .. }
         | Expr::Let { .. }
         | Expr::Match { .. }
-        | Expr::Notation { .. } => format!("({s})"),
+        | Expr::Notation { .. }
+        | Expr::SetLiteral { .. } => format!("({s})"),
         _ => s,
     }
 }
@@ -400,7 +434,8 @@ pub(crate) fn render_atom(expr: &Expr) -> String {
         | Expr::Plus { .. }
         | Expr::Let { .. }
         | Expr::Match { .. }
-        | Expr::Notation { .. } => format!("({s})"),
+        | Expr::Notation { .. }
+        | Expr::SetLiteral { .. } => format!("({s})"),
         _ => s,
     }
 }

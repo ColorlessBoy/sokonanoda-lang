@@ -149,6 +149,8 @@ $SOKO repl
   的记法、binder 记法（`∃ x,`）。**课程画布本轮不重写**（仍写点名形式）。
 - 语言能力速查：`$SOKO --help` 自描述（def/theorem/axiom/example、
   `#check`、`#reduce`、宇宙参数（`{u}` / `{u, v}` / `{u v}` / `{u} {v}`）、
+  **层级算术** `Sort (u+1)` / `Sort u+1` / `Type (u+1)` / `Eq.{u+1}`（0.61.0；
+  `+` 右边只收数字，`max`/`u+v` 不在语法面内；`Type u` 仍不支持，写 `Sort u`）、
   命名箭头、声明级 binder `theorem f (a : A) : B := v`——**`axiom` 也吃
   参数表**（`axiom f (a : A) : Sort 1`，0.59.0 起；codomain 要落 `Sort n`）；
   声明名不许以 `.` 结尾（`def f.{u}` 是 parse 错误）。
@@ -277,9 +279,13 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
     `Or`/`Or.inl`/`Or.inr`/`Or.elim`（`And`/`Or` 是**真归纳块**，可 `match`）、
     `Not`/`Not.intro`/`Not.elim`/`absurd`、
     `Iff`/`Iff.intro`/`Iff.mp`/`Iff.mpr`/`Iff.refl`/`Iff.symm`/`Iff.trans`；
-  * 等式 `Eq.symm`/`Eq.trans`/`congrArg`（`congrArg` **只能同宇宙**）。
+  * 等式 `Eq.symm`/`Eq.trans`/`congrArg`（`congrArg` **只能同宇宙**）；
+  * Type 层重写 `Eq.rec`/`Eq.ndrec`/`Eq.mp`/`Eq.mpr`/`cast`（0.60.0 起；
+    0.61.0 层级算术 `u+1` 落地后后三条是**宇宙多态**的，签名与 Lean core
+    逐字对齐 ⇒ 调用要显式给宇宙实参，例如 `Eq.mp.{1} α β h`；
+    `cast h a` 就是 `Eq.mp h a`）。
   **让位规则（谁声明谁拥有，族粒度 + 依赖闭包）**：文件自己声明某族的任一名
-  ⇒ prelude 的**整族**不装（B5 依赖 B2、B6 依赖 B3、B7 依赖 Eq）——入门课
+  ⇒ prelude 的**整族**不装（B5 依赖 B2、B6 依赖 B3、B7/B8 依赖 Eq）——入门课
   单元①④⑤⑧⑨⑩⑪ 故意自带这些骨架（教学内容），它们**照常生效**；
   单元②③⑥⑦ 不声明 ⇒ 拿到完整 L1（单元② 的 `eq_symm_demo` 是示范）。
   静默后果要会说清：文件写了 `And` 却想用 `And.elim` 会得到

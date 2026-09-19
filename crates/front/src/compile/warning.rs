@@ -19,6 +19,10 @@ pub enum WarningKind {
     /// 函数的项后面，填什么都不可能是良类型的应用。与"真缺口"（洞有期望
     /// 类型）是两件事，见 `docs/design/redundant-sorry.md`。
     RedundantSorry,
+    /// `open` / `export` 让一个短名有了**两个候选**（或与根上的同名声明撞车）：
+    /// 本语言按候选顺序静默取第一个（设计 N4），所以给一条**警告**（不是错误）
+    /// 告诉学习者"这个短名其实指向谁"。见 `docs/design/namespace-open.md` §N8。
+    OpenShadowedName,
 }
 
 impl WarningKind {
@@ -27,6 +31,7 @@ impl WarningKind {
             WarningKind::ReservedDeclarationName => "reserved-declaration-name",
             WarningKind::ImportHasOpenExercises => "import-has-open-exercises",
             WarningKind::RedundantSorry => "redundant-sorry",
+            WarningKind::OpenShadowedName => "open-shadowed-name",
         }
     }
 
@@ -41,6 +46,9 @@ impl WarningKind {
             }
             WarningKind::RedundantSorry => {
                 "删掉这一行 sorry，这条声明就会通过内核检查；若还想继续写，请把它换成真正缺少的那部分。"
+            }
+            WarningKind::OpenShadowedName => {
+                "要点名的那一个就写全前缀（`A.x`）；要让短名指向另一个候选，用 `open A hiding x` / `open A (x)` / `open A renaming x => y` 把撞车的名字挡掉。"
             }
         }
     }
@@ -57,6 +65,8 @@ impl WarningKind {
             // 项目层警告是语法级重算的（不来自内核终审）。
             WarningKind::ImportHasOpenExercises => false,
             WarningKind::RedundantSorry => true,
+            // `open` 遮蔽是纯语法的候选表推断（每次 update 在整文件上重算）。
+            WarningKind::OpenShadowedName => false,
         }
     }
 }
@@ -82,9 +92,12 @@ impl CompileWarning {
 
 /// 顶层声明名撞上内核已定义的名字时产出 warning（纯语法，与内核结果无关）。
 /// span 收窄到名字 token；拿不到时退回整条声明的 span。
+///
+/// 第二刀：追加 `open`/`export` 的**遮蔽**警告（§N8）。
 pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
     let mut warnings = Vec::new();
-    for command in &file.commands {
+    // `open … in <声明>` 包住的声明照样是声明（`effective_commands` 展开）。
+    for command in crate::ast::effective_commands(file) {
         let (name, span) = match command {
             Command::Def { name, span, .. }
             | Command::Theorem { name, span, .. }
@@ -101,7 +114,9 @@ pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
             | Command::Notation { .. }
             | Command::Namespace { .. }
             | Command::End { .. }
-            | Command::Open { .. } => continue,
+            | Command::Open { .. }
+            | Command::OpenIn { .. }
+            | Command::Export { .. } => continue,
         };
         if !RESERVED_SORT_NAMES.contains(&name.as_str()) {
             continue;
@@ -115,6 +130,127 @@ pub fn collect_warnings(file: &FolFile) -> Vec<CompileWarning> {
         };
         warnings.push(CompileWarning {
             kind: WarningKind::ReservedDeclarationName,
+            message,
+            span: decl_name_span(&file.src, *span, name).unwrap_or(*span),
+        });
+    }
+    warnings.append(&mut collect_open_shadow_warnings(file));
+    warnings
+}
+
+/// `open` / `export` 的**遮蔽**警告（第二刀 §N8）：一条 `open` 让某个短名有了
+/// 第二个候选时，本语言按 N4 的顺序**静默取第一个**——这里给一条 warning
+/// （不是 error，判定不受影响），把"它其实指向谁"说清楚。
+///
+/// 判据（纯语法，**只看本文件**）：
+///
+/// * 两个 `open` 都提供同一个短名 ⇒ 后开的被先开的挡住（候选顺序 ③）；
+/// * 短名与**根上的**同名声明撞车 ⇒ 根名赢（候选顺序 ②「精确名」在 `open`
+///   之前），这条 `open` 对这个短名等于没写。
+///
+/// **边界（明说，不假装覆盖）**：语法 pass 只看得见本文件声明的名字——依赖
+/// 模块（`import`）声明的候选不在 `known` 表里，所以 `open Set`（`Set` 来自
+/// 库文件）不会在这里被判遮蔽。要覆盖它得把 elab 的 `known` 表喂进 warning
+/// pass，那是另一刀（设计 §7 逐条记账）。`open … in <命令>` 是**有意为之**的
+/// 局部作用域，不参与这条警告（否则"我就想在这一条命令里用 A.x"会变成噪声）。
+fn collect_open_shadow_warnings(file: &FolFile) -> Vec<CompileWarning> {
+    use std::collections::{BTreeSet, HashMap};
+
+    // 本文件声明的短名，按**前缀**分组（`""` = 根命名空间）。
+    let mut declared: HashMap<String, BTreeSet<String>> = HashMap::new();
+    let mut record = |full: &str| {
+        let (prefix, short) = match full.rsplit_once('.') {
+            Some((prefix, short)) => (prefix.to_string(), short.to_string()),
+            None => (String::new(), full.to_string()),
+        };
+        declared.entry(prefix).or_default().insert(short);
+    };
+    for command in crate::ast::effective_commands(file) {
+        match command {
+            Command::Def { name, .. }
+            | Command::Theorem { name, .. }
+            | Command::Axiom { name, .. } => record(name),
+            Command::InductiveBlock {
+                name, constructors, ..
+            } => {
+                record(name);
+                // 构造子按**规范名**登记（R1）：`open Wrap` 让 `mk` 可用，
+                // 所以 `mk` 也在遮蔽判据里。
+                for ctor in constructors {
+                    record(&crate::compile::canonical_ctor_name(name, &ctor.name));
+                }
+            }
+            _ => {}
+        }
+    }
+    let roots: BTreeSet<String> = declared.get("").cloned().unwrap_or_default();
+
+    // 已生效的短名 → 它的候选全名（按出现顺序）。
+    let mut visible: Vec<(String, String)> = Vec::new();
+    let mut warnings = Vec::new();
+    for command in &file.commands {
+        let (name, filter, span) = match command {
+            Command::Open {
+                name,
+                scoped: false,
+                filter,
+                span,
+            } => (name, filter, span),
+            Command::Export { name, filter, span } => (name, filter, span),
+            _ => continue,
+        };
+        let Some(shorts) = declared.get(name) else {
+            continue;
+        };
+        // (短名, 这条 open 给的候选, 真正胜出的候选)
+        let mut shadowed: Vec<(String, String, String)> = Vec::new();
+        for short in shorts {
+            let Some(visible_short) = filter.visible_short(short) else {
+                continue;
+            };
+            let candidate = format!("{name}.{short}");
+            if roots.contains(&visible_short) {
+                shadowed.push((visible_short.clone(), candidate, visible_short));
+            } else if let Some((_, winner)) = visible
+                .iter()
+                .find(|(already, _)| *already == visible_short)
+            {
+                shadowed.push((visible_short, candidate, winner.clone()));
+            } else {
+                visible.push((visible_short, candidate));
+            }
+        }
+        if shadowed.is_empty() {
+            continue;
+        }
+        let keyword = if matches!(command, Command::Export { .. }) {
+            "export"
+        } else {
+            "open"
+        };
+        let command_text = format!("{keyword} {name}{}", filter.source_text());
+        let items = shadowed
+            .iter()
+            .take(3)
+            .map(|(short, candidate, winner)| {
+                if *winner == *short {
+                    format!("`{short}` 仍然指向根上的 `{winner}`")
+                } else {
+                    format!("`{short}` 会解析到 `{winner}`（不是 `{candidate}`）")
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("；");
+        let more = if shadowed.len() > 3 {
+            format!("；另有 {} 个短名同理", shadowed.len() - 3)
+        } else {
+            String::new()
+        };
+        let message = format!(
+            "`{command_text}` 让同名候选撞车：{items}{more}。本语言按候选顺序取第一个能解析的（当前命名空间链 → 精确名 → `open` 的先后），撞车的短名不会报错、只会静默取第一个。"
+        );
+        warnings.push(CompileWarning {
+            kind: WarningKind::OpenShadowedName,
             message,
             span: decl_name_span(&file.src, *span, name).unwrap_or(*span),
         });

@@ -12,7 +12,9 @@ pub(crate) fn print_help() {
     println!(
         "  sokonanoda lsp                  run the language server on stdio (editors spawn this)"
     );
-    println!("  sokonanoda course <course.json> aggregate unit progress (JSON with --json)");
+    println!("  sokonanoda course <course.json> ... [--all]");
+    println!("                                  aggregate unit progress (JSON with --json;");
+    println!("                                  several manifests / --all = one aggregate map)");
     println!("  sokonanoda build [path ...]     warm the compile cache (--clean clears it)");
     println!("  sokonanoda query <op> [opts]    kernel truth as ONE JSON object (agent view):");
     println!("      check                     counts + failures + warnings for the file");
@@ -64,6 +66,12 @@ pub(crate) fn print_help() {
     println!("  namespace <name> ... end <name>  declarations inside get the prefix");
     println!("                                 (`namespace A` + `def mem` => `A.mem`)");
     println!("  open <name>                    make `<name>.` omissible for references");
+    println!("  open <name> (a b)              only these short names (only-clause)");
+    println!("  open <name> hiding a b         every short name but these");
+    println!("  open <name> renaming a => b    rename a short name (a is then gone)");
+    println!("  open <name> ... in <command>   local: only that one command sees it");
+    println!("  export <name> [<clauses>]      like open, and importing files see it too");
+    println!("  open scoped <name>             open scoped notations only (not names)");
     println!("  universes: def id {{u}}; Sort u; explicit application @id.{{u}}");
     println!("  types: A -> B -> C; named arrows (x : A) -> B bind x");
 }
