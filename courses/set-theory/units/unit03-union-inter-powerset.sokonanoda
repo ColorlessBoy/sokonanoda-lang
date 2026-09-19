@@ -50,6 +50,17 @@ theorem demo_mem_powerset (α : Type) (A B : Set α) :
     Iff (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A) :=
   Set.mem_powerset_iff α A B
 
+-- 演示（记法，G-04 第二刀）：同一条命题用**数学符号**再写一遍——`𝒫 A` 就是
+-- `Set.powerset α A`。前缀记法 `prefix:100 " 𝒫 " => Set.powerset` 写在
+-- `lib/Set.sokonanoda` 里，随 `import lib.Set` 带进来：**本文件不重声明任何
+-- 记法**（同一个符号全课程只能声明一次）。前导类型参数 `α` 由记法路径自己从
+-- 操作数解出（`A : Set α`），点名形式则必须写全 `Set.powerset α A`。
+-- 写成 `example`（与单元⑧ 的"演示 8"同款）：演示不该往单元里塞具名声明，
+-- 课程门禁的 `decl.checked` 计数因此**一个都不动**（记法本身也不是声明，N6）。
+example (α : Type) (A B : Set α) :
+    Iff (Set.mem (Set α) B (𝒫 A)) (Set.subset α B A) :=
+  Set.mem_powerset_iff α A B
+
 -- ─────────────────────────────────────────────────────────────
 -- 3.1 并：两个"塞进去"的包含，以及 ∪ 的**泛性质**（A ∪ B 是最小的公共上界）
 -- ─────────────────────────────────────────────────────────────

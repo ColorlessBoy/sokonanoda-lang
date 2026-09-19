@@ -98,7 +98,7 @@ pub enum Expr {
     },
 }
 
-/// 记法命令的结合性 / 元数（`docs/design/notation-subset.md` N1）。
+/// 记法命令的结合性 / 元数（`docs/design/notation-subset.md` N1 + §10.1）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotationAssoc {
     /// `infix:N`：无结合，两边同级。
@@ -107,8 +107,35 @@ pub enum NotationAssoc {
     Infixl,
     /// `infixr:N`：右结合。
     Infixr,
+    /// `prefix:N`：一元前缀（第二刀）——`sym a`，操作数在 `rhs`。
+    Prefix,
+    /// `postfix:N`：一元后缀（第二刀）——`a sym`，操作数在 `lhs`。
+    Postfix,
     /// `notation "∅" => …`：零元常量记法（无优先级）。
     Nullary,
+}
+
+impl NotationAssoc {
+    /// 二元算子（爬升梯子上的那三种）。
+    pub fn is_binary(self) -> bool {
+        matches!(
+            self,
+            NotationAssoc::Infix | NotationAssoc::Infixl | NotationAssoc::Infixr
+        )
+    }
+}
+
+/// 一条记法声明（`Command::Notation` 的**载荷**，不含 span）。
+///
+/// 用途：跨 `import` 的记法传播（第二刀，设计 §10.3）——闭包按拓扑序把前面
+/// 模块声明的记法作为**继承表**喂给后面的模块，所以它必须是可复制的纯数据。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NotationDecl {
+    pub symbol: String,
+    /// 零元记法为 `None`。
+    pub precedence: Option<u16>,
+    pub assoc: NotationAssoc,
+    pub target: String,
 }
 
 /// `match` 的一条分支：`| <pattern> [if <guard>] => <body>`
@@ -285,8 +312,8 @@ pub enum Command {
         name: String,
         span: Span,
     },
-    /// `infix:N " sym " => name` / `infixl` / `infixr` / `notation " sym " => name`
-    /// （G-04 / WO-011）。
+    /// `infix:N " sym " => name` / `infixl` / `infixr` / `prefix` / `postfix` /
+    /// `notation " sym " => name`（G-04 / WO-011 第一刀 + 第二刀）。
     ///
     /// **不是声明**（N6）：不产生 `decl.checked`/`exercise.open`/`expr.typed`，
     /// 也不进声明表——与 `Command::Import` 同族（有命令、无声明）。
@@ -296,6 +323,28 @@ pub enum Command {
         precedence: Option<u16>,
         assoc: NotationAssoc,
         target: String,
+        span: Span,
+    },
+    /// `namespace <name>`（G-05，设计 `docs/design/namespace-open.md`）。
+    ///
+    /// **不是声明**（N6）：不产生事件、不进声明表——与 `Command::Import`
+    /// 同族。`name` 是**写出来的**名字（可点分）；累积全前缀由 parser 与
+    /// elab 共用 `compile::scope::join_ns` 现算（两者逐字一致）。
+    /// 本命令的副作用是**解析期**的：`end` 之前声明的名字自动带前缀（N3）。
+    Namespace {
+        name: String,
+        span: Span,
+    },
+    /// `end <name>`（G-05）：闭合最近的 `namespace <name>`。parser 已校验
+    /// 同名（错配是专用 parse 错误码），elab 只负责弹栈。
+    End {
+        name: String,
+        span: Span,
+    },
+    /// `open <name>`（G-05）：把 `<name>.` 加进**可省略前缀**集合。
+    /// 只影响引用解析（N4），不重命名任何东西、不产生事件。
+    Open {
+        name: String,
         span: Span,
     },
 }
@@ -335,7 +384,10 @@ impl Command {
             | Command::Check { span, .. }
             | Command::Reduce { span, .. }
             | Command::Print { span, .. }
-            | Command::Notation { span, .. } => *span,
+            | Command::Notation { span, .. }
+            | Command::Namespace { span, .. }
+            | Command::End { span, .. }
+            | Command::Open { span, .. } => *span,
         }
     }
 
@@ -348,6 +400,26 @@ impl Command {
     pub fn import_module(&self) -> Option<&str> {
         match self {
             Command::Import { module, .. } => Some(module),
+            _ => None,
+        }
+    }
+
+    /// 记法命令的**纯数据载荷**（跨 `import` 传播用，第二刀 §10.3）。
+    /// 非记法命令返回 `None`。
+    pub fn notation_decl(&self) -> Option<NotationDecl> {
+        match self {
+            Command::Notation {
+                symbol,
+                precedence,
+                assoc,
+                target,
+                ..
+            } => Some(NotationDecl {
+                symbol: symbol.clone(),
+                precedence: *precedence,
+                assoc: *assoc,
+                target: target.clone(),
+            }),
             _ => None,
         }
     }

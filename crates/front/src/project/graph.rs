@@ -14,8 +14,11 @@ use std::path::{Path, PathBuf};
 use super::module_name::ModuleName;
 use super::report::{ProjectDiagnostic, ProjectKind};
 use super::resolve::{resolve_module, Lookup};
+use crate::ast::NotationDecl;
 use crate::compile::ErrorKind;
-use crate::{parse, FolFile, Span};
+use crate::parser::{parse_with_inherited, scan_import_lines};
+use crate::FolFile;
+use crate::Span;
 
 /// 一个已解析的模块。
 pub struct LoadedModule {
@@ -84,6 +87,9 @@ pub fn load_closure_with_overlay(
     let mut stack: Vec<String> = Vec::new();
 
     let mut visiting: HashSet<String> = HashSet::new();
+    // 每个模块**导出**的记法表（自己声明的 + 从自己的 import 传递来的）：
+    // 解析一个模块之前，把它各依赖的导出表并起来当继承表（G-04 第二刀 §10.3）。
+    let mut exports: HashMap<String, Vec<NotationDecl>> = HashMap::new();
     visit(
         root,
         &entry_name,
@@ -95,6 +101,7 @@ pub fn load_closure_with_overlay(
         &mut diagnostics,
         &mut stack,
         &mut visiting,
+        &mut exports,
     );
 
     let mut closure = Closure {
@@ -106,6 +113,19 @@ pub fn load_closure_with_overlay(
     propagate_blocked(&mut closure, &mut extra);
     closure.diagnostics.append(&mut extra);
     closure
+}
+
+/// 把一个模块**自己**声明的记法并进继承表（同符号覆盖 = 遮蔽）。
+fn absorb_notations(file: &FolFile, inherited: &mut Vec<NotationDecl>) {
+    for command in &file.commands {
+        let Some(decl) = command.notation_decl() else {
+            continue;
+        };
+        match inherited.iter_mut().find(|it| it.symbol == decl.symbol) {
+            Some(slot) => *slot = decl,
+            None => inherited.push(decl),
+        }
+    }
 }
 
 /// 阻断传播（可重复调用）：上游失败 ⇒ 下游不编译，并在下游的 `import` 行
@@ -183,6 +203,7 @@ fn visit(
     diagnostics: &mut Vec<ProjectDiagnostic>,
     stack: &mut Vec<String>,
     visiting: &mut HashSet<String>,
+    exports: &mut HashMap<String, Vec<NotationDecl>>,
 ) -> VisitOutcome {
     if by_name.contains_key(name) {
         return VisitOutcome::Loaded; // 重复 import 只算一次
@@ -224,41 +245,20 @@ fn visit(
         },
     };
 
-    let file = match parse(&text) {
-        Ok(file) => file,
-        Err(diagnostic) => {
-            diagnostics.push(ProjectDiagnostic {
-                kind: ProjectKind::Error(ErrorKind::ImportModuleInvalid),
-                message: format!("{}（{name}）", diagnostic.message),
-                module: name.to_string(),
-                path: Some(path.to_path_buf()),
-                span: Some(diagnostic.span),
-            });
-            push_module(
-                modules,
-                by_name,
-                name,
-                path,
-                FolFile {
-                    commands: Vec::new(),
-                    src: text,
-                },
-                Vec::new(),
-                true,
-            );
-            return VisitOutcome::Loaded;
-        }
-    };
-
-    // 收集 import 边（书写顺序、按名字去重）。
+    // **先收 import 边，再解析自己**（G-04 第二刀 §10.3 的顺序对调）。
+    //
+    // 为什么要对调：入口可能用**依赖声明的记法**（`import lib.Set` + `Aᶜ`），
+    // 单独解析必然报 `notation-unknown-symbol`；而"解析失败 ⇒ 收不到 import 边
+    // ⇒ 依赖根本不被加载 ⇒ 记法永远传不过来"是个死锁（实测闭包里只剩入口一个
+    // 模块）。所以这里先用**词法级**扫描（`scan_import_lines`：`import` 必须是
+    // 完整的一行，与 `Lexer::on_import_line` 同款判据）拿到边、先访问依赖、拿到
+    // 它们的记法表之后再解析自己——解析成功时 `Command::Import` 的边是**权威**
+    // 版本（用它替换扫描版）。
     let mut imports: Vec<(String, Span)> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
-    for command in &file.commands {
-        let Some(raw) = command.import_module() else {
-            continue;
-        };
-        if seen.insert(raw.to_string()) {
-            imports.push((raw.to_string(), command.span()));
+    for (dep, span) in scan_import_lines(&text) {
+        if seen.insert(dep.clone()) {
+            imports.push((dep, span));
         }
     }
 
@@ -302,6 +302,7 @@ fn visit(
                     diagnostics,
                     stack,
                     visiting,
+                    exports,
                 ) {
                     VisitOutcome::Loaded => {}
                     VisitOutcome::Cycle(cycle) => {
@@ -360,8 +361,66 @@ fn visit(
     stack.pop();
     visiting.remove(name);
 
+    // 依赖都访问完了 ⇒ 它们的导出记法表可用。并起来当**继承表**解析自己。
+    let mut inherited: Vec<NotationDecl> = Vec::new();
+    for (dep, _) in &imports {
+        if let Some(table) = exports.get(dep) {
+            for decl in table {
+                match inherited.iter_mut().find(|it| it.symbol == decl.symbol) {
+                    Some(slot) => *slot = decl.clone(),
+                    None => inherited.push(decl.clone()),
+                }
+            }
+        }
+    }
+    let (file, parsed) = match parse_with_inherited(&text, &inherited) {
+        Ok(file) => (file, true),
+        Err(diagnostic) => {
+            diagnostics.push(ProjectDiagnostic {
+                kind: ProjectKind::Error(ErrorKind::ImportModuleInvalid),
+                message: format!("{}（{name}）", diagnostic.message),
+                module: name.to_string(),
+                path: Some(path.to_path_buf()),
+                span: Some(diagnostic.span),
+            });
+            (
+                FolFile {
+                    commands: Vec::new(),
+                    src: text.clone(),
+                },
+                false,
+            )
+        }
+    };
+    if parsed {
+        // 解析成功时 `Command::Import` 是权威边（书写顺序、按名字去重）。
+        let mut from_ast: Vec<(String, Span)> = Vec::new();
+        let mut ast_seen: HashSet<String> = HashSet::new();
+        for command in &file.commands {
+            let Some(raw) = command.import_module() else {
+                continue;
+            };
+            if ast_seen.insert(raw.to_string()) {
+                from_ast.push((raw.to_string(), command.span()));
+            }
+        }
+        imports = from_ast;
+    }
+    // 本模块**导出**的记法 = 继承来的 + 自己声明的（同符号自己覆盖）。
+    let mut table = inherited;
+    absorb_notations(&file, &mut table);
+    exports.insert(name.to_string(), table);
+
     // **后序登记**：依赖已经在 `modules` 里，入口最后（拓扑序）。
-    push_module(modules, by_name, name, path, file, imports, module_failed);
+    push_module(
+        modules,
+        by_name,
+        name,
+        path,
+        file,
+        imports,
+        module_failed || !parsed,
+    );
     VisitOutcome::Loaded
 }
 

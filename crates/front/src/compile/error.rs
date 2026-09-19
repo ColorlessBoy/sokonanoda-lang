@@ -58,6 +58,12 @@ pub enum ErrorKind {
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
+    /// **没有累积性**（L-06）：内核要 `Sort(n)`（`n ≥ 1`，数据/`Type`），
+    /// 学习者给的是 `Sort(0)`（`Prop` 命题）。官方 Lean 4 有累积性
+    /// （`Prop ⊆ Type`），本语言没有——这是设计边界，不是内核缺陷；专用码 +
+    /// hint 只是把内核的裸类型不匹配翻译成人话（设计
+    /// `docs/design/prop-cumulativity-boundary.md`）。
+    KernelPropNotCumulative,
     KernelNonPositive,
     KernelCtorResultMismatch,
     KernelCtorArgInvalidApp,
@@ -114,6 +120,7 @@ impl ErrorKind {
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
+            | KernelPropNotCumulative
             | KernelNonPositive
             | KernelCtorResultMismatch
             | KernelCtorArgInvalidApp
@@ -163,6 +170,7 @@ impl ErrorKind {
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
+            KernelPropNotCumulative => "kernel-prop-not-cumulative",
             KernelNonPositive => "kernel-inductive-non-positive",
             KernelCtorResultMismatch => "kernel-ctor-result-mismatch",
             KernelCtorArgInvalidApp => "kernel-ctor-arg-invalid-app",
@@ -187,7 +195,7 @@ impl ErrorKind {
         use ErrorKind::*;
         match self {
             ElabUnknownIdentifier => {
-                "这个名字还没有被定义。检查拼写，或确认它出现在你前面的某个声明里（练习要在解决之后才能被后面的代码引用）。"
+                "这个名字还没有被定义。检查拼写，或确认它出现在你前面的某个声明里（练习要在解决之后才能被后面的代码引用）。若它在该命名空间里，检查前缀或加 open。"
             }
             ElabUnknownConstant => {
                 "这里引用了一个不存在的常量。如果它带宇宙参数，请先定义它。"
@@ -269,6 +277,9 @@ impl ErrorKind {
             }
             KernelTheoremNotProp => {
                 "theorem 的类型必须是命题（Prop 里的东西）。想定义普通值请用 def。"
+            }
+            KernelPropNotCumulative => {
+                "这里需要 Type（数据），但你给的是 Prop（命题）：本语言没有累积性，Prop 不是 Type 的子集（官方 Lean 4 有累积性，同一段代码在 Lean 里能过）。把陈述改成 Prop（例如等势用 Set.Equiv … : Prop 这样的命题版），或者交一个真正的 Type 值（如 Nat）。"
             }
             KernelNonPositive => {
                 "递归引用出现在了负位置：构造子参数里 T 出现在箭头左边（如 T → Nat）。递归引用只能写在返回类型一侧。"
@@ -386,6 +397,52 @@ pub(crate) fn parse_def_eq_mismatch(msg: &str) -> Option<(String, String)> {
     Some((expected, actual))
 }
 
+/// The **trailing** sort level of a kernel-rendered type: `Sort(0)` → `Some(0)`,
+/// `Pi (x : Nat), Sort(1)` → `Some(1)`, `Nat` → `None`.
+///
+/// `rfind` is deliberate: the mismatch that matters is the *codomain* sort (the
+/// type the value must inhabit), while earlier `Sort(…)`s belong to the
+/// domains. Levels the kernel renders as variables (`Sort(u)`) parse to `None`
+/// and stay unclassified.
+fn trailing_sort_level(rendered: &str) -> Option<u32> {
+    const OPEN: &str = "Sort(";
+    let start = rendered.rfind(OPEN)? + OPEN.len();
+    let rest = &rendered[start..];
+    let end = rest.find(')')?;
+    rest[..end].trim().parse().ok()
+}
+
+/// Classify a def-eq mismatch as the language's **non-cumulativity** boundary
+/// (L-06): the kernel wanted `Sort(n)` with `n ≥ 1` (a `Type`/data value) and
+/// the term inhabits `Sort(0)` (a `Prop`).
+///
+/// Official Lean 4 has cumulativity (`Prop ⊆ Type`), so the same source checks
+/// there; here it is a design boundary and deserves a dedicated code plus a
+/// human hint instead of the bare "类型不匹配".
+///
+/// **Scope (deliberate, documented in
+/// `docs/design/prop-cumulativity-boundary.md` §3): only the bare-sort shape**
+/// — the mismatch between two *sorts* themselves (`def T : Type := True`).
+/// The `Pi`-shaped variant (`def bad : Prop -> Type := fun (x : Prop) => x`) is
+/// the same phenomenon, but it is also the fixture that the CLI/LSP/extension
+/// contract tests use to represent a **generic** kernel rejection (they pin
+/// `code == "kernel-rejected"`, stage, span and expected/actual). Widening the
+/// rule to `Pi` shapes would change those fixtures, so it is left for a
+/// dedicated migration rather than smuggled in here.
+///
+/// The mirror image (`Sort(0)` expected, `Sort(m)` actual) is deliberately
+/// **not** classified at all: it is textually identical to an ordinary
+/// "you wrote a `Type` where a `Prop` was expected" (`def f : Prop := Nat`),
+/// so a code claiming "no large elimination" would mislabel it.
+fn classify_prop_sort_gap(expected: &str, actual: &str) -> Option<ErrorKind> {
+    if expected.contains("Pi ") || actual.contains("Pi ") {
+        return None;
+    }
+    let expected_level = trailing_sort_level(expected)?;
+    let actual_level = trailing_sort_level(actual)?;
+    (expected_level > 0 && actual_level == 0).then_some(ErrorKind::KernelPropNotCumulative)
+}
+
 /// Map a kernel rejection panic message to the most precise [`ErrorKind`].
 /// The kernel reports rejections as panics; `CheckError::Rejected` wraps the
 /// payload as `rejected: <payload>`. def_eq mismatches carry a stable marker
@@ -398,8 +455,15 @@ pub(crate) fn refine_kernel_kind(msg: &str) -> ErrorKind {
     let payload = msg.strip_prefix("rejected: ").unwrap_or(msg);
 
     // def_eq mismatches: check/kernel_phase.rs re-renders both sides from the marker;
-    // the classifier must not interfere with them.
+    // the classifier must not interfere with them — except for the one shape it
+    // can name precisely (L-06: a `Prop` where a `Type` was required, i.e. the
+    // language has no cumulativity), which gets its own code + hint.
     if payload.starts_with("def_eq failed:") || payload.starts_with(DEF_EQ_MARKER) {
+        if let Some((expected, actual)) = parse_def_eq_mismatch(payload) {
+            if let Some(kind) = classify_prop_sort_gap(&expected, &actual) {
+                return kind;
+            }
+        }
         return ErrorKind::KernelRejected;
     }
     if payload.starts_with("expected a sort") {

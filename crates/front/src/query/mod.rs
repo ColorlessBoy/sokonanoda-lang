@@ -154,8 +154,9 @@ impl QueryDoc {
     /// 文本里有 `import` 且能定位入口（`--file` 或 `--root`）时，编译整个
     /// 闭包并返回项目报告；否则 `None`（单文件路径，行为与今天一致）。
     fn project_compile(&self, text: &str) -> Option<crate::project::ProjectReport> {
-        let parsed = crate::parse(text).ok()?;
-        if !parsed.commands.iter().any(|command| command.is_import()) {
+        // `is_project_source`：parse 失败时退回 `import` 代码行扫描——入口用了
+        // 依赖声明的记法时（G-04 第二刀），单独 parse 失败但闭包能编。
+        if !crate::project::is_project_source(text) {
             return None;
         }
         let root = self.root.as_deref();

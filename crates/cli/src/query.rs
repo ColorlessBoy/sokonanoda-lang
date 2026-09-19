@@ -172,11 +172,13 @@ fn load_document(doc: &mut QueryDoc, src: &str) {
     }
 }
 
-/// 文本里有没有 `import`（触发项目闭包路径的唯一条件）。
+/// 文本要不要走项目闭包（触发项目路径的唯一条件）。
+///
+/// 分发用真相层的 `is_project_source`：**入口单独 parse 失败时也看它有没有
+/// `import` 行**——入口用了依赖声明的记法时（G-04 第二刀），单文件 parse 必然
+/// 报 `notation-unknown-symbol`，而闭包路径能编。
 fn has_imports(src: &str) -> bool {
-    sokonanoda_front::parse(src)
-        .map(|file| file.commands.iter().any(|command| command.is_import()))
-        .unwrap_or(false)
+    sokonanoda_front::project::is_project_source(src)
 }
 
 fn cursor_of(args: &Args, doc: &QueryDoc) -> Result<usize, Value> {

@@ -114,6 +114,37 @@ fn judge_cache_get(key: u64) -> Option<JudgeCacheValue> {
         .cloned()
 }
 
+/// **类型查询**（[`judge_type_of`]）的独立缓存。
+///
+/// 为什么不与 `judge_infer` 共用：两者是**不同的查询**（一个问"项的类型"、
+/// 一个问"项在 binder 语境下的类型"），共用一张 FIFO 会让记法展开的类型查询
+/// 把 tactic 判定的条目挤出去（实测：`judge_cache_returns_identical_results_and_
+/// stores_entries` 在全量跑里被挤到容量上限而判红）。
+fn type_cache() -> &'static Mutex<JudgeCacheStore> {
+    static CACHE: OnceLock<Mutex<JudgeCacheStore>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new((HashMap::new(), Vec::new())))
+}
+
+fn type_cache_get(key: u64) -> Option<JudgeCacheValue> {
+    type_cache()
+        .lock()
+        .expect("type cache")
+        .0
+        .get(&key)
+        .cloned()
+}
+
+fn type_cache_put(key: u64, value: JudgeCacheValue) {
+    let mut cache = type_cache().lock().expect("type cache");
+    if cache.0.insert(key, value).is_none() {
+        cache.1.push(key);
+        while cache.1.len() > JUDGE_CACHE_CAP {
+            let oldest = cache.1.remove(0);
+            cache.0.remove(&oldest);
+        }
+    }
+}
+
 fn judge_cache_put(key: u64, value: JudgeCacheValue) {
     let mut cache = judge_cache().lock().expect("judge cache");
     if cache.0.insert(key, value.clone()).is_none() {
@@ -185,7 +216,29 @@ fn judge_terms_uncached(
         return judgements;
     }
     // 剩余目标解析失败 → 全部判为解析错误。
-    let Ok(goal) = parse_expr_text(&open.ty) else {
+    //
+    // **前缀先解析**（顺序对调，G-04 第二刀）：前缀的 `FolFile` 里带着本文件
+    // 声明过的记法，`render_expr` 打回来的目标文本（`a ∈ A`、`Aᶜ`）必须用同一张
+    // 表回读，否则符号会被读成「未声明符号」——这是第一刀就有的边界（`by` 块的
+    // 目标文本走 `render_expr` + `parse_expr_text` 往返），第二刀顺手修掉。前缀
+    // 本来就为后面的合成声明解析，所以**零额外解析开销**；前缀里没有记法命令时
+    // 逐字节等于旧行为。
+    let full_prefix = synthesized_prefix(extra_prefix, prefix_src);
+    let Ok(prefix_file) = parse_prefix(&full_prefix) else {
+        return vec![
+            Judgement::Error {
+                code: "parse".to_string(),
+                message: "前缀源码无法解析".to_string(),
+            };
+            terms.len()
+        ];
+    };
+    let notations: Vec<crate::ast::NotationDecl> = prefix_file
+        .commands
+        .iter()
+        .filter_map(|command| command.notation_decl())
+        .collect();
+    let Ok(goal) = crate::proof::parse_expr_text_with(&open.ty, &notations) else {
         return vec![
             Judgement::Error {
                 code: "parse".to_string(),
@@ -196,7 +249,7 @@ fn judge_terms_uncached(
     };
     // 把已写 binders 折叠回声明类型：`(b1 : T1) -> (b2 : T2) -> 剩余目标`。
     // binder 名字与显隐风格不影响内核检查（只影响打印），统一折成命名箭头。
-    let ty = match fold_declared(goal, &open.binders) {
+    let ty = match fold_declared(goal, &open.binders, &notations) {
         Ok(ty) => ty,
         Err(missing) => {
             return vec![
@@ -207,16 +260,6 @@ fn judge_terms_uncached(
                 terms.len()
             ]
         }
-    };
-    let full_prefix = synthesized_prefix(extra_prefix, prefix_src);
-    let Ok(prefix_file) = parse_prefix(&full_prefix) else {
-        return vec![
-            Judgement::Error {
-                code: "parse".to_string(),
-                message: "前缀源码无法解析".to_string(),
-            };
-            terms.len()
-        ];
     };
 
     let mut commands = prefix_file.commands;
@@ -240,7 +283,7 @@ fn judge_terms_uncached(
         },
     );
     for (k, term) in terms.iter().enumerate() {
-        let Ok(term_expr) = parse_expr_text(term) else {
+        let Ok(term_expr) = crate::proof::parse_expr_text_with(term, &notations) else {
             failed_parse = Some(k);
             continue;
         };
@@ -271,6 +314,75 @@ fn judge_terms_uncached(
         *judgement = judgement_of(&report, k);
     }
     judgements
+}
+
+/// **一个项的类型文本**（不合成 lambda、不剥 binder）：合成 `#check <term>`
+/// 走完整流水线，取 `TypeChecked` 的 `inferred_type`。
+///
+/// 用途：记法展开要读**目标常量的签名**（`Set.powerset : (α : Type) → Set α →
+/// Set (Set α)`）。[`judge_infer`] 那条路要先合成 `fun (binders) => term` 再逐层
+/// 剥 binder，目标**本身是函数**时内核 pp 的多 binder 折叠会让剥离结果错位
+/// （第二刀实测：`Set.image` 的签名被剥成
+/// `(β : Sort 1) -> … -> (α : Sort 1) (β : Sort 1) -> …`，`''` 的前导参数
+/// 永远解不出）。这里直接问，不剥——签名是常量自己的，与调用点的 binder 无关。
+pub fn judge_type_of(
+    prefix_src: &str,
+    options: &CompileOptions,
+    term: &str,
+) -> Result<String, Judgement> {
+    let key = judge_cache_key(&[prefix_src, &options_key(options), "type-of", term]);
+    if let Some(JudgeCacheValue::Infer(r)) = type_cache_get(key) {
+        return r;
+    }
+    let r = judge_type_of_uncached(prefix_src, options, term);
+    type_cache_put(key, JudgeCacheValue::Infer(r.clone()));
+    r
+}
+
+fn judge_type_of_uncached(
+    prefix_src: &str,
+    options: &CompileOptions,
+    term: &str,
+) -> Result<String, Judgement> {
+    let mut src = String::from(prefix_src);
+    src.push_str("#check ");
+    src.push_str(term);
+    src.push('\n');
+    // 片段模式（G-05 §4.1）：前缀可能停在未闭合的 `namespace` 里。
+    let Ok(file) = crate::parse_fragment(&src) else {
+        return Err(Judgement::Error {
+            code: "parse".to_string(),
+            message: "无法解析类型查询".to_string(),
+        });
+    };
+    let report = compile_fol_with(&file, options);
+    if !report.errors.is_empty() {
+        let e = &report.errors[0];
+        return Err(Judgement::Error {
+            code: e.code().to_string(),
+            message: e.message.clone(),
+        });
+    }
+    let last_cmd = file.commands.len().checked_sub(1);
+    report
+        .events
+        .iter()
+        .zip(report.event_cmds.iter())
+        .filter(|(_, cmd)| Some(**cmd) == last_cmd)
+        .find_map(|(e, _)| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .or_else(|| {
+            report.events.iter().rev().find_map(|e| match e {
+                CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
+                _ => None,
+            })
+        })
+        .ok_or_else(|| Judgement::Error {
+            code: "judge-infer-none".to_string(),
+            message: "内核未返回类型".to_string(),
+        })
 }
 
 /// 推断 `term` 在 `binders` 语境下的**类型文本**（kernel 判定驱动，供
@@ -335,7 +447,9 @@ fn judge_infer_uncached(
     text.push('\n');
     let mut src = synthesized_prefix(extra_prefix, prefix_src);
     src.push_str(&text);
-    let Ok(file) = crate::parse(&src) else {
+    // 片段模式（G-05 §4.1）：前缀可能停在未闭合的 `namespace` 里，合成的
+    // `#check` 必须落在**仍然打开的**那个命名空间内。
+    let Ok(file) = crate::parse_fragment(&src) else {
         return Err(Judgement::Error {
             code: "parse".to_string(),
             message: "无法解析推断请求".to_string(),
@@ -428,6 +542,31 @@ fn render_roundtrip(expr: &Expr) -> String {
         }
         _ => render_expr(expr),
     }
+}
+
+/// 内核 pp 渲染的**类型文本**（G-05，设计 `docs/design/namespace-open.md` §4.6）。
+///
+/// 合成 `#check fun (x : <ty>) => x` 走完整流水线，取回的文本是
+/// `(x : T) -> T`，剥掉那一层 binder 就是 `T` 的**规范文本**（内核自己的
+/// pretty printer 产出：命名空间里的短名会渲染成全名 `A.mem`）。
+///
+/// 为什么需要：`by` 引擎的 `apply` 用**文本**把「被应用函数的 codomain」与
+/// 「当前目标」对齐（`unify_spine`），而 codomain 来自内核 pp、目标来自源 AST。
+/// 源里写短名时两边文本不同（`mem` vs `A.mem`）——把目标也过一遍内核，
+/// 两边就同源了（判定仍在内核，不做文本比对）。
+///
+/// 失败一律 `None`（调用方退回源 AST：行为与加这条之前逐字相同）。
+pub fn judge_render_type(
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    ty: &str,
+) -> Option<String> {
+    let term = format!("fun (x : {ty}) => x");
+    let text = judge_infer(prefix_src, options, binders, &term).ok()?;
+    let parsed = parse_expr_text(&text).ok()?;
+    let rest = peel_one_binder(&parsed)?;
+    Some(render_roundtrip(&rest))
 }
 
 /// 把 doc 中 decl_span 命令里的 hole_span 替换为候选 term，改名合成声明
@@ -621,8 +760,14 @@ fn synthesized_prefix(extra_prefix: &str, doc_prefix: &str) -> String {
     out
 }
 
+/// 前缀解析：走**片段模式**（G-05，设计 `docs/design/namespace-open.md` §4.1）。
+///
+/// 前缀是文件的一个片段，`by` 块所在的声明在 `namespace Foo` 里时它必然带着
+/// 一个未闭合的 `namespace`——严格入口会报 `parse-namespace-unclosed`，而这里
+/// 必须容忍，并且**保持命名空间打开**（拼在后面的合成 `#check`/合成声明要落在
+/// 里面，引用才按 N4 解析）。
 fn parse_prefix(prefix_src: &str) -> Result<FolFile, ()> {
-    crate::parse(prefix_src).map_err(|_| ())
+    crate::parse_fragment(prefix_src).map_err(|_| ())
 }
 
 /// 声明名 token 在命令切片内的区间（切片相对偏移）：`example` 返回关键字
@@ -791,13 +936,19 @@ pub fn judge_value_replace_with(
 /// `forall (b1 : T1) (b2 : T2), 剩余目标`——与命名箭头的语法语义一致
 /// （后一个 binder 的类型可以引用前一个，必须在同一 telescope 内 elaborate）。
 /// 返回 `Err(binder_name)` 表示该 binder 缺少类型标注。
-fn fold_declared(goal: Expr, binders: &[GoalBinderSpec]) -> Result<Expr, String> {
+fn fold_declared(
+    goal: Expr,
+    binders: &[GoalBinderSpec],
+    notations: &[crate::ast::NotationDecl],
+) -> Result<Expr, String> {
     let mut parsed = Vec::with_capacity(binders.len());
     for binder in binders {
         let Some(text) = &binder.ty else {
             return Err(binder.name.clone());
         };
-        let Ok(domain) = parse_expr_text(text) else {
+        // binder 的类型也是 `render_expr` 打回来的源码文本：`intro h` 在
+        // `a ∈ A -> …` 上引入的 `h` 类型就是 `a ∈ A`（G-04 第二刀）。
+        let Ok(domain) = crate::proof::parse_expr_text_with(text, notations) else {
             return Err(binder.name.clone());
         };
         parsed.push(Binder {

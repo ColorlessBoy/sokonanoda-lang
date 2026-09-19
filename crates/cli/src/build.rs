@@ -109,21 +109,12 @@ fn build_one(
     let options = CompileOptions {
         prelude: prelude_mode_from_source(src),
     };
-    let parsed = match sokonanoda_front::parse(src) {
-        Ok(parsed) => parsed,
-        Err(diag) => {
-            return Err(format!(
-                "{}:{}: error[{}]: {}",
-                diag.span.start.line,
-                diag.span.start.column,
-                diag.stage_code(),
-                diag.message
-            ));
-        }
-    };
     // 有 import ⇒ 项目闭包（v1 不进缓存：闭包键在 P4 落地；现在宁可重编译，
     // 也不拿单文件键去缓存一个依赖别人环境的报告）。
-    if parsed.commands.iter().any(|command| command.is_import()) {
+    //
+    // 分发用 `is_project_source`：入口**单独 parse 失败**但写了 `import` 时也走
+    // 闭包——入口可能用了依赖声明的记法（G-04 第二刀），闭包路径能编。
+    if sokonanoda_front::project::is_project_source(src) {
         let root_override = if no_project {
             path.parent().map(Path::to_path_buf)
         } else {
@@ -156,6 +147,18 @@ fn build_one(
         }
         return Ok(if ok { "compiled" } else { "failed" });
     }
+    let parsed = match sokonanoda_front::parse(src) {
+        Ok(parsed) => parsed,
+        Err(diag) => {
+            return Err(format!(
+                "{}:{}: error[{}]: {}",
+                diag.span.start.line,
+                diag.span.start.column,
+                diag.stage_code(),
+                diag.message
+            ));
+        }
+    };
     if let Some(entry) = cache::load(src, &options) {
         if entry.output.is_some() {
             return Ok("hit");

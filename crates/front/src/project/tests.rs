@@ -736,3 +736,131 @@ fn a_duplicated_bare_ctor_across_modules_is_ambiguous() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// ---- 跨 `import` 的记法传播（G-04 第二刀，设计 `docs/design/notation-subset.md` §10.3）
+
+/// 卷 I 形状的最小库：声明两条记法（`prefix` 与 `postfix`）。
+const NOTATION_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+axiom Set.union : (α : Type) -> Set α -> Set α -> Set α\n\
+axiom Set.compl : (α : Type) -> Set α -> Set α\n\
+infixl:65 \" ∪ \" => Set.union\n\
+postfix:100 \" ᶜ \" => Set.compl\n";
+
+#[test]
+fn a_dependency_notation_is_usable_in_the_entry() {
+    let dir = tmp_dir("notation-import");
+    write(&dir, "lib/Set.sokonanoda", NOTATION_LIB);
+    // 入口**不重声明**记法：它直接用库里的 `ᶜ` / `∪`。
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import lib.Set\n\ndef use1 (α : Type) (A B : Set α) : Set α := Aᶜ ∪ B\n\
+         def use2 (α : Type) (A B : Set α) : Set α := Set.union α (Set.compl α A) B\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+    assert!(
+        report.diagnostics.is_empty(),
+        "the closure must load cleanly: {:?}",
+        report.diagnostics
+    );
+    let entry = report.entry_module().expect("entry module");
+    assert_eq!(
+        entry.report.errors,
+        vec![],
+        "the entry must elaborate the library notation"
+    );
+    assert_eq!(
+        entry
+            .report
+            .decls
+            .iter()
+            .filter(|decl| decl.status == DeclStatus::Checked)
+            .count(),
+        2,
+        "both spellings must check: {:?}",
+        entry.report.decls
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_notation_from_a_module_that_was_not_imported_is_not_visible() {
+    // 传播是**按 import 边**的，不是"闭包里全局"：没 import 的模块声明的记法
+    // 不泄漏（`lib/Other` 甚至不在闭包里）。
+    let dir = tmp_dir("notation-no-leak");
+    write(&dir, "lib/Set.sokonanoda", NOTATION_LIB);
+    write(
+        &dir,
+        "lib/Other.sokonanoda",
+        "prefix:100 \" 𝒫 \" => Other.powerset\naxiom Other.powerset : (α : Type) -> α -> α\n",
+    );
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import lib.Set\n\ndef use (α : Type) (A : Set α) : Set α := Aᶜ\n\
+         def leak (α : Type) (A : α) : α := 𝒫 A\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+    assert_eq!(
+        report
+            .modules
+            .iter()
+            .map(|m| m.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["lib.Set", "Main"],
+        "an unimported module must not even be loaded"
+    );
+    let entry_errors: Vec<&'static str> = report
+        .entry_module()
+        .map(|module| module.report.errors.iter().map(|e| e.code()).collect())
+        .unwrap_or_default();
+    assert!(
+        entry_errors.contains(&"elab-unknown-identifier"),
+        "`𝒫` is not visible without the import: {entry_errors:?}"
+    );
+    let entry = report.entry_module().expect("entry module");
+    assert!(
+        entry
+            .report
+            .decls
+            .iter()
+            .any(|decl| decl.name.as_deref() == Some("use") && decl.status == DeclStatus::Checked),
+        "`ᶜ` comes through the import and must still work: {:?}",
+        entry.report.decls
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn redeclaring_an_inherited_notation_is_a_dedicated_error() {
+    // 第二刀：同一符号只能声明一次——**包括** import 带进来的那些。判卷通道
+    // 把闭包首尾相接成一份合成源码，两个模块各声明一次 `∪` 在那里必然撞车，
+    // 所以源头就不许（设计 §10.3）。
+    let dir = tmp_dir("notation-redeclare");
+    write(&dir, "lib/Set.sokonanoda", NOTATION_LIB);
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import lib.Set\n\
+         axiom Other.union : (α : Type) -> Set α -> Set α -> Set α\n\
+         infixl:65 \" ∪ \" => Other.union\n",
+    );
+    let report = compile(&dir, "Main.sokonanoda");
+    let codes: Vec<&'static str> = report.diagnostics.iter().map(|d| d.code()).collect();
+    assert!(
+        codes.contains(&"import-module-invalid"),
+        "the entry cannot be parsed: {codes:?}"
+    );
+    let message = report
+        .diagnostics
+        .iter()
+        .find(|d| d.code() == "import-module-invalid")
+        .map(|d| d.message.clone())
+        .unwrap_or_default();
+    assert!(
+        message.contains("已经声明过记法"),
+        "the message must name the rule: {message}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

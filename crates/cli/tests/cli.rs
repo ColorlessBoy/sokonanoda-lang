@@ -483,6 +483,21 @@ fn cli_help_is_self_documenting() {
     assert!(stdout.contains("sokonanoda repl"));
     assert!(stdout.contains("#check"));
     assert!(stdout.contains("#print"));
+    // G-08：`abbrev` 必须自文档化（真 Lean 代码粘进来时，用户第一次查的就是这里）。
+    assert!(stdout.contains("abbrev <name>"), "stdout: {stdout}");
+    // G-04 第二刀：两条一元记法命令也必须自文档化（第一刀的四条此前没进 help）。
+    for command in [
+        "infix:N",
+        "infixl:N",
+        "prefix:N",
+        "postfix:N",
+        "notation \" sym \"",
+    ] {
+        assert!(
+            stdout.contains(command),
+            "the notation family must be self-documenting ({command}): {stdout}"
+        );
+    }
     // I16：import 与项目根开关必须自文档化（用户第一次遇到 import 报错时查这里）。
     assert!(stdout.contains("import Logic"), "stdout: {stdout}");
     assert!(stdout.contains("--root <dir>"), "stdout: {stdout}");
@@ -2187,4 +2202,95 @@ fn cli_reports_an_ambiguous_bare_ctor_alias() {
         stderr.contains("P1.mk") && stderr.contains("P2.mk"),
         "both candidates are named: {stderr}"
     );
+}
+
+// ---- abbrev（G-08，docs/design/abbrev.md）---------------------------------
+
+/// 一份含类型别名 + 类型位互换 + `#reduce` 的 `abbrev` 画布。
+const ABBREV_CANVAS: &str = "\
+abbrev Set (α : Type) : Type := α -> Prop\n\
+abbrev Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+def A1 (α : Type) (f : α -> Prop) : Set α := f\n\
+def A2 (α : Type) (A : Set α) : α -> Prop := A\n\
+#reduce Set\n";
+
+/// `--json` 事件流的**五元计数**（与 `crates/cli/tests/notation.rs` 同款：
+/// 判据是事件计数逐一相等，不做文本比对）。
+fn abbrev_event_counts(stdout: &str) -> std::collections::BTreeMap<String, usize> {
+    let mut counts = std::collections::BTreeMap::new();
+    for line in stdout.lines() {
+        let value: serde_json::Value = serde_json::from_str(line).expect("each line is JSON");
+        let kind = value["type"]
+            .as_str()
+            .expect("every line has a type")
+            .to_string();
+        *counts.entry(kind).or_insert(0) += 1;
+    }
+    counts
+}
+
+#[test]
+fn cli_abbrev_and_def_grade_identically() {
+    // G-08 教学契约：同一份画布的 `abbrev` 版与 `def` 版 ⇒ 退出码一致 +
+    // 事件计数逐一相等（`abbrev` 是同语义拼写，设计 §2）。
+    let abbrev = run_args(&["--json"], Some(ABBREV_CANVAS));
+    assert!(
+        abbrev.status.success(),
+        "abbrev canvas must grade clean; stderr: {}",
+        String::from_utf8_lossy(&abbrev.stderr)
+    );
+    let def_canvas = ABBREV_CANVAS.replace("abbrev ", "def ");
+    let spelled_def = run_args(&["--json"], Some(&def_canvas));
+    assert!(
+        spelled_def.status.success(),
+        "def canvas must grade clean; stderr: {}",
+        String::from_utf8_lossy(&spelled_def.stderr)
+    );
+    assert_eq!(
+        abbrev_event_counts(&String::from_utf8_lossy(&abbrev.stdout)),
+        abbrev_event_counts(&String::from_utf8_lossy(&spelled_def.stdout)),
+        "abbrev and def must emit the same event counts"
+    );
+    // 别名在**类型位**透明（设计 §1.1）：A1/A2 两条都要 checked。
+    let stdout = String::from_utf8_lossy(&abbrev.stdout);
+    for name in ["Set", "Set.mem", "A1", "A2"] {
+        assert!(
+            stdout.contains(&format!("\"name\":\"{name}\"")),
+            "expected `{name}` to be checked:\n{stdout}"
+        );
+    }
+}
+
+#[test]
+fn cli_abbrev_canvas_is_a_clean_human_grade() {
+    // 人类视图：exit 0 + 每条声明一条 `checked declaration`（真 Lean 的
+    // `abbrev` 行可以原样粘进 `.sokonanoda`）。
+    let out = run(ABBREV_CANVAS);
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("checked declaration Set"),
+        "stdout: {stdout}"
+    );
+    assert!(
+        stdout.contains("checked declaration A2"),
+        "stdout: {stdout}"
+    );
+}
+
+#[test]
+fn cli_abbrev_in_an_expression_is_a_parse_error() {
+    // 白名单边界：`abbrev` 是命令，表达式位必须报 parse 诊断 + exit 1。
+    let out = run_args(&["--json"], Some("def f : Type := abbrev\n"));
+    assert_eq!(out.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let value: serde_json::Value =
+        serde_json::from_str(stdout.lines().next().expect("a diagnostic line"))
+            .expect("diagnostic is JSON");
+    assert_eq!(value["type"], "diagnostic");
+    assert_eq!(value["stage"], "parse");
 }

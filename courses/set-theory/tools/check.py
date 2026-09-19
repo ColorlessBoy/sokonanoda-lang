@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""课程门禁（卷 I《集合论》）：判据 G1–G5，**与课程规模无关**。
+"""课程门禁（卷 I《集合论》）：判据 G1–G6，**与课程规模无关**。
 
-设计：`docs/design/course-gate-in-ci.md`（判据 §3、三条坑 §4、输出 §5）。
+设计：`docs/design/course-gate-in-ci.md`（判据 §3、三条坑 §4、输出 §5）、
+`docs/design/course-manifest-v2.md`（G6 / 清单 v2，台账 G-07）。
 
-判据（判红的**只有**这五条；计数从不参与判红）：
+判据（判红的**只有**这六条；计数从不参与判红）：
 
 * **G1** 每个目标 `grade` 退出码 0（G-10：判据只认 `grade` 的退出码，不认 `query check`）；
 * **G2** 目标存在：`course.json` 条目、`lib/`、每个画布（含非单元页面）的解答文件都在；
@@ -14,6 +15,14 @@
   （`units/` 下不进 `course.json` 的画布，如记法对照页）走**同一套** G1/G3/G4：
   它们不是单元（没有单元号/配额），但同样是"有 `sorry` 的画布 + 有解答"。
 * **G5** `lib` + Demo：`exercise.open == 0`（库里有 `sorry` 会让引用它的单元判卷失真）。
+* **G6** 清单自洽（v2；v1 扁平清单天然满足）：volume/chapter id 唯一且非空、
+  每个 unit 恰好属于一个 chapter（`file` 不重复）、`prereqs` 指向存在的 chapter id。
+  **`quota.exercises` 与画布实际练习数的差额只报告、绝不判红**——课程门禁的
+  设计原则是「只判形状、不锁计数」（设计 §2/§4.2）。
+
+清单两种格式都读（台账 G-07，`docs/design/course-manifest-v2.md`）：v1 扁平数组与
+v2 `{schema, volumes[].chapters[].units[]}`；`flatten_manifest()` 把 v2 展平成
+**与 v1 同形**的单元列表，所以 G1–G5 的判定代码一行未改。
 
 三条坑的工程化：
 
@@ -29,7 +38,7 @@
 
 ```bash
 python3 courses/set-theory/tools/check.py                    # 人读表 + 汇总
-python3 courses/set-theory/tools/check.py --selftest         # 判据通道自检（含 G-12 自检）
+python3 courses/set-theory/tools/check.py --selftest         # 判据通道自检（G-12 cwd 自检 + G6 清单自检）
 python3 courses/set-theory/tools/check.py --json             # 机器可读（含计数）
 python3 courses/set-theory/tools/check.py --only "单元 5" --bisect   # 二分定位
 python3 courses/set-theory/tools/check.py --report /tmp/gate.json --summary "$GITHUB_STEP_SUMMARY" --annotations
@@ -245,7 +254,195 @@ def grade_text(channel: Channel, origin: Path, text: str) -> GradeResult:
         tmp.unlink(missing_ok=True)
 
 
-# ── 目标发现（G2）───────────────────────────────────────────────────────────
+# ── 清单：v1 扁平数组 / v2 结构化对象（台账 G-07）────────────────────────────
+
+MANIFEST_SCHEMA_V2 = "soko.course/2"
+
+
+@dataclass
+class Chapter:
+    """v2 的一章：id/title + 先修 + 标签 + 配额 + 它的单元（保持文档序）。"""
+
+    id: str
+    title: str
+    prereqs: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    quota: int | None = None
+    units: list[dict] = field(default_factory=list)
+    volume_id: str = ""
+    volume_title: str = ""
+
+
+@dataclass
+class ManifestInfo:
+    """清单的结构面：v1 时为全零/空（向后兼容：v1 没有结构可谈）。"""
+
+    source: Path
+    volumes: int = 0
+    chapters: list[Chapter] = field(default_factory=list)
+    v2: bool = False
+
+
+def _string_list(value) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+def _quota_of(chapter: dict) -> int | None:
+    quota = chapter.get("quota")
+    if not isinstance(quota, dict):
+        return None
+    exercises = quota.get("exercises")
+    return exercises if isinstance(exercises, int) and not isinstance(exercises, bool) else None
+
+
+def flatten_manifest(value, source: Path) -> tuple[list[dict], list[str], ManifestInfo]:
+    """把清单（v1 数组 / v2 对象）展平成 `(units, problems, info)`。
+
+    展平后的 `units` 与 v1 条目**同形**（`file`/`title`/`title_en`/`unit`），
+    另外挂两个只在门禁内部用的键：`_chapter`（章 id，v1 为空串）与
+    `_volume`（卷 id）——G1–G5 的判定代码只读 v1 的那几个键，一行未改。
+
+    **G6 的判红在这里产出**（结构非法：id 重复/缺失、unit 重复、prereqs 悬空），
+    `problems` 走与 G2 同一条通道 ⇒ 判定/退出码/`--json` 自动跟上。
+    """
+    info = ManifestInfo(source=source)
+
+    if isinstance(value, list):
+        units = [entry for entry in value if isinstance(entry, dict)]
+        return units, [], info
+
+    if not isinstance(value, dict):
+        raise Prerequisite("course.json 既不是数组（v1）也不是对象（v2）")
+
+    schema = value.get("schema")
+    if schema is not None and schema != MANIFEST_SCHEMA_V2:
+        raise Prerequisite(
+            f"course.json 的 schema 是 {schema!r}，只认 {MANIFEST_SCHEMA_V2!r}"
+            f"（或没有 schema 的 v1 扁平数组）——不猜"
+        )
+
+    volumes = value.get("volumes", [])
+    if not isinstance(volumes, list):
+        raise Prerequisite("course.json 的 volumes 必须是数组")
+    info.v2 = True
+    info.volumes = len(volumes)
+
+    problems: list[str] = []
+    units: list[dict] = []
+    seen_volumes: set[str] = set()
+    seen_chapters: set[str] = set()
+    seen_files: dict[str, str] = {}
+
+    for index, volume in enumerate(volumes):
+        if not isinstance(volume, dict):
+            problems.append(f"G6：volumes[{index}] 不是对象")
+            continue
+        volume_id = volume.get("id")
+        if not isinstance(volume_id, str) or not volume_id.strip():
+            problems.append(f"G6：volumes[{index}] 缺 id")
+            volume_id = f"<volumes[{index}]>"
+        elif volume_id in seen_volumes:
+            problems.append(f"G6：volume id 重复：{volume_id}")
+        seen_volumes.add(volume_id)
+        volume_title = volume.get("title") if isinstance(volume.get("title"), str) else ""
+
+        chapters = volume.get("chapters", [])
+        if not isinstance(chapters, list):
+            problems.append(f"G6：volume {volume_id} 的 chapters 必须是数组")
+            continue
+        for position, chapter in enumerate(chapters):
+            if not isinstance(chapter, dict):
+                problems.append(f"G6：volume {volume_id} 的 chapters[{position}] 不是对象")
+                continue
+            chapter_id = chapter.get("id")
+            if not isinstance(chapter_id, str) or not chapter_id.strip():
+                problems.append(f"G6：volume {volume_id} 的 chapters[{position}] 缺 id")
+                chapter_id = f"<{volume_id}.chapters[{position}]>"
+            elif chapter_id in seen_chapters:
+                problems.append(f"G6：chapter id 重复：{chapter_id}")
+            seen_chapters.add(chapter_id)
+
+            raw_units = chapter.get("units", [])
+            if not isinstance(raw_units, list):
+                problems.append(f"G6：chapter {chapter_id} 的 units 必须是数组")
+                raw_units = []
+            entry_units: list[dict] = []
+            for raw in raw_units:
+                if not isinstance(raw, dict):
+                    problems.append(f"G6：chapter {chapter_id} 里有一个不是对象的单元条目")
+                    continue
+                file = raw.get("file")
+                if not isinstance(file, str) or not file.strip():
+                    problems.append(f"G6：chapter {chapter_id} 里有条目缺 file：{raw!r}")
+                    continue
+                if raw.get("unit") is None:
+                    problems.append(f"G6：chapter {chapter_id} 的 {file} 缺 unit 号")
+                if file in seen_files:
+                    problems.append(
+                        f"G6：单元 {file} 同时属于 {seen_files[file]} 与 {chapter_id}"
+                        "（每个 unit 只能属于一个 chapter）"
+                    )
+                    continue
+                seen_files[file] = chapter_id
+                entry = dict(raw)
+                entry["_chapter"] = chapter_id
+                entry["_volume"] = volume_id
+                entry_units.append(entry)
+                units.append(entry)
+
+            info.chapters.append(
+                Chapter(
+                    id=chapter_id,
+                    title=chapter.get("title") if isinstance(chapter.get("title"), str) else "",
+                    prereqs=_string_list(chapter.get("prereqs")),
+                    tags=_string_list(chapter.get("tags")),
+                    quota=_quota_of(chapter),
+                    units=entry_units,
+                    volume_id=volume_id,
+                    volume_title=volume_title,
+                )
+            )
+
+    # prereqs 只能在**全部** chapter id 收齐后判（允许前向引用；课程是长出来的）。
+    for chapter in info.chapters:
+        for prereq in chapter.prereqs:
+            if prereq not in seen_chapters:
+                problems.append(f"G6：chapter {chapter.id} 的 prereqs 指向不存在的 {prereq}")
+    return units, problems, info
+
+
+def quota_notes(value, source: Path, canvas_open: dict[str, int] | None = None) -> list[str]:
+    """`quota.exercises` 与画布实际练习数的差额——**只报告**（设计 §2/§4.2）。
+
+    `canvas_open` = `{单元 file: 该画布的实测练习数（exercise.open）}`；不给时
+    只报计划数（`--selftest` 与清单自检用得上）。差额**永不**参与判红：
+    课程还在长，锁死计数会让门禁从质量闸退化成记账本。
+    """
+    units, _, info = flatten_manifest(value, source)
+    if not info.v2:
+        return []
+    by_file = {str(entry.get("file")): entry for entry in units}
+    notes: list[str] = []
+    for chapter in info.chapters:
+        if chapter.quota is None:
+            continue
+        files = [str(entry.get("file")) for entry in chapter.units]
+        planned = chapter.quota
+        if canvas_open is None:
+            notes.append(
+                f"chapter {chapter.id} 计划练习 {planned} · 单元 {len(files)} 个（未判卷，无实测）"
+            )
+            continue
+        measured = sum(canvas_open.get(file, 0) for file in files if file in by_file)
+        delta = measured - planned
+        sign = "+" if delta > 0 else ""
+        notes.append(
+            f"chapter {chapter.id} 计划练习 {planned} · 画布实测 {measured}（差额 {sign}{delta}）"
+        )
+    return notes
+
 
 
 @dataclass
@@ -262,36 +459,46 @@ def solution_unit(path: Path) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def page_solution(canvas: Path) -> Path:
+def page_solution(canvas: Path, course: Path = COURSE) -> Path:
     """非单元页面（`<画布名>.sokonanoda`）的解答路径；缺失由 G2 判负（不在这里报）。"""
-    return SOLUTION_DIR / f"{canvas.stem}-solution.sokonanoda"
+    return course / "units" / "solutions" / f"{canvas.stem}-solution.sokonanoda"
 
 
-def discover() -> tuple[list[Target], list[str], int]:
+def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, ManifestInfo, list[dict]]:
     """目标清单 = lib/*（含 Demo 复判一次）+ course.json 的单元 + 每个画布的解答。
 
     `units/` 下**不计入 `course.json` 的页面**（记法对照页 `notation-cheatsheet`，大纲 §4
     的"第二遍"）按 `units/*.sokonanoda` 里剩下的文件发现：它们不是单元（没有单元号、没有
     配额），但是画布——有 `sorry`、有解答，所以照样过 G1/G3/G4。**画布是发现入口**：
     解答缺了会被 G2 点名，而不是让整个页面悄悄从门禁里消失。
+
+    清单两种格式都读（v1 数组 / v2 对象）：`flatten_manifest()` 展平成 v1 同形的
+    单元列表，G1–G5 的判定因此一行未改；**G6 的结构非法**与 G2 走同一条
+    `problems` 通道（同一个判负行、同一套退出码）。
     """
-    if not COURSE_JSON.is_file():
-        raise Prerequisite(f"找不到课程清单 {COURSE_JSON}")
+    # `course` 参数只给 `--selftest` 的临时夹具用（默认 = 本课程目录）：
+    # 判据代码因此能在**故意坏的清单**上被验证，而不必先污染真清单。
+    manifest_path = course / "course.json"
+    lib_dir = course / "lib"
+    units_dir = course / "units"
+    solutions_dir = units_dir / "solutions"
+    if not manifest_path.is_file():
+        raise Prerequisite(f"找不到课程清单 {manifest_path}")
     try:
-        units = json.loads(COURSE_JSON.read_text(encoding="utf-8"))
+        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise Prerequisite(f"course.json 读不出来或不是 JSON：{error}")
-    if not isinstance(units, list) or not units:
+    units, problems, info = flatten_manifest(raw, manifest_path)
+    if not units:
         raise Prerequisite("course.json 里没有任何单元")
 
-    problems: list[str] = []
     targets: list[Target] = []
-    modules = sorted(LIB.glob("*.sokonanoda"))
+    modules = sorted(lib_dir.glob("*.sokonanoda"))
     if not modules:
-        problems.append(f"课程标准库是空的：{LIB}")
+        problems.append(f"课程标准库是空的：{lib_dir}")
     for module in modules:
         targets.append(Target(f"lib {module.stem}", module, "lib"))
-    targets.append(Target("lib 自检", LIB / "Demo.sokonanoda", "lib"))
+    targets.append(Target("lib 自检", lib_dir / "Demo.sokonanoda", "lib"))
 
     canvases: list[tuple[int, Path]] = []
     listed: set[Path] = set()
@@ -300,13 +507,13 @@ def discover() -> tuple[list[Target], list[str], int]:
         if not rel or number is None:
             problems.append(f"course.json 条目缺 file/unit：{entry!r}")
             continue
-        canvas = COURSE / str(rel)
+        canvas = course / str(rel)
         canvases.append((int(number), canvas))
         listed.add(canvas)
         targets.append(Target(f"单元 {number}", canvas, "unit", unit=int(number)))
 
     by_unit: dict[int, Path] = {}
-    for solution in sorted(SOLUTION_DIR.glob("*-solution.sokonanoda")):
+    for solution in sorted(solutions_dir.glob("*-solution.sokonanoda")):
         number = solution_unit(solution)
         if number is None:
             continue  # 非单元页面的解答由**画布**那一侧发现（见下）
@@ -317,19 +524,20 @@ def discover() -> tuple[list[Target], list[str], int]:
 
     for number, canvas in canvases:
         # 解答缺失由这一行自己报（status=missing），所以不进 `problems`（不重复计数）。
-        solution = by_unit.get(number) or SOLUTION_DIR / f"unit{number:02d}-solution.sokonanoda"
+        solution = by_unit.get(number) or solutions_dir / f"unit{number:02d}-solution.sokonanoda"
         targets.append(Target(f"解答 unit{number:02d}", solution, "solution", canvas=canvas, unit=number))
     for number, solution in sorted(by_unit.items()):
         if all(number != seen for seen, _ in canvases):
             targets.append(Target(f"解答 unit{number:02d}（画布不在 course.json）", solution, "solution", unit=number))
 
     # 非单元页面：画布 + 解答成对进目标，判据与单元同一条 G1/G3/G4。
-    for canvas in sorted(UNITS.glob("*.sokonanoda")):
+    for canvas in sorted(units_dir.glob("*.sokonanoda")):
         if canvas in listed:
             continue
         targets.append(Target(f"页面 {canvas.stem}", canvas, "page"))
-        targets.append(Target(f"页面解答 {canvas.stem}", page_solution(canvas), "solution", canvas=canvas))
-    return targets, problems, len(canvases)
+        targets.append(Target(f"页面解答 {canvas.stem}", page_solution(canvas, course),
+                             "solution", canvas=canvas))
+    return targets, problems, len(canvases), info, units
 
 
 # ── 判据 G1/G3/G4/G5 ────────────────────────────────────────────────────────
@@ -445,7 +653,7 @@ def render_bisect(target: Target, found: dict, check_py: Path) -> list[str]:
     return lines
 
 
-# ── --selftest（G-10 的判据通道自检 + G-12 的 cwd 自检）─────────────────────
+# ── --selftest（G-10 的判据通道自检 + G-12 的 cwd 自检 + G6 的清单自检）────
 
 BAD_UNIT = "theorem selftest_bad (P : Prop) (h : P) : P := by\n  exact bogus_name\n"
 BISECT_UNIT = (
@@ -459,6 +667,88 @@ BISECT_UNIT = (
     "theorem selftest_bad3 (P : Prop) (h : P) : P := by\n"
     "  exact bogus_name\n"
 )
+
+SELFTEST_LIB = "def selftestId (P : Prop) : Prop := P\n"
+SELFTEST_UNIT = "import lib.Logic\n\ndef u (P : Prop) : Prop := selftestId P\n"
+SELFTEST_SOLUTION = SELFTEST_UNIT + "\ntheorem solved (P : Prop) : P -> P := fun h => h\n"
+
+# G6 的三类**结构非法**：每一种都必须被判负（判据通道失效时自检自己红）。
+SELFTEST_G6_BAD = {
+    "重复的 chapter id": {
+        "schema": MANIFEST_SCHEMA_V2,
+        "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+            {"id": "I.1", "units": []},
+        ]}],
+    },
+    "prereqs 指向不存在的章": {
+        "schema": MANIFEST_SCHEMA_V2,
+        "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "prereqs": ["I.9"],
+             "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+        ]}],
+    },
+    "同一 unit 挂在两个章": {
+        "schema": MANIFEST_SCHEMA_V2,
+        "volumes": [{"id": "I", "chapters": [
+            {"id": "I.1", "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+            {"id": "I.2", "units": [{"file": "units/a.sokonanoda", "unit": 1}]},
+        ]}],
+    },
+}
+
+# G6 的**合法**清单（正控制）：结构面干净，配额差额只报告不判红。
+SELFTEST_G6_GOOD = {
+    "schema": MANIFEST_SCHEMA_V2,
+    "volumes": [{"id": "I", "title": "卷", "chapters": [
+        {"id": "I.1", "title": "章", "prereqs": [], "tags": ["t"],
+         "quota": {"exercises": 99},
+         "units": [{"file": "units/a.sokonanoda", "title": "A", "unit": 1}]},
+    ]}],
+}
+
+
+def selftest_course_fixture(root: Path, manifest) -> Path:
+    """造一个最小课程目录（lib + units + 解答），供 G6 自检用。"""
+    (root / "lib").mkdir(parents=True, exist_ok=True)
+    (root / "units" / "solutions").mkdir(parents=True, exist_ok=True)
+    (root / "lib" / "Logic.sokonanoda").write_text(SELFTEST_LIB, encoding="utf-8")
+    (root / "units" / "a.sokonanoda").write_text(SELFTEST_UNIT, encoding="utf-8")
+    (root / "units" / "solutions" / "a-solution.sokonanoda").write_text(
+        SELFTEST_SOLUTION, encoding="utf-8"
+    )
+    (root / "course.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    return root
+
+
+def selftest_g6(failures: list[str], tmp: Path) -> None:
+    """G6 自检：三类结构非法必须判负，一份合法清单必须判绿（正控制）。"""
+    for index, (label, manifest) in enumerate(SELFTEST_G6_BAD.items()):
+        course = selftest_course_fixture(tmp / f"g6-bad-{index}", manifest)
+        try:
+            _, problems, _, _, _ = discover(course)
+        except Prerequisite as error:
+            failures.append(f"G6 自检失败（{label}）：清单被判成前置错误而不是结构判负：{error}")
+            continue
+        if not any(problem.startswith("G6") for problem in problems):
+            failures.append(f"G6 自检失效：{label} 没有被判负（problems={problems}）")
+
+    good = selftest_course_fixture(tmp / "g6-good", SELFTEST_G6_GOOD)
+    try:
+        _, problems, _, info, units = discover(good)
+    except Prerequisite as error:
+        failures.append(f"G6 自检失败（正控制）：合法 v2 清单被判成前置错误：{error}")
+        return
+    if problems:
+        failures.append(f"G6 自检失效（正控制）：合法 v2 清单被判负（problems={problems}）")
+    if info.volumes != 1 or len(info.chapters) != 1:
+        failures.append(f"G6 自检失败（正控制）：卷/章计数错（volumes={info.volumes} chapters={len(info.chapters)}）")
+    # 配额 99 vs 画布 0 道 sorry：**只报告**，绝不进 problems。
+    notes = quota_notes(SELFTEST_G6_GOOD, good / "course.json", {"units/a.sokonanoda": 0})
+    if not any("99" in note for note in notes):
+        failures.append(f"G6 自检失效：配额差额没有被报告（notes={notes}）")
+    if len(units) != 1:
+        failures.append(f"G6 自检失败（正控制）：展平后应有 1 个单元，实得 {len(units)}")
 
 
 def selftest(channel: Channel, check_py: Path) -> int:
@@ -492,6 +782,9 @@ def selftest(channel: Channel, check_py: Path) -> int:
     elif found.get("green_decls") != 2:
         failures.append(f"二分自检失败：期望最后全绿前缀 = 前 2 个声明，实得 {found.get('green_decls')!r}")
 
+    # ④ G6 清单自检：三类结构非法必须判负 + 一份合法 v2 清单必须判绿。
+    selftest_g6(failures, tmp)
+
     print(f"--selftest：判卷通道 [{channel.source}] {channel.path}"
           + (f"（v{channel.version}）" if channel.version else ""))
     if failures:
@@ -499,7 +792,8 @@ def selftest(channel: Channel, check_py: Path) -> int:
             print(f"  ✗ {line}")
         print("--selftest FAIL：判据通道不可信，门禁不判绿。")
         return 1
-    print("  ✓ 正控制（另一个 cwd + import lib.*）判绿 · ✓ 故意坏的单元被判负 · ✓ 二分点名坏声明")
+    print("  ✓ 正控制（另一个 cwd + import lib.*）判绿 · ✓ 故意坏的单元被判负 · "
+          "✓ 二分点名坏声明 · ✓ G6 三类结构非法被判负 + 合法 v2 判绿")
     print("--selftest PASS")
     return 0
 
@@ -536,7 +830,7 @@ def failure_block(row: dict, check_py: Path) -> list[str]:
 
 
 def summary_markdown(rows: list[dict], summary: dict, channel: Channel) -> str:
-    lines = ["### 课程门禁 · 卷 I《集合论》（G1–G5，与规模无关）", ""]
+    lines = ["### 课程门禁 · 卷 I《集合论》（G1–G6，与规模无关）", ""]
     lines.append(f"判卷通道：`{channel.path}` [{channel.source}]"
                  + (f" · v{channel.version}" if channel.version else ""))
     lines.append("")
@@ -584,7 +878,7 @@ def ledger_entry(rows: list[dict], summary: dict, root: Path) -> str:
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="check.py",
-        description="课程门禁（卷 I 集合论）：判据 G1–G5，与课程规模无关。",
+        description="课程门禁（卷 I 集合论）：判据 G1–G6，与课程规模无关。",
     )
     parser.add_argument("--json", action="store_true", help="机器可读报告（含计数）打到 stdout")
     parser.add_argument("--only", metavar="标签", action="append", default=[],
@@ -604,7 +898,8 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, check_py: Path) -> int:
+def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, check_py: Path,
+        info: ManifestInfo | None = None, manifest: list[dict] | None = None) -> int:
     evaluate(rows, judge)
 
     summary = {
@@ -616,12 +911,34 @@ def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, che
         "lib_open": sum(row["open"] for row in rows if row["kind"] == "lib"),
         "canvas_open": sum(row["open"] for row in rows if row["kind"] == "unit"),
     }
+
+    # ── 清单结构面（v2；台账 G-07）─────────────────────────────────────────
+    # 每行挂上它所属的卷/章（**只加不删**：v1 时是 null，消费者照旧读 v1 的键），
+    # 章的配额差额**只报告**（`quota_notes`；判红永远只看 G1–G6 的结构面）。
+    if info is not None:
+        by_file = {str(entry.get("file")): entry for entry in (manifest or [])}
+        for row in rows:
+            entry = by_file.get(row["file"])
+            row["volume"] = entry.get("_volume") if entry else None
+            row["chapter"] = entry.get("_chapter") if entry else None
+    canvas_open = {row["file"]: row["open"] for row in rows if row["kind"] == "unit"}
+    quota: list[str] = []
+    if info is not None and info.v2:
+        try:
+            quota = quota_notes(json.loads(info.source.read_text(encoding="utf-8")),
+                                info.source, canvas_open)
+        except (OSError, json.JSONDecodeError, Prerequisite):
+            quota = []  # 清单在 discover() 里已经判过了；这里只补报告，不再判负
+
     report = {
         "schema": SCHEMA,
         "units": sum(1 for row in rows if row["kind"] == "unit"),
-        "course": {"root": str(COURSE), "units": sum(1 for row in rows if row["kind"] == "unit")},
+        "course": {"root": str(COURSE), "units": sum(1 for row in rows if row["kind"] == "unit"),
+                   "volumes": info.volumes if info else 0,
+                   "chapters": len(info.chapters) if info else 0},
         "channel": {"path": channel.path, "source": channel.source, "version": channel.version},
         "summary": summary,
+        "quota_notes": quota,
         "targets": rows,
         "failed": summary["rejected"],
     }
@@ -673,11 +990,22 @@ def run(rows: list[dict], judge, channel: Channel, args: argparse.Namespace, che
         return 1 if summary["rejected"] else 0
 
     print(f"{'状态':<10}{'checked':>8}{'open':>6}  目标")
+    # v2：按卷/章分段（同章的目标连续打印，段头只印一次）；v1 不印段头（逐字节照旧）。
+    heading = None
     for row in rows:
+        marker = (row.get("volume"), row.get("chapter"))
+        if info is not None and info.v2 and row.get("chapter") and marker != heading:
+            heading = marker
+            title = next((c.title for c in info.chapters if c.id == row["chapter"]), "")
+            print(f"\n── 卷 {row['volume']} · 章 {row['chapter']} {title} ──")
         print(f"{row['status']:<10}{row['checked']:>8}{row['open']:>6}  {row['file']}")
         if row["status"] != "ok":
             for line in failure_block(row, check_py):
                 print(line)
+    if quota:
+        print("\n配额对照（G6 报告，**不判红**）：")
+        for note in quota:
+            print(f"  {note}")
     if bisected:
         print()
         for line in bisected:
@@ -698,7 +1026,7 @@ def main(argv: list[str] | None = None) -> int:
         channel = resolve_channel(root, args.bin_path)
         if args.selftest:
             return selftest(channel, check_py)
-        targets, problems, unit_count = discover()
+        targets, problems, unit_count, info, units = discover()
     except Prerequisite as error:
         print(f"error: 前置缺失，门禁不判绿（exit 2）：\n{error}", file=sys.stderr)
         return 2
@@ -746,15 +1074,18 @@ def main(argv: list[str] | None = None) -> int:
                      "canvas": str(target.canvas) if target.canvas else None})
 
     if problems:
-        rows.append({"label": "课程结构（G2）", "file": "course.json", "kind": "course",
+        # G6 的结构非法自带前缀（判据名要能对上），G2 的补齐——别叠成「G2：G6：…」。
+        rows.append({"label": "课程结构（G2/G6）", "file": "course.json", "kind": "course",
                      "status": "missing", "exit": None, "checked": 0, "open": 0,
                      "checked_names": [], "open_names": [], "diagnostics": [],
-                     "notes": problems, "reasons": ["G2：" + line for line in problems],
+                     "notes": problems,
+                     "reasons": [line if re.match(r"^G\d：", line) else f"G2：{line}"
+                                 for line in problems],
                      "path": None, "canvas": None})
     if unit_count == 0:
         print("error: course.json 里没有可判的单元", file=sys.stderr)
         return 2
-    return run(rows, judge, channel, args, check_py)
+    return run(rows, judge, channel, args, check_py, info, units)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,14 @@
 --                 哪怕 Mathlib 早就有，课程就是要让学习者自己证一遍。
 -- 台账 L-04 记录了这一层缺什么；L-05 记录了"把 L3 误放进库"的教训。
 --
--- **L-05 第二刀（2026-09-19）后的完整清单**——本文件只允许留这三类：
+-- **G-05（0.60.0）**：本文件已改用 `namespace Set` 包起来（设计
+-- `docs/design/namespace-open.md`）。**全局名一个都没变**（`Set.mem` 还是
+-- `Set.mem`，只是源里写成短名 `mem`），所以库外引用（units/、其他 lib/）
+-- 一行都不用改。注意 `def Set`（集合**类型**本身）留在命名空间**外面**：
+-- 放进去它会变成 `Set.Set`，`Set α` 全部失效（Mathlib 也是把 `Set` 放根上）。
+--
+-- **L-05 第二刀（2026-09-19）后的完整清单**——本文件只允许留这三类（下面的
+-- 名字是**全局名**，源里除 `Set` 外都写在 `namespace Set` 内、不带前缀）：
 --   · 12 个定义：Set / Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton /
 --     Set.pair / Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset；
 --   · 1 条公理：Set.ext（Mathlib 由 propext + funext 推出，我们两者都没有）；
@@ -40,83 +47,113 @@
 import lib.Logic
 
 -- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）────────────────────
+-- 集合**类型**本身在根命名空间（`Set α` 的 `Set`）。
 def Set (α : Type) : Type := α -> Prop
 
-def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+namespace Set
 
-def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+def mem (α : Type) (a : α) (A : Set α) : Prop := A a
 
-def Set.empty (α : Type) : Set α := fun (x : α) => False
+def subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
 
-def Set.univ (α : Type) : Set α := fun (x : α) => True
+def empty (α : Type) : Set α := fun (x : α) => False
 
-def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
+def univ (α : Type) : Set α := fun (x : α) => True
 
-def Set.pair (α : Type) (a b : α) : Set α :=
+def singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
+
+def pair (α : Type) (a b : α) : Set α :=
   fun (x : α) => Or (Eq.{1} α x a) (Eq.{1} α x b)
 
-def Set.union (α : Type) (A B : Set α) : Set α := fun (x : α) => Or (A x) (B x)
+def union (α : Type) (A B : Set α) : Set α := fun (x : α) => Or (A x) (B x)
 
-def Set.inter (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (B x)
+def inter (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (B x)
 
-def Set.sdiff (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (Not (B x))
+def sdiff (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (Not (B x))
 
-def Set.compl (α : Type) (A : Set α) : Set α := fun (x : α) => Not (A x)
+def compl (α : Type) (A : Set α) : Set α := fun (x : α) => Not (A x)
 
-def Set.powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => Set.subset α B A
+def powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => subset α B A
 
 -- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
-axiom Set.ext : (α : Type) -> (A B : Set α) ->
+axiom ext : (α : Type) -> (A B : Set α) ->
   (forall (x : α), Iff (A x) (B x)) -> Eq.{1} (Set α) A B
 
 -- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）────────────────────
-theorem Set.subset_def (α : Type) (A B : Set α) :
-    Iff (Set.subset α A B) (forall (x : α), A x -> B x) :=
-  Iff.intro (Set.subset α A B) (forall (x : α), A x -> B x)
-    (fun (h : Set.subset α A B) => h)
+theorem subset_def (α : Type) (A B : Set α) :
+    Iff (subset α A B) (forall (x : α), A x -> B x) :=
+  Iff.intro (subset α A B) (forall (x : α), A x -> B x)
+    (fun (h : subset α A B) => h)
     (fun (h : forall (x : α), A x -> B x) => h)
 
-theorem Set.mem_empty_iff_false (α : Type) (a : α) :
-    Iff (Set.mem α a (Set.empty α)) False :=
-  Iff.intro (Set.mem α a (Set.empty α)) False
-    (fun (h : Set.mem α a (Set.empty α)) => h)
+theorem mem_empty_iff_false (α : Type) (a : α) :
+    Iff (mem α a (empty α)) False :=
+  Iff.intro (mem α a (empty α)) False
+    (fun (h : mem α a (empty α)) => h)
     (fun (h : False) => h)
 
-theorem Set.notMem_empty (α : Type) (a : α) : Not (Set.mem α a (Set.empty α)) :=
-  fun (h : Set.mem α a (Set.empty α)) => h
+theorem notMem_empty (α : Type) (a : α) : Not (mem α a (empty α)) :=
+  fun (h : mem α a (empty α)) => h
 
-theorem Set.mem_univ (α : Type) (a : α) : Set.mem α a (Set.univ α) := True.intro
+theorem mem_univ (α : Type) (a : α) : mem α a (univ α) := True.intro
 
-theorem Set.mem_singleton_iff (α : Type) (a b : α) :
-    Iff (Set.mem α a (Set.singleton α b)) (Eq.{1} α a b) :=
-  Iff.intro (Set.mem α a (Set.singleton α b)) (Eq.{1} α a b)
-    (fun (h : Set.mem α a (Set.singleton α b)) => h)
+theorem mem_singleton_iff (α : Type) (a b : α) :
+    Iff (mem α a (singleton α b)) (Eq.{1} α a b) :=
+  Iff.intro (mem α a (singleton α b)) (Eq.{1} α a b)
+    (fun (h : mem α a (singleton α b)) => h)
     (fun (h : Eq.{1} α a b) => h)
 
-theorem Set.mem_singleton_self (α : Type) (a : α) : Set.mem α a (Set.singleton α a) :=
+theorem mem_singleton_self (α : Type) (a : α) : mem α a (singleton α a) :=
   Eq.refl.{1} α a
 
-theorem Set.mem_union (α : Type) (a : α) (A B : Set α) :
-    Iff (Set.mem α a (Set.union α A B)) (Or (Set.mem α a A) (Set.mem α a B)) :=
-  Iff.intro (Set.mem α a (Set.union α A B)) (Or (Set.mem α a A) (Set.mem α a B))
-    (fun (h : Set.mem α a (Set.union α A B)) => h)
-    (fun (h : Or (Set.mem α a A) (Set.mem α a B)) => h)
+theorem mem_union (α : Type) (a : α) (A B : Set α) :
+    Iff (mem α a (union α A B)) (Or (mem α a A) (mem α a B)) :=
+  Iff.intro (mem α a (union α A B)) (Or (mem α a A) (mem α a B))
+    (fun (h : mem α a (union α A B)) => h)
+    (fun (h : Or (mem α a A) (mem α a B)) => h)
 
-theorem Set.mem_inter_iff (α : Type) (a : α) (A B : Set α) :
-    Iff (Set.mem α a (Set.inter α A B)) (And (Set.mem α a A) (Set.mem α a B)) :=
-  Iff.intro (Set.mem α a (Set.inter α A B)) (And (Set.mem α a A) (Set.mem α a B))
-    (fun (h : Set.mem α a (Set.inter α A B)) => h)
-    (fun (h : And (Set.mem α a A) (Set.mem α a B)) => h)
+theorem mem_inter_iff (α : Type) (a : α) (A B : Set α) :
+    Iff (mem α a (inter α A B)) (And (mem α a A) (mem α a B)) :=
+  Iff.intro (mem α a (inter α A B)) (And (mem α a A) (mem α a B))
+    (fun (h : mem α a (inter α A B)) => h)
+    (fun (h : And (mem α a A) (mem α a B)) => h)
 
-theorem Set.mem_sdiff (α : Type) (a : α) (A B : Set α) :
-    Iff (Set.mem α a (Set.sdiff α A B)) (And (Set.mem α a A) (Not (Set.mem α a B))) :=
-  Iff.intro (Set.mem α a (Set.sdiff α A B))
-    (And (Set.mem α a A) (Not (Set.mem α a B)))
-    (fun (h : Set.mem α a (Set.sdiff α A B)) => h)
-    (fun (h : And (Set.mem α a A) (Not (Set.mem α a B))) => h)
+theorem mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    Iff (mem α a (sdiff α A B)) (And (mem α a A) (Not (mem α a B))) :=
+  Iff.intro (mem α a (sdiff α A B))
+    (And (mem α a A) (Not (mem α a B)))
+    (fun (h : mem α a (sdiff α A B)) => h)
+    (fun (h : And (mem α a A) (Not (mem α a B))) => h)
 
-theorem Set.mem_powerset_iff (α : Type) (A B : Set α) :
-    Iff (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A) :=
-  Iff.intro (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A)
-    (fun (h : Set.mem (Set α) B (Set.powerset α A)) => h)
-    (fun (h : Set.subset α B A) => h)
+theorem mem_powerset_iff (α : Type) (A B : Set α) :
+    Iff (mem (Set α) B (powerset α A)) (subset α B A) :=
+  Iff.intro (mem (Set α) B (powerset α A)) (subset α B A)
+    (fun (h : mem (Set α) B (powerset α A)) => h)
+    (fun (h : subset α B A) => h)
+
+end Set
+
+-- ── 记法（G-04 第二刀，0.60.0）：卷 I 的**数学符号**────────────────────────
+--
+-- 设计 `docs/design/notation-subset.md` §10。记法**不是声明**（N6）：它不产生
+-- 任何事件、不进声明表，所以本文件加这一段**不改变任何计数**（课程门禁的
+-- 36 目标 / 329 checked / 99 open 逐项不变）。
+--
+-- 五条都是**集合论专用**符号，所以放课程库、**不进 prelude**（L1 的 30 个名字
+-- 与记法无关）。被导入模块声明的记法在**入口文件里直接可用**（第二刀 §10.3 的
+-- 跨 `import` 传播）：单元只要 `import lib.Set` 就能写 `𝒫 A`，不必自己重声明
+-- ——这也意味着**同一符号全课程只能声明一次**（重声明是 parse 错误）。
+--
+-- 目标名在**使用点**解析（§9.4）：`Set.powerset` / `Set.compl` 就在本文件里，
+-- `Set.image` / `Set.preimage` 在 `lib/Image.sokonanoda`（单元⑧⑫ 会 import 它），
+-- `Set.prod` 是**单元⑤ 给出的词汇**（`def Set.prod` 在画布里）。用到某个符号
+-- 时，那个目标必须在作用域里——否则报 `elab-notation-unknown-target`，
+-- 报错信息会点名缺的是哪个名字。
+--
+-- 形状与优先级（§10.1、§10.4）：`𝒫`/`ᶜ` 取 100（比 `∪`/`∩` 的 65 紧）、
+-- `''`/`⁻¹'`/`×ˢ` 取 80（`''`/`⁻¹'` 的 80 是 Lean 源码逐字取证版）。
+prefix:100 " 𝒫 " => Set.powerset
+postfix:100 " ᶜ " => Set.compl
+infixr:80 " '' " => Set.image
+infixr:80 " ⁻¹' " => Set.preimage
+infixr:80 " ×ˢ " => Set.prod

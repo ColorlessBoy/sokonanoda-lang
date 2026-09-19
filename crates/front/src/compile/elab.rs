@@ -3,6 +3,7 @@
 use super::error::{CompileError, ErrorKind};
 use super::prelude::CompileOptions;
 use super::report::ResolvedTarget;
+use super::scope::NamespaceScope;
 use crate::ast::{MatchArm, Pattern};
 use crate::judge::{judge_infer, GoalBinderSpec};
 use crate::proof::render_expr;
@@ -111,33 +112,52 @@ pub(crate) fn insert_ctor_alias(known: &mut KnownTable, source_name: &str, canon
 
 /// Resolve one `Expr::Ident` spelling to its canonical kernel name.
 ///
+/// G-05：候选按 [`NamespaceScope::candidates`] 的顺序（当前命名空间链从内到外
+/// → 精确名 → `open` 的前缀，按 open 顺序）逐个查 `known`，**第一个命中即止**。
+///
 /// * a real declaration resolves to itself;
 /// * a **unique** bare constructor alias resolves to its canonical name (R2);
 /// * an ambiguous bare alias is an error naming both candidates;
 /// * an unknown name is the ordinary `elab-unknown-identifier`.
 pub(crate) fn resolve_known(
     known: &KnownTable,
+    ns: &NamespaceScope,
     name: &str,
     span: Span,
 ) -> Result<String, CompileError> {
-    match known.get(name) {
-        Some(KnownName::Decl { .. }) => Ok(name.to_string()),
-        Some(KnownName::Alias { canonical }) => Ok(canonical.clone()),
-        Some(KnownName::Ambiguous { candidates }) => Err(CompileError::elab(
+    let Some(candidate) = ns
+        .candidates(name)
+        .into_iter()
+        .find(|candidate| known.contains_key(candidate))
+    else {
+        return Err(CompileError::elab(
+            ErrorKind::ElabUnknownIdentifier,
+            format!("unknown identifier `{name}`"),
+            span,
+        ));
+    };
+    resolve_candidate(known, &candidate, span)
+}
+
+/// 候选名在 `known` 里的解析（`Decl` 自身 / 别名 → 规范名 / 歧义报错）。
+fn resolve_candidate(
+    known: &KnownTable,
+    candidate: &str,
+    span: Span,
+) -> Result<String, CompileError> {
+    match &known[candidate] {
+        KnownName::Decl { .. } => Ok(candidate.to_string()),
+        KnownName::Alias { canonical } => Ok(canonical.clone()),
+        KnownName::Ambiguous { candidates } => Err(CompileError::elab(
             ErrorKind::ElabAmbiguousCtorAlias,
             format!(
-                "构造子名 `{name}` 有歧义：{} 都声明了它；请写全前缀名",
+                "构造子名 `{candidate}` 有歧义：{} 都声明了它；请写全前缀名",
                 candidates
                     .iter()
                     .map(|c| format!("`{c}`"))
                     .collect::<Vec<_>>()
                     .join(" 与 ")
             ),
-            span,
-        )),
-        None => Err(CompileError::elab(
-            ErrorKind::ElabUnknownIdentifier,
-            format!("unknown identifier `{name}`"),
             span,
         )),
     }
@@ -147,23 +167,18 @@ pub(crate) fn resolve_known(
 /// (`#check Nat.add.{1}` / `Foo.{u}` style uses).
 pub(crate) fn resolve_known_constant(
     known: &KnownTable,
+    ns: &NamespaceScope,
     name: &str,
     span: Span,
 ) -> Result<String, CompileError> {
-    match known.get(name) {
-        Some(KnownName::Ambiguous { candidates }) => Err(CompileError::elab(
-            ErrorKind::ElabAmbiguousCtorAlias,
-            format!(
-                "构造子名 `{name}` 有歧义：{} 都声明了它；请写全前缀名",
-                candidates
-                    .iter()
-                    .map(|c| format!("`{c}`"))
-                    .collect::<Vec<_>>()
-                    .join(" 与 ")
-            ),
-            span,
-        )),
-        Some(_) => resolve_known(known, name, span),
+    // G-05：候选顺序与 `resolve_known` 同一条（`UniverseApp` 与 `Ident` 共用
+    // 一套命名空间解析）；只是「都没有」时的码换成常量味。
+    match ns
+        .candidates(name)
+        .into_iter()
+        .find(|candidate| known.contains_key(candidate))
+    {
+        Some(candidate) => resolve_candidate(known, &candidate, span),
         None => Err(CompileError::elab(
             ErrorKind::ElabUnknownConstant,
             format!("unknown constant `{name}`"),
@@ -201,6 +216,8 @@ pub(crate) struct ElabCtx<'a, 'b> {
     pub prefix_src: &'b str,
     pub options: &'b CompileOptions,
     pub inductives: &'b InductiveTable<'a>,
+    /// G-05：当前命名空间栈 + `open` 集合（引用解析用，只读）。
+    pub ns: &'b NamespaceScope,
 }
 
 pub(crate) struct ElabScope<'a> {
@@ -361,6 +378,7 @@ pub(crate) fn install_inductive_block<'a>(
     table: &mut InductiveTable<'a>,
     prefix_src: &str,
     options: &CompileOptions,
+    ns: &NamespaceScope,
     name: &str,
     params: &[Binder],
     ty: &Expr,
@@ -398,6 +416,7 @@ pub(crate) fn install_inductive_block<'a>(
         prefix_src,
         options,
         inductives: table,
+        ns,
     };
     // 归纳类型 = `forall params, ty`：params 是内核 Pi 望远镜最外层（顺序与
     // 声明的 binder 风格一致），ty 在它们的作用域内 elaborate。
@@ -907,7 +926,7 @@ fn elab_notation<'a>(
     expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<ExprPtr<'a>, CompileError> {
-    let canonical = resolve_known(known, target, span).map_err(|_| {
+    let canonical = resolve_known(known, ctx.ns, target, span).map_err(|_| {
         CompileError::elab(
             ErrorKind::ElabNotationUnknownTarget,
             format!("记法 `{symbol}` 指向的目标 `{target}` 不存在：检查记法命令里的名字（要写点名，例如 Set.mem）"),
@@ -915,14 +934,16 @@ fn elab_notation<'a>(
         )
     })?;
     // 目标自身的签名（`forall (α : Type 0), α -> Set α -> Prop`）由内核 pp
-    // 渲染：与 `judge_infer` 读 `apply` 的函数类型同一条路（不做文本比对）。
-    let binders = scope.judge_binders();
+    // 渲染（不做文本比对）。**用 `judge_type_of` 而不是 `judge_infer`**：后者
+    // 要先合成 `fun (binders) => target` 再逐层剥 binder，目标本身是函数时
+    // （`Set.image`）多 binder 折叠会让剥离结果错位（第二刀实测），而签名是
+    // 常量自己的、与调用点的 binder 无关。
     let target_text = render_expr(&Expr::Ident {
         name: canonical.clone(),
         span,
     });
-    let signature =
-        judge_infer(ctx.prefix_src, ctx.options, &binders, &target_text).map_err(|j| {
+    let signature = crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &target_text)
+        .map_err(|j| {
             CompileError::elab(
                 ErrorKind::ElabNotationUnknownTarget,
                 format!(
@@ -1006,35 +1027,76 @@ fn notation_prefix_args(
     ctx: &ElabCtx<'_, '_>,
     scope: &ElabScope<'_>,
 ) -> Result<Option<Vec<Expr>>, CompileError> {
-    let Ok(sig) = crate::proof::parse_expr_text(signature) else {
+    let Some((layers, result)) = notation_telescope(signature) else {
         return Ok(None);
     };
+    // 操作数对齐到**最后** `operands.len()` 个参数；多出来的前导参数要补。
+    let Some(max_missing) = layers.len().checked_sub(operands.len()) else {
+        // 操作数比参数还多：交给既有应用路径报错（elab/kernel 的既有诊断）。
+        return Ok(Some(Vec::new()));
+    };
+    if max_missing == 0 {
+        return Ok(Some(Vec::new()));
+    }
+    // **从最大候选往下试**（第二刀）：`peel_pi` 把**结果类型里的箭头**也算成
+    // 参数层——`compl : (α : Type) → (α -> Prop) → α -> Prop` 数出 3 层，而操作数
+    // 只有 1 个 ⇒ 最大的候选把参数位对到结果的箭头上，症状是"要补的位没有名字"
+    // （`peel_pi` 对箭头给的名字是空串）。所以逐个往下试，取**第一个能完整解出**
+    // 的候选；"前导参数必须有名字"这条不变量正好把多出来的结果层筛掉。
+    for missing in (1..=max_missing).rev() {
+        if let Some(solved) = solve_prefix_args(
+            &layers,
+            &result,
+            missing,
+            operands,
+            expected_src,
+            ctx,
+            scope,
+        ) {
+            return Ok(Some(solved));
+        }
+    }
+    Ok(None)
+}
+
+/// `signature` 的 Pi 望远镜：`(名字, 域)` 逐层 + 余下的结果类型。解析不出 ⇒ `None`。
+fn notation_telescope(signature: &str) -> Option<(Vec<(String, Expr)>, Expr)> {
+    let sig = crate::proof::parse_expr_text(signature).ok()?;
     let mut layers: Vec<(String, Expr)> = Vec::new();
     let mut result = sig;
     while let Some(pi) = crate::spine::peel_pi(&result) {
         layers.push((pi.name, pi.domain));
         result = pi.body;
     }
-    // 操作数对齐到**最后** `operands.len()` 个参数；多出来的前导参数要补。
-    let Some(missing) = layers.len().checked_sub(operands.len()) else {
-        // 操作数比参数还多：交给既有应用路径报错（elab/kernel 的既有诊断）。
-        return Ok(Some(Vec::new()));
-    };
-    if missing == 0 {
-        return Ok(Some(Vec::new()));
-    }
+    Some((layers, result))
+}
+
+/// 固定 `missing` 时解前导参数；解不出（或某一位**没有名字**）⇒ `None`。
+#[allow(clippy::too_many_arguments)]
+fn solve_prefix_args(
+    layers: &[(String, Expr)],
+    result: &Expr,
+    missing: usize,
+    operands: &[&Expr],
+    expected_src: Option<&Expr>,
+    ctx: &ElabCtx<'_, '_>,
+    scope: &ElabScope<'_>,
+) -> Option<Vec<Expr>> {
     // 只在参数是**显式**形态时补：隐式 binder（`{α : Type}`）在 v1 的展开里
     // 不插实参（语言不插入隐式实参，设计 §1 第 3 条）。
     let mut solved: Vec<Expr> = Vec::with_capacity(missing);
     for i in 0..missing {
         let name = layers[i].0.clone();
         if name.is_empty() {
-            return Ok(None);
+            return None;
         }
         // ① 由操作数解出：第一个提到 `name` 的**后续** binder 的域。
         let mut arg: Option<Expr> = None;
         for (j, layer) in layers.iter().enumerate().skip(i + 1) {
-            let Some(operand) = operands.get(j - missing) else {
+            // 操作数对齐到**最后** `operands.len()` 层；`j < missing` 的层是
+            // 还没解出的前导参数，没有操作数可问（第二刀实测：`Set.image`
+            // 有 2 个前导参数，`j - missing` 在 j=1 时会下溢）。
+            let Some(operand) = j.checked_sub(missing).and_then(|k| operands.get(k)) else {
                 continue;
             };
             if !mentions_ident(&layer.1, &name) {
@@ -1053,16 +1115,13 @@ fn notation_prefix_args(
         // ② 由期望类型解出：把已解出的参数代入 telescope 剩余部分。
         if arg.is_none() {
             if let Some(expected) = expected_src {
-                let rest = substitute_prefix_params(&layers, &solved, i, &result);
+                let rest = substitute_prefix_params(layers, &solved, i, result);
                 arg = unify_extract(&rest, expected, &name);
             }
         }
-        let Some(arg) = arg else {
-            return Ok(None);
-        };
-        solved.push(arg);
+        solved.push(arg?);
     }
-    Ok(Some(solved))
+    Some(solved)
 }
 
 /// 目标 telescope 里**操作数位**的期望类型（源级 AST），按已解出的前导参数
@@ -1075,18 +1134,15 @@ fn notation_operand_expected(
     operand_count: usize,
 ) -> Vec<Option<Expr>> {
     let mut out: Vec<Option<Expr>> = vec![None; operand_count];
-    let Ok(sig) = crate::proof::parse_expr_text(signature) else {
+    let Some((layers, _)) = notation_telescope(signature) else {
         return out;
     };
-    let mut layers: Vec<(String, Expr)> = Vec::new();
-    let mut result = sig;
-    while let Some(pi) = crate::spine::peel_pi(&result) {
-        layers.push((pi.name, pi.domain));
-        result = pi.body;
+    // 与 `notation_prefix_args` 同一条对齐规则：`missing` 取**已解出的前导参数
+    // 个数**（它经过候选搜索，是权威值；再自己算一遍会把结果类型的箭头又算进去）。
+    let missing = prefix_args.len();
+    if layers.len() < operand_count {
+        return out;
     }
-    let Some(missing) = layers.len().checked_sub(operand_count) else {
-        return out;
-    };
     let mut sigma: HashMap<String, Expr> = HashMap::new();
     for (k, arg) in prefix_args.iter().enumerate() {
         if let Some((name, _)) = layers.get(k) {
@@ -1149,11 +1205,33 @@ fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr)
 /// 头部匹配 + 提取裸变量：`template` 是 `name` 本身 ⇒ 取 `actual`；两者是
 /// 同头、同实参个数的应用链且某个实参位恰好是裸变量 `name` ⇒ 取 `actual`
 /// 对应位的实参。其余形状返回 `None`（v1 不做一般合一，设计 N4.2）。
+///
+/// **`->` 也算一个二元头**（第二刀 §10.4 的实测增量）：`Set.image` 的签名是
+/// `(α β : Type) → (f : α → β) → Set α → Set β`，`α`/`β` 只出现在 `f` 的
+/// **箭头域/陪域**里；只认应用链的话 `''`/`⁻¹'` 的前导参数一个都补不出来
+/// （实测 `elab-notation-argument-unsolved`）。所以这里把 `α → β` 与
+/// `α₀ → β₀` 按域/陪域两个位置对齐——仍然是"裸变量匹配"，不引入元变量。
 fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
     if let Expr::Ident { name: n, .. } = template {
         if n == name {
             return Some(actual.clone());
         }
+    }
+    if let (
+        Expr::Arrow {
+            domain: template_domain,
+            codomain: template_codomain,
+            ..
+        },
+        Expr::Arrow {
+            domain: actual_domain,
+            codomain: actual_codomain,
+            ..
+        },
+    ) = (template, actual)
+    {
+        return unify_extract(template_domain, actual_domain, name)
+            .or_else(|| unify_extract(template_codomain, actual_codomain, name));
     }
     let (head, template_args) = crate::spine::spine_of(template);
     let (actual_head, actual_args) = crate::spine::spine_of(actual);
@@ -1358,7 +1436,7 @@ pub(crate) fn elab_expr<'a>(
                 None => {
                     // R1/R2：裸名别名解析到**规范名**——只往 `known` 里加一个
                     // 裸名键会造出第二个内核常量（`mk` ≠ `P1.mk`）。
-                    let canonical = resolve_known(known, name, *span)?;
+                    let canonical = resolve_known(known, ctx.ns, name, *span)?;
                     // The defining command's span is backfilled in `run_pass`
                     // (placeholder survives until then; prelude names resolve
                     // to no source definition and drop the record there).
@@ -1377,7 +1455,7 @@ pub(crate) fn elab_expr<'a>(
             Ok(out)
         }
         Expr::UniverseApp { name, levels, span } => {
-            let canonical = resolve_known_constant(known, name, *span)?;
+            let canonical = resolve_known_constant(known, ctx.ns, name, *span)?;
             let params = known[&canonical].universes();
             if params.len() != levels.len() {
                 return Err(CompileError::elab(

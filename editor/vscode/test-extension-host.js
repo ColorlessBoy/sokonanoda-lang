@@ -236,6 +236,13 @@ const stubbedResponses = {
 
 // ── fake child_process (course tree) ─────────────────────────────────────
 const spawns = [];
+// 课程树的一次运行默认**不吐数据**（树保持空，除非测试自己驱动）。
+// `setCourseEvents` 让测试喂一份 `course.unit` 事件流：v1 平铺 / v2 分组的
+// 两条路径因此都能被真渲染出来（台账 G-07，设计 course-manifest-v2.md §4.3）。
+let courseEvents = [];
+function setCourseEvents(events) {
+  courseEvents = events || [];
+}
 function fakeSpawn(command, args) {
   spawns.push({ command, args });
   const child = new EventEmitter();
@@ -244,8 +251,12 @@ function fakeSpawn(command, args) {
   child.stdout = stream();
   child.stderr = stream();
   child.kill = () => {};
-  // Never emit data: the course tree stays empty unless a test drives it.
-  process.nextTick(() => child.emit("close", 0));
+  process.nextTick(() => {
+    if (Array.isArray(args) && args[0] === "course" && courseEvents.length) {
+      child.stdout.emit("data", courseEvents.map((event) => JSON.stringify(event)).join("\n") + "\n");
+    }
+    child.emit("close", 0);
+  });
   return child;
 }
 
@@ -647,6 +658,115 @@ test("the course tree caches one CLI run across repeated resolves", async () => 
   tree.refresh();
   await tree.getChildren();
   assert.strictEqual(courseSpawns().length, 2, "an explicit refresh re-runs the CLI");
+});
+
+// 台账 G-07：v2 清单（事件带 volume/chapter）按 卷 → 章 → 单元 分组；
+// v1 清单（事件不带）保持平铺——两条路径都必须真渲染出来。
+test("the course tree groups volumes and chapters for a v2 manifest", async () => {
+  setCourseEvents([
+    {
+      type: "course.unit", file: "units/a.sokonanoda", title: "A", unit: 1,
+      checked: 2, open: 6, failed: 0,
+      volume: { id: "I", title: "卷 I 集合论" },
+      chapter: { id: "I.1", title: "集合与运算", tags: ["membership"] },
+      tags: ["membership"],
+    },
+    {
+      type: "course.unit", file: "units/b.sokonanoda", title: "B", unit: 2,
+      checked: 1, open: 10, failed: 0,
+      volume: { id: "I", title: "卷 I 集合论" },
+      chapter: { id: "I.1", title: "集合与运算", tags: ["membership"] },
+      tags: ["membership"],
+    },
+    {
+      type: "course.unit", file: "units/c.sokonanoda", title: "C", unit: 3,
+      checked: 3, open: 5, failed: 0,
+      volume: { id: "I", title: "卷 I 集合论" },
+      chapter: { id: "I.2", title: "关系与函数", tags: ["relation"] },
+      tags: ["relation"],
+    },
+  ]);
+  try {
+    await activateExtension();
+    const tree = vscodeStub.__trees?.["sokonanoda.courseMap"];
+    const roots = await tree.getChildren();
+    assert.strictEqual(roots.length, 1, "one volume node");
+    assert.match(String(roots[0].label), /卷 I/);
+    assert.strictEqual(roots[0].collapsibleState, vscodeStub.TreeItemCollapsibleState.Collapsed);
+
+    const chapters = await tree.getChildren(roots[0]);
+    assert.deepStrictEqual(
+      chapters.map((chapter) => chapter.label),
+      ["I.1 集合与运算", "I.2 关系与函数"],
+      "chapters keep the CLI's document order",
+    );
+    const units = await tree.getChildren(chapters[0]);
+    assert.deepStrictEqual(
+      units.map((unit) => unit.label),
+      ["unit 1 A", "unit 2 B"],
+      "units hang under their own chapter",
+    );
+    assert.strictEqual(
+      units[0].collapsibleState,
+      vscodeStub.TreeItemCollapsibleState.None,
+      "unit nodes stay leaves (v1 behaviour preserved)",
+    );
+    assert.strictEqual(units[0].command.command, "vscode.open");
+    assert.ok(
+      String(units[0].command.arguments[0].fsPath).endsWith("/repo/course/units/a.sokonanoda"),
+      "unit paths still resolve against the manifest directory",
+    );
+  } finally {
+    setCourseEvents([]);
+  }
+});
+
+test("the course tree stays flat for a v1 manifest", async () => {
+  setCourseEvents([
+    { type: "course.unit", file: "units/a.sokonanoda", title: "A", unit: 1, checked: 2, open: 6, failed: 0 },
+    { type: "course.unit", file: "units/b.sokonanoda", title: "B", unit: 2, checked: 1, open: 10, failed: 0 },
+  ]);
+  try {
+    await activateExtension();
+    const tree = vscodeStub.__trees?.["sokonanoda.courseMap"];
+    const roots = await tree.getChildren();
+    assert.deepStrictEqual(
+      roots.map((item) => item.label),
+      ["unit 1 A", "unit 2 B"],
+      "a v1 manifest keeps the flat unit list (no regression)",
+    );
+    assert.strictEqual(
+      roots[0].collapsibleState,
+      vscodeStub.TreeItemCollapsibleState.None,
+      "v1 units are leaves at the root",
+    );
+    assert.deepStrictEqual(await tree.getChildren(roots[0]), [], "and have no children");
+  } finally {
+    setCourseEvents([]);
+  }
+});
+
+test("the course tree keeps unreadable units visible when grouping", async () => {
+  setCourseEvents([
+    {
+      type: "course.unit", file: "units/a.sokonanoda", title: "A", unit: 1,
+      checked: 2, open: 6, failed: 0,
+      volume: { id: "I", title: "卷 I" },
+      chapter: { id: "I.1", title: "第一章", tags: [] },
+    },
+    { type: "course.unit", file: "ghost.sokonanoda", title: "幽灵", unit: 9, error: "cannot read" },
+  ]);
+  try {
+    await activateExtension();
+    const tree = vscodeStub.__trees?.["sokonanoda.courseMap"];
+    const roots = await tree.getChildren();
+    assert.strictEqual(roots.length, 2, "the volume plus a fallback group");
+    assert.match(String(roots[1].label), /无法分组/);
+    const orphans = await tree.getChildren(roots[1]);
+    assert.deepStrictEqual(orphans.map((item) => item.label), ["unit 9 幽灵"]);
+  } finally {
+    setCourseEvents([]);
+  }
 });
 
 // ── runner ───────────────────────────────────────────────────────────────

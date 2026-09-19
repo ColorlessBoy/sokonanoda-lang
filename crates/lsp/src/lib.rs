@@ -135,9 +135,7 @@ impl Doc {
         let options = CompileOptions { prelude: mode };
         // 有 `import` 的文档走**项目闭包**：单文件缓存键会张冠李戴（依赖不在
         // 键里），所以这里既不复用也不写入单文件缓存（I16 P5）。
-        let has_imports = sokonanoda_front::parse(text)
-            .map(|file| file.commands.iter().any(|command| command.is_import()))
-            .unwrap_or(false);
+        let has_imports = sokonanoda_front::project::is_project_source(text);
         self.doc.path = path;
         // `root` 留给 CLI 的 `--root`；编辑器一律走发现规则（见 `entry_path`）。
         self.doc.root = None;

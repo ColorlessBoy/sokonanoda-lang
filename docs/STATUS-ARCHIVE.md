@@ -1,4 +1,4 @@
-# STATUS 归档（第 1–103 轮，2026-09-06 → 2026-09-19；另收 0.56.2 线的
+# STATUS 归档（第 1–104 轮，2026-09-06 → 2026-09-19；另收 0.56.2 线的
 # 第九十一轮续）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
@@ -3421,3 +3421,70 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
   （改动全在 `front::query` 摘要视图 + CLI 信封）⇒ minor（0.59.0，版本号由主线 bump）。
   文档 as-built：`docs/protocol.md`、`docs/design/agent-query-channel.md`、
   `dsh/mcp/server.js` 三个工具描述、`skills/sokonanoda-teacher/SKILL.md`。
+
+## 本轮进度（2026-09-19，第一百〇四轮（语言线）：L-01/L-02 落地 —— L1 prelude 装上逻辑与等式骨架）
+
+> 台账 blocker：prelude 只有 `Nat`/`Bool`/`Eq` 三家，Lean core 的**逻辑与等式骨架**
+> 全缺——课程侧只能靠 `courses/set-theory/lib/Logic.sokonanoda` 手写 26 条兜底
+> （"暴力"的根源）。设计 = `docs/design/prelude-l1-proposal.md`（本轮的提案文档，
+> 已有逐条签名 / 让位规则 / 三件套计划 / GOLDEN 预测数值）。
+
+1. **P1 安装 + 让位**：`crates/front/src/compile/prelude.rs` 新增
+   `PRELUDE_L1_SRC`（规范源文本，28 条声明）、`L1_FAMILIES`（B1–B7 族表 +
+   依赖边）、`install_l1_prelude`（axiom 走 `build_axiom`、def 走 `build_def`、
+   归纳块走 `install_inductive_block`——**与用户声明同一条 elaborator**）。
+   让位粒度 = **族**（不是单名），族间按依赖闭包（B5→B2、B6→B3、B7→Eq）；
+   触发集合 `taken` 从 `user_top_level_names` 换成 **`top_level_def_spans_over`
+   的键集**（补上构造子/递归子，设计 §2.3-1）。
+2. **两个 as-built 修正（提案未预见，都是实测出来的）**：
+   * **顺序：先 Eq 后 L1**——B7 的定义体引用 `Eq.subst`/`Eq.refl`，必须等 Eq 进环境；
+   * **重入闸 `L1_INSTALL_DEPTH`**——装 `And` 归纳块时
+     `large_elim_test_mirror` → `field_sort_via_kernel` → `judge_infer` →
+     **内层 `compile_fol_with`**，内层又装 L1 ⇒ 无限递归（实测
+     `stack overflow, SIGABRT`）。计数 > 0 时 `install_l1_prelude` 直接返回。
+   另修正提案 §3.2 一处**方向写反**的措辞（依赖边是 B6 用 `And.left`，
+   所以声明 `And` 让位 B6，反之不成立；§2.2 的表是规范）。
+3. **P2 白名单与豁免面**：`PRELUDE_NAMES` 补 30 条（12 → **42**）；
+   拆出 `PRELUDE_NEVER_YIELDS`（只含 `Nat`/`Bool` 家族）给
+   `check_name_collisions`——L1 名字按族合法让位，**不能**进豁免面，否则两个模块
+   各自声明 `True` 就不再报友好的 `import-name-collision`（设计 §2.3-2）。
+   `goals.rs` 的 `GoalTemplates` 按**同一条让位规则**吃 L1 源文本。
+   parser 白名单**零改动**（L1 不引入新语法）。
+4. **P3 课程用例 + 两处 GOLDEN 据实重算**：单元②（唯一不声明 L1 名字的早期单元）
+   中英画布加 `eq_symm_demo`（用 prelude 的 `Eq.symm`，一行）＋ 两题 hint 改
+   "两解对照"；两份解答同步。真二进制实测：`unit2 = (3,5,2)`、
+   `course_status` 的 `unit2 = (3,5,0,2)`、summary `checked 85 → **86**`
+   ——**与提案 §4.2 的预测值逐字相同**。另发现**第三处** GOLDEN
+   （`cli.rs::cli_course_is_stable_with_a_warm_cache` 也钉 `checked = 85`）⇒ 同步。
+   `course_shared.rs`（44 份副本一致性）**一字未改而全绿**——这就是"让位"生效的证据。
+5. **课程侧兜底保留（硬要求）**：`courses/set-theory/lib/Logic.sokonanoda` 的
+   28 条声明**一条没删**，文件头加了"prelude 现在自带哪些（30 个名字 + 让位规则 +
+   两处定形差异）"，避免两处真相打架。门禁复跑 **315 checked · 96 open · 0 判负**，
+   与 L1 落地前逐字相同（让位 ⇒ 课程语义不变）。**P4（74 处 `inl`/`inr` 项位改
+   点号名、`lib/Logic` 退化成空壳）未做**。
+6. **复现件（台账契约）**：新增 `docs/gaps/repro/L01-l1-prelude-logic-skeleton.sh`
+   与 `L02-eq-core-lemmas.sh`，四段自断言（Full 可用 / Bare 干净 / 让位依赖闭包 /
+   `Or` 是真归纳块）。修前两者 exit 0（缺口仍在），修后 **exit 1**（修后形状成立）；
+   `L-01`/`L-02` 已 `gap.py close --version 0.59.0`。`L-03`（Type 层重写）**仍 open**
+   （B7 只装同宇宙三引理，`Eq.subst` 的 motive 仍是 `α -> Prop`），notes 已注明。
+7. **三层测试**：front 7 条（`l1_prelude_is_available_in_full_mode`、
+   `l1_or_is_a_real_inductive_for_match`、`l1_family_yield_is_dependency_closed`、
+   `l1_yield_needs_the_whole_family`、`l1_taken_includes_ctors_and_recursors`、
+   `l1_yield_is_closure_wide`、`l1_ctor_templates_feed_sub_goal_types`、
+   `prelude_names_match_installs`、`eq_symm_is_installed`、`bare_mode_has_no_l1`）+
+   CLI 4 条（Full / `--bare` / 注释指令 / `query check` ↔ 事件流计数一致）+
+   课程 GOLDEN 两处 + 复现件两个。
+8. **验收**：`cargo build -p sokonanoda-cli -p sokonanoda-front -p sokonanoda-lsp` 过；
+   `cargo test -p sokonanoda-front`（522）· `-p sokonanoda-cli`（全套）· `-p sokonanoda-lsp`（141）
+   全绿；`cargo fmt --check` / `cargo clippy`（教学 crates）零警告；
+   `python3 courses/set-theory/tools/check.py` 绿；`python3 scripts/gap.py check` 全绿。
+   **未跑 `scripts/soko gate`、未 bump 版本、未 commit**（仓库约定：主线统一）。
+9. **文档同轮**：`docs/architecture.md` 新增 §5.4.1（族表 + 让位规则 + 两个 as-built
+   要点 + 白名单/豁免面）+ §4.1 白名单行注明"prelude 名字不属于语法白名单"；
+   `docs/design/course-stdlib.md` §2 更正"And 走 axiom 族"→"真归纳块 + 点号构造子"
+   并标注已实现，§3.2-A 的 G-02 行注明 L1 已绕过；
+   `docs/design/prelude-l1-proposal.md` 加 as-built 节；
+   `docs/design/teaching-project.md` P-C3 ✅ / L-01 行；
+   `docs/TESTING.md` 新增 L1 行；`docs/HANDOVER.md` 版本表 +1 行；
+   `skills/sokonanoda-teacher/SKILL.md` + `references/curriculum.md`（L1 词汇与让位规则）；
+   `editor/vscode/CHANGELOG.md` 记一行（补全列表多 30 个名字 = 用户可见改动）。

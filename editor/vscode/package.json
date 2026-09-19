@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Learn theorem proving in a self-contained Lean-4-style language: real kernel grading, an Infoview goal panel, graded exercises, and agent skills that turn an LLM into your proof teacher. Zero setup - the language server ships inside the extension.",
-  "version": "0.59.0",
+  "version": "0.60.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -113,6 +113,16 @@
         "category": "sokonanoda"
       },
       {
+        "command": "sokonanoda.build",
+        "title": "build（编译当前文件/工作区，预热缓存）",
+        "category": "sokonanoda"
+      },
+      {
+        "command": "sokonanoda.rebuild",
+        "title": "rebuild（清空编译缓存后重编译）",
+        "category": "sokonanoda"
+      },
+      {
         "command": "sokonanoda.project.refresh",
         "title": "sokonanoda: refresh project view",
         "icon": "$(refresh)"
@@ -202,6 +212,11 @@
           "command": "sokonanoda.project.refresh",
           "group": "navigation",
           "when": "view == sokonanoda.project"
+        },
+        {
+          "command": "sokonanoda.build",
+          "when": "view == sokonanoda.project",
+          "group": "navigation"
         }
       ]
     },
@@ -249,6 +264,16 @@
       {
         "command": "sokonanoda.previousHole",
         "key": "alt+shift+n",
+        "when": "editorTextFocus && editorLangId == sokonanoda"
+      },
+      {
+        "command": "sokonanoda.build",
+        "key": "alt+b",
+        "when": "editorTextFocus && editorLangId == sokonanoda"
+      },
+      {
+        "command": "sokonanoda.rebuild",
+        "key": "alt+shift+b",
         "when": "editorTextFocus && editorLangId == sokonanoda"
       }
     ]

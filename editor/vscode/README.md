@@ -169,6 +169,23 @@ answers a single question for agents and scripts — `query state` answers
 stream. `scripts/soko query …` is the harness-neutral form of the same
 command.
 
+## Build and rebuild the compile cache
+
+The compiler keeps a **persistent compile cache** (`.sokonanoda` → compiled
+report), so the second run of a file — and the first keystroke in a project —
+are hits instead of full recompiles. Two commands drive it from the editor:
+
+- **`sokonanoda: build`** (`alt+b`) — compile the active `.sokonanoda` file
+  (the CLI follows its `import` closure), or the first workspace folder when no
+  file is open. The result line reports `files · compiled · hit · failed`.
+- **`sokonanoda: rebuild`** (`alt+shift+b`) — the same, but first runs
+  `build --clean` to drop the cache, i.e. "recompile everything from scratch".
+
+Both write the CLI's JSON Lines events (`build.file` / `build.clean` /
+`build.summary`) to the **sokonanoda build** output channel, refresh the
+exercise/project/course views afterwards (a warm cache changes what they show),
+and warn — never fail silently — when a file does not compile.
+
 ## The course map
 
 The 「课程」tree shells out to the `sokonanoda` CLI (it aggregates all course

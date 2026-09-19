@@ -210,6 +210,31 @@ fn course_map_consumes_the_cli_course_subcommand() {
         script.contains("setTimeout") && script.contains("kill"),
         "the course subprocess must be killed on timeout"
     );
+
+    // ── 清单 v2：卷 → 章 → 单元（台账 G-07，设计 course-manifest-v2.md §4.3）──
+    // 客户端只吃 `course.unit` 事件：事件里带 `volume`/`chapter` 时按卷/章分组，
+    // 不带时**必须**保持 v1 的平铺路径（向后兼容是硬要求，不许回归）。
+    assert!(
+        script.contains("unit.volume") && script.contains("unit.chapter"),
+        "the course tree must read the v2 `volume`/`chapter` fields off course.unit events"
+    );
+    assert!(
+        script.contains("courseHasVolumes") && script.contains("courseVolumeGroups"),
+        "the course tree must switch to volume→chapter→unit grouping when the events carry volumes"
+    );
+    assert!(
+        script.contains("courseVolumeItem") && script.contains("courseChapterItem"),
+        "the course tree must render volume and chapter nodes"
+    );
+    // v1 平铺路径逐字保留：`courseUnitItem` 仍在，且单元节点仍是叶子（None）。
+    assert!(
+        script.contains("courseUnitItem") && script.contains("TreeItemCollapsibleState.None"),
+        "the v1 flat path must stay (courseUnitItem + leaf units)"
+    );
+    assert!(
+        script.contains("courseErrorItem"),
+        "v2 grouping must keep unreadable units visible (fallback group)"
+    );
 }
 
 #[test]
@@ -1309,4 +1334,78 @@ fn infoview_palette_colours_every_kind_with_a_guaranteed_fallback() {
             );
         }
     }
+}
+
+#[test]
+fn build_and_rebuild_commands_warm_the_compile_cache() {
+    // 用户报的缺口：CLI 有 `sokonanoda build [--clean]`（预热/清理共享编译缓存），
+    // 但扩展从来没把它接出来。契约：两个命令都声明 + 都注册；`rebuild` 必须先
+    // `--clean` 再 build（"从头重编译一遍"），两条都走 `--json` 事件流并把
+    // `build.summary` 渲染成人话；子进程纪律与课程树同款（超时 + kill）。
+    let manifest = manifest();
+    let script = entry_script();
+    let commands = manifest["contributes"]["commands"]
+        .as_array()
+        .expect("contributes.commands");
+    for id in ["sokonanoda.build", "sokonanoda.rebuild"] {
+        assert!(
+            commands.iter().any(|c| c["command"].as_str() == Some(id)),
+            "package.json must declare {id}"
+        );
+        assert!(
+            script.contains(&format!("\"{id}\"")),
+            "extension.js must register {id}"
+        );
+    }
+    // 命令面板标题里带 build/rebuild 字样（用户是照这个名字找的）。
+    for (id, needle) in [
+        ("sokonanoda.build", "build"),
+        ("sokonanoda.rebuild", "rebuild"),
+    ] {
+        let title = commands
+            .iter()
+            .find(|c| c["command"].as_str() == Some(id))
+            .and_then(|c| c["title"].as_str())
+            .unwrap_or_default();
+        assert!(
+            title.contains(needle),
+            "{id} 的标题必须含 {needle}（命令面板可见），实际 {title:?}"
+        );
+    }
+    // 键位指向已声明命令（manifest 级一致性；alt+b / alt+shift+b）。
+    let bindings = manifest["contributes"]["keybindings"]
+        .as_array()
+        .expect("keybindings");
+    for (key, id) in [
+        ("alt+b", "sokonanoda.build"),
+        ("alt+shift+b", "sokonanoda.rebuild"),
+    ] {
+        assert!(
+            bindings
+                .iter()
+                .any(|b| b["key"].as_str() == Some(key) && b["command"].as_str() == Some(id)),
+            "keybinding {key} must target {id}"
+        );
+    }
+    // rebuild = clean + build：`--clean` 必须出现，且 clean 只清缓存（CLI 语义），
+    // 所以脚本要跑第二次把缓存重新预热。
+    assert!(
+        script.contains("\"build\"") && script.contains("\"--clean\""),
+        "rebuild must invoke `build --json --clean` (cache clean) before rebuilding"
+    );
+    assert!(
+        script.contains("build.summary") && script.contains("build.file"),
+        "build must consume the CLI's JSON Lines events (build.file / build.summary)"
+    );
+    // 子进程纪律：有界运行 + 超时 kill（与课程树同款，绝不挂死编辑器）。
+    assert!(
+        script.contains("BUILD_TIMEOUT_MS") && script.contains("kill()"),
+        "the build subprocess must be killed on timeout"
+    );
+    // 解析出的 CLI 命令必须来自共享解析器（bundled → target → PATH），
+    // 不许自己拼路径（与 server.js 的版本/来源纪律一致）。
+    assert!(
+        script.contains("resolveCliCommand()"),
+        "build must use the shared CLI resolver"
+    );
 }

@@ -39,7 +39,7 @@ scripts/vscode-e2e.sh --version 1.106.0   # 试声明的最低版本（engines.v
 | **真宿主（本文）** | `scripts/vscode-e2e.sh` | 扩展在**真 VS Code** 里激活 → 起**真 LSP** → 诊断/inlay/hover/codeLens/重启/Infoview/doctor/项目树**端到端**成立；`.sokonanoda` 语言 id、项目树的行来自真 `soko/project` 答案 |
 | 手工 F5 | 开发者 | 肉眼观感、主题、Marketplace 安装态 |
 
-用例清单在 `editor/vscode/src/test/extension.test.js`（0.58.0 起 14 条）；新增用户可见
+用例清单在 `editor/vscode/src/test/extension.test.js`（0.60.0 起 15 条；0.58.0 起 14 条）；新增用户可见
 行为时**同一轮**加一条真宿主断言，并在 `docs/TESTING.md` 的集成测试小节登记。
 
 ## 3. 台账字段（`docs/e2e/ledger.jsonl`）

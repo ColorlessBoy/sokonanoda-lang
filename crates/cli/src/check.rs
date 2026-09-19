@@ -35,31 +35,7 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         root,
         no_project,
     } = request;
-    let file = match parse(src) {
-        Ok(file) => file,
-        Err(diag) => {
-            if json {
-                print_json_line(&serde_json::json!({
-                    "type": "diagnostic",
-                    "stage": "parse",
-                    "code": diag.code(),
-                    "message": diag.message,
-                    "hint": diag.hint(),
-                    "span": span_json(diag.span),
-                }));
-            } else {
-                eprintln!(
-                    "{}:{}:{}: error[{}]: {}",
-                    label,
-                    diag.span.start.line,
-                    diag.span.start.column,
-                    diag.stage_code(),
-                    diag.message
-                );
-            }
-            return false;
-        }
-    };
+    let parsed = parse(src);
     // Prelude choice: an explicit `--bare` flag wins; otherwise a file-level
     // `-- sokonanoda:prelude none` comment directive decides; default Full.
     let prelude = if bare {
@@ -70,7 +46,11 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
     let options = CompileOptions { prelude };
 
     // 有 import ⇒ 项目闭包；没有 ⇒ 单文件（今天的行为，逐字节不变）。
-    if file.commands.iter().any(|command| command.is_import()) {
+    //
+    // 分发用 `is_project_source`：**入口单独 parse 失败时也要看它有没有
+    // `import` 行**——入口用了依赖声明的记法时（G-04 第二刀），单文件 parse
+    // 必然报 `notation-unknown-symbol`，而闭包路径能编。诊断由闭包路径重报。
+    if sokonanoda_front::project::is_project_source(src) {
         let Some(entry) = entry_path(label, root.as_deref()) else {
             emit_stdin_without_root(json, label);
             return false;
@@ -105,6 +85,31 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         return ok;
     }
 
+    let file = match parsed {
+        Ok(file) => file,
+        Err(diag) => {
+            if json {
+                print_json_line(&serde_json::json!({
+                    "type": "diagnostic",
+                    "stage": "parse",
+                    "code": diag.code(),
+                    "message": diag.message,
+                    "hint": diag.hint(),
+                    "span": span_json(diag.span),
+                }));
+            } else {
+                eprintln!(
+                    "{}:{}:{}: error[{}]: {}",
+                    label,
+                    diag.span.start.line,
+                    diag.span.start.column,
+                    diag.stage_code(),
+                    diag.message
+                );
+            }
+            return false;
+        }
+    };
     let (output, _report) = compile_cached(&file, src, &options);
     if json {
         report_json(&output, src);

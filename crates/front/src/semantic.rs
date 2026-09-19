@@ -192,6 +192,9 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
             | Command::Reduce { .. }
             | Command::Print { .. }
             | Command::Import { .. } => {}
+            // G-05：三条作用域命令不声明名字，也没有要着色的表达式
+            // （`namespace Foo` 的 `Foo` 是**命令参数**，不是引用）。
+            Command::Namespace { .. } | Command::End { .. } | Command::Open { .. } => {}
             // 记法命令不声明名字（设计 N6）：`declaration_kinds` 只服务
             // goal/hypothesis 文本的着色，符号本身在那里不出现。
             Command::Notation { .. } => {}
@@ -515,6 +518,9 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
                     .notations
                     .insert(symbol.clone(), SemanticKind::Keyword);
             }
+            // G-05：三条作用域命令不声明名字、没有表达式要着色（命令参数
+            // `Foo` 不是引用）——与 `Command::Import` 同族。
+            Command::Namespace { .. } | Command::End { .. } | Command::Open { .. } => {}
         }
     }
 }

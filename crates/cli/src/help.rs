@@ -48,12 +48,22 @@ pub(crate) fn print_help() {
     println!();
     println!("language commands (same in files and REPL):");
     println!("  def <name> : <type> := <value>");
+    println!("  abbrev <name> : <type> := <value>   (same as def; the Lean spelling)");
     println!("  theorem <name> : <type> := <proof>");
     println!("  axiom <name> : <type>");
     println!("  example : <type> := <value>    (use sorry for an open exercise)");
     println!("  #check <expr>                  print the inferred type");
     println!("  #reduce <expr>                 evaluate a closed expression");
     println!("  #print <name>                  print a declaration");
+    println!("  infix:N \" sym \" => name        user notation: binary, no assoc (N 1-1000)");
+    println!("  infixl:N / infixr:N \" sym \" => name   left / right associative");
+    println!("  prefix:N \" sym \" => name       unary before its operand (e.g. \" 𝒫 \")");
+    println!("  postfix:N \" sym \" => name      unary after its operand (e.g. \" ᶜ \")");
+    println!("  notation \" sym \" => name       nullary constant (e.g. \"∅\")");
+    println!("                                 notation is scoped to the file + its imports");
+    println!("  namespace <name> ... end <name>  declarations inside get the prefix");
+    println!("                                 (`namespace A` + `def mem` => `A.mem`)");
+    println!("  open <name>                    make `<name>.` omissible for references");
     println!("  universes: def id {{u}}; Sort u; explicit application @id.{{u}}");
     println!("  types: A -> B -> C; named arrows (x : A) -> B bind x");
 }

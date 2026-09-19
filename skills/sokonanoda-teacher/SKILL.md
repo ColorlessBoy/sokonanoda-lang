@@ -324,7 +324,10 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   颜色近似但非逐像素相同，这是设计如此；
 - `sokonanoda build [<file>|<dir>…]` 预热共享编译缓存，之后打开/判卷大文件更快
   （`SOKONANODA_CACHE_DIR` 改缓存根、`SOKONANODA_NO_CACHE=1` 关闭；内核仍是
-  唯一判定者，设计 `docs/design/compile-cache.md`）；
+  唯一判定者，设计 `docs/design/compile-cache.md`）。**编辑器里等价的两个命令**
+  （0.60.0 起）：`sokonanoda: build`（`alt+b`，编当前文件/工作区）与
+  `sokonanoda: rebuild`（`alt+shift+b`，先 `--clean` 再编）——学习者说"面板像是
+  没反应 / 第一次按键很慢"时先让他跑 rebuild，再判断是不是真问题；
 - `soko/goals` / `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供
   工具深挖 goal 视图、提示与光标处 goal（见 `docs/protocol.md`）。
 

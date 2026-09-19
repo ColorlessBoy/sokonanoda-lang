@@ -120,6 +120,13 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   duplicate symbol) and `notation-unknown-symbol` (a symbol used with no
   `infix`/`notation` declaration before it — the hint teaches both "declare it
   first" and the pointful spelling);
+  plus the namespace family (G-05, `docs/design/namespace-open.md`):
+  `parse-namespace-mismatch` (an `end <name>` whose name is not the nearest
+  open `namespace`, or an `end` with nothing to close),
+  `parse-namespace-unclosed` (the file ends inside a `namespace` — the span
+  points back at that `namespace` line) and `parse-namespace-shape` (a
+  `namespace`/`end`/`open` with a missing or malformed name; a bare `end` is
+  this code too, because the name is required in this subset);
 - `elab` stage — e.g. `elab-unknown-identifier`, `elab-unknown-constant`,
   `elab-unknown-universe-level`, `elab-universe-arity`, `elab-untyped-binder`,
   `elab-hole-misplaced`, `elab-duplicate-declaration`, `elab-too-many-binders`,
@@ -153,6 +160,10 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   application was over-applied), `kernel-theorem-not-prop` (a theorem whose
   type is not a proposition — **也出现在开练习上**：签名不是 Prop 的
   `theorem … := sorry` 报这一条，而不是 `exercise.open`，见上文的边界),
+  `kernel-prop-not-cumulative` (内核要 `Sort(n)`（`n ≥ 1`，数据/`Type`），
+  给的却是 `Sort(0)`（`Prop`）：本语言**没有累积性**（官方 Lean 4 有
+  `Prop ⊆ Type`）。L-06 的专用码 + 人话 hint；设计
+  `docs/design/prop-cumulativity-boundary.md`),
   `kernel-inductive-non-positive` (a recursive
   occurrence in a negative position of a constructor argument),
   `kernel-ctor-result-mismatch` (a constructor does not return a full
@@ -596,10 +607,25 @@ written to the same stdout event stream:
 
 ## Course map: `sokonanoda course <course.json>`
 
-Aggregates the units of `course/course.json` (the agent-facing material
+Aggregates the units of the course manifest (the agent-facing material
 library) into a progress map; the VS Code course tree consumes it. Unit
 paths resolve relative to the manifest's directory (the manifest path is
 canonicalized first, so `course` does not depend on the cwd).
+
+**Two manifest shapes, both read** (ledger G-07; design
+`docs/design/course-manifest-v2.md`):
+
+* **v1** — a flat JSON array `[{file, title, title_en, unit}, …]`
+  (`course/course.json`, `scripts/new-course-repo.sh` skeletons);
+* **v2** — an object `{schema: "soko.course/2", name, title,
+  volumes[].chapters[].units[]}` (`courses/set-theory/course.json`), where the
+  `units[]` entries keep the v1 shape **verbatim** and each chapter adds
+  `prereqs` (chapter ids), `tags` and `quota.exercises` (the **planned**
+  exercise count — metadata, never a grading criterion).
+
+A JSON object whose `schema` is present and not `soko.course/2` is refused
+(exit non-zero, no events); an object without `schema` is read as v2. The
+**v1 event shape is frozen**: a v1 manifest's events carry no v2 key at all.
 
 A unit that declares `import` is compiled through the **project closure** —
 the same closure, module root and `ProjectPlan::digest` cache key as
@@ -617,11 +643,17 @@ so the usual `<course>/{course.json,lib/,units/}` layout resolves
   entry's rejections **plus** the closure-level ones, so `failed == 0` ⇔
   `grade <unit>` exits 0; `error` carries a message when the unit file
   could not be read or parsed;
-- `course.summary` (`{type, units, checked, open, failed}`) — totals.
+  **v2 additions** (present only for a v2 manifest): `volume`
+  (`{id, title}`), `chapter` (`{id, title, tags}`) and `tags` (a flat copy
+  of the chapter's tags, so a tag filter need not descend);
+- `course.summary` (`{type, units, checked, open, failed, volumes,
+  chapters}`) — totals; `volumes`/`chapters` are structure counts, always
+  present and `0` for a v1 manifest.
 
 Human view: one line per unit (`unit 1 命题与证明 —— 12 checked · 5 open ·
-0 failed`) plus a totals line. Exit code is 0 even with open/failed
-exercises (progress is not an error); only an unreadable manifest fails.
+0 failed`; a v2 unit appends `（卷 … / 章 …）`) plus a totals line. Exit code
+is 0 even with open/failed exercises (progress is not an error); only an
+unreadable manifest fails.
 
 ## Build cache: `sokonanoda build`
 

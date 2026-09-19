@@ -474,6 +474,32 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("build / rebuild commands warm the compile cache through the CLI", async () => {
+    // 用户报的缺口：CLI 有 `sokonanoda build [--clean]`，扩展没接出来。
+    // 冒烟：两个命令都注册；build 走真实 CLI 子进程并把 build.summary 渲染成
+    // 人话返回（与 doctor 一样返回文本，测试可断言）；rebuild 额外报告清掉的
+    // 缓存条数（`build --clean` 的 build.clean 事件）。
+    const commands = await vscode.commands.getCommands(true);
+    for (const id of ["sokonanoda.build", "sokonanoda.rebuild"]) {
+      assert.ok(commands.includes(id), `${id} must be registered`);
+    }
+    const uri = await writeDoc("build-smoke.sokonanoda", LESSON_CLEAN);
+    const doc = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(doc);
+    const built = await vscode.commands.executeCommand("sokonanoda.build");
+    assert.strictEqual(typeof built, "string", "build must return its summary text");
+    assert.ok(
+      built.includes("sokonanoda build") && /\d+ 个文件/.test(built),
+      `build summary must name the file count, got: ${built}`,
+    );
+    const rebuilt = await vscode.commands.executeCommand("sokonanoda.rebuild");
+    assert.strictEqual(typeof rebuilt, "string", "rebuild must return its summary text");
+    assert.ok(
+      rebuilt.includes("rebuild") && rebuilt.includes("清掉"),
+      `rebuild summary must report the cleaned cache entries, got: ${rebuilt}`,
+    );
+  });
+
   test("doctor command returns a read-only source + version report", async () => {
     // 冒烟（docs/design/extension-server-policy.md §5 集成层）：doctor 命令可
     // 执行，返回报告文本且包含来源（source=）与版本行；只读、绝不抛。

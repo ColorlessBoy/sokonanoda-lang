@@ -2,11 +2,13 @@
 
 use super::ast::{
     Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, MatchArm, NotationAssoc,
-    Pattern, RecDecl, SortKind, Tactic,
+    NotationDecl, Pattern, RecDecl, SortKind, Tactic,
 };
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
 use super::span::Span;
-use super::token::{is_ident_start, tokenize, Token, TokenKind};
+use super::token::{
+    scan_notation_symbols, tokenize_with_symbols, Token, TokenKind, NOTATION_COMMANDS,
+};
 use crate::project::{ModuleName, ModuleNameError};
 use std::collections::HashMap;
 
@@ -52,8 +54,20 @@ pub struct Parser {
     /// 使 `by` 块可以省略分隔用的 `;`（tactic 之间换行即分隔）。
     by_depth: usize,
     /// **本文件已声明**的记法：符号 → 条目。作用域 = 文件内、声明之后
-    /// （`docs/design/notation-subset.md` N5：跨 `import` 的记法是第二刀）。
+    /// （`docs/design/notation-subset.md` N5），外加**继承表**里的跨 `import`
+    /// 记法（第二刀 §10.3：被导入模块声明的记法从文件头就可用）。
     notations: HashMap<String, NotationEntry>,
+    /// **未闭合的 `namespace` 栈**（G-05）：从外到内。声明名加前缀（N3）与
+    /// `end` 同名校验（N2）都读它；`parse_file` 在文件尾校验闭合。
+    namespaces: Vec<OpenNamespace>,
+}
+
+/// 一个未闭合的 `namespace`：写出来的名字 + 累积全前缀 + 那行的 span
+/// （未闭合诊断指回它，不是文件尾）。
+struct OpenNamespace {
+    written: String,
+    full: String,
+    span: Span,
 }
 
 /// 一个 `(a b c : T)` 多名字 binder 组（读回内核 pp 类型文本时用）。
@@ -101,16 +115,50 @@ fn wrap_type_binders(binders: Vec<Binder>, ty: Expr) -> Expr {
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
+        Self::with_inherited(tokens, &[])
+    }
+
+    /// 带**继承记法表**的 parser（第二刀 §10.3）：被导入模块声明的记法在入口
+    /// 文件里从文件头就可用（与 Lean 的 import 一致）。空继承表 ⇒ [`Parser::new`]。
+    pub fn with_inherited(tokens: Vec<Token>, inherited: &[NotationDecl]) -> Self {
+        let mut notations: HashMap<String, NotationEntry> = HashMap::new();
+        for decl in inherited {
+            notations.insert(
+                decl.symbol.clone(),
+                NotationEntry {
+                    symbol: decl.symbol.clone(),
+                    precedence: decl.precedence,
+                    assoc: decl.assoc,
+                    target: decl.target.clone(),
+                },
+            );
+        }
         Self {
             tokens,
             cursor: 0,
             scrutinee_depth: 0,
             by_depth: 0,
-            notations: HashMap::new(),
+            notations,
+            namespaces: Vec::new(),
         }
     }
 
     pub fn parse_file(&mut self, src: &str) -> Result<FolFile> {
+        self.parse_file_with(src, true)
+    }
+
+    /// 解析的**片段模式**（G-05，设计 `docs/design/namespace-open.md` §4.1）：
+    /// 只跳过「文件尾还有未闭合 `namespace`」这一条校验，其它逐字相同。
+    ///
+    /// 判卷合成（`judge.rs`）用的前缀本来就是**文件的一个片段**——`by` 块所在
+    /// 声明在 `namespace Foo` 里时，前缀必然带着一个还没闭合的 `namespace`，
+    /// 后面拼上的合成 `#check`/合成声明必须落在**仍然打开的**命名空间里。
+    /// 严格入口 [`parse`] 不变（真文件里未闭合就是错误）。
+    pub fn parse_fragment(&mut self, src: &str) -> Result<FolFile> {
+        self.parse_file_with(src, false)
+    }
+
+    fn parse_file_with(&mut self, src: &str, require_closed: bool) -> Result<FolFile> {
         let mut commands = Vec::new();
         let mut seen_declaration = false;
         while !self.at_eof() {
@@ -128,6 +176,17 @@ impl Parser {
             }
             commands.push(command);
         }
+        if require_closed {
+            if let Some(open) = self.namespaces.last() {
+                return Err(Diagnostic::new(
+                    DiagnosticKind::NamespaceUnclosed {
+                        name: open.written.clone(),
+                    },
+                    open.span,
+                    format!("`namespace {}` 没有闭合：文件到这里就结束了", open.written),
+                ));
+            }
+        }
         Ok(FolFile {
             commands,
             src: src.to_string(),
@@ -139,6 +198,10 @@ impl Parser {
         match &tok.kind {
             TokenKind::Ident(kw) if kw == "import" => self.parse_import(),
             TokenKind::Ident(kw) if kw == "def" => self.parse_def(),
+            // `abbrev`（G-08，设计 `docs/design/abbrev.md`）：与 `def` **同语义**
+            // 的拼写——本语言只有一个透明度层级，所以 Lean 的 reducibility hint
+            // 不可观察，两条命令共用 `parse_def` 的每一个字段。
+            TokenKind::Ident(kw) if kw == "abbrev" => self.parse_def(),
             TokenKind::Ident(kw) if kw == "theorem" => self.parse_theorem(),
             TokenKind::Ident(kw) if kw == "example" => self.parse_example(),
             TokenKind::Ident(kw) if kw == "axiom" => self.parse_axiom(),
@@ -149,11 +212,129 @@ impl Parser {
             TokenKind::Ident(kw) if kw == "infix" || kw == "infixl" || kw == "infixr" => {
                 self.parse_infix_command()
             }
+            // 一元记法（第二刀 §10.1）：`prefix:N " 𝒫 " => Set.powerset`。
+            TokenKind::Ident(kw) if kw == "prefix" || kw == "postfix" => {
+                self.parse_unary_notation_command()
+            }
             TokenKind::Ident(kw) if kw == "notation" => self.parse_notation_command(),
+            TokenKind::Ident(kw) if kw == "namespace" => self.parse_namespace_command(),
+            TokenKind::Ident(kw) if kw == "end" => self.parse_end_command(),
+            TokenKind::Ident(kw) if kw == "open" => self.parse_open_command(),
             _ => {
                 Err(self
                     .error_at_current(&format!("expected a .sokonanoda command, found {tok:?}")))
             }
+        }
+    }
+
+    /// 当前命名空间的累积全前缀（没有 `namespace` 时 `None`）。
+    fn current_namespace(&self) -> Option<&str> {
+        self.namespaces.last().map(|open| open.full.as_str())
+    }
+
+    /// 声明名加命名空间前缀（G-05 N3）：`namespace A` 内 `def mem` ⇒ `A.mem`；
+    /// 名字本身带点则**拼接**（`A.Set.mem`，与 Lean 同）。
+    fn qualify_decl_name(&self, name: String) -> String {
+        match self.current_namespace() {
+            Some(prefix) => crate::compile::join_ns(Some(prefix), &name),
+            None => name,
+        }
+    }
+
+    /// `namespace <Ident>`（G-05 N1）：开一个命名空间块。
+    fn parse_namespace_command(&mut self) -> Result<Command> {
+        let kw = self.bump();
+        let name = self.expect_namespace_name("namespace")?;
+        let span = Span::new(kw.span.start, self.tokens[self.cursor - 1].span.end);
+        let full = crate::compile::join_ns(self.current_namespace(), &name);
+        self.namespaces.push(OpenNamespace {
+            written: name.clone(),
+            full,
+            span,
+        });
+        Ok(Command::Namespace { name, span })
+    }
+
+    /// `end <Ident>`（G-05 N1/N2）：闭合最近的 `namespace`，**名字必须写出**。
+    /// 裸 `end`、错配、没有可闭合的 `namespace` 都走专用码
+    /// （`parse-namespace-shape` / `parse-namespace-mismatch`）。
+    fn parse_end_command(&mut self) -> Result<Command> {
+        let kw = self.bump();
+        let tok = self.peek().clone();
+        let TokenKind::Ident(name) = tok.kind.clone() else {
+            return Err(Diagnostic::new(
+                DiagnosticKind::NamespaceShape {
+                    detail: format!("`end` 后面要跟命名空间的名字，found {:?}", tok.kind),
+                },
+                kw.span,
+                "`end` 后面要跟命名空间的名字".to_string(),
+            ));
+        };
+        if name.ends_with('.') || is_namespace_name_keyword(&name) {
+            return Err(Diagnostic::new(
+                DiagnosticKind::NamespaceShape {
+                    detail: format!("`end {name}` 的名字不合法"),
+                },
+                tok.span,
+                format!("`end` 后面要跟命名空间的名字，`{name}` 不是合法的名字"),
+            ));
+        }
+        let Some(open) = self.namespaces.last() else {
+            return Err(Diagnostic::new(
+                DiagnosticKind::NamespaceMismatch {
+                    found: name.clone(),
+                    expected: None,
+                },
+                Span::new(kw.span.start, tok.span.end),
+                format!("`end {name}` 没有对应的 `namespace {name}`"),
+            ));
+        };
+        // N2：写出名或累积全前缀都算同名（`namespace A.B` 用 `end A.B`、
+        // 嵌套的 `namespace B` 用 `end B`）。
+        if name != open.written && name != open.full {
+            return Err(Diagnostic::new(
+                DiagnosticKind::NamespaceMismatch {
+                    found: name.clone(),
+                    expected: Some(open.written.clone()),
+                },
+                Span::new(kw.span.start, tok.span.end),
+                format!(
+                    "`end {name}` 与最近的 `namespace {}` 不匹配（应该写 `end {}`）",
+                    open.written, open.written
+                ),
+            ));
+        }
+        self.namespaces.pop();
+        self.bump(); // 消费名字 token（`tok` 是 peek 的克隆，没有 bump 过）
+        Ok(Command::End {
+            name,
+            span: Span::new(kw.span.start, tok.span.end),
+        })
+    }
+
+    /// `open <Ident>`（G-05 N1）：把 `<Ident>.` 加进可省略前缀集合。
+    fn parse_open_command(&mut self) -> Result<Command> {
+        let kw = self.bump();
+        let name = self.expect_namespace_name("open")?;
+        let span = Span::new(kw.span.start, self.tokens[self.cursor - 1].span.end);
+        Ok(Command::Open { name, span })
+    }
+
+    /// `namespace` / `open` 后面那个点分名字（N1）。
+    fn expect_namespace_name(&mut self, keyword: &str) -> Result<String> {
+        let tok = self.peek().clone();
+        match tok.kind.clone() {
+            TokenKind::Ident(name) if !name.ends_with('.') && !is_namespace_name_keyword(&name) => {
+                self.bump();
+                Ok(name)
+            }
+            other => Err(Diagnostic::new(
+                DiagnosticKind::NamespaceShape {
+                    detail: format!("`{keyword}` 后面要跟一个名字，found {other:?}"),
+                },
+                tok.span,
+                format!("`{keyword}` 后面要跟一个名字（可点分，例如 A.B）"),
+            )),
         }
     }
 
@@ -171,6 +352,41 @@ impl Parser {
             _ => NotationAssoc::Infixr,
         };
         // `N` 必填：缺了要报「记法命令的形状」，不是通用的 unexpected-token。
+        let precedence = self.parse_notation_precedence(&keyword)?;
+        let (symbol, _) = self.parse_notation_symbol(&keyword)?;
+        self.expect_notation_arrow(&keyword)?;
+        let target = self.expect_ident("a notation target name")?;
+        let end = self.tokens[self.cursor - 1].span.end;
+        let span = Span::new(kw_tok.span.start, end);
+        self.register_notation(
+            symbol.clone(),
+            Some(precedence),
+            assoc,
+            target.clone(),
+            span,
+        )?;
+        Ok(Command::Notation {
+            symbol,
+            precedence: Some(precedence),
+            assoc,
+            target,
+            span,
+        })
+    }
+
+    /// `prefix:N " sym " => name` / `postfix:N " sym " => name`（第二刀 §10.1）：
+    /// 一元记法。命令形状与 `infix` 族**逐段共用**（优先级必填、符号是字符串
+    /// 字面量、`=>` 指目标），只有结合性字段不同。
+    fn parse_unary_notation_command(&mut self) -> Result<Command> {
+        let kw_tok = self.bump();
+        let TokenKind::Ident(keyword) = kw_tok.kind.clone() else {
+            unreachable!("parse_unary_notation_command is only called on a unary keyword");
+        };
+        let assoc = if keyword == "prefix" {
+            NotationAssoc::Prefix
+        } else {
+            NotationAssoc::Postfix
+        };
         let precedence = self.parse_notation_precedence(&keyword)?;
         let (symbol, _) = self.parse_notation_symbol(&keyword)?;
         self.expect_notation_arrow(&keyword)?;
@@ -277,10 +493,26 @@ impl Parser {
                 tok.span,
             ));
         }
-        if symbol.chars().all(is_ident_start) {
+        // 纯 ASCII 标识符词（`in`/`e`/`Set`）不能当记法符号：声明驱动的词法
+        // 会把**整个文件**里的这个名字都收走，与标识符命名空间正面撞车
+        // （`in` 还是 `infix` 的前缀）。**非 ASCII** 的标识符字符不在此列
+        // （第二刀 §10.2）：`𝒫`（数学斜体字母）、`ᶜ`（修饰字母）、`⁻¹'`（上标）
+        // 正是声明驱动词法要救的符号。
+        if super::token::is_ascii_word_symbol(&symbol) {
             return Err(self.notation_shape_error(
                 &format!(
-                    "`{symbol}` 是普通标识符词，不能当记法符号（它会被当标识符读走，记法永远命中不了）；符号要用数学符号，例如 ∈ / ⊆ / ∅"
+                    "`{symbol}` 是普通标识符词，不能当记法符号（它会把整个文件里的这个名字都收走）；符号要用数学符号，例如 ∈ / ⊆ / ∅ / 𝒫 / ''"
+                ),
+                tok.span,
+            ));
+        }
+        // 词法**先于**符号表消费的字符（第二刀 §10.2）：`∀`/`->`/`--`/`#check`
+        // 与字符串定界符在 `next_token` 里排在符号匹配之前，声明成符号也永远
+        // 命中不了——早点报，别让学习者对着一个"永远不生效"的声明发呆。
+        if let Some(reserved) = super::token::lexer_reserved_symbol_char(&symbol) {
+            return Err(self.notation_shape_error(
+                &format!(
+                    "`{reserved}` 是语言关键字的一部分（∀ / -> / -- / #check / 字符串引号），不能当记法符号"
                 ),
                 tok.span,
             ));
@@ -303,6 +535,12 @@ impl Parser {
 
     /// 登记一条记法；同一符号重复声明是 v1 的**错误**（设计「已知差异 6」：
     /// Lean 允许重载，本子集不做）。
+    ///
+    /// 第二刀把这条规则**延伸到继承来的符号**：本文件重声明一个 import 来的
+    /// 符号也报错。理由不只是"少一条规则"——判卷通道会把闭包**首尾相接**成
+    /// 一份合成源码（`judge.rs` 的前缀），两个模块各声明一次 `∪` 在那里必然
+    /// 撞车；与其让同一个程序在两条通道上得到不同答案，不如在源头就说不许。
+    /// 想要换目标就换个符号（或改依赖）。
     fn register_notation(
         &mut self,
         symbol: String,
@@ -313,7 +551,9 @@ impl Parser {
     ) -> Result<()> {
         if self.notations.contains_key(&symbol) {
             return Err(self.notation_shape_error(
-                &format!("符号 `{symbol}` 在本文件里已经声明过记法了：同一符号只能声明一次"),
+                &format!(
+                    "符号 `{symbol}` 已经声明过记法了（本文件里写过，或由 import 带进来）：同一符号只能声明一次；换个符号，或改依赖"
+                ),
                 span,
             ));
         }
@@ -402,6 +642,7 @@ impl Parser {
     fn parse_def(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_decl_name("definition name")?;
+        let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         let binders = self.parse_decl_binders(&mut universe)?;
         self.expect_colon("definition type")?;
@@ -422,6 +663,7 @@ impl Parser {
     fn parse_theorem(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_decl_name("theorem name")?;
+        let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         let binders = self.parse_decl_binders(&mut universe)?;
         self.expect_colon("theorem statement")?;
@@ -623,6 +865,7 @@ impl Parser {
     fn parse_axiom(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
         let name = self.expect_decl_name("axiom name")?;
+        let name = self.qualify_decl_name(name);
         let mut universe = self.parse_universe_params()?;
         // G-13：与 def/theorem 同序——宇宙参数后先吃 binder 组，再进类型位。
         // 无 binder 的 `axiom Foo : Prop` 逐字走原路（wrap_type_binders 空则原样返回）。
@@ -712,7 +955,11 @@ impl Parser {
 
     fn parse_inductive_block(&mut self) -> Result<Command> {
         let start = self.bump().span.start;
+        // G-05 N3：归纳块的名字也吃命名空间前缀（`namespace Set` 里的
+        // `inductive Foo` ⇒ `Set.Foo`），构造子照 R1 从**已加前缀的**类型名
+        // 派生规范名（`Set.Foo.mk`）——`ctor`/`rec`/`iota` 自己的名字不动。
         let name = self.expect_decl_name("inductive name")?;
+        let name = self.qualify_decl_name(name);
         // 零或多个参数 binder（`(A : Type)` / `(A B : Prop)` / `{A B : Type}`），
         // 在 `:` 之前。走 `push_binders` 与箭头/λ/∀/声明 binder 同一套组语法
         // （docs/design/agent-query-channel.md H6-C / TODO B）；组要求显式类型，
@@ -1141,6 +1388,23 @@ impl Parser {
     fn parse_operators(&mut self, min_precedence: u16) -> Result<Expr> {
         let mut lhs = self.parse_app()?;
         loop {
+            // **后缀记法**（第二刀 §10.1）：`Aᶜ`。与二元算子共用同一条梯子——
+            // `N >= min_precedence` 才吸收，所以 N 越大绑得越紧（`A ∪ Bᶜ` 在
+            // `ᶜ`=100 时是 `A ∪ (Bᶜ)`，在 50 时是 `(A ∪ B)ᶜ`）。
+            if let Some(entry) = self.postfix_ahead(min_precedence) {
+                let entry = entry.clone();
+                let tok = self.bump();
+                let span = Span::new(lhs.span().start, tok.span.end);
+                lhs = Expr::Notation {
+                    symbol: entry.symbol.clone(),
+                    target: entry.target.clone(),
+                    assoc: NotationAssoc::Postfix,
+                    lhs: Some(Box::new(lhs)),
+                    rhs: None,
+                    span,
+                };
+                continue;
+            }
             // 未声明符号：报**专用**诊断（hint 给「先声明」与「点名写法」），
             // 而不是让 `parse_file`/`parse_command` 用通用的 unexpected-token
             // 糊过去（设计 N2/N5）。
@@ -1149,6 +1413,28 @@ impl Parser {
                     let span = self.peek().span;
                     let symbol = symbol.clone();
                     return Err(self.unknown_symbol_error(&symbol, span));
+                }
+                // 已声明、但**不是二元算子**（前缀/零元）落在算子位上：给
+                // 专用教学诊断，而不是让它悄悄结束爬升再报通用错误。
+                //
+                // 只在它**在这个层级本来就该被吸收**时报（`N >= min_precedence`）：
+                // 绑得更松的一元符号要让爬升照常结束，交给外层吸收——
+                // `A ∪ Bᶜ`（`ᶜ`=50 < `∪`=65）正是靠这一条读成 `(A ∪ B)ᶜ`。
+                if let Some(entry) = self.notations.get(symbol) {
+                    let binds_here = entry.precedence.is_some_and(|p| p >= min_precedence);
+                    if !entry.assoc.is_binary() && binds_here {
+                        let span = self.peek().span;
+                        let message = match entry.assoc {
+                            NotationAssoc::Prefix => format!(
+                                "`{symbol}` 是**前缀**记法：它要写在操作数**前面**（例如 {symbol} A），不能夹在两个操作数中间"
+                            ),
+                            NotationAssoc::Nullary => format!(
+                                "`{symbol}` 是零元记法（一个常量），不能当算子用"
+                            ),
+                            _ => format!("`{symbol}` 不能出现在这里"),
+                        };
+                        return Err(self.error_at(span, &message));
+                    }
                 }
             }
             let Some(op) = self.binary_op_ahead(min_precedence) else {
@@ -1217,7 +1503,11 @@ impl Parser {
                 // 未声明符号：**不是**算子（`None`）——留给 `starts_atom`/调用方
                 // 报「未声明符号」的专用诊断，而不是在这里假装爬升结束。
                 let entry = self.notations.get(symbol)?;
-                let precedence = entry.precedence?; // 零元记法不在算子位上
+                // 只有**二元**结合性在梯子上（第二刀：前缀/后缀/零元都不在）。
+                if !entry.assoc.is_binary() {
+                    return None;
+                }
+                let precedence = entry.precedence?;
                 BinaryOp {
                     precedence,
                     assoc: entry.assoc,
@@ -1229,6 +1519,19 @@ impl Parser {
             _ => return None,
         };
         (op.precedence >= min_precedence).then_some(op)
+    }
+
+    /// 下一个 token 是不是**优先级 ≥ `min_precedence`** 的后缀记法
+    /// （第二刀 §10.1）。`None` ⇒ 不是后缀记法，或绑得不够紧。
+    fn postfix_ahead(&self, min_precedence: u16) -> Option<&NotationEntry> {
+        let TokenKind::Sym(symbol) = &self.peek().kind else {
+            return None;
+        };
+        let entry = self.notations.get(symbol)?;
+        if entry.assoc != NotationAssoc::Postfix {
+            return None;
+        }
+        (entry.precedence? >= min_precedence).then_some(entry)
     }
 
     fn bump_operator(&mut self, op: &BinaryOp) {
@@ -1266,7 +1569,7 @@ impl Parser {
     }
 
     fn parse_app(&mut self) -> Result<Expr> {
-        let mut fun = self.parse_atom()?;
+        let mut fun = self.parse_prefix_head()?;
         while self.starts_atom() {
             let arg = self.parse_atom()?;
             let span = Span::new(fun.span().start, arg.span().end);
@@ -1277,6 +1580,30 @@ impl Parser {
             };
         }
         Ok(fun)
+    }
+
+    /// **前缀记法**（第二刀 §10.1）：`𝒫 A`。操作数按 `parse_operators(N)` 解析，
+    /// 所以 N 越大绑得越紧（`𝒫 A ∪ B` 在 `𝒫`=100 时是 `(𝒫 A) ∪ B`，在 50 时
+    /// 是 `𝒫 (A ∪ B)`）。不是前缀记法 ⇒ 普通原子。
+    fn parse_prefix_head(&mut self) -> Result<Expr> {
+        let entry = match &self.peek().kind {
+            TokenKind::Sym(symbol) => match self.notations.get(symbol) {
+                Some(entry) if entry.assoc == NotationAssoc::Prefix => entry.clone(),
+                _ => return self.parse_atom(),
+            },
+            _ => return self.parse_atom(),
+        };
+        let tok = self.bump();
+        let operand = self.parse_operators(entry.precedence.unwrap_or(0))?;
+        let span = Span::new(tok.span.start, operand.span().end);
+        Ok(Expr::Notation {
+            symbol: entry.symbol,
+            target: entry.target,
+            assoc: NotationAssoc::Prefix,
+            lhs: None,
+            rhs: Some(Box::new(operand)),
+            span,
+        })
     }
 
     fn starts_atom(&self) -> bool {
@@ -1292,7 +1619,8 @@ impl Parser {
             TokenKind::Num(_) | TokenKind::Hole | TokenKind::LParen | TokenKind::At => true,
             TokenKind::Forall => true,
             // 记法符号**不得**被当作应用实参：已声明的**零元**记法是一个原子
-            // （`f ∅` 合法），二元记法与未声明符号都让路（设计 N2/N3）。
+            // （`f ∅` 合法），二元/前缀记法与未声明符号都让路（设计 N2/N3、
+            // 第二刀 §10.1——`f 𝒫 A` 要写成 `f (𝒫 A)`）。
             TokenKind::Sym(symbol) => self
                 .notations
                 .get(symbol)
@@ -1329,15 +1657,22 @@ impl Parser {
                 span: tok.span,
             }),
             // 零元记法（`∅`）：已声明为 Nullary 才是一个原子；二元记法的符号
-            // 落在算子位上（`parse_operators` 消费），未声明符号在这里报专用
-            // 诊断（**不是** `unknown identifier`，设计 N2/N5）。
+            // 落在算子位上（`parse_operators` 消费），前缀记法在 `parse_app`
+            // 头部消费；未声明符号在这里报专用诊断（**不是** `unknown
+            // identifier`，设计 N2/N5）。
             TokenKind::Sym(ref symbol) => match self.notations.get(symbol) {
                 Some(entry) if entry.assoc == NotationAssoc::Nullary => {
                     Ok(self.parse_nullary_notation(symbol, &tok))
                 }
-                Some(_) => Err(self.error_here(&format!(
+                Some(entry) if entry.assoc.is_binary() => Err(self.error_here(&format!(
                     "`{symbol}` 是二元记法符号，两边都要有操作数（例如 a {symbol} b）"
                 ))),
+                Some(_) => Err(self.error_at(
+                    tok.span,
+                    &format!(
+                        "`{symbol}` 是一元记法符号：它要跟自己的操作数一起写（例如 {symbol} A）"
+                    ),
+                )),
                 None => Err(self.unknown_symbol_error(symbol, tok.span)),
             },
             TokenKind::Ident(name) if name == "Prop" => Ok(Expr::Sort {
@@ -1703,6 +2038,19 @@ impl Parser {
         )
     }
 
+    /// 教学诊断：**消息就是全部**（不要把 token 的 Debug 拼进去）——记法的
+    /// 「位置不对」要读起来像人话（第二刀 §10.1）。
+    fn error_at(&self, span: Span, msg: &str) -> Diagnostic {
+        Diagnostic::new(
+            DiagnosticKind::UnexpectedToken {
+                found: "a notation symbol".to_string(),
+                expected: msg.to_string(),
+            },
+            span,
+            msg.to_string(),
+        )
+    }
+
     fn error_at_current(&self, msg: &str) -> Diagnostic {
         let tok = self.peek();
         Diagnostic::new(
@@ -1717,10 +2065,48 @@ impl Parser {
 }
 
 pub fn parse(src: &str) -> Result<FolFile> {
-    let tokens = tokenize(src)?;
-    let mut parser = Parser::new(tokens);
+    parse_with_inherited(src, &[])
+}
+
+/// 带**继承记法表**的解析（第二刀 §10.3）：被导入模块声明的记法既进词法的
+/// 符号表（[`scan_notation_symbols`] 收本文件的 + `inherited` 收依赖的），
+/// 也进 parser 的算子表。空继承表 ⇒ [`parse`] 逐字节相同。
+pub fn parse_with_inherited(src: &str, inherited: &[NotationDecl]) -> Result<FolFile> {
+    let mut symbols = scan_notation_symbols(src);
+    for decl in inherited {
+        if !symbols.contains(&decl.symbol) {
+            symbols.push(decl.symbol.clone());
+        }
+    }
+    let tokens = tokenize_with_symbols(src, &symbols)?;
+    let mut parser = Parser::with_inherited(tokens, inherited);
     parser.parse_file(src)
 }
+
+/// 解析一个**源码片段**（G-05）：只跳过「文件尾未闭合 `namespace`」的校验，
+/// 其余与 [`parse`] 逐字相同。判卷合成（`judge.rs`）的前缀是文件的一部分，
+/// 命名空间在那里**故意保持打开**（合成的 `#check`/合成声明要落在里面）。
+pub fn parse_fragment(src: &str) -> Result<FolFile> {
+    parse_fragment_with_inherited(src, &[])
+}
+
+/// [`parse_fragment`] 的继承表版本（判卷合成路径不跨模块，留作对称入口）。
+pub fn parse_fragment_with_inherited(src: &str, inherited: &[NotationDecl]) -> Result<FolFile> {
+    let mut symbols = scan_notation_symbols(src);
+    for decl in inherited {
+        if !symbols.contains(&decl.symbol) {
+            symbols.push(decl.symbol.clone());
+        }
+    }
+    let tokens = tokenize_with_symbols(src, &symbols)?;
+    let mut parser = Parser::with_inherited(tokens, inherited);
+    parser.parse_fragment(src)
+}
+
+/// 词法级 `import` 扫描（G-04 第二刀）：闭包加载器要在解析一个模块**之前**
+/// 拿到它的依赖边，所以它从这里转出（实现在 `token.rs`，与
+/// `Lexer::on_import_line` 同款判据）。
+pub(crate) use super::token::scan_import_lines;
 
 /// 表达式关键字（term 关键字）：不是命令，但在应用位必须让路——`f let …`
 /// 绝不能被当成 `f` 应用到标识符 `let`。
@@ -1737,27 +2123,34 @@ fn is_tactic_keyword(name: &str) -> bool {
     )
 }
 
+/// `namespace` / `end` / `open` 后面那个名字不能是**关键字**（G-05 N1）：
+/// `namespace def` 这类写法要报「形状不对」，而不是把 `def` 当命名空间名
+/// 再在下一行报一个看不懂的错误。
+fn is_namespace_name_keyword(name: &str) -> bool {
+    is_reserved_command(name) || is_expr_keyword(name)
+}
+
 fn is_reserved_command(name: &str) -> bool {
-    matches!(
-        name,
-        "import"
-            | "def"
-            | "theorem"
-            | "example"
-            | "axiom"
-            | "inductive"
-            | "ctor"
-            | "rec"
-            | "iota"
-            | "end"
-            | "infix"
-            | "infixl"
-            | "infixr"
-            | "notation"
-            | "#check"
-            | "#reduce"
-            | "#print"
-    )
+    NOTATION_COMMANDS.contains(&name)
+        || matches!(
+            name,
+            "import"
+                | "def"
+                | "abbrev"
+                | "theorem"
+                | "example"
+                | "axiom"
+                | "inductive"
+                | "ctor"
+                | "rec"
+                | "iota"
+                | "end"
+                | "namespace"
+                | "open"
+                | "#check"
+                | "#reduce"
+                | "#print"
+        )
 }
 
 #[cfg(test)]
@@ -3018,5 +3411,299 @@ end
         )
         .expect_err("import after a notation command");
         assert_eq!(err.code(), "import-must-precede-declarations");
+    }
+
+    // ── G-05：namespace / end / open（设计 docs/design/namespace-open.md）────
+
+    #[test]
+    fn namespace_end_open_are_commands() {
+        let file = parse(
+            "namespace Foo\n\
+             def x : Type := Prop\n\
+             end Foo\n\
+             open Foo\n",
+        )
+        .expect("parse");
+        assert_eq!(file.commands.len(), 4);
+        assert!(matches!(
+            &file.commands[0],
+            Command::Namespace { name, .. } if name == "Foo"
+        ));
+        assert!(matches!(
+            &file.commands[2],
+            Command::End { name, .. } if name == "Foo"
+        ));
+        assert!(matches!(
+            &file.commands[3],
+            Command::Open { name, .. } if name == "Foo"
+        ));
+    }
+
+    #[test]
+    fn nested_namespaces_accumulate_the_prefix() {
+        let file = parse(
+            "namespace A\n\
+             namespace B\n\
+             def mem : Type := Prop\n\
+             end B\n\
+             end A\n",
+        )
+        .expect("parse");
+        assert!(
+            matches!(&file.commands[2], Command::Def { name, .. } if name == "A.B.mem"),
+            "nested namespaces must accumulate: {:?}",
+            file.commands
+        );
+    }
+
+    #[test]
+    fn a_dotted_namespace_prefixes_like_two_nested_ones() {
+        let file = parse("namespace A.B\ndef mem : Type := Prop\nend A.B\n").expect("parse");
+        assert!(matches!(&file.commands[1], Command::Def { name, .. } if name == "A.B.mem"));
+    }
+
+    #[test]
+    fn a_dotted_declaration_name_is_concatenated_inside_a_namespace() {
+        // Lean 同款：`namespace A` 里的 `def Set.mem` ⇒ `A.Set.mem`。
+        let file = parse("namespace A\ndef Set.mem : Type := Prop\nend A\n").expect("parse");
+        assert!(matches!(&file.commands[1], Command::Def { name, .. } if name == "A.Set.mem"));
+    }
+
+    #[test]
+    fn end_mismatch_is_a_dedicated_parse_error() {
+        let err = parse("namespace A\ndef x : Type := Prop\nend B\n").expect_err("mismatch");
+        assert_eq!(err.code(), "parse-namespace-mismatch");
+        assert!(
+            err.message.contains('A'),
+            "the message must name the expected `end A`: {err:?}"
+        );
+    }
+
+    #[test]
+    fn end_without_an_open_namespace_is_a_dedicated_parse_error() {
+        let err = parse("end Foo\n").expect_err("no namespace");
+        assert_eq!(err.code(), "parse-namespace-mismatch");
+    }
+
+    #[test]
+    fn an_unclosed_namespace_is_reported_at_eof() {
+        let err = parse("namespace Foo\ndef x : Type := Prop\n").expect_err("unclosed");
+        assert_eq!(err.code(), "parse-namespace-unclosed");
+        // span 指回那条 `namespace`（不是文件尾）。
+        assert_eq!(err.span.start.line, 1);
+    }
+
+    #[test]
+    fn namespace_shape_errors_are_dedicated() {
+        let err = parse("namespace\n").expect_err("no name");
+        assert_eq!(err.code(), "parse-namespace-shape");
+        let err = parse("namespace A\ndef x : Type := Prop\nend\n").expect_err("bare end");
+        assert_eq!(err.code(), "parse-namespace-shape");
+        // 关键字不能当命名空间名（`namespace def x : …` 这种漏写名字的写法
+        // 要报形状错，而不是把 `def` 当名字）。
+        let err = parse("namespace def x : Type := Prop\n").expect_err("keyword name");
+        assert_eq!(err.code(), "parse-namespace-shape");
+        let err = parse("open def\n").expect_err("keyword name");
+        assert_eq!(err.code(), "parse-namespace-shape");
+    }
+
+    #[test]
+    fn parse_fragment_tolerates_an_unclosed_namespace() {
+        // 判卷合成路径专用（judge.rs 的前缀是文件的一个片段，见设计 §4.1）。
+        let file = parse_fragment("namespace A\ndef mem : Type := Prop\n").expect("fragment");
+        assert!(matches!(&file.commands[1], Command::Def { name, .. } if name == "A.mem"));
+        // 严格入口仍然报（同一份文本）。
+        assert!(parse("namespace A\ndef mem : Type := Prop\n").is_err());
+    }
+
+    #[test]
+    fn namespace_and_open_are_reserved_inside_expressions() {
+        let err = parse("def f : Type := namespace\n").expect_err("keyword as expression");
+        assert_eq!(err.code(), "unexpected-token");
+    }
+
+    // ---- abbrev（G-08，docs/design/abbrev.md）------------------------------
+
+    /// 去掉 Debug 文本里的 `Span { … }` 段：`def` 与 `abbrev` 的**源码偏移
+    /// 本来就不同**（`abbrev` 多三个字符），要比较的是 AST **形状**。
+    fn strip_spans(text: &str) -> String {
+        let mut out = String::with_capacity(text.len());
+        let mut rest = text;
+        while let Some(start) = rest.find("Span {") {
+            out.push_str(&rest[..start]);
+            let mut depth = 0usize;
+            let mut end = None;
+            for (i, ch) in rest[start..].char_indices() {
+                match ch {
+                    '{' => depth += 1,
+                    '}' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            end = Some(start + i + 1);
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            let Some(end) = end else { break };
+            rest = &rest[end..];
+        }
+        out.push_str(rest);
+        out
+    }
+
+    /// 首个命令的 `(name, universe, ty, val)`——`def` 与 `abbrev` 必须给出
+    /// **逐字段相同**的 `Command::Def`（`abbrev` 不是新 AST 节点）。
+    fn def_shape_of(src: &str) -> (String, Vec<String>, String, String) {
+        let file = parse(src).unwrap_or_else(|e| panic!("parse {src}: {e:?}"));
+        let Command::Def {
+            name,
+            universe,
+            ty,
+            val,
+            ..
+        } = &file.commands[0]
+        else {
+            panic!("expected a def command, got {:?}", file.commands[0]);
+        };
+        (
+            name.clone(),
+            universe.clone(),
+            strip_spans(&format!("{ty:?}")),
+            strip_spans(&format!("{val:?}")),
+        )
+    }
+
+    // ---- 一元记法 prefix/postfix（G-04 第二刀，设计 §10.1）-----------------
+
+    #[test]
+    fn prefix_and_postfix_commands_parse_into_one_ast_node_each() {
+        let (symbol, precedence, assoc, target) =
+            notation_of("prefix:100 \" 𝒫 \" => Set.powerset\n");
+        assert_eq!(
+            (symbol.as_str(), precedence, assoc, target.as_str()),
+            ("𝒫", Some(100), NotationAssoc::Prefix, "Set.powerset")
+        );
+        let (symbol, precedence, assoc, target) = notation_of("postfix:100 \" ᶜ \" => Set.compl\n");
+        assert_eq!(
+            (symbol.as_str(), precedence, assoc, target.as_str()),
+            ("ᶜ", Some(100), NotationAssoc::Postfix, "Set.compl")
+        );
+        // `infixr:80 " '' "`：撇号符号（第二刀的词法增量）。
+        let (symbol, _, assoc, _) = notation_of("infixr:80 \" '' \" => Set.image\n");
+        assert_eq!((symbol.as_str(), assoc), ("''", NotationAssoc::Infixr));
+    }
+
+    #[test]
+    fn prefix_and_postfix_require_a_precedence() {
+        // 与 `infix` 族同一把尺子、同一个诊断。
+        let err = parse("prefix \" 𝒫 \" => Set.powerset\n").expect_err("missing N");
+        assert_eq!(err.code(), "notation-shape");
+        assert!(err.hint().contains("N 取 1–1000"), "hint: {}", err.hint());
+        let err = parse("postfix:0 \" ᶜ \" => Set.compl\n").expect_err("N out of range");
+        assert_eq!(err.code(), "notation-shape");
+    }
+
+    #[test]
+    fn declared_symbols_are_reserved_for_the_whole_file() {
+        // 声明驱动的词法（设计 §10.2）：`𝒫`/`ᶜ`/`''` 这些"不是数学符号类"的
+        // 符号在**本文件**里被读成 `Sym`——`Aᶜ` 必须在标识符内部断开。
+        let file = parse(
+            "prefix:100 \" 𝒫 \" => Set.powerset\n\
+             postfix:100 \" ᶜ \" => Set.compl\n\
+             infixr:80 \" '' \" => Set.image\n\
+             def p (α : Type) (A : Set α) : Set (Set α) := 𝒫 A\n\
+             def c (α : Type) (A : Set α) : Set α := Aᶜ\n\
+             def i (α β : Type) (f : α -> β) (A : Set α) : Set β := f '' A\n",
+        )
+        .expect("parse");
+        // 声明级 binder 会折成 `fun … => <体>`（`wrap_decl_binders`），
+        // 所以记号节点在 lambda 体里。
+        fn body(val: &Expr) -> &Expr {
+            match val {
+                Expr::Lambda { body, .. } => body,
+                other => other,
+            }
+        }
+        let val_of = |index: usize| -> Expr {
+            match &file.commands[index] {
+                Command::Def { val, .. } => val.clone(),
+                other => panic!("expected a def, got {other:?}"),
+            }
+        };
+        assert!(matches!(
+            body(&val_of(3)),
+            Expr::Notation {
+                assoc: NotationAssoc::Prefix,
+                rhs: Some(_),
+                lhs: None,
+                ..
+            }
+        ));
+        assert!(matches!(
+            body(&val_of(4)),
+            Expr::Notation {
+                assoc: NotationAssoc::Postfix,
+                lhs: Some(_),
+                rhs: None,
+                ..
+            }
+        ));
+        assert!(matches!(
+            body(&val_of(5)),
+            Expr::Notation {
+                assoc: NotationAssoc::Infixr,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn a_prefix_symbol_in_operator_position_is_a_teaching_error() {
+        let err = parse(
+            "prefix:100 \" 𝒫 \" => Set.powerset\n\
+             def bad (α : Type) (A B : Set α) : Set (Set α) := A 𝒫 B\n",
+        )
+        .expect_err("prefix symbol in operator position");
+        assert_eq!(err.code(), "unexpected-token");
+        assert!(err.message.contains("前缀"), "message: {}", err.message);
+    }
+
+    #[test]
+    fn abbrev_and_def_produce_the_same_command() {
+        // G-08：`abbrev` 是 `def` 的**同语义拼写**——同 AST、同后续流水线
+        // （设计 §2）。真 Lean 的 `abbrev` 行因此能原样编。
+        let src = "Set (α : Type) : Type := α -> Prop\n";
+        assert_eq!(
+            def_shape_of(&format!("def {src}")),
+            def_shape_of(&format!("abbrev {src}")),
+            "abbrev must elaborate to the very same Command::Def as def"
+        );
+        // 宇宙参数与声明级 binder 也逐字继承（共享 `parse_def`）。
+        let src = "f {u} (a : Sort u) : Sort u := a\n";
+        assert_eq!(
+            def_shape_of(&format!("def {src}")),
+            def_shape_of(&format!("abbrev {src}"))
+        );
+    }
+
+    #[test]
+    fn abbrev_is_a_reserved_command_not_an_identifier() {
+        // 与 `def`/`theorem` 同族：命令关键字在**表达式位**被拒（名字位与
+        // `def theorem …` 一样宽松——既有语义，一字不改）。
+        let err = parse("def f : Type := abbrev\n").expect_err("abbrev as an expression");
+        assert_eq!(err.code(), "unexpected-token");
+        // 反向对照：`abbrev` 真的是命令（同样两行把关键字换成 `def` 是合法文件）。
+        assert!(parse("def abbrev : Type := Prop\n").is_ok());
+        assert!(parse("abbrev abbrev : Type := Prop\n").is_ok());
+    }
+
+    #[test]
+    fn abbrev_inside_a_namespace_gets_the_prefix() {
+        // 命名空间前缀在 parser 里落定（G-05 N3），`abbrev` 走同一条路。
+        let file = parse("namespace A\nabbrev Set (α : Type) : Type := α -> Prop\nend A\n")
+            .expect("parse");
+        assert!(matches!(&file.commands[1], Command::Def { name, .. } if name == "A.Set"));
     }
 }

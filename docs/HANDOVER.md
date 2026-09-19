@@ -4,11 +4,7 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.59.0 已发布**（2026-09-19：两处版本号 bump、`Cargo.lock` 跟上、文档同轮同步；
-> push main → CI **7/7 全绿**（首次红在 LSP 项目性能哨兵，假红已修，见 `docs/CI-FAILURES.md`）
-> → auto-tag `v0.59.0` → `release` **11 job 全 success** → GitHub Release **26 资产**
-> + Marketplace **0.59.0** 已收录；发布产物实测见 `STATUS.md` 第一百〇六轮第 11 条；
-> 上一个已发布版本是 0.58.0）。最近一轮 **第一百〇六轮：0.59.0 收尾
+> 快照：**v0.60.0**（2026-09-19 第一百〇七轮：用户报「vscode 没有 build/rebuild 命令」⇒ 补齐，并把台账剩下的 G-05/G-07/G-08/L-03/L-06 与记法第二刀全部收口；台账 **24 条 = 22 fixed + 2 workaround、open 归零**；`scripts/soko gate` exit 0：`cargo test --workspace --locked` 1107 passed、课程门禁 36 目标 · 329 checked · 99 open · 0 判负、台账门禁全绿；版本 0.60.0 两处 + 课程 `requires = "0.60"`；上一个已发布版本是 0.59.0）。
 > （语言线五刀 + 课程门禁 + 站点页）**。**这一版装了什么（全部用户可见）**：
 > * **签名受检**（G-01 / WO-004）：值位是 `sorry` 时签名也过内核的类型/Prop 判定；
 >   坏签名 = 一条 diagnostic + 声明 `Failed` + **不发** `exercise.open`。判卷只认
@@ -417,6 +413,20 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   撤下 `repro`、改判 `fixed`）。结果：`gap.py check` **exit 0 全绿**，24 条里 17 条
   `fixed_in = 0.59.0`（含 WO-010 / G-15），未关账 6 条（L-04 `workaround` + L-03/G-05/G-07/G-08/L-06）。
   协议 `docs/gaps/README.md`，设计 `docs/design/teaching-project.md` §6。
+- **编辑器 `build` / `rebuild`（0.60.0 / 第一百〇七轮，用户直接报的缺口）**：CLI 的
+  `sokonanoda build [--clean] [<file>|<dir>]`（预热/清理共享编译缓存）在编辑器里有了入口——
+  `sokonanoda: build`（`alt+b`，编当前文件/工作区）与 `sokonanoda: rebuild`（`alt+shift+b`，
+  先 `--clean` 再重编）；JSON Lines 进 **sokonanoda build** 输出面板 + 一行摘要 + 刷新三棵树。
+  三层测试（静态契约 / stub 宿主 / 真 VS Code e2e 第 15 例），文档 README/CHANGELOG/AGENTS/skills
+  同轮；版本 feature bump 0.60.0。
+- **五个缺口收口（0.60.0 / 第一百〇七轮）**：**G-05** `namespace`/`open`（parser 加前缀 +
+  `compile/scope.rs` 解析顺序 + 三个专用 parse 码；课程 `lib/Set` 22 条声明去前缀、外部零改动）；
+  **G-07** 课程清单 v2（卷/章/先修/标签/配额 + 门禁 G6 清单自洽 + CLI/扩展/站点/v1 兼容）；
+  **G-08** `abbrev`（实测与 `def` 无可观察差异 ⇒ 同语义关键字）；**L-03** Type 层重写
+  （prelude B8：`Eq.rec` + `Eq.mp`/`Eq.mpr`，`Vec.cast` 实测 checked）；**L-06** 累积性边界
+  （内核性质不改；新错误码 `kernel-prop-not-cumulative` + 课程三条绕法）；**记法第二刀**
+  （`prefix`/`postfix` + `𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ` + **跨 `import` 传播** + 顺带修 4 个既有缺陷）。
+  台账 **24 条 = 22 fixed + 2 workaround（L-04/L-06）、`open` 归零**。
 - **诊断坐标自描述（WO-010 / G-15，0.59.0）**：`query check` 的 `failed[]`/`warnings[]`
   **新增** 1 基 `start_line`/`start_col`/`end_line`/`end_col`（**只加不删**：`start`/`end` 仍是
   字节 offset、坐标空间 = **入口文件**；schema 号、事件种类、双 GOLDEN 都不动）。台账原记的

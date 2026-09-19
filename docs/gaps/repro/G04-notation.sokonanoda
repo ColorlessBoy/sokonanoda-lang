@@ -13,7 +13,7 @@
 -- 后果：`Set.mem α a A` / `Set.subset α A B` 这种前缀写法要写满整本教材，
 -- 与纸笔数学（`a ∈ A`、`A ⊆ B`）的迁移成本极高。
 --
--- 本轮已修（G-04 第一刀，设计 `docs/design/notation-subset.md`）：
+-- 本轮已修（G-04 第一刀 + 第二刀，设计 `docs/design/notation-subset.md`）：
 -- `infix:N` / `infixl:N` / `infixr:N` / `notation` 四条命令进入教学语法子集，
 -- 文件内声明、声明之后可用；符号是**独立 token**，与点名形式并存。
 -- 下面第 21 行起是**修复后的期望形状**：这份文件必须判卷干净（退出码 0 +
@@ -21,8 +21,29 @@
 -- 记法**不产生任何事件**（不是声明）——所以这里只有 `mem` 与 `use` 两条
 -- `decl.checked`，`infix` 那一行静默。
 
+-- 第二刀（0.60.0）再加两样，下面一并复现：
+--   · `prefix:N` / `postfix:N` 两条**一元**命令（`𝒫` / `ᶜ`）；
+--   · **声明驱动的词法**：`𝒫`（数学斜体字母）、`ᶜ`（修饰字母）、`''`（撇号）
+--     本来都不是"数学符号类"的字符——声明过之后它们在本文件里读成符号。
+-- 记法命令依旧**零事件**：本文件的 `decl.checked` 只有下面这四条。
+
 def mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a
 
+axiom union : (α : Type) -> (α -> Prop) -> (α -> Prop) -> α -> Prop
+axiom compl : (α : Type) -> (α -> Prop) -> α -> Prop
+axiom powerset : (α : Type) -> (α -> Prop) -> (α -> Prop) -> Prop
+axiom image : (α : Type) -> (β : Type) -> (α -> β) -> (α -> Prop) -> β -> Prop
+
 infix:50 " ∈ " => mem
+infixl:65 " ∪ " => union
+prefix:100 " 𝒫 " => powerset
+postfix:100 " ᶜ " => compl
+infixr:80 " '' " => image
 
 def use (α : Type) (a : α) (A : α -> Prop) : Prop := a ∈ A
+
+def use_unary (α : Type) (a : α) (A : α -> Prop) : Prop :=
+  And (a ∈ Aᶜ) (powerset α A A)
+
+def use_image (α β : Type) (f : α -> β) (A : α -> Prop) (y : β) : Prop :=
+  And (y ∈ f '' A) (y ∈ f '' A)

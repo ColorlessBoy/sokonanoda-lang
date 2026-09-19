@@ -34,6 +34,22 @@ pub enum DiagnosticKind {
     NotationUnknownSymbol {
         symbol: String,
     },
+    /// `end` 的名字与最近的未闭合 `namespace` 不同名（或根本没有可闭合的
+    /// `namespace`）。G-05，设计 `docs/design/namespace-open.md` N1/N2。
+    NamespaceMismatch {
+        /// 写出来的 `end` 名字。
+        found: String,
+        /// 期望的名字（最近的未闭合 `namespace`）；没有时 `None`。
+        expected: Option<String>,
+    },
+    /// 文件结束仍有未闭合的 `namespace`（span 指回那条 `namespace`）。
+    NamespaceUnclosed {
+        name: String,
+    },
+    /// `namespace` / `end` / `open` 的形状不合法（缺名字、名字不是标识符）。
+    NamespaceShape {
+        detail: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -63,6 +79,9 @@ impl Diagnostic {
             DiagnosticKind::UnterminatedString => "unterminated-string",
             DiagnosticKind::NotationShape { .. } => "notation-shape",
             DiagnosticKind::NotationUnknownSymbol { .. } => "notation-unknown-symbol",
+            DiagnosticKind::NamespaceMismatch { .. } => "parse-namespace-mismatch",
+            DiagnosticKind::NamespaceUnclosed { .. } => "parse-namespace-unclosed",
+            DiagnosticKind::NamespaceShape { .. } => "parse-namespace-shape",
         }
     }
 
@@ -95,6 +114,15 @@ impl Diagnostic {
             }
             DiagnosticKind::NotationUnknownSymbol { .. } => {
                 "这个符号还没有在本文件里声明过。先在它前面写一行记法命令（例如 infix:50 \" ∈ \" => Set.mem），或者改用点名写法（Set.mem α a A）。"
+            }
+            DiagnosticKind::NamespaceMismatch { .. } => {
+                "`end` 的名字要与最近的 `namespace` 一模一样（`namespace Foo` 用 `end Foo` 收）。检查是不是写错了名字，或者中间少了/多了 `end`。"
+            }
+            DiagnosticKind::NamespaceUnclosed { .. } => {
+                "这个 `namespace` 一直没有闭合。在文件末尾（或块结束处）补一行 `end <名字>`，名字与 `namespace` 那行相同。"
+            }
+            DiagnosticKind::NamespaceShape { .. } => {
+                "三条命令的形状是：namespace Foo（开块）、end Foo（收块，名字必须写出）、open Foo（短名可用）。名字可以是点分的（A.B）。"
             }
         }
     }

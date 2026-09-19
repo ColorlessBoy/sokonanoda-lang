@@ -9,6 +9,7 @@
 use super::elab::{
     build_axiom, build_def, install_inductive_block, ElabCtx, InductiveTable, KnownName, KnownTable,
 };
+use super::scope::NamespaceScope;
 use crate::{Binder, BinderKind, Command, CtorDecl, Expr, SortKind, Span};
 use sokonanoda::builder::EnvBuilder;
 use sokonanoda::env::{Declar, DeclarInfo, ReducibilityHint};
@@ -75,6 +76,9 @@ pub fn explicit_prelude_mode(src: &str) -> Option<PreludeMode> {
 /// L1 (`docs/design/prelude-l1-proposal.md` §3.3) added 30 names: the 28
 /// declarations of [`PRELUDE_L1_SRC`] plus the two derived recursors
 /// (`And.rec`/`Or.rec`, which `install_inductive_block` generates).
+///
+/// B8（L-03，2026-09-19）再加 3 条：`Eq.rec` 与由它定义的 `Eq.mp`/`Eq.mpr`
+/// （Type 层重写；设计 `docs/design/eq-type-level-rewriting.md`）。
 pub const PRELUDE_NAMES: &[&str] = &[
     "Nat",
     "Nat.zero",
@@ -124,6 +128,10 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "Eq.symm",
     "Eq.trans",
     "congrArg",
+    // ---- L1: Eq 大消去 / Type 层重写 (B8) ----
+    "Eq.rec",
+    "Eq.mp",
+    "Eq.mpr",
 ];
 
 /// Full 模式下**永不**让位的 prelude 名字（`Nat`/`Bool` 家族）。
@@ -159,12 +167,20 @@ axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -
 /// 与课程库 `courses/set-theory/lib/Logic.sokonanoda` 的差异只有两处（附录 A）：
 /// **`And` 由 axiom 族改成真归纳块**、**`Or` 的构造子由裸名 `inl`/`inr`
 /// 改成 `Or.inl`/`Or.inr`**。文件顺序必须满足依赖：
-/// B1/B2 → B3 → B4 → B5 → B6 → B7（`And.elim` 在 `And.left/right` 之后、
-/// `Iff` 在 `And` 之后）。
+/// B1/B2 → B3 → B4 → B5 → B6 → B7 → B8（`And.elim` 在 `And.left/right` 之后、
+/// `Iff` 在 `And` 之后、`Eq.mp`/`Eq.mpr` 在 `Eq.rec` 之后）。
 ///
 /// 三条硬约束下的定形（设计 §1.2）：`{u}` 是唯一宇宙 binder（G-14）；
 /// `axiom` 一律柯里化（G-13）；构造子写点号名（G-02 的可行解）；
 /// 隐式实参不自动插入，所以签名显式给全参数。
+///
+/// **B8（`Eq.rec`/`Eq.mp`/`Eq.mpr`，L-03，2026-09-19）**：Eq prelude 的 `Eq` 是
+/// **公理**（不是归纳块），所以内核不会为它派生消去子（`Eq.rec` 实测
+/// `elab-unknown-constant`）；而本语言的 `inductive` 头部今天不吃宇宙 binder，
+/// 没法把 `Eq` 立成宇宙多态的归纳块。因此 B8 走**公理**：`axiom Eq.rec {u, v}`
+/// 的签名与 Lean core 的 `Eq.rec.{u, v}` 逐字同形（`docs/design/eq-type-level-rewriting.md`
+/// §3 有实测与取舍）。`Eq.mp`/`Eq.mpr` 由它定义，是 **Type 0 实例**——源码层级
+/// 语法没有 `u+1`（实测 parse 错），宇宙多态的 `Eq.mp` 写不出来（同设计 §4）。
 pub(crate) const PRELUDE_L1_SRC: &str = "\
 axiom True : Prop
 axiom True.intro : True
@@ -196,6 +212,9 @@ def Iff.trans (A B C : Prop) (h1 : Iff A B) (h2 : Iff B C) : Iff A C := Iff.intr
 def Eq.symm {u} (α : Sort u) (a b : α) (h : Eq.{u} α a b) : Eq.{u} α b a := Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)
 def Eq.trans {u} (α : Sort u) (a b c : α) (h1 : Eq.{u} α a b) (h2 : Eq.{u} α b c) : Eq.{u} α a c := Eq.subst.{u} α (fun (x : α) => Eq.{u} α a x) b c h2 h1
 def congrArg {u} (α : Sort u) (β : Sort u) (f : α -> β) (a b : α) (h : Eq.{u} α a b) : Eq.{u} β (f a) (f b) := Eq.subst.{u} α (fun (x : α) => Eq.{u} β (f a) (f x)) a b h (Eq.refl.{u} β (f a))
+axiom Eq.rec {u, v} : {α : Sort u} -> (a : α) -> (motive : (anon : α) -> Sort v) -> (ha : motive a) -> (b : α) -> (h : @Eq.{u} α a b) -> motive b
+def Eq.mp (α β : Type) (h : @Eq.{2} Type α β) : α -> β := @Eq.rec.{2, 1} Type α (fun (x : Type) => α -> x) (fun (a : α) => a) β h
+def Eq.mpr (α β : Type) (h : @Eq.{2} Type α β) : β -> α := @Eq.rec.{2, 1} Type α (fun (x : Type) => x -> α) (fun (a : α) => a) β h
 ";
 
 /// 让位的粒度 = **族**，族之间按依赖做闭包让位（设计 §2.2）。
@@ -215,9 +234,10 @@ pub(crate) struct PreludeFamily {
     pub deps: &'static [&'static str],
 }
 
-/// L1 的族表（设计 §2.2 的 B1–B7）。`B7` 依赖 **Eq prelude**：`Eq` 被占用时
-/// `install_eq_prelude` 整体不装，`Eq.symm`/`Eq.trans`/`congrArg` 的定义体
-/// 引用的 `Eq.subst` 就不存在，所以它们必须一起让位。
+/// L1 的族表（设计 §2.2 的 B1–B7 + L-03 的 B8）。`B7`/`B8` 依赖 **Eq prelude**：
+/// `Eq` 被占用时 `install_eq_prelude` 整体不装，`Eq.symm`/`Eq.trans`/`congrArg`
+/// 与 `Eq.rec`/`Eq.mp`/`Eq.mpr` 的定义体引用的 `Eq.subst`/`Eq` 就不存在，
+/// 所以它们必须一起让位。
 pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
     PreludeFamily {
         name: "B1",
@@ -269,9 +289,14 @@ pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
         names: &["Eq.symm", "Eq.trans", "congrArg"],
         deps: &["EQ"],
     },
+    PreludeFamily {
+        name: "B8",
+        names: &["Eq.rec", "Eq.mp", "Eq.mpr"],
+        deps: &["EQ"],
+    },
 ];
 
-/// 一个族名（`B1`…`B7`）是否必须让位：它自己或它的依赖被 `taken` 命中。
+/// 一个族名（`B1`…`B8`）是否必须让位：它自己或它的依赖被 `taken` 命中。
 fn family_yields(family: &PreludeFamily, taken: &HashSet<String>) -> bool {
     family.names.iter().any(|name| taken.contains(*name))
         || family.deps.iter().any(|dep| {
@@ -380,11 +405,14 @@ fn install_l1_command<'a>(
 ) {
     // `prefix_src` 为空：L1 的签名不依赖文件前缀（它们是闭包无关的骨架），
     // 且安装期间的 kernel 探针只需内建的 `Prop`（`L1_INSTALL_DEPTH` 挡掉
-    // 内层重入，所以内层环境里没有 L1 名字也不影响）。
+    // 内层重入，所以内层环境里没有 L1 名字也不影响）。G-05：prelude 永远在
+    // 根命名空间、没有 `open`，作用域是空的那一份。
+    let ns = NamespaceScope::new();
     let ctx = ElabCtx {
         prefix_src: "",
         options,
         inductives,
+        ns: &ns,
     };
     let mut hovers = Vec::new();
     match command {
@@ -438,6 +466,7 @@ fn install_l1_command<'a>(
                 inductives,
                 "",
                 options,
+                &ns,
                 name,
                 params,
                 ty,
@@ -469,10 +498,12 @@ pub(crate) fn install_eq_prelude(
     let file = crate::parse(PRELUDE_EQ_SRC).expect("Eq prelude source parses");
     let empty: InductiveTable<'_> = InductiveTable::new();
     let options = CompileOptions::default();
+    let ns = NamespaceScope::new();
     let ctx = ElabCtx {
         prefix_src: "",
         options: &options,
         inductives: &empty,
+        ns: &ns,
     };
     for command in &file.commands {
         let Command::Axiom {
@@ -539,12 +570,15 @@ pub(crate) fn install_prelude<'a>(
     ];
     let mut hovers = Vec::new();
     let mut built = Vec::new();
+    // G-05：prelude 永远在根命名空间、没有 `open`。
+    let ns = NamespaceScope::new();
     install_inductive_block(
         builder,
         known,
         inductives,
         "",
         &CompileOptions::default(),
+        &ns,
         "Nat",
         &[],
         &nat_sort,
@@ -611,12 +645,15 @@ pub(crate) fn install_bool_prelude<'a>(
     ];
     let mut hovers = Vec::new();
     let mut built = Vec::new();
+    // G-05：prelude 永远在根命名空间、没有 `open`。
+    let ns = NamespaceScope::new();
     install_inductive_block(
         builder,
         known,
         inductives,
         "",
         &CompileOptions::default(),
+        &ns,
         "Bool",
         &[],
         &bool_sort,

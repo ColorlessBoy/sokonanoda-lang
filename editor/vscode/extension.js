@@ -764,6 +764,112 @@ function courseUnitItem(unit, manifestDir) {
   return item;
 }
 
+// Course map v2 (ledger G-07, docs/design/course-manifest-v2.md §4.3): a v2
+// manifest (`soko.course/2`) makes the CLI add `volume`/`chapter`/`tags` to
+// every `course.unit` event, and the tree then renders 卷 → 章 → 单元.
+//
+// The switch is **data-driven, not manifest-driven**: the client only ever
+// reads events (docs/design/course-status.md §0 — aggregation lives in the
+// CLI), so "does any event carry a volume?" *is* the CLI's verdict. A v1
+// manifest produces no such field and keeps the flat tree byte for byte.
+function courseHasVolumes(units) {
+  return units.some((unit) => unit && typeof unit.volume === "object" && unit.volume !== null);
+}
+
+function courseVolumeItem(volume, children) {
+  const item = new vscode.TreeItem(
+    `卷 ${volume.id ?? ""} ${volume.title ?? ""}`.trim(),
+    vscode.TreeItemCollapsibleState.Collapsed,
+  );
+  const chapters = new Set(
+    children.map((child) => child.__chapterId).filter((id) => id !== undefined),
+  );
+  item.description = `${chapters.size} 章 · ${children.length} 单元`;
+  item.iconPath = new vscode.ThemeIcon("book");
+  item.tooltip = `${volume.title ?? volume.id ?? "卷"} · ${chapters.size} 章 · ${children.length} 单元`;
+  item.children = children;
+  return item;
+}
+
+function courseChapterItem(chapter, children) {
+  const item = new vscode.TreeItem(
+    `${chapter.id ?? ""} ${chapter.title ?? ""}`.trim(),
+    vscode.TreeItemCollapsibleState.Collapsed,
+  );
+  const tags = Array.isArray(chapter.tags) ? chapter.tags.join(" · ") : "";
+  const prereqs = Array.isArray(chapter.prereqs) && chapter.prereqs.length
+    ? `先修 ${chapter.prereqs.join("、")}`
+    : "";
+  item.description = [tags, prereqs].filter(Boolean).join(" · ");
+  item.iconPath = new vscode.ThemeIcon("bookmark");
+  item.tooltip = item.description
+    ? `${chapter.title ?? chapter.id ?? "章"}（${item.description}）`
+    : `${chapter.title ?? chapter.id ?? "章"}`;
+  item.children = children;
+  return item;
+}
+
+// 有单元读不出来（`error`）时它仍要在树上有个位置：v2 分组下挂在一个兜底节点，
+// v1 平铺下照旧直接是根的子节点。
+function courseErrorItem(count) {
+  const item = new vscode.TreeItem(
+    `无法分组（${count}）`,
+    vscode.TreeItemCollapsibleState.Collapsed,
+  );
+  item.description = "清单/单元读不出来";
+  item.iconPath = new vscode.ThemeIcon("warning");
+  item.children = [];
+  return item;
+}
+
+// 卷 → 章 → 单元：按事件的**文档序**分组（CLI 按清单顺序发事件）。
+function courseVolumeGroups(units, manifestDir) {
+  const volumes = [];
+  const byVolume = new Map();
+  const ungrouped = [];
+  for (const unit of units) {
+    if (!unit || typeof unit.volume !== "object" || unit.volume === null) {
+      ungrouped.push(unit);
+      continue;
+    }
+    const volumeId = String(unit.volume.id ?? "");
+    if (!byVolume.has(volumeId)) {
+      const volume = { ref: unit.volume, chapters: [], byChapter: new Map() };
+      byVolume.set(volumeId, volume);
+      volumes.push(volume);
+    }
+    const volume = byVolume.get(volumeId);
+    const chapter = unit.chapter && typeof unit.chapter === "object" ? unit.chapter : null;
+    const chapterId = chapter ? String(chapter.id ?? "") : "";
+    if (!volume.byChapter.has(chapterId)) {
+      const entry = { ref: chapter, units: [] };
+      volume.byChapter.set(chapterId, entry);
+      volume.chapters.push(entry);
+    }
+    volume.byChapter.get(chapterId).units.push(unit);
+  }
+
+  const roots = volumes.map((volume) =>
+    courseVolumeItem(
+      volume.ref,
+      volume.chapters.map((entry) => {
+        const chapter = courseChapterItem(
+          entry.ref ?? {},
+          entry.units.map((unit) => courseUnitItem(unit, manifestDir)),
+        );
+        chapter.__chapterId = entry.ref ? String(entry.ref.id ?? "") : "";
+        return chapter;
+      }),
+    ),
+  );
+  if (ungrouped.length) {
+    const fallback = courseErrorItem(ungrouped.length);
+    fallback.children = ungrouped.map((unit) => courseUnitItem(unit, manifestDir));
+    roots.push(fallback);
+  }
+  return roots;
+}
+
 function parseCourseEvents(stdout) {
   const units = [];
   for (const line of stdout.split(/\r?\n/)) {
@@ -859,7 +965,10 @@ class CourseTreeDataProvider {
     if (!manifest) return this.units; // no course manifest -> empty tree
     const units = await runCourseCommand(resolveCliCommand(), manifest);
     this.manifestDir = path.dirname(manifest);
-    this.units = units.map((unit) => courseUnitItem(unit, this.manifestDir));
+    // v2 (any event carries a volume) ⇒ 卷 → 章 → 单元；v1 ⇒ 平铺（不许回归）。
+    this.units = courseHasVolumes(units)
+      ? courseVolumeGroups(units, this.manifestDir)
+      : units.map((unit) => courseUnitItem(unit, this.manifestDir));
     return this.units;
   }
 }
@@ -1342,6 +1451,159 @@ async function restartServer(context) {
   await runDoctor(context, { notify: true, show: false });
 }
 
+// ── build / rebuild（编译缓存预热；docs/design/compile-cache.md）─────────────
+// `sokonanoda build [--clean] [<file>|<dir> ...]` 预热**共享的持久编译缓存**，
+// 让随后的 check/course/LSP 都是命中（crates/cli/src/build.rs，事件契约见
+// docs/protocol.md 的 build.file / build.clean / build.summary）。
+// 为什么值得做成命令：① 第一次按键慢、② 在编辑器外改了依赖文件后面板像是
+// "没反应"，这两件事的答案都是"把项目 build 一遍"；而 CLI 一直有这个子命令，
+// 只是扩展没把它接出来（用户报的就是这个缺口）。`rebuild` = `build --clean`
+// （清缓存）+ `build`（重新预热），也就是"从头重编译一遍"。
+// 作用域：有活动 .sokonanoda 文件就编它（CLI 会顺着 import 编整个闭包），
+// 否则编第一个工作区文件夹（CLI 递归遍历目录）。
+const BUILD_TIMEOUT_MS = 300000;
+let buildChannel;
+
+function buildOutput(context) {
+  if (!buildChannel) {
+    buildChannel = vscode.window.createOutputChannel("sokonanoda build");
+    context?.subscriptions?.push(buildChannel);
+  }
+  return buildChannel;
+}
+
+/// build 的目标路径：活动 .sokonanoda 文件 → 第一个工作区文件夹 → undefined。
+function buildTarget() {
+  const editor = vscode.window.activeTextEditor;
+  if (
+    editor &&
+    editor.document.languageId === "sokonanoda" &&
+    editor.document.uri.scheme === "file"
+  ) {
+    return editor.document.uri.fsPath;
+  }
+  const folder = (vscode.workspace.workspaceFolders ?? [])[0];
+  return folder?.uri?.fsPath;
+}
+
+/// 子进程纪律与课程树同款：stdout 是 JSON Lines、stderr 进输出面板、
+/// 有界运行（超时就 kill），**永不阻塞**（build 失败不是异常路径）。
+function runBuildProcess(command, args, channel) {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let child;
+    try {
+      child = cp.spawn(command, args);
+    } catch (error) {
+      resolve({ code: -1, stdout: "", error: String(error?.message ?? error) });
+      return;
+    }
+    const timer = setTimeout(() => {
+      channel?.appendLine(`[timeout] ${command} ${args.join(" ")} (> ${BUILD_TIMEOUT_MS}ms)`);
+      child.kill();
+      resolve({ code: -1, stdout, error: `timeout after ${BUILD_TIMEOUT_MS}ms` });
+    }, BUILD_TIMEOUT_MS);
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+      for (const line of chunk.split("\n")) {
+        if (line.trim()) channel?.appendLine(line.trimEnd());
+      }
+    });
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk) => channel?.appendLine(String(chunk).trimEnd()));
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolve({ code: -1, stdout, error: String(error?.message ?? error) });
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      resolve({ code: code ?? -1, stdout });
+    });
+  });
+}
+
+/// 只认 JSON Lines：非 JSON 行是噪声，不是 build 结果。
+function parseBuildEvents(stdout) {
+  const events = [];
+  for (const line of String(stdout).split("\n")) {
+    const text = line.trim();
+    if (!text.startsWith("{")) continue;
+    try {
+      events.push(JSON.parse(text));
+    } catch {
+      // 非 JSON 行：忽略（CLI 的诊断走 stderr）
+    }
+  }
+  return events;
+}
+
+/// 跑一次 build/rebuild；返回给用户/测试看的摘要文本（跑不起来时 undefined）。
+/// 会刷新三个视图：build 改变了缓存状态，"面板像是没反应"正是它要回答的问题。
+async function runBuild(context, { clean = false, courseProvider } = {}) {
+  const channel = buildOutput(context);
+  channel.show(true);
+  const target = buildTarget();
+  if (!target) {
+    vscode.window.showWarningMessage(
+      "sokonanoda: 先打开一个 .sokonanoda 文件或一个工作区文件夹，再 build。",
+    );
+    return undefined;
+  }
+  let command;
+  try {
+    command = resolveCliCommand();
+  } catch {
+    command = undefined;
+  }
+  if (!command) {
+    vscode.window.showErrorMessage(
+      "sokonanoda: 找不到 CLI（build 需要它；VSIX 自带，其他情况见 sokonanoda doctor）。",
+    );
+    return undefined;
+  }
+
+  const started = Date.now();
+  channel.appendLine(`> ${command} build ${clean ? "--clean " : ""}${target}`);
+  let removed;
+  if (clean) {
+    const cleaned = await runBuildProcess(command, ["build", "--json", "--clean"], channel);
+    for (const event of parseBuildEvents(cleaned.stdout)) {
+      if (event.type === "build.clean") removed = event.removed ?? 0;
+    }
+    if (cleaned.error) channel.appendLine(`[error] clean: ${cleaned.error}`);
+  }
+  const result = await runBuildProcess(command, ["build", "--json", target], channel);
+  if (result.error) {
+    const text = `sokonanoda: build 失败 — ${result.error}`;
+    channel.appendLine(text);
+    vscode.window.showErrorMessage(text);
+    return undefined;
+  }
+  const summary = parseBuildEvents(result.stdout).find((event) => event.type === "build.summary");
+  const elapsed = Date.now() - started;
+  const counts = summary
+    ? `${summary.files} 个文件 · 编译 ${summary.compiled} · 命中 ${summary.hit} · 失败 ${summary.failed}`
+    : "完成";
+  const text =
+    `sokonanoda ${clean ? "rebuild" : "build"}：${counts}` +
+    `${clean && removed !== undefined ? ` · 清掉 ${removed} 条缓存` : ""}（${elapsed}ms）`;
+  channel.appendLine(text);
+  const notify = summary && summary.failed > 0
+    ? vscode.window.showWarningMessage
+    : vscode.window.showInformationMessage;
+  notify.call(vscode.window, text, "显示输出").then((pick) => {
+    if (pick) channel.show(true);
+  });
+
+  // 缓存状态变了 ⇒ 让读 CLI/LSP 状态的视图重算（目标树/练习树/课程树）。
+  goalProvider?.refresh?.();
+  projectProvider?.refresh?.();
+  loadProject();
+  courseProvider?.refresh?.();
+  return text;
+}
+
 function registerCommands(context, provider, courseProvider) {
   const showStatus = async () => {
     const editor = vscode.window.activeTextEditor;
@@ -1405,6 +1667,12 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand(
       "sokonanoda.doctor",
       () => runDoctor(context, { notify: true, show: true }),
+    ),
+    vscode.commands.registerCommand("sokonanoda.build", () =>
+      runBuild(context, { courseProvider }),
+    ),
+    vscode.commands.registerCommand("sokonanoda.rebuild", () =>
+      runBuild(context, { clean: true, courseProvider }),
     ),
   );
 }

@@ -6,7 +6,7 @@
 
 use crate::compile::CompileOptions;
 use crate::judge::{judge_terms, GoalBinderSpec, Judgement, OpenGoalSpec};
-use crate::{parse, Binder, BinderKind, Command, Expr, SortKind, Span, Tactic};
+use crate::{Binder, BinderKind, Command, Expr, SortKind, Span, Tactic};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ProofError {
@@ -43,7 +43,19 @@ impl std::fmt::Display for ProofError {
 }
 
 pub fn parse_expr_text(text: &str) -> Result<Expr, ProofError> {
-    let file = parse(&format!("#check {text}")).map_err(|e| ProofError::Parse(e.message))?;
+    parse_expr_text_with(text, &[])
+}
+
+/// 带**继承记法表**的表达式文本回读（G-04 第二刀）：判卷通道（`judge.rs`）
+/// 的 `by` 块目标 / 项文本是 `render_expr` 打回来的**源码级文本**，可能含
+/// 记法（`a ∈ A`、`Aᶜ`）。前缀源码里已经声明过的记法必须一起喂进来，否则
+/// 重解析会把符号读成未声明符号（第一刀就有的边界，第二刀顺手修掉）。
+pub fn parse_expr_text_with(
+    text: &str,
+    inherited: &[crate::ast::NotationDecl],
+) -> Result<Expr, ProofError> {
+    let file = crate::parser::parse_with_inherited(&format!("#check {text}"), inherited)
+        .map_err(|e| ProofError::Parse(e.message))?;
     match file.commands.into_iter().next() {
         Some(Command::Check { expr, .. }) => Ok(expr),
         _ => Err(ProofError::Parse("could not parse expression".to_string())),
@@ -301,13 +313,23 @@ pub fn render_expr(expr: &Expr) -> String {
                 rendered.join(" ")
             )
         }
-        // 记号节点（G-04 / WO-011）：打回**记法**写法（`lhs ∈ rhs`）。这是
-        // 源级打印，与冻结内核的 pp 无关——goal/hover 里的类型文本仍由内核
-        // 产出点名形式（设计 N7）。
+        // 记号节点（G-04 / WO-011）：打回**记法**写法（`lhs ∈ rhs`、`𝒫 A`、
+        // `Aᶜ`）。这是源级打印，与冻结内核的 pp 无关——goal/hover 里的类型文本
+        // 仍由内核产出点名形式（设计 N7）。
         Expr::Notation {
-            symbol, lhs, rhs, ..
-        } => match (lhs, rhs) {
-            (Some(lhs), Some(rhs)) => {
+            symbol,
+            assoc,
+            lhs,
+            rhs,
+            ..
+        } => match (assoc, lhs, rhs) {
+            (crate::ast::NotationAssoc::Prefix, _, Some(operand)) => {
+                format!("{symbol} {}", render_atom(operand))
+            }
+            (crate::ast::NotationAssoc::Postfix, Some(operand), _) => {
+                format!("{} {symbol}", render_atom(operand))
+            }
+            (_, Some(lhs), Some(rhs)) => {
                 format!("{} {symbol} {}", render_atom(lhs), render_atom(rhs))
             }
             _ => symbol.clone(),
@@ -363,7 +385,12 @@ fn render_fun_position(expr: &Expr) -> String {
     }
 }
 
-fn render_atom(expr: &Expr) -> String {
+/// 原子位的渲染：**复合式必须补括号**。
+///
+/// `pub(crate)`：`by.rs` 的 `rfl` 候选文本也用它（`Eq.refl.{u} α a` 里的 `a`
+/// 是原子位）——两份括号规则必须同源，否则 `Eq.refl.{1} (Set α) (Aᶜ) ∪ B`
+/// 会被读成 `(Eq.refl.{1} (Set α) Aᶜ) ∪ B`（第二刀实测踩过）。
+pub(crate) fn render_atom(expr: &Expr) -> String {
     let s = render_expr(expr);
     match expr {
         Expr::App { .. }
@@ -447,6 +474,7 @@ pub fn render_lambda_for_example(
 mod tests {
     use super::*;
     use crate::compile::compile_fol;
+    use crate::parse;
 
     #[test]
     fn intro_builds_lambda_text() {

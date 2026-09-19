@@ -385,6 +385,184 @@ fn a_real_course_unit_grades_identically_in_notation() {
     assert_eq!(diagnostics, 0, "{notation_events:?}");
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// 第二刀（0.60.0）：`prefix`/`postfix` + 声明驱动的词法 + 跨 `import` 传播。
+// ─────────────────────────────────────────────────────────────────────────
+
+/// 第二刀的五符号靶子：两个一元 + 三个中缀（其中 `''`/`⁻¹'`/`×ˢ` 的符号
+/// 在词法层是**标识符字符**，只有声明驱动的词法能读出来）。
+const SECOND_CUT_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop
+axiom Set.union : (α : Type) -> Set α -> Set α -> Set α
+axiom Set.compl : (α : Type) -> Set α -> Set α
+axiom Set.powerset : (α : Type) -> Set α -> Set (Set α)
+axiom Set.image : (α : Type) -> (β : Type) -> (α -> β) -> Set α -> Set β
+axiom Set.preimage : (α : Type) -> (β : Type) -> (α -> β) -> Set β -> Set α
+axiom Set.prod : (α : Type) -> (β : Type) -> Set α -> Set β -> Set (α -> β -> Prop)
+prefix:100 \" 𝒫 \" => Set.powerset
+postfix:100 \" ᶜ \" => Set.compl
+infixr:80 \" '' \" => Set.image
+infixr:80 \" ⁻¹' \" => Set.preimage
+infixr:80 \" ×ˢ \" => Set.prod
+";
+
+#[test]
+fn the_five_second_cut_symbols_grade_clean_in_both_spellings() {
+    let pointful = format!(
+        "{SECOND_CUT_LIB}\
+         def p (α : Type) (A : Set α) : Set (Set α) := Set.powerset α A\n\
+         def c (α : Type) (A : Set α) : Set α := Set.compl α A\n\
+         def i (α β : Type) (f : α -> β) (A : Set α) : Set β := Set.image α β f A\n\
+         def r (α β : Type) (f : α -> β) (B : Set β) : Set α := Set.preimage α β f B\n\
+         def x (α β : Type) (A : Set α) (B : Set β) : Set (α -> β -> Prop) :=\n\
+             Set.prod α β A B\n"
+    );
+    let notation = format!(
+        "{SECOND_CUT_LIB}\
+         def p (α : Type) (A : Set α) : Set (Set α) := 𝒫 A\n\
+         def c (α : Type) (A : Set α) : Set α := Aᶜ\n\
+         def i (α β : Type) (f : α -> β) (A : Set α) : Set β := f '' A\n\
+         def r (α β : Type) (f : α -> β) (B : Set β) : Set α := f ⁻¹' B\n\
+         def x (α β : Type) (A : Set α) (B : Set β) : Set (α -> β -> Prop) := A ×ˢ B\n"
+    );
+    let pointful_path = temp_file("second-pointful", &pointful);
+    let notation_path = temp_file("second-notation", &notation);
+    let (pointful_code, pointful_events) = grade_json(&pointful_path);
+    let (notation_code, notation_events) = grade_json(&notation_path);
+    assert_eq!(
+        pointful_code, 0,
+        "the pointful canvas must grade clean: {pointful_events:?}"
+    );
+    assert_eq!(
+        notation_code, 0,
+        "the five second-cut symbols must grade clean: {notation_events:?}"
+    );
+    assert_eq!(
+        counts(&pointful_events),
+        counts(&notation_events),
+        "the five symbols must produce identical five-way counts"
+    );
+    let (checked, _, _, _, diagnostics) = counts(&notation_events);
+    assert_eq!(checked, 12, "seven axioms + five defs: {notation_events:?}");
+    assert_eq!(diagnostics, 0, "{notation_events:?}");
+}
+
+#[test]
+fn a_library_notation_works_in_the_entry_through_import() {
+    // 第二刀的必做项：**跨 `import` 的记法**——被导入模块声明的记法在入口文件
+    // 里直接可用（"课程库定义记法、单元直接写 `𝒫 A`"的前提）。入口**不重声明**
+    // 任何记法，而且入口的单独 parse 一定失败（未声明符号）——分发与闭包加载
+    // 必须把这条救回来。
+    let dir = stage_course_unit(
+        "cross-import",
+        "import lib.Set\n\
+         \n\
+         def p (α : Type) (A : Set α) : Set (Set α) := 𝒫 A\n\
+         def c (α : Type) (A : Set α) : Set α := Aᶜ\n\
+         theorem t (α : Type) (A : Set α) :\n\
+             Eq.{1} (Set α) (Aᶜ) (Set.compl α A) := by rfl\n",
+    );
+    let entry = dir.join("units/unit.sokonanoda");
+    let (code, events) = grade_json(&entry);
+    assert_eq!(
+        code, 0,
+        "the entry must use the library notation: {events:?}"
+    );
+    let (checked, open, _, _, diagnostics) = counts(&events);
+    assert_eq!(checked, 3, "three declarations check: {events:?}");
+    assert_eq!(open, 0, "{events:?}");
+    assert_eq!(diagnostics, 0, "{events:?}");
+    // 反向对照 ①：符号**声明了**、但它的**目标**没 import ⇒ 报的是
+    // `elab-notation-unknown-target`（`''` 的目标 `Set.image` 在 lib/Image 里，
+    // 这个单元只 import 了 lib.Set）。报错点名缺的名字，正是要教的东西。
+    let dir = stage_course_unit(
+        "cross-import-target-missing",
+        "import lib.Set\n\naxiom f : Set Nat -> Set Nat\ndef bad : Set Nat := f '' Set.univ\n",
+    );
+    let (code, events) = grade_json(&dir.join("units/unit.sokonanoda"));
+    assert_eq!(code, 1, "an unimported target must not resolve: {events:?}");
+    let codes: Vec<&str> = events
+        .iter()
+        .filter(|e| e["type"] == "diagnostic")
+        .filter_map(|e| e["code"].as_str())
+        .collect();
+    assert!(
+        codes.contains(&"elab-notation-unknown-target"),
+        "the missing target must be named: {codes:?}"
+    );
+
+    // 反向对照 ②：符号来自一个**没被 import** 的模块 ⇒ 未声明符号（传播是
+    // 按 import 边的，不是"闭包里全局"）。
+    let dir = stage_course_unit(
+        "cross-import-undeclared",
+        "import lib.Set\n\ndef bad (α : Type) (A : Set α) : Set α := A ⋆ A\n",
+    );
+    std::fs::write(
+        dir.join("lib/Extra.sokonanoda"),
+        "axiom Extra.star : (α : Type) -> α -> α -> α\ninfix:50 \" ⋆ \" => Extra.star\n",
+    )
+    .expect("write extra library");
+    let (code, events) = grade_json(&dir.join("units/unit.sokonanoda"));
+    assert_eq!(
+        code, 1,
+        "an unimported notation must not resolve: {events:?}"
+    );
+    // 诊断的**消息**逐字保留（`notation-unknown-symbol` 的原话）；code/stage 是
+    // 闭包路径的 `import-module-invalid`——入口单独 parse 失败、闭包也没救回来
+    // 时走的就是这条路（设计 §11 的已知差异）。
+    let messages: Vec<&str> = events
+        .iter()
+        .filter(|e| e["type"] == "diagnostic")
+        .filter_map(|e| e["message"].as_str())
+        .collect();
+    assert!(
+        messages
+            .iter()
+            .any(|m| m.contains("还没有声明过记法") && m.contains("⋆")),
+        "the symbol must be reported as undeclared: {messages:?}"
+    );
+}
+
+#[test]
+fn the_shipped_course_library_declares_the_five_symbols() {
+    // 课程侧的守护：五个符号是**课程库的记法**（不是 prelude），定义在
+    // `courses/set-theory/lib/Set.sokonanoda`，目标名逐字点名。
+    let lib = std::fs::read_to_string(repo_root().join("courses/set-theory/lib/Set.sokonanoda"))
+        .expect("read course library");
+    for (keyword, symbol, target) in [
+        ("prefix:100", "𝒫", "Set.powerset"),
+        ("postfix:100", "ᶜ", "Set.compl"),
+        ("infixr:80", "''", "Set.image"),
+        ("infixr:80", "⁻¹'", "Set.preimage"),
+        ("infixr:80", "×ˢ", "Set.prod"),
+    ] {
+        let line = format!("{keyword} \" {symbol} \" => {target}");
+        assert!(
+            lib.contains(&line),
+            "the course library must declare `{line}`"
+        );
+    }
+}
+
+#[test]
+fn the_shipped_course_uses_the_library_notation_in_a_demo() {
+    // 课程侧的用法守护：单元③ 用 `𝒫`、单元⑧ 用 `''` 各写了一条**演示**
+    // （不是练习——练习的题意与数量一字未动，`open` 计数由课程门禁钉住）。
+    let unit3 = std::fs::read_to_string(
+        repo_root().join("courses/set-theory/units/unit03-union-inter-powerset.sokonanoda"),
+    )
+    .expect("read unit 3");
+    assert!(
+        unit3.contains("𝒫 "),
+        "unit 3 must demo the powerset notation"
+    );
+    let unit8 = std::fs::read_to_string(
+        repo_root().join("courses/set-theory/units/unit08-images-preimages.sokonanoda"),
+    )
+    .expect("read unit 8");
+    assert!(unit8.contains("'' "), "unit 8 must demo the image notation");
+}
+
 #[test]
 fn the_shipped_course_still_uses_the_pointful_spelling() {
     // WO-011 的**课程零改动**契约：记法只是糖，本轮课程画布不重写（"记法版课程"

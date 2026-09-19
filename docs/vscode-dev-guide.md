@@ -247,7 +247,12 @@ git tag v0.X.Y && git push origin v0.X.Y
 ### 同步触发器（命中任一 = 同一 commit 里改门面）
 
 1. **安装/获取方式变化**：server 下载策略、发现顺序、缓存路径、新增设置项；
-2. **功能集变化**：新命令/键位/树/视图（对照 `package.json` contributes）；
+2. **功能集变化**：新命令/键位/树/视图（对照 `package.json` contributes）。
+   0.60.0 的例子（`sokonanoda.build`/`rebuild`，把 CLI 的编译缓存预热接进编辑器）：
+   `contributes.commands` + `keybindings` + `menus.view/title`、`extension.js` 注册与
+   实现（子进程超时 kill、JSON Lines 事件、跑完刷新三个视图）、
+   `crates/cli/tests/extension.rs::build_and_rebuild_commands_warm_the_compile_cache`、
+   真宿主冒烟一例、README/CHANGELOG；
 3. **反馈行为变化**：诊断分级、hover 内容、inlay（用户能在编辑器里"感觉到"的）；
 4. **agent 集成变化**：skills 增删、opencode 接线、CLI 事件面；
 5. **任何用户可见改动**：同步 `editor/vscode/`（README/CHANGELOG/package.json）**与**

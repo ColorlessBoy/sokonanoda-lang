@@ -1,74 +1,121 @@
-[
-  {
-    "file": "units/unit01-sets-membership.sokonanoda",
-    "title": "单元① 集合与隶属",
-    "title_en": "Unit 1 — Sets & Membership",
-    "unit": 1
-  },
-  {
-    "file": "units/unit02-subsets-empty.sokonanoda",
-    "title": "单元② 子集、空集与包含三律",
-    "title_en": "Unit 2 — Subsets, the Empty Set, and the Three Laws of ⊆",
-    "unit": 2
-  },
-  {
-    "file": "units/unit03-union-inter-powerset.sokonanoda",
-    "title": "单元③ 并、交、差与幂集",
-    "title_en": "Unit 3 — Union, Intersection, Difference & Powerset",
-    "unit": 3
-  },
-  {
-    "file": "units/unit04-extensionality-identities.sokonanoda",
-    "title": "单元④ 外延性与集合等式",
-    "title_en": "Unit 4 — Extensionality & Set Identities",
-    "unit": 4
-  },
-  {
-    "file": "units/unit05-pairs-products.sokonanoda",
-    "title": "单元⑤ 序对与笛卡尔积",
-    "title_en": "Unit 5 — Ordered Pairs & Cartesian Products",
-    "unit": 5
-  },
-  {
-    "file": "units/unit06-relations.sokonanoda",
-    "title": "单元⑥ 关系",
-    "title_en": "Unit 6 — Relations",
-    "unit": 6
-  },
-  {
-    "file": "units/unit07-functions.sokonanoda",
-    "title": "单元⑦ 函数",
-    "title_en": "Unit 7 — Functions",
-    "unit": 7
-  },
-  {
-    "file": "units/unit08-images-preimages.sokonanoda",
-    "title": "单元⑧ 像与原像",
-    "title_en": "Unit 8 — Images & Preimages",
-    "unit": 8
-  },
-  {
-    "file": "units/unit09-equinumerosity.sokonanoda",
-    "title": "单元⑨ 等势（基数 Ⅰ）",
-    "title_en": "Unit 9 — Equinumerosity (Cardinality I)",
-    "unit": 9
-  },
-  {
-    "file": "units/unit10-cantor.sokonanoda",
-    "title": "单元⑩ 可数与 Cantor 定理（基数 Ⅱ）",
-    "title_en": "Unit 10 — Countability & Cantor's Theorem (Cardinality II)",
-    "unit": 10
-  },
-  {
-    "file": "units/unit11-universe-russell.sokonanoda",
-    "title": "单元⑪ 论域与 Russell 悖论",
-    "title_en": "Unit 11 — Universes & Russell's Paradox",
-    "unit": 11
-  },
-  {
-    "file": "units/unit12-synthesis.sokonanoda",
-    "title": "单元⑫ 综合与读证明",
-    "title_en": "Unit 12 — Synthesis & Reading Proofs",
-    "unit": 12
-  }
-]
+{
+  "schema": "soko.course/2",
+  "name": "set-theory",
+  "title": "卷 I《集合论》",
+  "volumes": [
+    {
+      "id": "I",
+      "title": "卷 I 集合论",
+      "chapters": [
+        {
+          "id": "I.1",
+          "title": "集合、子集与集合运算",
+          "prereqs": [],
+          "tags": ["membership", "subset", "powerset"],
+          "quota": { "exercises": 35 },
+          "units": [
+            {
+              "file": "units/unit01-sets-membership.sokonanoda",
+              "title": "单元① 集合与隶属",
+              "title_en": "Unit 1 — Sets & Membership",
+              "unit": 1
+            },
+            {
+              "file": "units/unit02-subsets-empty.sokonanoda",
+              "title": "单元② 子集、空集与包含三律",
+              "title_en": "Unit 2 — Subsets, the Empty Set, and the Three Laws of ⊆",
+              "unit": 2
+            },
+            {
+              "file": "units/unit03-union-inter-powerset.sokonanoda",
+              "title": "单元③ 并、交、差与幂集",
+              "title_en": "Unit 3 — Union, Intersection, Difference & Powerset",
+              "unit": 3
+            },
+            {
+              "file": "units/unit04-extensionality-identities.sokonanoda",
+              "title": "单元④ 外延性与集合等式",
+              "title_en": "Unit 4 — Extensionality & Set Identities",
+              "unit": 4
+            }
+          ]
+        },
+        {
+          "id": "I.2",
+          "title": "序对、关系与函数",
+          "prereqs": ["I.1"],
+          "tags": ["ordered-pair", "product", "relation", "function"],
+          "quota": { "exercises": 24 },
+          "units": [
+            {
+              "file": "units/unit05-pairs-products.sokonanoda",
+              "title": "单元⑤ 序对与笛卡尔积",
+              "title_en": "Unit 5 — Ordered Pairs & Cartesian Products",
+              "unit": 5
+            },
+            {
+              "file": "units/unit06-relations.sokonanoda",
+              "title": "单元⑥ 关系",
+              "title_en": "Unit 6 — Relations",
+              "unit": 6
+            },
+            {
+              "file": "units/unit07-functions.sokonanoda",
+              "title": "单元⑦ 函数",
+              "title_en": "Unit 7 — Functions",
+              "unit": 7
+            }
+          ]
+        },
+        {
+          "id": "I.3",
+          "title": "像、原像与基数",
+          "prereqs": ["I.2"],
+          "tags": ["image", "preimage", "cardinality", "cantor"],
+          "quota": { "exercises": 23 },
+          "units": [
+            {
+              "file": "units/unit08-images-preimages.sokonanoda",
+              "title": "单元⑧ 像与原像",
+              "title_en": "Unit 8 — Images & Preimages",
+              "unit": 8
+            },
+            {
+              "file": "units/unit09-equinumerosity.sokonanoda",
+              "title": "单元⑨ 等势（基数 Ⅰ）",
+              "title_en": "Unit 9 — Equinumerosity (Cardinality I)",
+              "unit": 9
+            },
+            {
+              "file": "units/unit10-cantor.sokonanoda",
+              "title": "单元⑩ 可数与 Cantor 定理（基数 Ⅱ）",
+              "title_en": "Unit 10 — Countability & Cantor's Theorem (Cardinality II)",
+              "unit": 10
+            }
+          ]
+        },
+        {
+          "id": "I.4",
+          "title": "论域、悖论与综合",
+          "prereqs": ["I.1", "I.3"],
+          "tags": ["universe", "russell", "synthesis"],
+          "quota": { "exercises": 14 },
+          "units": [
+            {
+              "file": "units/unit11-universe-russell.sokonanoda",
+              "title": "单元⑪ 论域与 Russell 悖论",
+              "title_en": "Unit 11 — Universes & Russell's Paradox",
+              "unit": 11
+            },
+            {
+              "file": "units/unit12-synthesis.sokonanoda",
+              "title": "单元⑫ 综合与读证明",
+              "title_en": "Unit 12 — Synthesis & Reading Proofs",
+              "unit": 12
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1552,6 +1552,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
+        ErrorKind::KernelPropNotCumulative,
         ErrorKind::KernelNonPositive,
         ErrorKind::KernelCtorResultMismatch,
         ErrorKind::KernelCtorArgInvalidApp,
@@ -1601,6 +1602,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}
+        ErrorKind::KernelPropNotCumulative => {}
         ErrorKind::KernelNonPositive => {}
         ErrorKind::KernelCtorResultMismatch => {}
         ErrorKind::KernelCtorArgInvalidApp => {}
@@ -1889,10 +1891,11 @@ fn l1_taken_includes_ctors_and_recursors() {
 #[test]
 fn prelude_names_match_installs() {
     // 设计 §3.3 的守卫：数字变了必须是有意为之（review 时一眼看见）。
-    // 12（Nat/Bool/Eq）+ 30（L1：28 条声明 + 派生的 And.rec/Or.rec）= 42。
+    // 12（Nat/Bool/Eq）+ 30（L1：28 条声明 + 派生的 And.rec/Or.rec）
+    // + 3（B8：Eq.rec/Eq.mp/Eq.mpr，L-03）= 45。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        42,
+        45,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
@@ -1915,6 +1918,57 @@ fn eq_symm_is_installed() {
             .unwrap(),
     );
     assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+/// **L-03 / B8**：`Eq.rec` 装上后，**Type 层重写**在 Full 模式下真的可用。
+/// 两个用途各钉一次，都是 `Eq.subst`（motive 只能落 Prop）做不到的：
+/// ① 沿 `Eq.{1} Nat m n` 把 `Vec A m` 搬到 `Vec A n`（motive 落 `Sort 1`）；
+/// ② `Eq.mp`/`Eq.mpr` 在 Type 0 上搬两个类型。
+#[test]
+fn eq_rec_transports_at_type_level() {
+    let src = "\
+inductive Vec (A : Type) : Nat -> Type\n\
+ctor Vec.nil : Vec A Nat.zero\n\
+ctor Vec.cons (n : Nat) (a : A) (v : Vec A n) : Vec A (Nat.succ n)\n\
+end\n\
+def Vec.cast (A : Type) (m n : Nat) (h : Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=\n\
+  @Eq.rec.{1, 1} Nat m (fun (k : Nat) => Vec A k) v n h\n\
+def id_mp (A : Type) : A -> A := Eq.mp A A (Eq.refl.{2} Type A)\n\
+def id_mpr (A : Type) : A -> A := Eq.mpr A A (Eq.refl.{2} Type A)\n";
+    let out = compile_fol(&parse(src).expect("parse B8 use"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "Type-level rewriting must work through the prelude's Eq.rec/Eq.mp/Eq.mpr: {:?}",
+        out.errors
+    );
+}
+
+/// **L-03 / B8 的让位**：文件自己声明 `Eq.rec` ⇒ B8 整族（含 `Eq.mp`/`Eq.mpr`）让位，
+/// 而 `Eq` prelude 与 B7（`Eq.symm`）照常装着——B8 的依赖是 EQ（`Eq` 公理族），
+/// 不是 B7。这条同时钉住"族粒度"与"依赖方向"。
+#[test]
+fn eq_rec_family_yields_when_the_file_declares_it() {
+    let src = "\
+axiom Eq.rec {u, v} : {α : Sort u} -> (a : α) -> (motive : (anon : α) -> Sort v) -> (ha : motive a) -> (b : α) -> (h : @Eq.{u} α a b) -> motive b\n\
+def probe_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h\n";
+    let out = compile_fol(&parse(src).expect("parse B8 yield"));
+    assert_eq!(
+        out.errors,
+        vec![],
+        "B7 and the Eq prelude must survive a B8 yield: {:?}",
+        out.errors
+    );
+    // 反向：B8 让位后 `Eq.mp` 必须报未知标识符（整族让位，不是单名）。
+    let src = format!("{src}#check Eq.mp\n");
+    let out = compile_fol(&parse(&src).expect("parse B8 yield probe"));
+    assert!(
+        l1_names_missing(&out.errors)
+            .iter()
+            .any(|m| m.contains("Eq.mp")),
+        "declaring Eq.rec alone must yield the whole B8 family: {:?}",
+        out.errors
+    );
 }
 
 /// 建议材料层（`GoalTemplates::new_for`）也吃 L1：开放练习里对 prelude 的
@@ -2430,7 +2484,8 @@ fn refine_kernel_kind_classifies_kernel_message_families() {
             ErrorKind::KernelCtorArgTooLarge,
         ),
         // def_eq 双侧消息由 check.rs 的 parse_def_eq_mismatch 单独解析，
-        // 分类器必须维持 KernelRejected，不得重写。
+        // 分类器默认维持 KernelRejected，**只有**「要 Type、给了 Prop」这一个
+        // 能精确命名的形状（L-06 无累积性）另给专用码。
         (
             "rejected: def_eq failed: def_eq mismatch expected: Prop | actual: Type",
             ErrorKind::KernelRejected,
@@ -2441,6 +2496,49 @@ fn refine_kernel_kind_classifies_kernel_message_families() {
         ),
         (
             "def_eq mismatch expected: Prop | actual: Type",
+            ErrorKind::KernelRejected,
+        ),
+        // L-06：期望 Sort(n>0)（数据/Type）、实际 Sort(0)（Prop）⇒ 无累积性。
+        (
+            "rejected: def_eq failed: def_eq mismatch expected: Sort(1) | actual: Sort(0)",
+            ErrorKind::KernelPropNotCumulative,
+        ),
+        (
+            "def_eq mismatch expected: Sort(1) | actual: Sort(0)",
+            ErrorKind::KernelPropNotCumulative,
+        ),
+        (
+            "def_eq mismatch expected: Sort(2) | actual: Sort(0)",
+            ErrorKind::KernelPropNotCumulative,
+        ),
+        // **范围（有意收窄）**：`Pi` 形状的同一个现象保持通用码——它同时是
+        // CLI/LSP/扩展契约测试用来代表"通用内核拒绝"的夹具（钉 code/stage/span），
+        // 加宽要动那些夹具，留给专门迁移（设计 §3）。
+        (
+            "def_eq mismatch expected: Pi (x : Prop), Sort(1) | actual: Pi (x : Prop), Sort(0)",
+            ErrorKind::KernelRejected,
+        ),
+        (
+            "def_eq mismatch expected: Pi (x : Nat), Sort(1) | actual: Pi (x : Nat), Sort(0)",
+            ErrorKind::KernelRejected,
+        ),
+        // 反方向（期望 Prop、实际 Type）**故意不分类**：它同时也是普通的
+        // 「该写 Prop 却写了 Type」，命名成"大消去"会误标（设计 §4）。
+        (
+            "def_eq mismatch expected: Sort(0) | actual: Sort(1)",
+            ErrorKind::KernelRejected,
+        ),
+        (
+            "def_eq mismatch expected: Pi (x : Exists A p), Sort(0) | actual: Pi (_ : Exists A p), Sort(1)",
+            ErrorKind::KernelRejected,
+        ),
+        // 两侧都非 0（宇宙层级本身写错）与变量层级（`Sort(u)`）都留给通用码。
+        (
+            "def_eq mismatch expected: Sort(2) | actual: Sort(1)",
+            ErrorKind::KernelRejected,
+        ),
+        (
+            "def_eq mismatch expected: Sort(1) | actual: Sort(u)",
             ErrorKind::KernelRejected,
         ),
     ];
@@ -2473,6 +2571,7 @@ fn kernel_fine_grained_kinds_stage_as_kernel_with_codes() {
         ErrorKind::KernelExpectedSort,
         ErrorKind::KernelExpectedPi,
         ErrorKind::KernelTheoremNotProp,
+        ErrorKind::KernelPropNotCumulative,
         ErrorKind::KernelNonPositive,
         ErrorKind::KernelCtorResultMismatch,
         ErrorKind::KernelCtorArgInvalidApp,
@@ -2484,6 +2583,7 @@ fn kernel_fine_grained_kinds_stage_as_kernel_with_codes() {
         "kernel-expected-sort",
         "kernel-expected-pi",
         "kernel-theorem-not-prop",
+        "kernel-prop-not-cumulative",
         "kernel-inductive-non-positive",
         "kernel-ctor-result-mismatch",
         "kernel-ctor-arg-invalid-app",
@@ -2528,6 +2628,113 @@ fn pipeline_classifies_expected_sort() {
             .map(|e| (&e.kind, &e.message))
             .collect::<Vec<_>>()
     );
+}
+
+/// **L-06 ①**：`def T : Type := <Prop 值>` 今天有**专用码 + 人话 hint**，
+/// 而不是裸 `kernel-rejected`（内核消息一字不改，只换分类与提示；设计
+/// `docs/design/prop-cumulativity-boundary.md` §3）。
+#[test]
+fn pipeline_classifies_prop_where_type_was_required() {
+    for src in ["def T : Type := True\n", "def T : Type := And True True\n"] {
+        let out = compile_fol(&parse(src).expect("parse Prop-as-Type"));
+        let err = out
+            .errors
+            .first()
+            .unwrap_or_else(|| panic!("no error for {src:?}"));
+        assert_eq!(
+            err.kind,
+            ErrorKind::KernelPropNotCumulative,
+            "{src:?} → {:?}",
+            out.errors
+        );
+        assert_eq!(err.code(), "kernel-prop-not-cumulative");
+        assert!(err.hint().contains("累积性"), "hint: {}", err.hint());
+        assert_eq!(err.expected.as_deref(), Some("Sort(1)"), "{err:?}");
+        assert_eq!(err.actual.as_deref(), Some("Sort(0)"), "{err:?}");
+        // 消息保持内核原样（只加分类，不改判据）。
+        assert_eq!(err.message, "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`");
+    }
+}
+
+/// 通用路径的**端到端对照**：不是 L-06 形状的 def-eq 不匹配仍是
+/// `kernel-rejected`，并且照旧带 `expected`/`actual`（新码只接管它精确命名的
+/// 那一个形状；管道是共用的）。
+#[test]
+fn generic_def_eq_mismatch_keeps_kernel_rejected() {
+    let out = compile_fol(&parse("def bad : Nat := True\n").unwrap());
+    assert_eq!(out.errors.len(), 1, "{:?}", out.errors);
+    let err = &out.errors[0];
+    assert_eq!(err.kind, ErrorKind::KernelRejected, "{err:?}");
+    assert_eq!(err.code(), "kernel-rejected");
+    assert!(
+        err.expected
+            .as_deref()
+            .unwrap_or_default()
+            .starts_with("Nat"),
+        "{err:?}"
+    );
+    assert_eq!(err.actual.as_deref(), Some("Sort(0)"), "{err:?}");
+}
+
+/// 专用码的**判别性对照**：反方向（该写 `Prop` 却写了 `Type`）与宇宙层级本身
+/// 写错都必须留在通用 `kernel-rejected`，否则 hint 会误标；正常路径不受影响。
+#[test]
+fn prop_not_cumulative_code_does_not_catch_other_kernel_gaps() {
+    // 该写 Prop、写了 Type：形状是 Sort(0) vs Sort(1)，**不是** L-06 ①。
+    let out = compile_fol(&parse("def f : Prop := Nat\n").unwrap());
+    assert!(!out.errors.is_empty());
+    assert!(
+        out.errors
+            .iter()
+            .all(|e| e.kind != ErrorKind::KernelPropNotCumulative),
+        "the mirror direction must stay generic: {:?}",
+        out.errors
+    );
+    // Pi 形状的**同一个现象**（把命题当函数的返回类型）保持通用码：它同时是
+    // CLI/LSP/扩展契约测试用来代表"通用内核拒绝"的夹具（钉 code/stage/span），
+    // 加宽要动那些夹具（设计 §3）。
+    let out = compile_fol(&parse("def bad : Prop -> Type := fun (x : Prop) => x\n").unwrap());
+    assert_eq!(out.errors.len(), 1, "{:?}", out.errors);
+    assert_eq!(
+        out.errors[0].kind,
+        ErrorKind::KernelRejected,
+        "{:?}",
+        out.errors
+    );
+    // 正常路径：Type 值交 Type 结论，照常 checked。
+    let out = compile_fol(&parse("def U : Type := Nat\n").unwrap());
+    assert_eq!(out.errors, vec![], "{:?}", out.errors);
+}
+
+/// **L-06 ②**：`Exists.elim` 的 `Q` 只能是 `Prop`——想**取数据**的引理被内核
+/// 拒绝（`Exists.rec` 的 motive 只到 `Sort 0`）。这条把边界本身钉进测试：
+/// `Exists.elim`（常值 Prop motive）checked，`Exists.witness`（Type motive）
+/// 判红，且**保持通用码**（见上一条测试的判别性理由）。
+#[test]
+fn exists_eliminator_motive_stays_in_prop() {
+    let src = "\
+inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
+ctor intro (w : A) (h : p w) : Exists A p\n\
+end\n\
+def Exists.elim (A : Type) (p : A -> Prop) (Q : Prop) (h : Exists A p) (f : (w : A) -> p w -> Q) : Q :=\n\
+  Exists.rec A p (fun (_ : Exists A p) => Q) f h\n\
+def Exists.witness (A : Type) (p : A -> Prop) (h : Exists A p) : A :=\n\
+  Exists.rec A p (fun (_ : Exists A p) => A) (fun (w : A) (hw : p w) => w) h\n";
+    let out = compile_fol(&parse(src).expect("parse Exists probe"));
+    assert_eq!(out.errors.len(), 1, "{:?}", out.errors);
+    let err = &out.errors[0];
+    assert_eq!(err.kind, ErrorKind::KernelRejected, "{err:?}");
+    let expected = err.expected.as_deref().unwrap_or_default();
+    let actual = err.actual.as_deref().unwrap_or_default();
+    assert!(expected.ends_with("Sort(0)"), "{err:?}");
+    assert!(actual.ends_with("Sort(1)"), "{err:?}");
+    // `Exists.elim` 本身（Q : Prop）必须 checked：边界只在"取数据"那一侧。
+    let checked = out
+        .events
+        .iter()
+        .filter(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "Exists.elim"))
+        .count();
+    assert_eq!(checked, 1, "events: {:?}", out.events);
 }
 
 #[test]
@@ -6384,5 +6591,645 @@ fn notation_command_emits_no_events_and_is_not_a_declaration() {
         4,
         "notation commands must not appear in the declaration table: {:?}",
         report.decls.iter().map(|d| &d.name).collect::<Vec<_>>()
+    );
+}
+
+// ---- namespace / open（G-05，docs/design/namespace-open.md §1 N3–N6）--------
+//
+// 判据一律走内核：等价性看**事件序列**，解析顺序看**内核接受的类型**，
+// 找不到看**稳定错误码 + hint**——不做文本比对。
+
+/// 命名空间夹具：`A.x : Prop`（不可当 `Type` 用）与 `A.B.x : Type`
+/// （可以）——解析顺序 ① 的「最长前缀优先」因此由内核判定。
+const NAMESPACE_ORDER_LIB: &str = "\
+namespace A\n\
+def x : Prop := forall (p : Prop), p -> p\n\
+namespace B\n\
+def x : Type := Prop\n\
+def y : Type := x\n\
+end B\n\
+end A\n";
+
+#[test]
+fn namespace_short_names_and_pointful_names_grade_identically() {
+    // N3/N7 教学契约：`namespace A` 里的短名与外面的点名**是同一个全局名**
+    // ⇒ 事件序列逐一相等。
+    let inside = "\
+namespace A\n\
+def mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a\n\
+def use (α : Type) (a : α) (s : α -> Prop) : Prop := mem α a s\n\
+end A\n";
+    let outside = "\
+def A.mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a\n\
+def A.use (α : Type) (a : α) (s : α -> Prop) : Prop := A.mem α a s\n";
+    let inside_out = compile_ok(inside);
+    let outside_out = compile_ok(outside);
+    assert_eq!(
+        event_shapes(&inside_out),
+        event_shapes(&outside_out),
+        "both spellings must produce the same events"
+    );
+    assert!(
+        inside_out
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "A.mem")),
+        "the declared name must be the global one: {:?}",
+        inside_out.events
+    );
+}
+
+#[test]
+fn namespace_resolution_prefers_the_longest_namespace_prefix() {
+    // ① 当前命名空间链从内到外、最长前缀优先：`A.B.y := x` 取 `A.B.x`（Type）。
+    // 若错误地取 `A.x`（Prop），内核会拒绝——所以这条断言由内核判定。
+    let out = compile_ok(NAMESPACE_ORDER_LIB);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "A.B.y")),
+        "A.B.y must check: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn namespace_resolution_falls_back_to_the_exact_name() {
+    // ② 精确名：命名空间里没有 `A.y`，但根上有 `y`。
+    let src = "\
+def y : Type := Prop\n\
+namespace A\n\
+def z : Type := y\n\
+end A\n";
+    let out = compile_ok(src);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "A.z")));
+}
+
+#[test]
+fn open_makes_a_prefix_omissible_and_sees_later_declarations() {
+    // ③ `open A` 把 `A.` 加进可省略前缀集合；它是**集合**不是快照，
+    // 所以 `open` 之后（甚至之前）声明的 `A.x` 都享受（设计 N4）。
+    let src = "\
+open A\n\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+def y : Type := x\n";
+    let out = compile_ok(src);
+    assert!(out
+        .events
+        .iter()
+        .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "y")));
+}
+
+#[test]
+fn open_order_decides_between_two_candidates() {
+    // ③ open 按**出现顺序**：先开的先试。
+    let first_b = "\
+namespace A\n\
+def x : Prop := forall (p : Prop), p -> p\n\
+end A\n\
+namespace B\n\
+def x : Type := Prop\n\
+end B\n\
+open B\n\
+open A\n\
+def y : Type := x\n";
+    let first_a = "\
+namespace A\n\
+def x : Prop := forall (p : Prop), p -> p\n\
+end A\n\
+namespace B\n\
+def x : Type := Prop\n\
+end B\n\
+open A\n\
+open B\n\
+def y : Type := x\n";
+    let out = compile_ok(first_b);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "y")),
+        "`open B` first must win (B.x : Type): {:?}",
+        out.events
+    );
+    // 反过来先开 A ⇒ 取 A.x : Prop ⇒ 内核拒绝（证明顺序真的在起作用）。
+    let file = parse(first_a).expect("parse");
+    let out = compile_fol(&file);
+    assert!(
+        !out.errors.is_empty(),
+        "the reversed open order must pick A.x (Prop) and be rejected: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn a_namespace_reference_that_is_nowhere_is_the_ordinary_unknown_identifier() {
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+def y : Type := nope\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
+        vec!["elab-unknown-identifier"],
+        "errors: {:?}",
+        out.errors
+    );
+    assert!(
+        out.errors[0].hint().contains("open"),
+        "the hint must mention `open`: {}",
+        out.errors[0].hint()
+    );
+}
+
+#[test]
+fn namespace_coexists_with_ctor_namespaces() {
+    // G-02 的规范名与 N4 的命名空间解析是同一条 `known` 路径：
+    // `Wrap.Box.mk` 是规范名，裸名 `mk` 仍是唯一别名；`open Wrap` 后
+    // 短名 `Box` 也能解析。
+    let src = "\
+namespace Wrap\n\
+inductive Box : Type\n\
+ctor mk : Box\n\
+end\n\
+def b : Box := mk\n\
+end Wrap\n\
+open Wrap\n\
+def c : Box := Wrap.Box.mk\n";
+    let out = compile_ok(src);
+    let names: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::DeclarationChecked { name } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        names.contains(&"Wrap.Box"),
+        "canonical inductive name: {names:?}"
+    );
+    assert!(names.contains(&"Wrap.b"), "inside the namespace: {names:?}");
+    assert!(names.contains(&"c"), "outside with `open Wrap`: {names:?}");
+}
+
+#[test]
+fn a_by_block_inside_a_namespace_resolves_short_names() {
+    // 判卷合成（前缀 + 合成 `#check`）必须容忍未闭合的 `namespace`
+    // （设计 §4.1/§4.2）：`exact` 走 judge_terms，`apply` 走 judge_infer。
+    let src = "\
+namespace A\n\
+def mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a\n\
+theorem t (α : Type) (a : α) (s : α -> Prop) : mem α a s -> mem α a s := by intro h; exact h\n\
+theorem u (α : Type) (a : α) (s : α -> Prop) : mem α a s -> mem α a s := by intro h; apply h\n\
+end A\n";
+    let out = compile_ok(src);
+    let names: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::DeclarationChecked { name } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        names.contains(&"A.t"),
+        "exact inside a namespace: {names:?}"
+    );
+    assert!(
+        names.contains(&"A.u"),
+        "apply inside a namespace: {names:?}"
+    );
+}
+
+#[test]
+fn namespace_commands_emit_no_events_and_are_not_declarations() {
+    // N6：三条命令不产生事件、不进声明表（与 import/记法同族）。
+    let src = "\
+namespace A\n\
+def x : Type := Prop\n\
+end A\n\
+open A\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![]);
+    assert_eq!(
+        out.events.len(),
+        1,
+        "only `A.x` is an event: {:?}",
+        out.events
+    );
+    let report = check_document(&file);
+    assert_eq!(
+        report.decls.len(),
+        1,
+        "namespace/end/open must not enter the declaration table: {:?}",
+        report.decls.iter().map(|d| &d.name).collect::<Vec<_>>()
+    );
+    assert_eq!(report.decls[0].name.as_deref(), Some("A.x"));
+}
+
+#[test]
+fn print_check_and_reduce_inside_a_namespace_resolve_short_names() {
+    // `#print` / `#check` / `#reduce` 与 `Expr::Ident` 共用同一个解析点
+    // （`resolve_known`）——命名空间里的短名对它们同样有效；`#print` 的输出
+    // 是**规范名**（内核 pp），不是源里的短名。
+    let src = "\
+namespace A\n\
+def mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a\n\
+#print mem\n\
+#check mem\n\
+end A\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::Printed { name, .. } if name == "A.mem")),
+        "`#print mem` must resolve to the global name: {:?}",
+        out.events
+    );
+    // `#check mem`：解析成功才有 `TypeChecked`（未知标识符会走错误通道，
+    // 已被 `compile_ok` 的 0 错误断言挡住）。
+    assert_eq!(
+        out.events
+            .iter()
+            .filter(|e| matches!(e, CheckEvent::TypeChecked { .. }))
+            .count(),
+        1,
+        "`#check mem` must resolve: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn hover_resolution_inside_a_namespace_points_at_the_global_declaration() {
+    // 编辑器反馈通道（hover/goto-definition）读的是 `ResolvedTarget::Declaration`
+    // 的**规范名**，所以命名空间里的短名引用会指回全局声明（goto 才能跳对文件）。
+    let src = "\
+namespace A\n\
+def mem (α : Type) (a : α) (s : α -> Prop) : Prop := s a\n\
+def use (α : Type) (a : α) (s : α -> Prop) : Prop := mem α a s\n\
+end A\n";
+    let file = parse(src).expect("parse");
+    let report = check_document(&file);
+    let resolved: Vec<&str> = report
+        .hovers
+        .iter()
+        .filter_map(|h| match &h.resolution {
+            Some(ResolvedTarget::Declaration { name, .. }) => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        resolved.contains(&"A.mem"),
+        "the short-name use must resolve to `A.mem`: {resolved:?}"
+    );
+}
+
+// ---- abbrev（G-08，docs/design/abbrev.md）---------------------------------
+//
+// 判据一律走内核：`abbrev` 与 `def` 的等价性看**事件序列**，别名透明看
+// **内核接受的类型**——不做文本比对。
+
+/// 别名透明的靶子：类型位互换 + `#reduce` 展开 + 项层 `rfl`。
+const ABBREV_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+def Set.empty (α : Type) : Set α := fun (x : α) => False\n";
+
+/// 事件形状（**去掉 span**）：`def` 版与 `abbrev` 版的源码偏移必然不同
+/// （`abbrev` 每个声明多三个字符），要比的是事件本身，不是坐标。
+fn event_kinds(out: &CompileOutput) -> Vec<String> {
+    out.events
+        .iter()
+        .map(|e| match e {
+            CheckEvent::DeclarationChecked { name } => format!("checked {name}"),
+            CheckEvent::ExampleChecked => "example".to_string(),
+            CheckEvent::TypeChecked { text, .. } => format!("typed {text}"),
+            CheckEvent::Reduced { text, .. } => format!("reduced {text}"),
+            CheckEvent::Printed { name, text } => format!("printed {name} {text}"),
+            CheckEvent::ExerciseOpen { name } => format!("open {name:?}"),
+        })
+        .collect()
+}
+
+#[test]
+fn abbrev_and_def_compile_identically() {
+    // G-08 的核心判据：把同一份画布里的 `def` 全换成 `abbrev`，事件序列必须
+    // **逐一相等**（`abbrev` 是同语义拼写，不是新语义）。
+    let spelled_def = format!(
+        "{ABBREV_LIB}\
+         def alias : Type := Set Nat\n\
+         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+         #reduce Set\n"
+    );
+    let spelled_abbrev = format!(
+        "{}\
+         abbrev alias : Type := Set Nat\n\
+         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+         #reduce Set\n",
+        ABBREV_LIB.replace("def ", "abbrev ")
+    );
+    let def_out = compile_ok(&spelled_def);
+    let abbrev_out = compile_ok(&spelled_abbrev);
+    assert_eq!(
+        event_kinds(&def_out),
+        event_kinds(&abbrev_out),
+        "abbrev must produce exactly the same events as def"
+    );
+    assert!(
+        def_out
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "alias")),
+        "the fixture must actually check the alias: {:?}",
+        def_out.events
+    );
+}
+
+#[test]
+fn abbrev_is_transparent_in_type_positions() {
+    // Lean `abbrev` 的卖点：`Set α` 与 `α -> Prop` 在 elaboration 里互换，
+    // **不需要** `show`/`change`（设计 §1.1）。`def` 今天已经做到，`abbrev`
+    // 必须一字不差地继承。
+    let src = "\
+abbrev Set (α : Type) : Type := α -> Prop\n\
+abbrev Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+def A1 (α : Type) (f : α -> Prop) : Set α := f\n\
+def A2 (α : Type) (A : Set α) : α -> Prop := A\n\
+def A3 (α : Type) (a : α) (f : α -> Prop) : Prop := Set.mem α a f\n";
+    let out = compile_ok(src);
+    for name in ["Set", "Set.mem", "A1", "A2", "A3"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` must check through the alias: {:?}",
+            out.events
+        );
+    }
+}
+
+#[test]
+fn abbrev_unfolds_under_reduce_and_by_rfl() {
+    // `#reduce` 展开（设计 §1.2）+ 项层 `rfl` 判等（设计 §1.4）——两条都走内核。
+    let src = "\
+abbrev Set (α : Type) : Type := α -> Prop\n\
+abbrev Set.empty (α : Type) : Set α := fun (x : α) => False\n\
+theorem t (α : Type) : Eq.{1} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+#reduce Set\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "the kernel must accept the rfl proof through the alias: {:?}",
+        out.events
+    );
+    let reduced: Vec<&str> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::Reduced { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        reduced,
+        vec!["fun (α : Type 0) => α -> Prop"],
+        "`#reduce Set` must unfold the alias: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn abbrev_with_a_sorry_value_is_an_open_exercise_like_def() {
+    // 教学契约：`abbrev` 与 `def` 一样，值位 `sorry` ⇒ `exercise.open`，
+    // 签名仍然受检（G-01）。
+    let src = "abbrev Set (α : Type) : Type := sorry\n";
+    let file = parse(src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![], "errors: {:?}", out.errors);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::ExerciseOpen { .. })),
+        "a `sorry` value must open an exercise: {:?}",
+        out.events
+    );
+}
+
+// ---- 一元记法 prefix/postfix（G-04 第二刀，设计 notation-subset.md §10.1）----
+//
+// 判据一律走内核：两种写法的一致性看**事件序列**，优先级看**内核接受的项**
+// （`Eq … := by rfl` 只在两边真的同一个项时通过），护城河看**内核拒绝**。
+
+/// 第二刀的靶子：一元记法 + `''`（撇号符号）+ 带 2 个前导参数的目标。
+const UNARY_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+axiom Set.union : (α : Type) -> Set α -> Set α -> Set α\n\
+axiom Set.compl : (α : Type) -> Set α -> Set α\n\
+axiom Set.powerset : (α : Type) -> Set α -> Set (Set α)\n\
+axiom Set.image : (α : Type) -> (β : Type) -> (α -> β) -> Set α -> Set β\n";
+
+#[test]
+fn prefix_postfix_and_pointful_spellings_compile_identically() {
+    let pointful = format!(
+        "{UNARY_LIB}\
+         def p (α : Type) (A : Set α) : Set (Set α) := Set.powerset α A\n\
+         def c (α : Type) (A : Set α) : Set α := Set.compl α A\n\
+         def i (α β : Type) (f : α -> β) (A : Set α) : Set β := Set.image α β f A\n"
+    );
+    let notation = format!(
+        "{UNARY_LIB}\
+         prefix:100 \" 𝒫 \" => Set.powerset\n\
+         postfix:100 \" ᶜ \" => Set.compl\n\
+         infixr:80 \" '' \" => Set.image\n\
+         def p (α : Type) (A : Set α) : Set (Set α) := 𝒫 A\n\
+         def c (α : Type) (A : Set α) : Set α := Aᶜ\n\
+         def i (α β : Type) (f : α -> β) (A : Set α) : Set β := f '' A\n"
+    );
+    let pointful_out = compile_ok(&pointful);
+    let notation_out = compile_ok(&notation);
+    assert_eq!(
+        event_kinds(&pointful_out),
+        event_kinds(&notation_out),
+        "the unary spellings must produce the same events"
+    );
+    assert!(
+        notation_out
+            .events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "i")),
+        "the two-leading-parameter target must be completed: {:?}",
+        notation_out.events
+    );
+}
+
+#[test]
+fn prefix_precedence_decides_where_the_operand_stops() {
+    // `prefix:N` 的操作数按 `parse_operators(N)` 解析 ⇒ N 越大绑得越紧。
+    // 用 `by rfl` 钉分组：`Eq … := by rfl` 只在两边真的同一个项时通过。
+    let src = format!(
+        "{UNARY_LIB}\
+         infixl:65 \" ∪ \" => Set.union\n\
+         prefix:100 \" 𝒫 \" => Set.powerset\n\
+         theorem tight (α : Type) (A B : Set α) :\
+             Eq.{{1}} (Set (Set α)) (𝒫 A ∪ 𝒫 B) (Set.union (Set α) (𝒫 A) (𝒫 B)) := by rfl\n"
+    );
+    let out = compile_ok(&src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "tight")),
+        "𝒫 at 100 must bind tighter than ∪ at 65: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn postfix_precedence_decides_where_it_binds() {
+    let src = format!(
+        "{UNARY_LIB}\
+         infixl:65 \" ∪ \" => Set.union\n\
+         postfix:100 \" ᶜ \" => Set.compl\n\
+         theorem right (α : Type) (A B : Set α) :\
+             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.union α A (Set.compl α B)) := by rfl\n\
+         theorem left (α : Type) (A B : Set α) :\
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
+    );
+    let out = compile_ok(&src);
+    for name in ["right", "left"] {
+        assert!(
+            out.events
+                .iter()
+                .any(|e| matches!(e, CheckEvent::DeclarationChecked { name: n } if n == name)),
+            "`{name}` must group the way the precedence table says: {:?}",
+            out.events
+        );
+    }
+}
+
+#[test]
+fn a_loose_postfix_binds_outside_the_binary_operator() {
+    // 同一个符号换成 `postfix:50`（比 `∪` 的 65 松）⇒ `A ∪ Bᶜ` 读成
+    // `(A ∪ B)ᶜ`。这条把"N 越大绑得越紧"从两个方向钉住。
+    let src = format!(
+        "{UNARY_LIB}\
+         infixl:65 \" ∪ \" => Set.union\n\
+         postfix:50 \" ᶜ \" => Set.compl\n\
+         theorem loose (α : Type) (A B : Set α) :\
+             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.compl α (Set.union α A B)) := by rfl\n"
+    );
+    let out = compile_ok(&src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "loose")),
+        "a postfix looser than ∪ must wrap the whole sum: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn unary_notation_emits_no_events_and_is_not_a_declaration() {
+    // N6 继续有效：一元记法命令也不产生事件、不进声明表。
+    let src = format!(
+        "{UNARY_LIB}\
+         prefix:100 \" 𝒫 \" => Set.powerset\n\
+         postfix:100 \" ᶜ \" => Set.compl\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(out.errors, vec![]);
+    let declarations = out
+        .events
+        .iter()
+        .filter(|e| matches!(e, CheckEvent::DeclarationChecked { .. }))
+        .count();
+    assert_eq!(
+        declarations, 5,
+        "only the five axioms are declarations: {:?}",
+        out.events
+    );
+    let report = check_document(&file);
+    assert_eq!(
+        report.decls.len(),
+        5,
+        "notation commands are not declarations"
+    );
+}
+
+#[test]
+fn unary_notation_with_two_leading_parameters_is_completed_from_the_operands() {
+    // `Set.image : (α) → (β) → (α → β) → Set α → Set β`：两个前导参数都只能
+    // 从操作数解出（`α` 来自 `Set α` 操作数、`β` 来自 `f` 的箭头陪域）。
+    // 这条同时是**下溢回归**：`j - missing` 在 `missing == 2` 时曾经 panic
+    // （第一刀只测过 `missing == 1`）。
+    let src = format!(
+        "{UNARY_LIB}\
+         infixr:80 \" '' \" => Set.image\n\
+         def i (α β : Type) (f : α -> β) (A : Set α) : Set β := f '' A\n"
+    );
+    let out = compile_ok(&src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "i")),
+        "both leading parameters must be solved: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn rfl_on_a_notation_goal_keeps_its_grouping() {
+    // 回归：`rfl` 候选文本 `Eq.refl.{1} α a` 里的 `a` 是**原子位**，记法操作数
+    // 必须带括号——否则 `Eq.refl.{1} (Set α) Aᶜ ∪ B` 会被读成
+    // `(Eq.refl.{1} (Set α) Aᶜ) ∪ B`（第二刀实测：记法操作数上的 `by rfl` 全红）。
+    let src = format!(
+        "{UNARY_LIB}\
+         infixl:65 \" ∪ \" => Set.union\n\
+         postfix:100 \" ᶜ \" => Set.compl\n\
+         theorem t (α : Type) (A B : Set α) :\
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
+    );
+    let out = compile_ok(&src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "t")),
+        "the rfl candidate must keep the notation operand parenthesised: {:?}",
+        out.events
+    );
+}
+
+#[test]
+fn a_by_block_whose_goal_carries_notation_still_judges() {
+    // 回归（第一刀就有的边界）：`by` 块的目标文本走 `render_expr` +
+    // `parse_expr_text` 往返，重解析必须认识记法——判卷通道现在从**前缀源码**
+    // 里收记法声明（`judge.rs`）。
+    let src = format!(
+        "{UNARY_LIB}\
+         infixl:65 \" ∪ \" => Set.union\n\
+         postfix:100 \" ᶜ \" => Set.compl\n\
+         theorem t (α : Type) (A B : Set α) :\
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Aᶜ ∪ B) ->\
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Aᶜ ∪ B) := by\n\
+             intro h2\n\
+             exact h2\n"
+    );
+    let file = parse(&src).expect("parse");
+    let out = compile_fol(&file);
+    assert_eq!(
+        out.errors,
+        vec![],
+        "a by block over a notation goal must judge: {:?}",
+        out.errors
     );
 }

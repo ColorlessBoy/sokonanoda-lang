@@ -82,7 +82,7 @@ cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 cargo clippy --workspace --all-targets      # 教学 crates 经 [lints] deny；kernel 只 warning
 cargo test --workspace --locked             # 4 个 lib test target + 13 个集成测试文件
 cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node 行为测试
-python3 courses/set-theory/tools/check.py --selftest   # 课程门禁（卷 I，判据 G1–G5；gate 已含，单跑用这条）
+python3 courses/set-theory/tools/check.py --selftest   # 课程门禁（卷 I，判据 G1–G6；gate 已含，单跑用这条）
 python3 scripts/gap.py selftest             # 台账判据自检（judge() 的期望推导 / repro_expect / 非法值）
 python3 scripts/gap.py check                # 台账契约：缺口复现必须与 status 一致（gate 已含，单跑用这条）
 ```
@@ -148,7 +148,12 @@ dispatch `release.yml`（手动推 tag 仅应急，见 `docs/RELEASE.md`）。
 （goal 同源 + Infoview 落右侧辅助侧栏）、`docs/design/highlighting.md`
 （高亮单一起源 + Infoview 自研固定色板）、`docs/design/compile-cache.md`
 （共享缓存）；webview 行为测试在 `editor/vscode/test-webview.js`
-（`npm run test:unit`）。
+（`npm run test:unit`）。**加一个用户可见命令 = 同一轮改五处**：`package.json`
+（`contributes.commands` + 键位/菜单）、`extension.js`（注册 + 实现，子进程要有
+超时 kill）、`crates/cli/tests/extension.rs`（静态契约：声明↔注册一致、键位指向
+已声明命令、子进程纪律）、`editor/vscode/src/test/extension.test.js`（真宿主冒烟）、
+`README.md`/`CHANGELOG.md` + 本技能/teacher 技能 + `AGENTS.md`（版本号随 feature
+minor bump）。
 
 ## 6. 常用命令
 

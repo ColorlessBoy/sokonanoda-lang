@@ -9,6 +9,7 @@ mod goals;
 pub mod hints;
 mod prelude;
 mod report;
+mod scope;
 mod units;
 mod warning;
 
@@ -32,6 +33,7 @@ pub use report::{
     ByGoalState, ByStepState, CheckInfo, DeclKind, DeclState, DeclStatus, DocumentReport,
     GoalBinder, HoverType, ResolvedTarget, SubGoal,
 };
+pub(crate) use scope::{join_ns, NamespaceScope};
 pub use units::{compile_all_units, split_report, unit_ranges, SourceUnit};
 pub use warning::{collect_warnings, CompileWarning, WarningKind, RESERVED_SORT_NAMES};
 

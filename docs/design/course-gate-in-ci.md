@@ -201,7 +201,7 @@ AGENTS.md 点名「缓存过期是历史上最常见的故障源」，`gate` 也
 
 | 文件 | 改动 |
 |---|---|
-| `courses/set-theory/tools/check.py` | 判据 **G1–G5**（§3 原文，全部与规模无关）+ `--selftest` / `--bisect` / `--only` / `--json` / `--report` / `--summary` / `--annotations` / `--ledger [路径]` / `--bin`；退出码 0/1/2 按 §3/§4.4 |
+| `courses/set-theory/tools/check.py` | 判据 **G1–G5**（§3 原文，全部与规模无关；**0.60.0 起另加 G6 = 清单自洽**——见 `docs/design/course-manifest-v2.md`，G1–G5 语义未动）+ `--selftest` / `--bisect` / `--only` / `--json` / `--report` / `--summary` / `--annotations` / `--ledger [路径]` / `--bin`；退出码 0/1/2 按 §3/§4.4 |
 | `scripts/soko` | 新增 `case 'gate'`（§7 S3）：python3 探针在**最前面**（探不到 ⇒ exit 3 + 装法，绝不静默跳过）→ 原样跑 CLI 的 cargo 门禁 → 绿了再跑课程门禁，并把**解析到的**二进制经 `SOKONANODA_BIN` 透传；`refuseUntrusted()` 从 default 分支提取出来复用（行为逐字不变）；**第四步（主线收尾，0.59.0）= `python3 scripts/gap.py selftest` + `check`**（缺口台账契约，~3 s；课程被抽走时前三步跳过它仍跑） |
 | `.github/workflows/ci.yml` | `test` job 里 `Course layer is guarded` 之后新增 `actions/setup-node@v5`（node 22）+ `Course gate (set-theory, G1–G5)`（`timeout-minutes: 5`，`SOKONANODA_BIN=${{ github.workspace }}/target/debug/sokonanoda`，先 `--selftest` 再 `--annotations --report /tmp/course-gate.json --summary "$GITHUB_STEP_SUMMARY"`）+ `Upload course gate report (always)`（artifact `course-gate-report`）。**不新建 job**（§2.4），`auto-tag` 的 `needs` 不动（`test` 本来就在里面 ⇒ 课程红就挡住发布）；同 job 再下一步 `Gap ledger is consistent (docs/gaps)`（`gap.py selftest` + `check`，`timeout-minutes: 3`，`SOKONANODA_BIN` 同上）——台账是契约，红了说明语言变了而台账没跟上 |
 

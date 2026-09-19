@@ -46,7 +46,8 @@ scripts/soko grade playground.sokonanoda --json
 
 | 陷阱 | 事实 | 规程 |
 |---|---|---|
-| **课程门禁（卷 I）在 `test` job 的 step 里** | 判据 G1–G5 的唯一真相是 `courses/set-theory/tools/check.py`（python3）；CI 先 `--selftest` 再全量，`SOKONANODA_BIN` 指当轮 `target/debug/sokonanoda`，report 进 `course-gate-report` artifact。**不新建 job** ⇒ 课程红自动挡 `auto-tag` 发布 | 课程红了先看 step summary / artifact，再本地复跑 `scripts/soko gate`（等价；python3 探不到 ⇒ exit 3，不是绿）。设计 `docs/design/course-gate-in-ci.md` |
+| **课程门禁（卷 I）在 `test` job 的 step 里** | 判据 G1–G6 的唯一真相是 `courses/set-theory/tools/check.py`（python3）；CI 先 `--selftest` 再全量，`SOKONANODA_BIN` 指当轮 `target/debug/sokonanoda`，report 进 `course-gate-report` artifact。**不新建 job** ⇒ 课程红自动挡 `auto-tag` 发布 | 课程红了先看 step summary / artifact，再本地复跑 `scripts/soko gate`（等价；python3 探不到 ⇒ exit 3，不是绿）。设计 `docs/design/course-gate-in-ci.md` |
+| **扩展命令改动要盯三层** | `cargo test -p sokonanoda-cli --test extension`（静态契约：声明↔注册、键位、子进程纪律）→ `node editor/vscode/test-extension-host.js`（stub 宿主）→ CI 的 `e2e` 三条腿（真 VS Code，台账回提交）。三层里前两层进 `test` job、第三层是独立 job，任一红都挡 `auto-tag` | 本地按 `docs/vscode-dev-guide.md` 的顺序跑；e2e 红了先看 `docs/e2e/logs/` 里当次的日志与 `docs/E2E.md` §7 |
 | **缺口台账门禁是同一个 job 的下一步** | `Gap ledger is consistent (docs/gaps)` step 跑 `scripts/gap.py selftest` + `check`——每条缺口的复现必须与台账 `status` 一致（`fixed` ⇒ 应转绿；`open` ⇒ 应仍复现；`repro_expect` 可显式覆盖，例如 G-01 的「修好 = 判红」） | 红了说明语言变了而台账没跟上：按输出改 `docs/gaps/ledger.jsonl` 的 `status`/`fixed_in`/`repro_expect`/`repro`，别改复现件去迎合旧结论。本地等价命令 `python3 scripts/gap.py check` |
 | `download-artifact@v4` 不带 `name:` | 每个 artifact 下载进**同名目录**（`lsp-<target>/`、`sokonanoda-vsix/`），不是平铺 | 引用路径前先确认落盘布局；要平铺用 `pattern:` + `merge-multiple: true` |
 | tag 触发的 workflow 用**哪个文件** | 用 **tag 指向的 commit** 上的文件，不是 main 最新 | 修 workflow 后要重跑 release：`git tag -f v<ver> <fix-commit> && git push -f origin v<ver>`；`gh run rerun` 只会重放旧文件 |

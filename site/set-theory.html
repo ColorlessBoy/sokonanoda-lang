@@ -113,6 +113,11 @@ python3 courses/set-theory/tools/check.py --json   # 同一份结果的机器可
       每个目标判卷退出码为 0、目标文件都在、解答不留 <code>sorry</code> 且覆盖画布上的每个具名练习、
       标准库与自检不留 <code>sorry</code>。
     </p>
+    <p class="section-sub">
+      目录按清单（<code>course.json</code> 的 <code>schema: soko.course/2</code>）的
+      <b>卷 → 章 → 单元</b>分组；每章标注<b>先修</b>（章号）、<b>标签</b>与<b>计划练习数</b>（配额）。
+      配额是<b>计划</b>不是判据：课程门禁只判形状、不锁计数，实际练习数以「练习」列为准。
+    </p>
     <div class="stats">
       <div class="stat"><div class="n" id="stat-units">—</div><div class="l">本卷单元</div></div>
       <div class="stat"><div class="n" id="stat-exercises">—</div><div class="l">画布练习（<code>sorry</code>）</div></div>
@@ -120,14 +125,9 @@ python3 courses/set-theory/tools/check.py --json   # 同一份结果的机器可
       <div class="stat"><div class="n" id="stat-failed">—</div><div class="l">被判负</div></div>
     </div>
     <p class="section-sub" id="measure-note"></p>
-    <table class="compare">
-      <thead>
-        <tr><th>#</th><th>单元</th><th>练习</th><th>已判通过</th><th>判卷状态</th></tr>
-      </thead>
-      <tbody id="unit-rows">
-        <tr><td colspan="5">单元数据加载中…</td></tr>
-      </tbody>
-    </table>
+    <div id="unit-rows">
+      <p>单元数据加载中…</p>
+    </div>
 
     <h2 class="section-title">卷里有什么</h2>
     <ul>
@@ -184,11 +184,13 @@ python3 courses/set-theory/tools/check.py --json   # 同一份结果的机器可
       cell.appendChild(pill);
     }
     function render(block) {
-      var units = block.units || [];
-      var rows = document.getElementById("unit-rows");
+      var volumes = block.volumes || [];
+      var flat = block.units || [];
+      var host = document.getElementById("unit-rows");
       var exercises = 0, measured = 0;
-      rows.innerHTML = "";
-      units.forEach(function (u) {
+      host.innerHTML = "";
+
+      function unitRow(u) {
         var tr = document.createElement("tr");
         var num = document.createElement("td");
         num.textContent = (u.unit == null) ? "—" : String(u.unit);
@@ -213,13 +215,63 @@ python3 courses/set-theory/tools/check.py --json   # 同一份结果的机器可
         statusCell(st, u.status);
         tr.appendChild(num); tr.appendChild(title); tr.appendChild(ex);
         tr.appendChild(chk); tr.appendChild(st);
-        rows.appendChild(tr);
-      });
-      if (!units.length) {
-        rows.innerHTML = '<tr><td colspan="5">单元清单为空，见仓库 <a href="' + TREE + '">courses/set-theory/</a>。</td></tr>';
+        return tr;
       }
 
-      setText("stat-units", String(units.length));
+      function unitTable(units) {
+        var table = document.createElement("table");
+        table.className = "compare";
+        var thead = document.createElement("thead");
+        var headRow = document.createElement("tr");
+        ["#", "单元", "练习", "已判通过", "判卷状态"].forEach(function (label) {
+          var th = document.createElement("th");
+          th.textContent = label;
+          headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+        var tbody = document.createElement("tbody");
+        units.forEach(function (u) { tbody.appendChild(unitRow(u)); });
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function chapterMeta(chapter) {
+        var parts = [];
+        if ((chapter.prereqs || []).length) parts.push("先修 " + chapter.prereqs.join("、"));
+        else parts.push("无先修");
+        if ((chapter.tags || []).length) parts.push("标签 " + chapter.tags.join(" · "));
+        if (typeof chapter.quota === "number") parts.push("计划练习 " + chapter.quota);
+        return parts.join(" · ");
+      }
+
+      if (volumes.length) {
+        volumes.forEach(function (volume) {
+          var vh = document.createElement("h3");
+          vh.className = "section-title";
+          vh.textContent = "卷 " + (volume.id || "") + " " + (volume.title || "");
+          host.appendChild(vh);
+          (volume.chapters || []).forEach(function (chapter) {
+            var ch = document.createElement("h4");
+            ch.textContent = "章 " + (chapter.id || "") + " " + (chapter.title || "");
+            host.appendChild(ch);
+            var meta = document.createElement("p");
+            meta.className = "section-sub";
+            meta.textContent = chapterMeta(chapter);
+            host.appendChild(meta);
+            host.appendChild(unitTable(chapter.units || []));
+          });
+        });
+      } else {
+        // v1 清单（扁平）：照旧一张表，不硬造卷/章。
+        host.appendChild(unitTable(flat));
+      }
+
+      if (!volumes.length && !flat.length) {
+        host.innerHTML = '<p>单元清单为空，见仓库 <a href="' + TREE + '">courses/set-theory/</a>。</p>';
+      }
+
+      setText("stat-units", String(flat.length || volumes.length));
       setText("stat-exercises", measured ? String(exercises) : "—");
       var totals = block.totals || null;
       setText("stat-targets", totals ? String(totals.targets) : "—");
@@ -237,12 +289,14 @@ python3 courses/set-theory/tools/check.py --json   # 同一份结果的机器可
     fetch("data/site.json").then(function (r) { return r.ok ? r.json() : Promise.reject(); })
       .then(function (d) {
         var block = d.set_theory;
-        if (!block || !(block.units || []).length) throw new Error("no set_theory data");
+        if (!block || !((block.units || []).length || (block.volumes || []).length)) {
+          throw new Error("no set_theory data");
+        }
         render(block);
       }).catch(function () {
         document.getElementById("unit-rows").innerHTML =
-          '<tr><td colspan="5">单元数据加载失败，请在仓库里跑 <code>python3 courses/set-theory/tools/check.py</code>，' +
-          '或前往 <a href="' + TREE + '">courses/set-theory/</a> 查看。</td></tr>';
+          '<p>单元数据加载失败，请在仓库里跑 <code>python3 courses/set-theory/tools/check.py</code>，' +
+          '或前往 <a href="' + TREE + '">courses/set-theory/</a> 查看。</p>';
         setText("measure-note", "单元数据加载失败。");
       });
   })();

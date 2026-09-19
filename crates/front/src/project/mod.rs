@@ -35,7 +35,7 @@ pub(crate) fn importless_source(source: &str) -> String {
     let mut out = String::with_capacity(source.len());
     for line in source.lines() {
         let trimmed = line.trim_start();
-        if trimmed.starts_with("import ") || trimmed == "import" {
+        if is_import_line(trimmed) {
             continue;
         }
         out.push_str(line);
@@ -43,6 +43,41 @@ pub(crate) fn importless_source(source: &str) -> String {
     }
     out
 }
+
+/// 这一行（已 `trim_start`）是不是一条 `import` **代码行**。
+fn is_import_line(trimmed: &str) -> bool {
+    trimmed.starts_with("import ") || trimmed == "import"
+}
+
+/// 源码里有没有 `import` 代码行——**只看分发**，不看语义。
+///
+/// 用途只有一个：入口**单独 parse 失败**时判断它该不该走项目闭包。入口用了
+/// 依赖声明的记法时（G-04 第二刀：`import lib.Set` + `Aᶜ`），单文件 parse 必然
+/// 报 `notation-unknown-symbol`，但**闭包路径能编**——所以分发不能只看
+/// `parse` 成功与否。**判定永不使用它**（判定只认 kernel）。
+pub fn source_has_import_line(source: &str) -> bool {
+    source.lines().any(|line| is_import_line(line.trim_start()))
+}
+
+/// 这份源码要不要走**项目闭包**：先 `parse`（唯一权威）；parse 失败时**只有一种
+/// 情况**才改判——错误是 `notation-unknown-symbol` 且源码里写了 `import`。
+///
+/// 为什么只放这一种（G-04 第二刀）：**只有"用了依赖声明的记法"这一种解析失败
+/// 可能被 import 治好**。别的解析错误（`import` 没置顶、模块名有横线、括号不配对…）
+/// 加载多少依赖都还是错，必须原样报给用户——放宽成"有 import 行就走闭包"会让
+/// 那些诊断退化成 `import-module-invalid`（实测：`project_features.rs` 的三条
+/// 用例当场变红）。
+///
+/// 记法符号在**未声明**时都收敛到同一条码（这是第二刀的词法设计：`∈`/`''` 走
+/// `Sym`，`𝒫`/`ᶜ`/`⁻¹'`/`×ˢ` 是标识符字符、单独 parse 本来就过），所以判据只需
+/// 这一条。**只用于分发**，不参与任何判定。
+pub fn is_project_source(source: &str) -> bool {
+    match crate::parse(source) {
+        Ok(file) => file.commands.iter().any(|command| command.is_import()),
+        Err(diag) => diag.code() == "notation-unknown-symbol" && source_has_import_line(source),
+    }
+}
+
 pub use manifest::{find_manifest, Manifest, MANIFEST_FILE};
 pub use module_name::{ModuleName, ModuleNameError, DASH_HINT, MODULE_EXTENSION};
 pub use report::{ModuleReport, ModuleStatus, ProjectDiagnostic, ProjectKind, ProjectReport};

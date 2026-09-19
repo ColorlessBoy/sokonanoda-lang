@@ -1,3 +1,40 @@
+## [Unreleased]
+
+### Added
+
+- **The course tree groups 卷 → 章 → 单元 for a v2 course manifest.** A course
+  manifest can now be the structured `soko.course/2` object (volume → chapter →
+  unit, with chapter `prereqs` / `tags` / planned `quota.exercises`); the CLI's
+  `course.unit` events then carry `volume` / `chapter` / `tags`, and the 「课程」
+  tree renders collapsible volume and chapter nodes instead of a flat list.
+  The switch is data-driven — the tree only reads events, so a v1 flat manifest
+  (the intro course) keeps the flat tree byte for byte. Units that fail to load
+  stay visible in a 「无法分组」 fallback group. Ledger `G-07`; design
+  `docs/design/course-manifest-v2.md`. Contract test:
+  `crates/cli/tests/extension.rs::course_map_consumes_the_cli_course_subcommand`;
+  stub-host tests: the three course-tree cases in
+  `editor/vscode/test-extension-host.js`.
+
+## [0.60.0] - 2026-09-19
+
+### Added
+
+- **`sokonanoda: build` and `sokonanoda: rebuild`.** The CLI has always had
+  `sokonanoda build [--clean] [<file>|<dir> ...]` to warm (and clear) the shared
+  persistent compile cache, but the extension never exposed it — so "the first
+  keystroke is slow" and "the panels look stale after I edited a dependency
+  outside the editor" had no in-editor answer. `build` (`alt+b`) compiles the
+  active file (following its `import` closure) or the first workspace folder;
+  `rebuild` (`alt+shift+b`) clears the cache first and then rebuilds. Both
+  stream the CLI's `build.file` / `build.clean` / `build.summary` JSON Lines
+  into a **sokonanoda build** output channel, report
+  `files · compiled · hit · failed` in a notification (with a "显示输出"
+  button), refresh the exercise/project/course views, and warn instead of
+  failing silently when a file does not compile. The command is also in the
+  project view's title bar. Contract test:
+  `crates/cli/tests/extension.rs::build_and_rebuild_commands_warm_the_compile_cache`;
+  real-VS-Code smoke: the `build / rebuild` case in the integration suite.
+
 ## [0.59.0] - 2026-09-19
 
 ### Fixed

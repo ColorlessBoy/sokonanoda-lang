@@ -1,0 +1,49 @@
+-- L-03 最小复现：**Type 层重写**（`Eq.rec` / `Eq.mp` / `Eq.mpr`）。
+--
+-- 期望（官方 Lean 4 语义）：`Eq.rec` 的 motive 可以是任意 `α → Sort v`，于是
+-- 能在**类型层**搬运（`Eq.mp`、`cast`）；这是 Mathlib 风格库（跨类型结论、
+-- `Equiv`、`Subtype` 的搬运）的基础设施。
+--
+-- 缺口期的表现（0.59.0 及更早，实测）：
+--     Eq.rec  → elab-unknown-constant: unknown constant `Eq.rec`
+--     Eq.ndrec → elab-unknown-constant: unknown constant `Eq.ndrec`
+--     Eq.subst 带 Type motive（`fun (x : α) => x`）→
+--         kernel-expected-sort: rejected: expected a sort, got: $3
+--   根因不是内核缺规则：`Eq` 在 prelude 里是**公理**（不是归纳块），所以内核
+--   不为它派生消去子；而本语言的 `inductive` 头部今天不吃宇宙 binder，没法把
+--   `Eq` 立成宇宙多态的归纳块（详见 docs/design/eq-type-level-rewriting.md）。
+--
+-- **0.60.0 起本文件干净判卷**（`scripts/soko grade` 退出码 0）：prelude 的 L1
+-- 新增 **B8 族**（`axiom Eq.rec {u, v}` + 由它定义的 `Eq.mp`/`Eq.mpr`），
+-- 签名与 Lean core 的 `Eq.rec.{u, v}` 逐字同形；B8 按族让位（文件自己声明
+-- `Eq.rec`/`Eq.mp`/`Eq.mpr` 任一 ⇒ 整族让位），并依赖 Eq 公理族（`Eq` 被占用
+-- 时随 B7 一起让位）。
+--
+-- 判据（本台账的契约）：下面三条**必须** checked——
+--   ① `Vec.cast`：`@Eq.rec.{1, 1}` 沿 `Eq.{1} Nat m n` 把 `Vec A m` 搬到 `Vec A n`
+--      （motive 落 `Sort 1`，是 `Eq.subst` 的 Prop motive 做不到的）；
+--   ② `id_mp` / `id_mpr`：prelude 的 `Eq.mp`/`Eq.mpr`（Type 0 实例）；
+--   ③ `symm_still_there`：B7 与 Eq 公理族**不受** B8 影响（对照）。
+--
+-- 已实测的边界（同设计 §4）：
+--   · `Eq.mp`/`Eq.mpr` 是 **Type 0 实例**——源码层级语法没有 `u+1`
+--     （`Eq.{u+1}` → parse `expected , or } in universe arguments, found Plus`），
+--     而两个独立层级 binder 不被内核合一（`期望 Sort(v)，实际是 Sort(u + 1)`），
+--     所以宇宙多态的 `Eq.mp` 今天写不出来；**通用的** `Eq.rec` 不受影响。
+--   · `cast` 不另立名字：Lean core 里 `cast h a` 就是 `Eq.mp h a`，本语言不装
+--     同义名（且 `cast` 已被既有测试用作自定义公理名）。
+
+inductive Vec (A : Type) : Nat -> Type
+ctor Vec.nil : Vec A Nat.zero
+ctor Vec.cons (n : Nat) (a : A) (v : Vec A n) : Vec A (Nat.succ n)
+end
+
+def Vec.cast (A : Type) (m n : Nat) (h : Eq.{1} Nat m n) (v : Vec A m) : Vec A n :=
+  @Eq.rec.{1, 1} Nat m (fun (k : Nat) => Vec A k) v n h
+
+def id_mp (A : Type) : A -> A := Eq.mp A A (Eq.refl.{2} Type A)
+
+def id_mpr (A : Type) : A -> A := Eq.mpr A A (Eq.refl.{2} Type A)
+
+def symm_still_there (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a :=
+  Eq.symm.{1} Nat a b h

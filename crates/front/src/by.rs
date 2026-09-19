@@ -80,16 +80,46 @@ pub(crate) fn split_by_value(val: &Expr) -> Option<(Vec<Binder>, &Expr)> {
     }
 }
 
+/// 根目标的**规范名化**（G-05）：把源 AST 渲染成文本交给内核 pp 再读回来。
+///
+/// 只在文件用了 `namespace`/`open` 时才走（调用方决定）：源里的短名 `mem`
+/// 在内核 pp 里是 `A.mem`，而 `apply` 的 `unify_spine` 按文本对齐——两边同源
+/// 才不会假报不匹配。任何一步失败（解析不了/推断不了）都退回原 AST：行为与
+/// 没有这一步时逐字相同，绝不因为"规范化失败"把好文件判红。
+fn canonical_goal_type(
+    ty: &Expr,
+    initial_binders: &[Binder],
+    prefix_src: &str,
+    options: &CompileOptions,
+) -> Expr {
+    let specs: Vec<GoalBinderSpec> = initial_binders
+        .iter()
+        .map(|b| GoalBinderSpec {
+            name: b.name.clone(),
+            ty: b.ty.as_deref().map(render_expr),
+        })
+        .collect();
+    let Some(text) = crate::judge::judge_render_type(prefix_src, options, &specs, &render_expr(ty))
+    else {
+        return ty.clone();
+    };
+    parse_expr_text(&text).unwrap_or_else(|_| ty.clone())
+}
+
 /// 把 `ty`（声明类型）与 `by` 块降级成 lambda AST。
 /// `initial_binders` 是声明级 binder（`theorem f (a : A) : B := by …` 里的
 /// `a`）：它们是引擎的初始上下文，类型先剥掉对应层数，`by` 从 `B` 出发；
 /// 没有声明 binder 时传空切片（旧行为）。
+///
+/// `canonical_goal`（G-05）：文件用了 `namespace`/`open` 时为 `true`，根目标
+/// 先经内核 pp 规范名化（见 [`canonical_goal_type`]）；否则零开销。
 pub fn run_by(
     ty: &Expr,
     by: &Expr,
     initial_binders: &[Binder],
     prefix_src: &str,
     options: &CompileOptions,
+    canonical_goal: bool,
 ) -> Result<ByOutcome, CompileError> {
     let Expr::By {
         tactics,
@@ -106,6 +136,16 @@ pub fn run_by(
             span,
         )
     })?;
+    // G-05（设计 `docs/design/namespace-open.md` §4.6）：文件用了 namespace/open
+    // 时，根目标先过一遍内核 pp —— `apply` 的 `unify_spine` 是**文本**对齐
+    // （codomain 来自内核 pp、目标来自源 AST），源里的短名 `mem` 与内核的
+    // `A.mem` 文本不同，会让 `apply` 假报不匹配。`canonical_goal == false`
+    // （没碰 namespace 的文件）时这一步完全跳过：零额外开销、行为逐字不变。
+    let root_ty = if canonical_goal {
+        canonical_goal_type(&root_ty, initial_binders, prefix_src, options)
+    } else {
+        root_ty
+    };
     let mut nodes: Vec<GoalNode> = Vec::new();
     let mut worklist: Vec<usize> = Vec::new();
     let mut steps: Vec<ByStep> = Vec::new();
@@ -201,7 +241,7 @@ pub fn run_by(
                 }
             }
             Tactic::Rfl { span } => {
-                let Some(candidate) = rfl_candidate(&nodes[cur].ty) else {
+                let Some((candidate, closed)) = rfl_candidate(&nodes[cur].ty) else {
                     return Err(CompileError::elab(
                         ErrorKind::ElabTacticFailed,
                         "`rfl` 需要一个 `Eq α x y` 形状的目标",
@@ -218,10 +258,7 @@ pub fn run_by(
                 );
                 match j.into_iter().next() {
                     Some(Judgement::Match) => {
-                        let e = parse_expr_text(&candidate).map_err(|e| {
-                            CompileError::elab(ErrorKind::ElabTacticFailed, e.to_string(), *span)
-                        })?;
-                        nodes[cur].kind = NodeKind::Closed(e);
+                        nodes[cur].kind = NodeKind::Closed(closed);
                         worklist.pop();
                     }
                     Some(Judgement::Mismatch { expected, actual }) => {
@@ -453,7 +490,12 @@ fn judge(
 }
 
 /// `rfl` 候选：目标 `Eq α x y` → `Eq.refl.{u} α x`（kernel 判定两边）。
-fn rfl_candidate(goal: &Expr) -> Option<String> {
+///
+/// 返回 `(判定用文本, 闭合用 AST)`：**AST 直接构造**，不再把文本回读一遍。
+/// 回读要认识记法（`Eq.refl.{1} (Set α) ((A ᶜ) ∪ B)` 里的符号），而 `by` 引擎
+/// 手里没有记法表——构造 AST 从根上绕开这条文本往返（G-04 第二刀实测：记法
+/// 操作数上的 `by rfl` 曾整条判红）。
+fn rfl_candidate(goal: &Expr) -> Option<(String, Expr)> {
     let (head, args) = spine_of(goal);
     let level = match head {
         Expr::Ident { name, .. } if name == "Eq" => "0".to_string(),
@@ -467,19 +509,33 @@ fn rfl_candidate(goal: &Expr) -> Option<String> {
     }
     let alpha = atom_text(args[0]);
     let a = atom_text(args[1]);
-    Some(format!("Eq.refl.{{{level}}} {alpha} {a}"))
+    let text = format!("Eq.refl.{{{level}}} {alpha} {a}");
+    let span = goal.span();
+    let refl = Expr::UniverseApp {
+        name: "Eq.refl".to_string(),
+        levels: vec![level],
+        span,
+    };
+    let applied = Expr::App {
+        fun: Box::new(refl),
+        arg: Box::new(args[0].clone()),
+        span,
+    };
+    let expr = Expr::App {
+        fun: Box::new(applied),
+        arg: Box::new(args[1].clone()),
+        span,
+    };
+    Some((text, expr))
 }
 
+/// 原子位的文本：**与 `render_atom` 同源**（复合式补括号）。
+///
+/// 曾经这里自己维护一份括号清单，漏了 `Let`/`Match`/`Notation`——`rfl` 候选
+/// `Eq.refl.{1} (Set α) (Aᶜ) ∪ B` 因此被读成 `(Eq.refl … Aᶜ) ∪ B`（G-04 第二刀
+/// 实测：记法操作数上的 `by rfl` 全红）。括号规则只允许有一个实现。
 fn atom_text(expr: &Expr) -> String {
-    let s = render_expr(expr);
-    match expr {
-        Expr::App { .. }
-        | Expr::Lambda { .. }
-        | Expr::Forall { .. }
-        | Expr::Arrow { .. }
-        | Expr::Plus { .. } => format!("({s})"),
-        _ => s,
-    }
+    crate::proof::render_atom(expr)
 }
 
 fn tactic_error(msg: impl Into<String>, span: Span) -> CompileError {

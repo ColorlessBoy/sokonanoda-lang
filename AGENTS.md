@@ -20,8 +20,9 @@ harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deeps
 `REQUIREMENTS.md` §2）与 `docs/design/course-stdlib.md`；判卷一条命令
 `python3 courses/set-theory/tools/check.py`（它的内部用绝对路径 + `grade` 退出码——
 原因见台账 G-12；G-10 已修：`query check` 现在也带 parse 诊断并 exit 1，与 `grade` 同口径）。
-判据是 **G1–G5**（每个目标 `grade` 退出码 0 / 目标存在 / 解答 0 open 且 checked>0 /
-解答覆盖画布每个具名练习 / lib+Demo 0 open），**与规模无关、不锁计数**；
+判据是 **G1–G6**（每个目标 `grade` 退出码 0 / 目标存在 / 解答 0 open 且 checked>0 /
+解答覆盖画布每个具名练习 / lib+Demo 0 open / **G6 清单自洽**：卷章 id 唯一、unit 恰好一章、
+`prereqs` 不悬空——配额差额只报告不判红），**与规模无关、不锁计数**；
 `--selftest` 自检判据通道（故意坏的单元必须被拒），`--json` 出计数，
 `--only "<标签>" --bisect` 二分到第一个判红的声明（不依赖诊断 span——G-15）。
 这门课的判卷已接进 `scripts/soko gate` 与 CI（设计 `docs/design/course-gate-in-ci.md`）。
@@ -148,6 +149,9 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 ```
 
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定。
+**编译缓存**：`sokonanoda build [--clean] [<file>|<dir>]`（CLI）与编辑器里的
+`sokonanoda: build`（`alt+b`）/ `sokonanoda: rebuild`（`alt+shift+b`，先清缓存）
+是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。
 两种接线：
 
 - **opencode**：启动插件自动接线（解析原生 `sokonanoda-lsp`——仓库构建 /

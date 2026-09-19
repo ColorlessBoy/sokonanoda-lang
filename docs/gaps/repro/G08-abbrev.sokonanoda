@@ -1,13 +1,19 @@
--- G-08 最小复现：**没有 abbrev（可展开的类型别名）**
+-- G-08 复现（**已修后形状**，0.60.0）：`abbrev` 是与 `def` **同语义**的拼写。
 --
 -- 期望（官方 Lean 4 语义）：`abbrev Set (α : Type) : Type := α → Prop` 是
--- "定义上可展开"的别名，写在类型位置时对 elaboration 透明（Lean 里
--- `Set α` 与 `α → Prop` 可以互换着用，不需要 `show`/`change`）。
+-- "定义上可展开"的别名，写在类型位置时对 elaboration 透明（`Set α` 与
+-- `α → Prop` 可以互换着用，不需要 `show`/`change`）。
 --
--- 今天的表现（0.58.0 实测）：parse 阶段 `unexpected-token`（`abbrev` 不是命令）。
--- 今天**够用**的替代是 `def`：实测 `def Set (α : Type) : Type := α -> Prop`
--- 之后 `def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a` 能判卷，
--- 因为应用位置会走内核 def-eq 展开（见 OK-set-spike.sokonanoda）。
--- 所以这条是 nice：等真的撞上"类型位置不展开"的具体案例再修。
+-- 修前（0.58.0 实测）：parse 阶段 `unexpected-token`（`abbrev` 不是命令）。
+-- 修后（0.60.0）：`abbrev` 走 `parse_def`，产出与 `def` 逐字段相同的
+-- `Command::Def`——设计 `docs/design/abbrev.md` §1 的实测结论是「本语言里
+-- `def` 与 Lean 的 `abbrev` **没有可观察差异**」（只有一个透明度层级，
+-- reducibility hint 只影响内核 `conv::is_lt` 的展开顺序）。
+--
+-- 下面三行把三件事一次测掉：别名在**类型位**透明（`f : α -> Prop` 直接当
+-- `Set α` 用）、`abbrev` 与非递归 `def` 同族、`#reduce` 展开到 `α -> Prop`。
 
 abbrev Set (α : Type) : Type := α -> Prop
+abbrev Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+def via_alias (α : Type) (f : α -> Prop) (a : α) : Prop := Set.mem α a f
+#reduce Set

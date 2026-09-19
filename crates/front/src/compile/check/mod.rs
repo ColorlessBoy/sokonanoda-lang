@@ -307,9 +307,11 @@ fn lower_by_val(
     val: &Expr,
     prefix_src: &str,
     options: &CompileOptions,
+    canonical_goal: bool,
 ) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
     if let Some((binders, by)) = crate::by::split_by_value(val) {
-        crate::by::run_by(ty, by, &binders, prefix_src, options).map(|o| (o.expr, o.steps))
+        crate::by::run_by(ty, by, &binders, prefix_src, options, canonical_goal)
+            .map(|o| (o.expr, o.steps))
     } else {
         Ok((val.clone(), Vec::new()))
     }
@@ -325,13 +327,18 @@ pub(crate) type LoweredValue = (Expr, Vec<crate::by::ByStep>);
 /// 里的 `closure_prefixes`）。tactic 引擎靠它合成 `#check` 文件来解析
 /// `apply` 的函数类型、`exact` 的项——只给本文件前缀时，入口里
 /// `apply And.intro` 会报 `elab-tactic-failed: unknown identifier`（实测）。
+///
+/// `canonical_goal`（G-05）：本文件用了 `namespace`/`open` 时为 `true`，
+/// tactic 引擎把根目标先过一遍内核 pp（设计 `docs/design/namespace-open.md`
+/// §4.6）；没碰命名空间的文件零额外开销。
 fn lower_value(
     ty: &Expr,
     val: &Expr,
     prefix_src: &str,
     options: &CompileOptions,
+    canonical_goal: bool,
 ) -> Result<LoweredValue, CompileError> {
-    lower_by_val(ty, val, prefix_src, options)
+    lower_by_val(ty, val, prefix_src, options, canonical_goal)
 }
 
 /// 引擎的 per-step 状态 → 报告层 wire 形状（binder 类型渲染成文本）。
@@ -575,6 +582,9 @@ fn run_pass(
         cmd_hovers,
         decl_states,
         example_idx,
+        // G-05：命名空间栈 + open 集合按源码顺序驱动；单元切换处 reset
+        // （`open` 是文件作用域，不跨 `import`——设计 N5）。
+        ns: crate::compile::NamespaceScope::new(),
     };
     walk.run(
         units,
@@ -651,8 +661,13 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
             | Command::Print { .. }
             | Command::Import { .. }
             // 记法命令不是声明（设计 N6）：不进 `top_level_def_spans`，
-            // 所以它既不占名字、也不参与闭包级重名检查。
-            | Command::Notation { .. } => {}
+            // 所以它既不占名字、也不参与闭包级重名检查。G-05 的
+            // namespace/end/open 同理（声明名加前缀已经在 parser 里落定，
+            // 所以这里的 `name` 已经是**全局名**）。
+            | Command::Notation { .. }
+            | Command::Namespace { .. }
+            | Command::End { .. }
+            | Command::Open { .. } => {}
         }
     }
     defs

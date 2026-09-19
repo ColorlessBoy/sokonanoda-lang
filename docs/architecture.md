@@ -102,7 +102,7 @@ sokonanoda-lang/
 
 - `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Str/Sym/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。**数学符号是独立 token**（`Sym`，0.59.0）：`U+2200–U+22FF`（运算符）与 `U+2A00–U+2AFF`（补充运算符）加 `\`，最大咬合；字符串字面量（`Str`）只用于记法声明里的符号文本（`" ∈ "`），未闭合报 `unterminated-string`（span 在开引号）。
 - `--` 是行注释；`sorry` 是 Hole（未完成练习/占位符；旧的 `???` 已于 2026-09-07 移除）。
-- `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / `theorem` / `example` / `axiom` / `inductive ... end` / `#check` / `#reduce` / `#print` / **记法声明 `infix:N` / `infixl:N` / `infixr:N` / `notation`**（0.59.0）。
+- `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / **`abbrev`**（G-08：与 `def` **同语义**的拼写，共用 `parse_def`，设计 `docs/design/abbrev.md`）/ `theorem` / `example` / `axiom` / `inductive ... end` / `#check` / `#reduce` / `#print` / **记法声明 `infix:N` / `infixl:N` / `infixr:N` / `notation`**（0.59.0）/ **一元记法 `prefix:N` / `postfix:N`**（0.60.0）/ **作用域命令 `namespace <name>` / `end <name>` / `open <name>`**（0.60.0）。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）、**`Notation`**（`lhs symbol rhs` 与零元 `symbol`；0.59.0）。
 - **用户自定义记法**（0.59.0，设计 `docs/design/notation-subset.md`，台账 G-04 第一刀）：
   `infix:N " ∈ " => Set.mem`（`infixl` = 左结合、`infixr` = 右结合、零元用
@@ -118,8 +118,34 @@ sokonanoda-lang/
   的点名写法（`Set.mem a A`）今天被内核拒绝、改后仍被拒绝。
   `SemanticKind::ALL` 与 `tm_scope` 表**逐字节不变**（记法符号在语义层分类为
   `Keyword`；未声明的符号不产生 run，所以目标文本里的 `⊢` 仍是普通 run）。
-  **第二刀（未做）**：`𝒫`/`ᶜ`（Unicode 字母，非符号）、`''`/`⁻¹'`（`'` 是标识符
-  续字符）、`×ˢ`、跨 `import` 的记法、binder 记法、记法重载。
+  **第二刀（0.60.0，已落地，同一篇设计 §10–§12）**：`prefix:N`/`postfix:N` 两条
+  一元命令；**声明驱动的词法**（`scan_notation_symbols` + `tokenize_with_symbols`：
+  源码里声明过的符号在**本文件**里被读成 `Sym`，最长匹配、标识符内部也断开 ⇒
+  `𝒫 A`、`Aᶜ`、`f '' A`、`f ⁻¹' B`、`A ×ˢ B` 都读得出来）；**跨 `import` 的记法
+  传播**（闭包加载器**先收 `import` 边、先访问依赖，再解析自己**，把依赖导出的
+  记法表当继承表——`project::is_project_source` 是配套的分发判据，它让"入口单独
+  parse 失败但写了 import"也走闭包）；**一元记法的优先级**（`prefix:N` 的操作数按
+  `parse_operators(N)`、`postfix:N` 在爬升里 `N >= min_precedence` 才吸收 ⇒ N 越大
+  绑得越紧）；展开期用 `judge::judge_type_of` 读目标签名（**不能**用 `judge_infer`
+  ——它剥 binder 时目标本身是函数会错位）。**仍未做**：binder 记法、记法重载、
+  `scoped`、集合字面量、源码级 print-back（设计 §12 逐条给了理由）。
+- **namespace / open**（0.60.0，设计 `docs/design/namespace-open.md`，台账 G-05）：
+  `namespace A` … `end A` 之间的**声明名**自动带前缀（`def mem` ⇒ 全局名
+  `A.mem`；名字本身带点则拼接 `A.Set.mem`）——前缀在 **parser** 里落定
+  （`Command::Def{name}` 一出门就是全局名，于是 `top_level_def_spans`、闭包级
+  重名检查、hover/goto 回填全部零改动）。`open A` 把 `A.` 加进**可省略前缀**
+  集合：引用 `x` 的候选顺序是「当前命名空间链从内到外（`A.B.x` → `A.x`）→
+  精确 `x` → `open` 的前缀（按 open 顺序）」，第一个在 `known` 里能解析的胜出
+  （`compile/scope.rs` 是唯一实现，`resolve_known` 是唯一解析点）。三条命令
+  **都不是声明**（零事件、不进声明表，与 `import`/记法同族）；`end` 错配与
+  文件尾未闭合各有专用 parse 码（`parse-namespace-mismatch` /
+  `parse-namespace-unclosed`）。作用域：`namespace` 是词法块（parser 校验闭合），
+  `open` 是**文件**（单元切换处 reset，不跨 `import`）——但被导入模块的**全局名**
+  本来就可见，所以入口里的 `open Set` 对依赖声明的 `Set.mem` 有效。
+  判卷合成（`judge.rs`）走 `parse_fragment`（容忍片段里未闭合的 `namespace`），
+  且**用了 namespace/open 的文件**里 `by` 块的根目标先过一遍内核 pp
+  （`judge_render_type`）——`apply` 的 spine 对齐是文本比较，源里的短名与内核
+  渲染的全名必须同源。
 - 值位关键字：只有 `by <tactic 序列>`（tactic 之间用 `;` **或换行**分隔，0.51.0）（`Expr::By`，进内核前由 `crates/front/src/by.rs`
 降级为 lambda）。历史：值位 `funapply`（0.22.0 移除）与 `funintro`（0.27.0 移除）
 均已删除，见 `docs/design/remove-funintro.md`。

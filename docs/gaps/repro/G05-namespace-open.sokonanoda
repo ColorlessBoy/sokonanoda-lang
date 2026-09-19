@@ -1,4 +1,4 @@
--- G-05 最小复现：**没有 namespace / open**
+-- G-05 最小复现：**没有 namespace / open** —— 已修（0.60.0）
 --
 -- 期望（官方 Lean 4 语义）：大库靠命名空间分节，且 `open` 之后短名可用：
 --     namespace Set
@@ -6,14 +6,43 @@
 --     end Set
 --     open Set
 --
--- 今天的表现（0.58.0 实测）：parse 阶段 `unexpected-token`（`namespace` 不是命令）。
--- 今天**可以**绕：声明名本身允许带点（`def Set.mem …` 实测可判卷），
--- 所以库里用「伪命名空间」点名（`Set.mem`/`Set.subset`）是现状的替代方案。
+-- 修前表现（0.58.0 实测）：parse 阶段 `unexpected-token`（`namespace` 不是命令）。
+-- 修前**可以**绕：声明名本身允许带点（`def Set.mem …` 实测可判卷），
+-- 所以库里用「伪命名空间」点名（`Set.mem`/`Set.subset`）是当时的替代方案。
 -- 缺的是：`open`（短名）、`end`、以及 `namespace` 带来的名字作用域与消歧。
--- 后果：painful 而非 blocker——但它与 G-02 叠加时（构造子不能带点）就没有退路了。
+--
+-- 修后契约（G-05 / docs/design/namespace-open.md）——本文件从此是「缺口即测试」，
+-- 判据由 `scripts/gap.py` 给出：**干净判卷**（退出码 0 + 有 `decl.checked` +
+-- 无 diagnostic）。三条命令**都不是声明**：`namespace`/`end`/`open` 一行事件都
+-- 不产生，所以下面只有 8 条 `decl.checked`（`Foo.x` / `use_short` / `A.y` /
+-- `A.B.y` / `A.B.z` / `A.Set.mem` / `pointful` / `nested`）。
+--   N3 声明名加前缀：`namespace Foo` 里的 `def x` 全局名是 `Foo.x`；
+--   N4 解析顺序：① 命名空间链从内到外（`A.B` 里的 `y` ⇒ `A.B.y`，不是 `A.y`）
+--      → ② 精确名 → ③ `open` 的前缀；
+--   N3 拼接：`namespace A` 里的 `def Set.mem` ⇒ 全局名 `A.Set.mem`（与 Lean 同）。
 
 namespace Foo
-def x : Prop := Prop
+def x : Type := Prop
 end Foo
 
+-- ③ `open` 的前缀：`x` 解析到 `Foo.x`（`open` 只影响解析，不重命名任何东西）。
 open Foo
+def use_short : Type := x
+
+-- ① 当前命名空间链，从内到外、最长前缀优先：`A.B.z := y` 取 `A.B.y`（Type）；
+--    若错误地取 `A.y`（Prop）内核会拒绝——所以这条断言由内核判定。
+namespace A
+def y : Prop := forall (p : Prop), p -> p
+namespace B
+def y : Type := Prop
+def z : Type := y
+end B
+end A
+
+-- ② 精确名与点名写法：`A.Set.mem` 是 N3 的拼接结果，从外面照旧可用；
+--    `A.B.z` 是嵌套命名空间里的全局名。
+namespace A
+def Set.mem : Type := Prop
+end A
+def pointful : Type := A.Set.mem
+def nested : Type := A.B.z

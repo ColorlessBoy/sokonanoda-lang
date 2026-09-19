@@ -76,6 +76,7 @@ bash docs/gaps/repro/G17-query-goals-holes-parse-error.sh    # goals/holes 同�
 bash docs/gaps/repro/G06-course-import.sh                    # course 聚合不认 import
 bash docs/gaps/repro/G13-axiom-binder-params.sh              # axiom 不吃 binder 参数表
 bash docs/gaps/repro/G15-query-check-bare-offsets.sh         # query check 的 failed[]/warnings[] 只给裸 offset（已修 ⇒ exit 1）
+bash docs/gaps/repro/G07-course-manifest-v2.sh               # 课程清单扁平（已修 ⇒ exit 1）
 scripts/soko grade docs/gaps/repro/G14-single-universe-binder.sokonanoda  # 只允许一个宇宙 binder
 scripts/soko grade docs/gaps/repro/G01-open-exercise-signature.sokonanoda    # 开练习签名免检（已修 ⇒ exit 1）
 scripts/soko grade docs/gaps/repro/G01-course-signature-mutations.sokonanoda # 课程级签名变异体（已修 ⇒ exit 1）

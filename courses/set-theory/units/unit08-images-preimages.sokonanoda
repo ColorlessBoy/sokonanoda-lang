@@ -117,6 +117,17 @@ theorem image_mono (α β : Type) (f : α -> β) (A B : Set α)
     (h : Set.subset α A B) : Set.subset β (Set.image α β f A) (Set.image α β f B) :=
   Set.image_mono α β f A B h
 
+-- 演示（记法，G-04 第二刀）：同一句话用**数学符号**再写一遍——`f '' A` 就是
+-- `Set.image α β f A`。中缀记法 `infixr:80 " '' " => Set.image` 写在
+-- `lib/Set.sokonanoda` 里，随 import 带进来：**本文件不重声明任何记法**。
+-- 两个前导类型参数由记法路径自己解出（`α` 来自 `A : Set α`、`β` 来自
+-- `f : α -> β` 的陪域），点名形式则必须写全 `Set.image α β f A`。
+-- 写成 `example`（与本文件"演示 8"同款）：演示不该往单元里塞具名声明，
+-- 课程门禁的 `decl.checked` 计数因此**一个都不动**。
+example (α β : Type) (f : α -> β) (A B : Set α)
+    (h : Set.subset α A B) : Set.subset β (f '' A) (f '' B) :=
+  Set.image_mono α β f A B h
+
 -- ─────────────────────────────────────────────────────────────
 -- 8.4 演示（已写好）：反例用的元素类型与映射——**映射写在纸面上**
 --

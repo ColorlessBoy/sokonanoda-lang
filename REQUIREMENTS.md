@@ -1658,6 +1658,23 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   CLI 4 条 + 复现件 2 个（`docs/gaps/repro/L01-*.sh`、`L02-*.sh`，修后形状 = exit 1）。
   内核（冻结快照）未改一个字节。
 
+- 2026-09-19（第一百〇七轮，用户）：「**vscode 还是没有 sokonanoda: build 或者 sokonanoda: rebuild
+  的命令。你这个剩下的没做的也要做。**」落地：
+  * **编辑器命令补齐**：`sokonanoda: build`（`alt+b`）与 `sokonanoda: rebuild`（`alt+shift+b`，先
+    `build --clean`）——把 CLI 的编译缓存预热/清理接进编辑器，事件（`build.file`/`build.clean`/
+    `build.summary`）进 **sokonanoda build** 输出面板，跑完刷新练习/项目/课程三棵树；三层测试
+    （静态契约 `crates/cli/tests/extension.rs`、stub 宿主、真 VS Code e2e 14 → 15 例）；
+    版本 feature bump **0.60.0**（两处 + CHANGELOG + 课程 `requires`）。
+  * **「剩下的」全部收口**：**G-05** `namespace`/`open`（含课程 `lib/Set` 迁移）、**G-07** 课程清单 v2
+    （卷/章/先修/标签/配额 + 门禁 **G6 清单自洽**，v1 兼容）、**G-08** `abbrev`（实测与 `def` 同语义）、
+    **L-03** Type 层重写（prelude **B8**：`Eq.rec` + `Eq.mp`/`Eq.mpr`）、**L-06** 累积性边界
+    （内核性质不改 + 新码 `kernel-prop-not-cumulative` + 课程三条绕法）、**记法第二刀**
+    （`prefix`/`postfix`、`𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`、**跨 `import` 传播**）。台账 **24 条 = 22 `fixed`
+    + 2 `workaround`（L-04 / L-06），`open` 归零**，`scripts/gap.py check` 全绿。
+  * **验收**：`scripts/soko gate` exit 0（`cargo test --workspace --locked` **1107 passed**；
+    课程门禁 **36 目标 · 329 checked · 99 open · 0 判负**；台账门禁全绿）；内核 `crates/kernel/**`
+    一个字节未动。
+
 - 2026-09-19（第一百〇六轮，收尾）：**0.59.0 发布收尾 —— 语言线五刀 + 课程门禁 + 站点页**。
   本条把这一版**用户可见**的变化收在一起（逐条的前置记录见上文各轮）：
   * **版本**：两处版本号 = `0.59.0`（`Cargo.toml` + `editor/vscode/package.json`，契约测试

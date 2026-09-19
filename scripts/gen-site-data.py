@@ -18,6 +18,11 @@ This script pulls each from its real source so the numbers cannot drift:
 
 Counts are never hand-written anywhere: the 卷 I block is measured by running the
 course gate, and every unit carries the gate's own `status`/`checked`/`open`.
+The manifest may be the flat v1 array or the structured v2 object
+(`soko.course/2`, ledger G-07): v2 additionally yields a `volumes` tree
+(volume → chapter → units, with `prereqs`/`tags`/planned `quota`) whose unit
+entries are the very same measured rows, so the page can group without a second
+source of truth.
 Measurement never triggers a toolchain download (`SOKONANODA_OFFLINE=1`) — the
 repo explicitly refuses "在 CI 里 setup 下载二进制" (docs/design/course-gate-in-ci.md
 §8) — so when no pinned CLI is resolvable the counts of the *previous* run are
@@ -70,24 +75,76 @@ def get_version():
 
 
 def _parse_units(text):
-    """Parse a flat course JSON (list of {file,title,title_en,unit})."""
+    """Parse a course manifest — **both shapes** (ledger G-07).
+
+    v1: a flat JSON array of `{file,title,title_en,unit}` (the intro course,
+    `scripts/new-course-repo.sh` skeletons). v2: `{schema, name, title,
+    volumes[].chapters[].units[]}` (卷 I), where the unit entries keep the v1
+    shape verbatim. Returns `(units, volumes)`; `volumes` is `[]` for v1, so
+    the site can group when the manifest says how and stay flat when it does
+    not.
+    """
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        return []
-    if not isinstance(data, list):
-        return []
+        return [], []
 
     units = []
-    for entry in data:
+    volumes = []
+
+    def read_unit(entry):
         if not isinstance(entry, dict):
-            continue
-        units.append({
+            return None
+        return {
             "file": entry.get("file", ""),
             "title": entry.get("title", ""),
             "title_en": entry.get("title_en", ""),
             "unit": entry.get("unit"),
-        })
+        }
+
+    if isinstance(data, list):
+        for entry in data:
+            unit = read_unit(entry)
+            if unit is not None:
+                units.append(unit)
+    elif isinstance(data, dict):
+        raw_volumes = data.get("volumes")
+        if not isinstance(raw_volumes, list):
+            return [], []
+        for raw_volume in raw_volumes:
+            if not isinstance(raw_volume, dict):
+                continue
+            volume = {
+                "id": raw_volume.get("id", ""),
+                "title": raw_volume.get("title", ""),
+                "chapters": [],
+            }
+            raw_chapters = raw_volume.get("chapters")
+            for raw_chapter in raw_chapters if isinstance(raw_chapters, list) else []:
+                if not isinstance(raw_chapter, dict):
+                    continue
+                chapter = {
+                    "id": raw_chapter.get("id", ""),
+                    "title": raw_chapter.get("title", ""),
+                    "prereqs": [p for p in raw_chapter.get("prereqs", []) if isinstance(p, str)]
+                    if isinstance(raw_chapter.get("prereqs"), list) else [],
+                    "tags": [t for t in raw_chapter.get("tags", []) if isinstance(t, str)]
+                    if isinstance(raw_chapter.get("tags"), list) else [],
+                    "quota": (raw_chapter.get("quota") or {}).get("exercises")
+                    if isinstance(raw_chapter.get("quota"), dict) else None,
+                    "units": [],
+                }
+                raw_units = raw_chapter.get("units")
+                for raw_unit in raw_units if isinstance(raw_units, list) else []:
+                    unit = read_unit(raw_unit)
+                    if unit is None:
+                        continue
+                    chapter["units"].append(unit)
+                    units.append(unit)
+                volume["chapters"].append(chapter)
+            volumes.append(volume)
+    else:
+        return [], []
 
     # Stable ordering by unit number (entries without a numeric unit sort last).
     units.sort(
@@ -95,7 +152,7 @@ def _parse_units(text):
         if isinstance(u.get("unit"), int)
         else (True, 0)
     )
-    return units
+    return units, volumes
 
 
 def get_units():
@@ -104,7 +161,7 @@ def get_units():
     Each item carries file/title/title_en/unit, and an extra `en_file` key when
     an English mirror exists under course/en/.
     """
-    units = _parse_units(_read(os.path.join("course", "course.json")))
+    units, _volumes = _parse_units(_read(os.path.join("course", "course.json")))
     for unit in units:
         en_path = os.path.join("course", "en", unit["file"])
         if unit["file"] and os.path.exists(os.path.join(REPO_ROOT, en_path)):
@@ -227,7 +284,7 @@ def _previous_set_theory():
 
 def get_set_theory():
     """Build the `set_theory` block: units from course.json + measured counts."""
-    units = _parse_units(_read(os.path.join(SET_THEORY_DIR, "course.json")))
+    units, volumes = _parse_units(_read(os.path.join(SET_THEORY_DIR, "course.json")))
     if not units:
         return None
 
@@ -272,6 +329,28 @@ def get_set_theory():
             unit["open"] = int(row.get("open", 0) or 0)
         out_units.append(unit)
     block["units"] = out_units
+
+    # v2：卷/章分组（台账 G-07）。单元的计数仍是**门禁实测**填进去的那一份
+    # （按 file 对齐 `block["units"]`），章的配额只是清单里的计划数。
+    if volumes:
+        measured_by_file = {unit["file"]: unit for unit in out_units}
+        out_volumes = []
+        for volume in volumes:
+            out_chapters = []
+            for chapter in volume["chapters"]:
+                out_chapter = {
+                    "id": chapter["id"],
+                    "title": chapter["title"],
+                    "prereqs": chapter["prereqs"],
+                    "tags": chapter["tags"],
+                    "quota": chapter["quota"],
+                    "units": [measured_by_file.get(u["file"], u) for u in chapter["units"]],
+                }
+                out_chapters.append(out_chapter)
+            out_volumes.append(
+                {"id": volume["id"], "title": volume["title"], "chapters": out_chapters}
+            )
+        block["volumes"] = out_volumes
     return block
 
 

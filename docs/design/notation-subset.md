@@ -128,6 +128,10 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
 因此：**文件内、记法命令之后**。在记法声明**之前**使用该符号 ⇒ 未声明符号诊断
 （`parse-notation-unknown-symbol`，hint 给「先声明」与「点名写法」两条出路）。
 
+> **第二刀（0.60.0）把这一条拆成两半**：**本文件自己**的记法仍然"声明之后才
+> 生效"；**被导入模块**声明的记法**从文件头就可用**（与 Lean 的 import 一致，
+> §10.3）。
+
 ### N6 记法不产生事件、不是声明
 
 `infix`/`notation` 命令**不**产生 `decl.checked`/`exercise.open`/`expr.typed`/
@@ -184,7 +188,7 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
   「turnstile stays a plain run」这条断言**原样保留**，正是这条的守护。
 - `𝒫`（U+1D4AB）与 `ᶜ`（U+1D9C）是 Unicode **字母**（数学斜体/修饰字母），
   不在符号类里 ⇒ 仍是标识符字符。第二刀不能用符号类处理它们，需要声明驱动的
-  词法或专门 token（WO 待确认 4，本轮只记录）。
+  词法或专门 token（WO 待确认 4）——**第二刀选了声明驱动的词法**，见 §10.2。
 
 ## 4. 命令 / AST / 分发的落点（as-built）
 
@@ -220,11 +224,14 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
 | 2 | 不做「同级混用报错/需括号」的 Lean 诊断；同级左结合 | WO「不做的事」 |
 | 3 | `x∈A`（无空格）可用——**我们更宽松** | 待确认 3 |
 | 4 | `notation` 不接 `:N`；`infix` 族 `N` 必填 | 待确认 6 |
-| 5 | 记法**不跨 `import`**（Lean 里全局） | N5 + 闭包加载顺序 |
+| 5 | ~~记法**不跨 `import`**（Lean 里全局）~~ **已修（第二刀，0.60.0）**：记法随 `import` 传播，见 §10.3/§11.7 | N5 + 闭包加载顺序 |
 | 6 | 重复声明同一符号是**错误**（Lean 允许重载） | 待确认 5；v1 自定 |
 | 7 | 记号路径**先解操作数、后补类型参数**：操作数未定义时报既有的 `elab-unknown-identifier`，只有"操作数合法但补不出参数"才报 `elab-notation-argument-unsolved` | §2 N4 的 as-built |
 
-## 7. 第二刀（明确不在本轮）
+## 7. 第二刀（明确不在本轮）——**已落地，见 §10–§12**
+
+> 本节是第一刀时写下的清单，保留原文以便对照；每一项的销账情况见 §12。
+> `𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`、跨 `import`、`prefix`/`postfix` 已在 0.60.0 落地。
 
 - **Mathlib 级 + 其它形状**：`𝒫`（`prefix`，且 `𝒫` 是 Unicode **字母**）、
   `''`/`⁻¹'`（`infixr` + `'` 与今天的标识符续接字符冲突）、`×ˢ`（`infixr`，
@@ -296,3 +303,236 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
    把 `courses/set-theory/{lib,sokonanoda.toml}` 复制到 `/tmp`，再写一份改写了两处
    签名的单元②。实测两份都是 `{exercise.open: 10, decl.checked: 1}`、exit 0。
    `the_shipped_course_still_uses_the_pointful_spelling` 把"课程零改动"钉住。
+
+---
+
+# 第二刀（G-04 剩余项，0.60.0）——`prefix` / `postfix` + 声明驱动的词法 + 跨 `import` 记法
+
+> 状态：**已落地（as-built）**。本节是第二刀的设计 + as-built 记录；上面的
+> §1–§9 是第一刀（0.59.0）的记录，**语义规则 N1–N7 继续有效**，本节只写增量。
+> 第一刀的"第二刀清单"（§7）在本节逐条销账，销不掉的写在 §12。
+
+## 10. 设计（增量）
+
+### 10.1 两条新命令：`prefix:N` / `postfix:N`
+
+与 `infix` 族**同族**：源级糖、零事件、不进声明表、文件内作用域（+ §10.3 的
+跨 `import` 传播）、点名形式永久可用、两种写法判卷一致。
+
+```
+prefix:N  " sym " => name     -- `sym a` 展开成 `name <前导参数> a`
+postfix:N " sym " => name     -- `a sym` 展开成 `name <前导参数> a`
+```
+
+`N` 必填、范围 1–1000（与 `infix` 族同一把尺子、同一个诊断
+`parse-notation-precedence`）；符号规则、`=>` 目标规则、重复声明规则全部复用
+`parse_infix_command` 的三段（`parse_notation_precedence` / `parse_notation_symbol`
+/ `expect_notation_arrow`）。
+
+**优先级规则（v1 自定，与 N3 的表并列）**：
+
+| 结合 | 吸收条件 | 操作数怎么解析 |
+|---|---|---|
+| `prefix:N` | 出现在**原子位**（`parse_app` 的头部），总吸收 | 操作数 = `parse_operators(N)` |
+| `postfix:N` | 在爬升循环里 `N >= min_precedence` 才吸收 | 左操作数 = 已经爬好的 `lhs` |
+
+于是 **N 越大绑得越紧**，两条都自洽：
+
+* `prefix:100 " 𝒫 "` ⇒ `𝒫 A ∪ B` = `(𝒫 A) ∪ B`；`prefix:50` ⇒ `𝒫 (A ∪ B)`；
+* `postfix:100 " ᶜ "` ⇒ `A ∪ Bᶜ` = `A ∪ (Bᶜ)`；`postfix:50` ⇒ `(A ∪ B)ᶜ`。
+
+AST 复用 `Expr::Notation` 的**两个已有 `Option` 槽**：前缀 = `lhs: None,
+rhs: Some(操作数)`，后缀 = `lhs: Some(操作数), rhs: None`。于是
+`elab_expr` 的 `[lhs, rhs].flatten()` 直接得到单操作数列表，`elab_notation`
+（N4 的补前导参数机器）**一行不改**就支持一元记法。
+
+### 10.2 声明驱动的词法（第二刀的核心词法增量）
+
+第一刀的符号类（`U+2200–22FF`/`U+2A00–2AFF`/`\`）**收不进**卷 I 要的五个符号：
+
+| 符号 | 码点 | 今天的词法 | 问题 |
+|---|---|---|---|
+| `𝒫` | U+1D4AB | `Ident("𝒫")` | 数学斜体**字母**，`is_ident_start` 为真 |
+| `ᶜ` | U+1D9C | `Ident("ᶜ")` | 修饰字母，同上（且是**续接**字符 ⇒ `Aᶜ` 是一个 Ident） |
+| `''` | U+0027×2 | **词法错误** | `'` 只是续接字符，不能起头 |
+| `⁻¹'` | U+207B U+00B9 U+0027 | `Ident("⁻¹'")` | 上标是标识符字符 |
+| `×ˢ` | U+00D7 U+02E2 | `Ident("×ˢ")` | `×` 是标识符字符 |
+
+所以第二刀改用**声明驱动的词法**（第一刀 §3.4 预留的两条路之一）：
+
+1. **预扫描** `token.rs::scan_notation_symbols(src)`：一趟字符扫描（**跳过
+   `--` 注释与字符串字面量**）收集源码里所有记法命令声明的符号文本。状态机
+   只有三态：`Start` / `Keyword`（刚读完 `infix|infixl|infixr|prefix|postfix|
+   notation`）/ 之后的可选 `:N`，紧跟着的字符串字面量就是符号。
+2. **带符号表词法** `tokenize_with_symbols(src, &symbols)`：`next_token` 在
+   常规分支**之前**先做「声明符号最长匹配」，命中就产出 `Sym(symbol)`；
+   `lex_ident` 的续接循环里也在命中处**断开**（于是 `Aᶜ` = `Ident("A") +
+   Sym("ᶜ")`）。
+3. `parse(src)` = 预扫描 + 带符号表词法（`tokenize(src)` 保持 `symbols = &[]`，
+   逐字节等于今天）⇒ **没有记法声明的文件行为零变化**（A1 的守护不变）。
+
+边界（写进 §11）：声明过的符号在**本文件/本闭包**里是保留的——同名标识符
+会被读成符号（与第一刀的 `∈` 已经如此，一致）。
+
+### 10.3 跨 `import` 的记法传播
+
+**取舍：改闭包加载顺序（重解析），不是"把记法内联复制到每个单元"。**
+
+理由（实测驱动）：内联复制要求每个用到 `𝒫`/`''` 的单元**自己重写一遍声明行**，
+而声明行里的目标名是 `Set.powerset`——它由 `lib/Set.sokonanoda` 提供。复制到
+单元里就成了"单元自己声明记法"，于是 ① 每个单元多 6 行样板；② 符号的重载/
+遮蔽语义变成"各文件各说各话"，与 Lean「记法是 import 带来的」直接冲突；
+③ 更糟的是它把"库定义记法、单元直接用"这条课程叙事变成假的。
+重解析只多一趟 parse（教学规模下是微秒级），换来的是**真语义**。
+
+**实现（`project/graph.rs`，闭包加载的最后一步）**：
+
+1. 快速路径：闭包里**没有任何** `Command::Notation` ⇒ 直接返回，闭包逐字节
+   不变（A1 与缓存摘要都不受影响）。
+2. 否则按**拓扑序**（依赖在前）重解析每个未被阻断的模块：把前面模块累积的
+   记法表作为**继承表**传给 `parse_with_notations(src, &inherited)`——它同时
+   喂给词法（符号表）与 parser（算子表）。重解析后把本模块自己声明的记法并进
+   继承表（**同符号后来者覆盖**：本地声明遮蔽继承来的）。
+3. 只重解析**有继承表**的模块；自己声明的记法在第一趟 parse 里已经生效
+   （预扫描看得见本文件的声明行），所以"库自己"不会被多解析一遍。
+
+**语义**：被导入模块的记法在入口文件**从文件头就可用**（与 Lean 的 import
+一致），而不是"声明之后"——"声明之后"仍然约束**本文件自己**的记法（N5）。
+本地重声明同一符号 = **遮蔽**（不再报"本文件已声明"），因为那条错误是给
+"同一个文件里写两遍"准备的。点名的护城河（N4.3）在第二刀**原样保留**。
+
+### 10.4 课程库（卷 I）的五个符号
+
+**放 `courses/set-theory/lib/Set.sokonanoda` 末尾**（不新建 `Notation.sokonanoda`）：
+它们的目标全是 `Set.*`，拆出去会多一条 import 边却没有任何分层收益；而且
+`lib/Set.sokonanoda` 已经是"单元 import 的那一个库"。记法**不是声明**（N6），
+所以加它们**不改变任何计数**（课程门禁的 36/329/99 逐项不变）。
+
+| 记法 | 形状 | 目标 | 目标签名（卷 I 的 L2 层） |
+|---|---|---|---|
+| `𝒫` | `prefix:100` | `Set.powerset` | `(α : Type) → Set α → Set α` |
+| `ᶜ` | `postfix:100` | `Set.compl` | `(α : Type) → Set α → Set α` |
+| `''` | `infixr:80` | `Set.image` | `(α β : Type) → (α → β) → Set α → Set β` |
+| `⁻¹'` | `infixr:80` | `Set.preimage` | `(α β : Type) → (α → β) → Set β → Set α` |
+| `×ˢ` | `infixr:80` | `Set.prod` | `(α β : Type) → Set α → Set β → Set (α × β)` |
+
+（`''`/`⁻¹'` 用 `infixr:80` 是 `prior-art-report.md` §1.3 逐字取证的 Lean 声明行；
+`𝒫`/`ᶜ` 取 100 = 「贴得比 `∪`/`∩`（65）紧」，`×ˢ` 取 80。这三条是**本子集
+自定**，与 N3 的取证状态同级。）
+
+前导类型参数的补全**必须**走 N4 的裸变量匹配：`Set.powerset : (α) → Set α →
+Set α` 的第 2 个参数域是 `Set α`，与 `typeof(A) = Set α₀` 头部匹配 ⇒ `α := α₀`；
+`Set.image : (α β) → (α → β) → Set α → Set β` 的两个前导参数分别从第 3、第 4
+个参数的类型解出。**解不出就报 `elab-notation-argument-unsolved`**，不猜。
+
+## 11. 第二刀 as-built（0.60.0）
+
+设计里的 §10.1–§10.4 全部落地；这一节只记**实现时才暴露出来的事实**，以及
+**落地后与设计初稿不同的地方**。
+
+1. **`parse_def` 之外的第一件事：`𝒫` 之类的符号不能再用「全是标识符字符」拒绝**。
+   第一刀的 `parse_notation_symbol` 用 `symbol.chars().all(is_ident_start)` 拒掉
+   标识符词；`𝒫`（数学斜体字母）正好命中，第二刀当场报 `notation-shape`。改成
+   **只拒纯 ASCII 标识符词**（`in`/`e`/`Set`）：它们会把整个文件里的这个名字
+   都收走（`in` 还是 `infix` 的前缀）。判据抽成
+   `token.rs::{is_ascii_word_symbol, lexer_reserved_symbol_char}`，**预扫描与
+   parser 共用同一份**——实测踩过：预扫描若收了 `"in"`，`infix` 会被拆成
+   `in` + `fix`，报出来的错完全看不懂。
+2. **`''` 从「词法错误」升级为「未声明符号」**：`'` 单独出现时给 `Sym`（第一刀
+   把 `\` 从词法错误改成 `Sym` 是同一个理由——诊断更教学）。副作用是好的：
+   入口用了 import 来的 `''` 时，parse 报的是 `notation-unknown-symbol`，
+   分发逻辑（§11.6）才认得出"这条错可能被 import 治好"。
+3. **`elab_notation` 读目标签名必须用新加的 `judge::judge_type_of`**。
+   `judge_infer` 那条路要先合成 `fun (binders) => target` 再逐层剥 binder，
+   **目标本身是函数**时内核 pp 的多 binder 折叠会让剥离错位——实测
+   `Set.image` 的签名被读成
+   `(β : Sort 1) -> … -> (α : Sort 1) (β : Sort 1) -> …`，于是 `''` 的
+   **两个前导参数一个都解不出**（`elab-notation-argument-unsolved`）。
+   `judge_type_of` 直接 `#check <target>`，不合成 lambda、不剥——签名是常量
+   自己的，与调用点的 binder 无关。**这条是第一刀就潜伏的**（`Set.mem` 恰好
+   没踩到）。
+4. **`notation_prefix_args` 的 `j - missing` 会下溢**：第一刀只测过
+   `missing == 1`（`Set.mem`）；`Set.image` 有 **2** 个前导参数，`j=1` 时
+   `1 - 2` 在 debug 构建下直接 panic（`attempt to subtract with overflow`）。
+   修成 `j.checked_sub(missing)`。
+5. **`rfl` 候选文本的括号清单漏了 `Notation`**：`by.rs::atom_text` 自己维护过
+   一份"哪些形状要补括号"的清单，缺 `Let`/`Match`/`Notation`，于是
+   `Eq.refl.{1} (Set α) (Aᶜ) ∪ B` 被读成 `(Eq.refl.{1} (Set α) Aᶜ) ∪ B`。
+   现在 `atom_text` 直接调 `proof::render_atom`（**括号规则只允许有一个实现**）。
+   顺带把 `rfl` 闭合用的表达式**直接构造成 AST**，不再回读候选文本。
+6. **分发要认「未声明记法符号」这一条 parse 错**：入口用了依赖声明的记法时，
+   `parse(entry)` 必然失败，而 CLI/LSP/真相层都是"先单独 parse、看有没有
+   `import`"来决定走不走闭包——**解析失败 ⇒ 走单文件 ⇒ 永远看不到依赖的记法**。
+   修法是 `project::is_project_source`：parse 成功照旧；parse 失败时**只有**
+   `notation-unknown-symbol` + 源码里有 `import` 行才改判项目（别的解析错误
+   加载多少依赖都还是错，必须原样报——放宽会当场把 `project_features.rs`
+   的三条用例判红）。同一份判据被 `check`/`query`/`build`/`course`/真相层共用。
+7. **闭包加载的顺序对调：先收 `import` 边、访问依赖，再解析自己**。
+   `visit` 原来"先 parse 自己、再从 `Command::Import` 收边"，于是
+   "入口 parse 失败 ⇒ 收不到边 ⇒ 依赖不加载 ⇒ 记法传不过来"是**死锁**
+   （实测闭包里只剩入口一个模块）。现在用 `token::scan_import_lines`
+   （词法级、与 `Lexer::on_import_line` 同款判据）先拿边、先访问依赖，拿到它们
+   **导出的记法表**之后再解析自己；解析成功时 `Command::Import` 的边是权威版本。
+   记法表**按 import 边合并**（不是"闭包里全局"）：没 import 的模块的记法不泄漏。
+8. **重声明继承来的记法是错误，不是遮蔽**。判卷通道会把闭包**首尾相接**成一份
+   合成源码（`judge.rs` 的前缀），两个模块各声明一次 `∪` 在那里必然撞车；与其
+   让同一个程序在两条通道上得到不同答案，不如在源头说不许。副作用：**记法对照页
+   必须自己写 `∈`/`⊆`/`∪`/`∅`**——这正好是第一刀的设计（core 级符号课程库不声明），
+   所以页面的四条声明一条都不用改（lib 声明的五个是**另外**五个符号）。
+9. **`by` 块目标里的记法现在判得动了**（第一刀遗留边界）。`by` 引擎把目标
+   `render_expr` 成文本再 `parse_expr_text` 回读，而回读的片段里没有记法声明。
+   判卷通道本来就为合成声明解析了前缀（`parse_prefix`），现在**顺手从那份
+   `FolFile` 里收记法声明**（顺序对调：前缀先解析），回读时当继承表喂进去。
+   零额外解析开销；前缀里没有记法命令时逐字节等于旧行为。
+10. **一元记法在实参位要加括号**（`f (𝒫 A)`、`f (Aᶜ)`、`Eq.{1} (Set α) (Aᶜ) (…)`）：
+    `starts_atom` 对前缀/后缀符号都是 `false`（与二元记法一致）。**这是设计选择**：
+    `Eq X Aᶜ Y` 报的是响亮的 parse 错，而不是像二元记法那样悄悄按错误的结合性
+    读下去。
+11. **优先级梯子多了一条"绑得太松就让路"的规则**：`postfix:50 " ᶜ "` 配
+    `infixl:65 " ∪ "` 时，`A ∪ Bᶜ` 必须在**外层**（`min_precedence = 0`）吸收成
+    `(A ∪ B)ᶜ`。所以"已声明但不是二元算子"的专用诊断只在
+    `N >= min_precedence` 时报，否则让爬升照常结束。
+12. **课程侧的演示写成 `example`**：单元③/⑧ 各一条记法演示，用 `example` 而不是
+   `theorem`（单元⑧ 的"演示 8"本来就这么写）——**课程门禁的 `decl.checked`
+   计数因此一个都不动**（`example.checked` 是另一类事件）。实测课程门禁
+   **36 目标 · 329 checked · 99 open · 0 判负**，与改前**逐项相同**。
+
+### 11.1 验收（实测）
+
+| 命令 | 结果 |
+|---|---|
+| `cargo test --workspace --locked` | exit 0（front 611 条、CLI 全绿） |
+| `cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check` | exit 0 |
+| `cargo clippy -p sokonanoda-front -p sokonanoda-cli --all-targets --locked` | exit 0 |
+| `python3 courses/set-theory/tools/check.py` | exit 0，**36 目标 · 329 checked · 99 open · 0 判负**（与改前逐项相同） |
+| `python3 courses/set-theory/tools/check.py --selftest` | exit 0 |
+| `python3 scripts/gap.py check` | exit 0 |
+| `node editor/vscode/test-extension-host.js` | exit 0 |
+
+五个符号各自的判卷（真二进制 + `--json`，两种写法计数逐一相等）：
+
+| 符号 | 形状 | 目标 | 记法版 | 点名版 |
+|---|---|---|---|---|
+| `𝒫` | `prefix:100` | `Set.powerset` | exit 0 | exit 0 |
+| `ᶜ` | `postfix:100` | `Set.compl` | exit 0 | exit 0 |
+| `''` | `infixr:80` | `Set.image` | exit 0 | exit 0 |
+| `⁻¹'` | `infixr:80` | `Set.preimage` | exit 0 | exit 0 |
+| `×ˢ` | `infixr:80` | `Set.prod` | exit 0 | exit 0 |
+
+跨 `import`：`courses/set-theory/lib/Set.sokonanoda` 声明五个符号，
+`crates/cli/tests/notation.rs::a_library_notation_works_in_the_entry_through_import`
+把**真课程库**复制到临时目录、写一个**不重声明**任何记法的单元（`𝒫 A` / `Aᶜ` /
+`by rfl`）⇒ exit 0、3 条 `decl.checked`、0 诊断。
+
+## 12. 第二刀仍未做（明确销不掉的）
+
+| # | 未做项 | 理由（不是"没时间"） |
+|---|---|---|
+| 1 | **binder 记法**（`∃ x, …`、`∀ x ∈ s, …`、`notation3`） | 它要动的是 **binder 位置的解析**（`parse_decl_binders`/`forall`/`exists` 的共享路径），与"算子梯子上的糖"不是同一层。第二刀的预扫描/符号表对它一点用都没有；值得单独一刀（台账原话就是「另立」） |
+| 2 | **记法重载**（同一符号多个目标，按期望类型选） | v1 的重复声明是**错误**，第二刀把这条延伸到继承来的符号（§11.8）。重载要求展开期做候选选择 + 歧义诊断，是**语义**增量；而记法的卖点正是"零语义"。真要做，先想清楚"选错了报什么" |
+| 3 | **`scoped` / `open scoped`**（记法的局部开关） | 依赖"重载 + 作用域栈"两件都没做的事；课程侧不需要（全课程一套符号） |
+| 4 | **集合字面量 `{a}` / `{a,b}`** | 这是**新语法**（不是记法）：`{}` 今天是 binder/宇宙参数的定界符，`{a}` 与 `{x : T}` 的消歧要新的 lookahead 规则 |
+| 5 | **源码级 print-back**（goal/hover 显示 `Aᶜ` 而不是 `Set.compl α A`） | 与第一刀同一条：类型文本由**冻结内核的 pp** 产出，记法不进内核 |
+| 6 | **一元记法在实参位免括号** | §11.10 的设计选择；免括号要求 `parse_app` 与算子梯子合并，收益（少两个括号）不值这个复杂度 |
+| 7 | **编辑器里 `abbrev`/记法符号的语义高亮** | `front::semantic::KEYWORDS` 与 `editor/vscode` 的 TM 语法词表必须**同一轮**加（`tm_grammar_keywords_follow_the_single_source` 是守护），而本轮 `editor/vscode/**` 禁改 ⇒ 交给主线同步。声明过的符号本身**已经**按 `Keyword` 着色（第一刀），第二刀不改这条 |
+

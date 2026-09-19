@@ -182,7 +182,7 @@ courses/set-theory/            # 卷 I 集合论（与入门课 course/ 并列�
 ├── units/                     # 单元画布（演示 + 练习；12 单元 + 记法对照页）
 │   └── solutions/             # 解答钥匙（agent 专用）
 ├── gaps/                      # 发现端（权威台账仍在 docs/gaps/）
-└── tools/check.py             # 课程门禁：判据 G1–G5（--selftest/--bisect/--json/--report；已接 gate + CI）
+└── tools/check.py             # 课程门禁：判据 G1–G6（--selftest/--bisect/--json/--report；已接 gate + CI）
 ```
 
 **边界**：课程内容与门禁归 `courses/set-theory/`；**缺口台账权威**仍是 `docs/gaps/`
@@ -429,7 +429,9 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
   `units/` 用相对路径判卷与绝对路径结果一致 ✅（实测 exit 0）——门禁**有意**继续用绝对路径。
 
 ### P2 课程骨架（不依赖 P1）— S/M
-- `courses/set-theory/`：`README.md`、`course.json`（先扁平，等 G-07 再升卷/章）、
+- `courses/set-theory/`：`README.md`、`course.json`（**as-built 0.60.0：已是 v2
+  `soko.course/2`**——先扁平、后升卷/章的两步走完，见 P6 的 as-built 段与
+  `docs/design/course-manifest-v2.md`）、
   目录约定、单元命名、依赖表；
 - 课程测试接入（仓库内阶段：`crates/cli/tests/set_theory_course.rs`）；
 - **验收**：空课程骨架能被 `sokonanoda course` 聚合（0 单元也算绿）。
@@ -493,9 +495,34 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 ### P5 阅读面（决策点 D-4）— M
 - 站点加「课程」页：从 `course.json` + 画布生成单元目录 + 进度；可选：
   把注释当散文渲染成「书页」（`literate.toml` 的极简替代，零构建 HTML）；
+- **as-built 补充（0.60.0，G-07）**：卷 I 页面（`site/set-theory.html`）按清单 v2 的
+  **卷 → 章 → 单元**分组渲染，每章标先修/标签/计划练习数；计数仍全部**实测**自
+  `courses/set-theory/tools/check.py --json`（`gen-site-data.py` 不重实现判据）。
 - **验收**：`scripts/check-site.py` 绿 + 站点可见卷 I 目录与每单元计数。
 
 ### P6 度量与规模化 — S/M
+
+> **as-built（0.60.0，2026-09-19，台账 G-07 已修）**：**课程清单 v2 落地**——
+> `courses/set-theory/course.json` 升成 `soko.course/2`（1 卷 / 4 章 / 12 单元，
+> 每章带 `prereqs`/`tags`/`quota.exercises`），**v1 扁平数组继续被接受**
+> （入门课 `course/course.json` 一个字节没改，它就是兼容性的活体回归）。
+> 五个消费者同一轮跟上，设计/as-built 全文 = `docs/design/course-manifest-v2.md`：
+> ① CLI `course` 两种都读，v2 的 `course.unit` **新增** `volume`/`chapter`/`tags`、
+> `course.summary` 新增 `volumes`/`chapters`（v1 事件**一个键都不多**）；
+> ② 课程门禁展平后判 G1–G5（语义一字不改）+ 新判据 **G6 = 清单自洽**
+> （id 唯一、unit 恰好一章、`prereqs` 不悬空；**配额差额只报告不判红**——
+> 「只判形状、不锁计数」），`--selftest` 覆盖 G6（三类故意坏的清单必须判负 +
+> 一份合法 v2 必须判绿），另有纯清单单测 `tools/test_manifest_v2.py`；
+> ③ VS Code 课程树 v2 按 **卷 → 章 → 单元** 分组（v1 平铺逐字保留；
+> 判据是「事件里有没有卷」，客户端仍只吃 `course.unit`）；
+> ④ 站点卷 I 页面按卷/章分组渲染（计数仍**实测**自门禁，零手写）；
+> ⑤ `docs/protocol.md` / `courses/set-theory/README.md` 同步。
+> 实测：门禁 `36 目标 · 329 checked · 99 open · 0 判负`（**与 v2 之前逐个相同**，
+> 只多出配额报告行）；`node editor/vscode/test-extension-host.js` 14/14；
+> 站点 `gen-site-data.py` + `check-site.py` 绿；台账 `gap.py check` 全绿。
+> **仍未做**：多卷聚合（`volumes[]` 已在格式里，CLI 仍只报本清单的卷数——
+> 属于本期的看板工作）、成本台账 `docs/courses/ledger.jsonl`。
+
 - 进度看板：`sokonanoda course` 的计数 + 缺口燃尽（`gap.py list --stats`）；
 - 成本台账：每单元 agent 轮次/耗时（照 `docs/perf/ledger.jsonl` 的做法记进 `docs/courses/ledger.jsonl`）；
 - **验收**：能回答「卷 I 还要几轮」「哪个单元最贵」。
@@ -567,7 +594,7 @@ binder 记法、记法重载留第二刀）→ **WO-007 G-06**
 | G-04 | blocker | 无 `notation`/`infix`（`∈`/`⊆`/`∪` 写不出来）——**0.59.0 第一刀已修**（WO-011）：`∈`/`⊆`/`∅` + 通用四条命令可用；`𝒫`/`''`/`⁻¹'`/`×ˢ` 与跨 `import` 待第二刀 | `repro/G04-notation.sokonanoda`（修后判卷干净） |
 | G-05 | painful | 无 `namespace`/`open`——**0.59.0 仍 open** | `repro/G05-namespace-open.sokonanoda` |
 | G-06 | blocker | `sokonanoda course` 只按单文件编译，不认 `import`——**0.59.0 已修**（WO-007：有 `import` 的单元走同一份项目闭包，`failed == 0` ⇔ `grade` exit 0）；课程**聚合与本单元判卷同判** | `repro/G06-course-import/` + `repro/G06-course-import.sh` |
-| G-07 | painful | 课程清单扁平（无卷/章/先修/标签）——**0.59.0 仍 open**（留给 P6 度量与看板） | —（清单格式问题） |
+| G-07 | painful | 课程清单扁平（无卷/章/先修/标签）——**0.60.0 已修**（清单 v2 `soko.course/2` + 五个消费者跟上：CLI 事件新增 `volume`/`chapter`/`tags`、门禁 G6、课程树分组、站点分组；v1 数组继续合法） | `repro/G07-course-manifest-v2.sh`（修后 exit 1） |
 | G-08 | nice | 无 `abbrev`（`def` 可替代）——**0.59.0 仍 open**（不阻塞课程） | `repro/G08-abbrev.sokonanoda` |
 | G-09 | painful | 内核断言以裸 `left: 1 right: 0` 外泄，hint 是通用「类型不匹配」——**0.59.0 已修**（两半：包装层稳定码 `kernel-internal` + 「这不是你的代码问题」提示；唯一已知可达触发路径随 G-03 关闭 ⇒ 撤下 `repro`，见 `notes`） | —（复现件已随 G-03 转绿撤下） |
 | G-13 | painful | `axiom` 不吃 binder 参数表（`def`/`theorem` 吃；调研探针发现）——**0.59.0 已修**（WO-008） | `repro/G13-axiom-binder-params.sh` |

@@ -2,6 +2,12 @@
 //! manifest (the agent-facing material library) into a progress map
 //! (docs/design/course-status.md; event contract in docs/protocol.md).
 //!
+//! The manifest comes in two shapes and **both are read** (ledger G-07,
+//! design `docs/design/course-manifest-v2.md`): the v1 flat array
+//! (`course/course.json`) and the structured v2 object (`soko.course/2`,
+//! `courses/set-theory/course.json`). Parsing lives in [`manifest`]; v1 stays
+//! the reference behaviour — its events gain no new keys (additive-only).
+//!
 //! Units with `import` go through the **project closure** (WO-007 / G-06): the
 //! same closure, module root and cache digest as `grade`/`query check`/`build`.
 //! A unit without `import` keeps the single-file pipeline byte for byte.
@@ -9,6 +15,9 @@
 //! Progress is not an error: open/failed exercises still exit 0 — only an
 //! unreadable manifest fails.
 
+mod manifest;
+
+use manifest::Manifest;
 use sokonanoda_front::compile::{prelude_mode_from_source, CheckEvent, CompileOptions};
 use sokonanoda_front::project::find_manifest;
 use std::path::{Path, PathBuf};
@@ -35,18 +44,25 @@ pub(crate) fn course(manifest: &str, json: bool) -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let Ok(entries) = serde_json::from_str::<Vec<serde_json::Value>>(&raw) else {
-        eprintln!("error: {manifest} is not a course manifest (JSON array expected)");
-        return ExitCode::FAILURE;
+    let course = match manifest::parse(&raw) {
+        Ok(course) => course,
+        Err(reason) => {
+            eprintln!(
+                "error: {manifest} is not a course manifest \
+                 (v1 flat JSON array or a `{}` object expected): {reason}",
+                manifest::SCHEMA_V2
+            );
+            return ExitCode::FAILURE;
+        }
     };
 
     let base = manifest_path.parent().unwrap_or(Path::new("."));
     let mut totals = UnitCounts::default();
     let mut units = 0usize;
-    for entry in &entries {
-        let file = entry["file"].as_str().unwrap_or_default();
-        let title = entry["title"].as_str().unwrap_or("（无标题）");
-        let unit = entry["unit"].as_u64().unwrap_or(0);
+    for entry in &course.units {
+        let file = entry.file.as_str();
+        let title = entry.title.as_str();
+        let unit = entry.unit;
         units += 1;
 
         let unit_path = base.join(file);
@@ -62,40 +78,44 @@ pub(crate) fn course(manifest: &str, json: bool) -> ExitCode {
                 totals.failed += counts.failed;
                 totals.reduced += counts.reduced;
                 if json {
-                    println!(
-                        "{}",
-                        serde_json::json!({
-                            "type": "course.unit",
-                            "file": file,
-                            "title": title,
-                            "unit": unit,
-                            "checked": counts.checked,
-                            "open": counts.open,
-                            "failed": counts.failed,
-                            "reduced": counts.reduced,
-                        })
-                    );
+                    let mut event = serde_json::json!({
+                        "type": "course.unit",
+                        "file": file,
+                        "title": title,
+                        "unit": unit,
+                        "checked": counts.checked,
+                        "open": counts.open,
+                        "failed": counts.failed,
+                        "reduced": counts.reduced,
+                    });
+                    add_v2_context(&mut event, entry);
+                    println!("{event}");
                 } else {
                     println!(
-                        "unit {unit} {title} —— {} checked · {} open · {} failed",
-                        counts.checked, counts.open, counts.failed
+                        "unit {unit}{} {title} —— {} checked · {} open · {} failed",
+                        chapter_suffix(entry),
+                        counts.checked,
+                        counts.open,
+                        counts.failed
                     );
                 }
             }
             Err(message) => {
                 if json {
-                    println!(
-                        "{}",
-                        serde_json::json!({
-                            "type": "course.unit",
-                            "file": file,
-                            "title": title,
-                            "unit": unit,
-                            "error": message,
-                        })
-                    );
+                    let mut event = serde_json::json!({
+                        "type": "course.unit",
+                        "file": file,
+                        "title": title,
+                        "unit": unit,
+                        "error": message,
+                    });
+                    add_v2_context(&mut event, entry);
+                    println!("{event}");
                 } else {
-                    println!("unit {unit} {title} —— 错误：{message}");
+                    println!(
+                        "unit {unit}{} {title} —— 错误：{message}",
+                        chapter_suffix(entry)
+                    );
                 }
             }
         }
@@ -109,15 +129,62 @@ pub(crate) fn course(manifest: &str, json: bool) -> ExitCode {
                 "checked": totals.checked,
                 "open": totals.open,
                 "failed": totals.failed,
+                // v2 additions (ledger G-07): always present, `0` for a v1
+                // flat manifest — a count is a number, not a presence flag.
+                "volumes": course.volumes,
+                "chapters": course.chapters,
             })
         );
     } else {
         println!(
-            "共 {} 单元 —— {} checked · {} open · {} failed",
-            units, totals.checked, totals.open, totals.failed
+            "共 {} 单元{} —— {} checked · {} open · {} failed",
+            units,
+            structure_suffix(&course),
+            totals.checked,
+            totals.open,
+            totals.failed
         );
     }
     ExitCode::SUCCESS
+}
+
+/// Add the v2 context to a `course.unit` event — **only when the manifest
+/// actually carries it** (ledger G-07: additive-only; a v1 unit gains no key).
+fn add_v2_context(event: &mut serde_json::Value, entry: &manifest::UnitEntry) {
+    let Some(volume) = &entry.volume else {
+        return;
+    };
+    event["volume"] = serde_json::json!({"id": volume.id, "title": volume.title});
+    if let Some(chapter) = &entry.chapter {
+        event["chapter"] = serde_json::json!({
+            "id": chapter.id,
+            "title": chapter.title,
+            "tags": chapter.tags,
+        });
+        // Flat copy for consumers that filter by tag without descending
+        // (design `course-manifest-v2.md` §4.1).
+        event["tags"] = serde_json::json!(chapter.tags);
+    }
+}
+
+/// Human view: `（卷 I 集合论 / I.1 集合、子集与集合运算）` for a v2 unit,
+/// nothing at all for a v1 one.
+fn chapter_suffix(entry: &manifest::UnitEntry) -> String {
+    match (&entry.volume, &entry.chapter) {
+        (Some(volume), Some(chapter)) => {
+            format!("（{} / {} {}）", volume.title, chapter.id, chapter.title)
+        }
+        (Some(volume), None) => format!("（{}）", volume.title),
+        _ => String::new(),
+    }
+}
+
+/// Human totals line: `· 1 卷 4 章` for v2, nothing for v1.
+fn structure_suffix(manifest: &Manifest) -> String {
+    if manifest.volumes == 0 && manifest.chapters == 0 {
+        return String::new();
+    }
+    format!("（{} 卷 {} 章）", manifest.volumes, manifest.chapters)
 }
 
 /// One unit's counts.
@@ -130,16 +197,18 @@ pub(crate) fn course(manifest: &str, json: bool) -> ExitCode {
 ///   only, and `failed` sums the closure because `attach_diagnostics` hangs
 ///   project-level errors on some module (`failed == 0` ⇔ `grade` exits 0).
 fn count_unit(path: &Path, course_dir: &Path, src: &str) -> Result<UnitCounts, String> {
-    // Reuse the CLI checker's parse stage so manifest maps never crash on
-    // unparseable units; compile_cached needs the parsed file anyway.
-    let file = sokonanoda_front::parse(src).map_err(|e| e.message.to_string())?;
     // Prelude choice: a file-level `-- sokonanoda:prelude` directive decides
     // (same as `check`/`query`/`build`).
     let options = CompileOptions {
         prelude: prelude_mode_from_source(src),
     };
 
-    if !file.commands.iter().any(|command| command.is_import()) {
+    // 分发用 `is_project_source`（G-04 第二刀）：入口**单独 parse 失败**但写了
+    // `import` 时也走闭包——它可能用了依赖声明的记法，闭包路径能编。
+    if !sokonanoda_front::project::is_project_source(src) {
+        // Reuse the CLI checker's parse stage so manifest maps never crash on
+        // unparseable units; compile_cached needs the parsed file anyway.
+        let file = sokonanoda_front::parse(src).map_err(|e| e.message.to_string())?;
         let (out, _report) = crate::check::compile_cached(&file, src, &options);
         let mut counts = UnitCounts::default();
         tally(&mut counts, &out.events);

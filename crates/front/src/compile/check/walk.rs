@@ -24,6 +24,7 @@ use crate::compile::event::CompileOutput;
 use crate::compile::goals::{expr_has_hole, open_goal, spine_without_arg, GoalTemplates};
 use crate::compile::prelude::CompileOptions;
 use crate::compile::report::{DeclKind, DeclState};
+use crate::compile::scope::NamespaceScope;
 use crate::compile::units::SourceUnit;
 use crate::{Binder, Command, CtorDecl, Expr, IotaRule, RecDecl, Span};
 use sokonanoda::builder::EnvBuilder;
@@ -42,6 +43,11 @@ pub(super) struct Walk<'arena> {
     pub(super) decl_states: Vec<DeclState>,
     /// `example` 的内部名计数器（`_example_N`，按出现次序）。
     pub(super) example_idx: usize,
+    /// G-05：命名空间栈 + `open` 集合。按源码顺序推进（`namespace`/`end`/`open`
+    /// 三条命令的臂），单元切换处 [`NamespaceScope::reset`]——`open` 是**文件**
+    /// 作用域，不跨 `import`（设计 N5）；`namespace` 由 parser 校验闭合，所以
+    /// 单元边界上栈必然为空。
+    pub(super) ns: NamespaceScope,
 }
 
 /// 单个命令的派生上下文：每个命令算一次，arm 里按需取用。
@@ -55,6 +61,10 @@ struct CmdCtx<'a> {
     env_before: usize,
     options: &'a CompileOptions,
     skip: Option<&'a KernelFailed>,
+    /// G-05：**本单元**用了 `namespace`/`open` ⇒ `by` 引擎的根目标先过一遍
+    /// 内核 pp（`docs/design/namespace-open.md` §4.6）。没碰命名空间的文件
+    /// 零额外开销、行为逐字不变。
+    canonical_goal: bool,
 }
 
 /// 把一个引用重借成**局部寿命**。
@@ -81,8 +91,27 @@ impl<'arena> Walk<'arena> {
         all_templates: &[GoalTemplates],
         closure_prefixes: &[String],
     ) {
+        // G-05：每个单元是否用了 namespace/open（`by` 引擎的根目标规范化开关，
+        // 每单元算一次；没用到的文件零开销）。
+        let unit_uses_namespaces: Vec<bool> = units
+            .iter()
+            .map(|unit| {
+                unit.file.commands.iter().any(|command| {
+                    matches!(
+                        command,
+                        Command::Namespace { .. } | Command::End { .. } | Command::Open { .. }
+                    )
+                })
+            })
+            .collect();
         for (idx, &(unit_idx, command)) in flat.iter().enumerate() {
             let unit = &units[unit_idx];
+            // G-05 N5：单元（文件）切换处清空作用域——`open` 与 `namespace`
+            // 都是文件内的（`import` 不做模块限定，但被导入模块的**全局名**
+            // 本来就可见，所以入口里的 `open Set` 对依赖的 `Set.mem` 仍然有效）。
+            if idx == 0 || flat[idx - 1].0 != unit_idx {
+                self.ns.reset();
+            }
             let trusted = trust.is_some_and(|t| idx < t.before);
             let env_before = self.builder.declaration_count();
             // `match` 的宇宙查询用前缀源码（与 `by` 同一条合成 `#check` 路线）：
@@ -111,6 +140,7 @@ impl<'arena> Walk<'arena> {
                 env_before,
                 options,
                 skip,
+                canonical_goal: unit_uses_namespaces[unit_idx],
             };
             match command {
                 // `import` 自身不产生声明：被导入模块的命令由项目层按拓扑序
@@ -161,6 +191,13 @@ impl<'arena> Walk<'arena> {
                 // 记法命令**不是声明**（设计 N6）：不 elaborate、不产
                 // PendingOp、不进声明表——与 `Command::Import` 同族。
                 Command::Notation { .. } => {}
+                // G-05：三条作用域命令同样不是声明。声明名加前缀在 parser 里
+                // 已经落定（N3），这里只维护**引用解析**用的作用域（N4）：
+                // `namespace` 压栈、`end` 弹栈、`open` 进可省略前缀集合。
+                // trusted 前缀也要走（否则后半段的解析会丢作用域）。
+                Command::Namespace { name, .. } => self.ns.push(name),
+                Command::End { .. } => self.ns.pop(),
+                Command::Open { name, .. } => self.ns.open(name),
             }
         }
     }
@@ -188,8 +225,9 @@ impl<'arena> Walk<'arena> {
             prefix_src,
             options,
             inductives: &self.inductives,
+            ns: &self.ns,
         };
-        let lowered = match lower_value(ty, val, prefix_src, options) {
+        let lowered = match lower_value(ty, val, prefix_src, options, c.canonical_goal) {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
@@ -375,8 +413,9 @@ impl<'arena> Walk<'arena> {
             prefix_src,
             options,
             inductives: &self.inductives,
+            ns: &self.ns,
         };
-        let lowered = match lower_value(ty, val, prefix_src, options) {
+        let lowered = match lower_value(ty, val, prefix_src, options, c.canonical_goal) {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
@@ -568,6 +607,7 @@ impl<'arena> Walk<'arena> {
             prefix_src,
             options,
             inductives: &self.inductives,
+            ns: &self.ns,
         };
         if trusted {
             if skip.is_some_and(|s| s.contains_key(&idx)) {
@@ -677,8 +717,9 @@ impl<'arena> Walk<'arena> {
             prefix_src,
             options,
             inductives: &self.inductives,
+            ns: &self.ns,
         };
-        let lowered = match lower_value(ty, val, prefix_src, options) {
+        let lowered = match lower_value(ty, val, prefix_src, options, c.canonical_goal) {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
@@ -854,6 +895,7 @@ impl<'arena> Walk<'arena> {
                 &mut self.inductives,
                 prefix_src,
                 options,
+                &self.ns,
                 name,
                 params,
                 ty,
@@ -884,6 +926,7 @@ impl<'arena> Walk<'arena> {
             &mut self.inductives,
             prefix_src,
             options,
+            &self.ns,
             name,
             params,
             ty,
@@ -944,6 +987,7 @@ impl<'arena> Walk<'arena> {
                 prefix_src,
                 options,
                 inductives: &self.inductives,
+                ns: &self.ns,
             },
         ) {
             Ok(e) => {
@@ -988,6 +1032,7 @@ impl<'arena> Walk<'arena> {
                 prefix_src,
                 options,
                 inductives: &self.inductives,
+                ns: &self.ns,
             },
         ) {
             Ok(e) => {
@@ -1012,8 +1057,9 @@ impl<'arena> Walk<'arena> {
     fn print(&mut self, c: &CmdCtx<'_>, name: &str, span: Span) {
         let idx = c.idx;
         // R2：`#print mk` 与 `#print Wrap.mk` 打印同一条声明（别名解析到规范名）；
-        // 歧义/未知走各自稳定的错误码，与 `#check` 同源。
-        let canonical = match resolve_known(&self.known, name, span) {
+        // 歧义/未知走各自稳定的错误码，与 `#check` 同源。G-05：命名空间/open
+        // 的候选顺序也走这一条（`#print mem` 在 `namespace Set` 里解析到 `Set.mem`）。
+        let canonical = match resolve_known(&self.known, &self.ns, name, span) {
             Ok(canonical) => canonical,
             Err(e) => {
                 self.out.push_error(idx, e);
