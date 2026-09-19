@@ -55,6 +55,16 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 6. **验收**：`scripts/soko gate` exit 0（`cargo test --workspace --locked` **1163 passed / 0 failed**；
    课程门禁 **36 目标 · 329 checked · 99 open · 0 判负**；缺口台账门禁全绿）；版本 0.61.0（两处）+
    课程 `requires = "0.61"`；内核零改动。
+7. **发布结果（2026-09-19 实测）**：push main（`f3902b3`）→ CI **一次全绿（9m18s）** → auto-tag
+   打 **`v0.61.0`** → `release` **全 success** → GitHub Release **26 资产** + Marketplace 收录
+   **0.61.0**。**发布产物实测**（下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`）：`shasum -c`
+   **OK** → `--version` = `sokonanoda 0.61.0` → 一段用新语法的文件判卷：`namespace N` +
+   `abbrev T : Type := Prop -> Prop` + `def f : T := …` ⇒ 全局名 **`N.f`** 与 `T`/`f` 全部
+   `decl.checked`（G-05 + G-08 在发布产物里可用）；`cast` 已可解析（该 smoke 文件里两条诊断来自
+   它自己的宇宙层级写法，不是缺名字）。
+   注：本轮 bump 后第一次 gate 曾 exit 3——`target/debug` 还是 0.60.0 而版本钉已到 0.61.0，
+   启动器按 G-16 的守卫**拒绝**了缓存里的 0.55.0（守卫工作正常）；`cargo build -p sokonanoda-cli`
+   重建后 gate 复绿。
 
 ## 本轮进度（2026-09-19，第一百〇七轮：0.60.0 —— 编辑器 build/rebuild + 五个缺口收口）
 
