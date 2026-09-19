@@ -125,15 +125,34 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    裸**模式**仍被接受，为一致性一起改）。课程门禁 **36 目标 · 329 checked · 99 open ·
    0 判负**——`checked` 少掉的 26 条正是删掉的重复脚手架，`open` 一条不变（= 没删练习、
    没加 `sorry` 的机械证据）。L-01/L-02 台账 `notes` 补记 P4 已跟随。
-11. **推 main 后第一次 CI 红，已修**（run 35411049219）：`test` job 红在 LSP 项目哨兵
+11. **发布结果（2026-09-19 实测）**：push `main`（`347bd83`）→ 第一次 CI **红**在 LSP 项目
+   哨兵（下一条），修好后重推（`3c145e9`）→ CI **7/7 job 全绿**（lint / test / e2e ubuntu×2 /
+   e2e macos-latest / e2e-ledger / **auto-tag**）→ auto-tag 打 **`v0.59.0`** 并 dispatch
+   `release` → release **11 job 全 success** → GitHub Release **26 资产**
+   （lsp ×8 / cli ×8 / vsix ×9 / `SHA256SUMS`）+ Marketplace 收录 **0.59.0**
+   （2026-09-19T01:30:07Z 索引；9 个平台 VSIX 全部 publish 成功）。
+   **发布产物实测**（下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`）：`shasum -c` **OK**
+   → `--version` = `sokonanoda 0.59.0` →
+   **G-01**：`theorem t9 : 3 := sorry` ⇒ `diagnostic` `kernel-expected-sort` + exit 1
+   （签名受检真的在包里）；**G-04**：`infix:50 " ∈ "` 定义后 `x ∈ A` 判卷通过；
+   **G-15**：`query check --compact` 的 `failed[0]` 带 `start_line/start_col/end_line/end_col`
+   （1:14→1:15）且 `start/end` 仍是字节 offset；**L-01/L-02**：无 `import` 直接用
+   `And.intro` / `Or.elim` / `Not.intro` / `Iff.refl` / `Iff.symm` / `Iff.trans` / `absurd` /
+   `Eq.symm` 全部 `decl.checked`。`e2e-ledger` 自动把三条腿（Linux×2 + Darwin×1，各 **14/14**、
+   `dirty=false`、server `0.59.0 == 扩展 v0.59.0 (bundled)`）回提交进 `docs/e2e/ledger.jsonl`；
+   官网实测：进度页第一百〇六轮、`data/site.json` = `version 0.59.0` + `set_theory` 36 目标 ·
+   329 checked · 99 open · 0 判负。性能基线见 `docs/perf/ledger.jsonl`（下一条）。
+12. **推 main 后第一次 CI 红，已修**（run 35411049219）：`test` job 红在 LSP 项目哨兵
    `perf_project_did_open_and_keystroke`（CI 实测按键 480ms > 300ms 预算；同机单跑 17ms、
    满负载并行 86ms，且 pre-batch 与当前二进制同夹具对拍 best 26ms vs 25ms ⇒ **无产品回归**）。
    这是 2026-09-18「串行 + best-of-N」口径的**漏网用例**（当时只改了单文件延迟，项目级漏了）：
    修法是按键延迟改来回编辑 best-of-3 + 三个 project 用例加 `PROJECT_PERF_LOCK` 互相串行，
    **阈值不动**；修后满负载并行连跑 3 次 = 17/20/19ms。`auto-tag` 被这次红正确挡住
    （0.59.0 没有带着假红发出去）。台账与预防：`docs/CI-FAILURES.md`（2026-09-19 条）+
-   `docs/PERF.md` §采样口径（纪律升级为"所有性能哨兵默认串行 + best-of-N"）。
-12. **未做 / 下一轮**：记法第二刀（`𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`、跨 `import` 的记法、binder
+   `docs/PERF.md` §采样口径（纪律升级为"所有性能哨兵默认串行 + best-of-N"）；
+   **0.59.0 性能基线已留档**：`docs/perf/ledger.jsonl`（front `keystroke_recompile_closure`
+   best 35.26ms vs 0.58.0 的 33.88ms、lsp 项目按键 14ms 与 0.58.0 一致 ⇒ 五刀无开销回归）。
+13. **未做 / 下一轮**：记法第二刀（`𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`、跨 `import` 的记法、binder
    记法、重载）；**L-03**（`Eq.subst` 的 Type 层重写）；L-06（无累积性 + `Exists.elim`
    只能 Prop）；G-05/G-07/G-08 等 `painful` 项；课程侧小清扫（单元文件头里 9 处
    「逻辑（lib.Logic）」的来源标注改成「prelude 提供」）；发布本身全自动

@@ -1720,5 +1720,14 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     注释的空壳**（prelude 已自带同样的 30 个名字；34 处 `import lib.Logic` 一字未改），
     课程侧 65 处项位裸名 `inl`/`inr` 改点号名 `Or.inl`/`Or.inr`（G-02 定形后裸项名不存在）；
     课程门禁 **329 checked · 99 open · 0 判负**（多出来的 26 条正是删掉的重复脚手架）。
+  * **发布结果（2026-09-19 实测）**：push main → CI **7/7 job 全绿** → auto-tag `v0.59.0` →
+    `release` **11 job 全 success** → GitHub Release **26 资产**（lsp ×8 / cli ×8 / vsix ×9 /
+    `SHA256SUMS`）+ Marketplace **0.59.0** 已收录（01:30:07Z）。发布产物实测：下载
+    `sokonanoda-cli-aarch64-apple-darwin.tar.gz` → `shasum -c` OK → `--version` = 0.59.0 →
+    签名受检（`theorem t9 : 3 := sorry` ⇒ `kernel-expected-sort` + exit 1）、记法（`x ∈ A`）、
+    `query check` 的行列字段、prelude 的 `And.intro`/`Or.elim`/`Iff.*`/`absurd`/`Eq.symm`
+    都在包里可用（逐条实测见 `STATUS.md` 第一百〇六轮）。**首次 CI 红在 LSP 项目性能哨兵**
+    （单次采样被并行邻居放大，非产品回归；对拍 + 修采样口径后复绿，见
+    `docs/CI-FAILURES.md` 2026-09-19 条与 `docs/PERF.md` §采样口径）。
   * **不变的**：内核（冻结快照）**一个字节未改**；不调用官方 Lean 工具链；用户/agent 路径
     仍是零 cargo（`scripts/soko setup/grade/query/course`）。

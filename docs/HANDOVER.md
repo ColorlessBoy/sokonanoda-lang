@@ -4,9 +4,11 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.59.0**（2026-09-19 **收尾完成、待发布**：两处版本号已 bump、`Cargo.lock`
-> 跟上、文档同轮同步；push main 后 `ci.yml` auto-tag → `release.yml` 出 26 资产 +
-> VSIX ×9；上一个已发布版本是 0.58.0）。最近一轮 **第一百〇六轮：0.59.0 收尾
+> 快照：**v0.59.0 已发布**（2026-09-19：两处版本号 bump、`Cargo.lock` 跟上、文档同轮同步；
+> push main → CI **7/7 全绿**（首次红在 LSP 项目性能哨兵，假红已修，见 `docs/CI-FAILURES.md`）
+> → auto-tag `v0.59.0` → `release` **11 job 全 success** → GitHub Release **26 资产**
+> + Marketplace **0.59.0** 已收录；发布产物实测见 `STATUS.md` 第一百〇六轮第 11 条；
+> 上一个已发布版本是 0.58.0）。最近一轮 **第一百〇六轮：0.59.0 收尾
 > （语言线五刀 + 课程门禁 + 站点页）**。**这一版装了什么（全部用户可见）**：
 > * **签名受检**（G-01 / WO-004）：值位是 `sorry` 时签名也过内核的类型/Prop 判定；
 >   坏签名 = 一条 diagnostic + 声明 `Failed` + **不发** `exercise.open`。判卷只认
