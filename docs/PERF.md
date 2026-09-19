@@ -171,7 +171,13 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 `front/tests/perf.rs` 的三个用例在 **2026-09-18 CI 假红后**改为"进程内互斥锁串行 +
 轮转 best-of-N"，每键延迟断言改用**中位数 + 最坏值天花板**；LSP 的单文件延迟
 （didChange/completion/hover/stateAt/goals）与项目请求延迟改为 **best-of-3**——
-它们跑在 130+ 用例并行的 lib 测试二进制里，单次采样必然偶发假红）；
+它们跑在 130+ 用例并行的 lib 测试二进制里，单次采样必然偶发假红）。
+**2026-09-19 补齐第二例**：项目级用例 `perf_project_did_open_and_keystroke` 当时仍是
+**单次采样 + 300ms 预算**，在 2 核 CI runner 上实测 480ms 假红（同机单跑 17ms / 满负载
+并行 86ms；pre-batch 与当前二进制同夹具对拍 best 26ms vs 25ms ⇒ 无产品回归）。
+修法同族：按键延迟改**来回编辑 best-of-3**，三个 project 用例加 `PROJECT_PERF_LOCK`
+（`tokio::sync::Mutex`）**互相串行**；阈值不动，修后满负载并行连跑 3 次 = 17/20/19ms。
+**纪律升级为：所有性能哨兵（含项目级）默认「串行 + best-of-N」，新增哨兵按此写。**
 ③ 比较台账数字先看是否落在 ±25% 内，超出再复测，别拿单次差异下结论；
 ④ **优先比 `best_ms`**：串行口径下多数指标两次记录相差 ≤17%，但 `worst_ms`
 （5 次取最大）这类 max 统计量能差 45%——`keystroke_recompile_closure` 因此同时

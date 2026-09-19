@@ -359,3 +359,36 @@
   先推**临时预检分支**跑一遍 CI——这次假红就挡在发版之前，main 与 release 都没被污染；
   ③ 失败详情拿不到时先下 `cargo-test-log` artifact，别对着 summary 猜。
 
+
+## 2026-09-19 — 0.59.0 推 main：LSP 项目哨兵在 CI 假红（同一族的第二例：项目用例漏改采样口径）
+
+- **现象**：`test` job 的 `Workspace tests` 红在
+  `sokonanoda-lsp --lib` 的 `tests::perf::perf_project_did_open_and_keystroke`
+  （run 35411049219）：CI 实测 `didOpen 463ms · keystroke (2 modules × 12 decls) 480ms`，
+  断言 `key_ms < 300` 不成立 ⇒ 后续所有 step 被 skip、**auto-tag 没跑、0.59.0 没发出去**
+  （这正是门禁该做的事）。整批 0.59.0（语言线五刀 + 卷 I 课程 + 双门禁）本身没有正确性失败：
+  同一个 run 里 lint / 三条 e2e 腿 / 其余 140 条 lsp 用例全绿。
+- **定位（先排除产品回归，再改哨兵）**：
+  1. 本地同一棵树的**单跑** = 17ms；**满负载并行**跑整个 lib 二进制（141 用例）= 86ms
+     ——同一个用例在同一台机器上差了 5×，说明是"并行邻居抢 CPU"的采样问题；
+  2. **代码回归对拍**（决定性）：把 pre-batch 提交 `af737fc` 拉进独立 worktree、独立
+     `CARGO_TARGET_DIR` 编出 `sokonanoda-cli`，与当前二进制在**同一个 2×12 夹具**上各跑
+     20 次：best **26ms** vs **25ms**（avg 受噪声影响分别是 86ms / 27ms）⇒ 这一批**没有**
+     编译开销回归；
+  3. 同类先例就在台账里（2026-09-18 条：front 缩放哨兵假红 ⇒ 定下"串行 + best-of-N"口径）。
+    当时把**单文件**的 LSP 延迟断言改成了 best-of-3，**项目级用例漏了**——本用例仍在用
+     单次采样 + 300ms 预算，在 2 核 runner 上必然迟早红。
+- **修复**（阈值不动，只补采样口径，与先例一致）：
+  - `crates/lsp/src/tests/perf.rs`：`perf_project_did_open_and_keystroke` 的按键延迟改成
+    **来回编辑 3 次取最小**（`best_ms!`，与 `perf_did_change_latency` 同款；断言与
+    `PERFJSON` 也跟着改）；
+  - 三个 project 级用例（keystroke / dependency-edit / requests）加**进程内互斥**
+    `PROJECT_PERF_LOCK`（`tokio::sync::Mutex::const_new`，guard 可跨 await；dev-deps 的
+    tokio 加 `sync` 特性）——它们都要编整个模块闭包，是彼此最大的噪声源；
+  - 实测（本地满负载并行，连跑 3 次）：keystroke **17 / 20 / 19ms**（改前单次采样 86ms）
+    ⇒ 对 300ms 预算有 15× 余量，CI 上即便慢 3–4× 也在预算内。
+- **预防**：① 「串行 + best-of-N」是**所有**性能哨兵的默认口径，新增哨兵时按它写
+  （`docs/PERF.md` §采样口径）——上一轮只改了单文件用例，项目用例漏网，这次补齐；
+  ② 哨兵红了先做**对拍**（同夹具 A/B 两个提交的二进制、各 20 次取 best）再决定是修代码
+  还是修口径，别直接放宽阈值；③ 大改动推 main 后要盯 `auto-tag` 是否真的跑了
+  （本例它被 test 红挡住，属于**正确**行为）。

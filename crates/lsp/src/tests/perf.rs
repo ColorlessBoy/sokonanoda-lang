@@ -185,8 +185,15 @@ fn perf_json(value: serde_json::Value) {
     println!("PERFJSON {value}");
 }
 
+/// 三个 project 级 perf 用例**互相串行**（`docs/PERF.md` 的「串行 + best-of-N」口径）：
+/// 它们都要编译 2–3 个模块的整个闭包，在同一台机器上互相抢 CPU 会把单次计时抬高。
+/// 2026-09-19 CI 上 `perf_project_did_open_and_keystroke` 的假红就是这一族（详见该用例注释）。
+/// `tokio::sync::Mutex` 的 guard 可以跨 await 持有（std 的会触发 `await_holding_lock`）。
+static PROJECT_PERF_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 #[tokio::test]
 async fn perf_project_did_open_and_keystroke() {
+    let _serial = PROJECT_PERF_LOCK.lock().await;
     let (dir, entry_uri, entry_text) = gen_project("keystroke", 2, 12);
     let root = Url::from_directory_path(&dir).expect("dir url");
     let (mut service, mut socket) = test_service();
@@ -208,21 +215,38 @@ async fn perf_project_did_open_and_keystroke() {
     );
 
     // 一次按键：改最后一条声明的名字（整文件重编译 = 整个闭包重编译）。
-    let edited = entry_text.replace("main_s11", "main_s11x");
-    let start = std::time::Instant::now();
-    let changed =
-        testutil::did_change_at_drained(&mut service, &mut socket, &entry_uri, 2, &edited).await;
-    let key_ms = start.elapsed().as_millis();
-    assert_eq!(
-        changed.len(),
-        1,
-        "one keystroke must publish exactly one document's diagnostics: {changed:?}"
-    );
-    assert!(
-        changed[0].diagnostics.is_empty(),
-        "{:?}",
-        changed[0].diagnostics
-    );
+    // **来回编辑 3 次取最小**（口径同 `perf_did_change_latency`）：这个 lib 测试二进制里
+    // 140+ 用例并行跑，单次采样会被邻居抢 CPU 放大——2026-09-19 的 CI 上本用例实测 480ms
+    // （阈值 300ms），而同一棵树的本地单跑 17ms、满负载并行 86ms，且 pre-batch 与当前
+    // 二进制在同一夹具上 best 26ms vs 25ms（**没有产品回归**）。阈值不动，只修采样口径。
+    let mut text = entry_text.clone();
+    let mut version = 2;
+    let mut round = 0usize;
+    let mut publishes = 0usize;
+    let key_ms = best_ms!(3, {
+        let next = if round.is_multiple_of(2) {
+            text.replace("main_s11", "main_s11x")
+        } else {
+            text.replace("main_s11x", "main_s11")
+        };
+        round += 1;
+        let changed =
+            testutil::did_change_at_drained(&mut service, &mut socket, &entry_uri, version, &next)
+                .await;
+        version += 1;
+        assert_eq!(
+            changed.len(),
+            1,
+            "one keystroke must publish exactly one document's diagnostics: {changed:?}"
+        );
+        assert!(
+            changed[0].diagnostics.is_empty(),
+            "{:?}",
+            changed[0].diagnostics
+        );
+        publishes = changed.len();
+        text = next;
+    });
 
     println!("PERF project lsp: didOpen {open_ms}ms · keystroke (2 modules × 12 decls) {key_ms}ms");
     perf_json(serde_json::json!({
@@ -233,7 +257,7 @@ async fn perf_project_did_open_and_keystroke() {
         "decls_per_module": 12,
         "open_ms": open_ms,
         "keystroke_ms": key_ms,
-        "publishes_per_keystroke": changed.len(),
+        "publishes_per_keystroke": publishes,
     }));
     assert!(
         key_ms < 300,
@@ -244,6 +268,7 @@ async fn perf_project_did_open_and_keystroke() {
 
 #[tokio::test]
 async fn perf_project_dependency_edit_refreshes_dependents() {
+    let _serial = PROJECT_PERF_LOCK.lock().await;
     // 两条文档都打开：改**根依赖**（声明 `P` 的那个模块）⇒ 依赖自己 + 下游入口
     // 各一条诊断（这是最坏的一次通知：一次按键要重编译两份文档）。
     let (dir, entry_uri, entry_text) = gen_project("dependency", 3, 12);
@@ -300,6 +325,7 @@ async fn perf_project_dependency_edit_refreshes_dependents() {
 
 #[tokio::test]
 async fn perf_project_requests_are_interactive() {
+    let _serial = PROJECT_PERF_LOCK.lock().await;
     // 项目入口上的 hover / definition / goals 都必须在"光标移动"量级（各 < 10ms）。
     let (dir, entry_uri, entry_text) = gen_project("requests", 3, 12);
     let root = Url::from_directory_path(&dir).expect("dir url");
