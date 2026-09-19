@@ -76,8 +76,14 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `python3 scripts/gap.py check` 全绿。**验收**：`scripts/soko gate` exit 0
    （fmt/clippy/`cargo test --workspace --locked` **1107 passed**、课程门禁 **36 目标 · 329 checked ·
    99 open · 0 判负**、台账门禁全绿）；版本 0.60.0（两处）+ 课程 `requires = "0.60"`。
-9. **发布**：push main → CI → auto-tag `v0.60.0` → `release.yml`（26 资产 + VSIX ×9）——
-   结果见 `docs/HANDOVER.md` 快照行与本轮后续提交。
+9. **发布结果（2026-09-19 实测）**：push main（`a948f65`）→ CI **一次全绿（8m20s）** →
+   auto-tag 打 **`v0.60.0`** → `release` **全 success** → GitHub Release **26 资产**
+   （lsp ×8 / cli ×8 / vsix ×9 / `SHA256SUMS`）+ Marketplace 收录 **0.60.0**。
+   **发布产物实测**（下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`）：`shasum -c` **OK**
+   → `--version` = `sokonanoda 0.60.0` → 一段同时用新语法的文件干净判卷（exit 0）：
+   `namespace A` + `def f` ⇒ 全局名 **`A.f`**（G-05）、`abbrev T : Type := Prop -> Prop`（G-08）、
+   `def uses : T := A.f` ⇒ 3 条 `decl.checked`。官网 `data/site.json` = `version 0.60.0` +
+   `set_theory` 36 目标 · 329 checked · 99 open · 0 判负。
 
 ## 本轮进度（2026-09-19，第一百〇六轮：0.59.0 收尾（语言线五刀 + 课程门禁 + 站点页））
 
