@@ -18,7 +18,8 @@
 --       Mathlib: `Set.MapsTo f s t := ∀ ⦃a⦄, a ∈ s → f a ∈ t`
 --       Mathlib: `Set.LeftInvOn f' f s := ∀ ⦃x⦄, x ∈ s → f' (f x) = x`
 --       Mathlib: `Set.RightInvOn f f' t := ∀ ⦃y⦄, y ∈ t → f (f' y) = y`
---   只有把它们写成点名形式（本语言没有隐式 binder 风格的记法，G-04）：
+--   只有把它们写成点名形式（本语言只有宇宙隐式 binder（`{u}`），没有类型隐式
+--   binder 的通行写法）：
 --   论域 α β 提到最前、集合跟在映射后面，与 lib/Set 里 `Set.subset α A B` 同款。
 --   顺带一个漂亮的巧合：`Set.subset α A B` 与
 --   `Set.MapsTo α α (fun (x : α) => x) A B` **是同一个东西**（定义展开后逐字相同）
@@ -41,14 +42,14 @@
 -- **必须亲手写出那个映射**（Hamza & O'Shea 2011 的实证也指向同一点：
 -- 援引"双射判据"的学生极少真的把映射写出来）。
 --
--- ── 形状：嵌套 And 的四条件（外层用两次 Exists 绑住那一对映射）──────────────
+-- ── 形状：嵌套 ∧ 的四条件（外层用两次 ∃ 绑住那一对映射）────────────────────
 --   Set.Equiv α β A B 展开为
---     Exists (α -> β) (fun (f : α -> β) =>
---       And (Set.MapsTo α β f A B)                                    -- ① 正向：A 送进 B
---         (Exists (β -> α) (fun (g : β -> α) =>
---           And (Set.MapsTo β α g B A)                                -- ② 反向：B 送进 A
---             (And (Set.LeftInvOn α β g f A)                          -- ③ 左互逆律（在 A 上）
---                  (Set.RightInvOn α β f g B)))))                     -- ④ 右互逆律（在 B 上）
+--     ∃ (f : α → β), Set.MapsTo α β f A B ∧                          -- ① 正向：A 送进 B
+--       ∃ (g : β → α), Set.MapsTo β α g B A ∧                        -- ② 反向：B 送进 A
+--         Set.LeftInvOn α β g f A ∧                                  -- ③ 左互逆律（在 A 上）
+--         Set.RightInvOn α β f g B                                   -- ④ 右互逆律（在 B 上）
+--   （内层 `∃` 是 `∧` 的操作数，所以要写括号；记法只吃一个 λ 体，见
+--     docs/design/course-lean-style.md §C4 第 5 条。）
 --
 -- 为什么外层非要两次 `Exists`：本语言今天没有结构体、也没有可用的 Sigma
 -- （`Prod` 在 lib/Prod 里只能装 Type 值，而四条条件都是 Prop ⇒ 装不进 `Prod`）。
@@ -82,7 +83,8 @@
 --     `forall` 定义，内核直接展开，**不需要** rfl 级展开引理（不像 lib/Set 的
 --     `Set.subset_def` 那样要显式给一条：那是给"想点名展开"的人用的）。
 --
--- 记法对照（语言还没有 notation，台账 G-04）：
+-- 记法对照（`≈` 是 **Mathlib 的**记法，本课程没有声明它——课程库只声明集合符号
+-- `∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ '' ⁻¹' ×ˢ`，见 lib/Set 文件末尾）：
 --   Set.Equiv α β A B ↔ A ≈ B（跨论域版本：A : Set α，B : Set β；
 --   α = β 时就是同一论域里两个集合等势）。
 import lib.Logic
@@ -92,57 +94,55 @@ import lib.Set
 -- ── 四条条件（Mathlib: Data/Set/Function.lean；L2：一行 forall，没有数学内容）──
 -- ① 正向映射的域条件：A 里每个点都被 f 送进 B。
 --    （`Set.subset α A B` 就是 `Set.MapsTo α α (fun (x : α) => x) A B`——逐字相同。）
-def Set.MapsTo (α β : Type) (f : α -> β) (A : Set α) (B : Set β) : Prop :=
-  forall (x : α), Set.mem α x A -> Set.mem β (f x) B
+def Set.MapsTo (α β : Type) (f : α → β) (A : Set α) (B : Set β) : Prop :=
+  ∀ (x : α), Set.mem α x A → Set.mem β (f x) B
 
 -- ③ 左互逆律：g 是 f 在 A 上的左逆（先 f 后 g，回到原地）。
 --    Mathlib 的读法是 `Set.LeftInvOn f' f s`：第一个参数是"左逆"那一把。
-def Set.LeftInvOn (α β : Type) (g : β -> α) (f : α -> β) (A : Set α) : Prop :=
-  forall (x : α), Set.mem α x A -> Eq.{1} α (g (f x)) x
+def Set.LeftInvOn (α β : Type) (g : β → α) (f : α → β) (A : Set α) : Prop :=
+  ∀ (x : α), Set.mem α x A → Eq.{1} α (g (f x)) x
 
 -- ④ 右互逆律：f 是 g 在 B 上的右逆（先 g 后 f，回到原地）。
 --    Mathlib 的读法是 `Set.RightInvOn f f' t`：先写的那个是"后作用"的那把。
-def Set.RightInvOn (α β : Type) (f : α -> β) (g : β -> α) (B : Set β) : Prop :=
-  forall (y : β), Set.mem β y B -> Eq.{1} β (f (g y)) y
+def Set.RightInvOn (α β : Type) (f : α → β) (g : β → α) (B : Set β) : Prop :=
+  ∀ (y : β), Set.mem β y B → Eq.{1} β (f (g y)) y
 
 -- ── 等势（数据版）──────────────────────────────────────────────────────────
 -- `Set.Equiv α β A B` 是**一对互逆映射 + 域条件**的打包（不是"存在双射"的
 -- ∃-命题：那需要选择公理，见文件头）。四条件按 ①②③④ 嵌在嵌套 `And` 里。
 def Set.Equiv (α β : Type) (A : Set α) (B : Set β) : Prop :=
-  Exists (α -> β) (fun (f : α -> β) =>
-    And (Set.MapsTo α β f A B)
-      (Exists (β -> α) (fun (g : β -> α) =>
-        And (Set.MapsTo β α g B A)
-          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+  ∃ (f : α → β), Set.MapsTo α β f A B ∧
+    (∃ (g : β → α), Set.MapsTo β α g B A ∧
+      ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
 
 -- ── 构造子（Mathlib: `Equiv.mk`；L2：把四条件按 ①②③④ 装进嵌套 And）───────
 -- 名字与参数顺序都照着 `Equiv.mk` 的读法：先两把映射（f 去、g 回），
 -- 再四条条件（去的域条件、回的域条件、两条互逆律）。
+--
+-- 证明体说明：这条要**构造**嵌套 `∃`，所以写成 `by` + 一条 `exact` 的证明项
+-- （与 lib/Image 的 image_mono 同一个理由：`use`/`apply` 交完证人后，剩下那个
+-- 子目标的类型是 `p w`——`w` 是构造子的层 binder 名、不是用户交的证人）。
 theorem Set.Equiv.mk (α β : Type) (A : Set α) (B : Set β)
-    (f : α -> β) (g : β -> α)
+    (f : α → β) (g : β → α)
     (hf : Set.MapsTo α β f A B)
     (hg : Set.MapsTo β α g B A)
     (hgf : Set.LeftInvOn α β g f A)
     (hfg : Set.RightInvOn α β f g B) :
-    Set.Equiv α β A B :=
-  Exists.intro (α -> β)
-    (fun (f : α -> β) =>
-      And (Set.MapsTo α β f A B)
-        (Exists (β -> α) (fun (g : β -> α) =>
-          And (Set.MapsTo β α g B A)
-            (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))))
+    Set.Equiv α β A B := by
+  exact Exists.intro (α → β)
+    (fun (f : α → β) => Set.MapsTo α β f A B ∧
+      (∃ (g : β → α), Set.MapsTo β α g B A ∧
+        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))))
     f
     (And.intro (Set.MapsTo α β f A B)
-      (Exists (β -> α) (fun (g : β -> α) =>
-        And (Set.MapsTo β α g B A)
-          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))))
+      (∃ (g : β → α), Set.MapsTo β α g B A ∧
+        ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
       hf
-      (Exists.intro (β -> α)
-        (fun (g : β -> α) =>
-          And (Set.MapsTo β α g B A)
-            (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)))
+      (Exists.intro (β → α)
+        (fun (g : β → α) => Set.MapsTo β α g B A ∧
+          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
         g
         (And.intro (Set.MapsTo β α g B A)
-          (And (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B))
+          ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))
           hg
           (And.intro (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B) hgf hfg))))

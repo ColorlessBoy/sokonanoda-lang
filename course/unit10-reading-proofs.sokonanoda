@@ -14,18 +14,9 @@
 -- 「阅读理解」在这里仍然是内核判定：每道题的成品都必须是一段能过内核的代码。
 -- ==========================================================================
 
--- 骨架（And 公理 + Or 归纳类型 + Iff 定义，均为前几个单元的老朋友）：
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+-- 本文件用到的名字：And / Or 来自 prelude，Iff 是下面这行 def——都不用自己声明。
 
-inductive Or (A B : Prop) : Prop
-ctor inl (a : A) : Or A B
-ctor inr (b : B) : Or A B
-end
-
-def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- ─────────────────────────────────────────────────────────────
 -- 10.1 读证明：自解释三问
@@ -38,16 +29,16 @@ def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
 --   (3) 它展开了哪个定义、或用到哪个构造子？——把「魔法」拆成具名步骤。
 --
 -- 下面的 and_comm 是一条短短四步的证明。请照着三问逐行读：
--- ＝＝＝ 目标 And B A ＝＝＝
+-- ＝＝＝ 目标 B ∧ A ＝＝＝
 --   整条证明：And.intro B A (And.right A B h) (And.left A B h)
---   (1) 目标形如 And B A，所以用构造子 And.intro；
+--   (1) 目标形如 B ∧ A，所以用构造子 And.intro；
 --   (2) 它的四个显式参数里，后两个是两份证明，分别来自 h；
 --   (3) And.right 展开的正是「取出 And 的右半」，And.left 取左半。
 -- 把「怎么读」练成习惯后，再去看别人的证明，就不容易被符号吓住。
 -- ─────────────────────────────────────────────────────────────
 
 -- 演示（已写好）：交换 And 的两半——就是上面读的那条证明。
-theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
   And.intro B A (And.right A B h) (And.left A B h)
 
 -- ─────────────────────────────────────────────────────────────
@@ -63,9 +54,9 @@ theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
 --   「如果一个命题 A 成立，那么 A 或 B 成立。」
 --
 -- soko:hint 思路：非形式句有「如果……那么」，对应一个箭头；结论是「A 或 B」。
--- soko:hint 目标形态：声明形如 (a : A) -> Or A B；建议写成 (A : Prop) -> (B : Prop) -> (a : A) -> Or A B。
--- soko:hint 关键件：结论是 Or A B 且手里有 A 的证明：用 Or 的哪个构造子？把 A、B 两个参数补全。
-theorem or_intro_x (A : Prop) (B : Prop) (a : A) : Or A B :=
+-- soko:hint 目标形态：声明形如 (a : A) → A ∨ B；建议写成 (A : Prop) → (B : Prop) → (a : A) → A ∨ B。
+-- soko:hint 关键件：结论是 A ∨ B 且手里有 A 的证明：用 Or 的哪个构造子？把 A、B 两个参数补全。
+theorem or_intro_x (A : Prop) (B : Prop) (a : A) : A ∨ B := by
   sorry
 
 -- 练习 2（翻译 X）：把下面这句话翻成形式声明并证明：
@@ -74,9 +65,9 @@ theorem or_intro_x (A : Prop) (B : Prop) (a : A) : Or A B :=
 --
 -- 提示：「等价」就是本文件用 And 定义的 Iff。
 -- soko:hint 思路：两个方向是两条假设（两个箭头），结论把这对函数打包成 Iff。
--- soko:hint 目标形态：结论形如 Iff A B，而 Iff 展开就是 And (A -> B) (B -> A)。
--- soko:hint 关键件：结论是 Iff A B、上下文有 mp : A -> B 与 mpr : B -> A：用 And.intro（内核会自动展开 Iff 定义），把两个方向放进两个证明位。
-theorem iff_intro_x (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
+-- soko:hint 目标形态：结论形如 A ↔ B，而 Iff 展开就是 (A → B) ∧ (B → A)。
+-- soko:hint 关键件：结论是 A ↔ B、上下文有 mp : A → B 与 mpr : B → A：用 And.intro（内核会自动展开 Iff 定义），把两个方向放进两个证明位。
+theorem iff_intro_x (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by
   sorry
 
 -- 练习 3（翻译 X）：把下面这句话翻成形式声明并证明：
@@ -86,7 +77,7 @@ theorem iff_intro_x (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B
 -- soko:hint 思路：「每个自然数」是一个 forall（或命名箭头），结论是一条等式。
 -- soko:hint 目标形态：结论形如 Eq.{1} Nat n n；数字的等式要写对宇宙层级 .{1}（见单元⑤）。
 -- soko:hint 关键件：等号两边是内核能算出同一个值的同一个项：用 Eq.refl 这条公理，把类型 Nat 和那个项喂给它。
-theorem nat_eq_self_x (n : Nat) : Eq.{1} Nat n n :=
+theorem nat_eq_self_x (n : Nat) : Eq.{1} Nat n n := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -99,27 +90,27 @@ theorem nat_eq_self_x (n : Nat) : Eq.{1} Nat n n :=
 
 -- 练习 4（评阅 R）：下面这份 or_comm 被内核拒绝了，错在哪？
 --
---   theorem or_comm_wrong (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+--   theorem or_comm_wrong (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A :=
 --     match h with
---     | inl a => inr B A a
+--     | inl a => Or.inr B A a
 --
 -- 提示：match 必须覆盖**全部**构造子；Or 有两个。
--- soko:hint 思路：第一条分支已经把 A 一侧的证据装成 Or B A；缺的是 B 一侧。
--- soko:hint 目标形态：目标是 Or B A；match 的另一支手里是 b : B。
--- soko:hint 关键件：上下文 h : Or A B：另一支用 inl 的构造子（这次 A、B 的顺序与结论一致），把 b 交给它。
-theorem or_comm_fixed (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+-- soko:hint 思路：第一条分支已经把 A 一侧的证据装成 B ∨ A；缺的是 B 一侧。
+-- soko:hint 目标形态：目标是 B ∨ A；match 的另一支手里是 b : B。
+-- soko:hint 关键件：上下文 h : A ∨ B：另一支用 Or.inl 的构造子（这次 A、B 的顺序与结论一致，写成 Or.inl B A b），把 b 交给它。
+theorem or_comm_fixed (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := by
   sorry
 
 -- 练习 5（评阅 R）：下面这份 or_right 被内核拒绝了，错在哪？
 --
---   theorem or_right_wrong (A : Prop) (B : Prop) (b : B) : Or A B :=
---     inl A B b
+--   theorem or_right_wrong (A : Prop) (B : Prop) (b : B) : A ∨ B :=
+--     Or.inl A B b
 --
--- 提示：inl 接受的是 A 的证明，而 b 是 B 的证明。
--- soko:hint 思路：结论是 Or A B，右半这一侧的证据要用「右」的构造子。
--- soko:hint 目标形态：目标是 Or A B；手里是 b : B。
--- soko:hint 关键件：Or 的两个构造子分别吃 A 的证明（inl）与 B 的证明（inr）：b 该交给哪一个？A、B 两个参数照旧补全。
-theorem or_right_fixed (A : Prop) (B : Prop) (b : B) : Or A B :=
+-- 提示：Or.inl 接受的是 A 的证明，而 b 是 B 的证明。
+-- soko:hint 思路：结论是 A ∨ B，右半这一侧的证据要用「右」的构造子。
+-- soko:hint 目标形态：目标是 A ∨ B；手里是 b : B。
+-- soko:hint 关键件：Or 的两个构造子分别吃 A 的证明（Or.inl）与 B 的证明（Or.inr）：b 该交给哪一个？A、B 两个参数照旧补全。
+theorem or_right_fixed (A : Prop) (B : Prop) (b : B) : A ∨ B := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -132,8 +123,8 @@ theorem or_right_fixed (A : Prop) (B : Prop) (b : B) : Or A B :=
 
 -- 练习 6（综合 ★★）：分配律的一个方向——「A 且（B 或 C）」推出
 -- 「（A 且 B）或（A 且 C）」。
--- soko:hint 思路：用 let 把 h 的右半（Or B C）单独命名，再对它 match 分情况；两种情况下都要把 A 与对应的那一半重新打包。
--- soko:hint 目标形态：外层 fun (h : And A (Or B C))；let bc : Or B C := And.right A (Or B C) h; 然后 match bc。
+-- soko:hint 思路：用 let 把 h 的右半（B ∨ C）单独命名，再对它 match 分情况；两种情况下都要把 A 与对应的那一半重新打包。
+-- soko:hint 目标形态：外层 fun (h : A ∧ (B ∨ C))；let bc : B ∨ C := And.right A (B ∨ C) h; 然后 match bc。
 -- soko:hint 关键件：从 h 用 And.left 取 A、And.right 取分支证据；inl b 支用 And.intro A B 打包再交给 Or.inl，inr c 支用 And.intro A C 打包再交给 Or.inr。
-theorem and_or_imp (A : Prop) (B : Prop) (C : Prop) : And A (Or B C) -> Or (And A B) (And A C) :=
+theorem and_or_imp (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by
   sorry

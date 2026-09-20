@@ -4,23 +4,32 @@
 -- 靶子：Tao《Analysis I》§3.6 前半（等势 / 基数的开头）。
 -- 先修：单元①② 的集合词汇（本单元只用 lib.Logic / lib.Exists / lib.Set / lib.Equiv）。
 --
--- 本单元**只允许用**（对应 stg4 的逐步解锁）：
---   · lib.Logic：True/False、And/Or/Not/Iff、Eq.refl/Eq.symm/Eq.trans/Eq.subst/
---     congrArg、absurd、False.elim；
---   · lib.Exists：Exists / Exists.intro / Exists.elim
---     （**纪律**：elim 的结论 Q 不许提到证人——"用的时候证人是哪一个还不知道"）；
---   · lib.Set：Set 与 mem/subset/empty/univ/singleton/pair/union/inter/sdiff/
---     compl/powerset、公理 Set.ext、以及全部展开引理；
---   · lib.Equiv（本单元新增）：四条条件 Set.MapsTo / Set.LeftInvOn /
---     Set.RightInvOn、等势 Set.Equiv、构造子 Set.Equiv.mk；
---   · prelude 的 Nat 只用在 §9.3 的**反例脚手架**上（否则无限集的反例没法陈述）。
---
--- 不允许用：选择公理（本课程还没有）、商、函数外延性（没有）、
--- Schröder–Bernstein（需要不动点构造，超出本语言；见文末"本单元不做什么"）。
---
--- 记法：语言还没有 ∈ ⊆ ≈ 这些记号（台账 G-04），一律点名：
---   Set.mem α x A ↔ x ∈ A · Set.subset α A B ↔ A ⊆ B
---   Set.Equiv α β A B ↔ A ≈ B（跨论域：A : Set α，B : Set β）
+-- 本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）：
+--   · 证明：一律 `by` tactic 块，白名单**只有**
+--       intro / exact / apply / assumption / rfl / match / constructor /
+--       left / right / use / exfalso / cases / have / sorry
+--     加**匿名构造子** `⟨a, b⟩`（期望类型决定用哪个构造子）；
+--     ——**没有** rw / obtain / change / simp / induction / calc / rintro，
+--     也没有 focus 点 `·`；
+--   · 语句一律写**记法**：`x ∈ A` · `A ⊆ B` · `A ∪ B` · `A ∩ B` · `A \ B` ·
+--     `∅` · `𝒫 A`，集合字面量 `{a}` / `{a, b}`，存在量词 `∃ (x : α), p x`；
+--     逻辑连接符 `∧ ∨ ↔ ¬` 与 `→ = ≠` 是**语言内建**，任何文件零声明可用；
+--   · 记法**由 lib/Set 与 lib/Exists 随 import 带来**（`infix` / `notation` /
+--     `binder_notation` 写在库里）：本文件一条记法声明都不写——同一个符号
+--     全课程只能声明一次；
+--   · 记法只是**连接符的糖**，不是引理名的糖：引理照旧点名写——
+--       Or.inl / Or.inr / Or.elim / And.intro / And.left / And.right /
+--       Iff.intro / Iff.mp / Iff.mpr / Set.ext / Exists.intro / Exists.elim /
+--       Eq.refl / Eq.symm / Eq.trans / congrArg / Eq.subst（等式一律写**显式宇宙**：
+--       Eq.{1} α a b）/ Nat.rec / False.elim / absurd；
+--   · 库里已备好、直接用（lib.Logic + lib.Exists + lib.Set + lib.Equiv）：
+--       True / True.intro / False / False.elim / Not / absurd、
+--       And / Or / Iff 全家、Eq 全家、congrArg、Eq.subst、
+--       Set 与 mem/subset/empty/univ/singleton/pair/union/inter/sdiff/
+--       compl/powerset、公理 Set.ext、全部展开引理、
+--       Exists / Exists.intro / Exists.elim、
+--       Set.MapsTo / Set.LeftInvOn / Set.RightInvOn、Set.Equiv / Set.Equiv.mk；
+--   · 只允许引用**前面已经出现**的声明（声明顺序 = 依赖顺序）。
 --
 -- ── 等势为什么是"数据"，不是"存在双射" ──────────────────────────────────
 -- 完整理由与读法在 lib/Equiv.sokonanoda 的文件头（先读它）。一句话版：
@@ -47,10 +56,10 @@ import lib.Equiv
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.refl (α : Type) (A : Set α) : Set.Equiv α α A A :=
   Set.Equiv.mk α α A A (fun (x : α) => x) (fun (x : α) => x)
-    (fun (x : α) => fun (hx : Set.mem α x A) => hx)
-    (fun (y : α) => fun (hy : Set.mem α y A) => hy)
-    (fun (x : α) => fun (hx : Set.mem α x A) => Eq.refl.{1} α x)
-    (fun (y : α) => fun (hy : Set.mem α y A) => Eq.refl.{1} α y)
+    (fun (x : α) => fun (hx : x ∈ A) => hx)
+    (fun (y : α) => fun (hy : y ∈ A) => hy)
+    (fun (x : α) => fun (hx : x ∈ A) => Eq.refl.{1} α x)
+    (fun (y : α) => fun (hy : y ∈ A) => Eq.refl.{1} α y)
 
 -- ─────────────────────────────────────────────────────────────
 -- 9.2 演示 2（必证④）：从单射 + 满射（**数据**）构造等势。
@@ -61,14 +70,14 @@ theorem Set.Equiv.refl (α : Type) (A : Set α) : Set.Equiv α α A A :=
 -- 这条演示同时示范：hinj、hsec 都是普通的函数/命题参数，不需要拆 Exists。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.of_inj_surj (α β : Type) (A : Set α) (B : Set β)
-    (f : α -> β) (g : β -> α)
+    (f : α → β) (g : β → α)
     (hf : Set.MapsTo α β f A B)
     (hg : Set.MapsTo β α g B A)
-    (hinj : forall (x1 x2 : α), Eq.{1} β (f x1) (f x2) -> Eq.{1} α x1 x2)
+    (hinj : ∀ (x1 x2 : α), Eq.{1} β (f x1) (f x2) → Eq.{1} α x1 x2)
     (hsec : Set.RightInvOn α β f g B) :
     Set.Equiv α β A B :=
   Set.Equiv.mk α β A B f g hf hg
-    (fun (x : α) => fun (hx : Set.mem α x A) =>
+    (fun (x : α) => fun (hx : x ∈ A) =>
       hinj (g (f x)) x (hsec (f x) (hf x hx)))
     hsec
 
@@ -93,11 +102,11 @@ def Nat.pred (n : Nat) : Nat := match n with
   | Nat.zero => Nat.zero
   | Nat.succ k => k
 
-theorem Nat.succ_ne_zero (n : Nat) : Not (Eq.{1} Nat (Nat.succ n) Nat.zero) :=
+theorem Nat.succ_ne_zero (n : Nat) : ¬ (Eq.{1} Nat (Nat.succ n) Nat.zero) :=
   fun (h : Eq.{1} Nat (Nat.succ n) Nat.zero) =>
     Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
 
-def nonzero : Set Nat := fun (n : Nat) => Not (Eq.{1} Nat n Nat.zero)
+def nonzero : Set Nat := fun (n : Nat) => ¬ (Eq.{1} Nat n Nat.zero)
 
 -- ═════════════════════════════════════════════════════════════
 -- 9.4 练习（7 条：T2 · L3 · D2）
@@ -107,11 +116,11 @@ def nonzero : Set Nat := fun (n : Nat) => Not (Eq.{1} Nat n Nat.zero)
 -- ─────────────────────────────────────────────────────────────
 -- 练习 1（T 类，必证②）：等势是对称的——交换两把映射。
 -- soko:hint 思路：先把 h 拆开拿到两把映射与它们的四条条件，再用 mk 以"反向的那把"去、"正向的那把"回，重新打包。
--- soko:hint 目标形态：Set.Equiv β α B A——展开后仍是一对映射 + 四条条件，只是 α 与 β、A 与 B 整体对调。
+-- soko:hint 目标形态：Set.Equiv β α B A——展开后仍是一对映射 + 四条条件，只是 α 与 β、A 与 B 整体对调（A ⊆ ? 里的记法跟着换边）。
 -- soko:hint 关键件：外层连用两次 Exists.elim 取证人（结论 Set.Equiv β α B A 不提证人，合法）；四条件用 And.left/And.right 拆；装配用 Set.Equiv.mk，注意两条互逆律的位置要对调。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
-    (h : Set.Equiv α β A B) : Set.Equiv β α B A :=
+    (h : Set.Equiv α β A B) : Set.Equiv β α B A := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -121,17 +130,17 @@ theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
 -- soko:hint 关键件：四次 Exists.elim 取四个证人（每层的结论 Set.Equiv α γ A C 都不提证人）；两条互逆律中间那一步要用 congrArg 把内层等式推到外层映射下，再用 Eq.trans 接另一条律。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
-    (h1 : Set.Equiv α β A B) (h2 : Set.Equiv β γ B C) : Set.Equiv α γ A C :=
+    (h1 : Set.Equiv α β A B) (h2 : Set.Equiv β γ B C) : Set.Equiv α γ A C := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 3（L 类）：任意两个单元素集都等势——亲手写出那对映射。
 -- soko:hint 思路：单元素集之间的映射没得挑：正向把一切都送到 b，反向把一切都送回 a。
--- soko:hint 目标形态：Set.Equiv α β (Set.singleton α a) (Set.singleton β b)；两条"送进"条件是展开后的一行。
--- soko:hint 关键件：两条互逆律的前提 hx : Set.mem α x (Set.singleton α a) 展开就是 Eq.{1} α x a，要用 Eq.symm 掉头（另一侧同理）；四条条件交给 Set.Equiv.mk。
+-- soko:hint 目标形态：Set.Equiv α β {a} {b}；两条"送进"条件是展开后的一行。
+-- soko:hint 关键件：两条互逆律的前提 hx : x ∈ {a} 展开就是 Eq.{1} α x a，要用 Eq.symm 掉头（另一侧同理）；四条条件交给 Set.Equiv.mk。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
-    Set.Equiv α β (Set.singleton α a) (Set.singleton β b) :=
+    Set.Equiv α β {a} {b} := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -141,28 +150,29 @@ theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
 -- soko:hint 关键件：成员关系要沿等式从 A 挪到 B，得用 Eq.subst 且 motive 自己写（一个 Set α -> Prop 的谓词，问 x 属不属于它）；B → A 那一侧搬的等式先用 Eq.symm 掉头；装配用 Set.Equiv.mk。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.equivOfEq (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) :
-    Set.Equiv α α A B :=
+    Set.Equiv α α A B := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 5（L 类）：空集与单元素集不等势——用等势的数据去反驳。
 -- soko:hint 思路：假设有等势，把它的反向映射用在 b ∈ {b} 上，就把 b 推进了空集，撞 False。
--- soko:hint 目标形态：Not (Set.Equiv α β (Set.empty α) (Set.singleton β b))，展开后是"等势 → False"。
--- soko:hint 关键件：两次 Exists.elim 的结论都取 False（不提证人，合法）；反向那条 MapsTo 作用在 b 上、前提是 Set.mem_singleton_self β b；它吐出的 Set.mem α (g b) (Set.empty α) 展开就是 False。
+-- soko:hint 目标形态：¬ (Set.Equiv α β ∅ {b})，展开后是"等势 → False"。
+-- soko:hint 关键件：两次 Exists.elim 的结论都取 False（不提证人，合法）；反向那条 MapsTo 作用在 b 上、前提是 Set.mem_singleton_self β b；它吐出的 g b ∈ ∅ 展开就是 False。
 -- ─────────────────────────────────────────────────────────────
 theorem not_equiv_empty_singleton (α β : Type) (b : β) :
-    Not (Set.Equiv α β (Set.empty α) (Set.singleton β b)) :=
+    ¬ (Set.Equiv α β ∅ {b}) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 6（D 类，先判断再证明）：「两个集合等势，则它们同时空、同时不空」。
 -- 判断：**真**。这是"等势搬运什么"的第一个例子：它把"有元素"搬过去也搬回来。
 -- soko:hint 思路：两个方向各用等势的一把映射：A 有元素 x 就送成 f x ∈ B；B 有元素 y 就送回 g y ∈ A。
--- soko:hint 目标形态：Iff (Exists α A) (Exists β B)——注意 Exists 的论域就是 α 与 β，集合本身就是谓词。
+-- soko:hint 目标形态：∃ (x : α), x ∈ A ↔ ∃ (y : β), y ∈ B——注意 ∃ 的论域就是 α 与 β，集合本身就是谓词。
 -- soko:hint 关键件：Iff.intro 分两个方向；每个方向都要 Exists.elim 两次（先取元素、再取映射），结论里不出现证人；交出元素用 Exists.intro 配上那条 MapsTo。
 -- ─────────────────────────────────────────────────────────────
 theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
-    (h : Set.Equiv α β A B) : Iff (Exists α A) (Exists β B) :=
+    (h : Set.Equiv α β A B) :
+    (∃ (x : α), x ∈ A) ↔ (∃ (y : β), y ∈ B) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -172,13 +182,12 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 -- 这就是"整体与真部分一样大"在本语言里的第一个可判例子（**设计判断**：先给反例，
 -- 不在这里谈"无限"的定义——那需要"有限"，本语言还没有）。
 -- soko:hint 思路：反例取 nonzero 与 Set.univ Nat：正向映射做"减一"（Nat.pred），反向映射做"加一"（Nat.succ）。
--- soko:hint 目标形态：And（① Set.subset Nat nonzero (Set.univ Nat)）（And（② Not (Eq.{1} (Set Nat) nonzero (Set.univ Nat))）（③ Set.Equiv Nat Nat nonzero (Set.univ Nat))）。
+-- soko:hint 目标形态：Set.subset Nat nonzero (Set.univ Nat) ∧ (nonzero ≠ Set.univ Nat ∧ Set.Equiv Nat Nat nonzero (Set.univ Nat))——第一段是"包含"（⊆ 记法在这里补不出论域，写点名形式）。
 -- soko:hint 关键件：① 目标是 Set.univ，True.intro 即可；② 拿 0 做见证——用 Eq.subst 与 Eq.symm 沿假设把 Set.mem_univ 搬成 0 ∈ nonzero，再喂 Eq.refl；③ 反向那条 MapsTo 用 Nat.succ_ne_zero，左互逆律要对 x 分情况：Nat.rec.{0} 配依赖 motive（zero 支被 hx 直接否掉，succ 支靠 Nat.pred 的 iota 算）。
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
-    And (Set.subset Nat nonzero (Set.univ Nat))
-      (And (Not (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))
-           (Set.Equiv Nat Nat nonzero (Set.univ Nat))) :=
+    Set.subset Nat nonzero (Set.univ Nat) ∧
+      (nonzero ≠ Set.univ Nat ∧ Set.Equiv Nat Nat nonzero (Set.univ Nat)) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────

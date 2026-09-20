@@ -17,15 +17,26 @@
 -- 换句话说，"什么是一个函数"不是自明的：它与你手里的表示形式有关，而课程要做的
 -- 正是把这两种表示摆在一起对照。
 --
--- ── 本单元只允许用什么 ────────────────────────────────────────────────────
---   · 逻辑：lib.Logic —— True/False/False.elim、Eq.symm/Eq.trans/congrArg、
---           And/Or/Not/Iff/absurd；prelude 另带 Nat、Bool 与 Eq.refl/Eq.subst。
---   · 集合：lib.Set —— **只在第 9 题的反例里用**（∅ 与 univ、∈ 的两个引理）。
---   · 存在：lib.Exists —— Exists / Exists.intro / Exists.elim（满射与换序题要用）。
---   · 函数：lib.Fun —— Function.comp / Injective / Surjective / Bijective /
---           LeftInverse / RightInverse / Inverse，以及它们的定义展开引理。
---   · tactic：只有 by 块里的 intro/exact/apply/assumption/rfl/match/sorry；
---     但本单元 9 题**全部可以用 term 风格**（`fun (x : α) => …`）写完，推荐这样写。
+-- ── 本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）──
+--   · 证明：一律 `by` tactic 块（缩进两格），白名单**只有**
+--       intro / exact / apply / assumption / rfl / match / constructor /
+--       left / right / use / exfalso / cases / have / sorry
+--     ——**没有** rw / obtain / change / simp / induction / calc / rintro / `·`，
+--     也没有 `⟨a, b⟩` 匿名构造子；练习里写 `sorry` 占位，演示（`demo_*`）一律已证。
+--   · 语句一律写**记法**（随 `import` 生效，本文件一条 `infix`/`notation` 都不许写）：
+--       `∈ ⊆ ∪ ∩ \ ∅ 𝒫`（lib.Set）、`∃ (x : α), p x`（lib.Exists，类型写在括号里）；
+--       `∧ ∨ ↔ ¬ → = ≠` 是**语言内建**（任何文件零声明可用），`∀` 是关键字（原生 Pi）。
+--   · 记法只是**连接符的糖**，不是引理名的糖：引理照旧点名写——
+--       Eq.refl / Eq.symm / Eq.trans / congrArg / Eq.subst.{1} / And.intro / And.left /
+--       And.right / Or.inl / Or.inr / Or.elim / Iff.intro / Iff.mp / Iff.mpr /
+--       Exists.intro / Exists.elim / Set.mem_univ / Set.notMem_empty …
+--   · 库（lib/）：
+--       lib.Logic —— True/False/False.elim、Eq 一族、And/Or/Not/Iff/absurd；
+--         prelude 另带 Nat、Bool 与 Eq.refl/Eq.subst；
+--       lib.Set —— **只在第 9 题的反例里用**（∅ 与 univ、∈ 的两条引理）；
+--       lib.Exists —— Exists / Exists.intro / Exists.elim（满射与换序题要用）；
+--       lib.Fun —— Function.comp / Injective / Surjective / Bijective /
+--         LeftInverse / RightInverse / Inverse，以及它们的定义展开引理。
 --   · **不许用**（本语言里根本没有）：选择公理（Classical.choice）、funext、propext。
 --     这三样一起决定了第 1 题与第 6 题的形状——请看下面两处说明。
 --
@@ -46,7 +57,7 @@
 --
 -- ── 第 6 题与选择公理（务必读）────────────────────────────────────────────
 -- 若把"双射 ↔ 有逆"写成**存在版**：
---     Bijective f ↔ Exists (β -> α) (fun g => Inverse f g)
+--     Bijective f ↔ ∃ (g : β -> α), Inverse f g
 -- 那么 "→" 方向就是"每个满射都可以裂开"——**与选择公理等价**，本语言证不出来
 -- （没有 Classical.choice，也没有 funext/propext）。所以第 6 题证的是**数据版**：
 -- 逆函数 g 连同"它是右逆"的证据**由调用者交出来**，此时 Iff 两边都成立。
@@ -65,23 +76,21 @@ import lib.Fun
 -- 把 f 读成关系 `fun (x : α) => fun (y : β) => f x = y`：同一个 x 不会对上两个 y
 -- ——这正是"函数即单值关系"那条路的第一条性质（对照：语言原语那条路里，
 -- 单值性是**类型的构造规则**，不需要证）。
-theorem demo_graph_single_valued (α β : Type) (f : α -> β) :
-    forall (x : α), forall (y : β), forall (z : β),
-      Eq.{1} β (f x) y -> Eq.{1} β (f x) z -> Eq.{1} β y z :=
-  fun (x : α) => fun (y : β) => fun (z : β) => fun (hxy : Eq.{1} β (f x) y) =>
-    fun (hxz : Eq.{1} β (f x) z) =>
-      Eq.trans.{1} β y (f x) z (Eq.symm.{1} β (f x) y hxy) hxz
+theorem demo_graph_single_valued (α β : Type) (f : α → β) :
+    ∀ (x : α), ∀ (y : β), ∀ (z : β), f x = y → f x = z → y = z := by
+  intro x y z hxy hxz
+  exact Eq.trans.{1} β y (f x) z (Eq.symm.{1} β (f x) y hxy) hxz
 
 -- 演示 2（已写好）：语言原语视角——复合算在参数上就是"先 f 后 g"（rfl 级）。
-theorem demo_comp_apply (α β γ : Type) (g : β -> γ) (f : α -> β) (x : α) :
-    Eq.{1} γ (Function.comp α β γ g f x) (g (f x)) :=
-  Function.comp_apply α β γ g f x
+-- 语句用 `=` 写，证明体点名交出库里的定义展开引理。
+theorem demo_comp_apply (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
+    Function.comp α β γ g f x = g (f x) := by
+  exact Function.comp_apply α β γ g f x
 
 -- 演示 3（已写好）：双射 = 单射 ∧ 满射（定义展开，两个方向都是恒等函数）。
-theorem demo_bijective_def (α β : Type) (f : α -> β) :
-    Iff (Function.Bijective α β f)
-      (And (Function.Injective α β f) (Function.Surjective α β f)) :=
-  Function.bijective_def α β f
+theorem demo_bijective_def (α β : Type) (f : α → β) :
+    Function.Bijective α β f ↔ (Function.Injective α β f ∧ Function.Surjective α β f) := by
+  exact Function.bijective_def α β f
 
 -- ─────────────────────────────────────────────────────────────
 -- 题 1–3：复合（T 类）
@@ -90,30 +99,30 @@ theorem demo_bijective_def (α β : Type) (f : α -> β) :
 -- 练习 1（T 类）：复合**结合律**——先说清参数顺序：下面写的是
 --     h ∘ (g ∘ f) = (h ∘ g) ∘ f，其中 f : α → β、g : β → γ、h : γ → δ，
 --     而 `Function.comp α β γ g f` 读作 g ∘ f（第一个函数参数最后作用，见文件头 (1)）。
--- soko:hint 思路：两边都是 `α -> δ` 的**函数**；没有 funext，别去逐点证——回到 Function.comp 的定义，看两边是不是同一个 λ。
--- soko:hint 目标形态：Eq.{1} (α -> δ) (Function.comp α γ δ h (Function.comp α β γ g f)) (Function.comp α β δ (Function.comp β γ δ h g) f)。
--- soko:hint 关键件：触发条件是"两边定义上相等"（delta 展开后 λ 体都是 h (g (f x))），此时用 Eq.refl.{1} (α -> δ) 即可——这是本单元唯一不需要 intro 的题。
-theorem comp_assoc (α β γ δ : Type) (f : α -> β) (g : β -> γ) (h : γ -> δ) :
-    Eq.{1} (α -> δ) (Function.comp α γ δ h (Function.comp α β γ g f))
-      (Function.comp α β δ (Function.comp β γ δ h g) f) :=
+-- soko:hint 思路：两边都是 `α → δ` 的**函数**；没有 funext，别去逐点证——回到 Function.comp 的定义，看两边是不是同一个 λ。
+-- soko:hint 目标形态：`Function.comp α γ δ h (Function.comp α β γ g f) = Function.comp α β δ (Function.comp β γ δ h g) f`，两边都是 α → δ 的函数。
+-- soko:hint 关键件：触发条件是"两边 delta/beta 展开后 λ 体都是 h (g (f x))"（定义上相等）；这种等式不用 intro，点名交 `Eq.refl.{1} (α -> δ)` 一族即可——它是本单元唯一不需要拆前提的题。
+theorem comp_assoc (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
+    Function.comp α γ δ h (Function.comp α β γ g f)
+      = Function.comp α β δ (Function.comp β γ δ h g) f := by
   sorry
 
 -- 练习 2（T 类）：单射在复合下封闭。
--- soko:hint 思路：单射的定义是全称命题：intro 两个点 x y，再 intro"它们在复合下相等"这条假设。
+-- soko:hint 思路：单射的定义是全称命题：intro 两个点，再 intro"它们在复合下相等"这条假设；把这条等式**一层一层往回退**。
 -- soko:hint 目标形态：intro 之后手里是 `g (f x) = g (f y)`（Function.comp 展开后的样子），目标是 `x = y`。
--- soko:hint 关键件：先用 g 的单射把假设降到 `f x = f y`（hg (f x) (f y) …），再交给 f 的单射收尾。
-theorem injective_comp (α β γ : Type) (f : α -> β) (g : β -> γ)
+-- soko:hint 关键件：`apply` 用引理的**结论**对齐目标、其余参数变子目标：先用 g 的单射把 `x = y` 化归成 `f x = f y`，再用 f 的单射化归成 `g (f x) = g (f y)`——那正是手里那条假设。
+theorem injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Injective α β f) (hg : Function.Injective β γ g) :
-    Function.Injective α γ (Function.comp α β γ g f) :=
+    Function.Injective α γ (Function.comp α β γ g f) := by
   sorry
 
 -- 练习 3（T 类）：满射在复合下封闭。原像要**穿过两层**，这是本题唯一的新东西。
--- soko:hint 思路：满射是"给每个 z 找一个原像"：先用 g 的满射把 z 拉回 y，再用 f 的满射把 y 拉回 x。
--- soko:hint 目标形态：intro z 之后目标是 Exists α (fun (x : α) => Eq.{1} γ (Function.comp α β γ g f x) z)。
--- soko:hint 关键件：`hg z` 与 `hf y` 都是 Exists，各用一次 Exists.elim 拆证人（Q 都取目标那个 Exists）；最后由 Exists.intro 把内层证人交出去，等式用 congrArg 把 hx 抬过 g，再与 hy 经 Eq.trans 接起来。
-theorem surjective_comp (α β γ : Type) (f : α -> β) (g : β -> γ)
+-- soko:hint 思路：满射是"给每个 z 找一个原像"：先用 g 的满射把 z 拉回中间点，再用 f 的满射把中间点拉回 x。
+-- soko:hint 目标形态：intro z 之后目标是 `∃ (x : α), Function.comp α β γ g f x = z`。
+-- soko:hint 关键件：`hg z` 与 `hf y` 都是 Exists，各用一次点名的 `Exists.elim` 拆证人（Q 都取目标那个 Exists）；最后由 `Exists.intro` 把内层证人交出去，等式用 `congrArg` 把 `f x = y` 抬过 g，再与 `g y = z` 经 `Eq.trans` 接起来。
+theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
     (hf : Function.Surjective α β f) (hg : Function.Surjective β γ g) :
-    Function.Surjective α γ (Function.comp α β γ g f) :=
+    Function.Surjective α γ (Function.comp α β γ g f) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -122,18 +131,18 @@ theorem surjective_comp (α β γ : Type) (f : α -> β) (g : β -> γ)
 
 -- 练习 4（T 类）：左逆 ⇒ 单射（"单射 ↔ 左可逆"能证的那一半；另一半要选择公理）。
 -- soko:hint 思路：要从 `f x = f y` 得到 `x = y`：把等式沿 g 推过去，两头再各用一次"g (f ·) = ·"。
--- soko:hint 目标形态：intro x y 与 hxy : Eq.{1} β (f x) (f y) 之后，目标是 Eq.{1} α x y。
--- soko:hint 关键件：链条是 x ← g (f x) → g (f y) → y：左端对 h 用 Eq.symm，中间用 congrArg 把 hxy 抬过 g，右端直接用 h，两段经 Eq.trans 接。
-theorem leftInverse_injective (α β : Type) (f : α -> β) (g : β -> α)
-    (h : Function.LeftInverse α β g f) : Function.Injective α β f :=
+-- soko:hint 目标形态：intro x y 与 hxy : `f x = f y` 之后，目标是 `x = y`。
+-- soko:hint 关键件：链条是 `x ← g (f x) → g (f y) → y`：左端对 `h x : g (f x) = x` 用 `Eq.symm`，中间用 `congrArg` 把 hxy 抬过 g，右端直接用 `h y`，两段经 `Eq.trans` 接。
+theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.LeftInverse α β g f) : Function.Injective α β f := by
   sorry
 
 -- 练习 5（L 类）：右逆 ⇒ 满射（另一半同样要选择公理）。这条是第 6 题要用的引理。
 -- soko:hint 思路：右逆自带"f (g y) = y"，所以对每个 y，原像**现成**——就是 g y。
--- soko:hint 目标形态：intro y 之后目标是 Exists α (fun (x : α) => Eq.{1} β (f x) y)。
--- soko:hint 关键件：Exists.intro 要四样（α、性质、证人、证据）：证人取 g y，证据就是 h y : f (g y) = y。
-theorem surjective_of_rightInverse (α β : Type) (f : α -> β) (g : β -> α)
-    (h : Function.RightInverse α β g f) : Function.Surjective α β f :=
+-- soko:hint 目标形态：intro y 之后目标是 `∃ (x : α), f x = y`。
+-- soko:hint 关键件：`Exists.intro` 要四样（α、性质、证人、证据）：证人取 `g y`，证据就是 `h y : f (g y) = y`。
+theorem surjective_of_rightInverse (α β : Type) (f : α → β) (g : β → α)
+    (h : Function.RightInverse α β g f) : Function.Surjective α β f := by
   sorry
 
 -- 练习 6（T 类）：**双射 ↔ 有逆**（数据版）。
@@ -142,19 +151,19 @@ theorem surjective_of_rightInverse (α β : Type) (f : α -> β) (g : β -> α)
 --   "←"：双边逆 ⇒ 单射（题 4）∧ 满射（题 5）；
 --   "→"：只需补出左逆，而左逆由**单射**给出（先用 hg 把 f (g (f x)) 拉回 f x）。
 -- soko:hint 思路：Iff 是一对箭头：← 方向用第 4 题与第 5 题各取一半；→ 方向手里已有单射与 hg，只差左逆。
--- soko:hint 目标形态：Iff (Function.Bijective α β f) (Function.Inverse α β f g)，两边展开后是"(单射 ∧ 满射) ↔ (左逆 ∧ 右逆)"。
--- soko:hint 关键件：两半都用 And.intro/And.left/And.right 拆装；→ 方向的左逆：对每个 x 要 `g (f x) = x`，用单射把它化成 `f (g (f x)) = f x`——而 hg (f x) 正好是这个等式。
-theorem bijective_iff_inverse (α β : Type) (f : α -> β) (g : β -> α)
+-- soko:hint 目标形态：`Function.Bijective α β f ↔ Function.Inverse α β f g`，两边展开后是"(单射 ∧ 满射) ↔ (左逆 ∧ 右逆)"。
+-- soko:hint 关键件：`constructor` 把 `↔` 拆成两个方向、再各自把 `∧` 拆开；两半都用 `And.intro`/`And.left`/`And.right` 拆装；→ 方向的左逆：对每个 x 要 `g (f x) = x`，用单射把它化成 `f (g (f x)) = f x`——而 `hg (f x)` 正好是这个等式。
+theorem bijective_iff_inverse (α β : Type) (f : α → β) (g : β → α)
     (hg : Function.RightInverse α β g f) :
-    Iff (Function.Bijective α β f) (Function.Inverse α β f g) :=
+    Function.Bijective α β f ↔ Function.Inverse α β f g := by
   sorry
 
 -- 练习 7（L 类）：题 2 的**逆命题方向**——复合单射 ⇒ 内层单射（外层 g 不变单射）。
 -- soko:hint 思路：把 `f x = f y` 沿 g 推成"复合相等"，再交给复合的单射假设。
--- soko:hint 目标形态：intro x y 与 hxy : Eq.{1} β (f x) (f y) 之后，目标是 Eq.{1} α x y。
--- soko:hint 关键件：用 congrArg 把 hxy 沿 g 抬成 `g (f x) = g (f y)`（定义上就是复合相等），再喂给假设 h 的两个点参数。
-theorem injective_of_comp_injective (α β γ : Type) (f : α -> β) (g : β -> γ)
-    (h : Function.Injective α γ (Function.comp α β γ g f)) : Function.Injective α β f :=
+-- soko:hint 目标形态：intro x y 与 hxy : `f x = f y` 之后，目标是 `x = y`。
+-- soko:hint 关键件：用 `congrArg` 把 hxy 沿 g 抬成 `g (f x) = g (f y)`（定义上就是复合相等），再喂给假设 h 的两个点参数。
+theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
+    (h : Function.Injective α γ (Function.comp α β γ g f)) : Function.Injective α β f := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -179,11 +188,11 @@ theorem injective_of_comp_injective (α β γ : Type) (f : α -> β) (g : β -> 
 -- 练习 8（D 类）：换序中**恒真**的那个方向：`∃ y, ∀ x, P x y` 推出 `∀ x, ∃ y, P x y`。
 -- 判词：真（证人不动，只是从"一次选好"变成"逐个取用"）。
 -- soko:hint 思路：先判真假——∃∀ 强于 ∀∃，所以方向只能是 ∃∀ ⇒ ∀∃；intro x 之后把假设里的证人拿出来用。
--- soko:hint 目标形态：intro x 之后目标是 Exists β (fun (y : β) => P x y)。
--- soko:hint 关键件：先用 Exists.elim 把假设拆成证人 y 与 hy : ∀ x, P x y（Q 取目标那个 Exists）；把 x 交给 hy，再用 Exists.intro 交同一个证人 y。
-theorem swap_exists_forall (α β : Type) (P : α -> β -> Prop)
-    (h : Exists β (fun (y : β) => forall (x : α), P x y)) :
-    forall (x : α), Exists β (fun (y : β) => P x y) :=
+-- soko:hint 目标形态：intro x 之后目标是 `∃ (y : β), P x y`；假设是 `∃ (y : β), ∀ (x : α), P x y`。
+-- soko:hint 关键件：用 `cases` 拆假设（臂体里拿到证人 w 与 `hw : ∀ (x : α), P x w`）；把 x 交给 hw，再用 `Exists.intro` 交同一个证人 w。
+theorem swap_exists_forall (α β : Type) (P : α → β → Prop)
+    (h : ∃ (y : β), ∀ (x : α), P x y) :
+    ∀ (x : α), ∃ (y : β), P x y := by
   sorry
 
 -- 练习 9（D 类）：换序中**假**的那个方向：`∀ x, ∃ y, P x y` **推不出** `∃ y, ∀ x, P x y`。
@@ -192,11 +201,17 @@ theorem swap_exists_forall (α β : Type) (P : α -> β -> Prop)
 --   · 结论"存在一个 y 对所有 x 成立"会逼出 ∅ = univ：把 y 分别代到 x := ∅、x := univ，
 --     再用 0 ∈ univ（Set.mem_univ）但 0 ∉ ∅（Set.notMem_empty）制造矛盾。
 -- 也就是说 "∃ y ∀ x" 是一种**一致性**要求，比 "∀ x ∃ y" 强得多——这正是换序不能反过来的原因。
--- soko:hint 思路：先判假并选好反例（Set Nat 上的恒等关系）；intro 假设 h 后把反例 P 与前提喂给 h，得到 Exists (Set Nat) (fun y => ∀ x, x = y)，接下来要从它造 False。
--- soko:hint 目标形态：目标是 Not (forall P, …)；内层要证的是 False（用 Exists.elim 把那个 Exists 拆空）。
--- soko:hint 关键件：前提用 Exists.intro 与 Eq.refl；结论用 Exists.elim 拆出 y 与 hy——把 hy 分别用在 univ 与 empty 这两个具体集合上，经 Eq.trans/Eq.symm 逼出 ∅ = univ；再用 Eq.subst 把 0 ∈ univ 沿这条等式搬到 ∅ 上，交给 Set.notMem_empty 收尾。
+--
+-- 写法说明（**设计判断**，不是题意）：前提在这里写成**具名 binder**
+-- `∀ (hpre : ∀ (x : Set Nat), ∃ (y : Set Nat), P x y), …`，而不是箭头
+-- `(∀ (x : Set Nat), ∃ (y : Set Nat), P x y) → …`——两者是**同一个类型**（Lean 里
+-- `A → B` 就是匿名的 `∀ (_ : A), B`），只是记法展开在"箭头右端是 ∃"这个形状上
+-- 补不出 ∃ 的前导类型参数，具名 binder 能。这条语言缺口见单元报告。
+-- soko:hint 思路：先判假并选好反例（Set Nat 上的恒等关系）；intro 假设 h 后把反例 P 与前提喂给 h，得到 `∃ (y : Set Nat), ∀ (x : Set Nat), x = y`，接下来要从它造 False。
+-- soko:hint 目标形态：目标是 `¬ (∀ (P : Set Nat -> Set Nat -> Prop), ∀ (hpre : …), (∃ (y : Set Nat), ∀ (x : Set Nat), P x y))`；内层要证的是 False。
+-- soko:hint 关键件：前提用 `Exists.intro` 与 `Eq.refl` 造（先用 `have` 把"喂给假设之后的结论"命名下来）；结论用点名的 `Exists.elim` 拆出 y 与 `hy : ∀ (x : Set Nat), x = y`——把 hy 分别用在 univ 与 empty 这两个具体集合上，经 `Eq.trans`/`Eq.symm` 逼出 `Set.univ Nat = Set.empty Nat`；再用 `Eq.subst` 把 `0 ∈ univ`（`Set.mem_univ`）沿这条等式搬到 `0 ∈ ∅`，交给 `Set.notMem_empty` 收尾。
 theorem swap_converse_false :
-    Not (forall (P : Set Nat -> Set Nat -> Prop),
-      (forall (x : Set Nat), Exists (Set Nat) (fun (y : Set Nat) => P x y)) ->
-      Exists (Set Nat) (fun (y : Set Nat) => forall (x : Set Nat), P x y)) :=
+    ¬ (∀ (P : Set Nat → Set Nat → Prop),
+      ∀ (hpre : ∀ (x : Set Nat), ∃ (y : Set Nat), P x y),
+        (∃ (y : Set Nat), ∀ (x : Set Nat), P x y)) := by
   sorry

@@ -21,25 +21,25 @@
 -- So far Nat was a gift from the prelude. This time we build it ourselves: an
 -- explicit inductive block is a type, its constructors, the eliminator Nat.rec,
 -- and the iota rules. The block replaces the prelude Nat for the whole file —
--- from here on the file is self-sufficient. The demo comes from
--- examples/py-nat.sokonanoda; no changes needed.
+-- from here on the file is self-sufficient. The block comes from
+-- examples/py-nat.sokonanoda with the arrows written as this course's `→`.
 
 inductive Nat : Type
 ctor zero : Nat
 ctor succ (n : Nat) : Nat
 rec Nat.rec {u} :
-  (motive : (n : Nat) -> Sort u) ->
-  (mz : motive zero) ->
-  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
-  (n : Nat) -> motive n
+  (motive : (n : Nat) → Sort u) →
+  (mz : motive zero) →
+  (ms : (n : Nat) → motive n → motive (succ n)) →
+  (n : Nat) → motive n
 iota zero :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+  fun (ms : (n : Nat) → motive n → motive (succ n)) => mz
 iota succ :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (ms : (n : Nat) → motive n → motive (succ n)) =>
   fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 
@@ -62,16 +62,16 @@ def three : Nat := succ two
 -- soko:hint approach: literals have lost their magic — numbers are layered up from constructors now, and three is already in scope.
 -- soko:hint goal shape: the goal is Nat: stack one more layer on three.
 -- soko:hint key piece: succ — the constructor that turns a Nat into its successor.
-def four : Nat := sorry
+def four : Nat := by sorry
 
 -- Exercise 2 (double, recursively) — zero maps to zero; at succ k, obtain the
 -- double of succ k from the induction result ih. The motive is the constant
 -- function (fun (x : Nat) => Nat) throughout.
--- Hint: mirror the shape of Nat.rec: motive -> mz -> ms -> n.
+-- Hint: mirror the shape of Nat.rec: motive → mz → ms → n.
 -- soko:hint approach: a recursive definition is choosing Nat.rec's three pieces — the motive, the value at zero, and the step function — then feeding n.
 -- soko:hint goal shape: outer fun (n : Nat) => Nat.rec … n; the motive is the constant fun (x : Nat) => Nat, and zero maps to zero.
--- soko:hint key piece: Nat.rec.{1} filled as motive -> mz -> ms -> n; ms eats k and ih — think how many extra succs the double of succ k needs over ih.
-def double : Nat -> Nat := sorry
+-- soko:hint key piece: Nat.rec.{1} filled as motive → mz → ms → n; ms eats k and ih — think how many extra succs the double of succ k needs over ih.
+def double : Nat → Nat := by sorry
 
 -- Exercise 3 (addition) — add m n inducts on m. At zero, return n ("count zero
 -- times"); at succ k, stack one more succ on ih ("one more layer").
@@ -80,7 +80,7 @@ def double : Nat -> Nat := sorry
 -- soko:hint approach: same three pieces, but the induction variable is m — "counting zero times" is just n, "one more layer" is succ ih.
 -- soko:hint goal shape: fun (m : Nat) => fun (n : Nat) => Nat.rec … m — feed m last (the induction variable); n is the starting value.
 -- soko:hint key piece: Nat.rec.{1}, motive still constant; n goes at mz (the zero-times result), and ms eats k and ih, stacking a single succ.
-def add : Nat -> Nat -> Nat := sorry
+def add : Nat → Nat → Nat := by sorry
 
 -- Closing loop (kernel re-check): once Exercise 3 is done, uncomment the line
 -- below. It must turn green — add two two is four succs; iota does the
@@ -98,16 +98,16 @@ inductive Color : Type
 ctor red : Color
 ctor green : Color
 rec Color.rec {u} :
-  (motive : (c : Color) -> Sort u) ->
-  (mr : motive red) ->
-  (mg : motive green) ->
-  (c : Color) -> motive c
+  (motive : (c : Color) → Sort u) →
+  (mr : motive red) →
+  (mg : motive green) →
+  (c : Color) → motive c
 iota red :=
-  fun (motive : (c : Color) -> Sort u) =>
+  fun (motive : (c : Color) → Sort u) =>
   fun (mr : motive red) =>
   fun (mg : motive green) => mr
 iota green :=
-  fun (motive : (c : Color) -> Sort u) =>
+  fun (motive : (c : Color) → Sort u) =>
   fun (mr : motive red) =>
   fun (mg : motive green) => mg
 end
@@ -124,7 +124,7 @@ def swap (c : Color) : Color := match c with
 -- soko:hint approach: match lists red and green once, and each arm must produce a Color.
 -- soko:hint goal shape: fun (c : Color) => match c with …; arm order is free — the front-end reorders by declaration order.
 -- soko:hint key piece: match must cover red and green, and each arm's goal is Color; the identity map hands each constructor straight back.
-def relabel (c : Color) : Color := sorry
+def relabel (c : Color) : Color := by sorry
 
 -- Exercise 5 — leave a sorry inside one match arm; only the green arm is missing.
 -- soko:hint approach: the red arm already yields green; the green arm is pending, and its goal type is Color.

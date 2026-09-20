@@ -33,11 +33,18 @@ pub(crate) fn test_service() -> (LspService<Backend>, ClientSocket) {
 pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) const URI: &str = "file:///test.sokonanoda";
 
-/// 0-based LSP position for a char offset in an (ASCII) source text.
+/// 0-based LSP position for a **byte** offset in the source text.
+///
+/// `character` 是**字符数**（= 行内 char 下标），不是字节差：LSP 的 position 是
+/// 字符单位，而 `position_to_offset`（`lib.rs`）按 `char_indices().nth(n)` 解释它。
+/// 从前这里算的是字节差，于是**任何含多字节符号的行都会偏**——`⊗`（3 字节）后面
+/// 的位置差 2，光标落到隔壁 token 上（实测：想 hover `⊗` 却 hover 到了 `b`）。
+/// ASCII 行上两种算法恒等，所以这个 bug 只在非 ASCII 夹具里显形。
 pub(crate) fn lsp_pos(src: &str, offset: usize) -> Position {
     let before = &src[..offset];
     let line = before.matches('\n').count() as u32;
-    let character = (offset - before.rfind('\n').map(|i| i + 1).unwrap_or(0)) as u32;
+    let line_start = before.rfind('\n').map(|i| i + 1).unwrap_or(0);
+    let character = src[line_start..offset].chars().count() as u32;
     Position { line, character }
 }
 

@@ -41,97 +41,48 @@
 --   Set.notMem_empty（大写 M）、Set.mem_powerset_iff（不是 power）、Set.mem_sdiff（不是 diff）、
 --   Set.Subset.refl/trans/antisymm（点号在 Subset 上）。
 --
--- 记法对照（语言还没有 notation，G-04）：
+-- 记法对照（记法在**本文件下半段**声明，见"记法"一节）：
 --   Set.mem α a A ↔ a ∈ A   ·   Set.subset α A B ↔ A ⊆ B   ·   Set.empty α ↔ ∅
 --   Set.union α A B ↔ A ∪ B ·   Set.powerset α A ↔ 𝒫 A
+-- 本文件自己的定理也**用记法写**（声明点在它们之前，所以文件内已生效）。
 import lib.Logic
 
 -- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）────────────────────
 -- 集合**类型**本身在根命名空间（`Set α` 的 `Set`）。
-def Set (α : Type) : Type := α -> Prop
+--
+-- 下面这些定义体用**语言内建记法**写（`→ ∀ ∧ ∨ ¬ ↔ =`，零声明即可用）；
+-- `∈ ⊆ ∪ ∩ \ ∅ 𝒫` 是**本文件自己声明的**，声明点在本文件下半段，所以定义
+-- 体里还不能用它们（自己定义自己）——这一层用点名形式是正确的。
+def Set (α : Type) : Type := α → Prop
 
 namespace Set
 
 def mem (α : Type) (a : α) (A : Set α) : Prop := A a
 
-def subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+def subset (α : Type) (A B : Set α) : Prop := ∀ (x : α), A x → B x
 
 def empty (α : Type) : Set α := fun (x : α) => False
 
 def univ (α : Type) : Set α := fun (x : α) => True
 
-def singleton (α : Type) (a : α) : Set α := fun (x : α) => Eq.{1} α x a
+def singleton (α : Type) (a : α) : Set α := fun (x : α) => x = a
 
 def pair (α : Type) (a b : α) : Set α :=
-  fun (x : α) => Or (Eq.{1} α x a) (Eq.{1} α x b)
+  fun (x : α) => x = a ∨ x = b
 
-def union (α : Type) (A B : Set α) : Set α := fun (x : α) => Or (A x) (B x)
+def union (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∨ B x
 
-def inter (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (B x)
+def inter (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∧ B x
 
-def sdiff (α : Type) (A B : Set α) : Set α := fun (x : α) => And (A x) (Not (B x))
+def sdiff (α : Type) (A B : Set α) : Set α := fun (x : α) => A x ∧ ¬ (B x)
 
-def compl (α : Type) (A : Set α) : Set α := fun (x : α) => Not (A x)
+def compl (α : Type) (A : Set α) : Set α := fun (x : α) => ¬ (A x)
 
 def powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => subset α B A
 
 -- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
-axiom ext : (α : Type) -> (A B : Set α) ->
-  (forall (x : α), Iff (A x) (B x)) -> Eq.{1} (Set α) A B
-
--- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）────────────────────
-theorem subset_def (α : Type) (A B : Set α) :
-    Iff (subset α A B) (forall (x : α), A x -> B x) :=
-  Iff.intro (subset α A B) (forall (x : α), A x -> B x)
-    (fun (h : subset α A B) => h)
-    (fun (h : forall (x : α), A x -> B x) => h)
-
-theorem mem_empty_iff_false (α : Type) (a : α) :
-    Iff (mem α a (empty α)) False :=
-  Iff.intro (mem α a (empty α)) False
-    (fun (h : mem α a (empty α)) => h)
-    (fun (h : False) => h)
-
-theorem notMem_empty (α : Type) (a : α) : Not (mem α a (empty α)) :=
-  fun (h : mem α a (empty α)) => h
-
-theorem mem_univ (α : Type) (a : α) : mem α a (univ α) := True.intro
-
-theorem mem_singleton_iff (α : Type) (a b : α) :
-    Iff (mem α a (singleton α b)) (Eq.{1} α a b) :=
-  Iff.intro (mem α a (singleton α b)) (Eq.{1} α a b)
-    (fun (h : mem α a (singleton α b)) => h)
-    (fun (h : Eq.{1} α a b) => h)
-
-theorem mem_singleton_self (α : Type) (a : α) : mem α a (singleton α a) :=
-  Eq.refl.{1} α a
-
-theorem mem_union (α : Type) (a : α) (A B : Set α) :
-    Iff (mem α a (union α A B)) (Or (mem α a A) (mem α a B)) :=
-  Iff.intro (mem α a (union α A B)) (Or (mem α a A) (mem α a B))
-    (fun (h : mem α a (union α A B)) => h)
-    (fun (h : Or (mem α a A) (mem α a B)) => h)
-
-theorem mem_inter_iff (α : Type) (a : α) (A B : Set α) :
-    Iff (mem α a (inter α A B)) (And (mem α a A) (mem α a B)) :=
-  Iff.intro (mem α a (inter α A B)) (And (mem α a A) (mem α a B))
-    (fun (h : mem α a (inter α A B)) => h)
-    (fun (h : And (mem α a A) (mem α a B)) => h)
-
-theorem mem_sdiff (α : Type) (a : α) (A B : Set α) :
-    Iff (mem α a (sdiff α A B)) (And (mem α a A) (Not (mem α a B))) :=
-  Iff.intro (mem α a (sdiff α A B))
-    (And (mem α a A) (Not (mem α a B)))
-    (fun (h : mem α a (sdiff α A B)) => h)
-    (fun (h : And (mem α a A) (Not (mem α a B))) => h)
-
-theorem mem_powerset_iff (α : Type) (A B : Set α) :
-    Iff (mem (Set α) B (powerset α A)) (subset α B A) :=
-  Iff.intro (mem (Set α) B (powerset α A)) (subset α B A)
-    (fun (h : mem (Set α) B (powerset α A)) => h)
-    (fun (h : subset α B A) => h)
-
-end Set
+axiom ext : (α : Type) → (A B : Set α) →
+  (∀ (x : α), A x ↔ B x) → Eq.{1} (Set α) A B
 
 -- ── 记法（G-04 第二刀，0.60.0）：卷 I 的**数学符号**────────────────────────
 --
@@ -152,8 +103,98 @@ end Set
 --
 -- 形状与优先级（§10.1、§10.4）：`𝒫`/`ᶜ` 取 100（比 `∪`/`∩` 的 65 紧）、
 -- `''`/`⁻¹'`/`×ˢ` 取 80（`''`/`⁻¹'` 的 80 是 Lean 源码逐字取证版）。
+-- ── 集合论核心符号（课程 Lean 化 W1）────────────────────────────────────────
+--
+-- 这六条原先散在 `units/notation-cheatsheet.sokonanoda`（画布自带），
+-- 全课程启用之后**必须只有一个家**——同一个符号全课程只能声明一次，
+-- 而 24 个 unit/solution 全都 `import lib.Set`，所以家就是这里。
+--
+-- 逻辑连接符（`∧ ∨ ↔ ¬`）**不在这里**：它们是**语言内建记法**
+-- （`docs/design/course-lean-style.md` L2.2），任何文件零声明可用。
+-- `→` 同理（词法别名，与 `->` 同义）。
+infix:50 " ∈ " => Set.mem
+infix:50 " ⊆ " => Set.subset
+infixl:65 " ∪ " => Set.union
+-- `∩` 与 `\` 取 70（Lean core 的梯子）：比 `∪` 紧，所以 `A ∩ B ∪ C` 读作
+-- `(A ∩ B) ∪ C`。
+infixl:70 " ∩ " => Set.inter
+infixl:70 " \ " => Set.sdiff
+notation "∅" => Set.empty
+
 prefix:100 " 𝒫 " => Set.powerset
 postfix:100 " ᶜ " => Set.compl
 infixr:80 " '' " => Set.image
 infixr:80 " ⁻¹' " => Set.preimage
 infixr:80 " ×ˢ " => Set.prod
+
+-- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）────────────────────
+-- R2 课程 Lean 化：语句用**记法**（上面那段声明在本文件里已经生效），证明用
+-- `by` tactic 块。这些引理的作用就是"把定义展开写成一条等式"，所以两边都是
+-- 恒等函数——`constructor` 拆 `↔`，两个方向 `intro h; exact h`。
+theorem subset_def (α : Type) (A B : Set α) :
+    A ⊆ B ↔ ∀ (x : α), A x → B x := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_empty_iff_false (α : Type) (a : α) :
+    a ∈ ∅ ↔ False := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem notMem_empty (α : Type) (a : α) : ¬ (a ∈ ∅) := by
+  intro h
+  exact h
+
+theorem mem_univ (α : Type) (a : α) : a ∈ univ α := by
+  exact True.intro
+
+theorem mem_singleton_iff (α : Type) (a b : α) :
+    a ∈ {b} ↔ a = b := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_singleton_self (α : Type) (a : α) : a ∈ {a} := by
+  exact Eq.refl.{1} α a
+
+theorem mem_union (α : Type) (a : α) (A B : Set α) :
+    a ∈ A ∪ B ↔ a ∈ A ∨ a ∈ B := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_inter_iff (α : Type) (a : α) (A B : Set α) :
+    a ∈ A ∩ B ↔ a ∈ A ∧ a ∈ B := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_sdiff (α : Type) (a : α) (A B : Set α) :
+    a ∈ A \ B ↔ a ∈ A ∧ ¬ (a ∈ B) := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+theorem mem_powerset_iff (α : Type) (A B : Set α) :
+    B ∈ 𝒫 A ↔ B ⊆ A := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
+
+end Set

@@ -10,7 +10,7 @@
 | 1 | `unit1-propositions-proofs.sokonanoda` | 命题与证明项 | 证明=项；axiom 骨架 True/False/And/Or/Not；False.rec；声明级 binder（`theorem f (a : A) : B := v`，**`axiom` 同样接受参数表**，0.59.0 起）两种拼写；先证明命题，不谈 Sort |
 | 2 | `unit2-equality-rfl.sokonanoda` | 等式与 rfl | 认识数字 Nat；`Eq.{1}` 机械规则（为什么是 1 → 单元⑤揭晓）；自己设计谓词 p 造 symm/trans；**本单元拿到完整 L1**（不声明任何 L1 名字）——`eq_symm_demo` 用 prelude 的 `Eq.symm` 示范，两题 hint 是「两解对照」 |
 | 3 | `unit3-functions-arrows.sokonanoda` | 函数与箭头 | `fun`、binder 推断、高阶函数 `(Nat -> Nat) -> Nat -> Nat`；结尾埋"函数类型的类型？"悬念 |
-| 4 | `unit4-by-tactics.sokonanoda` | by 写法 | `by` 块 + tactic（intro/exact/apply/assumption/rfl）；换行分隔 tactic；`by sorry` 占位；判定走 kernel（P2 从旧单元⑥提前） |
+| 4 | `unit4-by-tactics.sokonanoda` | by 写法 | `by` 块 + tactic（intro/exact/apply/assumption/rfl）；换行分隔 tactic；`by sorry` 占位；判定走 kernel（P2 从旧单元⑥提前）。**R2 起语言白名单更长，但本单元只用这五条**——本课 `And`/`Or` 是自建骨架，`constructor`/`cases` 在 ①④⑧ 不可用；可用面见 `docs/notes/course-lean-style/R3-rewrite-brief.md` §1 |
 | 5 | `unit5-universes-sort.sokonanoda` | 宇宙 | Sort 由悬念揭晓：Prop = Sort 0（回收单元①）、Nat : Sort 1；读 `#check` 输出；`Eq.symm {u}` 毕业题 |
 | 6 | `unit6-induction-recursion-1.sokonanoda` | 归纳与递归 Ⅰ | 显式 `inductive Nat` 块、ctor/rec/iota、手写 `Nat.rec`；非递归枚举 `Color` 的 `match`；递归 `match` 自动 IH（P2 拆前半） |
 | 7 | `unit7-induction-recursion-2.sokonanoda` | 归纳与递归 Ⅱ | 参数化 `Option`；依赖 `match`=数学归纳法；嵌套模式与通配；带索引归纳 `Vec`（P2 拆后半） |

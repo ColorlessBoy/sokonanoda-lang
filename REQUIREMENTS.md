@@ -1760,3 +1760,75 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     `docs/CI-FAILURES.md` 2026-09-19 条与 `docs/PERF.md` §采样口径）。
   * **不变的**：内核（冻结快照）**一个字节未改**；不调用官方 Lean 工具链；用户/agent 路径
     仍是零 cargo（`scripts/soko setup/grade/query/course`）。
+
+* **2026-09-20（站点全面重构）** —— 用户原话：「项目更新了非常多个版本，我希望 site
+  静态网页全面重构一下，**不要参考旧版本，旧版本没有设计感，美感，很多 ai 味**。
+  我希望除了产品介绍页、项目文档，还可以设计一些功能页，即使仅仅通过网页也能让用户
+  体会这个产品的一些功能（lean4 就有点一般，没有好好搞，只有一个简单的广告单）」；
+  随后追加两条：
+  * 「**先不做功能页，功能展示多一点也行，毕竟只是在 github pages 上，快也很重要**」
+    —— 据此**不做 WASM / 不做后端**，功能展示改为「真实预计算数据 + 纯 CSS 折叠」，
+    并把「快」写成可断言的体积预算；
+  * 「我发现 superpower 啥的 skill 都没装，网页产品做得不够全面，可能是 skill 不够」
+    —— 据此装了 26 个第三方 agent 技能（`dsh/agent-skills.json`），并**用它们回头审
+    自己已写好的方案**，审出三处真问题（衬线是 AI 聚类第 1 类的核心配料、28 页下页头
+    导航失效、安装 prompt 是 JS 注入的正文），以及**七处内容缺口**（搜索 / 对照页 /
+    术语表 / 常见问题 / 版本历史 / 404 / 站点文件）。
+  * **交付**：`site/` 从 9 页重构为 **28 页**（产品 4 / 功能 9 / 学习 4 / 使用 4 /
+    过程与信任 5 / 英文 landing 1 / 样板页 1）；设计规则手册 `D1`、施工图 `D2`、
+    页面施工标准 `D9`、四本事实卷宗 `C1–C4`、四份调研 `R1–R4` 全部落在
+    `docs/design/site-rebuild/`。
+  * **验收（一条命令，用户明确要求的「完整性与正确性」）**：
+    `python3 scripts/site-verify.py` —— 完整性 3 项 + 正确性 11 项，
+    **14/14 全绿、exit 0**；含 **K10 零伪造**（页面渲染的每条录制值回查生成它的 JSON，
+    当前 91 条全过）与 **K12 课程计数可复现**（判据 = HEAD 的课程 + 已发布二进制，
+    不是"现场跑一遍"）。
+  * **退役**：`scripts/gen-site-demos.py` 与 `site/assets/demos/`（PIL 画的假 VS Code
+    截图）**整体删除**——旧站用它们冒充产品界面，正是用户抱怨的那类东西；
+    编辑器面板改成真 HTML/CSS。旧 `site/assets/style.css` 与 `site/assets/agent-prompt.js`
+    同轮删除。
+  * **不变的**：内核一个字节未改；不调用官方 Lean 工具链；用户/agent 路径仍零工具链；
+    **站点写的是「已发布版本」的事实**——本仓并行开发时 `scripts/soko` 会量到未提交代码，
+    这条陷阱与规避办法记在 `docs/design/site-rebuild/spec/D9-page-brief.md` §4.0。
+
+* **2026-09-19（全课程 Lean 4 化：记法符号 + tactic 证明）** —— 用户原话：
+  「我希望整个 courses 转向像 lean4 一样的可读性一点，And Or Iff Forall Exists 等等
+  连接符用常规符号替换现在的 function call 形式，增加可读性。证明过程都用 tactic 过程，
+  例题也用 by sorry。」随后追加：「涉及比较多的内容，可能反过来对 sokonanoda-lang
+  功能本身有一定需求，你先全面调研并且计划好，保证结合计划和 subagents，不会遗漏
+  什么东西。」
+  * **范围（用户拍板）**：卷 I `courses/set-theory/` + 入门课 `course/` + `playground.sokonanoda`；
+    语言改造深度「中等」；演示保持已证但改写成 tactic 风格、练习占位一律 `:= by sorry`；
+    集合论符号**全部替换**、彻底 Lean 化。**不改 `site/`**（用户明示另有 agent 在做站点重构）。
+  * **追加两条（同日，改变计划形状）**：
+    ① **记法怎么敲**——「要考虑 notation 如何输入，应该像 lean4 一样 `\xxx` 替换，同时
+       hover 内容提示用户如何输入对应符号」⇒ 定案为**客户端缩写改写器**（与 Lean 4
+       `@leanprover/unicode-input` 同一张表）+ **hover 显示输入法**；**不做** LSP 补全
+       （DSH 与 opencode 都不消费补全项，而 DSH 的 `lsp` 工具消费 hover）。设计：
+       `docs/design/notation-input.md`。
+    ② **隐式实参**——「如果想支持 notation，感觉 `{x : Set}` 这种隐参数自动推导的机制
+       不得不实现了」⇒ 定案**路线 C（风格对齐 + 唯一确定，不引入元变量）**：内核
+       `Expr`/`Value` 没有元变量槽（碰内核冻结），`elab_expr` 又在内核环境外运行
+       （探针 = 整段前缀重编译）⇒ 真元变量与探针驱动都被否掉。设计：
+       `docs/design/implicit-arguments.md`。**这推翻了原计划 D2 的「不做隐式实参」**
+       （课程点名调用 2784 处里 **2308 处（83%）写了前导类型实参**，记法替换后它成为
+       新的可读性瓶颈）。**注意契约变更**：省 `α` 的点名写法 `Set.mem a A` 将从
+       「被拒」变成「合法」，被 `crates/cli/tests/notation.rs:163` 与
+       `docs/design/notation-subset.md` 钉死的「护城河」话术必须同轮重钉。
+  * **计划与设计**：`docs/design/course-lean-style.md`（主计划，含 R1–R4 + 追加片 R2.5、
+    D1–D6、X1–X15 实测台账、L/C/F/W 工作项、subagent 分工 S1–S10）；调研底稿四份 +
+    两份追加调研共 9 篇在 `docs/notes/course-lean-style/`。
+  * **进展（2026-09-21）：R3 入门课改写落代码**——44 个教学文件（11 单元 × 中英 ×
+    画布/解答）+ `course/unit11-project/`（4 文件）+ 规范副本 `course/shared/Nat`
+    全部换成记法与 tactic 解答；单元④ 结构专项落地（补 `have` 演示与 `by_ex5`，
+    画布计数 `(13,5,0)` → `(14,6,0)`）。as-built 见 `docs/design/course-lean-style.md`
+    §9「R3」。
+    **这一轮反过来改了语言两处**（都在 `crates/front`，内核零改动）——正是用户
+    预判的「改写会对语言本身提要求」：① **判定合成声明携带声明的宇宙参数**，否则
+    目标含 `Sort u`/`Eq.{u}` 的定理根本写不了 tactic（as-built
+    `docs/design/by-tactics.md` §12）；② **`src_spine` 认记法节点**，否则
+    `have h : B ∨ C` 之后 `cases h` 会被拒（逼学习者把块内假设写成点名形式）。
+    两者都有回归测试（front 1 条 + CLI 1 条），课程语料即活样例。
+
+  * **不变的红线**：内核 `crates/kernel/` **零改动**（`git diff --stat -- crates/kernel/` 空），
+    用户/agent 路径仍零工具链，判卷一律走 kernel。

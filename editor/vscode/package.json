@@ -2,7 +2,7 @@
   "name": "sokonanoda",
   "displayName": "sokonanoda language support",
   "description": "Learn theorem proving in a self-contained Lean-4-style language: real kernel grading, an Infoview goal panel, graded exercises, and agent skills that turn an LLM into your proof teacher. Zero setup - the language server ships inside the extension.",
-  "version": "0.61.0",
+  "version": "0.62.0",
   "publisher": "sokonanoda-lang",
   "license": "Apache-2.0",
   "repository": {
@@ -126,6 +126,11 @@
         "command": "sokonanoda.project.refresh",
         "title": "sokonanoda: refresh project view",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "sokonanoda.input.replaceAbbreviation",
+        "title": "替换记法缩写（\\and → ∧）",
+        "category": "sokonanoda"
       }
     ],
     "viewsContainers": {
@@ -185,6 +190,10 @@
         {
           "command": "sokonanoda.project.refresh",
           "when": "false"
+        },
+        {
+          "command": "sokonanoda.input.replaceAbbreviation",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -242,6 +251,11 @@
           ],
           "default": "off",
           "description": "Log LSP traffic to the 'sokonanoda' output channel (for debugging)."
+        },
+        "sokonanoda.input.eager": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Replace a notation abbreviation **as soon as the word is complete** (`\\and` → `∧`), instead of waiting for `Tab`. While you keep typing letters a prefix waits (`\\an` waits for `\\and`, `\\in` waits for `\\inter`); a separator (space/punctuation) closes the word and finishes it (`\\in ` → `∈ `, `\\sub ` → `⊆ `). A lone `\\` (set difference) is never touched. Off by default: `Tab` is the explicit, undo-friendly path. Hover any notation symbol to see its abbreviation."
         }
       }
     },
@@ -275,6 +289,11 @@
         "command": "sokonanoda.rebuild",
         "key": "alt+shift+b",
         "when": "editorTextFocus && editorLangId == sokonanoda"
+      },
+      {
+        "command": "sokonanoda.input.replaceAbbreviation",
+        "key": "tab",
+        "when": "editorTextFocus && editorLangId == sokonanoda && sokonanoda.input.abbreviationBeforeCursor"
       }
     ]
   },

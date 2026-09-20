@@ -237,11 +237,32 @@ pub fn render_expr(expr: &Expr) -> String {
         },
         Expr::Ident { name, .. } => name.clone(),
         Expr::UniverseApp { name, levels, .. } => {
-            format!("@{name}.{{{}}}", levels.join(", "))
+            // **不再补 `@`**（IA-1）：`@` 以前只是"把实参写显式"的提示，现在是
+            // **真语义**（关闭隐式实参插入）——渲染时凭空补一个 `@`，判卷通道
+            // 打回文本再回读就会**改变含义**（`Eq.{1} β a b` 被读成 `α := β`）。
+            // 用户自己写的 `@` 由 `Expr::App::explicit_spine` 负责渲染。
+            format!("{name}.{{{}}}", levels.join(", "))
         }
         Expr::Num { value, .. } => value.clone(),
         Expr::Hole { .. } => "sorry".to_string(),
-        Expr::App { fun, arg, .. } => {
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            ..
+        } => {
+            if *explicit_spine {
+                // Lean 的 `@`（IA-1）：整条脊**只打一个** `@`，紧贴在头前面
+                // （`@f a b`）。逐节点递归渲染会打出 `@(@f a) b` —— 回读时
+                // `@` 只作用于最内层，判卷器看到的就不是同一个项。
+                let (head, args) = crate::spine::spine_of(expr);
+                let mut out = format!("@{}", render_atom(head));
+                for a in args {
+                    out.push(' ');
+                    out.push_str(&render_atom(a));
+                }
+                return out;
+            }
             format!("{} {}", render_fun_position(fun), render_atom(arg))
         }
         Expr::Lambda { binders, body, .. } => {
@@ -249,8 +270,27 @@ pub fn render_expr(expr: &Expr) -> String {
             format!("fun {} => {}", prefix.join(" "), render_expr(body))
         }
         Expr::Forall { binders, body, .. } => {
-            let prefix: Vec<_> = binders.iter().map(render_binder).collect();
-            format!("{} -> {}", prefix.join(" "), render_expr(body))
+            // **多 binder 组必须拆成单箭头链**（`(a : T) -> (b : T) -> …`）。
+            //
+            // `render_expr` 的产物是**回读通道的输入**：`judge.rs` 的判卷合成
+            // （`fold_declared` / `wrap_binders`）与 `by` 引擎的目标文本都会把它
+            // 重新交给 parser。而 `(a : T) (b : T) -> …`（旧写法：用空格拼前缀）
+            // 在 parser 眼里第二个 binder 组后面缺 `->`——实测报
+            // 「expected `->` after binder group, found LParen」。
+            //
+            // 内核 pp 会把相邻 binder 折叠成 `forall (a b : T), …`
+            // （`docs/design/notation-subset.md` §11.9 已记这条），源里写
+            // `∀ (a b : T), …` 也产出多 binder 的 `Forall`，所以这不是边角：
+            // 实测两处必炸——假设类型是多 binder `∀` 时 `exact` 报
+            // 「binder 缺少类型标注」，以及 `apply Or.inl` 报
+            // 「无法解析 `Or.inl` 的类型」（设计
+            // `docs/design/course-lean-style.md` L1.4 的 bug ①）。
+            // 单 binder 时与旧写法**逐字节相同**（`(a : T) -> body`）。
+            let mut text = render_expr(body);
+            for binder in binders.iter().rev() {
+                text = format!("{} -> {}", render_binder(binder), text);
+            }
+            text
         }
         Expr::Arrow {
             domain, codomain, ..
@@ -352,16 +392,50 @@ pub fn render_expr(expr: &Expr) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
+        // `⟨a, b⟩`（L2.7）：回读通道必须逐字打得回来（判定合成声明会把它
+        // 重新交给 parser）。
+        Expr::AnonCtor { elements, .. } => format!(
+            "⟨{}⟩",
+            elements
+                .iter()
+                .map(render_expr)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
     }
 }
 
 /// 渲染 binder 记法：操作数是 `fun (x : A) => body`（两段式时 body 是
-/// `And guard body`）⇒ 打回 `∃ x, body` / `∃ x, guard ∧ body` 的源级形状。
+/// `And guard body`）⇒ 打回 `∃ (x : A), body` 的源级形状。
 /// 打不出（操作数不是 lambda）⇒ 退回记法符号本身。
+///
+/// **必须带 binder 的类型标注**（课程 Lean 化实测发现，设计
+/// `docs/design/course-lean-style.md` X11）：这段文本是**回读通道的输入**——
+/// `judge.rs` 的判卷合成（`fold_declared` / `wrap_binders`）与 `by.rs` 的
+/// 目标归一化都会把它重新交给 parser，而 binder 记法**要求**标注
+/// （`docs/design/notation-subset.md` §14.1：一段式的类型只能来自标注）。
+/// 打成 `∃ x, p x` 会让回读报 `elab-binder-notation-unsolved`——
+/// 实测症状是「`∃` 出现在 `by` 块的目标/假设里必炸」。
+///
+/// 退化形状（没有标注 / 不是恰好一个 binder 组）打不出可回读的记法：
+/// 退回「符号 + 名字 + 体」。它**不可回读**（binder 记法要求标注），
+/// 但信息量最大，且与第三刀的行为逐字一致。
+///
+/// **已知边界（两段式 `∃ x ∈ s, p`）**：源 AST 里那个 binder **本来就没有
+/// 标注**——它的类型是 elaborator 从 guard（`∈` 的 telescope）反解出来的
+/// （`docs/design/notation-subset.md` §14.1），渲染期拿不到。所以两段式
+/// `∃` 出现在 `by` 块的目标/假设里时，判卷回读仍然解不出类型。
+/// **课程改写因此一律用一段式 `∃ x : α, p`**（原生 `∀ x ∈ s, p` 不受影响：
+/// 它走 `Forall` 路径，binder 类型在源 AST 里就有）。
 fn render_binder_notation(symbol: &str, operand: &Expr) -> String {
     let Expr::Lambda { binders, body, .. } = operand else {
         return symbol.to_string();
     };
+    if let [binder] = binders.as_slice() {
+        if binder.ty.is_some() {
+            return format!("{symbol} {}, {}", render_binder(binder), render_expr(body));
+        }
+    }
     let names = binders
         .iter()
         .map(|binder| binder.name.clone())
@@ -371,6 +445,14 @@ fn render_binder_notation(symbol: &str, operand: &Expr) -> String {
 }
 
 /// Render a `match` pattern back to teaching syntax (used by hover/error text).
+///
+/// **子模式只在"不是原子"时才加括号**（R2 实测的 `cases` 嵌套 `by` 回归）：
+/// 模式应用脊是**平的**——`intro b hb` 是"构造子 `intro` + 两个子模式"，
+/// 而 `intro (b hb)` 是"构造子 `intro` + **一个**子模式（它自己又是 `b` 应用
+/// `hb`）"。以前无条件加括号，于是 `cases` 在 `have … := by` 里（那条路要把
+/// 组装好的项**打回源码文本**再判卷）渲染出 `| intro (b hb) =>`，回读时字段数
+/// 变成 1，报「构造子 `Exists.intro` 有 2 个字段，但这一支写了 1 个子模式」。
+/// 只给**本身带子模式**的子模式加括号，嵌套构造子模式才散不开。
 fn render_pattern(pat: &crate::ast::Pattern) -> String {
     match pat {
         crate::ast::Pattern::Wild { .. } => "_".to_string(),
@@ -381,10 +463,15 @@ fn render_pattern(pat: &crate::ast::Pattern) -> String {
             } else {
                 let inner = args
                     .iter()
-                    .map(render_pattern)
+                    .map(|a| match a {
+                        crate::ast::Pattern::Ident { args, .. } if !args.is_empty() => {
+                            format!("({})", render_pattern(a))
+                        }
+                        other => render_pattern(other),
+                    })
                     .collect::<Vec<_>>()
                     .join(" ");
-                format!("{name} ({inner})")
+                format!("{name} {inner}")
             }
         }
     }
@@ -393,11 +480,48 @@ fn render_pattern(pat: &crate::ast::Pattern) -> String {
 fn render_tactic(tactic: &Tactic) -> String {
     use Tactic::*;
     match tactic {
-        Intro { name, .. } => format!("intro {name}"),
+        Intro { names, .. } => format!("intro {}", names.join(" ")),
         Exact { expr, .. } => format!("exact {}", render_expr(expr)),
         Apply { expr, .. } => format!("apply {}", render_expr(expr)),
         Assumption { .. } => "assumption".to_string(),
         Rfl { .. } => "rfl".to_string(),
+        Constructor { .. } => "constructor".to_string(),
+        Left { .. } => "left".to_string(),
+        Right { .. } => "right".to_string(),
+        Use { expr, .. } => format!("use {}", render_expr(expr)),
+        Exfalso { .. } => "exfalso".to_string(),
+        Cases { expr, arms, .. } => {
+            let mut text = format!("cases {}", render_expr(expr));
+            for arm in arms {
+                text.push_str(&format!(
+                    "\n  | {} {} => {}",
+                    arm.ctor,
+                    arm.binders.join(" "),
+                    arm.tactics
+                        .iter()
+                        .map(render_tactic)
+                        .collect::<Vec<_>>()
+                        .join("; ")
+                ));
+            }
+            text
+        }
+        Have {
+            name, ty, value, ..
+        } => {
+            let value = match value {
+                crate::ast::HaveValue::Term(expr) => render_expr(expr),
+                crate::ast::HaveValue::By(tactics) => format!(
+                    "by {}",
+                    tactics
+                        .iter()
+                        .map(render_tactic)
+                        .collect::<Vec<_>>()
+                        .join("; ")
+                ),
+            };
+            format!("have {name} : {} := {value}", render_expr(ty))
+        }
         Sorry { .. } => "sorry".to_string(),
     }
 }
@@ -414,7 +538,8 @@ fn render_fun_position(expr: &Expr) -> String {
         | Expr::Let { .. }
         | Expr::Match { .. }
         | Expr::Notation { .. }
-        | Expr::SetLiteral { .. } => format!("({s})"),
+        | Expr::SetLiteral { .. }
+        | Expr::AnonCtor { .. } => format!("({s})"),
         _ => s,
     }
 }
@@ -435,7 +560,8 @@ pub(crate) fn render_atom(expr: &Expr) -> String {
         | Expr::Let { .. }
         | Expr::Match { .. }
         | Expr::Notation { .. }
-        | Expr::SetLiteral { .. } => format!("({s})"),
+        | Expr::SetLiteral { .. }
+        | Expr::AnonCtor { .. } => format!("({s})"),
         _ => s,
     }
 }

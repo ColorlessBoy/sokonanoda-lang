@@ -1,23 +1,31 @@
-import And
-import Or
 import Nat
 
--- Demo.sokonanoda —— 共享库子项目的**自检入口**：真的 import 两个模块并判卷。
+-- Demo.sokonanoda —— 共享库子项目的**自检入口**：真的 import 一个模块并判卷。
 -- 判卷：scripts/soko grade course/shared/Demo.sokonanoda
 -- （也由 crates/cli/tests/course_shared.rs 在 CI 里跑真 CLI。）
+--
+-- **C2.5（2026-09-21 用户拍板删自建骨架）之后这里只剩 Nat 一个模块**：
+-- `And`/`Or` 的规范副本随入门课的自建骨架一起删掉了——入门课现在直接用
+-- **prelude 的真归纳**（`And`/`Or`/`Not`/`Iff` 是 Lean core 级，`PreludeMode::Full`
+-- 自带），没有任何副本需要守。`Nat` 留下：它是**显式归纳块**的规范文本
+-- （单元⑥/⑦ 那 8 份拷贝逐字守它）。
 
--- ① 用 And 模块的公理证明交换律（跨模块导出）。
-theorem and_comm_demo (A : Prop) (B : Prop) (h : And A B) : And B A :=
+-- ① 逻辑连接符来自 **prelude 的真归纳**（不再需要 import 任何东西；
+--    这也是入门课改写后的写法）。
+theorem and_comm_demo (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
   And.intro B A (And.right A B h) (And.left A B h)
 
--- ② 用 Or 模块的归纳类型做分情况（match 降低到 Or.rec）。
-theorem or_comm_demo (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+-- ② `Or` 同理：真归纳 ⇒ 可以 `match`（降低到 `Or.rec`），也可以用 `cases`。
+--    ⚠️ 模式位可以写裸名 `| inl a =>`，**项位必须点名** `Or.inl`/`Or.inr`
+--    （G-02 起的构造子命名空间：裸项名只存在于旧的 axiom 骨架里）。
+theorem or_comm_demo (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A :=
   match h with
-  | inl a => inr B A a
-  | inr b => inl B A b
+  | inl a => Or.inr B A a
+  | inr b => Or.inl B A b
 
 -- ③ 用 Nat 模块的显式归纳块写递归定义（手写 Nat.rec 展开，与单元⑥同一手法；
---    `.{1}` 是动机所在的宇宙，与单元⑥ 的提示一致）。
+--    `.{1}` 是动机所在的宇宙，与单元⑥ 的提示一致）。**跨模块**：`Nat` 由
+--    `import Nat` 提供，本文件不再自带那个块。
 def double (n : Nat) : Nat :=
   Nat.rec.{1} (fun (_ : Nat) => Nat) zero (fun (k : Nat) (ih : Nat) => succ (succ ih)) n
 

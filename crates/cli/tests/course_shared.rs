@@ -3,7 +3,9 @@
 //! 背景（用户 2026-09-18：『顺便重构教学内容呢，前后 import 之类的，这个是不是适合
 //! 一个外接的子项目』）：单元画布**故意各自自给自足**（学习者打开一个文件就能看到
 //! 全部前置声明；golden/镜像/课程树也都按"一单元一文件"钉着），但同几段声明在
-//! 多个单元里**逐字重复**（And 公理 24 份、Or 块 12 份、显式 Nat 块 8 份）。
+//! 多个单元里**逐字重复**（历史上是 And 公理 25 份、Or 块 12 份、显式 Nat 块 8 份
+//! ——**2026-09-21 C2.5 之后只剩 `Nat` 块 8 份**：用户拍板删掉入门课的自建 And/Or
+//! 骨架，prelude 的真归纳接管，于是那两个规范模块与它们的副本表一并删除）。
 //! 复制粘贴的漂移没有任何测试能发现——事件计数只看得见语义变化，改个 binder 风格
 //! 或注释位置照样全绿。
 //!
@@ -17,50 +19,6 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
-
-/// `course/shared/And.sokonanoda` → 24 份副本（6 单元 × 中英 × 画布+解答）。
-const AND_COPIES: &[&str] = &[
-    "course/unit1-propositions-proofs.sokonanoda",
-    "course/unit10-reading-proofs.sokonanoda",
-    "course/unit11-modules-projects.sokonanoda",
-    "course/unit4-by-tactics.sokonanoda",
-    "course/unit8-quantifiers.sokonanoda",
-    "course/unit9-relations-connectives.sokonanoda",
-    "course/en/unit1-propositions-proofs.sokonanoda",
-    "course/en/unit10-reading-proofs.sokonanoda",
-    "course/en/unit11-modules-projects.sokonanoda",
-    "course/en/unit4-by-tactics.sokonanoda",
-    "course/en/unit8-quantifiers.sokonanoda",
-    "course/en/unit9-relations-connectives.sokonanoda",
-    "course/solutions/unit1-propositions-proofs-solution.sokonanoda",
-    "course/solutions/unit10-reading-proofs-solution.sokonanoda",
-    "course/solutions/unit11-modules-projects-solution.sokonanoda",
-    "course/solutions/unit4-by-tactics-solution.sokonanoda",
-    "course/solutions/unit8-quantifiers-solution.sokonanoda",
-    "course/solutions/unit9-relations-connectives-solution.sokonanoda",
-    "course/en/solutions/unit1-propositions-proofs-solution.sokonanoda",
-    "course/en/solutions/unit10-reading-proofs-solution.sokonanoda",
-    "course/en/solutions/unit11-modules-projects-solution.sokonanoda",
-    "course/en/solutions/unit4-by-tactics-solution.sokonanoda",
-    "course/en/solutions/unit8-quantifiers-solution.sokonanoda",
-    "course/en/solutions/unit9-relations-connectives-solution.sokonanoda",
-];
-
-/// `course/shared/Or.sokonanoda` → 12 份副本（3 单元 × 中英 × 画布+解答）。
-const OR_COPIES: &[&str] = &[
-    "course/unit10-reading-proofs.sokonanoda",
-    "course/unit11-modules-projects.sokonanoda",
-    "course/unit9-relations-connectives.sokonanoda",
-    "course/en/unit10-reading-proofs.sokonanoda",
-    "course/en/unit11-modules-projects.sokonanoda",
-    "course/en/unit9-relations-connectives.sokonanoda",
-    "course/solutions/unit10-reading-proofs-solution.sokonanoda",
-    "course/solutions/unit11-modules-projects-solution.sokonanoda",
-    "course/solutions/unit9-relations-connectives-solution.sokonanoda",
-    "course/en/solutions/unit10-reading-proofs-solution.sokonanoda",
-    "course/en/solutions/unit11-modules-projects-solution.sokonanoda",
-    "course/en/solutions/unit9-relations-connectives-solution.sokonanoda",
-];
 
 /// `course/shared/Nat.sokonanoda` → 8 份副本（2 单元 × 中英 × 画布+解答）。
 const NAT_COPIES: &[&str] = &[
@@ -93,11 +51,23 @@ fn code_only(text: &str) -> String {
         .join("\n")
 }
 
-/// 语料里的全部文件（画布 + 解答，中英各一份）。
+/// 语料里的全部文件（画布 + 解答，中英各一份 + 单元⑪ 的多文件项目）。
+///
+/// `unit11-project/` 是 2026-09-21（R3）补进来的：当时它的 `Logic.sokonanoda` 是
+/// And 公理块的又一份逐字副本，而在那之前它**不在**扫描面里——抄了那段却不登记
+/// 也照样全绿（手工同步它时发现的守卫空洞）。C2.5 删骨架之后它不再含任何规范
+/// 文本，但扫描面保持不变（下一条新抄的块照样会被抓到）。
 fn corpus_files() -> Vec<String> {
     let root = repo_root().join("course");
     let mut out = Vec::new();
-    for dir in ["", "en", "solutions", "en/solutions"] {
+    for dir in [
+        "",
+        "en",
+        "solutions",
+        "en/solutions",
+        "unit11-project",
+        "unit11-project/solutions",
+    ] {
         let base = if dir.is_empty() {
             root.clone()
         } else {
@@ -129,26 +99,21 @@ fn run_sokonanoda(file: &str) -> std::process::Output {
 
 #[test]
 fn shared_modules_compile_standalone() {
-    for module in [
-        "course/shared/And.sokonanoda",
-        "course/shared/Or.sokonanoda",
-        "course/shared/Nat.sokonanoda",
-    ] {
-        let out = run_sokonanoda(module);
-        assert!(
-            out.status.success(),
-            "{module} must compile on its own: {}",
-            String::from_utf8_lossy(&out.stderr)
-        );
-    }
+    // C2.5 之后只剩 `Nat` 一个规范模块（`And`/`Or` 随自建骨架一起退役）。
+    let module = "course/shared/Nat.sokonanoda";
+    let out = run_sokonanoda(module);
+    assert!(
+        out.status.success(),
+        "{module} must compile on its own: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
 }
 
 #[test]
 fn shared_demo_compiles_through_the_import_closure() {
     // 这个子项目存在的另一个理由：它是"课程内容 import 化"的可执行样例——
-    // 跨模块导出（And 的公理）、跨模块 match（Or 的归纳类型，曾经因
-    // judge 前缀看不见依赖而报 elab-match-no-expected-type）、
-    // 跨模块递归（Nat 的显式归纳块 + Nat.rec）。
+    // 跨模块递归（Nat 的显式归纳块 + Nat.rec）。**C2.5 之后** And/Or 两条演示
+    // 改用 prelude 的真归纳（不再 import 那两个模块），跨模块那条线由 Nat 承担。
     let out = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .args(["--json", "course/shared/Demo.sokonanoda"])
         .current_dir(repo_root())
@@ -175,35 +140,31 @@ fn shared_demo_compiles_through_the_import_closure() {
 
 #[test]
 fn every_unit_copy_matches_the_canonical_module() {
+    // C2.5 之后只剩 `Nat` 这一条线（`And`/`Or` 的规范模块与副本表一起退役）。
     let files = corpus_files();
-    for (module, expected) in [
-        ("course/shared/And.sokonanoda", AND_COPIES),
-        ("course/shared/Or.sokonanoda", OR_COPIES),
-        ("course/shared/Nat.sokonanoda", NAT_COPIES),
-    ] {
-        let canonical = code_only(&read(module));
-        assert!(!canonical.is_empty(), "{module} must not be empty");
-        let mut found: Vec<String> = files
-            .iter()
-            .filter(|file| code_only(&read(file)).contains(&canonical))
-            .cloned()
-            .collect();
-        found.sort();
-        let mut expected: Vec<String> = expected.iter().map(|s| s.to_string()).collect();
-        expected.sort();
+    let module = "course/shared/Nat.sokonanoda";
+    let canonical = code_only(&read(module));
+    assert!(!canonical.is_empty(), "{module} must not be empty");
+    let mut found: Vec<String> = files
+        .iter()
+        .filter(|file| code_only(&read(file)).contains(&canonical))
+        .cloned()
+        .collect();
+    found.sort();
+    let mut expected: Vec<String> = NAT_COPIES.iter().map(|s| s.to_string()).collect();
+    expected.sort();
 
-        let missing: Vec<&String> = expected.iter().filter(|f| !found.contains(f)).collect();
-        let extra: Vec<&String> = found.iter().filter(|f| !expected.contains(f)).collect();
-        assert!(
-            missing.is_empty(),
-            "{module} 改了但这些副本没跟上（逐字复制的那份必须一起改）：{missing:#?}"
-        );
-        assert!(
-            extra.is_empty(),
-            "这些文件也含有 {module} 的规范文本，但没登记进副本表——请更新 \
-             crates/cli/tests/course_shared.rs：{extra:#?}"
-        );
-    }
+    let missing: Vec<&String> = expected.iter().filter(|f| !found.contains(f)).collect();
+    let extra: Vec<&String> = found.iter().filter(|f| !expected.contains(f)).collect();
+    assert!(
+        missing.is_empty(),
+        "{module} 改了但这些副本没跟上（逐字复制的那份必须一起改）：{missing:#?}"
+    );
+    assert!(
+        extra.is_empty(),
+        "这些文件也含有 {module} 的规范文本，但没登记进副本表——请更新 \
+         crates/cli/tests/course_shared.rs：{extra:#?}"
+    );
 }
 
 #[test]
@@ -213,6 +174,13 @@ fn the_shared_library_replaces_rather_than_duplicates_the_canvas_purpose() {
     // 那样学习者打开单元就得追模块，golden 与镜像契约也要整体重钉。
     for file in corpus_files() {
         if !file.contains("/unit") {
+            continue;
+        }
+        // `unit11-project/` 例外：它**就是**多文件项目（入口第一行 `import Logic`），
+        // 单元⑪ 教的那件事。它进语料是为了「逐字副本不许漂移」（C2.5 之前是它的
+        // And 公理块；现在只剩 `Nat` 块那条线管不到它，但留着无害——它同样要接受
+        // 「抄了规范文本就得登记」的检查），与「单元画布自给自足」这条正交。
+        if file.starts_with("course/unit11-project/") {
             continue;
         }
         let code = code_only(&read(&file));

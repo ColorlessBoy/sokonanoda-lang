@@ -1,105 +1,288 @@
 -- ==========================================================================
--- notation-cheatsheet.sokonanoda —— 卷 I 的**记法对照页**（大纲 §4 的"第二遍"）
+-- notation-cheatsheet.sokonanoda —— 卷 I 的**记法速查表**（查表用，不是单元）
 --
--- 这一页不教新数学。它把**同一个命题的两种写法**并排放：
+-- 这一页不教新数学，也不按顺序学。它是**参考页**：全课程会用到的每一个记法
+-- 都在这儿有一行 —— 记法 → 底下站着什么（点名形式）→ 谁声明的、什么形状、
+-- 优先级多少。写题时想不起某个符号怎么写、或者报错看不懂了，来这里查。
 --
---     点名形式（pointful，你一直在写的）        数学记法（notation，数学书上的）
---     Set.mem α a A                            a ∈ A
---     Set.subset α A B                         A ⊆ B
---     Set.empty α                              ∅
---     Set.union α A B                          A ∪ B
+-- 本页的三样东西：
+--   ① **速查表**（就在下面，注释区里）：逻辑连接符 + 集合论符号，一张表看完；
+--   ② **优先级梯子 + 读法示例**：连写时怎么分组，不用背数字，看一个例子就懂；
+--   ③ **9 对演示 + 3 道练习**：它们是**证据**，不是课文 —— 每一对把同一个命题
+--      的记法版与点名版并排写一遍，两边各自判卷通过（`exit 0`），用来证明
+--      "两种写法是同一个项"。光有上面的表那只是断言，这几对才是实测。
 --
--- 为什么要有这一页（大纲 `docs/design/set-theory-syllabus.md` §4）：课程故意先教
--- 点名形式——它把"集合就是谓词、∈ 就是谓词应用"这层结构摊开在你面前。等你写顺了，
--- 再看见数学书上那套符号，才知道每个符号**底下站着什么**。反过来先学符号，
--- 很容易只会搬符号、不会证。
+-- 背景（大纲 `docs/design/set-theory-syllabus.md` §4.2）：R2 起**课程一律用记法**，
+-- 点名形式退为"底下站着什么"的解释。所以本页的定位从"点名 ↔ 记法对照"改成了
+-- "**记法速查 + 底下站着什么**" —— 对照还在，但它的身份是证据，不是教学顺序。
 --
--- ── 四条必须说清的事（每一条都能在本页里当场验证）────────────────────────
+-- ══════════════════════════════════════════════════════════════════════════
+-- 【速查表 1】逻辑连接符 —— **语言内建 / 预置，任何文件零声明可用**
+-- ══════════════════════════════════════════════════════════════════════════
 --
--- ① **记法是糖**（台账 G-04 第一刀，设计 `docs/design/notation-subset.md`）：
---    `infix` / `notation` 是**源级糖**。parser 只把 `a ∈ A` 记成一个带目标名的
---    记号节点，elaborator 把它**源到源降级**成既有的应用形状 `Set.mem α a A`
---    （`α` 由操作数解出后补上——这是记法路径**独有**的一步）。不引入新语义、
---    不产生新事件：记法命令在判卷器眼里根本不是"声明"。
+--   记法           底下的点名形式                     来源 / 优先级
+--   ──────────     ─────────────────────────────      ──────────────────────────────
+--   `A ∧ B`        `And A B`                          内建 `infixr:35`  → `And`
+--   `A ∨ B`        `Or A B`                           内建 `infixr:30`  → `Or`
+--   `A ↔ B`        `Iff A B`                          内建 `infix:20`   → `Iff`
+--   `¬ A`          `Not A`                            内建 `prefix:40`  → `Not`
+--   `A → B`        `A -> B`                           **词法别名**（U+2192 ≡ `->`）；
+--                                                    函数空间不是常量，没有目标名
+--   `a = b`        `Eq.{u} α a b`                     内建 `infix:50`   → `Eq`
+--                                                    （`u` 由操作数类型的 sort 解出）
+--   `a ≠ b`        `Ne.{u} α a b`                     内建 `infix:50`   → `Ne`
+--                                                    = `Eq.{u} α a b -> False`
+--   `∀ (x : α), p` 原生 Pi（`forall`）                语言关键字，不用声明
+--   `∃ (x : α), p` `Exists α (fun (x : α) => p)`      **lib/Exists.sokonanoda** 的
+--                                                    `binder_notation "∃" => Exists`
+--   ──────────     ─────────────────────────────      ──────────────────────────────
 --
--- ② **点名形式永久可用，两种写法判卷一致**：`Set.mem α a A` 与 `a ∈ A` 是
---    **同一个项**，走同一个内核。本页每一对演示都是两条声明并排写的，
---    它们各自判卷通过（`node scripts/soko grade <绝对路径>` 退出码 0）。
---    记法**不是**替代品，是同一件事的另一种写法——你随时可以换回去。
+-- ⚠️ **`∃` 要 `import lib.Exists`**（本页只 import `lib.Set`，所以本页**不演示** `∃`）。
+--    不 import 就直接写 `∃` ⇒ `notation-unknown-symbol`（"这个符号在本文件里还没有
+--    声明过记法"）。`∀` 相反：它是语言关键字，哪儿都能写。
+-- ⚠️ **`∀`/`∃` 不能当算子的操作数**：`A -> ∀ x, P x` 要写成 `A -> (∀ x, P x)`。
+--    （本页演示 2 的写法注记就是这个坑，两种写法都要加括号。）
 --
--- ③ **"判卷一致"不等于"打印一致"**：目标面板 / hover 里显示的类型文本仍由
+-- ══════════════════════════════════════════════════════════════════════════
+-- 【速查表 2】集合论符号 —— **课程标准库声明**（`lib/Set.sokonanoda` 末尾）
+-- ══════════════════════════════════════════════════════════════════════════
+--
+--   记法          底下的点名形式                声明行（形状 + 优先级）    目标签名
+--   ──────────    ─────────────────────────     ──────────────────────     ────────────────────────────────
+--   `a ∈ A`       `Set.mem α a A`               `infix:50`                 `(α : Type) → α → Set α → Prop`
+--   `A ⊆ B`       `Set.subset α A B`            `infix:50`                 `(α : Type) → Set α → Set α → Prop`
+--   `A ∪ B`       `Set.union α A B`             `infixl:65`                `(α : Type) → Set α → Set α → Set α`
+--   `A ∩ B`       `Set.inter α A B`             `infixl:70`                `(α : Type) → Set α → Set α → Set α`
+--   `A \ B`       `Set.sdiff α A B`             `infixl:70`                `(α : Type) → Set α → Set α → Set α`
+--   `∅`           `Set.empty α`                 `notation`（零元，无优先级） `(α : Type) → Set α`
+--   `𝒫 A`         `Set.powerset α A`            `prefix:100`               `(α : Type) → Set α → Set (Set α)`
+--   `Aᶜ`          `Set.compl α A`               `postfix:100`              `(α : Type) → Set α → Set α`
+--   `f '' A`      `Set.image α β f A`           `infixr:80`                `(α β : Type) → (α → β) → Set α → Set β`
+--   `f ⁻¹' B`     `Set.preimage α β f B`        `infixr:80`                `(α β : Type) → (α → β) → Set β → Set α`
+--   `A ×ˢ B`      `Set.prod α A B`              `infixr:80`                `(α β : Type) → Set α → Set β → Set (α × β)`
+--   ──────────    ─────────────────────────     ──────────────────────     ────────────────────────────────
+--
+-- ⚠️ **这 11 条只在 `lib/Set` 里声明，全课程只此一家**（同一个符号声明两次是
+--    parse 错误）。本页 `import lib.Set` ⇒ 从文件头就可用，不用自己重声明。
+-- ⚠️ **目标名在"使用点"解析**：`Set.powerset` / `Set.compl` 就在 `lib/Set` 里；
+--    `Set.image` / `Set.preimage` 在 `lib/Image.sokonanoda`（单元⑧⑫ import 它）；
+--    `Set.prod` 是**单元⑤ 给出的词汇**（`def Set.prod` 写在那个画布里）。
+--    没 import 对模块就用该符号 ⇒ `elab-notation-unknown-target`，报错会点名缺谁。
+--    ⇒ **本页只演示目标就在 `lib/Set` 里的两个**（`𝒫` 与 `ᶜ`），另外三个要
+--    import 对模块才有意义（这本身也是教学设计：报错会告诉你缺哪个名字）。
+-- ⚠️ **一元记法在实参位要加括号**（与二元记法一致）：`f (𝒫 A)`、`f (Aᶜ)`；
+--    `Eq.{1} (Set α) (Aᶜ) (Set.compl α A)` 里 `(Aᶜ)` 那对括号是必须的。
+--
+-- ══════════════════════════════════════════════════════════════════════════
+-- 【速查表 3】不是记法、但同样是糖的语法（查表时容易混，单列）
+-- ══════════════════════════════════════════════════════════════════════════
+--
+--   `{a}`         `Set.singleton α a`            **内建语法糖**（不是记法命令）：
+--   `{a, b}`      `Set.pair α a b`               在 **elab 阶段**展开成点名形式
+--                                                （与 `+` → `Nat.add` 同族）
+--   ──────────    ─────────────────────────      ────────────────────────────────
+--   ⇒ 它们**没有优先级可查**（`{a}` 是原子表达式），也不是 `infix`/`notation`
+--     命令，所以列在这里而不是表 2。
+--
+-- ⚠️ **Mathlib 有记法、本课程没声明的符号**（**写不了，别抄**）：`r ⁻¹`（关系逆，
+--    点名 `Rel.inv α r`）、`r • s`（关系复合，点名 `Rel.comp …`）、`g ∘ f`
+--    （函数复合，点名 `Function.comp α β γ g f`）、`A ≈ B`（等势，点名
+--    `Set.Equiv α β A B`）。它们在单元⑥⑦⑨ 的**注释里**按数学书的读法出现，
+--    但源码里一律写点名形式 —— 因为课程库没有声明它们。
+--
+-- ══════════════════════════════════════════════════════════════════════════
+-- 【优先级梯子】从**最紧**到**最松**（数字越大绑得越紧）
+-- ══════════════════════════════════════════════════════════════════════════
+--
+--   函数应用 `f x`                  最紧   —— **比 100 还紧**
+--   `𝒫 _` / `_ ᶜ`                    100   一元记法；`prefix:100` / `postfix:100`
+--   `_ '' _` `_ ⁻¹' _` `_ ×ˢ _`       80   右结合（`infixr`）
+--   `_ ∩ _` / `_ \ _`                 70   左结合（`infixl`）
+--   `+`（内建保留项）                  65   ——（本课程不用）
+--   `_ ∪ _`                           65   左结合（`infixl`）
+--   `_ = _` / `_ ≠ _`                 50   无结合（内建）
+--   `_ ∈ _` / `_ ⊆ _`                 50   无结合（`infix`）
+--   `¬ _`                             40   前缀（内建）
+--   `_ ∧ _`                           35   右结合（内建）
+--   `_ ∨ _`                           30   右结合（内建）
+--   `->`（`→` 同义）                   25   右结合 —— **比任何记法都松**
+--   `_ ↔ _`                           20   无结合（内建）
+--   `∀` / `∃` binder                    0   一直吃到表达式结尾（进操作数位要加括号）
+--
+-- **读法示例**：`A ∩ B ∪ Cᶜ` 怎么分组？
+--   ① `ᶜ`(100) 最紧 ⇒ 先成组：`Cᶜ`；
+--   ② `∩`(70) 比 `∪`(65) 紧 ⇒ `A ∩ B` 再成组；
+--   ③ 剩下 `∪`(65)：整条读作 **`(A ∩ B) ∪ Cᶜ`**。
+--   顺着梯子往上走的同一件事：`A ⊆ B ∪ Cᶜ` = `A ⊆ (B ∪ Cᶜ)`（`⊆`50 比 `∪`65 松）；
+--   `¬ A ∧ B` = `(¬ A) ∧ B`（40 > 35）；`A ∧ B ∨ C` = `(A ∧ B) ∨ C`（35 > 30）；
+--   `A ↔ B ∨ C` = `A ↔ (B ∨ C)`（30 > 20）。第 9 对演示把这条钉住。
+--
+-- ⚠️ 同级的**不同符号**按左结合处理（`A \ B ∩ C` = `(A \ B) ∩ C`）；
+--    而 `infix` 族的 `∈`/`⊆`/`=`/`≠`/`↔` **没有结合性**：`a ⊆ b = c` 是 parse 错，
+--    要写成 `(a ⊆ b) = c` 或 `a ⊆ (b = c)` —— **这不是刁难，是逼你把分组写清楚**。
+--
+-- ══════════════════════════════════════════════════════════════════════════
+-- 【三条使用规则】每条下面都指了本页的例证
+-- ══════════════════════════════════════════════════════════════════════════
+--
+-- 规则 1：**记法是源级糖 —— `a ∈ A` 与 `Set.mem α a A` 是同一个项。**
+--   parser 只把 `a ∈ A` 记成一个带目标名的记号节点，elaborator 把它**源到源
+--   降级**成既有的应用形状 `Set.mem α a A`。不引入新语义、不产生新事件：
+--   记法命令在判卷器眼里根本不是"声明"；两种写法走**同一个内核**、判卷一致。
+--   ▸ 例证：本页 9 对演示（`demo_mem_pointful` 与 `demo_mem_notation` …）都是
+--     同一个命题并排写两遍，每一条都 `decl.checked`、`grade` exit 0；
+--     解答在 `units/solutions/notation-cheatsheet-solution.sokonanoda`。
+--   ▸ 例证：`{a}` / `{a, b}` 也走这条路（表 3），展开成 `Set.singleton`/`Set.pair`。
+--
+-- 规则 2：**点名形式永久可用 —— 但前导类型参数（以及 `=`/`≠` 的宇宙层级）要写全。**
+--   `Set.mem α a A` 永远合法，与 `a ∈ A` 同判；它**不是**"旧写法"，而是记法的
+--   底层语言，也是所有报错信息的语言（见规则 3 后面的打印注记）。
+--   ⚠️ **点名形式不会自动补前导 `α`**：`Set.mem a A` 被拒。写点名就把 `α` 写全。
+--   ⚠️ **`Eq`/`Ne` 还多一层**：它们是内建记法里唯二**带宇宙参数**的目标，
+--     而点名形式不补隐式实参 ⇒ `Eq (Set α) A B` / `Ne (Set α) A B` 报
+--     `类型不匹配：期望 Sort(0)，实际是 Sort(1)`，必须写 **`Eq.{1} (Set α) A B`**
+--     / **`Ne.{1} (Set α) A B`**。（记法 `A = B` / `A ≠ B` 由判卷器补层级，正常。）
+--   ▸ 例证：本页每一对演示的 pointful 版都把 `α` 写在签名里
+--     （`Set.subset α A B`、`Set.union α A B`、`Set.notMem_empty α a` …）；
+--     演示 8 的结论正是 `Eq.{1} (Set α) A B` 这个带层级的点名写法。
+--
+-- 规则 3：**记法会自动补前导类型参数，点名形式不会。**
+--   补全只挂在记号展开路径上（① 由操作数解出 → ② 无操作数时由期望类型解出），
+--   **不改变任何既有程序的语义**。细则、边界与刚更新的报错形态见下面「一条
+--   护城河」与「已知边界」两节 —— 那两节是这条规则的**细则页**。
+--   ▸ 例证：`demo_empty_subset_notation`（`∅` 没有操作数，`α` 由 `⊆` 的另一个
+--     操作数解出）、`demo_mem_notation`（`α` 由 `a` 的类型解出）。
+--
+-- ⚠️ **"判卷一致"不等于"打印一致"**：目标面板 / hover 里显示的类型文本仍由
 --    **冻结内核的 pretty-printer** 产出，它显示**点名形式**（语言还没有源码级
---    print-back，那是第二刀）。所以：你写 `A ⊆ B`，目标栏会回你
---    `Set.subset α A B`——**这是对的，不是 bug**。点名形式因此不是"旧写法"，
---    它是记法的底层语言，也是所有报错信息的语言：**看不懂报错时，把记法翻译回
+--    print-back，那一刀明确不做）。所以：你写 `A ⊆ B`，目标栏会回你
+--    `Set.subset α A B` —— **这是对的，不是 bug**。**看不懂报错时，把记法翻译回
 --    点名形式，报错就变成人话**。
 --
--- ④ **记法随 `import` 传播**（G-04 第二刀，0.60.0）：被导入模块声明的记法在
---    **入口文件里从文件头就可用**——`lib/Set.sokonanoda` 末尾声明的那五个数学
---    符号（`𝒫` / `ᶜ` / `''` / `⁻¹'` / `×ˢ`）本页**不用重声明**就能写。
---    本文件自己声明的四条（`∈` / `⊆` / `∪` / `∅`）是**另一回事**：它们是 Lean
---    core 级符号，课程库**没有**声明（第一刀把它们留给了各页自己写），所以本页
---    仍自带一份。**同一个符号全课程只能声明一次**（重复声明是 parse 错误）——
---    所以重声明 lib 里的那五个会当场报错，这也是"库定义记法"的护栏。
+-- ⚠️ **记法随 `import` 传播**：被导入模块声明的记法在**入口文件里从文件头就
+--    可用** —— 本页 `import lib.Set`，于是库里那一整排符号（表 2 的 11 条）
+--    **不用重声明**就能写。本页自己当然也可以声明记法（`infix`/`notation` 命令），
+--    但**同一个符号全课程只能声明一次** —— 再声明一次 `∈` 会当场报错，这也是
+--    "库定义记法"的护栏。
+--
+-- ── 本页的证明怎么写（tactic 白名单）──────────────────────────────────────
+--    演示与练习解答一律是 `by` tactic 块；本页用到的只有 `intro` / `exact` /
+--    `apply` / `constructor`（全课程白名单还含 `assumption` / `rfl` / `match` /
+--    `cases` / `have` / `left` / `right` / `use` / `exfalso`）。
+--    **没有** `rw` / `obtain` / `change` / `simp` / `·`（focus 点）——写了就是
+--    parse/elab 错。`sorry` 只出现在练习的空位里。
 --
 -- ── 一条护城河（别踩）────────────────────────────────────────────────────
 --    记法路径会**自动补前导类型参数**，点名形式**不会**：
---        Set.mem a A          ← 仍被内核拒绝（kernel-rejected）：缺 `α`
+--        Set.mem a A          ← 不可用（省略了 `α`）
 --        a ∈ A                ← 通过：`α` 由 `a` 的类型解出
 --    这不是"记法更聪明"，是设计上的边界（N4.3）：补全只挂在记法路径上，
 --    点名形式的语义一个字节都没改。写点名形式时把 `α` 写全。
 --
--- ── 已知边界：`∅` 想要"期望类型"才补得出 `α` ─────────────────────────────
---    `∅` 没有操作数，它的 `α` 只能从**期望类型**解出（N4.2）：
+--    ⚠️ **报错形态在 0.62.0 变了（2026-09-21 实测，待登记台账）**：以前
+--    `Set.mem a A` 报的是「缺 `α`」这类**指向根因**的错；现在它会在**更晚**的地方
+--    炸成一条**同形**的不匹配——把
+--        theorem c (α : Type) (a : α) (A : Set α) : Set.mem a A -> A a := by
+--          intro h
+--          exact h
+--    判一遍，报的是「`` `exact` 类型不匹配：期望 `A a`，实际是 `Set.mem a A` ``」，
+--    两边几乎同名，看不出缺的是 `α`。**结论不变**（点名形式仍要把 `α` 写全），
+--    但这条错误信息应该修回"指出缺哪个参数"——已记进第 117 轮 STATUS 的「仍欠」，
+--    尚未进 `gap.py` 台账。
+--
+-- ── 已知边界：`∅` 的 `α` 要从"邻居"解出（N4.2）──────────────────────────
+--    `∅` 没有操作数，它的 `α` 只能从**同一记法的另一个操作数**或**声明的期望
+--    类型**解出：
 --        def e (α : Type) : Set α := ∅              ← 通过（期望类型是 Set α）
---        A ⊆ ∅     /  ∅ ⊆ A  /  a ∈ ∅  /  A ∪ ∅     ← 通过（操作数的期望类型是 Set α）
---        Eq.{1} (Set α) A ∅                         ← **拒绝**：Eq 的操作数不吃期望类型
---                                                     （elab-notation-argument-unsolved）
---    最后一行今天只能写点名形式：`Eq.{1} (Set α) A (Set.empty α)`。这条边界是
---    "不做一般隐式实参推断"的直接后果，报错 hint 也会教你写回点名形式。
+--        A ⊆ ∅     /  ∅ ⊆ A  /  a ∈ ∅  /  A ∪ ∅     ← 通过（另一个操作数给出 Set α）
+--        Eq.{1} (Set α) A ∅   /  A = ∅  /  A ≠ ∅    ← 通过（0.61.0 起，见下）
+--        ∅ = A     /  ∅ ≠ A                         ← **仍判红**（kernel-rejected）：
+--                                                     0.62.0 重测，报
+--                                                     `def_eq failed: expected Sort(0) /
+--                                                      actual Sort(1)`；点名形式
+--                                                     `Eq (Set α) (Set.empty α) A` 同样红
+--                                                     （见下面那条修正）
+--    写回点名形式 `Eq.{1} (Set α) (Set.empty α) A` 永远可以（层级不能省，见规则 2）。
+--    这条边界是"不做一般隐式实参推断"的直接后果。
+--
+--    ⚠️ **0.62.0 重测：红的原因比"落在左操作数位"更具体（原页的归因不准）**。
+--    实测同一条命题的六种写法：
+--        ∅ = A          /  ∅ ≠ A                      ← 红
+--        Eq (Set α) (Set.empty α) A                   ← **也红**（点名，少 `.{1}`）
+--        Eq.{1} (Set α) (Set.empty α) A               ← 通过（点名 + 层级）
+--        Ne (Set α) (Set.empty α) A                   ← **也红**（点名，少 `.{1}`）
+--        Eq.{1} (Set α) A (Set.empty α) /  A = ∅  /  A ≠ ∅  ← 通过
+--    但**同样的红与 `∅` 无关**：`Eq (Set α) A B` 与 `Ne (Set α) A B` 也红，
+--    补上 `.{1}` 就好（见规则 2）。⇒ 真正的根因是**宇宙层级**：`=`/`≠` 是内建
+--    记法里唯二带宇宙参数的目标（`And`/`Or`/`Iff`/`Not` 都不带），层级要由判卷器
+--    猜；在 `∅ = A` 这类形状上它猜成 `Sort(0)`，应为 `1`。**结论不变**（`∅` 放
+--    左边时要小心），但归因应从"操作数位"改成"**宇宙层级推断**"——待登记台账
+--    （与下面那条 0.62.0 报错形态同批）。
+--
+--    ⚠️ **补充（0.62.0 实测，原页没有这一条）**：两个操作数**都是**解不出的零元
+--    记法时，一样补不出 `α`：
+--        ∅ ⊆ ∅                              ← **判红**（`elab-notation-argument-unsolved`）
+--    因为没有任何一个操作数能给出 `α`。出路：一边写成 `Set.empty α`，或让另一边
+--    有类型（`∅ ⊆ A`）。
+--
+--    ⚠️ **G-19 已修（0.61.0）**：`∅` 落在**被应用**的位置时（`∅ ⊆ A` 在 `by` 块里
+--    要先展开成 `∀ x, (∅) x -> A x`），0.61.0 之前补不出 `α`、整条判红；现在
+--    `∅ ⊆ A := by …` 与 term 模式、点名形式**同判**（台账 G-19 / `docs/gaps/WO-012`）。
+--    **这一条与上面那两行"仍判红"无关**：G-19 是"被应用的位置"，已经修好了；
+--    `∅ = A` / `∅ ≠ A` 是另一回事，根因是**宇宙层级推断**（见上面那条 0.62.0 重测）。
 --
 -- ── 与 Lean core 的对照（逐字取证见 docs/notes/settheory-survey/prior-art-report.md §1.3）
---    core 声明                                          本页声明
+--    core 声明                                          课程库声明（lib/Set.sokonanoda）
 --    notation:50 a:50 " ∈ " b:50 => Membership.mem b a  infix:50  " ∈ " => Set.mem
 --    infix:50 " ⊆ " => Subset                            infix:50  " ⊆ " => Set.subset
---    infixl:65 " ∪ " => Union.union                      infixl:65 " ∪ " => Set.union
---    notation "∅" => EmptyCollection.emptyCollection      notation  "∅"  => Set.empty
+--    infixl:65 " ∪ " => Union.union                      infixl:65  " ∪ " => Set.union
+--    notation "∅" => EmptyCollection.emptyCollection     notation  "∅"  => Set.empty
 --    三处**已知差异**（v1 明说，不假装对齐）：① core 的 `∈` 是 `notation` 并**交换
 --    操作数**（`Membership.mem b a`），我们是**保序**的 `infix`（对准课程库的
 --    `Set.mem α a A`），交换操作数那一刀还没做；② `infix` 族的结合性脱糖是 v1
 --    自定的（`p` / `p+1` 规则），未从 Lean 源码逐字取证；③ `x∈A`（两侧不写空格）
 --    在我们这儿可用——**我们比 Lean 宽松**。
+--    ⚠️ 上面四条是**逐字取证**的；表 2 里 `∩`/`\` 的 **70** 与 `𝒫`/`ᶜ` 的 **100**、
+--    `×ˢ` 的 **80** 是**本子集自定**的（`lib/Set.sokonanoda` 的注释称"Lean core 的
+--    梯子"只对 `∈`/`⊆`/`∪`/`∅` 那四条成立）—— 别把自定的数字当取证结论。
 --
--- ── 本页的定位 ───────────────────────────────────────────────────────────
---    它**不是一个单元**：不进 `course.json`，没有"必须做完"的配额。下面 9 对演示
---    都已证好（读它们，对照两种写法）；最后 3 道练习带 `sorry`，解答在同名文件
---    `units/solutions/notation-cheatsheet-solution.sokonanoda`（画布不 import 它）。
---    其它单元的画布**继续用点名形式**——记法是本页单独教的第二遍，不是全卷改写。
+-- ── 本页的定位（速查表，不是单元）─────────────────────────────────────────
+--    ① **它不是一个单元**：不进 `course.json`，**没有"必须做完"的配额**，也不在
+--       任何单元的 `prereqs` 里。它是**查表用的参考页** —— 写题时回来查符号、
+--       查优先级、查报错里的点名形式；**不需要按顺序从头读**（练习也不计分）。
+--    ② 下面 **9 对演示**都已证好（`by` tactic 块）：它们的作用是**证据** ——
+--       同一个命题的记法版与点名版并排，两边各自判卷通过，证明"两种写法是
+--       同一个项"。删了它们，上面的速查表就只剩断言。
+--    ③ 最后 **3 道练习**留 `:= by` + `sorry` 的空位，解答在同名文件
+--       `units/solutions/notation-cheatsheet-solution.sokonanoda`（画布不 import 它）。
+--    ④ R2 起全课程的画布与解答一律用**记法 + `by` tactic 块**；本页是唯一
+--       **并排**保留两种写法的地方，而"并排"在这里的身份是**证据**。
 -- ==========================================================================
 import lib.Logic
 import lib.Set
 
 -- ─────────────────────────────────────────────────────────────
--- 记法定义（**本文件作用域**；目标名与 lib/Set.sokonanoda 逐字一致）
+-- 记法来源（**由 `lib/Set.sokonanoda` 声明、随 `import` 生效**；目标名与库里逐字一致）
+--   ▸ 完整的速查表（11 条集合论符号 + 逻辑连接符）与优先级梯子在**文件头**。
 -- ─────────────────────────────────────────────────────────────
 
-infix:50 " ∈ " => Set.mem
-infix:50 " ⊆ " => Set.subset
-infixl:65 " ∪ " => Set.union
-notation "∅" => Set.empty
+-- （`∈` / `⊆` / `∪` / `∩` / `\` / `∅` 的声明已**搬进 `lib/Set.sokonanoda`**：
+--   同一个符号全课程只能声明一次，而本页 `import lib.Set` ⇒ 直接可用。
+--   逻辑连接符 `∧ ∨ ↔ ¬` 是**语言内建记法**，任何文件都不需要声明。）
 
--- 优先级梯子（设计 §2 N3）：`->`（最松）… 50 < 65 … 函数应用（最紧）。
--- 所以 `A ⊆ A ∪ B` 读作 `A ⊆ (A ∪ B)`，`A ⊆ A ∪ B ∪ C` 读作 `A ⊆ ((A ∪ B) ∪ C)`
--- （`∪` 是 `infixl`）。第 9 对演示把这条钉住。
+-- 优先级梯子的两条读法（完整梯子见文件头【优先级梯子】，数字见那里）：
+-- `A ⊆ A ∪ B` 读作 `A ⊆ (A ∪ B)`（`⊆`50 比 `∪`65 松）；
+-- `A ⊆ A ∪ B ∪ C` 读作 `A ⊆ ((A ∪ B) ∪ C)`（`∪` 是 `infixl`）。
+-- 第 9 对演示把这条钉住。
 --
 -- 记法不会 print-back：下面这条 `#check` 的类型文本由冻结内核的 pp 产出，
 -- 它显示的是**点名形式**（`Set α -> Set α -> Prop`），不是 `⊆`。
 #check fun (α : Type) (A B : Set α) => A ⊆ B
 
 -- ─────────────────────────────────────────────────────────────
--- 第二刀（0.60.0）：课程库里的五个**集合论专用**符号
+-- 课程库里的五个**集合论专用**符号（第二刀 0.60.0）
 --
--- 它们在 `lib/Set.sokonanoda` 末尾声明、随 `import` 传播到这里（④）：
+-- 它们在 `lib/Set.sokonanoda` 末尾声明、随 `import` 传播到这里：
 --
 --     prefix:100  " 𝒫 "   => Set.powerset     𝒫 A         幂集
 --     postfix:100 " ᶜ "   => Set.compl        Aᶜ          补集
@@ -117,37 +300,43 @@ notation "∅" => Set.empty
 -- ─────────────────────────────────────────────────────────────
 
 -- 演示（第二刀）：`𝒫 A` 就是 `Set.powerset α A`——幂集的成员是**子集**。
-example (α : Type) (A : Set α) : Iff (Set.mem (Set α) A (𝒫 A)) (Set.subset α A A) :=
-  Set.mem_powerset_iff α A A
+example (α : Type) (A : Set α) : Iff (Set.mem (Set α) A (𝒫 A)) (Set.subset α A A) := by
+  exact Set.mem_powerset_iff α A A
 
 -- 演示（第二刀）：`Aᶜ` 就是 `Set.compl α A`——补集的成员就是"不在里面"。
 example (α : Type) (a : α) (A : Set α) :
-    Iff (Set.mem α a (Aᶜ)) (Not (Set.mem α a A)) :=
-  Iff.intro (Set.mem α a (Set.compl α A)) (Not (Set.mem α a A))
-    (fun (h : Set.mem α a (Set.compl α A)) => h)
-    (fun (h : Not (Set.mem α a A)) => h)
+    Iff (Set.mem α a (Aᶜ)) (Not (Set.mem α a A)) := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 1–2：两个词的定义展开——`∈` 就是谓词应用，`⊆` 就是全称蕴含
 -- ─────────────────────────────────────────────────────────────
 
 -- 演示 1：`a ∈ A` 与 `A a` 是同一个东西（`Set.mem` 的定义就是 `A a`）。
-theorem demo_mem_pointful (α : Type) (a : α) (A : Set α) : Set.mem α a A -> A a :=
-  fun (h : Set.mem α a A) => h
+theorem demo_mem_pointful (α : Type) (a : α) (A : Set α) : Set.mem α a A -> A a := by
+  intro h
+  exact h
 
-theorem demo_mem_notation (α : Type) (a : α) (A : Set α) : a ∈ A -> A a :=
-  fun (h : a ∈ A) => h
+theorem demo_mem_notation (α : Type) (a : α) (A : Set α) : a ∈ A -> A a := by
+  intro h
+  exact h
 
 -- 演示 2：`A ⊆ B` 展开就是 `∀ x, A x -> B x`。
 -- （写法注记：`->` 后面接 `forall` 要加括号——`forall` 不是原子表达式。
 -- 这与记法无关，两种写法都要这么写。）
 theorem demo_subset_pointful (α : Type) (A B : Set α) :
-    Set.subset α A B -> (forall (x : α), A x -> B x) :=
-  fun (h : Set.subset α A B) => h
+    Set.subset α A B -> (forall (x : α), A x -> B x) := by
+  intro h
+  exact h
 
 theorem demo_subset_notation (α : Type) (A B : Set α) :
-    A ⊆ B -> (forall (x : α), A x -> B x) :=
-  fun (h : A ⊆ B) => h
+    A ⊆ B -> (forall (x : α), A x -> B x) := by
+  intro h
+  exact h
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 3–5：包含三律里的两条 + 空集的两个身份
@@ -155,29 +344,38 @@ theorem demo_subset_notation (α : Type) (A B : Set α) :
 
 -- 演示 3：子集传递（单元②练习 2 的两种写法）。
 theorem demo_trans_pointful (α : Type) (A B C : Set α)
-    (h1 : Set.subset α A B) (h2 : Set.subset α B C) : Set.subset α A C :=
-  fun (x : α) => fun (hx : A x) => h2 x (h1 x hx)
+    (h1 : Set.subset α A B) (h2 : Set.subset α B C) : Set.subset α A C := by
+  intro x
+  intro hx
+  exact h2 x (h1 x hx)
 
 theorem demo_trans_notation (α : Type) (A B C : Set α)
-    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C :=
-  fun (x : α) => fun (hx : A x) => h2 x (h1 x hx)
+    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C := by
+  intro x
+  intro hx
+  exact h2 x (h1 x hx)
 
 -- 演示 4：空集是最小元——`∅ ⊆ A`（单元②练习 4 的两种写法）。
 theorem demo_empty_subset_pointful (α : Type) (A : Set α) :
-    Set.subset α (Set.empty α) A :=
-  fun (x : α) => fun (hx : Set.mem α x (Set.empty α)) => False.elim (A x) hx
+    Set.subset α (Set.empty α) A := by
+  intro x
+  intro hx
+  exact False.elim (A x) hx
 
-theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A :=
-  fun (x : α) => fun (hx : Set.mem α x (Set.empty α)) => False.elim (A x) hx
+theorem demo_empty_subset_notation (α : Type) (A : Set α) : ∅ ⊆ A := by
+  intro x
+  intro hx
+  exact False.elim (A x) hx
 
 -- 演示 5：空集没有元素——`a ∈ ∅` 是假的（注意**结论**里的 `∈ ∅` 可以写记法，
--- 但证明里 `Set.notMem_empty` 的参数仍是点名形式：库里没有记法，也不需要）。
+-- 但证明里 `Set.notMem_empty` 的参数仍是点名形式——**记法是连接符的糖，
+-- 不是引理名的糖**）。
 theorem demo_notMem_empty_pointful (α : Type) (a : α) :
-    Not (Set.mem α a (Set.empty α)) :=
-  Set.notMem_empty α a
+    Not (Set.mem α a (Set.empty α)) := by
+  exact Set.notMem_empty α a
 
-theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) :=
-  Set.notMem_empty α a
+theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) := by
+  exact Set.notMem_empty α a
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 6–8：并集（左包含 / 成员判定）+ 外延性
@@ -185,30 +383,45 @@ theorem demo_notMem_empty_notation (α : Type) (a : α) : Not (a ∈ ∅) :=
 
 -- 演示 6：并集左包含——`A ⊆ A ∪ B`（单元③练习 1 的两种写法）。
 theorem demo_union_left_pointful (α : Type) (A B : Set α) :
-    Set.subset α A (Set.union α A B) :=
-  fun (x : α) => fun (hx : A x) => Or.inl (A x) (B x) hx
+    Set.subset α A (Set.union α A B) := by
+  intro x
+  intro hx
+  exact Or.inl (A x) (B x) hx
 
-theorem demo_union_left_notation (α : Type) (A B : Set α) : A ⊆ A ∪ B :=
-  fun (x : α) => fun (hx : A x) => Or.inl (A x) (B x) hx
+theorem demo_union_left_notation (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
+  intro x
+  intro hx
+  exact Or.inl (A x) (B x) hx
 
 -- 演示 7：并集的成员判定——`a ∈ A ∪ B` 展开就是 `a ∈ A ∨ a ∈ B`。
 theorem demo_mem_union_pointful (α : Type) (a : α) (A B : Set α) :
-    Set.mem α a (Set.union α A B) -> Or (Set.mem α a A) (Set.mem α a B) :=
-  fun (h : Set.mem α a (Set.union α A B)) => h
+    Set.mem α a (Set.union α A B) -> Or (Set.mem α a A) (Set.mem α a B) := by
+  intro h
+  exact h
 
 theorem demo_mem_union_notation (α : Type) (a : α) (A B : Set α) :
-    a ∈ A ∪ B -> Or (a ∈ A) (a ∈ B) :=
-  fun (h : a ∈ A ∪ B) => h
+    a ∈ A ∪ B -> Or (a ∈ A) (a ∈ B) := by
+  intro h
+  exact h
 
 -- 演示 8：外延性——两条包含给出集合相等（单元②练习 3 的两种写法）。
--- 记法只出现在**假设**里；结论是等式，等式两边仍写点名形式（`∅` 那条边界同理）。
+-- 记法只出现在**假设**里；结论写成点名形式 `Eq.{1} (Set α) A B`，它与记法版
+-- `A = B` 是**同一个项**（`=` 的宇宙层级由操作数解出）——本页刻意保留这一对照。
 theorem demo_ext_pointful (α : Type) (A B : Set α)
-    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B :=
-  Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
+    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B := by
+  apply Set.ext
+  intro x
+  constructor
+  exact h1 x
+  exact h2 x
 
 theorem demo_ext_notation (α : Type) (A B : Set α)
-    (h1 : A ⊆ B) (h2 : B ⊆ A) : Eq.{1} (Set α) A B :=
-  Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
+    (h1 : A ⊆ B) (h2 : B ⊆ A) : Eq.{1} (Set α) A B := by
+  apply Set.ext
+  intro x
+  constructor
+  exact h1 x
+  exact h2 x
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示 9：优先级与结合性——记法连写时**不需要**括号
@@ -217,35 +430,43 @@ theorem demo_ext_notation (α : Type) (A B : Set α)
 -- `A ⊆ A ∪ B ∪ C`：`∪` 是 `infixl:65`（左结合），`⊆` 是 `infix:50`。
 -- 右操作数吃优先级 ≥ 51 的东西，`∪`(65) 够格 ⇒ 记法版与括号版是同一个项。
 theorem demo_precedence_pointful (α : Type) (A B C : Set α) :
-    Set.subset α A (Set.union α (Set.union α A B) C) :=
-  fun (x : α) => fun (hx : A x) => Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+    Set.subset α A (Set.union α (Set.union α A B) C) := by
+  intro x
+  intro hx
+  exact Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
 
-theorem demo_precedence_notation (α : Type) (A B C : Set α) : A ⊆ A ∪ B ∪ C :=
-  fun (x : α) => fun (hx : A x) => Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
+theorem demo_precedence_notation (α : Type) (A B C : Set α) : A ⊆ A ∪ B ∪ C := by
+  intro x
+  intro hx
+  exact Or.inl (Or (A x) (B x)) (C x) (Or.inl (A x) (B x) hx)
 
 -- ─────────────────────────────────────────────────────────────
--- 练习（用记法写；解答在 units/solutions/notation-cheatsheet-solution.sokonanoda）
+-- 练习（用记法写；证明写成 `by` tactic 块；解答在 units/solutions/notation-cheatsheet-solution.sokonanoda）
 --
--- 提示密度说明：这是"第二遍"的页面，你已经在单元②③用点名形式证过同类命题，
--- 所以每题只给"关键件"——触发条件 + 该用哪条引理，不给答案。
+-- 定位说明：这是**速查表**（不是单元，不计配额），所以这三题是**自测**——它们
+-- 就是把上面 9 对演示里的两条包含律与并集成员判定换个方向再走一遍，用来确认
+-- 你查完表真的能写。每题只给最低限度的提示——触发条件 + 该用哪条引理，不给答案。
 -- ─────────────────────────────────────────────────────────────
 
 -- 练习 1（记法版）：∅ ∪ A ⊆ A（空集在左边，并起来还是 A）。
--- soko:hint 思路：目标是 `∀ x, x ∈ ∅ ∪ A → x ∈ A`；把 `x ∈ ∅ ∪ A` 展开成"两支取或"。
--- soko:hint 关键件：`Or.elim` 分情况；左边那支的前提是 `x ∈ ∅`，它展开就是 `False`（`False.elim`）。
-theorem empty_union_subset (α : Type) (A : Set α) : ∅ ∪ A ⊆ A :=
+-- soko:hint 思路：目标是全称蕴含；`intro` 两次把元素与"它在 ∅ ∪ A 里"拿进来。
+-- soko:hint 目标形态：∅ ∪ A ⊆ A，展开后是 ∀ x, x ∈ ∅ ∪ A → x ∈ A。
+-- soko:hint 关键件：`x ∈ ∅ ∪ A` 展开就是"两支取或"；用 `Or.elim` 分情况，左边那支的前提 `x ∈ ∅` 展开就是 `False`（`False.elim`）。
+theorem empty_union_subset (α : Type) (A : Set α) : ∅ ∪ A ⊆ A := by
   sorry
 
 -- 练习 2（记法版）：并集的成员判定可以交换左右——`a ∈ A ∪ B → a ∈ B ∪ A`。
--- soko:hint 思路：目标结论是 `a ∈ B ∪ A`，展开就是 `a ∈ B ∨ a ∈ A`；先前提是 `a ∈ A ∨ a ∈ B`。
+-- soko:hint 思路：`intro` 一次拿进前提；目标结论展开是"两支取或"，把两支互换。
+-- soko:hint 目标形态：a ∈ A ∪ B → a ∈ B ∪ A；结论展开后是 a ∈ B ∨ a ∈ A。
 -- soko:hint 关键件：`Or.elim` 两支各自用 `Or.inl` / `Or.inr` 造出**交换后**的那一支。
-theorem mem_union_comm (α : Type) (a : α) (A B : Set α) : a ∈ A ∪ B -> a ∈ B ∪ A :=
+theorem mem_union_comm (α : Type) (a : α) (A B : Set α) : a ∈ A ∪ B -> a ∈ B ∪ A := by
   sorry
 
 -- 练习 3（记法版）：`A ∪ ∅ = A`（右边并空集等于没并）。
 -- soko:hint 思路：集合等式用 `Set.ext` 拆成两个方向，每个方向都是一条包含；
 --                 两边逐元素走 `Iff.intro`，`x ∈ A ∪ ∅` 展开成"两支取或"。
+-- soko:hint 目标形态：Eq.{1} (Set α) (A ∪ ∅) A——逐元素是 x ∈ A ∪ ∅ ↔ x ∈ A。
 -- soko:hint 关键件：`Set.ext` + `Iff.intro`；`→` 方向 `Or.elim`（`x ∈ ∅` 那支用 `False.elim`），
 --                   `←` 方向 `Or.inl`。结论里的 `∅` 在 `∪` 的右操作数位置 ⇒ 记法可用（见页首边界）。
-theorem union_empty_right (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ ∅) A :=
+theorem union_empty_right (α : Type) (A : Set α) : Eq.{1} (Set α) (A ∪ ∅) A := by
   sorry

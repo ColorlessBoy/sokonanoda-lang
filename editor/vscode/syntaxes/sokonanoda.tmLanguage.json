@@ -30,6 +30,9 @@
       "include": "#holes"
     },
     {
+      "include": "#anonctor"
+    },
+    {
       "include": "#mathsymbols"
     },
     {
@@ -63,7 +66,7 @@
       }
     },
     "keywords": {
-      "match": "\\b(import|def|abbrev|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|infix|infixl|infixr|prefix|postfix|notation|binder_notation|scoped|intro|exact|apply|assumption|rfl|forall|∀)\\b",
+      "match": "\\b(import|def|abbrev|theorem|example|axiom|inductive|ctor|rec|iota|end|fun|let|match|with|by|infix|infixl|infixr|prefix|postfix|notation|binder_notation|scoped|intro|exact|apply|assumption|rfl|constructor|left|right|use|exfalso|cases|have|forall|∀)\\b",
       "name": "keyword.other.sokonanoda"
     },
     "commands": {
@@ -92,6 +95,10 @@
     },
     "operators": {
       "patterns": [
+        {
+          "match": "->|=>|=",
+          "name": "keyword.operator.sokonanoda"
+        },
         {
           "match": "->|=>",
           "name": "keyword.operator.sokonanoda"
@@ -131,8 +138,12 @@
       "name": "variable.other.sokonanoda"
     },
     "mathsymbols": {
-      "match": "[\\x{2200}-\\x{22FF}\\x{2A00}-\\x{2AFF}\\\\]+",
+      "match": "[\\\\x{00AC}\\\\x{00B9}\\\\x{00D7}\\\\x{02E2}\\\\x{207B}\\\\x{2192}\\\\x{2194}\\\\x{2200}\\\\x{2203}\\\\x{2205}\\\\x{2208}\\\\x{2227}\\\\x{2228}\\\\x{2229}\\\\x{222A}\\\\x{2260}\\\\x{2286}\\\\x{1D4AB}\\\\x{1D9C}]+",
       "name": "keyword.operator.sokonanoda"
+    },
+    "anonctor": {
+      "match": "⟨|⟩",
+      "name": "punctuation.section.anonctor.sokonanoda"
     }
   },
   "scopeName": "source.sokonanoda"

@@ -22,7 +22,8 @@
 //! 判定永远走 kernel，不做文本比对（REQUIREMENTS §2.8）。
 
 use crate::compile::{
-    check_document_with, compile_fol_with, CheckEvent, CompileOptions, DeclStatus, DocumentReport,
+    check_document_with, compile_fol_with, CheckEvent, CompileError, CompileOptions, DeclStatus,
+    DocumentReport,
 };
 use crate::proof::{parse_expr_text, render_expr};
 use crate::span::Pos;
@@ -78,7 +79,13 @@ use std::sync::{Mutex, OnceLock};
 /// `exact` 让这个 O(前缀) 成本落在每一次按键上。缓存按请求指纹命中，
 /// 容量封顶（防内存膨胀）；前缀文本参与指纹，文档任何更早的编辑都会
 /// 失效缓存——**保守但正确**。
-const JUDGE_CACHE_CAP: usize = 128;
+// 判定缓存容量。**128 是 R2 实测的灾难值**，不是保守值：判定的前缀重编译会
+// **递归**触发更早声明的 `by` 块判定（前缀里就有那些 `by`），而 FIFO 128 条
+// 一被挤爆，缓存就再也接不住这次递归 ⇒ 成本随声明数**指数**增长
+// （实测：单元④ 解答 6 条声明 8.9s、第 7 条 → >60s；整份 >600s 不返回）。
+// 课程 Lean 化之前每份文件只有个位数判定，128 够用；tactic 风格之后一份文件
+// 轻松上百次判定 ⇒ 把容量提到与"一次判卷的全部判定数"同量级。
+const JUDGE_CACHE_CAP: usize = 4096;
 
 /// 判定缓存的值：`Infer` = judge_infer 的类型文本（Ok/Err 都缓存），
 /// `Terms` = judge_terms / judge_hole_fill 的结论序列。
@@ -317,7 +324,7 @@ fn judge_terms_uncached(
             failed_parse = Some(k);
             continue;
         };
-        let val = wrap_binders(&open.binders, term_expr);
+        let val = wrap_binders(&open.binders, term_expr, &notations);
         commands.push(Command::Def {
             name: format!("_soko_judge_{k}"),
             universe: open.universe.clone(),
@@ -369,12 +376,47 @@ pub fn judge_type_of(
     r
 }
 
+/// 记法目标的**签名缓存**（与 [`judge_type_of`] 分开，见
+/// `docs/design/course-lean-style.md` §9「判卷成本」）。
+///
+/// 为什么需要：`elab_notation` 每展开一个符号都要问一次内核「目标常量的类型」，
+/// 而 [`judge_type_of`] 的缓存键**含整段前缀**——同一份文件里前缀随每条声明
+/// 增长 ⇒ 每条声明的每个记法都命中不了缓存，退化成**全前缀重编译**，总量 O(n²)
+/// （实测：课程 Lean 化之后，8 模块闭包从 1.3s 涨到 11.5s，单元解答从秒级涨到
+/// 分钟级）。
+///
+/// 常量的签名与「谁在用它」无关（名字唯一且单调增长），所以这里的键只有
+/// （选项, 规范名）。**只缓存成功**：失败照旧走原路（那可能只是"还没声明"）。
+pub fn judge_type_of_constant(
+    prefix_src: &str,
+    options: &CompileOptions,
+    name: &str,
+) -> Result<String, Judgement> {
+    static CACHE: OnceLock<Mutex<HashMap<String, Result<String, Judgement>>>> = OnceLock::new();
+    const CAP: usize = 4096;
+    let key = format!("{}|{name}", options_key(options));
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Some(hit) = cache.lock().ok().and_then(|c| c.get(&key).cloned()) {
+        return hit;
+    }
+    let result = judge_type_of(prefix_src, options, name);
+    if result.is_ok() {
+        if let Ok(mut c) = cache.lock() {
+            if c.len() < CAP {
+                c.insert(key, result.clone());
+            }
+        }
+    }
+    result
+}
+
 fn judge_type_of_uncached(
     prefix_src: &str,
     options: &CompileOptions,
     term: &str,
 ) -> Result<String, Judgement> {
     let mut src = String::from(prefix_src);
+    let query_start = src.len();
     src.push_str("#check ");
     src.push_str(term);
     src.push('\n');
@@ -386,12 +428,8 @@ fn judge_type_of_uncached(
         });
     };
     let report = compile_fol_with(&file, options);
-    if !report.errors.is_empty() {
-        let e = &report.errors[0];
-        return Err(Judgement::Error {
-            code: e.code().to_string(),
-            message: e.message.clone(),
-        });
+    if let Some(err) = query_error(query_start, &report.errors) {
+        return Err(err);
     }
     let last_cmd = file.commands.len().checked_sub(1);
     report
@@ -409,9 +447,11 @@ fn judge_type_of_uncached(
                 _ => None,
             })
         })
-        .ok_or_else(|| Judgement::Error {
-            code: "judge-infer-none".to_string(),
-            message: "内核未返回类型".to_string(),
+        .ok_or_else(|| {
+            prefix_error(&report.errors).unwrap_or(Judgement::Error {
+                code: "judge-infer-none".to_string(),
+                message: "内核未返回类型".to_string(),
+            })
         })
 }
 
@@ -476,6 +516,7 @@ fn judge_infer_uncached(
     text.push_str(term);
     text.push('\n');
     let mut src = synthesized_prefix(extra_prefix, prefix_src);
+    let query_start = src.len();
     src.push_str(&text);
     // 片段模式（G-05 §4.1）：前缀可能停在未闭合的 `namespace` 里，合成的
     // `#check` 必须落在**仍然打开的**那个命名空间内。
@@ -486,12 +527,8 @@ fn judge_infer_uncached(
         });
     };
     let report = compile_fol_with(&file, options);
-    if !report.errors.is_empty() {
-        let e = &report.errors[0];
-        return Err(Judgement::Error {
-            code: e.code().to_string(),
-            message: e.message.clone(),
-        });
+    if let Some(err) = query_error(query_start, &report.errors) {
+        return Err(err);
     }
     // 取**最后一条命令**的 `TypeChecked`：合成的前缀里可能本来就有 `#check`
     // （课程/playground 里很常见），它们的事件排在前面；而我们要的是刚追加的
@@ -514,9 +551,11 @@ fn judge_infer_uncached(
                 _ => None,
             })
         })
-        .ok_or_else(|| Judgement::Error {
-            code: "judge-infer-none".to_string(),
-            message: "内核未返回类型".to_string(),
+        .ok_or_else(|| {
+            prefix_error(&report.errors).unwrap_or(Judgement::Error {
+                code: "judge-infer-none".to_string(),
+                message: "内核未返回类型".to_string(),
+            })
         })?;
     // 剥掉 `fun (b1:T1) => ... => <codomain>` 的 n 层 binder 箭头。
     // pp 可能把相邻 binder 折叠成 `forall (a b : Prop), ...`（一个 Forall 多
@@ -572,6 +611,44 @@ fn render_roundtrip(expr: &Expr) -> String {
         }
         _ => render_expr(expr),
     }
+}
+
+/// 报告里的错误**按归属分拣**：只认落在追加查询那一段里的那条。
+///
+/// 为什么需要（设计 `docs/design/course-lean-style.md` L2.10）：判定通道是
+/// 「文档前缀 + 一条合成查询」拼起来**重编译**。前缀里**任何一条先前失败的
+/// 声明**都会让这次重编译报错，而旧代码取 `errors[0]`——那通常是**前缀里的**
+/// 错，于是每条 tactic、每个记法都会收到一条与它无关的诊断（实测：一个坏声明
+/// 让后面整片文件报 `elab-notation-unknown-target`，改写期极难定位）。
+///
+/// 判据是**字节偏移**（`span.start.offset` 与查询起点比较），不做文本比对：
+/// 解析器给的 span 就是这份拼接文本上的位置。`query_start` = 拼接前
+/// `src.len()`（查询文本紧跟在它后面）。
+///
+/// **前缀里的错不在这里报**——它们在声明通道有自己的 span（G-10/G-15），
+/// 而且不该让一条与它们无关的查询失败。只有在查询**自己也没拿到结果**时才用
+/// [`prefix_error`] 把它们抬出来解释原因。
+fn query_error(query_start: usize, errors: &[CompileError]) -> Option<Judgement> {
+    errors
+        .iter()
+        .find(|e| e.span.start.offset >= query_start)
+        .map(|e| Judgement::Error {
+            code: e.code().to_string(),
+            message: e.message.clone(),
+        })
+}
+
+/// 查询没拿到结果时的**解释**：前缀里有声明没通过就如实说（比「内核未返回类型」
+/// 有信息量），否则 `None`（调用方给既有的兜底码）。
+fn prefix_error(errors: &[CompileError]) -> Option<Judgement> {
+    let first = errors.first()?;
+    Some(Judgement::Error {
+        code: "prefix-decl-failed".to_string(),
+        message: format!(
+            "前面的声明没通过（第 {} 行）：{}——先修它，这条查询才有意义",
+            first.span.start.line, first.message
+        ),
+    })
 }
 
 /// 内核 pp 渲染的**类型文本**（G-05，设计 `docs/design/namespace-open.md` §4.6）。
@@ -1000,11 +1077,26 @@ fn fold_declared(
 
 /// 把术语包上已写 binders：`fun (b1 : T1) => fun (b2 : T2) => term`。
 /// 未写类型的 binder 留空，交给声明类型驱动的 binder 推断（I6）。
-fn wrap_binders(binders: &[GoalBinderSpec], term: Expr) -> Expr {
+///
+/// **binder 类型文本必须带记法表回读**（课程 Lean 化实测发现，设计
+/// `docs/design/course-lean-style.md` X2）：`GoalBinderSpec.ty` 是
+/// `render_expr` 打回来的**源码级**文本（`intro h` 在目标 `¬ A -> …` 上
+/// 引入的 `h` 类型就是 `¬ A`）。用不带记法表的 `parse_expr_text` 回读时，
+/// 数学码点类之外的符号（`¬`U+00AC / `↔`U+2194 / `→`U+2192）会被读成
+/// **标识符**，于是 `¬ A` 变成 `App(Ident("¬"), A)`，判卷报
+/// `unknown identifier ¬`。`fold_declared`（本文件 `:981`）从一开始就传了
+/// `notations`，这里漏了——两处现在同口径。
+fn wrap_binders(
+    binders: &[GoalBinderSpec],
+    term: Expr,
+    notations: &[crate::ast::NotationDecl],
+) -> Expr {
     let mut term = term;
     for binder in binders.iter().rev() {
         let ty = match &binder.ty {
-            Some(text) => parse_expr_text(text).ok().map(Box::new),
+            Some(text) => crate::proof::parse_expr_text_with(text, notations)
+                .ok()
+                .map(Box::new),
             None => None,
         };
         term = Expr::Lambda {

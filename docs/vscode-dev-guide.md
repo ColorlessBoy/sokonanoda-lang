@@ -8,6 +8,8 @@
 | 文件 | 职责 | 禁止 |
 |---|---|---|
 | `extension.js` | 扩展入口：LSP 客户端接线、命令注册、练习树/课程树/项目树/状态栏/inlay/跳洞 | 业务逻辑、kernel 调用 |
+| `src/abbreviations.js` | 记法缩写表（`\and`→`∧`）：`crates/front/src/notation_input.rs` 的**逐字镜像**，纯 JSON 数组字面量（Rust 契约测试真解析它） | 自己加/改条目（先改 Rust 表）、非 JSON 的表格式 |
+| `src/abbreviation-rewriter.js` | 缩写改写器状态机：Tab 命令、`sokonanoda.input.eager`、context key（Tab 的 `when` 子句）、一次 edit = 一个 undo 单元 | 命令注册（在 `extension.js`）、判定/编译 |
 | `project-tree.js` | 项目树渲染（只吃 `soko/project` 的答案：根 = 模块根 + 清单来源 + 计数，子 = 拓扑序模块 + 状态图标；单文件一条占位行）。**请求在 extension.js**，这里只有渲染与"答案指名别的文档 ⇒ 丢弃" | 发请求、判定项目状态 |
 | `server.js` | 服务器获取：平台→target 映射、bundled `bin/<target>/` 解析、exec 位修复、版本锁定下载（**无 `vscode` 依赖，可纯 Node 单测**） | UI/命令逻辑 |
 | `scripts/stage-lsp.js` | 打包前把构建产物 stage 到 `bin/<target>/`（chmod 755），支持 `--package` 出 host VSIX | 运行时逻辑 |
@@ -63,7 +65,7 @@
 | 纯 Node 单测 | `npm run test:unit` | server.js 解析顺序/版本锁定 URL/exec 位修复、重定向、解压 | `test-server.js` / `test-download.js` |
 | 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、bundled 解析/版本一致/市场元数据 | `crates/cli/tests/extension.rs` |
 | 打包冒烟 | CI `Package host VSIX` step | `bin/<target>/` 入包、exec 位、`TargetPlatform` | ci.yml |
-| 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存、**项目树三态**（闭包渲染 / 单文件占位 / 丢弃他人答案）。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
+| 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存、**项目树三态**（闭包渲染 / 单文件占位 / 丢弃他人答案）、**记法缩写改写器**（`\and`+Tab、前缀陷阱、孤立 `\`、多光标、一次 undo 单元、eager 开关、Tab 的 context key）。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
 | 集成测试（**例行化**） | `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`（内部 `npm test` → @vscode/test-electron） | 真宿主端到端：激活、语言 id、诊断、inlay/hover、重启、Infoview、doctor、**项目树**（真 `soko/project` 答案渲染的行）；结果记进 `docs/e2e/ledger.jsonl`（`soko.e2e/1`）。手册 = `docs/E2E.md` | `editor/vscode/src/test/extension.test.js` |
 | 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全、安装态离线） | — |
 
@@ -194,6 +196,14 @@ npm run clean:lsp
     10 条超时，对着 0.20.0 的服务器断言 0.58.0 的行为）。`scripts/vscode-e2e.sh` 把
     "构建 release + stage" 做成固定步骤，台账里另记 `lsp_sha256_16` 与 doctor 的
     `server-version` 行，用来证明"测的是当前构建"。
+22. **`.vscodeignore` 的 `src/**` 会把运行时模块一起排除**（0.62.0，NI-2）——
+    `src/` 从前只住集成测试（`src/test/**`），整目录排除一直没人发现；一旦有运行时
+    模块住进去（`src/abbreviations.js`、`src/abbreviation-rewriter.js`，由
+    `extension.js` require），打出来的 VSIX 装上即坏
+    （`Cannot find module './src/abbreviation-rewriter'`），而 stub / 契约 / e2e
+    **三层全发现不了**——它们跑的是仓库里的文件，不是 VSIX 里的那份。规矩：排除写成
+    `src/test/**`；往 `src/` 加运行时文件后，跑一次 `npm run package:host` 并核对
+    VSIX 里真的有它（文件数基线见 §5.3）。
 
 ## 5b. Infoview/视图的硬规矩（0.49.0 教训）
 

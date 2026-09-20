@@ -1,18 +1,18 @@
 import Logic
 
 -- Canvas.sokonanoda —— 项目入口：第一行 `import Logic`。
--- 从这一行往下，Logic.sokonanoda 里的名字（And、And.intro、And.left、And.right、
--- and_comm）都直接可用；本文件自己不需要重复声明任何一条公理。
+-- 从这一行往下，Logic.sokonanoda 里的名字（and_comm）直接可用；And 这类连接符
+-- prelude 自带，任何文件都能用——本文件不需要自己声明任何东西。
 -- 判卷：scripts/soko course/unit11-project/Canvas.sokonanoda
 
--- 用 import 进来的**公理**建一条新导出。
-theorem and_comm_via_axioms (A : Prop) (B : Prop) : And A B -> And B A :=
-  fun (h : And A B) => And.intro B A (And.right A B h) (And.left A B h)
+-- 用 prelude 的 And 构造子/消去子直接建一条证明（不靠 import，也不需要声明）。
+theorem and_comm_via_constructors (A : Prop) (B : Prop) : A ∧ B → B ∧ A :=
+  fun (h : A ∧ B) => And.intro B A (And.right A B h) (And.left A B h)
 
 -- 用 import 进来的**定理**：直接调用库里的 and_comm。
-theorem and_comm_via_library (A : Prop) (B : Prop) (h : And A B) : And B A :=
+theorem and_comm_via_library (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
   and_comm A B h
 
--- 也可以只导出库的一个方向。
-def and_left_export (A : Prop) (B : Prop) (h : And A B) : A :=
+-- 也可以只导出 And 的一个方向（同样是 prelude 的名字）。
+def and_left_export (A : Prop) (B : Prop) (h : A ∧ B) : A :=
   And.left A B h

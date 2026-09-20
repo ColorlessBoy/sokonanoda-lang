@@ -69,7 +69,19 @@ const listeners = {
   activeEditor: emitter(),
   configuration: emitter(),
   theme: emitter(),
+  textDocument: emitter(),
 };
+
+// Configuration overrides for the stub: `get(key, fallback)` returns the
+// override when a test set one, the declared default otherwise (exactly what
+// the real host does for an unset setting).
+const configValues = {};
+function setConfig(key, value) {
+  configValues[key] = value;
+}
+function resetConfig() {
+  for (const key of Object.keys(configValues)) delete configValues[key];
+}
 
 class TreeItem {
   constructor(label, collapsibleState) {
@@ -124,6 +136,27 @@ const vscodeStub = {
   StatusBarAlignment: { Left: 1, Right: 2 },
   ViewColumn: { One: 1, Beside: 2 },
   ConfigurationTarget: { Global: 1, Workspace: 2 },
+  // The notation-input rewriter (NI-2) builds `new vscode.Range(line, start,
+  // line, end)` — the four-number constructor, exactly like the real API.
+  Position: class Position {
+    constructor(line, character) {
+      this.line = line;
+      this.character = character;
+    }
+  },
+  Range: class Range {
+    constructor(startLine, startCharacter, endLine, endCharacter) {
+      if (typeof startLine === "object") {
+        this.start = startLine;
+        this.end = startCharacter;
+      } else {
+        this.start = { line: startLine, character: startCharacter };
+        this.end = { line: endLine, character: endCharacter };
+      }
+      this.isEmpty =
+        this.start.line === this.end.line && this.start.character === this.end.character;
+    }
+  },
   RelativePattern: class RelativePattern {
     constructor(base, pattern) {
       this.base = base;
@@ -142,11 +175,27 @@ const vscodeStub = {
     dispose() {}
   },
   commands: {
-    registerCommand: () => makeDisposable(),
-    executeCommand: async () => undefined,
+    // Handlers are captured by id: the notation-input tests drive the real
+    // command (`sokonanoda.input.replaceAbbreviation`) instead of re-implementing
+    // its logic, and the keybinding contract is asserted in Rust.
+    registerCommand: (id, handler) => {
+      vscodeStub.__commands = vscodeStub.__commands ?? {};
+      vscodeStub.__commands[id] = handler;
+      return makeDisposable();
+    },
+    executeCommand: async (id, ...args) => {
+      // `setContext` is how the extension tells VS Code whether Tab belongs to
+      // the rewriter; capture the values so tests can assert the `when` clause.
+      if (id === "setContext") {
+        vscodeStub.__contexts = vscodeStub.__contexts ?? {};
+        vscodeStub.__contexts[args[0]] = args[1];
+      }
+      return undefined;
+    },
   },
   window: {
     activeTextEditor: undefined,
+    visibleTextEditors: [],
     onDidChangeActiveTextEditor: (listener) => listeners.activeEditor.event(listener),
     onDidChangeTextEditorSelection: (listener) => listeners.selection.event(listener),
     onDidChangeVisibleTextEditors: () => makeDisposable(),
@@ -181,10 +230,11 @@ const vscodeStub = {
   workspace: {
     workspaceFolders: [{ uri: { fsPath: "/repo" }, name: "repo" }],
     getConfiguration: () => ({
-      get: (key, fallback) => fallback,
+      get: (key, fallback) => (key in configValues ? configValues[key] : fallback),
       update: async () => undefined,
     }),
     onDidChangeConfiguration: (listener) => listeners.configuration.event(listener),
+    onDidChangeTextDocument: (listener) => listeners.textDocument.event(listener),
     createFileSystemWatcher: () => ({
       onDidChange: () => makeDisposable(),
       onDidCreate: () => makeDisposable(),
@@ -286,26 +336,143 @@ const extension = require(extensionPath);
 Module._load = originalLoad;
 
 // ── harness ──────────────────────────────────────────────────────────────
+// Text coordinates: everything below is UTF-16 code units, like VS Code.
+function offsetOf(text, position) {
+  const lines = text.split("\n");
+  let offset = 0;
+  for (let i = 0; i < position.line && i < lines.length; i++) offset += lines[i].length + 1;
+  return offset + position.character;
+}
+
 function fakeDocument(fsPath, languageId = "sokonanoda", text = "") {
   const uri = vscodeStub.Uri.file(fsPath);
-  return {
+  const document = {
     uri,
     languageId,
-    getText: () => text,
-    lineCount: 1,
+    version: 1,
+    getText: (range) =>
+      range === undefined
+        ? text
+        : text.slice(offsetOf(text, range.start), offsetOf(text, range.end)),
+    lineAt: (line) => {
+      const value = text.split("\n")[line] ?? "";
+      return {
+        text: value,
+        lineNumber: line,
+        range: { start: { line, character: 0 }, end: { line, character: value.length } },
+      };
+    },
+    get lineCount() {
+      return text.split("\n").length;
+    },
+    offsetAt: (position) => offsetOf(text, position),
+    positionAt: (offset) => {
+      const before = text.slice(0, offset).split("\n");
+      return { line: before.length - 1, character: before[before.length - 1].length };
+    },
+    // One entry per `editor.edit()` call — the real host's undo unit.
+    __undoStack: [],
+    __setText: (next) => {
+      text = next;
+      document.version += 1;
+    },
     selection: { active: { line: 0, character: 0 } },
   };
+  return document;
+}
+
+// A fake editor with a faithful `edit()`: the builder collects replacements,
+// they are applied back-to-front, and **the whole call is one undo entry**.
+// That is exactly the property the rewriter relies on ("one undo takes the
+// replacement back in one step"), so the test asserts on this stack rather
+// than on a re-implementation of the rewriter.
+function fakeEditor(document, positions, { anchor } = {}) {
+  const points = positions ?? [{ line: 0, character: 0 }];
+  const selections = points.map((active) => ({
+    active,
+    anchor: anchor ?? active,
+    isEmpty: anchor === undefined || (anchor.line === active.line && anchor.character === active.character),
+  }));
+  const editor = {
+    document,
+    selections,
+    selection: selections[0],
+    editCalls: 0,
+    async edit(callback) {
+      editor.editCalls += 1;
+      const edits = [];
+      callback({
+        replace: (range, newText) => edits.push({ range, newText }),
+        insert: (position, newText) =>
+          edits.push({ range: { start: position, end: position, isEmpty: true }, newText }),
+        delete: (range) => edits.push({ range, newText: "" }),
+      });
+      const before = document.getText();
+      const withOffsets = edits
+        .map((edit) => ({
+          start: offsetOf(before, edit.range.start),
+          end: offsetOf(before, edit.range.end),
+          newText: edit.newText,
+        }))
+        .sort((a, b) => b.start - a.start);
+      let next = before;
+      for (const edit of withOffsets) {
+        next = next.slice(0, edit.start) + edit.newText + next.slice(edit.end);
+      }
+      document.__undoStack.push({ before });
+      document.__setText(next);
+      return true;
+    },
+    revealRange() {},
+  };
+  return editor;
 }
 
 // The real host sets `window.activeTextEditor` *before* firing the event.
 function editorFor(document) {
-  return { document, selection: { active: { line: 0, character: 0 } } };
+  return fakeEditor(document);
 }
-function focus(document) {
-  const editor = editorFor(document);
+function focus(document, positions, options) {
+  const editor = fakeEditor(document, positions, options);
   vscodeStub.window.activeTextEditor = editor;
+  vscodeStub.window.visibleTextEditors = [editor];
   listeners.activeEditor.fire(editor);
   return editor;
+}
+
+// 撤销一次 = 弹一条 `editor.edit` 记录（stub 的粒度与真宿主一致）。
+function undo(editor) {
+  const entry = editor.document.__undoStack.pop();
+  if (!entry) return false;
+  editor.document.__setText(entry.before);
+  return true;
+}
+
+// 模拟"用户刚敲进去一段文本"：先改文档，再发 `onDidChangeTextDocument`。
+//
+// ⚠️ 坐标口径按真宿主来（**不是**我们方便的口径）：VS Code 的
+// `TextDocumentContentChangeEvent.range` 是"被替换掉的范围"（**旧文档坐标**），
+// 纯插入时它是插入点，`range.end` 在插入的文本**之前**。取证（VS Code 1.138.0
+// 自带源码）：`TextModel._doApplyEdits` 产出的 change 是 `{range: 旧范围,
+// text: 新文本}`，经 `ApplyEditsResult(reverseEdits, changes, …)` 的第二个字段
+// 上报（`extensionHostProcess.js` 的
+// `OS=class{constructor(t,e,n){this.reverseEdits=t;this.changes=e;…}}`）。
+// stub 要是写成"新坐标"，eager 路径在真宿主里就会错位而测试全绿。
+function typeText(document, position, text) {
+  const start = offsetOf(document.getText(), position);
+  const before = document.getText();
+  document.__setText(before.slice(0, start) + text + before.slice(start));
+  listeners.textDocument.fire({
+    document,
+    contentChanges: [
+      {
+        range: new vscodeStub.Range(position.line, position.character, position.line, position.character),
+        rangeOffset: start,
+        rangeLength: 0,
+        text,
+      },
+    ],
+  });
 }
 
 function resetListeners() {
@@ -319,7 +486,11 @@ async function activateExtension() {
   // 每个测试重新激活一次：监听器必须重新挂，否则上一个测试的监听器还在
   //（一次事件会被处理两遍——这正是我们要测的那类放大问题）。
   resetListeners();
+  resetConfig();
   vscodeStub.window.activeTextEditor = undefined;
+  vscodeStub.window.visibleTextEditors = [];
+  vscodeStub.__commands = {};
+  vscodeStub.__contexts = {};
   const context = {
     subscriptions: [],
     extensionPath: __dirname,
@@ -629,6 +800,216 @@ test("cursor moves ask only for the caret state", async () => {
 
   assert.strictEqual(stateRequests().length, 1, "one debounced move ⇒ one soko/stateAt");
   assert.strictEqual(goalsRequests().length, 0, "cursor movement never re-fetches decls");
+});
+
+// ── notation input (NI-2, docs/design/notation-input.md) ─────────────────
+// The table itself is pinned against `front::notation_input` by the Rust
+// contract test; here we drive the **real** registered command and the real
+// change listener, so the state machine (prefix trap / lone `\` / multi-cursor
+// / one-undo-unit) is exercised, not re-implemented.
+
+const REPLACE_COMMAND = "sokonanoda.input.replaceAbbreviation";
+const CONTEXT_KEY = "sokonanoda.input.abbreviationBeforeCursor";
+const cursor = (line, character) => ({ line, character });
+
+function commandHandler(id) {
+  const handler = vscodeStub.__commands?.[id];
+  assert.ok(handler, `${id} must be registered`);
+  return handler;
+}
+
+async function drain() {
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+}
+
+test("Tab rewrites \\and to ∧", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\and");
+  const editor = focus(document, [cursor(0, 4)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "∧", "`\\and` + Tab must become `∧`");
+  assert.strictEqual(editor.editCalls, 1, "one edit call is what makes it one undo unit");
+});
+
+test("Tab rewrites \\in even though \\in prefixes \\inter", async () => {
+  // Tab is an explicit command: the prefix trap only guards eager replacement
+  // (`\in` is a prefix of `\inter`, but a learner who typed Tab wants `∈`).
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\in");
+  focus(document, [cursor(0, 3)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "∈");
+});
+
+test("Tab leaves an incomplete or unknown word alone", async () => {
+  await activateExtension();
+  // `\an` is a prefix of `\and`, not a table abbreviation: nothing to replace.
+  const prefix = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(prefix, [cursor(0, 3)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(prefix.getText(), "\\an", "an incomplete abbreviation must not be rewritten");
+  assert.strictEqual(prefix.__undoStack.length, 0, "no edit may be issued at all");
+
+  // Case-sensitive, like Lean: `\And` is not `\and`.
+  const wrongCase = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\And");
+  focus(wrongCase, [cursor(0, 4)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(wrongCase.getText(), "\\And", "abbreviations are case-sensitive");
+});
+
+test("a lone \\ (set difference) is never rewritten", async () => {
+  // R-2: `\` is both the leader and the set-difference symbol. Only `\` +
+  // a **complete** table word may be rewritten.
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "A \\ B");
+  focus(document, [cursor(0, 3)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "A \\ B", "the lone backslash must survive untouched");
+  assert.strictEqual(document.__undoStack.length, 0);
+});
+
+test("one undo takes the whole replacement back", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\and");
+  const editor = focus(document, [cursor(0, 4)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "∧");
+  assert.strictEqual(document.__undoStack.length, 1, "one edit call = one undo entry");
+  undo(editor);
+  assert.strictEqual(document.getText(), "\\and", "a single undo must restore the abbreviation");
+});
+
+test("multi-cursor rewrites every abbreviation in one edit", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\and ∨ \\in");
+  const editor = focus(document, [cursor(0, 4), cursor(0, 10)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "∧ ∨ ∈", "every cursor gets its own replacement");
+  assert.strictEqual(editor.editCalls, 1, "all cursors travel in one edit (one undo unit)");
+  undo(editor);
+  assert.strictEqual(document.getText(), "\\and ∨ \\in");
+});
+
+test("a non-empty selection is never rewritten", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\and");
+  // The whole word is selected: Tab means "indent" there, not "rewrite".
+  focus(document, [cursor(0, 4)], { anchor: cursor(0, 0) });
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "\\and");
+  assert.strictEqual(document.__undoStack.length, 0, "a selection must not be corrupted");
+});
+
+test("eager replacement is off by default", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(document, [cursor(0, 3)]);
+  typeText(document, cursor(0, 3), "d"); // the learner finishes typing `\and`
+  await drain();
+  assert.strictEqual(document.getText(), "\\and", "the default path is Tab, not eager");
+  assert.strictEqual(document.__undoStack.length, 0);
+});
+
+test("eager mode rewrites the moment the word is complete", async () => {
+  await activateExtension();
+  setConfig("input.eager", true);
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(document, [cursor(0, 3)]);
+  typeText(document, cursor(0, 3), "d");
+  await drain();
+  assert.strictEqual(document.getText(), "∧", "eager mode replaces on word completion");
+  assert.strictEqual(document.__undoStack.length, 1);
+});
+
+test("eager mode waits out the prefix trap", async () => {
+  await activateExtension();
+  setConfig("input.eager", true);
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\i");
+  focus(document, [cursor(0, 2)]);
+  // `\i` → `\in` → `\int` → `\inte` → `\inter`: only the last one is complete.
+  const steps = [
+    [cursor(0, 2), "n", "\\in"],
+    [cursor(0, 3), "t", "\\int"],
+    [cursor(0, 4), "e", "\\inte"],
+    [cursor(0, 5), "r", "∩"],
+  ];
+  for (const [position, character, expected] of steps) {
+    typeText(document, position, character);
+    await drain();
+    assert.strictEqual(
+      document.getText(),
+      expected,
+      `after typing \`${character}\` the text must be \`${expected}\``,
+    );
+  }
+  assert.strictEqual(document.__undoStack.length, 1, "only the complete word was replaced");
+});
+
+test("eager mode closes the word on a separator", async () => {
+  // 前缀只在"还在敲字母"时挡：`\in` 是 `\inter` 的前缀 ⇒ 敲 `n` 时不落定；
+  // 但空格一到，这个词就封口了，前缀不再是理由（与 Lean 同规则）。
+  await activateExtension();
+  setConfig("input.eager", true);
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\i");
+  focus(document, [cursor(0, 2)]);
+  typeText(document, cursor(0, 2), "n");
+  await drain();
+  assert.strictEqual(document.getText(), "\\in", "a prefix must not be rewritten while typing");
+  typeText(document, cursor(0, 3), " ");
+  await drain();
+  assert.strictEqual(document.getText(), "∈ ", "the separator closes the word: `\\in ` → `∈ `");
+  assert.strictEqual(document.__undoStack.length, 1);
+});
+
+test("eager mode never fires on a deletion or an undo", async () => {
+  await activateExtension();
+  setConfig("input.eager", true);
+  const document = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\and");
+  focus(document, [cursor(0, 4)]);
+  // A deletion (and an undo, which is a replacement) must not re-trigger the
+  // state machine — otherwise undo would immediately re-apply the symbol.
+  listeners.textDocument.fire({
+    document,
+    contentChanges: [
+      { range: new vscodeStub.Range(0, 3, 0, 4), rangeOffset: 3, rangeLength: 1, text: "" },
+    ],
+  });
+  await drain();
+  assert.strictEqual(document.getText(), "\\and");
+  assert.strictEqual(document.__undoStack.length, 0);
+});
+
+test("the Tab context key follows the word before the cursor", async () => {
+  await activateExtension();
+  const contexts = () => vscodeStub.__contexts ?? {};
+
+  const plain = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "def x := 1");
+  focus(plain, [cursor(0, 3)]);
+  await drain();
+  assert.strictEqual(contexts()[CONTEXT_KEY], false, "a plain identifier leaves Tab to VS Code");
+
+  const abbreviation = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "\\an");
+  focus(abbreviation, [cursor(0, 3)]);
+  await drain();
+  assert.strictEqual(contexts()[CONTEXT_KEY], true, "a `\\`-word hands Tab to the rewriter");
+
+  const lone = fakeDocument("/repo/notes.sokonanoda", "sokonanoda", "A \\ B");
+  focus(lone, [cursor(0, 3)]);
+  await drain();
+  assert.strictEqual(contexts()[CONTEXT_KEY], false, "a lone `\\` keeps Tab out of it");
+});
+
+test("the rewriter stays out of other languages", async () => {
+  await activateExtension();
+  const document = fakeDocument("/repo/notes.txt", "plaintext", "\\and");
+  focus(document, [cursor(0, 4)]);
+  await commandHandler(REPLACE_COMMAND)();
+  assert.strictEqual(document.getText(), "\\and", "only .sokonanoda documents are rewritten");
+
+  setConfig("input.eager", true);
+  typeText(document, cursor(0, 4), "x");
+  await drain();
+  assert.strictEqual(document.getText(), "\\andx", "eager mode must not touch other languages");
 });
 
 test("the course tree caches one CLI run across repeated resolves", async () => {

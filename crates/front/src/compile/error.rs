@@ -55,6 +55,10 @@ pub enum ErrorKind {
     /// 记号展开时补不出目标 telescope 的**前导类型参数**（v1 只做裸变量匹配，
     /// 不做一般合一）。hint 教点名写法。设计 N4.2。
     ElabNotationArgumentUnsolved,
+    /// **隐式实参补不出来**（IA-1，设计 `docs/design/implicit-arguments.md` §3.1）：
+    /// 签名有前导隐式 binder，但由后续显式实参的类型反解不出（路线 C **不猜**、
+    /// 不做搜索）。hint 教写全参数。
+    ElabImplicitArgumentUnsolved,
     /// **记法重载**选不出候选（第三刀 §12.2）：期望类型筛完还剩 ≥2 个候选
     /// （或根本没有期望类型却有多个候选）。hint 列候选 + 教点名写法消歧。
     ElabNotationAmbiguous,
@@ -68,6 +72,9 @@ pub enum ErrorKind {
     /// **集合字面量**（第三刀 §12.4）展开成的点名目标不在本文件里
     /// （`Set.singleton` / `Set.pair` 是卷 I 的库定义）。hint 教 import 或点名。
     ElabSetLiteralUnknownTarget,
+    /// **匿名构造子**（L2.7）`⟨a, b⟩` 读不到**期望类型**：用哪个构造子只能由
+    /// 期望类型决定（路线 C，不做合一）。hint 教写进有标注的位置或点名。
+    ElabAnonCtorNoExpectedType,
     KernelExpectedSort,
     KernelExpectedPi,
     KernelTheoremNotProp,
@@ -130,10 +137,12 @@ impl ErrorKind {
             | ElabLetTypeQueryFailed
             | ElabNotationUnknownTarget
             | ElabNotationArgumentUnsolved
+            | ElabImplicitArgumentUnsolved
             | ElabNotationAmbiguous
             | ElabNotationNoCandidate
             | ElabBinderNotationUnsolved
-            | ElabSetLiteralUnknownTarget => CompileStage::Elab,
+            | ElabSetLiteralUnknownTarget
+            | ElabAnonCtorNoExpectedType => CompileStage::Elab,
             KernelExpectedSort
             | KernelExpectedPi
             | KernelTheoremNotProp
@@ -184,10 +193,12 @@ impl ErrorKind {
             ElabLetTypeQueryFailed => "elab-let-type-query-failed",
             ElabNotationUnknownTarget => "elab-notation-unknown-target",
             ElabNotationArgumentUnsolved => "elab-notation-argument-unsolved",
+            ElabImplicitArgumentUnsolved => "elab-implicit-argument-unsolved",
             ElabNotationAmbiguous => "elab-notation-ambiguous",
             ElabNotationNoCandidate => "elab-notation-no-candidate",
             ElabBinderNotationUnsolved => "elab-binder-notation-unsolved",
             ElabSetLiteralUnknownTarget => "elab-set-literal-unknown-target",
+            ElabAnonCtorNoExpectedType => "elab-anon-ctor-no-expected-type",
             KernelExpectedSort => "kernel-expected-sort",
             KernelExpectedPi => "kernel-expected-pi",
             KernelTheoremNotProp => "kernel-theorem-not-prop",
@@ -290,6 +301,9 @@ impl ErrorKind {
             ElabNotationArgumentUnsolved => {
                 "这个记法展开时补不出前面的类型参数（本子集只按操作数的类型补，不做一般推断）。改用点名写法把参数写全，例如 Set.mem α a A；或在两边都是已知类型的上下文里使用记法。"
             }
+            ElabImplicitArgumentUnsolved => {
+                "这个声明的签名里有**隐式**参数（`{α : Type}` 这种），而那些参数补不出来（本子集只按后续显式实参的类型反解，不做搜索）。把参数写全，例如把 `f a` 写成 `f α a`（点名写法永远可用）。"
+            }
             ElabNotationAmbiguous => {
                 "同一个符号声明了多条记法（重载），这里从期望类型看不出该用哪一条。写出点名形式（例如 Set.mem α a A）就消歧了；或者把这个表达式放到一个带类型标注的位置（例如 def … : T := 这里），让期望类型能定下来。"
             }
@@ -302,8 +316,14 @@ impl ErrorKind {
             ElabSetLiteralUnknownTarget => {
                 "集合字面量 `{a}` / `{a, b}` 展开成点名形式 Set.singleton / Set.pair，但这个文件里没有它们。先 `import` 提供它们的库（卷 I 的 lib/Set），或改用点名写法。"
             }
+            ElabAnonCtorNoExpectedType => {
+                "`⟨a, b⟩` 是匿名构造子：用哪个构造子（And.intro / Exists.intro / Prod.mk / Iff.intro）由**期望类型**决定，而这里读不到期望类型。把它写进有类型标注的位置（`have h : A ∧ B := ⟨…⟩`、`theorem … : T := ⟨…⟩`、`exact ⟨…⟩`），或改用点名构造子。"
+            }
             KernelExpectedSort => {
-                "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。"
+                "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。两种常见原因：\
+                 ① **点名调用漏了前导类型参数**——库里 `Set.mem α a A` 的参数是有序的，少写最前面的 \
+                 `α` 就会把 `a` 顶到类型位上（`Set.mem a A` 是错的）；用记法 `a ∈ A` 可以让编译器\
+                 自动补 `α`。② 冒号或 binder 后面跟的是个值而不是类型。"
             }
             KernelExpectedPi => {
                 "你把一个不是函数的值当函数用了，或者参数给多了。检查这个位置的东西的类型是不是 … -> … 形状。"
@@ -476,6 +496,17 @@ fn classify_prop_sort_gap(expected: &str, actual: &str) -> Option<ErrorKind> {
     (expected_level > 0 && actual_level == 0).then_some(ErrorKind::KernelPropNotCumulative)
 }
 
+/// 一个**项**被放在了**类型**位：内核把出错那一侧渲染成本地变量（`$k`），
+/// 而要类型的那一侧是 `Sort(n)`。
+///
+/// 这是「点名写法漏了前导类型实参」背后的形状——`Set.mem a A` 要写成
+/// `Set.mem α a A`。内核在很晚才拒它，且消息里只有 `$2` 这类内部记号，
+/// 学习者看不出缺什么。归类成 [`ErrorKind::KernelExpectedSort`]（语义就是
+/// 「这里要类型」），由那边的提示负责把「漏了哪个参数」说出来。
+fn classify_term_in_type_position(expected: &str, actual: &str) -> bool {
+    actual.trim_start().starts_with('$') && trailing_sort_level(expected).is_some()
+}
+
 /// Map a kernel rejection panic message to the most precise [`ErrorKind`].
 /// The kernel reports rejections as panics; `CheckError::Rejected` wraps the
 /// payload as `rejected: <payload>`. def_eq mismatches carry a stable marker
@@ -495,6 +526,11 @@ pub(crate) fn refine_kernel_kind(msg: &str) -> ErrorKind {
         if let Some((expected, actual)) = parse_def_eq_mismatch(payload) {
             if let Some(kind) = classify_prop_sort_gap(&expected, &actual) {
                 return kind;
+            }
+            // 项落在类型位（`Sort(n)` vs `$k`）：最常见的成因是点名调用漏了
+            // 前导类型实参。归到 `KernelExpectedSort`，由它的提示指路。
+            if classify_term_in_type_position(&expected, &actual) {
+                return ErrorKind::KernelExpectedSort;
             }
         }
         return ErrorKind::KernelRejected;

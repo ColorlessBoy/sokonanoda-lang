@@ -52,9 +52,20 @@ pub(crate) struct MatchCtor<'a> {
 /// constructors claim (G-02's `mk`): it does not resolve at all.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum KnownName {
-    Decl { universes: Vec<String> },
-    Alias { canonical: String },
-    Ambiguous { candidates: Vec<String> },
+    Decl {
+        universes: Vec<String>,
+        /// **IA-1 的签名表**（设计 `docs/design/implicit-arguments.md` §3.2）：
+        /// 声明类型望远镜的**前导隐式 binder 个数**（`0` = 今天的行为）。
+        /// 纯源级 AST 走查（[`leading_implicit_prefix`]），**零内核调用**——
+        /// 插入路径靠它做**免费闸门**：为 0 就一行都不跑。
+        implicit_prefix: usize,
+    },
+    Alias {
+        canonical: String,
+    },
+    Ambiguous {
+        candidates: Vec<String>,
+    },
 }
 
 impl KnownName {
@@ -62,8 +73,47 @@ impl KnownName {
     /// canonical declaration's own arity, so they elab the same way).
     pub(crate) fn universes(&self) -> &[String] {
         match self {
-            KnownName::Decl { universes } => universes,
+            KnownName::Decl { universes, .. } => universes,
             KnownName::Alias { .. } | KnownName::Ambiguous { .. } => &[],
+        }
+    }
+
+    /// IA-1：这个声明的**前导隐式 binder 个数**（非声明 = 0）。
+    pub(crate) fn implicit_prefix(&self) -> usize {
+        match self {
+            KnownName::Decl {
+                implicit_prefix, ..
+            } => *implicit_prefix,
+            KnownName::Alias { .. } | KnownName::Ambiguous { .. } => 0,
+        }
+    }
+}
+
+/// 声明类型望远镜的**前导隐式 binder 个数**：`{a} {b} (c : T) -> …` ⇒ `2`。
+///
+/// 纯源级 AST 走查，**零内核调用**（IA-1 的签名表；设计 §3.2 的落点）。
+/// `peel_pi` 把 `BinderKind` 丢了，所以这里自己走 `Expr::Forall`。
+pub(crate) fn leading_implicit_prefix(ty: &Expr) -> usize {
+    let mut n = 0;
+    let mut cur = ty;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                let mut all_implicit = true;
+                for b in binders {
+                    if b.style == BinderKind::Implicit {
+                        n += 1;
+                    } else {
+                        all_implicit = false;
+                        break;
+                    }
+                }
+                if !all_implicit {
+                    return n;
+                }
+                cur = body;
+            }
+            _ => return n,
         }
     }
 }
@@ -203,6 +253,97 @@ pub(crate) struct InductiveInfo<'a> {
     /// Index binder source types in declaration order (for `match` motives).
     pub index_types: Vec<Expr>,
 }
+
+/// 一条**源级 `def`**：参数名 + 定义体。
+///
+/// `by` 引擎用它做**一层 delta 展开**——`intro`/`apply` 必须看得穿
+/// 「目标/假设的头是个 def」的情形，而本语言**没有内核 whnf 的公开入口**
+/// （内核冻结，只有 `check_declar`/`assert_def_eq`/`is_proposition`）。
+/// 课程里最典型的形状：`A ⊆ B`（`Set.subset` 是 `def ... := ∀ x, A x → B x`）
+/// ——没有这一层，`intro x` 在 `A ⊆ B` 目标上直接报「需要一个函数目标」。
+///
+/// **只展开一层**：展开后仍要看穿就再来一次（课程里没有更深的嵌套）。
+/// 源级展开足够——`Set.subset`/`Not`/`Iff` 都是一层 def。
+#[derive(Debug, Clone)]
+pub(crate) struct DefInfo {
+    /// 声明的参数名（按顺序）——展开时与实参位置对齐做代换。
+    pub params: Vec<String>,
+    /// 声明的**宇宙参数名**（`def Ne {u} …` 里的 `u`）。
+    ///
+    /// 为什么 delta 展开需要它：定义体里会出现**宇宙变量**（`Ne` 的体是
+    /// `Eq.{u} α a b -> False`），而展开只代换**项**参数——宇宙参数没人管，
+    /// 展开出来的 AST 就留着悬空的 `.{u}`。那段 AST 一旦被回读
+    /// （render → parse → elab）就报 `unknown universe level u`（实测：
+    /// `{a} ≠ ∅` 的证明卡在这儿，而且报错点离根因很远）。
+    pub universes: Vec<String>,
+    pub body: Expr,
+}
+
+/// 一条 `def` 声明的参数名（按顺序）——从它的类型里剥 Pi 取 binder 名。
+/// 零参 def 返回空表。`by` 引擎的 delta 展开与 prelude 登记共用它。
+pub(crate) fn params_of_ty(ty: &Expr) -> Vec<String> {
+    let mut params = Vec::new();
+    let mut cur = ty;
+    while let Expr::Forall { binders, body, .. } = cur {
+        for b in binders {
+            params.push(b.name.clone());
+        }
+        cur = body;
+    }
+    while let Expr::Arrow { codomain, .. } = cur {
+        params.push(String::new());
+        cur = codomain;
+    }
+    params
+}
+
+/// 剥掉 `def` 值位外面的 lambda 层，露出**定义体**。
+///
+/// `def subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x`
+/// 的值位在 AST 里是 `fun (α : Type) (A : Set α) (B : Set α) => forall (x : α), …`
+/// ——参数被 lambda 包着（实测踩过：不剥就会拿整个 lambda 当"定义体"，
+/// `peel_pi` 当然剥不出 Pi，delta 展开静默失败）。参数名由
+/// [`params_of_ty`] 从**类型**里取，两者按位置对齐——`n` 就取它的长度。
+/// **只剥 `n` 层** lambda（按值位自己的 binder 个数算，一层
+/// `Lambda` 可能有多个 binder）。
+///
+/// **为什么必须限量**：`def` 的值位是 `fun <参数表> => <定义体>`，而定义体
+/// **自己**可能也是 lambda——`def Set.union (α) (A B : Set α) : Set α :=
+/// fun (x : α) => Or (A x) (B x)`。全剥会把里面的 `fun (x)` 也吃掉，于是
+/// `(A ∪ B) x` 的展开变成 `Or (A x) (B x) x`（多贴一个实参，实测：`cases` 在
+/// `x ∈ A ∪ B` 上报「头 `Set.union` 不在归纳表里」）。
+///
+/// `n` 由 `params_of_ty(ty).len()` 给——类型与值位的 binder 按位置对齐。
+pub(crate) fn strip_lambdas_n(val: &Expr, n: usize) -> Expr {
+    let mut cur = val;
+    let mut left = n;
+    while left > 0 {
+        let Expr::Lambda { binders, body, .. } = cur else {
+            break;
+        };
+        if binders.len() > left {
+            // 一层里 binder 比还要剥的多：只剥前 `left` 个。
+            let mut out = Expr::Lambda {
+                binders: binders[left..].to_vec(),
+                body: body.clone(),
+                span: crate::Span::default(),
+            };
+            // 剩下的 binder 仍在，返回带剩余 binder 的 lambda。
+            out = match out {
+                Expr::Lambda { binders, body, .. } if binders.is_empty() => *body,
+                other => other,
+            };
+            return out;
+        }
+        left -= binders.len();
+        cur = body;
+    }
+    cur.clone()
+}
+
+/// 源级 `def` 表（名字 → 参数名 + 定义体）。跨单元累加，与 `InductiveTable`
+/// 同一条命：闭包里依赖按拓扑序排在入口之前，所以入口看得见库里的 def。
+pub(crate) type DefTable = HashMap<String, DefInfo>;
 
 /// Forward-accumulated registry of the file's own `inductive` blocks, keyed by
 /// inductive name. A `match` may only eliminate an inductive already declared
@@ -483,6 +624,7 @@ pub(crate) fn install_inductive_block<'a>(
         name.to_string(),
         KnownName::Decl {
             universes: Vec::new(),
+            implicit_prefix: 0,
         },
     );
 
@@ -565,6 +707,7 @@ pub(crate) fn install_inductive_block<'a>(
             ctor_canonical[idx].clone(),
             KnownName::Decl {
                 universes: Vec::new(),
+                implicit_prefix: 0,
             },
         );
         insert_ctor_alias(known, &ctor.name, &ctor_canonical[idx]);
@@ -624,6 +767,7 @@ pub(crate) fn install_inductive_block<'a>(
             rec.name.clone(),
             KnownName::Decl {
                 universes: known_rec_universes.clone(),
+                implicit_prefix: 0,
             },
         );
 
@@ -960,21 +1104,19 @@ fn elab_notation<'a>(
     // 要先合成 `fun (binders) => target` 再逐层剥 binder，目标本身是函数时
     // （`Set.image`）多 binder 折叠会让剥离结果错位（第二刀实测），而签名是
     // 常量自己的、与调用点的 binder 无关。
-    let target_text = render_expr(&Expr::Ident {
-        name: canonical.clone(),
-        span,
-    });
-    let signature = crate::judge::judge_type_of(ctx.prefix_src, ctx.options, &target_text)
+    // 用**常量签名缓存**（键不含前缀）：记法在每个使用点都要问一次签名，而
+    // `judge_type_of` 的缓存键含整段前缀 ⇒ 逐声明退化成正前缀重编译（O(n²)）。
+    let signature = crate::judge::judge_type_of_constant(ctx.prefix_src, ctx.options, &canonical)
         .map_err(|j| {
-            CompileError::elab(
-                ErrorKind::ElabNotationUnknownTarget,
-                format!(
-                    "读不到记法 `{symbol}` 的目标 `{target}` 的类型：{}",
-                    judgement_message(&j)
-                ),
-                span,
-            )
-        })?;
+        CompileError::elab(
+            ErrorKind::ElabNotationUnknownTarget,
+            format!(
+                "读不到记法 `{symbol}` 的目标 `{target}` 的类型：{}",
+                judgement_message(&j)
+            ),
+            span,
+        )
+    })?;
     // 前导参数：先走既有的裸变量匹配；解不出时用调用方给的**回退**
     // （第三刀 §12.4 的集合字面量：`{∅}` 的元素类型只能从期望类型解，
     // 既有路径的结构化匹配在这里够不着——回退只加解、不改既有解）。
@@ -1000,8 +1142,39 @@ fn elab_notation<'a>(
     let operand_expected = notation_operand_expected(&signature, &prefix_args, operands.len());
     // 源到源拼出完整应用，再交给**既有** elaborate 路径——类型错、`@`、
     // 宇宙参数等语义一字不改地复用。
+    //
+    // **宇宙参数**（L2.4b / L2.3，设计 SP1）：`Eq`/`Ne` 各带一个 `u`，
+    // 而 `Eq.{1} (Set α) A B` 与 `Eq.{0} A B`（`A B : Prop`）是**两个不同的
+    // 常量应用**——点名路径靠源里的 `.{1}` 写死，记法路径必须自己解。
+    // 解不出时保持既有行为（全 0，与不写 `.{u}` 的点名写法同判）。
+    let uparams = known
+        .get(&canonical)
+        .map(|entry| entry.universes().to_vec())
+        .unwrap_or_default();
+    let levels = if uparams.is_empty() {
+        builder.alloc_levels_slice(&[])
+    } else {
+        let mut texts: Vec<String> = uparams.iter().map(|_| "0".to_string()).collect();
+        if uparams.len() == 1 {
+            if let Some(text) = universe_level_text_of_operands(operands, ctx, scope) {
+                texts[0] = text;
+            }
+        }
+        let mut resolved = Vec::with_capacity(texts.len());
+        for text in &texts {
+            // **解不出就退回 0**（= 这条记法在引入宇宙求解之前的旧行为），
+            // 不报错。为什么不能报错：层级文本来自**内核 pp**，而 pp 会打出
+            // **宇宙变量名**（`Eq.{u}`）——那个 `u` 在我们这层作用域里根本不存在，
+            // 于是 `level_ptr` 报 `unknown universe level u`，把一条本来能过的
+            // 声明判红（实测：`{a} ≠ ∅` 的证明）。退回 0 至少不比从前差。
+            match level_ptr(builder, text, univ, span) {
+                Ok(level) => resolved.push(level),
+                Err(_) => resolved.push(builder.zero()),
+            }
+        }
+        builder.alloc_levels_slice(&resolved)
+    };
     let const_name = builder.name_from_str(&canonical);
-    let levels = builder.alloc_levels_slice(&[]);
     let mut app = builder.mk_const(const_name, levels);
     for arg in &prefix_args {
         let arg = elab_expr(builder, arg, scope, univ, known, hovers, None, None, ctx)?;
@@ -1023,6 +1196,131 @@ fn elab_notation<'a>(
         app = builder.mk_app(app, operand);
     }
     Ok(app)
+}
+
+/// 这个实参**必须**拿到期望类型才能 elaborate 吗？
+///
+/// 判据是「**补不出前导类型参数**的形状」：
+/// - **零元记法**（`∅` → `Set.empty`）：没有操作数，只能从期望类型解；
+/// - **集合字面量**（`{a}` / `{a, b}` → `Set.singleton` / `Set.pair`）：元素类型
+///   只能从期望类型解（设计 `docs/design/notation-subset.md` §12.4）。
+///
+/// 其余形状（点名、应用、lambda…）不需要，于是**零开销**——这是这条推广不拖慢
+/// 编译的关键。
+fn needs_expected_type(expr: &Expr) -> bool {
+    match expr {
+        Expr::SetLiteral { .. } => true,
+        // 零元记法：`lhs`/`rhs` 都没有才是（`prefix` 记法有 `rhs`、`postfix` 有 `lhs`，
+        // 它们能从前缀/后缀操作数解出参数）。
+        Expr::Notation { lhs, rhs, .. } => lhs.is_none() && rhs.is_none(),
+        _ => false,
+    }
+}
+
+/// 应用**最后一个实参**的期望类型：取头的签名望远镜，按位置取第 k 层，并把前面
+/// 已经写出的实参代进去（`Eq.symm.{1} (Set α) A ∅ h` ⇒ `∅` 的期望类型是
+/// `Set α` 而不是形参名 `α`）。
+///
+/// 头是任意表达式（`f x ∅` 里的 `f x`）：类型文本由 `judge_infer` 给，签名用
+/// [`notation_telescope`] 剥（与记法路径**同一份**机械，两条路的判据不会分叉）。
+/// 读不出签名 ⇒ `None`（退回「无期望类型」的既有行为，绝不比今天差）。
+fn application_arg_expected(
+    expr: &Expr,
+    scope: &ElabScope<'_>,
+    ctx: &ElabCtx<'_, '_>,
+) -> Option<Expr> {
+    let (head, args) = crate::spine::spine_of(expr);
+    if args.is_empty() {
+        return None;
+    }
+    let index = args.len() - 1;
+    let head_text = render_expr(head);
+    let ty_text = judge_infer(
+        ctx.prefix_src,
+        ctx.options,
+        &scope.judge_binders(),
+        &head_text,
+    )
+    .ok()?;
+    let (layers, _) = notation_telescope(&ty_text)?;
+    let (_, domain) = layers.get(index)?;
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (k, (name, _)) in layers.iter().take(index).enumerate() {
+        if !name.is_empty() {
+            sigma.insert(name.clone(), args[k].clone());
+        }
+    }
+    Some(crate::spine::substitute(domain, &sigma))
+}
+
+/// 记法操作数里**第一个能定出宇宙层级**的那个，返回层级文本。
+///
+/// `a = b`（内建记法 → `Eq`）：`a : T` ⇒ `T : Sort u` ⇒ `u`。
+/// 例：`a : Set α` ⇒ `Set α : Type 0` ⇒ `u = 1`；`A : Prop` ⇒ `Prop` ⇒ `u = 0`。
+/// 逐个操作数试（`Eq`/`Ne` 的类型参数在第一位；换个记法可能在别处）。
+///
+/// 判据全部问内核（`judge_infer`），**不做文本猜测**：`infer_type_text` 拿
+/// 操作数的类型文本，再对那份文本问一次它的类型（= sort）。
+fn universe_level_text_of_operands(
+    operands: &[&Expr],
+    ctx: &ElabCtx<'_, '_>,
+    scope: &ElabScope<'_>,
+) -> Option<String> {
+    for operand in operands {
+        let ty_text = infer_type_text(ctx, scope, operand)?;
+        let Ok(sort_text) = judge_infer(
+            ctx.prefix_src,
+            ctx.options,
+            &scope.judge_binders(),
+            &ty_text,
+        ) else {
+            continue;
+        };
+        if let Some(level) = level_text_of_sort(&sort_text) {
+            return Some(level);
+        }
+    }
+    None
+}
+
+/// 内核 pp 的 sort 文本 → 宇宙层级文本。
+///
+/// | pp 文本 | 含义 | 层级 |
+/// |---|---|---|
+/// | `Prop` | `Prop : Sort 0` | `0` |
+/// | `Type n` | `Type n : Sort (n+1)` | `n+1` |
+/// | `Sort n` | 自身 | `n` |
+///
+/// `Type u`（层级变量）⇒ `u+1`——`level_ptr` 认得这种文本（与 `Sort (u+1)`
+/// 同一条路）。解析不出 ⇒ `None`（调用方退回全 0，与不写 `.{u}` 的点名写法同判）。
+pub(crate) fn level_text_of_sort(text: &str) -> Option<String> {
+    let text = text.trim();
+    if text == "Prop" {
+        return Some("0".to_string());
+    }
+    let rest = text
+        .strip_prefix("Type")
+        .map(|rest| (rest, 1u64))
+        .or_else(|| text.strip_prefix("Sort").map(|rest| (rest, 0u64)))?;
+    let (rest, offset) = rest;
+    let rest = rest.trim();
+    if rest.is_empty() {
+        // 裸 `Type` = `Type 0` ⇒ 层级 1；裸 `Sort` 不该出现（内核总写数字）。
+        return Some(offset.to_string());
+    }
+    if let Ok(n) = rest.parse::<u64>() {
+        return Some((n + offset).to_string());
+    }
+    // `Type u` / `Type (u+1)` / `Sort u`：交给 `level_ptr` 的层级算术。
+    let inner = rest
+        .strip_prefix('(')
+        .and_then(|r| r.strip_suffix(')'))
+        .unwrap_or(rest);
+    if offset == 0 {
+        Some(inner.to_string())
+    } else {
+        Some(format!("{inner}+{offset}"))
+    }
 }
 
 /// 两段式 binder 的 guard 形状判据：`guard` 是**以 binder 名为左操作数**的
@@ -1590,6 +1888,129 @@ fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr)
     judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
 }
 
+/// **IA-1 的唯一钩子**（设计 `docs/design/implicit-arguments.md` §3.2）：`expr`
+/// 是一条应用脊，头如果是签名带**前导隐式 binder** 的常量/局部名，就按路线 C
+/// 把那些隐式实参解出来插进去，返回装好的整条脊。
+///
+/// 返回 `None` ⇒ 调用方走**今天的老路**（签名里没有隐式 binder 时逐字节不变，
+/// 这是 P1 可独立发布的安全性质，设计 §0）。
+///
+/// 算法（设计 §3.1）：实参按**风格**对齐到显式层；被跳过的前导隐式层由**第一个
+/// 显式实参的类型**头部匹配唯一确定（[`implicit::solve_prefix`]）；解不出报
+/// `elab-implicit-argument-unsolved`，**不猜**。
+#[allow(clippy::too_many_arguments)]
+fn try_implicit_application<'a>(
+    builder: &mut EnvBuilder<'a>,
+    expr: &Expr,
+    explicit_spine: bool,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    known: &KnownTable,
+    hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<Option<ExprPtr<'a>>, CompileError> {
+    // Lean 的 `@`：整条脊的实参是**逐位显式**的 ⇒ 不插隐式实参（设计 §7 第 5 条）。
+    if explicit_spine {
+        return Ok(None);
+    }
+    let (head, args) = crate::spine::spine_of(expr);
+    if args.is_empty() {
+        return Ok(None);
+    }
+    // **免费闸门**（IA-1 的签名表：零内核调用）：头的签名没有前导隐式 binder ⇒
+    // 一行都不跑。这一条兜住两个东西——安全性质（今天所有签名都是 0 ⇒ 逐字节
+    // 不变）与成本（否则**每个**应用都要 `judge_infer`，而判定会**递归**重编译
+    // 前缀 ⇒ 栈溢出，实测）。
+    let head_name = match head {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
+        _ => return Ok(None),
+    };
+    match known.get(head_name) {
+        Some(k) if k.implicit_prefix() > 0 => {}
+        _ => return Ok(None),
+    }
+    // 头的签名文本（内核 pp：`{α : Type}` 的风格保留着——见 `implicit` 的模块注释）
+    let Ok(ty_text) = judge_infer(
+        ctx.prefix_src,
+        ctx.options,
+        &scope.judge_binders(),
+        &render_expr(head),
+    ) else {
+        return Ok(None);
+    };
+    let Some((layers, _result)) = crate::compile::implicit::telescope(&ty_text) else {
+        return Ok(None);
+    };
+    let k = crate::compile::implicit::leading_implicit(&layers);
+    if k == 0 {
+        return Ok(None);
+    }
+    // 实参按风格对齐：第 0 个实参落在第 `k` 层。实参比显式层还多 ⇒ 交给老路
+    // （它有自己的元数诊断，别在这里抢先报错）。
+    if layers.len() < k + args.len() {
+        return Ok(None);
+    }
+    let span = expr.span();
+    let head_term = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)?;
+    // 第一个显式实参**不给期望类型**：这一层的域提到还没解出的隐式参数。
+    let first = args[0];
+    let first_term = elab_expr(builder, first, scope, univ, known, hovers, None, None, ctx)?;
+    // 每个实参的**类型**（路线 ① 的原料：`arg_tys[i]` 对应第 `k + i` 层）。
+    let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
+    for a in &args {
+        arg_tys.push(
+            infer_type_text(ctx, scope, a).and_then(|t| crate::proof::parse_expr_text(&t).ok()),
+        );
+    }
+    let Some(solved) = crate::compile::implicit::solve_prefix(&layers, k, &arg_tys) else {
+        return Err(CompileError::elab(
+            ErrorKind::ElabImplicitArgumentUnsolved,
+            format!(
+                "`{}` 的签名 `{}` 里有 {} 个**隐式**参数，但补不出来（本子集只按第一个显式实参的类型反解）。把参数写全，例如 `{} …` 逐位写下来",
+                render_expr(head),
+                ty_text,
+                k,
+                render_expr(head)
+            ),
+            span,
+        ));
+    };
+    // 组装：先插隐式实参，再逐个装显式实参（后续实参给「代入后」的期望类型）。
+    let mut out = head_term;
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (j, s) in solved.iter().enumerate() {
+        if !layers[j].name.is_empty() {
+            sigma.insert(layers[j].name.clone(), s.clone());
+        }
+        let t = elab_expr(builder, s, scope, univ, known, hovers, None, None, ctx)?;
+        out = builder.mk_app(out, t);
+    }
+    out = builder.mk_app(out, first_term);
+    if !layers[k].name.is_empty() {
+        sigma.insert(layers[k].name.clone(), first.clone());
+    }
+    for (i, a) in args.iter().enumerate().skip(1) {
+        let li = k + i;
+        let expected_src = crate::spine::substitute(&layers[li].domain, &sigma);
+        let t = elab_expr(
+            builder,
+            a,
+            scope,
+            univ,
+            known,
+            hovers,
+            None,
+            Some(&expected_src),
+            ctx,
+        )?;
+        out = builder.mk_app(out, t);
+        if !layers[li].name.is_empty() {
+            sigma.insert(layers[li].name.clone(), (*a).clone());
+        }
+    }
+    Ok(Some(out))
+}
+
 /// 头部匹配 + 提取裸变量：`template` 是 `name` 本身 ⇒ 取 `actual`；两者是
 /// 同头、同实参个数的应用链且某个实参位恰好是裸变量 `name` ⇒ 取 `actual`
 /// 对应位的实参。其余形状返回 `None`（v1 不做一般合一，设计 N4.2）。
@@ -1599,7 +2020,7 @@ fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr)
 /// **箭头域/陪域**里；只认应用链的话 `''`/`⁻¹'` 的前导参数一个都补不出来
 /// （实测 `elab-notation-argument-unsolved`）。所以这里把 `α → β` 与
 /// `α₀ → β₀` 按域/陪域两个位置对齐——仍然是"裸变量匹配"，不引入元变量。
-fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
+pub(crate) fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
     if let Expr::Ident { name: n, .. } = template {
         if n == name {
             return Some(actual.clone());
@@ -1614,35 +2035,109 @@ fn unify_extract(template: &Expr, actual: &Expr, name: &str) -> Option<Expr> {
         crate::spine::peel_pi(template),
         crate::spine::peel_pi(actual),
     ) {
-        return unify_extract(&template_pi.domain, &actual_pi.domain, name)
-            .or_else(|| unify_extract(&template_pi.body, &actual_pi.body, name));
+        if let Some(found) = unify_extract(&template_pi.domain, &actual_pi.domain, name)
+            .or_else(|| unify_extract(&template_pi.body, &actual_pi.body, name))
+        {
+            return Some(found);
+        }
     }
-    let (head, template_args) = crate::spine::spine_of(template);
-    let (actual_head, actual_args) = crate::spine::spine_of(actual);
-    let Expr::Ident {
-        name: head_name, ..
-    } = head
-    else {
-        return None;
-    };
-    let Expr::Ident {
-        name: actual_head_name,
-        ..
-    } = actual_head
-    else {
-        return None;
-    };
-    if head_name != actual_head_name || template_args.len() != actual_args.len() {
+    // **模板是望远镜、实际不是**：把模板剥到**结果**再试。
+    //
+    // `solve_prefix_args` 的路线② 传进来的 `rest` 是「从第 i 层起的整个
+    // 望远镜」（`(w : α) -> ( : p w) -> Exists α p`），而要解的参数常常只出现
+    // 在**结果**里（`Exists α p` 的 `p`）——不剥到底就永远匹配不上
+    // （L2.7 实测：`⟨a, ⟨b, h⟩⟩` 卡在这儿）。
+    if crate::spine::peel_pi(template).is_some() {
+        let mut cur = template.clone();
+        while let Some(pi) = crate::spine::peel_pi(&cur) {
+            cur = pi.body;
+        }
+        if let Some(found) = unify_extract(&cur, actual, name) {
+            return Some(found);
+        }
+    }
+    let (head_name, template_args, _) = head_and_args_notation(template)?;
+    let (actual_head_name, actual_args, actual_head) = head_and_args_notation(actual)?;
+    if head_name != actual_head_name {
         return None;
     }
-    for (template_arg, actual_arg) in template_args.iter().zip(actual_args.iter()) {
-        if let Expr::Ident { name: n, .. } = template_arg {
-            if n == name {
-                return Some((*actual_arg).clone());
+    // **名字就是模板的头**（`p w` 里的 `p`，L2.7 实测）：要解的实参就是实际的
+    // 头本身。`Exists.intro` 的第 2 个参数 `p` 正是这个形状——它只以 `p w`
+    // 出现在后一层（`h : p w`）的域里，而"从 `p w` 反解 `p`"合法：`p w` 的
+    // **头就是这个项**（不是它的某个实参）。旧路径只找「实参位上的名字」，
+    // 于是 `⟨w, hw⟩` 在 `∃ (x : α), p x` 上报"补不出前面的类型参数"。
+    if head_name == name && !template_args.is_empty() {
+        return Some(actual_head);
+    }
+    // 实参**右对齐**，但只在「实际比模板少」时放行：记法只写操作数，前导类型
+    // 参数由 elab 补——期望类型常常是 **binder 记法**（`∃ (x : α), p x` 是
+    // `Exists α (fun (x : α) => p x)` 的记法形态，只有 1 个操作数，而模板有
+    // 2 个实参）。实际比模板**多**仍然 `None`（那是另一种形状，不在这里猜）。
+    if actual_args.len() > template_args.len() {
+        return None;
+    }
+    let n = actual_args.len();
+    let t_off = template_args.len() - n;
+    let a_off = actual_args.len() - n;
+    for k in 0..n {
+        if let Expr::Ident { name: tname, .. } = &template_args[t_off + k] {
+            if tname == name {
+                return Some(actual_args[a_off + k].clone());
             }
         }
     }
     None
+}
+
+/// 头名 + 实参 + **头的表达式**：**记法节点按「目标名 + 操作数」算**。
+///
+/// 为什么需要（L2.7 实测）：期望类型常常是 binder 记法 `∃ (x : α), p x`，
+/// 而 [`crate::spine::spine_of`] 只看得到记法节点本身（头不是 `Ident`）⇒
+/// `unify_extract` 解不出 `p`，`⟨a, ⟨b, h⟩⟩` 这种嵌套匿名构造子就报
+/// 「补不出前面的类型参数」。判据与 [`crate::spine::head_and_args`] 同一份。
+fn head_and_args_notation(expr: &Expr) -> Option<(String, Vec<Expr>, Expr)> {
+    if let Expr::Notation {
+        target,
+        assoc,
+        lhs,
+        rhs,
+        ..
+    } = expr
+    {
+        let mut args: Vec<Expr> = Vec::new();
+        // **binder 记法**（`∃ (x : α), p x`）的**应用形态**是
+        // `Exists α (fun (x : α) => p x)`：记法只写一个操作数（那个 lambda），
+        // 而常量的第一个参数（域 `α`）在应用里也要占位。不补这一位，
+        // `⟨a, ⟨b, h⟩⟩` 这种嵌套匿名构造子的前置参数就右对齐错位
+        // （模板 2 个实参、实际 1 个）。
+        if *assoc == crate::ast::NotationAssoc::Binder {
+            if let Some(Expr::Lambda { binders, .. }) = rhs.as_deref() {
+                if let Some(ty) = binders.first().and_then(|b| b.ty.as_deref()) {
+                    args.push(ty.clone());
+                }
+            }
+        }
+        if let Some(l) = lhs {
+            args.push((**l).clone());
+        }
+        if let Some(r) = rhs {
+            args.push((**r).clone());
+        }
+        let head = Expr::Ident {
+            name: target.clone(),
+            span: expr.span(),
+        };
+        return Some((target.clone(), args, head));
+    }
+    let (head, args) = crate::spine::spine_of(expr);
+    match head {
+        Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => Some((
+            name.clone(),
+            args.into_iter().cloned().collect(),
+            head.clone(),
+        )),
+        _ => None,
+    }
 }
 
 /// Peel one Pi layer off the expected type: returns the binder style, the
@@ -1722,6 +2217,82 @@ fn drop_expected_src_layer(expected: Option<&Expr>) -> Option<Expr> {
                 Some(body.as_ref().clone())
             }
         }
+        _ => None,
+    }
+}
+
+/// `⟨a, b⟩` 的目标构造子：由**期望类型**的头决定（L2.7，路线 C）。
+///
+/// 认三类（顺序即优先级）：
+/// 1. **prelude 里以 def 形态存在的单构造子类型**（`Iff` ⇒ `Iff.intro`）——
+///    它在归纳表里查不到（是 def），但构造子名是固定的；
+/// 2. **归纳表里的单构造子归纳**（`And` / `Exists` / `Prod` / 课程自定义）⇒
+///    取它的构造子名。多构造子 ⇒ 报错（`⟨…⟩` 说不清是哪一个）；
+/// 3. 其它头（`Or`、函数、`Prop`…）⇒ 报错，hint 说清为什么。
+///
+/// **不做合一**：头名直接来自期望类型的**源 AST**（记法节点用它的 target），
+/// 与记法展开的"前导参数补全"同一条路线。
+fn anon_ctor_target(
+    expected: &Expr,
+    ctx: &ElabCtx<'_, '_>,
+    span: Span,
+) -> Result<String, CompileError> {
+    let head = crate::spine::head_and_args(expected).map(|(name, _)| name.to_string());
+    let Some(head) = head else {
+        return Err(CompileError::elab(
+            ErrorKind::ElabAnonCtorNoExpectedType,
+            format!(
+                "`⟨…⟩` 的期望类型 `{}` 不是「头 + 参数」形状，看不出该用哪个构造子：改用点名构造子",
+                crate::proof::render_expr(expected)
+            ),
+            span,
+        ));
+    };
+    if let Some(ctor) = builtin_constructor_of(&head) {
+        return Ok(ctor.to_string());
+    }
+    if let Some(info) = ctx.inductives.get(&head) {
+        return match info.ctors.as_slice() {
+            // 用**规范名**（`Exists.intro`），不是源里写的裸名（`intro`）：
+            // 记法展开要的是安装进内核的那个名字（与 `match` 的 recursor 规则
+            // 同一个字段）。
+            [only] => Ok(only.canonical.clone()),
+            [] => Err(CompileError::elab(
+                ErrorKind::ElabAnonCtorNoExpectedType,
+                format!("`{head}` 没有构造子，`⟨…⟩` 用不了"),
+                span,
+            )),
+            many => Err(CompileError::elab(
+                ErrorKind::ElabAnonCtorNoExpectedType,
+                format!(
+                    "`{head}` 有 {} 个构造子（{}），`⟨…⟩` 说不清用哪一个：写点名构造子",
+                    many.len(),
+                    many.iter()
+                        .map(|c| c.canonical.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" / ")
+                ),
+                span,
+            )),
+        };
+    }
+    Err(CompileError::elab(
+        ErrorKind::ElabAnonCtorNoExpectedType,
+        format!(
+            "`⟨…⟩` 的期望类型头是 `{head}`——它既不是单构造子归纳，也没有固定的构造子：`⟨…⟩` 只能用在 `And` / `Exists` / `Prod` / `Iff` 这类「只有一个构造子」的类型上"
+        ),
+        span,
+    ))
+}
+
+/// prelude 里**以 `def` 形态存在**的「单构造子类型」→ 它的构造子式引理。
+///
+/// `Iff` 展开成 `And (A -> B) (B -> A)`（`compile/prelude.rs` 的 L1 源码），
+/// 所以它不在归纳表里，但 `Iff.intro` 的签名就是它的构造子。`by` 引擎的
+/// `constructor`（L3.2）与 `⟨…⟩`（L2.7）共用这一份表——两处各写一份必然分叉。
+pub(crate) fn builtin_constructor_of(head: &str) -> Option<&'static str> {
+    match head {
+        "Iff" => Some("Iff.intro"),
         _ => None,
     }
 }
@@ -1898,9 +2469,61 @@ pub(crate) fn elab_expr<'a>(
             "`sorry` is only allowed as the value of an open exercise",
             *span,
         )),
-        Expr::App { fun, arg, span } => {
+        Expr::App {
+            fun,
+            arg,
+            explicit_spine,
+            span,
+        } => {
+            // **IA-1 的唯一钩子**（设计 `docs/design/implicit-arguments.md` §3.2）：
+            // 头如果是签名带**前导隐式 binder** 的常量/局部名，就把那些隐式实参
+            // 解出来插进去。返回 `None` ⇒ 走下面的老路（签名没有隐式 binder 时
+            // **逐字节不变**，这是 P1 可独立发布的安全性质，设计 §0）。
+            if let Some(out) = try_implicit_application(
+                builder,
+                expr,
+                *explicit_spine,
+                scope,
+                univ,
+                known,
+                hovers,
+                ctx,
+            )? {
+                record_hover(hovers, scope, *span, out, None);
+                return Ok(out);
+            }
+            // 实参的**期望类型**（设计 N4.2 ① 从记法操作数**推广到应用实参**）：
+            // `subset_antisymm α A ∅ h …` 里 `∅` 是零元记法，拿不到期望类型就补不出
+            // `α`（报 `elab-notation-argument-unsolved`）——课程 **227 处**
+            // `Set.empty α` 全是这个形状，也正是 Lean 化改写最大的绊脚石。
+            //
+            // **只在实参真的需要时才算**（`needs_expected_type`）：取头的签名要问一次
+            // 内核（有缓存），普通实参零开销、逐字节不变。
+            // TODO(G-21)：这条推广（「应用实参也吃期望类型」）能修掉课程 227 处
+            // `Set.empty α`，但在 `Eq.subst.{1} (Set α) … ` 这种「显式实参写在
+            // 隐式位上」的调用里会把 `∅` 解成 `Set.empty A`（把上一个实参当成了
+            // 类型）——**这就是它被关着的唯一原因**（判卷器那条线已修完，与本条
+            // 无关）。**G-21 不在 `docs/gaps/ledger.jsonl` 里**：改动被 `if false`
+            // 关着，出货二进制上复现不出，台账的 repro 契约套不上；记录在
+            // `docs/design/course-lean-style.md` §9「另一条被 park 的改动」。
+            // 重开属于 IA-2（R2.5）：先修「显式实参写在隐式位上」的实参→形参对齐。
+            let arg_expected = if needs_expected_type(arg) {
+                application_arg_expected(expr, scope, ctx)
+            } else {
+                None
+            };
             let fun = elab_expr(builder, fun, scope, univ, known, hovers, None, None, ctx)?;
-            let arg = elab_expr(builder, arg, scope, univ, known, hovers, None, None, ctx)?;
+            let arg = elab_expr(
+                builder,
+                arg,
+                scope,
+                univ,
+                known,
+                hovers,
+                None,
+                arg_expected.as_ref(),
+                ctx,
+            )?;
             let out = builder.mk_app(fun, arg);
             record_hover(hovers, scope, *span, out, None);
             Ok(out)
@@ -2150,6 +2773,44 @@ pub(crate) fn elab_expr<'a>(
                 hovers,
                 expected_src,
                 fallback.as_deref(),
+                ctx,
+            )?;
+            record_hover(hovers, scope, *span, out, None);
+            Ok(out)
+        }
+        // **匿名构造子**（课程 Lean 化 L2.7）：`⟨a, b⟩`。
+        //
+        // 用哪个构造子由**期望类型**决定（路线 C：不做合一、不引入元变量）。
+        // 认三类头：内建记法的**目标名**（`A ∧ B` 的记法节点 target = `And`）、
+        // 归纳表里的**单构造子**归纳（`And`/`Exists`/`Prod`/课程自定义）、以及
+        // prelude 里以 **def** 形态存在的 `Iff`（构造子 `Iff.intro`）。
+        //
+        // 展开**复用记法路径**（`elab_notation`）：前导参数补全（`⟨w, hw⟩` 在
+        // `∃ (x : α), p x` 上要解出 `α` 与 `p`）与操作数期望类型传播都是既有
+        // 机械，`⟨a, ⟨b, c⟩⟩` 的嵌套因此天然可用（内层的期望类型由外层
+        // 操作数位给出）。
+        Expr::AnonCtor { elements, span } => {
+            let Some(expected) = expected_src else {
+                return Err(CompileError::elab(
+                    ErrorKind::ElabAnonCtorNoExpectedType,
+                    "`⟨…⟩` 用哪个构造子由**期望类型**决定，这里读不到期望类型：把它写进有类型标注的位置（`have h : T := ⟨…⟩`、`exact ⟨…⟩` 的目标、声明类型），或改用点名构造子（`And.intro` / `Exists.intro` / `Prod.mk`）",
+                    *span,
+                ));
+            };
+            let target = anon_ctor_target(expected, ctx, *span)?;
+            let operands: Vec<&Expr> = elements.iter().collect();
+            let out = elab_notation(
+                builder,
+                "⟨…⟩",
+                &target,
+                &operands,
+                *span,
+                scope,
+                univ,
+                known,
+                hovers,
+                Some(expected),
+                None,
                 ctx,
             )?;
             record_hover(hovers, scope, *span, out, None);
@@ -2416,6 +3077,7 @@ pub(crate) fn elab_expr<'a>(
                 |acc, p| Expr::App {
                     fun: Box::new(acc),
                     arg: Box::new(p.clone()),
+                    explicit_spine: false,
                     span: *span,
                 },
             );
@@ -2479,6 +3141,7 @@ pub(crate) fn elab_expr<'a>(
                             name: name.clone(),
                             span: *span,
                         }),
+                        explicit_spine: false,
                         span: *span,
                     });
             let ind_kernel = elab_expr(
@@ -2660,6 +3323,7 @@ pub(crate) fn elab_expr<'a>(
                         term = Expr::App {
                             fun: Box::new(term),
                             arg: Box::new(p.clone()),
+                            explicit_spine: false,
                             span: arm.span,
                         };
                     }
@@ -2670,6 +3334,7 @@ pub(crate) fn elab_expr<'a>(
                                 name: b.name.clone(),
                                 span: b.span,
                             }),
+                            explicit_spine: false,
                             span: arm.span,
                         };
                     }
@@ -2776,6 +3441,13 @@ fn head_ident(expr: &Expr) -> Option<String> {
 /// Flatten a source type application `C p1 … pn` into its head and arguments
 /// (owned clones, for `match` parameter instantiation). Non-spine heads yield
 /// `None`.
+///
+/// **记法也算 spine**（0.62.0，R3 实测补）：`h : B ∨ C` 的书写类型是记法节点，
+/// 但它的**源像**就是 `target` 那条 spine（`Or B C`）——记法声明本身就写明了
+/// 目标点名。不认这一层，`cases h`（参数化归纳要读书写类型的参数）会拒绝
+/// Lean 风格里的常见写法「`have h : A ∨ B := …` 之后 `cases h`」，逼学习者
+/// 把局部假设的类型写成点名形式。操作数按**源序**收集：中缀 `[lhs, rhs]`、
+/// 前缀 `[rhs]`（`¬ A`）、后缀 `[lhs]`、零元 `[]`（`∅`）。
 fn src_spine(expr: &Expr) -> Option<(String, Vec<Expr>)> {
     match expr {
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => {
@@ -2785,6 +3457,38 @@ fn src_spine(expr: &Expr) -> Option<(String, Vec<Expr>)> {
             let (head, mut args) = src_spine(fun)?;
             args.push(arg.as_ref().clone());
             Some((head, args))
+        }
+        Expr::Notation {
+            target,
+            assoc,
+            lhs,
+            rhs,
+            ..
+        } => {
+            let mut args = Vec::new();
+            // **binder 记法**（`∃ (x : α), p x`）的应用形态是
+            // `Exists α (fun (x : α) => p x)`：记法只写那个 lambda，而常量的
+            // 第一个参数（域 `α`）在应用里也要占位。漏掉这一位，参数化归纳
+            // （`Exists`）就只拿到 1 个实参 ⇒ `match` 报「书写类型需要显式给出
+            // 2 个参数」（2026-09-21 实测：`lib/Image` 的 `Set.image` 定义体改用
+            // `∃` 之后，单元⑧ 的 `cases hy` 整类打红）。
+            // 这条与 `spine::spine_with_notation` 的 binder 分支**必须同款**
+            // ——两个函数都声称「记法节点的源像 = target(操作数…)」，不一致就会
+            // 一个认得出、另一个代错位。
+            if *assoc == crate::ast::NotationAssoc::Binder {
+                if let Some(Expr::Lambda { binders, .. }) = rhs.as_deref() {
+                    if let Some(ty) = binders.first().and_then(|b| b.ty.as_deref()) {
+                        args.push(ty.clone());
+                    }
+                }
+            }
+            if let Some(lhs) = lhs {
+                args.push(lhs.as_ref().clone());
+            }
+            if let Some(rhs) = rhs {
+                args.push(rhs.as_ref().clone());
+            }
+            Some((target.clone(), args))
         }
         _ => None,
     }
@@ -2842,6 +3546,7 @@ fn annotate_application_lambda(expr: &Expr, ctx: &ElabCtx, scope: &ElabScope) ->
         rebuilt = Expr::App {
             fun: Box::new(rebuilt),
             arg: Box::new((*arg).clone()),
+            explicit_spine: false,
             span: expr.span(),
         };
     }
@@ -3349,7 +4054,7 @@ fn mentions_ident(e: &Expr, name: &str) -> bool {
         Expr::Arrow {
             domain, codomain, ..
         } => mentions_ident(domain, name) || mentions_ident(codomain, name),
-        Expr::SetLiteral { elements, .. } => {
+        Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
             elements.iter().any(|element| mentions_ident(element, name))
         }
         Expr::Plus { lhs, rhs, .. } => mentions_ident(lhs, name) || mentions_ident(rhs, name),
@@ -3565,6 +4270,7 @@ fn e_app(fun: Expr, arg: Expr, span: Span) -> Expr {
     Expr::App {
         fun: Box::new(fun),
         arg: Box::new(arg),
+        explicit_spine: false,
         span,
     }
 }

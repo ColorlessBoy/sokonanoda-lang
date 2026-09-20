@@ -52,22 +52,19 @@ def Prod.fst (A B : Type) (p : Prod A B) : A :=
 def Prod.snd (A B : Type) (p : Prod A B) : B :=
   Prod.rec.{1} A B (fun (_ : Prod A B) => B) (fun (a : A) (b : B) => b) p
 
--- ── 展开引理（L2：证明全是 `rfl`，即 iota 计算——投影算在构造子上就还原）────
+-- ── 展开引理（L2：证明全是 `Eq.refl`，即 iota 计算——投影算在构造子上就还原）──
 -- Mathlib 里对应的名字是 `Prod.fst_mk` / `Prod.snd_mk`（`rfl` 级，`simp` 也用它）。
 theorem Prod.fst_mk (A B : Type) (a : A) (b : B) :
-    Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a :=
-  Eq.refl.{1} A a
+    Prod.fst A B (prod_mk A B a b) = a :=  Eq.refl.{1} A a
 
 theorem Prod.snd_mk (A B : Type) (a : A) (b : B) :
-    Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b :=
-  Eq.refl.{1} B b
+    Prod.snd A B (prod_mk A B a b) = b :=  Eq.refl.{1} B b
 
 -- ── 演示（库自检）：两条展开引理合起来 = 序对的两个坐标都被还原。────────────
 -- 单元⑤ 的配对定理（从 (a,b) = (a',b') 推出 a = a' ∧ b = b'）**不在这里**：
 -- 那是 L3，属于画布上的练习。
 theorem Prod.fst_snd_mk (A B : Type) (a : A) (b : B) :
-    And (Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a)
-        (Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b) :=
-  And.intro (Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a)
+    Prod.fst A B (prod_mk A B a b) = a
+      ∧ Prod.snd A B (prod_mk A B a b) = b :=  And.intro (Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a)
     (Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b)
     (Prod.fst_mk A B a b) (Prod.snd_mk A B a b)

@@ -2094,8 +2094,8 @@ fn cli_course_is_stable_with_a_warm_cache() {
         cold, warm,
         "a warm cache must not change the course summary (cold {cold} vs warm {warm})"
     );
-    assert_eq!(cold["checked"], 86, "golden checked total: {cold}");
-    assert_eq!(cold["open"], 65, "golden open total: {cold}");
+    assert_eq!(cold["checked"], 56, "golden checked total: {cold}");
+    assert_eq!(cold["open"], 66, "golden open total: {cold}");
 }
 
 // ---- 构造子命名空间（G-02 / WO-005；design docs/design/ctor-namespace.md）----

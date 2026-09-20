@@ -137,16 +137,40 @@ $SOKO repl
   def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A
   ```
 
+  **语言内建、零声明可用**（0.61.0，设计 `docs/design/course-lean-style.md` L2.2/L2.3/L2.4b）：
+  `∧ ∨ ↔ ¬`（`And`/`Or`/`Iff`/`Not`）、**`=`（`Eq`）、`≠`（`Ne`）**、`→`（函数空间，
+  词法别名）。`=`/`≠` 的**宇宙层级由操作数类型自动解出**：`A B : Prop` ⇒ `Eq.{0}`，
+  `A B : Set α` ⇒ `Eq.{1}`——**不必再写 `Eq.{1} (Set α) A B`**（那仍是合法写法）。
+
   要点：① 符号**必须是独立 token**（`∈`/`⊆`/`∅` 这类数学符号加 `\`；
   `U+2200–22FF` 与 `U+2A00–2AFF`）；② **文件内作用域**——声明写在所有 `import`
-  之后、使用之前，**不跨 `import`**；③ 记法**不是声明**：不产生任何事件、不进
-  声明表与 goal 视图，判卷计数与点名写法**逐项相同**；④ 展开时**自动补前导类型
-  参数**（`Set.mem` 的 `α` 不用写），补不出来报 `elab-notation-argument-unsolved`
-  （例如 `#check ∅` 这种没有期望类型的裸用）；⑤ **点名形式永久可用**，两种写法
-  判卷一致——省 `α` 的点名写法（`Set.mem a A`）**今天被内核拒绝、以后也拒绝**；
-  ⑥ 未声明就用报 `notation-unknown-symbol`（hint 给"先声明"与"点名写法"两条出路）；
-  ⑦ **第二刀未做**：`𝒫`/`ᶜ`（Unicode 字母不是符号）、`''`/`⁻¹'`、`×ˢ`、跨 `import`
-  的记法、binder 记法（`∃ x,`）。**课程画布本轮不重写**（仍写点名形式）。
+  之后、使用之前；**记法随 `import` 传播**（0.60.0 第二刀：被导入模块声明的记法
+  在入口从文件头可用，课程里 `lib/Set` 的 `∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ '' ⁻¹' ×ˢ` 就是这样来的）；
+  ③ 记法**不是声明**：不产生任何事件、不进声明表与 goal 视图，判卷计数与点名写法
+  **逐项相同**；④ 展开时**自动补前导类型参数**（`Set.mem` 的 `α` 不用写），补不出来报
+  `elab-notation-argument-unsolved`（例如 `#check ∅` 这种没有期望类型的裸用）；
+  ⑤ **点名形式永久可用**，两种写法判卷一致——省 `α` 的点名写法（`Set.mem a A`）
+  **今天被内核拒绝**（隐式实参落地后才会变成合法，见
+  `docs/design/implicit-arguments.md`）；⑥ 未声明就用报 `notation-unknown-symbol`
+  （hint 给"先声明"与"点名写法"两条出路）；⑦ 第三刀（0.60.x）已落：`prefix`/`postfix`、
+  `binder_notation`（`∃ (x : α), p`）、`scoped`、集合字面量 `{a}`、记法重载。
+- **`by` 块的 tactic 全集（0.61.0）**：`intro a b c`（一次剥多层；**按你写的名字
+  改名**——`intro y` 之后目标里的绑定名就是 `y`）、`exact e`、`apply e`、
+  `assumption`、`rfl`、`constructor`、`left` / `right`、`use w`、
+  `exfalso`、`cases h`（不带 `with` 按构造子顺序）/ `cases h with | ctor a b => …`
+  （臂体用**缩进**界定）、**`have h : T := t` / `have h : T := by …`**（引入中间
+  结论，目标不变；嵌套 `by` 也按缩进界定，第一个列号 ≤ `have` 所在列的 tactic
+  属于外层）、`sorry`。`match` 在 tactic 位等价于 `exact (match …)`。
+  类型不匹配的报错是**人话**（`期望 B，实际是 C`），且报在出错那一行。
+- **匿名构造子 `⟨a, b⟩`（0.61.0）**：用哪个构造子由**期望类型**决定——
+  `A ∧ B` ⇒ `And.intro`、`A ↔ B` ⇒ `Iff.intro`、`∃ (x : α), p x` ⇒ `Exists.intro`、
+  `Prod α β` ⇒ `Prod.mk`、单构造子归纳 ⇒ 它的构造子。例子：`exact ⟨ha, hb⟩`、
+  `exact ⟨w, hw⟩`。读不到期望类型报 `elab-anon-ctor-no-expected-type`（hint 教
+  写进有标注的位置或点名构造子）；**嵌套 `⟨a, ⟨b, h⟩⟩` 今天不支持**（用
+  `use` 分步写）。
+- **`intro` / `constructor` / `left` / `right` / `use` 会把 def 头逐层展开到
+  Pi / 归纳头**（最多 4 层）：`A ∈ 𝒫 B` 上可以直接 `intro x`、`a ∈ B ∩ C` 上
+  可以直接 `constructor`——不必先搬成员判定引理。
 - 语言能力速查：`$SOKO --help` 自描述（def/theorem/axiom/example、
   `#check`、`#reduce`、宇宙参数（`{u}` / `{u, v}` / `{u v}` / `{u} {v}`）、
   **层级算术** `Sort (u+1)` / `Sort u+1` / `Type (u+1)` / `Eq.{u+1}`（0.61.0；
@@ -239,12 +263,27 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （感叹号连用/emoji 堆砌/网络热词）。写完按该文档第四节自查四类。
 - 每个新语法点：先讲解、再演示、后练习；白名单之外的语法不要用（编译器
   会报「课程级别不可用」而不是崩溃——不要把「没教过」当 bug 上报）。
+- **写 Lean 风格记法（2026-09-21，R3 起课程与画布都是这个风格）**：代码里用
+  `∧ ∨ ↔ ¬ →`（**内建**，零声明）写连接符，不再写 `And a b` / `Or a b` / `Not a` /
+  `->`；全称写关键字 `∀ (x : A), p x`。**`∃` 不是内建**——要用得在文件里加一行
+  `binder_notation "∃" => Exists`（记法声明不产生事件，判卷行为不变），之后可写
+  `∃ (x : Person), P x`；`∈ ⊆ ∪ ∩ 𝒫 ᶜ` 只在**卷 I**（`courses/set-theory/lib/`）
+  可用，入门课没有 `import`。**引理/构造子名照旧点名**（`And.intro`、`Or.inl`、
+  `Exists.elim`）——记法是连接符的糖，不是引理名的糖。逐符号对照与优先级见
+  `course/README.md` 与 `docs/design/notation-subset.md`；输入法（`\and` 之类缩写）
+  见编辑器「notation 缩写」与 `docs/design/notation-input.md`。
+- **tactic 白名单（全量）**：`intro` / `exact` / `apply` / `assumption` / `rfl` /
+  `match` / `constructor` / `left` / `right` / `use` / `exfalso` / `cases` / `have` /
+  `⟨a, b⟩` / `sorry`。**按单元解锁**：①④⑧ 的 `And`/`Or` 是公理 ⇒ 那里
+  `constructor`/`cases`/`left`/`right` 不可用（要真归纳类型），继续点名
+  `And.intro`/`Or.inl` + `apply`；⑨⑩⑪ 有真 `inductive Or` ⇒ `left`/`right`/`cases`
+  可用；`use` 要 `∃`（单元⑧）。`by sorry` 是合法占位（目标保持开放）。
 - **逻辑先行（用户原则）**：先讲逻辑连接词与量词（True/False/And/Or/Not/
   Forall/Exists）让用户在"证明命题"中建立直觉；`by` 写法在单元④提前做
   "反馈加速器"；等用户面对"函数类型的类型是什么"这一自然问题时（单元⑤）
   再引入 `Sort`。顺序跟着直觉走，不跟着类型论教材走。注意 `Or`/`Iff` **不在
   prelude**：单元①的 `Or` 只是公理，到**单元⑨**才升级为真 `inductive`
-  （前端自动派生 `Or.rec`）、`Iff` 才用 `def` 定义成 `And (A -> B) (B -> A)`；
+  （前端自动派生 `Or.rec`）、`Iff` 才用 `def` 定义成 `And (A → B) (B → A)`；
   在第⑨单元之前不要许诺它们的消去子或展开规则。
 - **单元⑨/⑩（P3，2026-09-16 上线）**：⑨ 关系与联结词（`Or` 真 inductive +
   `Iff` 定义 + `Le`/`Even` 归纳关系与手写消去子）；⑩ 读证明与综合（自解释
@@ -309,6 +348,10 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 ## 6. 告诉用户编辑器能做什么（VS Code + sokonanoda-lsp）
 
 - 悬停任何表达式看类型；悬停 `sorry` 看**剩余目标 + 已引入假设**；
+- **符号可以打出来**（0.62.0）：`\and` + Tab → `∧`、`\in` + Tab → `∈`，别名
+  （`\wedge`/`\mem`/`\emptyset`…）同样有效，悬停符号也会说怎么输入——完整表见
+  `references/zh-style.md` 的「记法输入法」；学习者说"符号打不出来"时先教缩写，
+  别让他复制粘贴（打开 `sokonanoda.input.eager` 可省掉 Tab，默认关）；
 - 洞尾 inlay 提示直接标注该洞的**期望类型**（子洞有各自的期望类型）；
 - 洞上灯泡（按目标形状的下一步建议，kernel 验证过的排最前并标 preferred）：
   `exact <假设>`（该假设能闭合该洞时）、`Eq.refl …`（Eq 形状目标的 rfl）、

@@ -16,8 +16,8 @@ use super::{
 };
 use crate::compile::elab::{
     build_axiom, build_def, build_example, build_theorem, elab_expr, install_inductive_block,
-    make_univ_map, resolve_known, ElabCtx, ElabScope, HoverNode, InductiveTable, KnownName,
-    KnownTable, UnivMap,
+    make_univ_map, params_of_ty, resolve_known, strip_lambdas_n, DefInfo, ElabCtx, ElabScope,
+    HoverNode, InductiveTable, KnownName, KnownTable, UnivMap,
 };
 use crate::compile::error::{CompileError, ErrorKind};
 use crate::compile::event::CompileOutput;
@@ -37,6 +37,8 @@ pub(super) struct Walk<'arena> {
     pub(super) builder: EnvBuilder<'arena>,
     pub(super) known: KnownTable,
     pub(super) inductives: InductiveTable<'arena>,
+    /// 源级 `def` 表（课程 Lean 化）：跨单元累加，`by` 引擎做一层 delta 展开用。
+    pub(super) defs: crate::compile::elab::DefTable,
     pub(super) out: CompileOutput,
     pub(super) ops: Vec<PendingOp<'arena>>,
     pub(super) cmd_hovers: Vec<CmdHover<'arena>>,
@@ -317,7 +319,16 @@ impl<'arena> Walk<'arena> {
             inductives: &self.inductives,
             ns: &self.ns,
         };
-        let lowered = match lower_value(ty, val, prefix_src, options, c.canonical_goal) {
+        let lowered = match lower_value(
+            ty,
+            val,
+            universe,
+            prefix_src,
+            options,
+            c.canonical_goal,
+            &self.inductives,
+            &self.defs,
+        ) {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
@@ -333,6 +344,29 @@ impl<'arena> Walk<'arena> {
         };
         let val = &lowered.0;
         let by_steps = by_step_states(&lowered.1);
+        // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
+        // `by` 引擎的 `intro`/`apply` 靠它看穿 `A ⊆ B` 这类 def 头。
+        if open_goal(ty, val, templates, &mut Vec::new()).is_none() {
+            let info = DefInfo {
+                params: params_of_ty(ty),
+                universes: universe.to_vec(),
+                body: strip_lambdas_n(val, params_of_ty(ty).len()),
+            };
+            self.defs.insert(name.to_string(), info.clone());
+            // **短名别名**（R2 实测）：`namespace Set` 里的 def 体是用**短名**
+            // 写的（`def powerset … := fun B => subset α B A`），而 delta 展开是
+            // 逐层的——第二层拿到的头是短名 `subset`，`defs` 里却只有规范名
+            // `Set.subset` ⇒ 展开在第二层断掉（实测：`A ∈ 𝒫 B` 上 `intro` 报
+            // 「需要一个函数目标」，而目标明明是集合成员关系）。
+            //
+            // 只登记**不冲突**的短名（先到先得）：同名短名在两个命名空间里都有
+            // 时保持今天的行为（查不到 ⇒ 不展开 ⇒ 响亮报错），绝不猜。
+            if let Some(short) = name.rsplit('.').next() {
+                if short != name && !short.is_empty() {
+                    self.defs.entry(short.to_string()).or_insert(info);
+                }
+            }
+        }
         if trusted {
             // Trusted prefix: keep the environment, skip the kernel.
             // Cached failures keep the name free (check-then-add);
@@ -358,6 +392,7 @@ impl<'arena> Walk<'arena> {
                     name.to_string(),
                     KnownName::Decl {
                         universes: universe.to_vec(),
+                        implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     },
                 );
             }
@@ -450,6 +485,7 @@ impl<'arena> Walk<'arena> {
                     name_owned.clone(),
                     KnownName::Decl {
                         universes: universe.to_vec(),
+                        implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -505,7 +541,16 @@ impl<'arena> Walk<'arena> {
             inductives: &self.inductives,
             ns: &self.ns,
         };
-        let lowered = match lower_value(ty, val, prefix_src, options, c.canonical_goal) {
+        let lowered = match lower_value(
+            ty,
+            val,
+            universe,
+            prefix_src,
+            options,
+            c.canonical_goal,
+            &self.inductives,
+            &self.defs,
+        ) {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());
@@ -543,6 +588,7 @@ impl<'arena> Walk<'arena> {
                     name.to_string(),
                     KnownName::Decl {
                         universes: universe.to_vec(),
+                        implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     },
                 );
             }
@@ -653,6 +699,7 @@ impl<'arena> Walk<'arena> {
                     name_owned.clone(),
                     KnownName::Decl {
                         universes: universe.to_vec(),
+                        implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -718,6 +765,7 @@ impl<'arena> Walk<'arena> {
                     name.to_string(),
                     KnownName::Decl {
                         universes: universe.to_vec(),
+                        implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     },
                 );
             }
@@ -762,6 +810,7 @@ impl<'arena> Walk<'arena> {
                     name_owned.clone(),
                     KnownName::Decl {
                         universes: universe.to_vec(),
+                        implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -809,7 +858,17 @@ impl<'arena> Walk<'arena> {
             inductives: &self.inductives,
             ns: &self.ns,
         };
-        let lowered = match lower_value(ty, val, prefix_src, options, c.canonical_goal) {
+        let lowered = match lower_value(
+            ty,
+            val,
+            // `example` 不能声明宇宙参数 ⇒ 空切片（判定合成声明不需要带宇宙 binder）。
+            &[],
+            prefix_src,
+            options,
+            c.canonical_goal,
+            &self.inductives,
+            &self.defs,
+        ) {
             Ok(v) => v,
             Err(e) => {
                 self.out.push_error(idx, e.clone());

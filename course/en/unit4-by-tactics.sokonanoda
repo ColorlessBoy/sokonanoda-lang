@@ -11,69 +11,151 @@
 --   theorem name : Type := by <tactic>; <tactic>; ...
 --   (tactics are separated by `;`)
 --
--- First five tactics (the whitelist is the curriculum):
+-- Eight tactics in this unit (all on the language whitelist; anything else is
+-- rejected by the parser):
 --   intro x    — peel one arrow off the goal, introduce hypothesis x (like one `fun`)
 --   exact e    — end the current goal with term e (kernel-checks the type)
 --   assumption — find a hypothesis whose type is exactly the goal, and use it
---   apply f    — wrap the goal in f: if f : A1 -> ... -> An -> B and the goal
+--   apply f    — wrap the goal in f: if f : A1 → ... → An → B and the goal
 --                is B, replace it with the subgoals A1..An
 --   rfl        — the goal is `Eq α x y` and both sides compute to the same
+--   have h : T := e — name e as the intermediate fact h (of type T) and reuse it
+--   constructor — when the goal is an inductive type, split it with that
+--                 type's constructor: as many subgoals as the constructor has
+--                 fields, closed in order (`∧` gives left and right)
+--   cases h with | c1 … => … | c2 … => … — split the hypothesis h by
+--                 constructor: each branch gets the fields that constructor
+--                 carries (`∨`'s two branches are `inl`/`inr`) and proves its
+--                 own goal
+-- `left`/`right` are the **same family** as `constructor` — all sugar for
+-- `apply <constructor>`; `∨` just gets a shorter spelling for picking a side
+-- (when the goal is `a ∨ b`). `use w` belongs to that family too: it is on the
+-- whitelist now and not gated on a unit, but it **requires the goal to really
+-- be an inductive type** — the `∃` of Unit 8 is an axiom declared there, so
+-- Unit 8 keeps naming `Exists.intro` instead.
+-- The reason this family works here is that And / Or are **real inductives**
+-- in the prelude (see below).
 -- `by sorry` leaves the goal open (like writing sorry in the value position).
+-- The `∧` / `∨` already in the exercises below has a shorter spelling now too:
+-- exercise 4's `apply And.intro` can be `constructor`, and exercise 6 can
+-- start like this:
+--   cases x with | intro ha hb => …
 -- ==========================================================================
 
--- Logic skeleton (reuses Unit 1's constructors):
+-- The logical base: True / False are set up with axioms as in Unit 1; the
+-- And / Or constructors (And.intro, And.left, And.right, Or.inl, Or.inr)
+-- ship with the prelude. Precisely because And / Or are real inductives in
+-- the prelude (not axioms we wrote ourselves), `constructor` / `cases` /
+-- `left` / `right` have induction rules to split with and work here.
 axiom True : Prop
 axiom True.intro : True
 axiom False : Prop
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
-axiom Or : Prop -> Prop -> Prop
-axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
-axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
 
--- Demo 1 (intro + assumption): `a -> a` written with `by`.
+-- Demo 1 (intro + assumption): `a → a` written with `by`.
 --   intro a      introduce hypothesis a (the goal becomes a)
 --   assumption   a's type in the context is exactly the goal a, use it
-theorem demo_by_assumption : (a : Prop) -> a -> a := by intro a; intro h; assumption
+theorem demo_by_assumption : (a : Prop) → a → a := by
+  intro a
+  intro h
+  assumption
 
--- Demo 2 (apply splits a goal): the goal is Or True False; Or.inl says
+-- Demo 2 (apply splits a goal): the goal is True ∨ False; Or.inl says
 -- "just give a proof of the left side".
 --   apply Or.inl  the goal becomes True
 --   exact True.intro  done
-theorem demo_by_apply : Or True False := by apply Or.inl; exact True.intro
+theorem demo_by_apply : True ∨ False := by
+  apply Or.inl
+  exact True.intro
 
 -- Demo 3 (rfl): both sides of the equality are the same value.
 --   The kernel computes 1 + 1 = 2, so rfl closes it directly.
 theorem demo_by_rfl : Eq.{1} Nat (1 + 1) 2 := by rfl
 
+-- Demo 4 (have): name an intermediate fact, then refer to it by name.
+--   have h : a := ha   store the existing proof ha under the name h
+--   exact And.intro a a h h   use h once for each half
+theorem demo_by_have : (a : Prop) → a → a ∧ a := by
+  intro a
+  intro ha
+  have h : a := ha
+  exact And.intro a a h h
+
+-- Demo 5 (constructor splits the goal): the goal is `a ∧ b`; constructor
+-- splits it with `And.intro`. In term mode you have to write And.intro's
+-- parameters yourself (see `And.intro a a h h` in demo 4); constructor fills
+-- them in from the goal and leaves only the constructor's **fields** as
+-- subgoals.
+--   constructor   the goal a ∧ b becomes two subgoals: a and b
+--   exact ha      the first subgoal (the left half a)
+--   exact hb      the second subgoal (the right half b) — multiple subgoals
+--                 are closed in order
+theorem demo_by_constructor : (a : Prop) → (b : Prop) → a → b → a ∧ b := by
+  intro a
+  intro b
+  intro ha
+  intro hb
+  constructor
+  exact ha
+  exact hb
+
+-- Demo 6 (cases splits into branches): given a hypothesis `a ∨ b`, cases
+-- splits the proof into two branches by its two constructors (`inl`/`inr`),
+-- and each branch receives that constructor's field.
+--   cases h with   split h : a ∨ b; both branches still have goal b ∨ a
+--   | inl ha =>    the left branch, with ha : a
+--       right      in the goal b ∨ a, a is on the right — pick right, so the
+--                  goal becomes a
+--       exact ha
+--   | inr hb =>    the right branch, with hb : b
+--       left       in the goal b ∨ a, b is on the left — pick left, so the
+--                  goal becomes b
+--       exact hb
+theorem demo_by_cases : (a : Prop) → (b : Prop) → a ∨ b → b ∨ a := by
+  intro a
+  intro b
+  intro h
+  cases h with
+  | inl ha =>
+      right
+      exact ha
+  | inr hb =>
+      left
+      exact hb
+
 -- ─────────────────────────────────────────────────────────────
--- Exercise 1: prove `a -> a` with `by` — intro first, then assumption.
+-- Exercise 1: prove `a → a` with `by` — intro first, then assumption.
 -- Start: `:= by` with nothing after it (the exercise starts from scratch).
 -- soko:hint 思路：assumption 是「在上下文里找目标」的捷径；先 intro 把箭头拆开。
 -- soko:hint 目标形态：先 intro a，再 intro h（目标变成 a），最后 assumption。
 -- soko:hint 关键件：assumption 会自动找到类型为 a 的假设 h。
-theorem by_ex1 : (a : Prop) -> a -> a := by sorry
+theorem by_ex1 : (a : Prop) → a → a := by sorry
 
 -- Exercise 2: prove `a and b imply a` with `by`.
--- soko:hint 思路：intro 拆箭头拿到 h : And a b，再用 And.left 拆出 a 那一半。
+-- soko:hint 思路：intro 拆箭头拿到 h : a ∧ b，再用 And.left 拆出 a 那一半。
 -- soko:hint 目标形态：intro a; intro b; intro h 之后，目标就是 a。
--- soko:hint key piece: goal a with h : And a b in context — And.left extracts the left half (hand it over with exact, or apply then assumption).
-theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry
+-- soko:hint key piece: goal a with h : a ∧ b in context — And.left extracts the left half (hand it over with exact, or apply then assumption).
+theorem by_ex2 : (a : Prop) → (b : Prop) → a ∧ b → a := by sorry
 
 -- Exercise 3 (apply splits the goal): when the goal is a or b, apply Or.inl /
 -- Or.inr to pick one side.
 -- soko:hint 思路：Or 是「二选一」——apply Or.inl 就只剩下证明左边。
 -- soko:hint 目标形态：先 intro 拿到 ha : a，再 apply Or.inl，最后 exact ha。
--- soko:hint key piece: goal shaped Or a b — apply Or.inl or Or.inr to pick a side first, then close the chosen subgoal with a proof from context.
-theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry
+-- soko:hint key piece: goal shaped a ∨ b — apply Or.inl or Or.inr to pick a side first, then close the chosen subgoal with a proof from context.
+theorem by_ex3 : (a : Prop) → (b : Prop) → a → a ∨ b := by sorry
 
--- Exercise 4 (apply And.intro, two subgoals): And needs proofs of both sides.
+-- Exercise 4 (apply And.intro, two subgoals): needs ∧ proofs of both sides.
 -- soko:hint 思路：And.intro 要两份证明——apply 之后会出两个子目标，逐个 exact。
 -- soko:hint 目标形态：先 intro 拿到 ha : a、hb : b，apply And.intro 出两个子目标 a 和 b。
 -- soko:hint key piece: apply And.intro splits the goal into two subgoals (left and right); close them in order with the proofs of a and b from context.
-theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
+theorem by_ex4 : (a : Prop) → (b : Prop) → a → b → a ∧ b := by sorry
+
+-- Exercise 5 (have names an intermediate fact): `have` stores a step's result
+-- under a name so it can be reused. Here the proof of `b` comes from applying f
+-- to ha — name it hb first, then build the goal with it.
+-- soko:hint approach: the goal is `b ∧ a` and the proof of b is hidden inside `f : a → b`; compute it and give it a name.
+-- soko:hint goal shape: after intro a; intro b; intro f; intro ha the goal is b ∧ a.
+-- soko:hint key piece: `have hb : b := f ha` records the proof of b, then `exact And.intro b a hb ha` (note b comes first).
+theorem by_ex5 : (a : Prop) → (b : Prop) → (a → b) → a → b ∧ a := by sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- Exercise 6 (capstone): chain the `by` tactics — `intro` peels three layers,
@@ -81,10 +163,10 @@ theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
 --
 -- Multi-step proofs almost always start by peeling binders:
 -- `intro a; intro b; intro x` turns each arrow into a hypothesis until the goal
--- shrinks to `And b a`; then `exact` hands over the complete proof term.
+-- shrinks to `b ∧ a`; then `exact` hands over the complete proof term.
 --
--- soko:hint approach: introduce a, b, x with intro one by one; the goal becomes And b a — build it with And.intro.
--- soko:hint goal shape: after intro a; intro b; intro x the goal is And b a and x : And a b is in context.
--- soko:hint key piece: goal And b a with x : And a b in context — use the And.intro constructor; take the two halves from x with And.right and And.left, and note b goes first when putting them back.
-theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by sorry
+-- soko:hint approach: introduce a, b, x with intro one by one; the goal becomes b ∧ a — build it with And.intro.
+-- soko:hint goal shape: after intro a; intro b; intro x the goal is b ∧ a and x : a ∧ b is in context.
+-- soko:hint key piece: goal b ∧ a with x : a ∧ b in context — use the And.intro constructor; take the two halves from x with And.right and And.left, and note b goes first when putting them back.
+theorem by_ex6 : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by sorry
 

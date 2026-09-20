@@ -15,7 +15,8 @@
 -- `Equiv` / `Function.LeftInverse`）。这里是**设计判断**（不是取证名）：卷 I 的"逆"
 -- 只能以**数据版**出现——见下面 §逆 的长注释。
 --
--- 记法对照（语言还没有 notation，G-04）：
+-- 记法对照（`g ∘ f` 是 **Mathlib 的**记法，本课程没有声明它；课程库声明的记法
+-- 清单见 lib/Set 文件末尾——函数这一层今天仍然全部点名）：
 --   Function.comp α β γ g f        ↔  g ∘ f      （先 f 后 g）
 --   Function.Injective α β f       ↔  f 单射
 --   Function.Surjective α β f      ↔  f 满射
@@ -57,36 +58,36 @@ import lib.Exists
 -- ── 复合（Mathlib: Mathlib/Logic/Function/Defs.lean，`Function.comp`）──────────
 -- `Function.comp α β γ g f` 展开就是 `fun x => g (f x)`；定义体直接是 λ，所以
 -- 复合**不引入任何数学内容**，`Function.comp_apply` 是 `rfl` 级展开引理。
-def Function.comp (α β γ : Type) (g : β -> γ) (f : α -> β) : α -> γ :=
+def Function.comp (α β γ : Type) (g : β → γ) (f : α → β) : α → γ :=
   fun (x : α) => g (f x)
 
 -- ── 单射 / 满射 / 双射（Mathlib: Mathlib/Logic/Function/Defs.lean）────────────
 -- 单射按题面要求的形状写：`forall x y, f x = f y -> x = y`（Mathlib 逐字同款）。
-def Function.Injective (α β : Type) (f : α -> β) : Prop :=
-  forall (x : α), forall (y : α), Eq.{1} β (f x) (f y) -> Eq.{1} α x y
+def Function.Injective (α β : Type) (f : α → β) : Prop :=
+  ∀ (x : α), ∀ (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y
 
 -- 满射用 `Exists`（lib.Exists 的三件套）：每个 y 都有**原像** x，且原像满足 f x = y。
 -- 注意 `Exists α p` 的 `p` 是 `α -> Prop`，所以"原像"写成 `fun (x : α) => Eq.{1} β (f x) y`。
-def Function.Surjective (α β : Type) (f : α -> β) : Prop :=
-  forall (y : β), Exists α (fun (x : α) => Eq.{1} β (f x) y)
+def Function.Surjective (α β : Type) (f : α → β) : Prop :=
+  ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y
 
-def Function.Bijective (α β : Type) (f : α -> β) : Prop :=
-  And (Function.Injective α β f) (Function.Surjective α β f)
+def Function.Bijective (α β : Type) (f : α → β) : Prop :=
+  (Function.Injective α β f) ∧ (Function.Surjective α β f)
 
 -- ── 左逆 / 右逆 / 双边逆（数据版；见文件头 §逆）──────────────────────────────
 -- `LeftInverse α β g f`：g : β -> α，f : α -> β，逐点 `g (f x) = x`。
-def Function.LeftInverse (α β : Type) (g : β -> α) (f : α -> β) : Prop :=
-  forall (x : α), Eq.{1} α (g (f x)) x
+def Function.LeftInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=
+  ∀ (x : α), Eq.{1} α (g (f x)) x
 
 -- `RightInverse α β g f`：逐点 `f (g y) = y`（与 Mathlib 同款：`RightInverse g f`
 -- 就是 `LeftInverse f g`，只是展开写出来）。
-def Function.RightInverse (α β : Type) (g : β -> α) (f : α -> β) : Prop :=
-  forall (y : β), Eq.{1} β (f (g y)) y
+def Function.RightInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=
+  ∀ (y : β), Eq.{1} β (f (g y)) y
 
 -- `Inverse α β f g`：双边逆 = 左逆 ∧ 右逆。**它是 Prop，g 是参数**——这就是"数据版"：
 -- 逆函数不是被"存在"出来的，而是被调用者交进来的（对照文件头 §逆 的 (a)/(b)）。
-def Function.Inverse (α β : Type) (f : α -> β) (g : β -> α) : Prop :=
-  And (Function.LeftInverse α β g f) (Function.RightInverse α β g f)
+def Function.Inverse (α β : Type) (f : α → β) (g : β → α) : Prop :=
+  (Function.LeftInverse α β g f) ∧ (Function.RightInverse α β g f)
 
 -- ── 定义展开引理（L2：证明全是恒等函数或 `rfl`，没有数学内容）────────────────
 -- 与 lib/Set 的 `Set.subset_def` / `Set.mem_union` 同一性质：两个方向都是 `fun h => h`。
@@ -94,48 +95,41 @@ def Function.Inverse (α β : Type) (f : α -> β) (g : β -> α) : Prop :=
 -- 单射假设变成 `forall x y, f x = f y -> x = y`。
 
 -- `rfl` 级：复合算在参数上就是"先 f 后 g"（Mathlib: `Function.comp_apply`）。
-theorem Function.comp_apply (α β γ : Type) (g : β -> γ) (f : α -> β) (x : α) :
-    Eq.{1} γ (Function.comp α β γ g f x) (g (f x)) :=
-  Eq.refl.{1} γ (g (f x))
+theorem Function.comp_apply (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :
+    Function.comp α β γ g f x = g (f x) :=  Eq.refl.{1} γ (g (f x))
 
-theorem Function.injective_def (α β : Type) (f : α -> β) :
-    Iff (Function.Injective α β f) (forall (x : α), forall (y : α), Eq.{1} β (f x) (f y) -> Eq.{1} α x y) :=
-  Iff.intro (Function.Injective α β f)
-    (forall (x : α), forall (y : α), Eq.{1} β (f x) (f y) -> Eq.{1} α x y)
+theorem Function.injective_def (α β : Type) (f : α → β) :
+    Function.Injective α β f ↔ ∀ (x : α), ∀ (y : α), f x = f y → x = y :=  Iff.intro (Function.Injective α β f)
+    (∀ (x : α), ∀ (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y)
     (fun (h : Function.Injective α β f) => h)
-    (fun (h : forall (x : α), forall (y : α), Eq.{1} β (f x) (f y) -> Eq.{1} α x y) => h)
+    (fun (h : ∀ (x : α), ∀ (y : α), Eq.{1} β (f x) (f y) → Eq.{1} α x y) => h)
 
-theorem Function.surjective_def (α β : Type) (f : α -> β) :
-    Iff (Function.Surjective α β f) (forall (y : β), Exists α (fun (x : α) => Eq.{1} β (f x) y)) :=
-  Iff.intro (Function.Surjective α β f)
-    (forall (y : β), Exists α (fun (x : α) => Eq.{1} β (f x) y))
+theorem Function.surjective_def (α β : Type) (f : α → β) :
+    Function.Surjective α β f ↔ ∀ (y : β), ∃ (x : α), f x = y :=  Iff.intro (Function.Surjective α β f)
+    (∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y)
     (fun (h : Function.Surjective α β f) => h)
-    (fun (h : forall (y : β), Exists α (fun (x : α) => Eq.{1} β (f x) y)) => h)
+    (fun (h : ∀ (y : β), ∃ (x : α), Eq.{1} β (f x) y) => h)
 
-theorem Function.bijective_def (α β : Type) (f : α -> β) :
-    Iff (Function.Bijective α β f)
-      (And (Function.Injective α β f) (Function.Surjective α β f)) :=
-  Iff.intro (Function.Bijective α β f)
-    (And (Function.Injective α β f) (Function.Surjective α β f))
+theorem Function.bijective_def (α β : Type) (f : α → β) :
+    Function.Bijective α β f
+      ↔ Function.Injective α β f ∧ Function.Surjective α β f :=  Iff.intro (Function.Bijective α β f)
+    ((Function.Injective α β f) ∧ (Function.Surjective α β f))
     (fun (h : Function.Bijective α β f) => h)
-    (fun (h : And (Function.Injective α β f) (Function.Surjective α β f)) => h)
+    (fun (h : (Function.Injective α β f) ∧ (Function.Surjective α β f)) => h)
 
-theorem Function.leftInverse_def (α β : Type) (g : β -> α) (f : α -> β) :
-    Iff (Function.LeftInverse α β g f) (forall (x : α), Eq.{1} α (g (f x)) x) :=
-  Iff.intro (Function.LeftInverse α β g f) (forall (x : α), Eq.{1} α (g (f x)) x)
+theorem Function.leftInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.LeftInverse α β g f ↔ ∀ (x : α), g (f x) = x :=  Iff.intro (Function.LeftInverse α β g f) (∀ (x : α), Eq.{1} α (g (f x)) x)
     (fun (h : Function.LeftInverse α β g f) => h)
-    (fun (h : forall (x : α), Eq.{1} α (g (f x)) x) => h)
+    (fun (h : ∀ (x : α), Eq.{1} α (g (f x)) x) => h)
 
-theorem Function.rightInverse_def (α β : Type) (g : β -> α) (f : α -> β) :
-    Iff (Function.RightInverse α β g f) (forall (y : β), Eq.{1} β (f (g y)) y) :=
-  Iff.intro (Function.RightInverse α β g f) (forall (y : β), Eq.{1} β (f (g y)) y)
+theorem Function.rightInverse_def (α β : Type) (g : β → α) (f : α → β) :
+    Function.RightInverse α β g f ↔ ∀ (y : β), f (g y) = y :=  Iff.intro (Function.RightInverse α β g f) (∀ (y : β), Eq.{1} β (f (g y)) y)
     (fun (h : Function.RightInverse α β g f) => h)
-    (fun (h : forall (y : β), Eq.{1} β (f (g y)) y) => h)
+    (fun (h : ∀ (y : β), Eq.{1} β (f (g y)) y) => h)
 
-theorem Function.inverse_def (α β : Type) (f : α -> β) (g : β -> α) :
-    Iff (Function.Inverse α β f g)
-      (And (Function.LeftInverse α β g f) (Function.RightInverse α β g f)) :=
-  Iff.intro (Function.Inverse α β f g)
-    (And (Function.LeftInverse α β g f) (Function.RightInverse α β g f))
+theorem Function.inverse_def (α β : Type) (f : α → β) (g : β → α) :
+    Function.Inverse α β f g
+      ↔ Function.LeftInverse α β g f ∧ Function.RightInverse α β g f :=  Iff.intro (Function.Inverse α β f g)
+    ((Function.LeftInverse α β g f) ∧ (Function.RightInverse α β g f))
     (fun (h : Function.Inverse α β f g) => h)
-    (fun (h : And (Function.LeftInverse α β g f) (Function.RightInverse α β g f)) => h)
+    (fun (h : (Function.LeftInverse α β g f) ∧ (Function.RightInverse α β g f)) => h)

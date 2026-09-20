@@ -1,40 +1,61 @@
 -- unit01 解答钥匙（agent 专用；画布不 import 它）。
 -- 判据：全部引理只用 lib/ 与 prelude 里已备好的东西——学习者的负担只有"集合论内容"。
+-- 证明一律 tactic 模式（`by` 块）；记法由 `lib/Set` 与语言内建提供，本文件零声明。
 import lib.Logic
 import lib.Set
 
-theorem mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B) (a : α) :
-    Set.mem α a A -> Set.mem α a B :=
-  fun (ha : Set.mem α a A) => h a ha
+theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :
+    a ∈ A → a ∈ B := by
+  intro ha
+  exact h a ha
 
-theorem eq_of_same_elements (α : Type) (A B : Set α) (h : forall (x : α), Iff (A x) (B x)) :
-    Eq.{1} (Set α) A B :=
-  Set.ext α A B h
+theorem eq_of_same_elements (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
+    Eq.{1} (Set α) A B := by
+  apply Set.ext
+  intro x
+  exact h x
 
 theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
-    (h : Set.subset α (Set.singleton α a) A) : Set.mem α a A :=
-  h a (Set.mem_singleton_self α a)
+    (h : {a} ⊆ A) : a ∈ A := by
+  apply h
+  exact Set.mem_singleton_self α a
 
-theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : Set.mem α a A) :
-    Set.subset α (Set.singleton α a) A :=
-  fun (x : α) => fun (hx : Set.mem α x (Set.singleton α a)) =>
-    Eq.subst.{1} α (fun (y : α) => A y) a x (Eq.symm.{1} α x a hx) h
+-- 本单元还没有 `rw`/`subst`，所以"把等式搬进目标"这一步仍然交给 `Eq.subst`
+-- 的实参位（`by` 块里是 `exact`）；等 `rw` 落地后这两条会显著变短。
+theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : a ∈ A) :
+    {a} ⊆ A := by
+  intro x
+  intro hx
+  exact Eq.subst.{1} α (fun (y : α) => A y) a x
+    (Eq.symm.{1} α x a
+      (Iff.mp (x ∈ {a}) (Eq.{1} α x a) (Set.mem_singleton_iff α x a) hx))
+    h
 
 theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
-    Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A) :=
-  Iff.intro (Set.subset α (Set.singleton α a) A) (Set.mem α a A)
-    (mem_of_subset_singleton α A a)
-    (subset_of_mem_singleton α A a)
+    ({a} ⊆ A) ↔ a ∈ A := by
+  constructor
+  exact mem_of_subset_singleton α A a
+  exact subset_of_mem_singleton α A a
 
 theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
-    Iff (Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (Eq.{1} α a b) :=
-  Iff.intro (Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (Eq.{1} α a b)
-    (fun (h : Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) =>
-      Iff.mp (Set.mem α a (Set.singleton α b)) (Eq.{1} α a b) (Set.mem_singleton_iff α a b)
-        (Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X)
-          (Set.singleton α a) (Set.singleton α b) h (Set.mem_singleton_self α a)))
-    (fun (h : Eq.{1} α a b) =>
-      Set.ext α (Set.singleton α a) (Set.singleton α b) (fun (x : α) =>
-        Iff.intro (Eq.{1} α x a) (Eq.{1} α x b)
-          (fun (hx : Eq.{1} α x a) => Eq.trans.{1} α x a b hx h)
-          (fun (hx : Eq.{1} α x b) => Eq.trans.{1} α x b a hx (Eq.symm.{1} α a b h))))
+    (Eq.{1} (Set α) {a} {b}) ↔ Eq.{1} α a b := by
+  constructor
+  -- (i) `{a} = {b}` ⇒ `a = b`：把 `a ∈ {a}` 沿等式搬到 `{b}` 上，再展开。
+  intro h
+  exact Iff.mp (a ∈ {b}) (Eq.{1} α a b) (Set.mem_singleton_iff α a b)
+    (Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} {b} h
+      (Set.mem_singleton_self α a))
+  -- (ii) `a = b` ⇒ `{a} = {b}`：外延 + 逐元素两个方向。
+  intro h
+  apply Set.ext
+  intro x
+  constructor
+  intro hx
+  exact Iff.mpr (x ∈ {b}) (Eq.{1} α x b) (Set.mem_singleton_iff α x b)
+    (Eq.trans.{1} α x a b
+      (Iff.mp (x ∈ {a}) (Eq.{1} α x a) (Set.mem_singleton_iff α x a) hx) h)
+  intro hx
+  exact Iff.mpr (x ∈ {a}) (Eq.{1} α x a) (Set.mem_singleton_iff α x a)
+    (Eq.trans.{1} α x b a
+      (Iff.mp (x ∈ {b}) (Eq.{1} α x b) (Set.mem_singleton_iff α x b) hx)
+      (Eq.symm.{1} α a b h))

@@ -113,6 +113,52 @@ skills.
   updates themselves still apply on reload)
 - Greek binder letters (`α`, `β`, …) render plainly — the extension turns
   VS Code's confusable-character box off for `.sokonanoda` files by default
+- **Notation input, the Lean 4 way**: type `\and` and press `Tab` to get `∧`
+  (`\in` → `∈`, `\sub` → `⊆`, `\powerset` → `𝒫`, …), and hover any notation
+  symbol to see how to type it
+
+## Typing notation (`\and` → `∧`)
+
+Write the abbreviation and press `Tab`:
+
+| you type | you get | aliases |
+|---|---|---|
+| `\and` | `∧` | `\wedge` |
+| `\or` | `∨` | `\vee` |
+| `\iff` | `↔` | `\leftrightarrow` |
+| `\not` | `¬` | `\neg` |
+| `\to` | `→` | `\imp` |
+| `\forall` | `∀` | — |
+| `\exists` | `∃` | — |
+| `\ne` | `≠` | `\neq` |
+| `\in` | `∈` | `\mem` |
+| `\sub` | `⊆` | `\subseteq` |
+| `\cup` | `∪` | `\union` |
+| `\cap` | `∩` | `\inter` |
+| `\setminus` | `\` | — |
+| `\empty` | `∅` | `\emptyset` |
+| `\powerset` | `𝒫` | — |
+| `\compl` | `ᶜ` | `\complement` |
+| `\preim` | `⁻¹'` | `\preimage` |
+| `\xs` | `×ˢ` | — |
+
+The abbreviations are **copied verbatim from Lean 4**, so the muscle memory
+transfers; hovering a symbol shows the same information (`∈` → "输入：`\in`
+（别名 `\mem`）"). `Tab` is only taken over **while a `\`-word is being typed**:
+ordinary indentation and suggestion acceptance in `.sokonanoda` files keep
+working, and a lone `\` (the set-difference symbol) is never rewritten.
+
+Two more behaviours worth knowing:
+
+- **Eager mode** — set `sokonanoda.input.eager` to `true` and an abbreviation
+  is replaced as soon as the word is complete, no `Tab` needed. While you keep
+  typing letters a prefix waits (`\an` waits for `\and`, `\in` waits for
+  `\inter`); a separator closes the word and finishes it (`\in ` → `∈ `,
+  `\sub ` → `⊆ `). Off by default, because `Tab` is the explicit, reviewable
+  path.
+- **Undo** — a replacement is a single edit, so **one undo takes it back in
+  one step**; with several cursors, each abbreviation is rewritten in that
+  same single edit.
 
 ## Install & use
 

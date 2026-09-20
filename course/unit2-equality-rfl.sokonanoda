@@ -22,10 +22,10 @@ def one : Nat := 1
 -- ─────────────────────────────────────────────────────────────
 -- “相等”也是一个命题：Eq x y 读作 x = y。
 -- prelude 提供受信任的等式基元（签名与官方 Lean 一致）：
---   Eq {u}       : {α : Sort u} -> α -> α -> Prop
---   Eq.refl {u}  : {α : Sort u} -> (a : α) -> Eq.{u} α a a
---   Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α}
---                  -> Eq.{u} α a b -> p a -> p b
+--   Eq {u}       : {α : Sort u} → α → α → Prop
+--   Eq.refl {u}  : {α : Sort u} → (a : α) → Eq.{u} α a a
+--   Eq.subst {u} : {α : Sort u} → {p : α → Prop} → {a : α} → {b : α}
+--                  → Eq.{u} α a b → p a → p b
 -- 用法（教学画布规则）：
 --   * 裸写 Eq 默认 u = 0；数字的等式必须显式写 Eq.{1} —— 为什么是 1？
 --     单元⑤揭晓（现在把它当成机械规则记住即可）。
@@ -51,21 +51,21 @@ def demo_refl : Eq.{1} Nat (2 + 2) 4 := Eq.refl.{1} Nat (2 + 2)
 -- ─────────────────────────────────────────────────────────────
 
 -- 演示（已写好，无需改动）：用 prelude 的 Eq.symm 证明对称，一行即可。
-def eq_symm_demo : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a :=
+def eq_symm_demo : (a : Nat) → (b : Nat) → Eq.{1} Nat a b → Eq.{1} Nat b a :=
   fun (a : Nat) => fun (b : Nat) => fun (h : Eq.{1} Nat a b) => Eq.symm.{1} Nat a b h
 
 -- 练习 1（热身）：定义 two : Nat。提示：写字面量 2，或写 1 + 1 都可以。
 -- soko:hint 思路：这个洞里放的不是证明，是一个类型为 Nat 的普通表达式。
 -- soko:hint 目标形态：目标就是 Nat 本身，没有箭头也没有假设——直接给值。
 -- soko:hint 关键件：数字字面量就是合法项；开头 #reduce 刚算过一个熟悉的数。填好后放开 two_def 让内核回判。
-def two : Nat := sorry
+def two : Nat := by sorry
 
 -- 练习 2（rfl 会计算）：证明 1 + 1 = 2。提示：Eq.refl.{1} 的第一个参数给
 -- Nat，第二个参数给等号左边；内核会把左边算出来，发现就是 2。
 -- soko:hint 思路：rfl 不是咒语而是函数：Eq.refl 能证任何“两边本来就是同一个值”的等式。
 -- soko:hint 目标形态：内核会把 1 + 1 算成 2，所以这个等式两边本来就相等——refl 一步到位。
 -- soko:hint 关键件：Eq.refl.{1}——第一个参数给类型 Nat，第二个参数给等号一边的表达式。
-theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry
+theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := by sorry
 
 -- 练习 3（自己造“对称”）：从 a = b 推出 b = a。
 -- 关键一步：subst 需要你**自己设计**谓词 p。取
@@ -74,7 +74,7 @@ theorem one_plus_one_eq_two : Eq.{1} Nat (1 + 1) 2 := sorry
 -- soko:hint 思路：本题练的是 Eq.subst 的谓词设计：自己设计一个 p，交给 subst 沿 h 替换。（prelude 的 Eq.symm 是它的现成版——上方 eq_symm_demo 就是；两种都写一遍对照。）
 -- soko:hint 目标形态：三层 fun 拿到 a、b、h 之后，目标是 b = a；选一个 p，让 p b 恰好是它、p a 又容易证。
 -- soko:hint 关键件：Eq.subst.{1} 按签名给全参数；p 的配方就是上方讲解里“x = a”的形状。
-theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a := sorry
+theorem eq_symm_nat : (a : Nat) → (b : Nat) → Eq.{1} Nat a b → Eq.{1} Nat b a := by sorry
 
 -- 练习 4（自己造“传递”）：从 a = b 和 b = c 推出 a = c。
 -- 配方同练习 3，但这次取 p := fun (x : Nat) => Eq.{1} Nat a x：
@@ -82,8 +82,8 @@ theorem eq_symm_nat : (a : Nat) -> (b : Nat) -> Eq.{1} Nat a b -> Eq.{1} Nat b a
 -- soko:hint 思路：配方与“对称”完全一样，只是这次要串起两个等式——沿哪条 h 替换，决定 p 的形状。（prelude 的 Eq.trans 是现成版，两种都写一遍对照。）
 -- soko:hint 目标形态：五层 fun 拿到 a、b、c、h1、h2 之后，目标是 a = c；选一个 p，让 p c 恰好是它、而 p b 正好是 h1 能证的。
 -- soko:hint 关键件：还是 Eq.subst.{1}——对 h2 : b = c 用 subst，谓词里 x 的位置填 a；p a 那头留给 h1。
-theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat)
-  -> Eq.{1} Nat a b -> Eq.{1} Nat b c -> Eq.{1} Nat a c := sorry
+theorem eq_trans_nat : (a : Nat) → (b : Nat) → (c : Nat)
+  → Eq.{1} Nat a b → Eq.{1} Nat b c → Eq.{1} Nat a c := by sorry
 
 -- 练习 5（Prop 层热身）：等式对任何类型都成立，命题也一样。
 -- 这里的 binder 是隐式的 {a : Prop}（写在类型里），值一侧对应 fun {a : Prop} => ...。
@@ -91,7 +91,7 @@ theorem eq_trans_nat : (a : Nat) -> (b : Nat) -> (c : Nat)
 -- soko:hint 思路：等式对任何类型都成立，命题世界也一样——这次是给“任意命题 a”证 a = a。
 -- soko:hint 目标形态：binder 是隐式的 {a : Prop}：值一侧先写 fun {a : Prop} =>，之后没有别的假设，直接收尾。
 -- soko:hint 关键件：Eq.refl.{1}——这里的 α 是 Prop 本身，等号一边给 a。
-theorem eq_refl_prop : {a : Prop} -> Eq.{1} Prop a a := sorry
+theorem eq_refl_prop : {a : Prop} → Eq.{1} Prop a a := by sorry
 
 -- 收尾（练习 1 的闭环）：解出练习 1 后，把下面这行的注释去掉，它必须变绿
 -- —— 这是内核在“证明”你的 two 确实等于 1 + 1。

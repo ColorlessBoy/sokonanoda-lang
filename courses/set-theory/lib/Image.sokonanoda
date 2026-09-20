@@ -13,13 +13,15 @@
 --   `Set.image_subset_iff` = Mathlib（Mathlib/Data/Set/Image.lean / Defs.lean）逐字同款，
 --   含参数顺序：`Set.image α β f A`、`Set.preimage α β f B`。
 --
--- 记法对照（语言还没有 notation，G-04）：
+-- 记法对照（G-04 已关账：`''` / `⁻¹'` 由 lib/Set 文件末尾统一声明，随
+-- `import lib.Set` 生效；`f(A)` / `f^{-1}(B)` 是 Tao 的写法，本课程不声明）：
 --   Set.image α β f A    ↔  f '' A   ↔  f(A)      （Tao §3.4 的前推）
 --   Set.preimage α β f B ↔  f ⁻¹' B  ↔  f^{-1}(B) （Tao §3.4 的回拉）
---   注意 `image α β f A` 里 α/β/f 都要点名——这是卷 I 后半段所有映射题的书写纪律。
+--   定理语句一律写记法（`y ∈ f '' A`）；点名形式（`Set.image α β f A` 里 α/β/f
+--   都要点名）留给 `def` 体与需要写全类型参数的调用点。
 --
 -- 依赖方向：本模块只依赖 lib/Logic 与 lib/Exists、lib/Set（像的定义要 `Exists`）。
--- 单元⑧之前没有别的模块引用它；`lib/Demo.sokonanoda` 的自检行不在本次归属范围内。
+-- `lib/Demo.sokonanoda` 的自检行 import 本模块。
 import lib.Logic
 import lib.Exists
 import lib.Set
@@ -27,29 +29,26 @@ import lib.Set
 -- ── 词汇（Mathlib: Mathlib/Data/Set/Defs.lean，逐字同款）──────────────────
 -- 像（前推）：`y` 落在 `f '' A` 里，就是**存在**一个 `x : α`，它在 `A` 里且 `f x = y`。
 --   注意 `y` 的论域是 β、等式是 `Eq.{1} β (f x) y`——等式必须显式给宇宙（红线 4）。
-def Set.image (α β : Type) (f : α -> β) (A : Set α) : Set β :=
-  fun (y : β) => Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))
+def Set.image (α β : Type) (f : α → β) (A : Set α) : Set β :=
+  fun (y : β) => ∃ (x : α), (A x) ∧ (Eq.{1} β (f x) y)
 
 -- 原像（回拉）：`x` 落在 `f ⁻¹' B` 里，就是 `f x` 落在 `B` 里。
 --   没有存在量词，只有一个函数应用——所以原像"全保"（保并交补），而像只保并。
-def Set.preimage (α β : Type) (f : α -> β) (B : Set β) : Set α :=
+def Set.preimage (α β : Type) (f : α → β) (B : Set β) : Set α :=
   fun (x : α) => B (f x)
 
 -- ── 定义展开引理（L2：证明全是"恒等函数"，没有数学内容）──────────────────
 -- 与 lib/Set 的 `Set.mem_union` 同款：展开后就是 `fun h => h`，所以证明项是两边互交。
 -- 写练习时点这条名字，就等于**一次性把 `image` 的定义摊开**，不必手写 `fun h => h`。
 
-theorem Set.mem_image (α β : Type) (f : α -> β) (A : Set α) (y : β) :
-    Iff (Set.mem β y (Set.image α β f A))
-      (Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))) :=
-  Iff.intro (Set.mem β y (Set.image α β f A))
-    (Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y)))
+theorem Set.mem_image (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=  Iff.intro (Set.mem β y (Set.image α β f A))
+    (∃ (x : α), (A x) ∧ (Eq.{1} β (f x) y))
     (fun (h : Set.mem β y (Set.image α β f A)) => h)
-    (fun (h : Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))) => h)
+    (fun (h : ∃ (x : α), (A x) ∧ (Eq.{1} β (f x) y)) => h)
 
-theorem Set.mem_preimage (α β : Type) (f : α -> β) (B : Set β) (x : α) :
-    Iff (Set.mem α x (Set.preimage α β f B)) (Set.mem β (f x) B) :=
-  Iff.intro (Set.mem α x (Set.preimage α β f B)) (Set.mem β (f x) B)
+theorem Set.mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    x ∈ f ⁻¹' B ↔ f x ∈ B :=  Iff.intro (Set.mem α x (Set.preimage α β f B)) (Set.mem β (f x) B)
     (fun (h : Set.mem α x (Set.preimage α β f B)) => h)
     (fun (h : Set.mem β (f x) B) => h)
 
@@ -62,30 +61,36 @@ theorem Set.mem_preimage (α β : Type) (f : α -> β) (B : Set β) (x : α) :
 -- 像的单调性（`fun` 版，便于直接接受一个"逐点"假设）：`A ⊆ B` 推出 `f '' A ⊆ f '' B`。
 -- 收进库的理由与上一条同款：它是 image_subset_iff 的推论式包装（把 h 逐点喂进 Exists），
 -- 不含"想一下"的内容；单元里的两次真正用场（练习 6 的真方向）都在 units/ 里。
-theorem Set.image_mono (α β : Type) (f : α -> β) (A B : Set α)
-    (h : forall (x : α), A x -> B x) : Set.subset β (Set.image α β f A) (Set.image α β f B) :=
-  fun (y : β) => fun (hy : Set.mem β y (Set.image α β f A)) =>
-    Exists.elim α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))
+--
+-- 证明体说明：这条与下面 image_subset_iff 都要**构造** `∃`。今天 `use t` 在
+-- 谓词是 λ 的 `∃` 上走不通（`use` 交完证人后，剩下那个子目标的类型是 `p w`
+-- ——`w` 是构造子的层 binder 名、不是用户交的证人；`w` 不在作用域就报
+-- `unknown identifier`）。所以这两条写成 `by` + 一条 `exact` 的**证明项**：
+-- tactic 块照旧（白名单里的 `exact`），点名残留只有构造子名
+-- （`Exists.intro` / `And.intro` / `Eq.subst`——引理名不算残留）。
+theorem Set.image_mono (α β : Type) (f : α → β) (A B : Set α)
+    (h : ∀ (x : α), A x → B x) : f '' A ⊆ f '' B :=  fun (y : β) => fun (hy : Set.mem β y (Set.image α β f A)) =>
+    Exists.elim α (fun (x : α) => (A x) ∧ (Eq.{1} β (f x) y))
       (Set.mem β y (Set.image α β f B)) hy
-      (fun (x : α) => fun (hx : And (A x) (Eq.{1} β (f x) y)) =>
-        Exists.intro α (fun (t : α) => And (B t) (Eq.{1} β (f t) y)) x
+      (fun (x : α) => fun (hx : (A x) ∧ (Eq.{1} β (f x) y)) =>
+        Exists.intro α (fun (t : α) => (B t) ∧ (Eq.{1} β (f t) y)) x
           (And.intro (B x) (Eq.{1} β (f x) y)
             (h x (And.left (A x) (Eq.{1} β (f x) y) hx))
             (And.right (A x) (Eq.{1} β (f x) y) hx)))
 
 -- 像落在 B 里 ⟺ A 里的每个点都被 f 送到 B 里。（Mathlib 同名：`Set.image_subset_iff`）
-theorem Set.image_subset_iff (α β : Type) (f : α -> β) (A : Set α) (B : Set β) :
-    Iff (Set.subset β (Set.image α β f A) B) (Set.subset α A (Set.preimage α β f B)) :=
-  Iff.intro (Set.subset β (Set.image α β f A) B)
+-- 证明体同上：两个方向都要构造 `∃`，所以是一整条 `exact` 的证明项。
+theorem Set.image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    f '' A ⊆ B ↔ A ⊆ f ⁻¹' B :=  Iff.intro (Set.subset β (Set.image α β f A) B)
     (Set.subset α A (Set.preimage α β f B))
     (fun (h : Set.subset β (Set.image α β f A) B) =>
       fun (x : α) => fun (hx : A x) =>
-        h (f x) (Exists.intro α (fun (t : α) => And (A t) (Eq.{1} β (f t) (f x)))
+        h (f x) (Exists.intro α (fun (t : α) => (A t) ∧ (Eq.{1} β (f t) (f x)))
           x (And.intro (A x) (Eq.{1} β (f x) (f x)) hx (Eq.refl.{1} β (f x)))))
     (fun (h : Set.subset α A (Set.preimage α β f B)) =>
       fun (y : β) => fun (hy : Set.mem β y (Set.image α β f A)) =>
-        Exists.elim α (fun (x : α) => And (A x) (Eq.{1} β (f x) y)) (Set.mem β y B) hy
-          (fun (x : α) => fun (hx : And (A x) (Eq.{1} β (f x) y)) =>
+        Exists.elim α (fun (x : α) => (A x) ∧ (Eq.{1} β (f x) y)) (Set.mem β y B) hy
+          (fun (x : α) => fun (hx : (A x) ∧ (Eq.{1} β (f x) y)) =>
             Eq.subst.{1} β (fun (z : β) => Set.mem β z B) (f x) y
               (And.right (A x) (Eq.{1} β (f x) y) hx)
               (h x (And.left (A x) (Eq.{1} β (f x) y) hx))))

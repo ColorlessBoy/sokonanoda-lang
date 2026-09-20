@@ -12,31 +12,24 @@
 -- 真的两文件项目（跨文件练习在它的 Exercises.sokonanoda）。本画布仍是单文件。
 -- ==========================================================================
 
--- 骨架（本文件扮演**被 import 的库模块**：And 公理 + Or 归纳类型 + Iff 定义，
--- 都是前几个单元的老朋友；入口 import 它之后就能直接用这些名字）：
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+-- 本文件扮演**被 import 的库模块**：它导出的就是自己声明的这几条——Iff 定义
+-- 与 and_comm 定理。And / Or 这些连接符 **prelude 自带**，任何文件（被不被
+-- import 都一样）都能直接用，不需要在这里声明。
 
-inductive Or (A B : Prop) : Prop
-ctor inl (a : A) : Or A B
-ctor inr (b : B) : Or A B
-end
-
-def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- 演示（已写好）：库的第一条导出——交换 And 的两半。练习 5 要复用它。
-theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
   And.intro B A (And.right A B h) (And.left A B h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 11.1 为什么需要 import：给名字划一条边界
 --
--- 单文件世界靠一个隐式约定运转：每个文件各自声明自己需要的名字，于是同名可以
--- 不同义——单元⑨的 `Or` 是真归纳类型，单元①的 `Or` 只是公理；拼进同一个文件
--- 就撞成「这个名字已经声明过」。import 让「哪个 Or？」可回答：名字属于**模块**。
--- 三条规则先记住：
+-- 单文件世界靠一个隐式约定运转：每个文件各自声明自己需要的名字，于是**同一个
+-- 名字在两处可以指不同东西**——A.sokonanoda 里 `def double (n : Nat) : Nat`
+-- 是自然数翻倍，B.sokonanoda 里 `def double (A : Prop) : Prop` 是恒等；两份
+-- 各自判卷都合法，拼进同一个文件才撞成 `duplicate declaration double`。import
+-- 让「哪个 double？」可回答：名字属于**模块**。三条规则先记住：
 --   (1) 被 import 的模块里的顶层名字在整个闭包里**全局可见**（没有 export 列表）；
 --   (2) 因此跨模块**重名 = 错误**（import-name-collision）：正解是只声明一次；
 --   (3) 「入口文件 + 闭包」是一个**编译单元**，内核仍是唯一判定者。
@@ -52,7 +45,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
 --   import Lesson.Logic     -- 子目录 Lesson/ 下的 Logic.sokonanoda
 --
 -- 例：course/unit11-project/Canvas.sokonanoda 第一行就是 `import Logic`，它下面
--- 能直接写 And、And.intro，因为那些名字声明在 Logic.sokonanoda 里。`import` 是命令
+-- 能直接调用 and_comm，因为那条定理声明在 Logic.sokonanoda 里。`import` 是命令
 -- 关键字：名字位宽松（`def import := 1` 合法），表达式位会被拒绝（报 cannot appear inside an expression）。
 -- ─────────────────────────────────────────────────────────────
 
@@ -106,7 +99,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
 --
 --   course/unit11-project/
 --   ├── sokonanoda.toml          -- 清单：name = "unit11-project"
---   ├── Logic.sokonanoda         -- 库模块：axiom And / And.intro / And.left / And.right
+--   ├── Logic.sokonanoda         -- 库模块：导出定理 and_comm（And 来自 prelude）
 --   ├── Canvas.sokonanoda        -- 入口：`import Logic` + 用了它的定理（已写好）
 --   └── Exercises.sokonanoda     -- 入口：`import Logic` + 两道带 sorry 的练习
 --
@@ -121,33 +114,34 @@ theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
 -- ─────────────────────────────────────────────────────────────
 -- 11.7 练习 A：给库补导出
 --
--- 本文件扮演共享库，练习都是「库该导出的那一条」。每条都必须只用**本文件已经
--- 声明的名字**：练习是开放声明，洞不进环境，别引用另一道还没做的练习。
+-- 本文件扮演共享库，练习都是「库该导出的那一条」。每条都必须只用 **prelude
+-- 自带的连接符**与**本文件已经声明的名字**（Iff、and_comm）：练习是开放声明，
+-- 洞不进环境，别引用另一道还没做的练习。
 -- ─────────────────────────────────────────────────────────────
 
 -- 练习 1（导出 X）：给出演示的同型版本，但把假设写成箭头：
 --
---   「And A B 推出 And B A。」
+--   「A ∧ B 推出 B ∧ A。」
 --
--- soko:hint 思路：结论是 `And A B -> And B A`，最外层是一个箭头——先写 fun (h : And A B) 把假设拿进来。
--- soko:hint 目标形态：fun 之后目标变成 And B A；用 And.intro B A 把两个证明位补齐。
+-- soko:hint 思路：结论是 `A ∧ B → B ∧ A`，最外层是一个箭头——先写 fun (h : A ∧ B) 把假设拿进来。
+-- soko:hint 目标形态：fun 之后目标变成 B ∧ A；用 And.intro B A 把两个证明位补齐。
 -- soko:hint 关键件：两份证据都来自 h：And.right A B h 是 B 的证明，And.left A B h 是 A 的证明。
-theorem and_comm_imp_x (A : Prop) (B : Prop) : And A B -> And B A :=
+theorem and_comm_imp_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A := by
   sorry
 
 -- 练习 2（导出 X）：库不只有 theorem，也有 `def`：把 And 的左消去固定成一条
 -- 库导出（它的类型是 A，值是一份证明）。
--- soko:hint 思路：声明形式是 def … (h : And A B) : A；h 已经是参数，不需要再写 fun。
--- soko:hint 目标形态：目标是 A，手里是 h : And A B。
+-- soko:hint 思路：声明形式是 def … (h : A ∧ B) : A；h 已经是参数，不需要再写 fun。
+-- soko:hint 目标形态：目标是 A，手里是 h : A ∧ B。
 -- soko:hint 关键件：And.left 吃三个显式参数：A、B 与 h。
-def and_left_x (A : Prop) (B : Prop) (h : And A B) : A :=
+def and_left_x (A : Prop) (B : Prop) (h : A ∧ B) : A := by
   sorry
 
--- 练习 3（导出 X）：库里的归纳类型也要有导出：交换 Or 的两半。
--- soko:hint 思路：h : Or A B 包着两条分支的信息，用 match 分情况。
--- soko:hint 目标形态：结论是 Or B A；inl 支拿到 a : A，inr 支拿到 b : B。
--- soko:hint 关键件：结论的参数顺序是先 B 后 A：a 要走「右边」的构造子（inr B A a），b 要走「左边」的构造子（inl B A b）。
-theorem or_comm_x (A : Prop) (B : Prop) : Or A B -> Or B A :=
+-- 练习 3（导出 X）：库也要导出用到连接符的定理：交换 Or 的两半。
+-- soko:hint 思路：h : A ∨ B 包着两条分支的信息，用 match 分情况。
+-- soko:hint 目标形态：结论是 B ∨ A；inl 支拿到 a : A，inr 支拿到 b : B。
+-- soko:hint 关键件：结论的参数顺序是先 B 后 A：a 要走「右边」的构造子（Or.inr B A a），b 要走「左边」的构造子（Or.inl B A b）。
+theorem or_comm_x (A : Prop) (B : Prop) : A ∨ B → B ∨ A := by
   sorry
 
 -- 练习 4（导出 X）：这一条故意写成匿名 `example`（单元⑤ 用过这种形式）：库里
@@ -156,9 +150,9 @@ theorem or_comm_x (A : Prop) (B : Prop) : Or A B -> Or B A :=
 --   「A 推出 B、B 又推出 A，则 A 与 B 等价。」
 --
 -- soko:hint 思路：两个方向是两条假设（两个箭头），结论把这对函数打包成 Iff。
--- soko:hint 目标形态：结论形如 Iff A B，而 Iff 展开就是 And (A -> B) (B -> A)。
--- soko:hint 关键件：用 And.intro，参数写 (A -> B)、(B -> A)，把 mp 与 mpr 放进两个证明位。
-example (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
+-- soko:hint 目标形态：结论形如 A ↔ B，而 Iff 展开就是 (A → B) ∧ (B → A)。
+-- soko:hint 关键件：用 And.intro，参数写 (A → B)、(B → A)，把 mp 与 mpr 放进两个证明位。
+example (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -167,33 +161,34 @@ example (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
 -- 下面这份「第二个模块」被拒绝了，错误来自**整个闭包**而不是它自己：
 --
 --   -- Library2.sokonanoda
---   axiom And : Prop -> Prop -> Prop
---   theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+--   theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 --     And.intro B A (And.right A B h) (And.left A B h)
 --
--- 报错是 import-name-collision：`And`、`and_comm` 在第一个模块里已经声明过。
--- 提示：正解不是改名躲开，而是**不要重复声明**——用 import 进来的那一份。
+-- 报错是 import-name-collision：`and_comm` 在第一个模块里已经声明过（消息会点名
+-- 两个来源模块）。提示：正解不是改名躲开，而是**不要重复声明**——用 import
+-- 进来的那一份。
 -- ─────────────────────────────────────────────────────────────
 
--- 练习 5（评阅 R）：本文件就是「第一个模块」：And 与 and_comm 都已声明。请写一条
+-- 练习 5（评阅 R）：本文件就是「第一个模块」：and_comm 已经声明在这里。请写一条
 -- 新导出，把活交给共享的那条 and_comm（这就是上面那份模块的正确写法）。
 -- soko:hint 思路：不要重抄证明；本文件已有 and_comm，直接调用它。
--- soko:hint 目标形态：目标 And B A；把 A、B、h 三个参数显式喂给 and_comm。
+-- soko:hint 目标形态：目标 B ∧ A；把 A、B、h 三个参数显式喂给 and_comm。
 -- soko:hint 关键件：函数应用写成 `and_comm A B h`（把和演示里一样的三个参数按顺序补全）。
-theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : And A B) : And B A :=
+theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 11.9 练习 C：综合
 --
--- 最后这道题把库的 And 消去与 Or 构造接起来，用上 let 与 match
--- （单元⑥/③ 的老朋友）。先想清楚「目标长什么样」，再决定每一步选哪条规则。
+-- 最后这道题把 And 的消去与 Or 的构造接起来（两者都是 prelude 自带的连接符），
+-- 用上 let 与 match（单元⑥/③ 的老朋友）。先想清楚「目标长什么样」，再决定
+-- 每一步选哪条规则。
 -- ─────────────────────────────────────────────────────────────
 
 -- 练习 6（综合 ★★）：分配律的一个方向——「A 且（B 或 C）」推出
 -- 「（A 且 B）或（A 且 C）」。
--- soko:hint 思路：用 let 把 h 的右半（Or B C）单独命名，再对它 match 分情况；两种情况下都要把 A 与对应的那一半重新打包。
--- soko:hint 目标形态：外层 fun (h : And A (Or B C))；let bc : Or B C := And.right A (Or B C) h; 然后 match bc。
+-- soko:hint 思路：用 let 把 h 的右半（B ∨ C）单独命名，再对它 match 分情况；两种情况下都要把 A 与对应的那一半重新打包。
+-- soko:hint 目标形态：外层 fun (h : A ∧ (B ∨ C))；let bc : B ∨ C := And.right A (B ∨ C) h; 然后 match bc。
 -- soko:hint 关键件：从 h 用 And.left 取 A、And.right 取分支证据；inl b 支用 And.intro A B 打包再交给 Or.inl，inr c 支用 And.intro A C 打包再交给 Or.inr。
-theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : And A (Or B C) -> Or (And A B) (And A C) :=
+theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by
   sorry

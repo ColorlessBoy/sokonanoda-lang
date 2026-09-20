@@ -7,7 +7,8 @@
 //!   （例如自带 `inductive Nat` 块或纯逻辑公理文件）。
 
 use super::elab::{
-    build_axiom, build_def, install_inductive_block, ElabCtx, InductiveTable, KnownName, KnownTable,
+    build_axiom, build_def, install_inductive_block, params_of_ty, strip_lambdas_n, DefInfo,
+    DefTable, ElabCtx, InductiveTable, KnownName, KnownTable,
 };
 use super::scope::NamespaceScope;
 use crate::{Binder, BinderKind, Command, CtorDecl, Expr, SortKind, Span};
@@ -118,6 +119,9 @@ pub const PRELUDE_NAMES: &[&str] = &[
     "Not.intro",
     "Not.elim",
     "absurd",
+    // ---- L1: 不相等 (L2.3，`≠` 的目标) ----
+    "Ne",
+    "Ne.intro",
     // ---- L1: 当且仅当 (B6) ----
     "Iff",
     "Iff.intro",
@@ -213,6 +217,11 @@ def Not (A : Prop) : Prop := A -> False
 def Not.intro (A : Prop) (f : A -> False) : Not A := f
 def Not.elim (A C : Prop) (h : Not A) (a : A) : C := False.elim C (h a)
 def absurd (a b : Prop) (ha : a) (hna : Not a) : b := False.elim b (hna ha)
+-- `Ne`（L2.3）：`≠` 的**目标常量**，与 Lean core 的 `Ne` 同形（`a ≠ b` 就是
+-- `a = b -> False`）。带**一个宇宙参数** `u`（`α : Sort u`）——所以 `≠` 的记法
+-- 路径要解层级，与 `=` 同一份机械（`elab.rs` 的 `level_text_of_sort`）。
+def Ne {u} (α : Sort u) (a b : α) : Prop := Eq.{u} α a b -> False
+def Ne.intro {u} (α : Sort u) (a b : α) (h : Eq.{u} α a b -> False) : Ne.{u} α a b := h
 def Iff (A B : Prop) : Prop := And (A -> B) (B -> A)
 def Iff.intro (A B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B := And.intro (A -> B) (B -> A) mp mpr
 def Iff.mp (A B : Prop) (h : Iff A B) : A -> B := And.left (A -> B) (B -> A) h
@@ -247,7 +256,7 @@ pub(crate) struct PreludeFamily {
     pub deps: &'static [&'static str],
 }
 
-/// L1 的族表（设计 §2.2 的 B1–B7 + L-03 的 B8）。`B7`/`B8` 依赖 **Eq prelude**：
+/// L1 的族表（设计 §2.2 的 B1–B7 + L-03 的 B8 + L2.3 的 B9）。`B7`/`B8`/`B9` 依赖 **Eq prelude**：
 /// `Eq` 被占用时 `install_eq_prelude` 整体不装，`Eq.symm`/`Eq.trans`/`congrArg`
 /// 与 `Eq.rec`/`Eq.mp`/`Eq.mpr` 的定义体引用的 `Eq.subst`/`Eq` 就不存在，
 /// 所以它们必须一起让位。
@@ -307,9 +316,17 @@ pub(crate) const L1_FAMILIES: &[PreludeFamily] = &[
         names: &["Eq.rec", "Eq.ndrec", "Eq.mp", "Eq.mpr", "cast"],
         deps: &["EQ"],
     },
+    // B9（L2.3，2026-09-19）：`≠` 的目标常量。定义体同时用 `Eq.{u}` 与 `False`
+    // ⇒ 依赖 **EQ 与 B2**（与 B5 的 `Not` 依赖 B2 同一个理由：定义体引用的族
+    // 一旦让位，本族也必须让位，否则报「unknown identifier `False`」）。
+    PreludeFamily {
+        name: "B9",
+        names: &["Ne", "Ne.intro"],
+        deps: &["B2", "EQ"],
+    },
 ];
 
-/// 一个族名（`B1`…`B8`）是否必须让位：它自己或它的依赖被 `taken` 命中。
+/// 一个族名（`B1`…`B9`）是否必须让位：它自己或它的依赖被 `taken` 命中。
 fn family_yields(family: &PreludeFamily, taken: &HashSet<String>) -> bool {
     family.names.iter().any(|name| taken.contains(*name))
         || family.deps.iter().any(|dep| {
@@ -372,6 +389,7 @@ pub(crate) fn install_l1_prelude<'a>(
     builder: &mut EnvBuilder<'a>,
     known: &mut KnownTable,
     inductives: &mut InductiveTable<'a>,
+    defs: &mut DefTable,
     taken: &HashSet<String>,
 ) {
     if L1_INSTALL_DEPTH.with(|d| d.get()) > 0 {
@@ -390,7 +408,7 @@ pub(crate) fn install_l1_prelude<'a>(
             if !command_belongs_to(command, family) {
                 continue;
             }
-            install_l1_command(builder, known, inductives, &options, command);
+            install_l1_command(builder, known, inductives, defs, &options, command);
         }
     }
     L1_INSTALL_DEPTH.with(|d| d.set(d.get() - 1));
@@ -413,6 +431,7 @@ fn install_l1_command<'a>(
     builder: &mut EnvBuilder<'a>,
     known: &mut KnownTable,
     inductives: &mut InductiveTable<'a>,
+    defs: &mut DefTable,
     options: &CompileOptions,
     command: &Command,
 ) {
@@ -441,6 +460,7 @@ fn install_l1_command<'a>(
                 name.clone(),
                 KnownName::Decl {
                     universes: universe.clone(),
+                    implicit_prefix: 0,
                 },
             );
         }
@@ -460,6 +480,17 @@ fn install_l1_command<'a>(
                 name.clone(),
                 KnownName::Decl {
                     universes: universe.clone(),
+                    implicit_prefix: 0,
+                },
+            );
+            // 源级 delta 表：`by` 引擎靠它看穿 `Not`/`Iff` 这类 **def** 头
+            // （`intro x` 在 `¬ A` 目标上、`apply h` 在 `h : A ⊆ B` 上都要它）。
+            defs.insert(
+                name.clone(),
+                DefInfo {
+                    params: params_of_ty(ty),
+                    universes: universe.clone(),
+                    body: strip_lambdas_n(val, params_of_ty(ty).len()),
                 },
             );
         }
@@ -536,6 +567,7 @@ pub(crate) fn install_eq_prelude(
             name.clone(),
             KnownName::Decl {
                 universes: universe.clone(),
+                implicit_prefix: 0,
             },
         );
     }
@@ -618,6 +650,7 @@ pub(crate) fn install_prelude<'a>(
         "Nat.add".to_string(),
         KnownName::Decl {
             universes: Vec::new(),
+            implicit_prefix: 0,
         },
     );
 }

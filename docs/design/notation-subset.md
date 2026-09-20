@@ -263,6 +263,8 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
    声明改成记法版，用绝对路径判卷；断言 `grade` exit 0 且事件计数与原点名版
    逐项相同。**本 WO 课程零改动**由 `python3 courses/set-theory/tools/check.py`
    全绿 + `git status` 里 `courses/` 无改动共同守护。
+   > **这一条只对 WO-011 那一轮有效**（它是"记法只是糖"的对照实验）。R2 课程
+   > Lean 化之后画布改用记法，契约翻转为"两种写法仍同判"——见 §15。
 
 守护表行（`docs/TESTING.md`）：词法切分 / 优先级 / 两种写法计数一致 /
 护城河（点名省 `α` 仍被拒）/ 课程门禁全绿。
@@ -303,6 +305,8 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
    把 `courses/set-theory/{lib,sokonanoda.toml}` 复制到 `/tmp`，再写一份改写了两处
    签名的单元②。实测两份都是 `{exercise.open: 10, decl.checked: 1}`、exit 0。
    `the_shipped_course_still_uses_the_pointful_spelling` 把"课程零改动"钉住。
+   > **R2 课程 Lean 化轮次已翻转**：画布现在是记法版，两条测试都改了名与方向
+   > ——见 §15。
 
 ---
 
@@ -691,3 +695,33 @@ binder_notation "∃" => Exists        -- 命令形状与 notation 同族（不�
 课程侧：单元⑧ 加一条**演示**（`binder_notation "∃" => Exists` + `example … := ∃ (x : α), …`），
 练习数量与题意一字未动 ⇒ 门禁的 36/329/99/0 **逐项相同**；
 `crates/cli/tests/notation.rs::the_shipped_course_demos_the_binder_notation` 把这条钉住。
+
+---
+
+## 15. R2 课程 Lean 化之后：契约翻转与 `≠` 的层级提示（2026-09-21）
+
+R2（课程全面 Lean 化，设计 `docs/design/course-lean-style.md`）把**卷 I 单元②**
+画布与解答都改成了记法版，于是本节 §8/§14.7 里两条"课程仍用点名"的记录
+**到此为止**。翻转后的契约（测试名与方向都改了）：
+
+| 旧 | 新 | 现在钉住什么 |
+|---|---|---|
+| `a_real_course_unit_grades_identically_in_notation`（§8 第 8 条、§14.7） | `a_real_course_unit_grades_identically_in_either_spelling` | 方向反转：画布是**记法版**，夹具 `pointful_variant` 造**点名版**；两份仍必须 `exit 0` 且五元计数相等（N7 契约不变） |
+| `the_shipped_course_still_uses_the_pointful_spelling` | `the_shipped_course_uses_the_library_notation` | ① 单元**不出现** `infix`/`notation` 行（符号由 `lib/Set` 统一声明、随 `import` 传播）；② 六条记法签名真的在（含 `{a}`/`{a, b}` 字面量与 `≠`）；③ 画布**零点名残留**；④ 每条 `theorem` 的值位都是 `by`（tactic 风格） |
+
+**`≠` 的 delta 展开必须带层级**（同一轮修的判卷器缺口）：`Ne` 是
+`def Ne {u} (α : Sort u) (a b : α) : Prop := Eq.{u} α a b -> False`，
+而 `≠` 的两条路**都不带 `.{u}`**——源 AST 是记法节点，过一遍内核 pp 是裸名
+`Ne`（pp 省掉隐式宇宙参数）⇒ `intro h` 展开出来的 `h` 是 `@Eq.{u} …`（悬空
+变量），回读报 `unknown universe level u`（报错点离根因很远）。
+修法：`by` 引擎按**操作数的 sort** 算层级提示（与 `elab_notation` 给记法求层级
+**同一条规则**），两档算法不同且都必须对：
+
+| 形态 | 例 | 首实参是 | 层级 |
+|---|---|---|---|
+| 点名（实参 ≥ 形参） | `Ne (Set α) A B` | 那个类型参数自己 | `sort(首实参)`（**一步**；两步会得 `2`） |
+| 记法（实参 < 形参） | `A ≠ B` | 该项的项 | `sort(type(首实参))`（**两步**；一步会得 `0`） |
+
+回归：`crates/cli/tests/notation.rs::inequality_delta_unfolding_carries_the_right_universe_level`
+（四条：点名对照 / `intro` 记法形态 / `apply` 点名形态 / `Prop` 档）。
+判定仍在内核——层级错一条都过不了，所以"这些证明能过"本身就是判据。

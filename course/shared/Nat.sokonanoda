@@ -8,17 +8,17 @@ inductive Nat : Type
 ctor zero : Nat
 ctor succ (n : Nat) : Nat
 rec Nat.rec {u} :
-  (motive : (n : Nat) -> Sort u) ->
-  (mz : motive zero) ->
-  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
-  (n : Nat) -> motive n
+  (motive : (n : Nat) → Sort u) →
+  (mz : motive zero) →
+  (ms : (n : Nat) → motive n → motive (succ n)) →
+  (n : Nat) → motive n
 iota zero :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+  fun (ms : (n : Nat) → motive n → motive (succ n)) => mz
 iota succ :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (ms : (n : Nat) → motive n → motive (succ n)) =>
   fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end

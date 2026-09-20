@@ -173,10 +173,21 @@ struct ByStepState { span: Span, goal: Option<String>, binders: Vec<GoalBinder> 
 ## 7. 课程（三件套之课程）
 
 - `course/` 新增单元 6「by 写法」（中文），配套英文镜像（双语纪律沿用）；
-  讲解 `by` 语法 + 五个 tactic，练习题逐题渐进（先 intro+exact，再
-  assumption/rfl，最后 apply 拆目标）；
+  讲解 `by` 语法 + **首期五个 tactic**（当时的白名单），练习题逐题渐进（先
+  intro+exact，再 assumption/rfl，最后 apply 拆目标）；
 - `playground.sokonanoda` 追加 2–3 道 by 练习题（含一道 apply And.intro）；
-- 白名单 = 解析器只认这五个 tactic + `by` 关键字。
+- 白名单 = 解析器只认**当时那五个** tactic + `by` 关键字（**已扩充，见下**）。
+
+> **as-built（R2/R3，2026-09-21）**：白名单此后长到 ~16 条（`constructor` /
+> `left` / `right` / `use` / `cases` / `have` / `exfalso` / `match` / `⟨a, b⟩` …，
+> 清单见 `skills/sokonanoda-teacher/SKILL.md` 与 `docs/design/course-lean-style.md`
+> §L3）。**课程侧**：入门课的 by 单元现在是**单元④**（单元号在 P2 里变过），
+> 而本课 `And`/`Or` 是**自建骨架** ⇒ 单元④①⑧ 仍然只教
+> `intro`/`exact`/`apply`/`assumption`/`rfl`/`have`（`constructor`/`cases` 要真归纳，
+> 在这三个单元会报「需要目标是归纳类型」）；`left`/`right`/`cases` 只在
+> ⑨⑩⑪ 可用（那里 `Or` 是 `inductive`）。R3 实测，见
+> `docs/notes/course-lean-style/R3-rewrite-brief.md` §1 与
+> `docs/design/course-lean-style.md` §9「R3」。
 
 ## 8. 测试（三件套之测试）
 
@@ -221,4 +232,59 @@ struct ByStepState { span: Span, goal: Option<String>, binders: Vec<GoalBinder> 
   `by_block_multiline_application_is_one_tactic`、`by_block_semicolons_still_work_and_mix_with_newlines`、
   `by_block_does_not_consume_the_next_command`；CLI `cli_by_newline_separated_tactics_check_via_kernel`；
   `playground.sokonanoda` 的 `forall_and` 去掉行尾 `;` 作为活样例。
+
+## 12. as-built：判定携带声明的宇宙参数（0.62.0，R3 实测补）
+
+**症状（R3 把解答改写成 tactic 时撞上）**：目标里出现 `Sort u` / `Eq.{u}` 时，
+`theorem Eq.flip {u} : {α : Sort u} → … := by intro α a b h; exact Eq.subst.{u} …`
+报 `elab-tactic-failed: universe variable `u` is not declared in this declaration`。
+根因不在宇宙机制（`judge.rs` 早就把 `OpenGoalSpec.universe` 拼进合成声明的
+`Command::Def { universe }`，`judge_uses_carried_universe_for_sort_u_goals` 钉着它），
+而在 **by 引擎从来没把声明的宇宙参数填进 `OpenGoalSpec`**：`by.rs::spec_of` 与
+`spec_of_for_judge` 都硬写 `universe: Vec::new()`。后果是**宇宙多态定理一律写不了
+tactic**——卷 I 的 `Set.{u}` 遍地都是，这条不修，Lean 风格改写就是空话。
+
+**改动（全在 front，kernel 一行不动）**：把声明的宇宙参数名一路带到判定规格：
+
+```
+walk.rs  def/theorem 的 `universe: &[String]`
+  → lower_value → lower_by_val → by::run_by
+  → run_tactics → {apply_tactic, cases_tactic, ctor_tactic, exact_tactic}
+  → {judge, judge_with_levels, spec_of, spec_of_for_judge} → OpenGoalSpec.universe
+```
+
+- `example` 没有宇宙 binder：`walk.rs` 的 `example` 分支传 `&[]`（判定语义不变）。
+- `spec_of` / `spec_of_for_judge` 的 `universe` 从「硬写空」改成 `universe.to_vec()`。
+- 安全性：`universe` 为空（绝大多数声明、所有 `example`）时 `OpenGoalSpec` 与改动前
+  **逐字段相同** ⇒ 既有行为零变化，回归靠全量 `cargo test --workspace`。
+
+**测试**：front `by_block_carries_the_declaration_universe_parameters`（端到端：源文件
+→ `check_document` → `DeclStatus::Checked`）；课程语料 `course/solutions/unit5-universes-sort-solution.sokonanoda`
+的 `theorem Eq.symm {u} : {α : Sort u} → … := by …` 是活样例（它同时是
+`GOLDEN` 计数的锚点）。
+
+**同轮第二处（`cases` 的头解析认记法）**：`cases` 降低成 `match` 之前要
+`unfold_to_inductive` 把 `def` 的**体**代进来，而体的形态取决于**库怎么写**——
+`Or (A x) (B x)` 是 `App` 链，`A x ∨ B x`（记法）是记法节点。原先头解析用只走
+`Expr::App` 的 `spine_of`，于是「库改用记法」会把所有 `cases h`（`h : x ∈ A ∪ B`）
+整类打红（实测：卷 I 门禁 328/0 → 326/2）。改用 `spine_with_notation`（记法节点的
+头就是它的 `target`）。回归：
+`notation.rs::cases_sees_through_a_definition_body_written_with_notation`。
+
+**同轮第三处（binder 记法的实参位必须两处同款）**：`∃ (x : α), p x` 的
+**应用形态**是 `Exists α (fun (x : α) => p x)`——记法只写那个 lambda，而常量的
+第一个参数（域 `α`）在应用里也要占位。`spine::spine_with_notation` 一直有这条
+binder 分支，而 `elab.rs::src_spine`（2026-09-21 为「`have h : B ∨ C` 之后
+`cases h`」新加的记法分支）**漏了它** ⇒ 只拿到 1 个实参 ⇒ 参数化归纳报「书写类型
+需要显式给出 2 个参数」。触发条件很隐蔽：**只有定义体用 `∃` 写**（`lib/Image` 的
+`Set.image` 改成 `∃ (x : α), x ∈ A ∧ f x = y` 之后，单元⑧ 的 `cases hy` 整类打红）。
+两个函数都声称「记法节点的源像 = target(操作数…)」，**必须同款**。抓住它的是既有
+的两条测试：`cases_inside_a_have_block_keeps_every_constructor_field`、
+`cases_uses_the_canonical_type_so_notation_prefix_params_do_not_capture_context_names`。
+
+**已知未修（下一刀）**：`judge_infer`（`apply` / `cases` 推断被应用函数的类型）**仍不带**
+宇宙参数 —— 它合成的是 `#check fun (α : Sort u) => …`，而 `#check` 片段没有地方声明
+`u`。要修得换合成策略（例如把探针包进一个带 `{u}` 的临时 `def` 再取类型），
+不是加一个参数能解决的。症状：目标/假设里带宇宙变量时 `apply` 可能报未声明宇宙变量。
+
 

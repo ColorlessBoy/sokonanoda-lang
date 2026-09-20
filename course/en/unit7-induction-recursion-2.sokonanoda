@@ -25,18 +25,18 @@ inductive Nat : Type
 ctor zero : Nat
 ctor succ (n : Nat) : Nat
 rec Nat.rec {u} :
-  (motive : (n : Nat) -> Sort u) ->
-  (mz : motive zero) ->
-  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
-  (n : Nat) -> motive n
+  (motive : (n : Nat) → Sort u) →
+  (mz : motive zero) →
+  (ms : (n : Nat) → motive n → motive (succ n)) →
+  (n : Nat) → motive n
 iota zero :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+  fun (ms : (n : Nat) → motive n → motive (succ n)) => mz
 iota succ :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (ms : (n : Nat) → motive n → motive (succ n)) =>
   fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 
@@ -80,8 +80,8 @@ def valueOrZero (x : Option Nat) : Nat := match x with
 -- hypothesis `ih` has type `P k` (a dependent IH).
 -- ─────────────────────────────────────────────────────────────
 
-theorem nat_induction (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+theorem nat_induction (P : Nat → Prop) (hz : P zero)
+    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n :=
   match n with
   | zero => hz
   | succ k => hs k ih
@@ -91,8 +91,8 @@ theorem nat_induction (P : Nat -> Prop) (hz : P zero)
 -- soko:hint approach: match n splits into zero/succ: the zero arm hands over the base hz, the succ arm the step.
 -- soko:hint goal shape: the succ arm's goal is P (succ k), with k : Nat and ih : P k in context.
 -- soko:hint key piece: hs takes k and a proof of P k — hand it ih.
-theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+theorem nat_induction_open (P : Nat → Prop) (hz : P zero)
+    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n :=
   match n with
   | zero => hz
   | succ k => sorry
@@ -132,7 +132,7 @@ def predOpt (x : Option Nat) : Nat := match x with
 -- (v1 boundary: the match result type may not depend on the index itself.)
 -- ─────────────────────────────────────────────────────────────
 
-inductive Vec (A : Type) : Nat -> Type
+inductive Vec (A : Type) : Nat → Type
 ctor vnil : Vec A zero
 ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
 end

@@ -1,40 +1,40 @@
--- unit11-modules-projects-solution —— 单元⑪ 解答钥匙（agent 专用）
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+-- unit11-modules-projects-solution —— 单元⑪ 解答钥匙（agent 专用；画布不 import 它）
+-- And / Or 来自 prelude，Iff 是下面的 def——与画布逐字同形。
+def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
-inductive Or (A B : Prop) : Prop
-ctor inl (a : A) : Or A B
-ctor inr (b : B) : Or A B
-end
+theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
+  exact And.intro B A (And.right A B h) (And.left A B h)
 
-def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+theorem and_comm_imp_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A := by
+  intro h
+  exact And.intro B A (And.right A B h) (And.left A B h)
 
-theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
-  And.intro B A (And.right A B h) (And.left A B h)
+def and_left_x (A : Prop) (B : Prop) (h : A ∧ B) : A := by
+  exact And.left A B h
 
-theorem and_comm_imp_x (A : Prop) (B : Prop) : And A B -> And B A :=
-  fun (h : And A B) => And.intro B A (And.right A B h) (And.left A B h)
+theorem or_comm_x (A : Prop) (B : Prop) : A ∨ B → B ∨ A := by
+  intro h
+  cases h with
+  | inl a =>
+      right
+      exact a
+  | inr b =>
+      left
+      exact b
 
-def and_left_x (A : Prop) (B : Prop) (h : And A B) : A :=
-  And.left A B h
+example (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by
+  exact And.intro (A → B) (B → A) mp mpr
 
-theorem or_comm_x (A : Prop) (B : Prop) : Or A B -> Or B A :=
-  fun (h : Or A B) =>
-    match h with
-    | inl a => inr B A a
-    | inr b => inl B A b
+theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
+  exact and_comm A B h
 
-example (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
-  And.intro (A -> B) (B -> A) mp mpr
-
-theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : And A B) : And B A :=
-  and_comm A B h
-
-theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : And A (Or B C) -> Or (And A B) (And A C) :=
-  fun (h : And A (Or B C)) =>
-    let bc : Or B C := And.right A (Or B C) h;
-    match bc with
-    | inl b => inl (And A B) (And A C) (And.intro A B (And.left A (Or B C) h) b)
-    | inr c => inr (And A B) (And A C) (And.intro A C (And.left A (Or B C) h) c)
+theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by
+  intro h
+  have bc : B ∨ C := And.right A (B ∨ C) h
+  cases bc with
+  | inl b =>
+      left
+      exact And.intro A B (And.left A (B ∨ C) h) b
+  | inr c =>
+      right
+      exact And.intro A C (And.left A (B ∨ C) h) c

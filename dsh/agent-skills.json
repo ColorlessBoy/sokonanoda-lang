@@ -1,0 +1,66 @@
+{
+  "why": "维护者做 site/ 重构时用的第三方 agent 技能。载荷不入库（见 scripts/fetch-agent-skills.py 的文件头），配方入库。挑选标准只有一条：它必须能改变产出，而不是复述常识。",
+  "install": "python3 scripts/fetch-agent-skills.py",
+  "dest": ".dsh/skills",
+  "packs": [
+    {
+      "repo": "obra/superpowers",
+      "ref": "main",
+      "license": "MIT",
+      "strip": "skills/",
+      "why": "流程纪律。用户原话是「ai 比较急，为了完成完全忽略完美」——这一包正对着这个毛病：verification-before-completion 把「先跑验证命令、拿到输出，再声称完成」变成硬规则；subagent-driven-development 给出实现者/审查者/复审三段提示词，正是「每个环节一个 subagent + 独立验收」的做法。",
+      "skills": [
+        "verification-before-completion",
+        "subagent-driven-development",
+        "writing-plans",
+        "executing-plans",
+        "systematic-debugging",
+        "dispatching-parallel-agents",
+        "requesting-code-review",
+        "receiving-code-review",
+        "brainstorming"
+      ]
+    },
+    {
+      "repo": "addyosmani/agent-skills",
+      "ref": "main",
+      "license": "MIT",
+      "strip": "skills/",
+      "why": "工程质量。frontend-ui-engineering 明确以「看起来像大厂设计感知工程师做的，而不是 AI 生成的」为目标，并覆盖 WCAG；browser-testing-with-devtools 对应我们的 headless Chrome 验证链；performance-optimization 对应「快也很重要」这条要求。",
+      "skills": [
+        "frontend-ui-engineering",
+        "browser-testing-with-devtools",
+        "performance-optimization",
+        "code-review-and-quality",
+        "incremental-implementation",
+        "planning-and-task-breakdown",
+        "doubt-driven-development"
+      ]
+    },
+    {
+      "repo": "Lrinvl1203/world-class-web-design-os",
+      "ref": "main",
+      "license": "MIT",
+      "strip": ".codex/skills/",
+      "why": "设计审查。这一包的价值在「渲染后独立评审」这条链：ai-smell-detector 逐条列出没有项目理由就该算味道的模式（居中 hero + eyebrow + 两个 CTA、任意 bento/三卡网格…）；design-critic 要求先看截图、后看实现，且不许为既有实现辩护；visual-qa 把多视口截图、横向溢出、控制台错误变成可复现的证据集——与本仓 scripts/site-shot.py 直接对接。",
+      "skills": [
+        "art-direction",
+        "design-system",
+        "frontend-implementation",
+        "interaction-design",
+        "responsive-recomposition",
+        "visual-polish",
+        "ai-smell-detector",
+        "design-critic",
+        "visual-qa",
+        "a11y-performance"
+      ]
+    }
+  ],
+  "not_installed": [
+    {
+      "repo": "anthropics/skills",
+      "why": "frontend-design 等官方技能仓库**没有 LICENSE 文件**，README 只写「for demonstration and educational purposes only」。许可不明，不入库也不下载。它的原则已被 docs/design/site-rebuild/research/R1-design-craft.md 以引用+分析的形式吸收（R1 §1.2 逐字引用其「AI 设计聚类」清单）。"
+    }
+  ]
+}

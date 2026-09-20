@@ -2,11 +2,12 @@
 //! complete sokonanoda kernel over them.
 
 mod check;
-mod elab;
+pub(crate) mod elab;
 mod error;
 mod event;
 mod goals;
 pub mod hints;
+mod implicit;
 mod prelude;
 mod report;
 mod scope;

@@ -232,6 +232,24 @@ impl QueryDoc {
             .map(|project| project.modules.as_slice())
     }
 
+    /// 项目模式下：入口模块这次**编译成功**（`ModuleStatus::Compiled`）。
+    ///
+    /// LSP 用它决定「单文件 parse 失败」时是否仍然发报告（G-20 / X15）。
+    /// 为什么需要它：记法随 `import` 传播（G-04 第二刀）之后，用库记法的单元
+    /// **单文件必然 parse 失败**（`∈ ⊆ ∪ ∅` 不在本文件里），而闭包是好的
+    /// ——`is_project_source`（`project/mod.rs`）专门为这种情况留了退路。
+    /// 把闭包报告丢掉会让编辑器发**假**诊断、并让 hover / documentSymbol /
+    /// codeAction / inlayHint 全部回答 `null`，而同一份文本走 CLI 判卷 exit 0。
+    ///
+    /// 入口模块状态是 `LoadFailed`（**真的**有语法错误）时返回 `false`：
+    /// 那时老契约（parse 错误优先）才对，闭包报告是空的、会误导。
+    pub fn project_entry_compiled(&self) -> bool {
+        self.project
+            .as_ref()
+            .and_then(|project| project.entry_module())
+            .is_some_and(|module| module.status == crate::project::ModuleStatus::Compiled)
+    }
+
     /// 项目模式下：这个名字由**哪个模块**声明（返回模块路径与声明 span）。
     /// 跨文件跳转用（LSP `textDocument/definition`，I16 P5）；单文件模式返回
     /// `None`（调用方回退到请求文档自身）。
@@ -326,7 +344,17 @@ impl QueryDoc {
         // 是 `self.parse_error`。不合成进 `failed`，agent 的主判卷通道就会把
         // "这份文本根本解析不了"读成"文件里什么都没有"（G-10）。
         // `name` 保持 `None`：解析失败时没有可信的声明名。
-        if let Some(diag) = &self.parse_error {
+        //
+        // **例外：闭包把它救回来了**（G-20 同一条判据，LSP 侧已修）。记法随
+        // `import` 传播之后，用库记法的单元单文件**必然** parse 失败，而闭包是
+        // 好的——那条 parse 诊断是**救援过程的中间产物**，不是这份文件的结论。
+        // 报给 agent 会让正常文件看起来是坏的（实测：单元⑤ 改写后 `query check`
+        // 报 `∈` 未声明，而同一份文本 `grade` exit 0、计数 5/7——两条通道打架）。
+        if let Some(diag) = self
+            .parse_error
+            .as_ref()
+            .filter(|_| !self.project_entry_compiled())
+        {
             let (start_line, start_col, end_line, end_col) = line_col(diag.span);
             failed.push(FailedDecl {
                 name: None,

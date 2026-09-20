@@ -734,6 +734,7 @@ pub(crate) fn substitute_names(
         Expr::App { fun, arg, .. } => Expr::App {
             fun: Box::new(substitute_names(fun, map, levels)),
             arg: Box::new(substitute_names(arg, map, levels)),
+            explicit_spine: false,
             span: expr.span(),
         },
         Expr::Arrow {
@@ -750,6 +751,14 @@ pub(crate) fn substitute_names(
         },
         // 集合字面量（第三刀 §12.4）：逐元素代换。
         Expr::SetLiteral { elements, span } => Expr::SetLiteral {
+            elements: elements
+                .iter()
+                .map(|element| substitute_names(element, map, levels))
+                .collect(),
+            span: *span,
+        },
+        // 匿名构造子（L2.7）：逐元素代换。
+        Expr::AnonCtor { elements, span } => Expr::AnonCtor {
             elements: elements
                 .iter()
                 .map(|element| substitute_names(element, map, levels))
@@ -939,7 +948,13 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
         Expr::Num { value, .. } => Expr::Num { value, span },
         Expr::Hole { .. } => Expr::Hole { span },
         Expr::SetLiteral { elements, .. } => Expr::SetLiteral { elements, span },
-        Expr::App { fun, arg, .. } => Expr::App { fun, arg, span },
+        Expr::AnonCtor { elements, .. } => Expr::AnonCtor { elements, span },
+        Expr::App { fun, arg, .. } => Expr::App {
+            fun,
+            arg,
+            explicit_spine: false,
+            span,
+        },
         Expr::Lambda { binders, body, .. } => Expr::Lambda {
             binders,
             body,
@@ -1497,6 +1512,7 @@ fn goal_under_binders(
                             term = Expr::App {
                                 fun: Box::new(term),
                                 arg: Box::new(param.clone()),
+                                explicit_spine: false,
                                 span: arm.span,
                             };
                         }
@@ -1507,6 +1523,7 @@ fn goal_under_binders(
                                     name: binder.clone(),
                                     span: arm.span,
                                 }),
+                                explicit_spine: false,
                                 span: arm.span,
                             };
                         }
@@ -1601,6 +1618,7 @@ pub(crate) fn spine_without_arg(val: &Expr, span: Span) -> Option<Expr> {
         out = Expr::App {
             fun: Box::new(out),
             arg: Box::new((*arg).clone()),
+            explicit_spine: false,
             span: arg_span,
         };
     }

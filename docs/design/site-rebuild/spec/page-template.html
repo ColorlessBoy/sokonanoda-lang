@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- ─────────────────────────────────────────────────────────────────────
+     页面模板（D8）。每个页面从这里开始，不要凭记忆重写 head。
+     scripts/check-site.py 会逐条断言下面这些东西，缺一条就判红：
+       ① 有且只有一个 <h1>
+       ② <title> / meta description 非空
+       ③ <link rel="canonical"> / <meta name="theme-color"> / og:title / og:description / og:type
+       ④ 站内链接目标都存在（含 assets）
+       ⑤ HTML 里不出现字面版本号 `0.x.y`（版本一律来自 site/data/site.json）
+       ⑥ 导航块与页脚块与 site/_partials/ 逐字一致
+       ⑦ <body data-page> 与页脚里某个 data-nav 对得上
+       ⑧ 页面里至少有一个 .turnstile（全站唯一的记忆点），或列进 TURNSTILE_EXEMPT 并写理由
+       ⑨ 无内联 style=、无位图 <img>（favicon.svg 除外）
+       ⑩ 体积在预算内
+     ───────────────────────────────────────────────────────────────────── -->
+
+<title>页面标题 —— sokonanoda</title>
+<meta name="description" content="一句话说清这一页回答什么问题。40–80 字，不要形容词堆砌。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/PAGE.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="页面标题 —— sokonanoda">
+<meta property="og:description" content="与 meta description 同文。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site（→ editor，只有用到编辑器面板的页面才引） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<!-- <link rel="stylesheet" href="assets/editor.css">   ← kernel / walkthrough / editor 三页要引 -->
+
+<!-- 主题防闪烁：必须在样式之前同步执行，所以是内联的。
+     没有它，选了深色的读者每次翻页都会先闪一下白。 -->
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<!-- data-page 必须等于页脚里某个 data-nav 的值；gen-site-nav.py 会据此打 aria-current -->
+<body data-page="PAGE" data-root="./">
+
+<!--#nav-->
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <!-- ── 页头区 ────────────────────────────────────────────────────
+         面包屑只在层级页面用；首屏不要放 hero 大图（本站零位图）。
+         标题左对齐，不要居中——居中 hero 是被点名的 AI 长相。 -->
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li><a href="PARENT.html">上一级</a></li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">§1</p>
+      <h1>这一页的标题</h1>
+      <p class="lead">一段引言，说清这一页解决什么问题。不要复述标题。</p>
+    </header>
+
+    <!-- ── 正文 ──────────────────────────────────────────────────────
+         单栏。正文用 .measure（40rem ≈ 37.6 汉字 / 78 拉丁字符，
+         同时满足 WCAG 1.4.8 对 CJK 与拉丁的两个上限）。
+         宽版块（表格、面板、卡片网格）用 .wide。 -->
+    <section class="prose measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1.1</span> 小节标题</h2>
+      <p>正文段落。</p>
+
+      <!-- 推理横线：全站唯一的记忆点。每页 2–3 次，位置固定，别处保持安静。
+           上面是「给定」，下面是「待证」。⊢ 由 --font-symbols 渲染。 -->
+      <div class="turnstile" role="img" aria-label="给定假设推出目标">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">P</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">h</span> : <span class="tok-local">P</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">P</span></p>
+      </div>
+    </section>
+
+    <!-- ── 宽版块示例 ────────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 小节标题</h2>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>表格必须有 caption：读者与屏幕阅读器都靠它理解这张表在比什么。</caption>
+          <thead>
+            <tr><th scope="col">列一</th><th scope="col" class="num">数值</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">行一</th><td class="num">329</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+<!-- 用到编辑器面板的页面再加：<script src="assets/editor.js"></script> 之类，本站目前没有 -->
+</body>
+</html>

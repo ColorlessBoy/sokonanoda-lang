@@ -1,6 +1,110 @@
+## [0.62.0] - 2026-09-20
+
+### Added
+- **Type notation the Lean 4 way: `\and` + `Tab` becomes `∧`.** The editor now
+  rewrites the abbreviations Lean users already have in their fingers —
+  `\and` → `∧`, `\in` → `∈`, `\sub` → `⊆`, `\powerset` → `𝒫`, … — using the
+  **same 18-entry table the hover text is rendered from**
+  (`crates/front/src/notation_input.rs`, mirrored by
+  `src/abbreviations.js` and pinned by the contract test
+  `abbreviation_table_mirrors_the_single_source`). Every alias works too
+  (`\wedge`, `\mem`, `\emptyset`, `\preimage`, …). Hover any notation symbol to
+  see how to type it.
+- **`sokonanoda.input.eager`** (default **off**): replace an abbreviation as
+  soon as the word is complete, without waiting for `Tab`. While you keep
+  typing letters a prefix waits (`\an` waits for `\and`; `\in` waits for
+  `\inter`); a separator closes the word and finishes it (`\in ` → `∈ `,
+  `\sub ` → `⊆ `), so the short forms are reachable in eager mode too. A lone
+  `\` — the set-difference symbol — is never touched. A replacement is a single
+  edit, so **one undo takes it back in one step**, and multiple cursors are
+  rewritten in one edit without disturbing other selections.
+
+### Notes
+- `Tab` is only taken over while a `\`-abbreviation is being typed (a context
+  key set by the extension), so ordinary indentation and suggestion acceptance
+  in `.sokonanoda` files keep working. Design:
+  `docs/design/notation-input.md` (NI-2).
+
 ## [0.61.0] - 2026-09-19
 
 ### Added
+- **Anonymous constructors `⟨a, b⟩`.** The constructor is picked from the
+  **expected type** — `A ∧ B` ⇒ `And.intro`, `A ↔ B` ⇒ `Iff.intro`,
+  `∃ (x : α), p x` ⇒ `Exists.intro`, `Prod α β` ⇒ `Prod.mk`, and any
+  single-constructor inductive ⇒ its constructor — so `exact ⟨ha, hb⟩` and
+  `exact ⟨w, hw⟩` work with no lemma name. `⟨`/`⟩` are **syntax**, not notation
+  symbols (they are brackets, and the lexer's symbol runs would swallow `⟨∅`),
+  so they are coloured by a new `punctuation.section.anonctor` rule rather than
+  the generated math-symbol class. Reading no expected type reports the
+  dedicated `elab-anon-ctor-no-expected-type` with a teaching hint. Nested
+  `⟨a, ⟨b, h⟩⟩` is not supported yet (use `use` step by step). Design:
+  `docs/design/course-lean-style.md` L2.7.
+
+### Fixed
+- **`intro` renames the bound variable, so any name you pick works.**
+  `intro y` on `A ⊆ B` used to leave the goal mentioning the *definition's*
+  binder name (`x`) with nothing binding it, and the failure surfaced on a
+  later tactic as ``unknown identifier `x` ``. The engine now renames free
+  occurrences (capture-avoiding) when it peels a Pi layer.
+- **Delta unfolding no longer silently swaps variables, and goes several
+  layers deep.** `def Set.powerset (α) (A) := fun (B : Set α) => Set.subset α B A`
+  unfolded at `A ∈ 𝒫 B` used to substitute `A := B` under a lambda that also
+  binds `B`, turning the goal into `∀ x, A x → A x` — a *silent* wrong goal
+  whose error appeared later as ``expected `A x`, got `B x` ``. Substitution is
+  now capture-avoiding. `intro` / `constructor` / `left` / `right` / `use` also
+  unfold through up to four definition layers, so `intro x` works directly on
+  `A ∈ 𝒫 B` and `constructor` on `a ∈ B ∩ C`.
+- **`query check` and `grade` agree again on library-notation units.** When a
+  unit's single-file parse fails only because its symbols arrive through
+  `import`, the project closure rescues it — but `query check` still reported
+  that intermediate parse error in `failed[]` while `grade` exited 0 (gap G-20's
+  judgement, now applied on the query channel too).
+- **`≠` goals can now be proved, not just stated.** `Ne` is
+  `def Ne {u} (α : Sort u) (a b : α) : Prop := Eq.{u} α a b -> False`, so
+  `intro h` on `a ≠ b` has to unfold it — but neither spelling of `≠` carries
+  the level: the source AST is a *notation node* and the kernel's pretty-printer
+  writes the bare name `Ne` (implicit universe parameters are elided). The
+  unfolded hypothesis came out as `@Eq.{u} …` with a **dangling level variable**
+  and failed later with ``unknown universe level `u` ``, far from the cause.
+  The `by` engine now computes a **level hint from the operands' sorts** (the
+  same rule `elab_notation` uses to solve a notation's level), with the two
+  shapes handled separately: a pointful `Ne (Set α) A B` takes the sort of its
+  first argument (one step), a notated `A ≠ B` takes the sort of that argument's
+  *type* (two steps). Wrong guesses cannot pass silently — the level is still
+  judged by the kernel. The shipped unit ② canvas and solution are now written
+  in pure notation (`{a} ≠ ∅`, `{a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A`, `{a, b} = {b, a}`,
+  `{a} ∈ {{a}}`) with every proof in tactic style. Design:
+  `docs/design/course-lean-style.md` §9, `docs/design/notation-subset.md` §15.
+
+### Added
+- **`have` (the tactic) and readable type-mismatch errors.** `have h : T := t` and
+  `have h : T := by …` now work inside `by` blocks (lowered to `let h : T := t;
+  <rest>`, so the annotation gives the value an expected type — a nested `by`
+  that uses `cases` would otherwise fail with `elab-match-no-expected-type`).
+  A nested `by` is delimited by **indentation**, the same layout rule as `cases`
+  arms: the first tactic at or left of the `have`'s column belongs to the outer
+  block. Type mismatches now say `expected \`B\`, got \`C\`` instead of dumping the
+  folded Pi telescope (this also fixes `exact`), and the error points at the
+  offending line. `cases` and `have` were missing from the single keyword source
+  `front::semantic::KEYWORDS`, so neither was coloured or completed — both are in
+  now. Design: `docs/design/course-lean-style.md` L3.6.
+- **`=` and `≠` are built-in notations, and every shipped symbol is now
+  coloured.** `a = b` used to be a *lexical error* (`expected `=>``), so the
+  course had to spell equality `Eq.{1} (Set α) A B`; `≠` did not exist at all.
+  Both are now Lean-core spellings available in every file with **no
+  declaration**: `=` targets `Eq`, `≠` targets `Ne` (new in the L1 prelude's
+  `B9` family), and the **universe level is solved from the operand types** —
+  `A B : Prop` ⇒ `Eq.{0}`, `A B : Set α` ⇒ `Eq.{1}` — so `A = B` works at both
+  levels. The TextMate `mathsymbols` class was a hand-written codepoint range
+  (`U+2200–22FF` + `U+2A00–2AFF`) that silently missed `↔ ¬ 𝒫 ᶜ ⁻¹' ×ˢ`; it is
+  now an explicit class generated from the single source
+  `front::notation_input::notation_symbol_chars` and pinned by
+  `crates/cli/tests/extension.rs::tm_grammar_math_symbols_follow_the_single_source`.
+  Hovering a notation symbol now also explains **how to type it** (`\and` for
+  `∧`, "typed directly" for `=`), and hovering a symbol that came in through
+  `import` works again — the LSP used to discard the whole project report when
+  the single file failed to parse (gap G-20). Design:
+  `docs/design/course-lean-style.md` L2.3/L2.4b, `docs/design/notation-input.md`.
 
 - **`abbrev` and the notation spellings are highlighted as keywords (and
   completed).** `abbrev` (the Lean spelling of `def`), `prefix` / `postfix`

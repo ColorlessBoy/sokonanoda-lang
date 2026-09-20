@@ -1,8 +1,8 @@
 //! 递归下降解析器：tokens → AST（命令与表达式）。
 
 use super::ast::{
-    Binder, BinderKind, Command, CtorDecl, Expr, FolFile, IotaRule, MatchArm, NotationAssoc,
-    NotationDecl, OpenFilter, Pattern, RecDecl, SortKind, Tactic,
+    Binder, BinderKind, CasesArm, Command, CtorDecl, Expr, FolFile, HaveValue, IotaRule, MatchArm,
+    NotationAssoc, NotationDecl, OpenFilter, Pattern, RecDecl, SortKind, Tactic,
 };
 use super::diagnostic::{Diagnostic, DiagnosticKind, Result};
 use super::span::Span;
@@ -61,6 +61,9 @@ pub struct Parser {
     /// tactic 解析期间 > 0：让换行处的 tactic 关键字终止当前表达式，
     /// 使 `by` 块可以省略分隔用的 `;`（tactic 之间换行即分隔）。
     by_depth: usize,
+    /// **Lean 的 `@`（IA-1）**：`parse_atom` 见到 `@` 置位，`parse_app` 取走
+    /// 并把它写进这条脊的每个 `Expr::App` 节点（`explicit_spine`）。
+    saw_at: bool,
     /// **本文件已声明**的记法：符号 → 条目（声明顺序）。作用域 = 文件内、
     /// 声明之后（`docs/design/notation-subset.md` N5），外加**继承表**里的跨
     /// `import` 记法（第二刀 §10.3：被导入模块声明的记法从文件头就可用）。
@@ -148,6 +151,20 @@ impl Parser {
         let mut notations: HashMap<String, Vec<NotationEntry>> = HashMap::new();
         let mut scoped_pending: Vec<ScopedNotation> = Vec::new();
         let mut inherited_symbols = std::collections::HashSet::new();
+        // 内建记法先入表：它们在**任何**文件里都生效，且**不能被重声明**
+        // （见 `register_notation`）——内建是语言的一部分，不是可覆盖的糖。
+        for (symbol, assoc, precedence, target) in BUILTIN_NOTATIONS {
+            inherited_symbols.insert((*symbol).to_string());
+            notations.insert(
+                (*symbol).to_string(),
+                vec![NotationEntry {
+                    symbol: (*symbol).to_string(),
+                    precedence: Some(*precedence),
+                    assoc: *assoc,
+                    target: (*target).to_string(),
+                }],
+            );
+        }
         for decl in inherited {
             let entry = NotationEntry {
                 symbol: decl.symbol.clone(),
@@ -172,6 +189,7 @@ impl Parser {
             cursor: 0,
             scrutinee_depth: 0,
             by_depth: 0,
+            saw_at: false,
             notations,
             scoped_pending,
             opened_scopes: Vec::new(),
@@ -949,6 +967,14 @@ impl Parser {
         scope: Option<String>,
         span: Span,
     ) -> Result<()> {
+        if BUILTIN_NOTATIONS.iter().any(|(s, _, _, _)| *s == symbol) {
+            return Err(self.notation_shape_error(
+                &format!(
+                    "符号 `{symbol}` 是**语言内建记法**（Lean core 级的逻辑符号），不需要也不能重新声明；直接用就行"
+                ),
+                span,
+            ));
+        }
         if self.inherited_symbols.contains(&symbol) {
             return Err(self.notation_shape_error(
                 &format!(
@@ -1212,8 +1238,111 @@ impl Parser {
         Ok(Expr::By { tactics, span })
     }
 
+    /// `cases … with` 之后的分支序列：`| <ctor> <binder>… => <tactics>` 重复。
+    ///
+    /// **臂体用缩进界定**（本语言唯一的缩进敏感处，与 Lean 的 layout 同义）：
+    /// 下一个 tactic 关键字出现在**比 `|` 更深**的列上 ⇒ 它属于当前臂；
+    /// 否则当前臂到此为止。没有这条规则就无法区分
+    /// 「臂体还有一步」与「cases 写完了、后面是外层的 tactic」——
+    /// 而 `;` 分隔符在多行臂体里写起来很别扭。
+    fn parse_cases_arms(&mut self) -> Result<Vec<CasesArm>> {
+        let mut arms = Vec::new();
+        while matches!(self.peek().kind, TokenKind::Pipe) {
+            let pipe = self.bump();
+            let ctor_tok = self.bump();
+            let TokenKind::Ident(ctor) = &ctor_tok.kind else {
+                return Err(self.error_here("`cases` 分支需要构造子名"));
+            };
+            let ctor = ctor.clone();
+            let mut binders = Vec::new();
+            while let TokenKind::Ident(name) = &self.peek().kind {
+                if name == "with" || is_tactic_keyword(name) {
+                    break;
+                }
+                let name_tok = self.bump();
+                if let TokenKind::Ident(name) = name_tok.kind {
+                    binders.push(name);
+                }
+            }
+            if !matches!(self.peek().kind, TokenKind::FatArrow) {
+                return Err(self.error_here("`cases` 分支需要 `=>`"));
+            }
+            self.bump();
+            let tactics = self.parse_tactic_sequence_in_arm(pipe.span.start.column)?;
+            let end = tactics
+                .last()
+                .map(|t| t.span().end)
+                .unwrap_or_else(|| self.tokens[self.cursor - 1].span.end);
+            arms.push(CasesArm {
+                ctor,
+                binders,
+                tactics,
+                span: Span::new(pipe.span.start, end),
+            });
+        }
+        if arms.is_empty() {
+            return Err(self
+                .error_here("`cases … with` 后面至少要有一个分支（`| 构造子 名字… => tactic`）"));
+        }
+        Ok(arms)
+    }
+
+    /// 臂体的 tactic 序列：直到「下一个 `|`」或「下一个 tactic 关键字不在
+    /// `pipe_column` 的更深列上」。
+    fn parse_tactic_sequence_in_arm(&mut self, pipe_column: usize) -> Result<Vec<Tactic>> {
+        let mut tactics = Vec::new();
+        if !self.tactic_keyword_ahead() {
+            return Ok(tactics);
+        }
+        loop {
+            tactics.push(self.parse_tactic()?);
+            match self.peek().kind {
+                TokenKind::Semicolon => {
+                    self.bump();
+                }
+                TokenKind::Pipe => break,
+                _ => {
+                    if !self.next_line_starts_a_tactic()
+                        || self.peek().span.start.column <= pipe_column
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        Ok(tactics)
+    }
+
     fn tactic_keyword_ahead(&self) -> bool {
         matches!(&self.peek().kind, TokenKind::Ident(kw) if is_tactic_keyword(kw))
+    }
+
+    /// `have h : T := by` 的**嵌套** tactic 序列：用**缩进**界定。
+    ///
+    /// 与 `cases` 臂体同一条规则（本语言仅有的两处 layout）：第一个列号
+    /// **≤ `have` 所在列**的 tactic 属于**外层**块。没有它，嵌套 `by` 会把外层
+    /// 剩下的 tactic 全吞掉（`next_line_starts_a_tactic` 只看行号、不看缩进）。
+    fn parse_nested_tactic_sequence(&mut self, have_column: usize) -> Result<Vec<Tactic>> {
+        let mut tactics = Vec::new();
+        if !self.tactic_keyword_ahead() {
+            return Ok(tactics);
+        }
+        loop {
+            tactics.push(self.parse_tactic()?);
+            match self.peek().kind {
+                TokenKind::Semicolon => {
+                    self.bump();
+                }
+                _ => {
+                    if !self.next_line_starts_a_tactic()
+                        || self.peek().span.start.column <= have_column
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        Ok(tactics)
     }
 
     /// 刚消费完的 token（`cursor - 1`）的结束行；空输入返回 0。
@@ -1242,13 +1371,30 @@ impl Parser {
         match &tok.kind {
             TokenKind::Ident(kw) if kw == "intro" => {
                 self.bump();
-                let name_tok = self.bump();
-                let TokenKind::Ident(name) = &name_tok.kind else {
+                // `intro a b c`（Lean 常态，设计
+                // `docs/design/course-lean-style.md` L1.3）：吃一串名字，
+                // 但**遇到 tactic 关键字就停**——`intro h` 换行后写
+                // `exact h` / `apply f` / `assumption` 是常态，那些关键字
+                // 绝不能被当成 binder 名（改前 `intro` 无名时会把下一行的
+                // `exact` 整个吃掉，见 S2 审计的 E02）。
+                let mut names: Vec<String> = Vec::new();
+                let mut end = tok.span.end;
+                while let TokenKind::Ident(name) = &self.peek().kind {
+                    if is_tactic_keyword(name) {
+                        break;
+                    }
+                    let name_tok = self.bump();
+                    end = name_tok.span.end;
+                    if let TokenKind::Ident(name) = name_tok.kind {
+                        names.push(name);
+                    }
+                }
+                if names.is_empty() {
                     return Err(self.error_here("`intro` binder name"));
-                };
+                }
                 Ok(Tactic::Intro {
-                    name: name.clone(),
-                    span: Span::new(tok.span.start, name_tok.span.end),
+                    names,
+                    span: Span::new(tok.span.start, end),
                 })
             }
             TokenKind::Ident(kw) if kw == "exact" => {
@@ -1289,12 +1435,103 @@ impl Parser {
                     span: Span::new(tok.span.start, end),
                 })
             }
+            TokenKind::Ident(kw) if kw == "constructor" => {
+                self.bump();
+                Ok(Tactic::Constructor { span: tok.span })
+            }
+            TokenKind::Ident(kw) if kw == "left" => {
+                self.bump();
+                Ok(Tactic::Left { span: tok.span })
+            }
+            TokenKind::Ident(kw) if kw == "right" => {
+                self.bump();
+                Ok(Tactic::Right { span: tok.span })
+            }
+            TokenKind::Ident(kw) if kw == "exfalso" => {
+                self.bump();
+                Ok(Tactic::Exfalso { span: tok.span })
+            }
+            TokenKind::Ident(kw) if kw == "have" => {
+                // `have h : T := t` / `have h : T := by …`（L3.6）。
+                // 类型标注**必填**：本语言不做隐式实参推断，省了类型就判不了
+                // `t : T`（要一般合一）。Lean 允许 `have h := t`，这里明确不做。
+                let have_column = tok.span.start.column;
+                self.bump();
+                let name_tok = self.bump();
+                let TokenKind::Ident(name) = &name_tok.kind else {
+                    return Err(self.error_here("`have` binder name"));
+                };
+                let name = name.clone();
+                if !matches!(self.peek().kind, TokenKind::Colon) {
+                    return Err(self.error_here("`:` after the `have` binder name"));
+                }
+                self.bump();
+                let ty = self.parse_expr()?;
+                if !matches!(self.peek().kind, TokenKind::ColonEq) {
+                    return Err(self.error_here("`:=` after the `have` type"));
+                }
+                self.bump();
+                let (value, end) = if matches!(&self.peek().kind, TokenKind::Ident(kw) if kw == "by")
+                {
+                    self.bump(); // `by`
+                    let tactics = self.parse_nested_tactic_sequence(have_column)?;
+                    let end = tactics
+                        .last()
+                        .map(|t| t.span().end)
+                        .unwrap_or_else(|| self.tokens[self.cursor - 1].span.end);
+                    (HaveValue::By(tactics), end)
+                } else {
+                    let expr = self.parse_expr()?;
+                    let end = expr.span().end;
+                    (HaveValue::Term(expr), end)
+                };
+                Ok(Tactic::Have {
+                    name,
+                    ty,
+                    value,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
+            TokenKind::Ident(kw) if kw == "use" => {
+                self.bump();
+                let expr = self.parse_expr()?;
+                let end = expr.span().end;
+                Ok(Tactic::Use {
+                    expr,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
+            TokenKind::Ident(kw) if kw == "cases" => {
+                self.bump();
+                // 与 `match` 的 scrutinee 同款：`with` 不能被吃成实参
+                // （`scrutinee_depth` 让 `starts_atom` 对 `with` 让路）。
+                self.scrutinee_depth += 1;
+                let expr = self.parse_expr();
+                self.scrutinee_depth -= 1;
+                let expr = expr?;
+                let mut end = expr.span().end;
+                let mut arms = Vec::new();
+                // 可选的 `with` + 分支。`cases h`（不带 with）是合法写法：
+                // 引擎按构造子声明顺序造子目标，分支假设用构造子的字段名。
+                if matches!(&self.peek().kind, TokenKind::Ident(k) if k == "with") {
+                    self.bump();
+                    arms = self.parse_cases_arms()?;
+                    if let Some(last) = arms.last() {
+                        end = last.span.end;
+                    }
+                }
+                Ok(Tactic::Cases {
+                    expr,
+                    arms,
+                    span: Span::new(tok.span.start, end),
+                })
+            }
             TokenKind::Ident(kw) if kw == "sorry" => {
                 self.bump();
                 Ok(Tactic::Sorry { span: tok.span })
             }
             _ => Err(self.error_here(&format!(
-                "未知 tactic：`by` 块只支持 intro / exact / apply / assumption / rfl / match / sorry（白名单），发现 {tok:?}"
+                "未知 tactic：`by` 块只支持 intro / exact / apply / assumption / rfl / match / constructor / left / right / use / exfalso / cases / sorry（白名单），发现 {tok:?}"
             ))),
         }
     }
@@ -1925,6 +2162,19 @@ impl Parser {
     /// 同级连写检查（`a ∈ b ∈ c` 报解析错——v1 不做 Lean 的「需要括号」诊断，
     /// 设计 N3）。
     fn parse_operand(&mut self, op: &BinaryOp, min_precedence: u16) -> Result<Expr> {
+        // **`∀`/`∃` 可以当算子的右操作数，并且一直吃到表达式结尾**
+        // （Lean 的读法：它们的优先级最低、向右最大吞噬）。
+        //
+        // 没有这一条，课程里最常见的形状会直接 parse 失败：
+        //     (A ⊆ B) ↔ ∀ (x : α), A x → B x      -- 报 expected an expression, found Forall
+        //     P → ∃ (x : α), Q x
+        // 学习者是照着数学书写 `↔ ∀ …,` 的，逼他们加一层括号不该是这门语言的行为。
+        // 语义**没有新东西**：只是把「`∀`/`∃` 只能出现在表达式开头」放宽到
+        // 「出现在算子右侧时，它拥有整个右侧」——与 `fun`/`let`/`match` 在实参位
+        // 必须加括号的规则并不冲突（它们**不**在这里放行）。
+        if self.leading_binder_ahead() {
+            return self.parse_expr();
+        }
         let rhs = self.parse_operators(min_precedence)?;
         if op.assoc == NotationAssoc::Infix {
             if let Some(next) = self.binary_op_ahead(op.precedence) {
@@ -1938,6 +2188,16 @@ impl Parser {
             }
         }
         Ok(rhs)
+    }
+
+    /// 下一个 token 是不是 `∀` 或已声明的 binder 记法（`∃`）——它们可以当
+    /// 算子的右操作数，并吃到表达式结尾（见 [`Self::parse_operand`]）。
+    fn leading_binder_ahead(&self) -> bool {
+        match &self.peek().kind {
+            TokenKind::Forall => true,
+            TokenKind::Sym(symbol) => self.is_binder_notation(symbol),
+            _ => false,
+        }
     }
 
     /// 下一个 token 是不是**优先级 ≥ `min_precedence`** 的二元算子。
@@ -2036,6 +2296,10 @@ impl Parser {
 
     fn parse_app(&mut self) -> Result<Expr> {
         let mut fun = self.parse_prefix_head()?;
+        // Lean 的 `@`（IA-1）：`parse_atom` 见到 `@` 就置位 ⇒ 这条脊的每个 App
+        // 节点都带 `explicit_spine`，前端**不插**隐式实参。取走即清（`@` 只
+        // 作用于紧跟的那一条脊）。
+        let explicit = std::mem::take(&mut self.saw_at);
         loop {
             // **一元前缀记法在实参位免括号**（第三刀 §12.5）：`f 𝒫 A` 就是
             // `f (𝒫 A)`。今天它是**响亮的 parse 错**（"前缀记法不能夹在两个
@@ -2054,6 +2318,7 @@ impl Parser {
             fun = Expr::App {
                 fun: Box::new(fun),
                 arg: Box::new(arg),
+                explicit_spine: explicit,
                 span,
             };
         }
@@ -2109,6 +2374,9 @@ impl Parser {
             // 合法）；`{x : T}` 形状**不是**（那是 binder，binder 位置在
             // `∀`/`fun`/声明里，见 `set_literal_ahead`）。
             TokenKind::LBrace => self.set_literal_ahead(),
+            // 匿名构造子 `⟨a, b⟩` 是原子（`f ⟨a, b⟩` 合法）——它自带括号，
+            // 不会像一元记法那样把实参边界搞糊。
+            TokenKind::Langle => true,
             // 记法符号**不得**被当作应用实参：已声明的**零元**记法是一个原子
             // （`f ∅` 合法），二元/前缀记法与未声明符号都让路（设计 N2/N3、
             // 第二刀 §10.1——`f 𝒫 A` 要写成 `f (𝒫 A)`）。
@@ -2198,12 +2466,56 @@ impl Parser {
         })
     }
 
+    /// `⟨a, b⟩`（课程 Lean 化 L2.7）：**匿名构造子**，1 个及以上元素。
+    ///
+    /// 用哪个构造子由**期望类型**在 elab 期决定（路线 C，不引入元变量），
+    /// 所以这里只负责形状：`⟨` 元素 `,` … `⟩`。逗号必需（`⟨a b⟩` 报错），
+    /// 与 Lean 的 `⟨_, _⟩` 一致；空 `⟨⟩` 给专用诊断。
+    fn parse_anon_ctor(&mut self, open: Span) -> Result<Expr> {
+        if self.peek().kind == TokenKind::Rangle {
+            let close = self.peek().span;
+            return Err(Diagnostic::new(
+                DiagnosticKind::SetLiteralShape {
+                    detail: "空匿名构造子 `⟨⟩`".to_string(),
+                },
+                Span::new(open.start, close.end),
+                "`⟨⟩` 里至少要写一个元素：`⟨a, b⟩` 是匿名构造子（用哪个构造子由期望类型决定）"
+                    .to_string(),
+            ));
+        }
+        let mut elements = vec![self.parse_expr()?];
+        while self.peek().kind == TokenKind::Comma {
+            self.bump();
+            elements.push(self.parse_expr()?);
+        }
+        let close = self.peek().clone();
+        if close.kind != TokenKind::Rangle {
+            return Err(Diagnostic::new(
+                DiagnosticKind::SetLiteralShape {
+                    detail: format!("expected `⟩`, found {:?}", close.kind),
+                },
+                close.span,
+                "匿名构造子要写成 ⟨a, b⟩：元素之间用 `,` 隔开，最后用 `⟩` 收尾".to_string(),
+            ));
+        }
+        self.bump();
+        Ok(Expr::AnonCtor {
+            elements,
+            span: Span::new(open.start, close.span.end),
+        })
+    }
+
     fn parse_atom(&mut self) -> Result<Expr> {
         let tok = self.bump();
         match tok.kind {
             // 集合字面量（第三刀 §12.4）：`{a}` / `{a, b}`。
             TokenKind::LBrace => self.parse_set_literal(tok.span),
+            // 匿名构造子（课程 Lean 化 L2.7）：`⟨a, b⟩`。
+            TokenKind::Langle => self.parse_anon_ctor(tok.span),
             TokenKind::At => {
+                // IA-1：`@` 关闭隐式实参插入（Lean 语义）。parser 只把这条信息
+                // 传给 `parse_app` 建的 App 节点（`saw_at`），elab 侧读它。
+                self.saw_at = true;
                 let tok = self.bump();
                 match tok.kind {
                     TokenKind::Ident(name) => self.finish_const(name, tok.span),
@@ -2579,9 +2891,11 @@ impl Parser {
                             span: and_span,
                         }),
                         arg: Box::new(guard),
+                        explicit_spine: false,
                         span: and_span,
                     }),
                     arg: Box::new(body),
+                    explicit_spine: false,
                     span,
                 }
             }
@@ -2786,6 +3100,73 @@ impl Parser {
     }
 }
 
+/// **内建记法**（课程 Lean 化，设计 `docs/design/course-lean-style.md` L2.2）：
+/// Lean core 级的逻辑符号，**任何 `.sokonanoda` 文件开箱可用**，不需要
+/// `infix`/`prefix` 声明——地位与 Lean 的 `Init` 记法一致。
+///
+/// 为什么是**内建表**而不是写进 prelude：`install_l1_prelude` 的
+/// `command_belongs_to`（`compile/prelude.rs`）只认 `Axiom`/`Def`/
+/// `InductiveBlock`，**记法命令写进 `PRELUDE_L1_SRC` 会被静默忽略**（实测）；
+/// 而内建表天然解决「让位 / 重声明 / 跨 import / 作用域」四个问题。
+///
+/// 优先级照 Lean core：`↔`20 < `∨`30 < `∧`35 < `¬`40（`->` 比它们都松）。
+/// 目标名在**使用点**解析：`And`/`Or`/`Iff`/`Not` 来自 prelude（或课程自己
+/// 声明的同名块），缺了报「未知标识符」。
+///
+/// `=`50 与 `≠`50 是后加的（设计 L2.4b / L2.3，SP1）：Lean core 里它们就是
+/// `Eq` / `Ne` 的中缀记法，而本语言从前**连词法都没有**（`a = b` 报
+/// `expected `=>``）⇒ 课程满屏 `Eq.{1} (Set α) A B`。`=`/`≠` 的**宇宙层级**
+/// 由 `elab_notation` 从操作数类型的 sort 解出（`Eq`/`Ne` 各带一个 `u`，
+/// 不能像 `And` 那样全填 0）。
+///
+/// `→`（U+2192）**不在**这张表里：函数空间不是常量，记法只产出
+/// `mk_const`/`mk_app`，它没有目标名可指——`→` 走**词法别名**（`token.rs`）。
+const BUILTIN_NOTATIONS: &[(&str, NotationAssoc, u16, &str)] = &[
+    ("∧", NotationAssoc::Infixr, 35, "And"),
+    ("∨", NotationAssoc::Infixr, 30, "Or"),
+    ("↔", NotationAssoc::Infix, 20, "Iff"),
+    ("¬", NotationAssoc::Prefix, 40, "Not"),
+    ("=", NotationAssoc::Infix, 50, "Eq"),
+    ("≠", NotationAssoc::Infix, 50, "Ne"),
+];
+
+/// 内建记法的符号文本（喂给词法：`↔`/`¬`/`≠` 不在数学码点类里，不喂就切不出来）。
+pub(crate) fn builtin_notation_symbols() -> Vec<String> {
+    BUILTIN_NOTATIONS
+        .iter()
+        .map(|(symbol, _, _, _)| (*symbol).to_string())
+        .collect()
+}
+
+/// 内建记法的**展开目标**（`=` → `Eq`、`∧` → `And`）。
+///
+/// hover 要告诉学习者「这个符号展开成什么」（设计 `docs/design/notation-input.md`
+/// §4）：内建符号在本文件里**没有声明行**，所以目标只能从这张表来。
+pub fn builtin_notation_target(symbol: &str) -> Option<&'static str> {
+    BUILTIN_NOTATIONS
+        .iter()
+        .find(|(candidate, _, _, _)| *candidate == symbol)
+        .map(|(_, _, _, target)| *target)
+}
+
+/// **喂给词法**的内建符号：与 [`builtin_notation_symbols`] 相同，但剔除
+/// 「词法有专用分支」的 ASCII 符号。
+///
+/// 今天只有 `=` 属于这一类。**为什么必须剔除**：词法的符号匹配是**最长匹配**，
+/// 且排在专用分支之前；`=` 一旦进了符号表，`=>` 就会被吃成 `=` + `>`，
+/// 于是 `fun (x) => …` 全炸（实测：L1 prelude 第 9 行的 `=>` 当场解析失败）。
+/// `=` 由 `token.rs` 的 `'='` 分支**原生**产出（`Sym("=")`，后面跟 `>` 时仍走
+/// `FatArrow`）⇒ 词法不需要也不该再把它当候选符号。
+pub(crate) fn lexer_builtin_symbols() -> Vec<String> {
+    builtin_notation_symbols()
+        .into_iter()
+        .filter(|symbol| !LEXER_NATIVE_SYMBOLS.contains(&symbol.as_str()))
+        .collect()
+}
+
+/// 词法有专用分支的 ASCII 符号（见 [`lexer_builtin_symbols`]）。
+const LEXER_NATIVE_SYMBOLS: &[&str] = &["="];
+
 pub fn parse(src: &str) -> Result<FolFile> {
     parse_with_inherited(src, &[])
 }
@@ -2795,6 +3176,11 @@ pub fn parse(src: &str) -> Result<FolFile> {
 /// 也进 parser 的算子表。空继承表 ⇒ [`parse`] 逐字节相同。
 pub fn parse_with_inherited(src: &str, inherited: &[NotationDecl]) -> Result<FolFile> {
     let mut symbols = scan_notation_symbols(src);
+    for symbol in lexer_builtin_symbols() {
+        if !symbols.contains(&symbol) {
+            symbols.push(symbol);
+        }
+    }
     for decl in inherited {
         if !symbols.contains(&decl.symbol) {
             symbols.push(decl.symbol.clone());
@@ -2815,6 +3201,11 @@ pub fn parse_fragment(src: &str) -> Result<FolFile> {
 /// [`parse_fragment`] 的继承表版本（判卷合成路径不跨模块，留作对称入口）。
 pub fn parse_fragment_with_inherited(src: &str, inherited: &[NotationDecl]) -> Result<FolFile> {
     let mut symbols = scan_notation_symbols(src);
+    for symbol in lexer_builtin_symbols() {
+        if !symbols.contains(&symbol) {
+            symbols.push(symbol);
+        }
+    }
     for decl in inherited {
         if !symbols.contains(&decl.symbol) {
             symbols.push(decl.symbol.clone());
@@ -2841,7 +3232,20 @@ fn is_expr_keyword(name: &str) -> bool {
 fn is_tactic_keyword(name: &str) -> bool {
     matches!(
         name,
-        "intro" | "exact" | "apply" | "assumption" | "rfl" | "match" | "sorry"
+        "intro"
+            | "exact"
+            | "apply"
+            | "assumption"
+            | "rfl"
+            | "match"
+            | "constructor"
+            | "left"
+            | "right"
+            | "use"
+            | "exfalso"
+            | "cases"
+            | "have"
+            | "sorry"
     )
 }
 

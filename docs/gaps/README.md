@@ -11,7 +11,7 @@
 |---|---|
 | `ledger.jsonl` | 台账本体：一行一条 JSON（schema 见设计 §6.2），机器可读、可 diff。`kind` 现在有四类：`language` / `tooling` / `infra` / **`library`**（标准库欠账，另有 `owner`: `prelude`/`course-lib`/`exercise` 与 `lean_names`） |
 | `spike/` | **试做稿**：卷 I 前两个单元真写一遍的现场（`lib/` 66 条 + `units/` 16 题），产出 L-01…L-05；报告见 `spike/README.md` |
-| `repro/` | 每条缺口的**最小复现**（`.sokonanoda` / 自断言 `.sh` / 小项目夹具），必须入库 |
+| `repro/` | 每条缺口的**最小复现**（`.sokonanoda` / 自断言 `.sh` / 小项目夹具），必须入库。**LSP 层的缺口**用「`.sh` 外壳 + 同目录 `.js` 探针」：台账只认 `.sh`（它用 `bash` 跑），而驱动 LSP over stdio 需要 JSON-RPC 客户端——外壳 `exec node` 到隔壁的 `.js`，退出码约定不变（样板见 `G20-lsp-drops-rescued-report.{sh,js}`） |
 | `../scripts/gap.py` | 台账工具：`list` / `show` / `next` / `check` / `close`（见下） |
 
 ## 日常命令

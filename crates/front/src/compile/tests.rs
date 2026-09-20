@@ -1484,7 +1484,12 @@ fn render_expr_round_trips() {
         ("(x : Prop) -> x", "(x : Prop) -> x"),
         ("1 + 1", "1 + 1"),
         ("sorry", "sorry"),
-        ("@Eq.{u, v}", "@Eq.{u, v}"),
+        // IA-1：`@` 成了真语义（关闭隐式实参插入）。**没有实参**时 `@f` 与
+        // `f` 的项相同 ⇒ 渲染丢掉那个孤立的 `@`（判卷通道往返要求"渲染 →
+        // 回读"不改含义）；**带实参**时 `@` 必须打回来（下面两条）。
+        ("@Eq.{u, v}", "Eq.{u, v}"),
+        ("@f a b", "@f a b"),
+        ("@f.{u} a b", "@f.{u} a b"),
         // Forall 作箭头 domain：必须补括号（judge_infer 往返健壮性）。
         (
             "((k : Nat) -> P k -> P (succ k)) -> Nat -> Prop",
@@ -1552,6 +1557,7 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabLetTypeQueryFailed,
         ErrorKind::ElabNotationUnknownTarget,
         ErrorKind::ElabNotationArgumentUnsolved,
+        ErrorKind::ElabImplicitArgumentUnsolved,
         ErrorKind::ElabNotationAmbiguous,
         ErrorKind::ElabNotationNoCandidate,
         ErrorKind::ElabBinderNotationUnsolved,
@@ -1606,10 +1612,12 @@ fn protocol_doc_lists_every_error_code() {
         ErrorKind::ElabLetTypeQueryFailed => {}
         ErrorKind::ElabNotationUnknownTarget => {}
         ErrorKind::ElabNotationArgumentUnsolved => {}
+        ErrorKind::ElabImplicitArgumentUnsolved => {}
         ErrorKind::ElabNotationAmbiguous => {}
         ErrorKind::ElabNotationNoCandidate => {}
         ErrorKind::ElabBinderNotationUnsolved => {}
         ErrorKind::ElabSetLiteralUnknownTarget => {}
+        ErrorKind::ElabAnonCtorNoExpectedType => {}
         ErrorKind::KernelExpectedSort => {}
         ErrorKind::KernelExpectedPi => {}
         ErrorKind::KernelTheoremNotProp => {}
@@ -1903,10 +1911,11 @@ fn l1_taken_includes_ctors_and_recursors() {
 fn prelude_names_match_installs() {
     // 设计 §3.3 的守卫：数字变了必须是有意为之（review 时一眼看见）。
     // 12（Nat/Bool/Eq）+ 30（L1：28 条声明 + 派生的 And.rec/Or.rec）
-    // + 5（B8：Eq.rec/Eq.ndrec/Eq.mp/Eq.mpr/cast，L-03）= 47。
+    // + 5（B8：Eq.rec/Eq.ndrec/Eq.mp/Eq.mpr/cast，L-03）
+    // + 2（B9：`Ne`/`Ne.intro`，L2.3 的 `≠` 目标）= 49。
     assert_eq!(
         super::PRELUDE_NAMES.len(),
-        47,
+        49,
         "PRELUDE_NAMES drifted: {:?}",
         super::PRELUDE_NAMES
     );
@@ -2473,6 +2482,20 @@ fn refine_kernel_kind_classifies_kernel_message_families() {
             ErrorKind::KernelExpectedSort,
         ),
         ("expected a sort in conversion, got: ($0 3)", ErrorKind::KernelExpectedSort),
+        // G-21（2026-09-21）：**项落在类型位**——内核把出错那一侧渲染成本地变量
+        // （`$k`），另一侧是 `Sort(n)`。点名调用漏了前导类型参数
+        // （`Set.mem a A` 少了 `α`）就是这个形状；归类成 expected-sort，
+        // 由那条 hint 负责把「漏了哪个参数」说给学习者。
+        (
+            "rejected: def_eq failed: def_eq mismatch expected: Sort(1) | actual: $2",
+            ErrorKind::KernelExpectedSort,
+        ),
+        // 对照：两边都是具体 sort 时仍走 L-06 的 Prop-not-cumulative 分类，
+        // 不能被上面那条吞掉（顺序有讲究）。
+        (
+            "rejected: def_eq failed: def_eq mismatch expected: Sort(1) | actual: Sort(0)",
+            ErrorKind::KernelPropNotCumulative,
+        ),
         (
             "rejected: expected a pi type, got: Nat",
             ErrorKind::KernelExpectedPi,
@@ -3776,6 +3799,27 @@ fn by_block_with_assumption_checks() {
         .decls
         .iter()
         .find(|d| d.name.as_deref() == Some("k"))
+        .unwrap();
+    assert_eq!(d.status, DeclStatus::Checked);
+}
+
+#[test]
+fn by_block_carries_the_declaration_universe_parameters() {
+    // 目标里出现 `Sort u` / `Eq.{u}` 时，判定合成的声明必须带上声明的宇宙
+    // 参数 `{u}`，否则内核报「universe variable `u` is not declared in this
+    // declaration」——宇宙多态定理（卷 I 的 `Set.{u}` 遍地都是）就没法写 tactic。
+    let src = concat!(
+        "theorem Eq.flip {u} : {α : Sort u} -> (a : α) -> (b : α) -> ",
+        "Eq.{u} α a b -> Eq.{u} α b a := by\n",
+        "  intro α a b h\n",
+        "  exact Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)\n",
+    );
+    let report = check_document(&parse(src).unwrap());
+    assert!(report.errors.is_empty(), "{:?}", report.errors);
+    let d = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("Eq.flip"))
         .unwrap();
     assert_eq!(d.status, DeclStatus::Checked);
 }
@@ -6584,7 +6628,12 @@ fn notation_unknown_target_is_a_dedicated_diagnostic() {
 #[test]
 fn pointful_application_without_the_leading_type_parameter_is_still_rejected() {
     // **护城河**（设计 N4.3）：补全只挂在记号展开路径上——点名写法省 `α`
-    // 今天被内核拒绝，改后必须**仍**被拒绝（同码同 stage）。
+    // 今天被内核拒绝，改后必须**仍**被拒绝（同 stage）。
+    //
+    // **2026-09-21（G-21）重钉的是诊断码**：这条拒绝以前落进泛化的
+    // `kernel-rejected`，现在被 `classify_term_in_type_position` 认出形状
+    // （**项落在类型位**）并归到 `kernel-expected-sort`，提示直接说出
+    // 「漏了前导类型参数 + 可以用记法」。护城河本身一个字没改。
     let src = format!(
         "{NOTATION_LIB}\
          def p (α : Type) (a : α) (A : Set α) : Prop := Set.mem a A\n"
@@ -6593,11 +6642,16 @@ fn pointful_application_without_the_leading_type_parameter_is_still_rejected() {
     let out = compile_fol(&file);
     assert_eq!(
         out.errors.iter().map(|e| e.code()).collect::<Vec<_>>(),
-        vec!["kernel-rejected"],
+        vec!["kernel-expected-sort"],
         "the moat must hold: {:?}",
         out.errors
     );
     assert_eq!(out.errors[0].stage(), crate::compile::CompileStage::Kernel);
+    let hint = out.errors[0].hint();
+    assert!(
+        hint.contains("前导类型参数"),
+        "the hint must name the cause (G-21): {hint:?}"
+    );
 }
 
 #[test]

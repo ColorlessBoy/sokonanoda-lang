@@ -222,7 +222,7 @@ namespaces、经典逻辑（`em`/`by_contra`）、`Iff`/`↔`、`Or.rec`、匿�
 | 1 | 命题与证明项（现 U1） | `Prop` → `True/False` → ∧/∨/¬ 公理 → 证明=项 → 箭头↔`fun` → `False.rec` → 声明 binder | 三种证明（机器/非形式/传统）；givens/goals 两栏 | T 6 + R 2（给错项找错） |
 | 2 | 等式与 `rfl`（现 U2） | `Nat` 与 `+` → `Eq/Eq.refl/Eq.subst` → `refl` 靠 conv → 手写 `symm/trans/cong` | PLFA 等式接力；`#reduce` 先算后证 | T 5 + L 3（自证 symm/trans/cong）|
 | 3 | 函数与箭头（现 U3，修题） | 一切有类型 → 箭头右结合 → `fun`（可推断 binder）→ 洞 → 高阶 → `let` | type→define→refine | T 6（去歧义）+ R 1 |
-| 4 | `by` 写法（现 U6，**提前**） | `by` → `intro/exact/assumption/apply/rfl/match` → 换行分隔 → 多子目标 | 关键词→技巧映射表；封闭白名单说明 | B 8（含 4 种 tactic 触发条件） |
+| 4 | `by` 写法（现 U6，**提前**） | `by` → `intro/exact/assumption/apply/rfl/have` → 换行分隔 → 多子目标 | 关键词→技巧映射表；封闭白名单说明（本单元教六条；`left`/`right`/`cases`/`use` 随后面的真归纳与 `∃` 解锁，见 `docs/design/course-lean-style.md` §9「R3」） | B 8（含 4 种 tactic 触发条件） |
 | 5 | 宇宙（现 U4，增练） | `Sort n` 阶梯 → `Type n` 糖 → `#check` 读法 → `Eq.{1}` 由来 → 隐式宇宙 binder | 读输出专项 | R 3（从 `#check` 输出判类型）+ T 2 |
 | 6 | 归纳与递归 Ⅰ（现 U5 前半 **[拆]**） | `inductive`+`ctor`+`iota` → 手写 `Nat.rec` → 递归 `def` → `match` 分情况 → 递归 `match`+IH | Nipkow 定义-证明成对；recursion=induction | T 5 + L 2（给 inductive 写消去子） |
 | 7 | 归纳与递归 Ⅱ（现 U5 后半 **[拆]**） | 参数化 `Option A`/`List A` → 嵌套/字面量/通配/guard 模式 → 依赖 match=归纳法 → 带索引 `Vec` | 三种证明；`#print` 对照归纳原理 | T 6 + X 1（把递归定义翻成散文） |

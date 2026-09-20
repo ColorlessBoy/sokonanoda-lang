@@ -9,11 +9,14 @@
 --   * Judgment always goes through the kernel: every filled line stays valid
 --     in official Lean.
 --
--- Unit 1 set up ∧ and ∨ as axioms and only taught how to *use* them. This
--- unit adds three pieces:
---   * Or becomes a real inductive — the front derives the eliminator Or.rec
---     for you, and case analysis with match lowers to it;
---   * Iff ("if and only if") is a *definition*: unfold it and it is a pair of
+-- The connectives ∧, ∨, →, ¬ and their constructors come with the
+-- **prelude** (they are kernel core, usable in any file with no declaration).
+-- This unit adds three pieces:
+--   * *using* the Or eliminator: Or has always been a real inductive, the
+--     kernel knows it has exactly the two constructors inl / inr and derives
+--     the eliminator Or.rec — so a proof of A ∨ B can be split into cases
+--     (cases / Or.elim / a hand-written Or.rec, and match lowers onto it);
+--   * ↔ ("if and only if") is a *definition*: unfold it and it is a pair of
 --     arrows in opposite directions;
 --   * Le (≤) is also defined by induction, and a proof about it inducts on
 --     the *evidence* — this is PLFA's elimination / inversion pattern.
@@ -21,96 +24,89 @@
 -- constructed evidence" once more.
 -- ==========================================================================
 
--- Logic skeleton (reuses Unit 1/8's And axioms):
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+-- The names this file uses: And / Or come from the prelude (see 9.1), Iff is
+-- the def in 9.2 below.
 
 -- ─────────────────────────────────────────────────────────────
--- 9.1 Or: from axiom to a real inductive type
+-- 9.1 Or's eliminator: how to use a proof of A ∨ B
 --
--- In Unit 1 Or was just an axiom plus two introduction rules; it had no
--- eliminator, so a proof of Or A B could not be taken apart. Declare it as an
--- inductive now: the kernel learns that it has exactly the two constructors
--- inl / inr. Or carries no indices, so the front auto-derives the eliminator
--- Or.rec (the same shape as the hand-written Nat.rec of Unit 6: motive →
--- branches → target), and match lowers onto it. Splitting an Or = case
--- analysis on the two possible pieces of evidence.
+-- Or has always been a **real inductive type** (it comes with the prelude):
+-- the kernel knows it has exactly the two constructors inl / inr and derives
+-- the eliminator Or.rec — the same shape as the hand-written Nat.rec of Unit 6
+-- (motive → branches → target); Or.elim is its curried wrapper, and match
+-- lowers onto it too. In **expression position** a constructor needs its
+-- prefix (Or.inl / Or.inr); in **pattern position** the bare name stays
+-- (match h with | inl a => …). Splitting an Or = case analysis on the two
+-- possible pieces of evidence.
 -- ─────────────────────────────────────────────────────────────
-
-inductive Or (A B : Prop) : Prop
-ctor inl (a : A) : Or A B
-ctor inr (b : B) : Or A B
-end
 
 -- Demo (filled in): use a constructor as a function, giving every argument
 -- in order.
-theorem or_intro_demo (A : Prop) (B : Prop) (a : A) : Or A B :=
-  inl A B a
+theorem or_intro_demo (A : Prop) (B : Prop) (a : A) : A ∨ B :=
+  Or.inl A B a
 
 -- Exercise 1: swap the two sides of an Or.
 -- soko:hint approach: match h on both constructors inl / inr, and in each branch pack the evidence into the constructor on the other side.
--- soko:hint goal shape: the goal is Or B A; the inl branch has a : A, the inr branch has b : B.
--- soko:hint key piece: goal Or B A and the goal is to unpack and repack: the inl branch uses the inr constructor, the inr branch uses inl, and both constructors need the A, B parameters filled in.
-theorem or_comm (A : Prop) (B : Prop) (h : Or A B) : Or B A :=
+-- soko:hint goal shape: the goal is B ∨ A; the inl branch has a : A, the inr branch has b : B.
+-- soko:hint key piece: the goal is to unpack and repack: the inl branch uses the Or.inr constructor, the inr branch uses Or.inl, and both constructors need the A, B parameters filled in.
+theorem or_comm (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := by
   sorry
 
 -- Exercise 2: use the eliminator Or.rec explicitly to combine "both
--- directions lead to C" into "Or A B leads to C".
--- soko:hint approach: the goal is C and h : Or A B is in hand — the eliminator Or.rec is exactly the tool for "get any proposition out of an Or".
--- soko:hint goal shape: Or.rec's motive is the constant function fun (x : Or A B) => C; the two branches hand over f and g respectively.
+-- directions lead to C" into "A ∨ B leads to C".
+-- soko:hint approach: the goal is C and h : A ∨ B is in hand — the eliminator Or.rec is exactly the tool for "get any proposition out of an Or".
+-- soko:hint goal shape: Or.rec's motive is the constant function fun (x : A ∨ B) => C; the two branches hand over f and g respectively.
 -- soko:hint key piece: Or.rec takes five things: the proposition A, the proposition B, the motive, a left branch taking a proof of A, a right branch taking a proof of B, and finally h; f and g are exactly those two branches.
-theorem or_elim (A : Prop) (B : Prop) (C : Prop) (h : Or A B) (f : A -> C) (g : B -> C) : C :=
+theorem or_elim (A : Prop) (B : Prop) (C : Prop) (h : A ∨ B) (f : A → C) (g : B → C) : C := by
   sorry
 
 -- Exercise 3 (read/evaluate R): the proof of or_id below was rejected by the
 -- kernel. What is wrong with it?
 --
---   theorem or_id_wrong (A : Prop) (h : Or A A) : A :=
+--   theorem or_id_wrong (A : Prop) (h : A ∨ A) : A :=
 --     match h with
 --     | inl a => a
 --
--- Hint: a match must cover *every* constructor; Or has two.
+-- Hint: a match must cover *every* constructor; has ∨ two.
 -- Write the corrected, kernel-checkable version.
--- soko:hint approach: unpacking Or A A gives a proof of A on both branches; just fill in the missing other branch.
+-- soko:hint approach: unpacking A ∨ A gives a proof of A on both branches; just fill in the missing other branch.
 -- soko:hint goal shape: the goal is A; every match branch must be a proof of A.
--- soko:hint key piece: with h : Or A A in context, the inl and inr constructors each carry a proof of A, and either can be handed over directly.
-theorem or_id (A : Prop) (h : Or A A) : A :=
+-- soko:hint key piece: with h : A ∨ A in context, the inl and inr constructors each carry a proof of A, and either can be handed over directly.
+theorem or_id (A : Prop) (h : A ∨ A) : A := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 9.2 Iff: if and only if is a definition
 --
--- The teaching language has no ↔ notation, but "if and only if" needs no new
--- axiom — it is a definition:
+-- The ↔ notation is just sugar for the defined ↔ below, but "if and only if"
+-- needs no new axiom — it is a definition:
 --
---     Iff A B unfolds to And (A -> B) (B -> A)
+--     A ↔ B unfolds to (A → B) ∧ (B → A)
 --
--- So a proof of Iff A B is a pair of functions: one turning A into B (the
+-- So a proof of A ↔ B is a pair of functions: one turning A into B (the
 -- forward direction, usually called mp) and one turning B into A (the reverse
 -- direction, called mpr). Prove it with And.intro; use it with And.left /
--- And.right (the kernel unfolds the Iff definition automatically).
+-- And.right (the kernel unfolds the definition ↔ automatically).
 -- ─────────────────────────────────────────────────────────────
 
-def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- Demo (filled in): pack the two directions into an Iff.
-theorem iff_intro_demo (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
-  And.intro (A -> B) (B -> A) mp mpr
+theorem iff_intro_demo (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B :=
+  And.intro (A → B) (B → A) mp mpr
 
 -- Exercise 4: pull out the forward direction of an Iff.
--- soko:hint approach: Iff A B is a definition; unfolded it is an And, and the forward direction is its left half.
--- soko:hint goal shape: the goal is an arrow A -> B; h unfolds to And (A -> B) (B -> A).
--- soko:hint key piece: h : Iff A B (the kernel unfolds the definition): use And.left to take the left half, which is A -> B.
-theorem iff_mp (A : Prop) (B : Prop) (h : Iff A B) : A -> B :=
+-- soko:hint approach: A ↔ B is a definition; unfolded it is an And, and the forward direction is its left half.
+-- soko:hint goal shape: the goal is an arrow A → B; h unfolds to (A → B) ∧ (B → A).
+-- soko:hint key piece: h : A ↔ B (the kernel unfolds the definition): use And.left to take the left half, which is A → B.
+theorem iff_mp (A : Prop) (B : Prop) (h : A ↔ B) : A → B := by
   sorry
 
 -- Exercise 5: pull out the reverse direction of an Iff.
 -- soko:hint approach: symmetric to the previous exercise — the reverse direction is the right half of the unfolded And.
--- soko:hint goal shape: the goal is an arrow B -> A; h still unfolds to And (A -> B) (B -> A).
--- soko:hint key piece: h : Iff A B: use And.right to take the right half, which is B -> A.
-theorem iff_mpr (A : Prop) (B : Prop) (h : Iff A B) : B -> A :=
+-- soko:hint goal shape: the goal is an arrow B → A; h still unfolds to (A → B) ∧ (B → A).
+-- soko:hint key piece: h : A ↔ B: use And.right to take the right half, which is B → A.
+theorem iff_mpr (A : Prop) (B : Prop) (h : A ↔ B) : B → A := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -121,7 +117,7 @@ theorem iff_mpr (A : Prop) (B : Prop) (h : Iff A B) : B -> A :=
 -- m ≤ n then m ≤ succ n" (add one on the right).
 --
 --     le_refl n : Le n n
---     le_succ m n : Le m n -> Le m (succ n)
+--     le_succ m n : Le m n → Le m (succ n)
 --
 -- To prove a proposition about Le you induct on that *evidence*. The
 -- eliminator Le.rec is now derived for you — indexed relations included: its
@@ -132,9 +128,9 @@ theorem iff_mpr (A : Prop) (B : Prop) (h : Iff A B) : B -> A :=
 -- coming from the prelude (spelled Nat.zero / Nat.succ).
 -- ─────────────────────────────────────────────────────────────
 
-inductive Le : Nat -> Nat -> Prop
+inductive Le : Nat → Nat → Prop
 ctor le_refl (n : Nat) : Le n n
-ctor le_succ (m : Nat) (n : Nat) : Le m n -> Le m (Nat.succ n)
+ctor le_succ (m : Nat) (n : Nat) : Le m n → Le m (Nat.succ n)
 end
 
 -- Demo (filled in): reflexivity immediately gives the constructor chain for
@@ -147,7 +143,7 @@ theorem le_succ_self (n : Nat) : Le n (Nat.succ n) :=
 -- soko:hint approach: match n: the zero branch uses reflexivity; the succ branch lifts the induction hypothesis ih : Le Nat.zero k one level with le_succ.
 -- soko:hint goal shape: match n with | Nat.zero => … | Nat.succ k => …, the two goals are Le Nat.zero Nat.zero and Le Nat.zero (Nat.succ k).
 -- soko:hint key piece: the zero branch uses le_refl; the succ branch has ih : Le Nat.zero k, and le_succ lifts it to Le Nat.zero (Nat.succ k).
-theorem le_zero (n : Nat) : Le Nat.zero n :=
+theorem le_zero (n : Nat) : Le Nat.zero n := by
   sorry
 
 -- Exercise 7 (translate X): turn the informal statement below into the Le
@@ -157,10 +153,10 @@ theorem le_zero (n : Nat) : Le Nat.zero n :=
 --
 -- (Note: the "≤" meant here is this unit's Le, with the smaller argument on
 -- the left.)
--- soko:hint approach: to prove Le m k, induct on the second piece of evidence h2 : Le n k with the eliminator Le.rec, taking the motive "Le m a -> Le m b".
+-- soko:hint approach: to prove Le m k, induct on the second piece of evidence h2 : Le n k with the eliminator Le.rec, taking the motive "Le m a → Le m b".
 -- soko:hint goal shape: Le.rec needs three things: the motive, the branch at le_refl, and the branch at le_succ (with one more induction hypothesis ih).
 -- soko:hint key piece: goal Le m k: the le_refl branch hands over h1 directly; the le_succ branch takes hx : Le m a, gets Le m b from ih, and lifts it with le_succ; induct on (n, k, h2) and apply h1 at the end.
-theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le m k :=
+theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le m k := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -172,9 +168,9 @@ theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le 
 -- the next exercise uses to prove a property with Even.rec.
 -- ─────────────────────────────────────────────────────────────
 
-inductive Even : Nat -> Prop
+inductive Even : Nat → Prop
 ctor even_zero : Even Nat.zero
-ctor even_succ (n : Nat) : Even n -> Even (Nat.succ (Nat.succ n))
+ctor even_succ (n : Nat) : Even n → Even (Nat.succ (Nat.succ n))
 end
 
 -- Demo (filled in): build "2 is even" straight from the constructors.
@@ -196,5 +192,5 @@ theorem even_plus_two (n : Nat) (h : Even n) : Even (Nat.succ (Nat.succ n)) :=
 -- soko:hint approach: even_succ turns "n is even" into "n+2 is even"; take n to be 2, and the premise is the even_two proved above.
 -- soko:hint goal shape: the goal is Even 4 (spelled as the constructor chain succ (succ (succ (succ zero)))).
 -- soko:hint key piece: even_succ — it takes a Nat and a proof of Even Nat and hands back Even (Nat.succ (Nat.succ Nat)); use even_two as the premise.
-theorem even_four : Even (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) :=
+theorem even_four : Even (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) := by
   sorry

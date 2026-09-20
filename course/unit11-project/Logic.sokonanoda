@@ -1,13 +1,9 @@
 -- Logic.sokonanoda —— 项目里的共享库模块。
 -- 模块名 = 文件名（去掉扩展名）：入口文件写 `import Logic` 就能看到下面这些名字。
--- 这是「库」的那一半：教学子集里的 And 公理（与单元⑪ 画布、单元⑩ 同一套）。
+-- 这是「库」的那一半：它导出的就是自己声明的这几条。And 这类连接符 **prelude
+-- 自带**（任何文件都能直接用，不用在这里声明，也不需要 import）。
 
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
-
--- 库也可以导出定理：下游 import 之后能直接调用 and_comm，而不必重抄证明
+-- 库导出的是**定理**：下游 import 之后能直接调用 and_comm，而不必重抄证明
 -- （重抄同一个名字反而是 import-name-collision）。
-theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
   And.intro B A (And.right A B h) (And.left A B h)

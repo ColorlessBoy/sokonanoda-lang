@@ -12,57 +12,57 @@
 --     grammar you learn is a real subset of Lean 4.
 -- ==========================================================================
 
--- Everything has a type: 1 : Nat, add1 : Nat -> Nat. The type Nat -> Nat reads
+-- Everything has a type: 1 : Nat, add1 : Nat → Nat. The type Nat → Nat reads
 -- "a function from Nat to Nat", and a value of that type is written with fun:
 -- fun (n : Nat) => n + 1 takes a parameter n and returns n + 1.
 -- Notice that add1 below omits the annotation (n : Nat) — the compiler infers
 -- n : Nat from the declared type.
 
 -- Demo (already written): add1 increments its argument.
-def add1 : Nat -> Nat := fun n => n + 1
+def add1 : Nat → Nat := fun n => n + 1
 
 -- Self-test: #reduce evaluates the application; add1 41 should be 42.
 #reduce add1 41
 
 -- A program need not be written all at once. The hole sorry stands for the
 -- "remaining goal", and it may only sit at the very end of an answer.
--- Functions are first-class: in (Nat -> Nat) -> Nat -> Nat, a function can be
--- someone else's argument. And arrows are right-associative: Nat -> Nat -> Nat
--- is Nat -> (Nat -> Nat).
+-- Functions are first-class: in (Nat → Nat) → Nat → Nat, a function can be
+-- someone else's argument. arrows ∧ are right-associative: Nat → Nat → Nat
+-- is Nat → (Nat → Nat).
 
 -- Exercise 1 — complete double. The hole sits inside the lambda; the outer
 -- layer already fixed n : Nat, so the remaining goal is Nat.
 -- soko:hint approach: the hole is in the lambda body — n : Nat is already fixed, so finish the expression.
 -- soko:hint goal shape: the remaining goal is Nat: combine n to double it.
 -- soko:hint key piece: + is real addition — put n together with n.
-def double : Nat -> Nat := fun (n : Nat) => sorry
+def double : Nat → Nat := fun (n : Nat) => sorry
 
 -- Exercise 2 (higher-order) — twice takes a function f and returns the
--- function that applies f twice. The parentheses in (Nat -> Nat) -> Nat -> Nat
+-- function that applies f twice. The parentheses in (Nat → Nat) → Nat → Nat
 -- group the type; they are not an application.
 -- Hint: peel the function arrow first; what comes back is still a function — peel that too.
 -- soko:hint approach: functions are first-class — f is an ordinary value and can be used any number of times.
--- soko:hint goal shape: two arrows: fun (f : Nat -> Nat) =>, then fun (x : Nat) =>, returning a Nat.
--- soko:hint key piece: goal Nat with f : Nat -> Nat and x : Nat in context — f applies directly: once to x, once to the result; the outer parentheses only group.
-def twice : (Nat -> Nat) -> Nat -> Nat := sorry
+-- soko:hint goal shape: two arrows: fun (f : Nat → Nat) =>, then fun (x : Nat) =>, returning a Nat.
+-- soko:hint key piece: goal Nat with f : Nat → Nat and x : Nat in context — f applies directly: once to x, once to the result; the outer parentheses only group.
+def twice : (Nat → Nat) → Nat → Nat := by sorry
 
--- Exercise 3 — a function of three arguments. Nat -> Nat -> Nat -> Nat eats
+-- Exercise 3 — a function of three arguments. Nat → Nat → Nat → Nat eats
 -- three Nats and gives the **first** one (a) back.
 -- Hint: three layers of fun, written one at a time; the hole always lives in
 -- the last layer.
 -- soko:hint approach: three arrows are three funs — take three Nats, hand back one.
 -- soko:hint goal shape: write it layer by layer: fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => …, hole in the last layer.
 -- soko:hint key piece: the last layer's goal is Nat and the exercise asks for the first argument a (already in context) — any other Nat typechecks too but is not what the exercise asks for.
-def three_args : Nat -> Nat -> Nat -> Nat := sorry
+def three_args : Nat → Nat → Nat → Nat := by sorry
 
 -- Exercise 4 — apply_twice takes a function and returns a function. Because
 -- arrows associate to the right, the whole function type must be parenthesized:
--- (Nat -> Nat) -> (Nat -> Nat).
+-- (Nat → Nat) → (Nat → Nat).
 -- Hint: the return type is itself an arrow — after the outer fun, peel one more layer.
--- soko:hint approach: here the input is a function and so is the output — note the return type Nat -> Nat is itself an arrow.
--- soko:hint goal shape: two funs: the first takes f, and the remaining goal is still Nat -> Nat — so a second fun takes n.
--- soko:hint key piece: while the goal is Nat -> Nat keep writing fun; once it is Nat, f applies twice in a row — first to n, then to the result.
-def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := sorry
+-- soko:hint approach: here the input is a function and so is the output — note the return type Nat → Nat is itself an arrow.
+-- soko:hint goal shape: two funs: the first takes f, and the remaining goal is still Nat → Nat — so a second fun takes n.
+-- soko:hint key piece: while the goal is Nat → Nat keep writing fun; once it is Nat, f applies twice in a row — first to n, then to the result.
+def apply_twice : (Nat → Nat) → (Nat → Nat) := by sorry
 
 -- Local bindings with let: give an intermediate result a name, then continue.
 --   let x : T := v; body
@@ -74,7 +74,7 @@ def apply_twice : (Nat -> Nat) -> (Nat -> Nat) := sorry
 -- ---------------------------------------------------------------------------
 
 -- Demo (already written): name an intermediate result with let, then return it.
-def add_two_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 2; m
+def add_two_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + 2; m
 
 -- Self-test: #reduce evaluates the let first; this should be 42.
 #reduce (let m : Nat := 20 + 20; m + 2)
@@ -84,15 +84,15 @@ def add_two_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 2; m
 -- soko:hint approach: let evaluates its right-hand side first, then the body — decide m's value and type first.
 -- soko:hint goal shape: the hole's expected type is the binder annotation Nat; combine n to double it.
 -- soko:hint key piece: + is real addition — put n together with n.
-def double_let : Nat -> Nat := fun (n : Nat) => let m : Nat := sorry; m
+def double_let : Nat → Nat := fun (n : Nat) => let m : Nat := sorry; m
 
 -- Exercise 6 — after a let binding, the body may use the name directly.
 -- The hole is in the let body: this exercise asks you to hand back the bound m (a ready-made Nat).
 -- soko:hint approach: let puts m into scope — inside the body m is an ordinary Nat.
 -- soko:hint goal shape: the remaining goal is still Nat, and m is already in the local context.
 -- soko:hint key piece: the body's goal is Nat and m is in context; hand back the let-bound m (any other Nat typechecks too but is not what the exercise asks for).
-def body_uses_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 5; sorry
+def body_uses_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + 5; sorry
 
 -- A question to sit with (answered in Unit 5): you have been writing types
--- like `Nat -> Nat`. But if everything has a type — what is the type of a
+-- like `Nat → Nat`. But if everything has a type — what is the type of a
 -- function type itself? Think for a minute, then open Unit 5.

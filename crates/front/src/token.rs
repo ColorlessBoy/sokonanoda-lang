@@ -46,6 +46,10 @@ pub enum TokenKind {
     RParen,
     LBrace,
     RBrace,
+    /// `⟨`（U+27E8）：**匿名构造子**的开括号（课程 Lean 化 L2.7）。
+    Langle,
+    /// `⟩`（U+27E9）：匿名构造子的闭括号。
+    Rangle,
     Comma,
     Semicolon,
     Eof,
@@ -277,6 +281,12 @@ impl<'a> Lexer<'a> {
             // `∀`（U+2200）落在数学符号码点类里，但它今天就是一个 token：
             // 这一臂必须留在符号分支之前，否则关键字失效。
             '∀' => self.single(TokenKind::Forall, start),
+            // `→`（U+2192）是 `->` 的**词法别名**（课程 Lean 化，设计
+            // `docs/design/course-lean-style.md` L2.1）。它**做不了记法**：
+            // 函数空间不是常量，记法只产出 `mk_const`/`mk_app`，`→` 没有目标名
+            // 可指（S1 实测）。所以只能在这里与 `->` 合流成同一个 token——
+            // **不引入任何新语义**，`A → B` 与 `A -> B` 逐字节同义。
+            '→' => self.single(TokenKind::Arrow, start),
             '@' => self.single(TokenKind::At, start),
             '-' => {
                 self.bump();
@@ -303,7 +313,17 @@ impl<'a> Lexer<'a> {
                         span: Span::new(start, end),
                     })
                 } else {
-                    Err(self.err_unexpected(start, "expected `=>`", "="))
+                    // `=`（相等）是**内建记法**的符号（设计
+                    // `docs/design/course-lean-style.md` L2.4b / SP1）：它必须是
+                    // 独立 token，否则 `a = b` 今天直接是词法错误
+                    // （`expected `=>``）。读成 `Sym("=")` 之后，parser 的算子表、
+                    // elab 的记法展开、语义着色三处**零改动**就能用——与
+                    // `∧`/`↔` 同一条路。
+                    let end = self.pos();
+                    Ok(Token {
+                        kind: TokenKind::Sym("=".to_string()),
+                        span: Span::new(start, end),
+                    })
                 }
             }
             ch if ch.is_ascii_digit() => self.lex_number(start),
@@ -314,6 +334,14 @@ impl<'a> Lexer<'a> {
             // （与第一刀把 `\` 从词法错误改成 `Sym` 同一个理由：诊断更教学），
             // 也让"入口用了 import 来的 `''`"能被分发逻辑认出来。
             '\'' => self.lex_symbol_run(start),
+            // `⟨`/`⟩`（U+27E8/9）是**匿名构造子**的括号（设计
+            // `docs/design/course-lean-style.md` L2.7）。它们必须在这里成
+            // **独立 token**，不能走下面的数学符号臂：`lex_symbol` 是**最大
+            // 吞噬**的（连续符号字符并成一个 `Sym`），`⟨∅, A⟩` 会读成
+            // `Sym("⟨∅")`——而 `⟨`/`⟩` 旁边紧跟任何数学符号都是常态。
+            // 与 `{`/`(` 同级：它们是**语法**，不能当记法符号声明。
+            '⟨' => self.single(TokenKind::Langle, start),
+            '⟩' => self.single(TokenKind::Rangle, start),
             ch if is_math_symbol(ch) => self.lex_symbol(start),
             other => {
                 self.bump();
@@ -452,7 +480,20 @@ impl<'a> Lexer<'a> {
 /// `Ident`，记法永远不可能被 parser 看见。希腊字母与数学斜体字母（`α`、`𝒫`、
 /// `ᶜ`）**仍然是**标识符字符——它们不在符号码点类里。
 pub(crate) fn is_ident_start(c: char) -> bool {
-    c.is_ascii_alphabetic() || c == '_' || ((c as u32) >= 0x80 && !is_math_symbol(c))
+    c.is_ascii_alphabetic()
+        || c == '_'
+        || ((c as u32) >= 0x80 && !is_math_symbol(c) && !is_anon_ctor_bracket(c))
+}
+
+/// 匿名构造子的括号 `⟨`/`⟩`（U+27E8/9）。
+///
+/// 它们**不在** [`is_math_symbol`] 的码点类里：进了那个类就会被
+/// [`Lexer::lex_symbol`] 的**最大吞噬**并进邻近符号（`⟨∅` 会成一个 token）。
+/// 但它们同样**不是标识符字符**——否则 `⟨a` 会粘成一个 `Ident`，parser 永远
+/// 看不见开括号。所以这里单独一条谓词，[`is_ident_start`] 与
+/// [`lexer_reserved_symbol_char`] 共用。
+pub(crate) fn is_anon_ctor_bracket(c: char) -> bool {
+    c == '⟨' || c == '⟩'
 }
 
 /// 标识符续接字符（含 `.`——所以 `Foo.Bar` 在词法层是**一个** `Ident`）。
@@ -472,7 +513,16 @@ pub(crate) fn is_ident_continue(c: char) -> bool {
 /// 标识符字符。第二刀（0.60.0）用**声明驱动的符号表**处理它们——见
 /// [`scan_notation_symbols`] 与 [`Lexer::with_symbols`]（设计 §10.2）。
 pub(crate) fn is_math_symbol(c: char) -> bool {
-    matches!(c as u32, 0x2200..=0x22FF | 0x2A00..=0x2AFF) || c == '\\'
+    // `→`（U+2192）**不在** U+2200–U+22FF 里，但它必须进来：这个谓词同时是
+    // 「**不是标识符字符**」的判据（[`is_ident_start`]），而 `→` 落在
+    // 「≥0x80 且不是数学符号 ⇒ 标识符字符」那一侧时，`A→B` 会粘成**一个**
+    // 标识符（实测）——`A → B`（带空格）能切、`A→B` 不能。课程 Lean 化
+    // （设计 `docs/design/course-lean-style.md` L2.1）要求两种写法都行。
+    //
+    // 它**不是**记法符号：词法在符号分支**之前**就把 `→` 收成
+    // [`TokenKind::Arrow`]（与 `∀` 同款），`lexer_reserved_symbol_char` 也把
+    // 它列进「不能当记法符号」——声明 `infixr " → "` 会拿到人话报错。
+    matches!(c as u32, 0x2200..=0x22FF | 0x2A00..=0x2AFF) || c == '\\' || c == '→'
 }
 
 /// 纯 ASCII 标识符词（`in`/`e`/`Set`）：**不能**当记法符号——声明驱动的词法会把
@@ -487,7 +537,9 @@ pub(crate) fn is_ascii_word_symbol(symbol: &str) -> bool {
 /// 符号里有没有**词法在符号匹配之前就消费掉**的字符（`∀` / `->` / `--` /
 /// `#check` / 字符串引号）——有就永远命中不了。
 pub(crate) fn lexer_reserved_symbol_char(symbol: &str) -> Option<char> {
-    symbol.chars().find(|c| matches!(c, '∀' | '-' | '#' | '"'))
+    symbol
+        .chars()
+        .find(|c| matches!(c, '∀' | '→' | '-' | '#' | '"') || is_anon_ctor_bracket(*c))
 }
 
 /// 记法符号的**词法合法性**：`parser::parse_notation_symbol`（给教学诊断）与
@@ -581,8 +633,24 @@ pub fn tokenize_with_symbols(src: &str, symbols: &[String]) -> Result<Vec<Token>
 /// 得到的是 parser 的 `notation-unknown-symbol`（N5 的专用诊断），不是
 /// `unknown identifier`——与第一刀 `∈` 的行为一致。
 pub(crate) fn scan_notation_symbols(src: &str) -> Vec<String> {
+    scan_notation_decls(src)
+        .into_iter()
+        .map(|(symbol, _)| symbol)
+        .collect()
+}
+
+/// 本文件声明的记法：**符号 + 展开目标**（词法级扫描，**不依赖 parse 成功**）。
+///
+/// [`scan_notation_symbols`] 是它的投影（只要符号）。为什么需要目标：hover 要
+/// 告诉学习者「这个符号展开成什么」（设计 `docs/design/notation-input.md` §4），
+/// 而使用库记法的文件**单文件 parse 必然失败**（记法随 `import` 传播），
+/// 所以这条信息不能靠 parse 拿——只能靠词法扫描。
+///
+/// 目标是 `=>` 之后那个点分标识符（`=> Set.mem`）；扫描不到就是 `None`
+/// （半成品记法命令——那是 parse 的错误，不由这里报告）。
+pub(crate) fn scan_notation_decls(src: &str) -> Vec<(String, Option<String>)> {
     let chars: Vec<char> = src.chars().collect();
-    let mut symbols: Vec<String> = Vec::new();
+    let mut decls: Vec<(String, Option<String>)> = Vec::new();
     let mut expecting_symbol = false;
     let mut i = 0usize;
     while i < chars.len() {
@@ -608,8 +676,9 @@ pub(crate) fn scan_notation_symbols(src: &str) -> Vec<String> {
                 let symbol = text.trim().to_string();
                 // 与 parser 的合法性判据**同一份**：被拒的符号不进符号表
                 // （否则 `"in"` 会把 `infix` 拆成 `in` + `fix`）。
-                if is_valid_notation_symbol(&symbol) && !symbols.contains(&symbol) {
-                    symbols.push(symbol);
+                if is_valid_notation_symbol(&symbol) && !decls.iter().any(|(s, _)| *s == symbol) {
+                    let target = scan_notation_target(&chars, &mut i);
+                    decls.push((symbol, target));
                 }
             }
             expecting_symbol = false;
@@ -639,7 +708,48 @@ pub(crate) fn scan_notation_symbols(src: &str) -> Vec<String> {
         expecting_symbol = false;
         i += 1;
     }
-    symbols
+    decls
+}
+
+/// 从记法命令的符号串之后找 `=> <目标名>`；找到就把 `i` 停在目标名之后。
+/// 找不到（或半成品）返回 `None`，**不移动 `i`**——后续扫描照旧。
+fn scan_notation_target(chars: &[char], i: &mut usize) -> Option<String> {
+    let saved = *i;
+    let mut j = *i;
+    let skip_ws = |j: &mut usize| {
+        while *j < chars.len() && chars[*j].is_whitespace() {
+            *j += 1;
+        }
+    };
+    // `scoped Foo` 前缀：`=>` 之前可能还有 `scoped <作用域名>`。
+    loop {
+        skip_ws(&mut j);
+        if chars.get(j) == Some(&'=') && chars.get(j + 1) == Some(&'>') {
+            j += 2;
+            break;
+        }
+        // `scoped` 的作用域名（点分标识符）或别的修饰词：跳过一段标识符。
+        if chars.get(j).copied().is_some_and(is_ident_start) {
+            while j < chars.len() && (is_ident_continue(chars[j]) || chars[j] == '.') {
+                j += 1;
+            }
+            continue;
+        }
+        *i = saved;
+        return None;
+    }
+    skip_ws(&mut j);
+    let start = j;
+    while j < chars.len() && (is_ident_continue(chars[j]) || chars[j] == '.') {
+        j += 1;
+    }
+    if j == start {
+        *i = saved;
+        return None;
+    }
+    let target: String = chars[start..j].iter().collect();
+    *i = j;
+    Some(target)
 }
 
 #[cfg(test)]
@@ -750,17 +860,21 @@ mod tests {
     }
 
     #[test]
-    fn lone_equals_is_an_error_with_position() {
-        let err = tokenize("x\n  =").unwrap_err();
-        assert_eq!(
-            err.kind,
-            DiagnosticKind::UnexpectedToken {
-                found: "=".into(),
-                expected: "expected `=>`".into(),
-            }
+    fn lone_equals_is_the_equality_symbol_and_fat_arrow_is_untouched() {
+        // `=`（相等）是内建记法的符号（L2.4b / SP1）；`=>` 仍是 FatArrow。
+        // 从前 `=` 是**词法错误**（`expected `=>``），那正是 `a = b` 不可用的根因。
+        let toks = tokenize("x\n  = y").expect("`=` must lex");
+        assert_eq!(toks[1].kind, TokenKind::Sym("=".into()));
+        assert_eq!(toks[1].span.start.line, 2);
+        assert_eq!(toks[1].span.start.column, 3);
+        let toks = tokenize("fun (x : Nat) => x").expect("`=>` must lex");
+        assert!(
+            toks.iter().any(|t| t.kind == TokenKind::FatArrow),
+            "`=>` must stay FatArrow: {toks:?}"
         );
-        assert_eq!(err.span.start.line, 2);
-        assert_eq!(err.span.start.column, 3);
+        // `:=` 也不受影响（ColonEq）。
+        let toks = tokenize("def f : Nat := 1").expect("`:=` must lex");
+        assert!(toks.iter().any(|t| t.kind == TokenKind::ColonEq));
     }
 
     #[test]
@@ -812,6 +926,23 @@ mod tests {
         assert_eq!(toks[1].kind, TokenKind::Sym("⊆".into()));
         let toks = tokenize("∅").unwrap();
         assert_eq!(toks[0].kind, TokenKind::Sym("∅".into()));
+    }
+
+    #[test]
+    fn the_unicode_arrow_is_a_lexical_alias_of_the_ascii_arrow() {
+        // 课程 Lean 化（设计 `docs/design/course-lean-style.md` L2.1）：`→`
+        // （U+2192）与 `->` **合流成同一个 token**。它做不了记法——函数空间
+        // 不是常量，记法只产出 `mk_const`/`mk_app`，`→` 没有目标名可指
+        // （S1 审计实测）——所以只能在词法层合流。**零新语义**。
+        let unicode = tokenize("A → B").unwrap();
+        let ascii = tokenize("A -> B").unwrap();
+        assert_eq!(
+            unicode.iter().map(|t| t.kind.clone()).collect::<Vec<_>>(),
+            ascii.iter().map(|t| t.kind.clone()).collect::<Vec<_>>(),
+        );
+        assert_eq!(unicode[1].kind, TokenKind::Arrow);
+        // 无空格同样切得开。
+        assert_eq!(tokenize("A→B").unwrap()[1].kind, TokenKind::Arrow);
     }
 
     #[test]

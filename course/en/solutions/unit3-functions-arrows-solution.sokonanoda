@@ -1,23 +1,23 @@
 -- unit3-functions-arrows-solution.sokonanoda — Unit 3 answer key (agent only)
-def add1 : Nat -> Nat := fun n => n + 1
+def add1 : Nat → Nat := fun n => n + 1
 
 #reduce add1 41
 
-def double : Nat -> Nat := fun (n : Nat) => n + n
+def double : Nat → Nat := fun (n : Nat) => n + n
 
-def twice : (Nat -> Nat) -> Nat -> Nat :=
-  fun (f : Nat -> Nat) => fun (x : Nat) => f (f x)
+def twice : (Nat → Nat) → Nat → Nat :=
+  fun (f : Nat → Nat) => fun (x : Nat) => f (f x)
 
-def three_args : Nat -> Nat -> Nat -> Nat :=
+def three_args : Nat → Nat → Nat → Nat :=
   fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => a
 
-def apply_twice : (Nat -> Nat) -> (Nat -> Nat) :=
-  fun (f : Nat -> Nat) => fun (n : Nat) => f (f n)
+def apply_twice : (Nat → Nat) → (Nat → Nat) :=
+  fun (f : Nat → Nat) => fun (n : Nat) => f (f n)
 
-def add_two_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 2; m
+def add_two_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + 2; m
 
 #reduce (let m : Nat := 20 + 20; m + 2)
 
-def double_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + n; m
+def double_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + n; m
 
-def body_uses_let : Nat -> Nat := fun (n : Nat) => let m : Nat := n + 5; m
+def body_uses_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + 5; m

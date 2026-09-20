@@ -10,18 +10,18 @@ inductive Nat : Type
 ctor zero : Nat
 ctor succ (n : Nat) : Nat
 rec Nat.rec {u} :
-  (motive : (n : Nat) -> Sort u) ->
-  (mz : motive zero) ->
-  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
-  (n : Nat) -> motive n
+  (motive : (n : Nat) → Sort u) →
+  (mz : motive zero) →
+  (ms : (n : Nat) → motive n → motive (succ n)) →
+  (n : Nat) → motive n
 iota zero :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+  fun (ms : (n : Nat) → motive n → motive (succ n)) => mz
 iota succ :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (ms : (n : Nat) → motive n → motive (succ n)) =>
   fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 
@@ -55,16 +55,16 @@ def valueOrZero (x : Option Nat) : Nat := match x with
 -- 依赖 match（归纳法）：演示 nat_induction + 练习 2 的答案。
 -- ─────────────────────────────────────────────────────────────
 
-theorem nat_induction (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
-  match n with
+theorem nat_induction (P : Nat → Prop) (hz : P zero)
+    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n := by
+  exact match n with
   | zero => hz
   | succ k => hs k ih
 
 -- 练习 2：succ 支把 ih 交给 hs。
-theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
-  match n with
+theorem nat_induction_open (P : Nat → Prop) (hz : P zero)
+    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n := by
+  exact match n with
   | zero => hz
   | succ k => hs k ih
 
@@ -91,7 +91,7 @@ def predOpt (x : Option Nat) : Nat := match x with
 -- 带索引归纳：演示 vlen + 练习 4 的答案。
 -- ─────────────────────────────────────────────────────────────
 
-inductive Vec (A : Type) : Nat -> Type
+inductive Vec (A : Type) : Nat → Type
 ctor vnil : Vec A zero
 ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
 end

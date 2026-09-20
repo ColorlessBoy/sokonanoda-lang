@@ -3,6 +3,13 @@
 //! This crate deliberately implements only the grammar points exposed by the
 //! teaching curriculum. The syntax whitelist is the curriculum: adding a
 //! grammar point here means adding a lesson for it.
+//!
+//! The whitelist covers both **notation** (`∧ ∨ ↔ ¬ →`, built in; `∃`/set
+//! symbols are declared per course library) and the **tactic set** the `by`
+//! engine accepts. The authoritative lists live with the designs, not here:
+//! notation in `docs/design/notation-subset.md`, tactics in
+//! `docs/design/by-tactics.md` (which tactic a lesson may use is a curriculum
+//! decision — see `docs/design/course-lean-style.md` §9).
 
 // CompileError 携带消息 + span + 期望/实际两端文本，略超 clippy 默认的
 // 128 字节 Result 阈值。教学编译器的错误路径不是热点，装箱反而增加分配，
@@ -12,6 +19,7 @@
 pub mod by;
 pub mod compile;
 pub mod judge;
+pub mod notation_input;
 pub mod project;
 pub mod proof;
 pub mod query;

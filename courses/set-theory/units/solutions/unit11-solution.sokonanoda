@@ -9,6 +9,12 @@
 -- （subset_univ / univ_subset_iff / exists_univ）在这里**用不到就不放**，
 -- 需要它们的地方就地展开——钥匙应当是能独立判卷的完整证明。
 --
+-- 全部证明写成 `by` tactic 块（白名单：intro / exact / apply / assumption / rfl /
+-- match / constructor / left / right / use / exfalso / cases / have / sorry）。
+-- 语句一律用**记法**（`∈ ⊆ ∪ ∩ \ ∅ 𝒫` 与 `∧ ∨ ↔ ¬ = ≠ → ∃`）；**引理名照旧点名**
+-- （`And.right`、`Iff.mpr`、`Set.mem_univ`、`Eq.subst.{1} …`）——记法是连接符的糖，
+-- 不是引理名的糖。
+--
 -- 等式一律显式宇宙（裸 Eq 默认 u=0，会被内核拒）：Eq.{1} (Set α)、
 -- Eq.{1} (Set (Set α))。
 import lib.Logic
@@ -17,21 +23,22 @@ import lib.Exists
 
 -- ── 练习 1（R/D 类：必破的证伪落点）────────────────────────────────────────
 -- 「存在一个集合对本类型每个集合都**严格**更大」为假：把那个 U 自己代进去，
--- 得到 U ⊆ U 且 U ≠ U，后者与 Eq.refl 冲突。
+-- 得到 U ⊆ U 与 U ≠ U，后者与 Eq.refl 冲突。
+-- 消去存在量词用点名的 Exists.elim（三项写全：类型、谓词、结论 False）。
+-- 注意证明体**从 `exact` 开始、不写 `intro`**：`intro` 不展开目标里的 `¬`
+-- （记法节点），会把整条 `(∃ …) -> False` 当假设塞进来、目标仍是 `¬ (∃ …)`；
+-- 用一条带标注的 lambda 把「假设 → False」一次交出去，语义相同（见报告里的阻塞条）。
 theorem no_univ_strictly_larger (α : Type) :
-    Not (Exists (Set α) (fun (U : Set α) =>
-      forall (A : Set α), And (Set.subset α A U) (Not (Eq.{1} (Set α) A U)))) :=
-  fun (h : Exists (Set α) (fun (U : Set α) =>
-      forall (A : Set α), And (Set.subset α A U) (Not (Eq.{1} (Set α) A U)))) =>
+    ¬ (∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) := by
+  exact (fun (h : ∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) =>
     Exists.elim (Set α)
       (fun (U : Set α) =>
-        forall (A : Set α), And (Set.subset α A U) (Not (Eq.{1} (Set α) A U)))
+        ∀ (A : Set α), (Set.subset α A U) ∧ (¬ (Eq.{1} (Set α) A U)))
       False h
-      (fun (U : Set α) =>
-        fun (hU : forall (A : Set α),
-            And (Set.subset α A U) (Not (Eq.{1} (Set α) A U))) =>
-          And.right (Set.subset α U U) (Not (Eq.{1} (Set α) U U)) (hU U)
-            (Eq.refl.{1} (Set α) U))
+      (fun (U : Set α) => fun (hU : ∀ (A : Set α),
+          (Set.subset α A U) ∧ (¬ (Eq.{1} (Set α) A U))) =>
+        And.right (Set.subset α U U) (¬ (Eq.{1} (Set α) U U)) (hU U)
+          (Eq.refl.{1} (Set α) U)))
 
 -- ── 练习 2（R 类：概括公理在类型论里的合法替身）────────────────────────────
 -- 本类型的每个集合 A 都是 𝒫(univ) 的元素；𝒫(univ) 自己属于上一层类型
@@ -39,49 +46,59 @@ theorem no_univ_strictly_larger (α : Type) :
 -- 幂集隶属用 Set.mem_powerset_iff 换成包含，再把 A ⊆ univ 交出去
 -- （A ⊆ univ 就是「每个 x ∈ A 都有 True.intro」）。
 theorem mem_powerset_univ (α : Type) (A : Set α) :
-    Set.mem (Set α) A (Set.powerset α (Set.univ α)) :=
-  Iff.mpr (Set.mem (Set α) A (Set.powerset α (Set.univ α))) (Set.subset α A (Set.univ α))
-    (Set.mem_powerset_iff α (Set.univ α) A)
-    (fun (x : α) => fun (hx : A x) => Set.mem_univ α x)
+    A ∈ 𝒫 (Set.univ α) := by
+  have hsub : A ⊆ Set.univ α := by
+    intro x
+    intro hx
+    exact Set.mem_univ α x
+  exact Iff.mpr (A ∈ 𝒫 (Set.univ α)) (A ⊆ Set.univ α)
+    (Set.mem_powerset_iff α (Set.univ α) A) hsub
 
 -- ── 练习 3（R 类：与 ZF 的对照 / 类型阶梯）──────────────────────────────────
 -- Set α 的全集是上一层类型 Set (Set α) 的**元素**；它自己的全集又在更上一层。
 -- 上一层类型里的隶属判定就是由该层全集给出的：Set.mem_univ 一步到。
 theorem univ_mem_univ_of_sets (α : Type) :
-    Set.mem (Set (Set α)) (Set.univ (Set α)) (Set.univ (Set (Set α))) :=
-  Set.mem_univ (Set (Set α)) (Set.univ (Set α))
+    Set.univ (Set α) ∈ Set.univ (Set (Set α)) := by
+  exact Set.mem_univ (Set (Set α)) (Set.univ (Set α))
 
 -- ── 练习 4（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 「univ 装得下每个集合；反过来装得下 univ 的只有 univ」打包成一条 And。
 -- 前半是逐元素的 True.intro；后半 → 方向走 Set.ext（逐元素 Iff (A x) True），
 -- ← 方向把 x ∈ univ 沿 Eq.symm 搬到 A 上。
 theorem univ_top_iff (α : Type) (A : Set α) :
-    And (Set.subset α A (Set.univ α))
-        (Iff (Set.subset α (Set.univ α) A) (Eq.{1} (Set α) A (Set.univ α))) :=
-  And.intro (Set.subset α A (Set.univ α))
-    (Iff (Set.subset α (Set.univ α) A) (Eq.{1} (Set α) A (Set.univ α)))
-    (fun (x : α) => fun (hx : A x) => Set.mem_univ α x)
-    (Iff.intro (Set.subset α (Set.univ α) A) (Eq.{1} (Set α) A (Set.univ α))
-      (fun (h : Set.subset α (Set.univ α) A) =>
-        Set.ext α A (Set.univ α) (fun (x : α) =>
-          Iff.intro (A x) (Set.mem α x (Set.univ α))
-            (fun (ha : A x) => Set.mem_univ α x)
-            (fun (hu : Set.mem α x (Set.univ α)) => h x (Set.mem_univ α x))))
-      (fun (h : Eq.{1} (Set α) A (Set.univ α)) =>
-        fun (x : α) => fun (hu : Set.mem α x (Set.univ α)) =>
-          Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α x X)
-            (Set.univ α) A
-            (Eq.symm.{1} (Set α) A (Set.univ α) h)
-            (Set.mem_univ α x)))
+    (A ⊆ Set.univ α) ∧ ((Set.univ α ⊆ A) ↔ (A = Set.univ α)) := by
+  constructor
+  intro x
+  intro hx
+  exact Set.mem_univ α x
+  constructor
+  intro h
+  apply Set.ext
+  intro x
+  constructor
+  intro ha
+  exact Set.mem_univ α x
+  intro hu
+  exact h x hu
+  intro h
+  intro x
+  intro hu
+  exact Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X)
+    (Set.univ α) A (Eq.symm.{1} (Set α) A (Set.univ α) h) hu
 
 -- ── 练习 5（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 𝒫(univ) 就是上一层类型的全集：逐元素看，左边是「A ⊆ univ」（由 A 的每个
 -- 元素给出 True.intro），右边是 True，两个方向各自一步。
+-- `Set.ext` 要写全类型参数（`apply Set.ext (Set α)`）：不写时元素类型不是签名里
+-- 的裸 α，会造出坏子目标。
 theorem powerset_univ_eq_univ_of_sets (α : Type) :
-    Eq.{1} (Set (Set α)) (Set.powerset α (Set.univ α)) (Set.univ (Set α)) :=
-  Set.ext (Set α) (Set.powerset α (Set.univ α)) (Set.univ (Set α)) (fun (A : Set α) =>
-    Iff.intro (Set.mem (Set α) A (Set.powerset α (Set.univ α)))
-      (Set.mem (Set α) A (Set.univ (Set α)))
-      (fun (h : Set.mem (Set α) A (Set.powerset α (Set.univ α))) => Set.mem_univ (Set α) A)
-      (fun (h : Set.mem (Set α) A (Set.univ (Set α))) =>
-        fun (x : α) => fun (hx : A x) => Set.mem_univ α x))
+    𝒫 (Set.univ α) = Set.univ (Set α) := by
+  apply Set.ext (Set α)
+  intro A
+  constructor
+  intro h
+  exact Set.mem_univ (Set α) A
+  intro h
+  exact Iff.mpr (A ∈ 𝒫 (Set.univ α)) (A ⊆ Set.univ α)
+    (Set.mem_powerset_iff α (Set.univ α) A)
+    (fun (x : α) => fun (hx : A x) => Set.mem_univ α x)

@@ -74,17 +74,27 @@ impl Doc {
         }
     }
 
-    /// 这份文档现在该发的诊断（parse 错误优先，与既有契约一致）。
+    /// 这份文档现在该发的诊断。
+    ///
+    /// 两条契约并存（G-20 / X15）：
+    /// - **老契约**（单文件模式 / 闭包也失败）：parse 错误优先——parse 不过时报告
+    ///   是空的，发它等于什么都不说。
+    /// - **新契约**（闭包编译成功）：以**闭包报告**为准。用库记法的单元单文件
+    ///   必然 parse 失败（记法随 `import` 传播，G-04 第二刀），而闭包是好的；
+    ///   此时发 parse 错误就是**假诊断**（编辑器里一条 `notation-unknown-symbol`
+    ///   红波浪线，CLI 判卷却 exit 0）。
     fn diagnostics(&self) -> Vec<Diagnostic> {
-        match self.doc.parse_error.as_ref() {
-            Some(diag) => vec![diagnostic_from_parse(diag)],
-            None => self
-                .doc
-                .report
-                .as_ref()
-                .map(report_diagnostics)
-                .unwrap_or_default(),
+        let rescued = self.doc.project_entry_compiled();
+        if !rescued {
+            if let Some(diag) = self.doc.parse_error.as_ref() {
+                return vec![diagnostic_from_parse(diag)];
+            }
         }
+        self.doc
+            .report
+            .as_ref()
+            .map(report_diagnostics)
+            .unwrap_or_default()
     }
 
     /// 当前文本（`doc.text()` 的读法）。
@@ -157,10 +167,16 @@ impl Doc {
         // 原地复用会话（I8 增量的关键）：prelude 模式变化时由真相层重建。
         self.doc
             .set_text_with_overlay(text, lsp_version as u64, Some(mode), overlay);
-        if self.doc.parse_error.is_some() {
+        if self.doc.parse_error.is_some() && !self.doc.project_entry_compiled() {
             // LSP 既有契约：parse 失败时**没有报告**（hover / documentSymbol /
             // codeAction / inlayHint 等据此回答 `null`）。真相层用"空报告 +
             // parse_error"表达同一件事，这里把它折回 LSP 形状。
+            //
+            // **例外**（G-20 / X15）：项目闭包**编译成功**时报告是真的、有用的
+            // （入口单文件 parse 失败只是因为记法来自 `import`，见
+            // `QueryDoc::project_entry_compiled`），丢掉它会让编辑器发假诊断
+            // 并把 hover/documentSymbol 全部打成 `null`。这条例外只在闭包好使时
+            // 生效——闭包也失败（入口 `LoadFailed`）时仍走老契约。
             self.doc.report = None;
             return;
         }
@@ -774,6 +790,73 @@ fn hover_markup(res: render::HoverResolved) -> Hover {
     }
 }
 
+/// 记法**符号**的 hover：这个符号是什么、展开成什么、**怎么打出来**。
+///
+/// 用户要求（原话）：「要考虑 notation 如何输入，应该像 lean4 一样 `\xxx` 替换，
+/// 同时 hover 内容提示用户如何输入对应符号」——这条 hover 就是后半句。
+/// 设计 `docs/design/notation-input.md` §4。
+///
+/// 为什么必须插在**关键字闸门之前**：`front::semantic` 把**已声明**的记法符号
+/// 归进 `SemanticKind::Keyword`（与 `∀` 同族，见 `semantic.rs` 的
+/// `TokenKind::Sym` 分支），而闸门对 `Keyword` 一律 `return Ok(None)`
+/// ⇒ 本文件声明的符号今天 hover **完全静默**（实测：`⊗` 无反应、内建 `∧` 有反应、
+/// 光标右移一格又有了——三种形态行为不一致）。这条分支把三种形态统一到
+/// 「符号 + 展开 + 怎么输入」。
+///
+/// 信息全部来自**前端**（[`sokonanoda_front::notation_input`] 是唯一真相源），
+/// 不在客户端拼；符号作用域用词法扫描判断（不依赖 parse 成功——使用库记法的
+/// 文件单文件 parse 必然失败）。类型行**有就给、没有不编**。
+fn notation_symbol_hover(
+    text: &str,
+    offset: usize,
+    report: &DocumentReport,
+    pos: Position,
+) -> Option<Hover> {
+    use sokonanoda_front::notation_input;
+    let (symbol, target) = notation_input::symbol_at(text, offset)?;
+    let locally_declared = notation_input::declared_notation_at(text, offset).is_some();
+    let mut lines: Vec<String> = Vec::new();
+    let mut head = format!("`{symbol}` —— 记法符号");
+    if locally_declared {
+        head.push_str("（本文件声明）");
+    }
+    lines.push(head);
+    if let Some(target) = target {
+        lines.push(format!("展开成 `{target}`"));
+    }
+    match notation_input::input_for(&symbol) {
+        Some(entry) if entry.supported => {
+            lines.push(notation_input::input_hint(&symbol).unwrap_or_default())
+        }
+        // 表里有这个符号但语言还没有它 ⇒ **不承诺**可输入。
+        Some(_) => lines.push("输入：语言今天还没有这个符号".to_string()),
+        // 表外符号（`=`、课程自定义的 `⊗`…）：直说"直接打"——
+        // 沉默会让学习者以为有缩写而反复试（Lean 的 hover 也说这句）。
+        None => lines.push(format!("输入：直接打 `{symbol}`（语言没有为它约定缩写）")),
+    }
+    // 外层表达式的类型：能拿到就附上（`a ∈ A : Prop`），拿不到不编。
+    if let Some(h) = render::hover_type_at(&report.hovers, pos.line, pos.character) {
+        if !h.binder && !h.text.is_empty() && !h.text.contains('$') {
+            let expr = text
+                .get(h.span.start.offset..h.span.end.offset)
+                .unwrap_or_default()
+                .trim();
+            if !expr.is_empty() {
+                lines.push(format!("`{expr} : {}`", h.text));
+            }
+        }
+    }
+    Some(Hover {
+        contents: HoverContents::Markup(MarkupContent {
+            kind: MarkupKind::Markdown,
+            value: lines.join("\n\n"),
+        }),
+        // 不给 range：符号的 token span 由词法扫描得出，客户端按光标词高亮即可
+        // （与 `hover_markup` 的表达式范围不同——那是 AST span）。
+        range: None,
+    })
+}
+
 /// 半截表达式的 goal-state hover（I13-S5，用户需求）：值写了一半、内核
 /// 拒绝时（如 `And.intro b a` 还差两个前提），hover 不只给报错——把推断
 /// 出的**剩余目标**列出来（`⊢ b`、`⊢ a`）。
@@ -1093,6 +1176,13 @@ impl LanguageServer for Backend {
         // 半截表达式的 goal-state（内核拒绝 + 有可推断的部分应用）。
         // 只在 hover 请求时计算（不在按键路径），judge_infer 有缓存。
         if let Some(hover) = half_expression_goals_hover(report, doc.text(), offset, &decls) {
+            return Ok(Some(hover));
+        }
+        // 记法符号（`∧` / 本文件声明的 `⊗` / import 来的 `∈`）：符号 + 展开 +
+        // **怎么输入**（用户要求，D5）。必须在下面的关键字闸门**之前**——
+        // 已声明的记法符号被 `front::semantic` 归进 `Keyword`，闸门会把它们
+        // 一起吞掉（实测：本文件声明的符号 hover 完全静默）。
+        if let Some(hover) = notation_symbol_hover(doc.text(), offset, report, pos) {
             return Ok(Some(hover));
         }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息

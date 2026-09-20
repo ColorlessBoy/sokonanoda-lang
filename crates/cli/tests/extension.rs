@@ -1409,3 +1409,152 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
         "build must use the shared CLI resolver"
     );
 }
+
+/// **记法符号着色的防漂移**：TM 的 `mathsymbols` 类必须与
+/// `front::notation_input::notation_symbol_chars` **逐字相等**。
+///
+/// 从前这个类是**手写的码点范围**（`U+2200–22FF` + `U+2A00–2AFF`），于是
+/// `↔`(U+2194)、`¬`(U+00AC)、`𝒫`(U+1D4AB)、`ᶜ`(U+1D9C)、`×ˢ`(U+00D7/02E2)
+/// **一律不着色**——课程里最常用的几个反而看不见（设计
+/// `docs/design/notation-input.md` 的 R-6）。现在两边由这条测试钉在一起。
+#[test]
+fn tm_grammar_math_symbols_follow_the_single_source() {
+    let raw = fs::read_to_string(
+        vscode_dir()
+            .join("syntaxes")
+            .join("sokonanoda.tmLanguage.json"),
+    )
+    .expect("syntaxes/sokonanoda.tmLanguage.json");
+    let grammar: Value = serde_json::from_str(&raw).expect("grammar is valid JSON");
+    let class = grammar["repository"]["mathsymbols"]["match"]
+        .as_str()
+        .expect("mathsymbols.match is a string");
+    // 类里只允许 `\x{XXXX}` 转义（不许码点范围：范围会静默漏掉符号）。
+    let body = class
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix("]+"))
+        .expect("mathsymbols is a single character class");
+    let mut actual: Vec<char> = Vec::new();
+    let mut rest = body;
+    while let Some(start) = rest.find("\\x{") {
+        let after = &rest[start + 3..];
+        let end = after.find('}').expect("`\\x{` is closed");
+        let code = u32::from_str_radix(&after[..end], 16).expect("hex code point");
+        actual.push(char::from_u32(code).expect("valid char"));
+        rest = &after[end + 1..];
+    }
+    assert_eq!(
+        rest.trim(),
+        "",
+        "the math-symbol class must contain ONLY `\\x{{XXXX}}` escapes (no ranges): {body}"
+    );
+    actual.sort_unstable();
+    actual.dedup();
+
+    let expected = sokonanoda_front::notation_input::notation_symbol_chars();
+    assert_eq!(
+        actual, expected,
+        "the TM grammar's math-symbol class must mirror front::notation_input"
+    );
+    assert!(
+        !actual.contains(&'='),
+        "`=` is ASCII: it belongs to the `operators` rule, not the math class"
+    );
+}
+
+fn notation_input_script() -> String {
+    fs::read_to_string(vscode_dir().join("src").join("abbreviation-rewriter.js"))
+        .expect("editor/vscode/src/abbreviation-rewriter.js")
+}
+
+/// **记法缩写表的防漂移**（设计 `docs/design/notation-input.md` §6.2 / R-3）：
+/// `editor/vscode/src/abbreviations.js` 必须与 `front::notation_input::TABLE`
+/// **逐条相等**——符号、主缩写、别名、`supported`、以及**顺序**。
+///
+/// 与 `tm_grammar_keywords_follow_the_single_source` 同一形制：**真解析**，不做
+/// grep 掩膜（硬规则 4）。JS 表被写成"一条一行、键带引号"的纯 JSON 数组字面量，
+/// 就是为了这里能 `serde_json::from_str` 它：`const TABLE = [` 到行首 `];` 之间
+/// 就是那段 JSON（格式即契约，改格式要同步改这条测试）。
+#[test]
+fn abbreviation_table_mirrors_the_single_source() {
+    let raw = fs::read_to_string(vscode_dir().join("src").join("abbreviations.js"))
+        .expect("editor/vscode/src/abbreviations.js");
+    let start = raw
+        .find("const TABLE = [")
+        .expect("abbreviations.js declares `const TABLE = [`")
+        + "const TABLE = ".len();
+    let end = raw[start..]
+        .find("\n];")
+        .expect("the table literal is closed by a line-start `];`")
+        + start;
+    // `raw[end]` 是换行、`raw[end + 1]` 是 `]`：`raw[start..end]` 是数组体。
+    // 容忍 JS 习惯的尾逗号（prettier 会加）——比对的是表，不是标点。
+    let body = raw[start..end].trim_end();
+    let body = body.strip_suffix(',').unwrap_or(body);
+    let literal = format!("{body}\n]");
+    let actual: Value = serde_json::from_str(&literal)
+        .expect("the JS table is a JSON array of objects (the format is the contract)");
+
+    let expected = Value::Array(
+        sokonanoda_front::notation_input::TABLE
+            .iter()
+            .map(|entry| {
+                serde_json::json!({
+                    "symbol": entry.symbol,
+                    "abbreviation": entry.abbreviation,
+                    "aliases": entry.aliases,
+                    "supported": entry.supported,
+                })
+            })
+            .collect(),
+    );
+    assert_eq!(
+        actual, expected,
+        "editor/vscode/src/abbreviations.js must mirror front::notation_input::TABLE exactly \
+         (same symbols, abbreviations, aliases, `supported` flags and order)"
+    );
+}
+
+/// Tab 键位**绝不能吞掉普通 Tab**（设计 §9 R-2 的缓解）：它必须由扩展置位的
+/// context key 把关——`when` 子句里的 key 名与 `abbreviation-rewriter.js` 里
+/// 真正写的那个是同一个字符串，且 `sokonanoda.input.eager` 默认关（§8 NI-2）。
+#[test]
+fn notation_input_tab_binding_is_gated_by_its_context_key() {
+    let manifest = manifest();
+    let bindings = manifest["contributes"]["keybindings"]
+        .as_array()
+        .expect("contributes.keybindings");
+    let binding = bindings
+        .iter()
+        .find(|binding| binding["command"].as_str() == Some("sokonanoda.input.replaceAbbreviation"))
+        .expect("the abbreviation rewriter must be bound to a key");
+    assert_eq!(binding["key"].as_str(), Some("tab"));
+    let when = binding["when"]
+        .as_str()
+        .expect("the Tab binding must carry a `when` clause");
+    assert!(
+        when.contains("editorLangId == sokonanoda"),
+        "the rewriter is a sokonanoda-only behaviour: {when}"
+    );
+    let context_key = "sokonanoda.input.abbreviationBeforeCursor";
+    assert!(
+        when.contains(context_key),
+        "without the context key the Tab binding would swallow ordinary indentation: {when}"
+    );
+    assert!(
+        notation_input_script().contains(&format!("\"{context_key}\"")),
+        "the `when` clause must name the context key the extension actually sets"
+    );
+
+    let eager = &manifest["contributes"]["configuration"]["properties"]["sokonanoda.input.eager"];
+    assert_eq!(
+        eager["type"].as_str(),
+        Some("boolean"),
+        "the eager switch must be a documented setting"
+    );
+    assert_eq!(
+        eager["default"].as_bool(),
+        Some(false),
+        "eager replacement must default to off (design §8 NI-2: Tab is the explicit path)"
+    );
+}

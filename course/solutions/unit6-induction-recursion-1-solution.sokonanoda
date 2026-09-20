@@ -10,18 +10,18 @@ inductive Nat : Type
 ctor zero : Nat
 ctor succ (n : Nat) : Nat
 rec Nat.rec {u} :
-  (motive : (n : Nat) -> Sort u) ->
-  (mz : motive zero) ->
-  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
-  (n : Nat) -> motive n
+  (motive : (n : Nat) → Sort u) →
+  (mz : motive zero) →
+  (ms : (n : Nat) → motive n → motive (succ n)) →
+  (n : Nat) → motive n
 iota zero :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+  fun (ms : (n : Nat) → motive n → motive (succ n)) => mz
 iota succ :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (ms : (n : Nat) → motive n → motive (succ n)) =>
   fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 
@@ -37,13 +37,13 @@ def three : Nat := succ two
 def four : Nat := succ three
 
 -- 练习 2：double：zero 处返回 zero；succ k 处用 ih 造 succ (succ ih)。
-def double : Nat -> Nat :=
+def double : Nat → Nat :=
   fun (n : Nat) =>
     Nat.rec.{1} (fun (x : Nat) => Nat) zero
       (fun (k : Nat) => fun (ih : Nat) => succ (succ ih)) n
 
 -- 练习 3：add：归纳变量是 m，zero 处返回 n，succ k 处用 ih 造 succ ih。
-def add : Nat -> Nat -> Nat :=
+def add : Nat → Nat → Nat :=
   fun (m : Nat) => fun (n : Nat) =>
     Nat.rec.{1} (fun (x : Nat) => Nat) n
       (fun (k : Nat) => fun (ih : Nat) => succ ih) m
@@ -64,16 +64,16 @@ inductive Color : Type
 ctor red : Color
 ctor green : Color
 rec Color.rec {u} :
-  (motive : (c : Color) -> Sort u) ->
-  (mr : motive red) ->
-  (mg : motive green) ->
-  (c : Color) -> motive c
+  (motive : (c : Color) → Sort u) →
+  (mr : motive red) →
+  (mg : motive green) →
+  (c : Color) → motive c
 iota red :=
-  fun (motive : (c : Color) -> Sort u) =>
+  fun (motive : (c : Color) → Sort u) =>
   fun (mr : motive red) =>
   fun (mg : motive green) => mr
 iota green :=
-  fun (motive : (c : Color) -> Sort u) =>
+  fun (motive : (c : Color) → Sort u) =>
   fun (mr : motive red) =>
   fun (mg : motive green) => mg
 end

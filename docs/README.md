@@ -13,12 +13,16 @@
 | `ROADMAP.md` | 里程碑与 §10 验收标准 | 规划 |
 | `REQUIREMENTS.md` | **用户全部要求的权威总账**（硬规则、§9 追加日志） | 动手前必读；冲突以它为准 |
 | `STATUS.md` | 当前进度与逐轮日志（最新在最上） | 每轮开始/收尾 |
-| `HANDOVER.md` | **交接汇总**：现在在哪、还剩什么、怎么继续（TODO/限制/gotchas 索引） | 接手第一份 |
+
+> `HANDOVER.md` **不在仓库根**，它在 `docs/HANDOVER.md`（见下面「核心」表）。
+> 站点索引页 `site/docs.html` 的作者核出过这处错——本文早先把它列在根目录，
+> 那个路径会 404。
 
 ## 核心（`docs/` 顶层，开发者参考）
 
 | 文档 | 作用 | 何时读 |
 |---|---|---|
+| `HANDOVER.md` | **交接汇总**：现在在哪、还剩什么、怎么继续（TODO/限制/gotchas 索引） | 接手第一份 |
 | `architecture.md` | 流水线、内核机制、§6 内核改动清单、§8 gotchas | 改内核/front 前 |
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
@@ -73,7 +77,12 @@
 - `extension-server-policy.md` — VS Code 扩展强制内置 LSP + `sokonanoda: doctor` 自检（0.31.0）
 - `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
 - `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（**已废弃**：`char_steps` 基建随值位关键字一并删除）
-- `site.md` — 项目官网（GitHub Pages）方案与信息架构（已上线：site/ + pages.yml）
+- `site.md` — 项目官网（GitHub Pages）立项设计（**已被取代 2026-09-20**：见 `site-rebuild/`；本文仅 §3 单一事实源纪律与 §6 部署仍有效）
+- **`site-rebuild/`** — **站点全面重构（2026-09-20，当前权威）**：`STATE.md`（断点续传状态 + 实测修正清单）、
+  `spec/D1-design-rules.md`（设计规则手册）、`spec/D2-information-architecture.md`（28 页施工图 + 数据模型 + 工程契约）、
+  `spec/D9-page-brief.md`（页面施工标准）、`spec/D3/D5/D6/D7`（数据模式 / 组件 / 编辑器面板 / 设计复审）、
+  `content/C1–C4`（语言 / 教学 / 工具链 / 现状与路线 四本事实卷宗）、`research/R1–R4`（设计手艺调研 / 65 站点拆解 / 字体管线）。
+  验收：`python3 scripts/site-verify.py`（14 项完整性 + 正确性，exit 0 才算过）
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 - `deepseek-harness.md` — **DeepSeek Harness 适配（设计 + 计划 H0–H4）**：差距
   G1–G10、DSH 侧事实（技能根/斜杠命令/LSP 只有 4 项只读操作且忽略诊断/patch 形状）、
@@ -120,6 +129,22 @@
   类型参数（裸变量匹配，不引入元变量）、文件内作用域、记法**不是声明**（零事件）、
   兼容护城河（点名省 `α` 仍被拒）、与 Lean 的 7 条已知差异、第二刀清单；
   §9 是 as-built（`∅ ⊆ A` 逼出的"操作数也吃期望类型"等八条）（2026-09-19）
+- `course-lean-style.md` — **全课程 Lean 4 化（记法符号 + tactic 证明）主计划**
+  （2026-09-19，**进行中**）：用户拍板 D1–D6、现状实测台账 **X1–X15**（每条都是真二进制跑出来的，
+  含四个前端 bug 的根因定位到行）、语言侧 L1–L4 / 课程侧 C1–C7 / 同步 F 工作项、
+  分期 **R1 语言地基 → R2 引擎扩展 + 卷 I 全量 → R2.5 记法输入 + 隐式实参 → R3 入门课 + 收尾**
+  → R4（可选）print-back、subagent 分工 S1–S10、§9 逐轮 as-built、§10 明确不做 N-1…N-12。
+  调研底稿九篇在 `docs/notes/course-lean-style/`；**红线段：内核零改动**
+- `notation-input.md` — **记法输入法（`\xxx` 缩写）+ hover 提示**（2026-09-19，配套 D5）：
+  19 个符号的 **Lean 逐字缩写表**（含别名与 `supported` 标记）、四条输入路线对比
+  （**推荐客户端缩写改写器 + Tab**，不做 LSP 补全——DSH/opencode 都不消费补全项，
+  而 DSH 的 `lsp` 工具有 hover）、hover 落点与「插在关键字闸门之前」的关键约束、
+  一个**阻断级 LSP 缺陷**（单文件 parse 失败吃掉项目报告）、P0–P3 分期与 R-1…R-7 风险
+- `implicit-arguments.md` — **隐式实参**（2026-09-19，配套 D6；**推翻原 D2 的「不做」**）：
+  三条路线对比（A 真元变量被内核堵死 / B 探针每次整前缀重编译 / **C 风格对齐 + 唯一确定**，
+  400–600 行、零额外内核调用）、算法与六个落点文件、**关键安全性质**（无隐式 binder 的签名
+  逐字节 no-op ⇒ 可独立发布且课程零改动全绿）、课程分批 B0–B7、会红的测试与**护城河契约变更**
+  清单、顺带发现的两个真 bug（X14/X15）、P0–P4 分期
 
 > 设计文档是**已落地决策的存档**（as-built）。被后续轮次取代的细节以
 > `STATUS.md` 为准；确认过时且无人引用的会直接删除（保留 git 历史）。
@@ -137,8 +162,41 @@
 - `multifile-prior-art.md` — **多文件/项目模型的横向调研**（Coq/Rocq、Agda、Isabelle、
   Idris 2、Rust、Go、Python、JS/TS、Haskell/OCaml、JVM：单文件模式、清单发现、模块身份、
   产物与失效；配套设计 `docs/design/imports-and-projects.md`，I16）
-- `project-view.md` — **项目状态视图**（`query project` / `soko/project` / VS Code 项目树：
+- **项目状态视图**（`query project` / `soko/project` / VS Code 项目树：
   根、清单来源、闭包模块表、每模块状态与项目诊断；0.58.0 批次 4）
+  —— 文档在 **`docs/design/project-view.md`**，不在 `docs/notes/` 下
+  （站点索引页 `site/docs.html` 的作者核出过这处错：`docs/notes/project-view.md` 不存在，
+  在任何 git 历史里也不存在）。
+- **`course-lean-style/`** — **全课程 Lean 4 化的九篇调研底稿**（2026-09-19，配套设计
+  `docs/design/course-lean-style.md`）：`notation-audit.md`（记法能力审计 903 行）、
+  `tactic-audit.md`（tactic 能力审计 767 行）、`course-inventory.md`（卷 I 逐声明清单 1701 行）、
+  `tooling-impact.md`（门禁/工具/文档影响面 657 行）、`printback-feasibility.md`（print-back 614 行）、
+  `intro-course-constraints.md`（入门课结构性约束 406 行）、
+  `implicit-args-plan.md`（隐式实参引擎侧 1027 行）、
+  `notation-input-plan.md`（记法输入面 461 行）、
+  `course-impact-implicit-args.md`（隐式实参课程侧影响面 659 行）。
+  **每篇都带 `文件:行号` 证据与实测探针**（"结论不是读代码猜的"）。
+  另有 **`R2-rewrite-brief.md`**——R2 改写轮次发给 subagent 的**施工说明书**
+  （记法表 / tactic 白名单 / `⟨a, b⟩` 与多层展开 / 已知引擎边界 / lib 与入门课的
+  额外规则 / 判卷命令 / 阻塞上报格式）。它不是调研，是操作手册；
+  改课程前先读它，能省一轮返工。
+  **`R3-rewrite-brief.md`**——入门课 `course/` 那一刀的施工说明书（CN/EN 同步、
+  本课可用的记法集、**本课的 tactic 白名单**（不含 `constructor`/`cases`——骨架是
+  自建 `axiom`）、**计数纪律**（纯记法改写 count-neutral）、单元④ 的特例、阻塞上报格式）。
+  样板 = **单元①**（已按它改完并通过全部门禁）；§9 另有**subagent 半途停掉后的接管
+  记录**——「没有收尾消息 ≠ 没改文件」，验收要看残留扫描而不是自述。
+  **`R2-full-rewrite-brief.md`**——**卷 I `courses/set-theory/` 的收尾手册**
+  （2026-09-21 第 114 轮建）：§0 逐区域现状表（哪些是机械替换已做、哪些还没）、
+  §1 剩下的三类活（`Exists X (fun …)` → `∃ …`、跨行 `And` → `∧`、项模式证明 → `by`）、
+  §2 纪律（门禁必须始终 328/99/0、`notation-cheatsheet` 故意并列两种写法**不许动**）、
+  §3 交付格式。**背景**：卷 I 的第 110–112 轮只交付了「语言地基 + 单元② 试点」，
+  「36 目标全绿」被误记成「全量改写完成」——门禁只证明**能判卷**，不证明**改写过**。
+- `lean-style-0.62.md` — **全课程 Lean 4 化（0.62.0 批次）的"给站点/文档 agent"事实清单**：
+  这一批用户可见的 12 项特性（记法 / tactic / 隐式实参 / 记法输入 / 判定侧修复 / 新诊断码）、
+  课程内容的事实变化（两门课 + playground 的当前计数、入门课删自建 `And`/`Or` 骨架的后果）、
+  以及**站点不该误解的三件事**（G-21 的报错仍半修、记法在实参位的边界、记法对照页的双写法是故意的）。
+  ⚠️ 它明确标注了"工作树 = 未发布 0.62.0"，并指向 `docs/design/site-rebuild/STATE.md` #13 的测量陷阱；
+  **不要**把它当已发布事实，除非 0.62.0 已发。
 - `project-roots-and-incremental-caches.md` — **语言服务器根发现 + 增量缓存调研**
   （LSP 契约、rust-analyzer/clangd/tsserver/pyright/gopls/ocaml-lsp/Agda/lean4 的根发现与
   错根症状、Lake trace / GHC 指纹 / OCaml `.cmi` / Coq `.vo` digest / `.tsbuildinfo`、

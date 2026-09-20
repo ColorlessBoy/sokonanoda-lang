@@ -9,76 +9,143 @@
 --   theorem 名字 : 类型 := by <tactic>; <tactic>; ...
 --   （tactic 之间用 ; 分隔）
 --
--- 首期五个 tactic（白名单，课程就是语法）：
+-- 本单元教八条 tactic（它们都在语言白名单里；白名单之外的词会被直接拒绝）：
 --   intro x    —— 目标剥一层箭头，引入假设 x（等价于写一层 fun）
 --   exact e    —— 用项 e 直接结束当前目标（内核判定类型匹配）
 --   assumption —— 从已引入的假设里找类型与目标一致的，直接用
---   apply f    —— 目标套上 f：若 f : A1 -> ... -> An -> B 且目标就是 B，
+--   apply f    —— 目标套上 f：若 f : A1 → ... → An → B 且目标就是 B，
 --                 把目标换成 A1..An 几个子目标
 --   rfl        —— 目标是 `Eq α x y` 且两边算出来一样时，直接成立
+--   have h : T := e —— 把 e 记成中间结论 h（类型 T），后面按名字引用
+--   constructor —— 目标是个归纳类型时，用它的构造子把目标拆开：构造子带
+--                 几个字段就出几个子目标，按顺序逐个解决（`∧` 就是左右两个）
+--   cases h with | c1 … => … | c2 … => … —— 把假设 h 按构造子分情况：每个
+--                 分支拿到该构造子带的字段（`∨` 的两支叫 `inl`/`inr`），
+--                 各支里各写各的证明
+-- `left`/`right` 跟 `constructor` 是**同一族**——都是 `apply <构造子>` 的糖，
+-- 只是 `∨` 专挑左边/右边（目标形如 `a ∨ b` 时省得写构造子名）。`use w` 也在
+-- 这一族里，现在就在白名单里、不受单元限制，不过它**要求目标真是归纳类型**：
+-- 单元⑧ 的 `∃` 是那里为了讲规则自己声明的公理，所以那儿照旧点名 `Exists.intro`。
+-- 这一族能用的前提是 And / Or 已经是 prelude 的**真归纳**（见下）。
 -- `by sorry` 表示「留空未完成」（跟值位写 sorry 一样），剩余目标照常显示。
+-- 后面练习里现成的 `∧` / `∨` 也有更省事的写法：练习 4 的 `apply And.intro`
+-- 可以直接换成 `constructor`，练习 6 还可以从这里开始：
+--   cases x with | intro ha hb => …
 -- ==========================================================================
 
--- 逻辑骨架（复用单元①的构造子）：
+-- 逻辑底子：True / False 照单元① 的公理写法立起来；And / Or 的构造子
+-- （And.intro、And.left、And.right、Or.inl、Or.inr）prelude 自带。
+-- 正因为 And / Or 是 prelude 里的真归纳（不是我们自己写的 axiom），
+-- `constructor` / `cases` / `left` / `right` 才有归纳子可拆、可用。
 axiom True : Prop
 axiom True.intro : True
 axiom False : Prop
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
-axiom Or : Prop -> Prop -> Prop
-axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
-axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
 
--- 演示 1（intro + assumption）：`a -> a` 用 by 写。
+-- 演示 1（intro + assumption）：`a → a` 用 by 写。
 --   intro a      引入假设 a（目标变成 a）
 --   assumption   上下文里 a 的类型正好是目标 a，直接用
-theorem demo_by_assumption : (a : Prop) -> a -> a := by intro a; intro h; assumption
+theorem demo_by_assumption : (a : Prop) → a → a := by
+  intro a
+  intro h
+  assumption
 
--- 演示 2（apply 拆目标）：目标是 Or True False，Or.inl 说「只要左边的证明」。
+-- 演示 2（apply 拆目标）：目标是 True ∨ False，Or.inl 说「只要左边的证明」。
 --   apply Or.inl  目标变成 True
 --   exact True.intro  结束
-theorem demo_by_apply : Or True False := by apply Or.inl; exact True.intro
+theorem demo_by_apply : True ∨ False := by
+  apply Or.inl
+  exact True.intro
 
 -- 演示 3（rfl）：等号两边本来就是同一个值。
 --   内核会把 1 + 1 算成 2，rfl 直接成立。
 theorem demo_by_rfl : Eq.{1} Nat (1 + 1) 2 := by rfl
 
+-- 演示 4（have）：给中间结论起个名字，后面直接按名字引用。
+--   have h : a := ha   把已有的证明 ha 记成 h
+--   exact And.intro a a h h   用 h 各填一次左右两半
+theorem demo_by_have : (a : Prop) → a → a ∧ a := by
+  intro a
+  intro ha
+  have h : a := ha
+  exact And.intro a a h h
+
+-- 演示 5（constructor 拆目标）：目标是 `a ∧ b`，constructor 拿 `And.intro` 拆。
+-- 项模式里 `And.intro` 的参数得自己写（演示 4 的 `And.intro a a h h`）；
+-- constructor 直接从目标把参数补齐，只留下构造子带的**字段**当子目标。
+--   constructor   目标 a ∧ b 变成两个子目标：a 和 b
+--   exact ha      第一个子目标（左半 a）
+--   exact hb      第二个子目标（右半 b）——多子目标按顺序逐个解决
+theorem demo_by_constructor : (a : Prop) → (b : Prop) → a → b → a ∧ b := by
+  intro a
+  intro b
+  intro ha
+  intro hb
+  constructor
+  exact ha
+  exact hb
+
+-- 演示 6（cases 分情况）：手里有一条 `a ∨ b` 的假设时，cases 按它的两个
+-- 构造子（`inl`/`inr`）把证明分成两支，每支拿到该构造子带的字段。
+--   cases h with   把 h : a ∨ b 分情况；两支的新目标都还是 b ∨ a
+--   | inl ha =>    左边那支，拿到 ha : a
+--       right      目标 b ∨ a 里 a 在右边，挑右边 ⇒ 目标变成 a
+--       exact ha
+--   | inr hb =>    右边那支，拿到 hb : b
+--       left       目标 b ∨ a 里 b 在左边，挑左边 ⇒ 目标变成 b
+--       exact hb
+theorem demo_by_cases : (a : Prop) → (b : Prop) → a ∨ b → b ∨ a := by
+  intro a
+  intro b
+  intro h
+  cases h with
+  | inl ha =>
+      right
+      exact ha
+  | inr hb =>
+      left
+      exact hb
+
 -- ─────────────────────────────────────────────────────────────
--- 练习 1：用 by 写「a -> a」——先 intro 再 assumption。
+-- 练习 1：用 by 写「a → a」——先 intro 再 assumption。
 -- 起点：`:= by` 后面什么都没有（练习从零开始）。
 -- soko:hint 思路：assumption 是「在上下文里找目标」的捷径；先 intro 把箭头拆开。
 -- soko:hint 目标形态：先 intro a，再 intro h（目标变成 a），最后 assumption。
 -- soko:hint 关键件：assumption 会自动找到类型为 a 的假设 h。
-theorem by_ex1 : (a : Prop) -> a -> a := by sorry
+theorem by_ex1 : (a : Prop) → a → a := by sorry
 
 -- 练习 2：用 by 写「a 且 b 推出 a」。
--- soko:hint 思路：intro 拆箭头拿到 h : And a b，再用 And.left 拆出 a 那一半。
+-- soko:hint 思路：intro 拆箭头拿到 h : a ∧ b，再用 And.left 拆出 a 那一半。
 -- soko:hint 目标形态：intro a; intro b; intro h 之后，目标就是 a。
--- soko:hint 关键件：目标 a、上下文有 h : And a b：用 And.left 拆出左边（exact 交项，或 apply 后再 assumption）。
-theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by sorry
+-- soko:hint 关键件：目标 a、上下文有 h : a ∧ b：用 And.left 拆出左边（exact 交项，或 apply 后再 assumption）。
+theorem by_ex2 : (a : Prop) → (b : Prop) → a ∧ b → a := by sorry
 
 -- 练习 3（apply 拆目标）：目标是 a 或 b 时，apply Or.inl / Or.inr 选一边。
 -- soko:hint 思路：Or 是「二选一」——apply Or.inl 就只剩下证明左边。
 -- soko:hint 目标形态：先 intro 拿到 ha : a，再 apply Or.inl，最后 exact ha。
--- soko:hint 关键件：目标形如 Or a b：apply Or.inl 或 Or.inr 先选一边，选完的子目标用上下文里的证明收尾。
-theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by sorry
+-- soko:hint 关键件：目标形如 a ∨ b：apply Or.inl 或 Or.inr 先选一边，选完的子目标用上下文里的证明收尾。
+theorem by_ex3 : (a : Prop) → (b : Prop) → a → a ∨ b := by sorry
 
 -- 练习 4（apply And.intro 两个子目标）：And 需要左右两个证明都给出。
 -- soko:hint 思路：And.intro 要两份证明——apply 之后会出两个子目标，逐个 exact。
 -- soko:hint 目标形态：先 intro 拿到 ha : a、hb : b，apply And.intro 出两个子目标 a 和 b。
 -- soko:hint 关键件：apply And.intro 会拆出两个子目标（左右各一），按顺序分别用上下文里 a、b 的证明收尾。
-theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by sorry
+theorem by_ex4 : (a : Prop) → (b : Prop) → a → b → a ∧ b := by sorry
+
+-- 练习 5（have 记中间结论）：`have` 把一步的结果取个名字，后面反复用。
+-- 这里 `b` 的证明来自把 f 用到 ha 上——先记成 hb，再拿它去构造目标。
+-- soko:hint 思路：目标要 `b ∧ a`，而 b 的证明藏在 `f : a → b` 里；先算出来存成名字。
+-- soko:hint 目标形态：intro a; intro b; intro f; intro ha 之后，目标是 b ∧ a。
+-- soko:hint 关键件：`have hb : b := f ha` 记下 b 的证明，再 `exact And.intro b a hb ha`（注意 b 在前）。
+theorem by_ex5 : (a : Prop) → (b : Prop) → (a → b) → a → b ∧ a := by sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 6（综合）：把 by 的几个 tactic 串起来——intro 拆三层，exact 一次性收尾。
 --
 -- 多步证明几乎总要先拆 binder：`intro a; intro b; intro x` 逐层把箭头变成
--- 假设，目标随之缩小到 `And b a`；最后用 exact 交出完整证明项。
+-- 假设，目标随之缩小到 `b ∧ a`；最后用 exact 交出完整证明项。
 --
--- soko:hint 思路：先用 intro 把 a、b、x 逐一引入，目标变成 And b a；再用 And.intro 构造。
--- soko:hint 目标形态：intro a; intro b; intro x 之后目标 And b a，上下文有 x : And a b。
--- soko:hint 关键件：目标 And b a、上下文有 x : And a b：用 And.intro 构造，两半分别由 And.right、And.left 从 x 取出——注意装回时 b 在前。
-theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by sorry
+-- soko:hint 思路：先用 intro 把 a、b、x 逐一引入，目标变成 b ∧ a；再用 And.intro 构造。
+-- soko:hint 目标形态：intro a; intro b; intro x 之后目标 b ∧ a，上下文有 x : a ∧ b。
+-- soko:hint 关键件：目标 b ∧ a、上下文有 x : a ∧ b：用 And.intro 构造，两半分别由 And.right、And.left 从 x 取出——注意装回时 b 在前。
+theorem by_ex6 : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by sorry
 

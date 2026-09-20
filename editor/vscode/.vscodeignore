@@ -9,7 +9,11 @@
 .github/**
 **/*.vsix
 .DS_Store
-src/**
+# `src/` holds BOTH runtime modules (abbreviations.js / abbreviation-rewriter.js,
+# required by extension.js) and the integration suite (src/test/**). Only the
+# suite may be excluded — a blanket `src/**` shipped a VSIX whose extension
+# crashed with "Cannot find module './src/abbreviation-rewriter'" (NI-2).
+src/test/**
 scripts/**
 test-*.js
 

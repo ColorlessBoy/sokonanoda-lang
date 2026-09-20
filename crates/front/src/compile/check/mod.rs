@@ -3,7 +3,7 @@
 mod kernel_phase;
 mod walk;
 
-use super::elab::{canonical_ctor_name, HoverNode, InductiveTable, KnownTable};
+use super::elab::{canonical_ctor_name, DefTable, HoverNode, InductiveTable, KnownTable};
 use super::error::CompileError;
 use super::event::CompileOutput;
 use super::goals::GoalTemplates;
@@ -302,16 +302,33 @@ pub fn compile_all_with(
 /// （非 by 块为空），交给既有 `open_goal`/`build_*` 分流。
 /// `src` 为文件原文、`span_start` 为声明起点——只有真是 `by` 块才切片
 /// （judge 合成的文件 src 为空，普通声明不触发切片）。
+// 参数已 8 个（0.62.0 起多一个 `universe`：判定合成声明要带声明的宇宙
+// 参数，见 `docs/design/by-tactics.md` §12）。为压 clippy 把参数打包成
+// 结构体只会给热路径加一层间接，得不偿失。
+#[allow(clippy::too_many_arguments)]
 fn lower_by_val(
     ty: &Expr,
     val: &Expr,
+    universe: &[String],
     prefix_src: &str,
     options: &CompileOptions,
     canonical_goal: bool,
+    inductives: &crate::compile::elab::InductiveTable<'_>,
+    defs: &crate::compile::elab::DefTable,
 ) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
     if let Some((binders, by)) = crate::by::split_by_value(val) {
-        crate::by::run_by(ty, by, &binders, prefix_src, options, canonical_goal)
-            .map(|o| (o.expr, o.steps))
+        crate::by::run_by(
+            ty,
+            by,
+            &binders,
+            universe,
+            prefix_src,
+            options,
+            canonical_goal,
+            inductives,
+            defs,
+        )
+        .map(|o| (o.expr, o.steps))
     } else {
         Ok((val.clone(), Vec::new()))
     }
@@ -331,14 +348,30 @@ pub(crate) type LoweredValue = (Expr, Vec<crate::by::ByStep>);
 /// `canonical_goal`（G-05）：本文件用了 `namespace`/`open` 时为 `true`，
 /// tactic 引擎把根目标先过一遍内核 pp（设计 `docs/design/namespace-open.md`
 /// §4.6）；没碰命名空间的文件零额外开销。
+// 参数已 8 个（0.62.0 起多一个 `universe`：判定合成声明要带声明的宇宙
+// 参数，见 `docs/design/by-tactics.md` §12）。为压 clippy 把参数打包成
+// 结构体只会给热路径加一层间接，得不偿失。
+#[allow(clippy::too_many_arguments)]
 fn lower_value(
     ty: &Expr,
     val: &Expr,
+    universe: &[String],
     prefix_src: &str,
     options: &CompileOptions,
     canonical_goal: bool,
+    inductives: &crate::compile::elab::InductiveTable<'_>,
+    defs: &crate::compile::elab::DefTable,
 ) -> Result<LoweredValue, CompileError> {
-    lower_by_val(ty, val, prefix_src, options, canonical_goal)
+    lower_by_val(
+        ty,
+        val,
+        universe,
+        prefix_src,
+        options,
+        canonical_goal,
+        inductives,
+        defs,
+    )
 }
 
 /// 引擎的 per-step 状态 → 报告层 wire 形状（binder 类型渲染成文本）。
@@ -472,6 +505,8 @@ fn run_pass(
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known: KnownTable = KnownTable::new();
     let mut inductives = InductiveTable::new();
+    // 源级 delta 表（课程 Lean 化）：`by` 引擎靠它看穿 def 头（`A ⊆ B`/`¬ A`）。
+    let mut defs = DefTable::new();
     match options.prelude {
         PreludeMode::Bare => {}
         PreludeMode::Full => {
@@ -510,7 +545,7 @@ fn run_pass(
             // 两者的让位读同一个 `taken`（B7 的 `EQ` 依赖），所以先后顺序
             // 不影响让位结果。
             install_eq_prelude(&mut builder, &mut known, &taken);
-            install_l1_prelude(&mut builder, &mut known, &mut inductives, &taken);
+            install_l1_prelude(&mut builder, &mut known, &mut inductives, &mut defs, &taken);
         }
     }
     let out = CompileOutput::default();
@@ -577,6 +612,7 @@ fn run_pass(
         builder,
         known,
         inductives,
+        defs,
         out,
         ops,
         cmd_hovers,

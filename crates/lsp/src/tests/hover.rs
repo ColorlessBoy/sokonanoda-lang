@@ -390,3 +390,143 @@ async fn hover_returns_range_highlighting_the_expression() {
     );
     shutdown(&mut service).await;
 }
+
+/// **记法符号的 hover**（D5，用户要求「hover 内容提示用户如何输入对应符号」）。
+///
+/// 改前实测：本文件声明的符号（`⊗`）hover **完全静默**——`front::semantic` 把
+/// 已声明的记法符号归进 `SemanticKind::Keyword`，LSP 的「关键字不吐类型行」闸门
+/// 把它一起吞掉了。内建 `∧` 走另一条路（有反应），import 来的符号因 X15 没有报告
+/// ——三种形态行为不一致。这条分支把三种统一。
+#[tokio::test]
+async fn hover_on_a_locally_declared_notation_symbol_explains_it() {
+    let src = concat!(
+        "def myop (a b : Prop) : Prop := a\n",
+        "infix:50 \" ⊗ \" => myop\n",
+        "theorem t (a b : Prop) (h : a ⊗ b) : a ⊗ b := h\n",
+    );
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "notation hover diagnostics").await;
+
+    // **符号本身**的位置（`find` 会先命中 `infix` 行里字符串字面量中的那个）。
+    let pos = lsp_pos(src, src.rfind('⊗').expect("use site exists"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("a declared notation symbol must not be silent");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("记法符号"),
+        "hover must say what this is: {:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("myop"),
+        "hover must show what the symbol expands to: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+/// 内建符号 `∧` 也必须给「怎么输入」（它在输入法表里）。
+#[tokio::test]
+async fn hover_on_a_builtin_symbol_teaches_how_to_type_it() {
+    let with_notation = "theorem and_self (a b : Prop) (h : a ∧ b) : a ∧ b := h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, with_notation).await;
+    let diags = wait_diagnostics(&mut socket, "builtin hover diagnostics").await;
+    assert!(
+        diags.diagnostics.is_empty(),
+        "fixture must compile: {diags:?}"
+    );
+
+    let pos = lsp_pos(with_notation, offset_of(with_notation, "∧"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover on `∧` must resolve");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("\\and"),
+        "hover must teach the abbreviation: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+/// `=` 是内建记法但**没有缩写**（Lean 也没有）⇒ hover 要说"直接打"，
+/// 不能沉默（沉默会让学习者以为有缩写而反复试）。
+#[tokio::test]
+async fn hover_on_equality_says_it_is_typed_directly() {
+    let src = "theorem eq_self (A : Prop) (h : A = A) : A = A := h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let diags = wait_diagnostics(&mut socket, "equality hover diagnostics").await;
+    assert!(
+        diags.diagnostics.is_empty(),
+        "fixture must compile: {diags:?}"
+    );
+
+    // **`=` 本身**的位置（`offset_of(src, "A = A")` 给的是那个 `A`）。
+    let pos = lsp_pos(src, offset_of(src, "A = A") + 2);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover on `=` must resolve");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("记法符号"),
+        "hover must say what this is: {:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("Eq"),
+        "hover must show the expansion target: {:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("直接打"),
+        "hover must say there is no abbreviation: {:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}

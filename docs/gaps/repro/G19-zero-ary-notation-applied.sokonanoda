@@ -1,0 +1,43 @@
+-- G-19 最小复现：零元记法（`∅`）落在「被应用」的位置 + `by` 块 ⇒ 补不出前导类型参数。
+--
+-- 形状：`⊆` 指向 **def** `Set.subset`，`intro` 要把它 delta 展开成
+-- `forall (x : α), A x -> B x`，于是 `∅` 落进**被应用**的位置（`∅ x`）——
+-- 回读时 `Set.empty` 是零实参应用，`α` 无从解出。
+--
+-- 台账 `today`（0.61.0 实测，修前）：
+--   `grade` exit 1 + `elab-tactic-failed`：
+--   「`exact` 判定失败：记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数」
+-- 同一句 **term 模式**（`fun (x : α) => …`）**通过**；点名形式
+-- `Set.subset α (Set.empty α) A` 在 `by` 里也**通过**；`x ∈ ∅ → False` 在 `by` 里
+-- 也**通过**（`∈` 的第三参数位给了 `∅` 期望类型 `Set α`）。
+--
+-- 修好后本文件必须**干净判卷**（`clean`）：那时台账要关账并把 repro_expect 翻过来。
+
+def Set (α : Type) : Type := α -> Prop
+
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+
+def Set.empty (α : Type) : Set α := fun (x : α) => False
+
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+
+infix:50 " ∈ " => Set.mem
+infix:50 " ⊆ " => Set.subset
+notation "∅" => Set.empty
+
+-- 对照组（今天就该过）：`∅` 作 `∈` 的操作数 ⇒ 有期望类型。
+theorem g19_mem_empty (α : Type) (x : α) : x ∈ ∅ -> False := by
+  intro h
+  exact h
+
+-- 对照组（今天就该过）：点名形式，不套记法。
+theorem g19_pointful (α : Type) (A : Set α) : Set.subset α (Set.empty α) A := by
+  intro x
+  intro hx
+  exact False.elim (A x) hx
+
+-- **本缺口**：`∅` 作 `⊆` 的左操作数。
+theorem g19_empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
+  intro x
+  intro hx
+  exact False.elim (A x) hx

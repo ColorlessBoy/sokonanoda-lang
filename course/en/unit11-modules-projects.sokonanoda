@@ -18,35 +18,29 @@
 -- This canvas itself is still a single file: a course unit is one file.
 -- ==========================================================================
 
--- Skeleton (this file plays the part of the **imported library module**:
--- And axioms + the Or inductive + an Iff definition, all old friends from the
--- earlier units; once an entry imports it, these names are directly usable):
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
+-- This file plays the part of the **imported library module**: what it exports
+-- is exactly what it declares below — the Iff definition and the and_comm
+-- theorem. The connectives And / Or come with the **prelude**, so any file
+-- (imported or not) can use them without declaring them here.
 
-inductive Or (A B : Prop) : Prop
-ctor inl (a : A) : Or A B
-ctor inr (b : B) : Or A B
-end
-
-def Iff (A : Prop) (B : Prop) : Prop := And (A -> B) (B -> A)
+def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- Demo (filled in): the library's first export — swap the two halves of an And.
 -- Exercise 5 reuses it.
-theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
   And.intro B A (And.right A B h) (And.left A B h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 11.1 Why import: drawing a boundary around names
 --
 -- The single-file world runs on an implicit convention: each file declares the
--- names it needs, so one name can mean different things — Unit 9's `Or` is a
--- real inductive while Unit 1's `Or` is only an axiom; paste both into one file
--- and they collide into "this name is already declared". import makes "which
--- Or?" answerable: names belong to **modules**, and the module boundary is the
--- boundary. Three rules to start with:
+-- names it needs, so **one name can mean different things in two places** — in
+-- A.sokonanoda `def double (n : Nat) : Nat` doubles a natural, in
+-- B.sokonanoda `def double (A : Prop) : Prop` is the identity; each file judges
+-- on its own, and only pasting both into one file collides into `duplicate
+-- declaration double`. import makes "which double?" answerable: names belong to
+-- **modules**, and the module boundary is the boundary. Three rules to start
+-- with:
 --   (1) every top-level name of an imported module is **globally visible** in
 --       the whole closure (there is no export list);
 --   (2) so a cross-module **clash is an error** (import-name-collision): the
@@ -66,8 +60,8 @@ theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
 --   import Lesson.Logic     -- Logic.sokonanoda in the Lesson/ subdirectory
 --
 -- Example: the first line of course/unit11-project/Canvas.sokonanoda is
--- `import Logic`, and right below it And and And.intro can be used because
--- those names are declared in Logic.sokonanoda. `import` is a command keyword:
+-- `import Logic`, and right below it and_comm can be called because that
+-- theorem is declared in Logic.sokonanoda. `import` is a command keyword:
 -- the name position stays lax (`def import := 1` is legal) while the expression
 -- position is rejected (`def x : Nat := import` reports "cannot appear inside
 -- an expression").
@@ -143,7 +137,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
 --
 --   course/unit11-project/
 --   ├── sokonanoda.toml          -- manifest: name = "unit11-project"
---   ├── Logic.sokonanoda         -- library: axiom And / And.intro / And.left / And.right
+--   ├── Logic.sokonanoda         -- library: exports the and_comm theorem (And comes from the prelude)
 --   ├── Canvas.sokonanoda        -- entry: `import Logic` + theorems that use it (filled in)
 --   └── Exercises.sokonanoda     -- entry: `import Logic` + two exercises with sorry
 --
@@ -163,37 +157,38 @@ theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
 -- 11.7 Exercise A: extend the library's exports
 --
 -- This file plays the shared library, so the exercises are "the export the
--- library owes". Each one may use only the names **already declared in this
--- file**: an exercise is an open declaration, its hole never enters the
--- environment, so do not reference another unsolved exercise.
+-- library owes". Each one may use only the **prelude's connectives** and the
+-- names **already declared in this file** (Iff, and_comm): an exercise is an
+-- open declaration, its hole never enters the environment, so do not reference
+-- another unsolved exercise.
 -- ─────────────────────────────────────────────────────────────
 
 -- Exercise 1 (export X): the demo's sibling, but with the hypothesis written as
 -- an arrow:
 --
---   "And A B implies And B A."
+--   "A ∧ B implies B ∧ A."
 --
--- soko:hint approach: the conclusion is `And A B -> And B A`, an arrow on the outside — start with fun (h : And A B) to bring the hypothesis in.
--- soko:hint goal shape: after the fun the goal is And B A; use And.intro B A to fill the two proof slots.
+-- soko:hint approach: the conclusion is `A ∧ B → B ∧ A`, an arrow on the outside — start with fun (h : A ∧ B) to bring the hypothesis in.
+-- soko:hint goal shape: after the fun the goal is B ∧ A; use And.intro B A to fill the two proof slots.
 -- soko:hint key piece: both pieces of evidence come from h: And.right A B h proves B and And.left A B h proves A.
-theorem and_comm_imp_x (A : Prop) (B : Prop) : And A B -> And B A :=
+theorem and_comm_imp_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A := by
   sorry
 
 -- Exercise 2 (export X): a library has `def`s too, not only theorems — pin the
--- left elimination of And as a library export (its type is A and its value is a
+-- left elimination of as ∧ a library export (its type is A and its value is a
 -- proof).
--- soko:hint approach: the declaration is def … (h : And A B) : A; h is already a parameter, so no fun is needed.
--- soko:hint goal shape: the goal is A and h : And A B is in hand.
+-- soko:hint approach: the declaration is def … (h : A ∧ B) : A; h is already a parameter, so no fun is needed.
+-- soko:hint goal shape: the goal is A and h : A ∧ B is in hand.
 -- soko:hint key piece: And.left takes three explicit arguments: A, B and h.
-def and_left_x (A : Prop) (B : Prop) (h : And A B) : A :=
+def and_left_x (A : Prop) (B : Prop) (h : A ∧ B) : A := by
   sorry
 
--- Exercise 3 (export X): the library's inductive also needs exports: swap the
--- two halves of an Or.
--- soko:hint approach: h : Or A B carries the two branches, so split with match.
--- soko:hint goal shape: the goal is Or B A; the inl branch gets a : A and the inr branch gets b : B.
--- soko:hint key piece: the conclusion's parameters come in the order B then A: a goes to the "right" constructor (inr B A a) and b to the "left" one (inl B A b).
-theorem or_comm_x (A : Prop) (B : Prop) : Or A B -> Or B A :=
+-- Exercise 3 (export X): the library also needs exports that use the
+-- connectives: swap the two halves of an Or.
+-- soko:hint approach: h : A ∨ B carries the two branches, so split with match.
+-- soko:hint goal shape: the goal is B ∨ A; the inl branch gets a : A and the inr branch gets b : B.
+-- soko:hint key piece: the conclusion's parameters come in the order B then A: a goes to the "right" constructor (Or.inr B A a) and b to the "left" one (Or.inl B A b).
+theorem or_comm_x (A : Prop) (B : Prop) : A ∨ B → B ∨ A := by
   sorry
 
 -- Exercise 4 (export X): this one is deliberately an anonymous `example` (the
@@ -202,9 +197,9 @@ theorem or_comm_x (A : Prop) (B : Prop) : Or A B -> Or B A :=
 --   "If A implies B and B implies A, then A and B are equivalent."
 --
 -- soko:hint approach: the two directions are two hypotheses (two arrows), and the conclusion packs that pair of functions into an Iff.
--- soko:hint goal shape: the conclusion has shape Iff A B, and Iff unfolds to And (A -> B) (B -> A).
--- soko:hint key piece: use And.intro with parameters (A -> B), (B -> A), putting mp and mpr in the two proof slots.
-example (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
+-- soko:hint goal shape: the conclusion has shape A ↔ B, and unfolds ↔ to (A → B) ∧ (B → A).
+-- soko:hint key piece: use And.intro with parameters (A → B), (B → A), putting mp and mpr in the two proof slots.
+example (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -214,36 +209,37 @@ example (A : Prop) (B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B :=
 -- closure** rather than from the module itself:
 --
 --   -- Library2.sokonanoda
---   axiom And : Prop -> Prop -> Prop
---   theorem and_comm (A : Prop) (B : Prop) (h : And A B) : And B A :=
+--   theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 --     And.intro B A (And.right A B h) (And.left A B h)
 --
--- The error is import-name-collision: `And` and `and_comm` were already
--- declared in the first module. Hint: the fix is not to dodge with a rename but
--- to **not declare it twice** — use the copy that import brings in.
+-- The error is import-name-collision: `and_comm` was already declared in the
+-- first module (the message names both source modules). Hint: the fix is not to
+-- dodge with a rename but to **not declare it twice** — use the copy that
+-- import brings in.
 -- ─────────────────────────────────────────────────────────────
 
--- Exercise 5 (evaluate R): this file *is* that "first module": And and and_comm
--- are already declared here. Write one new export that hands the work to the
+-- Exercise 5 (evaluate R): this file *is* that "first module": and_comm is
+-- already declared here. Write one new export that hands the work to the
 -- shared and_comm (that is the correct version of the module above).
 -- soko:hint approach: do not copy the proof out; and_comm already exists in this file, so call it.
--- soko:hint goal shape: the goal is And B A; hand A, B and h to and_comm explicitly.
+-- soko:hint goal shape: the goal is B ∧ A; hand A, B and h to and_comm explicitly.
 -- soko:hint key piece: the application is written `and_comm A B h` (fill in the same three arguments as in the demo, in order).
-theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : And A B) : And B A :=
+theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 11.9 Exercise C: synthesis
 --
--- The last exercise wires the library's And elimination to Or construction and
--- uses let and match (old friends from Units 6/3). Work out "what does the goal
--- look like" first, then choose a rule for each step.
+-- The last exercise wires And elimination to Or construction (both are the
+-- prelude's connectives) and uses let and match (old friends from Units 6/3).
+-- Work out "what does the goal look like" first, then choose a rule for each
+-- step.
 -- ─────────────────────────────────────────────────────────────
 
 -- Exercise 6 (synthesis ★★): one direction of distributivity — "A and (B or C)"
 -- implies "(A and B) or (A and C)".
--- soko:hint approach: use let to name the right half of h (Or B C), then match on it; in both cases repack A with the matching half.
--- soko:hint goal shape: the outer layer is fun (h : And A (Or B C)); write let bc : Or B C := And.right A (Or B C) h; then match bc.
+-- soko:hint approach: use let to name the right half of h (B ∨ C), then match on it; in both cases repack A with the matching half.
+-- soko:hint goal shape: the outer layer is fun (h : A ∧ (B ∨ C)); write let bc : B ∨ C := And.right A (B ∨ C) h; then match bc.
 -- soko:hint key piece: take A from h with And.left and the branch evidence with And.right; the inl b branch packs And.intro A B and hands it to Or.inl, the inr c branch packs And.intro A C and hands it to Or.inr.
-theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : And A (Or B C) -> Or (And A B) (And A C) :=
+theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by
   sorry

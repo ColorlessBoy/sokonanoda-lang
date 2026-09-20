@@ -12,10 +12,10 @@
 --     grammar you learn is a real subset of Lean 4.
 -- ==========================================================================
 
--- The question left open by Unit 3: what is the type of Nat -> Nat? "Everything
+-- The question left open by Unit 3: what is the type of Nat → Nat? "Everything
 -- has a type" admits no exceptions — types have types too:
 --   * Nat : Sort 1        (a data type lives in Sort 1)
---   * Nat -> Nat : Sort 1 (a function type is still "a type of data")
+--   * Nat → Nat : Sort 1 (a function type is still "a type of data")
 --   * Sort 1 : Sort 2     (the ladder climbs without end)
 --   * Prop = Sort 0       (the world of propositions is the bottom step — the
 --                          one you have been using since Unit 1)
@@ -32,48 +32,48 @@
 -- `Eq.{u+1} (Sort u) α β` (the types themselves live one step up).
 
 #check Nat
-#check (Nat -> Nat)
+#check (Nat → Nat)
 #check Prop
 #check (Type 0)
 #check (Type 1)
 
 -- Now the mechanical rule from Unit 2 pays off. Eq's signature is
--- {α : Sort u} -> …, so "equalities over numbers write Eq.{1}" simply because
+-- {α : Sort u} → …, so "equalities over numbers write Eq.{1}" simply because
 -- Nat : Sort 1 — α must be given the right universe level. A bare Eq defaults
 -- to u = 0, the Prop level.
 
 -- Reading #check output: the format is `<term> : <type>`, and the right of the
 -- `:` is the term's "address". The lines above already printed it: Nat and
--- Nat -> Nat are both Type 0 (= Sort 1), Type 0 is Type 1 (= Sort 2), and
+-- Nat → Nat are both Type 0 (= Sort 1), Type 0 is Type 1 (= Sort 2), and
 -- Type 1 is Type 2 (= Sort 3). Predict first, then compare with #check.
 
--- Exercise 1 (read the output) — from the `#check (Nat -> Nat)` line, read off
+-- Exercise 1 (read the output) — from the `#check (Nat → Nat)` line, read off
 -- which universe the function type lives in.
--- soko:hint approach: read the `#check (Nat -> Nat)` line above — the right of `:` says Type 0, and Type 0 is Sort 1.
+-- soko:hint approach: read the `#check (Nat → Nat)` line above — the right of `:` says Type 0, and Type 0 is Sort 1.
 -- soko:hint goal shape: the goal is Sort 1: hand over a type name whose own type is exactly Sort 1.
 -- soko:hint key piece: every data type lives in Sort 1 — pick a function type just checked above that you can write down directly.
-def function_type_universe : Sort 1 := sorry
+def function_type_universe : Sort 1 := by sorry
 
 -- Exercise 2 (read the output) — from the `#check (Type 0)` line, read off
 -- which universe Type 0 itself lives in.
 -- soko:hint approach: read the `#check (Type 0)` line above — the right of `:` is Type 1, and Type 1 is Sort 2.
 -- soko:hint goal shape: the goal is Sort 2: this time the answer is neither data nor a data type, but a universe itself.
 -- soko:hint key piece: treat the right of `:` in the #check output as a term again — the Type 0 checked just above lives in Type 1.
-def type0_universe : Sort 2 := sorry
+def type0_universe : Sort 2 := by sorry
 
 -- Exercise 3 (warm-up) — name something that lives in Sort 1.
 -- Hint: think of a type you keep bumping into in Units 2 and 3.
 -- soko:hint approach: name a thing that lives in Sort 1 — the data type you have been using all along.
 -- soko:hint goal shape: the goal is Sort 1 (a.k.a. Type), so the answer is a type name, not a value.
 -- soko:hint key piece: read the #check lines whose term has type Type 0 — the two lines above already contain ready-made examples.
-example : Sort 1 := sorry
+example : Sort 1 := by sorry
 
 -- Exercise 4 (the bottom step) — Prop = Sort 0. Name something that lives in
 -- Sort 0.
 -- soko:hint approach: Sort 0 is Prop — the world of everything you have been proving since Unit 1; this time hand over a proposition.
 -- soko:hint goal shape: the answer is a Prop-level term: not a value, not a type name, but a claim that a proof could fill.
 -- soko:hint key piece: the goal is Sort 0 and you need a proposition — build one from equality (Eq.{1}): type Nat, and two sides the kernel finds equal.
-example : Sort 0 := sorry
+example : Sort 0 := by sorry
 
 -- Exercise 5 (graduation ★) — generalize the symmetry of Unit 2, Exercise 3 to
 -- an arbitrary universe level. Copy that recipe: swap Nat for α and .{1} for
@@ -83,7 +83,7 @@ example : Sort 0 := sorry
 -- soko:hint approach: lift Unit 2's symmetry recipe to an arbitrary universe — fully isomorphic: Nat → α, .{1} → .{u}.
 -- soko:hint goal shape: the first binder is implicit — open with fun {α : Sort u} =>, then the same four funs taking a, b, h.
 -- soko:hint key piece: goal Eq.{u} α b a with h : Eq.{u} α a b in context — Eq.subst.{u} rewrites along h, with the predicate designed in the "x = a" shape over α (recipe in Unit 2, Exercise 3).
-theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> Eq.{u} α b a := sorry
+theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- Compute before proving: predict the #reduce result yourself before the
@@ -95,7 +95,7 @@ theorem Eq.symm {u} : {α : Sort u} -> (a : α) -> (b : α) -> Eq.{u} α a b -> 
 -- soko:hint approach: first apply (fun (x : Nat) => x + 1) to 41 in your head to get a number; this is a computation equality.
 -- soko:hint goal shape: the goal is Eq.{1} Nat … that number; rfl holds when both sides compute to the same value.
 -- soko:hint key piece: use Eq.refl.{1} — type Nat, and one side of the equality is the number you predicted; predict first, then compare with the #reduce below.
-def predict_then_prove : Eq.{1} Nat ((fun (x : Nat) => x + 1) 41) 42 := sorry
+def predict_then_prove : Eq.{1} Nat ((fun (x : Nat) => x + 1) 41) 42 := by sorry
 
 -- The kernel's answer (predict first, then compare): this line prints 42.
 #reduce (fun (x : Nat) => x + 1) 41

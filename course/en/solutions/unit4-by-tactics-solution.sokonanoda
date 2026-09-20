@@ -2,37 +2,82 @@
 axiom True : Prop
 axiom True.intro : True
 axiom False : Prop
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
-axiom Or : Prop -> Prop -> Prop
-axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
-axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
 
-theorem demo_by_assumption : (a : Prop) -> a -> a := by intro a; intro h; assumption
+theorem demo_by_assumption : (a : Prop) → a → a := by
+  intro a
+  intro h
+  assumption
 
-theorem demo_by_apply : Or True False := by apply Or.inl; exact True.intro
+theorem demo_by_apply : True ∨ False := by
+  apply Or.inl
+  exact True.intro
 
 theorem demo_by_rfl : Eq.{1} Nat (1 + 1) 2 := by rfl
 
-theorem by_ex1 : (a : Prop) -> a -> a := by intro a; intro h; assumption
+theorem demo_by_have : (a : Prop) → a → a ∧ a := by
+  intro a
+  intro ha
+  have h : a := ha
+  exact And.intro a a h h
 
-theorem by_ex2 : (a : Prop) -> (b : Prop) -> And a b -> a := by intro a; intro b; intro h; exact And.left a b h
+theorem demo_by_constructor : (a : Prop) → (b : Prop) → a → b → a ∧ b := by
+  intro a
+  intro b
+  intro ha
+  intro hb
+  constructor
+  exact ha
+  exact hb
 
-theorem by_ex3 : (a : Prop) -> (b : Prop) -> a -> Or a b := by intro a; intro b; intro ha; apply Or.inl; exact ha
+theorem demo_by_cases : (a : Prop) → (b : Prop) → a ∨ b → b ∨ a := by
+  intro a
+  intro b
+  intro h
+  cases h with
+  | inl ha =>
+      right
+      exact ha
+  | inr hb =>
+      left
+      exact hb
 
-theorem by_ex4 : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb
+theorem by_ex1 : (a : Prop) → a → a := by
+  intro a
+  intro h
+  assumption
 
-theorem by_ex6 : (a : Prop) -> (b : Prop) -> And a b -> And b a := by intro a; intro b; intro h; exact And.intro b a (And.right a b h) (And.left a b h)
+theorem by_ex2 : (a : Prop) → (b : Prop) → a ∧ b → a := by
+  intro a
+  intro b
+  intro h
+  exact And.left a b h
 
-axiom h_s : True -> True
-axiom Pfam : Prop -> Prop
-axiom Qfam : Prop -> Prop
-axiom f_dep : (a : Prop) -> Qfam a -> Pfam a
-axiom qfam_true : Qfam True
+theorem by_ex3 : (a : Prop) → (b : Prop) → a → a ∨ b := by
+  intro a
+  intro b
+  intro ha
+  apply Or.inl
+  exact ha
 
-theorem val_apply_imp : True := h_s True.intro
-theorem val_apply_dep : Pfam True := f_dep True qfam_true
-theorem by_ex7 : And True True := And.intro True True True.intro True.intro
-theorem by_ex8 : Or True True := Or.inl True True True.intro
+theorem by_ex4 : (a : Prop) → (b : Prop) → a → b → a ∧ b := by
+  intro a
+  intro b
+  intro ha
+  intro hb
+  apply And.intro
+  exact ha
+  exact hb
+
+theorem by_ex5 : (a : Prop) → (b : Prop) → (a → b) → a → b ∧ a := by
+  intro a
+  intro b
+  intro f
+  intro ha
+  have hb : b := f ha
+  exact And.intro b a hb ha
+
+theorem by_ex6 : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by
+  intro a
+  intro b
+  intro h
+  exact And.intro b a (And.right a b h) (And.left a b h)

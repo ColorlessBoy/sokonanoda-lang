@@ -103,10 +103,32 @@ sokonanoda-lang/
 
 ### 4.1 词法/语法（`crates/front/src/lib.rs`）
 
-- `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Str/Sym/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。**数学符号是独立 token**（`Sym`，0.59.0）：`U+2200–U+22FF`（运算符）与 `U+2A00–U+2AFF`（补充运算符）加 `\`，最大咬合；字符串字面量（`Str`）只用于记法声明里的符号文本（`" ∈ "`），未闭合报 `unterminated-string`（span 在开引号）。
+- `Lexer`：手工字符扫描，产出 `TokenKind`（`Ident/Num/Hole/Str/Sym/Colon/ColonEq/Arrow/Plus/FatArrow/Forall/At/括号/逗号/Eof`）。**`=`（相等）是 `Sym("=")`**（0.61.0）：`'='` 分支不跟 `>` 时产出它，跟 `>` 仍是 `FatArrow`；因为词法的符号匹配是**最长匹配**且排在专用分支之前，`=` **不能**进喂给词法的内建符号表（`parser::lexer_builtin_symbols()` 剔除它，否则 `=>` 被切成 `=` + `>`）。标识符允许 ASCII 字母/`_`/非 ASCII（≥0x80），续字符还含 `' ! ? .`；`#check` 这类命令被 lex 成 `#` 前缀的 Ident。**数学符号是独立 token**（`Sym`，0.59.0）：`U+2200–U+22FF`（运算符）与 `U+2A00–U+2AFF`（补充运算符）加 `\`，最大咬合；字符串字面量（`Str`）只用于记法声明里的符号文本（`" ∈ "`），未闭合报 `unterminated-string`（span 在开引号）。
 - `--` 是行注释；`sorry` 是 Hole（未完成练习/占位符；旧的 `???` 已于 2026-09-07 移除）。
 - `Parser` → `FolFile { commands: Vec<Command> }`。命令：`def` / **`abbrev`**（G-08：与 `def` **同语义**的拼写，共用 `parse_def`，设计 `docs/design/abbrev.md`）/ `theorem` / `example` / `axiom` / `inductive ... end` / `#check` / `#reduce` / `#print` / **记法声明 `infix:N` / `infixl:N` / `infixr:N` / `notation`**（0.59.0）/ **一元记法 `prefix:N` / `postfix:N`**（0.60.0）/ **binder 记法 `binder_notation "∃" => Exists`**（第三刀）/ **作用域命令 `namespace <name>` / `end <name>` / `open <name>` / `open scoped <name>`**（0.60.0 + 第三刀 + 第二刀：`open` 的 `(a b)` / `hiding a b` / `renaming a => b` 三条互斥子句、只影响一条命令的 `open <name> … in <命令>`、跨 `import` 的 `export <name> [<子句>]`）/ **`scoped <记法命令>`**（第三刀）。
 - 表达式 AST（`Expr`）：`Sort(Prop/Type/Sort n/Level u)`（源码里的 `Type n` 解析成 `Sort (n+1)`，是 Lean 记法的糖）、`Ident`、`UniverseApp name.{u,...}`、`Num`、`Hole`、`App`、`Lambda`、`Forall`、`Arrow`、`Plus`、`Let`（`let x : T := v; body`）、`Match`（`match e with | <pattern> [if <guard>] => body`；pattern = `_` / 绑定名 / 构造子（可嵌套）/ Nat 字面量）、**`Notation`**（`lhs symbol rhs` 与零元 `symbol`；0.59.0；第三刀加 `alternatives` 字段做**重载**候选表）、**`SetLiteral`**（`{a}` / `{a, b}`，第三刀——**新语法**，展开成点名形式 `Set.singleton` / `Set.pair`）。
+- **语言内建记法**（0.61.0，设计 `docs/design/course-lean-style.md` L2.2–L2.4b）：`∧ ∨ ↔ ¬`
+  （`And`/`Or`/`Iff`/`Not`）、**`=`（`Eq`）与 `≠`（`Ne`）**——**任何文件零声明可用，
+  且不能被重声明**。为什么是内建表而不是写进 prelude：`install_l1_prelude` 只认
+  `Axiom`/`Def`/`InductiveBlock`，记法命令会被**静默忽略**。`=`/`≠` 各带一个宇宙参数，
+  `elab_notation` **按 `KnownName::universes()` 的长度分配层级**，1 个时从**操作数类型的
+  sort** 解出（`Prop`→`0`、`Type n`→`n+1`、`Sort n`→`n`）⇒ `A B : Prop` 给 `Eq.{0}`、
+  `A B : Set α` 给 `Eq.{1}`（与点名 `Eq.{1} (Set α) A B` 判卷一致）。
+  **同一个层级也要在 `by` 引擎的 delta 展开里解一遍**：`intro h` 在 `a ≠ b` 上
+  要看穿 `Ne`，而 `≠` 的两条路都不带 `.{u}`（源 AST 是记法节点、内核 pp 是裸名
+  `Ne`）⇒ `by.rs::level_hint_of` 按**操作数的 sort** 算层级提示，喂给
+  `spine::resolve_levels`（点名形态取首实参的 sort、记法形态取首实参**类型的**
+  sort；算不出具体数字就不填，悬空变量会响亮报错）。见
+  `docs/design/course-lean-style.md` §9 残留②。
+  `→` 不在表里（函数空间不是常量，走**词法别名**）。
+- **匿名构造子 `⟨a, b⟩`**（0.61.0，设计 `docs/design/course-lean-style.md` L2.7）：
+  **新语法**（`Expr::AnonCtor` + 专用 token `⟨`/`⟩`），用哪个构造子由**期望类型**
+  决定——`And`→`And.intro`、`Iff`→`Iff.intro`、`Exists`→`Exists.intro`、
+  `Prod`→`Prod.mk`、单构造子归纳→它的构造子（多构造子/非归纳头报专用码
+  `elab-anon-ctor-no-expected-type`）。展开复用**记法路径**（前导参数补全 +
+  操作数期望类型传播），所以 `⟨w, hw⟩` 在 `∃ (x : α), p x` 上解得出 `α` 与 `p`。
+  `⟨`/`⟩` **不是数学符号**（不进 `is_math_symbol`）：`lex_symbol` 是最大吞噬的，
+  进了类 `⟨∅` 会并成一个 token；它们也不是标识符字符，是**括号**。
 - **用户自定义记法**（0.59.0，设计 `docs/design/notation-subset.md`，台账 G-04 第一刀）：
   `infix:N " ∈ " => Set.mem`（`infixl` = 左结合、`infixr` = 右结合、零元用
   `notation "∅" => Set.empty`）。规则 N1–N7 摘要：符号**必须是独立 token**

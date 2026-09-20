@@ -74,6 +74,18 @@ const KEYWORDS: &[&str] = &[
     "apply",
     "assumption",
     "rfl",
+    // 课程 Lean 化（设计 `docs/design/course-lean-style.md` L3）新增的 tactic：
+    // 与 `is_tactic_keyword`（`parser.rs`）**同集合**——编辑器词表跟着走。
+    "constructor",
+    "left",
+    "right",
+    "use",
+    "exfalso",
+    // `cases`（L3.1）与 `have`（L3.6）此前**漏了**——`is_tactic_keyword`
+    // 里有、词表里没有，于是编辑器里它们不着色也不补全（守护测试只保证
+    // 「TM 语法 = KEYWORDS」，两边一起漏是看不见的）。
+    "cases",
+    "have",
     "#check",
     "#reduce",
     "#print",
@@ -542,6 +554,43 @@ fn collect_names(file: &FolFile, toks: &[Token], names: &mut Names) {
     }
 }
 
+/// 走一个 tactic 里的表达式：`exact`/`apply`/`use` 的项，以及 `cases` 的
+/// 被消去项与**各臂的 tactic 递归**（臂体是嵌套的 tactic 序列）。
+fn walk_tactic(tactic: &crate::Tactic, toks: &[Token], names: &mut Names) {
+    use crate::Tactic::*;
+    match tactic {
+        Intro { .. } => {}
+        Exact { expr, .. } | Apply { expr, .. } | Use { expr, .. } => walk_expr(expr, toks, names),
+        Cases { expr, arms, .. } => {
+            walk_expr(expr, toks, names);
+            for arm in arms {
+                for t in &arm.tactics {
+                    walk_tactic(t, toks, names);
+                }
+            }
+        }
+        // `have h : T := t` / `:= by …`：类型与值都是表达式，嵌套块递归。
+        Have { ty, value, .. } => {
+            walk_expr(ty, toks, names);
+            match value {
+                crate::ast::HaveValue::Term(expr) => walk_expr(expr, toks, names),
+                crate::ast::HaveValue::By(tactics) => {
+                    for t in tactics {
+                        walk_tactic(t, toks, names);
+                    }
+                }
+            }
+        }
+        Assumption { .. }
+        | Rfl { .. }
+        | Constructor { .. }
+        | Left { .. }
+        | Right { .. }
+        | Exfalso { .. }
+        | Sorry { .. } => {}
+    }
+}
+
 fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
     match expr {
         Expr::Sort { .. } | Expr::Ident { .. } | Expr::Num { .. } | Expr::Hole { .. } => {}
@@ -580,12 +629,7 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
         }
         Expr::By { tactics, .. } => {
             for tactic in tactics {
-                use crate::Tactic::*;
-                match tactic {
-                    Intro { .. } => {}
-                    Exact { expr, .. } | Apply { expr, .. } => walk_expr(expr, toks, names),
-                    Assumption { .. } | Rfl { .. } | Sorry { .. } => {}
-                }
+                walk_tactic(tactic, toks, names);
             }
         }
         Expr::Match {
@@ -612,7 +656,7 @@ fn walk_expr(expr: &Expr, toks: &[Token], names: &mut Names) {
             }
         }
         // 集合字面量（第三刀 §12.4）：元素照常着色；`{`/`}`/`,` 是标点。
-        Expr::SetLiteral { elements, .. } => {
+        Expr::SetLiteral { elements, .. } | Expr::AnonCtor { elements, .. } => {
             for element in elements {
                 walk_expr(element, toks, names);
             }

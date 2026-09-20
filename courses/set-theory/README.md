@@ -123,6 +123,10 @@ node scripts/soko query state --file "$PWD/courses/set-theory/units/unit01-sets-
 
 ## 现状（2026-09-19，12 单元全部落地）
 
+**门禁实测（2026-09-21，0.62.0 二进制，卷 I Lean 化收尾后）：36 个目标 · 328 checked · 99 open · 0 判负**
+（上一行 2026-09-19 的 329 是当时的实测；差 1 来自其后某轮的声明增删——**这两个数字都别在别处再抄**，
+要现算就跑 `python3 courses/set-theory/tools/check.py`，它每次都会重数。）
+
 **门禁实测（2026-09-19，0.60.0 二进制，清单 v2 之后）：36 个目标 · 329 checked · 99 open · 0 判负**
 （`python3 courses/set-theory/tools/check.py --json`：`canvas_open` 96 / `solutions_open` 0 /
 `lib_open` 0；P4 前是 355 checked —— 差额 = `lib/Logic` 空壳化少掉的 26 条声明，**open 不变**。
@@ -206,8 +210,8 @@ prelude 的签名才是唯一真相（`crates/front/src/compile/prelude.rs` 的 
 （`axiom Exists` / `Exists.intro` / `Exists.elim`）换成**真归纳**——
 `Exists.intro` 是归纳块的构造子（规范名 `Exists.intro`，G-02 起的命名空间）、
 `Exists.elim` 由自动派生的 `Exists.rec` **定义**出来（不是第二条公理）。
-名字与签名**逐字不变** ⇒ `units/` 里 186 处点名调用（`Exists.intro A p w hw` /
-`Exists.elim A p Q h f`）零改动。**"大消去"仍不可用，而且这是正确的行为**
+名字与签名**逐字不变** ⇒ `units/` 里的点名调用（`Exists.intro A p w hw` /
+`Exists.elim A p Q h f`）零改动。**2026-09-21 实测**：这类调用现在是 **102 行、14 个文件**（7 画布 + 7 解答）——比 G-03 当时的 186 处少，是因为全课程 Lean 化之后命题位改用了 `∃ (x : α), p x` 记法（`lib/Exists` 的 `binder_notation`），构造子/消去子的**点名调用本身照旧**（记法是类型的糖，不是引理名的糖）。**"大消去"仍不可用，而且这是正确的行为**
 （`Exists.rec` 的 motive 只能落 `Prop`，要取数据的引理得走数据版，台账 L-06）——
 细节见文件头，别试图绕过。
 

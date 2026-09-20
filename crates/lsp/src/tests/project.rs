@@ -668,3 +668,117 @@ async fn project_request_follows_the_unsaved_buffer_and_reports_failures() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+// ── G-20 / X15：记法随 import 传播时的单文件 parse 失败**不是**诊断 ──────────
+
+/// 库模块：声明一个数学符号（`∈`），与 `courses/set-theory/lib/Set.sokonanoda`
+/// 同形状（**显式**前导类型参数 ⇒ 记法路径要自己补它）。
+const NOTATION_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n";
+
+/// 入口：用了**库声明**的记法 ⇒ 单文件 parse **必然**失败（`∈` 不在本文件里），
+/// 但闭包编译是好的。这就是课程单元的常态。
+const NOTATION_CANVAS: &str = "\
+import SetLib\n\n\
+theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
+
+/// **X15 回归**：闭包编译成功时，单文件 parse 失败不得吃掉项目报告。
+///
+/// 改前实测（真 LSP over stdio，0.61.0）：编辑器发一条**假**的
+/// `notation-unknown-symbol`，且 `documentSymbol` / `hover` 全部回答 `null`
+/// ——而同一份文本走 CLI 判卷 `exit 0`。
+#[tokio::test]
+async fn imported_notation_keeps_the_report_and_the_diagnostics_honest() {
+    let dir = tmp_dir("notation-scope");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _lib = write(&dir, "SetLib.sokonanoda", NOTATION_LIB);
+    let canvas = write(&dir, "Canvas.sokonanoda", NOTATION_CANVAS);
+    testutil::did_open_at(&mut service, &canvas, NOTATION_CANVAS).await;
+    let diags = testutil::wait_diagnostics_for(&mut socket, &canvas, "canvas diagnostics").await;
+
+    // ① 不得有假诊断：闭包把 `∈` 带进来了，这份文本是干净的。
+    assert!(
+        diags.diagnostics.is_empty(),
+        "imported notation must not produce a fake diagnostic: {:?}",
+        diags.diagnostics
+    );
+
+    // ② hover 必须活着（用户要的「hover 提示怎么输入符号」就落在这条通道上）。
+    let pos = lsp_pos(NOTATION_CANVAS, testutil::offset_of(NOTATION_CANVAS, "∈"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": canvas},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("hover must resolve on a symbol that came in through `import`");
+    // ③ 而且它必须**教怎么输入**（D5 的用户要求）。`∈` 由库声明 ⇒ 展开目标在
+    //    别的文件里（这里给不出），但「怎么打」来自 `front::notation_input` 的表，
+    //    与作用域无关。
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("\\in"),
+        "hover on an imported symbol must teach the abbreviation: {:?}",
+        markup.value
+    );
+
+    // ③ documentSymbol 必须非空（改前是 `null`：报告被丢掉了）。
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/documentSymbol")
+            .params(json!({"textDocument": {"uri": canvas}}))
+            .id(3)
+            .finish(),
+    )
+    .await
+    .expect("documentSymbol must answer");
+    let symbols: Option<DocumentSymbolResponse> =
+        serde_json::from_value(result).expect("valid DocumentSymbolResponse");
+    let count = match symbols {
+        Some(DocumentSymbolResponse::Nested(items)) => items.len(),
+        Some(DocumentSymbolResponse::Flat(items)) => items.len(),
+        None => 0,
+    };
+    assert!(
+        count > 0,
+        "the rescued report must still drive documentSymbol"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **老契约不许被放宽**（设计 R-5）：入口**自己**有语法错误时闭包也失败，
+/// 那时仍要发那条 parse 错误（而不是发一个空报告让文件看起来是好的）。
+#[tokio::test]
+async fn a_genuinely_broken_entry_still_reports_the_parse_error() {
+    let dir = tmp_dir("notation-broken");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _lib = write(&dir, "SetLib.sokonanoda", NOTATION_LIB);
+    let broken = "import SetLib\n\ntheorem t (α : Type) (a : α) (A : Set α) : a ∈ A :=\n";
+    let canvas = write(&dir, "Broken.sokonanoda", broken);
+    testutil::did_open_at(&mut service, &canvas, broken).await;
+    let diags = testutil::wait_diagnostics_for(&mut socket, &canvas, "broken diagnostics").await;
+    assert!(
+        !diags.diagnostics.is_empty(),
+        "a real syntax error must still be reported"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

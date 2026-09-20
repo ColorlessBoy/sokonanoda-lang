@@ -68,9 +68,11 @@
 --   `Exists.imp` = Mathlib（Logic/Basic.lean，逐字：
 --       theorem Exists.imp (h : ∃ a, p a) : (∀ a, p a → q a) → ∃ a, q a）
 --
--- 记法对照（记法第一刀已落地，G-04；见 docs/design/notation-subset.md）：
---   `Exists α p` ↔ `∃ x : α, p x` ；`Exists α (fun (x : α) => p x)` 就是官方 Lean 的
---   `∃ x, p x`。**binder 记法（`∃ x,`）还没做**，所以卷 I 一律点名，不写 ∃。
+-- 记法对照（G-04 已关账；见 docs/design/notation-subset.md §12.1）：
+--   `Exists α p` ↔ `∃ (x : α), p x` ；`Exists α (fun (x : α) => p x)` 就是官方 Lean 的
+--   `∃ x, p x`。本文件下半段的 `binder_notation "∃"` 是这条记法的**唯一家**，
+--   随 `import lib.Exists` 生效；一段式必须写标注（`∃ (x : α), p x`），
+--   卷 I 的定理一律这么写。
 --
 -- 自检：冒烟用法在 lib/Demo.sokonanoda（`demo_exists_intro` 造、`demo_exists_elim` 用）。
 import lib.Logic
@@ -83,20 +85,25 @@ import lib.Logic
 --     产出结论 Q。**Q 不许提到 w**——使用 h 的时候，w 是哪一个还不知道。
 --     （这条限制就是官方 Lean 里 `obtain ⟨w, hw⟩ := h` 只能"用完即弃"的原因；
 --      它现在来自 `Exists.rec` 的 motive 只能落 Prop，见文件头"大消去"一节。）
-inductive Exists (A : Type) (p : A -> Prop) : Prop
+inductive Exists (A : Type) (p : A → Prop) : Prop
 ctor intro (w : A) (h : p w) : Exists A p
 end
 
 -- `Exists.elim` = 常值 motive 的小消去：由自动派生的 `Exists.rec` 定义
 -- （与 lib/Logic 的 `Or.elim` 同款）。签名与公理版**逐字相同**，所以调用点零改动。
-def Exists.elim (A : Type) (p : A -> Prop) (Q : Prop) (h : Exists A p)
-    (f : (w : A) -> p w -> Q) : Q :=
+def Exists.elim (A : Type) (p : A → Prop) (Q : Prop) (h : Exists A p)
+    (f : (w : A) → p w → Q) : Q :=
   Exists.rec A p (fun (_ : Exists A p) => Q) f h
+
+-- `∃` 的**记法**（第三刀 §12.1 的 `binder_notation`）：课程 Lean 化 W1 之后
+-- 由本模块统一声明（原先在单元⑧ 画布里自带，全课程启用必须只有一个家）。
+-- 目标名 `Exists` 在**使用点**解析，所以只对 import 了本模块的文件生效。
+-- 一段式要写标注（`∃ (x : α), p x`），两段式靠 guard（`∃ x ∈ s, p`）。
+binder_notation "∃" => Exists
 
 -- ── 便利引理（L2：一行、纯管道、无数学内容）──────────────────────────────────
 -- ∃ 的函子性：证人不动，只把性质换掉（p w → q w）。单元 8 的像的单调性与
 -- "像保并"直接吃这条：把"x ∈ A 且 f x = y"换成更弱的性质，存在性跟着走。
-theorem Exists.imp (A : Type) (p q : A -> Prop) (h : Exists A p)
-    (f : forall (w : A), p w -> q w) : Exists A q :=
-  Exists.elim A p (Exists A q) h
+theorem Exists.imp (A : Type) (p q : A → Prop) (h : ∃ (w : A), p w)
+    (f : ∀ (w : A), p w → q w) : ∃ (w : A), q w :=  Exists.elim A p (∃ (w : A), q w) h
     (fun (w : A) => fun (hw : p w) => Exists.intro A q w (f w hw))

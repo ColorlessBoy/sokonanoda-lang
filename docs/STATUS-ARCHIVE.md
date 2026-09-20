@@ -3488,3 +3488,661 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    `docs/TESTING.md` 新增 L1 行；`docs/HANDOVER.md` 版本表 +1 行；
    `skills/sokonanoda-teacher/SKILL.md` + `references/curriculum.md`（L1 词汇与让位规则）；
    `editor/vscode/CHANGELOG.md` 记一行（补全列表多 30 个名字 = 用户可见改动）。
+
+<!-- 以下由 STATUS.md 轮转追加 -->
+
+## 本轮进度（2026-09-19，第一百〇六轮：0.59.0 收尾（语言线五刀 + 课程门禁 + 站点页））
+
+> 本轮**只做版本与文档**：把第九十九～一百〇五轮攒下的用户可见改动收成 **0.59.0**，
+> 把课程门禁接进 `scripts/soko gate` 与 CI，把卷 I 搬上站点。硬规则 1（内核冻结快照）
+> 与硬规则 6（用户/agent 路径零工具链）全程未动：`crates/kernel/` 与 `crates/` 下任何
+> 源码**本单零改动**（语言线代码在前几轮已落地，工作树里原样保留）；判定仍只走内核与退出码。
+
+1. **版本 bump（0.58.0 → 0.59.0）**：`Cargo.toml` 的 `[workspace.package] version`
+   与 `editor/vscode/package.json` 的 `version`（两处必须一致，契约测试
+   `crates/cli/tests/extension.rs::cargo_and_extension_versions_match` 守着）；
+   `cargo metadata --format-version 1` 让 `Cargo.lock` 跟上（3 个包：cli/front/lsp）。
+   **课程侧版本钉同步**：`courses/set-theory/sokonanoda.toml` 的 `requires` 0.58 → 0.59
+   （WO-003 / WO-007 的课程侧收尾项；记法对照页本身就要 ≥0.59.0）。
+   实测：`target/debug/sokonanoda --version` = `sokonanoda 0.59.0`。
+2. **这一版装了什么（全部用户可见，逐条对应轮次与设计）**：
+   * **签名受检**（WO-004 / G-01，第一百〇一轮）：值位是 `sorry` 时签名也要 elaborate
+     并过内核的「是不是类型 / `theorem` 的是不是 Prop」；坏签名 = 一条 diagnostic
+     （span 取签名自身）+ 声明 `Failed` + **不发** `exercise.open`——判卷只认
+     `decl.checked` 与 `diagnostic`，`exercise.open` 计数对签名腐烂永远是盲的；
+   * **构造子命名空间**（WO-005 / G-02，第一百〇二轮，`docs/design/ctor-namespace.md`）：
+     规范名 `Ind.ctor`，裸名降为解析别名（闭包内唯一；撞名报 `elab-ambiguous-ctor-alias`）；
+     源文件自带 `inductive Nat` 时归约形态变化已逐条实测重钉；
+   * **Prop + Type 参数 + 单构造子的归纳**（WO-006 / G-03，第一百〇三轮，
+     `docs/design/prop-large-elim-mirror.md`）：派生 recursor 的宇宙参数逐字镜像内核
+     （不再 panic）；**课程侧出口本轮收掉**：`courses/set-theory/lib/Exists.sokonanoda`
+     从公理三件套升级成**真归纳**（`Exists.intro` 是构造子、`Exists.elim` 由自动派生的
+     `Exists.rec` 定义，名字与签名逐字不变 ⇒ units/ 的点名调用零改动）；
+   * **L1 prelude**（L-01/L-02，第一百〇四轮，`docs/design/prelude-l1-proposal.md`）：
+     Full 模式自带 Lean core 的逻辑与等式骨架 **30 个名字**（`PRELUDE_NAMES` 12 → 42），
+     **族粒度让位** ⇒ 入门课"自建骨架"的教学一个字不用改；
+   * **用户自定义记法第一刀**（WO-011 / G-04，第一百〇五轮，
+     `docs/design/notation-subset.md`）：`infix:N`/`infixl:N`/`infixr:N`/`notation` +
+     数学符号独立 token + elab 内源到源重写（自动补前导类型参数）；**文件内作用域**、
+     **零事件**、点名形式永久可用且两种写法判卷一致；`𝒫`/`''`/`⁻¹'`/`×ˢ` 留第二刀；
+   * **`course` 认 `import`**（WO-007 / G-06，第九十九轮）与 **`query check` 同口径**
+     （WO-003 / G-10 + G-17，第一百轮）：前者让聚合与单文件 `grade` 同判（`failed == 0`
+     ⇔ `grade` exit 0），后者把"这份文本解析不了"从假绿翻成 `failed[]` + **exit 1**
+     ——**这是有意的契约变更**（同口径后 `query check` 可作 `grade` 的交叉复核）。
+3. **课程门禁接进本地与 CI**（唯一真相 `courses/set-theory/tools/check.py`；设计
+   `docs/design/course-gate-in-ci.md`，as-built §9）：判据 **G1–G5 与规模无关**
+   （`grade` 退出码 0 / 目标存在 / 解答 0 open 且 checked>0 / 解答覆盖画布每个具名练习 /
+   lib+Demo 0 open）；`scripts/soko gate` 里 python3 探不到 ⇒ **exit 3**（无法判定 ≠ 绿），
+   cargo 门禁绿了才跑课程门禁并把**解析到的**二进制经 `SOKONANODA_BIN` 透传；
+   `ci.yml` 的 `test` job 新增 `--selftest` + `--annotations --report --summary` step
+   （用当轮 `target/debug` 二进制，**不新建 job** ⇒ 课程红自动挡住 `auto-tag` 的发布）
+   + `course-gate-report` artifact。
+4. **站点卷 I 页面**：`site/set-theory.html`（零构建 HTML）上线；数据块由
+   `scripts/gen-site-data.py` 生成——版本读 `Cargo.toml`、轮次标题读本文件、
+   **计数由课程门禁实测**（`counts_source: "gate"`）——三样都不许手写；
+   `scripts/check-site.py` 绿。
+5. **文档同轮**：本文件轮转（第一百〇三轮移入 `docs/STATUS-ARCHIVE.md`，归档头部范围
+   1–102 → **1–103**）；`docs/HANDOVER.md` 快照 → 0.59.0 + §2/§3 的 as-built 汇总；
+   `courses/set-theory/README.md` 现状表**据实重算** + 补记法对照页 / Exists 升级；
+   `docs/design/teaching-project.md` 附录 A 的 fixed/0.59.0 状态与 P1/P-C 收尾；
+   `REQUIREMENTS.md` §9 追加本条。
+6. **课程门禁实测（0.59.0 二进制）**：**36 个目标 · 355 checked · 99 open · 0 判负**
+   （canvas 96 / solutions 0 / lib 0），`--selftest` exit 0。比上一条记录多 2 个目标
+   （记法对照页 + 它的解答，07:5x 落地）——课程在长，所以门禁**只判形状、不锁计数**。
+7. **验收**：`grep -n "^version" Cargo.toml` = `0.59.0`；
+   `grep -n "\"version\"" editor/vscode/package.json` 首行 = `0.59.0`；
+   `cargo test -p sokonanoda-cli --test extension` 33 passed（含版本契约）；
+   `python3 courses/set-theory/tools/check.py` exit 0、`--selftest` exit 0；
+   `git diff --stat crates/` 本单零改动（工作树里第九十九～一百〇五轮的语言线改动未动）。
+   `scripts/soko gate` **全绿 exit 0**（含课程门禁与新增的台账门禁）；
+   **未 commit**（仓库约定：由主线统一落 commit）。
+8. **缺口台账收口（主线，同日）**：把「缺口即测试」从**人肉纪律**变成**门禁**——
+   * `scripts/soko gate` 第四步 = `python3 scripts/gap.py selftest` + `check`；
+     `ci.yml` 的 `test` job 同款 step `Gap ledger is consistent (docs/gaps)`
+     （`SOKONANODA_BIN` 指当轮 `target/debug`，~3 s，**不新建 job**）。红了 =
+     语言变了而台账没跟上（或修好忘了关账）；
+   * **台账新增 `repro_expect`**（`clean`/`rejected`/`exit0`/`nonzero`）覆盖
+     "由 status 推导期望"的默认：**有些缺口的「修好」恰恰是判红**——G-01 就是
+     （复现件钉的是「签名写错必须被拒」），已写 `"repro_expect":"rejected"`；
+     取值与复现类型不匹配会直接判不一致（写错的字段不会被默认推导悄悄盖过）；
+     `gap.py selftest` 14 条判据钉住判定规则本身（含 4 种取值 + 2 种非法形态）；
+   * **G-09 关账**：包装层早已把 `assertion failed:`/`unwrap()` 归 `kernel-internal`
+     + 「这不是你的代码问题」提示（测试钉住），唯一已知可达触发路径随 G-03 关闭 ⇒
+     改判 `fixed` 并**撤下 `repro`**（与 G-03 共用、已转绿），两半结论写进 `notes`；
+   * 结果：`python3 scripts/gap.py check` **exit 0 全绿**，`gap.py list` =
+     24 条里 18 条 `fixed_in=0.59.0`、未关账 6 条（L-04 `workaround` + 5 条
+     `painful`/`nice`：L-03/G-05/G-07/G-08/L-06）；`.gitignore` 补
+     `__pycache__/`（python 工具已是仓库一部分）；`docs/gaps/README.md`、
+     `docs/design/teaching-project.md`、`skills/sokonanoda-{dev,ci}` 同轮同步。
+   * **第一次真跑就抓到一个真 bug（本台账门禁自己的）**：`gate` 把解析到的二进制经
+     `SOKONANODA_BIN` 透传给课程门禁的同时也透传给了台账门禁，而 G-11/G-16 的复现
+     **测的就是启动器自己的解析链**——夹具里那个「陈旧缓存必须被拒绝」的现场被显式覆盖
+     绕过，两条复现假报「缺口仍在」、gate 因此 exit 1。修法：`gap.py` 新增 `clean_env()`
+     剔除 `SOKONANODA_BIN`/`SOKONANODA_LSP_BIN`（`selftest` 钉住）、`gate` 对台账那一跑
+     **不透传**、复现脚本自身再加一行 `unset` 兜底。教训见 `docs/LESSONS.md`
+     （「门禁注入的环境变量会短路复现夹具」）。
+9. **WO-010 / G-15（诊断坐标自描述）**：`query check` 的 `failed[]`/`warnings[]` **新增**
+   1 基 `start_line`/`start_col`/`end_line`/`end_col`——**只加不删**（`start`/`end` 仍是
+   字节 offset、坐标空间 = 入口文件；schema 号、事件种类、双 GOLDEN 都不动）。
+   台账原记的「内核 span 漂到别的声明」是**量具缺陷**（复现脚本把字节 offset 当字符下标），
+   真缺口是坐标不自带单位与坐标空间。守护三层：front 两条（span 的字节切片逐字等于出错命令，
+   收紧原来那条只断言 `line >= 1` 的假守护）+ CLI e2e 一条（`failed[]` 行列 ≡ `grade --json`
+   的 span、依赖只以入口 `import-dependency-failed` 出现）+ 复现重写（修前 exit 0 / 修后
+   exit 1，双二进制对照实测）。同轮同步 `docs/protocol.md`、`docs/TESTING.md`、
+   `courses/set-theory/AGENTS.md` 的判卷纪律、`dsh/mcp/server.js` 的工具描述。
+10. **P4 课程跟随 prelude**：`courses/set-theory/lib/Logic.sokonanoda` 那 26 条声明
+   **退化成只有注释的空壳**（prelude 已自带同名 30 个，34 处 `import lib.Logic` 一字未改），
+   课程侧 **65 处项位裸名** `inl`/`inr` 改点号名 `Or.inl`/`Or.inr`（G-02 定形后裸项名已不存在；
+   裸**模式**仍被接受，为一致性一起改）。课程门禁 **36 目标 · 329 checked · 99 open ·
+   0 判负**——`checked` 少掉的 26 条正是删掉的重复脚手架，`open` 一条不变（= 没删练习、
+   没加 `sorry` 的机械证据）。L-01/L-02 台账 `notes` 补记 P4 已跟随。
+11. **发布结果（2026-09-19 实测）**：push `main`（`347bd83`）→ 第一次 CI **红**在 LSP 项目
+   哨兵（下一条），修好后重推（`3c145e9`）→ CI **7/7 job 全绿**（lint / test / e2e ubuntu×2 /
+   e2e macos-latest / e2e-ledger / **auto-tag**）→ auto-tag 打 **`v0.59.0`** 并 dispatch
+   `release` → release **11 job 全 success** → GitHub Release **26 资产**
+   （lsp ×8 / cli ×8 / vsix ×9 / `SHA256SUMS`）+ Marketplace 收录 **0.59.0**
+   （2026-09-19T01:30:07Z 索引；9 个平台 VSIX 全部 publish 成功）。
+   **发布产物实测**（下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`）：`shasum -c` **OK**
+   → `--version` = `sokonanoda 0.59.0` →
+   **G-01**：`theorem t9 : 3 := sorry` ⇒ `diagnostic` `kernel-expected-sort` + exit 1
+   （签名受检真的在包里）；**G-04**：`infix:50 " ∈ "` 定义后 `x ∈ A` 判卷通过；
+   **G-15**：`query check --compact` 的 `failed[0]` 带 `start_line/start_col/end_line/end_col`
+   （1:14→1:15）且 `start/end` 仍是字节 offset；**L-01/L-02**：无 `import` 直接用
+   `And.intro` / `Or.elim` / `Not.intro` / `Iff.refl` / `Iff.symm` / `Iff.trans` / `absurd` /
+   `Eq.symm` 全部 `decl.checked`。`e2e-ledger` 自动把三条腿（Linux×2 + Darwin×1，各 **14/14**、
+   `dirty=false`、server `0.59.0 == 扩展 v0.59.0 (bundled)`）回提交进 `docs/e2e/ledger.jsonl`；
+   官网实测：进度页第一百〇六轮、`data/site.json` = `version 0.59.0` + `set_theory` 36 目标 ·
+   329 checked · 99 open · 0 判负。性能基线见 `docs/perf/ledger.jsonl`（下一条）。
+12. **推 main 后第一次 CI 红，已修**（run 35411049219）：`test` job 红在 LSP 项目哨兵
+   `perf_project_did_open_and_keystroke`（CI 实测按键 480ms > 300ms 预算；同机单跑 17ms、
+   满负载并行 86ms，且 pre-batch 与当前二进制同夹具对拍 best 26ms vs 25ms ⇒ **无产品回归**）。
+   这是 2026-09-18「串行 + best-of-N」口径的**漏网用例**（当时只改了单文件延迟，项目级漏了）：
+   修法是按键延迟改来回编辑 best-of-3 + 三个 project 用例加 `PROJECT_PERF_LOCK` 互相串行，
+   **阈值不动**；修后满负载并行连跑 3 次 = 17/20/19ms。`auto-tag` 被这次红正确挡住
+   （0.59.0 没有带着假红发出去）。台账与预防：`docs/CI-FAILURES.md`（2026-09-19 条）+
+   `docs/PERF.md` §采样口径（纪律升级为"所有性能哨兵默认串行 + best-of-N"）；
+   **0.59.0 性能基线已留档**：`docs/perf/ledger.jsonl`（front `keystroke_recompile_closure`
+   best 35.26ms vs 0.58.0 的 33.88ms、lsp 项目按键 14ms 与 0.58.0 一致 ⇒ 五刀无开销回归）。
+13. **未做 / 下一轮**：记法第二刀（`𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ`、跨 `import` 的记法、binder
+   记法、重载）；**L-03**（`Eq.subst` 的 Type 层重写）；L-06（无累积性 + `Exists.elim`
+   只能 Prop）；G-05/G-07/G-08 等 `painful` 项；课程侧小清扫（单元文件头里 9 处
+   「逻辑（lib.Logic）」的来源标注改成「prelude 提供」）；发布本身全自动
+   （push main → `ci.yml` auto-tag → `release.yml` 26 资产 + VSIX ×9 + SLSA provenance）。
+
+
+## 本轮进度（2026-09-19，第一百〇五轮（语言线）：WO-011 / G-04 第一刀 —— 用户自定义记法 `∈`/`⊆`/`∅`）
+
+> 台账 blocker：没有 `notation`/`infix`，集合论课程只能写前缀形式
+> `Set.mem α a A` / `Set.subset α A B`，与纸笔数学（`a ∈ A`、`A ⊆ B`）迁移成本极高。
+> 设计 = `docs/design/notation-subset.md`（N1–N7 + 优先级梯子 + 已知差异表 +
+> 第二刀清单）。**本轮只做 Lean core 级第一刀**；`𝒫`/`''`/`⁻¹'`/`×ˢ` 留给第二刀。
+
+1. **词法（三个 as-built 事实都实测确认）**：① 没有字符串 token ⇒ 新增
+   `TokenKind::Str`（只服务记法声明里的符号文本；未闭合报 `unterminated-string`，
+   span 在**开引号**）；② 数学符号**本来是标识符字符** ⇒ 新增 `TokenKind::Sym`
+   （码点类 `U+2200–22FF` / `U+2A00–2AFF` / `\`，最大咬合），`is_ident_start`
+   相应收窄；`∀` 的 `Forall` 分支**排在符号分支之前**，所以 `∀` 行为逐字节不变。
+2. **parse**：四条命令 `infix:N` / `infixl:N` / `infixr:N` / `notation`；
+   优先级插在 `parse_arrow`（最松）与 `parse_app`（最紧）之间的新梯子上
+   （`parse_plus` 改为委托 `parse_operators(0)`，`+` 仍是 65 号内建、行为逐字节
+   不变）。结合规则写死：`infix` = `p`/`p+1`、`infixl` = `p`/`p+1`（同级左结合）、
+   `infixr` = `p+1`/`p`；**非结合同级链报错**。符号文本去空白后不能全是标识符
+   字符（`notation-shape`）、未声明符号 `notation-unknown-symbol`、重复声明同一
+   符号报错。**文件内作用域**：声明之后生效（不跨 `import`——第二刀）。
+3. **elab（第三件 as-built：没人补前导 `Type` 参数）**：记法在 elab 内**源到源**
+   重写成 `App` 形状，并**自己补前导类型参数**——只做**裸变量匹配**（不引入元变量
+   /一般合一）：先从操作数类型解、再从期望类型解；解不出报
+   `elab-notation-argument-unsolved`（`#check ∅` 就是这一条）。这一步是嵌套零元记法
+   （`∅ ⊆ A`）能工作的关键：`∅` 的类型从外层记法给出的期望类型 `Set α` 反解。
+4. **兼容护城河（实测）**：点名形式永久可用，且**省 `α` 的点名写法
+   `Set.mem a A` 今天被内核拒绝、改后仍被拒绝**（同码 `kernel-rejected` 同 stage
+   `kernel`）——两种写法判卷一致，不是"记法替代点名"。
+5. **不新增语义面**：记法**不是声明**——不发任何事件、不进声明表、不进 goal 视图；
+   `SemanticKind::ALL` 与 `tm_scope` 表**逐字节不变**（声明过的符号在语义层分类为
+   `Keyword`，**未声明的符号不产生 run**，所以目标文本里的 `⊢` 仍是普通 run）。
+6. **课程零改动（硬要求）**：`courses/set-theory/` **一个字节未动**，画布仍写点名
+   形式；由 `the_shipped_course_still_uses_the_pointful_spelling` 钉住。
+   课程门禁复跑 **315 checked · 96 open · 0 判负**，与记法落地前逐字相同。
+7. **三层测试（TDD：先红后绿）**：front 词法 7 条 + parser 14 条 + elab 8 条 +
+   semantic 3 条；CLI e2e `crates/cli/tests/notation.rs` **9 条**（五元计数一致 /
+   无新事件种类 / 护城河 / 未声明符号的教学 hint / 复现件形状 / `#check ∅` 的
+   unsolved 码 / stdin↔文件一致 / **真课程单元②的记法变体判卷一致** / 课程仍写点名
+   形式）+ `protocol.rs` 一条（3 个 parse 码 + 2 个 elab 码的 stage）。
+   第三层用**临时副本**（`/tmp` 复制 lib + 清单 + 改写签名的单元），课程树不动。
+8. **复现件翻成"已修后形状"**：`docs/gaps/repro/G04-notation.sokonanoda` 补了使用行
+   `def use (α : Type) (a : α) (A : α -> Prop) : Prop := a ∈ A`（`gap.py` 判据 =
+   干净判卷 + 有 `decl.checked`）；`gap.py check` 里 G-04 已翻成「已判卷通过」。
+   台账 G-04 行按 WO 要求重写 `today`/`expected_lean`/`blocks`（`blocks` **没有**
+   清空：单元 6 的 `''`/`⁻¹'` 仍等第二刀）。
+9. **验收**：`cargo build -p sokonanoda-cli -p sokonanoda-front -p sokonanoda-lsp` 过；
+   `cargo test -p sokonanoda-front`（554 lib）· `-p sokonanoda-cli`（全套 20 个测试
+   二进制）· `-p sokonanoda-lsp` 全绿；课程门禁绿；`gap.py check` 里 G-04 一致。
+   **未跑 `scripts/soko gate`、未 bump 版本、未 commit**（仓库约定：主线统一）。
+10. **文档同轮**：`docs/architecture.md` §4.1（新 token / 新命令 / 新 AST + 记法
+    一节 N1–N7 摘要）、§5 白名单边界两条（记法是糖、是唯一例外面）；
+    `docs/TESTING.md` 新增记法守护行；`docs/protocol.md` 5 个新码；
+    `skills/sokonanoda-teacher`（语言能力速查 + 记法七条要点）·
+    `sokonanoda-dev`（设计清单 + 白名单例外面）；`AGENTS.md` 硬规则 3 补记法例外；
+    `editor/vscode/`（`tmLanguage.json` 数学符号规则 + CHANGELOG + README）；
+    `docs/gaps/ledger.jsonl` G-04 行；本文件。
+
+---
+
+## 本轮进度（2026-09-19，第一百〇七轮：0.60.0 —— 编辑器 build/rebuild + 五个缺口收口）
+
+> 用户要求：**「vscode 还是没有 sokonanoda: build 或者 sokonanoda: rebuild 的命令。你这个剩下的没做的也要做。」**
+> 本轮把编辑器缺的命令补上，并把台账里剩下的 **G-05 / G-07 / G-08 / L-03 / L-06 与记法第二刀**全部收口——
+> 结果是台账 **24 条 = 22 条 `fixed` + 2 条 `workaround`，`open` 归零**。
+
+1. **VS Code `build` / `rebuild`（用户直接报的缺口）**：CLI 一直有 `sokonanoda build [--clean] [<file>|<dir>]`
+   （预热/清理共享编译缓存），扩展从没接出来。新增 `sokonanoda: build`（`alt+b`：编当前 `.sokonanoda`
+   文件——CLI 顺着 `import` 编整个闭包——否则编第一个工作区文件夹）与 `sokonanoda: rebuild`
+   （`alt+shift+b`：先 `build --clean` 清缓存再重编）；两者把 CLI 的 JSON Lines（`build.file` /
+   `build.clean` / `build.summary`）灌进 **sokonanoda build** 输出面板，回一行
+   `N 个文件 · 编译 X · 命中 Y · 失败 Z（ms）`（带「显示输出」按钮），跑完刷新练习/项目/课程三棵树；
+   项目视图标题栏也有入口。**三层测试**：静态契约
+   `crates/cli/tests/extension.rs::build_and_rebuild_commands_warm_the_compile_cache`、stub 宿主、
+   真 VS Code 冒烟（e2e 14 → **15 条**）。版本随 feature bump **0.60.0**（`Cargo.toml` +
+   `editor/vscode/package.json` + CHANGELOG + 课程 `requires` 0.59 → 0.60）。
+2. **G-05 `namespace` / `open`**（设计 `docs/design/namespace-open.md`）：`namespace A … end A` 让声明名
+   自动带前缀（`def mem` ⇒ 全局名 `A.mem`；带点则拼接），`open A` 让短名可用；引用解析收敛到
+   `crates/front/src/compile/scope.rs` 的候选序列（命名空间链由内到外 → 精确名 → `open` 前缀按序），
+   三条命令**零事件、不进声明表**，专用 parse 码 `parse-namespace-{mismatch,unclosed,shape}`。
+   课程跟随：`courses/set-theory/lib/Set.sokonanoda` 的 22 条声明去掉源级 `Set.` 前缀
+   （**全局名一个没变、外部引用零改动**，门禁计数逐字不变）。实测边界写进设计 §4/§6：
+   未闭合 `namespace` 会打断判卷合成路径（新增 `parser::parse_fragment`）、`apply` 的
+   `unify_spine` 是文本对齐（用 `judge::judge_render_type` 先过内核 pp，未用命名空间的文件零开销）。
+3. **G-07 课程清单 v2**（设计 `docs/design/course-manifest-v2.md`）：`course.json` 升成
+   `soko.course/2`（1 卷 / 4 章 / 12 单元，每章 `prereqs`/`tags`/`quota.exercises`），
+   **v1 扁平数组继续被接受**（入门课就是活体回归）；CLI 的 `course.unit` 只加
+   `volume`/`chapter`/`tags`、`course.summary` 只加 `volumes`/`chapters`（v1 事件一个键都不多）；
+   课程门禁新增 **G6 = 清单自洽**（卷/章 id 唯一、unit 恰好一章、`prereqs` 不悬空；
+   **配额差额只报告不判红**，维持"只判形状、不锁计数"）；扩展课程树按卷→章→单元分组
+   （v1 平铺逐字保留）、站点按卷/章渲染、`docs/protocol.md` 契约 additive。
+4. **L-03 Type 层重写**（设计 `docs/design/eq-type-level-rewriting.md`）：实测内核**给** Eq 形状的大消去，
+   堵路的是 prelude 的 `Eq` 是公理（无派生 recursor）+ 两条语法边界 ⇒ L1 新增 **B8 族**
+   `axiom Eq.rec {u, v}`（与 Lean core 逐字同形）+ `def Eq.mp`/`Eq.mpr`，`PRELUDE_NAMES` 42 → 45，
+   族让位照旧。复现件 `docs/gaps/repro/L03-eq-type-level.sokonanoda` 干净判卷（5 checked，
+   含 `Vec.cast` 用 `@Eq.rec.{1, 1}` 在 `Sort 1` motive 上搬运）。残留边界（`Eq.mp` 是 Type 0 实例，
+   多态版要层级算术 `u+1`）写进设计。
+5. **L-06 累积性边界**（设计 `docs/design/prop-cumulativity-boundary.md`）：累积性是**内核性质**，
+   冻结内核下不改（硬规则 1）；本轮把 `def T : Type := True` 的裸类型不匹配翻译成专用码
+   **`kernel-prop-not-cumulative`** + 人话 hint（"本语言没有累积性；官方 Lean 4 有"），
+   课程三条绕法（`Set.Equiv … : Prop` 数据化、unit07 数据版满射、unit10 `Exists.choose`）写进设计。
+   台账改判 `workaround`（诊断质量那一半算 fixed）。
+6. **G-08 `abbrev`**（设计 `docs/design/abbrev.md`）：实测 `def` 与 Lean `abbrev` 在本语言**无可观察差异**
+   （类型位透明、`#reduce` 展开、hover 保留别名名、项层 `rfl` 成立；唯一差异 reducibility hint 在
+   只有一个透明度层级的本语言里不可观察）⇒ 实现成**与 `def` 同语义的关键字**（真 Lean 子集兼容），
+   AST/elab/内核零改动，白名单（parser 命令表 + CLI help + `docs/architecture.md`）同步。
+7. **记法第二刀**（`docs/design/notation-subset.md` §11 as-built）：`prefix:N` / `postfix:N` 两条命令；
+   卷 I 五个符号 `𝒫` / `ᶜ` / `''` / `⁻¹'` / `×ˢ` 落 `lib/Set.sokonanoda`（记法版与点名版**判卷计数逐一相等**）；
+   **跨 `import` 传播**（闭包加载器改成"先收 import 边、先访问依赖、再解析自己"，依赖导出的记法表当继承表，
+   重声明继承符号是 parse 错误）；顺带修掉 4 个既有缺陷（记法前导参数下溢 panic、`by.rs` 的
+   `atom_text` 括号清单漏记法、`judge_infer` 读目标签名剥错 binder、`by` 块目标里的记法判不动）。
+   未做（设计 §12 逐条给理由）：binder 记法、记法重载、`scoped`、集合字面量、print-back。
+8. **台账收口**：24 条 = **22 `fixed` + 2 `workaround`（L-04 / L-06）、`open` 0 条**；
+   `python3 scripts/gap.py check` 全绿。**验收**：`scripts/soko gate` exit 0
+   （fmt/clippy/`cargo test --workspace --locked` **1107 passed**、课程门禁 **36 目标 · 329 checked ·
+   99 open · 0 判负**、台账门禁全绿）；版本 0.60.0（两处）+ 课程 `requires = "0.60"`。
+9. **发布结果（2026-09-19 实测）**：push main（`a948f65`）→ CI **一次全绿（8m20s）** →
+   auto-tag 打 **`v0.60.0`** → `release` **全 success** → GitHub Release **26 资产**
+   （lsp ×8 / cli ×8 / vsix ×9 / `SHA256SUMS`）+ Marketplace 收录 **0.60.0**。
+   **发布产物实测**（下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`）：`shasum -c` **OK**
+   → `--version` = `sokonanoda 0.60.0` → 一段同时用新语法的文件干净判卷（exit 0）：
+   `namespace A` + `def f` ⇒ 全局名 **`A.f`**（G-05）、`abbrev T : Type := Prop -> Prop`（G-08）、
+   `def uses : T := A.f` ⇒ 3 条 `decl.checked`。官网 `data/site.json` = `version 0.60.0` +
+   `set_theory` 36 目标 · 329 checked · 99 open · 0 判负。
+
+---
+
+## 本轮进度（2026-09-19，第一百〇八轮：0.61.0 —— 设计文档里「未做」的全部收口）
+
+> 用户要求：**「设计文档里的东西都做了吧。」** 本轮把 `docs/design/` 各篇「未做 / 第二刀 / 残留边界」
+> 里**不违反硬规则**的项目全部实现；只有两条内核冻结项（累积性、Prop 大消去）与一条内核 pp 项
+> （源码级 print-back）保留为**有理由的边界**。
+
+1. **记法第三刀**（`docs/design/notation-subset.md` §12 → as-built + §13）：**binder 记法**
+   （`binder_notation`，`∃ x, p` / `∀ x, p`；命令拼写为什么不是 `notation-binder`：`-` 不是本语言
+   标识符字符，实测被切碎）、**记法重载**（同符号同形状按期望类型选候选；歧义/无候选两个专用码 +
+   人话 hint；重声明 import 来的符号仍是错误）、**`scoped` / `open scoped`**、**集合字面量 `{a}`/`{a,b}`**
+   （新语法，`{}` 与 binder 定界符消歧）、**一元记法在实参位免括号**。课程单元⑧ 加一条 `example` 演示
+   （练习数量与题意不动）。print-back 保留为「内核 pp 冻结 ⇒ 销不掉」（§13.1）。
+2. **`namespace`/`open` 扩展**（`docs/design/namespace-open.md` §7 → as-built）：**子句**
+   （`only`/`hiding`/`renaming` 互斥、先过滤后改名）、**`open Foo in <cmd>`**（限叶子命令，
+   合成前缀补源码原文 `open` 头，做过变异验证）、**`export`**（文件内同 open + 跨 `import` 重放导出表；
+   `open` 不跨）、**`open scoped`** 接线、**遮蔽 warning**（非 error）。
+   `section`/`variable` 评估为**做不动**并给实测（`#check id Nat` ⇒ `Nat -> Nat`、`def u : Nat := id Nat`
+   内核拒绝 ⇒ 本语言无隐式参数插入，auto-bound 落不出 Lean 体验）；`namespace` 跨文件传播澄清为"无需做"。
+3. **层级算术与 Eq 多态**（`docs/design/eq-type-level-rewriting.md` §4）：宇宙层级支持**数字后缀加法**
+   （`u+1`；`u+v`/`max` 给专用诊断——内核 `Level::Max` 无公开构造入口），`Eq.mp`/`Eq.mpr` 从 Type 0
+   实例升级成**宇宙多态**（签名对齐 Lean core），装上 **`cast`** 与 **`Eq.ndrec`**（真 Lean 子集兼容；
+   `cast` 原来是 front 单测里的自定义公理名，已改名）。`PRELUDE_NAMES` 45 → 47，B8 族让位照旧；
+   L-03 复现件扩到 **10 checked / 0 diagnostic**。
+4. **编辑器词表与课程工具**：`front::semantic::KEYWORDS` 与 `editor/vscode` TM 语法**同轮**加入
+   `abbrev`/`prefix`/`postfix`/`binder_notation`/`scoped`（守护
+   `tm_grammar_keywords_follow_the_single_source` 绿）；CLI `course` 支持**多清单聚合**
+   （`course <path>… [--all]`，多份才加 `course.unit.manifest` 与 `summary.manifests`，单清单一个键不多）；
+   课程门禁新增 `--ledger`（**默认关**，避免 CI 写仓库）产出成本台账 `docs/courses/ledger.jsonl`
+   （已真跑一条：36/329/99/0 · 20024ms · v0.60.0）。
+5. **保留的边界（有实测理由，非"没时间"）**：累积性与 Prop 大消去（内核冻结，硬规则 1）、
+   源码级 print-back（类型文本由内核 pp 产出，记法不进内核）、`section`/`variable`（无隐式参数插入）、
+   `u+v`/`max`（内核无公开构造入口）。
+6. **验收**：`scripts/soko gate` exit 0（`cargo test --workspace --locked` **1163 passed / 0 failed**；
+   课程门禁 **36 目标 · 329 checked · 99 open · 0 判负**；缺口台账门禁全绿）；版本 0.61.0（两处）+
+   课程 `requires = "0.61"`；内核零改动。
+7. **发布结果（2026-09-19 实测）**：push main（`f3902b3`）→ CI **一次全绿（9m18s）** → auto-tag
+   打 **`v0.61.0`** → `release` **全 success** → GitHub Release **26 资产** + Marketplace 收录
+   **0.61.0**。**发布产物实测**（下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`）：`shasum -c`
+   **OK** → `--version` = `sokonanoda 0.61.0` → 一段用新语法的文件判卷：`namespace N` +
+   `abbrev T : Type := Prop -> Prop` + `def f : T := …` ⇒ 全局名 **`N.f`** 与 `T`/`f` 全部
+   `decl.checked`（G-05 + G-08 在发布产物里可用）；`cast` 已可解析（该 smoke 文件里两条诊断来自
+   它自己的宇宙层级写法，不是缺名字）。
+   注：本轮 bump 后第一次 gate 曾 exit 3——`target/debug` 还是 0.60.0 而版本钉已到 0.61.0，
+   启动器按 G-16 的守卫**拒绝**了缓存里的 0.55.0（守卫工作正常）；`cargo build -p sokonanoda-cli`
+   重建后 gate 复绿。
+
+---
+
+## 本轮进度（2026-09-20，第一百〇九轮：站点全面重构 —— 28 页 + 总验收 14 项）
+
+> 用户要求（原话）：「项目更新了非常多的版本，我希望 site 静态网页全面重构一下，
+> **不要参考旧版本，旧版本没有设计感，美感，很多 ai 味**。我希望除了产品介绍页、
+> 项目文档，还可以设计一些功能页……」，中途追加「**先不做功能页，功能展示多一点也行，
+> 毕竟只是在 github pages 上，快也很重要**」与「我发现 superpower 啥的 skill 都没装，
+> 网页产品做得不够全面，可能是 skill 不够」。本轮的产出与依据全部在
+> **`docs/design/site-rebuild/`**（`STATE.md` 是入口）。
+
+1. **旧站体检并整体废弃视觉层**：17 个不同 `font-size`、6 种圆角、11 个非网格 gap、
+   27 个硬编码色值对 9 个变量、0 个 `transition` / `prefers-*` / `:focus-visible`、
+   正文行宽 ≈112 拉丁字符（WCAG 1.4.8 上限 80）、2 处对比度不达标、缺
+   favicon / og / canonical / theme-color / 暗色模式。**文案是资产，保留；视觉层全废。**
+2. **调研**：设计手艺（R1，含 Anthropic 官方 `frontend-design` 原文与 72 条 AI 味特征）、
+   65 个站点拆解（R2，含 lean-lang.org 的技术性诊断与 Alectryon 纯 CSS 折叠机制）、
+   字体管线（R4，字形覆盖逐条实测）。**关键发现**：`⊢`（U+22A2）缺失于 Menlo / SF Mono /
+   Monaco / Consolas / Source Code Pro / JetBrains Mono / Inter / IBM Plex Sans **以及旧站自己的
+   CJK 回退 Hiragino Sans GB** —— 逐字回退会静默破坏等宽对齐。
+3. **方向「格纸 · 朱批」**（D1）：冷调纸面 + 24px 方格（只铺在推导发生处）+ 零圆角结构容器
+   + 发丝线；两个**语义可审计**的强调色——绿只给「内核真的通过过」的东西，朱只给
+   「诊断 / 更正 / 诚实的限制」。**衬线默认撤掉**（`--font-display` = `--font-ui`）：
+   用 `ai-smell-detector` 审自己的方案，「高对比衬线大标题」正是第 1 类 AI 长相的核心配料，
+   教科书感改由**构件**承担（编号小节 / 页边注 / 定理证明块 / 推理横线）。
+4. **28 页**：产品 4 / 功能 9 / 学习 4 / 使用 4 / 过程与信任 5 / 英文 landing 1 / 样板页 1。
+   新增搜索、对照页、术语表、常见问题、版本历史、404、`sitemap.xml`/`robots.txt`/`llms.txt`。
+5. **功能页靠真实预计算数据 + 纯 CSS 折叠**（不做 WASM / 不做后端）：
+   `gen-site-lab.py` 产 6 份数据（走查逐行目标状态 / 真实事件流 / 诊断字典 64 码 /
+   时间线 / 缺口台账 / 质量证据），**3 次跑字节一致**，诊断复现 **55/64**。
+   走查页 23 个折叠块的数据经**逐字节保真核对**（0 mismatch），且**关掉 JS 仍可用**（实测）。
+6. **零伪造是硬要求**：站点上所有内核输出要么逐字来自 `site/data/*.json`，要么就是编的。
+   验收把它做成机器判据（K10），当前 **91 条录制值全部回查通过**。
+7. **总验收一条命令**：`python3 scripts/site-verify.py` —— 完整性 3 项 + 正确性 11 项，
+   **当前 14/14 全绿，exit 0**。含 K12「课程计数可复现」：判据是
+   **HEAD 的课程 + 已发布二进制**能不能跑出页面写的数（现场跑会因并行开发误报）。
+8. **退役**：`scripts/gen-site-demos.py` 与 `site/assets/demos/`（PIL 画的假 VS Code 截图）
+   整体删除，编辑器面板改成真 HTML/CSS；旧 `site/assets/style.css` 删除；
+   `site/assets/agent-prompt.js` 删除（安装 prompt 改为 `agents.html` 单一天然 HTML 源）。
+9. **agent 技能**：`scripts/fetch-agent-skills.py` + `dsh/agent-skills.json` ——
+   26 个第三方技能（MIT，装进 `.dsh/skills/`，载荷不入库）。**Anthropic 官方那包未装**
+   （无 LICENSE，只有 "demonstration and educational purposes"）。
+10. **本轮的实测修正**（全部记在 `STATE.md` §5，共 17 条）：`scripts/soko` 文档承诺的
+    「扩展自带回退」是死代码；两个 `doctor` 结论相反；`docs/protocol.md` 两处与实测不符
+    （`error[<stage>]` 只有 parse 是、`expected`/`actual` 字段根本不存在）；
+    print-back 限制是**位置性**的而非全局；`query check` 对「用了 import 记法」的文件
+    **报假红**（`grade` 同文件 exit 0）；**`by` 白名单是七不是十三**
+    （工作树有 +1548 行未提交 WIP，`scripts/soko` 量到的是未发布代码）。
+
+## 本轮进度（2026-09-21，第一百一十轮：R2 修边刀 —— 判卷器**五条**静默错；**卷 I 全绿（36/36 · 0 判负）**）
+
+> 用户要求（总账，原话）：「把 courses/（卷 I set-theory）+ course/（入门课）+
+> playground.sokonanoda 改写成 Lean 4 风格：连接符用数学符号、证明全用 tactic、
+> 练习占位写 `:= by sorry`」。本轮是 **R2（引擎扩展 + 卷 I 全量）的收尾**：
+> 全量改写跑完后 **36 个课程目标只剩 `unit12-solution` 一个红**，而它那 6 条判负的
+> 声明「怎么看都对」。逐条缩到最小复现（一次 ~10s）后查明：**6 个「写作错误」里
+> 5 个是判卷器的静默错**，另 1 个是 `cases` 的实测边界。**内核零改动**
+> （`git diff --stat -- crates/kernel/` 空）；as-built 见
+> `docs/design/course-lean-style.md` §9「R2 修边刀」。
+
+1. **①`apply` 的类型参数静默填错**（最严重的一条：**悄悄生成错子目标**）。
+   `Set.ext` 的 pp 签名把 `Eq` 的类型实参丢了（`Eq A B`）⇒ 类型参数 `α` 不在任何
+   实参位上，旧代码按名字回退到「同名上下文变量」——而 `Set.ext` 的参数恰好就叫
+   `α`：元素类型叫 `β`、上下文里另有一个 `α` 时子目标成 `y : α`，之后每条 `exact`
+   都报「期望 `C y`，实际是 `C y`」（**字面相同**）；上下文里没有 `α` 时报
+   `unknown identifier α`。修法 `solve_type_params`：拿「已填层的 domain ↔ 该层值的
+   类型」反推（`A : Set α` 已填成 `f '' A`，后者类型 `Set β` ⇒ `α := β`）。
+2. **②`cases` 在 `have … := by` 里丢字段**：嵌套 `by` 的值要**打回源码文本**再判卷，
+   而 `render_pattern` 无条件给子模式加括号（`| intro b hb =>` → `| intro (b hb) =>`），
+   回读时构造子只剩 1 个子模式。只给本身带子模式的子模式加括号。
+3. **③`cases` 臂里裸 `Eq` 丢宇宙层级**（四条配套一起上）：pp 把 `Eq.{1} β (f a) b`
+   打成裸 `Eq (f a) b`，而这条类型**不只判定要用**——`match` 的组装与最终声明判定都
+   从节点上读它 ⇒ 整条声明被内核拒（「期望 `Sort(0)`，实际是 `$N`」，位置在定理那一行）。
+   配套：Eq 三件套是受信任 **axiom**（没有定义体，从不进 `DefTable`）⇒ 补
+   `trusted_prelude_arity` 表；还原时补回 pp 丢掉的前导类型实参；进 `fun`/`forall`
+   的体先把该层 binder 加进判定上下文；`restore_universe_levels` 接到
+   `canonicalize_binder_type` 上（上一轮试过并回滚的那一刀，这次连同三条配套落地）。
+4. **④`cases` 字段类型留 beta redex**：`Exists` 的 `h : p w` 代成 `(fun …) b`，
+   而内核不做 beta 转换 ⇒ 与 `apply` 同一条纪律，`beta_normalize` 补上。
+5. **⑤`cases` 的参数代换取源记法形态 ⇒ 前导类型参数撞名静默错**（与 ① 同一类）：
+   源类型里的记法节点**不带前导类型参数**（`elab` 期才算得出来），`unfold_one`
+   只能右对齐 ⇒ 定义体里提到前导参数的地方**留着定义自己的 binder 名**，在调用点
+   按「同名上下文变量」解析（`Set.image` 的形参就叫 `α`/`β`）——臂里的假设类型成了
+   `Eq.{1} β …`（该是 `γ`），之后每条 `exact` 都把同一条命题写成两种形态。
+   修法：`cases` 实参**优先取规范形态**（内核 pp：点名 + 全实参），源形态只兜底。
+6. **判卷成本的真凶（上一轮遗留，已修）**：`JUDGE_CACHE_CAP` 128 → 4096。判定要
+   **递归**重编译前缀（前缀里就有更早的 `by`），FIFO 128 一被挤爆就再也接不住 ⇒
+   成本随声明数**指数**增长。实测 `unit04-solution`：6 条声明 8.9s、第 7 条 >60s、
+   整份 >600s 不返回；修后 **7.88s / 8 条全 checked**。
+7. **unit12-solution 剩的 6 条是 `cases` 的实测边界**（不是引擎缺口），课程侧改法：
+   `cases hC y hy`（被消去项是应用）→ `Exists.elim` 项；`cases` 消去 **`have` 绑定的
+   `∈ 像` 假设** → 先 `have hex : Exists … := hmem` 再 `cases hex`；嵌套 `cases` 的内层
+   → `Exists.elim`；`cases` 消去**书写成 binder 记法 `∃`** 的假设 → 先
+   `have e1 : Exists … := e` 再 `cases e1`。
+8. **验证（本轮实测）**：`scripts/soko gate` **全绿**（fmt + clippy + test + playground
+   锚点 + 课程门禁 + `gap.py check`）；`cargo test --workspace --locked` 全绿
+   （`notation` **41**、`sokonanoda-front --lib` **661**）；课程门禁 **36 目标 / 0 判负 /
+   checked 328 / open 99 / exit 0** —— **卷 I 首次全绿**。五条修复都有**旧/新二进制
+   对照**回归测试（旧红新绿）。
+9. **仍欠**：R2.5（隐参数路线 C / 记法可输入性收尾）与 R3（入门课 52 文件 +
+   `playground` + 13 处计数钉住的测试）。**卷 I 这一站已完成。**
+
+
+## 本轮进度（2026-09-21，第一百一十二轮：R3 入门课开工 —— 单元① 样板 + 骨架记法同步 + 施工手册）
+
+> 用户要求（总账）：入门课 `course/`（52 文件 / 4337 行）也改写成 Lean 4 风格。
+> 设计依据 `docs/design/course-lean-style.md` §C2（C2.1–C2.11）；本轮是 R3 的
+> **第一刀**：把**样板**做出来、把**施工手册**写出来，并把会连带翻车的地方先钉住。
+
+1. **单元① 样板（CN/EN 画布 + CN/EN 解答，4 文件）**：代码全部换记法
+   （`And a b` → `a ∧ b`、`Or a b` → `a ∨ b`、`Not a` → `¬ a`、`->` → `→`），
+   解答的证明体全部改成 `by` tactic 块（`intro` / `exact`），**画布的演示保持
+   项模式**（设计 C2.2：单元①②③⑤–⑪ 的教学点就是项模式，§C2.6 只把单元④
+   改成 `by` 单元）。**引理名照旧点名**（`And.intro`/`And.left`/`False.rec`）。
+2. **关键实测：纯记法改写是 count-neutral 的** —— 单元① 画布改前改后都是
+   `(checked, open, reduced) = (13, 6, 1)`，CN/EN 与画布/解答四份计数逐项一致
+   ⇒ **正常改写不该动 `GOLDEN`**；动了就说明改了语义（这条写进手册的计数纪律）。
+3. **骨架块的记法连带面**：`course/shared/{And,Or}.sokonanoda` 是「规范副本」，
+   `course_shared.rs` 逐字守着 **24 份 And / 12 份 Or** —— 改单元① 的 And 公理块
+   当场把它打红（这正是它存在的意义）。同轮把规范文本与全部副本（And 21 处 +
+   Or 12 处，含**未登记的** `unit11-project/Logic.sokonanoda`）一起换记法；
+   `inductive Or` 的构造子结果类型里 `∨` 也解析得了（在其自身声明块内）✓。
+4. **施工手册** `docs/notes/course-lean-style/R3-rewrite-brief.md`（新，+ `docs/README.md`
+   索引）：CN/EN 同步规则（代码逐字相同、注释分别润色）、本课可用记法集与优先级、
+   **本课 tactic 白名单**（`intro`/`exact`/`apply`/`assumption`/`rfl`/`have`——
+   ⚠️ **不含** `constructor`/`cases`/`left`/`right`/`use`/`exfalso`：本课 `And`/`Or`
+   是自建骨架，`constructor` 要真归纳）、**计数纪律**（从内核取数、不许手算、
+   不许为凑数删练习）、单元④ 的特例（缺 5 号、9 条遗留声明）、阻塞上报格式。
+5. **本轮明确不做**：设计 §C2.5 的**删骨架**（把自建 `And`/`Or` 块删掉让 prelude 的
+   真归纳回来）——它是**需拍板**项，且会打红 13 个计数测试；本轮把它留在原地，
+   等样板铺开后再单独一刀（手册 §1 已写明）。
+6. **验证（本轮实测）**：`cargo test --workspace --locked` **1210 passed / 0 failed**
+   （含 `course.rs` 的 GOLDEN 11 条、`course_status.rs`、`cli.rs` 的 86/65、
+   `course_shared.rs` 的 4 条副本/镜像检查）；单元① 四份 `grade` 退出码 0、
+   CN/EN 计数逐项相同。
+7. **仍欠**：R3 主体（单元②–⑪ 的记法改写 + 解答 tactic 化，按手册派 subagent，
+   一次 2–3 个单元对）、单元④ 的特例刀（C2.6）、C2.5 的骨架删除（要拍板）、
+   C2.9/C2.10 的约 30 处叙事 + `course/README.md` 的 24/12/8 与行数、
+   C2.11 的课外语料 6 处；之后是 R2.5 的 IA-2/IA-3。
+
+## 本轮进度（2026-09-21，第一百一十一轮：R2.5 IA-1 —— **隐式实参路线 C 落地**，课程零改动全绿）
+
+> 用户要求（总账）：「如果想支持 notation，感觉 `{x : Set}` 这种隐参数自动推导的机制
+> 不得不实现了。」设计与分期在 **`docs/design/implicit-arguments.md`**（as-built 见其 §9）；
+> 本轮的期号是 **IA-1**：路线 C（**风格对齐 + 唯一确定**，纯前端、不引入元变量、
+> **内核零改动**，`git diff --stat -- crates/kernel/` 空）。
+
+1. **签名表（零内核调用）**：`KnownName::Decl` 加 `implicit_prefix`（声明望远镜的
+   **前导隐式 binder 个数**，纯源级 AST 走查）；`walk.rs` 的 6 个登记点算出来，
+   prelude 固定 `0`（§7 第 4 条）。它是插入路径的**免费闸门**——为 0 时一行不跑，
+   这既是安全性质也是成本控制（先试过无条件 `judge_infer`，判定**递归**重编译前缀
+   ⇒ 栈溢出）。
+2. **路线 C**：新 `compile/implicit.rs`——带**风格**的望远镜解析、前导隐式计数、
+   `solve_prefix`（按层序找"后面第一个提到它的层"，用那一层实参的**类型**头部匹配；
+   顺序代入；解不出返回 `None`）。`Expr::App` 臂是**唯一钩子**。
+3. **`@` 给了真语义**：`@f a b` 关闭隐式插入（Lean 语义，护城河的逃生门）。
+   新 `Expr::App::explicit_spine` + parser 的 `saw_at` + 渲染只在头前打一个 `@`。
+4. **唯一必须同轮改的既有行为**：`render_expr` 不再给 `UniverseApp` 凭空补 `@`
+   （`@` 从"提示"变成"真语义"后，判卷通道"渲染→回读"会**改变含义**）；
+   症状很绕——记法目标 `Aᶜ ∪ B` 的前导参数解不出，实为合成声明里的 `@Eq.{1}`
+   被解析成显式标记。三条 round-trip 用例同轮重钉。
+5. **§0 的"前提"被前提测试当场推翻**：设计说"全仓只有一处、且在注释里"，
+   实测 `course/` 里有**两处刻意**的隐式签名（`Eq.symm`、`eq_refl_prop`——
+   **这两道题教的就是隐式 binder**），它们只用 prelude 的 `Eq.subst`/`Eq.refl`
+   ⇒ IA-1 不影响它们（1210 条测试全绿）。前提测试改成"除这两处教学例外外"。
+6. **新错误码** `elab-implicit-argument-unsolved` 进 `docs/protocol.md` 码表；hint
+   教"把参数写全"（点名写法永远可用）。
+7. **验证（本轮实测）**：`cargo test --workspace --locked` **1210 passed / 0 failed**；
+   课程门禁 **36 目标 / 0 判负 / 328 checked / 99 open** —— 与 IA-1 之前**逐项相同**
+   （安全性质：课程签名没有隐式 binder ⇒ 插入路径一行不跑）；`notation.rs` 从 41 涨到
+   **45** 条（前提 + 插入 + `@` + 专用错误码），`implicit.rs` 另有 5 条纯单测。
+8. **仍欠**：**IA-2**（`lib/` ≈39 条签名改隐式 + units 2768 处缩短 + §6 测试重钉 +
+   §3.4 护城河话术与 `notation.rs:163` 夹具）与 **IA-3**（收窄/删除记法补参 hack）；
+   之后是 R3（入门课 52 文件 + `playground` + 13 处 GOLDEN）。
+
+## 本轮进度（2026-09-21，第一百一十三轮：R3 主体落地 —— 入门课 44 文件记法 + tactic；**语言补两刀**）
+
+> 用户要求（总账 §9 2026-09-19 条目）：入门课 `course/` 全量改写成 Lean 4 风格。
+> 本轮把 R3 的**主体**做完（第 112 轮只做了单元① 样板 + 手册），并在改写过程中
+> **反过来改了语言两处** —— 正是用户预判的「改写会对 sokonanoda-lang 功能本身
+> 有需求」。设计依据 `docs/design/course-lean-style.md` §C2/§C4，as-built 见同文件
+> §9「R3」与 `docs/design/by-tactics.md` §12。
+
+1. **改写完成面**：**44 个教学文件**（11 单元 × 中英 × 画布/解答）+ `course/unit11-project/`
+   4 个文件（**之前整目录漏改**，它不在 `course.json` 里但却是 `import` 教学与
+   `scripts/soko grade` 的活样例）+ 规范副本 `course/shared/Nat.sokonanoda`。
+   代码连接符 `And a b`→`a ∧ b`、`Or`→`∨`、`Not`→`¬`、`->`→`→`、`forall`→`∀`、
+   `Exists`→`∃`（单元⑧ 自加 `binder_notation "∃" => Exists`，**不产生事件**）；
+   **解答的证明体全部改 `by` tactic 块**（`def` 是函数定义、不是证明 ⇒ 单元③⑥⑦
+   解答 0 个 `by`，这是对的）。**引理/构造子名照旧点名**（`And.intro`/`Or.inl`/
+   `Exists.elim`）——记法是连接符的糖。
+2. **CN/EN 逐字节一致**：每对文件用 `course_shared.rs::code_only` 的口径复核代码
+   完全相同（只差 `--` 注释）；四份 `grade` 退出码 0、诊断 0、计数逐项相等。
+3. **单元④ C2.6 结构专项（四条全做）**：补练习 `by_ex5`（教 `have`）+ 演示
+   `demo_by_have`、删解答里 **9 条早期草稿遗留**（`h_s`/`Pfam`/`Qfam`/`f_dep`/
+   `qfam_true`/`val_apply_imp`/`val_apply_dep`/`by_ex7`/`by_ex8`）、「首期五个 tactic」
+   措辞改成真实白名单（六条 + 后续单元解锁表）。画布 `(13,5,0)` → **`(14,6,0)`**，
+   课程总计 **checked 86→87、open 65→66**，四处钉子同步（`course.rs` 的 `GOLDEN`、
+   `course_status.rs` 的逐单元表 + summary、`cli.rs` 的 warm-cache 总计）。
+4. **语言刀 A：判定合成声明携带声明的宇宙参数**。症状：目标里出现 `Sort u`/`Eq.{u}`
+   时 `:= by …` 报 ``universe variable `u` is not declared in this declaration`` ——
+   **宇宙多态定理根本写不了 tactic**（卷 I 的 `Set.{u}` 遍地都是）。根因：by 引擎的
+   `spec_of`/`spec_of_for_judge` 硬写 `OpenGoalSpec.universe = Vec::new()`。修法：
+   `walk.rs` 的 `def`/`theorem`（`example` 传 `&[]`）→ `lower_value`/`lower_by_val`
+   → `run_by` → `run_tactics` → `{apply,cases,ctor,exact}_tactic` → `{judge,
+   judge_with_levels,spec_of,spec_of_for_judge}` 一路带上。**`universe` 为空时
+   `OpenGoalSpec` 逐字段与改前相同** ⇒ 既有行为零变化。测试
+   `by_block_carries_the_declaration_universe_parameters`；活样例 = 单元⑤ 解答的
+   `theorem Eq.symm {u} : {α : Sort u} → … := by …`（本轮顺手把它的项模式证明改成
+   tactic 块，它是课程里唯一的宇宙多态定理）。
+5. **语言刀 B：`src_spine` 认记法节点**。症状：`have bc : B ∨ C := …` 之后
+   `cases bc` 报「被匹配项必须是一个书写类型为 `Or …` 的局部变量」——逼学习者把
+   **块内假设**写成点名形式（声明参数/`intro` 进来的有「归一成内核 pp」兜底，
+   `have` 引入的没有）。修法：`elab.rs::src_spine` 增 `Expr::Notation` 分支——
+   记法的**源像**就是 `target` 那条 spine，操作数按源序收集（中缀 `[lhs,rhs]`、
+   前缀 `[rhs]`、后缀 `[lhs]`、零元 `[]`）。测试
+   `cases_splits_a_have_bound_hypothesis_written_with_notation`。
+6. **顺手补的守卫空洞**：`course_shared.rs` 的语料之前**不含 `unit11-project/`** ⇒
+   它的 `Logic.sokonanoda` 抄了 And 公理块却不登记也全绿。本轮把该目录纳入扫描面
+   并把该文件登记进 `AND_COPIES`（**And 24→25 份**），同时给「画布不得 import」
+   那条测试加上 `unit11-project/` 例外（它**就是** import 教学样例）。
+7. **`playground.sokonanoda`（用户直接面对的教师画布）**：`∃` 段补
+   `binder_notation "∃" => Exists` + 目标/假设改写，叙述从「本画布没有声明这个记法，
+   所以一律写点名形式」改成「已声明，所以写 `∃ (x : Person), P x`；两条规则本身照旧
+   点名」。**计数与提交版逐项相同**（`decl.checked` 30 / `example.checked` 2 /
+   `exercise.open` 4；warning 2→1 是前几轮修的）。
+8. **文档同轮**：`docs/design/course-lean-style.md` §9 新增「R3」as-built（含两处语言
+   刀的表 + 已知边界）；`docs/design/by-tactics.md` §12 新增宇宙参数 as-built（含
+   **未修项**：`judge_infer` 仍不带宇宙参数 ⇒ `apply`/`cases` 的推断侧有同类边界）；
+   `REQUIREMENTS.md` §9 的 2026-09-19 条目补「进展」；`docs/design/course-syllabus.md`
+   单元④ 行、`skills/sokonanoda-teacher/SKILL.md`（新增「写 Lean 风格记法」与
+   **全量 tactic 白名单 + 按单元解锁**两条）、`crates/front/src/lib.rs` crate 文档、
+   `course/README.md` 的写死计数（24/12/8 → 25/12/8；`232/2974` → 实测
+   44 文件 4408 行、288 行在重复块里 ≈6%，并注明重量办法）。
+9. **验证（本轮实测）**：`cargo test --workspace --locked` 全绿；`scripts/soko gate`
+   全绿（fmt + clippy + test + playground 锚点 + 课程门禁 + `gap.py check`）；
+   课程门禁 **36 目标 / 0 判负 / exit 0**；`git diff --stat -- crates/kernel/` **空**。
+10. **仍欠**：R3 收尾的 C2.9 叙事陈词（少数几处；「Or 从公理升级」这类只有在 C2.5
+    拍板后才需要改）、**C2.5 待拍板**（删自建 `And`/`Or` 骨架换 prelude 真归纳 ⇒
+    解锁 `constructor`/`cases`，代价是 13 处计数测试重钉）、`judge_infer` 的宇宙参数
+    （下一刀，见 by-tactics §12）、R2.5 的 IA-2/IA-3。
+
+## 本轮进度（2026-09-21，第一百一十四轮：**纠正记账**——卷 I 全量改写其实没做完；R2 主体收尾开工）
+
+> 上一轮把 R3（入门课）做完后，用 R3 学到的「**残留扫描**」去复查卷 I，发现
+> 第 110–112 轮把「**卷 I 全绿**（36 目标 / 328 checked / 99 open / 0 判负）」
+> 记成了「卷 I **全量改写完成**」——**两者不是一回事**：课程门禁只证明每个目标
+> **判卷通过**，不证明文本**改写过**。实测卷 I 仍有 **829 处**旧写法
+> （`->`/`forall`/`And X Y`/`Or X Y`/`Not X`/`Iff X Y`/`Exists X (fun …)`）
+> 与 **50 个值位不是 `by` 的声明**。R2 真正交付过的只有**语言地基 + 单元② 一个
+> 试点**（有 `the_shipped_course_uses_the_library_notation` 守着它）。
+
+1. **`lib/Set.sokonanoda` 改完**（卷 I 标准库的样板）：语句与 `def` 体用记法
+   （`→ ∀ ∧ ∨ ¬ =`；`∈ ⊆ ∪ ∩ \ ∅ 𝒫` 是本文件自己声明的，定义体里仍点名——那是
+   正确的自指边界），10 条定义展开引理全部改 `by` 块。**23 `decl.checked`**。
+   顺带实测：`·` 聚焦**没进语法**（parse 错），设计 N-12 的 L3.9 未实现。
+2. **语言刀 C：`cases` 的头解析认记法**（第三次"改写反过来改语言"）。把
+   `def union` 体从 `Or (A x) (B x)` 改成 `A x ∨ B x`（纯可读性、语义等价）之后，
+   卷 I 门禁**当场 328/0 → 326/2**：两条 `cases h`（`h : x ∈ A ∪ B`）报「被消去项
+   不是归纳类型的值」。根因：`cases` 降低成 `match` 前要 `unfold_to_inductive` 把
+   `def` 的**体**代进来，而头解析用的是只走 `Expr::App` 的 `spine_of` ⇒ 记法节点
+   没有 `Ident` 头。修法：改用 `spine_with_notation`（记法节点的头就是 `target`；
+   源实参那条路本来就在用它）。**这是卷 I 改写的前置条件**——库一改用记法，
+   所有"透过 def 看归纳"的 `cases` 都会撞上。回归测试
+   `notation.rs::cases_sees_through_a_definition_body_written_with_notation`；
+   旧/新对照就是那次真实门禁（326/2 → 328/0）。
+3. **机械记法替换 517 处**（脚本 + 每轮门禁验收）：`lib/` 67、`units/` 画布 74、
+   `units/solutions/` 376。**每一轮替换后门禁都仍是 328 / 99 / 0**。
+3b. **语言刀 D：binder 记法的实参位两处必须同款**（本轮第二个真 bug，被既有测试
+   抓住）。`∃ (x : α), p x` 的应用形态是 `Exists α (fun …)`——域类型要占位。
+   `spine::spine_with_notation` 一直有这条 binder 分支，而 `elab.rs::src_spine`
+   （上一轮为「`have h : B ∨ C` 之后 `cases h`」新加的记法分支）**漏了它**。
+   触发很隐蔽：**只有把 `∃` 写进 `def` 体**才会撞上（`lib/Image` 的 `Set.image`
+   改成 `∃ (x : α), x ∈ A ∧ f x = y` 之后，单元⑧/⑫ 的 `cases hy` 整类打红）。
+   抓住它的是**既有**两条测试（`cases_inside_a_have_block_keeps_every_constructor_field`、
+   `cases_uses_the_canonical_type_so_notation_prefix_params_do_not_capture_context_names`）
+   ⇒ 说明「语言刀 C 只修了一半」。as-built 见 `docs/design/by-tactics.md` §12 第三处。
+3c. **一次「伪阻塞」的教训**：subagent 基于**我覆盖二进制那一瞬间**的坏环境
+   （`target/release/sokonanoda` 被 SIGKILL ⇒ `scripts/soko` 回落到陈旧缓存 0.55.0
+   并 exit 3）报了一条交叉阻塞，结论是「`∃` 不能用在 def 体里」。**实际用修好的
+   二进制复跑它的最小复现是 `decl.checked`**。两条纪律：① 覆盖运行中二进制要
+   原子（先写临时名再 `mv`），否则并行的判卷会读到半截文件；② 转述别人的失败
+   报告前**自己复跑一次最小复现**——环境故障长得和真 bug 一模一样。
+4. **入门课练习占位统一成 `:= by sorry`（设计 D3，R2/R3 都漏做的一条）**：
+   行内 `:= sorry` 48 处 + 续行 `sorry` 56 处 = **104 处**。用「判定事件流
+   （去掉绝对字节 offset）逐字节对比」证明**零语义变化**——设计 §1.2 的预测成立。
+   ⚠️ 我上一轮写的 R3 手册里「练习占位照旧 `:= sorry`」那句是**错的**，已改。
+5. **剩下的 216 处 + ~10 条项模式证明**需要判断力（`Exists X (fun …)` → `∃ …`
+   83 处、跨行 `And` → `∧` 87 处、`lib/Demo` 的 4 条演示证明），已写手册
+   `docs/notes/course-lean-style/R2-full-rewrite-brief.md`（含现状表、三类活、
+   边界、验收口径）并派出 2 个 subagent 分头做（lib+画布 / 解答）。
+6. **不许动的一处**：`units/notation-cheatsheet*.sokonanoda` **故意**把点名与记法
+   并列（大纲 §4 的"第二遍"教学装置），点名在那里是**内容**不是残留。
+   C1.5 的"重定位成速查表"是内容改动，与本轮风格改写分开做。
+7. **验证（本轮实测）**：卷 I 门禁在每一轮改动后都跑，**始终 36 目标 / 328 checked /
+   99 open / 0 判负**；`notation.rs` 47 条测试全绿（新增 1 条）。
+8. **subagent 结果已复核（我自己复跑，不采信自述）**：lib+画布那个 agent 声称改了
+   9 个文件（`lib/{Equiv,Demo,Exists,Fun,Image,Rel}` + `units/{unit06,08,12}`），
+   我逐个 `grade` 复核：**9 个全 rc=0、0 诊断、计数与基线逐项相同** ✓。它列出的
+   3 处同类残留我收掉 2 处（单元⑥ 的 `Or` 混用、单元⑧ 的跨行 `Iff`）。
+9. **新记录的一条记法边界**（第三处收不掉的原因，值得下一个 agent 知道）：
+   记法落在**实参位**、且操作数本身又是记法或集合字面量时，补不出前导类型参数，
+   报 `elab-notation-argument-unsolved`（提示文案已经教用户写点名形式）：
+   `Set.image Two Two f1 ({aa} ∩ {bb})` —— `∩` 的 `α` 解不出来；
+   同文件里单独写 `{aa} ∩ {bb}`（有期望类型）却没问题。
+   这条与设计 C4 #5（`∅` 在 `Eq` 操作数位解不出 `α`）同族，**IA-2 要一起评估**：
+   签名改隐式之后，"前导类型参数"改成"从第一个显式实参的类型插入"，
+   记法路径是否也走同一条插入、还是仍要期望类型，是 IA-2 的设计问题。
+10. **当前残留（本轮实测）**：整卷 I **162 处** = 解答 **121**（另一个 subagent 在跑）
+   + 记法对照页 **37**（**故意保留**的双写法）+ 其余 **4**。改前的总数是 **829**。
+11. **仍欠**：解答那 121 处（subagent 在跑，等验收）；C1.3 的 294 条 hint 词汇；
+   C1.5 速查表重定位；C1.6/C1.7 元数据与大纲同步；入门课那边的 C2.5（拍板）与
+   R2.5 的 IA-2/IA-3。
+
+## 本轮进度（2026-09-21，第一百一十五轮：卷 I 收尾验收 + C1.6/C1.7 同步）
+
+> 承接第 114 轮的「卷 I 全量改写其实没做完」。本轮把 lib+画布那一片验收掉，
+> 并做了 C1.6/C1.7 的元数据与大纲同步。
+
+1. **卷 I 残留 829 → 47**（其中 37 处是记法对照页**故意**保留的双写法、4 处是
+   `lib/Exists` 自身的声明、解答仅剩 6 处）。门禁全程保持 **36 目标 · 328 checked ·
+   99 open · 0 判负**。
+2. **lib+画布的 subagent 成果我逐个复核**（不采信自述）：它声称改了 9 个文件
+   （`lib/{Equiv,Demo,Exists,Fun,Image,Rel}` + `units/{unit06,08,12}`），实测
+   **9 个全 rc=0、0 诊断、计数与基线逐项相同** ✓。它列的 3 处同类残留我收掉 2 处。
+3. **新记边界（第三处收不掉的原因）**：记法落在**实参位**、操作数本身又是记法或
+   集合字面量时补不出前导类型参数 ⇒ `elab-notation-argument-unsolved`
+   （`Set.image Two Two f1 ({aa} ∩ {bb})` 报 `∩` 的 `α` 解不出；同文件单独写
+   `{aa} ∩ {bb}` 却没问题）。与设计 C4 #5（`∅` 在 `Eq` 操作数位）同族，
+   **IA-2 要一起评估**。
+4. **C1.7 大纲同步**：`docs/design/set-theory-syllabus.md` §4 原本**有两个同名标题**
+   （合并残留）且整节写的是「记法分十步慢慢引入、今天先写点名形式」——G-04 落地后
+   已成反话。改成 §4.1（调研底稿）+ **§4.2 as-built：课程一律用记法，点名形式退为
+   「底下站着什么」的解释**，表头从「顺序 | 记法 | 今天怎么写」改成
+   「记法 | 底下的点名形式（讲解时展开）」；§5 里 G-02/G-03/G-04 三行过期的
+   「先写点名 + 留 TODO」处置改成「已修」。
+5. **C1.6 元数据**：`courses/set-theory/README.md` 的两处写死数字更新为实测——
+   `Exists.intro/elim` 点名调用 186 → **102 行 / 14 文件**（少掉的是命题位改用 `∃`
+   记法），门禁数字补一条 **2026-09-21 实测 328 checked**（并注明两个数字都别在别处
+   再抄，现算就跑门禁）。
+6. **验证**：入门课 course 测试 6+4+4 全绿、playground `30 checked / 2 example /
+   4 open`（与本轮前一致）、卷 I 门禁 328/99/0、`git diff --stat -- crates/kernel/` 空。
+7. **仍欠**：解答最后 6 处（subagent 收尾中）；C1.3 的 294 条 hint 词汇；
+   C1.5 速查表重定位；入门课 C2.5（**待拍板**）；R2.5 的 IA-2/IA-3；
+   `judge_infer` 的宇宙参数。

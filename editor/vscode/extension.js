@@ -18,6 +18,9 @@
 // (`sokonanoda.infoview`) renders the same soko/stateAt snapshot and
 // soko/goals declaration list in a dockable panel; it is a read-only
 // presentation layer and the trees stay the default/fallback.
+// Notation input (NI-2, docs/design/notation-input.md): `\and` + Tab → `∧`
+// (src/abbreviation-rewriter.js); the Tab keybinding only fires while a
+// `\`-abbreviation is being typed, so ordinary indentation is never swallowed.
 const cp = require("child_process");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -26,6 +29,11 @@ const vscode = require("vscode");
 const { LanguageClient, State, TransportKind } = require("vscode-languageclient/node");
 const server = require("./server");
 const projectTree = require("./project-tree");
+// 记法输入法（NI-2，docs/design/notation-input.md）：`\and` + Tab → `∧`，表在
+// `src/abbreviations.js`（front::notation_input 的镜像，契约测试钉住）。这里的接线
+// 只有两处——命令注册（registerCommands）+ 一句 `notationInput.register`（监听器与
+// Tab 的 context key）；状态机与表都在模块里（本文只管 VS Code 接线，规范 §1）。
+const notationInput = require("./src/abbreviation-rewriter");
 
 let client;
 let serverOptions;
@@ -1674,6 +1682,13 @@ function registerCommands(context, provider, courseProvider) {
     vscode.commands.registerCommand("sokonanoda.rebuild", () =>
       runBuild(context, { clean: true, courseProvider }),
     ),
+    // 记法缩写改写器（NI-2）：键位 Tab，`when` 子句由 abbreviation-rewriter.js
+    // 置位的 context key 把关（普通 Tab 照旧缩进）。命令注册在这里、状态机在
+    // src/abbreviation-rewriter.js —— 与开发规范 §1 的文件职责一致。
+    vscode.commands.registerCommand(
+      "sokonanoda.input.replaceAbbreviation",
+      notationInput.replaceAbbreviation,
+    ),
   );
 }
 
@@ -1794,6 +1809,9 @@ async function activate(context) {
   context.subscriptions.push(courseTree);
 
   registerCommands(context, provider, courseProvider);
+  // 记法缩写改写器（NI-2）：命令 + Tab 键位的 context key + 即时替换监听
+  // （`sokonanoda.input.eager`，默认关）。注册同样在第一次 await 之前。
+  notationInput.register(context);
   courseProvider.refresh();
 
   // Test-only surface: when the real VS Code host runs the integration suite

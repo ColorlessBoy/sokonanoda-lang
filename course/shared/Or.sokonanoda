@@ -1,9 +1,0 @@
--- Or.sokonanoda —— 单元⑨/⑩/⑪ 里 Or 归纳块的**规范文本**（12 份副本）。
---
--- 单元⑨ 起 Or 从公理升级为真归纳类型：内核据此知道只有 inl/inr 两个构造子，
--- 前端自动派生 Or.rec，`match` 降低到它上面（Demo 里的 or_comm_demo 就是这个用法）。
-
-inductive Or (A B : Prop) : Prop
-ctor inl (a : A) : Or A B
-ctor inr (b : B) : Or A B
-end

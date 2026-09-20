@@ -13,35 +13,30 @@
 --     grammar you learn is a real subset of Lean 4.
 -- ==========================================================================
 
--- Prop is the world of propositions: True, And a b, and the rest. A proof is a
--- term — a term of type P is a proof of the proposition P. To stay minimal we
--- declare a small logical core with axioms; it is isomorphic to official
--- Lean's And/Or, so nothing you prove here is Lean-specific.
+-- Prop is the world of propositions: True, a ∧ b, and the rest. A proof is a
+-- term — a term of type P is a proof of the proposition P. The four axioms
+-- below show you what an axiom looks like: a name and a type, no value. The
+-- connectives ∧ and ∨ and their constructors (And.intro, And.left,
+-- And.right, Or.inl, Or.inr) ship with the prelude — official Lean core
+-- material, so there is nothing for us to build here.
 
 axiom True : Prop
 axiom True.intro : True
 axiom False : Prop
-axiom False.rec : (P : Prop) -> False -> P
-axiom And : Prop -> Prop -> Prop
-axiom And.intro : (a : Prop) -> (b : Prop) -> a -> b -> And a b
-axiom And.left : (a : Prop) -> (b : Prop) -> And a b -> a
-axiom And.right : (a : Prop) -> (b : Prop) -> And a b -> b
-axiom Or : Prop -> Prop -> Prop
-axiom Or.inl : (a : Prop) -> (b : Prop) -> a -> Or a b
-axiom Or.inr : (a : Prop) -> (b : Prop) -> b -> Or a b
+axiom False.rec : (P : Prop) → False → P
 
--- Not is not an axiom but a definition: Not a expands to a -> False.
+-- ¬ is not an axiom but a definition: ¬ a expands to a → False.
 
-def Not : Prop -> Prop := fun (a : Prop) => a -> False
+def Not : Prop → Prop := fun (a : Prop) => a → False
 
--- Self-test: #reduce unfolds definitions, so Not True becomes True -> False.
+-- Self-test: #reduce unfolds definitions, so ¬ True becomes True → False.
 
-#reduce Not True
+#reduce ¬ True
 
 -- Demo (already written): constructors double as functions — pass the
 -- arguments in order and you have a proof.
 
-example : Or True False := Or.inl True False True.intro
+example : True ∨ False := Or.inl True False True.intro
 
 -- The correspondence that drives everything: an arrow in a type becomes a
 -- `fun` in a value. Writing a proof is therefore writing a run of `fun`s and
@@ -52,35 +47,35 @@ example : Or True False := Or.inl True False True.intro
 -- soko:hint approach: a proof is a term — a term of type True is a proof of True.
 -- soko:hint goal shape: True has no arrows to split; ask what in your environment produces True.
 -- soko:hint key piece: True.intro — the constructor of True; it needs no arguments.
-theorem true_is_true : True := sorry
+theorem true_is_true : True := by sorry
 
--- Exercise 2 — if a and b both hold, you can get And a b.
+-- Exercise 2 — if a and b both hold, you can get a ∧ b.
 -- Hint: four arrows are four funs; the goal is an And shape, so the last step picks its constructor.
 -- soko:hint approach: arrows become fun — build the proof as a chain of funs with one final constructor step.
 -- soko:hint goal shape: the outermost layer has four arrows; open with fun (a : Prop) => and re-read the goal after every layer.
--- soko:hint key piece: when the remaining goal is And a b, reach for the And.intro constructor — it needs a, b and both proofs, all already in context.
-theorem and_intro_rule : (a : Prop) -> (b : Prop) -> a -> b -> And a b := sorry
+-- soko:hint key piece: when the remaining goal is a ∧ b, reach for the And.intro constructor — it needs a, b and both proofs, all already in context.
+theorem and_intro_rule : (a : Prop) → (b : Prop) → a → b → a ∧ b := by sorry
 
 -- Exercise 3 — pull h apart with And.left/And.right, then put it back together
 -- with And.intro, in the opposite order.
--- soko:hint approach: take the And a b you hold and rebuild it the other way round — eliminate, then construct.
--- soko:hint goal shape: three arrows: fun (a : Prop) => fun (b : Prop) => fun (h : And a b) => …, and the final goal is And b a.
--- soko:hint key piece: goal And b a with h : And a b in context — And.left / And.right take out the two halves, then And.intro puts them back swapped.
-theorem and_swap : (a : Prop) -> (b : Prop) -> And a b -> And b a := sorry
+-- soko:hint approach: take the a ∧ b you hold and rebuild it the other way round — eliminate, then construct.
+-- soko:hint goal shape: three arrows: fun (a : Prop) => fun (b : Prop) => fun (h : a ∧ b) => …, and the final goal is b ∧ a.
+-- soko:hint key piece: goal b ∧ a with h : a ∧ b in context — And.left / And.right take out the two halves, then And.intro puts them back swapped.
+theorem and_swap : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by sorry
 
 -- Exercise 4 — False has no proof (no constructor), yet it is far from
 -- useless: from a contradiction you may deduce anything.
 -- soko:hint approach: False cannot be proven, but it can be consumed — a contradiction implies any proposition.
 -- soko:hint goal shape: two arrows: fun (P : Prop) =>, then consume h : False; the remaining goal is an arbitrary P.
 -- soko:hint key piece: False.rec takes a target proposition and a proof of False, and yields a proof of that proposition.
-theorem ex_falso : (P : Prop) -> False -> P := sorry
+theorem ex_falso : (P : Prop) → False → P := by sorry
 
--- Exercise 5 (challenge ★) — And a (Not a) is self-contradictory — split it and
+-- Exercise 5 (challenge ★) — a ∧ (¬ a) is self-contradictory — split it and
 -- derive False from the contradiction.
--- soko:hint approach: And packages a with Not a; Not a expands to a -> False, a function that eats an a.
--- soko:hint goal shape: two layers of fun give you a and h : And a (Not a); the goal is then False itself.
--- soko:hint key piece: goal False with h : And a (Not a) in context — And.right yields the Not a half and And.left the a half; apply the former to the latter.
-theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
+-- soko:hint approach: packages ∧ a with ¬ a; ¬ a expands to a → False, a function that eats an a.
+-- soko:hint goal shape: two layers of fun give you a and h : a ∧ (¬ a); the goal is then False itself.
+-- soko:hint key piece: goal False with h : a ∧ (¬ a) in context — And.right yields the ¬ a half and And.left the a half; apply the former to the latter.
+theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- Aside: declaration binders — let the declaration line do the `fun`s
@@ -88,7 +83,7 @@ theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
 -- The spelling Lean users reach for most often puts the binders right after
 -- the name:
 --
---   theorem and_swap2 (a : Prop) (b : Prop) (h : And a b) : And b a := …
+--   theorem and_swap2 (a : Prop) (b : Prop) (h : a ∧ b) : b ∧ a := …
 --
 -- It is the same thing as the arrow spelling: the type is an arrow telescope
 -- and the value gets the matching `fun`s wrapped around it automatically. The
@@ -97,12 +92,12 @@ theorem and_not_absurd : (a : Prop) -> And a (Not a) -> False := sorry
 --
 -- Demo: this declaration and Exercise 3's and_swap are the same problem in
 -- two spellings; the kernel judges them identically.
-theorem demo_binders (a : Prop) (b : Prop) (h : And a b) : And b a :=
+theorem demo_binders (a : Prop) (b : Prop) (h : a ∧ b) : b ∧ a :=
   And.intro b a (And.right a b h) (And.left a b h)
 
 -- Exercise 6: prove and_intro_rule again, this time with declaration binders
 -- (no `fun`s to write).
--- soko:hint approach: a, b, ha and hb are all already in scope; assemble And a b directly.
--- soko:hint goal shape: the goal is just And a b — no arrows left to split, and no fun to write.
--- soko:hint key piece: the goal is And a b and a, b, ha, hb are all in context — the And.intro constructor closes it in one step.
-theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : And a b := sorry
+-- soko:hint approach: a, b, ha and hb are all already in scope; assemble a ∧ b directly.
+-- soko:hint goal shape: the goal is just a ∧ b — no arrows left to split, and no fun to write.
+-- soko:hint key piece: the goal is a ∧ b and a, b, ha, hb are all in context — the And.intro constructor closes it in one step.
+theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : a ∧ b := by sorry

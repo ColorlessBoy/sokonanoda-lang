@@ -5,162 +5,174 @@
 --   R 类 2 条：union_inter_idem（幂等律打包成一条 And）、union_sdiff_univ_ne_univ（必破：证伪）
 --   X 类 4 条：inter_union_distrib_left、union_inter_self、sdiff_sdiff、union_empty
 --
--- 全部证明只用 lib.Logic + lib.Set 的词汇与展开引理，逐元素走 Set.ext；
--- 等式一律显式宇宙 Eq.{1} (Set α)（裸 Eq 默认 u=0，会被内核拒）。
+-- 全部改写为 **tactic 模式**（设计 docs/design/course-lean-style.md R2）：
+-- 记法用 `∈ ∪ ∩ \ ∅ = ∧ ∨ ↔ ¬`（集合符号由 `lib/Set` 声明、随 import 生效，
+-- 连接符是语言内建），证明只用白名单 tactic：`apply` / `intro` / `exact` /
+-- `constructor`，项位照旧可写 `fun` 与点名引理（`Or.inl` / `Or.elim` /
+-- `And.left` / `Eq.subst.{1}` …）——与单元② 的解答同一风格。
+-- 等式不再需要写宇宙：`=` 记法由判卷器按操作数的 sort 定层级。
+--
+-- 一条**书写纪律**（判卷器的实测边界，不是风格偏好）：`∅` 是零元记法，落在
+-- 「被应用」的位置（`(∅) x`）补不出类型参数 ⇒ 第 8 题的语句里 `\` 与 `∪`
+-- 写点名形式（`Set.sdiff` / `Set.union`）。画布 `demo_sdiff_self` 给出了
+-- 另一条边界：`apply Set.ext` 会把子目标写成 `(A \ A) x ↔ (∅) x`，
+-- 所以那里先用 `have` 写出逐元素 Iff 的**源形态**再交给 `Set.ext`。
 import lib.Logic
 import lib.Set
 
--- T 类：并交换律。逐元素 Iff (Or (A x) (B x)) (Or (B x) (A x))。
+-- T 类：并交换律。逐元素 Iff (x ∈ A ∪ B) (x ∈ B ∪ A)。
 theorem union_comm (α : Type) (A B : Set α) :
-    Eq.{1} (Set α) (Set.union α A B) (Set.union α B A) :=
-  Set.ext α (Set.union α A B) (Set.union α B A) (fun (x : α) =>
-    Iff.intro (Or (A x) (B x)) (Or (B x) (A x))
-      (fun (h : Or (A x) (B x)) =>
-        Or.elim (A x) (B x) (Or (B x) (A x))
-          (fun (ha : A x) => Or.inr (B x) (A x) ha)
-          (fun (hb : B x) => Or.inl (B x) (A x) hb)
-          h)
-      (fun (h : Or (B x) (A x)) =>
-        Or.elim (B x) (A x) (Or (A x) (B x))
-          (fun (hb : B x) => Or.inr (A x) (B x) hb)
-          (fun (ha : A x) => Or.inl (A x) (B x) ha)
-          h))
+    A ∪ B = B ∪ A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
+    (fun (ha : x ∈ A) => Or.inr (x ∈ B) (x ∈ A) ha)
+    (fun (hb : x ∈ B) => Or.inl (x ∈ B) (x ∈ A) hb)
+    h
+  intro h
+  exact Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
+    (fun (hb : x ∈ B) => Or.inr (x ∈ A) (x ∈ B) hb)
+    (fun (ha : x ∈ A) => Or.inl (x ∈ A) (x ∈ B) ha)
+    h
 
--- T 类：交交换律。逐元素 Iff (And (A x) (B x)) (And (B x) (A x))。
+-- T 类：交交换律。逐元素 Iff (x ∈ A ∩ B) (x ∈ B ∩ A)。
 theorem inter_comm (α : Type) (A B : Set α) :
-    Eq.{1} (Set α) (Set.inter α A B) (Set.inter α B A) :=
-  Set.ext α (Set.inter α A B) (Set.inter α B A) (fun (x : α) =>
-    Iff.intro (And (A x) (B x)) (And (B x) (A x))
-      (fun (h : And (A x) (B x)) =>
-        And.intro (B x) (A x)
-          (And.right (A x) (B x) h)
-          (And.left (A x) (B x) h))
-      (fun (h : And (B x) (A x)) =>
-        And.intro (A x) (B x)
-          (And.right (B x) (A x) h)
-          (And.left (B x) (A x) h)))
+    A ∩ B = B ∩ A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.intro (x ∈ B) (x ∈ A)
+    (And.right (x ∈ A) (x ∈ B) h)
+    (And.left (x ∈ A) (x ∈ B) h)
+  intro h
+  exact And.intro (x ∈ A) (x ∈ B)
+    (And.right (x ∈ B) (x ∈ A) h)
+    (And.left (x ∈ B) (x ∈ A) h)
 
 -- R 类（读·评译）：幂等律打包 —— A ∪ A = A 与 A ∩ A = A。
 theorem union_inter_idem (α : Type) (A : Set α) :
-    And (Eq.{1} (Set α) (Set.union α A A) A) (Eq.{1} (Set α) (Set.inter α A A) A) :=
-  And.intro
-    (Eq.{1} (Set α) (Set.union α A A) A)
-    (Eq.{1} (Set α) (Set.inter α A A) A)
-    (Set.ext α (Set.union α A A) A (fun (x : α) =>
-      Iff.intro (Or (A x) (A x)) (A x)
-        (fun (h : Or (A x) (A x)) =>
-          Or.elim (A x) (A x) (A x)
-            (fun (ha : A x) => ha)
-            (fun (ha : A x) => ha)
-            h)
-        (fun (ha : A x) => Or.inl (A x) (A x) ha)))
-    (Set.ext α (Set.inter α A A) A (fun (x : α) =>
-      Iff.intro (And (A x) (A x)) (A x)
-        (fun (h : And (A x) (A x)) => And.left (A x) (A x) h)
-        (fun (ha : A x) => And.intro (A x) (A x) ha ha)))
+    (A ∪ A = A) ∧ (A ∩ A = A) := by
+  constructor
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim (x ∈ A) (x ∈ A) (x ∈ A)
+    (fun (ha : x ∈ A) => ha)
+    (fun (ha : x ∈ A) => ha)
+    h
+  intro ha
+  exact Or.inl (x ∈ A) (x ∈ A) ha
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.left (x ∈ A) (x ∈ A) h
+  intro ha
+  exact And.intro (x ∈ A) (x ∈ A) ha ha
 
 -- X 类：交对并分配 —— A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C)。
 theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
-    Eq.{1} (Set α) (Set.inter α A (Set.union α B C))
-      (Set.union α (Set.inter α A B) (Set.inter α A C)) :=
-  Set.ext α (Set.inter α A (Set.union α B C))
-    (Set.union α (Set.inter α A B) (Set.inter α A C)) (fun (x : α) =>
-    Iff.intro (And (A x) (Or (B x) (C x)))
-      (Or (And (A x) (B x)) (And (A x) (C x)))
-      (fun (h : And (A x) (Or (B x) (C x))) =>
-        Or.elim (B x) (C x) (Or (And (A x) (B x)) (And (A x) (C x)))
-          (fun (hb : B x) =>
-            Or.inl (And (A x) (B x)) (And (A x) (C x))
-              (And.intro (A x) (B x) (And.left (A x) (Or (B x) (C x)) h) hb))
-          (fun (hc : C x) =>
-            Or.inr (And (A x) (B x)) (And (A x) (C x))
-              (And.intro (A x) (C x) (And.left (A x) (Or (B x) (C x)) h) hc))
-          (And.right (A x) (Or (B x) (C x)) h))
-      (fun (h : Or (And (A x) (B x)) (And (A x) (C x))) =>
-        Or.elim (And (A x) (B x)) (And (A x) (C x)) (And (A x) (Or (B x) (C x)))
-          (fun (hab : And (A x) (B x)) =>
-            And.intro (A x) (Or (B x) (C x))
-              (And.left (A x) (B x) hab)
-              (Or.inl (B x) (C x) (And.right (A x) (B x) hab)))
-          (fun (hac : And (A x) (C x)) =>
-            And.intro (A x) (Or (B x) (C x))
-              (And.left (A x) (C x) hac)
-              (Or.inr (B x) (C x) (And.right (A x) (C x) hac)))
-          h))
+    A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
+    (fun (hb : x ∈ B) =>
+      Or.inl (x ∈ A ∩ B) (x ∈ A ∩ C)
+        (And.intro (x ∈ A) (x ∈ B) (And.left (x ∈ A) (x ∈ B ∨ x ∈ C) h) hb))
+    (fun (hc : x ∈ C) =>
+      Or.inr (x ∈ A ∩ B) (x ∈ A ∩ C)
+        (And.intro (x ∈ A) (x ∈ C) (And.left (x ∈ A) (x ∈ B ∨ x ∈ C) h) hc))
+    (And.right (x ∈ A) (x ∈ B ∨ x ∈ C) h)
+  intro h
+  exact Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
+    (fun (hab : x ∈ A ∩ B) =>
+      And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
+        (And.left (x ∈ A) (x ∈ B) hab)
+        (Or.inl (x ∈ B) (x ∈ C) (And.right (x ∈ A) (x ∈ B) hab)))
+    (fun (hac : x ∈ A ∩ C) =>
+      And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
+        (And.left (x ∈ A) (x ∈ C) hac)
+        (Or.inr (x ∈ B) (x ∈ C) (And.right (x ∈ A) (x ∈ C) hac)))
+    h
 
 -- X 类：吸收律 —— A ∪ (A ∩ B) = A。
 theorem union_inter_self (α : Type) (A B : Set α) :
-    Eq.{1} (Set α) (Set.union α A (Set.inter α A B)) A :=
-  Set.ext α (Set.union α A (Set.inter α A B)) A (fun (x : α) =>
-    Iff.intro (Or (A x) (And (A x) (B x))) (A x)
-      (fun (h : Or (A x) (And (A x) (B x))) =>
-        Or.elim (A x) (And (A x) (B x)) (A x)
-          (fun (ha : A x) => ha)
-          (fun (hab : And (A x) (B x)) => And.left (A x) (B x) hab)
-          h)
-      (fun (ha : A x) => Or.inl (A x) (And (A x) (B x)) ha))
+    A ∪ (A ∩ B) = A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim (x ∈ A) (x ∈ A ∩ B) (x ∈ A)
+    (fun (ha : x ∈ A) => ha)
+    (fun (hab : x ∈ A ∩ B) => And.left (x ∈ A) (x ∈ B) hab)
+    h
+  intro ha
+  exact Or.inl (x ∈ A) (x ∈ A ∩ B) ha
 
 -- X 类：差的差 —— (A \ B) \ C = A \ (B ∪ C)。
 theorem sdiff_sdiff (α : Type) (A B C : Set α) :
-    Eq.{1} (Set α) (Set.sdiff α (Set.sdiff α A B) C)
-      (Set.sdiff α A (Set.union α B C)) :=
-  Set.ext α (Set.sdiff α (Set.sdiff α A B) C) (Set.sdiff α A (Set.union α B C))
-    (fun (x : α) =>
-    Iff.intro
-      (And (And (A x) (Not (B x))) (Not (C x)))
-      (And (A x) (Not (Or (B x) (C x))))
-      (fun (h : And (And (A x) (Not (B x))) (Not (C x))) =>
-        And.intro (A x) (Not (Or (B x) (C x)))
-          (And.left (A x) (Not (B x))
-            (And.left (And (A x) (Not (B x))) (Not (C x)) h))
-          (fun (hbc : Or (B x) (C x)) =>
-            Or.elim (B x) (C x) False
-              (fun (hb : B x) =>
-                And.right (A x) (Not (B x))
-                  (And.left (And (A x) (Not (B x))) (Not (C x)) h) hb)
-              (fun (hc : C x) =>
-                And.right (And (A x) (Not (B x))) (Not (C x)) h hc)
-              hbc))
-      (fun (h : And (A x) (Not (Or (B x) (C x)))) =>
-        And.intro (And (A x) (Not (B x))) (Not (C x))
-          (And.intro (A x) (Not (B x))
-            (And.left (A x) (Not (Or (B x) (C x))) h)
-            (fun (hb : B x) =>
-              And.right (A x) (Not (Or (B x) (C x))) h (Or.inl (B x) (C x) hb)))
-          (fun (hc : C x) =>
-            And.right (A x) (Not (Or (B x) (C x))) h (Or.inr (B x) (C x) hc))))
+    (A \ B) \ C = A \ (B ∪ C) := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact And.intro (x ∈ A) (¬ (x ∈ B ∪ C))
+    (And.left (x ∈ A) (¬ (x ∈ B))
+      (And.left (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h))
+    (fun (hbc : x ∈ B ∪ C) =>
+      Or.elim (x ∈ B) (x ∈ C) False
+        (fun (hb : x ∈ B) =>
+          And.right (x ∈ A) (¬ (x ∈ B))
+            (And.left (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h) hb)
+        (fun (hcx : x ∈ C) =>
+          And.right (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h hcx)
+        hbc)
+  intro h
+  exact And.intro (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C))
+    (And.intro (x ∈ A) (¬ (x ∈ B))
+      (And.left (x ∈ A) (¬ (x ∈ B ∪ C)) h)
+      (fun (hb : x ∈ B) =>
+        And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ B) (x ∈ C) hb)))
+    (fun (hc : x ∈ C) =>
+      And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ B) (x ∈ C) hc))
 
 -- X 类：∅ 是并的单位元 —— A ∪ ∅ = A。
 theorem union_empty (α : Type) (A : Set α) :
-    Eq.{1} (Set α) (Set.union α A (Set.empty α)) A :=
-  Set.ext α (Set.union α A (Set.empty α)) A (fun (x : α) =>
-    Iff.intro (Or (A x) (Set.mem α x (Set.empty α))) (A x)
-      (fun (h : Or (A x) (Set.mem α x (Set.empty α))) =>
-        Or.elim (A x) (Set.mem α x (Set.empty α)) (A x)
-          (fun (ha : A x) => ha)
-          (fun (hf : Set.mem α x (Set.empty α)) => False.elim (A x) hf)
-          h)
-      (fun (ha : A x) => Or.inl (A x) (Set.mem α x (Set.empty α)) ha))
+    A ∪ ∅ = A := by
+  apply Set.ext
+  intro x
+  constructor
+  intro h
+  exact Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
+    (fun (ha : x ∈ A) => ha)
+    (fun (hf : x ∈ ∅) => False.elim (x ∈ A) hf)
+    h
+  intro ha
+  exact Or.inl (x ∈ A) (x ∈ ∅) ha
 
 -- R 类（必破 / 证伪）：(A ∪ B) \ B = A **为假**。
 -- 反例取 α = Nat、A = B = Set.univ Nat：右边含 Nat.zero，左边要求
 -- Nat.zero ∈ univ 且 ¬ Nat.zero ∈ univ，矛盾 —— 于是两边不相等。
+-- 语句里 `\` 与 `∪` 写点名形式：`∅` 的零元记法边界之外，这是唯一
+-- 能让判卷器回读该假设类型的写法（见文件头注释）。
 theorem union_sdiff_univ_ne_univ :
-    Not (Eq.{1} (Set Nat)
+    ¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)
+        = Set.univ Nat) := by
+  intro h
+  have hmem : Nat.zero ∈
+      Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat) :=
+    Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Nat.zero ∈ X)
+      (Set.univ Nat)
       (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))
-      (Set.univ Nat)) :=
-  fun (h : Eq.{1} (Set Nat)
-      (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))
-      (Set.univ Nat)) =>
-    (And.right
-      (Set.mem Nat Nat.zero (Set.union Nat (Set.univ Nat) (Set.univ Nat)))
-      (Not (Set.mem Nat Nat.zero (Set.univ Nat)))
-      (Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Set.mem Nat Nat.zero X)
-        (Set.univ Nat)
+      (Eq.symm.{1} (Set Nat)
         (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))
-        (Eq.symm.{1} (Set Nat)
-          (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))
-          (Set.univ Nat)
-          h)
-        (Set.mem_univ Nat Nat.zero)))
-    (Set.mem_univ Nat Nat.zero)
+        (Set.univ Nat) h)
+      (Set.mem_univ Nat Nat.zero)
+  exact And.right (Nat.zero ∈ Set.union Nat (Set.univ Nat) (Set.univ Nat))
+    (¬ (Nat.zero ∈ Set.univ Nat)) hmem (Set.mem_univ Nat Nat.zero)

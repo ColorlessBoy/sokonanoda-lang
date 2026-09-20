@@ -17,18 +17,18 @@ inductive Nat : Type
 ctor zero : Nat
 ctor succ (n : Nat) : Nat
 rec Nat.rec {u} :
-  (motive : (n : Nat) -> Sort u) ->
-  (mz : motive zero) ->
-  (ms : (n : Nat) -> motive n -> motive (succ n)) ->
-  (n : Nat) -> motive n
+  (motive : (n : Nat) → Sort u) →
+  (mz : motive zero) →
+  (ms : (n : Nat) → motive n → motive (succ n)) →
+  (n : Nat) → motive n
 iota zero :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) => mz
+  fun (ms : (n : Nat) → motive n → motive (succ n)) => mz
 iota succ :=
-  fun (motive : (n : Nat) -> Sort u) =>
+  fun (motive : (n : Nat) → Sort u) =>
   fun (mz : motive zero) =>
-  fun (ms : (n : Nat) -> motive n -> motive (succ n)) =>
+  fun (ms : (n : Nat) → motive n → motive (succ n)) =>
   fun (n : Nat) => ms n (Nat.rec.{u} motive mz ms n)
 end
 
@@ -69,8 +69,8 @@ def valueOrZero (x : Option Nat) : Nat := match x with
 -- 关键是 succ 支里的归纳假设 ih，它的类型正是 P k（依赖 IH）。
 -- ─────────────────────────────────────────────────────────────
 
-theorem nat_induction (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+theorem nat_induction (P : Nat → Prop) (hz : P zero)
+    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n :=
   match n with
   | zero => hz
   | succ k => hs k ih
@@ -79,8 +79,8 @@ theorem nat_induction (P : Nat -> Prop) (hz : P zero)
 -- soko:hint 思路：match n 分 zero/succ 两支：zero 交基础 hz，succ 交递推。
 -- soko:hint 目标形态：succ 支的目标是 P (succ k)，上下文有 k : Nat 与 ih : P k。
 -- soko:hint 关键件：hs 吃 k 和一份 P k 的证明——把 ih 交给它就行。
-theorem nat_induction_open (P : Nat -> Prop) (hz : P zero)
-    (hs : (k : Nat) -> P k -> P (succ k)) (n : Nat) : P n :=
+theorem nat_induction_open (P : Nat → Prop) (hz : P zero)
+    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n :=
   match n with
   | zero => hz
   | succ k => sorry
@@ -118,7 +118,7 @@ def predOpt (x : Option Nat) : Nat := match x with
 -- （v1 边界：match 的结果类型不能依赖索引本身。）
 -- ─────────────────────────────────────────────────────────────
 
-inductive Vec (A : Type) : Nat -> Type
+inductive Vec (A : Type) : Nat → Type
 ctor vnil : Vec A zero
 ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)
 end

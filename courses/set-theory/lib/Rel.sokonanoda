@@ -16,13 +16,14 @@
 --   Rel.comp（Mathlib `Relation.comp`，即记法 r • s；官方定义逐字同款：
 --             `comp r s x z ↔ ∃ y, r x y ∧ s y z`）
 --
--- 记法对照（语言还没有 notation，G-04）：
+-- 记法对照（`r ⁻¹` / `r • s` 是 **Mathlib 的**记法，本课程没有声明它们——课程库
+-- 只声明集合符号 `∈ ⊆ ∪ ∩ \ ∅ 𝒫 ᶜ '' ⁻¹' ×ˢ`，见 lib/Set 文件末尾）：
 --   Rel.inv A B r b a ↔ (r ⁻¹) b a      ·   Rel.comp A B C r s a c ↔ (r • s) a c
 --
 -- ⚠ 为什么必须有 `Rel.ext`（**公理**）：
 --   单元⑥ 的必证题 `rel_comp_assoc`（复合结合律）与 `rel_inv_inv`（逆的逆）都是
 --   **关系之间的等式**，即 `Eq.{1} (Rel A D) f g`。`rel_inv_inv` 是定义等式，
---   一个 `rfl` 就够；但两条复合的**结合律**不是定义等式（∃ 要先交换量词顺序），
+--   一个 `Eq.refl` 就够；但两条复合的**结合律**不是定义等式（∃ 要先交换量词顺序），
 --   要证它必须把"∀ a c, f a c ↔ g a c"升级成"f = g"——这正是**函数外延性**。
 --   官方 Mathlib 里 `funext` 由 `Quot.sound` 推出，`Rel.ext` 则是
 --   `funext` + `propext` 的推论；本语言两者都没有（prelude 只有 Nat/Bool/Eq），
@@ -33,38 +34,36 @@ import lib.Exists
 
 -- ── 词汇（Mathlib: Mathlib/Logic/Relation.lean，语义逐字同款）────────────────
 -- 关系就是"两元谓词"：`Rel A B` 与 `A -> B -> Prop` 是同一个东西（定义等式）。
-def Rel (A B : Type) : Type := A -> B -> Prop
+def Rel (A B : Type) : Type := A → B → Prop
 
 -- 逆关系：把两个参数对调（Mathlib `Relation.inv`，记法 r ⁻¹）。
 def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=
   fun (b : B) => fun (a : A) => r a b
 
 -- 复合（关系串接，Mathlib `Relation.comp`，记法 r • s；参数顺序与 Mathlib 一致：
--- `Rel.comp A B C r s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ y, …`
--- 在这里就是 `Exists B (fun (y : B) => …)`（记法还没有，G-04）。
+-- `Rel.comp A B C r s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ b, …`
+-- 在这里就是 `Exists B (fun (b : B) => …)`；定义体照课程库的统一写法用 `∃` 记法
+-- （定义是词汇，不是证明——`∃` 记法本身由 lib/Exists 声明）。
 def Rel.comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=
   fun (a : A) => fun (c : C) =>
-    Exists B (fun (b : B) => And (r a b) (s b c))
+    ∃ (b : B), (r a b) ∧ (s b c)
 
 -- ── 外延性（**公理**：Mathlib 由 funext + propext 推出，我们两者都没有）──────
 -- 用法与 `Set.ext` 同款：要证两条关系相等，就逐元素证两个方向。
-axiom Rel.ext : (A B : Type) -> (r s : Rel A B) ->
-  (forall (a : A) (b : B), Iff (r a b) (s a b)) -> Eq.{1} (Rel A B) r s
+axiom Rel.ext : (A B : Type) → (r s : Rel A B) →
+  (∀ (a : A) (b : B), r a b ↔ s a b) → r = s
 
--- ── 定义展开引理（L2：证明全是 `Iff.refl`，没有数学内容）────────────────────
+-- ── 定义展开引理（L2：两边是同一个东西，没有数学内容）──────────────────────
 -- 与 lib/Set 的 `Set.mem_union` 一族同款：右端就是把左端**定义**里的东西照抄一遍，
--- 所以证明项是 `Iff.refl`（定义等式，不是定理）。
+-- 所以证明是**恒等**——`constructor` 拆开 `↔`，两个方向各 `intro h; exact h`。
 theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
-    Iff (Rel.inv A B r b a) (r a b) :=
-  Iff.refl (r a b)
+    Rel.inv A B r b a ↔ r a b :=  Iff.refl (r a b)
 
 theorem Rel.comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
-    Iff (Rel.comp A B C r s a c) (Exists B (fun (b : B) => And (r a b) (s b c))) :=
-  Iff.refl (Exists B (fun (b : B) => And (r a b) (s b c)))
+    Rel.comp A B C r s a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)
 
 -- ── 库自检：两条展开引理合起来，把"逆的逆"退回原关系（`rfl` 级）。────────────
 -- 单元⑥ 的必证题 `rel_inv_inv` 在画布上由学习者自己写：它的证明项与本条同款
 -- （函数外延性在这里用不上——`Rel.inv B A (Rel.inv A B r)` 与 `r` 是定义等式）。
 theorem Rel.inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
-    Iff (Rel.inv B A (Rel.inv A B r) a b) (r a b) :=
-  Iff.refl (r a b)
+    Rel.inv B A (Rel.inv A B r) a b ↔ r a b :=  Iff.refl (r a b)

@@ -9,14 +9,25 @@
 -- 学过 Cantor 定理的学生面对假的 ℝ 枚举只会说 "Cool!"——所以我们这里不放 ℝ，
 -- 放 α -> Set α 的假枚举，逼你指出那个漏掉的集合）。
 --
--- 本单元只允许用：
---   · 写法：fun（命名箭头）/ intro / exact / apply / assumption / rfl，项风格优先；
---   · lib/Set：Set.mem / Set.univ / Set.singleton 与已有的展开引理（Set.mem_univ…）；
---   · lib/Exists：Exists / Exists.intro / Exists.elim（用等势至少要 elim 两次）；
---   · lib/Fun：Function.Surjective（练习 6、7 用到它）；
---   · lib/Equiv（单元⑨ 已写好）：Set.Equiv 与构造子 Set.Equiv.mk；
---   · lib/Logic：True/False、Not / Iff / And / Or / absurd /
---     Eq.refl / Eq.symm / Eq.trans / Eq.subst / congrArg。
+-- 本单元只允许用什么（逐步解锁，见 docs/design/set-theory-syllabus.md §2）：
+--   · 证明：一律 `by` tactic 块，白名单**只有**
+--       intro / exact / apply / assumption / rfl / match / constructor /
+--       left / right / use / exfalso / cases / have / sorry
+--     ——**没有** rw / obtain / change / simp / induction / calc / rintro，
+--     也没有 focus 点 `·`；匿名构造子 ⟨a, b⟩ 可用；
+--   · 语句一律写**记法**：`x ∈ A` · `A ⊆ B` · `A ∪ B` · `A ∩ B` · `A \ B` ·
+--     `∅` · `𝒫 A`，逻辑连接符 `∧ ∨ ↔ ¬` 与 `→ = ≠` 是**语言内建**，任何文件
+--     零声明可用；存在量词写 binder 记法 `∃ (x : α), p x`（由 lib/Exists 随
+--     import 带来）；
+--   · 记法**由 lib/ 随 import 带来**（`∈` 等在 lib/Set、`∃` 在 lib/Exists）：
+--     本文件一条记法声明都不写——同一个符号全课程只能声明一次；
+--   · 记法只是**连接符的糖**，不是引理名的糖：引理照旧点名写——
+--       Set.Equiv / Set.Equiv.mk / Set.MapsTo / Set.LeftInvOn / Set.RightInvOn /
+--       Exists.intro / Exists.elim / Set.mem_univ / Set.mem_singleton_self /
+--       Eq.symm / Eq.subst / congrArg / absurd / Iff.refl / And.left / And.right；
+--   · lib/Set 给集合词汇与成员判定；lib/Exists 给 Exists 与 `∃` 记法；
+--     lib/Fun 给 Function.Surjective / Function.RightInverse；lib/Equiv 给
+--     Set.Equiv（**数据版**：一对互逆映射 + 四条条件）与构造子 Set.Equiv.mk；
 --   · **选择公理（整个单元只准出现在练习 7 这一处）**：文件末尾 §10.6 的
 --     Exists.choose 与 Exists.choose_spec 这一对。练习 1–6 与卷 I 先修单元的每条
 --     证明**一条都没用它**（与台账 L-06 的边界一致）。
@@ -38,50 +49,51 @@ import lib.Equiv
 -- 有人递给你一张"𝒫ℕ 的清单"：第 n 项就是单元素集 {n}。
 -- 每项都在清单上，看起来挺像样。要戳穿它，只需指出一个**永远不在清单上**的集合：
 --
---     D := fun (y : Nat) => Not (y ∈ 清单第 y 项) = fun (y : Nat) => Not (y = y)
+--     D := fun (y : Nat) => ¬ (y = y)
 --
 -- 它把"第 y 项含不含 y"逐项反过来，于是第 k 项 {k} 含 k，D 不含 k——两者不可能相等。
 -- ─────────────────────────────────────────────────────────────
 
 def fake_enum (n : Nat) : Set Nat := Set.singleton Nat n
 
+-- 演示（已写好）：D 不等于清单里的任何一项——这就是对角线法在假枚举上的样子。
+-- 证明走 `by` 块：假设 D = fake_enum k，把 `k ∈ {k}`（Set.mem_singleton_self）沿
+-- 等式搬到 D 上，得到 `¬ (k = k)`，与 `Eq.refl k` 相撞（absurd）。
 theorem demo_fake_enum_escapes (k : Nat) :
-    Not (Eq.{1} (Set Nat) (fun (y : Nat) => Not (Eq.{1} Nat y y)) (fake_enum k)) :=
-  fun (h : Eq.{1} (Set Nat) (fun (y : Nat) => Not (Eq.{1} Nat y y)) (fake_enum k)) =>
+    ¬ ((fun (y : Nat) => ¬ (y = y)) = fake_enum k) := by
+  intro h
+  exact absurd (k = k) False (Eq.refl.{1} Nat k)
     (Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => X k)
-      (fake_enum k) (fun (y : Nat) => Not (Eq.{1} Nat y y))
-      (Eq.symm.{1} (Set Nat) (fun (y : Nat) => Not (Eq.{1} Nat y y)) (fake_enum k) h)
+      (fake_enum k) (fun (y : Nat) => ¬ (y = y))
+      (Eq.symm.{1} (Set Nat) (fun (y : Nat) => ¬ (y = y)) (fake_enum k) h)
       (Set.mem_singleton_self Nat k))
-      (Eq.refl.{1} Nat k)
 
 -- ─────────────────────────────────────────────────────────────
 -- 10.2 对角线法（通用形式）
 --
 -- 把 10.1 的动作从"清单 {n}"升级成任意 f : α -> Set α：取
---     D := fun (y : α) => Not (f y y)
+--     D := fun (y : α) => ¬ (f y y)
 -- 则 D 不在 f 的像里——这就是对角线法，也是 Cantor 定理的全部内容。
 --
--- 证明的关键只有一句逻辑：D x = Not (f x x) 与 (f x) x = f x x，
--- 所以"D x 等于 f x 那一点的值"会给出 `Not P 等于 P`，而命题不可能与自己的否定等价。
+-- 证明的关键只有一句逻辑：D x = ¬ (f x x) 与 (f x) x = f x x，
+-- 所以"D x 等于 f x 那一点的值"会给出 `¬ P 等于 P`，而命题不可能与自己的否定等价。
 -- ─────────────────────────────────────────────────────────────
 
-theorem demo_diag (α : Type) (f : α -> Set α) (x : α) :
-    Not (Eq.{1} (Set α) (fun (y : α) => Not (f y y)) (f x)) :=
-  fun (h : Eq.{1} (Set α) (fun (y : α) => Not (f y y)) (f x)) =>
-    (fun (npto : Not (f x x) -> f x x) =>
-      (fun (ptnp : f x x -> Not (f x x)) =>
-        absurd (f x x) False
-          (npto (fun (p : f x x) => ptnp p p))
-          (fun (p : f x x) => ptnp p p))
-        (Eq.subst.{1} Prop (fun (Q : Prop) => Q -> Not (f x x))
-          (Not (f x x)) (f x x)
-          (congrArg.{1} (Set α) Prop (fun (A : Set α) => A x)
-            (fun (y : α) => Not (f y y)) (f x) h)
-          (fun (np : Not (f x x)) => np)))
-      (Eq.subst.{1} Prop (fun (Q : Prop) => Q)
-        (Not (f x x)) (f x x)
-        (congrArg.{1} (Set α) Prop (fun (A : Set α) => A x)
-          (fun (y : α) => Not (f y y)) (f x) h))
+-- 演示（已写好）：对角线集合 D 不等于 f 的**任何**一项 f x。
+-- 证明走 `by` 块：把假设 D = f x 经 congrArg 抬到"在 x 上取值"这一层，得到
+-- `¬ (f x x) = f x x`；于是 `¬ (f x x)` 与 `f x x` 互相推出，撞出 False。
+theorem demo_diag (α : Type) (f : α → Set α) (x : α) :
+    ¬ ((fun (y : α) => ¬ (f y y)) = f x) := by
+  intro h
+  have e : (¬ (f x x)) = (f x x) :=
+    congrArg.{1} (Set α) Prop (fun (A : Set α) => A x)
+      (fun (y : α) => ¬ (f y y)) (f x) h
+  have hnp : ¬ (f x x) := by
+    intro p
+    exact Eq.subst.{1} Prop (fun (Q : Prop) => Q → ¬ (f x x))
+      (¬ (f x x)) (f x x) e (fun (np : ¬ (f x x)) => np) p p
+  exact absurd (f x x) False
+    (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x)) (f x x) e hnp) hnp
 
 -- ─────────────────────────────────────────────────────────────
 -- 10.3 可数：定义
@@ -93,7 +105,7 @@ theorem demo_diag (α : Type) (f : α -> Set α) (x : α) :
 -- soko:hint 思路：可数不是描述句，而是一次等势断言——用单元⑨ 备好的 Set.Equiv 写。
 -- soko:hint 目标形态：目标类型是 Prop（定义体的类型），形状为 Set.Equiv 作用在四个参数上。
 -- soko:hint 关键件：Set.Equiv 的参数顺序是 α β A B（两侧论域、两侧集合）；两侧集合都取"整个类型"，用 Set.univ。
-def Set.Countable (α : Type) : Prop :=
+def Set.Countable (α : Type) : Prop := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -108,24 +120,24 @@ def Set.Countable (α : Type) : Prop :=
 -- soko:hint 思路：来回都用恒等函数（最省的一对互逆映射），再逐条交四样证据。
 -- soko:hint 目标形态：Set.Equiv Nat Nat (Set.univ Nat) (Set.univ Nat)；四条条件都只谈全集：两条"进集合"是 True 的证明，两条互逆律是 rfl 级。
 -- soko:hint 关键件：Set.Equiv.mk 依次吃 f、g、①进集合、②回集合、③g∘f=id、④f∘g=id；全集的成员判定交给 Set.mem_univ，等式交给 Eq.refl。
-theorem nat_equiv_nat : Set.Equiv Nat Nat (Set.univ Nat) (Set.univ Nat) :=
+theorem nat_equiv_nat : Set.Equiv Nat Nat (Set.univ Nat) (Set.univ Nat) := by
   sorry
 
--- 练习 3（T 类）：对角线集合的成员判定——把 D := fun (y : α) => Not (f y y) 写开。
+-- 练习 3（T 类）：对角线集合的成员判定——把 D := fun (y : α) => ¬ (f y y) 写开。
 -- soko:hint 思路：Set.mem 就是函数应用，D 本身又是一个 λ：两边都是"算一下"。
--- soko:hint 目标形态：Iff (Set.mem α x D) (Not (f x x))，其中 D 是那个 λ。
+-- soko:hint 目标形态：(x ∈ (fun (y : α) => ¬ (f y y))) ↔ (¬ (f x x))。
 -- soko:hint 关键件：这是定义层面的相等，直接交 Iff.refl 作用在右边那个命题上。
-theorem diag_mem_iff (α : Type) (f : α -> Set α) (x : α) :
-    Iff (Set.mem α x (fun (y : α) => Not (f y y))) (Not (f x x)) :=
+theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
+    (x ∈ (fun (y : α) => ¬ (f y y))) ↔ (¬ (f x x)) := by
   sorry
 
 -- 练习 4（L 类）：Cantor 定理——α 与 𝒫α 不等势。
---   给定 f : α -> Set α，取 D := fun (x : α) => Not (f x x)，证 D 不在 f 的像里。
--- soko:hint 思路：先 intro 假设的等势；等势里裹着正向映射 f 与反向映射 g，用两次 Exists.elim 取出来（结论只能是 False——证人 f、g 不许出现在结论里）。
--- soko:hint 目标形态：Not (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α)))；intro 之后手里是 h : Set.Equiv …，目标是 False。
--- soko:hint 关键件：④号互逆律（两层 And.right 之后那条）在 y := D 上给出 Eq (f (g D)) D；用 Eq.symm 调成 Eq D (f (g D))，交给演示 demo_diag 收尾。
+--   给定 f : α -> Set α，取 D := fun (x : α) => ¬ (f x x)，证 D 不在 f 的像里。
+-- soko:hint 思路：先 intro 假设的等势；等势里裹着正向映射 f 与反向映射 g，把两层 ∃ 与两层 ∧ 逐层拆开（结论只能是 False——证人 f、g 不许出现在结论里）。
+-- soko:hint 目标形态：¬ (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α)))；intro 之后手里是 h : Set.Equiv …，目标是 False。
+-- soko:hint 关键件：拆 ∃ 用 cases（或点名的 Exists.elim），两层 ∧ 用 And.left / And.right 取；④号互逆律（两层 And.right 之后那条）在 y := D 上给出 Eq (f (g D)) D；用 Eq.symm 调成 Eq D (f (g D))，交给演示 demo_diag 收尾。
 theorem cantor (α : Type) :
-    Not (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α))) :=
+    ¬ (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α))) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -135,19 +147,19 @@ theorem cantor (α : Type) :
 -- 练习 5（D 类）：判断真假——「𝒫ℕ 可数」。
 --   可数 = 与 ℕ 等势（练习 1），展开写就是下面的类型。它**为假**：请证它的否定。
 -- soko:hint 思路：这正是 Cantor 定理在 α := Nat 上的实例——对角线集合就是那个漏掉的集合。
--- soko:hint 目标形态：Not (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat)))。
+-- soko:hint 目标形态：¬ (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat)))。
 -- soko:hint 关键件：练习 4 的 cantor 作用在 Nat 上，目标逐字相同。
 theorem powerset_nat_not_countable :
-    Not (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat))) :=
+    ¬ (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat))) := by
   sorry
 
 -- 练习 6（D 类）：判断真假——「存在满射 α -> Set α」（假的枚举想补成满射）。它**为假**。
 --   与练习 4 的差别：这里只有满射，没有单射/等势的包装，所以拆包少一层、对角线要自己接。
--- soko:hint 思路：intro 之后用 Exists.elim 拆出映射 f 与它的满射性 hf；把对角线集合交给 hf 得到原像。
--- soko:hint 目标形态：Not (Exists (α -> Set α) (fun (f : α -> Set α) => Function.Surjective α (Set α) f))；拆完之后目标是 False，手里有 hf : Function.Surjective α (Set α) f。
--- soko:hint 关键件：hf D 给出 Exists α (fun (x : α) => Eq (f x) D)，再用一次 Exists.elim 取出 x 与那个等式；方向调过来（Eq.symm）才是 demo_diag 要的 Eq D (f x)。
+-- soko:hint 思路：intro 之后把映射 f 与它的满射性 hf 拆出来；把对角线集合交给 hf 得到原像。
+-- soko:hint 目标形态：¬ (∃ (f : α -> Set α), Function.Surjective α (Set α) f)；拆完之后目标是 False，手里有 hf : Function.Surjective α (Set α) f。
+-- soko:hint 关键件：hf D 给出 ∃ (x : α), f x = D，再把这条 ∃ 拆开取出 x 与那个等式；方向调过来（Eq.symm）才是 demo_diag 要的等式。
 theorem no_surjection_powerset (α : Type) :
-    Not (Exists (α -> Set α) (fun (f : α -> Set α) => Function.Surjective α (Set α) f)) :=
+    ¬ (∃ (f : α → Set α), Function.Surjective α (Set α) f) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -167,9 +179,9 @@ theorem no_surjection_powerset (α : Type) :
 -- 日后也认不出何时被使用（**这是作者观点，不是实证研究**）。
 -- ─────────────────────────────────────────────────────────────
 
-axiom Exists.choose : (A : Type) -> (p : A -> Prop) -> Exists A p -> A
+axiom Exists.choose : (A : Type) → (p : A → Prop) → (∃ (x : A), p x) → A
 
-axiom Exists.choose_spec : (A : Type) -> (p : A -> Prop) -> (h : Exists A p) ->
+axiom Exists.choose_spec : (A : Type) → (p : A → Prop) → (h : ∃ (x : A), p x) →
   p (Exists.choose A p h)
 
 -- 练习 7（L 类）：满射 ⇒ 存在右逆函数——**本单元唯一允许用选择公理的题**。
@@ -189,9 +201,9 @@ axiom Exists.choose_spec : (A : Type) -> (p : A -> Prop) -> (h : Exists A p) ->
 -- 边界（务必看清）：全卷只有这一题用选择公理。练习 1–6 与卷 I 其它单元的每条证明
 -- 都没用它——等势的数据版、对角线法、Cantor 定理都不需要 choice。
 -- soko:hint 思路：要交的是一个**函数** β -> α，外加它逐点满足的等式；满射性对每个 y 都恰好给出一条"存在原像"的命题，从这条命题里挑出元素就是选择公理上场的那一刻。
--- soko:hint 目标形态：Exists (β -> α) (fun (g : β -> α) => Function.RightInverse α β g f)；展开成数据版就是"先交一个 g，再交 forall (y : β), Eq.{1} β (f (g y)) y"。
--- soko:hint 关键件：挑元素用 Exists.choose（触发条件：手里有一条 Exists，而你要用它的证人去填一个**函数**体）；挑完还要用与它成对的 Exists.choose_spec，才能拿到"所选元素满足性质"那条等式——两条都在上面 §10.6，缺后一条证明走不动。
-theorem choice_split (α β : Type) (f : α -> β)
+-- soko:hint 目标形态：∃ (g : β -> α), Function.RightInverse α β g f；展开成数据版就是"先交一个 g，再交 ∀ (y : β), f (g y) = y"。
+-- soko:hint 关键件：挑元素用 Exists.choose（触发条件：手里有一条 ∃，而你要用它的证人去填一个**函数**体）；挑完还要用与它成对的 Exists.choose_spec，才能拿到"所选元素满足性质"那条等式——两条都在上面 §10.6，缺后一条证明走不动。
+theorem choice_split (α β : Type) (f : α → β)
     (hf : Function.Surjective α β f) :
-    Exists (β -> α) (fun (g : β -> α) => Function.RightInverse α β g f) :=
+    ∃ (g : β → α), Function.RightInverse α β g f := by
   sorry

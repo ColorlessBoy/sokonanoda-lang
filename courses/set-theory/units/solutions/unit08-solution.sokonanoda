@@ -20,36 +20,35 @@ import lib.Image
 -- 演示（两条，与画布同名）：image / preimage 的定义展开
 -- ─────────────────────────────────────────────────────────────
 
-theorem demo_mem_image (α β : Type) (f : α -> β) (A : Set α) (y : β) :
-    Iff (Set.mem β y (Set.image α β f A))
-      (Exists α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))) :=
-  Set.mem_image α β f A y
+theorem demo_mem_image (α β : Type) (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y := by
+  exact Set.mem_image α β f A y
 
-theorem demo_mem_preimage (α β : Type) (f : α -> β) (B : Set β) (x : α) :
-    Iff (Set.mem α x (Set.preimage α β f B)) (Set.mem β (f x) B) :=
-  Set.mem_preimage α β f B x
+theorem demo_mem_preimage (α β : Type) (f : α → β) (B : Set β) (x : α) :
+    (Set.mem α x (Set.preimage α β f B)) ↔ (Set.mem β (f x) B) := by
+  exact Set.mem_preimage α β f B x
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 1（T 类）：原像保并
 -- ─────────────────────────────────────────────────────────────
 
-theorem preimage_union (α β : Type) (f : α -> β) (B C : Set β) :
+theorem preimage_union (α β : Type) (f : α → β) (B C : Set β) :
     Eq.{1} (Set α) (Set.preimage α β f (Set.union β B C))
-      (Set.union α (Set.preimage α β f B) (Set.preimage α β f C)) :=
-  Set.ext α (Set.preimage α β f (Set.union β B C))
+      (Set.union α (Set.preimage α β f B) (Set.preimage α β f C)) := by
+  exact Set.ext α (Set.preimage α β f (Set.union β B C))
     (Set.union α (Set.preimage α β f B) (Set.preimage α β f C))
     (fun (x : α) =>
       Iff.intro (Set.mem α x (Set.preimage α β f (Set.union β B C)))
-        (Or (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C)))
+        ((Set.mem α x (Set.preimage α β f B)) ∨ (Set.mem α x (Set.preimage α β f C)))
         (fun (h : Set.mem α x (Set.preimage α β f (Set.union β B C))) =>
           Or.elim (Set.mem β (f x) B) (Set.mem β (f x) C)
-            (Or (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C)))
+            ((Set.mem α x (Set.preimage α β f B)) ∨ (Set.mem α x (Set.preimage α β f C)))
             (fun (hb : Set.mem β (f x) B) =>
               Or.inl (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C)) hb)
             (fun (hc : Set.mem β (f x) C) =>
               Or.inr (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C)) hc)
             h)
-        (fun (h : Or (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C))) =>
+        (fun (h : (Set.mem α x (Set.preimage α β f B)) ∨ (Set.mem α x (Set.preimage α β f C))) =>
           Or.elim (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C))
             (Set.mem β (f x) (Set.union β B C))
             (fun (hb : Set.mem α x (Set.preimage α β f B)) =>
@@ -62,35 +61,35 @@ theorem preimage_union (α β : Type) (f : α -> β) (B C : Set β) :
 -- 练习 2（T 类）：原像保补
 -- ─────────────────────────────────────────────────────────────
 
-theorem preimage_compl (α β : Type) (f : α -> β) (B : Set β) :
+theorem preimage_compl (α β : Type) (f : α → β) (B : Set β) :
     Eq.{1} (Set α) (Set.preimage α β f (Set.compl β B))
-      (Set.compl α (Set.preimage α β f B)) :=
-  Set.ext α (Set.preimage α β f (Set.compl β B)) (Set.compl α (Set.preimage α β f B))
+      (Set.compl α (Set.preimage α β f B)) := by
+  exact Set.ext α (Set.preimage α β f (Set.compl β B)) (Set.compl α (Set.preimage α β f B))
     (fun (x : α) =>
       Iff.intro (Set.mem α x (Set.preimage α β f (Set.compl β B)))
-        (Not (Set.mem α x (Set.preimage α β f B)))
+        (¬ (Set.mem α x (Set.preimage α β f B)))
         (fun (h : Set.mem α x (Set.preimage α β f (Set.compl β B))) =>
           fun (hb : Set.mem α x (Set.preimage α β f B)) => h hb)
-        (fun (h : Not (Set.mem α x (Set.preimage α β f B))) =>
+        (fun (h : ¬ (Set.mem α x (Set.preimage α β f B))) =>
           fun (hb : Set.mem β (f x) B) => h hb))
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 3（L 类）：原像保交
 -- ─────────────────────────────────────────────────────────────
 
-theorem preimage_inter (α β : Type) (f : α -> β) (B C : Set β) :
+theorem preimage_inter (α β : Type) (f : α → β) (B C : Set β) :
     Eq.{1} (Set α) (Set.preimage α β f (Set.inter β B C))
-      (Set.inter α (Set.preimage α β f B) (Set.preimage α β f C)) :=
-  Set.ext α (Set.preimage α β f (Set.inter β B C))
+      (Set.inter α (Set.preimage α β f B) (Set.preimage α β f C)) := by
+  exact Set.ext α (Set.preimage α β f (Set.inter β B C))
     (Set.inter α (Set.preimage α β f B) (Set.preimage α β f C))
     (fun (x : α) =>
       Iff.intro (Set.mem α x (Set.preimage α β f (Set.inter β B C)))
-        (And (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C)))
+        ((Set.mem α x (Set.preimage α β f B)) ∧ (Set.mem α x (Set.preimage α β f C)))
         (fun (h : Set.mem α x (Set.preimage α β f (Set.inter β B C))) =>
           And.intro (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C))
             (And.left (Set.mem β (f x) B) (Set.mem β (f x) C) h)
             (And.right (Set.mem β (f x) B) (Set.mem β (f x) C) h))
-        (fun (h : And (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C))) =>
+        (fun (h : (Set.mem α x (Set.preimage α β f B)) ∧ (Set.mem α x (Set.preimage α β f C))) =>
           And.intro (Set.mem β (f x) B) (Set.mem β (f x) C)
             (And.left (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C)) h)
             (And.right (Set.mem α x (Set.preimage α β f B)) (Set.mem α x (Set.preimage α β f C)) h)))
@@ -99,49 +98,49 @@ theorem preimage_inter (α β : Type) (f : α -> β) (B C : Set β) :
 -- 练习 4（T 类）：像保并
 -- ─────────────────────────────────────────────────────────────
 
-theorem image_union (α β : Type) (f : α -> β) (A B : Set α) :
+theorem image_union (α β : Type) (f : α → β) (A B : Set α) :
     Eq.{1} (Set β) (Set.image α β f (Set.union α A B))
-      (Set.union β (Set.image α β f A) (Set.image α β f B)) :=
-  Set.ext β (Set.image α β f (Set.union α A B))
+      (Set.union β (Set.image α β f A) (Set.image α β f B)) := by
+  exact Set.ext β (Set.image α β f (Set.union α A B))
     (Set.union β (Set.image α β f A) (Set.image α β f B))
     (fun (y : β) =>
       Iff.intro (Set.mem β y (Set.image α β f (Set.union α A B)))
-        (Or (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B)))
+        ((Set.mem β y (Set.image α β f A)) ∨ (Set.mem β y (Set.image α β f B)))
         (fun (h : Set.mem β y (Set.image α β f (Set.union α A B))) =>
-          Exists.elim α (fun (x : α) => And (Set.mem α x (Set.union α A B)) (Eq.{1} β (f x) y))
-            (Or (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))) h
-            (fun (x : α) => fun (hx : And (Set.mem α x (Set.union α A B)) (Eq.{1} β (f x) y)) =>
+          Exists.elim α (fun (x : α) => (Set.mem α x (Set.union α A B)) ∧ (Eq.{1} β (f x) y))
+            ((Set.mem β y (Set.image α β f A)) ∨ (Set.mem β y (Set.image α β f B))) h
+            (fun (x : α) => fun (hx : (Set.mem α x (Set.union α A B)) ∧ (Eq.{1} β (f x) y)) =>
               Or.elim (A x) (B x)
-                (Or (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B)))
+                ((Set.mem β y (Set.image α β f A)) ∨ (Set.mem β y (Set.image α β f B)))
                 (fun (ha : A x) =>
                   Or.inl (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))
-                    (Exists.intro α (fun (t : α) => And (A t) (Eq.{1} β (f t) y)) x
+                    (Exists.intro α (fun (t : α) => (A t) ∧ (Eq.{1} β (f t) y)) x
                       (And.intro (A x) (Eq.{1} β (f x) y) ha
                         (And.right (Set.mem α x (Set.union α A B)) (Eq.{1} β (f x) y) hx))))
                 (fun (hb : B x) =>
                   Or.inr (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))
-                    (Exists.intro α (fun (t : α) => And (B t) (Eq.{1} β (f t) y)) x
+                    (Exists.intro α (fun (t : α) => (B t) ∧ (Eq.{1} β (f t) y)) x
                       (And.intro (B x) (Eq.{1} β (f x) y) hb
                         (And.right (Set.mem α x (Set.union α A B)) (Eq.{1} β (f x) y) hx))))
                 (And.left (Set.mem α x (Set.union α A B)) (Eq.{1} β (f x) y) hx)))
-        (fun (h : Or (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))) =>
+        (fun (h : (Set.mem β y (Set.image α β f A)) ∨ (Set.mem β y (Set.image α β f B))) =>
           Or.elim (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))
             (Set.mem β y (Set.image α β f (Set.union α A B)))
             (fun (ha : Set.mem β y (Set.image α β f A)) =>
-              Exists.elim α (fun (x : α) => And (A x) (Eq.{1} β (f x) y))
+              Exists.elim α (fun (x : α) => (A x) ∧ (Eq.{1} β (f x) y))
                 (Set.mem β y (Set.image α β f (Set.union α A B))) ha
-                (fun (x : α) => fun (hx : And (A x) (Eq.{1} β (f x) y)) =>
+                (fun (x : α) => fun (hx : (A x) ∧ (Eq.{1} β (f x) y)) =>
                   Exists.intro α
-                    (fun (t : α) => And (Set.mem α t (Set.union α A B)) (Eq.{1} β (f t) y)) x
+                    (fun (t : α) => (Set.mem α t (Set.union α A B)) ∧ (Eq.{1} β (f t) y)) x
                     (And.intro (Set.mem α x (Set.union α A B)) (Eq.{1} β (f x) y)
                       (Or.inl (A x) (B x) (And.left (A x) (Eq.{1} β (f x) y) hx))
                       (And.right (A x) (Eq.{1} β (f x) y) hx))))
             (fun (hb : Set.mem β y (Set.image α β f B)) =>
-              Exists.elim α (fun (x : α) => And (B x) (Eq.{1} β (f x) y))
+              Exists.elim α (fun (x : α) => (B x) ∧ (Eq.{1} β (f x) y))
                 (Set.mem β y (Set.image α β f (Set.union α A B))) hb
-                (fun (x : α) => fun (hx : And (B x) (Eq.{1} β (f x) y)) =>
+                (fun (x : α) => fun (hx : (B x) ∧ (Eq.{1} β (f x) y)) =>
                   Exists.intro α
-                    (fun (t : α) => And (Set.mem α t (Set.union α A B)) (Eq.{1} β (f t) y)) x
+                    (fun (t : α) => (Set.mem α t (Set.union α A B)) ∧ (Eq.{1} β (f t) y)) x
                     (And.intro (Set.mem α x (Set.union α A B)) (Eq.{1} β (f x) y)
                       (Or.inr (A x) (B x) (And.left (B x) (Eq.{1} β (f x) y) hx))
                       (And.right (B x) (Eq.{1} β (f x) y) hx))))
@@ -151,38 +150,38 @@ theorem image_union (α β : Type) (f : α -> β) (A B : Set α) :
 -- 练习 5（L 类）：image_subset_iff（库里的判据，直接引用）
 -- ─────────────────────────────────────────────────────────────
 
-theorem image_subset_iff (α β : Type) (f : α -> β) (A : Set α) (B : Set β) :
-    Iff (Set.subset β (Set.image α β f A) B) (Set.subset α A (Set.preimage α β f B)) :=
-  Set.image_subset_iff α β f A B
+theorem image_subset_iff (α β : Type) (f : α → β) (A : Set α) (B : Set β) :
+    (Set.subset β (Set.image α β f A) B) ↔ (Set.subset α A (Set.preimage α β f B)) := by
+  exact Set.image_subset_iff α β f A B
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示（与画布同名）：`f '' (A ∩ B) = f '' A ∩ f '' B` 假——真的那一半
 -- ─────────────────────────────────────────────────────────────
 
-theorem image_inter_subset (α β : Type) (f : α -> β) (A B : Set α) :
+theorem image_inter_subset (α β : Type) (f : α → β) (A B : Set α) :
     Set.subset β (Set.image α β f (Set.inter α A B))
-      (Set.inter β (Set.image α β f A) (Set.image α β f B)) :=
-  fun (y : β) => fun (h : Set.mem β y (Set.image α β f (Set.inter α A B))) =>
-    Exists.elim α
-      (fun (x : α) => And (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y))
-      (And (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))) h
-      (fun (x : α) => fun (hx : And (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y)) =>
-        And.intro (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))
-          (Exists.intro α (fun (t : α) => And (A t) (Eq.{1} β (f t) y)) x
-            (And.intro (A x) (Eq.{1} β (f x) y)
-              (And.left (A x) (B x)
-                (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))
-              (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx)))
-          (Exists.intro α (fun (t : α) => And (B t) (Eq.{1} β (f t) y)) x
-            (And.intro (B x) (Eq.{1} β (f x) y)
-              (And.right (A x) (B x)
-                (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))
-              (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))))
+      (Set.inter β (Set.image α β f A) (Set.image α β f B)) := by
+  intro y h
+  exact Exists.elim α
+    (fun (x : α) => (Set.mem α x (Set.inter α A B)) ∧ (Eq.{1} β (f x) y))
+    ((Set.mem β y (Set.image α β f A)) ∧ (Set.mem β y (Set.image α β f B))) h
+    (fun (x : α) => fun (hx : (Set.mem α x (Set.inter α A B)) ∧ (Eq.{1} β (f x) y)) =>
+      And.intro (Set.mem β y (Set.image α β f A)) (Set.mem β y (Set.image α β f B))
+        (Exists.intro α (fun (t : α) => (A t) ∧ (Eq.{1} β (f t) y)) x
+          (And.intro (A x) (Eq.{1} β (f x) y)
+            (And.left (A x) (B x)
+              (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))
+            (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx)))
+        (Exists.intro α (fun (t : α) => (B t) ∧ (Eq.{1} β (f t) y)) x
+          (And.intro (B x) (Eq.{1} β (f x) y)
+            (And.right (A x) (B x)
+              (And.left (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))
+            (And.right (Set.mem α x (Set.inter α A B)) (Eq.{1} β (f x) y) hx))))
 
 -- 像的单调性（真的那一半的另一半）：直接吃库里的 `Set.image_mono`。
-theorem image_mono (α β : Type) (f : α -> β) (A B : Set α)
-    (h : Set.subset α A B) : Set.subset β (Set.image α β f A) (Set.image α β f B) :=
-  Set.image_mono α β f A B h
+theorem image_mono (α β : Type) (f : α → β) (A B : Set α)
+    (h : Set.subset α A B) : Set.subset β (Set.image α β f A) (Set.image α β f B) := by
+  exact Set.image_mono α β f A B h
 
 -- ─────────────────────────────────────────────────────────────
 -- 反例用的元素类型、映射与零件引理（与画布 8.4 同名同内容）
@@ -199,9 +198,9 @@ def isAa (t : Two) : Prop := match t with
 | aa => True
 | bb => False
 
-theorem two_aa_ne_bb : Not (Eq.{1} Two aa bb) :=
-  fun (h : Eq.{1} Two aa bb) =>
-    Eq.subst.{1} Two (fun (t : Two) => isAa t) aa bb h True.intro
+theorem two_aa_ne_bb : ¬ (Eq.{1} Two aa bb) := by
+  intro h
+  exact Eq.subst.{1} Two (fun (t : Two) => isAa t) aa bb h True.intro
 
 -- 画布要求"把映射写出来"：反例用的映射 f1 就写在纸面上（两个点塌成一个）。
 def f1 (t : Two) : Two := match t with
@@ -209,19 +208,20 @@ def f1 (t : Two) : Two := match t with
 | bb => aa
 
 -- 语言缺口 ③：内核不化简变量处的 match 定义，所以这条抽象等式只能用 match 证。
-theorem f1_eq_aa (x : Two) : Eq.{1} Two (f1 x) aa := match x with
-| aa => Eq.refl.{1} Two aa
-| bb => Eq.refl.{1} Two aa
+theorem f1_eq_aa (x : Two) : Eq.{1} Two (f1 x) aa := by
+  exact match x with
+  | aa => Eq.refl.{1} Two aa
+  | bb => Eq.refl.{1} Two aa
 
-def U01 : Set Two := fun (x : Two) => Or (Eq.{1} Two x aa) (Eq.{1} Two x bb)
+def U01 : Set Two := fun (x : Two) => (Eq.{1} Two x aa) ∨ (Eq.{1} Two x bb)
 
-theorem bb_mem_U01 : Set.mem Two bb U01 :=
-  Or.inr (Eq.{1} Two bb aa) (Eq.{1} Two bb bb) (Eq.refl.{1} Two bb)
+theorem bb_mem_U01 : Set.mem Two bb U01 := by
+  exact Or.inr (Eq.{1} Two bb aa) (Eq.{1} Two bb bb) (Eq.refl.{1} Two bb)
 
 theorem inter_singletons_empty :
     Eq.{1} (Set Two) (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))
-      (Set.empty Two) :=
-  Set.ext Two (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)) (Set.empty Two)
+      (Set.empty Two) := by
+  exact Set.ext Two (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)) (Set.empty Two)
     (fun (x : Two) =>
       Iff.intro (Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
         (Set.mem Two x (Set.empty Two))
@@ -238,17 +238,17 @@ theorem inter_singletons_empty :
           False.elim (Set.mem Two x (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb))) h0))
 
 theorem image_empty (A : Set Two) :
-    Eq.{1} (Set Two) (Set.image Two Two f1 (Set.empty Two)) (Set.empty Two) :=
-  Set.ext Two (Set.image Two Two f1 (Set.empty Two)) (Set.empty Two)
+    Eq.{1} (Set Two) (Set.image Two Two f1 (Set.empty Two)) (Set.empty Two) := by
+  exact Set.ext Two (Set.image Two Two f1 (Set.empty Two)) (Set.empty Two)
     (fun (y : Two) =>
       Iff.intro (Set.mem Two y (Set.image Two Two f1 (Set.empty Two)))
         (Set.mem Two y (Set.empty Two))
         (fun (hy : Set.mem Two y (Set.image Two Two f1 (Set.empty Two))) =>
           Exists.elim Two
-            (fun (x : Two) => And (Set.mem Two x (Set.empty Two)) (Eq.{1} Two (f1 x) y))
+            (fun (x : Two) => (Set.mem Two x (Set.empty Two)) ∧ (Eq.{1} Two (f1 x) y))
             (Set.mem Two y (Set.empty Two)) hy
             (fun (x : Two) =>
-              fun (hx : And (Set.mem Two x (Set.empty Two)) (Eq.{1} Two (f1 x) y)) =>
+              fun (hx : (Set.mem Two x (Set.empty Two)) ∧ (Eq.{1} Two (f1 x) y)) =>
                 False.elim (Set.mem Two y (Set.empty Two))
                   (And.left (Set.mem Two x (Set.empty Two)) (Eq.{1} Two (f1 x) y) hx)))
         (fun (h0 : Set.mem Two y (Set.empty Two)) =>
@@ -257,8 +257,8 @@ theorem image_empty (A : Set Two) :
 theorem image_inter_singletons_empty :
     Eq.{1} (Set Two)
       (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
-      (Set.empty Two) :=
-  Eq.trans.{1} (Set Two)
+      (Set.empty Two) := by
+  exact Eq.trans.{1} (Set Two)
     (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
     (Set.image Two Two f1 (Set.empty Two))
     (Set.empty Two)
@@ -271,81 +271,78 @@ theorem image_inter_singletons_empty :
 theorem aa_mem_inter_image :
     Set.mem Two aa
       (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-        (Set.image Two Two f1 (Set.singleton Two bb))) :=
-  And.intro (Set.mem Two aa (Set.image Two Two f1 (Set.singleton Two aa)))
+        (Set.image Two Two f1 (Set.singleton Two bb))) := by
+  exact And.intro (Set.mem Two aa (Set.image Two Two f1 (Set.singleton Two aa)))
     (Set.mem Two aa (Set.image Two Two f1 (Set.singleton Two bb)))
-    (Exists.intro Two (fun (t : Two) => And (Eq.{1} Two t aa) (Eq.{1} Two (f1 t) aa))
+    (Exists.intro Two (fun (t : Two) => (Eq.{1} Two t aa) ∧ (Eq.{1} Two (f1 t) aa))
       aa (And.intro (Eq.{1} Two aa aa) (Eq.{1} Two (f1 aa) aa)
         (Eq.refl.{1} Two aa) (Eq.refl.{1} Two aa)))
-    (Exists.intro Two (fun (t : Two) => And (Eq.{1} Two t bb) (Eq.{1} Two (f1 t) aa))
+    (Exists.intro Two (fun (t : Two) => (Eq.{1} Two t bb) ∧ (Eq.{1} Two (f1 t) aa))
       bb (And.intro (Eq.{1} Two bb bb) (Eq.{1} Two (f1 bb) aa)
         (Eq.refl.{1} Two bb) (Eq.refl.{1} Two aa)))
 
 -- 练习 6（D 类，必破）：两侧不等——左边是 ∅，右边含 aa。
 theorem not_image_inter_eq_image_inter :
-    Not (Eq.{1} (Set Two)
+    ¬ (Eq.{1} (Set Two)
       (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
       (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-        (Set.image Two Two f1 (Set.singleton Two bb)))) :=
-  fun (h : Eq.{1} (Set Two)
-      (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
+        (Set.image Two Two f1 (Set.singleton Two bb)))) := by
+  intro h
+  exact Set.notMem_empty Two aa
+    (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two aa X)
       (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-        (Set.image Two Two f1 (Set.singleton Two bb)))) =>
-    Set.notMem_empty Two aa
-      (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two aa X)
+        (Set.image Two Two f1 (Set.singleton Two bb)))
+      (Set.empty Two)
+      (Eq.trans.{1} (Set Two)
         (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
           (Set.image Two Two f1 (Set.singleton Two bb)))
+        (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
         (Set.empty Two)
-        (Eq.trans.{1} (Set Two)
-          (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-            (Set.image Two Two f1 (Set.singleton Two bb)))
+        (Eq.symm.{1} (Set Two)
           (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
-          (Set.empty Two)
-          (Eq.symm.{1} (Set Two)
-            (Set.image Two Two f1 (Set.inter Two (Set.singleton Two aa) (Set.singleton Two bb)))
-            (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
-              (Set.image Two Two f1 (Set.singleton Two bb))) h)
-          (image_inter_singletons_empty))
-        aa_mem_inter_image)
+          (Set.inter Two (Set.image Two Two f1 (Set.singleton Two aa))
+            (Set.image Two Two f1 (Set.singleton Two bb))) h)
+        (image_inter_singletons_empty))
+      aa_mem_inter_image)
 
 -- ─────────────────────────────────────────────────────────────
 -- 演示（与画布同名）：`f '' (f ⁻¹' C) = C` 假——真的那一半（无需任何假设）
 -- ─────────────────────────────────────────────────────────────
 
-theorem image_preimage_subset (α β : Type) (f : α -> β) (C : Set β) :
-    Set.subset β (Set.image α β f (Set.preimage α β f C)) C :=
-  fun (y : β) => fun (h : Set.mem β y (Set.image α β f (Set.preimage α β f C))) =>
-    Exists.elim α
-      (fun (x : α) => And (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y))
-      (Set.mem β y C) h
-      (fun (x : α) => fun (hx : And (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y)) =>
-        Eq.subst.{1} β (fun (z : β) => Set.mem β z C) (f x) y
-          (And.right (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y) hx)
-          (And.left (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y) hx))
+theorem image_preimage_subset (α β : Type) (f : α → β) (C : Set β) :
+    Set.subset β (Set.image α β f (Set.preimage α β f C)) C := by
+  intro y h
+  exact Exists.elim α
+    (fun (x : α) => (Set.mem α x (Set.preimage α β f C)) ∧ (Eq.{1} β (f x) y))
+    (Set.mem β y C) h
+    (fun (x : α) => fun (hx : (Set.mem α x (Set.preimage α β f C)) ∧ (Eq.{1} β (f x) y)) =>
+      Eq.subst.{1} β (fun (z : β) => Set.mem β z C) (f x) y
+        (And.right (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y) hx)
+        (And.left (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y) hx))
 
 -- 练习 7（D 类，必破）：反例的零件。
 -- def image_preimage 与画布 8.4 同名同定义（被 f1 取到的点 = 值域）；
 -- 下面三条引理各自结论具体（`Eq`/`Not`），主定理只做 Eq.subst 搬运（见 §实测记录 ④）。
 def image_preimage : Set Two := fun (y : Two) =>
-  Exists Two (fun (x : Two) => Eq.{1} Two (f1 x) y)
+  ∃ (x : Two), Eq.{1} Two (f1 x) y
 
 theorem image_preimage_eq_aa (y : Two) (hy : Set.mem Two y image_preimage) :
-    Eq.{1} Two y aa :=
-  Exists.elim Two (fun (x : Two) => Eq.{1} Two (f1 x) y) (Eq.{1} Two y aa) hy
+    Eq.{1} Two y aa := by
+  exact Exists.elim Two (fun (x : Two) => Eq.{1} Two (f1 x) y) (Eq.{1} Two y aa) hy
     (fun (x : Two) => fun (hx : Eq.{1} Two (f1 x) y) =>
       Eq.trans.{1} Two y (f1 x) aa (Eq.symm.{1} Two (f1 x) y hx) (f1_eq_aa x))
 
-theorem bb_not_mem_image_preimage : Not (Set.mem Two bb image_preimage) :=
-  fun (h : Set.mem Two bb image_preimage) =>
-    Exists.elim Two (fun (x : Two) => Eq.{1} Two (f1 x) bb) False h
-      (fun (x : Two) => fun (hx : Eq.{1} Two (f1 x) bb) =>
-        two_aa_ne_bb
-          (Eq.trans.{1} Two aa (f1 x) bb (Eq.symm.{1} Two (f1 x) aa (f1_eq_aa x)) hx))
+theorem bb_not_mem_image_preimage : ¬ (Set.mem Two bb image_preimage) := by
+  intro h
+  exact Exists.elim Two (fun (x : Two) => Eq.{1} Two (f1 x) bb) False h
+    (fun (x : Two) => fun (hx : Eq.{1} Two (f1 x) bb) =>
+      two_aa_ne_bb
+        (Eq.trans.{1} Two aa (f1 x) bb (Eq.symm.{1} Two (f1 x) aa (f1_eq_aa x)) hx))
 
 theorem image_preimage_eq_image :
     Eq.{1} (Set Two) image_preimage
-      (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) :=
-  Set.ext Two image_preimage (Set.image Two Two f1 (Set.preimage Two Two f1 U01))
+      (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) := by
+  exact Set.ext Two image_preimage (Set.image Two Two f1 (Set.preimage Two Two f1 U01))
     (fun (y : Two) =>
       Iff.intro (Set.mem Two y image_preimage)
         (Set.mem Two y (Set.image Two Two f1 (Set.preimage Two Two f1 U01)))
@@ -354,39 +351,39 @@ theorem image_preimage_eq_image :
             (Set.mem Two y (Set.image Two Two f1 (Set.preimage Two Two f1 U01))) hy
             (fun (x : Two) => fun (hx : Eq.{1} Two (f1 x) y) =>
               Exists.intro Two
-                (fun (t : Two) => And (Set.mem Two t (Set.preimage Two Two f1 U01))
-                  (Eq.{1} Two (f1 t) y))
+                (fun (t : Two) => Set.mem Two t (Set.preimage Two Two f1 U01) ∧
+                  Eq.{1} Two (f1 t) y)
                 x
                 (And.intro (Set.mem Two x (Set.preimage Two Two f1 U01)) (Eq.{1} Two (f1 x) y)
                   (Or.inl (Eq.{1} Two (f1 x) aa) (Eq.{1} Two (f1 x) bb) (f1_eq_aa x))
                   hx)))
         (fun (hy : Set.mem Two y (Set.image Two Two f1 (Set.preimage Two Two f1 U01))) =>
           Exists.elim Two
-            (fun (x : Two) => And (Set.mem Two x (Set.preimage Two Two f1 U01))
-              (Eq.{1} Two (f1 x) y))
+            (fun (x : Two) => Set.mem Two x (Set.preimage Two Two f1 U01) ∧
+              Eq.{1} Two (f1 x) y)
             (Set.mem Two y image_preimage) hy
-            (fun (x : Two) => fun (hx : And (Set.mem Two x (Set.preimage Two Two f1 U01))
-                (Eq.{1} Two (f1 x) y)) =>
+            (fun (x : Two) => fun (hx : Set.mem Two x (Set.preimage Two Two f1 U01) ∧
+                Eq.{1} Two (f1 x) y) =>
               Exists.intro Two (fun (t : Two) => Eq.{1} Two (f1 t) y) x
                 (And.right (Set.mem Two x (Set.preimage Two Two f1 U01)) (Eq.{1} Two (f1 x) y) hx))))
 
 -- 通用小引理：两条包含给相等（就是单元②的 subset_antisymm，这里按 Set.ext 写一遍）。
 theorem eq_of_subsets (α : Type) (A B : Set α)
-    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B :=
-  Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
+    (h1 : Set.subset α A B) (h2 : Set.subset α B A) : Eq.{1} (Set α) A B := by
+  exact Set.ext α A B (fun (x : α) => Iff.intro (A x) (B x) (h1 x) (h2 x))
 
 -- 练习 8（L 类）：反例闭环的桥（方向：左式 = image_preimage）。
 theorem image_preimage_image_eq_preimage :
-    Eq.{1} (Set Two) (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage :=
-  eq_of_subsets Two (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage
+    Eq.{1} (Set Two) (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage := by
+  exact eq_of_subsets Two (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage
     (fun (y : Two) =>
       fun (hy : Set.mem Two y (Set.image Two Two f1 (Set.preimage Two Two f1 U01))) =>
         Exists.elim Two
-          (fun (x : Two) => And (Set.mem Two x (Set.preimage Two Two f1 U01))
-            (Eq.{1} Two (f1 x) y))
+          (fun (x : Two) => Set.mem Two x (Set.preimage Two Two f1 U01) ∧
+            Eq.{1} Two (f1 x) y)
           (Set.mem Two y image_preimage) hy
-          (fun (x : Two) => fun (hx : And (Set.mem Two x (Set.preimage Two Two f1 U01))
-              (Eq.{1} Two (f1 x) y)) =>
+          (fun (x : Two) => fun (hx : Set.mem Two x (Set.preimage Two Two f1 U01) ∧
+              Eq.{1} Two (f1 x) y) =>
             Exists.intro Two (fun (t : Two) => Eq.{1} Two (f1 t) y) x
               (And.right (Set.mem Two x (Set.preimage Two Two f1 U01)) (Eq.{1} Two (f1 x) y) hx)))
     (fun (y : Two) => fun (hy : Set.mem Two y image_preimage) =>
@@ -394,44 +391,44 @@ theorem image_preimage_image_eq_preimage :
         (Set.mem Two y (Set.image Two Two f1 (Set.preimage Two Two f1 U01))) hy
         (fun (x : Two) => fun (hx : Eq.{1} Two (f1 x) y) =>
           Exists.intro Two
-            (fun (t : Two) => And (Set.mem Two t (Set.preimage Two Two f1 U01))
-              (Eq.{1} Two (f1 t) y))
+            (fun (t : Two) => Set.mem Two t (Set.preimage Two Two f1 U01) ∧
+              Eq.{1} Two (f1 t) y)
             x
             (And.intro (Set.mem Two x (Set.preimage Two Two f1 U01)) (Eq.{1} Two (f1 x) y)
               (Or.inl (Eq.{1} Two (f1 x) aa) (Eq.{1} Two (f1 x) bb) (f1_eq_aa x))
               hx)))
 
 theorem not_image_preimage_eq :
-    Not (Eq.{1} (Set Two) (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) U01) :=
-  fun (h : Eq.{1} (Set Two) (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) U01) =>
-    bb_not_mem_image_preimage
-      (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two bb X)
-        (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage
-        (Eq.symm.{1} (Set Two) image_preimage
-          (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage_eq_image)
-        (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two bb X) U01
-          (Set.image Two Two f1 (Set.preimage Two Two f1 U01))
-          (Eq.symm.{1} (Set Two) (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) U01 h)
-          bb_mem_U01))
+    ¬ (Eq.{1} (Set Two) (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) U01) := by
+  intro h
+  exact bb_not_mem_image_preimage
+    (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two bb X)
+      (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage
+      (Eq.symm.{1} (Set Two) image_preimage
+        (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) image_preimage_eq_image)
+      (Eq.subst.{1} (Set Two) (fun (X : Set Two) => Set.mem Two bb X) U01
+        (Set.image Two Two f1 (Set.preimage Two Two f1 U01))
+        (Eq.symm.{1} (Set Two) (Set.image Two Two f1 (Set.preimage Two Two f1 U01)) U01 h)
+        bb_mem_U01))
 
 -- 练习 9（D 类）：`C ⊆ f '' univ`（满射性）时等号回来——"需要什么假设"的答案。
-theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α -> β) (C : Set β)
+theorem image_preimage_eq_of_subset_image_univ (α β : Type) (f : α → β) (C : Set β)
     (h : Set.subset β C (Set.image α β f (Set.univ α))) :
-    Eq.{1} (Set β) (Set.image α β f (Set.preimage α β f C)) C :=
-  Set.ext β (Set.image α β f (Set.preimage α β f C)) C
+    Eq.{1} (Set β) (Set.image α β f (Set.preimage α β f C)) C := by
+  exact Set.ext β (Set.image α β f (Set.preimage α β f C)) C
     (fun (y : β) =>
       Iff.intro (Set.mem β y (Set.image α β f (Set.preimage α β f C))) (Set.mem β y C)
         (image_preimage_subset α β f C y)
         (fun (hy : Set.mem β y C) =>
           Iff.mpr (Set.mem β y (Set.image α β f (Set.preimage α β f C)))
-            (Exists α (fun (x : α) => And (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y)))
+            (∃ (x : α), (Set.mem α x (Set.preimage α β f C)) ∧ (Eq.{1} β (f x) y))
             (Set.mem_image α β f (Set.preimage α β f C) y)
-            (Exists.elim α (fun (x : α) => And (Set.mem α x (Set.univ α)) (Eq.{1} β (f x) y))
-              (Exists α (fun (x : α) => And (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y)))
+            (Exists.elim α (fun (x : α) => (Set.mem α x (Set.univ α)) ∧ (Eq.{1} β (f x) y))
+              (∃ (x : α), (Set.mem α x (Set.preimage α β f C)) ∧ (Eq.{1} β (f x) y))
               (h y hy)
-              (fun (x : α) => fun (hx : And (Set.mem α x (Set.univ α)) (Eq.{1} β (f x) y)) =>
+              (fun (x : α) => fun (hx : (Set.mem α x (Set.univ α)) ∧ (Eq.{1} β (f x) y)) =>
                 Exists.intro α
-                  (fun (t : α) => And (Set.mem α t (Set.preimage α β f C)) (Eq.{1} β (f t) y)) x
+                  (fun (t : α) => (Set.mem α t (Set.preimage α β f C)) ∧ (Eq.{1} β (f t) y)) x
                   (And.intro (Set.mem α x (Set.preimage α β f C)) (Eq.{1} β (f x) y)
                     (Eq.subst.{1} β (fun (z : β) => Set.mem β z C) y (f x)
                       (Eq.symm.{1} β (f x) y

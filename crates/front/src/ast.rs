@@ -35,6 +35,10 @@ pub enum Expr {
     App {
         fun: Box<Expr>,
         arg: Box<Expr>,
+        /// **Lean 的 `@` 标记**（IA-1）：整条应用脊的实参是**逐位显式**的
+        /// ⇒ 前端**不插**隐式实参（`@f a b` 把 `a` 落在第一个形参位上，
+        /// 哪怕它是隐式的）。parser 在 `@` 之后建出的每个 App 节点都带它。
+        explicit_spine: bool,
         span: Span,
     },
     Lambda {
@@ -106,6 +110,17 @@ pub enum Expr {
     /// `{}` 今天是 binder / 宇宙参数定界符，消歧在 `parse_atom` 的 lookahead
     /// 里（`{x : T}` 形状不是字面量）。
     SetLiteral {
+        elements: Vec<Expr>,
+        span: Span,
+    },
+    /// **匿名构造子**（课程 Lean 化 L2.7）：`⟨a, b⟩`。
+    ///
+    /// 新语法（不是记法）：用哪个构造子由**期望类型**决定（路线 C，不引入
+    /// 元变量）——`A ∧ B` ⇒ `And.intro`、`∃ (x : α), p x` ⇒ `Exists.intro`、
+    /// `A ↔ B` ⇒ `Iff.intro`、`Prod α β` ⇒ `Prod.mk`、单构造子归纳 ⇒ 它的
+    /// 构造子。展开复用**记法路径**（前导参数补全 + 操作数期望类型传播），
+    /// 所以 `⟨w, hw⟩` 在 `∃ (x : α), p x` 上解得出 `α` 与 `p`。
+    AnonCtor {
         elements: Vec<Expr>,
         span: Span,
     },
@@ -283,7 +298,8 @@ impl Expr {
             | Expr::By { span, .. }
             | Expr::Match { span, .. }
             | Expr::Notation { span, .. }
-            | Expr::SetLiteral { span, .. } => *span,
+            | Expr::SetLiteral { span, .. }
+            | Expr::AnonCtor { span, .. } => *span,
         }
     }
 }
@@ -291,8 +307,11 @@ impl Expr {
 /// 教学白名单里的一个 tactic（`by` 块内）。
 #[derive(Debug, Clone, PartialEq)]
 pub enum Tactic {
+    /// `intro a b c`：一次剥掉多层 Pi/Arrow。**多名字**是 Lean 的常态写法
+    /// （课程 Lean 化，设计 `docs/design/course-lean-style.md` L1.3）；
+    /// 每个名字对应一层，语义等价于连续写多个 `intro`。
     Intro {
-        name: String,
+        names: Vec<String>,
         span: Span,
     },
     Exact {
@@ -309,11 +328,86 @@ pub enum Tactic {
     Rfl {
         span: Span,
     },
+    /// `constructor`：按**目标头**选构造子（取**第一个**，Lean 语义），
+    /// 等价于 `apply <Ind>.<第一个构造子>`。构造子表来自前端自己的归纳表
+    /// （`InductiveTable`），判定仍走 kernel（合成声明）。
+    Constructor {
+        span: Span,
+    },
+    /// `left` / `right`：目标头的归纳有 ≥2 个构造子时取第 1 / 第 2 个
+    /// （`Or` 上是 `Or.inl` / `Or.inr`）。
+    Left {
+        span: Span,
+    },
+    Right {
+        span: Span,
+    },
+    /// `use w`：目标头是**单构造子**归纳（`Exists`）时交证人——等价于
+    /// `apply <ctor>` 之后立刻 `exact w`（第一个子目标就是证人位）。
+    Use {
+        expr: Expr,
+        span: Span,
+    },
+    /// `exfalso`：把当前目标换成 `False`（原目标记在组装里），
+    /// 等价于 `apply False.elim` 但读起来是 Lean 的样子。
+    Exfalso {
+        span: Span,
+    },
+    /// `cases h` / `cases h with | ctor a b => <tactics> | …`：对假设做情形分析。
+    ///
+    /// **降低成 `match`**：每个臂的 tactic 序列各自组装成一个项，整个 `cases`
+    /// 变成一个 `Expr::Match { scrutinee: h, arms }` —— 递归子与 iota 规则由
+    /// **既有的 `match` 降低路径**处理（`compile/elab.rs`），引擎不手搓 recursor。
+    /// 判定仍走内核。
+    ///
+    /// `arms` 为空 = 不带 `with` 的写法：按**构造子声明顺序**造子目标，
+    /// 分支假设用构造子自己的字段名（`ctor Or.inl (a : A)` ⇒ `a`）。
+    Cases {
+        expr: Expr,
+        arms: Vec<CasesArm>,
+        span: Span,
+    },
+    /// `have h : T := t` / `have h : T := by <tactics>`（设计
+    /// `docs/design/course-lean-style.md` L3.6）：在当前上下文里**引入一条
+    /// 中间结论**，目标不变。
+    ///
+    /// **降低成 let 的应用形态**：`(fun (h : T) => <rest>) t`。所以引擎只需
+    /// 把 `h : T` 当成普通假设加进上下文（沿父链的 `NodeKind::Have`），组装时
+    /// 包一层应用——`t : T` 由内核在应用处再判一次（tactic 步里**已经**先判过
+    /// 一次，为的是把错误报在 `have` 那一行而不是整个证明上）。
+    Have {
+        name: String,
+        ty: Expr,
+        value: HaveValue,
+        span: Span,
+    },
     /// `sorry`：占位——当前目标保持开放（合法 Open 状态），
     /// 与声明值位的 `sorry` 同语义（未完成证明）。
     Sorry {
         span: Span,
     },
+}
+
+/// `have` 的值位：项（`:= t`）或嵌套 tactic 块（`:= by …`）。
+#[derive(Debug, Clone, PartialEq)]
+pub enum HaveValue {
+    Term(Expr),
+    /// 嵌套 tactic 序列。**用缩进界定**（与 `cases` 臂体同一条规则）：
+    /// 第一个列号 ≤ `have` 所在列的 tactic 属于**外层**块。
+    By(Vec<Tactic>),
+}
+
+/// `cases` 的一个分支：`| <ctor> <binder>… => <tactics>`。
+#[derive(Debug, Clone, PartialEq)]
+pub struct CasesArm {
+    /// 构造子名，**按用户写的拼写**（裸名 `inl` 或点号名 `Or.inl` 都行）；
+    /// 引擎按归纳表的源名归一。
+    pub ctor: String,
+    /// 分支假设的名字（用户给的，按字段顺序）。
+    pub binders: Vec<String>,
+    /// 臂体的 tactic 序列。
+    pub tactics: Vec<Tactic>,
+    pub span: Span,
 }
 
 impl Tactic {
@@ -324,6 +418,13 @@ impl Tactic {
             | Tactic::Apply { span, .. }
             | Tactic::Assumption { span }
             | Tactic::Rfl { span }
+            | Tactic::Constructor { span }
+            | Tactic::Left { span }
+            | Tactic::Right { span }
+            | Tactic::Use { span, .. }
+            | Tactic::Exfalso { span }
+            | Tactic::Cases { span, .. }
+            | Tactic::Have { span, .. }
             | Tactic::Sorry { span } => *span,
         }
     }

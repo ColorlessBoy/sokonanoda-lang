@@ -164,6 +164,10 @@ that a model or editor can react to the *kind* of mistake, not the wording:
   `elab-notation-argument-unsolved` (记号展开时补不出目标 telescope 的
   **前导类型参数**：v1 只按操作数/期望类型做裸变量匹配，不做一般推断；
   hint 教点名写法。G-04 / WO-011),
+  `elab-implicit-argument-unsolved` (**隐式实参**补不出来：签名有前导隐式
+  binder（`{α : Type}` 这种），而路线 C 只按**后续显式实参的类型**反解、
+  不搜索不回溯；hint 教把参数写全——点名/写全参数永远可用。IA-1
+  `docs/design/implicit-arguments.md` §3),
   `elab-notation-ambiguous` / `elab-notation-no-candidate` (**记法重载**：
   同一符号多条记法按**期望类型**选候选——≥2 个候选都说得通时报前者，一个
   都对不上时报后者；消息列出候选与各自的结果类型，hint 教点名写法消歧。

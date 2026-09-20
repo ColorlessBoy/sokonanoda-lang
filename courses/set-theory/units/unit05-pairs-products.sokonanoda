@@ -6,21 +6,30 @@
 --
 -- ── 本单元只允许用什么 ──────────────────────────────────────────────────
 --   · import lib.Logic / lib.Set / lib.Prod；
+--   · 记法**不用自己声明**（随 import 生效）：`∈ ⊆ ∅` 来自 lib/Set，集合积记法
+--     `×ˢ` 的目标 `Set.prod` 是**本文件 5.2 给出的定义**，所以它只在那一行
+--     **之后**才可用；连接符 `∧ ∨ ↔ ¬`、箭头 `→`、等号 `=` 与不等号 `≠` 是
+--     **语言内建**；集合字面量 `{a}` / `{a, b}`（1–2 个元素）也是内建糖；
 --   · 序对的全部词汇来自 lib/Prod：类型 Prod、构造子 prod_mk、投影 Prod.fst / Prod.snd，
 --     以及"投影算在构造子上"的展开引理 Prod.fst_mk / Prod.snd_mk / Prod.fst_snd_mk
 --     （L2 层，证明是 rfl 级或一行，直接点名用，不用自己写）；
---   · 逻辑库：And / Or / Iff / Eq / Not 及其引理；集合库：Set.* 与公理 Set.ext；
---   · tactic：intro / exact / apply / assumption / rfl / sorry
---     （推荐 term 风格 fun (x : A) => ...）；
+--   · 逻辑库：And / Or / Iff / Eq / Not 及其引理；集合库：Set.* 与公理 Set.ext。
+--     **引理名照旧点名写**（`Or.inl`、`And.left`、`Eq.subst.{1}`、`Set.mem_singleton_self`…）
+--     ——记法是**连接符**的糖，不是引理名的糖；
+--   · tactic（白名单）：intro / exact / apply / assumption / rfl / match /
+--     constructor / left / right / use / exfalso / cases / have / sorry
+--     ——没有 rw / obtain / change / simp / induction / ⟨a, b⟩ / ·；
+--     练习一律 `:= by` + 缩进两格的 `sorry`。
 --   · 本文件**给出**的两个定义：def Set.prod（笛卡尔积）、def Set.graph（函数图）
---     —— 它们是本单元新引入的词汇，不用你写。
+--     ——它们是本单元新引入的词汇，不用你写。
 --
 -- ── 本单元不用 ─────────────────────────────────────────────────────────
 --   单射 / 满射 / 双射的正式定义（单元⑦ 与 ⑨ 才讲）、选择公理、证明无关性。
 --
--- ── 记法提醒（语言还没有 notation，台账 G-04）───────────────────────────
---   `A × B` 一律点名 Set.prod A B s t；`(a,b)` 一律点名 prod_mk A B a b；
---   等式必须显式宇宙：Eq.{1} α a b（裸 Eq 默认 u = 0，会被内核拒）。
+-- ── 记法提醒 ────────────────────────────────────────────────────────────
+--   `s ×ˢ t` 就是 Set.prod A B s t；序对**没有**字面量记法，`(a, b)` 仍写
+--   prod_mk A B a b；命题里的等式直接写 `=`（宇宙层级由判卷器按操作数类型解），
+--   只有**引理名**才显式写层级：Eq.subst.{1} / Eq.refl.{1} / Eq.symm.{1}。
 -- ==========================================================================
 import lib.Logic
 import lib.Set
@@ -41,9 +50,8 @@ import lib.Prod
 
 -- 演示 1（已写好）：库自检 —— 两个投影算在构造子上都还原（这是 iota 计算，不是数学内容）。
 theorem demo_fst_snd_mk (A B : Type) (a : A) (b : B) :
-    And (Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a)
-        (Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b) :=
-  Prod.fst_snd_mk A B a b
+    Prod.fst A B (prod_mk A B a b) = a ∧ Prod.snd A B (prod_mk A B a b) = b := by
+  exact Prod.fst_snd_mk A B a b
 
 -- ─────────────────────────────────────────────────────────────
 -- 5.1 序对唯一性（配对定理）：序对唯一决定它的两个坐标
@@ -55,64 +63,62 @@ theorem demo_fst_snd_mk (A B : Type) (a : A) (b : B) :
 
 -- 练习 1（T 类）：第一个投影算在构造子上。
 -- soko:hint 思路：这条是 lib/Prod 里现成的展开引理，照名字点名即可。
--- soko:hint 目标形态：目标就是 Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a，不需要 intro。
--- soko:hint 关键件：lib/Prod 的 Prod.fst_mk 正是这个形状（A B a b 四个参数按序喂）。
+-- soko:hint 目标形态：目标就是 `Prod.fst A B (prod_mk A B a b) = a`，不需要 intro。
+-- soko:hint 关键件：lib/Prod 的 `Prod.fst_mk` 正是这个形状（A B a b 四个参数按序喂）。
 theorem prod_fst_mk (A B : Type) (a : A) (b : B) :
-    Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a :=
+    Prod.fst A B (prod_mk A B a b) = a := by
   sorry
 
 -- 练习 2（T 类）：第二个投影算在构造子上。
 -- soko:hint 思路：与第 1 题同款，换成第二个投影。
--- soko:hint 目标形态：Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b，不需要 intro。
--- soko:hint 关键件：lib/Prod 的 Prod.snd_mk（A B a b 四个参数按序喂）。
+-- soko:hint 目标形态：`Prod.snd A B (prod_mk A B a b) = b`，不需要 intro。
+-- soko:hint 关键件：lib/Prod 的 `Prod.snd_mk`（A B a b 四个参数按序喂）。
 theorem prod_snd_mk (A B : Type) (a : A) (b : B) :
-    Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b :=
+    Prod.snd A B (prod_mk A B a b) = b := by
   sorry
 
 -- 练习 3（L 类）：**配对定理** —— 两个序对相等推出两个坐标分别相等。
 -- soko:hint 思路：序对没有别的结构可用；把等式沿两个投影各搬一次，就得到两个坐标的等式。
--- soko:hint 目标形态：intro 之后手里是 h : Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1)， 目标是 And (Eq.{1} A a a1) (Eq.{1} B b b1)。
--- soko:hint 关键件：And.intro 的两个分支都用 Eq.subst，motive 分别是"第一个投影等于什么" 与"第二个投影等于什么"；搬完两边会归约成同一个东西，所以起点是 Eq.refl； Prod.fst_mk / Prod.snd_mk 说明归约的结果长什么样。
+-- soko:hint 目标形态：intro 之后手里是 `h : prod_mk A B a b = prod_mk A B a1 b1`，目标是 `a = a1 ∧ b = b1`。
+-- soko:hint 关键件：`constructor` 拆开 `∧`；两个分支都用 `Eq.subst`，motive 分别是"第一个投影等于什么"与"第二个投影等于什么"；搬完两边会归约成同一个东西，所以起点是 `Eq.refl`；`Prod.fst_mk` / `Prod.snd_mk` 说明归约的结果长什么样。
 theorem prod_mk_inj (A B : Type) (a a1 : A) (b b1 : B) :
-    Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1) ->
-    And (Eq.{1} A a a1) (Eq.{1} B b b1) :=
+    prod_mk A B a b = prod_mk A B a1 b1 → a = a1 ∧ b = b1 := by
   sorry
 
 -- 练习 4（L 类）：配对定理的完整形态（"当且仅当"）。
--- soko:hint 思路：Iff 是两个方向：→ 就是第 3 题；← 从两个坐标的等式反推出序对的等式。
--- soko:hint 目标形态：Iff (Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1)) (And (Eq.{1} A a a1) (Eq.{1} B b b1))。
--- soko:hint 关键件：→ 用 prod_mk_inj（第 3 题）；← 对 And 的两半各做一次 Eq.subst （先把第一个坐标换掉、再换第二个），起点是一条 rfl 级的等式（Eq.refl）。
+-- soko:hint 思路：`↔` 是两个方向：→ 就是第 3 题；← 从两个坐标的等式反推出序对的等式。
+-- soko:hint 目标形态：`(prod_mk A B a b = prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1)`。
+-- soko:hint 关键件：`constructor` 拆 `↔`；→ 用 prod_mk_inj（第 3 题）；← 对 `∧` 的两半各做一次 `Eq.subst`（先把第一个坐标换掉、再换第二个），起点是一条 rfl 级的等式（`Eq.refl`）。
 theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
-    Iff (Eq.{1} (Prod A B) (prod_mk A B a b) (prod_mk A B a1 b1))
-        (And (Eq.{1} A a a1) (Eq.{1} B b b1)) :=
+    (prod_mk A B a b = prod_mk A B a1 b1) ↔ (a = a1 ∧ b = b1) := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
--- 5.2 笛卡尔积：A × B 是 Prod A B 上的一个谓词
+-- 5.2 笛卡尔积：s ×ˢ t 是 Prod A B 上的一个谓词
 --
--- 定义给出（照抄 Mathlib 的 `Set.prod`，这里点名写）：
+-- 定义给出（照抄 Mathlib 的 `Set.prod`，定义体点名写）：
 --     def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
 --       fun (p : Prod A B) => And (s (Prod.fst A B p)) (t (Prod.snd A B p))
 -- 注意返回值是 Set (Prod A B) —— 也就是谓词 Prod A B -> Prop。
--- 元素 `(a,b)` 属于 `s × t`，展开后正好是"两个坐标分别满足 s 与 t"。
+-- 记法 `s ×ˢ t` 的目标就是它（由 lib/Set 声明，**在这一行之后**才可用）。
+-- 元素 `prod_mk A B a b` 属于 `s ×ˢ t`，展开后正好是"两个坐标分别满足 s 与 t"。
 -- ─────────────────────────────────────────────────────────────
 
 def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
-  fun (p : Prod A B) => And (s (Prod.fst A B p)) (t (Prod.snd A B p))
+  fun (p : Prod A B) => (s (Prod.fst A B p)) ∧ (t (Prod.snd A B p))
 
--- 练习 5（T 类）：A × B 的成员刻画（Tao §3.5 的第二条）。
+-- 练习 5（T 类）：s ×ˢ t 的成员刻画（Tao §3.5 的第二条）。
 -- soko:hint 思路：Set.prod 的定义就是"两个坐标分别满足 s 与 t"，两边定义上相等。
--- soko:hint 目标形态：Iff (Set.mem (Prod A B) p (Set.prod A B s t)) (And (s (Prod.fst A B p)) (t (Prod.snd A B p)))。
--- soko:hint 关键件：Iff.intro 的两个方向都是恒等函数（Set.mem 与 Set.prod 展开即可）， 不需要任何引理。
+-- soko:hint 目标形态：`p ∈ s ×ˢ t ↔ Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t`。
+-- soko:hint 关键件：`constructor` 拆 `↔`，两个方向都是恒等函数（`∈` 与 `×ˢ` 展开即可），不需要任何引理。
 theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
-    Iff (Set.mem (Prod A B) p (Set.prod A B s t))
-        (And (s (Prod.fst A B p)) (t (Prod.snd A B p))) :=
+    p ∈ s ×ˢ t ↔ Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 5.3 D 类：A × B = B × A 吗？
 --
--- 先看"等式"本身：Set.prod A B s t : Set (Prod A B)，而 Set.prod B A t s : Set (Prod B A)。
+-- 先看"等式"本身：`s ×ˢ t : Set (Prod A B)`，而 `t ×ˢ s : Set (Prod B A)`。
 -- 两个类型不同 —— 只要 A 与 B 不是同一个类型，"A × B = B × A" 这句话**根本写不出来**；
 -- 换成数学语言：需要先有一个 A × B 到 B × A 的**交换双射**
 --     fun (p : Prod A B) => prod_mk B A (Prod.snd A B p) (Prod.fst A B p)
@@ -123,18 +129,16 @@ theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
 --   · s 或 t 是空集：两侧都是空集（用上面那个交换映射 + 空集成员刻画说明，本单元不证）。
 --
 -- 但即使把类型取成同一个，s ≠ t 时两侧一般也不相等 —— 底下的原因是序对**连交换都做不到**：
--- 只有 a = b 时 (a,b) 与 (b,a) 才是同一个序对。下面的练习把这个反例证出来。
+-- 只有 a = b 时 `prod_mk A A a b` 与 `prod_mk A A b a` 才是同一个序对。下面的练习把这个反例证出来。
 -- （设计判断：有序对与 Kuratowski 编码没有实证研究支撑，此处不作"研究表明"的断言。）
 -- ─────────────────────────────────────────────────────────────
 
 -- 练习 6（D 类）：判断 `A × B = B × A` 并给出反例。
--- soko:hint 思路：判"假"必须给反例：同一个类型上取 s = {a}、t = {b}，序对 (a,b) 只在 s × t 里。
--- soko:hint 目标形态：目标是到 False 的箭头；intro 之后手里有两条集合相等的等式 e : s × t = t × s， 目标是 False（前提里还有 h : Not (Eq.{1} A a b) 备用）。
--- soko:hint 关键件：先用 And.intro 与 Set.mem_singleton_self 造出 (a,b) ∈ {a} × {b}； 再用 Eq.subst（motive 是"这个序对落在哪张集合里"）沿 e 搬到 {b} × {a} 上 —— 搬完它的类型就是 And (Eq.{1} A a b) (Eq.{1} A b a)，用 And.left 取出来交给 h。
-theorem prod_set_swap_ne (A : Type) (a b : A) (h : Not (Eq.{1} A a b)) :
-    Not (Eq.{1} (Set (Prod A A))
-      (Set.prod A A (Set.singleton A a) (Set.singleton A b))
-      (Set.prod A A (Set.singleton A b) (Set.singleton A a))) :=
+-- soko:hint 思路：判"假"必须给反例：同一个类型上取 s = {a}、t = {b}，序对 `prod_mk A A a b` 只在 `{a} ×ˢ {b}` 里。
+-- soko:hint 目标形态：目标是到 False 的箭头（`≠` 展开后就是）；intro 之后手里有两条集合相等的等式 `e : {a} ×ˢ {b} = {b} ×ˢ {a}`，目标是 False（前提里还有 `h : a ≠ b` 备用）。
+-- soko:hint 关键件：先用 `And.intro` 与 `Set.mem_singleton_self` 造出 `prod_mk A A a b ∈ {a} ×ˢ {b}`；再用 `Eq.subst`（motive 是"这个序对落在哪张集合里"）沿 `e` 搬到 `{b} ×ˢ {a}` 上 —— 搬完它的类型就是 `a = b ∧ b = a`，用 `And.left` 取出来交给 `h`。
+theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
+    {a} ×ˢ {b} ≠ {b} ×ˢ {a} := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -147,39 +151,43 @@ theorem prod_set_swap_ne (A : Type) (a b : A) (h : Not (Eq.{1} A a b)) :
 -- 现在只要会算它的成员：把 p 写成构造子，两个投影都会归约。
 -- ─────────────────────────────────────────────────────────────
 
-def Set.graph (A B : Type) (f : A -> B) : Set (Prod A B) :=
+def Set.graph (A B : Type) (f : A → B) : Set (Prod A B) :=
   fun (p : Prod A B) => Eq.{1} B (f (Prod.fst A B p)) (Prod.snd A B p)
 
--- 演示 2（已写好）：图的成员刻画 —— `(a,b)` 在图里当且仅当 `f a = b`。
--- 两边在定义展开后是同一个命题（投影算在构造子上），所以 Iff 的两个方向都是恒等函数。
-theorem demo_graph_mem (A B : Type) (f : A -> B) (a : A) (b : B) :
-    Iff (Set.mem (Prod A B) (prod_mk A B a b) (Set.graph A B f)) (Eq.{1} B (f a) b) :=
-  Iff.intro (Set.mem (Prod A B) (prod_mk A B a b) (Set.graph A B f)) (Eq.{1} B (f a) b)
-    (fun (h : Set.mem (Prod A B) (prod_mk A B a b) (Set.graph A B f)) => h)
-    (fun (h : Eq.{1} B (f a) b) => h)
+-- 演示 2（已写好）：图的成员刻画 —— `prod_mk A B a b` 在图里当且仅当 `f a = b`。
+-- 两边在定义展开后是同一个命题（投影算在构造子上），所以 `↔` 的两个方向都是恒等函数。
+theorem demo_graph_mem (A B : Type) (f : A → B) (a : A) (b : B) :
+    prod_mk A B a b ∈ Set.graph A B f ↔ f a = b := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
 
 -- ─────────────────────────────────────────────────────────────
 -- 5.5 演示 3（已写好）：无序配对的成员刻画
 --
--- 下面 5.6 要读 Kuratowski 编码，读之前先把 `{a,b}` 的成员判定备好
+-- 下面 5.6 要读 Kuratowski 编码，读之前先把 `{a, b}` 的成员判定备好
 -- （lib/Set 里 `Set.pair` 的定义就是 `Or (x = a) (x = b)`，缺一条展开引理）。
 -- ─────────────────────────────────────────────────────────────
 
 theorem demo_mem_pair (α : Type) (x a b : α) :
-    Iff (Set.mem α x (Set.pair α a b)) (Or (Eq.{1} α x a) (Eq.{1} α x b)) :=
-  Iff.intro (Set.mem α x (Set.pair α a b)) (Or (Eq.{1} α x a) (Eq.{1} α x b))
-    (fun (h : Set.mem α x (Set.pair α a b)) => h)
-    (fun (h : Or (Eq.{1} α x a) (Eq.{1} α x b)) => h)
+    x ∈ {a, b} ↔ x = a ∨ x = b := by
+  constructor
+  intro h
+  exact h
+  intro h
+  exact h
 
 -- ─────────────────────────────────────────────────────────────
 -- 5.6 阅读：Kuratowski 编码（Tao 习题 3.5.1）
 --
 -- 不用原语也能把有序对做成集合，定义是
 --     (a, b) := {{a}, {a, b}}
--- 写成我们的语言就是
---     Set.pair (Set α) (Set.singleton α a) (Set.pair α a b)     -- : Set (Set α)
--- 读法：**两层**。第一层 {a} 单独把第一个坐标记下来，第二层 {a,b} 把两个坐标都带上；
--- 由于 {a} 与 {a,b} 一般不相等，"谁在前"就能从集合里读回来。
+-- 写成我们的语言（集合字面量）就是
+--     {{a}, {a, b}}      -- : Set (Set α)
+-- 读法：**两层**。第一层 {a} 单独把第一个坐标记下来，第二层 {a, b} 把两个坐标都带上；
+-- 由于 {a} 与 {a, b} 一般不相等，"谁在前"就能从集合里读回来。
 --
 -- 问：这样的编码要"够用"，哪条性质是必须的？
 -- 答：**配对映射的单射性** —— 编码必须把"不同的坐标组合"送到不同的集合，否则
@@ -192,11 +200,9 @@ theorem demo_mem_pair (α : Type) (x a b : α) :
 -- ─────────────────────────────────────────────────────────────
 
 -- 练习 7（R 类）：读 Kuratowski 编码 —— a = b 时 {{a},{a,b}} 塌缩成 {{a}}。
--- soko:hint 思路：编码是"两层集合"；a = b 时第二层 {a,b} 与第一层 {a} 重合，于是整个编码塌缩成 {{a}}。
--- soko:hint 目标形态：目标是集合层的等式 Eq.{1} (Set (Set α)) (Set.pair (Set α) {a} {a,b}) (Set.singleton (Set α) {a})；套路是 Set.ext，再对每个 X : Set α 证 Iff —— 展开后 X ∈ {{a},{a,b}} 就是 Or (Eq.{1} (Set α) X {a}) (Eq.{1} (Set α) X {a,b})。
--- soko:hint 关键件：Set.ext + Iff.intro；左到右要 Or.elim，其中 X = {a,b} 那一支再用一次 Set.ext （把 {a,b} 与 {a} 逐点比较），搬 x = b 用的是 h 的对称版本 Eq.symm。
-theorem kura_degenerate (α : Type) (a b : α) (h : Eq.{1} α a b) :
-    Eq.{1} (Set (Set α))
-      (Set.pair (Set α) (Set.singleton α a) (Set.pair α a b))
-      (Set.singleton (Set α) (Set.singleton α a)) :=
+-- soko:hint 思路：编码是"两层集合"；a = b 时第二层 {a, b} 与第一层 {a} 重合，于是整个编码塌缩成 {{a}}。
+-- soko:hint 目标形态：目标是集合层的等式 `{{a}, {a, b}} = {{a}}`（外层 `{ }` 装的是集合，里层的 `{a}` / `{a, b}` 才是元素）；套路是 `Set.ext`，再对每个 `x : Set α` 证 `↔` —— 展开后 `x ∈ {{a}, {a, b}}` 就是 `x = {a} ∨ x = {a, b}`。
+-- soko:hint 关键件：`apply Set.ext (Set α)`（外层集合的元素类型是 `Set α`，`Set.ext` 的类型参数要显式写出来）+ `constructor` 拆 `↔`；左到右对 `∨` 分情况（`cases`，臂体包在 `have … := by …` 里——`cases` 组装出的是 `match`，它需要一处**有类型标注**的位置），其中 `x = {a, b}` 那一支再用一次 `Set.ext`（把 `{a, b}` 与 `{a}` 逐点比较），搬 `x = b` 用的是 `h` 的对称版本 `Eq.symm`。
+theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
+    {{a}, {a, b}} = {{a}} := by
   sorry

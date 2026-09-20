@@ -351,6 +351,44 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     assert.ok(text.trim().length > 0, "hover markup must be non-empty");
   });
 
+  test("notation input: the rewriter produces ∧ and hover teaches \\and", async () => {
+    // NI-2（docs/design/notation-input.md §6.4）：真宿主 + 真命令 + 真 hover。
+    //
+    // 这里**测不了**的两件事，各有归属：
+    //  * 键位本身按不下去——VS Code 没有"发一个 Tab 键"的公开 API；`when` 子句
+    //    由静态契约测试 `notation_input_tab_binding_is_gated_by_its_context_key`
+    //    守护（key 名必须与代码里置位的那个一致）。
+    //  * undo 也驱动不了：workbench 的 `undo` 命令在 vscode-test 宿主里是 **no-op**
+    //    （实测：命令返回后 800ms 文本仍是 `∧`，先 `focusActiveEditorGroup` 也一样
+    //    ——它要的是 UI 键盘焦点，测试宿主给不了）。「一次 edit = 一个 undo 单元」
+    //    因此钉在 stub 宿主层（`test-extension-host.js` 的 fake editor 按真宿主的
+    //    粒度记账），并靠 VS Code 自己的 `TextEditor.edit` 默认
+    //    `{undoStopBefore: true, undoStopAfter: true}`（1.138.0 自带源码实测）。
+    const source = "theorem t (a b : Prop) (h : a ∧ b) : a ∧ b := h\n";
+    const uri = await writeDoc("notation-input.sokonanoda", source);
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const editor = await vscode.window.showTextDocument(doc, { preview: false });
+
+    // hover 半个：光标落在 `∧` 上，文案必须告诉学习者怎么打出来。
+    let hover = "";
+    await waitFor("a hover that teaches the abbreviation", async () => {
+      hover = await hoverTextAt(uri, 0, source.indexOf("∧"));
+      return hover.includes("\\and");
+    });
+    assert.ok(hover.includes("\\and"), `hover must teach the abbreviation, got: ${hover}`);
+
+    // 打字半个：文档里出现一个 `\and`，真命令把它换成 `∧`（`∧` 在真编辑器里就是
+    // 这么敲出来的；命令与键位走的是同一个 handler）。
+    await editor.edit((builder) => builder.insert(new vscode.Position(0, 0), "\\and\n"));
+    editor.selection = new vscode.Selection(0, 4, 0, 4);
+    await vscode.commands.executeCommand("sokonanoda.input.replaceAbbreviation");
+    assert.strictEqual(
+      doc.lineAt(0).text,
+      "∧",
+      `the rewriter must produce ∧, got: ${doc.lineAt(0).text}`,
+    );
+  });
+
   test("restart server command re-syncs open documents", async () => {
     // `sokonanoda: restart server` 重新解析二进制并重启客户端；重启后
     // 打开中的文档要重新拿到诊断（场景：本地二进制重建/缓存刷新后，

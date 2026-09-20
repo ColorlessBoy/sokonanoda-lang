@@ -1,0 +1,24 @@
+-- G-21 复现夹具：点名调用**漏了前导类型参数**时，报错能不能指出根因？
+--
+-- 形状（2026-09-21 实测，语言 0.62.0）：
+--   `mymem α a A` 是正解；`mymem a A` 少写了最前面的 `α`，于是 `a` 被顶到**类型位**上。
+--   两条路径的报错质量**不一样**，本夹具把两条都摆出来：
+--     ① 声明位（`def … : Prop := mymem a A`）—— 已修：`kernel-expected-sort` +
+--        指向「漏了前导类型参数」的 hint（2026-09-21，error.rs 的
+--        `classify_term_in_type_position`）。
+--     ② `by` 路径（`… : mymem a A -> A a := by intro h; exact h`）—— **仍欠**：
+--        报 `elab-tactic-failed`，文案是「期望 `A a`，实际是 `mymem a A`」这种
+--        **同形**对照，看不出缺的是 `α`。根因：`by` 块跑的时候，声明签名**还没被
+--        内核检查过**（`open_signature` 只在值位是洞时才走），于是错误落到了
+--        tactic 引擎的比较上。
+--   驱动脚本：`docs/gaps/repro/G21-omitted-type-argument.sh`。
+
+def mymem (α : Type) (a : α) (A : α → Prop) : Prop := A a
+
+-- ① 声明位：已修（应报 kernel-expected-sort 且 hint 提到前导类型参数）
+def bad_sig (α : Type) (a : α) (A : α → Prop) : Prop := mymem a A
+
+-- ② by 路径：仍欠（应报 elab-tactic-failed 的"同形"对照）
+theorem bad_by (α : Type) (a : α) (A : α → Prop) : mymem a A → A a := by
+  intro h
+  exact h

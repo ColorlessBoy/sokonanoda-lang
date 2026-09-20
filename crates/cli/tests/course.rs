@@ -84,17 +84,17 @@ fn event_counts(out: &std::process::Output) -> (usize, usize, usize, usize, usiz
 /// counts are the contract, so adding/removing an exercise is a deliberate
 /// golden update.
 const GOLDEN: &[(&str, (usize, usize, usize))] = &[
-    ("unit1-propositions-proofs.sokonanoda", (13, 6, 1)),
+    ("unit1-propositions-proofs.sokonanoda", (6, 6, 1)),
     ("unit2-equality-rfl.sokonanoda", (3, 5, 2)),
     ("unit3-functions-arrows.sokonanoda", (2, 6, 2)),
-    ("unit4-by-tactics.sokonanoda", (13, 5, 0)),
+    ("unit4-by-tactics.sokonanoda", (9, 6, 0)),
     ("unit5-universes-sort.sokonanoda", (0, 6, 1)),
     ("unit6-induction-recursion-1.sokonanoda", (7, 6, 3)),
     ("unit7-induction-recursion-2.sokonanoda", (7, 4, 4)),
-    ("unit8-quantifiers.sokonanoda", (14, 7, 1)),
-    ("unit9-relations-connectives.sokonanoda", (13, 8, 0)),
-    ("unit10-reading-proofs.sokonanoda", (7, 6, 0)),
-    ("unit11-modules-projects.sokonanoda", (7, 6, 0)),
+    ("unit8-quantifiers.sokonanoda", (10, 7, 1)),
+    ("unit9-relations-connectives.sokonanoda", (8, 8, 0)),
+    ("unit10-reading-proofs.sokonanoda", (2, 6, 0)),
+    ("unit11-modules-projects.sokonanoda", (2, 6, 0)),
 ];
 
 #[test]

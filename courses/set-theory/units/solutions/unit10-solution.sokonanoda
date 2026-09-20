@@ -1,9 +1,21 @@
 -- unit10 解答钥匙（agent 专用；画布不 import 它）。
 --
--- 判据：全部证明只用 lib/ 与 prelude 里已备好的东西——学习者的负担只有"集合论内容"。
+-- 全部证明写成 `by` tactic 块（白名单：intro / exact / apply / assumption / rfl /
+-- match / constructor / left / right / use / exfalso / cases / have / sorry）——
+-- **没有** rw / obtain / change / simp / induction / calc / rintro / `·`。
+-- 语句一律用**记法**（`∈ ↔ ¬ ∃ =` 与 `Set Nat` 上的集合符号）；**引理名照旧点名**
+-- （`Eq.symm`、`Eq.trans`、`congrArg`、`Exists.intro`、`Exists.elim`、`And.left`、
+-- `And.right`、`Set.Equiv.mk`、`Set.mem_univ`…）——记法是连接符的糖，不是引理名的糖。
+--
+-- 拆 ∃ 的写法（本文件统一）：等势是**数据版**（一对互逆映射 + 四条条件），
+-- 拆包一律**点名** `Exists.elim`（结论 False 里不许出现证人 f / g），四条条件用
+-- `And.left` / `And.right` 取。对角线矛盾先写成一条**局部引理**
+-- （`have diag : ∀ (f) (D) (g), D = fun y => ¬ (f y y) -> … -> False`）：把 f、g 与
+-- 那条互逆律都当**参数**收下，证明体里就只剩集合层计算（`congrArg` + `Eq.subst`）。
+--
 -- 三条纪律：
 --   · lib/Equiv 的等势是**数据版**（一对互逆映射 + 四条条件），不是"存在双射"：
---     用它只能用 Exists.elim 两次，而且每次的结论里不许提到证人 f / g；
+--     用它只能一层层拆，而且结论里不许提到证人 f / g；
 --   · 对角线论证不需要外延性、也不需要选择公理——练习 1–6 一条新公理都没引；
 --   · **练习 7 是唯一的例外**：它正面用一次选择公理（Exists.choose 与成对的
 --     Exists.choose_spec，见文件末尾），把单元⑦ 只能写成数据版的那条补成存在版
@@ -20,117 +32,149 @@ def Set.Countable (α : Type) : Prop :=
 
 -- 练习 2（L）：恒等映射给出 ℕ 与自己的等势（=「ℕ 可数」的实例）。
 -- 两条"进集合"的域条件是 True 的证明，两条互逆律是 rfl 级。
-theorem nat_equiv_nat : Set.Equiv Nat Nat (Set.univ Nat) (Set.univ Nat) :=
-  Set.Equiv.mk Nat Nat (Set.univ Nat) (Set.univ Nat)
-    (fun (n : Nat) => n)
-    (fun (n : Nat) => n)
-    (fun (x : Nat) => fun (hx : Set.mem Nat x (Set.univ Nat)) => True.intro)
-    (fun (y : Nat) => fun (hy : Set.mem Nat y (Set.univ Nat)) => True.intro)
-    (fun (x : Nat) => fun (hx : Set.mem Nat x (Set.univ Nat)) => Eq.refl.{1} Nat x)
-    (fun (y : Nat) => fun (hy : Set.mem Nat y (Set.univ Nat)) => Eq.refl.{1} Nat y)
+-- `apply Set.Equiv.mk` 把四条条件留成子目标；映射本身（两把恒等函数）写在 apply 行上。
+theorem nat_equiv_nat : Set.Equiv Nat Nat (Set.univ Nat) (Set.univ Nat) := by
+  apply Set.Equiv.mk Nat Nat (Set.univ Nat) (Set.univ Nat)
+    (fun (n : Nat) => n) (fun (n : Nat) => n)
+  intro x
+  intro hx
+  exact True.intro
+  intro y
+  intro hy
+  exact True.intro
+  intro x
+  intro hx
+  rfl
+  intro y
+  intro hy
+  rfl
 
 -- 练习 3（T）：对角线集合的成员判定——定义层面的相等。
-theorem diag_mem_iff (α : Type) (f : α -> Set α) (x : α) :
-    Iff (Set.mem α x (fun (y : α) => Not (f y y))) (Not (f x x)) :=
-  Iff.refl (Not (f x x))
+-- `Set.mem α x (fun y => ¬ (f y y))` 与 `¬ (f x x)` 是同一个命题（beta），
+-- 所以 `Iff.refl` 作用在右边那个命题上就是全部证明。
+theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
+    (x ∈ (fun (y : α) => ¬ (f y y))) ↔ (¬ (f x x)) := by
+  exact Iff.refl (¬ (f x x))
 
 -- 练习 4（L）：Cantor 定理。
--- 结构：intro 等势 → 外层 Exists.elim 取正向映射 f（结论 False 不许提 f）
---       → 内层 Exists.elim 取反向映射 g → ④号互逆律（PD）在 D := fun y => Not (f y y) 上
---       给出 Eq (f (g D)) D → 调向 → 对角线矛盾（D (g D) 与 f (g D) (g D) 互为否定）。
--- 两个 motive（MF/MG）先 let 出来，因为 Exists.elim 的 p 是全显式参数。
--- 画布里的 demo_diag 就是这条对角线矛盾；解答是独立文件（不 import 画布），所以这里把它
--- 就地写开（练习 6 同理）——学习者在画布里可以直接点 demo_diag，不必重复这一段。
+-- 结构：先证一条**局部引理** diag（给定正向映射 f、反向映射 g 与 g 的右逆律，
+--       在对角线集合 D := fun y => ¬ (f y y) 上撞出矛盾）；
+--       再把等势 `h` 用两次 `Exists.elim` 拆开（结论 False 不许提证人），
+--       四条条件里只取 ④号右逆律（两层 `And.right`），把它喂给 diag。
+-- 对角线那一步：D = L（L := fun y => ¬ (f y y)）与 f (g D) = D 合起来给出
+--       f (g D) = L，经 congrArg 抬到"在 g D 上取值"这一层就是
+--       `f (g D) (g D) = ¬ (f (g D) (g D))`——两个方向互相推出，撞出 False。
+-- （画布里的 demo_diag 就是这条对角线矛盾；解答是独立文件（不 import 画布），
+--   所以这里就地写开（练习 6 同理）。）
 theorem cantor (α : Type) :
-    Not (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α))) :=
-  fun (h : Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α))) =>
-    let MF : (α -> Set α) -> Prop :=
-      fun (f : α -> Set α) =>
-        And (forall (x : α), Set.mem α x (Set.univ α) -> Set.mem (Set α) (f x) (Set.univ (Set α)))
-          (Exists ((Set α) -> α) (fun (g : (Set α) -> α) =>
-            And (forall (y : Set α),
-                  Set.mem (Set α) y (Set.univ (Set α)) -> Set.mem α (g y) (Set.univ α))
-              (And (forall (x : α), forall (hx : Set.mem α x (Set.univ α)), Eq.{1} α (g (f x)) x)
-                   (forall (y : Set α), forall (hy : Set.mem (Set α) y (Set.univ (Set α))),
-                     Eq.{1} (Set α) (f (g y)) y))));
-    Exists.elim (α -> Set α) MF False h
-      (fun (f : α -> Set α) => fun (hf : MF f) =>
-        let UF : Prop :=
-          forall (x : α), Set.mem α x (Set.univ α) -> Set.mem (Set α) (f x) (Set.univ (Set α));
-        let MG : ((Set α) -> α) -> Prop :=
-          fun (g : (Set α) -> α) =>
-            And (forall (y : Set α),
-                  Set.mem (Set α) y (Set.univ (Set α)) -> Set.mem α (g y) (Set.univ α))
-              (And (forall (x : α), forall (hx : Set.mem α x (Set.univ α)), Eq.{1} α (g (f x)) x)
-                   (forall (y : Set α), forall (hy : Set.mem (Set α) y (Set.univ (Set α))),
-                     Eq.{1} (Set α) (f (g y)) y));
-        let hMG : Exists ((Set α) -> α) MG := And.right UF (Exists ((Set α) -> α) MG) hf;
-        Exists.elim ((Set α) -> α) MG False hMG
-          (fun (g : (Set α) -> α) => fun (hg : MG g) =>
-            let PA : Prop :=
-              forall (y : Set α), Set.mem (Set α) y (Set.univ (Set α)) -> Set.mem α (g y) (Set.univ α);
-            let PD : Prop :=
-              forall (y : Set α), forall (hy : Set.mem (Set α) y (Set.univ (Set α))),
-                Eq.{1} (Set α) (f (g y)) y;
-            let PC : Prop :=
-              forall (x : α), forall (hx : Set.mem α x (Set.univ α)), Eq.{1} α (g (f x)) x;
-            let hPD : PD := And.right PC PD (And.right PA (And PC PD) hg);
-            let D : Set α := fun (y : α) => Not (f y y);
-            let hD : Eq.{1} (Set α) (f (g D)) D := hPD D True.intro;
-            let e : Eq.{1} Prop (f (g D) (g D)) (Not (f (g D) (g D))) :=
-              congrArg.{1} (Set α) Prop (fun (X : Set α) => X (g D)) (f (g D)) D hD;
-            let np : Not (f (g D) (g D)) := fun (p : f (g D) (g D)) =>
-              (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
-                (Not (f (g D) (g D))) e p) p;
-            let hp : f (g D) (g D) :=
-              Eq.subst.{1} Prop (fun (Q : Prop) => Q) (Not (f (g D) (g D)))
-                (f (g D) (g D))
-                (Eq.symm.{1} Prop (f (g D) (g D)) (Not (f (g D) (g D))) e) np;
-            absurd (f (g D) (g D)) False hp np))
+    ¬ (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α))) := by
+  have diag : ∀ (f : α → Set α) (D : Set α) (g : (Set α) → α),
+      D = (fun (y : α) => ¬ (f y y)) → f (g D) = D → False := by
+    intro f D g hDL hgD
+    have hL : f (g D) = (fun (y : α) => ¬ (f y y)) :=
+      Eq.trans.{1} (Set α) (f (g D)) D (fun (y : α) => ¬ (f y y)) hgD hDL
+    have e : f (g D) (g D) = ¬ (f (g D) (g D)) :=
+      congrArg.{1} (Set α) Prop (fun (X : Set α) => X (g D)) (f (g D))
+        (fun (y : α) => ¬ (f y y)) hL
+    have np : ¬ (f (g D) (g D)) := by
+      intro p
+      exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
+        (¬ (f (g D) (g D))) e p) p
+    exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f (g D) (g D)))
+      (f (g D) (g D)) (Eq.symm.{1} Prop (f (g D) (g D)) (¬ (f (g D) (g D))) e) np)
+  intro h
+  exact Exists.elim (α → Set α)
+    (fun (f : α → Set α) =>
+      Set.MapsTo α (Set α) f (Set.univ α) (Set.univ (Set α)) ∧
+      (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
+        (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
+         Set.RightInvOn α (Set α) f g (Set.univ (Set α)))))
+    False h
+    (fun (f : α → Set α) =>
+      fun (hf : Set.MapsTo α (Set α) f (Set.univ α) (Set.univ (Set α)) ∧
+                (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
+                  (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
+                   Set.RightInvOn α (Set α) f g (Set.univ (Set α))))) =>
+        Exists.elim ((Set α) → α)
+          (fun (g : (Set α) → α) =>
+            Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
+            (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
+             Set.RightInvOn α (Set α) f g (Set.univ (Set α))))
+          False
+          (And.right (Set.MapsTo α (Set α) f (Set.univ α) (Set.univ (Set α)))
+            (∃ (g : (Set α) → α), Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
+              (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
+               Set.RightInvOn α (Set α) f g (Set.univ (Set α))))
+            hf)
+          (fun (g : (Set α) → α) =>
+            fun (hg : Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α) ∧
+                      (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
+                       Set.RightInvOn α (Set α) f g (Set.univ (Set α)))) =>
+              diag f (fun (y : α) => ¬ (f y y)) g
+                (Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y)))
+                (And.right (Set.LeftInvOn α (Set α) g f (Set.univ α))
+                  (Set.RightInvOn α (Set α) f g (Set.univ (Set α)))
+                  (And.right (Set.MapsTo (Set α) α g (Set.univ (Set α)) (Set.univ α))
+                    (Set.LeftInvOn α (Set α) g f (Set.univ α) ∧
+                     Set.RightInvOn α (Set α) f g (Set.univ (Set α)))
+                    hg)
+                  (fun (y : α) => ¬ (f y y)) True.intro)))
 
 -- 练习 5（D）：「𝒫ℕ 可数」为假——Cantor 定理在 α := Nat 上的实例。
 theorem powerset_nat_not_countable :
-    Not (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat))) :=
-  cantor Nat
+    ¬ (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat))) := by
+  exact cantor Nat
 
 -- 练习 6（D）：不存在 α -> Set α 的满射（假的枚举补不成满射）。
--- 只有满射可拆，所以对角线这里自己接：hf D 给原像 x 与 Eq (f x) D，再制造 P ↔ ¬P 的矛盾。
+-- 只有满射可拆，所以对角线这里自己接：把对角线集合交给满射性拿到原像 x 与
+-- `f x = D`，再制造 P ↔ ¬P 的矛盾（与练习 4 的 diag 同款，只是少了等势那层包装）。
 theorem no_surjection_powerset (α : Type) :
-    Not (Exists (α -> Set α) (fun (f : α -> Set α) => Function.Surjective α (Set α) f)) :=
-  fun (h : Exists (α -> Set α) (fun (f : α -> Set α) => Function.Surjective α (Set α) f)) =>
-    Exists.elim (α -> Set α)
-      (fun (f : α -> Set α) => Function.Surjective α (Set α) f)
-      False h
-      (fun (f : α -> Set α) => fun (hf : Function.Surjective α (Set α) f) =>
-        let D : Set α := fun (y : α) => Not (f y y);
-        Exists.elim α (fun (x : α) => Eq.{1} (Set α) (f x) D) False (hf D)
-          (fun (x : α) => fun (hx : Eq.{1} (Set α) (f x) D) =>
-            let e : Eq.{1} Prop (f x x) (Not (f x x)) :=
-              congrArg.{1} (Set α) Prop (fun (X : Set α) => X x) (f x) D hx;
-            let np : Not (f x x) := fun (p : f x x) =>
-              (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x) (Not (f x x)) e p) p;
-            let hp : f x x :=
-              Eq.subst.{1} Prop (fun (Q : Prop) => Q) (Not (f x x)) (f x x)
-                (Eq.symm.{1} Prop (f x x) (Not (f x x)) e) np;
-            absurd (f x x) False hp np))
+    ¬ (∃ (f : α → Set α), Function.Surjective α (Set α) f) := by
+  have diag : ∀ (f : α → Set α) (D : Set α) (x : α),
+      D = (fun (y : α) => ¬ (f y y)) → f x = D → False := by
+    intro f D x hDL hxD
+    have hL : f x = (fun (y : α) => ¬ (f y y)) :=
+      Eq.trans.{1} (Set α) (f x) D (fun (y : α) => ¬ (f y y)) hxD hDL
+    have e : f x x = ¬ (f x x) :=
+      congrArg.{1} (Set α) Prop (fun (X : Set α) => X x) (f x)
+        (fun (y : α) => ¬ (f y y)) hL
+    have np : ¬ (f x x) := by
+      intro p
+      exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
+        (¬ (f x x)) e p) p
+    exact np (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (¬ (f x x))
+      (f x x) (Eq.symm.{1} Prop (f x x) (¬ (f x x)) e) np)
+  intro h
+  exact Exists.elim (α → Set α)
+    (fun (f : α → Set α) => Function.Surjective α (Set α) f)
+    False h
+    (fun (f : α → Set α) => fun (hf : Function.Surjective α (Set α) f) =>
+      Exists.elim α (fun (x : α) => f x = (fun (y : α) => ¬ (f y y))) False
+        (hf (fun (y : α) => ¬ (f y y)))
+        (fun (x : α) => fun (hx : f x = (fun (y : α) => ¬ (f y y))) =>
+          diag f (fun (y : α) => ¬ (f y y)) x
+            (Eq.refl.{1} (Set α) (fun (y : α) => ¬ (f y y))) hx))
 
 -- 练习 7（L）：满射 ⇒ 存在右逆函数——**卷 I 唯一一次用选择公理**（台账 L-06 的边界）。
 --
 -- 公理成对出现（Lean 4 core 同款；Avigad《Logic and Proof》§16.4 写成 `choose h` 配
 -- `choose_spec h`）：`Exists.choose` 只挑出元素，`Exists.choose_spec` 才说明挑中的那个
 -- 满足性质。所以右逆 g 的**函数体**由 choose 填、**逐点等式**由 choose_spec 交：
---   g := fun y => choose (hf y)                     —— 每个 y 挑一个原像
---   f (g y) = y 就是 choose_spec (hf y) 的类型展开  —— 挑出来的确实是原像
+--   g := fun y => Exists.choose α (fun x => f x = y) (hf y)  —— 每个 y 挑一个原像
+--   f (g y) = y 就是 choose_spec (hf y) 的类型展开             —— 挑出来的确实是原像
 -- 少了 choose_spec，g 只是一个来路不明的 α 元素，"f (g y) = y" 一个字都写不出来——
 -- 这正是单元⑦ 题 6 只能把 g 与互逆证据当**参数**收下的原因（数据版，L-06）。
 -- 本文件其它 6 题、以及卷 I 其它单元，一条都没引这两条公理。
-axiom Exists.choose : (A : Type) -> (p : A -> Prop) -> Exists A p -> A
-axiom Exists.choose_spec : (A : Type) -> (p : A -> Prop) -> (h : Exists A p) ->
+axiom Exists.choose : (A : Type) → (p : A → Prop) → (∃ (x : A), p x) → A
+axiom Exists.choose_spec : (A : Type) → (p : A → Prop) → (h : ∃ (x : A), p x) →
   p (Exists.choose A p h)
 
-theorem choice_split (α β : Type) (f : α -> β)
+-- 证人（那把右逆 g）直接写成 λ 交出去（`Exists.intro` 四样写全），逐点等式由
+-- choose_spec 交——两处都用同一把 `fun y => Exists.choose …`，beta 之后逐字对上。
+theorem choice_split (α β : Type) (f : α → β)
     (hf : Function.Surjective α β f) :
-    Exists (β -> α) (fun (g : β -> α) => Function.RightInverse α β g f) :=
-  let g : β -> α := fun (y : β) => Exists.choose α (fun (x : α) => Eq.{1} β (f x) y) (hf y);
-  Exists.intro (β -> α) (fun (g : β -> α) => Function.RightInverse α β g f) g
-    (fun (y : β) => Exists.choose_spec α (fun (x : α) => Eq.{1} β (f x) y) (hf y))
+    ∃ (g : β → α), Function.RightInverse α β g f := by
+  exact Exists.intro (β → α)
+    (fun (g : β → α) => Function.RightInverse α β g f)
+    (fun (y : β) => Exists.choose α (fun (x : α) => f x = y) (hf y))
+    (fun (y : β) => Exists.choose_spec α (fun (x : α) => f x = y) (hf y))
