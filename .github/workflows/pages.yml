@@ -28,9 +28,16 @@ on:
       - "scripts/gen-site-data.py"   # site.json：已发布版本
       - "scripts/check-site.py"      # 总验收（10 项）
       - ".github/workflows/pages.yml"
-  # 发布一个新 tag 之后自动刷新站点：站点写的是**已发布版本**的事实，
-  # 而 tag 是 push 之外的动作——不挂这一条，线上会一直停在上一个版本号，
-  # 直到有人碰巧改了一次 `site/**`。
+  # 发布一个新 release 之后刷新站点（站点写的是**已发布版本**的事实）。
+  #
+  # ⚠️ **它对自动发版不生效**：release 由 `release.yml` 用 `GITHUB_TOKEN` 创建，
+  # 而 GITHUB_TOKEN 触发的事件**不会**再触发其它 workflow（GitHub 的防递归规则，
+  # 与本仓 auto-tag 那条注释同一个坑）。2026-09-21 实测：v0.62.0 发布成功后
+  # 这里一次都没有被触发。
+  # 所以**发布后刷新站点的真正机制是 `docs/RELEASE.md` §6.5 那两步**
+  # （重跑 `gen-site-data.py` 并提交 `site/data/site.json`）——提交会改到
+  # `site/**`，那一推才是这个 workflow 的触发器。
+  # 这一条留着是为了**人工**在 UI 上发布 release 的场合（那种事件不是 bot 发的）。
   release:
     types: [published]
   workflow_dispatch:

@@ -445,6 +445,11 @@ EN 与 CN 代码逐字节一致、golden 事件计数不变）。**顺带修掉�
   `scripts/gen-site-data.py` 生成——版本读 `Cargo.toml`、轮次读 `STATUS.md`、
   **计数由课程门禁 `--json` 实测**（`counts_source: "gate"`），三样都不许手写；
   `python3 scripts/check-site.py` 绿（10 页、链接与版本干净）。
+  > ⚠️ **2026-09-21 起这条作废**：官网简化成**一个页面**（是什么 / 怎么安装 /
+  > 核心特点 / 未来的计划，第一百二十轮），`set-theory.html` 与 27 个页面一起删除，
+  > 生成器也只剩下"版本号"一件事，而且**版本改读最新的已发布 tag**（不再读
+  > `Cargo.toml`）。当前权威 = `docs/design/site-single-page.md`，
+  > 验收 = `python3 scripts/check-site.py`（10 项，含真 Chrome 的 `--browser`）。
 
 ### D. 远期（L2/L3）
 - 协作/多用户、远程；compiler service 的跨文件转播 / `setContent`（v1 未做）。

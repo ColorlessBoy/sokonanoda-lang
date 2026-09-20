@@ -59,6 +59,21 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    "抬上限 + 换 release"这两件临时手段，已写进站点「未来的计划」与本文 §4。
    未进缺口台账：进台账要配一条**CI 预算内**的确定性复现，不为了凑格式塞一条跑不动的。
 
+6. **0.62.0 已发布（2026-09-21）**：`ci` 全绿（22m49s）→ auto-tag 打 `v0.62.0`
+   → release 流水线 **5m35s 全绿**（8 平台 build + package-vsix + marketplace-publish
+   + github-release），Release **26 资产**（8 CLI tarball + 8 LSP tarball + 9 VSIX
+   + `SHA256SUMS`）。**发布产物实测**：下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`
+   → `sokonanoda 0.62.0`，判 `playground.sokonanoda` 的事件类型计数与仓库 release
+   构建**逐项相同**（`decl.checked 23 / example.checked 2 / exercise.open 4 / warning 1`），
+   真课程文件（卷 I 单元①）判卷正常。
+7. **站点已跟上 0.62.0**：`site/data/site.json` → `v0.62.0`，`check-site.py` 9/9 +
+   `--browser` 10/10。
+   **一条实测修正**：`pages.yml` 的 `release: [published]` 对**自动发版不生效**——
+   release 由 `release.yml` 用 `GITHUB_TOKEN` 创建，而 GITHUB_TOKEN 触发的事件不会再
+   触发其它 workflow（与 auto-tag 那条注释同一个防递归坑；v0.62.0 实测一次都没触发）。
+   所以"发布后刷新站点"的真正机制仍是 `docs/RELEASE.md` §6.5 那两步；那条 trigger
+   留着只对"人在 UI 上发布 release"有效，注释已就地更正。
+
 ## 本轮进度（2026-09-21，第一百一十九轮（站点线）：站点事实改锚发布 tag —— 并修掉一个把正确复现判成红的陷阱）
 
 > 用户：「那边功能侧 agent 已经提交了，你这边看看哪里要适配改一下，然后也提交一下。」
