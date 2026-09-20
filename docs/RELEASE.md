@@ -145,26 +145,20 @@ auto-tag 的显式比对）。手动推 tag 应急后，核对双页见
 
 ## 6.5 发布后：站点要跟着刷新（2026-09-21 立）
 
-**站点写的是「已发布版本」的事实**（`site/`，设计见 `docs/design/site-rebuild/`），
-所以 tag 一落地，站点上的版本号、课程计数、6 份 lab 数据就都**落后了一次发布**。
-这不是假话（旧版本确实能下载），但必须当成发布流程的一部分做掉：
+**站点写的是「已发布版本」的事实**（`site/`，设计见 `docs/design/site-single-page.md`），
+所以 tag 一落地，仓库里那份 `site/data/site.json` 就**落后了一次发布**。
+
+两步，两条命令：
 
 ```bash
-python3 scripts/gen-site-data.py     # 版本 + 卷 I 清单/计数（自动跟到新 tag）
-python3 scripts/gen-site-lab.py      # 6 份 lab 数据：走查/事件/诊断/时间线/台账/证据
-python3 scripts/gen-site-search.py   # 页面文字若改过，搜索索引要重生成
-python3 scripts/site-verify.py       # 18 项，必须全绿
+python3 scripts/gen-site-data.py   # 版本跟到新 tag（站点唯一的版本号来源）
+python3 scripts/check-site.py      # 10 项验收；data 项会检查它是否已跟上
 ```
 
-`gen-site-lab.py` 的 6 份数据文件信封（`version` / `source_commit` / `generated_at`）
-直接读**工作树**，所以**发布前不要重跑它**——会把未发布状态混进站点。发布后重跑时
-记得同步 `site/kernel.html` 里逐字引用的 `source_commit` / `generated_at`（K10 会查）。
-另有一处记法边界的三条新事实待随 0.62.0 补进 `notation.html`：完整五步清单在
-`docs/design/site-rebuild/STATE.md` §12.2。
-
-判据 K17 会在站点落后时**记一笔而不判红**（`v0.61.0 落后于最新 tag v0.62.0`）：
-发布刚落地时 `pages.yml` 正在部署，判红会把"该重跑生成器"的待办伪装成部署故障。
-但**它只判"谎话"**——站点写了一个没有任何 tag 的版本 ⇒ 判红，因为读者按它下载会 404。
+线上**不需要**手动触发：`pages.yml` 挂了 `release: types: [published]`，
+发布后自动重新部署，部署时生成器重算 `site/data/site.json`。但仓库里那份数据
+仍要一起提交，否则 `check-site.py` 的 `data` 项在本地永远判红——**本地绿必须
+意味着「仓库里写的就是线上写的」**（这是有意的，不是噪声）。
 
 ## 7. 已知限制与风险
 

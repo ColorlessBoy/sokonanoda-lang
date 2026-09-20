@@ -1,706 +1,457 @@
 #!/usr/bin/env python3
-"""Site hygiene checks (run in CI before deploying to GitHub Pages).
+"""站点总验收（单页站点）：**一条命令，exit 0 才算过**。
 
-Ten assertions, all born from this repo's documentation-drift history
-(docs/design/site-rebuild/spec/D2 §3.3; the superseded rules are in
-docs/design/site.md §5.3):
+设计：`docs/design/site-single-page.md`。只用 python3 标准库。
 
-1. **links** — every in-site `href` / `src` target must exist on disk, and
-   every repo-relative `docs/...` / `course/...` link must point at a real
-   file (mirrors `crates/cli/tests/skill.rs`'s
-   `skill_referenced_repo_paths_exist`).
-2. **versions** — `site/**/*.html` must not contain a literal `0.x.y`
-   version. Version numbers come from `site/data/site.json` and the GitHub
-   Releases API at view time — hardcoding them is how `README.md` ended up
-   advertising `V=0.9.0` while the repo was at 0.17.0.
-3. **nav-drift** — each page's `<!--#nav-->` / `<!--#footer-->` blocks equal
-   `site/_partials/{header,footer}.html` (after the aria-current
-   normalisation). The comparison rule lives in `scripts/gen-site-nav.py` and
-   is *imported*, never re-derived: one implementation, one truth.
-4. **data-page** — every page declares `<body data-page="…">`, that id names a
-   real nav link, and it owns the page's single `aria-current="page"`.
-5. **metadata** — exactly one `<h1>`, non-empty `<title>`,
-   `<meta name="description">`, `<link rel="canonical">`,
-   `<meta name="theme-color">`, `og:title` / `og:description` / `og:type`.
-6. **asset-budget** — every local stylesheet / script a page references
-   exists, and the measured totals respect D2 §3.4.
-7. **no-bitmaps** — no `<img>` that is not an SVG, no `.png`/`.jpg`/`.gif`
-   reference in HTML (the old site shipped PIL-rendered fake screenshots).
-8. **no-inline-style** — no `style=` attributes (token bypass).
-9. **turnstile** — every page carries the `.turnstile` device, or is listed
-   in an explicit exemption set with a reason.
-10. **sitemap** — `sitemap.xml` and the pages on disk agree in *both*
-    directions: no page missing from the sitemap, no sitemap entry pointing at
-    a page that does not exist (`en/` maps to `en/index.html`, not the root
-    `index.html`).
+这个脚本取代了重构期的五个工具（`check-site.py` / `site-verify.py` /
+`site-audit.py` / `site-functest.py` / `site-shot.py`，合计约 2800 行）——
+站点只剩一个页面之后，那些检查里的绝大部分（跨页导航、搜索索引、
+导航单源注入、多页 sitemap、逐页元数据）**没有对象可查**了。
 
-Every assertion reports `file: reason` and fails independently; each prints a
-summary line with counts (and measured byte totals for the budget). Python
-stdlib only, so the site pipeline stays zero-build.
+查什么（每项一个名字，失败会指名）：
 
-Usage: `python3 scripts/check-site.py [--site DIR]`.
-Exit codes: 0 clean, 1 problems, 2 usage error.
+| 项 | 断言 |
+|---|---|
+| `pages`     | `site/` 下恰好一个 HTML 页（`index.html`），没有 `_partials/` 之类的内部目录 |
+| `sitemap`   | `sitemap.xml` 与真实页面集合**双向相等**（不悬空、不漏页） |
+| `links`     | 每个 `href`/`src` 都解析得到：相对路径文件存在，页内锚点有对应 `id` |
+| `css-urls`  | CSS 里每个 `url(...)` 指向的文件存在（自托管字体） |
+| `version`   | 页面/脚本里**没有写死的版本号**（`0.x.y` 字面量），且版本引用走 `data-site-version` |
+| `meta`      | head 里 `lang`/`title`/`description`/`canonical`/`viewport`/`favicon`/`og:*` 齐全 |
+| `markup`    | 标签配对（`html.parser` 走一遍）；没有内联 `style=` 属性 |
+| `assets`    | 没有位图；html+css+js 的原始字节在预算内 |
+| `data`      | `site/data/site.json` 与最新**已发布 tag** 一致（`gen-site-data.py --check`） |
+| `render`    | （`--browser`）真 Chrome 跑一遍：资源零 404，且版本号被 JS 回填进 DOM |
+
+用法：
+
+```bash
+python3 scripts/check-site.py              # 默认 9 项（不需要浏览器）
+python3 scripts/check-site.py --browser    # 额外跑渲染实跑（要 Chrome）
+python3 scripts/check-site.py --json       # 机器可读
+```
+
+退出码：**0** 全绿 / **1** 有断言判红 / **3** 无法判定（缺 tag、缺文件）。
 """
 
 from __future__ import annotations
 
 import argparse
-import gzip
-import html.parser
 import json
-import importlib.util
+import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass, field
-from pathlib import Path
+from html.parser import HTMLParser
 
-DEFAULT_SITE = Path(__file__).resolve().parent.parent / "site"
-VERSION_RE = re.compile(r"(?<![\d.])0\.\d+\.\d+(?![\d.])")
-# Any `scheme:` prefix (https:, mailto:, vscode: …) — not a repo-relative link.
-SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
-# `_partials/` holds the single source for the nav/footer blocks, not a page:
-# it is never published and its links are site-root-relative by convention.
-PAGE_SKIP_DIRS = {"_partials"}
-BITMAP_RE = re.compile(r"[\w./~%+-]+\.(?:png|jpe?g|gif|webp|avif)\b", re.IGNORECASE)
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SITE = os.path.join(REPO_ROOT, "site")
+PAGE = os.path.join(SITE, "index.html")
+DATA = os.path.join(SITE, "data", "site.json")
 
-# Budgets, bytes (D2 §3.4).
-#
-# CSS 有两条：raw 防悄悄膨胀，gzip 才是读者实际付的代价。真实数字来自
-# S0 阶段的实测——四份样式表合计 ~96 KB raw / ~30 KB gzip，其中约四成是
-# 注释（注释解释了"为什么"，而且 gzip 压得掉）。把它压到 45 KB raw 的唯一
-# 办法是删注释，那是把设计理由换成体积，不划算；所以 raw 上限按实测定，
-# gzip 上限卡在 32 KB（相当于一张小图，且跨页缓存）。
-HTML_BUDGET = 90 * 1024
-HTML_GZIP_BUDGET = 26 * 1024
-# CSS 的预算按**实测基线 + ~15% 余量**定，不是按整数定的。定这条时四份样式表
-# 是 100.1 KB raw / 31.3 KB gzip（tokens 19.3 + base 13.2 + site 29.5 +
-# editor 38.1），其中约四成是注释——注释解释"为什么"，而且 gzip 压得掉。
-# 预算的用途是**拦住回归**，不是逼作者删理由去凑一个整数。
-# 实测基线（7 份样式表，含 diagnostics.css 与 styleguide.css）：
-#   114.8 KB raw / 36.8 KB gzip。预算给 ~10% 余量拦回归。
-# 早先只数了四份文件，所以这个数一直偏低——**写死的文件清单会漂**，
-# 现在 CSS_BUDGET_FILES 是 glob 出来的。
-CSS_BUDGET = 128 * 1024
-CSS_GZIP_BUDGET = 41 * 1024
-JS_BUDGET = 12 * 1024
-FONTS_BUDGET = 120 * 1024
-# 预算覆盖**全部**页面可加载的样式表。早先这里写死了四个文件名，结果
-# `diagnostics.css`（诊断页专用，子 agent 后加的）一直没被计数——写死的清单
-# 与"实际有哪些文件"是两件事，前者会漂。fonts.css 只含 @font-face，不参与
-# 体积预算（字体本身另有 FONTS_BUDGET）。
-CSS_BUDGET_EXCLUDE = {"fonts.css"}
-CSS_BUDGET_FILES = tuple(
-    sorted(p.name for p in (DEFAULT_SITE / "assets").glob("*.css")
-           if p.name not in CSS_BUDGET_EXCLUDE)
-)
-JS_BUDGET_FILE = "site.js"
+# 体积预算（原始字节，不含字体）。单页站点没有理由接近这个数：
+# 它是"再加一个页面/一个库之前，先想想"的闸门，不是性能指标。
+SIZE_BUDGET = 120 * 1024
+BITMAP_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico")
 
-# ---------------------------------------------------------------------------
-# Allowlists — every entry must carry a reason, and an empty dict is the goal.
-# Add an entry only with a comment saying why the exception is legitimate.
-# ---------------------------------------------------------------------------
+# 写死的版本号：拒 IP（127.0.0.1），抓 `v0.62.0` 与 `0.62.0`。
+VERSION_LITERAL = re.compile(r"(?<![\d.])0\.\d+\.\d+(?![\d.])")
+# 版本引用必须走这些钩子，值由 site.js 从 data/site.json 回填。
+VERSION_HOOKS = ("data-site-version", "data-version-text", "data-version-href")
 
-# Bitmaps: site-relative path -> reason. (D2 §3.3 exempts favicon.svg; the
-# og:image social card is the only expected future entry.)
-BITMAP_ALLOWLIST: dict[str, str] = {}
-
-# Inline `style=`: page (site-relative) -> {exact attribute value: reason}.
-INLINE_STYLE_ALLOWLIST: dict[str, dict[str, str]] = {}
-
-# Turnstile: page (site-relative) -> reason for not carrying the device.
-TURNSTILE_EXEMPT: dict[str, str] = {}
-
-# Pages that legitimately carry no `data-page` nav marking. 404 is the only one:
-# it is reached at an arbitrary URL, so marking a nav item "current" would be a
-# lie, and it has no nav entry of its own. Everything else must declare one.
-PAGE_ID_EXEMPT: dict[str, str] = {
-    "404.html": "错误页：URL 任意，标任何一项为 aria-current 都是假话",
-}
-
-# `sitemap.xml` must list every page except these (an error page has no
-# indexable URL of its own).
-SITEMAP_EXEMPT: dict[str, str] = {
-    "404.html": "错误页不进 sitemap（没有可索引的 URL）",
-}
+TEXT_EXT = (".html", ".css", ".js", ".txt", ".xml", ".json", ".svg")
 
 
-def load_nav_module():
-    """Import scripts/gen-site-nav.py — the one implementation of the nav rules.
-
-    The file name has a dash, so it cannot be a normal import; loading it by
-    path keeps `gen-site-nav.py --check` and this checker provably identical.
-    """
-    path = Path(__file__).resolve().parent / "gen-site-nav.py"
-    spec = importlib.util.spec_from_file_location("gen_site_nav", path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"cannot load {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["gen_site_nav"] = module
-    previous = sys.dont_write_bytecode
-    sys.dont_write_bytecode = True  # never drop __pycache__ into scripts/
-    try:
-        spec.loader.exec_module(module)
-    finally:
-        sys.dont_write_bytecode = previous
-    return module
+class Failure(Exception):
+    pass
 
 
-class TagScanner(html.parser.HTMLParser):
-    """Collect refs, tags, attributes and `<title>` text; fail loudly on markup."""
+def rel(path: str) -> str:
+    return os.path.relpath(path, REPO_ROOT)
 
+
+def walk_site() -> list[str]:
+    out: list[str] = []
+    for root, dirs, files in os.walk(SITE):
+        dirs[:] = [d for d in dirs if d not in (".git",)]
+        for name in files:
+            out.append(os.path.join(root, name))
+    return sorted(out)
+
+
+def read(path: str) -> str:
+    with open(path, encoding="utf-8") as handle:
+        return handle.read()
+
+
+# ── HTML 解析：标签配对 + 引用收集 ─────────────────────────────────────
+
+VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+        "meta", "param", "source", "track", "wbr"}
+
+
+class PageParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.refs: list[str] = []
-        self.tags: list[tuple[str, dict[str, str]]] = []
-        self.stylesheets: list[str] = []
-        self.scripts: list[str] = []
-        self.images: list[str] = []
-        self.inline_styles: list[tuple[str, str]] = []
-        self.title: str = ""
-        self._in_title = False
+        self.stack: list[tuple[str, int]] = []
+        self.errors: list[str] = []
+        self.refs: list[tuple[str, str, int]] = []   # (attr, value, line)
+        self.ids: set[str] = set()
+        self.inline_styles: list[int] = []
+        self.meta: dict[str, str] = {}
 
-    def handle_starttag(self, tag: str, attrs) -> None:
-        values = {name: (value or "") for name, value in attrs}
-        self.tags.append((tag, values))
-        for name, value in attrs:
-            if name in {"href", "src"} and value:
-                self.refs.append(value)
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        line = self.getpos()[0]
+        if tag not in VOID:
+            self.stack.append((tag, line))
+        if "id" in attrs:
+            self.ids.add(attrs["id"])
+        if "style" in attrs:
+            self.inline_styles.append(line)
+        for attr in ("href", "src"):
+            if attr in attrs:
+                self.refs.append((attr, attrs[attr], line))
+        if tag == "html" and "lang" in attrs:
+            self.meta["lang"] = attrs["lang"]
+        if tag == "meta":
+            key = attrs.get("name") or attrs.get("property")
+            if key:
+                self.meta[key] = attrs.get("content", "")
+        if tag == "link" and "rel" in attrs:
+            self.meta[f"link:{attrs['rel']}"] = attrs.get("href", "")
         if tag == "title":
-            self._in_title = True
-        elif tag == "img":
-            self.images.append(values.get("src", ""))
-        elif tag == "link" and "stylesheet" in values.get("rel", "").split():
-            if values.get("href"):
-                self.stylesheets.append(values["href"])
-        elif tag == "script" and values.get("src"):
-            self.scripts.append(values["src"])
-        if values.get("style"):
-            self.inline_styles.append((tag, values["style"]))
+            self.meta["_in_title"] = "1"
+        if tag == "script" and "src" not in attrs:
+            self.meta.setdefault("inline_scripts", "0")
+            self.meta["inline_scripts"] = str(int(self.meta["inline_scripts"]) + 1)
 
-    def handle_endtag(self, tag: str) -> None:
-        if tag == "title":
-            self._in_title = False
+    def handle_endtag(self, tag):
+        if tag in VOID:
+            return
+        if not self.stack:
+            self.errors.append(f"第 {self.getpos()[0]} 行：多余的 </{tag}>")
+            return
+        open_tag, line = self.stack.pop()
+        if open_tag != tag:
+            self.errors.append(f"第 {line} 行 <{open_tag}> 与第 {self.getpos()[0]} 行 </{tag}> 不配对")
+        if tag == "title" and self.stack:
+            self.meta.pop("_in_title", None)
 
-    def handle_data(self, data: str) -> None:
-        if self._in_title:
-            self.title += data
+    def handle_data(self, data):
+        if self.meta.pop("_in_title", None):
+            self.meta["title"] = data.strip()
 
-    def meta_content(self, key: str, value: str) -> str | None:
-        """Content of the first `<meta {key}="{value}">`, or None."""
-        for tag, attrs in self.tags:
-            if tag == "meta" and attrs.get(key) == value:
-                return attrs.get("content", "")
-        return None
-
-    def link_href(self, rel: str) -> str | None:
-        """href of the first `<link rel="{rel}">`, or None."""
-        for tag, attrs in self.tags:
-            if tag == "link" and rel in attrs.get("rel", "").split():
-                return attrs.get("href", "")
-        return None
-
-    def has_class(self, name: str) -> bool:
-        return any(
-            name in attrs.get("class", "").split() for _, attrs in self.tags
-        )
+    def close(self):
+        super().close()
+        for tag, line in self.stack:
+            self.errors.append(f"第 {line} 行 <{tag}> 没有闭合")
 
 
-@dataclass
-class Page:
-    path: Path
-    rel: str  # relative to the site root, posix
-    source: str
-    scanner: TagScanner
-    repo: Path
-    site: Path
-    problems: dict[str, list[str]] = field(default_factory=dict)
+# ── 各项断言 ───────────────────────────────────────────────────────────
+
+def check_pages(files: list[str]) -> str:
+    pages = [f for f in files if f.endswith(".html")]
+    if len(pages) != 1 or os.path.abspath(pages[0]) != os.path.abspath(PAGE):
+        raise Failure(f"site/ 下应当恰好一个页面 index.html，实际：{[rel(p) for p in pages]}")
+    internal = [rel(f) for f in files if os.sep + "_" in f]
+    if internal:
+        raise Failure(f"发布树里不该有内部目录（_partials 之类）：{internal}")
+    return f"1 页（{rel(PAGE)}）"
 
 
-def html_files(site: Path) -> list[Path]:
-    return sorted(
-        path
-        for path in site.rglob("*.html")
-        if not PAGE_SKIP_DIRS.intersection(path.relative_to(site).parts)
-    )
+def check_sitemap(files: list[str], parser: PageParser) -> str:
+    path = os.path.join(SITE, "sitemap.xml")
+    if not os.path.exists(path):
+        raise Failure("缺 site/sitemap.xml")
+    locs = re.findall(r"<loc>([^<]+)</loc>", read(path))
+    if not locs:
+        raise Failure("sitemap.xml 里一条 <loc> 都没有")
+    if len(locs) != len(set(locs)):
+        raise Failure("sitemap.xml 里有重复 URL")
+    # 双向：页面集合（除 404）必须与 loc 集合一一对应。
+    pages = {os.path.basename(f) for f in files if f.endswith(".html")}
+    listed = {u.rstrip("/").rsplit("/", 1)[-1] or "index.html" for u in locs}
+    listed = {name if name.endswith(".html") else "index.html" for name in listed}
+    if pages != listed:
+        raise Failure(f"sitemap 与真实页面不一致：页面 {sorted(pages)} vs sitemap {sorted(listed)}")
+    return f"{len(locs)} 条，与页面集合双向相等"
 
 
-def resolve_ref(page: Path, ref: str, repo: Path) -> Path | None:
-    """Resolve a relative href/src against the page's own directory.
-
-    `None` for external URLs, URI-scheme links (`https:`, `mailto:`,
-    `vscode:` …), pure anchors, and links that escape the repo (those are
-    someone else's problem — and a path-traversal smell).
-    """
-    if ref.startswith("#") or SCHEME_RE.match(ref):
-        return None
-    path = ref.split("#", 1)[0]
-    if not path:
-        return None
-    candidate = (page.parent / path).resolve()
-    if repo.resolve() not in candidate.parents:
-        return None
-    return candidate
-
-
-def size_of(path: Path) -> int:
-    return path.stat().st_size if path.is_file() else 0
-
-
-def gzip_size(path: Path) -> int:
-    """Bytes actually transferred for a text asset (GitHub Pages gzips them).
-
-    Asserting on raw size alone would push authors to delete the comments that
-    explain *why* a rule exists — comments are nearly free after gzip, so the
-    honest budget is measured after gzip.
-    """
-    if not path.is_file():
-        return 0
-    return len(gzip.compress(path.read_bytes(), compresslevel=9))
-
-
-def kb(size: int) -> str:
-    return f"{size / 1024:.1f} KB" if size >= 1024 else f"{size} B"
-
-
-# ---------------------------------------------------------------------------
-# assertions — uniform signature, each fails independently, each returns a note
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class Context:
-    site: Path
-    repo: Path
-    pages: list[Page]
-    parse_errors: list[str]
-    nav: object | None
-    nav_error: str | None
-
-
-def assertion_links(ctx: Context) -> tuple[list[str], str]:
-    problems = list(ctx.parse_errors)
-    if not ctx.pages and not problems:
-        problems.append("site/ has no HTML files at all")
-    for page in ctx.pages:
-        for ref in page.scanner.refs:
-            target = resolve_ref(page.path, ref, ctx.repo)
-            if target is not None and not target.exists():
-                problems.append(f"{page.rel}: broken link -> {ref}")
-    return problems, f"{len(ctx.pages)} page(s) scanned"
-
-
-def assertion_versions(ctx: Context) -> tuple[list[str], str]:
-    problems: list[str] = []
-    for page in ctx.pages:
-        # 版本号一律来自 site.json / Releases API，不许写死。
-        if page.path.name == "site.json":
+def check_links(parser: PageParser) -> str:
+    checked = 0
+    for attr, value, line in parser.refs:
+        if value.startswith(("http://", "https://", "mailto:", "data:")):
             continue
-        for match in VERSION_RE.finditer(page.source):
-            problems.append(
-                f"{page.rel}: hardcoded version `{match.group(0)}` "
-                "(use site/data/site.json or the Releases API)"
-            )
-    if not (ctx.site / "data" / "site.json").exists():
-        problems.append("site/data/site.json is missing (run gen-site-data.py)")
-
-    # `version.json` 是给页面回填版本号用的极小副本：`site.json` 有 12 KB，
-    # 而 28 页每一页都要填一次版本号，为一个字符串付 12 KB 不划算。
-    # 两份必须一致，否则页脚会显示一个与站点数据不符的版本——比不显示更糟。
-    version_file = ctx.site / "data" / "version.json"
-    if not version_file.exists():
-        problems.append("site/data/version.json is missing (run gen-site-data.py)")
-    else:
-        try:
-            small = json.loads(version_file.read_text(encoding="utf-8")).get("version")
-            full_path = ctx.site / "data" / "site.json"
-            full = (
-                json.loads(full_path.read_text(encoding="utf-8")).get("version")
-                if full_path.exists()
-                else None
-            )
-            if full is not None and full != small:
-                problems.append(
-                    f"site/data/version.json says {small!r} but site.json says {full!r}"
-                )
-        except json.JSONDecodeError as exc:
-            problems.append(f"site/data/version.json is not valid JSON: {exc}")
-    return problems, f"{len(ctx.pages)} page(s) scanned"
-
-
-def _partials_or_problem(ctx: Context):
-    """(partials, problems, note) — the nav module may legitimately be missing."""
-    if ctx.nav is None:
-        return None, [ctx.nav_error or "scripts/gen-site-nav.py unavailable"], "unavailable"
-    try:
-        return ctx.nav.load_partials(ctx.site), [], ""
-    except Exception as exc:  # NavError: loud, file-naming
-        return None, [str(exc)], "partials unavailable"
-
-
-def assertion_nav_drift(ctx: Context) -> tuple[list[str], str]:
-    partials, problems, note = _partials_or_problem(ctx)
-    if partials is None:
-        return problems, note
-    for page in ctx.pages:
-        problems += ctx.nav.block_problems(ctx.site, page.rel, page.source, partials)
-    return problems, f"{len(ctx.pages)} page(s) vs site/_partials/ (1 comparison rule)"
-
-
-def assertion_data_page(ctx: Context) -> tuple[list[str], str]:
-    partials, problems, note = _partials_or_problem(ctx)
-    if partials is None:
-        return problems, note
-    for page in ctx.pages:
-        if page.rel in PAGE_ID_EXEMPT:
+        if value.startswith("#"):
+            anchor = value[1:]
+            if anchor and anchor not in parser.ids:
+                raise Failure(f"第 {line} 行：锚点 #{anchor} 在页面里没有对应 id")
+            checked += 1
             continue
-        problems += ctx.nav.page_id_problems(page.rel, page.source, partials)
-    return problems, f"{len(ctx.pages)} page(s) checked for data-page/aria-current"
-
-
-def assertion_metadata(ctx: Context) -> tuple[list[str], str]:
-    problems: list[str] = []
-    for page in ctx.pages:
-        scanner = page.scanner
-        headings = [tag for tag, _ in scanner.tags if tag == "h1"]
-        if len(headings) != 1:
-            problems.append(
-                f"{page.rel}: expected exactly one <h1>, found {len(headings)}"
-            )
-        if not scanner.title.strip():
-            problems.append(f"{page.rel}: <title> is missing or empty")
-        for label, content in (
-            ('<meta name="description">', scanner.meta_content("name", "description")),
-            ('<meta name="theme-color">', scanner.meta_content("name", "theme-color")),
-        ):
-            if not content:
-                problems.append(
-                    f"{page.rel}: {label} is missing or has empty content"
-                )
-        if not scanner.link_href("canonical"):
-            problems.append(
-                f'{page.rel}: <link rel="canonical"> is missing or has an empty href'
-            )
-        for prop in ("og:title", "og:description", "og:type"):
-            if not scanner.meta_content("property", prop):
-                problems.append(
-                    f'{page.rel}: <meta property="{prop}"> is missing or has empty content'
-                )
-    return problems, f"{len(ctx.pages)} page(s) × 8 required metadata items"
-
-
-def assertion_asset_budget(ctx: Context) -> tuple[list[str], str]:
-    problems: list[str] = []
-    assets = ctx.site / "assets"
-
-    for page in ctx.pages:
-        for ref in page.scanner.stylesheets + page.scanner.scripts:
-            target = resolve_ref(page.path, ref, ctx.repo)
-            if target is not None and not target.exists():
-                problems.append(f"{page.rel}: referenced asset missing -> {ref}")
-
-    html_sizes = {page.rel: len(page.source.encode("utf-8")) for page in ctx.pages}
-    rel, biggest = max(html_sizes.items(), key=lambda item: item[1], default=("—", 0))
-    if biggest > HTML_BUDGET:
-        problems.append(
-            f"{rel}: page HTML is {kb(biggest)}, over the {kb(HTML_BUDGET)} budget (D2 §3.4)"
-        )
-    # 内容页（诊断字典 64 个码、语言清单）本来就长；raw 上限只是为了拦住
-    # "悄悄膨胀"，真正该卡的是 gzip 后的传输量。两条都断言。
-    html_gzip = {p.rel: gzip_size(p.path) for p in ctx.pages}
-    rel_gz, biggest_gz = max(html_gzip.items(), key=lambda item: item[1], default=("—", 0))
-    if biggest_gz > HTML_GZIP_BUDGET:
-        problems.append(
-            f"{rel_gz}: page HTML gzips to {kb(biggest_gz)}, over the "
-            f"{kb(HTML_GZIP_BUDGET)} budget (D2 §3.4)"
-        )
-
-    css = {name: size_of(assets / name) for name in CSS_BUDGET_FILES}
-    css_total = sum(css.values())
-    if css_total > CSS_BUDGET:
-        problems.append(
-            f"site/assets: {' + '.join(CSS_BUDGET_FILES)} total {kb(css_total)}, "
-            f"over the {kb(CSS_BUDGET)} budget (D2 §3.4)"
-        )
-    # 真正传输的是 gzip 后的大小，所以两条都断言：raw 防"悄悄膨胀"，
-    # gzip 才是读者实际付的代价（GitHub Pages 对文本资源默认压缩）。
-    css_gzip = sum(gzip_size(assets / name) for name in CSS_BUDGET_FILES)
-    if css_gzip > CSS_GZIP_BUDGET:
-        problems.append(
-            f"site/assets: the four stylesheets gzip to {kb(css_gzip)}, "
-            f"over the {kb(CSS_GZIP_BUDGET)} budget (D2 §3.4)"
-        )
-    missing_css = [name for name in CSS_BUDGET_FILES if not (assets / name).is_file()]
-
-    js_path = assets / JS_BUDGET_FILE
-    js = size_of(js_path)
-    if js > JS_BUDGET:
-        problems.append(
-            f"site/assets/{JS_BUDGET_FILE}: {kb(js)}, over the {kb(JS_BUDGET)} budget (D2 §3.4)"
-        )
-
-    fonts_dir = assets / "fonts"
-    font_files = (
-        sorted(p for p in fonts_dir.glob("*") if p.is_file())
-        if fonts_dir.is_dir()
-        else []
-    )
-    fonts_total = sum(size_of(p) for p in font_files)
-    if fonts_total > FONTS_BUDGET:
-        problems.append(
-            f"site/assets/fonts: {len(font_files)} file(s) total {kb(fonts_total)}, "
-            f"over the {kb(FONTS_BUDGET)} budget (D2 §3.4)"
-        )
-
-    css_detail = ", ".join(
-        f"{name} {kb(size) if (assets / name).is_file() else 'missing'}"
-        for name, size in css.items()
-    )
-    note = (
-        f"measured: html max {kb(biggest)} ({rel}) / {kb(HTML_BUDGET)} · "
-        f"html gzip max {kb(biggest_gz)} ({rel_gz}) / {kb(HTML_GZIP_BUDGET)} · "
-        f"css {kb(css_total)} raw / {kb(CSS_BUDGET)} · gzip {kb(css_gzip)} / "
-        f"{kb(CSS_GZIP_BUDGET)} ({css_detail}) · "
-        f"site.js {kb(js) if js_path.is_file() else 'missing'} / {kb(JS_BUDGET)} · "
-        f"fonts {kb(fonts_total)} in {len(font_files)} file(s) / {kb(FONTS_BUDGET)}"
-    )
-    return problems, note
-
-
-def site_key(page: Page, ref: str) -> str:
-    """Allowlist key for a reference: site-relative path when it resolves inside."""
-    target = resolve_ref(page.path, ref, page.repo)
-    if target is None:
-        return ref
-    try:
-        return target.relative_to(page.site).as_posix()
-    except ValueError:
-        return ref
-
-
-def assertion_no_bitmaps(ctx: Context) -> tuple[list[str], str]:
-    problems: list[str] = []
-    for page in ctx.pages:
-        reported: set[str] = set()
-        for match in BITMAP_RE.finditer(page.source):
-            ref = match.group(0)
-            if site_key(page, ref) in BITMAP_ALLOWLIST:
-                continue
-            line = page.source.count("\n", 0, match.start()) + 1
-            problems.append(
-                f"{page.rel}:{line}: bitmap reference `{ref}` — the site ships zero "
-                "bitmaps (D2 §3.3); use SVG, or add a reasoned BITMAP_ALLOWLIST entry"
-            )
-            reported.add(ref)
-        for src in page.scanner.images:
-            if not src:
-                problems.append(f"{page.rel}: <img> without a src")
-                continue
-            if src.split("#")[0].split("?")[0].lower().endswith(".svg"):
-                continue
-            if src in reported or site_key(page, src) in BITMAP_ALLOWLIST:
-                continue
-            problems.append(
-                f'{page.rel}: <img src="{src}"> is not an SVG — bitmaps are not '
-                "allowed (D2 §3.3)"
-            )
-    return problems, f"{len(ctx.pages)} page(s) scanned for <img>/bitmap references"
-
-
-def assertion_no_inline_style(ctx: Context) -> tuple[list[str], str]:
-    problems: list[str] = []
-    for page in ctx.pages:
-        allowed = INLINE_STYLE_ALLOWLIST.get(page.rel, {})
-        for tag, value in page.scanner.inline_styles:
-            if value in allowed:
-                continue
-            problems.append(
-                f'{page.rel}: inline style="{value}" on <{tag}> — use a token/class '
-                "(D2 §3.3); an allowlist entry needs a reason"
-            )
-    return problems, f"{len(ctx.pages)} page(s) scanned for style= attributes"
-
-
-def assertion_turnstile(ctx: Context) -> tuple[list[str], str]:
-    problems: list[str] = []
-    for page in ctx.pages:
-        if page.scanner.has_class("turnstile") or page.rel in TURNSTILE_EXEMPT:
+        target = value.split("#", 1)[0].split("?", 1)[0]
+        if not target:
             continue
-        problems.append(
-            f"{page.rel}: no .turnstile element — it is the site's one memorable "
-            "design device (D2 §3.3); add it, or add a reasoned TURNSTILE_EXEMPT entry"
-        )
-    return problems, f"{len(ctx.pages)} page(s) checked"
+        resolved = os.path.normpath(os.path.join(SITE, target))
+        if not os.path.exists(resolved):
+            raise Failure(f"第 {line} 行：{attr}=\"{value}\" 指向不存在的 {target}")
+        checked += 1
+    return f"{checked} 条站内引用全部可解析"
 
 
-def assertion_sitemap(ctx: "Context") -> tuple[list[str], str]:
-    """`sitemap.xml` and the real page set must agree, both directions.
-
-    A hand-written sitemap is exactly the kind of list this repository has
-    watched drift six times. Two failure modes matter and both are silent:
-    a URL that 404s (crawlers cache it), and a page missing from the sitemap
-    (invisible). So assert set equality, not a count.
-    """
-    problems: list[str] = []
-    sitemap = ctx.site / "sitemap.xml"
-    if not sitemap.is_file():
-        return ["site/sitemap.xml is missing"], "no sitemap"
-
-    text = sitemap.read_text(encoding="utf-8")
-    prefix = "https://colorlessboy.github.io/sokonanoda-lang/"
-    listed: set[str] = set()
-    for loc in re.findall(r"<loc>([^<]+)</loc>", text):
-        if not loc.startswith(prefix):
-            problems.append(f"sitemap.xml: <loc>{loc}</loc> is not under {prefix}")
+def check_css_urls(files: list[str]) -> str:
+    checked = 0
+    for path in files:
+        if not path.endswith(".css"):
             continue
-        rest = loc[len(prefix) :]
-        # `/` 与 `/en/` 都是目录 URL，各自映射到该目录的 index.html。
-        # （早先这里把两者都映射成根 index.html，于是 `en/index.html` 永远被判"未列出"。）
-        if rest == "":
-            listed.add("index.html")
-        elif rest.endswith("/"):
-            listed.add(rest + "index.html")
+        base = os.path.dirname(path)
+        for url in re.findall(r"url\(\s*[\"']?([^\"')]+)[\"']?\s*\)", read(path)):
+            if url.startswith(("http://", "https://", "data:")):
+                continue
+            if not os.path.exists(os.path.normpath(os.path.join(base, url))):
+                raise Failure(f"{rel(path)}：url({url}) 指向不存在的文件")
+            checked += 1
+    return f"{checked} 个资源引用存在"
+
+
+def check_version(files: list[str], html: str) -> str:
+    if not any(hook in html for hook in VERSION_HOOKS):
+        raise Failure("页面里没有任何版本引用钩子（data-site-version 等）——版本号只能由数据回填")
+    offenders: list[str] = []
+    for path in files:
+        if not path.endswith(TEXT_EXT):
+            continue
+        if os.path.abspath(path) == os.path.abspath(DATA):
+            continue          # 这一份**就是**版本号的来源
+        for num, line in enumerate(read(path).splitlines(), 1):
+            if VERSION_LITERAL.search(line):
+                offenders.append(f"{rel(path)}:{line}")
+    if offenders:
+        raise Failure("写死的版本号："
+                      + "、".join(offenders)
+                      + "（版本号只能由 site/data/site.json 回填）")
+    return f"{len(VERSION_HOOKS)} 类钩子，0 处写死"
+
+
+def check_meta(parser: PageParser) -> str:
+    required = ["lang", "title", "description", "viewport", "og:title", "og:description"]
+    missing = [k for k in required if not parser.meta.get(k)]
+    if not parser.meta.get("link:canonical"):
+        missing.append("canonical")
+    if not parser.meta.get("link:icon"):
+        missing.append("favicon")
+    if missing:
+        raise Failure(f"head 缺元数据：{missing}")
+    if parser.meta.get("inline_scripts") != "1":
+        raise Failure("内联 <script> 只允许 head 里那一段配色 bootstrap（防首帧闪烁）")
+    return f"{len(required) + 2} 项齐全（lang={parser.meta['lang']}）"
+
+
+def check_markup(parser: PageParser) -> str:
+    if parser.errors:
+        raise Failure("标签不配对：" + "；".join(parser.errors[:4]))
+    if parser.inline_styles:
+        raise Failure(f"内联 style= 出现在第 {parser.inline_styles} 行（样式只能进 site.css）")
+    return "标签配对，无内联样式"
+
+
+def check_assets(files: list[str]) -> str:
+    bitmaps = [rel(f) for f in files if f.lower().endswith(BITMAP_EXT)]
+    if bitmaps:
+        raise Failure(f"站点里不该有位图（用 CSS/SVG）：{bitmaps}")
+    total = sum(os.path.getsize(f) for f in files
+                if f.endswith((".html", ".css", ".js")))
+    if total > SIZE_BUDGET:
+        raise Failure(f"html+css+js 共 {total} 字节，超过预算 {SIZE_BUDGET}")
+    return f"零位图；html+css+js {total} 字节（预算 {SIZE_BUDGET}）"
+
+
+def check_data() -> str:
+    proc = subprocess.run([sys.executable, os.path.join(REPO_ROOT, "scripts", "gen-site-data.py"),
+                           "--check"], cwd=REPO_ROOT, capture_output=True, text=True)
+    if proc.returncode == 3:
+        raise Failure("解析不出已发布 tag（浅克隆缺 tag？）—— 无法判定，不判绿")
+    if proc.returncode != 0:
+        raise Failure((proc.stderr or proc.stdout).strip())
+    return (proc.stdout or "").strip().removeprefix("site data: ")
+
+
+# ── 渲染实跑（可选）───────────────────────────────────────────────────
+
+def find_chrome() -> str | None:
+    for candidate in (
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
+    ):
+        if os.path.sep in candidate:
+            if os.path.exists(candidate):
+                return candidate
         else:
-            listed.add(rest)
-
-    actual: set[str] = set()
-    for page in ctx.pages:
-        rel = page.rel
-        if rel in SITEMAP_EXEMPT:
-            continue
-        actual.add(rel)
-
-    for rel in sorted(actual - listed):
-        problems.append(f"sitemap.xml: page `{rel}` exists but is not listed")
-    for rel in sorted(listed - actual):
-        problems.append(f"sitemap.xml: lists `{rel}` but no such page exists")
-
-    return problems, f"{len(listed)} url(s) vs {len(actual)} page(s)"
+            from shutil import which
+            found = which(candidate)
+            if found:
+                return found
+    return None
 
 
-def git_dirty_crates(repo: Path) -> int:
-    """How many files under `crates/` differ from HEAD (0 when clean).
+def check_render() -> str:
+    """真 Chrome 跑一遍：资源零 404，且版本号被 JS 回填进 DOM。"""
+    import http.server
 
-    Returns 0 on any failure — this is a courtesy notice, and a repository
-    without git (or without git on PATH) must not turn it into a site failure.
-    """
+    import threading
+    import shutil
+    import tempfile
+    import time
+
+    chrome = find_chrome()
+    if not chrome:
+        raise Failure("找不到 Chrome（--browser 需要它）")
+
+    missing: list[str] = []
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        # **不要**改成 HTTP/1.1：keep-alive 会让 Chrome 认为还有未完成的网络活动，
+        # `--virtual-time-budget` 于是永远走不完 ⇒ 挂死。默认 HTTP/1.0（响应完即关
+        # 连接）才能让虚拟时间正常推进。这是实测出来的，别"顺手升级协议"。
+        def __init__(self, *a, **kw):
+            super().__init__(*a, directory=SITE, **kw)
+
+        def log_message(self, fmt, *a):        # 静音
+            pass
+
+        def send_error(self, code, message=None, explain=None):
+            missing.append(self.path)
+            super().send_error(code, message, explain)
+
+    # **必须多线程**：Chrome 会开一条不说话的预连接，单线程的 `TCPServer` 一旦
+    # 轮询到它就会卡在 `readline()` 上，把后面真正的请求全挡住 ⇒ Chrome 永远等
+    # 不到页面、`--virtual-time-budget` 也永远走不完（实测：同一条命令时红时绿）。
+    with http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler) as httpd:
+        httpd.daemon_threads = True
+        port = httpd.server_address[1]
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        profile = tempfile.mkdtemp(prefix="soko-chrome-")
+        try:
+            # 用**旧版** headless：macOS 上 `--headless=new` + `--dump-dom` 会挂住
+            # 不返回（实测 120s 超时）。旧版能出 DOM。
+            #
+            # `--virtual-time-budget` 而不是 `--timeout`：后者会在
+            # `fetch("data/site.json")` 落定**之前**就把 DOM 倒出来，于是"版本号已
+            # 回填"时红时绿（实测同样命令 4 次命中 vs 0 次）。
+            #
+            # **不等 Chrome 退出**：macOS 上它把完整 DOM 打到 stdout 之后**进程不退出**
+            # （实测 stdout 已有 15 KB 完整 DOM，进程挂到被杀为止）。所以判据是
+            # "DOM 到齐了没有"，不是"进程结束了没有"——一见到 `</html>` 就杀掉它。
+            proc = subprocess.Popen([
+                chrome, "--headless", "--disable-gpu", "--no-sandbox",
+                "--no-first-run", "--no-default-browser-check",
+                "--disable-extensions", "--disable-background-networking",
+                "--disable-sync", "--hide-scrollbars",
+                f"--user-data-dir={profile}", "--virtual-time-budget=5000",
+                "--dump-dom", f"http://127.0.0.1:{port}/index.html",
+            ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+
+            chunks: list[str] = []
+
+            def pump() -> None:
+                for line in proc.stdout or ():
+                    chunks.append(line)
+
+            reader = threading.Thread(target=pump, daemon=True)
+            reader.start()
+            deadline = time.time() + 30
+            while time.time() < deadline:
+                if "</html>" in "".join(chunks):
+                    break
+                if proc.poll() is not None:
+                    break
+                time.sleep(0.1)
+            dom = "".join(chunks)
+            if proc.poll() is None:
+                proc.kill()
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                pass
+        finally:
+            shutil.rmtree(profile, ignore_errors=True)
+            httpd.shutdown()
+
+    if missing:
+        raise Failure(f"渲染时有 404：{sorted(set(missing))[:5]}")
+    if not dom.strip():
+        raise Failure("Chrome 没有输出 DOM（进程可能起不来）")
     try:
-        out = subprocess.run(
-            ["git", "status", "--porcelain", "--", "crates/"],
-            cwd=repo, capture_output=True, text=True, timeout=20, check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return 0
-    if out.returncode != 0:
-        return 0
-    return sum(1 for line in out.stdout.splitlines() if line.strip())
+        version = json.loads(read(DATA)).get("version", "")
+    except (OSError, json.JSONDecodeError):
+        version = ""
+    if not version:
+        raise Failure("site/data/site.json 里没有 version，无法验证回填")
+    if f">{version}<" not in dom.replace(" ", ""):
+        raise Failure(f"DOM 里没找到回填后的版本号 {version}（site.js 没跑或被缓存）")
+    return f"Chrome 渲染通过，版本 {version} 已回填，资源零 404"
 
 
-ASSERTIONS = (
-    ("links", assertion_links),
-    ("versions", assertion_versions),
-    ("nav-drift", assertion_nav_drift),
-    ("data-page", assertion_data_page),
-    ("metadata", assertion_metadata),
-    ("asset-budget", assertion_asset_budget),
-    ("no-bitmaps", assertion_no_bitmaps),
-    ("no-inline-style", assertion_no_inline_style),
-    ("turnstile", assertion_turnstile),
-    ("sitemap", assertion_sitemap),
-)
+# ── 主流程 ─────────────────────────────────────────────────────────────
+
+CHECKS = [
+    ("pages", lambda files, parser, html: check_pages(files)),
+    ("sitemap", lambda files, parser, html: check_sitemap(files, parser)),
+    ("links", lambda files, parser, html: check_links(parser)),
+    ("css-urls", lambda files, parser, html: check_css_urls(files)),
+    ("version", lambda files, parser, html: check_version(files, html)),
+    ("meta", lambda files, parser, html: check_meta(parser)),
+    ("markup", lambda files, parser, html: check_markup(parser)),
+    ("assets", lambda files, parser, html: check_assets(files)),
+    ("data", lambda files, parser, html: check_data()),
+]
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Site hygiene checks (see the module docstring for the 10 assertions)."
-    )
-    parser.add_argument(
-        "--site",
-        type=Path,
-        default=DEFAULT_SITE,
-        help="site root (default: <repo>/site); use a scratch copy to self-test",
-    )
-    args = parser.parse_args(argv)
-    site = args.site.resolve()
-    if not site.is_dir():
-        print(f"check-site.py: --site {args.site} is not a directory", file=sys.stderr)
-        return 2
-    repo = site.parent
+    parser_args = argparse.ArgumentParser(description="站点总验收（单页站点）")
+    parser_args.add_argument("--browser", action="store_true", help="额外跑真 Chrome 渲染检查")
+    parser_args.add_argument("--json", dest="as_json", action="store_true", help="机器可读输出")
+    args = parser_args.parse_args(argv)
 
-    pages: list[Page] = []
-    parse_errors: list[str] = []
-    for path in html_files(site):
-        rel = path.relative_to(site).as_posix()
-        source = path.read_text(encoding="utf-8")
-        scanner = TagScanner()
+    if not os.path.exists(PAGE):
+        print(f"site: 找不到 {rel(PAGE)}", file=sys.stderr)
+        return 3
+
+    files = walk_site()
+    page_parser = PageParser()
+    page_parser.feed(read(PAGE))
+    page_parser.close()
+    html = read(PAGE)
+
+    results: list[dict] = []
+    failed = False
+    for name, fn in CHECKS:
         try:
-            scanner.feed(source)
-            scanner.close()
-        except Exception as exc:  # malformed markup
-            parse_errors.append(f"{rel}: HTML parse error: {exc}")
-            continue
-        pages.append(
-            Page(path=path, rel=rel, source=source, scanner=scanner, repo=repo, site=site)
-        )
+            detail = fn(files, page_parser, html)
+            results.append({"check": name, "ok": True, "detail": detail})
+        except Failure as error:
+            results.append({"check": name, "ok": False, "detail": str(error)})
+            failed = True
 
-    try:
-        nav: object | None = load_nav_module()
-        nav_error = None
-    except Exception as exc:
-        nav, nav_error = None, f"scripts/gen-site-nav.py could not be imported: {exc}"
-
-    ctx = Context(
-        site=site, repo=repo, pages=pages, parse_errors=parse_errors, nav=nav, nav_error=nav_error
-    )
-
-    results = []
-    for name, assertion in ASSERTIONS:
+    if args.browser:
         try:
-            problems, note = assertion(ctx)
-        except Exception as exc:  # a crashed assertion is a failure, never a skip
-            problems, note = [f"assertion {name} crashed: {exc!r}"], "crashed"
-        results.append((name, problems, note))
+            results.append({"check": "render", "ok": True, "detail": check_render()})
+        except Failure as error:
+            results.append({"check": "render", "ok": False, "detail": str(error)})
+            failed = True
 
-    total = sum(len(problems) for _, problems, _ in results)
-    failed = sum(1 for _, problems, _ in results if problems)
-    if total:
-        print(
-            f"site hygiene: {total} problem(s); {failed}/{len(results)} assertion(s) failed"
-        )
-    for name, problems, note in results:
-        status = "FAIL" if problems else "ok  "
-        suffix = f"  ·  {note}" if note else ""
-        print(f"  {name:<16} {status}  {len(problems):>3} problem(s){suffix}")
-        for problem in problems:
-            print(f"    - {problem}")
+    if args.as_json:
+        print(json.dumps({"ok": not failed, "checks": results}, ensure_ascii=False, indent=2))
+    else:
+        for row in results:
+            print(f"  {'✓' if row['ok'] else '✗'} {row['check']:<9} {row['detail']}")
+        total = len(results)
+        green = sum(1 for row in results if row["ok"])
+        print(f"site: {'ok' if not failed else 'FAILED'}（{green}/{total}）")
 
-    # 版本陷阱提醒（不是站点的错，所以不算失败，但必须说出来）。
-    #
-    # `scripts/soko` 的解析顺序里「仓库构建」优先，所以只要 crates/ 是脏的，
-    # 它量的就是**未发布代码**。这一条是拿一次真实误判换来的：我据此把 C1 的
-    # 「七个 tactic」错改成「十三个」，因为工作区有一份给 by 块加 tactic 的 WIP。
-    # 站点写的是已发布版本的事实，所以这里每次都提醒一句。
-    dirty = git_dirty_crates(DEFAULT_SITE.parent)
-    if dirty:
-        print(
-            f"\n⚠  crates/ 有 {dirty} 个未提交改动 —— scripts/soko 解析的是用这棵树"
-            "编出来的仓库构建，量到的是**未发布代码**。\n"
-            "   要量已发布版本的事实，先钉二进制：\n"
-            "   export SOKONANODA_BIN=~/.vscode/extensions/"
-            "sokonanoda-lang.sokonanoda-<版本>-<平台>/bin/<平台>/sokonanoda\n"
-            "   详见 docs/design/site-rebuild/spec/D9-page-brief.md §4.0"
-        )
-
-    if total:
-        return 1
-
-    print(
-        f"site hygiene: ok ({len(pages)} pages, {len(results)} assertions, "
-        "links and versions clean)"
-    )
-    return 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
-
+    raise SystemExit(main())

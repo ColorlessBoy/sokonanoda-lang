@@ -176,24 +176,32 @@ jobs:
       # `--bisect`（G-15）。--selftest 先跑：故意坏的单元必须被判负，判据通道失效时
       # 这一步自己红。
       #
-      # 二进制用**当轮 cargo 刚编出来的** target/debug：版本天然一致、零下载
-      # （`scripts/soko setup` 在版本 bump 的 main push 上必然 404）。
+      # 二进制用**当轮 cargo 刚编出来的 release**：版本天然一致、零下载
+      # （`scripts/soko setup` 在版本 bump 的 main push 上必然 404），而且它才是
+      # **发布形态**——debug 二进制判同一份课程要慢一倍（实测 190s vs 93s，
+      # 卷 I 单元⑫ 的解答），2026-09-21 `35516857130` 就是被这个差额顶穿
+      # 单目标 180s 上限的。profile 显示两边做的是同样的工作，纯粹是优化等级，
+      # 所以"用 release 判"既更快也更忠实；根因（`by` 块每走一步 tactic 都要
+      # 重新判定整份文档 ⇒ 代价随文件超线性）记在 STATUS.md 的未做项与
+      # `docs/design/site-single-page.md` §2 的"未来的计划"里，**尚未进缺口台账**
+      # （要进就得配一条 CI 预算内的确定性复现，别为了凑格式塞一条跑不动的）。
       # 为什么是 test job 里的一个 step 而不是独立 job：见
       # docs/design/course-gate-in-ci.md §2（独立 job 要么自己再编一份 Rust、要么
       # 下载还不存在的 release，且很容易漏进 auto-tag 的 needs ⇒ 假绿发布）。
       #
-      # **超时按实测标定，不是拍脑袋**（2026-09-21：`35512977249` 就是被这 5 分钟
-      # 掐死的——`--selftest` PASS 之后整卷门禁跑到 5 分钟仍未结束 ⇒ 步骤超时、
-      # CI 红、auto-tag 不发版）。实测：
-      #   * 本机（M 系 mac，debug 二进制）整卷门禁 **4m46s**、`--selftest` 8.5s；
-      #   * 同一次 CI 的 `--selftest` 用了 16.7s ⇒ **runner ≈ 本机 ×2.0**；
-      #   * ⇒ runner 上整卷约 **9.5 分钟**，20 分钟留 2× 余量（同 docs/CI-FAILURES.md
-      #     里 perf 预算那条的标定纪律：按最慢受支持 runner 的实测分布定阈值）。
-      # 课程会长大、判卷成本随之上升，所以这个数要跟着实测走，不要当成永久值。
+      # **超时按实测标定**（2026-09-21：`35512977249` 被 5 分钟掐死；改成 20 分钟后
+      # `35516857130` 暴露出真正的瓶颈是单目标 180s 上限而不是总时长）。release
+      # 二进制下整卷门禁本机约 2.5 分钟、runner ≈ ×2 ⇒ 5 分钟量级，20 分钟留 4× 余量。
+      # 课程会长大、判卷成本随之上升，这个数要跟着实测走。
+      - name: Release CLI for the course gate
+        # release profile 的依赖在上面的 perf report 步（`--release ... perf_project`）
+        # 已经编好，这一步只补 `--bin sokonanoda` 这一个目标。
+        run: cargo build --release -p sokonanoda-cli --locked
+
       - name: Course gate (set-theory, G1–G5)
         timeout-minutes: 20
         env:
-          SOKONANODA_BIN: ${{ github.workspace }}/target/debug/sokonanoda
+          SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
         shell: bash
         run: |
           python3 "$GITHUB_WORKSPACE/courses/set-theory/tools/check.py" --selftest
@@ -215,11 +223,20 @@ jobs:
 
       - name: Gap ledger is consistent (docs/gaps)
         # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
-        # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。跑得很快，但只有它能让
-        # `fixed_in` 不随语言演进悄悄腐烂——`scripts/soko gate` 的第四步是同一条。
-        timeout-minutes: 3
+        # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。只有它能让 `fixed_in` 不随语言
+        # 演进悄悄腐烂——`scripts/soko gate` 的第四步是同一条。
+        #
+        # 二进制同样用 release（同课程门禁那一步的理由：判卷成本差一倍）。
+        # **超时 3 → 5 分钟**：2026-09-21 `35518600109` 就是被这 3 分钟掐死的
+        # （`selftest` 秒过，`check` 跑满 3 分钟被 kill）——这是同一条流水线上的
+        # **第三个**超时阈值，改一个记得 grep 另外两个。
+        #
+        # 掐死它的那一条本身也修了：G-07 的复现第 ④ 段原先**整卷判一遍**（315s），
+        # 而它要验的 G6 机器可读面（course.volumes/chapters）来自**清单**、与判了
+        # 几个目标无关 ⇒ 改成 `--only "单元 1"`（3s）。复现总时长 9m07s → 37s。
+        timeout-minutes: 5
         env:
-          SOKONANODA_BIN: ${{ github.workspace }}/target/debug/sokonanoda
+          SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
         shell: bash
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest

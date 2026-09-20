@@ -1,51 +1,32 @@
 #!/usr/bin/env python3
-"""Generate site/data/site.json — the single machine-readable source of truth
-for the static GitHub Pages site.
+"""生成 `site/data/site.json` —— 官网唯一一份机器可读事实（单页站点）。
 
-Design: docs/design/site.md §3. No third-party dependencies — python3 stdlib only.
+设计：`docs/design/site-single-page.md`。只用 python3 标准库。
 
-The site must never hand-write three things: version, unit count, and progress.
-This script pulls each from its real source so the numbers cannot drift:
+站点**永不手写版本号**：页面上所有版本号与下载链接都由 `assets/site.js`
+从这份 JSON 回填（占位符 `{v}`），而这里的版本号取自**最新的已发布 tag**
+——不是 `Cargo.toml`。
 
-  version      <- the newest released `vX.Y.Z` git tag — **not** Cargo.toml
-  units        <- course/course.json  (each unit flags its English mirror if present)
-  round        <- STATUS.md    latest "## 本轮进度（日期，第N轮：标题）" header
-  round_date   <-   (same header)
-  round_title  <-   (same header)
-  examples     <- examples/*.sokonanoda  filenames
-  set_theory   <- the **release tag's** courses/set-theory/course.json + measured by
-                  that tag's own gate (courses/set-theory/tools/check.py --json),
-                  run with that release's binary
+为什么是 tag 而不是 `Cargo.toml`：站点写的是**已发布版本的事实**。本仓库
+常有并行开发，`Cargo.toml` 会在 tag 之前就 bump 到下一个版本；照抄它就会
+写出一个"没有 tag、没有产物、没有下载 URL"的版本号（2026-09-20 实测踩过，
+详见 `docs/design/site-rebuild/STATE.md` §5 与 `#13`）。
 
-**Every measured fact is a *released* fact** (STATE §5, `spec/D9-page-brief.md` §4.0).
-The site states this about itself — `compare.html` promises `[data-site-version]` is
-"已发布的版本，不是工作树", and every download instruction is built from it. So this
-generator reads the working tree only for things that are genuinely about *now*
-(`STATUS.md` rounds); version and course counts come from the release tag, because
-between releases the working tree carries work the released binary cannot even parse.
-Measured the hard way: regenerating naively on a tree whose `Cargo.toml` had been
-bumped to the *next* version wrote `version: 0.62.0` — a version with no tag, no
-artifacts and no download URL — and silently rewrote the released course counts with
-HEAD's (329 → 328 checked), which is precisely what K12 then fails on.
+用法：
 
-Counts are never hand-written anywhere: the 卷 I block is measured by running the
-course gate, and every unit carries the gate's own `status`/`checked`/`open`.
-The manifest may be the flat v1 array or the structured v2 object
-(`soko.course/2`, ledger G-07): v2 additionally yields a `volumes` tree
-(volume → chapter → units, with `prereqs`/`tags`/planned `quota`) whose unit
-entries are the very same measured rows, so the page can group without a second
-source of truth.
-Measurement never triggers a toolchain download (`SOKONANODA_OFFLINE=1`) — the
-repo explicitly refuses "在 CI 里 setup 下载二进制" (docs/design/course-gate-in-ci.md
-§8) — so when no pinned CLI is resolvable the counts of the *previous* run are
-carried over, and with nothing to carry the fields are simply left out.
+```bash
+python3 scripts/gen-site-data.py            # 写入 site/data/site.json
+python3 scripts/gen-site-data.py --check    # 只比对，不写；不一致 exit 1
+python3 scripts/gen-site-data.py --print    # 打到 stdout
+```
 
-Every field is parsed; if a source is missing or unparseable the field is left
-out rather than fabricated. Output is deterministic (sorted keys, stable order).
+解析不出 tag 时**不编造**：`version` 字段留空，页面保持中性文字
+（"当前发布版本"），`--check` 在那个情况下判 **exit 3**（无法判定 ≠ 绿）。
 """
 
-import datetime
-import glob
+from __future__ import annotations
+
+import argparse
 import json
 import os
 import re
@@ -53,575 +34,90 @@ import subprocess
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT = os.path.join(REPO_ROOT, "site", "data", "site.json")
+REPO_URL = "https://github.com/ColorlessBoy/sokonanoda-lang"
 
-# 卷 I《集合论》：单元清单 + 课程门禁（判据的唯一真相，见
-# docs/design/teaching-project.md §P5 与 docs/design/course-gate-in-ci.md §2.4）。
-SET_THEORY_DIR = os.path.join("courses", "set-theory")
-SET_THEORY_GATE = os.path.join(SET_THEORY_DIR, "tools", "check.py")
-SITE_JSON = os.path.join("site", "data", "site.json")
-# 门禁的墙上时间预算：整卷暖缓存十几秒，给冷启动留足余量。不按目标数写死——
-# 目标数由课程自己长（曾经写成 "34 targets"，课程长到 36 个时它就成了假的）。
-GATE_TIMEOUT_S = 300
+TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+)$")
 
 
-def _read(rel_path):
-    path = os.path.join(REPO_ROOT, rel_path)
-    try:
-        with open(path, encoding="utf-8") as fh:
-            return fh.read()
-    except FileNotFoundError:
-        return ""
+def latest_release_tag() -> str | None:
+    """最新的 `vX.Y.Z` tag（按版本序，不是按字典序）。
 
-
-def get_version():
-    """Return [workspace.package].version from Cargo.toml, or None.
-
-    This is the **next** version, not the released one — see `release_version()`.
-    It is read only to explain in the log why the two differ.
+    只看**本仓库**的 tag。浅克隆（depth 1）里没有 tag ⇒ 返回 None，
+    此时绝不退回 `Cargo.toml`（那正是要避免的漂移）。
     """
-    text = _read("Cargo.toml")
-    if not text:
-        return None
-    # Isolate the [workspace.package] section so a top-level `version` (if any)
-    # does not shadow the workspace package version.
-    m = re.search(r"\[workspace\.package\](.*?)(?:\n\[|\Z)", text, re.S)
-    block = m.group(1) if m else text
-    mm = re.search(r'^\s*version\s*=\s*"([^"]+)"', block, re.M)
-    return mm.group(1) if mm else None
-
-
-def _git(*args, timeout=60):
-    """Run git inside the repo; return stdout, or "" if git is unusable."""
-    try:
-        proc = subprocess.run(["git", *args], capture_output=True, text=True,
-                              timeout=timeout, cwd=REPO_ROOT)
-    except (OSError, subprocess.TimeoutExpired):
-        return ""
-    return proc.stdout if proc.returncode == 0 else ""
-
-
-def release_version():
-    """`(version, tag)` of the newest released `vX.Y.Z` tag, or `(None, "")`.
-
-    Why the tag and not `Cargo.toml`: the version is bumped at the start of a
-    release and then sits *ahead* of the last tag for the whole development
-    window. Publishing it would tell readers to install a version that has no
-    tag, no release, no artifacts and no download URL — and the site's own text
-    promises the opposite ("已发布的版本，不是工作树", `compare.html`).
-
-    Pre-release tags (`v1.2.3-rc1`) are skipped deliberately: every CTA built
-    from this number points at a tag a reader can actually install.
-    """
-    for line in _git("tag", "--list", "v*", "--sort=-v:refname").splitlines():
-        match = re.fullmatch(r"v(\d+\.\d+\.\d+)", line.strip())
-        if match:
-            return match.group(1), line.strip()
-    return None, ""
-
-
-def release_binary(version):
-    """The published CLI for `version`, or "" when it is not installed here.
-
-    The VS Code extension keeps one binary per version under
-    `~/.vscode/extensions/sokonanoda-lang.sokonanoda-<version>-<target>/bin/…`,
-    so a released binary survives every later dev build. Judging the released
-    course with it is what makes the published counts reproducible — the same
-    lookup K12/K16 do in `scripts/site-verify.py` (kept in sync by hand; both
-    must agree on which binary "the released one" means).
-    """
-    if not version:
-        return ""
-    pattern = os.path.join(
-        os.path.expanduser("~"), ".vscode", "extensions",
-        f"sokonanoda-lang.sokonanoda-{version}-*", "bin", "*", "sokonanoda",
-    )
-    found = sorted(glob.glob(pattern))
-    return found[0] if found else ""
-
-
-def release_tree(tag):
-    """Lay the released tree out under `.cache/site-data-release/`; `(dir, reason)`.
-
-    Three members, not one — the same three K12 extracts, for a reason that cost
-    a red check to learn: `courses/set-theory/tools/check.py` walks *up* looking
-    for `scripts/soko` to identify "this checkout", then reads the version pin
-    from that directory's `Cargo.toml` and refuses to judge (exit 2) when the
-    binary disagrees with it. Extract only the course and it climbs out of the
-    scratch directory into the real repo, pins the working tree's next version,
-    and rejects the released binary — a correct reproduction reported as red.
-    With all three the scratch tree pins its *own* version, which is the point.
-    """
-    if not tag:
-        return "", "没有发布 tag"
-    work = os.path.join(REPO_ROOT, ".cache", "site-data-release")
-    subprocess.run(["rm", "-rf", work], check=False)
-    os.makedirs(work, exist_ok=True)
-    members = [SET_THEORY_DIR, os.path.join("scripts", "soko"), "Cargo.toml"]
-    archive = subprocess.run(["git", "archive", tag, *members],
-                             capture_output=True, cwd=REPO_ROOT, check=False)
-    if archive.returncode != 0:
-        return "", f"git archive {tag} 失败"
-    untar = subprocess.run(["tar", "-x", "-C", work], input=archive.stdout, check=False)
-    if untar.returncode != 0:
-        return "", f"解压 {tag} 失败"
-    if not os.path.isfile(os.path.join(work, SET_THEORY_DIR, "course.json")):
-        return "", f"{tag} 里没有 {SET_THEORY_DIR}/course.json"
-    return work, ""
-
-
-def _parse_units(text):
-    """Parse a course manifest — **both shapes** (ledger G-07).
-
-    v1: a flat JSON array of `{file,title,title_en,unit}` (the intro course,
-    `scripts/new-course-repo.sh` skeletons). v2: `{schema, name, title,
-    volumes[].chapters[].units[]}` (卷 I), where the unit entries keep the v1
-    shape verbatim. Returns `(units, volumes)`; `volumes` is `[]` for v1, so
-    the site can group when the manifest says how and stay flat when it does
-    not.
-    """
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        return [], []
-
-    units = []
-    volumes = []
-
-    def read_unit(entry):
-        if not isinstance(entry, dict):
-            return None
-        return {
-            "file": entry.get("file", ""),
-            "title": entry.get("title", ""),
-            "title_en": entry.get("title_en", ""),
-            "unit": entry.get("unit"),
-        }
-
-    if isinstance(data, list):
-        for entry in data:
-            unit = read_unit(entry)
-            if unit is not None:
-                units.append(unit)
-    elif isinstance(data, dict):
-        raw_volumes = data.get("volumes")
-        if not isinstance(raw_volumes, list):
-            return [], []
-        for raw_volume in raw_volumes:
-            if not isinstance(raw_volume, dict):
-                continue
-            volume = {
-                "id": raw_volume.get("id", ""),
-                "title": raw_volume.get("title", ""),
-                "chapters": [],
-            }
-            raw_chapters = raw_volume.get("chapters")
-            for raw_chapter in raw_chapters if isinstance(raw_chapters, list) else []:
-                if not isinstance(raw_chapter, dict):
-                    continue
-                chapter = {
-                    "id": raw_chapter.get("id", ""),
-                    "title": raw_chapter.get("title", ""),
-                    "prereqs": [p for p in raw_chapter.get("prereqs", []) if isinstance(p, str)]
-                    if isinstance(raw_chapter.get("prereqs"), list) else [],
-                    "tags": [t for t in raw_chapter.get("tags", []) if isinstance(t, str)]
-                    if isinstance(raw_chapter.get("tags"), list) else [],
-                    "quota": (raw_chapter.get("quota") or {}).get("exercises")
-                    if isinstance(raw_chapter.get("quota"), dict) else None,
-                    "units": [],
-                }
-                raw_units = raw_chapter.get("units")
-                for raw_unit in raw_units if isinstance(raw_units, list) else []:
-                    unit = read_unit(raw_unit)
-                    if unit is None:
-                        continue
-                    chapter["units"].append(unit)
-                    units.append(unit)
-                volume["chapters"].append(chapter)
-            volumes.append(volume)
-    else:
-        return [], []
-
-    # Stable ordering by unit number (entries without a numeric unit sort last).
-    units.sort(
-        key=lambda u: (u.get("unit") is None, u.get("unit"))
-        if isinstance(u.get("unit"), int)
-        else (True, 0)
-    )
-    return units, volumes
-
-
-def get_units():
-    """Return the ordered unit list from course/course.json.
-
-    Each item carries file/title/title_en/unit, and an extra `en_file` key when
-    an English mirror exists under course/en/.
-    """
-    units, _volumes = _parse_units(_read(os.path.join("course", "course.json")))
-    for unit in units:
-        en_path = os.path.join("course", "en", unit["file"])
-        if unit["file"] and os.path.exists(os.path.join(REPO_ROOT, en_path)):
-            unit["en_file"] = en_path
-    return units
-
-
-def _first_line(text):
-    """First non-empty line, for turning a subprocess failure into one sentence."""
-    for line in (text or "").splitlines():
-        if line.strip():
-            return line.strip()
-    return ""
-
-
-def measure_set_theory(tree, version):
-    """Grade 卷 I through the **released** course's own gate.
-
-    Returns `({"rows": {file: {status, checked, open}}, "totals": {...}}, "")` on
-    success, or `(None, reason)` when the gate could not be run.
-
-    `tree` is the release tag's checkout (`release_tree`), `version` the released
-    version whose binary must do the judging. Both are required, not conveniences:
-    measuring the *working tree* with whatever CLI happens to resolve is how the
-    published counts silently became HEAD's course judged by a dev build (real
-    measurement: 329 → 328 checked, released 0.61.0 vs a bumped working tree).
-
-    Three deliberate rules:
-
-    * the judging logic is **not** reimplemented here — counts only ever come
-      from `check.py --json` ("判据双实现必然漂移", §2.3);
-    * the binary must be the **released** one (`SOKONANODA_BIN`), so a dev build
-      cannot answer for a release;
-    * `SOKONANODA_OFFLINE=1`, because the repo explicitly does not download a
-      toolchain to run the course gate (docs/design/course-gate-in-ci.md §8).
-      Generating a page must never turn into a several-MB download; when no
-      pinned CLI is present, we report "not measured" instead of guessing.
-    """
-    if not tree:
-        return None, "没有可用的已发布检出（release_tree 失败）"
-    binary = release_binary(version)
-    if not binary:
-        return None, f"本机没有已发布 {version} 的 CLI（VS Code 扩展目录里找不到）"
-    gate = os.path.join(tree, SET_THEORY_GATE)
-    if not os.path.isfile(gate):
-        return None, f"已发布检出里没有 {SET_THEORY_GATE}"
-    env = dict(os.environ, SOKONANODA_OFFLINE="1", SOKONANODA_BIN=binary)
-
     try:
         proc = subprocess.run(
-            [sys.executable or "python3", gate, "--json"],
-            capture_output=True, text=True, timeout=GATE_TIMEOUT_S, cwd=tree, env=env,
+            ["git", "tag", "--list", "v*", "--sort=-v:refname"],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=30,
         )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return None, f"课程门禁跑不起来：{exc}"
-    try:
-        report = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return None, (
-            f"课程门禁输出不是 JSON（退出码 {proc.returncode}）："
-            f"{_first_line(proc.stderr)}"
-        )
-
-    targets = [
-        t for t in report.get("targets", [])
-        if isinstance(t, dict) and t.get("file")
-    ]
-    if not targets:
-        return None, "课程门禁报告里没有目标"
-
-    rows = {
-        t["file"]: {
-            "status": t.get("status", "unknown"),
-            "checked": int(t.get("checked", 0) or 0),
-            "open": int(t.get("open", 0) or 0),
-        }
-        for t in targets
-    }
-    # 总数优先用门禁自己的 summary（schema v2 起随报告给出）；没有时按它的**目标
-    # 列表**求和，不按 `rows`（后者按文件去重）：门禁把 `lib/Demo` 判两次
-    # （glob 一次 + 显式自检一次），所以它的汇总行比按文件去重的 `rows` 多出
-    # 那几个目标 —— 这里必须与读者跑同一条命令看到的数字一致。
-    #
-    # 注释里同样不写死计数：本文件存在的理由就是数字只从实测来，写死的示例
-    # 数字会随课程长大而变成谎言。
-    summary = report.get("summary")
-    if isinstance(summary, dict):
-        totals = {
-            "targets": int(summary.get("targets", len(targets))),
-            "checked": int(summary.get("checked", 0)),
-            "open": int(summary.get("open", 0)),
-            "failed": int(summary.get("rejected", report.get("failed", 0) or 0)),
-        }
-    else:
-        totals = {
-            "targets": len(targets),
-            "checked": sum(int(t.get("checked", 0) or 0) for t in targets),
-            "open": sum(int(t.get("open", 0) or 0) for t in targets),
-            "failed": int(report.get("failed", 0) or 0),
-        }
-    # 全体判负且零声明通过 = 判卷环境不可信（版本不符/二进制坏），不是"课程全坏"。
-    # 官网上宁可不报数，也不把一次坏环境渲染成"整卷判负"。
-    if totals["failed"] >= len(targets) and totals["checked"] == 0:
-        return None, "全部目标判负且零声明通过（判卷环境不可信）"
-    return {"rows": rows, "totals": totals}, ""
-
-
-def _previous_site_json():
-    """The last committed `site/data/site.json` as a dict ({} when unusable)."""
-    try:
-        data = json.loads(_read(SITE_JSON) or "null")
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _previous_scalar(key):
-    """A top-level string already in site.json (last run), or ""."""
-    value = _previous_site_json().get(key)
-    return value if isinstance(value, str) and value else ""
-
-
-def _previous_set_theory():
-    """The `set_theory` block already in site/data/site.json (last run), if any."""
-    block = _previous_site_json().get("set_theory")
-    return block if isinstance(block, dict) else {}
-
-
-def get_set_theory(tree, version, tag):
-    """Build the `set_theory` block from the **released** course.
-
-    The manifest is read from the release tag too, not the working tree: a unit
-    added since the release has no released teaching material behind it, and
-    listing it beside released units — with counts nobody can reproduce from the
-    released binary — is exactly the drift this block exists to prevent. When the
-    tag is unavailable the working tree is used, and the block says so.
-    """
-    manifest = os.path.join(tree or REPO_ROOT, SET_THEORY_DIR, "course.json")
-    try:
-        with open(manifest, encoding="utf-8") as fh:
-            text = fh.read()
-    except OSError:
-        text = ""
-    units, volumes = _parse_units(text)
-    if not units:
+    except (OSError, subprocess.TimeoutExpired):
         return None
+    if proc.returncode != 0:
+        return None
+    for line in proc.stdout.splitlines():
+        tag = line.strip()
+        if TAG_RE.match(tag):
+            return tag
+    return None
 
-    measured, reason = measure_set_theory(tree, version)
-    block = {"course": SET_THEORY_DIR, "gate": SET_THEORY_GATE}
+
+def build() -> dict:
+    """组装事实字典。字段少了就是源缺了——**不补默认值**。"""
+    tag = latest_release_tag()
+    data: dict = {"schema": "soko.site/2"}
     if tag:
-        block["released_tag"] = tag
-    if measured is not None:
-        rows, totals = measured["rows"], measured["totals"]
-        block["counts_source"] = "gate"
-        block["measured_at"] = datetime.date.today().isoformat()
-        block["totals"] = totals
-        print(
-            f"set_theory: 门禁实测（{tag} 的课程 × {version} 的二进制）"
-            f"{totals['targets']} 目标 · {totals['checked']} checked · "
-            f"{totals['open']} open · {totals['failed']} 判负"
-        )
-    else:
-        previous = _previous_set_theory()
-        rows = {
-            u["file"]: u for u in previous.get("units", [])
-            if isinstance(u, dict) and u.get("file") and "open" in u
-        }
-        totals = None
-        if rows:
-            block["counts_source"] = "previous-run"
-            for key in ("measured_at", "totals"):
-                if key in previous:
-                    block[key] = previous[key]
-            print(
-                f"set_theory: 未实测（{reason}）——沿用上次实测的计数"
-                + (f"（{previous.get('measured_at')}）" if previous.get("measured_at") else "")
-            )
-        else:
-            block["counts_source"] = "none"
-            print(f"set_theory: 未实测（{reason}）——本次不带计数")
-
-    out_units = []
-    for unit in units:
-        row = rows.get(unit["file"]) if rows else None
-        if row is not None:
-            unit["status"] = row.get("status", "unknown")
-            unit["checked"] = int(row.get("checked", 0) or 0)
-            unit["open"] = int(row.get("open", 0) or 0)
-        out_units.append(unit)
-    block["units"] = out_units
-
-    # v2：卷/章分组（台账 G-07）。单元的计数仍是**门禁实测**填进去的那一份
-    # （按 file 对齐 `block["units"]`），章的配额只是清单里的计划数。
-    if volumes:
-        measured_by_file = {unit["file"]: unit for unit in out_units}
-        out_volumes = []
-        for volume in volumes:
-            out_chapters = []
-            for chapter in volume["chapters"]:
-                out_chapter = {
-                    "id": chapter["id"],
-                    "title": chapter["title"],
-                    "prereqs": chapter["prereqs"],
-                    "tags": chapter["tags"],
-                    "quota": chapter["quota"],
-                    "units": [measured_by_file.get(u["file"], u) for u in chapter["units"]],
-                }
-                out_chapters.append(out_chapter)
-            out_volumes.append(
-                {"id": volume["id"], "title": volume["title"], "chapters": out_chapters}
-            )
-        block["volumes"] = out_volumes
-    return block
+        data["tag"] = tag
+        data["version"] = tag[1:]
+        data["release_url"] = f"{REPO_URL}/releases/tag/{tag}"
+    return data
 
 
-_CN_DIGITS = {
-    "零": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4,
-    "五": 5, "六": 6, "七": 7, "八": 8, "九": 9,
-}
+def render(data: dict) -> str:
+    return json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
-def _cn_to_int(token):
-    """Convert a Chinese/Arabic numeral token to int (handles up to 万).
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="生成 site/data/site.json")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--check", action="store_true", help="只比对磁盘上的文件，不一致 exit 1")
+    group.add_argument("--print", dest="to_stdout", action="store_true", help="打到 stdout")
+    args = parser.parse_args(argv)
 
-    STATUS.md writes rounds as Chinese numerals (e.g. 第三十九轮), so a plain
-    \\d+ would never match. Arabic digits are also accepted as a fallback.
-    """
-    total = 0
-    section = 0
-    num = 0
-    for ch in token:
-        if ch in _CN_DIGITS:
-            num = _CN_DIGITS[ch]
-        elif ch == "十":
-            section += (num or 1) * 10
-            num = 0
-        elif ch == "百":
-            section += (num or 1) * 100
-            num = 0
-        elif ch == "千":
-            section += (num or 1) * 1000
-            num = 0
-        elif ch == "万":
-            total += (section + (num or 0)) * 10000
-            section = 0
-            num = 0
-        elif ch.isdigit():
-            num = num * 10 + int(ch)
-    value = total + section + num
-    return value or None
+    data = build()
+    text = render(data)
 
+    if not data.get("version"):
+        print("site data: 解析不出已发布的 vX.Y.Z tag —— 不写、不判绿。", file=sys.stderr)
+        print("  （浅克隆缺 tag 时先 `git fetch --tags`；CI 里 checkout 需 fetch-depth: 0）",
+              file=sys.stderr)
+        return 3
 
-def get_round():
-    """Parse the newest '## 本轮进度（日期，第N轮：标题）' header.
+    if args.to_stdout:
+        sys.stdout.write(text)
+        return 0
 
-    STATUS.md orders rounds newest-first, so the header we want is the **first**
-    `## 本轮进度` line in the file. 只认第一个头、解析不了就**报错退出**：
-    以前是"全文搜索第一个能匹配的头"，于是标题里带全角括号（`（多余的 sorry）`）
-    让最新轮失配时，网站会**静默退回上一轮**（2026-09-18 实测：round 停在 97）。
-    标题是 `docs/design/site.md` §2 写明的机器可读块，坏了要立刻被看见。
+    if args.check:
+        try:
+            on_disk = open(OUT, encoding="utf-8").read()
+        except OSError as error:
+            print(f"site data: 读不到 {OUT}：{error}", file=sys.stderr)
+            return 1
+        if on_disk != text:
+            print(f"site data: {os.path.relpath(OUT, REPO_ROOT)} 与最新 tag 不一致"
+                  f"（磁盘上是 {json.loads(on_disk).get('version')!r}，"
+                  f"最新 tag 是 {data['version']!r}）—— 跑 python3 scripts/gen-site-data.py",
+                  file=sys.stderr)
+            return 1
+        print(f"site data: ok（{data['tag']}）")
+        return 0
 
-    轮次号后允许一个限定语（`第一百轮（语言线）：…`）——并行线（语言线/课程线）
-    各自记轮是既有事实，限定语原样保留进标题，不丢信息；除此之外的形状仍然报错。
-    """
-    text = _read("STATUS.md")
-    if not text:
-        return {}
-    header = re.search(r"^##\s*本轮进度.*$", text, re.M)
-    if not header:
-        return {}
-    m = re.fullmatch(
-        r"##\s*本轮进度（(\d{4}-\d{2}-\d{2})，第([^轮]+)轮(（[^）]*）)?：(.*)）",
-        header.group(0).strip(),
-    )
-    if not m:
-        raise SystemExit(
-            "STATUS.md 最新一轮的标题解析不了（标题是网站进度页的机器可读块）：\n"
-            f"  {header.group(0).strip()}\n"
-            "期望形状：## 本轮进度（YYYY-MM-DD，第N轮：标题）"
-        )
-    qualifier = (m.group(3) or "").strip()
-    title = m.group(4).replace("`", "").strip()
-    return {
-        "round_date": m.group(1),
-        "round": _cn_to_int(m.group(2)),
-        "round_title": f"{qualifier}{title}" if qualifier else title,
-    }
-
-
-def get_examples():
-    """List examples/*.sokonanoda filenames (sorted)."""
-    pattern = os.path.join(REPO_ROOT, "examples", "*.sokonanoda")
-    return sorted(os.path.basename(p) for p in glob.glob(pattern))
-
-
-def main():
-    data = {}
-
-    # ── 版本：**已发布的**那个，不是 Cargo.toml 里的下一个 ──────────────────
-    #
-    # 站点在每个页脚写「当前版本」，下载指令也从它拼出来，并且明说这是「已发布
-    # 的版本，不是工作树」（compare.html）。所以这里取最新的 `vX.Y.Z` tag；只有
-    # 连 tag 都拿不到（浅克隆、非 git 检出）时才沿用上一次写下的版本——**绝不**
-    # 退回 Cargo.toml：那份文件在发行窗口里一直领先于最后一个 tag，写出去就是
-    # 让读者去装一个没有 tag、没有产物、没有下载地址的版本。
-    version, tag = release_version()
-    next_version = get_version()
-    if version:
-        data["version"] = version
-        note = f"version: {version}（发布 tag {tag}）"
-        if next_version and next_version != version:
-            note += f"；Cargo.toml 已是 {next_version}，尚无 tag —— 站点仍写已发布版本"
-        print(note)
-    else:
-        carried = _previous_scalar("version")
-        if carried:
-            data["version"] = carried
-            print(f"version: 找不到发布 tag —— 沿用上次写下的 {carried}（不退回 Cargo.toml）")
-        else:
-            print("version: 找不到发布 tag，也没有上次的值 —— 本次不带版本号")
-
-    released = release_tree(tag)
-    tree, tree_reason = released
-    if not tree:
-        print(f"set_theory: 用工作树当清单来源（{tree_reason}）")
-
-    units = get_units()
-    if units:
-        data["units"] = units
-
-    set_theory = get_set_theory(tree, version, tag)
-    if set_theory:
-        data["set_theory"] = set_theory
-
-    data.update(get_round())  # round / round_date / round_title (only if found)
-
-    examples = get_examples()
-    if examples:
-        data["examples"] = examples
-
-    # tests_total is intentionally omitted: TESTING.md only carries it inside
-    # prose-style per-round totals that are not a single stable field. We do not
-    # fabricate a number (docs/design/site.md §3).
-
-    out_dir = os.path.join(REPO_ROOT, "site", "data")
-    os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, "site.json")
-    with open(out_path, "w", encoding="utf-8") as fh:
-        json.dump(data, fh, ensure_ascii=False, indent=2, sort_keys=True)
-        fh.write("\n")
-
-    print("wrote", os.path.relpath(out_path, REPO_ROOT))
-
-    # 再写一份**只有版本号**的极小文件。
-    #
-    # 页脚的 `[data-site-version]` 由 site.js 在浏览时回填。早先它拉的是整份
-    # site.json（12 KB），而 28 页每一页都要填一次版本号——为一个字符串付
-    # 12 KB 不划算。version.json 只有几十字节，且与 site.json 出自同一个生成器，
-    # 不可能不一致（check-site.py 另有断言）。
-    version_path = os.path.join(out_dir, "version.json")
-    with open(version_path, "w", encoding="utf-8") as fh:
-        json.dump({"version": data.get("version", "")}, fh, ensure_ascii=False, sort_keys=True)
-        fh.write("\n")
-    print("wrote", os.path.relpath(version_path, REPO_ROOT))
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w", encoding="utf-8") as handle:
+        handle.write(text)
+    print(f"site data: 写入 {os.path.relpath(OUT, REPO_ROOT)} —— {data['tag']}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

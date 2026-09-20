@@ -470,3 +470,21 @@
     维持 20 分钟不变；`GRADE_TIMEOUT 600s` 对 unit12 在 runner 上的约 4m06s 有 2.4× 余量。
   - 教训三：报"本机 X 秒"时必须带上**当时是哪一档**（同机同命令可差 2×），否则这个
     数字会在下一次标定时被当成常数用错。
+
+## 2026-09-21 —— `pages`：检查器比被检查物活得更久（站点简化那一轮）
+
+- **现象**：`pages` run `35518600085` 16 秒红在
+  `Check generated site artifacts are up to date`：`python3 scripts/gen-site-nav.py --check`
+  → exit 1（脚本已经不存在）。
+- **原因**：用户要求把 28 页站点简化成单页，删掉 28 个页面与 5 个生成器/检查器
+  （`gen-site-nav.py` / `gen-site-search.py` / `gen-diagnostics-page.py` /
+  `site-verify.py` / `site-audit.py` / `site-functest.py` / `site-shot.py`），
+  但 **`pages.yml` 还在调用它们**。workflow 的 `paths:` 过滤恰好也包含这些脚本，
+  所以"删脚本"这个动作本身就触发了这一次注定失败的部署。
+- **修复**：`pages.yml` 整体重写为单页流水线（`gen-site-data.py` → `check-site.py`
+  → deploy），并加 `release: types: [published]` 让发版后自动刷新站点。
+- **预防**：① 删一个脚本之前先 `grep -rn "<脚本名>" .github/ scripts/`——**调用点
+  不会跟着文件一起消失**；② 检查器的寿命应当由**被检查物**决定：站点只剩一页时，
+  跨页导航/搜索索引/sitemap 多项这些检查**没有对象可查**，留着只会腐烂成噪声，
+  该删就删（本次把 5 个脚本约 2800 行换成 1 个 `check-site.py`）；
+  ③ `paths:` 里列的每一个生成器都是"改了必须重新部署"的承诺，脚本删了要同步删。

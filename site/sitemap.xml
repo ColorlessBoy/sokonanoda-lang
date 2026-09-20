@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  站点地图：只有一个页面，因为站点只有一个页面。
+  **手写但受检**：scripts/check-site.py 断言这里的集合与 site/ 下真实存在的
+  HTML 文件**双向相等**（既不悬空、也不漏页）。lastmod 一律不写——静态文件
+  没有可靠的"内容修改日期"，写一个假的比不写更糟。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://colorlessboy.github.io/sokonanoda-lang/</loc><priority>1.0</priority></url>
+</urlset>

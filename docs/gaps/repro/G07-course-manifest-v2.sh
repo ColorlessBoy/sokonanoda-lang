@@ -118,13 +118,20 @@ echo
 
 # ── ④ 课程门禁的机器可读面带上章计数（G6）──────────────────────────────────
 echo "== ④ 课程门禁 --json：course.chapters 与清单一致（G6）=="
+# **`--only "单元 1"` 不是省事，是这条断言的正确作用域**：本段要验的是 G6 的
+# **机器可读面**（`course.volumes` / `course.chapters` 与清单一致），而那两项来自
+# **清单本身**，与"判了几个目标"无关。整卷判一遍是 315s（2026-09-21 实测，
+# release 二进制），会把 `gap.py check` 变成 CI 上最慢的一步；只判一个目标是 3s，
+# 而 G6 该验的东西一个没少。`course.units` 会随选择变化（=1），所以"12 个单元"
+# 由第 ① 段直接从 `course.json` 断言，不在这里重复。
 GATE_JSON="$TMP/gate.json"
 GATE_BIN="${SOKONANODA_BIN:-$PWD/target/debug/sokonanoda}"
 if [ -x "$GATE_BIN" ]; then
-  python3 "$PWD/courses/set-theory/tools/check.py" --bin "$GATE_BIN" --json > "$GATE_JSON" 2>/dev/null
+  python3 "$PWD/courses/set-theory/tools/check.py" --bin "$GATE_BIN" \
+    --only "单元 1" --json > "$GATE_JSON" 2>/dev/null
   GATE_EXIT=$?
 else
-  python3 "$PWD/courses/set-theory/tools/check.py" --json > "$GATE_JSON" 2>/dev/null
+  python3 "$PWD/courses/set-theory/tools/check.py" --only "单元 1" --json > "$GATE_JSON" 2>/dev/null
   GATE_EXIT=$?
 fi
 GATE_COUNTS="$(python3 - "$GATE_JSON" <<'PY'
@@ -143,7 +150,7 @@ PY
 )"
 note "  门禁 exit=$GATE_EXIT · $GATE_COUNTS"
 gate_ok=1
-if [ "$GATE_EXIT" = 0 ] && printf '%s' "$GATE_COUNTS" | grep -q 'volumes=1 chapters=4 units=12 rejected=0'; then
+if [ "$GATE_EXIT" = 0 ] && printf '%s' "$GATE_COUNTS" | grep -q 'volumes=1 chapters=4 units=1 rejected=0'; then
   gate_ok=0
 fi
 echo "   → G6 机器可读面（修后预期）：$([ "$gate_ok" = 0 ] && echo yes || echo NO)"

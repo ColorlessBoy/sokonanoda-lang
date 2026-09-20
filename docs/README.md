@@ -77,12 +77,13 @@
 - `extension-server-policy.md` — VS Code 扩展强制内置 LSP + `sokonanoda: doctor` 自检（0.31.0）
 - `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
 - `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（**已废弃**：`char_steps` 基建随值位关键字一并删除）
-- `site.md` — 项目官网（GitHub Pages）立项设计（**已被取代 2026-09-20**：见 `site-rebuild/`；本文仅 §3 单一事实源纪律与 §6 部署仍有效）
-- **`site-rebuild/`** — **站点全面重构（2026-09-20，当前权威）**：`STATE.md`（断点续传状态 + 实测修正清单）、
-  `spec/D1-design-rules.md`（设计规则手册）、`spec/D2-information-architecture.md`（28 页施工图 + 数据模型 + 工程契约）、
-  `spec/D9-page-brief.md`（页面施工标准）、`spec/D3/D5/D6/D7`（数据模式 / 组件 / 编辑器面板 / 设计复审）、
-  `content/C1–C4`（语言 / 教学 / 工具链 / 现状与路线 四本事实卷宗）、`research/R1–R4`（设计手艺调研 / 65 站点拆解 / 字体管线）。
-  验收：`python3 scripts/site-verify.py`（14 项完整性 + 正确性，exit 0 才算过）
+- **`site-single-page.md`** — **官网（GitHub Pages）当前权威（2026-09-21）**：单页站点
+  （是什么 / 怎么安装 / 核心特点 / 未来的计划）、`site/` 的文件清单、留在里面的三条防漂移机制、
+  以及"为什么把 28 页砍成 1 页"。验收：`python3 scripts/check-site.py`（10 项，exit 0 才算过）
+- `site.md`、`site-rebuild/` — **历史存档（已被 `site-single-page.md` 取代）**：
+  2026-09-20 的 28 页全面重构（`STATE.md` 的实测修正清单仍然有效；`spec/D1-design-rules.md`
+  的设计主张被单页版**原样继承**，色值与令牌未改）。**不要照着它们新建页面**——
+  导航生成器 / 搜索索引 / 走查数据 / 诊断码表页都已随简化删除。
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 - `deepseek-harness.md` — **DeepSeek Harness 适配（设计 + 计划 H0–H4）**：差距
   G1–G10、DSH 侧事实（技能根/斜杠命令/LSP 只有 4 项只读操作且忽略诊断/patch 形状）、

@@ -1,0 +1,51 @@
+# sokonanoda
+
+> sokonanoda 是一个 Lean 4 式教学编译栈。你和一个 code agent 打开同一个
+> `.sokonanoda` 文件：agent 在里面写定义、举例子、出题（练习位留成 `sorry`），
+> 你在同一个文件里把 `sorry` 填成证明，判定由**完整内核**给出——不是文本比对，
+> 也不是模型打分。教学语法是真实 Lean 4 的子集。
+
+官网只有一个页面：https://colorlessboy.github.io/sokonanoda-lang/
+
+## 是什么
+
+- 共享画布：一份 `.sokonanoda` 文件同时是人的练习本与 agent 的状态源。
+- 内核判卷：`grade` 的退出码就是结论（0 = 全部通过，1 = 有拒绝）；机器读
+  `--json` 事件流（`decl.checked` / `exercise.open` / `diagnostic`）。
+- 语言：连接符记法（`∧ ∨ ↔ ¬ → = ≠`）、`∀` / `∃`、`by` tactic 块、归纳与递归、
+  宇宙 `Type u`、多文件 `import`。
+
+## 怎么安装
+
+三条路，都不需要 Rust／cargo（版本锁定到最新已发布 tag，永不使用 `latest`）：
+
+1. VS Code 扩展：`code --install-extension sokonanoda-lang.sokonanoda`
+   （8 个平台包 + 1 个 universal 回退包，包内内嵌 LSP 与 CLI）
+2. CLI：从 https://github.com/ColorlessBoy/sokonanoda-lang/releases 下载
+   `sokonanoda-cli-<rust-target>.tar.gz`，解包即得可执行文件
+3. 仓库内（任何 harness）：`scripts/soko setup` → `scripts/soko doctor --json`
+   → `scripts/soko grade playground.sokonanoda`
+
+## 核心特点
+
+- 判定走完整内核，不是文本比对；agent 与用户看**同一份**判定。
+- 教学语法是真实 Lean 4 的子集。
+- 使用路径零工具链依赖；官方 Lean 工具链（lean / lake / elan）全程不调用。
+- 两门课：入门课 11 单元、卷 I《集合论》12 单元；每个目标都由课程门禁跑真内核。
+- 编辑器集成：VS Code 的 goal 面板 / Infoview、进度树、tactic hover、记法输入提示。
+- 七个查询（`check` / `state` / `goals` / `holes` / `hints` / `reduce` / `project`）
+  既是 CLI 又是 MCP 工具；`.agents/skills/` 技能目录自动发现。
+- 缺口台账 `docs/gaps/ledger.jsonl` 每条缺口都带可复现命令，且由 CI 校验一致。
+
+## 未来的计划
+
+卷 II（子类型 / Sigma / 结构体，前置：`Eq.subst` 的 Type 层重写）· 浏览器内判题
+（WASM）· 增量编译常驻（`file.didChange`、跨文件转播）· DeepSeek Harness 侧的
+goal / Infoview 通道 · `by` 块逐步判定的**前缀缓存**（现在是每步重判整份文档，
+代价超线性）· 项目模式剩余项（`watch` / `[deps]` / `namespace`）。
+
+## 源码
+
+- 仓库：https://github.com/ColorlessBoy/sokonanoda-lang
+- 需求总账：https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/REQUIREMENTS.md
+- 许可证：Apache-2.0（kernel 快照的上游版权与许可声明见 NOTICE.md）

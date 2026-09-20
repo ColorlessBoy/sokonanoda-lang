@@ -15,20 +15,21 @@
 `site/`（数据由 `scripts/gen-site-data.py` 生成，永不手写版本号）。
 harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deepseek-harness.md`**。
 
-**改站点之前先读 `docs/design/site-rebuild/`**（2026-09-20 全面重构，取代
-`docs/design/site.md`）：`STATE.md` 是断点续传状态与**实测修正清单**（仓库文档与
-实测不符的地方都在那儿），`spec/D1-design-rules.md` 是设计规则手册，
-`spec/D9-page-brief.md` 是页面施工标准，`content/` 是四本事实卷宗。一条命令验收：
+**改站点之前先读 `docs/design/site-single-page.md`**（2026-09-21 简化：官网是
+**一个页面**，只讲 是什么 / 怎么安装 / 核心特点 / 未来的计划）。它取代了
+2026-09-20 的 28 页重构（`docs/design/site-rebuild/` 与 `docs/design/site.md`
+已降级为历史存档，**不要照着它们新建页面**）。一条命令验收：
 
 ```bash
-python3 scripts/site-verify.py          # 18 项：完整性 + 正确性，exit 0 才算过
-python3 scripts/site-verify.py --quick  # 16 项，跳过两个需要 Chrome 的检查
+python3 scripts/check-site.py            # 10 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致
+python3 scripts/check-site.py --browser  # 额外跑真 Chrome（资源零 404 + 版本号已回填）
 ```
 
 **站点写的是「已发布版本」的事实。** 本仓库常有并行开发，`crates/` 与 `courses/`
 的未提交改动会让 `scripts/soko` 量到**未发布代码**（它优先解析仓库构建）。
 量内核行为前先钉发布产物，或确认 `git status --short crates/ courses/` 干净 ——
-详见 `spec/D9-page-brief.md` §4.0 与 `STATE.md` §5。
+详见 `docs/design/site-single-page.md` §4 与 `docs/design/site-rebuild/STATE.md` §5
+（后者是那批"实测与文档不符"的原始清单，仍然有效）。
 
 **第二大课（卷 I 集合论）已建在 `courses/set-theory/`**：入口
 `courses/set-theory/README.md`；写课程内容前先读**硬规则 10**（课程标准库三层分界，
@@ -212,7 +213,7 @@ tag 并 dispatch release（见 `docs/RELEASE.md`；手动推 tag 仅应急）。
 ## 收尾义务
 
 - 落 commit 前更新 `STATUS.md`（只保留最近 3 轮，旧轮归档
-  `docs/STATUS-ARCHIVE.md`；网站进度页自动读最新轮标题）；
+  `docs/STATUS-ARCHIVE.md`）；
 - 用户新要求追加进 `REQUIREMENTS.md` §9 并注明日期（冲突以该文件为准）；
 - 设计先行：新功能先写设计进 `docs/`，再动手；多用 subagent 并行调研。
 - **VS Code + skills 同步**：任何用户可见改动（命令/键位/视图/反馈/语法/协议/发布形态）

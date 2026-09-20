@@ -42,7 +42,7 @@
       "ref": "main",
       "license": "MIT",
       "strip": ".codex/skills/",
-      "why": "设计审查。这一包的价值在「渲染后独立评审」这条链：ai-smell-detector 逐条列出没有项目理由就该算味道的模式（居中 hero + eyebrow + 两个 CTA、任意 bento/三卡网格…）；design-critic 要求先看截图、后看实现，且不许为既有实现辩护；visual-qa 把多视口截图、横向溢出、控制台错误变成可复现的证据集——与本仓 scripts/site-shot.py 直接对接。",
+      "why": "设计审查。这一包的价值在「渲染后独立评审」这条链：ai-smell-detector 逐条列出没有项目理由就该算味道的模式（居中 hero + eyebrow + 两个 CTA、任意 bento/三卡网格…）；design-critic 要求先看截图、后看实现，且不许为既有实现辩护；visual-qa 把多视口截图、横向溢出、控制台错误变成可复现的证据集——与本仓 `python3 scripts/check-site.py --browser`（真 Chrome 渲染验收：资源零 404 + 版本号已回填）直接对接。",
       "skills": [
         "art-direction",
         "design-system",

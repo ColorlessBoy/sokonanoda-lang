@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://colorlessboy.github.io/sokonanoda-lang/sitemap.xml

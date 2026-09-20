@@ -188,8 +188,8 @@ scripts/soko grade playground.sokonanoda  # 判卷（--json 是事件流）</pre
         </li>
         <li>
           <b>两门课，每个目标都由门禁跑真内核。</b>
-          <span class="why">入门课 11 个单元（命题、等式、函数、<code>by</code>、宇宙、归纳、量词、
-          关系、模块）；卷 I《集合论》12 个单元，从集合与隶属走到 Cantor 定理与 Russell 悖论。
+          <span class="why">入门课从命题与证明项讲到等式、函数、<code>by</code>、宇宙、归纳、
+          量词、关系与模块；卷 I《集合论》从集合与隶属一路走到 Cantor 定理与 Russell 悖论。
           每个单元都是「画布（留 <code>sorry</code> 的题）+ 解答钥匙」，
           <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory">课程门禁</a>
           判的是形状而不是计数。</span>
@@ -253,8 +253,9 @@ scripts/soko grade playground.sokonanoda  # 判卷（--json 是事件流）</pre
           现在每走一步 tactic，前端会<strong>重新判定整份文档</strong>，
           所以解答文件越大、tactic 步数越多，代价越超线性。本版本实测：
           卷 I 单元⑫的解答（526 行、9 道题、全 tactic）在 debug 构建下判一次约 190 秒，
-          已经撞上课程门禁的单目标上限。正确的修法是给「未改动的前缀」做缓存，
-          而不是继续抬超时上限。
+          已经撞上课程门禁的单目标上限。这一版只是**临时**把上限抬到 600 秒、
+          并让门禁改用 release 构建（约 93 秒）——**根因没修**。
+          真正的修法是给「未改动的前缀」做缓存。
         </li>
         <li>
           <b>项目模式的剩余项。</b>
@@ -268,7 +269,8 @@ scripts/soko grade playground.sokonanoda  # 判卷（--json 是事件流）</pre
 
 <footer class="site-footer">
   <div class="wrap">
-    <span>版本 <span class="ver" data-site-version>当前发布版本</span> · MIT</span>
+    <span>版本 <span class="ver" data-site-version>当前发布版本</span> ·
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/NOTICE.md">Apache-2.0</a></span>
     <nav aria-label="页脚">
       <ul>
         <li><a href="https://github.com/ColorlessBoy/sokonanoda-lang">源码</a></li>

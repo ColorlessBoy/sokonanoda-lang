@@ -1,15 +1,18 @@
 name: pages
 
 # 项目官网（GitHub Pages）：零构建静态 `site/` + 官方 Pages actions。
-# 设计与信息架构见 docs/design/site.md。
 #
-# 为什么不用 `docs/` 作 Pages 源：那里是 35 篇开发者台账（含 CI 失败记录与
-# 内部取舍），发布它等于把研发内账挂上公网；且分支部署有 Jekyll 隐式渲染与
-# 10 次构建/小时的限制。Actions 部署两者皆免。
+# **站点只有一个页面**（2026-09-21 简化，设计 `docs/design/site-single-page.md`）：
+# 是什么 / 怎么安装 / 核心特点 / 未来的计划。它取代了 2026-09-20 那次 28 页重构
+# ——那次的信息架构、导航生成器、搜索索引、走查数据、诊断码表页都已删除，
+# 因为「没有对象可查」的检查只会腐烂成噪声。
 #
-# 版本号 / 单元数 / 进展**一律不手写**：`scripts/gen-site-data.py` 从
-# Cargo.toml、course/course.json、STATUS.md 生成 site/data/site.json，页面
-# 上的最新 release 由浏览器查 Releases API（docs/design/site.md §3）。
+# 为什么不用 `docs/` 作 Pages 源：那里是开发者台账（含 CI 失败记录与内部取舍），
+# 发布它等于把研发内账挂上公网；且分支部署有 Jekyll 隐式渲染与 10 次构建/小时的
+# 限制。Actions 部署两者皆免。
+#
+# 版本号**一律不手写**：`scripts/gen-site-data.py` 从**最新的已发布 tag** 生成
+# `site/data/site.json`，页面上的版本号与下载链接由 `assets/site.js` 从它回填。
 #
 # **一次性前置动作（只能由仓库拥有者做）**：Settings → Pages 把 Source 设为
 # GitHub Actions。创建 Pages 站点需要仓库管理员权限，GITHUB_TOKEN 的
@@ -22,26 +25,14 @@ on:
     branches: [main]
     paths:
       - "site/**"
-      # 站点的每一个生成器与检查器都要列进来：站点内容是**生成物 + 手写页**的混合，
-      # 改了生成器而不重新部署，线上就会与仓库不一致。
-      - "scripts/gen-site-data.py"     # site.json：版本 / 单元 / 课程计数
-      - "scripts/gen-site-lab.py"      # 走查 / 事件流 / 诊断 / 时间线 / 台账 / 证据
-      - "scripts/gen-site-nav.py"      # 导航与页脚的唯一源
-      - "scripts/gen-site-fonts.py"    # 自托管字体子集
-      - "scripts/gen-site-search.py"   # 静态搜索索引
-      - "scripts/gen-diagnostics-page.py"  # 诊断字典页（64 行码表由数据渲染）
-      - "scripts/check-site.py"        # 站点卫生（10 条断言）
-      - "scripts/site-verify.py"       # 总验收（18 项；CI 跑 --quick 的 16 项）
-      - "scripts/site-functest.py"     # 交互功能实跑（唯一会点击的检查）
-      - "scripts/site-audit.py"        # 渲染审计（溢出 / 语义色 / 暗色）
-      # `site/_partials/**` 不必单列：已被上面的 `site/**` 覆盖。
-      - "STATUS.md"                    # 进展页的轮次与日期
-      - "course/course.json"           # 入门课单元表
-      - "courses/set-theory/course.json"  # 卷 I 单元表
-      - "editor/vscode/CHANGELOG.md"   # 版本历史页
-      - "docs/gaps/ledger.jsonl"       # 工程页的缺口台账
-      - "Cargo.toml"                   # 版本号的唯一源
+      - "scripts/gen-site-data.py"   # site.json：已发布版本
+      - "scripts/check-site.py"      # 总验收（10 项）
       - ".github/workflows/pages.yml"
+  # 发布一个新 tag 之后自动刷新站点：站点写的是**已发布版本**的事实，
+  # 而 tag 是 push 之外的动作——不挂这一条，线上会一直停在上一个版本号，
+  # 直到有人碰巧改了一次 `site/**`。
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -62,8 +53,8 @@ jobs:
     steps:
       # `fetch-depth: 0` **是必需的，不是优化**：站点写的是已发布版本的事实，
       # 而"已发布"的定义就是最新的 `vX.Y.Z` tag。默认的浅克隆（depth 1）不带
-      # tag，生成器便解析不出发布版本，只能沿用上次的值——正确但全靠运气，而
-      # 且它还会退化成"用工作树的清单"。
+      # tag，生成器便解析不出发布版本，只能拒绝写入（exit 3）——那是**故意的**，
+      # 比"沿用上次的值、正确但全靠运气"要好。
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
@@ -83,7 +74,7 @@ jobs:
             echo "enabled=true"
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::GitHub Pages 尚未启用：到 Settings → Pages 把 Source 设为 GitHub Actions 后重跑本 workflow（docs/design/site.md §6.2）。"
+            echo "::notice::GitHub Pages 尚未启用：到 Settings → Pages 把 Source 设为 GitHub Actions 后重跑本 workflow。"
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -91,48 +82,17 @@ jobs:
         if: steps.gate.outputs.enabled == 'true'
         run: python3 scripts/gen-site-data.py
 
-      # 生成物与手写页必须一致：导航/页脚单源、搜索索引新鲜度、字体与生成器
-      # 是否对得上。这些都是**纯 stdlib**，不需要装任何东西。
-      #
-      # 历史：这里曾经跑 `gen-site-demos.py --check`（PIL 画的假 VS Code 截图）
-      # 并为此装 pillow。2026-09-20 重构时那套假截图**整体退役**
-      # （编辑器面板改成真 HTML/CSS），脚本与产物都已删除，pillow 不再需要。
-      - name: Check generated site artifacts are up to date
-        if: steps.gate.outputs.enabled == 'true'
-        run: |
-          python3 scripts/gen-site-nav.py --check
-          python3 scripts/gen-site-search.py --check
-          python3 scripts/gen-diagnostics-page.py --check
-
-      # 站点卫生：10 条断言（链接、无写死版本、导航一致、元数据、体积、
-      # 零位图、无内联样式、turnstile、sitemap 双向）。
-      - name: Site hygiene checks
+      # 总验收：结构 / 链接 / 无写死版本号 / 元数据 / 体积 / 已发布版本一致，
+      # 共 10 项，exit 0 才算过。渲染实跑（`--browser`，要 Chrome）留在本地：
+      # 单页站点的资源引用与 DOM 回填已被上面的静态检查覆盖，runner 上装 Chrome
+      # 的收益不如把这一步留给发布前的人工门禁
+      # （本地：`python3 scripts/check-site.py --browser`）。
+      - name: Site acceptance
         if: steps.gate.outputs.enabled == 'true'
         run: python3 scripts/check-site.py
 
-      # 总验收：完整性 + 正确性共 18 项（CI 里跑 --quick 的 16 项），含「零伪造」
-      # （页面渲染的每条录制值回查生成它的 JSON）与两条「计数可复现」
-      # （课程 / playground：**发布 tag** 的源 + 已发布二进制）。
-      # --quick 跳过两个需要 Chrome 的检查（渲染审计与交互实跑），
-      # 它们在本地 `python3 scripts/site-verify.py` 里跑；CI runner 上装 Chrome
-      # 的收益不如把这两个放在发布前的人工/本地门禁里。
-      - name: Site total acceptance
-        if: steps.gate.outputs.enabled == 'true'
-        run: python3 scripts/site-verify.py --quick
-
       - uses: actions/configure-pages@v5
         if: steps.gate.outputs.enabled == 'true'
-
-      # `site/_partials/` 是导航与页脚的**唯一源**，不是页面：它是被
-      # `gen-site-nav.py` 注入到每一页里的片段。上传前删掉，免得把内部片段
-      # 当成页面发布出去（对搜索引擎是重复内容，对人是一条没有导航的裸链接）。
-      # 这一步必须在所有检查**之后**——检查要读这些文件来比对。
-      - name: Drop the partials from the published artifact
-        if: steps.gate.outputs.enabled == 'true'
-        run: |
-          rm -rf site/_partials
-          echo "published tree (top level):"
-          ls -1 site
 
       - uses: actions/upload-pages-artifact@v3
         if: steps.gate.outputs.enabled == 'true'
