@@ -94,11 +94,14 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `data/version.json` = `{"version":"0.61.0"}` —— 正是「已发布版本」）；而 `ci`
    作业红在**课程门禁超时**上（见下）。分支 `i16-imports-and-projects` 已删除。
    **顺手解开卡住 0.62.0 的那颗钉子**：`08b6782` 的 ci（`35512977249`）红的不是代码，
-   而是 `Course gate` 的 `timeout-minutes: 5` —— 课程长大了，阈值没跟着实测走。
+   而是 `Course gate` 的**两层**超时 —— 课程长大了，阈值没跟着实测走：
+   外层步骤 5 分钟（改成 20）、内层 `check.py` 的单目标判卷预算 180s（改成 600，
+   实测 unit12 解答在 runner 上约 4m06s > 180s ⇒ `exit=124`，G1/G3/G4 连锁判负）。
    用 `--selftest` 当「同工作量的标尺」换算：本机整卷 **4m46s**、`--selftest` 8.5s，
    同一次 CI 的 `--selftest` **16.7s** ⇒ runner ≈ 本机 ×2.0 ⇒ 整卷约 **9.5 分钟**。
-   改成 **20 分钟**（约 2× 余量），并按纪律记进 `docs/CI-FAILURES.md`（含「这个数要跟着
-   实测走」的预防条）。**判据门禁红 ⇒ auto-tag 不发版**：所以修它不是「求绿」，
+   改成 **20 分钟**（对 runner 实测的 9m12s 有 2.2× 余量），并按纪律记进
+   `docs/CI-FAILURES.md`（两条 + 一条修正：**本机自己会在快/慢两档间差 2×**，
+   「慢档本机」恰好与 runner 同速——所以跨机比值只在两边同时量了同源步骤时才可信）。**判据门禁红 ⇒ auto-tag 不发版**：所以修它不是「求绿」，
    而是 0.62.0 能不能上线的必要一步。
 7. **本机无法跑 Rust 门禁（环境限制，非代码问题）**：`scripts/soko gate` 在本机
    失败在**链接**阶段——`cc` 报 `You have not agreed to the Xcode license agreements`

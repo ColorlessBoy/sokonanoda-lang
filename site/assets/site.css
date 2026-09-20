@@ -1,1046 +1,448 @@
-/* site/assets/site.css — 页面外壳与共享组件
+/* site/assets/site.css — 官网唯一的一份样式表（单页站点，无构建）。
  *
- * 只依赖 tokens.css 的令牌；本文件里**不出现任何字面色值**。
- * 规则手册：docs/design/site-rebuild/spec/D1-design-rules.md
- * 断点只有两个：60rem（宽屏）/ 40rem（窄屏）。多断点是「为每个设备各调一次」
- * 的味道；这里只做两次**重新编排**。
+ * 方向：「方格纸 · 朱批」。三句话正当化（完整版见
+ * docs/design/site-single-page.md §设计）：
+ *   ① 这个产品的产物是**判定**，所以颜色由判定结果驱动——绿只出现在内核
+ *      真的通过过的东西上，朱只出现在诊断与**诚实的限制**上；
+ *   ② 这个产品的材料是方格纸上的推导，所以视觉语言取自工程方格纸：
+ *      冷调近白纸面、极淡的方格、零圆角的结构容器、发丝线承担全部分隔；
+ *   ③ 读者是中英混排的技术读者，所以拉丁走自托管子集、CJK 走系统栈，
+ *      表现力放在数字、符号与细线上。
  *
- * 组件清单与用法见 docs/design/site-rebuild/spec/D5-css-components.md。
+ * 记忆点：**推理横线**（.turnstile）——一条发丝线，上方是"给定"，下方是"待证"。
+ * 全页只出现 3 次（四个大节之间的分界），多一次就退化成普通分隔线。
+ *
+ * 语义纪律（评审按 bug 处理）：
+ *   --acc-*   绿：只允许出现在「内核真的通过过」的东西上
+ *   --verm-*  朱：只允许出现在「诊断 / 更正 / 诚实的限制」上
+ *
+ * 约束：颜色/尺寸走下面 :root 的令牌。对比度数字沿用重构时的实算值，
+ * 本次简化**未改任何一个色值**。
  */
 
 /* ══════════════════════════════════════════════════════════════════
-   1. 页头
+   令牌
    ══════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light dark;
 
-.site-header {
-  position: sticky;
-  inset-block-start: 0;
-  z-index: var(--z-header);
+  /* 方格纸 */
+  --grid-pitch: 24px;
+  --grid-line: #eef1f4;      /* vs --paper 1.056:1 —— 可见但不抢注意力（上限 1.10） */
+
+  /* 表面：深度靠明度分级，不靠阴影 */
+  --paper: #f5f7f9;
+  --surface: #ffffff;
+  --surface-sunken: #ebedf3;
+
+  /* 墨色三级（对纸/网格/表面三者都 ≥4.5:1） */
+  --ink: #14171c;
+  --ink-2: #4a5159;
+  --ink-3: #646c76;
+
+  /* 线 */
+  --rule: #d9dee5;
+  --rule-strong: #bac2cc;
+  --border-control: #7c8691;
+
+  /* 语义色 1：内核判定绿 */
+  --acc: #1e6b4c;
+  --acc-ink: #14523a;
+  --acc-wash: #e7f0eb;
+  --acc-border: #54906e;
+
+  /* 语义色 2：朱批（诊断 / 更正 / 诚实的限制） */
+  --verm: #c8371c;
+  --verm-ink: #b83318;
+  --verm-wash: #fbebe9;
+  --verm-border: #cf5a38;
+
+  /* 焦点环用墨色：可访问性 affordance，不与语义色抢注意力 */
+  --ring-color: var(--ink);
+  --ring-width: 2px;
+  --ring-offset: 2px;
+
+  /* 间距 */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px; --sp-9: 96px;
+
+  /* 字号：锚 17px（CJK 字形密度高，16px 中文偏挤） */
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.875rem;
+  --fs-ui: 0.9375rem;
+  --fs-base: 1.0625rem;
+  --fs-lg: 1.1875rem;
+  --fs-xl: 1.4375rem;
+  --fs-2xl: 1.75rem;
+  --fs-display: clamp(1.75rem, 1.2rem + 2.4vw, 2.5rem);
+
+  /* 行高 */
+  --lh-display: 1.2;
+  --lh-heading: 1.35;
+  --lh-body: 1.7;
+  --lh-code: 1.6;
+
+  /* 行长：40rem = 640px ≈ 37.6 汉字 / 78 拉丁字符，两个 WCAG 上限同时满足 */
+  --measure: 40rem;
+
+  /* 字族：衬线正文 + 等宽代码；CJK 走系统栈（见 fonts.css） */
+  --font-prose:
+    "Soko Serif", "Soko Symbols", "Soko Mono", system-ui, -apple-system,
+    "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI",
+    "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --font-mono:
+    "Soko Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", "DejaVu Sans Mono", monospace;
+
+  --radius-control: 3px;   /* 控件才允许圆角；结构容器一律零圆角 */
+}
+
+/* 暗色令牌：系统偏好与手动切换两条路都落到同一组值上。 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --grid-line: #12161d;
+    --paper: #0f1216;
+    --surface: #171b21;
+    --surface-sunken: #0a0d10;
+    --ink: #e5e9ee;
+    --ink-2: #aeb6c0;
+    --ink-3: #868f9a;
+    --rule: #2a3038;
+    --rule-strong: #3c444e;
+    --border-control: #6b7480;
+    --acc: #5fb98c;
+    --acc-ink: #7fcfa5;
+    --acc-wash: #16241d;
+    --acc-border: #3e7a5c;
+    --verm: #e2603f;
+    --verm-ink: #ef7a5c;
+    --verm-wash: #2a1815;
+    --verm-border: #a8573d;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --grid-line: #12161d;
+  --paper: #0f1216;
+  --surface: #171b21;
+  --surface-sunken: #0a0d10;
+  --ink: #e5e9ee;
+  --ink-2: #aeb6c0;
+  --ink-3: #868f9a;
+  --rule: #2a3038;
+  --rule-strong: #3c444e;
+  --border-control: #6b7480;
+  --acc: #5fb98c;
+  --acc-ink: #7fcfa5;
+  --acc-wash: #16241d;
+  --acc-border: #3e7a5c;
+  --verm: #e2603f;
+  --verm-ink: #ef7a5c;
+  --verm-wash: #2a1815;
+  --verm-border: #a8573d;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   骨架
+   ══════════════════════════════════════════════════════════════════ */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
   background-color: var(--paper);
-  border-block-end: 1px solid var(--rule);
-}
-
-.site-header .wrap {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--sp-4) var(--sp-6);
-  padding-block: var(--sp-4);
-}
-
-.brand {
-  font-family: var(--font-display);
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  letter-spacing: var(--tracking-tight);
-  color: var(--ink);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.brand small {
-  font-family: var(--font-ui);
-  font-size: var(--fs-xs);
-  font-weight: 400;
-  letter-spacing: var(--tracking-normal);
-  color: var(--ink-3);
-}
-
-.theme-toggle {
-  margin-inline-start: auto;
-  padding: var(--sp-2) var(--sp-4);
-  background: transparent;
-  color: var(--ink-2);
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r-1);
-  font-size: var(--fs-xs);
-  cursor: pointer;
-  transition: border-color var(--dur-1) var(--ease-standard);
-}
-
-.theme-toggle:hover { border-color: var(--border-control); color: var(--ink); }
-
-/* 窄屏：页头只保留 8 条，允许换行，不做 JS 汉堡菜单。
-   每一行都是真实可点的链接，没有 JS 也完整可用。
-
-   宽屏上导航**回到品牌那一行**：`flex-basis: 100%` 会让它独占第二行，
-   把页头撑到 123px，h1 被推到 300px 开外。一行放得下就一行。 */
-.site-nav { flex-basis: 100%; }
-
-@media (min-width: 60rem) {
-  .site-nav {
-    flex-basis: auto;
-    margin-inline-start: auto;
-  }
-  .theme-toggle { margin-inline-start: var(--sp-5); }
-}
-
-.nav-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-6);
-  font-size: var(--fs-ui);
-}
-
-.nav-group a {
-  color: var(--ink-2);
-  text-decoration: none;
-  padding-block: var(--sp-1);
-  border-block-end: 2px solid transparent;
-  transition: color var(--dur-1) var(--ease-standard),
-              border-color var(--dur-1) var(--ease-standard);
-}
-
-.nav-group a:hover { color: var(--ink); }
-
-.nav-group a[aria-current="page"] {
-  color: var(--ink);
-  /* 当前页标记用墨色下边框，不用绿色：它是导航状态，不是内核判定。 */
-  border-block-end-color: var(--ink);
-}
-
-/* 窄屏：页头**不吸顶**，并且把导航收紧。
- *
- * 8 条链接在 390px 上要换 2–3 行，页头因此有 164px 高。一个 164px 的 sticky
- * 页头会永久吃掉手机视口的五分之一——读者滚到哪儿都只剩五分之四屏。
- * 窄屏上让页头随内容滚走，是这里唯一正确的取舍；导航本身一条不少。
- * 链接间距同时从 24px 收到 8px，省下约一行的高度。 */
-@media (max-width: 59.999rem) {
-  .site-header { position: static; }
-  .nav-group { gap: var(--sp-2) var(--sp-4); }
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   2. 页脚（承担完整站点地图）
-   ══════════════════════════════════════════════════════════════════ */
-
-.site-footer {
-  margin-block-start: var(--sp-9);
-  padding-block: var(--sp-8) var(--sp-7);
-  background-color: var(--surface);
-  border-block-start: 1px solid var(--rule-strong);
-}
-
-.footer-map {
-  display: grid;
-  gap: var(--sp-7) var(--sp-6);
-  grid-template-columns: 1fr;
-  margin-block-end: var(--sp-8);
-}
-
-@media (min-width: 40rem) {
-  .footer-map { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (min-width: 60rem) {
-  .footer-map { grid-template-columns: repeat(5, 1fr); }
-}
-
-.footer-nav__title {
-  font-family: var(--font-ui);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  color: var(--ink-3);
-  margin-block-end: var(--sp-4);
-}
-
-.footer-nav ul {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  padding: 0;
-  list-style: none;
-}
-
-.footer-nav a {
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-  text-decoration: none;
-}
-
-.footer-nav a:hover { color: var(--ink); text-decoration: underline; }
-.footer-nav a[aria-current="page"] { color: var(--ink); font-weight: 600; }
-
-.footer-note {
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-  max-width: var(--measure);
-}
-
-.footer-note + .footer-note { margin-block-start: var(--sp-4); }
-
-/* ══════════════════════════════════════════════════════════════════
-   3. 面包屑 / 翻页 / 目录
-   ══════════════════════════════════════════════════════════════════ */
-
-.breadcrumbs {
-  padding-block-start: var(--sp-4);
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-}
-
-.breadcrumbs ol {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  padding: 0;
-  list-style: none;
-}
-
-.breadcrumbs li + li::before {
-  content: "/";
-  margin-inline-end: var(--sp-2);
-  color: var(--rule-strong);
-}
-
-.pager {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--sp-5);
-  margin-block-start: var(--sp-9);
-  padding-block-start: var(--sp-6);
-  border-block-start: 1px solid var(--rule);
-  font-size: var(--fs-ui);
-}
-
-.pager a { text-decoration: none; }
-.pager__label { display: block; font-size: var(--fs-xs); color: var(--ink-3); }
-
-.toc {
-  font-size: var(--fs-sm);
-  margin-block-end: var(--sp-7);
-}
-
-.toc__title {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  color: var(--ink-3);
-  margin-block-end: var(--sp-4);
-}
-
-.toc ol { padding-inline-start: var(--sp-5); }
-.toc a { color: var(--ink-2); text-decoration: none; }
-.toc a[aria-current="true"] { color: var(--ink); font-weight: 600; }
-
-@media (min-width: 72rem) {
-  .layout-with-toc {
-    display: grid;
-    grid-template-columns: var(--margin-col) minmax(0, 1fr);
-    gap: var(--sp-8);
-    align-items: start;
-  }
-  .layout-with-toc .toc {
-    position: sticky;
-    inset-block-start: var(--sp-8);
-    margin-block-end: 0;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   4. 教科书构件
-   ──────────────────────────────────────────────────────────────────
-   这一组是「教科书感」的**实际承担者**——不是衬线（D7 §2）。
-   编号小节、页边注、定理/定义/证明块，这些才是数学文本的形状。
-   ══════════════════════════════════════════════════════════════════ */
-
-.sec-num {
-  display: inline-block;
-  margin-inline-end: var(--sp-3);
-  font-family: var(--font-mono);
-  font-size: 0.75em;
-  font-weight: 400;
-  letter-spacing: var(--tracking-normal);
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
-/* 页边注：宽屏进页边，窄屏折回正文流。
-   这是只有内容站才敢用的版式——它要求作者真的把旁证写短。 */
-.marginalia {
-  font-size: var(--fs-sm);
-  line-height: var(--lh-normal);
-  color: var(--ink-2);
-  border-inline-start: 2px solid var(--rule-strong);
-  padding-inline-start: var(--sp-5);
-  margin-block: var(--sp-6);
-  max-width: var(--measure);
-}
-
-@media (min-width: 72rem) {
-  .has-marginalia {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--margin-col);
-    gap: var(--sp-8);
-    align-items: start;
-  }
-  .has-marginalia > .marginalia {
-    margin-block: 0;
-    border-inline-start-color: var(--rule);
-    font-size: var(--fs-xs);
-  }
-}
-
-/* 定理 / 定义 / 例：标签 + 正文，发丝线包住，零圆角。 */
-.statement {
-  margin-block: var(--sp-7);
-  padding: var(--sp-5) var(--sp-6);
-  background-color: var(--surface);
-  border: 1px solid var(--rule);
-  border-inline-start: 3px solid var(--rule-strong);
-  border-radius: var(--r-0);
-  max-width: var(--measure);
-}
-
-.statement__label {
-  display: block;
-  font-family: var(--font-ui);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  color: var(--ink-2);
-  margin-block-end: var(--sp-3);
-}
-
-.statement > :last-child { margin-block-end: 0; }
-
-/* 变体只改左边线的颜色，不改形状——形状是结构，颜色才是语义。 */
-.statement--definition { border-inline-start-color: var(--ink-3); }
-.statement--theorem    { border-inline-start-color: var(--ink-2); }
-.statement--lemma      { border-inline-start-color: var(--ink-3); }
-.statement--example    { border-inline-start-color: var(--rule-strong); }
-
-/* 证明块：以墓碑符收尾。墓碑符用 CSS 画，不用字符——
-   □ / ∎ 在多数系统字体里缺字，缺字就会逐字回退成别的形状。 */
-.proof {
-  margin-block: var(--sp-6);
-  max-width: var(--measure);
-}
-
-.proof::after {
-  content: "";
-  display: block;
-  inline-size: 0.6em;
-  block-size: 0.6em;
-  margin-block-start: var(--sp-4);
-  margin-inline-start: auto;
-  background-color: var(--ink-2);
-}
-
-/* 展示式公式：单独一行，上下留白，等宽 + 符号面。 */
-.display {
-  margin-block: var(--sp-6);
-  padding: var(--sp-5) var(--sp-6);
-  background-color: var(--surface);
-  border-block: 1px solid var(--rule);
-  border-radius: var(--r-0);
-  font-family: var(--font-mono);
-  font-size: var(--fs-base);
-  text-align: center;
-  overflow-x: auto;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   5. 推理横线（全站唯一的记忆点）
-   ──────────────────────────────────────────────────────────────────
-   一条发丝线，上方是「给定」，下方是「待证」。每页 2–3 次，位置固定，
-   其余一切都保持安静。⊢ 由 --font-symbols 渲染（没有任何系统字体覆盖它）。
-   ══════════════════════════════════════════════════════════════════ */
-
-.turnstile {
-  margin-block: var(--sp-7);
-  max-width: var(--measure);
-  background-color: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-0);
-  padding: var(--sp-5) var(--sp-6);
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  line-height: var(--lh-code);
-}
-
-.turnstile__given {
-  padding: 0;
-  list-style: none;
-  margin-block-end: 0;
-  color: var(--ink-2);
-}
-
-.turnstile__given li { margin-block-start: 0; }
-
-.turnstile__rule {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  margin-block: var(--sp-4);
-  color: var(--ink-3);
-}
-
-/* 横线本身：用 border 画，长度自适应。 */
-.turnstile__rule::after {
-  content: "";
-  flex: 1;
-  border-block-start: 1px solid var(--rule-strong);
-}
-
-.turnstile__turn {
-  font-family: var(--font-symbols);
-  color: var(--ink);
-}
-
-.turnstile__goal {
-  margin-block-end: 0;
-  color: var(--ink);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   6. 按钮与链接
-   ══════════════════════════════════════════════════════════════════ */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-5);
-  border: 1px solid transparent;
-  border-radius: var(--r-1);
-  font-size: var(--fs-ui);
-  font-weight: 500;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background-color var(--dur-1) var(--ease-standard),
-              border-color var(--dur-1) var(--ease-standard),
-              color var(--dur-1) var(--ease-standard);
-}
-
-/* 实底绿只给「真的能立刻做成的那件事」（装扩展 / 开始学）。
-   它是语义色，不是品牌色：一屏最多一个。 */
-/* 主按钮用**墨色实底**，不用绿色：绿只留给内核判定，这样「看到绿 = 内核说通过」才是一个可学的信号。
-   墨底纸字在纸面上同样醒目，而且不与任何语义抢注意力。 */
-.btn--primary {
-  background-color: var(--ink);
-  color: var(--ink-invert);
-}
-
-.btn--primary:hover { background-color: var(--ink-2); color: var(--ink-invert); }
-
-.btn--secondary {
-  background-color: var(--surface);
-  color: var(--ink);
-  border-color: var(--border-control);
-}
-
-.btn--secondary:hover { border-color: var(--ink-2); background-color: var(--surface-overlay); }
-
-.btn--quiet {
-  background: transparent;
-  color: var(--ink);
-  padding-inline: var(--sp-3);
-  text-decoration: underline;
-  text-underline-offset: 0.18em;
-}
-
-.btn--quiet:hover { color: var(--ink-2); }
-
-/* ══════════════════════════════════════════════════════════════════
-   7. 代码与数据
-   ══════════════════════════════════════════════════════════════════ */
-
-.code {
-  position: relative;
-  margin-block: var(--sp-6);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-0);
-  background-color: var(--code-bg);
-  overflow: hidden;
-}
-
-.code__label {
-  display: block;
-  padding: var(--sp-2) var(--sp-5);
-  border-block-end: 1px solid var(--rule);
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-.code pre {
-  margin: 0;
-  padding: var(--sp-5);
-  overflow-x: auto;
-  color: var(--code-ink);
-  line-height: var(--lh-code);
-}
-
-.code code { font-size: var(--fs-sm); }
-
-/* 复制按钮：**无 JS 时不显示**。
- *
- * 一个按下去没有反应的按钮比没有按钮更糟——读者会以为"复制坏了"。
- * `site.js` 会给 <html> 加 `.js`，所以这里用 `html.js` 门控；页面**不需要**
- * 写 `hidden` 属性。（D5 早先说"hidden 由页面标记给出"，那是错的：`site.js`
- * 从不移除 hidden，照做按钮就永远不出现。） */
-[data-copy], [data-copy-self] { display: none; }
-
-html.js [data-copy],
-html.js [data-copy-self] {
-  display: inline-block;
-  position: absolute;
-  inset-block-start: var(--sp-2);
-  inset-inline-end: var(--sp-2);
-  padding: var(--sp-1) var(--sp-3);
-  font-size: var(--fs-xs);
-  color: var(--ink-2);
-  background-color: var(--surface);
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r-1);
-  cursor: pointer;
-  transition: border-color var(--dur-1) var(--ease-standard);
-}
-
-[data-copy]:hover, [data-copy-self]:hover { border-color: var(--border-control); }
-[data-copy][data-copy-state="done"] { border-color: var(--ink-2); color: var(--ink); }
-
-/* 终端块：命令与输出必须一眼可分。 */
-.cmd {
-  margin-block: var(--sp-6);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-0);
-  background-color: var(--code-bg);
-  overflow: hidden;
-}
-
-.cmd pre {
-  margin: 0;
-  padding: var(--sp-5);
-  overflow-x: auto;
-  color: var(--code-ink);
-  line-height: var(--lh-code);
-  font-size: var(--fs-sm);
-}
-
-.cmd__note {
-  padding: var(--sp-2) var(--sp-5);
-  border-block-start: 1px solid var(--rule);
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-/* 行内代码：与正文有区分但不刺眼。 */
-:not(pre) > code {
-  padding: 0.1em 0.35em;
-  background-color: var(--surface-sunken);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-1);
-  color: var(--code-ink);
-}
-
-.kbd {
-  display: inline-block;
-  padding: 0.1em 0.45em;
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--ink);
-  background-color: var(--surface);
-  border: 1px solid var(--border-control);
-  border-block-end-width: 2px;
-  border-radius: var(--r-1);
-}
-
-/* JSON 事件流（页面级的；面板级在 editor.css 的 .events） */
-.json {
-  margin-block: var(--sp-6);
-  padding: var(--sp-5);
-  background-color: var(--code-bg);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-0);
-  overflow-x: auto;
-  font-size: var(--fs-sm);
-  line-height: var(--lh-code);
-  color: var(--code-ink);
-  white-space: pre;
-}
-
-/* 诊断条目：码 + 阶段 + 消息 + hint */
-.diag {
-  margin-block: var(--sp-5);
-  padding: var(--sp-5);
-  background-color: var(--verm-wash);
-  border: 1px solid var(--verm-border);
-  border-radius: var(--r-0);
-  max-width: var(--measure);
-}
-
-.diag__code {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--verm-ink);
-  font-weight: 600;
-}
-
-.diag__stage {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-  margin-inline-start: var(--sp-3);
-}
-
-.diag__msg { margin-block: var(--sp-3) 0; color: var(--ink); }
-
-.diag__hint {
-  margin-block: var(--sp-3) 0;
-  padding-inline-start: var(--sp-5);
-  border-inline-start: 2px solid var(--verm-border);
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   8. 表格
-   ══════════════════════════════════════════════════════════════════ */
-
-/* 窄屏上表格必须能横向滚，且**不能把页面撑破**。
-   .table-scroll 是必需的包装，不是可选的。 */
-/* 窄屏表格能横滚，但**必须让人看出来**——没有提示的横滚等于内容被截断。
-   经典做法：两侧各一层滚动阴影，`background-attachment: local` 让阴影随内容
-   滚进滚出（滚到边缘时那一侧的阴影自动消失）。纯 CSS、零 JS。 */
-.table-scroll {
-  max-width: 100%;
-  overflow-x: auto;
-  margin-block: var(--sp-6);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-0);
-  background-color: var(--surface);
+  /* 方格纸：零字节、无图片。滚动时网格不跟着动，读起来像纸。 */
   background-image:
-    linear-gradient(to right, var(--surface) 40%, transparent),
-    linear-gradient(to left, var(--surface) 40%, transparent),
-    linear-gradient(to right, var(--shadow-scroll), transparent),
-    linear-gradient(to left, var(--shadow-scroll), transparent);
-  background-position: left center, right center, left center, right center;
-  background-repeat: no-repeat;
-  background-size: 3rem 100%, 3rem 100%, 0.875rem 100%, 0.875rem 100%;
-  background-attachment: local, local, scroll, scroll;
-}
-
-.table {
-  inline-size: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-sm);
-  font-variant-numeric: tabular-nums;
-}
-
-.table caption {
-  caption-side: top;
-  text-align: start;
-  padding: var(--sp-4) var(--sp-5);
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-  border-block-end: 1px solid var(--rule);
-}
-
-.table th, .table td {
-  padding: var(--sp-4) var(--sp-5);
-  text-align: start;
-  vertical-align: top;
-  border-block-end: 1px solid var(--rule);
-}
-
-.table thead th {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  color: var(--ink-2);
-  border-block-end: 1px solid var(--rule-strong);
-  white-space: nowrap;
-}
-
-.table tbody tr:last-child th,
-.table tbody tr:last-child td { border-block-end: 0; }
-
-/* 数值列右对齐：等宽数字 + 右对齐才读得出量级。 */
-.table .num, .table [data-num] { text-align: end; }
-
-.table--compare td:first-child { font-weight: 600; color: var(--ink); }
-
-/* ══════════════════════════════════════════════════════════════════
-   9. 区块
-   ──────────────────────────────────────────────────────────────────
-   这几个必须**结构上不同**：D1 禁止「一套卡片样式到处复用」。
-   它们共用令牌，但不共用形状。
-   ══════════════════════════════════════════════════════════════════ */
-
-/* 课程单元：编号在左，元信息在右，中间是标题。像目录，不像卡片。 */
-.unit-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--sp-2) var(--sp-5);
-  padding-block: var(--sp-5);
-  border-block-end: 1px solid var(--rule);
-}
-
-.unit-card__no {
-  grid-row: span 2;
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
-}
-
-.unit-card__title { font-size: var(--fs-lg); font-weight: 600; }
-.unit-card__meta { font-size: var(--fs-sm); color: var(--ink-2); }
-
-/* 特性块：左侧一句主张，右侧一个**真实的**代码或输出。
-   不是「图标 + 标题 + 两句话」——那种三连卡片是被点名的 AI 长相。 */
-.feature {
-  display: grid;
-  gap: var(--sp-5);
-  /* 裸 `1fr` 的最小值是**内容的固有最小宽度**，所以右边那块面板（终端 /
-     代码 / 事件流）一旦有长行，轨道就会被撑到比视口还宽 —— 390px 下
-     整页横向滚动（D1 A15 是 A 档禁令）。`minmax(0, 1fr)` 把自动最小尺寸
-     压到 0，面板自己内部横滚（.term-body / .code pre / .events 都是
-     滚动容器）。这条与下面 @media 里的宽屏轨道同一条规则。 */
-  grid-template-columns: minmax(0, 1fr);
-  margin-block: var(--sp-8);
-  padding-block-start: var(--sp-6);
-  border-block-start: 1px solid var(--rule);
-}
-
-@media (min-width: 60rem) {
-  .feature { grid-template-columns: minmax(0, 22rem) minmax(0, 1fr); gap: var(--sp-8); }
-  .feature > .code, .feature > .turnstile, .feature > .json { margin-block: 0; }
-}
-
-.feature__claim h3 { margin-block-start: 0; }
-.feature__claim p { color: var(--ink-2); }
-
-/* 提示框：三种语义各一色，不混用。 */
-.callout {
-  margin-block: var(--sp-6);
-  padding: var(--sp-5) var(--sp-6);
-  border: 1px solid var(--rule);
-  border-inline-start-width: 3px;
-  border-radius: var(--r-0);
-  max-width: var(--measure);
-}
-
-.callout__title {
-  display: block;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: var(--tracking-wide);
-  margin-block-end: var(--sp-3);
-}
-
-.callout > :last-child { margin-block-end: 0; }
-
-/* --verified：绿 = 背后有真实的内核判定。 */
-.callout--verified {
-  background-color: var(--acc-wash);
-  border-color: var(--acc-border);
-}
-.callout--verified .callout__title { color: var(--acc-ink); }
-
-/* --limit：朱 = 诚实的限制 / 未做 / 已知问题。 */
-.callout--limit {
-  background-color: var(--verm-wash);
-  border-color: var(--verm-border);
-}
-.callout--limit .callout__title { color: var(--verm-ink); }
-
-/* --note：黄 = 请注意，既不是判定也不是限制。 */
-.callout--note {
-  background-color: var(--warn-wash);
-  border-color: var(--rule-strong);
-}
-.callout--note .callout__title { color: var(--warn-ink); }
-
-/* ══════════════════════════════════════════════════════════════════
-   10. 数据展示
-   ══════════════════════════════════════════════════════════════════ */
-
-/* 大数字：只有**真实的内核判定**才配用绿色。
-   版本号、轮次这类事实用墨色。 */
-.stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-7) var(--sp-8);
-  margin-block: var(--sp-7);
-  padding: 0;
-  list-style: none;
-}
-
-.stats__n {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: var(--fs-2xl);
-  font-weight: 600;
-  line-height: var(--lh-display);
-  font-variant-numeric: tabular-nums slashed-zero;
+    repeating-linear-gradient(to right, var(--grid-line) 0 1px, transparent 1px var(--grid-pitch)),
+    repeating-linear-gradient(to bottom, var(--grid-line) 0 1px, transparent 1px var(--grid-pitch));
+  background-attachment: fixed;
   color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
 }
 
-.stats__n--verified { color: var(--acc-ink); }
-
-.stats__label {
-  display: block;
-  margin-block-start: var(--sp-2);
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: 0.1em var(--sp-3);
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r-full);
-  font-size: var(--fs-xs);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-2);
-  background-color: var(--surface);
-  white-space: nowrap;
-}
-
-.chip--checked { color: var(--acc-ink); border-color: var(--acc-border); background-color: var(--acc-wash); }
-.chip--open    { color: var(--verm-ink); border-color: var(--verm-border); background-color: var(--verm-wash); }
-.chip--failed  { color: var(--verm-ink); border-color: var(--verm); background-color: var(--verm-wash); font-weight: 600; }
-.chip--version { font-family: var(--font-mono); color: var(--ink-2); }
-
-/* 时间线：日期在左、内容在右，竖线贯穿。 */
-.timeline {
-  margin-block: var(--sp-7);
-  padding: 0;
-  list-style: none;
-  border-inline-start: 1px solid var(--rule-strong);
-  padding-inline-start: var(--sp-6);
-}
-
-.timeline li {
-  position: relative;
-  padding-block-end: var(--sp-6);
-}
-
-.timeline li::before {
-  content: "";
-  position: absolute;
-  inset-inline-start: calc(-1 * var(--sp-6) - 3px);
-  inset-block-start: 0.55em;
-  inline-size: 5px;
-  block-size: 5px;
-  background-color: var(--rule-strong);
-  border-radius: var(--r-full);
-}
-
-.timeline time {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-.timeline__title { font-weight: 600; }
-.timeline__body { font-size: var(--fs-sm); color: var(--ink-2); }
-
-/* 台账：密排表格，用 zebra 而不是网格线，读起来更快。 */
-.ledger { font-size: var(--fs-sm); }
-.ledger tbody tr:nth-child(even) { background-color: var(--surface-sunken); }
-
-/* 筛选输入：无 JS 时不显示（site.js 负责显形），
-   因为一个不工作的输入框比没有输入框更糟。 */
-[data-filter] { display: none; }
-
-/* 搜索输入：同一个道理，由 search.js 所在页面使用。
-   `html.js` 由 site.js 第一时间加上，所以有 JS 就一定显示；
-   索引取不到时 search.js 会把失败原因写进结果区，而不是把输入框藏起来。 */
-[data-search-input] { display: none; }
-
-html.js [data-search-input] { display: block; }
-
-/* 搜索结果 */
-.search-hits {
-  padding: 0;
-  list-style: none;
-  margin-block-start: var(--sp-6);
-}
-
-.search-hit {
-  padding-block: var(--sp-5);
-  border-block-end: 1px solid var(--rule);
-}
-
-.search-hit__link {
-  font-size: var(--fs-lg);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.search-hit__page {
-  margin-inline-start: var(--sp-4);
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-}
-
-.search-hit__text {
-  margin-block: var(--sp-2) 0;
-  font-size: var(--fs-sm);
-  color: var(--ink-2);
-}
-
-/* 搜索命中高亮是中性的：命中的是文本，不是判定。 */
-.search-hit mark {
-  background-color: var(--surface-overlay);
-  color: var(--ink);
-  font-weight: 600;
-  padding-inline: 0.1em;
-}
-
-.filter {
-  inline-size: 100%;
+/* 正文容器挡掉网格：网格只出现在页面的空白地带 */
+.wrap {
   max-width: var(--measure);
-  padding: var(--sp-3) var(--sp-5);
-  margin-block: var(--sp-5);
-  background-color: var(--surface);
-  border: 1px solid var(--border-control);
-  border-radius: var(--r-1);
+  margin: 0 auto;
+  padding: 0 var(--sp-5);
 }
 
-.filter__count {
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
+a {
+  color: inherit;
+  text-decoration-color: var(--border-control);
+  text-underline-offset: 3px;
 }
+a:hover { text-decoration-color: currentColor; }
 
-[data-filter-empty="true"]::after {
-  content: "没有匹配的条目。";
-  display: block;
-  padding: var(--sp-6) 0;
-  color: var(--ink-3);
-  font-size: var(--fs-sm);
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   11. 折叠与标签页（都靠原生控件，无 JS 也成立）
-   ══════════════════════════════════════════════════════════════════ */
-
-/* 纯 CSS 折叠：checkbox + label + 兄弟节点。
-   这是走查页的核心机制（Alectryon 同款，见 R2 §A）。
-   没有 JS 时 checkbox 照样能勾，所以功能不丢。 */
-.fold {
-  border-block-end: 1px solid var(--rule);
-}
-
-.fold__head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-4);
-  padding: var(--sp-3) 0;
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-}
-
-.fold__head:hover { background-color: var(--surface-overlay); }
-
-/* 展开指示：用 CSS 画的三角，不用 ▸ 字符（缺字风险）。 */
-.fold__head::before {
-  content: "";
-  inline-size: 0;
-  block-size: 0;
-  border-inline-start: 5px solid var(--ink-3);
-  border-block: 4px solid transparent;
-  transition: transform var(--dur-2) var(--ease-standard);
-}
-
-.fold__toggle:checked ~ .fold__head::before { transform: rotate(90deg); }
-
-.fold__body {
-  display: none;
-  padding: var(--sp-5) 0 var(--sp-6) var(--sp-6);
-  border-inline-start: 2px solid var(--rule-strong);
-}
-
-.fold__toggle:checked ~ .fold__body { display: block; }
-
-/* 键盘用户：checkbox 本身被视觉隐藏，焦点环画在 label 上。 */
-.fold__toggle:focus-visible ~ .fold__head {
+:focus-visible {
   outline: var(--ring-width) solid var(--ring-color);
   outline-offset: var(--ring-offset);
 }
 
-/* 标签页：radio + :checked，无 JS 也切换。 */
-.tabs__input { position: absolute; opacity: 0; pointer-events: none; }
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--surface);
+  color: var(--ink);
+  padding: var(--sp-2) var(--sp-4);
+  z-index: 10;
+}
+.skip-link:focus { left: var(--sp-4); top: var(--sp-2); }
 
-.tabs__list {
+/* ── 页头：一行，只有品牌与主题开关 ───────────────────────────── */
+.site-header {
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+}
+.site-header .wrap {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-4);
+  padding-top: var(--sp-3);
+  padding-bottom: var(--sp-3);
+}
+.brand {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: -0.011em;
+  text-decoration: none;
+  margin-right: auto;
+}
+.brand small {
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  color: var(--ink-2);
+  margin-left: var(--sp-2);
+}
+.site-header nav { font-size: var(--fs-sm); }
+.site-header nav ul {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-2);
+  gap: var(--sp-1) var(--sp-4);
+  margin: 0;
   padding: 0;
   list-style: none;
-  border-block-end: 1px solid var(--rule);
-  margin-block-end: var(--sp-6);
 }
+.site-header nav a { color: var(--ink-2); text-decoration: none; }
+.site-header nav a:hover { color: var(--ink); text-decoration: underline; }
 
-.tabs__tab {
-  padding: var(--sp-3) var(--sp-5);
-  font-size: var(--fs-ui);
-  color: var(--ink-2);
-  cursor: pointer;
-  border-block-end: 2px solid transparent;
-  margin-block-end: -1px;
-}
-
-.tabs__tab[aria-selected="true"] {
-  color: var(--ink);
-  border-block-end-color: var(--ink);
-  font-weight: 600;
-}
-
-.tabs__panel { display: none; }
-
-/* ══════════════════════════════════════════════════════════════════
-   12. 状态与零散件
-   ══════════════════════════════════════════════════════════════════ */
-
-/* 诊断波浪线：用 text-decoration 画，不用背景图
-   （背景图在换行时会断、在高对比模式下消失）。
-   颜色用 --verm-ink：tokens.css 里没有 --mark 这个令牌（只有 --mark-wash 是
-   早期的名字），写 var(--verm) 会让整条声明失效——editor.css 也定义了
-   .squiggle，两处必须一致，否则谁后加载谁说话。 */
-.squiggle {
-  text-decoration: underline wavy var(--verm-ink);
-  text-decoration-skip-ink: none;
-  text-underline-offset: 0.25em;
-}
-
-/* 通用空态。注意：面板类（.goal.is-empty）会自己覆盖 padding——
-   一个带 48px 上下留白的通用工具类套进面板里会串味。 */
-.is-empty {
-  padding: var(--sp-7) 0;
-  color: var(--ink-3);
+.theme-toggle {
+  font-family: var(--font-mono);
   font-size: var(--fs-sm);
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  padding: var(--sp-1) var(--sp-3);
+  min-height: 32px;
+  cursor: pointer;
 }
+.theme-toggle:hover { color: var(--ink); }
 
-.small { font-size: var(--fs-sm); }
-.muted { color: var(--ink-2); }
-.faint { color: var(--ink-3); }
+/* ── 大节 ─────────────────────────────────────────────────────── */
+.section { padding: var(--sp-7) 0; }
+.section > .wrap > :first-child { margin-top: 0; }
+.section > .wrap > :last-child { margin-bottom: 0; }
 
-/* 分隔用的横线：只有真的在分隔两个不同话题时才用，
-   不是"每条边界都画线"。 */
-.rule {
+/* 记忆点：推理横线。横线上方是"给定"，下方是"待证"。全页只 3 条。 */
+.turnstile {
   border: 0;
-  border-block-start: 1px solid var(--rule);
-  margin-block: var(--sp-8);
+  border-top: 1px solid var(--rule-strong);
+  margin: 0;
 }
 
-/* 徽标组（版本号、平台、许可这类元信息） */
-.meta-row {
+h1 {
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  letter-spacing: -0.011em;
+  margin: 0 0 var(--sp-4);
+}
+h2 {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-heading);
+  margin: 0 0 var(--sp-4);
+}
+h2 .num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-right: var(--sp-3);
+}
+h3 {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-heading);
+  margin: var(--sp-6) 0 var(--sp-2);
+}
+p { margin: 0 0 var(--sp-4); }
+.lead { font-size: var(--fs-lg); color: var(--ink-2); }
+
+ul, ol { padding-left: 1.35em; margin: 0 0 var(--sp-4); }
+li { margin-bottom: var(--sp-2); }
+
+code, kbd, samp { font-family: var(--font-mono); font-size: 0.94em; }
+
+p code, li code, td code, dd code, dt code {
+  background: var(--surface-sunken);
+  padding: 0.1em 0.35em;
+  border-radius: var(--radius-control);
+}
+
+/* ── 目标状态块：产品的材料就是它 ─────────────────────────────── */
+.goal {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-strong);
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-code);
+  overflow-x: auto;
+}
+.goal .hyps { color: var(--ink-2); }
+.goal .rule-inline {
+  display: block;
+  border-top: 1px solid var(--rule-strong);
+  margin: var(--sp-2) 0;
+}
+.goal .goal-line b { color: var(--acc-ink); font-weight: 700; }
+
+/* ── 代码块 + 复制 ────────────────────────────────────────────── */
+.cmd {
+  position: relative;
+  background: var(--surface-sunken);
+  border: 1px solid var(--rule);
+  margin: 0 0 var(--sp-4);
+}
+.cmd pre {
+  margin: 0;
+  padding: var(--sp-4);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-code);
+  color: var(--ink);
+}
+.cmd--tight pre { padding-right: 5.5rem; }
+.copy {
+  position: absolute;
+  top: var(--sp-2);
+  right: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  padding: var(--sp-1) var(--sp-2);
+  min-height: 28px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.cmd:hover .copy,
+.copy:focus-visible { opacity: 1; }
+.copy[data-copy-state="done"] { color: var(--acc-ink); border-color: var(--acc-border); }
+@media (hover: none) { .copy { opacity: 1; } }
+
+/* 安装路径：三条平行选项，用定义列表而不是卡片网格 */
+.paths { margin: 0; }
+.paths dt {
+  font-weight: 700;
+  margin-top: var(--sp-5);
+  margin-bottom: var(--sp-2);
+}
+.paths dt:first-child { margin-top: 0; }
+.paths dt .tag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-left: var(--sp-2);
+}
+.paths dd { margin: 0; }
+
+/* ── 特点：编号清单 ───────────────────────────────────────────── */
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: feat;
+}
+.features > li {
+  counter-increment: feat;
+  position: relative;
+  border-top: 1px solid var(--rule);
+  margin: 0;
+  padding: var(--sp-4) 0 var(--sp-4) 2.5rem;
+}
+.features > li::before {
+  content: counter(feat, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: var(--sp-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--ink-3);
+}
+.features > li:last-child { border-bottom: 1px solid var(--rule); }
+.features .why { color: var(--ink-2); }
+
+/* ── 未做清单：朱批的第三种合法用法（诚实的限制）──────────────── */
+.todo { list-style: none; padding: 0; margin: 0; }
+.todo > li {
+  border-left: 3px solid var(--verm-border);
+  background: var(--verm-wash);
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-3);
+}
+.todo > li > b { color: var(--verm-ink); }
+
+/* 事实行：一句断言 + 它的判据 */
+.fact { color: var(--ink-2); font-size: var(--fs-sm); }
+.fact code { color: var(--ink); }
+
+/* ── 页脚 ─────────────────────────────────────────────────────── */
+.site-footer {
+  border-top: 1px solid var(--rule);
+  padding: var(--sp-6) 0 var(--sp-8);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+.site-footer .wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--sp-3);
-  align-items: center;
-  font-size: var(--fs-xs);
-  color: var(--ink-3);
+  gap: var(--sp-2) var(--sp-5);
+  align-items: baseline;
+}
+.site-footer nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-footer a { color: var(--ink-2); }
+.site-footer a:hover { color: var(--ink); }
+.ver { font-family: var(--font-mono); }
+
+/* ── 窄屏：减节奏，不动信息 ───────────────────────────────────── */
+@media (max-width: 30rem) {
+  .section { padding: var(--sp-6) 0; }
+  .brand small { display: none; }
+  .site-header .wrap { flex-wrap: wrap; }
+  .features > li { padding-left: 2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
 }

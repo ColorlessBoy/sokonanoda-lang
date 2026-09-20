@@ -82,7 +82,19 @@ LEDGER_DEFAULT = "docs/courses/ledger.jsonl"
 # `--selftest` 与 `tools/test_manifest_v2.py` 都按这份清单判（守护不许漂移）。
 LEDGER_FIELDS = ("schema", "version", "commit", "date", "course", "targets",
                  "checked", "open", "rejected", "elapsed_ms", "solutions_open")
-GRADE_TIMEOUT = 180  # 单个目标判卷的墙钟上限（秒）；与课程规模无关
+# 单个目标判卷的墙钟上限（秒）；与课程规模无关。
+#
+# 180 → 600（2026-09-21）。这个数的作用是**抓挂死**（不返回的判卷），不是给速度定
+# 预算——挂死的判卷在 10 分钟内也不会返回，而一个又大又对的解答不该因为 runner 慢
+# 就被记成 `exit=124` 判负。实测（方法同 docs/CI-FAILURES.md 里 perf 预算那条：
+# 用同一轮里跑完了的同源步骤换算 runner 比值）：
+#   * 本机（M 系 mac，target/debug）单独判 `units/solutions/unit12-solution.sokonanoda`
+#     **2m03s**；整卷 36 个目标 4m46s（unit12 一个就占 43%）；
+#   * 同轮 CI 的 `--selftest` 16.7s vs 本机 8.5s ⇒ runner ≈ 本机 ×2.0；
+#   * ⇒ runner 上 unit12 约 **4m06s** > 180s ⇒ ci `35516857130` 判它
+#     `exit=124`，G1/G3/G4 连锁判负、0.62.0 因此发不出去。
+# 600s 对最慢实测留约 2.4× 余量；判据（G1–G6）与语义**一个都没动**。
+GRADE_TIMEOUT = 600
 
 # 顶层声明的行首关键字（--bisect 的边界；设计 §8 未决①：namespace/section 也算边界）。
 DECL_KEYWORDS = ("theorem", "def", "axiom", "inductive", "example", "namespace", "section")
