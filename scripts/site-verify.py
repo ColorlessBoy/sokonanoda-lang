@@ -506,7 +506,7 @@ def load_generator():
 
 
 def check_version_is_released() -> tuple[list[str], str]:
-    """`site.json` 的 `version` 必须是**最新发布 tag**，不是 `Cargo.toml` 里的下一个。
+    """`site.json` 的 `version` 必须是**一个已发布 tag** —— 且不能是"下一个版本"。
 
     为什么非有不可：站点的 28 个页脚、`about` 的统计卡、每条下载指令都从这个数
     拼出来，而 `compare.html` 明说它是「已发布的版本，不是工作树」。生成器已经按
@@ -518,7 +518,17 @@ def check_version_is_released() -> tuple[list[str], str]:
     2026-09-21 实测过这条路：语言线把 `Cargo.toml` 推到 `0.62.0`（无 tag、无产物）
     后，照原样重跑生成器写出的正是 `version: 0.62.0`。
 
-    找不到 tag 时**跳过并说明**（浅克隆、非 git 检出），不假装通过。
+    **"谎话"与"落后"要分开**（2026-09-21，合入 main 之前收紧过一次）：
+
+    * **谎话（判红）**：站点写的那个版本**根本没有 tag** —— 读者按页脚的版本去下载
+      会 404。这是上面那条实测出来的病，必须拦住。
+    * **落后（只记一笔）**：站点写的版本**有 tag**，只是比最新的旧（发布刚落地、
+      站点数据还没重跑）。这不是假话——那个版本真的能下载——而且此刻 `pages.yml`
+      正在部署，判红会让**整条部署挂掉**、把一个"该重跑生成器"的待办伪装成故障。
+      宁可绿着部署一份落后一个版本的站点，也不要红着不部署：前者是旧的真话，
+      后者是新的空白。
+
+    找不到任何 tag 时**跳过并说明**（浅克隆、非 git 检出），不假装通过。
     """
     data = SITE / "data" / "site.json"
     if not data.is_file():
@@ -536,15 +546,20 @@ def check_version_is_released() -> tuple[list[str], str]:
     if not released:
         return [], "跳过：仓库里找不到 vX.Y.Z 发布 tag（不算通过）"
 
-    if published != released:
-        hint = ""
-        next_version = generator.get_version()
-        if next_version and published == next_version:
-            hint = (f"。这正是把它写成 Cargo.toml 的后果：那是**下一个**版本，"
-                    f"发行窗口里一直领先于最后一个 tag")
-        return [f"站点写的版本是 {published!r}，最新发布 tag 是 {tag}（{released}）{hint}"], \
-               f"mismatch（{published} ≠ {released}）"
-    return [], f"v{published}"
+    if published == released:
+        return [], f"v{published}"
+
+    # 站点写的版本自己有 tag 吗？有 ⇒ 它可下载，只是落后。
+    if release_ref(published):
+        return [], (f"v{published} 落后于最新 tag {tag} —— 老的真话，不是假话；"
+                    f"发布后按 STATE §12.2 重跑生成器")
+    hint = ""
+    next_version = generator.get_version()
+    if next_version and published == next_version:
+        hint = (f"。这正是把它写成 Cargo.toml 的后果：那是**下一个**版本，"
+                f"发行窗口里一直领先于最后一个 tag")
+    return [f"站点写的版本是 {published!r}，而它**不是任何发布 tag** —— 读者按它下载会 404"
+            f"（最新发布 tag 是 {tag}）{hint}"], f"not released（{published}）"
 
 
 def check_course_counts() -> tuple[list[str], str]:

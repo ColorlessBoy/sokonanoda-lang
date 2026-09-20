@@ -16,6 +16,14 @@ Python stdlib only. Deterministic output. Run after adding or editing pages:
     python3 scripts/gen-site-search.py
     python3 scripts/gen-site-search.py --check   # fail if the index is stale
 
+**`--check` 比的是"索引有没有反映页面文字"，不是"记的提交号是不是 HEAD"**：
+载荷里带 `source_commit`（出处，有用），但**一旦把它一起比，这个判据永远不可能通过**
+——生成索引 → 提交 → HEAD 变了 → 重建出的载荷与文件里的不一致。这是"给自己拍一张
+带自己哈希的照片"。实测踩过：索引在 `702e444` 生成、随 `4afe42a` 提交，CI 在
+`4afe42a` 上重算得到 `4afe42a` ⇒ `--check` 必红 ⇒ 部署挂掉。
+所以比较用的规范形式把 `source_commit` 抹掉（`_payload(..., provenance=False)`），
+写盘时仍然带上。
+
 Exit codes: 0 ok · 1 stale (with --check) · 2 usage.
 """
 
@@ -202,24 +210,41 @@ def build() -> dict:
     }
 
 
+def _payload(index: dict, *, provenance: bool) -> str:
+    """Canonical JSON for the index.
+
+    紧凑输出：这份索引**整份**随 search.html 下载，缩进纯属浪费。
+    实测 indent=1 → 53.8 KB，紧凑 → 约 40 KB（同一份内容）。
+
+    `provenance=False` 抹掉 `source_commit`，**只给比较用**：那个字段是"索引是哪次
+    提交生成的"，而提交动作本身会改 HEAD ⇒ 带着它比较，判据永远不可能通过
+    （详见模块 docstring 的实测记录）。写盘时照旧带上。
+    """
+    data = dict(index)
+    if not provenance:
+        data["source_commit"] = ""
+    return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true", help="fail if the index is stale")
     args = parser.parse_args()
 
     index = build()
-    # 紧凑输出：这份索引**整份**随 search.html 下载，缩进纯属浪费。
-    # 实测 indent=1 → 53.8 KB，紧凑 → 约 40 KB（同一份内容）。
-    payload = json.dumps(
-        index, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ) + "\n"
+    payload = _payload(index, provenance=True)
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
 
     if args.check:
         if not OUT.is_file():
             print("site-search: index missing — run python3 scripts/gen-site-search.py")
             return 1
-        if OUT.read_text(encoding="utf-8") != payload:
+        try:
+            existing = json.loads(OUT.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            print("site-search: index is not JSON — run python3 scripts/gen-site-search.py")
+            return 1
+        if _payload(existing, provenance=False) != _payload(index, provenance=False):
             print("site-search: index is stale — run python3 scripts/gen-site-search.py")
             return 1
         print(f"site-search: ok ({index['page_count']} pages, {index['entry_count']} entries)")

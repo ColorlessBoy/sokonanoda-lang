@@ -67,22 +67,45 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    原先写的是"同一条正则、两处不会读出不同的版本"——现在正是两个不同的事实）；
    `site-rebuild/STATE.md` §0（现状已不是"缺 21 个页面"）/§5 #18（新增本轮实测）/
    §7（13→18 项、K12 的新基准、K17 的动机）/§7.1+§7.2（新基准与陷阱的完整记录）。
-4. **补一条判据 K17（版本必须是发布 tag）——修好的东西得有人守着**。前两条只管计数，
+5. **补一条判据 K17（版本必须是发布 tag）——修好的东西得有人守着**。前两条只管计数，
    而版本号本身没人管（28 个页脚 + 每条下载指令都从它拼出来）。它写错时 K12/K16 会
    **安静跳过**（按 `site.json` 的版本去找已发布二进制与 tag，找不到就报"跳过：不算通过"，
    措辞与平时一模一样）⇒ 站点能带着一个下载不到的版本上线而报告全绿。K17 **直接调用
    生成器自己的 `release_version()`**（`importlib` 按路径载入 `gen-site-data.py`，
-   判据与产它的人不会各自漂移）。**反向测试做过**：把 `version` 改成 `Cargo.toml` 的
-   那个（`0.62.0`）→ 立即判红并指名原因；改回 → 绿。
-5. **站点进度页读的轮次也跟着走**：`site/data/site.json` 的 `round` 108→119
+   判据与产它的人不会各自漂移）。**"谎话"与"落后"分开判**：站点版本**没有任何 tag**
+   ⇒ 判红（读者下载会 404）；有 tag、只是比最新的旧 ⇒ 只记一笔——发布刚落地、站点
+   数据还没重跑时 `pages.yml` 正在部署，判红会让整条部署挂掉，把一个"该重跑生成器"
+   的待办伪装成故障。三种情形实测过：正确 → `v0.61.0`；临时造 `v9.9.9` → 记一笔
+   （造完即删）；写成无 tag 的 `0.99.0` → 判红并指名。
+   **推送前又抓到一处"这次必红"的陷阱**：`gen-site-search.py --check` 原先拿整份
+   载荷**逐字节**比对，而载荷里带 `source_commit` —— 生成索引 → 提交 → HEAD 变了 ⇒
+   重建的载荷必然不同。这是"给自己拍一张带自己哈希的照片"：文件里记的是 `702e444`，
+   CI 在 `4afe42a` 上重算得到 `4afe42a`，**部署必挂**。修法：比较用的规范形式抹掉
+   `source_commit`（写盘仍带），判据从此只在**页面文字真的变了**时才红；两个方向都
+   实测过（不动页面 → 绿；改一个 `<title>` → 红）。教训：**把"产物自身所在的那次提交"
+   写进产物，再拿它自检，判据就永远不可能通过**。
+6. **合入 main（本轮末）**：`i16-imports-and-projects` 与 `origin/main`（多一个 e2e
+   台账提交 `d05dd47`）合并，推送 main 并删除该分支。**注意这里有个必然的连锁**：
+   `origin/main` 上的 `Cargo.toml` 已是 0.62.0，所以**任何**一次 push main 都会让
+   `ci.yml` 的 `auto-tag` 打出 `v0.62.0` 并派发 release（它只在 lint/test/e2e/
+   e2e-macos 全绿后才跑，红则不发布——失败模式是安全的）。发布落地后站点需要按
+   `site-rebuild/STATE.md` §12.2 重跑生成器（K17 会以"落后"的形式提示，不判红）。
+7. **本机无法跑 Rust 门禁（环境限制，非代码问题）**：`scripts/soko gate` 在本机
+   失败在**链接**阶段——`cc` 报 `You have not agreed to the Xcode license agreements`
+   （`cc t.c -o t.out` 同样失败，exit 69）。`sudo xcodebuild -license` 需要交互式
+   sudo，不在 agent 能力内。因此 `cargo test` / clippy / gate **本机不可用**，
+   推送前只能验：站点 18/18、版本契约（`Cargo.toml` 与 `package.json` 都是 0.62.0）、
+   工作流 YAML、git 层合并无冲突。**Rust 侧的结论以 CI 为准**——本次推送新增的提交
+   只碰 `site/` `scripts/` `docs/` 与 workflow，未碰 `crates/`。
+8. **站点进度页读的轮次也跟着走**：`site/data/site.json` 的 `round` 108→119
    （= `STATUS.md` 最新一轮），`set_theory` 新增 `released_tag: v0.61.0` 作为出处。
    6 份 `site/data/*.json` 的 lab 数据**故意不重跑**：它们描述的是已发布快照
    （`source_commit` 084da05），现在重跑会把未发布状态混进站点（见第 7 条）。
-6. **验证**：`python3 scripts/site-verify.py` → **18/18 全绿**（28 页、K10 93 条录制值
+9. **验证**：`python3 scripts/site-verify.py` → **18/18 全绿**（28 页、K10 93 条录制值
    全部回查、K12 `v0.61.0 + 0.61.0 实测 36/329/99/0`、K16 `decl.checked 30 /
    example.checked 2 / exercise.open 4 / warning 2`、K17 `v0.61.0`、
    K3/K4/K13 渲染审计、K15 18 项交互实跑）；`check-site.py` 10 条断言亦绿。
-7. **仍欠 / 下一轮**：`gen-site-lab.py` 的 6 份数据文件信封**仍直接读 `Cargo.toml`** ——
+10. **仍欠 / 下一轮**：`gen-site-lab.py` 的 6 份数据文件信封**仍直接读 `Cargo.toml`** ——
    发布前重跑会把未发布的 `source_commit`（08b6782）与用工作树量出的数混进站点，
    K10（`kernel.html` 逐字引用 `source_commit`/`generated_at`）与 K16 会判红。
    已写进 `STATE.md` §5 #18 与 `spec/D3-lab-data.md` §1.1 的警告框；**0.62.0 发布后**
