@@ -1,177 +1,418 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sokonanoda — 学 Lean 4 式证明的教学编译器</title>
-  <meta name="description" content="VS Code 里学证明：真内核判卷、输入全程有提示、agent 可驱动。安装两步，演示即所见。">
-  <link rel="stylesheet" href="assets/style.css">
-</head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header">
-    <div class="wrap">
-      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
-      <nav class="nav" aria-label="主导航">
-        <a href="index.html" class="active" aria-current="page">首页</a>
-        <a href="get-started.html">安装与上手</a>
-        <a href="course.html">课程</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="vision.html">愿景</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html" class="lang">English</a>
-      </nav>
-    </div>
-  </header>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <main id="main" class="wrap">
-    <!-- ══════════ Hero：一句话 + 主演示 ══════════ -->
-    <section class="hero hero-split">
-      <div class="hero-copy">
-        <h1>学证明，<br>从写对一个命题开始</h1>
-        <p class="lead">
-          一个自研的 Lean 4 式教学编译器：真内核判卷、判错给教学提示，
-          编辑器输入全程有提示。装一个 VS Code 扩展就能开始，零工具链依赖。
-        </p>
-        <div class="cta">
-          <a class="btn primary" href="#install">安装（扩展 / agent）</a>
-          <a class="btn ghost" href="#demos">看怎么用</a>
-        </div>
+<title>sokonanoda —— 和 code agent 共用一张证明草稿纸，判定走真内核</title>
+<meta name="description" content="sokonanoda 是一个 Lean 4 式教学编译栈：你和 code agent 共用同一个 .sokonanoda 文件，agent 出题、你填 sorry，判定由完整内核给出，不是文本比对。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/index.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="sokonanoda —— 和 code agent 共用一张证明草稿纸">
+<meta property="og:description" content="你和 code agent 共用同一个 .sokonanoda 文件：agent 出题、你填 sorry，判定由完整内核给出，不是文本比对。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="index" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" aria-current="page" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <!-- ── 首屏：左对齐、单栏、不对称 ────────────────────────────────
+         左边一列文案 + 一个真实目标状态，右边留空。居中 hero 是被点名的
+         AI 长相，所以这里刻意让内容贴着左边、右半边什么都不放。 -->
+    <header class="page-head">
+      <h1>和 code agent 共用一张证明草稿纸</h1>
+      <p class="lead">你和 agent 打开同一个 <code>.sokonanoda</code> 文件：它逐段讲课、出题，你在 <code>sorry</code> 处作答，判定由完整内核给出。没有文本比对，也没有正则匹配。</p>
+
+      <div class="row">
+        <a class="btn btn--primary" href="learn.html">我想学证明</a>
+        <span class="faint" lang="en">OR</span>
+        <a class="btn btn--secondary" href="engineering.html">我想看它是怎么造的</a>
       </div>
-      <figure class="hero-media">
-        <img src="assets/demos/demo-goal.png" width="1180" height="700"
-             alt="演示：在 VS Code 里把光标停在某个 tactic 上，练习树显示该步的目标与假设" loading="eager">
-        <figcaption>目标视图：光标停在哪，就看哪一步的目标与假设；内核判卷。</figcaption>
+
+      <figure class="illus">
+        <p class="illus-tag">目标状态 · 内核实测，只读</p>
+        <div class="turnstile">
+          <ul class="turnstile__given">
+            <li><span class="tok-local">P</span> : <span class="tok-ty">Person</span> -&gt; <span class="tok-ty">Prop</span></li>
+            <li><span class="tok-local">Q</span> : <span class="tok-ty">Person</span> -&gt; <span class="tok-ty">Prop</span></li>
+            <li><span class="tok-local">h</span> : <span class="tok-ty">And</span> ((<span class="tok-local">x</span> : <span class="tok-ty">Person</span>) -&gt; <span class="tok-local">P</span> <span class="tok-local">x</span>) ((<span class="tok-local">x</span> : <span class="tok-ty">Person</span>) -&gt; <span class="tok-local">Q</span> <span class="tok-local">x</span>)</li>
+            <li><span class="tok-local">x</span> : <span class="tok-ty">Person</span></li>
+          </ul>
+          <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+          <p class="turnstile__goal"><span class="tok-local">P</span> <span class="tok-local">x</span></p>
+        </div>
+        <figcaption class="illus-cap">逐字来自
+        <code>scripts/soko query state --file playground.sokonanoda --line 291 --col 3</code>：
+        光标停在 <code>playground.sokonanoda</code> 的 <code>apply And.left …</code> 那一行，
+        内核回答 <code>step 1</code> / <code>total 4</code>，两条子目标分别是 <code>P x</code> 与 <code>Q x</code>。</figcaption>
       </figure>
+    </header>
+
+    <!-- ── §1 核心循环 ──────────────────────────────────────────────── -->
+    <section class="prose measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 核心循环：出题、作答、判卷、下一步</h2>
+      <p>产品只有一个循环，四步。</p>
+      <ol>
+        <li>agent 在同一个 <code>.sokonanoda</code> 文件里逐段定义概念、写示例、抛练习，答案留成 <code>sorry</code>。</li>
+        <li>你在 <code>sorry</code> 的位置作答。</li>
+        <li>编译器把文件交给完整内核，逐条声明判定，吐出 <code>--json</code> 事件流。</li>
+        <li>同一份反馈也交给 agent，它据此决定下一步讲什么。</li>
+      </ol>
+      <p><code>sorry</code> 不是错误，是合法的「还没做」——内核为它发 <code>exercise.open</code>，不是诊断。</p>
     </section>
 
-    <!-- ══════════ 安装 ══════════ -->
-    <h2 class="section-title" id="install">安装</h2>
-    <p class="section-sub">
-      两条路径，按你的角色选。两者共享同一套课程画布与内核判卷，可以混用。
-    </p>
-    <div class="install-grid">
-      <div class="card install-card">
-        <div class="step">给学习者</div>
-        <h3>VS Code 扩展（推荐入口）</h3>
-        <ol class="steps">
-          <li>
-            <a class="btn primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" target="_blank" rel="noopener">在插件市场一键安装</a>
-            <p class="fineprint">
-              已装 VS Code？<a href="vscode:extension/sokonanoda-lang.sokonanoda">点这里直接弹开安装</a>。
-              扩展内嵌本平台的 LSP 与 CLI，<strong>不需要 Rust、Lean 或任何工具链</strong>；
-              想离线或装指定版本，到 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" target="_blank" rel="noopener">GitHub Releases</a>
-              下载对应平台的 VSIX。
-            </p>
-          </li>
-          <li>
-            克隆仓库、打开课程画布（12 道练习，从零到定理）：
-            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
-code sokonanoda-lang/playground.sokonanoda</div>
-            <p class="fineprint">
-              也可以让 VS Code 直接克隆：<a href="vscode://vscode.git/clone?url=https%3A%2F%2Fgithub.com%2FColorlessBoy%2Fsokonanoda-lang">在 VS Code 中克隆</a>。
-            </p>
+    <figure class="illus measure" aria-labelledby="cmd-tag">
+      <p class="illus-tag" id="cmd-tag">命令行 · 真 stdout 节选</p>
+      <div class="terminal">
+        <p class="term-label">scripts/soko</p>
+        <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko grade .cache/site-lab/events.sokonanoda --json</span>
+<span class="term-out">{"human":"checked declaration id","name":"id","type":"decl.checked"}</span>
+<span class="term-out">{"human":"checked declaration compose","name":"compose","type":"decl.checked"}</span>
+<span class="term-out">{"human":"checked declaration and_comm","name":"and_comm","type":"decl.checked"}</span>
+<span class="term-out">{"human":"exercise open (fill the sorry)","type":"exercise.open"}</span>
+<span class="term-out">{"human":"exercise open (fill the sorry)","name":"open_exercise","type":"exercise.open"}</span></pre>
+      </div>
+      <figcaption class="illus-cap">真 stdout 的前 5 行，共 9 行，退出码 1。<code>$</code> 是提示符，不用输入。
+      长行在块内横向滚动，不折行——折行会破坏 JSON Lines 一行一事件的语义。</figcaption>
+    </figure>
+
+    <figure class="illus" aria-labelledby="ev-tag">
+      <p class="illus-tag" id="ev-tag">事件流 · scripts/soko grade --json</p>
+      <div class="events is-annotated" tabindex="0" role="group" aria-label="事件流，可横向滚动">
+        <ol class="events-list">
+          <li class="event"><span class="event-seq">1</span><span class="event-type is-checked">decl.checked</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"checked declaration id"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"id"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.checked"</span><span class="tok-punc">}</span></code><span class="event-src">L2</span></li>
+          <li class="event"><span class="event-seq">2</span><span class="event-type is-checked">decl.checked</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"checked declaration compose"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"compose"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.checked"</span><span class="tok-punc">}</span></code><span class="event-src">L3</span></li>
+          <li class="event"><span class="event-seq">3</span><span class="event-type is-checked">decl.checked</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"checked declaration and_comm"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"and_comm"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.checked"</span><span class="tok-punc">}</span></code><span class="event-src">L5</span></li>
+          <li class="event"><span class="event-seq">4</span><span class="event-type is-open">exercise.open</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"exercise open (fill the sorry)"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"exercise.open"</span><span class="tok-punc">}</span></code><span class="event-src">L7</span></li>
+          <li class="event"><span class="event-seq">5</span><span class="event-type is-open">exercise.open</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"exercise open (fill the sorry)"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"open_exercise"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"exercise.open"</span><span class="tok-punc">}</span></code><span class="event-src">L8</span></li>
+          <li class="event"><span class="event-seq">6</span><span class="event-type is-info">expr.typed</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"id: Prop -&gt; Prop"</span><span class="tok-punc">,</span><span class="tok-ty">"inferred_type"</span><span class="tok-punc">:</span><span class="tok-str">"Prop -&gt; Prop"</span><span class="tok-punc">,</span><span class="tok-ty">"span"</span><span class="tok-punc">:{</span><span class="tok-ty">"end"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">10</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">9</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">400</span><span class="tok-punc">},</span><span class="tok-ty">"start"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">8</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">9</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">398</span><span class="tok-punc">}},</span><span class="tok-ty">"text"</span><span class="tok-punc">:</span><span class="tok-str">"id"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"expr.typed"</span><span class="tok-punc">}</span></code><span class="event-src">L9</span></li>
+          <li class="event"><span class="event-seq">7</span><span class="event-type is-info">expr.reduced</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"1 + 2 =&gt; 3"</span><span class="tok-punc">,</span><span class="tok-ty">"span"</span><span class="tok-punc">:{</span><span class="tok-ty">"end"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">14</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">10</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">414</span><span class="tok-punc">},</span><span class="tok-ty">"start"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">9</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">10</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">409</span><span class="tok-punc">}},</span><span class="tok-ty">"text"</span><span class="tok-punc">:</span><span class="tok-str">"1 + 2"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"expr.reduced"</span><span class="tok-punc">,</span><span class="tok-ty">"value"</span><span class="tok-punc">:</span><span class="tok-str">"3"</span><span class="tok-punc">}</span></code><span class="event-src">L10</span></li>
+          <li class="event"><span class="event-seq">8</span><span class="event-type is-info">decl.printed</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"#print id :\ndef id (a : Prop) : Prop := a"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"id"</span><span class="tok-punc">,</span><span class="tok-ty">"text"</span><span class="tok-punc">:</span><span class="tok-str">"def id (a : Prop) : Prop := a"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.printed"</span><span class="tok-punc">}</span></code><span class="event-src">L2</span></li>
+          <li class="event"><span class="event-seq">9</span><span class="event-type is-error">diagnostic</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"code"</span><span class="tok-punc">:</span><span class="tok-str">"kernel-expected-pi"</span><span class="tok-punc">,</span><span class="tok-ty">"hint"</span><span class="tok-punc">:</span><span class="tok-str">"你把一个不是函数的值当函数用了，或者参数给多了。检查这个位置的东西的类型是不是 … -&gt; … 形状。"</span><span class="tok-punc">,</span><span class="tok-ty">"message"</span><span class="tok-punc">:</span><span class="tok-str">"rejected: expected a pi type, got: True.[]"</span><span class="tok-punc">,</span><span class="tok-ty">"stage"</span><span class="tok-punc">:</span><span class="tok-str">"kernel"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"diagnostic"</span><span class="tok-punc">}</span></code><span class="event-src">L12</span></li>
+        </ol>
+      </div>
+      <figcaption class="illus-cap">九行逐字来自 <code>scripts/soko grade .cache/site-lab/events.sokonanoda --json</code>，
+      记录在 <code>site/data/events.json</code>。绿 = 内核真的判过；朱 = 真的还没解、或真的判错；中性 = 只是输出。</figcaption>
+    </figure>
+
+    <figure class="illus measure" aria-labelledby="goal-tag">
+      <p class="illus-tag" id="goal-tag">目标面板 · 一条练习的根状态</p>
+      <div class="goal">
+        <div class="goal-head">
+          <span class="goal-decl">forall_exists</span>
+          <span class="goal-kind">theorem</span>
+          <span class="goal-line">L347</span>
+          <span class="goal-status is-open">open</span>
+        </div>
+        <ol class="goal-stack">
+          <li class="goal-item">
+            <p class="goal-label">目标</p>
+            <ul class="hyps">
+              <li class="hyp"><span class="hyp-name">P</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Person</span> -&gt; <span class="tok-ty">Prop</span></code></li>
+              <li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty">(<span class="tok-local">x</span> : <span class="tok-ty">Person</span>) -&gt; <span class="tok-local">P</span> <span class="tok-local">x</span></code></li>
+            </ul>
+            <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+            <pre class="goal-ty"><span class="tok-ty">Exists</span> <span class="tok-ty">Person</span> <span class="tok-local">P</span></pre>
           </li>
         </ol>
-        <p class="fineprint">
-          把带 <code>sorry</code> 的练习换成答案、保存——判对判错由内核说了算；
-          详细步骤与常见问题见 <a href="get-started.html#learner">安装与上手</a>。
-        </p>
       </div>
-      <div class="card install-card">
-        <div class="step">给 code agent</div>
-        <h3>复制一段 prompt 就够了</h3>
-        <p>
-          粘进任意 code agent（opencode / Claude Code / Codex / Cursor / …）。
-          它会自己克隆仓库、读 <code>AGENTS.md</code>、装好版本锁定环境，
-          然后在画布上出题、按内核事件判卷。
-        </p>
-        <p>
-          <button class="btn primary" type="button" data-copy-agent-prompt>复制安装 prompt</button>
-        </p>
-        <p class="fineprint">
-          零 cargo、不碰官方 Lean 工具链；判定全程走内核 <code>--json</code> 事件。
-          它读的技能与协议见 <a href="agents.html">给 Agent</a>。
-        </p>
+      <figcaption class="illus-cap">逐字来自
+      <code>scripts/soko query state --file playground.sokonanoda --line 347 --col 3</code>。
+      <code>step -1</code> 表示光标还在第一条 tactic 之前，拿到的是根状态；<code>open</code> 是内核给的状态词。</figcaption>
+    </figure>
+
+    <!-- ── §2 四件能当场验证的事 ──────────────────────────────────────
+         每个 .feature 左边一句主张，右边一个**真的**代码或输出。
+         不是「图标 + 标题 + 两句话」——那种三连卡片是被点名的 AI 长相。 -->
+    <section class="prose measure" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 四件能当场验证的事</h2>
+      <p>每块右边都是真代码或真输出，跑得出来的命令写在图注里。</p>
+    </section>
+
+    <div class="feature">
+      <div class="feature__claim">
+        <h3>判定走完整内核，不做文本比对</h3>
+        <p>前端只把源码 elaborate 成内核声明，对错由内核终审。<code>grep</code> 式的文本比对会假绿也会假红，所以它在硬规则里被点名禁止。</p>
+      </div>
+      <figure class="illus">
+        <div class="code">
+          <span class="code__label">.cache/site-lab/events.sokonanoda:12</span>
+          <pre tabindex="0"><code><span class="tok-kw">theorem</span> <span class="tok-ty">kernel_rejected</span> <span class="tok-punc">:</span> <span class="tok-ty">True</span> <span class="tok-punc">:=</span> <span class="tok-ty">True.intro</span> <span class="tok-ty">True.intro</span></code></pre>
+        </div>
+        <div class="diag">
+          <p><span class="diag__code">kernel-expected-pi</span><span class="diag__stage">kernel</span></p>
+          <p class="diag__msg">rejected: expected a pi type, got: True.[]</p>
+          <p class="diag__hint">你把一个不是函数的值当函数用了，或者参数给多了。检查这个位置的东西的类型是不是 … -&gt; … 形状。</p>
+        </div>
+        <figcaption class="illus-cap">上面这行把 <code>True.intro</code> 当函数用了一次，内核真的拒了它：
+        <code>message</code>、<code>stage</code>、<code>hint</code> 逐字来自
+        <code>scripts/soko grade .cache/site-lab/events.sokonanoda --json</code> 的第 9 行事件。</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="feature__claim">
+        <h3>编辑器里随时能问「现在要证什么」</h3>
+        <p>在 VS Code 里按 <span class="kbd">alt+b</span> 编译，光标停在任意一行都能看到那一刻的假设与目标。面板里每个 token 都是内核给的 <code>ty_runs</code> / <code>goal_runs</code>，页面不许重新分词。</p>
+      </div>
+      <figure class="illus">
+        <p class="illus-tag">编辑器表面 · 只读示意</p>
+        <div class="editor">
+          <div class="editor-bar">
+            <span class="editor-file">playground.sokonanoda</span>
+            <span class="editor-mode">只读示意</span>
+          </div>
+          <div class="editor-tabs">
+            <span class="tab is-active">playground.sokonanoda</span>
+          </div>
+          <div class="editor-body">
+            <div class="editor-rail">
+              <span class="rail-item" title="练习"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h2M2 8h2M2 12h2M6 4h8M6 8h8M6 12h8"/></svg></span>
+              <span class="rail-item" title="课程"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 3h5v10H2zM9 3h5v10H9z"/></svg></span>
+              <span class="rail-item" title="项目"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 4h4l1.5 2H14v7H2z"/></svg></span>
+              <span class="rail-item is-active" title="目标面板 (Infoview)"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3v10M6.5 8H14"/></svg></span>
+            </div>
+            <div class="editor-code" tabindex="0" role="group" aria-label="代码示意，可横向滚动">
+              <ol class="code-lines">
+                <li class="code-line"><span class="ln">277</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">forall_and</span> <span class="tok-punc">(</span><span class="tok-local">P</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span> <span class="tok-punc">-</span><span class="tok-punc">&gt;</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">Q</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span> <span class="tok-punc">-</span><span class="tok-punc">&gt;</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">h</span> <span class="tok-punc">:</span> <span class="tok-kw">forall</span> <span class="tok-punc">(</span><span class="tok-local">x</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span><span class="tok-punc">)</span><span class="tok-punc">,</span> <span class="tok-ty">And</span> <span class="tok-punc">(</span><span class="tok-local">P</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">Q</span> <span class="tok-local">x</span><span class="tok-punc">)</span><span class="tok-punc">)</span> <span class="tok-punc">:</span> <span class="tok-ty">And</span> <span class="tok-punc">(</span><span class="tok-kw">forall</span> <span class="tok-punc">(</span><span class="tok-local">x</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span><span class="tok-punc">)</span><span class="tok-punc">,</span> <span class="tok-local">P</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-kw">forall</span> <span class="tok-punc">(</span><span class="tok-local">x</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span><span class="tok-punc">)</span><span class="tok-punc">,</span> <span class="tok-local">Q</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">:</span><span class="tok-punc">=</span> <span class="tok-kw">by</span></span></li>
+                <li class="code-line"><span class="ln">278</span><span class="lc">  <span class="tok-kw">apply</span> <span class="tok-ty">And.intro</span></span></li>
+                <li class="code-line"><span class="ln">279</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">x</span></span></li>
+                <li class="code-line"><span class="ln">280</span><span class="lc">  <span class="tok-kw">exact</span> <span class="tok-ty">And.left</span> <span class="tok-punc">(</span><span class="tok-local">P</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">Q</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">h</span> <span class="tok-local">x</span><span class="tok-punc">)</span></span></li>
+                <li class="code-line"><span class="ln">281</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">x</span></span></li>
+                <li class="code-line"><span class="ln">282</span><span class="lc">  <span class="tok-kw">exact</span> <span class="tok-ty">And.right</span> <span class="tok-punc">(</span><span class="tok-local">P</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">Q</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">h</span> <span class="tok-local">x</span><span class="tok-punc">)</span></span></li>
+              </ol>
+            </div>
+          </div>
+          <div class="editor-status">
+            <span class="st-item">sokonanoda</span>
+            <span class="st-item">playground.sokonanoda</span>
+            <span class="st-item is-checked">30 checked</span>
+            <span class="st-item is-open">4 open</span>
+            <span class="st-item st-right">Ln 291, Col 3</span>
+          </div>
+        </div>
+        <figcaption class="illus-cap">源码 <code>playground.sokonanoda:277-282</code>，逐字。状态栏的绿与朱是真的：
+        <code>scripts/soko query check --file playground.sokonanoda</code> 回答
+        <code>decl_checked: 30</code>、<code>exercise_open: 4</code>。四个活动栏图标对应真扩展的四个视图。</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="feature__claim">
+        <h3>一个项目可以是多个文件</h3>
+        <p><code>import Logic</code> 加一个可选的 <code>sokonanoda.toml</code>，编译器就按闭包编译：入口文件自己不声明任何公理，名字全从库里来。跨文件练习与跨文件跳转走的是同一条路。</p>
+      </div>
+      <figure class="illus">
+        <p class="illus-tag">项目闭包 · 真 stdout 节选</p>
+        <div class="terminal">
+          <p class="term-label">scripts/soko</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko query project --file course/unit11-project/Exercises.sokonanoda</span>
+<span class="term-out">{</span>
+<span class="term-out">  "data": {</span>
+<span class="term-out">    "project": {</span>
+<span class="term-out">      "counts": {</span>
+<span class="term-out">        "blocked": 0,</span>
+<span class="term-out">        "compiled": 2,</span>
+<span class="term-out">        "decls": 7,</span>
+<span class="term-out">        "errors": 0,</span>
+<span class="term-out">        "failed": 0,</span>
+<span class="term-out">        "modules": 2,</span>
+<span class="term-out">        "open_exercises": 2,</span>
+<span class="term-out">        "warnings": 0</span>
+<span class="term-out">      },</span>
+<span class="term-out">      "entry": "Exercises",</span></pre>
+        </div>
+        <figcaption class="illus-cap">真 stdout 的前 15 行。入口 <code>Exercises</code> 导入 <code>Logic</code>：
+        两个模块、7 条声明、0 错 0 阻塞，跨文件的 2 道练习还开着。练习 A 与练习 B 的差别就是
+        「自己证」和「调用库里 import 进来的定理」。</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="feature__claim">
+        <h3>数学符号是课程自己声明的</h3>
+        <p>卷 I 集合论里的 <code>∈</code>、<code>⊆</code>、<code>∪</code>、<code>∅</code> 不是内建符号，是课程用 <code>infix</code> / <code>notation</code> 写出来的源级糖。点名写法永久可用，两种写法判卷结果一致。</p>
+      </div>
+      <div class="code">
+        <span class="code__label">courses/set-theory/units/notation-cheatsheet.sokonanoda:86-89</span>
+        <pre tabindex="0"><code><span class="tok-kw">infix</span><span class="tok-punc">:</span><span class="tok-num">50</span> <span class="tok-str">" ∈ "</span> <span class="tok-punc">=&gt;</span> <span class="tok-ty">Set.mem</span>
+<span class="tok-kw">infix</span><span class="tok-punc">:</span><span class="tok-num">50</span> <span class="tok-str">" ⊆ "</span> <span class="tok-punc">=&gt;</span> <span class="tok-ty">Set.subset</span>
+<span class="tok-kw">infixl</span><span class="tok-punc">:</span><span class="tok-num">65</span> <span class="tok-str">" ∪ "</span> <span class="tok-punc">=&gt;</span> <span class="tok-ty">Set.union</span>
+<span class="tok-kw">notation</span> <span class="tok-str">"∅"</span> <span class="tok-punc">=&gt;</span> <span class="tok-ty">Set.empty</span></code></pre>
       </div>
     </div>
 
-    <!-- ══════════ 怎么用 ══════════ -->
-    <h2 class="section-title" id="demos">怎么用</h2>
-    <p class="section-sub">
-      四个最常见的瞬间。所有演示都是扩展里真实存在的功能——演示脚本生成的
-      画面，与实现一一对应。
-    </p>
-    <div class="demo-grid">
-      <article class="demo-card">
-        <div class="media">
-          <img src="assets/demos/demo-goal.png" width="1180" height="700"
-               alt="悬停 sorry：显示这个洞的精确期望类型 a、剩余目标 False 与已引入假设" loading="lazy">
-        </div>
-        <h3>卡住了，悬停 <code>sorry</code></h3>
-        <p>
-          光标落在 <code>sorry</code> 上，hover 直接给<strong>这个洞</strong>的期望类型、
-          剩余目标与已引入假设——期望类型会展开定义来算（<code>Not a</code>
-          展开成 <code>a -> False</code>，洞期望 <code>a</code>）。填之前就知道还差什么。
-        </p>
-      </article>
+    <p class="marginalia">「充分测试是大规模合作与多次大规模重构的重要资产」——用户原话，<code>REQUIREMENTS.md:133</code>。</p>
 
-      <article class="demo-card">
-        <div class="media">
-          <img src="assets/demos/demo-kernel.png" width="1180" height="700"
-               alt="写错的前提顺序被内核拒绝：红色波浪线与 kernel-rejected 诊断给出教学提示" loading="lazy">
-        </div>
-        <h3>判对判错，内核说了算</h3>
-        <p>
-          判定永远走完整内核，不做文本比对：判错的证明给红色诊断与教学提示
-          （哪里写反了、该怎么想），判对的每一行放进官方 Lean 也一样合法。
-        </p>
-      </article>
+    <!-- ── §3 数字 ────────────────────────────────────────────────────
+         颜色纪律：绿只给「内核真的判定过」的数字；版本、轮次、单元数
+         这类事实不是判定，所以留在墨色。 -->
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 现在的数字</h2>
+      <ul class="stats">
+        <li><span class="stats__n stats__n--verified">329</span><span class="stats__label">卷 I 通过内核判定的声明</span></li>
+        <li><span class="stats__n stats__n--verified">0</span><span class="stats__label">其中的判负数</span></li>
+        <li><span class="stats__n">99</span><span class="stats__label">卷 I 仍开着的练习</span></li>
+        <li><span class="stats__n">12</span><span class="stats__label">卷 I 单元（4 章）</span></li>
+        <li><span class="stats__n">11</span><span class="stats__label">入门课单元</span></li>
+        <li><span class="stats__n">108</span><span class="stats__label">开发轮次</span></li>
+      </ul>
+      <p class="small faint">六个数字都来自 <code>site/data/site.json</code>，由 <code>scripts/gen-site-data.py</code> 生成，
+      本轮实测日期 2026-09-19。版本号不写在这里：页脚在浏览时从同一份 <code>site.json</code> 填入。</p>
+    </section>
 
-      <article class="demo-card">
-        <div class="media">
-          <img src="assets/demos/demo-agent.png" width="1180" height="700"
-               alt="终端里 sokonanoda --json 每行输出一个 JSON 事件：decl.checked 与 exercise.open" loading="lazy">
-        </div>
-        <h3>你的 code agent 也能当老师</h3>
-        <p>
-          任何 code agent（Claude Code / opencode / Codex / Cursor / …）都能判卷驱动
-          教学循环——把<a href="agents.html">安装 prompt</a>复制给它，它自己装好环境
-          就能上课；判卷走 <code>--json</code> 内核事件，不做文本比对。
-        </p>
-      </article>
-    </div>
+    <!-- ── §4 诚实的限制 ──────────────────────────────────────────────
+         朱批只允许出现在「诊断 / 更正 / 诚实的限制」上。这一节就是第三种。 -->
+    <section class="wide" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 它现在还不能做什么</h2>
+      <div class="callout callout--limit">
+        <p class="callout__title">限制</p>
+        <ul>
+          <li>没有 WASM 构建，也没有浏览器内判题。内核是 Rust，要判卷就得有本地二进制或 VSIX。</li>
+          <li>没有隐式参数自动插入，也没有类型类。应用是逐位显式的，<code>Eq.symm</code> 这类要自己写全。</li>
+          <li>这一页的演示都是预计算好的真实输出，不是在线 playground——没有一处是浏览器里现算的。</li>
+          <li>卷 I 的计数口径是上一轮门禁运行（<code>counts_source: previous-run</code>），不是本次现场重跑。</li>
+        </ul>
+      </div>
+      <p class="small faint">这四条是仓库里登记在案的边界，不是「以后再说」。完整清单在
+      <a href="progress.html">进展</a>一页。</p>
+    </section>
 
-    <!-- ══════════ 更多入口 ══════════ -->
-    <div class="entry-strip">
-      <a href="course.html">命题逻辑与证明课 →</a>
-      <a href="set-theory.html">卷 I《集合论》 →</a>
-      <a href="progress.html">当前进展与版本 →</a>
-      <a href="vision.html">为什么做这个项目 →</a>
-      <a href="docs.html">架构 / 协议 / 发布手册 →</a>
-    </div>
-  </main>
+    <!-- ── §5 四条路 ────────────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 从哪开始</h2>
+      <ul class="stack measure">
+        <li><a href="learn.html">怎么学</a>：教学循环、老师 agent、卡住时的三步。</li>
+        <li><a href="kernel.html">看它怎么判</a>：一次判卷的完整真相，含真事件流与真拒绝。</li>
+        <li><a href="get-started.html">装上它</a>：三条安装路径与排错清单。</li>
+        <li><a href="progress.html">看它走到哪</a>：真实时间线、路线图、诚实的未完成清单。</li>
+      </ul>
+    </section>
 
-  <footer class="site-footer">
-    <div class="wrap">
-      <nav class="fnav" aria-label="页脚导航">
-        <a href="get-started.html">安装与上手</a>
-        <a href="course.html">课程</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="vision.html">愿景</a>
-        <a href="about.html">关于</a>
-        <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" aria-current="page" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
       </nav>
-      <div>
-        sokonanoda-lang —— 自研 Lean 4 式教学编译栈。判卷由真内核完成；
-        学习者与 agent 的使用路径零工具链依赖。
-      </div>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
     </div>
-  </footer>
-  <script src="assets/agent-prompt.js"></script>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
 </body>
 </html>

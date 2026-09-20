@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>与 Lean 4 / Coq / Agda 对照：这门语言在什么位置 —— sokonanoda</title>
+<meta name="description" content="一门课程序列的教学语言，不是通用证明助手。一张表把它与 Lean 4、Coq/Rocq、Agda 并排：别人强在哪、我们故意不同在哪、从 Lean 4 或 Coq 过来时哪些写法不成立。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/compare.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="与 Lean 4 / Coq / Agda 对照：这门语言在什么位置 —— sokonanoda">
+<meta property="og:description" content="一门课程序列的教学语言，不是通用证明助手。一张表把它与 Lean 4、Coq/Rocq、Agda 并排：别人强在哪、我们故意不同在哪、从 Lean 4 或 Coq 过来时哪些写法不成立。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts / tokens / base / site（本页没有编辑器面板，不引 editor.css） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="compare" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <header class="page-head">
+      <p class="sec-num">产品</p>
+      <h1>与 Lean 4 / Coq / Agda 对照</h1>
+      <p class="lead">
+        如果你已经会一个证明助手，这一页回答「这东西跟我有什么关系」。
+        先说它是什么，再并排比，再说别人强在哪——最后才说它故意不一样在哪。
+      </p>
+    </header>
+
+    <section class="measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 先说它是什么</h2>
+
+      <p>
+        sokonanoda 是一门<strong>课程序列的教学语言</strong>。课程只有两卷：
+        入门课 11 个单元，卷 I 集合论 12 个单元、36 个目标、329 条 checked。
+        它不是通用证明助手，路线图里也没有往那个方向走的计划。
+      </p>
+
+      <p>
+        它与 Lean 4 的关系只有一条：教学语法是真实 Lean 4 的<strong>子集</strong>。
+        集合的定义与 Mathlib 逐字相同，两边写的都是
+        <code>def Set (α : Type) : Type := α -&gt; Prop</code>。
+        语义零差距，差的只有记法。
+        它不调用官方 Lean 工具链，也不是 Lean 4 的兼容实现。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定一门两卷的课程序列、一个冻结的内核与零工具链的使用路径，待证的是它不是通用证明助手">
+        <ul class="turnstile__given">
+          <li>课程序列：入门课 <span class="num">11</span> 单元 + 卷 I <span class="num">12</span> 单元</li>
+          <li>一个冻结的内核当唯一裁判</li>
+          <li>使用路径不要求 Rust / Lean 工具链</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">它不是通用证明助手</p>
+      </div>
+
+      <p>
+        所以下面的对照不是「谁更好」，而是「各自被造成什么样」。
+        大多数情况下，如果你要证真实数学，答案是你应该用 Lean 4。
+        §3 会把这件事说透。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 四条路线并排</h2>
+
+      <p class="measure">
+        只有七行，因为只有七件事会影响你的选择。这不是功能矩阵。
+        功能矩阵数的是「有没有」，这张表问的是「为什么长成这样」。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table table--compare">
+          <caption>
+            四条路线并排。表里关于 Lean 4 / Coq / Agda 的每一句话都出自本仓库的调研笔记
+            （<code>docs/notes/research.md</code>、<code>docs/notes/gap-analysis.md</code>、
+            <code>docs/notes/settheory-survey/prior-art-report.md</code>、
+            <code>docs/notes/multifile-prior-art.md</code>，取证日期 2026-09-18）；
+            取不到证据的格子写「未证实」，不猜。
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">口径</th>
+              <th scope="col">本项目</th>
+              <th scope="col">Lean 4</th>
+              <th scope="col">Coq / Rocq</th>
+              <th scope="col">Agda</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">它是干什么的</th>
+              <td>两门固定课程序列的教学语言：入门课 <span class="num">11</span> 单元、卷 I 集合论 <span class="num">12</span> 单元。</td>
+              <td>通用证明助手加 Mathlib 数学库。集合论内容散在通用教材里：MIL 第 4 章、MoP 第 9 章、Logic and Proof 第 11–12 章。</td>
+              <td>通用证明助手。SF 与 Coq'Art 都是通用教材，两本都不教集合论。</td>
+              <td>通用依赖类型语言。官方文档把类型宇宙命名为 <code>Set</code>——与集合论的 <code>Set</code> 同名不同物。</td>
+            </tr>
+            <tr>
+              <th scope="row">判定怎么发生</th>
+              <td>冻结内核是唯一裁判。<code>by</code> 块先降级成 lambda 再交内核，编辑器路径里没有任何文本比对。</td>
+              <td>内核检查 elaborate 后的项。教学平台 lean4game 在服务端用完整 Lean 编译器编译学生的 tactic proof，成功即过关，不比对文本。</td>
+              <td>内核检查。<code>rocqchk</code> 能脱离证明器单独重查已编译的 <code>.vo</code>——调研把这条读作「冻结内核是唯一裁判」的同一种形状。</td>
+              <td>检查。<code>?</code> 与 <code>{! !}</code> 洞是一等公民，编辑器给出 goal 与类型，学生逐步 refine。</td>
+            </tr>
+            <tr>
+              <th scope="row">要不要装工具链</th>
+              <td>不要。Release 的 CLI tarball 里就是可直接执行的二进制，VSIX 内嵌 LSP 与 CLI；使用路径不要求 Rust、Lean 或任何工具链。</td>
+              <td>要。调研表里 lean4game 的「离线／无官方工具」一栏是「否（依赖 lean）」；课程仓库本身也用 lake 组织。</td>
+              <td>单文件 <code>rocq c foo.v</code> 不需要工程文件；工程要 <code>_RocqProject</code> 加 <code>rocq makefile</code> 加 <code>make</code>，Dune 支持标注为 experimental。</td>
+              <td>单文件 <code>agda Foo.agda</code> 能跑；多模块要有 <code>.agda-lib</code>（字段全可选），且模块名必须与路径一致。</td>
+            </tr>
+            <tr>
+              <th scope="row">标准库里有什么</th>
+              <td>课程标准库 <span class="num">74</span> 条声明、<span class="num">8</span> 个模块，全部 checked：集合、关系、函数、像与原像、等势的定义展开引理。</td>
+              <td>Mathlib。<code>Mathlib/Data/Set/</code> 一个目录 <span class="num">46</span> 项（41 个 <code>.lean</code> 加 5 个子目录）；<code>SetTheory/ZFC/</code> 只有 <span class="num">7</span> 个文件，<code>ZFSet</code> 全库仅 <span class="num">9</span> 处引用。</td>
+              <td><code>Coq.Sets.*</code> <span class="num">22</span> 个模块——没有 Ordinals、Cardinals、ZF 三个子模块，也没有 <code>Coq.ZF</code>；另有 stdpp 的 <code>stdpp.sets</code> 与 MathComp。</td>
+              <td>agda-stdlib <span class="num">1,114</span> 个模块；<code>zf</code>、<code>zfc</code>、<code>settheory</code>、<code>ordinal</code>、<code>cardinal</code>、<code>cantor</code> 全部 0 命中。真正的 ZF 在 Cubical Agda。</td>
+            </tr>
+            <tr>
+              <th scope="row">集合论的教学内容在哪</th>
+              <td>就是产品本身：卷 I 12 单元、<span class="num">36</span> 个目标、<span class="num">329</span> 条 checked。</td>
+              <td>在通用教材与一个游戏里：MIL 第 4 章（练习按节拆分，带解答）、MoP 第 9 章、Logic and Proof 第 11–12 章，以及 Dan Velleman 的 <code>stg4</code>（<span class="num">8</span> 个 world、<span class="num">51</span> 关）。</td>
+              <td>没有。调研的判定是「只有库」——教材教的是证明助手本身，不是集合论。</td>
+              <td>没有。调研的判定是「只有库（Cubical）／无内容（stdlib）」。</td>
+            </tr>
+            <tr>
+              <th scope="row">能不能拿来做研究</th>
+              <td>不能，也不打算。路线图把 WASM、多人协作、compiler service 都列为不做或探索。</td>
+              <td>能。flypitch 的 <code>independence_of_CH</code> 就是 Wiedijk「100 定理」里第 24 条的 Lean 条目。</td>
+              <td>能。Wiedijk 那张页面上 Rocq 占 <span class="num">80</span> 条。</td>
+              <td>能。Cubical Agda 里有 ZF 的累积层模型，自述按 HoTT book §10.5 建模。</td>
+            </tr>
+            <tr>
+              <th scope="row">写错了会怎样</th>
+              <td>一条 <code>diagnostic</code>（带阶段与码）加声明 Failed。洞是合法状态，<code>sorry</code> 不算错。</td>
+              <td>教学平台的反馈绑在 goal state 上。STG4 有普通、<code>hidden</code>、<code>strict</code> 三层 Hint，还有 <code>Branch</code> 故意留的死路。</td>
+              <td><strong>未证实</strong>——本仓库的调研笔记没有取到 Coq／Rocq 的错误反馈细节，不猜。</td>
+              <td>洞不报错，而是给 goal 与类型，学生看着类型逐步 refine。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">这张表查不到的地方</span>
+        <p>
+          三处拿不到证据，就按拿不到写：Coq／Rocq 的错误反馈细节（第 7 行）、
+          Agda 在「100 定理」里的条数（那张页面根本没有列 Agda）、
+          以及 Lean 的条数。最后一项三处互不一致——同一批页面上 Lean 侧写 83、
+          Mathlib 侧写 85、Metamath 自己的页面把 Lean 记作 82——所以不写数字。
+        </p>
+        <p>
+          社区规模同理：本仓库没有下载量、用户数或贡献者数，一个都不编。
+          能核到的只有形态。<code>lean4game</code> 的游戏表列了 8 个由不同作者维护的游戏，
+          <code>stg4</code> 有西班牙语翻译，另有第三方写的解答仓。
+        </p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 别人强在哪</h2>
+
+      <p class="measure">
+        先把话说尽：如果你要证真实数学，你要的是 Lean 4。
+        如果你手上已经有 Coq 代码，你要的是 Rocq。这一节列的都是真的短处。
+      </p>
+
+      <h3>库大两个数量级</h3>
+      <p class="measure">
+        Mathlib 的 <code>Data/Set/</code> 一个目录就有 46 项；agda-stdlib 有 1,114 个模块；
+        <code>Coq.Sets.*</code> 有 22 个模块；外面还有 stdpp 与 MathComp。
+        我们的课程标准库是 74 条声明、8 个模块——差距不是一点。
+        课程里要用的每一条引理都得自己写，写的时候撞到「这东西本该有」就记一条缺口。
+      </p>
+
+      <h3>真在做研究</h3>
+      <p class="measure">
+        Lean 侧，flypitch 的 <code>independence_of_CH</code> 是 Wiedijk「100 定理」第 24 条的条目；
+        Foundation 里有 <code>zfc_consistent</code>；<code>con-nf</code> 证 Quine NF 的一致性。
+        Rocq 在那张页面上占 80 条。Cubical Agda 里有 ZF 的累积层模型。
+        本项目一条都没有，路线图里也没有。
+      </p>
+
+      <h3>工具链成熟</h3>
+      <p class="measure">
+        <code>rocqchk</code> 能脱离证明器单独重查已编译的库；Agda 有 <code>.agdai</code>
+        与 <code>_build/&lt;版本&gt;/</code> 这样的接口文件当缓存单元；
+        lean4game 是长驻服务，把 goal state 增量推给前端；
+        <code>stg4</code> 有 51 关、8 个 world、随进度递减的提示密度与浏览器端进度存储。
+        我们这边不一样。项目模式没有跨模块增量，REPL 没有行编辑，也没有浏览器内构建。
+      </p>
+
+      <h3>自动化多得多</h3>
+      <p class="measure">
+        这一条最能说明问题。下面这张表是本地 <code>analysis</code> 仓库里每个 tactic
+        的出现次数——Tao《Analysis I》的形式化，§3 集合论那一章。按次数排序取前十二：
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>
+            <code>analysis</code> 仓库 §3 的 tactic 频次（<code>docs/notes/settheory-survey/prior-art-report.md</code> §6.9，
+            对本地解答分支逐词计数）。第三列问的是「本项目的白名单里有没有它」。
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">tactic</th>
+              <th scope="col" class="num">出现次数</th>
+              <th scope="col">本项目的白名单里有吗</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><code>rw</code></th><td class="num">918</td><td>没有</td></tr>
+            <tr><th scope="row"><code>have</code></th><td class="num">914</td><td>没有</td></tr>
+            <tr><th scope="row"><code>intro</code></th><td class="num">693</td><td>有</td></tr>
+            <tr><th scope="row"><code>simp</code></th><td class="num">497</td><td>没有</td></tr>
+            <tr><th scope="row"><code>exact</code></th><td class="num">496</td><td>有</td></tr>
+            <tr><th scope="row"><code>apply</code></th><td class="num">407</td><td>有</td></tr>
+            <tr><th scope="row"><code>use</code></th><td class="num">243</td><td>没有</td></tr>
+            <tr><th scope="row"><code>constructor</code></th><td class="num">172</td><td>没有</td></tr>
+            <tr><th scope="row"><code>rfl</code></th><td class="num">169</td><td>有</td></tr>
+            <tr><th scope="row"><code>omega</code></th><td class="num">128</td><td>没有</td></tr>
+            <tr><th scope="row"><code>choose</code></th><td class="num">125</td><td>没有</td></tr>
+            <tr><th scope="row"><code>rcases</code></th><td class="num">125</td><td>没有</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        整张表有 30 种 tactic、合计 5,311 次调用。我们的白名单有七个，
+        其中能在这份统计里照抄的只有六种——<code>intro</code>、<code>exact</code>、
+        <code>apply</code>、<code>rfl</code>、<code>match</code>（5 次）、
+        <code>assumption</code>（2 次）——合计 1,772 次，占三分之一。
+        最高频的 <code>rw</code> 与 <code>have</code> 都没有。
+      </p>
+
+      <h3>社区大得多</h3>
+      <p class="measure">
+        本仓库没有下载量、用户数或贡献者数，所以这一格不写数字。
+        能核到的是形态。<code>lean4game</code> 的游戏表里列了 8 个由不同作者维护的游戏，
+        <code>stg4</code> 有西班牙语翻译，另外还有第三方写的解答仓。
+        这些在一个人维护的项目里不会出现。
+      </p>
+    </section>
+
+    <section class="measure" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 我们故意不一样的地方</h2>
+
+      <p>
+        上一节是代价，这一节是选择。五条，每条都能点开看到真实证据。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定七个 tactic、一个冻结的内核与一份缺口台账，待证的是一个不给 simp 的环境能逼人把每一步写出来">
+        <ul class="turnstile__given">
+          <li><code>by</code> 白名单：<span class="num">7</span> 个 tactic</li>
+          <li>一个冻结的内核，判定不做文本比对</li>
+          <li>缺口台账 <span class="num">24</span> 条，open <span class="num">0</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">一个不给 <code>simp</code> 的环境，能逼人把每一步写出来</p>
+      </div>
+
+      <h3>白名单是封闭的：七个，一个不多</h3>
+      <p>
+        <code>by</code> 块只认 <code>intro</code>、<code>exact</code>、<code>apply</code>、
+        <code>assumption</code>、<code>rfl</code>、<code>match</code>、<code>sorry</code>。
+        白名单外的写法在 <strong>parse 阶段</strong>就被拒，连 elaborate 都到不了。
+        这是本页第一批实测结论之一：量的是已发布的
+        <span data-site-version>—</span>，不是工作树。
+      </p>
+
+      <div class="diag">
+        <p><span class="diag__code">unexpected-token</span><span class="diag__stage">parse 阶段</span></p>
+        <p class="diag__msg">未知 tactic：<code>by</code> 块只支持 intro / exact / apply / assumption / rfl / match / sorry（白名单），发现 Token { kind: Ident("simp") … }</p>
+        <p class="diag__hint">这里的写法不符合当前课程语法。检查命令拼写、括号配对，以及是否多写了还没学过的符号。</p>
+      </div>
+
+      <p>
+        上面这条来自 <code>by intro a; simp</code>，消息里的 <code>span</code> 字段略去。
+        换成 <code>rw [a]</code> 死得更早：
+        <code>[</code> 根本不是这个语言的 token，消息是
+        「expected a valid .sokonanoda token, found <code>[</code>」。
+      </p>
+
+      <h3>判定权从人手里拿走</h3>
+      <p>
+        教学主张只有一句：把判定从老师、答案册和自己的直觉手里拿走，交给一个冻结的内核。
+        课程内容于是只剩下「讲什么、按什么顺序讲」。
+        <code>by</code> 块不是第二套语义——进内核前它先降级成 lambda，
+        tactic 判定走合成完整声明交完整内核裁决那条路。
+      </p>
+      <p>
+        代价是内核不能动：<code>crates/kernel/**</code> 一个字节不改，
+        bugfix 必须带三层回归测试。换来的是判定结果可复现——
+        卷 I 的 329 条 checked、99 条 open、0 条 rejected，每次都能重跑出来。
+      </p>
+
+      <h3>零工具链安装</h3>
+      <p>
+        启动器按固定顺序找二进制：<code>$SOKONANODA_BIN</code>、版本匹配的仓库构建、
+        缓存、最后按版本钉锁定下载。Release 的 CLI tarball 里就是可直接执行的二进制，
+        VSIX 内嵌 LSP 与 CLI。使用路径不要求 Rust，也不要求 Lean。
+      </p>
+
+      <div class="cmd">
+        <pre tabindex="0">$ scripts/soko doctor --json
+{"ready": true, "version": "…", "version_source": "Cargo.toml",
+ "target": "darwin-arm64", "offline": false,
+ "cli": {"present": true, "ready": true},
+ "lsp": {"present": true, "ready": true}}</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。启动器本身是一个零依赖的 Node 脚本——需要 Node，不需要 Rust。</p>
+      </div>
+
+      <h3>agent 与学习者读同一份反馈</h3>
+      <p>
+        同一份判定有三个视图，来自同一份真相。<code>grade --json</code> 是全量事件流；
+        <code>query check</code> 之类是单 JSON 对象；LSP 的诊断与 goal 面板是第三个。
+        这样做的理由是产品的用户里本来就有 code agent——
+        一份只对人友好的反馈会逼出第二套实现。
+      </p>
+
+      <h3>课程驱动开发</h3>
+      <p>
+        写课程时每撞到一次「这东西本该有」，就记一条缺口。
+        台账现在有 24 条：22 条已修、2 条有绕法、0 条开着。
+        课程标准库的 74 条声明里，有 32 条是这么从零补出来的标准库欠账。
+        这条纪律也反过来塑造了语言：先撞到缺口，才加下一个语法点。
+      </p>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">白名单是发布事实，不是路线图</span>
+        <p>
+          「七个」写的是<strong>已发布版本</strong>的事实。这一页的每个内核行为，
+          也都是在发布产物上量的，不是在工作树里量的。
+        </p>
+        <p>
+          为什么必须说清楚：两者现在不一致。仓库的工作树里有一批未提交的 WIP，
+          给 <code>by</code> 块加了 <code>constructor</code>、<code>cases</code>、
+          <code>left</code>、<code>right</code>、<code>use</code>、<code>exfalso</code>。
+        </p>
+        <p>
+          实测：这六个在发布版本上全部是 parse 阶段的 <code>unexpected-token</code>，
+          在工作树的构建上则能通过。所以这一页的「七个」随时可能过期，
+          而它过期的方式恰恰是变多。任何时刻要核对，请钉住发布产物再跑：
+          把 <code>SOKONANODA_BIN</code> 指向 VS Code 扩展自带的那个二进制。
+        </p>
+      </div>
+    </section>
+
+    <section class="measure" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 从别处来</h2>
+
+      <p>
+        这一节只讲一件事：哪些肌肉记忆能带过来，哪些会撞墙。
+        每条「不成立」都跑过，消息逐字来自发布版本的 <code>--json</code> 事件流。
+      </p>
+
+      <h3>从 Lean 4 来</h3>
+
+      <p>
+        <strong>会眼熟的</strong>：<code>theorem</code>、<code>def</code>、
+        <code>inductive</code> 配 <code>ctor</code> 与 <code>end</code>、
+        声明级 binder、箭头与 <code>forall</code>、<code>by</code> 块、
+        <code>match</code>、<code>rfl</code>。目标状态也是 Lean 的形状：
+        假设在上，<code>⊢</code> 与目标在下。
+        最能直接搬过来的是集合本身：<code>def Set (α : Type) : Type := α -&gt; Prop</code>，
+        与 Mathlib 的定义逐字相同。
+      </p>
+
+      <p>
+        <strong>会撞墙的第一件事是 tactic</strong>。<code>simp</code>、<code>rw</code>、
+        <code>constructor</code>、<code>cases</code>、<code>use</code>、<code>omega</code>
+        都没有。白名单只有七个，白名单外的写法在 parse 阶段就被拒；
+        §4 那条诊断就是 <code>by intro a; simp</code> 的真实输出。
+      </p>
+
+      <p>
+        <strong>第二件是隐式参数</strong>。这里没有隐式实参插入，隐式 binder 只是打印样式，
+        签名要显式给全参数。裸写 <code>Eq</code> 默认宇宙层级 0，数值等式必须写
+        <code>Eq.{1}</code>。实测 <code>theorem t : Eq Nat 0 0 := by rfl</code>
+        给出 <code>elab-tactic-failed</code>，消息是
+        「<code>rfl</code> 判定失败：两边不相等（期望 <code>Sort(0)</code>，实际 <code>Sort(1)</code>）」；
+        改成 <code>Eq.{1} Nat (1 + 1) 2</code> 就过。
+      </p>
+
+      <p>
+        <strong>第三件是累积性</strong>。<code>Prop ⊆ Type</code> 在这里不成立，
+        官方 Lean 4 成立。实测 <code>def T : Type := True</code> 被内核拒，
+        码是 <code>kernel-prop-not-cumulative</code>，消息是
+        「类型不匹配：期望 <code>Sort(1)</code>，实际是 <code>Sort(0)</code>」。
+        它的 hint 逐字承认「官方 Lean 4 有累积性，同一段代码在 Lean 里能过」。
+      </p>
+
+      <p>
+        <strong>还要留意的三处</strong>：没有 typeclass、structure、instance、
+        <code>section</code>、<code>variable</code> 与 macro；
+        <code>match</code> 没有 <code>as</code> 与 or 模式、没有多 scrutinee、
+        没有 <code>if/then/else</code> 表达式；
+        <code>intro</code> 一次只收一个 binder，<code>intro a b h</code> 是 parse 错误，
+        要拆成三次。
+      </p>
+
+      <p>
+        <strong>最后一处比较微妙：目标面板的渲染取决于光标在哪。</strong>
+        在课程文件里实测 <code>query state --file
+        courses/set-theory/units/notation-cheatsheet.sokonanoda --line 236 --col 3</code>，
+        目标是 <code>((∅) ∪ A) ⊆ A</code>，记法保留了。
+        但 <code>by</code> 块的第一条 tactic 之前、以及 <code>#check</code>，
+        走的是冻结内核的打印器，给的是 <code>Set.mem α a A</code> 这样的点名形式。
+        这不是 bug，是「内核不知道记法」的直接后果。
+      </p>
+
+      <h3>从 Coq / Rocq 来</h3>
+
+      <p>
+        <strong>会眼熟的</strong>：内核当唯一裁判这件事本身——<code>rocqchk</code>
+        能脱离证明器单独重查已编译的库，与本项目的形状一致。
+        集合就是谓词也一样。Coq 的 <code>Ensemble := U -&gt; Prop</code>
+        与这里的 <code>Set α := α -&gt; Prop</code> 是同一个构造；
+        连「靠一条外延性公理把等式撑起来」都想到了一起。
+      </p>
+
+      <p>
+        <strong>会撞墙的是 tactic 语言</strong>。<code>rewrite</code>、<code>simpl</code>、
+        <code>auto</code>、<code>lia</code>、<code>ring</code> 都不存在。
+        这里的 <code>apply</code> 只做一件事：若 <code>f : A1 -&gt; … -&gt; An -&gt; B</code>
+        而目标正是 <code>B</code>，就把目标换成那几个前提。
+        <code>intro</code> 一次一个 binder，没有 <code>intros x y z</code>。
+      </p>
+
+      <p>
+        <strong>工程形态也不同</strong>。这里没有 <code>_CoqProject</code>、
+        <code>-Q</code> 与 <code>From … Require</code> 那套逻辑路径；
+        用的是 <code>import</code> 配 <code>sokonanoda.toml</code>，模块根由清单推出来。
+        没有 <code>.vo</code> 那样按模块缓存的接口产物，项目模式也没有跨模块增量。
+        typeclass、<code>Instance</code> 与 <code>Hint</code> 数据库同样没有。
+      </p>
+
+      <p>
+        <strong>库的量级要对齐预期</strong>。<code>Coq.Sets.*</code> 有 22 个模块，
+        里面有 <code>Powerset</code>、<code>Finite_sets</code>、<code>Image</code>、
+        <code>Relations_1</code> 到 <code>Relations_3</code>。名字能对上一些，
+        覆盖面对不上——这边是 8 个模块、74 条声明。
+      </p>
+
+      <h3>从 Agda 来</h3>
+
+      <p>
+        洞是一等公民这点两边都认同，用法不同。Agda 的 <code>?</code> 与
+        <code>{! !}</code> 由编辑器交互式 refine。这里的洞只能写在声明的值位，
+        写在别处报 <code>elab-hole-misplaced</code>；期望类型由内核给出，
+        没有交互式 refine。
+      </p>
+
+      <p>
+        另有一处容易串。Agda 官方把类型宇宙命名为 <code>Set</code>；
+        这里的 <code>Set</code> 是集合论意义的集合（<code>α -&gt; Prop</code>）。
+        同名不同物，读代码时留意。
+      </p>
+    </section>
+
+    <section class="measure" aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 该选哪个</h2>
+
+      <p>
+        要证真实数学、要用 Mathlib，用 Lean 4。手上已经有 Coq 代码、
+        或者在做编程语言与验证，用 Rocq。要依赖类型编程、要洞驱动开发，用 Agda。
+        要在两门课里从零学集合论、又不想装工具链，用这个。
+      </p>
+
+      <p>
+        如果你已经会其中一个，这个语言的边际价值只有一条。
+        <strong>它是一个不给你 <code>simp</code> 的环境</strong>：
+        每一步都得自己写出来，写不出来就是写不出来，内核不会替你补。
+        这是它唯一的教学主张，也是它全部的野心。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定你已经会的那个证明助手，待证的是这里能补上什么">
+        <ul class="turnstile__given">
+          <li>你已经会 Lean 4、Coq/Rocq 或 Agda</li>
+          <li>你要在两门课里从零学集合论</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">一个不替你补步骤的环境</p>
+      </div>
+
+      <p class="muted small">
+        这一页关于其他工具的话全部出自本仓库的调研笔记，取证日期 2026-09-18。
+        关于本项目的内核行为全部在发布产物上实测。两边的出处都写在各节正文里。
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" aria-current="page" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

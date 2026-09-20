@@ -1,0 +1,3117 @@
+{
+  "codes": [
+    {
+      "code": "unexpected-eof",
+      "hint": "输入到这里就结束了。检查是不是漏写了 `:=` 的值、右括号或 `end`。",
+      "hint_kind": "verbatim",
+      "meaning": "输入提前结束",
+      "repro": null,
+      "repro_absent_reason": "`DiagnosticKind::UnexpectedEof` 在 0.61.0 从未被构造：`crates/front/src/diagnostic.rs` 里只有码与 hint，`parser.rs` 没有任何构造点（输入提前结束一律先报 `unexpected-token`）",
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "unexpected-token",
+      "hint": "这里的写法不符合当前课程语法。检查命令拼写、括号配对，以及是否多写了还没学过的符号。",
+      "hint_kind": "verbatim",
+      "meaning": "写法不符合当前课程语法",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/unexpected-token/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/unexpected-token",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def x : =\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "unexpected-token"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "unexpected-token",
+                "end": 8,
+                "end_col": 9,
+                "end_line": 1,
+                "message": "expected expected `=>`, found =",
+                "name": null,
+                "start": 8,
+                "start_col": 9,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "import-malformed",
+      "hint": "`import` 一行只写一个点分模块名（例如 `import Lesson.Logic`），并且必须写在文件最上方。",
+      "hint_kind": "verbatim",
+      "meaning": "`import` 行缺模块名或多写了东西",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-malformed/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-malformed",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "import\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-malformed"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-malformed",
+                "end": 7,
+                "end_col": 1,
+                "end_line": 2,
+                "message": "`import` 后面要跟模块名，found Eof",
+                "name": null,
+                "start": 7,
+                "start_col": 1,
+                "start_line": 2
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "import-not-a-valid-module-name",
+      "hint": "**hint 随诊断携带**（`DiagnosticKind::ImportNotAModuleName { hint, .. } => hint`，`crates/front/src/diagnostic.rs:107-109`）",
+      "hint_kind": "note",
+      "meaning": "模块名某一段不是标识符（经典是文件名里的 `-`）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-not-a-valid-module-name/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-not-a-valid-module-name",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "import Foo-Bar\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-not-a-valid-module-name"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-not-a-valid-module-name",
+                "end": 11,
+                "end_col": 12,
+                "end_line": 1,
+                "message": "`import Foo-…`：模块名里不能有 `-`",
+                "name": null,
+                "start": 10,
+                "start_col": 11,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "import-must-precede-declarations",
+      "hint": "官方 Lean 的规则：`import` 必须写在**任何声明之前**。把这行移到文件开头。",
+      "hint_kind": "verbatim",
+      "meaning": "`import` 出现在声明之后",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-must-precede-declarations/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-must-precede-declarations",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def x : Prop := True\nimport Foo.Bar\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-must-precede-declarations"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-must-precede-declarations",
+                "end": 35,
+                "end_col": 15,
+                "end_line": 2,
+                "message": "`import` 必须写在所有声明之前",
+                "name": null,
+                "start": 21,
+                "start_col": 1,
+                "start_line": 2
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "unterminated-string",
+      "hint": "字符串没有闭合：记法命令里的符号要写在一对引号之间，例如 infix:50 \\\" ∈ \\\" => Set.mem。",
+      "hint_kind": "verbatim",
+      "meaning": "记法命令里的 `\"` 没有闭合（span 指向**开引号**）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/unterminated-string/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/unterminated-string",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "infix:50 \" mem => Set.mem\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "unterminated-string"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "unterminated-string",
+                "end": 9,
+                "end_col": 10,
+                "end_line": 1,
+                "message": "字符串没有闭合：记法命令里的符号要写在一对引号之间，例如 infix:50 \" ∈ \" => Set.mem",
+                "name": null,
+                "start": 9,
+                "start_col": 10,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "notation-shape",
+      "hint": "记法命令的形状是：infix:50 \\\" ∈ \\\" => Set.mem（infixl/infixr 同形，N 取 1–1000）；零元记法写 notation \\\"∅\\\" => Set.empty（不写优先级）。",
+      "hint_kind": "verbatim",
+      "meaning": "记法命令形状不对（缺优先级、缺 `=>`、符号是标识符词、优先级越界、`notation:N` 拼法、符号重复）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/notation-shape/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/notation-shape",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "infix \" mem \" => Set.mem\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "notation-shape"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "notation-shape",
+                "end": 13,
+                "end_col": 14,
+                "end_line": 1,
+                "message": "`infix` 必须写优先级：infix:50 \" ∈ \" => Set.mem（N 取 1–1000）",
+                "name": null,
+                "start": 6,
+                "start_col": 7,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "notation-unknown-symbol",
+      "hint": "这个符号还没有在本文件里声明过。先在它前面写一行记法命令（例如 infix:50 \\\" ∈ \\\" => Set.mem），或者改用点名写法（Set.mem α a A）。",
+      "hint_kind": "verbatim",
+      "meaning": "用了没声明过的符号",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/notation-unknown-symbol/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/notation-unknown-symbol",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def f (a b : Nat) : Prop := a ∈ b\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "notation-unknown-symbol"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "notation-unknown-symbol",
+                "end": 33,
+                "end_col": 32,
+                "end_line": 1,
+                "message": "符号 `∈` 在本文件里还没有声明过记法；先用 infix/notation 命令声明它，或改用点名写法",
+                "name": null,
+                "start": 30,
+                "start_col": 31,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "parse-namespace-mismatch",
+      "hint": "`end` 的名字要与最近的 `namespace` 一模一样（`namespace Foo` 用 `end Foo` 收）。检查是不是写错了名字，或者中间少了/多了 `end`。",
+      "hint_kind": "verbatim",
+      "meaning": "`end <名字>` 与最近的 `namespace` 不符，或 `end` 无处可收",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/parse-namespace-mismatch/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/parse-namespace-mismatch",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "namespace Foo\ndef x : Prop := True\nend Bar\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "parse-namespace-mismatch"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "parse-namespace-mismatch",
+                "end": 42,
+                "end_col": 8,
+                "end_line": 3,
+                "message": "`end Bar` 与最近的 `namespace Foo` 不匹配（应该写 `end Foo`）",
+                "name": null,
+                "start": 35,
+                "start_col": 1,
+                "start_line": 3
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "parse-namespace-unclosed",
+      "hint": "这个 `namespace` 一直没有闭合。在文件末尾（或块结束处）补一行 `end <名字>`，名字与 `namespace` 那行相同。",
+      "hint_kind": "verbatim",
+      "meaning": "文件在 `namespace` 里结束（span 指回那行 `namespace`）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/parse-namespace-unclosed/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/parse-namespace-unclosed",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "namespace Foo\ndef x : Prop := True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "parse-namespace-unclosed"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "parse-namespace-unclosed",
+                "end": 13,
+                "end_col": 14,
+                "end_line": 1,
+                "message": "`namespace Foo` 没有闭合：文件到这里就结束了",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "parse-namespace-shape",
+      "hint": "作用域命令的形状是：namespace Foo（开块）、end Foo（收块，名字必须写出）、open Foo（短名可用，可加点分名字 A.B）。`open` 还能挑名字：open Foo (a b)（只要这两个）、open Foo hiding a b（挡掉这两个）、open Foo renaming a => b（改名），以及只影响一条命令的 open Foo in <命令>；export Foo 同形，但导入本文件的文件也看得到。",
+      "hint_kind": "verbatim",
+      "meaning": "`namespace`/`end`/`open`/`export` 名字缺失或形状错（含 `open` 子句与 `open … in` 体不是叶子命令）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/parse-namespace-shape/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/parse-namespace-shape",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "namespace\ndef x : Prop := True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "parse-namespace-shape"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "parse-namespace-shape",
+                "end": 13,
+                "end_col": 4,
+                "end_line": 2,
+                "message": "`namespace` 后面要跟一个名字（可点分，例如 A.B）",
+                "name": null,
+                "start": 10,
+                "start_col": 1,
+                "start_line": 2
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "set-literal-shape",
+      "hint": "集合字面量的形状是 {a}（单元素）或 {a, b}（两元素）：元素之间用 `,` 隔开，最后用 `}` 收尾；空集写 Set.empty α，三个及以上用 Set.pair 点名嵌套。",
+      "hint_kind": "verbatim",
+      "meaning": "空 `{}` 或 ≥3 元素",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/set-literal-shape/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/set-literal-shape",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def s : Nat := {1, 2, 3}\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "set-literal-shape"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "set-literal-shape",
+                "end": 24,
+                "end_col": 25,
+                "end_line": 1,
+                "message": "集合字面量 v1 只支持 1–2 个元素（`{a}` / `{a, b}`）：三个及以上请用点名形式 Set.pair 自己嵌套",
+                "name": null,
+                "start": 15,
+                "start_col": 16,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/diagnostic.rs:78-90",
+      "stage": "parse"
+    },
+    {
+      "code": "elab-unknown-identifier",
+      "hint": "这个名字还没有被定义。检查拼写，或确认它出现在你前面的某个声明里（练习要在解决之后才能被后面的代码引用）。若它在该命名空间里，检查前缀或加 open。",
+      "hint_kind": "verbatim",
+      "meaning": "名字没有定义",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-unknown-identifier/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-unknown-identifier",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def x : Nat := nosuchname\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-unknown-identifier"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-unknown-identifier",
+                "end": 25,
+                "end_col": 26,
+                "end_line": 1,
+                "message": "unknown identifier `nosuchname`",
+                "name": null,
+                "start": 15,
+                "start_col": 16,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-unknown-constant",
+      "hint": "这里引用了一个不存在的常量。如果它带宇宙参数，请先定义它。",
+      "hint_kind": "verbatim",
+      "meaning": "引用不存在的常量（含带宇宙参数的）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-unknown-constant/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-unknown-constant",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "#check Foo.{1}\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-unknown-constant"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-unknown-constant",
+                "end": 14,
+                "end_col": 15,
+                "end_line": 1,
+                "message": "unknown constant `Foo`",
+                "name": null,
+                "start": 7,
+                "start_col": 8,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-unknown-universe-level",
+      "hint": "这个宇宙层级变量没有在当前声明里声明。用 {u} 声明它，例如 def id {u} : ...。",
+      "hint_kind": "verbatim",
+      "meaning": "宇宙层级变量没在当前声明里声明",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-unknown-universe-level/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-unknown-universe-level",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def id : Sort u -> Sort u := fun (a : Sort u) => a\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-unknown-universe-level"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-unknown-universe-level",
+                "end": 15,
+                "end_col": 16,
+                "end_line": 1,
+                "message": "universe variable `u` is not declared in this declaration",
+                "name": null,
+                "start": 9,
+                "start_col": 10,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-universe-arity",
+      "hint": "宇宙参数个数不对。这个常量声明了几个宇宙参数，就要给几个，例如 id.{u, v}。",
+      "hint_kind": "verbatim",
+      "meaning": "宇宙参数个数不对",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-universe-arity/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-universe-arity",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "#check Eq.{u, v}\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-universe-arity"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-universe-arity",
+                "end": 16,
+                "end_col": 17,
+                "end_line": 1,
+                "message": "constant `Eq` expects 1 universe argument(s), got 2",
+                "name": null,
+                "start": 7,
+                "start_col": 8,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-untyped-binder",
+      "hint": "这个 binder 缺少类型标注。教学版本要求写全类型，例如 fun (x : Nat) => x；let 的绑定也要写类型，例如 let x : Nat := 1; x。",
+      "hint_kind": "verbatim",
+      "meaning": "binder 缺类型标注（`let` 的 message/hint 定制过）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-untyped-binder/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-untyped-binder",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "#check (fun x => x)\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-untyped-binder"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-untyped-binder",
+                "end": 13,
+                "end_col": 14,
+                "end_line": 1,
+                "message": "cannot infer the type of this binder: the declared type does not provide a matching position (write it explicitly, e.g. fun (x : Nat) => x)",
+                "name": null,
+                "start": 12,
+                "start_col": 13,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-hole-misplaced",
+      "hint": "sorry 只能出现在声明的值（答案区）位置，例如 example : T := sorry。",
+      "hint_kind": "verbatim",
+      "meaning": "`sorry` 出现在值位以外",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-hole-misplaced/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-hole-misplaced",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def x : sorry := True.intro\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-hole-misplaced"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-hole-misplaced",
+                "end": 13,
+                "end_col": 14,
+                "end_line": 1,
+                "message": "`sorry` is only allowed as the value of an open exercise",
+                "name": null,
+                "start": 8,
+                "start_col": 9,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-duplicate-declaration",
+      "hint": "这个名字已经定义过了。Lean 里每个名字只能声明一次；换一个名字，或删掉前面的声明。",
+      "hint_kind": "verbatim",
+      "meaning": "同名声明两次",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-duplicate-declaration/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-duplicate-declaration",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def x : Prop := True\ndef x : Prop := True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-duplicate-declaration"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 1,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-duplicate-declaration",
+                "end": 41,
+                "end_col": 21,
+                "end_line": 2,
+                "message": "duplicate declaration x",
+                "name": null,
+                "start": 21,
+                "start_col": 1,
+                "start_line": 2
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-too-many-binders",
+      "hint": "嵌套的 binder 太多，超出了内核能表示的深度。把大表达式拆成几个小定义。",
+      "hint_kind": "verbatim",
+      "meaning": "嵌套 binder 超出内核可表示深度",
+      "repro": null,
+      "repro_absent_reason": "触发条件是 `u16::try_from(嵌套 binder / 归纳参数个数)` 溢出，需要 >65535 个，最小复现不成立（构造出来的文件约 1 MB，不叫最小复现）",
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-nat-literal-disabled",
+      "hint": "数字字面量没有被启用。这个版本默认打开 Nat 扩展，如遇到此错误请联系工具作者。",
+      "hint_kind": "verbatim",
+      "meaning": "Nat 字面量扩展未启用",
+      "repro": null,
+      "repro_absent_reason": "触发条件是内核 `config.nat_extension == false`（`builder.rs:208`），而 0.61.0 的 CLI 没有任何路径关掉它：`--bare` 与 `-- sokonanoda:prelude none` 都实测仍接受 `1`（`elab.rs:1881` 的 `alloc_bignum`/`mk_nat_lit` 都返回 Some）",
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-invalid-nat-literal",
+      "hint": "这不是一个合法的自然数字面量。",
+      "hint_kind": "verbatim",
+      "meaning": "不是合法自然数字面量",
+      "repro": null,
+      "repro_absent_reason": "`elab.rs:1874` 的 `value.parse::<BigUint>()` 永不失败：词法层 `lex_number`（`token.rs:395-407`）只累积 ASCII 数字，`0x10`/`1_000`/`1e3` 都被切成 `1` + 标识符（报的是 `elab-unknown-identifier`）",
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-too-many-ctor-fields",
+      "hint": "构造子的字段太多了。",
+      "hint_kind": "verbatim",
+      "meaning": "构造子字段太多",
+      "repro": null,
+      "repro_absent_reason": "同 `elab-too-many-binders`：需要 >65535 个构造子字段（`elab.rs:543` 的 u16 溢出）",
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-unknown-ctor-for-iota",
+      "hint": "iota 规则引用了一个不存在的构造子。检查构造子名字是否与 ctor 声明一致。",
+      "hint_kind": "verbatim",
+      "meaning": "iota 规则引用了不存在的构造子",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-unknown-ctor-for-iota/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-unknown-ctor-for-iota",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive C : Type\nctor a : C\nctor b : C\nrec C.rec {u} : (motive : (c : C) -> Sort u) -> (ma : motive a) -> (mb : motive b) -> (c : C) -> motive c\niota nosuch :=\n  fun (motive : (c : C) -> Sort u) =>\n  fun (ma : motive a) =>\n  fun (mb : motive b) => ma\nend\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-unknown-ctor-for-iota"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-unknown-ctor-for-iota",
+                "end": 252,
+                "end_col": 28,
+                "end_line": 8,
+                "message": "iota rule refers to unknown constructor `nosuch`",
+                "name": null,
+                "start": 147,
+                "start_col": 1,
+                "start_line": 5
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-ambiguous-ctor-alias",
+      "hint": "这个裸构造子名被两个类型各声明了一次，无法判断是哪一个。写全前缀名（例如 `P1.mk`），或给其中一个构造子换个名字。",
+      "hint_kind": "verbatim",
+      "meaning": "裸构造子名被两个类型各声明一次",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-ambiguous-ctor-alias/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-ambiguous-ctor-alias",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive P1 : Type\nctor mk : P1\nend\ninductive P2 : Type\nctor mk : P2\nend\ndef x : P1 := mk\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-ambiguous-ctor-alias"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 2,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-ambiguous-ctor-alias",
+                "end": 90,
+                "end_col": 17,
+                "end_line": 7,
+                "message": "构造子名 `mk` 有歧义：`P1.mk` 与 `P2.mk` 都声明了它；请写全前缀名",
+                "name": null,
+                "start": 88,
+                "start_col": 15,
+                "start_line": 7
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-tactic-failed",
+      "hint": "`by` 块里的 tactic 失败了：请检查当前目标与已引入的假设。",
+      "hint_kind": "verbatim",
+      "meaning": "`by` 块里一个 tactic 失败（目标形状不匹配 / 内核拒绝）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-tactic-failed/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-tactic-failed",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "theorem t : False := by exact True.intro\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-tactic-failed"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-tactic-failed",
+                "end": 40,
+                "end_col": 41,
+                "end_line": 1,
+                "message": "`exact` 类型不匹配：期望 `False.[]`，实际是 `True.[]`",
+                "name": null,
+                "start": 24,
+                "start_col": 25,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-apply-needs-a-term",
+      "hint": "「`funapply` 后面要跟一个证明或函数，例如 `funapply h`；要应用的项复杂时可以用括号界定范围，例如 `funapply (f a)`。」（**文案滞后**，见 §3.5）",
+      "hint_kind": "note",
+      "meaning": "apply 类 tactic 后面缺要应用的项",
+      "repro": null,
+      "repro_absent_reason": "`ErrorKind::ElabApplyNeedsATerm` 在 0.61.0 从未被构造：`crates/front/src/compile/error.rs` 只有码与 hint（hint 还写着 0.22.0 就删掉的 `funapply`），`elab.rs`/`by.rs` 里没有构造点",
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-apply-not-applicable",
+      "hint": "「`funapply h` 要求 `h` 的结论正好是当前目标（`h : … -> 目标`）。看看 `h` 类型的最后一段是不是当前目标；不是就换一个前提，或直接写答案。」（同上，**文案滞后**）",
+      "hint_kind": "note",
+      "meaning": "要应用的项结论不是当前目标",
+      "repro": null,
+      "repro_absent_reason": "同上：`ErrorKind::ElabApplyNotApplicable` 无构造点；`by apply <项>` 结论不对时实测报 `elab-tactic-failed`",
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-match-bad-arm",
+      "hint": "match 的模式要写对：构造子名与字段数要对应（可以嵌套，如 some (succ k)）；不确定的名字按变量绑定处理，带子模式的未知名才报错。",
+      "hint_kind": "verbatim",
+      "meaning": "`match` 模式写错（带子模式的未知名、字段数与子模式数不符）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-match-bad-arm/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-match-bad-arm",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def f (b : Bool) : Bool := match b with | true true => false | false => true\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-match-bad-arm"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-match-bad-arm",
+                "end": 46,
+                "end_col": 47,
+                "end_line": 1,
+                "message": "构造子 `Bool.true` 有 0 个字段，但这一支写了 1 个子模式；请写满字段",
+                "name": null,
+                "start": 42,
+                "start_col": 43,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-match-not-inductive",
+      "hint": "match 的被匹配项必须是已知的归纳类型：本文件用 inductive 声明的类型，或 prelude 内建的 Nat/Bool（分支写 Nat.zero/Nat.succ 或 Bool.true/Bool.false）。",
+      "hint_kind": "verbatim",
+      "meaning": "被匹配项不是已知归纳类型",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-match-not-inductive/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-match-not-inductive",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def f (a : Prop) : Prop := match a with | a => a\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-match-not-inductive"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-match-not-inductive",
+                "end": 34,
+                "end_col": 35,
+                "end_line": 1,
+                "message": "`match` 的被匹配项不是已知的归纳类型（本文件用 inductive 声明，或 prelude 的 Nat/Bool）",
+                "name": null,
+                "start": 33,
+                "start_col": 34,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-match-no-expected-type",
+      "hint": "match 的结果类型必须已知：把它放在有类型标注的位置（声明类型、let/fun 的 binder 注解），或由外层 match 提供。",
+      "hint_kind": "verbatim",
+      "meaning": "`match` 结果类型未知，定不了 motive 与宇宙",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-match-no-expected-type/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-match-no-expected-type",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "#check (match Nat.zero with | Nat.zero => Nat.zero | Nat.succ k => k)\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-match-no-expected-type"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-match-no-expected-type",
+                "end": 68,
+                "end_col": 69,
+                "end_line": 1,
+                "message": "`match` 的结果类型必须已知：请把它放在有类型标注的位置（声明类型 / let / fun 的 binder 注解），或让外层 match 提供结果类型",
+                "name": null,
+                "start": 8,
+                "start_col": 9,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-match-recursive-unsupported",
+      "hint": "match 暂不支持递归归纳类型（v1 只做没有归纳假设的非递归分情况）；递归定义请直接用消去子 .rec。",
+      "hint_kind": "verbatim",
+      "meaning": "该递归归纳不被 `match` 支持",
+      "repro": null,
+      "repro_absent_reason": "触发条件是递归归纳的构造子字段**没有源类型**（`elab.rs:2339`），而 `ctor_field_binders`（`elab.rs:3441`）恒给字段补上源类型：`chain_binders_after` 为箭头链补 `Some(domain)`，`Forall` 的 binder 自带注解；无注解 binder 会先在 `elab-untyped-binder` 被拒",
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-match-non-exhaustive",
+      "hint": "match 要覆盖该归纳类型的每一个构造子（含每个字段位置）；带守卫的 arm 还要在后面补一条不带守卫的兜底。",
+      "hint_kind": "verbatim",
+      "meaning": "未覆盖全部构造子/字段位置，或带守卫的 arm 没有兜底",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-match-non-exhaustive/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-match-non-exhaustive",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def f (b : Bool) : Bool := match b with | true => false\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-match-non-exhaustive"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-match-non-exhaustive",
+                "end": 55,
+                "end_col": 56,
+                "end_line": 1,
+                "message": "`match` 的分支不完整：有些取值没有对应分支",
+                "name": null,
+                "start": 27,
+                "start_col": 28,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-match-parameterized-unsupported",
+      "hint": "参数化归纳的 match 目前只支持：被匹配项是一个局部变量，且它的类型写成 `T 参数…`（显式给出归纳的全部参数）。换成一个这样标注的变量再 match。",
+      "hint_kind": "verbatim",
+      "meaning": "参数化归纳的 match 拿不到参数实例",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-match-parameterized-unsupported/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-match-parameterized-unsupported",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive Box (A : Type) : Type\nctor mk (a : A) : Box A\nend\ndef f (A : Type) (a : A) : A := match Box.mk A a with | mk x => x\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-match-parameterized-unsupported"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 1,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-match-parameterized-unsupported",
+                "end": 108,
+                "end_col": 49,
+                "end_line": 4,
+                "message": "`match` 暂不支持这个参数化归纳形状 `Box`：被匹配项必须是一个书写类型为 `Box …` 的局部变量",
+                "name": null,
+                "start": 98,
+                "start_col": 39,
+                "start_line": 4
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-let-type-query-failed",
+      "hint": "无法从值推断出 `let` 绑定的类型；补上类型标注即可，例如 `let x : Nat := 1; x`。",
+      "hint_kind": "verbatim",
+      "meaning": "无类型标注的 `let` 推不出绑定类型",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-let-type-query-failed/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-let-type-query-failed",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def f : Nat := let x := nosuch; x\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-let-type-query-failed"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-let-type-query-failed",
+                "end": 20,
+                "end_col": 21,
+                "end_line": 1,
+                "message": "无法推断 `let` 绑定的类型；请补上类型标注，例如 `let x : Nat := 1; x`",
+                "name": null,
+                "start": 19,
+                "start_col": 20,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-notation-unknown-target",
+      "hint": "记法命令指向的目标名不存在。检查 infix/notation 行里 `=>` 后面的名字拼写（要写点名，例如 Set.mem），并确认它已经声明过。",
+      "hint_kind": "verbatim",
+      "meaning": "记法命令 `=>` 后面的目标名不存在",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-notation-unknown-target/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-notation-unknown-target",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "infix:50 \" ⊕ \" => Set.mem\ndef bar (a b : Nat) : Prop := a ⊕ b\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-notation-unknown-target"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-notation-unknown-target",
+                "end": 65,
+                "end_col": 36,
+                "end_line": 2,
+                "message": "记法 `⊕` 指向的目标 `Set.mem` 不存在：检查记法命令里的名字（要写点名，例如 Set.mem）",
+                "name": null,
+                "start": 58,
+                "start_col": 31,
+                "start_line": 2
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-notation-argument-unsolved",
+      "hint": "这个记法展开时补不出前面的类型参数（本子集只按操作数的类型补，不做一般推断）。改用点名写法把参数写全，例如 Set.mem α a A；或在两边都是已知类型的上下文里使用记法。",
+      "hint_kind": "verbatim",
+      "meaning": "记号展开时补不出目标 telescope 的前导类型参数",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-notation-argument-unsolved/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-notation-argument-unsolved",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def foo (A : Type) (a b : Nat) : Prop := True\ninfix:50 \" ⊕ \" => foo\ndef bar (a b : Nat) : Prop := a ⊕ b\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-notation-argument-unsolved"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 1,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-notation-argument-unsolved",
+                "end": 107,
+                "end_col": 36,
+                "end_line": 3,
+                "message": "记法 `⊕` 展开成 `foo` 时补不出前面的类型参数：请写出点名形式（例如 foo α …）",
+                "name": null,
+                "start": 100,
+                "start_col": 31,
+                "start_line": 3
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-notation-ambiguous",
+      "hint": "同一个符号声明了多条记法（重载），这里从期望类型看不出该用哪一条。写出点名形式（例如 Set.mem α a A）就消歧了；或者把这个表达式放到一个带类型标注的位置（例如 def … : T := 这里），让期望类型能定下来。",
+      "hint_kind": "verbatim",
+      "meaning": "记法重载：≥2 个候选都说得通",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-notation-ambiguous/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-notation-ambiguous",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def foo (a b : Nat) : Nat := a\ndef qux (a b : Nat) : Nat := b\ninfix:50 \" ⊕ \" => foo\ninfix:50 \" ⊕ \" => qux\ndef bar (a b : Nat) : Nat := a ⊕ b\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-notation-ambiguous"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 2,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-notation-ambiguous",
+                "end": 146,
+                "end_col": 35,
+                "end_line": 5,
+                "message": "记法 `⊕` 有多个候选目标都能用（foo、qux），期望类型看不出该选哪个",
+                "name": null,
+                "start": 139,
+                "start_col": 30,
+                "start_line": 5
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-notation-no-candidate",
+      "hint": "同一个符号的几条记法候选，结果类型都对不上这里的期望类型。对照错误里列出的候选结果类型，检查是不是用错了符号，或者改用点名形式。",
+      "hint_kind": "verbatim",
+      "meaning": "记法重载：一个候选都对不上期望类型",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-notation-no-candidate/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-notation-no-candidate",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def foo (a b : Nat) : Prop := True\ndef qux (a b : Nat) : Prop := True\ninfix:50 \" ⊕ \" => foo\ninfix:50 \" ⊕ \" => qux\ndef bar (a b : Nat) : Prop := a ⊕ b\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-notation-no-candidate"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 2,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-notation-no-candidate",
+                "end": 155,
+                "end_col": 36,
+                "end_line": 5,
+                "message": "记法 `⊕` 的候选目标（`foo`、`qux`）没有一个能对上这里的期望类型：`foo` 的结果类型是 `Prop`；`qux` 的结果类型是 `Prop`",
+                "name": null,
+                "start": 148,
+                "start_col": 31,
+                "start_line": 5
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-binder-notation-unsolved",
+      "hint": "binder 记法里的变量类型解不出：`∀ x ∈ s, p` / `∃ x ∈ s, p` 的 x 类型是从 `∈` 两边反解的。给 binder 补上类型标注（例如 ∀ (x : α) ∈ s, p），或改用点名写法（forall (x : α), Set.mem α x s -> p）。",
+      "hint_kind": "verbatim",
+      "meaning": "binder 记法里变量类型反解不出",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-binder-notation-unsolved/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-binder-notation-unsolved",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "axiom Exists : (A : Type) -> (A -> Prop) -> Prop\nbinder_notation \"∃\" => Exists\ntheorem t : Prop := ∃ x, True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-binder-notation-unsolved"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 1,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-binder-notation-unsolved",
+                "end": 106,
+                "end_col": 24,
+                "end_line": 3,
+                "message": "binder 记法 `∃` 里 `x` 没有类型：一段式要写标注（∃ (x : α), p），两段式靠 guard（∃ x ∈ s, p）",
+                "name": null,
+                "start": 105,
+                "start_col": 23,
+                "start_line": 3
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "elab-set-literal-unknown-target",
+      "hint": "集合字面量 `{a}` / `{a, b}` 展开成点名形式 Set.singleton / Set.pair，但这个文件里没有它们。先 `import` 提供它们的库（卷 I 的 lib/Set），或改用点名写法。",
+      "hint_kind": "verbatim",
+      "meaning": "集合字面量展开的目标 `Set.singleton`/`Set.pair` 不在本文件里",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/elab-set-literal-unknown-target/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/elab-set-literal-unknown-target",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def s : Nat := {1}\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-set-literal-unknown-target"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-set-literal-unknown-target",
+                "end": 18,
+                "end_col": 19,
+                "end_line": 1,
+                "message": "集合字面量 `{a}` 展开成点名形式 `Set.singleton`，但这个文件里没有 `Set.singleton`：先 `import` 提供它的库（卷 I 的 `lib/Set`），或改用点名写法",
+                "name": null,
+                "start": 15,
+                "start_col": 16,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:162-190",
+      "stage": "elab"
+    },
+    {
+      "code": "kernel-rejected",
+      "hint": "内核判定不成立：类型不匹配或证明项不完整。先对比期望类型与你的值的形状；最常见的错误是两边结构不同（例如期望 a -> a，却写成了返回 Nat 的项）。",
+      "hint_kind": "verbatim",
+      "meaning": "内核说不（转换失败时带 expected/actual 两侧）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-rejected/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-rejected",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "theorem t : Eq.{1} Nat 1 2 := Eq.refl.{1} Nat 1\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-rejected"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-rejected",
+                "end": 47,
+                "end_col": 48,
+                "end_line": 1,
+                "message": "类型不匹配：期望 `(((Eq.[1] Nat.[]) NLit(1)) NLit(2))`，实际是 `(((Eq.[1] Nat.[]) NLit(1)) NLit(1))`",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-expected-sort",
+      "hint": "这里需要写一个类型（如 Prop、Type、Nat），但你写成了一个普通的项。检查冒号/binder 后面跟的是不是类型。",
+      "hint_kind": "verbatim",
+      "meaning": "需要类型的地方出现了项",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-expected-sort/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-expected-sort",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "theorem t : (fun (x : Prop) => x) := True.intro\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-expected-sort"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-expected-sort",
+                "end": 47,
+                "end_col": 48,
+                "end_line": 1,
+                "message": "rejected: expected a sort, got: Pi (x : Sort(0)), Sort(0)",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-expected-pi",
+      "hint": "你把一个不是函数的值当函数用了，或者参数给多了。检查这个位置的东西的类型是不是 … -> … 形状。",
+      "hint_kind": "verbatim",
+      "meaning": "非函数值被当函数用，或应用参数给多了",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-expected-pi/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-expected-pi",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "theorem bad : True := True.intro True.intro\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-expected-pi"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-expected-pi",
+                "end": 43,
+                "end_col": 44,
+                "end_line": 1,
+                "message": "rejected: expected a pi type, got: True.[]",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-theorem-not-prop",
+      "hint": "theorem 的类型必须是命题（Prop 里的东西）。想定义普通值请用 def。",
+      "hint_kind": "verbatim",
+      "meaning": "`theorem` 的类型不是命题（**也出现在开练习上**，见 §4.1 第 7 条）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-theorem-not-prop/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-theorem-not-prop",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "theorem t : Nat := Nat.zero\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-theorem-not-prop"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-theorem-not-prop",
+                "end": 27,
+                "end_col": 28,
+                "end_line": 1,
+                "message": "rejected: theorem type must be Prop (sort 0): Nat.[]",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-prop-not-cumulative",
+      "hint": "这里需要 Type（数据），但你给的是 Prop（命题）：本语言没有累积性，Prop 不是 Type 的子集（官方 Lean 4 有累积性，同一段代码在 Lean 里能过）。把陈述改成 Prop（例如等势用 Set.Equiv … : Prop 这样的命题版），或者交一个真正的 Type 值（如 Nat）。",
+      "hint_kind": "verbatim",
+      "meaning": "要 `Sort(n)`（n≥1）却给了 `Sort(0)`：**本语言没有累积性**",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-prop-not-cumulative/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-prop-not-cumulative",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "def T : Type := True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-prop-not-cumulative"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-prop-not-cumulative",
+                "end": 20,
+                "end_col": 21,
+                "end_line": 1,
+                "message": "类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-inductive-non-positive",
+      "hint": "递归引用出现在了负位置：构造子参数里 T 出现在箭头左边（如 T → Nat）。递归引用只能写在返回类型一侧。",
+      "hint_kind": "verbatim",
+      "meaning": "构造子参数里递归引用出现在负位置",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-inductive-non-positive/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-inductive-non-positive",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive T : Type\nctor mk : (T -> Nat) -> T\nend\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-inductive-non-positive"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-inductive-non-positive",
+                "end": 48,
+                "end_col": 4,
+                "end_line": 3,
+                "message": "rejected: non-positive occurrence",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-ctor-result-mismatch",
+      "hint": "构造子的返回类型必须是本 inductive 的完整应用——参数和索引都要补齐，比如 T A n 而不是只写 T。",
+      "hint_kind": "verbatim",
+      "meaning": "构造子返回的不是本归纳的完整应用",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-ctor-result-mismatch/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-ctor-result-mismatch",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive T : Type\nctor mk : Nat\nend\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-ctor-result-mismatch"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-ctor-result-mismatch",
+                "end": 36,
+                "end_col": 4,
+                "end_line": 3,
+                "message": "rejected: constructor must return a full application of the inductive being declared",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-ctor-arg-invalid-app",
+      "hint": "构造子参数里的递归引用 T … 不是本 inductive 的合法应用：参数/索引的个数或取值不对。",
+      "hint_kind": "verbatim",
+      "meaning": "构造子参数里的递归引用不是合法应用",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-ctor-arg-invalid-app/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-ctor-arg-invalid-app",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive T : Type\nctor mk : (T Nat) -> T\nend\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-ctor-arg-invalid-app"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-ctor-arg-invalid-app",
+                "end": 45,
+                "end_col": 4,
+                "end_line": 3,
+                "message": "rejected: recursive occurrence in constructor is not a valid application of the inductives being declared",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-ctor-arg-not-type",
+      "hint": "构造子参数的类型本身必须是一个类型，这里写成了一个项。",
+      "hint_kind": "verbatim",
+      "meaning": "构造子参数类型是项不是类型",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-ctor-arg-not-type/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-ctor-arg-not-type",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive T : Type\nctor mk : (Nat.zero) -> T\nend\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-ctor-arg-not-type"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-ctor-arg-not-type",
+                "end": 48,
+                "end_col": 4,
+                "end_line": 3,
+                "message": "rejected: constructor argument is not a type",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-ctor-arg-too-large",
+      "hint": "构造子参数的类型所在的宇宙太大，装不进这个 inductive。把 inductive 声明成更大的 Type，或把该参数类型改成 Prop 里的命题。",
+      "hint_kind": "verbatim",
+      "meaning": "构造子参数类型所在宇宙太大",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-ctor-arg-too-large/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-ctor-arg-too-large",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive T : Type\nctor mk : (Type 1) -> T\nend\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-ctor-arg-too-large"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-ctor-arg-too-large",
+                "end": 46,
+                "end_col": 4,
+                "end_line": 3,
+                "message": "rejected: Constructor argument was too large for the corresponding inductive type",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-rec-rule-mismatch",
+      "hint": "显式消去子（rec/iota）与内核推导出的规则不一致：iota 规则必须按构造子声明顺序一条不落地给出，每条规则的值也要与 motive、minor 和构造子参数形状完全匹配。",
+      "hint_kind": "verbatim",
+      "meaning": "显式 `rec`/`iota` 规则集与内核推导的不一致",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/kernel-rec-rule-mismatch/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/kernel-rec-rule-mismatch",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "inductive C : Type\nctor a : C\nctor b : C\nrec C.rec {u} : (motive : (c : C) -> Sort u) -> (ma : motive a) -> (mb : motive b) -> (c : C) -> motive c\niota b :=\n  fun (motive : (c : C) -> Sort u) =>\n  fun (ma : motive a) =>\n  fun (mb : motive b) => mb\niota a :=\n  fun (motive : (c : C) -> Sort u) =>\n  fun (ma : motive a) =>\n  fun (mb : motive b) => ma\nend\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "kernel-rec-rule-mismatch"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "kernel-rec-rule-mismatch",
+                "end": 352,
+                "end_col": 4,
+                "end_line": 13,
+                "message": "rejected: iota rule is not listed in constructor declaration order",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "kernel-internal",
+      "hint": "内核内部错误（这不是你的代码问题）。请把这段代码反馈给工具作者。",
+      "hint_kind": "verbatim",
+      "meaning": "内核 bug，**永不是学习者的错**",
+      "repro": null,
+      "repro_absent_reason": "内核内部错误路径（`assertion failed:` / `unwrap` / `internal error:`）：设计上**不可由学习者代码触发**（G-09 的结论——断言永不外泄是不变量），仓库里唯一已知的可达路径随 G-03/WO-006 关闭",
+      "source_ref": "crates/front/src/compile/error.rs:191-202",
+      "stage": "kernel"
+    },
+    {
+      "code": "import-not-found",
+      "hint": "找不到这个模块。`import Foo.Bar` 对应模块根下的 `Foo/Bar.sokonanoda`；检查名字拼写与文件位置（名字里不能有 `-`）。",
+      "hint_kind": "verbatim",
+      "meaning": "找不到 `<模块根>/Foo/Bar.sokonanoda`（消息列出试过的路径）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-not-found/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-not-found",
+        "entry": "main.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "main.sokonanoda": "import No.Such\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-not-found"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-not-found",
+                "end": 14,
+                "end_col": 15,
+                "end_line": 1,
+                "message": "找不到模块 `No.Such`（期望 <repo>/.cache/site-lab/repro/import-not-found/No/Such.sokonanoda）",
+                "name": null,
+                "start": 7,
+                "start_col": 8,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:203-208",
+      "stage": "import"
+    },
+    {
+      "code": "import-cycle",
+      "hint": "import 成环了：A 依赖 B、B 又（直接或间接）依赖 A。把公共部分抽到一个更底层的模块里。",
+      "hint_kind": "verbatim",
+      "meaning": "import 成环（消息拼出环）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-cycle/a.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-cycle",
+        "entry": "a.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "a.sokonanoda": "import a\ndef a : Prop := True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-cycle"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-cycle",
+                "end": 8,
+                "end_col": 9,
+                "end_line": 1,
+                "message": "import 成环：a → a",
+                "name": null,
+                "start": 7,
+                "start_col": 8,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:203-208",
+      "stage": "import"
+    },
+    {
+      "code": "import-dependency-failed",
+      "hint": "被导入的模块自己还有错误，所以这里先不编译——修好那个文件的第一条错误再看这里。",
+      "hint_kind": "verbatim",
+      "meaning": "被导入模块没编译过，导入者也不编译（错误落在 `import` 行）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-dependency-failed/a.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-dependency-failed",
+        "entry": "a.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "a.sokonanoda": "import b\ndef a : Prop := b\n",
+          "b.sokonanoda": "def b : Prop := nosuch\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-dependency-failed"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-dependency-failed",
+                "end": 8,
+                "end_col": 9,
+                "end_line": 1,
+                "message": "`b` 没有编译成功，所以这里先不编译——先修好它的第一条错误",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:203-208",
+      "stage": "import"
+    },
+    {
+      "code": "import-name-collision",
+      "hint": "同一个名字在两个模块里各声明了一次。改掉其中一个，或把它移到一个公共模块里只声明一次。",
+      "hint_kind": "verbatim",
+      "meaning": "两个模块声明了同一个顶层名",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-name-collision/a.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-name-collision",
+        "entry": "a.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "a.sokonanoda": "import b\ndef a : Prop := b\n",
+          "b.sokonanoda": "def a : Prop := True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-name-collision"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-name-collision",
+                "end": 26,
+                "end_col": 18,
+                "end_line": 2,
+                "message": "`a` 在 `b` 与 `a` 里各声明了一次",
+                "name": null,
+                "start": 9,
+                "start_col": 1,
+                "start_line": 2
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:203-208",
+      "stage": "import"
+    },
+    {
+      "code": "import-prelude-conflict",
+      "hint": "prelude（内置基元）是整个编译单元的属性：入口文件的设置与依赖模块冲突了。统一成一种（要么都用内置 prelude，要么都在入口声明 `-- sokonanoda:prelude none`）。",
+      "hint_kind": "verbatim",
+      "meaning": "闭包对内置 prelude 意见不一致",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-prelude-conflict/a.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-prelude-conflict",
+        "entry": "a.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "a.sokonanoda": "import b\ndef a : Prop := b\n",
+          "b.sokonanoda": "-- sokonanoda:prelude none\ndef b : Prop := True\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "import-prelude-conflict"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 1,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "import-prelude-conflict",
+                "end": 8,
+                "end_col": 9,
+                "end_line": 1,
+                "message": "模块 `b` 与内置 prelude 冲突：它的 `-- sokonanoda:prelude` 指令与入口不一致（prelude 是整个编译单元的属性）",
+                "name": null,
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:203-208",
+      "stage": "import"
+    },
+    {
+      "code": "manifest-invalid",
+      "hint": "`sokonanoda.toml` 读不了或不是合法 TOML。它只需要可选的 `name` / `requires` / `src` 三个键；不想要项目就把文件删掉（单文件模式仍然可用）。",
+      "hint_kind": "verbatim",
+      "meaning": "`sokonanoda.toml` 读不了或不是合法 TOML",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/manifest-invalid/a.sokonanoda",
+        "dir": ".cache/site-lab/repro/manifest-invalid",
+        "entry": "a.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "a.sokonanoda": "import b\ndef a : Prop := b\n",
+          "b.sokonanoda": "def b : Prop := True\n"
+        },
+        "manifest": "this is not toml\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "manifest-invalid"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 1,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "manifest-invalid",
+                "end": 0,
+                "end_col": 0,
+                "end_line": 0,
+                "message": "<repo>/.cache/site-lab/repro/manifest-invalid/sokonanoda.toml：项目清单不是合法 TOML：TOML parse error at line 1, column 6\n  |\n1 | this is not toml\n  |      ^\nexpected `.`, `=`\n",
+                "name": null,
+                "start": 0,
+                "start_col": 0,
+                "start_line": 0
+              }
+            ],
+            "version": 1,
+            "warnings": []
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:203-208",
+      "stage": "import"
+    },
+    {
+      "code": "import-module-invalid",
+      "hint": "被导入的文件本身没解析成功：先打开它、修好那里的语法错误，再回来看这里（下游不会替你猜）。",
+      "hint_kind": "verbatim",
+      "meaning": "被导入的文件根本没解析成功",
+      "repro": {
+        "command": "scripts/soko grade .cache/site-lab/repro/import-module-invalid/a.sokonanoda --json",
+        "dir": ".cache/site-lab/repro/import-module-invalid",
+        "entry": "a.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "a.sokonanoda": "import b\ndef a : Prop := b\n",
+          "b.sokonanoda": "def b : = \n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "grade-json",
+        "observed_codes": [
+          "import-dependency-failed",
+          "import-module-invalid"
+        ],
+        "output": [
+          {
+            "code": "import-dependency-failed",
+            "hint": "被导入的模块自己还有错误，所以这里先不编译——修好那个文件的第一条错误再看这里。",
+            "message": "`b` 没有编译成功，所以这里先不编译——先修好它的第一条错误",
+            "span": {
+              "end": {
+                "column": 9,
+                "line": 1,
+                "offset": 8
+              },
+              "start": {
+                "column": 1,
+                "line": 1,
+                "offset": 0
+              }
+            },
+            "stage": "import",
+            "type": "diagnostic"
+          },
+          {
+            "code": "import-module-invalid",
+            "file": "<repo>/.cache/site-lab/repro/import-module-invalid/b.sokonanoda",
+            "hint": "被导入的文件本身没解析成功：先打开它、修好那里的语法错误，再回来看这里（下游不会替你猜）。",
+            "message": "expected expected `=>`, found =（b）",
+            "module": "b",
+            "span": {
+              "end": {
+                "column": 9,
+                "line": 1,
+                "offset": 8
+              },
+              "start": {
+                "column": 9,
+                "line": 1,
+                "offset": 8
+              }
+            },
+            "stage": "import",
+            "type": "diagnostic"
+          }
+        ],
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/error.rs:203-208",
+      "stage": "import"
+    },
+    {
+      "code": "reserved-declaration-name",
+      "hint": "删掉这一行即可；要写命题或类型，直接用内核已经有的 Prop / Sort / Type。",
+      "hint_kind": "verbatim",
+      "meaning": "顶层声明用了 `Prop`/`Sort`/`Type`（内核已定义，这一行永不被引用；`RESERVED_SORT_NAMES` 三名，`crates/front/src/compile/warning.rs:12`）",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/reserved-declaration-name/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/reserved-declaration-name",
+        "entry": "main.sokonanoda",
+        "exit_code": 0,
+        "files": {
+          "main.sokonanoda": "def Prop : Type := Prop\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "reserved-declaration-name"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 1,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [],
+            "version": 1,
+            "warnings": [
+              {
+                "code": "reserved-declaration-name",
+                "end": 8,
+                "end_col": 9,
+                "end_line": 1,
+                "hint": "删掉这一行即可；要写命题或类型，直接用内核已经有的 Prop / Sort / Type。",
+                "message": "`Prop` 内核已经定义过了，不能再声明一次。Prop 在形式化证明里地位特殊：所有命题都住在 Prop 里，代码里每个 `Prop` 指的都是内核定义的那个，这一行声明出来的名字不会被用到。",
+                "start": 4,
+                "start_col": 5,
+                "start_line": 1
+              }
+            ]
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/warning.rs:31-34",
+      "stage": "warning"
+    },
+    {
+      "code": "import-has-open-exercises",
+      "hint": "被导入文件里还有 `sorry`：这些声明对下游不可见（未完成的洞不进入环境），下游看不到它们的名字。",
+      "hint_kind": "verbatim",
+      "meaning": "被导入模块还有 `sorry`，那些名字对下游不可见",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/import-has-open-exercises/a.sokonanoda",
+        "dir": ".cache/site-lab/repro/import-has-open-exercises",
+        "entry": "a.sokonanoda",
+        "exit_code": 1,
+        "files": {
+          "a.sokonanoda": "import b\ndef a : Prop := b\n",
+          "b.sokonanoda": "def b : Prop := sorry\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "elab-unknown-identifier",
+          "import-has-open-exercises"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [
+              {
+                "code": "elab-unknown-identifier",
+                "end": 26,
+                "end_col": 18,
+                "end_line": 2,
+                "message": "unknown identifier `b`",
+                "name": null,
+                "start": 25,
+                "start_col": 17,
+                "start_line": 2
+              }
+            ],
+            "version": 1,
+            "warnings": [
+              {
+                "code": "import-has-open-exercises",
+                "end": 8,
+                "end_col": 9,
+                "end_line": 1,
+                "hint": "被导入文件里还有 `sorry`：这些声明对下游不可见（未完成的洞不进入环境），下游看不到它们的名字。",
+                "message": "`b` 里还有未完成的练习（`sorry`）：它们对下游不可见",
+                "start": 0,
+                "start_col": 1,
+                "start_line": 1
+              }
+            ]
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/warning.rs:31-34",
+      "stage": "warning"
+    },
+    {
+      "code": "redundant-sorry",
+      "hint": "删掉这一行 sorry，这条声明就会通过内核检查；若还想继续写，请把它换成真正缺少的那部分。",
+      "hint_kind": "verbatim",
+      "meaning": "值位里\"多出来\"的 `sorry`（前面的项已证完）；声明**仍是** `exercise.open`",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/redundant-sorry/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/redundant-sorry",
+        "entry": "main.sokonanoda",
+        "exit_code": 0,
+        "files": {
+          "main.sokonanoda": "theorem t : True := True.intro sorry\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "redundant-sorry"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 0,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 1,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [],
+            "version": 1,
+            "warnings": [
+              {
+                "code": "redundant-sorry",
+                "end": 36,
+                "end_col": 37,
+                "end_line": 1,
+                "hint": "删掉这一行 sorry，这条声明就会通过内核检查；若还想继续写，请把它换成真正缺少的那部分。",
+                "message": "这一行的 sorry 是多余的：前面的项已经完成了证明，sorry 不能再接在这里。",
+                "start": 31,
+                "start_col": 32,
+                "start_line": 1
+              }
+            ]
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/warning.rs:31-34",
+      "stage": "warning"
+    },
+    {
+      "code": "open-shadowed-name",
+      "hint": "要点名的那一个就写全前缀（`A.x`）；要让短名指向另一个候选，用 `open A hiding x` / `open A (x)` / `open A renaming x => y` 把撞车的名字挡掉。",
+      "hint_kind": "verbatim",
+      "meaning": "`open`/`export` 让一个短名有了两个候选（或与根上同名声明撞车），本语言静默取第一个",
+      "repro": {
+        "command": "scripts/soko query check --file .cache/site-lab/repro/open-shadowed-name/main.sokonanoda",
+        "dir": ".cache/site-lab/repro/open-shadowed-name",
+        "entry": "main.sokonanoda",
+        "exit_code": 0,
+        "files": {
+          "main.sokonanoda": "namespace A\ndef x : Prop := True\nend A\nnamespace B\ndef x : Prop := True\nend B\nopen A\nopen B\ndef y : Prop := x\n"
+        },
+        "manifest": "name = \"repro\"\n",
+        "mode": "query-check",
+        "observed_codes": [
+          "open-shadowed-name"
+        ],
+        "output": {
+          "data": {
+            "counts": {
+              "decl_checked": 3,
+              "decl_printed": 0,
+              "example_checked": 0,
+              "exercise_open": 0,
+              "expr_reduced": 0,
+              "expr_typed": 0
+            },
+            "failed": [],
+            "version": 1,
+            "warnings": [
+              {
+                "code": "open-shadowed-name",
+                "end": 91,
+                "end_col": 7,
+                "end_line": 8,
+                "hint": "要点名的那一个就写全前缀（`A.x`）；要让短名指向另一个候选，用 `open A hiding x` / `open A (x)` / `open A renaming x => y` 把撞车的名字挡掉。",
+                "message": "`open B` 让同名候选撞车：`x` 会解析到 `A.x`（不是 `B.x`）。本语言按候选顺序取第一个能解析的（当前命名空间链 → 精确名 → `open` 的先后），撞车的短名不会报错、只会静默取第一个。",
+                "start": 90,
+                "start_col": 6,
+                "start_line": 8
+              }
+            ]
+          },
+          "ok": true,
+          "op": "check",
+          "schema": "soko.query/1",
+          "version": 1
+        },
+        "unparsed_lines": 0
+      },
+      "source_ref": "crates/front/src/compile/warning.rs:31-34",
+      "stage": "warning"
+    }
+  ],
+  "generated_at": "2026-09-19T19:12:08+08:00",
+  "generated_at_from": "git-head-commit-time",
+  "output_normalization": "记录下来的 CLI 输出里，仓库绝对路径已替换为 `<repo>`",
+  "repro_dir": ".cache/site-lab/repro",
+  "source": "docs/design/site-rebuild/content/C1-language.md §4.4",
+  "source_commit": "084da05",
+  "table_heading": "4.4 诊断码全表（按阶段分组，含真实 hint）",
+  "totals": {
+    "by_stage": {
+      "elab": 29,
+      "import": 7,
+      "kernel": 12,
+      "parse": 12,
+      "warning": 4
+    },
+    "codes": 64,
+    "errors": 60,
+    "warnings": 4,
+    "with_repro": 55,
+    "without_repro": 9
+  },
+  "version": "0.61.0"
+}

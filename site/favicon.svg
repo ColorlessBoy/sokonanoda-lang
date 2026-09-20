@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="sokonanoda">
+  <!--
+    品牌标记 = 推理横线（turnstile）：一竖一横，正是 `⊢` 的骨架。
+    全站唯一的记忆点就是它，所以标记也用同一个形状，而不是另造一个吉祥物。
+
+    配色刻意**不用**语义色：绿只允许出现在「内核真的通过过」的东西上，
+    朱只允许出现在「诊断 / 更正 / 诚实的限制」上。品牌标记两样都不是，
+    所以它是墨与纸——这条纪律在 favicon 上也不破例。
+
+    色值取自 site/assets/tokens.css（--ink / --paper）。
+    深底浅字：标签栏在浅色与深色主题下都能看清，不需要 media query。
+    16px 下竖笔 3.2/32 ≈ 1.6px、横笔同宽，仍能读出形状。
+  -->
+  <rect width="32" height="32" rx="3" fill="#14171c"/>
+  <path d="M10 6.5 V25.5 M10 16 H25.5"
+        stroke="#f5f7f9" stroke-width="3.2"
+        stroke-linecap="square" fill="none"/>
+</svg>

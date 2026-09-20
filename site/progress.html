@@ -1,115 +1,895 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>进展 — sokonanoda</title>
-  <meta name="description" content="sokonanoda 的当前版本、最新 Release、课程规模与最近一轮开发进度。数据在页面加载后从项目事实源填入，不写死。">
-  <link rel="stylesheet" href="assets/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>进展：项目现在在哪，接下来做什么 —— sokonanoda</title>
+<meta name="description" content="带日期的现状：哪些能力今天能端到端跑通、时间线上每个版本落在哪一天、路线图里哪些已确认、哪些只是探索、哪些明确不做。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/progress.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="进展：项目现在在哪，接下来做什么 —— sokonanoda">
+<meta property="og:description" content="哪些能力今天能端到端跑通、每个版本落在哪一天、路线图的三档，以及一份诚实的未完成清单。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site（本页不用编辑器面板，所以不引 editor.css） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header">
-    <div class="wrap">
-      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
-      <nav class="nav" aria-label="主导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html" class="active" aria-current="page">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html" class="lang">English</a>
+
+<body data-page="progress" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <header class="page-head">
+      <p class="sec-num">过程与信任</p>
+      <h1>进展</h1>
+      <p class="lead">
+        这一页写三件事：今天能跑通什么、这些东西是哪天发布的、以及哪些事没做——
+        包括决定不做的和暂时做不动的。每条都带日期和出处，不写形容词。
+      </p>
+    </header>
+
+    <!-- ── §1 快照 ─────────────────────────────────────────────────── -->
+    <section class="measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 快照：项目现在在哪</h2>
+      <p>
+        当前版本 <span data-site-version>—</span>。这个数字由
+        <code>site/data/site.json</code> 在浏览时填进来，页面里不写死：写死的版本号一定会过期。
+      </p>
+      <p>
+        到 <time datetime="2026-09-19">2026-09-19</time> 为止，项目走到第 108 轮，
+        这一轮收掉的是设计文档里标着「未做」的条目。第一个提交（2026-09-06，内核快照迁入）
+        到最新提交（2026-09-19）一共 14 天，其间发了 69 个 tag。
+      </p>
+
+      <ul class="stats">
+        <li><span class="stats__n">108</span><span class="stats__label">开发轮次</span></li>
+        <li><span class="stats__n stats__n--verified">69</span><span class="stats__label">已发布的 git tag</span></li>
+        <li><span class="stats__n">75</span><span class="stats__label">CHANGELOG 版本条目</span></li>
+        <li><span class="stats__n">367</span><span class="stats__label">提交</span></li>
+      </ul>
+
+      <p>
+        69 与 75 差 6 个：有 6 个版本写了 CHANGELOG 条目，却没有打 tag。
+        这不是笔误，是仓库的真实状态：§3 会说清这 6 个里哪一个最要紧，以及怎么把它们比出来。
+      </p>
+
+      <!-- 推理横线：这一页的论题——发布过不等于做完。 -->
+      <div class="turnstile" role="img" aria-label="给定已发布 69 个 tag、缺口台账 24 条且 open 为 0，这一页要说明的是：还没做的事不等于已经发布的事">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">已发布</span> : <span class="tok-ty">69 个 tag</span></li>
+          <li><span class="tok-local">缺口台账</span> : <span class="tok-ty">24 条，open = 0</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">还没做的事</span> <span class="tok-punc">≠</span> <span class="tok-local">已经发布的事</span></p>
+      </div>
+    </section>
+
+    <!-- ── §2 已落地 ───────────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 已落地：今天能端到端跑通的事</h2>
+      <p class="measure">
+        判定口径只有一条：有发布产物、有测试、有文档，且用户拿 Release 二进制或 VSIX
+        就能用。第三列写的是这句话能查到的地方。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>今天能端到端跑通的能力。计数是 2026-09-19 这一版的快照；
+          卷 I 那一行的四个数字来自课程门禁的输出，不是估的。</caption>
+          <thead>
+            <tr>
+              <th scope="col">能力</th>
+              <th scope="col">今天的状态</th>
+              <th scope="col">出处</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>.sokonanoda</code> 语言</th>
+              <td>lexer / parser / elaborator / 练习引擎完整可用；纯声明式，文件里没有 <code>#</code> 命令</td>
+              <td><code>STATUS.md</code>、<code>docs/architecture.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row">完整内核</th>
+              <td>inductive / quot / proof irrelevance / conv / eval / pp 全部迁移，冻结快照；最新一版内核零改动</td>
+              <td><code>REQUIREMENTS.md</code> 硬规则 1</td>
+            </tr>
+            <tr>
+              <th scope="row">prelude 双模式</th>
+              <td>Full 自带 47 个顶层名字；Bare 完全不加载</td>
+              <td><code>crates/front/src/compile/prelude.rs</code></td>
+            </tr>
+            <tr>
+              <th scope="row">CLI</th>
+              <td><code>grade</code> / <code>--json</code> / <code>query</code> / <code>build</code> / <code>course</code> / <code>watch</code> / <code>setup</code> / <code>doctor</code> / <code>update</code> / <code>version</code> 全部可用，退出码契约稳定</td>
+              <td><code>docs/protocol.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>query</code> 七视图</th>
+              <td><code>check</code> / <code>state</code> / <code>goals</code> / <code>holes</code> / <code>hints</code> / <code>reduce</code> / <code>project</code>，各返回一个 JSON 对象，退出码 0 / 1 / 2</td>
+              <td><code>ROADMAP.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row">LSP</th>
+              <td>诊断 / hover / goal 视图 / semantic tokens / codeLens / code action / inlay / 跨文件跳转引用改名</td>
+              <td><code>docs/protocol.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row">VS Code 扩展</th>
+              <td>9 个平台的 VSIX，包内嵌 LSP 与 CLI，Marketplace 收录</td>
+              <td><code>editor/vscode/package.json</code></td>
+            </tr>
+            <tr>
+              <th scope="row">入门课 <code>course/</code></th>
+              <td>11 个单元，中英双语，带解答钥匙</td>
+              <td><code>course/course.json</code></td>
+            </tr>
+            <tr>
+              <th scope="row">卷 I《集合论》</th>
+              <td>12 单元 / 4 章 / 1 卷；36 个目标、329 条 checked、99 条 open、0 判负（2026-09-19 门禁输出）</td>
+              <td><code>courses/set-theory/tools/check.py --json</code></td>
+            </tr>
+            <tr>
+              <th scope="row">多文件 <code>import</code> 与项目</th>
+              <td>闭包编译、闭包哈希缓存、跨文件 LSP；项目清单 <code>sokonanoda.toml</code> 可选</td>
+              <td><code>docs/design/imports-and-projects.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row">用户自定义记法</th>
+              <td>三刀全落：运算符、前缀后缀、binder 记法，含重载与 <code>scoped</code></td>
+              <td><code>docs/design/notation-subset.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>namespace</code> / <code>open</code> / <code>export</code></th>
+              <td>子句、<code>open … in</code>、<code>export</code>、遮蔽 warning 全部落地</td>
+              <td><code>docs/design/namespace-open.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row">agent 通道</th>
+              <td>MCP 七个工具 + DeepSeek Harness 的技能与命令；MCP 默认关闭，要显式 opt-in</td>
+              <td><code>dsh/README.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row">四本台账</th>
+              <td>性能、e2e、缺口、CI 失败各一本；缺口台账的判据进了门禁，e2e 台账由 CI 的 job 回写</td>
+              <td><code>docs/gaps/README.md</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── §3 时间线 ───────────────────────────────────────────────── -->
+    <section class="measure" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 时间线：14 天，69 个 tag</h2>
+      <p>
+        日期口径只有一种：有 tag 的版本取 tag 指向提交的日期，没有 tag 的版本取
+        CHANGELOG 里标注的日期。<code>site/data/timeline.json</code> 给每一条都记了
+        <code>date_source</code>，所以这个口径不用猜。
+      </p>
+      <p>
+        这一页不写版本号。全站的版本号由 <code>site/data/site.json</code> 提供，
+        页面里出现字面版本号会被 <code>scripts/check-site.py</code> 拒绝——于是这一页
+        用<strong>日期</strong>和<strong>功能</strong>定位每一次发布，完整的版本序列
+        （每个版本、它的 tag、两个日期）在 <code>site/data/timeline.json</code> 里，
+        由 <code>git tag</code> 与 CHANGELOG 生成。
+      </p>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">有 6 个版本没有 tag</span>
+        <p>
+          CHANGELOG 里有 75 个版本条目，<code>git tag</code> 只有 69 个。差的 6 个里，
+          有一个是用户可见的大版本：多文件 <code>import</code> 与项目管理。
+          它有 CHANGELOG 条目，也有 release 提交，但仓库里没有对应的 tag。
+          所以这一页只写它的功能与日期，不声称有 tag。
+          6 个具体是哪些，把 <code>timeline.json</code> 的 <code>changelog[]</code>
+          与 <code>tags[]</code> 两个列表相减就能得到。
+        </p>
+      </div>
+
+      <ol class="timeline">
+        <li>
+          <time datetime="2026-09-06">2026-09-06</time>
+          <span class="timeline__title">起点：内核快照迁入，CLI 端到端跑通</span>
+          <p class="timeline__body">
+            上游内核完整迁进 workspace，测试基线全绿；同一天接上 lexer / parser 与 CLI，
+            从文件到 AST 到内核声明到人读结果第一次跑通。这两天还没有 tag。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-07">2026-09-07</time>
+          <span class="timeline__title">第一个 LSP 反馈通道</span>
+          <p class="timeline__body">
+            诊断、hover、goal 视图、CodeLens、semantic tokens、code action 一起上线；
+            同日补 go-to-definition、document highlight 与 binder 补全。
+            这两个版本只有 CHANGELOG 条目，没有 tag。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-08">2026-09-08</time>
+          <span class="timeline__title">发布开始自动化（1 个 tag）</span>
+          <p class="timeline__body">
+            CI 在 tag push 时自动发布到 VS Code Marketplace。这是仓库里的第一个 tag。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-09">2026-09-09</time>
+          <span class="timeline__title"><code>by</code> 块：从声明式证明到 tactic（5 个 tag）</span>
+          <p class="timeline__body">
+            <code>by</code> tactic 块落地（<code>intro</code> / <code>exact</code> /
+            <code>apply</code> / <code>assumption</code> / <code>rfl</code>）；
+            LSP 下载改为按扩展版本锁定，不再跟着最新版走。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-10">2026-09-10</time>
+          <span class="timeline__title">把 LSP 装进扩展里（4 个 tag）</span>
+          <p class="timeline__body">
+            LSP 二进制内嵌进 VSIX，平台矩阵从 4 个扩到 8 个，VSIX 同时内嵌 CLI；
+            <code>#check</code> 结果常驻显示，对齐 Lean Infoview 的做法。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-11">2026-09-11</time>
+          <span class="timeline__title">CLI 长出 onboarding 子命令（4 个 tag）</span>
+          <p class="timeline__body">
+            <code>version</code> / <code>doctor</code> / <code>setup</code> /
+            <code>update</code> / <code>grade</code> / <code>gate</code> 六个子命令进 CLI；
+            保留名 warning 与 <code>Type n</code> 记法。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-12">2026-09-12</time>
+          <span class="timeline__title">声明写法与编辑器反馈一起改（6 个 tag）</span>
+          <p class="timeline__body">
+            值位 <code>intro</code>、声明级 binder（Lean 风格）、语言服务器原地重启、
+            hover 一键展开 <code>intro</code>。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-13">2026-09-13</time>
+          <span class="timeline__title">发布全自动，官网上线（6 个 tag）</span>
+          <p class="timeline__body">
+            auto-tag 加 dispatch release 让发布不再有手工步骤；官网上线。
+            值位关键字 v2 收口，做得不好的 <code>funapply</code> 随后被删掉。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-14">2026-09-14</time>
+          <span class="timeline__title">洞、目标与 Infoview（5 个 tag）</span>
+          <p class="timeline__body">
+            <code>sorry</code> 洞的期望类型精确化；多目标显示与 tactic hover 的 goal state；
+            <code>watch</code> 编译器服务事件流；webview Infoview 目标面板。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-15">2026-09-15</time>
+          <span class="timeline__title">24 个 tag 的一天：match、带索引归纳、编译缓存</span>
+          <p class="timeline__body">
+            全程最密的一天，24 个 tag 挤在一起：统一 goal 呈现并把 Infoview 落到右侧、
+            <code>match</code> v1 与递归 IH、prelude <code>Bool</code>、带索引归纳
+            （<code>Vec A n</code>）、编译结果落盘缓存与共享缓存、
+            <code>sokonanoda build</code>、呈现面高亮统一。这一条是聚合的，
+            铺开就是 24 行。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-16">2026-09-16</time>
+          <span class="timeline__title">课程大纲重构（6 个 tag）</span>
+          <p class="timeline__body">
+            锁定 10 个单元：<code>by</code> 提前、归纳拆成 Ⅰ 与 Ⅱ、新增关系与读证明。
+            Infoview 换上自研固定调色板。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-17">2026-09-17</time>
+          <span class="timeline__title">harness 适配与真相查询通道（4 个 tag）</span>
+          <p class="timeline__body">
+            DeepSeek Harness 适配 H0–H4，以及 harness 中立的启动器 <code>scripts/soko</code>；
+            内核真相查询通道 <code>query</code> 与 MCP 工具；
+            <code>redundant-sorry</code> 诊断——「多写了一行」不等于「还没证出来」。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-18">2026-09-18</time>
+          <span class="timeline__title">项目状态视图，以及一版没有 tag 的大版本（1 个 tag）</span>
+          <p class="timeline__body">
+            项目状态视图（<code>query project</code>、<code>soko/project</code>、
+            VS Code 项目树）与真 VS Code e2e 进 CI。同一天还发了多文件
+            <code>import</code> 与项目管理那一版，它有 CHANGELOG 条目和 release 提交，
+            但仓库里没有对应的 tag。
+          </p>
+        </li>
+        <li>
+          <time datetime="2026-09-19">2026-09-19</time>
+          <span class="timeline__title">语言线五刀与编辑器命令（3 个 tag）</span>
+          <p class="timeline__body">
+            签名受检、构造子命名空间、派生 recursor 判据、L1 prelude、用户记法五件事落地；
+            编辑器补上 <code>build</code> 与 <code>rebuild</code>；记法第二、三刀与
+            <code>namespace</code> 扩展收口。卷 I 上站点，课程门禁与缺口台账门禁进 CI。
+          </p>
+        </li>
+      </ol>
+
+      <div class="cmd">
+        <pre>$ git tag | wc -l
+69
+$ grep -c "^## \[" editor/vscode/CHANGELOG.md
+75
+$ for t in $(git tag); do git log -1 --format=%ad --date=short "$t"; done | sort | uniq -c
+   1 2026-09-08
+   5 2026-09-09
+   4 2026-09-10
+   4 2026-09-11
+   6 2026-09-12
+   6 2026-09-13
+   5 2026-09-14
+  24 2026-09-15
+   6 2026-09-16
+   4 2026-09-17
+   1 2026-09-18
+   3 2026-09-19</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。第三条命令按 tag 指向提交的日期分组，输出的每一行就是时间线上的一天。</p>
+      </div>
+
+      <div class="callout callout--note">
+        <span class="callout__title">日期口径的一个已知偏差</span>
+        <p>
+          有 19 个版本的 CHANGELOG 日期比 tag 提交日期早一天，多是跨零点提交。
+          这一页统一用 tag 提交日期，不逐条标注这 19 处——它们只造成一天以内的偏差，
+          逐条标注会把时间线变成校对表。<code>timeline.json</code> 的
+          <code>changelog_date_skew</code> 把 19 条全列了出来。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── §4 路线图 ───────────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 路线图：已确认、探索性、明确不做</h2>
+      <p class="measure">
+        三档的分法是硬的：<strong>已确认</strong>是有编号、有验收标准、在仓库里被追踪的；
+        <strong>探索性</strong>是有设计但没拍板或明确 backlog 的，不是承诺；
+        <strong>明确不做</strong>是写过理由、决定不做的，和「还没轮到」不是一回事。
+      </p>
+
+      <h3>已确认要做</h3>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>有编号、有验收标准、在仓库里被追踪的事，按依赖顺序排。
+          第六行是「已确认但刻意不做」——确认过，也决定先不动，所以它既不是 backlog 也不是不做。</caption>
+          <thead>
+            <tr>
+              <th scope="col">事项</th>
+              <th scope="col">对用户意味着什么</th>
+              <th scope="col">现状</th>
+              <th scope="col">承诺级别</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>watch</code> 项目模式</th>
+              <td>长驻服务能监听整个项目闭包，而不是一个文件</td>
+              <td>未开始</td>
+              <td>已确认（backlog，已登记）</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>[deps]</code> 跨项目依赖</th>
+              <td>课程仓可以依赖语言仓的库，不必 vendored 一份</td>
+              <td>未开始</td>
+              <td>已确认（backlog）</td>
+            </tr>
+            <tr>
+              <th scope="row">DeepSeek Harness 的 Infoview 与诊断通道</th>
+              <td>在 DSH 里也能像 VS Code 那样看到 goal 面板</td>
+              <td>未开始</td>
+              <td>已确认（backlog）</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>SessionStart</code> provisioning 与 npm 插件包</th>
+              <td>新机器上零手工步骤</td>
+              <td>未开始</td>
+              <td>已确认（backlog）</td>
+            </tr>
+            <tr>
+              <th scope="row">结构债清偿：大文件拆分</th>
+              <td>不直接影响用户，影响接手成本</td>
+              <td>未开始（有排期）</td>
+              <td>已确认</td>
+            </tr>
+            <tr>
+              <th scope="row">练习签名的类型子表达式 hover</th>
+              <td>签名里的 <code>And</code> / <code>Nat</code> 悬停也有类型行</td>
+              <td>刻意保留现状</td>
+              <td>已确认但刻意不做</td>
+            </tr>
+            <tr>
+              <th scope="row">课程内容继续长（卷 II 及以后）</th>
+              <td>更多可学的数学</td>
+              <td>卷 I 已收口，按需继续</td>
+              <td>已确认（方向）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>探索性：有设计，未承诺</h3>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>这些不要当成路线图来读。它们有设计文档或立项记录，但都没有排期，
+          第二列写的是它们卡在哪。</caption>
+          <thead>
+            <tr>
+              <th scope="col">事项</th>
+              <th scope="col">卡在哪</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">WASM playground：浏览器内判卷</th>
+              <td>要把内核与前端编到 WASM，是独立大工程；明确 backlog，不阻塞上线</td>
+            </tr>
+            <tr>
+              <th scope="row">L2 / L3：多人协作、远程、compiler service 跨文件转播与 <code>setContent</code></th>
+              <td>v1 没做，属于远期</td>
+            </tr>
+            <tr>
+              <th scope="row">Lean Kernel Arena 外部基准（目前 opt-in）</th>
+              <td>已立项，但决定不 vendor、不进 CI——那会把官方 Lean 工具链引进来</td>
+            </tr>
+            <tr>
+              <th scope="row">spine meta 方案 B′：更深嵌套、<code>def</code> 包裹的 whnf</th>
+              <td>需要内核或 pp 暴露 whnf，那会违反内核冻结</td>
+            </tr>
+            <tr>
+              <th scope="row">独立课程仓：把 <code>courses/</code> 抽成子仓</th>
+              <td>设计保留、脚本可用，但已经决定先建在当前仓内</td>
+            </tr>
+            <tr>
+              <th scope="row">已检查声明的跨进程复用</th>
+              <td>设计里写着「先量收益再开」，收益还没量</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>明确不做</h3>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>每一行都有人写过理由。这一档存在的意义，是把它和「排在后面」分开——
+          前者是决定，后者是欠账。</caption>
+          <thead>
+            <tr>
+              <th scope="col">不做的事</th>
+              <th scope="col">理由</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">canonical formatter</th>
+              <td>与洞、span 的稳定性冲突</td>
+            </tr>
+            <tr>
+              <th scope="row">call / type hierarchy、selectionRange、pull diagnostics、salsa 查询框架</th>
+              <td>已有等价能力，或者根本不需要</td>
+            </tr>
+            <tr>
+              <th scope="row">浏览器里的 WASM 编辑器、成就系统、LSIF / SCIP</th>
+              <td>不在产品路径上（浏览器内的判卷是另一件事，写在上一张表里）</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>section</code> / <code>variable</code></th>
+              <td>做不动，有实测：本语言的应用是逐位显式的，没有隐式参数插入</td>
+            </tr>
+            <tr>
+              <th scope="row">源码级 print-back：把用户记法回写到类型文本</th>
+              <td>类型文本由内核 pp 产出，记法不进内核；内核冻结，所以销不掉</td>
+            </tr>
+            <tr>
+              <th scope="row">累积性与 Prop 大消去</th>
+              <td>内核性质，冻结内核下不改</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>u+v</code> 与 <code>max</code> 层级算术</th>
+              <td>内核 <code>Level::Max</code> 没有公开构造入口</td>
+            </tr>
+            <tr>
+              <th scope="row">typeclass 与 macro</th>
+              <td>不在语法白名单</td>
+            </tr>
+            <tr>
+              <th scope="row">互递归 / 嵌套递归归纳、宇宙多态参数</th>
+              <td>v1 不做</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>as</code> 模式、or 模式、多 scrutinee、<code>if/then/else</code> 表达式</th>
+              <td>v1 不做</td>
+            </tr>
+            <tr>
+              <th scope="row">嵌套 <code>intro</code>（<code>fun … =&gt; intro</code>）</th>
+              <td>那个位置上的 <code>intro</code> 是普通标识符，不是 tactic</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── §5 诚实的未完成清单 ─────────────────────────────────────── -->
+    <section aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 诚实的未完成清单</h2>
+
+      <div class="measure">
+        <p>
+          这一节是这一页存在的主要理由。一个项目说自己能做什么，读者没有办法核对；
+          说自己<strong>不能</strong>做什么，读者可以照着复现。下面每一条都有出处，
+          也都能试出来。
+        </p>
+
+        <div class="turnstile" role="img" aria-label="给定应用是逐位显式的、没有隐式参数插入，而 section 与 variable 需要自动 binder，结论是它们做不动">
+          <ul class="turnstile__given">
+            <li><span class="tok-local">应用</span> : <span class="tok-ty">逐位显式，无隐式参数插入</span></li>
+            <li><span class="tok-local">section</span> / <span class="tok-local">variable</span> : <span class="tok-ty">需要自动 binder</span></li>
+          </ul>
+          <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+          <p class="turnstile__goal"><span class="tok-local">section</span> / <span class="tok-local">variable</span> : <span class="tok-ty">做不动</span></p>
+        </div>
+      </div>
+
+      <h3>语言与内核边界</h3>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>这些不是待办，是当前语言的形状。第二列写的是你会撞上它的具体样子。</caption>
+          <thead>
+            <tr>
+              <th scope="col">限制</th>
+              <th scope="col">具体表现</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">内核冻结</th>
+              <td><code>crates/kernel/**</code> 一个字节不改；bugfix 必须带三层回归测试。内核是判卷权威，也是性能定位的载体</td>
+            </tr>
+            <tr>
+              <th scope="row">没有累积性</th>
+              <td><code>def T : Type := True</code> 被拒，诊断码 <code>kernel-prop-not-cumulative</code>，附一句人话 hint。官方 Lean 4 有累积性，这里没有</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Exists.elim</code> 的 <code>Q</code> 只能是 <code>Prop</code></th>
+              <td>取数据的引理写不出来，等势只能取 <code>Prop</code> 值；课程因此统一改用数据版</td>
+            </tr>
+            <tr>
+              <th scope="row">Prop 大消去不可用</th>
+              <td>单构造子 <code>Prop</code> 的 motive 只能落在 <code>Prop</code>。这是内核的正确行为，不是缺陷</td>
+            </tr>
+            <tr>
+              <th scope="row">无隐式参数插入</th>
+              <td><code>#check id Nat</code> 得到 <code>Nat -&gt; Nat</code>；<code>def u : Nat := id Nat</code> 被内核拒绝。应用是逐位显式的</td>
+            </tr>
+            <tr>
+              <th scope="row">无 <code>section</code> / <code>variable</code></th>
+              <td>写不了 Lean 那种自动 binder——就是本节开头那条推理横线</td>
+            </tr>
+            <tr>
+              <th scope="row">无 typeclass、无 macro</th>
+              <td>不在语法白名单里</td>
+            </tr>
+            <tr>
+              <th scope="row">记法没有源码级 print-back</th>
+              <td>goal 与 hover 的类型文本仍由内核 pp 产出，不显示你自己定义的记法</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>u+v</code> 与 <code>max</code> 层级算术不可写</th>
+              <td>只支持 <code>u+1</code> 这种数字后缀加法</td>
+            </tr>
+            <tr>
+              <th scope="row">裸构造子名是扩展，不是 Lean 语义</th>
+              <td><code>ctor mk</code> 的规范名是 <code>Ind.mk</code>；裸名是解析别名，唯一时可用，撞名报 <code>elab-ambiguous-ctor-alias</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>match</code> 的边界</th>
+              <td>没有 <code>as</code> 模式与 or 模式，没有多 scrutinee，没有 <code>if/then/else</code> 表达式</td>
+            </tr>
+            <tr>
+              <th scope="row">参数化归纳的边界</th>
+              <td>没有宇宙多态参数，没有互递归与嵌套递归</td>
+            </tr>
+            <tr>
+              <th scope="row">prelude <code>Nat</code> 归约后的显示</th>
+              <td>经 <code>Nat.rec</code> 归约的结果可能是不合并的一元链，与 numeral 定义等价，已钉测试</td>
+            </tr>
+            <tr>
+              <th scope="row">源内 <code>inductive Nat</code> 时的 <code>#reduce</code></th>
+              <td>显示混合表示，命中内核 name cache 的快路径；已逐条实测重钉</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>工具与平台边界</h3>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>安装、运行、发布这条路上会遇到的东西。第三行的行为是刻意的：
+          宁可拒绝运行，也不猜一个版本。</caption>
+          <thead>
+            <tr>
+              <th scope="col">限制</th>
+              <th scope="col">具体表现</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">没有 WASM 或浏览器构建</th>
+              <td>浏览器内判卷要把内核与前端编到 WASM，是独立大工程；一期用「静态站 + 装扩展」这个零后端方案替代</td>
+            </tr>
+            <tr>
+              <th scope="row">启动器缓存过期就拒绝运行</th>
+              <td>缓存标记与版本钉不一致时拒绝执行，并给出人话报错。这是历史上最常见的故障源</td>
+            </tr>
+            <tr>
+              <th scope="row">版本钉解析不出来就绝不 exec</th>
+              <td>退出码 3，并指名是哪个文件不一致；多个来源互相矛盾时同样报错</td>
+            </tr>
+            <tr>
+              <th scope="row">禁止 <code>releases/latest</code></th>
+              <td>下载一律按仓库版本锁定，不跟着最新版走</td>
+            </tr>
+            <tr>
+              <th scope="row">本地 <code>gate</code> 可能退出 3</th>
+              <td>探不到 python3 就退出 3——无法判定不等于绿；二进制版本与仓库不一致也退出 3</td>
+            </tr>
+            <tr>
+              <th scope="row">平台矩阵有限</th>
+              <td>8 个 CLI 与 LSP tarball、9 个 VSIX（含 alpine 与 win32-arm64），不含 linux-armhf</td>
+            </tr>
+            <tr>
+              <th scope="row">发布仍有外部依赖</th>
+              <td>Marketplace 的 Azure gallery 超时反复出现，CI 失败台账里有 10 条与 marketplace 或 gallery 有关</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>编辑器与 harness 边界</h3>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>同一个 LSP，在不同 harness 里能用的东西不一样。写「支持某个编辑器」时必须按这张表写，
+          不能笼统地说「支持 LSP」。</caption>
+          <thead>
+            <tr>
+              <th scope="col">harness</th>
+              <th scope="col">能用的</th>
+              <th scope="col">不能用的</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">VS Code</th>
+              <td>全量：诊断、hover、goal 面板、练习 / 项目 / 课程三棵树、codeLens、code action、inlay、跨文件跳转引用改名、<code>build</code> 与 <code>rebuild</code> 命令</td>
+              <td>无</td>
+            </tr>
+            <tr>
+              <th scope="row">opencode</th>
+              <td>启动插件自动接线 LSP；<code>/sokonanoda/*</code> 命令；teacher 主 agent；技能自动加载；Lean 工具链命令 deny</td>
+              <td>无</td>
+            </tr>
+            <tr>
+              <th scope="row">DeepSeek Harness</th>
+              <td>技能目录自动发现（技能名就是斜杠命令）；两个人工运维命令；打上补丁后 LSP 可 hover 与跳定义；MCP 七个工具（默认关闭）</td>
+              <td>LSP 只有 4 项只读操作；服务端诊断被显式丢弃；<code>workspace/applyEdit</code> 被拒；<code>soko/*</code> 没有消费者；项目级 <code>.env</code> 不能设 PATH，也没有项目级钩子</td>
+            </tr>
+            <tr>
+              <th scope="row">其他 harness</th>
+              <td><code>.opencode/lsp/sokonanoda-lsp.sh</code> shim 转发到 <code>scripts/soko lsp</code></td>
+              <td>没有命令与技能发现</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        还有两条所有 harness 共有的 LSP 限制：<code>soko/nextHole</code> 无法在同一源码位置
+        的多个子目标之间导航，同址子目标只能整组走；DeepSeek Harness 侧没有
+        <code>soko/*</code> 的消费者，所以那边判卷一律走 CLI 的 <code>--json</code>。
+      </p>
+
+      <h3>工程债：实测行数</h3>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>仓库的惯例是「文件接近 500 行就考虑拆分」。第三列是 2026-09-18 登记时的数字，
+          第二列是 2026-09-19 在提交上实测的数字（<code>wc -l</code>，逐文件）。两列都留着，
+          是为了让「长得多快」也能被看见。</caption>
+          <thead>
+            <tr>
+              <th scope="col">文件</th>
+              <th scope="col" class="num">实测行数</th>
+              <th scope="col" class="num">登记时的行数</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><code>crates/front/src/compile/tests.rs</code></th><td class="num">7926</td><td class="num">4828</td></tr>
+            <tr><th scope="row"><code>crates/front/src/parser.rs</code></th><td class="num">4702</td><td class="num">2065</td></tr>
+            <tr><th scope="row"><code>crates/front/src/compile/elab.rs</code></th><td class="num">4130</td><td class="num">2854</td></tr>
+            <tr><th scope="row"><code>editor/vscode/extension.js</code></th><td class="num">1880</td><td class="num">1493</td></tr>
+            <tr><th scope="row"><code>crates/lsp/src/lib.rs</code></th><td class="num">1610</td><td class="num">1554</td></tr>
+            <tr><th scope="row"><code>crates/front/src/compile/check/walk.rs</code></th><td class="num">1273</td><td class="num">951</td></tr>
+            <tr><th scope="row"><code>crates/front/src/compile/check/mod.rs</code></th><td class="num">832</td><td class="num">791</td></tr>
+            <tr><th scope="row"><code>crates/front/src/compile/check/kernel_phase.rs</code></th><td class="num">527</td><td class="num">413</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        拆分的成绩也是真的：那个约 1174 行的单函数 <code>run_pass</code> 已经拆掉了，
+        验收手段是二进制对拍——改动前后两个 CLI 跑当时仓库里全部的
+        <code>.sokonanoda</code> 文件，stdout 逐字节相同。
+        但语言在长，上面几个大文件比登记时更大。这是公开可查的欠账，不是秘密。
+      </p>
+
+      <h3>刻意的非目标</h3>
+      <p class="measure">
+        最后这一类最容易被误读成「还没做」，所以单独列出来。它们是产品边界，不是排期：
+      </p>
+      <div class="measure">
+        <ul>
+          <li>不调用官方 Lean 工具链——<code>lean</code> / <code>lake</code> / <code>lean4export</code> / <code>leanc</code> / <code>elan</code> 一律不调用。这样 CI 能离线跑，教学内容可复现，也不怕上游版本漂移。</li>
+          <li>不是 Lean 4 的兼容实现：教学语法是 Lean 4 的一个子集，不是它的克隆。</li>
+          <li>没有隐式参数插入，应用逐位显式（理由见本节开头的推理横线）。</li>
+          <li>不做浏览器里的 WASM 编辑器、成就系统、LSIF / SCIP。</li>
+          <li>不把课程文件当成「用户直接消费的固定课程」：<code>course/</code> 是给大模型的路线图，真正面对用户的是按人调整的动态画布。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── §6 证据在哪 ─────────────────────────────────────────────── -->
+    <section class="measure" aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 证据在哪，以及这一页不写什么</h2>
+      <p>
+        这一页只写结论和出处，过程在另外两页。工程与证据那页有：一条命令跑完的 CI 门禁、
+        测试怎么分四层、四本台账各记什么、发布为什么是全自动的。版本历史那页把
+        <code>site/data/timeline.json</code> 渲染成每个版本的日期与 tag 归属。
+      </p>
+      <p class="row">
+        <a class="btn btn--secondary" href="engineering.html">工程与证据</a>
+        <a class="btn btn--secondary" href="releases.html">版本历史</a>
+      </p>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">这一页刻意不写的数字</span>
+        <ul>
+          <li>
+            性能对比的倍数。项目定位里有一句「比官方内核快」的目标表述，
+            但本仓库没有实测基准，外部基准也还是 opt-in。没有测量就没有数字。
+          </li>
+          <li>
+            用户数、下载量、教学效果。仓库里一条来源都没有，所以这里一个都不写。
+          </li>
+          <li>
+            文档里遗留的旧课程计数。课程在长，那些 checked 与 open 的快照已经过期；
+            现在可复现的口径只有课程门禁的输出，就是 §2 那一行。
+          </li>
+        </ul>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" aria-current="page" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
       </nav>
     </div>
-  </header>
-
-  <main id="main" class="wrap prose">
-    <h1>进展</h1>
-    <p>
-      这一页的数字不在 HTML 里写死。版本与课程规模来自项目的课程清单和 Cargo 配置，最新
-      Release 来自 GitHub Releases API，页面加载后填入。取不到时显示「见 GitHub Releases」，不会出现空白。
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
     </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
 
-    <h2 class="section-title">当前状态</h2>
-    <div class="stats">
-      <div class="stat"><div class="n" id="version">—</div><div class="l">当前版本（仓库）</div></div>
-      <div class="stat"><div class="n" id="release-version">—</div><div class="l">最新 Release</div></div>
-      <div class="stat"><div class="n" id="release-date">—</div><div class="l">Release 日期</div></div>
-      <div class="stat"><div class="n" id="unit-count">—</div><div class="l">课程单元</div></div>
-    </div>
-
-    <h2 class="section-title">最近一轮</h2>
-    <p id="round-line">加载中…</p>
-
-    <h2 class="section-title">完整历史与路线图</h2>
-    <ul>
-      <li>版本变动与功能清单：<a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/editor/vscode/CHANGELOG.md">VS Code 扩展 CHANGELOG</a></li>
-      <li>所有发布资产与说明：<a id="release-link" href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">GitHub Releases</a></li>
-      <li>项目要做什么、教学理念、架构：<a href="vision.html">愿景</a></li>
-    </ul>
-    <div class="note">
-      版本号与单元数由自动化从 <code>Cargo.toml</code> 和课程清单生成，不在此页手写，避免和仓库事实源漂移。
-    </div>
-  </main>
-
-  <footer class="site-footer">
-    <div class="wrap">
-      <nav class="fnav" aria-label="页脚导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html">English</a>
-      </nav>
-      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
-      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
-    </div>
-  </footer>
-
-  <script>
-  (function () {
-    var DATA_URL = "data/site.json";
-    var API = "https://api.github.com/repos/ColorlessBoy/sokonanoda-lang/releases/latest";
-    function setText(id, t) { var e = document.getElementById(id); if (e) e.textContent = t; }
-    function setHTML(id, h) { var e = document.getElementById(id); if (e) e.innerHTML = h; }
-    function fmtDate(s) {
-      if (!s) return "";
-      var d = new Date(s);
-      if (isNaN(d)) return s;
-      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    }
-    fetch(DATA_URL).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        if (d.version) setText("version", d.version);
-        if (Array.isArray(d.units)) setText("unit-count", String(d.units.length));
-        var line = "";
-        if (d.round != null) line += "第 " + d.round + " 轮";
-        if (d.round_date) line += " · " + d.round_date;
-        if (d.round_title) line += " · " + d.round_title;
-        if (line) setText("round-line", line); else setText("round-line", "暂无轮次信息");
-      }).catch(function () {
-        setText("round-line", "进度信息加载失败，见仓库 STATUS.md。");
-      });
-
-    fetch(API).then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (r) {
-        var tag = (r.tag_name || "").replace(/^v/, "");
-        if (tag) setText("release-version", tag);
-        if (r.published_at) setText("release-date", fmtDate(r.published_at));
-        var a = document.getElementById("release-link");
-        if (a && r.html_url) a.href = r.html_url;
-      }).catch(function () {
-        setHTML("release-version", '<a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">见 GitHub Releases</a>');
-        setText("release-date", "—");
-      });
-  })();
-  </script>
+<script src="assets/site.js"></script>
 </body>
 </html>

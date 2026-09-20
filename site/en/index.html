@@ -1,182 +1,277 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sokonanoda — a teaching compiler for Lean-4-style proofs</title>
-  <meta name="description" content="Learn proofs in VS Code: graded by a real kernel, hints while you type, drivable by code agents. Install in two steps.">
-  <link rel="stylesheet" href="../assets/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sokonanoda — a teaching language for Lean-4-style proving</title>
+<meta name="description" content="A self-contained teaching compiler stack for Lean-4-style theorem proving: real kernel judgement, an editor that shows the goal state, a course that drove the language, and a machine protocol for code agents. No Rust, no Lean, no elan required.">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/en/">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:title" content="sokonanoda — a teaching language for Lean-4-style proving">
+<meta property="og:description" content="Real kernel judgement, a goal-state editor, a course that drove the language, and a machine protocol for code agents.">
+<meta property="og:locale" content="en_US">
+<link rel="alternate" hreflang="zh-CN" href="https://colorlessboy.github.io/sokonanoda-lang/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/site.css">
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
-    <div class="wrap">
-      <div class="brand">sokonanoda <small>Lean-4-style proofs, taught</small></div>
-      <nav class="nav" aria-label="Main navigation">
-        <a href="index.html" class="active" aria-current="page">Home</a>
-        <a href="../get-started.html">Install</a>
-        <a href="../course.html">Course</a>
-        <a href="../progress.html">Progress</a>
-        <a href="../agents.html">Agents</a>
-        <a href="../docs.html">Docs</a>
-        <a href="../vision.html">Vision</a>
-        <a href="../about.html">About</a>
-        <a href="../index.html" class="lang">中文</a>
-      </nav>
-    </div>
-  </header>
+<body data-page="en" data-root="../">
 
-  <main id="main" class="wrap">
-    <section class="hero hero-split">
-      <div class="hero-copy">
-        <h1>Learn proofs by<br>writing one that checks</h1>
-        <p class="lead">
-          A self-contained Lean-4-style teaching compiler: every proof is graded
-          by a real kernel, the editor hints while you type, and code agents can
-          drive the whole loop. One VS Code extension — no toolchain required.
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="../index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="../index.html">首页</a></li>
+        <li><a data-nav="why" href="../why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="../kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="../walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="../language.html">语言</a></li>
+        <li><a data-nav="course" href="../course.html">课程</a></li>
+        <li><a data-nav="get-started" href="../get-started.html">安装</a></li>
+        <li><a data-nav="search" href="../search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <header class="page-head">
+      <p class="sec-num">English</p>
+      <h1>A teaching language where the kernel does the grading</h1>
+      <p class="lead">
+        <code>.sokonanoda</code> files are a sequence of declarations. A declaration whose value is
+        <code>sorry</code> is an exercise. Whether it is solved is decided by a real type checker —
+        never by comparing text.
+      </p>
+    </header>
+
+    <section class="measure" aria-labelledby="note">
+      <div class="callout callout--note">
+        <span class="callout__title">This is the English summary</span>
+        <p>
+          The full site is in Chinese, because the project's courses are. Everything below links into it.
+          The pages are written for readers, not translated word for word, and the diagrams and recorded
+          output are language-independent.
         </p>
-        <div class="cta">
-          <a class="btn primary" href="#install">Install (extension / agent)</a>
-          <a class="btn ghost" href="#demos">See it in action</a>
-        </div>
       </div>
-      <figure class="hero-media">
-        <img src="../assets/demos/demo-goal.png" width="1180" height="700"
-             alt="Demo: putting the caret on a tactic in VS Code — the goals tree shows that step's goal and hypotheses" loading="eager">
-        <figcaption>Goal view: the caret picks the step; the kernel grades the result.</figcaption>
-      </figure>
     </section>
 
-    <h2 class="section-title" id="install">Install</h2>
-    <p class="section-sub">
-      Two paths, pick by role. Both share the same course canvas and kernel grading.
-    </p>
-    <div class="install-grid">
-      <div class="card install-card">
-        <div class="step">For learners</div>
-        <h3>VS Code extension (recommended)</h3>
-        <ol class="steps">
-          <li>
-            <a class="btn primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" target="_blank" rel="noopener">Install from the Marketplace</a>
-            <p class="fineprint">
-              Already have VS Code?
-              <a href="vscode:extension/sokonanoda-lang.sokonanoda">Open and install directly</a>.
-              The extension bundles this platform's LSP and CLI —
-              <strong>no Rust, Lean or any toolchain needed</strong>. For offline
-              or pinned installs, grab the VSIX for your platform from
-              <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" target="_blank" rel="noopener">GitHub Releases</a>.
-            </p>
-          </li>
-          <li>
-            Clone the repository and open the course canvas (12 exercises, zero to theorem):
-            <div class="cmd">git clone https://github.com/ColorlessBoy/sokonanoda-lang
-code sokonanoda-lang/playground.sokonanoda</div>
-            <p class="fineprint">
-              Or let VS Code clone it for you:
-              <a href="vscode://vscode.git/clone?url=https%3A%2F%2Fgithub.com%2FColorlessBoy%2Fsokonanoda-lang">Clone in VS Code</a>.
-            </p>
-          </li>
-        </ol>
-        <p class="fineprint">
-          Replace the <code>sorry</code> holes with answers and save — the kernel
-          decides. Full walkthrough:
-          <a href="../get-started.html#learner">Install &amp; get started</a>.
-        </p>
+    <section class="measure" aria-labelledby="model">
+      <h2 id="model"><span class="sec-num">§1</span> The model in one screen</h2>
+
+      <div class="turnstile">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">P</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">h</span> : <span class="tok-local">P</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">P</span></p>
       </div>
-      <div class="card install-card">
-        <div class="step">For code agents</div>
-        <h3>One prompt is all it takes</h3>
-        <p>
-          Paste it into any code agent (opencode / Claude Code / Codex / Cursor / …):
-          it clones the repository, reads <code>AGENTS.md</code>, prepares the
-          version-pinned environment, then teaches and grades on the canvas.
-        </p>
-        <p>
-          <button class="btn primary" type="button" data-copy-agent-prompt>Copy install prompt</button>
-        </p>
-        <p class="fineprint">
-          No cargo, no official Lean toolchain; grading always goes through the
-          <code>--json</code> kernel events. Skills and protocol it reads:
-          <a href="../agents.html">Agents</a>.
-        </p>
+
+      <p>
+        Above the line is what you already have; below it is what you must produce. That picture is the
+        whole product. The editor shows it for the line your cursor is on, and it comes from the kernel,
+        not from a guess.
+      </p>
+
+      <ul class="stats">
+        <li><span class="stats__n stats__n--verified">0</span><span class="stats__label">text comparisons in judgement</span></li>
+        <li><span class="stats__n">0</span><span class="stats__label">toolchain installs needed</span></li>
+        <li><span class="stats__n">2</span><span class="stats__label">courses: intro (11 units) and set theory (12)</span></li>
+        <li><span class="stats__n" data-site-version>—</span><span class="stats__label">current version</span></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="see">
+      <h2 id="see"><span class="sec-num">§2</span> See it work</h2>
+
+      <div class="feature">
+        <div class="feature__claim">
+          <h3>Watch one exercise get judged</h3>
+          <p>
+            Every line of a real exercise, with the real goal state the kernel returned at that line.
+            Pure-CSS folding, no JavaScript, no server — the data was recorded from the kernel and is
+            shipped as JSON.
+          </p>
+          <p class="row"><a class="btn btn--primary" href="../walkthrough.html">Walk through an exercise</a></p>
+        </div>
+        <div class="feature__claim">
+          <h3>Read a complete grading session</h3>
+          <p>
+            A real <code>--json</code> event stream, line by line, including a genuine kernel-stage
+            rejection with its diagnostic and teaching hint.
+          </p>
+          <p class="row"><a class="btn btn--secondary" href="../kernel.html">How judgement works</a></p>
+        </div>
       </div>
-    </div>
 
-    <h2 class="section-title" id="demos">See it in action</h2>
-    <p class="section-sub">
-      Four moments people hit first. Everything shown exists in the extension.
-    </p>
-    <div class="demo-grid">
-      <article class="demo-card">
-        <div class="media">
-          <img src="../assets/demos/demo-goal.png" width="1180" height="700"
-               alt="Hovering sorry shows the hole's precise expected type a, the remaining goal False, and the hypotheses in scope" loading="lazy">
+      <div class="feature">
+        <div class="feature__claim">
+          <h3>What the language accepts</h3>
+          <p>
+            Every syntactic form with a real example, and — just as importantly — what is deliberately
+            not supported.
+          </p>
+          <p class="row"><a class="btn btn--secondary" href="../language.html">Language reference</a></p>
         </div>
-        <h3>Stuck? Hover the <code>sorry</code></h3>
-        <p>
-          With the cursor on a <code>sorry</code>, the hover shows
-          <strong>that hole's</strong> expected type, the remaining goal, and the
-          hypotheses in scope — expected types are computed through definitions
-          (<code>Not a</code> unfolds to <code>a -> False</code>, so the hole
-          expects <code>a</code>). You know what's missing before you write.
-        </p>
-      </article>
-
-      <article class="demo-card">
-        <div class="media">
-          <img src="../assets/demos/demo-kernel.png" width="1180" height="700"
-               alt="A wrong premise order is rejected by the kernel: red squiggle and a kernel-rejected diagnostic with a teaching hint" loading="lazy">
+        <div class="feature__claim">
+          <h3>Every diagnostic, with its hint</h3>
+          <p>
+            All the error codes and warnings, each with the message it prints and the teaching hint that
+            goes with it.
+          </p>
+          <p class="row"><a class="btn btn--secondary" href="../diagnostics.html">Diagnostic dictionary</a></p>
         </div>
-        <h3>The kernel decides</h3>
-        <p>
-          Grading always goes through the real kernel — no text matching. A wrong
-          proof gets a diagnostic with a teaching hint; a correct one is valid
-          Lean, verbatim.
-        </p>
-      </article>
+      </div>
+    </section>
 
-      <article class="demo-card">
-        <div class="media">
-          <img src="../assets/demos/demo-agent.png" width="1180" height="700"
-               alt="A terminal running sokonanoda --json, one JSON event per line: decl.checked and exercise.open" loading="lazy">
-        </div>
-        <h3>Your code agent can teach too</h3>
-        <p>
-          Any code agent (Claude Code / opencode / Codex / Cursor / …) can grade
-          and drive the teaching loop — copy the
-          <a href="../agents.html">install prompt</a> and it prepares everything
-          itself. Grading reads the <code>--json</code> kernel events; no text
-          matching.
-        </p>
-      </article>
-    </div>
+    <section class="measure" aria-labelledby="use">
+      <h2 id="use"><span class="sec-num">§3</span> Install it</h2>
+      <p>
+        Two paths, and neither needs Rust, Lean or elan:
+      </p>
+      <ul>
+        <li><strong>Learners</strong> install a VS Code extension that embeds the language server and CLI for your platform, then open a course canvas.</li>
+        <li><strong>Code agents</strong> clone the repository and follow <code>AGENTS.md</code>; the grading protocol is a documented JSON event stream.</li>
+      </ul>
+      <p class="row">
+        <a class="btn btn--primary" href="../get-started.html">Install and get started</a>
+        <a class="btn btn--secondary" href="../agents.html">For code agents</a>
+      </p>
+      <div class="cmd">
+        <pre>$ git clone https://github.com/ColorlessBoy/sokonanoda-lang
+$ cd sokonanoda-lang
+$ scripts/soko setup
+$ scripts/soko grade playground.sokonanoda --json</pre>
+        <p class="cmd__note"><code>$</code> is the prompt — do not type it.</p>
+      </div>
+    </section>
 
-    <div class="entry-strip">
-      <a href="../course.html">The course →</a>
-      <a href="../progress.html">Progress &amp; releases →</a>
-      <a href="../vision.html">Why this project exists →</a>
-      <a href="../docs.html">Architecture / protocol / release manual →</a>
-    </div>
-  </main>
+    <section class="measure" aria-labelledby="honest">
+      <h2 id="honest"><span class="sec-num">§4</span> What it is not</h2>
+      <div class="callout callout--limit">
+        <span class="callout__title">Stated plainly, because it matters</span>
+        <ul>
+          <li>It is <strong>not</strong> a general-purpose proof assistant and not a Lean replacement. It is a teaching language for a specific course sequence.</li>
+          <li>There is <strong>no WASM build</strong>, so this site cannot run the kernel in your browser. Every demo here is a recording of real output, and each one names the command that produced it.</li>
+          <li>There are <strong>no implicit arguments and no typeclasses</strong>, so Lean's <code>section</code> / <code>variable</code> style does not work.</li>
+          <li>The kernel is a <strong>frozen snapshot</strong> of an upstream project — deliberately, so that explanations do not rot.</li>
+          <li>The courses are in <strong>Chinese</strong>. The language and the tooling are not.</li>
+        </ul>
+      </div>
+    </section>
 
-  <footer class="site-footer">
-    <div class="wrap">
-      <nav class="fnav" aria-label="Footer navigation">
-        <a href="../get-started.html">Install</a>
-        <a href="../course.html">Course</a>
-        <a href="../progress.html">Progress</a>
-        <a href="../agents.html">Agents</a>
-        <a href="../docs.html">Docs</a>
-        <a href="../vision.html">Vision</a>
-        <a href="../about.html">About</a>
-        <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub</a>
+    <section class="measure" aria-labelledby="more">
+      <h2 id="more"><span class="sec-num">§5</span> Where to go next</h2>
+      <p class="row">
+        <a class="btn btn--secondary" href="../why.html">Why this exists</a>
+        <a class="btn btn--secondary" href="../compare.html">Compared to Lean 4 / Coq / Agda</a>
+        <a class="btn btn--secondary" href="../progress.html">Progress and open work</a>
+        <a class="btn btn--quiet" href="../index.html" hreflang="zh-CN" lang="zh-CN">中文主站</a>
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="../index.html">首页</a></li>
+          <li><a data-nav="why" href="../why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="../vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="../compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
       </nav>
-      <div>
-        sokonanoda-lang — a self-contained Lean-4-style teaching stack, graded by a
-        real kernel. Zero toolchain for learners and agents alike.
-      </div>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="../kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="../walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="../editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="../language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="../tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="../notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="../projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="../diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="../agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="../course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="../set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="../learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="../glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="../get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="../faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="../docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="../search.html">搜索</a></li>
+          <li><a data-nav="progress" href="../progress.html">进展</a></li>
+          <li><a data-nav="releases" href="../releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="../engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="../about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="../styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" aria-current="page" href="../en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
     </div>
-  </footer>
-  <script src="../assets/agent-prompt.js"></script>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="../assets/site.js"></script>
 </body>
 </html>

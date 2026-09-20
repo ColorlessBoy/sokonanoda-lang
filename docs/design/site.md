@@ -1,5 +1,28 @@
 # 项目官网（GitHub Pages）设计
 
+> ## ⚠️ 本文已被取代（2026-09-20）
+>
+> 站点在 2026-09-20 做了**全面重构**：视觉层整体废弃，信息架构从 9 页扩到 28 页。
+> 新的权威文档在 **`docs/design/site-rebuild/`**：
+>
+> | 文件 | 作用 |
+> |---|---|
+> | `site-rebuild/STATE.md` | 断点续传状态 + **实测修正清单**（仓库文档与实测不符的地方都在那儿） |
+> | `site-rebuild/spec/D1-design-rules.md` | 设计规则手册（方向、硬禁令、令牌、验收清单） |
+> | `site-rebuild/spec/D2-information-architecture.md` | 施工图：28 页站点地图、数据模型、工程契约 |
+> | `site-rebuild/spec/D9-page-brief.md` | 页面施工标准（每个页面作者先读这份） |
+> | `site-rebuild/content/C1–C4` | 四本事实卷宗（语言 / 教学 / 工具链 / 现状与路线） |
+> | `site-rebuild/research/R1–R4` | 设计手艺调研、65 个站点拆解、字体管线 |
+>
+> 验收一条命令：`python3 scripts/site-verify.py`（14 项，exit 0 才算过）。
+>
+> **本文仍然有效的部分**：§3 的单一事实源纪律（版本/计数/进展一律不手写）、
+> §5.3 的防漂移机制、§6 的 Pages 部署与一次性人工动作、§7 的风险表。
+> **已失效的部分**：§2 关于「零构建手写 HTML」的取舍（28 页下导航改为
+> `_partials/` 单源 + 机器校验）、§4 的信息架构（9 页 → 28 页）、
+> §7 的演示图方案（PIL 假截图**已全部退役**：`scripts/gen-site-demos.py` 已删除，
+> `site/assets/demos/` 已移除，编辑器面板改成真 HTML/CSS）。
+
 > 触发（用户原话）：「我希望增加一个 github pages，相当于当前项目的官网，充分介绍本项目的
 > 用法、远大目标和当前进展。」
 >

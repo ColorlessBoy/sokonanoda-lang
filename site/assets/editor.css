@@ -1,0 +1,950 @@
+/* site/assets/editor.css — 编辑器表面（真实内核数据的静态示意图）
+ *
+ * 为什么有这个文件：旧站用 Pillow 画的假 VS Code 截图（GIF/PNG）冒充产品界面，
+ * 那是站主最主要的抱怨。这里改成**真 HTML/CSS 画的示意图**：几 KB、可换主题、
+ * 可被读屏朗读、可复制文本，而且每个数字都来自真跑过的内核。
+ *
+ * 数据来源（页面作者照抄即可复现）：
+ *   scripts/soko grade playground.sokonanoda --json
+ *   scripts/soko query state  --file playground.sokonanoda --line 291 --col 3
+ *   scripts/soko query goals  --file playground.sokonanoda
+ * 契约见 docs/protocol.md；组件清单与可复制片段见
+ * docs/design/site-rebuild/spec/D6-editor-components.md。
+ *
+ * 纪律（违反即 bug）：
+ *   1. 颜色只走令牌（tokens.css），本文件 0 处裸 hex；
+ *   2. 字号只用 --fs-*，圆角只用 --r-0/--r-1/--r-full，间距只用 --sp-*；
+ *   3. 没有入场动画——只有状态反馈（复制按钮），且尊重 prefers-reduced-motion；
+ *   4. **这些面板不是界面，是插图**：没有 cursor:pointer、没有假焦点环、
+ *      没有暗示可点的 hover。唯一的例外是 <button data-copy-self>（site.js 真的
+ *      接了剪贴板），它的 hover 被 @media (hover: hover) 门控。
+ *   5. 每个面板都要有 .illus-tag 文本标签 + .illus-cap 出处说明（见 §插图外壳）。
+ *
+ * 依赖：site/assets/tokens.css（令牌）、site/assets/fonts.css（--font-mono 是
+ * 唯一覆盖 ⊢ 的面，等宽语境强制使用）。本文件不依赖 base.css / site.css。
+ */
+
+/* ══════════════════════════════════════════════════════════════════
+   §插图外壳 —— 让每一块面板"读起来是插图"
+   ──────────────────────────────────────────────────────────────────
+   静态 HTML 画的产品界面有个真实风险：读者以为它是能点的。所以每个面板
+   都包在 <figure class="illus"> 里，并且**必须**写两样文字：
+     .illus-tag  面板名 + "示意"（放在面板上方，永远可见）
+     .illus-cap  出处（哪条命令产生的数据），<figcaption>
+   这两个标签不是装饰，是"这是插图"的唯一视觉证据——CSS 不给它们加任何
+   图形，因为一旦画成徽章就变成了装饰。
+   ══════════════════════════════════════════════════════════════════ */
+
+.illus {
+  margin: 0;                       /* figure 默认 margin 不在刻度上 */
+  display: flow-root;              /* 包住面板的 margin，避免塌陷 */
+}
+
+.illus-tag {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  margin-block-end: var(--sp-2);
+  overflow-wrap: anywhere;          /* 出处里可能有很长的命令/路径 */
+}
+
+.illus-cap {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  margin-block-start: var(--sp-2);
+  overflow-wrap: anywhere;
+}
+
+/* 出处里的命令是等宽 + 可选中（读者要能复制它去复现）。 */
+.illus-cap code,
+.illus-tag code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  background: none;
+  padding: 0;
+  color: var(--ink-2);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   §语法着色 —— 9 个类，颜色只从 --code-* 取
+   ──────────────────────────────────────────────────────────────────
+   D1 §代码与数据呈现：代码主题 ≤ 8 个 token 色，**不给"变量"和"函数调用"
+   单独配色**（它们占代码量 75%，配了等于没配），也不用粗体/斜体做语法区分。
+   所以这里的 9 个类是**语义分组**，不是逐 kind 上色：真编辑器那边
+   （editor/vscode/media/infoview.js）发的是 tok-<kind>（16 个），
+   本文件把它们收成 9 组，映射表见 D6 §kind→class。
+
+   .tok-local 用 --ink-2 而不是某个 --code-*：局部假设不是内核常量，
+   它是学习者自己起的名字，应该在层级上**低于**全局常量（.tok-ty）。
+   这是中性墨色的层级差，不是第三种语义色——D1 只允许绿/朱两种语义色，
+   绿=内核通过过、朱=诊断，两者在这里都没被挪用。
+   ══════════════════════════════════════════════════════════════════ */
+
+.tok-kw    { color: var(--code-kw); }
+.tok-ty    { color: var(--code-ty); }
+.tok-str   { color: var(--code-str); }
+.tok-cmt   { color: var(--code-cmt); }
+.tok-hole  { color: var(--code-hole); }
+.tok-punc  { color: var(--code-punc); }
+.tok-local { color: var(--ink-2); }
+
+.tok-num {
+  color: var(--code-num);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* 未知标识符：朱 + 波浪线。颜色**不是唯一通道**（WCAG 1.4.1）——
+   真编辑器也是这么标未知标识符的，这里顺手把双通道做对。
+   波浪线用 text-decoration，不用背景图：背景图不跟随字号、打印会掉。 */
+.tok-err {
+  color: var(--verm-ink);
+  text-decoration: underline wavy var(--verm);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em;   /* em：跟随字号缩放；这不是间距，是装饰几何 */
+  text-decoration-skip-ink: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   §1 .editor —— VS Code 窗口的克制示意
+   ──────────────────────────────────────────────────────────────────
+   设计意图（这是整站的核心隐喻）：**页面是纸，编辑器是机器**。所以编辑器
+   表面用 --code-bg / --code-ink，和纸面（--paper）拉开极性差；但它仍然是
+   亮色表面，不是"近黑底 + 荧光强调色"——D1 §方向 明确点名那一类是 AI 长相
+   第 2 类。整个面板里 0 处强调色：活动栏当前项用 --ink，状态栏的计数才用
+   绿/朱（因为那两个数字背后真的有内核判定）。
+
+   刻意**没有**的东西：假红黄绿窗口点、假 URL 栏、假菜单栏（D1 A4 明令禁止
+   画假 chrome）。留下的是真正承载信息的四件：文件名、标签页、活动栏、
+   行号栏 + 状态栏。面板自己带一行"只读示意"，见 .editor-mode。
+
+   390px 不破页的机制：.editor-body 是 grid（auto | minmax(0,1fr)），
+   代码区 overflow-x:auto —— 滚动条长在**面板内部**，页面本身永不横滚。
+   ══════════════════════════════════════════════════════════════════ */
+
+.editor {
+  background: var(--code-bg);
+  color: var(--code-ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-0);        /* 结构容器 = 零圆角（D1 §圆角） */
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-code);
+  /* 等宽语境的三件套：关连字（`->` 不许看起来像 `→`）、tab=2、数字等宽。 */
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-numeric: tabular-nums slashed-zero;
+  tab-size: 2;
+  overflow: hidden;                 /* 兜底：圆角/边框处的溢出内容不冒出去 */
+  min-width: 0;
+}
+
+/* ---- 标题栏：只有文件名 + 一行"这是示意图" ---- */
+.editor-bar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-overlay);
+  border-block-end: 1px solid var(--rule);
+  font-size: var(--fs-xs);
+  min-width: 0;
+}
+
+.editor-file {
+  color: var(--ink);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 面板自证的"我不是界面"。 --ink-3 是元信息下限，别改浅。 */
+.editor-mode {
+  margin-inline-start: auto;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+/* ---- 标签页：当前页用底色 + 墨色，**不用强调色**（D1 §颜色：导航当前页） ---- */
+.editor-tabs {
+  display: flex;
+  background: var(--surface-overlay);
+  padding-inline: var(--sp-2);
+  overflow-x: auto;                 /* 标签多了自己滚，不推宽页面 */
+  min-width: 0;
+}
+
+.tab {
+  flex: none;
+  padding: var(--sp-1) var(--sp-3);
+  color: var(--ink-3);
+  white-space: nowrap;
+  border-inline-start: 1px solid var(--rule);   /* 发丝分隔用 border，不用 gap:1px */
+}
+
+.tab:first-child { border-inline-start: 0; }
+
+.tab.is-active {
+  background: var(--code-bg);       /* 与代码区同色 ⇒ 视觉上"连着"，无需负 margin */
+  color: var(--code-ink);
+  border-block-start: 1px solid var(--rule-strong);
+}
+
+/* ---- 主体：活动栏 | 代码区 ---- */
+.editor-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+/* 活动栏：细、无 emoji。图标是内联 SVG（currentColor），当前项靠 --ink + 左侧墨条，
+   整条栏里没有任何强调色——强调色只留给真正的内核判定。 */
+.editor-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  padding-block: var(--sp-2);
+  background: var(--surface-overlay);
+  border-inline-end: 1px solid var(--rule);
+}
+
+.rail-item {
+  display: grid;
+  place-items: center;
+  width: var(--sp-6);
+  block-size: var(--sp-6);
+  color: var(--ink-3);
+  border-inline-start: 2px solid transparent;   /* 常驻占位，选中时不变宽 */
+}
+
+.rail-item.is-active {
+  color: var(--ink);
+  border-inline-start-color: var(--ink);
+  background: var(--code-bg);
+}
+
+.rail-item svg { width: var(--sp-4); height: var(--sp-4); display: block; }
+
+/* ---- 代码区 + 行号栏 ----
+   行号栏用 flex 行实现（**不是表格**）：每行 = 行号 + 代码。
+   `min-width: max-content` 让每个行盒撑满最长行，行号才能 sticky 钉住。 */
+.editor-code {
+  overflow-x: auto;
+  min-width: 0;
+  padding-block: var(--sp-2);
+}
+
+.code-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: max-content;
+}
+
+.code-line {
+  display: flex;
+  align-items: baseline;
+}
+
+/* 行号：不进剪贴板（D1 §行号）+ 等宽数字（否则十位变宽会抖）。 */
+.ln {
+  flex: none;
+  inline-size: var(--sp-7);         /* 48px：4 位数仍放得下 */
+  padding-inline-end: var(--sp-3);
+  text-align: right;
+  color: var(--ink-3);
+  user-select: none;
+  position: sticky;
+  left: 0;                          /* 横向滚动时行号不跟着跑 */
+  background: var(--code-bg);
+}
+
+.lc {
+  flex: none;
+  white-space: pre;                 /* 代码永不折行——折行破坏缩进语义 */
+  padding-inline-end: var(--sp-5);
+}
+
+/* 高亮行（"光标所在行"的静态表达）：靠底色，不靠强调色。 */
+.code-line.is-current .ln { color: var(--ink-2); }
+.code-line.is-current { background: var(--surface-overlay); }
+
+/* 洞所在的行：**行号**转朱。用已有的行号栏做通道，不额外画色条——
+   多一个图形就多一个装饰，而这里的信息量只是"这一行有洞"。 */
+.code-line.has-hole .ln { color: var(--verm-ink); }
+
+/* ---- 状态栏：这里才允许出现语义色，因为数字背后真有判定 ---- */
+.editor-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-4);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--surface-overlay);
+  border-block-start: 1px solid var(--rule);
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.st-item { white-space: nowrap; }
+.st-item.is-checked { color: var(--acc-ink); }   /* 内核真的通过过的计数 */
+.st-item.is-open    { color: var(--verm-ink); }  /* 真的还没解的 sorry 洞 */
+.st-right { margin-inline-start: auto; }
+
+/* ══════════════════════════════════════════════════════════════════
+   §2 .goal —— 目标面板（Infoview）
+   ──────────────────────────────────────────────────────────────────
+   形态照抄真面板（editor/vscode/media/infoview.js）：声明行 → 「目标 k/n」→
+   假设列表 → 待证目标；`⊢ ` 前缀、`已无目标`、`光标不在任何声明内。`、
+   `by 进度 k/n` 都是**逐字真串**，不是编的。
+
+   这里是全站"记忆点"的正位：**推理横线**（D1 §记忆点）。给定在上，
+   一条 1px --rule-strong 的横线在下，待证在横线之下。横线由 .goal-rule
+   自己长出来（flex 里的 .goal-rule-bar），⊢ 就贴在它左端——两者在同一个
+   flex 行里，所以"规则线"与"转牌"永远不会分家。
+
+   类型文本用 pre-wrap（真面板也是 white-space: pre-wrap）而不是横向滚动：
+   目标类型经常比 390px 宽，横滚会让"假设 ↔ 目标"的对照读不了。
+   代码区相反——那边 pre 不折行，因为折行会破坏缩进语义。
+   ══════════════════════════════════════════════════════════════════ */
+
+.goal {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-0);
+  /* padding 显式归零：内边距由 .goal-head / .goal-stack / .goal-progress 各自持有。
+     这也是防串味——site.css 有一个通用工具类 `.is-empty`（带 --sp-7 的 padding），
+     而本组件的空态是 `<div class="goal is-empty">`；`.goal` 与 `.is-empty` 同优先级，
+     本文件后加载，这条 `padding: 0` 就能把那个工具的 padding 挡在门外。 */
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-code);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--code-ink);
+  min-width: 0;
+}
+
+/* ---- 声明行：name · kind · L<行号> · status ---- */
+.goal-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-block-end: 1px solid var(--rule);
+  background: var(--surface-overlay);
+}
+
+.goal-decl { color: var(--ink); font-weight: 700; }
+.goal-kind { color: var(--ink-3); font-size: var(--fs-xs); }
+.goal-line { color: var(--ink-3); font-size: var(--fs-xs); }
+
+/* 状态词是内核给的**真状态**（open / checked / failed），所以这里才允许语义色：
+   绿 = 真的过了，朱 = 真的没过或还没解。 */
+.goal-status { margin-inline-start: auto; font-size: var(--fs-xs); color: var(--ink-3); }
+.goal-status.is-checked { color: var(--acc-ink); }
+.goal-status.is-open,
+.goal-status.is-failed { color: var(--verm-ink); }
+
+/* ---- 目标栈：多目标时编号（真面板的「目标 k/n」），单目标时只有「目标」 ---- */
+.goal-stack {
+  margin: 0;
+  padding: var(--sp-3);
+  list-style: none;                 /* 编号由 .goal-label 承担，不要再画一套 */
+}
+
+.goal-item + .goal-item {
+  margin-block-start: var(--sp-4);
+  padding-block-start: var(--sp-4);
+  border-block-start: 1px solid var(--rule);
+}
+
+.goal-label {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* ---- 假设：name : type ---- */
+.hyps {
+  margin: 0;
+  padding: 0;
+  padding-inline-start: var(--sp-4);   /* 悬挂缩进：假设属于这个目标 */
+  list-style: none;
+  margin-block-start: var(--sp-3);
+}
+
+.hyp {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: baseline;
+}
+
+.hyp-name { flex: none; color: var(--ink); }
+.hyp-sep  { flex: none; color: var(--code-punc); }
+
+.hyp-ty {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--code-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;          /* 长类型折行，不让面板撑破 390px */
+}
+
+/* ---- 推理横线：⊢ 贴在横线左端，待证在横线之下 ----
+   margin 只用 margin-block-start（D1 §单向 margin）。 */
+.goal-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  margin-block-start: var(--sp-4);
+}
+
+.goal-turn { flex: none; color: var(--ink-2); }
+
+.goal-rule-bar {
+  flex: 1 1 auto;
+  border-block-start: 1px solid var(--rule-strong);
+}
+
+.goal-ty {
+  margin: 0;
+  margin-block-start: var(--sp-2);
+  font: inherit;
+  color: var(--code-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---- 进度与空态 ---- */
+.goal-progress {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-block-start: 1px solid var(--rule);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-solved,
+.goal-empty {
+  margin: 0;
+  padding: var(--sp-4) var(--sp-3);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+/* 证明已闭合：这是"内核真的过了"，允许绿。 */
+.goal-solved { color: var(--acc-ink); }
+
+/* ══════════════════════════════════════════════════════════════════
+   §3 .inline-goal —— 行尾的期望类型（静态的 inlay hint）
+   ──────────────────────────────────────────────────────────────────
+   真的 inlay hint 长这样（crates/lsp/src/inlay.rs:83）：
+     label = ": <期望类型>"，kind = TYPE，padding_left = true，
+     位置 = sorry 的**结束**处，tooltip = 剩余目标 + 已引入假设。
+   所以这里画的也是": <类型>"，贴在行尾。
+
+   为什么它不能改变行高：行内元素的垂直 padding / border **不参与行盒高度
+   计算**（CSS 规范），所以下面只给 padding-inline、padding-block 保持 0，
+   盒子自然贴合字形，行距与相邻行完全不受影响。
+   ══════════════════════════════════════════════════════════════════ */
+
+.inline-goal {
+  margin-inline-start: var(--sp-2);   /* 对应真 inlay 的 padding_left */
+  padding-inline: var(--sp-1);
+  padding-block: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-style: normal;
+  color: var(--ink-3);
+  background: var(--surface-overlay);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-1);          /* 控件级圆角：它是注记，不是容器 */
+  white-space: pre;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   §4 .squiggle / .diag-pop —— 波浪线 + 真实诊断块
+   ──────────────────────────────────────────────────────────────────
+   波浪线用 text-decoration，**不用背景图**：背景图不跟随字号、换主题要重做
+   一张、打印会掉，而且它会把"下划线"画成"色块"。
+   颜色有两个通道：朱（error）+ 波浪形状本身——形状就是第二通道，所以
+   红绿色盲也能看见（WCAG 1.4.1）。
+   ══════════════════════════════════════════════════════════════════ */
+
+.squiggle {
+  text-decoration: underline wavy var(--verm);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .18em;
+  /* 不让下划线在降部处断开——断开的波浪线看起来像"两个小错"而不是"一处错"。
+     site.css 的 .squiggle 也选了这一条，所以这里写成超集：无论两个文件谁后加载，
+     行为都一致（editor.css 在 styleguide.html 里排在最后，本文件的颜色会赢）。 */
+  text-decoration-skip-ink: none;
+}
+
+/* warning 事件（真存在：reserved-declaration-name / redundant-sorry …）
+   不是诊断，是"请注意"，所以走 --warn-*，不是朱。 */
+.squiggle.is-warn { text-decoration-color: var(--warn-ink); }
+
+/* ---- 诊断块：code chip + stage + message + teaching hint ---- */
+.diag-pop {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-0);
+  box-shadow: var(--shadow-pop);      /* 全站唯一阴影，只给真正浮起的层 */
+  padding: var(--sp-3);
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  color: var(--ink);
+  min-width: 0;
+  /* 内核消息里会整段引用类型，例如 `Pi (b : Sort(0)), Pi (ha : True.[]), …`——
+     那是一整串不含空格的 ASCII，不给它断行权就会把 390px 的页面撑破。 */
+  overflow-wrap: anywhere;
+}
+
+.diag-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+/* 错误码 chip：真码（kernel-rejected / elab-unknown-identifier …），
+   等宽 + tabular-nums，因为读者会把它抄进搜索框。 */
+.diag-code {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--verm-ink);
+  background: var(--verm-wash);
+  border-radius: var(--r-1);
+  padding-inline: var(--sp-2);
+  padding-block: 0;
+}
+
+/* 规范文本行的 stage 字段（docs/protocol.md：`<line>:<col>: error[<stage>]: …`）。 */
+.diag-stage {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+}
+
+.diag-at {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  margin-inline-start: auto;
+}
+
+.diag-msg { margin: 0; margin-block-start: var(--sp-2); }
+
+/* 教学提示 = "更正"，朱色允许；左侧色条**必须**配文字标签（D1 C 档），
+   标签就是 .diag-hint-tag。 */
+.diag-hint {
+  margin: 0;
+  margin-block-start: var(--sp-3);
+  padding-inline-start: var(--sp-3);
+  border-inline-start: 2px solid var(--verm);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.diag-hint-tag {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--verm-ink);
+}
+
+/* warning 变体：chip 与色条改走 --warn-*（"请注意"，不是诊断）。 */
+.diag-pop.is-warn .diag-code {
+  color: var(--warn-ink);
+  background: var(--warn-wash);
+}
+.diag-pop.is-warn .diag-hint { border-inline-start-color: var(--warn-ink); }
+.diag-pop.is-warn .diag-hint-tag { color: var(--warn-ink); }
+
+/* ══════════════════════════════════════════════════════════════════
+   §5 .events —— 真实 --json 事件流（一行一个事件）
+   ──────────────────────────────────────────────────────────────────
+   数据就是 `scripts/soko grade <file> --json` 的 stdout：JSON Lines，
+   每行一个对象，都带 type 与 human（docs/protocol.md §Machine events）。
+
+   事件类型按**判定语义**上色（不是按好看）：
+     decl.checked / example.checked  绿  —— 内核真的过了
+     exercise.open / diagnostic      朱  —— 未解 / 真的判错
+     warning                         棕  —— 请注意，不是诊断（--warn-*）
+     expr.typed / expr.reduced /
+     decl.printed                    中性——只是输出，没有判定
+   一个元素只有一种语义色，所以颜色挂在 .event-type 这一个 span 上。
+
+   对齐机制：<ol> 取 min-width:max-content（所有行等宽 = 最宽那行），
+   行内 .event-json 是 flex:1 0 auto —— 它把**短行**的余量吃掉，于是
+   .event-src 永远贴右边缘，注解列天然对齐。序号列 position:sticky
+   钉在左边，横向滚动时序号不跑。
+   ══════════════════════════════════════════════════════════════════ */
+
+.events {
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-0);
+  padding-block: var(--sp-2);
+  overflow-x: auto;                 /* 长 JSON 行自己滚，页面永不横滚 */
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-code);
+  color: var(--code-ink);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-numeric: tabular-nums slashed-zero;
+  min-width: 0;
+}
+
+.events-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: max-content;
+}
+
+.event {
+  display: flex;
+  align-items: baseline;
+}
+
+/* 序号栏：不进剪贴板（真 --json 输出里没有序号，复制出来必须和 stdout 一致）。 */
+.event-seq {
+  flex: none;
+  inline-size: var(--sp-6);
+  padding-inline-end: var(--sp-2);
+  text-align: right;
+  color: var(--ink-3);
+  user-select: none;
+  position: sticky;
+  left: 0;
+  background: var(--code-bg);
+}
+
+.event-type { flex: none; }
+.event-type.is-checked { color: var(--acc-ink); }
+.event-type.is-open,
+.event-type.is-error { color: var(--verm-ink); }
+.event-type.is-warn  { color: var(--warn-ink); }
+.event-type.is-info  { color: var(--ink-2); }
+
+.event-json {
+  flex: 1 0 auto;                   /* 吃掉短行余量 ⇒ 注解列对齐（见上） */
+  padding-inline: var(--sp-3);
+  white-space: pre;
+}
+
+/* 注解变体：每行右边标出这条事件指的是源码哪一行。
+   不进剪贴板——它是我们加的注释，不是内核输出的一部分。 */
+/* 出处栏：源码行号 / 声明名。
+ *
+ * **必须 sticky right**，理由是被实测逼出来的：一行 `diagnostic` 事件有 277 个
+ * 字符宽（2429px），而容器只有 990px。此时一个普通右对齐的注解列会被推到
+ * ~1400px 之外——静止状态下**根本看不见**，而这栏存在的全部意义就是"让读者
+ * 把事件对回源码"。序号栏早就 sticky left，出处栏对称地 sticky right，
+ * 两边都常驻，中间那段 JSON 自己横滚。
+ *
+ * background 必须有：sticky 元素滚到内容上方时没有底色就会与 JSON 叠字。 */
+.event-src {
+  flex: none;
+  inline-size: var(--sp-8);
+  text-align: right;
+  color: var(--ink-3);
+  user-select: none;
+  position: sticky;
+  right: 0;
+  background: var(--code-bg);
+  /* 与左侧序号栏之间留一条发丝线，两栏在视觉上是一对"装订边"。 */
+  box-shadow: inset 1px 0 0 var(--rule);
+  padding-inline-start: var(--sp-2);
+}
+
+.events:not(.is-annotated) .event-src { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════
+   §6 .terminal —— shell 转录
+   ──────────────────────────────────────────────────────────────────
+   D1 §终端块：**永不画假窗口 chrome**。所以这里没有圆角盒子、没有侧边框、
+   没有红黄绿点——只有"排版式边框"：上细线 + 一行文字标签 + 一条细线，
+   然后才是转录本身。
+
+   命令与输出靠两个通道分开：`$ ` 前缀（形状）+ 墨色深浅（--ink vs --ink-2）。
+   `$ ` 前缀 user-select:none，所以**复制整块得到的是纯命令与纯输出**，
+   不会把提示符带进剪贴板（D1 §代码呈现禁令）。
+
+   长输出：.term-body 有 max-height + overflow-y，滚动条长在块内部；
+   tabindex="0" 让键盘用户也能滚（D1 要求），对应 :focus-visible 是真焦点环
+   ——这不是"假焦点环"，这个区域真的可以滚。
+   ══════════════════════════════════════════════════════════════════ */
+
+.terminal {
+  background: var(--code-bg);
+  border-block: 1px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-code);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--code-ink);
+  min-width: 0;
+}
+
+/* 文字标签：这一块是什么工具的输出。上下各一条细线就是全部"边框"。 */
+.term-label {
+  margin: 0;
+  padding: var(--sp-1) var(--sp-3);
+  border-block-end: 1px solid var(--rule-strong);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.term-body {
+  margin: 0;
+  padding: var(--sp-3);
+  overflow: auto;                          /* 横向：长行不折；纵向：长输出自己滚 */
+  max-height: calc(var(--sp-5) * 16);      /* 384px ≈ 17 行；只在长输出时生效 */
+  min-width: 0;
+}
+
+/* 键盘用户要能滚这个块——真焦点环，不是装饰。 */
+.term-body:focus-visible,
+.events:focus-visible,
+.editor-code:focus-visible {
+  outline: var(--ring-width) solid var(--ring-color);
+  outline-offset: var(--ring-offset);
+}
+
+/* 你要输入的命令：更深的墨。$ 前缀不进剪贴板。 */
+.term-cmd { color: var(--ink); }
+
+.term-prompt {
+  color: var(--ink-3);
+  user-select: none;
+}
+
+/* 你会看到的输出：无前缀、颜色更淡。 */
+.term-out { color: var(--ink-2); }
+
+/* ══════════════════════════════════════════════════════════════════
+   §7 .completion —— 补全列表的静态示意
+   ──────────────────────────────────────────────────────────────────
+   四列都是**真数据**（crates/lsp/src/lib.rs:1353-1437）：
+     kind   ← CompletionItemKind（VARIABLE / KEYWORD / STRUCT / FUNCTION / CONSTANT）
+     name   ← label
+     sig    ← documentation 里那条 `{kind} {name} : {ty}` 围栏的类型部分
+     detail ← detail（`本域 binder` / `宇宙` / `prelude` / `{kind} · {status}`）
+   一个都不编。
+
+   为什么**不用** role="listbox"：那是"你可以选"的承诺，而这块是插图。
+   用 <ul> + 选中行 aria-current="true" 表达"当前项"，读屏不会以为能按方向键。
+   选中态也不是唯一通道：除了底色，选中行还有左侧 2px 墨条。
+   ══════════════════════════════════════════════════════════════════ */
+
+.completion {
+  margin: 0;
+  padding: 0;
+  padding-block: var(--sp-1);
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-0);
+  box-shadow: var(--shadow-pop);      /* 浮层：全站唯一阴影用在这里 */
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-code);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--code-ink);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.comp-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border-inline-start: 2px solid transparent;   /* 常驻占位，选中时不变宽 */
+  min-width: 0;
+}
+
+.comp-item.is-selected {
+  background: var(--surface-sunken);
+  border-inline-start-color: var(--ink);
+}
+
+/* 种类列：定宽 ⇒ 名字左边缘对齐。小写短标签，不是图标、不是全大写。 */
+.comp-kind {
+  flex: none;
+  inline-size: var(--sp-8);
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+.comp-name { flex: none; color: var(--ink); }
+
+/* 签名列：空间不够时先截断它（真面板也是这么做的，完整签名在文档浮层里）。 */
+.comp-sig {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+}
+
+.comp-detail {
+  flex: none;
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   §8 .diff —— 期望 vs 实际（内核拒绝时它给出的两个类型）
+   ──────────────────────────────────────────────────────────────────
+   真数据来自 `diagnostic` 事件的 message（stage=kernel / code=kernel-rejected）：
+     「类型不匹配：期望 `X`，实际是 `Y`」
+   所以两块的标题就是"期望（签名要求）"与"实际（内核看到的）"——是内核的原话，
+   不是我们替它总结的。
+
+   D1 §diff 要求四个通道同时在场，这里逐条对上：
+     1. 行首 − / + 字符            → .diff-mark
+     2. 左侧 3px 色条              → .diff-side 的 border-inline-start
+     3. 背景色                     → --diff-del-bg / --diff-add-bg
+     4. 行号列底色                 → 标记列（同色 + 一条发丝线隔开）
+   红绿是红绿色盲的经典冲突对，所以 1、4 两个**非颜色**通道不是可选项。
+   用 U+2212 而不是 ASCII '-'：它在 Soko Mono 子集里（scripts/gen-site-fonts.py
+   的 MEASURED 含 0x2212），等宽对齐成立，且与 '+' 视觉等重。
+   ══════════════════════════════════════════════════════════════════ */
+
+.diff {
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.diff-side {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  border: 1px solid var(--rule);
+  border-inline-start-width: 3px;   /* 通道 2：左侧色条 */
+  border-radius: var(--r-0);
+  min-width: 0;
+}
+
+.diff-side.is-del {
+  background: var(--diff-del-bg);
+  border-inline-start-color: var(--diff-del-ink);
+}
+
+.diff-side.is-add {
+  background: var(--diff-add-bg);
+  border-inline-start-color: var(--diff-add-ink);
+}
+
+/* 通道 1 + 4：字形 + 被发丝线隔开的标记列。 */
+.diff-mark {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-2) 0;
+  border-inline-end: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.is-del .diff-mark { color: var(--diff-del-ink); }
+.is-add .diff-mark { color: var(--diff-add-ink); }
+
+.diff-main {
+  padding: var(--sp-2) var(--sp-3);
+  min-width: 0;
+}
+
+.diff-head {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+}
+
+.is-del .diff-head { color: var(--diff-del-ink); }
+.is-add .diff-head { color: var(--diff-add-ink); }
+
+.diff-body {
+  margin: 0;
+  margin-block-start: var(--sp-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-code);
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-numeric: tabular-nums slashed-zero;
+  color: var(--code-ink);
+  white-space: pre-wrap;            /* 长类型折行，不撑破 390px */
+  overflow-wrap: anywhere;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   §9 动效与交互纪律
+   ──────────────────────────────────────────────────────────────────
+   本文件**没有入场动画**：没有 fade-in、没有 slide-up、没有滚动揭示。
+   D1 §动效 的结论是"趋近于零"——唯一保留的是复制按钮的状态反馈。
+
+   唯一的 hover 挂在 .panel-copy 上，而它是**真的**能点的：site.js 的
+   [data-copy] / [data-copy-self] 会写剪贴板并回报"已复制"（site.js:108-125）。
+   没有这条接线就不要用这个类——静态插图上出现一个点了没反应的按钮，
+   比没有按钮更糟。
+   ══════════════════════════════════════════════════════════════════ */
+
+.panel-copy {
+  font-family: var(--font-ui);
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--border-control);   /* 控件边界 ≥3:1 */
+  border-radius: var(--r-1);
+  padding: var(--sp-1) var(--sp-2);
+  min-block-size: var(--sp-6);               /* 点击目标下限 */
+}
+
+/* hover 必须门控：触屏上不门控会留下"卡住的 hover"（D1 §无障碍）。 */
+@media (hover: hover) and (pointer: fine) {
+  .panel-copy:hover { background: var(--surface-sunken); }
+}
+
+/* 反馈是文案变化（site.js 写"已复制"），不是颜色变化——所以这里只加粗一点，
+   并把已复制态也做成可读的（不是只换颜色）。 */
+.panel-copy[data-copy-state="done"] { color: var(--acc-ink); }
+
+.panel-copy:focus-visible {
+  outline: var(--ring-width) solid var(--ring-color);
+  outline-offset: var(--ring-offset);
+}
+
+/* 减少动态 ≠ 归零：本文件本来就没有位移/缩放，这条几乎是空操作——这是好事，
+   但复制按钮的 100ms 底色变化仍然要能被关掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .panel-copy { transition: none; }
+}

@@ -1,305 +1,526 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>卷 I 集合论 — sokonanoda</title>
-  <meta name="description" content="卷 I《集合论》：入门课之后的第二卷，从「集合 = 谓词」一路走到 Cantor 定理与 Russell 悖论。单元目录、练习数与判卷状态由课程门禁实测生成，不在此手写。">
-  <link rel="stylesheet" href="assets/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>卷 I 集合论：十二个单元 —— sokonanoda</title>
+<meta name="description" content="卷 I《集合论》是入门课之后的第二门课：12 个单元、96 道练习、96 个 sorry 洞，计数由课程门禁实测；写这门课的过程本身撞出了语言台账里 13 条缺口。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/set-theory.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="卷 I 集合论：十二个单元 —— sokonanoda">
+<meta property="og:description" content="12 个单元、96 道练习、96 个 sorry 洞，计数由课程门禁实测；写这门课的过程撞出了语言台账里 13 条缺口。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site → editor（本页用到 turnstile 与代码块里的 tok-* 记号色） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header">
-    <div class="wrap">
-      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
-      <nav class="nav" aria-label="主导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html" class="active" aria-current="page">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html" class="lang">English</a>
+
+<body data-page="set-theory" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li><a href="course.html">课程</a></li>
+        <li>卷 I 集合论</li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">学习</p>
+      <h1>卷 I 集合论：十二个单元</h1>
+      <p class="lead">
+        它假设你已经会写证明，从「集合就是谓词」一路走到 Cantor 定理。
+        这一页给的是实测计数、顺序背后的理由，和这门课撞出来的语言缺口。
+      </p>
+    </header>
+
+    <section class="wide" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 第二门课，不是第一门课的替代</h2>
+
+      <div class="measure">
+        <p>
+          卷 I《集合论》建在语言仓里（<code>courses/set-theory/</code>），与入门课并列，不取代它。
+          入门课的 11 个单元从「什么是证明」讲起，假设你没有证明经验；卷 I 假设你已经学完它
+          ——逻辑骨架、<code>by</code> 块、归纳、量词都已经会了——直接从「集合 = 谓词」开始。
+        </p>
+        <p>
+          两门课共用同一个内核、同一条判卷命令，教学面却几乎不重叠：入门课的画布故意各自自给自足，
+          不 <code>import</code> 任何东西；卷 I 的每个单元都 <code>import</code> 一份共享的课程标准库。
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>入门课与卷 I 的四条硬差别（清单字段与判卷口径，出处 <code>courses/set-theory/README.md</code>）</caption>
+          <thead>
+            <tr>
+              <th scope="col">维度</th>
+              <th scope="col">入门课 <code>course/</code></th>
+              <th scope="col">卷 I <code>courses/set-theory/</code></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">前置</th>
+              <td>无，从「什么是证明」开始</td>
+              <td>假设读者已学完入门课，直接从「集合 = 谓词」开始</td>
+            </tr>
+            <tr>
+              <th scope="row">单元数</th>
+              <td class="num">11</td>
+              <td class="num">12</td>
+            </tr>
+            <tr>
+              <th scope="row">清单格式</th>
+              <td>v1 扁平数组，一个字节都没改</td>
+              <td><code>soko.course/2</code>：卷 → 章 → 单元，带先修、标签与练习配额</td>
+            </tr>
+            <tr>
+              <th scope="row">标准库</th>
+              <td>画布不 <code>import</code>，逐字重复的块由 <code>shared/</code> 守住</td>
+              <td>画布 <code>import lib.*</code>，共享 9 个文件、74 条声明的 L2 库</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ul class="stats">
+        <li><span class="stats__n">12</span><span class="stats__label">个单元</span></li>
+        <li><span class="stats__n">96</span><span class="stats__label">道练习（= 96 个 <code>sorry</code> 洞）</span></li>
+        <li><span class="stats__n stats__n--verified">329</span><span class="stats__label">条声明被内核接受</span></li>
+        <li><span class="stats__n">99</span><span class="stats__label">个练习还开着</span></li>
+        <li><span class="stats__n">0</span><span class="stats__label">条被内核判负</span></li>
+      </ul>
+
+      <div class="measure">
+        <div class="callout callout--note">
+          <span class="callout__title">怎么读这三个数</span>
+          <p>
+            「329 条声明被内核接受」不是 329 道证明：画布的演示、<code>lib/</code> 的 74 条声明、
+            12 份解答（解答里还包含画布演示的证明）都算在内；而且 <code>lib/Demo</code> 被判两次
+            （<code>lib Demo</code> 与 <code>lib 自检</code> 判同一个文件），所以汇总额比逐文件相加多 10。
+          </p>
+          <p>
+            「99 个练习还开着」= 12 个单元的 96 个 <code>sorry</code> 洞，加记法对照页的 3 道记法练习。
+            对照页不是单元（不进 <code>course.json</code>），但按同一套判据判卷。
+          </p>
+          <p>
+            这三个数都来自课程门禁 <code>python3 courses/set-theory/tools/check.py --json</code> 的
+            <code>summary</code> 字段，逐单元的数字在 §2。
+          </p>
+        </div>
+
+        <p>
+          十二个单元不是为了铺满十二个话题，它们指向同一个终点。整卷最硬的那道题在单元⑩，
+          它的类型是下面这个样子——前面九个单元给的都是这个目标的零件：
+        </p>
+      </div>
+
+      <div class="turnstile" role="img" aria-label="给定 α : Type，待证目标是 Not (Set.Equiv α (Set α) (Set.univ α) (Set.univ (Set α)))">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">α</span> : <span class="tok-ty">Type</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-ty">Not</span> (<span class="tok-ty">Set.Equiv</span> <span class="tok-local">α</span> (<span class="tok-ty">Set</span> <span class="tok-local">α</span>) (<span class="tok-ty">Set.univ</span> <span class="tok-local">α</span>) (<span class="tok-ty">Set.univ</span> (<span class="tok-ty">Set</span> <span class="tok-local">α</span>)))</p>
+      </div>
+
+      <div class="measure">
+        <p>
+          这是单元⑩ 练习 4 的洞（<code>courses/set-theory/units/unit10-cantor.sokonanoda:127</code>）：
+          <code>α</code> 与它的幂集不等势。等势 <code>Set.Equiv</code> 是单元⑨ 的产物，
+          <code>Set.univ</code> 来自课程标准库，而证它的对角线集合要用到单元⑩ 前面的演示。
+        </p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 十二个单元</h2>
+
+      <div class="measure">
+        <p>
+          四章十二单元：①–④ 是集合、子集与集合运算，⑤–⑦ 是序对、关系与函数，
+          ⑧–⑩ 是像、原像与基数，⑪–⑫ 是论域、悖论与综合。
+          「练习」是画布上还留着 <code>sorry</code> 的具名声明数，「洞」是这些 <code>sorry</code> 的个数
+          ——本卷两者恰好相等，因为每道具名练习恰好一个洞。
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>卷 I 的十二个单元：标题、教什么、练习与洞（计数取自 <code>site/data/site.json</code> 的 <code>set_theory.units</code>，由课程门禁实测）</caption>
+          <thead>
+            <tr>
+              <th scope="col">单元</th>
+              <th scope="col">标题</th>
+              <th scope="col">English</th>
+              <th scope="col">教什么</th>
+              <th scope="col" class="num">练习</th>
+              <th scope="col" class="num">洞</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">①</th>
+              <td>集合与隶属</td>
+              <td lang="en">Sets &amp; Membership</td>
+              <td>集合 = 论域上的谓词 <code>Set α := α → Prop</code>；隶属 = 函数应用；外延性作公理</td>
+              <td class="num">6</td>
+              <td class="num">6</td>
+            </tr>
+            <tr>
+              <th scope="row">②</th>
+              <td>子集、空集与包含三律</td>
+              <td lang="en">Subsets, the Empty Set, and the Three Laws of ⊆</td>
+              <td><code>⊆</code> 的自反、传递、反对称；空集是最小元；元素 <code>a</code> 与单元素集 <code>{a}</code></td>
+              <td class="num">10</td>
+              <td class="num">10</td>
+            </tr>
+            <tr>
+              <th scope="row">③</th>
+              <td>并、交、差与幂集</td>
+              <td lang="en">Union, Intersection, Difference &amp; Powerset</td>
+              <td>并 = <code>Or</code>、交 = <code>And</code>、差 = <code>Not</code>；幂集就是子集谓词</td>
+              <td class="num">11</td>
+              <td class="num">11</td>
+            </tr>
+            <tr>
+              <th scope="row">④</th>
+              <td>外延性与集合等式</td>
+              <td lang="en">Extensionality &amp; Set Identities</td>
+              <td>外延证明套路（<code>Set.ext</code> + 逐元素 <code>Iff</code>）；布尔代数恒等式表；形式与散文互译</td>
+              <td class="num">8</td>
+              <td class="num">8</td>
+            </tr>
+            <tr>
+              <th scope="row">⑤</th>
+              <td>序对与笛卡尔积</td>
+              <td lang="en">Ordered Pairs &amp; Cartesian Products</td>
+              <td>序对是语言原语 <code>inductive Prod</code>；配对定理；<code>A × B</code> 的成员刻画</td>
+              <td class="num">7</td>
+              <td class="num">7</td>
+            </tr>
+            <tr>
+              <th scope="row">⑥</th>
+              <td>关系</td>
+              <td lang="en">Relations</td>
+              <td>关系 = <code>A -&gt; B -&gt; Prop</code>；逆与复合；等价关系三律；等价类与划分</td>
+              <td class="num">8</td>
+              <td class="num">8</td>
+            </tr>
+            <tr>
+              <th scope="row">⑦</th>
+              <td>函数</td>
+              <td lang="en">Functions</td>
+              <td>函数即单值关系 vs 语言原语 <code>A -&gt; B</code>；单射、满射、双射；逆（数据版）</td>
+              <td class="num">9</td>
+              <td class="num">9</td>
+            </tr>
+            <tr>
+              <th scope="row">⑧</th>
+              <td>像与原像</td>
+              <td lang="en">Images &amp; Preimages</td>
+              <td>前推 <code>f '' A</code> 与回拉 <code>f ⁻¹' B</code>：原像保并交补，像只保并</td>
+              <td class="num">9</td>
+              <td class="num">9</td>
+            </tr>
+            <tr>
+              <th scope="row">⑨</th>
+              <td>等势（基数 Ⅰ）</td>
+              <td lang="en">Equinumerosity (Cardinality I)</td>
+              <td>等势用一对互逆映射定义，映射必须亲手写出来；等势是等价关系</td>
+              <td class="num">7</td>
+              <td class="num">7</td>
+            </tr>
+            <tr>
+              <th scope="row">⑩</th>
+              <td>可数与 Cantor 定理（基数 Ⅱ）</td>
+              <td lang="en">Countability &amp; Cantor's Theorem (Cardinality II)</td>
+              <td>可数 → 先给一个假枚举找矛盾 → 对角线 → Cantor 定理 → 选择公理</td>
+              <td class="num">7</td>
+              <td class="num">7</td>
+            </tr>
+            <tr>
+              <th scope="row">⑪</th>
+              <td>论域与 Russell 悖论</td>
+              <td lang="en">Universes &amp; Russell's Paradox</td>
+              <td>概括公理为什么写不出来；Russell 集；每个类型有自己的 <code>Set.univ α</code></td>
+              <td class="num">5</td>
+              <td class="num">5</td>
+            </tr>
+            <tr>
+              <th scope="row">⑫</th>
+              <td>综合与读证明</td>
+              <td lang="en">Synthesis &amp; Reading Proofs</td>
+              <td>不引入新概念：形式与散文互译、给错证明找错、串起前十一单元的期末小项目</td>
+              <td class="num">9</td>
+              <td class="num">9</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="measure">
+        <div class="callout callout--verified">
+          <span class="callout__title">这些计数复核过</span>
+          <p>
+            已发布的二进制能逐单元复现上表 11 个单元的画布计数。单元② 的输出是这样：
+          </p>
+          <div class="cmd">
+            <pre>$ scripts/soko grade courses/set-theory/units/unit02-subsets-empty.sokonanoda --json
+{"type":"decl.checked","name":"demo_notMem_empty","human":"checked declaration demo_notMem_empty"}
+{"type":"exercise.open","name":"empty_subset","human":"exercise open (fill the sorry)"}
+{"type":"exercise.open","name":"subset_empty_iff","human":"exercise open (fill the sorry)"}
+{"type":"exercise.open","name":"eq_empty_iff_forall_notMem","human":"exercise open (fill the sorry)"}
+{"type":"exercise.open","name":"singleton_ne_empty","human":"exercise open (fill the sorry)"}
+{"type":"exercise.open","name":"pair_subset_iff","human":"exercise open (fill the sorry)"}
+{"type":"exercise.open","name":"pair_comm","human":"exercise open (fill the sorry)"}
+{"type":"exercise.open","name":"singleton_of_singleton","human":"exercise open (fill the sorry)"}</pre>
+            <p class="cmd__note"><code>$</code> 是提示符，不用输入。这里省掉了开头三条 <code>exercise.open</code>（<code>subset_refl</code>、<code>subset_trans</code>、<code>subset_antisymm</code>）；退出码 0，1 条 <code>decl.checked</code> + 10 条 <code>exercise.open</code> 与上表单元② 那两列一致。</p>
+          </div>
+        </div>
+
+        <div class="callout callout--limit">
+          <span class="callout__title">限制 · 单元① 在已发布版本上判红</span>
+          <p>
+            上表 12 行来自课程门禁，而门禁跑的是仓库里那棵开发树。已发布的二进制能逐条复现 11 个单元，
+            <strong>单元① 例外</strong>：它的画布里有 <code>(A ⊆ B) ↔ ∀ (x : α), A x → B x</code>
+            这种写法（binder 直接当二元算子的右操作数），这条解析放宽还没发布。
+            用已发布二进制判它，会在 <code>import</code> 阶段报 <code>import-module-invalid</code>、退出 1。
+          </p>
+          <p>
+            站点写的是已发布版本的事实，所以这条差异留在这里，而不是把单元① 从表里删掉。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 顺序是一个论证，不是一张清单</h2>
+
+      <div class="measure">
+        <p>
+          十二个单元的编号不是目录顺序。每一条「谁先谁后」都在大纲里对着已取证的教材做法做了一次取舍，
+          取舍的理由写在 <code>docs/design/set-theory-syllabus.md</code> 里。下面七条是全部争点。
+        </p>
+      </div>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>七个顺序争点：教材怎么做（已取证），以及卷 I 为什么这么排</caption>
+          <thead>
+            <tr>
+              <th scope="col">争点</th>
+              <th scope="col">教材怎么做</th>
+              <th scope="col">卷 I 的取舍与理由</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">集合与逻辑谁先</th>
+              <td>Hammack 第 1 章先集合；Macbeth 放到第 9 章（函数之后）；Avigad 在第 11 章</td>
+              <td>不重开这一局：入门课已经教过逻辑，卷 I 直接从集合开始</td>
+            </tr>
+            <tr>
+              <th scope="row">幂集放哪</th>
+              <td>Hammack 1.3 子集 → 1.4 幂集紧随；Avigad 丢到 §11.4 最后；Halmos 与补集并列</td>
+              <td>紧随子集（单元③）。幂集的定义就是「子集谓词」，实测一条 <code>fun</code> 就过</td>
+            </tr>
+            <tr>
+              <th scope="row">序对放哪</th>
+              <td>Hammack §1.2 放在子集之前；Tao §3.5 放最后；Velleman §4.1 放在关系之前</td>
+              <td>放在集合运算之后、关系之前——Velleman 的位置，也兼容 Tao</td>
+            </tr>
+            <tr>
+              <th scope="row">关系与函数谁先</th>
+              <td>关系先：Velleman 4→5、Hammack 11→12、Avigad 13→15；函数先：Macbeth 8→9、Cummings 8→9（三比二）</td>
+              <td>关系先（单元⑥ → ⑦）。靶子是 Tao §3.3；而且「函数类型是语言原语、函数作为关系才是要教的对照」</td>
+            </tr>
+            <tr>
+              <th scope="row">复合教几次</th>
+              <td>Velleman 在关系层先教（Def 4.2.3），函数层复用（Thm 5.1.5）</td>
+              <td>采纳：复合只教一次，函数章复用单元⑥ 的定义</td>
+            </tr>
+            <tr>
+              <th scope="row">基数与选择公理谁先</th>
+              <td>六本证明教材里五本完全没有选择公理；有 AC 的都是「选择先」；唯一「基数先」的是 Tao</td>
+              <td>跟 Tao：先基数（单元⑨⑩）、后选择；并在单元⑩ 末尾点出「Mathlib 的基数建立在选择上」</td>
+            </tr>
+            <tr>
+              <th scope="row">Russell 放哪</th>
+              <td>Hammack 1.10 放第一章末；Tao §3.2 标 Optional；Halmos 完全没有；Enderton 在 Ch1</td>
+              <td>放单元⑪ 收尾对照，不放开头——它要等「论域」这个概念已经立起来才有话可说</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="measure">
+        <p>取舍的结果是一条链，不是一棵树：</p>
+
+        <div class="code">
+          <span class="code__label">依赖树（大纲 §3 锁定版）</span>
+          <button type="button" data-copy=".code pre" data-copy-idle="复制" data-copy-done="已复制">复制</button>
+          <pre>1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> {9, 10} -> 12
+
+11 可在 4 之后随时插</pre>
+        </div>
+
+        <p>
+          清单里这条链落在章的 <code>prereqs</code> 上，由门禁的 G6 判据守着（指向不存在的章判红）：
+          I.2 ← I.1，I.3 ← I.2，I.4 ← I.1 · I.3。单元级还有更细的依赖，写在单元文件头部——
+          单元⑦ 声明要 ② 与 ⑥，单元⑧ 要 ⑦ 与 ③，单元⑫ 要 ①–⑪ 全部。
+        </p>
+      </div>
+
+      <div class="measure">
+        <div class="callout callout--limit">
+          <span class="callout__title">限制 · 三处大纲与实测不符</span>
+          <p>
+            大纲自己记了实测偏差，这些没有从页面上抹掉：
+          </p>
+          <ul>
+            <li>
+              <strong>Schröder–Bernstein 砍了</strong>。原计划加进单元⑨，实测做不了：本语言的等势只能是
+              <code>Prop</code> 值（没有累积性），而 S–B 需要不动点构造。有限集与鸽笼同理。
+            </li>
+            <li>
+              <strong>单元⑦ 撞上选择公理边界</strong>。<code>bijective_iff_inverse</code> 只能是数据版
+              ——逆函数与「它是右逆」的证据由调用者交出来。「满射 ⇒ 存在右逆函数」要取数据，等于选择公理。
+            </li>
+            <li>
+              <strong>单元③ 的 D 类原稿有数学错误</strong>：大纲把 <code>A ∈ 𝒫 A</code> 列为假命题，
+              实测它是真的。勘误留在画布注释里（<code>unit03-union-inter-powerset.sokonanoda:172-176</code>），
+              课程把自己的错误留在原地当教学材料。
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" aria-current="page" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
       </nav>
     </div>
-  </header>
-
-  <main id="main" class="wrap prose">
-    <h1>卷 I《集合论》</h1>
-    <p>
-      入门课之后的<b>第二卷</b>。它不再教语言本身，而是用这门语言做数学：把「集合」当成论域上的谓词，
-      从隶属与子集出发，经由并、交、差、幂集、序对与笛卡尔积，走到关系、函数、像与原像，
-      最后到等势、Cantor 定理与 Russell 悖论。每一单元一份画布文件：讲解 + 已写好的演示 +
-      留着 <code>sorry</code> 的练习，洞由内核判定，提示分级（<code>soko:hint</code>）一次揭开一条。
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
     </p>
-
-    <div class="note">
-      这条路线的教学取舍写在 <code>docs/design/teaching-project.md</code> 与
-      <code>docs/design/set-theory-syllabus.md</code>；
-      课程标准库与练习的分界（哪些该进库、哪些该自己证）见
-      <code>docs/design/course-stdlib.md</code>。
-    </div>
-
-    <h2 class="section-title">怎么判卷（一条命令）</h2>
-    <p>
-      在仓库根跑课程自己的门禁：它把标准库自检、全部单元画布、全部解答各判一遍，
-      并打印一张表。
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
     </p>
-    <pre><code>python3 courses/set-theory/tools/check.py          # 人读的表 + 汇总
-python3 courses/set-theory/tools/check.py --json   # 同一份结果的机器可读版</code></pre>
-    <p>
-      判卷永远走<b>内核</b>：门禁对每个目标调用 <code>grade</code>、看它的退出码，
-      不做文本比对、也不对照答案；它另外要求目标文件都在、解答不留 <code>sorry</code>
-      且覆盖画布上的每个具名练习（判据与课程规模无关，不锁计数）。门禁内部给判卷器的是
-      <b>绝对路径</b>：相对路径会让模块根解析错位，整个 <code>import</code> 闭包跟着失效。
-      退出码：0 = 全绿，1 = 有目标判负，2 = 判卷环境缺失（这时不判绿）。
-      要单独判一个文件：
-    </p>
-    <pre><code>node scripts/soko grade "$PWD/courses/set-theory/units/unit01-sets-membership.sokonanoda"</code></pre>
-    <p>
-      还没装环境？<a href="get-started.html#learner">装 VS Code 扩展</a>就能在编辑器里写这些练习：
-      扩展内嵌了本平台的判卷器，不需要 Rust、Lean 或任何工具链。
-    </p>
+  </div>
+</footer>
+<!--/#footer-->
 
-    <h2 class="section-title">与入门课的关系</h2>
-    <p>
-      两卷共用同一门语言、同一个内核、同一套判卷命令，差别在<b>教什么</b>与<b>先修</b>：
-      入门课教语言（命题与证明项、等式、函数、<code>by</code>、宇宙、归纳、量词），
-      卷 I 用这门语言做集合论。卷 I <b>假设读者已学完入门课</b>，所以不再解释
-      <code>by</code>、<code>induction</code>、量词是什么，直接从「集合 = 谓词」开始。
-    </p>
-    <table class="compare">
-      <thead>
-        <tr><th></th><th>入门课（<code>course/</code>）</th><th>卷 I《集合论》（<code>courses/set-theory/</code>）</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>教什么</th>
-          <td>语言本身：命题与证明项 → 等式 → 函数 → <code>by</code> → 宇宙 → 归纳 → 量词</td>
-          <td>数学：隶属与子集 → 集合运算 → 外延性 → 序对与积 → 关系与函数 → 像与原像 → 等势与 Cantor → 论域与 Russell</td>
-        </tr>
-        <tr>
-          <th>先修</th>
-          <td>无（从这里开始）</td>
-          <td>入门课（或等价的 Lean 4 式证明经验）</td>
-        </tr>
-        <tr>
-          <th>语言</th>
-          <td>中文 + 英文镜像（代码逐字节一致）</td>
-          <td>中文；英文镜像等本卷冻结后再做</td>
-        </tr>
-        <tr>
-          <th>判卷</th>
-          <td><code>node scripts/soko grade &lt;画布&gt;</code></td>
-          <td>同上；另有课程门禁 <code>python3 courses/set-theory/tools/check.py</code></td>
-        </tr>
-        <tr>
-          <th>入口</th>
-          <td><a href="course.html">课程页</a> · <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/course" target="_blank" rel="noopener">仓库 course/</a></td>
-          <td><a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory" target="_blank" rel="noopener">仓库 courses/set-theory/</a></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h2 class="section-title">单元目录</h2>
-    <p class="section-sub">
-      编号、标题、练习数与判卷状态都由课程门禁<b>实测</b>生成（本页不写死任何计数）：
-      生成器跑 <code>courses/set-theory/tools/check.py --json</code>，把每个单元的实际判卷结果填进
-      <code>data/site.json</code>。「练习」= 画布上还留着 <code>sorry</code> 的声明数（一条练习 = 一个待填的声明），
-      「已判通过」= 该单元里内核已接受的声明数（定义与演示）。
-      「判卷状态」是课程门禁的判定（通过 / 判负 / 目标文件缺失）：它的判据与课程规模无关——
-      每个目标判卷退出码为 0、目标文件都在、解答不留 <code>sorry</code> 且覆盖画布上的每个具名练习、
-      标准库与自检不留 <code>sorry</code>。
-    </p>
-    <p class="section-sub">
-      目录按清单（<code>course.json</code> 的 <code>schema: soko.course/2</code>）的
-      <b>卷 → 章 → 单元</b>分组；每章标注<b>先修</b>（章号）、<b>标签</b>与<b>计划练习数</b>（配额）。
-      配额是<b>计划</b>不是判据：课程门禁只判形状、不锁计数，实际练习数以「练习」列为准。
-    </p>
-    <div class="stats">
-      <div class="stat"><div class="n" id="stat-units">—</div><div class="l">本卷单元</div></div>
-      <div class="stat"><div class="n" id="stat-exercises">—</div><div class="l">画布练习（<code>sorry</code>）</div></div>
-      <div class="stat"><div class="n" id="stat-targets">—</div><div class="l">门禁判卷目标（含标准库与解答）</div></div>
-      <div class="stat"><div class="n" id="stat-failed">—</div><div class="l">被判负</div></div>
-    </div>
-    <p class="section-sub" id="measure-note"></p>
-    <div id="unit-rows">
-      <p>单元数据加载中…</p>
-    </div>
-
-    <h2 class="section-title">卷里有什么</h2>
-    <ul>
-      <li><code>lib/</code> —— 课程标准库：集合的词汇 + 定义展开引理。名字按 Lean 4 标准库取证（<code>Set.notMem_empty</code>、<code>Set.mem_powerset_iff</code>、<code>Set.Subset.refl</code>…），所以这里学到的写法在 Lean 4 里同样成立。</li>
-      <li><code>units/</code> —— 单元画布：演示（已证）+ 练习（<code>sorry</code>）+ 分级提示。</li>
-      <li><code>units/solutions/</code> —— 解答钥匙（agent 专用；画布不引用它，学习者不必先看答案）。</li>
-      <li><code>tools/check.py</code> —— 本地门禁，就是上面那条命令。</li>
-      <li><code>course.json</code> —— 单元清单（顺序与标题），本页目录的数据源。</li>
-    </ul>
-
-    <div class="note">
-      本页的数字与状态全部由 <code>scripts/gen-site-data.py</code> 在生成
-      <code>site/data/site.json</code> 时实测填入，页面只负责显示——官网永不手写计数。
-    </div>
-  </main>
-
-  <footer class="site-footer">
-    <div class="wrap">
-      <nav class="fnav" aria-label="页脚导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="set-theory.html">卷 I 集合论</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html">English</a>
-      </nav>
-      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
-      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
-    </div>
-  </footer>
-
-  <script>
-  (function () {
-    var BLOB_BASE = "https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/courses/set-theory/";
-    var TREE = "https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/courses/set-theory";
-    function setText(id, t) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = t;
-    }
-    function encodePath(p) {
-      return String(p || "").split("/").map(encodeURIComponent).join("/");
-    }
-    function statusCell(cell, status) {
-      var pill = document.createElement("span");
-      pill.className = "status-pill";
-      if (status === "ok") { pill.className += " ok"; pill.textContent = "通过"; }
-      else if (status === "rejected") { pill.className += " bad"; pill.textContent = "判负"; }
-      else if (status === "missing") { pill.className += " bad"; pill.textContent = "文件缺失"; }
-      else { pill.textContent = "未实测"; }
-      cell.appendChild(pill);
-    }
-    function render(block) {
-      var volumes = block.volumes || [];
-      var flat = block.units || [];
-      var host = document.getElementById("unit-rows");
-      var exercises = 0, measured = 0;
-      host.innerHTML = "";
-
-      function unitRow(u) {
-        var tr = document.createElement("tr");
-        var num = document.createElement("td");
-        num.textContent = (u.unit == null) ? "—" : String(u.unit);
-        var title = document.createElement("td");
-        var a = document.createElement("a");
-        a.href = BLOB_BASE + encodePath(u.file);
-        a.target = "_blank"; a.rel = "noopener";
-        a.textContent = u.title || u.file;
-        title.appendChild(a);
-        var ex = document.createElement("td");
-        var chk = document.createElement("td");
-        if (typeof u.open === "number") {
-          ex.textContent = String(u.open);
-          chk.textContent = String(u.checked);
-          exercises += u.open;
-          measured += 1;
-        } else {
-          ex.textContent = "—";
-          chk.textContent = "—";
-        }
-        var st = document.createElement("td");
-        statusCell(st, u.status);
-        tr.appendChild(num); tr.appendChild(title); tr.appendChild(ex);
-        tr.appendChild(chk); tr.appendChild(st);
-        return tr;
-      }
-
-      function unitTable(units) {
-        var table = document.createElement("table");
-        table.className = "compare";
-        var thead = document.createElement("thead");
-        var headRow = document.createElement("tr");
-        ["#", "单元", "练习", "已判通过", "判卷状态"].forEach(function (label) {
-          var th = document.createElement("th");
-          th.textContent = label;
-          headRow.appendChild(th);
-        });
-        thead.appendChild(headRow);
-        table.appendChild(thead);
-        var tbody = document.createElement("tbody");
-        units.forEach(function (u) { tbody.appendChild(unitRow(u)); });
-        table.appendChild(tbody);
-        return table;
-      }
-
-      function chapterMeta(chapter) {
-        var parts = [];
-        if ((chapter.prereqs || []).length) parts.push("先修 " + chapter.prereqs.join("、"));
-        else parts.push("无先修");
-        if ((chapter.tags || []).length) parts.push("标签 " + chapter.tags.join(" · "));
-        if (typeof chapter.quota === "number") parts.push("计划练习 " + chapter.quota);
-        return parts.join(" · ");
-      }
-
-      if (volumes.length) {
-        volumes.forEach(function (volume) {
-          var vh = document.createElement("h3");
-          vh.className = "section-title";
-          vh.textContent = "卷 " + (volume.id || "") + " " + (volume.title || "");
-          host.appendChild(vh);
-          (volume.chapters || []).forEach(function (chapter) {
-            var ch = document.createElement("h4");
-            ch.textContent = "章 " + (chapter.id || "") + " " + (chapter.title || "");
-            host.appendChild(ch);
-            var meta = document.createElement("p");
-            meta.className = "section-sub";
-            meta.textContent = chapterMeta(chapter);
-            host.appendChild(meta);
-            host.appendChild(unitTable(chapter.units || []));
-          });
-        });
-      } else {
-        // v1 清单（扁平）：照旧一张表，不硬造卷/章。
-        host.appendChild(unitTable(flat));
-      }
-
-      if (!volumes.length && !flat.length) {
-        host.innerHTML = '<p>单元清单为空，见仓库 <a href="' + TREE + '">courses/set-theory/</a>。</p>';
-      }
-
-      setText("stat-units", String(flat.length || volumes.length));
-      setText("stat-exercises", measured ? String(exercises) : "—");
-      var totals = block.totals || null;
-      setText("stat-targets", totals ? String(totals.targets) : "—");
-      setText("stat-failed", totals ? String(totals.failed) : "—");
-
-      var when = block.measured_at ? "（实测日期 " + block.measured_at + "）" : "";
-      if (block.counts_source === "gate") {
-        setText("measure-note", "上表由课程门禁在生成站点数据时实测" + when + "。");
-      } else if (block.counts_source === "previous-run") {
-        setText("measure-note", "本次生成没有可用的判卷环境，沿用上一次门禁实测的计数" + when + "；状态以课程门禁的实际运行为准。");
-      } else {
-        setText("measure-note", "本次生成没有可用的判卷环境，计数留空；跑一次课程门禁即可得到上表。");
-      }
-    }
-    fetch("data/site.json").then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        var block = d.set_theory;
-        if (!block || !((block.units || []).length || (block.volumes || []).length)) {
-          throw new Error("no set_theory data");
-        }
-        render(block);
-      }).catch(function () {
-        document.getElementById("unit-rows").innerHTML =
-          '<p>单元数据加载失败，请在仓库里跑 <code>python3 courses/set-theory/tools/check.py</code>，' +
-          '或前往 <a href="' + TREE + '">courses/set-theory/</a> 查看。</p>';
-        setText("measure-note", "单元数据加载失败。");
-      });
-  })();
-  </script>
+<script src="assets/site.js"></script>
 </body>
 </html>

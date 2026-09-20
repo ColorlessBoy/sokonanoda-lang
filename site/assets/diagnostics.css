@@ -1,0 +1,133 @@
+/* site/assets/diagnostics.css — 只给 diagnostics.html 用
+ *
+ * 为什么单独一个文件（与 styleguide.css 同一条理由）：诊断字典是本站唯一
+ * 逐行密排 64 条记录的页面，它需要一套「一条记录」的排布；把这套规则放进
+ * site.css 会让其余 27 个页面都下载一份只有这里用得到的 CSS。
+ *
+ * 本文件只引用 tokens.css 的令牌，不写字面色值、不写裸 px 字号——
+ * 与 D1 §令牌 的纪律一致。
+ *
+ * 网格（宽屏 ≥ 60rem）：
+ *     ┌ 码（等宽，不换行）┬ 阶段 ┬ 含义 ┬ 提示 ─────────────────────────┐
+ *     │ Set.empty         │ 解析 │ …    │ …                              │
+ *     └───────────────────┴──────┴──────┴────────────────────────────────┘
+ * 码与阶段列宽固定，含义列拿到剩余宽度的一半、提示列拿另一半。
+ * 窄屏退成一列流：码与阶段并排一行，含义、提示各占一行。
+ */
+
+/* ── 一条码 ───────────────────────────────────────────────────────────
+ *
+ * 类名是两字母的（dc / ds / dm / dh），因为这个列表有 64 条：
+ * 每个字符都要乘 64。名字的含义写在这里，也只写在这里。
+ *     dc = diagnostic code    ds = stage
+ *     dm = meaning            dh = hint
+ * ------------------------------------------------------------------- */
+
+.diag-list {
+  margin-block: var(--sp-6) 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 网格（宽屏 ≥ 60rem）：
+ *     ┌ 码（等宽，不换行）┬ 阶段 ┬ 含义 ┬ 提示 ─────────────────────────┐
+ *     │ unexpected-token  │ 解析 │ …    │ 提示 …                          │
+ *     └───────────────────┴──────┴──────┴────────────────────────────────┘
+ * 码与阶段列宽固定，含义列拿到剩余宽度的一半、提示列拿另一半。
+ * 窄屏退成一列流：码与阶段并排一行，含义、提示各占一行。 */
+.diag-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2) var(--sp-4);
+  padding-block: var(--sp-4);
+  border-block-end: 1px solid var(--rule);
+  background-color: var(--surface);   /* 不透明底：网格不得进文本容器 */
+}
+
+.dc {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--verm-ink);             /* 朱批 = 诊断，语义色不是装饰色 */
+  overflow-wrap: anywhere;
+}
+
+/* 阶段是元信息，不是判定：用墨色，不用强调色。 */
+.ds {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.dm,
+.dh {
+  grid-column: 1 / -1;
+  font-size: var(--fs-sm);
+}
+
+.dm { color: var(--ink); }
+
+/* 教学提示：左边一条朱批细线，与「含义」在视觉上分开。
+   「提示」两个字由 CSS 生成——64 条记录，标记里一个字节都不该多花；
+   屏幕上与打印里都有，屏幕阅读器里没有（它读的是提示原文，标签是冗余的）。 */
+.dh {
+  padding-inline-start: var(--sp-4);
+  border-inline-start: 2px solid var(--verm-border);
+  color: var(--ink-2);
+}
+
+.dh::before {
+  content: "提示";
+  margin-inline-end: var(--sp-2);
+  color: var(--ink-3);
+}
+
+@media (min-width: 60rem) {
+  .diag-list > li {
+    grid-template-columns: 15rem 3rem minmax(0, 1fr) minmax(0, 2fr);
+    align-items: baseline;
+  }
+  .dm,
+  .dh { grid-column: auto; }
+}
+
+/* ── 筛选行 ─────────────────────────────────────────────────────────── */
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+/* 筛选框显示后自己带上下 24px 外边距（site.css 的 .filter），
+   在一个 flex 容器里那会把它顶得不齐——这里收掉，间距交给 .filter-row。 */
+.filter-row .filter { margin-block: 0; }
+
+/* ⚠️ site.css 里 `[data-filter] { display: none }` 的优先级（0,1,0）高于浏览器
+   内置的 `[hidden] { display: none }`（0,0,0），也高于 site.js 唯一能做的
+   `input.hidden = false`——属性被移除了，`display: none` 却仍然生效，
+   于是筛选框**永远不出现**。这里用同样的优先级、更晚加载的顺序把它掰回来：
+   属性在（无 JS）→ 隐藏；属性被 site.js 摘掉（有 JS）→ 显示。
+   根治办法是改 site.css 那一行（改成 `[data-filter][hidden]`），本页不动共享文件。 */
+[data-filter]:not([hidden]) { display: block; }
+
+/* ── §3 复现表的两列 ────────────────────────────────────────────────── */
+
+/* 源码列：换行符已经用 ⏎ 画出来了，所以这一列不需要再折行。
+   给一个下限宽度，让窄屏去横向滚动，而不是把源码挤成一条竖线。 */
+.table .src {
+  min-width: 14rem;
+  color: var(--code-ink);
+  font-size: var(--fs-xs);
+}
+
+/* 输出列：message 可能有几十个字符，折行读得下去比对齐更重要。 */
+.table .out {
+  min-width: 16rem;
+  color: var(--ink-2);
+}
+
+@media print {
+  .filter-row { display: none; }
+  .diag-entry { break-inside: avoid; }
+}

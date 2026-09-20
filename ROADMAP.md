@@ -484,6 +484,18 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
 ### I12 —— 项目官网（GitHub Pages）
 
 > 设计（已完成）：`docs/design/site.md`（含托管方案决策、单一事实源机制、信息架构、页面清单）。
+>
+> **2026-09-20 全面重构（第一百〇九轮，I12-R1）**：用户要求「不要参考旧版本，旧版本没有
+> 设计感、美感，很多 ai 味」。视觉层整体废弃，站点从 9 页扩到 **28 页**，加入功能展示页、
+> 搜索、对照页、术语表、常见问题、版本历史、404 与站点文件。
+> **新权威 = `docs/design/site-rebuild/`**（入口 `STATE.md`）；
+> **验收 = `python3 scripts/site-verify.py`**（18 项完整性 + 正确性，当前 18/18 绿、exit 0；
+> CI 跑其中 16 项，跳过的两项要 Chrome）。**三条**「站点写的是已发布事实」的判据都锚在
+> **发布 tag** 上：K12 课程计数、K16 playground 计数、K17 版本号本身（站点写的是已发布
+> 版本的事实，拿 HEAD 当基准会被课程门禁的版本钉拒判——理由与修法见
+> `docs/design/site-rebuild/STATE.md` §5/§7.2）。
+> 旧 `docs/design/site.md` 已标为被取代；`gen-site-demos.py` 与 `site/assets/demos/`
+> （PIL 假截图）已删除。详见 `STATUS.md` 第一百〇九轮与 `REQUIREMENTS.md` §9（2026-09-20）。
 
 - **S0 修文档漂移**（✅ 已完成：README 版本号、课程单元数口径等已随 I12 修正）。
 - **S1 站点骨架**：新目录 `site/`（零构建手写 HTML/CSS）+ `.github/workflows/pages.yml`

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>语言能力：每一种被接受的形式与它的边界 —— sokonanoda</title>
+<meta name="description" content="逐条列出 .sokonanoda 今天接受的语法形式：每条给出仓库里的真实例子与出处，并写明同一形式不支持什么；最后是实测的限制清单与三层库分界。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/language.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="语言能力：每一种被接受的形式与它的边界 —— sokonanoda">
+<meta property="og:description" content="语法清单：每条带仓库里的真实例子与出处，以及同一形式不支持什么。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site → editor（本页用 .tok-* 语法着色，它在 editor.css 里） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="language" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" aria-current="page" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <header class="page-head">
+      <p class="sec-num">功能</p>
+      <h1>语言能力</h1>
+      <p class="lead">
+        这一页是这门语言今天的完整清单：每一种被接受的形式，配一个仓库里的真实例子和它的出处；
+        每一种形式<strong>不接受</strong>什么，同样逐条写明。边界和功能一样重要——它们才是能不能用它的判据。
+      </p>
+    </header>
+
+    <!-- ── §1 三十秒模型 ──────────────────────────────────────────── -->
+    <section class="measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 三十秒模型</h2>
+      <p>
+        一个 <code>.sokonanoda</code> 文件就是一串<strong>声明</strong>：<code>def</code>、
+        <code>theorem</code>、<code>example</code>、<code>axiom</code>、
+        <code>inductive … end</code>。声明之间用 <code>--</code> 写讲解。
+        文件里没有别的结构——没有 <code>section</code>，没有 <code>variable</code>。
+      </p>
+      <p>
+        没写出来的答案写成 <code>sorry</code>。它是一个合法的<strong>未完成</strong>状态，
+        不是错误：编译器为它发一条 <code>exercise.open</code>，退出码仍然是 0。
+      </p>
+      <p>
+        判定永远由内核说了算。前端把源码 elaborate 成内核声明，交给完整内核终审；
+        判卷不做任何文本比对。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定 a 是 Prop，h 是 a 的证明，待证目标是 a">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">a</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">h</span> : <span class="tok-local">a</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">a</span></p>
+      </div>
+
+      <p class="small muted">
+        这不是排版。一行证明 <code>by intro a; intro h; assumption</code> 里，
+        光标进 <code>assumption</code> 时的状态就是它。复现命令：
+        <code>scripts/soko query state --file course/unit4-by-tactics.sokonanoda --line 37 --col 74</code>
+        ——回答 <code>step 1</code>、这两个假设、目标 <code>a</code>，
+        声明 <code>demo_by_assumption</code> 的状态是 <code>checked</code>。
+      </p>
+
+      <p>
+        最小的真实文件只有 7 行，它把三件事一次说完：声明、自测、待办。
+      </p>
+
+      <div class="code">
+        <span class="code__label">examples/lesson-01.sokonanoda:1-7</span>
+        <pre><code><span class="tok-cmt">-- Lesson 1: functions and types</span>
+
+<span class="tok-kw">def</span> <span class="tok-ty">id</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Prop</span> <span class="tok-punc">:=</span> <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">x</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span> <span class="tok-local">x</span>
+
+<span class="tok-kw">#check</span> <span class="tok-ty">id</span>
+
+<span class="tok-kw">example</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Prop</span> <span class="tok-punc">:=</span> <span class="tok-hole">sorry</span></code></pre>
+      </div>
+
+      <div class="cmd">
+        <pre>$ scripts/soko grade examples/lesson-01.sokonanoda
+checked declaration id
+id: Prop -&gt; Prop
+exercise open (fill the sorry)</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。三行输出对应三条事件：<code>decl.checked</code>、<code>expr.typed</code>、<code>exercise.open</code>；加 <code>--json</code> 拿到的是同一份真相的 JSON Lines。</p>
+      </div>
+
+      <p>
+        下面 §2–§6 按形式分类逐条列出这门语言接受什么、不接受什么；§7 是三层库的分界；
+        §8 是集中起来的诚实限制，以及三处「文档说的和实测不一样」。
+      </p>
+    </section>
+
+    <!-- ── §2 声明 ────────────────────────────────────────────────── -->
+    <section aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 声明：五种拼写，各有硬要求</h2>
+      <p class="measure">
+        每一种形式的「不支持」都是实测的，不是照抄文档：把中间那列的例子改坏一点，
+        就会看到右列说的那条诊断。
+      </p>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>声明形式：接受的样子（真实例子与出处）与不接受的部分。</caption>
+          <thead>
+            <tr><th scope="col">形式</th><th scope="col">接受的样子 · 出处</th><th scope="col">不支持的部分</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>def</code></th>
+              <td><code>def Not : Prop -&gt; Prop := fun (a : Prop) =&gt; a -&gt; False</code>
+                <br><span class="small muted">playground.sokonanoda:128</span></td>
+              <td>类型必须写出来：<code>def f := 1</code> 在 parse 阶段就报
+                <code>expected definition type</code>。没有 <code>where</code>、<code>mutual</code>、<code>opaque</code>。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>theorem</code></th>
+              <td><code>theorem prop_id: (a : Prop) -&gt; a -&gt; a :=</code>
+                <br><code>&nbsp;&nbsp;fun (a : Prop) =&gt; fun (h : a) =&gt; h</code>
+                <br><span class="small muted">playground.sokonanoda:175-176</span></td>
+              <td>类型必须是命题：<code>theorem t : Type := Nat</code> 报 <code>kernel-theorem-not-prop</code>。
+                值位是 <code>sorry</code> 时也照样检查签名。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>example</code></th>
+              <td><code>example : Or True False := Or.inl True False True.intro</code>
+                <br><span class="small muted">playground.sokonanoda:141</span></td>
+              <td>不能带名字：<code>example foo : True := True.intro</code> 是 parse 错。
+                它是匿名声明，名字不能被后面的代码引用。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>axiom</code></th>
+              <td><code>axiom Person : Type 0</code>
+                <br><span class="small muted">playground.sokonanoda:252</span></td>
+              <td>没有值位：<code>axiom a : True := True.intro</code> 是 parse 错。
+                公理的类型本身必须落在某个 <code>Sort</code> 上。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>abbrev</code></th>
+              <td><code>abbrev Set (α : Type) : Type := α -&gt; Prop</code>
+                <br><span class="small muted">docs/gaps/repro/G08-abbrev.sokonanoda:16</span></td>
+              <td>它不是「另一种缩写」：与 <code>def</code> 共用同一个 parser 入口，
+                语义完全相同，只是 Lean 的拼写。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        <code>#check</code> / <code>#reduce</code> / <code>#print</code> 确实能写进文件
+        （<code>course/unit5-universes-sort.sokonanoda:31-32</code> 就在用），
+        但它们是自测便利，<strong>不属于教学文件格式</strong>——编辑器里对应的能力是 hover、
+        化简动作与目标视图。另外 <code>#check</code> 只看到它<strong>之前</strong>的声明。
+      </p>
+    </section>
+
+    <!-- ── §3 归纳类型 ────────────────────────────────────────────── -->
+    <section aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 归纳类型：一个块，四种行</h2>
+      <p class="measure">
+        归纳类型是<strong>一整个块</strong>，从 <code>inductive</code> 到 <code>end</code>，
+        中间只允许 <code>ctor</code>、<code>rec</code>、<code>iota</code> 三种行。
+        下面这个块逐字抄自仓库，它同时给出构造子、消去子与两条 ι 规则——
+        也就是 Lean 教材里最劝退的那一段。
+      </p>
+
+      <div class="code">
+        <span class="code__label">course/unit6-induction-recursion-1.sokonanoda:86-102</span>
+        <pre><code><span class="tok-kw">inductive</span> <span class="tok-ty">Color</span> <span class="tok-punc">:</span> <span class="tok-ty">Type</span>
+<span class="tok-kw">ctor</span> <span class="tok-ty">red</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span>
+<span class="tok-kw">ctor</span> <span class="tok-ty">green</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span>
+<span class="tok-kw">rec</span> <span class="tok-ty">Color.rec</span> <span class="tok-punc">{</span>u<span class="tok-punc">}</span> <span class="tok-punc">:</span>
+  <span class="tok-punc">(</span><span class="tok-local">motive</span> <span class="tok-punc">:</span> <span class="tok-punc">(</span><span class="tok-local">c</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span><span class="tok-punc">)</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Sort</span> u<span class="tok-punc">)</span> <span class="tok-punc">-&gt;</span>
+  <span class="tok-punc">(</span><span class="tok-local">mr</span> <span class="tok-punc">:</span> <span class="tok-local">motive</span> <span class="tok-ty">red</span><span class="tok-punc">)</span> <span class="tok-punc">-&gt;</span>
+  <span class="tok-punc">(</span><span class="tok-local">mg</span> <span class="tok-punc">:</span> <span class="tok-local">motive</span> <span class="tok-ty">green</span><span class="tok-punc">)</span> <span class="tok-punc">-&gt;</span>
+  <span class="tok-punc">(</span><span class="tok-local">c</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span><span class="tok-punc">)</span> <span class="tok-punc">-&gt;</span> <span class="tok-local">motive</span> <span class="tok-local">c</span>
+<span class="tok-kw">iota</span> <span class="tok-ty">red</span> <span class="tok-punc">:=</span>
+  <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">motive</span> <span class="tok-punc">:</span> <span class="tok-punc">(</span><span class="tok-local">c</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span><span class="tok-punc">)</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Sort</span> u<span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span>
+  <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">mr</span> <span class="tok-punc">:</span> <span class="tok-local">motive</span> <span class="tok-ty">red</span><span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span>
+  <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">mg</span> <span class="tok-punc">:</span> <span class="tok-local">motive</span> <span class="tok-ty">green</span><span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span> <span class="tok-local">mr</span>
+<span class="tok-kw">iota</span> <span class="tok-ty">green</span> <span class="tok-punc">:=</span>
+  <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">motive</span> <span class="tok-punc">:</span> <span class="tok-punc">(</span><span class="tok-local">c</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span><span class="tok-punc">)</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Sort</span> u<span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span>
+  <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">mr</span> <span class="tok-punc">:</span> <span class="tok-local">motive</span> <span class="tok-ty">red</span><span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span>
+  <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">mg</span> <span class="tok-punc">:</span> <span class="tok-local">motive</span> <span class="tok-ty">green</span><span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span> <span class="tok-local">mg</span>
+<span class="tok-kw">end</span></code></pre>
+      </div>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>归纳类型的三种形状与它们各自的边界。</caption>
+          <thead>
+            <tr><th scope="col">形状</th><th scope="col">接受的样子 · 出处</th><th scope="col">不支持的部分</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">参数化归纳</th>
+              <td><code>inductive Option (A : Type) : Type</code><br>
+                <code>ctor none : Option A</code><br>
+                <code>ctor some (a : A) : Option A</code><br>
+                <code>end</code>
+                <br><span class="small muted">course/unit7-induction-recursion-2.sokonanoda:43-46</span></td>
+              <td>多名字 binder 组 <code>(A B : Prop)</code> 吃，无类型的 <code>(A)</code> 组是显式报错。
+                宇宙多态参数（<code>{u}</code> 级参数）仍不支持。</td>
+            </tr>
+            <tr>
+              <th scope="row">带索引归纳</th>
+              <td><code>inductive Vec (A : Type) : Nat -&gt; Type</code><br>
+                <code>ctor vnil : Vec A zero</code><br>
+                <code>ctor vcons (a : A) (n : Nat) (v : Vec A n) : Vec A (succ n)</code><br>
+                <code>end</code>
+                <br><span class="small muted">course/unit7-induction-recursion-2.sokonanoda:121-124</span></td>
+              <td>索引是 <code>ty</code> 在参数之外的 Pi 望远镜，必须写在结果箭头链里。
+                构造子的返回类型必须是本归纳的<strong>完整应用</strong>，
+                否则报 <code>kernel-ctor-result-mismatch</code>。</td>
+            </tr>
+            <tr>
+              <th scope="row">消去子与 ι 规则</th>
+              <td>上面那个块里的 <code>rec Color.rec {u} : …</code> 与两条 <code>iota</code>。</td>
+              <td>显式写出来时必须与内核推导的规则<strong>逐条一致</strong>，否则报
+                <code>kernel-rec-rule-mismatch</code>。<code>rec</code> 可以整块省略——
+                前端会按内核期望的形状自动派生递归子。</td>
+            </tr>
+            <tr>
+              <th scope="row">构造子的名字</th>
+              <td>规范名是 <code>Ind.ctor</code>（如 <code>Color.red</code>），裸名 <code>red</code> 是解析别名。</td>
+              <td>两个类型各声明一次同名裸构造子，裸名就不可判：报
+                <code>elab-ambiguous-ctor-alias</code>，这时要写全前缀名。
+                <code>mutual</code>、嵌套归纳、<code>Quot</code> 的教学语法都没有。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── §4 项、类型与证明 ──────────────────────────────────────── -->
+    <section aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 项、类型与证明：值位的三种关键字</h2>
+      <p class="measure">
+        声明的值位只有三种关键字：<code>let</code>、<code>match</code>、<code>by</code>。
+        其余的一切都是普通项——lambda、应用、构造子、消去子。
+        类型位则是箭头、<code>forall</code> 与宇宙。
+      </p>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>项与类型层：接受的样子（真实例子与出处）与不接受的部分。</caption>
+          <thead>
+            <tr><th scope="col">形式</th><th scope="col">接受的样子 · 出处</th><th scope="col">不支持的部分</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">声明级 binder</th>
+              <td><code>theorem forall_elim (P : Person -&gt; Prop) (w : Person) (h : forall (x : Person), P x) : P w := h w</code>
+                <br><span class="small muted">playground.sokonanoda:271</span></td>
+              <td>无类型的 <code>(A)</code> 组是显式报错。<code>{x : A}</code> <strong>只是打印样式</strong>：
+                隐式实参<strong>不会</strong>自动插入，签名要把参数给全。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>let</code></th>
+              <td><code>def add_two_let : Nat -&gt; Nat := fun (n : Nat) =&gt; let m : Nat := n + 2; m</code>
+                <br><span class="small muted">course/unit3-functions-arrows.sokonanoda:68</span></td>
+              <td>类型标注<strong>可以省</strong>（<code>let x := 1; x</code> 判过），但只在推得出类型时：
+                推不出就报 <code>elab-let-type-query-failed</code>。没有 <code>let rec</code>，没有模式绑定。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>match</code></th>
+              <td><code>def swap (c : Color) : Color := match c with</code>
+                <br><code>| red =&gt; green</code>
+                <br><code>| green =&gt; red</code>
+                <br><span class="small muted">course/unit6-induction-recursion-1.sokonanoda:105-107</span></td>
+              <td>见下方那张限制表——模式、被匹配项、结果类型、分支完整性四条都有边界。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>by</code></th>
+              <td><code>theorem demo_by_assumption : (a : Prop) -&gt; a -&gt; a := by intro a; intro h; assumption</code>
+                <br><span class="small muted">course/unit4-by-tactics.sokonanoda:37</span></td>
+              <td>白名单只有七个关键字：<code>intro</code> / <code>exact</code> / <code>apply</code> /
+                <code>assumption</code> / <code>rfl</code> / <code>match</code> / <code>sorry</code>。
+                白名单外的写法给一条点名全部合法 tactic 的 parse 错（§8 有复现命令）。
+                tactic 之间用 <code>;</code> 或换行分隔。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>Type n</code></th>
+              <td><code>axiom Person : Type 0</code>
+                <br><span class="small muted">playground.sokonanoda:252</span></td>
+              <td><code>Type n</code> 是 <code>Sort (n+1)</code> 的糖，单独的 <code>Type</code> 就是 <code>Sort 1</code>。
+                <code>Type u</code> <strong>不支持</strong>——<code>Type</code> 后跟裸标识符保持应用语义，
+                需要写 <code>Sort u</code>。</td>
+            </tr>
+            <tr>
+              <th scope="row">层级算术</th>
+              <td><code>def poly_mp {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β :=</code>
+                <br><code>&nbsp;&nbsp;Eq.mp.{u} α β h a</code>
+                <br><span class="small muted">docs/gaps/repro/L03-eq-type-level.sokonanoda:62-63</span></td>
+              <td>位置有 <code>Sort (u+1)</code> / <code>Sort u+1</code> / <code>Type (u+1)</code> /
+                宇宙实参 <code>Eq.{u+1}</code>。只收数字后缀：<code>u+v</code>、<code>max u v</code>、
+                <code>imax</code> 不在层级语法面内，给专用 parse 诊断。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="measure"><span class="sec-num">§4.1</span> <code>match</code> 的四条边界</h3>
+      <p class="measure">
+        前三条的复现方式都是把下面那句源码改一个地方；第四条是写法本身的约束。
+      </p>
+      <div class="table-scroll">
+        <table class="table">
+          <caption><code>match</code> 能做什么、到哪里为止。</caption>
+          <thead>
+            <tr><th scope="col">能</th><th scope="col">不能</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>通配 <code>_</code>、绑定变量、嵌套构造子 <code>some (succ k)</code>、
+                Nat 字面量 <code>0</code>（脱糖为 <code>succ^k zero</code>）、
+                Bool 守卫 <code>if cond</code>；分支有序，首个匹配者胜。</td>
+              <td>没有元组、记录、字符串字面量模式：<code>| "a" =&gt; …</code> 的 parse 错会告诉你
+                「<code>|</code> 后面要跟模式：构造子、<code>_</code>、变量名或数字字面量」。</td>
+            </tr>
+            <tr>
+              <td>被匹配项是源内 <code>inductive</code>（分支写裸构造子名），或 prelude 内建的
+                <code>Nat</code> / <code>Bool</code>（分支写 <code>Nat.zero</code> / <code>Bool.true</code>）。</td>
+              <td>参数化归纳的被匹配项必须是<strong>一个局部变量</strong>，且类型写成 <code>T 参数…</code>：
+                否则报 <code>elab-match-parameterized-unsupported</code>。</td>
+            </tr>
+            <tr>
+              <td>结果类型可以从声明类型、<code>let</code> 或 <code>fun</code> 的 binder 注解推出来；
+                被匹配项是裸局部变量时，motive 会自动依赖它。</td>
+              <td>结果类型必须<strong>已知</strong>，否则报 <code>elab-match-no-expected-type</code>；
+                结果类型依赖<strong>索引</strong>不在 v1；嵌套与守卫下的依赖 motive 子目标退回常量（保守）。</td>
+            </tr>
+            <tr>
+              <td>递归构造子字段后自动插入归纳假设 binder（<code>ih</code>、<code>ih2</code>…），
+                分支直接引用，递归不需要自引用。</td>
+              <td>分支必须覆盖该归纳的每一个构造子与字段位置；带守卫的分支后面要补一条兜底，
+                否则报 <code>elab-match-non-exhaustive</code>。<strong>臂体是项，不是 tactic 序列</strong>——
+                <code>| red =&gt; exact green</code> 报的是 <code>unknown identifier `exact`</code>。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── §5 名字、作用域与记法 ──────────────────────────────────── -->
+    <section aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 名字、作用域与记法</h2>
+      <p class="measure">
+        这一节里的命令<strong>都不是声明</strong>：它们不产生任何事件、不进声明表、不进目标视图。
+        它们只影响「一个短名解析到谁」和「一段源文本重写成什么」。
+      </p>
+
+      <h3 class="measure"><span class="sec-num">§5.1</span> <code>namespace</code> / <code>open</code> / <code>export</code></h3>
+      <p class="measure">
+        <code>namespace A</code> … <code>end A</code> 之间的声明名自动带前缀（<code>def x</code>
+        的全局名是 <code>Foo.x</code>）。前缀在 parser 里就落定，<code>end</code> 的名字必须与
+        <code>namespace</code> 那行一模一样，否则报 <code>parse-namespace-mismatch</code>。
+      </p>
+      <div class="code">
+        <span class="code__label">docs/gaps/repro/G05-namespace-open.sokonanoda:25-31</span>
+        <pre><code>namespace Foo
+def x : Type := Prop
+end Foo
+
+-- ③ `open` 的前缀：`x` 解析到 `Foo.x`（`open` 只影响解析，不重命名任何东西）。
+open Foo
+def use_short : Type := x</code></pre>
+      </div>
+      <p class="measure">解析顺序是固定的三步：当前命名空间链从内到外 → 精确名 → <code>open</code> 的前缀（按 open 顺序），第一个能解析的胜出。</p>
+      <div class="code">
+        <span class="code__label">docs/gaps/repro/G05-namespace-open.sokonanoda:55-64</span>
+        <pre><code>open Foo (x)
+def use_only : Type := x
+
+open Foo renaming x =&gt; short
+def use_renamed : Type := short
+
+open Foo in def use_local : Type := x
+
+export Foo
+def use_exported : Type := x</code></pre>
+      </div>
+      <ul class="measure">
+        <li><code>open A (a b)</code>（只要这几个）、<code>open A hiding a b</code>（挡掉这几个）、
+          <code>open A renaming a =&gt; b</code>（改名）三条<strong>互斥</strong>，先过滤后改名；
+          被改名占位的短名不再是候选。</li>
+        <li><code>open A … in &lt;命令&gt;</code> 只对紧跟的那一条<strong>叶子命令</strong>生效。</li>
+        <li><code>export A</code> 在文件内与 <code>open</code> 逐字相同，但它额外记下来，
+          单元切换时重放——所以 <code>export</code> <strong>跨 <code>import</code></strong>，
+          <code>open</code> 不跨。这一条在 §6 有实测。</li>
+      </ul>
+
+      <h3 class="measure"><span class="sec-num">§5.2</span> 用户自定义记法</h3>
+      <p class="measure">
+        记法是<strong>源级糖，不是新语义</strong>：它只把源文本重写成既有的应用形状，
+        不产生任何事件、不进声明表、不进目标视图。点名形式永久可用，两种写法判卷结果一致。
+      </p>
+      <div class="code">
+        <span class="code__label">docs/gaps/repro/G04-notation.sokonanoda:37-41</span>
+        <pre><code>infix:50 " ∈ " =&gt; mem
+infixl:65 " ∪ " =&gt; union
+prefix:100 " 𝒫 " =&gt; powerset
+postfix:100 " ᶜ " =&gt; compl
+infixr:80 " '' " =&gt; image</code></pre>
+      </div>
+      <ul class="measure">
+        <li>零元记法不带优先级：<code>notation "∅" =&gt; Set.empty</code>
+          （<code>courses/set-theory/units/notation-cheatsheet.sokonanoda:89</code>）。</li>
+        <li>符号必须是<strong>独立 token</strong>（去掉首尾空白后不能全是标识符字符）；
+          优先级 <code>N</code> 取 1–1000。<code>infix:N</code> 两侧是 <code>N</code>/<code>N+1</code>，
+          <code>infixl:N</code> 同级左结合，<code>infixr:N</code> 是 <code>N+1</code>/<code>N</code>。</li>
+        <li><strong>文件内作用域</strong>：声明之后、同文件生效，不跨 <code>import</code>；
+          但记法表本身随 <code>import</code> 继承。展开时自己补前导类型参数，
+          只做裸变量匹配——不引入元变量，也没有一般合一。</li>
+        <li><code>scoped &lt;记法命令&gt;</code> 默认<strong>不生效</strong>：没写
+          <code>open scoped Foo</code> 就用那个符号，判卷 exit 1
+          （<code>notation-unknown-symbol</code>）；加上 <code>open scoped Foo</code> 之后
+          与普通记法一样判过。<code>open scoped</code> 只开记法，不开名字。</li>
+        <li>不支持：<code>notation3</code>、依赖 binder、一般隐式实参推断；
+          <strong>后缀记法在实参位免括号明确不做</strong>——<code>f Aᶜ</code> 今天读作
+          <code>(f A)ᶜ</code>，改了会悄悄重分组。一元记法在实参位要写括号：<code>f (𝒫 A)</code>。</li>
+      </ul>
+
+      <p class="measure">
+        记法与内核的关系，最清楚的一处是<strong>它不会被打印回来</strong>。下面这条
+        <code>#check</code> 写在声明了 <code>⊆</code> 的文件里，内核的回答是点名形式：
+      </p>
+      <div class="cmd">
+        <pre>$ scripts/soko grade --root "$PWD/courses/set-theory" \
+    "$PWD/courses/set-theory/units/notation-cheatsheet.sokonanoda" --json
+{"human":"fun (α : Type) (A B : Set α) =&gt; A ⊆ B: forall (α : Type 0), Set α -&gt; Set α -&gt; Prop",
+ "inferred_type":"forall (α : Type 0), Set α -&gt; Set α -&gt; Prop", "type":"expr.typed"}</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。源码行是
+          <code>notation-cheatsheet.sokonanoda:97</code>；事件原文是一整行 JSON，这里为可读性折了行。</p>
+      </div>
+
+      <div class="turnstile" role="img" aria-label="给定 α 是 Type、A 是 Set α，待证目标是 ∅ ∪ A ⊆ A">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">α</span> : <span class="tok-ty">Type</span></li>
+          <li><span class="tok-local">A</span> : <span class="tok-local">Set</span> <span class="tok-local">α</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">(∅) ∪ <span class="tok-local">A</span> ⊆ <span class="tok-local">A</span></p>
+      </div>
+
+      <p class="small muted">
+        这是 <code>courses/set-theory/units/notation-cheatsheet.sokonanoda</code> 里一道未解练习
+        （<code>empty_union_subset</code>，<code>status: open</code>）的目标状态，复现命令：
+        <code>scripts/soko query goals --file "$PWD/courses/set-theory/units/notation-cheatsheet.sokonanoda"</code>。
+        同一份回答里还有一个 <code>ty</code> 字段，它是内核给签名渲染的文本：
+        <code>forall (α : Type 0) (A : Set α), Set.subset α (Set.union α (Set.empty α) A) A</code>
+        ——<strong>同一个声明，两个字段，一个带记法一个不带</strong>。
+        带记法的那一个是前端走查出来的剩余目标，不是内核 pp 的产物；内核 pp 只认点名形式。
+        要让它 print-back 就得改冻结内核的 pp 或维护两套真相，所以<strong>明确不做</strong>。
+      </p>
+      <p class="measure">
+        这条边界还有一半：走查器只认<strong>本文件里声明过</strong>的记法。
+        <code>notation-cheatsheet.sokonanoda</code> 自己声明了 <code>∈</code> / <code>⊆</code> /
+        <code>∪</code> / <code>∅</code>，所以它的 <code>goal</code> 字段带记法；
+        而 <code>unit03-union-inter-powerset.sokonanoda</code> 的记法只来自 <code>import</code>，
+        同一字段就是点名形式（<code>Set.subset α A (Set.union α A B)</code>）。
+      </p>
+
+      <h3 class="measure"><span class="sec-num">§5.3</span> <code>binder_notation</code>：记法出现在 binder 位</h3>
+      <div class="code">
+        <span class="code__label">courses/set-theory/units/unit08-images-preimages.sokonanoda:141-145</span>
+        <pre><code>binder_notation "∃" =&gt; Exists
+
+example (α β : Type) (f : α -&gt; β) (A : Set α) (y : β) :
+    Prop :=
+  ∃ (x : α), And (Set.mem α x A) (Eq.{1} β (f x) y)</code></pre>
+      </div>
+      <ul class="measure">
+        <li><code>∃ (x : α), p</code> 展开成 <code>Exists α (fun (x : α) =&gt; p)</code>；
+          两段式 <code>∃ x ∈ s, p</code> 展开成
+          <code>Exists α (fun (x : α) =&gt; And (x ∈ s) p)</code>。</li>
+        <li>binder 的类型<strong>要写在括号里</strong>：这个子集不引入元变量，<code>∃ x, p</code>
+          的 <code>x</code> 类型没有来源。解不出时报 <code>elab-binder-notation-unsolved</code>。</li>
+        <li>它同样<strong>不是声明</strong>：零事件，课程门禁的计数不动。</li>
+      </ul>
+
+      <h3 class="measure"><span class="sec-num">§5.4</span> 集合字面量 <code>{a}</code> / <code>{a, b}</code></h3>
+      <p class="measure">
+        这是<strong>新语法</strong>，不是记法：它展开成点名形式 <code>Set.singleton α a</code> /
+        <code>Set.pair α a b</code>，目标名写死在 elaborator 里（与 <code>+</code> 落到
+        <code>Nat.add</code> 同族）。
+      </p>
+      <div class="code">
+        <span class="code__label">crates/cli/tests/notation.rs:637-638（测试里的源文本）</span>
+        <pre><code>def one (α : Type) (a : α) : Set α := {a}
+def two (α : Type) (a b : α) : Set α := {a, b}</code></pre>
+      </div>
+      <ul class="measure">
+        <li>消歧：<code>{</code> 后面是 binder 形状（<code>{x : T}</code> / <code>{x y : T}</code>）
+          就<strong>不是</strong>字面量，所以 <code>f {a}</code> 合法。</li>
+        <li>只收 <strong>1–2 个元素</strong>：空 <code>{}</code> 与 ≥3 个元素给专用 parse 码
+          <code>set-literal-shape</code>。目标名不在本文件里（没 import 卷 I 的
+          <code>lib/Set</code>）⇒ <code>elab-set-literal-unknown-target</code>。</li>
+        <li><strong>诚实注记</strong>：仓库里的课程材料还没有用它们——<code>courses/set-theory/</code>
+          里 <code>{a}</code> 只出现在注释与 hint 文本中，代码里写的是点名形式
+          <code>Set.singleton</code> / <code>Set.pair</code>。所以上面这条引的是<strong>测试源</strong>，
+          不是课程源。</li>
+      </ul>
+    </section>
+
+    <!-- ── §6 多文件 ──────────────────────────────────────────────── -->
+    <section aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 多文件：<code>import</code> 与 <code>sokonanoda.toml</code></h2>
+      <p class="measure">
+        没有 <code>import</code> 的文件走单文件路径，而且<strong>从不发现、也不读清单</strong>——
+        单文件就该像脚本一样直接跑。文件里出现第一条 <code>import</code> 之后，
+        编译单元才升级成「入口 + import 闭包」。
+      </p>
+      <div class="code">
+        <span class="code__label">courses/set-theory/units/unit02-subsets-empty.sokonanoda:10-11</span>
+        <pre><code><span class="tok-kw">import</span> lib.Logic
+<span class="tok-kw">import</span> lib.Set</code></pre>
+      </div>
+      <div class="code">
+        <span class="code__label">courses/set-theory/sokonanoda.toml（逐字全文）</span>
+        <pre><code># 卷 I《集合论》—— 模块根 = 本目录（与将来的独立课程仓同构）。
+# 语言仓测试/脚本一律用**绝对路径**判卷（台账 G-12：相对路径 + 祖先清单会让模块根退化）。
+name = "set-theory"
+requires = "0.61"</code></pre>
+      </div>
+      <ul class="measure">
+        <li>模块根定位：<code>--root</code> 显式指定 &gt; 最近的 <code>sokonanoda.toml</code>
+          （向上走到 <code>.git</code> / <code>HOME</code> 即停）&gt; 入口文件所在目录。
+          <strong>没有清单也能 import</strong>——这是与真 Lean 的有意分歧。</li>
+        <li>模块名 = 相对模块根的路径：<code>Foo/Bar.sokonanoda</code> 就是 <code>Foo.Bar</code>。
+          <code>-</code> 不是模块名字符。</li>
+        <li>不支持：<code>import</code> 必须写在<strong>所有声明之前</strong>，否则报
+          <code>import-must-precede-declarations</code>；模块名里带 <code>-</code> 报
+          <code>import-not-a-valid-module-name</code>（经典情形就是文件名里的连字符）。</li>
+        <li><code>import</code> <strong>没有 <code>open</code> 语义</strong>。下面这张表是实测的，
+          复现方式：模块根下一份清单，<code>Mod.sokonanoda</code> 里写
+          <code>namespace M</code> + <code>def foo : Prop := True</code> + <code>end M</code>，
+          四个入口各写一行，命令是 <code>scripts/soko grade --json &lt;入口&gt;</code>。</li>
+      </ul>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>跨模块短名：<code>import</code> 只带名字进来，短名要靠 <code>open</code> / <code>export</code>。</caption>
+          <thead>
+            <tr><th scope="col">入口里写什么</th><th scope="col">判卷结果</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>import Mod</code> 之后写 <code>foo</code></td><td><code>elab-unknown-identifier</code></td></tr>
+            <tr><td>写全前缀 <code>M.foo</code></td><td><code>decl.checked</code></td></tr>
+            <tr><td><code>open M</code> 之后写 <code>foo</code></td><td><code>decl.checked</code></td></tr>
+            <tr><td>中间模块写 <code>export M</code>，下一层 <code>import</code> 之后写 <code>foo</code></td><td><code>decl.checked</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── §7 三层库 ──────────────────────────────────────────────── -->
+    <section aria-labelledby="s7">
+      <h2 id="s7"><span class="sec-num">§7</span> 三层库：prelude、课程库、练习</h2>
+      <p class="measure">
+        prelude 是<strong>受信任预置</strong>：它用 <code>.sokonanoda</code> 源语法书写后安装，
+        但从不被内核重查。它上面还有两层，分界不是「难不难」，而是一条可判定的规则：
+      </p>
+      <div class="statement statement--definition">
+        <span class="statement__label">分层判据</span>
+        <p>Mathlib 有 ≠ 我们不该练；<strong>Mathlib 有且没有数学内容（纯定义展开）才归库</strong>。</p>
+      </div>
+      <p class="measure">
+        违反的样子是具体的：让学习者在证明里手写 <code>Eq.symm</code>、<code>Or.elim</code>、
+        <code>mem_union</code> 这类东西——那是「暴力」，不是练习。
+      </p>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>三层各自的实测规模。计数命令写在 <code>lib/</code> 与 <code>units/</code> 两个目录上，逐条可复跑。</caption>
+          <thead>
+            <tr><th scope="col">层</th><th scope="col">是什么</th><th scope="col" class="num">实测</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">L1 prelude</th>
+              <td>内置、受信任、从不重查：Nat/Bool 基元、Eq 三件套、逻辑与等式骨架（8 个族 B1–B8）。</td>
+              <td class="num">47 个名字<br><span class="small muted">9 + 3 + 35</span></td>
+            </tr>
+            <tr>
+              <th scope="row">L2 课程标准库</th>
+              <td><code>courses/set-theory/lib/</code>，9 个文件：集合的词汇与定义展开。</td>
+              <td class="num">906 行<br>74 条声明<br>0 个 <code>sorry</code></td>
+            </tr>
+            <tr>
+              <th scope="row">L3 单元练习</th>
+              <td><code>courses/set-theory/units/</code>，13 个文件：一切有数学内容的陈述。</td>
+              <td class="num">2841 行<br>182 条声明<br>99 个真洞<br>44 条 <code>import</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="measure">
+        <li>L3 的 <code>sorry</code> 出现 110 次，其中 11 次在行内注释里（<code>-- … sorry …</code>），
+          所以<strong>真洞是 99 个</strong>。这个数就是卷 I 的开放练习数。</li>
+        <li>prelude 的让位规则粒度是<strong>族</strong>，不是单名：本族任一名字被闭包占用，
+          整族跳过（先装 Eq，后装 L1）。所以两个模块各自声明 <code>True</code> 会得到一条友好的
+          <code>import-name-collision</code>，而不是内核的裸错。</li>
+        <li>prelude 有两种模式：默认全装；<code>--bare</code> 或文件里写
+          <code>-- sokonanoda:prelude none</code> 则完全不装，课程从零构造一切。</li>
+      </ul>
+    </section>
+
+    <!-- ── §8 诚实的限制 ──────────────────────────────────────────── -->
+    <section aria-labelledby="s8">
+      <h2 id="s8"><span class="sec-num">§8</span> 诚实的限制</h2>
+      <p class="measure">
+        这一页的可信度不在于列了多少形式，而在于这些边界是不是真的。下面每一条都是
+        「今天做不到」，不是「暂时懒得做」——有几条是刻意的设计决定。
+      </p>
+
+      <div class="callout callout--limit">
+        <p class="callout__title">限制</p>
+        <ul>
+          <li><strong>没有隐式实参插入。</strong><code>{x : A}</code> 只是打印样式，
+            不影响类型检查，也不会被自动补上——签名要把参数给全。英文课里的原话是
+            「Implicit arguments are never auto-filled」。</li>
+          <li><strong>没有类型类、结构、<code>instance</code>。</strong>
+            它们与 <code>macro</code> 一起被列在「课程没走到之前不进白名单」。</li>
+          <li><strong>没有 <code>section</code> / <code>variable</code>。</strong>
+            文件里只有声明、<code>import</code>、作用域命令与记法命令。</li>
+          <li><strong>没有 macro。</strong><code>notation</code> 已经在语言里了，
+            但那是记法不是 macro——它不引入新语义。</li>
+          <li><strong><code>Type u</code> 不支持</strong>（<code>Type</code> 后跟裸标识符保持应用语义，
+            需要时写 <code>Sort u</code>）；<code>u+v</code> / <code>max u v</code> /
+            <code>imax</code> 不在层级语法面内，只有数字后缀。</li>
+          <li><strong><code>match</code> 的四条边界</strong>（§4.1）：模式种类、被匹配项的形状、
+            结果类型、分支完整性，每一条都会给出点名的诊断。</li>
+          <li><strong><code>Prop</code> / <code>Sort</code> / <code>Type</code> 是保留名。</strong>
+            可以声明，但编译器给一条 <code>reserved-declaration-name</code> 警告，
+            而且这个名字<strong>永不被引用</strong>——警告不影响退出码（实测 exit 0）。</li>
+          <li><strong>没有源码级 print-back。</strong>内核 pp 只认点名形式，
+            所以 <code>#check</code> 显示 <code>Set α -&gt; Set α -&gt; Prop</code>，
+            不是 <code>⊆</code>。要做就得改冻结内核的 pp 或维护两套真相，明确不做。</li>
+          <li><strong>没有累积性。</strong><code>Prop ⊆ Type</code> 在本语言<strong>不成立</strong>
+            （官方 Lean 4 有）：给 <code>Sort(n≥1)</code> 的地方给 <code>Sort(0)</code>，
+            报 <code>kernel-prop-not-cumulative</code>。</li>
+          <li><strong><code>by</code> 引擎合成的判定声明不带宇宙参数</strong>，
+            所以目标里出现宇宙变量时 tactic 判定会失败——<code>Sort u</code> 与
+            <code>Sort (u+1)</code> 都受影响。</li>
+          <li><strong>没有 WASM 构建。</strong>所以这个网站<strong>不能</strong>内嵌一个
+            「真的能跑」的 playground——本页所有输出都是预录制的真实运行结果，命令写在每处出处里。</li>
+          <li><strong><code>query check</code> 对「记法来自被 import 的模块」的文件会假红。</strong>
+            拿 <code>courses/set-theory/units/unit08-images-preimages.sokonanoda</code> 试：
+            它用 <code>f '' A</code>，而 <code>''</code> 声明在 <code>lib/Image</code> 里。
+            <code>scripts/soko query check --file "$PWD/…"</code> 退出 1 并报一条
+            <code>notation-unknown-symbol</code>（130:46），而同一个文件
+            <code>scripts/soko grade --json "$PWD/…"</code> 是退出 0、27 条事件、0 条诊断。
+            原因：<code>query</code> 的 <code>check</code> / <code>goals</code> 先按单文件解析，
+            看不见 import 进来的记法。<strong>判卷以 <code>grade</code> 为准</strong>，
+            别拿 <code>query check</code> 的 <code>failed[]</code> 当判据。
+            <br>
+            <strong>版本标注</strong>：上面这条复现属于<strong>当前发布版本</strong>。
+            未发布的下一批改动里它已不再复现（同一条命令、同一个文件，工作区构建退出 0、
+            <code>failed: []</code>）——<strong>发布之后请重测</strong>，并以重测结果为准。</li>
+        </ul>
+      </div>
+
+      <h3 class="measure"><span class="sec-num">§8.1</span> 三处「文档说的和实测不一样」</h3>
+      <p class="measure">
+        这一页按实测写，不按文档写。下面三处是实测与仓库文档冲突的地方，命令都短，可以自己跑一遍。
+      </p>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>文档 vs 实测：以实测为准的三处。</caption>
+          <thead>
+            <tr><th scope="col">文档说</th><th scope="col">实测</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>docs/architecture.md:519</code> 仍把 <code>match</code> tactic
+                列在未做清单里。</td>
+              <td><code>by match</code> 可用：下面这段判过，退出码 0。文档这一条已经过期。</td>
+            </tr>
+            <tr>
+              <td>同一行的未做清单里还有「无注解 <code>let</code>」。</td>
+              <td><code>def g : Nat := let x := 1; x</code> 判过。只有推不出类型时
+                才报 <code>elab-let-type-query-failed</code>。</td>
+            </tr>
+            <tr>
+              <td>设计文档说目标与类型文本一律是点名形式。</td>
+              <td>要分两半看：内核 pp（<code>#check</code>、<code>ty</code>、<code>by</code>
+                目标状态）是点名形式；<code>query goals</code> 给未解练习的 <code>goal</code>
+                字段保留记法。§5.2 有这两个字段的实测对照。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="cmd">
+        <pre>$ cat bymatch.sokonanoda
+inductive Color : Type
+ctor red : Color
+ctor green : Color
+end
+
+def swap (c : Color) : Color := by match c with | red =&gt; green | green =&gt; red
+$ scripts/soko grade bymatch.sokonanoda
+checked declaration Color
+checked declaration swap</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。第二条：<code>printf 'def g : Nat := let x := 1; x\n' | scripts/soko -</code> 输出 <code>checked declaration g</code>。</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" aria-current="page" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

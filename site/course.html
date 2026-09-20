@@ -1,132 +1,523 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>课程 — sokonanoda</title>
-  <meta name="description" content="sokonanoda 的课程按逻辑先行排列：先证明命题，再引出量词、等式、函数、宇宙、归纳与 tactic。中英双语；单元数与顺序由 <code>course/course.json</code> 生成，不在此手写。">
-  <link rel="stylesheet" href="assets/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>入门课：十一个单元 —— sokonanoda</title>
+<meta name="description" content="入门课从「什么是证明」讲起，假设你没有证明经验。十一个单元、每个单元一个可独立编译的文件、每道练习留一个 sorry 洞；填完由完整内核判定对错。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/course.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="入门课：十一个单元 —— sokonanoda">
+<meta property="og:description" content="十一个单元，每个单元一个可独立编译的文件，每道练习留一个 sorry 洞；判定由完整内核给出。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site → editor（本页用到目标面板组件） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header">
-    <div class="wrap">
-      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
-      <nav class="nav" aria-label="主导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html" class="active" aria-current="page">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html" class="lang">English</a>
-      </nav>
-    </div>
-  </header>
 
-  <main id="main" class="wrap prose">
-    <h1>课程</h1>
-    <p>
-      课程按<b>逻辑先行</b>排列：第一单元直接让你证明命题，等自然发问「函数类型的类型是什么」
-      时再引出宇宙。题序跟着直觉走，不是先堆术语。每个单元一份画布文件，带讲解、已写好的演示和留着
-      <code>sorry</code> 的练习；练习留洞是合法状态，填完由内核判定。课程有中文和英文两套，代码逐字节一致，只差注释语言。
-      单元⑦（量词）补上单元①没展开的 <code>forall</code> 与 <code>Exists</code>，可紧跟单元①使用。
-    </p>
+<body data-page="course" data-root="./">
 
-    <div class="note" style="margin:18px 0">
-      还没装环境？<a href="get-started.html#learner">装 VS Code 扩展</a>就能在编辑器里直接写这些练习。
-    </div>
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
 
-    <h2 class="section-title">从这里开始</h2>
-    <section class="cards" id="units" aria-live="polite">
-      <p>单元数据加载中…</p>
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" aria-current="page" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li>课程</li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">学习</p>
+      <h1>入门课：十一个单元</h1>
+      <p class="lead">
+        这门课从「什么是证明」讲起，假设你没有证明经验。十一个单元，每个单元一个可以独立编译的文件，
+        每道练习留一个 <code>sorry</code> 洞——把洞填上，完整内核告诉你它对不对。
+      </p>
+    </header>
+
+    <section class="measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 这门课假设你没有证明经验</h2>
+      <p>
+        入门课从「什么是证明」讲起。你不需要先学一门逻辑课，不需要碰过 Lean 或 Coq，
+        也不需要装 Rust——会读代码就能开始。
+      </p>
+      <p>
+        十一个单元，每个单元是一个可以独立编译的文件。文件里只有三样东西：
+        <code>--</code> 开头的中文讲解、已经写好的演示、值位留着 <code>sorry</code>
+        的练习。<code>sorry</code> 是合法的开放状态，不是错误：它表示「这里还等着你填」，
+        内核照常把剩下的目标算给你看。
+      </p>
+      <p>
+        第一道练习是单元①的第 46 行，<code>theorem true_is_true : True := sorry</code>。
+        内核对那个洞的回答是这样：
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定 True : Prop 与 True.intro : True，待证目标是 True">
+        <ul class="turnstile__given">
+          <li><span class="tok-ty">True</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-ty">True.intro</span> : <span class="tok-ty">True</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-ty">True</span></p>
+      </div>
+
+      <p>
+        横线上面两行是画布自己声明的逻辑骨架
+        （<code>course/unit1-propositions-proofs.sokonanoda:17-18</code>）；
+        下面那行来自
+        <code>scripts/soko query state --file course/unit1-propositions-proofs.sokonanoda --line 46 --col 30</code>
+        的 <code>goal</code> 字段。第一道练习要的，就是这两行之间那个类型的一个项。
+      </p>
+
+      <p>整门课用一条命令就能量完：</p>
+
+      <ul class="stats">
+        <li><span class="stats__n">11</span><span class="stats__label">个单元</span></li>
+        <li><span class="stats__n stats__n--verified">86</span><span class="stats__label">条声明被内核接受</span></li>
+        <li><span class="stats__n">65</span><span class="stats__label">个练习等着填</span></li>
+        <li><span class="stats__n">0</span><span class="stats__label">条被内核判负</span></li>
+      </ul>
+
+      <p>
+        数字来自 <code>scripts/soko course course/course.json --json</code>
+        的最后一行（<code>course.summary</code>）；每个单元自己那行在 §5。
+      </p>
+
+      <div class="callout callout--note">
+        <span class="callout__title">怎么读这两个数</span>
+        <p>
+          「86 条声明被内核接受」数的不是 86 道证明——每个画布都自带一份逻辑骨架
+          （<code>axiom True</code>、<code>And.intro</code> 这类），它们和演示、和你已经填好的练习
+          一起计入。这个数的作用是：证明这十一个文件真的编译得动。
+        </p>
+        <p>
+          「65 个练习等着填」才是你要做的量。它是 <code>exercise.open</code> 事件的总数，
+          也就是整门课里 <code>sorry</code> 的个数。
+        </p>
+        <p>
+          这两个数都不是进度条。单元⑤ 的通过计数就是 <code>0</code>——它不靠「已经写好的声明」教学，
+          而是用五条 <code>#check</code> 让内核当场回答类型（<code>expr.typed</code> 五条），
+          声明只剩六道练习。计数为 0 说明的是那个单元换了教学手段，不是它坏了。
+        </p>
+      </div>
     </section>
 
-    <h2 class="section-title">怎么用这些单元</h2>
-    <ul>
-      <li>每个单元自包含：带上它需要的公理 / 归纳块，单独一个文件就能编译通过。</li>
-      <li>每个单元至少有一次 <code>#reduce</code> 自测，方便你确认化简结果。</li>
-      <li>卡住时，文件里的 <code>-- soko:hint</code> 提示是分级的，一次揭开一条。</li>
-      <li>真正的答案（解答钥匙）只给 agent 用，不直接发给学习者——你的练习由内核判，不靠对照答案。</li>
-    </ul>
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 单元目录：教什么、学完能做什么</h2>
+      <p class="measure">
+        顺序是「逻辑先行」（<code>course/README.md:13-16</code>）：单元① 直接证命题，
+        <code>by</code> 写法提前到单元④ 当反馈加速器，
+        而「函数类型自己的类型是什么」这个问题留到单元⑤ 才揭晓。
+        下面的编号、标题与顺序逐字取自 <code>course/course.json</code>；
+        每个单元一行，第一句是它教什么，第二句是学完你能做什么。
+      </p>
 
-    <h2 class="section-title">学完之后：卷 I《集合论》</h2>
-    <p>
-      这一门教的是<b>语言本身</b>。学完它（或已有等价的 Lean 4 式证明经验）之后，
-      接着走 <a href="set-theory.html">卷 I《集合论》</a>：同一门语言、同一个内核、同一套判卷方式，
-      但换成为数学而写——从「集合 = 谓词」出发，经集合运算、外延性、序对与积、关系与函数、
-      像与原像、等势，一路做到 Cantor 定理与 Russell 悖论。每单元的画布结构与这里的单元完全一致。
-    </p>
-  </main>
+    <ol class="unit-list">
+      <li class="unit-card">
+        <span class="unit-card__no">①</span>
+        <span class="unit-card__title">命题与证明项</span>
+        <span class="unit-card__meta">教什么：命题住在 <code>Prop</code> 里，一个类型为命题的项就是它的证明；箭头对应 <code>fun</code>，<code>And</code>/<code>Or</code>/<code>False</code> 由一组公理搭出最小逻辑骨架。<br>学完能：自己写出证明项——<code>True</code> 的证明是 <code>True.intro</code>，<code>And a b</code> 的证明是把两份证明交进 <code>And.intro</code>。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">②</span>
+        <span class="unit-card__title">等式与 rfl</span>
+        <span class="unit-card__meta">教什么：第一个具体类型 <code>Nat</code>，以及「相等」这个命题 <code>Eq</code>：两边算出来是同一个值时 <code>rfl</code> 成立，<code>Eq.subst</code> 能把 <code>a = b</code> 当搬运工用。<br>学完能：亲手造出 <code>eq_symm</code> 与 <code>eq_trans</code>——对称与传递不再是背下来的公理，而是你自己写的项。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">③</span>
+        <span class="unit-card__title">函数与箭头</span>
+        <span class="unit-card__meta">教什么：类型里的箭头就是函数；<code>fun</code> 一层层剥参数，<code>let</code> 给中间结果起名，函数可以当参数，也可以当返回值。<br>学完能：把 <code>(Nat -&gt; Nat) -&gt; Nat -&gt; Nat</code> 读成「吃一个函数、返回一个函数」，而不是一串符号。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">④</span>
+        <span class="unit-card__title">by 写法：tactic 证明</span>
+        <span class="unit-card__meta">教什么：<code>by</code> 块把证明写成一串命令（<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>assumption</code> / <code>rfl</code>），编译器替你搭出证明项。<br>学完能：用 tactic 写证明，并且知道它和手写项是同一件事——课程把它提前到这里，当作反馈加速器。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">⑤</span>
+        <span class="unit-card__title">宇宙：函数类型的类型</span>
+        <span class="unit-card__meta">教什么：<code>Nat -&gt; Nat</code> 自己的类型是什么：<code>Prop = Sort 0</code>、<code>Type 0 = Sort 1</code>，以及 <code>Eq.{u}</code> 里那个宇宙实参的来历。<br>学完能：回答「类型的类型」，并写出宇宙多态的 <code>Eq.symm</code>——单元②里那条机械规则到这里才揭晓。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">⑥</span>
+        <span class="unit-card__title">归纳与递归 Ⅰ</span>
+        <span class="unit-card__meta">教什么：一个显式 <code>inductive Nat</code> 块 = 类型 + 构造子 + 消去子 <code>Nat.rec</code> + iota 规则；<code>match</code> 递归时自动带上归纳假设 <code>ih</code>。<br>学完能：自己搭出自然数，手写 <code>Nat.rec</code>，再用 <code>match</code> 写递归定义。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">⑦</span>
+        <span class="unit-card__title">归纳与递归 Ⅱ</span>
+        <span class="unit-card__meta">教什么：参数化归纳（<code>Option</code>）、依赖 <code>match</code>（就是数学归纳法）、嵌套与通配模式，最后是带索引的 <code>Vec</code>。<br>学完能：对「结果类型随取值变化」的东西分情况证明——这正是数学归纳法的形状。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">⑧</span>
+        <span class="unit-card__title">量词：forall 与 exists</span>
+        <span class="unit-card__meta">教什么：∀ 的引入写 <code>fun</code>、消去写应用；∃ 的引入交出一个证人加一份性质，消去则把函数交给 <code>Exists.elim</code>。<br>学完能：把「每个人」「至少有一个人」写成类型并证明——单元①的箭头里本来就埋着 ∀。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">⑨</span>
+        <span class="unit-card__title">关系与联结词</span>
+        <span class="unit-card__meta">教什么：把 <code>Or</code> 从公理升级成真的 <code>inductive</code>（自动派生 <code>Or.rec</code>），把 <code>Iff</code> 当 <code>def</code> 展开，把 <code>Le</code>/<code>Even</code> 立成归纳关系。<br>学完能：拆开一个「或」，用消去子从两份可能的证据里得到结论；也能归纳地定义「偶数」这类关系。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">⑩</span>
+        <span class="unit-card__title">读证明与综合</span>
+        <span class="unit-card__meta">教什么：不教新语法——自解释三问、形式与非形式互译、评阅被内核拒绝的证明，最后是一个期末小项目。<br>学完能：读一份证明并说出它在干什么；把一句中文数学命题翻成内核可判定的声明。</span>
+      </li>
+      <li class="unit-card">
+        <span class="unit-card__no">⑪</span>
+        <span class="unit-card__title">模块与项目</span>
+        <span class="unit-card__meta">教什么：<code>import Foo.Bar</code> 必须写在最上方、模块名与路径的对应（<code>-</code> 不是模块名字符）、<code>sokonanoda.toml</code> 项目根与闭包级规则。<br>学完能：把编译单元从「一个文件」升级成「入口文件 + import 闭包」，并跑通 <code>course/unit11-project/</code> 那个真的两文件项目。</span>
+      </li>
+    </ol>
 
-  <footer class="site-footer">
-    <div class="wrap">
-      <nav class="fnav" aria-label="页脚导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html">English</a>
+      <p class="measure">
+        每个单元文件都自给自足：不 <code>import</code> 任何东西，打开一个文件就能看到它用到的
+        全部前置声明（<code>course/README.md:53-58</code>）。所以任何一单元都能单独打开、单独判卷，
+        判卷还是逐声明容错的——一个练习红了不影响别的练习。
+        单元⑧（量词）是单元① 的逻辑补充，可以紧跟单元① 教学
+        （<code>course/README.md:19</code>）。
+      </p>
+    </section>
+
+    <section class="measure" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 一次会话长什么样</h2>
+      <p>
+        这门课不是让你从第一页读到最后一页。一次会话是一个循环，四步：
+      </p>
+      <ol>
+        <li><strong>讲</strong>：老师（一个 agent）往画布上追加中文讲解、写好的演示，和一道新练习。</li>
+        <li><strong>答</strong>：你在洞里作答。可以只写一半——先写前几层 <code>fun</code>，最后一层留
+          <code>sorry</code>，这是合法状态。</li>
+        <li><strong>问</strong>：把光标停在 <code>sorry</code> 上，内核告诉你手里已经有什么、还差什么。</li>
+        <li><strong>判</strong>：老师跑一次判卷，读事件流决定下一步；你也可以自己跑。</li>
+      </ol>
+      <p>
+        第三步是这门课与一本习题册最大的差别。下面这个状态是内核对一个 <code>sorry</code>
+        的完整回答，不是排版排出来的——上面一列是它给的假设，横线下面是它给的目标。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · 悬停一个 sorry</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">exists_elim_rule</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L128</span>
+            <span class="goal-status is-open">open</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+                <li class="hyp"><span class="hyp-name">P</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Person</span> -&gt; <span class="tok-ty">Prop</span></code></li>
+                <li class="hyp"><span class="hyp-name">Q</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Prop</span></code></li>
+                <li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Exists</span> <span class="tok-ty">Person</span> <span class="tok-local">P</span></code></li>
+                <li class="hyp"><span class="hyp-name">f</span><span class="hyp-sep">:</span><code class="hyp-ty">(<span class="tok-local">x</span> : <span class="tok-ty">Person</span>) -&gt; <span class="tok-local">P</span> <span class="tok-local">x</span> -&gt; <span class="tok-local">Q</span></code></li>
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">Q</span></pre>
+            </li>
+          </ol>
+        </div>
+        <figcaption class="illus-cap">逐字来自
+        <code>scripts/soko query state --file course/unit8-quantifiers.sokonanoda --line 128 --col 3</code>：
+        <code>binders</code> 四条、<code>goal</code> 是 <code>Q</code>、<code>decl.status</code> 是
+        <code>open</code>。类型文本里的每个 <code>.tok-*</code> 都对应一个内核给的
+        <code>ty_runs</code> / <code>goal_runs</code> run——页面不重新分词。</figcaption>
+      </figure>
+
+      <p>
+        完整的循环——老师怎么出题、判完之后怎么走、三种「卡住」各自该怎么办——在
+        <a href="learn.html">怎么学</a>那一页。一题从第一行到最后一行、每一步的目标状态，
+        在<a href="walkthrough.html">走查一题</a>。
+      </p>
+      <p>
+        卡住时不必猜。每道练习前面挂着两三条 <code>-- soko:hint</code> 注释，
+        编辑器里的「提示」节点逐条揭示：先说思路，再说目标该拆成什么形状，最后给该用的构造子或引理名。
+        答案永远不写进提示——那是留给你的部分。
+      </p>
+    </section>
+
+    <section class="measure" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 一道真题，连洞一起</h2>
+      <p>
+        下面是单元③ 的第一道练习，原文照抄，一个字符没改。它要你写一个把自然数翻倍的函数：
+      </p>
+
+      <div class="code" id="real-exercise">
+        <span class="code__label">course/unit3-functions-arrows.sokonanoda:33</span>
+        <button type="button" data-copy="#real-exercise pre" data-copy-idle="复制" data-copy-done="已复制">复制</button>
+        <pre tabindex="0"><span class="tok-kw">def</span> <span class="tok-ty">double</span> <span class="tok-punc">:</span> <span class="tok-ty">Nat</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Nat</span> <span class="tok-punc">:=</span> <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">n</span> <span class="tok-punc">:</span> <span class="tok-ty">Nat</span><span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span> <span class="tok-hole">sorry</span></pre>
+      </div>
+
+      <p>
+        洞在 <code>fun (n : Nat) =&gt;</code> 后面——也就是说，第一层已经写掉了，
+        剩下的是一个类型为 <code>Nat</code> 的表达式。把光标停在那行 <code>sorry</code> 上，
+        内核的回答是这样：
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定 n : Nat，待证目标是 Nat">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">n</span> : <span class="tok-ty">Nat</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-ty">Nat</span></p>
+      </div>
+
+      <p>
+        这条状态来自
+        <code>scripts/soko query state --file course/unit3-functions-arrows.sokonanoda --line 33 --col 50</code>：
+        <code>binders</code> 一条（<code>n</code>）、<code>goal</code> 是 <code>Nat</code>。
+        答案就是拿 <code>n</code> 凑出一个翻倍表达式；具体怎么写，画布上的三条
+        <code>-- soko:hint</code> 会一层层递给你，但最后一步留给你。
+      </p>
+
+      <p>
+        答案本身在同一门课的钥匙目录里。<code>course/solutions/</code> 每个单元一份，
+        与画布一一对应：<code>unit3-functions-arrows-solution.sokonanoda</code> 里那个同名的
+        <code>double</code> 已经填好，并且经过完整内核验证。钥匙是给老师（agent）用的，
+        不会直接发给你——它存在的意义是保证每道题真的有解。
+      </p>
+      <p>
+        同一个声明，画布判一次、钥匙判一次，输出里差别只有事件类型那一栏：
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 同一个声明的两种判定</p>
+        <div class="terminal">
+          <p class="term-label">scripts/soko grade</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko grade course/unit3-functions-arrows.sokonanoda --json</span>
+<span class="term-out">{"human":"exercise open (fill the sorry)","name":"double","type":"exercise.open"}</span>
+<span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko grade course/solutions/unit3-functions-arrows-solution.sokonanoda --json</span>
+<span class="term-out">{"human":"checked declaration double","name":"double","type":"decl.checked"}</span></pre>
+        </div>
+        <figcaption class="illus-cap">两次输出里 <code>double</code> 那一行，逐字照抄（每条命令还会打印同一文件的其他声明）。
+        画布是 <code>exercise.open</code>：洞里还是 <code>sorry</code>；钥匙是 <code>decl.checked</code>：
+        内核真的把那个项检查完了。</figcaption>
+      </figure>
+    </section>
+
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 判卷：一条命令，判据是内核的</h2>
+      <p class="measure">
+        判卷没有别的入口，也不需要你相信谁。整门课一条命令，每行一个单元的计数，
+        最后一行是合计：
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 整门课的进度</p>
+        <div class="terminal">
+          <p class="term-label">scripts/soko course course/course.json --json</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko course course/course.json --json</span>
+<span class="term-out">{"checked":13,"failed":0,"file":"unit1-propositions-proofs.sokonanoda","open":6,"reduced":1,"title":"单元① 命题与证明项","type":"course.unit","unit":1}</span>
+<span class="term-out">{"checked":3,"failed":0,"file":"unit2-equality-rfl.sokonanoda","open":5,"reduced":2,"title":"单元② 等式与 rfl","type":"course.unit","unit":2}</span>
+<span class="term-out">{"checked":2,"failed":0,"file":"unit3-functions-arrows.sokonanoda","open":6,"reduced":2,"title":"单元③ 函数与箭头","type":"course.unit","unit":3}</span>
+<span class="term-out">{"checked":13,"failed":0,"file":"unit4-by-tactics.sokonanoda","open":5,"reduced":0,"title":"单元④ by 写法：tactic 证明","type":"course.unit","unit":4}</span>
+<span class="term-out">{"checked":0,"failed":0,"file":"unit5-universes-sort.sokonanoda","open":6,"reduced":1,"title":"单元⑤ 宇宙：函数类型的类型","type":"course.unit","unit":5}</span>
+<span class="term-out">{"checked":7,"failed":0,"file":"unit6-induction-recursion-1.sokonanoda","open":6,"reduced":3,"title":"单元⑥ 归纳与递归 Ⅰ","type":"course.unit","unit":6}</span>
+<span class="term-out">{"checked":7,"failed":0,"file":"unit7-induction-recursion-2.sokonanoda","open":4,"reduced":4,"title":"单元⑦ 归纳与递归 Ⅱ","type":"course.unit","unit":7}</span>
+<span class="term-out">{"checked":14,"failed":0,"file":"unit8-quantifiers.sokonanoda","open":7,"reduced":1,"title":"单元⑧ 量词：forall 与 exists","type":"course.unit","unit":8}</span>
+<span class="term-out">{"checked":13,"failed":0,"file":"unit9-relations-connectives.sokonanoda","open":8,"reduced":0,"title":"单元⑨ 关系与联结词","type":"course.unit","unit":9}</span>
+<span class="term-out">{"checked":7,"failed":0,"file":"unit10-reading-proofs.sokonanoda","open":6,"reduced":0,"title":"单元⑩ 读证明与综合","type":"course.unit","unit":10}</span>
+<span class="term-out">{"checked":7,"failed":0,"file":"unit11-modules-projects.sokonanoda","open":6,"reduced":0,"title":"单元⑪ 模块与项目","type":"course.unit","unit":11}</span>
+<span class="term-out">{"chapters":0,"checked":86,"failed":0,"manifests":1,"open":65,"type":"course.summary","units":11,"volumes":0}</span></pre>
+        </div>
+        <figcaption class="illus-cap">全部 12 行真输出，逐字照抄，没有截断。
+        每行一个 <code>course.unit</code> 事件（<code>checked</code> / <code>open</code> /
+        <code>failed</code>），最后一行 <code>course.summary</code> 是合计。
+        块内可纵向与横向滚动。</figcaption>
+      </figure>
+
+      <p class="measure">
+        判据只有两个信号。<code>decl.checked</code> 表示内核收下了那个项；
+        <code>diagnostic</code> 表示内核有问题要说。中间那个 <code>exercise.open</code>
+        只说明「这里还是个练习」——它只在签名合法时才会出现，
+        所以判断「签名有没有写坏」永远看 <code>diagnostic</code>，不要看 open 计数。
+      </p>
+      <p class="measure">
+        单元⑪ 的跨文件练习要连模块根一起判，还是同一条命令：
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 多文件项目</p>
+        <div class="terminal">
+          <p class="term-label">scripts/soko grade course/unit11-project/Exercises.sokonanoda --json</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko grade course/unit11-project/Exercises.sokonanoda --json</span>
+<span class="term-out">{"human":"exercise open (fill the sorry)","name":"and_comm_x","type":"exercise.open"}</span>
+<span class="term-out">{"human":"exercise open (fill the sorry)","name":"and_comm_via_library_x","type":"exercise.open"}</span></pre>
+        </div>
+        <figcaption class="illus-cap">这两条练习的第一行是 <code>import Logic</code>，
+        本文件不声明任何公理——判卷会顺着 <code>sokonanoda.toml</code> 找到模块根，
+        把 <code>Logic.sokonanoda</code> 一起读进来。同目录的 <code>Canvas.sokonanoda</code>
+        是入口演示，三条声明全部 <code>decl.checked</code>。</figcaption>
+      </figure>
+
+      <p class="measure">
+        判卷是逐声明容错的：一个练习红了，不影响同一文件里其他练习的判定。
+        这一点由仓库里的测试钉着——<code>crates/cli/tests/course.rs</code>
+        在 CI 里单独跑一条 <code>cargo test -p sokonanoda-cli --test course --locked</code>，
+        断言四件事：
+      </p>
+      <ul class="measure">
+        <li>十一个画布全部可编译，且每个单元的 <code>decl.checked</code> /
+          <code>exercise.open</code> / <code>expr.reduced</code> 计数与一张 golden 表精确一致；</li>
+        <li>十一份解答钥匙全部 0 诊断、0 个 <code>exercise.open</code>，且覆盖画布里的每一个练习；</li>
+        <li><code>course.json</code> 恰好按序列出这十一个文件，<code>unit</code> 是 1 到 11；</li>
+        <li><code>course/en/</code> 英文镜像与中文画布的事件计数逐项相等。</li>
+      </ul>
+      <p class="measure">
+        所以「这门课是可解的」不是一句承诺：十一份钥匙都真的填完了，改课程会重新判一遍。
+        本页所有数字都是用已发布的 CLI 量的（当前版本
+        <span class="chip chip--version" data-site-version>—</span>）。
+      </p>
+    </section>
+
+    <section class="measure" aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 这一页不承诺的事</h2>
+      <div class="callout callout--limit">
+        <span class="callout__title">限制</span>
+        <p>
+          这十一个文件是给 agent 的路线图与素材库，不是一本可以照着念的教科书。
+          真正上课时，老师会按你的反馈历史重组顺序、拆小步或跳过热身；
+          你面对的永远只是当前那块画布（<code>playground.sokonanoda</code> 或它的分支），
+          不是 <code>course/</code> 目录本身——课程文件不会直接丢给你当读物
+          （<code>docs/teaching-session.md:9-18</code>）。所以这一页列的是素材，
+          不是一份排好日期的课表。
+        </p>
+        <p>
+          画布是中文的。英文镜像在 <code>course/en/</code>：代码与中文版逐字节一致，
+          只有 <code>--</code> 注释换成英文，事件计数由 CI 守着不许漂。
+          卷 I《集合论》的英文镜像还没做。
+        </p>
+        <p>
+          答案不在画布里，提示里也没有答案。想知道某道题怎么写，得开口问老师——
+          而老师会先给提示，不会一次贴出整份钥匙。
+        </p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
       </nav>
-      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
-      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" aria-current="page" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
     </div>
-  </footer>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
 
-  <script>
-  (function () {
-    var RAW_BASE = "https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/course/";
-    var REPO_BLOB = "https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/";
-    // 逐段编码：`encodeURIComponent` 会把 `/` 编成 `%2F`，而 GitHub 的 blob
-    // 路由不把 `%2F` 当路径分隔符——英文镜像（`course/en/…`）的链接会 404。
-    function encodePath(p) {
-      return String(p || "").split("/").map(encodeURIComponent).join("/");
-    }
-    var wrap = document.getElementById("units");
-    fetch("data/site.json").then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-      .then(function (d) {
-        var units = d.units || [];
-        if (!units.length) { wrap.innerHTML = "<p>单元数据为空。</p>"; return; }
-        wrap.innerHTML = "";
-        units.forEach(function (u) {
-          var card = document.createElement("article");
-          card.className = "unit-card";
-          var h = document.createElement("h3");
-          h.textContent = u.title || ("单元 " + u.unit);
-          var pe = document.createElement("p");
-          pe.className = "unit-en";
-          pe.textContent = u.title_en || "";
-          var meta = document.createElement("div");
-          meta.className = "unit-meta";
-          var a = document.createElement("a");
-          a.className = "unit-link";
-          a.href = RAW_BASE + encodePath(u.file);
-          a.target = "_blank"; a.rel = "noopener";
-          a.textContent = "查看单元文件 →";
-          meta.appendChild(a);
-          if (u.en_file) {
-            var e = document.createElement("a");
-            e.className = "unit-en-link";
-            e.href = REPO_BLOB + encodePath(u.en_file);
-            e.target = "_blank"; e.rel = "noopener";
-            e.textContent = "English";
-            meta.appendChild(e);
-          }
-          card.appendChild(h);
-          card.appendChild(pe);
-          card.appendChild(meta);
-          wrap.appendChild(card);
-        });
-      }).catch(function () {
-        wrap.innerHTML = '<p>单元数据加载失败，请稍后重试，或前往仓库 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/tree/main/course">course/</a> 查看。</p>';
-      });
-  })();
-  </script>
+<script src="assets/site.js"></script>
 </body>
 </html>

@@ -16,3 +16,7 @@ editor/vscode/bin/
 # python 工具（courses/set-theory/tools/check.py、scripts/gap.py、gen-site-data.py）
 __pycache__/
 *.pyc
+
+.cache
+# 第三方 agent 技能（scripts/fetch-agent-skills.py 生成，配方在 dsh/agent-skills.json）
+.dsh/skills/

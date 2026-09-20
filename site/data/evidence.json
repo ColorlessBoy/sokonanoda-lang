@@ -1,0 +1,158 @@
+{
+  "generated_at": "2026-09-19T19:12:08+08:00",
+  "generated_at_from": "git-head-commit-time",
+  "measured": {
+    "changelog_versions": {
+      "command": "grep -c '^## \\[' editor/vscode/CHANGELOG.md",
+      "source": "editor/vscode/CHANGELOG.md",
+      "value": 75
+    },
+    "ci_failures": {
+      "command": "grep -cE '^#{2,3} [0-9]{4}-[0-9]{2}-[0-9]{2}' docs/CI-FAILURES.md",
+      "source": "docs/CI-FAILURES.md",
+      "value": 35
+    },
+    "course_gate": {
+      "command": "python3 courses/set-theory/tools/check.py --json  # → summary",
+      "note": "卷 I 的计数只从门禁来（gen-site-data.py 用同一条命令）",
+      "source": "courses/set-theory/tools/check.py",
+      "value": {
+        "canvas_open": 96,
+        "chapters": 4,
+        "checked": 329,
+        "lib_open": 0,
+        "open": 99,
+        "rejected": 0,
+        "solutions_open": 0,
+        "targets": 36,
+        "units": 12,
+        "volumes": 1
+      }
+    },
+    "courses_ledger": {
+      "command": "wc -l < docs/courses/ledger.jsonl",
+      "source": "docs/courses/ledger.jsonl",
+      "value": 1
+    },
+    "e2e_latest": {
+      "command": "tail -1 docs/e2e/ledger.jsonl",
+      "source": "docs/e2e/ledger.jsonl",
+      "value": {
+        "commit": "f3902b3ef77290ab0f37dbd54cd18a1599b4395d",
+        "date": "2026-09-19T10:56:42Z",
+        "exit": 0,
+        "tests": {
+          "failed": 0,
+          "passed": 15,
+          "pending": 0
+        },
+        "version": "0.61.0",
+        "vscode": "1.138.0"
+      }
+    },
+    "e2e_ledger": {
+      "command": "wc -l < docs/e2e/ledger.jsonl",
+      "source": "docs/e2e/ledger.jsonl",
+      "value": 37
+    },
+    "extension_version": {
+      "command": "python3 -c \"import json;print(json.load(open('editor/vscode/package.json'))['version'])\"",
+      "note": "必须与 repo_version 一致（契约测试 cargo_and_extension_versions_match）",
+      "source": "editor/vscode/package.json",
+      "value": "0.61.0"
+    },
+    "first_commit_date": {
+      "command": "git log --reverse --format=%ad --date=short | head -1",
+      "source": "git",
+      "value": "2026-09-06"
+    },
+    "gaps_ledger": {
+      "command": "wc -l < docs/gaps/ledger.jsonl",
+      "source": "docs/gaps/ledger.jsonl",
+      "value": 24
+    },
+    "git_commits": {
+      "command": "git log --oneline | wc -l",
+      "source": "git",
+      "value": 367
+    },
+    "git_tags": {
+      "command": "git tag | wc -l",
+      "source": "git",
+      "value": 69
+    },
+    "latest_commit_date": {
+      "command": "git log -1 --format=%ad --date=short",
+      "source": "git",
+      "value": "2026-09-19"
+    },
+    "ledger_rows": {
+      "command": "wc -l < docs/gaps/ledger.jsonl  # 其余三本同形",
+      "source": "docs/{gaps,perf,e2e,courses}/ledger.jsonl",
+      "value": {
+        "courses_ledger": 1,
+        "e2e_ledger": 37,
+        "gaps_ledger": 24,
+        "perf_ledger": 14
+      }
+    },
+    "perf_ledger": {
+      "command": "wc -l < docs/perf/ledger.jsonl",
+      "source": "docs/perf/ledger.jsonl",
+      "value": 14
+    },
+    "playground_events": {
+      "command": "scripts/soko grade playground.sokonanoda --json  # 按 type 计数",
+      "source": "playground.sokonanoda",
+      "value": {
+        "decl.checked": 30,
+        "example.checked": 2,
+        "exercise.open": 4,
+        "warning": 2
+      }
+    },
+    "release_assets": {
+      "command": "gh release view v0.61.0 --json assets -q '.assets | length'",
+      "note": "需要 gh 已登录 + 网络；拿不到就不进 JSON（C4 §7.1 第 41 行标 ⚠️ 的就是它）",
+      "source": "GitHub Release",
+      "value": 26
+    },
+    "repo_version": {
+      "command": "grep -n '^version' Cargo.toml  # [workspace.package]",
+      "source": "Cargo.toml",
+      "value": "0.61.0"
+    },
+    "repro_files": {
+      "command": "ls docs/gaps/repro | wc -l",
+      "source": "docs/gaps/repro",
+      "value": 22
+    },
+    "sokonanoda_files": {
+      "command": "find . -name '*.sokonanoda' -not -path './target/*' -not -path './.cache/*' | wc -l",
+      "note": "`.cache/` 是本脚本自己的复现件暂存区（.gitignore），不算仓库源",
+      "source": "repo",
+      "value": 109
+    },
+    "test_counts": {
+      "command": "DEVELOPER_DIR=/Library/Developer/CommandLineTools cargo test --workspace --locked -- --list | grep -c ': test'",
+      "measured_at": "2026-09-19T19:12:08+08:00",
+      "measured_commit": "084da05",
+      "note": "`--with-tests` 实测并缓存（cargo 在本机需要 DEVELOPER_DIR 绕过 Xcode 许可，见 C4 §7.3）；默认运行读缓存，`stale` 表示测量时的 commit 已不是 HEAD",
+      "source": "cargo test --workspace --locked -- --list",
+      "stale": false,
+      "value": {
+        "ignored": 6,
+        "runnable": 1164,
+        "total": 1170
+      }
+    },
+    "work_orders": {
+      "command": "ls docs/gaps/WO-*.md | wc -l",
+      "source": "docs/gaps",
+      "value": 11
+    }
+  },
+  "rule": "只收能复现的数字；每条带 command；拿不到的不进 JSON，只在 stderr 说明",
+  "source_commit": "084da05",
+  "version": "0.61.0"
+}

@@ -1,0 +1,430 @@
+/* site/assets/base.css — reset、方格纸、排版、布局原语、可访问性底座
+ *
+ * 只依赖 tokens.css 的令牌；本文件里**不出现任何字面色值**。
+ * 规则手册：docs/design/site-rebuild/spec/D1-design-rules.md
+ * 组件层在 site.css / editor.css。
+ *
+ * 这个文件解决四件事，顺序就是它们的优先级：
+ *   1. 让浏览器默认样式不再打架（reset）；
+ *   2. 让方格纸出现，且**永不压在文字下面**；
+ *   3. 让中英混排的正文在 17px / 1.7 行高 / 40rem 行长下稳定可读；
+ *   4. 让键盘用户与减少动效偏好的用户得到同等体验。
+ */
+
+/* ══════════════════════════════════════════════════════════════════
+   1. Reset —— 只清掉会打架的，不清掉有用的
+   ══════════════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* 锚点跳转时给 sticky 页头留位置，否则标题会被压在页头底下。 */
+  scroll-padding-top: var(--sp-8);
+  -webkit-text-size-adjust: 100%;
+}
+
+body,
+h1, h2, h3, h4,
+p, figure, blockquote,
+dl, dd,
+ol, ul {
+  margin: 0;
+}
+
+ol[class], ul[class] {
+  padding: 0;
+  list-style: none;
+}
+
+img, svg, video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 表单控件继承字体：浏览器默认给 input/button 的是系统 UI 字体，
+   不继承的话同一行里会出现第三种字族。 */
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+/* 长标识符、URL、代码片段不得把容器撑破。 */
+p, li, dd, td, th {
+  overflow-wrap: break-word;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   2. 页面底：方格纸
+   ──────────────────────────────────────────────────────────────────
+   24px 格距 = --sp-5。这不是装饰：区块级垂直间距、容器左右内边距、
+   卡片网格 gap 全部取 24 的整数倍，所以内容**真的**落在格线上。
+   一旦把间距改成 20/30 这类数，格线立刻退化成贴图——那正是 D1 §方向
+   警告的「只剩细线 + 直角」的空壳。
+
+   安全规则（D1 §方格纸网格，四条都是硬性的）：
+     · 格线对底色对比度 ≤ 1.10:1（当前 1.056）；
+     · 每个正文色对底色与格线色都 ≥ 4.5:1（令牌已按此验证）；
+     · 格线不得出现在任何文本容器内部 —— 见下面 .wrap / .prose / .code
+       等的不透明底色；
+     · 暗色下不得更显眼（1.036 < 1.056）。
+   ══════════════════════════════════════════════════════════════════ */
+
+body {
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(to right,
+      var(--grid-line) 0 1px, transparent 1px var(--grid-pitch)),
+    repeating-linear-gradient(to bottom,
+      var(--grid-line) 0 1px, transparent 1px var(--grid-pitch));
+  /* 滚动时网格不跟着动，读起来才像纸而不是贴纸。 */
+  background-attachment: fixed;
+
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+  font-synthesis-weight: none;
+  /* 刻意**不写** `text-rendering: optimizeLegibility`：
+     它会打开连字，而本语言里 `->` 与 `→` 是两个不同的东西——排版不能对字符撒谎
+     （见下面 code/pre 的 font-variant-ligatures 注释）。D1 §排版禁令 也明令禁止。 */
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   3. 排版
+   ══════════════════════════════════════════════════════════════════ */
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: var(--lh-heading);
+  letter-spacing: var(--tracking-tight);
+  /* 标题永不出现在页尾孤行 */
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-display);
+  margin-block-end: var(--sp-5);
+}
+
+h2 {
+  font-size: var(--fs-2xl);
+  margin-block-start: var(--sp-9);
+  margin-block-end: var(--sp-5);
+}
+
+h3 {
+  font-size: var(--fs-xl);
+  margin-block-start: var(--sp-7);
+  margin-block-end: var(--sp-4);
+}
+
+h4 {
+  font-size: var(--fs-lg);
+  margin-block-start: var(--sp-6);
+  margin-block-end: var(--sp-3);
+}
+
+/* 单向 margin + 相邻收紧：块之间只由一个方向决定间距，
+   相邻同级元素之间不叠加（避免出现 48+48=96 这种失控留白）。 */
+h2 + h3, h3 + h4 { margin-block-start: var(--sp-5); }
+* + h2, * + h3, * + h4 { margin-block-start: var(--sp-7); }
+
+p {
+  margin-block-end: var(--sp-5);
+}
+
+p:last-child,
+ul:last-child,
+ol:last-child {
+  margin-block-end: 0;
+}
+
+ul, ol {
+  padding-inline-start: var(--sp-6);
+  margin-block-end: var(--sp-5);
+}
+
+li + li {
+  margin-block-start: var(--sp-2);
+}
+
+li > ul, li > ol {
+  margin-block-start: var(--sp-2);
+  margin-block-end: 0;
+}
+
+strong { font-weight: 600; }
+
+/* 中文里 <em> 用倾斜很难看（汉字没有真斜体，浏览器会强行压斜）。
+   改用着重号：中文排版里表达强调的正规做法。 */
+em {
+  font-style: normal;
+  /* 着重号是排版手法，不是判定结果——所以用墨色，不用语义色。 */
+  text-emphasis: dot var(--ink-2);
+  text-emphasis-position: under right;
+}
+
+/* 拉丁词用 <i> 时才是真倾斜（Soko Serif 有真斜体，但默认栈里没有，
+   所以这里只声明语义，不承诺字形）。 */
+i, cite { font-style: italic; }
+
+blockquote {
+  margin-block: var(--sp-7);
+  padding-inline-start: var(--sp-6);
+  border-inline-start: 2px solid var(--rule-strong);
+  color: var(--ink-2);
+}
+
+hr {
+  border: 0;
+  border-block-start: 1px solid var(--rule);
+  margin-block: var(--sp-7);
+}
+
+/* 链接**不用语义色**。
+ *
+ * 本站只有两个强调色，各自绑定一个真实来源：绿 = 内核真的通过过，
+ * 朱 = 诊断 / 更正 / 诚实的限制。链接两样都不是——用绿色会让"绿 = 通过"
+ * 这个信号失效，用朱色更糟（悬停时链接变成"诊断"色）。
+ *
+ * 所以链接靠**下划线**而不是颜色来识别：墨色文字 + 一条可见但中性的下划线，
+ * 悬停时下划线变实变重。整站没有彩色链接，这本身也是辨识度。
+ */
+a {
+  color: var(--ink);
+  text-decoration-line: underline;
+  text-decoration-color: var(--border-control);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition: text-decoration-color var(--dur-1) var(--ease-standard);
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration-color: var(--ink);
+  text-decoration-thickness: 2px;
+}
+
+a:visited {
+  color: var(--ink-2);
+  text-decoration-color: var(--rule-strong);
+}
+
+/* 焦点环：用 outline 而不是 box-shadow。
+   outline 不占空间、不触发重排、跟随 border-radius，且属于 ink overflow
+   不受 overflow 裁剪；box-shadow 会被裁掉，在 Windows 高对比模式下也不显示。 */
+:focus-visible {
+  outline: var(--ring-width) solid var(--ring-color);
+  outline-offset: var(--ring-offset);
+  border-radius: var(--r-1);
+}
+
+/* 鼠标点击不显示焦点环，键盘导航显示 —— :focus-visible 已经做了这件事，
+   这里只是兜住老浏览器。 */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 选区高亮是中性的：它不是判定，也不表示"未做"。 */
+::selection {
+  background: var(--surface-overlay);
+  color: var(--ink);
+}
+
+/* 数字：出现在列里或会随数据变化的，一律等宽数字。
+   这个项目的可信度就是它的数字（329 checked / 0 failed / 第 108 轮），
+   数字宽度跳动会让真数字看起来像随便写的。 */
+.num,
+[data-num],
+time,
+.tabular {
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9375em;
+  /* 连字会撒谎：JetBrains Mono / Fira Code 把 `->` 画成一个箭头字形，
+     而本语言里 `→` 是真实存在的记法。若两者看起来一样，读者无法从屏幕
+     判断源码里到底是哪个字符，复制出来又是 ASCII。在一个「判定永远走内核、
+     禁止文本比对」的项目里，让排版对字符撒谎是不可接受的。 */
+  font-variant-ligatures: none;
+  tab-size: 2;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   4. 布局原语
+   ══════════════════════════════════════════════════════════════════ */
+
+/* .wrap：全站唯一的水平容器。左右内边距取 24 的整数倍（窄屏 24，
+   宽屏 48），所以内容边缘落在格线上。 */
+.wrap {
+  width: 100%;
+  max-width: var(--wide);
+  margin-inline: auto;
+  padding-inline: var(--sp-5);
+  /* 不透明底色：把方格挡在文本容器之外（见 §2 的安全规则 3）。 */
+  background-color: var(--paper);
+}
+
+@media (min-width: 60rem) {
+  .wrap { padding-inline: var(--sp-7); }
+}
+
+/* .measure：正文栏。40rem ≈ 37.6 汉字 ≈ 78 拉丁字符，
+   同时满足 WCAG 1.4.8 对 CJK（≤40）与拉丁（≤80）的两个上限。
+   不要用 ch —— ch 是拉丁 "0" 的宽度（约 0.5em），汉字约 1em，
+   用 65ch 会得到只有一半宽的容器。 */
+.measure {
+  max-width: var(--measure);
+}
+
+.wide {
+  max-width: var(--wide);
+}
+
+/* 区块节奏：区块级垂直间距一律 24 的整数倍。 */
+main > .wrap > * + * {
+  margin-block-start: var(--sp-9);
+}
+
+main > .wrap > .page-head + * {
+  margin-block-start: var(--sp-8);
+}
+
+.page-head {
+  padding-block-start: var(--sp-9);
+  padding-block-end: var(--sp-7);
+}
+
+/* 面包屑后面不要再叠一整个区块间距：`.wrap > * + *` 的 96px 加上 `.page-head`
+   自己的 96px 上内边距，会在 h1 上方堆出约 216px 空白（390px 上尤其明显，
+   因为屏幕本来就只有那么高）。有面包屑时收一档。 */
+main > .wrap > .breadcrumbs + .page-head {
+  margin-block-start: var(--sp-5);
+  padding-block-start: var(--sp-7);
+}
+
+.lead {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-body);
+  color: var(--ink-2);
+  max-width: var(--measure);
+}
+
+/* 通用纵向流：子元素之间 24 的倍数。 */
+.stack > * + * {
+  margin-block-start: var(--sp-5);
+}
+
+/* 横排（按钮组、标签组） */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  align-items: center;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   5. 可访问性底座
+   ══════════════════════════════════════════════════════════════════ */
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: var(--sp-4);
+  inset-block-start: calc(-1 * var(--sp-9));
+  z-index: var(--z-skip);
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-1);
+  transition: inset-block-start var(--dur-2) var(--ease-out);
+}
+
+.skip-link:focus {
+  inset-block-start: var(--sp-4);
+}
+
+/* 只给屏幕阅读器的文本 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+[hidden] { display: none !important; }
+
+/* 减少动效：**减少，不是归零**。把过渡压到接近瞬时，而不是删掉状态反馈——
+   删掉反馈会让"这个按钮按下去了吗"变成无法回答的问题。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 高对比模式兜底：系统强制色下 outline 可能不可见。 */
+@media (forced-colors: active) {
+  :focus-visible { outline: 3px solid Highlight; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   6. 打印
+   ──────────────────────────────────────────────────────────────────
+   教学站要能被打印：把推导、目标状态、代码原样印出来，去掉导航与交互件。
+   方格纸、深色面板、主题按钮都不该出现在纸上。
+   ══════════════════════════════════════════════════════════════════ */
+@media print {
+  body {
+    background-image: none;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  .site-header,
+  .site-footer,
+  .skip-link,
+  .breadcrumbs,
+  .pager,
+  .toc,
+  .theme-toggle,
+  [data-copy] {
+    display: none !important;
+  }
+
+  .wrap { max-width: none; padding: 0; }
+
+  /* 代码与目标状态在纸上必须是深字浅底。令牌已在 tokens.css 的 print 块里
+     重定义，所以这里只引用，不写字面值。 */
+  pre, code, .code, .editor, .goal, .events, .terminal {
+    background-color: var(--code-bg) !important;
+    color: var(--code-ink) !important;
+    border: 1px solid var(--rule-strong);
+  }
+
+  /* 链接打印出 URL，否则纸上无法知道它指向哪里。 */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: var(--ink-3);
+  }
+
+  h1, h2, h3 { break-after: avoid; }
+  pre, table, .statement, .turnstile { break-inside: avoid; }
+}
