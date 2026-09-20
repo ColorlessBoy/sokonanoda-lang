@@ -318,7 +318,7 @@
           <li>没有 WASM 构建，也没有浏览器内判题。内核是 Rust，要判卷就得有本地二进制或 VSIX。</li>
           <li>没有隐式参数自动插入，也没有类型类。应用是逐位显式的，<code>Eq.symm</code> 这类要自己写全。</li>
           <li>这一页的演示都是预计算好的真实输出，不是在线 playground——没有一处是浏览器里现算的。</li>
-          <li>卷 I 的计数口径是上一轮门禁运行（<code>counts_source: previous-run</code>），不是本次现场重跑。</li>
+          <li>卷 I 的计数来自门禁实测，但不是你读这一页时的现场重跑——实测发生在<strong>有已发布判卷二进制的那台机器</strong>上，没有的机器（例如 CI）沿用上一轮实测的数。数据文件记着是哪一种（<code>counts_source</code>）。</li>
         </ul>
       </div>
       <p class="small faint">这四条是仓库里登记在案的边界，不是「以后再说」。完整清单在

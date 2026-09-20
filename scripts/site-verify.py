@@ -396,6 +396,45 @@ def check_data_fidelity() -> tuple[list[str], str]:
                 problems.append(
                     f"{page_name}: {what} `{value[:60]}` 不在 {data_name} 里 —— 伪造或数据已过期"
                 )
+
+    # 第二类：**散文里引用的数据**。首页的编辑器插画把 playground 的实测计数当数据
+    # 引用（`decl_checked: 30`、`exercise_open: 4`），而 K16 量的是 `evidence.json` 里的
+    # `decl.checked`——名字一个下划线、一个点，所以上面那张"逐字复制"的表盖不住它，
+    # 而这两个数**每次动 playground 都会变**。
+    #
+    # 只做这一处，不做通用的"页面引用数据"检查：`infix: 50 " ∈ " => Set.mem` 这类记法
+    # 语法、文件路径、URL 都会撞上同一个正则，通用版只能靠一张手工豁免表活着——那种
+    # 检查会烂掉，而烂掉的检查比没有检查更坏。真正的通用做法是把这类值挪进数据文件、
+    # 由 JS 回填（像版本号那样），那是页面改版的事。
+    #
+    # 顺带记一次真实的教训：`counts_source: previous-run` 曾以同样的形状写在
+    # `index.html` 上，而生成器在有已发布二进制的机器上会实测成 `gate` —— 页面于是
+    # 成了一句谎话，**没有任何检查会响**。那处已改成描述机制、不再引用取值。
+    index_page = SITE / "index.html"
+    evidence = SITE / "data" / "evidence.json"
+    quotes = re.findall(
+        r"<code>(decl_checked|example_checked|exercise_open|warning): (\d+)</code>",
+        index_page.read_text(encoding="utf-8") if index_page.is_file() else "",
+    )
+    if not quotes:
+        problems.append("index.html: 抽不到 playground 计数（选择器变了？）")
+    else:
+        try:
+            events = json.loads(evidence.read_text(encoding="utf-8")) \
+                ["measured"]["playground_events"]["value"]
+        except (OSError, json.JSONDecodeError, KeyError, TypeError):
+            events = None
+        if not isinstance(events, dict):
+            problems.append("evidence.json: 读不到 measured.playground_events.value")
+        else:
+            for key, number in quotes:
+                checked += 1
+                name = key.replace("_", ".")
+                if events.get(name) != int(number):
+                    problems.append(
+                        f"index.html: playground 计数 {key}: {number} 与 evidence.json 的 "
+                        f"{name}: {events.get(name)} 不一致 —— 伪造或数据已过期"
+                    )
     return problems, f"{checked} 条录制值回查数据文件"
 
 
