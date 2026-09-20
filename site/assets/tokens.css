@@ -1,0 +1,384 @@
+/* site/assets/tokens.css — 设计令牌（唯一源）
+ *
+ * 方向：「格纸 · 朱批」（Graph Paper · Vermilion Marks）
+ * 规则手册：docs/design/site-rebuild/spec/D1-design-rules.md
+ *
+ * 本文件的令牌块**逐字取自 D1 §令牌**（那边是权威，这边是可执行的副本）。
+ * 唯一一处偏离 D1 的是字族：D1 §排版 结论为「衬线不用」，本文件把衬线
+ * **收窄到 display 层**（h1–h3、hero、lead、大数字），理由与边界见下面
+ * §字族 的注释，并已回写进 D1。除此之外两边必须一致——不一致时以 D1 为准。
+ *
+ * 语义纪律（评审按 bug 处理）：
+ *   --acc-*   绿：只允许出现在「内核真的通过过」的东西上
+ *              （实测 checked 计数、已发布版本、真实通过态）
+ *   --verm-*  朱：只允许出现在「诊断 / 更正 / 诚实的限制」上
+ *              （内核拒绝、错误码、失败计数、未完成清单、排错提示）
+ *   看到一处强调色就问：这里背后有什么真实判定？答不上来就是装饰性使用。
+ *
+ * 所有注释里的对比度数字都是**实算**的 WCAG 2.x 比值，不是估的。
+ * 文字可能压在网格线上，所以每个正文色都对「页面底 / 网格线 / 表面」三者验过。
+ * 改动任何色值都必须重算并更新注释。
+ */
+
+/* ══════════════════════════════════════════════════════════════════
+   令牌（亮色）
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light dark;
+
+  /* ---- 方格纸 ---- */
+  --grid-pitch: 24px;      /* 必须等于 --sp-5；区块级间距取它的整数倍 */
+  --grid-line:  #eef1f4;   /* vs --paper 1.056:1 —— 可见但不抢注意力（上限 1.10） */
+
+  /* ---- 表面：深度靠明度分级，不靠阴影 ---- */
+  --paper:           #f5f7f9;  /* 页面底（冷调近白，非奶油色） */
+  --surface:         #ffffff;  /* 抬起一级：卡片、表头 */
+  --surface-sunken:  #ebedf3;  /* 下沉：代码块、well、斑马纹 */
+  --surface-overlay: #f0f2f6;  /* 悬浮层底 */
+
+  /* ---- 墨色（三级；括号内为 on paper / on grid / on surface） ---- */
+  --ink:    #14171c;  /* 正文        16.73 / 15.84 / 17.96 */
+  --ink-2:  #4a5159;  /* 次要         7.49 /  7.09 /  8.04 */
+  --ink-3:  #646c76;  /* 元信息       4.95 /  4.69 /  5.32  ← 下限，勿再浅 */
+  --ink-invert: #f5f7f9;
+
+  /* ---- 线 ---- */
+  --rule:        #d9dee5;  /* 装饰性分隔（无 3:1 要求） */
+  --rule-strong: #bac2cc;  /* 结构性分隔 + 推理横线 */
+  --border-control: #7c8691; /* 控件边界，3.70 on surface / 3.26 on grid ✅ */
+
+  /* ---- 语义色 1：内核判定绿 ---- */
+  --acc:        #1e6b4c;  /* 实底（白字 6.44） */
+  --acc-ink:    #14523a;  /* 绿文字 8.51 / 8.06 / 9.14 */
+  --acc-wash:   #e7f0eb;  /* 绿底（acc-ink on it 7.86） */
+  --acc-border: #54906e;  /* 绿边 3.76 / 3.31 ✅ */
+
+  /* ---- 语义色 2：朱批 ---- */
+  --verm:       #c8371c;  /* 实底（白字 5.23） */
+  --verm-ink:   #b83318;  /* 朱文字 5.55 / 5.26 / 5.96 */
+  --verm-wash:  #fbebe9;  /* 朱底（verm-ink on it 5.15） */
+  /* 朱的边框：比 --verm 浅一档，与 --acc-border 对 --acc 的关系一致
+     （边框是结构性分隔，不需要实底那么重）。实测 3.78 on paper / 3.51 on wash，
+     都过 WCAG 1.4.11 的 3:1 控件边界线。 */
+  --verm-border: #cf5a38;
+
+  /* ---- 注意（第三种，仅用于"请注意"，不是诊断） ---- */
+  --warn-ink:   #6b4407;  /* 7.97 / 7.55 / 8.55 */
+  --warn-wash:  #faf2e0;
+
+  /* ---- 焦点环：用 outline，不用 box-shadow ----
+     理由：outline 不占空间、不触发重排、跟随 border-radius，且属于 ink overflow
+     不受裁剪；box-shadow 是绘制内容，会被 overflow 裁掉，在 Windows 高对比模式下
+     也不显示。高对比模式兜底：outline: auto 5px Highlight; */
+  /* 焦点环用**墨色**，不用绿色：绿只给内核判定，而焦点环是可访问性 affordance。
+     用墨色同时拿到最高对比度（亮色 16.7:1、暗色 14.6:1），且不与语义抢注意力。 */
+  --ring-color:  var(--ink);
+  --ring-width:  2px;
+  --ring-offset: 2px;
+
+  /* ---- 间距：4pt 半步 + 8pt 节奏 ---- */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px; --sp-9: 96px;
+
+  /* ---- 字号：两段式比率（小端 ~1.07–1.13，大端 ~1.21–1.24），锚点 17px ----
+     锚 17 而非 16：CJK 字形密度高，16px 中文偏挤。 */
+  --fs-xs:   0.8125rem; /* 13px 元信息 */
+  --fs-sm:   0.875rem;  /* 14px 次要文本、表格正文 */
+  --fs-ui:   0.9375rem; /* 15px 导航、按钮 */
+  --fs-base: 1.0625rem; /* 17px 正文 ← 基准 */
+  --fs-lg:   1.1875rem; /* 19px lead、卡片标题 */
+  --fs-xl:   1.4375rem; /* 23px h3 */
+  --fs-2xl:  1.75rem;   /* 28px h2 */
+  --fs-3xl:  2.125rem;  /* 34px h1（内页） */
+  --fs-4xl:  2.625rem;  /* 42px display（首页 hero） */
+  /* 流体 display：只在 hero 用。上下界就是 --fs-3xl 与 --fs-4xl，
+     中间按视口线性插值——固定字号在 390px 上会溢出，在 1440px 上又不够大。 */
+  --fs-hero: clamp(2.125rem, 1.35rem + 3.4vw, 3.5rem);
+
+  /* ---- 行高：字号越大行高越小 ---- */
+  --lh-display: 1.15;  /* ≥34px */
+  --lh-heading: 1.3;   /* h2/h3 */
+  --lh-body:    1.7;   /* 中文正文；en 页可覆盖为 1.6 */
+  --lh-code:    1.6;
+  --lh-normal:  1.6;   /* UI 文字、页脚、表格：比正文紧一档 */
+
+  /* ---- 字距 ----
+     只在这三档里取。中文不需要负字距（汉字本身是等宽的方块），
+     负字距只给大字号拉丁标题用。 */
+  --tracking-tight:  -0.011em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.02em;
+
+  /* ---- 行长与容器 ----
+     40rem = 640px ≈ 37.6 个汉字（WCAG 1.4.8 上限 40 if CJK）
+                     ≈ 78 个拉丁字符（WCAG 1.4.8 上限 80）
+     两个上限同时满足，这是 40rem 唯一的理由。
+     **不要用 ch 做中文行长单位**：ch 是拉丁 "0" 的宽度（约 0.5em），
+     而汉字约 1em，用 ch 会得到一半宽的容器。 */
+  --measure: 40rem;
+  --wide:    68rem;
+  /* 侧栏注（marginalia）：教科书把定义、旁证、提醒放在页边。宽屏上它是
+     一条真正的边栏，窄屏上折回正文流。这个宽度是"能放下一行 14px 中文
+     且不挤压正文"的下限。 */
+  --margin-col: 13rem;
+
+  /* ---- 圆角：承载层级，不是装饰 ----
+     规范会在矮元素上按比例缩小圆角，所以统一大圆角会让"同样"的卡片看起来不一样。 */
+  --r-0:    0;      /* 结构容器：卡片、区块、代码块、表格 */
+  --r-1:    3px;    /* 控件：按钮、输入框、kbd、标签 */
+  --r-full: 999px;  /* 仅状态点，每屏 ≤1 个 */
+
+  /* ---- 阴影：只有一个，只给真正浮起的层 ----
+     层叠是手法，把纯黑换成带色相的颜色才是关键（多数人只抄了层叠）。 */
+  /* 表格横滚提示用的渐隐阴影（见 site.css 的 .table-scroll）。 */
+  --shadow-scroll: hsl(210 12% 20% / .16);
+  --shadow-pop: 0 1px 2px hsl(210 12% 20% / .06),
+                0 8px 24px -8px hsl(210 12% 20% / .18);
+
+  /* ---- 动效：只做状态反馈，不做入场 ----
+     依据：简单反馈 ~100ms；模态 200–300ms；总体 100–500ms；400ms 已属很慢。
+     出场取进场的 ~80%。 */
+  --dur-1: 100ms;    /* 状态反馈：hover 底色 */
+  --dur-2: 200ms;    /* 小 UI：details 展开、tab 切换 */
+  --dur-3: 300ms;    /* 浮层出现 */
+  --dur-exit: 160ms; /* 浮层离开 */
+  --ease-standard: cubic-bezier(.4, 0, .2, 1);
+  --ease-out: cubic-bezier(0, 0, .2, 1);  /* 进入 */
+  --ease-in:  cubic-bezier(.4, 0, 1, 1);  /* 离开 */
+
+  /* ---- 层 ---- */
+  --z-header: 10; --z-pop: 40; --z-skip: 60;
+
+  /* ---- 代码块：与页面同极性 ----
+     不在亮页里嵌"带色偏的近黑"（那是 AI tell）。 */
+  --code-bg:   var(--surface-sunken);
+  --code-ink:  #1b2027;  /* 13.99 */
+  --code-cmt:  #5c6570;  /*  5.05 */
+  --code-kw:   #186147;  /*  6.32 关键字/tactic → 用产品绿 */
+  --code-ty:   #24507a;  /*  7.17 类型/常量 */
+  --code-str:  #6b3a5e;  /*  7.50 字符串 */
+  --code-num:  #3a424c;  /*  8.69 数字（配 tabular-nums） */
+  --code-hole: #b83318;  /*  5.09 `sorry` 洞 → 朱批，语义即"未解" */
+  --code-punc: #4a525c;  /*  6.76 */
+
+  /* ---- diff：颜色 + 非颜色双通道（WCAG 1.4.1） ---- */
+  --diff-add-ink: #14532d; --diff-add-bg: #e4f3e9;
+  --diff-del-ink: #7f1d1d; --diff-del-bg: #fce9e9;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   暗色：重新设计，不是反相
+   - 不用纯黑，不用纯白字
+   - 强调色提亮 + 降饱和（不复用亮色原值）
+   - 抬升靠表面明度，不靠阴影（暗底上阴影几乎不可见）
+   - 网格线不得比亮色模式更显眼
+   ══════════════════════════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --grid-line: #12161d;   /* vs --paper 1.036:1（亮色是 1.056，暗色更淡） */
+
+    --paper:           #0f1216;
+    --surface:         #171b21;
+    --surface-sunken:  #0a0d10;
+    --surface-overlay: #1e232b;   /* 抬升层：明度递增 0f→17→1e */
+
+    --ink:    #e5e9ee;  /* 15.40 / 14.87 / 14.17  ← 不用 #fff */
+    --ink-2:  #aeb6c0;  /*  9.17 /  8.85 /  8.44 */
+    --ink-3:  #868f9a;  /*  5.73 /  5.53 /  5.27 */
+    --ink-invert: #0f1216;
+
+    --rule:        #2a3038;
+    --rule-strong: #3c444e;
+    --border-control: #626c78;  /* 3.24 on surface / 3.40 on grid ✅ */
+
+    --acc:        #5fb98c;  /* 提亮 + 降饱和 */
+    --acc-ink:    #7fcfa5;  /* 10.17 / 9.82 / 9.36 */
+    --acc-wash:   #16241d;
+    --acc-border: #3e7a5c;  /* 3.41 ✅ */
+
+    --verm:       #e2603f;
+    --verm-ink:   #ef7a5c;  /* 6.80 / 6.57 / 6.26 */
+    --verm-wash:  #2a1815;
+    --verm-border: #a8573d;  /* 3.66 on paper / 3.30 on wash ✅ */
+
+    --warn-ink:   #e8be6e;  /* 10.75 / 10.38 / 9.89 */
+    --warn-wash:  #241d10;
+
+    --shadow-scroll: hsl(210 50% 3% / .5);
+    --shadow-pop: 0 0 0 1px var(--rule-strong),
+                  0 12px 32px -12px hsl(210 50% 3% / .8);
+
+    --code-bg:   #12161b;
+    --code-ink:  #dce3ea;  /* 14.03 */
+    --code-cmt:  #8a94a0;  /*  5.90 */
+    --code-kw:   #7fcfa5;  /*  9.83 */
+    --code-ty:   #8fb8e8;  /*  8.81 */
+    --code-str:  #d9a66c;  /*  8.32 */
+    --code-num:  #b8c2cc;  /* 10.06 */
+    --code-hole: #ef7a5c;  /*  6.58 */
+    --code-punc: #9aa4b0;  /*  7.19 */
+
+    --diff-add-ink: #86d9a5; --diff-add-bg: #132a1d;
+    --diff-del-ink: #efa2a2; --diff-del-bg: #2e1717;
+  }
+}
+
+/* 显式选深色：与上面同一套值。重复是刻意的——CSS 没有"继承一组自定义属性"
+   的语法，把选择器与媒体查询合并会让优先级难以推理。 */
+:root[data-theme="dark"] {
+  --grid-line: #12161d;
+  --paper:           #0f1216;
+  --surface:         #171b21;
+  --surface-sunken:  #0a0d10;
+  --surface-overlay: #1e232b;
+  --ink:    #e5e9ee;
+  --ink-2:  #aeb6c0;
+  --ink-3:  #868f9a;
+  --ink-invert: #0f1216;
+  --rule:        #2a3038;
+  --rule-strong: #3c444e;
+  --border-control: #626c78;
+  --acc:        #5fb98c;
+  --acc-ink:    #7fcfa5;
+  --acc-wash:   #16241d;
+  --acc-border: #3e7a5c;
+  --verm:       #e2603f;
+  --verm-ink:   #ef7a5c;
+  --verm-wash:  #2a1815;
+  --verm-border: #a8573d;
+  --warn-ink:   #e8be6e;
+  --warn-wash:  #241d10;
+  --shadow-scroll: hsl(210 50% 3% / .5);
+  --shadow-pop: 0 0 0 1px var(--rule-strong),
+                0 12px 32px -12px hsl(210 50% 3% / .8);
+  --code-bg:   #12161b;
+  --code-ink:  #dce3ea;
+  --code-cmt:  #8a94a0;
+  --code-kw:   #7fcfa5;
+  --code-ty:   #8fb8e8;
+  --code-str:  #d9a66c;
+  --code-num:  #b8c2cc;
+  --code-hole: #ef7a5c;
+  --code-punc: #9aa4b0;
+  --diff-add-ink: #86d9a5; --diff-add-bg: #132a1d;
+  --diff-del-ink: #efa2a2; --diff-del-bg: #2e1717;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   字族 —— 本文件相对 D1 的唯一偏离（见文件头）
+   ──────────────────────────────────────────────────────────────────
+   D1 §排版 的结论是「衬线不用」，三条理由里两条是**体积**（CJK 衬线 webfont
+   是 MB 级）与**骨架混排**（拉丁衬线 + 中文黑体是两套骨架）。
+
+   这两条在"**系统 CJK 衬线栈**"下都不成立：macOS 有 Songti SC、Windows 有
+   SimSun/宋体、Linux 常装 Noto Serif CJK SC——**零字节**，而且中拉同骨架。
+
+   所以本文件把衬线**收窄到 display 层**（h1–h3、hero、lead、大数字）：
+     · display 层字号 ≥19px，正是宋体表现最好、SimSun 小字发虚问题不存在的区间；
+     · 正文仍是系统黑体——中文正文的阅读稳定性优先，且这一层最怕平台差异；
+     · 于是拿到"教科书的声音"，不承担"正文用宋体"的平台风险。
+
+   D1 第三条理由（"高对比衬线大标题 + 奶油底 + 陶土色 = 第一类 AI 长相"）针对的是
+   **那个组合**。本方向的纸面是冷调 #f5f7f9（不是 #F4F1EA 那类奶油色）、强调色是
+   语义绑定的深绿与深朱（不是陶土装饰色），并且衬线只出现在 display 层——
+   组合不成立。**若哪天纸面被改成暖奶油色，这条正当化立刻失效，衬线必须一起撤掉。**
+
+   栈尾一律留 `serif` / `sans-serif` 兜底：任何一层缺失都不会炸，
+   最坏情况是 display 层退回黑体（此时它与正文同骨架，只是字号更大，不丑）。
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  /* 正文 / UI / 导航 / 按钮 / 表格：系统 UI 无衬线栈（D1 §排版 原样）。
+     "Soko Symbols" 排在系统栈之前：逻辑符号在 UI 文字里也会出现（chip、
+     表格、按钮文案），而**没有任何系统无衬线字体覆盖整套符号**——实测
+     Hiragino Sans GB 连 ⊢ 都没有。让它先接住，避免逐字回退。 */
+  --font-ui:
+    "Soko Symbols",
+    system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC",
+    "Source Han Sans SC", sans-serif;
+
+  /* display 层 —— 默认**无衬线**。
+   *
+   * 这里原本放的是 Source Serif 4（`"Soko Serif"`）。装上前端设计技能后跑
+   * `ai-smell-detector` 审查自己的方案，它把这个决定判成 `adapt`：
+   *
+   *   问「去掉它设计会失去意义吗」——会失去一点，但不是承重的。
+   *   问「参考里它是原则还是被抄的时尚线索」——"高对比衬线大标题"正是被点名的
+   *   第 1 类 AI 长相的**核心配料**。
+   *   问「同一个意图有没有更具体的表达」——**有**：教科书感来自**教科书的构件**，
+   *   不来自衬线。编号小节、页边注、定理/证明块、推理横线，这些才是数学文本的
+   *   形状；衬线只是"文学感"的通用符号。
+   *
+   * 所以"教科书"改用构件实现（见 D7 §教科书构件），衬线从默认路径撤掉，
+   * 同时省下 46 KB 字体（用户明确要求过"快也很重要"）。
+   *
+   * 保留一行开关：把下面这行的注释去掉即可换回衬线，字体文件仍在
+   * `site/assets/fonts/`（soko-serif-*.woff2，46 KB）。这是**留给设计检查点
+   * 的一个可逆决定**，不是遗留代码。 */
+  --font-display: var(--font-ui);
+  /* --font-display: "Soko Serif", "Soko Symbols", "Soko Mono", "Songti SC",
+     "STSong", "Source Han Serif SC", "Noto Serif CJK SC", "SimSun", "宋体",
+     Georgia, serif; */
+
+  /* 代码 / 目标状态 / JSON / 终端：自托管等宽子集。
+     必须覆盖 ⊢ 等逻辑符号——否则逐字回退会破坏等宽对齐（R1 §3.9 实测）。 */
+  --font-mono:
+    "Soko Mono", "Soko Symbols",
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", "DejaVu Sans Mono", monospace;
+
+  /* 数学记法专用（⊢ ∀ ∃ ∈ ⊆ ⟨⟩ 𝒫 …）：只在这些字形上生效。 */
+  /* 刻意**不含** "Soko Serif"：衬线已不在设计里，留着它会让浏览器为任意
+     "符号面缺字"的字符下载 22 KB 的 soko-serif-roman.woff2（实测如此）。
+     摘掉后落到 Soko Mono（等宽、覆盖更广），再落系统。 */
+  --font-symbols: "Soko Symbols", "Soko Mono", sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   打印：纸是白的，墨是黑的
+   ──────────────────────────────────────────────────────────────────
+   教学站要能被打印，所以这里把令牌重定义成打印机的世界。放在 tokens.css
+   而不是 base.css，是为了让「组件 CSS 里不出现裸 hex」这条纪律在打印路径上
+   也成立——组件只引用令牌，值在这里。
+   ══════════════════════════════════════════════════════════════════ */
+@media print {
+  :root {
+    --paper: #fff;
+    --surface: #fff;
+    --surface-sunken: #fff;
+    --surface-overlay: #fff;
+    --ink: #000;
+    --ink-2: #333;
+    --ink-3: #555;
+    --rule: #bbb;
+    --rule-strong: #999;
+    --border-control: #666;
+    --code-bg: #fff;
+    --code-ink: #000;
+    --acc-ink: #000;
+    --verm-ink: #000;
+    --acc-wash: #fff;
+    --mark-wash: #fff;
+    --warn-wash: #fff;
+    --grid-line: transparent;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   方格纸背景配方（供 base.css 使用；此处只放说明，规则本身在 base.css）
+   ──────────────────────────────────────────────────────────────────
+   body {
+     background-color: var(--paper);
+     background-image:
+       repeating-linear-gradient(to right,  var(--grid-line) 0 1px, transparent 1px var(--grid-pitch)),
+       repeating-linear-gradient(to bottom, var(--grid-line) 0 1px, transparent 1px var(--grid-pitch));
+     background-attachment: fixed;   // 滚动时网格不跟着动，读起来像纸
+   }
+
+   四条硬性安全规则（D1 §方格纸网格）：
+   1. 网格线对页面底色对比度 ≤ 1.10:1（当前 1.056）；
+   2. 所有正文色必须同时对页面底色**和网格线色**都 ≥ 4.5:1（令牌已按此验证）；
+   3. 网格**不得出现在文本容器内部**——正文块、卡片、代码块、表格都要有不透明
+      底色把网格挡住；网格只出现在页面的空白地带；
+   4. 暗色下网格不得比亮色更显眼（1.036 < 1.056，已满足）。
+   ══════════════════════════════════════════════════════════════════ */

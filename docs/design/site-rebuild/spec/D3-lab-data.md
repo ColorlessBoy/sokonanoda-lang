@@ -35,10 +35,25 @@ python3 scripts/gen-site-lab.py --only evidence --with-tests   # 额外真跑 ca
 
 | 字段 | 来源 | 说明 |
 |---|---|---|
-| `version` | `Cargo.toml` 的 `[workspace.package].version` | 与 `gen-site-data.py` **同一条正则**，两处不会读出不同的版本 |
+| `version` | `Cargo.toml` 的 `[workspace.package].version` | 数据**所描述的那棵树**的版本。与 `site.json` 的 `version` **不是同一个事实**，别混：那个是**已发布 tag**（见下） |
 | `source_commit` | `git rev-parse --short HEAD` | 数据描述的是哪个仓库状态 |
 | `generated_at` | `git log -1 --format=%cI HEAD` | **不是墙上时间**：用墙上时间会让每次重跑都产生无意义的 diff。数据是否过期由 `source_commit` 判断 |
 | `generated_at_from` | 常量 `"git-head-commit-time"` | 把上面这条约定写进数据本身 |
+
+> ### ⚠️ `version` 的两个含义（2026-09-21）
+>
+> `gen-site-data.py` 的 `version` 现在是**最新发布 tag**（`release_version()`），
+> 因为站点的每个页脚、每条下载指令都从它拼出来，而 `compare.html` 明说这是
+> 「已发布的版本，不是工作树」。上面这个信封里的 `version` 则是**数据所描述的
+> 那棵树**的版本——正常情况下就是最近一次发布快照。
+>
+> 两者今天都是 `0.61.0`，但那是**巧合**：信封的 `version` 直接读 `Cargo.toml`，
+> 而 `Cargo.toml` 已经是 `0.62.0` 了。也就是说，在一次版本 bump 之后、
+> 下一次发布之前重跑 `gen-site-lab.py`，会把信封写成 `0.62.0` + 未发布的
+> `source_commit`，同时把用工作树量出来的数（playground 事件等）混进站点——
+> K10（`kernel.html` 引用了 `source_commit`/`generated_at`）与 K16 会因此判红。
+> **发布之前不要重跑 `gen-site-lab.py`**；发布后从 tag 重跑（这是
+> `STATE.md`「0.62.0 发布后的动作」里的那一项，尚未做）。
 
 ### 1.2 确定性（重跑逐字节一致）
 

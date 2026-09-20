@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>走查一题：逐行看内核的目标状态 —— sokonanoda</title>
+<meta name="description" content="把卷 I 单元① 的 83 行源码逐行问一遍真内核，每一行的目标状态都原样印在源码下面。纯 CSS 折叠，关掉 JavaScript 也能读。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/walkthrough.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="走查一题：逐行看内核的目标状态 —— sokonanoda">
+<meta property="og:description" content="把卷 I 单元① 的 83 行源码逐行问一遍真内核，每一行的目标状态都原样印在源码下面。纯 CSS 折叠，关掉 JavaScript 也能读。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="walkthrough" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" aria-current="page" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li><a href="kernel.html">内核判卷</a></li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">功能</p>
+      <h1>走查一题：逐行看内核的目标状态</h1>
+      <p class="lead">写一行，内核就告诉你现在手里有什么、还差什么。这一页把卷 I 单元① 的每一行都问了一遍真内核。</p>
+    </header>
+
+    <section class="prose measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 这一页上的每个目标状态都是真的</h2>
+      <p>下面的源码来自 <code>courses/set-theory/units/unit01-sets-membership.sokonanoda</code>，共 83 行。这个文件里有两类东西：两条已经写完的演示，六道还留着洞的练习。</p>
+      <p>内核不认识"这一页"。它只认识一个文件加一个光标位置。所以生成这一页的命令是逐行跑 83 次同一条查询：</p>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 逐行目标状态</p>
+        <div class="terminal">
+          <p class="term-label">scripts/soko query state</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko query state --file courses/set-theory/units/unit01-sets-membership.sokonanoda --line 34 --col 1</span>
+<span class="term-out">{</span>
+<span class="term-out">  "ok": true,</span>
+<span class="term-out">  "data": {</span>
+<span class="term-out">    "decl": {"kind": "theorem", "name": "mem_of_subset", "status": "open"},</span>
+<span class="term-out">    "goal": "Set.mem α a A -&gt; Set.mem α a B",</span>
+<span class="term-out">    "step": -1,</span>
+<span class="term-out">    "total": 0</span>
+<span class="term-out">  }</span>
+<span class="term-out">}</span></pre>
+        </div>
+        <figcaption class="illus-cap">真输出，节选四个字段。<code>step</code> 是 -1：光标还在第一条 tactic 之前，内核如实回答"还没有 tactic 进度"，所以下面没有一个面板会印 <code>by 进度</code>。完整数据在 <code>site/data/walkthrough.json</code>。</figcaption>
+      </figure>
+
+      <p>这一页把这 83 行全部印出来。其中有目标状态的行是折叠块：点开（或按 Tab 再按空格）就在源码下面看到那一刻的真实状态。剩下的行是普通代码行，内核对它们回答 <code>outside-declarations</code>，因为那个位置不在任何声明里。</p>
+    </section>
+
+    <!-- ── 源码逐行走查 ──────────────────────────────────────────────
+         这一块是页面的核心：每一行有目标状态的源码行是一个 .fold，
+         body 里装内核给的那一行的真实状态。机制是 checkbox + label +
+         兄弟节点（site.css §11），没有 JS 也照样能开合。 -->
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 83 行源码，逐行附上内核的回答</h2>
+      <p class="prose">折叠块的行号与源码逐字来自数据文件，面板里的假设与目标逐字来自内核。23 行有目标状态，另外 60 行落在声明之外。</p>
+      <div class="editor-code" role="group" aria-label="单元① 源码与逐行目标状态，可横向滚动">
+
+<div class="code-line"><span class="wt-ln">1</span><span class="wt-src">-- ==========================================================================</span></div>
+<div class="code-line"><span class="wt-ln">2</span><span class="wt-src">-- unit01-sets-membership.sokonanoda —— 卷 I 单元① 集合与隶属</span></div>
+<div class="code-line"><span class="wt-ln">3</span><span class="wt-src">--</span></div>
+<div class="code-line"><span class="wt-ln">4</span><span class="wt-src">-- 本单元只允许：`fun` / `exact` / `apply` / `rfl`，加 lib/ 里已备好的引理</span></div>
+<div class="code-line"><span class="wt-ln">5</span><span class="wt-src">-- （`Set.subset_def`、`Set.mem_singleton_iff`、`Eq.symm`、…）。</span></div>
+<div class="code-line"><span class="wt-ln">6</span><span class="wt-src">-- **不需要**自己写 `Eq.symm`/`Or.elim`/`Iff.mp` 这类东西——那是标准库的一部分</span></div>
+<div class="code-line"><span class="wt-ln">7</span><span class="wt-src">-- （见 docs/design/course-stdlib.md）。</span></div>
+<div class="code-line"><span class="wt-ln">8</span><span class="wt-src">-- ==========================================================================</span></div>
+<div class="code-line"><span class="wt-ln">9</span><span class="wt-src">import lib.Logic</span></div>
+<div class="code-line"><span class="wt-ln">10</span><span class="wt-src">import lib.Set</span></div>
+<div class="code-line"><span class="wt-ln">11</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">12</span><span class="wt-src">-- ─────────────────────────────────────────────────────────────</span></div>
+<div class="code-line"><span class="wt-ln">13</span><span class="wt-src">-- 1.1 集合就是"论域上的谓词"</span></div>
+<div class="code-line"><span class="wt-ln">14</span><span class="wt-src">--</span></div>
+<div class="code-line"><span class="wt-ln">15</span><span class="wt-src">-- 记法对照（语言还没有 notation，见台账 G-04）：</span></div>
+<div class="code-line"><span class="wt-ln">16</span><span class="wt-src">--     x ∈ A   ↔  Set.mem α x A   ↔  A x</span></div>
+<div class="code-line"><span class="wt-ln">17</span><span class="wt-src">--     A ⊆ B   ↔  Set.subset α A B ↔  ∀ x, A x → B x</span></div>
+<div class="code-line"><span class="wt-ln">18</span><span class="wt-src">-- 于是"隶属"不是新东西，就是**函数应用**；"子集"就是**全称箭头**。</span></div>
+<div class="code-line"><span class="wt-ln">19</span><span class="wt-src">-- ─────────────────────────────────────────────────────────────</span></div>
+<div class="code-line"><span class="wt-ln">20</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">21</span><span class="wt-src">-- 演示（已写好）：子集的定义展开是"定义上相等"。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L22">
+<label class="fold__head" for="wt-L22"><span class="wt-ln">22</span><span class="wt-src">theorem demo_subset_def (α : Type) (A B : Set α) :</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">demo_subset_def</span><span class="goal-kind">theorem</span><span class="goal-line">L22</span><span class="goal-status is-checked">checked</span></div><p class="goal-solved">已无目标</p></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L23">
+<label class="fold__head" for="wt-L23"><span class="wt-ln">23</span><span class="wt-src">    Iff (Set.subset α A B) (forall (x : α), A x -&gt; B x) :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">demo_subset_def</span><span class="goal-kind">theorem</span><span class="goal-line">L23</span><span class="goal-status is-checked">checked</span></div><p class="goal-solved">已无目标</p></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L24">
+<label class="fold__head" for="wt-L24"><span class="wt-ln">24</span><span class="wt-src">  Set.subset_def α A B</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">demo_subset_def</span><span class="goal-kind">theorem</span><span class="goal-line">L24</span><span class="goal-status is-checked">checked</span></div><p class="goal-solved">已无目标</p></div></div>
+</div>
+<div class="code-line"><span class="wt-ln">25</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">26</span><span class="wt-src">-- 演示（已写好）：隶属 = 应用。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L27">
+<label class="fold__head" for="wt-L27"><span class="wt-ln">27</span><span class="wt-src">theorem demo_mem_def (α : Type) (a : α) (A : Set α) : Iff (Set.mem α a A) (A a) :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">demo_mem_def</span><span class="goal-kind">theorem</span><span class="goal-line">L27</span><span class="goal-status is-checked">checked</span></div><p class="goal-solved">已无目标</p></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L28">
+<label class="fold__head" for="wt-L28"><span class="wt-ln">28</span><span class="wt-src">  Iff.intro (Set.mem α a A) (A a) (fun (h : Set.mem α a A) =&gt; h) (fun (h : A a) =&gt; h)</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">demo_mem_def</span><span class="goal-kind">theorem</span><span class="goal-line">L28</span><span class="goal-status is-checked">checked</span></div><p class="goal-solved">已无目标</p></div></div>
+</div>
+<div class="code-line"><span class="wt-ln">29</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">30</span><span class="wt-src">-- 练习 1（T 类）：元素落在子集里。</span></div>
+<div class="code-line"><span class="wt-ln">31</span><span class="wt-src">-- soko:hint 思路：手里 h 是 A ⊆ B，目标是一个元素命题；把 h 当函数用。</span></div>
+<div class="code-line"><span class="wt-ln">32</span><span class="wt-src">-- soko:hint 目标形态：目标是 Set.mem α a B（也就是 B a）。</span></div>
+<div class="code-line"><span class="wt-ln">33</span><span class="wt-src">-- soko:hint 关键件：Set.subset_def α A B 的右方向把 h 变成 (fun x hx =&gt; …)，喂 a 与 ha。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L34">
+<label class="fold__head" for="wt-L34"><span class="wt-ln">34</span><span class="wt-src">theorem mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B) (a : α) :</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">mem_of_subset</span><span class="goal-kind">theorem</span><span class="goal-line">L34</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">B</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> <span class="tok-local">A</span> <span class="tok-local">B</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span> -&gt; <span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">B</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L35">
+<label class="fold__head" for="wt-L35"><span class="wt-ln">35</span><span class="wt-src">    Set.mem α a A -&gt; Set.mem α a B :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">mem_of_subset</span><span class="goal-kind">theorem</span><span class="goal-line">L35</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">B</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> <span class="tok-local">A</span> <span class="tok-local">B</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span> -&gt; <span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">B</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L36">
+<label class="fold__head" for="wt-L36"><span class="wt-ln">36</span><span class="wt-src">  sorry</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">mem_of_subset</span><span class="goal-kind">theorem</span><span class="goal-line">L36</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">B</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> <span class="tok-local">A</span> <span class="tok-local">B</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span> -&gt; <span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">B</span></pre></li></ol></div></div>
+</div>
+<div class="code-line"><span class="wt-ln">37</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">38</span><span class="wt-src">-- 练习 2（X 类：形式 ↔ 散文）：把下面这句散文翻译成定理并证明。</span></div>
+<div class="code-line"><span class="wt-ln">39</span><span class="wt-src">--</span></div>
+<div class="code-line"><span class="wt-ln">40</span><span class="wt-src">--   "A set is determined by its elements: if two sets have exactly the same</span></div>
+<div class="code-line"><span class="wt-ln">41</span><span class="wt-src">--    elements, they are equal."</span></div>
+<div class="code-line"><span class="wt-ln">42</span><span class="wt-src">--</span></div>
+<div class="code-line"><span class="wt-ln">43</span><span class="wt-src">-- soko:hint 思路：这句话就是外延性；库里已作为公理 Set.ext 备好。</span></div>
+<div class="code-line"><span class="wt-ln">44</span><span class="wt-src">-- soko:hint 目标形态：目标是 Eq.{1} (Set α) A B，前提是 forall x, Iff (A x) (B x)。</span></div>
+<div class="code-line"><span class="wt-ln">45</span><span class="wt-src">-- soko:hint 关键件：Set.ext α A B 吃一个 (fun (x : α) =&gt; Iff (A x) (B x))。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L46">
+<label class="fold__head" for="wt-L46"><span class="wt-ln">46</span><span class="wt-src">theorem eq_of_same_elements (α : Type) (A B : Set α) (h : forall (x : α), Iff (A x) (B x)) :</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">eq_of_same_elements</span><span class="goal-kind">theorem</span><span class="goal-line">L46</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">B</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty">(<span class="tok-local">x</span> : <span class="tok-local">α</span>) -&gt; <span class="tok-local">Iff</span> (<span class="tok-local">A</span> <span class="tok-local">x</span>) (<span class="tok-local">B</span> <span class="tok-local">x</span>)</code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty">@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} (<span class="tok-local">Set</span> <span class="tok-local">α</span>) <span class="tok-local">A</span> <span class="tok-local">B</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L47">
+<label class="fold__head" for="wt-L47"><span class="wt-ln">47</span><span class="wt-src">    Eq.{1} (Set α) A B :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">eq_of_same_elements</span><span class="goal-kind">theorem</span><span class="goal-line">L47</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">B</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty">(<span class="tok-local">x</span> : <span class="tok-local">α</span>) -&gt; <span class="tok-local">Iff</span> (<span class="tok-local">A</span> <span class="tok-local">x</span>) (<span class="tok-local">B</span> <span class="tok-local">x</span>)</code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty">@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} (<span class="tok-local">Set</span> <span class="tok-local">α</span>) <span class="tok-local">A</span> <span class="tok-local">B</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L48">
+<label class="fold__head" for="wt-L48"><span class="wt-ln">48</span><span class="wt-src">  sorry</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">eq_of_same_elements</span><span class="goal-kind">theorem</span><span class="goal-line">L48</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">B</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty">(<span class="tok-local">x</span> : <span class="tok-local">α</span>) -&gt; <span class="tok-local">Iff</span> (<span class="tok-local">A</span> <span class="tok-local">x</span>) (<span class="tok-local">B</span> <span class="tok-local">x</span>)</code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty">@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} (<span class="tok-local">Set</span> <span class="tok-local">α</span>) <span class="tok-local">A</span> <span class="tok-local">B</span></pre></li></ol></div></div>
+</div>
+<div class="code-line"><span class="wt-ln">49</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">50</span><span class="wt-src">-- 练习 3（T 类）：{a} ⊆ A 推出 a ∈ A。（**这一步用不到第 4 题**）</span></div>
+<div class="code-line"><span class="wt-ln">51</span><span class="wt-src">-- soko:hint 思路：子集给每个元素一条通道；把 a 自己喂进去。</span></div>
+<div class="code-line"><span class="wt-ln">52</span><span class="wt-src">-- soko:hint 目标形态：目标是 Set.mem α a A。</span></div>
+<div class="code-line"><span class="wt-ln">53</span><span class="wt-src">-- soko:hint 关键件：需要先造出 a ∈ {a}——那正是 Set.mem_singleton_self α a（库里）。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L54">
+<label class="fold__head" for="wt-L54"><span class="wt-ln">54</span><span class="wt-src">theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">mem_of_subset_singleton</span><span class="goal-kind">theorem</span><span class="goal-line">L54</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L55">
+<label class="fold__head" for="wt-L55"><span class="wt-ln">55</span><span class="wt-src">    (h : Set.subset α (Set.singleton α a) A) : Set.mem α a A :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">mem_of_subset_singleton</span><span class="goal-kind">theorem</span><span class="goal-line">L55</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L56">
+<label class="fold__head" for="wt-L56"><span class="wt-ln">56</span><span class="wt-src">  sorry</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">mem_of_subset_singleton</span><span class="goal-kind">theorem</span><span class="goal-line">L56</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span></pre></li></ol></div></div>
+</div>
+<div class="code-line"><span class="wt-ln">57</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">58</span><span class="wt-src">-- 练习 4（T 类）：a ∈ A 推出 {a} ⊆ A。</span></div>
+<div class="code-line"><span class="wt-ln">59</span><span class="wt-src">-- soko:hint 思路：目标是全称命题；intro 一个元素与"它在 {a} 里"。</span></div>
+<div class="code-line"><span class="wt-ln">60</span><span class="wt-src">-- soko:hint 目标形态：intro 之后手里有 hx : Set.mem α x (Set.singleton α a)，目标是 A x。</span></div>
+<div class="code-line"><span class="wt-ln">61</span><span class="wt-src">-- soko:hint 关键件：Set.mem_singleton_iff α x a 把 hx 变成等式 Eq.{1} α x a； 再用 Eq.symm（库里）与 Eq.subst 把它搬到 A a 上。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L62">
+<label class="fold__head" for="wt-L62"><span class="wt-ln">62</span><span class="wt-src">theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : Set.mem α a A) :</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">subset_of_mem_singleton</span><span class="goal-kind">theorem</span><span class="goal-line">L62</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L63">
+<label class="fold__head" for="wt-L63"><span class="wt-ln">63</span><span class="wt-src">    Set.subset α (Set.singleton α a) A :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">subset_of_mem_singleton</span><span class="goal-kind">theorem</span><span class="goal-line">L63</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span></pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L64">
+<label class="fold__head" for="wt-L64"><span class="wt-ln">64</span><span class="wt-src">  sorry</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">subset_of_mem_singleton</span><span class="goal-kind">theorem</span><span class="goal-line">L64</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span></pre></li></ol></div></div>
+</div>
+<div class="code-line"><span class="wt-ln">65</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">66</span><span class="wt-src">-- 练习 5（L 类）：把练习 3 与 4 合成一条"当且仅当"。</span></div>
+<div class="code-line"><span class="wt-ln">67</span><span class="wt-src">-- soko:hint 思路：Iff 就是一对箭头，两边分别用前两题。</span></div>
+<div class="code-line"><span class="wt-ln">68</span><span class="wt-src">-- soko:hint 目标形态：Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)。</span></div>
+<div class="code-line"><span class="wt-ln">69</span><span class="wt-src">-- soko:hint 关键件：Iff.intro 吃两个方向；左到右 = mem_of_subset_singleton，右到左 = subset_of_mem_singleton。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L70">
+<label class="fold__head" for="wt-L70"><span class="wt-ln">70</span><span class="wt-src">theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">singleton_subset_iff</span><span class="goal-kind">theorem</span><span class="goal-line">L70</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Iff</span> (<span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span>) (<span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span>)</pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L71">
+<label class="fold__head" for="wt-L71"><span class="wt-ln">71</span><span class="wt-src">    Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A) :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">singleton_subset_iff</span><span class="goal-kind">theorem</span><span class="goal-line">L71</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Iff</span> (<span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span>) (<span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span>)</pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L72">
+<label class="fold__head" for="wt-L72"><span class="wt-ln">72</span><span class="wt-src">  sorry</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">singleton_subset_iff</span><span class="goal-kind">theorem</span><span class="goal-line">L72</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">A</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">Set</span> <span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Iff</span> (<span class="tok-local">Set.subset</span> <span class="tok-local">α</span> (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) <span class="tok-local">A</span>) (<span class="tok-local">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span>)</pre></li></ol></div></div>
+</div>
+<div class="code-line"><span class="wt-ln">73</span><span class="wt-src"></span></div>
+<div class="code-line"><span class="wt-ln">74</span><span class="wt-src">-- 练习 6（D 类）：下面两条哪条为真？</span></div>
+<div class="code-line"><span class="wt-ln">75</span><span class="wt-src">--   (i)  若 {a} = {b}，则 a = b。</span></div>
+<div class="code-line"><span class="wt-ln">76</span><span class="wt-src">--   (ii) 若 a = b，则 {a} = {b}。</span></div>
+<div class="code-line"><span class="wt-ln">77</span><span class="wt-src">-- 为真的证明，为假的说明理由（写在注释里）。</span></div>
+<div class="code-line"><span class="wt-ln">78</span><span class="wt-src">-- soko:hint 思路：(i) 用"a ∈ {a}"沿等式搬过去再展开；(ii) 展开两边的定义再交给 Eq.subst。</span></div>
+<div class="code-line"><span class="wt-ln">79</span><span class="wt-src">-- soko:hint 目标形态：(i) Eq.{1} α a b；(ii) Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)。</span></div>
+<div class="code-line"><span class="wt-ln">80</span><span class="wt-src">-- soko:hint 关键件：(i) Eq.subst 把 Set.mem α a (Set.singleton α a) 搬到 {b} 上， 再用 Set.mem_singleton_iff 取出等式；(ii) 对每个 x 用 Set.ext + Eq.subst。</span></div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L81">
+<label class="fold__head" for="wt-L81"><span class="wt-ln">81</span><span class="wt-src">theorem singleton_eq_singleton_iff (α : Type) (a b : α) :</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">singleton_eq_singleton_iff</span><span class="goal-kind">theorem</span><span class="goal-line">L81</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">b</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Iff</span> (@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} (<span class="tok-local">Set</span> <span class="tok-local">α</span>) (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">b</span>)) (@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">b</span>)</pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L82">
+<label class="fold__head" for="wt-L82"><span class="wt-ln">82</span><span class="wt-src">    Iff (Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (Eq.{1} α a b) :=</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">singleton_eq_singleton_iff</span><span class="goal-kind">theorem</span><span class="goal-line">L82</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">b</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Iff</span> (@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} (<span class="tok-local">Set</span> <span class="tok-local">α</span>) (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">b</span>)) (@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">b</span>)</pre></li></ol></div></div>
+</div>
+<div class="fold">
+<input class="fold__toggle visually-hidden" type="checkbox" id="wt-L83">
+<label class="fold__head" for="wt-L83"><span class="wt-ln">83</span><span class="wt-src">  sorry</span></label>
+<div class="fold__body"><div class="goal"><div class="goal-head"><span class="goal-decl">singleton_eq_singleton_iff</span><span class="goal-kind">theorem</span><span class="goal-line">L83</span><span class="goal-status is-open">open</span></div><ol class="goal-stack"><li class="goal-item"><p class="goal-label">目标</p><ul class="hyps"><li class="hyp"><span class="hyp-name">α</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Type</span></code></li><li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li><li class="hyp"><span class="hyp-name">b</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">α</span></code></li></ul><p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p><pre class="goal-ty"><span class="tok-local">Iff</span> (@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} (<span class="tok-local">Set</span> <span class="tok-local">α</span>) (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">a</span>) (<span class="tok-local">Set.singleton</span> <span class="tok-local">α</span> <span class="tok-local">b</span>)) (@<span class="tok-local">Eq.</span>{<span class="tok-num">1</span>} <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">b</span>)</pre></li></ol></div></div>
+</div>
+      </div>
+    </section>
+
+<!--/LISTING-->
+    <section class="prose measure" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 同一个声明里，每一行的回答是一样的</h2>
+      <p>光标停在每一行的第 1 列，也就是停在第一条 tactic 之前。这时内核报的是声明的根状态：所有假设都在，目标还没被拆过。所以练习 1 的三行会看到同一个面板，这不是采样偷懒，是内核的答案如此。</p>
+      <p>要看到状态随行推进而变化，把 <code>--col</code> 往右挪，或者把 <code>--line</code> 放进 <code>by</code> 块内部。根状态长这样：</p>
+
+      <div class="turnstile" role="img" aria-label="练习 1 的根状态：给定 A、B 是集合，h 是 A 包含于 B，a 是元素；待证 a 属于 A 推出 a 属于 B">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">A</span> : <span class="tok-ty">Set</span> <span class="tok-local">α</span></li>
+          <li><span class="tok-local">B</span> : <span class="tok-ty">Set</span> <span class="tok-local">α</span></li>
+          <li><span class="tok-local">h</span> : <span class="tok-ty">Set.subset</span> <span class="tok-local">α</span> <span class="tok-local">A</span> <span class="tok-local">B</span></li>
+          <li><span class="tok-local">a</span> : <span class="tok-local">α</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-ty">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">A</span> -> <span class="tok-ty">Set.mem</span> <span class="tok-local">α</span> <span class="tok-local">a</span> <span class="tok-local">B</span></p>
+      </div>
+
+      <p>内核报的假设有五个，这里省掉 <code>α : Type</code>，只留和这条目标直接相关的四条。着色和上面的面板同源：<code>Set.mem</code> 与 <code>Set.subset</code> 是 <code>unknown_ident</code>，<code>α</code> / <code>a</code> / <code>A</code> / <code>B</code> / <code>h</code> 是 <code>binder</code>。</p>
+    </section>
+
+    <section class="prose measure" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 在你自己的编辑器里打开同一个文件</h2>
+      <p>这一页是一次录像，不能改。要真的写一行看一行，把这个文件取到本地：</p>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 取到本地并判卷</p>
+        <div class="terminal">
+          <p class="term-label">git clone</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>git clone https://github.com/ColorlessBoy/sokonanoda-lang.git</span>
+<span class="term-cmd"><span class="term-prompt">$ </span>cd sokonanoda-lang</span>
+<span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko setup</span>
+<span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko grade courses/set-theory/units/unit01-sets-membership.sokonanoda --json</span>
+<span class="term-out">{"human":"checked declaration demo_subset_def","name":"demo_subset_def","type":"decl.checked"}</span>
+<span class="term-out">{"human":"exercise open (fill the sorry)","name":"mem_of_subset","type":"exercise.open"}</span></pre>
+        </div>
+        <figcaption class="illus-cap">输出节选两行：这一次判卷共 2 条 <code>decl.checked</code> 与 6 条 <code>exercise.open</code>。想直接看某一行，就把上面那条 <code>query state</code> 换成你的行号。</figcaption>
+      </figure>
+
+      <div class="callout callout--limit">
+        <p class="callout__title">限制</p>
+        <p>这一页是录像，不是活的判卷。它没有 WebAssembly，没有后端，也没有把你的输入送回任何地方。页面上每个状态都是 <code>scripts/gen-site-lab.py</code> 在生成数据时跑出来的，页面的字节数里没有内核。判卷要在你的机器上跑。</p>
+      </div>
+    </section>
+<!--/ENDING-->
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" aria-current="page" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

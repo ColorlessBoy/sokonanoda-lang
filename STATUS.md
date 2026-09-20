@@ -20,6 +20,97 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-21，第一百一十九轮（站点线）：站点事实改锚发布 tag —— 并修掉一个把正确复现判成红的陷阱）
+
+> 用户：「那边功能侧 agent 已经提交了，你这边看看哪里要适配改一下，然后也提交一下。」
+> 语言线的 `08b6782`（全课程 Lean 4 化）与站点只有一处冲突，但那一处会变成**用户可见的
+> 假话**：它把 `Cargo.toml` 推到 `0.62.0`，而站点的每个页脚与每条下载指令都从版本号拼出来。
+
+1. **适配（真问题，不是形式）**。原 `gen-site-data.py` 是 `version <- Cargo.toml`，
+   而 `Cargo.toml` 在**整个发行窗口里一直领先于最后一个 tag**。按原样重跑一次，实测写出：
+   `version: 0.62.0`（没有 tag、没有 Release、没有产物 = 读者下载不到），并把课程计数
+   从 **329 改成 328 checked**（用工作树的课程 + 仓库 debug 构建量的）。而站点自己明说
+   这个数是「已发布的版本，不是工作树」（`compare.html`）。
+   **修法**：生成器改为锚**发布 tag** —— `release_version()`（最新 `vX.Y.Z` tag）+
+   `release_tree()`（解出该 tag 的课程 / `scripts/soko` / `Cargo.toml`）+
+   `release_binary()`（VS Code 扩展里那份已发布 CLI），判卷一律走
+   `SOKONANODA_BIN=<已发布>`；拿不到 tag 时**沿用上次写下的版本**，**绝不退回 `Cargo.toml`**。
+   `pages.yml` 的 checkout 补 `fetch-depth: 0`（默认浅克隆不带 tag，生成器就解析不出发布版本）。
+   **实测**：`version: 0.61.0（发布 tag v0.61.0）；Cargo.toml 已是 0.62.0，尚无 tag —— 站点仍写已发布版本`
+   + `set_theory: 门禁实测（v0.61.0 的课程 × 0.61.0 的二进制）36 目标 · 329 checked · 99 open · 0 判负`
+   —— 与站点原值**逐项相同**，且 `counts_source` 从 `previous-run` 变回 `gate`（真的在实测了）。
+2. **两条计数判据的基准从 `HEAD` 收紧到发布 tag**（K12 课程 / K16 playground），并修掉
+   收紧后立刻暴露的一个陷阱：`courses/set-theory/tools/check.py` 要**沿目录向上找到
+   `scripts/soko`** 才认「本检出」，再从那个目录的 `Cargo.toml` 读版本钉、与二进制
+   `--version` 比对，不一致就 **exit 2 拒绝判卷**。只解课程到 `.cache/` 时它会一路上溯、
+   撞到本仓库根，拿 HEAD 的钉（0.62.0）去卡已发布的 0.61.0 二进制 ⇒ 一次**正确的复现被判红**。
+   **门禁是对的**（它那双眼睛分不出"已发布二进制"和"走错门的工作树"），错的是临时目录
+   不是一个自洽的检出。三样一起解（课程 + `scripts/soko` + `Cargo.toml`）即自洽，判据才真的
+   在说"能不能复现"。实测修完 **`v0.61.0 + 0.61.0 实测 36/329/99/0`**。
+3. **顺手抓到并修掉页面上一句已经变成谎话的话（同一类病的第三处）**。首页「它现在还
+   不能做什么」里写着 `` `counts_source: previous-run` `` —— 那是**当时**的取值；生成器在
+   有已发布二进制的机器上会实测成 `gate`，于是这句话随环境变化而真假交替，**而没有任何
+   检查会响**（K10 原先只抽三类"逐字复制"的字段，散文里引用的数据盖不住）。处置两件：
+   - 页面改成**描述机制、不引用取值**（「实测发生在有已发布判卷二进制的那台机器上，
+     没有的机器沿用上一轮的数；数据文件记着是哪一种」）；
+   - K10 补第二类抽取：首页编辑器插画引用的 playground 计数（`decl_checked: 30`）按
+     **playground 事件名翻译**后回查 `evidence.json`（`decl.checked`）——这两个数每次动
+     playground 都会变，之前完全没人看着。反向测试做过（改成 31 → 判红）。
+     现为 **93 条录制值回查**。
+     **通用版故意不做**：路径、`infix: 50 " ∈ " => …` 这类记法语法、URL 都会撞上同一个
+     正则，通用版只能靠手工豁免表活着，那种检查会烂掉；真正的解法是把这类值挪进数据
+     文件由 JS 回填（版本号就是这么做的），属于页面改版的事。已记 `STATE.md` §7。
+4. **文档同步（项数与契约都对不上实测）**：`AGENTS.md` / `ROADMAP.md` 的「14 项 / 13 项」
+   → 真实 **18 项 / 16 项**（CI 跑 `--quick`）；`check-site.py` 的「9 条断言」→ **10 条**
+   （docstring 里 sitemap 那条**从来没列进去**）；`pages.yml` 的「16 项」与两处生成器清单；
+   `site-rebuild/spec/D3-lab-data.md` §1.1 的 `version` 契约（**信封版本 ≠ 站点版本**，
+   原先写的是"同一条正则、两处不会读出不同的版本"——现在正是两个不同的事实）；
+   `site-rebuild/STATE.md` §0（现状已不是"缺 21 个页面"）/§5 #18（新增本轮实测）/
+   §7（13→18 项、K12 的新基准、K17 的动机）/§7.1+§7.2（新基准与陷阱的完整记录）。
+5. **补一条判据 K17（版本必须是发布 tag）——修好的东西得有人守着**。前两条只管计数，
+   而版本号本身没人管（28 个页脚 + 每条下载指令都从它拼出来）。它写错时 K12/K16 会
+   **安静跳过**（按 `site.json` 的版本去找已发布二进制与 tag，找不到就报"跳过：不算通过"，
+   措辞与平时一模一样）⇒ 站点能带着一个下载不到的版本上线而报告全绿。K17 **直接调用
+   生成器自己的 `release_version()`**（`importlib` 按路径载入 `gen-site-data.py`，
+   判据与产它的人不会各自漂移）。**"谎话"与"落后"分开判**：站点版本**没有任何 tag**
+   ⇒ 判红（读者下载会 404）；有 tag、只是比最新的旧 ⇒ 只记一笔——发布刚落地、站点
+   数据还没重跑时 `pages.yml` 正在部署，判红会让整条部署挂掉，把一个"该重跑生成器"
+   的待办伪装成故障。三种情形实测过：正确 → `v0.61.0`；临时造 `v9.9.9` → 记一笔
+   （造完即删）；写成无 tag 的 `0.99.0` → 判红并指名。
+   **推送前又抓到一处"这次必红"的陷阱**：`gen-site-search.py --check` 原先拿整份
+   载荷**逐字节**比对，而载荷里带 `source_commit` —— 生成索引 → 提交 → HEAD 变了 ⇒
+   重建的载荷必然不同。这是"给自己拍一张带自己哈希的照片"：文件里记的是 `702e444`，
+   CI 在 `4afe42a` 上重算得到 `4afe42a`，**部署必挂**。修法：比较用的规范形式抹掉
+   `source_commit`（写盘仍带），判据从此只在**页面文字真的变了**时才红；两个方向都
+   实测过（不动页面 → 绿；改一个 `<title>` → 红）。教训：**把"产物自身所在的那次提交"
+   写进产物，再拿它自检，判据就永远不可能通过**。
+6. **合入 main（本轮末）**：`i16-imports-and-projects` 与 `origin/main`（多一个 e2e
+   台账提交 `d05dd47`）合并，推送 main 并删除该分支。**注意这里有个必然的连锁**：
+   `origin/main` 上的 `Cargo.toml` 已是 0.62.0，所以**任何**一次 push main 都会让
+   `ci.yml` 的 `auto-tag` 打出 `v0.62.0` 并派发 release（它只在 lint/test/e2e/
+   e2e-macos 全绿后才跑，红则不发布——失败模式是安全的）。发布落地后站点需要按
+   `site-rebuild/STATE.md` §12.2 重跑生成器（K17 会以"落后"的形式提示，不判红）。
+7. **本机无法跑 Rust 门禁（环境限制，非代码问题）**：`scripts/soko gate` 在本机
+   失败在**链接**阶段——`cc` 报 `You have not agreed to the Xcode license agreements`
+   （`cc t.c -o t.out` 同样失败，exit 69）。`sudo xcodebuild -license` 需要交互式
+   sudo，不在 agent 能力内。因此 `cargo test` / clippy / gate **本机不可用**，
+   推送前只能验：站点 18/18、版本契约（`Cargo.toml` 与 `package.json` 都是 0.62.0）、
+   工作流 YAML、git 层合并无冲突。**Rust 侧的结论以 CI 为准**——本次推送新增的提交
+   只碰 `site/` `scripts/` `docs/` 与 workflow，未碰 `crates/`。
+8. **站点进度页读的轮次也跟着走**：`site/data/site.json` 的 `round` 108→119
+   （= `STATUS.md` 最新一轮），`set_theory` 新增 `released_tag: v0.61.0` 作为出处。
+   6 份 `site/data/*.json` 的 lab 数据**故意不重跑**：它们描述的是已发布快照
+   （`source_commit` 084da05），现在重跑会把未发布状态混进站点（见第 7 条）。
+9. **验证**：`python3 scripts/site-verify.py` → **18/18 全绿**（28 页、K10 93 条录制值
+   全部回查、K12 `v0.61.0 + 0.61.0 实测 36/329/99/0`、K16 `decl.checked 30 /
+   example.checked 2 / exercise.open 4 / warning 2`、K17 `v0.61.0`、
+   K3/K4/K13 渲染审计、K15 18 项交互实跑）；`check-site.py` 10 条断言亦绿。
+10. **仍欠 / 下一轮**：`gen-site-lab.py` 的 6 份数据文件信封**仍直接读 `Cargo.toml`** ——
+   发布前重跑会把未发布的 `source_commit`（08b6782）与用工作树量出的数混进站点，
+   K10（`kernel.html` 逐字引用 `source_commit`/`generated_at`）与 K16 会判红。
+   已写进 `STATE.md` §5 #18 与 `spec/D3-lab-data.md` §1.1 的警告框；**0.62.0 发布后**
+   按 `STATE.md` §12.2 的五步一次做完（记法三条 + 6 份 lab 数据 + K12/K16 + 全绿重跑）。
+
 ## 本轮进度（2026-09-21，第一百一十八轮：用户四条指令落地——报错质量 / 写进教学 / 速查表 / 站点交接文档）
 
 > 用户在同一轮给了四条指令：①「你改好吧，问题我没看懂」（= 上一轮报的 `Set.mem a A`
@@ -112,45 +203,3 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    要不要拆成两页、或把 9 对演示压成一张速查表，是教学决定）；
    「删骨架后要不要把 `constructor`/`cases` 写进 ①④⑧ 的教学」（上一轮留的教学决定）；
    R2.5 的 IA-2/IA-3；`judge_infer` 的宇宙参数。
-
-## 本轮进度（2026-09-21，第一百一十六轮：**C2.5 落地**——用户拍板删自建骨架，入门课统一到 prelude 真归纳）
-
-> 第 115 轮把 C2.5 摆到用户面前（设计里标「需拍板，推荐删」），用户选**删**。
-> 本轮把它做完：入门课 + playground + `unit11-project` 里的自建 `And`/`Or` 骨架
-> **全部删除**，prelude 的真归纳接管 ⇒ `constructor`/`cases`/`left`/`right` 在
-> **全课程**可用（在此之前 ①④⑧ 因为自建公理而不可用）。
-
-1. **删了什么（逐字）**：①④⑧ 的 `axiom And`(4) + `axiom Or`(3)、⑨⑩⑪ 的
-   `axiom And`(4) + **`inductive Or … end` 整块**、`unit11-project/Logic` 的
-   `axiom And`(4)、`playground` 的 And/Or 共 7 条。**保留** `axiom True`/`False`
-   ——单元① 仍拿它们讲「`axiom` 是什么」（设计 §C2.5 明写保留）。
-   影响 **34 个文件**（11 单元 × 中英 × 画布/解答的相应部分 + 项目 4 文件 + playground）。
-2. **叙事同轮改**（否则立刻变假话）：单元① 的「逻辑骨架」段改成「这四条用 `axiom`
-   是给你看公理长什么样；`∧ ∨` 及其构造子 **prelude 自带**」；单元⑨ 的
-   「9.1 `Or`：从公理升级为真归纳」整节动机失效 ⇒ 改成「**`Or` 的消去子**：
-   一份 `A ∨ B` 的证据怎么用」；单元⑪ 的「单元① 的 `Or` 只是公理」对比段换掉；
-   `playground` 的「公理都齐了」「看 `axiom Or.inl` 的类型」等悬空引用一并修好。
-3. **规范副本随之退役**：`course/shared/{And,Or}.sokonanoda` 两个模块**删除**
-   （没有副本可守了），`course_shared.rs` 的 `AND_COPIES`(25 份)/`OR_COPIES`(12 份)
-   两张表与文件头口径同步删除；`Nat` 那 8 份照旧守。`Demo.sokonanoda` 改成
-   **只 import `Nat`**，And/Or 两条演示改用 **prelude 的真归纳**写（演示名不变，
-   所以 CI 断言不变）；顺带暴露一处真话：项位的裸名 `inr` 在真归纳上不存在
-   （G-02 起的构造子命名空间）⇒ 必须 `Or.inr`，**模式位** `| inl a =>` 仍可用。
-4. **计数重钉（内核实测，不手算）**：六个画布的 `checked` 各自减去删掉的声明数
-   （unit1 13→6、unit4 14→7、unit8 14→10、unit9 13→8、unit10 7→2、unit11 7→2），
-   **`open` 一个没动**（练习声明一行未改）；课程总计 **checked 87→54、open 66 不变**。
-   四处钉子同步：`course.rs` 的 `GOLDEN`(6 行)、`course_status.rs` 的逐单元表 +
-   summary、`cli.rs` 的 warm-cache 总计。
-5. **验证（本轮实测）**：
-   - **34 个文件逐个 `grade`：exit 0、诊断 0**（`unit11-project` 四个与 playground 也在内）；
-   - `cargo test -p sokonanoda-cli --test course --test course_status --test course_shared --test cli` **114 条全绿**；
-   - **CN/EN 22 对文件剥注释后逐字节一致**（含 ⑨⑩⑪ 与项目文件）；
-   - 附带证据（子 agent 在仓库外做的探针）：只声明 `True`/`False` 的文件里
-     `constructor`/`left`/`right`/`cases` 现在都能过 —— 这正是删骨架的目的。
-   - `scripts/soko gate` 见下一轮记录（本轮末尾已启动）。
-6. **分工与复核**：两个 subagent 分别做 ①④⑧ 与 ⑨⑩⑪+项目；我**逐个复核**（不采信
-   自述）并负责 `shared/` 退役、四处计数重钉、Demo 改造与文档同步。⑨⑩⑪ 那组的
-   报告还没到，但它改的文件我已复验（grade 全绿、叙事已改、CN/EN 一致）。
-7. **仍欠**：C1.3 卷 I 的 hint 词汇；C1.5 速查表重定位；R2.5 的 IA-2/IA-3；
-   `judge_infer` 的宇宙参数；以及「删骨架之后要不要把 `constructor`/`cases` 写进
-   ①④⑧ 的教学」——那是**下一轮的教学决定**（设计 §C2.6）。

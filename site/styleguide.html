@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>设计规范：组件与令牌 —— sokonanoda</title>
+<meta name="description" content="本站设计语言的样板页：令牌、排版、教科书构件、推理横线、编辑器面板。每个组件都用真实内容演示，并写明它的语义约束。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/styleguide.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="设计规范：组件与令牌 —— sokonanoda">
+<meta property="og:description" content="本站设计语言的样板页：令牌、排版、教科书构件、推理横线、编辑器面板。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+<link rel="stylesheet" href="assets/styleguide.css">
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body data-page="styleguide" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li><a href="about.html">关于</a></li>
+        <li>设计规范</li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">样板页</p>
+      <h1>设计规范：组件与令牌</h1>
+      <p class="lead">
+        这一页是本站视觉语言的唯一权威样板。每个组件都配一个**真实**用例——
+        数字来自内核实测，代码来自仓库真源码，面板里的目标是真跑出来的。
+        改任何令牌之前先看这一页，改完再看一遍。
+      </p>
+    </header>
+
+    <!-- ═══════════════ 1. 方向 ═══════════════ -->
+    <section class="measure" aria-labelledby="dir">
+      <h2 id="dir"><span class="sec-num">§1</span> 方向：「格纸 · 朱批」</h2>
+      <p>
+        这个产品的产物是<strong>判定</strong>，材料是<strong>格子纸上的推导</strong>，
+        读者是<strong>中英混排的技术读者</strong>。三个事实各自推出一组视觉决定，
+        没有一组是"看起来高级"选出来的。
+      </p>
+
+      <div class="turnstile">
+        <ul class="turnstile__given">
+          <li>产物是判定 &nbsp;→&nbsp; 颜色是语义的：绿 = 内核真的通过过；朱 = 诊断与诚实的限制</li>
+          <li>材料是推导 &nbsp;→&nbsp; 方格纸 + 零圆角结构容器 + 发丝线承担全部分隔</li>
+          <li>读者是技术读者 &nbsp;→&nbsp; 拉丁自托管子集、CJK 走系统栈、<span class="tok-ty">⊢</span> 必须有字形</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">一条发丝线，上方是「给定」，下方是「待证」。全站唯一的记忆点。</p>
+      </div>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">这个方向贴着两条 AI 默认长相，必须知道边界</span>
+        <p>
+          公开的反 AI-slop 指导里，第 2 类是「近黑底 + 单一荧光强调色」，第 3 类是
+          「宽幅报纸式：发丝线 + 零圆角 + 密排」。本方向同时踩在两者的边上。分界是：
+          <strong>单栏</strong>（不是密排多栏）、<strong>零圆角只给结构容器</strong>
+          （控件仍是 3px）、<strong>发丝线只在推理横线上有语义</strong>（不是每条边界都画）、
+          <strong>亮色为主</strong>（不是近黑底）、<strong>强调色低亮度且只做语义</strong>
+          （不是荧光，不是装饰）。
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 2. 令牌 ═══════════════ -->
+    <section aria-labelledby="tok">
+      <h2 id="tok"><span class="sec-num">§2</span> 令牌</h2>
+      <p class="measure">
+        色卡直接引用令牌，所以它<strong>不可能漂移</strong>——令牌改了，色卡跟着变。
+        注释里的对比度是实算的 WCAG 2.x 比值。
+      </p>
+
+      <h3>表面与墨色</h3>
+      <ul class="swatches">
+        <li class="swatch swatch--paper"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--paper</span><span class="swatch__use">页面底 · 冷调近白</span></div></li>
+        <li class="swatch swatch--surface"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--surface</span><span class="swatch__use">抬起一级</span></div></li>
+        <li class="swatch swatch--surface-sunken"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--surface-sunken</span><span class="swatch__use">下沉 · 代码底</span></div></li>
+        <li class="swatch swatch--ink"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--ink</span><span class="swatch__use">正文 16.73:1</span></div></li>
+        <li class="swatch swatch--ink-2"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--ink-2</span><span class="swatch__use">次要 7.49:1</span></div></li>
+        <li class="swatch swatch--ink-3"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--ink-3</span><span class="swatch__use">元信息 4.95:1 下限</span></div></li>
+        <li class="swatch swatch--rule"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--rule</span><span class="swatch__use">装饰分隔</span></div></li>
+        <li class="swatch swatch--rule-strong"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--rule-strong</span><span class="swatch__use">推理横线</span></div></li>
+        <li class="swatch swatch--border-control"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--border-control</span><span class="swatch__use">控件边界 3.70:1</span></div></li>
+      </ul>
+
+      <h3>两个语义色（唯一允许的强调色）</h3>
+      <ul class="swatches">
+        <li class="swatch swatch--acc"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--acc</span><span class="swatch__use">实底 · 白字 6.44:1</span></div></li>
+        <li class="swatch swatch--acc-ink"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--acc-ink</span><span class="swatch__use">绿字 8.51:1</span></div></li>
+        <li class="swatch swatch--acc-wash"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--acc-wash</span><span class="swatch__use">绿底</span></div></li>
+        <li class="swatch swatch--verm"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--verm</span><span class="swatch__use">实底 · 白字 5.23:1</span></div></li>
+        <li class="swatch swatch--verm-ink"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--verm-ink</span><span class="swatch__use">朱字 5.55:1</span></div></li>
+        <li class="swatch swatch--verm-wash"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--verm-wash</span><span class="swatch__use">朱底</span></div></li>
+        <li class="swatch swatch--warn-ink"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--warn-ink</span><span class="swatch__use">请注意 7.97:1</span></div></li>
+        <li class="swatch swatch--warn-wash"><div class="swatch__chip"></div><div class="swatch__body"><span class="swatch__name">--warn-wash</span><span class="swatch__use">注意底</span></div></li>
+      </ul>
+
+      <div class="callout callout--note">
+        <span class="callout__title">审计规则：看到强调色就问一句</span>
+        <p>
+          <strong>「这里背后有什么真实判定？」</strong>答不上来就是装饰性使用，按 bug 处理。
+          绿只允许出现在内核真的通过过的东西上（实测计数、已发布版本、真实通过态）；
+          朱只允许出现在诊断、更正、以及诚实的限制上。一个元素只能带一个语义色，不许同时两个。
+        </p>
+      </div>
+
+      <h3>方格纸</h3>
+      <p class="measure">
+        24px 格距 = <code>--sp-5</code>。区块级垂直间距、容器内边距、卡片 gap 全部取
+        24 的整数倍，所以内容<strong>真的</strong>落在格线上——格线不是贴图。
+        格线对底色 1.056:1（上限 1.10），且<strong>永不铺在任何文本容器底下</strong>。
+      </p>
+      <div class="grid-demo" role="img" aria-label="方格纸底纹示意：24 像素格距的极淡网格"></div>
+
+      <h3>间距刻度</h3>
+      <div class="measure">
+        <div class="scale-row"><span class="scale-row__key">--sp-1 · 4px</span><span class="space-bar space-bar--1"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-2 · 8px</span><span class="space-bar space-bar--2"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-3 · 12px</span><span class="space-bar space-bar--3"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-4 · 16px</span><span class="space-bar space-bar--4"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-5 · 24px（格距）</span><span class="space-bar space-bar--5"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-6 · 32px</span><span class="space-bar space-bar--6"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-7 · 48px</span><span class="space-bar space-bar--7"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-8 · 64px</span><span class="space-bar space-bar--8"></span></div>
+        <div class="scale-row"><span class="scale-row__key">--sp-9 · 96px</span><span class="space-bar space-bar--9"></span></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 3. 排版 ═══════════════ -->
+    <section class="measure" aria-labelledby="typo">
+      <h2 id="typo"><span class="sec-num">§3</span> 排版</h2>
+      <p>
+        字族两个：系统 UI 无衬线（正文与界面）与自托管等宽（代码与推导）。
+        衬线<strong>默认不用</strong>——"教科书感"由下一节的构件承担，不由衬线承担。
+      </p>
+      <h3>三级标题示例</h3>
+      <p>
+        正文锚在 17px、行高 1.7、行长 40rem。<code>40rem = 640px</code> 约等于
+        37.6 个汉字，同时满足 WCAG 1.4.8 对 CJK（≤40）与拉丁（≤80）的两个上限。
+        不要用 <code>ch</code> 做中文行长单位：<code>ch</code> 是拉丁 "0" 的宽度（约 0.5em），
+        而汉字约 1em，用 <code>65ch</code> 会得到只有一半宽的容器。
+      </p>
+      <h4>四级标题</h4>
+      <p>
+        中文的强调用<em>着重号</em>而不是倾斜——汉字没有真斜体，浏览器强行压斜很难看。
+        <strong>加粗用于真正的强调</strong>，不用来当装饰。
+        数字一律等宽：<span class="num">329 checked · 0 failed · 第 108 轮</span>。
+        版本号一律不写死，由 <code>data-site-version</code> 从 <code>site/data/site.json</code> 填入：
+        <span class="chip chip--version" data-site-version>—</span>。
+      </p>
+      <blockquote>
+        <p>引用块用左侧 2px 发丝线，不用引号字符——中文引号在混排里容易与标点打架。</p>
+      </blockquote>
+      <ul>
+        <li>列表项之间 8px，嵌套不额外留白</li>
+        <li>行内代码 <code>scripts/soko grade --json</code> 与正文有区分但不刺眼</li>
+        <li>按键写作 <kbd>Alt</kbd>+<kbd>B</kbd></li>
+      </ul>
+      <hr class="rule">
+    </section>
+
+    <!-- ═══════════════ 4. 教科书构件 ═══════════════ -->
+    <section aria-labelledby="textbook">
+      <h2 id="textbook"><span class="sec-num">§4</span> 教科书构件</h2>
+      <p class="measure">
+        这一组才是"教科书感"的实际承担者。编号小节、页边注、定理/定义/证明块、
+        证明结束的墓碑符——这些是数学文本的<strong>形状</strong>；衬线只是"文学感"的
+        通用符号，任何主题都能贴（见 <code>D7-design-audit.md</code> §2）。
+      </p>
+
+      <div class="has-marginalia">
+        <div>
+          <div class="statement statement--definition">
+            <span class="statement__label">定义 1.1（隶属）</span>
+            <p>设 <code>a</code> 是一个对象、<code>A</code> 是一个集合。若 <code>a</code> 是 <code>A</code> 的元素，记作 <code>a ∈ A</code>。</p>
+          </div>
+
+          <div class="statement statement--theorem">
+            <span class="statement__label">定理 1.2（空集是任何集合的子集）</span>
+            <p>对任意集合 <code>A</code>，有 <code>∅ ⊆ A</code>。</p>
+          </div>
+
+          <div class="proof">
+            <p>
+              取任意 <code>x</code>，设 <code>x ∈ ∅</code>。按定义，空集不含任何元素，
+              故这是矛盾；由矛盾可推出任意命题，特别地 <code>x ∈ A</code>。
+              于是 <code>∀ x, x ∈ ∅ → x ∈ A</code>，即 <code>∅ ⊆ A</code>。
+            </p>
+          </div>
+
+          <p class="display">∅ ⊆ A &nbsp;⟺&nbsp; ∀ x, x ∈ ∅ → x ∈ A</p>
+        </div>
+        <aside class="marginalia">
+          <p>
+            页边注在宽屏上进真正的边栏，窄屏折回正文流。它要求作者真的把旁证写短——
+            这是只有内容站才敢用的版式。
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 5. 推理横线 ═══════════════ -->
+    <section aria-labelledby="turn">
+      <h2 id="turn"><span class="sec-num">§5</span> 推理横线（记忆点）</h2>
+      <p class="measure">
+        每页出现 2–3 次，位置固定，其余一切都保持安静。
+        <code>⊢</code> 必须落在符号面里——实测没有任何系统字体覆盖 U+22A2，
+        逐字回退会静默破坏等宽对齐。
+      </p>
+      <div class="turnstile">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">P</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">h</span> : <span class="tok-local">P</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">P</span></p>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 6. 按钮与链接 ═══════════════ -->
+    <section class="measure" aria-labelledby="btn">
+      <h2 id="btn"><span class="sec-num">§6</span> 链接与按钮</h2>
+      <p>
+        实底绿<strong>只给"真的能立刻做成的那件事"</strong>，一屏最多一个。
+        普通链接是 <a href="index.html">绿字下划线</a>，悬停转朱。
+      </p>
+      <p class="row">
+        <a class="btn btn--primary" href="get-started.html">安装扩展</a>
+        <a class="btn btn--secondary" href="kernel.html">看它怎么判</a>
+        <a class="btn btn--quiet" href="docs.html">文档索引</a>
+      </p>
+    </section>
+
+    <!-- ═══════════════ 7. 代码与数据 ═══════════════ -->
+    <section aria-labelledby="code">
+      <h2 id="code"><span class="sec-num">§7</span> 代码与数据</h2>
+
+      <div class="code">
+        <span class="code__label">playground.sokonanoda</span>
+        <button type="button" data-copy=".code pre" data-copy-idle="复制" data-copy-done="已复制">复制</button>
+        <pre><code><span class="tok-cmt">-- 命题可以看成一个类型，证明就是这个类型的一个项</span>
+<span class="tok-kw">theorem</span> <span class="tok-ty">and_forall</span> <span class="tok-punc">(</span><span class="tok-local">P</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">:</span>
+    <span class="tok-ty">And</span> <span class="tok-punc">(</span><span class="tok-kw">forall</span> <span class="tok-punc">(</span><span class="tok-local">x</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span><span class="tok-punc">),</span> <span class="tok-local">P</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-kw">forall</span> <span class="tok-punc">(</span><span class="tok-local">x</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span><span class="tok-punc">),</span> <span class="tok-local">P</span> <span class="tok-local">x</span><span class="tok-punc">)</span> <span class="tok-punc">:=</span>
+  <span class="tok-kw">by</span>
+    <span class="tok-kw">apply</span> <span class="tok-ty">And.intro</span>
+    <span class="tok-kw">intro</span> <span class="tok-local">x</span>
+    <span class="tok-kw">exact</span> <span class="tok-hole">sorry</span></code></pre>
+      </div>
+
+      <div class="cmd">
+        <pre>$ scripts/soko grade playground.sokonanoda --json
+{"type":"decl.checked","name":"and_forall","human":"checked declaration and_forall"}
+{"type":"exercise.open","name":"exists_intro_rule","human":"exercise open (fill the sorry)"}</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。</p>
+      </div>
+
+      <div class="diag">
+        <span class="diag__code">kernel-expected-pi</span><span class="diag__stage">kernel 阶段</span>
+        <p class="diag__msg">类型不匹配：期望 <code>P</code>，实际是 <code>Person -&gt; P</code>。</p>
+        <p class="diag__hint">这条不是语法错，是内核在判定证明项时说不——签名本身是合法的，错在给的值。</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 8. 表格 ═══════════════ -->
+    <section aria-labelledby="tbl">
+      <h2 id="tbl"><span class="sec-num">§8</span> 表格</h2>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>数值列右对齐 + 等宽数字，量级才读得出来。</caption>
+          <thead>
+            <tr><th scope="col">口径</th><th scope="col" class="num">目标</th><th scope="col" class="num">checked</th><th scope="col" class="num">open</th><th scope="col" class="num">判负</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">卷 I《集合论》</th><td class="num">36</td><td class="num">329</td><td class="num">99</td><td class="num">0</td></tr>
+            <tr><th scope="row">playground 画布</th><td class="num">—</td><td class="num">30</td><td class="num">4</td><td class="num">0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 9. 区块 ═══════════════ -->
+    <section aria-labelledby="blocks">
+      <h2 id="blocks"><span class="sec-num">§9</span> 区块</h2>
+      <p class="measure">
+        这几个在<strong>结构上</strong>必须不同——一套卡片样式到处复用是被点名的 AI 长相。
+        它们共用令牌，但不共用形状。
+      </p>
+
+      <div class="unit-card">
+        <span class="unit-card__no">⑧</span>
+        <span class="unit-card__title">量词与存在</span>
+        <span class="unit-card__meta"><span class="chip chip--checked">12 checked</span> <span class="chip chip--open">6 open</span> 前置：单元⑦</span>
+      </div>
+
+      <div class="feature">
+        <div class="feature__claim">
+          <h3>判定永远走内核</h3>
+          <p>不比对文本、不匹配字符串：把整条声明交给内核，由它说通过还是不通过。</p>
+        </div>
+        <div class="json">{"type":"decl.checked","name":"and_forall"}
+{"type":"diagnostic","stage":"kernel","code":"kernel-expected-pi"}</div>
+      </div>
+
+      <div class="callout callout--verified">
+        <span class="callout__title">这条是内核真的通过过的</span>
+        <p>绿色只出现在有真实判定背书的地方——实测 <span class="num">329</span> 条 checked、<span class="num">0</span> 条判负。</p>
+      </div>
+      <div class="callout callout--limit">
+        <span class="callout__title">这条是诚实的限制</span>
+        <p>没有 WASM 构建，所以浏览器里不能真的跑内核；本站的功能展示全部来自预计算的真实输出。</p>
+      </div>
+      <div class="callout callout--note">
+        <span class="callout__title">这条只是请注意</span>
+        <p>黄色是第三种语义，既不是判定也不是限制，用来说明操作注意事项。</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 10. 数据展示 ═══════════════ -->
+    <section aria-labelledby="data">
+      <h2 id="data"><span class="sec-num">§10</span> 数据展示</h2>
+      <ul class="stats">
+        <li><span class="stats__n stats__n--verified">329</span><span class="stats__label">卷 I checked</span></li>
+        <li><span class="stats__n stats__n--verified">0</span><span class="stats__label">判负</span></li>
+        <li><span class="stats__n">36</span><span class="stats__label">证明目标</span></li>
+        <li><span class="stats__n">12</span><span class="stats__label">单元</span></li>
+      </ul>
+      <p class="meta-row">
+        <span class="chip chip--version" data-site-version>—</span>
+        <span class="chip chip--checked">checked</span>
+        <span class="chip chip--open">open</span>
+        <span class="chip chip--failed">failed</span>
+      </p>
+      <ol class="timeline">
+        <li><time datetime="2026-09-19">2026-09-19</time><span class="timeline__title">设计文档收口</span><p class="timeline__body">设计文档里「未做」的全部收口（版本号见页脚，不写死）。</p></li>
+        <li><time datetime="2026-09-18">2026-09-18</time><span class="timeline__title">卷 I 试做稿</span><p class="timeline__body">2 个单元 + 66 条标准库，全部真内核判卷。</p></li>
+      </ol>
+    </section>
+
+    <!-- ═══════════════ 11. 折叠与标签页 ═══════════════ -->
+    <section aria-labelledby="disc">
+      <h2 id="disc"><span class="sec-num">§11</span> 折叠与标签页（无 JS 也成立）</h2>
+      <p class="measure">
+        折叠是走查页的核心机制：<code>&lt;input type="checkbox"&gt;</code> + <code>&lt;label&gt;</code>
+        + 兄弟节点，靠 <code>:checked ~</code> 展开。没有 JS 时照样能勾选，功能不丢。
+      </p>
+
+      <div class="fold">
+        <input class="fold__toggle visually-hidden" type="checkbox" id="fold-demo">
+        <label class="fold__head" for="fold-demo">theorem and_forall : And (forall (x : Person), P x) (forall (x : Person), P x)</label>
+        <div class="fold__body">
+          <div class="turnstile">
+            <ul class="turnstile__given">
+              <li><span class="tok-local">P</span> : <span class="tok-ty">Person</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Prop</span></li>
+            </ul>
+            <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+            <p class="turnstile__goal"><span class="tok-ty">And</span> (<span class="tok-kw">forall</span> (<span class="tok-local">x</span> : <span class="tok-ty">Person</span>), <span class="tok-local">P</span> <span class="tok-local">x</span>) (<span class="tok-kw">forall</span> (<span class="tok-local">x</span> : <span class="tok-ty">Person</span>), <span class="tok-local">P</span> <span class="tok-local">x</span>)</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ 12. 编辑器表面 ═══════════════ -->
+    <section aria-labelledby="ed">
+      <h2 id="ed"><span class="sec-num">§12</span> 编辑器表面（插图，不是界面）</h2>
+      <p class="measure">
+        旧站用 PIL 画的假 VS Code 截图冒充产品界面。现在改成真 HTML/CSS：
+        几 KB、可换主题、可被读屏朗读、文本可复制，而且每个数字都来自真跑过的内核。
+        每块面板都必须包在 <code>&lt;figure class="illus"&gt;</code> 里，写明
+        <code>.illus-tag</code>（这是什么 + "示意"）与 <code>.illus-cap</code>（数据出处）——
+        这是"它是插图"的唯一视觉证据。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">编辑器表面示意 · 只读</p>
+        <div class="editor">
+          <div class="editor-bar">
+            <span class="editor-file">playground.sokonanoda</span>
+            <span class="editor-mode">只读示意</span>
+          </div>
+          <div class="editor-body">
+            <div class="editor-rail">
+              <span class="rail-item" title="练习"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h2M2 8h2M2 12h2M6 4h8M6 8h8M6 12h8"/></svg></span>
+              <span class="rail-item is-active" title="目标面板"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3v10M6.5 8H14"/></svg></span>
+            </div>
+            <div class="editor-code" tabindex="0" role="group" aria-label="代码示意，可横向滚动">
+              <ol class="code-lines">
+                <li class="code-line"><span class="ln">277</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">and_forall</span> <span class="tok-punc">(</span><span class="tok-local">P</span> <span class="tok-punc">:</span> <span class="tok-ty">Person</span> <span class="tok-punc">-&gt;</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">:</span></span></li>
+                <li class="code-line"><span class="ln">278</span><span class="lc">  <span class="tok-kw">apply</span> <span class="tok-ty">And.intro</span></span></li>
+                <li class="code-line"><span class="ln">279</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">x</span></span></li>
+                <li class="code-line has-hole"><span class="ln">280</span><span class="lc">  <span class="tok-kw">exact</span> <span class="tok-hole">sorry</span></span></li>
+              </ol>
+            </div>
+          </div>
+          <div class="editor-status">
+            <span class="st-item">sokonanoda</span>
+            <span class="st-item is-checked">30 checked</span>
+            <span class="st-item is-open">4 open</span>
+            <span class="st-item st-right">Ln 291, Col 3</span>
+          </div>
+        </div>
+        <figcaption class="illus-cap">源码 <code>playground.sokonanoda:277-282</code>；计数来自 <code>scripts/soko query check --file playground.sokonanoda</code>。</figcaption>
+      </figure>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · 多目标</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">and_forall</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L291</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标 1/2</p>
+              <ul class="hyps">
+                <li class="hyp"><span class="hyp-name">P</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Person</span> -&gt; <span class="tok-ty">Prop</span></code></li>
+                <li class="hyp"><span class="hyp-name">x</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Person</span></code></li>
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">P</span> <span class="tok-local">x</span></pre>
+            </li>
+            <li class="goal-item">
+              <p class="goal-label">目标 2/2</p>
+              <ul class="hyps">
+                <li class="hyp"><span class="hyp-name">P</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Person</span> -&gt; <span class="tok-ty">Prop</span></code></li>
+                <li class="hyp"><span class="hyp-name">x</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Person</span></code></li>
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">P</span> <span class="tok-local">x</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 2/4</p>
+        </div>
+        <figcaption class="illus-cap">逐字来自 <code>scripts/soko query state --file playground.sokonanoda --line 291 --col 3</code>。</figcaption>
+      </figure>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · 证明闭合</p>
+        <div class="goal is-solved">
+          <div class="goal-head">
+            <span class="goal-decl">forall_and</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L277</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <p class="goal-solved">已无目标</p>
+        </div>
+        <figcaption class="illus-cap"><code>scripts/soko query goals --file playground.sokonanoda</code> 里 <code>forall_and</code> 的 <code>goals</code> 是 <code>[]</code>。</figcaption>
+      </figure>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" aria-current="page" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

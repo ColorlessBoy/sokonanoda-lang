@@ -1,0 +1,60 @@
+# sokonanoda
+
+> 一个自研的 Lean 4 式教学证明语言与编译栈。`.sokonanoda` 文件是一串声明，
+> 带 `sorry` 的声明是练习；对错由真内核判定，不由文本比对决定。
+> 学习者与 code agent 的使用路径零工具链依赖（不需要 Rust、Lean 或 elan）。
+
+站点：https://colorlessboy.github.io/sokonanoda-lang/
+仓库：https://github.com/ColorlessBoy/sokonanoda-lang
+
+## 想立刻用它
+
+- [安装与上手](https://colorlessboy.github.io/sokonanoda-lang/get-started.html)：三条路径（学习者 / code agent / 贡献者）的逐条命令
+- [常见问题与排错](https://colorlessboy.github.io/sokonanoda-lang/faq.html)：离线、代理、版本缓存过期、Windows、macOS 隔离、市场不可用
+- [给 code agent](https://colorlessboy.github.io/sokonanoda-lang/agents.html)：一段可复制的安装 prompt、三个角色技能、MCP 工具、`--json` 协议
+
+## 想理解它是什么
+
+- [为什么做这个](https://colorlessboy.github.io/sokonanoda-lang/why.html)
+- [愿景与原则](https://colorlessboy.github.io/sokonanoda-lang/vision.html)
+- [与 Lean 4 / Coq / Agda 对照](https://colorlessboy.github.io/sokonanoda-lang/compare.html)
+- [术语表](https://colorlessboy.github.io/sokonanoda-lang/glossary.html)
+
+## 想看它到底能做什么
+
+- [内核判卷](https://colorlessboy.github.io/sokonanoda-lang/kernel.html)：一次判卷的完整真实事件流
+- [走查一题](https://colorlessboy.github.io/sokonanoda-lang/walkthrough.html)：真实逐行目标状态，纯 CSS 折叠，无 JS 可用
+- [编辑器体验](https://colorlessboy.github.io/sokonanoda-lang/editor.html)：goal 视图、hover、补全、诊断、项目树
+- [语言能力](https://colorlessboy.github.io/sokonanoda-lang/language.html)：语法清单，每条带真实样例
+- [策略与证明](https://colorlessboy.github.io/sokonanoda-lang/tactics.html)：`by` 块的全部七个 tactic
+- [自定义记法](https://colorlessboy.github.io/sokonanoda-lang/notation.html)
+- [多文件项目](https://colorlessboy.github.io/sokonanoda-lang/projects.html)
+- [诊断字典](https://colorlessboy.github.io/sokonanoda-lang/diagnostics.html)：全部诊断码 + 真实 hint
+
+## 想学
+
+- [入门课](https://colorlessboy.github.io/sokonanoda-lang/course.html)：11 单元
+- [卷 I《集合论》](https://colorlessboy.github.io/sokonanoda-lang/set-theory.html)：12 单元、96 道具名练习
+- [怎么学](https://colorlessboy.github.io/sokonanoda-lang/learn.html)：教学循环与卡住时怎么办
+
+## 想判断它可不可信
+
+- [工程与证据](https://colorlessboy.github.io/sokonanoda-lang/engineering.html)：CI 门禁、测试数、四本台账、缺口台账
+- [进展](https://colorlessboy.github.io/sokonanoda-lang/progress.html)：真实时间线 + 诚实的未完成清单
+- [版本历史](https://colorlessboy.github.io/sokonanoda-lang/releases.html)
+- [关于与许可](https://colorlessboy.github.io/sokonanoda-lang/about.html)
+
+## 给 agent 的操作要点
+
+- 环境准备（仓库根，harness 中立，零 cargo）：`scripts/soko setup` → `scripts/soko doctor --json`
+- 判卷：`scripts/soko grade playground.sokonanoda --json`（JSON Lines 事件流）
+- 问「某处还差什么」：`scripts/soko query state --file playground.sokonanoda --line <行> --col <列>`
+- 判卷只认 `decl.checked` 与 `diagnostic`，**禁止文本比对**；`exercise.open` 是合法的未完成态
+- 版本按仓库 `Cargo.toml` 锁定；**禁用 `releases/latest`**，不要安装官方 Lean 工具链
+- 角色技能：`skills/sokonanoda-teacher`（教学主循环）、`skills/sokonanoda-dev`（改编译器）、`skills/sokonanoda-ci`（发布与 CI）
+
+## 可选
+
+- [文档索引](https://colorlessboy.github.io/sokonanoda-lang/docs.html)
+- [设计规范](https://colorlessboy.github.io/sokonanoda-lang/styleguide.html)
+- [搜索](https://colorlessboy.github.io/sokonanoda-lang/search.html)

@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>策略与证明：by 块的全部词汇 —— sokonanoda</title>
+<meta name="description" content="by 块只有七个 tactic，一个不多。这一页给每一个 tactic 一条可复制的例子与内核真给的目标状态，并说明为什么这份白名单是故意关上的。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/tactics.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="策略与证明：by 块的全部词汇 —— sokonanoda">
+<meta property="og:description" content="七个 tactic 的完整清单，每个都配可复制的例子与内核真给的目标状态；另附不用 tactic 的项级证明写法。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site → editor（本页用到目标面板） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="tactics" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li><a href="language.html">语言能力</a></li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">§3</p>
+      <h1>策略与证明</h1>
+      <p class="lead">写证明有两种写法：<code>by</code> 块里的 tactic，和直接写一个证明项。
+        这一页把两种写法的全部词汇列完——<code>by</code> 块只有七个 tactic，一个不多。</p>
+    </header>
+
+    <section aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> <code>by</code> 块不是第二套语义</h2>
+
+      <p class="measure">
+        一个 <code>by</code> 块进内核之前会被<strong>降级成一个 lambda</strong>
+        （<code>crates/front/src/by.rs</code>）。<code>intro a</code> 变成一层
+        <code>fun (a : …) =&gt; …</code>，<code>exact e</code> 变成那个位置的项，
+        <code>apply f</code> 变成 <code>f</code> 带上若干还没填的实参。所以
+        <code>by</code> 块不引入新的类型规则，它只是替你写项。
+      </p>
+
+      <p class="measure">
+        判定同样不走捷径：<code>by</code> 引擎把「声明类型 + 已引入的 binder + 当前剩余目标」
+        折回一个<strong>完整的声明</strong>，交给完整内核裁决
+        （<code>front::judge</code>，<code>crates/front/src/judge.rs</code>）。
+        内核说通过，这一条才 <code>checked</code>。整个过程里
+        <strong>没有任何一处把 tactic 文本和什么东西做字符串比对</strong>。
+      </p>
+
+      <div class="turnstile">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">a</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">b</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">ha</span> : <span class="tok-local">a</span></li>
+          <li><span class="tok-local">hb</span> : <span class="tok-local">b</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-ty">And</span> <span class="tok-local">a</span> <span class="tok-local">b</span></p>
+      </div>
+
+      <p class="measure">
+        上面这个状态，就是下面 <code>apply And.intro</code> 那一步的<strong>进入状态</strong>：
+        假设在上，待证在横线之下。本页每个 tactic 都配一张这样的面板，
+        面板里的每个字都来自内核，命令写在图注里，可以照着复现。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 白名单：七个 tactic，一个不多</h2>
+
+      <p class="measure">
+        白名单由 <code>crates/front/src/parser.rs</code> 的
+        <code>is_tactic_keyword</code> 与 <code>parse_tactic_inner</code> 的
+        <code>match</code> 臂<strong>共用同一个集合</strong>——两处不可能漂移。
+        里面的 <code>match</code> 被解析成 <code>Tactic::Exact</code>，所以
+        <code>crates/front/src/ast.rs</code> 的 <code>enum Tactic</code> 只有六个变体。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>已发布版本里 <code>by</code> 块接受的全部写法。第四列是本页对应的小节。</caption>
+          <thead>
+            <tr>
+              <th scope="col">写法</th>
+              <th scope="col">它对目标做什么</th>
+              <th scope="col">源码出处</th>
+              <th scope="col">例子</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>intro x</code></th>
+              <td>剥掉目标最外面一层箭头，把那个假设按名字 <code>x</code> 收进上下文</td>
+              <td><code>ast.rs</code> <code>Intro</code></td>
+              <td><a href="#t-intro">§2.1</a></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>exact e</code></th>
+              <td>用项 <code>e</code> 直接结束当前目标；类型对不对由内核判</td>
+              <td><code>ast.rs</code> <code>Exact</code></td>
+              <td><a href="#t-exact">§2.2</a></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>apply f</code></th>
+              <td>目标套上 <code>f</code>：<code>f : A1 -&gt; … -&gt; An -&gt; 目标</code> 时，目标换成 <code>A1..An</code> 个子目标</td>
+              <td><code>ast.rs</code> <code>Apply</code></td>
+              <td><a href="#t-apply">§2.3</a></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>assumption</code></th>
+              <td>在当前上下文里找一个类型与目标一致的假设，直接用它</td>
+              <td><code>ast.rs</code> <code>Assumption</code></td>
+              <td><a href="#t-assumption">§2.4</a></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>rfl</code></th>
+              <td>目标是 <code>Eq</code> 且两边算出来是同一个值时成立</td>
+              <td><code>ast.rs</code> <code>Rfl</code></td>
+              <td><a href="#t-rfl">§2.5</a></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>match</code></th>
+              <td>臂体是项；语义等价于 <code>exact (match … with …)</code>，期望类型就是当前目标</td>
+              <td><code>parser.rs</code> 解析成 <code>Exact</code></td>
+              <td><a href="#t-match">§2.6</a></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>sorry</code></th>
+              <td>什么都不做：当前目标保持开放，声明成为合法的未完成状态</td>
+              <td><code>ast.rs</code> <code>Sorry</code></td>
+              <td><a href="#t-sorry">§2.7</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        tactic 之间用 <code>;</code> 或<strong>换行</strong>分隔。下面每个小节的例子
+        都来自同一份文件，可以用一条命令整份判卷。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">判卷输入 · 只读</p>
+        <div class="editor">
+          <div class="editor-bar">
+            <span class="editor-file">tactics.sokonanoda</span>
+            <span class="editor-mode">只读示意</span>
+          </div>
+          <div class="editor-body">
+            <div class="editor-code" tabindex="0" role="group" aria-label="本页例子的完整源码，可横向滚动">
+              <ol class="code-lines">
+                <li class="code-line"><span class="ln">1</span><span class="lc"><span class="tok-kw">inductive</span> <span class="tok-ty">Color</span> <span class="tok-punc">:</span> <span class="tok-ty">Type</span></span></li>
+                <li class="code-line"><span class="ln">2</span><span class="lc"><span class="tok-kw">ctor</span> <span class="tok-ty">red</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span></span></li>
+                <li class="code-line"><span class="ln">3</span><span class="lc"><span class="tok-kw">ctor</span> <span class="tok-ty">green</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span></span></li>
+                <li class="code-line"><span class="ln">4</span><span class="lc"><span class="tok-kw">end</span></span></li>
+                <li class="code-line"><span class="ln">5</span><span class="lc"></span></li>
+                <li class="code-line"><span class="ln">6</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">by_intro</span> <span class="tok-punc">:</span> (<span class="tok-local">a</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span>) -&gt; (<span class="tok-local">b</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span>) -&gt; <span class="tok-local">a</span> -&gt; <span class="tok-local">b</span> -&gt; <span class="tok-ty">And</span> <span class="tok-local">a</span> <span class="tok-local">b</span> <span class="tok-punc">:=</span> <span class="tok-kw">by</span></span></li>
+                <li class="code-line"><span class="ln">7</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">a</span></span></li>
+                <li class="code-line"><span class="ln">8</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">b</span></span></li>
+                <li class="code-line"><span class="ln">9</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">ha</span></span></li>
+                <li class="code-line"><span class="ln">10</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">hb</span></span></li>
+                <li class="code-line"><span class="ln">11</span><span class="lc">  <span class="tok-kw">apply</span> <span class="tok-ty">And.intro</span></span></li>
+                <li class="code-line"><span class="ln">12</span><span class="lc">  <span class="tok-kw">exact</span> <span class="tok-local">ha</span></span></li>
+                <li class="code-line"><span class="ln">13</span><span class="lc">  <span class="tok-kw">exact</span> <span class="tok-local">hb</span></span></li>
+                <li class="code-line"><span class="ln">14</span><span class="lc"></span></li>
+                <li class="code-line"><span class="ln">15</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">by_apply</span> <span class="tok-punc">:</span> <span class="tok-ty">Or</span> <span class="tok-ty">True</span> <span class="tok-ty">False</span> <span class="tok-punc">:=</span> <span class="tok-kw">by</span></span></li>
+                <li class="code-line"><span class="ln">16</span><span class="lc">  <span class="tok-kw">apply</span> <span class="tok-ty">Or.inl</span></span></li>
+                <li class="code-line"><span class="ln">17</span><span class="lc">  <span class="tok-kw">exact</span> <span class="tok-ty">True.intro</span></span></li>
+                <li class="code-line"><span class="ln">18</span><span class="lc"></span></li>
+                <li class="code-line"><span class="ln">19</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">by_assumption</span> <span class="tok-punc">:</span> (<span class="tok-local">a</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span>) -&gt; <span class="tok-local">a</span> -&gt; <span class="tok-local">a</span> <span class="tok-punc">:=</span> <span class="tok-kw">by</span></span></li>
+                <li class="code-line"><span class="ln">20</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">a</span></span></li>
+                <li class="code-line"><span class="ln">21</span><span class="lc">  <span class="tok-kw">intro</span> <span class="tok-local">h</span></span></li>
+                <li class="code-line"><span class="ln">22</span><span class="lc">  <span class="tok-kw">assumption</span></span></li>
+                <li class="code-line"><span class="ln">23</span><span class="lc"></span></li>
+                <li class="code-line"><span class="ln">24</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">by_rfl</span> <span class="tok-punc">:</span> <span class="tok-ty">Eq</span>.<span class="tok-punc">{</span><span class="tok-num">1</span><span class="tok-punc">}</span> <span class="tok-ty">Nat</span> (<span class="tok-num">1</span> + <span class="tok-num">1</span>) <span class="tok-num">2</span> <span class="tok-punc">:=</span> <span class="tok-kw">by</span> <span class="tok-kw">rfl</span></span></li>
+                <li class="code-line"><span class="ln">25</span><span class="lc"></span></li>
+                <li class="code-line"><span class="ln">26</span><span class="lc"><span class="tok-kw">def</span> <span class="tok-ty">by_match</span> (<span class="tok-local">c</span> <span class="tok-punc">:</span> <span class="tok-ty">Color</span>) <span class="tok-punc">:</span> <span class="tok-ty">Color</span> <span class="tok-punc">:=</span> <span class="tok-kw">by</span></span></li>
+                <li class="code-line"><span class="ln">27</span><span class="lc">  <span class="tok-kw">match</span> <span class="tok-local">c</span> <span class="tok-kw">with</span></span></li>
+                <li class="code-line"><span class="ln">28</span><span class="lc">  | <span class="tok-ty">red</span> =&gt; <span class="tok-ty">green</span></span></li>
+                <li class="code-line"><span class="ln">29</span><span class="lc">  | <span class="tok-ty">green</span> =&gt; <span class="tok-ty">red</span></span></li>
+                <li class="code-line"><span class="ln">30</span><span class="lc"></span></li>
+                <li class="code-line has-hole"><span class="ln">31</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">by_sorry</span> <span class="tok-punc">:</span> (<span class="tok-local">a</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span>) -&gt; <span class="tok-local">a</span> -&gt; <span class="tok-local">a</span> <span class="tok-punc">:=</span> <span class="tok-kw">by</span> <span class="tok-hole">sorry</span></span></li>
+              </ol>
+            </div>
+          </div>
+          <div class="editor-status">
+            <span class="st-item">sokonanoda</span>
+            <span class="st-item">tactics.sokonanoda</span>
+            <span class="st-item is-checked">6 checked</span>
+            <span class="st-item is-open">1 open</span>
+            <span class="st-item st-right">31 行</span>
+          </div>
+        </div>
+        <figcaption class="illus-cap">本页七个例子的全文，逐字可用。计数来自
+          <code>query check</code>：<code>decl_checked 6</code> / <code>exercise_open 1</code> /
+          <code>failed 0</code>。第 31 行的行号转朱，因为那一行的值是 <code>sorry</code>。
+          代码区的 <code>.tok-*</code> 按 D6 §2 的 kind→类映射标注；下面的目标面板才是内核直接给的。</figcaption>
+      </figure>
+    </section>
+
+    <section class="wide" aria-labelledby="s21">
+      <h2 id="s21"><span class="sec-num">§2.1</span> <code>intro x</code>：把箭头拆成假设</h2>
+
+      <p class="measure">
+        目标最外面是一层箭头时，<code>intro x</code> 把它剥掉，把左边那个前提按
+        名字 <code>x</code> 收进上下文。它等价于在证明项最外面写一层
+        <code>fun (x : …) =&gt; …</code>。名字可以一次写多个
+        （<code>intro a b c</code> 是三层），语义就是连写三次。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>intro</code> 之前</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_intro</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L7</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-kw">forall</span> (<span class="tok-local">a</span> <span class="tok-local">b</span> : <span class="tok-ty">Prop</span>), <span class="tok-local">a</span> -&gt; <span class="tok-local">b</span> -&gt; <span class="tok-local">And</span> <span class="tok-local">a</span> <span class="tok-local">b</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 0/7</p>
+        </div>
+        <figcaption class="illus-cap">光标在 <code>intro a</code> 上（<code>tactics.sokonanoda</code>
+          第 7 行）时 <code>query state</code> 给的进入状态：还没有任何假设，
+          目标是整条声明类型。</figcaption>
+      </figure>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>intro a</code> 之后</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_intro</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L8</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+                <li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Prop</span></code></li>
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty">(<span class="tok-local">b</span> : <span class="tok-ty">Prop</span>) -&gt; <span class="tok-local">a</span> -&gt; <span class="tok-local">b</span> -&gt; <span class="tok-local">And</span> <span class="tok-local">a</span> <span class="tok-local">b</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 1/7</p>
+        </div>
+        <figcaption class="illus-cap">同一份文件、光标在下一行 <code>intro b</code> 上：
+          假设区多了一行 <code>a : Prop</code>，目标少了一层箭头。
+          <code>by 进度 k/n</code> 里的 <code>n</code> 是这个 <code>by</code> 块一共几步。</figcaption>
+      </figure>
+    </section>
+
+    <section class="wide" aria-labelledby="s22">
+      <h2 id="s22"><span class="sec-num">§2.2</span> <code>exact e</code>：交一个项，结束当前目标</h2>
+
+      <p class="measure">
+        <code>exact e</code> 把当前目标关掉，条件是 <code>e</code> 的类型与目标一致。
+        「一致」由内核判：它会把 <code>e</code> 放进一个合成声明里真的检查一遍，
+        算不算得出来、宇宙层级对不对，都由内核说了算。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>exact hb</code> 的进入状态</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_intro</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L13</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+                <li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Prop</span></code></li>
+                <li class="hyp"><span class="hyp-name">b</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Prop</span></code></li>
+                <li class="hyp"><span class="hyp-name">ha</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">a</span></code></li>
+                <li class="hyp"><span class="hyp-name">hb</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">b</span></code></li>
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">b</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 6/7</p>
+        </div>
+        <figcaption class="illus-cap"><code>query state</code> 在第 13 行
+          <code>exact hb</code> 上：只剩最后一个目标 <code>b</code>，
+          上下文里 <code>hb : b</code>。这一步走完，这个 <code>by</code> 块就闭合了——
+          闭合后的状态是一张<strong>空目标栈</strong>，真面板写「已无目标」。</figcaption>
+      </figure>
+
+      <p class="measure">
+        上面 <code>apply And.intro</code> 那一步把目标 <code>And a b</code> 换成了
+        <strong>两个</strong>子目标，所以后面要两条 <code>exact</code>：第 12 行的
+        <code>exact ha</code> 收掉 <code>⊢ a</code>，第 13 行的
+        <code>exact hb</code> 收掉 <code>⊢ b</code>。子目标按<strong>产生顺序</strong>排队。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s23">
+      <h2 id="s23"><span class="sec-num">§2.3</span> <code>apply f</code>：把目标换成前提</h2>
+
+      <p class="measure">
+        <code>apply f</code> 要 <code>f</code> 的结论正好是当前目标；
+        它把目标换成 <code>f</code> 需要的那几个前提。这是「倒着证」：
+        从结论出发，找一条能推出它的规则。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>apply Or.inl</code> 之前</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_apply</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L16</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">Or</span> <span class="tok-local">True</span> <span class="tok-local">False</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 0/2</p>
+        </div>
+        <figcaption class="illus-cap"><code>query state</code> 在第 16 行：
+          目标是 <code>Or True False</code>，没有任何假设。</figcaption>
+      </figure>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>apply Or.inl</code> 之后</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_apply</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L17</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">True</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 1/2</p>
+        </div>
+        <figcaption class="illus-cap"><code>query state</code> 在下一行 <code>exact True.intro</code> 上：
+          目标从 <code>Or True False</code> 换成了 <code>True</code>。
+          <code>Or.inl</code> 的类型是 <code>(A B : Prop) : A -&gt; Or A B</code>
+          （<code>#print Or.inl</code> 的原话），
+          它的结论 <code>Or A B</code> 对上了目标，剩下要证的就是左边那个 <code>A</code>。
+          这一步是 <strong>1 换 1</strong>；<code>And.intro</code> 那种是 1 换 2。</figcaption>
+      </figure>
+    </section>
+
+    <section class="wide" aria-labelledby="s24">
+      <h2 id="s24"><span class="sec-num">§2.4</span> <code>assumption</code>：在上下文里找答案</h2>
+
+      <p class="measure">
+        目标恰好就是某条假设时，<code>assumption</code> 替你把它找出来并交上去。
+        它不接受参数——找哪一条由内核决定，不是由文本相似度决定。
+        这也是 <code>intro</code> 之后最常见的一步。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>assumption</code> 的进入状态</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_assumption</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L22</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+                <li class="hyp"><span class="hyp-name">a</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-ty">Prop</span></code></li>
+                <li class="hyp"><span class="hyp-name">h</span><span class="hyp-sep">:</span><code class="hyp-ty"><span class="tok-local">a</span></code></li>
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">a</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 2/3</p>
+        </div>
+        <figcaption class="illus-cap"><code>query state</code> 在第 22 行：目标 <code>a</code>，
+          上下文里 <code>h : a</code>。<code>assumption</code> 把 <code>h</code> 交上去，
+          这个 <code>by</code> 块闭合。等价的手写项是 <code>fun (a : Prop) =&gt; fun (h : a) =&gt; h</code>。</figcaption>
+      </figure>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">限制</span>
+        <p><code>assumption</code> 只找<strong>类型与目标一致</strong>的假设。
+          它不做传递推理，也不做任何简化：上下文里只有
+          <code>h : And a b</code> 而目标是 <code>a</code> 时它帮不上忙——
+          那种情况要先用 <code>apply And.left</code> 把目标拆开，或者直接
+          <code>exact And.left a b h</code>。</p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s25">
+      <h2 id="s25"><span class="sec-num">§2.5</span> <code>rfl</code>：两边算出来一样</h2>
+
+      <p class="measure">
+        目标是 <code>Eq</code> 时，<code>rfl</code> 让内核把两边各自<strong>算</strong>到
+        规范形式再比。它证明的是「这两个写法是同一个值」，不是「这两个写法长得一样」——
+        <code>1 + 1</code> 与 <code>2</code> 在源码里是两串字符，在内核里是同一个自然数。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>rfl</code> 的进入状态</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_rfl</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L24</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-local">Eq</span> (<span class="tok-local">Nat.add</span> <span class="tok-num">1</span> <span class="tok-num">1</span>) <span class="tok-num">2</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 0/1</p>
+        </div>
+        <figcaption class="illus-cap"><code>query state</code> 在第 24 行。目标左边打印成
+          <code>Nat.add 1 1</code> 而不是 <code>1 + 1</code>：内核的 pp 不认源码里的记法，
+          这是<strong>有意</strong>的（记法不进内核）。右边 <code>2</code> 是数字字面量。
+          这条命令单独验算过：<code>query reduce --expr "Nat.add 1 1"</code> 回答 <code>"2"</code>。</figcaption>
+      </figure>
+
+      <div class="callout callout--note">
+        <span class="callout__title">请注意</span>
+        <p>这条例子的类型写作 <code>Eq.{1} Nat (1 + 1) 2</code>，<strong>宇宙层级必须显式写</strong>。
+          写成 <code>Eq Nat (1 + 1) 2</code> 时 <code>rfl</code> 会失败并报
+          「期望 <code>Sort(0)</code>，实际 <code>Sort(1)</code>」——
+          <code>by</code> 引擎合成的判定声明不带宇宙参数，这是当前版本的已知边界。
+          课程里同一条也写作 <code>Eq.{1}</code>（<code>course/unit4-by-tactics.sokonanoda</code>）。</p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s26">
+      <h2 id="s26"><span class="sec-num">§2.6</span> <code>match</code>：臂体是项</h2>
+
+      <p class="measure">
+        <code>by</code> 块里的 <code>match</code> 与值位的 <code>match</code> 是同一个东西，
+        语义等价于 <code>exact (match … with …)</code>：<strong>臂体是项</strong>，
+        不是一串 tactic。期望类型就是当前目标，内核拿它当 motive 去推。
+        解析器把 <code>by match …</code> 直接读成 <code>Tactic::Exact</code>，
+        所以它没有自己的类型规则。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>match</code> 走完</p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_match</span>
+            <span class="goal-kind">def</span>
+            <span class="goal-line">L29</span>
+            <span class="goal-status is-checked">checked</span>
+          </div>
+          <p class="goal-solved">已无目标</p>
+        </div>
+        <figcaption class="illus-cap"><code>query state</code> 在 <code>match</code> 的最后一条臂
+          之后（字节偏移 513）：目标栈空了，声明 <code>checked</code>。
+          进入状态是 <code>⊢ Color -&gt; Color</code>——<code>match</code> 只有一步，
+          所以「之前」就是根状态、「之后」就是空栈。</figcaption>
+      </figure>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">限制</span>
+        <p>本页所有其他 tactic 都能给出一进一出两张目标面板；<code>match</code> 只给得出「走完」。
+          原因是 <code>query state</code> 按光标位置选步：光标落在某条 tactic 的
+          <strong>起始字节之前</strong>时它给根状态，落在<strong>之后</strong>时给最后一步之后的状态，
+          而 <code>match</code> 是整块一步、没有中间步可停。所以上面这张面板的
+          「进入状态」只能从声明类型读出来，写在这里而不是画成面板。</p>
+      </div>
+
+      <p class="measure">
+        这门语言的 <code>match</code> 有四条限制，都在
+        <code>docs/design/match-patterns.md</code> 里：没有元组/记录/字符串字面量模式；
+        参数化归纳的被匹配项必须是写成 <code>T 参数…</code> 的局部变量；
+        依赖索引的结果类型不在 v1；递归归纳类型要用消去子 <code>.rec</code>，
+        不能用 <code>match</code>。上面这个 <code>Color</code> 是非递归的，所以能过。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s27">
+      <h2 id="s27"><span class="sec-num">§2.7</span> <code>sorry</code>：合法地留空</h2>
+
+      <p class="measure">
+        <code>sorry</code> 什么都不做：当前目标保持开放，声明成为
+        <code>exercise.open</code>。<strong>这不是错误</strong>——判卷退出码仍是 0，
+        编辑器把这一条显示为「还没解」，而不是「写错了」。
+        课程里的练习起点就是这个状态。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">目标面板示意 · <code>by sorry</code></p>
+        <div class="goal">
+          <div class="goal-head">
+            <span class="goal-decl">by_sorry</span>
+            <span class="goal-kind">theorem</span>
+            <span class="goal-line">L31</span>
+            <span class="goal-status is-open">open</span>
+          </div>
+          <ol class="goal-stack">
+            <li class="goal-item">
+              <p class="goal-label">目标</p>
+              <ul class="hyps">
+              </ul>
+              <p class="goal-rule"><span class="goal-turn">⊢</span><span class="goal-rule-bar"></span></p>
+              <pre class="goal-ty"><span class="tok-kw">forall</span> (<span class="tok-local">a</span> : <span class="tok-ty">Prop</span>), <span class="tok-local">a</span> -&gt; <span class="tok-local">a</span></pre>
+            </li>
+          </ol>
+          <p class="goal-progress">by 进度 0/1</p>
+        </div>
+        <figcaption class="illus-cap"><code>query state</code> 在第 31 行：
+          状态词是 <code>open</code>（朱），目标原样留着。
+          同一份文件的 <code>query check</code> 给 <code>decl_checked 6</code> /
+          <code>exercise_open 1</code> / <code>failed 0</code>。</figcaption>
+      </figure>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">限制</span>
+        <p><code>sorry</code> 只能出现在声明的<strong>值位</strong>或 <code>by</code> 块里。
+          写在别处报 <code>elab-hole-misplaced</code>；<code>???</code> 这种洞
+          已于 2026-09-07 移除，今天不是语法。</p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 不用 tactic 的写法：证明就是项</h2>
+
+      <p class="measure">
+        <code>by</code> 块是<strong>方便写法</strong>，不是必需品。课程的主线恰恰相反：
+        先教「证明 = 构造项」，再教 tactic 只是替你写那个项。
+        下面八条都是普通值位写法，全部通过内核。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>项级证明构造。第二列的类型由 <code>query goals</code> 给出（内核 pp 的原话）。</caption>
+          <thead>
+            <tr>
+              <th scope="col">构造</th>
+              <th scope="col">源码</th>
+              <th scope="col">内核给出的类型</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">lambda</th>
+              <td><code>fun (a : Prop) =&gt; fun (h : a) =&gt; h</code></td>
+              <td><code>forall (a : Prop), a -&gt; a</code></td>
+            </tr>
+            <tr>
+              <th scope="row">应用</th>
+              <td><code>And.left a b x</code></td>
+              <td><code>forall (a b : Prop), And a b -&gt; a</code></td>
+            </tr>
+            <tr>
+              <th scope="row">构造子</th>
+              <td><code>And.intro b a (And.right a b x) (And.left a b x)</code></td>
+              <td><code>forall (a b : Prop), And a b -&gt; And b a</code></td>
+            </tr>
+            <tr>
+              <th scope="row">消去子</th>
+              <td><code>False.rec a h</code></td>
+              <td><code>False -&gt; (forall (a : Prop), a)</code></td>
+            </tr>
+            <tr>
+              <th scope="row">等式自反</th>
+              <td><code>Eq.refl.{1} Nat 1</code></td>
+              <td><code>Eq 1 1</code></td>
+            </tr>
+            <tr>
+              <th scope="row">等式替换</th>
+              <td><code>Eq.subst.{1} Prop (fun (x : Prop) =&gt; x) a b h ha</code></td>
+              <td><code>forall (a b : Prop), Eq a b -&gt; a -&gt; b</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>let</code></th>
+              <td><code>let m : Nat := n + 2; m</code></td>
+              <td><code>Nat -&gt; Nat</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>match</code> 作为项</th>
+              <td><code>match c with | red =&gt; green | green =&gt; red</code></td>
+              <td><code>Color -&gt; Color</code></td>
+            </tr>
+            <tr>
+              <th scope="row">内核替你算</th>
+              <td><code>Eq.refl.{1} Nat 2</code></td>
+              <td><code>Eq (Nat.add 1 1) 2</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        <code>Nat.rec</code> 也在语言里。它的类型是
+        <code>Nat.rec.{u} (motive : Nat -&gt; Sort u) : motive Nat.zero -&gt; (forall (n_ : Nat), motive n_ -&gt; motive (Nat.succ n_)) -&gt; (forall (target : Nat), motive target)</code>
+        （<code>#print Nat.rec</code> 的原话），实参顺序就是 motive、零的那一支、
+        后继的那一支、被消去的数。它和 <code>False.rec</code> 是同一类东西：
+        归纳类型自带的消去子。递归归纳类型不能用 <code>match</code>，要用它——
+        课程里 <code>double</code> 与 <code>add</code> 都是这么写的
+        （<code>course/solutions/unit6-induction-recursion-1-solution.sokonanoda</code>）。
+      </p>
+
+      <div class="turnstile">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">a</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">x</span> : <span class="tok-ty">And</span> <span class="tok-local">a</span> <span class="tok-local">b</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-ty">And</span> <span class="tok-local">b</span> <span class="tok-local">a</span></p>
+      </div>
+
+      <p class="measure">
+        同一个目标，两种写法：<code>by</code> 块里写
+        <code>apply And.intro</code> 再两条 <code>exact</code>，
+        或者直接交 <code>And.intro b a (And.right a b x) (And.left a b x)</code>。
+        前者会被降级成后者，然后一起进内核。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 故意没有的 tactic</h2>
+
+      <p class="measure">
+        <code>simp</code>、<code>rw</code>、<code>constructor</code>、<code>cases</code>、
+        <code>induction</code>、<code>omega</code>、<code>norm_num</code>、
+        <code>exact?</code>——都没有。写下去会拿到一条 <code>parse</code> 阶段的
+        <code>unexpected-token</code>，消息里点名全部七个合法写法。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">诊断块示意 · 白名单之外</p>
+        <div class="editor">
+          <div class="editor-code">
+            <ol class="code-lines">
+              <li class="code-line"><span class="ln">1</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-local">t</span> <span class="tok-punc">:</span> (<span class="tok-local">a</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span>) -&gt; <span class="tok-local">a</span> -&gt; <span class="tok-local">a</span> <span class="tok-punc">:=</span> <span class="tok-kw">by</span> <span class="tok-kw">intro</span> <span class="tok-local">a</span>; <span class="tok-err">simp</span></span></li>
+            </ol>
+          </div>
+        </div>
+        <div class="diag-pop">
+          <p class="diag-head">
+            <span class="diag-code">unexpected-token</span>
+            <span class="diag-stage">error[parse]</span>
+            <span class="diag-at">1:49</span>
+          </p>
+          <p class="diag-msg">未知 tactic：`by` 块只支持 intro / exact / apply / assumption / rfl / match / sorry（白名单），发现 Token { kind: Ident("simp"), span: Span { start: Pos { offset: 48, line: 1, column: 49 }, end: Pos { offset: 52, line: 1, column: 53 } } }, found Ident("simp")</p>
+          <p class="diag-hint"><span class="diag-hint-tag">怎么改</span>这里的写法不符合当前课程语法。检查命令拼写、括号配对，以及是否多写了还没学过的符号。</p>
+        </div>
+        <figcaption class="illus-cap">逐字来自
+          <code>printf 'theorem t : (a : Prop) -&gt; a -&gt; a := by intro a; simp\n' | sokonanoda - --json</code>：
+          <code>stage</code>=<code>parse</code>、<code>code</code>=<code>unexpected-token</code>、
+          <code>span</code>=1:49-1:53。<code>.tok-err</code> 的波浪线位置就是这个 span。</figcaption>
+      </figure>
+
+      <div class="callout callout--note">
+        <span class="callout__title">请注意</span>
+        <p>白名单外的名字出现在 <code>by</code> 块<strong>第一句</strong>时，报的是通用消息
+          <code>expected a .sokonanoda command, found Token { … Ident("simp") … }</code>，
+          而不是上面那条点名七个写法的消息。两条都真跑过。本页用后者，因为它把白名单
+          本身写进了错误里。</p>
+      </div>
+
+      <h3><span class="sec-num">§4.1</span> 为什么是关上的</h3>
+
+      <p class="measure">
+        加一个 tactic 不是加一个函数。按仓库的硬规则 3，新增语法要
+        <strong>三件套一起交</strong>：课程内容、测试、白名单。加
+        <code>cases</code> 意味着要有一课讲清楚它什么时候用、什么时候会把目标拆坏，
+        要有一组测试钉住它在依赖 motive 下的行为，还要在
+        <code>is_tactic_keyword</code> 与 <code>parse_tactic_inner</code> 两处同步。
+        这三件事的<strong>课程与测试成本</strong>才是真正的门槛。
+      </p>
+
+      <p class="measure">
+        还有一条更硬的理由：每个新 tactic 都要能在内核里说清楚它做了什么。
+        <code>intro</code> 是 <code>fun</code>，<code>exact</code> 是项，
+        <code>apply</code> 是应用——都能一对一地降级成项。
+        <code>simp</code> 与 <code>omega</code> 不是：它们各自带一套重写或判定过程，
+        要解释清楚就得引入新的判定语义，而内核是冻结的。
+      </p>
+
+      <p class="measure">
+        最后是教学顺序。白名单里的七个刚好覆盖「拆前提、交答案、倒着推、找现成的、
+        算等式、分情况、留空」这七件事；一门 11 个单元 + 卷 I 12 个单元的课，
+        用这七件事已经能写出卷 I 里 329 条通过的内核判定。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 七个 tactic 与它们手写的等价项</h2>
+
+      <div class="turnstile">
+        <ul class="turnstile__given">
+          <li><span class="tok-kw">by</span> <span class="tok-kw">intro</span> <span class="tok-local">a</span></li>
+          <li><span class="tok-kw">by</span> <span class="tok-kw">apply</span> <span class="tok-ty">And.intro</span></li>
+          <li><span class="tok-kw">by</span> <span class="tok-kw">exact</span> <span class="tok-local">ha</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-kw">fun</span> (<span class="tok-local">a</span> : <span class="tok-ty">Prop</span>) =&gt; <span class="tok-ty">And.intro</span> <span class="tok-local">…</span> <span class="tok-local">ha</span> <span class="tok-local">…</span></p>
+      </div>
+
+      <p class="measure">
+        左边是 <code>by</code> 块的写法，右边是它降级之后的样子。
+        最后一列是内核实际看到的东西——同一份声明，两种写法只差在谁替你写项。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>降级对照表。第二列的项写法都直接通过内核；第一列的 <code>by</code> 写法先降级成第二列。</caption>
+          <thead>
+            <tr>
+              <th scope="col">tactic</th>
+              <th scope="col">降级成的项（同一目标下）</th>
+              <th scope="col">内核看到的目标</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>intro a</code></th>
+              <td><code>fun (a : …) =&gt; …</code></td>
+              <td>少一层箭头，多一条假设</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>exact e</code></th>
+              <td>就是 <code>e</code></td>
+              <td>这个目标消失</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>apply f</code></th>
+              <td><code>f</code> 应用于若干待填实参</td>
+              <td>1 个目标换成 <code>n</code> 个</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>assumption</code></th>
+              <td>上下文里那条类型一致的假设</td>
+              <td>这个目标消失</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>rfl</code></th>
+              <td><code>Eq.refl</code> 那一族</td>
+              <td>这个目标消失</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>match</code></th>
+              <td><code>match … with …</code> 整个项</td>
+              <td>这个目标消失</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>sorry</code></th>
+              <td>一个洞（保持开放）</td>
+              <td>目标原样留着</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 本页每个数字都能这样重跑</p>
+        <div class="terminal">
+          <p class="term-label">sokonanoda query</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>sokonanoda query check --file tactics.sokonanoda --compact</span>
+<span class="term-out">{"data":{"counts":{"decl_checked":6,"decl_printed":0,"example_checked":0,"exercise_open":1,"expr_reduced":0,"expr_typed":0},"failed":[],"version":1,"warnings":[]},"ok":true,"op":"check","schema":"soko.query/1","version":1}</span>
+<span class="term-cmd"><span class="term-prompt">$ </span>sokonanoda query state --file tactics.sokonanoda --line 8 --col 3</span>
+<span class="term-out">  step 0 / total 7 · goal "(b : Prop) -&gt; a -&gt; b -&gt; And a b"</span>
+<span class="term-out">  binders: a : Prop</span>
+<span class="term-cmd"><span class="term-prompt">$ </span>sokonanoda query reduce --expr "Nat.add 1 1" --file tactics.sokonanoda</span>
+<span class="term-out">  value: "2"</span></pre>
+          <p class="cmd__note"><code>$</code> 是提示符，不用输入。第二条命令的输出是节选：
+            完整 JSON 还有 <code>goal_runs</code>、<code>decl</code>、<code>span</code> 等字段。
+            本页所有目标面板都由这条命令产生。</p>
+        </div>
+        <figcaption class="illus-cap">第一条是本页那张「6 checked / 1 open」的出处；
+          第二条是 <code>intro a</code> 之后的目标状态；第三条是 <code>rfl</code> 能成立的原因
+          （内核把 <code>Nat.add 1 1</code> 算成 <code>2</code>）。
+          用已发布的 <span data-site-version>—</span> 二进制跑，结果与上面逐字一致。</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 这份白名单是约束，不是遗漏</h2>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">限制</span>
+        <p><strong>白名单是关上的，这是设计决定。</strong>它一共七个，两处源码共用一个集合，
+          加一个就要同时改课程、测试、白名单三处——所以「Lean 里能用的 tactic 这里也能用」
+          这句话在本语言里<strong>不成立</strong>。加 tactic 是语言变更，
+          要另立一轮课程与测试，不是改一个名字的事。</p>
+        <p>这条约束有两个可以直接检验的后果。一是<b>不可迁移的写法会当场报错</b>，
+          不会静默地「差一点」：<code>simp</code> 与 <code>omega</code> 都拿到
+          <code>parse</code> 阶段的 <code>unexpected-token</code>，
+          消息里点名七个合法写法。二是<b>能写出来的证明一定有一个项级的对应物</b>——
+          因为每个 tactic 都要能降级成项。这也是为什么
+          <code>simp</code> 这类自带判定过程的 tactic 不会先进来：
+          它们说不清降级成哪个项。</p>
+        <p>如果你在别处学过 Lean 4，需要调整的是<strong>手</strong>而不是理解：
+          把 <code>rw</code> 换成 <code>exact</code> 加 <code>Eq.subst</code>，
+          把 <code>constructor</code> 换成 <code>apply And.intro</code>，
+          把 <code>cases</code> 换成 <code>match</code> 或消去子 <code>.rec</code>。
+          每一步都更啰嗦，但每一步都能被内核逐个检查。</p>
+      </div>
+
+      <p class="measure">
+        本页没有一条例子依赖工作区里的未提交改动。所有目标状态、错误消息与计数
+        都由已发布版本的二进制产生，命令写在每张图的图注里。
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" aria-current="page" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

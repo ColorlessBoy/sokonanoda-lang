@@ -1,0 +1,6472 @@
+{
+  "decls": [
+    {
+      "end_line": 24,
+      "kind": "theorem",
+      "name": "demo_subset_def",
+      "start_line": 22,
+      "status": "checked",
+      "ty": "forall (α : Type 0) (A B : Set α), Iff (Set.subset α A B) (forall (x : α), A x -> B x)",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "B"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "B"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "x"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "x"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "B"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "x"
+        },
+        {
+          "text": ")"
+        }
+      ]
+    },
+    {
+      "end_line": 28,
+      "kind": "theorem",
+      "name": "demo_mem_def",
+      "start_line": 27,
+      "status": "checked",
+      "ty": "forall (α : Type 0) (a : α) (A : Set α), Iff (Set.mem α a A) (A a)",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        }
+      ]
+    },
+    {
+      "end_line": 36,
+      "kind": "theorem",
+      "name": "mem_of_subset",
+      "start_line": 34,
+      "status": "open",
+      "ty": "forall (α : Type 0) (A B : Set α), Set.subset α A B -> (forall (a : α), Set.mem α a A -> Set.mem α a B)",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        },
+        {
+          "text": ")"
+        }
+      ]
+    },
+    {
+      "end_line": 48,
+      "kind": "theorem",
+      "name": "eq_of_same_elements",
+      "start_line": 46,
+      "status": "open",
+      "ty": "forall (α : Type 0) (A B : Set α), (forall (x : α), Iff (A x) (B x)) -> Eq A B",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "x"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "x"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "x"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        }
+      ]
+    },
+    {
+      "end_line": 56,
+      "kind": "theorem",
+      "name": "mem_of_subset_singleton",
+      "start_line": 54,
+      "status": "open",
+      "ty": "forall (α : Type 0) (A : Set α) (a : α), Set.subset α (Set.singleton α a) A -> Set.mem α a A",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ]
+    },
+    {
+      "end_line": 64,
+      "kind": "theorem",
+      "name": "subset_of_mem_singleton",
+      "start_line": 62,
+      "status": "open",
+      "ty": "forall (α : Type 0) (A : Set α) (a : α), Set.mem α a A -> Set.subset α (Set.singleton α a) A",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ]
+    },
+    {
+      "end_line": 72,
+      "kind": "theorem",
+      "name": "singleton_subset_iff",
+      "start_line": 70,
+      "status": "open",
+      "ty": "forall (α : Type 0) (a : α) (A : Set α), Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        }
+      ]
+    },
+    {
+      "end_line": 83,
+      "kind": "theorem",
+      "name": "singleton_eq_singleton_iff",
+      "start_line": 81,
+      "status": "open",
+      "ty": "forall (α : Type 0) (a b : α), Iff (Eq (Set.singleton α a) (Set.singleton α b)) (Eq a b)",
+      "ty_runs": [
+        {
+          "kind": "keyword",
+          "text": "forall"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "sort",
+          "text": "Type"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "number",
+          "text": "0"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": ":"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ","
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        }
+      ]
+    }
+  ],
+  "file": "courses/set-theory/units/unit01-sets-membership.sokonanoda",
+  "generated_at": "2026-09-19T19:12:08+08:00",
+  "generated_at_from": "git-head-commit-time",
+  "hints": {
+    "eq_of_same_elements": [
+      "思路：这句话就是外延性；库里已作为公理 Set.ext 备好。",
+      "目标形态：目标是 Eq.{1} (Set α) A B，前提是 forall x, Iff (A x) (B x)。",
+      "关键件：Set.ext α A B 吃一个 (fun (x : α) => Iff (A x) (B x))。"
+    ],
+    "mem_of_subset": [
+      "思路：手里 h 是 A ⊆ B，目标是一个元素命题；把 h 当函数用。",
+      "目标形态：目标是 Set.mem α a B（也就是 B a）。",
+      "关键件：Set.subset_def α A B 的右方向把 h 变成 (fun x hx => …)，喂 a 与 ha。"
+    ],
+    "mem_of_subset_singleton": [
+      "思路：子集给每个元素一条通道；把 a 自己喂进去。",
+      "目标形态：目标是 Set.mem α a A。",
+      "关键件：需要先造出 a ∈ {a}——那正是 Set.mem_singleton_self α a（库里）。"
+    ],
+    "singleton_eq_singleton_iff": [
+      "思路：(i) 用\"a ∈ {a}\"沿等式搬过去再展开；(ii) 展开两边的定义再交给 Eq.subst。",
+      "目标形态：(i) Eq.{1} α a b；(ii) Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)。",
+      "关键件：(i) Eq.subst 把 Set.mem α a (Set.singleton α a) 搬到 {b} 上， 再用 Set.mem_singleton_iff 取出等式；(ii) 对每个 x 用 Set.ext + Eq.subst。"
+    ],
+    "singleton_subset_iff": [
+      "思路：Iff 就是一对箭头，两边分别用前两题。",
+      "目标形态：Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)。",
+      "关键件：Iff.intro 吃两个方向；左到右 = mem_of_subset_singleton，右到左 = subset_of_mem_singleton。"
+    ],
+    "subset_of_mem_singleton": [
+      "思路：目标是全称命题；intro 一个元素与\"它在 {a} 里\"。",
+      "目标形态：intro 之后手里有 hx : Set.mem α x (Set.singleton α a)，目标是 A x。",
+      "关键件：Set.mem_singleton_iff α x a 把 hx 变成等式 Eq.{1} α x a； 再用 Eq.symm（库里）与 Eq.subst 把它搬到 A a 上。"
+    ]
+  },
+  "holes": [
+    {
+      "decl": "mem_of_subset",
+      "id": "mem_of_subset:0",
+      "redundant": false,
+      "start_col": 3,
+      "start_line": 36,
+      "ty": null
+    },
+    {
+      "decl": "eq_of_same_elements",
+      "id": "eq_of_same_elements:0",
+      "redundant": false,
+      "start_col": 3,
+      "start_line": 48,
+      "ty": null
+    },
+    {
+      "decl": "mem_of_subset_singleton",
+      "id": "mem_of_subset_singleton:0",
+      "redundant": false,
+      "start_col": 3,
+      "start_line": 56,
+      "ty": null
+    },
+    {
+      "decl": "subset_of_mem_singleton",
+      "id": "subset_of_mem_singleton:0",
+      "redundant": false,
+      "start_col": 3,
+      "start_line": 64,
+      "ty": null
+    },
+    {
+      "decl": "singleton_subset_iff",
+      "id": "singleton_subset_iff:0",
+      "redundant": false,
+      "start_col": 3,
+      "start_line": 72,
+      "ty": null
+    },
+    {
+      "decl": "singleton_eq_singleton_iff",
+      "id": "singleton_eq_singleton_iff:0",
+      "redundant": false,
+      "start_col": 3,
+      "start_line": 83,
+      "ty": null
+    }
+  ],
+  "line_count": 83,
+  "lines": [
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 1,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 2,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 3,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 4,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 5,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 6,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 7,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 8,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 9,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 10,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 11,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 12,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 13,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 14,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 15,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 16,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 17,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 18,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 19,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 20,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 21,
+      "ok": false
+    },
+    {
+      "decl": "demo_subset_def",
+      "decl_status": "checked",
+      "goal": null,
+      "goal_runs": [],
+      "goals": [],
+      "line": 22,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "demo_subset_def",
+      "decl_status": "checked",
+      "goal": null,
+      "goal_runs": [],
+      "goals": [],
+      "line": 23,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "demo_subset_def",
+      "decl_status": "checked",
+      "goal": null,
+      "goal_runs": [],
+      "goals": [],
+      "line": 24,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 25,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 26,
+      "ok": false
+    },
+    {
+      "decl": "demo_mem_def",
+      "decl_status": "checked",
+      "goal": null,
+      "goal_runs": [],
+      "goals": [],
+      "line": 27,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "demo_mem_def",
+      "decl_status": "checked",
+      "goal": null,
+      "goal_runs": [],
+      "goals": [],
+      "line": 28,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 29,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 30,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 31,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 32,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 33,
+      "ok": false
+    },
+    {
+      "decl": "mem_of_subset",
+      "decl_status": "open",
+      "goal": "Set.mem α a A -> Set.mem α a B",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "B",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.subset α A B",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.subset"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "B"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.mem α a A -> Set.mem α a B",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "->"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "B"
+            }
+          ]
+        }
+      ],
+      "line": 34,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "mem_of_subset",
+      "decl_status": "open",
+      "goal": "Set.mem α a A -> Set.mem α a B",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "B",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.subset α A B",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.subset"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "B"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.mem α a A -> Set.mem α a B",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "->"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "B"
+            }
+          ]
+        }
+      ],
+      "line": 35,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "mem_of_subset",
+      "decl_status": "open",
+      "goal": "Set.mem α a A -> Set.mem α a B",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "->"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "B",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.subset α A B",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.subset"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "B"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.mem α a A -> Set.mem α a B",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "->"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "B"
+            }
+          ]
+        }
+      ],
+      "line": 36,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 37,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 38,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 39,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 40,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 41,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 42,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 43,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 44,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 45,
+      "ok": false
+    },
+    {
+      "decl": "eq_of_same_elements",
+      "decl_status": "open",
+      "goal": "@Eq.{1} (Set α) A B",
+      "goal_runs": [
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "B",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "(x : α) -> Iff (A x) (B x)",
+              "ty_runs": [
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": ":"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "->"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "Iff"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "binder",
+                  "text": "B"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": ")"
+                }
+              ]
+            }
+          ],
+          "goal": "@Eq.{1} (Set α) A B",
+          "goal_runs": [
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "B"
+            }
+          ]
+        }
+      ],
+      "line": 46,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "eq_of_same_elements",
+      "decl_status": "open",
+      "goal": "@Eq.{1} (Set α) A B",
+      "goal_runs": [
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "B",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "(x : α) -> Iff (A x) (B x)",
+              "ty_runs": [
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": ":"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "->"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "Iff"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "binder",
+                  "text": "B"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": ")"
+                }
+              ]
+            }
+          ],
+          "goal": "@Eq.{1} (Set α) A B",
+          "goal_runs": [
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "B"
+            }
+          ]
+        }
+      ],
+      "line": 47,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "eq_of_same_elements",
+      "decl_status": "open",
+      "goal": "@Eq.{1} (Set α) A B",
+      "goal_runs": [
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "B"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "B",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "(x : α) -> Iff (A x) (B x)",
+              "ty_runs": [
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": ":"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "->"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "Iff"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "binder",
+                  "text": "B"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "x"
+                },
+                {
+                  "text": ")"
+                }
+              ]
+            }
+          ],
+          "goal": "@Eq.{1} (Set α) A B",
+          "goal_runs": [
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "B"
+            }
+          ]
+        }
+      ],
+      "line": 48,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 49,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 50,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 51,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 52,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 53,
+      "ok": false
+    },
+    {
+      "decl": "mem_of_subset_singleton",
+      "decl_status": "open",
+      "goal": "Set.mem α a A",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.subset α (Set.singleton α a) A",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.subset"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.singleton"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "a"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.mem α a A",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            }
+          ]
+        }
+      ],
+      "line": 54,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "mem_of_subset_singleton",
+      "decl_status": "open",
+      "goal": "Set.mem α a A",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.subset α (Set.singleton α a) A",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.subset"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.singleton"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "a"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.mem α a A",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            }
+          ]
+        }
+      ],
+      "line": 55,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "mem_of_subset_singleton",
+      "decl_status": "open",
+      "goal": "Set.mem α a A",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.subset α (Set.singleton α a) A",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.subset"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "text": "("
+                },
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.singleton"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "a"
+                },
+                {
+                  "text": ")"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.mem α a A",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            }
+          ]
+        }
+      ],
+      "line": 56,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 57,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 58,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 59,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 60,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 61,
+      "ok": false
+    },
+    {
+      "decl": "subset_of_mem_singleton",
+      "decl_status": "open",
+      "goal": "Set.subset α (Set.singleton α a) A",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.mem α a A",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.mem"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "a"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.subset α (Set.singleton α a) A",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.subset"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            }
+          ]
+        }
+      ],
+      "line": 62,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "subset_of_mem_singleton",
+      "decl_status": "open",
+      "goal": "Set.subset α (Set.singleton α a) A",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.mem α a A",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.mem"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "a"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.subset α (Set.singleton α a) A",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.subset"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            }
+          ]
+        }
+      ],
+      "line": 63,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "subset_of_mem_singleton",
+      "decl_status": "open",
+      "goal": "Set.subset α (Set.singleton α a) A",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "h",
+              "ty": "Set.mem α a A",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set.mem"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "a"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "A"
+                }
+              ]
+            }
+          ],
+          "goal": "Set.subset α (Set.singleton α a) A",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Set.subset"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            }
+          ]
+        }
+      ],
+      "line": 64,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 65,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 66,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 67,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 68,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 69,
+      "ok": false
+    },
+    {
+      "decl": "singleton_subset_iff",
+      "decl_status": "open",
+      "goal": "Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Iff"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.subset"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": ")"
+            }
+          ]
+        }
+      ],
+      "line": 70,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "singleton_subset_iff",
+      "decl_status": "open",
+      "goal": "Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Iff"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.subset"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": ")"
+            }
+          ]
+        }
+      ],
+      "line": 71,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "singleton_subset_iff",
+      "decl_status": "open",
+      "goal": "Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.subset"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.mem"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "A"
+        },
+        {
+          "text": ")"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "A",
+              "ty": "Set α",
+              "ty_runs": [
+                {
+                  "kind": "unknown_ident",
+                  "text": "Set"
+                },
+                {
+                  "text": " "
+                },
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Iff"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.subset"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.mem"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "A"
+            },
+            {
+              "text": ")"
+            }
+          ]
+        }
+      ],
+      "line": 72,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 73,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 74,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 75,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 76,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 77,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 78,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 79,
+      "ok": false
+    },
+    {
+      "decl": null,
+      "error": {
+        "code": "outside-declarations",
+        "message": "该位置不在任何声明内部"
+      },
+      "line": 80,
+      "ok": false
+    },
+    {
+      "decl": "singleton_eq_singleton_iff",
+      "decl_status": "open",
+      "goal": "Iff (@Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (@Eq.{1} α a b)",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Iff (@Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (@Eq.{1} α a b)",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Iff"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "b"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "b"
+            },
+            {
+              "text": ")"
+            }
+          ]
+        }
+      ],
+      "line": 81,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "singleton_eq_singleton_iff",
+      "decl_status": "open",
+      "goal": "Iff (@Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (@Eq.{1} α a b)",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Iff (@Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (@Eq.{1} α a b)",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Iff"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "b"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "b"
+            },
+            {
+              "text": ")"
+            }
+          ]
+        }
+      ],
+      "line": 82,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    },
+    {
+      "decl": "singleton_eq_singleton_iff",
+      "decl_status": "open",
+      "goal": "Iff (@Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (@Eq.{1} α a b)",
+      "goal_runs": [
+        {
+          "kind": "unknown_ident",
+          "text": "Iff"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Set.singleton"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": ")"
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "("
+        },
+        {
+          "text": "@"
+        },
+        {
+          "kind": "unknown_ident",
+          "text": "Eq."
+        },
+        {
+          "text": "{"
+        },
+        {
+          "kind": "number",
+          "text": "1"
+        },
+        {
+          "text": "}"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "α"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "a"
+        },
+        {
+          "text": " "
+        },
+        {
+          "kind": "binder",
+          "text": "b"
+        },
+        {
+          "text": ")"
+        }
+      ],
+      "goals": [
+        {
+          "binders": [
+            {
+              "name": "α",
+              "ty": "Type",
+              "ty_runs": [
+                {
+                  "kind": "sort",
+                  "text": "Type"
+                }
+              ]
+            },
+            {
+              "name": "a",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            },
+            {
+              "name": "b",
+              "ty": "α",
+              "ty_runs": [
+                {
+                  "kind": "binder",
+                  "text": "α"
+                }
+              ]
+            }
+          ],
+          "goal": "Iff (@Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (@Eq.{1} α a b)",
+          "goal_runs": [
+            {
+              "kind": "unknown_ident",
+              "text": "Iff"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Set.singleton"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "b"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": ")"
+            },
+            {
+              "text": " "
+            },
+            {
+              "text": "("
+            },
+            {
+              "text": "@"
+            },
+            {
+              "kind": "unknown_ident",
+              "text": "Eq."
+            },
+            {
+              "text": "{"
+            },
+            {
+              "kind": "number",
+              "text": "1"
+            },
+            {
+              "text": "}"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "α"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "a"
+            },
+            {
+              "text": " "
+            },
+            {
+              "kind": "binder",
+              "text": "b"
+            },
+            {
+              "text": ")"
+            }
+          ]
+        }
+      ],
+      "line": 83,
+      "ok": true,
+      "step": -1,
+      "total": 0
+    }
+  ],
+  "sampling": "every-line",
+  "source": "-- ==========================================================================\n-- unit01-sets-membership.sokonanoda —— 卷 I 单元① 集合与隶属\n--\n-- 本单元只允许：`fun` / `exact` / `apply` / `rfl`，加 lib/ 里已备好的引理\n-- （`Set.subset_def`、`Set.mem_singleton_iff`、`Eq.symm`、…）。\n-- **不需要**自己写 `Eq.symm`/`Or.elim`/`Iff.mp` 这类东西——那是标准库的一部分\n-- （见 docs/design/course-stdlib.md）。\n-- ==========================================================================\nimport lib.Logic\nimport lib.Set\n\n-- ─────────────────────────────────────────────────────────────\n-- 1.1 集合就是\"论域上的谓词\"\n--\n-- 记法对照（语言还没有 notation，见台账 G-04）：\n--     x ∈ A   ↔  Set.mem α x A   ↔  A x\n--     A ⊆ B   ↔  Set.subset α A B ↔  ∀ x, A x → B x\n-- 于是\"隶属\"不是新东西，就是**函数应用**；\"子集\"就是**全称箭头**。\n-- ─────────────────────────────────────────────────────────────\n\n-- 演示（已写好）：子集的定义展开是\"定义上相等\"。\ntheorem demo_subset_def (α : Type) (A B : Set α) :\n    Iff (Set.subset α A B) (forall (x : α), A x -> B x) :=\n  Set.subset_def α A B\n\n-- 演示（已写好）：隶属 = 应用。\ntheorem demo_mem_def (α : Type) (a : α) (A : Set α) : Iff (Set.mem α a A) (A a) :=\n  Iff.intro (Set.mem α a A) (A a) (fun (h : Set.mem α a A) => h) (fun (h : A a) => h)\n\n-- 练习 1（T 类）：元素落在子集里。\n-- soko:hint 思路：手里 h 是 A ⊆ B，目标是一个元素命题；把 h 当函数用。\n-- soko:hint 目标形态：目标是 Set.mem α a B（也就是 B a）。\n-- soko:hint 关键件：Set.subset_def α A B 的右方向把 h 变成 (fun x hx => …)，喂 a 与 ha。\ntheorem mem_of_subset (α : Type) (A B : Set α) (h : Set.subset α A B) (a : α) :\n    Set.mem α a A -> Set.mem α a B :=\n  sorry\n\n-- 练习 2（X 类：形式 ↔ 散文）：把下面这句散文翻译成定理并证明。\n--\n--   \"A set is determined by its elements: if two sets have exactly the same\n--    elements, they are equal.\"\n--\n-- soko:hint 思路：这句话就是外延性；库里已作为公理 Set.ext 备好。\n-- soko:hint 目标形态：目标是 Eq.{1} (Set α) A B，前提是 forall x, Iff (A x) (B x)。\n-- soko:hint 关键件：Set.ext α A B 吃一个 (fun (x : α) => Iff (A x) (B x))。\ntheorem eq_of_same_elements (α : Type) (A B : Set α) (h : forall (x : α), Iff (A x) (B x)) :\n    Eq.{1} (Set α) A B :=\n  sorry\n\n-- 练习 3（T 类）：{a} ⊆ A 推出 a ∈ A。（**这一步用不到第 4 题**）\n-- soko:hint 思路：子集给每个元素一条通道；把 a 自己喂进去。\n-- soko:hint 目标形态：目标是 Set.mem α a A。\n-- soko:hint 关键件：需要先造出 a ∈ {a}——那正是 Set.mem_singleton_self α a（库里）。\ntheorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)\n    (h : Set.subset α (Set.singleton α a) A) : Set.mem α a A :=\n  sorry\n\n-- 练习 4（T 类）：a ∈ A 推出 {a} ⊆ A。\n-- soko:hint 思路：目标是全称命题；intro 一个元素与\"它在 {a} 里\"。\n-- soko:hint 目标形态：intro 之后手里有 hx : Set.mem α x (Set.singleton α a)，目标是 A x。\n-- soko:hint 关键件：Set.mem_singleton_iff α x a 把 hx 变成等式 Eq.{1} α x a； 再用 Eq.symm（库里）与 Eq.subst 把它搬到 A a 上。\ntheorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : Set.mem α a A) :\n    Set.subset α (Set.singleton α a) A :=\n  sorry\n\n-- 练习 5（L 类）：把练习 3 与 4 合成一条\"当且仅当\"。\n-- soko:hint 思路：Iff 就是一对箭头，两边分别用前两题。\n-- soko:hint 目标形态：Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A)。\n-- soko:hint 关键件：Iff.intro 吃两个方向；左到右 = mem_of_subset_singleton，右到左 = subset_of_mem_singleton。\ntheorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :\n    Iff (Set.subset α (Set.singleton α a) A) (Set.mem α a A) :=\n  sorry\n\n-- 练习 6（D 类）：下面两条哪条为真？\n--   (i)  若 {a} = {b}，则 a = b。\n--   (ii) 若 a = b，则 {a} = {b}。\n-- 为真的证明，为假的说明理由（写在注释里）。\n-- soko:hint 思路：(i) 用\"a ∈ {a}\"沿等式搬过去再展开；(ii) 展开两边的定义再交给 Eq.subst。\n-- soko:hint 目标形态：(i) Eq.{1} α a b；(ii) Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)。\n-- soko:hint 关键件：(i) Eq.subst 把 Set.mem α a (Set.singleton α a) 搬到 {b} 上， 再用 Set.mem_singleton_iff 取出等式；(ii) 对每个 x 用 Set.ext + Eq.subst。\ntheorem singleton_eq_singleton_iff (α : Type) (a b : α) :\n    Iff (Eq.{1} (Set α) (Set.singleton α a) (Set.singleton α b)) (Eq.{1} α a b) :=\n  sorry\n",
+  "source_commit": "084da05",
+  "version": "0.61.0"
+}

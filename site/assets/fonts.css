@@ -1,0 +1,85 @@
+/* site/assets/fonts.css — 由 scripts/gen-site-fonts.py 生成，请勿手改。
+ *
+ * 自托管 Latin 子集（woff2 only）。CJK **不**自托管，走系统栈（见下）。
+ * 依据与全部实测数据：docs/design/site-rebuild/research/R4-fonts.md
+ *
+ * 字体与许可证（均为 SIL OFL 1.1，允许子集化与再分发）：
+ *   "Soko Serif"        ← Source Serif 4      (Frank Grießhammer / Adobe)
+ *   "Soko Mono"         ← JuliaMono           (Cormullion)
+ *   "Soko Symbols"      ← STIX Two Math       (STI Pub Companies / Tiro Typeworks)
+ *
+ * 字形集：可打印 ASCII + 仓库实测的 85 个符号（含 ⊢ U+22A2、𝒫 U+1D4AB）。
+ * 每个面的码位都是显式清单，不是 unicode-range 块；只有 Soko Symbols 面
+ * 带 unicode-range（它就是按「衬线面缺哪些」切的），浏览器因此可以按需下载。
+ *
+ * 覆盖：Soko Serif 自带 129/180；缺的 51 个由 Soko Symbols（STIX Two Math，
+ * 49 个）与 Soko Mono（JuliaMono，51/51）兜底。所以正文栈必须按
+ * Serif → Symbols → Mono 的顺序写，缺字永远不会掉到平台字体上。
+ */
+
+@font-face {
+  font-family: "Soko Serif";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/soko-serif-roman.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Soko Serif";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/soko-serif-italic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Soko Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/soko-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Soko Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/soko-mono-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Soko Symbols";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+207B, U+2115, U+211D, U+2194, U+21AA, U+21CF, U+21D2, U+21D4, U+2200, U+2203, U+2205, U+2208, U+2209, U+220E, U+2218, U+2227, U+2228, U+2229, U+222A, U+2241, U+2286, U+2287, U+22A2, U+2460, U+2461, U+2462, U+2463, U+2464, U+2465, U+2466, U+2467, U+2468, U+2469, U+246A, U+246B, U+2500, U+2502, U+2514, U+251C, U+2550, U+2605, U+26A0, U+27E8, U+27E9, U+27F9, U+27FA, U+2983, U+2984, U+1D4AB;
+  src: url("fonts/soko-symbols.woff2") format("woff2");
+}
+
+/* ── 字体栈（本文件自带一份参考实现，用 --soko-font-* 命名空间，
+ *   不与 style.css / tokens.css 的 --font-* 抢名字；站点实际令牌以
+ *   site/assets/tokens.css 为准，这里只保证单独链 fonts.css 也能用）──
+ *
+ * CJK 走系统栈，逐平台实际命中：
+ *   macOS   PingFang SC（10.11+；`Hiragino Sans GB` 是 10.6–10.10 的旧名，留作回退）
+ *   Windows Microsoft YaHei UI → Microsoft YaHei（Win7+；中文正文标准黑体）
+ *   Linux   Noto Sans CJK SC（发行版常装），否则 Source Han Sans SC，最后 sans-serif
+ * `system-ui` 排最前，让非 Apple 平台也先吃系统 UI 字体。
+ *
+ * Serif → Symbols → Mono 的顺序是有意的：Mono 100% 覆盖符号集，是最后一道
+ * 自托管保险；它本来就要为代码块下载，所以兜底不产生额外请求。
+ */
+:root {
+  --soko-font-prose:
+    "Soko Serif", "Soko Symbols", "Soko Mono", system-ui, -apple-system,
+    "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI",
+    "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --soko-font-mono:
+    "Soko Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", "DejaVu Sans Mono", monospace;
+  --soko-font-cjk:
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Source Han Sans SC", "Noto Sans SC", sans-serif;
+}

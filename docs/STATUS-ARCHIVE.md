@@ -1,9 +1,51 @@
-# STATUS 归档（第 1–104 轮，2026-09-06 → 2026-09-19；另收 0.56.2 线的
-# 第九十一轮续）
+# STATUS 归档（第 1–104 轮，2026-09-06 → 2026-09-19；另收 0.56.2 线的第九十一轮续
+# 与第 116 轮）
 
 > 本文件是 `STATUS.md` 的历史轮次归档——STATUS 只保留最近 3 轮，更早的进度
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
+
+## 本轮进度（2026-09-21，第一百一十六轮：**C2.5 落地**——用户拍板删自建骨架，入门课统一到 prelude 真归纳）
+
+> 第 115 轮把 C2.5 摆到用户面前（设计里标「需拍板，推荐删」），用户选**删**。
+> 本轮把它做完：入门课 + playground + `unit11-project` 里的自建 `And`/`Or` 骨架
+> **全部删除**，prelude 的真归纳接管 ⇒ `constructor`/`cases`/`left`/`right` 在
+> **全课程**可用（在此之前 ①④⑧ 因为自建公理而不可用）。
+
+1. **删了什么（逐字）**：①④⑧ 的 `axiom And`(4) + `axiom Or`(3)、⑨⑩⑪ 的
+   `axiom And`(4) + **`inductive Or … end` 整块**、`unit11-project/Logic` 的
+   `axiom And`(4)、`playground` 的 And/Or 共 7 条。**保留** `axiom True`/`False`
+   ——单元① 仍拿它们讲「`axiom` 是什么」（设计 §C2.5 明写保留）。
+   影响 **34 个文件**（11 单元 × 中英 × 画布/解答的相应部分 + 项目 4 文件 + playground）。
+2. **叙事同轮改**（否则立刻变假话）：单元① 的「逻辑骨架」段改成「这四条用 `axiom`
+   是给你看公理长什么样；`∧ ∨` 及其构造子 **prelude 自带**」；单元⑨ 的
+   「9.1 `Or`：从公理升级为真归纳」整节动机失效 ⇒ 改成「**`Or` 的消去子**：
+   一份 `A ∨ B` 的证据怎么用」；单元⑪ 的「单元① 的 `Or` 只是公理」对比段换掉；
+   `playground` 的「公理都齐了」「看 `axiom Or.inl` 的类型」等悬空引用一并修好。
+3. **规范副本随之退役**：`course/shared/{And,Or}.sokonanoda` 两个模块**删除**
+   （没有副本可守了），`course_shared.rs` 的 `AND_COPIES`(25 份)/`OR_COPIES`(12 份)
+   两张表与文件头口径同步删除；`Nat` 那 8 份照旧守。`Demo.sokonanoda` 改成
+   **只 import `Nat`**，And/Or 两条演示改用 **prelude 的真归纳**写（演示名不变，
+   所以 CI 断言不变）；顺带暴露一处真话：项位的裸名 `inr` 在真归纳上不存在
+   （G-02 起的构造子命名空间）⇒ 必须 `Or.inr`，**模式位** `| inl a =>` 仍可用。
+4. **计数重钉（内核实测，不手算）**：六个画布的 `checked` 各自减去删掉的声明数
+   （unit1 13→6、unit4 14→7、unit8 14→10、unit9 13→8、unit10 7→2、unit11 7→2），
+   **`open` 一个没动**（练习声明一行未改）；课程总计 **checked 87→54、open 66 不变**。
+   四处钉子同步：`course.rs` 的 `GOLDEN`(6 行)、`course_status.rs` 的逐单元表 +
+   summary、`cli.rs` 的 warm-cache 总计。
+5. **验证（本轮实测）**：
+   - **34 个文件逐个 `grade`：exit 0、诊断 0**（`unit11-project` 四个与 playground 也在内）；
+   - `cargo test -p sokonanoda-cli --test course --test course_status --test course_shared --test cli` **114 条全绿**；
+   - **CN/EN 22 对文件剥注释后逐字节一致**（含 ⑨⑩⑪ 与项目文件）；
+   - 附带证据（子 agent 在仓库外做的探针）：只声明 `True`/`False` 的文件里
+     `constructor`/`left`/`right`/`cases` 现在都能过 —— 这正是删骨架的目的。
+   - `scripts/soko gate` 见下一轮记录（本轮末尾已启动）。
+6. **分工与复核**：两个 subagent 分别做 ①④⑧ 与 ⑨⑩⑪+项目；我**逐个复核**（不采信
+   自述）并负责 `shared/` 退役、四处计数重钉、Demo 改造与文档同步。⑨⑩⑪ 那组的
+   报告还没到，但它改的文件我已复验（grade 全绿、叙事已改、CN/EN 一致）。
+7. **仍欠**：C1.3 卷 I 的 hint 词汇；C1.5 速查表重定位；R2.5 的 IA-2/IA-3；
+   `judge_infer` 的宇宙参数；以及「删骨架之后要不要把 `constructor`/`cases` 写进
+   ①④⑧ 的教学」——那是**下一轮的教学决定**（设计 §C2.6）。
 
 ## 本轮进度（2026-09-19，第一百〇三轮（语言线）：WO-006 / G-03 落地 —— 派生 recursor 的宇宙参数判据镜像内核）
 

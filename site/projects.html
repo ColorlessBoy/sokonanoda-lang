@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>多文件项目：import、清单与闭包编译 —— sokonanoda</title>
+<meta name="description" content="出现 import 后，编译单元从单文件升级为闭包：模块名等于路径、最近的 sokonanoda.toml 定模块根、依赖坏了下游只在 import 行报一条诊断。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/projects.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多文件项目：import、清单与闭包编译 —— sokonanoda">
+<meta property="og:description" content="模块名等于路径、最近的 sokonanoda.toml 定模块根、依赖坏了下游只在 import 行报一条诊断：用真实的 9 模块课程项目走一遍。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site → editor（本页有编辑器面板与诊断块） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<!-- 主题防闪烁：必须在样式之前同步执行，所以是内联的。 -->
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="projects" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li><a href="language.html">语言能力</a></li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">功能</p>
+      <h1>多文件项目：模块、清单与闭包编译</h1>
+      <p class="lead">
+        一个文件里出现第一行 <code>import</code>，编译单元就从「这一个文件」变成
+        「入口加它的 import 闭包」。这一页把这条路径摊开：模块名怎么来、根在哪、
+        一个模块坏了会怎样，以及编辑器和 agent 分别从哪里看项目的状态。
+      </p>
+    </header>
+
+    <section class="prose measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 模型：模块名就是路径</h2>
+      <p>
+        没有 <code>import</code> 的文件走单文件路径，而且<strong>从不读清单</strong>——
+        祖先目录里的 <code>sokonanoda.toml</code> 再坏也与它无关。这是契约，不是实现巧合：
+        <code>crates/cli/tests/single_file_vs_project.rs</code> 用四条测试把它钉住。
+      </p>
+      <p>出现 <code>import</code> 之后，闭包的形状由三条规则决定，三条都取自官方 Lean 4。</p>
+      <ul>
+        <li>
+          <strong>模块名 = 相对模块根的路径。</strong>
+          <code>lib/Set.sokonanoda</code> 就是 <code>lib.Set</code>；分隔符只写
+          <code>.</code>，路径里的 <code>/</code> 由编译器补。大小写敏感。
+          <code>-</code> 不是模块名字符，所以
+          <code>unit1-propositions-proofs.sokonanoda</code> 这类文件不可被 import——
+          编译器给的是 <code>import-not-a-valid-module-name</code>，而不是一句「找不到」。
+        </li>
+        <li>
+          <strong><code>import</code> 必须写在所有声明之前。</strong>
+          写在声明后面就是 <code>import-must-precede-declarations</code>，
+          span 精确到那一行。
+        </li>
+        <li>
+          <strong>模块根由最近的 <code>sokonanoda.toml</code> 决定。</strong>
+          从入口文件所在目录向上找；走到含 <code>.git</code> 的目录、或走到
+          <code>$HOME</code>，就停下不再往外找。找不到清单也有退路：模块根 = 入口文件所在目录。
+        </li>
+      </ul>
+
+      <div class="turnstile" role="img" aria-label="给定 import 语句与模块根，推出被解析的文件路径">
+        <ul class="turnstile__given">
+          <li>import lib.Set</li>
+          <li>root = courses/set-theory</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">courses/set-theory/lib/Set.sokonanoda</p>
+      </div>
+
+    </section>
+
+    <section class="wide" aria-labelledby="s1-1">
+      <h2 id="s1-1"><span class="sec-num">§1.1</span> 根从哪来：五种情形，逐条实测</h2>
+      <p class="measure">
+        上例的 <code>root</code> 不是猜的：<code>courses/set-theory/sokonanoda.toml</code>
+        存在，所以它是根。优先级是「<code>--root</code> 显式指定 &gt; 最近的清单 &gt;
+        入口文件所在目录」；<code>--no-project</code> 把第二条整条跳过。
+        下表每一行的 <code>root</code> 与 <code>manifest</code> 都是
+        <code>query project</code> 真答出来的字段值。
+      </p>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>五条命令的实测结果。零配置两文件项目放在 <code>.cache/nomanifest/</code>（只有 <code>A.sokonanoda</code> 与 <code>B.sokonanoda</code>，没有清单）；其余四行跑在 <code>courses/set-theory/</code> 的一份副本上</caption>
+          <thead>
+            <tr>
+              <th scope="col">你怎么调</th>
+              <th scope="col">模块根 <code>root</code></th>
+              <th scope="col">生效清单 <code>manifest</code></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">入口没有 <code>import</code></th>
+              <td>不适用（走单文件流水线）</td>
+              <td>不读；答案是 <code>project: null</code> + <code>reason: "no-imports"</code></td>
+            </tr>
+            <tr>
+              <th scope="row">有 <code>import</code>，祖先目录里有清单</th>
+              <td><code>…/courses/set-theory</code></td>
+              <td><code>…/courses/set-theory/sokonanoda.toml</code></td>
+            </tr>
+            <tr>
+              <th scope="row">有 <code>import</code>，没有清单</th>
+              <td><code>…/.cache/nomanifest</code>（入口文件所在目录）</td>
+              <td><code>null</code>——零配置，不是错误</td>
+            </tr>
+            <tr>
+              <th scope="row">有 <code>import</code> + <code>--root &lt;dir&gt;</code></th>
+              <td>你给的那个目录，清单发现被整条跳过</td>
+              <td><code>null</code>：即使那个目录里<strong>有</strong>清单，也不再读</td>
+            </tr>
+            <tr>
+              <th scope="row">有 <code>import</code> + <code>--no-project</code></th>
+              <td>入口文件所在目录</td>
+              <td><code>null</code>；<code>import lib.Logic</code> 于是解析到 <code>&lt;入口目录&gt;/lib/Logic.sokonanoda</code>，报 <code>import-not-found</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout callout--note">
+        <p class="callout__title">请注意</p>
+        <p>
+          <code>--root</code> 与 <code>--no-project</code> 只对有 <code>import</code> 的文件生效。
+          单文件下它们是空操作——没有闭包，也就没有根可覆盖。
+        </p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 一个真项目：卷 I《集合论》</h2>
+      <p class="measure">
+        仓库里最大的一个真项目是课程卷 I：<code>courses/set-theory/</code>。
+        它不是两文件的演示——9 个库模块、12 个单元、1 份清单，
+        单元靠 <code>import</code> 复用库，库与库之间自己也有依赖。
+      </p>
+
+      <h3><span class="sec-num">§2.1</span> 清单：四行，其中两行是注释</h3>
+      <div class="code">
+        <span class="code__label">courses/set-theory/sokonanoda.toml（逐字全文）</span>
+        <pre><code># 卷 I《集合论》—— 模块根 = 本目录（与将来的独立课程仓同构）。
+# 语言仓测试/脚本一律用**绝对路径**判卷（台账 G-12：相对路径 + 祖先清单会让模块根退化）。
+name = "set-theory"
+requires = "0.61"</code></pre>
+      </div>
+      <p class="measure">
+        清单的<strong>存在</strong>就是信息：这个目录是模块根。
+        <code>name</code> 只是元数据，不参与解析；<code>requires</code> 是工具链意图
+        （major.minor 匹配），不匹配时给一条 warning 落在
+        <code>query project</code> 的 <code>requires_warning</code> 字段里，不阻断编译。
+        三个键全都可以不写，空文件也是合法的根标记。
+      </p>
+
+      <h3><span class="sec-num">§2.2</span> 模块图：9 个库模块，74 条声明</h3>
+      <p class="measure">
+        把库的自检入口 <code>lib/Demo.sokonanoda</code> 当入口跑，
+        拿到的是整个库的闭包——按拓扑序排列，入口在最后一行。
+        这张表的每一格都来自一次真实的闭包编译。
+      </p>
+      <ul class="stats">
+        <li><span class="stats__n">9</span><span class="stats__label">闭包里的模块</span></li>
+        <li><span class="stats__n stats__n--verified">74</span><span class="stats__label">声明（全部通过内核）</span></li>
+        <li><span class="stats__n stats__n--verified">0</span><span class="stats__label">错误</span></li>
+        <li><span class="stats__n">0</span><span class="stats__label">未完成的练习</span></li>
+      </ul>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>闭包的拓扑序与每模块的 import 边。命令：<code>scripts/soko query project --file courses/set-theory/lib/Demo.sokonanoda</code>（模块名与 <code>imports</code> 逐字取自答案，<code>decls</code> 是 <code>query goals</code> 的声明数）</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="num">#</th>
+              <th scope="col">模块</th>
+              <th scope="col">文件</th>
+              <th scope="col" class="num">声明</th>
+              <th scope="col">它 import 谁</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="num">1</td><th scope="row"><code>lib.Logic</code></th><td><code>lib/Logic.sokonanoda</code></td><td class="num">0</td><td>—</td></tr>
+            <tr><td class="num">2</td><th scope="row"><code>lib.Set</code></th><td><code>lib/Set.sokonanoda</code></td><td class="num">23</td><td><code>lib.Logic</code></td></tr>
+            <tr><td class="num">3</td><th scope="row"><code>lib.Exists</code></th><td><code>lib/Exists.sokonanoda</code></td><td class="num">3</td><td><code>lib.Logic</code></td></tr>
+            <tr><td class="num">4</td><th scope="row"><code>lib.Prod</code></th><td><code>lib/Prod.sokonanoda</code></td><td class="num">6</td><td><code>lib.Logic</code></td></tr>
+            <tr><td class="num">5</td><th scope="row"><code>lib.Rel</code></th><td><code>lib/Rel.sokonanoda</code></td><td class="num">7</td><td><code>lib.Logic</code>、<code>lib.Exists</code></td></tr>
+            <tr><td class="num">6</td><th scope="row"><code>lib.Fun</code></th><td><code>lib/Fun.sokonanoda</code></td><td class="num">14</td><td><code>lib.Logic</code>、<code>lib.Exists</code></td></tr>
+            <tr><td class="num">7</td><th scope="row"><code>lib.Image</code></th><td><code>lib/Image.sokonanoda</code></td><td class="num">6</td><td><code>lib.Logic</code>、<code>lib.Exists</code>、<code>lib.Set</code></td></tr>
+            <tr><td class="num">8</td><th scope="row"><code>lib.Equiv</code></th><td><code>lib/Equiv.sokonanoda</code></td><td class="num">5</td><td><code>lib.Logic</code>、<code>lib.Exists</code>、<code>lib.Set</code></td></tr>
+            <tr><td class="num">9</td><th scope="row"><code>lib.Demo</code> <span class="chip">入口</span></th><td><code>lib/Demo.sokonanoda</code></td><td class="num">10</td><td>上列 8 个模块</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        两个细节值得停一下。<code>lib.Logic</code> 有 0 条声明，却仍然是一个合法模块——
+        它现在只有注释，作用是让历史上写下的 <code>import lib.Logic</code> 继续能解析；
+        联结词那 30 个名字已经由 prelude 自带。而 <code>lib.Demo</code> 自己不是库，
+        是课程门禁的自检入口：任何库模块坏了，它第一个变红。
+      </p>
+
+      <h3><span class="sec-num">§2.3</span> 单元怎么用库：12 个单元，闭包 3 到 8 个模块</h3>
+      <p class="measure">
+        单元文件开头只有两行 <code>import</code>，其余全是练习。
+        单元②的 <code>import</code> 写在所有声明之前——位置是
+        <code>units/unit02-subsets-empty.sokonanoda:10-11</code>：
+      </p>
+      <div class="code">
+        <span class="code__label">courses/set-theory/units/unit02-subsets-empty.sokonanoda:10-11</span>
+        <pre><code>import lib.Logic
+import lib.Set</code></pre>
+      </div>
+      <p class="measure">
+        <code>import</code> <strong>没有 <code>open</code> 语义</strong>：
+        库里的 <code>Set.subset</code> 进来就叫 <code>Set.subset</code>，
+        想写短名得自己 <code>open Set</code>（或让库 <code>export</code>）。
+        这不是遗漏，是官方 Lean 的规则：导入改变「名字从哪来」，不改变「短名可见不可见」。
+      </p>
+      <div class="table-scroll">
+        <table class="table">
+          <caption>12 个单元各自的闭包。命令：对每个单元跑 <code>scripts/soko query project --file &lt;单元&gt;</code>；「闭包」含入口自己，「库模块」是不含入口的那部分</caption>
+          <thead>
+            <tr>
+              <th scope="col">单元入口文件</th>
+              <th scope="col" class="num">闭包</th>
+              <th scope="col">闭包里的库模块</th>
+              <th scope="col" class="num">声明</th>
+              <th scope="col" class="num">开放练习</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row"><code>unit01-sets-membership</code></th><td class="num">3</td><td><code>lib.Logic</code>、<code>lib.Set</code></td><td class="num">31</td><td class="num">6</td></tr>
+            <tr><th scope="row"><code>unit02-subsets-empty</code></th><td class="num">3</td><td><code>lib.Logic</code>、<code>lib.Set</code></td><td class="num">34</td><td class="num">10</td></tr>
+            <tr><th scope="row"><code>unit03-union-inter-powerset</code></th><td class="num">3</td><td><code>lib.Logic</code>、<code>lib.Set</code></td><td class="num">38</td><td class="num">11</td></tr>
+            <tr><th scope="row"><code>unit04-extensionality-identities</code></th><td class="num">3</td><td><code>lib.Logic</code>、<code>lib.Set</code></td><td class="num">34</td><td class="num">8</td></tr>
+            <tr><th scope="row"><code>unit05-pairs-products</code></th><td class="num">4</td><td>上面两个加 <code>lib.Prod</code></td><td class="num">41</td><td class="num">7</td></tr>
+            <tr><th scope="row"><code>unit06-relations</code></th><td class="num">5</td><td>加 <code>lib.Exists</code>、<code>lib.Rel</code></td><td class="num">56</td><td class="num">8</td></tr>
+            <tr><th scope="row"><code>unit07-functions</code></th><td class="num">5</td><td>加 <code>lib.Exists</code>、<code>lib.Fun</code></td><td class="num">52</td><td class="num">9</td></tr>
+            <tr><th scope="row"><code>unit08-images-preimages</code></th><td class="num">5</td><td>加 <code>lib.Exists</code>、<code>lib.Image</code></td><td class="num">59</td><td class="num">9</td></tr>
+            <tr><th scope="row"><code>unit09-equinumerosity</code></th><td class="num">5</td><td>加 <code>lib.Exists</code>、<code>lib.Equiv</code></td><td class="num">44</td><td class="num">7</td></tr>
+            <tr><th scope="row"><code>unit10-cantor</code></th><td class="num">6</td><td>加 <code>lib.Exists</code>、<code>lib.Fun</code>、<code>lib.Equiv</code></td><td class="num">57</td><td class="num">7</td></tr>
+            <tr><th scope="row"><code>unit11-universe-russell</code></th><td class="num">4</td><td>加 <code>lib.Exists</code></td><td class="num">34</td><td class="num">5</td></tr>
+            <tr><th scope="row"><code>unit12-synthesis</code></th><td class="num">8</td><td>除 <code>lib.Demo</code> 外的 7 个</td><td class="num">71</td><td class="num">9</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        一个单元只拉进它真正用到的库：单元①到④的闭包是 3 个模块，
+        期末综合的单元⑫是 8 个。整个卷 I 的验收跑的是
+        <code>courses/set-theory/tools/check.py</code>：36 个目标
+        （12 个单元画布、12 份解答、9 个库模块、1 个库自检、2 个记法页面），
+        实测 <span class="num">329</span> checked、<span class="num">99</span> open、
+        <span class="num">0</span> 判负、退出码 0。这组数字与
+        <code>site/data/site.json</code> 里 <code>set_theory.totals</code> 记的一致。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 闭包编译：一个模块坏了会怎样</h2>
+      <p class="measure">
+        这是项目模式里最值得单独讲的一条规则，因为它的表现和直觉相反：
+        你在库文件里写错一个标识符，<strong>诊断却出现在<em>用它的那个文件</em>的
+        <code>import</code> 行上</strong>。
+      </p>
+      <p class="measure">
+        做法是把 <code>courses/set-theory/</code> 复制一份，只动一行：
+        <code>lib/Set.sokonanoda:98</code> 的 <code>True.intro</code> 改成
+        <code>True.intro2</code>，然后照常判卷入口 <code>units/unit02-subsets-empty.sokonanoda</code>。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">诊断块示意 · 上游坏了，下游先停</p>
+        <div class="diag-pop">
+          <p class="diag-head">
+            <span class="diag-code">import-dependency-failed</span>
+            <span class="diag-stage">error[import-dependency-failed]</span>
+            <span class="diag-at">11:1</span>
+          </p>
+          <p class="diag-msg">`lib.Set` 没有编译成功，所以这里先不编译——先修好它的第一条错误</p>
+          <p class="diag-hint"><span class="diag-hint-tag">怎么改</span>被导入的模块自己还有错误，所以这里先不编译——修好那个文件的第一条错误再看这里。</p>
+        </div>
+        <div class="diag-pop">
+          <p class="diag-head">
+            <span class="diag-code">elab-unknown-identifier</span>
+            <span class="diag-stage">error[elab-unknown-identifier]</span>
+            <span class="diag-at">lib.Set · 98:59</span>
+          </p>
+          <p class="diag-msg">unknown identifier `True.intro2`</p>
+          <p class="diag-hint"><span class="diag-hint-tag">怎么改</span>这个名字还没有被定义。检查拼写，或确认它出现在你前面的某个声明里（练习要在解决之后才能被后面的代码引用）。若它在该命名空间里，检查前缀或加 open。</p>
+        </div>
+        <figcaption class="illus-cap">两块逐字来自
+        <code>scripts/soko grade .cache/broken-proj/units/unit02-subsets-empty.sokonanoda --json</code>
+        的两条 <code>diagnostic</code> 事件（事件流一共 2 行，全是诊断，退出码 1）。
+        第一条的 <code>span</code> 是 11:1–11:15，正好盖住第 11 行的
+        <code>import lib.Set</code>；第二条带 <code>module: "lib.Set"</code> 与
+        <code>file</code> 字段，位置在它自己文件里。<code>.diag-stage</code> 写的是
+        人读视图的原样 <code>error[&lt;码&gt;]</code>——这里印的是码，不是阶段名。</figcaption>
+      </figure>
+
+      <div class="turnstile" role="img" aria-label="依赖里有错误，推出诊断落点">
+        <ul class="turnstile__given">
+          <li>lib/Set.sokonanoda:98 有一条内核拒绝</li>
+          <li>units/unit02-subsets-empty.sokonanoda:11 写着 import lib.Set</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">入口只在 11:1 收到一条 import-dependency-failed</p>
+      </div>
+
+      <p class="measure">
+        规则是<strong>失败即阻断</strong>：一个模块有解析或检查失败，
+        所有 import 它的模块<strong>不编译</strong>，只在各自的 <code>import</code> 行上报
+        一条 <code>import-dependency-failed</code>，指向上游的第一条错误。
+        不这么做的话，下游会级联出几十条「未定义标识符」，把真正的第一因埋掉。
+        而依赖自己的那条错误不会被吞：它带着 <code>file</code> 与 <code>module</code>
+        字段原样留在事件流里，编辑器据此把波浪线画在<em>库文件</em>的那一行上。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption><code>query project</code> 里 <code>status</code> 只有三个取值。第三列是上面两次实验里的实测落点</caption>
+          <thead>
+            <tr>
+              <th scope="col"><code>status</code></th>
+              <th scope="col">什么时候是它</th>
+              <th scope="col">两次实验里谁是这个状态</th>
+              <th scope="col">它自己的错误落在哪</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>compiled</code></th>
+              <td>编译器走完了这个模块（<strong>走完不等于没错</strong>）</td>
+              <td><code>lib.Logic</code>；实验一的 <code>lib.Set</code>（<code>decls</code> 23、<code>errors</code> 1）</td>
+              <td>它自己文件里的那一行</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>load-failed</code></th>
+              <td>加载期就失败：文件缺失、解析失败、成环</td>
+              <td>实验二的 <code>lib.Set</code>（<code>decls</code> 0——一条声明都没进环境）</td>
+              <td>它自己文件里的那一行</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>blocked</code></th>
+              <td>上游失败，没轮到它编译</td>
+              <td>两次实验里的入口 <code>units.unit02-subsets-empty</code></td>
+              <td>只在入口的 <code>import</code> 行上，一条 <code>import-dependency-failed</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        实验一的 <code>counts</code> 是
+        <code>{modules: 3, compiled: 2, failed: 0, blocked: 1, decls: 23, errors: 2}</code>；
+        实验二是 <code>{modules: 3, compiled: 1, failed: 1, blocked: 1, decls: 0, errors: 2}</code>。
+        注意 <code>failed</code> 数的是 <code>load-failed</code>，不是「有错误的模块」——
+        所以实验一的 <code>failed</code> 是 0，而 <code>errors</code> 是 2。
+      </p>
+      <p class="measure">
+        第三种失败是<strong>根本找不到文件</strong>。把 <code>import lib.Nope</code>
+        写进一个只有清单的目录，回答是 <code>import-not-found</code>，
+        消息里直接给出期望的完整路径
+        （<code>…/lib/Nope.sokonanoda</code>），不让你猜根在哪。
+        环（<code>import-cycle</code>）走同一条路：报出环的路径，整个闭包一起停。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 项目视图：根、清单来源、每模块状态</h2>
+      <p class="measure">
+        闭包状态只有一份真相层（<code>front::query::project_view</code>），
+        两个传输：CLI 的 <code>query project</code> 给脚本与 agent，
+        LSP 的 <code>soko/project</code> 给编辑器。两边字段同名同义，
+        都由同一次已经编译过的闭包派生，不重跑内核。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">项目视图示意 · 只读</p>
+        <div class="editor">
+          <div class="editor-bar">
+            <span class="editor-file">Demo.sokonanoda</span>
+            <span class="editor-mode">只读示意</span>
+          </div>
+          <div class="editor-body">
+            <div class="editor-rail">
+              <span class="rail-item" title="练习"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h2M2 8h2M2 12h2M6 4h8M6 8h8M6 12h8"/></svg></span>
+              <span class="rail-item" title="课程"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 3h5v10H2zM9 3h5v10H9z"/></svg></span>
+              <span class="rail-item is-active" title="项目"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M2 4h4l1.5 2H14v7H2z"/></svg></span>
+              <span class="rail-item" title="目标面板 (Infoview)"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3v10M6.5 8H14"/></svg></span>
+            </div>
+            <div class="editor-code" tabindex="0" role="group" aria-label="项目树示意，可横向滚动">
+              <ol class="code-lines">
+                <li class="code-line"><span class="lc">set-theory  <span class="tok-cmt">9 模块</span></span></li>
+                <li class="code-line"><span class="lc">  Logic  <span class="tok-cmt">依赖 · 0 声明</span></span></li>
+                <li class="code-line"><span class="lc">  Set  <span class="tok-cmt">依赖 · 23 声明</span></span></li>
+                <li class="code-line"><span class="lc">  Exists  <span class="tok-cmt">依赖 · 3 声明</span></span></li>
+                <li class="code-line"><span class="lc">  Prod  <span class="tok-cmt">依赖 · 6 声明</span></span></li>
+                <li class="code-line"><span class="lc">  Rel  <span class="tok-cmt">依赖 · 7 声明</span></span></li>
+                <li class="code-line"><span class="lc">  Fun  <span class="tok-cmt">依赖 · 14 声明</span></span></li>
+                <li class="code-line"><span class="lc">  Image  <span class="tok-cmt">依赖 · 6 声明</span></span></li>
+                <li class="code-line"><span class="lc">  Equiv  <span class="tok-cmt">依赖 · 5 声明</span></span></li>
+                <li class="code-line is-current"><span class="lc">  Demo  <span class="tok-cmt">入口 · 10 声明</span></span></li>
+              </ol>
+            </div>
+          </div>
+          <div class="editor-status">
+            <span class="st-item">sokonanoda</span>
+            <span class="st-item">soko/project</span>
+            <span class="st-item is-checked">9 compiled</span>
+            <span class="st-item st-right">清单 sokonanoda.toml</span>
+          </div>
+        </div>
+        <figcaption class="illus-cap">每一行的文案都是扩展真的会拼出来的串：根行
+        <code>9 模块</code> 由 <code>projectSummary()</code> 拼（有失败追加
+        <code>· N 失败</code>，有练习追加 <code>· N 练习</code>），模块行的
+        <code>依赖 · 23 声明</code> 与 <code>入口 · 10 声明</code> 由
+        <code>moduleItem()</code> 拼，见 <code>editor/vscode/project-tree.js</code>。
+        数字来自 <code>scripts/soko query project --file courses/set-theory/lib/Demo.sokonanoda</code>。
+        真视图是可折叠的树、每行还有图标，点一行会打开那个模块；这里只用缩进表示层级，
+        画一个折不动的小三角就是撒谎。</figcaption>
+      </figure>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>树与状态栏上的每一处显示，对应 <code>ProjectView</code> 的哪个字段。字段定义在 <code>docs/design/project-view.md</code> §3</caption>
+          <thead>
+            <tr><th scope="col">你看到什么</th><th scope="col">它来自哪个字段</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">根行标题 <code>set-theory</code></th><td><code>root</code> 的目录名（点根行打开清单）</td></tr>
+            <tr><th scope="row">根行描述 <code>9 模块</code></th><td><code>counts.modules</code>；<code>counts.failed + counts.blocked &gt; 0</code> 时追加 <code>· N 失败</code>，<code>counts.open_exercises &gt; 0</code> 时追加 <code>· N 练习</code></td></tr>
+            <tr><th scope="row">根行 tooltip 的第一行</th><td><code>清单：&lt;manifest 绝对路径&gt;</code>；<code>manifest</code> 为 <code>null</code> 时改写 <code>零配置：模块根 = 入口文件目录</code></td></tr>
+            <tr><th scope="row">模块行标题 <code>Set</code></th><td><code>path</code> 的文件名去掉 <code>.sokonanoda</code></td></tr>
+            <tr><th scope="row">模块行描述 <code>依赖 · 23 声明</code></th><td><code>entry</code> 决定写 <code>入口</code> 还是 <code>依赖</code>；后面依次是 <code>decls</code>、<code>open_exercises</code>、<code>errors</code></td></tr>
+            <tr><th scope="row">模块行的图标</th><td><code>load-failed</code> 或 <code>errors &gt; 0</code> 用 error，<code>blocked</code> 用 warning，入口用 book，其余用 file-code</td></tr>
+            <tr><th scope="row">状态栏 tooltip 里那行</th><td><code>项目：&lt;root&gt;（清单：&lt;manifest&gt;）· 9 模块</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        同一个答案在 CLI 里是一个 JSON 对象，信封是 <code>soko.query/1</code>。
+        单文件不是错误，是另一种合法状态——用 <code>project: null</code> 加一个机器码表达：
+      </p>
+      <div class="json">{"data":{"project":null,"reason":"no-imports"},"ok":true,"op":"project","schema":"soko.query/1","version":1}</div>
+      <p class="small faint">
+        逐字来自 <code>scripts/soko query project --file playground.sokonanoda --compact</code>，
+        退出码 0。<code>reason</code> 还有两个取值：<code>no-path</code>（stdin 或未保存的新文件，
+        有 <code>import</code> 却没有入口路径）与 <code>parse-error</code>（先修语法）。
+      </p>
+      <p class="measure">
+        编辑器侧走自定义请求 <code>soko/project</code>，请求体是
+        <code>{textDocument: {uri}}</code>，应答回显 <code>uri</code> 与 <code>version</code>——
+        扩展据此丢弃「答的是另一份文档」的过期答案。视图 id 是
+        <code>sokonanoda.project</code>（<code>when: resourceLangId == sokonanoda</code>），
+        标题栏的刷新命令是 <code>sokonanoda.project.refresh</code>。
+        改一个被 import 的库文件时，服务器重编译下游并推新诊断，树跟着更新。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 与其他语言的对照</h2>
+      <p class="measure">
+        这一节的出处是仓库里一份对十个系统的逐条考证
+        （<code>docs/notes/multifile-prior-art.md</code>，事实都对着官方文档核过）。
+        只看三个问题：<strong>检查一个文件需不需要清单</strong>、
+        <strong>模块身份是路径还是声明</strong>、<strong>产物靠什么失效</strong>。
+        这三个答案决定了「打开一个文件要几秒钟才能开始写」。
+      </p>
+      <div class="table-scroll">
+        <table class="table table--compare">
+          <caption>十个系统的模块与项目规则，以及本项目逐条的取舍。考证见 <code>docs/notes/multifile-prior-art.md</code>，取舍见 <code>docs/design/imports-and-projects.md</code> §2.5</caption>
+          <thead>
+            <tr>
+              <th scope="col">系统</th>
+              <th scope="col">裸文件能跑吗</th>
+              <th scope="col">模块身份</th>
+              <th scope="col">产物靠什么失效</th>
+              <th scope="col">本项目取了哪一半</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Rocq</th>
+              <td>能：<code>rocq c foo.v</code></td>
+              <td>推导：<code>-Q</code>/<code>-R</code> 的逻辑路径加文件名</td>
+              <td><code>.vo</code> 放在源码旁，比源码旧就重编</td>
+              <td>取「推导」与「向上找清单」；不取命令行映射</td>
+            </tr>
+            <tr>
+              <th scope="row">Agda</th>
+              <td>能：<code>agda Foo.agda</code></td>
+              <td>推导，且严格 <code>name == path</code></td>
+              <td><code>.agdai</code> 放源码旁或 <code>_build/VERSION/</code></td>
+              <td>取严格对应；不取「改名后留下孤儿接口文件」</td>
+            </tr>
+            <tr>
+              <th scope="row">Isabelle</th>
+              <td><strong>不能</strong>：没有单文件模式</td>
+              <td>声明的 theory 名，文件名只是惯例</td>
+              <td>heap、日志、构建库放 <code>ISABELLE_HEAPS</code></td>
+              <td><strong>不取</strong>——「检查一个文件要先有 session」正是要避开的反例</td>
+            </tr>
+            <tr>
+              <th scope="row">Idris 2</th>
+              <td>能：<code>idris2 f.idr</code></td>
+              <td><strong>声明</strong> <code>module Foo.Bar</code>，且必须与路径一致</td>
+              <td><code>build/ttc/*.ttc</code>，源文件变了就重生成</td>
+              <td>不取声明：同一个名字写两处就会漂</td>
+            </tr>
+            <tr>
+              <th scope="row">Rust / Cargo</th>
+              <td>能：<code>rustc f.rs</code></td>
+              <td>声明 <code>mod</code> 加固定文件规则</td>
+              <td><code>target/</code>，主要靠文件时间戳</td>
+              <td>取祖先找清单；不取时间戳，本项目按内容哈希</td>
+            </tr>
+            <tr>
+              <th scope="row">Go</th>
+              <td>能：<code>go run f.go</code> 不需要 <code>go.mod</code></td>
+              <td>包路径 = 模块路径加目录</td>
+              <td><code>GOCACHE</code>；可执行文件写在源码旁</td>
+              <td>取「包路径 = 模块路径 + 目录」，正是 <code>lib.Set</code> 的形状</td>
+            </tr>
+            <tr>
+              <th scope="row">Python</th>
+              <td>能，而且根本没有清单</td>
+              <td>从文件名推导，从不声明</td>
+              <td><code>__pycache__</code> 放源码旁，按源文件 mtime</td>
+              <td>取推导；不取「首次命中即胜」的静默歧义</td>
+            </tr>
+            <tr>
+              <th scope="row">Node / TypeScript</th>
+              <td>能：<code>node script.js</code></td>
+              <td>CommonJS 没有模块名；ESM 的 specifier 就是路径</td>
+              <td><code>node_modules</code>；<code>outDir</code> 与 <code>.tsbuildinfo</code></td>
+              <td>取「最近的父清单」；不取隐式 <code>node_modules</code> 上溯</td>
+            </tr>
+            <tr>
+              <th scope="row">GHC / Cabal</th>
+              <td>能：<code>ghc hello.hs</code></td>
+              <td>声明，且文件必须正好在 <code>A/B/C.hs</code></td>
+              <td><code>.o</code>/<code>.hi</code> 放源码旁，靠 mtime <strong>加</strong> MD5 指纹</td>
+              <td>取指纹思路（本项目的键是闭包内容）；不取「必须逐个列出模块」</td>
+            </tr>
+            <tr>
+              <th scope="row">OCaml / Dune</th>
+              <td><code>ocaml f.ml</code> 能跑，但 Dune 没有 <code>dune-project</code> 就拒绝工作</td>
+              <td>推导，从不声明</td>
+              <td><code>_build/default</code>；<code>.cmi</code>/<code>.cmx</code></td>
+              <td>取「推导加从不声明」；不取「没有清单就不工作」</td>
+            </tr>
+            <tr>
+              <th scope="row">JVM / Maven</th>
+              <td>能：<code>java Hello.java</code></td>
+              <td>声明 <code>package</code> 加类型名，目录规则由宿主决定</td>
+              <td><code>.class</code> 放源码旁或 <code>-d</code>/<code>target/</code>；最新的文件胜</td>
+              <td>取「裸文件能跑」；不取「目录规则可有可无」</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        三个结论直接落成了本项目的规则。其一，<strong>只有 Isabelle 不接受裸文件</strong>，
+        而初学者最先遇到的语言全都接受——所以单文件是默认，项目是 opt-in。
+        其二，<strong>只有 OCaml 与 Python 完全不声明模块身份</strong>，
+        Rocq 与 Go 从路径加根推导，Haskell、Idris、Isabelle 要求声明并校验——
+        本项目选推导：一个文件一个规范名，没有第二处要同步。
+        其三，<strong>没有一处靠时间戳就够</strong>：GHC 是 mtime 加指纹，Go 是构建缓存，
+        Cargo 自己承认「主要靠时间戳」。本项目的键是闭包内容，
+        所以改了被 import 的文件，所有下游必然重编，注释改一个字也算。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 诚实的边界</h2>
+      <p class="measure">
+        项目模式（<code>import</code>、清单、闭包编译）是 2026-09-18 落地的那一批。
+        它有明确的边界，全部登记在设计与台账里，下面五条是其中会被你撞到的。
+      </p>
+      <div class="callout callout--limit">
+        <p class="callout__title">限制</p>
+        <ul>
+          <li>
+            <strong>项目模式没有跨模块增量。</strong>一次编译是一个 arena 加一个环境构建器，
+            改一个库文件就是整个闭包重编。视图也不承诺「哪个模块没重编译」——
+            「跨进程的模块级缓存」在设计文档 §9 里明确列为不做。
+          </li>
+          <li>
+            <strong><code>--json</code> 只输出入口模块的事件。</strong>
+            依赖里已经通过的声明不进事件流（一个 12 条声明的库会把入口的答题流淹没），
+            依赖的<em>问题</em>仍以诊断形式带 <code>file</code> 与 <code>module</code> 出现。
+            要看某个模块自己的事件，把它当入口跑一遍即可。
+          </li>
+          <li>
+            <strong>只有一个模块根。</strong>因此没有多根工作区，也不存在「同名模块在两处」的歧义。
+            跨文件互递归表达不了：<code>import</code> 成环是硬错，
+            回答是 <code>import 成环：A → B → A</code>，附一条「把公共部分抽到更底层模块」的提示。
+          </li>
+          <li>
+            <strong>跨模块重名也是硬错</strong>（<code>import-name-collision</code>），不是遮蔽：
+            消息会同时给出两个来源。这是刻意的——静默首命中是最坏的一种失败。
+          </li>
+          <li>
+            <strong><code>--no-project</code> 有两个入口没接。</strong>
+            <code>sokonanoda grade &lt;file&gt;</code> 与 <code>sokonanoda query project</code>
+            都会忽略这个旗标（<code>grade</code> 的调用点把 <code>no_project</code> 写死成
+            <code>false</code>）。要它生效，用 <code>sokonanoda --no-project &lt;file&gt;</code>。
+          </li>
+        </ul>
+      </div>
+      <p class="measure">
+        单文件仍是默认的教学表面：画布 <code>playground.sokonanoda</code> 没有一行
+        <code>import</code>，判卷命令是 <code>scripts/soko grade playground.sokonanoda</code>。
+        只有当「教材库复用」或期末项目真的出现时，才升格成项目——而判卷命令不变。
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" aria-current="page" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

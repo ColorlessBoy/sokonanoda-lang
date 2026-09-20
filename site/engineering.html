@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>工程与证据：门禁、四本台账、可复现的数字 —— sokonanoda</title>
+<meta name="description" content="这个项目的过程本身就是质量机制：一条门禁命令、四本台账、每条缺口带最小复现。这一页写清每道门禁能挡住什么、挡不住什么，以及每个数字是用哪条命令量出来的。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/engineering.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="工程与证据：门禁、四本台账、可复现的数字 —— sokonanoda">
+<meta property="og:description" content="每道门禁能挡住什么、挡不住什么；四本台账各记什么；每个数字用哪条命令量出来。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site（本页不用编辑器面板，所以不引 editor.css） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="engineering" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">过程与信任</p>
+      <h1>工程与证据</h1>
+      <p class="lead">
+        这个项目的过程就是它的质量机制。这一页不写「我们很严谨」，只写清三件事：
+        每条规则被哪道门禁强制执行、每个数字用哪条命令量出来、以及门禁<b>挡不住</b>什么。
+      </p>
+    </header>
+
+    <!-- ── §1 主张 ─────────────────────────────────────────────────── -->
+    <section class="measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 主张：过程就是质量机制</h2>
+      <p>
+        「判定永远走真内核」这句话本身没法验证，除非你能看见内核真的拒过东西。
+        所以这个项目把能自动判定的东西全部写成门禁，把不能自动判定的东西写进台账，
+        再给每条台账记录配一条能重跑的命令。这一页上的每个数字都来自仓库里的文件，
+        出处写在数字旁边。
+      </p>
+      <p>
+        这套做法有一个直接后果：项目的历史是<b>可查的</b>。CI 红过 35 次，每一次的原因、
+        修复和预防都留在 <code>docs/CI-FAILURES.md</code> 里，其中 10 次是同一个外部服务
+        超时——这条记录比任何「稳定可靠」的形容词都更能说明维护状态。
+      </p>
+
+      <!-- 推理横线：这一页的论题——没有门禁的规则只是口号。 -->
+      <div class="turnstile" role="img" aria-label="给定六道门禁每次 push 都跑、四本台账每条都带复现或命令，这一页要说明的是：能被重跑的规则才算规则">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">门禁</span> : <span class="tok-ty">6 步，一条命令</span></li>
+          <li><span class="tok-local">台账</span> : <span class="tok-ty">4 本，每条带复现或命令</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">能被重跑的规则</span> <span class="tok-punc">=</span> <span class="tok-local">规则</span></p>
+      </div>
+
+      <div class="callout callout--verified">
+        <span class="callout__title">这一页的数字都能自己量一遍</span>
+        <p>
+          每个数字旁边都有产生它的确切命令。仓库公开，命令可以直接复制粘贴。
+          量不出同样结果的，这一页会写明原因，而不是把数字删掉了事——
+          §5 就有一条这样的记录。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── §2 门禁 ─────────────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 六道门禁：每次 push 跑什么</h2>
+      <p class="measure">
+        贡献者侧一条命令 <code>scripts/soko gate</code> 跑完六步；CI 侧把同样的判据拆进
+        <code>.github/workflows/ci.yml</code> 的 job。先给对照，再给「挡不住什么」。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>六道门禁的判据、会挡住什么、以及它们的盲区。命令列是真实执行的命令行。</caption>
+          <thead>
+            <tr>
+              <th scope="col">门禁</th>
+              <th scope="col">确切命令</th>
+              <th scope="col">它挡住的失败</th>
+              <th scope="col">它挡不住的</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">格式</th>
+              <td><code>cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check</code></td>
+              <td>教学三个 crate 的格式漂移</td>
+              <td>冻结内核 <code>crates/kernel/**</code> 不在 <code>-p</code> 清单里，它的格式没人查</td>
+            </tr>
+            <tr>
+              <th scope="row">静态检查</th>
+              <td><code>cargo clippy --workspace --all-targets</code></td>
+              <td>整棵 workspace 的 lint，含测试与基准目标</td>
+              <td>只认 Rust：<code>editor/vscode/*.js</code> 与 Python 工具不在它的视野里</td>
+            </tr>
+            <tr>
+              <th scope="row">全量测试</th>
+              <td><code>cargo test --workspace --locked</code></td>
+              <td>内核判定、前端 elab、CLI 协议、LSP 行为的回归</td>
+              <td>它按<b>编译期</b>的源码跑；某个已发布二进制与源码不一致时，它看不出来</td>
+            </tr>
+            <tr>
+              <th scope="row">画布锚点</th>
+              <td>用<b>运行中二进制</b>的内嵌编译器编译 <code>playground.sokonanoda</code></td>
+              <td>最常用的那份画布被新语法改动弄坏</td>
+              <td><b>不在 CI 里</b>——只在 <code>scripts/soko gate</code> 里，见下</td>
+            </tr>
+            <tr>
+              <th scope="row">课程门禁</th>
+              <td><code>python3 courses/set-theory/tools/check.py --selftest</code> 之后跑正式判据</td>
+              <td>卷 I 的解答留下未解的洞、目标判负、清单自相矛盾</td>
+              <td>只判<b>形状</b>不锁计数：课程在长，它不会因为 checked 变少就红</td>
+            </tr>
+            <tr>
+              <th scope="row">台账门禁</th>
+              <td><code>python3 scripts/gap.py selftest</code> + <code>python3 scripts/gap.py check</code></td>
+              <td>某条缺口的复现与它记的 <code>status</code> 对不上</td>
+              <td>只看复现的判定结果；缺口是否<b>该</b>关账仍要人判断</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        后两步依赖 <code>python3</code>。探不到解释器时门禁<b>不会静默跳过</b>：
+        它以 <code>exit 3</code> 退出并说明原因——「这一步没跑」和「这一步跑过了」必须是两个
+        不同的结果。
+      </p>
+
+      <h3>本地门禁与 CI 不是同一件事</h3>
+      <p class="measure">
+        这是这一页最该说清楚的一段。画布锚点在 <code>scripts/soko gate</code> 里，
+        但它<b>没有</b>对应的 CI 步骤：CI 的 test job 跑的是全量测试、协议一致性、
+        课程门禁与台账门禁，锚点那一步由 CLI 的 <code>gate</code> 子命令在本地执行。
+        在整个仓库里，<code>playground.sokonanoda</code> 只有这一处会去编译它，
+        其余的命中都是测试里的注释与技能文件的路径断言。
+      </p>
+      <p class="measure">
+        所以「本地绿」与「CI 绿」覆盖的不是同一组判据：锚点绿只说明<b>你手上这个二进制</b>
+        还能编过那份画布。反过来说，CI 绿也不保证锚点绿。
+      </p>
+
+      <div class="cmd">
+        <pre>$ scripts/soko gate
++ cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
++ cargo clippy --workspace --all-targets
++ cargo test --workspace --locked
+sokonanoda: gate PASS
+
+$ python3 scripts/gap.py selftest
+gap.py selftest: 14 条判据 + clean_env 剔除覆盖 全部成立。</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。前四行是 <code>gate</code> 自己打印的步骤头与结论；最后两行单独跑台账自检的输出。锚点没有独立的命令行——它在 <code>gate</code> 内部执行。</p>
+      </div>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">锚点还带一个版本前提</span>
+        <p>
+          锚点用的是<b>运行中二进制</b>内嵌的编译器。如果它和仓库版本不一致
+          （旧缓存、旧构建），<code>gate</code> 直接 <code>exit 3</code>，不拿旧逻辑判新代码。
+          这个前提只在「当前目录有 <code>Cargo.toml</code>」时才检查——
+          在子目录里跑，它读不到仓库版本，这道保护就退化成无操作。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── §3 四本台账 ─────────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 四本台账：把「过程」变成可审计的实体</h2>
+      <p class="measure">
+        门禁判的是当下的代码，台账记的是时间上的事实：撞到过什么、量到过什么、
+        红过什么。四本都是一行一条 JSON，可以 diff、可以统计、可以进 CI。
+      </p>
+
+      <ul class="stats">
+        <li><span class="stats__n">24</span><span class="stats__label">缺口台账条目</span></li>
+        <li><span class="stats__n stats__n--verified">0</span><span class="stats__label">其中 open</span></li>
+        <li><span class="stats__n">14</span><span class="stats__label">性能台账记录</span></li>
+        <li><span class="stats__n">37</span><span class="stats__label">真 VS Code E2E 记录</span></li>
+        <li><span class="stats__n">35</span><span class="stats__label">CI 失败记录</span></li>
+      </ul>
+
+      <div class="table-scroll">
+        <table class="table ledger">
+          <caption>四本台账：文件、规模、记什么、以及让它不腐烂的那条规则。</caption>
+          <thead>
+            <tr>
+              <th scope="col">台账</th>
+              <th scope="col">文件</th>
+              <th scope="col" class="num">条目</th>
+              <th scope="col">记什么</th>
+              <th scope="col">让它活着的规则</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">缺口台账</th>
+              <td><code>docs/gaps/ledger.jsonl</code></td>
+              <td class="num">24</td>
+              <td>写作过程中撞到的语言 / 工具 / 标准库缺口，每条带最小复现、级别、种类、关账版本</td>
+              <td>复现必须与 <code>status</code> 一致，由 <code>gap.py check</code> 在门禁里强制执行</td>
+            </tr>
+            <tr>
+              <th scope="row">性能台账</th>
+              <td><code>docs/perf/ledger.jsonl</code></td>
+              <td class="num">14</td>
+              <td>每条含版本、commit、工作树是否干净、宿主、以及分阶段毫秒数</td>
+              <td>每次改动跑 <code>scripts/perf-ledger.sh</code> 并提交结果；跨口径不可比</td>
+            </tr>
+            <tr>
+              <th scope="row">真编辑器 E2E</th>
+              <td><code>docs/e2e/ledger.jsonl</code></td>
+              <td class="num">37</td>
+              <td>真 VS Code 集成测试：宿主版本、用例数、退出码、服务器自述、LSP 二进制哈希、日志路径</td>
+              <td>CI 的 <code>e2e-ledger</code> job 把各腿结果合并成<b>一条</b>提交推回仓库</td>
+            </tr>
+            <tr>
+              <th scope="row">CI 失败台账</th>
+              <td><code>docs/CI-FAILURES.md</code></td>
+              <td class="num">35</td>
+              <td>每次 CI 红：现象、原因、修复、预防。人读的 Markdown，不是 JSON</td>
+              <td>仓库纪律：同一类失败不犯第二次。这条规则没有自动门禁，靠人执行</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        两处容易混的口径，先钉住：<code>evidence.json</code> 里的
+        <code>work_orders = 11</code> 是<b>磁盘上的工作单文件数</b>；
+        <code>gaps.json</code> 里的 <code>with_work_order = 15</code> 是<b>引用工作单的台账条数</b>
+        ——多条形如 G-11 与 G-16 共用同一张工作单。两个数都对，混用就错。
+      </p>
+
+      <h3>CI 失败台账长什么样</h3>
+      <p class="measure">
+        35 条里最多的三类，正好对应三种不同的失败来源：
+      </p>
+      <div class="table-scroll">
+        <table class="table ledger">
+          <caption>CI 失败台账的三种典型，以及各自的处置方式。</caption>
+          <thead>
+            <tr><th scope="col">类型</th><th scope="col" class="num">条数</th><th scope="col">处置</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">外部服务抖动</th>
+              <td class="num">10</td>
+              <td>Marketplace 的 Azure gallery 超时反复出现，台账里逐次写明「已知类，复发」与第几次。处置是探活加 <code>gh run rerun --failed</code>，不改代码</td>
+            </tr>
+            <tr>
+              <th scope="row">本地假绿</th>
+              <td class="num">9</td>
+              <td>clippy lint 本地没跑、新测试没跑 fmt——修复方式是把漏掉的那一步补进门禁</td>
+            </tr>
+            <tr>
+              <th scope="row">性能哨兵假红</th>
+              <td class="num">10</td>
+              <td>机器重载时采样被并行邻居放大。标准动作顺序是「采样口径 → 二进制对拍 → 量分布」，每一步的实测值都写进记录</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        第三类的处置值得单独看一眼，因为它有一次<b>没有</b>按最省事的方式做：
+        哨兵红的时候，直接调宽阈值就能变绿。前三轮修的是采样口径（进程内串行 + best-of-N），
+        阈值一个都没动；第四轮同一个用例在两次 CI 上一绿一红，于是把四次 CI 日志里的实测值
+        捞出来量分布，发现同一份代码跨 runner 实例有 4 倍方差、阈值正好落在噪声带里——
+        这时候才改阈值，并把那组实测数字写进用例注释。
+        改与不改，依据都是量出来的分布，不是感觉。
+      </p>
+
+      <div class="callout callout--note">
+        <span class="callout__title">性能台账是哨兵，不是基准</span>
+        <p>
+          这 14 条记的是<b>本机、同一套采样口径下</b>的毫秒数，用来发现「这次改动让某条路径变慢」，
+          不是用来和别的项目比。每条都带版本与 commit，所以两次记录之间可比；
+          跨口径不可比。外部基准仍是 opt-in，项目对外没有发布过性能对比结论。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── §4 缺口台账 ─────────────────────────────────────────────── -->
+    <section class="measure" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 缺口台账：写课程写出来的语言缺口</h2>
+      <p>
+        这四本里最值得看的是缺口台账，因为它是被<b>写课程</b>逼出来的。
+        写卷 I 集合论的时候，每撞到一个语言写不出来的地方，就记一条：最小复现是什么、
+        官方 Lean 4 里这段是什么行为、现在怎么绕、绕的代价是什么、卡住了哪些单元。
+      </p>
+      <p>
+        结果是 24 条，分布在 4 个种类与 3 个级别上。22 条已关账，2 条是长期绕行
+        （<code>workaround</code>，写明了代价），<code>open</code> 为 0——
+        这个 0 不是「没有问题了」，而是「记下的每一条都有了结论」。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table ledger">
+          <caption>24 条缺口的分布。三个维度都来自台账字段原值，由 site/data/gaps.json 汇总。</caption>
+          <thead>
+            <tr><th scope="col">维度</th><th scope="col">分布</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">状态</th><td>fixed 22 · workaround 2 · open 0</td></tr>
+            <tr><th scope="row">种类</th><td>language 10 · tooling 7 · library 6 · infra 1</td></tr>
+            <tr><th scope="row">级别</th><td>blocker（不修就写不了这类内容）12 · painful（能写但成本翻倍）10 · nice 2</td></tr>
+            <tr><th scope="row">关账版本</th><td>22 条已修，关在两个相邻的版本里（18 条 + 4 条）；剩下 2 条是 workaround，没有关账版本</td></tr>
+            <tr><th scope="row">带最小复现</th><td>20 条，20 条都在盘上（9 份画布 + 11 个自断言脚本）</td></tr>
+            <tr><th scope="row">带工作单</th><td>15 条引用工作单；磁盘上共 11 张工作单</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 推理横线：这一页的核心不变量。 -->
+      <div class="turnstile" role="img" aria-label="给定一条缺口的复现在今天的行为，与它记的 status，这一页要说明的是：两者不一致时门禁判红">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">复现今天的行为</span> : <span class="tok-ty">干净判卷 / exit 0</span></li>
+          <li><span class="tok-local">台账记的 status</span> : <span class="tok-ty">fixed</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">两者不一致</span> <span class="tok-punc">⇒</span> <span class="tok-local">门禁判红</span></p>
+      </div>
+
+      <h3>一条缺口的样子</h3>
+      <p>
+        取 G-04「没有 notation / infix」当例子——它是卷 I 最典型的缺口：
+        纸笔数学写 <code>a ∈ A</code>，而当时的语言只认 <code>Set.mem α a A</code>。
+        下面是台账里那一行的原文字段（省略了长文本字段的内容）。
+      </p>
+
+      <div class="json">{
+  "id": "G-04",
+  "title": "没有 notation / infix（用户自定义记法）",
+  "kind": "language",
+  "severity": "blocker",
+  "status": "fixed",
+  "found": "2026-09-18",
+  "found_by": "course-agent",
+  "repro": "docs/gaps/repro/G04-notation.sokonanoda",
+  "today": "实测三层现象（第一刀已修）：…",
+  "expected_lean": "`infix:N` / `infixl:N` / `infixr:N` / `prefix:N` / `postfix:N` / 零元 `notation` 可用…",
+  "workaround": "（已消除）第二刀之后卷 I 的五个集合论符号随 `import lib.Set` 直接用…",
+  "blocks": [],
+  "wo": "docs/gaps/WO-011-notation.md",
+  "fixed_in": "&lt;关账版本&gt;"
+}</div>
+
+      <p>
+        <code>expected_lean</code> 是必填字段，不是可选的备注：它写清官方 Lean 4 里
+        这段是什么行为，也就是这张工作单的验收判据。没有它，「修好了」就没有定义。
+      </p>
+
+      <h3>复现怎么与状态对账</h3>
+      <p>
+        复现分两种：<code>.sokonanoda</code> 画布走判卷，自断言 <code>.sh</code> 脚本走退出码。
+        脚本的退出码有三档约定，含义写进台账协议里：
+      </p>
+      <div class="table-scroll">
+        <table class="table ledger">
+          <caption>自断言复现脚本的退出码约定。它让「缺口即测试」成立。</caption>
+          <thead>
+            <tr><th scope="col" class="num">退出码</th><th scope="col">含义</th><th scope="col">接下来做什么</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" class="num">0</th><td>缺口仍在，且与台账 <code>today</code> 字段描述一致</td><td>正常状态，不用动</td></tr>
+            <tr><th scope="row" class="num">1</th><td>行为变了（很可能已修复）</td><td>回来更新台账，写 <code>fixed_in</code>，并升级课程</td></tr>
+            <tr><th scope="row" class="num">2</th><td>环境或前置缺失，跑不起来</td><td>不算结果，先修环境</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        期望值默认从 <code>status</code> 推导：<code>fixed</code> 的复现应当转绿，
+        <code>open</code> 的应当仍然复现。但有些缺口的「修好」恰恰是<b>判红</b>——
+        G-01 钉的契约是「签名写错必须被拒」，所以它必须在台账里写显式的
+        <code>repro_expect: rejected</code> 覆盖推导。这个字段只吃四个值
+        （<code>clean</code> / <code>rejected</code> / <code>exit0</code> / <code>nonzero</code>），
+        取值与复现类型不匹配、或拼错，<code>check</code> 直接判不一致并把原因印出来。
+      </p>
+      <p>
+        24 条里只有 G-01 用了这个覆盖——这正是它该有的样子：例外要写出来，
+        而不是让默认推导悄悄盖过。
+      </p>
+
+      <div class="cmd">
+        <pre>$ scripts/soko grade docs/gaps/repro/G04-notation.sokonanoda --json
+{"human":"checked declaration mem","name":"mem","type":"decl.checked"}
+{"human":"checked declaration union","name":"union","type":"decl.checked"}
+{"human":"checked declaration compl","name":"compl","type":"decl.checked"}
+… 另外 5 条同形（powerset / image / use / use_unary / use_image）
+$ # 按 type 计数
+{"decl.checked": 8}   退出码 0
+
+$ python3 scripts/gap.py check
+G-04  fixed  sokonanoda  已判卷通过</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。中间 5 条事件与上面三条逐字同形，只换名字。最后一段是 <code>gap.py check</code> 输出里的一行。</p>
+      </div>
+
+      <div class="callout callout--verified">
+        <span class="callout__title">这条复现刚跑过</span>
+        <p>
+          上面那两段输出是用已发布版本的二进制（与当前站点版本一致）跑出来的：
+          8 条 <code>decl.checked</code>、零 diagnostic、退出码 0。
+          8 条里包含 4 条 <code>axiom</code>——本语言里公理也走内核判定，所以也算 checked。
+          记法命令本身不产生事件，它不是声明。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── §5 数字与命令 ───────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 数字与产生它们的命令</h2>
+      <p class="measure">
+        这些数字全部来自 <code>site/data/evidence.json</code>，那份文件的规则写在它自己
+        的第一行里：只收能复现的数字，每条带 <code>command</code>，拿不到的不进 JSON、
+        只在标准错误里说明。下面是其中主要的几组，以及这次写这一页时实测的结果。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table ledger">
+          <caption>质量证据数字、产生它的命令、以及本次实测是否一致。</caption>
+          <thead>
+            <tr>
+              <th scope="col">数字</th>
+              <th scope="col" class="num">值</th>
+              <th scope="col">产生它的命令</th>
+              <th scope="col">本次实测</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">测试函数总数</th>
+              <td class="num">1170</td>
+              <td><code>cargo test --workspace --locked -- --list | grep -c ': test'</code></td>
+              <td>未复现：实测 1175</td>
+            </tr>
+            <tr>
+              <th scope="row">其中 <code>#[ignore]</code></th>
+              <td class="num">6</td>
+              <td>同一条命令加 <code>--ignored</code></td>
+              <td>一致</td>
+            </tr>
+            <tr>
+              <th scope="row">可运行测试</th>
+              <td class="num">1164</td>
+              <td>1170 − 6</td>
+              <td>未复现：实测 1169（= 1175 − 6）</td>
+            </tr>
+            <tr>
+              <th scope="row">卷 I 门禁：目标 / checked / open / 判负</th>
+              <td class="num">36 / 329 / 99 / 0</td>
+              <td><code>python3 courses/set-theory/tools/check.py --json</code></td>
+              <td>未复现：实测 36 / 321 / 93 / 2</td>
+            </tr>
+            <tr>
+              <th scope="row">卷 I 单元 / 章 / 卷</th>
+              <td class="num">12 / 4 / 1</td>
+              <td>同上，读 <code>units</code> / <code>chapters</code> / <code>volumes</code></td>
+              <td>一致</td>
+            </tr>
+            <tr>
+              <th scope="row">画布事件计数</th>
+              <td class="num">30 / 2 / 4 / 2</td>
+              <td><code>sokonanoda grade playground.sokonanoda --json</code>，按 <code>type</code> 计数</td>
+              <td>一致（4 个数逐个相等）</td>
+            </tr>
+            <tr>
+              <th scope="row">四本台账行数</th>
+              <td class="num">24 / 14 / 37 / 1</td>
+              <td><code>wc -l &lt; docs/{gaps,perf,e2e,courses}/ledger.jsonl</code></td>
+              <td>一致</td>
+            </tr>
+            <tr>
+              <th scope="row">CI 失败条目</th>
+              <td class="num">35</td>
+              <td><code>grep -cE '^#{2,3} [0-9]{4}-[0-9]{2}-[0-9]{2}' docs/CI-FAILURES.md</code></td>
+              <td>一致</td>
+            </tr>
+            <tr>
+              <th scope="row">提交数 / tag 数</th>
+              <td class="num">367 / 69</td>
+              <td><code>git log --oneline | wc -l</code> · <code>git tag | wc -l</code></td>
+              <td>一致</td>
+            </tr>
+            <tr>
+              <th scope="row">CHANGELOG 版本条目</th>
+              <td class="num">75</td>
+              <td><code>grep -c '^## \[' editor/vscode/CHANGELOG.md</code></td>
+              <td>一致</td>
+            </tr>
+            <tr>
+              <th scope="row">缺口复现件 / 工作单</th>
+              <td class="num">22 / 11</td>
+              <td><code>ls docs/gaps/repro | wc -l</code> · <code>ls docs/gaps/WO-*.md | wc -l</code></td>
+              <td>一致</td>
+            </tr>
+            <tr>
+              <th scope="row">最新一次真 VS Code E2E</th>
+              <td class="num">15 通过 / 0 失败</td>
+              <td><code>tail -1 docs/e2e/ledger.jsonl</code></td>
+              <td>一致（未重跑，读的是台账末行）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>没复现出来的两个，以及为什么</h3>
+      <p class="measure">
+        写这一页时，工作树里带着未提交的改动：语言侧给 <code>by</code> 块加了新构造子，
+        课程侧有 7 个文件被改过（5 个单元画布含解答 + 2 个课程库）。这两处改动正好落在
+        两个数字的测量面上，所以它们量不出与数据相同的值。
+        这不是数据错了，是<b>树不一样</b>。
+      </p>
+      <div class="table-scroll">
+        <table class="table ledger">
+          <caption>两个未复现的数字：数据里的值、本次实测值、以及差异的来源。</caption>
+          <thead>
+            <tr>
+              <th scope="col">数字</th>
+              <th scope="col" class="num">数据里的值</th>
+              <th scope="col" class="num">本次实测</th>
+              <th scope="col">差异来源</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">测试函数总数</th>
+              <td class="num">1170</td>
+              <td class="num">1175</td>
+              <td>未提交的改动新增了测试函数；数据记录的是提交 <code>084da05</code> 上的测量值</td>
+            </tr>
+            <tr>
+              <th scope="row">卷 I checked / open / 判负</th>
+              <td class="num">329 / 99 / 0</td>
+              <td class="num">321 / 93 / 2</td>
+              <td>课程文件被改过，判负 2 条；门禁只判形状不锁计数，所以这个变化不会让它红</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="measure">
+        这两组数字的差别不是「谁写错了」，而是<b>量的对象不同</b>：
+        <code>evidence.json</code> 记的是提交 <code>084da05</code> 上的实测，
+        本次实测跑的是带未提交改动的树。要得到数据里的值，需要在一个干净检出上重跑；
+        在脏树上，数字会如实反映脏树。
+      </p>
+      <p class="measure">
+        值得单独指出的是：<code>gap.py check</code> 在这次实测里<b>判红了一条</b>——
+        G-07 的复现今天仍复现，而台账写的是已修复。这正是这道门禁存在的理由：
+        未提交的改动让一条旧缺口的复现退回了修前行为，门禁当场把「台账与现实不一致」
+        指了出来，而不是让 <code>fixed_in</code> 悄悄腐烂。
+      </p>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">没量到的两个数字</span>
+        <p>
+          <code>release_assets = 26</code> 来自 <code>gh release view --json assets</code>，
+          需要 <code>gh</code> 已登录且能联网，这次没跑；<code>e2e_latest</code> 读的是台账末行，
+          没有重跑真 VS Code。
+          这两个数字在数据文件里都带自己的命令与「拿不到就不进 JSON」的说明——
+          缺了它们，数据文件少两组数字，而不是拿一个差不多的值顶替。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── §6 发布自动化 ───────────────────────────────────────────── -->
+    <section class="measure" aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 发布：人只做两件事</h2>
+      <p>
+        版本号写死在两处：<code>Cargo.toml</code> 的 workspace 版本与
+        <code>editor/vscode/package.json</code>。这两处必须一致——有一条契约测试守着
+        （<code>cargo_and_extension_versions_match</code>），<code>auto-tag</code> job 自己
+        也会再比一次，不一致就不打 tag。发布流程是：改这两处、推 main，
+        之后 <code>auto-tag</code> 打 tag 并触发 release workflow。
+      </p>
+      <p>
+        三个 workflow 各管一段：<code>ci.yml</code>（lint / auto-tag / test / e2e）、
+        <code>release.yml</code>（build / package-vsix / github-release /
+        marketplace-publish）、<code>pages.yml</code>（本站部署）。
+        <code>auto-tag</code> 依赖 lint、test 与两条 e2e 腿；课程门禁与台账门禁就挂在
+        test job 里，<b>不新建 job</b>——所以课程判红会直接挡住打 tag，不会先发一个坏版本再补救。
+      </p>
+      <p>
+        发布产物与校验方式的细节在<a href="releases.html">版本历史</a>那一页；
+        这一页只记与「过程」有关的一条：每个 Release 附 <code>SHA256SUMS</code>，
+        并由 CI 的 <code>Attest build provenance</code> 步骤签发构建来源证明，
+        所以「这个二进制是从这个 commit 构建的」是可校验的，不需要信任发布者。
+      </p>
+    </section>
+
+    <!-- ── §7 已知限制 ─────────────────────────────────────────────── -->
+    <section class="wide" aria-labelledby="s7">
+      <h2 id="s7"><span class="sec-num">§7</span> 这套过程还没覆盖的地方</h2>
+      <p class="measure">
+        上面每一节都在讲「有什么」，这一节讲「缺什么」。下面每一条都是实测或实测不到的，
+        不是免责声明。
+      </p>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">工程债：几个文件比登记时更大</span>
+        <p>
+          仓库的惯例是「文件接近 500 行即考虑拆分」。下面这 8 个文件远超这条线，
+          括号里是本次实测的行数：
+        </p>
+        <ul>
+          <li><code>crates/front/src/compile/tests.rs</code>（7926）</li>
+          <li><code>crates/front/src/parser.rs</code>（4941）</li>
+          <li><code>crates/front/src/compile/elab.rs</code>（4184）</li>
+          <li><code>editor/vscode/extension.js</code>（1880）</li>
+          <li><code>crates/lsp/src/lib.rs</code>（1610）</li>
+          <li><code>crates/front/src/compile/check/walk.rs</code>（1311）</li>
+          <li><code>crates/front/src/compile/check/mod.rs</code>（856）</li>
+          <li><code>crates/front/src/compile/check/kernel_phase.rs</code>（527）</li>
+        </ul>
+        <p>
+          这 8 个数比 <code>docs/HANDOVER.md</code> 里登记的旧值更大——
+          <code>parser.rs</code> 从 2065 涨到 4941，<code>elab.rs</code> 从 2854 涨到 4184。
+          2026-09-18 拆掉了一个约 1174 行的单函数（验收手段是二进制对拍：改动前后跑同一批
+          画布，标准输出逐字节相同），但语言在长，几个大文件比登记时更大。
+          这是公开可查的欠账。
+        </p>
+      </div>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">过程本身的三处缺口</span>
+        <ul>
+          <li>
+            <b>画布锚点不在 CI 里</b>（§2）。本地门禁与 CI 覆盖的判据不同，
+            这是两者之间最实质的一处差异。
+          </li>
+          <li>
+            <b>CI 失败台账没有自动门禁</b>。「同一类失败不犯第二次」是一条纪律，
+            靠人在每次红的时候写一条。35 条记录说明这条纪律被执行了，
+            但它不像缺口台账那样有脚本兜底。
+          </li>
+          <li>
+            <b>冻结内核不在格式门禁的范围内</b>。<code>cargo fmt</code> 只点名教学三个
+            crate，这是刻意的（<code>--all</code> 会重排内核快照），代价是内核的格式
+            没有机器守护。
+          </li>
+        </ul>
+      </div>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">未证实，所以这一页不写</span>
+        <p>
+          三件事没有可复现的来源，因此全站不出现：
+        </p>
+        <ul>
+          <li>
+            <b>性能倍数</b>。「相对官方内核 10–100 倍」写在需求文件里，是项目的定位表述，
+            不是本仓库量出来的结果；外部基准仍是 opt-in。这一页只给本机同口径的哨兵数字，
+            不给跨项目对比。
+          </li>
+          <li>
+            <b>用户数 / 下载量 / 教学效果</b>。仓库里一条来源都没有。
+          </li>
+          <li>
+            <b>历史课程计数</b>。文档里散落的旧快照（如「355 checked」「308/93」）
+            是当时的实测值，课程在长，它们今天已经不对。要引用课程计数，
+            一律以课程门禁当次输出为准。
+          </li>
+        </ul>
+        <p>
+          「查不到就说查不到」是这一页的内容，不是这一页的缺口。
+        </p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" aria-current="page" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

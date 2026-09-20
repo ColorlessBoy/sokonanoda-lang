@@ -143,6 +143,29 @@ auto-tag 的显式比对）。手动推 tag 应急后，核对双页见
 发布后抽样：`curl` 下载一个资产 → `sha256sum -c` 对照 `SHA256SUMS` →
 `gh attestation verify` 通过。
 
+## 6.5 发布后：站点要跟着刷新（2026-09-21 立）
+
+**站点写的是「已发布版本」的事实**（`site/`，设计见 `docs/design/site-rebuild/`），
+所以 tag 一落地，站点上的版本号、课程计数、6 份 lab 数据就都**落后了一次发布**。
+这不是假话（旧版本确实能下载），但必须当成发布流程的一部分做掉：
+
+```bash
+python3 scripts/gen-site-data.py     # 版本 + 卷 I 清单/计数（自动跟到新 tag）
+python3 scripts/gen-site-lab.py      # 6 份 lab 数据：走查/事件/诊断/时间线/台账/证据
+python3 scripts/gen-site-search.py   # 页面文字若改过，搜索索引要重生成
+python3 scripts/site-verify.py       # 18 项，必须全绿
+```
+
+`gen-site-lab.py` 的 6 份数据文件信封（`version` / `source_commit` / `generated_at`）
+直接读**工作树**，所以**发布前不要重跑它**——会把未发布状态混进站点。发布后重跑时
+记得同步 `site/kernel.html` 里逐字引用的 `source_commit` / `generated_at`（K10 会查）。
+另有一处记法边界的三条新事实待随 0.62.0 补进 `notation.html`：完整五步清单在
+`docs/design/site-rebuild/STATE.md` §12.2。
+
+判据 K17 会在站点落后时**记一笔而不判红**（`v0.61.0 落后于最新 tag v0.62.0`）：
+发布刚落地时 `pages.yml` 正在部署，判红会把"该重跑生成器"的待办伪装成部署故障。
+但**它只判"谎话"**——站点写了一个没有任何 tag 的版本 ⇒ 判红，因为读者按它下载会 404。
+
 ## 7. 已知限制与风险
 
 - 平台覆盖：`linux-x64` / `linux-arm64` / `alpine-x64` / `alpine-arm64` /

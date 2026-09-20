@@ -1,146 +1,628 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>快速开始 — sokonanoda</title>
-  <meta name="description" content="三条使用路径：学习者装 VS Code 扩展（零安装）、code agent 复制一段安装 prompt、贡献者用 cargo 构建。">
-  <link rel="stylesheet" href="assets/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>安装与上手：三条路径，从零到一次真判卷 —— sokonanoda</title>
+<meta name="description" content="按身份选一条路：学习者装 VS Code 扩展，code agent 克隆仓库走 --json 判卷，贡献者用 Rust 构建。每条都给逐条命令、OS 前提、怎么知道它成了，以及真实故障的排错。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/get-started.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="安装与上手：三条路径，从零到一次真判卷 —— sokonanoda">
+<meta property="og:description" content="按身份选一条路：学习者装 VS Code 扩展，code agent 克隆仓库走 --json 判卷，贡献者用 Rust 构建。每条都给逐条命令、OS 前提、怎么知道它成了，以及真实故障的排错。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header">
-    <div class="wrap">
-      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
-      <nav class="nav" aria-label="主导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html" class="active" aria-current="page">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html" class="lang">English</a>
+
+<body data-page="get-started" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" aria-current="page" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <ol>
+        <li><a href="index.html">首页</a></li>
+        <li>安装与上手</li>
+      </ol>
+    </nav>
+
+    <header class="page-head">
+      <p class="sec-num">使用</p>
+      <h1>安装与上手</h1>
+      <p class="lead">
+        三条路径，按你的身份选一条。每条都写到「屏幕上出现一条由完整内核给出的判定」为止，
+        并给出 OS 前提、怎么知道它成了，以及走不通时先查哪一行。
+      </p>
+    </header>
+
+    <div class="turnstile" role="img" aria-label="给定一台机器与一个 .sokonanoda 文件，待证目标是屏幕上出现一条由完整内核给出的判定">
+      <ul class="turnstile__given">
+        <li>一台机器，一个终端或一个 VS Code</li>
+        <li>一个 <code>.sokonanoda</code> 文件</li>
+      </ul>
+      <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+      <p class="turnstile__goal">屏幕上出现一条由完整内核给出的判定</p>
+    </div>
+
+    <section class="wide" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 先确认你需要什么</h2>
+      <p class="measure">
+        三条路径的依赖不一样。<strong>需要 Rust 的只有贡献者那一条</strong>——学习者和 code agent
+        都用不到 cargo。这不是「简化安装」，是硬规则：获取与运行只用 Release 二进制或平台插件，
+        不把 Rust 当使用前提。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>三条路径的依赖边界与入口：Rust 只出现在贡献者那一行。</caption>
+          <thead>
+            <tr>
+              <th scope="col">路径</th>
+              <th scope="col">需要 Rust</th>
+              <th scope="col">需要 Node</th>
+              <th scope="col">需要网络</th>
+              <th scope="col">入口</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">学习者</th>
+              <td>否</td>
+              <td>否</td>
+              <td>只在装扩展时</td>
+              <td>VS Code Marketplace</td>
+            </tr>
+            <tr>
+              <th scope="row">code agent / 命令行</th>
+              <td>否</td>
+              <td>是（启动器是 Node 脚本）</td>
+              <td>只在首次 <code>setup</code></td>
+              <td><code>scripts/soko</code></td>
+            </tr>
+            <tr>
+              <th scope="row">贡献者</th>
+              <td>是</td>
+              <td>是（扩展测试）</td>
+              <td>是</td>
+              <td><code>cargo</code> + <code>scripts/soko gate</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        学习者路径不需要 Node；装好扩展之后也不需要网络——语言服务器与 CLI 都打在扩展包里。
+        八个平台各有内嵌二进制的包，没覆盖到的平台由 universal 包按版本锁定下载兜底。
+      </p>
+      <p class="measure">
+        agent 路径不需要 Rust。Node 是启动器 <code>scripts/soko</code> 的运行时：一个零依赖的
+        Node 脚本，跨平台、不经过 shell。网络只在第一次 <code>setup</code> 下载时用到。
+        已经有 <code>sokonanoda</code> 在 <code>PATH</code> 上时，下文所有
+        <code>scripts/soko …</code> 都可以换成 <code>sokonanoda …</code>，两者等价。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 学习者：装一个 VS Code 扩展</h2>
+      <p class="measure">
+        OS 前提：macOS / Linux / Windows 都行，只要 VS Code 不低于 <span class="num">1.106</span>。
+        这条路径没有任何命令行步骤。
+      </p>
+
+      <ol class="measure">
+        <li>在 Marketplace 装扩展 <code>sokonanoda-lang.sokonanoda</code>。</li>
+        <li>
+          打开任意 <code>.sokonanoda</code> 文件。仓库自带的
+          <code>playground.sokonanoda</code> 就是那张画布。
+        </li>
+        <li>到这里就完成了：语言服务器与 CLI 都已经在扩展包里，不下载、不需要 Rust。</li>
+      </ol>
+
+      <p class="row">
+        <a class="btn btn--primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" target="_blank" rel="noopener">在 Marketplace 安装扩展</a>
+      </p>
+
+      <p class="measure">
+        <strong>怎么知道它成了。</strong>命令面板里跑一次 <code>sokonanoda: doctor</code>：
+        它会说出现在用的是哪个服务器、来自哪里（<code>bundled</code> / <code>override</code> /
+        <code>cache</code>）、运行版本与扩展版本对不对得上。资源管理器里出现「练习」「项目」
+        「课程」三棵树，右侧辅助侧栏是目标面板，编辑器里按
+        <span class="kbd">alt</span>+<span class="kbd">b</span> 能编译当前文件。
+      </p>
+      <p class="measure">
+        <strong>离线也成立。</strong>有平台包的机器上，扩展装完之后全程不需要网络：八个平台
+        （macOS arm64/x64、Linux x64/arm64、Alpine x64/arm64、Windows x64/arm64）的包里各自
+        内嵌了对应平台的 LSP 与 CLI。没被这八个平台覆盖的机器，由 universal 包按版本锁定下载
+        兜底——它只钉当前版本，从不取 <code>latest</code>。
+      </p>
+      <p class="measure">
+        这条路径的边界只有一条：扩展里<strong>没有</strong>二进制自动更新。要换版本就重装扩展，
+        扩展与它内嵌的服务器永远同版本。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> code agent：克隆仓库，判卷走 --json</h2>
+      <p class="measure">
+        OS 前提：macOS / Linux / Windows。需要 Node——启动器 <code>scripts/soko</code> 是一个
+        零依赖的 Node 脚本，跨平台、不经过 shell。下面每一步都可以原样粘进终端。
+      </p>
+
+      <div class="cmd">
+        <pre tabindex="0">$ git clone https://github.com/ColorlessBoy/sokonanoda-lang
+$ cd sokonanoda-lang
+$ scripts/soko setup
+$ scripts/soko doctor --json</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。</p>
+      </div>
+
+      <p class="measure">
+        <code>setup</code> 是幂等的：把版本锁定的 CLI 与 LSP 取进缓存，已经有匹配版本就不重下。
+        版本来自仓库里的版本钉，不是 <code>latest</code>——依次看
+        <code>sokonanoda-version.txt</code>、<code>sokonanoda.toml</code> 的
+        <code>requires</code>、<code>Cargo.toml</code>；多个源出现就必须一致，不一致会指名文件报错。
+        解析不出期望版本时启动器<strong>拒绝运行</strong>，绝不猜。
+      </p>
+      <p class="measure">
+        然后是就绪诊断。下面这份输出逐字抄自一次真实运行，只有版本号与绝对路径用
+        <code>…</code> 省略（本站不写死版本号，页脚显示当前版本）：
+      </p>
+
+      <div class="cmd">
+        <pre tabindex="0">$ scripts/soko doctor --json
+{"ready": true, "version": "…", "version_source": "Cargo.toml",
+ "target": "darwin-arm64", "cache": "…/.local/share/sokonanoda/bin",
+ "offline": false, "launcher": "…/scripts/soko",
+ "cli": {"path": "…/target/debug/sokonanoda", "present": true, "ready": true},
+ "lsp": {"path": "…/target/debug/sokonanoda-lsp", "present": true, "ready": true}}
+$ echo $?
+0</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。</p>
+      </div>
+
+      <p class="measure">
+        读 <code>ready</code>，别读路径：<code>true</code> 且退出码 <code>0</code> 才算就绪。
+        解析顺序是 <code>$SOKONANODA_BIN</code> → 版本匹配的仓库构建 → 缓存 →
+        按版本钉锁定下载，四步。
+      </p>
+
+      <h3 id="s3-1"><span class="sec-num">§3.1</span> 判卷：读事件流，不比对文本</h3>
+      <p class="measure">
+        仓库自带的 <code>playground.sokonanoda</code> 就是那张画布。判一次：
+      </p>
+
+      <div class="cmd">
+        <pre tabindex="0">$ scripts/soko grade playground.sokonanoda --json
+{"human":"checked declaration Prop","name":"Prop","type":"decl.checked"}
+{"human":"checked declaration True","name":"True","type":"decl.checked"}
+…
+{"human":"exercise open (fill the sorry)","name":"exists_intro_rule","type":"exercise.open"}</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。</p>
+      </div>
+
+      <p class="measure">
+        中间的行用 <code>…</code> 省略；这一跑一共 <span class="num">38</span> 行，退出码
+        <span class="num">0</span>。每行一个 JSON 对象，都带 <code>type</code> 与
+        <code>human</code> 两个字段。<code>decl.checked</code> 表示这条声明被完整内核接受过；
+        <code>exercise.open</code> 表示值位是 <code>sorry</code> 且签名合法——它是一个合法的
+        进行中状态，不是错误。八种事件类型与字段契约见
+        <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/protocol.md" target="_blank" rel="noopener">docs/protocol.md</a>。
+      </p>
+      <p class="measure">
+        要问「这个位置还差什么」，用单对象的 <code>query</code>，别自己扫事件流：
+      </p>
+
+      <div class="cmd">
+        <pre tabindex="0">$ scripts/soko query state --file playground.sokonanoda --line 347 --col 3
+{"schema":"soko.query/1","op":"state","version":1,"ok":true,
+ "data":{"decl":{"name":"forall_exists","kind":"theorem","status":"open"},
+         "binders":[{"name":"P","ty":"Person -> Prop"},
+                    {"name":"h","ty":"(x : Person) -> P x"}],
+         "goal":"Exists Person P"}}</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。</p>
+      </div>
+
+      <p class="measure">
+        这里只抄了回答「还差什么」的三个字段（<code>decl</code> / <code>binders</code> /
+        <code>goal</code>），并去掉了给编辑器高亮用的 <code>*_runs</code> 数组。行号取自当前
+        这份画布；画布改过之后，先用
+        <code>scripts/soko query holes --file playground.sokonanoda</code> 找到洞的位置，再问
+        <code>query state</code>。<code>ok:false</code> 不是空结果——它是
+        <code>outside-declarations</code> 这类明确的错误码。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>退出码：0 和 1 是判定结果，2 和 3 是你用错了或环境没就绪。</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="num">退出码</th>
+              <th scope="col">含义</th>
+              <th scope="col">你会在这里见到它</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row" class="num">0</th>
+              <td>答上了 / 全部通过（开放的 <code>sorry</code> 是合法状态）</td>
+              <td><code>grade</code>、<code>query</code>、<code>doctor</code>、<code>version</code></td>
+            </tr>
+            <tr>
+              <th scope="row" class="num">1</th>
+              <td>有拒绝：内核拒绝<strong>或</strong>解析失败</td>
+              <td><code>grade</code>、<code>query</code></td>
+            </tr>
+            <tr>
+              <th scope="row" class="num">2</th>
+              <td>用法错误：参数不对</td>
+              <td>任何子命令</td>
+            </tr>
+            <tr>
+              <th scope="row" class="num">3</th>
+              <td>环境未就绪，启动器拒绝往下走</td>
+              <td><code>setup</code>、<code>update</code>、<code>doctor</code>、<code>gate</code>、<code>lsp</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="s3-2"><span class="sec-num">§3.2</span> 技能：让 agent 知道怎么当老师</h3>
+      <p class="measure">
+        仓库里有三个角色技能，正文在 <code>skills/&lt;名字&gt;/SKILL.md</code>：
+      </p>
+      <ul class="measure">
+        <li><code>sokonanoda-teacher</code> —— 当老师的主循环：在画布上出题、判卷、决定下一步。</li>
+        <li><code>sokonanoda-dev</code> —— 接手开发：冻结内核、TDD 三层、文档先行。</li>
+        <li><code>sokonanoda-ci</code> —— 推代码、发布、查 CI。</li>
+      </ul>
+      <p class="measure">
+        另外两条运维命令只给人用：<code>sokonanoda-update</code>（把缓存刷到仓库版本）与
+        <code>sokonanoda-doctor</code>（只读就绪诊断）。它们带
+        <code>disable-model-invocation</code>，不进模型目录。
+      </p>
+      <p class="measure">
+        DeepSeek Harness 会自动发现仓库的 <code>.agents/skills/</code>，技能名本身就是命令：
+        <code>/sokonanoda-teacher</code>、<code>/sokonanoda-dev</code>、
+        <code>/sokonanoda-ci</code>（命令文法不允许斜杠，所以不是
+        <code>/sokonanoda/teacher</code>）。opencode 侧有 <code>/sokonanoda/*</code> 命令与
+        <code>teacher</code> 主 agent，启动插件会把原生 <code>sokonanoda-lsp</code> 接到
+        <code>lsp.command</code> 上。
+      </p>
+
+      <h3 id="s3-3"><span class="sec-num">§3.3</span> 一段可复制的安装 prompt</h3>
+      <p class="measure">
+        给 code agent 的安装 prompt 有**唯一一份**，在
+        <a href="agents.html#install-prompt">给 code agent</a> 那一页上，带复制按钮。
+        这里不再放第二份——同一段文本抄两处必然漂移，而这段文本是 agent 装环境的唯一指令。
+      </p>
+
+      <div class="callout callout--note">
+        <span class="callout__title">为什么不在这一页直接给</span>
+        <p>
+          这段 prompt 会随协议变化（命令、技能位置、判卷口径都改过好几轮）。
+          放在一处、由 <code>check-site.py</code> 守着，比在两页各留一份副本可靠。
+          点上面的链接过去，复制，粘进任意 code agent 即可。
+        </p>
+      </div>
+
+      <p class="row">
+        <a class="btn btn--secondary" href="agents.html#install-prompt">去取安装 prompt</a>
+        <a class="btn btn--quiet" href="agents.html">先看 agent 能做什么</a>
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定仓库入口与教学技能，待证目标是一行由内核发出的判定">
+        <ul class="turnstile__given">
+          <li>AGENTS.md : 仓库入口</li>
+          <li>skills/sokonanoda-teacher/SKILL.md : 教学循环</li>
+          <li>playground.sokonanoda : 画布</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">一行由完整内核发出的判定</p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 贡献者：需要 Rust</h2>
+      <p class="measure">
+        OS 前提：macOS / Linux。Windows 也能构建，但格式门禁只覆盖教学 crates。
+        三条路径里只有这一条需要 Rust 工具链。
+      </p>
+
+      <div class="cmd">
+        <pre tabindex="0">$ git clone https://github.com/ColorlessBoy/sokonanoda-lang
+$ cd sokonanoda-lang
+$ cargo build --release --locked -p sokonanoda-cli -p sokonanoda-lsp
+$ export PATH="$PWD/target/release:$PATH"
+$ scripts/soko gate</pre>
+        <p class="cmd__note"><code>$</code> 是提示符，不用输入。</p>
+      </div>
+
+      <p class="measure">
+        <code>gate</code> 一条命令跑完 CI 门禁：<code>cargo fmt</code> + <code>clippy</code> +
+        <code>test</code> + playground 锚点 + 课程门禁 + 缺口台账门禁。后两步要 python3；
+        探不到就直接 exit 3，绝不静默跳过。
+      </p>
+      <p class="measure">
+        两个会看到 exit 3 的地方，都不是「你代码写错了」。第一，二进制自报版本与仓库版本不一致时，
+        锚点结果不可信，gate 拒绝往下跑——先 <code>scripts/soko update</code>，或者用
+        <code>cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda</code>
+        让运行中的二进制就是仓库构建。第二是缺 python3，按提示装。
+      </p>
+      <p class="measure">
+        改教学 crates 时不要跑 <code>cargo fmt --all</code>：它会重排冻结的内核快照。用
+        <code>cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check</code>，
+        或者干脆交给 <code>scripts/soko gate</code>。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 走不通时先查这张表</h2>
+      <p class="measure">
+        下面这些不是假想的错误，是这条安装路径上真实撞到过的。第一行是历史上最常见的一个。
+        表里的命令都省掉了提示符，直接复制命令本身。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>症状 → 根因 → 怎么办。每一行都对应仓库里一条实测记录。</caption>
+          <thead>
+            <tr>
+              <th scope="col">症状</th>
+              <th scope="col">根因</th>
+              <th scope="col">怎么办</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">启动器或判卷直接 exit 3，拒绝运行</th>
+              <td>缓存标记与版本钉不一致（历史上最常见的故障）</td>
+              <td><code>scripts/soko update</code>：<code>0</code> = 缓存写成了，<code>3</code> = 没写成（stderr 给下载原因）。<code>scripts/soko version --json</code> 能看 marker。</td>
+            </tr>
+            <tr>
+              <th scope="row">两个 <code>doctor</code> 结论相反：一个 <code>ready:false</code>、一个 <code>ready:true</code></th>
+              <td>判定面不同——<code>sokonanoda doctor</code> 只看缓存，<code>scripts/soko doctor</code> 看整条解析链（含版本匹配的仓库构建）</td>
+              <td>以 <code>scripts/soko doctor --json</code> 为准；CLI 那个只回答「缓存对不对」。</td>
+            </tr>
+            <tr>
+              <th scope="row">完全离线，第一次 <code>setup</code> 就失败</th>
+              <td>下载需要网络</td>
+              <td><code>SOKONANODA_OFFLINE=1</code> 时会给人话并 exit 3；已缓存的匹配版本照常可用；VSIX 平台包装完即完全离线。</td>
+            </tr>
+            <tr>
+              <th scope="row">公司代理或自签证书下下载失败</th>
+              <td>Node 的 <code>fetch</code> 不读 <code>HTTPS_PROXY</code></td>
+              <td>启动器优先用 <code>curl</code>（认代理与企业 CA），失败才回落 <code>fetch</code>。先设 <code>HTTPS_PROXY</code> 指向你的代理（例如 <code>http://localhost:7890</code>）再试。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>~/.local/share</code> 不可写（沙箱或只读盘）</th>
+              <td>缓存写不进去</td>
+              <td>用 <code>SOKONANODA_CACHE_DIR</code> 指到可写目录；<code>update</code> 会明确 exit 3 并打印 <code>cache NOT refreshed</code>，不会假装成功。</td>
+            </tr>
+            <tr>
+              <th scope="row">机器上没有 cargo</th>
+              <td>误以为使用需要 Rust</td>
+              <td>不需要。用户与 agent 路径零工具链依赖：Release tarball 里就是可执行二进制，VSIX 内嵌 LSP 与 CLI。</td>
+            </tr>
+            <tr>
+              <th scope="row">Windows 上的路径、可执行位与 python 名字</th>
+              <td>跨平台差异</td>
+              <td>二进制带 <code>.exe</code>；缓存目录回退 <code>%USERPROFILE%</code>；只有非 win32 才补可执行位；python 探测顺序是 <code>py -3</code> → <code>python3</code> → <code>python</code>。</td>
+            </tr>
+            <tr>
+              <th scope="row">macOS 拦下 LSP 二进制</th>
+              <td>Gatekeeper 的 quarantine 属性</td>
+              <td><code>xattr -d com.apple.quarantine &lt;扩展&gt;/bin/&lt;target&gt;/sokonanoda-lsp</code>；VSIX 解压出来的文件通常不带 quarantine。</td>
+            </tr>
+            <tr>
+              <th scope="row">Marketplace 装不上，或公司禁用 Marketplace</th>
+              <td>分发渠道限制</td>
+              <td>Release 页有 9 个 VSIX（8 平台 + universal）与 8 个 CLI tarball。headless 装法：<code>code --install-extension sokonanoda-&lt;平台&gt;.vsix</code>，或按 id 装 <code>code --install-extension sokonanoda-lang.sokonanoda</code>。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>setup</code> 成功，<code>sokonanoda</code> 仍是 command not found</th>
+              <td>启动器只解析二进制，不改 shell 的 <code>PATH</code></td>
+              <td>一律用 <code>scripts/soko</code> 形式；或自己把缓存目录加进 <code>PATH</code>。</td>
+            </tr>
+            <tr>
+              <th scope="row">已经装了 VS Code 扩展，<code>scripts/soko</code> 却还要下载</th>
+              <td>启动器<strong>没有</strong>「扩展自带」这一环——文档写了它，代码里那个函数从未被调用</td>
+              <td>不要指望这条回退：用 <code>SOKONANODA_BIN</code> 指到扩展的 <code>bin/&lt;target&gt;/</code>，或者直接 <code>scripts/soko setup</code>。</td>
+            </tr>
+            <tr>
+              <th scope="row">编辑器面板「像没反应」，第一次按键慢</th>
+              <td>编译缓存是冷的，或在编辑器外改了依赖文件</td>
+              <td>命令面板跑 <code>sokonanoda: build</code>（<span class="kbd">alt</span>+<span class="kbd">b</span>）预热；<code>sokonanoda: rebuild</code>（<span class="kbd">alt</span>+<span class="kbd">shift</span>+<span class="kbd">b</span>）先清缓存再编。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>sokonanoda.toml</code> 只写了 <code>requires = "0.58"</code>，下载失败</th>
+              <td><code>x.y</code> 是约束不是版本钉，没有对应的 release tag</td>
+              <td>写完整的 <code>x.y.z</code>，或设 <code>SOKONANODA_VERSION</code> 显式给一个 tag。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        这张表覆盖不到的情况，完整手册索引在
+        <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/README.md" target="_blank" rel="noopener">docs/</a>。
+        下载下来的每个资产都可以校验：release 页有 <code>SHA256SUMS</code>，还有 SLSA
+        provenance 可用 <code>gh attestation verify &lt;文件&gt; -R ColorlessBoy/sokonanoda-lang</code> 验。
+      </p>
+    </section>
+
+    <section class="measure" aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 这一页不承诺的事</h2>
+      <p>
+        安装页最容易说漂亮话。下面几条是明确的边界，写在这里，免得你照别处的说法去试。
+      </p>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">限制</span>
+        <ul>
+          <li>
+            <strong>没有 WASM 构建。</strong>浏览器里跑不了内核，所以本站的功能展示全部来自
+            预计算的真实输出——这里不是一个能点的在线判题器。
+          </li>
+          <li>
+            <strong><code>cargo binstall</code> 与 <code>mise</code> 标为未证实。</strong>
+            README 提过这两条，但仓库里没有任何 <code>[package.metadata.binstall]</code> 配置，
+            我们拿不出机器可验证的证据。不要把它们当安装路径。
+          </li>
+          <li>
+            <strong>启动器没有「VS Code 扩展自带」这条回退。</strong>解析链只有四步：
+            <code>$SOKONANODA_BIN</code> → 版本匹配的仓库构建 → 缓存 → 按版本钉下载。
+            <code>AGENTS.md</code> 与 <code>skills/README.md</code> 里写的第五步是死代码。
+          </li>
+          <li>
+            <strong>两个 <code>doctor</code> 不是一个东西。</strong>结论不一致时，以
+            <code>scripts/soko doctor --json</code> 为准，它看的是整条解析链。
+          </li>
+          <li>
+            <strong>扩展内不做二进制自动更新。</strong>换版本要重装扩展。
+          </li>
+          <li>
+            <strong>DeepSeek Harness 里等不到 LSP 诊断。</strong>DSH 的 LSP host 不投递
+            <code>publishDiagnostics</code>；判卷一律走 CLI <code>--json</code> 或
+            <code>query</code>。
+          </li>
+        </ul>
+      </div>
+
+      <p>
+        这些边界有台账在守：缺口记在
+        <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/docs/gaps/ledger.jsonl" target="_blank" rel="noopener">docs/gaps/ledger.jsonl</a>，
+        由 <code>scripts/gap.py check</code> 在 CI 与 <code>scripts/soko gate</code> 里核。
+        CI 失败记在 <code>docs/CI-FAILURES.md</code>——那是人写的纪律，不是门禁。
+      </p>
+    </section>
+
+    <nav class="pager" aria-label="继续">
+      <a href="kernel.html"><span class="pager__label">看一次判卷的完整真相</span>内核判卷</a>
+      <a href="walkthrough.html"><span class="pager__label">逐行读真目标状态</span>走查一题</a>
+    </nav>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" aria-current="page" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
       </nav>
     </div>
-  </header>
-
-  <main id="main" class="wrap prose">
-    <h1>快速开始</h1>
-    <p>按你的身份选一条路。学习者这条是零安装主路径；agent 和贡献者各有独立入口。</p>
-
-    <h2 id="learner">学习者：装 VS Code 扩展</h2>
-    <p>
-      最省事的路径。扩展里内嵌了语言服务器和 <code>sokonanoda</code> 命令行，按平台
-      打包，装完即用：<strong>不需要 Rust 工具链，也不需要联网下载</strong>。
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
     </p>
-    <ol>
-      <li>
-        <a class="btn primary" href="https://marketplace.visualstudio.com/items?itemName=sokonanoda-lang.sokonanoda" target="_blank" rel="noopener">在 VS Code 插件市场一键安装</a>
-        <p>
-          VS Code 1.85 及以上；已装 VS Code 的话
-          <a href="vscode:extension/sokonanoda-lang.sokonanoda">点这里直接弹开安装</a>。
-          想离线或装指定版本，到
-          <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases" target="_blank" rel="noopener">GitHub Releases</a>
-          下载对应平台的 VSIX。
-        </p>
-      </li>
-      <li>
-        克隆仓库、打开课程画布（12 道练习，从零到定理）：
-        <pre><code>git clone https://github.com/ColorlessBoy/sokonanoda-lang
-code sokonanoda-lang/playground.sokonanoda</code></pre>
-        <p>
-          也可以让 VS Code 直接克隆：
-          <a href="vscode://vscode.git/clone?url=https%3A%2F%2Fgithub.com%2FColorlessBoy%2Fsokonanoda-lang">在 VS Code 中克隆</a>。
-        </p>
-      </li>
-    </ol>
-    <div class="note">
-      打开文件后诊断、悬停类型、目标视图、课程地图都已就位；服务器二进制就在扩展的
-      <code>bin/&lt;平台&gt;/</code> 目录里，和扩展本身同一个版本构建，
-      所以不会出现「服务器新、客户端旧」的错位。
-    </div>
-
-    <h3>想直接看第一题？</h3>
-    <p>下面是从第一课取来的片段。点按钮复制到剪贴板，贴进一个 <code>.sokonanoda</code> 文件，保存即可由内核判定。</p>
-    <pre id="lesson-src" aria-live="polite">（正在加载示例…）</pre>
-    <p>
-      <button class="btn ghost" id="copy-lesson" type="button">复制第一题</button>
-      <a class="btn ghost" id="lesson-link" href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/examples/lesson-01.sokonanoda">在仓库里看完整文件</a>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
     </p>
+  </div>
+</footer>
+<!--/#footer-->
 
-    <h2 id="agent">code agent：复制一段提示</h2>
-    <p>
-      不用预装技能，也不用读协议。复制下面这段安装 prompt，粘进任意 code agent
-      （opencode / Claude Code / Codex / Cursor / …）：它会克隆仓库、读
-      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/AGENTS.md">AGENTS.md</a>、
-      按 <a href="https://github.com/ColorlessBoy/sokonanoda-lang/blob/main/skills/sokonanoda-teacher/SKILL.md">sokonanoda-teacher</a>
-      技能装好版本锁定环境，然后在 <code>playground.sokonanoda</code> 上出题、判卷。
-    </p>
-    <p>
-      <button class="btn primary" type="button" data-copy-agent-prompt>复制安装 prompt</button>
-    </p>
-    <p>
-      用 opencode 打开本仓库时，三份技能（teacher / dev / ci）与
-      <code>/sokonanoda/*</code> 命令零配置可用；其它 harness 直接读技能文件即可，
-      细节见 <a href="agents.html">给 Agent</a>。
-    </p>
-
-    <h2 id="contributor">贡献者：从源码构建</h2>
-    <p>需要 Rust 工具链。从本仓库根目录：</p>
-    <pre><code>cargo test --workspace
-cargo run -q -p sokonanoda-cli --bin sokonanoda -- examples/lesson-01.sokonanoda
-cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json examples/lesson-01.sokonanoda
-cargo run -q -p sokonanoda-cli --bin sokonanoda repl
-cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp</code></pre>
-    <p>其中 <code>repl</code> 逐行累积声明，支持 <code>#check</code> / <code>#reduce</code> / <code>#print</code> / <code>#prove</code>。构建与测试全部离线，不调用官方 Lean 工具链。更完整的开发纪律见 <a href="docs.html">文档</a> 与 <a href="agents.html">给 Agent</a>。</p>
-    <div class="warnbox">
-      取用发布二进制时一律按仓库版本锁定，不要用 <code>releases/latest</code>——否则新服务器可能配上旧客户端。版本号请从
-      <a href="https://github.com/ColorlessBoy/sokonanoda-lang/releases">GitHub Releases</a> 读取，不要写死在脚本里。
-    </div>
-  </main>
-
-  <footer class="site-footer">
-    <div class="wrap">
-      <nav class="fnav" aria-label="页脚导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html">English</a>
-      </nav>
-      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
-      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
-    </div>
-  </footer>
-
-  <script>
-  (function () {
-    var RAW = "https://raw.githubusercontent.com/ColorlessBoy/sokonanoda-lang/main/examples/lesson-01.sokonanoda";
-    var pre = document.getElementById("lesson-src");
-    var btn = document.getElementById("copy-lesson");
-    fetch(RAW).then(function (r) { return r.ok ? r.text() : Promise.reject(); })
-      .then(function (t) {
-        if (pre) pre.textContent = t.trimEnd();
-        if (btn) btn.disabled = false;
-      }).catch(function () {
-        if (pre) pre.textContent = "示例加载失败，请直接前往仓库查看 lesson-01.sokonanoda。";
-        if (btn) btn.disabled = true;
-      });
-    if (btn) btn.addEventListener("click", function () {
-      if (!pre) return;
-      navigator.clipboard.writeText(pre.textContent).then(function () {
-        btn.textContent = "已复制";
-        setTimeout(function () { btn.textContent = "复制第一题"; }, 1500);
-      });
-    });
-  })();
-  </script>
-  <script src="assets/agent-prompt.js"></script>
+<script src="assets/site.js"></script>
+<!-- 安装 prompt 的唯一源。脚本可用时它覆盖上面 .code 里的无 JS 副本，
+     保证 index.html / agents.html / en/index.html 与本页永远同一段文本。 -->
 </body>
 </html>

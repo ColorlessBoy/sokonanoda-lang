@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>内核判卷：一次判卷的完整真相 —— sokonanoda</title>
+<meta name="description" content="一条声明被接受，是因为完整内核真的检查过它的证明项。这一页给出真实的目标状态、逐字的 --json 事件流、一条端到端的内核拒绝，以及诊断码的来源与这门语言明确做不到的事。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/kernel.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="内核判卷：一次判卷的完整真相 —— sokonanoda">
+<meta property="og:description" content="真实的目标状态、逐字的 --json 事件流、一条端到端的内核拒绝，以及诊断码的来源与诚实的边界。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts → tokens → base → site → editor（本页用到编辑器面板组件） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/editor.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+
+<body data-page="kernel" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" aria-current="page" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <header class="page-head">
+      <p class="sec-num">功能</p>
+      <h1>内核判卷</h1>
+      <p class="lead">
+        判卷不是拿你的答案去比对一份标准答案。声明被接受，是因为完整的证明项真的过了内核。
+        这一页把那次检查的痕迹全部摊开：目标状态、逐字的事件流、一条端到端的拒绝，
+        以及诊断码从哪来。
+      </p>
+    </header>
+
+    <section class="measure" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 判卷的模型：一个目标状态</h2>
+      <p>
+        内核不认识「答案」这个词。它认识的是<strong>目标状态</strong>：一串假设，加一个待证的命题。
+        判卷就是把这两样东西交给内核，让它自己算这个命题有没有证明项。
+      </p>
+      <p>
+        下面这个状态不是排版排出来的，是内核回答的。左列是它给的假设，横线下面是它给的目标。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定假设 a : Prop，待证目标是 a -&gt; a">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">a</span> : <span class="tok-ty">Prop</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">a</span> -&gt; <span class="tok-local">a</span></p>
+      </div>
+
+      <p>
+        这条状态来自本页 §2 那份源码的第 8 行。它的字段是逐字抄下来的：
+        <code>goal</code> 是 <code>a -&gt; a</code>，<code>binders</code> 是
+        <code>[{name:"a", ty:"Prop"}]</code>，<code>status</code> 是 <code>open</code>。
+        复现命令是 <code>scripts/soko query state --file &lt;上面那份源码&gt; --line 8 --col 3</code>。
+      </p>
+      <p>
+        注意两件事。第一，内核把箭头印成 <code>-&gt;</code>，不是 <code>→</code>——
+        页面照抄内核的字符，不替它美化。第二，<code>a</code> 在假设里和在目标里是同一个变量，
+        这是内核说的，不是页面猜的。
+      </p>
+    </section>
+
+    <section aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 一次真实的判卷：从 12 行源码到事件流</h2>
+      <p class="measure">
+        下面是这次判卷用的全部源码，一行不多。它同时含三种结果：三条通过的声明、
+        两个还没填的洞、一条内核真的拒了的声明。第 12 行是故意的错误，不是笔误。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">判卷输入 · 只读</p>
+        <div class="editor">
+          <div class="editor-bar">
+            <span class="editor-file">events.sokonanoda</span>
+            <span class="editor-mode">只读示意</span>
+          </div>
+          <div class="editor-body">
+            <div class="editor-code" tabindex="0" role="group" aria-label="判卷输入源码，可横向滚动">
+              <ol class="code-lines">
+                <li class="code-line"><span class="ln">1</span><span class="lc"><span class="tok-cmt">-- 判卷样例：通过的声明 + 开着的练习 + 一条内核阶段的真拒绝。</span></span></li>
+                <li class="code-line"><span class="ln">2</span><span class="lc"><span class="tok-kw">def</span> <span class="tok-ty">id</span> <span class="tok-punc">(</span><span class="tok-local">a</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span> <span class="tok-punc">:=</span> <span class="tok-local">a</span></span></li>
+                <li class="code-line"><span class="ln">3</span><span class="lc"><span class="tok-kw">def</span> <span class="tok-ty">compose</span> <span class="tok-punc">(</span><span class="tok-local">a</span> <span class="tok-local">b</span> <span class="tok-local">c</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">g</span> <span class="tok-punc">:</span> <span class="tok-local">b</span> <span class="tok-punc">-&gt;</span> <span class="tok-local">c</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">f</span> <span class="tok-punc">:</span> <span class="tok-local">a</span> <span class="tok-punc">-&gt;</span> <span class="tok-local">b</span><span class="tok-punc">)</span> <span class="tok-punc">:</span> <span class="tok-local">a</span> <span class="tok-punc">-&gt;</span> <span class="tok-local">c</span> <span class="tok-punc">:=</span></span></li>
+                <li class="code-line"><span class="ln">4</span><span class="lc">  <span class="tok-kw">fun</span> <span class="tok-punc">(</span><span class="tok-local">x</span> <span class="tok-punc">:</span> <span class="tok-local">a</span><span class="tok-punc">)</span> <span class="tok-punc">=&gt;</span> <span class="tok-local">g</span> <span class="tok-punc">(</span><span class="tok-local">f</span> <span class="tok-local">x</span><span class="tok-punc">)</span></span></li>
+                <li class="code-line"><span class="ln">5</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">and_comm</span> <span class="tok-punc">(</span><span class="tok-local">a</span> <span class="tok-local">b</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-local">h</span> <span class="tok-punc">:</span> <span class="tok-ty">And</span> <span class="tok-local">a</span> <span class="tok-local">b</span><span class="tok-punc">)</span> <span class="tok-punc">:</span> <span class="tok-ty">And</span> <span class="tok-local">b</span> <span class="tok-local">a</span> <span class="tok-punc">:=</span></span></li>
+                <li class="code-line"><span class="ln">6</span><span class="lc">  <span class="tok-ty">And.intro</span> <span class="tok-local">b</span> <span class="tok-local">a</span> <span class="tok-punc">(</span><span class="tok-ty">And.right</span> <span class="tok-local">a</span> <span class="tok-local">b</span> <span class="tok-local">h</span><span class="tok-punc">)</span> <span class="tok-punc">(</span><span class="tok-ty">And.left</span> <span class="tok-local">a</span> <span class="tok-local">b</span> <span class="tok-local">h</span><span class="tok-punc">)</span></span></li>
+                <li class="code-line has-hole"><span class="ln">7</span><span class="lc"><span class="tok-kw">example</span> <span class="tok-punc">:</span> <span class="tok-ty">True</span> <span class="tok-punc">:=</span> <span class="tok-hole">sorry</span></span></li>
+                <li class="code-line has-hole"><span class="ln">8</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">open_exercise</span> <span class="tok-punc">(</span><span class="tok-local">a</span> <span class="tok-punc">:</span> <span class="tok-ty">Prop</span><span class="tok-punc">)</span> <span class="tok-punc">:</span> <span class="tok-local">a</span> <span class="tok-punc">-&gt;</span> <span class="tok-local">a</span> <span class="tok-punc">:=</span> <span class="tok-hole">sorry</span></span></li>
+                <li class="code-line"><span class="ln">9</span><span class="lc"><span class="tok-kw">#check</span> <span class="tok-ty">id</span></span></li>
+                <li class="code-line"><span class="ln">10</span><span class="lc"><span class="tok-kw">#reduce</span> <span class="tok-num">1</span> <span class="tok-punc">+</span> <span class="tok-num">2</span></span></li>
+                <li class="code-line"><span class="ln">11</span><span class="lc"><span class="tok-kw">#print</span> <span class="tok-ty">id</span></span></li>
+                <li class="code-line"><span class="ln">12</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">kernel_rejected</span> <span class="tok-punc">:</span> <span class="tok-ty">True</span> <span class="tok-punc">:=</span> <span class="tok-ty">True.intro</span> <span class="tok-ty">True.intro</span></span></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        <figcaption class="illus-cap">逐字来自 <code>site/data/events.json</code> 的
+        <code>source</code> 字段（该文件记录的 <code>canvas</code> 是
+        <code>.cache/site-lab/events.sokonanoda</code>，由 <code>scripts/gen-site-lab.py</code>
+        写盘并真跑内核产出）。代码区的 <code>.tok-*</code> 按 <code>D6 §2</code> 的
+        kind→类映射手工标注——内核不逐 token 给颜色，§1 那个目标状态才是内核直接给的。
+        第 7、8 行的行号转朱，因为那两行的值位是 <code>sorry</code>。</figcaption>
+      </figure>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 同一份真相的人读视图</p>
+        <div class="terminal">
+          <p class="term-label">scripts/soko</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>scripts/soko .cache/site-lab/events.sokonanoda</span>
+<span class="term-out">checked declaration id</span>
+<span class="term-out">checked declaration compose</span>
+<span class="term-out">checked declaration and_comm</span>
+<span class="term-out">exercise open (fill the sorry)</span>
+<span class="term-out">exercise open (fill the sorry)</span>
+<span class="term-out">id: Prop -&gt; Prop</span>
+<span class="term-out">1 + 2 =&gt; 3</span>
+<span class="term-out">#print id :</span>
+<span class="term-out">def id (a : Prop) : Prop := a</span>
+<span class="term-out">12:1: error[kernel-expected-pi]: rejected: expected a pi type, got: True.[]</span></pre>
+        </div>
+        <figcaption class="illus-cap">本机实测输出，逐字照抄，退出码 <code>1</code>。
+        人读视图比机器视图多一行：<code>#print</code> 的 <code>human</code> 字段里含一个换行，
+        所以 9 条事件在文本视图里占 10 行。两个视图来自同一次编译——
+        <code>docs/protocol.md</code> 的原话是「<code>--json</code> emits the full event stream;
+        <code>query</code> emits the same truth as a single JSON object」。
+        方括号里那串 <code>kernel-expected-pi</code> 是<strong>错误码</strong>，不是阶段名——
+        §5 会说明它为什么不总是阶段名。</figcaption>
+      </figure>
+
+      <p class="measure">
+        下面是同一次判卷的机器视图：9 行 JSON，一行一条事件，顺序就是内核判定的顺序。
+        每一行事件类型后面的注解指向 §2 开头那份源码的行号。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">事件流示意 · scripts/soko grade --json</p>
+        <div class="events is-annotated">
+          <ol class="events-list">
+            <li class="event"><span class="event-seq">1</span><span class="event-type is-checked">decl.checked</span><span class="event-src">L2</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"checked declaration id"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"id"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.checked"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">2</span><span class="event-type is-checked">decl.checked</span><span class="event-src">L3</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"checked declaration compose"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"compose"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.checked"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">3</span><span class="event-type is-checked">decl.checked</span><span class="event-src">L5</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"checked declaration and_comm"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"and_comm"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.checked"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">4</span><span class="event-type is-open">exercise.open</span><span class="event-src">L7</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"exercise open (fill the sorry)"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"exercise.open"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">5</span><span class="event-type is-open">exercise.open</span><span class="event-src">L8</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"exercise open (fill the sorry)"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"open_exercise"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"exercise.open"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">6</span><span class="event-type is-info">expr.typed</span><span class="event-src">L9</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"id: Prop -&gt; Prop"</span><span class="tok-punc">,</span><span class="tok-ty">"inferred_type"</span><span class="tok-punc">:</span><span class="tok-str">"Prop -&gt; Prop"</span><span class="tok-punc">,</span><span class="tok-ty">"span"</span><span class="tok-punc">:{</span><span class="tok-ty">"end"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">10</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">9</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">400</span><span class="tok-punc">},</span><span class="tok-ty">"start"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">8</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">9</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">398</span><span class="tok-punc">}},</span><span class="tok-ty">"text"</span><span class="tok-punc">:</span><span class="tok-str">"id"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"expr.typed"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">7</span><span class="event-type is-info">expr.reduced</span><span class="event-src">L10</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"1 + 2 =&gt; 3"</span><span class="tok-punc">,</span><span class="tok-ty">"span"</span><span class="tok-punc">:{</span><span class="tok-ty">"end"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">14</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">10</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">414</span><span class="tok-punc">},</span><span class="tok-ty">"start"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">9</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">10</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">409</span><span class="tok-punc">}},</span><span class="tok-ty">"text"</span><span class="tok-punc">:</span><span class="tok-str">"1 + 2"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"expr.reduced"</span><span class="tok-punc">,</span><span class="tok-ty">"value"</span><span class="tok-punc">:</span><span class="tok-str">"3"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">8</span><span class="event-type is-info">decl.printed</span><span class="event-src">L2</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"human"</span><span class="tok-punc">:</span><span class="tok-str">"#print id :\ndef id (a : Prop) : Prop := a"</span><span class="tok-punc">,</span><span class="tok-ty">"name"</span><span class="tok-punc">:</span><span class="tok-str">"id"</span><span class="tok-punc">,</span><span class="tok-ty">"text"</span><span class="tok-punc">:</span><span class="tok-str">"def id (a : Prop) : Prop := a"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"decl.printed"</span><span class="tok-punc">}</span></code></li>
+            <li class="event"><span class="event-seq">9</span><span class="event-type is-error">diagnostic</span><span class="event-src">L12</span><code class="event-json"><span class="tok-punc">{</span><span class="tok-ty">"code"</span><span class="tok-punc">:</span><span class="tok-str">"kernel-expected-pi"</span><span class="tok-punc">,</span><span class="tok-ty">"hint"</span><span class="tok-punc">:</span><span class="tok-str">"你把一个不是函数的值当函数用了，或者参数给多了。检查这个位置的东西的类型是不是 … -&gt; … 形状。"</span><span class="tok-punc">,</span><span class="tok-ty">"message"</span><span class="tok-punc">:</span><span class="tok-str">"rejected: expected a pi type, got: True.[]"</span><span class="tok-punc">,</span><span class="tok-ty">"span"</span><span class="tok-punc">:{</span><span class="tok-ty">"end"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">56</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">12</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">480</span><span class="tok-punc">},</span><span class="tok-ty">"start"</span><span class="tok-punc">:{</span><span class="tok-ty">"column"</span><span class="tok-punc">:</span><span class="tok-num">1</span><span class="tok-punc">,</span><span class="tok-ty">"line"</span><span class="tok-punc">:</span><span class="tok-num">12</span><span class="tok-punc">,</span><span class="tok-ty">"offset"</span><span class="tok-punc">:</span><span class="tok-num">425</span><span class="tok-punc">}},</span><span class="tok-ty">"stage"</span><span class="tok-punc">:</span><span class="tok-str">"kernel"</span><span class="tok-punc">,</span><span class="tok-ty">"type"</span><span class="tok-punc">:</span><span class="tok-str">"diagnostic"</span><span class="tok-punc">}</span></code></li>
+          </ol>
+        </div>
+        <figcaption class="illus-cap">逐字来自 <code>site/data/events.json</code> 的
+        <code>events[].event</code>；同一份文件记着 <code>counts</code>（
+        <code>decl.checked</code> 3、<code>exercise.open</code> 2、
+        <code>expr.typed</code> 1、<code>expr.reduced</code> 1、<code>decl.printed</code> 1、
+        <code>diagnostic</code> 1，共 9 条）与 <code>exit_code: 1</code>。
+        序号列与注解列都是 <code>user-select: none</code>，所以复制整块得到的正是
+        <code>scripts/soko grade .cache/site-lab/events.sokonanoda --json</code> 的 stdout。
+        注解取 <code>events[].line</code>；第 2、3 条的 <code>line_end</code> 分别是 4 和 6，
+        页面只标起点。第 8 条是例外：<code>decl.printed</code> 记的行号是<strong>被打印的声明</strong>所在的
+        L2，不是 <code>#print</code> 命令所在的 L11——页面照抄记录值，不替它修正。
+        注解列按 <code>D6 §6.2</code> 的 <code>is-annotated</code> 变体，但放在事件类型之后
+        而不是行尾：本页最宽的一条（第 9 条，277 个字符）实测渲染宽度约 2400px，
+        而容器只有约 990px——注解放在行尾就等于不存在。</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 一次真实的拒绝，从头到尾</h2>
+      <p class="measure">
+        第 12 行是这次判卷里唯一被拒的声明。它想证 <code>True</code>，却写成了
+        <code>True.intro True.intro</code>：<code>True.intro</code> 本身已经是
+        <code>True</code> 的证明，不是一个等着吃参数的函数，所以把它当函数用就错了。
+        下面是内核对这个错误的完整答复。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">被拒的那一行 · 只读</p>
+        <div class="editor">
+          <div class="editor-bar">
+            <span class="editor-file">events.sokonanoda</span>
+            <span class="editor-mode">只读示意</span>
+          </div>
+          <div class="editor-body">
+            <div class="editor-code" tabindex="0" role="group" aria-label="被拒绝的源码行，可横向滚动">
+              <ol class="code-lines">
+                <li class="code-line"><span class="ln">12</span><span class="lc"><span class="tok-kw">theorem</span> <span class="tok-ty">kernel_rejected</span> <span class="tok-punc">:</span> <span class="tok-ty">True</span> <span class="tok-punc">:=</span> <span class="tok-ty">True.intro</span> <span class="tok-ty">True.intro</span></span></li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        <div class="diag-pop">
+          <p class="diag-head">
+            <span class="diag-code">kernel-expected-pi</span>
+            <span class="diag-stage">error[kernel]</span>
+            <span class="diag-at">12:1</span>
+          </p>
+          <p class="diag-msg">rejected: expected a pi type, got: True.[]</p>
+          <p class="diag-hint"><span class="diag-hint-tag">怎么改</span>你把一个不是函数的值当函数用了，或者参数给多了。检查这个位置的东西的类型是不是 … -&gt; … 形状。</p>
+        </div>
+        <figcaption class="illus-cap">逐字来自 <code>site/data/events.json</code> 第 9 条事件的
+        <code>code</code> / <code>stage</code> / <code>message</code> / <code>hint</code> 四个字段；
+        <code>span</code> 是 <code>12:1</code>–<code>12:56</code>，页面只印起点（<code>D6 §5.1</code> 的
+        <code>.diag-at</code> 惯例）。<code>.diag-stage</code> 印的是事件的 <code>stage</code> 字段
+        （<code>kernel</code>）——而人读视图那一行印的却是错误码，差别见 §5。</figcaption>
+      </figure>
+
+      <p class="measure">
+        这条诊断只说了一件事：内核在那个位置要一个函数，拿到的却是 <code>True.[]</code>。
+        它没有说你「写错了」，它说的是它在比对什么。当拒绝的原因是两个类型对不上时，
+        内核会把两侧都印出来。
+      </p>
+
+      <figure class="illus">
+        <p class="illus-tag">差异示意 · 内核同时给出两边的类型</p>
+        <div class="diff">
+          <div class="diff-side is-add">
+            <p class="diff-mark">+</p>
+            <div class="diff-main">
+              <p class="diff-head">期望（签名要求的类型）</p>
+              <pre class="diff-body">Pi ( : True.[]), False.[]</pre>
+            </div>
+          </div>
+          <div class="diff-side is-del">
+            <p class="diff-mark">−</p>
+            <div class="diff-main">
+              <p class="diff-head">实际（内核看到的值的类型）</p>
+              <pre class="diff-body">Pi (h : True.[]), True.[]</pre>
+            </div>
+          </div>
+        </div>
+        <figcaption class="illus-cap">两半都是从 <code>diagnostic.message</code> 里逐字切出来的。
+        完整命令：<code>printf 'theorem t1 : True -&gt; False := fun (h : True) =&gt; h\n' | scripts/soko - --json</code>，
+        回答 <code>"code":"kernel-rejected"</code>、<code>"stage":"kernel"</code>、
+        <code>"message":"类型不匹配：期望 `Pi ( : True.[]), False.[]`，实际是 `Pi (h : True.[]), True.[]`"</code>。
+        <strong>这一对类型只存在于 <code>message</code> 文本里。</strong>
+        <code>docs/protocol.md</code> 说 <code>CompileError</code> 带 <code>expected</code> /
+        <code>actual</code> 机器字段；本页实测了四条内核拒绝（含这条），
+        <code>--json</code> 事件与 <code>query check</code> 的 <code>failed[]</code> 都<strong>没有</strong>
+        把这两个字段发出来，所以这里只能从消息里切——不假装它是结构化字段。</figcaption>
+      </figure>
+    </section>
+
+    <section class="wide" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 事件词表</h2>
+      <p class="measure">
+        <code>--json</code> 一共发八种事件，一条一行 JSON。它们的 payload 字段只增不改，
+        所以消费者可以按 <code>type</code> 分支，而不是去猜文案。下表逐条说明每种事件
+        意味着什么、拿到它该做什么。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>八种 <code>--json</code> 事件：payload 与消费方式。第三列回答「内核什么时候发它」，
+          第四列回答「消费者拿到它该做什么」。措辞与字段名逐条对齐 <code>docs/protocol.md</code>
+          的 §Machine events。</caption>
+          <thead>
+            <tr>
+              <th scope="col">type</th>
+              <th scope="col">payload</th>
+              <th scope="col">内核什么时候发它</th>
+              <th scope="col">消费者该做什么</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>decl.checked</code></th>
+              <td><code>name</code></td>
+              <td>声明的证明项通过了完整内核</td>
+              <td>记一条<strong>判定通过</strong>。判卷的正面判据就是它，不是「没报错」。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>example.checked</code></th>
+              <td>无</td>
+              <td>填好值的 <code>example</code> 通过了内核</td>
+              <td>与 <code>decl.checked</code> 同义，只是匿名。计数时别把它漏掉。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>exercise.open</code></th>
+              <td><code>name</code>（可选）</td>
+              <td>值位是 <code>sorry</code>，且签名 elaborate 成功、过了内核的类型测试</td>
+              <td>当成<strong>合法的进行态</strong>，不是错误。但要清楚它的边界（下面那条注意）。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>diagnostic</code></th>
+              <td><code>stage</code>、<code>code</code>、<code>message</code>、<code>span</code>（+ <code>hint</code>）</td>
+              <td>任何错误：解析、elaborate、内核或 import 阶段</td>
+              <td>按 <code>code</code> 分支处理，不要按 <code>message</code> 文案分支——文案会改，码不会。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>warning</code></th>
+              <td><code>code</code>、<code>message</code>、<code>hint</code>、<code>span</code></td>
+              <td>非致命的 lint；<strong>永不影响退出码</strong></td>
+              <td>记录下来提醒学习者，但不要当失败。它不改判定，也不改计数。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>expr.typed</code></th>
+              <td><code>text</code>（源切片）、<code>inferred_type</code>、<code>span</code></td>
+              <td><code>#check</code> 命令</td>
+              <td>显示推断出的类型。它是一次查询的答案，<strong>不是判定</strong>。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>expr.reduced</code></th>
+              <td><code>text</code>、<code>value</code>、<code>span</code></td>
+              <td><code>#reduce</code> 命令</td>
+              <td>显示内核范式。同上：输出，不是判定。</td>
+            </tr>
+            <tr>
+              <th scope="row"><code>decl.printed</code></th>
+              <td><code>name</code>、<code>text</code></td>
+              <td><code>#print</code> 命令</td>
+              <td>显示声明的文本。同上：输出，不是判定。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout callout--note">
+        <p class="callout__title">注意</p>
+        <p>
+          <code>exercise.open</code> 是合法的进行态，所以 open 计数高不代表文件有问题。
+          但它有一个真实的盲区：<strong>open 的计数看不出签名有没有腐烂。</strong>
+          签名 elaborate 不了、不是一个类型，或者 <code>theorem</code> 的签名不是
+          <code>Prop</code>，内核会报一条 <code>diagnostic</code>、把声明标成失败，
+          并且<strong>不发</strong> <code>exercise.open</code>。
+        </p>
+        <p>
+          实测：<code>printf 'theorem rotten : Nat := sorry\n' | scripts/soko - --json</code>
+          回答 <code>"code":"kernel-theorem-not-prop"</code>、<code>"stage":"kernel"</code>、
+          <code>"message":"rejected: theorem type must be Prop (sort 0): Nat"</code>，
+          整份输出里<strong>一条 <code>exercise.open</code> 都没有</strong>。
+          所以判据是 <code>decl.checked</code> 与 <code>diagnostic</code> 这两条，
+          <code>exercise.open</code> 的计数只能当参考。
+        </p>
+      </div>
+    </section>
+
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 诊断码体系：四个阶段</h2>
+      <p class="measure">
+        每条 <code>diagnostic</code> 都带一个 <code>stage</code> 和一个稳定的 <code>code</code>。
+        <code>stage</code> 说明<strong>流水线的哪一段</strong>拦下了这份输入——段与段之间是真正的先后关系：
+        解析不过就不会 elaborate，elaborate 不过就不会碰内核。
+        <code>code</code> 说明<strong>具体是哪一种错</strong>，它的粒度细到可以让编辑器或 agent
+        按种类反应，而不是去匹配文案。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>四个阶段与它们各自的错误码数。数字是逐条数出来的，数它的命令写在最后一列；
+          完整码表（每个码的含义、真实 hint、可复现片段）见诊断字典，这一页不复写。</caption>
+          <thead>
+            <tr>
+              <th scope="col">stage</th>
+              <th scope="col">这一段管什么</th>
+              <th scope="col" class="num">码数</th>
+              <th scope="col">数它的命令</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><code>parse</code></th>
+              <td>词法与语法：命令拼写、括号配对、记法命令形状、<code>namespace</code> 开合</td>
+              <td class="num">12</td>
+              <td><code>grep -c '=&gt; "' crates/front/src/diagnostic.rs</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>elab</code></th>
+              <td>把语法树变成内核声明：名字能不能找到、binder 有没有类型、<code>match</code> 与 tactic 走不走得通</td>
+              <td class="num">29</td>
+              <td><code>grep -c '=&gt; "elab-' crates/front/src/compile/error.rs</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>kernel</code></th>
+              <td>真正判定证明项的那一步：类型对不对、宇宙够不够、归纳类型正不正</td>
+              <td class="num">12</td>
+              <td><code>grep -c '=&gt; "kernel-' crates/front/src/compile/error.rs</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>import</code></th>
+              <td>多文件解析：模块找不找得到、有没有成环、两个模块有没有撞名</td>
+              <td class="num">7</td>
+              <td><code>grep -cE '=&gt; "(import-|manifest-)' crates/front/src/compile/error.rs</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><code>warning</code></th>
+              <td>不是错误：不影响退出码，也不改判定，只是提醒</td>
+              <td class="num">4</td>
+              <td><code>grep -c '=&gt; "' crates/front/src/compile/warning.rs</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        合起来是 <strong>60 个错误码 + 4 个警告码</strong>（12 + 29 + 12 + 7 = 60）。
+        这五个数字数的是<strong>码字符串字面量的条数</strong>，不是函数个数，也不是「被构造过的次数」——
+        有的码在当前版本里从来没有被构造过。完整字典，含每个码的真实
+        <code>hint</code> 与能照着跑的复现片段，在
+        <a href="diagnostics.html">诊断字典</a>。
+      </p>
+
+      <div class="callout callout--note">
+        <p class="callout__title">注意</p>
+        <p>
+          <code>docs/protocol.md</code> 写的是人读视图印 <code>error[&lt;stage&gt;]</code>，方括号里是阶段。
+          本机实测<strong>不完全是</strong>：解析错误印阶段，
+          <code>printf 'def x : =\n' | scripts/soko -</code> 回答
+          <code>&lt;stdin&gt;:1:9: error[parse]: expected expected `=&gt;`, found =</code>；
+          但 elaborate 与内核错误印的是<strong>错误码</strong>，
+          <code>printf 'theorem bad2 : And True True := And.intro Tru\n' | scripts/soko -</code> 回答
+          <code>1:43: error[elab-unknown-identifier]: unknown identifier `Tru`</code>。
+          要机器可读就用 <code>--json</code> 的 <code>code</code> 字段，别解析方括号。
+        </p>
+        <p>
+          教学 <code>hint</code> 也一样只在 <code>--json</code> 里：上面两条人读输出都没有 hint，
+          而对应的 JSON 事件带一个 <code>hint</code> 字段。这正是协议里那句
+          「the stable code and the teaching <code>hint</code> are JSON-only」。
+        </p>
+      </div>
+    </section>
+
+    <section aria-labelledby="s6">
+      <h2 id="s6"><span class="sec-num">§6</span> 为什么禁止文本比对</h2>
+      <p class="measure">
+        产品的硬规则是：判定永远走内核，禁止拿文本比对冒充判定。
+        这不是洁癖，它防的是一个具体的失败——一门教学语言如果因为答案「看起来像」
+        标准答案就放行，学习者学到的就不是证明，而是猜字符串。
+      </p>
+      <p class="measure">
+        下面这个目标状态里，<code>h</code> 是 <code>a</code> 的证明，而要证的是
+        <code>b</code>。两个都是命题，但手上只有 <code>a</code> 的证明，目标却是
+        <code>b</code>——它们不是同一个命题。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定 a : Prop、b : Prop、h : a，待证目标是 b">
+        <ul class="turnstile__given">
+          <li><span class="tok-local">a</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">b</span> : <span class="tok-ty">Prop</span></li>
+          <li><span class="tok-local">h</span> : <span class="tok-local">a</span></li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal"><span class="tok-local">b</span></p>
+      </div>
+
+      <figure class="illus">
+        <p class="illus-tag">命令行示意 · 同一段文字，两个判定</p>
+        <div class="terminal">
+          <p class="term-label">scripts/soko</p>
+          <pre class="term-body" tabindex="0"><span class="term-cmd"><span class="term-prompt">$ </span>printf 'theorem ok1 (a : Prop) : a -&gt; a := by\n  intro h\n  exact h\n' | scripts/soko -</span>
+<span class="term-out">checked declaration ok1</span>
+<span class="term-cmd"><span class="term-prompt">$ </span>printf 'theorem bad1 (a b : Prop) : a -&gt; b := by\n  intro h\n  exact h\n' | scripts/soko -</span>
+<span class="term-out">3:3: error[elab-tactic-failed]: `exact` 类型不匹配：期望 `Pi (a : Sort(0)), Pi (b : Sort(0)), Pi (h : $1), $1`，实际是 `Pi (a : Sort(0)), Pi (b : Sort(0)), Pi (h : $1), $2`</span></pre>
+        </div>
+        <figcaption class="illus-cap">两次运行都是本机实测，逐字照抄，退出码分别是 <code>0</code> 与
+        <code>1</code>。两个源程序只差<strong>声明的类型</strong>（<code>a -&gt; a</code> 对
+        <code>a -&gt; b</code>），证明文本 <code>exact h</code> 逐字节相同。
+        第二条的 <code>--json</code> 事件是 <code>"code":"elab-tactic-failed"</code>、
+        <code>"stage":"elab"</code>、<code>"hint":"`by` 块里的 tactic 失败了：请检查当前目标与已引入的假设。"</code>，
+        <code>message</code> 与上面那行逐字相同。<code>$1</code> 与 <code>$2</code> 是内核打印器
+        对绑定变量的编号，页面原样保留——把它翻译成人话就可能翻译错。</figcaption>
+      </figure>
+
+      <p class="measure">
+        这就是文本比对必然出错的地方：<strong>两段证明文本完全一样，判定却相反</strong>。
+        按文本打分的判卷器在这里没有第三条路——要么把 <code>bad1</code> 也放行
+        （学习者以为证完了，其实没有），要么把 <code>ok1</code> 一起拒掉。
+        两种答案都是错的，而内核两个都判对了。
+      </p>
+      <p class="measure">
+        内核的做法不是「再写一套规则去猜」，而是<strong>把候选术语和已写的 binders 合成一条完整声明，
+        交给标准流水线，由完整内核当裁判</strong>。这条设计写在
+        <code>crates/front/src/judge.rs</code> 的模块头里，第 22 行的原话是
+        「判定永远走 kernel，不做文本比对（<code>REQUIREMENTS §2.8</code>）」。
+        连 tactic 的下一步建议也走同一条路：内核拒绝时给出的「期望 / 实际」直接来自内核，
+        所以一条无效的建议根本不会被提出来。
+      </p>
+      <p class="measure">
+        代价是真实的：每一次判定都要合成一条声明、跑一遍完整流水线，而不是比较两个字符串。
+        换来的是这个页面存在的理由——上面那条 <code>elab-tactic-failed</code>
+        不是页面的判断，也不是正则匹配的结果，是内核说的。
+      </p>
+    </section>
+
+    <section aria-labelledby="s7">
+      <h2 id="s7"><span class="sec-num">§7</span> 诚实的限制</h2>
+      <p class="measure">
+        上面每一条主张都附了可复现的命令。下面这四条不一样：它们是这门语言
+        <strong>故意不做</strong>的事，所以这一页给不出「它做到了」的证据，只能给出它做不到时的真实输出。
+      </p>
+
+      <div class="callout callout--limit">
+        <p class="callout__title">限制</p>
+        <ul>
+          <li>
+            <strong>内核是一个冻结快照。</strong>
+            <code>crates/kernel/**</code>（15,174 行 Rust，数它的命令是
+            <code>find crates/kernel -name '*.rs' | xargs wc -l</code>）逐字节照搬上游，
+            不许改语义、不许动热路径。它内部仍用 panic 报拒绝，所以「内核说不」只能在边界上
+            被 <code>catch_unwind</code> 接成结果（<code>crates/front/src/compile/check/mod.rs:702</code>、
+            <code>:776</code>）。更细的内核错误分类因此一直是后续任务，而不是这一版能顺手修的东西。
+          </li>
+          <li>
+            <strong>没有累积性。</strong>
+            <code>Prop ⊆ Type</code> 在本语言<strong>不成立</strong>（官方 Lean 4 有）。
+            实测：<code>printf 'def c1 : Type := True\n' | scripts/soko - --json</code>
+            回答 <code>"code":"kernel-prop-not-cumulative"</code>、
+            <code>"message":"类型不匹配：期望 `Sort(1)`，实际是 `Sort(0)`"</code>。
+            同一段代码在官方 Lean 4 里能过——这是两个语言真实的行为差异，不是 bug。
+          </li>
+          <li>
+            <strong><code>by</code> 的判定不带宇宙参数。</strong>
+            tactic 判定时合成的那条声明，宇宙参数表是空的，所以只要目标里出现宇宙变量，
+            判定就会失败。实测：
+            <code>printf 'theorem u1 {u} (alpha : Sort u) : True := by\n  exact True.intro\n' | scripts/soko - --json</code>
+            回答 <code>"code":"elab-tactic-failed"</code>、
+            <code>"message":"`exact` 判定失败：universe variable `u` is not declared in this declaration"</code>。
+            受影响的只有 tactic 判定这一条路。
+          </li>
+          <li>
+            <strong>没有源码级 print-back——但只影响一部分位置。</strong>
+            这一条原先在本页被写成了「目标面板一律显示点名形式」，<strong>那是过强的</strong>。
+            实测（钉在扩展自带的发布二进制上）表明渲染取决于<strong>光标在哪</strong>：
+            <ul>
+              <li>值不是 <code>by</code> 块（裸 <code>sorry</code> 或项值）→ 走源码级渲染，<strong>记法保留</strong>；</li>
+              <li><code>by</code> 块、第一条 tactic <em>之前</em>（<code>step -1</code>）→ 走冻结内核的打印器，<strong>还原成点名形式</strong>；</li>
+              <li><code>by</code> 块、走过至少一条 tactic（<code>step ≥ 0</code>）→ 源码级渲染，<strong>记法保留</strong>；</li>
+              <li><code>#check</code> 一类（<code>expr.typed</code>）→ 内核打印器，<strong>点名形式</strong>。</li>
+            </ul>
+            同一份文件里的三个位置实测：<code>--line 4 --col 3</code>（裸 <code>sorry</code>）答
+            <code>h : x ∈ y</code>；<code>--line 6 --col 3</code>（<code>by</code> 块第一条 tactic 之前）答
+            <code>forall (x y : Nat), Mem Nat x y -&gt; True</code>；<code>--line 9 --col 3</code>
+            （走过一条 tactic）又答 <code>h : x ∈ y</code>。真实课程文件同理：
+            <code>query state --line 236 --col 3</code> 答 <code>((∅) ∪ A) ⊆ A</code>。
+            <br>
+            所以限制是真的，但它<strong>是位置性的，不是全局的</strong>。要让记法在所有位置都原样回来，
+            得改内核的打印器或维护两套真相，两样都明确不做。
+          </li>
+        </ul>
+      </div>
+
+      <p class="measure">
+        还有一条不属于「不做」，属于「说清楚」：本页引用的那份源码快照
+        （<code>site/data/events.json</code>）自己记着 <code>source_commit</code>
+        <code>084da05</code> 与 <code>generated_at</code>
+        <code>2026-09-19T19:12:08+08:00</code>，所以你可以判断它是不是已经过期，
+        而不是只能相信它。
+      </p>
+    </section>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" aria-current="page" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
+    </p>
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
+    </p>
+  </div>
+</footer>
+<!--/#footer-->
+
+<script src="assets/site.js"></script>
+</body>
+</html>

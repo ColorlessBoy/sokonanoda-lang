@@ -1,121 +1,595 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>愿景 — sokonanoda</title>
-  <meta name="description" content="sokonanoda 想做什么、为什么这么做、它和 Lean 4 / Coq 的关系，以及它的教学理念：逻辑先行、真内核判卷、agent 可驱动。">
-  <link rel="stylesheet" href="assets/style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>愿景与原则：终极形态、十条硬规则与它们的代价 —— sokonanoda</title>
+<meta name="description" content="终极形态完成时是什么样、十条硬规则各自为什么存在、用户的逐字原话与教学理念，以及每条规则刻意放弃掉的东西。">
+<link rel="canonical" href="https://colorlessboy.github.io/sokonanoda-lang/vision.html">
+<meta name="theme-color" content="#f5f7f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="愿景与原则：终极形态、十条硬规则与它们的代价 —— sokonanoda">
+<meta property="og:description" content="终极形态完成时是什么样、十条硬规则各自为什么存在、用户的逐字原话与教学理念，以及每条规则刻意放弃掉的东西。">
+<meta property="og:locale" content="zh_CN">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+<!-- 顺序固定：fonts / tokens / base / site（本页没有编辑器面板，不引 editor.css） -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/site.css">
+
+<script>try{var t=localStorage.getItem("soko-theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-  <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header">
-    <div class="wrap">
-      <div class="brand">sokonanoda <small>学 Lean 4 式证明</small></div>
-      <nav class="nav" aria-label="主导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="vision.html" class="active" aria-current="page">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html" class="lang">English</a>
+
+<body data-page="vision" data-root="./">
+
+<!--#nav-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/header.html（D2 §3.2）。
+  改导航请改源文件，再跑 scripts/gen-site-nav.py 的 write 模式；check 模式会逐字比对。
+  约定：路径相对站点根书写（生成时按页面深度补 ../）；块内容顶格；窄屏用换行而不是
+  横向滚动、也不是 JS 汉堡菜单——390px 下每个链接都可见可点，无 JS 也完整可用。
+  主题按钮只是增强：没有它页面照常完整可读。
+
+  为什么页头只留 8 项：站点长到 28 页后，「全部链接都塞进页头」在 390px 上会把正文
+  顶到首屏之外——那是真损失。所以页头只放**最常走的 8 条**，其余全部落在页脚的完整
+  站点地图里（每个页面都有，所以没有一页是孤儿），再加上 search.html。
+  页脚的每一项都带 data-nav，所以任何页面都能声明自己的 data-page 而不报错。
+-->
+<a class="skip-link" href="#main">跳到正文</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">sokonanoda <small>学 Lean 4 式证明</small></a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">主题</button>
+    <nav class="site-nav" aria-label="主导航" lang="zh-CN">
+      <ul class="nav-group nav-group-primary">
+        <li><a data-nav="index" href="index.html">首页</a></li>
+        <li><a data-nav="why" href="why.html">为什么</a></li>
+        <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+        <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+        <li><a data-nav="language" href="language.html">语言</a></li>
+        <li><a data-nav="course" href="course.html">课程</a></li>
+        <li><a data-nav="get-started" href="get-started.html">安装</a></li>
+        <li><a data-nav="search" href="search.html">搜索</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<!--/#nav-->
+
+<main id="main">
+  <div class="wrap">
+
+    <header class="page-head">
+      <p class="sec-num">产品</p>
+      <h1>愿景与原则</h1>
+      <p class="lead">
+        判断一个项目是否认真，看它给自己绑了哪些规则、每条又付了什么。
+        这一页给出终极形态、十条硬规则的原因、用户的逐字原话与教学理念。
+      </p>
+    </header>
+
+    <section class="wide" aria-labelledby="s1">
+      <h2 id="s1"><span class="sec-num">§1</span> 终极形态：完成的样子</h2>
+
+      <div class="statement statement--theorem">
+        <span class="statement__label">终极形态（<code>ROADMAP.md</code> §0，逐字）</span>
+        <p>用户与 code agent 共同看着 VS Code 中打开的同一个 <code>*.sokonanoda</code> 文件。
+        agent 从零开始逐段定义概念、写出示例、抛出练习；用户在文件里作答；
+        我们自己的编译器实时给出反馈——<strong>同一份反馈既给用户看，也给 agent 看</strong>，
+        agent 据此决定下一步教什么、怎么调整题目。</p>
+      </div>
+
+      <p class="measure">
+        这不是口号，它可以拆成四个能观察到的形态。下面每一格都对应
+        <code>ROADMAP.md</code> §2 与 §3 里的一句具体要求，不是转述。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>「完成」不是感觉：四个形态，以及每个形态完成时你能看到什么。</caption>
+          <thead>
+            <tr>
+              <th scope="col">形态</th>
+              <th scope="col">完成时能看到什么</th>
+              <th scope="col">要求写在哪</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">一个文件是画布</th>
+              <td>讲解、代码、练习、答案区交错在同一份纯文本里；未完成的练习是合法状态，不会让整份文件编译失败；agent 能直接读写它。</td>
+              <td><code>ROADMAP.md</code> §3</td>
+            </tr>
+            <tr>
+              <th scope="row">一份判定</th>
+              <td>内核判这份文件的每一处声明，四个问题都答得出来：这个定义过没过、这个表达式的类型与化简是什么、这道练习错在哪一段、整个文件现在处于什么状态。</td>
+              <td><code>ROADMAP.md</code> §2</td>
+            </tr>
+            <tr>
+              <th scope="row">一台长驻服务</th>
+              <td>监听文件变更，只重编被改动的片段，已检查的定义保持不变，把结构化反馈广播出去。</td>
+              <td><code>ROADMAP.md</code> §2（L1）</td>
+            </tr>
+            <tr>
+              <th scope="row">一次回路</th>
+              <td>agent 依据同一份反馈决定下一段讲什么、下一题出什么、哪里退回去补。出口是一个事件，不是老师的感觉。</td>
+              <td><code>ROADMAP.md</code> §2（L3）</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="measure">
+        四个问题的答案全部以<strong>结构化的检查事件</strong>表达，不混在人读文本里——
+        因为同一份事件要同时喂给人和 agent（<code>ROADMAP.md</code> §2）。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定 L0 编译器独立成立、每层只依赖下一层公开接口、文件变更驱动增量重编，待证的是长驻服务把同一份反馈同时送到人和 agent">
+        <ul class="turnstile__given">
+          <li>L0 编译器：独立成立，不依赖编辑器与 agent</li>
+          <li>每层只依赖下一层的公开接口</li>
+          <li>文件变更 → 增量重编 → 结构化事件</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">长驻服务把同一份反馈同时送到人和 agent</p>
+      </div>
+
+      <p class="measure">
+        顺序是先把 L0 做成立，再往上接 L1 服务（常驻的 compiler service 与事件协议）、
+        L2 编辑器、L3 agent 协作。仓库把这一步叫「万里长城第一步」：上面的 UI、agent、
+        实时通道都先不做，第一层编译器先独立成立。
+      </p>
+
+      <div class="callout callout--verified">
+        <span class="callout__title">第一步今天已经成立：一次真实判卷</span>
+        <p>仓库根那份画布，用已发布版本的二进制判一次
+        （<code>scripts/soko grade playground.sokonanoda --json</code>），得到
+        <span class="num">30</span> 条 <code>decl.checked</code>、
+        <span class="num">2</span> 条 <code>example.checked</code>、
+        <span class="num">4</span> 道练习开着、<span class="num">2</span> 条 warning，
+        没有一条诊断。整个过程不打开编辑器，也不叫任何 agent。</p>
+      </div>
+
+      <div class="callout callout--limit">
+        <span class="callout__title">课程计数是快照，不是承诺</span>
+        <p>卷 I 的 <code>checked</code> / <code>open</code> 计数来自课程门禁的一次运行，
+        站点数据文件里记着它的来源（<code>counts_source</code>）。课程在长，门禁只判形状、
+        不锁计数，所以这一页不拿某个具体数字当卖点。要自己量一遍：
+        <code>python3 courses/set-theory/tools/check.py --json</code>。</p>
+      </div>
+
+      <p class="measure">
+        今天走到哪一步、L1 到 L3 各剩什么，在<a href="progress.html">进展页</a>逐条列着，
+        包括没做的那部分。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s2">
+      <h2 id="s2"><span class="sec-num">§2</span> 十条硬规则，以及每条为什么存在</h2>
+
+      <p class="measure">
+        规则原文在 <code>REQUIREMENTS.md</code> §2，顺序照原文。第三列不是「我们相信」，
+        而是这条决定记在哪——每条都能点开查到，也能看到它当初为什么被立起来。
+      </p>
+
+      <div class="table-scroll">
+        <table class="table">
+          <caption>十条硬规则、它们为什么存在，以及这条决定的出处。规则是承诺，出处才是证据。</caption>
+          <thead>
+            <tr>
+              <th scope="col">规则</th>
+              <th scope="col">为什么存在</th>
+              <th scope="col">决定记在哪</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 1</span> 内核保持完整，不因教学裁剪</th>
+              <td>内核是判卷的唯一权威。裁剪过的内核判出来的「对」不算数。冻结快照同时守住性能优势：热路径一个字节不动。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 1 条、§3；<code>STATUS.md</code> 记着最近一版内核零改动</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 2</span> 无官方 Lean 工具依赖：<code>lean</code> / <code>lake</code> / <code>lean4export</code> / <code>leanc</code> / <code>elan</code> 一律不调用</th>
+              <td>CI 离线可跑，教学内容可复现，不怕上游版本漂移。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 2 条；<code>AGENTS.md</code> 硬规则 2（opencode 用权限 deny 强制，DeepSeek Harness 用 hooks 拦）</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 3</span> 教学语法是真实 Lean 4 的子集：填完洞的声明放进官方 Lean 依然合法</th>
+              <td>学生学到的东西不能作废。这是对学习者的兼容性承诺。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 3 条；边界被真的量过——裸构造子名是本语言的「扩展」，真 Lean 里不可解析（台账 G-02）</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 4</span> 语法白名单即课程：parser 只认课程引入过的语法点</th>
+              <td>防止编译器悄悄长成「第二套 Lean」。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 4 条；新语法 = 课程 + 测试 + 白名单三件套（<code>docs/design/notation-subset.md</code>）</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 5</span> 分层推进：L0 编译器 → L1 服务 → L2 编辑器 → L3 agent 协作</th>
+              <td>每层只依赖下一层的公开接口，避免返工。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 5 条；<code>ROADMAP.md</code> §2 与 §4 给出 L0 的「包含」与「不包含」清单</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 6</span> TDD 与重复测试：front 单测 + CLI 端到端 + 课程语料三层覆盖</th>
+              <td>「充分测试是大规模合作与多次大规模重构的重要资产」——用户要求，见 §3。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 6 条与 §9（2026-09-07）；最近一次全量测试 1163 passed / 0 failed / 6 ignored</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 7</span> 反馈即功能：类型、化简、打印、错误都结构化输出，人与模型都能无文档驱动</th>
+              <td>同一份反馈要同时服务人和 agent，这是终极形态里的那句话。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 7 条；协议契约在 <code>docs/protocol.md</code></td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 8</span> 判定永远走 kernel，不做文本比对</th>
+              <td>文本比对会假绿，也会假红。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 8 条：<code>proof.rs::assumption</code> 的文本比对草案 2026-09-07 已删除；缺口台账 G-01</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 9</span> 用户/agent 使用路径零工具链依赖</th>
+              <td>获取与运行只靠 Release 资产或平台 VSIX，不要求 Rust/cargo。</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 9 条与 §9（2026-09-10，用户纠正）；<code>AGENTS.md</code> Setup 段</td>
+            </tr>
+            <tr>
+              <th scope="row"><span class="sec-num">规则 10</span> 课程标准库三层分界：L1 prelude / L2 课程标准库 / L3 单元练习</th>
+              <td>判据只有一条：「Mathlib 有 ≠ 我们不该练；Mathlib 有且没有数学内容（纯定义展开）才归库。」</td>
+              <td><code>REQUIREMENTS.md</code> §2 第 10 条（2026-09-18 用户确认「进硬规则」）；判错过一次，见台账 L-05</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>规则 8 的故事：判定不能是意见</h3>
+      <p class="measure">
+        仓库里真写过一版 <code>proof.rs::assumption</code> 的文本比对草案，2026-09-07 删了。
+        删掉之后代价立刻显形，而且有实测：开练习的签名曾经不做类型检查，于是
+        「签名写坏了」与「还没做」在事件流里长得一模一样，都是一条
+        <code>exercise.open</code>。一次课程自查据此全绿，作者得出了错误结论
+        （缺口台账 G-01，后来在签名受检的那一版修复）。
+      </p>
+      <div class="statement statement--example">
+        <span class="statement__label">G-01 的复现与当时的行为（<code>docs/gaps/ledger.jsonl</code>）</span>
+        <p><code>theorem t9 : 3 := sorry</code> 曾经得到 <code>exercise_open=1</code>、<code>failed=[]</code>，
+        查询目标给 <code>⊢ 3</code>。签名里的 <code>3 : Nat</code> 不是 <code>Prop</code>，本该报类型错误。</p>
+      </div>
+      <p class="measure">
+        签名受检之后，判卷只认两个信号：<code>decl.checked</code> 与 <code>diagnostic</code>。
+        不拿 <code>exercise.open</code> 的计数当「签名没坏」的证据——这条纪律也写进了台账判据
+        （<code>docs/gaps/README.md</code>：故意不看 <code>exercise_open</code> 计数，G-01 就是这么假绿的）。
+      </p>
+
+      <h3>规则 9 的故事：<code>cargo run</code> 是「重大失误」</h3>
+      <p class="measure">
+        使用路径不依赖工具链不是设计偏好，是用户纠正出来的。记录里的原话是：
+      </p>
+      <blockquote>
+        <p>用户路径零工具链依赖（用户纠正"cargo run 是重大失误"）。</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-10</p>
+      </blockquote>
+      <p class="measure">
+        于是获取与运行只依赖 Release 资产或平台 VSIX：<span class="num">8</span> 个 CLI tarball、
+        <span class="num">8</span> 个 LSP tarball、<span class="num">9</span> 个 VSIX，加一份
+        <code>SHA256SUMS</code>，共 <span class="num">26</span> 个资产。代价也落在这一条上：
+        发布链多了一条外部依赖，CI 失败台账 <span class="num">35</span> 条里有
+        <span class="num">10</span> 条与 Marketplace 有关。
+      </p>
+
+      <h3>规则 10 的故事：起点是「这个我感觉有点暴力」</h3>
+      <p class="measure">
+        这条规则来自一段用户原话，关键词是「有点暴力」：他发现别的教程当成
+        「天然应该知道」的边角定理，在这个项目里其实根本没有，于是要求把课程重做一遍，
+        <strong>把这些暴力消除掉，并记录下哪些东西是真缺的</strong>（全文见 §3）。
+      </p>
+      <p class="measure">
+        规则就是那次要求的制度化：每条陈述先归层，判据只有「有没有数学内容」一条。
+        它真的在产出东西——卷 I 一门课撞出缺口台账 <span class="num">24</span> 条里的
+        <span class="num">13</span> 条（<span class="num">8</span> 条语言与工具缺口 +
+        <span class="num">5</span> 条标准库欠账，发现端材料在
+        <code>courses/set-theory/gaps/</code>，试做稿在
+        <code>docs/gaps/spike/README.md</code>）。判错的代价也付过一次：
+        <span class="num">16</span> 条内容型引理被放进课程标准库，学习者在做练习时发现答案已经在库里
+        （台账 L-05，已修）。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s3">
+      <h2 id="s3"><span class="sec-num">§3</span> 用户的原话</h2>
+
+      <p class="measure">
+        这一页的原则不是总结出来的，是一次次被要求出来的。<code>REQUIREMENTS.md</code> §9
+        是用户要求的流水账，现有 <span class="num">123</span> 条带日期的记录。下面逐字摘自其中，
+        含标点。每条都注明日期，并区分两种情况：用户原话，还是记录者的转述。
+      </p>
+
+      <div class="statement statement--example stack">
+        <span class="statement__label">要做到什么程度</span>
+        <p>接手项目，先 I6 后推进至终极形态；用户要尽快在 playground.sokonanoda 开课，agent 当老师。</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-06（记录）</p>
+        <p>增加一个 github pages，相当于当前项目的官网，充分介绍本项目的用法、远大目标和当前进展</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-13（用户原话，记录里带引号）</p>
+        <p>先好好调研、头脑风暴、规划，做好文档，然后再启动分步骤计划，多用 subagent 执行</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-13（用户原话，记录里带引号）</p>
+      </div>
+
+      <div class="statement statement--example stack">
+        <span class="statement__label">课程与「暴力」——规则 10 的起点</span>
+        <p>你的教程出的题目，在做的时候，你会发现要补充很多其他的定理，边边角角的定理，
+        这个是在其他的教程里头会认为是天然应该知道的，或者说是标准库里已经实现的。
+        这个我感觉有点暴力，所以我需要你去用这个项目，然后重新做一遍，
+        然后才能把这些暴力给消除掉。你要记录下这些其实是需要实现的，其实是没有的。</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-18（用户原话）</p>
+        <p>课程层只是给大模型提供路线图，具体执行层需要大模型适配各个用户、灵活调整</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-07（同一条在 §6 标注为「用户明确」）</p>
+        <p>从零教学场景确认（用户重申）：用户明确要在教学中关闭 prelude、自建 <code>Eq</code>/<code>Nat</code>。</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-10（记录）</p>
+      </div>
+
+      <div class="statement statement--example stack">
+        <span class="statement__label">质量与过程</span>
+        <p>充分测试是大规模合作与多次大规模重构的重要资产</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-07（记录）</p>
+        <p>性能是生命线（用户明确）</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-13（记录标注「用户明确」）</p>
+        <p>跟 <code>funapply</code> 一样实现得稀里糊涂，不如直接删了</p>
+        <p class="small muted"><code>REQUIREMENTS.md</code> §9，2026-09-14（用户原话）。<code>funapply</code> 与 <code>funintro</code> 后来都真的删了。</p>
+      </div>
+
+      <p class="measure">
+        这些要求里没有形容词：要么是把判定交出去，要么是不要 <code>cargo</code>，
+        要么是删掉做得不好的功能。记录本身也是机制——新要求追加进 §9 并注明日期，
+        冲突时以那个文件为准。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s4">
+      <h2 id="s4"><span class="sec-num">§4</span> 教学理念：三个「为什么」</h2>
+
+      <p class="measure">
+        前面十条规则里，有几条不是工程偏好，而是教学主张。它们各自回答一个
+        「为什么」，而且都能在 <code>REQUIREMENTS.md</code> 里找到立起来的那一天。
+      </p>
+
+      <h3>为什么让机器判，而不是让老师判</h3>
+      <p class="measure">
+        判定的权威只有内核。文本比对会假绿，也会假红，所以规则 8 把它从仓库里删掉了。
+        删掉之后，仓库真的撞上过反面教材：开练习的签名曾经不做类型检查，
+        于是「签名写坏了」与「还没做」在事件流里长得一样，一次课程自查据此全绿
+        （§2 规则 8 的故事，台账 G-01）。
+      </p>
+      <p class="measure">
+        这不是说机器比老师会教。它说的是：判定这一步不该由人做。
+        人做判定时，同一条规则对不同的人会给出不同的答案，而判卷必须可复现。
+        教学的自由度留给别处——<code>course/</code> 只是给大模型的路线图，
+        真正面对学习者的是一份实时调整的画布。
+      </p>
+
+      <div class="turnstile" role="img" aria-label="给定语法白名单只认课程引入过的语法点、每个语法点有三层测试、判定永远走内核，待证的是同一条规则对所有人给出同一个答案">
+        <ul class="turnstile__given">
+          <li>语法白名单只认课程引入过的语法点</li>
+          <li>每个语法点：front 单测 + CLI 端到端 + 课程语料</li>
+          <li>判定永远走内核，不做文本比对</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">同一条规则对所有人给出同一个答案</p>
+      </div>
+
+      <h3>为什么让课程驱动语言，而不是反过来</h3>
+      <p class="measure">
+        语法白名单即课程：parser 只认课程引入过的语法点。于是语言的生长顺序被钉住了——
+        课程先撞到缺口，语言才补上，补上的同时课程里已经有它的用例。
+        用户把这件事说成消除「暴力」（原话见 §3），规则 10 就是那次要求的制度化。
+      </p>
+      <p class="measure">
+        反过来的做法是先造一套语法、再去找它的用途。仓库明确防的是这一种：
+        新语法必须凑齐课程、测试、白名单三件套，缺一件就进不来。
+        所以语言面很窄，而且长得很慢——这是有意的。
+      </p>
+
+      <h3>为什么文件是共享画布，而不是两个界面</h3>
+      <p class="measure">
+        终极形态里，人和 agent 看的是同一串字节：一份 <code>*.sokonanoda</code> 纯文本。
+        人看讲解、示例与练习；agent 写定义、出题、读同一份事件；编译器读同一份文件，
+        把类型、化简、错误与练习状态输出成结构化事件。没有同步机制要维护，
+        因为只有一份东西。
+      </p>
+      <p class="measure">
+        这件事今天已经成立，只是规模还小：§1 那次判卷读的就是同一份文件，
+        输出的也是同一串事件，计数与出处见 §1。练习开着是合法状态——
+        未完成不导致整份文件失败。
+      </p>
+    </section>
+
+    <section class="wide" aria-labelledby="s5">
+      <h2 id="s5"><span class="sec-num">§5</span> 刻意放弃的东西</h2>
+
+      <p class="measure">
+        每条硬规则都换来了什么，也都有代价。把代价写出来，承诺才可信；
+        下面这些是选择，不是欠账。更细的清单在
+        <a href="progress.html">进展页</a>的「诚实的未完成清单」与
+        <a href="why.html">为什么</a>页的规则表里。
+      </p>
+
+      <h3>为了内核完整</h3>
+      <div class="statement statement--lemma">
+        <span class="statement__label">代价：内核冻结带来的三条边界</span>
+        <ul>
+          <li>没有累积性：<code>def T : Type := &lt;一个 Prop 值&gt;</code> 被内核拒绝，
+          专用码 <code>kernel-prop-not-cumulative</code>（台账 L-06，绕行）。</li>
+          <li>取数据的引理写不出来：<code>Exists.elim</code> 的 <code>Q</code> 只能是
+          <code>Prop</code>，所以等势只能用 <code>Prop</code> 值定义，用不了 Lean 的
+          data 版 <code>Equiv</code>。</li>
+          <li>层级算术只收 <code>u+1</code>：<code>u+v</code> 与 <code>max</code>
+          写不出来，因为内核的 <code>Level::Max</code> 没有公开构造入口。</li>
+        </ul>
+      </div>
+
+      <h3>为了零官方工具依赖</h3>
+      <div class="statement statement--lemma">
+        <span class="statement__label">代价：标准库要自己长</span>
+        <ul>
+          <li>官方那一边的东西一个都用不上：没有 <code>lean</code>，没有 <code>lake</code>，
+          也没有 Mathlib。标准库只能自己一层层补，卷 I 一门课就撞出
+          <span class="num">6</span> 条标准库欠账（台账 <code>L-01</code> 至
+          <code>L-06</code>，其中 <code>L-06</code> 是长期绕行）。</li>
+          <li>CI 必须离线可跑：语料与测试全部入库，代价是仓库自己变重。</li>
+        </ul>
+      </div>
+
+      <h3>为了 Lean 4 子集这条承诺</h3>
+      <div class="statement statement--lemma">
+        <span class="statement__label">代价：语言面收窄</span>
+        <ul>
+          <li>只能用 Lean 4 的一个子集：<code>section</code> / <code>variable</code> 做不动
+          （本语言的应用是逐位显式的，没有隐式参数插入）、没有 typeclass、没有 macro、
+          没有累积性。</li>
+          <li>语言按「课程撞到什么才长什么」生长：<code>as</code> 与 or 模式、多 scrutinee、
+          <code>if/then/else</code> 表达式都不做。</li>
+        </ul>
+      </div>
+
+      <h3>为了零工具链的使用路径</h3>
+      <div class="statement statement--lemma">
+        <span class="statement__label">代价：整条分发链自己扛</span>
+        <ul>
+          <li>要自己维护整条分发链：<span class="num">8</span> 个 CLI tarball、
+          <span class="num">8</span> 个 LSP tarball、<span class="num">9</span> 个 VSIX
+          平台包，加一份 <code>SHA256SUMS</code>，每个 Release 共
+          <span class="num">26</span> 个资产。</li>
+          <li>发布多了一条外部依赖：CI 失败台账 <span class="num">35</span> 条里有
+          <span class="num">10</span> 条与 Marketplace 有关
+          （<code>docs/CI-FAILURES.md</code>）。</li>
+        </ul>
+      </div>
+
+      <h3>为了「充分测试」与「单文件不许越长越大」</h3>
+      <div class="statement statement--lemma">
+        <span class="statement__label">代价：两条规则互相顶</span>
+        <ul>
+          <li>每加一个语法点，三层测试一起加。最大的一个测试文件已经长到
+          <span class="num">7926</span> 行——它自己就违反了 ~500 行的模块化惯例，
+          这条欠账是公开的（<code>wc -l crates/front/src/compile/tests.rs</code>）。</li>
+          <li>两条规则会互相顶：测试要密，文件要短。仓库选择先记下欠账，
+          而不是为了行数少写测试。</li>
+        </ul>
+      </div>
+
+      <h3>还没有的东西：浏览器里判题</h3>
+      <div class="callout callout--limit">
+        <span class="callout__title">限制</span>
+        <p>没有 WASM 构建，所以这个站在浏览器里判不了题。要做需要把
+        <code>crates/kernel</code> 与 <code>crates/front</code> 编到 WASM，
+        是独立的大工程，明确列为 backlog。一期用零后端方案替代：
+        静态站负责讲清楚，真判卷装扩展或拿 CLI 在本地跑。</p>
+      </div>
+
+      <div class="turnstile" role="img" aria-label="给定内核冻结不因教学裁剪、不调用官方 Lean 工具链、语法只取 Lean 4 子集，待证的是十条规则各自的代价都由使用者承担而不是消失">
+        <ul class="turnstile__given">
+          <li>内核冻结，不因教学裁剪</li>
+          <li>不调用官方 Lean 工具链</li>
+          <li>教学语法只取 Lean 4 的子集</li>
+        </ul>
+        <p class="turnstile__rule"><span class="turnstile__turn">⊢</span></p>
+        <p class="turnstile__goal">代价被写下来，而不是被藏起来</p>
+      </div>
+
+      <p class="measure">
+        这一页的原则都能追到仓库里的一次真实决定：每条规则有出处，每处代价有台账或命令。
+        下一步往哪走——哪些能力今天能端到端跑通、路线图的三档、诚实的未完成清单——
+        在<a href="progress.html">进展页</a>；为什么这些问题值得解、每条规则换来了什么，
+        在<a href="why.html">为什么</a>页。
+      </p>
+    </section>
+
+    <nav class="pager" aria-label="继续阅读">
+      <a href="progress.html">
+        <span class="pager__label">下一页</span>
+        进展：项目现在在哪，接下来做什么
+      </a>
+      <a href="why.html">
+        <span class="pager__label">相关</span>
+        为什么做这个：难在哪，以及每条规则的代价
+      </a>
+    </nav>
+
+  </div>
+</main>
+
+<!--#footer-->
+<!--
+  生成区（机器所有，勿手改）。唯一源：site/_partials/footer.html（D2 §3.2）。
+  约定同 header.html：路径相对站点根书写；块内容顶格。
+  版本号一律不写死：这里只有占位符，由 site.js 在浏览时从 site/data/site.json 填入
+  （页面 HTML 里出现字面版本号会被 scripts/check-site.py 拒绝）。
+
+  页脚承担**完整站点地图**：页头只放 8 条常用链接，其余全在这里，所以 28 个页面
+  没有一个会变成孤儿。每一组都是一个 <nav aria-label>，屏幕阅读器可以按组跳转。
+  样板页 styleguide.html 不在页头，从这里进（D2 §1）。
+-->
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-map" lang="zh-CN">
+      <nav class="footer-nav" aria-label="产品">
+        <h2 class="footer-nav__title">产品</h2>
+        <ul>
+          <li><a data-nav="index" href="index.html">首页</a></li>
+          <li><a data-nav="why" href="why.html">为什么做这个</a></li>
+          <li><a data-nav="vision" aria-current="page" href="vision.html">愿景与原则</a></li>
+          <li><a data-nav="compare" href="compare.html">与 Lean 4 / Coq / Agda 对照</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="功能">
+        <h2 class="footer-nav__title">功能</h2>
+        <ul>
+          <li><a data-nav="kernel" href="kernel.html">内核判卷</a></li>
+          <li><a data-nav="walkthrough" href="walkthrough.html">走查一题</a></li>
+          <li><a data-nav="editor" href="editor.html">编辑器体验</a></li>
+          <li><a data-nav="language" href="language.html">语言能力</a></li>
+          <li><a data-nav="tactics" href="tactics.html">策略与证明</a></li>
+          <li><a data-nav="notation" href="notation.html">自定义记法</a></li>
+          <li><a data-nav="projects" href="projects.html">多文件项目</a></li>
+          <li><a data-nav="diagnostics" href="diagnostics.html">诊断字典</a></li>
+          <li><a data-nav="agents" href="agents.html">给 code agent</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="学习">
+        <h2 class="footer-nav__title">学习</h2>
+        <ul>
+          <li><a data-nav="course" href="course.html">入门课（11 单元）</a></li>
+          <li><a data-nav="set-theory" href="set-theory.html">卷 I 集合论（12 单元）</a></li>
+          <li><a data-nav="learn" href="learn.html">怎么学</a></li>
+          <li><a data-nav="glossary" href="glossary.html">术语表</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-nav" aria-label="使用与过程">
+        <h2 class="footer-nav__title">使用与过程</h2>
+        <ul>
+          <li><a data-nav="get-started" href="get-started.html">安装与上手</a></li>
+          <li><a data-nav="faq" href="faq.html">常见问题与排错</a></li>
+          <li><a data-nav="docs" href="docs.html">文档索引</a></li>
+          <li><a data-nav="search" href="search.html">搜索</a></li>
+          <li><a data-nav="progress" href="progress.html">进展</a></li>
+          <li><a data-nav="releases" href="releases.html">版本历史</a></li>
+          <li><a data-nav="engineering" href="engineering.html">工程与证据</a></li>
+          <li><a data-nav="about" href="about.html">关于与许可</a></li>
+          <li><a data-nav="styleguide" href="styleguide.html">设计规范（组件与令牌）</a></li>
+          <li><a data-nav="en" href="en/index.html" hreflang="en" lang="en">English</a></li>
+        </ul>
       </nav>
     </div>
-  </header>
-
-  <main id="main" class="wrap prose">
-    <h1>愿景</h1>
-
-    <h2>一句话要做什么</h2>
-    <p>
-      sokonanoda 想让你在浏览器之外的普通编辑器里，学会用 Lean 4 的方式写证明。你写一个
-      <code>.sokonanoda</code> 文件，背后一整套完整的 Lean 4 类型检查内核替你判定：写对了，它就是真的证明；
-      写错了，它告诉你错在哪、类型对不上在哪。学习过程不靠对照答案，靠内核自己说话。
+    <p class="footer-note">
+      sokonanoda-lang —— 自研 Lean 4 式教学编译栈：判定永远走真内核，学习者与 agent 的使用路径零工具链依赖。
     </p>
-
-    <h2>为什么做这个</h2>
-    <p>
-      已有的 Lean 教学（比如 Natural Number Game）依赖整套 Lean 工具链：安装重、版本容易漂移、课程内容难以离线复现。
-      我们希望把内核、预置定义、教学语料全部放进仓库，CI 离线就能跑——这样教的内容可复现、可审计，也不怕上游改版。
+    <p class="footer-note">
+      <a href="https://github.com/ColorlessBoy/sokonanoda-lang" target="_blank" rel="noopener">GitHub 仓库</a>
+      · Apache-2.0 许可（内核沿用上游 <a href="https://github.com/intgrah/sokonanoda" target="_blank" rel="noopener">sokonanoda</a> 的许可与版权声明）
+      · 当前版本 <span data-site-version>—</span>
     </p>
-    <p>
-      更关键的是判卷必须「真」。很多教学工具用文本比对或简单规则判断是否做对，学生可能绕过证明。sokonanoda 用的是完整、
-      可运行的依赖类型检查器：一道题判过，意味着它通过了真实的类型检查，不是形式上的「看起来对」。
-    </p>
+  </div>
+</footer>
+<!--/#footer-->
 
-    <h2>它和 Lean 4、Coq 是什么关系</h2>
-    <ul>
-      <li>
-        <b>它是真实 Lean 4 的一个受控子集。</b> 在 <code>.sokonanoda</code> 里学会的写法，放进官方 Lean 依然合法。
-        所以你学的不是一套玩具语言，而是能迁移到真实证明助手的写法。
-      </li>
-      <li>
-        <b>它不是 Coq。</b> 它的类型论取向、语法、内核都对齐 Lean 4，而不是 Coq 的 Calc 风格。
-      </li>
-      <li>
-        <b>内核来自 sokonanoda。</b> 底层是一个独立的 Lean 4 类型检查器实现（Apache-2.0，来自
-        <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>）。我们完整移植，只在其上叠加教学接口，不改语义。
-      </li>
-    </ul>
-
-    <h2>教学理念</h2>
-    <h3>逻辑先行</h3>
-    <p>
-      第一单元直接让你证明一个命题，而不是先背术语。等你在练习里自然发问「函数类型的类型到底是什么」时，
-      才引出宇宙（universe）这一概念。课程的编排跟着直觉走，而不是先堆概念再找地方用。
-    </p>
-    <h3>真内核判卷</h3>
-    <p>
-      练习里留着未完成的 <code>sorry</code> 洞是合法的文件状态，不是错误。你填完，内核重新判定；填错了，给你带行列和稳定错误码的诊断。
-      对错由内核决定，不由文本模板决定。
-    </p>
-    <h3>agent 可驱动</h3>
-    <p>
-      编译产物设计成两份视图：人读的是诊断文本，agent 读的是 JSON 事件流（每条事件一行）。同一个教学 agent 可以基于这些事件
-      给你出题、判卷、在卡住时讲下一步。人和 agent 面对的是同一份事实，不会各说各话。
-    </p>
-
-    <h2>架构示意</h2>
-    <p>一条 <code>.sokonanoda</code> 文件怎么变成「被完整内核检查过的声明」：</p>
-    <div class="diagram" role="img" aria-label="一条 sokonanoda 文件的旅程：源码经前端解析为内核声明，再经完整内核检查，产出人和 agent 各取所需的反馈。">
-      <div class="col">
-        <div class="node"><div class="t">教学方言文件</div><div class="d"><code>.sokonanoda</code>：声明、命题、留洞的练习</div></div>
-        <div class="node"><div class="t">前端</div><div class="d">词法 / 语法 / 轻度 elaboration，把表面语法变成内核声明</div></div>
-        <div class="node"><div class="t">完整内核</div><div class="d">类型检查 / 化简 / 打印，和真实 Lean 4 同一套语义</div></div>
-        <div class="node"><div class="t">结构化反馈</div><div class="d">检查事件 + 打印结果，分出人和 agent 两份视图</div></div>
-      </div>
-      <div class="flow arrow">↓ &nbsp; 解析与 elaboration &nbsp; ↓ &nbsp; 内核检查 &nbsp; ↓ &nbsp; 分发给两类读者</div>
-      <div class="col">
-        <div class="node"><div class="t">人读的视图</div><div class="d">诊断文本：行列、稳定错误码、中文提示</div></div>
-        <div class="node"><div class="t">agent 读的视图</div><div class="d">JSON 事件流：<code>--json</code> 一行一条，可直接驱动工具</div></div>
-      </div>
-    </div>
-
-    <div class="note">
-      想看这些理念落到产品上是什么样，去 <a href="get-started.html">快速开始</a> 装扩展，或看
-      <a href="progress.html">进展</a> 里当前的版本与课程规模。
-    </div>
-  </main>
-
-  <footer class="site-footer">
-    <div class="wrap">
-      <nav class="fnav" aria-label="页脚导航">
-        <a href="index.html">首页</a>
-        <a href="get-started.html">快速开始</a>
-        <a href="course.html">课程</a>
-        <a href="vision.html">愿景</a>
-        <a href="progress.html">进展</a>
-        <a href="agents.html">给 Agent</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="en/index.html">English</a>
-      </nav>
-      <p>sokonanoda-lang 是基于 sokonanoda 内核的 Lean 4 教学编译器。内核以 Apache-2.0 许可来自 <a href="https://github.com/intgrah/sokonanoda">intgrah/sokonanoda</a>。</p>
-      <p>源码与问题：<a href="https://github.com/ColorlessBoy/sokonanoda-lang">github.com/ColorlessBoy/sokonanoda-lang</a></p>
-    </div>
-  </footer>
+<script src="assets/site.js"></script>
 </body>
 </html>

@@ -6,14 +6,15 @@
     "py-fol-core.sokonanoda",
     "py-nat.sokonanoda"
   ],
-  "round": 108,
-  "round_date": "2026-09-19",
-  "round_title": "0.61.0 —— 设计文档里「未做」的全部收口",
+  "round": 119,
+  "round_date": "2026-09-21",
+  "round_title": "（站点线）站点事实改锚发布 tag —— 并修掉一个把正确复现判成红的陷阱",
   "set_theory": {
-    "counts_source": "previous-run",
+    "counts_source": "gate",
     "course": "courses/set-theory",
     "gate": "courses/set-theory/tools/check.py",
-    "measured_at": "2026-09-19",
+    "measured_at": "2026-09-20",
+    "released_tag": "v0.61.0",
     "totals": {
       "checked": 329,
       "failed": 0,

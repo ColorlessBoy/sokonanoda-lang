@@ -7,14 +7,26 @@ Design: docs/design/site.md §3. No third-party dependencies — python3 stdlib 
 The site must never hand-write three things: version, unit count, and progress.
 This script pulls each from its real source so the numbers cannot drift:
 
-  version      <- Cargo.toml   [workspace.package] version
+  version      <- the newest released `vX.Y.Z` git tag — **not** Cargo.toml
   units        <- course/course.json  (each unit flags its English mirror if present)
   round        <- STATUS.md    latest "## 本轮进度（日期，第N轮：标题）" header
   round_date   <-   (same header)
   round_title  <-   (same header)
   examples     <- examples/*.sokonanoda  filenames
-  set_theory   <- courses/set-theory/course.json + **measured** by the course's
-                  own gate (courses/set-theory/tools/check.py --json)
+  set_theory   <- the **release tag's** courses/set-theory/course.json + measured by
+                  that tag's own gate (courses/set-theory/tools/check.py --json),
+                  run with that release's binary
+
+**Every measured fact is a *released* fact** (STATE §5, `spec/D9-page-brief.md` §4.0).
+The site states this about itself — `compare.html` promises `[data-site-version]` is
+"已发布的版本，不是工作树", and every download instruction is built from it. So this
+generator reads the working tree only for things that are genuinely about *now*
+(`STATUS.md` rounds); version and course counts come from the release tag, because
+between releases the working tree carries work the released binary cannot even parse.
+Measured the hard way: regenerating naively on a tree whose `Cargo.toml` had been
+bumped to the *next* version wrote `version: 0.62.0` — a version with no tag, no
+artifacts and no download URL — and silently rewrote the released course counts with
+HEAD's (329 → 328 checked), which is precisely what K12 then fails on.
 
 Counts are never hand-written anywhere: the 卷 I block is measured by running the
 course gate, and every unit carries the gate's own `status`/`checked`/`open`.
@@ -62,7 +74,11 @@ def _read(rel_path):
 
 
 def get_version():
-    """Return [workspace.package].version from Cargo.toml, or None."""
+    """Return [workspace.package].version from Cargo.toml, or None.
+
+    This is the **next** version, not the released one — see `release_version()`.
+    It is read only to explain in the log why the two differ.
+    """
     text = _read("Cargo.toml")
     if not text:
         return None
@@ -72,6 +88,85 @@ def get_version():
     block = m.group(1) if m else text
     mm = re.search(r'^\s*version\s*=\s*"([^"]+)"', block, re.M)
     return mm.group(1) if mm else None
+
+
+def _git(*args, timeout=60):
+    """Run git inside the repo; return stdout, or "" if git is unusable."""
+    try:
+        proc = subprocess.run(["git", *args], capture_output=True, text=True,
+                              timeout=timeout, cwd=REPO_ROOT)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    return proc.stdout if proc.returncode == 0 else ""
+
+
+def release_version():
+    """`(version, tag)` of the newest released `vX.Y.Z` tag, or `(None, "")`.
+
+    Why the tag and not `Cargo.toml`: the version is bumped at the start of a
+    release and then sits *ahead* of the last tag for the whole development
+    window. Publishing it would tell readers to install a version that has no
+    tag, no release, no artifacts and no download URL — and the site's own text
+    promises the opposite ("已发布的版本，不是工作树", `compare.html`).
+
+    Pre-release tags (`v1.2.3-rc1`) are skipped deliberately: every CTA built
+    from this number points at a tag a reader can actually install.
+    """
+    for line in _git("tag", "--list", "v*", "--sort=-v:refname").splitlines():
+        match = re.fullmatch(r"v(\d+\.\d+\.\d+)", line.strip())
+        if match:
+            return match.group(1), line.strip()
+    return None, ""
+
+
+def release_binary(version):
+    """The published CLI for `version`, or "" when it is not installed here.
+
+    The VS Code extension keeps one binary per version under
+    `~/.vscode/extensions/sokonanoda-lang.sokonanoda-<version>-<target>/bin/…`,
+    so a released binary survives every later dev build. Judging the released
+    course with it is what makes the published counts reproducible — the same
+    lookup K12/K16 do in `scripts/site-verify.py` (kept in sync by hand; both
+    must agree on which binary "the released one" means).
+    """
+    if not version:
+        return ""
+    pattern = os.path.join(
+        os.path.expanduser("~"), ".vscode", "extensions",
+        f"sokonanoda-lang.sokonanoda-{version}-*", "bin", "*", "sokonanoda",
+    )
+    found = sorted(glob.glob(pattern))
+    return found[0] if found else ""
+
+
+def release_tree(tag):
+    """Lay the released tree out under `.cache/site-data-release/`; `(dir, reason)`.
+
+    Three members, not one — the same three K12 extracts, for a reason that cost
+    a red check to learn: `courses/set-theory/tools/check.py` walks *up* looking
+    for `scripts/soko` to identify "this checkout", then reads the version pin
+    from that directory's `Cargo.toml` and refuses to judge (exit 2) when the
+    binary disagrees with it. Extract only the course and it climbs out of the
+    scratch directory into the real repo, pins the working tree's next version,
+    and rejects the released binary — a correct reproduction reported as red.
+    With all three the scratch tree pins its *own* version, which is the point.
+    """
+    if not tag:
+        return "", "没有发布 tag"
+    work = os.path.join(REPO_ROOT, ".cache", "site-data-release")
+    subprocess.run(["rm", "-rf", work], check=False)
+    os.makedirs(work, exist_ok=True)
+    members = [SET_THEORY_DIR, os.path.join("scripts", "soko"), "Cargo.toml"]
+    archive = subprocess.run(["git", "archive", tag, *members],
+                             capture_output=True, cwd=REPO_ROOT, check=False)
+    if archive.returncode != 0:
+        return "", f"git archive {tag} 失败"
+    untar = subprocess.run(["tar", "-x", "-C", work], input=archive.stdout, check=False)
+    if untar.returncode != 0:
+        return "", f"解压 {tag} 失败"
+    if not os.path.isfile(os.path.join(work, SET_THEORY_DIR, "course.json")):
+        return "", f"{tag} 里没有 {SET_THEORY_DIR}/course.json"
+    return work, ""
 
 
 def _parse_units(text):
@@ -177,49 +272,46 @@ def _first_line(text):
     return ""
 
 
-def measure_set_theory():
-    """Grade 卷 I through the course's own gate.
+def measure_set_theory(tree, version):
+    """Grade 卷 I through the **released** course's own gate.
 
     Returns `({"rows": {file: {status, checked, open}}, "totals": {...}}, "")` on
     success, or `(None, reason)` when the gate could not be run.
 
-    Two deliberate rules (both from docs/design/course-gate-in-ci.md):
+    `tree` is the release tag's checkout (`release_tree`), `version` the released
+    version whose binary must do the judging. Both are required, not conveniences:
+    measuring the *working tree* with whatever CLI happens to resolve is how the
+    published counts silently became HEAD's course judged by a dev build (real
+    measurement: 329 → 328 checked, released 0.61.0 vs a bumped working tree).
+
+    Three deliberate rules:
 
     * the judging logic is **not** reimplemented here — counts only ever come
       from `check.py --json` ("判据双实现必然漂移", §2.3);
-    * `SOKONANODA_OFFLINE=1` + a `scripts/soko doctor` pre-flight, because the
-      repo explicitly does not download a toolchain to run the course gate (§8).
+    * the binary must be the **released** one (`SOKONANODA_BIN`), so a dev build
+      cannot answer for a release;
+    * `SOKONANODA_OFFLINE=1`, because the repo explicitly does not download a
+      toolchain to run the course gate (docs/design/course-gate-in-ci.md §8).
       Generating a page must never turn into a several-MB download; when no
-      pinned CLI resolves, we report "not measured" instead of guessing.
+      pinned CLI is present, we report "not measured" instead of guessing.
     """
-    launcher = os.path.join(REPO_ROOT, "scripts", "soko")
-    gate = os.path.join(REPO_ROOT, SET_THEORY_GATE)
-    for path in (launcher, gate):
-        if not os.path.isfile(path):
-            return None, f"缺少 {os.path.relpath(path, REPO_ROOT)}"
-    env = dict(os.environ, SOKONANODA_OFFLINE="1")
+    if not tree:
+        return None, "没有可用的已发布检出（release_tree 失败）"
+    binary = release_binary(version)
+    if not binary:
+        return None, f"本机没有已发布 {version} 的 CLI（VS Code 扩展目录里找不到）"
+    gate = os.path.join(tree, SET_THEORY_GATE)
+    if not os.path.isfile(gate):
+        return None, f"已发布检出里没有 {SET_THEORY_GATE}"
+    env = dict(os.environ, SOKONANODA_OFFLINE="1", SOKONANODA_BIN=binary)
 
-    def run(argv, timeout):
-        try:
-            return subprocess.run(
-                argv, capture_output=True, text=True,
-                timeout=timeout, cwd=REPO_ROOT, env=env,
-            )
-        except (OSError, subprocess.TimeoutExpired) as exc:
-            return exc
-
-    probe = run([launcher, "doctor", "--json"], timeout=120)
-    if isinstance(probe, Exception):
-        return None, f"启动器跑不起来：{probe}"
-    if probe.returncode != 0:
-        return None, (
-            f"判卷环境未就绪（scripts/soko doctor 退出码 {probe.returncode}）："
-            f"{_first_line(probe.stderr) or _first_line(probe.stdout)}"
+    try:
+        proc = subprocess.run(
+            [sys.executable or "python3", gate, "--json"],
+            capture_output=True, text=True, timeout=GATE_TIMEOUT_S, cwd=tree, env=env,
         )
-
-    proc = run([sys.executable or "python3", gate, "--json"], timeout=GATE_TIMEOUT_S)
-    if isinstance(proc, Exception):
-        return None, f"课程门禁跑不起来：{proc}"
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return None, f"课程门禁跑不起来：{exc}"
     try:
         report = json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -272,31 +364,57 @@ def measure_set_theory():
     return {"rows": rows, "totals": totals}, ""
 
 
-def _previous_set_theory():
-    """The `set_theory` block already in site/data/site.json (last run), if any."""
+def _previous_site_json():
+    """The last committed `site/data/site.json` as a dict ({} when unusable)."""
     try:
         data = json.loads(_read(SITE_JSON) or "null")
     except json.JSONDecodeError:
         return {}
-    block = data.get("set_theory") if isinstance(data, dict) else None
+    return data if isinstance(data, dict) else {}
+
+
+def _previous_scalar(key):
+    """A top-level string already in site.json (last run), or ""."""
+    value = _previous_site_json().get(key)
+    return value if isinstance(value, str) and value else ""
+
+
+def _previous_set_theory():
+    """The `set_theory` block already in site/data/site.json (last run), if any."""
+    block = _previous_site_json().get("set_theory")
     return block if isinstance(block, dict) else {}
 
 
-def get_set_theory():
-    """Build the `set_theory` block: units from course.json + measured counts."""
-    units, volumes = _parse_units(_read(os.path.join(SET_THEORY_DIR, "course.json")))
+def get_set_theory(tree, version, tag):
+    """Build the `set_theory` block from the **released** course.
+
+    The manifest is read from the release tag too, not the working tree: a unit
+    added since the release has no released teaching material behind it, and
+    listing it beside released units — with counts nobody can reproduce from the
+    released binary — is exactly the drift this block exists to prevent. When the
+    tag is unavailable the working tree is used, and the block says so.
+    """
+    manifest = os.path.join(tree or REPO_ROOT, SET_THEORY_DIR, "course.json")
+    try:
+        with open(manifest, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        text = ""
+    units, volumes = _parse_units(text)
     if not units:
         return None
 
-    measured, reason = measure_set_theory()
+    measured, reason = measure_set_theory(tree, version)
     block = {"course": SET_THEORY_DIR, "gate": SET_THEORY_GATE}
+    if tag:
+        block["released_tag"] = tag
     if measured is not None:
         rows, totals = measured["rows"], measured["totals"]
         block["counts_source"] = "gate"
         block["measured_at"] = datetime.date.today().isoformat()
         block["totals"] = totals
         print(
-            "set_theory: 门禁实测 "
+            f"set_theory: 门禁实测（{tag} 的课程 × {version} 的二进制）"
             f"{totals['targets']} 目标 · {totals['checked']} checked · "
             f"{totals['open']} open · {totals['failed']} 判负"
         )
@@ -437,15 +555,39 @@ def get_examples():
 def main():
     data = {}
 
-    version = get_version()
+    # ── 版本：**已发布的**那个，不是 Cargo.toml 里的下一个 ──────────────────
+    #
+    # 站点在每个页脚写「当前版本」，下载指令也从它拼出来，并且明说这是「已发布
+    # 的版本，不是工作树」（compare.html）。所以这里取最新的 `vX.Y.Z` tag；只有
+    # 连 tag 都拿不到（浅克隆、非 git 检出）时才沿用上一次写下的版本——**绝不**
+    # 退回 Cargo.toml：那份文件在发行窗口里一直领先于最后一个 tag，写出去就是
+    # 让读者去装一个没有 tag、没有产物、没有下载地址的版本。
+    version, tag = release_version()
+    next_version = get_version()
     if version:
         data["version"] = version
+        note = f"version: {version}（发布 tag {tag}）"
+        if next_version and next_version != version:
+            note += f"；Cargo.toml 已是 {next_version}，尚无 tag —— 站点仍写已发布版本"
+        print(note)
+    else:
+        carried = _previous_scalar("version")
+        if carried:
+            data["version"] = carried
+            print(f"version: 找不到发布 tag —— 沿用上次写下的 {carried}（不退回 Cargo.toml）")
+        else:
+            print("version: 找不到发布 tag，也没有上次的值 —— 本次不带版本号")
+
+    released = release_tree(tag)
+    tree, tree_reason = released
+    if not tree:
+        print(f"set_theory: 用工作树当清单来源（{tree_reason}）")
 
     units = get_units()
     if units:
         data["units"] = units
 
-    set_theory = get_set_theory()
+    set_theory = get_set_theory(tree, version, tag)
     if set_theory:
         data["set_theory"] = set_theory
 
@@ -467,6 +609,18 @@ def main():
         fh.write("\n")
 
     print("wrote", os.path.relpath(out_path, REPO_ROOT))
+
+    # 再写一份**只有版本号**的极小文件。
+    #
+    # 页脚的 `[data-site-version]` 由 site.js 在浏览时回填。早先它拉的是整份
+    # site.json（12 KB），而 28 页每一页都要填一次版本号——为一个字符串付
+    # 12 KB 不划算。version.json 只有几十字节，且与 site.json 出自同一个生成器，
+    # 不可能不一致（check-site.py 另有断言）。
+    version_path = os.path.join(out_dir, "version.json")
+    with open(version_path, "w", encoding="utf-8") as fh:
+        json.dump({"version": data.get("version", "")}, fh, ensure_ascii=False, sort_keys=True)
+        fh.write("\n")
+    print("wrote", os.path.relpath(version_path, REPO_ROOT))
 
 
 if __name__ == "__main__":
