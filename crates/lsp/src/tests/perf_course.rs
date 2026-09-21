@@ -60,10 +60,7 @@ async fn open_course_unit(
     let opened = testutil::did_open_at_drained(service, socket, &uri, &text).await;
     let ms = start.elapsed().as_millis();
     let count = opened.first().map(|o| o.diagnostics.len()).unwrap_or(0);
-    assert!(
-        !opened.is_empty(),
-        "didOpen 必须至少发一份诊断（{rel}）"
-    );
+    assert!(!opened.is_empty(), "didOpen 必须至少发一份诊断（{rel}）");
     let _ = root;
     (ms, count, uri)
 }
@@ -107,14 +104,12 @@ async fn perf_course_did_open_is_recorded() {
         "课程入口 didOpen 最慢 {slowest}ms（修前基线 8.5s；量级哨兵 60s）"
     );
     // 会话级复用：同一个 LSP 里再开一次同一份文档，必须**明显**快于冷开。
-    let (again, _, _) = open_course_unit(
-        &mut service,
-        &mut socket,
-        &root,
-        COURSE_ENTRIES[0].0,
-    )
-    .await;
-    println!("PERF course lsp: 同会话重开 {} = {again}ms", COURSE_ENTRIES[0].0);
+    let (again, _, _) =
+        open_course_unit(&mut service, &mut socket, &root, COURSE_ENTRIES[0].0).await;
+    println!(
+        "PERF course lsp: 同会话重开 {} = {again}ms",
+        COURSE_ENTRIES[0].0
+    );
     perf_json(serde_json::json!({
         "schema": "soko.perf/1",
         "scope": "lsp-course",
@@ -176,9 +171,8 @@ async fn perf_course_keystroke_is_recorded() {
     // 来回改同一个标识符 3 次取最小（口径同 `perf.rs` 的按键用例：这个 lib 测试
     // 二进制里 140+ 用例并行跑，单次采样会被邻居抢 CPU 放大）。
     let mut current = text.clone();
-    let mut version = 2i32;
     let mut best = u128::MAX;
-    for round in 0..3 {
+    for round in 0..3i32 {
         let next = if round % 2 == 0 {
             current.replace("image_mem", "image_mem_x")
         } else {
@@ -186,10 +180,14 @@ async fn perf_course_keystroke_is_recorded() {
         };
         let start = std::time::Instant::now();
         let published =
-            testutil::did_change_at_drained(&mut service, &mut socket, &uri, version, &next).await;
+            testutil::did_change_at_drained(&mut service, &mut socket, &uri, 2 + round, &next)
+                .await;
         best = best.min(start.elapsed().as_millis());
-        version += 1;
-        assert_eq!(published.len(), 1, "一次按键只发一份文档的诊断：{published:?}");
+        assert_eq!(
+            published.len(),
+            1,
+            "一次按键只发一份文档的诊断：{published:?}"
+        );
         current = next;
     }
 
@@ -230,18 +228,17 @@ async fn perf_course_save_same_text_is_recorded() {
 
     // 同一份文本，走 didChange（保存 / 编辑器外改动的形状）。来回 3 次取最小。
     let mut best = u128::MAX;
-    for round in 0..3 {
+    for round in 0..3i32 {
         let start = std::time::Instant::now();
-        let published = testutil::did_change_at_drained(
-            &mut service,
-            &mut socket,
-            &uri,
-            10 + round as i32,
-            &text,
-        )
-        .await;
+        let published =
+            testutil::did_change_at_drained(&mut service, &mut socket, &uri, 10 + round, &text)
+                .await;
         best = best.min(start.elapsed().as_millis());
-        assert_eq!(published.len(), 1, "一次同文本通知只发一份诊断：{published:?}");
+        assert_eq!(
+            published.len(),
+            1,
+            "一次同文本通知只发一份诊断：{published:?}"
+        );
     }
 
     println!("PERF course lsp: save_same_text {rel} = {best}ms（文本未变）");
@@ -253,7 +250,10 @@ async fn perf_course_save_same_text_is_recorded() {
         "ms": best,
     }));
     // 量级哨兵：修前是"重编整个闭包"（秒级）。文本没变就该是毫秒级。
-    assert!(best < 500, "同文本通知 {best}ms（文本没变不该重编；量级哨兵 500ms）");
+    assert!(
+        best < 500,
+        "同文本通知 {best}ms（文本没变不该重编；量级哨兵 500ms）"
+    );
 }
 
 /// **编辑器外的改动、但内容没变**（保存 / `git checkout` 回到同一份 /
@@ -302,5 +302,8 @@ async fn perf_course_watched_unchanged_file_is_recorded() {
         "ms": best,
     }));
     // 量级哨兵：修前是"重编整个闭包"（与 save_same_text 同量级，几百 ms）。
-    assert!(best < 200, "内容没变的 watcher 通知 {best}ms（不该重编；量级哨兵 200ms）");
+    assert!(
+        best < 200,
+        "内容没变的 watcher 通知 {best}ms（不该重编；量级哨兵 200ms）"
+    );
 }

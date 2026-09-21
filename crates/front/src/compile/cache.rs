@@ -94,11 +94,11 @@ fn compiled_dir() -> Option<PathBuf> {
 ///    下载缓存差 2s；只有扩展自己 staged 的那对同秒，那是巧合）。
 ///    机械复现：`docs/gaps/repro/G27-cache-key-folds-binary-mtime.sh`。
 ///
-/// 换成编译期常量之后，它表达的才是"这份二进制是什么"：
-/// `CARGO_PKG_VERSION`（调用方已单独折进键）+ profile（debug/release 不串台）
-/// + 目标三元组（跨平台不串台）。开发期想区分"同版本号的不同构建"时，
-/// 用**显式环境变量** `SOKO_BUILD_LABEL`（`option_env!` 在编译期取值），
-/// 而不是靠文件系统的副作用。
+/// 换成编译期常量之后，它表达的才是"这份二进制是什么"：`CARGO_PKG_VERSION`
+/// （调用方已单独折进键）、profile（debug/release 不串台）、目标平台
+/// （`consts::OS` + `consts::ARCH`，跨平台不串台）。开发期想区分"同版本号的
+/// 不同构建"时，用**显式环境变量** `SOKO_BUILD_LABEL`（`option_env!` 在编译期
+/// 取值），而不是靠文件系统的副作用。
 pub fn build_stamp() -> u64 {
     // FNV-1a 64 over the compile-time identity string. 纯函数、跨进程稳定。
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;

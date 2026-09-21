@@ -856,7 +856,8 @@ theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\
     );
     // 同族：`holes` / `nextHole` 经由 `goals` ⇒ 一起恢复。
     doc.holes().expect("holes 与 goals 同一条判据");
-    doc.next_hole(0, true).expect("nextHole 与 goals 同一条判据");
+    doc.next_hole(0, true)
+        .expect("nextHole 与 goals 同一条判据");
 }
 
 #[test]

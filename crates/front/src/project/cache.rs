@@ -69,4 +69,3 @@ pub fn store_if_clean(
     }
     store(digest, options, project);
 }
-

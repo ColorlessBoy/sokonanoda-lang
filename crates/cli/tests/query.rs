@@ -1183,7 +1183,13 @@ theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\
     // 那样就测不到"冷缓存"这条前提。这里用全新的、本次独有的缓存目录。
     let cache = cache_dir("g22-cold");
     let output = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
-        .args(["query", "goals", "--file", entry.to_str().unwrap(), "--compact"])
+        .args([
+            "query",
+            "goals",
+            "--file",
+            entry.to_str().unwrap(),
+            "--compact",
+        ])
         .env("SOKONANODA_CACHE_DIR", &cache)
         .output()
         .expect("spawn sokonanoda");

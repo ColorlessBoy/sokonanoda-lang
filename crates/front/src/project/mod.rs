@@ -208,6 +208,17 @@ pub fn plan_project(
 /// * 空路径 ⇒ `cwd`（`--root ''`、裸文件名的空 `parent()` 都不是合法模块根，
 ///   语义上等于 cwd）⇒ 返回值**永不**为空；
 /// * 已经绝对 ⇒ 原样。
+fn absolute_lexical(path: &Path) -> PathBuf {
+    let cwd = || std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    if path.as_os_str().is_empty() {
+        return cwd();
+    }
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    cwd().join(path)
+}
+
 /// 摘要里用的路径形态：**只去掉 `.` 组件**，别的原样。
 ///
 /// 为什么需要它：`grade Main.sokonanoda` 与 `build .`（它收集到的是
@@ -227,17 +238,6 @@ fn digest_path(path: &Path) -> String {
         out.push(component.as_os_str());
     }
     out.to_string_lossy().into_owned()
-}
-
-fn absolute_lexical(path: &Path) -> PathBuf {
-    let cwd = || std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    if path.as_os_str().is_empty() {
-        return cwd();
-    }
-    if path.is_absolute() {
-        return path.to_path_buf();
-    }
-    cwd().join(path)
 }
 
 /// 解析项目根、加载闭包（不编译）——`overlay` 提供打开文档的内存文本。

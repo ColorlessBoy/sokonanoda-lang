@@ -463,7 +463,11 @@ impl QueryDoc {
         // 用户看不到提示、只看到"版本对不上"的困惑，比缓存不工作更糟。
         // 归到**入口文件第 1 行**（清单不在入口文件里，但漂移是关于这份文档的）。
         let mut warnings: Vec<WarningInfo> = warnings;
-        if let Some(note) = self.project.as_ref().and_then(|p| p.requires_warning.clone()) {
+        if let Some(note) = self
+            .project
+            .as_ref()
+            .and_then(|p| p.requires_warning.clone())
+        {
             warnings.push(WarningInfo {
                 code: "manifest-version".to_string(),
                 message: note,
