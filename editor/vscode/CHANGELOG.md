@@ -1,3 +1,18 @@
+## [0.63.0] - 2026-09-21
+
+### Fixed
+- **Declaration cards now follow the active document.** The Infoview's
+  declaration list was only pushed from inside a `soko/goals` load, and a
+  focus switch only rebuilt the *tree* — which VS Code resolves solely while
+  the `sokonanoda.goals` view is visible. With the Infoview open on its own
+  (tree collapsed into the side bar) the cards stayed on the previous
+  document: opening another single file looked refreshed only because its
+  diagnostics triggered a load, and switching focus between already-open
+  files (or opening a project module, which publishes no diagnostics of its
+  own) left them stale. `trackEditor` now asks for the new document's
+  declarations explicitly; the existing concurrency merge keeps a visible
+  tree from paying a second round trip.
+
 ## [0.62.0] - 2026-09-20
 
 ### Added

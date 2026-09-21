@@ -513,6 +513,13 @@ function statusBarStub() {
 function goalsRequests() {
   return requests.filter((request) => request.method === "soko/goals");
 }
+
+// 排空已排队的微任务。切活动文档现在会**主动**取一次 `soko/goals`（声明卡片
+// 不能等树可见/等诊断），所以「先 focus、再清 `requests`」的测试必须先让那一次
+// 落定，否则它会被算进后面的断言里（或与后面的请求合并掉）。
+async function settle() {
+  for (let i = 0; i < 40; i++) await Promise.resolve();
+}
 function stateRequests() {
   return requests.filter((request) => request.method === "soko/stateAt");
 }
@@ -546,7 +553,7 @@ test("diagnostics from other languages never drive soko/goals", async () => {
 test("a burst of project diagnostics collapses into one refresh", async () => {
   await activateExtension();
   focus(fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda"));
-  await Promise.resolve();
+  await settle();
   requests.length = 0;
 
   // Project mode publishes the entry and its dependency in one go, and the
@@ -567,7 +574,7 @@ test("a burst of project diagnostics collapses into one refresh", async () => {
 test("concurrent loads share a single soko/goals round trip", async () => {
   await activateExtension();
   focus(fakeDocument("/repo/playground.sokonanoda"));
-  await Promise.resolve();
+  await settle();
   requests.length = 0;
 
   // One diagnostics event makes both the tree (which re-resolves its root)
@@ -586,7 +593,7 @@ test("switching documents mid-flight drops the stale answer", async () => {
   await activateExtension();
   const canvas = fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda");
   focus(canvas);
-  await Promise.resolve();
+  await settle();
 
   // Answer the next soko/goals slowly so the test can switch documents first.
   let release;
@@ -676,6 +683,50 @@ test("an answer that names another document is dropped", async () => {
   assert.ok(
     !labels.includes("stale_decl"),
     `a mismatched answer must be dropped: ${labels.join(", ")}`,
+  );
+});
+
+test("focusing another document refreshes the Infoview cards without a diagnostics event", async () => {
+  await activateExtension();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "the Infoview provider must be registered");
+  const posts = [];
+  provider._view = { webview: { postMessage: (message) => posts.push(message) } };
+  provider._ready = true;
+
+  // 第一份：单文件，焦点进入即拿到它的声明卡片。
+  const single = fakeDocument("/repo/playground.sokonanoda");
+  stubbedResponses["soko/goals"] = () => ({
+    decls: [{ name: "decl_single", kind: "theorem", status: "checked", holes: [] }],
+  });
+  focus(single);
+  for (let i = 0; i < 40; i++) await Promise.resolve();
+  const afterSingle = posts.filter((message) => message.type === "decls");
+  assert.ok(
+    afterSingle.at(-1)?.decls?.some((decl) => decl.name === "decl_single"),
+    `focusing a single file must push its cards: ${JSON.stringify(afterSingle)}`,
+  );
+
+  // 第二份：**项目模块**，而且**不发诊断**（项目模式下打开模块的常见情形）。
+  // 这一条钉住的是：`refresh()` 只重建树，而树只有在可见时才走 `getChildren`
+  // ——Infoview 的声明卡片必须由 `trackEditor` 主动推。
+  const projectFile = fakeDocument("/repo/course/unit11-project/Exercises.sokonanoda");
+  stubbedResponses["soko/goals"] = () => ({
+    decls: [
+      { name: "decl_project", kind: "theorem", status: "open", holes: [{ id: "h0", range: {} }] },
+    ],
+  });
+  focus(projectFile);
+  for (let i = 0; i < 60; i++) await Promise.resolve();
+
+  const declsPosts = posts.filter((message) => message.type === "decls");
+  assert.ok(
+    declsPosts.at(-1)?.decls?.some((decl) => decl.name === "decl_project"),
+    `a focus switch alone must push the new document's cards: ${JSON.stringify(declsPosts.at(-1))}`,
+  );
+  assert.ok(
+    goalsRequests().length >= 2,
+    "switching focus must ask the server for the new document's declarations",
   );
 });
 

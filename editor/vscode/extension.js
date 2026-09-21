@@ -236,6 +236,14 @@ class GoalsTreeDataProvider {
     if (uri !== this.uri) {
       this.uri = uri;
       this.refresh();
+      // 切换活动文档时必须**主动**把声明列表推给 Infoview，不能只靠 `refresh()`
+      // 触发的树重建：VS Code 只在 `sokonanoda.goals` 视图**可见**时才会调
+      // `getChildren`，而常见的布局是只开着 Infoview 面板（树收在侧栏里）——
+      // 那时 `onDecls` 根本没人调，卡片就停在上一份文档上（实测：单文件之间切
+      // focus 不更新；项目文件打开也因为不发诊断而完全不更新）。`onDecls` 是
+      // Infoview 拿声明的唯一入口，所以在源头补这一下。
+      // `loadDeclarations` 有并发合并（`_pendingDecls`），与树自己的那次合并。
+      this.ensureDeclarations().catch(() => {});
     }
   }
 
