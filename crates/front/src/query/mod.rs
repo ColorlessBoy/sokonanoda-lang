@@ -114,41 +114,71 @@ impl QueryDoc {
         }
         self.version = version;
         self.text = text.to_string();
-        let update = self.session.update(text, version);
-        self.parse_error = update.parse_error;
-        // 注意：这里手工装配 `CompileOutput`，绕过 `push_event`/`push_error`/
-        // `push_warning` ⇒ `event_cmds`/`error_cmds`/`warning_cmds` 三个平行数组
-        // 在**本文件内**是空的（与 `units.rs` 的 `debug_assert_eq!` 不变量字面
-        // 冲突，WO-010 的 R4）。今天无害：`check()` 只读 `errors`/`warnings`，
-        // 而它们已经**按入口文件**归因（项目模式下下面会整个换成入口模块的
-        // `CompileOutput`，平行数组在那里是齐的）。谁要在这里读 `*_cmds`，先改
-        // 成走 `push_*`，别静默拿空数组当"没有归属"。
-        self.output = crate::compile::CompileOutput {
-            events: update.events.clone(),
-            errors: update.report.errors.clone(),
-            warnings: update.report.warnings.clone(),
-            ..Default::default()
-        };
-        self.report = Some(update.report);
         // 有 `import` 时环境来自整个闭包：单文件会话看不到被导入的声明，
-        // 所以这里覆盖成项目编译的入口报告（无 import 时零变化）。
+        // 所以报告要用项目编译的入口报告（无 import 时零变化）。
+        //
+        // **先算闭包**：它成功时下面那次单文件全量编译会被整个覆盖 ⇒ 纯浪费
+        // （T-A20）。实测：项目模式一次 `set_text` 原本要**编两遍**——先编一遍
+        // 入口单文件、再编整个闭包，然后把前者的报告与事件全丢掉。
         self.project = self.project_compile(text);
-        if let Some(output) = self
+        let project_entry_report = self
             .project
             .as_ref()
-            .and_then(|p| p.entry_module())
-            .map(|module| module.events.clone())
-        {
-            self.output = output;
+            .and_then(|p| p.entry_report())
+            .cloned();
+        match project_entry_report {
+            Some(mut report) => {
+                // 闭包成功：只补 `parse_error`（它是 `usable()` 的一半判据——
+                // 「单独 parse 失败但闭包好」算可用），**不跑**单文件流水线。
+                self.parse_error = crate::parse(text).err();
+                // 项目编译走的是 `compile_all_units`，不经过 Session 的 hint 挂接：
+                // 这里补上，否则带 `import` 的入口会丢掉 `-- soko:hint` 阶梯
+                // （`soko/hints` 与 MCP `hints` 都会答空）。
+                crate::compile::attach_hints_to_report(text, &mut report);
+                self.report = Some(report);
+                // 事件同样取入口模块的（闭包整体在 `project` 里，消费者要它
+                // 就用 `project_view`/`entry_module`）。
+                self.output = self
+                    .project
+                    .as_ref()
+                    .and_then(|p| p.entry_module())
+                    .map(|module| module.events.clone())
+                    .unwrap_or_default();
+            }
+            None => {
+                // 单文件，或闭包失败（入口 `LoadFailed`）：走原来的会话路径。
+                let update = self.session.update(text, version);
+                self.parse_error = update.parse_error;
+                // 注意：这里手工装配 `CompileOutput`，绕过 `push_event`/`push_error`/
+                // `push_warning` ⇒ `event_cmds`/`error_cmds`/`warning_cmds` 三个平行数组
+                // 在**本文件内**是空的（与 `units.rs` 的 `debug_assert_eq!` 不变量字面
+                // 冲突，WO-010 的 R4）。今天无害：`check()` 只读 `errors`/`warnings`。
+                // 谁要在这里读 `*_cmds`，先改成走 `push_*`，别静默拿空数组当"没有归属"。
+                self.output = crate::compile::CompileOutput {
+                    events: update.events.clone(),
+                    errors: update.report.errors.clone(),
+                    warnings: update.report.warnings.clone(),
+                    ..Default::default()
+                };
+                self.report = Some(update.report);
+                if let Some(output) = self
+                    .project
+                    .as_ref()
+                    .and_then(|p| p.entry_module())
+                    .map(|module| module.events.clone())
+                {
+                    self.output = output;
+                }
+            }
         }
-        if let Some(report) = self.project.as_ref().and_then(|p| p.entry_report()) {
-            let mut report = report.clone();
-            // 项目编译走的是 `compile_all_units`，不经过 Session 的 hint 挂接：
-            // 这里补上，否则带 `import` 的入口会丢掉 `-- soko:hint` 阶梯
-            // （`soko/hints` 与 MCP `hints` 都会答空）。
-            crate::compile::attach_hints_to_report(text, &mut report);
-            self.report = Some(report);
-        }
+    }
+
+    /// 这份文档上次编译时用的**内存覆盖**是否与 `overlay` 一致。
+    ///
+    /// 供 LSP 的"文本没变就短路"判断（A7 / T-A21）：**覆盖变了也必须重编**——
+    /// 依赖的未落盘编辑会改变这份文档的闭包结果，哪怕它自己的文本一个字节没动。
+    pub fn overlay_matches(&self, overlay: &[(std::path::PathBuf, String)]) -> bool {
+        self.overlay == overlay
     }
 
     /// 文本里有 `import` 且能定位入口（`--file` 或 `--root`）时，编译整个

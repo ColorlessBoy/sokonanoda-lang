@@ -1143,6 +1143,13 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A20 项目模式不再白编一遍入口单文件
 
+> **实测结果（2026-09-21，做完之后补记）**：收益**远小于预期**——课程入口
+> 单独 parse 就失败（记法来自 import），那次"白编"在 parse 阶段就退出了，
+> 很便宜。实测 unit01/08/12 的 `didOpen` 只快了 **0.6% / 0.9% / 1.1%**，
+> 合成项目（入口能单独 parse）也是 **0%**。仍然保留这个改动（它确实去掉了
+> 一次冗余编译、且让"报告从哪来"更清楚），但**别把它算进性能收益**。
+> 真正的收益在 T-A21（356ms → 0ms）与 T-A10（接缓存）。
+
 - **根因**：A6（`crates/front/src/query/mod.rs:117` vs `:135`/`:144-151`）。
 - **改什么**：项目模式下跳过那次单文件 `session.update`（或让它只为
   `parse_error` 服务而不跑完整流水线）。
@@ -1151,6 +1158,12 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A21 `set_text` 文本未变即短路
 
+> **实测（2026-09-21）**：unit08（8 模块闭包）上一次"同文本 didChange"
+> **356ms → 0ms**。保存、`git checkout`、别的工具写文件都会走这条路，
+> 而它们的内容往往和缓冲区一模一样。哨兵 =
+> `crates/lsp/src/tests/perf_course.rs::perf_course_save_same_text_is_recorded`
+> （`case: "save_same_text"`，阈值 500ms）。
+
 - **根因**：A7。
 - **改什么**：`Doc::set_text` 开头比较 `self.doc.text == text`（且版本/模式相同）
   ⇒ 直接返回（仍按需发诊断，但**不重编**）。
@@ -1158,6 +1171,17 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
   `bash docs/gaps/repro/G25-…sh` 仍 `1`。
 
 #### T-A22 保存 / 编辑器外改动不再重编同一文本
+
+> **实测（2026-09-21）**：**服务端已被 T-A21 的短路覆盖**——
+> `workspace/didChangeWatchedFiles` 在内容没变时 **361ms → 0ms**
+> （哨兵 `perf_course_watched_unchanged_file_is_recorded`，阈值 200ms；
+> 回滚 T-A21 即红，已验证）。
+>
+> **决定：不加客户端 watcher 过滤**。原计划写的是"客户端 watcher 过滤已打开
+> 且未落盘的文档"，但服务端短路之后那条路已经是 0ms，再加一层客户端过滤
+> 只是多一处可能与服务端判断不一致的地方（而且 VS Code 的 watcher 事件不带
+> "这个文档脏不脏"的信息，客户端要自己查）。**一处判据就够了**——这条纪律
+> 在 G-22 上已经付过学费。
 
 - **根因**：A7（watched-files 无过滤 + `did_save` 死代码）。
 - **改什么**：① 客户端 watcher 过滤已打开且未落盘的文档；② 或服务端在
@@ -2299,9 +2323,9 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### 批次 2 · 线 A：缓存 + 清浪费（minor）
 
-- [ ] `T-A20` 项目模式不再白编一遍入口单文件
-- [ ] `T-A21` `set_text` 文本未变即短路
-- [ ] `T-A22` 保存 / 编辑器外改动不再重编同一文本
+- [x] `T-A20` 项目模式不再白编一遍入口单文件
+- [x] `T-A21` `set_text` 文本未变即短路
+- [x] `T-A22` 保存 / 编辑器外改动不再重编同一文本
   - ⬆ **BUMP**：`patch` —— 打开不再白编一遍、保存不再重编同一文本（立刻能感觉到的快）
 - [ ] `T-A24` `project_view_reason()` 不再每次 parse 整份文本
 - [ ] `T-A25` `build <目录>` 的 O(文件数 × 闭包) 如实记账

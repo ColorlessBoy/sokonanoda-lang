@@ -81,6 +81,25 @@ import pathlib
 import sys
 
 raw = pathlib.Path(os.environ["RAW"])
+def representative_ms(record: dict):
+    """一条记录的代表性耗时。
+
+    有些 case 没有 `ms`/`best_ms`（例如 `did_open_and_keystroke` 只有
+    `open_ms` + `keystroke_ms`）——取其中最大的那个 `*_ms`，都没有就 `None`
+    （`None` 会让下面的格式化炸掉，实测踩到）。
+    """
+    for key in ("best_ms", "ms"):
+        value = record.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+    times = [
+        float(v)
+        for k, v in record.items()
+        if (k == "ms" or k.endswith("_ms")) and isinstance(v, (int, float)) and not isinstance(v, bool)
+    ]
+    return max(times) if times else None
+
+
 records = []
 for line in raw.read_text(encoding="utf-8").splitlines():
     if line.startswith("PERFJSON "):
@@ -99,33 +118,38 @@ if ledger.exists():
         except Exception:  # noqa: BLE001
             continue
         for r in entry.get("records", []):
-            ms = r.get("best_ms", r.get("ms"))
+            ms = representative_ms(r)
             if ms is not None:
-                baseline[(r.get("scope"), r.get("case"))] = ms
+                baseline[(r.get("scope"), r.get("case"), str(r.get("entry", "")))] = ms
 
 threshold = float(os.environ["THRESHOLD"])
 print()
-print(f"{'scope':14s} {'case':34s} {'这次':>10s} {'台账上次':>10s} {'变化':>8s}")
-print("-" * 80)
+print(f"{'scope':13s} {'case':26s} {'entry':22s} {'这次':>9s} {'台账上次':>9s} {'变化':>8s}")
+print("-" * 96)
 regressed = []
 for r in records:
-    ms = r.get("best_ms", r.get("ms"))
-    key = (r.get("scope"), r.get("case"))
+    ms = representative_ms(r)
+    key = (r.get("scope"), r.get("case"), str(r.get("entry", "")))
     before = baseline.get(key)
-    if before is None:
+    if ms is None:
+        delta = "（这条没有 *_ms 字段）"
+    elif before is None:
         delta = "（无基线）"
     else:
         pct = (ms - before) / before * 100.0
         delta = f"{pct:+.1f}%"
         if pct > threshold:
             regressed.append((key, ms, before, pct))
-    print(f"{r.get('scope','?'):14s} {r.get('case','?'):34s} {ms:>8}ms {str(before or '-'):>10s} {delta:>8s}")
+    entry_name = str(r.get("entry", "")).split("/")[-1][:22]
+    shown = f"{ms:>7.0f}ms" if ms is not None else "       -"
+    print(f"{r.get('scope','?'):13s} {r.get('case','?'):26s} {entry_name:22s} {shown} {str(before or '-'):>9s} {delta:>8s}")
 
 print()
 if regressed:
     print(f"退化超过 {threshold:.0f}% 的 case：", file=sys.stderr)
-    for (scope, case), ms, before, pct in regressed:
-        print(f"  {scope}/{case}: {before}ms → {ms}ms（{pct:+.1f}%）", file=sys.stderr)
+    for (scope, case, entry_name), ms, before, pct in regressed:
+        where = f"{scope}/{case}" + (f" [{entry_name}]" if entry_name else "")
+        print(f"  {where}: {before}ms → {ms}ms（{pct:+.1f}%）", file=sys.stderr)
     print("先复测一次；仍然退化就查这一版改了什么（docs/PERF.md 的判读纪律）。", file=sys.stderr)
     raise SystemExit(1)
 print(f"没有超过 {threshold:.0f}% 的退化。")

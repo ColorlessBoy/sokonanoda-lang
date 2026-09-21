@@ -204,3 +204,103 @@ async fn perf_course_keystroke_is_recorded() {
     // 量级哨兵：修前同文本 didChange 是 121–476ms；这里给 5s（抓"退化成分钟级"）。
     assert!(best < 5_000, "课程单元一次按键 {best}ms（量级哨兵 5s）");
 }
+
+/// **保存同一文本**（编辑器外改动 / `didSave` 那条路）：文本一个字节没变，
+/// 必须**不重编**。
+///
+/// 计划 T-A21 / T-A60 的用例 #4。改前实测（unit08，8 模块闭包）：一次
+/// "同文本 didChange" 会**重编整个闭包**——保存、`git checkout`、别的工具
+/// 写文件都会走这条路，而它们的内容往往和缓冲区一模一样。
+#[tokio::test]
+async fn perf_course_save_same_text_is_recorded() {
+    let _serial = COURSE_PERF_LOCK.lock().await;
+    let Some(root_dir) = course_root() else {
+        eprintln!("PERF course: 跳过（找不到 courses/set-theory/sokonanoda.toml）");
+        return;
+    };
+    let root = Url::from_directory_path(&root_dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let rel = "units/unit08-images-preimages.sokonanoda";
+    let path = root_dir.join(rel);
+    let text = std::fs::read_to_string(&path).expect("读课程单元");
+    let uri = Url::from_file_path(&path).expect("file url");
+    testutil::did_open_at_drained(&mut service, &mut socket, &uri, &text).await;
+
+    // 同一份文本，走 didChange（保存 / 编辑器外改动的形状）。来回 3 次取最小。
+    let mut best = u128::MAX;
+    for round in 0..3 {
+        let start = std::time::Instant::now();
+        let published = testutil::did_change_at_drained(
+            &mut service,
+            &mut socket,
+            &uri,
+            10 + round as i32,
+            &text,
+        )
+        .await;
+        best = best.min(start.elapsed().as_millis());
+        assert_eq!(published.len(), 1, "一次同文本通知只发一份诊断：{published:?}");
+    }
+
+    println!("PERF course lsp: save_same_text {rel} = {best}ms（文本未变）");
+    perf_json(serde_json::json!({
+        "schema": "soko.perf/1",
+        "scope": "lsp-course",
+        "case": "save_same_text",
+        "entry": rel,
+        "ms": best,
+    }));
+    // 量级哨兵：修前是"重编整个闭包"（秒级）。文本没变就该是毫秒级。
+    assert!(best < 500, "同文本通知 {best}ms（文本没变不该重编；量级哨兵 500ms）");
+}
+
+/// **编辑器外的改动、但内容没变**（保存 / `git checkout` 回到同一份 /
+/// 别的工具重写了同样的字节）：不该重编。
+///
+/// 计划 T-A22（依赖 T-A21 的短路）。`workspace/didChangeWatchedFiles` 是
+/// 扩展早就声明了的 watcher；保存已打开的文件也会走它，而那时**缓冲区与磁盘
+/// 内容一致** ⇒ 文本一个字节没变。
+#[tokio::test]
+async fn perf_course_watched_unchanged_file_is_recorded() {
+    let _serial = COURSE_PERF_LOCK.lock().await;
+    let Some(root_dir) = course_root() else {
+        eprintln!("PERF course: 跳过（找不到 courses/set-theory/sokonanoda.toml）");
+        return;
+    };
+    let root = Url::from_directory_path(&root_dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let rel = "units/unit08-images-preimages.sokonanoda";
+    let path = root_dir.join(rel);
+    let text = std::fs::read_to_string(&path).expect("读课程单元");
+    let uri = Url::from_file_path(&path).expect("file url");
+    testutil::did_open_at_drained(&mut service, &mut socket, &uri, &text).await;
+
+    // 磁盘内容一个字节没动，只发一条 watcher 通知（保存 / 外部重写同字节）。
+    let mut best = u128::MAX;
+    for _ in 0..3 {
+        let start = std::time::Instant::now();
+        let _ = testutil::notify_with_drain(
+            &mut service,
+            &mut socket,
+            "workspace/didChangeWatchedFiles",
+            serde_json::json!({"changes": [{"uri": uri, "type": 2}]}),
+        )
+        .await;
+        best = best.min(start.elapsed().as_millis());
+    }
+
+    println!("PERF course lsp: watched_unchanged {rel} = {best}ms（内容没变）");
+    perf_json(serde_json::json!({
+        "schema": "soko.perf/1",
+        "scope": "lsp-course",
+        "case": "watched_unchanged",
+        "entry": rel,
+        "ms": best,
+    }));
+    // 量级哨兵：修前是"重编整个闭包"（与 save_same_text 同量级，几百 ms）。
+    assert!(best < 200, "内容没变的 watcher 通知 {best}ms（不该重编；量级哨兵 200ms）");
+}

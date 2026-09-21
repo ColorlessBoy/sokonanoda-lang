@@ -146,6 +146,19 @@ impl Doc {
         // 有 `import` 的文档走**项目闭包**：单文件缓存键会张冠李戴（依赖不在
         // 键里），所以这里既不复用也不写入单文件缓存（I16 P5）。
         let has_imports = sokonanoda_front::project::is_project_source(text);
+        // **文本、prelude 模式、入口路径、依赖覆盖都没变 ⇒ 不重编**（A7 / T-A21）。
+        // 保存（`didSave`）与编辑器外改动（`workspace/didChangeWatchedFiles`）
+        // 会带着**完全相同的文本**再走一遍这里——以前那会重编整个闭包
+        // （实测 unit08：356ms，而它一个字节都没变）。
+        // 覆盖也要比：依赖的未落盘编辑会改这份文档的闭包结果。
+        if self.doc.text == text
+            && self.doc.mode == mode
+            && self.doc.path == path
+            && self.doc.overlay_matches(overlay)
+        {
+            self.doc.version = lsp_version as u64;
+            return;
+        }
         self.doc.path = path;
         // `root` 留给 CLI 的 `--root`；编辑器一律走发现规则（见 `entry_path`）。
         self.doc.root = None;

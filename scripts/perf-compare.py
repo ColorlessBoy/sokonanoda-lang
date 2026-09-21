@@ -74,10 +74,24 @@ def descriptors(record: dict) -> dict:
     return {k: v for k, v in record.items() if k in DESCRIPTORS}
 
 
-def index(entry: dict) -> dict[tuple[str, str], dict]:
-    out: dict[tuple[str, str], dict] = {}
+def key_of(record: dict) -> tuple[str, str, str]:
+    """`(scope, case, entry)` —— **`entry` 也要进键**。
+
+    真实课程那几条 `did_open` 共用同一个 `(scope, case)`，只有 `entry` 不同
+    （unit01 / unit08 / unit12）。只用前两段做键会把三条压成一条，对比表里
+    三行显示同一个"上次"值（实测踩到：三条都对着 7871 比）。
+    """
+    return (
+        str(record.get("scope", "?")),
+        str(record.get("case", "?")),
+        str(record.get("entry", "")),
+    )
+
+
+def index(entry: dict) -> dict[tuple[str, str, str], dict]:
+    out: dict[tuple[str, str, str], dict] = {}
     for record in entry.get("records", []):
-        out[(record.get("scope", "?"), record.get("case", "?"))] = record
+        out[key_of(record)] = record
     return out
 
 
@@ -107,27 +121,29 @@ def compare(
         notes.append(f"两条记录**不可比**：{host_reason}（只提示，不判红）")
 
     for key in sorted(set(b) | set(a)):
-        scope, case = key
+        scope, case, entry_name = key
         if key not in b:
-            rows.append({"scope": scope, "case": case, "metric": "-", "before": None,
-                         "after": None, "pct": None, "note": "新增（无基线）"})
+            rows.append({"scope": scope, "case": case, "entry": entry_name, "metric": "-",
+                         "before": None, "after": None, "pct": None, "note": "新增（无基线）"})
             continue
         if key not in a:
             # 宿主不同时连"消失"也不判红：两条记录本来就不是同一口径，
             # 可能只是这一版用 `--no-build` 少跑了套件（计划 §0.6 的规则 ④）。
             if host_ok:
-                rows.append({"scope": scope, "case": case, "metric": "-", "before": None,
-                             "after": None, "pct": None, "note": "**消失**"})
-                regressions.append({"scope": scope, "case": case, "metric": "-",
-                                    "before": None, "after": None, "pct": None,
+                rows.append({"scope": scope, "case": case, "entry": entry_name, "metric": "-",
+                             "before": None, "after": None, "pct": None, "note": "**消失**"})
+                regressions.append({"scope": scope, "case": case, "entry": entry_name,
+                                    "metric": "-", "before": None, "after": None, "pct": None,
                                     "reason": "哨兵消失（这一版不再记录这个 case）"})
             else:
-                rows.append({"scope": scope, "case": case, "metric": "-", "before": None,
-                             "after": None, "pct": None, "note": "消失（不可比，不判红）"})
+                rows.append({"scope": scope, "case": case, "entry": entry_name, "metric": "-",
+                             "before": None, "after": None, "pct": None,
+                             "note": "消失（不可比，不判红）"})
             continue
         if descriptors(b[key]) != descriptors(a[key]):
-            rows.append({"scope": scope, "case": case, "metric": "-", "before": None,
-                         "after": None, "pct": None, "note": "夹具不同（哨兵被改了？）"})
+            rows.append({"scope": scope, "case": case, "entry": entry_name, "metric": "-",
+                         "before": None, "after": None, "pct": None,
+                         "note": "夹具不同（哨兵被改了？）"})
             continue
         fb, fa = flatten(b[key]), flatten(a[key])
         for metric in sorted(set(fb) & set(fa)):
@@ -135,7 +151,7 @@ def compare(
             if base <= 0:
                 continue
             pct = (now - base) / base * 100.0
-            row = {"scope": scope, "case": case, "metric": metric,
+            row = {"scope": scope, "case": case, "entry": entry_name, "metric": metric,
                    "before": base, "after": now, "pct": pct, "note": ""}
             if not host_ok:
                 row["note"] = "不可比"
@@ -161,15 +177,16 @@ def render(rows: list[dict], regressions: list[dict], notes: list[str], before: 
     for note in notes:
         print(f"⚠ {note}")
     print()
-    print(f"{'scope':14s} {'case':32s} {'指标':18s} {'基准':>10s} {'这次':>10s} {'变化':>9s}  说明")
-    print("-" * 108)
+    print(f"{'scope':13s} {'case':26s} {'entry':22s} {'指标':16s} {'基准':>9s} {'这次':>9s} {'变化':>8s}  说明")
+    print("-" * 132)
     for row in rows:
         base = f"{row['before']:.1f}" if row["before"] is not None else "-"
         now = f"{row['after']:.1f}" if row["after"] is not None else "-"
         pct = f"{row['pct']:+.1f}%" if row["pct"] is not None else "-"
+        entry_name = (row.get("entry") or "").split("/")[-1][:22]
         print(
-            f"{row['scope']:14s} {row['case']:32s} {row['metric']:18s} "
-            f"{base:>10s} {now:>10s} {pct:>9s}  {row['note']}"
+            f"{row['scope']:13s} {row['case']:26s} {entry_name:22s} {row['metric']:16s} "
+            f"{base:>9s} {now:>9s} {pct:>8s}  {row['note']}"
         )
     print()
     if regressions:
