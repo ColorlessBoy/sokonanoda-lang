@@ -394,7 +394,12 @@ class GoalsTreeDataProvider {
     // 返回 `undefined`。激活时活动编辑器已经是 `.sokonanoda` 就是这种情况——
     // 若把它记成"取过了"，E6 的空转就换个形式回来了（面板停在「等待编译…」，
     // 直到下一次诊断事件）。
-    if (response === undefined) return;
+    if (response === undefined) {
+      // 取数没成功：**不能假装"没有声明"**（T-B12 的三态）。区分两种原因——
+      // 客户端还没起来是正常的启动中间态（"编译中"），否则是真的失败了。
+      this.onStatus?.({ state: client ? "error" : "loading" });
+      return;
+    }
     this._declsUri = requestedUri;
     this.declItems = decls.map((decl) => {
       const item = new vscode.TreeItem(decl.name, decl.status === "open"
@@ -439,11 +444,32 @@ function isSokonanodaFile(uri) {
 // 字段顺序固定，避免同一份数据因键序不同而误判为新内容。
 function declsFingerprint(decls) {
   if (!Array.isArray(decls)) return "[]";
+  // **类型文本与行号也要进指纹**（E8，计划 T-B11）：只含
+  // `name/kind/status/holes[0].id` 时，"只改了类型"的更新会被判成"没变"
+  // ⇒ 卡片上的 `ty` 与 `L<n>` 停在旧值（而树里的行已经重建过了）。
+  //
+  // 为什么用 `ty_runs` 的长度 + 首尾文本而不是整条 `ty`：一次诊断事件里
+  // 50 条声明的完整类型串起来是几十 KB，而这个指纹每次 `setDecls` 都要算。
+  // 首尾 + 长度足以发现"类型变了"（改一个标识符/一层箭头都会动到首或尾），
+  // 又不会把每次按键都变成一次大字符串比较。
+  const tyDigest = (decl) => {
+    const runs = Array.isArray(decl?.ty_runs) ? decl.ty_runs : [];
+    if (runs.length > 0) {
+      const first = String(runs[0]?.text ?? "");
+      const last = String(runs[runs.length - 1]?.text ?? "");
+      return [runs.length, first, last];
+    }
+    const ty = String(decl?.ty ?? "");
+    return [0, ty.slice(0, 24), ty.slice(-24)];
+  };
   return JSON.stringify(decls.map((decl) => [
     decl?.name ?? null,
     decl?.kind ?? null,
     decl?.status ?? null,
     decl?.holes?.[0]?.id ?? null,
+    // 行号提示（`L<n>`）也跟着 span 走。
+    decl?.range?.start?.line ?? null,
+    tyDigest(decl),
   ]));
 }
 

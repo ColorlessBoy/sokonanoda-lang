@@ -1981,7 +1981,12 @@ impl Parser {
         let lhs = self.parse_plus()?;
         if self.peek().kind == TokenKind::Arrow {
             self.bump();
-            let rhs = self.parse_arrow()?;
+            // RHS 走 **`parse_expr`**（G-28）：`parse_arrow` 只认"算符链 + 原子"，
+            // 于是 `A -> forall (x : Prop), …` / `A -> fun x => …` / `A -> let …`
+            // 全都报 `unexpected-token`（expected an expression, found Forall），
+            // 而 `↔` 的 RHS 走 `parse_expr` ⇒ 只有 `→` 不认（Lean 4 里这些都合法）。
+            // 右结合性不变：`A -> B -> C` 仍然解析成 `A -> (B -> C)`。
+            let rhs = self.parse_expr()?;
             let span = Span::new(lhs.span().start, rhs.span().end);
             return Ok(Expr::Arrow {
                 domain: Box::new(lhs),
@@ -3515,6 +3520,47 @@ example : Prop -> Prop := sorry
             })
         ));
         assert!(matches!(body.as_ref(), Expr::Ident { name, .. } if name == "x"));
+    }
+
+    /// **G-28**：`→` 右边直接跟 `∀` / `forall` 必须解析（Lean 4 里合法）。
+    ///
+    /// 改前 `parse_arrow` 的 RHS 直接调 `parse_arrow()`，绕过 `parse_expr`
+    /// （`forall`/`fun`/`let`/`match` 的入口）⇒ 报
+    /// `unexpected-token`「expected an expression, found Forall」；
+    /// 而 `↔` 的 RHS 走 `parse_expr` ⇒ **只有 `→` 不认**。
+    #[test]
+    fn arrow_rhs_accepts_forall_fun_and_let() {
+        // `A -> ∀ x, …`（课程正文里很常见的形状）。
+        let file = parse("#check Prop -> forall (x : Prop), x -> x\n").unwrap();
+        let Command::Check { expr, .. } = &file.commands[0] else {
+            panic!("expected #check");
+        };
+        // `A -> B` 是 `Expr::Arrow`（不是 Forall）——RHS 才是那个 forall。
+        let Expr::Arrow { codomain, .. } = expr else {
+            panic!("expected an Arrow at the top, got {expr:?}");
+        };
+        assert!(
+            matches!(codomain.as_ref(), Expr::Forall { .. }),
+            "`->` 的 RHS 必须是一个 forall，实际 = {codomain:?}"
+        );
+
+        // `∀` 的 unicode 写法与 `fun` / `let` 同样要认。
+        parse("#check Prop -> ∀ (x : Prop), x -> x\n").expect("`∀` 也要认");
+        parse("#check Prop -> fun (x : Prop) => x\n").expect("`fun` 也要认");
+        parse("#check Prop -> let x : Prop := Prop; x\n").expect("`let` 也要认");
+
+        // **右结合性不变**：`A -> B -> C` 仍然是 `A -> (B -> C)`。
+        let file = parse("#check Prop -> Prop -> Prop\n").unwrap();
+        let Command::Check { expr, .. } = &file.commands[0] else {
+            panic!("expected #check");
+        };
+        let Expr::Arrow { codomain, .. } = expr else {
+            panic!("expected an Arrow");
+        };
+        assert!(
+            matches!(codomain.as_ref(), Expr::Arrow { .. }),
+            "`->` 必须右结合（`A -> (B -> C)`），实际 = {codomain:?}"
+        );
     }
 
     #[test]

@@ -382,3 +382,17 @@ Marketplace 详情页把 `description` 当"短简介"，**超过 300 字符直�
 HTTPS_PROXY=http://127.0.0.1:7890 npx --yes @vscode/vsce show <publisher>.<name>
 # 核对：Version 与 tag 一致、description 已更新、Marketplace 网页 README 渲染正常
 ```
+
+23. **同一条"能不能用"的判据写两遍，就会有一处漏掉（G-22，2026-09-21）** ——
+    "单独 parse 失败但 `import` 闭包编译成功 ⇒ 这份文档可用"这条判据，曾经在
+    `QueryDoc::check()` 与 LSP 的 `Doc::set_text` 里各写了一遍，而
+    `QueryDoc::goals()` **漏了** ⇒ 项目入口（用库记法的课程单元）的
+    `soko/goals` 恒为空：**声明栏空、`alt+n` 没反应**，而目标栏/悬停/文档符号
+    全都正常——这种"一半好一半坏"的不对称最难查。现在判据收敛成
+    **一处** `QueryDoc::usable()`。规矩：**凡是"这份文档能不能用"的判断，
+    只能有一个函数**；发现第二处就合并。
+    同族的第二条（E6）：**"取过没有"不能看 `declItems` 的真值**——
+    `decls = []` 时 `declItems = []`，而 `![]` 是 `false` ⇒ 之后每次
+    `ensureDeclarations()` 全空转。用 URI（`_declsUri`）记，别用真值。
+    第三条：**取数失败（`response === undefined`）不算"取过了"**——
+    否则"激活时活动编辑器已是 `.sokonanoda`"（VS Code 重启的常态）会永久空转。

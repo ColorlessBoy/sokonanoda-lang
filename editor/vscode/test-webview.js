@@ -224,6 +224,66 @@ test("decls: name, 1-based line hint and type line; rows are not interactive", (
   );
 });
 
+test("decls empty: the three reasons are told apart (T-B12)", () => {
+  // 计划 T-B12：声明栏为空时以前一律「暂无声明。」——用户看到的是"插件坏了"，
+  // 而其实可能只是还在编译、或者那次请求根本没成功。三种原因必须说清楚。
+  // **限定在声明区**：目标区也有一条 `empty` 占位（「等待编译…」），
+  // 直接 `byClass(root, "empty")` 会同时命中两条。
+  const declsBodyOf = (root) => {
+    const bodies = byClass(root, "decls");
+    assert.strictEqual(bodies.length, 1, "声明区必须只有一个容器");
+    return bodies[0];
+  };
+  const emptyText = (send, root) => {
+    const empty = byClass(declsBodyOf(root), "empty");
+    assert.strictEqual(empty.length, 1, "声明区空态必须有一行说明");
+    return textOf(empty[0]);
+  };
+
+  // ① 真的没有声明（状态 ready、列表为空）。
+  {
+    const { root, send } = loadInfoview();
+    send({ protocol: 1, type: "status", state: "ready", decls: 0 });
+    send({ protocol: 1, type: "decls", decls: [] });
+    assert.strictEqual(emptyText(send, root), "这个文件没有声明。");
+  }
+
+  // ② 服务器还没编译完。
+  {
+    const { root, send } = loadInfoview();
+    send({ protocol: 1, type: "status", state: "loading" });
+    send({ protocol: 1, type: "decls", decls: [] });
+    assert.strictEqual(emptyText(send, root), "编译中…（声明列表稍后出现）");
+  }
+
+  // ③ 读取失败。
+  {
+    const { root, send } = loadInfoview();
+    send({ protocol: 1, type: "status", state: "error" });
+    send({ protocol: 1, type: "decls", decls: [] });
+    assert.ok(
+      emptyText(send, root).startsWith("读取声明失败"),
+      "读取失败必须说出来（而不是假装「没有声明」）",
+    );
+  }
+
+  // ④ 状态**后**到也要刷新那句话（先画空列表、后收到状态的顺序很常见）。
+  {
+    const { root, send } = loadInfoview();
+    send({ protocol: 1, type: "decls", decls: [] });
+    send({ protocol: 1, type: "status", state: "loading" });
+    assert.strictEqual(emptyText(send, root), "编译中…（声明列表稍后出现）");
+  }
+
+  // ⑤ 有声明时不许出现空态行。
+  {
+    const { root, send } = loadInfoview();
+    send({ protocol: 1, type: "status", state: "ready", decls: 1 });
+    send({ protocol: 1, type: "decls", decls: [{ name: "t", kind: "theorem", status: "checked" }] });
+    assert.strictEqual(byClass(declsBodyOf(root), "empty").length, 0, "有声明时不该有空态行");
+  }
+});
+
 test("status: loading shows 编译中…", () => {
   const { root, send } = loadInfoview();
   send({ protocol: 1, type: "status", state: "loading" });

@@ -799,6 +799,13 @@ Envelope (every answer, success or failure):
   two is what forced agents to re-derive state from text before. A source text
   that does not parse is **never** answered with an empty result: `check` reports
   the parse diagnostic in `failed[]`, `goals`/`holes` answer `not-parsable`.
+- **"does not parse" 的精确含义**（G-22 起，`QueryDoc::usable()` 是唯一判据）：
+  **单独** parse 失败**但** `import` 闭包编译成功时，这份文本**算可用** ——
+  记法随 `import` 传播之后，用库记法的单元"单文件必然 parse 失败"是**常态**，
+  那条 parse 诊断是救援过程的中间产物，不是结论。只有**闭包也失败**（入口
+  `LoadFailed`）才答 `not-parsable` / 把 parse 诊断放进 `check.failed[]`。
+  同一条判据供 `check` / `goals` / `holes` / `nextHole` 与 LSP 的 `set_text`
+  共用（以前各写一遍，`goals` 漏了 ⇒ 项目入口的声明栏恒为空）。
 - **Exit codes**: `0` = answered (an open `sorry` exercise is a legal state),
   `1` = the file was rejected — kernel-rejected declarations, a **parse failure**
   (its `check.failed[]` carries the parse diagnostic; `goals`/`holes` answer

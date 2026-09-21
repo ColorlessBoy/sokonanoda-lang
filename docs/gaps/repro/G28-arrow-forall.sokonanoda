@@ -14,3 +14,8 @@
 -- 修后契约：本文件干净判卷（有 checked 声明、无 diagnostic、exit 0）。
 
 theorem arrow_then_forall (A : Prop) : A -> forall (x : Prop), x -> x := sorry
+
+-- 同一形状的**已证**版本：`gap.py` 对 `.sokonanoda` 复现的判据要求"有 checked
+-- 声明"（只看 `sorry` 的话 `decl.checked` 是 0，关账会被拒）。
+theorem arrow_then_forall_proved (A : Prop) (h : A) : A -> (forall (x : Prop), x -> x) :=
+  fun (ha : A) (x : Prop) (hx : x) => hx

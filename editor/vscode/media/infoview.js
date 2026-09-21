@@ -20,6 +20,8 @@
   // host-side cursorRequestSeq).
   let lastUri;
   let lastVersion = -1;
+  let lastDeclsPayload = [];
+  let showingEmptyDecls = false;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -109,19 +111,40 @@
   // Host `status` message (never a silent blank): `loading` while a soko/goals
   // fetch is in flight, `ready` with the declaration count once it lands, and
   // `idle` when there is no `.sokonanoda` document yet.
+  // 声明栏为空时要分清三种原因（计划 T-B12）：**真的没有声明** /
+  // **服务器还没编译完** / **读取失败**。以前一律「暂无声明。」——用户看到的
+  // 是"插件坏了"，而其实可能只是还在编译，或者那次请求根本没成功。
+  let lastStatusState = "idle";
+
+  function emptyDeclsText() {
+    if (lastStatusState === "loading") return "编译中…（声明列表稍后出现）";
+    if (lastStatusState === "error") {
+      return "读取声明失败——看「sokonanoda」输出面板，或跑一次 sokonanoda: restart server。";
+    }
+    if (lastStatusState === "idle") return "等待 .sokonanoda 文件。";
+    return "这个文件没有声明。";
+  }
+
   function renderStatus(status) {
     clear(statusLine);
     const state = (status && status.state) || "idle";
+    lastStatusState = state;
     let text;
     if (state === "ready") {
       const count = typeof status.decls === "number" ? status.decls : 0;
       text = "已就绪 · " + count + " 个声明";
     } else if (state === "loading") {
       text = "编译中…";
+    } else if (state === "error") {
+      text = "读取声明失败";
     } else {
       text = "等待 .sokonanoda 文件";
     }
     statusLine.appendChild(el("span", "status status-" + state, text));
+    // 状态变了，空态那句话也要跟着变（面板可能先画了空列表、后收到状态）。
+    // 用一个标志位而不是 `querySelector`：webview 的 stub DOM（测试用）只实现了
+    // 最小集合，查选择器会让测试在无关的地方炸掉。
+    if (showingEmptyDecls) renderDecls(lastDeclsPayload);
   }
 
   function renderGoals(msg) {
@@ -224,12 +247,15 @@
   // webview is a read-only presentation layer now — no click, no postMessage
   // (jumping is the tree's job), so a row can never be mistaken for a button.
   function renderDecls(decls) {
+    lastDeclsPayload = decls;
     clear(declsBody);
     const list = Array.isArray(decls) ? decls : [];
     if (list.length === 0) {
-      declsBody.appendChild(el("p", "empty", "暂无声明。"));
+      showingEmptyDecls = true;
+      declsBody.appendChild(el("p", "empty", emptyDeclsText()));
       return;
     }
+    showingEmptyDecls = false;
     list.forEach(function (decl) {
       const name = decl && decl.name ? decl.name : "?";
       const row = el("div", "decl " + ((decl && decl.status) || ""));

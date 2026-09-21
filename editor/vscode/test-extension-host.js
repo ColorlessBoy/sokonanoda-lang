@@ -755,6 +755,55 @@ test("identical declaration lists are not posted to the Infoview twice", async (
   void context;
 });
 
+test("a declaration whose type changed is reposted even if nothing else did", async () => {
+  // E8（计划 T-B11）：指纹只含 `name/kind/status/holes[0].id` 时，"只改了类型"
+  // 会被判成"没变" ⇒ 卡片上的类型行与 `L<n>` 停在旧值（树已经重建过了，
+  // 面板却还是旧的——最难发现的那一类不一致）。
+  const context = await activateExtension();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "the Infoview provider must be registered");
+  const posts = [];
+  provider._view = { webview: { postMessage: (message) => posts.push(message) } };
+  provider._ready = true;
+  const declsPosted = () => posts.filter((message) => message.type === "decls").length;
+
+  const base = {
+    name: "and_swap",
+    kind: "theorem",
+    status: "checked",
+    holes: [],
+    ty: "And a b -> And b a",
+    range: { start: { line: 3 } },
+  };
+  provider.setDecls([base]);
+  const afterFirst = declsPosted();
+
+  // 只换类型（名字/种类/状态/洞 id 全不变）。
+  provider.setDecls([{ ...base, ty: "And b a -> And a b" }]);
+  assert.strictEqual(
+    declsPosted(),
+    afterFirst + 1,
+    "只改类型也必须重发（E8）",
+  );
+
+  // 只换行号（类型文本不变）。
+  provider.setDecls([{ ...base, ty: "And b a -> And a b", range: { start: { line: 9 } } }]);
+  assert.strictEqual(
+    declsPosted(),
+    afterFirst + 2,
+    "只改行号也必须重发（卡片上的 `L<n>` 跟着 span 走）",
+  );
+
+  // 完全一样的一份（新对象、内容相同）仍然不许重发。
+  provider.setDecls([{ ...base, ty: "And b a -> And a b", range: { start: { line: 9 } } }]);
+  assert.strictEqual(
+    declsPosted(),
+    afterFirst + 2,
+    "内容没变就别重发（整表重建 50 条 ≈ 1200 个 DOM 节点）",
+  );
+  void context;
+});
+
 test("an answer that names another document is dropped", async () => {
   await activateExtension();
   const canvas = fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda");
