@@ -684,3 +684,51 @@ fn query_project_answers_after_a_cache_hit() {
         "模块表计数也必须一致（LSP 的跨文件能力读的就是它）"
     );
 }
+
+/// **T-A04**：带 `sorry` 的**项目**，冷/热 `--json` 逐字节一致——而且热跑**真的命中**。
+///
+/// 为什么要单列：`sorry` 是 `exercise.open`（**不是** warning——G-24 的实测更正），
+/// 事件流里多一条，而 agent 的判卷通道读的就是它。缓存回放必须把它一模一样地
+/// 放回来，否则热跑会"少一条事件"，看起来像"练习被做完了"。
+#[test]
+fn a_project_with_an_open_exercise_is_byte_identical_cold_and_warm() {
+    let dir = tmp_dir("warm-sorry");
+    let cache = dir.join(".cache");
+    write(&dir, "Lib.sokonanoda", "axiom P : Prop\n");
+    write(
+        &dir,
+        "Main.sokonanoda",
+        "import Lib\n\ntheorem t (h : P) : P := by\n  sorry\n",
+    );
+
+    // 冷跑（`grade` 自己会写缓存）。
+    let cold = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
+    assert!(cold.status.success(), "stderr: {}", stderr(&cold));
+    assert!(
+        stdout(&cold).contains("exercise.open"),
+        "夹具前提：这份项目里有一个开放的 sorry：{}",
+        stdout(&cold)
+    );
+
+    // 让目录里**每个**文件都热起来，并确认真的全命中（否则这条测试是空的）。
+    let _ = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    let warm_build = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    assert!(
+        stdout(&warm_build).contains("\"compiled\":0"),
+        "夹具前提：第二次 build 必须全命中（否则测不到缓存回放）：{}",
+        stdout(&warm_build)
+    );
+
+    // 热跑：逐字节一致。
+    let warm = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
+    assert_eq!(
+        stdout(&cold),
+        stdout(&warm),
+        "带 sorry 的项目冷/热 `--json` 必须逐字节一致"
+    );
+    assert_eq!(
+        cold.status.code(),
+        warm.status.code(),
+        "退出码也要一致（0=答上了）"
+    );
+}

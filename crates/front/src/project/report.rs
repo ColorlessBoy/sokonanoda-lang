@@ -157,9 +157,20 @@ impl ProjectReport {
     /// 只有干净的项目才进缓存——缓存条目里只有**入口**的报告与事件，带诊断的
     /// 项目回放不出依赖模块的诊断，而冷跑/热跑必须逐字节一致（A1 的多文件版）。
     pub fn is_clean(&self) -> bool {
+        // **`requires_warning` 不算"不干净"**（T-A05 / G-24）。
+        //
+        // 它是"清单声明的 `requires` 与当前二进制版本不一致"的提示——一个
+        // **可回放的确定性事实**：同一条目回放时把警告一起放回来，用户看到的
+        // 东西逐字相同（`requires_warning` 是 `ProjectReport` 的字段，
+        // T-A03 起随条目一起缓存）。把它算成"不干净"的后果是**整个项目永不
+        // 写缓存**：`courses/set-theory` 的 `requires = "0.61"` 让 35 个文件的
+        // `build` 热跑只命中 1 个（实测冷 2m29.8s / 热 2m30.2s，见
+        // `docs/PERF.md`），而那个警告本身只是一行提示。
+        //
+        // 保留在判据里的仍然是"**诊断**"——错误与真正的 warning 会改变用户
+        // 看到的东西、且归因依赖具体文件，那些不该被回放成缓存。
         !self.has_errors()
             && self.diagnostics.is_empty()
-            && self.requires_warning.is_none()
             && self
                 .modules
                 .iter()

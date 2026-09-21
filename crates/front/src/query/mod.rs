@@ -456,6 +456,30 @@ impl QueryDoc {
                 }
             })
             .collect();
+        // **清单 `requires` 漂移也要说出来**（T-A05 / G-24 的另一半）。
+        //
+        // 为什么必须在这里说：那条漂移**不再关掉缓存**了（`is_clean()` 把它摘了
+        // 出去——它是可回放的确定性事实），于是机器可读通道里就再也没有它的影子。
+        // 用户看不到提示、只看到"版本对不上"的困惑，比缓存不工作更糟。
+        // 归到**入口文件第 1 行**（清单不在入口文件里，但漂移是关于这份文档的）。
+        let mut warnings: Vec<WarningInfo> = warnings;
+        if let Some(note) = self.project.as_ref().and_then(|p| p.requires_warning.clone()) {
+            warnings.push(WarningInfo {
+                code: "manifest-version".to_string(),
+                message: note,
+                hint: Some(
+                    "把清单的 `requires` 改成当前版本（`sokonanoda version --json` 的 \
+                     `version`）可以消掉这条提示；它不影响判卷，也不影响缓存。"
+                        .to_string(),
+                ),
+                start: 0,
+                end: 0,
+                start_line: 1,
+                start_col: 1,
+                end_line: 1,
+                end_col: 1,
+            });
+        }
         CheckSummary {
             version: self.version,
             counts,
