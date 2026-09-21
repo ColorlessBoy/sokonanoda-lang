@@ -110,6 +110,25 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 | `perf_project_requests_are_interactive` | 同上 | 项目入口的 hover / definition / goals 各 < 50ms |
 | `editor/vscode/test-extension-host.js`（7 例） | 扩展宿主 stub | 诊断过滤/合并、并发 goals 合并、切文件丢弃过期答案、webview 去重、课程树缓存 |
 
+### `build <目录>` 是 O(文件数 × 闭包)（T-A25，2026-09-21 实测）
+
+`crates/cli/src/build.rs` 对目录里**每个** `*.sokonanoda` 各跑一次
+`plan_project` + `compile_plan` —— 每个入口都编**自己那一份完整闭包**，
+文件之间不共享。实测 `courses/set-theory`（35 个文件，debug CLI、隔离缓存）：
+
+| | 耗时 | build 摘要 |
+|---|---|---|
+| 冷跑 | **2m29.8s** | `0 hit, 35 compiled, 0 failed` |
+| 热跑（同一缓存） | **2m30.2s** | `1 hit, 34 compiled, 0 failed` |
+
+**热跑几乎不省**：只有 1 个文件命中。原因是那个 `requires = "0.61"` 的版本漂移
+（**G-24**）——`requires_warning` 让 `is_clean()` 为假 ⇒ 项目缓存永不写。
+G-24 修好之后，热跑会变成"每个入口各命中一次"（仍然是 35 条键，但每条都命中）。
+
+**含义**：编辑器里的 `sokonanoda: build`（`alt+b`）在大课程上就是**分钟级**，
+而且它**不是**"编一次全项目"——它是"每个文件各编一遍闭包"。
+真正的修法是 T-K30（按模块根分组、每个模块只编一次），依赖线 K 的跨模块增量。
+
 ### 性能回归怎么判（`scripts/perf-compare.py`，T-022）
 
 以前只有**人肉规则**（"优先比 `best_ms`、±25% 内算同档"）——100+ 个环节推进时，

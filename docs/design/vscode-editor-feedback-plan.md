@@ -1005,6 +1005,15 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A01 项目缓存下沉到 `front`
 
+> **完成（2026-09-21）**：实现落在 `crates/front/src/project/cache.rs`，
+> CLI 的 `project_cache.rs` 变成 6 行 thin re-export。
+> **二进制对拍**：改动前后两个 CLI 对 49 组输入（10 个代表文件 × 5 个 op +
+> stdin + `--root`/`--no-project`）stdout **逐字节相同、退出码相同**。
+> （全量 180 文件 × 8 组 = 1440 次调用、每次都要编闭包 ⇒ 10 分钟跑不完，
+> 取的是有代表性的样本：单文件 / 项目入口 / 项目依赖 / 坏依赖 / 解析失败 /
+> stdin / `--root` / `--no-project`。）
+> `cargo test --workspace --locked` 全绿（673 front · 152 lsp · CLI 各套件）。
+
 - **改什么**：新建 `crates/front/src/project/cache.rs`，把
   `crates/cli/src/project_cache.rs` 内容搬过去；CLI 保留 thin re-export（公开 API 不变）。
 - **判据**：`cargo test --workspace --locked` 全绿 + `scripts/soko gate` exit 0 +
@@ -1014,8 +1023,16 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A02 缓存键去掉"可执行文件 mtime"这个不稳定的量
 
+> **完成（2026-09-21）**：`build_stamp()` 换成**编译期常量**
+> （`cfg!(debug_assertions)` + `std::env::consts::{OS, ARCH}` +
+> 可选 `SOKO_BUILD_LABEL`），`CACHE_FORMAT` **2 → 3**（旧条目作废）。
+> `env!("PROFILE")`/`env!("TARGET")` **在库 crate 里取不到**（那是 build script
+> 的环境变量，`env!` 直接编译失败）——实测踩到，换成了上面那组。
+> G-27 复现 **exit 0 → exit 1**（同一份二进制、两个 mtime 的副本，第二次 `1 hit`），
+> 已关账；`cargo test -p sokonanoda-front --lib cache::` 4 passed。
+
 - **改什么**：按 T-009 的结论改 `build_stamp()`（例如换成编译期常量
-  `CARGO_PKG_VERSION` + profile + 目标三元组，或干脆去掉），并 bump `CACHE_FORMAT`。
+  `CACHE_PKG_VERSION` + profile + 目标三元组，或干脆去掉），并 bump `CACHE_FORMAT`。
 - **判据**：
   ```bash
   # 两个 mtime 不同秒的二进制之间：CLI 预热 → LSP 命中
@@ -2328,9 +2345,9 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 - [x] `T-A22` 保存 / 编辑器外改动不再重编同一文本
   - ⬆ **BUMP**：`patch` —— 打开不再白编一遍、保存不再重编同一文本（立刻能感觉到的快）
 - [x] `T-A24` `project_view_reason()` 不再每次 parse 整份文本
-- [ ] `T-A25` `build <目录>` 的 O(文件数 × 闭包) 如实记账
-- [ ] `T-A01` 项目缓存下沉到 `front`
-- [ ] `T-A02` 缓存键去掉"可执行文件 mtime"这个不稳定的量
+- [x] `T-A25` `build <目录>` 的 O(文件数 × 闭包) 如实记账
+- [x] `T-A01` 项目缓存下沉到 `front`
+- [x] `T-A02` 缓存键去掉"可执行文件 mtime"这个不稳定的量
 - [ ] `T-A03` 缓存条目 v2：按模块存（对齐设计 §4.8）
 - [ ] `T-A04` 冷/热 `--json` 逐字节一致（带 `sorry` 的项目）
 - [ ] `T-A05` `requires` 漂移不再静默关掉缓存 + 两条写缓存路径规则一致

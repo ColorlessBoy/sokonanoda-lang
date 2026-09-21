@@ -8,6 +8,7 @@
 //!   内核一行不改；
 //! * 入口文件的报告可以直接交给既有的单文档消费者（`cmd` 已重基）。
 
+pub mod cache;
 pub mod graph;
 pub mod manifest;
 pub mod module_name;

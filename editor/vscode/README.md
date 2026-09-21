@@ -217,6 +217,12 @@ command.
 
 ## Build and rebuild the compile cache
 
+> **`sokonanoda: build`（`alt+b`）在大项目上是分钟级**：它按**文件**逐个预热，
+> 每个文件各编一遍自己那一份 import 闭包（文件之间不共享）。实测
+> `courses/set-theory`（35 个文件）约 **2.5 分钟**（debug CLI、冷热都一样——
+> 冷热差异取决于项目缓存有没有命中，见 `docs/PERF.md`）。只想快速看一个文件时
+> 直接打开它即可，不必先 `build`。
+
 The compiler keeps a **persistent compile cache** (`.sokonanoda` → compiled
 report), so the second run of a file — and the first keystroke in a project —
 are hits instead of full recompiles. Two commands drive it from the editor:

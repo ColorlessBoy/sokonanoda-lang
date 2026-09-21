@@ -65,6 +65,12 @@ else:
 ```
 sokonanoda build [--json] [--clean] [<file> | <dir> ...]
 ```
+
+> **`build <目录>` 是 O(文件数 × 闭包)**（T-A25 实测，2026-09-21）：
+> 目录里**每个** `*.sokonanoda` 各编一次自己那一份完整闭包，文件之间不共享。
+> `courses/set-theory`（35 个文件，debug CLI、隔离缓存）：冷 **2m29.8s**、
+> 热 **2m30.2s**（只有 1 个命中——那个 `requires = "0.61"` 的漂移让项目缓存
+> 永不写，见 G-24）。修法是 T-K30（按模块根分组），依赖线 K 的跨模块增量。
 - 默认扫当前目录；目录递归收集 `*.sokonanoda`；
 - 人类输出 `built K file(s) — H hit, M compiled, F failed`；`--clean` 打印删除数；
 - `--json`：每文件 `{"type":"build.file",…}` + 末尾 `{"type":"build.summary",…}`；
