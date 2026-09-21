@@ -17,6 +17,14 @@
 #   scripts/vscode-e2e.sh --version stable      # 跟随最新稳定版（每次升级会重下 ~300MB）
 #   scripts/vscode-e2e.sh --version 1.106.0     # 试某个具体版本（如声明的最低版本）
 #
+# **单环节快跑（L4 层，计划 T-017）**：
+#   scripts/vscode-e2e.sh --grep "declarations panel" --profile debug --no-build
+#     --grep <名字>         只跑名字匹配的用例（透传 SOKO_E2E_GREP；不设则跑全量，行为不变）
+#     --profile debug|release  用哪个构建（默认 release）；debug 不跑 release 构建，快得多
+#     --no-build            二进制比 crates/ 下任何 .rs 新时，跳过构建与 stage
+#   ⚠ `--no-build` 可能让你测到旧二进制——台账里的 `lsp_sha256_16` 与 `dirty`
+#     就是判读这件事的两个答案，命中时会额外打印 bin/ 里那份的 mtime 与 hash。
+#
 # 版本策略（0.58.0 定的，理由见 docs/E2E.md §5）：上游 `@vscode/test-cli` 的默认是
 # **stable 频道**（官方文档与官方 sample 都不钉版本），但"例行化 + 台账"要求可复现：
 # 同一份代码在 stable 升级那天会突然换宿主，历史条目没法比。所以本地默认钉一个
@@ -33,6 +41,9 @@ cd "$(dirname "$0")/.."
 
 default_version="1.138.0"
 test_version="${SOKO_VSCODE_TEST_VERSION:-$default_version}"
+profile="release"
+no_build=0
+grep_name=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --version)
@@ -43,8 +54,28 @@ while [ $# -gt 0 ]; do
         exit 2
       }
       ;;
+    --grep)
+      shift
+      grep_name="${1:-}"
+      [ -n "$grep_name" ] || {
+        echo "error: --grep 需要一个值" >&2
+        exit 2
+      }
+      ;;
+    --profile)
+      shift
+      profile="${1:-}"
+      case "$profile" in
+        debug | release) ;;
+        *)
+          echo "error: --profile 只吃 debug/release，收到 ${profile:-（空）}" >&2
+          exit 2
+          ;;
+      esac
+      ;;
+    --no-build) no_build=1 ;;
     -h | --help)
-      sed -n '2,26p' "$0"
+      sed -n '2,34p' "$0"
       exit 0
       ;;
     *)
@@ -81,16 +112,59 @@ trap 'rm -rf "$run_dir"' EXIT
 ext_log="$run_dir/extension.log"
 raw_log="$run_dir/vscode-test.log"
 
-echo "+ cargo build --release -p sokonanoda-lsp -p sokonanoda-cli（被测二进制）"
-cargo build --release -p sokonanoda-lsp -p sokonanoda-cli --locked
-echo "+ stage: editor/vscode/bin/<target>/（bundled 优先，必须是最新构建）"
-(cd editor/vscode && node scripts/stage-lsp.js)
+host_target() {
+  case "$(uname -s)/$(uname -m)" in
+    Darwin/arm64) echo "darwin-arm64" ;;
+    Darwin/x86_64) echo "darwin-x64" ;;
+    Linux/x86_64) echo "linux-x64" ;;
+    Linux/aarch64 | Linux/arm64) echo "linux-arm64" ;;
+    MINGW* | MSYS* | CYGWIN*) echo "win32-x64" ;;
+    *) echo "" ;;
+  esac
+}
+
+staged="editor/vscode/bin/$(host_target)/sokonanoda-lsp"
+
+# `--no-build` **无条件跳过**构建与 stage（名字就是这个意思），只在"看起来更旧"时警告。
+# 为什么不做成"自动判断"：`find crates -name '*.rs' -newer` 在 checkout 之后对**所有**
+# 文件都成立（mtime 都是"现在"），自动判断会永远不生效——实测踩到。
+# 判读"测的是哪份二进制"靠台账里的 `lsp_sha256_16` 与下面这行打印。
+if [ "$no_build" = 1 ]; then
+  if [ ! -f "$staged" ]; then
+    echo "error: --no-build 但 $staged 不存在——先跑一次不带 --no-build 的，或 scripts/dev-loop.sh stage-debug" >&2
+    exit 3
+  fi
+  echo "+ --no-build：跳过构建与 stage，直接测 bin/ 里那份"
+  newer=$(find crates -name '*.rs' -newer "$staged" -print -quit 2>/dev/null || true)
+  if [ -n "$newer" ]; then
+    echo "  ⚠ 警告：$newer 比 staged 的二进制新——你测的可能不是当前源码（台账会记 lsp_sha256_16）"
+  fi
+  if command -v shasum >/dev/null 2>&1; then
+    echo "  staged：$(stat -f '%Sm' -t '%Y-%m-%d %H:%M:%S' "$staged" 2>/dev/null || stat -c '%y' "$staged") · sha256:$(shasum -a 256 "$staged" | cut -c1-16)"
+  fi
+else
+  if [ "$profile" = "release" ]; then
+    echo "+ cargo build --release -p sokonanoda-lsp -p sokonanoda-cli（被测二进制）"
+    cargo build --release -p sokonanoda-lsp -p sokonanoda-cli --locked
+  else
+    echo "+ cargo build -p sokonanoda-lsp -p sokonanoda-cli（debug 被测二进制）"
+    cargo build -p sokonanoda-lsp -p sokonanoda-cli --locked
+  fi
+  echo "+ stage: editor/vscode/bin/<target>/（bundled 优先，必须是最新构建；profile=${profile}）"
+  (cd editor/vscode && node scripts/stage-lsp.js --profile "$profile")
+fi
 
 echo "+ vscode-test（VS Code ${test_version}，真宿主 + 真 LSP）"
 set +e
+if [ -n "$grep_name" ]; then
+  echo "+ vscode-test（只跑匹配 \"$grep_name\" 的用例）"
+else
+  echo "+ vscode-test（全量）"
+fi
 (cd editor/vscode &&
   SOKO_E2E_LOG="$ext_log" \
     SOKO_VSCODE_TEST_VERSION="$test_version" \
+    SOKO_E2E_GREP="$grep_name" \
     npm test) >"$raw_log" 2>&1
 status=$?
 set -e
@@ -138,7 +212,7 @@ trimmed="docs/e2e/logs/${date%%T*}-${short_sha}-vc${test_version}.log"
 VERSION="$version" SHA="$sha" SHORT_SHA="$short_sha" DATE="$date" \
 DIRTY="$dirty" STATUS="$status" PASSING="$passing" FAILING="$failing" PENDING="$pending" \
 VSCODE_VERSION="$vscode_version" SERVER_LINE="$server_line" LSP_SHA="$lsp_sha" \
-TRIMMED="$trimmed" python3 - <<'PY'
+TRIMMED="$trimmed" PROFILE="$profile" GREP="$grep_name" python3 - <<'PY'
 import json, os, pathlib, platform
 
 entry = {
@@ -165,6 +239,10 @@ entry = {
     "server": os.environ["SERVER_LINE"],
     "lsp_sha256_16": os.environ["LSP_SHA"],
     "log": os.environ["TRIMMED"],
+    # 单环节快跑（T-017）：记下这次用的构建 profile 与用例过滤，
+    # 否则「1 passing」读不出"是只跑了一个还是全跑完了"。
+    "profile": os.environ["PROFILE"],
+    "grep": os.environ["GREP"] or None,
 }
 latest = pathlib.Path("docs/e2e/latest.json")
 latest.write_text(json.dumps(entry, indent=2, ensure_ascii=False) + "\n")

@@ -1,0 +1,16 @@
+-- G-28 复现：`→` 右边直接跟 `∀` / `forall` **不解析**（Lean 4 里是合法的）。
+--
+-- 台账 `today`（0.63.0 实测，修前）：
+--   theorem t (A B : Prop) : A -> forall (x : Prop), x -> x := sorry
+--     → parse diagnostic `unexpected-token`「expected an expression, found Forall」
+--   而加一对括号就正常：
+--   theorem t (A B : Prop) : A -> (forall (x : Prop), x -> x) := sorry   → 通过
+--   `A ↔ ∀ x, P` 也正常（只有 `→` 右侧的 `∀` 不认）。
+--
+-- 这是硬规则 3（教学语法是真实 Lean 4 的子集）的违例：Lean 4 里
+-- `A → ∀ x, P` 合法。课程正文里 `A ⊆ B → ∀ a, a ∈ A → a ∈ B` 这种形状很常见
+-- （今天得手写括号绕开）。
+--
+-- 修后契约：本文件干净判卷（有 checked 声明、无 diagnostic、exit 0）。
+
+theorem arrow_then_forall (A : Prop) : A -> forall (x : Prop), x -> x := sorry

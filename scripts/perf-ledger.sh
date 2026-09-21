@@ -49,7 +49,9 @@ cargo test -q -p sokonanoda-front --test perf --locked -- --nocapture --test-thr
 echo "+ compiler (project closure): crates/front/tests/perf_project.rs"
 cargo test -q -p sokonanoda-front --test perf_project --locked -- --nocapture --test-threads=1 2>&1 \
   | grep -E '^PERF' | tee -a "$raw" || true
-echo "+ editor interaction (LSP, incl. project): crates/lsp/src/tests/perf.rs"
+echo "+ editor interaction (LSP, incl. project + 真实课程闭包 perf_course.rs)"
+# 注意：`perf_` 这个过滤同时收走 `tests::perf_course::*`（名字里含 `perf_`），
+# 所以真实课程那几条（scope=lsp-course）**自动进台账**，不需要单独一行。
 cargo test -q -p sokonanoda-lsp --lib --locked -- perf_ --nocapture --test-threads=1 2>&1 \
   | grep -E '^PERF' | tee -a "$raw" || true
 echo "+ CLI end-to-end (project, $cli_profile binary): crates/cli/tests/perf_project.rs"

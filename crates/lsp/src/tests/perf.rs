@@ -181,7 +181,7 @@ fn gen_project(tag: &str, modules: usize, decls: usize) -> (std::path::PathBuf, 
     (dir, uri, entry)
 }
 
-fn perf_json(value: serde_json::Value) {
+pub(super) fn perf_json(value: serde_json::Value) {
     println!("PERFJSON {value}");
 }
 

@@ -37,5 +37,10 @@ export default defineConfig({
   mocha: {
     // 首个用例要等扩展激活 + 语言服务器起进程，给足余量。
     timeout: 60000,
+    // 单用例快跑（L4 层，`scripts/vscode-e2e.sh --grep <名字>`）：
+    // `@vscode/test-cli` 把 config 的 `mocha` 原样交给 Mocha
+    // （node_modules/@vscode/test-cli/out/runner.cjs:12-17），所以 `grep` 直接生效。
+    // 不设 `SOKO_E2E_GREP` 时是 `undefined` ⇒ 行为与从前逐字节相同（跑全量）。
+    grep: process.env.SOKO_E2E_GREP || undefined,
   },
 });

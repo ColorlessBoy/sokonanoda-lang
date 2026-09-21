@@ -108,7 +108,7 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
   `playground.sokonanoda` 出题/判卷/决策的完整操作手册（正文
   `skills/sokonanoda-teacher/SKILL.md`）。DeepSeek Harness 里直接输入
   `/sokonanoda-teacher`。
-- **做开发**：加载 `sokonanoda-dev`——冻结内核、TDD 三层、文档先行。
+- **做开发**：加载 `sokonanoda-dev`——内核可改但**正确性不变**、TDD 三层、文档先行。
 - **推代码/发布/查 CI**：加载 `sokonanoda-ci`——本地验证纪律
   （退出码、无 grep 掩膜）、workflow 陷阱、`gh` 排错三板斧、失败必录。
 - **运维（人工命令）**：`sokonanoda-update`（把缓存的 CLI + LSP 刷到仓库
@@ -122,7 +122,12 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
 
 ## 硬规则速记（全文见 REQUIREMENTS §2/§3）
 
-1. kernel 冻结快照：不改语义、不动热路径；bugfix 带三层回归测试；
+1. **kernel 可以改**（2026-09-21 用户解冻：含热路径与内部表示，目的可以是**提速**）。
+   唯一红线是**判定正确性不变**：同一批输入**接受/拒绝不变、事件计数不变、
+   golden 与 `--json` 逐字节不变**。每次内核改动必须带三层回归
+   （kernel `tests/` + front 单测 + CLI e2e）与语料对拍；性能改动另记
+   `docs/perf/ledger.jsonl`。内核相对上游的改动台账在 `docs/architecture.md` §6，
+   **改内核前先读它 + §8 gotchas（arena 生命周期、panic→Result、`quiet_catch` 不可嵌套）**；
 2. 不调用官方 Lean 工具链（lean/lake/lean4export/leanc/elan）——opencode 由
    `opencode.json` 权限 deny 强制；**DSH 用 `dsh/hooks/hooks.json` 的
    `PreToolUse` 拦截（需在 profile 插一行启用，见 `dsh/README.md`），未启用时
@@ -163,7 +168,8 @@ SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh
 # `cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda`。
 # 或手动：
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
-# 禁止 `cargo fmt --all`：会重排**冻结内核**（kernel 快照不得改动）。只 fmt 教学 crates，或直接 `scripts/soko gate`。
+# 禁止 `cargo fmt --all`：kernel 的 rustfmt.toml 需要 nightly，`--all` 会重排整个内核
+# （噪声巨大、掩盖真实 diff）。只 fmt 教学 crates，或直接 `scripts/soko gate`。
 cargo clippy --workspace --all-targets
 cargo test --workspace --locked
 cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
@@ -205,10 +211,17 @@ tag 并 dispatch release（见 `docs/RELEASE.md`；手动推 tag 仅应急）。
 ## VS Code 扩展改动
 
 改 `editor/vscode/` 下的任何文件前，先读 `docs/vscode-dev-guide.md`
-（版本纪律 / 测试三层 / 常见坑）。版本号必须随功能改动同步 bump。
+（版本纪律 / 测试三层 / 常见坑）。**版本号 = 发布触发器**：`ci.yml` 的 auto-tag
+只在"版本号对应的 tag 还不存在"时发版 ⇒ 不动版本号推 main 只跑 CI、不发版；
+CI 强制的只有 `Cargo.toml` 与 `package.json` **相等**，且版本号只能是纯 `x.y.z`
+（带后缀会让 `scripts/soko` 按 G-16 拒绝运行）。开发期与发布期的 bump 时机见
+`docs/vscode-dev-guide.md` §2。
 扩展改动后的例行三层：`scripts/soko gate`（Rust/契约）→
 `node editor/vscode/test-extension-host.js`（stub 宿主）→ `scripts/vscode-e2e.sh`
 （**真 VS Code**，结果记进 `docs/e2e/`；手册 `docs/E2E.md`）。
+单环节快速反馈：`scripts/dev-loop.sh lsp` + 命令面板 `sokonanoda: restart server`
+（需 `sokonanoda.serverOverride`），或 `SOKO_E2E_GREP=<用例名> npx vscode-test`
+只跑一个 e2e 用例。
 
 ## CI 失败记录
 

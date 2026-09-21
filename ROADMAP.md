@@ -668,3 +668,39 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   失败声明建议梯子 kernel-rfl/Reset/Restart）。剩余仅运营项（release 首跑、
   教学回环、VS Code 集成测试）与远期设计项（spine meta 方案 A）。
   发布流水线已落地（`release.yml` + `docs/RELEASE.md`）。
+
+### E1 —— 编辑器项目模式体验（**执行中**，2026-09-21 起；进度看 `python3 scripts/plan.py list`）
+- **执行入口**（先跑这一条）：
+  ```bash
+  python3 scripts/plan.py next     # 下一条环节 + 完整规格（可直接粘给实现者）
+  python3 scripts/plan.py list     # 119 个环节 + 进度（⬆ 标出发版点）
+  python3 scripts/plan.py bumps    # 13 个发版点与剩余
+  ```
+- **批次 0（判据与量具）已基本完成**：六条反馈 + 2 条顺带发现落成缺口
+  **G-22…G-28**（复现全部判红）、`scripts/verify-editor-issues.sh`（一条命令看全貌）、
+  `scripts/dev-loop.sh`（环节循环）、e2e 三个开关（**单用例 5.2 秒**）+ 项目夹具 +
+  5 条真宿主用例（全部判红）、`crates/lsp/src/tests/perf_course.rs`（真实课程性能哨兵，
+  复现修前 1812/4729/7910ms）、`scripts/perf-check.sh`（单场景 17 秒）、
+  `scripts/perf-compare.py`（回归比较器，自检 7/7）。
+- **计划（唯一权威）**：`docs/design/vscode-editor-feedback-plan.md`
+  —— 用户报的六条反馈（编译慢 / 无编译缓存 / 打开即临时编译 / 声明栏失效 /
+  goal 不用记法 / 记法不能跳转且 hover 无原始类型），**117 个环节 + 6 个检查点**，
+  线性清单在 §13；每环节三条机械判据（复现转绿 + **真 VS Code e2e** +
+  **性能无退化**，见 §0.3）。批次制交付（批次 0 判据与量具 → 批次 1 线 B →
+  批次 2 线 A → 批次 3 线 C → 批次 4 线 D → 批次 5 线 K）。
+- **要求总账**：`REQUIREMENTS.md` §9 的 2026-09-21 两条（含六条实测根因、
+  内核解冻、e2e 与性能检测要求）。
+- **六条根因一句话**：LSP 对含 `import` 的文档不读不写任何缓存 + 项目缓存形状
+  只存入口模块且只写"完全干净"的项目（`sorry` 是 WARNING ⇒ 教学画布永不入缓存）；
+  `QueryDoc::goals` 漏打 G-20 的 `project_entry_compiled()` 补丁；
+  goal 文本有四个生产者而内核 pp 那两个必然点名；
+  记法使用处在 elab 里硬编码 `resolution: None`。
+- **内核解冻（2026-09-21）后的批次 5**：`by` 块前缀重判根治（`unit12` 解答
+  **36.1s → 期望个位数秒**，收益上界已量出 = 8–10×）与跨模块增量/入口间共享。
+  顺序是硬约束：护栏（T-K01/K02/K03）→ K1-a（纯 front，零内核风险）→
+  K1-b（`EnvBuilder::with_env`）→ K2-b → K2-a。**注意**：批次 2 的线 A 只解决
+  "第二次打开"，首次打开新文件必须靠批次 5。
+- **记法渲染不走内核 pp**（调研结论，防后人再走弯路）：内核的记法打印是死代码
+  （`ExportFile.notations` 无一处 insert），且 `pp_expr` 同时是
+  `#check`/`#reduce`/`#print` 的出口 ⇒ 改它会动 `--json` 字节。
+  走 front 的显示边界重写（`docs/notes/course-lean-style/printback-feasibility.md` §4）。

@@ -23,6 +23,7 @@ mod lenses;
 mod lifecycle;
 mod navigation;
 mod perf;
+mod perf_course;
 mod state;
 mod tokens;
 

@@ -1,0 +1,15 @@
+-- e2e 夹具的入口（计划 T-015）：**含 import + 库记法**。
+--
+-- 用途（对应计划 §0.5 的用例矩阵）：
+--   #1 声明栏非空（G-22）· #2 alt+n 跳洞（G-22 同族）· #6 goal 用记法（G-26）
+--   #7 F12 跳记法声明 · #8 hover 出 `Set.mem` 的签名（G-23）
+
+import lib.Set
+
+theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+
+theorem subset_mem (α : Type) (A B : Set α) (h : A ⊆ B) : A ⊆ B := h
+
+-- 课程写法：`:= by` + 下一行 `sorry`（走「根状态」生产者，G-26 钉的就是它）。
+theorem open_one (α : Type) (A B : Set α) : A ⊆ B → (∀ (x : α), x ∈ A → x ∈ B) := by
+  sorry

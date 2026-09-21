@@ -118,32 +118,14 @@ jobs:
       # 已在上面 Workspace tests 里把红（回归即失败），这一步额外留档：
       # 报告带版本 + commit SHA，按版本可追溯「哪个改动引入了性能回退」。
       - name: Performance report
+        # **调用同一个脚本**，不在这里复制粘贴命令：口径（`--test-threads=1`、
+        # best-of-N、跑哪些套件）只能有一份真相。以前这里漏了 `--test-threads=1`，
+        # 与本地/台账的串行口径不一致；而且新增套件（如 `perf_course`）得手改两处。
         run: |
           set -o pipefail
           version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
           out="perf-report-v${version}-$(git rev-parse --short HEAD).txt"
-          {
-            echo "# sokonanoda perf report"
-            echo "version: v${version}  commit: $(git rev-parse HEAD)  date: $(date -u +%FT%TZ)"
-            echo "# 阈值断言（scaling ratio / latency）在 Workspace tests 里强制执行；"
-            echo "# 下面是本轮实测值（front = 编译器内核路径，lsp = 编辑器交互路径）。"
-            echo ""
-            echo "## compiler (crates/front/tests/perf.rs)"
-            cargo test -p sokonanoda-front --test perf -- --nocapture 2>&1 | grep "^PERF" || true
-            echo ""
-            echo "## lsp interaction (crates/lsp/src/tests/perf.rs perf_*)"
-            cargo test -p sokonanoda-lsp --lib -- perf_ --nocapture 2>&1 | grep "^PERF" || true
-            echo ""
-            echo "## compiler — project closure (crates/front/tests/perf_project.rs)"
-            cargo test -p sokonanoda-front --test perf_project --locked -- --nocapture 2>&1 | grep "^PERF" || true
-            echo ""
-            echo "## cli — project end-to-end, release binary (crates/cli/tests/perf_project.rs)"
-            cargo test -q --release -p sokonanoda-cli --test perf_project --locked -- --nocapture 2>&1 | grep "^PERF" || true
-            echo ""
-            echo "## extension host wiring (editor/vscode/test-extension-host.js)"
-            node editor/vscode/test-extension-host.js 2>&1 | tail -1 || true
-          } | tee "$out"
-          echo "PERF report written: $out"
+          scripts/perf-report.sh "$out"
 
       - name: Upload perf report
         uses: actions/upload-artifact@v7

@@ -1,0 +1,17 @@
+-- e2e 夹具的库模块（计划 T-015）：提供 `∈` / `⊆` 两个记法，
+-- 让入口 `units/u01` 单独 parse 必然失败（记法来自 import）——
+-- 这正是 G-22 / G-23 / G-26 三条缺口的共同形状。
+
+def Set (α : Type) : Type := α -> Prop
+
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+
+infix:50 " ∈ " => Set.mem
+
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+
+infix:50 " ⊆ " => Set.subset
+
+def Set.singleton (α : Type) (a : α) : Set α := fun (x : α) => x = a
+
+theorem subset_refl (α : Type) (A : Set α) : A ⊆ A := fun (x : α) => fun (h : A x) => h

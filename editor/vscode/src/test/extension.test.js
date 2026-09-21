@@ -551,4 +551,152 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       `doctor report must include a version line, got: ${report}`,
     );
   });
+  // ── E1 六条反馈的用例矩阵（计划 §0.5 的 T-018）─────────────────────────────
+  //
+  // 每条用户反馈一个用例。夹具是 `src/test/fixtures/workspace/`（T-015）：
+  // 一个**最小 import 项目**（`sokonanoda.toml` + `lib/Set` 带 `∈`/`⊆` 记法 +
+  // `units/u01` 带 `sorry`）——它精确复现了"入口单独 parse 必然失败"的形状，
+  // 而那正是这几条缺口的共同前提。
+  //
+  // **这些用例在修复前必须是红的**（否则它们证明不了任何东西）。计划里每条
+  // 都写了它对应哪个环节；红了先看那条环节。
+
+  const fixtureEntry = () => {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+    assert.ok(root, "e2e 需要一个工作区目录（.vscode-test.mjs 的 workspaceFolder）");
+    return vscode.Uri.file(path.join(root, "units", "u01.sokonanoda"));
+  };
+
+  /// 等 Infoview 的声明载荷到达（`soko/goals` 是异步的）。
+  async function infoviewDecls(desc) {
+    assert.ok(
+      extensionApi && extensionApi.infoview,
+      "activate() 必须在 test mode 暴露 infoview（T-016）",
+    );
+    await waitFor(`${desc}：Infoview 收到声明载荷`, async () => {
+      await extensionApi.goals.ensureDeclarations().catch(() => {});
+      return extensionApi.infoview.lastDecls().length > 0;
+    });
+    return extensionApi.infoview.lastDecls();
+  }
+
+  test("declarations panel lists a project unit's declarations", async () => {
+    // 用例 #1（G-22）：含 `import` + 库记法的入口，`soko/goals` 必须非空。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const decls = await infoviewDecls("用例 #1");
+    const names = decls.map((d) => d.name);
+    assert.ok(
+      names.includes("mem_self"),
+      `声明栏必须列出 mem_self，实际 = ${JSON.stringify(names)}`,
+    );
+    // 与树（同一份载荷建的 TreeItem）条数一致。
+    assert.strictEqual(
+      extensionApi.goals.declItems.length,
+      decls.length,
+      "声明栏与练习树的条数必须一致（同一份 soko/goals 载荷）",
+    );
+  });
+
+  test("next hole jumps inside a project unit", async () => {
+    // 用例 #2（G-22 同族）：`soko/nextHole` 经由 `goals` ⇒ 项目入口同样受害。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    // **故意不调 `infoviewDecls`**：那会引入"声明栏先能用"的前置依赖，
+    // 而这条用例测的正是 `soko/nextHole` 自己（同一条 `parsable()` 判据的另一面）。
+    await vscode.commands.executeCommand("sokonanoda.nextHole");
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "跳洞后必须还有活动编辑器");
+    const cursor = editor.selection.active;
+    const text = editor.document.getText();
+    const offset = editor.document.offsetAt(cursor);
+    const line = text.slice(0, offset).split("\n").length - 1;
+    assert.ok(
+      editor.document.lineAt(line).text.includes("sorry"),
+      `跳洞必须落在洞所在行，实际光标在第 ${line + 1} 行：${editor.document.lineAt(line).text}`,
+    );
+  });
+
+  test("goal text uses the file's notation", async () => {
+    // 用例 #6（G-26）：课程写法 `:= by` + `sorry`，**光标落在 tactic 内**时
+    // 走「根状态」生产者（`DeclState.ty_text` = 内核 pp）⇒ 点名形式。
+    //
+    // ⚠ 光标位置是这条用例的关键（实测逐列量过 `units/u01` 的 `sorry` 行）：
+    //   在 `sorry` **内**（半开区间 start<=cursor<end）⇒ 根状态 ⇒ 点名；
+    //   在 `sorry` **之后** ⇒ 另一支（无 by 的声明级目标）⇒ **记法保留**。
+    //   用 `revealRange` 会把光标停在 range **末尾**（= 之后），于是假绿过一次——
+    //   所以这里显式设 selection。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "必须有一个活动编辑器");
+    const doc = editor.document;
+    // 整行 trim 后**恰好**是 `sorry`——不能用 `includes("sorry")`：
+    // 夹具的注释里也出现过这个词，会命中注释行 ⇒ 光标落在声明外 ⇒ 空状态（实测踩到）。
+    const lineIndex = [...Array(doc.lineCount).keys()].find(
+      (i) => doc.lineAt(i).text.trim() === "sorry",
+    );
+    assert.notStrictEqual(lineIndex, undefined, "夹具里必须有一行 `sorry`");
+    const character = doc.lineAt(lineIndex).text.indexOf("sorry") + 1;
+    const pos = new vscode.Position(lineIndex, character);
+    editor.selection = new vscode.Selection(pos, pos);
+
+    await waitFor("用例 #6：open_one 的根状态到达", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state &&
+        state.decl &&
+        state.decl.name === "open_one" &&
+        typeof state.goal === "string" &&
+        state.goal.length > 0
+      );
+    });
+    const goal = extensionApi.infoview.lastState().goal;
+    assert.ok(
+      goal.includes("⊆") || goal.includes("∈"),
+      `open_one 的根状态必须用源文件的记法（⊆ / ∈），实际 = ${goal}`,
+    );
+  });
+
+  test("go to definition on a notation symbol lands on its declaration", async () => {
+    // 用例 #7（G-23）：`∈` 在 `units/u01` 第 9 行。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const doc = await vscode.workspace.openTextDocument(entry);
+    const text = doc.getText();
+    const offset = text.indexOf("∈", text.indexOf("theorem"));
+    const before = text.slice(0, offset);
+    const line = before.split("\n").length - 1;
+    const character = (before.split("\n").pop() || "").length;
+    const found = await vscode.commands.executeCommand(
+      "vscode.executeDefinitionProvider",
+      entry,
+      new vscode.Position(line, character),
+    );
+    assert.ok(
+      Array.isArray(found) && found.length > 0,
+      "在 `∈` 上跳定义必须返回至少一个位置（现在返回 null）",
+    );
+    assert.ok(
+      found.some((loc) => String(loc.uri.fsPath).endsWith("Set.sokonanoda")),
+      `跳转必须落在声明记法的库里，实际 = ${JSON.stringify(found.map((l) => l.uri.fsPath))}`,
+    );
+  });
+
+  test("hover on a notation symbol shows the target's signature", async () => {
+    // 用例 #8（G-23）：hover 必须给出 `Set.mem` 的**原始类型**。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const doc = await vscode.workspace.openTextDocument(entry);
+    const text = doc.getText();
+    const offset = text.indexOf("∈", text.indexOf("theorem"));
+    const before = text.slice(0, offset);
+    const line = before.split("\n").length - 1;
+    const character = (before.split("\n").pop() || "").length;
+    const markdown = await hoverTextAt(entry, line, character);
+    assert.ok(
+      markdown.includes("Set.mem"),
+      `hover 必须给出 \`Set.mem\` 的原始类型，实际 = ${markdown}`,
+    );
+  });
 });

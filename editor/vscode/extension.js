@@ -635,6 +635,21 @@ class InfoviewProvider {
     this._post(Object.assign({ type: "state", uri }, state));
   }
 
+  // ---- 测试可见的只读访问器（计划 T-016）--------------------------------
+  //
+  // 为什么需要它们：VS Code 的测试 API **拿不到 webview 的 DOM**，所以 e2e 没法
+  // 直接断言"面板上画了几个卡片"。分工是：
+  //   * e2e 断言**载荷**（真 LSP → 真扩展 → 这里存的这两个字段）；
+  //   * `test-extension-host.js` / `test-webview.js` 断言**渲染**（载荷 → DOM）。
+  // 两者合起来才是"面板真的显示了"。生产路径零行为变化（只是把已有字段读出来）。
+  lastDecls() {
+    return Array.isArray(this._lastDecls) ? this._lastDecls : [];
+  }
+
+  lastState() {
+    return this._lastState ? this._lastState.state : null;
+  }
+
   setDecls(decls) {
     this._lastDecls = decls;
     // Webview 的 `decls` 是整表重建（50 条 ≈ 1200 个 DOM 节点）：内容没变就别发。
@@ -1834,7 +1849,13 @@ async function activate(context) {
   const testMode = vscode.ExtensionMode ? vscode.ExtensionMode.Test : undefined;
   const testApi =
     testMode !== undefined && context.extensionMode === testMode
-      ? { goals: provider, project: projectProvider, course: courseProvider }
+      ? {
+          goals: provider,
+          project: projectProvider,
+          course: courseProvider,
+          // T-016：e2e 通过它断言"面板收到了什么"（见上面 lastDecls/lastState）。
+          infoview: infoviewProvider,
+        }
       : undefined;
 
   // Async continuation (fire-and-forget): resolve + start the server without

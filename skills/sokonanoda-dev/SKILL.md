@@ -21,8 +21,11 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 
 ## 1. 不可动摇的硬规则（REQUIREMENTS §2，违者返工）
 
-1. kernel 冻结快照：不改语义、不加间接层、不动热路径；允许的改动清单在
-   `docs/architecture.md` §6（bugfix 须带三层回归测试）；
+1. **kernel 可以改**（2026-09-21 用户解冻，含热路径与内部表示，目的可以是提速）。
+   唯一红线是**判定正确性不变**：同一批输入接受/拒绝不变、事件计数不变、
+   golden 与 `--json` 逐字节不变。每次内核改动必须带三层回归
+   （kernel `tests/` + front 单测 + CLI e2e）+ 语料对拍 + 课程门禁计数逐项不变；
+   已改过的部分在 `docs/architecture.md` §6，**改之前先读它 + §8 gotchas**；
 2. 无官方 Lean 工具链依赖（lean/lake/lean4export 一律不调用）；
 3. 教学语法是真实 Lean 4 的子集；新增语法 = 课程 + 测试 + 白名单三件套；
    加新语法点照 `docs/TESTING.md` §4 的七步 checklist（lex → parse → elab/kernel

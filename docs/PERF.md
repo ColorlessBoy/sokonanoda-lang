@@ -110,6 +110,70 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 | `perf_project_requests_are_interactive` | 同上 | 项目入口的 hover / definition / goals 各 < 50ms |
 | `editor/vscode/test-extension-host.js`（7 例） | 扩展宿主 stub | 诊断过滤/合并、并发 goals 合并、切文件丢弃过期答案、webview 去重、课程树缓存 |
 
+### 性能回归怎么判（`scripts/perf-compare.py`，T-022）
+
+以前只有**人肉规则**（"优先比 `best_ms`、±25% 内算同档"）——100+ 个环节推进时，
+"修 A 弄慢 B"必然发生，而它**只有机械判据能拦住**。现在有脚本：
+
+```bash
+python3 scripts/perf-compare.py                 # 台账最后一条 vs 上一条
+python3 scripts/perf-compare.py --since 0.58.0  # 指定基准（sha 前缀 / 版本号 / -N）
+python3 scripts/perf-compare.py --json          # 机器可读
+python3 scripts/perf-compare.py --self-test     # 自检判定规则（7 条）
+```
+
+**四条判定规则**（`--self-test` 逐条钉住）：
+
+| # | 情况 | 判定 |
+|---|---|---|
+| ① | 某个 `*_ms` 指标退化 **> 阈值**（默认 25%） | **红** |
+| ② | **新增**的 `(scope, case)` | 提示"无基线"，**不红** |
+| ③ | **消失**的 `(scope, case)` | **红**——悄悄删掉哨兵是最隐蔽的回归 |
+| ④ | 两条记录**宿主或 `cli_profile` 不同** | 只提示"不可比"，**不红**（连"消失"也不判——两条记录本就不是同一口径） |
+
+**两条额外的实践规则**（都是真台账上立刻暴露出来的）：
+
+* **噪声带**：低于 **5ms** 的指标不判红（`--floor-ms`）。第一次跑真台账就撞上
+  `dependency_edit_refresh.elapsed_ms` 从 1.0ms 到 3.0ms = "+200%" ——那是噪声，不是回归。
+* **夹具不同**（`modules`/`decls_per_module` 等描述字段不一致）⇒ 标"夹具不同"、
+  不判红，但值得人看一眼：那说明哨兵本身被改了。
+
+**判读纪律**（沿用本文的既有教训）：红了**先复测一次**；仍然退化再查这一版改了什么。
+放宽阈值前必须先做两件事——① 改采样口径（串行 + best-of-N）；
+② 与 pre-batch 二进制同夹具对拍。两步都排除掉，才谈阈值（见本文「噪声地板与采样口径」）。
+
+**CI**：`ci.yml` 的 "Performance report" 步骤现在**直接调用 `scripts/perf-report.sh`**
+（不再复制粘贴命令）——口径只有一份真相，新增套件自动带上。
+`perf-compare.py` 是**本地每环节**用的（CI 上跨 runner 的实例方差有 4×，
+不适合自动判红）。
+
+### 真实课程闭包（T-007 / T-020，2026-09-21 起）
+
+> **为什么单独一套**：上面那张表的夹具是 2–5 模块 × 10–12 声明，比
+> `courses/set-theory` **小 1–2 个数量级**——既有数字 12–14ms，而用户真实的
+> "打开一个单元"是**秒级**。合成夹具量不出用户感受到的那个量级。
+
+`crates/lsp/src/tests/perf_course.rs` **直接用仓库里的真课程**
+（`courses/set-theory/`，读不到就跳过——课程仓可以分开检出），
+打 `PERFJSON` 时 `scope: "lsp-course"`；重活互相串行（`COURSE_PERF_LOCK`）。
+
+**修前基线（2026-09-21，v0.63.0，Apple Silicon，release LSP）**：
+
+| case | 入口 | 实测 | 说明 |
+|---|---|---|---|
+| `did_open` | `units/unit01-sets-membership`（2 import） | **1812ms** | 6 条诊断 |
+| `did_open` | `units/unit08-images-preimages`（4 import） | **4729ms** | 9 条诊断 |
+| `did_open` | `units/unit12-synthesis`（7 import） | **7910ms** | 9 条诊断 |
+| `did_open_same_session` | 同会话重开 unit01 | **121ms** | `Session` 的"内容未变零重编译"是好的 ⇒ **贵的是第一次打开** |
+| `keystroke` | unit08 上改一条声明的名字（8 模块闭包重编译） | **371ms** | 来回改 3 次取最小 |
+| `by_block_did_open` | `units/solutions/unit12-solution`（8 模块、25 个 `by`） | **36.1s** | **默认跳过**（会让 `cargo test` 多花几十秒）；`SOKO_PERF_COURSE_SLOW=1` 打开 |
+
+**量级哨兵**：最慢一次 `didOpen` < 60s（抓的是"退化成分钟级"，不是 ±20% 波动）。
+
+**判读**：这套数字是批次 2（线 A）与批次 5（线 K）的"修前"对照物。
+预期修后：`did_open` 首次降到与 `did_open_same_session` 同量级（缓存命中），
+`by_block_did_open` 从 36.1s 降到个位数秒（线 K 的 K1-b）。
+
 ### 台账：`scripts/perf-ledger.sh` → `docs/perf/ledger.jsonl`
 
 每个测试打印一行 `PERFJSON {…}`（`schema: soko.perf/1`），脚本把它们连同

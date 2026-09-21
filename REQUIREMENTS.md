@@ -1878,3 +1878,120 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     变更**）；`Set.univ α` 保留（零元应用不在覆盖内）。
   * **纪律**：纯记法改写**计数中性**——卷 I 门禁必须保持 `36 目标 · 328 checked ·
     99 open · 0 判负`；tactic 块不动，term 保持 term（用户明说 tactic 先不动）。
+
+* **2026-09-21（VS Code 项目模式六条反馈：只做计划，不解决）** —— 用户原话：
+  「在 sokonanoda 的 project 为 root 目录（比如 set-theory），vscode 有很多问题：
+  编译很慢，没有实现编译后的文件加速 vscode 处理，新打开一个文件就有临时编译；
+  infoview 的『声明』栏经常失效，有些文件有声明，有些没有，很奇怪，比如几个 unit
+  教学文件就没有；infoview 里的 goal 展现没有用 notation 的方式；代码里的 notation
+  不能跳转，hover 信息也没有对应的原始类型。」随后追加交付方式：
+  「我希望你能拆解成尽可能多的环节。每次我让别人实现一个小环节，然后我就验收一下，
+  好把控整个进度。」
+  * **本次交付 = 计划，不改产品代码**：`docs/design/vscode-editor-feedback-plan.md`
+    （**89 个环节 + 5 个检查点**，每环节自带一条可粘贴的判据命令与期望输出；
+    按**批次**交付以避开"每次版本 bump 自动发版"）。
+  * **六条根因均已实测**（不是推断）：① 项目文件在 LSP 上**每次动作从零编译整个
+    import 闭包**（release 实测 unit01 1.8s / unit08 4.6s / unit12 8.5s /
+    unit12 解答 36.1s），且编译期间独占文档锁；② LSP 对含 `import` 的文档**既不读
+    也不写任何缓存**，项目缓存只活在 CLI crate 且形状是"一闭包一条、只存入口"；
+    ③ 每份 `Doc` 各编一份闭包、项目模式**先白编一遍入口单文件**再丢弃、`set_text`
+    无"文本未变即返回"短路、缓存只写"完全干净"的项目（`sorry` 是 WARNING ⇒
+    教学画布永不入缓存）；④ `QueryDoc::goals` 被 `parsable()` 挡住（G-20 的补丁
+    `check()`/`set_text` 都打了，只有 `goals` 漏了）⇒ 声明栏空而目标栏正常；
+    ⑤ goal 文本有**四个生产者**，内核 pp 那两个必然点名；⑥ 记法使用处在 elab 里
+    硬编码 `resolution: None`，而 `definition` 就是读它。
+  * **顺带发现（同片代码，另行立账）**：`documentHighlight`/`references`/`rename`
+    在记法符号上会误解析到外层 binder；`semantic::tag_runs` 从不填
+    `Names::notations` ⇒ 记法在目标文本里不着色、导入名被标 `unknown_ident`；
+    `position_to_offset` 按 `char` 而非 UTF-16 计数（`𝒫` 之后偏移）；缓存键折入了
+    `current_exe()` 的秒级 mtime（CLI 与 LSP 是两个二进制 ⇒ 预热可能对 LSP 完全无效）。
+  * **红线**：内核一个字节不改（`git diff --stat -- crates/kernel/` 每个检查点必须为空）；
+    不调用官方 Lean 工具链；用户/agent 路径仍零 cargo。
+
+* **2026-09-21（**内核解冻** + 环节粒度与快速反馈）** —— 用户原话：
+  「你看看怎么实现小版本号升级，或者本地测试版本等，89 个最小的版本号也不是不行。
+  关键是每次少做点快速反馈」；随后追加：
+  「**内核完全可以改，不影响正确性，优化速度。没有其他死板的要求**」。
+  * **内核解冻（本条取代旧硬规则 1 的"冻结快照"）**：`crates/kernel` **可以改**，
+    含**热路径与内部表示**，目的可以是**提速**。唯一红线 = **判定正确性不变**：
+    同一批输入**接受/拒绝不变、事件计数不变、golden 与 `--json` 逐字节不变**。
+    每次内核改动必须带**三层回归**（kernel `tests/` + front 单测 + CLI e2e）
+    + **语料对拍**（全部 `*.sokonanoda` stdout 逐字节比较 + 课程门禁计数逐项不变），
+    性能改动另记 `docs/perf/ledger.jsonl`；改之前先读 `docs/architecture.md`
+    §6（内核改动台账）与 §8（arena 生命周期 / panic→Result / `quiet_catch` 不可嵌套）。
+    **这条解锁了两件此前判成"不做"的事**：`by` 块判定重跑整份前缀的根治、
+    闭包的跨模块增量/入口间共享编译产物——它们正是"打开就卡"与
+    `unit12` 解答 **36.1s** 的真正大头。已同步 `AGENTS.md` 硬规则 1、
+    `docs/architecture.md` §6、`skills/sokonanoda-dev/SKILL.md` §1。
+  * **环节粒度**：计划 `docs/design/vscode-editor-feedback-plan.md` 已扩到
+    **100+ 个环节**（每环节一条可粘贴判据 + 一行可回退 commit），并新增
+    **§0.4 快速反馈回路**（5 层：LSP 直探 / stub 宿主 / Rust 单测过滤 /
+    真 VS Code 单用例 / 检查点全量）与 T-011…T-014 四个基础设施环节
+    （`scripts/dev-loop.sh`、`SOKO_E2E_GREP` 单用例、版本纪律修订、回路写进文档）。
+  * **版本与发版（实测 CI 逻辑后的结论）**：`ci.yml` 的 auto-tag 只在
+    **"版本号对应的 tag 还不存在"** 时发版（`.github/workflows/ci.yml:61-65`）
+    ⇒ **开发期不动版本号，推多少次 main 都不发版**（只跑 CI）。
+    `docs/vscode-dev-guide.md` §2 的"每次 commit 必须 bump"是**约定**，CI 只强制
+    `Cargo.toml` == `package.json`。**本地测试版本号只能用纯 `x.y.z`**：
+    `scripts/soko:110` 的解析正则是 `^v?(\d+)\.(\d+)(?:\.(\d+))?$`，
+    带后缀（`0.63.0-local`）会让启动器解析不出期望版本、按 G-16 **拒绝运行**。
+    "这是哪份构建"改用 `scripts/soko version --json` 的 `source`、
+    `sokonanoda: doctor` 的 `source=`、e2e 台账的 `dirty`/`lsp_sha256_16`。
+  * **快速看效果（不用重装 VSIX）**：`sokonanoda.serverOverride: true` +
+    `serverPath` 指向仓库 `target/debug/sokonanoda-lsp` ⇒ 每环节只需
+    `cargo build -p sokonanoda-lsp -p sokonanoda-cli` + 命令面板
+    `sokonanoda: restart server`（走与激活同一条解析链）。**限制**：这只换服务器
+    二进制，换不了扩展代码 ⇒ 客户端改动要用 F5 开发宿主。
+
+* **2026-09-21（每个修复环节都要有本地 e2e + 性能检测）** —— 用户原话：
+  「增加本地的 e2e 测试，确保功能修复正确了」；「性能检测也补上」。
+  * **三条机械判据，缺一不算完成**（写进计划的 §0.3 DoD）：
+    ① **复现脚本**转绿（证明缺口没了）；
+    ② **真 VS Code e2e 用例**转绿（证明真编辑器里能用；**改动前必须先跑一次
+    确认它是红的**，否则这条 e2e 证明不了任何东西）；
+    ③ **性能检测**：本环节场景的 `perf-check` 数字 + `perf-compare` 对上一检查点
+    **无 > 25% 退化**（证明没把别的地方弄慢）。
+  * **e2e 基建（计划 §0.5，T-015…T-019）**：新增最小 `import` 项目夹具
+    （`sokonanoda.toml` + `lib/Set`（带 `∈`/`⊆` 记法）+ `units/u01`（带 `sorry`））；
+    `testApi` 扩出 `infoview.lastDecls()/lastState()`（VS Code 测试 API 拿不到
+    webview DOM ⇒ **e2e 断言载荷 + `test-webview.js` 断言渲染** 合起来才算"面板显示了"）；
+    `scripts/vscode-e2e.sh` 加 `--grep` / `--profile debug` / `--no-build`
+    （单用例**十几秒**，才能每环节跑）；**九条用例矩阵**（声明栏非空 / `alt+n` 跳洞 /
+    重开命中缓存 / 保存不重编 / 改依赖只刷一次 / goal 含记法 / F12 跳记法声明 /
+    hover 出 `Set.mem` 签名 / 批次 5 计数不变）。
+    现状盲区（实测）：18 个用例**没有一个**看声明栏或 goal 文本；fixture 工作区
+    **只有一个 README.md**，没有任何 `import` 项目夹具。
+  * **性能检测基建（计划 §0.6，T-020…T-023）**：新增**真实课程闭包**的 perf 套件
+    （七条 case：冷开 / 缓存热开 / 一次按键 / `by` 块 36.1s / 保存不重编 / 扇出 /
+    `soko/project`——补上 ledger 里 `soko/project` 的漏记）；`scripts/perf-check.sh --case`
+    （单场景快跑）；**`scripts/perf-compare.py` 回归比较器**（`best_ms` 退化 > 25% 判红、
+    悄悄删掉哨兵也判红、宿主不同只提示不可比）——**这条最值钱**：109 个环节里
+    "修 A 弄慢 B"是必然发生的，而它**只有机械判据能拦住**。
+  * **现状缺口（实测）**：`docs/PERF.md` 只有人肉的"±25% 算同档"规则，**没有任何脚本
+    读 ledger 判退化**；ledger 的 `scope` 只有 `front-project`/`lsp-project`/`cli-project`，
+    **没有 editor-host、没有真实课程闭包**（既有数字 12–14ms vs 真实 1.8–36.1s，
+    差 1–2 个数量级）。
+
+* **2026-09-21（发版节奏：到一定程度就 bump）** —— 用户原话：
+  「不行，到一定程度就 bump 一下」——否决了"整个批次一个版本"的做法。
+  * **定案**：**不等批次收尾**，沿途按阈值发版。**触发（命中任一）**：
+    ① 一条**用户可感知的能力**落地（不是内部重构）；② 距上次 bump 已过
+    **≥ 8 个环节**；③ 用户要拿去测。**类型**：新能力 = `minor`，
+    只是修好/更快 = `patch`（`docs/vscode-dev-guide.md` §2 的口诀）。
+  * **bump 动作**：`Cargo.toml` 与 `editor/vscode/package.json` **两处必须相等**
+    （CI 不等直接 exit 1）→ push main → auto-tag 打 tag 并 dispatch release
+    → Marketplace（索引延迟约 5 分钟）。发版前 CI 要全绿。
+  * **13 个 bump 点已标进计划的 §13 线性清单**（`⬆ **BUMP**` 行，平均每 ~9 个
+    环节一次），查询入口 `python3 scripts/plan.py bumps`：
+    批次 0 **0 个**（产物是判据与基建，零用户可见改动 ⇒ 不发版）；
+    批次 1 两个 patch（声明栏服务端修好 / 客户端四缺陷 + e2e）；
+    批次 2 三个（清浪费 patch / LSP 接入缓存 minor / 收尾 patch）；
+    批次 3 两个（goal 显示记法 minor / 着色 + golden patch）；
+    批次 4 三个（hover 原始类型 patch / F12 跳转 minor / 收尾 patch）；
+    批次 5 三个（K1-a minor / K1-b minor / 收尾 patch）。
+  * **两个已知代价（接受）**：① bump 后**编译缓存全失效**（键含
+    `CARGO_PKG_VERSION`）⇒ 第一次打开会重编一遍；② 每次 release 跑完整流水线
+    （8 LSP tarball + 8 CLI + 9 VSIX + SHA256SUMS + provenance + Marketplace），
+    历史上 gallery 会间歇超时（`docs/CI-FAILURES.md`）。
+  * **执行入口**：`python3 scripts/plan.py next` 会在"下一条做完要 bump"时
+    直接打出来；`done <ID>` 勾进度；`check` 防清单与规格漂移。

@@ -1,0 +1,112 @@
+# scripts/vscode-e2e.sh — VS Code 1.138.0 · extension v0.63.0 · 4ac2fc58fba32bb554801e71dfe5e1e2d0f8260c
+# 结果：0 passing / 5 failing / 0 pending（exit=1）
+
+## doctor（服务器解析与版本自述）
+--- doctor ---
+sokonanoda doctor — 扩展 v0.63.0 (6 checks)
+[ok] 1/6 resolution：bundled — /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+[ok] 2/6 server-version：0.63.0 (pid 33845) == 扩展 v0.63.0 (source=bundled)
+[ok] 3/6 host-version：运行宿主 v0.63.0
+[ok] 4/6 ignored-override：没有被忽略的 serverPath/env 覆盖
+[info] 5/6 download-cache：缓存 marker 0.55.0 darwin-arm64 != 扩展 v0.63.0；可运行 sokonanoda update
+[info] 6/6 obsolete-versions：检测到 0 个扩展版本快照、0 个 .obsolete 条目；完整重启 VS Code 会自动清理
+
+## 用例
+    1) declarations panel lists a project unit's declarations
+    2) next hole jumps inside a project unit
+    3) goal text uses the file's notation
+    4) go to definition on a notation symbol lands on its declaration
+    5) hover on a notation symbol shows the target's signature
+  1) sokonanoda extension (VS Code integration)
+  2) sokonanoda extension (VS Code integration)
+  3) sokonanoda extension (VS Code integration)
+  4) sokonanoda extension (VS Code integration)
+  5) sokonanoda extension (VS Code integration)
+
+## 扩展接线日志（SOKO_E2E_LOG）
+2026-09-21T15:05:52.819Z server command: /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+2026-09-21T15:05:52.820Z client state: starting
+2026-09-21T15:05:52.827Z client state: running
+2026-09-21T15:05:52.830Z loadProject: no active .sokonanoda document
+2026-09-21T15:05:52.921Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-21T15:05:52.988Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-21T15:05:53.195Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-21T15:06:23.029Z active document changed: (none)
+2026-09-21T15:06:23.029Z loadProject: no active .sokonanoda document
+2026-09-21T15:06:23.056Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-21T15:06:23.058Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-21T15:06:23.104Z active document changed: (none)
+2026-09-21T15:06:23.104Z loadProject: no active .sokonanoda document
+2026-09-21T15:06:23.127Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-21T15:06:23.129Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-21T15:06:23.453Z active document changed: (none)
+2026-09-21T15:06:23.453Z loadProject: no active .sokonanoda document
+2026-09-21T15:06:23.464Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-21T15:06:23.466Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-21T15:06:23.483Z active document changed: (none)
+2026-09-21T15:06:23.484Z loadProject: no active .sokonanoda document
+2026-09-21T15:06:23.497Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-21T15:06:23.499Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-21T15:06:23.536Z active document changed: (none)
+2026-09-21T15:06:23.537Z loadProject: no active .sokonanoda document
+2026-09-21T15:06:23.549Z client state: stopped
+
+## 失败详情
+  1) sokonanoda extension (VS Code integration)
+       declarations panel lists a project unit's declarations:
+     Error: timed out after 30000ms waiting for 用例 #1：Infoview 收到声明载荷
+  	at waitFor (src/test/extension.test.js:156:15)
+  	at async infoviewDecls (src/test/extension.test.js:576:5)
+  	at async Context.<anonymous> (src/test/extension.test.js:587:19)
+
+  2) sokonanoda extension (VS Code integration)
+       next hole jumps inside a project unit:
+
+      AssertionError [ERR_ASSERTION]: 跳洞必须落在洞所在行，实际光标在第 1 行：-- e2e 夹具的入口（计划 T-015）：**含 import + 库记法**。
+      + expected - actual
+
+      -false
+      +true
+      
+  	at Context.<anonymous> (src/test/extension.test.js:614:12)
+
+  3) sokonanoda extension (VS Code integration)
+       goal text uses the file's notation:
+
+      AssertionError [ERR_ASSERTION]: open_one 的根状态必须用源文件的记法（⊆ / ∈），实际 = forall (α : Type 0) (A B : Set α), Set.subset α A B -> (forall (x : α), Set.mem α x A -> Set.mem α x B)
+      + expected - actual
+
+      -false
+      +true
+      
+  	at Context.<anonymous> (src/test/extension.test.js:655:12)
+
+  4) sokonanoda extension (VS Code integration)
+       go to definition on a notation symbol lands on its declaration:
+
+      AssertionError [ERR_ASSERTION]: 在 `∈` 上跳定义必须返回至少一个位置（现在返回 null）
+      + expected - actual
+
+      -false
+      +true
+      
+  	at Context.<anonymous> (src/test/extension.test.js:676:12)
+
+  5) sokonanoda extension (VS Code integration)
+       hover on a notation symbol shows the target's signature:
+
+      AssertionError [ERR_ASSERTION]: hover 必须给出 `Set.mem` 的原始类型，实际 = `∈` —— 记法符号
+
+输入：`\in`（别名 `\mem`）
+
+`a ∈ A : Prop`
+      + expected - actual
+
+      -false
+      +true
+      
+  	at Context.<anonymous> (src/test/extension.test.js:697:12)
+
+5 tests failed.
+[90m[main 2026-09-21T15:06:23.551Z][0m Extension host with pid 33729 exited with code: 0, signal: unknown.
+Exit code:   1

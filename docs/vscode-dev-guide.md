@@ -50,13 +50,49 @@
 一个 commit 里既有 minor 又有 patch 改动 → 取**最高的**（minor）。
 一个 commit 纯 patch 改动 → patch。不确定时 → patch（宁可低不可虚高）。
 
-- **每次 commit 涉及 `editor/vscode/` 改动时必须同步 bump `package.json` version**；
-- 同步更新 `editor/vscode/CHANGELOG.md`（Keep a Changelog 格式）；
-- **Rust 与扩展版本必须一致**（同一 tag 构建扩展与内置内核）：`Cargo.toml`
-  workspace version 是单一来源，契约测试 `cargo_and_extension_versions_match`
-  与 release 的 version gate 双重强制；
-- 版本号变更后必须重新 `vsce package` + `code --install-extension` 并在本地
-  VS Code 验证。
+### 什么时候 bump（**2026-09-21 修订：bump = 发布边界，不是 commit 边界**）
+
+> 旧规定是"每次 commit 涉及 `editor/vscode/` 必须 bump"。那条**已作废**——
+> 它会让每个小环节都触发一次完整 release，而大计划（`docs/design/vscode-editor-feedback-plan.md`
+> 的 100+ 环节）是按"一次少做点"推进的。现在的规则是**按阈值 bump**。
+
+**先记住 CI 的实际行为**（`.github/workflows/ci.yml:39-71` 的 `auto-tag`）：
+push main 且 lint/test/e2e/e2e-macos 全绿后，它读 `Cargo.toml` 的版本，
+**只有当 `v${version}` 这个 tag 还不存在时**才打 tag 并 dispatch release。
+
+⇒ **不动版本号，推多少次 main 都只跑 CI、不发版。**
+
+**bump 触发（命中任一就 bump，不必等整批做完）：**
+
+1. 一条**用户可感知的能力**落地（不是内部重构）——例如"声明栏不再为空"、
+   "目标显示记法"、"打开不再等 5 秒"；
+2. 距上次 bump 已过 **≥ 8 个环节**；
+3. 用户要拿去测。
+
+**类型**：新能力 = `minor`；只是修好/更快 = `patch`（口诀见上）。
+
+**bump 动作（四步，缺一步就出问题）：**
+
+1. **两处版本必须相等**：`Cargo.toml` 的 workspace version +
+   `editor/vscode/package.json` 的 version。CI 的 `auto-tag` 与 release 的
+   version gate 都会比对，不等直接失败；契约测试
+   `cargo_and_extension_versions_match` 本地就会红。
+2. **版本号只能是纯 `x.y.z`**。`scripts/soko` 的解析正则是
+   `^v?(\d+)\.(\d+)(?:\.(\d+))?$`（`scripts/soko:110`），带后缀（`0.63.0-local`）
+   会让启动器解析不出期望版本、按 G-16 **拒绝运行**。
+3. 同步更新 `editor/vscode/CHANGELOG.md`（Keep a Changelog 格式）。
+4. bump 后重新 `vsce package` + `code --install-extension` 并在本地 VS Code 验证
+   （或走 CI 出的 VSIX）。
+
+**bump 的两个已知代价（接受即可）：**
+① **编译缓存全失效**（缓存键含 `CARGO_PKG_VERSION`）⇒ bump 后第一次打开会重编一遍；
+② 每次 release 跑完整流水线（8 LSP tarball + 8 CLI + 9 VSIX + SHA256SUMS +
+provenance + Marketplace 发布），历史上 gallery 会间歇超时（`docs/CI-FAILURES.md`）。
+
+**清单 `requires` 要跟着 bump**（**这是 G-24**）：`courses/*/sokonanoda.toml` 与
+`course/*/sokonanoda.toml` 里的 `requires` 若不跟着走，`requires_warning` 会让
+`ProjectReport::is_clean()` 为假 ⇒ **项目编译缓存被静默关掉**（实测：整个卷 I
+每个文件每次打开都从零重编）。门禁见 `scripts/check-manifests.py`（T-A08）。
 
 ## 3. 测试三层
 
@@ -66,7 +102,8 @@
 | 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、bundled 解析/版本一致/市场元数据 | `crates/cli/tests/extension.rs` |
 | 打包冒烟 | CI `Package host VSIX` step | `bin/<target>/` 入包、exec 位、`TargetPlatform` | ci.yml |
 | 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存、**项目树三态**（闭包渲染 / 单文件占位 / 丢弃他人答案）、**记法缩写改写器**（`\and`+Tab、前缀陷阱、孤立 `\`、多光标、一次 undo 单元、eager 开关、Tab 的 context key）。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
-| 集成测试（**例行化**） | `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`（内部 `npm test` → @vscode/test-electron） | 真宿主端到端：激活、语言 id、诊断、inlay/hover、重启、Infoview、doctor、**项目树**（真 `soko/project` 答案渲染的行）；结果记进 `docs/e2e/ledger.jsonl`（`soko.e2e/1`）。手册 = `docs/E2E.md` | `editor/vscode/src/test/extension.test.js` |
+| 集成测试（**单用例，每环节跑**） | `scripts/vscode-e2e.sh --grep "<用例名>" --profile debug --no-build` | **真宿主 + 真 LSP 的单条用例**（~5 秒，实测）；`--grep`/`--profile`/`--no-build` 三个开关见 `docs/E2E.md` §1b。环节循环的 L4 层，见本文 §4.1 | `editor/vscode/src/test/extension.test.js` |
+| 集成测试（**例行化，全量**） | `SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`（内部 `npm test` → @vscode/test-electron） | 真宿主端到端：激活、语言 id、诊断、inlay/hover、重启、Infoview、doctor、**项目树**（真 `soko/project` 答案渲染的行）；结果记进 `docs/e2e/ledger.jsonl`（`soko.e2e/1`）。手册 = `docs/E2E.md` | `editor/vscode/src/test/extension.test.js` |
 | 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全、安装态离线） | — |
 
 **commit 前**：至少跑静态契约 + 集成测试；**发 tag 前**：三层全跑。
@@ -77,6 +114,39 @@ CI 的 `e2e` job 跑的是**同一条命令**（3 条腿：ubuntu × VS Code 1.1
 基本等于 CI 绿；红了的排查顺序见 `docs/E2E.md` §4。
 
 ## 4. 开发循环
+
+### 4.1 环节循环（**一次少做点、快速反馈**）
+
+> 大计划（`docs/design/vscode-editor-feedback-plan.md`，100+ 环节）按"一个环节
+> 一个可验收的小改动"推进。反馈分 5 层，**越靠前越快**：
+
+| 层 | 命令 | 耗时 | 用在哪 |
+|---|---|---|---|
+| **L1** LSP 直探（不开 VS Code） | `bash docs/gaps/repro/G2x-*.sh` | 秒级 | 绝大多数环节的判据就是它 |
+| **L2** 扩展 stub 宿主 | `node editor/vscode/test-extension-host.js` | 秒级 | 只改 `extension.js` 的环节 |
+| **L3** Rust 单测过滤 | `cargo test -p sokonanoda-front <filter>` | 十秒级 | 每个 Rust 环节 |
+| **L4** 真 VS Code **单用例** e2e | `scripts/vscode-e2e.sh --grep "<用例名>" --profile debug --no-build` | **~5 秒**（实测） | 每个修复环节（DoD 第 4 步） |
+| **L5** 检查点全量 | `scripts/soko gate` + `scripts/vscode-e2e.sh`（不带 `--grep`） | 分钟级 | 只在批次收尾 |
+
+**全貌**（六条用户反馈的现状，一条命令）：`scripts/verify-editor-issues.sh`。
+
+### 4.2 肉眼看效果（**不用重装 VSIX**）
+
+- **Rust 侧改动（绝大多数）**——`serverOverride` 回路：
+  ```bash
+  scripts/dev-loop.sh lsp        # cargo build -p sokonanoda-lsp -p sokonanoda-cli（debug）
+  # VS Code 命令面板 → sokonanoda: restart server
+  ```
+  一次性设置：`"sokonanoda.serverOverride": true` +
+  `"sokonanoda.serverPath": "<本仓绝对路径>/target/debug/sokonanoda-lsp"`。
+  不设 `serverOverride` 的话扩展优先用它自带的 bundled 服务器，这份 debug 构建**被忽略**。
+  **限制**：这只换服务器二进制，**换不了扩展代码** ⇒ 客户端改动要用 4.3。
+- **扩展侧改动**——F5 开发宿主：`cd editor/vscode && npm run clean:lsp`，
+  然后按 F5；改 `extension.js` 按开发宿主的重载按钮。
+- **要装成真扩展**（只在检查点）：`npm run package:host` +
+  `code --install-extension sokonanoda.vsix --force` + Reload Window。
+
+### 4.3 两条老路（打包 / 安装态验收）
 
 ```bash
 # 改 extension.js / server.js 后：
@@ -99,6 +169,18 @@ npm run clean:lsp
 `bin/` 不存在（gitignored），解析会落到 `target/debug`；若刚跑过
 `package:host`，会优先使用 stage 的 release 二进制——要回到 debug 发现先
 `npm run clean:lsp`。
+
+### 4.4 环境前置：macOS 的 Xcode 许可
+
+`xcrun --show-sdk-path` 失败时，**任何 Rust 链接都报**
+`error: linking with cc failed: exit status: 69`（不是代码问题）。两种解法：
+
+```bash
+sudo xcodebuild -license accept                              # 正解
+export DEVELOPER_DIR=/Library/Developer/CommandLineTools     # 绕过（只影响本 shell）
+```
+
+`scripts/dev-loop.sh` 会检测并打印这条提示（**不替你改环境**）。
 
 ## 5. 常见坑（全部踩过）
 

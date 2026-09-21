@@ -30,6 +30,30 @@ scripts/vscode-e2e.sh --version 1.106.0   # 试声明的最低版本（engines.v
 退出码：`0` 全绿 · `1` 有用例失败 · `2` 用法错误 · `3` 前置缺失（cargo / node /
 `editor/vscode/node_modules`）。**先 `(cd editor/vscode && npm install)`** 一次性准备依赖。
 
+## 1b. 单用例快跑（**环节循环的 L4 层**）
+
+大计划（`docs/design/vscode-editor-feedback-plan.md`）按"一次少做点"推进，
+每个修复环节都要跑它自己那条 e2e 用例。全量是分钟级，**单用例是秒级**：
+
+```bash
+scripts/vscode-e2e.sh --grep "declarations panel" --profile debug --no-build
+#   --grep <名字>            只跑名字匹配的用例（透传 SOKO_E2E_GREP；不传则全量，行为不变）
+#   --profile debug|release  用哪个构建（默认 release）；debug 不跑 release 构建
+#   --no-build               跳过构建与 stage，直接测 bin/ 里那份
+```
+
+实测（2026-09-21，Apple Silicon，VS Code 1.138.0）：**5.2 秒**跑完一个用例
+（含起宿主、起 LSP、跑用例、写台账）。
+
+**`--no-build` 的判读纪律**：它可能让你测到旧二进制。两个答案在台账里——
+`lsp_sha256_16`（测的是哪份二进制）与 `dirty`（工作区是否比 commit 新）；
+命中 `--no-build` 时脚本还会额外打印 `bin/` 里那份的 mtime 与 hash，
+并在有 `.rs` 比它新时**警告**（不阻止——checkout 之后所有文件都是"新"的，
+硬判会让这个开关永远不生效，实测踩到）。
+
+台账每条还多记两个字段：`profile`（这次用的构建）与 `grep`（用例过滤）——
+否则一行 `1 passing` 读不出"是只跑了一个还是全跑完了"。
+
 ## 2. 这一层守什么（与其它层不重叠）
 
 | 层 | 谁来跑 | 守什么 |
