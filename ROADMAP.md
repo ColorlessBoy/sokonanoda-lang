@@ -669,7 +669,7 @@ L0 的正确形态是一个**能被任何调用方（CLI、LSP、agent、测试�
   教学回环、VS Code 集成测试）与远期设计项（spine meta 方案 A）。
   发布流水线已落地（`release.yml` + `docs/RELEASE.md`）。
 
-### E1 —— 编辑器项目模式体验（**执行中**，2026-09-21 起；进度看 `python3 scripts/plan.py list`）
+### E1 —— 编辑器项目模式体验（**执行中**；**2026-09-21 用户改优先级：速度是生命线 ⇒ 编辑路径（G-29 / 线 K 的 K1）提到批次 2 之后立刻做**，2026-09-21 起；进度看 `python3 scripts/plan.py list`）
 - **执行入口**（先跑这一条）：
   ```bash
   python3 scripts/plan.py next     # 下一条环节 + 完整规格（可直接粘给实现者）
