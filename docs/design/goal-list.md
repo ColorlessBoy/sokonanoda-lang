@@ -99,3 +99,108 @@ pub struct ByStep { pub span: Span, pub goals: Vec<ByGoal> }
   编号节点、各自假设）；光标移动走 `refreshCursor` 复用缓存的 `declItems`，
   不再每次 `soko/goals`（性能，用户报告「vscode 很卡」）。
 - 版本 0.26.0 → 0.27.0（Cargo workspace + VSIX + CHANGELOG）。
+
+---
+
+## 6. as-built：声明栏的**逐文件实测**（计划 T-B01 / T-B02，2026-09-21）
+
+用户报「Infoview 的『声明』栏经常失效，有些文件有声明，有些没有，很奇怪，
+比如几个 unit 教学文件就没有」。这类"有些…有些…"的抱怨**必须逐个文件量过**，
+量具是 `scripts/verify-decl-panel.py`（起一个 LSP，逐个文件问 `soko/goals` 与
+`textDocument/documentSymbol`，再与 CLI 的 `query goals` 对照）。
+
+### 6.1 全量结果（86 个文件）
+
+| 判定 | 个数 |
+|---|---|
+| **声明栏空但报告好**（= G-22 的现场） | **31** |
+| 正常（`LSP goals == symbols`） | 54 |
+| 真的没有声明（`lib/Logic`：纯注释空壳，prelude 自带同名 30 个） | 1 |
+
+**31 个空的一览**（`goals=0` 而 `symbols>0`）：
+
+| 目录 | 文件 | goals | symbols |
+|---|---|---|---|
+| `courses/set-theory/lib/` | `Demo` `Equiv` `Fun` `Image` `Rel` | 0 | 10 / 5 / 14 / 6 / 7 |
+| `courses/set-theory/units/` | `unit01` … `unit12`（12 个） | 0 | 8–27 |
+| `courses/set-theory/units/` | `notation-cheatsheet` | 0 | 23 |
+| `courses/set-theory/units/solutions/` | `unit01-solution` … `unit12-solution`（12 个） | 0 | 5–30 |
+| `courses/set-theory/units/solutions/` | `notation-cheatsheet-solution` | 0 | 21 |
+
+**全部正常的**：`course/`（入门课 44 个文件）· `lib/{Exists,Prod,Set}`（这三个
+不用 import 来的记法，单独 parse 成功）· `playground.sokonanoda`。
+
+### 6.2 判据（为什么是这 31 个）
+
+相关性是 **100%** 的，判据不是"在哪个目录"，而是：
+
+> **单独 parse 失败 ∧ 闭包编译成功** ⇒ `QueryDoc::parsable()`（`query/mod.rs:403-408`）
+> 为 `Err(NotParsable)` ⇒ LSP 侧 `.unwrap_or_default()`（`lsp/src/lib.rs:495`）
+> 把错误吞成 `decls: []` ⇒ **声明栏空**。
+
+同一份文档的 `documentSymbol`（走 `report`，G-20 修过）、`soko/stateAt`（目标栏）、
+`hover`、`hints` **全都正常**——所以用户看到的是"**目标栏有、声明栏没有**"这种
+不对称。`course/` 的文件不用 import 来的记法（逻辑连接符是 prelude 内建），
+单独 parse 成功 ⇒ 全部正常。
+
+### 6.3 同族受损：`nextHole`（T-B02，实测）
+
+**四个 op 逐个量过**（`scripts/verify-decl-panel.py --ops`，2026-09-21）：
+
+| 文件 | 单文件 parse | LSP goals | `nextHole` | `stateAt`（目标栏） |
+|---|---|---|---|---|
+| `units/unit01-sets-membership` | 否 | **0** | **无洞** | `mem_of_subset` ✅ |
+| `units/solutions/unit01-solution` | 否 | **0** | **无洞** | （无独立 sorry 行） |
+| `course/unit1-propositions-proofs`（无 import） | 是 | 13 | **有洞** ✅ | （无独立 sorry 行） |
+| `lib/Set`（不用 import 记法） | 是 | 23 | 无洞（本来就没有） | — |
+
+⇒ **`soko/nextHole`（`alt+n` 跳洞）与声明栏同生共死**：它经由
+`next_hole → holes → goals(true)`，撞的是**同一条 `parsable()` 判据**；
+而 `soko/stateAt`（目标栏）读 `report`、不经它 ⇒ **正常**。
+
+这正是用户看到的不对称：**目标栏有、声明栏没有、`alt+n` 没反应**。
+
+真宿主 e2e 用例 #2（`next hole jumps inside a project unit`）现在就是红的，
+钉住这一条；它**故意不依赖声明栏**（不调 `infoviewDecls`），测的就是 `nextHole` 自己。
+
+### 6.4 修后实测（T-B03，2026-09-21）
+
+判据收敛成**一处** `QueryDoc::usable()`（`query/mod.rs:406`）：
+
+```rust
+fn usable(&self) -> bool {
+    self.report.is_some() && (self.parse_error.is_none() || self.project_entry_compiled())
+}
+```
+
+`goals`（经 `parsable()`）、`check` 的 parse 诊断闸门、LSP 的 `Doc::set_text`
+**共用同一条判据**——G-22 的成因就是同一条判据写了两遍而 `goals` 漏了。
+
+**修后（同一把量具，86 个文件）**：
+
+| 判定 | 修前 | 修后 |
+|---|---|---|
+| **声明栏空但报告好** | **31** | **0** |
+| 正常 | 54 | 85 |
+| 真的没有声明 | 1 | 1 |
+
+四层证据：
+
+1. **front 单测** 2 条新增（`an_entry_whose_closure_compiles_is_usable_even_if_it_does_not_parse_alone`
+   / `an_entry_whose_closure_also_fails_stays_not_parsable`——**后者钉住 G-17 契约不被放宽**），
+   全量 672 passed；
+2. **复现转绿**：`G22-lsp-goals-empty-for-import-entry.sh` → exit 1（`decls = 2`，
+   与 `documentSymbol` 一致）；`gap.py check` 一致；
+3. **真宿主 e2e**：用例 #1（声明栏）与 #2（`alt+n` 跳洞）**双双转绿**；
+4. **量具**：31 → 0。
+
+回归面：`sokonanoda-lsp --lib` 149 passed、`sokonanoda-cli` 的 `query`/`imports`/
+`protocol`/`course` 全绿、课程门禁计数逐项不变。
+
+### 6.5 复现与守护
+
+* 复现：`docs/gaps/repro/G22-lsp-goals-empty-for-import-entry.{sh,js}`（判红）
+* 量具：`scripts/verify-decl-panel.py`（本节的表就是它的输出；`--json` 可机读）
+* e2e：用例 #1 `declarations panel lists a project unit's declarations`（判红）
+* 修法见计划 **T-B03**：把判据收敛成单一 `QueryDoc::usable()`
+  （`check()` 与 `Doc::set_text` 已经打了 G-20 的补丁，**只有 `goals` 漏了**）。

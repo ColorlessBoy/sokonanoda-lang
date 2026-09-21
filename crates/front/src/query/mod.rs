@@ -350,11 +350,9 @@ impl QueryDoc {
         // 好的——那条 parse 诊断是**救援过程的中间产物**，不是这份文件的结论。
         // 报给 agent 会让正常文件看起来是坏的（实测：单元⑤ 改写后 `query check`
         // 报 `∈` 未声明，而同一份文本 `grade` exit 0、计数 5/7——两条通道打架）。
-        if let Some(diag) = self
-            .parse_error
-            .as_ref()
-            .filter(|_| !self.project_entry_compiled())
-        {
+        // 闸门与 `goals` 共用同一条判据（[`Self::usable`]，G-22 的教训：
+        // 同一条判据写两遍，就会有一处漏掉）。
+        if let Some(diag) = self.parse_error.as_ref().filter(|_| !self.usable()) {
             let (start_line, start_col, end_line, end_col) = line_col(diag.span);
             failed.push(FailedDecl {
                 name: None,
@@ -394,17 +392,35 @@ impl QueryDoc {
         }
     }
 
+    /// 这份文档的**真相层**是否可用——「单独 parse 失败但 `import` 闭包编译成功」
+    /// 算**可用**（G-20 的语义）。
+    ///
+    /// **一处判据、三处引用**（`goals` 经 [`Self::parsable`]、`check` 的 parse
+    /// 诊断闸门、LSP 的 `Doc::set_text`）。以前这条判据在 `check` 与 LSP 各写了
+    /// 一遍，**`goals` 漏了** ⇒ 项目入口的声明栏恒为空（**G-22**）：
+    /// 记法随 `import` 传播之后，"用库记法的单元单文件必然 parse 失败"是**常态**，
+    /// 那条 parse 诊断是**救援过程的中间产物**，不是这份文件的结论。
+    ///
+    /// 闭包也失败（入口 `LoadFailed`，真的有语法错误）时返回 `false` ⇒ 老契约
+    /// （`NotParsable` / parse 诊断优先）才对（G-17）。
+    fn usable(&self) -> bool {
+        self.report.is_some() && (self.parse_error.is_none() || self.project_entry_compiled())
+    }
+
     /// 源文本可解析？不可解析 ⇒ [`QueryError::NotParsable`]（"问不出来"）。
     ///
     /// 这是"正常的没有"（空数组 / `None`）与"问不出来"（`QueryError`）分界的
-    /// 唯一入口（设计 §4.1）：报告类查询（`goals`/`holes`）在解析失败时必须
-    /// 走这里，而不是答一个空数组（G-17）。`check` **不**调它——`check` 的答案
-    /// 就是"这份文本解析不了"，它把 `parse_error` 合成进 `failed`。
+    /// 唯一入口（设计 §4.1）：报告类查询（`goals`/`holes`/`nextHole`）在解析失败
+    /// 时必须走这里，而不是答一个空数组（G-17）。`check` **不**调它——`check`
+    /// 的答案就是"这份文本解析不了"，它把 `parse_error` 合成进 `failed`。
+    ///
+    /// **判据本体是 [`Self::usable`]**（别在这里另写一份，G-22 就是这么来的）。
     fn parsable(&self) -> Result<(), QueryError> {
-        if self.parse_error.is_some() {
-            return Err(QueryError::NotParsable);
+        if self.usable() {
+            Ok(())
+        } else {
+            Err(QueryError::NotParsable)
         }
-        Ok(())
     }
 
     // ── state（Lean `goalsAt?` 语义）─────────────────────────────────────────

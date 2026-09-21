@@ -2278,11 +2278,11 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### 批次 1 · 线 B：声明栏 + nextHole（patch）
 
-- [ ] `T-B01` 实测表：哪些文件坏、哪些好
-- [ ] `T-B02` 实测：`nextHole` / `stateAt` / `hints` 在项目入口的现状
-- [ ] `T-B03` 收敛成单一判据 `QueryDoc::usable()`
-- [ ] `T-B04` 补 LSP 断言（夹具已经在了）
-- [ ] `T-B05` 复现转绿
+- [x] `T-B01` 实测表：哪些文件坏、哪些好
+- [x] `T-B02` 实测：`nextHole` / `stateAt` / `hints` 在项目入口的现状
+- [x] `T-B03` 收敛成单一判据 `QueryDoc::usable()`
+- [x] `T-B04` 补 LSP 断言（夹具已经在了）
+- [x] `T-B05` 复现转绿
   - ⬆ **BUMP**：`patch` —— 声明栏第一次真的能用（服务端修好，unit 文件不再空）
 - [ ] `T-B06` `alt+n` 跳洞在项目文件里可用
 - [ ] `T-B07` CLI 侧的假绿也钉住

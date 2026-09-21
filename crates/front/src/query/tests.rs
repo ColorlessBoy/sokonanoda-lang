@@ -807,3 +807,74 @@ fn holes_carry_the_redundant_sorry_mark() {
         genuine.holes
     );
 }
+
+// ── G-22：`usable()` 是「声明栏能不能用」的唯一判据 ──────────────────────────
+//
+// 记法随 `import` 传播之后，"用库记法的单元**单文件必然 parse 失败**"是常态，
+// 而闭包是好的。这条判据以前在 `check` 与 LSP 各写了一遍、`goals` 漏了
+// ⇒ 项目入口的 `soko/goals` 恒为空（声明栏空、`alt+n` 没反应）。
+
+const NOTATION_LIB: &str = "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n";
+
+#[test]
+fn an_entry_whose_closure_compiles_is_usable_even_if_it_does_not_parse_alone() {
+    let dir = project_dir("usable-rescued");
+    let entry_text = "import lib.Set\n\n\
+theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
+    // 入口必须在**模块根**下：没有 `sokonanoda.toml` 时模块根 = 入口所在目录，
+    // 而 `import lib.Set` 是相对模块根解析的（入口放子目录会变成 `import-not-found`
+    // ——实测踩过）。真课程有清单，所以 `units/` 那种布局才成立。
+    let doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[
+            ("lib/Set.sokonanoda", NOTATION_LIB),
+            ("Main.sokonanoda", entry_text),
+        ],
+    );
+
+    // 前提：这份文件**自己**确实解析不了（`∈` 来自 import）——否则这条测试没意义。
+    assert!(
+        doc.parse_error.is_some(),
+        "夹具前提不成立：入口单独 parse 竟然成功了（记法没有随 import 传播？）"
+    );
+    assert!(
+        doc.project_entry_compiled(),
+        "夹具前提不成立：闭包没编译成功"
+    );
+
+    // G-22：声明栏的数据源必须**答得出来**，而不是 `NotParsable`。
+    let goals = doc.goals(false).expect("闭包好 ⇒ goals 必须可用（G-22）");
+    assert!(
+        goals.iter().any(|d| d.name == "mem_self"),
+        "声明栏必须列出 mem_self，实际 = {:?}",
+        goals.iter().map(|d| d.name.clone()).collect::<Vec<_>>()
+    );
+    // 同族：`holes` / `nextHole` 经由 `goals` ⇒ 一起恢复。
+    doc.holes().expect("holes 与 goals 同一条判据");
+    doc.next_hole(0, true).expect("nextHole 与 goals 同一条判据");
+}
+
+#[test]
+fn an_entry_whose_closure_also_fails_stays_not_parsable() {
+    // 老契约（G-17）不许被 G-22 的修法放宽：**真的**解析不了时仍要 `NotParsable`。
+    let dir = project_dir("usable-really-broken");
+    let doc = project_doc(
+        &dir,
+        "Main.sokonanoda",
+        &[("Main.sokonanoda", "theorem t : Prop -> := sorry\n")],
+    );
+    assert!(doc.parse_error.is_some(), "夹具前提：入口有真语法错误");
+    assert!(
+        !doc.project_entry_compiled(),
+        "夹具前提：闭包也失败（入口 LoadFailed）"
+    );
+    assert_eq!(
+        doc.goals(false).unwrap_err(),
+        QueryError::NotParsable,
+        "闭包也失败 ⇒ 必须仍是 NotParsable（G-17 契约）"
+    );
+    assert_eq!(doc.holes().unwrap_err(), QueryError::NotParsable);
+}

@@ -758,6 +758,35 @@ async fn imported_notation_keeps_the_report_and_the_diagnostics_honest() {
         "the rescued report must still drive documentSymbol"
     );
 
+    // ④ **声明栏的数据源必须非空**（G-22）。夹具恰好就是 G-22 的形状
+    //    （入口用库记法 ⇒ 单独 parse 必然失败、闭包好），而 G-20 当年只钉了
+    //    ①诊断 ②hover ③documentSymbol ——**漏了 `soko/goals`**，
+    //    于是「目标栏好、声明栏空」这个不对称活了很久（计划 T-B04）。
+    let result = call(
+        &mut service,
+        RpcRequest::build("soko/goals")
+            .params(json!({"textDocument": {"uri": canvas}}))
+            .id(4)
+            .finish(),
+    )
+    .await
+    .expect("soko/goals must answer");
+    // `GoalsResponse` 只有 `Serialize`（它是服务端的响应类型）⇒ 这里读 Value。
+    let decls = result
+        .get("decls")
+        .and_then(|value| value.as_array())
+        .cloned()
+        .unwrap_or_default();
+    assert!(
+        !decls.is_empty(),
+        "项目入口的声明栏必须非空（G-22）：`parsable()` 以前把它判死了；实际 = {result:?}"
+    );
+    assert_eq!(
+        decls.len(),
+        count,
+        "声明栏与 documentSymbol 必须同源同数（都来自 report.decls）"
+    );
+
     let _ = std::fs::remove_dir_all(&dir);
 }
 
