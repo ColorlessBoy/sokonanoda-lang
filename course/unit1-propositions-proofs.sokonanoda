@@ -29,7 +29,7 @@ def Not : Prop → Prop := fun (a : Prop) => a → False
 #reduce ¬ True
 
 -- 演示（已写好）：构造子当函数用，参数按顺序全部给全。
-example : True ∨ False := Or.inl True False True.intro
+example : True ∨ False := Or.inl True.intro
 
 -- ─────────────────────────────────────────────────────────────
 -- 类型里的箭头对应值里的 fun：写证明 = 写一串 fun + 最后一个构造子调用。
@@ -79,7 +79,7 @@ theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by sorry
 -- 演示：下面这条声明与练习 3 的 and_swap 是同一道题，只是换了拼写；
 -- 内核判定完全一样，可以对照着看。
 theorem demo_binders (a : Prop) (b : Prop) (h : a ∧ b) : b ∧ a :=
-  And.intro b a (And.right a b h) (And.left a b h)
+  And.intro (And.right h) (And.left h)
 
 -- 练习 6：用声明级 binder 再证一遍 and_intro_rule（这一次不用写 fun）。
 -- soko:hint 思路：四样东西 a、b、ha、hb 都已经在上下文里；直接装出 a ∧ b。

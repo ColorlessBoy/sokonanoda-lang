@@ -26,9 +26,9 @@
 --       And / And.intro / And.left / And.right / And.elim /
 --       Or（构造子是**点号名** Or.inl / Or.inr）/ Or.elim /
 --       Iff / Iff.intro / Iff.mp / Iff.mpr / Iff.refl / Iff.symm / Iff.trans /
---       Eq.symm / Eq.trans / congrArg / Eq.subst（等式一律写**显式宇宙**：Eq.{1} α a b）/
---       Set / Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton / Set.pair /
---       Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset、公理 Set.ext、
+--       Eq.symm / Eq.trans / congrArg / Eq.subst（`Eq.*` 是**证明项**：仍写显式宇宙）/
+--       Set 与集合记法 `∈` `⊆` `∪` `∩` `\` `∅` `𝒫` `ᶜ` `{a}` `{a, b}`、
+--       `Set.univ`（无记法，写 `Set.univ α`）、公理 Set.ext、
 --       以及展开引理 Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty /
 --       Set.mem_univ / Set.mem_singleton_iff / Set.mem_union / Set.mem_inter_iff /
 --       Set.mem_sdiff / Set.mem_powerset_iff；
@@ -61,21 +61,20 @@ theorem demo_mem_powerset (α : Type) (A B : Set α) :
   exact Set.mem_powerset_iff α A B
 
 -- 演示（记法即糖）：与上一条**同一个命题**，这次用 `constructor` 把两个方向
--- 拆开、`Iff.mp` / `Iff.mpr` 各交一次——说明记法 `B ∈ 𝒫 A` 与点名形式
--- `Set.mem (Set α) B (Set.powerset α A)` 是**同一个项**，点名写下的引理直接
--- 适用于记法写下的目标。前缀记法 `prefix:100 " 𝒫 " => Set.powerset` 住在
+-- 拆开、`Iff.mp` / `Iff.mpr` 各交一次——说明 lib/Set 里**点名写下的引理**
+-- 直接适用于记法写下的目标（记法只是糖）。前缀记法 `prefix:100 " 𝒫 " => Set.powerset` 住在
 -- `lib/Set.sokonanoda` 里，随 `import lib.Set` 带进来：**本文件不重声明任何
 -- 记法**（同一个符号全课程只能声明一次）。前导类型参数 `α` 由记法路径自己从
--- 操作数解出（`A : Set α`），点名形式则必须写全 `Set.powerset α A`。
+-- 操作数解出（`A : Set α`）；点名调用则要写全前面的类型参数。
 -- 写成 `example`（与单元⑧ 的"演示 8"同款）：演示不该往单元里塞具名声明，
 -- 课程门禁的 `decl.checked` 计数因此**一个都不动**（记法本身也不是声明，N6）。
 example (α : Type) (A B : Set α) :
     (B ∈ 𝒫 A) ↔ (B ⊆ A) := by
   constructor
   intro h
-  exact Iff.mp (B ∈ 𝒫 A) (B ⊆ A) (Set.mem_powerset_iff α A B) h
+  exact Iff.mp (Set.mem_powerset_iff α A B) h
   intro h
-  exact Iff.mpr (B ∈ 𝒫 A) (B ⊆ A) (Set.mem_powerset_iff α A B) h
+  exact Iff.mpr (Set.mem_powerset_iff α A B) h
 
 -- ─────────────────────────────────────────────────────────────
 -- 3.1 并：两个"塞进去"的包含，以及 ∪ 的**泛性质**（A ∪ B 是最小的公共上界）
@@ -84,21 +83,21 @@ example (α : Type) (A B : Set α) :
 -- 练习 1（T 类）：左项被并包含。
 -- soko:hint 思路：目标是全称命题——intro 一个元素 x 与"x ∈ A"，要交出的结论是"或"。
 -- soko:hint 目标形态：A ⊆ A ∪ B，展开后是 ∀ (x : α), x ∈ A → x ∈ A ∪ B。
--- soko:hint 关键件：Or 的构造子是点号名 Or.inl / Or.inr；左项走 Or.inl，别忘了它要显式吃 Or 的两个参数。
+-- soko:hint 关键件：Or 的构造子是点号名 Or.inl / Or.inr；左项走 Or.inl，把证据本身喂给它。
 theorem subset_union_left (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
   sorry
 
 -- 练习 2（T 类）：右项被并包含（与练习 1 对称，换一支构造子）。
 -- soko:hint 思路：与练习 1 同形，只是证据要放进"或"的右边。
 -- soko:hint 目标形态：B ⊆ A ∪ B，展开后是 ∀ (x : α), x ∈ B → x ∈ A ∪ B。
--- soko:hint 关键件：Or.inr (A x) (B x)。
+-- soko:hint 关键件：Or.inr，把手里那条 `x ∈ B` 的证据喂给它。
 theorem subset_union_right (α : Type) (A B : Set α) : B ⊆ A ∪ B := by
   sorry
 
 -- 练习 3（L 类）：并的**泛性质**——A ∪ B ⊆ C 当且仅当 A ⊆ C 且 B ⊆ C。
 -- soko:hint 思路：两个方向分开做——→ 把 h 分别用在"从 A 来"与"从 B 来"的元素上；← 手里是一对包含，对 x ∈ A ∪ B 分情况。
 -- soko:hint 目标形态：(A ∪ B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C)；→ 的目标是一个 ∧（两条都是全称），← 的目标是 ∀ (x : α), x ∈ A ∪ B → x ∈ C。
--- soko:hint 关键件：→ 用 And.intro，两支分别把 Or.inl / Or.inr 造出的证据喂给 h；← 用 Or.elim (A x) (B x) (C x)，两个包含用 And.left / And.right 取出。
+-- soko:hint 关键件：→ 用 And.intro，两支分别把 Or.inl / Or.inr 造出的证据喂给 h；← 用 Or.elim，两个包含用 And.left / And.right 取出。
 theorem union_subset_iff (α : Type) (A B C : Set α) :
     (A ∪ B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C) := by
   sorry
@@ -110,21 +109,21 @@ theorem union_subset_iff (α : Type) (A B C : Set α) :
 -- 练习 4（T 类）：交是左项的子集。
 -- soko:hint 思路：x ∈ A ∩ B 是"一对证据"，目标只要其中左边那一半。
 -- soko:hint 目标形态：A ∩ B ⊆ A，展开后是 ∀ (x : α), x ∈ A ∩ B → x ∈ A。
--- soko:hint 关键件：成员判定 Set.mem_inter_iff 说 x ∈ A ∩ B 展开就是 ∧；And.left (A x) (B x)。
+-- soko:hint 关键件：成员判定 Set.mem_inter_iff 说 x ∈ A ∩ B 展开就是 ∧；用 And.left 取前半。
 theorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A := by
   sorry
 
 -- 练习 5（T 类）：交是右项的子集。
 -- soko:hint 思路：与练习 4 同形，取"一对证据"里的另一半。
 -- soko:hint 目标形态：A ∩ B ⊆ B，展开后是 ∀ (x : α), x ∈ A ∩ B → x ∈ B。
--- soko:hint 关键件：And.right (A x) (B x)。
+-- soko:hint 关键件：用 And.right 取后半。
 theorem inter_subset_right (α : Type) (A B : Set α) : A ∩ B ⊆ B := by
   sorry
 
 -- 练习 6（L 类）：两条包含给出到交的包含（**练习 4/5 的逆向**）。
 -- soko:hint 思路：目标是"且"——分别向两条假设要证据，再拼起来。
 -- soko:hint 目标形态：A ⊆ B ∩ C，展开后是 ∀ (x : α), x ∈ A → x ∈ B ∩ C。
--- soko:hint 关键件：h1 x hx : x ∈ B 与 h2 x hx : x ∈ C，交给 And.intro (B x) (C x)。
+-- soko:hint 关键件：h1 x hx : x ∈ B 与 h2 x hx : x ∈ C，交给 And.intro 拼起来。
 theorem subset_inter (α : Type) (A B C : Set α)
     (h1 : A ⊆ B) (h2 : A ⊆ C) : A ⊆ B ∩ C := by
   sorry
@@ -133,7 +132,7 @@ theorem subset_inter (α : Type) (A B C : Set α)
 -- A ⊆ B 且 A ⊆ C。（练习 6 正是这条的 ← 方向：拿到一对包含就能造出到交的包含。）
 -- soko:hint 思路：两个方向分开——→ 把"整条包含"按交的两个坐标劈成两条包含；← 把一对包含合成一条"落进交里"的包含。
 -- soko:hint 目标形态：(A ⊆ B ∩ C) ↔ (A ⊆ B ∧ A ⊆ C)；→ 的目标是一个 ∧（两条都是全称），← 的目标是 ∀ (x : α), x ∈ A → x ∈ B ∩ C。
--- soko:hint 关键件：→ 任给 x 与 hx : x ∈ A：h x hx 给出的是一对证据（成员判定 Set.mem_inter_iff 说 x ∈ B ∩ C 展开就是 ∧），And.left / And.right 各取一半交出去；← 两条包含用 And.left h / And.right h 取出，喂同一个 x hx 之后交给 And.intro (B x) (C x) 装回一对。
+-- soko:hint 关键件：→ 任给 x 与 hx : x ∈ A：h x hx 给出的是一对证据（成员判定 Set.mem_inter_iff 说 x ∈ B ∩ C 展开就是 ∧），And.left / And.right 各取一半交出去；← 两条包含用 And.left h / And.right h 取出，喂同一个 x hx 之后交给 And.intro 装回一对。
 theorem subset_inter_iff (α : Type) (A B C : Set α) :
     (A ⊆ B ∩ C) ↔ (A ⊆ B ∧ A ⊆ C) := by
   sorry
@@ -145,7 +144,7 @@ theorem subset_inter_iff (α : Type) (A B C : Set α) :
 -- 练习 8（T 类）：差是左项的子集。
 -- soko:hint 思路：x ∈ A \ B 也是"且"（x ∈ A 的证据 + x ∉ B 的否证），目标只要前半。
 -- soko:hint 目标形态：A \ B ⊆ A，展开后是 ∀ (x : α), x ∈ A \ B → x ∈ A。
--- soko:hint 关键件：Set.mem_sdiff α x A B 是这一层的成员判定，展开后 And.left (A x) (Not (B x))。
+-- soko:hint 关键件：Set.mem_sdiff α x A B 是这一层的成员判定，展开后是一对证据（`x ∈ A` 与 `¬ (x ∈ B)`），用 And.left 取前半。
 theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
   sorry
 
@@ -156,7 +155,7 @@ theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
 -- 练习 9（T 类）：A ⊆ B 推出 𝒫 A ⊆ 𝒫 B。
 -- soko:hint 思路：𝒫 A 的元素是"A 的子集"；要证 𝒫 A ⊆ 𝒫 B，就是任给 X ⊆ A 去证 X ⊆ B——逐元素把 X 里的证据经 A ⊆ B 送一程。
 -- soko:hint 目标形态：𝒫 A ⊆ 𝒫 B；内层展开是 ∀ (X : Set α), X ⊆ A → X ⊆ B，再展开是 ∀ (x : α), x ∈ X → x ∈ B，手里有 h : A ⊆ B。
--- soko:hint 关键件：Set.mem_powerset_iff（成员判定，**第一个参数是"大集合"**）把两边的"X ∈ 𝒫 ?"换成包含，Iff.mp / Iff.mpr 各走一个方向；最后一步用 h x。注意 intro 只把目标展开一层（Set.mem → Set.powerset），所以内层包含要靠这条引理换出来。
+-- soko:hint 关键件：Set.mem_powerset_iff（成员判定，**第一个参数是"大集合"**）把两边的"X ∈ 𝒫 ?"换成包含，Iff.mp / Iff.mpr 各走一个方向；最后一步用 h x。注意 intro 只把目标展开一层（`∈` → `𝒫`），所以内层包含要靠这条引理换出来。
 theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
     𝒫 A ⊆ 𝒫 B := by
   sorry

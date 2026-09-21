@@ -20,7 +20,7 @@ def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- 演示（已写好）：库的第一条导出——交换 And 的两半。练习 5 要复用它。
 theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
-  And.intro B A (And.right A B h) (And.left A B h)
+  And.intro (And.right h) (And.left h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 11.1 为什么需要 import：给名字划一条边界

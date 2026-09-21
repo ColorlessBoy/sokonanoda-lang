@@ -974,7 +974,7 @@ def l1_absurd (a b : Prop) (ha : a) (hna : Not a) : b := absurd a b ha hna
 def l1_true : True := True.intro
 def l1_eq_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} Nat a b h
 def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat (f a) (f b) :=
-  congrArg.{1} Nat Nat f a b h
+  congrArg.{1} f h
 ";
 
 #[test]

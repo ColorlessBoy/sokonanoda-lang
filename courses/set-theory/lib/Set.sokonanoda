@@ -12,10 +12,10 @@
 -- 一行都不用改。注意 `def Set`（集合**类型**本身）留在命名空间**外面**：
 -- 放进去它会变成 `Set.Set`，`Set α` 全部失效（Mathlib 也是把 `Set` 放根上）。
 --
--- **L-05 第二刀（2026-09-19）后的完整清单**——本文件只允许留这三类（下面的
--- 名字是**全局名**，源里除 `Set` 外都写在 `namespace Set` 内、不带前缀）：
---   · 12 个定义：Set / Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton /
---     Set.pair / Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset；
+-- **L-05 第二刀（2026-09-19）后的完整清单**——本文件只允许留这三类（源里除
+-- 集合类型 `Set` 外都写在 `namespace Set` 内、写短名；全局名 = 短名加 `Set.` 前缀）：
+--   · 12 个定义：集合类型 Set（在命名空间外）/ mem / subset / empty / univ /
+--     singleton / pair / union / inter / sdiff / compl / powerset；
 --   · 1 条公理：Set.ext（Mathlib 由 propext + funext 推出，我们两者都没有）；
 --   · 10 条定义展开引理：Set.subset_def / Set.mem_empty_iff_false / Set.notMem_empty /
 --     Set.mem_univ / Set.mem_singleton_iff / Set.mem_singleton_self / Set.mem_union /
@@ -41,9 +41,9 @@
 --   Set.notMem_empty（大写 M）、Set.mem_powerset_iff（不是 power）、Set.mem_sdiff（不是 diff）、
 --   Set.Subset.refl/trans/antisymm（点号在 Subset 上）。
 --
--- 记法对照（记法在**本文件下半段**声明，见"记法"一节）：
---   Set.mem α a A ↔ a ∈ A   ·   Set.subset α A B ↔ A ⊆ B   ·   Set.empty α ↔ ∅
---   Set.union α A B ↔ A ∪ B ·   Set.powerset α A ↔ 𝒫 A
+-- 记法一览（记法在**本文件下半段**声明，见"记法"一节；下表只列记法本身）：
+--   a ∈ A（成员） · A ⊆ B（子集） · ∅（空集）
+--   A ∪ B（并） · 𝒫 A（幂集）
 -- 本文件自己的定理也**用记法写**（声明点在它们之前，所以文件内已生效）。
 import lib.Logic
 
@@ -82,7 +82,7 @@ def powerset (α : Type) (A : Set α) : Set (Set α) := fun (B : Set α) => subs
 
 -- ── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────
 axiom ext : (α : Type) → (A B : Set α) →
-  (∀ (x : α), A x ↔ B x) → Eq.{1} (Set α) A B
+  (∀ (x : α), A x ↔ B x) → A = B
 
 -- ── 记法（G-04 第二刀，0.60.0）：卷 I 的**数学符号**────────────────────────
 --
@@ -111,7 +111,7 @@ axiom ext : (α : Type) → (A B : Set α) →
 --
 -- 逻辑连接符（`∧ ∨ ↔ ¬`）**不在这里**：它们是**语言内建记法**
 -- （`docs/design/course-lean-style.md` L2.2），任何文件零声明可用。
--- `→` 同理（词法别名，与 `->` 同义）。
+-- `→` 同理（与 ASCII 箭头写法同义）。
 infix:50 " ∈ " => Set.mem
 infix:50 " ⊆ " => Set.subset
 infixl:65 " ∪ " => Set.union

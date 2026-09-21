@@ -6,4 +6,4 @@
 -- 库导出的是**定理**：下游 import 之后能直接调用 and_comm，而不必重抄证明
 -- （重抄同一个名字反而是 import-name-collision）。
 theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
-  And.intro B A (And.right A B h) (And.left A B h)
+  And.intro (And.right h) (And.left h)

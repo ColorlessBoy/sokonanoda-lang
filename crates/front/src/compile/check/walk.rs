@@ -313,11 +313,16 @@ impl<'arena> Walk<'arena> {
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
+        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
+        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
+        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
             prefix_src,
             options,
             inductives: &self.inductives,
             ns: &self.ns,
+            defs: &defs_for_ctx,
         };
         let lowered = match lower_value(
             ty,
@@ -393,6 +398,8 @@ impl<'arena> Walk<'arena> {
                     KnownName::Decl {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                        explicit_arity: crate::compile::elab::explicit_arity(ty),
+                        signature: Some(crate::proof::render_expr(ty)),
                     },
                 );
             }
@@ -486,6 +493,8 @@ impl<'arena> Walk<'arena> {
                     KnownName::Decl {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                        explicit_arity: crate::compile::elab::explicit_arity(ty),
+                        signature: Some(crate::proof::render_expr(ty)),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -535,11 +544,16 @@ impl<'arena> Walk<'arena> {
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
+        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
+        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
+        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
             prefix_src,
             options,
             inductives: &self.inductives,
             ns: &self.ns,
+            defs: &defs_for_ctx,
         };
         let lowered = match lower_value(
             ty,
@@ -589,6 +603,8 @@ impl<'arena> Walk<'arena> {
                     KnownName::Decl {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                        explicit_arity: crate::compile::elab::explicit_arity(ty),
+                        signature: Some(crate::proof::render_expr(ty)),
                     },
                 );
             }
@@ -700,6 +716,8 @@ impl<'arena> Walk<'arena> {
                     KnownName::Decl {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                        explicit_arity: crate::compile::elab::explicit_arity(ty),
+                        signature: Some(crate::proof::render_expr(ty)),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -740,11 +758,16 @@ impl<'arena> Walk<'arena> {
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
+        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
+        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
+        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
             prefix_src,
             options,
             inductives: &self.inductives,
             ns: &self.ns,
+            defs: &defs_for_ctx,
         };
         if trusted {
             if skip.is_some_and(|s| s.contains_key(&idx)) {
@@ -766,6 +789,8 @@ impl<'arena> Walk<'arena> {
                     KnownName::Decl {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                        explicit_arity: crate::compile::elab::explicit_arity(ty),
+                        signature: Some(crate::proof::render_expr(ty)),
                     },
                 );
             }
@@ -811,6 +836,8 @@ impl<'arena> Walk<'arena> {
                     KnownName::Decl {
                         universes: universe.to_vec(),
                         implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                        explicit_arity: crate::compile::elab::explicit_arity(ty),
+                        signature: Some(crate::proof::render_expr(ty)),
                     },
                 );
                 let env_after = self.builder.declaration_count();
@@ -852,11 +879,16 @@ impl<'arena> Walk<'arena> {
         let trusted = c.trusted;
         let options = local(c.options);
         let skip = c.skip;
+        // `elab_ctx` 里的 `defs` 要**借到本次 `elab_expr` 结束**，而稍后的
+        // `self.defs.insert` 需要可变借用 ⇒ 借一份快照（本次声明自己的 def 还没
+        // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
+        let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
             prefix_src,
             options,
             inductives: &self.inductives,
             ns: &self.ns,
+            defs: &defs_for_ctx,
         };
         let lowered = match lower_value(
             ty,
@@ -1137,6 +1169,7 @@ impl<'arena> Walk<'arena> {
                 options,
                 inductives: &self.inductives,
                 ns: &self.ns,
+                defs: &self.defs,
             },
         ) {
             Ok(e) => {
@@ -1182,6 +1215,7 @@ impl<'arena> Walk<'arena> {
                 options,
                 inductives: &self.inductives,
                 ns: &self.ns,
+                defs: &self.defs,
             },
         ) {
             Ok(e) => {

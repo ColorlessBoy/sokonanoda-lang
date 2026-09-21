@@ -43,7 +43,7 @@ theorem Set.Equiv.of_inj_surj (α β : Type) (A : Set α) (B : Set β)
     (f : α → β) (g : β → α)
     (hf : Set.MapsTo α β f A B)
     (hg : Set.MapsTo β α g B A)
-    (hinj : ∀ (x1 x2 : α), Eq.{1} β (f x1) (f x2) → Eq.{1} α x1 x2)
+    (hinj : ∀ (x1 x2 : α), (f x1) = (f x2) → x1 = x2)
     (hsec : Set.RightInvOn α β f g B) :
     Set.Equiv α β A B := by
   exact Set.Equiv.mk α β A B f g hf hg
@@ -67,12 +67,12 @@ def Nat.pred (n : Nat) : Nat := match n with
 
 -- succ n ≠ 0：把 n 送进"是不是 0"的谓词里，succ 那一支给 True、zero 那一支给
 -- False；于是 Eq.subst 把 succ n 处的 True.intro 搬到 zero 处，得到 False。
-theorem Nat.succ_ne_zero (n : Nat) : ¬ (Eq.{1} Nat (Nat.succ n) Nat.zero) := by
+theorem Nat.succ_ne_zero (n : Nat) : ¬ ((Nat.succ n) = Nat.zero) := by
   intro h
   exact Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
 
 -- 非零自然数之集（自定名：Mathlib 里没有"非零自然数"这个名字的 Set Nat）。
-def nonzero : Set Nat := fun (n : Nat) => ¬ (Eq.{1} Nat n Nat.zero)
+def nonzero : Set Nat := fun (n : Nat) => ¬ (n = Nat.zero)
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 1（T 类，必证②）：等势对称——交换两把映射。
@@ -80,37 +80,20 @@ def nonzero : Set Nat := fun (n : Nat) => ¬ (Eq.{1} Nat n Nat.zero)
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.symm (α β : Type) (A : Set α) (B : Set β)
     (h : Set.Equiv α β A B) : Set.Equiv β α B A := by
-  exact Exists.elim (α → β)
-    (fun (f : α → β) => Set.MapsTo α β f A B ∧
-      (∃ (g : β → α), Set.MapsTo β α g B A ∧
-        (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)))
-    (Set.Equiv β α B A) h
-    (fun (f : α → β) =>
+  exact Exists.elim h (fun (f : α → β) =>
       fun (hf : Set.MapsTo α β f A B ∧
           (∃ (g : β → α), Set.MapsTo β α g B A ∧
             (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))) =>
-        Exists.elim (β → α)
-          (fun (g : β → α) => Set.MapsTo β α g B A ∧
-            (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B))
-          (Set.Equiv β α B A)
-          (And.right (Set.MapsTo α β f A B)
-            (∃ (g : β → α), Set.MapsTo β α g B A ∧
-              (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hf)
-          (fun (g : β → α) =>
+        Exists.elim (And.right hf) (fun (g : β → α) =>
             fun (hg : Set.MapsTo β α g B A ∧
                 (Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) =>
               Set.Equiv.mk β α B A g f
-                (And.left (Set.MapsTo β α g B A)
-                  ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hg)
-                (And.left (Set.MapsTo α β f A B)
-                  (∃ (g2 : β → α), Set.MapsTo β α g2 B A ∧
-                    (Set.LeftInvOn α β g2 f A) ∧ (Set.RightInvOn α β f g2 B)) hf)
-                (And.right (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)
-                  (And.right (Set.MapsTo β α g B A)
-                    ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hg))
-                (And.left (Set.LeftInvOn α β g f A) (Set.RightInvOn α β f g B)
-                  (And.right (Set.MapsTo β α g B A)
-                    ((Set.LeftInvOn α β g f A) ∧ (Set.RightInvOn α β f g B)) hg))))
+                (And.left hg)
+                (And.left hf)
+                (And.right
+                  (And.right hg))
+                (And.left
+                  (And.right hg))))
 theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
     (h1 : Set.Equiv α β A B) (h2 : Set.Equiv β γ B C) : Set.Equiv α γ A C := by
   exact Exists.elim (α → β)
@@ -179,8 +162,8 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
                                   hg2 z hz))
                             (fun (x : α) => fun (hx : x ∈ A) =>
                               Eq.trans.{1} α (g1 (g2 (f2 (f1 x)))) (g1 (f1 x)) x
-                                (congrArg.{1} β α g1 (g2 (f2 (f1 x))) (f1 x)
-                                  (And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)
+                                (congrArg.{1} g1
+                                  (And.left (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                                     (And.right (Set.MapsTo γ β g2 C B)
                                       ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2)
                                     (f1 x)
@@ -188,21 +171,21 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
                                       (∃ (g1 : β → α), Set.MapsTo β α g1 B A ∧
                                           (Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hf1
                                       x hx)))
-                                (And.left (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)
+                                (And.left (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                                   (And.right (Set.MapsTo β α g1 B A)
                                     ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1)
                                   x hx))
                             (fun (z : γ) => fun (hz : z ∈ C) =>
                               Eq.trans.{1} γ (f2 (f1 (g1 (g2 z)))) (f2 (g2 z)) z
-                                (congrArg.{1} β γ f2 (f1 (g1 (g2 z))) (g2 z)
-                                  (And.right (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)
+                                (congrArg.{1} f2
+                                  (And.right (Set.LeftInvOn α β g1 f1 A) (Set.RightInvOn α β f1 g1 B)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                                     (And.right (Set.MapsTo β α g1 B A)
                                       ((Set.LeftInvOn α β g1 f1 A) ∧ (Set.RightInvOn α β f1 g1 B)) hg1)
                                     (g2 z)
                                     (And.left (Set.MapsTo γ β g2 C B)
                                       ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C))
                                       hg2 z hz)))
-                                (And.right (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)
+                                (And.right (Set.LeftInvOn β γ g2 f2 B) (Set.RightInvOn β γ f2 g2 C)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                                   (And.right (Set.MapsTo γ β g2 C B)
                                     ((Set.LeftInvOn β γ g2 f2 B) ∧ (Set.RightInvOn β γ f2 g2 C)) hg2)
                                   z hz))))))
@@ -225,7 +208,7 @@ theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
 -- 两把映射都取恒等，四条条件里"送进"的两条要把成员关系沿等式搬过去
 -- （Eq.subst），反向那条搬的是 Eq.symm 过的等式。
 -- ─────────────────────────────────────────────────────────────
-theorem Set.equivOfEq (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) :
+theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
     Set.Equiv α α A B := by
   exact Set.Equiv.mk α α A B (fun (x : α) => x) (fun (x : α) => x)
     (fun (x : α) => fun (hx : x ∈ A) =>
@@ -334,18 +317,18 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 --   ③ 它与 Nat 等势（正向 pred、反向 succ——无限集上的"整体与真部分一样大"）。
 -- 左互逆律 pred (succ x) = x 要对 x 分情况：succ 那一支靠 iota 直接算，
 -- zero 那一支被 x ∈ nonzero 直接否掉（这就是为什么脚手架里要有 succ_ne_zero）。
--- 第一段用点名形式 Set.subset Nat …：⊆ 记法在这里补不出论域（见画布同款注释）。
+-- 第一段用点名形式 Set.subset Nat …：⊆ 记法在这里补不出论域（见画布同款注释）。  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
-    Set.subset Nat nonzero (Set.univ Nat) ∧
+    Set.subset Nat nonzero (Set.univ Nat) ∧  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (nonzero ≠ Set.univ Nat ∧ Set.Equiv Nat Nat nonzero (Set.univ Nat)) := by
-  exact And.intro (Set.subset Nat nonzero (Set.univ Nat))
+  exact And.intro (Set.subset Nat nonzero (Set.univ Nat))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
     (¬ (Eq.{1} (Set Nat) nonzero (Set.univ Nat)) ∧
          Set.Equiv Nat Nat nonzero (Set.univ Nat))
     (fun (x : Nat) => fun (hx : x ∈ nonzero) => True.intro)
-    (And.intro (¬ (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))
+    (And.intro (¬ (Eq.{1} (Set Nat) nonzero (Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
       (Set.Equiv Nat Nat nonzero (Set.univ Nat))
-      (fun (h : Eq.{1} (Set Nat) nonzero (Set.univ Nat)) =>
+      (fun (h : Eq.{1} (Set Nat) nonzero (Set.univ Nat)) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
         (fun (h0 : Nat.zero ∈ nonzero) => h0 (Eq.refl.{1} Nat Nat.zero))
           (Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Nat.zero ∈ X)
             (Set.univ Nat) nonzero
@@ -356,12 +339,12 @@ theorem proper_subset_counterexample :
         (fun (y : Nat) => fun (hy : y ∈ Set.univ Nat) => Nat.succ_ne_zero y)
         (fun (x : Nat) => fun (hx : x ∈ nonzero) =>
           Nat.rec.{0}
-            (fun (k : Nat) => k ∈ nonzero → Eq.{1} Nat (Nat.succ (Nat.pred k)) k)
+            (fun (k : Nat) => k ∈ nonzero → Eq.{1} Nat (Nat.succ (Nat.pred k)) k)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
             (fun (hz : Nat.zero ∈ nonzero) =>
-              False.elim (Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)
+              False.elim (Eq.{1} Nat (Nat.succ (Nat.pred Nat.zero)) Nat.zero)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (hz (Eq.refl.{1} Nat Nat.zero)))
             (fun (k : Nat) =>
-              fun (ih : k ∈ nonzero → Eq.{1} Nat (Nat.succ (Nat.pred k)) k) =>
+              fun (ih : k ∈ nonzero → Eq.{1} Nat (Nat.succ (Nat.pred k)) k) =>  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 fun (hs : Nat.succ k ∈ nonzero) =>
                   Eq.refl.{1} Nat (Nat.succ k))
             x hx)

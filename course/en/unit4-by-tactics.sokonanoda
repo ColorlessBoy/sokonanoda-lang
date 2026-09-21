@@ -33,7 +33,7 @@
 -- whitelist now and not gated on a unit, but it **requires the goal to really
 -- be an inductive type** — the `∃` of Unit 8 is an axiom declared there, so
 -- Unit 8 keeps naming `Exists.intro` instead.
--- The reason this family works here is that And / Or are **real inductives**
+-- The reason this family works here is that And / `Or` are **real inductives**
 -- in the prelude (see below).
 -- `by sorry` leaves the goal open (like writing sorry in the value position).
 -- The `∧` / `∨` already in the exercises below has a shorter spelling now too:
@@ -43,8 +43,8 @@
 -- ==========================================================================
 
 -- The logical base: True / False are set up with axioms as in Unit 1; the
--- And / Or constructors (And.intro, And.left, And.right, Or.inl, Or.inr)
--- ship with the prelude. Precisely because And / Or are real inductives in
+-- And / `Or` constructors (And.intro, And.left, And.right, Or.inl, Or.inr)
+-- ship with the prelude. Precisely because And / `Or` are real inductives in
 -- the prelude (not axioms we wrote ourselves), `constructor` / `cases` /
 -- `left` / `right` have induction rules to split with and work here.
 axiom True : Prop
@@ -69,7 +69,7 @@ theorem demo_by_apply : True ∨ False := by
 
 -- Demo 3 (rfl): both sides of the equality are the same value.
 --   The kernel computes 1 + 1 = 2, so rfl closes it directly.
-theorem demo_by_rfl : Eq.{1} Nat (1 + 1) 2 := by rfl
+theorem demo_by_rfl : (1 + 1) = 2 := by rfl
 
 -- Demo 4 (have): name an intermediate fact, then refer to it by name.
 --   have h : a := ha   store the existing proof ha under the name h
@@ -78,11 +78,11 @@ theorem demo_by_have : (a : Prop) → a → a ∧ a := by
   intro a
   intro ha
   have h : a := ha
-  exact And.intro a a h h
+  exact And.intro h h
 
 -- Demo 5 (constructor splits the goal): the goal is `a ∧ b`; constructor
 -- splits it with `And.intro`. In term mode you have to write And.intro's
--- parameters yourself (see `And.intro a a h h` in demo 4); constructor fills
+-- parameters yourself (see `And.intro h h` in demo 4); constructor fills
 -- them in from the goal and leaves only the constructor's **fields** as
 -- subgoals.
 --   constructor   the goal a ∧ b becomes two subgoals: a and b
@@ -154,7 +154,7 @@ theorem by_ex4 : (a : Prop) → (b : Prop) → a → b → a ∧ b := by sorry
 -- to ha — name it hb first, then build the goal with it.
 -- soko:hint approach: the goal is `b ∧ a` and the proof of b is hidden inside `f : a → b`; compute it and give it a name.
 -- soko:hint goal shape: after intro a; intro b; intro f; intro ha the goal is b ∧ a.
--- soko:hint key piece: `have hb : b := f ha` records the proof of b, then `exact And.intro b a hb ha` (note b comes first).
+-- soko:hint key piece: `have hb : b := f ha` records the proof of b, then hand it and ha to And.intro in the order b, a (note b comes first).
 theorem by_ex5 : (a : Prop) → (b : Prop) → (a → b) → a → b ∧ a := by sorry
 
 -- ─────────────────────────────────────────────────────────────

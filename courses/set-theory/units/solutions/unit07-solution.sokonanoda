@@ -9,7 +9,7 @@
 -- 记法是连接符的糖，不是引理名的糖。
 --
 -- 唯一"证不出来"的是**存在版** bijective_iff_inverse 的另一半
---     Bijective f -> ∃ (g : β -> α), Inverse f g
+--     Bijective f → ∃ (g : β → α), Inverse f g
 -- 它等价于选择公理（每个满射都可裂），本语言没有 Classical.choice / funext / propext，
 -- 所以画布第 6 题证的是**数据版**：逆函数 g 与右逆证据 hg 由调用者交出，此时 Iff
 -- 两个方向都成立（见下面 bijective_iff_inverse）。这条边界记在单元报告的 unprovable。
@@ -51,8 +51,8 @@ theorem surjective_comp (α β γ : Type) (f : α → β) (g : β → γ)
         (∃ (x : α), Function.comp α β γ g f x = z)
         (hf y)
         (fun (x : α) => fun (hx : f x = y) =>
-          Exists.intro α (fun (x2 : α) => Function.comp α β γ g f x2 = z) x
-            (Eq.trans.{1} γ (g (f x)) (g y) z (congrArg.{1} β γ g (f x) y hx) hy)))
+          Exists.intro x
+            (Eq.trans.{1} γ (g (f x)) (g y) z (congrArg.{1} g hx) hy)))
 
 -- 题 4：x ← g (f x) → g (f y) → y，两段用 Eq.trans 接。
 theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
@@ -61,7 +61,7 @@ theorem leftInverse_injective (α β : Type) (f : α → β) (g : β → α)
   exact Eq.trans.{1} α x (g (f x)) y
     (Eq.symm.{1} α (g (f x)) x (h x))
     (Eq.trans.{1} α (g (f x)) (g (f y)) y
-      (congrArg.{1} β α g (f x) (f y) hxy)
+      (congrArg.{1} g hxy)
       (h y))
 
 -- 题 5：原像是现成的——g y；证据就是右逆 h 本身。`Exists.intro` 点名写四样。
@@ -82,21 +82,20 @@ theorem bijective_iff_inverse (α β : Type) (f : α → β) (g : β → α)
   intro hb
   constructor
   intro x
-  exact And.left (Function.Injective α β f) (Function.Surjective α β f) hb
-    (g (f x)) x (hg (f x))
+  exact And.left (Function.Injective α β f) (Function.Surjective α β f) hb (g (f x)) x (hg (f x))  -- soko:notation-ok: R1：hb 的合取藏在 Bijective 定义后
   exact hg
   intro hi
   constructor
   exact leftInverse_injective α β f g
-    (And.left (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)
+    (And.left (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)  -- soko:notation-ok: R1：合取藏在 Inverse 定义后
   exact surjective_of_rightInverse α β f g
-    (And.right (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)
+    (And.right (Function.LeftInverse α β g f) (Function.RightInverse α β g f) hi)  -- soko:notation-ok: R1：合取藏在 Inverse 定义后
 
 -- 题 7：题 2 的逆命题方向；congrArg 把 f 层等式抬成复合等式。
 theorem injective_of_comp_injective (α β γ : Type) (f : α → β) (g : β → γ)
     (h : Function.Injective α γ (Function.comp α β γ g f)) : Function.Injective α β f := by
   intro x y hxy
-  exact h x y (congrArg.{1} β γ g (f x) (f y) hxy)
+  exact h x y (congrArg.{1} g hxy)
 
 -- 题 8：换序的恒真方向：`cases` 拆出证人（臂体里拿到 hw : ∀ x, P x w），
 -- 逐个取用；再把同一个证人用 `Exists.intro` 交回去。
@@ -106,7 +105,7 @@ theorem swap_exists_forall (α β : Type) (P : α → β → Prop)
   intro x
   cases h with
   | intro w hw =>
-    exact Exists.intro β (fun (y2 : β) => P x y2) w (hw x)
+    exact Exists.intro w (hw x)
 
 -- 题 9：反例的形式化。把 P 取成 Set Nat 上的恒等关系：
 --   · 前提：每个 x 都有 y（取 y := x，Eq.refl）——先用 `have` 把"把反例喂给假设
@@ -122,14 +121,14 @@ theorem swap_converse_false :
   have hbad : ∃ (y : Set Nat), ∀ (x : Set Nat), x = y :=
     h (fun (x : Set Nat) => fun (y : Set Nat) => x = y)
       (fun (x : Set Nat) =>
-        Exists.intro (Set Nat) (fun (y : Set Nat) => x = y) x (Eq.refl.{1} (Set Nat) x))
+        Exists.intro (Set Nat) (fun (y : Set Nat) => x = y) x (Eq.refl.{1} (Set Nat) x))  -- soko:notation-ok: R1：目标藏在 hpre 的 ∀ 后，短写补不出
   exact Exists.elim (Set Nat) (fun (y : Set Nat) => ∀ (x : Set Nat), x = y) False hbad
     (fun (y : Set Nat) => fun (hy : ∀ (x : Set Nat), x = y) =>
       Set.notMem_empty Nat 0
         (Eq.subst.{1} (Set Nat)
           (fun (X : Set Nat) => 0 ∈ X)
-          (Set.univ Nat) (Set.empty Nat)
-          (Eq.trans.{1} (Set Nat) (Set.univ Nat) y (Set.empty Nat)
+          (Set.univ Nat) (∅)
+          (Eq.trans.{1} (Set Nat) (Set.univ Nat) y (∅)
             (hy (Set.univ Nat))
-            (Eq.symm.{1} (Set Nat) (Set.empty Nat) y (hy (Set.empty Nat))))
+            (Eq.symm.{1} (Set Nat) (∅) y (hy (∅))))
           (Set.mem_univ Nat 0)))

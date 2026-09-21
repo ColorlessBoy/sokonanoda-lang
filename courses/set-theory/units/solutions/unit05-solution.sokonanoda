@@ -52,8 +52,8 @@ theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
   constructor
   exact prod_mk_inj A B a a1 b b1
   intro h
-  have ha : a = a1 := And.left (a = a1) (b = b1) h
-  have hb : b = b1 := And.right (a = a1) (b = b1) h
+  have ha : a = a1 := And.left h
+  have hb : b = b1 := And.right h
   exact Eq.subst.{1} B (fun (y : B) => prod_mk A B a b = prod_mk A B a1 y) b b1 hb
     (Eq.subst.{1} A (fun (x : A) => prod_mk A B a b = prod_mk A B x b) a a1 ha
       (Eq.refl.{1} (Prod A B) (prod_mk A B a b)))
@@ -73,11 +73,11 @@ theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
 theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
     {a} ×ˢ {b} ≠ {b} ×ˢ {a} := by
   intro e
-  exact h (And.left (a = b) (b = a)
+  exact h (And.left
     (Eq.subst.{1} (Set (Prod A A))
       (fun (S : Set (Prod A A)) => prod_mk A A a b ∈ S)
       ({a} ×ˢ {b}) ({b} ×ˢ {a}) e
-      (And.intro (a ∈ {a}) (b ∈ {b})
+      (And.intro
         (Set.mem_singleton_self A a) (Set.mem_singleton_self A b))))
 
 -- 练习 7（R 类）：Kuratowski 编码的退化情形 —— a = b 时 {{a},{a,b}} 塌缩成 {{a}}。
@@ -98,13 +98,13 @@ theorem kura_degenerate (α : Type) (a b : α) (h : a = b) :
         exact Eq.trans.{1} (Set α) x {a, b} {a} h2
           (Set.ext α {a, b} {a}
             (fun (y : α) =>
-              Iff.intro (y = a ∨ y = b) (y = a)
+              Iff.intro (y = a ∨ y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                 (fun (hy : y = a ∨ y = b) =>
-                  Or.elim (y = a) (y = b) (y = a)
+                  Or.elim (y = a) (y = b) (y = a)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
                     (fun (hya : y = a) => hya)
                     (fun (hyb : y = b) => Eq.trans.{1} α y b a hyb (Eq.symm.{1} α a b h))
                     hy)
-                (fun (hya : y = a) => Or.inl (y = a) (y = b) hya)))
+                (fun (hya : y = a) => Or.inl hya)))
   exact hmem
   intro h1
-  exact Or.inl (x = {a}) (x = {a, b}) h1
+  exact Or.inl (x = {a}) (x = {a, b}) h1  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）

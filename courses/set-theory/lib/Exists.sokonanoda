@@ -20,7 +20,7 @@
 -- `large_elim_test`，设计 docs/design/prop-large-elim-mirror.md），这个形状立得起来了，
 -- 本文件于是写成官方 Lean 4 的**逐字同形**版：
 --
---     inductive Exists (A : Type) (p : A -> Prop) : Prop
+--     inductive Exists (A : Type) (p : A → Prop) : Prop   -- soko:notation-ok: 归纳声明原文
 --     ctor intro (w : A) (h : p w) : Exists A p
 --     end
 --
@@ -33,30 +33,30 @@
 --   · `Exists.elim` 由自动派生的 `Exists.rec` **定义**出来（照 lib/Logic.sokonanoda
 --     里 `Or.elim` 的样子），消去不再是"再立一条公理"；
 --   · **上层零改动**：`Exists` / `Exists.intro` / `Exists.elim` 的名字与签名**逐字不变**，
---     units/ 里 186 处点名调用（`Exists.intro A p w hw` / `Exists.elim A p Q h f`）
+--     units/ 里 186 处构造/消去调用（`Exists.intro` / `Exists.elim`）
 --     一行都不用改——这正是当年把这一层"立成公理三件套"的收益。
 --
 -- ⚠️ **大消去仍然不可用，而且这是正确的行为——不要试图绕过。**
 -- 自动派生的递归子实测形状（**0 个宇宙参数**，与 `Prod.rec.{1}` 不同）：
---     Exists.rec : (A : Type) -> (p : A -> Prop) ->
---                  (motive : (Exists A p) -> Sort 0) ->
---                  (forall (w : A) (h : p w), motive (Exists.intro A p w h)) ->
---                  (target : Exists A p) -> motive target
+--     Exists.rec : (A : Type) → (p : A → Prop) →
+--                  (motive : (∃ (w : A), p w) → Sort 0) →
+--                  (∀ (w : A) (h : p w), motive (Exists.intro w h)) →
+--                  (target : ∃ (w : A), p w) → motive target
 -- motive 只到 **`Sort 0`**（= Prop），所以**取数据**的写法被内核拒（实测）：
---     def Exists.witness (A : Type) (p : A -> Prop) (h : Exists A p) : A :=
---       Exists.rec A p (fun (_ : Exists A p) => A) (fun (w : A) (hw : p w) => w) h
---   → kernel-rejected：期望 `Pi (x : Exists A p), Sort(0)`，实际 `… Sort(1)`
+--     def Exists.witness (A : Type) (p : A → Prop) (h : ∃ (w : A), p w) : A :=
+--       Exists.rec A p (fun (_ : ∃ (w : A), p w) => A) (fun (w : A) (hw : p w) => w) h
+--   → kernel-rejected：期望 `Pi (x : ∃ (w : A), p w), Sort(0)`，实际 `… Sort(1)`
 -- **这正是官方 Lean 4 的规则**：`Exists.rec` 的 motive 在 Lean core 里同样只到 `Prop`。
--- 理由是证明无关性：`Exists A p` 落在 Prop，它的两个证明必须相等；若允许大消去把证人
--- 取出来，`Exists.intro A p w1 h1 = Exists.intro A p w2 h2` 就会逼出 `w1 = w2`
+-- 理由是证明无关性：`∃ (w : A), p w` 落在 Prop，它的两个证明必须相等；若允许大消去把证人
+-- 取出来，`Exists.intro w1 h1 = Exists.intro w2 h2` 就会逼出 `w1 = w2`
 -- ——「存在」变成「所有证人相等」，显然不成立。
 -- ⇒ 要从"存在"里**取出数据**，只能请**选择公理**上场（`Classical.choice` /
 --   `Exists.choose`，两者成对）；本课程在**单元⑩ §10.6** 正面碰它一次（练习 7 是全卷
 --   唯一允许用它的题）。台账 **L-06** 记的正是这条边界，**不是** lib/Exists 的缺陷。
 --
 -- 论域：`(A : Type)` 就是 `Type 0`（与入门课 course/unit8-quantifiers.sokonanoda
--- 的三件套逐字一致）。卷 I 的用法——`Exists α …`、`Exists (Set α) …`、
--- `Exists (α -> β) …`、`Exists (Prod α β) …`——论域都落在 Type 0，够用。
+-- 的三件套逐字一致）。卷 I 的用法——`∃ (x : α), …`、`∃ (A : Set α), …`、
+-- `∃ (f : α → β), …`、`∃ (p : Prod α β), …`——论域都落在 Type 0，够用。
 -- 论域本身在更高宇宙的 `Exists.{u}` 今天仍写不出来，**但原因与 G-14 无关**（G-14 已修：
 -- `{u v}` / `{u, v}` / `{u} {v}` 对 def/theorem/axiom 等价）：**inductive 头部今天不吃
 -- 宇宙 binder**——`inductive Exists {u} (A : Sort u) : Prop` 报 parse
@@ -79,8 +79,8 @@ import lib.Logic
 
 -- ── 存在量词（Lean core: `Exists` / `Exists.intro` / `Exists.elim`）────────────
 -- 读法三条：
---   · `Exists A p` = "有 w : A 使 p w 成立"；
---   · `Exists.intro` = 造：交**证人** w 与**证据** p w，四样凑齐（A、p、w、hw）；
+--   · `∃ (w : A), p w` = "有 w : A 使 p w 成立"；
+--   · `Exists.intro` = 造：交**证人** w 与**证据** p w（前导的 A、p 在有期望类型的位置由编译器反解）；
 --   · `Exists.elim` = 用：把它交给一个函数，函数收到匿名的证人 w 与证据 p w，
 --     产出结论 Q。**Q 不许提到 w**——使用 h 的时候，w 是哪一个还不知道。
 --     （这条限制就是官方 Lean 里 `obtain ⟨w, hw⟩ := h` 只能"用完即弃"的原因；
@@ -90,10 +90,11 @@ ctor intro (w : A) (h : p w) : Exists A p
 end
 
 -- `Exists.elim` = 常值 motive 的小消去：由自动派生的 `Exists.rec` 定义
--- （与 lib/Logic 的 `Or.elim` 同款）。签名与公理版**逐字相同**，所以调用点零改动。
-def Exists.elim (A : Type) (p : A → Prop) (Q : Prop) (h : Exists A p)
+-- （与 lib/Logic 的 `Or.elim` 同款）。**IA-2 起前导隐式 binder**：调用点写
+-- `Exists.elim h f` 即可（与 Lean 对齐；旧的逐位写全调用仍可用）。
+def Exists.elim {A : Type} {p : A → Prop} {Q : Prop} (h : Exists A p)  -- soko:notation-ok: `∃` 记法在本文件第 103 行才声明，声明位只能写点名
     (f : (w : A) → p w → Q) : Q :=
-  Exists.rec A p (fun (_ : Exists A p) => Q) f h
+  Exists.rec A p (fun (_ : Exists A p) => Q) f h  -- soko:notation-ok: `∃` 记法在本文件第 103 行才声明
 
 -- `∃` 的**记法**（第三刀 §12.1 的 `binder_notation`）：课程 Lean 化 W1 之后
 -- 由本模块统一声明（原先在单元⑧ 画布里自带，全课程启用必须只有一个家）。
@@ -105,5 +106,5 @@ binder_notation "∃" => Exists
 -- ∃ 的函子性：证人不动，只把性质换掉（p w → q w）。单元 8 的像的单调性与
 -- "像保并"直接吃这条：把"x ∈ A 且 f x = y"换成更弱的性质，存在性跟着走。
 theorem Exists.imp (A : Type) (p q : A → Prop) (h : ∃ (w : A), p w)
-    (f : ∀ (w : A), p w → q w) : ∃ (w : A), q w :=  Exists.elim A p (∃ (w : A), q w) h
-    (fun (w : A) => fun (hw : p w) => Exists.intro A q w (f w hw))
+    (f : ∀ (w : A), p w → q w) : ∃ (w : A), q w :=
+  Exists.elim h (fun (w : A) => fun (hw : p w) => Exists.intro w (f w hw))

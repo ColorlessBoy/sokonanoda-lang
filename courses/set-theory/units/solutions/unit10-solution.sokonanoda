@@ -10,7 +10,7 @@
 -- 拆 ∃ 的写法（本文件统一）：等势是**数据版**（一对互逆映射 + 四条条件），
 -- 拆包一律**点名** `Exists.elim`（结论 False 里不许出现证人 f / g），四条条件用
 -- `And.left` / `And.right` 取。对角线矛盾先写成一条**局部引理**
--- （`have diag : ∀ (f) (D) (g), D = fun y => ¬ (f y y) -> … -> False`）：把 f、g 与
+-- （`have diag : ∀ (f) (D) (g), D = fun y => ¬ (f y y) → … → False`）：把 f、g 与
 -- 那条互逆律都当**参数**收下，证明体里就只剩集合层计算（`congrArg` + `Eq.subst`）。
 --
 -- 三条纪律：
@@ -44,17 +44,17 @@ theorem nat_equiv_nat : Set.Equiv Nat Nat (Set.univ Nat) (Set.univ Nat) := by
   exact True.intro
   intro x
   intro hx
-  rfl
+  exact Eq.refl.{1} Nat x
   intro y
   intro hy
-  rfl
+  exact Eq.refl.{1} Nat y
 
 -- 练习 3（T）：对角线集合的成员判定——定义层面的相等。
--- `Set.mem α x (fun y => ¬ (f y y))` 与 `¬ (f x x)` 是同一个命题（beta），
+-- `x ∈ (fun y => ¬ (f y y))` 与 `¬ (f x x)` 是同一个命题（beta），
 -- 所以 `Iff.refl` 作用在右边那个命题上就是全部证明。
 theorem diag_mem_iff (α : Type) (f : α → Set α) (x : α) :
     (x ∈ (fun (y : α) => ¬ (f y y))) ↔ (¬ (f x x)) := by
-  exact Iff.refl (¬ (f x x))
+  exact Iff.refl (¬ (f x x))  -- soko:notation-ok: R1：Iff.refl 短写在 by 里补不出 {A}
 
 -- 练习 4（L）：Cantor 定理。
 -- 结构：先证一条**局部引理** diag（给定正向映射 f、反向映射 g 与 g 的右逆律，
@@ -74,8 +74,7 @@ theorem cantor (α : Type) :
     have hL : f (g D) = (fun (y : α) => ¬ (f y y)) :=
       Eq.trans.{1} (Set α) (f (g D)) D (fun (y : α) => ¬ (f y y)) hgD hDL
     have e : f (g D) (g D) = ¬ (f (g D) (g D)) :=
-      congrArg.{1} (Set α) Prop (fun (X : Set α) => X (g D)) (f (g D))
-        (fun (y : α) => ¬ (f y y)) hL
+      congrArg.{1} (fun (X : Set α) => X (g D)) hL
     have np : ¬ (f (g D) (g D)) := by
       intro p
       exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f (g D) (g D))
@@ -125,7 +124,7 @@ theorem powerset_nat_not_countable :
     ¬ (Set.Equiv Nat (Set Nat) (Set.univ Nat) (Set.univ (Set Nat))) := by
   exact cantor Nat
 
--- 练习 6（D）：不存在 α -> Set α 的满射（假的枚举补不成满射）。
+-- 练习 6（D）：不存在 α → Set α 的满射（假的枚举补不成满射）。
 -- 只有满射可拆，所以对角线这里自己接：把对角线集合交给满射性拿到原像 x 与
 -- `f x = D`，再制造 P ↔ ¬P 的矛盾（与练习 4 的 diag 同款，只是少了等势那层包装）。
 theorem no_surjection_powerset (α : Type) :
@@ -136,8 +135,7 @@ theorem no_surjection_powerset (α : Type) :
     have hL : f x = (fun (y : α) => ¬ (f y y)) :=
       Eq.trans.{1} (Set α) (f x) D (fun (y : α) => ¬ (f y y)) hxD hDL
     have e : f x x = ¬ (f x x) :=
-      congrArg.{1} (Set α) Prop (fun (X : Set α) => X x) (f x)
-        (fun (y : α) => ¬ (f y y)) hL
+      congrArg.{1} (fun (X : Set α) => X x) hL
     have np : ¬ (f x x) := by
       intro p
       exact (Eq.subst.{1} Prop (fun (Q : Prop) => Q) (f x x)
@@ -174,7 +172,4 @@ axiom Exists.choose_spec : (A : Type) → (p : A → Prop) → (h : ∃ (x : A),
 theorem choice_split (α β : Type) (f : α → β)
     (hf : Function.Surjective α β f) :
     ∃ (g : β → α), Function.RightInverse α β g f := by
-  exact Exists.intro (β → α)
-    (fun (g : β → α) => Function.RightInverse α β g f)
-    (fun (y : β) => Exists.choose α (fun (x : α) => f x = y) (hf y))
-    (fun (y : β) => Exists.choose_spec α (fun (x : α) => f x = y) (hf y))
+  exact Exists.intro (fun (y : β) => Exists.choose α (fun (x : α) => f x = y) (hf y)) (fun (y : β) => Exists.choose_spec α (fun (x : α) => f x = y) (hf y))

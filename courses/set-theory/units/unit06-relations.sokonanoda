@@ -2,7 +2,7 @@
 -- unit06-relations.sokonanoda —— 卷 I 单元⑥ 关系
 --
 -- 靶子：Tao《Analysis I》§3.3 前半。
--- 概念顺序：关系 = A -> B -> Prop → 逆与复合 → 等价关系三律 → 等价类 → 划分 ↔ 等价关系。
+-- 概念顺序：关系 = A → B → Prop → 逆与复合 → 等价关系三律 → 等价类 → 划分 ↔ 等价关系。
 --
 -- **本单元只允许用**（tactic 白名单——清单之外的一切都当作"还没解锁"）：
 --   `intro` / `exact` / `apply` / `assumption` / `rfl` / `match` / `constructor` /
@@ -47,7 +47,7 @@ import lib.Rel
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.1 三律与三条演示
 --
--- 关系就是"两元谓词"：`Rel A B` 与 `A -> B -> Prop` 是同一个东西（lib/Rel 的定义等式）。
+-- 关系就是"两元谓词"：`Rel A B` 与 `A → B → Prop` 是同一个东西（lib/Rel 的定义等式）。
 -- Tao 说的"自反 / 对称 / 传递"在这里写成三个 def——它们是**词汇**，内容全在练习里。
 -- 注意三律都是"对关系而言"的：同一个 r 换一个论域，三律的真假可以完全不同。
 -- ─────────────────────────────────────────────────────────────────────────
@@ -150,15 +150,15 @@ theorem equivClass_eq_iff (A : Type) (r : Rel A A)
 --   一旦有公共元素，两块就**必然**相等。这一条正是"划分 ↔ 等价关系"的接缝。
 -- ─────────────────────────────────────────────────────────────────────────
 def classes (A : Type) (r : Rel A A) : Set (Set A) :=
-  fun (C : Set A) => ∃ (a : A), Eq.{1} (Set A) C (EquivClass A r a)
+  fun (C : Set A) => ∃ (a : A), C = EquivClass A r a
 
 def IsPartition (A : Type) (P : Set (Set A)) : Prop :=
-  (∀ (C : Set A), Set.mem (Set A) C P → ¬ (Eq.{1} (Set A) C (Set.empty A))) ∧
+  (∀ (C : Set A), C ∈ P → ¬ (C = ∅)) ∧
     ((∀ (a : A),
-        ∃ (C : Set A), (Set.mem (Set A) C P) ∧ (Set.mem A a C)) ∧
-      (∀ (C D : Set A), Set.mem (Set A) C P → Set.mem (Set A) D P →
-        ¬ (Eq.{1} (Set A) C D) →
-        ¬ (∃ (x : A), (Set.mem A x C) ∧ (Set.mem A x D))))
+        ∃ (C : Set A), (C ∈ P) ∧ (a ∈ C)) ∧
+      (∀ (C D : Set A), C ∈ P → D ∈ P →
+        ¬ (C = D) →
+        ¬ (∃ (x : A), (x ∈ C) ∧ (x ∈ D))))
 
 -- 练习 6（L 类）：等价关系给出的等价类全体是一个划分（"划分 ↔ 等价关系"的一个方向）。
 -- soko:hint 思路：`IsPartition` 是三条 `∧`，一条一条来；每条都要先把 `C ∈ classes A r` 拆成一个 `∃`（拿到 a 与 `C = EquivClass A r a`）。
@@ -188,11 +188,11 @@ def Nat.pred (n : Nat) : Nat := match n with
 | succ m => m
 
 theorem Nat.zero_ne_succ (n : Nat) : 0 ≠ Nat.succ n :=
-  fun (h : Eq.{1} Nat 0 (Nat.succ n)) =>
+  fun (h : 0 = Nat.succ n) =>
     Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
 
 theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b :=
-  congrArg.{1} Nat Nat Nat.pred (Nat.succ a) (Nat.succ b) h
+  congrArg.{1} Nat.pred h
 
 -- 反例关系：ℕ 上"相差不超过 1"（把 n 与 n+1 连起来那张图的邻接关系，再加上相等）。
 -- 在实数上它就是"距离 < 1"的离散版；它正是练习 7 要找的反例。

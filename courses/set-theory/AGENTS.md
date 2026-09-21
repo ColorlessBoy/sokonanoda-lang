@@ -3,6 +3,31 @@
 你在语言仓 `sokonanoda-lang` 内的课程目录 `courses/set-theory/` 工作。
 语言侧的一切（判卷器、台账工具、缺口实现）都在同一棵树里。
 
+## 记法规则（2026-09-21 起，硬规则，脚本判红）
+
+**课程一律写 Lean 4 记法，不写「点名 + 前导类型/宇宙实参」的旧写法。** 判据一条命令：
+
+```bash
+python3 scripts/notation-lint.py                 # 全课程（卷 I + 入门课 + playground）
+python3 scripts/notation-lint.py --root <file>   # 单文件
+```
+
+- `Eq.{1} T a b` → `a = b`（用户原话：`Eq.{1}` 直接就是一个等于号）；`Ne` 同理；
+  `And/Or/Iff/Not/forall/Exists/->` → `∧ ∨ ↔ ¬ ∀ ∃ →`；`Set.*` → `∈ ⊆ ∪ ∩ \ ᶜ 𝒫 ∅ '' ⁻¹' ×ˢ {a} {a,b}`。
+- 基础类型**省前导隐式实参**（对齐 Lean）：`And.intro h1 h2` / `And.left h` /
+  `Or.inl h` / `Exists.intro w hw` / `Exists.elim h f`……能判绿就省。
+- **代码与注释（含 `-- soko:hint`）都算**；`units/notation-cheatsheet*.sokonanoda`
+  整文件豁免（它是教学装置）。
+- **明说的边界**（保留点名 + 行内 `-- soko:notation-ok: <理由>`）：等式族证明项
+  （`Eq.refl/symm/trans/subst`、`congrArg`）的宇宙层级；`congrArg` 参数顺序是
+  Lean 的 `{α β} {a b} (f) (h)`；`Set.univ α`；
+  `intro` 派生的目标/假设、`Exists`-headed def、嵌套 `Exists.elim`、
+  复合记法操作数（`{aa} ∩ {bb}`、字面 λ 的 `''`/`⁻¹'`）、`And.left h x` 续应用等。
+  **`by rfl` 已能认 `=` 记法目标**（2026-09-21 修）。
+  细则见 `docs/notes/course-lean-style/notation-rewrite-brief.md`。
+- **tactic 块不动，term 保持 term**（用户明说 tactic 先不动）；纯记法改写必须
+  **计数中性**：门禁仍是 `36 目标 · 328 checked · 99 open · 0 判负`。
+
 ## 写作循环（每个单元一轮）
 
 1. 读大纲（`docs/design/set-theory-syllabus.md` §3 的单元表）与分层判据

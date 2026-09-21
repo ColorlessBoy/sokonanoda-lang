@@ -42,7 +42,7 @@
 --
 -- ── 概念顺序（本文件的编排）──────────────────────────────────────────────
 --   演示 1：函数 ⇒ 单值关系（"函数即关系"那条路的一小步，用于对照）
---   演示 2：语言原语视角——`α -> β` 是**类型**，复合就是"先 f 后 g"的应用
+--   演示 2：语言原语视角——`α → β` 是**类型**，复合就是"先 f 后 g"的应用
 --   演示 3：双射 = 单射 ∧ 满射（定义展开）
 --   题 1–3：复合（结合律、单射复合、满射复合）
 --   题 4–7：单射/满射/双射 ↔ 逆（数据版）——左逆⇒单射、右逆⇒满射、双边逆⇔双射
@@ -57,7 +57,7 @@
 --
 -- ── 第 6 题与选择公理（务必读）────────────────────────────────────────────
 -- 若把"双射 ↔ 有逆"写成**存在版**：
---     Bijective f ↔ ∃ (g : β -> α), Inverse f g
+--     Bijective f ↔ ∃ (g : β → α), Inverse f g
 -- 那么 "→" 方向就是"每个满射都可以裂开"——**与选择公理等价**，本语言证不出来
 -- （没有 Classical.choice，也没有 funext/propext）。所以第 6 题证的是**数据版**：
 -- 逆函数 g 连同"它是右逆"的证据**由调用者交出来**，此时 Iff 两边都成立。
@@ -101,7 +101,7 @@ theorem demo_bijective_def (α β : Type) (f : α → β) :
 --     而 `Function.comp α β γ g f` 读作 g ∘ f（第一个函数参数最后作用，见文件头 (1)）。
 -- soko:hint 思路：两边都是 `α → δ` 的**函数**；没有 funext，别去逐点证——回到 Function.comp 的定义，看两边是不是同一个 λ。
 -- soko:hint 目标形态：`Function.comp α γ δ h (Function.comp α β γ g f) = Function.comp α β δ (Function.comp β γ δ h g) f`，两边都是 α → δ 的函数。
--- soko:hint 关键件：触发条件是"两边 delta/beta 展开后 λ 体都是 h (g (f x))"（定义上相等）；这种等式不用 intro，点名交 `Eq.refl.{1} (α -> δ)` 一族即可——它是本单元唯一不需要拆前提的题。
+-- soko:hint 关键件：触发条件是"两边 delta/beta 展开后 λ 体都是 h (g (f x))"（定义上相等）；这种等式不用 intro，点名交 `Eq.refl.{1} (α → δ)` 一族即可——它是本单元唯一不需要拆前提的题。
 theorem comp_assoc (α β γ δ : Type) (f : α → β) (g : β → γ) (h : γ → δ) :
     Function.comp α γ δ h (Function.comp α β γ g f)
       = Function.comp α β δ (Function.comp β γ δ h g) f := by
@@ -208,8 +208,8 @@ theorem swap_exists_forall (α β : Type) (P : α → β → Prop)
 -- `A → B` 就是匿名的 `∀ (_ : A), B`），只是记法展开在"箭头右端是 ∃"这个形状上
 -- 补不出 ∃ 的前导类型参数，具名 binder 能。这条语言缺口见单元报告。
 -- soko:hint 思路：先判假并选好反例（Set Nat 上的恒等关系）；intro 假设 h 后把反例 P 与前提喂给 h，得到 `∃ (y : Set Nat), ∀ (x : Set Nat), x = y`，接下来要从它造 False。
--- soko:hint 目标形态：目标是 `¬ (∀ (P : Set Nat -> Set Nat -> Prop), ∀ (hpre : …), (∃ (y : Set Nat), ∀ (x : Set Nat), P x y))`；内层要证的是 False。
--- soko:hint 关键件：前提用 `Exists.intro` 与 `Eq.refl` 造（先用 `have` 把"喂给假设之后的结论"命名下来）；结论用点名的 `Exists.elim` 拆出 y 与 `hy : ∀ (x : Set Nat), x = y`——把 hy 分别用在 univ 与 empty 这两个具体集合上，经 `Eq.trans`/`Eq.symm` 逼出 `Set.univ Nat = Set.empty Nat`；再用 `Eq.subst` 把 `0 ∈ univ`（`Set.mem_univ`）沿这条等式搬到 `0 ∈ ∅`，交给 `Set.notMem_empty` 收尾。
+-- soko:hint 目标形态：目标是 `¬ (∀ (P : Set Nat → Set Nat → Prop), ∀ (hpre : …), (∃ (y : Set Nat), ∀ (x : Set Nat), P x y))`；内层要证的是 False。
+-- soko:hint 关键件：前提用 `Exists.intro` 与 `Eq.refl` 造（先用 `have` 把"喂给假设之后的结论"命名下来）；结论用点名的 `Exists.elim` 拆出 y 与 `hy : ∀ (x : Set Nat), x = y`——把 hy 分别用在 univ 与 empty 这两个具体集合上，经 `Eq.trans`/`Eq.symm` 逼出 `Set.univ Nat = ∅`；再用 `Eq.subst` 把 `0 ∈ univ`（`Set.mem_univ`）沿这条等式搬到 `0 ∈ ∅`，交给 `Set.notMem_empty` 收尾。
 theorem swap_converse_false :
     ¬ (∀ (P : Set Nat → Set Nat → Prop),
       ∀ (hpre : ∀ (x : Set Nat), ∃ (y : Set Nat), P x y),

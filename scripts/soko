@@ -922,6 +922,26 @@ async function main(argv) {
         }
         if ((course.status ?? 3) !== 0) return course.status ?? 3
       }
+      // Notation rule (2026-09-21): the course tree must use Lean 4 notation
+      // everywhere (lib + body + intro course + playground). The checker is
+      // scripts/notation-lint.py; a missing interpreter was already refused
+      // above, and a missing script is exit 3 — never a silent skip.
+      const notationLint = path.join(REPO, 'scripts', 'notation-lint.py')
+      if (!existsSync(notationLint)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, notationLint)} —— 记法规则无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const lint = spawnSync(python.cmd, [...python.args, notationLint], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (lint.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${notationLint}: ${lint.error.message}\n`)
+        return 3
+      }
+      if ((lint.status ?? 3) !== 0) return lint.status ?? 3
       // Ledger contract: every gap's repro must still agree with its recorded
       // status (`docs/gaps/ledger.jsonl`, docs/gaps/README.md). Cheap (~3 s) and
       // it is the only thing that keeps "fixed_in" honest as the language moves.

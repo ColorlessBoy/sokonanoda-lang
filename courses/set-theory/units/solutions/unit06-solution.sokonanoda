@@ -91,7 +91,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
               Exists.elim C
                 (fun (c : C) => (s b c) ∧ (t c d))
                 (Rel.comp A C D (Rel.comp A B C r s) t a d)
-                (And.right (r a b) (Rel.comp B C D s t b d) hb)
+                (And.right hb)
                 (fun (c : C) => fun (hc : (s b c) ∧ (t c d)) =>
                   Exists.intro C
                     (fun (c2 : C) => (Rel.comp A B C r s a c2) ∧ (t c2 d))
@@ -102,10 +102,10 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
                       (Exists.intro B
                         (fun (b2 : B) => (r a b2) ∧ (s b2 c))
                         b
-                        (And.intro (r a b) (s b c)
-                          (And.left (r a b) (Rel.comp B C D s t b d) hb)
-                          (And.left (s b c) (t c d) hc)))
-                      (And.right (s b c) (t c d) hc)))))
+                        (And.intro
+                          (And.left hb)
+                          (And.left hc)))
+                      (And.right hc)))))
         -- ←：先拆出 c，再拆出 b，然后按 b、c 的顺序重新打包
         (fun (h : Rel.comp A C D (Rel.comp A B C r s) t a d) =>
           Exists.elim C
@@ -116,19 +116,19 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
               Exists.elim B
                 (fun (b : B) => (r a b) ∧ (s b c))
                 (Rel.comp A B D r (Rel.comp B C D s t) a d)
-                (And.left (Rel.comp A B C r s a c) (t c d) hc)
+                (And.left hc)
                 (fun (b : B) => fun (hb : (r a b) ∧ (s b c)) =>
                   Exists.intro B
                     (fun (b2 : B) => (r a b2) ∧ (Rel.comp B C D s t b2 d))
                     b
-                    (And.intro (r a b) (Rel.comp B C D s t b d)
-                      (And.left (r a b) (s b c) hb)
+                    (And.intro
+                      (And.left hb)
                       (Exists.intro C
                         (fun (c2 : C) => (s b c2) ∧ (t c2 d))
                         c
-                        (And.intro (s b c) (t c d)
-                          (And.right (r a b) (s b c) hb)
-                          (And.right (Rel.comp A B C r s a c) (t c d) hc))))))))
+                        (And.intro
+                          (And.right hb)
+                          (And.right hc))))))))
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.3 练习 3（T）：逆保持传递（三律性质之一）
@@ -137,7 +137,7 @@ theorem rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Rel C D
 -- ─────────────────────────────────────────────────────────────────────────
 theorem transitive_inv (A : Type) (r : Rel A A) :
     Transitive A (Rel.inv A A r) ↔ Transitive A r := by
-  exact Iff.intro (Transitive A (Rel.inv A A r)) (Transitive A r)
+  exact Iff.intro
     (fun (h : Transitive A (Rel.inv A A r)) => fun (a b c : A) =>
       fun (hab : r a b) => fun (hbc : r b c) => h c b a hbc hab)
     (fun (h : Transitive A r) => fun (a b c : A) =>
@@ -164,15 +164,15 @@ theorem equivClass_eq_iff (A : Type) (r : Rel A A)
     (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) (a b : A) :
     (EquivClass A r a = EquivClass A r b) ↔ r a b := by
   exact Iff.intro
-    (Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b))
+    ((EquivClass A r a) = (EquivClass A r b))
     (r a b)
-    (fun (h : Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b)) =>
+    (fun (h : (EquivClass A r a) = (EquivClass A r b)) =>
       hsymm b a
-        (Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A a X)
+        (Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
           (EquivClass A r a) (EquivClass A r b) h (hrefl a)))
     (fun (hab : r a b) =>
       Set.ext A (EquivClass A r a) (EquivClass A r b)
-        (fun (x : A) => Iff.intro (r a x) (r b x)
+        (fun (x : A) => Iff.intro
           (fun (hax : r a x) => htrans b a x (hsymm a b hab) hax)
           (fun (hbx : r b x) => htrans a b x hab hbx)))
 
@@ -183,15 +183,15 @@ theorem equivClass_eq_iff (A : Type) (r : Rel A A)
 -- 元素"，而不是"或者相等或者不交"——后者要排中律，我们没有）。
 -- ─────────────────────────────────────────────────────────────────────────
 def classes (A : Type) (r : Rel A A) : Set (Set A) :=
-  fun (C : Set A) => ∃ (a : A), Eq.{1} (Set A) C (EquivClass A r a)
+  fun (C : Set A) => ∃ (a : A), C = (EquivClass A r a)
 
 def IsPartition (A : Type) (P : Set (Set A)) : Prop :=
-  (∀ (C : Set A), Set.mem (Set A) C P → ¬ (Eq.{1} (Set A) C (Set.empty A))) ∧
+  (∀ (C : Set A), C ∈ P → ¬ (C = (∅))) ∧
       (∀ (a : A),
-              ∃ (C : Set A), (Set.mem (Set A) C P) ∧ (Set.mem A a C)) ∧
-           (∀ (C D : Set A), Set.mem (Set A) C P → Set.mem (Set A) D P →
-              ¬ (Eq.{1} (Set A) C D) →
-              ¬ (∃ (x : A), (Set.mem A x C) ∧ (Set.mem A x D)))
+              ∃ (C : Set A), (C ∈ P) ∧ (a ∈ C)) ∧
+           (∀ (C D : Set A), C ∈ P → D ∈ P →
+              ¬ (C = D) →
+              ¬ (∃ (x : A), (x ∈ C) ∧ (x ∈ D)))
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.5 练习 6（L）：等价类构成划分（划分 ↔ 等价关系的一个方向）
@@ -208,82 +208,82 @@ theorem classes_isPartition (A : Type) (r : Rel A A)
     (hrefl : Reflexive A r) (hsymm : Symmetric A r) (htrans : Transitive A r) :
     IsPartition A (classes A r) := by
   exact And.intro
-    (∀ (C : Set A), Set.mem (Set A) C (classes A r) → ¬ (Eq.{1} (Set A) C (Set.empty A)))
+    (∀ (C : Set A), C ∈ (classes A r) → ¬ (C = (∅)))
     ((∀ (a : A),
-            ∃ (C : Set A), (Set.mem (Set A) C (classes A r)) ∧ (Set.mem A a C)) ∧
-         (∀ (C D : Set A), Set.mem (Set A) C (classes A r) → Set.mem (Set A) D (classes A r) →
-            ¬ (Eq.{1} (Set A) C D) →
-            ¬ (∃ (x : A), (Set.mem A x C) ∧ (Set.mem A x D))))
+            ∃ (C : Set A), (C ∈ (classes A r)) ∧ (a ∈ C)) ∧
+         (∀ (C D : Set A), C ∈ (classes A r) → D ∈ (classes A r) →
+            ¬ (C = D) →
+            ¬ (∃ (x : A), (x ∈ C) ∧ (x ∈ D))))
     -- ① 无空块
-    (fun (C : Set A) => fun (hC : Set.mem (Set A) C (classes A r)) =>
+    (fun (C : Set A) => fun (hC : C ∈ (classes A r)) =>
       Exists.elim A
-        (fun (a : A) => Eq.{1} (Set A) C (EquivClass A r a))
-        (¬ (Eq.{1} (Set A) C (Set.empty A)))
+        (fun (a : A) => C = (EquivClass A r a))
+        (¬ (C = (∅)))
         hC
-        (fun (a : A) => fun (ha : Eq.{1} (Set A) C (EquivClass A r a)) =>
-          fun (hEmpty : Eq.{1} (Set A) C (Set.empty A)) =>
-            let hEmpty2 : Eq.{1} (Set A) (EquivClass A r a) (Set.empty A) :=
-              Eq.trans.{1} (Set A) (EquivClass A r a) C (Set.empty A)
+        (fun (a : A) => fun (ha : C = (EquivClass A r a)) =>
+          fun (hEmpty : C = (∅)) =>
+            let hEmpty2 : (EquivClass A r a) = (∅) :=
+              Eq.trans.{1} (Set A) (EquivClass A r a) C (∅)
                 (Eq.symm.{1} (Set A) C (EquivClass A r a) ha) hEmpty;
-            let hBad : Set.mem A a (Set.empty A) :=
-              Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A a X)
-                (EquivClass A r a) (Set.empty A) hEmpty2 (hrefl a);
+            let hBad : a ∈ (∅) :=
+              Eq.subst.{1} (Set A) (fun (X : Set A) => a ∈ X)
+                (EquivClass A r a) (∅) hEmpty2 (hrefl a);
             Set.notMem_empty A a hBad))
     (And.intro
       (∀ (a : A),
-          ∃ (C : Set A), (Set.mem (Set A) C (classes A r)) ∧ (Set.mem A a C))
-      (∀ (C D : Set A), Set.mem (Set A) C (classes A r) → Set.mem (Set A) D (classes A r) →
-         ¬ (Eq.{1} (Set A) C D) →
-         ¬ (∃ (x : A), (Set.mem A x C) ∧ (Set.mem A x D)))
+          ∃ (C : Set A), (C ∈ (classes A r)) ∧ (a ∈ C))
+      (∀ (C D : Set A), C ∈ (classes A r) → D ∈ (classes A r) →
+         ¬ (C = D) →
+         ¬ (∃ (x : A), (x ∈ C) ∧ (x ∈ D)))
       -- ② 覆盖
       (fun (a : A) =>
         Exists.intro (Set A)
-          (fun (C : Set A) => (Set.mem (Set A) C (classes A r)) ∧ (Set.mem A a C))
+          (fun (C : Set A) => (C ∈ (classes A r)) ∧ (a ∈ C))
           (EquivClass A r a)
           (And.intro
-            (Set.mem (Set A) (EquivClass A r a) (classes A r))
-            (Set.mem A a (EquivClass A r a))
+            ((EquivClass A r a) ∈ (classes A r))
+            (a ∈ (EquivClass A r a))
             (Exists.intro A
-              (fun (a2 : A) => Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r a2))
+              (fun (a2 : A) => (EquivClass A r a) = (EquivClass A r a2))
               a (Eq.refl.{1} (Set A) (EquivClass A r a)))
             (hrefl a)))
       -- ③ 不相等就不交
       (fun (C D : Set A) =>
-        fun (hC : Set.mem (Set A) C (classes A r)) =>
-        fun (hD : Set.mem (Set A) D (classes A r)) =>
-        fun (hne : ¬ (Eq.{1} (Set A) C D)) =>
-        fun (hCommon : ∃ (x : A), (Set.mem A x C) ∧ (Set.mem A x D)) =>
+        fun (hC : C ∈ (classes A r)) =>
+        fun (hD : D ∈ (classes A r)) =>
+        fun (hne : ¬ (C = D)) =>
+        fun (hCommon : ∃ (x : A), (x ∈ C) ∧ (x ∈ D)) =>
           Exists.elim A
-            (fun (a : A) => Eq.{1} (Set A) C (EquivClass A r a))
+            (fun (a : A) => C = (EquivClass A r a))
             False
             hC
-            (fun (a : A) => fun (ha : Eq.{1} (Set A) C (EquivClass A r a)) =>
+            (fun (a : A) => fun (ha : C = (EquivClass A r a)) =>
               Exists.elim A
-                (fun (b : A) => Eq.{1} (Set A) D (EquivClass A r b))
+                (fun (b : A) => D = (EquivClass A r b))
                 False
                 hD
-                (fun (b : A) => fun (hb : Eq.{1} (Set A) D (EquivClass A r b)) =>
+                (fun (b : A) => fun (hb : D = (EquivClass A r b)) =>
                   Exists.elim A
-                    (fun (x : A) => (Set.mem A x C) ∧ (Set.mem A x D))
+                    (fun (x : A) => (x ∈ C) ∧ (x ∈ D))
                     False
                     hCommon
-                    (fun (x : A) => fun (hx : (Set.mem A x C) ∧ (Set.mem A x D)) =>
+                    (fun (x : A) => fun (hx : (x ∈ C) ∧ (x ∈ D)) =>
                       let rax : r a x :=
-                        Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A x X)
+                        Eq.subst.{1} (Set A) (fun (X : Set A) => x ∈ X)
                           C (EquivClass A r a) ha
-                          (And.left (Set.mem A x C) (Set.mem A x D) hx);
+                          (And.left hx);
                       let rbx : r b x :=
-                        Eq.subst.{1} (Set A) (fun (X : Set A) => Set.mem A x X)
+                        Eq.subst.{1} (Set A) (fun (X : Set A) => x ∈ X)
                           D (EquivClass A r b) hb
-                          (And.right (Set.mem A x C) (Set.mem A x D) hx);
+                          (And.right hx);
                       let rab : r a b := htrans a x b rax (hsymm b x rbx);
-                      let hab : Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b) :=
+                      let hab : (EquivClass A r a) = (EquivClass A r b) :=
                         Iff.mpr
-                          (Eq.{1} (Set A) (EquivClass A r a) (EquivClass A r b))
+                          ((EquivClass A r a) = (EquivClass A r b))
                           (r a b)
                           (equivClass_eq_iff A r hrefl hsymm htrans a b)
                           rab;
-                      let hCD : Eq.{1} (Set A) C D :=
+                      let hCD : C = D :=
                         Eq.trans.{1} (Set A) C (EquivClass A r b) D
                           (Eq.trans.{1} (Set A) C (EquivClass A r a) (EquivClass A r b) ha hab)
                           (Eq.symm.{1} (Set A) D (EquivClass A r b) hb);
@@ -310,7 +310,7 @@ theorem Nat.zero_ne_succ (n : Nat) : 0 ≠ Nat.succ n := by
   exact Eq.subst.{1} Nat (fun (m : Nat) => Nat.isZero m) 0 (Nat.succ n) h True.intro
 
 theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) : a = b := by
-  exact congrArg.{1} Nat Nat Nat.pred (Nat.succ a) (Nat.succ b) h
+  exact congrArg.{1} Nat.pred h
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- 6.6 D 类用的反例关系：ℕ 上"相差不超过 1"（实数上"距离 < 1"的离散版）
@@ -322,7 +322,7 @@ def nearStep (a b : Nat) : Prop :=
 -- 6.6 练习 7（D）：自反 + 对称 ⇏ 传递（反例：nearStep）
 -- 自反：第一个析取项 a = a。对称：三个析取项分别换边（第一个用 Eq.symm）。
 -- 非传递：假设传递，作用在 0、1、2 上得到 nearStep 0 2，再逐条否掉它的三个析取项。
--- nearStep 是 **def** ⇒ 目标上的三个析取项用点名的 Or.inl / Or.inr 交；
+-- nearStep 是 **def** ⇒ 目标上的三个析取项用点名的 Or.inl 交；
 -- 假设上的析取用点名的 `Or.elim` 拆（nearStep 会被 delta 展开到 Or）。
 -- 三个析取项的否证全部落到 Nat.zero_ne_succ / Nat.succ.inj 上。
 -- ─────────────────────────────────────────────────────────────────────────
@@ -331,54 +331,54 @@ theorem nearStep_counterexample :
   exact And.intro (Reflexive Nat nearStep)
     ((Symmetric Nat nearStep) ∧ (¬ (Transitive Nat nearStep)))
     (fun (a : Nat) =>
-      Or.inl (Eq.{1} Nat a a)
-        ((Eq.{1} Nat (Nat.succ a) a) ∨ (Eq.{1} Nat a (Nat.succ a)))
+      Or.inl (a = a)
+        (((Nat.succ a) = a) ∨ (a = (Nat.succ a)))
         (Eq.refl.{1} Nat a))
     (And.intro (Symmetric Nat nearStep) (¬ (Transitive Nat nearStep))
       (fun (a b : Nat) => fun (h : nearStep a b) =>
-        Or.elim (Eq.{1} Nat a b)
-          ((Eq.{1} Nat (Nat.succ a) b) ∨ (Eq.{1} Nat a (Nat.succ b)))
+        Or.elim (a = b)
+          (((Nat.succ a) = b) ∨ (a = (Nat.succ b)))
           (nearStep b a)
-          (fun (hab : Eq.{1} Nat a b) =>
-            Or.inl (Eq.{1} Nat b a)
-              ((Eq.{1} Nat (Nat.succ b) a) ∨ (Eq.{1} Nat b (Nat.succ a)))
+          (fun (hab : a = b) =>
+            Or.inl (b = a)
+              (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
               (Eq.symm.{1} Nat a b hab))
-          (fun (h2 : (Eq.{1} Nat (Nat.succ a) b) ∨ (Eq.{1} Nat a (Nat.succ b))) =>
-            Or.elim (Eq.{1} Nat (Nat.succ a) b) (Eq.{1} Nat a (Nat.succ b))
+          (fun (h2 : ((Nat.succ a) = b) ∨ (a = (Nat.succ b))) =>
+            Or.elim ((Nat.succ a) = b) (a = (Nat.succ b))
               (nearStep b a)
-              (fun (h2a : Eq.{1} Nat (Nat.succ a) b) =>
-                Or.inr (Eq.{1} Nat b a)
-                  ((Eq.{1} Nat (Nat.succ b) a) ∨ (Eq.{1} Nat b (Nat.succ a)))
-                  (Or.inr (Eq.{1} Nat (Nat.succ b) a) (Eq.{1} Nat b (Nat.succ a))
+              (fun (h2a : (Nat.succ a) = b) =>
+                Or.inr (b = a)
+                  (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
+                  (Or.inr ((Nat.succ b) = a) (b = (Nat.succ a))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
                     (Eq.symm.{1} Nat (Nat.succ a) b h2a)))
-              (fun (h2b : Eq.{1} Nat a (Nat.succ b)) =>
-                Or.inr (Eq.{1} Nat b a)
-                  ((Eq.{1} Nat (Nat.succ b) a) ∨ (Eq.{1} Nat b (Nat.succ a)))
-                  (Or.inl (Eq.{1} Nat (Nat.succ b) a) (Eq.{1} Nat b (Nat.succ a))
+              (fun (h2b : a = (Nat.succ b)) =>
+                Or.inr (b = a)
+                  (((Nat.succ b) = a) ∨ (b = (Nat.succ a)))
+                  (Or.inl ((Nat.succ b) = a) (b = (Nat.succ a))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
                     (Eq.symm.{1} Nat a (Nat.succ b) h2b)))
               h2)
           h)
       (fun (htrans : Transitive Nat nearStep) =>
         let notNear02 : ¬ (nearStep 0 2) :=
           fun (h : nearStep 0 2) =>
-            Or.elim (Eq.{1} Nat 0 2) ((Eq.{1} Nat 1 2) ∨ (Eq.{1} Nat 0 3)) False
-              (fun (h02 : Eq.{1} Nat 0 2) => Nat.zero_ne_succ 1 h02)
-              (fun (h2 : (Eq.{1} Nat 1 2) ∨ (Eq.{1} Nat 0 3)) =>
-                Or.elim (Eq.{1} Nat 1 2) (Eq.{1} Nat 0 3) False
-                  (fun (h12 : Eq.{1} Nat 1 2) =>
+            Or.elim (0 = 2) ((1 = 2) ∨ (0 = 3)) False
+              (fun (h02 : 0 = 2) => Nat.zero_ne_succ 1 h02)
+              (fun (h2 : (1 = 2) ∨ (0 = 3)) =>
+                Or.elim (1 = 2) (0 = 3) False
+                  (fun (h12 : 1 = 2) =>
                     Nat.zero_ne_succ 0 (Nat.succ.inj 0 1 h12))
-                  (fun (h03 : Eq.{1} Nat 0 3) => Nat.zero_ne_succ 2 h03)
+                  (fun (h03 : 0 = 3) => Nat.zero_ne_succ 2 h03)
                   h2)
               h;
         let p01 : nearStep 0 1 :=
-          Or.inr (Eq.{1} Nat 0 1)
-            ((Eq.{1} Nat (Nat.succ 0) 1) ∨ (Eq.{1} Nat 0 (Nat.succ 1)))
-            (Or.inl (Eq.{1} Nat (Nat.succ 0) 1) (Eq.{1} Nat 0 (Nat.succ 1))
+          Or.inr (0 = 1)
+            (((Nat.succ 0) = 1) ∨ (0 = (Nat.succ 1)))
+            (Or.inl ((Nat.succ 0) = 1) (0 = (Nat.succ 1))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
               (Eq.refl.{1} Nat 1));
         let p12 : nearStep 1 2 :=
-          Or.inr (Eq.{1} Nat 1 2)
-            ((Eq.{1} Nat (Nat.succ 1) 2) ∨ (Eq.{1} Nat 1 (Nat.succ 2)))
-            (Or.inl (Eq.{1} Nat (Nat.succ 1) 2) (Eq.{1} Nat 1 (Nat.succ 2))
+          Or.inr (1 = 2)
+            (((Nat.succ 1) = 2) ∨ (1 = (Nat.succ 2)))
+            (Or.inl ((Nat.succ 1) = 2) (1 = (Nat.succ 2))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
               (Eq.refl.{1} Nat 2));
         notNear02 (htrans 0 1 2 p01 p12)))
 

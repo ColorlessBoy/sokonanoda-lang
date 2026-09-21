@@ -29,7 +29,7 @@ theorem subset_antisymm (α : Type) (A B : Set α)
 theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A := by
   intro x
   intro hx
-  exact False.elim (x ∈ A) hx
+  exact False.elim (x ∈ A) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 theorem subset_empty_iff (α : Type) (A : Set α) :
     (A ⊆ ∅) ↔ (A = ∅) := by
@@ -52,10 +52,10 @@ theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
   apply subset_antisymm
   intro x
   intro hx
-  exact absurd (x ∈ A) (x ∈ ∅) hx (h x)
+  exact absurd (x ∈ A) (x ∈ ∅) hx (h x)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
   exact empty_subset α A
 
--- 后四条的语句一度只能写**点名形式**（`Not (Eq.{1} …)`），因为 `≠` 展开成 `Ne`
+-- 后四条的语句一度只能写**点名形式**（`¬ (… = …)`），因为 `≠` 展开成 `Ne`
 -- 之后定义体里的宇宙变量 `u` 没人实例化（源 AST 是记法节点、内核 pp 又是裸名，
 -- 两条路都不带 `.{u}`）⇒ `intro` 报 `unknown universe level u`。判卷器现在按
 -- **操作数的 sort** 算层级提示（与 `elab_notation` 给记法求层级同一条规则），
@@ -63,26 +63,26 @@ theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
 theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ := by
   intro h
   exact Set.notMem_empty α a
-    (Eq.subst.{1} (Set α) (fun (X : Set α) => Set.mem α a X) (Set.singleton α a)
-      (Set.empty α) h (Set.mem_singleton_self α a))
+    (Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a}
+      ∅ h (Set.mem_singleton_self α a))
 
 theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
     {a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A := by
   constructor
   intro h
   constructor
-  exact h a (Or.inl (Eq.{1} α a a) (Eq.{1} α a b) (Eq.refl.{1} α a))
-  exact h b (Or.inr (Eq.{1} α b a) (Eq.{1} α b b) (Eq.refl.{1} α b))
+  exact h a (Or.inl (a = a) (a = b) (Eq.refl.{1} α a))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+  exact h b (Or.inr (b = a) (b = b) (Eq.refl.{1} α b))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
   intro h
   intro x
   intro hx
-  exact Or.elim (Eq.{1} α x a) (Eq.{1} α x b) (A x)
-    (fun (hxa : Eq.{1} α x a) =>
+  exact Or.elim (x = a) (x = b) (A x)  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
+    (fun (hxa : x = a) =>
       Eq.subst.{1} α (fun (y : α) => A y) a x (Eq.symm.{1} α x a hxa)
-        (And.left (Set.mem α a A) (Set.mem α b A) h))
-    (fun (hxb : Eq.{1} α x b) =>
+        (And.left h))
+    (fun (hxb : x = b) =>
       Eq.subst.{1} α (fun (y : α) => A y) b x (Eq.symm.{1} α x b hxb)
-        (And.right (Set.mem α a A) (Set.mem α b A) h))
+        (And.right h))
     hx
 
 theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} := by
@@ -90,15 +90,15 @@ theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} := by
   intro x
   constructor
   intro h
-  exact Or.elim (Eq.{1} α x a) (Eq.{1} α x b) ((Eq.{1} α x b) ∨ (Eq.{1} α x a))
-    (fun (ha : Eq.{1} α x a) => Or.inr (Eq.{1} α x b) (Eq.{1} α x a) ha)
-    (fun (hb : Eq.{1} α x b) => Or.inl (Eq.{1} α x b) (Eq.{1} α x a) hb)
+  exact Or.elim (x = a) (x = b) ((x = b) ∨ (x = a))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）
+    (fun (ha : x = a) => Or.inr ha)
+    (fun (hb : x = b) => Or.inl hb)
     h
   intro h
-  exact Or.elim (Eq.{1} α x b) (Eq.{1} α x a) ((Eq.{1} α x a) ∨ (Eq.{1} α x b))
-    (fun (hb : Eq.{1} α x b) => Or.inr (Eq.{1} α x a) (Eq.{1} α x b) hb)
-    (fun (ha : Eq.{1} α x a) => Or.inl (Eq.{1} α x a) (Eq.{1} α x b) ha)
+  exact Or.elim (x = b) (x = a) ((x = a) ∨ (x = b))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）
+    (fun (hb : x = b) => Or.inr hb)
+    (fun (ha : x = a) => Or.inl ha)
     h
 
 theorem singleton_of_singleton (a : Nat) : {a} ∈ {{a}} := by
-  exact Eq.refl.{1} (Set Nat) (Set.singleton Nat a)
+  exact Eq.refl.{1} (Set Nat) {a}

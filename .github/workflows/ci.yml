@@ -242,6 +242,14 @@ jobs:
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" check
 
+      - name: Notation rule (courses, fast)
+        # 课程记法规则（2026-09-21 用户拍板）：lib + 正文 + 入门课 + playground
+        # 一律 Lean 4 记法（`Eq.{1} T a b` → `a = b`、`Set.mem α a A` → `a ∈ A`、
+        # `And X Y` → `X ∧ Y`、基础类型省前导隐式实参……）。纯文本扫描、秒级、
+        # 不需要判卷通道；`scripts/soko gate` 里的同一条就是它。
+        shell: bash
+        run: python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py"
+
       - name: Machine events are well-formed JSON
         run: |
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \

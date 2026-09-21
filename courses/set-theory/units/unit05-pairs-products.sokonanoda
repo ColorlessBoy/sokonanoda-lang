@@ -27,7 +27,7 @@
 --   单射 / 满射 / 双射的正式定义（单元⑦ 与 ⑨ 才讲）、选择公理、证明无关性。
 --
 -- ── 记法提醒 ────────────────────────────────────────────────────────────
---   `s ×ˢ t` 就是 Set.prod A B s t；序对**没有**字面量记法，`(a, b)` 仍写
+--   `s ×ˢ t` 是集合积记法（目标名 `Set.prod`，定义见 5.2）；序对**没有**字面量记法，`(a, b)` 仍写
 --   prod_mk A B a b；命题里的等式直接写 `=`（宇宙层级由判卷器按操作数类型解），
 --   只有**引理名**才显式写层级：Eq.subst.{1} / Eq.refl.{1} / Eq.symm.{1}。
 -- ==========================================================================
@@ -97,9 +97,9 @@ theorem prod_mk_eq_iff (A B : Type) (a a1 : A) (b b1 : B) :
 -- 5.2 笛卡尔积：s ×ˢ t 是 Prod A B 上的一个谓词
 --
 -- 定义给出（照抄 Mathlib 的 `Set.prod`，定义体点名写）：
---     def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
---       fun (p : Prod A B) => And (s (Prod.fst A B p)) (t (Prod.snd A B p))
--- 注意返回值是 Set (Prod A B) —— 也就是谓词 Prod A B -> Prop。
+--     def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=  -- soko:notation-ok: 注释里展示的**定义**（声明位），不是使用
+--       fun (p : Prod A B) => (s (Prod.fst A B p)) ∧ (t (Prod.snd A B p))
+-- 注意返回值是 Set (Prod A B) —— 也就是谓词 Prod A B → Prop。
 -- 记法 `s ×ˢ t` 的目标就是它（由 lib/Set 声明，**在这一行之后**才可用）。
 -- 元素 `prod_mk A B a b` 属于 `s ×ˢ t`，展开后正好是"两个坐标分别满足 s 与 t"。
 -- ─────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=
   fun (p : Prod A B) => (s (Prod.fst A B p)) ∧ (t (Prod.snd A B p))
 
 -- 练习 5（T 类）：s ×ˢ t 的成员刻画（Tao §3.5 的第二条）。
--- soko:hint 思路：Set.prod 的定义就是"两个坐标分别满足 s 与 t"，两边定义上相等。
+-- soko:hint 思路：集合积 `s ×ˢ t` 的定义就是"两个坐标分别满足 s 与 t"，两边定义上相等。
 -- soko:hint 目标形态：`p ∈ s ×ˢ t ↔ Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t`。
 -- soko:hint 关键件：`constructor` 拆 `↔`，两个方向都是恒等函数（`∈` 与 `×ˢ` 展开即可），不需要任何引理。
 theorem mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) :
@@ -144,15 +144,15 @@ theorem prod_set_swap_ne (A : Type) (a b : A) (h : a ≠ b) :
 -- ─────────────────────────────────────────────────────────────
 -- 5.4 函数图
 --
--- 函数 f : A -> B 的**图**是 A × B 的子集：
---     def Set.graph (A B : Type) (f : A -> B) : Set (Prod A B) :=
---       fun (p : Prod A B) => Eq.{1} B (f (Prod.fst A B p)) (Prod.snd A B p)
+-- 函数 f : A → B 的**图**是 A × B 的子集：
+--     def Set.graph (A B : Type) (f : A → B) : Set (Prod A B) :=
+--       fun (p : Prod A B) => f (Prod.fst A B p) = Prod.snd A B p
 -- 读法："第二坐标就是函数在第一坐标处的值"。单元⑦ 会用它把函数看成关系；
 -- 现在只要会算它的成员：把 p 写成构造子，两个投影都会归约。
 -- ─────────────────────────────────────────────────────────────
 
 def Set.graph (A B : Type) (f : A → B) : Set (Prod A B) :=
-  fun (p : Prod A B) => Eq.{1} B (f (Prod.fst A B p)) (Prod.snd A B p)
+  fun (p : Prod A B) => f (Prod.fst A B p) = Prod.snd A B p
 
 -- 演示 2（已写好）：图的成员刻画 —— `prod_mk A B a b` 在图里当且仅当 `f a = b`。
 -- 两边在定义展开后是同一个命题（投影算在构造子上），所以 `↔` 的两个方向都是恒等函数。
@@ -168,7 +168,7 @@ theorem demo_graph_mem (A B : Type) (f : A → B) (a : A) (b : B) :
 -- 5.5 演示 3（已写好）：无序配对的成员刻画
 --
 -- 下面 5.6 要读 Kuratowski 编码，读之前先把 `{a, b}` 的成员判定备好
--- （lib/Set 里 `Set.pair` 的定义就是 `Or (x = a) (x = b)`，缺一条展开引理）。
+-- （lib/Set 里 `Set.pair` 的定义就是 `(x = a) ∨ (x = b)`，缺一条展开引理）。
 -- ─────────────────────────────────────────────────────────────
 
 theorem demo_mem_pair (α : Type) (x a b : α) :

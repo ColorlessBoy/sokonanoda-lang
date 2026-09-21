@@ -900,7 +900,11 @@ pub fn judge_render_type(
     binders: &[GoalBinderSpec],
     ty: &str,
 ) -> Option<String> {
-    let term = format!("fun (x : {ty}) => x");
+    // 绑定名必须**不可能与目标里的自由变量同名**：`fun (x : x = x) => x` 会把
+    // 目标里的 `x` 捕获掉（`judge_infer` 随后 elaborate 不了 / 返回错的类型），
+    // 于是 `canonical_goal_with_spec` 静默退回源 AST，`rfl` 这类要读目标结构的
+    // tactic 在 `= ` 记法目标上就永远拿不到规范形态（实测：`x = x` / `A = A`）。
+    let term = format!("fun (__soko_render : {ty}) => __soko_render");
     let text = judge_infer(prefix_src, options, binders, &term).ok()?;
     let parsed = parse_expr_text(&text).ok()?;
     let rest = peel_one_binder(&parsed)?;

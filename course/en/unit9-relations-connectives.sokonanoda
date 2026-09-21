@@ -12,7 +12,7 @@
 -- The connectives ∧, ∨, →, ¬ and their constructors come with the
 -- **prelude** (they are kernel core, usable in any file with no declaration).
 -- This unit adds three pieces:
---   * *using* the Or eliminator: Or has always been a real inductive, the
+--   * *using* the `Or` eliminator: `Or` has always been a real inductive, the
 --     kernel knows it has exactly the two constructors inl / inr and derives
 --     the eliminator Or.rec — so a proof of A ∨ B can be split into cases
 --     (cases / Or.elim / a hand-written Or.rec, and match lowers onto it);
@@ -24,13 +24,13 @@
 -- constructed evidence" once more.
 -- ==========================================================================
 
--- The names this file uses: And / Or come from the prelude (see 9.1), Iff is
+-- The names this file uses: And / `Or` come from the prelude (see 9.1), `Iff` is
 -- the def in 9.2 below.
 
 -- ─────────────────────────────────────────────────────────────
 -- 9.1 Or's eliminator: how to use a proof of A ∨ B
 --
--- Or has always been a **real inductive type** (it comes with the prelude):
+-- `Or` has always been a **real inductive type** (it comes with the prelude):
 -- the kernel knows it has exactly the two constructors inl / inr and derives
 -- the eliminator Or.rec — the same shape as the hand-written Nat.rec of Unit 6
 -- (motive → branches → target); Or.elim is its curried wrapper, and match
@@ -43,7 +43,7 @@
 -- Demo (filled in): use a constructor as a function, giving every argument
 -- in order.
 theorem or_intro_demo (A : Prop) (B : Prop) (a : A) : A ∨ B :=
-  Or.inl A B a
+  Or.inl a
 
 -- Exercise 1: swap the two sides of an Or.
 -- soko:hint approach: match h on both constructors inl / inr, and in each branch pack the evidence into the constructor on the other side.
@@ -93,7 +93,7 @@ def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- Demo (filled in): pack the two directions into an Iff.
 theorem iff_intro_demo (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B :=
-  And.intro (A → B) (B → A) mp mpr
+  And.intro mp mpr
 
 -- Exercise 4: pull out the forward direction of an Iff.
 -- soko:hint approach: A ↔ B is a definition; unfolded it is an And, and the forward direction is its left half.

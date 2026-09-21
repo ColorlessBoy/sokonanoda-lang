@@ -21,7 +21,7 @@
 --       Or.inl / Or.inr / Or.elim / And.intro / And.left / And.right /
 --       Iff.intro / Iff.mp / Iff.mpr / Set.ext / Exists.intro / Exists.elim /
 --       Eq.refl / Eq.symm / Eq.trans / congrArg / Eq.subst（等式一律写**显式宇宙**：
---       Eq.{1} α a b）/ Nat.rec / False.elim / absurd；
+--       a = b）/ Nat.rec / False.elim / absurd；
 --   · 库里已备好、直接用（lib.Logic + lib.Exists + lib.Set + lib.Equiv）：
 --       True / True.intro / False / False.elim / Not / absurd、
 --       And / Or / Iff 全家、Eq 全家、congrArg、Eq.subst、
@@ -73,7 +73,7 @@ theorem Set.Equiv.of_inj_surj (α β : Type) (A : Set α) (B : Set β)
     (f : α → β) (g : β → α)
     (hf : Set.MapsTo α β f A B)
     (hg : Set.MapsTo β α g B A)
-    (hinj : ∀ (x1 x2 : α), Eq.{1} β (f x1) (f x2) → Eq.{1} α x1 x2)
+    (hinj : ∀ (x1 x2 : α), (f x1) = (f x2) → x1 = x2)
     (hsec : Set.RightInvOn α β f g B) :
     Set.Equiv α β A B :=
   Set.Equiv.mk α β A B f g hf hg
@@ -102,11 +102,11 @@ def Nat.pred (n : Nat) : Nat := match n with
   | Nat.zero => Nat.zero
   | Nat.succ k => k
 
-theorem Nat.succ_ne_zero (n : Nat) : ¬ (Eq.{1} Nat (Nat.succ n) Nat.zero) :=
-  fun (h : Eq.{1} Nat (Nat.succ n) Nat.zero) =>
+theorem Nat.succ_ne_zero (n : Nat) : ¬ ((Nat.succ n) = Nat.zero) :=
+  fun (h : (Nat.succ n) = Nat.zero) =>
     Eq.subst.{1} Nat (fun (k : Nat) => Nat.isZero k) (Nat.succ n) Nat.zero h True.intro
 
-def nonzero : Set Nat := fun (n : Nat) => ¬ (Eq.{1} Nat n Nat.zero)
+def nonzero : Set Nat := fun (n : Nat) => ¬ (n = Nat.zero)
 
 -- ═════════════════════════════════════════════════════════════
 -- 9.4 练习（7 条：T2 · L3 · D2）
@@ -137,7 +137,7 @@ theorem Set.Equiv.trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)
 -- 练习 3（L 类）：任意两个单元素集都等势——亲手写出那对映射。
 -- soko:hint 思路：单元素集之间的映射没得挑：正向把一切都送到 b，反向把一切都送回 a。
 -- soko:hint 目标形态：Set.Equiv α β {a} {b}；两条"送进"条件是展开后的一行。
--- soko:hint 关键件：两条互逆律的前提 hx : x ∈ {a} 展开就是 Eq.{1} α x a，要用 Eq.symm 掉头（另一侧同理）；四条条件交给 Set.Equiv.mk。
+-- soko:hint 关键件：两条互逆律的前提 hx : x ∈ {a} 展开就是 x = a，要用 Eq.symm 掉头（另一侧同理）；四条条件交给 Set.Equiv.mk。
 -- ─────────────────────────────────────────────────────────────
 theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
     Set.Equiv α β {a} {b} := by
@@ -147,9 +147,9 @@ theorem Set.Equiv.singleton (α β : Type) (a : α) (b : β) :
 -- 练习 4（L 类）：集合相等蕴涵等势（Mathlib 真名 Set.equivOfEq）。
 -- soko:hint 思路：A = B 时两把映射都可以取恒等；要做的是把成员关系沿等式搬运。
 -- soko:hint 目标形态：Set.Equiv α α A B，四条条件里两条互逆律是计算（恒等复合恒等）。
--- soko:hint 关键件：成员关系要沿等式从 A 挪到 B，得用 Eq.subst 且 motive 自己写（一个 Set α -> Prop 的谓词，问 x 属不属于它）；B → A 那一侧搬的等式先用 Eq.symm 掉头；装配用 Set.Equiv.mk。
+-- soko:hint 关键件：成员关系要沿等式从 A 挪到 B，得用 Eq.subst 且 motive 自己写（一个 Set α → Prop 的谓词，问 x 属不属于它）；B → A 那一侧搬的等式先用 Eq.symm 掉头；装配用 Set.Equiv.mk。
 -- ─────────────────────────────────────────────────────────────
-theorem Set.equivOfEq (α : Type) (A B : Set α) (h : Eq.{1} (Set α) A B) :
+theorem Set.equivOfEq (α : Type) (A B : Set α) (h : A = B) :
     Set.Equiv α α A B := by
   sorry
 
@@ -182,11 +182,11 @@ theorem equiv_nonempty_iff (α β : Type) (A : Set α) (B : Set β)
 -- 这就是"整体与真部分一样大"在本语言里的第一个可判例子（**设计判断**：先给反例，
 -- 不在这里谈"无限"的定义——那需要"有限"，本语言还没有）。
 -- soko:hint 思路：反例取 nonzero 与 Set.univ Nat：正向映射做"减一"（Nat.pred），反向映射做"加一"（Nat.succ）。
--- soko:hint 目标形态：Set.subset Nat nonzero (Set.univ Nat) ∧ (nonzero ≠ Set.univ Nat ∧ Set.Equiv Nat Nat nonzero (Set.univ Nat))——第一段是"包含"（⊆ 记法在这里补不出论域，写点名形式）。
+-- soko:hint 目标形态：`Set.subset` Nat nonzero (Set.univ Nat) ∧ (nonzero ≠ Set.univ Nat ∧ Set.Equiv Nat Nat nonzero (Set.univ Nat))——第一段是"包含"（⊆ 记法在 nonzero 这个 def 操作数上补不出论域，按设计写点名形式）。
 -- soko:hint 关键件：① 目标是 Set.univ，True.intro 即可；② 拿 0 做见证——用 Eq.subst 与 Eq.symm 沿假设把 Set.mem_univ 搬成 0 ∈ nonzero，再喂 Eq.refl；③ 反向那条 MapsTo 用 Nat.succ_ne_zero，左互逆律要对 x 分情况：Nat.rec.{0} 配依赖 motive（zero 支被 hx 直接否掉，succ 支靠 Nat.pred 的 iota 算）。
 -- ─────────────────────────────────────────────────────────────
 theorem proper_subset_counterexample :
-    Set.subset Nat nonzero (Set.univ Nat) ∧
+    Set.subset Nat nonzero (Set.univ Nat) ∧  -- soko:notation-ok: ⊆ 记法在 nonzero（def）操作数上补不出论域
       (nonzero ≠ Set.univ Nat ∧ Set.Equiv Nat Nat nonzero (Set.univ Nat)) := by
   sorry
 

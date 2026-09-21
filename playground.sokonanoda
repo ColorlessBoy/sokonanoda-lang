@@ -135,31 +135,30 @@ axiom False.rec : (P : Prop) → False → P
 --        Or.inl : (a : Prop) → (b : Prop) → a → a ∨ b
 --        Or.inr : (a : Prop) → (b : Prop) → b → a ∨ b
 --
--- 写出来的 `a ∧ b`、`a ∨ b` 分别是 `And a b`、`Or a b` 的记法（notation）：
+-- 写出来的 `a ∧ b`、`a ∨ b` 分别是连接符 `And`、`Or` 的记法（notation）：
 -- `∧` 与 `∨` 是语言内建的符号，任何文件直接写，判卷时看到的仍然是这两个
 -- 连接符。
 
 -- Not 与 True / False 不同，它不是公理而是定义。¬ a 展开后就是 a → False：
 -- 一份“非 a”的证明，就是一台把 a 的证明变成 False 的证明的机器。
 -- 初看会觉得奇怪，“非”怎么会是一个函数；等 0.5 讲完函数类型，这一点
--- 就自然了。（`¬ a` 是 `¬ a` 的记法。）
+-- 就自然了。（`¬` 是 `Not` 的记法。）
 def Not : Prop → Prop := fun (a : Prop) => a → False
 
 -- 到这里，本课要自己声明的公理都齐了（And / Or 由 prelude 提供）。下面
 -- 完整读一条写好的证明，看看前面每一件东西实际怎么组合在一起：
 --
 --   example : True ∨ False := by
---     exact Or.inl True False True.intro
+--     exact Or.inl True.intro
 --   └名字   └类型(命题)          └证明(by 块)
 --
--- 这条声明的类型是命题 True ∨ False（也就是 True ∨ False），读作“真或
--- 假”；证明写成 `by` 块，块里一条 `exact` 把构造子 Or.inl 应用到三个参
--- 数上：前两个参数是 Or 的两个命题 True 和 False，第三个参数是支持左边
--- 成立的那份证明，这里就是 True.intro。Or.inl 的规则说，只要有左边的证
--- 明，整个 Or 就成立。另外，example 是不取名字的匿名声明，类型和证明之
--- 间用 := 隔开。
+-- 这条声明的类型是命题 True ∨ False（也就是把 `Or` 用到 `True`、`False`
+-- 上），读作“真或假”；证明写成 `by` 块，块里一条 `exact` 交出支持左边
+-- 成立的那份证明，这里就是 True.intro。Or.inl 的两个命题参数由目标反解，
+-- 写的时候省掉。Or.inl 的规则说，只要有左边的证明，整个 Or 就成立。另外，
+-- example 是不取名字的匿名声明，类型和证明之间用 := 隔开。
 example : True ∨ False := by
-  exact Or.inl True False True.intro
+  exact Or.inl True.intro
 
 -- ─────────────────────────────────────────────────────────────
 -- 0.5 函数与函数类型
@@ -190,7 +189,7 @@ example : True ∨ False := by
 -- 最终给出 a ∨ b 的证明。第三层 a → a ∨ b 里没有冒号，因为 a 不是
 -- 新名字，就是第一层那个 a。箭头之所以要带名字，是因为结论 a ∨ b
 -- 必须提到前两层给的东西，不起名字就写不出来。这种类型在 Lean 里用
--- forall 书写，是后面量词的骨架。
+-- ∀ 书写，是后面量词的骨架。
 --
 -- 命题里的每一层箭头，在 `by` 块里对应一条 `intro`：intro 把箭头左边的
 -- 东西收进来、起个名字，目标就换成箭头右边。看下面这个写好的例子：
@@ -204,9 +203,8 @@ theorem prop_id : (a : Prop) → a → a := by
 -- 结果装起来，做法完全一样。
 --
 -- 最后是箭头的结合方式，读长类型时用得上。全课程只依赖两条规则：
--- → 向右结合，所以 a → b → c 等于 a → (b → c)（`→` 和 `→` 是同一个
--- 箭头的两种拼法，写哪个都一样）；fun 的函数体则一直延伸到能吃到的最
--- 远处，所以在 fun (a : Prop) => a → False 里，先结合的是 a → False，
+-- → 向右结合，所以 a → b → c 等于 a → (b → c)；fun 的函数体则一直延伸
+-- 到能吃到的最远处，所以在 fun (a : Prop) => a → False 里，先结合的是 a → False，
 -- 整个箭头都在 fun 的内部。编辑器里可以验证这一点：把光标放在 → 上反
 -- 复按“扩展选择”（macOS 是 Ctrl+Cmd+Shift+→），第一级圈出的就是先结合
 -- 的那一段。
@@ -222,23 +220,23 @@ theorem true_is_true : True := by
 -- 练习 2：若 a、b 都成立，则 a 且 b 成立。
 -- soko:hint 思路：类型里的箭头对应 `by` 块里的 intro——一层箭头一条 intro，最后一步构造。
 -- soko:hint 目标形态：最外层是四个箭头：先写 intro a，每写一条就看剩余目标。
--- soko:hint 关键件：最后一步用 And.intro，它吃 a、b 和两个证明，装出 a ∧ b。
+-- soko:hint 关键件：最后一步用 And.intro，把两份证明装成 a ∧ b——a、b 由目标反解，不必写。
 theorem and_intro_rule : (a : Prop) → (b : Prop) → a → b → a ∧ b := by
   intro a
   intro b
   intro ha
   intro hb
-  exact And.intro a b ha hb
+  exact And.intro ha hb
 
 -- 练习 3：由 a 且 b 推出 b 且 a。
 -- soko:hint 思路：先把拿到的 a ∧ b 拆开，再按新顺序装回去——先取出两半，再构造。
 -- soko:hint 目标形态：三层箭头：intro a、intro b、intro h 之后，最后要造出 b ∧ a。
--- soko:hint 关键件：And.left / And.right 从 h 里取出两半；And.intro b a … 换个顺序装回去。
+-- soko:hint 关键件：And.left / And.right 从 h 里取出两半；And.intro 换个顺序装回去。
 theorem and_swap : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by
   intro a
   intro b
   intro h
-  exact And.intro b a (And.right a b h) (And.left a b h)
+  exact And.intro (And.right h) (And.left h)
 
 -- 练习 4：由 False 推出任意命题 P。
 -- soko:hint 思路：False 证不出来（没有构造子），但可以“被使用”——从矛盾推出任何命题。
@@ -256,27 +254,26 @@ theorem ex_falso : (P : Prop) → False → P := by
 theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by
   intro a
   intro h
-  exact (And.right a (¬ a) h) (And.left a (¬ a) h)
+  exact (And.right a (¬ a) h) (And.left a (¬ a) h)  -- soko:notation-ok: 链式应用（右半当函数）：省前导参数会被当成写全实参（实测类型不匹配）⇒ 保持写全
 
 -- ─────────────────────────────────────────────────────────────
--- 第二课 量词：forall 与 exists
+-- 第二课 量词：∀ 与 ∃
 --
 -- 命题逻辑只会谈论固定的几个命题。要表达“每一个人都……”“至少有一个人
 -- ……”这类断言，需要量词（quantifier）。全称量词（universal quantifier）
--- 写 forall 或 ∀，读作“对每一个”；存在量词（existential quantifier）写
--- Exists，读作“存在”。
+-- 写 ∀，读作“对每一个”；存在量词（existential quantifier）写 ∃，读作
+-- “存在”。
 --
--- 2.1 forall
+-- 2.1 ∀
 --
 -- 第一课的箭头里已经埋着全称量词。看 Or.inl 的类型（prelude 自带）：
 --
 --        (a : Prop) → (b : Prop) → a → a ∨ b
 --
 -- 读作“每给一个命题 a，每给一个命题 b……”，这正是“对每一个”。把这种
--- 箭头写成量词，下面三种拼法是同一个类型：
+-- 箭头写成量词，下面两种拼法是同一个类型：
 --
 --        (x : Person) → P x
---        forall (x : Person), P x
 --        ∀ (x : Person), P x
 --
 -- 全称命题的证明就是函数（function）：输入任意一个人 x，输出 P x 的证明。
@@ -300,7 +297,7 @@ theorem forall_demo (P : Person → Prop) : ∀ (x : Person), P x → P x := by
   intro hx
   exact hx
 
--- 演示 2：命名箭头和 forall 本来就是同一个类型，换拼写不用改证明。
+-- 演示 2：命名箭头和 ∀ 本来就是同一个类型，换拼写不用改证明。
 example (P : Person → Prop) (h : ∀ (x : Person), P x) : (x : Person) → P x := by
   exact h
 
@@ -318,9 +315,9 @@ theorem forall_elim (P : Person → Prop) (w : Person) (h : ∀ (x : Person), P 
 theorem forall_and (P : Person → Prop) (Q : Person → Prop) (h : ∀ (x : Person), P x ∧ Q x) : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x) := by
   apply And.intro
   intro x
-  exact And.left (P x) (Q x) (h x)
+  exact And.left (h x)
   intro x
-  exact And.right (P x) (Q x) (h x)
+  exact And.right (h x)
 
 -- 练习 8：反过来：两个“每个人”合起来，得到“每个人同时满足”。
 -- soko:hint 思路：把 h 分成两半，各自用到同一个人 x 上，再用 And.intro 合起来。
@@ -329,8 +326,8 @@ theorem forall_and (P : Person → Prop) (Q : Person → Prop) (h : ∀ (x : Per
 theorem and_forall (P : Person → Prop) (Q : Person → Prop) (h : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x)) : ∀ (x : Person), P x ∧ Q x := by
   intro x
   apply And.intro
-  apply And.left (∀ (x : Person), P x) (∀ (x : Person), Q x) h x
-  apply And.right (∀ (x : Person), P x) (∀ (x : Person), Q x) h x
+  apply And.left (∀ (x : Person), P x) (∀ (x : Person), Q x) h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全
+  apply And.right (∀ (x : Person), P x) (∀ (x : Person), Q x) h x  -- soko:notation-ok: 取半后再对 x 应用：IA-1 反解不出（实测报错）⇒ 前导参数保持写全
 
 -- ─────────────────────────────────────────────────────────────
 -- 2.2 exists
@@ -363,12 +360,12 @@ binder_notation "∃" => Exists
 -- 演示 1：造一个存在命题。性质是“恒真”，证人用先立好的 someone，再补
 -- 一份 True.intro，四样凑齐就完成。
 theorem exists_demo : ∃ (x : Person), True := by
-  exact Exists.intro Person (fun (x : Person) => True) someone True.intro
+  exact Exists.intro Person (fun (x : Person) => True) someone True.intro  -- soko:notation-ok: 本画布的 Exists 是显式公理三件套（A/p 写在签名里）⇒ 省前导参数不适用
 
 -- 演示 2：用一张存在命题。把 h 交给 Exists.elim 后，结论是 True，与证人
 -- 无关，直接给 True.intro。如果结论会提到证人，这条规则就用不了。
 theorem exists_use_demo (P : Person → Prop) (h : ∃ (x : Person), P x) : True := by
-  exact Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro)
+  exact Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro)  -- soko:notation-ok: 本画布的 Exists 是显式公理三件套（A/p 写在签名里）⇒ 省前导参数不适用
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 9（热身）：交出证人 w 和证明 hw，装出存在命题。

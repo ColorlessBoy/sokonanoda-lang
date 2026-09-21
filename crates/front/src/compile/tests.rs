@@ -1757,7 +1757,7 @@ def l1_eq_symm (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{1} 
 def l1_eq_trans (a b c : Nat) (h1 : Eq.{1} Nat a b) (h2 : Eq.{1} Nat b c) : Eq.{1} Nat a c :=
   Eq.trans.{1} Nat a b c h1 h2
 def l1_congr_arg (f : Nat -> Nat) (a b : Nat) (h : Eq.{1} Nat a b) :
-    Eq.{1} Nat (f a) (f b) := congrArg.{1} Nat Nat f a b h
+    Eq.{1} Nat (f a) (f b) := congrArg.{1} f h
 ";
 
 fn l1_names_missing(errors: &[CompileError]) -> Vec<String> {

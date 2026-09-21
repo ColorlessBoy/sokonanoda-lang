@@ -21,17 +21,17 @@ theorem forall_and (P : Person → Prop) (Q : Person → Prop)
     (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x) := by
   apply And.intro
   intro x
-  exact And.left (P x) (Q x) (h x)
+  exact And.left (h x)
   intro x
-  exact And.right (P x) (Q x) (h x)
+  exact And.right (h x)
 
 theorem and_forall (P : Person → Prop) (Q : Person → Prop)
     (h : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x)) :
     ∀ (x : Person), P x ∧ Q x := by
   intro x
-  have hP : P x := And.left (∀ (y : Person), P y) (∀ (y : Person), Q y) h x
-  have hQ : Q x := And.right (∀ (y : Person), P y) (∀ (y : Person), Q y) h x
-  exact And.intro (P x) (Q x) hP hQ
+  have hP : P x := And.left (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.left's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)
+  have hQ : Q x := And.right (∀ (y : Person), P y) (∀ (y : Person), Q y) h x -- soko:notation-ok: And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)
+  exact And.intro hP hQ
 
 axiom Exists : (A : Type 0) → (A → Prop) → Prop
 axiom Exists.intro : (A : Type 0) → (p : A → Prop) → (w : A) → p w → Exists A p
@@ -44,20 +44,20 @@ theorem exists_demo : ∃ (x : Person), True := by
   exact True.intro
 
 theorem exists_use_demo (P : Person → Prop) (h : ∃ (x : Person), P x) : True := by
-  exact Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro)
+  exact Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro) -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)
 
 theorem exists_intro_rule (P : Person → Prop) (w : Person) (hw : P w) : ∃ (x : Person), P x := by
-  exact Exists.intro Person P w hw
+  exact Exists.intro Person P w hw -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)
 
 theorem exists_elim_rule (P : Person → Prop) (Q : Prop) (h : ∃ (x : Person), P x)
     (f : ∀ (x : Person), P x → Q) : Q := by
-  exact Exists.elim Person P Q h f
+  exact Exists.elim Person P Q h f -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)
 
 theorem forall_exists (P : Person → Prop) (h : ∀ (x : Person), P x) : ∃ (x : Person), P x := by
-  exact Exists.intro Person P someone (h someone)
+  exact Exists.intro Person P someone (h someone) -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)
 
 theorem exists_mono (P : Person → Prop) (Q : Person → Prop)
     (f : ∀ (x : Person), P x → Q x) (h : ∃ (x : Person), P x) :
     ∃ (x : Person), Q x := by
-  exact Exists.elim Person P (∃ (x : Person), Q x) h
-    (fun (w : Person) => fun (hw : P w) => Exists.intro Person Q w (f w hw))
+  exact Exists.elim Person P (∃ (x : Person), Q x) h -- soko:notation-ok: this course-local `Exists` is an axiom (its leading A/p parameters are explicit), so implicit insertion does not apply (engine boundary)
+    (fun (w : Person) => fun (hw : P w) => Exists.intro Person Q w (f w hw)) -- soko:notation-ok: same as above (engine boundary)

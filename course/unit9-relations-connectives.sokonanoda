@@ -31,7 +31,7 @@
 
 -- 演示（已写好）：构造子当函数用，参数按顺序全部给全。
 theorem or_intro_demo (A : Prop) (B : Prop) (a : A) : A ∨ B :=
-  Or.inl A B a
+  Or.inl a
 
 -- 练习 1：交换 Or 的两边。
 -- soko:hint 思路：match h 一次列全 inl / inr 两个构造子，每支把里面的证据装到另一边的构造子里。
@@ -77,7 +77,7 @@ def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- 演示（已写好）：把两个方向打包成 Iff。
 theorem iff_intro_demo (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B :=
-  And.intro (A → B) (B → A) mp mpr
+  And.intro mp mpr
 
 -- 练习 4：取出 Iff 的正向。
 -- soko:hint 思路：A ↔ B 是定义，展开后是一个 And；正向就在它的左边。

@@ -2,7 +2,7 @@
 import Logic
 
 theorem and_comm_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A :=
-  fun (h : A ∧ B) => And.intro B A (And.right A B h) (And.left A B h)
+  fun (h : A ∧ B) => And.intro (And.right h) (And.left h)
 
 theorem and_comm_via_library_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
   and_comm A B h

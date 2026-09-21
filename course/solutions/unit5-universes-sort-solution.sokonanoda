@@ -11,13 +11,13 @@ def type0_universe : Sort 2 := Type 0
 
 example : Sort 1 := Nat
 
-example : Sort 0 := Eq.{1} Nat (1 + 1) 2
+example : Sort 0 := (1 + 1) = 2
 
-theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by
+theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）
   intro α a b h
-  exact Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)
+  exact Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a) -- soko:notation-ok: 同上（引擎边界）
 
-def predict_then_prove : Eq.{1} Nat ((fun (x : Nat) => x + 1) 41) 42 := by
+def predict_then_prove : ((fun (x : Nat) => x + 1) 41) = 42 := by
   exact Eq.refl.{1} Nat 42
 
 #reduce (fun (x : Nat) => x + 1) 41

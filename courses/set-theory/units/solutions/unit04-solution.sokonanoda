@@ -20,7 +20,7 @@
 import lib.Logic
 import lib.Set
 
--- T 类：并交换律。逐元素 Iff (x ∈ A ∪ B) (x ∈ B ∪ A)。
+-- T 类：并交换律。逐元素是 (x ∈ A ∪ B) ↔ (x ∈ B ∪ A)。
 theorem union_comm (α : Type) (A B : Set α) :
     A ∪ B = B ∪ A := by
   apply Set.ext
@@ -28,29 +28,29 @@ theorem union_comm (α : Type) (A B : Set α) :
   constructor
   intro h
   exact Or.elim (x ∈ A) (x ∈ B) (x ∈ B ∪ A)
-    (fun (ha : x ∈ A) => Or.inr (x ∈ B) (x ∈ A) ha)
-    (fun (hb : x ∈ B) => Or.inl (x ∈ B) (x ∈ A) hb)
+    (fun (ha : x ∈ A) => Or.inr ha)
+    (fun (hb : x ∈ B) => Or.inl hb)
     h
   intro h
   exact Or.elim (x ∈ B) (x ∈ A) (x ∈ A ∪ B)
-    (fun (hb : x ∈ B) => Or.inr (x ∈ A) (x ∈ B) hb)
-    (fun (ha : x ∈ A) => Or.inl (x ∈ A) (x ∈ B) ha)
+    (fun (hb : x ∈ B) => Or.inr hb)
+    (fun (ha : x ∈ A) => Or.inl ha)
     h
 
--- T 类：交交换律。逐元素 Iff (x ∈ A ∩ B) (x ∈ B ∩ A)。
+-- T 类：交交换律。逐元素是 (x ∈ A ∩ B) ↔ (x ∈ B ∩ A)。
 theorem inter_comm (α : Type) (A B : Set α) :
     A ∩ B = B ∩ A := by
   apply Set.ext
   intro x
   constructor
   intro h
-  exact And.intro (x ∈ B) (x ∈ A)
-    (And.right (x ∈ A) (x ∈ B) h)
-    (And.left (x ∈ A) (x ∈ B) h)
+  exact And.intro
+    (And.right h)
+    (And.left h)
   intro h
-  exact And.intro (x ∈ A) (x ∈ B)
-    (And.right (x ∈ B) (x ∈ A) h)
-    (And.left (x ∈ B) (x ∈ A) h)
+  exact And.intro
+    (And.right h)
+    (And.left h)
 
 -- R 类（读·评译）：幂等律打包 —— A ∪ A = A 与 A ∩ A = A。
 theorem union_inter_idem (α : Type) (A : Set α) :
@@ -60,19 +60,19 @@ theorem union_inter_idem (α : Type) (A : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ A) (x ∈ A) (x ∈ A)
+  exact Or.elim
     (fun (ha : x ∈ A) => ha)
     (fun (ha : x ∈ A) => ha)
     h
   intro ha
-  exact Or.inl (x ∈ A) (x ∈ A) ha
+  exact Or.inl ha
   apply Set.ext
   intro x
   constructor
   intro h
-  exact And.left (x ∈ A) (x ∈ A) h
+  exact And.left h
   intro ha
-  exact And.intro (x ∈ A) (x ∈ A) ha ha
+  exact And.intro ha ha
 
 -- X 类：交对并分配 —— A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C)。
 theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
@@ -83,22 +83,22 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
   intro h
   exact Or.elim (x ∈ B) (x ∈ C) (x ∈ (A ∩ B) ∪ (A ∩ C))
     (fun (hb : x ∈ B) =>
-      Or.inl (x ∈ A ∩ B) (x ∈ A ∩ C)
-        (And.intro (x ∈ A) (x ∈ B) (And.left (x ∈ A) (x ∈ B ∨ x ∈ C) h) hb))
+      Or.inl
+        (And.intro (And.left h) hb))
     (fun (hc : x ∈ C) =>
-      Or.inr (x ∈ A ∩ B) (x ∈ A ∩ C)
-        (And.intro (x ∈ A) (x ∈ C) (And.left (x ∈ A) (x ∈ B ∨ x ∈ C) h) hc))
-    (And.right (x ∈ A) (x ∈ B ∨ x ∈ C) h)
+      Or.inr
+        (And.intro (And.left h) hc))
+    (And.right h)
   intro h
   exact Or.elim (x ∈ A ∩ B) (x ∈ A ∩ C) (x ∈ A ∩ (B ∪ C))
     (fun (hab : x ∈ A ∩ B) =>
       And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
-        (And.left (x ∈ A) (x ∈ B) hab)
-        (Or.inl (x ∈ B) (x ∈ C) (And.right (x ∈ A) (x ∈ B) hab)))
+        (And.left hab)
+        (Or.inl (And.right hab)))
     (fun (hac : x ∈ A ∩ C) =>
       And.intro (x ∈ A) (x ∈ B ∨ x ∈ C)
-        (And.left (x ∈ A) (x ∈ C) hac)
-        (Or.inr (x ∈ B) (x ∈ C) (And.right (x ∈ A) (x ∈ C) hac)))
+        (And.left hac)
+        (Or.inr (And.right hac)))
     h
 
 -- X 类：吸收律 —— A ∪ (A ∩ B) = A。
@@ -108,12 +108,12 @@ theorem union_inter_self (α : Type) (A B : Set α) :
   intro x
   constructor
   intro h
-  exact Or.elim (x ∈ A) (x ∈ A ∩ B) (x ∈ A)
+  exact Or.elim
     (fun (ha : x ∈ A) => ha)
-    (fun (hab : x ∈ A ∩ B) => And.left (x ∈ A) (x ∈ B) hab)
+    (fun (hab : x ∈ A ∩ B) => And.left hab)
     h
   intro ha
-  exact Or.inl (x ∈ A) (x ∈ A ∩ B) ha
+  exact Or.inl ha
 
 -- X 类：差的差 —— (A \ B) \ C = A \ (B ∪ C)。
 theorem sdiff_sdiff (α : Type) (A B C : Set α) :
@@ -123,24 +123,24 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
   constructor
   intro h
   exact And.intro (x ∈ A) (¬ (x ∈ B ∪ C))
-    (And.left (x ∈ A) (¬ (x ∈ B))
+    (And.left (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
       (And.left (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h))
     (fun (hbc : x ∈ B ∪ C) =>
       Or.elim (x ∈ B) (x ∈ C) False
         (fun (hb : x ∈ B) =>
-          And.right (x ∈ A) (¬ (x ∈ B))
+          And.right (x ∈ A) (¬ (x ∈ B))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
             (And.left (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h) hb)
         (fun (hcx : x ∈ C) =>
-          And.right (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h hcx)
+          And.right (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C)) h hcx)  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
         hbc)
   intro h
   exact And.intro (x ∈ A ∧ ¬ (x ∈ B)) (¬ (x ∈ C))
     (And.intro (x ∈ A) (¬ (x ∈ B))
-      (And.left (x ∈ A) (¬ (x ∈ B ∪ C)) h)
+      (And.left h)
       (fun (hb : x ∈ B) =>
-        And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ B) (x ∈ C) hb)))
+        And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inl (x ∈ B) (x ∈ C) hb)))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
     (fun (hc : x ∈ C) =>
-      And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ B) (x ∈ C) hc))
+      And.right (x ∈ A) (¬ (x ∈ B ∪ C)) h (Or.inr (x ∈ B) (x ∈ C) hc))  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 -- X 类：∅ 是并的单位元 —— A ∪ ∅ = A。
 theorem union_empty (α : Type) (A : Set α) :
@@ -151,28 +151,28 @@ theorem union_empty (α : Type) (A : Set α) :
   intro h
   exact Or.elim (x ∈ A) (x ∈ ∅) (x ∈ A)
     (fun (ha : x ∈ A) => ha)
-    (fun (hf : x ∈ ∅) => False.elim (x ∈ A) hf)
+    (fun (hf : x ∈ ∅) => False.elim hf)
     h
   intro ha
-  exact Or.inl (x ∈ A) (x ∈ ∅) ha
+  exact Or.inl (x ∈ A) (x ∈ ∅) ha  -- soko:notation-ok: 目标/假设经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 -- R 类（必破 / 证伪）：(A ∪ B) \ B = A **为假**。
 -- 反例取 α = Nat、A = B = Set.univ Nat：右边含 Nat.zero，左边要求
 -- Nat.zero ∈ univ 且 ¬ Nat.zero ∈ univ，矛盾 —— 于是两边不相等。
--- 语句里 `\` 与 `∪` 写点名形式：`∅` 的零元记法边界之外，这是唯一
--- 能让判卷器回读该假设类型的写法（见文件头注释）。
+-- 语句里 `\` 与 `∪` 写点名形式：`\` 的左操作数是记法（`A ∪ B`）时记法路径解不出
+-- 类型参数——这是判卷器回读该假设类型的唯一可行写法（见文件头注释）。
 theorem union_sdiff_univ_ne_univ :
-    ¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)
+    ¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
         = Set.univ Nat) := by
   intro h
   have hmem : Nat.zero ∈
-      Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat) :=
+      Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat) :=  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
     Eq.subst.{1} (Set Nat) (fun (X : Set Nat) => Nat.zero ∈ X)
       (Set.univ Nat)
-      (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))
+      (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
       (Eq.symm.{1} (Set Nat)
-        (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))
+        (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat))  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
         (Set.univ Nat) h)
       (Set.mem_univ Nat Nat.zero)
-  exact And.right (Nat.zero ∈ Set.union Nat (Set.univ Nat) (Set.univ Nat))
+  exact And.right (Nat.zero ∈ Set.union Nat (Set.univ Nat) (Set.univ Nat))  -- soko:notation-ok: `\`/`∪` 的左操作数是记法时解不出类型参数（引擎边界）
     (¬ (Nat.zero ∈ Set.univ Nat)) hmem (Set.mem_univ Nat Nat.zero)

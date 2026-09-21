@@ -10,6 +10,8 @@
 #
 # 修后契约（设计 docs/design/prelude-l1-proposal.md §1.1 第 26–28 行）：
 #   ① Full：`Eq.symm`/`Eq.trans`/`congrArg` 直接可用 → exit 0 且 checked；
+#      （2026-09-21：`congrArg` 参数顺序按 Lean 改成 `{α β} {a b} (f) (h)`，
+#        故探针写 `congrArg.{1} f h`，不是旧的 `congrArg.{1} α β f a b h`。）
 #   ② 它们**不是公理**：值位真的过内核（`Eq.subst` 是它们的定义体来源）；
 #   ③ B7 依赖 Eq prelude：文件自己声明 `Eq` ⇒ 整块（含三条引理）让位；
 #   ④ Bare 下三者都不在（与 ① 对照，证明来源确实是 prelude）。
@@ -27,7 +29,7 @@ def eq_symm_probe (a b : Nat) (h : Eq.{1} Nat a b) : Eq.{1} Nat b a := Eq.symm.{
 def eq_trans_probe (a b c : Nat) (h1 : Eq.{1} Nat a b) (h2 : Eq.{1} Nat b c) :
     Eq.{1} Nat a c := Eq.trans.{1} Nat a b c h1 h2
 def congr_arg_probe (f : Nat -> Nat) (a b : Nat) (h : Eq.{1} Nat a b) :
-    Eq.{1} Nat (f a) (f b) := congrArg.{1} Nat Nat f a b h
+    Eq.{1} Nat (f a) (f b) := congrArg.{1} f h
 EOF
 
 echo "== ① Full：Eq 三引理必须判卷通过 =="

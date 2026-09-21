@@ -2105,7 +2105,7 @@ theorem cases_eq_arm (β γ : Type) (g : β -> γ) (a : β) (c : γ)
   cases h with
   | intro b hb =>
     exact Eq.trans.{1} γ (g a) (g b) c
-      (congrArg.{1} β γ g a b (And.left (Eq.{1} β a b) (Eq.{1} γ (g b) c) hb))
+      (congrArg.{1} g (And.left (Eq.{1} β a b) (Eq.{1} γ (g b) c) hb))
       (And.right (Eq.{1} β a b) (Eq.{1} γ (g b) c) hb)
 ";
     let dir = course_lib_dir("cases-eq-arm");
@@ -2250,10 +2250,16 @@ fn no_course_signature_uses_an_implicit_binder() {
                     Command::Example { ty, .. } => ("<example>".to_string(), ty),
                     _ => continue,
                 };
-                // 两处教学例外（见函数注释）：它们是**题目本身**。
-                if matches!(label.as_str(), "Eq.symm" | "eq_refl_prop")
-                    && rel.starts_with("course/")
-                {
+                // **有意的隐式签名**（IA-1 的"课程零隐式 binder"前提在 IA-2 起
+                // 有意打破，这里改成白名单，不再要求全课程为空）：
+                //   · 入门课两处教学例外（它们是**题目本身**）：`Eq.symm` / `eq_refl_prop`；
+                //   · 卷 I 课程库 IA-2 落地：`lib/Exists` 的 `Exists.elim`
+                //     （让 `Exists.elim h f` 与 Lean 对齐）。
+                let intentional = (matches!(label.as_str(), "Eq.symm" | "eq_refl_prop")
+                    && rel.starts_with("course/"))
+                    || (rel == "courses/set-theory/lib/Exists.sokonanoda"
+                        && label == "Exists.elim");
+                if intentional {
                     continue;
                 }
                 let mut names = Vec::new();

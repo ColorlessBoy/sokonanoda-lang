@@ -26,10 +26,11 @@
 -- with #check:
 --
 -- Universe levels also take arithmetic: `Sort (u+1)` (or `Sort u+1`) is the
--- step above `Sort u`, and `Eq.{u+1}` instantiates Eq's universe argument with
--- it. This is how the prelude's `Eq.mp`/`Eq.mpr`/`cast` are typed: they move
--- between two *types* `α β : Sort u`, so the equality proof they take is
--- `Eq.{u+1} (Sort u) α β` (the types themselves live one step up).
+-- step above `Sort u`. An equality between two *types* also lives one step up:
+-- for `α β : Sort u`, the proposition `α = β` sits at level u+1 (the type
+-- `Sort u` itself lives in `Sort (u+1)`). That is how the prelude's
+-- `Eq.mp`/`Eq.mpr`/`cast` are typed: they move between two types, so the
+-- equality proof they take is exactly that `α = β`.
 
 #check Nat
 #check (Nat → Nat)
@@ -38,9 +39,10 @@
 #check (Type 1)
 
 -- Now the mechanical rule from Unit 2 pays off. Eq's signature is
--- {α : Sort u} → …, so "equalities over numbers write Eq.{1}" simply because
--- Nat : Sort 1 — α must be given the right universe level. A bare Eq defaults
--- to u = 0, the Prop level.
+-- {α : Sort u} → …, so equalities over numbers land at level .{1} simply
+-- because Nat : Sort 1 — that α's level must be 1. A bare Eq defaults to u = 0,
+-- the Prop level; the notation `a = b` solves the level for you, while proof
+-- terms (Eq.refl / Eq.subst …) still spell it out.
 
 -- Reading #check output: the format is `<term> : <type>`, and the right of the
 -- `:` is the term's "address". The lines above already printed it: Nat and
@@ -72,7 +74,7 @@ example : Sort 1 := by sorry
 -- Sort 0.
 -- soko:hint approach: Sort 0 is Prop — the world of everything you have been proving since Unit 1; this time hand over a proposition.
 -- soko:hint goal shape: the answer is a Prop-level term: not a value, not a type name, but a claim that a proof could fill.
--- soko:hint key piece: the goal is Sort 0 and you need a proposition — build one from equality (Eq.{1}): type Nat, and two sides the kernel finds equal.
+-- soko:hint key piece: the goal is Sort 0 and you need a proposition — build one from an equality (`a = b`, at level .{1} over numbers): with two sides the kernel finds equal.
 example : Sort 0 := by sorry
 
 -- Exercise 5 (graduation ★) — generalize the symmetry of Unit 2, Exercise 3 to
@@ -82,8 +84,8 @@ example : Sort 0 := by sorry
 -- with fun {α : Sort u} => ... .
 -- soko:hint approach: lift Unit 2's symmetry recipe to an arbitrary universe — fully isomorphic: Nat → α, .{1} → .{u}.
 -- soko:hint goal shape: the first binder is implicit — open with fun {α : Sort u} =>, then the same four funs taking a, b, h.
--- soko:hint key piece: goal Eq.{u} α b a with h : Eq.{u} α a b in context — Eq.subst.{u} rewrites along h, with the predicate designed in the "x = a" shape over α (recipe in Unit 2, Exercise 3).
-theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry
+-- soko:hint key piece: goal b = a with h : a = b in context — Eq.subst.{u} rewrites along h, with the predicate designed in the "x = a" shape over α (recipe in Unit 2, Exercise 3).
+theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b → Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u is polymorphic, so the `=` notation cannot solve the universe level u (engine boundary)
 
 -- ─────────────────────────────────────────────────────────────
 -- Compute before proving: predict the #reduce result yourself before the
@@ -93,9 +95,9 @@ theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → Eq.{u} α a b 
 -- Exercise 6 (predict, then prove): predict what #reduce will print, then fill
 -- in this equality.
 -- soko:hint approach: first apply (fun (x : Nat) => x + 1) to 41 in your head to get a number; this is a computation equality.
--- soko:hint goal shape: the goal is Eq.{1} Nat … that number; rfl holds when both sides compute to the same value.
+-- soko:hint goal shape: the goal is `… = 42`; rfl holds when both sides compute to the same value.
 -- soko:hint key piece: use Eq.refl.{1} — type Nat, and one side of the equality is the number you predicted; predict first, then compare with the #reduce below.
-def predict_then_prove : Eq.{1} Nat ((fun (x : Nat) => x + 1) 41) 42 := by sorry
+def predict_then_prove : ((fun (x : Nat) => x + 1) 41) = 42 := by sorry
 
 -- The kernel's answer (predict first, then compare): this line prints 42.
 #reduce (fun (x : Nat) => x + 1) 41

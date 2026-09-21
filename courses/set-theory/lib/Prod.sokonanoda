@@ -26,15 +26,15 @@
 --
 -- ── 递归子：参数在最前、motive 在后（务必带显式宇宙层级）───────────────────
 -- 自动派生的递归子（`inductive` / `ctor` / `end`，不用手写 `rec`/`iota`）形状是
---     Prod.rec.{u} : (A B : Type) -> (motive : (Prod A B) -> Sort u) ->
---                    (forall (a : A) (b : B), motive (prod_mk A B a b)) ->
---                    (target : Prod A B) -> motive target
--- 即**参数 A B 在最外层、motive 在其后**（与 `Or.rec a b (fun (_ : Or a b) => c) f g h`、
+--     Prod.rec.{u} : (A B : Type) → (motive : (Prod A B) → Sort u) →
+--                    (∀ (a : A) (b : B), motive (prod_mk A B a b)) →
+--                    (target : Prod A B) → motive target
+-- 即**参数 A B 在最外层、motive 在其后**（与 `Or.rec a b (fun (_ : a ∨ b) => c) f g h`、
 -- `Option.rec A motive …` 同一约定）；投影的 motive 是**常值**——结果 A（或 B）
 -- 与"是哪个序对"无关，所以 binder 写通配 `fun (_ : Prod A B) => A`。
 --
 -- ⚠ 必须在调用点上写 **`Prod.rec.{1}`**：motive 落在 `Sort u`（Prod 在 Type，可大消去），
--- 省略层级时前端把 `u` 取默认 `0`，于是内核看到 `motive : Prod A B -> Sort 0` 而
+-- 省略层级时前端把 `u` 取默认 `0`，于是内核看到 `motive : Prod A B → Sort 0` 而
 -- `A : Type 0 = Sort 1`，报「期望 `Sort(0)`，实际是 `Sort(1)`」。同类命题型归纳
 -- （`Or`/`False`）目标本来就在 `Prop`，默认 `0` 恰好够用，所以只在投影这种
 -- **Type 值**的消去上会咬人。
@@ -65,6 +65,7 @@ theorem Prod.snd_mk (A B : Type) (a : A) (b : B) :
 -- 那是 L3，属于画布上的练习。
 theorem Prod.fst_snd_mk (A B : Type) (a : A) (b : B) :
     Prod.fst A B (prod_mk A B a b) = a
-      ∧ Prod.snd A B (prod_mk A B a b) = b :=  And.intro (Eq.{1} A (Prod.fst A B (prod_mk A B a b)) a)
-    (Eq.{1} B (Prod.snd A B (prod_mk A B a b)) b)
-    (Prod.fst_mk A B a b) (Prod.snd_mk A B a b)
+      ∧ Prod.snd A B (prod_mk A B a b) = b :=
+    -- soko:notation-ok: `And.intro h1 h2` 对 Eq 结果的**应用**（非局部变量）仍解不出前导 Prop
+    And.intro (Prod.fst A B (prod_mk A B a b) = a) (Prod.snd A B (prod_mk A B a b) = b)
+      (Prod.fst_mk A B a b) (Prod.snd_mk A B a b)

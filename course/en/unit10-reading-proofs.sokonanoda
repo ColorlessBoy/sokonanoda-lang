@@ -20,7 +20,7 @@
 -- exercise must be code the kernel accepts.
 -- ==========================================================================
 
--- The names this file uses: And / Or come from the prelude, Iff is the def on
+-- The names this file uses: And / `Or` come from the prelude, `Iff` is the def on
 -- the next line — none of them is declared by hand.
 
 def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
@@ -51,14 +51,14 @@ def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 -- Demo (filled in): swap the two halves of an And — the very proof just read.
 theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
-  And.intro B A (And.right A B h) (And.left A B h)
+  And.intro (And.right h) (And.left h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 10.2 formal ↔ informal: the same sentence, two ways
 --
 -- The informal statement is in the comments; the exercise target is to write
 -- the formal declaration and fill in a kernel-checkable proof. The key to
--- translation is always: (a) are there quantifiers (arrows / forall);
+-- translation is always: (a) are there quantifiers (arrows / ∀);
 -- (b) what is each hypothesis; (c) which connective or relation does the
 -- conclusion use.
 -- ─────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 --
 -- soko:hint approach: the informal sentence has "if … then", which is an arrow; the conclusion is "A or B".
 -- soko:hint goal shape: the declaration has shape (a : A) → A ∨ B; write it as (A : Prop) → (B : Prop) → (a : A) → A ∨ B.
--- soko:hint key piece: the conclusion is A ∨ B and a proof of A is in hand: which Or constructor? Fill in the A, B parameters.
+-- soko:hint key piece: the conclusion is A ∨ B and a proof of A is in hand: which `Or` constructor? Fill in the A, B parameters.
 theorem or_intro_x (A : Prop) (B : Prop) (a : A) : A ∨ B := by
   sorry
 
@@ -80,10 +80,10 @@ theorem or_intro_x (A : Prop) (B : Prop) (a : A) : A ∨ B := by
 --   "If A implies B and B implies A, then A and B are equivalent (if and only
 --    if)."
 --
--- Hint: "equivalent" is the Iff this file defines with And.
+-- Hint: "equivalent" is the `Iff` this file defines with And.
 -- soko:hint approach: the two directions are two hypotheses (two arrows); the conclusion packs that pair of functions into an Iff.
 -- soko:hint goal shape: the conclusion has shape A ↔ B, and unfolds ↔ to (A → B) ∧ (B → A).
--- soko:hint key piece: the conclusion is A ↔ B with mp : A → B and mpr : B → A in context: use And.intro (the kernel unfolds the Iff definition), putting the two directions in the two proof slots.
+-- soko:hint key piece: the conclusion is A ↔ B with mp : A → B and mpr : B → A in context: use And.intro (the kernel unfolds the `Iff` definition), putting the two directions in the two proof slots.
 theorem iff_intro_x (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by
   sorry
 
@@ -92,10 +92,10 @@ theorem iff_intro_x (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔
 --
 --   "Every natural number is equal to itself."
 --
--- soko:hint approach: "every natural number" is a forall (or a named arrow), and the conclusion is an equality.
--- soko:hint goal shape: the conclusion has shape Eq.{1} Nat n n; an equality on numbers needs the right universe level .{1} (see Unit 5).
+-- soko:hint approach: "every natural number" is a ∀ (or a named arrow), and the conclusion is an equality.
+-- soko:hint goal shape: the conclusion has shape n = n; an equality on numbers needs the right universe level .{1} (see Unit 5).
 -- soko:hint key piece: both sides are the same term the kernel computes to the same value: use the axiom Eq.refl, handing it the type Nat and that term.
-theorem nat_eq_self_x (n : Nat) : Eq.{1} Nat n n := by
+theorem nat_eq_self_x (n : Nat) : n = n := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
@@ -138,8 +138,8 @@ theorem or_right_fixed (A : Prop) (B : Prop) (b : B) : A ∨ B := by
 -- ─────────────────────────────────────────────────────────────
 -- 10.4 Final project: a synthesis proof
 --
--- The last exercise uses And (Unit 1), Or (Unit 9), match and let (Units
--- 6/3) at once, and wires And elimination to Or construction. Work out "what
+-- The last exercise uses `And` (Unit 1), `Or` (Unit 9), match and let (Units
+-- 6/3) at once, and wires `And` elimination to `Or` construction. Work out "what
 -- does the goal look like" first, then choose a rule for each step.
 -- ─────────────────────────────────────────────────────────────
 

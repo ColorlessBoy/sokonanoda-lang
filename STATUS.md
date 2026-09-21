@@ -20,6 +20,43 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-21，第一百二十二轮：**课程记法规则**重建 + 基础类型隐式实参对齐 Lean）
+
+> 用户两条指令：「重新设置一个 courses 的规则，至少 notation 都要换掉，lib 和正文都
+> 换掉，不要有些还是老版本的。你先实现一个检查脚本，然后一个文件一个文件过。tactic
+> 还比较费时……可以先保持一部分的 term」；「基础类型的隐变量也可以尝试和 lean 对齐。
+> ……`Eq.{1}` 直接就是一个等于号」。
+
+1. **规则成了脚本**：新增 `scripts/notation-lint.py`（覆盖卷 I 的 lib + units +
+   solutions、入门课 `course/`、`playground.sokonanoda`；**代码与注释都算**；
+   `notation-cheatsheet*` 整文件豁免；行内 `-- soko:notation-ok: <理由>` 豁免；
+   `--json`/`--list`/`--root`）。接进 **`scripts/soko gate`** 与 **`ci.yml`**
+   的 `test` job。施工手册 `docs/notes/course-lean-style/notation-rewrite-brief.md`，
+   as-built `docs/design/course-lean-style.md` §11。**当前 `84 个文件 · 0 残留`**。
+2. **语言侧（`crates/front`，内核零改动）**：prelude 的 `And/Or/Iff/Not/False/absurd`
+   与**构造子**改成隐式前导参数（`And.intro h1 h2` / `And.left h` / `Or.inl h` /
+   `Exists.intro w hw`……）；`KnownName` 存**源级签名**（应用路径不再 `judge_infer`
+   ⇒ 消除 prelude 自举无限递归）；`PreludeInstallGuard`；「实参 > 显式层数」判为旧式
+   写全、一次装完（向后兼容）；`arg_tys` 优先取局部变量的**书写类型**（修 `Eq` 合取）；
+   `telescope` 把签名参数**换成 fresh 名**（修名字捕获，`congrArg` 在
+   `theorem (α β) (g : β → α)` 下的判红）；路线 ② 增**期望类型反解**并对
+   期望/实参类型做 **delta 展开**（`a ∈ A ∪ B` → `Or …`，修 `Or.inl h`/`And.left h`
+   在 def-headed 目标上的大头）。回归：front **670 passed**、notation **47 passed**、
+   LSP **146 passed**。
+3. **课程一个文件一个文件过完**：卷 I `lib/`（9）+ `units/` 与 `solutions/`（24）+
+   卷 I 记法对照页豁免；入门课 `course/`（50 文件）；`playground.sokonanoda`。
+   **判据**：卷 I 门禁 **36 目标 · 328 checked · 99 open · 0 判负**（计数中性）；
+   入门课 `checked 56 · open 66 · failed 0`；playground `decl.checked 23 ·
+   example.checked 2 · exercise.open 4`（+1 条既有 `Prop` warning）。
+4. **明说的边界**（不假装已对齐，全部有 `-- soko:notation-ok` 标记）：宇宙多态的
+   等式族**证明项**（`Eq.refl/symm/trans/subst`、`congrArg`）仍要显式宇宙与参数
+   （应用路径的宇宙层级推断未做）；`congrArg` 参数顺序按 Lean 改成
+   `{α β} {a b} (f) (h)`（**契约变更**，旧顺序判红）；`Set.univ α`；`by rfl` 读源 AST
+   不认 `=` 记法目标；若干 def-headed / 复合操作数 / 嵌套 `Exists.elim` 形状。
+   **标记数：卷 I lib 9 · units 401 · 入门课 50 · playground 5**（def 展开修复后
+   正在回收）。
+5. **不变的**：内核一个字节未改；不调用官方 Lean 工具链；用户/agent 路径仍零 cargo。
+
 ## 本轮进度（2026-09-21，第一百二十一轮：`by` 块判定的**根因**修复 —— 每步重判整份文档 → 一次判完）
 
 > 用户：「修改吧，而且性能能再恢复吗？」——上一轮只做了"抬超时 + 换 release"两件

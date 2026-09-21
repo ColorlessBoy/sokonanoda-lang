@@ -36,7 +36,7 @@ def Not : Prop → Prop := fun (a : Prop) => a → False
 -- Demo (already written): constructors double as functions — pass the
 -- arguments in order and you have a proof.
 
-example : True ∨ False := Or.inl True False True.intro
+example : True ∨ False := Or.inl True.intro
 
 -- The correspondence that drives everything: an arrow in a type becomes a
 -- `fun` in a value. Writing a proof is therefore writing a run of `fun`s and
@@ -50,7 +50,7 @@ example : True ∨ False := Or.inl True False True.intro
 theorem true_is_true : True := by sorry
 
 -- Exercise 2 — if a and b both hold, you can get a ∧ b.
--- Hint: four arrows are four funs; the goal is an And shape, so the last step picks its constructor.
+-- Hint: four arrows are four funs; the goal is an `And` shape, so the last step picks its constructor.
 -- soko:hint approach: arrows become fun — build the proof as a chain of funs with one final constructor step.
 -- soko:hint goal shape: the outermost layer has four arrows; open with fun (a : Prop) => and re-read the goal after every layer.
 -- soko:hint key piece: when the remaining goal is a ∧ b, reach for the And.intro constructor — it needs a, b and both proofs, all already in context.
@@ -93,7 +93,7 @@ theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by sorry
 -- Demo: this declaration and Exercise 3's and_swap are the same problem in
 -- two spellings; the kernel judges them identically.
 theorem demo_binders (a : Prop) (b : Prop) (h : a ∧ b) : b ∧ a :=
-  And.intro b a (And.right a b h) (And.left a b h)
+  And.intro (And.right h) (And.left h)
 
 -- Exercise 6: prove and_intro_rule again, this time with declaration binders
 -- (no `fun`s to write).

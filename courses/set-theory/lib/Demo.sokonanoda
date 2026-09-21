@@ -12,29 +12,28 @@ import lib.Equiv
 -- Logic：联结词
 theorem demo_and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
   constructor
-  exact And.right A B h
-  exact And.left A B h
+  exact And.right h
+  exact And.left h
 
 -- Set：定义展开
 theorem demo_subset_unfold (α : Type) (A B : Set α) :
     A ⊆ B ↔ ∀ (x : α), A x → B x :=  Set.subset_def α A B
 
 theorem demo_mem_powerset (α : Type) (A B : Set α) (h : B ⊆ A) :
-    B ∈ 𝒫 A :=  Iff.mpr (Set.mem (Set α) B (Set.powerset α A)) (Set.subset α B A)
-    (Set.mem_powerset_iff α A B) h
+    B ∈ 𝒫 A :=  (Iff.mpr (Set.mem_powerset_iff α A B)) h
 
 -- Exists：真归纳（G-03 已修，0.59.0；规范名 Exists.intro + 由 Exists.rec 定义的 Exists.elim）
--- 造与用都要给出**整条**证明项：`apply Exists.intro` / `use w` 交完参数后，剩下的
+-- 两条都写成 `by` + `exact` 的证明项：`apply Exists.intro` / `use w` 交完参数后，剩下的
 -- 子目标类型是 `p w`——`w` 是构造子的层 binder 名，不在作用域（lib/Image 文件里
--- 记着同一条边界）。所以这两条是 `by` + `exact`。
+-- 记着同一条边界）。`Exists.intro` / `Exists.elim`（IA-2 起带隐式 binder）都能靠
+-- 期望类型补出前导实参，所以两条都写短形式。
 theorem demo_exists_intro : ∃ (n : Nat), n = n := by
-  exact Exists.intro Nat (fun (n : Nat) => Eq.{1} Nat n n) 0 (Eq.refl.{1} Nat 0)
+  exact Exists.intro 0 (Eq.refl.{1} Nat 0)
 
 theorem demo_exists_elim (Q : Prop) (h : Q) : Q := by
   have hex : ∃ (n : Nat), n = n :=
-    Exists.intro Nat (fun (n : Nat) => Eq.{1} Nat n n) 0 (Eq.refl.{1} Nat 0)
-  exact Exists.elim Nat (fun (n : Nat) => Eq.{1} Nat n n) Q hex
-    (fun (w : Nat) => fun (_ : Eq.{1} Nat w w) => h)
+    Exists.intro 0 (Eq.refl.{1} Nat 0)
+  exact Exists.elim hex (fun (w : Nat) => fun (_ : w = w) => h)
 
 -- Prod：inductive + 投影（G-02：构造子叫 prod_mk）
 theorem demo_prod_fst (A B : Type) (a : A) (b : B) :

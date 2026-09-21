@@ -85,7 +85,7 @@ theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
 
 -- 练习 7（L 类）：单元素集不是空集。
 -- soko:hint 思路：要证"不相等"，就假设相等，然后制造矛盾。
--- soko:hint 目标形态：{a} ≠ ∅——`≠` 展开后就是 `{a} = ∅ -> False`。
+-- soko:hint 目标形态：{a} ≠ ∅——`≠` 展开后就是 `{a} = ∅ → False`。
 -- soko:hint 关键件：intro 之后假设就是 `{a} = ∅`；把 a ∈ {a}（Set.mem_singleton_self）沿它搬到 a ∈ ∅，再交给 Set.notMem_empty 得到 False。
 theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ := by
   sorry
@@ -114,12 +114,12 @@ theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} := by
 
 -- 练习 10（D/R 类）：下面这条是学生最常写错的形状——它**连类型都不对**：
 --
---     theorem wrong (a : Nat) : Set.mem Nat (Set.singleton Nat a) (Set.singleton Nat a) := sorry
+--     theorem wrong (a : Nat) : {a} ∈ {a} := sorry
 --
 -- 请回答：(1) 为什么它类型不对（写在注释里）；(2) 写出**正确**的那条并证明它
 -- ——"`{a}` 是 `{{a}}` 的元素"。
 -- soko:hint 思路：`x ∈ A` 要求 x 与 A 的元素**同型**；这里 A 是 Set Nat，所以 x 必须是 Set Nat， 而 `{a}` 恰好是 Set Nat——目标只能是"`{a}` 属于一个**装着集合**的集合"。
 -- soko:hint 目标形态：{a} ∈ {{a}}——外层的 `{ }` 装的是集合，里层的 `{a}` 才是元素。
--- soko:hint 关键件：Eq.refl.{1} (Set Nat) (Set.singleton Nat a)。
+-- soko:hint 关键件：Eq.refl.{1} (Set Nat) {a}。
 theorem singleton_of_singleton (a : Nat) : {a} ∈ {{a}} := by
   sorry

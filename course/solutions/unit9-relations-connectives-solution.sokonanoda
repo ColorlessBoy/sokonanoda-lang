@@ -3,7 +3,7 @@
 def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 theorem or_intro_demo (A : Prop) (B : Prop) (a : A) : A ∨ B := by
-  exact Or.inl A B a
+  exact Or.inl a
 
 theorem or_comm (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := by
   cases h with
@@ -29,13 +29,13 @@ theorem or_id (A : Prop) (h : A ∨ A) : A := by
       exact a
 
 theorem iff_intro_demo (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by
-  exact And.intro (A → B) (B → A) mp mpr
+  exact And.intro mp mpr
 
 theorem iff_mp (A : Prop) (B : Prop) (h : A ↔ B) : A → B := by
-  exact And.left (A → B) (B → A) h
+  exact And.left h
 
 theorem iff_mpr (A : Prop) (B : Prop) (h : A ↔ B) : B → A := by
-  exact And.right (A → B) (B → A) h
+  exact And.right h
 
 inductive Le : Nat → Nat → Prop
 ctor le_refl (n : Nat) : Le n n

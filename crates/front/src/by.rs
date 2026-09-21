@@ -573,10 +573,19 @@ fn canonical_goal_with_spec(
         // `is_rereadable` 放行之后还要**补层级**：裸 `Ne`/`Eq` 这类带宇宙参数的
         // 常量 pp 会省掉 `.{u}`，不补就还是错的常量应用（见
         // [`restore_universe_levels`]）。
-        Ok(canonical) if is_rereadable(&canonical, defs) => {
+        //
+        // **顺序与 [`canonical_goal_type`] 一致：先补、再判可回读。** 反过来的话
+        // pp 形态 `Eq x x`（丢了类型实参、只剩 2 个实参）会先被 `is_rereadable`
+        // 拒掉，而 `restore_universe_levels` 正是负责把那个类型实参补回来的
+        // ——`rfl` 在 `x = x` / `A = A` 这类记法目标上因此永远拿不到规范形态。
+        Ok(canonical) => {
             let canonical =
                 restore_universe_levels(&canonical, defs, &spec.binders, prefix_src, options);
-            keep_if_lossless(ty, canonical)
+            if is_rereadable(&canonical, defs) {
+                keep_if_lossless(ty, canonical)
+            } else {
+                ty.clone()
+            }
         }
         _ => ty.clone(),
     }
@@ -604,13 +613,22 @@ fn is_rereadable(expr: &Expr, defs: &DefTable) -> bool {
         }
     }
     let (head, args) = spine_of(expr);
-    if let Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } = head {
+    // 只对**裸名** `Eq` 查元数：pp 丢掉类型实参后 `Eq a b` 会被读成「`a` 是类型」。
+    // `Eq.{1} α x`（带层级的 `UniverseApp`）渲染带 `@`，是**无歧义的部分应用**，
+    // 整条脊的实参个数由外层脊负责（见下面的 `Expr::App` 分支）。
+    if let Expr::Ident { name, .. } = head {
         if name == "Eq" && args.len() < 3 {
             return false;
         }
     }
     match expr {
-        Expr::App { fun, arg, .. } => is_rereadable(fun, defs) && is_rereadable(arg, defs),
+        // **只在外层脊上查一次头**：`Eq.{1} α x x` 的二元 App 链里，内层节点
+        // `Eq.{1} α x`（2 个实参）若也走一遍上面的 Eq 元数检查就会被误判
+        // 「丢了类型实参」——而它只是**部分应用**，整条脊其实是齐的。
+        Expr::App { .. } => {
+            let (head, args) = spine_of(expr);
+            is_rereadable(head, defs) && args.iter().all(|a| is_rereadable(a, defs))
+        }
         Expr::Lambda { body, .. } | Expr::Forall { body, .. } => is_rereadable(body, defs),
         Expr::Arrow {
             domain, codomain, ..
@@ -1070,7 +1088,18 @@ fn run_tactics(
                 }
             }
             Tactic::Rfl { span } => {
-                let Some((candidate, closed)) = rfl_candidate(&nodes[cur].ty) else {
+                // 目标头是**记法**（`a = b` 是 `Notation{target:"Eq"}`，不是 `Eq`
+                // 应用节点）时，源 AST 认不出 `Eq α x y` ⇒ 退回内核 pp 的规范形态
+                // （`canonical_goal_with_spec` 会把 `Eq` 丢掉的类型/宇宙实参
+                // `restore_universe_levels` 补回来）。判据仍然是内核判定，
+                // 归一化失败也一律退回原 AST（绝不因为 rfl 把好文件判红）。
+                let candidate_and_closed = rfl_candidate(&nodes[cur].ty).or_else(|| {
+                    let spec = spec_of(nodes, cur, universe);
+                    let canonical =
+                        canonical_goal_with_spec(&nodes[cur].ty, &spec, prefix_src, options, defs);
+                    rfl_candidate(&canonical)
+                });
+                let Some((candidate, closed)) = candidate_and_closed else {
                     return Err(CompileError::elab(
                         ErrorKind::ElabTacticFailed,
                         "`rfl` 需要一个 `Eq α x y` 形状的目标",

@@ -1854,3 +1854,27 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   **仍未还清**：每个带 tactic 的声明仍要重走一遍前缀（term 风格基线 3.6s），
   再往前需要**内核侧开放环境复用**（内核冻结，前端做不到）——已记入
   `docs/design/by-tactics.md` §13。
+
+- 2026-09-21（**课程记法规则重建 + 基础类型隐式实参与 Lean 对齐**）——用户原话：
+  「重新设置一个 courses 的规则，至少 notation 都要换掉，lib 和正文都换掉，不要有些
+  还是老版本的。你先实现一个检查脚本，然后一个文件一个文件过。tactic 还比较费时，
+  实现起来有问题，可以先保持一部分的 term，如果改成 tactic 那也先不动。」随后追加：
+  「基础类型的隐变量也可以尝试和 lean 对齐。加上上一个要求，我举个例子：`Eq.{1}`
+  直接就是一个等于号」。
+  * **规则落地成脚本（可执行判据）**：新增 `scripts/notation-lint.py` —— 旧写法
+    （逻辑连接符 / 量词 / `Eq.{u} T a b` / 集合点名叫法 / 基础类型写全前导隐式实参）
+    检查器，覆盖 `courses/set-theory`（lib + units + solutions）、入门课 `course/`、
+    `playground.sokonanoda`；**代码与注释都算**；`units/notation-cheatsheet*` 整文件
+    豁免（教学装置，故意并列点名 ↔ 记法）；行内 `-- soko:notation-ok: <理由>` 的行
+    豁免。施工手册 `docs/notes/course-lean-style/notation-rewrite-brief.md`。
+  * **基础类型隐式实参对齐 Lean**（`crates/front`，内核零改动）：prelude 的
+    `And`/`Or`/`Iff`/`Not`/`False`/`absurd` 与构造子改成隐式前导参数
+    （`And.intro h1 h2`、`And.left h`、`Or.inl h`、`Exists.intro w hw`……）；应用路径
+    的望远镜改从**注册表存的源级签名**解析（不再 `judge_infer`，消除 prelude 自举
+    递归）；「实参个数 > 显式层数」判为**旧式写全**、一次装完（保持向后兼容）。
+  * **边界（明说，不假装已对齐）**：宇宙多态的等式族**证明项**（`Eq.refl`/`Eq.symm`/
+    `Eq.trans`/`Eq.subst`/`congrArg` 等）仍要显式宇宙与参数（应用路径的宇宙层级推断
+    是独立的一刀）；`congrArg` 参数顺序改为 Lean 的 `{α β} {a b} (f) (h)`（**契约
+    变更**）；`Set.univ α` 保留（零元应用不在覆盖内）。
+  * **纪律**：纯记法改写**计数中性**——卷 I 门禁必须保持 `36 目标 · 328 checked ·
+    99 open · 0 判负`；tactic 块不动，term 保持 term（用户明说 tactic 先不动）。

@@ -3,14 +3,14 @@
 def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 
 theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
-  exact And.intro B A (And.right A B h) (And.left A B h)
+  exact And.intro (And.right h) (And.left h)
 
 theorem and_comm_imp_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A := by
   intro h
-  exact And.intro B A (And.right A B h) (And.left A B h)
+  exact And.intro (And.right h) (And.left h)
 
 def and_left_x (A : Prop) (B : Prop) (h : A ∧ B) : A := by
-  exact And.left A B h
+  exact And.left h
 
 theorem or_comm_x (A : Prop) (B : Prop) : A ∨ B → B ∨ A := by
   intro h
@@ -23,18 +23,18 @@ theorem or_comm_x (A : Prop) (B : Prop) : A ∨ B → B ∨ A := by
       exact b
 
 example (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by
-  exact And.intro (A → B) (B → A) mp mpr
+  exact And.intro mp mpr
 
 theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
   exact and_comm A B h
 
 theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by
   intro h
-  have bc : B ∨ C := And.right A (B ∨ C) h
+  have bc : B ∨ C := And.right h
   cases bc with
   | inl b =>
       left
-      exact And.intro A B (And.left A (B ∨ C) h) b
+      exact And.intro (And.left h) b
   | inr c =>
       right
-      exact And.intro A C (And.left A (B ∨ C) h) c
+      exact And.intro (And.left h) c

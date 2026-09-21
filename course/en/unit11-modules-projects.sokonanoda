@@ -19,8 +19,8 @@
 -- ==========================================================================
 
 -- This file plays the part of the **imported library module**: what it exports
--- is exactly what it declares below — the Iff definition and the and_comm
--- theorem. The connectives And / Or come with the **prelude**, so any file
+-- is exactly what it declares below — the `Iff` definition and the and_comm
+-- theorem. The connectives And / `Or` come with the **prelude**, so any file
 -- (imported or not) can use them without declaring them here.
 
 def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
@@ -28,7 +28,7 @@ def Iff (A : Prop) (B : Prop) : Prop := (A → B) ∧ (B → A)
 -- Demo (filled in): the library's first export — swap the two halves of an And.
 -- Exercise 5 reuses it.
 theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
-  And.intro B A (And.right A B h) (And.left A B h)
+  And.intro (And.right h) (And.left h)
 
 -- ─────────────────────────────────────────────────────────────
 -- 11.1 Why import: drawing a boundary around names
@@ -137,7 +137,7 @@ theorem and_comm (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 --
 --   course/unit11-project/
 --   ├── sokonanoda.toml          -- manifest: name = "unit11-project"
---   ├── Logic.sokonanoda         -- library: exports the and_comm theorem (And comes from the prelude)
+--   ├── Logic.sokonanoda         -- library: exports the and_comm theorem (`And` comes from the prelude)
 --   ├── Canvas.sokonanoda        -- entry: `import Logic` + theorems that use it (filled in)
 --   └── Exercises.sokonanoda     -- entry: `import Logic` + two exercises with sorry
 --
@@ -230,7 +230,7 @@ theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by
 -- ─────────────────────────────────────────────────────────────
 -- 11.9 Exercise C: synthesis
 --
--- The last exercise wires And elimination to Or construction (both are the
+-- The last exercise wires `And` elimination to `Or` construction (both are the
 -- prelude's connectives) and uses let and match (old friends from Units 6/3).
 -- Work out "what does the goal look like" first, then choose a rule for each
 -- step.

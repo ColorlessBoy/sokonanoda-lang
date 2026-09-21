@@ -15,8 +15,8 @@
 -- （`And.right`、`Iff.mpr`、`Set.mem_univ`、`Eq.subst.{1} …`）——记法是连接符的糖，
 -- 不是引理名的糖。
 --
--- 等式一律显式宇宙（裸 Eq 默认 u=0，会被内核拒）：Eq.{1} (Set α)、
--- Eq.{1} (Set (Set α))。
+-- **类型位**的等式写记法 `a = b` / `a ≠ b`；**证明项** `Eq.refl.{1}` / `Eq.subst.{1}` /
+-- `Eq.trans.{1}` 一族仍显式宇宙（裸 `Eq.subst` 默认 u=0，会被内核拒）。
 import lib.Logic
 import lib.Set
 import lib.Exists
@@ -26,18 +26,17 @@ import lib.Exists
 -- 得到 U ⊆ U 与 U ≠ U，后者与 Eq.refl 冲突。
 -- 消去存在量词用点名的 Exists.elim（三项写全：类型、谓词、结论 False）。
 -- 注意证明体**从 `exact` 开始、不写 `intro`**：`intro` 不展开目标里的 `¬`
--- （记法节点），会把整条 `(∃ …) -> False` 当假设塞进来、目标仍是 `¬ (∃ …)`；
+-- （记法节点），会把整条 `(∃ …) → False` 当假设塞进来、目标仍是 `¬ (∃ …)`；
 -- 用一条带标注的 lambda 把「假设 → False」一次交出去，语义相同（见报告里的阻塞条）。
 theorem no_univ_strictly_larger (α : Type) :
     ¬ (∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) := by
   exact (fun (h : ∃ (U : Set α), ∀ (A : Set α), A ⊆ U ∧ A ≠ U) =>
     Exists.elim (Set α)
-      (fun (U : Set α) =>
-        ∀ (A : Set α), (Set.subset α A U) ∧ (¬ (Eq.{1} (Set α) A U)))
+      (fun (U : Set α) => ∀ (A : Set α), (A ⊆ U) ∧ (¬ (A = U)))
       False h
       (fun (U : Set α) => fun (hU : ∀ (A : Set α),
-          (Set.subset α A U) ∧ (¬ (Eq.{1} (Set α) A U))) =>
-        And.right (Set.subset α U U) (¬ (Eq.{1} (Set α) U U)) (hU U)
+          (A ⊆ U) ∧ (¬ (A = U))) =>
+        And.right (U ⊆ U) (¬ (U = U)) (hU U)  -- soko:notation-ok: R1：合取藏在 hU 的 ∀ 后，短写补不出
           (Eq.refl.{1} (Set α) U)))
 
 -- ── 练习 2（R 类：概括公理在类型论里的合法替身）────────────────────────────
@@ -51,8 +50,7 @@ theorem mem_powerset_univ (α : Type) (A : Set α) :
     intro x
     intro hx
     exact Set.mem_univ α x
-  exact Iff.mpr (A ∈ 𝒫 (Set.univ α)) (A ⊆ Set.univ α)
-    (Set.mem_powerset_iff α (Set.univ α) A) hsub
+  exact (Iff.mpr (Set.mem_powerset_iff α (Set.univ α) A)) hsub
 
 -- ── 练习 3（R 类：与 ZF 的对照 / 类型阶梯）──────────────────────────────────
 -- Set α 的全集是上一层类型 Set (Set α) 的**元素**；它自己的全集又在更上一层。
@@ -63,7 +61,7 @@ theorem univ_mem_univ_of_sets (α : Type) :
 
 -- ── 练习 4（X 类：散文 → 形式）─────────────────────────────────────────────
 -- 「univ 装得下每个集合；反过来装得下 univ 的只有 univ」打包成一条 And。
--- 前半是逐元素的 True.intro；后半 → 方向走 Set.ext（逐元素 Iff (A x) True），
+-- 前半是逐元素的 True.intro；后半 → 方向走 Set.ext（逐元素 (A x) ↔ True），
 -- ← 方向把 x ∈ univ 沿 Eq.symm 搬到 A 上。
 theorem univ_top_iff (α : Type) (A : Set α) :
     (A ⊆ Set.univ α) ∧ ((Set.univ α ⊆ A) ↔ (A = Set.univ α)) := by
@@ -99,6 +97,4 @@ theorem powerset_univ_eq_univ_of_sets (α : Type) :
   intro h
   exact Set.mem_univ (Set α) A
   intro h
-  exact Iff.mpr (A ∈ 𝒫 (Set.univ α)) (A ⊆ Set.univ α)
-    (Set.mem_powerset_iff α (Set.univ α) A)
-    (fun (x : α) => fun (hx : A x) => Set.mem_univ α x)
+  exact (Iff.mpr (Set.mem_powerset_iff α (Set.univ α) A)) (fun (x : α) => fun (hx : A x) => Set.mem_univ α x)

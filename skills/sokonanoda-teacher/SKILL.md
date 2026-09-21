@@ -263,15 +263,20 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （感叹号连用/emoji 堆砌/网络热词）。写完按该文档第四节自查四类。
 - 每个新语法点：先讲解、再演示、后练习；白名单之外的语法不要用（编译器
   会报「课程级别不可用」而不是崩溃——不要把「没教过」当 bug 上报）。
-- **写 Lean 风格记法（2026-09-21，R3 起课程与画布都是这个风格）**：代码里用
-  `∧ ∨ ↔ ¬ →`（**内建**，零声明）写连接符，不再写 `And a b` / `Or a b` / `Not a` /
-  `->`；全称写关键字 `∀ (x : A), p x`。**`∃` 不是内建**——要用得在文件里加一行
+- **写 Lean 风格记法（2026-09-21 起是硬规则，`scripts/notation-lint.py` 判红）**：
+  代码里用 `∧ ∨ ↔ ¬ →`（**内建**，零声明）写连接符，不再写 `And a b` / `Or a b` /
+  `Not a` / `->`；全称写关键字 `∀ (x : A), p x`。**`∃` 不是内建**——要用得在文件里加一行
   `binder_notation "∃" => Exists`（记法声明不产生事件，判卷行为不变），之后可写
-  `∃ (x : Person), P x`；`∈ ⊆ ∪ ∩ 𝒫 ᶜ` 只在**卷 I**（`courses/set-theory/lib/`）
-  可用，入门课没有 `import`。**引理/构造子名照旧点名**（`And.intro`、`Or.inl`、
-  `Exists.elim`）——记法是连接符的糖，不是引理名的糖。逐符号对照与优先级见
-  `course/README.md` 与 `docs/design/notation-subset.md`；输入法（`\and` 之类缩写）
-  见编辑器「notation 缩写」与 `docs/design/notation-input.md`。
+  `∃ (x : Person), P x`；`∈ ⊆ ∪ ∩ \ 𝒫 ᶜ ∅ '' ⁻¹' ×ˢ {a} {a,b}` 只在**卷 I**
+  （`courses/set-theory/lib/`）可用，入门课没有 `import`。类型位的 `Eq.{1} T a b` /
+  `Ne.{1}` 写 `a = b` / `a ≠ b`。**基础类型的隐式实参与 Lean 对齐**：能判绿就省前导
+  实参——`And.intro h1 h2`、`And.left h`、`Or.inl h`、`Iff.mp h`、`False.elim h`、
+  `absurd ha hna`、`Exists.intro w hw`、`Exists.elim h f`（旧的全参数写法仍可用）。
+  逐符号对照与优先级见 `course/README.md` 与 `docs/design/notation-subset.md`；
+  输入法（`\and` 之类缩写）见编辑器「notation 缩写」与 `docs/design/notation-input.md`。
+  **边界**（保留点名 + 行内 `-- soko:notation-ok`）：等式族证明项
+  （`Eq.symm`/`Eq.trans`/`congrArg`）的宇宙层级、`Set.univ α`、`intro` 派生的
+  目标/假设、`Exists`-headed def、嵌套 `Exists.elim`、复合记法操作数。
 - **tactic 白名单（全量）**：`intro` / `exact` / `apply` / `assumption` / `rfl` /
   `match` / `constructor` / `left` / `right` / `use` / `exfalso` / `cases` / `have` /
   `⟨a, b⟩` / `sorry`。**按单元解锁**：①④⑧ 的 `And`/`Or` 是公理 ⇒ 那里

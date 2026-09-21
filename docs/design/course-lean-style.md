@@ -1131,3 +1131,52 @@ pp 文本进节点之前层级就是齐的，`match` 组装读到的不再是裸
 | N-10 | 把 `And`/`Or` 换成 prelude 的（入门课） | 同上；共享骨架是教学点（C2.5 待拍板，推荐保留） |
 | N-11 | 嵌套 `by`（`exact by …`） | S2 实测不可用；但 `fun (x) => by …` **可用**，改写够用 |
 | N-12 | 组合子 `<;>` / `all_goals` / `repeat` / `try` | 课程 0 处；只做 `·` 聚焦（L3.9） |
+
+---
+
+## 11. as-built：记法规则重建 + 基础类型隐式实参（2026-09-21）
+
+> 用户两条指令（原文见 `REQUIREMENTS.md` §9 同日条）：①「重新设置一个 courses 的
+> 规则，至少 notation 都要换掉，lib 和正文都换掉……你先实现一个检查脚本，然后一个
+> 文件一个文件过」；②「基础类型的隐变量也可以尝试和 lean 对齐……`Eq.{1}` 直接就是
+> 一个等于号」。
+>
+> 本轮的定形：**记法是硬规则（脚本判红）；隐式实参是能力（能省则省，省不动留
+> 边界）**。
+
+### 11.1 规则 = 脚本（可执行）
+
+- 新增 **`scripts/notation-lint.py`**：旧写法检查器，覆盖
+  `courses/set-theory/`（lib + units + solutions）、`course/`、`playground.sokonanoda`；
+  **代码与注释都算**；`units/notation-cheatsheet*.sokonanoda` 整文件豁免；
+  行内 `-- soko:notation-ok: <理由>` 的行豁免。`--json` / `--list` / `--root`。
+- 接进 **`scripts/soko gate`**（第四步之后）与 **`ci.yml`** 的 `test` job。
+- 施工手册：`docs/notes/course-lean-style/notation-rewrite-brief.md`。
+
+### 11.2 语言侧（`crates/front`，内核零改动）
+
+| 项 | 内容 |
+|---|---|
+| prelude 隐式化 | `False.rec/False.elim`、`And.left/right/elim`、`Or.elim`、`Not.intro/elim`、`absurd`、`Ne.intro`、`Iff.intro/mp/mpr/refl/symm/trans`、`Eq.symm/trans`、`congrArg`、`Eq.mp/mpr`、`cast` 的前导类型/命题参数改成 `{}`；**构造子**（`And.intro`/`Or.inl`/`Or.inr`/…）按 Lean 语义把归纳参数当隐式（注册表 `implicit_prefix = params.len()`）。`Eq`/`Eq.refl`/`Eq.subst` 保持前缀 0（见边界）。 |
+| 签名表换成源级文本 | `KnownName::Decl` 新增 `signature: Option<String>`（`render_expr(ty)`）；`try_implicit_application` 不再 `judge_infer`（那会重编译前缀 ⇒ prelude 自举**无限递归**，实测栈溢出），改为解析存的源文本。 |
+| prelude 安装护栏 | `PreludeInstallGuard`：安装期间关闭隐式插入（prelude 源文本一律写全实参，语义无损）。 |
+| 旧式写全的兼容 | 实参个数 > 显式层数 ⇒ 判为「旧式逐位写全」、在 `try_implicit_application` 里一次装完（按 `layers` 对齐），**不递归到前缀**（否则 `And.right a` 会被误判成隐式短写）。既有语料逐字节不变。 |
+| 路线 ② | `implicit::solve_prefix` 增「由期望类型反解」：参数只出现在结果类型里时（`Or.inl` 的 `B`、`False.elim` 的 `C`、`And.left` 的域已在 ① 覆盖），用结果模板与 `expected_src` 头部匹配。 |
+
+### 11.3 明说的边界（不假装已对齐）
+
+1. **宇宙多态的等式族证明项**（`Eq.refl`/`Eq.symm`/`Eq.trans`/`Eq.subst`/`congrArg`/
+   `Eq.mp/mpr`/`cast`）：应用路径不做**宇宙层级推断** ⇒ 仍写显式宇宙与参数
+   （`Eq.symm.{1} α a b h`、`congrArg.{1} f h`）。这是独立的一刀。
+2. **`congrArg` 参数顺序**按 Lean 改成 `{α β} {a b} (f) (h)`（**契约变更**）：
+   旧顺序 `congrArg.{1} α β f a b h` 判红。
+3. **`Set.univ α`**：没有记法，零元应用（`Set.univ`）不在覆盖内。
+4. **期望类型是 def 时**路线 ② 会做 delta 展开（2026-09-21 补：`a ∈ A ∪ B` →
+   `Or …`，`Or.inl h` 因此可省参），但**仍有几档解不出**：`intro` 派生出来的目标/
+   假设（期望类型传不到）、`Exists`-headed def（`Function.Surjective` 之后）、
+   嵌套 `Exists.elim` 的 motive、复合记法操作数（`{aa} ∩ {bb}`、字面 λ 的
+   `''`/`⁻¹'`）、`And.left h x` 这类续应用。这些按脚本的 `-- soko:notation-ok`
+   标记为边界。
+5. **`by rfl` 已能认 `=` 记法目标**（2026-09-21 修：`rfl` 在源 AST 认不出记法时
+   改走内核 pp 的规范形态；顺带修了 `canonical_goal_with_spec` 的「先判可回读、
+   后补层级」顺序与 `is_rereadable` 在部分应用上误判 Eq 元数）。

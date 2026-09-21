@@ -22,7 +22,7 @@
 --
 -- ⚠ 为什么必须有 `Rel.ext`（**公理**）：
 --   单元⑥ 的必证题 `rel_comp_assoc`（复合结合律）与 `rel_inv_inv`（逆的逆）都是
---   **关系之间的等式**，即 `Eq.{1} (Rel A D) f g`。`rel_inv_inv` 是定义等式，
+--   **关系之间的等式**，即 `f = g`。`rel_inv_inv` 是定义等式，
 --   一个 `Eq.refl` 就够；但两条复合的**结合律**不是定义等式（∃ 要先交换量词顺序），
 --   要证它必须把"∀ a c, f a c ↔ g a c"升级成"f = g"——这正是**函数外延性**。
 --   官方 Mathlib 里 `funext` 由 `Quot.sound` 推出，`Rel.ext` 则是
@@ -33,7 +33,7 @@ import lib.Logic
 import lib.Exists
 
 -- ── 词汇（Mathlib: Mathlib/Logic/Relation.lean，语义逐字同款）────────────────
--- 关系就是"两元谓词"：`Rel A B` 与 `A -> B -> Prop` 是同一个东西（定义等式）。
+-- 关系就是"两元谓词"：`Rel A B` 与 `A → B → Prop` 是同一个东西（定义等式）。
 def Rel (A B : Type) : Type := A → B → Prop
 
 -- 逆关系：把两个参数对调（Mathlib `Relation.inv`，记法 r ⁻¹）。
@@ -42,7 +42,7 @@ def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=
 
 -- 复合（关系串接，Mathlib `Relation.comp`，记法 r • s；参数顺序与 Mathlib 一致：
 -- `Rel.comp A B C r s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ b, …`
--- 在这里就是 `Exists B (fun (b : B) => …)`；定义体照课程库的统一写法用 `∃` 记法
+-- 在这里就是带标注的 `∃ (b : B), …`；定义体照课程库的统一写法用 `∃` 记法
 -- （定义是词汇，不是证明——`∃` 记法本身由 lib/Exists 声明）。
 def Rel.comp (A B C : Type) (r : Rel A B) (s : Rel B C) : Rel A C :=
   fun (a : A) => fun (c : C) =>
@@ -57,13 +57,13 @@ axiom Rel.ext : (A B : Type) → (r s : Rel A B) →
 -- 与 lib/Set 的 `Set.mem_union` 一族同款：右端就是把左端**定义**里的东西照抄一遍，
 -- 所以证明是**恒等**——`constructor` 拆开 `↔`，两个方向各 `intro h; exact h`。
 theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
-    Rel.inv A B r b a ↔ r a b :=  Iff.refl (r a b)
+    Rel.inv A B r b a ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A（↔ 记法的期望类型走不通）
 
 theorem Rel.comp_apply (A B C : Type) (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
-    Rel.comp A B C r s a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)
+    Rel.comp A B C r s a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.refl (∃ (b : B), r a b ∧ s b c)  -- soko:notation-ok: `Iff.refl` 短写解不出 A
 
 -- ── 库自检：两条展开引理合起来，把"逆的逆"退回原关系（`rfl` 级）。────────────
 -- 单元⑥ 的必证题 `rel_inv_inv` 在画布上由学习者自己写：它的证明项与本条同款
 -- （函数外延性在这里用不上——`Rel.inv B A (Rel.inv A B r)` 与 `r` 是定义等式）。
 theorem Rel.inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
-    Rel.inv B A (Rel.inv A B r) a b ↔ r a b :=  Iff.refl (r a b)
+    Rel.inv B A (Rel.inv A B r) a b ↔ r a b :=  Iff.refl (r a b)  -- soko:notation-ok: `Iff.refl` 短写解不出 A

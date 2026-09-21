@@ -15,10 +15,10 @@
 --   逻辑连接符 `∧ ∨ ↔ ¬`、箭头 `→`、**等号 `=` 与不等号 `≠`** 是**语言内建**
 --   （Lean core 级），任何文件直接写。所以下面看不到一条 `infix`/`notation`。
 --
--- 一条**书写例外**（只在题 8）：`∅` 是**零元**记法，落在「被应用」的位置
---   （`(∅) x`）时补不出类型参数，所以题 8 的语句里 `\` 与 `∪` 仍写点名形式
---   （`Set.sdiff` / `Set.union`）；其余符号照常记法。
---
+-- 两处**书写例外**：① `∅` 是**零元**记法，落在「被应用」的记法位置时补不出类型
+--   参数（`(A \ A) x ↔ (∅) x`）——演示 3 先把 Iff 写成源形态再交给 `Set.ext`；
+--   ② `\` 的左操作数本身是记法时（`(A ∪ B) \ B`）记法路径解不出类型参数，
+--   所以命题 8 的语句里 `\` 与 `∪` 仍写点名形式（`Set.sdiff` / `Set.union`）。其余位置一律记法。
 -- 练习配额：X 类 4 条（形式↔散文互译，散文写在题面注释里）· T 类 2 条（项填空）·
 -- R 类 2 条（读·评译）—— 其中第 8 条承担本单元的 **D 类必破**：
 -- `(A ∪ B) \ B = A` 是**假**的，要给出反例并把"不相等"证出来。
@@ -56,7 +56,7 @@ theorem demo_union_univ (α : Type) (A : Set α) :
   constructor
   exact h1
   intro hu
-  exact Or.inr (x ∈ A) (x ∈ Set.univ α) hu
+  exact Or.inr hu
 
 -- 演示（已写好）：散文「A 去掉自己什么都不剩」译成形式等式。
 -- 注意套路：这里先把逐元素的 Iff 用 `have` 写成**源形态**（`x ∈ A \ A ↔ x ∈ ∅`），
@@ -68,9 +68,9 @@ theorem demo_sdiff_self (α : Type) (A : Set α) :
     intro x
     constructor
     intro hx
-    exact And.right (x ∈ A) (¬ (x ∈ A)) hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)
+    exact And.right (x ∈ A) (¬ (x ∈ A)) hx (And.left (x ∈ A) (¬ (x ∈ A)) hx)  -- soko:notation-ok: 目标经 \ 展开后期望类型传不到 + And.right 续应用（引擎边界）
     intro hf
-    exact And.intro (x ∈ A) (¬ (x ∈ A)) (False.elim (x ∈ A) hf) (fun (ha : x ∈ A) => hf)
+    exact And.intro (False.elim (x ∈ A) hf) (fun (ha : x ∈ A) => hf)  -- soko:notation-ok: And.intro 首实参得不到期望类型（引擎边界）
   exact Set.ext α (A \ A) ∅ h
 
 -- 练习 1（T 类）：并交换律。
@@ -84,7 +84,7 @@ theorem union_comm (α : Type) (A B : Set α) :
 -- 练习 2（T 类）：交交换律。
 -- soko:hint 思路：与练习 1 同构，只是 ∨ 换成 ∧。
 -- soko:hint 目标形态：逐元素是 x ∈ A ∩ B ↔ x ∈ B ∩ A。
--- soko:hint 关键件：And.left / And.right 各取一支，再 And.intro 换序装回。
+-- soko:hint 关键件：And.left 换序装回。
 theorem inter_comm (α : Type) (A B : Set α) :
     A ∩ B = B ∩ A := by
   sorry
@@ -105,7 +105,7 @@ theorem inter_comm (α : Type) (A B : Set α) :
 -- 请把这句话拆成两条等式（打包成一条 And 陈述），并证明。
 -- soko:hint 思路：散文里是"并与交两个动作各说一遍"——先用 constructor 分成两条，每条各自走外延。
 -- soko:hint 目标形态：(A ∪ A = A) ∧ (A ∩ A = A)。
--- soko:hint 关键件：并那条的逐元素目标是 x ∈ A ∪ A ↔ x ∈ A，两支同一目标（Or.elim 两支都直接交出去）；交那条是 x ∈ A ∩ A ↔ x ∈ A，用 And.left 取一支即可。
+-- soko:hint 关键件：并那条的逐元素目标是 x ∈ A ∪ A ↔ x ∈ A，两支同一目标（Or.elim A ∩ A ↔ x ∈ A，用 And.left 取一支即可。
 theorem union_inter_idem (α : Type) (A : Set α) :
     (A ∪ A = A) ∧ (A ∩ A = A) := by
   sorry
@@ -116,7 +116,7 @@ theorem union_inter_idem (α : Type) (A : Set α) :
 --
 -- soko:hint 思路：外延之后两边都是复合命题——→ 方向先取出交点里的 x ∈ A，再对 B ∪ C 分情况；← 方向对 (A ∩ B) ∪ (A ∩ C) 分情况。
 -- soko:hint 目标形态：逐元素是 x ∈ A ∩ (B ∪ C) ↔ x ∈ (A ∩ B) ∪ (A ∩ C)。
--- soko:hint 关键件：And.left / And.right 拆合取；Or.elim 分或（第二支要先给出目标类型）；两支各自 And.intro 配 Or.inl / Or.inr 装回。
+-- soko:hint 关键件：And.left 装回。
 theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
     A ∩ (B ∪ C) = (A ∩ B) ∪ (A ∩ C) := by
   sorry
@@ -127,7 +127,7 @@ theorem inter_union_distrib_left (α : Type) (A B C : Set α) :
 --
 -- soko:hint 思路：→ 方向从 A ∪ (A ∩ B) 出来只有两种可能，第二种自带 x ∈ A；← 方向把 x ∈ A 放进并的左支。
 -- soko:hint 目标形态：逐元素是 x ∈ A ∪ (A ∩ B) ↔ x ∈ A。
--- soko:hint 关键件：Or.elim 的两个分支（第一支直接交出去，第二支用 And.left）；反方向用 Or.inl。
+-- soko:hint 关键件：Or.elim
 theorem union_inter_self (α : Type) (A B : Set α) :
     A ∪ (A ∩ B) = A := by
   sorry
@@ -138,7 +138,7 @@ theorem union_inter_self (α : Type) (A B : Set α) :
 --
 -- soko:hint 思路：两边展开都是"x ∈ A 加若干否定"；→ 方向要把 ¬ (x ∈ B) 与 ¬ (x ∈ C) 合成"连 B ∪ C 都不在"，← 方向反过来把那个否定拆给两支。
 -- soko:hint 目标形态：逐元素是 x ∈ (A \ B) \ C ↔ x ∈ A \ (B ∪ C)。
--- soko:hint 关键件：合取用 And.intro / And.left / And.right 拆装；把两个否定合成一个否定 = 对假设的 Or 用 Or.elim 得到 False；反过来是把 Or.inl / Or.inr 喂给这个否定。
+-- soko:hint 关键件：合取用 And.intro 对假设的 Or 用 Or.elim 喂给这个否定。
 theorem sdiff_sdiff (α : Type) (A B C : Set α) :
     (A \ B) \ C = A \ (B ∪ C) := by
   sorry
@@ -149,7 +149,7 @@ theorem sdiff_sdiff (α : Type) (A B C : Set α) :
 --
 -- soko:hint 思路：→ 方向从 A ∪ ∅ 出来，右支是"x ∈ ∅"；← 方向走左支。
 -- soko:hint 目标形态：逐元素是 x ∈ A ∪ ∅ ↔ x ∈ A。
--- soko:hint 关键件：Or.elim 拆两支，第二支的目标由 False 得到（x ∈ ∅ 展开就是 False，用 False.elim）；反方向用 Or.inl。
+-- soko:hint 关键件：Or.elim ∈ ∅ 展开就是 False，用 False.elim）；反方向用 Or.inl。
 theorem union_empty (α : Type) (A : Set α) :
     A ∪ ∅ = A := by
   sorry
@@ -168,9 +168,8 @@ theorem union_empty (α : Type) (A : Set α) :
 
 -- 练习 8（R/D 类：读·评译 + 证伪）。
 -- soko:hint 思路：这条**是假的**——A 与 B 相交时，(A ∪ B) \ B 会把 A 里落在 B 上的元素也一起抹掉；反例里左右差在哪个元素，就是矛盾的来源。
--- soko:hint 目标形态：¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat) = Set.univ Nat)，即"假设相等 → False"。
+-- soko:hint 目标形态：¬ (((Set.univ Nat) ∪ (Set.univ Nat)) \ (Set.univ Nat) = Set.univ Nat)，即"假设相等 → False"。
 -- soko:hint 关键件：intro 那个等式假设；用 Eq.symm + Eq.subst 把一个具体元素（Set.mem_univ Nat Nat.zero）沿假设搬到左边；左边展开后是 And … (Not …)，用 And.right 取出矛盾再应用一次。
 theorem union_sdiff_univ_ne_univ :
-    ¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)
+    ¬ (Set.sdiff Nat (Set.union Nat (Set.univ Nat) (Set.univ Nat)) (Set.univ Nat)  -- soko:notation-ok: `\` 的左操作数是记法时解不出类型参数（引擎边界）
         = Set.univ Nat) := by
-  sorry

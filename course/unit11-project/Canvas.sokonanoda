@@ -7,7 +7,7 @@ import Logic
 
 -- 用 prelude 的 And 构造子/消去子直接建一条证明（不靠 import，也不需要声明）。
 theorem and_comm_via_constructors (A : Prop) (B : Prop) : A ∧ B → B ∧ A :=
-  fun (h : A ∧ B) => And.intro B A (And.right A B h) (And.left A B h)
+  fun (h : A ∧ B) => And.intro (And.right h) (And.left h)
 
 -- 用 import 进来的**定理**：直接调用库里的 and_comm。
 theorem and_comm_via_library (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
@@ -15,4 +15,4 @@ theorem and_comm_via_library (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A :=
 
 -- 也可以只导出 And 的一个方向（同样是 prelude 的名字）。
 def and_left_export (A : Prop) (B : Prop) (h : A ∧ B) : A :=
-  And.left A B h
+  And.left h

@@ -17,8 +17,8 @@ import lib.Set
 -- ─────────────────────────────────────────────────────────────
 -- 1.1 集合就是"论域上的谓词"
 --
---     x ∈ A   ↔  Set.mem α x A   ↔  A x
---     A ⊆ B   ↔  Set.subset α A B ↔  ∀ x, A x → B x
+--     x ∈ A   ↔  A x
+--     A ⊆ B   ↔  ∀ (x : α), A x → B x
 -- 于是"隶属"不是新东西，就是**函数应用**；"子集"就是**全称箭头**。
 -- 符号只是把底下那层结构写短了——报错看不懂时，把它翻回点名形式就懂了。
 -- ─────────────────────────────────────────────────────────────
@@ -50,10 +50,10 @@ theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :
 --    elements, they are equal."
 --
 -- soko:hint 思路：这句话就是外延性；库里已作为公理 Set.ext 备好。
--- soko:hint 目标形态：目标是 Eq.{1} (Set α) A B，前提是 ∀ (x : α), A x ↔ B x。
+-- soko:hint 目标形态：目标是 A = B，前提是 ∀ (x : α), A x ↔ B x。
 -- soko:hint 关键件：apply Set.ext 会把目标换成逐元素的 ∀ 命题，再 intro 一个 x，交给 h。
 theorem eq_of_same_elements (α : Type) (A B : Set α) (h : ∀ (x : α), A x ↔ B x) :
-    Eq.{1} (Set α) A B := by
+    A = B := by
   sorry
 
 -- 练习 3（T 类）：{a} ⊆ A 推出 a ∈ A。（**这一步用不到第 4 题**）
@@ -67,7 +67,7 @@ theorem mem_of_subset_singleton (α : Type) (A : Set α) (a : α)
 -- 练习 4（T 类）：a ∈ A 推出 {a} ⊆ A。
 -- soko:hint 思路：目标是全称命题；intro 一个元素与"它在 {a} 里"。
 -- soko:hint 目标形态：intro 之后手里有 hx : x ∈ {a}，目标是 A x。
--- soko:hint 关键件：Set.mem_singleton_iff α x a 把 hx 变成等式 Eq.{1} α x a；再用 Eq.symm 与 Eq.subst 把这个等式搬进目标（本单元还没有 rw，所以写成 exact 的实参）。
+-- soko:hint 关键件：Set.mem_singleton_iff α x a 把 hx 变成等式 x = a；再用 Eq.symm 与 Eq.subst 把这个等式搬进目标（本单元还没有 rw，所以写成 exact 的实参）。
 theorem subset_of_mem_singleton (α : Type) (A : Set α) (a : α) (h : a ∈ A) :
     {a} ⊆ A := by
   sorry
@@ -85,8 +85,8 @@ theorem singleton_subset_iff (α : Type) (a : α) (A : Set α) :
 --   (ii) 若 a = b，则 {a} = {b}。
 -- 为真的证明，为假的说明理由（写在注释里）。
 -- soko:hint 思路：(i) 用"a ∈ {a}"沿等式搬过去再展开；(ii) 两个集合相等就逐元素证 ↔。
--- soko:hint 目标形态：目标是 (Eq.{1} (Set α) {a} {b}) ↔ Eq.{1} α a b，两个方向分别如上。
+-- soko:hint 目标形态：目标是 ({a} = {b}) ↔ a = b，两个方向分别如上。
 -- soko:hint 关键件：(i) Eq.subst 把 a ∈ {a} 搬到 {b} 上，再用 Set.mem_singleton_iff 取出等式；(ii) apply Set.ext 之后对每个 x 用 constructor，两边各用一次 Set.mem_singleton_iff 与 Eq.trans。
 theorem singleton_eq_singleton_iff (α : Type) (a b : α) :
-    (Eq.{1} (Set α) {a} {b}) ↔ Eq.{1} α a b := by
+    ({a} = {b}) ↔ a = b := by
   sorry

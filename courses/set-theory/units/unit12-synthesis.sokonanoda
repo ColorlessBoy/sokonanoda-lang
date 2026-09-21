@@ -36,10 +36,10 @@
 --       And / And.intro / And.left / And.right / And.elim /
 --       Or（构造子是**点号名** Or.inl / Or.inr）/ Or.elim /
 --       Iff / Iff.intro / Iff.mp / Iff.mpr / Iff.refl / Iff.symm / Iff.trans /
---       Eq.symm / Eq.trans / congrArg / Eq.subst（等式一律写**显式宇宙**：Eq.{1} α a b）/
---       Set 一族（Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton / Set.pair /
---       Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset / Set.image /
---       Set.preimage）+ 公理 Set.ext + 展开引理 Set.subset_def ·
+--       Eq.symm / Eq.trans / congrArg / Eq.subst（**类型位**的等式写记法 `a = b`；证明项 `Eq.subst.{1}` 仍显式宇宙）/
+--       `Set` 一族（`Set.mem` / `Set.subset` / `Set.empty` / `Set.univ` / `Set.singleton` /
+--       `Set.pair` / `Set.union` / `Set.inter` / `Set.sdiff` / `Set.compl` / `Set.powerset` /
+--       `Set.image` / `Set.preimage`）+ 公理 `Set.ext` + 展开引理 Set.subset_def ·
 --       Set.mem_empty_iff_false · Set.notMem_empty · Set.mem_univ · Set.mem_singleton_iff ·
 --       Set.mem_singleton_self · Set.mem_union · Set.mem_inter_iff · Set.mem_sdiff ·
 --       Set.mem_powerset_iff · Set.mem_image · Set.mem_preimage · Set.image_subset_iff ·
@@ -133,17 +133,11 @@ theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Re
       (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) h
     intro c hc
     have hb : ∃ (b : B), r a b ∧ s b c :=
-      And.left (∃ (b : B), r a b ∧ s b c) (t c d) hc
+      And.left hc
     apply Exists.elim B (fun (b : B) => r a b ∧ s b c)
       (∃ (b : B), r a b ∧ (∃ (c2 : C), s b c2 ∧ t c2 d)) hb
     intro b hb2
-    exact Exists.intro B (fun (b2 : B) => r a b2 ∧ (∃ (c2 : C), s b2 c2 ∧ t c2 d)) b
-      (And.intro (r a b) (∃ (c2 : C), s b c2 ∧ t c2 d)
-        (And.left (r a b) (s b c) hb2)
-        (Exists.intro C (fun (c2 : C) => s b c2 ∧ t c2 d) c
-          (And.intro (s b c) (t c d)
-            (And.right (r a b) (s b c) hb2)
-            (And.right (∃ (b2 : B), r a b2 ∧ s b2 c) (t c d) hc))))
+    exact Exists.intro b (And.intro (And.left hb2) (Exists.intro c (And.intro (And.right hb2) (And.right hc))))
   exact h1
   intro h
   have h2 : ∃ (c : C), (∃ (b : B), r a b ∧ s b c) ∧ t c d := by
@@ -151,17 +145,17 @@ theorem demo_rel_comp_assoc (A B C D : Type) (r : Rel A B) (s : Rel B C) (t : Re
       (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) h
     intro b hb
     have hc : ∃ (c : C), s b c ∧ t c d :=
-      And.right (r a b) (∃ (c : C), s b c ∧ t c d) hb
+      And.right hb
     apply Exists.elim C (fun (c : C) => s b c ∧ t c d)
       (∃ (c : C), (∃ (b2 : B), r a b2 ∧ s b2 c) ∧ t c d) hc
     intro c hc2
-    exact Exists.intro C (fun (c2 : C) => (∃ (b2 : B), r a b2 ∧ s b2 c2) ∧ t c2 d) c
+    exact Exists.intro c
       (And.intro (∃ (b2 : B), r a b2 ∧ s b2 c) (t c d)
-        (Exists.intro B (fun (b2 : B) => r a b2 ∧ s b2 c) b
+        (Exists.intro b
           (And.intro (r a b) (s b c)
-            (And.left (r a b) (∃ (c2 : C), s b c2 ∧ t c2 d) hb)
-            (And.left (s b c) (t c d) hc2)))
-        (And.right (s b c) (t c d) hc2))
+            (And.left hb)
+            (And.left hc2)))
+        (And.right hc2))
   exact h2
 
 -- 演示 2（已写好）：**单射假设怎么"读"**——`Function.Injective α β f` 展开后就是
@@ -236,7 +230,7 @@ theorem xlat_injective_comp (α β γ : Type) (f : α → β) (g : β → γ)
 -- （f ⁻¹' B 是回拉：x ∈ f ⁻¹' B 当且仅当 f x ∈ B。）
 -- soko:hint 思路：两边展开后逐点是同一个命题，不需要真的"推理"——外延加 Iff.refl 就够。
 -- soko:hint 目标形态：f ⁻¹' (g ⁻¹' C) = (Function.comp α β γ g f) ⁻¹' C；逐元素时两边都展开成 C (g (f x))。
--- soko:hint 关键件：触发条件是"两边定义上相等"（Set.preimage 与 Function.comp 都是 λ）；apply Set.ext 之后逐元素交 Iff.refl 就行了（这是本单元唯一不用拆 ∃ 的题）。
+-- soko:hint 关键件：触发条件是"两边定义上相等"（`Set.preimage` 与 `Function.comp` 都是 λ）；apply Set.ext 之后逐元素交 Iff.refl 就行了（这是本单元唯一不用拆 ∃ 的题）。
 theorem xlat_preimage_comp (α β γ : Type) (f : α → β) (g : β → γ) (C : Set γ) :
     f ⁻¹' (g ⁻¹' C) = (Function.comp α β γ g f) ⁻¹' C := by
   sorry
@@ -275,28 +269,28 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 
 -- 练习 7（D 类：必破——判断真假并给反例）。请对【错证明 A】【错证明 B】的结论各判一次，
 -- 并把两个反例**形式化**成下面这条合取（签名不许改）：
---   · 第一条反例：f 取常函数 `fun (_ : Set Nat) => Set.empty Nat`（把一切都送到 ∅），
+--   · 第一条反例：f 取常函数 `fun (_ : Set Nat) => ∅`（把一切都送到 ∅），
 --     C 取 `Set.univ (Set Nat)`；此时 `Set.univ Nat` 是 C 的点，却**没有原像**；
---   · 第二条反例：同一个 f，A 取 `Set.singleton (Set Nat) ∅`、
---     B 取 `Set.singleton (Set Nat) (Set.univ Nat)`；此时 A ∩ B = ∅，两个像却都含 ∅。
+--   · 第二条反例：同一个 f，A 取 `{∅}`、
+--     B 取 `{(Set.univ Nat)}`；此时 A ∩ B = ∅，两个像却都含 ∅。
 -- 判词：两条等式**都假**（详情与"错在哪一步"写在上面 12.2 的评阅规矩里）。
 -- 写法提醒：常函数写成 λ，而记法 `''` / `⁻¹'` 补不出 λ 操作数的前导类型参数
 --   （语言也没有类型标注 `(e : T)`），所以这一条的像/原像/交写**点名形式**。
--- soko:hint 思路：每条都是 intro 一个等式假设、再从"某个元素被搬过去"造出 False：第一条用 Set.univ Nat（它不在像里），第二条用 Set.empty Nat（两个像的共同点）。
+-- soko:hint 思路：每条都是 intro 一个等式假设、再从"某个元素被搬过去"造出 False：第一条用 Set.univ Nat（它不在像里），第二条用 ∅（两个像的共同点）。
 -- soko:hint 目标形态：两个 ≠ 的合取；每个 ≠ 展开后目标都是 False，手里是一条把两个集合划等号的假设。
 -- soko:hint 关键件：触发条件是"等式两边只差一个具体元素"⇒ 先备好成员证据（第一条 Set.mem_univ (Set Nat) (Set.univ Nat)，第二条两个 Exists.intro + Eq.refl 打进 ∩），再沿 Eq.symm 过的等式用 Eq.subst 搬成员关系，最后 Exists.elim 拆出"∅ 与 univ 撞上"：第一条用 Set.notMem_empty Nat 0 与 Set.mem_univ Nat 0，第二条由 x = ∅、x = univ 经 Eq.trans / Eq.symm 合成 ∅ = univ 再照第一条收尾。
 theorem flawed_equalities_refuted :
-    Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+    Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：λ 操作数补不出前导类型参数（无类型标注）
         (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
           (Set.univ (Set Nat)))
       ≠ Set.univ (Set Nat)
-    ∧ Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+    ∧ Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：同上
         (Set.inter (Set Nat) (Set.singleton (Set Nat) ∅)
-          (Set.singleton (Set Nat) (Set.univ Nat)))
+          (Set.singleton (Set Nat) (Set.univ Nat)))  -- soko:notation-ok: R5：λ 操作数补不出前导类型参数（无类型标注）
       ≠ Set.inter (Set Nat)
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：同上
             (Set.singleton (Set Nat) ∅))
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
+          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：同上
             (Set.singleton (Set Nat) (Set.univ Nat))) := by
   sorry
 theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) :
@@ -318,7 +312,7 @@ theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set
 --     形状；代价是反向映射的域条件**第一次真的用上**（它保证 `g D` 落在 C' 里，缺了它矛盾合不上）。
 -- 两半合起来说的一句话：等势对复合与搬运封闭，但对幂集永远差一档。
 -- soko:hint 思路：① 走"拆 h 拿两把映射、再 mk 重新打包"，只在成员关系上用 hC 搬三处；② 反证——假设有等势，取对角线集 D，用反向映射把它拉回一点，撞出"某个命题等于自己的否定"。
--- soko:hint 目标形态：Set.Equiv α γ A C' ∧ ¬ Set.Equiv γ (Set γ) C' (𝒫 C')；② 拆开后目标是 False，手里有 f : γ -> Set γ、g : Set γ -> γ 与四条条件，对角线集取 D := C' \ (fun (y : γ) => f y y)。
+-- soko:hint 目标形态：Set.Equiv α γ A C' ∧ ¬ Set.Equiv γ (Set γ) C' (𝒫 C')；② 拆开后目标是 False，手里有 f : γ → Set γ、g : Set γ → γ 与四条条件，对角线集取 D := C' \ (fun (y : γ) => f y y)。
 -- soko:hint 关键件：① 触发条件是"两个集合只差一条等式"⇒ 成员关系用 Eq.subst 搬（motive 取 fun (X : Set γ) => z ∈ X），反侧那一处先把 hC 用 Eq.symm 掉头；打包仍用 Set.Equiv.mk（两条互逆律不必动）。② D 属于 𝒫C' 的证据是一行 And.left（D y 展开就是 C' y ∧ ¬ (f y y)）；④号互逆律在 D 上给出 f (g D) = D，用 congrArg 把它作用到 g D 上，得到"(f (g D)) (g D) 与 D (g D) 相等"这条**命题等式**，再用 Eq.subst 两个方向互喂（D (g D) 展开后用 And.right 取否定那一半；反向映射的域条件给出 C' (g D)，正是 And.intro 缺的那一半）。
 theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
     (h : Set.Equiv α γ A C) (hC : C = C') :

@@ -59,6 +59,19 @@ pub(crate) enum KnownName {
         /// 纯源级 AST 走查（[`leading_implicit_prefix`]），**零内核调用**——
         /// 插入路径靠它做**免费闸门**：为 0 就一行都不跑。
         implicit_prefix: usize,
+        /// 签名的**显式实参层数**（[`explicit_arity`]）。`try_implicit_application`
+        /// 用它做**第二个免费闸门**：实参个数 > 显式层数 ⇒ 调用点是"写全参数"
+        /// 的旧写法 ⇒ 直接走老路，**不做判定**。
+        explicit_arity: usize,
+        /// 声明的**源级类型文本**（`render_expr(ty)`）。应用路径的望远镜从它
+        /// 解析，而不是从 `judge_infer` 拿 pp 文本——两处原因：
+        /// ① **不递归**：`judge_infer` 会重编译前缀（含 prelude 安装），而
+        ///    prelude 自身的部分应用会再次触发插入 ⇒ 无限递归（实测栈溢出）；
+        /// ② **看得见前导参数**：pp 会省略嵌套常量的隐式实参
+        ///    （`Eq.symm` 的 `h : Eq a b` 里 `α` 不见了 ⇒ 反解不出来），
+        ///    源文本写的是 `Eq.{u} α a b` ⇒ 解得出来。
+        /// `None` = 没有源文本（运行时构造的 `Nat.add`）⇒ 不做插入。
+        signature: Option<String>,
     },
     Alias {
         canonical: String,
@@ -84,6 +97,25 @@ impl KnownName {
             KnownName::Decl {
                 implicit_prefix, ..
             } => *implicit_prefix,
+            KnownName::Alias { .. } | KnownName::Ambiguous { .. } => 0,
+        }
+    }
+
+    /// 这个声明的**源级类型文本**（非声明 = `None`）。
+    pub(crate) fn signature(&self) -> Option<&str> {
+        match self {
+            KnownName::Decl { signature, .. } => signature.as_deref(),
+            KnownName::Alias { .. } | KnownName::Ambiguous { .. } => None,
+        }
+    }
+
+    /// 这个声明的**显式实参层数**（非声明 = 0）。曾是应用路径的免费闸门；
+    /// 现在签名直接存在表里，「实参 == 全部层数 ⇒ 一次装完」分支取代了它，
+    /// 保留字段供诊断/后续使用。
+    #[allow(dead_code)]
+    pub(crate) fn explicit_arity(&self) -> usize {
+        match self {
+            KnownName::Decl { explicit_arity, .. } => *explicit_arity,
             KnownName::Alias { .. } | KnownName::Ambiguous { .. } => 0,
         }
     }
@@ -116,6 +148,63 @@ pub(crate) fn leading_implicit_prefix(ty: &Expr) -> usize {
             _ => return n,
         }
     }
+}
+
+thread_local! {
+    /// prelude 安装期间 > 0：此时**禁止**隐式实参插入（见 [`PreludeInstallGuard`]）。
+    static PRELUDE_INSTALL_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// RAII：prelude 安装期间关闭隐式实参插入。
+///
+/// **为什么必须有**：插入路径要先问内核「这个头的签名是什么」（`judge_infer`），
+/// 而 `judge_infer` 会**重新编译整个前缀** —— 也就**重新安装 prelude**。
+/// prelude 自己的签名里就有对 prelude 名字的**部分应用**（`Eq.refl` 的类型
+/// `… -> Eq.{u} α a a` 里的 `Eq.{u} α`），于是：装 prelude → 部分应用 →
+/// 问内核 → 重装 prelude → … **无限递归**（实测栈溢出）。
+/// prelude 源文本一律**写全实参**，所以安装期间退回老路是**语义无损**的。
+pub(crate) struct PreludeInstallGuard;
+
+impl PreludeInstallGuard {
+    pub(crate) fn enter() -> Self {
+        PRELUDE_INSTALL_DEPTH.with(|c| c.set(c.get() + 1));
+        PreludeInstallGuard
+    }
+}
+
+impl Drop for PreludeInstallGuard {
+    fn drop(&mut self) {
+        PRELUDE_INSTALL_DEPTH.with(|c| c.set(c.get().saturating_sub(1)));
+    }
+}
+
+/// prelude 安装（含 `judge_infer` 触发的**嵌套**安装）期间为真。
+pub(crate) fn prelude_install_active() -> bool {
+    PRELUDE_INSTALL_DEPTH.with(|c| c.get() > 0)
+}
+
+/// 签名 Pi 望远镜的**总层数**（`forall` 的每个 binder 算一层、`->` 算一层）。
+pub(crate) fn pi_arity(ty: &Expr) -> usize {
+    let mut n = 0;
+    let mut cur = ty;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                n += binders.len();
+                cur = body;
+            }
+            Expr::Arrow { codomain, .. } => {
+                n += 1;
+                cur = codomain;
+            }
+            _ => return n,
+        }
+    }
+}
+
+/// 签名的**显式实参层数** = 总层数 − 前导隐式层数。
+pub(crate) fn explicit_arity(ty: &Expr) -> usize {
+    pi_arity(ty).saturating_sub(leading_implicit_prefix(ty))
 }
 
 /// The name table threaded through elaboration: source spelling → resolution.
@@ -359,6 +448,10 @@ pub(crate) struct ElabCtx<'a, 'b> {
     pub inductives: &'b InductiveTable<'a>,
     /// G-05：当前命名空间栈 + `open` 集合（引用解析用，只读）。
     pub ns: &'b NamespaceScope,
+    /// 已声明的 `def` 体表（只读）。隐式实参的**期望类型 delta 展开**要用它：
+    /// `Or.inl h` 的目标常写成 `a ∈ A ∪ B`（`Set.mem … (Set.union …)`，两层
+    /// `def`），不展开到 `Or …` 就头部匹配不上。没有表的地方传空表（不影响）。
+    pub defs: &'b DefTable,
 }
 
 pub(crate) struct ElabScope<'a> {
@@ -396,6 +489,18 @@ impl<'a> ElabScope<'a> {
         self.src_tys.push(src_ty);
         self.spans.push(span);
     }
+    /// 局部变量的**书写类型**（源级 AST）。隐式实参反解优先用它，而不是
+    /// `infer_type_text` 的内核 pp 文本：pp 会**丢掉嵌套常量的隐式实参**
+    /// （`Eq.{1} Nat 1 1` pp 成 `Eq 1 1`，回读成 `@Eq 1 1` ⇒ `α := 1`），
+    /// 于是任何「隐式命题里含 `=`」的短写法（`And.intro h1 h2`、`And.left h`…）
+    /// 都被解错、判红。书写类型是 `1 = 1`（记法节点），`unify_extract` 认得。
+    fn source_type_of(&self, name: &str) -> Option<Expr> {
+        self.names
+            .iter()
+            .rposition(|candidate| candidate == name)
+            .and_then(|i| self.src_tys[i].clone())
+    }
+
     /// Binder specs for [`judge_infer`]: named binders with a written source
     /// type, in scope order. Anonymous/untyped binders are dropped (nothing can
     /// reference them by name).
@@ -553,11 +658,13 @@ pub(crate) fn install_inductive_block<'a>(
     let empty: UnivMap = UnivMap::new();
     // 归纳声明自身内部出现 `match` 的情形按「本块尚未登记」处理（递归类型本就
     // 不在 v1 支持内）。这里借用既有登记表，插入在本函数末尾进行。
+    let empty_defs: DefTable = DefTable::new();
     let elab_ctx = ElabCtx {
         prefix_src,
         options,
         inductives: table,
         ns,
+        defs: &empty_defs,
     };
     // 归纳类型 = `forall params, ty`：params 是内核 Pi 望远镜最外层（顺序与
     // 声明的 binder 风格一致），ty 在它们的作用域内 elaborate。
@@ -625,6 +732,8 @@ pub(crate) fn install_inductive_block<'a>(
         KnownName::Decl {
             universes: Vec::new(),
             implicit_prefix: 0,
+            explicit_arity: pi_arity(&ind_ty_src),
+            signature: Some(render_expr(&ind_ty_src)),
         },
     );
 
@@ -642,6 +751,8 @@ pub(crate) fn install_inductive_block<'a>(
             body: Box::new(ctor.result.clone()),
             span: ctor.span,
         };
+        let ctor_src_arity = pi_arity(&ctor_ty);
+        let ctor_src_sig = render_expr(&ctor_ty);
         let ctor_ty = elab_expr(
             builder,
             &ctor_ty,
@@ -707,7 +818,13 @@ pub(crate) fn install_inductive_block<'a>(
             ctor_canonical[idx].clone(),
             KnownName::Decl {
                 universes: Vec::new(),
-                implicit_prefix: 0,
+                // Lean：归纳**参数在构造子类型里是隐式的**（`And.intro {a b} …`）
+                // ⇒ 构造子的前导隐式层数 = 参数个数。写全参数的调用点走老路
+                // （`layers.len() < k + args.len()` ⇒ `try_implicit_application`
+                // 返回 `None`），所以既有语料逐字节不变。
+                implicit_prefix: params.len(),
+                explicit_arity: ctor_src_arity.saturating_sub(params.len()),
+                signature: Some(ctor_src_sig),
             },
         );
         insert_ctor_alias(known, &ctor.name, &ctor_canonical[idx]);
@@ -768,6 +885,8 @@ pub(crate) fn install_inductive_block<'a>(
             KnownName::Decl {
                 universes: known_rec_universes.clone(),
                 implicit_prefix: 0,
+                explicit_arity: pi_arity(&rec.ty),
+                signature: Some(render_expr(&rec.ty)),
             },
         );
 
@@ -1907,10 +2026,16 @@ fn try_implicit_application<'a>(
     univ: &UnivMap<'a>,
     known: &KnownTable,
     hovers: &mut Vec<HoverNode<'a>>,
+    expected_src: Option<&Expr>,
     ctx: &ElabCtx<'a, '_>,
 ) -> Result<Option<ExprPtr<'a>>, CompileError> {
     // Lean 的 `@`：整条脊的实参是**逐位显式**的 ⇒ 不插隐式实参（设计 §7 第 5 条）。
     if explicit_spine {
+        return Ok(None);
+    }
+    // prelude 安装期间（含 `judge_infer` 触发的嵌套安装）**一律不插**：插入要先
+    // `judge_infer`，而它会重装 prelude ⇒ 无限递归（见 [`PreludeInstallGuard`]）。
+    if prelude_install_active() {
         return Ok(None);
     }
     let (head, args) = crate::spine::spine_of(expr);
@@ -1925,28 +2050,61 @@ fn try_implicit_application<'a>(
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
         _ => return Ok(None),
     };
-    match known.get(head_name) {
-        Some(k) if k.implicit_prefix() > 0 => {}
+
+    let declared = match known.get(head_name) {
+        Some(k) if k.implicit_prefix() > 0 => k,
         _ => return Ok(None),
-    }
-    // 头的签名文本（内核 pp：`{α : Type}` 的风格保留着——见 `implicit` 的模块注释）
-    let Ok(ty_text) = judge_infer(
-        ctx.prefix_src,
-        ctx.options,
-        &scope.judge_binders(),
-        &render_expr(head),
-    ) else {
+    };
+    // 头的**源级**签名文本（注册表自带；见 `KnownName::Decl::signature`）。
+    // 不再用 `judge_infer` 拿 pp 文本：那会重编译前缀（含 prelude 安装）⇒
+    // prelude 自身的部分应用会再次触发插入、无限递归（实测栈溢出）；而且 pp 会
+    // 抹掉嵌套常量的隐式实参（`Eq.symm` 的 `h : Eq a b` 里 `α` 不见了），
+    // 前导参数反解不出来。
+    let Some(ty_text) = declared.signature() else {
         return Ok(None);
     };
-    let Some((layers, _result)) = crate::compile::implicit::telescope(&ty_text) else {
+    let Some((layers, result)) = crate::compile::implicit::telescope(ty_text) else {
         return Ok(None);
     };
-    let k = crate::compile::implicit::leading_implicit(&layers);
-    if k == 0 {
+    // **`k` 取注册表里的前导隐式层数，不取 pp 文本的风格**：构造子的参数在
+    // kernel 类型里是**显式** binder（Lean 也是），但语义上它们是隐式的
+    // （`And.intro h1 h2`）——只有注册表知道这件事。pp 的 `{}`/`()` 与注册表的
+    // 数值对同一签名必须一致（非构造子时二者相等）。
+    let k = declared.implicit_prefix();
+    if k == 0 || k > layers.len() {
         return Ok(None);
     }
-    // 实参按风格对齐：第 0 个实参落在第 `k` 层。实参比显式层还多 ⇒ 交给老路
-    // （它有自己的元数诊断，别在这里抢先报错）。
+    // **旧写法（把隐式位也逐位写出来）**：`And.intro a b ha hb`、
+    // `Eq.symm α a b h`、`cast.{1} α β h`、`Iff.mpr A B h`。判据 = 实参个数 >
+    // 显式层数（Lean 短写法只会给显式层的实参）。满足就**在这里一次装完**，
+    // 按 `layers[0..args.len()]` 逐位对齐，绝不递归到前缀——前缀
+    // （`cast.{1} α β`、`And.right a`）会被误判成"隐式短写"而报错。
+    if args.len() > declared.explicit_arity() {
+        if args.len() > layers.len() {
+            return Ok(None);
+        }
+        let mut out = elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)?;
+        let mut sigma: HashMap<String, Expr> = HashMap::new();
+        for (i, a) in args.iter().enumerate() {
+            let expected_src = crate::spine::substitute(&layers[i].domain, &sigma);
+            let t = elab_expr(
+                builder,
+                a,
+                scope,
+                univ,
+                known,
+                hovers,
+                None,
+                Some(&expected_src),
+                ctx,
+            )?;
+            out = builder.mk_app(out, t);
+            if !layers[i].name.is_empty() {
+                sigma.insert(layers[i].name.clone(), (*a).clone());
+            }
+        }
+        return Ok(Some(out));
+    }
     if layers.len() < k + args.len() {
         return Ok(None);
     }
@@ -1956,17 +2114,35 @@ fn try_implicit_application<'a>(
     let first = args[0];
     let first_term = elab_expr(builder, first, scope, univ, known, hovers, None, None, ctx)?;
     // 每个实参的**类型**（路线 ① 的原料：`arg_tys[i]` 对应第 `k + i` 层）。
+    // 局部变量**优先取书写类型**（零内核调用，且不会像 pp 那样丢隐式实参）。
     let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
     for a in &args {
+        if let Expr::Ident { name, .. } = a {
+            if let Some(src) = scope.source_type_of(name) {
+                arg_tys.push(Some(src));
+                continue;
+            }
+        }
         arg_tys.push(
             infer_type_text(ctx, scope, a).and_then(|t| crate::proof::parse_expr_text(&t).ok()),
         );
     }
-    let Some(solved) = crate::compile::implicit::solve_prefix(&layers, k, &arg_tys) else {
+    // 期望类型/实参类型的 delta 展开要用 `defs` + `is_inductive`（`a ∈ A ∪ B`
+    // 是 `Set.mem … (Set.union …)`，展开到 `Or …` 才能反解 `Or.inl` 的另一个析取项）。
+    let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+    let Some(solved) = crate::compile::implicit::solve_prefix(
+        &layers,
+        &result,
+        k,
+        &arg_tys,
+        expected_src,
+        ctx.defs,
+        &is_inductive,
+    ) else {
         return Err(CompileError::elab(
             ErrorKind::ElabImplicitArgumentUnsolved,
             format!(
-                "`{}` 的签名 `{}` 里有 {} 个**隐式**参数，但补不出来（本子集只按第一个显式实参的类型反解）。把参数写全，例如 `{} …` 逐位写下来",
+                "`{}` 的签名 `{}` 里有 {} 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `{} …` 逐位写下来",
                 render_expr(head),
                 ty_text,
                 k,
@@ -2487,6 +2663,7 @@ pub(crate) fn elab_expr<'a>(
                 univ,
                 known,
                 hovers,
+                expected_src,
                 ctx,
             )? {
                 record_hover(hovers, scope, *span, out, None);

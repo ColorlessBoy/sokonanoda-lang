@@ -25,9 +25,10 @@
 --   · 库里已备好、直接用（lib.Logic + lib.Set + lib.Exists）：
 --       True / True.intro / False / False.elim / Not / Not.elim / absurd /
 --       And / Or（构造子是点号名 Or.inl / Or.inr）/ Iff / Eq.symm / Eq.trans /
---       congrArg / Eq.subst（等式一律写**显式宇宙**：Eq.{1} α a b）/
---       Set / Set.mem / Set.subset / Set.empty / Set.univ / Set.singleton / Set.pair /
---       Set.union / Set.inter / Set.sdiff / Set.compl / Set.powerset、公理 Set.ext、
+--       congrArg / Eq.subst（**类型位**的等式写记法 `a = b`；证明项 `Eq.subst.{1}` 仍显式宇宙）/
+--       `Set` 一族（`Set.mem` / `Set.subset` / `Set.empty` / `Set.univ` / `Set.singleton` /
+--       `Set.pair` / `Set.union` / `Set.inter` / `Set.sdiff` / `Set.compl` / `Set.powerset`）、
+--       公理 `Set.ext`、
 --       以及展开引理 Set.mem_univ / Set.mem_powerset_iff / Set.notMem_empty /
 --       Set.subset_def；存在量词三件套 Exists / Exists.intro / Exists.elim；
 --   · 本单元不 import 别的单元，也不借前几单元的结论：用到的包含关系都在这里
@@ -57,7 +58,7 @@ import lib.Exists
 --
 -- 这条论证在本语言里第一步就走不动。卡住的地方是记法：
 --
---   · 集合是 `Set α`，也就是 `α -> Prop`：它总是**某个固定类型 α 的**谓词。
+--   · 集合是 `Set α`，也就是 `α → Prop`：它总是**某个固定类型 α 的**谓词。
 --     隶属判定 `x ∈ A` 要求 x : α、A : Set α，两个参数的类型必须对上。
 --   · 于是「x ∈ x」要成立，同一个 x 得同时是 α 与 Set α——两个不同的类型，
 --     写不出来。Russell 集 { x | x ∉ x } 因此连**写**都写不出，更谈不上判真假。

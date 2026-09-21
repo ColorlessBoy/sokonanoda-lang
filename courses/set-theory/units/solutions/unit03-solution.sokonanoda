@@ -12,12 +12,12 @@ import lib.Set
 theorem subset_union_left (α : Type) (A B : Set α) : A ⊆ A ∪ B := by
   intro x
   intro hx
-  exact Or.inl (A x) (B x) hx
+  exact Or.inl (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 theorem subset_union_right (α : Type) (A B : Set α) : B ⊆ A ∪ B := by
   intro x
   intro hx
-  exact Or.inr (A x) (B x) hx
+  exact Or.inr (A x) (B x) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 theorem union_subset_iff (α : Type) (A B C : Set α) :
     (A ∪ B ⊆ C) ↔ (A ⊆ C ∧ B ⊆ C) := by
@@ -26,28 +26,28 @@ theorem union_subset_iff (α : Type) (A B C : Set α) :
   constructor
   intro x
   intro hx
-  exact h x (Or.inl (A x) (B x) hx)
+  exact h x (Or.inl (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
   intro x
   intro hx
-  exact h x (Or.inr (A x) (B x) hx)
+  exact h x (Or.inr (A x) (B x) hx)  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
   intro h
   intro x
   intro hx
   exact Or.elim (A x) (B x) (C x)
-    (fun (ha : A x) => And.left (A ⊆ C) (B ⊆ C) h x ha)
-    (fun (hb : B x) => And.right (A ⊆ C) (B ⊆ C) h x hb)
+    (fun (ha : A x) => And.left (A ⊆ C) (B ⊆ C) h x ha)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (fun (hb : B x) => And.right (A ⊆ C) (B ⊆ C) h x hb)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
     hx
 
 -- ── 3.2 交 ───────────────────────────────────────────────────────────────
 theorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A := by
   intro x
   intro hx
-  exact And.left (A x) (B x) hx
+  exact And.left hx
 
 theorem inter_subset_right (α : Type) (A B : Set α) : A ∩ B ⊆ B := by
   intro x
   intro hx
-  exact And.right (A x) (B x) hx
+  exact And.right hx
 
 -- 目标 `x ∈ B ∩ C` 的头是 `Set.inter`（不是 `And`），所以这里不用 `constructor`，
 -- 直接把一对证据交给 `And.intro`。
@@ -55,7 +55,7 @@ theorem subset_inter (α : Type) (A B C : Set α)
     (h1 : A ⊆ B) (h2 : A ⊆ C) : A ⊆ B ∩ C := by
   intro x
   intro hx
-  exact And.intro (B x) (C x) (h1 x hx) (h2 x hx)
+  exact And.intro (h1 x hx) (h2 x hx)
 
 -- ∩ 的泛性质（练习 3 的对偶）：→ 把 h x hx : B x ∧ C x 劈成两条包含；
 -- ← 把一对包含在同一 x hx 上取出来，再装回一对证据。
@@ -66,31 +66,31 @@ theorem subset_inter_iff (α : Type) (A B C : Set α) :
   constructor
   intro x
   intro hx
-  exact And.left (B x) (C x) (h x hx)
+  exact And.left (h x hx)
   intro x
   intro hx
-  exact And.right (B x) (C x) (h x hx)
+  exact And.right (h x hx)
   intro h
   intro x
   intro hx
-  exact And.intro (B x) (C x)
-    (And.left (A ⊆ B) (A ⊆ C) h x hx)
-    (And.right (A ⊆ B) (A ⊆ C) h x hx)
+  exact And.intro
+    (And.left (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
+    (And.right (A ⊆ B) (A ⊆ C) h x hx)  -- soko:notation-ok: And.left/right 续应用被误判成旧写法（引擎边界）
 
 -- ── 3.3 差 ───────────────────────────────────────────────────────────────
 theorem sdiff_subset (α : Type) (A B : Set α) : A \ B ⊆ A := by
   intro x
   intro hx
-  exact And.left (A x) (¬ (B x)) hx
+  exact And.left hx
 
 -- ── 3.4 幂集单调 ─────────────────────────────────────────────────────────
--- `𝒫 A ⊆ 𝒫 B` 的成员层要**两层**定义展开才到 `forall`（`Set.mem` → `Set.powerset`
+-- `𝒫 A ⊆ 𝒫 B` 的成员层要**两层**定义展开才到 `∀`（`Set.mem` → `Set.powerset`
 -- → `Set.subset`），而 `intro` 只展开一层；所以内层那条包含整条交给 `exact`
 -- 一次判定：`Iff.mpr` 把 `X ∈ 𝒫 B` 换成 `X ⊆ B`，lambda 逐元素把证据经 `h` 送一程。
 theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
     𝒫 A ⊆ 𝒫 B := by
   exact fun (X : Set α) => fun (hX : X ∈ 𝒫 A) =>
-    Iff.mpr (X ∈ 𝒫 B) (X ⊆ B) (Set.mem_powerset_iff α B X)
+    Iff.mpr (Set.mem_powerset_iff α B X)
       (fun (x : α) => fun (hx : X x) => h x (hX x hx))
 
 -- ── 3.5 D 类 ─────────────────────────────────────────────────────────────
@@ -99,9 +99,8 @@ theorem powerset_mono (α : Type) (A B : Set α) (h : A ⊆ B) :
 theorem union_subset_inter_false (α : Type) (a : α) :
     ¬ ((Set.univ α ∪ ∅) ⊆ (Set.univ α ∩ ∅)) := by
   intro hsub
-  exact And.right (Set.mem α a (Set.univ α)) (Set.mem α a (Set.empty α))
-    (hsub a (Or.inl (Set.mem α a (Set.univ α)) (Set.mem α a (Set.empty α))
-      (Set.mem_univ α a)))
+  exact And.right
+    (hsub a (Or.inl (a ∈ Set.univ α) (a ∈ ∅) (Set.mem_univ α a)))  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 -- 命题甲为真：A ∈ 𝒫 A（展开即 A ⊆ A）；命题乙 A ⊆ 𝒫 A 连类型都不对（见画布注释）。
 theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by
@@ -109,4 +108,4 @@ theorem powerset_self_mem (α : Type) (A : Set α) : A ∈ 𝒫 A := by
     intro x
     intro hx
     exact hx
-  exact Iff.mpr (A ∈ 𝒫 A) (A ⊆ A) (Set.mem_powerset_iff α A A) hAA
+  exact Iff.mpr (Set.mem_powerset_iff α A A) hAA

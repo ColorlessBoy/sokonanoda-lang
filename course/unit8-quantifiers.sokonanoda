@@ -1,5 +1,5 @@
 -- ==========================================================================
--- unit8-quantifiers.sokonanoda —— 单元⑧ 量词：forall 与 exists
+-- unit8-quantifiers.sokonanoda —— 单元⑧ 量词：∀ 与 exists
 --
 -- 单元① 的命题逻辑只谈论固定的几个命题。要表达“每一个人都……”“至少有一
 -- 个人……”这类断言，需要量词（quantifier）。本单元先看全称量词，再看存在
@@ -7,8 +7,8 @@
 --
 -- 语法速览：
 --   (x : A) → P x        命名箭头，等价写法（单元③ 会再见面）
---   forall (x : A), P x   全称量词；官方 Lean 也写 ∀ (x : A), P x
---   Exists A P            存在量词：A 是论域，P : A → Prop 是性质
+--   ∀ (x : A), P x   全称量词；官方 Lean 也写 ∀ (x : A), P x
+--   ∃ (x : A), P x         存在量词：A 是论域，P : A → Prop 是性质
 -- ==========================================================================
 
 -- 逻辑底子：True 照单元① 的公理写法立起来；And 的构造子（And.intro、
@@ -17,7 +17,7 @@ axiom True : Prop
 axiom True.intro : True
 
 -- ─────────────────────────────────────────────────────────────
--- 7.1 forall
+-- 7.1 ∀
 --
 -- 单元① 的箭头里已经埋着全称量词。看 And.intro 的类型（prelude 自带）：
 --
@@ -27,12 +27,12 @@ axiom True.intro : True
 -- 箭头写成量词，下面三种拼法是同一个类型：
 --
 --        (x : Person) → P x
---        forall (x : Person), P x
+--        ∀ (x : Person), P x
 --        ∀ (x : Person), P x
 --
 -- 全称命题的证明就是函数（function）：输入任意一个人 x，输出 P x 的证明。
--- 引入 forall 写 fun——证明就是一台“每问一个人都能给出证明”的机器；消去
--- forall 写应用——把“每个人都会……”用到具体的人身上。
+-- 引入 ∀ 写 fun——证明就是一台“每问一个人都能给出证明”的机器；消去
+-- ∀ 写应用——把“每个人都会……”用到具体的人身上。
 --
 -- 论域（domain）用类型 Person 表示。它是一个抽象类型，具体有哪些成员
 -- 本单元用不到；只在做存在命题的演示时需要点出一个成员，先立起来：
@@ -45,11 +45,11 @@ axiom someone : Person
 -- P x 是一个命题，读作“x 满足 P”。
 
 -- 演示 1：∀ 的证明写成 fun。这条说的是“对每个人，P x 推出 P x”，外层
--- fun 引入 forall，内层 fun 引入箭头。
+-- fun 引入 ∀，内层 fun 引入箭头。
 theorem forall_demo (P : Person → Prop) : ∀ (x : Person), P x → P x :=
   fun (x : Person) => fun (hx : P x) => hx
 
--- 演示 2：命名箭头和 forall 本来就是同一个类型，换拼写不用改证明。
+-- 演示 2：命名箭头和 ∀ 本来就是同一个类型，换拼写不用改证明。
 example (P : Person → Prop) (h : ∀ (x : Person), P x) : (x : Person) → P x := h
 
 -- 自测：#reduce 把函数应用到 someone 上，内核算出的结果就是 someone 本身。
@@ -57,30 +57,30 @@ example (P : Person → Prop) (h : ∀ (x : Person), P x) : (x : Person) → P x
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 1（热身）：每个人都会……，所以这个人也会……。
--- soko:hint 思路：forall 的证明是函数，消去它就是应用——把 h 用到 w 上。
+-- soko:hint 思路：∀ 的证明是函数，消去它就是应用——把 h 用到 w 上。
 -- soko:hint 目标形态：目标 P w 没有箭头要拆；h 已经是对每个人的证明。
--- soko:hint 关键件：目标 P w、上下文有 h : forall (x : Person), P x：forall 的消去就是应用——把 h 用到 w 上。
+-- soko:hint 关键件：目标 P w、上下文有 h : ∀ (x : Person), P x：∀ 的消去就是应用——把 h 用到 w 上。
 theorem forall_elim (P : Person → Prop) (w : Person) (h : ∀ (x : Person), P x) : P w := by
   sorry
 
 -- 练习 2：把“每个人同时满足 P 和 Q”分成两个“每个人”。
--- soko:hint 思路：先对任意 x 从 h 取出一对证明，再分别组装两个 forall。
--- soko:hint 目标形态：结论是 And，左右两半都是 forall；每半各写一层 fun (x : Person)。
--- soko:hint 关键件：左右两半各是 forall，先 fun (x : Person)；再把 h 用到 x 上得到一对证明，用 And.left / And.right 各取一半，最后由 And.intro 组装。
+-- soko:hint 思路：先对任意 x 从 h 取出一对证明，再分别组装两个 ∀。
+-- soko:hint 目标形态：结论是 And，左右两半都是 ∀；每半各写一层 fun (x : Person)。
+-- soko:hint 关键件：左右两半各是 ∀，先 fun (x : Person)；再把 h 用到 x 上得到一对证明，用 And.left / And.right 各取一半，最后由 And.intro 组装。
 theorem forall_and (P : Person → Prop) (Q : Person → Prop) (h : ∀ (x : Person), P x ∧ Q x) : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x) := by
   sorry
 
 -- 练习 3：反过来：两个“每个人”合起来，得到“每个人同时满足”。
 -- soko:hint 思路：把 h 分成两半，各自用到同一个人 x 上，再用 And.intro 合起来。
--- soko:hint 目标形态：最外层是 forall，先写 fun (x : Person)，剩余目标是 (P x) ∧ (Q x)。
--- soko:hint 关键件：h : (forall …) ∧ (forall …)：用 And.left / And.right 取出两个 forall，再分别作用到 x 上。
+-- soko:hint 目标形态：最外层是 ∀，先写 fun (x : Person)，剩余目标是 (P x) ∧ (Q x)。
+-- soko:hint 关键件：h : (∀ …) ∧ (∀ …)：用 And.left / And.right 取出两个 ∀，再分别作用到 x 上。
 theorem and_forall (P : Person → Prop) (Q : Person → Prop) (h : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x)) : ∀ (x : Person), P x ∧ Q x := by
   sorry
 
 -- ─────────────────────────────────────────────────────────────
 -- 7.2 exists
 --
--- 存在命题写成 Exists Person P，读作“在 Person 里存在满足 P 的人”。
+-- 存在命题写成 ∃ (x : Person), P x，读作“在 Person 里存在满足 P 的人”。
 -- 它由两部分组成：论域 A 和性质 p : A → Prop。
 --
 -- 要证明一个存在命题，交出一个具体的证人（witness）w : Person，再交出
@@ -103,17 +103,17 @@ binder_notation "∃" => Exists
 -- 演示 1：造一个存在命题。性质是“恒真”，证人用先立好的 someone，再补
 -- 一份 True.intro，四样凑齐就完成。
 theorem exists_demo : ∃ (x : Person), True :=
-  Exists.intro Person (fun (x : Person) => True) someone True.intro
+  Exists.intro Person (fun (x : Person) => True) someone True.intro -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）
 
 -- 演示 2：用一张存在命题。把 h 交给 Exists.elim 后，结论是 True，与证人
 -- 无关，直接给 True.intro。如果结论会提到证人，这条规则就用不了。
 theorem exists_use_demo (P : Person → Prop) (h : ∃ (x : Person), P x) : True :=
-  Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro)
+  Exists.elim Person P True h (fun (w : Person) => fun (hw : P w) => True.intro) -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）
 
 -- ─────────────────────────────────────────────────────────────
 -- 练习 4（热身）：交出证人 w 和证明 hw，装出存在命题。
 -- soko:hint 思路：存在命题的证明要交两样东西：证人，以及性质对证人成立的证明。
--- soko:hint 目标形态：目标 Exists Person P 没有箭头要拆，直接用构造规则。
+-- soko:hint 目标形态：目标 ∃ (x : Person), P x 没有箭头要拆，直接用构造规则。
 -- soko:hint 关键件：Exists.intro 吃四样：论域 Person、性质 P、证人 w、证明 hw。
 theorem exists_intro_rule (P : Person → Prop) (w : Person) (hw : P w) : ∃ (x : Person), P x := by
   sorry
@@ -127,14 +127,14 @@ theorem exists_elim_rule (P : Person → Prop) (Q : Prop) (h : ∃ (x : Person),
 
 -- 练习 6（★）：每个人都会……，所以存在一个会……的人；someone 就是证人。
 -- soko:hint 思路：消去 h 得到 someone 满足 P，再把它当证人装成 Exists。
--- soko:hint 目标形态：结论是 Exists Person P；证人不在参数里，得用 someone。
--- soko:hint 关键件：目标 Exists Person P、证人用 someone：把 h 作用到 someone 上得到 P someone 的证明，再交给 Exists.intro 的证明位。
+-- soko:hint 目标形态：结论是 ∃ (x : Person), P x；证人不在参数里，得用 someone。
+-- soko:hint 关键件：目标 ∃ (x : Person), P x、证人用 someone：把 h 作用到 someone 上得到 P someone 的证明，再交给 Exists.intro 的证明位。
 theorem forall_exists (P : Person → Prop) (h : ∀ (x : Person), P x) : ∃ (x : Person), P x := by
   sorry
 
 -- 练习 7（★★）：P 推出 Q，那么“存在满足 P 的人”推出“存在满足 Q 的人”。
 -- soko:hint 思路：用 Exists.elim 使用 h，拿到某个 w 和 P w 的证明，再用 f w 得到 Q w，装回一个 Exists。
--- soko:hint 目标形态：结论是 Exists Person Q；函数体里先 fun (w : Person)，再 fun (hw : P w)。
--- soko:hint 关键件：目标是 Exists Person Q、上下文有 h : Exists Person P 与 f：用 Exists.elim 拿到证人 w 与 P w 的证明，再经 f 得到 Q w，交给 Exists.intro。
+-- soko:hint 目标形态：结论是 ∃ (x : Person), Q x；函数体里先 fun (w : Person)，再 fun (hw : P w)。
+-- soko:hint 关键件：目标是 ∃ (x : Person), Q x、上下文有 h : ∃ (x : Person), P x 与 f：用 Exists.elim 拿到证人 w 与 P w 的证明，再经 f 得到 Q w，交给 Exists.intro。
 theorem exists_mono (P : Person → Prop) (Q : Person → Prop) (f : ∀ (x : Person), P x → Q x) (h : ∃ (x : Person), P x) : ∃ (x : Person), Q x := by
   sorry

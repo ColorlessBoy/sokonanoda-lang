@@ -200,43 +200,43 @@ pub(crate) const PRELUDE_L1_SRC: &str = "\
 axiom True : Prop
 axiom True.intro : True
 axiom False : Prop
-axiom False.rec : (C : Prop) -> False -> C
-def False.elim (C : Prop) (h : False) : C := False.rec C h
+axiom False.rec {C : Prop} : False -> C
+def False.elim {C : Prop} (h : False) : C := False.rec C h
 inductive And (a b : Prop) : Prop
 ctor And.intro (ha : a) (hb : b) : And a b
 end
-def And.left (a b : Prop) (h : And a b) : a := And.rec a b (fun (_ : And a b) => a) (fun (ha : a) (hb : b) => ha) h
-def And.right (a b : Prop) (h : And a b) : b := And.rec a b (fun (_ : And a b) => b) (fun (ha : a) (hb : b) => hb) h
-def And.elim (a b c : Prop) (f : a -> b -> c) (h : And a b) : c := f (And.left a b h) (And.right a b h)
+def And.left {a b : Prop} (h : And a b) : a := And.rec a b (fun (_ : And a b) => a) (fun (ha : a) (hb : b) => ha) h
+def And.right {a b : Prop} (h : And a b) : b := And.rec a b (fun (_ : And a b) => b) (fun (ha : a) (hb : b) => hb) h
+def And.elim {a b c : Prop} (f : a -> b -> c) (h : And a b) : c := f (And.left a b h) (And.right a b h)
 inductive Or (A B : Prop) : Prop
 ctor Or.inl (a : A) : Or A B
 ctor Or.inr (b : B) : Or A B
 end
-def Or.elim (a b c : Prop) (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.rec a b (fun (_ : Or a b) => c) f g h
+def Or.elim {a b c : Prop} (f : a -> c) (g : b -> c) (h : Or a b) : c := Or.rec a b (fun (_ : Or a b) => c) f g h
 def Not (A : Prop) : Prop := A -> False
-def Not.intro (A : Prop) (f : A -> False) : Not A := f
-def Not.elim (A C : Prop) (h : Not A) (a : A) : C := False.elim C (h a)
-def absurd (a b : Prop) (ha : a) (hna : Not a) : b := False.elim b (hna ha)
+def Not.intro {A : Prop} (f : A -> False) : Not A := f
+def Not.elim {A C : Prop} (h : Not A) (a : A) : C := False.elim C (h a)
+def absurd {a b : Prop} (ha : a) (hna : Not a) : b := False.elim b (hna ha)
 -- `Ne`（L2.3）：`≠` 的**目标常量**，与 Lean core 的 `Ne` 同形（`a ≠ b` 就是
 -- `a = b -> False`）。带**一个宇宙参数** `u`（`α : Sort u`）——所以 `≠` 的记法
 -- 路径要解层级，与 `=` 同一份机械（`elab.rs` 的 `level_text_of_sort`）。
 def Ne {u} (α : Sort u) (a b : α) : Prop := Eq.{u} α a b -> False
-def Ne.intro {u} (α : Sort u) (a b : α) (h : Eq.{u} α a b -> False) : Ne.{u} α a b := h
+def Ne.intro {u} {α : Sort u} {a b : α} (h : Eq.{u} α a b -> False) : Ne.{u} α a b := h
 def Iff (A B : Prop) : Prop := And (A -> B) (B -> A)
-def Iff.intro (A B : Prop) (mp : A -> B) (mpr : B -> A) : Iff A B := And.intro (A -> B) (B -> A) mp mpr
-def Iff.mp (A B : Prop) (h : Iff A B) : A -> B := And.left (A -> B) (B -> A) h
-def Iff.mpr (A B : Prop) (h : Iff A B) : B -> A := And.right (A -> B) (B -> A) h
-def Iff.refl (A : Prop) : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
-def Iff.symm (A B : Prop) (h : Iff A B) : Iff B A := Iff.intro B A (Iff.mpr A B h) (Iff.mp A B h)
-def Iff.trans (A B C : Prop) (h1 : Iff A B) (h2 : Iff B C) : Iff A C := Iff.intro A C (fun (a : A) => Iff.mp B C h2 (Iff.mp A B h1 a)) (fun (c : C) => Iff.mpr A B h1 (Iff.mpr B C h2 c))
-def Eq.symm {u} (α : Sort u) (a b : α) (h : Eq.{u} α a b) : Eq.{u} α b a := Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)
-def Eq.trans {u} (α : Sort u) (a b c : α) (h1 : Eq.{u} α a b) (h2 : Eq.{u} α b c) : Eq.{u} α a c := Eq.subst.{u} α (fun (x : α) => Eq.{u} α a x) b c h2 h1
-def congrArg {u} (α : Sort u) (β : Sort u) (f : α -> β) (a b : α) (h : Eq.{u} α a b) : Eq.{u} β (f a) (f b) := Eq.subst.{u} α (fun (x : α) => Eq.{u} β (f a) (f x)) a b h (Eq.refl.{u} β (f a))
+def Iff.intro {A B : Prop} (mp : A -> B) (mpr : B -> A) : Iff A B := And.intro (A -> B) (B -> A) mp mpr
+def Iff.mp {A B : Prop} (h : Iff A B) : A -> B := And.left (A -> B) (B -> A) h
+def Iff.mpr {A B : Prop} (h : Iff A B) : B -> A := And.right (A -> B) (B -> A) h
+def Iff.refl {A : Prop} : Iff A A := Iff.intro A A (fun (h : A) => h) (fun (h : A) => h)
+def Iff.symm {A B : Prop} (h : Iff A B) : Iff B A := Iff.intro B A (Iff.mpr A B h) (Iff.mp A B h)
+def Iff.trans {A B C : Prop} (h1 : Iff A B) (h2 : Iff B C) : Iff A C := Iff.intro A C (fun (a : A) => Iff.mp B C h2 (Iff.mp A B h1 a)) (fun (c : C) => Iff.mpr A B h1 (Iff.mpr B C h2 c))
+def Eq.symm {u} {α : Sort u} {a b : α} (h : Eq.{u} α a b) : Eq.{u} α b a := Eq.subst.{u} α (fun (x : α) => Eq.{u} α x a) a b h (Eq.refl.{u} α a)
+def Eq.trans {u} {α : Sort u} {a b c : α} (h1 : Eq.{u} α a b) (h2 : Eq.{u} α b c) : Eq.{u} α a c := Eq.subst.{u} α (fun (x : α) => Eq.{u} α a x) b c h2 h1
+def congrArg {u} {α : Sort u} {β : Sort u} {a b : α} (f : α -> β) (h : Eq.{u} α a b) : Eq.{u} β (f a) (f b) := Eq.subst.{u} α (fun (x : α) => Eq.{u} β (f a) (f x)) a b h (Eq.refl.{u} β (f a))
 axiom Eq.rec {u, v} : {α : Sort u} -> (a : α) -> (motive : (anon : α) -> Sort v) -> (ha : motive a) -> (b : α) -> (h : @Eq.{u} α a b) -> motive b
 def Eq.ndrec {u, v} (α : Sort u) (a : α) (motive : α -> Sort v) (m : motive a) (b : α) (h : @Eq.{u} α a b) : motive b := @Eq.rec.{u, v} α a motive m b h
-def Eq.mp {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) : α -> β := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => α -> x) (fun (a : α) => a) β h
-def Eq.mpr {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) : β -> α := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => x -> α) (fun (a : α) => a) β h
-def cast {u} (α β : Sort u) (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq.mp.{u} α β h a
+def Eq.mp {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : α -> β := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => α -> x) (fun (a : α) => a) β h
+def Eq.mpr {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : β -> α := @Eq.rec.{u+1, u} (Sort u) α (fun (x : Sort u) => x -> α) (fun (a : α) => a) β h
+def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq.mp.{u} α β h a
 ";
 
 /// 让位的粒度 = **族**，族之间按依赖做闭包让位（设计 §2.2）。
@@ -392,6 +392,8 @@ pub(crate) fn install_l1_prelude<'a>(
     defs: &mut DefTable,
     taken: &HashSet<String>,
 ) {
+    // prelude 安装期间关闭隐式实参插入（见 `elab::PreludeInstallGuard` 的注释）。
+    let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
     if L1_INSTALL_DEPTH.with(|d| d.get()) > 0 {
         return; // 见 `L1_INSTALL_DEPTH`：内层编译不再装 L1
     }
@@ -440,11 +442,13 @@ fn install_l1_command<'a>(
     // 内层重入，所以内层环境里没有 L1 名字也不影响）。G-05：prelude 永远在
     // 根命名空间、没有 `open`，作用域是空的那一份。
     let ns = NamespaceScope::new();
+    let empty_defs: DefTable = DefTable::new();
     let ctx = ElabCtx {
         prefix_src: "",
         options,
         inductives,
         ns: &ns,
+        defs: &empty_defs,
     };
     let mut hovers = Vec::new();
     match command {
@@ -460,7 +464,9 @@ fn install_l1_command<'a>(
                 name.clone(),
                 KnownName::Decl {
                     universes: universe.clone(),
-                    implicit_prefix: 0,
+                    implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                    explicit_arity: crate::compile::elab::explicit_arity(ty),
+                    signature: Some(crate::proof::render_expr(ty)),
                 },
             );
         }
@@ -480,7 +486,9 @@ fn install_l1_command<'a>(
                 name.clone(),
                 KnownName::Decl {
                     universes: universe.clone(),
-                    implicit_prefix: 0,
+                    implicit_prefix: crate::compile::elab::leading_implicit_prefix(ty),
+                    explicit_arity: crate::compile::elab::explicit_arity(ty),
+                    signature: Some(crate::proof::render_expr(ty)),
                 },
             );
             // 源级 delta 表：`by` 引擎靠它看穿 `Not`/`Iff` 这类 **def** 头
@@ -535,6 +543,8 @@ pub(crate) fn install_eq_prelude(
     known: &mut KnownTable,
     taken: &std::collections::HashSet<String>,
 ) {
+    // prelude 安装期间关闭隐式实参插入（见 `elab::PreludeInstallGuard` 的注释）。
+    let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
     const EQ_NAMES: [&str; 3] = ["Eq", "Eq.refl", "Eq.subst"];
     if EQ_NAMES.iter().any(|name| taken.contains(*name)) {
         return;
@@ -543,11 +553,13 @@ pub(crate) fn install_eq_prelude(
     let empty: InductiveTable<'_> = InductiveTable::new();
     let options = CompileOptions::default();
     let ns = NamespaceScope::new();
+    let empty_defs: DefTable = DefTable::new();
     let ctx = ElabCtx {
         prefix_src: "",
         options: &options,
         inductives: &empty,
         ns: &ns,
+        defs: &empty_defs,
     };
     for command in &file.commands {
         let Command::Axiom {
@@ -563,11 +575,18 @@ pub(crate) fn install_eq_prelude(
         let decl = build_axiom(builder, name, universe, ty, known, &mut hovers, &ctx)
             .expect("Eq prelude axiom elaborates");
         builder.add_declar(decl).expect("duplicate prelude axiom");
+        // **Eq 族保持 `implicit_prefix: 0`**：`Eq.{u} α a b` 是用户写全的旧式
+        // 调用，而它的**部分应用**（`Eq.{1} Nat 2`）与"隐式调用只给显式实参"
+        // 在形状上无法区分——登记成隐式会把 `Nat` 当成 `α` 的值（实测
+        // `Eq.{1} Nat 2 2` 报 `Sort(1) vs Sort(2)`）。`=`/`≠` 的记法路径自己补
+        // 前导参数，不需要应用路径插手。短写法的宇宙层级推断是独立的一刀。
         known.insert(
             name.clone(),
             KnownName::Decl {
                 universes: universe.clone(),
                 implicit_prefix: 0,
+                explicit_arity: crate::compile::elab::explicit_arity(ty),
+                signature: Some(crate::proof::render_expr(ty)),
             },
         );
     }
@@ -585,6 +604,8 @@ pub(crate) fn install_prelude<'a>(
     known: &mut KnownTable,
     inductives: &mut InductiveTable<'a>,
 ) {
+    // prelude 安装期间关闭隐式实参插入（见 `elab::PreludeInstallGuard` 的注释）。
+    let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
     let span = Span::default();
     let nat_sort = Expr::Sort {
         sort: SortKind::Type,
@@ -651,6 +672,8 @@ pub(crate) fn install_prelude<'a>(
         KnownName::Decl {
             universes: Vec::new(),
             implicit_prefix: 0,
+            explicit_arity: 2,
+            signature: None,
         },
     );
 }
@@ -666,6 +689,8 @@ pub(crate) fn install_bool_prelude<'a>(
     known: &mut KnownTable,
     inductives: &mut InductiveTable<'a>,
 ) {
+    // prelude 安装期间关闭隐式实参插入（见 `elab::PreludeInstallGuard` 的注释）。
+    let _implicit_guard = crate::compile::elab::PreludeInstallGuard::enter();
     let span = Span::default();
     let bool_sort = Expr::Sort {
         sort: SortKind::Type,

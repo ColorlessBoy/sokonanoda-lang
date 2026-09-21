@@ -8,18 +8,18 @@ def Not : Prop → Prop := fun (a : Prop) => a → False
 
 #reduce ¬ True
 
-example : True ∨ False := Or.inl True False True.intro
+example : True ∨ False := Or.inl True.intro
 
 theorem true_is_true : True := by
   exact True.intro
 
 theorem and_intro_rule : (a : Prop) → (b : Prop) → a → b → a ∧ b := by
   intro a b ha hb
-  exact And.intro a b ha hb
+  exact And.intro ha hb
 
 theorem and_swap : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by
   intro a b h
-  exact And.intro b a (And.right a b h) (And.left a b h)
+  exact And.intro (And.right h) (And.left h)
 
 theorem ex_falso : (P : Prop) → False → P := by
   intro P h
@@ -27,10 +27,10 @@ theorem ex_falso : (P : Prop) → False → P := by
 
 theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by
   intro a h
-  exact And.right a (¬ a) h (And.left a (¬ a) h)
+  exact And.right a (¬ a) h (And.left a (¬ a) h) -- soko:notation-ok: here And.right's result is applied to one more argument (more explicit args than the signature has); implicit insertion does not apply (engine boundary)
 
 theorem demo_binders (a : Prop) (b : Prop) (h : a ∧ b) : b ∧ a := by
-  exact And.intro b a (And.right a b h) (And.left a b h)
+  exact And.intro (And.right h) (And.left h)
 
 theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : a ∧ b := by
-  exact And.intro a b ha hb
+  exact And.intro ha hb
