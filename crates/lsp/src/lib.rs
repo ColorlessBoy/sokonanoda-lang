@@ -45,6 +45,7 @@ use sokonanoda_front::compile::{
     prelude_mode_from_source, CompileOptions, DeclState, DeclStatus, DocumentReport, GoalBinder,
     HoverType, PreludeMode, ResolvedTarget,
 };
+use sokonanoda_front::project::cache as project_cache;
 use sokonanoda_front::query::{decl_name, QueryDoc};
 use sokonanoda_front::semantic::{semantic_tokens as front_semantic_tokens, SemanticKind};
 use sokonanoda_front::Span;
@@ -162,9 +163,26 @@ impl Doc {
         self.doc.path = path;
         // `root` 留给 CLI 的 `--root`；编辑器一律走发现规则（见 `entry_path`）。
         self.doc.root = None;
-        let cached = if cfg!(test) || has_imports {
+        // 项目文档（有 `import`）走**项目缓存**（T-A10）：键是
+        // `ProjectPlan::digest`（拓扑序上每模块的源 + import 边 + prelude 模式
+        // + 入口路径 + **依赖的内存覆盖**），命中即回放——诊断、逐模块报告、
+        // 事件全都来自条目，**不重编**。这是"打开变快"的开关：
+        // 实测 unit08 冷开 4.8s，命中之后是毫秒级。
+        //
+        // `overlay` 必须参与摘要：依赖的未落盘编辑会改变这份文档的闭包结果，
+        // 不折进键里就会错命中（回放出一份按旧依赖算的报告）。
+        //
+        // `cfg!(test)` 时**不碰真实缓存**：单元测试并行跑，共享缓存目录会互相
+        // 污染（既有纪律）。判据走真进程（`docs/gaps/repro/G25-…`）。
+        let cached = if cfg!(test) {
             None
+        } else if has_imports {
+            self.doc.path.as_deref().and_then(|entry| {
+                let (_, digest) = project_cache::plan(entry, Some(text), None, overlay, &options);
+                project_cache::load(&digest, &options)
+            })
         } else {
+            // 单文件条目形状不变（`project` 恒为 `None`）。
             cache::load(text, &options)
         };
         if let Some(entry) = cached {
@@ -173,8 +191,16 @@ impl Doc {
             // （它按整文件重新判定模式），下一次未命中缓存时自愈。
             self.doc.mode = mode;
             self.doc.version = lsp_version as u64;
-            self.doc.parse_error = None;
-            self.doc.report = Some(entry.report);
+            // 项目条目连**整份报告**一起回放（T-A03）：跨文件能力
+            // （definition/references/rename/`soko/project`）读的是模块表。
+            let output = entry.output.unwrap_or_default();
+            self.doc.set_cached_entry(
+                text,
+                lsp_version as u64,
+                entry.report,
+                output,
+                entry.project,
+            );
             return;
         }
         // 原地复用会话（I8 增量的关键）：prelude 模式变化时由真相层重建。

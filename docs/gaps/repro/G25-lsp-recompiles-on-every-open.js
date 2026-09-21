@@ -43,7 +43,13 @@ const LIB = [
   'infix:50 " ∈ " => Set.mem',
   'def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x',
   'infix:50 " ⊆ " => Set.subset',
-  ...Array.from({ length: 16 }, (_, i) =>
+  // 夹具要**足够大**才有判别力（T-A10 实测的教训）：缓存省掉的是**内核检查**，
+  // 而算摘要本身仍要读 + 解析整个闭包。夹具太小时解析占满全部时间，冷热都 ~10ms，
+  // 量不出差别（第一版就是这样，`hit=true` 却看不出提速）。
+  //
+  // 24 + 12 条是**调过的**：再小就量不出比值，再大门禁跑不起
+  // （160 + 80 时冷开 42s、整个复现 85s——判别力够了但太慢）。
+  ...Array.from({ length: 24 }, (_, i) =>
     `theorem lib_lemma_${i + 1} (α : Type) (A B : Set α) (h : A ⊆ B) : A ⊆ B := h`),
   '',
 ].join('\n');
@@ -52,7 +58,7 @@ const LIB = [
 const MID = [
   'import SetLib',
   '',
-  ...Array.from({ length: 8 }, (_, i) =>
+  ...Array.from({ length: 12 }, (_, i) =>
     `theorem mid_lemma_${i + 1} (α : Type) (A B : Set α) (h : A ⊆ B) : A ⊆ B := h`),
   '',
 ].join('\n');
@@ -196,27 +202,34 @@ async function openOnce(dir, entry, cacheDir) {
   fs.writeFileSync(path.join(dir, 'MidLib.sokonanoda'), MID);
   fs.writeFileSync(entry, CANVAS);
 
-  // 先让 CLI 把缓存预热（`build` 走 store_if_clean；本夹具无清单 ⇒ 会真的写进去）。
+  // **判据是"冷 vs 热"**，不是"两次都热"。
+  //
+  // 第一版探针先用 CLI 预热、再开两次——两次都是热的，比值恒为 ~1×，
+  // 无论 LSP 读不读缓存（实测：夹具放大到 240 条声明之后仍然是 80ms vs 65ms，
+  // 而两次都 `hit=true`）。那是探针自己的前提错了，不是缺口。
+  //
+  // 正确的三步：① 全新缓存 ⇒ **冷**；② CLI `build` 预热；③ 同一份缓存 ⇒ **热**。
+  const cold = await openOnce(dir, entry, cacheDir);
+
   const warm = spawn(process.execPath, [SOKO, 'build', entry], {
     stdio: 'ignore',
     env: { ...process.env, SOKONANODA_CACHE_DIR: cacheDir },
   });
   await new Promise((resolve) => warm.on('exit', resolve));
 
-  const first = await openOnce(dir, entry, cacheDir);
-  const second = await openOnce(dir, entry, cacheDir);
+  const hot = await openOnce(dir, entry, cacheDir);
 
-  console.log('== 两个**独立** LSP 进程，各自 didOpen 同一份项目入口 ==');
-  console.log(`   进程 #1（缓存已由 CLI 预热）= ${first}ms`);
-  console.log(`   进程 #2（同一份缓存）      = ${second}ms   （${(first / second).toFixed(2)}×）`);
+  console.log('== 两个**独立** LSP 进程打开同一份项目入口 ==');
+  console.log(`   冷开（全新缓存）        = ${cold}ms`);
+  console.log(`   热开（CLI 预热过缓存）  = ${hot}ms   （${(cold / hot).toFixed(1)}×）`);
 
-  if (second * 3 < first) {
-    console.log('结论：G-25 已修——第二次打开命中了编译缓存，明显快于第一次。');
+  if (hot * 3 < cold) {
+    console.log('结论：G-25 已修——第二次打开命中了编译缓存，明显快于冷开。');
     process.exit(1);
   }
   console.error(
     '结论：G-25 仍在——含 `import` 的文档在 LSP 上不读任何缓存，' +
-    `每次打开都从零重编（#1 ${first}ms vs #2 ${second}ms，没有提速）。`,
+      `每次打开都从零重编（冷 ${cold}ms vs 热 ${hot}ms，没有提速）。`,
   );
   process.exit(0);
 })().catch((error) => {

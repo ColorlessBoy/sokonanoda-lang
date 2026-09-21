@@ -403,7 +403,7 @@ fn count_unit(path: &Path, course_dir: &Path, src: &str) -> Result<UnitCounts, S
 
     let root_override = closure_root(path, course_dir);
     let (plan, digest) =
-        crate::project_cache::plan(path, Some(src), root_override.as_deref(), &options);
+        crate::project_cache::plan(path, Some(src), root_override.as_deref(), &[], &options);
     if let Some(cached) = crate::project_cache::load(&digest, &options) {
         if let Some(output) = cached.output {
             let mut counts = UnitCounts::default();

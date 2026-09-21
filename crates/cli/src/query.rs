@@ -156,7 +156,7 @@ fn load_document(doc: &mut QueryDoc, src: &str) {
         return;
     };
     let (plan, digest) =
-        crate::project_cache::plan(&entry, Some(src), doc.root.as_deref(), &options);
+        crate::project_cache::plan(&entry, Some(src), doc.root.as_deref(), &[], &options);
     if let Some(cached) = crate::project_cache::load(&digest, &options) {
         if let Some(output) = cached.output {
             doc.set_cached_entry(src, 1, cached.report, output, cached.project);

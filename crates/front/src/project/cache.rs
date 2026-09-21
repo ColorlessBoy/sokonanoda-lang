@@ -13,16 +13,21 @@ use std::path::Path;
 
 use crate::compile::cache::{self, CachedCompile};
 use crate::compile::CompileOptions;
-use crate::project::{plan_project, ProjectPlan, ProjectReport};
+use crate::project::{plan_project_with_overlay, ProjectPlan, ProjectReport};
 
 /// 解析项目根 + 加载闭包（IO/parse）并算出**缓存键**。
+///
+/// `overlay` 是**打开文档的内存文本**（编辑器才有；CLI 传 `&[]`）。
+/// 它必须参与摘要：依赖的未落盘编辑会改变这份文档的闭包结果，不折进键里
+/// 就会**错命中**——回放出一份按旧依赖算出来的报告。
 pub fn plan(
     entry: &Path,
     src: Option<&str>,
     root_override: Option<&Path>,
+    overlay: &[(std::path::PathBuf, String)],
     options: &CompileOptions,
 ) -> (ProjectPlan, String) {
-    let plan = plan_project(entry, src, root_override);
+    let plan = plan_project_with_overlay(entry, src, root_override, overlay);
     let digest = plan.digest(options);
     (plan, digest)
 }

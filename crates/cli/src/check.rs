@@ -66,7 +66,7 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         // 闭包摘要先算（只做 IO/parse）：命中就整个跳过内核。
         // 键与 `build`/`query` 共用（`crate::project_cache`）。
         let (plan, digest) =
-            crate::project_cache::plan(&entry, Some(src), root_override.as_deref(), &options);
+            crate::project_cache::plan(&entry, Some(src), root_override.as_deref(), &[], &options);
         if let Some(cached) = crate::project_cache::load(&digest, &options) {
             if let Some(output) = cached.output {
                 if json {
