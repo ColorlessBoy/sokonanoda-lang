@@ -174,13 +174,20 @@ impl Doc {
         //
         // `cfg!(test)` 时**不碰真实缓存**：单元测试并行跑，共享缓存目录会互相
         // 污染（既有纪律）。判据走真进程（`docs/gaps/repro/G25-…`）。
+        //
+        // 摘要**只算一次**，读（T-A10）与写（T-A11）共用同一个键。
+        let project_digest = if cfg!(test) || !has_imports {
+            None
+        } else {
+            self.doc.path.as_deref().map(|entry| {
+                let (_, digest) = project_cache::plan(entry, Some(text), None, overlay, &options);
+                digest
+            })
+        };
         let cached = if cfg!(test) {
             None
-        } else if has_imports {
-            self.doc.path.as_deref().and_then(|entry| {
-                let (_, digest) = project_cache::plan(entry, Some(text), None, overlay, &options);
-                project_cache::load(&digest, &options)
-            })
+        } else if let Some(digest) = &project_digest {
+            project_cache::load(digest, &options)
         } else {
             // 单文件条目形状不变（`project` 恒为 `None`）。
             cache::load(text, &options)
@@ -218,6 +225,16 @@ impl Doc {
             // 生效——闭包也失败（入口 `LoadFailed`）时仍走老契约。
             self.doc.report = None;
             return;
+        }
+        // **写回项目缓存**（T-A11）：不写的话，只有"用户先跑过 CLI `build`"
+        // 才享受得到 T-A10 的命中——第一次打开仍然白编，而且那份成果没人存。
+        // 判据与 CLI 的 `check`/`build`/`query` 同一条（`store_if_clean`
+        // 内部的 `ProjectReport::is_clean`）。
+        if let Some(digest) = &project_digest {
+            if let Some(project) = self.doc.project_report_ref() {
+                let clean = project.is_clean();
+                project_cache::store_if_clean(digest, &options, project, clean);
+            }
         }
         if !cfg!(test) && !has_imports {
             if let Some(report) = &self.doc.report {

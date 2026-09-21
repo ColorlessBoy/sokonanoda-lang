@@ -110,6 +110,33 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 | `perf_project_requests_are_interactive` | 同上 | 项目入口的 hover / definition / goals 各 < 50ms |
 | `editor/vscode/test-extension-host.js`（7 例） | 扩展宿主 stub | 诊断过滤/合并、并发 goals 合并、切文件丢弃过期答案、webview 去重、课程树缓存 |
 
+### 编辑器打开项目文件：冷 vs 热（T-A10/T-A11/T-A14，2026-09-21 实测）
+
+真课程、**真的 `sokonanoda-lsp` 进程**（`scripts/soko lsp`，debug 构建，含进程
+启动与 prelude 初始化），量的是 `didOpen → 第一条 publishDiagnostics`。
+
+热的那次**不靠 CLI 预热**——第一次 LSP 打开自己就把条目写下了（T-A11），
+第二次换个进程、同一份缓存。
+
+| 文件 | 冷开（无缓存） | 热开（第二次） | 倍数 |
+|---|---|---|---|
+| `unit01-sets-membership` | 1833ms | **2ms** | 916× |
+| `unit08-images-preimages` | 4821ms | **8ms** | 603× |
+| `unit12-synthesis` | 8838ms | **10ms** | 884× |
+| `unit12-solution` | **36259ms** | **26ms** | 1395× |
+
+冷开那几列与本文 §2.1 的修前基线**逐项吻合**（1812/1830、4729/4800、7910/7871）
+——所以这不是"换了个夹具量出来的好看数字"，是同一条路径。
+
+**用户视角**：`unit12-solution` 那份文件以前每打开一次等 **36 秒**；现在第二次
+起 **26ms**。热开已经和"同文本再 didChange"同量级（后者实测 0ms，见 T-A21），
+也就是**剩下的成本就是算摘要**（读 + 解析整个闭包）——那是缓存的地板，
+再往下要等线 K 的跨模块增量。
+
+**一个必须知道的限制**：摘要按**依赖的磁盘内容 + 打开文档的内存覆盖**算。
+所以在编辑器外改了一个依赖（`git checkout`、别的工具写文件）之后，第一次打开
+仍然要重编——那是正确的（闭包真的变了），缓存不是"永远不编"。
+
 ### `build <目录>` 是 O(文件数 × 闭包)（T-A25，2026-09-21 实测）
 
 `crates/cli/src/build.rs` 对目录里**每个** `*.sokonanoda` 各跑一次
