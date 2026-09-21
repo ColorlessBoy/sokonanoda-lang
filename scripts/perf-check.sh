@@ -135,6 +135,11 @@ for r in records:
         delta = "（这条没有 *_ms 字段）"
     elif before is None:
         delta = "（无基线）"
+    elif before <= 0:
+        # 基线是 0ms（"不该重编"那类哨兵实测就是 0）——除法会炸（实测踩到）。
+        delta = "（基线 0ms，只看这次）"
+        if ms > threshold:
+            regressed.append((key, ms, before, float("inf")))
     else:
         pct = (ms - before) / before * 100.0
         delta = f"{pct:+.1f}%"
@@ -149,7 +154,9 @@ if regressed:
     print(f"退化超过 {threshold:.0f}% 的 case：", file=sys.stderr)
     for (scope, case, entry_name), ms, before, pct in regressed:
         where = f"{scope}/{case}" + (f" [{entry_name}]" if entry_name else "")
-        print(f"  {where}: {before}ms → {ms}ms（{pct:+.1f}%）", file=sys.stderr)
+        shown = "基线 0ms" if before <= 0 else f"{before}ms"
+        tail = "（从 0 变成非 0）" if before <= 0 else f"（{pct:+.1f}%）"
+        print(f"  {where}: {shown} → {ms}ms{tail}", file=sys.stderr)
     print("先复测一次；仍然退化就查这一版改了什么（docs/PERF.md 的判读纪律）。", file=sys.stderr)
     raise SystemExit(1)
 print(f"没有超过 {threshold:.0f}% 的退化。")

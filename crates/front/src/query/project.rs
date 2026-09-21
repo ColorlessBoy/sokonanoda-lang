@@ -29,17 +29,13 @@ impl QueryDoc {
     }
 
     /// 为什么 [`Self::project_view`] 是 `None`（机器码，`docs/protocol.md`）。
+    ///
+    /// **读 `set_text` 时算好的缓存**（T-A24）：这个问题每次诊断事件都会被问一次
+    /// （VS Code 的 `soko/project`），以前每次重新 parse 整份文本。
+    /// 兜底：还没 `set_text` 过（`project_reason` 是 `None`）时现算一次。
     pub fn project_view_reason(&self) -> &'static str {
-        if self.project_report().is_some() {
-            return "available";
-        }
-        match crate::parse(&self.text) {
-            // 解析不了 ⇒ 先修语法；这和"单文件"是两回事。
-            Err(_) => "parse-error",
-            Ok(file) if !file.commands.iter().any(|command| command.is_import()) => "no-imports",
-            // 有 `import` 但没有入口路径（stdin / `--text` 且没有 `--root`）。
-            Ok(_) => "no-path",
-        }
+        self.project_reason
+            .unwrap_or_else(|| Self::compute_project_reason(&self.project, &self.text))
     }
 
     fn project_report(&self) -> Option<&ProjectReport> {

@@ -2327,7 +2327,7 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 - [x] `T-A21` `set_text` 文本未变即短路
 - [x] `T-A22` 保存 / 编辑器外改动不再重编同一文本
   - ⬆ **BUMP**：`patch` —— 打开不再白编一遍、保存不再重编同一文本（立刻能感觉到的快）
-- [ ] `T-A24` `project_view_reason()` 不再每次 parse 整份文本
+- [x] `T-A24` `project_view_reason()` 不再每次 parse 整份文本
 - [ ] `T-A25` `build <目录>` 的 O(文件数 × 闭包) 如实记账
 - [ ] `T-A01` 项目缓存下沉到 `front`
 - [ ] `T-A02` 缓存键去掉"可执行文件 mtime"这个不稳定的量

@@ -66,6 +66,13 @@ pub struct QueryDoc {
     /// 最近一次编译用的内存覆盖（打开文档的路径 → 文本）。`check`/`reduce`
     /// 会重跑闭包编译，必须复用同一份覆盖，否则答案与 `report` 不同源。
     overlay: Vec<(std::path::PathBuf, String)>,
+    /// [`Self::project_view_reason`] 的缓存（T-A24）。
+    ///
+    /// 那个问题**每次诊断事件都会被问一次**（VS Code 的 `soko/project`），
+    /// 而它以前每次都重新 `parse` 整份文本。原因只由（`project` 是否存在、
+    /// 文本能不能 parse、有没有 `import`）决定，而这三样在 `set_text` 之后就定了
+    /// ⇒ 算一次存下来。`None` = 还没算过（`set_text` 之前）。
+    project_reason: Option<&'static str>,
 }
 
 impl Default for QueryDoc {
@@ -88,6 +95,7 @@ impl QueryDoc {
             project: None,
             output: crate::compile::CompileOutput::default(),
             overlay: Vec::new(),
+            project_reason: None,
         }
     }
 
@@ -170,6 +178,26 @@ impl QueryDoc {
                     self.output = output;
                 }
             }
+        }
+        // 缓存"为什么没有项目视图"（T-A24）：`soko/project` 每次诊断事件都会被
+        // 问一次，而它以前每次重新 parse 整份文本。
+        self.project_reason = Some(Self::compute_project_reason(&self.project, &self.text));
+    }
+
+    /// [`Self::project_view_reason`] 的本体（纯函数；`set_text` 之后调用一次）。
+    fn compute_project_reason(
+        project: &Option<crate::project::ProjectReport>,
+        text: &str,
+    ) -> &'static str {
+        if project.is_some() {
+            return "available";
+        }
+        match crate::parse(text) {
+            // 解析不了 ⇒ 先修语法；这和"单文件"是两回事。
+            Err(_) => "parse-error",
+            Ok(file) if !file.commands.iter().any(|command| command.is_import()) => "no-imports",
+            // 有 `import` 但没有入口路径（stdin / `--text` 且没有 `--root`）。
+            Ok(_) => "no-path",
         }
     }
 
