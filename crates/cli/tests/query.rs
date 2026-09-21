@@ -1143,3 +1143,60 @@ fn query_state_and_lsp_agree_without_a_by_block() {
     assert_state_matches_lsp(NO_BY_CANVAS, 4, 1);
     assert_state_matches_lsp(NO_BY_CANVAS, 6, 1);
 }
+
+/// **G-22 的 CLI 面**：项目入口的 `query goals` 必须非空——**冷缓存**下也一样。
+///
+/// 为什么单列一条：CLI 曾经**看不见**这个缺口——`query` 走 `set_cached_entry`
+/// （`crates/front/src/query/mod.rs:214` 把 `parse_error` 清掉），于是"缓存热时
+/// 偶然正常"；而 `build`/`check` 走 `store_if_clean` 是另一套规则。同一个项目的
+/// 答案不该取决于**先跑了哪条命令**（计划 T-B07）。
+///
+/// 所以这里用**全新的缓存目录**、并且只跑 `query goals` 一次——任何"靠先跑别的
+/// 命令把状态捂热"的路径都盖不住它。
+#[test]
+fn query_goals_lists_a_project_entry_with_a_cold_cache() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-query-goals-cold-{}-{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    // 与课程单元同形状：记法来自 import ⇒ 入口单独 parse 必然失败、闭包是好的。
+    std::fs::write(
+        dir.join("SetLib.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write lib");
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(
+        &entry,
+        "import SetLib\n\n\
+theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n",
+    )
+    .expect("write entry");
+
+    // **自己起进程**：`query()` 这个 helper 的第二个参数是 stdin，而且缓存目录
+    // 写死成共享的 `cache_dir("q")`（同一轮测试里别的用例会把它捂热）——
+    // 那样就测不到"冷缓存"这条前提。这里用全新的、本次独有的缓存目录。
+    let cache = cache_dir("g22-cold");
+    let output = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .args(["query", "goals", "--file", entry.to_str().unwrap(), "--compact"])
+        .env("SOKONANODA_CACHE_DIR", &cache)
+        .output()
+        .expect("spawn sokonanoda");
+    let code = output.status.code().unwrap_or(-1);
+    let value: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap_or(serde_json::Value::Null);
+    assert_eq!(code, 0, "闭包好 ⇒ query goals 必须答得上：{value}");
+    assert_eq!(value["ok"], true, "{value}");
+    let data = value["data"].as_array().expect("data[]");
+    assert!(
+        data.iter().any(|d| d["name"] == "mem_self"),
+        "项目入口的声明列表必须含 mem_self（G-22），实际 = {value}"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}

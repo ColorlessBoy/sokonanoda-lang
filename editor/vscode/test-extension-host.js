@@ -600,7 +600,11 @@ test("switching documents mid-flight drops the stale answer", async () => {
   const gate = new Promise((resolve) => {
     release = resolve;
   });
-  stubbedResponses["soko/goals"] = async () => {
+  // **按 URI 应答**（真实服务端就是这样）：A 慢且回旧声明，别的文档立刻答空。
+  // 不区分 URI 的话，B 自己的那一趟（T-B09 起它会真的发出去）也会拿到 stale_decl，
+  // 那测的就不是"过期答案被丢弃"了。
+  stubbedResponses["soko/goals"] = async (params) => {
+    if (params?.textDocument?.uri !== String(canvas.uri)) return { decls: [] };
     await gate;
     return {
       decls: [
@@ -629,6 +633,98 @@ test("switching documents mid-flight drops the stale answer", async () => {
   assert.ok(
     !labels.includes("stale_decl"),
     `a row built from the stale answer leaked into the new document: ${labels.join(", ")}`,
+  );
+});
+
+test("switching documents mid-flight fetches the new document too", async () => {
+  // E4（计划 T-B08）：A 的请求在飞时切到 B —— 过期答案要丢，**但 B 的取数必须
+  // 补上**。改前是 `if (requestedUri !== this.uri) return;`：什么都不做，
+  // 面板一直停在上一份文档的卡片上（而 A 是慢编译的项目文件时必中）。
+  await activateExtension();
+  const provider = vscodeStub.__infoview;
+  assert.ok(provider, "the Infoview provider must be registered");
+  const posts = [];
+  provider._view = { webview: { postMessage: (message) => posts.push(message) } };
+  provider._ready = true;
+
+  const a = fakeDocument("/repo/course/unit11-project/Canvas.sokonanoda");
+  focus(a);
+  await settle();
+
+  // A 的请求卡住不返回。
+  let releaseA;
+  const gateA = new Promise((resolve) => {
+    releaseA = resolve;
+  });
+  stubbedResponses["soko/goals"] = async (params) => {
+    if (params?.textDocument?.uri !== String(a.uri)) return { decls: [] };
+    await gateA;
+    return {
+      decls: [
+        { name: "stale_decl", kind: "theorem", status: "open", holes: [{ id: "h0", range: {} }] },
+      ],
+    };
+  };
+  requests.length = 0;
+  listeners.diagnostics.fire({ uris: [a.uri] });
+  fireTimers();
+  await Promise.resolve();
+  assert.strictEqual(goalsRequests().length, 1, "A 的取数在飞");
+
+  // 切到 B。**先换好 stub 再切**：`trackEditor(B)` 会立刻发 B 的那一趟
+  // （T-B09 起它不再被 A 的在飞 promise 吃掉），stub 换晚了 B 拿到的就是旧答案。
+  const b = fakeDocument("/repo/course/unit11-project/Logic.sokonanoda");
+  stubbedResponses["soko/goals"] = (params) =>
+    params?.textDocument?.uri === String(b.uri)
+      ? { decls: [{ name: "b_decl", kind: "theorem", status: "checked", holes: [] }] }
+      : { decls: [] };
+  focus(b);
+  releaseA();
+  for (let i = 0; i < 60; i++) await Promise.resolve();
+
+  const posted = posts.filter((message) => message.type === "decls");
+  const names = posted.flatMap((message) => (message.decls ?? []).map((decl) => decl.name));
+  assert.ok(
+    names.includes("b_decl"),
+    `切到 B 之后必须补取 B 的声明并推给 Infoview，实际推过 = ${JSON.stringify(names)}`,
+  );
+  assert.ok(
+    !names.includes("stale_decl"),
+    `A 的过期答案不许推给 Infoview，实际推过 = ${JSON.stringify(names)}`,
+  );
+});
+
+test("an empty declaration list is not treated as already fetched", async () => {
+  // E6（计划 T-B10）：**"取过了"不能看 `declItems` 的真值**——服务器答"没有声明"
+  // 是合法的（空壳模块），那时 `declItems = []`，而 `![]` 是 **false** ⇒ 之后
+  // 每一次 `ensureDeclarations()`（含 `rootChildren` 里那份同样的判断）全空转，
+  // 面板永远停在「等待编译…」。
+  //
+  // 这里直接编码契约（不依赖激活时序，那个在 stub 宿主里会被诊断事件掩盖）：
+  // **上一次取数失败**（`_declsUri` 未记）之后再问，必须真的再发一次请求。
+  await activateExtension();
+  const tree = vscodeStub.__trees?.["sokonanoda.goals"];
+  assert.ok(tree, "the exercise tree must be registered");
+  focus(fakeDocument("/repo/playground.sokonanoda"));
+  await settle();
+
+  // 造出"上一次失败"的现场：结果为空，但**没有**记下"为这个 URI 取过"。
+  tree.declItems = [];
+  tree._declsUri = undefined;
+  requests.length = 0;
+  stubbedResponses["soko/goals"] = () => ({
+    decls: [{ name: "recovered", kind: "theorem", status: "checked", holes: [] }],
+  });
+  await tree.ensureDeclarations();
+
+  assert.strictEqual(
+    goalsRequests().length,
+    1,
+    "`declItems = []` 不能让 `ensureDeclarations()` 永久空转（E6）",
+  );
+  assert.ok(
+    (tree.declItems ?? []).some((item) => String(item.label) === "recovered"),
+    "补取之后树必须拿到声明",
   );
 });
 

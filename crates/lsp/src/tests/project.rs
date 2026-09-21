@@ -684,6 +684,12 @@ const NOTATION_CANVAS: &str = "\
 import SetLib\n\n\
 theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
 
+/// 入口（带洞）：课程练习的常态——用库记法 + `:= by` + `sorry`。
+const NOTATION_EXERCISE: &str = "\
+import SetLib\n\n\
+theorem open_one (α : Type) (a : α) (A : Set α) : a ∈ A := by\n\
+  sorry\n";
+
 /// **X15 回归**：闭包编译成功时，单文件 parse 失败不得吃掉项目报告。
 ///
 /// 改前实测（真 LSP over stdio，0.61.0）：编辑器发一条**假**的
@@ -808,6 +814,51 @@ async fn a_genuinely_broken_entry_still_reports_the_parse_error() {
         !diags.diagnostics.is_empty(),
         "a real syntax error must still be reported"
     );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **G-22 的同族**：`alt+n`（`soko/nextHole`）在**项目入口**上必须能定位到洞。
+///
+/// 它经由 `next_hole → holes → goals(true)` ⇒ 撞的是**同一条** `usable()` 判据
+/// （计划 T-B06）。改前：项目文件里 `alt+n` 完全没反应（`nextHole` 答 `null`），
+/// 而 `stateAt`（目标栏）正常——用户看到的正是这个不对称。
+#[tokio::test]
+async fn next_hole_reaches_a_project_entry() {
+    let dir = tmp_dir("notation-next-hole");
+    let root = Url::from_directory_path(&dir).expect("dir url");
+    let (mut service, mut socket) = test_service();
+    testutil::handshake_with_root(&mut service, &root).await;
+
+    let _lib = write(&dir, "SetLib.sokonanoda", NOTATION_LIB);
+    let entry = write(&dir, "Exercise.sokonanoda", NOTATION_EXERCISE);
+    testutil::did_open_at_drained(&mut service, &mut socket, &entry, NOTATION_EXERCISE).await;
+
+    let result = call(
+        &mut service,
+        RpcRequest::build("soko/nextHole")
+            .params(json!({
+                "textDocument": {"uri": entry},
+                "position": {"line": 0, "character": 0},
+                "forward": true,
+            }))
+            .id(1)
+            .finish(),
+    )
+    .await
+    .expect("soko/nextHole must answer");
+    assert!(
+        !result.is_null(),
+        "项目入口的 alt+n 必须能定位到洞（G-22 同族），实际 = {result:?}"
+    );
+    // 洞落在 `sorry` 那一行（第 4 行，0 基 3）。
+    // 注意响应的形状：**扁平的** `{start, end}`（不是 `{range: {start, end}}`
+    // ——`soko/goals` 里的洞才是后者，两者别混）。
+    let line = result
+        .get("start")
+        .and_then(|start| start.get("line"))
+        .and_then(|line| line.as_u64());
+    assert_eq!(line, Some(3), "洞必须在 `sorry` 那一行，实际 = {result:?}");
 
     let _ = std::fs::remove_dir_all(&dir);
 }

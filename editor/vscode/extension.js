@@ -209,6 +209,9 @@ class GoalsTreeDataProvider {
     this.cursorRequestSeq = 0; // discards stale soko/stateAt responses
     this._pendingDecls = undefined; // in-flight soko/goals load (concurrency merge)
     this.declItems = undefined; // cached decl TreeItems from the last soko/goals
+    // **已经为哪个 URI 取过声明**（E6，计划 T-B10）：不能用 `!this.declItems`
+    // 判断——`decls = []` 时 `declItems = []`，而 `![]` 是 false ⇒ 之后所有
+    // `ensureDeclarations()` 都变成空转（面板永远停在「等待编译…」）。
     this.onDecls = undefined; // (decls, uri) => void — feeds the Infoview decls message
     this.onState = undefined; // (uri, state) => void — feeds the Infoview state message
     this.onStatus = undefined; // (status) => void — feeds the Infoview status message
@@ -218,6 +221,7 @@ class GoalsTreeDataProvider {
   // different active document), so drop the cached items and refetch.
   refresh() {
     this.declItems = undefined;
+    this._declsUri = undefined;
     this._emitter.fire();
   }
 
@@ -257,7 +261,10 @@ class GoalsTreeDataProvider {
   }
 
   async rootChildren() {
-    if (!this.declItems) await this.loadDeclarations();
+    // **走 `ensureDeclarations()`**，不要在这里再写一遍真值判断：E6 的同一个
+    // 错误在这里也有一份（`decls = []` ⇒ `declItems = []` ⇒ `![]` 是 false
+    // ⇒ 树永远空着）。一处判据、两处引用。
+    await this.ensureDeclarations();
     const items = [];
     const cursor = this.cursorState !== undefined && this.cursorState.uri === this.uri
       ? this.cursorState.state
@@ -331,7 +338,8 @@ class GoalsTreeDataProvider {
   // reuse the cached items. The Infoview asks for this on `ready`/diagnostics;
   // cursor movement never calls it (docs/design/goal-list.md §2.4).
   async ensureDeclarations() {
-    if (!this.declItems) await this.loadDeclarations();
+    // 「取过没有」看 **URI**，不看 `declItems` 的真值（E6：空数组是真值）。
+    if (this._declsUri !== this.uri) await this.loadDeclarations();
   }
 
   // Fetch `soko/goals` once per document/diagnostics version and cache the
@@ -341,11 +349,23 @@ class GoalsTreeDataProvider {
   // `ensureDeclarations()` 也会来一次——原先是两次 `soko/goals`（单文件模式下
   // 每次还带请求期内核探针）。这里把并发调用合并成同一个 promise。
   async loadDeclarations() {
-    if (this._pendingDecls) return this._pendingDecls;
-    this._pendingDecls = this._loadDeclarations().finally(() => {
-      this._pendingDecls = undefined;
+    // **合并按 URI 分键**（E5，计划 T-B09）：合并的初衷是"同一次诊断事件里树和
+    // Infoview 各要一次、别发两趟"。但以前只存**一个**在飞的 promise ⇒ A 在飞时
+    // 切到 B，`trackEditor(B)` 拿回的是 A 的 promise，而 A 随后因过期提前返回
+    // ——**B 的取数从未发生**（面板停在上一份文档上）。按 URI 分键之后，B 有自己的
+    // 那一趟；同一个 URI 的并发调用仍然合并。
+    const uri = this.uri;
+    if (!(this._pendingDecls instanceof Map)) this._pendingDecls = new Map();
+    const pending = this._pendingDecls.get(uri);
+    if (pending) return pending;
+    const started = this._loadDeclarations().finally(() => {
+      // 只删自己那一把键：期间可能已经有别的 URI 在飞。
+      if (this._pendingDecls instanceof Map && this._pendingDecls.get(uri) === started) {
+        this._pendingDecls.delete(uri);
+      }
     });
-    return this._pendingDecls;
+    this._pendingDecls.set(uri, started);
+    return started;
   }
 
   async _loadDeclarations() {
@@ -359,10 +379,23 @@ class GoalsTreeDataProvider {
     if (requestedUri === undefined) this.onStatus?.({ state: "idle" });
     else this.onStatus?.({ state: "loading" });
     const response = await this.requestGoals(requestedUri);
-    if (requestedUri !== this.uri) return;
+    if (requestedUri !== this.uri) {
+      // 过期答案：**丢弃**（不能拿它建节点，否则树上是 A 的声明、点击却跳到 B）。
+      // 但**不能就此什么都不做**：用户已经切到别的文档了，而那份文档的声明
+      // 还没人取——面板会一直停在上一份的卡片上（E4）。这里补一次取数；
+      // 若用户又切走了，下一次同样会补，链条由 `loadDeclarations` 的合并收敛。
+      this.loadDeclarations().catch(() => {});
+      return;
+    }
     const decls = response?.decls ?? [];
     this.openCount = decls.filter((d) => d.status === "open").length;
     updateStatusBar(this);
+    // **取数失败不算"取过了"**：`requestGoals` 在客户端还没起来 / 请求出错时
+    // 返回 `undefined`。激活时活动编辑器已经是 `.sokonanoda` 就是这种情况——
+    // 若把它记成"取过了"，E6 的空转就换个形式回来了（面板停在「等待编译…」，
+    // 直到下一次诊断事件）。
+    if (response === undefined) return;
+    this._declsUri = requestedUri;
     this.declItems = decls.map((decl) => {
       const item = new vscode.TreeItem(decl.name, decl.status === "open"
         ? vscode.TreeItemCollapsibleState.Expanded

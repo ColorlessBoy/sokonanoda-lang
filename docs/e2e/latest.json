@@ -1,10 +1,10 @@
 {
   "schema": "soko.e2e/1",
   "kind": "vscode-integration",
-  "version": "0.63.0",
-  "commit": "67f1c8c9fedc637ac2e31396a3b80c1843d9cf97",
+  "version": "0.63.1",
+  "commit": "b8fc64f524a1e6ba50f98a7d0bd41f80cad0d0e4",
   "dirty": true,
-  "date": "2026-09-21T15:41:59Z",
+  "date": "2026-09-21T16:25:31Z",
   "host": {
     "system": "Darwin",
     "machine": "arm64",
@@ -12,14 +12,14 @@
   },
   "vscode": "1.138.0",
   "tests": {
-    "passed": 2,
-    "failed": 0,
+    "passed": 3,
+    "failed": 3,
     "pending": 0
   },
-  "exit": 0,
-  "server": "0.63.0 (pid 64107) == 扩展 v0.63.0 (source=bundled)",
+  "exit": 1,
+  "server": "运行 0.63.0 (pid 99518) != 扩展 v0.63.1；serverOverride 关闭，本应始终使用内置服务器。请 “Developer: Reload Window” 或清空 sokonanoda.serverPath",
   "lsp_sha256_16": "66973395001d4c12",
-  "log": "docs/e2e/logs/2026-09-21-67f1c8c-vc1.138.0.log",
+  "log": "docs/e2e/logs/2026-09-21-b8fc64f-vc1.138.0.log",
   "profile": "debug",
-  "grep": "declarations panel|next hole jumps"
+  "grep": "declarations panel|next hole jumps|goal text uses|notation symbol|infoview command"
 }
