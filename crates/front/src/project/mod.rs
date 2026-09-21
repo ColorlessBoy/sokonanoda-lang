@@ -161,7 +161,16 @@ impl ProjectPlan {
                 hash = hash.wrapping_mul(0x100_0000_01b3);
             }
         };
-        mix(b"soko.project-iface/1");
+        mix(b"soko.project-iface/2");
+        // **入口路径也要进摘要**（T-A06 顺带发现）。
+        //
+        // 报告里的 `entry`/`root`/`manifest` 与每个模块的 `path` 都是**绝对路径**。
+        // 只按"模块名 + 源文本 + import 边"算键的话，两个**内容逐字相同但在不同
+        // 目录**的项目会共用一个键 ⇒ 第二个回放到的是第一个的路径：
+        // `query project` 报错的模块根、LSP 的 definition/references **跳到别的
+        // 目录的文件**。内容相同不代表位置相同。
+        mix(digest_path(&self.entry).as_bytes());
+        mix(b"\0");
         mix(&[match options.prelude {
             PreludeMode::Full => 1,
             PreludeMode::Bare => 2,
@@ -199,6 +208,27 @@ pub fn plan_project(
 /// * 空路径 ⇒ `cwd`（`--root ''`、裸文件名的空 `parent()` 都不是合法模块根，
 ///   语义上等于 cwd）⇒ 返回值**永不**为空；
 /// * 已经绝对 ⇒ 原样。
+/// 摘要里用的路径形态：**只去掉 `.` 组件**，别的原样。
+///
+/// 为什么需要它：`grade Main.sokonanoda` 与 `build .`（它收集到的是
+/// `./Main.sokonanoda`）指的是同一个文件，而 `absolute_lexical` 按 G-12 的纪律
+/// **故意不解析** `..`/`.`（"尾部原样保留"）⇒ 两个拼写给出两个字符串。
+/// 摘要若直接用原串，同一次编译经两条命令就会 miss（实测：加了入口路径之后
+/// `a_project_cache_hits_and_a_dependency_change_invalidates_it` 立刻红）。
+///
+/// **不**做更多：不解析 `..`、不碰符号链接、不 `canonicalize`——那会违反 G-12
+/// （路径在词法绝对化之后就不再被解释，模块名靠 `strip_prefix(root)` 稳定）。
+fn digest_path(path: &Path) -> String {
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        if matches!(component, std::path::Component::CurDir) {
+            continue;
+        }
+        out.push(component.as_os_str());
+    }
+    out.to_string_lossy().into_owned()
+}
+
 fn absolute_lexical(path: &Path) -> PathBuf {
     let cwd = || std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
     if path.as_os_str().is_empty() {

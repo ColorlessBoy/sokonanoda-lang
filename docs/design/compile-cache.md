@@ -91,6 +91,30 @@ sokonanoda build [--json] [--clean] [<file> | <dir> ...]
 
 ---
 
+## `--text`（内存中间态）为什么不缓存（T-A07 实测，2026-09-21）
+
+**它在编辑器路径上不出现**：LSP 是**进程内**的——`Doc::set_text` 直接把缓冲区
+文本交给 `QueryDoc::set_text_with_overlay`，从不 shell out 到 CLI，所以
+`--text` 与编辑器无关（`grep -rn '\-\-text' crates/lsp/ editor/vscode/` 为空）。
+
+**它在 agent 路径上出现**：`dsh/mcp/server.js:161` 把 MCP 工具的 `text` 参数
+转成 `--text` —— 那是文档里写明的"**for an edit that is not on disk yet**"
+（老师/agent 判一份还没落盘的草稿）。
+
+**结论：「不缓存」仍然成立**，理由比原来那条注释更具体：
+
+1. `--text` 的入口路径是**约定的占位路径**（`root.join("Main.sokonanoda")`，
+   见 `plan_project` 的 `entry_path` 兜底）——磁盘上没有这个文件。
+   缓存条目里存的是**绝对路径**（`entry`/`root`/模块 `path`），
+   把占位路径写进条目，回放出来就是假的路径。
+2. 更实际的一条：草稿与"落盘之后的同一份文本"**摘要相同**（模块源逐字相同）
+   ⇒ 会互相命中。用户保存草稿再 `--file` 跑一次，拿到的是**草稿那次**的报告，
+   而它的 `path` 指向占位路径 —— `query project` 报错模块根，LSP 的
+   definition/references 跳到不存在的文件。
+
+代价是每次 `--text` 都真编译一遍。**这个代价是对的**：agent 判草稿本来就是
+"这一次、这一份"，没有复用价值；而**判错**的代价要大得多。
+
 ## 7. 多文件闭包键（I16 P4，2026-09-17）
 
 有 `import` 的文件，编译单元是**整个项目闭包**（`docs/design/imports-and-projects.md`），

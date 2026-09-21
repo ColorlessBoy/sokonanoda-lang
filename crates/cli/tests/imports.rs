@@ -732,3 +732,93 @@ fn a_project_with_an_open_exercise_is_byte_identical_cold_and_warm() {
         "退出码也要一致（0=答上了）"
     );
 }
+
+/// **T-A06**：改**依赖**一行 ⇒ 入口**必重编**（不是"命中旧报告"）。
+///
+/// 摘要按拓扑序含每个模块的源文本（`ProjectPlan::digest`），所以依赖的任何
+/// 一个字节变了，入口的键就变了。这条是缓存最要紧的**防线**：
+/// 命中旧报告意味着编辑器显示的是"上一次的世界"。
+///
+/// 与既有的 `a_project_cache_hits_and_a_dependency_change_invalidates_it`
+/// 的区别：那条看 `#reduce` 的**值**，这条看 `build` 的 **hit/compiled 计数**
+/// ——值对了但计数没动，说明"碰巧算对了"，不是缓存真的失效了。
+#[test]
+fn a_dependency_edit_forces_the_entry_to_recompile() {
+    let dir = tmp_dir("dep-miss");
+    let cache = dir.join(".cache");
+    write(&dir, "Lib.sokonanoda", "def answer : Nat := 1\n");
+    write(&dir, "Main.sokonanoda", "import Lib\n\n#reduce answer\n");
+
+    // 预热：两次都该全命中。
+    let _ = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    let warm = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    assert!(
+        stdout(&warm).contains("\"compiled\":0"),
+        "夹具前提：预热之后必须全命中：{}",
+        stdout(&warm)
+    );
+
+    // 改**依赖**（入口一字未动）⇒ 入口必须重编。
+    write(&dir, "Lib.sokonanoda", "def answer : Nat := 2\n");
+    let after = run_with_cache(&dir, &cache, &["build", "--json", "."], None);
+    assert!(
+        stdout(&after).contains("\"compiled\":2"),
+        "改依赖之后两个文件都必须重编（入口的键含依赖源文本）：{}",
+        stdout(&after)
+    );
+
+    // 而且新的值要出来（重编不是"重编了个旧的"）。
+    let value = run_with_cache(&dir, &cache, &["--json", "Main.sokonanoda"], None);
+    assert!(
+        stdout(&value).contains("\"value\":\"2\""),
+        "重编之后必须看到新值：{}",
+        stdout(&value)
+    );
+}
+
+/// **T-A06 顺带发现**：内容逐字相同、但在**不同目录**的两个项目不许共用一个键。
+///
+/// 报告里的 `entry`/`root`/`manifest` 与每个模块的 `path` 都是**绝对路径**。
+/// 摘要只按"模块名 + 源文本 + import 边"算的话，两个内容相同的项目会共用键
+/// ⇒ 第二个回放到的是第一个的路径：`query project` 报错模块根、LSP 的
+/// definition/references **跳到别的目录的文件**。内容相同不代表位置相同。
+#[test]
+fn two_identical_projects_in_different_directories_do_not_share_a_key() {
+    let dir = tmp_dir("same-content-two-dirs");
+    let cache = dir.join(".cache");
+    for name in ["a", "b"] {
+        write(&dir, &format!("{name}/Lib.sokonanoda"), "axiom P : Prop\n");
+        write(
+            &dir,
+            &format!("{name}/Main.sokonanoda"),
+            "import Lib\n\ntheorem t (h : P) : P := h\n",
+        );
+    }
+
+    let ask = |name: &str| {
+        let entry = dir.join(name).join("Main.sokonanoda");
+        let out = run_with_cache(
+            &dir,
+            &cache,
+            &["query", "project", "--file", &abs_str(&entry), "--compact"],
+            None,
+        );
+        assert!(out.status.success(), "stderr: {}", stderr(&out));
+        serde_json::from_slice::<serde_json::Value>(&out.stdout).expect("one JSON")
+    };
+
+    let a = ask("a");
+    let b = ask("b");
+    assert!(!a["data"]["project"].is_null(), "{a}");
+    assert!(!b["data"]["project"].is_null(), "{b}");
+    assert_ne!(
+        a["data"]["project"]["root"], b["data"]["project"]["root"],
+        "两个目录的模块根必须各自正确（共用键会让 b 回放到 a 的路径）：a={a} b={b}"
+    );
+    assert!(
+        b["data"]["project"]["root"]
+            .as_str()
+            .is_some_and(|root| root.ends_with("/b")),
+        "b 的模块根必须是 b 自己那个：{b}"
+    );
+}

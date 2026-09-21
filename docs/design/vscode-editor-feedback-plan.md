@@ -1144,6 +1144,25 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A06 依赖改动仍必 miss
 
+> **完成（2026-09-21）**，顺带发现并修掉一条**真问题**。
+>
+> ① 补断言 `a_dependency_edit_forces_the_entry_to_recompile`：看 `build` 的
+> **hit/compiled 计数**（既有那条看 `#reduce` 的值——值对了但计数没动，说明
+> "碰巧算对了"，不是缓存真的失效）。**判别性已验证**：把模块源从摘要里去掉，
+> 入口立刻变成 `hit:1, compiled:1`，测试红。
+>
+> ② **顺带发现**：`ProjectPlan::digest` 里**没有入口路径**。报告里的
+> `entry`/`root`/`manifest` 与每个模块的 `path` 都是绝对路径 ⇒ 两个
+> **内容逐字相同但在不同目录**的项目共用一个键，第二个回放到的是第一个的路径
+> ——`query project` 报错模块根、LSP 的 definition/references **跳到别的目录的
+> 文件**。新用例 `two_identical_projects_in_different_directories_do_not_share_a_key`
+> 钉住它，**回滚即红**（实测报错就是 `b` 拿到了 `a` 的路径）。
+>
+> 加的时候踩了一个坑：直接用原串会让 `grade Main.sokonanoda` 与 `build .`
+> （收集到 `./Main.sokonanoda`）算出**两个键**——G-12 的纪律是"词法绝对化之后
+> 不解析 `.`/`..`"，所以加了个 `digest_path()` **只去掉 `.` 组件**。
+> `soko.project-iface/1` → `/2`。
+
 - **改什么**：确认并补断言：摘要按拓扑序含每模块源文本（`ProjectPlan::digest`）。
 - **判据**：`cargo test -p sokonanoda-cli --test imports -- --nocapture` 既有判别性
   测试绿（改依赖后 `#reduce` 必须给出新值）+ 新增"改 lib 一行 ⇒ 入口必重编"。
@@ -2387,8 +2406,8 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 - [x] `T-A04` 冷/热 `--json` 逐字节一致（带 `sorry` 的项目）
 - [x] `T-A05` `requires` 漂移不再静默关掉缓存 + 两条写缓存路径规则一致
 - [x] `T-A08` `requires` 的单一来源 + 漂移门禁（**用户判定的根因**）
-- [ ] `T-A06` 依赖改动仍必 miss
-- [ ] `T-A07` `--text` 中间态的处置
+- [x] `T-A06` 依赖改动仍必 miss
+- [x] `T-A07` `--text` 中间态的处置
 - [ ] `T-A10` LSP 读项目缓存（命中即回放）
 - [ ] `T-A11` LSP 写项目缓存
 - [ ] `T-A12` LSP 侧测试：两次独立进程打开，诊断逐字节一致
