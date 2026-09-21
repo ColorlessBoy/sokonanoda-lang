@@ -224,6 +224,14 @@ jobs:
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" check
 
+      - name: Version single-source (manifests)
+        # 每个声明了 `requires` 的 `sokonanoda.toml` 必须等于仓库版本（T-A08）。
+        # 用户原话："开发没有默认提升这个 project 的 requires，这是根因" ——
+        # 陈旧的 `requires` 曾经让整个项目缓存失效（G-24），而"每个清单各写各的"
+        # 就是它发生的方式。bump 走 `python3 scripts/bump.py <x.y.z>`。
+        shell: bash
+        run: python3 "$GITHUB_WORKSPACE/scripts/bump.py" --check
+
       - name: Notation rule (courses, fast)
         # 课程记法规则（2026-09-21 用户拍板）：lib + 正文 + 入门课 + playground
         # 一律 Lean 4 记法（`Eq.{1} T a b` → `a = b`、`Set.mem α a A` → `a ∈ A`、

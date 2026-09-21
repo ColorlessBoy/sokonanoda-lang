@@ -20,7 +20,13 @@
 | `syntaxes/*.tmLanguage.json` | TextMate 语法（即时高亮，LSP 语义高亮的降级层） | — |
 | `language-configuration.json` | 括号配对、注释、缩进 | — |
 
-## 2. 版本纪律（semver，硬规则）
+## 2. 版本纪律
+
+**bump 用脚本，别手改**：`python3 scripts/bump.py <x.y.z>` 一次写全
+（`Cargo.toml` + `editor/vscode/package.json` + `Cargo.lock` + 仓库里所有清单的
+`requires`）；`python3 scripts/bump.py --check` 是 gate 与 CI 的那条门禁。
+手改漏掉清单的 `requires` 就是 G-24 的成因。`CHANGELOG.md` 仍然手写。
+（semver，硬规则）
 
 ### 判断标准
 

@@ -950,6 +950,28 @@ async function main(argv) {
       // half of these repros test the launcher's own resolution chain, and an
       // exported override short-circuits their fixtures (that reddened this step
       // the first time it ran under `gate`). `gap.py` also strips it itself.
+      // Version single-source (T-A08): every `sokonanoda.toml` in the repo that
+      // declares `requires` must equal the repo version. The user's own words
+      // were "开发没有默认提升这个 project 的 requires，这是根因" — a stale
+      // `requires` used to turn the whole project cache off (G-24), and each
+      // manifest drifting on its own is how it happened. Cheap (git ls-files +
+      // regex) and it makes `scripts/bump.py` the only place a version is written.
+      const manifests = path.join(REPO, 'scripts', 'bump.py')
+      if (!existsSync(manifests)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, manifests)} —— 版本漂移无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const versionCheck = spawnSync(python.cmd, [...python.args, manifests, '--check'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (versionCheck.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${manifests}: ${versionCheck.error.message}\n`)
+        return 3
+      }
+      if ((versionCheck.status ?? 3) !== 0) return versionCheck.status ?? 3
       const ledgerCheck = path.join(REPO, 'scripts', 'gap.py')
       if (!existsSync(ledgerCheck)) return 0
       const ledger = spawnSync(python.cmd, [...python.args, ledgerCheck, 'check'], {

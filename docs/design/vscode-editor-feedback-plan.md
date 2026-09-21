@@ -1100,6 +1100,26 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A08 `requires` 的单一来源 + 漂移门禁（**用户判定的根因**）
 
+> **完成（2026-09-21）**。脚本名从计划里的 `check-manifests.py` 改成
+> **`scripts/bump.py`**：**写和查必须共用一份实现**——分成两个脚本就会有两份
+> "版本写在哪几个地方"的清单，那正是漂移的成因本身。用法
+> `python3 scripts/bump.py <x.y.z>`（写）· `python3 scripts/bump.py --check`（查）。
+>
+> 它写四处：`Cargo.toml` · `editor/vscode/package.json` · `Cargo.lock` ·
+> **仓库里每个声明了 `requires` 的 `sokonanoda.toml`**（`git ls-files` 得到，
+> 所以 `.cache/` 里那些不会被碰）。`CHANGELOG.md` **不**由它写——那是人写的。
+>
+> 修掉两处实际漂移：`course/shared` **0.57**、`courses/set-theory` **0.61**
+> （仓库 0.63.3）。
+>
+> **实测踩到的陷阱**：第一版正则 `name = "sokonanoda[^"]*"` 把 **kernel** 也改了
+> ——内核在 `Cargo.lock` 里就叫 `sokonanoda`，而它的版本是**独立**的
+> （`0.5.0`，跟它自己那条线），`cargo test --locked` 立刻拒绝。改成**精确名字表**
+> （front/cli/lsp 三个）。
+>
+> 接进 `scripts/soko gate`（缺脚本 exit 3，绝不静默跳过）与 `ci.yml`。
+> 判别性已验证：人为把 `requires` 改回 `0.61` ⇒ **exit 1** 并指名文件。
+
 - **根因**：开发过程**没有自动提升**项目清单的 `requires`。`courses/set-theory`
   与语言仓**同仓共同开发**，版本本来应当一致，却手写着 `"0.61"`；
   `course/shared/sokonanoda.toml` 写 `"0.57"`，同样漂移。
@@ -2366,7 +2386,7 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 - [x] `T-A03` 缓存条目 v2：按模块存（对齐设计 §4.8）
 - [x] `T-A04` 冷/热 `--json` 逐字节一致（带 `sorry` 的项目）
 - [x] `T-A05` `requires` 漂移不再静默关掉缓存 + 两条写缓存路径规则一致
-- [ ] `T-A08` `requires` 的单一来源 + 漂移门禁（**用户判定的根因**）
+- [x] `T-A08` `requires` 的单一来源 + 漂移门禁（**用户判定的根因**）
 - [ ] `T-A06` 依赖改动仍必 miss
 - [ ] `T-A07` `--text` 中间态的处置
 - [ ] `T-A10` LSP 读项目缓存（命中即回放）

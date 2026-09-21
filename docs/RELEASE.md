@@ -9,6 +9,17 @@ release——人不再需要手打 tag。手动推 tag 仅作应急/重发备用
 > 回退包 + 版本锁定下载）。核心不变量：
 > **tag == `Cargo.toml` == `package.json` == VSIX 内嵌的 LSP 二进制版本。**
 
+## 版本号只有一处来源：`scripts/bump.py`
+
+```bash
+python3 scripts/bump.py 0.63.4          # 写：Cargo.toml + package.json + Cargo.lock + 所有清单的 requires
+python3 scripts/bump.py --check         # 查（gate 与 CI 都跑这条）
+```
+
+**别再手改版本号**：漏掉一个清单的 `requires` 就是 G-24 的成因（用户原话：
+"开发没有默认提升这个 project 的 requires，这是根因"）。`editor/vscode/CHANGELOG.md`
+仍由人写（脚本只管数字一致）。
+
 ## 1. 版本号在哪几处
 
 | 位置 | 说明 |
