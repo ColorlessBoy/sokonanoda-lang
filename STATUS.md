@@ -20,6 +20,59 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-21，第一百二十一轮：`by` 块判定的**根因**修复 —— 每步重判整份文档 → 一次判完）
+
+> 用户：「修改吧，而且性能能再恢复吗？」——上一轮只做了"抬超时 + 换 release"两件
+> 临时手段，并把根因写进了站点「未来的计划」。本轮把根因修掉。
+
+1. **先把账量清楚**（临时探针，只用不改语义；数据留在 `docs/design/by-tactics.md` §13）。
+   最坏样本 = 卷 I 单元⑫ 的解答（526 行、9 道题、全 tactic）：release 构建判一次
+   **91.2 s**，而同一份内容改回 term 风格的基线只要 **3.6 s**。探针说得很干净：
+   `hits=20764 misses=89 judge_time=83.5s avg=938.6ms`，其中**解析只占 0.2 s**，
+   **99.6% 花在 `check_document_with` 重跑整份前缀**（每次平均 69 条命令 = 闭包前缀 +
+   本文件已判过的声明）。也就是 89 次未命中的判定吃掉 92% 的运行时间。
+2. **先说清哪条路是死的**：最自然的修法是复用前缀的**已判定环境**，但内核 API 不允许
+   ——`EnvBuilder` 字段私有、`new(arena, config)` 是唯一入口、`finish(self)` 消费自身，
+   `ExportFile` 只读，而 **`crates/kernel/` 是冻结快照（硬规则 1）**；名字下标
+   （`NamePtr::decl_idx`）绑定在构建它的 builder 上，换个 builder 造的 `Declar` 查旧环境
+   会查错槽位。⇒ "oleans 式复用"要等内核开口子，**不是前端能自己做的**（免得下一刀再试）。
+3. **修的是更窄但足够的那条**：同一个 `by` 块里**不再逐步判**，而是"先记下来、跑完一次
+   判完"。`judge.rs` 新增 `JudgePair` + `judge_pairs_with`（N 条判定合成**一份文档**，
+   每条各自带目标类型与 binder 折叠，合成声明仍叫 `_soko_judge_{k}`）；`begin_batch` /
+   `flush_batch` 用 thread-local（**不**往 `run_tactics` 那 8 个参数的函数再加参数），
+   批次活跃时 `judge_terms` 只记录并返回乐观的 `Match`；`by.rs` 的 `run_by` = 乐观一趟
+   + flush。
+4. **等价性论证（这是它能成立的全部理由）**：判定结果只在两处影响控制流——`Match` 才继续、
+   否则在**那一步**报错；所以"这一趟里每一条判定真的都是 `Match`"时，乐观趟与逐条趟的
+   **控制流逐字相同**。只要有一条不是 `Match`，就丢掉乐观结果、**严格重跑**（逐条判、
+   逐条报错），诊断/位置/文案与改动前一致；乐观趟自己报了别的错而判定并未全绿时不必重跑
+   ——那个错是真的。**例外**：`assumption` 走 `judge_terms_strict`（当场判），它要按结论
+   **挑**哪条假设命中，乐观值给不出这个信息。
+5. **实测（同一台机器、同一个 release 二进制，开关 = `SOKO_NO_JUDGE_BATCH=1`）**：
+
+   | 输入 | 关（= 改动前） | 开（本次） | 倍数 |
+   |---|---|---|---|
+   | 单元⑫ 解答（526 行全 tactic） | 91.2 s | **28.7 s** | **3.2×** |
+   | 整卷课程门禁（36 目标） | 4m33s | **2m56s** | **1.55×** |
+
+   两态都是 **36 目标 · 328 checked · 99 open · 0 判负**（逐项相同）。CI 侧的连锁收益：
+   单目标从 93.5 s（release）降到 28.7 s，`GRADE_TIMEOUT=600` 的余量从 6.4× 变成 21×，
+   那个"runner 慢一点就撞上限"的发版卡点不复存在。
+6. **判据三层**（都在 `docs/design/by-tactics.md` §13）：①
+   `judge.rs::tests::batched_judgements_match_strict_ones`（命中/类型不匹配/术语解析失败/
+   binder 缺类型四条路径逐条相等，且"预判不合成命令"没有让后面的序号错位）；②
+   `judge.rs::tests::one_by_block_pays_a_single_document_pass`（一个 `by` 块 3 次判定
+   **只走 1 遍文档**，关掉开关 ≥3 遍，两态结论相同）；③
+   `crates/cli/tests/judge_batch.rs` **端到端对拍**：正常解答、**判定失败**的解答、
+   带开放练习的画布、解答钥匙，四条输入在两态下 `--json` 事件流**逐字节相同**。
+7. **还没还清的（别当成已还清）**：term 风格基线 3.6 s 说明离"零判定成本"还有距离——
+   剩下的是"每个带 tactic 的声明仍要重走一遍前缀"（单元⑫ = 9 条声明 + 库里带 tactic 的
+   声明 ≈ 20 遍）。再往前一步必须走内核侧的环境复用（见第 2 条），**没有进缺口台账**：
+   台账判的是"行为/语言缺口 + 可复现的判据"，性能债的复现会随机器档位漂，塞进去只会变成
+   噪声；它的判据就是本轮 §5 的 A/B 与上表。
+8. **顺带**：`site/index.html`「未来的计划」里那条性能项改写成"已修 3.2×、还剩什么"，
+   不能继续写着"根因没修"。
+
 ## 本轮进度（2026-09-21，第一百二十轮：官网 28 页 → **单页**；0.62.0 的第二个发版卡点）
 
 > 用户两条指令：「site 刚刚被重构了，但是属于灾难，你把所有 site 简化吧：单个网页，
@@ -177,62 +230,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    K10（`kernel.html` 逐字引用 `source_commit`/`generated_at`）与 K16 会判红。
    已写进 `STATE.md` §5 #18 与 `spec/D3-lab-data.md` §1.1 的警告框；**0.62.0 发布后**
    按 `STATE.md` §12.2 的五步一次做完（记法三条 + 6 份 lab 数据 + K12/K16 + 全绿重跑）。
-
-## 本轮进度（2026-09-21，第一百一十八轮：用户四条指令落地——报错质量 / 写进教学 / 速查表 / 站点交接文档）
-
-> 用户在同一轮给了四条指令：①「你改好吧，问题我没看懂」（= 上一轮报的 `Set.mem a A`
-> 报错质量问题）；②「写进教学」（= 把删骨架后新解锁的 tactic 教进课程）；③「修改」
-> （= 记法对照页按 C1.5 重定位）；④「不要动 site，但你实现的功能特性都写到开发文档里，
-> 不要让 site agent 搞不懂」。
-
-1. **① 报错质量：修了一半 + 如实登记另一半（G-21）**。
-   - **已修（声明位）**：`error.rs` 新增 `classify_term_in_type_position`——识别内核
-     「`expected: Sort(n) | actual: $k`」（**项落在类型位**）这个形状，把它从泛化的
-     `kernel-rejected` 归到 `kernel-expected-sort`，并把那条 hint 改写成**指根因**：
-     「点名调用漏了前导类型参数（`Set.mem a A` 应为 `Set.mem α a A`），或直接用记法
-     `a ∈ A` 让它自动补 `α`」。测试：既有的内核消息分类表加两条（新形状 + 一条对照，
-     确认 L-06 的 Prop-not-cumulative 没被吞）。
-   - **同轮重钉了「护城河」测试**（设计早预告过这一步）：`notation.rs::the_pointful_spelling_keeps_working_and_the_moat_holds`
-     以前钉 `code == "kernel-rejected"`，现在钉 `kernel-expected-sort` **并新增一条断言**——
-     hint 必须同时说出「前导类型参数」与记法出路。**护城河本身没变**（省略 `α` 仍判红、
-     仍在 kernel 阶段、仍是同一条声明），变精确的只是诊断码与提示。
-   - **仍欠（`by` 路径）**：`… : Set.mem a A -> A a := by intro h; exact h` 还是报
-     「期望 `A a`，实际是 `Set.mem a A`」这种**同形**对照。根因查明：**`by` 块跑的
-     时候声明签名还没被内核检查过**（`open_signature` 只用 axiom 探针、且只在值位是洞
-     时才走）。修法是「签名检查前移到 `by` 之前」，但那要确认探针不进声明表 + 不为每条
-     `by` 声明付额外 elaborate，**不在本轮预算内**，故如实登记。
-   - 台账 **G-21**（`kind: language`、`severity: painful`、`status: open`）+ 自断言
-     repro `docs/gaps/repro/G21-omitted-type-argument.{sokonanoda,sh}`：
-     脚本同时断言两半，②一旦修好就转 exit 1、`gap.py check` 会提醒关账。
-     `python3 scripts/gap.py check` → **全部与台账一致** ✓。
-2. **② 写进教学：单元④ 从六条 tactic 扩到八条**（subagent 执行 + 我复核）。
-   - 新增 `demo_by_constructor`（`∧` 目标上 `constructor` 拆两子目标）与
-     `demo_by_cases`（`∨` 假设上 `cases h with | inl … | inr …`），开头说明改成
-     **八条**并写明 `left`/`right`/`use` 与 `constructor` 同族；删掉已不成立的
-     「其余 tactic 随后面的单元解锁」。练习**没加**（现成的 `by_ex4`/`by_ex6` 已能吃下
-     这两个 tactic；历史上专门删过重复练习），编号无跳号、解答逐名覆盖。
-   - 复核：4 个文件 rc=0、诊断 0、**CN/EN 剥注释后逐字节相同**；计数
-     画布 `(9,6,0)`、解答 `(15,0,0)`；四处钉子重钉（`course.rs` GOLDEN、
-     `course_status.rs` 逐单元 + summary **56/66**、`cli.rs` checked 56）→
-     `course`/`course_status`/`course_shared`/`cli` **114 条全绿**。
-   - **subagent 挖到一条真边界（值得记）**：`use` 要求目标是**真归纳**，而单元⑧ 的
-     `∃` 是那里自己声明的 **axiom** ⇒ `use 0` 在单元⑧ 判红（报错原文进了交付）。
-     它没有照我的字面要求写"use 在这里可用"，而是写成实情——**这是对的做法**。
-     （把单元⑧ 的 `Exists` 改成 `inductive` 就能解锁 `use`，且更贴近 Lean；
-     但那是与 C2.5 同族的新一刀，**留给下一轮拍板**。）
-3. **③ 记法对照页重定位成速查表**（subagent 执行）：页头补一张**全符号速查表**
-   （逻辑连接符内建 + 集合论符号的记法→点名→声明形状→优先级梯子）+ 三条使用规则
-   （记法是源级糖 / 点名形式永久可用 / 记法自动补前导类型参数），9 对演示与 3 道练习
-   **保留**（它们是"两种写法同判"的证据），「本页的定位」改成"参考页不是单元"。
-   **计数不变**：画布 18 checked / 3 open、解答 21 checked / 0 open（只动注释与版式）。
-4. **④ 站点交接文档（不碰 `site/`，也不进 site-rebuild 的地盘）**：新建
-   `docs/design/lean-style-0.62.md`——给站点/文档 agent 的**事实清单**：12 项用户可见
-   特性（记法 / tactic / 隐式实参 / 记法输入 / 判定侧修复 / 新诊断码
-   `elab-implicit-argument-unsolved`）、课程内容的事实变化（两门课 + playground 的
-   当前计数、C2.5 的后果）、**站点不该误解的三件事**（G-21 半修、记法在实参位的
-   `elab-notation-argument-unsolved` 边界、记法对照页的双写法是**故意**的），
-   并显式标注「工作树 = 未发布 0.62.0」+ 指向 `site-rebuild/STATE.md` #13 的测量陷阱。
-   已挂进 `docs/README.md` 文档地图与 `docs/HANDOVER.md` 的关键文档索引。
-5. **仍欠 / 下一轮拍板项**：单元⑧ 的 `Exists` 要不要改 `inductive`（解锁 `use`，
-   与 C2.5 同族）；G-21 的 `by` 路径那一半；R2.5 的 IA-2/IA-3；`judge_infer` 的宇宙参数。
 

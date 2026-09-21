@@ -5,6 +5,65 @@
 > 原文移到这里（一字未改，含轮次编号的历史重号）。查某轮做了什么、某缺陷
 > 何时修的，先到这里 grep。当前进度仍以 `STATUS.md` 为准。
 
+## 本轮进度（2026-09-21，第一百一十八轮：用户四条指令落地——报错质量 / 写进教学 / 速查表 / 站点交接文档）
+
+> 用户在同一轮给了四条指令：①「你改好吧，问题我没看懂」（= 上一轮报的 `Set.mem a A`
+> 报错质量问题）；②「写进教学」（= 把删骨架后新解锁的 tactic 教进课程）；③「修改」
+> （= 记法对照页按 C1.5 重定位）；④「不要动 site，但你实现的功能特性都写到开发文档里，
+> 不要让 site agent 搞不懂」。
+
+1. **① 报错质量：修了一半 + 如实登记另一半（G-21）**。
+   - **已修（声明位）**：`error.rs` 新增 `classify_term_in_type_position`——识别内核
+     「`expected: Sort(n) | actual: $k`」（**项落在类型位**）这个形状，把它从泛化的
+     `kernel-rejected` 归到 `kernel-expected-sort`，并把那条 hint 改写成**指根因**：
+     「点名调用漏了前导类型参数（`Set.mem a A` 应为 `Set.mem α a A`），或直接用记法
+     `a ∈ A` 让它自动补 `α`」。测试：既有的内核消息分类表加两条（新形状 + 一条对照，
+     确认 L-06 的 Prop-not-cumulative 没被吞）。
+   - **同轮重钉了「护城河」测试**（设计早预告过这一步）：`notation.rs::the_pointful_spelling_keeps_working_and_the_moat_holds`
+     以前钉 `code == "kernel-rejected"`，现在钉 `kernel-expected-sort` **并新增一条断言**——
+     hint 必须同时说出「前导类型参数」与记法出路。**护城河本身没变**（省略 `α` 仍判红、
+     仍在 kernel 阶段、仍是同一条声明），变精确的只是诊断码与提示。
+   - **仍欠（`by` 路径）**：`… : Set.mem a A -> A a := by intro h; exact h` 还是报
+     「期望 `A a`，实际是 `Set.mem a A`」这种**同形**对照。根因查明：**`by` 块跑的
+     时候声明签名还没被内核检查过**（`open_signature` 只用 axiom 探针、且只在值位是洞
+     时才走）。修法是「签名检查前移到 `by` 之前」，但那要确认探针不进声明表 + 不为每条
+     `by` 声明付额外 elaborate，**不在本轮预算内**，故如实登记。
+   - 台账 **G-21**（`kind: language`、`severity: painful`、`status: open`）+ 自断言
+     repro `docs/gaps/repro/G21-omitted-type-argument.{sokonanoda,sh}`：
+     脚本同时断言两半，②一旦修好就转 exit 1、`gap.py check` 会提醒关账。
+     `python3 scripts/gap.py check` → **全部与台账一致** ✓。
+2. **② 写进教学：单元④ 从六条 tactic 扩到八条**（subagent 执行 + 我复核）。
+   - 新增 `demo_by_constructor`（`∧` 目标上 `constructor` 拆两子目标）与
+     `demo_by_cases`（`∨` 假设上 `cases h with | inl … | inr …`），开头说明改成
+     **八条**并写明 `left`/`right`/`use` 与 `constructor` 同族；删掉已不成立的
+     「其余 tactic 随后面的单元解锁」。练习**没加**（现成的 `by_ex4`/`by_ex6` 已能吃下
+     这两个 tactic；历史上专门删过重复练习），编号无跳号、解答逐名覆盖。
+   - 复核：4 个文件 rc=0、诊断 0、**CN/EN 剥注释后逐字节相同**；计数
+     画布 `(9,6,0)`、解答 `(15,0,0)`；四处钉子重钉（`course.rs` GOLDEN、
+     `course_status.rs` 逐单元 + summary **56/66**、`cli.rs` checked 56）→
+     `course`/`course_status`/`course_shared`/`cli` **114 条全绿**。
+   - **subagent 挖到一条真边界（值得记）**：`use` 要求目标是**真归纳**，而单元⑧ 的
+     `∃` 是那里自己声明的 **axiom** ⇒ `use 0` 在单元⑧ 判红（报错原文进了交付）。
+     它没有照我的字面要求写"use 在这里可用"，而是写成实情——**这是对的做法**。
+     （把单元⑧ 的 `Exists` 改成 `inductive` 就能解锁 `use`，且更贴近 Lean；
+     但那是与 C2.5 同族的新一刀，**留给下一轮拍板**。）
+3. **③ 记法对照页重定位成速查表**（subagent 执行）：页头补一张**全符号速查表**
+   （逻辑连接符内建 + 集合论符号的记法→点名→声明形状→优先级梯子）+ 三条使用规则
+   （记法是源级糖 / 点名形式永久可用 / 记法自动补前导类型参数），9 对演示与 3 道练习
+   **保留**（它们是"两种写法同判"的证据），「本页的定位」改成"参考页不是单元"。
+   **计数不变**：画布 18 checked / 3 open、解答 21 checked / 0 open（只动注释与版式）。
+4. **④ 站点交接文档（不碰 `site/`，也不进 site-rebuild 的地盘）**：新建
+   `docs/design/lean-style-0.62.md`——给站点/文档 agent 的**事实清单**：12 项用户可见
+   特性（记法 / tactic / 隐式实参 / 记法输入 / 判定侧修复 / 新诊断码
+   `elab-implicit-argument-unsolved`）、课程内容的事实变化（两门课 + playground 的
+   当前计数、C2.5 的后果）、**站点不该误解的三件事**（G-21 半修、记法在实参位的
+   `elab-notation-argument-unsolved` 边界、记法对照页的双写法是**故意**的），
+   并显式标注「工作树 = 未发布 0.62.0」+ 指向 `site-rebuild/STATE.md` #13 的测量陷阱。
+   已挂进 `docs/README.md` 文档地图与 `docs/HANDOVER.md` 的关键文档索引。
+5. **仍欠 / 下一轮拍板项**：单元⑧ 的 `Exists` 要不要改 `inductive`（解锁 `use`，
+   与 C2.5 同族）；G-21 的 `by` 路径那一半；R2.5 的 IA-2/IA-3；`judge_infer` 的宇宙参数。
+
+
 ## 本轮进度（2026-09-21，第一百一十七轮：收尾三查——占位、hint 词汇、护城河话术）
 
 > C2.5 落地后，按计划的「收尾同步」逐项**复查**（每项都先量规模再决定做不做）。

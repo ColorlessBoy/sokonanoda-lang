@@ -189,7 +189,38 @@ pub fn judge_terms(
     open: &OpenGoalSpec,
     terms: &[&str],
 ) -> Vec<Judgement> {
+    // 乐观批次活跃（`by` 块正在跑）：只记录，返回 `Match`。批次由
+    // [`flush_batch`] 一次判完；有一条不是 `Match`，`run_by` 就严格重跑。
+    // 记录到的都是**同一个 `by` 块**里的判定，前缀相同 ⇒ 一次文档走查问完。
+    if batching_on() {
+        if let Some(recorded) = record_in_batch(prefix_src, options, open, terms) {
+            return recorded;
+        }
+    }
     judge_terms_with("", prefix_src, options, open, terms)
+}
+
+/// 批次活跃时把这一问记下来，并返回乐观结论（全 `Match`）；没有批次返回 `None`。
+fn record_in_batch(
+    prefix_src: &str,
+    options: &CompileOptions,
+    open: &OpenGoalSpec,
+    terms: &[&str],
+) -> Option<Vec<Judgement>> {
+    BATCH.with(|b| {
+        let mut slot = b.borrow_mut();
+        let items = slot.as_mut()?;
+        for term in terms {
+            items.push(BatchItem {
+                extra_prefix: String::new(),
+                prefix_src: prefix_src.to_string(),
+                options: *options,
+                spec: open.clone(),
+                term: (*term).to_string(),
+            });
+        }
+        Some(vec![Judgement::Match; terms.len()])
+    })
 }
 
 /// 同 [`judge_terms`]，但把 `extra_prefix`（闭包上下文：被导入模块的声明文本）
@@ -211,28 +242,75 @@ pub fn judge_terms_with(
     if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
         return j;
     }
-    let j = judge_terms_uncached(extra_prefix, prefix_src, options, open, terms);
+    let pairs: Vec<JudgePair> = terms
+        .iter()
+        .map(|term| JudgePair {
+            spec: open.clone(),
+            term: (*term).to_string(),
+        })
+        .collect();
+    let j = judge_pairs_uncached(extra_prefix, prefix_src, options, &pairs);
     judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
     j
 }
 
-fn judge_terms_uncached(
+/// 一「对」判定请求：**一个目标规格 + 一条候选术语文本**。
+///
+/// 为什么要有它（0.62.0 性能）：`by` 块的**每一步** tactic 都会问一次判定
+/// （`have` / `exact` / `rfl` 各算一次），而每次判定都要**重跑整份文档前缀**
+/// （O(前缀)）。一份 tactic 风格解答轻松上百次判定 ⇒ 整份文件退化成
+/// O(前缀 × 步数)。把「一个 `by` 块里的全部判定」合成**一份文档**一次问完，
+/// 前缀就只走一遍——见 [`begin_batch`] / [`flush_batch`]。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JudgePair {
+    pub spec: OpenGoalSpec,
+    pub term: String,
+}
+
+/// 一批判定一次问完（[`judge_terms_with`] 是它的单规格特例）。
+///
+/// **判定语义与逐条调用逐字相同**：合成声明的名字仍是 `_soko_judge_{k}`（`k` 是
+/// 这一批里的序号），每条各自带自己的目标类型与 binder 折叠，交给**同一份**
+/// 文档流水线（含 prelude 决策、check-then-add、完整 kernel）。唯一的差别是
+/// "一个前缀走一遍"而不是"每条走一遍"。
+pub fn judge_pairs_with(
     extra_prefix: &str,
     prefix_src: &str,
     options: &CompileOptions,
-    open: &OpenGoalSpec,
-    terms: &[&str],
+    pairs: &[JudgePair],
+) -> Vec<Judgement> {
+    let key = judge_cache_key(&[
+        extra_prefix,
+        prefix_src,
+        &options_key(options),
+        &format!("{pairs:?}"),
+    ]);
+    if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
+        return j;
+    }
+    let j = judge_pairs_uncached(extra_prefix, prefix_src, options, pairs);
+    judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
+    j
+}
+
+fn judge_pairs_uncached(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    pairs: &[JudgePair],
 ) -> Vec<Judgement> {
     let mut judgements = vec![
         Judgement::Error {
             code: "judge-not-run".to_string(),
             message: "判定未执行".to_string(),
         };
-        terms.len()
+        pairs.len()
     ];
-    if terms.is_empty() {
+    if pairs.is_empty() {
         return judgements;
     }
+    #[cfg(test)]
+    PASSES.with(|c| c.set(c.get() + 1));
     // 剩余目标解析失败 → 全部判为解析错误。
     //
     // **前缀先解析**（顺序对调，G-04 第二刀）：前缀的 `FolFile` 里带着本文件
@@ -248,7 +326,7 @@ fn judge_terms_uncached(
                 code: "parse".to_string(),
                 message: "前缀源码无法解析".to_string(),
             };
-            terms.len()
+            pairs.len()
         ];
     };
     // 记法表按**声明顺序**收，`scoped` 的按「前缀里有没有 `open scoped`」过滤
@@ -275,32 +353,8 @@ fn judge_terms_uncached(
             _ => notations.push(decl),
         }
     }
-    let Ok(goal) = crate::proof::parse_expr_text_with(&open.ty, &notations) else {
-        return vec![
-            Judgement::Error {
-                code: "parse".to_string(),
-                message: format!("无法解析目标类型 `{}`", open.ty),
-            };
-            terms.len()
-        ];
-    };
-    // 把已写 binders 折叠回声明类型：`(b1 : T1) -> (b2 : T2) -> 剩余目标`。
-    // binder 名字与显隐风格不影响内核检查（只影响打印），统一折成命名箭头。
-    let ty = match fold_declared(goal, &open.binders, &notations) {
-        Ok(ty) => ty,
-        Err(missing) => {
-            return vec![
-                Judgement::Error {
-                    code: "elab-untyped-binder".to_string(),
-                    message: format!("binder `{missing}` 缺少类型标注，无法合成判定声明"),
-                };
-                terms.len()
-            ]
-        }
-    };
 
     let mut commands = prefix_file.commands;
-    let mut failed_parse: Option<usize> = None;
     // The synthesized declarations sit *after* the real prefix in the source:
     // give them a span past `prefix_src` and hand the prefix as the file text so
     // `command.span().start`-based prefix lookup (which `match`'s universe query
@@ -319,16 +373,44 @@ fn judge_terms_uncached(
             column: 0,
         },
     );
-    for (k, term) in terms.iter().enumerate() {
-        let Ok(term_expr) = crate::proof::parse_expr_text_with(term, &notations) else {
-            failed_parse = Some(k);
+    // 解析不成功的那些**不合成命令**，但**保留序号**（`_soko_judge_{k}` 里的 k
+    // 仍是这一批里的位置）——`judgement_of` 按名字回查，序号不能顺延。
+    let mut pre_judged: Vec<bool> = vec![false; pairs.len()];
+    for (k, pair) in pairs.iter().enumerate() {
+        let Ok(goal) = crate::proof::parse_expr_text_with(&pair.spec.ty, &notations) else {
+            judgements[k] = Judgement::Error {
+                code: "parse".to_string(),
+                message: format!("无法解析目标类型 `{}`", pair.spec.ty),
+            };
+            pre_judged[k] = true;
             continue;
         };
-        let val = wrap_binders(&open.binders, term_expr, &notations);
+        // 把已写 binders 折叠回声明类型：`(b1 : T1) -> (b2 : T2) -> 剩余目标`。
+        // binder 名字与显隐风格不影响内核检查（只影响打印），统一折成命名箭头。
+        let ty = match fold_declared(goal, &pair.spec.binders, &notations) {
+            Ok(ty) => ty,
+            Err(missing) => {
+                judgements[k] = Judgement::Error {
+                    code: "elab-untyped-binder".to_string(),
+                    message: format!("binder `{missing}` 缺少类型标注，无法合成判定声明"),
+                };
+                pre_judged[k] = true;
+                continue;
+            }
+        };
+        let Ok(term_expr) = crate::proof::parse_expr_text_with(&pair.term, &notations) else {
+            judgements[k] = Judgement::Error {
+                code: "parse".to_string(),
+                message: format!("无法解析术语 `{}`", pair.term),
+            };
+            pre_judged[k] = true;
+            continue;
+        };
+        let val = wrap_binders(&pair.spec.binders, term_expr, &notations);
         commands.push(Command::Def {
             name: format!("_soko_judge_{k}"),
-            universe: open.universe.clone(),
-            ty: ty.clone(),
+            universe: pair.spec.universe.clone(),
+            ty,
             val,
             span: after_prefix,
         });
@@ -341,16 +423,165 @@ fn judge_terms_uncached(
         options,
     );
     for (k, judgement) in judgements.iter_mut().enumerate() {
-        if failed_parse == Some(k) {
-            *judgement = Judgement::Error {
-                code: "parse".to_string(),
-                message: format!("无法解析术语 `{}`", terms[k]),
-            };
+        if pre_judged[k] {
             continue;
         }
         *judgement = judgement_of(&report, k);
     }
     judgements
+}
+
+/// 当场判（**不做乐观批处理**）。
+///
+/// 少数 tactic 需要**当场**拿到结论才能继续（`assumption` 要按结论**挑**哪条
+/// 假设命中，不是"通过/报错"二选一），它们用这个入口；其余（`have`/`exact`/
+/// `rfl`）走 [`begin_batch`] 的乐观通道。
+pub fn judge_terms_strict(
+    prefix_src: &str,
+    options: &CompileOptions,
+    open: &OpenGoalSpec,
+    terms: &[&str],
+) -> Vec<Judgement> {
+    judge_terms_with("", prefix_src, options, open, terms)
+}
+
+/// 乐观判定批次的记录项。
+struct BatchItem {
+    extra_prefix: String,
+    prefix_src: String,
+    options: CompileOptions,
+    spec: OpenGoalSpec,
+    term: String,
+}
+
+/// 乐观批处理总开关（测试/排错用；默认开）。
+///
+/// 关掉之后 `judge_terms` 恢复"每次调用当场判一遍"，用于**对拍**：
+/// 开与关必须给出逐字相同的结论与诊断（`by::batch_matches_strict` 系列测试）。
+static BATCHING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+/// 打开/关闭乐观批处理；返回原值。
+pub fn set_batching(on: bool) -> bool {
+    BATCHING.swap(on, std::sync::atomic::Ordering::Relaxed)
+}
+
+/// `SOKO_NO_JUDGE_BATCH=1` 强制关掉乐观批处理（**对拍用**：开与关必须给出
+/// 逐字相同的结论与诊断）。只读一次环境（进程级开关）。
+fn batching_on() -> bool {
+    static ENV_OFF: OnceLock<bool> = OnceLock::new();
+    let off = *ENV_OFF.get_or_init(|| std::env::var("SOKO_NO_JUDGE_BATCH").is_ok());
+    !off && BATCHING.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// 判定**文档走查次数**（`cfg(test)` 计数用）。
+///
+/// 每一次 `judge_pairs_uncached` 都要把整份前缀重跑一遍——这是"判定不逐步做"
+/// 之后唯一剩下的 O(前缀) 成本，所以它是性能回归最灵敏的指标：一个 `by` 块里
+/// 的 N 次判定，开批处理应当是 **1** 次走查，关掉是 N 次。
+#[cfg(test)]
+pub(crate) fn pass_count() -> usize {
+    PASSES.with(|c| c.get())
+}
+
+#[cfg(test)]
+pub(crate) fn reset_pass_count() {
+    PASSES.with(|c| c.set(0));
+}
+
+#[cfg(test)]
+thread_local! {
+    static PASSES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+thread_local! {
+    /// 当前活跃的乐观批次（`None` = 没有批次，判定立即执行）。
+    ///
+    /// 用 thread-local 而不是把 `&mut Batch` 一路穿过 `run_tactics` /
+    /// `exact_tactic` / `cases_tactic`：那些函数已经在 `clippy::too_many_arguments`
+    /// 的边上（8 个参数），再加一个只会让每次判定多一层间接。
+    static BATCH: std::cell::RefCell<Option<Vec<BatchItem>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// 开一个乐观批次：期间 [`judge_terms`] **只记录不判**，一律返回 `Match`。
+///
+/// 语义靠 [`flush_batch`] 兜底：记录下来的每一对都真的判一遍，只要有**一条**
+/// 不是 `Match`，调用方（`by::run_by`）就丢掉这一趟的结果、改用逐条判定的
+/// **严格重跑**——所以失败路径的诊断与改动前逐字相同。
+#[must_use = "批次必须 flush（或者显式 drop）；见 flush_batch"]
+pub(crate) struct BatchScope {
+    /// 外层批次（嵌套时的栈式恢复：flush 期间跑的嵌套 pass 会开自己的批次）。
+    outer: Option<Vec<BatchItem>>,
+}
+
+pub(crate) fn begin_batch() -> BatchScope {
+    let outer = BATCH.with(|b| b.borrow_mut().take());
+    BATCH.with(|b| *b.borrow_mut() = Some(Vec::new()));
+    BatchScope { outer }
+}
+
+impl BatchScope {
+    /// 取走这一批记录（不判定）。调用方随后用 [`judge_pairs_with`] 判。
+    fn take(&self) -> Vec<BatchItem> {
+        BATCH.with(|b| b.borrow_mut().take()).unwrap_or_default()
+    }
+}
+
+impl Drop for BatchScope {
+    fn drop(&mut self) {
+        // 恢复外层批次（嵌套 pass 结束后，外层继续记录）。
+        let outer = self.outer.take();
+        BATCH.with(|b| *b.borrow_mut() = outer);
+    }
+}
+
+/// 把一批记录判掉，返回**是否全部 `Match`**。
+///
+/// 返回 `bool` 而不是逐条结论：非 `Match` 的处置一律是"丢掉乐观结果、严格
+/// 重跑"，所以这里只要知道有没有翻车。
+pub(crate) fn flush_batch(scope: BatchScope) -> bool {
+    let items = scope.take();
+    drop(scope);
+    if items.is_empty() {
+        return true;
+    }
+    // 一批里的 `(前缀, 选项)` 恒相同（同一个 `by` 块），但按 key 分组更稳：
+    // 分组键变了就分开判，绝不把不同前缀的判定混进同一份文档。
+    let mut all_match = true;
+    let mut start = 0usize;
+    while start < items.len() {
+        let key = (
+            items[start].extra_prefix.clone(),
+            items[start].prefix_src.clone(),
+            options_key(&items[start].options),
+        );
+        let mut end = start + 1;
+        while end < items.len()
+            && items[end].extra_prefix == key.0
+            && items[end].prefix_src == key.1
+            && options_key(&items[end].options) == key.2
+        {
+            end += 1;
+        }
+        let pairs: Vec<JudgePair> = items[start..end]
+            .iter()
+            .map(|item| JudgePair {
+                spec: item.spec.clone(),
+                term: item.term.clone(),
+            })
+            .collect();
+        let judgements = judge_pairs_with(
+            &items[start].extra_prefix,
+            &items[start].prefix_src,
+            &items[start].options,
+            &pairs,
+        );
+        if !judgements.iter().all(|j| matches!(j, Judgement::Match)) {
+            all_match = false;
+        }
+        start = end;
+    }
+    all_match
 }
 
 /// **一个项的类型文本**（不合成 lambda、不剥 binder）：合成 `#check <term>`
@@ -1210,6 +1441,108 @@ mod tests {
             "different options = different key"
         );
         assert!(judge_cache_len() >= before);
+    }
+
+    /// **批处理 ≡ 逐条判**（0.62.0 性能改动的判据）。
+    ///
+    /// 一次 `judge_pairs_with` 与逐条 `judge_terms_strict` 必须给出**逐字相同**的
+    /// 结论——包括命中、类型不匹配（`expected`/`actual` 文本来自内核）、以及
+    /// 解析失败/缺类型标注这两条**预判**路径（它们不合成命令、靠保留的序号回查）。
+    #[test]
+    fn batched_judgements_match_strict_ones() {
+        let prefix = "axiom P : Prop\naxiom Q : Prop\n";
+        let options = CompileOptions::default();
+        let pairs = vec![
+            // 命中：`(h : P) -> P` 里的 `h`。
+            JudgePair {
+                spec: spec("P", &[("h", Some("P"))]),
+                term: "h".to_string(),
+            },
+            // 不匹配：`(h : P) -> Q` 里的 `h`（内核报 expected/actual）。
+            JudgePair {
+                spec: spec("Q", &[("h", Some("P"))]),
+                term: "h".to_string(),
+            },
+            // 术语解析失败（预判路径）。
+            JudgePair {
+                spec: spec("P", &[("h", Some("P"))]),
+                term: "fun (".to_string(),
+            },
+            // binder 缺类型标注（预判路径）。
+            JudgePair {
+                spec: spec("P", &[("h", None)]),
+                term: "h".to_string(),
+            },
+            // 又来一条能命中的，验证"预判不合成命令"没有把后面的序号错位。
+            JudgePair {
+                spec: spec("P", &[("h", Some("P"))]),
+                term: "h".to_string(),
+            },
+        ];
+        let batched = judge_pairs_with("", prefix, &options, &pairs);
+        let strict: Vec<Judgement> = pairs
+            .iter()
+            .map(|pair| {
+                judge_terms_strict(prefix, &options, &pair.spec, &[pair.term.as_str()])
+                    .into_iter()
+                    .next()
+                    .expect("one judgement per term")
+            })
+            .collect();
+        assert_eq!(batched.len(), strict.len());
+        for (k, (b, s)) in batched.iter().zip(strict.iter()).enumerate() {
+            assert_eq!(b, s, "第 {k} 条判定：批处理与逐条判不一致");
+        }
+        assert_eq!(batched[0], Judgement::Match);
+        assert_eq!(batched[4], Judgement::Match, "序号不能因预判而错位");
+        assert!(matches!(batched[1], Judgement::Mismatch { .. }));
+        assert!(matches!(batched[2], Judgement::Error { .. }));
+        assert!(matches!(batched[3], Judgement::Error { .. }));
+    }
+
+    /// **一个 `by` 块只付一次文档走查**（性能改动的机制判据）。
+    ///
+    /// 关掉批处理时，N 次判定 = N 次整前缀走查；打开时 = **1** 次。这条断言
+    /// 直接钉住"逐步重判整份文档"这个根因不会回来。
+    #[test]
+    fn one_by_block_pays_a_single_document_pass() {
+        let src = "theorem t (A B : Prop) (h1 : A) (h2 : B) : A \u{2227} B := by\n  have a : A := h1\n  have b : B := h2\n  exact \u{27e8}a, b\u{27e9}\n";
+        let file = parse(src).expect("parse");
+
+        let previous = set_batching(true);
+        reset_pass_count();
+        let batched = check_document(&file);
+        let batched_passes = pass_count();
+        set_batching(previous);
+
+        let previous = set_batching(false);
+        reset_pass_count();
+        let strict = check_document(&file);
+        let strict_passes = pass_count();
+        set_batching(previous);
+
+        // 结论一致（两条路都判过），但代价差一个数量级。
+        assert_eq!(
+            batched
+                .decls
+                .iter()
+                .map(|d| (d.name.clone(), d.status))
+                .collect::<Vec<_>>(),
+            strict
+                .decls
+                .iter()
+                .map(|d| (d.name.clone(), d.status))
+                .collect::<Vec<_>>(),
+            "批处理不能改变判卷结论"
+        );
+        assert_eq!(
+            batched_passes, 1,
+            "一个 by 块（3 次判定）应当只走一遍文档，实际 {batched_passes} 遍"
+        );
+        assert!(
+            strict_passes >= 3,
+            "关掉批处理应当逐条判（≥3 遍），实际 {strict_passes} 遍"
+        );
     }
 
     #[test]

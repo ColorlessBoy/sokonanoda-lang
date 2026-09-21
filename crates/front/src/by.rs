@@ -13,7 +13,10 @@ use crate::ast::{Binder, BinderKind, Expr, HaveValue, MatchArm, Pattern, Tactic}
 use crate::compile::elab::{DefTable, InductiveTable, MatchCtor};
 use crate::compile::CompileError;
 use crate::compile::{CompileOptions, ErrorKind};
-use crate::judge::{judge_infer, judge_terms, GoalBinderSpec, Judgement, OpenGoalSpec};
+use crate::judge::{
+    begin_batch, flush_batch, judge_infer, judge_terms, judge_terms_strict, GoalBinderSpec,
+    Judgement, OpenGoalSpec,
+};
 use crate::proof::{parse_expr_text, render_expr};
 use crate::spine::{
     head_and_args, mentions, peel_pi_delta, spine_of, substitute, unfold_head_once, unify_spine,
@@ -641,6 +644,65 @@ pub(crate) fn run_by(
     ty: &Expr,
     by: &Expr,
     initial_binders: &[Binder],
+    universe: &[String],
+    prefix_src: &str,
+    options: &CompileOptions,
+    canonical_goal: bool,
+    inductives: &InductiveTable<'_>,
+    defs: &DefTable,
+) -> Result<ByOutcome, CompileError> {
+    // **乐观一趟**（0.62.0 性能）：`by` 块里的判定不逐步做，而是先记下来
+    // （`judge_terms` 在批次里返回乐观的 `Match`），跑完由 `flush_batch` 把
+    // **同一个前缀**的全部判定合成**一份文档**一次判完。
+    //
+    // 为什么这与旧行为等价（而不是"放宽判定"）：
+    //   * 判定结果只在两处影响控制流——`Match` 才继续、否则报错；`assumption`
+    //     是例外，它按结论**挑**哪条假设命中，所以它单独走严格通道；
+    //   * 于是"这一趟里每一条判定真的都是 Match"时，乐观趟与逐条趟的**控制流
+    //     逐字相同**，产物也就逐字相同；
+    //   * 只要有一条不是 Match（或乐观趟自己报了别的错而判定并未全绿），就丢掉
+    //     这一趟、改用逐条判定的**严格重跑**——诊断/位置/文案与改动前一致。
+    // 代价：判定全绿的解答只走一遍前缀（原来每步一遍）；判定真的失败时多跑一趟，
+    // 而失败通常发生在块的前几步，严格重跑也随之很短。
+    let scope = begin_batch();
+    let optimistic = run_by_inner(
+        ty,
+        by,
+        initial_binders,
+        universe,
+        prefix_src,
+        options,
+        canonical_goal,
+        inductives,
+        defs,
+    );
+    let all_match = flush_batch(scope);
+    match optimistic {
+        // 判定全绿 ⇒ 这一趟就是严格趟（控制流相同），直接采信。
+        Ok(outcome) if all_match => Ok(outcome),
+        // 判定全绿但别处出错 ⇒ 这个错是真的，不必重跑。
+        Err(error) if all_match => Err(error),
+        // 有判定没通过 ⇒ 严格重跑，拿与改动前逐字相同的诊断。
+        _ => run_by_inner(
+            ty,
+            by,
+            initial_binders,
+            universe,
+            prefix_src,
+            options,
+            canonical_goal,
+            inductives,
+            defs,
+        ),
+    }
+}
+
+/// 跑一趟 `by` 块（判定走当前通道：乐观批次里 = 记录 + `Match`；否则 = 逐条判）。
+#[allow(clippy::too_many_arguments)]
+fn run_by_inner(
+    ty: &Expr,
+    by: &Expr,
+    initial_binders: &[Binder],
     // 本声明的宇宙参数名（`theorem t {u} : …` 里的 `u`）。判定合成的声明必须
     // 带上它们，否则目标里的 `Sort u` / `Eq.{u}` 进内核就是「未声明宇宙变量」。
     // `example` 没有宇宙 binder，传空切片。
@@ -985,7 +1047,9 @@ fn run_tactics(
                     .map(|b| b.name.clone())
                     .collect();
                 let refs: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
-                let js = judge(prefix_src, options, nodes, worklist, cur, universe, &refs);
+                // **严格通道**：`assumption` 要按结论**挑**哪条假设命中（不是
+                // "通过/报错"二选一），乐观批次给不出这个信息。
+                let js = judge_strict(prefix_src, options, nodes, worklist, cur, universe, &refs);
                 let matched = js
                     .iter()
                     .position(|j| matches!(j, Judgement::Match))
@@ -2098,6 +2162,25 @@ fn judge(
     let spec = spec_of(nodes, cur, universe);
     let _ = worklist;
     judge_terms(prefix_src, options, &spec, terms)
+        .into_iter()
+        .next()
+}
+
+/// [`judge`] 的**严格**版本：绕过乐观批次，当场判（只有需要读结论本身的
+/// tactic 才用它，见 `Tactic::Assumption`）。
+#[allow(clippy::too_many_arguments)]
+fn judge_strict(
+    prefix_src: &str,
+    options: &CompileOptions,
+    nodes: &[GoalNode],
+    worklist: &[usize],
+    cur: usize,
+    universe: &[String],
+    terms: &[&str],
+) -> Option<Judgement> {
+    let spec = spec_of(nodes, cur, universe);
+    let _ = worklist;
+    judge_terms_strict(prefix_src, options, &spec, terms)
         .into_iter()
         .next()
 }
