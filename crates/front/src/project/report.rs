@@ -1,5 +1,6 @@
 //! 项目报告：闭包编译的结果（逐模块报告 + 归因到文件/行的项目级诊断）。
 
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 use super::super::compile::{
@@ -9,7 +10,7 @@ use crate::Span;
 
 /// 项目级诊断的种类：错误映射到 `ErrorKind`、警告映射到 `WarningKind`，
 /// 于是它们既能进 `docs/protocol.md` 的码表，也能直接挂进逐模块报告。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProjectKind {
     Error(ErrorKind),
     Warning(WarningKind),
@@ -36,7 +37,7 @@ impl ProjectKind {
 }
 
 /// 一条项目级诊断：**归属到某个模块**（`import` 行的 span 属于导入方）。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProjectDiagnostic {
     pub kind: ProjectKind,
     /// 面向用户的正文（可覆盖 `kind` 的默认 hint）。
@@ -64,7 +65,7 @@ impl ProjectDiagnostic {
 ///
 /// 三者必须可区分：`blocked` 的模块报告是空的，但"上游没编译成功"与"模块自己
 /// 就是空的"是两回事——消费者（编辑器/agent）要靠它决定说什么话。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ModuleStatus {
     /// 参与编译（报告里**可能仍有错误**，错误数看 `report.errors`）。
     Compiled,
@@ -86,7 +87,7 @@ impl ModuleStatus {
 }
 
 /// 一个模块的编译结果。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModuleReport {
     /// 模块名（`import` 名，点分）。
     pub name: String,
@@ -116,7 +117,7 @@ impl ModuleReport {
 }
 
 /// 一次项目编译的全部结果。
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectReport {
     /// 入口文件路径（`--text` 时为约定的占位路径）。
     pub entry: PathBuf,

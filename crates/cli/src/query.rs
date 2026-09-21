@@ -159,16 +159,19 @@ fn load_document(doc: &mut QueryDoc, src: &str) {
         crate::project_cache::plan(&entry, Some(src), doc.root.as_deref(), &options);
     if let Some(cached) = crate::project_cache::load(&digest, &options) {
         if let Some(output) = cached.output {
-            doc.set_cached_entry(src, 1, cached.report, output);
+            doc.set_cached_entry(src, 1, cached.report, output, cached.project);
             return;
         }
     }
     doc.set_text(src, 1, None);
-    if let Some(module) = doc.project_modules().and_then(|modules| modules.last()) {
+    let _ = plan; // 计划已在上面算过摘要；编译走 QueryDoc 自己的路径
+    if let Some(report) = doc.project_report_ref() {
         let output = doc.compiled_output().clone();
-        let clean = output.errors.is_empty() && module.report.errors.is_empty();
-        let _ = plan; // 计划已在上面算过摘要；编译走 QueryDoc 自己的路径
-        crate::project_cache::store_if_clean(&digest, &options, module, clean);
+        let entry_ok = report
+            .entry_module()
+            .is_none_or(|module| module.report.errors.is_empty());
+        let clean = output.errors.is_empty() && entry_ok;
+        crate::project_cache::store_if_clean(&digest, &options, report, clean);
     }
 }
 

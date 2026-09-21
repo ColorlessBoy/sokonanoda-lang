@@ -201,6 +201,8 @@ impl Doc {
                     &CachedCompile {
                         report: report.clone(),
                         output: None,
+                        // 单文件条目：没有项目报告（T-A03 起项目条目才带它）。
+                        project: None,
                     },
                 );
             }

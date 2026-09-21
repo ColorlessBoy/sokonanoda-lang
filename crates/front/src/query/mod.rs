@@ -201,6 +201,13 @@ impl QueryDoc {
         }
     }
 
+    /// 整份项目报告（`None` = 单文件）。缓存条目要存它（T-A03）：
+    /// LSP 的跨文件能力读的是模块表，只存入口报告会让命中缓存的文档
+    /// "能显示、不能跳转"。
+    pub fn project_report_ref(&self) -> Option<&crate::project::ProjectReport> {
+        self.project.as_ref()
+    }
+
     /// 这份文档上次编译时用的**内存覆盖**是否与 `overlay` 一致。
     ///
     /// 供 LSP 的"文本没变就短路"判断（A7 / T-A21）：**覆盖变了也必须重编**——
@@ -266,15 +273,22 @@ impl QueryDoc {
         version: u64,
         report: crate::compile::DocumentReport,
         output: crate::compile::CompileOutput,
+        project: Option<crate::project::ProjectReport>,
     ) {
         self.version = version;
         self.text = text.to_string();
         self.parse_error = None;
-        self.project = None;
+        // **整份项目报告也要回放**（T-A03）：LSP 的跨文件能力
+        // （definition/references/rename/`soko/project` 的模块表/扇出判定）
+        // 读的都是 `project_modules()`。只回放入口报告的话，命中缓存的文档
+        // 会"能显示、不能跳转"。
+        self.project = project;
         self.output = output;
         let mut report = report;
         crate::compile::attach_hints_to_report(text, &mut report);
         self.report = Some(report);
+        // 原因也要跟着重算（它由 `project` 是否存在决定）。
+        self.project_reason = Some(Self::compute_project_reason(&self.project, &self.text));
     }
 
     /// 最近一次编译的产物（CLI 在项目编译后据此写缓存）。

@@ -134,16 +134,7 @@ fn build_one(
             .is_none_or(|module| module.events.errors.is_empty())
             && !project.has_errors();
         if ok && project.is_clean() {
-            if let Some(entry) = project.entry_module() {
-                cache::store(
-                    &digest,
-                    &options,
-                    &CachedCompile {
-                        report: entry.report.clone(),
-                        output: Some(entry.events.clone()),
-                    },
-                );
-            }
+            sokonanoda_front::project::cache::store(&digest, &options, &project);
         }
         return Ok(if ok { "compiled" } else { "failed" });
     }
@@ -171,6 +162,8 @@ fn build_one(
         &CachedCompile {
             report,
             output: Some(output),
+            // 单文件条目（无项目报告）。
+            project: None,
         },
     );
     Ok("compiled")

@@ -16,6 +16,7 @@
 use super::event::CompileOutput;
 use super::prelude::{CompileOptions, PreludeMode};
 use super::report::DocumentReport;
+use crate::project::ProjectReport;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -29,8 +30,18 @@ pub const CACHE_FORMAT: u32 = 3;
 /// producer computed it, the CLI event output.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CachedCompile {
+    /// 入口模块的报告（单文件条目就是这份文件的报告）。
     pub report: DocumentReport,
+    /// 生产者算出来的事件流（CLI `--json` 回放用；LSP 不需要）。
     pub output: Option<CompileOutput>,
+    /// **整份项目报告**（T-A03）：模块表 + 归因。`None` = 单文件条目。
+    ///
+    /// 为什么必须整份存：LSP 的跨文件能力（`definition` / `references` /
+    /// `rename` / `soko/project` 的模块表 / 扇出判定）读的都是
+    /// `project_modules()`，而它来自 `ProjectReport`。只存入口报告的话，
+    /// 命中缓存的文档会"能显示、不能跳转"——设计 §4.8 写的本来就是"按模块存"，
+    /// 实现曾经是"一闭包一条、只存入口"，这里是把它对齐。
+    pub project: Option<ProjectReport>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,6 +49,10 @@ struct CacheFile {
     format: u32,
     report: DocumentReport,
     output: Option<CompileOutput>,
+    /// `CACHE_FORMAT` 3 起：项目条目带整份 `ProjectReport`。
+    /// `#[serde(default)]` 让**旧的单文件条目**仍然读得进来（那时没有这个字段）。
+    #[serde(default)]
+    project: Option<ProjectReport>,
 }
 
 /// Cache root (None when disabled): honors `SOKONANODA_CACHE_DIR` (use as-is),
@@ -165,6 +180,7 @@ fn load_in(dir: &Path, key: &str) -> Option<CachedCompile> {
     Some(CachedCompile {
         report: file.report,
         output: file.output,
+        project: file.project,
     })
 }
 
@@ -183,6 +199,7 @@ fn store_in(dir: &Path, key: &str, entry: &CachedCompile) {
         format: CACHE_FORMAT,
         report: entry.report.clone(),
         output: entry.output.clone(),
+        project: entry.project.clone(),
     }) else {
         return;
     };
@@ -237,6 +254,7 @@ mod tests {
         CachedCompile {
             report,
             output: Some(output),
+            project: None,
         }
     }
 
@@ -307,12 +325,94 @@ mod tests {
         let entry = CachedCompile {
             report: DocumentReport::default(),
             output: None,
+            project: None,
         };
         store_in(&dir, "a", &entry);
         store_in(&dir, "b", &entry);
         assert_eq!(clean_in(&dir), 2);
         assert!(load_in(&dir, "a").is_none());
         assert_eq!(clean_in(&dir), 0, "a second clean finds nothing");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// **T-A03**：项目条目带**整份** `ProjectReport`，往返之后逐字段相等。
+    ///
+    /// 为什么必须整份：LSP 的跨文件能力（definition/references/rename/
+    /// `soko/project` 的模块表/扇出判定）读的都是模块表；只存入口报告的话，
+    /// 命中缓存的文档会"能显示、不能跳转"（设计 §4.8 写的本来就是"按模块存"）。
+    ///
+    /// 用 `store_in`/`load_in`（**带目录参数**）而不是 env 版：同一轮测试里
+    /// 并行跑，改 `SOKONANODA_CACHE_DIR` 会互相打架（仓库既有纪律）。
+    #[test]
+    fn a_project_entry_round_trips_the_whole_report() {
+        let dir = tmp_dir("project-roundtrip");
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        std::fs::write(
+            dir.join("SetLib.sokonanoda"),
+            "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n",
+        )
+        .expect("write lib");
+        let entry = dir.join("Canvas.sokonanoda");
+        std::fs::write(
+            &entry,
+            "import SetLib\n\n\
+theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n",
+        )
+        .expect("write entry");
+
+        let options = CompileOptions::default();
+        let plan = crate::project::plan_project(&entry, None, None);
+        let digest = plan.digest(&options);
+        let project = crate::project::compile_plan(plan, &options);
+
+        let cache_dir = dir.join("entries");
+        crate::project::cache::store(&digest, &options, &project);
+        // `project::cache::store` 走 env 版；这里改用同一个键的 `store_in` 复核
+        // 序列化本身（`store` 的实现就是 `cache::store`，形状完全一致）。
+        let entry_module = project.entry_module().expect("entry module").clone();
+        let packed = CachedCompile {
+            report: entry_module.report.clone(),
+            output: Some(entry_module.events.clone()),
+            project: Some(project.clone()),
+        };
+        store_in(&cache_dir, &digest, &packed);
+        let loaded = load_in(&cache_dir, &digest).expect("条目必须读得回来");
+        let round_tripped = loaded.project.expect("项目条目必须带整份 ProjectReport");
+
+        // 逐字段相等：用 serde_json 的规范形态比（`ProjectReport` 没有 PartialEq）。
+        assert_eq!(
+            serde_json::to_value(&project).expect("serialize"),
+            serde_json::to_value(&round_tripped).expect("serialize"),
+            "整份 ProjectReport 必须逐字段往返相等"
+        );
+        assert!(
+            round_tripped.modules.len() >= 2,
+            "模块表必须完整（入口 + 依赖），实际 = {}",
+            round_tripped.modules.len()
+        );
+        assert_eq!(
+            round_tripped.entry_module().map(|m| m.name.as_str()),
+            project.entry_module().map(|m| m.name.as_str()),
+            "入口模块必须还是那一个"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// 单文件条目的**形状没变**（T-A03 只动项目条目）：`project` 是 `None`。
+    #[test]
+    fn a_single_file_entry_carries_no_project_report() {
+        let dir = tmp_dir("single-shape");
+        let packed = CachedCompile {
+            report: DocumentReport::default(),
+            output: None,
+            project: None,
+        };
+        store_in(&dir, "single", &packed);
+        let loaded = load_in(&dir, "single").expect("条目必须读得回来");
+        assert!(loaded.project.is_none(), "单文件条目不带项目报告");
+        assert!(loaded.output.is_none());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

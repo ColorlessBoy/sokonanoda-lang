@@ -79,9 +79,7 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         }
         let project = sokonanoda_front::project::compile_plan(plan, &options);
         let ok = report_project(&project, src, json);
-        if let Some(entry) = project.entry_module() {
-            crate::project_cache::store_if_clean(&digest, &options, entry, project.is_clean());
-        }
+        crate::project_cache::store_if_clean(&digest, &options, &project, project.is_clean());
         return ok;
     }
 
@@ -245,6 +243,8 @@ pub(crate) fn compile_cached(
         &CachedCompile {
             report: report.clone(),
             output: Some(output.clone()),
+            // 单文件条目（无项目报告）。
+            project: None,
         },
     );
     (output, report)

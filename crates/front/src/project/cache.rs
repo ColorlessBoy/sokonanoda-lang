@@ -13,7 +13,7 @@ use std::path::Path;
 
 use crate::compile::cache::{self, CachedCompile};
 use crate::compile::CompileOptions;
-use crate::project::{plan_project, ModuleReport, ProjectPlan};
+use crate::project::{plan_project, ProjectPlan, ProjectReport};
 
 /// 解析项目根 + 加载闭包（IO/parse）并算出**缓存键**。
 pub fn plan(
@@ -32,14 +32,22 @@ pub fn load(digest: &str, options: &CompileOptions) -> Option<CachedCompile> {
     cache::load(digest, options)
 }
 
-/// 写一条项目缓存条目。
-pub fn store(digest: &str, options: &CompileOptions, entry: &ModuleReport) {
+/// 写一条项目缓存条目（**整份** `ProjectReport`，T-A03）。
+///
+/// `report`/`output` 仍然是**入口模块**的（CLI `--json` 与 LSP 的 `report()`
+/// 读的就是它，形状与单文件条目一致）；`project` 是整份模块表 + 归因，
+/// LSP 的跨文件能力（definition/references/rename/`soko/project`）靠它。
+pub fn store(digest: &str, options: &CompileOptions, project: &ProjectReport) {
+    let Some(entry) = project.entry_module() else {
+        return;
+    };
     cache::store(
         digest,
         options,
         &CachedCompile {
             report: entry.report.clone(),
             output: Some(entry.events.clone()),
+            project: Some(project.clone()),
         },
     );
 }
@@ -53,11 +61,12 @@ pub fn store(digest: &str, options: &CompileOptions, entry: &ModuleReport) {
 pub fn store_if_clean(
     digest: &str,
     options: &CompileOptions,
-    entry: &ModuleReport,
+    project: &ProjectReport,
     is_clean: bool,
 ) {
     if !is_clean {
         return;
     }
-    store(digest, options, entry);
+    store(digest, options, project);
 }
+

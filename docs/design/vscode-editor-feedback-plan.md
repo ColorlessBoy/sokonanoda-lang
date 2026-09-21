@@ -1044,6 +1044,21 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A03 缓存条目 v2：按模块存（对齐设计 §4.8）
 
+> **完成（2026-09-21）**：`CachedCompile` / `CacheFile` 多了
+> `project: Option<ProjectReport>`（`#[serde(default)]` 让旧条目仍读得进来），
+> `ProjectReport` 一族补上 `Serialize/Deserialize`；
+> **`set_cached_entry` 现在把整份报告一起回放**。
+>
+> 顺手修掉一个**既有缺陷**（`crates/cli/tests/imports.rs` 的老注释记着它）：
+> 项目缓存**热命中**时 `query project` 答 `project:null / reason:"no-path"`，
+> 而冷跑答得好好的——同一个项目的答案不该取决于缓存热不热。新用例
+> `query_project_answers_after_a_cache_hit` 钉住它，**回滚修法即红**
+> （报错正是 `{"project":null,"reason":"no-path"}`，已验证）。
+>
+> 判据：`cargo test --workspace --locked` exit 0 · `cargo test -p sokonanoda-front
+> --lib cache::` 6 passed（新增「整份往返逐字段相等」与「单文件条目形状不变」）·
+> 二进制对拍 49 组 0 差异。
+
 - **改什么**：项目条目改为存**每个模块**的 report + events + 归因
   （`ProjectReport` 的模块表 + 入口），使 `set_cached_entry` 能重建
   `project_modules()`（跨文件导航、`soko/project`、扇出判定都要它）。
@@ -2348,7 +2363,7 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 - [x] `T-A25` `build <目录>` 的 O(文件数 × 闭包) 如实记账
 - [x] `T-A01` 项目缓存下沉到 `front`
 - [x] `T-A02` 缓存键去掉"可执行文件 mtime"这个不稳定的量
-- [ ] `T-A03` 缓存条目 v2：按模块存（对齐设计 §4.8）
+- [x] `T-A03` 缓存条目 v2：按模块存（对齐设计 §4.8）
 - [ ] `T-A04` 冷/热 `--json` 逐字节一致（带 `sorry` 的项目）
 - [ ] `T-A05` `requires` 漂移不再静默关掉缓存 + 两条写缓存路径规则一致
 - [ ] `T-A08` `requires` 的单一来源 + 漂移门禁（**用户判定的根因**）

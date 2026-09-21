@@ -383,6 +383,8 @@ fn a_cache_entry_can_never_carry_a_parse_error() {
         1,
         DocumentReport::default(),
         crate::compile::CompileOutput::default(),
+        // 单文件条目：不带项目报告（T-A03 起项目条目才带）。
+        None,
     );
     assert!(
         cached.parse_error.is_none(),

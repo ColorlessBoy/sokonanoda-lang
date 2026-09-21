@@ -350,10 +350,10 @@ fn query_project_reports_the_same_absolute_root_for_both_entry_spellings() {
     // `docs/protocol.md` 的 `soko/project` 契约："Paths are absolute"、root 永不空。
     //
     // 两次调用**各用一份冷缓存**：本用例量的是 G-12 的模块根发现，不是缓存行为。
-    // （既有缺陷另记：项目缓存**热命中**时 `set_cached_entry` 把 `project` 置空，
-    // `query project` 会答 `project:null / reason:"no-path"`；它在 HEAD 上就能复现
-    // ——`grade <绝对路径>` 之后 `query project --file <同一路径>`——与本 WO 无关，
-    // 不在本单范围。）
+    // （**曾经**的缺陷：项目缓存**热命中**时 `set_cached_entry` 把 `project` 置空，
+    // `query project` 答 `project:null / reason:"no-path"`。**T-A03 已修**：
+    // 缓存条目现在带整份 `ProjectReport`，回放时一起还原——
+    // 见下面的 `query_project_answers_after_a_cache_hit`。）
     let dir = tmp_dir("query-root");
     write(&dir, "sokonanoda.toml", "name = \"proj\"\n");
     write(&dir, "lib/Lib.sokonanoda", "axiom P : Prop\n");
@@ -625,4 +625,62 @@ fn query_uses_the_same_project_cache_as_check_and_build() {
         "a dependency change must invalidate the entry's cached report"
     );
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// **T-A03**：项目缓存**热命中**时，`query project` 必须仍然答得出项目视图。
+///
+/// 改前：条目里只有入口模块的报告，`set_cached_entry` 只能把 `project` 置空
+/// ⇒ 热跑时 `query project` 答 `project:null / reason:"no-path"`，而冷跑答得好好的。
+/// 同一个项目的答案不该取决于**缓存热不热**。
+///
+/// LSP 侧同一条路更严重：命中缓存的文档会"能显示、不能跳转"
+/// （跨文件 definition/references/rename 读的都是模块表）。
+#[test]
+fn query_project_answers_after_a_cache_hit() {
+    let dir = tmp_dir("warm-project-view");
+    write(&dir, "sokonanoda.toml", "name = \"proj\"\n");
+    write(&dir, "lib/Lib.sokonanoda", "axiom P : Prop\n");
+    write(
+        &dir,
+        "units/u.sokonanoda",
+        "import lib.Lib\n\ntheorem t (h : P) : P := h\n",
+    );
+    let entry = dir.join("units/u.sokonanoda");
+    let cache = dir.join(".cache");
+    let ask = || {
+        let out = run_with_cache(
+            &dir,
+            &cache,
+            &["query", "project", "--file", &abs_str(&entry), "--compact"],
+            None,
+        );
+        assert!(out.status.success(), "stderr: {}", stderr(&out));
+        serde_json::from_slice::<serde_json::Value>(&out.stdout).expect("one JSON")
+    };
+
+    // ① 冷：项目视图在（这一步改前就是好的）。
+    let cold = ask();
+    assert!(
+        !cold["data"]["project"].is_null(),
+        "冷跑必须有项目视图：{cold}"
+    );
+
+    // ② 预热缓存（`build` 走 `store_if_clean`；这份夹具没有 `requires` ⇒ 干净 ⇒ 会写）。
+    let built = run_with_cache(&dir, &cache, &["build", &abs_str(&entry)], None);
+    assert!(built.status.success(), "stderr: {}", stderr(&built));
+
+    // ③ 热：**同样**必须有项目视图（T-A03 的判据）。
+    let warm = ask();
+    assert!(
+        !warm["data"]["project"].is_null(),
+        "热命中之后 `query project` 也必须答项目视图（T-A03）：{warm}"
+    );
+    assert_eq!(
+        warm["data"]["project"]["root"], cold["data"]["project"]["root"],
+        "热跑的模块根必须与冷跑逐字相同：warm={warm} cold={cold}"
+    );
+    assert_eq!(
+        warm["data"]["project"]["counts"], cold["data"]["project"]["counts"],
+        "模块表计数也必须一致（LSP 的跨文件能力读的就是它）"
+    );
 }
