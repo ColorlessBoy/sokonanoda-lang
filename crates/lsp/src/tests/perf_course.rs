@@ -173,11 +173,19 @@ async fn perf_course_keystroke_is_recorded() {
     let mut current = text.clone();
     let mut best = u128::MAX;
     for round in 0..3i32 {
+        // **标识符必须真的在文件里**：第一版写的是 `image_mem`，而 unit08 里
+        // 没有这个名字 ⇒ `replace` 是空操作 ⇒ 量的其实是"同文本通知"
+        // （T-A21 的短路让它变成 ~0ms），根本不是按键。T-A15 的探针上踩到过
+        // 同一个坑，回头把这里也修了。
         let next = if round % 2 == 0 {
-            current.replace("image_mem", "image_mem_x")
+            current.replace("demo_mem_image", "demo_mem_image_x")
         } else {
-            current.replace("image_mem_x", "image_mem")
+            current.replace("demo_mem_image_x", "demo_mem_image")
         };
+        assert_ne!(
+            next, current,
+            "夹具前提：编辑必须真的改变文本（round {round}）"
+        );
         let start = std::time::Instant::now();
         let published =
             testutil::did_change_at_drained(&mut service, &mut socket, &uri, 2 + round, &next)

@@ -2434,7 +2434,7 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 - [x] `T-A13` 跨文件能力在缓存命中后仍然工作
 - [x] `T-A14` 实测数字
   - ⬆ **BUMP**：`minor` —— LSP 接入项目缓存：重启编辑器后重开同一文件不再等 1.8–8.5s
-- [ ] `T-A15` 命中缓存后 Session 快照的处置
+- [x] `T-A15` 命中缓存后 Session 快照的处置
 - [ ] `T-A23` 扇出：改一个依赖不重编所有打开文档
 - [ ] `T-A30` 编译不再独占 `Mutex<Docs>`
 - [ ] `T-A60` 缓存与扇出的 e2e 断言
