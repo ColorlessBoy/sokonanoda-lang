@@ -471,6 +471,61 @@ fn goals_lists_every_declaration_with_its_type() {
     );
 }
 
+/// T-C21 的夹具：一条记法 + 一个**不带 `by`** 的开练习。
+///
+/// 「不带 `by`」是要点：那种开练习的 `goal` 走**生产者 2**（`render_expr` 的源级
+/// 渲染），而带 `by` 的走生产者 1（内核 pp）——T-C01 实测这两条**行为不同**，
+/// 而当时**零测试覆盖**（断言里的 `∈`/`⊆` grep 命中 0）。这里把它钉住。
+const NOTATION_CANVAS: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+infix:50 \" ∈ \" => Set.mem
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+infix:50 \" ⊆ \" => Set.subset
+
+theorem open_subset (α : Type) (A B : Set α) : A ⊆ B -> (∀ (a : α), a ∈ A -> a ∈ B) := sorry
+";
+
+/// **生产者 2 的守护**（T-C21）：不带 `by` 的开练习，`goal` 必须带记法。
+///
+/// 这条路本来就好（T-C01 的实测表），但一直**没有测试**——所以它是"随时可能被
+/// 改坏而没人发现"的状态。线 C 的其它环节都在动显示文本，先把这条钉住。
+#[test]
+fn an_open_exercise_without_by_keeps_notation_in_its_goal() {
+    let doc = doc(NOTATION_CANVAS);
+    let goals = doc.goals(false).expect("the canvas parses");
+    let open = goals
+        .iter()
+        .find(|d| d.name == "open_subset")
+        .expect("open_subset listed");
+    assert_eq!(open.status, "open");
+    let goal = open
+        .goal
+        .as_deref()
+        .expect("an open exercise carries a goal");
+    assert!(goal.contains('⊆'), "`goal` 必须带记法（生产者 2）：{goal}");
+    assert!(goal.contains('∈'), "`goal` 必须带记法（生产者 2）：{goal}");
+    assert!(
+        !goal.contains("Set.subset") && !goal.contains("Set.mem"),
+        "点名形式不该出现在 goal 里：{goal}"
+    );
+}
+
+/// **生产者 3 的守护**（T-C21 顺带）：同一个声明的 `ty` 走内核 pp + 线 C 的折叠
+/// （T-C20）⇒ 现在也带记法。这条同时钉住"折叠真的接到了 `ty_text` 上"。
+#[test]
+fn a_declarations_ty_is_notation_folded_too() {
+    let doc = doc(NOTATION_CANVAS);
+    let goals = doc.goals(false).expect("the canvas parses");
+    let open = goals
+        .iter()
+        .find(|d| d.name == "open_subset")
+        .expect("open_subset listed");
+    let ty = open.ty.as_deref().expect("the signature is rendered");
+    assert!(ty.contains('⊆'), "`ty` 必须带记法（生产者 3，T-C20）：{ty}");
+    assert!(ty.contains('∈'), "`ty` 必须带记法（生产者 3，T-C20）：{ty}");
+}
+
 #[test]
 fn probe_fills_sub_goal_types_that_the_walk_cannot_determine() {
     let doc = doc(CANVAS);

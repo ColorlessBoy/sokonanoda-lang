@@ -2289,6 +2289,21 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C21 生产者 2：无 `by` 的开练习（应当已经好，补守护）
 
+> **✅ 完成（2026-09-21）——补了 3 条守护。**
+>
+> 这条路本来就好（T-C01 的实测表：不带 `by` 的开练习，`goal` 走 `render_expr`
+> ⇒ 记法保留），但**此前零测试**（断言里的 `∈`/`⊆` grep 命中 0）——线 C 的其它
+> 环节都在动显示文本，这是"随时可能被改坏而没人发现"的状态。补的：
+>
+> | 层 | 测试 | 钉什么 |
+> |---|---|---|
+> | front（真相层） | `query::tests::an_open_exercise_without_by_keeps_notation_in_its_goal` | `decl.goal` 含 `⊆`/`∈`，**且不含点名**（`Set.subset`/`Set.mem`） |
+> | front（顺带） | `query::tests::a_declarations_ty_is_notation_folded_too` | `decl.ty` 也带记法（证明 T-C20 的折叠真的接到了 `ty_text` 上） |
+> | LSP（wire） | `tests::goals::goals_keep_notation_in_the_goal_text` | 过了 `query_map` 之后**还在**（判据原话就是 `soko/goals` 的 `decl.goal`） |
+>
+> 夹具要点：**不带 `by`**（带 `by` 的走生产者 1 = 内核 pp，那是另一条路，
+> T-C20 才修）。
+
 - **改什么**：T-C01 的实测若显示这一路已经保留记法（§2.5 的 unit01 例就是），
   则**补测试钉住**（现在零覆盖：断言里的 `∈`/`⊆` grep 命中 0）。
 - **判据**：新增测试：`soko/goals` 的 `decl.goal` 含记法。
@@ -2913,7 +2928,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C13` 重载（一个符号 → N 个目标）的处置
 - [x] `T-C14` 折叠层的损失护栏
 - [x] `T-C20` 生产者 1+3：根状态与声明列表的 `ty_text`
-- [ ] `T-C21` 生产者 2：无 `by` 的开练习（应当已经好，补守护）
+- [x] `T-C21` 生产者 2：无 `by` 的开练习（应当已经好，补守护）
 - [ ] `T-C22` 生产者 4：`by` 步进里被 pp 化的四处
 - [ ] `T-C23` binder ty（假设行的类型）
 - [ ] `T-C24` 逐 surface 的判别性测试

@@ -253,3 +253,46 @@ async fn next_hole_traverses_sub_holes_within_one_declaration() {
     );
     shutdown(&mut service).await;
 }
+
+/// **`soko/goals` 的 `decl.goal` 必须带记法**（T-C21 的判据）。
+///
+/// 这条路（不带 `by` 的开练习 = 生产者 2）本来就好，但此前**零测试**——线 C 的
+/// 其它环节都在动显示文本，先把它钉在 **wire 上**（前端单测在
+/// `crates/front/src/query/tests.rs`，这里钉的是"过了 `query_map` 之后还在"）。
+#[tokio::test]
+async fn goals_keep_notation_in_the_goal_text() {
+    let src = "def Set (α : Type) : Type := α -> Prop\n\
+               def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+               infix:50 \" ∈ \" => Set.mem\n\
+               def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x\n\
+               infix:50 \" ⊆ \" => Set.subset\n\
+               theorem open_subset (α : Type) (A B : Set α) : A ⊆ B -> (∀ (a : α), a ∈ A -> a ∈ B) := sorry\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "goals diagnostics").await;
+
+    let result = request_goals(&mut service).await;
+    let decl = result["decls"]
+        .as_array()
+        .expect("decls")
+        .iter()
+        .find(|d| d["name"] == "open_subset")
+        .expect("open_subset listed");
+    let goal = decl["goal"]
+        .as_str()
+        .expect("an open exercise carries a goal");
+    assert!(
+        goal.contains('⊆'),
+        "`soko/goals` 的 goal 必须带记法：{goal}"
+    );
+    assert!(
+        goal.contains('∈'),
+        "`soko/goals` 的 goal 必须带记法：{goal}"
+    );
+    assert!(
+        !goal.contains("Set.subset") && !goal.contains("Set.mem"),
+        "点名形式不该出现在 goal 里：{goal}"
+    );
+    shutdown(&mut service).await;
+}
