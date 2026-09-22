@@ -314,6 +314,11 @@ pub(crate) mod stats {
     pub(crate) static VERBOSE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     pub(crate) static SEQ: AtomicU64 = AtomicU64::new(0);
 
+    /// 判定累计耗时（纳秒）——给 `check::stage_stats` 的分段账单用。
+    pub fn nanos() -> u64 {
+        NANOS.load(Ordering::Relaxed)
+    }
+
     pub(crate) fn verbose() -> bool {
         *VERBOSE.get_or_init(|| std::env::var("SOKO_JUDGE_STATS").is_ok_and(|v| v == "2"))
     }

@@ -317,6 +317,8 @@ fn lower_by_val(
     defs: &crate::compile::elab::DefTable,
 ) -> Result<(Expr, Vec<crate::by::ByStep>), CompileError> {
     if let Some((binders, by)) = crate::by::split_by_value(val) {
+        stage_stats::BYS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let _by_timer = StageTimer(&stage_stats::BY_NANOS, std::time::Instant::now());
         crate::by::run_by(
             ty,
             by,
@@ -494,6 +496,62 @@ pub(crate) fn run_incremental(
 
 type KernelFailed = HashMap<usize, CompileError>;
 
+/// 编译阶段的分段计时（T-K20′ 的判据）。
+///
+/// `SOKO_STAGE_STATS=1` 时在进程退出前打到 stderr。要回答的问题：
+/// **一次判定调用（`judge_pairs_uncached` → `check_document_with`）里，
+/// 「前端 elaborate」「内核检查」「`by` 引擎自己」各占多少**——
+/// 不量清楚就选不出刀（`docs/design/by-judge-reuse.md` §5）。
+pub(crate) mod stage_stats {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    pub(crate) static PASS_NANOS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static PASSES: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static BY_NANOS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static BYS: AtomicU64 = AtomicU64::new(0);
+    static PRINTED: std::sync::Once = std::sync::Once::new();
+
+    pub(crate) fn install() {
+        if std::env::var_os("SOKO_STAGE_STATS").is_none() {
+            return;
+        }
+        PRINTED.call_once(|| {
+            extern "C" fn report() {
+                let passes = PASSES.load(Ordering::Relaxed);
+                let bys = BYS.load(Ordering::Relaxed);
+                let ms = |n: u64| n / 1_000_000;
+                eprintln!(
+                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={}",
+                    ms(PASS_NANOS.load(Ordering::Relaxed)),
+                    ms(BY_NANOS.load(Ordering::Relaxed)),
+                    ms(crate::judge::stats::nanos()),
+                );
+            }
+            unsafe extern "C" {
+                fn atexit(cb: extern "C" fn()) -> i32;
+            }
+            unsafe {
+                atexit(report);
+            }
+        });
+    }
+}
+
+/// 给一个作用域计时（RAII）。
+pub(crate) struct StageTimer<'a>(
+    pub(crate) &'a std::sync::atomic::AtomicU64,
+    pub(crate) std::time::Instant,
+);
+
+impl Drop for StageTimer<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_add(
+            self.1.elapsed().as_nanos() as u64,
+            std::sync::atomic::Ordering::Relaxed,
+        );
+    }
+}
+
 fn run_pass(
     units: &[SourceUnit<'_>],
     options: &CompileOptions,
@@ -501,6 +559,9 @@ fn run_pass(
     skip: Option<&KernelFailed>,
     trust: Option<&TrustPlan>,
 ) -> PassResult {
+    stage_stats::install();
+    stage_stats::PASSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let _pass_timer = StageTimer(&stage_stats::PASS_NANOS, std::time::Instant::now());
     let arena = stumpalo::Arena::new();
     let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
     let mut known: KnownTable = KnownTable::new();
