@@ -243,6 +243,33 @@ head 是 `Ident`/`UniverseApp` 且 `arity[name] == args.len()` 时构造
   `by.rs` 护栏（`is_rereadable` / `restore_universe_levels` / `keep_if_lossless`）。
 * **binder 记法**（`∃`/`∀`）v1 只做**一段式**；两段式（`∃ x ∈ s, p`）归 P1。
 
+### 3.3b as-built：折叠层第一刀（T-C10，2026-09-21）
+
+`crates/front/src/display.rs`：`DisplayNotations{table, arity}` + `print_back(text, &dn)
+-> DisplayText`。8 条单测（判据要的 5 类：左结合 / 右结合 / 优先级括号 / 嵌套 /
+不命中回退，外加 3 条护栏）。第一刀**只做二元 infix 族**（`Infix`/`Infixl`/`Infixr`）
+——一元前缀/后缀与 binder 记法的操作数位不同（一元 1 个、binder 2 个且第 2 个是
+lambda），一起做会把这一刀撑大。
+
+**做的时候定下两条性质**（都写成了测试）：
+
+1. **一处都没折 ⇒ 逐字节原样返回**（`text_without_any_fold_is_returned_byte_for_byte`）。
+   **这条比"折对了"更要紧**，因为 `print_back` 的最后一步是 `render_expr`，而它：
+   * 把 `forall (a b : T), …` **拆成箭头链** `(a : T) -> (b : T) -> …`
+     （`proof.rs` 那段注释解释了为什么必须这样——它的产物是**回读通道的输入**）；
+   * 把 `Type 0` 重排成 `Sort 1`。
+   ⇒ 如果无条件重渲染，**每一条不带记法的类型都会跟着改样子**。有了这条性质，
+   显示漂移被限制在"真的折过"的那些文本里。**这是本环节最重要的一个决定。**
+2. **命中不了就原样**（不猜）：表里没有、元数对不上（部分应用）、文本含松散变量
+   `$N`（F3，pp 对"binder 在被打印项之外"的写法）、解析不了——全都逐字节返回。
+
+**留给 T-C20 的决定**：既然"折过就重渲染"，那么**含记法的**类型文本会连带换一种
+binder 写法（`forall (α : Type 0) (A B : Set α), A ⊆ B` →
+`(α : Sort 1) -> (A : Set α) -> (B : Set α) -> A ⊆ B`）。这在学习者是更好还是更差
+没有定论（Lean 自己两种都用），要在**接进生产者**那一环拍板：要么接受，要么让
+显示出口做**源保留拼接**（只替换折过的子树、其余按原文本切片）——后者是一个
+独立机制，成本明显更高。
+
 ### 3.4 落点与**明确不落**
 
 | 落点 | 改什么 |
