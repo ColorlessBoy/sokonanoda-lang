@@ -154,3 +154,125 @@ sokonanoda query goals --file <入口>                        # 生产者 2 / 3
 | **显示文本**（本线要改的） | `--json` 的 golden **有意更新**，且 diff 里只出现 goal/`ty` 这类显示字段（T-C40） |
 
 对拍仍然有用：它把"显示文本到底改了哪几处"**逐字节摊开**，比人眼扫一遍可靠。
+
+## 3. 权威设计：front 侧的**显示边界重写**（K3-a）
+
+> **本节是权威。** 完整推导与逐条坑在
+> `docs/notes/course-lean-style/printback-feasibility.md` §4（调研稿，614 行），
+> 本节是它的**升格版**：结论 + 硬规则 + 红线，实施时以本节为准。
+
+**一句话**：新增一个**纯函数** `print_back(text, &记法表, &元数表) -> String`，
+**只在文本写进显示字段的前一刻**调用；任何一步失败都**原样返回输入**。
+零内核改动。
+
+### 3.1 **为什么不走内核 pp**（防止后人再走一遍弯路）
+
+2026-09-21 调研实测两条，任何一条都足以否掉"填个记法表就完事"：
+
+**发现 A：内核的记法打印是死代码。**
+`ExportFile.notations`（`kernel/src/util.rs:626`）只在 `builder.rs:53`、
+`util.rs:649`、`parser.rs:727` 被 `new_fx_hash_map()` 初始化，**全仓库无一处
+insert**；`Notation::new_prefix/new_infix/new_postfix`（`env.rs:196-208`）
+**零调用者** ⇒ `pp_app` 的记法分支（`pretty_printer.rs:652-683`）**永不触发**。
+就算把表填上也不命中：
+
+* `pp_app` 要求 `args.len()` **恰好 1/2**，而 front 的 `∈` 展开成
+  `Set.mem α a A`（**3 个实参**——`elab.rs` 先补前导类型参数再补操作数）；
+* 零元记法（`∅`）走 `pp_const`，根本不经过 `pp_app`；
+* 已有的 Infix 分支**取操作数顺序是反的**（`:670-678` 取
+  `lhs=args[len-1]`/`rhs=args[len-2]`，与 `unfold_apps_pp`（`:639-650`）的自然
+  顺序相反），且**零测试覆盖**；`priority - 1`（`:662/669/677`）在 `priority=0`
+  时 usize 下溢。
+
+**发现 B：`pp_expr` 同时是 `#check`/`#reduce`/`#print` 的出口。**
+它直接进 `--json` 的 `expr.typed`/`expr.reduced`/`decl.printed`
+（`kernel_phase.rs` 三处）⇒ **改它就动了 `--json` 的字节**，与硬规则 1 的
+"`--json` 逐字节不变"直接冲突。同理 `render_expr`（`front/src/proof.rs`）的产物
+**同时是 judge 的回读输入**（`proof.rs` 注释明写，`render_expr_round_trips` 钉着）
+⇒ 也不能改。
+
+⇒ **结论：记法绝不能从内核 pp 走，也不能改 `render_expr`。** 唯一安全的缝是
+**显示出口之后**做重写。这也是 T-K32（pp 单测）是本节前置的原因：pp 文本的形状
+就是这条路的**输入**。
+
+### 3.2 硬规则：**只有 `spine.len() == arity` 才是记法实例**
+
+前向展开的规则是「操作数对齐到 telescope 的**最后** `operands.len()` 层」
+（`elab.rs`），所以反向必须知道"要丢掉几个前导参数"：
+
+* `Set.mem α a A`（3 实参 / arity 3）⇒ `a ∈ A` ✓
+* `Set.mem α a`（**部分应用**，2 实参 / arity 3）⇒ **不许**回显成 `α ∈ a`，
+  必须原样 `Set.mem α a` ✗
+
+arity 的来源（按优先级）：
+
+1. 闭包所有模块的声明 AST + prelude 源码里找 `NotationDecl.target` 的同名声明，
+   数它的 telescope 层数（`spine.rs` 的 `peel_pi` 是现成的）；
+   prelude 源码是 `compile/prelude.rs` 的 `PRELUDE_L1_SRC` / `PRELUDE_EQ_SRC`，
+   **parse 一次缓存在 `OnceLock`** 里。
+2. 兜底：`judge::judge_type_of`（自带 `type_cache`）。
+
+arity 对了，print-back 就是前向展开的**精确逆**——因为两边读的是**同一份权威**
+（前向也用 `judge_type_of` 读签名）。
+
+### 3.3 数据结构与算法（要点）
+
+```rust
+pub struct DisplayNotations {
+    table: Vec<NotationDecl>,        // 文件内声明 + 沿 import 边传播来的（含 scoped 过滤）
+    arity: HashMap<String, usize>,   // target 点名 → telescope 层数
+}
+```
+
+记法表**不新建**：`judge.rs` 已经会从 `prefix_src` 重建 `Vec<NotationDecl>`
+（并按 `Command::Open{scoped:true}` 过滤），**提成公共函数复用**，别造第二套真相。
+`NotationDecl`（`ast.rs`）已有 `symbol`/`precedence`/`assoc`/`target`/`scope`
+——打印要的信息都在里面。
+
+算法：`parse_expr_text_with(text, &table)` → 递归到每个 `App` spine →
+head 是 `Ident`/`UniverseApp` 且 `arity[name] == args.len()` 时构造
+`Expr::Notation{…}` → `render_expr`。任何一步失败**原样返回输入**。
+
+* **重载不是问题**（方向反了）：前向是"符号 → 候选目标，按期望类型选"（有歧义）；
+  反向是"目标 → 符号"，**head 名字就是判据，天然单值**。唯一残留歧义是同一
+  target 声明了两个符号 ⇒ **取声明顺序第一个**，写进文档 + 一条测试。
+* **括号**：`render_expr` 的既有规则是**保守补括号**（`render_atom` /
+  `render_fun_position` 把 `App`/`Notation`/`Arrow`/`Lambda` 一律括起来）
+  ⇒ **永远不会少括号**（只会多），不存在优先级歧义；代价是比 Lean 略啰嗦。
+* **pp 是有损的**（`Eq.{1} (Set α) A B` → `Eq A B`）⇒ 折叠层必须尊重既有的
+  `by.rs` 护栏（`is_rereadable` / `restore_universe_levels` / `keep_if_lossless`）。
+* **binder 记法**（`∃`/`∀`）v1 只做**一段式**；两段式（`∃ x ∈ s, p`）归 P1。
+
+### 3.4 落点与**明确不落**
+
+| 落点 | 改什么 |
+|---|---|
+| `front/src/query/mod.rs` 的 `ty` 装配 | `d.ty_text.clone()` → 过 print-back |
+| 同文件的 `goal` 闭包与 `StateAnswer` 装配 | `goal` / `goals[].goal` 过 print-back（`*_runs` 自然跟着变） |
+| 同文件的 `reduce` 出口 | `ReduceAnswer.value` |
+| `lsp/src/render.rs` 的 `expr_hover` | `h.text` 过 print-back（一处覆盖精确命中与邻近回退两条路径） |
+| `lsp/src/lib.rs` 的声明签名 / 补全 documentation | `format!("{} {} : {}", …)` 里的 `ty` |
+
+**明确不落（红线）**：
+
+* `front/src/compile/**`——`DocumentReport` / `DeclState` **一字不改**；
+* `front/src/judge.rs`、`by.rs`、`proof.rs`、`spine.rs`、`suggest.rs`；
+* **`CheckEvent::TypeChecked` / `Reduced`**（即 `grade --json` 的 `expr.typed`）
+  ⇒ CLI/REPL 的 `#check` 显示留给 P1，且必须走**另一条**只给显示用的出口，
+  **绝不改事件流**。
+
+> **不碰 `DeclState` 是刻意的**：`suggest.rs` 的 `hole_goal_text` / `open_spec`
+> **拿 `d.goal` 与 `d.binders[].ty` 去合成判定规格**（T-C02 §2 已逐条列出），
+> 而 `judge_terms_uncached` 会 `parse_expr_text_with(&open.ty, &notations)`——
+> **显示字段已经在喂判定路径**。把 print-back 写进 `DeclState` 就会把两条路搅在
+> 一起（改坏了是**静默改判卷**）。
+
+### 3.5 结构性护栏：`DisplayText`（把"不碰回读"变成编译错误）
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DisplayText(String);   // 没有 Deref<Target = str>，没有 as_str()
+impl DisplayText { pub fn as_display_str(&self) -> &str { &self.0 } }
+```
+
+于是 `parse_expr_text(&display_text)` **编译不过**。这比注释/review 可靠。

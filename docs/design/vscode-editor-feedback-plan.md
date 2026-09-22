@@ -2031,6 +2031,26 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C03 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**
 
+> **✅ 完成（2026-09-21）**：升格进 `docs/design/notation-aware-printing.md` **§3**
+> （notes 稿加了"已升格"抬头，留作调研现场）。三件事都做了：
+>
+> ① **§3.1 为什么不走内核 pp**——**发现 A**：内核的记法打印是**死代码**
+> （`ExportFile.notations` 全仓库无一处 insert；`pp_app` 的记法分支永不触发），
+> 且就算填表也不命中（`pp_app` 要 `args.len()` 恰好 1/2，而 `∈` 展开成 3 个实参的
+> `Set.mem α a A`；零元记法走 `pp_const`；已有 Infix 分支**取操作数顺序是反的**
+> 且零覆盖、`priority - 1` 在 0 时下溢）。**发现 B**：`pp_expr` 同时是
+> `#check`/`#reduce`/`#print` 的出口 ⇒ 改它就动 `--json` 字节；`render_expr` 同理
+> （产物同时是 judge 的回读输入）。⇒ **记法绝不能从内核 pp 走**。
+> ② **§3.2 arity 硬规则**：只有 `spine.len() == arity` 才是记法实例
+> （`Set.mem α a` 是部分应用，不许回显成 `α ∈ a`），arity 来源两级（闭包声明 AST +
+> prelude 源码 parse 一次缓存 / 兜底 `judge_type_of`）。
+> ③ **两处失效理由就地作废**：`notation-subset.md:554` 与 `course-lean-style.md:1124`
+> （N-3）的"内核冻结"——都改成"理由作废 + 真正的理由 + 指向新设计"。
+>
+> §3 另含：落点表与**明确不落**的红线（`compile/**` 一字不改、
+> `CheckEvent::TypeChecked/Reduced` 绝不碰）、`DisplayText` 编译期护栏
+> （让 `parse_expr_text(&display_text)` **编译不过**）。
+
 - **改什么**：**不要另写一份新设计**——`docs/notes/course-lean-style/printback-feasibility.md`
   §4 已经写好了方案（5 个落点、`DisplayNotations{table, arity}`、`DisplayText` 护栏、
   "明确不落"清单）。本环节做三件事：
@@ -2732,7 +2752,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-K32` `pretty_printer.rs` 零单测
 - [x] `T-C01` 四个生产者 × 真实文件的实测表
 - [x] `T-C02` 消费者审计（**不然会静默改坏判卷**）
-- [ ] `T-C03` 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**
+- [x] `T-C03` 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**
 - [ ] `T-C03b` `DisplayText` 护栏（**先于任何折叠代码**）
 - [ ] `T-C04` 记法表复用 `judge.rs` 的重建（提成公共函数）
 - [ ] `T-C10` 折叠函数第一刀：只做二元 infix 族

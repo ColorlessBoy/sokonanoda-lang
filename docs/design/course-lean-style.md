@@ -1121,7 +1121,7 @@ pp 文本进节点之前层级就是齐的，`match` 组装读到的不再是裸
 |---|---|---|
 | N-1 | 隐式实参 / 元变量 / 一般合一 | ~~D2 明确不做~~ **已翻案（D6，2026-09-19 用户追加要求）⇒ 走路线 C 立项为 P1**。**仍然不做的是「元变量 + 一般合一」本身**：内核 `Expr`/`Value` 没有元变量槽（碰内核冻结），`elab_expr` 也在内核环境外运行（probe = 整段前缀重编译）。路线 C 用「风格对齐 + 唯一确定」拿到 95% 的可读性收益而**零内核改动**；`h.1` 投影、`∃ x, p x` 省类型（N-8）仍归 N 表。详见 `docs/design/implicit-arguments.md` |
 | N-2 | `h.1` / `h.2` 投影记法 | 同上；`cases`/`obtain` 已能拆。S2 实测 `exact h.2` ⇒ `unknown identifier h.2` |
-| N-3 | 内核 pp 的 print-back | 硬规则 1（内核冻结）；§13.1 已论证；SP2 只做复核 |
+| N-3 | ~~内核 pp 的 print-back~~ **仍然不做，但理由换了（2026-09-21）** | ~~硬规则 1（内核冻结）~~ **作废**（内核已解冻）。**真正的理由**：内核的记法打印是**死代码**（`ExportFile.notations` 全仓库无一处 insert），而 `pp_expr` 同时是 `#check`/`#reduce`/`#print` 的出口 ⇒ 改它就动 `--json` 的字节。**要做的不是这一项**，而是 front 侧的**显示边界重写**（线 C，权威设计 `docs/design/notation-aware-printing.md` §3）——两者名字像、位置完全不同 |
 | N-4 | `simp` / `push_neg` / `tauto` / 通用引理集 | S2 §4.2 判定：需要目标改写地基 + 引理集，性价比不成立；只做**窄版 `rw`**（单条等式、首个出现、非依赖 motive） |
 | N-5 | `funext` | **做不了**：prelude 没有 `funext` 公理（课程用 `Set.ext` 公理替代，`lib/Set.sokonanoda:79`） |
 | N-6 | `induction` | 课程只有 `Nat.rec` **1 处**；`cases` 落地后按需再评估 |
