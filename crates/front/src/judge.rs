@@ -240,8 +240,10 @@ pub fn judge_terms_with(
         &format!("{terms:?}"),
     ]);
     if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
+        stats::HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         return j;
     }
+    stats::MISSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let pairs: Vec<JudgePair> = terms
         .iter()
         .map(|term| JudgePair {
@@ -286,8 +288,10 @@ pub fn judge_pairs_with(
         &format!("{pairs:?}"),
     ]);
     if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
+        stats::HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         return j;
     }
+    stats::MISSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let j = judge_pairs_uncached(key, extra_prefix, prefix_src, options, pairs);
     judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
     j
@@ -313,8 +317,19 @@ pub(crate) mod stats {
     /// 看前缀字节是不是逐次增长、调用次数是不是等于 tactic 步数。
     pub(crate) static VERBOSE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     pub(crate) static SEQ: AtomicU64 = AtomicU64::new(0);
+    /// 缓存命中 / 未命中（T-K20′ 的诊断：706 趟 pass 里有多少是"本该命中"）。
+    pub(crate) static HITS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static MISSES: AtomicU64 = AtomicU64::new(0);
 
     /// 判定累计耗时（纳秒）——给 `check::stage_stats` 的分段账单用。
+    pub fn hits() -> u64 {
+        HITS.load(Ordering::Relaxed)
+    }
+
+    pub fn misses() -> u64 {
+        MISSES.load(Ordering::Relaxed)
+    }
+
     pub fn nanos() -> u64 {
         NANOS.load(Ordering::Relaxed)
     }
@@ -1041,8 +1056,10 @@ pub fn judge_hole_fill_with(
         &format!("{candidates:?}"),
     ]);
     if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
+        stats::HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         return j;
     }
+    stats::MISSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let j = judge_hole_fill_uncached(
         extra_prefix,
         doc_src,

@@ -521,10 +521,12 @@ pub(crate) mod stage_stats {
                 let bys = BYS.load(Ordering::Relaxed);
                 let ms = |n: u64| n / 1_000_000;
                 eprintln!(
-                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={}",
+                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={}",
                     ms(PASS_NANOS.load(Ordering::Relaxed)),
                     ms(BY_NANOS.load(Ordering::Relaxed)),
                     ms(crate::judge::stats::nanos()),
+                    crate::judge::stats::hits(),
+                    crate::judge::stats::misses(),
                 );
             }
             unsafe extern "C" {

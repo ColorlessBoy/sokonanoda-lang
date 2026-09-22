@@ -1,0 +1,9 @@
+import lib.Set
+
+-- G-33：无类型 binder（`fun h => …`）只在期望类型**语法上是 Pi** 时可用。
+-- 期望类型是 def-headed（`And.intro` 的分支位、`Exists.elim` 的 `f` 位）时
+-- 报 `elab-untyped-binder`："cannot infer the type of this binder: the declared
+-- type does not provide a matching position"。
+-- Lean 4 里 `And.intro (fun h => …) (fun k => …)` 照常工作。
+theorem untyped_binder_in_def_headed_position (P Q : Prop) (h : P) (k : Q) : P ∧ Q :=
+  And.intro (fun _ => h) (fun _ => k)

@@ -1,0 +1,4 @@
+import lib.Set
+
+theorem postfix_head (α : Type) (A : Set α) (x : α) : Aᶜ x → ¬ (A x) :=
+  fun (h : Aᶜ x) => h
