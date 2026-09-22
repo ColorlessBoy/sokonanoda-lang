@@ -1471,6 +1471,21 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 ##### T-K03 `36.1s` 花在哪：分阶段 profile
 
+> **完成（2026-09-21）**。`unit12-solution` 冷跑 **120.4s**，拆开：
+> **`by` 块判定 81.9s（68%）** + 主 pass 38.5s（32%）。
+> 判定是 25 次 `check_document_with` **重跑整份前缀**，平均 3.3s/次。
+>
+> **两把刀的收益上界**：T-K11（前缀复用）**68%**；只省内核检查的刀 **≤27%**
+> （采样里没有独立的内核帧，被内联进前端）。
+>
+> **还证实了一件事：profile 随文件形状变化极大** —— `unit08` 的 `by` 判定只占
+> **7%**（把 9 个 `by` 全换成 `sorry` 只省 4.96→4.60s），而 `unit12-solution`
+> 占 **68%**。⇒ **不能只按一个文件选刀**；课程里 `solutions/` 那些 tactic 风格
+> 的解答才是最坏样本。
+>
+> 加了一个**常驻**开关 `SOKO_JUDGE_STATS=1`（`crates/front/src/judge.rs` 的
+> `stats` 模块），把"一次性探针"变成随时可重量的口径。数字见 `docs/PERF.md`。
+
 - **改什么**：对 `courses/set-theory/units/solutions/unit12-solution.sokonanoda`
   做分阶段 profile，把 36.1s 拆成「读盘+parse / elab / **内核检查** / `by` 判定 / pp」。
   **已有现成探针可抄**：`docs/design/by-tactics.md` §13 的仪器化实测
@@ -2571,7 +2586,7 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 - [x] `T-K01` 全语料逐字节对拍工具
 - [ ] `T-K02` 内核改动的验收清单 + **修语料对拍的收集逻辑**
-- [ ] `T-K03` `36.1s` 花在哪：分阶段 profile
+- [x] `T-K03` `36.1s` 花在哪：分阶段 profile
 - [ ] `T-K10` 设计文档 `docs/design/by-prefix-reuse.md` + 三个候选的定稿
 - [ ] `T-K11` **K1-a：纯 front 的 judge TrustPlan 复用（零内核改动，先做）**
   - ⬆ **BUMP**：`minor` —— by 判定的内核检查那一段拿掉（K1-a）

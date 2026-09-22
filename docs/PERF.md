@@ -137,6 +137,55 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 所以在编辑器外改了一个依赖（`git checkout`、别的工具写文件）之后，第一次打开
 仍然要重编——那是正确的（闭包真的变了），缓存不是"永远不编"。
 
+### 分阶段 profile：`unit12-solution` 的 120 秒花在哪（T-K03，2026-09-21）
+
+**最坏样本** `courses/set-theory/units/solutions/unit12-solution.sokonanoda`
+（526 行、9 道题、全 tactic 风格）。debug CLI、隔离缓存、冷跑。
+
+两个口径互相印证：
+
+| 口径 | 数字 |
+|---|---|
+| 墙钟（`/usr/bin/time -p`） | **120.4s** |
+| `SOKO_JUDGE_STATS=1` 的判定分阶段 | **81.9s / 25 次调用**，平均 **3.3s/次**，123 对判定，前缀合计 1,064,669 字节 |
+| `sample` 采样（8 秒窗口，5583 个样本） | `run_by → judge_pairs_uncached → check_document_with` = **64.0%** |
+
+| 阶段 | 占比 | 说明 |
+|---|---|---|
+| **`by` 块判定**（`run_by` → `flush_batch` → `judge_pairs_uncached` → `check_document_with`） | **68%**（81.9s / 120.4s） | 每次判定都把**整份前缀重新 `check_document_with` 一遍**（闭包前缀 + 本文件已判过的声明）。25 次调用吃掉了 2/3 的墙钟 |
+| 主 pass（elaboration + 内核检查 + pp） | ~32%（38.5s） | |
+| ├ 其中 `build_def` / `elab_expr` | 判定里的 33%（采样） | 深递归的 `elab_expr` |
+| └ 其中 `infer` | 判定里的 36%（采样） | |
+
+**这直接给出两把刀的收益上界**：
+
+* **T-K11（`by` 块判定的前缀复用）= 68%** —— 如果前缀复用能做到零成本，
+  这是它最多能省的。**这才是这个文件的第一刀**。
+* **只省"内核检查"的刀最多 27%** —— 采样里没有独立的 `sokonanoda_kernel` 帧
+  （被内联进前端），所以内核自身的检查不是主要矛盾；主要矛盾是**前端反复重跑
+  同一段前缀**。
+
+**为什么 profile 随文件形状变化很大**（同一批次的实测）：
+
+| 文件 | `by` 块 | 判定占比 | 说明 |
+|---|---|---|---|
+| `unit08-images-preimages` | 9 个 | **7%** | 把 9 个 `by` 全换成 `sorry` 只从 4.96s 降到 4.60s |
+| `unit12-solution` | 9 道题全 tactic | **68%** | 本表 |
+
+⇒ **不能只按一个文件选刀**。课程语料里 tactic 风格的解答（`solutions/`）是
+`by` 块密集的，那才是最坏样本。
+
+**怎么重量**（常驻开关，不再是一次性探针）：
+
+```bash
+SOKO_JUDGE_STATS=1 scripts/soko grade courses/set-theory/units/solutions/unit12-solution.sokonanoda
+# → JUDGE_STATS calls=25 total_ms=81925 avg_ms=3277 pairs=123 prefix_bytes=1064669
+
+# 采样（macOS 自带，不用改代码）：
+SOKONANODA_CACHE_DIR=$(mktemp -d) ./target/debug/sokonanoda grade <入口> &
+PID=$(pgrep -n sokonanoda); sample $PID 8 -f /tmp/sample.txt
+```
+
 ### 编译期间**整个 LSP 冻结**（T-A30 实测，2026-09-21）
 
 冷编译 unit12（8.9s）**进行中**，连发 5 次 `soko/stateAt`：

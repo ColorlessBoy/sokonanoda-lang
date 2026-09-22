@@ -293,12 +293,76 @@ pub fn judge_pairs_with(
     j
 }
 
+/// 判定阶段的分阶段计数（T-K03）。
+///
+/// `SOKO_JUDGE_STATS=1` 时在进程退出前打到 stderr。为什么要有它：这一阶段的
+/// 开销是**整个判卷的大头**（`unit12-solution` 实测 **64%**，见 `docs/PERF.md`
+/// 的分阶段表），而它以前只有一次性探针量过（`docs/design/by-tactics.md` §13）。
+/// 做成常驻开关之后，任何一次内核/前端改动都能**同口径**重量。
+pub(crate) mod stats {
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    pub(crate) static CALLS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static NANOS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static PAIRS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static PREFIX_BYTES: AtomicU64 = AtomicU64::new(0);
+    static PRINTED: std::sync::Once = std::sync::Once::new();
+
+    pub(crate) fn install_printer() {
+        if std::env::var_os("SOKO_JUDGE_STATS").is_none() {
+            return;
+        }
+        PRINTED.call_once(|| {
+            // 进程退出前打一次。`atexit` 之外没有更早的钩子，而判卷是 CLI 的
+            // 最后一步 ⇒ 这个时机正好。
+            extern "C" fn report() {
+                let calls = CALLS.load(Ordering::Relaxed);
+                if calls == 0 {
+                    return;
+                }
+                let ms = NANOS.load(Ordering::Relaxed) / 1_000_000;
+                eprintln!(
+                    "JUDGE_STATS calls={calls} total_ms={ms} avg_ms={} pairs={} prefix_bytes={}",
+                    ms / calls.max(1),
+                    PAIRS.load(Ordering::Relaxed),
+                    PREFIX_BYTES.load(Ordering::Relaxed),
+                );
+            }
+            unsafe extern "C" {
+                fn atexit(cb: extern "C" fn()) -> i32;
+            }
+            unsafe {
+                atexit(report);
+            }
+        });
+    }
+}
+
 fn judge_pairs_uncached(
     extra_prefix: &str,
     prefix_src: &str,
     options: &CompileOptions,
     pairs: &[JudgePair],
 ) -> Vec<Judgement> {
+    stats::install_printer();
+    stats::CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    stats::PAIRS.fetch_add(pairs.len() as u64, std::sync::atomic::Ordering::Relaxed);
+    stats::PREFIX_BYTES.fetch_add(
+        prefix_src.len() as u64,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+    let _timer = {
+        struct T(std::time::Instant);
+        impl Drop for T {
+            fn drop(&mut self) {
+                stats::NANOS.fetch_add(
+                    self.0.elapsed().as_nanos() as u64,
+                    std::sync::atomic::Ordering::Relaxed,
+                );
+            }
+        }
+        T(std::time::Instant::now())
+    };
     let mut judgements = vec![
         Judgement::Error {
             code: "judge-not-run".to_string(),
