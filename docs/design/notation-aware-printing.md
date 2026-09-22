@@ -323,6 +323,21 @@ binder 写法（`forall (α : Type 0) (A B : Set α), A ⊆ B` →
 > **显示字段已经在喂判定路径**。把 print-back 写进 `DeclState` 就会把两条路搅在
 > 一起（改坏了是**静默改判卷**）。
 
+### 3.4b 损失护栏（T-C14）：三层，从强到弱
+
+| 层 | 护栏 | 判据 |
+|---|---|---|
+| **类型**（最强） | [`DisplayText`]：没有 `Deref`/`as_str`/`Into<String>` | `compile_fail` doctest（T-C03b，两条都对变异敏感） |
+| **幂等** | 折过的文本再折一次**一个字节不变** | `display::tests::folding_is_idempotent`——不幂等就会叠出 `(a ∈ A) ∈ B` |
+| **可解析** | 折叠产物必须能**重新解析**（人会把它抄回源里） | `display::tests::folded_text_reparses` |
+
+**"可解析"不是"逐字节回读等价"**（别混）：折过的文本重新解析得到的是
+`Expr::Notation` 节点，**结构上不等于**展开后的 `App`——那正是记法的定义。
+真正的结构性保证是**类型那一层**：折叠的产物在类型上进不了任何回读通道。
+`by.rs` 的 `is_rereadable` / `keep_if_lossless` 管的是**另一条**路（`by` 引擎的
+pp→parse 往返），折叠层不经过它，所以**不需要也不该**复用那两个判据——
+`render_expr_round_trips`（`compile/tests.rs`）在本轮**一字未动**。
+
 ### 3.5 结构性护栏：`DisplayText`（把"不碰回读"变成编译错误）
 
 ```rust

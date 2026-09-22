@@ -537,6 +537,54 @@ mod tests {
         assert_eq!(fold_text("AddB p q", &dn), "p ⊕ q");
     }
 
+    // ---- 损失护栏（T-C14）----------------------------------------------
+
+    /// **折叠是幂等的**：把折过的文本再折一次，一个字节都不变。
+    ///
+    /// 为什么这条是护栏：折叠层的产物会**再次**经过显示出口（例如 Infoview 收到
+    /// 文本后又渲染一遍）。如果折叠不幂等，第二遍就会叠出 `(a ∈ A) ∈ B` 这种
+    /// 东西——那正是"折叠把文本改坏"的形状。
+    #[test]
+    fn folding_is_idempotent() {
+        let dn = notations(SET_LIB, SET_ARITY);
+        for once in [
+            "Set.mem α a A",
+            "Set.subset α A (Set.union α B C)",
+            "Set.image α β f (Set.image α β g A)",
+            "forall (x : α), Set.mem α x (Set.union α A B)",
+        ] {
+            let folded = fold_text(once, &dn);
+            assert_eq!(fold_text(&folded, &dn), folded, "再折一次不该变：{once}");
+        }
+    }
+
+    /// **折叠的产物必须能重新解析**（它是给人看的文本，而人会把它抄回源里）。
+    ///
+    /// 注意这条**不是**"逐字节回读等价"：折过的文本重新解析得到的是
+    /// `Expr::Notation` 节点（不是展开后的 `App`），两者**结构上不同**——那正是
+    /// 记法的定义。真正的结构性护栏是 [`DisplayText`]（T-C03b）：折叠的产物
+    /// **在类型上**进不了任何回读通道（`parse_expr_text(&display_text)` 编译不过）。
+    /// 这条只钉"文本本身没被折坏"。
+    #[test]
+    fn folded_text_reparses() {
+        let dn = notations(SET_LIB, SET_ARITY);
+        // 重新解析要**同一张表**（`∈` 是从 `SET_LIB` 来的，空表当然解析不了）。
+        let file = crate::parse(SET_LIB).expect("夹具必须能解析");
+        let table = notation_table(&file.commands);
+        for once in [
+            "Set.mem α a A",
+            "Set.subset α A (Set.union α B C)",
+            "Set.image α β f (Set.image α β g A)",
+        ] {
+            let folded = fold_text(once, &dn);
+            assert_ne!(folded, once, "夹具前提：这条确实折过了");
+            assert!(
+                crate::proof::parse_expr_text_with(&folded, &table).is_ok(),
+                "折叠产物必须能重新解析：{once} → {folded}"
+            );
+        }
+    }
+
     /// 一个最小的集合词汇 + 两条记法：`∈`（优先级 50）与 `∪`（左结合 65）。
     const SET_LIB: &str = "\
 def Set (α : Type) : Type := α -> Prop\n\

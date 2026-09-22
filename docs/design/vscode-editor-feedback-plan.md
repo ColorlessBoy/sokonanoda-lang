@@ -2214,6 +2214,22 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C14 折叠层的损失护栏
 
+> **✅ 完成（2026-09-21）——护栏分三层，从强到弱**（设计 §3.4b）：
+>
+> | 层 | 护栏 | 判据 |
+> |---|---|---|
+> | **类型**（最强） | `DisplayText` 无 `Deref`/`as_str`/`Into<String>` | `compile_fail` doctest（T-C03b） |
+> | **幂等** | 折过的文本再折一次**一个字节不变** | `display::tests::folding_is_idempotent` |
+> | **可解析** | 折叠产物必须能**重新解析** | `display::tests::folded_text_reparses` |
+>
+> **"可解析"不是"逐字节回读等价"**（这条容易混）：折过的文本重新解析得到的是
+> `Expr::Notation` 节点，**结构上不等于**展开后的 `App`——那正是记法的定义。
+> 真正的结构性保证是**类型那一层**。
+>
+> **为什么没复用 `is_rereadable` / `keep_if_lossless`**：那两个管的是**另一条**路
+> （`by` 引擎的 pp→parse 往返），折叠层不经过它。`render_expr_round_trips`
+> （`crates/front/src/compile/tests.rs`）本轮**一字未动**（实测仍绿）。
+
 - **改什么**：折叠不得让文本变得**不可回读**（若折叠结果会进入任何回读通道）。
   复用 `is_rereadable` / `keep_if_lossless` 的既有判据。
 - **判据**：`cargo test -p sokonanoda-front -- --nocapture` 绿；
@@ -2859,7 +2875,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C11` arity 的来源
 - [x] `T-C12` `scoped` 的保真度
 - [x] `T-C13` 重载（一个符号 → N 个目标）的处置
-- [ ] `T-C14` 折叠层的损失护栏
+- [x] `T-C14` 折叠层的损失护栏
 - [ ] `T-C20` 生产者 1+3：根状态与声明列表的 `ty_text`
 - [ ] `T-C21` 生产者 2：无 `by` 的开练习（应当已经好，补守护）
 - [ ] `T-C22` 生产者 4：`by` 步进里被 pp 化的四处
