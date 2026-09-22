@@ -102,3 +102,55 @@ sokonanoda query goals --file <入口>                        # 生产者 2 / 3
 **红线（§6 开头那两条，别忘）**：`render_expr` 不能改（它的产物同时是 judge 的
 回读输入）；内核 `pp_expr` 也不能改（它同时是 `#check`/`#reduce`/`#print` 的出口，
 直接进 `--json`）。⇒ 唯一的缝是在**显示出口之后**做重写。
+
+## 2. 消费者审计（T-C02）：**哪些文本会被回读**
+
+> **这是线 C 的安全边界。** 一个文本字段只要被"喂回 parser/kernel"，就不能为了
+> 好看去改它——改了就是**静默改坏判卷**（学习者看到"判过了"，或者本该过的被判红）。
+
+### 2.1 五个字段 × 消费者
+
+| 字段 | 生产者（哪来的文本） | 消费者（`file:line`） | 类别 |
+|---|---|---|---|
+| **`DeclState.ty_text`** | 内核 pp（`compile/check/kernel_phase.rs:170`、`:207`；`quiet_catch` 包着） | `front/src/query/mod.rs:640`（`goals()` 的 `ty`）· `:651`（同）· `front/src/query/state.rs:54`（根状态）· `lsp/src/lib.rs:1597`（hover 签名）· `lsp/src/lib.rs:1881`（补全/文档弹窗） | **全是给人看** |
+| **`DeclState.goal`** | `render_expr`（`compile/check/walk.rs:455`、`:678`、`:989` 经 `goals.rs`） | 给人看：`front/src/query/mod.rs:657/661`（wire）· `lsp/src/query_map.rs:74`；**回读**：`front/src/suggest.rs:412`（`hole_goal_text`）→ `:418 open_spec` → judge | **两者都有** |
+| **`DeclState.binders[].ty`**（`GoalBinder`） | 书写类型 / 借用声明层（`goals.rs`） | **回读**：`suggest.rs:425`（`open_spec`）· `compile/goals.rs:499`（`binder_spec`）· `by.rs:501-506`（`canonical_goal_type`）；给人看：`query_map.rs`（假设行） | **两者都有** |
+| **`DeclState.sub_goals[].ty`** | `render_expr` | **回读**：`suggest.rs:412`（`hole_goal_text` 的另一支）→ judge | **两者都有** |
+| **`ByGoalState.goals[].goal`**（`ByGoal.ty`） | `render_expr`（`by.rs:1161`） | 给人看：`query/state.rs:41/57` → `soko/stateAt` 的目标栏 | **给人看** |
+
+### 2.2 回读链（**一个都不许改到**）
+
+| 入口 | 它吃什么文本 | 去处 |
+|---|---|---|
+| `suggest.rs:418 open_spec` | `DeclState.goal`（或 `sub_goals[].ty`）+ `binders[].ty` | `OpenGoalSpec` → `judge_terms` |
+| `goals.rs:499 binder_spec`（调用点 `:461-462`） | `GoalBinder.ty` | `GoalBinderSpec` → `judge_infer_with`（`:464`）→ 内核 pp 文本 → `parse_expr_text` |
+| `by.rs:501-506 canonical_goal_type` | `render_expr(ty)` + `render_expr(b.ty)` | `judge_render_type` → 内核 pp 文本 → `parse_expr_text` |
+| `by.rs:1239`（`apply` 的子目标） | `judge_infer` 的 pp 文本 | `parse_expr_text` → 新目标 |
+| `elab.rs:1357/1389`（记法前导参数） | `judge_infer` 的 pp 文本 | `parse_expr_text` → `notation_telescope` |
+| `judge.rs:1475 fold_declared` / `:1518 wrap_binders` | `GoalBinderSpec.ty` | `parse_expr_text_with(text, notations)` |
+| `proof.rs:53 parse_expr_text_with` | 任意文本 | parser |
+
+**结论（线 C 的实现约束）**：
+
+* **`ty_text` 可以就地改**——它只有"给人看"的消费者（§2.1 第一行）。这是最便宜的
+  一刀（计划里的 T-C20「生产者 1+3」）。
+* **`goal` / `binders[].ty` / `sub_goals[].ty` 不能就地改**——它们同时是 judge 的
+  输入。要改就得在**显示出口**（`lsp/src/query_map.rs` 组 wire 的那一处、
+  CLI 打印的那一处）做重写，让"回读拿到的"与"人看到的"是两份文本。
+* `by.rs` 的 `canonical_goal_type` 那条**本来就是**"pp → parse 回来"——它证明
+  这条回路今天已经在跑，也正是为什么**不能**把记法塞进 pp。
+
+### 2.3 判据提醒：线 C 会让 `kernel-diff.sh` 报差异（这是**预期**的）
+
+`scripts/kernel-diff.sh` 对拍的是 `grade --json` **逐字节**，而 `--json` 里
+**包含** goal / `ty` 这些显示文本。线 C 一旦在显示出口做重写，对拍必然报差异
+——**那不等于判定变了**。
+
+⇒ 线 C 的每个环节要分开看两件事：
+
+| 看什么 | 判据 |
+|---|---|
+| **判定正确性**（红线） | 课程门禁计数**逐项不变**（`36 目标 · 328 checked · 99 open · 0 判负`）+ `cargo test --workspace` 全绿 + **接受/拒绝集合不变** |
+| **显示文本**（本线要改的） | `--json` 的 golden **有意更新**，且 diff 里只出现 goal/`ty` 这类显示字段（T-C40） |
+
+对拍仍然有用：它把"显示文本到底改了哪几处"**逐字节摊开**，比人眼扫一遍可靠。

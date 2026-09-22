@@ -2009,6 +2009,19 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C02 消费者审计（**不然会静默改坏判卷**）
 
+> **✅ 完成（2026-09-21）**：`docs/design/notation-aware-printing.md` §2（五个字段 ×
+> 消费者，逐条 `file:line`，分"给人看"/"回读"）。**关键结论是一条不对称**：
+>
+> * **`ty_text` 只有"给人看"的消费者**（`query/mod.rs:640/651`、`query/state.rs:54`、
+>   `lsp/src/lib.rs:1597/1881`）⇒ **可以就地改**，这是最便宜的一刀（T-C20）；
+> * **`goal` / `binders[].ty` / `sub_goals[].ty` 同时是 judge 的输入**
+>   （`suggest.rs:412/418/425`、`goals.rs:461-462/499`、`by.rs:501-506`）⇒
+>   **不能就地改**，要改只能在**显示出口**（`query_map.rs` 组 wire 处 / CLI 打印处）
+>   做重写，让"回读拿到的"与"人看到的"分成两份。
+>
+> 另加 §2.3：线 C 会让 `kernel-diff.sh` 报差异，那是**预期的**——判定正确性要看
+> 课程门禁计数逐项不变 + 接受/拒绝集合不变，显示文本的有意更新归 T-C40。
+
 - **改什么**：把 `DeclState.ty_text` / `DeclState.goal` / `DeclInfo.ty` /
   `GoalBinder.ty` / `ByGoal.ty` 的**全部**消费者列出来，分两类：
   **给人看**（Infoview、hover、树 tooltip）与**回读**（`judge_terms`、
@@ -2718,7 +2731,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 - [x] `T-K32` `pretty_printer.rs` 零单测
 - [x] `T-C01` 四个生产者 × 真实文件的实测表
-- [ ] `T-C02` 消费者审计（**不然会静默改坏判卷**）
+- [x] `T-C02` 消费者审计（**不然会静默改坏判卷**）
 - [ ] `T-C03` 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**
 - [ ] `T-C03b` `DisplayText` 护栏（**先于任何折叠代码**）
 - [ ] `T-C04` 记法表复用 `judge.rs` 的重建（提成公共函数）
