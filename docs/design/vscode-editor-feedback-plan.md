@@ -1828,6 +1828,19 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 ##### T-K32 `pretty_printer.rs` 零单测
 
+> **✅ 完成（2026-09-21）。** `crates/kernel/tests/pretty_printer.rs`（**5 条**）钉住
+> `pp_expr` 的文本输出：`->` / `forall` / `{}` 隐式 / binder 未使用就折成箭头 /
+> 匿名 Pi 套具名 Pi 要括号 / `Prop` 与 `Type 0` / 应用左结合与参数括号 /
+> 匿名 binder 的空转义 `«»` / 层级实参默认不打印。
+>
+> **它们是特征化测试**（钉现状，不是钉"正确"）：**变异检查**做过——把
+> `f (g x)` 的期望改成 `f g x` 必须红（实测红了），证明它抓得住变化。
+>
+> 两个建夹具的坑（写进了文件注释）：`Config::default()` 的 `proofs = false` 会让
+> pp 对**开项**跑 `is_proof` 推断 ⇒ `infer: loose bvar` panic（要按前端
+> `finish_pass` 那样设 `pp_options.proofs = true`）；表达式里用到的常量**必须真的
+> 声明**，否则 `const_head_type: unknown const` panic。
+
 - **改什么**：在动任何 pp 相关代码**之前**补基础单测（现在只有
   `memory_api.rs:196` 一条 `assert_eq!(printed, "Prop -> Prop")` 钉着）。
 - **判据**：新增 pp 单测覆盖 `->`/`forall`/应用/括号/宇宙；
@@ -2692,7 +2705,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### 批次 3 · 线 C：goal 用记法（minor）
 
-- [ ] `T-K32` `pretty_printer.rs` 零单测
+- [x] `T-K32` `pretty_printer.rs` 零单测
 - [ ] `T-C01` 四个生产者 × 真实文件的实测表
 - [ ] `T-C02` 消费者审计（**不然会静默改坏判卷**）
 - [ ] `T-C03` 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**

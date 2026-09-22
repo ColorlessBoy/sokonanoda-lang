@@ -192,7 +192,8 @@ file=…::` 注解、`--report` 进 `course-gate-report` artifact、表格进 st
 
 - `cargo test -p sokonanoda-front`：**74** 个单测全绿（token 10 / parser 10 / proof 3 / compile 51）；
 - `cargo test -p sokonanoda-cli`：**30** 个 e2e 全绿（cli 21 / protocol 8 / examples 1）；
-- `cargo test -p sokonanoda`（kernel）：41 过 + 2 ignored（盲区 2）+ memory_api 1 过。
+- `cargo test -p sokonanoda`（kernel）：41 过 + 2 ignored（盲区 2）+ memory_api 1 过
+  + `tests/pretty_printer.rs` 5 过（T-K32，见下）。
 
 ## 2026-09-07 更新：新增层与总量
 
@@ -675,3 +676,24 @@ WARNING 而非静默），与 `crates/lsp/src/lib.rs` 的对应改动是同一�
   （台账 `docs/e2e/ledger.jsonl`）。
 - **版本 0.58.0**：合并后 push `main` → auto-tag `v0.58.0` → release（0.56.2 的
   `v0.56.2` 与其功能都在历史里；CHANGELOG 的 0.58.0 条目补记 `redundant-sorry`）。
+
+### 内核 pp 的文本契约（T-K32，2026-09-21）
+
+`crates/kernel/tests/pretty_printer.rs`（5 条）钉住 **`pp_expr` 的文本输出**：
+`->` vs `forall` 的选择、`{}` 隐式、binder 没被用到就折成箭头、匿名 Pi 套具名 Pi
+要括号、`Prop`/`Type 0`、应用左结合与参数括号、匿名 binder 的空转义 `«»`、
+层级实参默认不打印（`E` 而不是 `E.{0}`）。
+
+**为什么需要它**（线 C 的前置）：内核 pp 同时是 `#check`/`#reduce`/`#print` 的出口
+⇒ 直接进 `--json` 的 `expr.typed`/`expr.reduced`/`decl.printed`，而线 C（goal /
+类型行用记法）要在**它的出口之后**做重写。没有这组钉子，"重写改坏了 pp"与
+"重写本身写错了"分不开。
+
+**它们是特征化测试**（断言的是**今天**的输出，不是"正确的"输出）：输出变了必须是
+有意的，改 pp 的 diff 里看得见。**变异检查**做过：把 `f (g x)` 期望改成 `f g x`
+必须红（实测红了）。
+
+两个建夹具的坑（都写在文件注释里）：`Config::default()` 的 `proofs = false` 会让 pp
+对**开项**跑 `is_proof` 推断 ⇒ `infer: loose bvar` panic（要按前端那样设
+`pp_options.proofs = true`）；表达式里用到的常量**必须真的声明**，否则
+`const_head_type: unknown const` panic。
