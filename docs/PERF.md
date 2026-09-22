@@ -137,6 +137,65 @@ O(n²) 或意外的前缀重编译必然触发，CI 噪声不会误报：
 所以在编辑器外改了一个依赖（`git checkout`、别的工具写文件）之后，第一次打开
 仍然要重编——那是正确的（闭包真的变了），缓存不是"永远不编"。
 
+### `by` 块的成本结构：**每个 `by` 块一次，每次重跑整份前缀**（2026-09-21 深挖）
+
+用户问："by 整个过程不会维护一个 goal state 吗？每次新加一个 tactic 步骤，就会
+完全重新编译前面的内容？"——**用逐次明细回答**（`SOKO_JUDGE_STATS=2`）：
+
+```
+JUDGE_CALL #  1 prefix_bytes=  13286 pairs= 2 ms=54
+JUDGE_CALL # 11 prefix_bytes=  32411 pairs= 1 ms=455
+JUDGE_CALL # 23 prefix_bytes=  78631 pairs=14 ms=28588   ← 一次 28.6 秒
+JUDGE_CALL # 25 prefix_bytes=  83187 pairs=23 ms=19554
+JUDGE_STATS calls=25 total_ms=81892 prefix_bytes=1064669
+```
+
+**结论（三条，都有数字）**：
+
+1. **粒度是"每个 `by` 块一次"，不是"每个 tactic 步一次"**。文件里有 **25 个
+   `by` 块**，判定正好 **25 次调用**。所以一个 3 步的 `by` 不会编 3 次。
+2. **块内确实维护 goal state**（tactic 引擎在一趟里跑完那些步）；
+   **块与块之间没有任何复用**——每次判定都把**整份前缀**（import 闭包 + 本文件
+   已经判过的所有声明）从零 elaborate 一遍。
+3. 于是总代价是 **O(前缀 × `by` 块数)**：前缀从 13KB 单调涨到 83KB，
+   25 次合计处理 **1,064,669 字节 ≈ 文件本身的 13 倍**。
+   #23 那次（78KB 前缀 + 14 对判定）单独就 **28.6 秒**。
+
+### 项风格（lambda）vs tactic 风格：实测 **8.4×**（同一天）
+
+用户提议："solution 文件里如果用 by 这种 tactic 比较耗时，那就用 lambda
+表达式吧。" 对照实验（10 个同样的定理，一个是 `by` + 3 步，一个是
+`And.intro a b h k`）：
+
+| 写法 | 墙钟 |
+|---|---|
+| `by` + 3 步 × 10 | **0.42s** |
+| 项风格（λ / 应用）× 10 | **0.05s** |
+
+**8.4×**。而且差距随前缀增大而拉大——`docs/design/by-tactics.md` §13 记着
+同一份单元⑫解答改回 term 风格是 **91.2s → 3.6s（25×）**。
+
+⇒ **课程内容层面最便宜的一刀就是把 `solutions/` 里的解答写成项风格**
+（零内核风险、零代码改动），教学上也可以通过"同一题两种写法"来展示。
+
+### 内核自己占多少：加了符号之后终于是量出来的
+
+用户要求"内核帧添加独立符号"——已给 `infer_value` / `def_eq_at` /
+`check_declar_at` 加 `#[inline(never)]`（`crates/kernel/src/{infer,conv,tc}.rs`）。
+**之前一个 `sokonanoda_kernel` 帧都没有**（全被内联进前端）⇒ "内核占多少"
+根本量不出来。加符号后的采样（`unit12-solution`）：
+
+| 帧 | inclusive |
+|---|---|
+| `run_by`（判定批处理） | **47%** |
+| `elab_expr`（前端 elaboration） | **28%** |
+| `infer_value`（**内核**类型推断） | **6.0%** |
+| `check_declar_at`（**内核**声明检查） | **1.6%** |
+| `def_eq_at`（内核转换检查） | 0.4% |
+
+⇒ **内核自身只占 ~8%**，主要矛盾在前端：**反复重跑同一段前缀**（`run_by`）
+与 elaboration 本身（`elab_expr`）。
+
 ### 分阶段 profile：`unit12-solution` 的 120 秒花在哪（T-K03，2026-09-21）
 
 **最坏样本** `courses/set-theory/units/solutions/unit12-solution.sokonanoda`

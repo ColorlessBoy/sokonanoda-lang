@@ -76,6 +76,12 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         value::mk_rigid_head_with_empty(self.arena, RigidHead::Inductive(name, levels), empty)
     }
 
+    /// **`#[inline(never)]` 是给采样器看的**（2026-09-21，用户要求）：
+    /// `sample`/`perf` 只能看到**真实存在的符号**，而这个函数以前被内联进前端
+    /// ⇒ 内核的占比在 profile 里**整个消失**（实测：`unit12-solution` 的采样里
+    /// 一个 `sokonanoda_kernel` 帧都没有，于是"内核检查占多少"根本量不出来）。
+    /// 这一层调用本来就跨 crate，`inline(never)` 的代价可以忽略。
+    #[inline(never)]
     pub(crate) fn infer_value(
         &mut self,
         flag: InferFlag,

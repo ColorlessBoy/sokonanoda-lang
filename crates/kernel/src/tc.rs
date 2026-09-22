@@ -87,6 +87,8 @@ impl<'p> ExportFile<'p> {
     /// `sorry`" probe — must pass the cutoff themselves; otherwise the name
     /// resolves to "no declarations visible" and even the probe's own type is
     /// rejected with `unknown const`.
+    /// 见 `infer.rs::infer_value` 上的说明：给采样器留一个真实符号。
+    #[inline(never)]
     pub fn check_declar_at(&self, d: &Declar<'p>, limit: EnvLimit<'p>) {
         self.with_ctx(|ctx, cache, bump| self.check_declar_with(ctx, cache, bump, d, limit))
     }

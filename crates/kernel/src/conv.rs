@@ -49,6 +49,8 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.unbudgeted(|s| s.unify::<true>(depth, a, b))
     }
 
+    /// 见 `infer.rs::infer_value` 上的说明：给采样器留一个真实符号。
+    #[inline(never)]
     pub(crate) fn def_eq_at(&mut self, depth: u32, vx: V<'t>, vy: V<'t>) -> bool {
         self.unbudgeted(|s| s.try_proof_irrel_at(depth, vx, vy) || s.unify::<true>(depth, vx, vy))
     }

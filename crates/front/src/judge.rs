@@ -249,7 +249,7 @@ pub fn judge_terms_with(
             term: (*term).to_string(),
         })
         .collect();
-    let j = judge_pairs_uncached(extra_prefix, prefix_src, options, &pairs);
+    let j = judge_pairs_uncached(key, extra_prefix, prefix_src, options, &pairs);
     judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
     j
 }
@@ -288,7 +288,7 @@ pub fn judge_pairs_with(
     if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {
         return j;
     }
-    let j = judge_pairs_uncached(extra_prefix, prefix_src, options, pairs);
+    let j = judge_pairs_uncached(key, extra_prefix, prefix_src, options, pairs);
     judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));
     j
 }
@@ -307,6 +307,16 @@ pub(crate) mod stats {
     pub(crate) static PAIRS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static PREFIX_BYTES: AtomicU64 = AtomicU64::new(0);
     static PRINTED: std::sync::Once = std::sync::Once::new();
+
+    /// 每次判定调用的明细（`SOKO_JUDGE_STATS=2`）：调用序号 / 前缀字节 / 对数 /
+    /// 耗时。**这一行直接回答"每加一个 tactic 是不是就重编前面全部"**——
+    /// 看前缀字节是不是逐次增长、调用次数是不是等于 tactic 步数。
+    pub(crate) static VERBOSE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    pub(crate) static SEQ: AtomicU64 = AtomicU64::new(0);
+
+    pub(crate) fn verbose() -> bool {
+        *VERBOSE.get_or_init(|| std::env::var("SOKO_JUDGE_STATS").is_ok_and(|v| v == "2"))
+    }
 
     pub(crate) fn install_printer() {
         if std::env::var_os("SOKO_JUDGE_STATS").is_none() {
@@ -339,6 +349,7 @@ pub(crate) mod stats {
 }
 
 fn judge_pairs_uncached(
+    key: u64,
     extra_prefix: &str,
     prefix_src: &str,
     options: &CompileOptions,
@@ -352,16 +363,29 @@ fn judge_pairs_uncached(
         std::sync::atomic::Ordering::Relaxed,
     );
     let _timer = {
-        struct T(std::time::Instant);
+        struct T(std::time::Instant, u64, usize, usize, u64);
         impl Drop for T {
             fn drop(&mut self) {
+                let ms = self.0.elapsed().as_millis();
                 stats::NANOS.fetch_add(
                     self.0.elapsed().as_nanos() as u64,
                     std::sync::atomic::Ordering::Relaxed,
                 );
+                if stats::verbose() {
+                    eprintln!(
+                        "JUDGE_CALL #{:>3} key={:016x} prefix_bytes={:>8} pairs={:>3} ms={ms}",
+                        self.1, self.4, self.2, self.3
+                    );
+                }
             }
         }
-        T(std::time::Instant::now())
+        T(
+            std::time::Instant::now(),
+            stats::SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1,
+            prefix_src.len(),
+            pairs.len(),
+            key,
+        )
     };
     let mut judgements = vec![
         Judgement::Error {
