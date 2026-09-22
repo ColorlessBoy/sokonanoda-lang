@@ -256,9 +256,15 @@ pub struct DisplayNotations {
 head 是 `Ident`/`UniverseApp` 且 `arity[name] == args.len()` 时构造
 `Expr::Notation{…}` → `render_expr`。任何一步失败**原样返回输入**。
 
-* **重载不是问题**（方向反了）：前向是"符号 → 候选目标，按期望类型选"（有歧义）；
-  反向是"目标 → 符号"，**head 名字就是判据，天然单值**。唯一残留歧义是同一
-  target 声明了两个符号 ⇒ **取声明顺序第一个**，写进文档 + 一条测试。
+* **重载的处置（T-C13 的决定）**——两个方向分开看：
+  * **同一符号、N 个 target**（`⊕` => `AddA` 与 `AddB`）：**不是歧义**。反向的
+    判据是 **head 名字** ⇒ 两个 head 各自折成同一个符号，都对（前向那条路才要按
+    期望类型挑候选，与折叠层无关）。
+  * **同一 target、两个符号**（`∈` 与 `∊` 都 => `Set.mem`）：这是反向**唯一残留的
+    歧义** ⇒ **取声明顺序第一个**。顺序真的有意义（把声明倒过来，折出的符号跟着
+    变），两条都有测试。
+  * 折叠出来的 `Expr::Notation` 的 `alternatives` 一律**空**：target 已知且唯一，
+    候选列表是前向路径的东西。
 * **括号**：`render_expr` 的既有规则是**保守补括号**（`render_atom` /
   `render_fun_position` 把 `App`/`Notation`/`Arrow`/`Lambda` 一律括起来）
   ⇒ **永远不会少括号**（只会多），不存在优先级歧义；代价是比 Lean 略啰嗦。

@@ -490,6 +490,53 @@ mod tests {
         assert_eq!(fold_text("Set.mem α a", &dn), "Set.mem α a");
     }
 
+    // ---- 重载的处置（T-C13）--------------------------------------------
+
+    /// **同一 target、两个符号**（`∈` 与 `∊` 都 => `Set.mem`）：取**声明顺序第一个**。
+    ///
+    /// 这是反向折叠**唯一残留的歧义**（前向是"符号 → 候选目标，按期望类型选"，
+    /// 反向是"目标 → 符号"，head 名字就是判据 ⇒ 天然单值；只有"一个目标配了
+    /// 两个符号"时才有得选）。规则写死成"声明顺序第一个"，并且**顺序真的有意义**
+    /// ——下面第二条把顺序倒过来，符号跟着变，证明判据就是顺序本身。
+    #[test]
+    fn one_target_with_two_symbols_takes_the_first_declared() {
+        let dn = notations(
+            "def Set (α : Type) : Type := α -> Prop\n\
+             def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+             infix:50 \" ∈ \" => Set.mem\n\
+             infix:50 \" ∊ \" => Set.mem\n",
+            &[("Set.mem", 3)],
+        );
+        assert_eq!(fold_text("Set.mem α a A", &dn), "a ∈ A", "取声明顺序第一个");
+
+        // 顺序倒过来 ⇒ 折出来的是另一个符号（判据确实是顺序，不是别的）。
+        let flipped = notations(
+            "def Set (α : Type) : Type := α -> Prop\n\
+             def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+             infix:50 \" ∊ \" => Set.mem\n\
+             infix:50 \" ∈ \" => Set.mem\n",
+            &[("Set.mem", 3)],
+        );
+        assert_eq!(fold_text("Set.mem α a A", &flipped), "a ∊ A");
+    }
+
+    /// **同一符号、两个 target**（`⊕` => `AddA` 与 `AddB`）：**不是歧义**。
+    ///
+    /// 反向的判据是 head 名字 ⇒ 两个 head 各自折成同一个符号，都对。前向那条
+    /// 路（符号 → 候选）才需要按期望类型挑，与折叠层无关。
+    #[test]
+    fn one_symbol_with_two_targets_folds_by_head_without_ambiguity() {
+        let dn = notations(
+            "def AddA (a b : Prop) : Prop := a\n\
+             def AddB (a b : Prop) : Prop := b\n\
+             infixl:60 \" ⊕ \" => AddA\n\
+             infixl:60 \" ⊕ \" => AddB\n",
+            &[("AddA", 2), ("AddB", 2)],
+        );
+        assert_eq!(fold_text("AddA p q", &dn), "p ⊕ q");
+        assert_eq!(fold_text("AddB p q", &dn), "p ⊕ q");
+    }
+
     /// 一个最小的集合词汇 + 两条记法：`∈`（优先级 50）与 `∪`（左结合 65）。
     const SET_LIB: &str = "\
 def Set (α : Type) : Type := α -> Prop\n\
