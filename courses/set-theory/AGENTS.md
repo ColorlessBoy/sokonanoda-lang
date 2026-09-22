@@ -25,8 +25,39 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
   复合记法操作数（`{aa} ∩ {bb}`、字面 λ 的 `''`/`⁻¹'`）、`And.left h x` 续应用等。
   **`by rfl` 已能认 `=` 记法目标**（2026-09-21 修）。
   细则见 `docs/notes/course-lean-style/notation-rewrite-brief.md`。
-- **tactic 块不动，term 保持 term**（用户明说 tactic 先不动）；纯记法改写必须
+- **画布（`units/*.sokonanoda`）里的 tactic 块不动，term 保持 term**；纯记法改写必须
   **计数中性**：门禁仍是 `36 目标 · 328 checked · 99 open · 0 判负`。
+
+## 解答写法：**项风格**（2026-09-21 用户拍板，**覆盖**早先的"tactic 先不动"）
+
+> 「tactic 先不动」是我写的，但是现在看性能差太多了，solution 没必要损失性能。
+
+`solutions/*.sokonanoda` 一律写**项风格**（lambda / 直接给证明项），**不用 `by`**。
+
+**为什么**：`by` 块的判定代价是 **O(前缀 × `by` 块数)**——每个 `by` 块都要把整份
+前缀重新 elaborate 一遍。实测 `unit12-solution`（25 个 `by` 块）冷跑 **120 秒**，
+其中判定占 **68%**；同一批定理写成项风格实测快 **8.4×**，`unit12-solution` 那种
+大文件 **25×**（`docs/PERF.md` 有分阶段表）。
+
+**解答同时是"提示"**：学习者做画布上的题卡住时，老师（LLM）读解答拿到**证明骨架
+与关键件**，再用 tactic 写法讲给学习者听。两边一一对应：
+
+| 项风格 | tactic 写法 |
+|---|---|
+| `fun (h : P) => e` | `intro h; exact e` |
+| `f a b` | `apply f; exact a; exact b`（或 `exact f a b`） |
+| `Iff.intro P Q h1 h2` | `constructor; exact h1; exact h2` |
+| `Set.ext α A B (fun x => …)` | `apply Set.ext; intro x; …` |
+
+写解答时**必须**：
+1. 声明签名逐字不变（只换 `:=` 后面的证明项）；
+2. 不用 `sorry`、不削弱命题；
+3. 保留全部教学注释与 `-- soko:notation-ok: …` 标记；
+4. 判绿（`node scripts/soko grade "<绝对路径>"` 退出码 0、无诊断）。
+
+**已知陷阱（G-30）**：`Iff.intro` / `And.intro` 的分支里含集合字面量（`{a}`）时，
+**前导 Prop 实参必须显式写出来**（`Iff.intro ({a} = {b}) (a = b) …`），否则报
+`期望 Sort(0)，实际是 (Set.[] $2)`。
 
 ## 写作循环（每个单元一轮）
 

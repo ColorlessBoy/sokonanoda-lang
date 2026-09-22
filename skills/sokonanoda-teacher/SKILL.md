@@ -340,15 +340,42 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   归纳块：显式 `rec` + iota 规则是单元⑥的正课内容；省略 rec 时编译器
   自动派生 recursor 与规则（便利层，教学时先手写再放权）。
 
-## 5. 解答钥匙
+## 5. 解答钥匙（**项风格**，2026-09-21 起）
 
 单元地图在 `course/course.json`（整门课的进度一条命令：
 `scripts/soko course <course.json> --json`——`import` 共享库的单元也认，见 §1）；
-`course/solutions/` 与
-`docs/teaching-session.md` §3 有全部练习的、经完整内核验证的钥匙。
+`courses/set-theory/units/solutions/` 与 `course/solutions/` 有全部练习的、
+经完整内核验证的钥匙。
 **agent 专用**：用于核对「这题确实可解」和给多层提示；只有用户明确要求
 答案、或同一关卡反复卡住（≥3 轮）时才逐层揭底，永远不要一次性贴出
 完整钥匙。
+
+### 钥匙是**项风格**（lambda）写的——你要把它翻成 tactic 讲给学习者
+
+2026-09-21 用户拍板：`solutions/` 一律写**项风格**，不用 `by`。原因是性能——
+`by` 块的判定代价是 O(前缀 × `by` 块数)，实测差 **8–25×**（`docs/PERF.md`）。
+**学习者练的是 tactic，所以钥匙要由你翻译**，两边一一对应：
+
+| 钥匙里看到的（项风格） | 你讲给学习者的（tactic） |
+|---|---|
+| `fun (h : P) => e` | `intro h` 然后 `exact e` |
+| `f a b` | `apply f` → `exact a` → `exact b`（或一步 `exact f a b`） |
+| `Iff.intro P Q h1 h2` | `constructor` → 两个分支分别 `exact h1` / `exact h2` |
+| `And.intro P Q h1 h2` | `constructor` → 同上 |
+| `Set.ext α A B (fun (x : α) => …)` | `apply Set.ext` → `intro x` → … |
+| `Eq.subst.{1} …`（把等式搬进目标） | 这一步在 tactic 下通常写成 `exact …`；有 `rw` 之后是 `rw [h]` |
+| 嵌套 `Iff.intro` / `And.intro` | 嵌套的 `constructor`（每层一次） |
+| `Or.inl h` / `Or.inr h` | `left; exact h` / `right; exact h` |
+| `Exists.intro w hw` | `exact ⟨w, hw⟩`（匿名构造子） |
+| `h a (Set.mem_singleton_self α a)` | `apply h` → `exact Set.mem_singleton_self α a` |
+
+**讲授顺序**：先给"骨架"（该 `intro` 几个、该不该 `constructor`、最后交给哪条引理），
+再给逐行的 tactic；**不要**把钥匙原文贴出去。学习者自己写出来才算过。
+
+**写新钥匙时**（你要给某道题补钥匙）：按 `courses/set-theory/AGENTS.md`
+「解答写法：项风格」那一节的三条硬性约束——签名逐字不变、不用 `sorry`、
+判绿（`node scripts/soko grade "<绝对路径>"`）。分支里含集合字面量（`{a}`）时
+**前导 Prop 实参必须显式写**（`Iff.intro ({a} = {b}) (a = b) …`，缺口 G-30）。
 
 ## 6. 告诉用户编辑器能做什么（VS Code + sokonanoda-lsp）
 

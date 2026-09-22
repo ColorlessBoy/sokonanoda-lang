@@ -1,0 +1,27 @@
+-- G-30 最小复现：**期望类型不传播到嵌套应用的实参**。
+--
+-- 期望 `({a} = {b}) ↔ a = b` 是知道的，但 `Iff.intro` 的两个分支在 elaborate 时
+-- 拿不到它 ⇒ 分支里的 `Set.ext α {a} {b} (…)` 中，集合字面量 `{a}`/`{b}` 推不出
+-- 类型 ⇒ 内核报 `期望 Sort(0)，实际是 (Set.[] $2)`。
+--
+-- 对照（把 `Iff.intro` 的前导 Prop 实参显式写出来就通过）：
+--   Iff.intro ({a} = {b}) (a = b) (fun …) (fun …)          -- ✓
+--   And.intro (P) (Q) h1 h2                                -- 同理
+--
+-- 影响：**项风格（lambda）证明**没法自然书写。这是把 `solutions/` 从 tactic 改成
+-- 项风格（2026-09-21 用户拍板，性能差 8–25×）时撞到的第一堵墙。
+import lib.Set
+
+theorem iff_intro_nested_set_literal (α : Type) (a b : α) :
+    ({a} = {b}) ↔ a = b :=
+  Iff.intro
+    (fun (h : {a} = {b}) =>
+      Iff.mp (a ∈ {b}) (a = b) (Set.mem_singleton_iff α a b)
+        (Eq.subst.{1} (Set α) (fun (X : Set α) => a ∈ X) {a} {b} h
+          (Set.mem_singleton_self α a)))
+    (fun (h : a = b) =>
+      Set.ext α {a} {b}
+        (fun (x : α) =>
+          Iff.intro
+            (fun (hx : x ∈ {a}) => hx)
+            (fun (hx : x ∈ {b}) => hx)))
