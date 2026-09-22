@@ -124,6 +124,11 @@
 - `ctor-namespace.md` — 构造子进入类型的命名空间（G-02 / WO-005，0.59.0 落地）：
   规范名 `Ind.ctor` + 裸名解析别名、`elab-ambiguous-ctor-alias`、归约形态实测；
   §"基线口径订正"记录了课程门禁的**实测**基线 315 checked · 96 open（2026-09-19）
+- `notation-aware-printing.md` — **goal / 类型行用记法**（线 C）：§1 是**实测表**
+  （四个生产者 × unit01/08/12 + 解答，逐格给出 CLI 命令与实际文本）；
+  三条结论：光标在不在 tactic 上决定走哪一支（学习者的光标就在 tactic 上）、
+  `apply` 之后子目标走的是 pp 望远镜（`∈`/`↔` 一起消失）、同一份声明在两个
+  surface 上文本不同；§1.4 定靶（改 #1/#3，不动 `render_expr` 与内核 pp）（2026-09-21）
 - `notation-subset.md` — **用户自定义记法子集**（G-04 / WO-011 第一刀，0.59.0 落地）：
   `infix:N`/`infixl:N`/`infixr:N`/零元 `notation` 四条命令、数学符号独立 token 的
   码点类、优先级梯子（`p`/`p+1`、`p+1`/`p`）、elab 内**源到源**展开 + 自动补前导

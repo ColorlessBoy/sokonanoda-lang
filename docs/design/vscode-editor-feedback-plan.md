@@ -1990,6 +1990,17 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C01 四个生产者 × 真实文件的实测表
 
+> **✅ 完成（2026-09-21）**：`docs/design/notation-aware-printing.md` §1。
+> 逐格实测（命令模板也写在文档里，每格可重跑），三条结论：
+> ① **光标在不在 tactic 上**决定走哪一支——学习者的光标就在 tactic 上，所以他看到的
+> 就是内核 pp 的点名形式（**这就是用户的抱怨**）；
+> ② "`by` 步进保留记法"**只对结构型 tactic 成立**：`apply Set.ext` 之后是
+> `(x : α) -> Iff (A x) (B x)`——`∈` 与 `↔` 一起消失（子目标来自被应用引理的
+> **内核 pp 望远镜**）；
+> ③ **同一份声明在两个 surface 上文本不同**（`mem_of_subset` 的 `goal` 是
+> `(a ∈ A) -> a ∈ B`，`sorry` 行是 `forall (α : Type 0) …, Set.mem α a A -> …`）
+> ⇒ **要改的是 #1（根状态）与 #3（声明卡片）**，#2 已经是对的。
+
 - **改什么**：写 `docs/design/notation-aware-printing.md` 的第一节：对 unit01/08/12
   与对应解答，逐 `sorry`/逐 `by` 步记录"这个 surface 的文本有没有记法"，
   用 §2.5 的四个生产者归类。
@@ -2706,7 +2717,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 #### 批次 3 · 线 C：goal 用记法（minor）
 
 - [x] `T-K32` `pretty_printer.rs` 零单测
-- [ ] `T-C01` 四个生产者 × 真实文件的实测表
+- [x] `T-C01` 四个生产者 × 真实文件的实测表
 - [ ] `T-C02` 消费者审计（**不然会静默改坏判卷**）
 - [ ] `T-C03` 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**
 - [ ] `T-C03b` `DisplayText` 护栏（**先于任何折叠代码**）
