@@ -19,21 +19,22 @@ theorem subset_trans (α : Type) (A B C : Set α)
 
 theorem subset_antisymm (α : Type) (A B : Set α)
     (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B :=
-  Set.ext α A B (fun (x : α) => Iff.intro (x ∈ A) (x ∈ B) (h1 x) (h2 x))
+  Set.ext α A B (fun (x : α) => Iff.intro (h1 x) (h2 x))
 
 theorem empty_subset (α : Type) (A : Set α) : ∅ ⊆ A :=
   fun (x : α) (hx : x ∈ ∅) => False.elim (x ∈ A) hx  -- soko:notation-ok: 目标经 intro 展开（非语句层）后期望类型传不到（引擎边界）
 
 theorem subset_empty_iff (α : Type) (A : Set α) :
     (A ⊆ ∅) ↔ (A = ∅) :=
-  Iff.intro (A ⊆ ∅) (A = ∅)
+  -- 前导 Prop 实参**必须写全**（G-30）：分支里有 `∅`，期望类型传不进去。
+  Iff.intro (A ⊆ ∅) (A = ∅)  -- soko:notation-ok: G-30：分支含集合字面量时前导实参必须写全，否则报「期望 Sort(0)，实际是 Set.[] $x」
     (fun (h : A ⊆ ∅) => subset_antisymm α A ∅ h (empty_subset α A))
     (fun (h : A = ∅) =>
       Eq.subst.{1} (Set α) (fun (X : Set α) => A ⊆ X) A ∅ h (subset_refl α A))
 
 theorem eq_empty_iff_forall_notMem (α : Type) (A : Set α) :
     (A = ∅) ↔ (∀ (x : α), ¬ (x ∈ A)) :=
-  Iff.intro (A = ∅) (∀ (x : α), ¬ (x ∈ A))
+  Iff.intro (A = ∅) (∀ (x : α), ¬ (x ∈ A))  -- soko:notation-ok: G-30：分支含 `∅`，前导实参必须写全
     (fun (h : A = ∅) => fun (x : α) (hx : x ∈ A) =>
       Set.notMem_empty α x (Eq.subst.{1} (Set α) (fun (X : Set α) => x ∈ X) A ∅ h hx))
     (fun (h : ∀ (x : α), ¬ (x ∈ A)) =>
@@ -54,7 +55,7 @@ theorem singleton_ne_empty (α : Type) (a : α) : {a} ≠ ∅ :=
 
 theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
     {a, b} ⊆ A ↔ a ∈ A ∧ b ∈ A :=
-  Iff.intro ({a, b} ⊆ A) (a ∈ A ∧ b ∈ A)
+  Iff.intro  -- soko:notation-ok: 这里可以省前导实参（分支的期望类型传得进去）
     (fun (h : {a, b} ⊆ A) =>
       And.intro (a ∈ A) (b ∈ A)
         (h a (Or.inl (a = a) (a = b) (Eq.refl.{1} α a)))  -- soko:notation-ok: 复合项/λ 体的 Eq 型实参隐式反解判红（引擎边界）
@@ -71,7 +72,7 @@ theorem pair_subset_iff (α : Type) (a b : α) (A : Set α) :
 
 theorem pair_comm (α : Type) (a b : α) : {a, b} = {b, a} :=
   Set.ext α {a, b} {b, a} (fun (x : α) =>
-    Iff.intro (x ∈ {a, b}) (x ∈ {b, a})
+    Iff.intro (x ∈ {a, b}) (x ∈ {b, a})  -- soko:notation-ok: G-30：分支含集合字面量，前导实参必须写全
       (fun (h : x ∈ {a, b}) =>
         Or.elim (x = a) (x = b) ((x = b) ∨ (x = a))  -- soko:notation-ok: λ 体要靠这个显式调用拿到期望类型（引擎边界）
           (fun (ha : x = a) => Or.inr ha)

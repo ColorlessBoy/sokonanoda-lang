@@ -1381,6 +1381,62 @@ K1（68% 的上界、要动内核）更划算，所以**并行做、优先级不
 **与画布的关系**：`units/*.sokonanoda`（学习者看的画布）里的 tactic 块**不动**
 ——学习者练的就是 tactic。只有 `solutions/` 改。
 
+### ⛔ 5.5a **红线级**：`by` 的判定方案违背热编译的设计初衷（G-31，2026-09-21）
+
+> 用户原话：
+> > 我还是很疑惑，lean 的 by 风格有这么耗时吗？是不是我们的 by 的实现方案有问题呢？
+>
+> > 那要插入方案进计划里，这个违背我们的红线，也违背我们的热编译的设计初衷。
+
+**质疑成立，而且是我们自己的架构问题**（不是 `by` 语义、也不是内核）：
+
+`crates/front/src/judge.rs::judge_pairs_uncached` 的最后一步是
+
+```rust
+let report = check_document_with(
+    &FolFile { commands, src: full_prefix },   // 整份前缀 + 合成的判定声明
+    options,
+);
+```
+
+而 `check_document_with` → `run(&[SourceUnit::single("", file)], …)` **从头跑完整
+流水线**，零复用。实测（`unit12-solution`，25 个 `by` 块）：
+
+| | |
+|---|---|
+| `check_document_with` 调用次数 | **25**（每个 `by` 块一次） |
+| 前缀字节 | 13,286 → 83,187 **单调增长** |
+| 合计处理 | **1,064,669 字节 ≈ 文件本身的 13 倍** |
+| 单次最贵 | **28.6 秒** |
+| 判定占整个文件墙钟 | **68%**（81.9s / 120.4s） |
+
+**Lean 不是这样**：`by` 只是一个普通命令，按顺序 elaborate **一次**，tactic 逐步改
+goal state，**前面的声明不会被重新 elaborate**（`Lean.Server.FileWorker`："elaboration
+is executed in a chain of tasks, where each task corresponds to the elaboration of
+one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证明**同量级**。
+
+**为什么当初这么写**：前端没有"往已有环境里再 elaborate 一条声明"的入口，唯一入口
+`check_document_with(FolFile)` 只能整份重跑。而"复用已判定的环境"在
+`docs/design/by-tactics.md` §13 里被明确记成**死路**——`EnvBuilder` 字段私有、
+`new(arena, config)` 是唯一构造入口、`finish(self)` 消费自身，且
+`NamePtr::decl_idx` 绑定在造它的 builder 上。
+
+⚠ **但那是内核冻结时写的**。2026-09-21 内核解冻（硬规则 1 修订）+ 用户明确授权
+"如果是内核的性能问题，内核也可以列计划修改" ⇒ **那条死路现在是通的**。
+
+#### 计划（**优先于线 K 的其余部分**）
+
+| 环节 | 内容 | 判据 |
+|---|---|---|
+| **T-K12′** | `EnvBuilder::with_env`：让判定在**已 elaborate 过的环境**上继续，而不是重跑前缀 | `JUDGE_STATS` 的 `total_ms` 降到与"主 pass 一次"同量级；`unit12-solution` 冷跑从 120s 降到 **10s 量级** |
+| **T-K13′** | 若 `with_env` 做不成：`EnvBuilder::snapshot()` 克隆式检查点（陷阱：`conv.rs:169` 按**指针**比较 `NatLit`，快照必须与新建声明同一 arena） | 同上 |
+| **T-K01/K02** | 护栏（`kernel-diff.sh` 已就位；还差 `kernel-check.sh` 与 `arena.rs` 收集逻辑） | 对拍零差异 |
+| **回滚线 L** | K1 落地且 `by` 变便宜之后，**重新评估** `solutions/` 要不要用回 tactic | 届时按性能数字决定 |
+
+**在那之前**：线 L（解答改项风格）仍要做——它是**零内核风险**的 8–25×，
+而且不依赖 K1 的成败。但它是**绕开**，不是修复；`by` 贵这件事必须在计划里
+按红线级跟踪，不能因为"解答改项风格了"就算解决。
+
 ### 5.6 A-VI 线 K：内核解冻后的性能根治（**批次 5 → 提前**）
 
 > ### ⚠ 2026-09-21 用户改优先级：**速度是生命线**
