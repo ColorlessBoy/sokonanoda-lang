@@ -186,3 +186,77 @@ cache::key(digest, options)   # 仍然复用同一个 format|version|build|bare 
 - **只缓存"完全干净"的项目**（`ProjectReport::is_clean`）：条目里只有**入口**的
   报告与事件，带诊断的项目回放不出依赖模块的诊断，而冷跑/热跑必须逐字节一致。
 - **不做**：deps 级 decl 产物（信任台账，见设计 §4.8 的可选项及其"先换强哈希"前置）。
+
+## 8. as-built（T-A50，2026-09-21，0.64.2）
+
+> §7 是 **v1 的设计稿**（2026-09-17，I16 P4）。批次 2（线 A）之后实际长这样；
+> 与 §7 不一致的地方**以本节为准**，§7 留着当"当时怎么想的"。
+
+### 8.1 键：闭包摘要，**没有任何文件系统属性**
+
+```
+digest = FNV-1a64( "soko.project-iface/2",
+                   digest_path(入口的绝对路径),      # T-A06：内容相同 ≠ 位置相同
+                   prelude 模式,
+                   for module in 拓扑序 { 模块名 \0 模块源文本 \0 各 import 名 } )
+cache::key(digest, options)   # 复用同一个 format|version|build|bare 前缀
+```
+
+两处**与 §7 不同**：
+
+* **版本串是 `/2`、并且含入口路径**（T-A06 顺带发现）：只按"模块名 + 源文本 +
+  import 边"算键，两个**内容逐字相同但在不同目录**的项目会共用一个键 ⇒ 第二个
+  回放到第一个的**绝对路径**——`query project` 报错的模块根、LSP 的
+  definition/references 跳到别的目录的文件。内容相同不代表位置相同。
+* **键里没有可执行文件的 mtime**（T-A02 / G-27）：以前是 `current_exe()` 的
+  mtime（秒级），于是"CLI 预热过、编辑器却不命中"取决于两个二进制的 mtime 是否
+  落在**同一秒**（本机实测四组里三组不同秒）。现在 `build_stamp` 是**编译期常量**
+  （`cfg!(debug_assertions)` + OS/ARCH + `CACHE_FORMAT`），`CACHE_FORMAT` 2 → 3。
+
+**打开文档的内存覆盖（overlay）也进摘要**：依赖的未落盘编辑会改变这份文档的闭包
+结果，不折进键里就会错命中（回放出一份按旧依赖算的报告）。
+
+### 8.2 条目 v2：**按模块存**（T-A03）
+
+条目里不只入口的报告，还有**每个模块的报告与事件**（`ProjectReport`）。理由：
+LSP 的跨文件能力（definition / references / rename / `soko/project` 的模块表 /
+扇出判定）读的都是模块表 ⇒ 只存入口报告会让命中缓存的文档"**能显示、不能跳转**"
+（`crates/lsp/tests/lsp_cache.rs` 的 `cross_file_definition_still_works_after_a_cache_hit`
+钉着，它跑的是**真进程 + 跨进程缓存**）。
+
+### 8.3 什么时候写、什么时候不写
+
+* **只缓存"完全干净"的项目**（`ProjectReport::is_clean`）：带诊断的项目回放不出
+  依赖模块的诊断，而冷跑/热跑必须**逐字节一致**（`lsp_cache.rs` 的
+  `a_warm_process_publishes_byte_identical_diagnostics` 就是这条的判据）。
+* **写缓存与读缓存共用同一个键**：摘要在 `Doc::set_text` 里**只算一次**。
+* **`requires` 漂移不再静默关掉缓存**（T-A05 / T-A08）：仓库内所有清单的
+  `requires` 由 `python3 scripts/bump.py <x.y.z>` 统一提升（Cargo.toml +
+  package.json + Cargo.lock + 各清单），并有门禁（`scripts/soko gate` + CI）看着。
+  漂移只在 `query check` 的 `warnings[]` 里提示。
+
+### 8.4 LSP 侧的三件事（T-A10 / T-A11 / T-A23 / T-A30）
+
+| 时机 | 行为 |
+|---|---|
+| 打开 / 改文本 | **先读缓存**：命中就整份回放（诊断 + 逐模块报告 + 事件），不重编。实测 unit08 冷开 4.8s → 热开 **8ms**（T-A14） |
+| 编译完 | **写缓存**（`store_if_clean`）：不写的话只有"用户先跑过 CLI `build`"才享受得到命中 |
+| 依赖变了 | **扇出**：只重编**闭包里含这份改动**的已打开文档（T-A23），其余文档重发上次诊断即可 |
+
+**短路（T-A21 / T-A22）的判据是闭包摘要，不是"自己的文本"**（T-A30 修的）：
+依赖在**磁盘上**被改了（`git checkout` / 另一个编辑器）时这份文档自己的文本一个
+字节没变，但闭包结果会变——只看文本会把旧诊断一直显示下去。摘要只**读文件 +
+哈希**，比"重编一遍闭包"便宜三个数量级。
+
+**编译不再独占 `Mutex<Docs>`**（T-A30）：`did_open`/`did_change`/`did_save`/
+`did_change_watched_files` 只同步记下最新文本 + 版本就返回，编译由 spawn 出去的
+任务做；编译期间到达的只读请求读**上一次完成的状态**。详见
+`docs/design/lsp-edit-concurrency.md`。
+
+### 8.5 边界：**跨入口仍然不共享**（没做的部分）
+
+缓存键是**闭包摘要**，所以打开 `unit01` 之后再打开 `unit08`，两份闭包各自编一遍
+——**公共库那部分被编了两次**。这不是 bug，是**本批次没做**的部分：跨入口共享
+需要"跨调用持有 arena + builder"，也就是线 K 的 K2（`T-K20` / `T-K21…`）。
+今天诚实的说法是：**缓存让"第二次打开同一份"变快（7.5×，T-A60 的 e2e 判据），
+不让"换一个入口"变快**。

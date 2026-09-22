@@ -316,7 +316,10 @@ check-then-add → 事件/错误 → 每命令签名与 early cutoff → 报告�
    `redundant-sorry` 是 pass 2 现算的 warning，0.58.0 合并轮之前它在项目模式下
    会被丢掉（`split_report` 当时只重算语法级 warning）。
 6. **缓存**：`ProjectPlan::digest(options)` = 拓扑序上每个模块的 (名字, 源,
-   imports) + prelude 模式的稳定哈希；依赖改动必然改摘要（`docs/design/compile-cache.md` §7）。
+   imports) + **入口路径** + prelude 模式的稳定哈希（格式串 `soko.project-iface/2`）；
+   依赖改动必然改摘要。**键里没有任何文件系统属性**（T-A02 起不再是可执行文件的
+   mtime），条目**按模块存**（跨文件跳转要读模块表）。as-built 见
+   `docs/design/compile-cache.md` §8。
 7. **对外视图**：`query::QueryDoc::project_view()` 把这次编译的闭包状态派生成
    `ProjectView`（根 / 清单来源 / 拓扑序模块表 + 每模块 `status`
    （`compiled` / `load-failed` / `blocked`）/ 项目级诊断 / 计数）——**只读派生，

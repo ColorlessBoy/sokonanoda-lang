@@ -475,6 +475,38 @@ python3 scripts/perf-compare.py --self-test     # 自检判定规则（7 条）
 预期修后：`did_open` 首次降到与 `did_open_same_session` 同量级（缓存命中），
 `by_block_did_open` 从 36.1s 降到个位数秒（线 K 的 K1-b）。
 
+**修后（批次 2 收口，T-A51，2026-09-21，0.64.2）**：
+
+| case | 入口 | 修前 | 修后 | 说明 |
+|---|---|---|---|---|
+| `did_open` | unit01 | 1812ms | **1694–1780ms** | 冷开仍是真编译（缓存只帮第二次） |
+| `did_open` | unit08 | 4729ms | **3668–3834ms** | 同上；这一段是 T-K22（记法消解不再重编前缀） |
+| `did_open` | unit12-synthesis | 7910ms | **7333–7484ms** | 同上 |
+| `did_open_same_session` | unit01 | 121ms | **125–129ms** | 未变（这条本来就是好的） |
+| `keystroke` | unit08 | 371ms | **392ms 编译 + 120ms 防抖** | 编译本身没变；多出来的是 T-A30 对**重建慢的文件**的静默期（见下） |
+| `save_same_text` | unit08 | — | **0–4ms** | T-A22 的短路，判据是**闭包摘要** |
+| `watched_unchanged` | unit08 | — | **0–3ms** | 同上 |
+
+**"第二次打开"在真编辑器里（T-A60 的真宿主 e2e）**：
+
+```
+PERF e2e cache: cold=436ms warm=58ms entries=1     # 7.5×，判据要求 >3×
+PERF e2e fanout: entry diagnostics publishes=1     # 改一次依赖只发一份
+```
+
+**同一版本里两件用户可感的事**（都在批次 2）：
+
+* **打开**：命中缓存 ⇒ 毫秒级回放。真 LSP 进程实测 unit12-solution
+  冷 36.3s → 热 **26ms**（1395×，见本文上面那张表）。
+* **不再冻结**（T-A30）：一次 ~1.2s 编译进行中的 `soko/stateAt`
+  **1277ms → <1ms**；打开 + 连打 5 个键的**编译趟数** 6 → **≤3**。
+  代价是重建慢的文件（上次编译 ≥150ms）多等 120ms 静默期——**明写在上面那张表里**。
+
+**判读（收口）**：批次 2 治的是"**重复的同一份工作**"（第二次打开、同文本通知、
+依赖没变的保存）——那几条现在是毫秒级。**"第一次打开 / 编辑一次仍然要重编整条
+闭包"没治**：那是线 K（K1/K2）的事，`did_open` 的冷列与 `keystroke` 的编译段
+就是它现在的价码。
+
 ### 台账：`scripts/perf-ledger.sh` → `docs/perf/ledger.jsonl`
 
 每个测试打印一行 `PERFJSON {…}`（`schema: soko.perf/1`），脚本把它们连同
