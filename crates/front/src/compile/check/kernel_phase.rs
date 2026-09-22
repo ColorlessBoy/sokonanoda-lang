@@ -58,6 +58,34 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
     // Print proof terms as terms instead of suppressing them to `_`; the
     // suppression path would try to infer types of open binder bodies.
     env.config.pp_options.proofs = true;
+    // **显示期的记法表**（线 C / T-C20）：`ty_text` 是内核 pp 出来的**点名**形式
+    // （`Set.mem α a A`），而用户看的是 goal 面板 / 声明卡片——他要记法。
+    // 这里**建一次**、给这一趟里每个声明共用：记法表来自闭包各单元的**已解析命令**
+    // （零额外解析），元数来自源级签名 + prelude（prelude 那份 parse 一次就缓存）。
+    //
+    // 只作用于 `ty_text`（T-C02 的审计：它**只有给人看的消费者**）；
+    // `goal` / `binders[].ty` / `sub_goals[].ty` **同时喂 judge**，一个字节都不动。
+    let display = {
+        let commands: Vec<&crate::ast::Command> = units
+            .iter()
+            .flat_map(|unit| unit.file.commands.iter())
+            .collect();
+        let mut table = crate::notation::notation_table(
+            &commands.iter().map(|c| (*c).clone()).collect::<Vec<_>>(),
+        );
+        // **内建记法要自己补**（`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里，
+        // parser 有硬编码表）——否则 `Iff` 永远折不成 `↔`。
+        table.splice(0..0, crate::notation::builtin_notation_decls());
+        if table.is_empty() {
+            crate::display::DisplayNotations::default()
+        } else {
+            let arities =
+                crate::display::arities_with_prelude_from(crate::display::arities_in_commands(
+                    &commands.iter().map(|c| (*c).clone()).collect::<Vec<_>>(),
+                ));
+            crate::display::DisplayNotations::new(table, arities)
+        }
+    };
 
     let want_sigs = trust.is_some();
     let before = trust.map_or(0, |t| t.before);
@@ -167,14 +195,20 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                     );
                                 }
                             }
-                            let ty_text = declared_ty.and_then(|ty| {
-                                quiet_catch(|| {
-                                    env.with_tc(EnvLimit::Empty, |tc| {
-                                        tc.with_pp(|pp| pp.pp_expr(ty))
+                            let ty_text = declared_ty
+                                .and_then(|ty| {
+                                    quiet_catch(|| {
+                                        env.with_tc(EnvLimit::Empty, |tc| {
+                                            tc.with_pp(|pp| pp.pp_expr(ty))
+                                        })
                                     })
+                                    .ok()
                                 })
-                                .ok()
-                            });
+                                .map(|text| {
+                                    crate::display::print_back(&text, &display)
+                                        .as_display_str()
+                                        .to_string()
+                                });
                             decl_states.push(DeclState {
                                 kind,
                                 name,
@@ -209,8 +243,13 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                             let ty = declar.info().ty;
                             tc.with_pp(|pp| pp.pp_expr(ty))
                         })
+                    })
+                    .ok()
+                    .map(|text| {
+                        crate::display::print_back(&text, &display)
+                            .as_display_str()
+                            .to_string()
                     });
-                    let ty_text = ty_text.ok();
                     match env.try_check_declar(&declar) {
                         Ok(()) => {
                             match kind {

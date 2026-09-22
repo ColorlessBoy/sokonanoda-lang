@@ -3135,6 +3135,12 @@ const BUILTIN_NOTATIONS: &[(&str, NotationAssoc, u16, &str)] = &[
     ("≠", NotationAssoc::Infix, 50, "Ne"),
 ];
 
+/// 内建记法表（符号 / 结合性 / 优先级 / 目标点名）——**显示层要它**：这些记法
+/// 不在任何源文本里，`notation::notation_table` 收不到（T-C20 实测）。
+pub(crate) fn builtin_notations() -> &'static [(&'static str, NotationAssoc, u16, &'static str)] {
+    BUILTIN_NOTATIONS
+}
+
 /// 内建记法的符号文本（喂给词法：`↔`/`¬`/`≠` 不在数学码点类里，不喂就切不出来）。
 pub(crate) fn builtin_notation_symbols() -> Vec<String> {
     BUILTIN_NOTATIONS

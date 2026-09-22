@@ -96,6 +96,7 @@ impl From<&str> for DisplayText {
 //   * **产物是 [`DisplayText`]**：它进不了任何回读通道（编译期保证）。
 
 use crate::ast::{Binder, Expr, MatchArm, NotationAssoc, NotationDecl};
+use crate::Span;
 use std::collections::HashMap;
 
 /// 显示期的记法表（设计 §3.3）：记法声明 + 「target 点名 → 元数」。
@@ -152,24 +153,99 @@ pub fn print_back(text: &str, notations: &DisplayNotations) -> DisplayText {
     let Ok(ast) = crate::proof::parse_expr_text_with(text, &notations.table) else {
         return DisplayText::new(text);
     };
-    let folded = fold(ast.clone(), notations);
-    // **一处都没折 ⇒ 逐字节原样返回**。
-    //
-    // 这条性质比"折对了"更要紧：`render_expr` 的产物是**回读通道的输入**，所以它
-    // 会把内核 pp 的 `forall (a b : T), …` **拆成箭头链** `(a : T) -> (b : T) -> …`
-    // （`proof.rs` 里那段注释解释了为什么必须这样）。如果无条件重渲染，那么**每一条
-    // 不带记法的类型**都会跟着改样子——那不是用户要的（他要的是记法），也是本可以
-    // 避免的显示漂移。有了这一行：**没有记法的文本一个字节都不动**。
-    if folded == ast {
+    // `parse_expr_text_with` 解析的是 `"#check " + text` ⇒ AST 的 span 比 `text`
+    // 多一个前缀。**反推**这个偏移（而不是硬编码 `"#check ".len()`）：`text` 里
+    // 第一个非空白字符的位置就是表达式该在的位置。
+    let lead = text.len() - text.trim_start().len();
+    let Some(base) = ast.span().start.offset.checked_sub(lead) else {
+        return DisplayText::new(text);
+    };
+    let mut edits: Vec<(Span, String)> = Vec::new();
+    let _ = fold_collecting(ast, notations, &mut edits);
+    if edits.is_empty() {
         return DisplayText::new(text);
     }
-    DisplayText::new(crate::proof::render_expr(&folded))
+    match splice(text, base, edits) {
+        Some(out) => DisplayText::new(out),
+        // span 换算越界（解析器换了前缀形状之类）⇒ **原样返回**，绝不乱切。
+        None => DisplayText::new(text),
+    }
 }
 
-/// 自底向上折：先把子项折好，父项才有机会看到已经折好的操作数。
-fn fold(expr: Expr, dn: &DisplayNotations) -> Expr {
-    let expr = map_children(expr, dn);
-    fold_spine(&expr, dn).unwrap_or(expr)
+/// 把折出来的记法**拼回原文本**：只替换折过的那几段，其余**逐字节保留**。
+///
+/// **为什么不是"重渲染整棵 AST"**（`render_expr(&folded)`）：那样会把折过之外
+/// 的东西也一起改样——实测最刺眼的两条是 `forall (a b : T), …` 被**拆成箭头链**、
+/// `Type 0` 被重排成 `Sort 1`（`render_expr` 是回读通道的输入，它必须那样写）。
+/// 用户要的是"记法"，不是"整句话换个写法"。
+///
+/// **span 是可靠的**：折叠**保留 span**（记法节点取被折那段的 span，操作数各自
+/// 保留自己的），而它们指向的就是传进来的 `text` ⇒ 可以按 span 原地替换。
+/// 从**右往左**替换，前面的偏移才不会被破坏。
+fn splice(text: &str, base: usize, mut edits: Vec<(Span, String)>) -> Option<String> {
+    // span 换算回 `text` 的下标；任何一处越界/不在字符边界就放弃（返回 `None`）。
+    let mut ranges: Vec<(std::ops::Range<usize>, String)> = Vec::new();
+    for (span, rendered) in edits.drain(..) {
+        let start = span.start.offset.checked_sub(base)?;
+        let end = span.end.offset.checked_sub(base)?;
+        if start > end || end > text.len() {
+            return None;
+        }
+        if !text.is_char_boundary(start) || !text.is_char_boundary(end) {
+            return None;
+        }
+        // **括号配平**：解析器给「带括号的原子」的 span **不含那对括号**
+        // （实测 `(Set.union α A B)` 的 span 只有 `Set.union α A B`）⇒
+        // 外层应用节点的 span 会在最后一个 `)` **之前**结束（`Set.mem α a
+        // (Set.union α A B)` 的 span 少一个 `)`）。这里把范围补齐到**括号配平**：
+        // 少 `)` 就向右吃 `)`，多 `)` 就向左吃 `(`。两个方向都实测过。
+        let (mut start, mut end) = (start, end);
+        let slice = &text[start..end];
+        let mut open = slice.matches('(').count();
+        let mut close = slice.matches(')').count();
+        while close > open && start > 0 && text.as_bytes()[start - 1] == b'(' {
+            start -= 1;
+            open += 1;
+        }
+        while open > close && end < text.len() && text.as_bytes()[end] == b')' {
+            end += 1;
+            close += 1;
+        }
+        if open != close {
+            return None; // 配不平 ⇒ 不切（宁可原样，也不切坏）
+        }
+        ranges.push((start..end, rendered));
+    }
+    ranges.sort_by_key(|(range, _)| range.start);
+    // 只保留**最外层**的替换：内层的那些已经在它渲染出来的文本里了
+    // （外层是 `render_expr(折好的 AST)`，它本身带着内层的记法）。
+    let mut top: Vec<(std::ops::Range<usize>, String)> = Vec::new();
+    for (range, rendered) in ranges {
+        let nested = top.last().is_some_and(|(outer, _)| range.start < outer.end);
+        if !nested {
+            top.push((range, rendered));
+        }
+    }
+    let mut out = text.to_string();
+    for (range, rendered) in top.into_iter().rev() {
+        out.replace_range(range, &rendered);
+    }
+    Some(out)
+}
+
+/// 自底向上折：先把子项折好，父项才有机会看到已经折好的操作数；每一处折叠都
+/// 记进 `edits`（`(被折那段的 span, 折出来的文本)`）。（`(被折那段的 span, 折出来的文本)`）。
+///
+/// 内外都记；[`splice`] 只取最外层的那些。
+fn fold_collecting(expr: Expr, dn: &DisplayNotations, edits: &mut Vec<(Span, String)>) -> Expr {
+    let expr = map_children_collecting(expr, dn, edits);
+    match fold_spine(&expr, dn) {
+        Some(folded) => {
+            edits.push((folded.span(), crate::proof::render_expr(&folded)));
+            folded
+        }
+        None => expr,
+    }
 }
 
 /// 这一层是不是一条记法实例？是就换成 [`Expr::Notation`]，否则 `None`。
@@ -216,9 +292,21 @@ fn head_name(head: &Expr) -> Option<&str> {
     }
 }
 
+/// 折 + 把每处折叠记进 `edits`。
+fn map_children_collecting(
+    expr: Expr,
+    dn: &DisplayNotations,
+    edits: &mut Vec<(Span, String)>,
+) -> Expr {
+    map_children_with(expr, &mut |e| fold_collecting(e, dn, edits))
+}
+
 /// 递归到所有子项。**列全每一个变体**——漏一个位置的后果是"那里不折"
 /// （安全但会让同一份文本里折一半），比"折错"好，但不该有。
-fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
+///
+/// 参数化成一个 `f`（而不是直接调 [`fold`]）是为了让"只折"与"折 + 记下替换"
+/// **共用同一份结构知识**：两份手写的 16 变体匹配迟早会漂。
+fn map_children_with(expr: Expr, f: &mut impl FnMut(Expr) -> Expr) -> Expr {
     match expr {
         Expr::App {
             fun,
@@ -226,8 +314,8 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
             explicit_spine,
             span,
         } => Expr::App {
-            fun: Box::new(fold(*fun, dn)),
-            arg: Box::new(fold(*arg, dn)),
+            fun: Box::new(f(*fun)),
+            arg: Box::new(f(*arg)),
             explicit_spine,
             span,
         },
@@ -236,8 +324,8 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
             body,
             span,
         } => Expr::Lambda {
-            binders: map_binders(binders, dn),
-            body: Box::new(fold(*body, dn)),
+            binders: map_binders_with(binders, f),
+            body: Box::new(f(*body)),
             span,
         },
         Expr::Forall {
@@ -245,8 +333,8 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
             body,
             span,
         } => Expr::Forall {
-            binders: map_binders(binders, dn),
-            body: Box::new(fold(*body, dn)),
+            binders: map_binders_with(binders, f),
+            body: Box::new(f(*body)),
             span,
         },
         Expr::Arrow {
@@ -254,13 +342,13 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
             codomain,
             span,
         } => Expr::Arrow {
-            domain: Box::new(fold(*domain, dn)),
-            codomain: Box::new(fold(*codomain, dn)),
+            domain: Box::new(f(*domain)),
+            codomain: Box::new(f(*codomain)),
             span,
         },
         Expr::Plus { lhs, rhs, span } => Expr::Plus {
-            lhs: Box::new(fold(*lhs, dn)),
-            rhs: Box::new(fold(*rhs, dn)),
+            lhs: Box::new(f(*lhs)),
+            rhs: Box::new(f(*rhs)),
             span,
         },
         Expr::Let {
@@ -269,9 +357,9 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
             body,
             span,
         } => Expr::Let {
-            binder: map_binder(binder, dn),
-            val: Box::new(fold(*val, dn)),
-            body: Box::new(fold(*body, dn)),
+            binder: map_binder_with(binder, f),
+            val: Box::new(f(*val)),
+            body: Box::new(f(*body)),
             span,
         },
         Expr::Match {
@@ -279,13 +367,13 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
             arms,
             span,
         } => Expr::Match {
-            scrutinee: Box::new(fold(*scrutinee, dn)),
+            scrutinee: Box::new(f(*scrutinee)),
             arms: arms
                 .into_iter()
                 .map(|arm| MatchArm {
                     pattern: arm.pattern,
-                    guard: arm.guard.map(|g| fold(g, dn)),
-                    body: fold(arm.body, dn),
+                    guard: arm.guard.map(&mut *f),
+                    body: f(arm.body),
                     span: arm.span,
                 })
                 .collect(),
@@ -304,17 +392,17 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
             symbol,
             target,
             assoc,
-            lhs: lhs.map(|e| Box::new(fold(*e, dn))),
-            rhs: rhs.map(|e| Box::new(fold(*e, dn))),
+            lhs: lhs.map(|e| Box::new(f(*e))),
+            rhs: rhs.map(|e| Box::new(f(*e))),
             alternatives,
             span,
         },
         Expr::SetLiteral { elements, span } => Expr::SetLiteral {
-            elements: elements.into_iter().map(|e| fold(e, dn)).collect(),
+            elements: elements.into_iter().map(&mut *f).collect(),
             span,
         },
         Expr::AnonCtor { elements, span } => Expr::AnonCtor {
-            elements: elements.into_iter().map(|e| fold(e, dn)).collect(),
+            elements: elements.into_iter().map(&mut *f).collect(),
             span,
         },
         // 叶子（没有子项）与 `By`（tactic 脚本，不在这里展开）。
@@ -322,14 +410,14 @@ fn map_children(expr: Expr, dn: &DisplayNotations) -> Expr {
     }
 }
 
-fn map_binders(binders: Vec<Binder>, dn: &DisplayNotations) -> Vec<Binder> {
-    binders.into_iter().map(|b| map_binder(b, dn)).collect()
+fn map_binders_with(binders: Vec<Binder>, f: &mut impl FnMut(Expr) -> Expr) -> Vec<Binder> {
+    binders.into_iter().map(|b| map_binder_with(b, f)).collect()
 }
 
-fn map_binder(binder: Binder, dn: &DisplayNotations) -> Binder {
+fn map_binder_with(binder: Binder, f: &mut impl FnMut(Expr) -> Expr) -> Binder {
     Binder {
         name: binder.name,
-        ty: binder.ty.map(|t| Box::new(fold(*t, dn))),
+        ty: binder.ty.map(|t| Box::new(f(*t))),
         style: binder.style,
         span: binder.span,
     }
@@ -351,7 +439,7 @@ fn map_binder(binder: Binder, dn: &DisplayNotations) -> Binder {
 // 来源：**源级签名**，从闭包各模块的源文本（`ModuleReport.source`）与 prelude
 // 源码里数出来。找不到 ⇒ `None` ⇒ 折叠层**原样返回**（不猜）。
 
-/// 一个声明类型的 telescope 层数（binder 总数）。
+/// 一个声明类型的 telescope 层数（binder 总数，含隐式）。
 ///
 /// **`def f (a : T) (b : T) : U` 在 AST 里是「一个 `Forall` 带两个 binder」**
 /// （实测），所以这里数的是 **binder**，不是 `Forall`/`Arrow` 节点的个数。
@@ -373,46 +461,108 @@ pub fn telescope_len(ty: &Expr) -> usize {
     }
 }
 
-/// 从若干段**源文本**里收出「声明的全名 → telescope 层数」。
+/// 折叠层要的**元数**：pp 文本里**完全应用**时会出现几个实参。
 ///
-/// **名字直接用 parser 给的**：它**已经**按 `namespace`/`end` 限定好了
-/// （实测 `namespace Foo` 里的 `def bar` 解析成 `name: "Foo.bar"`），与
-/// `NotationDecl.target` 存的全名同一口径。自己再拼一次会得到 `Foo.Foo.bar`（踩过）。
+/// **等于「显式 binder 的个数」**——不是 telescope 层数。为什么：内核 pp
+/// **会省略隐式参数**，而不会省略显式参数。
+///
+/// | 目标 | 源级签名 | telescope | 元数 | pp 形态 |
+/// |---|---|---|---|---|
+/// | `Set.mem` | `(α : Type) (a : α) (A : Set α)` | 3 | **3** | `Set.mem α a A`（实测） |
+/// | `Eq` | `{α : Sort u} (a : α) (b : α)` | 3 | **2** | `Eq A B`（实测，隐式 `α` 被省） |
+/// | `And` | `(a b : Prop)` | 2 | **2** | `And p q` |
+/// | `Not` | `(A : Prop)` | 1 | **1** | `Not p` |
+///
+/// 用 telescope 层数会在 `Eq` 上直接失效（pp 给 2 个实参、telescope 是 3 ⇒ 永远
+/// 判成"部分应用"、`=` 永远折不出来）——这是接进生产者（T-C20）时实测撞到的。
+pub fn explicit_arity(ty: &Expr) -> usize {
+    let mut count = 0;
+    let mut cur = ty;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                count += binders
+                    .iter()
+                    .filter(|b| b.style == crate::ast::BinderKind::Explicit)
+                    .count();
+                cur = body;
+            }
+            // `A -> B` 的域是**显式**的（匿名 binder）。
+            Expr::Arrow { codomain, .. } => {
+                count += 1;
+                cur = codomain;
+            }
+            _ => return count,
+        }
+    }
+}
+
+/// 从若干段**源文本**里收出「声明的全名 → telescope 层数」。
 pub fn arities_in_sources(sources: &[&str]) -> HashMap<String, usize> {
     let mut out = HashMap::new();
     for src in sources {
         let Ok(file) = crate::parse(src) else {
             continue;
         };
-        for command in &file.commands {
-            match command {
-                crate::ast::Command::Def { name, ty, .. }
-                | crate::ast::Command::Theorem { name, ty, .. }
-                | crate::ast::Command::Axiom { name, ty, .. } => {
-                    out.insert(name.clone(), telescope_len(ty));
-                }
-                // 归纳类型：`params`（`inductive And (a b : Prop)`）+ 类型上的 binder。
-                crate::ast::Command::InductiveBlock {
-                    name, params, ty, ..
-                } => {
-                    out.insert(name.clone(), params.len() + telescope_len(ty));
-                }
-                _ => {}
+        out.extend(arities_in_commands(&file.commands));
+    }
+    out
+}
+
+/// 同 [`arities_in_sources`]，但吃**已经解析好的**命令序列。
+///
+/// 编译出口（`finish_pass`）手上就是 `units[*].file.commands`——它**已经**为别
+/// 的事解析过了，这里不必再解析一遍。
+///
+/// **名字直接用 parser 给的**：它**已经**按 `namespace`/`end` 限定好了
+/// （实测 `namespace Foo` 里的 `def bar` 解析成 `name: "Foo.bar"`），与
+/// `NotationDecl.target` 存的全名同一口径。自己再拼一次会得到 `Foo.Foo.bar`（踩过）。
+pub fn arities_in_commands(commands: &[crate::ast::Command]) -> HashMap<String, usize> {
+    let mut out = HashMap::new();
+    for command in commands {
+        match command {
+            crate::ast::Command::Def { name, ty, .. }
+            | crate::ast::Command::Theorem { name, ty, .. }
+            | crate::ast::Command::Axiom { name, ty, .. } => {
+                out.insert(name.clone(), explicit_arity(ty));
             }
+            // 归纳类型：`params`（`inductive And (a b : Prop)`）+ 类型上的 binder。
+            crate::ast::Command::InductiveBlock {
+                name, params, ty, ..
+            } => {
+                out.insert(name.clone(), params.len() + telescope_len(ty));
+            }
+            _ => {}
         }
     }
+    out
+}
+
+/// prelude 里那些记法目标（`And` / `Or` / `Not` / `Iff` / `Eq`）的 telescope 层数。
+///
+/// **parse 一次就缓存**：它在**每次编译的出口**都要用（每个声明一次），而 prelude
+/// 源码是常量。线 C 的四个生产者都会经过它。
+pub fn prelude_arities() -> &'static HashMap<String, usize> {
+    static CACHE: std::sync::OnceLock<HashMap<String, usize>> = std::sync::OnceLock::new();
+    CACHE.get_or_init(|| {
+        arities_in_sources(&[
+            crate::compile::PRELUDE_EQ_SRC,
+            crate::compile::PRELUDE_L1_SRC,
+        ])
+    })
+}
+
+/// 把 prelude 的元数并进 `extra`（`extra` 覆盖同名项——文件自己的声明优先）。
+pub fn arities_with_prelude_from(extra: HashMap<String, usize>) -> HashMap<String, usize> {
+    let mut out = prelude_arities().clone();
+    out.extend(extra);
     out
 }
 
 /// 把 prelude 的源文本也算进来（`And` / `Or` / `Not` / `Iff` / `Eq` / `Exists`
 /// 这些记法目标住在那里）。线 C 的四个生产者都会经过它。
 pub fn arities_with_prelude(sources: &[&str]) -> HashMap<String, usize> {
-    let mut all: Vec<&str> = vec![
-        crate::compile::PRELUDE_EQ_SRC,
-        crate::compile::PRELUDE_L1_SRC,
-    ];
-    all.extend_from_slice(sources);
-    arities_in_sources(&all)
+    arities_with_prelude_from(arities_in_sources(sources))
 }
 
 #[cfg(test)]
@@ -450,6 +600,47 @@ mod tests {
         // 同一个源里的其它目标也对得上（`Set.image` 有 4 层：α β f A）。
         assert_eq!(arities.get("Set.union").copied(), Some(3));
         assert_eq!(arities.get("Set.image").copied(), Some(4));
+    }
+
+    /// **元数 = 显式 binder 的个数**，不是 telescope 层数——`Eq` 是那条判据。
+    ///
+    /// `axiom Eq {u} : {α : Sort u} -> α -> α -> Prop` 的 telescope 是 3，但内核 pp
+    /// **省略隐式参数** ⇒ 打出来是 `Eq A B`（**2** 个实参）。用 telescope 当元数
+    /// 会把 `Eq A B` 永远判成"部分应用"、`=` 永远折不出来（接进生产者时实测撞到）。
+    #[test]
+    fn arity_counts_explicit_binders_not_the_whole_telescope() {
+        let arities = arities_with_prelude(&[]);
+        assert_eq!(
+            arities.get("Eq").copied(),
+            Some(2),
+            "`Eq A B`（隐式 α 被 pp 省掉）"
+        );
+        // `Ne` 反过来：prelude 里它的 `α` 是**显式**的
+        // （`def Ne {u} (α : Sort u) (a b : α)`）⇒ 元数 3，pp 也写 `Ne α a b`。
+        // 这一对（`Eq` 2 / `Ne` 3）正好把"显式 binder 个数"这条规则钉死。
+        assert_eq!(arities.get("Ne").copied(), Some(3));
+        // 全是显式 binder 的目标：两者相同。
+        assert_eq!(arities.get("And").copied(), Some(2));
+        assert_eq!(arities.get("Not").copied(), Some(1));
+    }
+
+    /// **内建记法要自己补**：`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里
+    /// （parser 有硬编码表），"从源里收记法"收不到它们。
+    #[test]
+    fn builtin_notations_fold_too() {
+        let file = crate::parse(SET_LIB).expect("夹具必须能解析");
+        let mut table = notation_table(&file.commands);
+        table.splice(0..0, crate::notation::builtin_notation_decls());
+        let dn = DisplayNotations::new(table, arities_with_prelude(&[SET_LIB]));
+        assert_eq!(
+            fold_text("Iff (Set.subset α A B) (Set.subset α A B)", &dn),
+            "(A ⊆ B) ↔ (A ⊆ B)"
+        );
+        assert_eq!(fold_text("And p q", &dn), "p ∧ q");
+        assert_eq!(fold_text("Eq A B", &dn), "A = B");
+        // 一元前缀（`¬`）**还折不了**：第一刀只做二元 infix 族（T-C10 的范围），
+        // 前缀/后缀的操作数位不同，归后续环节。
+        assert_eq!(fold_text("Not p", &dn), "Not p");
     }
 
     /// `namespace` 里的声明要按**全名**记（`NotationDecl.target` 存的是全名）。
@@ -670,17 +861,35 @@ infixr:80 \" '' \" => Set.image\n";
             fold_text("Set.subset α A (Set.union α B C)", &dn),
             "A ⊆ (B ∪ C)"
         );
-        // binder **体里**也折（`map_children` 走遍每个变体）。
-        //
-        // ⚠ 这里同时钉住一条**超出记法的后果**：一旦发生了折叠，产物要经过
-        // `render_expr` 重渲染，而它把 `forall (x : T), …` 拆成
-        // `(x : T) -> …`（那是它作为**回读输入**的要求，见 `proof.rs`）。
-        // ⇒ "有记法的文本会连带换一种 binder 写法"。**没有记法的文本不会**
-        // ——下一条测试钉住那个性质。要不要在显示出口保留 `forall` 分组，
-        // 是 T-C20（接进生产者）时要拍的决定。
+        // binder **体里**也折（结构走查列全了每个变体），而 **binder 的写法原样
+        // 保留**——这正是"按 span 拼接、不重渲染整棵树"要的效果。
         assert_eq!(
             fold_text("forall (x : α), Set.mem α x (Set.union α A B)", &dn),
-            "(x : α) -> x ∈ (A ∪ B)"
+            "forall (x : α), x ∈ (A ∪ B)"
+        );
+    }
+
+    /// **折过之后，没折的部分仍然逐字节原样**——binder 写法、`Type 0`、分组、
+    /// 换行、缩进都不动，只有记法那几段被替换。
+    ///
+    /// 这条是 T-C20 拍板"**按 span 拼接**而不是重渲染整棵树"的判据：重渲染会把
+    /// `forall (a b : T), …` 拆成箭头链、把 `Type 0` 重排成 `Sort 1`（`render_expr`
+    /// 是回读通道的输入，它必须那样写）——用户要的是**记法**，不是整句换个写法。
+    #[test]
+    fn only_the_folded_spans_change() {
+        let dn = notations(SET_LIB, SET_ARITY);
+        assert_eq!(
+            fold_text(
+                "forall (α : Type 0) (A B : Set α), Set.subset α A B -> Set.subset α B A",
+                &dn
+            ),
+            "forall (α : Type 0) (A B : Set α), A ⊆ B -> B ⊆ A",
+            "binder 分组与 `Type 0` 必须原样，只换记法"
+        );
+        // 折行与缩进也保留（pp 的长签名会折行）。
+        assert_eq!(
+            fold_text("forall (α : Type 0),\n  Set.mem α a A", &dn),
+            "forall (α : Type 0),\n  a ∈ A"
         );
     }
 

@@ -2239,6 +2239,42 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C20 生产者 1+3：根状态与声明列表的 `ty_text`
 
+> **✅ 完成（2026-09-21）——用户报的那条（G-26）关账。**
+>
+> **做法**：`finish_pass` 里**建一次** `DisplayNotations`，两处 `ty_text`
+> （开练习分支 + 普通声明分支）各过一遍 `print_back`。表从**闭包各单元的已解析
+> 命令**收（零额外解析）+ 内建记法；元数从源级签名 + prelude（`OnceLock` 缓存）。
+> **只动 `ty_text`**（T-C02 的审计：它只有给人看的消费者）；`goal` /
+> `binders[].ty` / `sub_goals[].ty` **一个字节没动**。
+>
+> **判据实测**：
+> ```
+> demo_subset_def | forall (α : Type 0) (A B : Set α), (A ⊆ B) ↔ ((x : α) -> A x -> B x)
+> mem_of_subset   | forall (α : Type 0) (A B : Set α), A ⊆ B -> (forall (a : α), a ∈ A -> a ∈ B)
+> 根状态（L45）    | 同上（学习者的光标就在 tactic 上，看到的就是它）
+> ```
+> **`⊆` ✓ `↔` ✓ `∈` ✓，而 binder 分组、`Type 0`、折行全部原样。**
+> 缺口 **G-26 关账**（`fixed_in = 0.64.2`），它的复现件转绿。
+>
+> **接进生产者时撞到的两件事**（设计里没写、实测才知道）：
+> ① **必须按 span 拼接，不能重渲染整棵树**——重渲染会把折过之外的东西也改样
+> （`forall (a b : T),` 拆成箭头链、`Type 0` 重排成 `Sort 1`）。改成把每处折叠记成
+> `(span, 文本)`、**只替换那几段**（取最外层、从右往左）。两处细节：
+> `parse_expr_text_with` 的 span 多一个 `"#check "` 前缀（**头部反推**，不硬编码）；
+> 解析器给**带括号的原子**的 span **不含括号** ⇒ 替换范围要**按括号配平**。
+> ② **内建记法要自己补**：`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里（parser 硬编码）
+> ⇒ `notation_table` 收不到，`Iff` 永远折不成 `↔`。
+>
+> **顺带修正 arity 的口径**：**元数 = 显式 binder 的个数**（内核 pp **省略隐式
+> 参数**）：`Eq {α : Sort u} (a b : α)` ⇒ 元数 **2**（pp 是 `Eq A B`）、
+> `Ne (α : Sort u) (a b : α)` ⇒ **3**。用 telescope 层数会让 `=` 永远折不出来。
+>
+> **判据**：`cargo test -p sokonanoda-front display` **20 条** · 课程门禁计数
+> **逐项不变**（36 目标 · 328 checked · 99 open · 0 判负）· `perf-check
+> --case perf_course` **无退化**（±2.3% 内）· 更新的 golden 两处
+> （`query::tests::state_at_root_before_any_tactic`、LSP 的两条 state 用例）
+> ——都是**预期的**可见变化，注释里写明是线 C 的效果。
+
 - **根因**：`ty_text` 来自内核 pp（`kernel_phase.rs:170-178`/`:207-213`）。
 - **改什么**：在 `ty_text` 出口做折叠（**只影响展示字段**，或新增
   `ty_display` 字段并让消费者切换——由 T-C02 的审计决定）。
@@ -2876,7 +2912,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C12` `scoped` 的保真度
 - [x] `T-C13` 重载（一个符号 → N 个目标）的处置
 - [x] `T-C14` 折叠层的损失护栏
-- [ ] `T-C20` 生产者 1+3：根状态与声明列表的 `ty_text`
+- [x] `T-C20` 生产者 1+3：根状态与声明列表的 `ty_text`
 - [ ] `T-C21` 生产者 2：无 `by` 的开练习（应当已经好，补守护）
 - [ ] `T-C22` 生产者 4：`by` 步进里被 pp 化的四处
 - [ ] `T-C23` binder ty（假设行的类型）

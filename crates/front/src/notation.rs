@@ -56,6 +56,29 @@ pub(crate) fn notation_table(commands: &[Command]) -> Vec<NotationDecl> {
     notations
 }
 
+/// **内建记法**（`↔` / `∧` / `∨` / `¬` / `=` / `≠`）的声明形状。
+///
+/// **它们不在任何源文本里**：parser 有一张硬编码表（`parser.rs` 的
+/// `BUILTIN_NOTATIONS`），词法 + 解析直接认。所以"从源里收记法"的
+/// [`notation_table`] **收不到它们**——显示层必须自己补上，否则 `Iff` 永远折不成
+/// `↔`（T-C20 接进生产者时实测撞到：`query goals` 的 `ty` 里 `Iff` 还在点名）。
+///
+/// **只给显示层用**：回读路径（judge / by）走的是 parser 的原生内建表，
+/// 往里塞一份反而可能撞车。
+pub(crate) fn builtin_notation_decls() -> Vec<NotationDecl> {
+    crate::parser::builtin_notations()
+        .iter()
+        .map(|(symbol, assoc, precedence, target)| NotationDecl {
+            symbol: (*symbol).to_string(),
+            precedence: Some(*precedence),
+            assoc: *assoc,
+            target: (*target).to_string(),
+            // 内建记法一直生效（没有 `scoped` 形式）。
+            scope: None,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

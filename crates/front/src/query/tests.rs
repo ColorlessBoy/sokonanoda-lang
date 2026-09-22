@@ -42,10 +42,16 @@ fn state_at_root_before_any_tactic() {
     // 协议 `soko/stateAt`：根状态（`step: -1`）= **完整声明类型的内核渲染文本**
     // + **空 binders**，`span` = 声明范围（`docs/protocol.md`；VS Code 客户端
     // 依赖这一条）。这不是"走查后的剩余目标"——那属于 tactic 之后的状态。
+    //
+    // **线 C（T-C20）之后**：这份文本还要过一遍**记法折叠**（`display::print_back`）
+    // ——`And a b` → `a ∧ b`。用户看的就是它（T-C01 实测：学习者的光标就在 tactic
+    // 上，所以他看到的是根状态），而"goal 里没有记法"正是用户报的那条。
+    // binder 的写法（`forall (a b : Prop), …`）与 `Type 0` 之类**逐字节保留**
+    // ——折叠按 span 拼接，只换记法那几段。
     assert_eq!(
         state.goal.as_deref(),
-        Some("forall (a b : Prop), And a b -> And b a"),
-        "the root goal is the declared type, kernel-rendered"
+        Some("forall (a b : Prop), a ∧ b -> b ∧ a"),
+        "the root goal is the declared type, kernel-rendered + notation-folded"
     );
     assert!(
         state.binders.is_empty(),

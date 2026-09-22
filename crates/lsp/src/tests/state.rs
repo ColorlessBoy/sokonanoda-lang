@@ -177,9 +177,10 @@ async fn hover_on_a_tactic_shows_the_entering_goal_state() {
     let HoverContents::Markup(markup) = hover.contents else {
         panic!("expected markup hover");
     };
+    // 线 C（T-C20）之后目标文本带记法（`And P Q` → `P ∧ Q`）。
     assert!(
-        markup.value.contains("⊢ And P Q"),
-        "tactic hover shows the entering goal: {:?}",
+        markup.value.contains("⊢ P ∧ Q"),
+        "tactic hover shows the entering goal, notation-folded: {:?}",
         markup.value
     );
     // Presentation: the tactic itself + `sokonanoda` code fences so both
@@ -219,9 +220,13 @@ async fn state_at_on_the_by_keyword_returns_the_root_goal() {
     assert_eq!(result["step"], -1, "before the first tactic = root state");
     assert_eq!(result["total"], 2);
     let goal = result["goal"].as_str().expect("root goal is the full type");
+    // **线 C（T-C20）之后**：根状态也要过记法折叠 ⇒ `And a a -> a` 变成
+    // `a ∧ a -> a`。这条断言因此从"含 `And`"改成"含 `∧`"——用户看的就是它
+    // （T-C01 实测：学习者的光标在 tactic 上，看到的是根状态），而"goal 里没有
+    // 记法"正是用户报的那条。
     assert!(
-        goal.contains("And"),
-        "root goal is the declared type: {goal}"
+        goal.contains('∧'),
+        "root goal is the declared type, notation-folded: {goal}"
     );
     assert!(result["binders"]
         .as_array()

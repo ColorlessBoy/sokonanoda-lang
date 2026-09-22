@@ -323,6 +323,56 @@ binder 写法（`forall (α : Type 0) (A B : Set α), A ⊆ B` →
 > **显示字段已经在喂判定路径**。把 print-back 写进 `DeclState` 就会把两条路搅在
 > 一起（改坏了是**静默改判卷**）。
 
+### 3.3c as-built：接进生产者 1+3（T-C20，2026-09-21）
+
+**做法**：在 `finish_pass`（`compile/check/kernel_phase.rs`）里**建一次**
+`DisplayNotations`，两处 `ty_text`（开练习分支 + 普通声明分支）各过一遍
+`print_back`。表从**闭包各单元的已解析命令**收（零额外解析）+ 内建记法；
+元数从源级签名 + prelude（prelude 那份 parse 一次就 `OnceLock` 缓存）。
+
+**只动 `ty_text`**——T-C02 的审计说它**只有给人看的消费者**
+（`query/mod.rs` 的 goals wire、`query/state.rs` 的根状态、LSP 的 hover/补全）。
+`goal` / `binders[].ty` / `sub_goals[].ty` **同时喂 judge**，一个字节没动。
+
+**判据（计划里那条命令）实测**：
+
+```
+demo_subset_def | forall (α : Type 0) (A B : Set α), (A ⊆ B) ↔ ((x : α) -> A x -> B x)
+demo_mem_def    | forall (α : Type 0) (a : α) (A : Set α), (a ∈ A) ↔ (A a)
+mem_of_subset   | forall (α : Type 0) (A B : Set α), A ⊆ B -> (forall (a : α), a ∈ A -> a ∈ B)
+根状态（L45）    | forall (α : Type 0) (A B : Set α), A ⊆ B -> (forall (a : α), a ∈ A -> a ∈ B)
+```
+
+`⊆` ✓ `↔` ✓ `∈` ✓，**而 binder 分组、`Type 0`、折行全部原样**。
+
+**接进生产者时撞到的两件事**（都是"设计里没写、实测才知道"）：
+
+1. **必须按 span 拼接，不能重渲染整棵树**（设计 §3.3 原本写的是
+   `render_expr(&out)`）。重渲染会把折过之外的东西也改样：`forall (a b : T), …`
+   被**拆成箭头链**、`Type 0` 被重排成 `Sort 1`（`render_expr` 是回读通道的输入，
+   它必须那样写）。改成：折的时候把每处折叠记成 `(span, 折出来的文本)`，
+   然后**只替换那几段**（取最外层、从右往左替换）。
+   **span 是可靠的**——折叠保留 span，而它们指向传进来的文本。
+   两处细节：`parse_expr_text_with` 解析的是 `"#check " + text`（span 多一个前缀，
+   用**头部反推**而不是硬编码）；解析器给**带括号的原子**的 span **不含括号**
+   ⇒ 替换范围要**按括号配平**（少 `)` 向右吃、多 `)` 向左吃，两个方向都实测过）。
+2. **内建记法要自己补**：`↔`/`∧`/`∨`/`¬`/`=`/`≠` **不在任何源文本里**
+   （parser 有硬编码的 `BUILTIN_NOTATIONS`）⇒ `notation_table` 收不到它们，
+   `Iff` 永远折不成 `↔`。显示层用 `notation::builtin_notation_decls()` 补上
+   （**只给显示层**：回读路径走 parser 的原生内建表，塞一份反而可能撞车）。
+
+**顺带修正了 arity 的口径**（T-C11 的 as-built 要按这条读）：**元数 = 显式 binder
+的个数**，不是 telescope 层数——因为**内核 pp 省略隐式参数**：
+
+| 目标 | 源级签名 | telescope | 元数 | pp 形态 |
+|---|---|---|---|---|
+| `Set.mem` | `(α : Type) (a : α) (A : Set α)` | 3 | **3** | `Set.mem α a A` |
+| `Eq` | `{α : Sort u} (a : α) (b : α)` | 3 | **2** | `Eq A B`（隐式 `α` 被省） |
+| `Ne` | `(α : Sort u) (a b : α)` | 3 | **3** | `Ne α a b` |
+
+用 telescope 层数会在 `Eq` 上直接失效（pp 给 2 个实参、telescope 是 3 ⇒ 永远判成
+"部分应用"、`=` 永远折不出来）。
+
 ### 3.4b 损失护栏（T-C14）：三层，从强到弱
 
 | 层 | 护栏 | 判据 |
