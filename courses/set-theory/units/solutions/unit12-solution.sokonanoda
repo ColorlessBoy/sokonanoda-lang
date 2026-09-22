@@ -64,14 +64,16 @@ theorem xlat_rel_inv_comp (A B C : Type) (r : Rel A B) (s : Rel B C) :
       Iff.intro (Rel.inv A C (Rel.comp A B C r s) c a)
         (Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r) c a)
         (fun (h : Rel.inv A C (Rel.comp A B C r s) c a) =>
-          Exists.elim B (fun (b : B) => r a b ∧ s b c) (∃ (b : B), s b c ∧ r a b) h
+          Exists.elim B (fun (b : B) => r a b ∧ s b c)
+            (∃ (b : B), s b c ∧ r a b) h
             (fun (b : B) => fun (hb : r a b ∧ s b c) =>
               Exists.intro B (fun (b2 : B) => s b2 c ∧ r a b2) b  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.intro (s b c) (r a b)
                   (And.right (r a b) (s b c) hb)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                   (And.left (r a b) (s b c) hb))))
         (fun (h : Rel.comp C B A (Rel.inv B C s) (Rel.inv A B r) c a) =>
-          Exists.elim B (fun (b : B) => s b c ∧ r a b) (∃ (b : B), r a b ∧ s b c) h
+          Exists.elim B (fun (b : B) => s b c ∧ r a b)
+            (∃ (b : B), r a b ∧ s b c) h
             (fun (b : B) => fun (hb : s b c ∧ r a b) =>
               Exists.intro B (fun (b2 : B) => r a b2 ∧ s b2 c) b  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
                 (And.intro (r a b) (s b c)
@@ -144,7 +146,7 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
           (And.left (y ∈ f '' A) (y ∈ f '' B) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
           (fun (x1 : α) => fun (hx1 : (A x1) ∧ ((f x1) = y)) =>
             Exists.elim α (fun (x : α) => (B x) ∧ ((f x) = y)) (y ∈ f '' (A ∩ B))
-              (And.right (y ∈ f '' A) (y ∈ f '' B) hy)
+              (And.right (y ∈ f '' A) (y ∈ f '' B) hy)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
               (fun (x2 : α) => fun (hx2 : (B x2) ∧ ((f x2) = y)) =>
                 Exists.intro α (fun (t : α) => t ∈ A ∩ B ∧ f t = y) x1
                   (And.intro (x1 ∈ A ∩ B) (f x1 = y)
@@ -493,8 +495,7 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                     ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
                 ) =>
                   let hD : C' \ (fun (y : γ) => f y y) ∈ 𝒫 C' :=  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-                    fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) =>
-                      And.left (C' y) (¬ (f y y)) hy;
+                    fun (y : γ) => fun (hy : C' y ∧ ¬ (f y y)) => And.left (C' y) (¬ (f y y)) hy;
                   let hC'gD : C' (g (C' \ (fun (y : γ) => f y y))) :=
                     And.left (Set.MapsTo (Set γ) γ g (𝒫 C') C')
                       ((Set.LeftInvOn γ (Set γ) g f C') ∧ (Set.RightInvOn γ (Set γ) f g (𝒫 C')))
@@ -509,7 +510,8 @@ theorem project_chain_cardinal (α γ : Type) (A : Set α) (C C' : Set γ)
                     congrArg.{1} (fun (S : Set γ) => S (g (C' \ (fun (y : γ) => f y y)))) hfg;
                   let hnot : ¬ ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) :=
                     fun (p : (f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) =>
-                      And.right (C' (g (C' \ (fun (y : γ) => f y y)))) (¬ ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))))
+                      And.right (C' (g (C' \ (fun (y : γ) => f y y))))
+                        (¬ ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))))
                         (Eq.subst.{1} Prop (fun (Q : Prop) => Q)
                           ((f (g (C' \ (fun (y : γ) => f y y)))) (g (C' \ (fun (y : γ) => f y y)))) ((C' \ (fun (y : γ) => f y y)) (g (C' \ (fun (y : γ) => f y y)))) hprop p)
                         p;

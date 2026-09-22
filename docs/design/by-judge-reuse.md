@@ -153,9 +153,38 @@ real 121.70
    必须同时消掉**前端的重新 elaborate**。
 
 **所以：B/C 只能缩短每一趟，A（会话化、一趟走完）才消得掉 681 趟。**
-但不能一步跳到 A——先把 §5 的成分拆到"一次判定调用内部"（TODO：给
-`check_document_with` 内部按 `parse / elab / kernel / by-engine` 再插一层），
-确认 A 的收益上界之后再动手。
+
+### 5.1 具体修法（已逐条核对过 API，2026-09-21）
+
+**关键发现：`by` 引擎根本不需要"合成文档"**——它只需要"把候选项对目标类型做一次
+类型检查"，而这条路在**当前 pass 里**是通的：
+
+| 已有的东西 | 位置 | 用途 |
+|---|---|---|
+| `Walk { builder: EnvBuilder<'arena>, … }` | `compile/check/walk.rs:36-37` | **当前 pass 的 builder 就在手边** |
+| `TypeChecker::check_declar(&self, d: &Declar)` | `kernel/src/tc.rs:75` | "检查一条声明"的入口 |
+| `Env::new_w_temp_ext(declars, temp_declars, notation, limit)` | `kernel/src/env.rs:247` | 临时声明**不进 `declars`**（不污染环境） |
+| `EnvLimit::{Empty, ByIndex, ByName, PpUnlimited}` | `kernel/src/env.rs:253-260` | 可见性切一刀 |
+| `TypeChecker::new(dag, env, arena, declar_info, tc_cache)` | `kernel/src/tc.rs:256` | 就地建一个检查器 |
+
+**改动形状**（前端为主，内核只补一两个访问器）：
+
+1. 把 `Walk.builder`（或一个就地建的 `TypeChecker`）**传进**
+   `lower_value` → `lower_by_val` → `run_by` → `judge_*`（现在只传了
+   `inductives`/`defs` 两张前端表）；
+2. `judge_pairs_uncached` **不再**拼前缀、不再 `check_document_with`，改成：
+   为每个 pair 建一条 `Declar { name: _soko_judge_k, ty, val }`，
+   在**当前 env**（+ 需要的话 `new_w_temp_ext`）上 `check_declar`，读结果；
+3. 于是**没有前缀重跑、没有递归**：706 趟 → **1 趟**。
+
+**注意**：内核的检查现在是**延后**的（`Walk` 收 `PendingOp`，`kernel_phase` 统一
+检查）。所以第 1 步可能需要"在 walk 里就地建一个 `TypeChecker`"而不是复用
+`kernel_phase` 那个——这正是 §5.1 要落地的第一件事。
+
+**风险与护栏**：
+* `TcCtx`/`TcCache` 的所有权与 arena 生命周期（`docs/architecture.md` §6）；
+* 就地检查会不会改变**判定结果**——`kernel-diff.sh --fast` 每步跑，全量对拍合入前跑；
+* 判定失败时的**诊断文本**要与今天逐字一致（学习者看到的是它）。
 
 ## 6. 建议的顺序
 
