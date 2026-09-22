@@ -3870,9 +3870,13 @@ fn partial_by_block_records_per_step_states() {
     assert_eq!(d.by_steps.len(), 2, "one state per tactic");
     // step 0 = `intro a` 执行后：binder a : Prop，目标剩 `And a a -> a`
     // （应用链左结合，函数位置不补括号）。
+    //
+    // **线 C（T-C22）之后**：这是**展示副本**，过一遍记法折叠 ⇒ `And a a` 打成
+    // `a ∧ a`。判定输入（引擎手里的 AST）没动——见
+    // `query::tests::by_step_display_is_folded_but_the_judge_input_is_not`。
     let s0 = &d.by_steps[0];
     assert_eq!(s0.goals.len(), 1);
-    assert_eq!(s0.goals[0].ty, "And a a -> a");
+    assert_eq!(s0.goals[0].ty, "a ∧ a -> a");
     assert_eq!(s0.goals[0].binders.len(), 1);
     assert_eq!(s0.goals[0].binders[0].name, "a");
     assert_eq!(s0.goals[0].binders[0].ty, "Prop");
@@ -3883,7 +3887,8 @@ fn partial_by_block_records_per_step_states() {
     assert_eq!(s1.goals[0].ty, "a");
     assert_eq!(s1.goals[0].binders.len(), 2);
     assert_eq!(s1.goals[0].binders[1].name, "h");
-    assert_eq!(s1.goals[0].binders[1].ty, "And a a");
+    // 假设行的类型也过折叠（同样是展示副本）。
+    assert_eq!(s1.goals[0].binders[1].ty, "a ∧ a");
     assert_eq!(&src[s1.span.start.offset..s1.span.end.offset], "intro h");
 }
 

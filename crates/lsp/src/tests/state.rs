@@ -17,7 +17,8 @@ async fn state_at_inside_a_tactic_shows_the_entering_state() {
         "entering the second tactic = after step 0"
     );
     assert_eq!(result["total"], 2);
-    assert_eq!(result["goal"], "And a a -> a");
+    // 线 C（T-C22）：`by` 步进的展示副本带记法 ⇒ `And a a -> a` 打成 `a ∧ a -> a`。
+    assert_eq!(result["goal"], "a ∧ a -> a");
     let binders = result["binders"].as_array().expect("binders array");
     assert_eq!(binders.len(), 1);
     assert_eq!(binders[0]["name"], "a");
@@ -53,9 +54,13 @@ async fn state_at_carries_semantic_runs_for_goals_and_hypotheses() {
         goal_kinds.contains(&"binder"),
         "the hypothesis `a` must classify as a binder: {goal_kinds:?}"
     );
+    // **线 C（T-C22）之后**：目标折成 `a ∧ a -> a` ⇒ 这里不再有 `And` 的
+    // `axiom_use` 运行（`∧` 是**记法符号**）。它今天**还没被分类**（上面只剩
+    // `binder`）——把记法符号标成 `notation` 是计划里的 **T-C30**，不在本环节。
+    // 这里守住"别把它当未知标识符"这条底线。
     assert!(
-        goal_kinds.contains(&"axiom_use"),
-        "`And` is the declared axiom: {goal_kinds:?}"
+        !goal_kinds.contains(&"unknown_ident"),
+        "记法符号不该被当成未知标识符：{goal_kinds:?}"
     );
     let binder_kinds = run_kinds(&binder["ty_runs"]);
     assert!(

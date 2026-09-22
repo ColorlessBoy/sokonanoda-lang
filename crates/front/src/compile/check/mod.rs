@@ -382,7 +382,18 @@ fn lower_value(
 }
 
 /// 引擎的 per-step 状态 → 报告层 wire 形状（binder 类型渲染成文本）。
-fn by_step_states(steps: &[crate::by::ByStep]) -> Vec<ByStepState> {
+fn by_step_states(
+    steps: &[crate::by::ByStep],
+    display: &crate::display::DisplayNotations,
+) -> Vec<ByStepState> {
+    // **展示副本**（线 C / T-C22）：`ByStepState` 只给目标栏看（T-C02 的审计），
+    // 所以这里折记法。**引擎内部那份 AST 一个字节没动**——`apply`/`cases` 的子目标
+    // 是**判定输入**（要回读），折了就会把判定搅坏。
+    let fold = |text: &str| {
+        crate::display::print_back(text, display)
+            .as_display_str()
+            .to_string()
+    };
     steps
         .iter()
         .map(|s| ByStepState {
@@ -391,19 +402,39 @@ fn by_step_states(steps: &[crate::by::ByStep]) -> Vec<ByStepState> {
                 .goals
                 .iter()
                 .map(|g| ByGoalState {
-                    ty: g.ty.clone(),
+                    ty: fold(&g.ty),
                     binders: g
                         .binders
                         .iter()
                         .map(|b| GoalBinder {
                             name: b.name.clone(),
-                            ty: b.ty.as_deref().map(render_expr).unwrap_or_default(),
+                            ty: fold(&b.ty.as_deref().map(render_expr).unwrap_or_default()),
                         })
                         .collect(),
                 })
                 .collect(),
         })
         .collect()
+}
+
+/// **显示期的记法表**（线 C）：从闭包各单元的**已解析命令**收记法 + 内建记法，
+/// 元数从源级签名 + prelude。整趟建一次，给 `ty_text` 与 `by` 步进的展示副本共用。
+pub(crate) fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNotations {
+    let commands: Vec<crate::ast::Command> = units
+        .iter()
+        .flat_map(|unit| unit.file.commands.iter().cloned())
+        .collect();
+    let mut table = crate::notation::notation_table(&commands);
+    // **内建记法要自己补**（`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里，
+    // parser 有硬编码表）——否则 `Iff` 永远折不成 `↔`。
+    //
+    // ⚠ **不能"文件里没有 `infix` 就早退"**：内建记法**永远生效**，一个只写
+    // `And a b` 的文件也要折成 `a ∧ b`（踩过：早退放在这行之前 ⇒ `And` 不折、
+    // `query::tests::state_at_root_before_any_tactic` 立刻红）。
+    table.splice(0..0, crate::notation::builtin_notation_decls());
+    let arities =
+        crate::display::arities_with_prelude_from(crate::display::arities_in_commands(&commands));
+    crate::display::DisplayNotations::new(table, arities)
 }
 
 pub(crate) fn run(
@@ -704,6 +735,7 @@ fn run_pass(
     // 命令走查（elaborate → `PendingOp`）：批次 3 第三刀切到 `walk.rs`；
     // 这里的累加器按值交给 `Walk`，内核阶段再从 `walk` 取回（见文件尾）。
     let mut walk = walk::Walk {
+        display: display_notations(units),
         builder,
         known,
         inductives,
@@ -729,6 +761,7 @@ fn run_pass(
         &closure_prefixes,
     );
     kernel_phase::finish_pass(kernel_phase::Walked {
+        display: walk.display,
         units,
         unit_of_cmd: &unit_of_cmd,
         n_commands: flat.len(),

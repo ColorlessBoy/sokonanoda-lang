@@ -156,7 +156,9 @@ fn query_state_at_a_tactic_shows_the_entering_goal_state() {
     assert_eq!(code, 0);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["decl"]["name"], "and_swap");
-    assert_eq!(value["data"]["goal"], "And b a");
+    // **线 C（T-C22）之后**：`by` 步进的**展示副本**过记法折叠 ⇒ `And b a`
+    // 变成 `b ∧ a`（判定输入没动，见 `query::tests` 的那条双面守护）。
+    assert_eq!(value["data"]["goal"], "b ∧ a");
     let binders: Vec<&str> = value["data"]["goals"][0]["binders"]
         .as_array()
         .expect("binders")

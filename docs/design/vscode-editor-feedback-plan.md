@@ -2310,6 +2310,26 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C22 生产者 4：`by` 步进里被 pp 化的四处
 
+> **✅ 完成（2026-09-21）——展示副本折叠，判定输入一个字节没动。**
+>
+> **做法**：表**整趟建一次**（`run_pass` 的 `display_notations(units)`），
+> `Walk` 与 `finish_pass` **共用同一份**；折叠点选在 **`by_step_states`**
+> （`check/mod.rs`）——它把引擎的 `ByGoal` 转成报告层 `ByStepState`，
+> **那就是展示边界**。引擎手里的 `nodes[id].ty` 一个字节没动。
+>
+> **实测**（`query state` 在 `exact` 行上，unit04）：`apply Set.ext` 之后
+> `(x : α) -> Iff (A x) (B x)` → **`(x : α) -> (A x) ↔ (B x)`** ✓
+>
+> **判据**（`query::tests::by_step_display_is_folded_but_the_judge_input_is_not`）
+> **两面都要**（这条是计划点名的"最容易出错的地方"）：
+> * **展示**：含 `↔`/`∈`，**不含** `Iff`/`Set.mem`；
+> * **判定**：同一个 `by` 块后面的 `exact h` 仍然判过（`status == "checked"`）
+>   ——折叠若误伤判定输入，子目标回读会失败、这条声明就判红。
+>
+> 消费者核对：`by_steps` 的读者里 `session.rs` 只做 span 平移、
+> `query/mod.rs` 的 `DeclInfo.goals` 与 `query/state.rs` 都是展示、
+> `suggest.rs` 读的是**另一组**字段（`DeclState.goal`/`sub_goals[].ty`，没动）。
+
 - **改什么**：对 `canonical_goal_type`（`by.rs:497`）、`canonical_goal_with_spec`
   （`by.rs:553`）、`apply`（`by.rs:1277`/`:1413`）、`cases`（`by.rs:1450+`）
   的**出口文本**做折叠。
@@ -2929,7 +2949,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C14` 折叠层的损失护栏
 - [x] `T-C20` 生产者 1+3：根状态与声明列表的 `ty_text`
 - [x] `T-C21` 生产者 2：无 `by` 的开练习（应当已经好，补守护）
-- [ ] `T-C22` 生产者 4：`by` 步进里被 pp 化的四处
+- [x] `T-C22` 生产者 4：`by` 步进里被 pp 化的四处
 - [ ] `T-C23` binder ty（假设行的类型）
 - [ ] `T-C24` 逐 surface 的判别性测试
   - ⬆ **BUMP**：`minor` —— goal / 假设 / 声明类型第一次显示记法

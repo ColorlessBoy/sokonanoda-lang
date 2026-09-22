@@ -34,6 +34,9 @@ use std::borrow::Cow;
 
 /// 命令走查的**可变累加器**（原 `run_pass` 主循环里被 arm 改写的局部变量）。
 pub(super) struct Walk<'arena> {
+    /// **显示期的记法表**（线 C）：整趟建一次，给 `ty_text` 与 `by` 步进的
+    /// 展示副本共用（`check/mod.rs` 的 `display_notations`）。
+    pub(super) display: crate::display::DisplayNotations,
     pub(super) builder: EnvBuilder<'arena>,
     pub(super) known: KnownTable,
     pub(super) inductives: InductiveTable<'arena>,
@@ -348,7 +351,7 @@ impl<'arena> Walk<'arena> {
             }
         };
         let val = &lowered.0;
-        let by_steps = by_step_states(&lowered.1);
+        let by_steps = by_step_states(&lowered.1, &self.display);
         // 源级 delta 表：**值完整**的 def 才登记（开练习的值是洞，展开没意义）。
         // `by` 引擎的 `intro`/`apply` 靠它看穿 `A ⊆ B` 这类 def 头。
         if open_goal(ty, val, templates, &mut Vec::new()).is_none() {
@@ -579,7 +582,7 @@ impl<'arena> Walk<'arena> {
             }
         };
         let val = &lowered.0;
-        let by_steps = by_step_states(&lowered.1);
+        let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
             if skip.is_some_and(|s| s.contains_key(&idx))
                 || open_goal(ty, val, templates, &mut Vec::new()).is_some()
@@ -910,7 +913,7 @@ impl<'arena> Walk<'arena> {
             }
         };
         let val = &lowered.0;
-        let by_steps = by_step_states(&lowered.1);
+        let by_steps = by_step_states(&lowered.1, &self.display);
         if trusted {
             if skip.is_some_and(|s| s.contains_key(&idx))
                 || open_goal(ty, val, templates, &mut Vec::new()).is_some()

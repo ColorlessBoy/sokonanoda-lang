@@ -21,6 +21,8 @@ use sokonanoda::util::{ExportFile, ExprPtr};
 
 /// 命令走完后交给内核阶段的一切（原 `run_pass` 尾部读到的全部局部变量）。
 pub(super) struct Walked<'a, 'arena> {
+    /// 显示期的记法表（`run_pass` 里建一次，`walk` 与这里共用）。
+    pub(super) display: crate::display::DisplayNotations,
     pub(super) units: &'a [SourceUnit<'a>],
     /// 每个扁平命令所属的单元下标（报告排序用）。
     pub(super) unit_of_cmd: &'a [usize],
@@ -40,6 +42,7 @@ pub(super) struct Walked<'a, 'arena> {
 
 pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
     let Walked {
+        display,
         units,
         unit_of_cmd,
         n_commands: n,
@@ -65,28 +68,6 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
     //
     // 只作用于 `ty_text`（T-C02 的审计：它**只有给人看的消费者**）；
     // `goal` / `binders[].ty` / `sub_goals[].ty` **同时喂 judge**，一个字节都不动。
-    let display = {
-        let commands: Vec<&crate::ast::Command> = units
-            .iter()
-            .flat_map(|unit| unit.file.commands.iter())
-            .collect();
-        let mut table = crate::notation::notation_table(
-            &commands.iter().map(|c| (*c).clone()).collect::<Vec<_>>(),
-        );
-        // **内建记法要自己补**（`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里，
-        // parser 有硬编码表）——否则 `Iff` 永远折不成 `↔`。
-        table.splice(0..0, crate::notation::builtin_notation_decls());
-        if table.is_empty() {
-            crate::display::DisplayNotations::default()
-        } else {
-            let arities =
-                crate::display::arities_with_prelude_from(crate::display::arities_in_commands(
-                    &commands.iter().map(|c| (*c).clone()).collect::<Vec<_>>(),
-                ));
-            crate::display::DisplayNotations::new(table, arities)
-        }
-    };
-
     let want_sigs = trust.is_some();
     let before = trust.map_or(0, |t| t.before);
     let mut allow_cutoff = trust.is_some_and(|t| t.allow_cutoff);

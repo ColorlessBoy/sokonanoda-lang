@@ -127,7 +127,8 @@ fn state_at_inside_a_tactic_shows_the_entering_state() {
         "`apply` is the 4th tactic → entering state is 2"
     );
     assert_eq!(state.goals.len(), 1);
-    assert_eq!(state.goals[0].goal, "And b a");
+    // 线 C（T-C22）：`by` 步进的展示副本带记法（判定输入没动）。
+    assert_eq!(state.goals[0].goal, "b ∧ a");
     let names: Vec<&str> = state.goals[0]
         .binders
         .iter()
@@ -508,6 +509,64 @@ fn an_open_exercise_without_by_keeps_notation_in_its_goal() {
     assert!(
         !goal.contains("Set.subset") && !goal.contains("Set.mem"),
         "点名形式不该出现在 goal 里：{goal}"
+    );
+}
+
+/// T-C22 的夹具：一条记法 + 一个用 `apply` 的 `by` 块。
+///
+/// `apply` 的子目标来自被应用引理的**内核 pp 望远镜**（`judge_infer` 的文本
+/// 再 `parse_expr_text` 回来）⇒ 引擎手里的目标**本来就是点名形式**。
+const BY_NOTATION_CANVAS: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+infix:50 \" ∈ \" => Set.mem
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+infix:50 \" ⊆ \" => Set.subset
+axiom Set.ext (α : Type) (A B : Set α) : (∀ (x : α), x ∈ A ↔ x ∈ B) -> A = B
+
+theorem ext_pattern (α : Type) (A B : Set α) (h : ∀ (x : α), x ∈ A ↔ x ∈ B) : A = B := by
+  apply Set.ext
+  exact h
+";
+
+/// **T-C22 的守护——这条是本环节最容易出错的地方。**
+///
+/// `apply` / `cases` / `canonical_goal_*` 这四处**同时是判定输入**（子目标要回读），
+/// 所以折叠只能作用在**展示副本**上。这条测试**两面都要**：
+///
+/// * **展示**：`apply Set.ext` 之后的目标栏带记法（`↔` / `∈`）；
+/// * **判定**：同一个 `by` 块后面的 `exact h` 仍然判过（`status == "checked"`）
+///   ——如果折叠误伤了判定输入，`apply` 的子目标回读会失败、这条声明就判红。
+#[test]
+fn by_step_display_is_folded_but_the_judge_input_is_not() {
+    let doc = doc(BY_NOTATION_CANVAS);
+    let goals = doc.goals(false).expect("the canvas parses");
+    let decl = goals
+        .iter()
+        .find(|d| d.name == "ext_pattern")
+        .expect("ext_pattern listed");
+    assert_eq!(
+        decl.status, "checked",
+        "判定必须仍然过——折叠只动展示副本，绝不能碰判定输入"
+    );
+
+    // 光标落在 `exact h` 上 = 进入它时的状态 = `apply Set.ext` 之后的目标。
+    let at = BY_NOTATION_CANVAS
+        .find("exact h")
+        .expect("the fixture has `exact h`");
+    let state = doc.state_at(at).expect("state is answerable");
+    let shown = state
+        .goals
+        .first()
+        .map(|g| g.goal.clone())
+        .unwrap_or_default();
+    assert!(
+        shown.contains('↔') && shown.contains('∈'),
+        "`apply` 之后的展示副本要带记法：{shown}"
+    );
+    assert!(
+        !shown.contains("Iff") && !shown.contains("Set.mem"),
+        "不该还是点名形式：{shown}"
     );
 }
 

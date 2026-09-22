@@ -373,6 +373,34 @@ mem_of_subset   | forall (α : Type 0) (A B : Set α), A ⊆ B -> (forall (a : �
 用 telescope 层数会在 `Eq` 上直接失效（pp 给 2 个实参、telescope 是 3 ⇒ 永远判成
 "部分应用"、`=` 永远折不出来）。
 
+### 3.3d as-built：`by` 步进的展示副本（T-C22，2026-09-21）
+
+**问题**（T-C01 实测 + 本轮复测）：`by` 步进的目标栏**多数保留记法**
+（`constructor`/`intro` 之后是 `render_expr`），但**经 `apply` 出来的子目标不是**
+——它来自被应用引理的**内核 pp 望远镜**（`judge_infer` 的文本再
+`parse_expr_text` 回来）。实测 `apply Set.ext` 之后是
+`(x : α) -> Iff (A x) (B x)`（`∈` 与 `↔` 一起没了）。
+
+**这四处（`apply` / `cases` / `canonical_goal_type` / `canonical_goal_with_spec`）
+同时是判定输入**（子目标要回读）⇒ **折叠只能作用在展示副本上**。做法：
+
+* 表**整趟建一次**（`run_pass` 的 `display_notations(units)`），
+  `Walk` 与 `finish_pass` **共用同一份**（`Walked.display`）——不再各建一次；
+* 折叠点在 **`by_step_states`**（`check/mod.rs`）——它把引擎的 `ByGoal` 转成报告层
+  `ByStepState`，**那就是展示边界**。引擎手里的 `nodes[id].ty` **一个字节没动**。
+
+**判据**（`query::tests::by_step_display_is_folded_but_the_judge_input_is_not`）
+**两面都要**：
+
+| 面 | 断言 |
+|---|---|
+| 展示 | `apply Set.ext` 之后的目标栏含 `↔` / `∈`，**不含** `Iff` / `Set.mem` |
+| 判定 | 同一个 `by` 块后面的 `exact h` 仍然判过（`status == "checked"`）——折叠若误伤判定输入，子目标回读会失败、这条声明就判红 |
+
+消费者核对（`by_steps` 的读者）：`session.rs` 只做 span 平移；`query/mod.rs` 的
+`DeclInfo.goals` 与 `query/state.rs` 都是**展示**；`suggest.rs` 读的是
+`DeclState.goal`/`sub_goals[].ty`（**另一组字段**，本轮没动）。
+
 ### 3.4b 损失护栏（T-C14）：三层，从强到弱
 
 | 层 | 护栏 | 判据 |
