@@ -1412,6 +1412,23 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 ##### T-K01 全语料逐字节对拍工具
 
+> **完成（2026-09-21）**：`scripts/kernel-diff.sh`。
+>
+> * 对拍 `grade --json` + `query check|goals|holes|project`，**stdout 逐字节 +
+>   退出码**；全量模式另比**课程门禁计数**；
+> * `SOKONANODA_NO_CACHE=1` **强制**关缓存——否则条目命中会跳过编译，
+>   对拍就测不到内核了（而且两个二进制版本相同时会互相命中）；
+> * `--fast`（3 文件 × 2 op）**1.9 秒**，每环节能用；全量含课程门禁约 6 分钟；
+> * `--self-test` **2/2**：同一二进制零差异 + 人为注入一个字节必须被抓到。
+>
+> **踩到的三个坑**（都写进了注释）：
+> ① `mapfile` 在 macOS 自带 bash 3.2 里**不存在**——它报错之后 `FILES` 是空的，
+> 脚本还会"零差异"地**绿过去**（最坏的那种失败）；改成 `while read` 循环。
+> ② `--fast` 第一版含课程门禁 ⇒ 6 分钟（门禁要 grade 36 目标 ×2 二进制），
+> 把"每环节能用"拖成"不敢跑"；挪到全量模式。
+> ③ self-test 的"poison 包装器"第一版用了 `exec` ⇒ 它替换掉 shell，后面那句
+> `echo` 永远不执行 ⇒ 注入的差异根本没出现，self-test 报"没发现差异"。
+
 - **改什么**：`scripts/kernel-diff.sh <before-bin> <after-bin>` —— 对全部
   `*.sokonanoda`（`courses/` + `course/` + `playground` + `examples/` + `docs/gaps/repro/`）
   跑 `grade --json`，**stdout 逐字节比较**；再跑 `query check|goals|holes`
@@ -2552,7 +2569,7 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### 批次 5 · 线 K：内核提速（minor）
 
-- [ ] `T-K01` 全语料逐字节对拍工具
+- [x] `T-K01` 全语料逐字节对拍工具
 - [ ] `T-K02` 内核改动的验收清单 + **修语料对拍的收集逻辑**
 - [ ] `T-K03` `36.1s` 花在哪：分阶段 profile
 - [ ] `T-K10` 设计文档 `docs/design/by-prefix-reuse.md` + 三个候选的定稿

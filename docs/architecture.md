@@ -607,3 +607,25 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp      # LSP（editor/vscode �
 ```
 
 想给某个语法点加测试：先在 `crates/front/src/compile.rs`（或 `lib.rs`）加单元测试 → 在 `crates/cli/tests/cli.rs` 加端到端 → 需要的话新增/改 `examples/lesson-XX.sokonanoda`（examples.rs 会自动跑它）。
+
+## 改内核的机械判据：`scripts/kernel-diff.sh`
+
+内核解冻（2026-09-21）之后，"判定正确性不变"这句话必须有**机械**判据，
+不能靠"测试都绿了"。工具是 `scripts/kernel-diff.sh <改动前二进制> <改动后二进制>`：
+
+```bash
+# 每环节用（1.9 秒）：3 个形状不同的文件 × grade + query check
+scripts/kernel-diff.sh --fast target/debug/sokonanoda /tmp/after
+
+# 合入前用（约 6 分钟）：全部语料 × 5 个 op + 课程门禁计数逐项比较
+scripts/kernel-diff.sh target/debug/sokonanoda /tmp/after
+
+# 自检：证明对拍器本身有效（同一二进制零差异 + 人为注入一个字节必须被抓到）
+scripts/kernel-diff.sh --self-test target/debug/sokonanoda
+```
+
+它比的是 **stdout 逐字节 + 退出码**，并且 `SOKONANODA_NO_CACHE=1` 强制关缓存
+（条目命中会跳过编译，对拍就测不到内核；两个二进制版本相同时还会互相命中）。
+
+**为什么测试不够**：内核改动可能"测试全绿但判定变了"（阈值、边界、归因）。
+逐字节对拍把**整个语料**的判定结果钉死，这是单测覆盖不到的。
