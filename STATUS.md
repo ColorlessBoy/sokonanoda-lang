@@ -1,11 +1,7 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-19（第一百〇六轮：**0.59.0 收尾**——语言线五刀（签名受检 /
-> 构造子命名空间 / 派生 recursor 判据 / L1 prelude / 用户自定义记法）收成一个版本，
-> 课程门禁接进 `scripts/soko gate` 与 CI，卷 I 上站点；版本 **0.59.0**，
-> 发布由 push main → auto-tag 全自动；缺口台账门禁（`gap.py selftest` + `check`）
-> 同轮接进 gate 与 CI，24 条缺口 **18 条 `fixed_in = 0.59.0`、`check` 全绿**；
-> WO-010（诊断坐标）与 P4（课程跟随 prelude）同日落地）
+> 快照：2026-09-21（第一百二十三轮：**G-34 记法消解重编前缀** —— 与 G-31 同一个病
+> 的第二个入口；T-K22 落地，`unit12-solution` 11.4s → 7.5s；版本 **0.64.1**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -19,6 +15,58 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-21，第一百二十三轮：**记法消解也在重编前缀** —— G-34，`judge_infer` 那一刀）
+
+> 用户：「我还是很疑惑，lean 的 by 风格有这么耗时吗？是不是我们的 by 的实现方案
+> 有问题呢？」「那要插入方案进计划里，这个违背我们的红线，也违背我们的热编译的
+> 设计初衷。」「前端有问题，前端也一起配合改掉，这属于重大事故的 bug。」
+>
+> 上一轮把 `solutions/` 改成项风格之后，`by` 判定掉到 11 次 / 0.9s——
+> **但 `unit12-solution` 仍然要 11.4–12.0 秒。大头换了人。**
+
+1. **先定位"这几百趟 pass 到底是谁在调"**：新加两个**常驻**诊断开关
+   ——`SOKO_PASS_TRACE=<n>`（第 n 趟 `run_pass` 的调用栈）与
+   `SOKO_INFER_TRACE=<n>|all`（每次 `judge_infer` 未命中的查询 + 栈）。
+   第一次就量出：**380 趟 pass 全部来自 `elab_notation` → `solve_prefix_args`
+   → `infer_type_text` → `judge_infer`**。
+2. **缺口 G-34 成立**：`judge_infer` 的缓存键**含整段前缀**，前缀随每条声明
+   增长 ⇒ 同一批查询每次换一个键；**未命中一次 = 合成 `<前缀>#check fun
+   (binders) => term` 把整段前缀从零重跑一趟 pass**。实测
+   **126,105 次调用 / 363 次未命中**（`unit12-solution`，release，冷缓存），
+   `judge_infer` 累计 12.3s。这与 G-31 是**同一个病、不同入口**。
+3. **命中侧不是问题，别打错靶**：`JUDGE_INFER_SPLIT hits=50909 misses=363
+   key_ms=741 hit_ms=744` ⇒ 5 万次命中只花 744ms，**优化必须打未命中**
+   （即"别问内核"），不是打哈希。这条读数纪律写进了 `docs/PERF.md`。
+4. **T-K22 那一刀（已落地）**：`elab.rs` 新增 `operand_type_expr`——
+   **局部变量先取 `ElabScope::source_type_of`（书写类型，零内核调用）**，
+   拿不到才退回 `infer_type_text`。判据与 `implicit.rs` 里 `arg_tys` 的
+   **既有判据完全相同**（书写类型不但零调用，还比内核 pp 更准——pp 会丢嵌套
+   常量的隐式实参）。三个入口同时换：`solve_prefix_args`（主）、
+   `guarded_binder_type`、`arg_tys`。
+
+   | 指标 | 改前 | 改后 |
+   |---|---|---|
+   | `judge_infer` 调用 | 126,105 | **51,156** |
+   | 未命中（= 整段前缀重编一趟） | 363 | **247** |
+   | `judge_infer` 累计 | 12.3s | **6.9s** |
+   | **墙钟** | **11.4–12.0s** | **7.5–8.4s** |
+
+5. **这是缓解，不是根治**（计划里明写）：剩下的 247 次未命中来自冗余 `sorry`
+   探针（`fun (__soko_render : T) => __soko_render`）、`And.intro` 这类**裸常量
+   头**、inductive 安装与闭包里的记法——**没有局部类型可拿** ⇒ 只能靠 T-K20′
+   的「就地拿当前 pass 的环境」，而那套设施要**同时**覆盖 `judge_pairs` 与
+   `judge_infer`（已写进 `by-judge-reuse.md` §7、计划 §5.6.1 T-K20′、REQUIREMENTS §9）。
+6. **判据**：`scripts/kernel-diff.sh` 全语料逐字节对拍 **零差异** · `cargo test
+   --workspace --locked` 全绿 · 课程门禁计数不变 · 缺口复现
+   `docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh` 已进
+   `gap.py check`（gate + CI）。
+7. **顺带修掉一条会随机翻红的复现**：G-29 的判据 `edit*2 < cold` 余量只有 ~13%
+   （4413ms vs 2489ms），机器一抖就翻面 ⇒ `gap.py check` 随机红（本轮实测翻过
+   一次）。冷开里混着**进程启动**，本来就不该进分母；改成与**热开**比
+   （`edit < 10×warmOpen + 200ms`，实测 2582ms vs 预算 280ms，余量 9×）。
+8. **不变的**：内核**一个字节未改**（这一刀全在前端）；不调用官方 Lean 工具链；
+   用户/agent 路径仍零 cargo。版本 bump 到 **0.64.1**（patch：纯提速，无新能力）。
 
 ## 本轮进度（2026-09-21，第一百二十二轮：**课程记法规则**重建 + 基础类型隐式实参对齐 Lean）
 
@@ -116,60 +164,6 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    噪声；它的判据就是本轮 §5 的 A/B 与上表。
 8. **顺带**：`site/index.html`「未来的计划」里那条性能项改写成"已修 3.2×、还剩什么"，
    不能继续写着"根因没修"。
-
-## 本轮进度（2026-09-21，第一百二十轮：官网 28 页 → **单页**；0.62.0 的第二个发版卡点）
-
-> 用户两条指令：「site 刚刚被重构了，但是属于灾难，你把所有 site 简化吧：单个网页，
-> 只说明：是什么，怎么安装，有什么核心特点，未来的计划。这几件事情。」
-> 「然后把正规的 0.62.0 给我发布上去，耽误我正经测试了。」
-
-1. **站点简化（已完成）**。28 页 + 8 份生成数据 + 11 个生成器/检查器（约 6800 行）
-   → **1 个页面**（是什么 / 怎么安装 / 核心特点 / 未来的计划）+ 1 份样式表 + 1 个脚本
-   + 1 个生成器 + 1 个验收脚本。删除：27 个页面、`site/en/`、`_partials/`、6 份 lab 数据、
-   `gen-site-nav.py` / `gen-site-search.py` / `gen-site-lab.py` / `gen-site-fonts.py` /
-   `gen-diagnostics-page.py` / `site-verify.py` / `site-audit.py` / `site-functest.py`
-   / `site-shot.py`。**设计语言一个字没改**（方格纸 / 推理横线 / 绿=内核通过过、
-   朱=诊断与限制 / 17px 中文锚点 / 40rem 行长 / 自托管字体子集）——砍掉的是规模，
-   不是主张；正当化与边界写进 **`docs/design/site-single-page.md`（新权威）**，
-   `docs/design/site.md` 与 `docs/design/site-rebuild/` 降级为历史存档（`STATE.md` 顶部
-   加了横幅，§5/#13 的"已发布版本事实"陷阱仍然有效）。
-2. **防漂移只留三条**（都删不掉）：版本号唯一来源（`gen-site-data.py` 从**最新 tag**
-   生成 `site/data/site.json`，页面回填，零手写）、`sitemap` 与页面集合双向相等、
-   `scripts/check-site.py` 一条命令 10 项验收（结构 / 链接 / 版本 / 元数据 / 体积 /
-   已发布版本一致；`--browser` 追加真 Chrome：资源零 404 + 版本号已回填）。
-   实测 **10/10 绿**（版本 0.61.0——0.62.0 尚未发出，这一项会随发版自动跟上）。
-   顺带一条实测：macOS 上 `--headless=new --dump-dom` **会挂死**（120s 不返回），
-   旧版 `--headless` + `--timeout` 才稳定。
-3. **`pages.yml` 重写**并加 `release: types: [published]`：tag 一落地站点自动重新部署
-   （站点写的是已发布版本的事实，而 tag 是 push 之外的动作——不挂这条，线上会一直
-   停在上一个版本号）。`docs/RELEASE.md` §6.5 同步成两条命令。
-4. **0.62.0 的第二个卡点（已解）**。前一提交把**外层**步骤超时 5 → 20 分钟修好之后，
-   门禁**跑完了但自己判红**：`GRADE_TIMEOUT = 180s` 被 debug 构建的
-   `units/solutions/unit12-solution.sokonanoda`（526 行、9 道题、全 tactic）顶穿
-   （本机实测 debug **190s**）。本轮实测并落地：**release 构建 93.5s（2.0×）**，
-   门禁改用 release 判卷（`ci.yml` 新增一步 `cargo build --release -p sokonanoda-cli`，
-   `SOKONANODA_BIN` 指向 `target/release/`）——**这也更忠实**（发布形态就是 release）。
-   口径修正：`docs/CI-FAILURES.md` 里"release 快一个量级"是估的，实测是 **2×**。
-5. **根因未修，不许当成已修**：`by` 块每走一步 tactic，前端都会**重新判定整份文档**
-   ⇒ 代价随文件规模超线性（profile 佐证：`run_tactics → judge_terms → check_document_with
-   → run_pass` 占了整轮的一半）。真正的修法是给**未改动的前缀**做缓存；本轮只做了
-   "抬上限 + 换 release"这两件临时手段，已写进站点「未来的计划」与本文 §4。
-   未进缺口台账：进台账要配一条**CI 预算内**的确定性复现，不为了凑格式塞一条跑不动的。
-
-6. **0.62.0 已发布（2026-09-21）**：`ci` 全绿（22m49s）→ auto-tag 打 `v0.62.0`
-   → release 流水线 **5m35s 全绿**（8 平台 build + package-vsix + marketplace-publish
-   + github-release），Release **26 资产**（8 CLI tarball + 8 LSP tarball + 9 VSIX
-   + `SHA256SUMS`）。**发布产物实测**：下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`
-   → `sokonanoda 0.62.0`，判 `playground.sokonanoda` 的事件类型计数与仓库 release
-   构建**逐项相同**（`decl.checked 23 / example.checked 2 / exercise.open 4 / warning 1`），
-   真课程文件（卷 I 单元①）判卷正常。
-7. **站点已跟上 0.62.0**：`site/data/site.json` → `v0.62.0`，`check-site.py` 9/9 +
-   `--browser` 10/10。
-   **一条实测修正**：`pages.yml` 的 `release: [published]` 对**自动发版不生效**——
-   release 由 `release.yml` 用 `GITHUB_TOKEN` 创建，而 GITHUB_TOKEN 触发的事件不会再
-   触发其它 workflow（与 auto-tag 那条注释同一个防递归坑；v0.62.0 实测一次都没触发）。
-   所以"发布后刷新站点"的真正机制仍是 `docs/RELEASE.md` §6.5 那两步；那条 trigger
-   留着只对"人在 UI 上发布 release"有效，注释已就地更正。
 
 ## 本轮进度（2026-09-21，第一百一十九轮（站点线）：站点事实改锚发布 tag —— 并修掉一个把正确复现判成红的陷阱）
 

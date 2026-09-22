@@ -1446,7 +1446,7 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 |---|---|---|
 | **T-K12′** | `EnvBuilder::with_env`：让判定在**已 elaborate 过的环境**上继续，而不是重跑前缀 | `JUDGE_STATS` 的 `total_ms` 降到与"主 pass 一次"同量级；`unit12-solution` 冷跑从 120s 降到 **10s 量级** |
 | **T-K13′** | 若 `with_env` 做不成：`EnvBuilder::snapshot()` 克隆式检查点（陷阱：`conv.rs:169` 按**指针**比较 `NatLit`，快照必须与新建声明同一 arena） | 同上 |
-| **T-K20′** | **设计**：一趟走完（elaborate 到 `by` 就在当下环境跑引擎）vs 收对重判——给出取舍与工作量 | 设计文档进 `docs/design/`，含实测的分阶段预算 |
+| **T-K20′** | **设计**：一趟走完（elaborate 到 `by` 就在当下环境跑引擎）vs 收对重判——给出取舍与工作量。**2026-09-21 补充**：设施必须**同时**覆盖 `judge_pairs`（`by` 判定，G-31）与 `judge_infer`/`judge_type_of`（记法消解与冗余 `sorry` 探针，G-34）——两处是同一个病（合成文档 + 整前缀重跑），只是入口不同 | 设计文档进 `docs/design/`，含实测的分阶段预算；两处的"重编前缀"计数都落到 0 |
 | **T-K01/K02** | 护栏（`kernel-diff.sh` 已就位；还差 `kernel-check.sh` 与 `arena.rs` 收集逻辑） | 对拍零差异 |
 | **回滚线 L** | K1 落地且 `by` 变便宜之后，**重新评估** `solutions/` 要不要用回 tactic | 届时按性能数字决定 |
 
@@ -1695,6 +1695,40 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 - **解锁**：与 K1-b 相同，但**只解决本刀**（快照是 builder 的副本，
   不构成跨模块复用的基座）。
 - **判据**：同 T-K12。
+
+##### ✅ T-K22 **K1-d：记法消解的类型查询走局部书写类型（零内核调用）**
+
+**已完成（2026-09-21，缺口 G-34）。** 与 T-K11/T-K12 **同一个病、不同入口**：
+`elab_notation` 解前导参数时要问内核"这个操作数的类型是什么"
+（`infer_type_text` → `judge::judge_infer`），而 `judge_infer` 的缓存键
+**含整段前缀** ⇒ 前缀每长一条声明就换一个键，未命中就把**整段前缀重编译一趟
+pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（第 n 趟
+`run_pass` 的调用栈）与 `SOKO_INFER_TRACE=<n>|all`（每次未命中的查询 + 栈）。
+
+- **改什么**：`crates/front/src/compile/elab.rs` 新增 `operand_type_expr`——
+  **局部变量先取 `ElabScope::source_type_of`（书写类型，零内核调用）**，
+  拿不到才退回 `infer_type_text`。判据与 `implicit.rs` 已有的那条路**完全相同**
+  （见 `elab.rs` 里 `arg_tys` 的注释：书写类型不但零调用，还比内核 pp 更准——
+  pp 会丢掉嵌套常量的隐式实参，`Eq.{1} Nat 1 1` pp 成 `Eq 1 1`）。
+  三个入口同时换：`solve_prefix_args`（主）、`guarded_binder_type`、`arg_tys`。
+- **实测（release，`unit12-solution`，冷缓存）**：
+
+  | 指标 | 改前 | 改后 |
+  |---|---|---|
+  | `judge_infer` 调用 | 126,105 | **51,156** |
+  | 未命中（= 整段前缀重编一趟） | 363 | **247** |
+  | `judge_infer` 累计 | 12.3s | **6.9s** |
+  | **墙钟** | **11.4–12.0s** | **7.5–8.4s** |
+
+  命中侧本来就不贵（50,909 次命中 744ms、键构造 764ms）⇒ 优化必须打**未命中**
+  （即"别问内核"），不是打哈希。
+- **判据**：`scripts/kernel-diff.sh`（全语料逐字节对拍，**零差异**）+
+  `cargo test --workspace` + 课程门禁计数不变 + 缺口复现
+  `docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh`。
+- **剩下的（不许当成已根治）**：247 次未命中来自**别的入口**——冗余 `sorry`
+  探针的 `fun (__soko_render : T) => __soko_render`、`And.intro` 这类**裸常量
+  头**、inductive 安装、闭包里的记法。它们**没有局部类型可拿** ⇒ 只能靠
+  T-K20′ 的「就地拿当前 pass 的环境」。本刀是缓解，不是根治。
 
 #### 5.6.2 第二刀：闭包的跨模块增量 / 入口间共享
 
@@ -2375,6 +2409,7 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 
 线 K     T-K01 ─ T-K02 ─ T-K03 ─┬─ T-K10 ─ T-K11（K1-a，纯 front，零内核风险）
                                 │            └─ T-K12（K1-b，with_env）─┬─ T-K13（K1-c 备选）
+                                │                                     ├─ T-K22（K1-d，✅ 局部书写类型，G-34）
                                 │                                     └─ T-K20 ─ T-K21… ─ T-K30
                                 └─ T-K31（TcCache 4MB，独立）   T-K32（pp 单测，线 C 前置）
          T-K40 ─ T-K41
@@ -2688,6 +2723,8 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 - [ ] `T-K12` **K1-b：`EnvBuilder::with_env`（单次内核改动里性价比最高）**
   - ⬆ **BUMP**：`minor` —— 36.1s → 个位数秒（K1-b，本轮最大的一刀）
 - [ ] `T-K13` **K1-c（备选）：`EnvBuilder::snapshot()` 克隆式检查点**
+- [x] `T-K22` **K1-d：记法消解的类型查询走局部书写类型（G-34；本刀是缓解，根治在 T-K20′）**
+  - ⬆ **BUMP**：`patch` —— 用户可感知的提速（`unit12-solution` 11.4s → 7.5s），无新能力
 - [ ] `T-K20` 设计文档 `docs/design/closure-incremental.md` + spike
 - [ ] `T-K30` `build <dir>` 不再逐文件各编一份闭包
 - [ ] `T-K31` `TcCache::new` 每次 `with_ctx` 清 4MB

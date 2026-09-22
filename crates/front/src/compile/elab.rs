@@ -1633,9 +1633,7 @@ fn guarded_binder_type(
             let Some(operand) = operands.get(k) else {
                 continue;
             };
-            let Some(actual) = infer_type_text(ctx, scope, operand)
-                .and_then(|text| crate::proof::parse_expr_text(&text).ok())
-            else {
+            let Some(actual) = operand_type_expr(ctx, scope, operand) else {
                 continue;
             };
             if let Some(found) = unify_extract(&layer.1, &actual, &param) {
@@ -1907,9 +1905,7 @@ fn solve_prefix_args(
             if !mentions_ident(&layer.1, &name) {
                 continue;
             }
-            let Some(actual) = infer_type_text(ctx, scope, operand)
-                .and_then(|text| crate::proof::parse_expr_text(&text).ok())
-            else {
+            let Some(actual) = operand_type_expr(ctx, scope, operand) else {
                 continue;
             };
             if let Some(found) = unify_extract(&layer.1, &actual, &name) {
@@ -2005,6 +2001,30 @@ fn substitute_prefix_params(
 fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr) -> Option<String> {
     let binders = scope.judge_binders();
     judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
+}
+
+/// `operand` 的类型（**源级 AST**）：局部变量**优先取书写类型**，零内核调用。
+///
+/// 为什么必须有这条快路（T-K22，G-34）：`infer_type_text` 走 `judge_infer`，
+/// 而 `judge_infer` 的缓存键**含整段前缀**；前缀随每条声明增长 ⇒ 同一批查询
+/// （`α` / `f` / `A` / `y` …）每次都换一个键，未命中就**全前缀重编译一趟 pass**，
+/// 命中也要哈希整段前缀。实测 `unit12-solution`：`judge_infer` **126,105 次调用
+/// / 363 次未命中**，占掉整次判卷的绝大部分（G-34）。而这些查询问的几乎全是
+/// **局部变量**，答案就在 `scope` 里。
+///
+/// 与 `implicit.rs` 那条路同一个判据（见下面 `arg_tys` 的注释）：书写类型不仅
+/// **零内核调用**，还比内核 pp 文本**更准**——pp 会丢掉嵌套常量的隐式实参
+/// （`Eq.{1} Nat 1 1` pp 成 `Eq 1 1`）。
+///
+/// 拿不到书写类型（隐式插入的 binder、复合项）⇒ 原路 `infer_type_text`，
+/// 逐字节不变。
+fn operand_type_expr(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr) -> Option<Expr> {
+    if let Expr::Ident { name, .. } = operand {
+        if let Some(src) = scope.source_type_of(name) {
+            return Some(src);
+        }
+    }
+    infer_type_text(ctx, scope, operand).and_then(|text| crate::proof::parse_expr_text(&text).ok())
 }
 
 /// **IA-1 的唯一钩子**（设计 `docs/design/implicit-arguments.md` §3.2）：`expr`
@@ -2117,15 +2137,7 @@ fn try_implicit_application<'a>(
     // 局部变量**优先取书写类型**（零内核调用，且不会像 pp 那样丢隐式实参）。
     let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
     for a in &args {
-        if let Expr::Ident { name, .. } = a {
-            if let Some(src) = scope.source_type_of(name) {
-                arg_tys.push(Some(src));
-                continue;
-            }
-        }
-        arg_tys.push(
-            infer_type_text(ctx, scope, a).and_then(|t| crate::proof::parse_expr_text(&t).ok()),
-        );
+        arg_tys.push(operand_type_expr(ctx, scope, a));
     }
     // 期望类型/实参类型的 delta 展开要用 `defs` + `is_inductive`（`a ∈ A ∪ B`
     // 是 `Set.mem … (Set.union …)`，展开到 `Or …` 才能反解 `Or.inl` 的另一个析取项）。

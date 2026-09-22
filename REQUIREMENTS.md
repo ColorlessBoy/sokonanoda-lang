@@ -2084,3 +2084,28 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   4. 全程 `scripts/kernel-diff.sh` 对拍（判定结果与诊断文本必须逐字节不变）；
   5. **凡是"因为内核冻结所以做不到"的结论，一律重新核对**——这份文档里可能还有
      同类残留（`grep -rn "冻结" docs/design/`）。
+
+* **2026-09-21（记法消解也在重编前缀 = 同一个病的第二个入口，G-34）** ——
+  承接上一条（`by` 判定重跑前缀）。把 `solutions/` 改成**项风格**之后，
+  `by` 判定掉到 11 次 / 0.9s，**但 `unit12-solution` 仍然要 11.4–12.0 秒**。
+  用新加的两个常驻诊断开关量出来：`SOKO_PASS_TRACE=<n>`（第 n 趟 `run_pass`
+  的调用栈）显示 380 趟 pass 全部来自 `elab_notation` → `solve_prefix_args` →
+  `infer_type_text` → `judge_infer`；`SOKO_JUDGE_STATS=1` 给出
+  **`judge_infer` 126,105 次调用 / 363 次未命中**，而未命中一次 =
+  合成 `<前缀>#check …` 把**整段前缀从零重跑一趟 pass**（G-34）。
+
+  **要求**：
+  1. 这与 G-31 是**同一个病、不同入口** ⇒ T-K20′ 的「就地拿当前 pass 的环境」
+     设施必须**同时**覆盖 `judge_pairs`（`by`）与 `judge_infer`/`judge_type_of`
+     （记法消解、冗余 `sorry` 探针、`application_arg_expected`、宇宙层级）；
+  2. **局部能答的绝不问内核**：局部变量的类型就在 `ElabScope` 里
+     （书写类型，还比内核 pp 更准——pp 会丢嵌套常量的隐式实参）。这条判据
+     `implicit.rs` 早就有了，记法那条路漏了 ⇒ T-K22 已补
+     （126,105 → 51,156 次调用、363 → 247 次未命中、11.4s → 7.5s）；
+  3. **T-K22 是缓解不是根治**：剩下 247 次未命中来自冗余 `sorry` 探针、
+     裸常量头、inductive 安装、闭包里的记法——它们**没有局部类型可拿**，
+     只能靠第 1 条；
+  4. 判据同时看两个计数：`JUDGE_STATS` 的 `calls` 与 `JUDGE_INFER_SPLIT` 的
+     `misses`，**都要落到"一趟 pass 的量级"**；
+  5. 复现件：`docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh`
+     （已进 `gap.py check` ⇒ gate 与 CI）。

@@ -4282,3 +4282,58 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
 7. **仍欠**：解答最后 6 处（subagent 收尾中）；C1.3 的 294 条 hint 词汇；
    C1.5 速查表重定位；入门课 C2.5（**待拍板**）；R2.5 的 IA-2/IA-3；
    `judge_infer` 的宇宙参数。
+
+## 本轮进度（2026-09-21，第一百二十轮：官网 28 页 → **单页**；0.62.0 的第二个发版卡点）
+
+> 用户两条指令：「site 刚刚被重构了，但是属于灾难，你把所有 site 简化吧：单个网页，
+> 只说明：是什么，怎么安装，有什么核心特点，未来的计划。这几件事情。」
+> 「然后把正规的 0.62.0 给我发布上去，耽误我正经测试了。」
+
+1. **站点简化（已完成）**。28 页 + 8 份生成数据 + 11 个生成器/检查器（约 6800 行）
+   → **1 个页面**（是什么 / 怎么安装 / 核心特点 / 未来的计划）+ 1 份样式表 + 1 个脚本
+   + 1 个生成器 + 1 个验收脚本。删除：27 个页面、`site/en/`、`_partials/`、6 份 lab 数据、
+   `gen-site-nav.py` / `gen-site-search.py` / `gen-site-lab.py` / `gen-site-fonts.py` /
+   `gen-diagnostics-page.py` / `site-verify.py` / `site-audit.py` / `site-functest.py`
+   / `site-shot.py`。**设计语言一个字没改**（方格纸 / 推理横线 / 绿=内核通过过、
+   朱=诊断与限制 / 17px 中文锚点 / 40rem 行长 / 自托管字体子集）——砍掉的是规模，
+   不是主张；正当化与边界写进 **`docs/design/site-single-page.md`（新权威）**，
+   `docs/design/site.md` 与 `docs/design/site-rebuild/` 降级为历史存档（`STATE.md` 顶部
+   加了横幅，§5/#13 的"已发布版本事实"陷阱仍然有效）。
+2. **防漂移只留三条**（都删不掉）：版本号唯一来源（`gen-site-data.py` 从**最新 tag**
+   生成 `site/data/site.json`，页面回填，零手写）、`sitemap` 与页面集合双向相等、
+   `scripts/check-site.py` 一条命令 10 项验收（结构 / 链接 / 版本 / 元数据 / 体积 /
+   已发布版本一致；`--browser` 追加真 Chrome：资源零 404 + 版本号已回填）。
+   实测 **10/10 绿**（版本 0.61.0——0.62.0 尚未发出，这一项会随发版自动跟上）。
+   顺带一条实测：macOS 上 `--headless=new --dump-dom` **会挂死**（120s 不返回），
+   旧版 `--headless` + `--timeout` 才稳定。
+3. **`pages.yml` 重写**并加 `release: types: [published]`：tag 一落地站点自动重新部署
+   （站点写的是已发布版本的事实，而 tag 是 push 之外的动作——不挂这条，线上会一直
+   停在上一个版本号）。`docs/RELEASE.md` §6.5 同步成两条命令。
+4. **0.62.0 的第二个卡点（已解）**。前一提交把**外层**步骤超时 5 → 20 分钟修好之后，
+   门禁**跑完了但自己判红**：`GRADE_TIMEOUT = 180s` 被 debug 构建的
+   `units/solutions/unit12-solution.sokonanoda`（526 行、9 道题、全 tactic）顶穿
+   （本机实测 debug **190s**）。本轮实测并落地：**release 构建 93.5s（2.0×）**，
+   门禁改用 release 判卷（`ci.yml` 新增一步 `cargo build --release -p sokonanoda-cli`，
+   `SOKONANODA_BIN` 指向 `target/release/`）——**这也更忠实**（发布形态就是 release）。
+   口径修正：`docs/CI-FAILURES.md` 里"release 快一个量级"是估的，实测是 **2×**。
+5. **根因未修，不许当成已修**：`by` 块每走一步 tactic，前端都会**重新判定整份文档**
+   ⇒ 代价随文件规模超线性（profile 佐证：`run_tactics → judge_terms → check_document_with
+   → run_pass` 占了整轮的一半）。真正的修法是给**未改动的前缀**做缓存；本轮只做了
+   "抬上限 + 换 release"这两件临时手段，已写进站点「未来的计划」与本文 §4。
+   未进缺口台账：进台账要配一条**CI 预算内**的确定性复现，不为了凑格式塞一条跑不动的。
+
+6. **0.62.0 已发布（2026-09-21）**：`ci` 全绿（22m49s）→ auto-tag 打 `v0.62.0`
+   → release 流水线 **5m35s 全绿**（8 平台 build + package-vsix + marketplace-publish
+   + github-release），Release **26 资产**（8 CLI tarball + 8 LSP tarball + 9 VSIX
+   + `SHA256SUMS`）。**发布产物实测**：下载 `sokonanoda-cli-aarch64-apple-darwin.tar.gz`
+   → `sokonanoda 0.62.0`，判 `playground.sokonanoda` 的事件类型计数与仓库 release
+   构建**逐项相同**（`decl.checked 23 / example.checked 2 / exercise.open 4 / warning 1`），
+   真课程文件（卷 I 单元①）判卷正常。
+7. **站点已跟上 0.62.0**：`site/data/site.json` → `v0.62.0`，`check-site.py` 9/9 +
+   `--browser` 10/10。
+   **一条实测修正**：`pages.yml` 的 `release: [published]` 对**自动发版不生效**——
+   release 由 `release.yml` 用 `GITHUB_TOKEN` 创建，而 GITHUB_TOKEN 触发的事件不会再
+   触发其它 workflow（与 auto-tag 那条注释同一个防递归坑；v0.62.0 实测一次都没触发）。
+   所以"发布后刷新站点"的真正机制仍是 `docs/RELEASE.md` §6.5 那两步；那条 trigger
+   留着只对"人在 UI 上发布 release"有效，注释已就地更正。
+

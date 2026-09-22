@@ -245,6 +245,59 @@ SOKONANODA_CACHE_DIR=$(mktemp -d) ./target/debug/sokonanoda grade <入口> &
 PID=$(pgrep -n sokonanoda); sample $PID 8 -f /tmp/sample.txt
 ```
 
+### 项风格之后大头换人：`judge_infer` 重编前缀（G-34，2026-09-21）
+
+把 `unit12-solution` 改成**项风格**之后（线 L），上面那张表**作废了一半**：
+`by` 判定掉到 **11 次 / 0.9s**，但整份文件**仍然要 11.4–12.0 秒**。
+
+```bash
+SOKO_JUDGE_STATS=1 ./target/release/sokonanoda grade <入口>
+# JUDGE_STATS calls=11 total_ms=934 pairs=18            ← by 判定：已经不是问题
+# JUDGE_INFER calls=126105 total_ms=12304 fails=626     ← 记法消解：新的大头
+# JUDGE_INFER_SPLIT hits=50909 misses=247 key_ms=741 hit_ms=744
+```
+
+**`judge_infer` 是"第二个 G-31"**：缓存键含**整段前缀**，前缀随每条声明增长 ⇒
+同一批查询每次都换一个键；**未命中一次 = 合成 `<前缀>#check fun (binders) =>
+term` 把整段前缀从零重跑一趟 pass**。
+
+**读数纪律（这一行就是选刀依据）**：
+
+| 指标 | 读法 |
+|---|---|
+| `calls` | 12.6 万——**别被它吓到**，命中很便宜 |
+| `misses` | **363**——未命中一次 = 重编一趟 pass，**这才是成本** |
+| `hits` / `hit_ms` | 50,909 次命中共 744ms ⇒ 优化**不要**去打哈希 |
+| `key_ms` | 键构造（含哈希整段前缀）764ms ⇒ 同上 |
+
+**定位它**（两个新的常驻开关）：
+
+```bash
+# 第 380 趟 run_pass 的调用栈——直接指出"谁在重编"
+SOKO_PASS_TRACE=380 ./target/release/sokonanoda grade <入口>
+# 每次未命中的查询 + 前缀长度；在号上打调用栈
+SOKO_INFER_TRACE=all ./target/release/sokonanoda grade <入口>
+```
+
+第一次这么量出来的结论：380 趟里有 380 趟来自 `elab_notation` →
+`solve_prefix_args` → `infer_type_text` → `judge_infer`，而查询项几乎全是
+**局部变量**（`α` / `f` / `A` / `y`）——它们的类型**本来就在 `ElabScope` 里**。
+
+**T-K22 那一刀**（局部变量先取书写类型，零内核调用）：
+
+| 指标 | 改前 | 改后 |
+|---|---|---|
+| `judge_infer` 调用 | 126,105 | 51,156 |
+| 未命中 | 363 | 247 |
+| `judge_infer` 累计 | 12.3s | 6.9s |
+| **墙钟** | **11.4–12.0s** | **7.5–8.4s** |
+
+**剩下的 247 次不许当成已修**：它们来自冗余 `sorry` 探针
+（`fun (__soko_render : T) => __soko_render`）、`And.intro` 这类**裸常量头**、
+inductive 安装与闭包里的记法——**没有局部类型可拿**，只能靠 T-K20′ 的
+「就地拿当前 pass 的环境」。复现件：
+`docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh`（缺口 G-34）。
+
 ### 编译期间**整个 LSP 冻结**（T-A30 实测，2026-09-21）
 
 冷编译 unit12（8.9s）**进行中**，连发 5 次 `soko/stateAt`：

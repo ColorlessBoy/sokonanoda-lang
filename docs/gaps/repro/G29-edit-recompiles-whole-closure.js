@@ -88,15 +88,21 @@ function startLsp(env) {
   console.log(`   热开（缓存命中）= ${warmOpen}ms`)
   console.log(`   改一行 = **${edit}ms**`)
 
-  // 已修的标准：编辑**明显便宜于**冷开（依赖没变就不该重编依赖）。
-  // 今天实测编辑 ≈ 冷开 ⇒ 缺口在。
-  if (edit * 2 < cold) {
-    console.log('结论：G-29 已修——编辑不再重编整条闭包。')
+  // 已修的标准：编辑**便宜到和热开同量级**——依赖一个字节没变，就不该有编译。
+  //
+  // 为什么不用 `edit * 2 < cold`（2026-09-21 改）：那条判据的余量只有 ~13%
+  // （实测 cold 4413ms / edit 2489ms），机器一抖就翻面 ⇒ `gap.py check` 随机红。
+  // 冷开里含**进程启动**，把启动时间混进分母本来就不该是判据。
+  // 热开（同缓存、零重编）才是"什么都不用做"的基线：修好后 edit 应当与它同量级。
+  const budget = 10 * warmOpen + 200
+  if (edit < budget) {
+    console.log(`结论：G-29 已修——编辑不再重编整条闭包（改一行 ${edit}ms < 预算 ${budget}ms）。`)
     process.exit(1)
   }
   console.error(
     '结论：G-29 仍在——**编辑**项目文件会从零重编整条 import 闭包（依赖一个字节没变也照编），' +
-      `缓存只对"打开"有效（冷开 ${cold}ms / 热开 ${warmOpen}ms / 改一行 ${edit}ms）。`,
+      `缓存只对"打开"有效（冷开 ${cold}ms / 热开 ${warmOpen}ms / 改一行 ${edit}ms，` +
+      `预算 ${budget}ms = 10×热开 + 200ms）。`,
   )
   process.exit(0)
 })().catch((error) => {

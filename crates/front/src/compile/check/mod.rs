@@ -280,6 +280,11 @@ pub fn check_document(file: &FolFile) -> DocumentReport {
 
 /// `check_document` with explicit compile options.
 pub fn check_document_with(file: &FolFile, options: &CompileOptions) -> DocumentReport {
+    stage_stats::VIA_CHECK_DOCUMENT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let _t = StageTimer(
+        &stage_stats::VIA_CHECK_DOCUMENT_NANOS,
+        std::time::Instant::now(),
+    );
     run(&[SourceUnit::single("", file)], options, true)
         .1
         .into_iter()
@@ -406,6 +411,19 @@ pub(crate) fn run(
     options: &CompileOptions,
     collect: bool,
 ) -> (CompileOutput, Vec<DocumentReport>) {
+    // 常驻诊断（`SOKO_PASS_TRACE=<n>`）：在第 n 次 `run` 上打一份调用栈，
+    // 用来回答"这几百趟 pass 到底是谁在调"——G-31/G-34 就是这么定位的
+    // （380 趟来自记法消解里的 `judge_infer`）。读一次就缓存，它在热路径上。
+    if let Some(want) = pass_trace_spec() {
+        let n = stage_stats::RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        if want.parse::<u64>() == Ok(n) {
+            eprintln!(
+                "PASS_TRACE #{}:\n{}",
+                n,
+                std::backtrace::Backtrace::force_capture()
+            );
+        }
+    }
     // Pass 1 checks everything. Kernel-rejected declarations still occupy
     // their names in pass 1, which lets later declarations reference them —
     // unsound for teaching. Pass 2 recomputes in a fresh session with the
@@ -496,6 +514,13 @@ pub(crate) fn run_incremental(
 
 type KernelFailed = HashMap<usize, CompileError>;
 
+/// `SOKO_PASS_TRACE` 的取值（读一次就缓存——`run` 在热路径上）。
+fn pass_trace_spec() -> Option<&'static str> {
+    static SPEC: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    SPEC.get_or_init(|| std::env::var("SOKO_PASS_TRACE").ok())
+        .as_deref()
+}
+
 /// 编译阶段的分段计时（T-K20′ 的判据）。
 ///
 /// `SOKO_STAGE_STATS=1` 时在进程退出前打到 stderr。要回答的问题：
@@ -508,6 +533,11 @@ pub(crate) mod stage_stats {
     pub(crate) static PASS_NANOS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static PASSES: AtomicU64 = AtomicU64::new(0);
     pub(crate) static BY_NANOS: AtomicU64 = AtomicU64::new(0);
+    /// 经由 `check_document_with` 进来的 pass 次数（T-K20′ 诊断：394 趟里谁占大头）。
+    pub(crate) static RUNS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static VIA_CHECK_DOCUMENT: AtomicU64 = AtomicU64::new(0);
+    /// 经由 `check_document_with` 进来的 pass 累计耗时。
+    pub(crate) static VIA_CHECK_DOCUMENT_NANOS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static BYS: AtomicU64 = AtomicU64::new(0);
     static PRINTED: std::sync::Once = std::sync::Once::new();
 
@@ -521,12 +551,14 @@ pub(crate) mod stage_stats {
                 let bys = BYS.load(Ordering::Relaxed);
                 let ms = |n: u64| n / 1_000_000;
                 eprintln!(
-                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={}",
+                    "STAGE_STATS passes={passes} pass_total_ms={} by_calls={bys} by_total_ms={} judge_ms={} hits={} misses={} doc_passes={} doc_ms={}",
                     ms(PASS_NANOS.load(Ordering::Relaxed)),
                     ms(BY_NANOS.load(Ordering::Relaxed)),
                     ms(crate::judge::stats::nanos()),
                     crate::judge::stats::hits(),
                     crate::judge::stats::misses(),
+                    VIA_CHECK_DOCUMENT.load(Ordering::Relaxed),
+                    ms(VIA_CHECK_DOCUMENT_NANOS.load(Ordering::Relaxed)),
                 );
             }
             unsafe extern "C" {

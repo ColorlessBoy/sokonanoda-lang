@@ -199,3 +199,42 @@ real 121.70
 
 **与线 L 的关系**：线 L（解答改项风格）是**绕开**，不是修复。K1 落地且 `by` 变便宜
 之后，**重新评估** `solutions/` 要不要用回 tactic——那才是课程的原始意图。
+
+## 7. 第二个入口：`judge_infer`（G-34，2026-09-21 实测）
+
+> **这一节改变了上面 §5 的结论。** §5 的账单是在 `unit12-solution` **还是
+> tactic 风格**时量的（`by` 判定占 68%）。把解答改成项风格之后（线 L），
+> `by` 判定掉到 11 次 / 1.4s，**但整份文件仍然要 11.4–12.0 秒**——大头换了人。
+
+**新账单（release，冷缓存，`SOKO_JUDGE_STATS=1`）**：
+
+```
+JUDGE_STATS calls=11 total_ms=934 pairs=18          ← by 判定：已经不是问题
+JUDGE_INFER calls=126105 total_ms=12304 fails=626   ← 记法消解：新的大头
+real 11.96
+```
+
+`judge_infer` **12.6 万次调用**，其中 **363 次未命中**——而未命中一次就是
+`judge_infer_uncached` 合成 `<前缀>#check fun (binders) => term` 交给
+`check_document_with`，**把整段前缀从零重跑一趟 pass**。定位它的办法是两个新的
+常驻开关：`SOKO_PASS_TRACE=<n>`（第 n 趟 `run_pass` 的调用栈）与
+`SOKO_INFER_TRACE=<n>|all`（每次未命中的查询 + 栈）。
+
+**调用方**（`infer_type_text` 的入口，按量排）：
+
+| 入口 | 问什么 | 能不能就地答 |
+|---|---|---|
+| `solve_prefix_args`（`elab_notation`） | 操作数的类型，用来反解记法的前导参数（`∈` 的 `α`） | **局部变量可以**（书写类型就在 `ElabScope` 里）⇒ 已修，T-K22 |
+| `universe_level_text_of_operands` | 操作数类型的 sort（`=` 的宇宙层级） | 要问内核（但可以少问一次） |
+| `application_arg_expected` | 应用**头**的类型（`f x ∅` 里 `f x`） | 复合项，要内核 |
+| 冗余 `sorry` 探针（`redundant_probes`） | `fun (__soko_render : T) => __soko_render` 过不过 | 要内核 |
+
+**已经做掉的一刀（T-K22）**：局部变量的类型先问 `ElabScope::source_type_of`
+（书写类型，零内核调用；与 `implicit.rs` 里 `arg_tys` 的既有判据完全相同）。
+126,105 → 51,156 次调用、363 → 247 次未命中、11.4s → **7.5s**。
+
+**剩下的 247 次没有局部类型可拿** ⇒ 只能靠 §5.1 的"就地拿当前 pass 的环境"。
+所以 **§5.1 的设施要同时覆盖 `judge_pairs` 与 `judge_infer`/`judge_type_of`**：
+两者是同一个病（合成文档 + 整前缀重跑），只是一个喂 `Declar`、一个喂 `#check`。
+判据也要同时看两个计数——`JUDGE_STATS` 的 `calls` 与 `JUDGE_INFER_SPLIT` 的
+`misses`，**都要落到"一趟 pass 的量级"**。

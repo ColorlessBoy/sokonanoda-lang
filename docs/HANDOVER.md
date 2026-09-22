@@ -4,7 +4,11 @@
 > `REQUIREMENTS.md`（要求总账）、`STATUS.md`（逐轮日志）、`ROADMAP.md`（里程碑）；
 > 本文是**汇总与索引**，随轮次更新。
 >
-> 快照：**v0.61.0**（2026-09-19 第一百〇八轮：用户要求「设计文档里的东西都做了吧」⇒ 把各篇设计的「未做/第二刀/残留边界」里不违反硬规则的全部实现：记法第三刀（binder 记法/重载/scoped/集合字面量/一元实参位）、namespace 扩展（子句/open…in/export/遮蔽 warning）、层级算术 + Eq 多态 + cast/Eq.ndrec、编辑器词表同轮 + 课程多清单聚合 + 成本台账；保留的只有内核冻结三项；`scripts/soko gate` exit 0：1163 passed、课程 36·329·99·0、台账全绿；上一个已发布版本是 0.60.0）。
+> 快照：**v0.64.1**（2026-09-21 第一百二十三轮：**G-34** —— 记法消解的
+> `judge_infer` 与 G-31 是同一个病（缓存键含整段前缀 ⇒ 未命中就整段前缀重跑一趟
+> pass）；T-K22 落地（局部变量先取书写类型），`unit12-solution` **11.4s → 7.5s**，
+> 内核零改动。**根治仍在 T-K20′**，且那套设施必须同时覆盖 `judge_pairs` 与
+> `judge_infer`。见 §1.5。上一个已发布版本是 0.64.0）
 > （语言线五刀 + 课程门禁 + 站点页）**。**这一版装了什么（全部用户可见）**：
 > * **签名受检**（G-01 / WO-004）：值位是 `sorry` 时签名也过内核的类型/Prop 判定；
 >   坏签名 = 一条 diagnostic + 声明 `Failed` + **不发** `exercise.open`。判卷只认
@@ -66,6 +70,40 @@ cargo test --workspace --locked   # 全量（4 个 lib + 12 个集成测试文�
   **禁止**要求安装 Rust/cargo（REQUIREMENTS §2 第 9 条）。
 - **贡献者**才需要 cargo；CI 与本地命令一致。
 - 判定永远走 kernel，**禁止文本比对**（REQUIREMENTS §2 第 4 条）。
+
+## 1.5 最新一轮（第一百二十三轮，2026-09-21，**v0.64.1**）：G-34 —— 记法消解也在重编前缀
+
+**一句话**：`by` 判定修完、`solutions/` 改成项风格之后，`unit12-solution` 仍然要
+11.4–12.0 秒——大头换了人：**记法消解问内核要类型**（`infer_type_text` →
+`judge::judge_infer`），而 `judge_infer` 的缓存键含**整段前缀** ⇒ 未命中一次就把
+整段前缀从零重跑一趟 pass。这与 **G-31 是同一个病、不同入口**。
+
+**怎么发现的**（两个新的**常驻**诊断开关，以后遇到同类问题直接用）：
+
+```bash
+SOKO_PASS_TRACE=380  ./target/release/sokonanoda grade <入口>   # 第 380 趟 run_pass 的调用栈
+SOKO_INFER_TRACE=all ./target/release/sokonanoda grade <入口>   # 每次 judge_infer 未命中的查询 + 栈
+SOKO_JUDGE_STATS=1   ./target/release/sokonanoda grade <入口>   # JUDGE_STATS + JUDGE_INFER + JUDGE_INFER_SPLIT
+```
+
+**读数纪律**（`docs/PERF.md`）：`calls` 会吓人（12.6 万），但**命中很便宜**
+（50,909 次命中 744ms）；要打的是 **`misses`**（363 次 = 363 趟重编），不是哈希。
+
+**已落地（T-K22，纯前端，内核零改动）**：`elab.rs` 新增 `operand_type_expr`——
+局部变量先取 `ElabScope::source_type_of`（书写类型，零内核调用），拿不到才退回
+`infer_type_text`；三个入口同换（`solve_prefix_args` / `guarded_binder_type` /
+`arg_tys`）。**126,105 → 51,156 次调用，363 → 247 次未命中，11.4s → 7.5s**。
+
+**还没还清**：剩下 247 次未命中来自冗余 `sorry` 探针、裸常量头、inductive 安装、
+闭包里的记法——**没有局部类型可拿**，只能靠 **T-K20′** 的「就地拿当前 pass 的
+环境」。那套设施必须**同时**覆盖 `judge_pairs`（G-31）与 `judge_infer`（G-34）：
+`docs/design/by-judge-reuse.md` §7 是新账单，计划 §5.6.1 有 T-K22/T-K20′ 的判据。
+
+**复现件**：`docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh`
+（已进 `gap.py check` ⇒ `scripts/soko gate` 与 CI）。
+
+**顺带**：G-29 的复现判据 `edit*2 < cold` 余量只有 ~13%，会随机翻红（本轮实测翻过
+一次）⇒ 改成与**热开**比（`edit < 10×warmOpen + 200ms`）。
 
 ## 2. 本会话完成的工作（第五十三～八十四轮的已发布项；第九十九～一百〇六轮 = 0.59.0 这一批）
 

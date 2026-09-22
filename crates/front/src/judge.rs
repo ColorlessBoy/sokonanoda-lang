@@ -320,6 +320,20 @@ pub(crate) mod stats {
     /// 缓存命中 / 未命中（T-K20′ 的诊断：706 趟 pass 里有多少是"本该命中"）。
     pub(crate) static HITS: AtomicU64 = AtomicU64::new(0);
     pub(crate) static MISSES: AtomicU64 = AtomicU64::new(0);
+    /// `judge_infer`（记法消解推类型）的调用数/耗时/命中——它是**第二个 G-31**：
+    /// 缓存键含整段前缀 ⇒ 每条声明的每个记法展开都换一个键，未命中就全前缀重编译
+    /// （G-34）。`HITS`/`MISSES` 这两个**是它的**，与 `judge_pairs` 那组分开：
+    /// 实测 `unit12-solution` 命中 50,909 次只花 744ms，而 247 次未命中吃掉 6.2s
+    /// ⇒ 优化必须打**未命中**（即"别问内核"），不是打哈希。
+    pub(crate) static INFER_CALLS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INFER_NANOS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INFER_FAILS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INFER_HITS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static INFER_MISSES: AtomicU64 = AtomicU64::new(0);
+    /// 缓存**键构造**本身的耗时（含哈希整段前缀）——用来分辨"未命中重编译"
+    /// 与"命中也要哈希"哪个是大头。
+    pub(crate) static KEY_NANOS: AtomicU64 = AtomicU64::new(0);
+    pub(crate) static HIT_NANOS: AtomicU64 = AtomicU64::new(0);
 
     /// 判定累计耗时（纳秒）——给 `check::stage_stats` 的分段账单用。
     pub fn hits() -> u64 {
@@ -356,6 +370,20 @@ pub(crate) mod stats {
                     ms / calls.max(1),
                     PAIRS.load(Ordering::Relaxed),
                     PREFIX_BYTES.load(Ordering::Relaxed),
+                );
+                let ic = INFER_CALLS.load(Ordering::Relaxed);
+                let ims = INFER_NANOS.load(Ordering::Relaxed) / 1_000_000;
+                eprintln!(
+                    "JUDGE_INFER calls={ic} total_ms={ims} avg_us={} fails={}",
+                    INFER_NANOS.load(Ordering::Relaxed) / ic.max(1) / 1_000,
+                    INFER_FAILS.load(Ordering::Relaxed),
+                );
+                eprintln!(
+                    "JUDGE_INFER_SPLIT hits={} misses={} key_ms={} hit_ms={}",
+                    INFER_HITS.load(Ordering::Relaxed),
+                    INFER_MISSES.load(Ordering::Relaxed),
+                    KEY_NANOS.load(Ordering::Relaxed) / 1_000_000,
+                    HIT_NANOS.load(Ordering::Relaxed) / 1_000_000,
                 );
             }
             unsafe extern "C" {
@@ -815,6 +843,27 @@ pub fn judge_infer_with(
     binders: &[GoalBinderSpec],
     term: &str,
 ) -> Result<String, Judgement> {
+    let t0 = std::time::Instant::now();
+    let r = judge_infer_cached(extra_prefix, prefix_src, options, binders, term);
+    stats::INFER_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    stats::INFER_NANOS.fetch_add(
+        t0.elapsed().as_nanos() as u64,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+    if r.is_err() {
+        stats::INFER_FAILS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    }
+    r
+}
+
+fn judge_infer_cached(
+    extra_prefix: &str,
+    prefix_src: &str,
+    options: &CompileOptions,
+    binders: &[GoalBinderSpec],
+    term: &str,
+) -> Result<String, Judgement> {
+    let t0 = std::time::Instant::now();
     let key = judge_cache_key(&[
         extra_prefix,
         prefix_src,
@@ -822,12 +871,47 @@ pub fn judge_infer_with(
         &format!("{binders:?}"),
         term,
     ]);
+    stats::KEY_NANOS.fetch_add(
+        t0.elapsed().as_nanos() as u64,
+        std::sync::atomic::Ordering::Relaxed,
+    );
     if let Some(JudgeCacheValue::Infer(r)) = judge_cache_get(key) {
+        stats::INFER_HITS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        stats::HIT_NANOS.fetch_add(
+            t0.elapsed().as_nanos() as u64,
+            std::sync::atomic::Ordering::Relaxed,
+        );
         return r;
+    }
+    let miss = stats::INFER_MISSES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+    // 常驻诊断（`SOKO_INFER_TRACE=<n>[,<n>…]|all`）：打出每次未命中的查询与
+    // 前缀长度；**在号上打调用栈**（`SOKO_INFER_TRACE=100` 就给第 100 次的栈）。
+    // 未命中一次 = 全前缀重编译一趟 pass ⇒ 这几行直接指认"谁在重编译"。
+    if let Some(spec) = infer_trace_spec() {
+        let bt = if spec == "all" || spec.split(',').any(|t| t.trim() == miss.to_string()) {
+            format!("\n{}", std::backtrace::Backtrace::force_capture())
+        } else {
+            String::new()
+        };
+        eprintln!(
+            "INFER_MISS #{} prefix={} binders={} term={}{}",
+            miss,
+            prefix_src.len(),
+            binders.len(),
+            term.chars().take(60).collect::<String>(),
+            bt
+        );
     }
     let r = judge_infer_uncached(extra_prefix, prefix_src, options, binders, term);
     judge_cache_put(key, JudgeCacheValue::Infer(r.clone()));
     r
+}
+
+/// `SOKO_INFER_TRACE` 的取值（读一次就缓存——它在热路径上）。
+fn infer_trace_spec() -> Option<&'static str> {
+    static SPEC: OnceLock<Option<String>> = OnceLock::new();
+    SPEC.get_or_init(|| std::env::var("SOKO_INFER_TRACE").ok())
+        .as_deref()
 }
 
 fn judge_infer_uncached(
