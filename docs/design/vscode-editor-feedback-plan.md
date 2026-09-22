@@ -2093,6 +2093,20 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C04 记法表复用 `judge.rs` 的重建（提成公共函数）
 
+> **✅ 完成（2026-09-21）**：`crates/front/src/notation.rs::notation_table(&[Command])
+> -> Vec<NotationDecl>`——**逐字**从 `judge.rs` 提出来（行为不变；取 `&[Command]`
+> 而不是 `&str` 是因为判定路径的前缀**本来就已解析**，零额外开销）。
+> 4 条单测：声明顺序、`scoped` 未 open 时被滤掉、普通记法一直生效、
+> 以及下面那条陷阱。
+>
+> ⚠ **提出来的时候发现一个真陷阱（已记台账 G-35）**：这个函数是**扫一遍**而不是
+> 两遍——`open scoped Foo` 写在 `scoped infix` **之后**（正常写法）时收不到那条
+> 记法；注释里写的却是"取前缀结束时生效的那些"（= 两遍扫描的意图）。
+> **没有顺手改**（T-C04 是纯提取，行为变更要自己的复现与验收），而是：
+> ① 特征化测试钉住当前行为（`open_scoped_after_the_notation_does_not_bring_it_back`）；
+> ② 台账 G-35 + 复现件。**线 C 会复用同一张表**，所以要么在 T-C11/T-C12 之前修掉，
+> 要么保证两边同口径——"一起漏"一致，"一边漏一边不漏"才是灾难。
+
 - **改什么**：把 `crates/front/src/judge.rs:322-355` 的表重建提成
   `pub(crate) fn notation_table(prefix_src: &str, options: &CompileOptions) -> Vec<NotationDecl>`
   （或等价物），两处共用。
@@ -2769,7 +2783,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C02` 消费者审计（**不然会静默改坏判卷**）
 - [x] `T-C03` 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**
 - [x] `T-C03b` `DisplayText` 护栏（**先于任何折叠代码**）
-- [ ] `T-C04` 记法表复用 `judge.rs` 的重建（提成公共函数）
+- [x] `T-C04` 记法表复用 `judge.rs` 的重建（提成公共函数）
 - [ ] `T-C10` 折叠函数第一刀：只做二元 infix 族
 - [ ] `T-C11` arity 的来源
 - [ ] `T-C12` `scoped` 的保真度

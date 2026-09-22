@@ -4541,3 +4541,56 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    实测：stub 宿主 **29/29**、真 VS Code e2e **16/16**（`docs/e2e/`）。版本随之
    bump 到 **0.63.0**（语言批 + 扩展修复同一 tag）。
 
+
+## 本轮进度（2026-09-21，第一百二十三轮：**记法消解也在重编前缀** —— G-34，`judge_infer` 那一刀）
+
+> 用户：「我还是很疑惑，lean 的 by 风格有这么耗时吗？是不是我们的 by 的实现方案
+> 有问题呢？」「那要插入方案进计划里，这个违背我们的红线，也违背我们的热编译的
+> 设计初衷。」「前端有问题，前端也一起配合改掉，这属于重大事故的 bug。」
+>
+> 上一轮把 `solutions/` 改成项风格之后，`by` 判定掉到 11 次 / 0.9s——
+> **但 `unit12-solution` 仍然要 11.4–12.0 秒。大头换了人。**
+
+1. **先定位"这几百趟 pass 到底是谁在调"**：新加两个**常驻**诊断开关
+   ——`SOKO_PASS_TRACE=<n>`（第 n 趟 `run_pass` 的调用栈）与
+   `SOKO_INFER_TRACE=<n>|all`（每次 `judge_infer` 未命中的查询 + 栈）。
+   第一次就量出：**380 趟 pass 全部来自 `elab_notation` → `solve_prefix_args`
+   → `infer_type_text` → `judge_infer`**。
+2. **缺口 G-34 成立**：`judge_infer` 的缓存键**含整段前缀**，前缀随每条声明
+   增长 ⇒ 同一批查询每次换一个键；**未命中一次 = 合成 `<前缀>#check fun
+   (binders) => term` 把整段前缀从零重跑一趟 pass**。实测
+   **126,105 次调用 / 363 次未命中**（`unit12-solution`，release，冷缓存），
+   `judge_infer` 累计 12.3s。这与 G-31 是**同一个病、不同入口**。
+3. **命中侧不是问题，别打错靶**：`JUDGE_INFER_SPLIT hits=50909 misses=363
+   key_ms=741 hit_ms=744` ⇒ 5 万次命中只花 744ms，**优化必须打未命中**
+   （即"别问内核"），不是打哈希。这条读数纪律写进了 `docs/PERF.md`。
+4. **T-K22 那一刀（已落地）**：`elab.rs` 新增 `operand_type_expr`——
+   **局部变量先取 `ElabScope::source_type_of`（书写类型，零内核调用）**，
+   拿不到才退回 `infer_type_text`。判据与 `implicit.rs` 里 `arg_tys` 的
+   **既有判据完全相同**（书写类型不但零调用，还比内核 pp 更准——pp 会丢嵌套
+   常量的隐式实参）。三个入口同时换：`solve_prefix_args`（主）、
+   `guarded_binder_type`、`arg_tys`。
+
+   | 指标 | 改前 | 改后 |
+   |---|---|---|
+   | `judge_infer` 调用 | 126,105 | **51,156** |
+   | 未命中（= 整段前缀重编一趟） | 363 | **247** |
+   | `judge_infer` 累计 | 12.3s | **6.9s** |
+   | **墙钟** | **11.4–12.0s** | **7.5–8.4s** |
+
+5. **这是缓解，不是根治**（计划里明写）：剩下的 247 次未命中来自冗余 `sorry`
+   探针（`fun (__soko_render : T) => __soko_render`）、`And.intro` 这类**裸常量
+   头**、inductive 安装与闭包里的记法——**没有局部类型可拿** ⇒ 只能靠 T-K20′
+   的「就地拿当前 pass 的环境」，而那套设施要**同时**覆盖 `judge_pairs` 与
+   `judge_infer`（已写进 `by-judge-reuse.md` §7、计划 §5.6.1 T-K20′、REQUIREMENTS §9）。
+6. **判据**：`scripts/kernel-diff.sh` 全语料逐字节对拍 **零差异** · `cargo test
+   --workspace --locked` 全绿 · 课程门禁计数不变 · 缺口复现
+   `docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh` 已进
+   `gap.py check`（gate + CI）。
+7. **顺带修掉一条会随机翻红的复现**：G-29 的判据 `edit*2 < cold` 余量只有 ~13%
+   （4413ms vs 2489ms），机器一抖就翻面 ⇒ `gap.py check` 随机红（本轮实测翻过
+   一次）。冷开里混着**进程启动**，本来就不该进分母；改成与**热开**比
+   （`edit < 10×warmOpen + 200ms`，实测 2582ms vs 预算 280ms，余量 9×）。
+8. **不变的**：内核**一个字节未改**（这一刀全在前端）；不调用官方 Lean 工具链；
+   用户/agent 路径仍零 cargo。版本 bump 到 **0.64.1**（patch：纯提速，无新能力）。
+

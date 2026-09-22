@@ -465,30 +465,10 @@ fn judge_pairs_uncached(
             pairs.len()
         ];
     };
-    // 记法表按**声明顺序**收，`scoped` 的按「前缀里有没有 `open scoped`」过滤
-    // （第三刀 §12.3）：主通道是位置敏感的（声明点之后才生效），回读通道只有
-    // 一份前缀，所以取"前缀结束时生效的那些"——`open scoped` 写在用之前是
-    // 主通道也要求的写法。
-    let mut opened_scopes: Vec<String> = Vec::new();
-    let mut notations: Vec<crate::ast::NotationDecl> = Vec::new();
-    for command in &prefix_file.commands {
-        if let crate::ast::Command::Open {
-            name, scoped: true, ..
-        } = command
-        {
-            if !opened_scopes.contains(name) {
-                opened_scopes.push(name.clone());
-            }
-            continue;
-        }
-        let Some(decl) = command.notation_decl() else {
-            continue;
-        };
-        match &decl.scope {
-            Some(scope) if !opened_scopes.contains(scope) => {}
-            _ => notations.push(decl),
-        }
-    }
+    // 记法表走**唯一实现**（T-C04，`crate::notation::notation_table`）：显示路径
+    // （线 C 的 print-back）要用同一张表反向折叠，两边分叉就是"两套真相"。
+    // 这里传的是**已经解析好的**前缀命令 ⇒ 零额外解析开销，行为逐字节不变。
+    let notations = crate::notation::notation_table(&prefix_file.commands);
 
     let mut commands = prefix_file.commands;
     // The synthesized declarations sit *after* the real prefix in the source:

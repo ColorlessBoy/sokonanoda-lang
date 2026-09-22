@@ -20,6 +20,7 @@ pub mod by;
 pub mod compile;
 pub mod display;
 pub mod judge;
+pub mod notation;
 pub mod notation_input;
 pub mod project;
 pub mod proof;

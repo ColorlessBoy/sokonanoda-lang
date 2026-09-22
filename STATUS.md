@@ -1,7 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-21（第一百二十五轮：**批次 2 收口** —— T-A30 编译不再挡住编辑器
-> （只读请求 <1ms）· T-A60 冷开 436ms / 热开 58ms · T-A50/T-A51 as-built 与台账；
+> 快照：2026-09-21（第一百二十六轮：**线 C 开工** —— 记法进 goal / 类型行的
+> 前置链条做完：pp 单测 · 四个生产者实测表 · 消费者审计 · 权威设计（为什么不走
+> 内核 pp + arity 硬规则）· `DisplayText` 编译期护栏 · 记法表唯一实现；
 > 版本 **0.64.2**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
@@ -16,6 +17,51 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-21，第一百二十六轮：**线 C 开工** —— 记法进 goal / 类型行）
+
+> 批次 3 线 C 的前置链条（计划 §6.0 的 C-0）：**先量清楚、先定靶、先立护栏**，
+> 再动任何折叠代码。本轮做完全部前置（6 个环节）。
+
+1. **T-K32 内核 pp 补单测**（线 C 的前置）：`crates/kernel/tests/pretty_printer.rs`
+   **5 条**钉住 `pp_expr` 的文本输出（`->` / `forall` / `{}` 隐式 / binder 未使用就
+   折成箭头 / 匿名 Pi 套具名 Pi 要括号 / `Prop` 与 `Type 0` / 应用左结合与参数括号 /
+   匿名 binder 的空转义 `«»` / 层级实参默认不打印）。**特征化测试**，做过**变异
+   检查**（把 `f (g x)` 的期望改成 `f g x` 实测变红）。两个建夹具的坑写进注释：
+   `Config::default()` 的 `proofs = false` 会让 pp 对开项跑 `is_proof` 推断 ⇒
+   `infer: loose bvar` panic；用到的常量必须真的声明。
+2. **T-C01 四个生产者 × 真实文件的实测表**（`docs/design/notation-aware-printing.md` §1）：
+   逐格实测 unit01/08/12 + unit04（`apply` 例外）+ 解答，每格带可重跑的命令。
+   三条结论：① **光标在不在 tactic 上**决定走哪一支——学习者的光标就在 tactic 上，
+   所以他看到的就是内核 pp 的点名形式（**这就是用户的抱怨**）；② "`by` 步进保留
+   记法"**只对结构型 tactic 成立**——`apply Set.ext` 之后是 `(x : α) -> Iff (A x) (B x)`，
+   `∈` 与 `↔` **一起消失**（子目标来自被应用引理的 pp 望远镜）；③ **同一份声明在
+   两个 surface 上文本不同**（`goal` 是 `(a ∈ A) -> a ∈ B`，`sorry` 行是点名形式）。
+3. **T-C02 消费者审计**（同文 §2）：五个字段 × 全部消费者，逐条 `file:line`。
+   **关键是一条不对称**：`ty_text` **只有给人看的消费者** ⇒ 可就地改；
+   `goal` / `binders[].ty` / `sub_goals[].ty` **同时是 judge 的输入** ⇒ 只能在
+   **显示出口**重写。另加 §2.3：线 C 会让 `kernel-diff.sh` 报差异，那是预期的
+   ——判定正确性看课程门禁计数逐项不变。
+4. **T-C03 升格权威设计**（同文 §3）：把 `printback-feasibility.md` §4 升格；
+   §3.1 写清**为什么不走内核 pp**（**发现 A**：内核的记法打印是**死代码**，
+   `ExportFile.notations` 全仓库无一处 insert，且 `pp_app` 要 `args.len()` 恰好
+   1/2 而 `∈` 展开成 3 个实参；**发现 B**：`pp_expr` 同时是 `#check`/`#reduce` 的
+   出口 ⇒ 改它就动 `--json` 字节）；§3.2 **arity 硬规则**（只有
+   `spine.len() == arity` 才是记法实例）。**两处失效理由就地作废**
+   （`notation-subset.md` 与 `course-lean-style.md` 的"内核冻结"）。
+5. **T-C03b `DisplayText` 护栏**（`crates/front/src/display.rs`）：无 `Deref` /
+   无 `as_str` / 无 `Into<String>`，唯一读法 `as_display_str()`。判据是
+   **`compile_fail` doctest**，两条都做过**变异检查**（加 `Deref` ⇒ 第 1 条红；
+   加 `as_str()` ⇒ 第 2 条红；还原 ⇒ 全绿）。第三条是正向 doctest，防止把护栏
+   做成"谁都读不出来"。
+6. **T-C04 记法表提成唯一实现**（`crates/front/src/notation.rs::notation_table`）：
+   逐字从 `judge.rs` 提取（行为不变，零额外解析开销），4 条单测。
+   ⚠ **提取时发现一个真陷阱并记了台账 G-35**：这个函数是**扫一遍**而不是两遍
+   ——`open scoped Foo` 写在 `scoped infix` **之后**（正常写法）时收不到那条记法，
+   而注释写的是"取前缀结束时生效的那些"（两遍扫描的意图）。**没有顺手改**
+   （T-C04 是纯提取），而是特征化测试钉住 + 台账 + 复现件。
+7. **不变的**：内核**一个字节未改**；课程语料未动；门禁计数逐项不变。
+   **未 bump**：§13 给这批前置没标 BUMP，线 C 的 patch 点在 T-C41。
 
 ## 本轮进度（2026-09-21，第一百二十五轮：**批次 2 收口** —— T-A60 / T-A50 / T-A51）
 
@@ -113,56 +159,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    **18 通过 / 3 失败**（失败的正是计划里批次 3/4 的记法三例 #6/#7/#8，本来就红）。
 7. **内核一个字节未改**（这一刀全在 LSP 前端）。**未 bump**：§13 给 T-A30 没标
    BUMP，批次 2 的 patch 点在 T-A51。
-
-## 本轮进度（2026-09-21，第一百二十三轮：**记法消解也在重编前缀** —— G-34，`judge_infer` 那一刀）
-
-> 用户：「我还是很疑惑，lean 的 by 风格有这么耗时吗？是不是我们的 by 的实现方案
-> 有问题呢？」「那要插入方案进计划里，这个违背我们的红线，也违背我们的热编译的
-> 设计初衷。」「前端有问题，前端也一起配合改掉，这属于重大事故的 bug。」
->
-> 上一轮把 `solutions/` 改成项风格之后，`by` 判定掉到 11 次 / 0.9s——
-> **但 `unit12-solution` 仍然要 11.4–12.0 秒。大头换了人。**
-
-1. **先定位"这几百趟 pass 到底是谁在调"**：新加两个**常驻**诊断开关
-   ——`SOKO_PASS_TRACE=<n>`（第 n 趟 `run_pass` 的调用栈）与
-   `SOKO_INFER_TRACE=<n>|all`（每次 `judge_infer` 未命中的查询 + 栈）。
-   第一次就量出：**380 趟 pass 全部来自 `elab_notation` → `solve_prefix_args`
-   → `infer_type_text` → `judge_infer`**。
-2. **缺口 G-34 成立**：`judge_infer` 的缓存键**含整段前缀**，前缀随每条声明
-   增长 ⇒ 同一批查询每次换一个键；**未命中一次 = 合成 `<前缀>#check fun
-   (binders) => term` 把整段前缀从零重跑一趟 pass**。实测
-   **126,105 次调用 / 363 次未命中**（`unit12-solution`，release，冷缓存），
-   `judge_infer` 累计 12.3s。这与 G-31 是**同一个病、不同入口**。
-3. **命中侧不是问题，别打错靶**：`JUDGE_INFER_SPLIT hits=50909 misses=363
-   key_ms=741 hit_ms=744` ⇒ 5 万次命中只花 744ms，**优化必须打未命中**
-   （即"别问内核"），不是打哈希。这条读数纪律写进了 `docs/PERF.md`。
-4. **T-K22 那一刀（已落地）**：`elab.rs` 新增 `operand_type_expr`——
-   **局部变量先取 `ElabScope::source_type_of`（书写类型，零内核调用）**，
-   拿不到才退回 `infer_type_text`。判据与 `implicit.rs` 里 `arg_tys` 的
-   **既有判据完全相同**（书写类型不但零调用，还比内核 pp 更准——pp 会丢嵌套
-   常量的隐式实参）。三个入口同时换：`solve_prefix_args`（主）、
-   `guarded_binder_type`、`arg_tys`。
-
-   | 指标 | 改前 | 改后 |
-   |---|---|---|
-   | `judge_infer` 调用 | 126,105 | **51,156** |
-   | 未命中（= 整段前缀重编一趟） | 363 | **247** |
-   | `judge_infer` 累计 | 12.3s | **6.9s** |
-   | **墙钟** | **11.4–12.0s** | **7.5–8.4s** |
-
-5. **这是缓解，不是根治**（计划里明写）：剩下的 247 次未命中来自冗余 `sorry`
-   探针（`fun (__soko_render : T) => __soko_render`）、`And.intro` 这类**裸常量
-   头**、inductive 安装与闭包里的记法——**没有局部类型可拿** ⇒ 只能靠 T-K20′
-   的「就地拿当前 pass 的环境」，而那套设施要**同时**覆盖 `judge_pairs` 与
-   `judge_infer`（已写进 `by-judge-reuse.md` §7、计划 §5.6.1 T-K20′、REQUIREMENTS §9）。
-6. **判据**：`scripts/kernel-diff.sh` 全语料逐字节对拍 **零差异** · `cargo test
-   --workspace --locked` 全绿 · 课程门禁计数不变 · 缺口复现
-   `docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh` 已进
-   `gap.py check`（gate + CI）。
-7. **顺带修掉一条会随机翻红的复现**：G-29 的判据 `edit*2 < cold` 余量只有 ~13%
-   （4413ms vs 2489ms），机器一抖就翻面 ⇒ `gap.py check` 随机红（本轮实测翻过
-   一次）。冷开里混着**进程启动**，本来就不该进分母；改成与**热开**比
-   （`edit < 10×warmOpen + 200ms`，实测 2582ms vs 预算 280ms，余量 9×）。
-8. **不变的**：内核**一个字节未改**（这一刀全在前端）；不调用官方 Lean 工具链；
-   用户/agent 路径仍零 cargo。版本 bump 到 **0.64.1**（patch：纯提速，无新能力）。
 
