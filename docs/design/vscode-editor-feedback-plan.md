@@ -1424,12 +1424,29 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 ⚠ **但那是内核冻结时写的**。2026-09-21 内核解冻（硬规则 1 修订）+ 用户明确授权
 "如果是内核的性能问题，内核也可以列计划修改" ⇒ **那条死路现在是通的**。
 
+#### 还有一层：重跑前缀会**连带重跑前缀里每个 `by` 块**
+
+采样（`unit12-solution`）里 `run_by` 的 inclusive 占比 **47%**、`elab_expr` **28%**——
+也就是说 `check_document_with(prefix + judges)` 不只是"重新 elaborate 一遍声明"，
+它还会**把前缀里每一个 `by` 块重新跑一遍 tactic 引擎**（每个 `by` 触发的子判定
+再由 `flush_batch` 汇总）。
+
+⇒ 代价是 **O(`by` 块数²)**，不是 O(`by` 块数)。所以：
+
+* **只做内核侧的 `with_env` 不够**——它省掉的是"重新内核检查"，但前端的
+  **重新 elaborate + 重跑 tactic 引擎**还在；
+* 真正对得上 Lean 的做法是**一趟走完**：elaborate 到 `by` 块时，**在当下的环境里**
+  跑 tactic 引擎拿证明项，继续往下——而不是"先收对、再合成一份文档重判"。
+  这正是计划里 **T-K20（`closure-incremental.md`，命令层检查点）** 要设计的东西，
+  现在它从"锦上添花"变成**红线级任务的设计前置**。
+
 #### 计划（**优先于线 K 的其余部分**）
 
 | 环节 | 内容 | 判据 |
 |---|---|---|
 | **T-K12′** | `EnvBuilder::with_env`：让判定在**已 elaborate 过的环境**上继续，而不是重跑前缀 | `JUDGE_STATS` 的 `total_ms` 降到与"主 pass 一次"同量级；`unit12-solution` 冷跑从 120s 降到 **10s 量级** |
 | **T-K13′** | 若 `with_env` 做不成：`EnvBuilder::snapshot()` 克隆式检查点（陷阱：`conv.rs:169` 按**指针**比较 `NatLit`，快照必须与新建声明同一 arena） | 同上 |
+| **T-K20′** | **设计**：一趟走完（elaborate 到 `by` 就在当下环境跑引擎）vs 收对重判——给出取舍与工作量 | 设计文档进 `docs/design/`，含实测的分阶段预算 |
 | **T-K01/K02** | 护栏（`kernel-diff.sh` 已就位；还差 `kernel-check.sh` 与 `arena.rs` 收集逻辑） | 对拍零差异 |
 | **回滚线 L** | K1 落地且 `by` 变便宜之后，**重新评估** `solutions/` 要不要用回 tactic | 届时按性能数字决定 |
 
