@@ -161,10 +161,18 @@ if [ -n "$grep_name" ]; then
 else
   echo "+ vscode-test（全量）"
 fi
+# **每次跑一个全新的编译缓存目录**（T-A60）：否则用例的"冷开"会命中上一次跑留下的
+# 条目，`reopening a project unit hits the compile cache` 这类**冷/热对比**用例就
+# 变成"拿两个热开比大小"（而且结果取决于上一次谁跑过）。用例自己也会读这个变量来
+# 清缓存，所以必须是显式给的。
+e2e_cache="$(mktemp -d)"
+# 别把 111 行那个 `$run_dir` 的 trap 覆盖掉——两个目录都要清。
+trap 'rm -rf "$run_dir" "$e2e_cache"' EXIT
 (cd editor/vscode &&
   SOKO_E2E_LOG="$ext_log" \
     SOKO_VSCODE_TEST_VERSION="$test_version" \
     SOKO_E2E_GREP="$grep_name" \
+    SOKONANODA_CACHE_DIR="$e2e_cache" \
     npm test) >"$raw_log" 2>&1
 status=$?
 set -e

@@ -148,14 +148,15 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   }
 
   // 轮询直到 cond 为真；超时报出上下文（诊断/hover 的到达是异步的）。
-  async function waitFor(desc, cond, timeout = WAIT_MS) {
+  // `poll` 可调小：量时间的用例不能被 100ms 的轮询粒度量化（T-A60-1）。
+  async function waitFor(desc, cond, timeout = WAIT_MS, poll = POLL_MS) {
     const start = Date.now();
     for (;;) {
       if (await cond()) return;
       if (Date.now() - start > timeout) {
         throw new Error(`timed out after ${timeout}ms waiting for ${desc}`);
       }
-      await sleep(POLL_MS);
+      await sleep(poll);
     }
   }
 
@@ -615,6 +616,226 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       editor.document.lineAt(line).text.includes("sorry"),
       `跳洞必须落在洞所在行，实际光标在第 ${line + 1} 行：${editor.document.lineAt(line).text}`,
     );
+  });
+
+
+  // ---- T-A60：缓存与扇出的 e2e 断言 ----------------------------------------
+  //
+  // 这三条量的是**用户能感觉到的结果**（重开变快 / 内容没变就不重编 / 改依赖会
+  // 刷新），不是实现细节。所以它们跑在真 VS Code + 真 LSP 上。
+  //
+  // **这一层要绕开三个陷阱**（都实测踩过，写下来免得下一刀再踩）：
+  //  1. `vscode.languages.getDiagnostics(uri)` **不是"刚发来"的信号**：VS Code
+  //     按 URI 留着上一次的结果，也不会因为 `didClose` 清掉 ⇒ "非空"会让打开
+  //     立刻满足条件，量到 0ms 而那次根本没编译。要监听
+  //     `onDidChangeDiagnostics`（每次 publishDiagnostics 都触发）。
+  //  2. **监听器必须早于那次发布挂上**：`sokonanoda.restartServer` 会顺手把
+  //     打开中的文档重新同步一遍，发布就发生在重启过程里——在 `showDoc` 之后再
+  //     挂就永远等不到。
+  //  3. **`workbench.action.closeAllEditors` 不等于 `didClose`**：`openTextDocument`
+  //     返回的 `TextDocument` 只要还被引用着，客户端就不发 `didClose`，服务端那份
+  //     `Doc` 还活着，重开就"什么都没发生"。所以冷开不用"关掉再开"，用一份
+  //     **从没编译过的文件**——那是真的冷，不用猜任何一方的状态机。
+
+  /// 本次跑的编译缓存目录（由 `scripts/vscode-e2e.sh` 显式给，每次一个全新的）。
+  function cacheDir() {
+    const dir = process.env.SOKONANODA_CACHE_DIR;
+    assert.ok(
+      dir,
+      "e2e 需要 SOKONANODA_CACHE_DIR（用 scripts/vscode-e2e.sh 跑；T-A60 的冷/热对比靠它）",
+    );
+    return dir;
+  }
+
+  /// 缓存条目的**指纹**：条目名 + 大小 + mtime。写一次缓存它就变。
+  function cacheStamp() {
+    const root = path.join(cacheDir(), "compiled");
+    if (!fs.existsSync(root)) return [];
+    return fs
+      .readdirSync(root, { recursive: true })
+      .map(String)
+      .map((rel) => {
+        const stat = fs.statSync(path.join(root, rel));
+        return `${rel}:${stat.size}:${stat.mtimeMs}`;
+      })
+      .sort();
+  }
+
+  /// 把一行**给人判读**的数字记进 e2e 留档。
+  ///
+  /// 为什么不用 `console.log`：扩展宿主的 stdout 不进 `vscode-test` 的用例行
+  /// （`scripts/vscode-e2e.sh` 只 grep `✔/✗` 那些行），而 `SOKO_E2E_LOG` 会被
+  /// **整份**收进 `docs/e2e/logs/…`。计划要的就是"pass/fail 之外还能看趋势"。
+  function perfNote(line) {
+    const file = process.env.SOKO_E2E_LOG;
+    if (!file) return;
+    try {
+      fs.appendFileSync(file, `PERF ${line}\n`);
+    } catch {
+      // 记账失败不该让用例红——数字是给人看的，断言才是判据。
+    }
+  }
+
+  /// 诊断发布的计数器（见上面陷阱 1/2）。
+  function diagnosticsWatcher() {
+    const counts = new Map();
+    const sub = vscode.languages.onDidChangeDiagnostics((event) => {
+      for (const uri of event.uris) {
+        const key = uri.toString();
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    });
+    return {
+      count: (uri) => counts.get(uri.toString()) ?? 0,
+      dispose: () => sub.dispose(),
+    };
+  }
+
+  const fixtureRoot = () => {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath;
+    assert.ok(root, "e2e 需要一个工作区目录（.vscode-test.mjs 的 workspaceFolder）");
+    return root;
+  };
+
+  const fixtureLib = () => path.join(fixtureRoot(), "lib", "Set.sokonanoda");
+
+  /// 打开 `uri` 并等到 `ready()` 为真，返回毫秒数。
+  async function timeOpen(uri, desc, ready) {
+    const start = Date.now();
+    await showDoc(uri);
+    await waitFor(`${desc}：服务端发来这一轮诊断`, ready, WAIT_MS, 5);
+    return Date.now() - start;
+  }
+
+  test("reopening a project unit hits the compile cache", async () => {
+    // 用例 T-A60-1（T-A10 / T-A11）：第一次打开**真编译并写缓存**，之后
+    // （重启服务器 + 重开）**命中缓存**、不再重编、且明显更快。
+    const source = fixtureEntry();
+    // 冷开用一份**新文件**：它从来没被编译过 ⇒ 必然是冷编译（见上面陷阱 3）。
+    // 内容 = u01 + 一批用库记法的定理，**故意做大**：夹具只有 3 条声明时编译只占
+    // ~30ms，冷/热都被"重启服务器 + 请求往返"的固定开销（~60ms）淹没，比例断言
+    // 变成噪声（实测冷 89ms / 热 63ms）。时间断言必须让被测的那一段占主导。
+    const coldBody =
+      fs.readFileSync(source.fsPath, "utf8") +
+      "\n" +
+      Array.from(
+        { length: 120 },
+        (_, i) =>
+          `theorem extra_${i} (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h`,
+      ).join("\n") +
+      "\n";
+    const coldPath = path.join(fixtureRoot(), "units", "u02.sokonanoda");
+    fs.writeFileSync(coldPath, coldBody);
+    const coldUri = vscode.Uri.file(coldPath);
+
+    const watch = diagnosticsWatcher();
+    try {
+      // 只看**我们这份**新增的条目：前面用例还开着别的文档，`restartServer` 会把
+      // 它们一起重新同步、各自写自己的条目——那是正常的，不该算到我们头上
+      // （全量跑时就是被这个判成假的"热开又编了一遍"）。
+      const beforeCold = cacheStamp();
+      const cold = await timeOpen(coldUri, "T-A60-1 冷开", () => watch.count(coldUri) >= 1);
+      const added = cacheStamp().filter((entry) => !beforeCold.includes(entry));
+      assert.ok(
+        added.length > 0,
+        "冷开必须把条目写进缓存（T-A11），否则热开无从命中",
+      );
+
+      // 重启服务器：进程内状态全丢，只剩磁盘上的缓存条目。打开中的文档会被
+      // 重新同步一遍——**这一次的发布就是热开**（监听器早就挂上了）。
+      const before = watch.count(coldUri);
+      const start = Date.now();
+      await vscode.commands.executeCommand("sokonanoda.restartServer");
+      await showDoc(coldUri);
+      await waitFor(
+        "T-A60-1 热开：服务端发来这一轮诊断",
+        () => watch.count(coldUri) > before,
+        WAIT_MS,
+        5,
+      );
+      const warm = Date.now() - start;
+
+      perfNote(`e2e cache: cold=${cold}ms warm=${warm}ms entries=${added.length}`);
+      const surviving = cacheStamp().filter((entry) => added.includes(entry));
+      assert.deepStrictEqual(
+        surviving,
+        added,
+        "热开命中缓存 ⇒ 这份的条目不该被改写（改写了说明又编了一遍）",
+      );
+      assert.ok(
+        warm * 3 < cold,
+        `重开必须命中缓存（冷 ${cold}ms / 热 ${warm}ms，要求 热 < 冷/3）`,
+      );
+    } finally {
+      watch.dispose();
+      fs.rmSync(coldPath, { force: true });
+    }
+  });
+
+  test("rewriting an unchanged project unit does not recompile", async () => {
+    // 用例 T-A60-2（T-A21 / T-A22）：文本一个字节没变 ⇒ **不重编**。
+    //
+    // 为什么不是 `workbench.action.files.save`：VS Code 对**干净缓冲区**的保存是
+    // no-op（根本不发 `didSave`），所以从扩展宿主里"保存一份没改过的文件"测不到
+    // 服务端那条短路。这里走**同一条服务端路径的另一半**——文件在磁盘上被重写成
+    // **同样的字节**（编辑器外改动 ⇒ `did_change_watched_files`），服务端的短路
+    // 判据与保存路径完全相同。真 `didSave` 那条由进程内用例
+    // `perf_course_save_same_text_is_recorded` 钉着（那一层才是确定性的）。
+    const entry = fixtureEntry();
+    const lib = fixtureLib();
+    await showDoc(entry);
+    await infoviewDecls("T-A60-2 前置");
+
+    const before = JSON.stringify(await infoviewDecls("T-A60-2 改前"));
+    const stamp = cacheStamp();
+    assert.ok(stamp.length > 0, "前置：夹具的闭包必须已经在缓存里");
+
+    const bytes = fs.readFileSync(lib, "utf8");
+    fs.writeFileSync(lib, bytes); // 同样的字节：只碰 mtime
+
+    await sleep(1500); // 给 watcher → didChangeWatchedFiles →（可能的）重编译留时间
+    const after = JSON.stringify(await infoviewDecls("T-A60-2 改后"));
+
+    assert.strictEqual(after, before, "内容没变 ⇒ 声明栏必须逐字节相同");
+    assert.deepStrictEqual(
+      cacheStamp(),
+      stamp,
+      "内容没变 ⇒ 不许写出新的缓存条目（说明闭包被重编了）",
+    );
+  });
+
+  test("editing a dependency refreshes the open unit once", async () => {
+    // 用例 T-A60-3（T-A23 扇出）：改依赖 ⇒ 打开的入口诊断跟着更新，且**只更新一次**。
+    const entry = fixtureEntry();
+    const lib = fixtureLib();
+    await showDoc(entry);
+    await infoviewDecls("T-A60-3 前置");
+
+    const original = fs.readFileSync(lib, "utf8");
+    const target =
+      "def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x";
+    assert.ok(original.includes(target), "夹具前提：lib/Set 里要有 Set.subset 的定义");
+
+    const watch = diagnosticsWatcher();
+    try {
+      // 把 `⊆` 的定义改坏：入口里 `A ⊆ B` 的两条定理必须立刻报错。
+      fs.writeFileSync(
+        lib,
+        original.replace(target, "def Set.subset (α : Type) (A B : Set α) : Prop := True"),
+      );
+      await waitFor("T-A60-3：入口诊断跟着依赖更新", async () =>
+        vscode.languages.getDiagnostics(entry).length > 0,
+      );
+      await sleep(1500); // 让可能的重复发布也发生完，再数
+    } finally {
+      fs.writeFileSync(lib, original);
+      watch.dispose();
+    }
+
+    const publishes = watch.count(entry);
+    perfNote(`e2e fanout: entry diagnostics publishes=${publishes}`);
+    assert.ok(publishes >= 1, "改依赖必须让打开的入口重新发诊断（跨文件失效）");
+    assert.ok(publishes <= 2, `改一次依赖不该把入口重发 ${publishes} 次（扇出重复了）`);
   });
 
   test("goal text uses the file's notation", async () => {

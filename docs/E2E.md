@@ -63,8 +63,22 @@ scripts/vscode-e2e.sh --grep "declarations panel" --profile debug --no-build
 | **真宿主（本文）** | `scripts/vscode-e2e.sh` | 扩展在**真 VS Code** 里激活 → 起**真 LSP** → 诊断/inlay/hover/codeLens/重启/Infoview/doctor/项目树**端到端**成立；`.sokonanoda` 语言 id、项目树的行来自真 `soko/project` 答案 |
 | 手工 F5 | 开发者 | 肉眼观感、主题、Marketplace 安装态 |
 
-用例清单在 `editor/vscode/src/test/extension.test.js`（0.60.0 起 15 条；0.58.0 起 14 条）；新增用户可见
-行为时**同一轮**加一条真宿主断言，并在 `docs/TESTING.md` 的集成测试小节登记。
+用例清单在 `editor/vscode/src/test/extension.test.js`（0.64.1 起 **24 条**；0.60.0 起 15 条；
+0.58.0 起 14 条）；新增用户可见行为时**同一轮**加一条真宿主断言，并在 `docs/TESTING.md`
+的集成测试小节登记。
+
+**每次跑给一个全新的编译缓存目录**（`SOKONANODA_CACHE_DIR=$(mktemp -d)`，跑完删）：
+T-A60 的冷/热对比用例要有**真冷**的基准，否则"冷开"会命中上一次跑留下的条目，
+对比就变成"拿两个热开比大小"（而且结果取决于上一次谁跑过）。用例自己读同一个
+变量来定位缓存（`cacheStamp()`）。
+
+用例自己的性能数字写进 `SOKO_E2E_LOG`（前缀 `PERF `），会被整份收进
+`docs/e2e/logs/…`——`pass/fail` 之外还要能看趋势（计划 T-A60 的要求）。当前：
+
+```
+PERF e2e cache: cold=436ms warm=58ms entries=1     # 冷/热开（T-A60-1）
+PERF e2e fanout: entry diagnostics publishes=1     # 改依赖只发一份（T-A60-3）
+```
 
 ## 3. 台账字段（`docs/e2e/ledger.jsonl`）
 

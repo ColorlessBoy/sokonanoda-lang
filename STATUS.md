@@ -1,7 +1,7 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-21（第一百二十四轮：**T-A30 编译不再挡住编辑器** —— 长编译进行中
-> 只读请求 <1ms（改前 1277ms），连打 5 个键只跑 ≤3 趟编译；版本 **0.64.1**）
+> 快照：2026-09-21（第一百二十五轮：**缓存与扇出的真宿主 e2e** —— T-A30 编译不再挡住
+> 编辑器（只读请求 <1ms）；T-A60 冷开 436ms / 热开 58ms；版本 **0.64.1**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -15,6 +15,37 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-21，第一百二十五轮：**缓存与扇出的真宿主 e2e 断言** —— T-A60）
+
+> 计划 §5.4 的三条：冷开命中缓存 / 内容没变不重编 / 改依赖刷新入口，
+> 全部跑在**真 VS Code + 真 LSP** 上。
+
+1. **三条都进套件**：`21 passing / 3 failing`——失败的正是批次 3/4 的记法三例
+   （#6/#7/#8，本来就红）。性能数字进留档（`docs/e2e/logs/…`）：
+   `PERF e2e cache: cold=436ms warm=58ms`（**7.5×**，判据要求 >3×）、
+   `PERF e2e fanout: entry diagnostics publishes=1`（改一次依赖只发一份）。
+2. **每次跑一个全新的缓存目录**（`SOKONANODA_CACHE_DIR=$(mktemp -d)`）：冷/热对比
+   要有**真冷**的基准，否则"冷开"会命中上一次跑留下的条目（而且结果取决于上一次
+   谁跑过）。用例自己读同一个变量定位缓存。
+3. **写这三条踩到四个会假绿的坑**（全写进用例注释了）：
+   * `languages.getDiagnostics(uri)` **不是"刚发来"的信号**——VS Code 按 URI 留着
+     上一次的结果、也不会因 `didClose` 清掉 ⇒ "非空"让打开立刻满足条件、量到 0ms，
+     而那次**根本没编译**（第一次就是这么假绿的，是"冷开必须写缓存"那条前置断言
+     抓住的）；
+   * **监听器要早于发布挂上**：`restartServer` 会把打开中的文档重新同步一遍；
+   * **`closeAllEditors` 不等于 `didClose`**：`openTextDocument` 的 `TextDocument`
+     还被引用时客户端不发 `didClose` ⇒ 服务端那份 `Doc` 还活着，重开"什么都没
+     发生"（实测连续两次假绿）。冷开改成用**从没编译过的文件**；
+   * **时间断言要让被测那段占主导**：夹具 3 条声明时编译只占 ~30ms，冷/热都被
+     "重启 + 往返"的固定开销（~60ms）淹没（89ms vs 63ms）⇒ 冷开夹具**故意做大**
+     （+120 条用库记法的定理）。
+4. **保存那条为什么不用 `workbench.action.files.save`**：VS Code 对**干净缓冲区**
+   的保存是 no-op（不发 `didSave`），从扩展宿主里测不到服务端短路。用例走同一条
+   服务端路径的另一半（磁盘重写同样字节 ⇒ `did_change_watched_files`）；
+   真 `didSave` 由进程内用例 `perf_course_save_same_text_is_recorded` 钉着。
+5. **没有生产代码改动**：只动 e2e 用例与 `scripts/vscode-e2e.sh`（缓存目录）。
+   内核与 LSP **零改动**。
 
 ## 本轮进度（2026-09-21，第一百二十四轮：**编译不再挡住编辑器** —— T-A30）
 
@@ -115,48 +146,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    （`edit < 10×warmOpen + 200ms`，实测 2582ms vs 预算 280ms，余量 9×）。
 8. **不变的**：内核**一个字节未改**（这一刀全在前端）；不调用官方 Lean 工具链；
    用户/agent 路径仍零 cargo。版本 bump 到 **0.64.1**（patch：纯提速，无新能力）。
-
-## 本轮进度（2026-09-21，第一百二十二轮：**课程记法规则**重建 + 基础类型隐式实参对齐 Lean）
-
-> 用户两条指令：「重新设置一个 courses 的规则，至少 notation 都要换掉，lib 和正文都
-> 换掉，不要有些还是老版本的。你先实现一个检查脚本，然后一个文件一个文件过。tactic
-> 还比较费时……可以先保持一部分的 term」；「基础类型的隐变量也可以尝试和 lean 对齐。
-> ……`Eq.{1}` 直接就是一个等于号」。
-
-1. **规则成了脚本**：新增 `scripts/notation-lint.py`（覆盖卷 I 的 lib + units +
-   solutions、入门课 `course/`、`playground.sokonanoda`；**代码与注释都算**；
-   `notation-cheatsheet*` 整文件豁免；行内 `-- soko:notation-ok: <理由>` 豁免；
-   `--json`/`--list`/`--root`）。接进 **`scripts/soko gate`** 与 **`ci.yml`**
-   的 `test` job。施工手册 `docs/notes/course-lean-style/notation-rewrite-brief.md`，
-   as-built `docs/design/course-lean-style.md` §11。**当前 `84 个文件 · 0 残留`**。
-2. **语言侧（`crates/front`，内核零改动）**：prelude 的 `And/Or/Iff/Not/False/absurd`
-   与**构造子**改成隐式前导参数（`And.intro h1 h2` / `And.left h` / `Or.inl h` /
-   `Exists.intro w hw`……）；`KnownName` 存**源级签名**（应用路径不再 `judge_infer`
-   ⇒ 消除 prelude 自举无限递归）；`PreludeInstallGuard`；「实参 > 显式层数」判为旧式
-   写全、一次装完（向后兼容）；`arg_tys` 优先取局部变量的**书写类型**（修 `Eq` 合取）；
-   `telescope` 把签名参数**换成 fresh 名**（修名字捕获，`congrArg` 在
-   `theorem (α β) (g : β → α)` 下的判红）；路线 ② 增**期望类型反解**并对
-   期望/实参类型做 **delta 展开**（`a ∈ A ∪ B` → `Or …`，修 `Or.inl h`/`And.left h`
-   在 def-headed 目标上的大头）。回归：front **670 passed**、notation **47 passed**、
-   LSP **146 passed**。
-3. **课程一个文件一个文件过完**：卷 I `lib/`（9）+ `units/` 与 `solutions/`（24）+
-   卷 I 记法对照页豁免；入门课 `course/`（50 文件）；`playground.sokonanoda`。
-   **判据**：卷 I 门禁 **36 目标 · 328 checked · 99 open · 0 判负**（计数中性）；
-   入门课 `checked 56 · open 66 · failed 0`；playground `decl.checked 23 ·
-   example.checked 2 · exercise.open 4`（+1 条既有 `Prop` warning）。
-4. **明说的边界**（不假装已对齐，全部有 `-- soko:notation-ok` 标记）：宇宙多态的
-   等式族**证明项**（`Eq.refl/symm/trans/subst`、`congrArg`）仍要显式宇宙与参数
-   （应用路径的宇宙层级推断未做）；`congrArg` 参数顺序按 Lean 改成
-   `{α β} {a b} (f) (h)`（**契约变更**，旧顺序判红）；`Set.univ α`；`by rfl` 读源 AST
-   不认 `=` 记法目标；若干 def-headed / 复合操作数 / 嵌套 `Exists.elim` 形状。
-   **标记数：卷 I lib 9 · units 401 · 入门课 50 · playground 5**（def 展开修复后
-   正在回收）。
-5. **不变的**：内核一个字节未改；不调用官方 Lean 工具链；用户/agent 路径仍零 cargo。
-6. **收尾两条**（同日）：① `rfl` 认 `=` 记法目标（`by.rs`/`judge.rs` 三处：绑定名捕获、
-   `canonical_goal_with_spec` 的补层级顺序、`is_rereadable` 在部分应用上误判 `Eq`
-   元数）——入门课 6 处标记随之收回；② **Infoview 声明卡片跟随活动文档**（用户报的
-   bug）：`trackEditor` 在切文档时主动取一次 `soko/goals`，不再只靠"树可见才
-   `getChildren`／等诊断"（项目模块不发诊断、树收在侧栏时卡片会停在上一份文档）。
-   实测：stub 宿主 **29/29**、真 VS Code e2e **16/16**（`docs/e2e/`）。版本随之
-   bump 到 **0.63.0**（语言批 + 扩展修复同一 tag）。
 

@@ -1345,6 +1345,31 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A60 缓存与扇出的 e2e 断言
 
+> **✅ 完成（2026-09-21，0.64.1）。** 三条都进了真宿主套件（`21 passing / 3 failing`，
+> 失败的三条正是批次 3/4 的记法用例 #6/#7/#8）。实测数字进了 `docs/e2e/logs/`：
+> `PERF e2e cache: cold=436ms warm=58ms`（**7.5×**）、
+> `PERF e2e fanout: entry diagnostics publishes=1`。
+>
+> **写这三条踩到的四个坑**（都记在用例的注释里，因为它们会**假绿**）：
+> ① `vscode.languages.getDiagnostics(uri)` **不是"刚发来"的信号**——VS Code 按
+> URI 留着上一次的结果，也不会因为 `didClose` 清掉 ⇒ "非空"会让打开立刻满足条件、
+> 量到 0ms，而那次**根本没编译**；要监听 `onDidChangeDiagnostics`。
+> ② **监听器要早于那次发布挂上**：`restartServer` 会把打开中的文档重新同步一遍，
+> 发布就发生在重启过程里。
+> ③ **`workbench.action.closeAllEditors` 不等于 `didClose`**：`openTextDocument`
+> 返回的 `TextDocument` 只要还被引用，客户端就不发 `didClose`，服务端那份 `Doc`
+> 还活着 ⇒ 重开"什么都没发生"。所以冷开用一份**从没编译过的文件**（`units/u02`），
+> 不去猜任何一方的状态机。
+> ④ **时间断言要让被测那一段占主导**：夹具只有 3 条声明时编译只占 ~30ms，冷/热都
+> 被"重启 + 往返"的固定开销（~60ms）淹没（实测 89ms vs 63ms，比例断言成了噪声）
+> ⇒ 冷开的夹具**故意做大**（+120 条用库记法的定理）。
+>
+> **保存那条为什么不是 `workbench.action.files.save`**：VS Code 对**干净缓冲区**
+> 的保存是 no-op（不发 `didSave`），从扩展宿主里测不到服务端那条短路。用例走
+> **同一条服务端路径的另一半**（磁盘上重写成**同样的字节** ⇒
+> `did_change_watched_files`），短路判据完全相同；真 `didSave` 那条由进程内用例
+> `perf_course_save_same_text_is_recorded` 钉着。
+
 - **改什么**：`editor/vscode/src/test/extension.test.js` 新增三条：
   1. `reopening a project unit hits the compile cache` —— 冷开夹具 `units/u01`
      记 `t1`；`sokonanoda: restart server` 后重开同一文件记 `t2`；
@@ -2659,7 +2684,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-A15` 命中缓存后 Session 快照的处置
 - [x] `T-A23` 扇出：改一个依赖不重编所有打开文档
 - [x] `T-A30` 编译不再独占 `Mutex<Docs>`
-- [ ] `T-A60` 缓存与扇出的 e2e 断言
+- [x] `T-A60` 缓存与扇出的 e2e 断言
 - [ ] `T-A50` 设计文档 as-built
 - [ ] `T-A51` 性能台账收口
   - ⬆ **BUMP**：`patch` —— 批次 2 收尾（性能台账与文档）
