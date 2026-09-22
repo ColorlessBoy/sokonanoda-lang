@@ -1,8 +1,8 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-21（第一百二十七轮：**折叠层落地** —— 线 C 的 C-II 收口：
-> 二元 infix 折叠 · arity 来源 · `scoped` 决定（并关账 G-35）· 重载处置 ·
-> 三层损失护栏；`display` 17 条单测全绿；版本 **0.64.2**）
+> 快照：2026-09-21（第一百二十八轮：**goal 用上记法** —— 用户报的那条 **G-26 关账**；
+> 接进生产者 1+3（按 span 拼接 + 内建记法 + arity 口径修正）· 生产者 2 补三条守护；
+> 课程门禁 36 目标 · 328 checked · 99 open · 0 判负**逐项不变**；版本 **0.64.2**）
 > 仓库：`sokonanoda-lang`；权威计划 = `ROADMAP.md`；**用户要求总账 = `REQUIREMENTS.md`（先读）**；
 > **文档地图 = `docs/README.md`**（入口/权威在仓库根，开发者参考在 `docs/` 顶层，
 > 设计在 `docs/design/`，调研笔记在 `docs/notes/`）；
@@ -16,6 +16,50 @@
 `.sokonanoda` = **纯声明式教学文件（无 `#` 命令）+ 完整 sokonanoda 内核 + LSP 反馈通道**。
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
+
+## 本轮进度（2026-09-21，第一百二十八轮：**goal 用上记法** —— 用户报的那条关账）
+
+> 用户最初那条：「infoview 里的 goal 展现没有用 notation 的方式」。本轮把它
+> **修掉并关账**（G-26），并给已经好的那条路补上守护。
+
+1. **T-C20 接进生产者 1+3（根状态 / 声明卡片的 `ty_text`）**：`finish_pass` 里
+   建一次 `DisplayNotations`，两处 `ty_text` 各过一遍 `print_back`。只动
+   `ty_text`（T-C02 的审计：它只有给人看的消费者）；`goal`/`binders[].ty`/
+   `sub_goals[].ty` **一个字节没动**（它们同时喂 judge）。
+
+   ```
+   demo_subset_def | forall (α : Type 0) (A B : Set α), (A ⊆ B) ↔ ((x : α) -> A x -> B x)
+   mem_of_subset   | forall (α : Type 0) (A B : Set α), A ⊆ B -> (forall (a : α), a ∈ A -> a ∈ B)
+   根状态（L45）    | 同上（学习者的光标就在 tactic 上，看到的就是它）
+   ```
+   **`⊆` ✓ `↔` ✓ `∈` ✓，而 binder 分组、`Type 0`、折行全部原样。**
+   **G-26 关账**（`fixed_in = 0.64.2`），它的复现件转绿。
+
+2. **接进生产者时撞到的两件事**（设计里没写、实测才知道）：
+   * **必须按 span 拼接，不能重渲染整棵树**——重渲染会把折过之外的东西也改样
+     （`forall (a b : T),` 拆成箭头链、`Type 0` 重排成 `Sort 1`；`render_expr` 是
+     回读通道的输入，它必须那样写）。改成把每处折叠记成 `(span, 文本)`、**只替换
+     那几段**（取最外层、从右往左）。两处细节：`parse_expr_text_with` 的 span 多一个
+     `"#check "` 前缀（**头部反推**，不硬编码）；解析器给**带括号的原子**的 span
+     **不含括号** ⇒ 替换范围要**按括号配平**。
+   * **内建记法要自己补**：`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里（parser 有
+     硬编码的 `BUILTIN_NOTATIONS`）⇒ `notation_table` 收不到，`Iff` 永远折不成 `↔`。
+3. **顺带修正 arity 的口径**：**元数 = 显式 binder 的个数**——内核 pp **省略隐式
+   参数**。`Eq {α : Sort u} (a b : α)` ⇒ 元数 **2**（pp 是 `Eq A B`）；
+   `Ne (α : Sort u) (a b : α)` ⇒ **3**。用 telescope 层数会让 `=` 永远折不出来。
+4. **T-C21 给生产者 2 补三条守护**：不带 `by` 的开练习那条路本来就保留记法
+   （T-C01 的实测），但**此前零测试**。补 front 两条 + LSP wire 一条，断言
+   `goal`/`ty` 含记法**且不含点名**。
+5. **判据**：`display` **20 条** + `query`/`goals` 新守护全绿 ·
+   `scripts/soko gate` **exit 0** · 课程门禁计数**逐项不变**
+   （36 目标 · 328 checked · 99 open · **0 判负**）· `perf-check --case perf_course`
+   **无退化**（±2.3% 内）· `gap.py check` 全绿（G-26/G-35 已关账）。
+   更新的 golden 两处（`query::tests::state_at_root_before_any_tactic` + LSP 两条
+   state 用例）都是**预期的**可见变化，注释写明是线 C 的效果。
+6. **还剩一处没记法**（实测，下一环 T-C22）：**`apply` 之后的子目标**——
+   `apply Set.ext` 后是 `(x : α) -> Iff (A x) (B x)`（子目标来自被应用引理的
+   **内核 pp 望远镜**）。那四处同时是**判定输入**，折叠只能作用在**展示副本**上。
+   **未 bump**：线 C 的 patch 点在 T-C41。
 
 ## 本轮进度（2026-09-21，第一百二十七轮：**折叠层落地** —— 线 C 从"定靶"到"能折"）
 
@@ -101,53 +145,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    （T-C04 是纯提取），而是特征化测试钉住 + 台账 + 复现件。
 7. **不变的**：内核**一个字节未改**；课程语料未动；门禁计数逐项不变。
    **未 bump**：§13 给这批前置没标 BUMP，线 C 的 patch 点在 T-C41。
-
-## 本轮进度（2026-09-21，第一百二十五轮：**批次 2 收口** —— T-A60 / T-A50 / T-A51）
-
-> 计划 §5.4 的三条：冷开命中缓存 / 内容没变不重编 / 改依赖刷新入口，
-> 全部跑在**真 VS Code + 真 LSP** 上。
-
-1. **三条都进套件**：`21 passing / 3 failing`——失败的正是批次 3/4 的记法三例
-   （#6/#7/#8，本来就红）。性能数字进留档（`docs/e2e/logs/…`）：
-   `PERF e2e cache: cold=436ms warm=58ms`（**7.5×**，判据要求 >3×）、
-   `PERF e2e fanout: entry diagnostics publishes=1`（改一次依赖只发一份）。
-2. **每次跑一个全新的缓存目录**（`SOKONANODA_CACHE_DIR=$(mktemp -d)`）：冷/热对比
-   要有**真冷**的基准，否则"冷开"会命中上一次跑留下的条目（而且结果取决于上一次
-   谁跑过）。用例自己读同一个变量定位缓存。
-3. **写这三条踩到四个会假绿的坑**（全写进用例注释了）：
-   * `languages.getDiagnostics(uri)` **不是"刚发来"的信号**——VS Code 按 URI 留着
-     上一次的结果、也不会因 `didClose` 清掉 ⇒ "非空"让打开立刻满足条件、量到 0ms，
-     而那次**根本没编译**（第一次就是这么假绿的，是"冷开必须写缓存"那条前置断言
-     抓住的）；
-   * **监听器要早于发布挂上**：`restartServer` 会把打开中的文档重新同步一遍；
-   * **`closeAllEditors` 不等于 `didClose`**：`openTextDocument` 的 `TextDocument`
-     还被引用时客户端不发 `didClose` ⇒ 服务端那份 `Doc` 还活着，重开"什么都没
-     发生"（实测连续两次假绿）。冷开改成用**从没编译过的文件**；
-   * **时间断言要让被测那段占主导**：夹具 3 条声明时编译只占 ~30ms，冷/热都被
-     "重启 + 往返"的固定开销（~60ms）淹没（89ms vs 63ms）⇒ 冷开夹具**故意做大**
-     （+120 条用库记法的定理）。
-4. **保存那条为什么不用 `workbench.action.files.save`**：VS Code 对**干净缓冲区**
-   的保存是 no-op（不发 `didSave`），从扩展宿主里测不到服务端短路。用例走同一条
-   服务端路径的另一半（磁盘重写同样字节 ⇒ `did_change_watched_files`）；
-   真 `didSave` 由进程内用例 `perf_course_save_same_text_is_recorded` 钉着。
-5. **没有生产代码改动**：只动 e2e 用例与 `scripts/vscode-e2e.sh`（缓存目录）。
-   内核与 LSP **零改动**。
-6. **批次 2 收口（T-A50 / T-A51）**：
-   * **T-A50 as-built**：`docs/design/compile-cache.md` §8（键不含任何文件系统属性、
-     条目 v2 按模块、`is_clean` 判据、LSP 三件事、**跨入口仍不共享**的边界）；
-     `docs/architecture.md` §4.5 第 6 条同步。
-   * **T-A51 性能台账收口**：`docs/PERF.md` 补"修前 → 修后"两张表 +
-     真宿主 e2e 的数字；`scripts/perf-ledger.sh` 跑通并追加条目。
-     冷/热判据 ≥5× —— 真宿主实测 **7.5×**。
-     台账里唯一超阈值的退化是 `lsp-course/keystroke` **381 → 526ms（+38.1%）**，
-     **就是 T-A30 那 120ms 防抖**（编译本身 392ms 没变），已在 `docs/PERF.md`
-     的单列里记账解释。
-   * 版本 bump 到 **0.64.2**（§13 给 T-A51 标的 patch 点），CHANGELOG 写清
-     用户可感的两件事（不再冻住 / 短路判据换成闭包摘要）。
-7. **T-A52（用户拍板「做，但默认关」）**：新设置 `sokonanoda.warmCacheOnOpen`
-   ——激活时后台把**工作区根** `build` 一遍预热缓存。三条纪律：不弹输出面板、
-   不报错、不阻塞激活（fire-and-forget）。**默认关**的理由写在设置说明里：它占
-   CPU/IO，而"打开编辑器"本身会因此变慢。两层判据：stub 宿主 **34/34**（新增
-   两条：默认关时**一次 build 都不许起**；开时正好起一次、目标是工作区根）+
-   真宿主 e2e 一例（`22 passing / 3 failing`，仍是那三条已知红的记法用例）。
 
