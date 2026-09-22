@@ -335,6 +335,86 @@ fn map_binder(binder: Binder, dn: &DisplayNotations) -> Binder {
     }
 }
 
+// ---- 元数的来源（T-C11）----------------------------------------------------
+//
+// 设计 §3.2 的硬规则要一个数：**目标声明的 telescope 层数**（= 完全应用时
+// `spine.len()`）。有了它才能判断"这是记法实例"还是"部分应用"：
+// `Set.mem α a A`（3 = 3）⇒ `a ∈ A`；`Set.mem α a`（2 ≠ 3）⇒ 原样。
+//
+// **口径先对齐**（两处容易混）：
+//   * **telescope**（= 本模块的 `arity`）= 声明类型上剥出来的 binder 总数
+//     （`def Set.mem (α : Type) (a : α) (A : Set α) : Prop` ⇒ **3**）。
+//     它对应 `spine.len()`。
+//   * **操作数个数** = 记法自己写出来的位置（二元 infix ⇒ **2**）。
+//   两者之差 = **前导参数**（`∈` 的 `α`），折叠时丢掉。
+//
+// 来源：**源级签名**，从闭包各模块的源文本（`ModuleReport.source`）与 prelude
+// 源码里数出来。找不到 ⇒ `None` ⇒ 折叠层**原样返回**（不猜）。
+
+/// 一个声明类型的 telescope 层数（binder 总数）。
+///
+/// **`def f (a : T) (b : T) : U` 在 AST 里是「一个 `Forall` 带两个 binder」**
+/// （实测），所以这里数的是 **binder**，不是 `Forall`/`Arrow` 节点的个数。
+pub fn telescope_len(ty: &Expr) -> usize {
+    let mut count = 0;
+    let mut cur = ty;
+    loop {
+        match cur {
+            Expr::Forall { binders, body, .. } => {
+                count += binders.len();
+                cur = body;
+            }
+            Expr::Arrow { codomain, .. } => {
+                count += 1;
+                cur = codomain;
+            }
+            _ => return count,
+        }
+    }
+}
+
+/// 从若干段**源文本**里收出「声明的全名 → telescope 层数」。
+///
+/// **名字直接用 parser 给的**：它**已经**按 `namespace`/`end` 限定好了
+/// （实测 `namespace Foo` 里的 `def bar` 解析成 `name: "Foo.bar"`），与
+/// `NotationDecl.target` 存的全名同一口径。自己再拼一次会得到 `Foo.Foo.bar`（踩过）。
+pub fn arities_in_sources(sources: &[&str]) -> HashMap<String, usize> {
+    let mut out = HashMap::new();
+    for src in sources {
+        let Ok(file) = crate::parse(src) else {
+            continue;
+        };
+        for command in &file.commands {
+            match command {
+                crate::ast::Command::Def { name, ty, .. }
+                | crate::ast::Command::Theorem { name, ty, .. }
+                | crate::ast::Command::Axiom { name, ty, .. } => {
+                    out.insert(name.clone(), telescope_len(ty));
+                }
+                // 归纳类型：`params`（`inductive And (a b : Prop)`）+ 类型上的 binder。
+                crate::ast::Command::InductiveBlock {
+                    name, params, ty, ..
+                } => {
+                    out.insert(name.clone(), params.len() + telescope_len(ty));
+                }
+                _ => {}
+            }
+        }
+    }
+    out
+}
+
+/// 把 prelude 的源文本也算进来（`And` / `Or` / `Not` / `Iff` / `Eq` / `Exists`
+/// 这些记法目标住在那里）。线 C 的四个生产者都会经过它。
+pub fn arities_with_prelude(sources: &[&str]) -> HashMap<String, usize> {
+    let mut all: Vec<&str> = vec![
+        crate::compile::PRELUDE_EQ_SRC,
+        crate::compile::PRELUDE_L1_SRC,
+    ];
+    all.extend_from_slice(sources);
+    arities_in_sources(&all)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -351,6 +431,63 @@ mod tests {
             .map(|(n, a)| ((*n).to_string(), *a))
             .collect();
         DisplayNotations::new(table, map)
+    }
+
+    // ---- 元数的来源（T-C11）--------------------------------------------
+
+    /// **判据**：`infix:50 " ∈ " => Set.mem` 的 telescope = **3**（`α` / `a` / `A`），
+    /// 而 `∈` 是二元 ⇒ **前导参数 = 1**（那个 `α`）。两者之差正是折叠时丢掉的东西。
+    #[test]
+    fn arity_of_set_mem_counts_the_whole_telescope() {
+        let arities = arities_in_sources(&[SET_LIB]);
+        assert_eq!(
+            arities.get("Set.mem").copied(),
+            Some(3),
+            "`Set.mem (α : Type) (a : α) (A : Set α)` ⇒ 3 层"
+        );
+        // 二元记法只写出 2 个位置 ⇒ 前导参数 1 个（`α`）。
+        assert_eq!(arities["Set.mem"] - 2, 1, "前导参数 = α");
+        // 同一个源里的其它目标也对得上（`Set.image` 有 4 层：α β f A）。
+        assert_eq!(arities.get("Set.union").copied(), Some(3));
+        assert_eq!(arities.get("Set.image").copied(), Some(4));
+    }
+
+    /// `namespace` 里的声明要按**全名**记（`NotationDecl.target` 存的是全名）。
+    #[test]
+    fn arity_is_keyed_by_the_qualified_name() {
+        let arities =
+            arities_in_sources(&["namespace Foo\ndef bar (a : Prop) : Prop := a\nend Foo\n"]);
+        assert_eq!(arities.get("Foo.bar").copied(), Some(1));
+        assert_eq!(arities.get("bar"), None, "短名不该被当成全名");
+    }
+
+    /// prelude 里的记法目标（`And` / `Or` / `Not` / `Iff` / `Eq`）也要数得到
+    /// ——四个生产者都会用到它们。
+    #[test]
+    fn prelude_targets_are_counted_too() {
+        let arities = arities_with_prelude(&[]);
+        assert_eq!(arities.get("And").copied(), Some(2), "`And (a b : Prop)`");
+        assert_eq!(arities.get("Not").copied(), Some(1));
+        assert_eq!(arities.get("Iff").copied(), Some(2));
+    }
+
+    /// 找不到 ⇒ `None` ⇒ 折叠层原样返回（不猜）。
+    #[test]
+    fn an_unknown_target_has_no_arity() {
+        let arities = arities_in_sources(&[SET_LIB]);
+        assert_eq!(arities.get("Nobody.knows"), None);
+    }
+
+    /// 端到端：**从源文本数出来的 arity 直接喂给折叠层**（T-C11 的接入形状）。
+    #[test]
+    fn arities_from_source_drive_the_fold() {
+        let file = crate::parse(SET_LIB).expect("夹具必须能解析");
+        let table = notation_table(&file.commands);
+        let arities = arities_in_sources(&[SET_LIB]);
+        let dn = DisplayNotations::new(table, arities);
+        assert_eq!(fold_text("Set.mem α a A", &dn), "a ∈ A");
+        // 部分应用（2 ≠ 3）⇒ 原样。
+        assert_eq!(fold_text("Set.mem α a", &dn), "Set.mem α a");
     }
 
     /// 一个最小的集合词汇 + 两条记法：`∈`（优先级 50）与 `∪`（左结合 65）。

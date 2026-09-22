@@ -2144,6 +2144,24 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C11 arity 的来源
 
+> **✅ 完成（2026-09-21）**：`display::arities_in_sources(&[源文本])` 与
+> `arities_with_prelude(&[源文本])`——parse 每段源，按 `namespace` 累积的**全名**
+> 记下「声明 → telescope 层数」。prelude 的 `PRELUDE_EQ_SRC`/`PRELUDE_L1_SRC`
+> 已并进后者（`And`/`Or`/`Not`/`Iff`/`Eq`/`Exists` 住在那里）。
+> **5 条新单测**（共 13 条）。
+>
+> **判据实测**：`infix:50 " ∈ " => Set.mem` 的 telescope = **3**（`α`/`a`/`A`），
+> 操作数 = 2 ⇒ **前导参数 1 个**（那个 `α`）。两个口径在文档里写清了：
+> **telescope**（= `spine.len()`）vs **操作数个数**。
+>
+> 三个踩到的点：① `def f (a : T) (b : T) : U` 是**一个 `Forall` 带两个 binder**
+> ⇒ 数 binder 不数节点；② **parser 已经把名字限定好了**（`namespace Foo` 里的
+> `def bar` ⇒ `Foo.bar`）⇒ 自己再拼一次会得到 `Foo.Foo.bar`（踩过）；
+> ③ 归纳类型要数 `params` + 类型上的 binder。
+>
+> 顺带把 `PRELUDE_EQ_SRC` / `PRELUDE_L1_SRC` 从 `pub(crate)` 提到 `pub`
+> （`arities_with_prelude` 要用；线 C 的四个生产者都会经过它）。
+
 - **改什么**：给折叠层提供"记法吃几个显式参数"。来源二选一并写进设计：
   ① 目标声明的**源级签名**里非隐式参数个数（`KnownName` 已存源级签名，
   `crates/front/src/compile/elab.rs:515/557`）；② `report.decls[i].ty_text`/`signature`。
@@ -2805,7 +2823,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C03b` `DisplayText` 护栏（**先于任何折叠代码**）
 - [x] `T-C04` 记法表复用 `judge.rs` 的重建（提成公共函数）
 - [x] `T-C10` 折叠函数第一刀：只做二元 infix 族
-- [ ] `T-C11` arity 的来源
+- [x] `T-C11` arity 的来源
 - [ ] `T-C12` `scoped` 的保真度
 - [ ] `T-C13` 重载（一个符号 → N 个目标）的处置
 - [ ] `T-C14` 折叠层的损失护栏

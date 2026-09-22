@@ -161,7 +161,7 @@ pub const PRELUDE_NEVER_YIELDS: &[&str] = &[
     "Bool.rec",
 ];
 
-pub(crate) const PRELUDE_EQ_SRC: &str = "\
+pub const PRELUDE_EQ_SRC: &str = "\
 axiom Eq {u} : {α : Sort u} -> α -> α -> Prop
 axiom Eq.refl {u} : {α : Sort u} -> (a : α) -> Eq.{u} α a a
 axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -> Eq.{u} α a b -> p a -> p b
@@ -196,7 +196,7 @@ axiom Eq.subst {u} : {α : Sort u} -> {p : α -> Prop} -> {a : α} -> {b : α} -
 /// `{α β : Sort u} (h : @Eq.{u+1} (Sort u) α β)`。**层级算术 `u+1` 落地后**
 /// （`docs/design/type-level-syntax.md` §5）它们才是宇宙多态的；此前是
 /// Type 0 实例（0.60.0 的残留边界，设计 §4-1 已销账）。
-pub(crate) const PRELUDE_L1_SRC: &str = "\
+pub const PRELUDE_L1_SRC: &str = "\
 axiom True : Prop
 axiom True.intro : True
 axiom False : Prop

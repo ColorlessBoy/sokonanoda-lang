@@ -204,13 +204,24 @@ insert**；`Notation::new_prefix/new_infix/new_postfix`（`env.rs:196-208`）
 * `Set.mem α a`（**部分应用**，2 实参 / arity 3）⇒ **不许**回显成 `α ∈ a`，
   必须原样 `Set.mem α a` ✗
 
-arity 的来源（按优先级）：
+arity 的来源（**已落地，T-C11**）：`display::arities_in_sources(&[源文本])` /
+`display::arities_with_prelude(&[源文本])`——parse 每段源、按 `namespace` 累积的
+**全名**记下「声明 → telescope 层数」。prelude 的 `PRELUDE_EQ_SRC` /
+`PRELUDE_L1_SRC` 已经并进 `arities_with_prelude`（`And`/`Or`/`Not`/`Iff`/`Eq`/
+`Exists` 这些记法目标住在那里）。找不到 ⇒ 没有 arity ⇒ 折叠层**原样返回**。
 
-1. 闭包所有模块的声明 AST + prelude 源码里找 `NotationDecl.target` 的同名声明，
-   数它的 telescope 层数（`spine.rs` 的 `peel_pi` 是现成的）；
-   prelude 源码是 `compile/prelude.rs` 的 `PRELUDE_L1_SRC` / `PRELUDE_EQ_SRC`，
-   **parse 一次缓存在 `OnceLock`** 里。
-2. 兜底：`judge::judge_type_of`（自带 `type_cache`）。
+三个实测踩到的点：
+
+* **`def f (a : T) (b : T) : U` 在 AST 里是「一个 `Forall` 带两个 binder」**
+  ⇒ 数的是 **binder**，不是 `Forall`/`Arrow` 节点的个数（`telescope_len`）。
+* **parser 已经把声明名按 namespace 限定好了**（`namespace Foo` 里的 `def bar`
+  解析成 `name: "Foo.bar"`）⇒ 自己再拼一次会得到 `Foo.Foo.bar`（踩过）。
+* 归纳类型要数 `params` + 类型上的 binder（`inductive And (a b : Prop)` ⇒ 2）。
+
+**两个口径别混**（名字都叫过 "arity"）：**telescope**（本模块的 `arity`，对应
+`spine.len()`）vs **操作数个数**（记法自己写出来的位置，二元 infix = 2）。
+两者之差 = **前导参数**（`∈` 的 `α`），折叠时丢掉。判据实测：
+`infix:50 " ∈ " => Set.mem` 的 telescope = **3**，操作数 = 2 ⇒ 前导 1 个。
 
 arity 对了，print-back 就是前向展开的**精确逆**——因为两边读的是**同一份权威**
 （前向也用 `judge_type_of` 读签名）。
