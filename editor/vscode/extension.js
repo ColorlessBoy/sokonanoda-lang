@@ -1628,6 +1628,38 @@ function parseBuildEvents(stdout) {
   return events;
 }
 
+/// T-A52：`sokonanoda.warmCacheOnOpen`（**默认关**）——激活时后台把工作区根
+/// build 一遍，让"第一次打开某个单元"直接命中缓存（T-A10/T-A11 的预热）。
+///
+/// **为什么默认关**（用户 2026-09-21 拍板「做，但默认关」）：它占 CPU/IO，而
+/// "打开编辑器"本身会因此变慢——那正是另一面的抱怨。默认关 = 想要的人自己开。
+///
+/// 三条纪律：**不弹输出面板**（后台活不该抢注意力，进度写进 channel）、
+/// **不报错**（失败只是没预热，`sokonanoda: doctor` 能查）、**不阻塞**
+/// （`activate()` 不等它；`build` 是独立子进程，超时由 `runBuildProcess` 兜）。
+async function warmCacheOnOpen(context) {
+  const enabled = vscode.workspace
+    .getConfiguration("sokonanoda")
+    .get("warmCacheOnOpen", false);
+  if (enabled !== true) return;
+  const target = (vscode.workspace.workspaceFolders ?? [])[0]?.uri?.fsPath;
+  if (!target) return;
+  let command;
+  try {
+    command = resolveCliCommand();
+  } catch {
+    command = undefined;
+  }
+  if (!command) return;
+  const channel = buildOutput(context);
+  channel.appendLine(`> ${command} build --json ${target}（warmCacheOnOpen）`);
+  const result = await runBuildProcess(command, ["build", "--json", target], channel);
+  channel.appendLine(`[warmCacheOnOpen] exit=${result.code}`);
+  // 记账（`SOKO_E2E_LOG`）：真宿主用例靠这一行证明"接线真的跑了"，而不用去猜
+  // 缓存里那条目是谁写的。
+  e2eLog(`warmCacheOnOpen: exit=${result.code}`);
+}
+
 /// 跑一次 build/rebuild；返回给用户/测试看的摘要文本（跑不起来时 undefined）。
 /// 会刷新三个视图：build 改变了缓存状态，"面板像是没反应"正是它要回答的问题。
 async function runBuild(context, { clean = false, courseProvider } = {}) {
@@ -1920,6 +1952,9 @@ async function activate(context) {
   // Async continuation (fire-and-forget): resolve + start the server without
   // blocking the view. This is the only slow path — the UI is already live and
   // the Infoview shows progress until the first snapshot arrives.
+  // T-A52：预热缓存（默认关，见 `warmCacheOnOpen`）。**不 await**：它是后台活，
+  // 打开了设置的用户也不该为它多等一次激活。
+  void warmCacheOnOpen(context).catch(() => {});
   (async () => {
     infoviewProvider.setStatus({ state: "loading" });
     infoviewProvider.postServer(); // server not running yet -> "启动中"

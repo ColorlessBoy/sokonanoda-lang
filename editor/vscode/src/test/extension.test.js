@@ -707,6 +707,25 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     return Date.now() - start;
   }
 
+  test("warmCacheOnOpen pre-builds the workspace at activation", async () => {
+    // 用例 T-A52：夹具工作区的 `.vscode/settings.json` 打开了
+    // `sokonanoda.warmCacheOnOpen`（**默认关**，这是唯一能测"激活时"行为的办法：
+    // 设置只在 `activate()` 里读一次，运行中开是不生效的）。
+    //
+    // 判据是**扩展自己记的那一行账**，不是"缓存里有条目"——条目也可能是别的
+    // 用例写的，而这一行只可能由 `warmCacheOnOpen` 那条路径写出来。
+    const log = process.env.SOKO_E2E_LOG;
+    assert.ok(log, "需要 SOKO_E2E_LOG（用 scripts/vscode-e2e.sh 跑）");
+    await waitFor("warmCacheOnOpen 跑过一次 build", () => {
+      if (!fs.existsSync(log)) return false;
+      return fs.readFileSync(log, "utf8").includes("warmCacheOnOpen: exit=0");
+    });
+    assert.ok(
+      cacheStamp().length > 0,
+      "预热必须把条目写进缓存（否则它没做事）",
+    );
+  });
+
   test("reopening a project unit hits the compile cache", async () => {
     // 用例 T-A60-1（T-A10 / T-A11）：第一次打开**真编译并写缓存**，之后
     // （重启服务器 + 重开）**命中缓存**、不再重编、且明显更快。

@@ -479,7 +479,7 @@ function resetListeners() {
   for (const key of Object.keys(listeners)) listeners[key] = emitter();
 }
 
-async function activateExtension() {
+async function activateExtension(config = {}) {
   requests.length = 0;
   spawns.length = 0;
   timers = [];
@@ -487,6 +487,9 @@ async function activateExtension() {
   //（一次事件会被处理两遍——这正是我们要测的那类放大问题）。
   resetListeners();
   resetConfig();
+  // `config` 在 `resetConfig()` **之后**、`activate()` **之前**生效：有些设置
+  // 只在激活时读一次（T-A52 的 `warmCacheOnOpen` 就是），测试没法事后开。
+  for (const [key, value] of Object.entries(config)) setConfig(key, value);
   vscodeStub.window.activeTextEditor = undefined;
   vscodeStub.window.visibleTextEditors = [];
   vscodeStub.__commands = {};
@@ -530,6 +533,29 @@ function test(name, fn) {
 }
 
 // ── tests ────────────────────────────────────────────────────────────────
+
+test("warmCacheOnOpen off by default: activation spawns no build", async () => {
+  // T-A52（用户拍板：**做，但默认关**）。默认关这条最要紧——它占 CPU/IO，而
+  // "打开编辑器"本身会因此变慢，那正是另一面的抱怨。
+  await activateExtension();
+  await settle();
+  const builds = spawns.filter((s) => Array.isArray(s.args) && s.args[0] === "build");
+  assert.deepStrictEqual(builds, [], `默认关时不许起 build：${JSON.stringify(spawns)}`);
+});
+
+test("warmCacheOnOpen on: activation builds the workspace root once", async () => {
+  const context = await activateExtension({ warmCacheOnOpen: true });
+  await settle();
+  const builds = spawns.filter((s) => Array.isArray(s.args) && s.args[0] === "build");
+  assert.strictEqual(builds.length, 1, `开时正好起一次 build：${JSON.stringify(spawns)}`);
+  // 目标是**工作区根**（不是某个文件）：激活时还没有活动编辑器。
+  assert.deepStrictEqual(
+    builds[0].args,
+    ["build", "--json", "/repo"],
+    "build 的目标必须是工作区根",
+  );
+  assert.ok(context, "activate 必须返回 context");
+});
 
 test("diagnostics from other languages never drive soko/goals", async () => {
   await activateExtension();

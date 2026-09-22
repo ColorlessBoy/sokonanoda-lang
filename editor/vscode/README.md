@@ -238,6 +238,14 @@ Both write the CLI's JSON Lines events (`build.file` / `build.clean` /
 exercise/project/course views afterwards (a warm cache changes what they show),
 and warn — never fail silently — when a file does not compile.
 
+**Warming on open** — set `sokonanoda.warmCacheOnOpen` to `true` and the
+extension runs one `build` over the **workspace root** in the background when
+the window activates, so the first unit you open is already a cache hit.
+**Off by default**: it costs CPU/IO, and "opening the editor" itself gets
+slower — the other side of the same complaint. It never steals focus (progress
+goes to the *sokonanoda build* channel) and never errors (a failed warm-up just
+means nothing was pre-built; `sokonanoda: doctor` tells you why).
+
 ## The course map
 
 The 「课程」tree shells out to the `sokonanoda` CLI (it aggregates all course

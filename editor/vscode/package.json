@@ -252,6 +252,11 @@
           "default": "off",
           "description": "Log LSP traffic to the 'sokonanoda' output channel (for debugging)."
         },
+        "sokonanoda.warmCacheOnOpen": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "打开工作区时后台跑一次 `sokonanoda build <项目根>`，**预热编译缓存**，让随后第一次打开某个单元直接命中（T-A52）。\n\n**默认关**：它会占 CPU/IO，而「打开编辑器」本身会因此变慢——那正是另一面的抱怨。打开后状态栏不会提示，进度在输出面板 `sokonanoda build` 里；跑失败只是没预热，用 `sokonanoda: doctor` 查。"
+        },
         "sokonanoda.input.eager": {
           "type": "boolean",
           "default": false,
