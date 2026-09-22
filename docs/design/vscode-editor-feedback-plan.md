@@ -2343,6 +2343,17 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C23 binder ty（假设行的类型）
 
+> **✅ 完成（2026-09-21）——判据已满足，补守护。**
+>
+> 实测：`query state` 的 `binders[].ty` **本来就带记法**——
+> `h : A ⊆ B`（`⊆` 在）。原因：binder 的类型来自**源里写的**类型
+> （`fun (h : A ⊆ B) => …`），走 `render_expr` 的源级渲染。
+> `by` 那条路（by-step 的 binder）由 **T-C22** 折过 ✓，两条都覆盖到了。
+>
+> 补的守护：`query::tests::state_binders_keep_notation_in_their_types`——
+> 夹具刻意用**不带 `by`** 的开练习（那条走 `DeclState.binders` 那份，与带 `by`
+> 的 by-step 那份是**两条路**，两条都要有人守），断言假设行含 `⊆` **且不含点名**。
+
 - **判据**：`query state` 的 `binders[].ty` 含记法。
 
 #### T-C24 逐 surface 的判别性测试
@@ -2950,7 +2961,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C20` 生产者 1+3：根状态与声明列表的 `ty_text`
 - [x] `T-C21` 生产者 2：无 `by` 的开练习（应当已经好，补守护）
 - [x] `T-C22` 生产者 4：`by` 步进里被 pp 化的四处
-- [ ] `T-C23` binder ty（假设行的类型）
+- [x] `T-C23` binder ty（假设行的类型）
 - [ ] `T-C24` 逐 surface 的判别性测试
   - ⬆ **BUMP**：`minor` —— goal / 假设 / 声明类型第一次显示记法
 - [ ] `T-C25` 边界：命中不了就回退

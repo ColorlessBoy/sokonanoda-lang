@@ -570,6 +570,43 @@ fn by_step_display_is_folded_but_the_judge_input_is_not() {
     );
 }
 
+/// **T-C23 的守护**：`query state` 的 `binders[].ty` 含记法。
+///
+/// 这条路本来就好——binder 的类型来自**源里写的**类型（`fun (h : A ⊆ B) => …`），
+/// 走 `render_expr` 的源级渲染 ⇒ 记法保留。但此前**没有测试钉它**（断言里的
+/// `⊆` grep 命中 0）。夹具刻意用**不带 `by`** 的开练习（`binders` 走
+/// `DeclState.binders` 那份，而带 `by` 的走 by-step 那份——两条路都要有人守）。
+#[test]
+fn state_binders_keep_notation_in_their_types() {
+    let doc = doc(BINDER_NOTATION_CANVAS);
+    let at = BINDER_NOTATION_CANVAS
+        .find("sorry")
+        .expect("the fixture has a hole");
+    let state = doc.state_at(at).expect("state is answerable");
+    let h = state
+        .binders
+        .iter()
+        .find(|b| b.name == "h")
+        .expect("the lambda binder `h` is in scope");
+    assert!(
+        h.ty.contains('⊆'),
+        "假设行的类型必须带记法（T-C23）：{}",
+        h.ty
+    );
+    assert!(!h.ty.contains("Set.subset"), "不该是点名形式：{}", h.ty);
+}
+
+/// T-C23 的夹具：一个**不带 `by`** 的开练习，lambda 前缀里写了一个带记法的假设。
+const BINDER_NOTATION_CANVAS: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+infix:50 \" ∈ \" => Set.mem
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+infix:50 \" ⊆ \" => Set.subset
+
+theorem open_prefix (α : Type) (A B : Set α) : A ⊆ B -> A ⊆ B := fun (h : A ⊆ B) => sorry
+";
+
 /// **生产者 3 的守护**（T-C21 顺带）：同一个声明的 `ty` 走内核 pp + 线 C 的折叠
 /// （T-C20）⇒ 现在也带记法。这条同时钉住"折叠真的接到了 `ty_text` 上"。
 #[test]
