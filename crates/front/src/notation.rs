@@ -15,20 +15,23 @@ use crate::ast::{Command, NotationDecl};
 
 /// 从一段**已解析**的命令序列里收出有效的记法表。
 ///
-/// 规则（第三刀 §12.3，**行为逐字节不变地**从 `judge.rs` 提出来）：
+/// 规则（第三刀 §12.3）：
 ///
 /// * 按**声明顺序**收（同 target 声明了两个符号时，反向折叠取第一个 ⇒ 顺序有意义）；
-/// * `scoped` 记法按「这段里**已经扫到过** `open scoped <名字>`」过滤。
+/// * `scoped` 记法在**这段文本结束时**是否生效，判据是「这段里出现过
+///   `open scoped <它的作用域>`」——**两遍扫描**：先把所有 `open scoped` 收齐，
+///   再过滤记法。
 ///
-/// ⚠ **它是"扫一遍"而不是"两遍"**：`open scoped` 写在 `scoped infix` **之前**
-/// 才收得到；写在之后（先声明、后 open，也就是**正常的写法**）就收不到。
-/// 台账 **G-35** 记着这件事；课程今天不用 `scoped` 记法（`grep "open scoped"
-/// courses/` = 0），所以它是**潜在的**，不是正在伤人的。特征化测试
-/// `open_scoped_after_the_notation_does_not_bring_it_back` 钉住当前行为——
-/// 显示路径（线 C）会复用这张表，两边**一起漏**至少一致，"一边漏一边不漏"才是灾难。
+/// **为什么是两遍**（G-35，2026-09-21 修）：原先是一遍，于是
+/// 「先 `scoped infix` 声明、后 `open scoped`」（**正常写法**：声明在库里、
+/// `open` 在使用处）收不到那条记法。而主通道（parser）**两个方向都对**：
+/// `open scoped` 会激活**已声明**的 scoped 记法（`activate_scope` 的 pending
+/// 表），也会记住作用域让**之后**声明的直接生效。读回通道只有一段前缀、
+/// 不关心"用在哪一行"，所以正确答案就是"前缀结束时生效的那些"——那正是
+/// 两遍扫描。
 pub(crate) fn notation_table(commands: &[Command]) -> Vec<NotationDecl> {
+    // 第一遍：这段文本里开过哪些作用域。
     let mut opened_scopes: Vec<String> = Vec::new();
-    let mut notations: Vec<NotationDecl> = Vec::new();
     for command in commands {
         if let Command::Open {
             name, scoped: true, ..
@@ -37,8 +40,11 @@ pub(crate) fn notation_table(commands: &[Command]) -> Vec<NotationDecl> {
             if !opened_scopes.contains(name) {
                 opened_scopes.push(name.clone());
             }
-            continue;
         }
+    }
+    // 第二遍：按声明顺序收记法，`scoped` 的看它的作用域开没开。
+    let mut notations: Vec<NotationDecl> = Vec::new();
+    for command in commands {
         let Some(decl) = command.notation_decl() else {
             continue;
         };
@@ -86,18 +92,14 @@ mod tests {
         assert!(got.is_empty(), "没开作用域 ⇒ 不生效：{got:?}");
     }
 
-    /// **`open scoped` 要写在记法声明之前**——这个函数是**扫一遍**的。
+    /// **`open scoped` 写在记法之前或之后都收得到**（G-35 修，2026-09-21）。
     ///
-    /// 这是**当前行为**（特征化，不是"正确行为"）：先遇到 `scoped` 记法时
-    /// `opened_scopes` 还是空的 ⇒ 被过滤掉；后面那句 `open scoped` 补不回来。
-    /// 台账 **G-35** 记着这件事——课程今天不用 `scoped` 记法
-    /// （`grep "open scoped" courses/` = 0），所以它是**潜在的**。
-    ///
-    /// 为什么仍然值得钉：显示路径（线 C）会**复用同一张表**，两边必须同口径
-    /// ——"一起漏"至少是一致的，"一边漏一边不漏"才是灾难。
+    /// 主通道（parser）两个方向都对：`open scoped` 既激活**已声明**的 scoped
+    /// 记法，也记住作用域让**之后**声明的直接生效。读回表只关心"前缀结束时
+    /// 生效的那些"，所以两边都该收——**两遍扫描**（先收齐 `open scoped`，再过滤）。
     #[test]
-    fn open_scoped_after_the_notation_does_not_bring_it_back() {
-        // `open scoped Foo` 在**后** ⇒ 先声明的那条收不到（G-35）。
+    fn open_scoped_after_the_notation_is_collected() {
+        // `open scoped` 在**后**（正常写法：声明在库里、open 在使用处）。
         let after = table(
             "def A : Prop := True\n\
              namespace Foo\n\
@@ -105,13 +107,10 @@ mod tests {
              end Foo\n\
              open scoped Foo\n",
         );
-        assert!(
-            after.is_empty(),
-            "open 在记法之后 ⇒ 扫不到（G-35）：{after:?}"
-        );
+        let symbols: Vec<&str> = after.iter().map(|d| d.symbol.as_str()).collect();
+        assert_eq!(symbols, vec!["⊕"], "open 在记法之后也要收得到（G-35）");
 
-        // 同一条记法，但 `open scoped Foo` 已经在**前**（第二次进同一个 namespace）
-        // ⇒ 收得到。这条同时证明"过滤"本身是好的，问题只在顺序。
+        // `open scoped` 在**前**（第二次进同一个 namespace 声明的那条）。
         let before = table(
             "def A : Prop := True\n\
              namespace Foo\n\
@@ -123,7 +122,7 @@ mod tests {
              end Foo\n",
         );
         let symbols: Vec<&str> = before.iter().map(|d| d.symbol.as_str()).collect();
-        assert_eq!(symbols, vec!["⊗"], "open 在前 ⇒ 之后声明的那条收得到");
+        assert_eq!(symbols, vec!["⊕", "⊗"], "两条都在（顺序 = 声明顺序）");
     }
 
     /// 非 `scoped` 的记法不受 `open scoped` 影响（第二刀行为）。

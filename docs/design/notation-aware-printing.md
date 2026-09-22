@@ -218,6 +218,18 @@ arity 的来源（**已落地，T-C11**）：`display::arities_in_sources(&[源�
   解析成 `name: "Foo.bar"`）⇒ 自己再拼一次会得到 `Foo.Foo.bar`（踩过）。
 * 归纳类型要数 `params` + 类型上的 binder（`inductive And (a b : Prop)` ⇒ 2）。
 
+**`scoped` 的保真度（T-C12 的决定）**：读回表**复用** `notation::notation_table`
+（T-C04 的唯一实现），它的语义是「**这段文本结束时**生效的那些」——**两遍扫描**：
+先收齐所有 `open scoped`，再按声明顺序过滤 `scoped` 记法。
+
+* **不做**位置精确（parser 的 `opened_scopes` 是**逐命令**推进的：`open scoped`
+  只影响**它之后**的代码）。读回通道只有一段前缀、不关心"用在哪一行"，
+  "结束时生效"才是它要的答案；位置精确是**编译期**的关切，parser 已经做对了。
+* **必须两遍**：一遍扫描会让「先 `scoped infix` 声明、后 `open scoped`」
+  （**正常写法**：声明在库里、`open` 在使用处）漏掉那条记法——那是台账 **G-35**，
+  2026-09-21 已修（`fixed_in = 0.64.2`）。主通道 parser 两个方向都对
+  （`activate_scope` 的 pending 表 + 记住作用域），读回表要对齐的就是这个语义。
+
 **两个口径别混**（名字都叫过 "arity"）：**telescope**（本模块的 `arity`，对应
 `spine.len()`）vs **操作数个数**（记法自己写出来的位置，二元 infix = 2）。
 两者之差 = **前导参数**（`∈` 的 `α`），折叠时丢掉。判据实测：

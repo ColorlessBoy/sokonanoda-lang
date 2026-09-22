@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# G-35 复现：回读用的记法表是**扫一遍**的 —— `open scoped Foo` 写在
-# `scoped infix` **之后**（正常写法）时，表里收不到那条记法。
+# G-35 复现：回读用的记法表曾经是**扫一遍**的 —— `open scoped Foo` 写在
+# `scoped infix` **之后**（正常写法）时收不到那条记法。
 #
-# 退出码（docs/gaps/README.md）：0 = 缺口仍在 · 1 = 行为已变 · 2 = 环境异常。
+# 退出码（docs/gaps/README.md）：0 = 缺口仍在 · 1 = 已修 · 2 = 环境异常。
+#
+# 判据是 `crates/front/src/notation.rs` 的特征化测试
+# `open_scoped_after_the_notation_is_collected`：它断言**正确**行为
+# （两个方向都收得到）。所以：
+#   测试红 = 缺口仍在（扫一遍）⇒ exit 0
+#   测试绿 = 已修（两遍扫描）  ⇒ exit 1
 #
 # 为什么用 cargo 而不是 `scripts/soko`：`notation_table` 是 `pub(crate)`，
-# CLI 走不到它；而这个缺口的**用户可见路径**今天不存在（课程不用 `scoped` 记法），
-# 所以只能钉内部行为——`crates/front/src/notation.rs` 的那条特征化测试就是判据。
-# 它绿 = 行为还是"扫一遍"（缺口在）；它红 = 有人改成两遍扫描了（回来关账）。
+# CLI 走不到它；而这个缺口的**用户可见路径**很窄（课程不用 `scoped` 记法），
+# 所以只能钉内部行为。
 set -u
 cd "$(dirname "$0")/../../.." || exit 2
 command -v cargo >/dev/null 2>&1 || { echo "需要 cargo" >&2; exit 2; }
@@ -17,9 +22,9 @@ if [ -d /Library/Developer/CommandLineTools ]; then
   export DEVELOPER_DIR
 fi
 if cargo test -q -p sokonanoda-front --lib \
-  notation::tests::open_scoped_after_the_notation_does_not_bring_it_back >/dev/null 2>&1; then
-  echo "   → 缺口仍在：open scoped 写在记法之后 ⇒ 回读表里没有它（扫一遍）"
-  exit 0
+  notation::tests::open_scoped_after_the_notation_is_collected >/dev/null 2>&1; then
+  echo "   → 已修：open scoped 写在记法之前或之后都收得到（两遍扫描）"
+  exit 1
 fi
-echo "   → 行为已变（特征化测试红了）⇒ 回来更新台账并关账"
-exit 1
+echo "   → 缺口仍在：回读表扫一遍 ⇒ open scoped 写在记法之后时收不到它"
+exit 0
