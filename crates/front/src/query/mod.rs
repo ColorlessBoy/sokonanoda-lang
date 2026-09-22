@@ -216,6 +216,32 @@ impl QueryDoc {
         self.overlay == overlay
     }
 
+    /// 把 `other` 的**视图**（handlers 读的那些）搬进 `self`（T-A30）。
+    ///
+    /// 用途：编译在**载体**上跑（`crates/lsp/src/lib.rs` 的 `compile_one`），
+    /// 装回时把结果交给 handlers 读的那一份。
+    ///
+    /// **为什么是复制视图而不是整体互换**：载体必须**完整**保留"输入 X 的状态"
+    /// ——它下一次编译的第一件事就是 [`Self::set_text`] 的短路（「我上次编的就是
+    /// 这一版 ⇒ 不用编」），而短路之后它交出去的就是这份状态。只把"输入"字段
+    /// 同步回去、把视图留在旧状态上，短路一命中就会把**两轮之前**的报告装给
+    /// handlers（实测：`project_modules()` 变 `None`，扇出判定当场失效）。
+    ///
+    /// 代价是每次编译多一次视图克隆（报告 + 事件 + 项目视图）——毫秒级，而它
+    /// 换掉的是整闭包重编（秒级）。
+    pub fn adopt_view(&mut self, other: &QueryDoc) {
+        self.text = other.text.clone();
+        self.version = other.version;
+        self.mode = other.mode;
+        self.path = other.path.clone();
+        self.overlay = other.overlay.clone();
+        self.report = other.report.clone();
+        self.output = other.output.clone();
+        self.project = other.project.clone();
+        self.parse_error = other.parse_error.clone();
+        self.project_reason = other.project_reason;
+    }
+
     /// 文本里有 `import` 且能定位入口（`--file` 或 `--root`）时，编译整个
     /// 闭包并返回项目报告；否则 `None`（单文件路径，行为与今天一致）。
     fn project_compile(&self, text: &str) -> Option<crate::project::ProjectReport> {

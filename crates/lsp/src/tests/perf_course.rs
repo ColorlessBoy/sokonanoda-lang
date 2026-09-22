@@ -54,6 +54,11 @@ async fn open_course_unit(
         .join(rel);
     let text = std::fs::read_to_string(&path)
         .unwrap_or_else(|error| panic!("读不到 {}：{error}", path.display()));
+    // **规范化**（T-A30）：`Path::join("..")` 拼出来的路径带 `..`，而
+    // `Url::from_file_path` 不化简它 ⇒ 得到的 URI 与服务端发布的那个**字符串
+    // 不等**（`Url` 的 `==` 是字符串比较）。以前 drain 不按 URI 过滤，所以没暴露；
+    // 现在要按 URI 等诊断，必须两边同形。
+    let path = std::fs::canonicalize(&path).unwrap_or(path);
     let uri = Url::from_file_path(&path).expect("file url");
 
     let start = std::time::Instant::now();
@@ -165,7 +170,10 @@ async fn perf_course_keystroke_is_recorded() {
     let rel = "units/unit08-images-preimages.sokonanoda";
     let path = root_dir.join(rel);
     let text = std::fs::read_to_string(&path).expect("读课程单元");
-    let uri = Url::from_file_path(&path).expect("file url");
+    // 规范化（同 `open_course_unit`）：`root_dir` 是从 `CARGO_MANIFEST_DIR/../..`
+    // 拼出来的，带 `..` 的路径 `Url::from_file_path` 不化简 ⇒ URI 字符串与服务端
+    // 发布的不等（`Url` 的 `==` 是字符串比较），按 URI 等诊断会永远等不到。
+    let uri = Url::from_file_path(std::fs::canonicalize(&path).unwrap_or(path)).expect("file url");
     testutil::did_open_at_drained(&mut service, &mut socket, &uri, &text).await;
 
     // 来回改同一个标识符 3 次取最小（口径同 `perf.rs` 的按键用例：这个 lib 测试
@@ -231,7 +239,10 @@ async fn perf_course_save_same_text_is_recorded() {
     let rel = "units/unit08-images-preimages.sokonanoda";
     let path = root_dir.join(rel);
     let text = std::fs::read_to_string(&path).expect("读课程单元");
-    let uri = Url::from_file_path(&path).expect("file url");
+    // 规范化（同 `open_course_unit`）：`root_dir` 是从 `CARGO_MANIFEST_DIR/../..`
+    // 拼出来的，带 `..` 的路径 `Url::from_file_path` 不化简 ⇒ URI 字符串与服务端
+    // 发布的不等（`Url` 的 `==` 是字符串比较），按 URI 等诊断会永远等不到。
+    let uri = Url::from_file_path(std::fs::canonicalize(&path).unwrap_or(path)).expect("file url");
     testutil::did_open_at_drained(&mut service, &mut socket, &uri, &text).await;
 
     // 同一份文本，走 didChange（保存 / 编辑器外改动的形状）。来回 3 次取最小。
@@ -284,7 +295,10 @@ async fn perf_course_watched_unchanged_file_is_recorded() {
     let rel = "units/unit08-images-preimages.sokonanoda";
     let path = root_dir.join(rel);
     let text = std::fs::read_to_string(&path).expect("读课程单元");
-    let uri = Url::from_file_path(&path).expect("file url");
+    // 规范化（同 `open_course_unit`）：`root_dir` 是从 `CARGO_MANIFEST_DIR/../..`
+    // 拼出来的，带 `..` 的路径 `Url::from_file_path` 不化简 ⇒ URI 字符串与服务端
+    // 发布的不等（`Url` 的 `==` 是字符串比较），按 URI 等诊断会永远等不到。
+    let uri = Url::from_file_path(std::fs::canonicalize(&path).unwrap_or(path)).expect("file url");
     testutil::did_open_at_drained(&mut service, &mut socket, &uri, &text).await;
 
     // 磁盘内容一个字节没动，只发一条 watcher 通知（保存 / 外部重写同字节）。
@@ -296,6 +310,7 @@ async fn perf_course_watched_unchanged_file_is_recorded() {
             &mut socket,
             "workspace/didChangeWatchedFiles",
             serde_json::json!({"changes": [{"uri": uri, "type": 2}]}),
+            std::slice::from_ref(&uri),
         )
         .await;
         best = best.min(start.elapsed().as_millis());

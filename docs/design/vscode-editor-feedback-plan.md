@@ -1308,7 +1308,14 @@ LSP 探针（`initialize(rootUri=仓库根)` → `didOpen` → `soko/goals` + `d
 
 #### T-A30 编译不再独占 `Mutex<Docs>`
 
-> **2026-09-21：已量清，**未完成**（刻意留着）。**
+> **✅ 2026-09-21 完成（as-built 见 `docs/design/lsp-edit-concurrency.md` §7）。**
+>
+> **判据**（`crates/lsp/tests/lsp_edit_concurrency.rs`，两条都进 CI）：
+> ① 一次 ~1.2s 编译进行中的 `soko/stateAt` **1277ms → <1ms**；
+> ② 打开 + 连打 5 个键的**编译趟数** 6 → **≤3**（编辑被合并）。
+> 代价明写在 `docs/PERF.md`：重建慢的文件下一次编辑等 120ms 静默期。
+>
+> 下面那段是**修之前**的记录，留着当"为什么这么做"的现场：
 >
 > 缺口成立且很严重：冷编译 unit12（8.9s）期间，第一个 `soko/stateAt`
 > 等了 **8907ms**（另一次 unit12-solution 是 **24393ms**）——整个 LSP 冻结。
@@ -2651,7 +2658,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   - ⬆ **BUMP**：`minor` —— LSP 接入项目缓存：重启编辑器后重开同一文件不再等 1.8–8.5s
 - [x] `T-A15` 命中缓存后 Session 快照的处置
 - [x] `T-A23` 扇出：改一个依赖不重编所有打开文档
-- [ ] `T-A30` 编译不再独占 `Mutex<Docs>`
+- [x] `T-A30` 编译不再独占 `Mutex<Docs>`
 - [ ] `T-A60` 缓存与扇出的 e2e 断言
 - [ ] `T-A50` 设计文档 as-built
 - [ ] `T-A51` 性能台账收口

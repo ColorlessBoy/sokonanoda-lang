@@ -2109,3 +2109,25 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
      `misses`，**都要落到"一趟 pass 的量级"**；
   5. 复现件：`docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh`
      （已进 `gap.py check` ⇒ gate 与 CI）。
+
+* **2026-09-21（编辑时的并发：编译不许挡住编辑器；连打不许变慢）** —— 用户原话：
+
+  > 并发正确性……这个我认为完全可以优化，你调研一下其他开源项目怎么做的。
+  > **编辑同一个地方，那就取消前一个编译。编译不同的地方，那代码块都不一样，
+  > 触发的编译热更新的地方都不一样。不管怎么样，多次编辑不应该导致性能变差。**
+
+  **要求**（三条都成立，实现见 `docs/design/lsp-edit-concurrency.md` §7）：
+  1. **编译不许挡住消息循环**：一次长编译进行中，只读请求（`soko/stateAt` /
+     hover / 目标栏）必须立刻答——用手上那份**上一次完成的状态**，而不是干等
+     （clangd 的原话："methods should not block"）。判据：
+     `crates/lsp/tests/lsp_edit_concurrency.rs` 的
+     `read_only_requests_answer_while_a_long_compile_is_running`（改前 1277ms，
+     判据 <100ms）；
+  2. **同处编辑取代前一次**：同一份文档同时只有一个编译任务，编辑期间来的新版本
+     只把"待编"换成最新那份（版本号校验、过期的结果丢弃）；
+  3. **多次编辑不许导致性能变差**：N 次快速编辑编译趟数**不随 N 线性增长**
+     （判据：`rapid_edits_coalesce_instead_of_queueing`，连打 5 个键 ≤3 趟）。
+  4. **允许的代价，必须记账不许藏**：重建慢的文件（上一次编译 ≥150ms）下一次编辑
+     等一个 **120ms 静默期**（clangd 的规则；`SOKO_DEBOUNCE_MS` 可覆盖），
+     小文件不防抖。翻这个账要看 `docs/PERF.md` 的 T-A30 小节。
+  5. **内核仍可为此改**（硬规则 1 的解冻同样适用）：只要判定结果不变。

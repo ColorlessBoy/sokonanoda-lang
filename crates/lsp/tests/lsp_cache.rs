@@ -8,9 +8,10 @@
 //! 跑的是**真的 `sokonanoda-lsp` 进程**（`env!("CARGO_BIN_EXE_sokonanoda-lsp")`），
 //! 因为要验证的正是"跨进程复用缓存"——同进程内测不到。
 
-use std::io::{BufRead, BufReader, Read, Write};
+mod common;
+
+use common::Client;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
 
 const LIB: &str = "\
 def Set (α : Type) : Type := α -> Prop\n\
@@ -59,129 +60,6 @@ impl Drop for Fixture {
     }
 }
 
-/// 一个最小的 stdio LSP 客户端：只会 `initialize` + `didOpen` + 等诊断。
-struct Client {
-    child: Child,
-    reader: BufReader<std::process::ChildStdout>,
-}
-
-impl Client {
-    fn start(cache: &Path) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_sokonanoda-lsp"))
-            .env("SOKONANODA_CACHE_DIR", cache)
-            .env_remove("SOKONANODA_NO_CACHE")
-            .env_remove("SOKONANODA_LSP_BIN")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            // stderr 丢掉：管道写满会把这个进程堵死。
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("spawn sokonanoda-lsp");
-        let reader = BufReader::new(child.stdout.take().expect("stdout"));
-        Self { child, reader }
-    }
-
-    fn send(&mut self, message: serde_json::Value) {
-        let body = serde_json::to_vec(&message).expect("serialize");
-        let stdin = self.child.stdin.as_mut().expect("stdin");
-        write!(stdin, "Content-Length: {}\r\n\r\n", body.len()).expect("write header");
-        stdin.write_all(&body).expect("write body");
-        stdin.flush().expect("flush");
-    }
-
-    fn next_message(&mut self) -> serde_json::Value {
-        let mut length = 0usize;
-        loop {
-            let mut line = String::new();
-            let read = self.reader.read_line(&mut line).expect("read header");
-            assert!(read > 0, "LSP 在回答之前退出了");
-            if let Some(rest) = line.strip_prefix("Content-Length:") {
-                length = rest.trim().parse().expect("content length");
-            }
-            if line == "\r\n" {
-                break;
-            }
-        }
-        let mut body = vec![0u8; length];
-        self.reader.read_exact(&mut body).expect("read body");
-        serde_json::from_slice(&body).expect("parse message")
-    }
-
-    fn wait_for<F: Fn(&serde_json::Value) -> bool>(&mut self, predicate: F) -> serde_json::Value {
-        for _ in 0..200 {
-            let message = self.next_message();
-            if predicate(&message) {
-                return message;
-            }
-        }
-        panic!("等不到期望的消息");
-    }
-
-    fn initialize(&mut self, fixture: &Fixture) {
-        self.send(serde_json::json!({
-            "jsonrpc": "2.0", "id": 1, "method": "initialize",
-            "params": {"processId": null, "rootUri": format!("file://{}", fixture.dir.display()),
-                       "capabilities": {}},
-        }));
-        self.wait_for(|message| message.get("id") == Some(&serde_json::json!(1)));
-        self.send(serde_json::json!({"jsonrpc": "2.0", "method": "initialized", "params": {}}));
-    }
-
-    /// `initialize` + `initialized` + `didOpen`，返回诊断正文（JSON 文本，用于逐字节比较）。
-    fn open(&mut self, fixture: &Fixture) -> String {
-        self.initialize(fixture);
-        self.did_open(fixture);
-        let published = self.wait_for(|message| {
-            message.get("method") == Some(&serde_json::json!("textDocument/publishDiagnostics"))
-        });
-        serde_json::to_string(&published["params"]["diagnostics"]).expect("serialize diagnostics")
-    }
-
-    fn did_open(&mut self, fixture: &Fixture) {
-        self.send(serde_json::json!({
-            "jsonrpc": "2.0", "method": "textDocument/didOpen",
-            "params": {"textDocument": {
-                "uri": fixture.uri(), "languageId": "sokonanoda", "version": 1, "text": ENTRY,
-            }},
-        }));
-    }
-
-    /// 在 `needle` 第一次出现的位置问 `textDocument/definition`，返回目标文件路径。
-    fn definition_at(&mut self, fixture: &Fixture, needle: &str) -> Vec<String> {
-        let offset = ENTRY.find(needle).expect("needle 必须在入口里");
-        let before = &ENTRY[..offset];
-        let line = before.matches('\n').count();
-        let character = before.rsplit('\n').next().map(str::len).unwrap_or(0);
-        self.send(serde_json::json!({
-            "jsonrpc": "2.0", "id": 7, "method": "textDocument/definition",
-            "params": {"textDocument": {"uri": fixture.uri()},
-                       "position": {"line": line, "character": character}},
-        }));
-        let answer = self.wait_for(|message| message.get("id") == Some(&serde_json::json!(7)));
-        let result = &answer["result"];
-        let items = match result {
-            serde_json::Value::Array(items) => items.clone(),
-            serde_json::Value::Null => vec![],
-            other => vec![other.clone()],
-        };
-        items
-            .iter()
-            .filter_map(|item| {
-                item.get("uri")
-                    .and_then(|uri| uri.as_str())
-                    .map(str::to_string)
-            })
-            .collect()
-    }
-}
-
-impl Drop for Client {
-    fn drop(&mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
-}
-
 fn cache_entries(cache: &Path) -> usize {
     std::fs::read_dir(cache.join("compiled"))
         .map(|dir| dir.filter_map(Result::ok).count())
@@ -198,7 +76,7 @@ fn opening_a_project_document_writes_a_cache_entry() {
     assert_eq!(cache_entries(&fixture.cache), 0, "夹具前提：缓存是空的");
 
     let mut client = Client::start(&fixture.cache);
-    let diagnostics = client.open(&fixture);
+    let diagnostics = client.open(&fixture.dir, &fixture.uri(), ENTRY);
     assert!(
         diagnostics.contains("sorry"),
         "夹具前提：诊断里应当有那条 sorry：{diagnostics}"
@@ -223,14 +101,14 @@ fn a_warm_process_publishes_byte_identical_diagnostics() {
     // 冷：全新缓存，真编译，同时把条目写下（T-A11）。
     let cold = {
         let mut client = Client::start(&fixture.cache);
-        client.open(&fixture)
+        client.open(&fixture.dir, &fixture.uri(), ENTRY)
     };
     assert!(cache_entries(&fixture.cache) >= 1, "冷跑必须写下条目");
 
     // 热：另一个进程，同一份缓存。
     let warm = {
         let mut client = Client::start(&fixture.cache);
-        client.open(&fixture)
+        client.open(&fixture.dir, &fixture.uri(), ENTRY)
     };
 
     assert_eq!(
@@ -255,12 +133,12 @@ fn cross_file_definition_still_works_after_a_cache_hit() {
     // 冷：全新缓存，真编译，写下条目。
     let cold = {
         let mut client = Client::start(&fixture.cache);
-        let diagnostics = client.open(&fixture);
+        let diagnostics = client.open(&fixture.dir, &fixture.uri(), ENTRY);
         assert!(
             !diagnostics.contains("elab-unknown"),
             "夹具前提：这份入口必须编译得干净：{diagnostics}"
         );
-        client.definition_at(&fixture, "Set.mem α a A ->")
+        client.definition_at(&fixture.uri(), ENTRY, "Set.mem α a A ->")
     };
     assert_eq!(
         cold.len(),
@@ -275,8 +153,8 @@ fn cross_file_definition_still_works_after_a_cache_hit() {
     // 热：另一个进程，同一份缓存。
     let warm = {
         let mut client = Client::start(&fixture.cache);
-        client.open(&fixture);
-        client.definition_at(&fixture, "Set.mem α a A ->")
+        client.open(&fixture.dir, &fixture.uri(), ENTRY);
+        client.definition_at(&fixture.uri(), ENTRY, "Set.mem α a A ->")
     };
     assert_eq!(
         cold, warm,

@@ -149,6 +149,7 @@ pub(crate) async fn notify_with_drain(
     socket: &mut ClientSocket,
     method: &'static str,
     params: Value,
+    expect: &[Url],
 ) -> Vec<PublishDiagnosticsParams> {
     let mut collected: Vec<PublishDiagnosticsParams> = Vec::new();
     {
@@ -165,6 +166,20 @@ pub(crate) async fn notify_with_drain(
         }
     }
     // 服务端处理完 ⇒ 它发的消息都已经在队列里，直接取（非阻塞）。
+    while let Some(Some(msg)) = socket.next().now_or_never() {
+        push_diagnostics(&mut collected, msg);
+    }
+    // **T-A30 起编译在别的任务里跑**：通知返回时诊断还没到（这正是"不阻塞消息
+    // 循环"的代价）。所以这里**等到期望的每份文档都发过一轮**，再收队列里剩下
+    // 的——否则测试量到的是"还没编"的中间态，而它断言的是编译之后的样子。
+    // 已经在 drain 阶段收到的不再等（否则会等一条永远不来的第二条）。
+    for uri in expect {
+        if collected.iter().any(|params| &params.uri == uri) {
+            continue;
+        }
+        let params = wait_diagnostics_for(socket, uri, "drained notify").await;
+        collected.push(params);
+    }
     while let Some(Some(msg)) = socket.next().now_or_never() {
         push_diagnostics(&mut collected, msg);
     }
@@ -229,6 +244,7 @@ pub(crate) async fn did_open_at_drained(
         json!({"textDocument": {
             "uri": uri, "languageId": "sokonanoda", "version": 1, "text": text
         }}),
+        std::slice::from_ref(uri),
     )
     .await
 }
@@ -249,6 +265,7 @@ pub(crate) async fn did_change_at_drained(
             "textDocument": {"uri": uri, "version": version},
             "contentChanges": [{"text": text}],
         }),
+        std::slice::from_ref(uri),
     )
     .await
 }

@@ -180,3 +180,58 @@ clangd 那句话就是判据："methods should not block"。改法：
 **还有一条没量清的**：三段式之后"编辑一次"的耗时反而更高（11654ms vs 3039ms，
 同一次会话内），怀疑是摘要算了两遍（`project_cache::plan` 一次 + `project_compile`
 内部再 load 一次）。重做时要用 `perf-ledger` 的同口径把它量清楚再合入。
+
+## 7. as-built：4.1 + 4.2 落地（T-A30，2026-09-21，0.64.2）
+
+**做成了什么**（§6 那张"哪里做坏了"的清单逐条还清）：
+
+| §6 的坑 | 这一版怎么还的 |
+|---|---|
+| ① 新路径绕开 `Doc::set_text` ⇒ **读缓存没了**（热开 8ms → 810ms） | **不另起编译路径**：编译载体就是一个 `Doc`，走的就是 `Doc::set_text` 本身 ⇒ 读缓存 / 写缓存 / `parse_error` 折叠一样不少 |
+| ② `set_cached_entry` 只装"报告那一半" | 同上——不再有第二条装配路径，`pending_text` / `pending_version` 由 LSP 侧自己维护 |
+| ③ 短路判据必须是**闭包摘要**不是"文本 + 覆盖" | 短路仍在 `Doc::set_text` 里（T-A21 原样），而它现在跑在**载体**上——载体持有上一次编译的文本/模式/路径/覆盖，判据完整 |
+| ④ `tokio::spawn` 落到 2MB 栈的 worker ⇒ 栈溢出 | `run()` 换手写 `Builder`：`thread_stack_size(32MB)` |
+| ⑤ "编辑一次反而更慢"（摘要算两遍） | 消失：摘要仍只算一次（`Doc::set_text` 里那一处） |
+
+**结构**（`crates/lsp/src/lib.rs`）：
+
+```
+Backend { client, doc: Arc<Mutex<Docs>>, compile: Arc<Compiler> }
+Compiler { pending, carriers, inflight, debounce, cost }
+```
+
+* `did_open` / `did_change` / `did_save` / `did_change_watched_files` →
+  `Backend::schedule_refresh`：**同步**记下最新文本 + 版本，**不 await 编译**；
+* `compile_worker`（spawn 出去的任务）：防抖 → 锁外编译 → 版本校验 → 装回 →
+  发布 → 扇出；
+* **装回是零克隆的整体互换**：`std::mem::swap(committed, carrier)`，但**增量
+  会话留在载体里**（它才是"编译的连续状态"），`published` 账本跟着**文档**走。
+  于是 handlers 在编译期间读到的是**完整**的上一次状态（文本与报告同源），
+  而不是"新文本 + 旧报告"。
+* **扇出改成调度**：下游文档各起一个任务（`always: false`，只在诊断真变了时
+  才发），不在一个任务里串行编完 N 份。
+
+**防抖是自适应的**（clangd 的原话：debouncing is applied for files whose
+rebuild is slow）：只有**上一次编译 ≥150ms** 的文档才等静默期（默认 120ms，
+`SOKO_DEBOUNCE_MS` 可覆盖）。小文件立刻编——一刀切地防抖会把每次编辑的诊断都
+推迟 120ms，那是拿反馈延迟换不冻结，对小文件纯亏（实测：
+`perf_did_change_latency` 的 50 声明夹具从 ~10ms 涨到 122ms）。
+
+**实测**（真进程，判据 `crates/lsp/tests/lsp_edit_concurrency.rs`）：
+
+| | 改前 | 改后 |
+|---|---|---|
+| 一次 ~1.2s 编译进行中的 `soko/stateAt` | **1277ms**（= 整个编译期） | **< 1ms** |
+| 编译本身 | 1.2s | 1.2s（没变） |
+
+**还没做**（诚实记账）：
+
+* **4.3 异处编辑保留成果**（K1 模块层 / K2 命令层）——真正的"编辑变快"大头，
+  仍在线 K；
+* **4.4 每文档一个队列**：现在每份文档**同时只有一个**编译任务（`inflight`），
+  但不同文档的任务可以并发跑（各自 `tokio::spawn`）——已经是 clangd 的
+  `ASTWorker` 形状，只是没有显式的队列与优先级；
+* `$/cancelRequest` 与 Lean 那种"从改动那条命令起重编"（命令级 task chain）
+  都没做；
+* 设计 §4.2 提到的 `-- soko:debounce` **文件内指令**没做——自适应防抖覆盖了
+  它的用途，需要时用 `SOKO_DEBOUNCE_MS`。

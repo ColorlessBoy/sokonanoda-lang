@@ -49,7 +49,9 @@ use sokonanoda_front::project::cache as project_cache;
 use sokonanoda_front::query::{decl_name, QueryDoc};
 use sokonanoda_front::semantic::{semantic_tokens as front_semantic_tokens, SemanticKind};
 use sokonanoda_front::Span;
-use std::sync::Mutex;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tokens::{encode_semantic_tokens, semantic_token_options};
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -65,6 +67,24 @@ struct Doc {
     /// 让好几份文档重新编译，但"没变的就别发"能省掉大量无谓的 publish
     /// （也避免服务端在测试/慢客户端上被自己的通知堵住）。
     published: Vec<Diagnostic>,
+    /// 已经交给编译任务、但还没装回的文本（T-A30）。
+    ///
+    /// **为什么需要它**：编译在别的任务里跑，而"最新文本"必须**同步**可见——
+    /// ① 后续 `did_change` 的"文本没变就短路"（T-A21）要比的是它；
+    /// ② `did_change_watched_files` 判断"要不要重编"读的也是它；
+    /// ③ 编译期间到达的只读请求看的是**上一次完成的状态**（`doc`），不是它
+    ///    ——这是有意的（clangd：用此刻手上有的那一份），但"还在编什么"要看得见。
+    pending_text: Option<String>,
+    /// 上面那份文本对应的 LSP 版本（装回时的版本校验用）。
+    pending_version: i32,
+    /// 上一次编译用的**闭包摘要**（T-A30）。
+    ///
+    /// **项目文档的短路判据是它，不是文本**：依赖可能在**磁盘上**被改了
+    /// （`git checkout` / 另一个编辑器），这份文档自己的文本一个字节没变，但闭包
+    /// 结果会变——只看文本会把旧诊断一直显示下去（`docs/design/lsp-edit-concurrency.md`
+    /// §6 坑③）。摘要只**读文件 + 哈希**，比"重编一遍闭包"便宜三个数量级。
+    /// `None` = 单文件文档（文本 + 模式本身就决定结果）。
+    compiled_digest: Option<String>,
 }
 
 impl Doc {
@@ -72,6 +92,9 @@ impl Doc {
         Self {
             doc: QueryDoc::new(),
             published: Vec::new(),
+            pending_text: None,
+            pending_version: 0,
+            compiled_digest: None,
         }
     }
 
@@ -101,6 +124,16 @@ impl Doc {
     /// 当前文本（`doc.text()` 的读法）。
     fn text(&self) -> &str {
         &self.doc.text
+    }
+
+    /// **最新已知**文本：有在编的就用待编的那份。
+    ///
+    /// 与 [`Self::text`] 的分工：`text` 是**上一次编译用的**文本（它与 `report`
+    /// 同源，handlers 读它才不会看到"新文本 + 旧报告"）；`latest_text` 是**用户
+    /// 缓冲区里**的文本，只有"决定还要不要再编一次"的地方该用它——用 `text`
+    /// 会把过时文本排进编译。
+    fn latest_text(&self) -> &str {
+        self.pending_text.as_deref().unwrap_or(&self.doc.text)
     }
 
     /// 真相层本体：`soko/*` 的每个查询入口（`goals` / `holes` / `next_hole` /
@@ -147,6 +180,18 @@ impl Doc {
         // 有 `import` 的文档走**项目闭包**：单文件缓存键会张冠李戴（依赖不在
         // 键里），所以这里既不复用也不写入单文件缓存（I16 P5）。
         let has_imports = sokonanoda_front::project::is_project_source(text);
+        // **闭包摘要先算**（T-A30）：项目文档的短路判据是它，不是文本——依赖可能
+        // 在磁盘上被改了，文本没变但结果会变。它只读文件 + 哈希（毫秒级），而
+        // 短路省下的是一次整闭包编译（秒级）。`cfg!(test)` 只挡**缓存读写**，
+        // 不挡摘要本身（摘要不碰缓存目录）。
+        let project_digest = if !has_imports {
+            None
+        } else {
+            path.as_deref().map(|entry| {
+                let (_, digest) = project_cache::plan(entry, Some(text), None, overlay, &options);
+                digest
+            })
+        };
         // **文本、prelude 模式、入口路径、依赖覆盖都没变 ⇒ 不重编**（A7 / T-A21）。
         // 保存（`didSave`）与编辑器外改动（`workspace/didChangeWatchedFiles`）
         // 会带着**完全相同的文本**再走一遍这里——以前那会重编整个闭包
@@ -156,6 +201,9 @@ impl Doc {
             && self.doc.mode == mode
             && self.doc.path == path
             && self.doc.overlay_matches(overlay)
+            && project_digest
+                .as_deref()
+                .is_none_or(|digest| self.compiled_digest.as_deref() == Some(digest))
         {
             self.doc.version = lsp_version as u64;
             return;
@@ -176,14 +224,6 @@ impl Doc {
         // 污染（既有纪律）。判据走真进程（`docs/gaps/repro/G25-…`）。
         //
         // 摘要**只算一次**，读（T-A10）与写（T-A11）共用同一个键。
-        let project_digest = if cfg!(test) || !has_imports {
-            None
-        } else {
-            self.doc.path.as_deref().map(|entry| {
-                let (_, digest) = project_cache::plan(entry, Some(text), None, overlay, &options);
-                digest
-            })
-        };
         let cached = if cfg!(test) {
             None
         } else if let Some(digest) = &project_digest {
@@ -208,11 +248,13 @@ impl Doc {
                 output,
                 entry.project,
             );
+            self.compiled_digest = project_digest;
             return;
         }
         // 原地复用会话（I8 增量的关键）：prelude 模式变化时由真相层重建。
         self.doc
             .set_text_with_overlay(text, lsp_version as u64, Some(mode), overlay);
+        self.compiled_digest = project_digest.clone();
         if self.doc.parse_error.is_some() && !self.doc.project_entry_compiled() {
             // LSP 既有契约：parse 失败时**没有报告**（hover / documentSymbol /
             // codeAction / inlayHint 等据此回答 `null`）。真相层用"空报告 +
@@ -293,11 +335,6 @@ impl Docs {
         self.active.as_ref().and_then(|uri| self.map.get(uri))
     }
 
-    fn active_mut(&mut self) -> Option<&mut Doc> {
-        let uri = self.active.clone()?;
-        self.map.get_mut(&uri)
-    }
-
     fn remove(&mut self, uri: &Url) {
         self.map.remove(uri);
         self.order.retain(|item| item != uri);
@@ -306,26 +343,54 @@ impl Docs {
         }
     }
 
-    /// 换某份**已打开**文档的文本并重编译，**不动活跃文档**。
+    /// 打开文档的**内存覆盖**（依赖的未保存编辑对闭包编译可见，I16 P5）。
     ///
-    /// 依赖变更后刷新下游必须用它：早先的写法是 `focus(&other)` 再改，结果活跃
-    /// 文档被留在下游文件上——下一次 hover / goals / codeLens 就会答出**另一份**
-    /// 文档的结果（多文档下的静默错答，I16 P5 实测）。路径与根都从这份文档自己的
-    /// URI 推，不借用活跃文档的。
-    fn set_text_at(
-        &mut self,
-        uri: &Url,
-        text: &str,
-        version: i32,
-        mode: Option<PreludeMode>,
-        overlay: &[(std::path::PathBuf, String)],
-    ) {
-        let path = uri.to_file_path().ok();
-        let Some(doc) = self.map.get_mut(uri) else {
-            return;
+    /// `text` 是**这份**文档的待编文本：map 里它还是上一版，必须换掉，否则
+    /// 下游重编译看到的还是上一版依赖（实测踩过：改了依赖但入口没反应）。
+    fn overlay_for(&self, uri: &Url, text: &str) -> Vec<(std::path::PathBuf, String)> {
+        let mut overlay: Vec<(std::path::PathBuf, String)> = self
+            .order
+            .iter()
+            .filter_map(|open| {
+                let path = open.to_file_path().ok()?;
+                let doc = self.map.get(open)?;
+                (!doc.latest_text().is_empty()).then(|| (path, doc.latest_text().to_string()))
+            })
+            .collect();
+        if let Ok(changed) = uri.to_file_path() {
+            if let Some(entry) = overlay
+                .iter_mut()
+                .find(|(path, _)| same_file(path, &changed))
+            {
+                entry.1 = text.to_string();
+            }
+        }
+        overlay
+    }
+
+    /// 闭包里含 `changed` 的**其它**已打开文档（T-A23 跨文件失效的扇出面）。
+    ///
+    /// 只挑真的受影响的：多文档项目里"改 A 也重编译 B"是常态，但只有闭包里
+    /// 含这份改动的才值得重编。
+    fn stale_downstream(&self, changed: &Url) -> Vec<Url> {
+        let Ok(changed_path) = changed.to_file_path() else {
+            return Vec::new();
         };
-        // 模块根交给 front 按 CLI 同款规则发现（清单 → 入口目录）。
-        doc.set_text(text, version, mode, path, overlay);
+        self.order
+            .iter()
+            .filter(|other| *other != changed)
+            .filter(|other| {
+                self.map
+                    .get(other)
+                    .and_then(|doc| doc.query().project_modules())
+                    .is_some_and(|modules| {
+                        modules
+                            .iter()
+                            .any(|module| same_file(&module.path, &changed_path))
+                    })
+            })
+            .cloned()
+            .collect()
     }
 
     /// 请求入口：把活跃文档切到请求指向的那份（带 URI 的请求都该先调它）。
@@ -334,18 +399,6 @@ impl Docs {
     /// 文档，否则会答出另一份文档的 hover / goals / 符号表。
     fn focus_request(&mut self, uri: &Url) {
         self.focus(uri);
-    }
-
-    /// 入口文件路径（来自文档 URI）。
-    ///
-    /// **不返回"模块根"**：模块根必须与 CLI 用同一套发现规则（最近的
-    /// `sokonanoda.toml` → 入口文件所在目录，`--no-project` 时只用后者）。
-    /// 早先这里把 `initialize` 的工作区根当模块根传下去（`root_override`），
-    /// 等于**跳过清单发现**——工作区里嵌套的项目（如仓库根的 workspace 打开
-    /// `course/unit11-project/Canvas.sokonanoda`）就会报 `import-not-found`，
-    /// 而同一个文件在 CLI 下编译正常（2026-09-18 实测）。
-    fn entry_path(&self) -> Option<std::path::PathBuf> {
-        self.active.as_ref().and_then(|uri| uri.to_file_path().ok())
     }
 
     // ---- 与旧 `Doc` 同形的访问器（作用在活跃文档上）----
@@ -421,119 +474,360 @@ fn project_views(docs: &Docs) -> Option<Vec<project_refs::ModuleView<'_>>> {
 
 struct Backend {
     client: Client,
-    doc: Mutex<Docs>,
+    /// **共享**（`Arc`）而不是内嵌：编译要 `tokio::spawn` 出去，而 spawn 的
+    /// future 必须 `'static`——`&self` 借不到。三样东西各自 `Arc` 一份给任务。
+    doc: Arc<Mutex<Docs>>,
+    compile: Arc<Compiler>,
 }
 
 impl Backend {
     fn new(client: Client) -> Self {
         Self {
             client,
-            doc: Mutex::new(Docs::new()),
+            doc: Arc::new(Mutex::new(Docs::new())),
+            compile: Arc::new(Compiler::new()),
         }
     }
 
-    async fn refresh(&self, uri: Url, text: String, version: Option<i32>) {
-        // 教学文档量级小，锁内同步编译可接受（此前也是同步全量编译）。
-        // 文本 →（缓存命中 / 会话式重编译）→ 状态全部由 `Doc::set_text` 负责；
-        // 诊断是那份状态的**视图**，与缓存命中路径逐字一致。
-        let (diagnostics, others) = {
+    /// 记下"这份文档有新文本"，必要时起一个编译任务。**不 await 编译**（T-A30）。
+    ///
+    /// 这是 `did_open` / `did_change` / `did_save` / `did_change_watched_files`
+    /// 的唯一入口：handler 到这里就返回，编译在别的任务里跑，`Docs` 锁**不跨
+    /// 编译**——所以编译期间到达的只读请求（`soko/stateAt` / hover / 目标栏）
+    /// 读到的是**上一次完成的状态**，而不是干等（clangd：「用此刻手上有的那一份」）。
+    ///
+    /// **文本立即落进文档**（`Doc.pending_text`）：后续编辑的"文本没变就短路"
+    /// （T-A21）与 `did_change_watched_files` 的"要不要重编"都读它，读到的必须
+    /// 是最新那版。
+    fn schedule_refresh(&self, uri: Url, text: String, version: Option<i32>) {
+        let lsp_version = {
             let mut docs = self.doc.lock().expect("doc lock");
             docs.focus_or_open(&uri);
-            let mode = prelude_mode_from_source(&text);
             let lsp_version = version.unwrap_or_else(|| docs.version());
-            let path = docs.entry_path();
-            // **打开文档的内存文本就是编译器该看到的文本**（未保存的编辑也算）：
-            // 先收齐覆盖，再逐份编译——依赖改了，下游文档的下一次编译就能看到它。
-            // **打开文档的内存文本就是编译器该看到的文本**（未保存的编辑也算）。
-            // 注意：这份 map 里当前文档还是**旧**文本，必须先把新文本替进去，
-            // 否则下游重编译看到的还是上一版依赖（实测踩过：改了依赖但入口没反应）。
-            let mut overlay: Vec<(std::path::PathBuf, String)> = docs
-                .order
-                .iter()
-                .filter_map(|open| {
-                    let path = open.to_file_path().ok()?;
-                    let doc = docs.map.get(open)?;
-                    (!doc.text().is_empty()).then(|| (path, doc.text().to_string()))
-                })
-                .collect();
-            if let Ok(changed) = uri.to_file_path() {
-                if let Some(entry) = overlay
-                    .iter_mut()
-                    .find(|(path, _)| same_file(path, &changed))
-                {
-                    entry.1 = text.clone();
-                }
-            }
-            if let Some(doc) = docs.active_mut() {
-                doc.set_text(&text, lsp_version, Some(mode), path, &overlay);
-            }
-            let diagnostics = docs.active_doc().diagnostics();
-            if let Some(doc) = docs.active_mut() {
-                doc.published = diagnostics.clone();
-            }
-            // 依赖变了 ⇒ 打开着的下游文档跟着重编译（I16 P5 跨文件失效）。
-            // 只重编译**闭包里含这份改动**的文档（其余文档重发上次诊断即可），
-            // 全部同步做完再发通知：`docs` 锁不跨 await，tower-lsp 的串行通知
-            // 不会因此卡住。
-            let changed = uri.to_file_path().ok();
-            let order = docs.order.clone();
-            let mut others: Vec<(Url, Vec<Diagnostic>)> = Vec::new();
-            for other in order {
-                if other == uri {
-                    continue;
-                }
-                let stale = changed.as_deref().is_some_and(|changed| {
-                    docs.map
-                        .get(&other)
-                        .and_then(|doc| doc.query().project_modules())
-                        .is_some_and(|modules| {
-                            modules
-                                .iter()
-                                .any(|module| same_file(&module.path, changed))
-                        })
-                });
-                if stale {
-                    let (other_text, other_version) = match docs.map.get(&other) {
-                        Some(doc) => (doc.text().to_string(), doc.version()),
-                        None => continue,
-                    };
-                    let other_mode = prelude_mode_from_source(&other_text);
-                    docs.set_text_at(
-                        &other,
-                        &other_text,
-                        other_version,
-                        Some(other_mode),
-                        &overlay,
-                    );
-                }
-                let Some(doc) = docs.map.get(&other) else {
-                    continue;
-                };
-                let diagnostics = doc.diagnostics();
-                // 没变就不发：多文档项目里"改 A 也重编译 B"是常态，
-                // 但只有真的受影响的那些文档才值得打扰客户端。
-                if diagnostics == doc.published {
-                    continue;
-                }
-                if let Some(doc) = docs.map.get_mut(&other) {
-                    doc.published = diagnostics.clone();
-                }
-                others.push((other, diagnostics));
-            }
-            (diagnostics, others)
+            let Some(doc) = docs.map.get_mut(&uri) else {
+                return;
+            };
+            doc.pending_text = Some(text.clone());
+            doc.pending_version = lsp_version;
+            lsp_version
         };
-        let _ = self
-            .client
-            .publish_diagnostics(uri, diagnostics, version)
-            .await;
-        for (other, diagnostics) in others {
-            let _ = self
-                .client
-                .publish_diagnostics(other, diagnostics, None)
+        if self.compile.schedule(uri.clone(), text, lsp_version, true) {
+            let client = self.client.clone();
+            let docs = Arc::clone(&self.doc);
+            let compile = Arc::clone(&self.compile);
+            tokio::spawn(compile_worker(uri, client, docs, compile));
+        }
+    }
+}
+
+/// 在飞编译的调度（T-A30）。
+///
+/// **为什么要有它**（实测，`docs/PERF.md`）：编译以前在 `Mutex<Docs>` 里同步跑，
+/// 8.9 秒的冷编译期间第一个 `soko/stateAt` 等了 **8907ms**——整个编辑器像死了一样。
+/// 两条独立的病叠在一起：① 编译占着 `Docs` 锁 ⇒ 只读请求全被挡住；② handler
+/// `await` 着编译 ⇒ LSP 的**消息循环本身**也堵住（tower-lsp 串行处理请求）。
+///
+/// **修法**（clangd 的 `TUScheduler`，设计 `docs/design/lsp-edit-concurrency.md`）：
+/// * `did_change` 只把「最新文本 + 版本」记进 `pending` 就返回；
+/// * 编译由 **spawn 出去的任务**做，**不持 `Docs` 锁**；
+/// * **防抖**：等一个静默期再开编；静默期里来了更新的版本就接着等
+///   （消灭"敲 7 个字母编 7 次"）；
+/// * 结果**按版本号**校验后装回；更新的版本已经在路上就丢掉这份
+///   （clangd 的 "writes immediately followed by writes"）。
+struct Compiler {
+    /// 待编：`did_change` 同步写、编译任务取走。
+    pending: Mutex<HashMap<Url, Job>>,
+    /// 每份文档的**编译载体**：长期携带增量会话（I8），只有编译任务碰它。
+    ///
+    /// 为什么不与 `Docs` 里那份合并成一份：编译期间 handlers 要读到**完整**的
+    /// 上一次状态，所以编译不能就地改它。两份 `Doc`，编译完**整体互换**
+    /// （零克隆，见 `install`）——这也顺带绕开了上一版的两个坑：载体走的就是
+    /// `Doc::set_text` 本身，所以**读缓存 / 写缓存 / `parse_error` 折叠**一样不少
+    /// （上一版另起一条编译路径，把读缓存漏了 ⇒ 热开 8ms 退成 810ms）。
+    carriers: Mutex<HashMap<Url, Doc>>,
+    /// 有任务在飞的 URI：同一份文档不并发编译（否则增量会话会被两个任务同时用）。
+    inflight: Mutex<HashSet<Url>>,
+    /// 静默期。`SOKO_DEBOUNCE_MS` 可覆盖（测试用 0）。
+    debounce: Duration,
+    /// 每份文档**上一次编译**的耗时。
+    ///
+    /// **防抖只对"重建慢的文件"生效**（clangd 的原话：debouncing is applied for
+    /// files whose rebuild is slow）。小文件立刻编，"编辑→诊断"的可感延迟不受
+    /// 影响；大闭包才等静默期。一刀切地防抖会把每次编辑的诊断都推迟 120ms
+    /// ——那是拿**反馈延迟**换**不冻结**，对小文件纯亏。
+    cost: Mutex<HashMap<Url, Duration>>,
+}
+
+/// "重建慢"的门槛：上一次编译超过它，下一次编辑就等静默期。
+const SLOW_REBUILD: Duration = Duration::from_millis(150);
+
+/// `SOKO_LSP_TRACE=1` 时每次编译打一行（读一次就缓存——它在每次编译的收尾）。
+fn trace_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var_os("SOKO_LSP_TRACE").is_some())
+}
+
+struct Job {
+    text: String,
+    version: i32,
+    /// **总是发**这份文档的诊断（即使与上一次发的一模一样）。
+    ///
+    /// 被打开/改动的文档走 `true`：客户端要收到"这次是干净的"这个**信号**
+    /// （空数组也是有意义的答复），而 `published` 初值是空数组 ⇒ 只看"变了没"
+    /// 会把首次打开的空诊断吞掉。下游扇出（依赖改了顺带重编的文档）走 `false`
+    /// ——那些不该重复打扰客户端（既有契约：publish-on-change）。
+    always: bool,
+}
+
+impl Compiler {
+    fn new() -> Self {
+        Self {
+            pending: Mutex::new(HashMap::new()),
+            carriers: Mutex::new(HashMap::new()),
+            inflight: Mutex::new(HashSet::new()),
+            debounce: debounce_from_env(),
+            cost: Mutex::new(HashMap::new()),
+        }
+    }
+
+    /// 这份文档这一次该等多久的静默期（0 = 不等）。
+    fn debounce_for(&self, uri: &Url) -> Duration {
+        let slow = self
+            .cost
+            .lock()
+            .expect("cost lock")
+            .get(uri)
+            .is_some_and(|last| *last >= SLOW_REBUILD);
+        if slow {
+            self.debounce
+        } else {
+            Duration::ZERO
+        }
+    }
+
+    fn record_cost(&self, uri: &Url, cost: Duration) {
+        self.cost
+            .lock()
+            .expect("cost lock")
+            .insert(uri.clone(), cost);
+    }
+
+    /// 记下待编；返回 `true` 表示**该起任务**（此前没有在飞的）。
+    ///
+    /// 锁序固定为 `inflight → pending`（`keep_going` 同序），避免死锁。
+    fn schedule(&self, uri: Url, text: String, version: i32, always: bool) -> bool {
+        let mut inflight = self.inflight.lock().expect("inflight lock");
+        self.pending.lock().expect("pending lock").insert(
+            uri.clone(),
+            Job {
+                text,
+                version,
+                always,
+            },
+        );
+        // 已有任务在飞：它下一轮循环会取走这条 pending。
+        inflight.insert(uri)
+    }
+
+    /// 任务退出前的收尾：还有待编就**留下继续跑**（返回 `true`），否则摘掉
+    /// "在飞"标记（返回 `false`）。
+    ///
+    /// 两步必须在**同一把锁**下判定：否则"摘标记"与"新调度插入"之间有窗口——
+    /// 要么起两个任务并发编译同一份文档（增量会话就废了），要么新活插进来时
+    /// 任务已经退出而 `inflight` 还挂着 ⇒ **这份文档从此再也不会被编译**
+    /// （实测：`perf_course_watched_unchanged_file_is_recorded` 第 2 轮起卡死）。
+    fn retire(&self, uri: &Url) -> bool {
+        let mut inflight = self.inflight.lock().expect("inflight lock");
+        if self.pending.lock().expect("pending lock").contains_key(uri) {
+            return true;
+        }
+        inflight.remove(uri);
+        false
+    }
+
+    fn pending_version(&self, uri: &Url) -> Option<i32> {
+        self.pending
+            .lock()
+            .expect("pending lock")
+            .get(uri)
+            .map(|job| job.version)
+    }
+
+    fn take_job(&self, uri: &Url) -> Option<Job> {
+        self.pending.lock().expect("pending lock").remove(uri)
+    }
+
+    fn take_carrier(&self, uri: &Url) -> Doc {
+        self.carriers
+            .lock()
+            .expect("carriers lock")
+            .remove(uri)
+            .unwrap_or_else(Doc::new)
+    }
+
+    fn put_carrier(&self, uri: Url, carrier: Doc) {
+        self.carriers
+            .lock()
+            .expect("carriers lock")
+            .insert(uri, carrier);
+    }
+
+    /// 文档关了：把它的载体与待编一起丢掉（否则会给已关闭的 URI 推诊断）。
+    fn forget(&self, uri: &Url) {
+        self.pending.lock().expect("pending lock").remove(uri);
+        self.carriers.lock().expect("carriers lock").remove(uri);
+        self.cost.lock().expect("cost lock").remove(uri);
+    }
+}
+
+/// 防抖静默期：`SOKO_DEBOUNCE_MS`（毫秒）可覆盖，默认 120ms。
+///
+/// 为什么默认 120ms：clangd 的判据是"用户停手了"——敲 `foo();` 时每敲一个
+/// 字母就重编，会一直看到 `unknown identifier f` 这类**中间态**诊断。
+/// 120ms 比人的击键间隔（~80–200ms）短，不会让"停手后"多等。
+fn debounce_from_env() -> Duration {
+    std::env::var("SOKO_DEBOUNCE_MS")
+        .ok()
+        .and_then(|raw| raw.trim().parse::<u64>().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(Duration::from_millis(120))
+}
+
+/// 一份文档的编译任务：防抖 → 锁外编译 → 版本校验 → 装回 → 发布 → 扇出。
+///
+/// **它不持 `Docs` 锁做编译**（只在取快照与装回时短暂持锁），所以只读请求
+/// 不会等它。任务结束时若还有待编（编译期间又来了编辑），循环再来一轮。
+async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compile: Arc<Compiler>) {
+    loop {
+        // ① 防抖：等静默期；期间版本变了就接着等（clangd 的"写紧跟写"）。
+        while let Some(seen) = compile.pending_version(&uri) {
+            let wait = compile.debounce_for(&uri);
+            if wait.is_zero() {
+                break;
+            }
+            tokio::time::sleep(wait).await;
+            if compile.pending_version(&uri) == Some(seen) {
+                break;
+            }
+        }
+        let Some(job) = compile.take_job(&uri) else {
+            // 没有待编 ⇒ 退休。退休与新调度在同一把锁里判定（见 `retire`）；
+            // 退休前又插进来一条就接着干，别让文档卡死。
+            if compile.retire(&uri) {
+                continue;
+            }
+            return;
+        };
+        let version = job.version;
+        let started = std::time::Instant::now();
+        let out = compile_one(&client, &docs, &compile, &uri, job);
+        let cost = started.elapsed();
+        compile.record_cost(&uri, cost);
+        // 常驻诊断（`SOKO_LSP_TRACE=1`）：每次编译一行。它直接回答"编译有没有
+        // 挡住消息循环"（行与行之间能插进只读请求的应答）与"防抖有没有生效"
+        // （慢文件的下一次编辑会等静默期）。
+        if trace_enabled() {
+            eprintln!(
+                "LSP_TRACE compile {uri} v{version} {}ms publish={}",
+                cost.as_millis(),
+                out.len()
+            );
+        }
+        for (target, diagnostics, version) in out {
+            client
+                .publish_diagnostics(target, diagnostics, version)
                 .await;
         }
     }
+}
 
+/// 三段式的**中段与末段**：锁外编译，回锁内按版本校验后装回、扇出。
+///
+/// 三段式（设计 §6 的清单）：① 锁内取快照（overlay + 载体）→ ② **锁外**用载体
+/// 编译 → ③ 回锁内校验版本、整体互换装回。
+///
+/// **它不是 `async`**：里面有 `MutexGuard`，而 rustc 的 generator 分析会把
+/// "跨 await 仍活着的 guard"判成 future 不 `Send`（实测：只要它是 `async`，
+/// `tokio::spawn` 就报 `future cannot be sent between threads safely`，且
+/// 指不到具体类型）。发布是唯一需要 await 的事，交给调用方
+/// [`compile_worker`] 做——返回值就是"该发什么"。
+fn compile_one(
+    client: &Client,
+    docs: &Arc<Mutex<Docs>>,
+    compile: &Arc<Compiler>,
+    uri: &Url,
+    job: Job,
+) -> Vec<(Url, Vec<Diagnostic>, Option<i32>)> {
+    // ① 快照：打开文档的内存文本就是编译器该看到的文本（未保存的编辑也算）。
+    let overlay = {
+        let docs = docs.lock().expect("doc lock");
+        docs.overlay_for(uri, &job.text)
+    };
+    // ② 锁外编译。载体走的就是 `Doc::set_text`：缓存读（命中即回放）、缓存写、
+    //    `parse_error` 折叠、T-A21 的"文本没变即短路"，一样不少。
+    let mut carrier = compile.take_carrier(uri);
+    let mode = prelude_mode_from_source(&job.text);
+    let path = uri.to_file_path().ok();
+    carrier.set_text(&job.text, job.version, Some(mode), path, &overlay);
+
+    // ③ 装回（短暂持锁）。更新的版本已经在路上 ⇒ 这份作废（clangd 的
+    //    "writes immediately followed by writes"），但载体要留着——增量会话
+    //    是连续的，下一轮接着用。
+    let published = {
+        let mut docs = docs.lock().expect("doc lock");
+        let superseded = compile
+            .pending_version(uri)
+            .is_some_and(|newer| newer > job.version);
+        if superseded {
+            compile.put_carrier(uri.clone(), carrier);
+            return Vec::new();
+        }
+        let Some(committed) = docs.map.get_mut(uri) else {
+            // 文档已经关了（`didClose`）：结果没人要，载体也别留。
+            return Vec::new();
+        };
+        // **只复制视图**：载体完整保留"输入 X 的状态"（它下一次编译的短路判据
+        // 读的就是它），handlers 读的那一份拿到副本。见 `QueryDoc::adopt_view`。
+        committed.doc.adopt_view(&carrier.doc);
+        committed.compiled_digest = carrier.compiled_digest.clone();
+        committed.pending_text = None;
+        committed.pending_version = job.version;
+        let diagnostics = committed.diagnostics();
+        let changed = job.always || diagnostics != committed.published;
+        if changed {
+            committed.published = diagnostics.clone();
+        }
+        // 依赖变了 ⇒ 打开着的下游文档跟着重编（T-A23 跨文件失效）。这里只
+        // **调度**它们（各自一个任务），不在本任务里串行编——那会把一次通知
+        // 变成 N 次编译的等待。
+        let downstream = docs.stale_downstream(uri);
+        compile.put_carrier(uri.clone(), carrier);
+        (changed.then_some(diagnostics), downstream)
+    };
+
+    let mut to_publish: Vec<(Url, Vec<Diagnostic>, Option<i32>)> = Vec::new();
+    if let Some(diagnostics) = published.0 {
+        to_publish.push((uri.clone(), diagnostics, Some(job.version)));
+    }
+    for other in published.1 {
+        let (text, version) = {
+            let docs = docs.lock().expect("doc lock");
+            match docs.map.get(&other) {
+                Some(doc) => (doc.text().to_string(), doc.version()),
+                None => continue,
+            }
+        };
+        if compile.schedule(other.clone(), text, version, false) {
+            let client = client.clone();
+            let docs = Arc::clone(docs);
+            let compile = Arc::clone(compile);
+            tokio::spawn(compile_worker(other, client, docs, compile));
+        }
+    }
+    to_publish
+}
+
+impl Backend {
     // ---- I9 goal 视图协议：结构化 goal 请求（coq-lsp `proof/goals` 模式）----
 
     /// 组 `soko/goals` 的 wire 数据。`probe` = 是否跑请求期 kernel 探针填
@@ -1121,23 +1415,23 @@ impl LanguageServer for Backend {
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        self.refresh(
+        // **不 await 编译**（T-A30）：记下文本就返回，编译在别的任务里跑。
+        // 以前这里同步编完才返回，8.9s 的冷编译期间整个消息循环是堵死的。
+        self.schedule_refresh(
             params.text_document.uri,
             params.text_document.text,
             Some(params.text_document.version),
-        )
-        .await;
+        );
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         // FULL sync delivers the whole text; the last change is the final state.
         if let Some(change) = params.content_changes.into_iter().last() {
-            self.refresh(
+            self.schedule_refresh(
                 params.text_document.uri,
                 change.text,
                 Some(params.text_document.version),
-            )
-            .await;
+            );
         }
     }
 
@@ -1169,26 +1463,36 @@ impl LanguageServer for Backend {
                             .iter()
                             .any(|module| changed.iter().any(|path| same_file(&module.path, path)))
                     });
-                    in_closure.then(|| (uri.clone(), doc.text().to_string(), doc.version()))
+                    // **最新已知**文本：有在编的就用待编的那份，否则会把过时
+                    // 文本排进编译（`text()` 是上一次编译用的）。
+                    in_closure.then(|| (uri.clone(), doc.latest_text().to_string(), doc.version()))
                 })
                 .collect()
         };
+        if trace_enabled() {
+            eprintln!("LSP_TRACE watched: {} affected", affected.len());
+        }
         for (uri, text, version) in affected {
-            self.refresh(uri, text, Some(version)).await;
+            self.schedule_refresh(uri, text, Some(version));
         }
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         if let Some(text) = params.text {
-            self.refresh(params.text_document.uri, text, None).await;
+            self.schedule_refresh(params.text_document.uri, text, None);
         }
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         // 关掉的文档从表里移除：它不该再被别人的变更"顺带刷新"（否则会给
         // 已关闭的 URI 推送诊断）。客户端自己会清掉该文档的诊断。
-        let mut docs = self.doc.lock().expect("doc lock");
-        docs.remove(&params.text_document.uri);
+        {
+            let mut docs = self.doc.lock().expect("doc lock");
+            docs.remove(&params.text_document.uri);
+        }
+        // 在飞/待编的也一起丢掉（T-A30）：不然那份结果会在文档已经关了之后
+        // 才装回来，甚至给已关闭的 URI 推一条诊断。
+        self.compile.forget(&params.text_document.uri);
     }
 
     async fn semantic_tokens_full(
@@ -1742,17 +2046,28 @@ impl LanguageServer for Backend {
 /// Run the LSP server over stdio. Library entry so the single `sokonanoda`
 /// binary can host the server via `sokonanoda lsp` (gleam pattern); the
 /// `sokonanoda-lsp` binary calls this too. stdout carries only LSP frames.
-#[tokio::main]
-pub async fn run() {
-    let stdin = tokio::io::stdin();
-    let stdout = tokio::io::stdout();
-    let (service, socket) = LspService::build(Backend::new)
-        .custom_method("soko/goals", Backend::goals)
-        .custom_method("soko/nextHole", Backend::next_hole)
-        .custom_method("soko/hints", Backend::hints)
-        .custom_method("soko/stateAt", Backend::state_at)
-        .custom_method("soko/project", Backend::project)
-        .custom_method("soko/version", Backend::version)
-        .finish();
-    Server::new(stdin, stdout, socket).serve(service).await;
+///
+/// **手写 runtime 而不是 `#[tokio::main]`**（T-A30）：编译现在跑在 `tokio::spawn`
+/// 出去的 worker 线程上，而 tokio 的 worker 默认栈是 **2MB** —— 编译（深度递归的
+/// `elab_expr`）会 `thread 'tokio-rt-worker' has overflowed its stack`。
+/// 以前没暴露是因为编译跑在主线程（`block_on`，8MB）。这里给到 32MB。
+pub fn run() {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_stack_size(32 * 1024 * 1024)
+        .build()
+        .expect("build the tokio runtime");
+    runtime.block_on(async {
+        let stdin = tokio::io::stdin();
+        let stdout = tokio::io::stdout();
+        let (service, socket) = LspService::build(Backend::new)
+            .custom_method("soko/goals", Backend::goals)
+            .custom_method("soko/nextHole", Backend::next_hole)
+            .custom_method("soko/hints", Backend::hints)
+            .custom_method("soko/stateAt", Backend::state_at)
+            .custom_method("soko/project", Backend::project)
+            .custom_method("soko/version", Backend::version)
+            .finish();
+        Server::new(stdin, stdout, socket).serve(service).await;
+    });
 }

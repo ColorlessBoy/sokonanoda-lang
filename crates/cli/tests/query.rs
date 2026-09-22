@@ -879,6 +879,16 @@ fn lsp_request(
             "textDocument": {"uri": uri, "languageId": "sokonanoda", "version": 1, "text": text}
         }}),
     );
+    // **等这次 didOpen 的诊断**（T-A30）：编译现在在服务端的另一个任务里跑，
+    // `didOpen` 返回时文档还没编好——不等就会问到一个空文档，而这里比对的是
+    // "CLI 与 LSP 答同一件事"。
+    loop {
+        let message = read(&mut reader);
+        if message.get("method").and_then(|v| v.as_str()) == Some("textDocument/publishDiagnostics")
+        {
+            break;
+        }
+    }
     send(
         &mut stdin,
         serde_json::json!({"jsonrpc":"2.0","id":2,"method":method,"params":params}),

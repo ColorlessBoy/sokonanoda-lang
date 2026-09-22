@@ -499,6 +499,9 @@ async fn an_external_change_to_a_dependency_refreshes_the_open_entry() {
         &mut socket,
         "workspace/didChangeWatchedFiles",
         serde_json::json!({"changes": [{"uri": logic, "type": 2}]}),
+        // 等**入口**的诊断：`logic` 本身没打开，服务端只刷新"闭包里含这个路径
+        // 的已打开文档"（未打开的文档不产生诊断）。
+        std::slice::from_ref(&canvas),
     )
     .await;
     let canvas_after = published

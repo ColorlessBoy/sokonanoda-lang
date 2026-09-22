@@ -298,6 +298,42 @@ inductive 安装与闭包里的记法——**没有局部类型可拿**，只能
 「就地拿当前 pass 的环境」。复现件：
 `docs/gaps/repro/G34-notation-type-query-recompiles-prefix.sh`（缺口 G-34）。
 
+### 编译期间**整个 LSP 冻结** → **已修**（T-A30，2026-09-21）
+
+> **历史**：冷编译 unit12（8.9s）进行中，第一个 `soko/stateAt` 等了 **8907ms**
+> （另一次 unit12-solution 是 **24393ms**）——整个编辑器像死了一样。
+
+**修法**（clangd 的 `TUScheduler`，设计 `docs/design/lsp-edit-concurrency.md` §7）：
+`did_open` / `did_change` / `did_save` / `did_change_watched_files` 只**同步**记下
+最新文本 + 版本就返回，编译由 `tokio::spawn` 出去的任务做，**不持 `Docs` 锁**；
+编译期间到达的只读请求读**上一次完成的状态**。同一份文档同时只有一个编译任务
+（`inflight`），编辑期间来的新版本只把 `pending` 换成最新那份 ⇒ **N 次快速编辑
+最多跑 2 趟**。
+
+**实测**（真进程，判据 `crates/lsp/tests/lsp_edit_concurrency.rs`，两条都进 CI）：
+
+| 判据 | 改前 | 改后 |
+|---|---|---|
+| 一次 ~1.2s 编译进行中的 `soko/stateAt` | **1277ms** | **< 1ms** |
+| 打开 + 连打 5 个键（不等中间结果）的**编译趟数** | 6 | **≤ 3** |
+
+**要付的代价（明写在台账里）**：**重建慢的文件**（上一次编译 ≥150ms）下一次编辑
+会等一个 **120ms 静默期**（`SOKO_DEBOUNCE_MS` 可覆盖）——那是 clangd 的规则
+（"debouncing is applied for files whose rebuild is slow"），拿 120ms 的反馈延迟
+换"敲 7 个字母编 7 次"。小文件**不防抖**（立刻编），所以
+`perf_did_change_latency`（50 声明夹具）不受影响。课程侧的可感代价：
+
+| lsp-course | 台账上次 | 这一版 | 读法 |
+|---|---|---|---|
+| `keystroke` unit08（8 模块闭包） | 381ms | **524ms** | **编译本身 392ms 没变**（旧版 381ms 是同一量级），差的 143ms = 120ms 防抖 + 视图克隆 |
+| `did_open` 三条 | 1694 / 3668 / 7333ms | 1780 / 3834 / 7484ms | +2~5%，噪声地板内 |
+| `save_same_text` / `watched_unchanged` | 0ms | **3–4ms** | 短路仍在，走的是**闭包摘要**（见下） |
+
+**顺带修掉一个真的漏判**：项目文档的"没变就不重编"短路（T-A21）以前只看
+**自己的文本 + 覆盖**——依赖在**磁盘上**被改了（`git checkout` / 另一个编辑器）时
+文本一个字节没变，短路会命中 ⇒ 旧诊断一直显示下去。现在判据是**闭包摘要**
+（只读文件 + 哈希，毫秒级），这才是完整判据（设计 §6 坑③）。
+
 ### 编译期间**整个 LSP 冻结**（T-A30 实测，2026-09-21）
 
 冷编译 unit12（8.9s）**进行中**，连发 5 次 `soko/stateAt`：
