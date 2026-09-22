@@ -2068,6 +2068,21 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C03b `DisplayText` 护栏（**先于任何折叠代码**）
 
+> **✅ 完成（2026-09-21）**：`crates/front/src/display.rs`——`DisplayText(String)`
+> 无 `Deref` / 无 `as_str` / 无 `Into<String>`，唯一读法 `as_display_str()`。
+>
+> **判据用 `compile_fail` doctest 钉住**（Rust 自带，零依赖），而且**对变异敏感**
+> ——两条都做过变异检查：
+>
+> | doctest | 钉什么 | 变异检查 |
+> |---|---|---|
+> | `parse_expr_text(&shown)` 编译不过 | 没有 `Deref<Target = str>` | 加 `Deref` ⇒ **红** ✓ |
+> | `shown.as_str()` 编译不过 | 没有"顺手拿回 `&str`"的口子 | 加 `as_str()` ⇒ **红** ✓ |
+>
+> 第三条是**正向** doctest（`as_display_str()` / `Display` 必须能用），防止把护栏
+> 做成"谁都读不出来"。**为什么这条必须先于任何折叠代码**：折叠一旦落地，护栏是
+> 唯一能保证"显示文本没被喂回 judge"的机制。
+
 - **改什么**：定义 `struct DisplayText(String)`——**无 `Deref`、无 `as_str`、
   无 `Into<String>`**，只提供 `as_display_str()`。目的是让
   `parse_expr_text(&display_text)` / `judge_terms(…, &display_text)` **编译不过**
@@ -2753,7 +2768,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C01` 四个生产者 × 真实文件的实测表
 - [x] `T-C02` 消费者审计（**不然会静默改坏判卷**）
 - [x] `T-C03` 设计文档：**把已有的 `printback-feasibility.md` §4 升格为权威设计**
-- [ ] `T-C03b` `DisplayText` 护栏（**先于任何折叠代码**）
+- [x] `T-C03b` `DisplayText` 护栏（**先于任何折叠代码**）
 - [ ] `T-C04` 记法表复用 `judge.rs` 的重建（提成公共函数）
 - [ ] `T-C10` 折叠函数第一刀：只做二元 infix 族
 - [ ] `T-C11` arity 的来源

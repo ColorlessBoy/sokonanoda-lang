@@ -276,3 +276,14 @@ impl DisplayText { pub fn as_display_str(&self) -> &str { &self.0 } }
 ```
 
 于是 `parse_expr_text(&display_text)` **编译不过**。这比注释/review 可靠。
+
+**已落地（T-C03b）**：`crates/front/src/display.rs`。护栏本身用 **`compile_fail`
+doctest** 钉住（Rust 自带，零依赖），而且是**对变异敏感**的两条：
+
+| doctest | 钉什么 | 变异检查（实测） |
+|---|---|---|
+| `parse_expr_text(&shown)` 编译不过 | **没有 `Deref<Target = str>`** | 给 `DisplayText` 加 `Deref` ⇒ 这条 doctest **红** ✓ |
+| `shown.as_str()` 编译不过 | **没有"顺手拿回 `&str`"的口子** | 加一个 `as_str()` ⇒ 这条 doctest **红** ✓ |
+
+第三条是**正向** doctest（`as_display_str()` / `Display` 必须能用），防止把护栏
+做成"谁都读不出来"。
