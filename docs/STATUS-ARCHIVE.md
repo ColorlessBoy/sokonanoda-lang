@@ -4825,3 +4825,40 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    **内核 pp 望远镜**）。那四处同时是**判定输入**，折叠只能作用在**展示副本**上。
    **未 bump**：线 C 的 patch 点在 T-C41。
 
+
+## 本轮进度（2026-09-21，第一百二十九轮：**线 C 收口 + 0.65.0** —— 四个 surface 全部有记法）
+
+> 承上一轮（goal 用上记法、G-26 关账），本轮把线 C 的**生产者 4**（`by` 步进）
+> 补上、给假设行补守护、做逐 surface 的判别性测试，并**发 minor 0.65.0**。
+
+1. **T-C22 `by` 步进的展示副本**：`apply` 出来的子目标来自被应用引理的**内核 pp
+   望远镜** ⇒ 一直是点名（`(x : α) -> Iff (A x) (B x)`）。表整趟建一次
+   （`run_pass` 的 `display_notations`），`Walk` 与 `finish_pass` **共用**；折叠点
+   选在 **`by_step_states`**——它把引擎的 `ByGoal` 转成报告层 `ByStepState`，
+   **那就是展示边界**，引擎手里的 AST 一个字节没动。实测 `(x : α) -> (A x) ↔ (B x)` ✓
+   **判据两面都要**（计划点名的"最容易出错的地方"）：展示含记法 **且** 同一个 `by`
+   块后面的 `exact h` 仍然判过（`status == "checked"`）。
+   **踩到的坑**：重构时把"表为空就早退"放在了**加内建记法之前** ⇒ 没有 `infix` 的
+   文件连内建的 `∧` 都没了。内建记法**永远生效**，早退不能挡在它前面。
+2. **T-C23 假设行**：实测**本来就带记法**（binder 类型来自**源里写的**类型 ⇒ 源级
+   渲染）。补守护（夹具刻意用**不带 `by`** 的开练习——那条走 `DeclState.binders`，
+   与带 `by` 的 by-step 那份是**两条路**）。
+3. **T-C24 逐 surface 的判别性**：四条 surface 测试 + 开关
+   **`SOKO_NO_NOTATION_FOLD=1`**（空表）。**实测关掉后**：
+   | surface | 关掉后 | 读法 |
+   |---|---|---|
+   | 1 根状态 / 3 声明 `ty` / 4 `by` 步进 | **红** | 记法是折叠给的 |
+   | 2 无 `by` 的开练习 / 假设行 | 仍绿 | 记法来自**源级渲染**，不是折叠 ⇒ 那两条是**守护** |
+   机械判据：`display::tests::with_the_fold_off_every_foldable_surface_is_pointwise`。
+4. **⬆ BUMP minor → 0.65.0**：goal / 假设 / 声明类型**第一次**显示记法。CHANGELOG
+   写清"只有记法那几段被替换（binder 分组 / `Type 0` / 折行逐字节保留）"、
+   "判定一个字节没动"、以及诊断开关。
+5. **判据**：front **703** 条全绿 · `scripts/soko gate` **PASS**（含课程门禁与缺口
+   台账）· 课程计数**逐项不变**（36 目标 · 328 checked · 99 open · **0 判负**）·
+   `perf-check --case perf_course` 无退化（最大 +6.8%，噪声内）· `bump.py --check`
+   一致（0.65.0）· `plan.py check` OK（120 环节）。
+   更新的 golden 五处（T-C22）都是预期的可见变化。
+6. **线 C 到此四个生产者全部覆盖**。下一环 **T-C25**（折叠的开关与文档收口），
+   之后 T-C30–T-C32（语义 run 把记法标成 `notation`）、T-C50、**T-C40/T-C41
+   （⬆ BUMP patch）**。
+

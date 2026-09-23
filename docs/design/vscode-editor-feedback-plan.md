@@ -3163,6 +3163,8 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### 批次 4 · 线 D：记法跳转 + hover（minor）
 
+- [ ] `T-K20` 设计文档 `docs/design/closure-incremental.md` + spike
+      （**⬆ 提前**：2026-09-21 用户拍板"先收完线 C 的 4 条，再插 T-K20′"——依据是 unit12 冷编译 9.8s、其中一部分是 G-31/G-34）
 - [ ] `T-D01` 复现脚本
 - [ ] `T-D02` hover 增加"原始类型"行
 - [ ] `T-D03` hover 的"原始类型"只对**能解析出 target** 的符号显示
@@ -3200,7 +3202,6 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [ ] `T-K13` **K1-c（备选）：`EnvBuilder::snapshot()` 克隆式检查点**
 - [x] `T-K22` **K1-d：记法消解的类型查询走局部书写类型（G-34；本刀是缓解，根治在 T-K20′）**
   - ⬆ **BUMP**：`patch` —— 用户可感知的提速（`unit12-solution` 11.4s → 7.5s），无新能力
-- [ ] `T-K20` 设计文档 `docs/design/closure-incremental.md` + spike
 - [ ] `T-K30` `build <dir>` 不再逐文件各编一份闭包
 - [ ] `T-K31` `TcCache::new` 每次 `with_ctx` 清 4MB
 - [ ] `T-K40` 内核改动台账 + 文档

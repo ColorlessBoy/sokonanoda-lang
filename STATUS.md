@@ -17,6 +17,42 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-21，第一百三十一轮：**线 C 收口 + 0.65.1 + 排期提前 T-K20**）
+
+> 用户最初六条反馈里的**第 5 条**（"infoview 里的 goal 展现没有用 notation 的方式"）
+> 到此**整条闭环**：四个生产者 + 着色 + 真宿主 e2e + 检查点全过。
+
+1. **T-C32 着色在 Infoview 里可见**：渲染侧本来就通（`infoview.js` 把 run 画成
+   `tok-<kind>`），缺的是**测试**——补两条 webview 断言（目标行 + 声明卡片，
+   记法符号各是一个 `tok-keyword` span）。扩展 `_pushState` 是
+   `Object.assign({type:"state"}, state)` **全字段透传** ✓。
+2. **T-C50 真宿主 e2e**：用例 #6 `goal text uses the file's notation` 本来就在
+   （T-015..T-017 写的），本轮确认**转绿**（`--grep` → 1 passed；全量
+   **23 passed / 2 failed**，剩的两条 #7/#8 是线 D）。
+3. **T-C40 断言与 golden 更新**：不按计划给的行号审（行号早被挪走了），改成审
+   `git diff 7874dd4..HEAD` 里测试文件的**每一条 golden 改动**——全程只重钉
+   **5 处**，全是 `And` → `∧`，每处都先跑测试读实际输出再改；内核 pp
+   **一个字节没改**（红线）；空断言扫描无命中。`cargo test --workspace --locked`
+   → **exit 0**（39 suite，0 failed）。
+4. **T-C41 文档 + CHANGELOG + ⬆ BUMP patch → 0.65.1**：`goal-rendering.md` §8
+   as-built（四个生产者的最终行为 + "判定没动"的证据）、`notation-subset.md`
+   补"渲染"一节（N1–N7 一条不变，只记显示侧的边界表）、CHANGELOG、
+   REQUIREMENTS §9（第 5 条交付）、README、teacher 技能（**照面板念目标**）、
+   `vscode-dev-guide.md` 两条坑。
+5. **CP-C 检查点全过**：`verify-editor-issues.sh` → **已修 6 · 缺口仍在 1 ·
+   环境异常 0**（第 5 条 **已修** ✓；剩的第 6 条 G-23 记法导航属线 D）·
+   四生产者判别性全绿 · 课程计数**逐项不变**（36 目标 · 328 checked · 99 open ·
+   **0 判负**）· `cargo test --workspace` 全绿 · `perf-compare --since c74c0046`
+   **exit 0** · e2e #6 转绿。
+6. **踩到的坑（已记）**：bump 之后**必须重建**——`scripts/soko` 要求仓库构建的
+   版本与版本钉**匹配**，否则 exit 3，`verify-editor-issues.sh` 会把五条全报成
+   「环境异常」（假红）。
+7. **排期提前（用户拍板）**：线 C 的 4 条收完后**插 T-K20/T-K20′**（G-31 + G-34
+   的根治设施），清单已把 `T-K20` 挪到线 D 之前（`plan.py check` 只校验集合、
+   不校验顺序 ⇒ 合法）。依据：unit12 **冷编译 9.8s（release）**，其中一部分是
+   judge 每批合成文档 + 整前缀重跑（实测 126k 次调用）。
+8. **下一环**：**T-K20**（`docs/design/closure-incremental.md` + spike）。
+
 ## 本轮进度（2026-09-21，第一百三十轮：**线 C 的边界、着色与性能账**）
 
 > 承上一轮（四个 surface 全部显示记法 + 0.65.0），本轮把线 C 的**边界**、
@@ -99,40 +135,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 7. **下一环**：T-C25（命中不了就回退：`prefix` / `postfix` / 零元 `notation` /
    binder 记法 / 重载歧义各一条）→ C-IV 着色（T-C30/T-C31/T-C32）→ 矩阵其余用例
    （T-C50）→ T-C40/T-C41 收尾。
-
-## 本轮进度（2026-09-21，第一百二十九轮：**线 C 收口 + 0.65.0** —— 四个 surface 全部有记法）
-
-> 承上一轮（goal 用上记法、G-26 关账），本轮把线 C 的**生产者 4**（`by` 步进）
-> 补上、给假设行补守护、做逐 surface 的判别性测试，并**发 minor 0.65.0**。
-
-1. **T-C22 `by` 步进的展示副本**：`apply` 出来的子目标来自被应用引理的**内核 pp
-   望远镜** ⇒ 一直是点名（`(x : α) -> Iff (A x) (B x)`）。表整趟建一次
-   （`run_pass` 的 `display_notations`），`Walk` 与 `finish_pass` **共用**；折叠点
-   选在 **`by_step_states`**——它把引擎的 `ByGoal` 转成报告层 `ByStepState`，
-   **那就是展示边界**，引擎手里的 AST 一个字节没动。实测 `(x : α) -> (A x) ↔ (B x)` ✓
-   **判据两面都要**（计划点名的"最容易出错的地方"）：展示含记法 **且** 同一个 `by`
-   块后面的 `exact h` 仍然判过（`status == "checked"`）。
-   **踩到的坑**：重构时把"表为空就早退"放在了**加内建记法之前** ⇒ 没有 `infix` 的
-   文件连内建的 `∧` 都没了。内建记法**永远生效**，早退不能挡在它前面。
-2. **T-C23 假设行**：实测**本来就带记法**（binder 类型来自**源里写的**类型 ⇒ 源级
-   渲染）。补守护（夹具刻意用**不带 `by`** 的开练习——那条走 `DeclState.binders`，
-   与带 `by` 的 by-step 那份是**两条路**）。
-3. **T-C24 逐 surface 的判别性**：四条 surface 测试 + 开关
-   **`SOKO_NO_NOTATION_FOLD=1`**（空表）。**实测关掉后**：
-   | surface | 关掉后 | 读法 |
-   |---|---|---|
-   | 1 根状态 / 3 声明 `ty` / 4 `by` 步进 | **红** | 记法是折叠给的 |
-   | 2 无 `by` 的开练习 / 假设行 | 仍绿 | 记法来自**源级渲染**，不是折叠 ⇒ 那两条是**守护** |
-   机械判据：`display::tests::with_the_fold_off_every_foldable_surface_is_pointwise`。
-4. **⬆ BUMP minor → 0.65.0**：goal / 假设 / 声明类型**第一次**显示记法。CHANGELOG
-   写清"只有记法那几段被替换（binder 分组 / `Type 0` / 折行逐字节保留）"、
-   "判定一个字节没动"、以及诊断开关。
-5. **判据**：front **703** 条全绿 · `scripts/soko gate` **PASS**（含课程门禁与缺口
-   台账）· 课程计数**逐项不变**（36 目标 · 328 checked · 99 open · **0 判负**）·
-   `perf-check --case perf_course` 无退化（最大 +6.8%，噪声内）· `bump.py --check`
-   一致（0.65.0）· `plan.py check` OK（120 环节）。
-   更新的 golden 五处（T-C22）都是预期的可见变化。
-6. **线 C 到此四个生产者全部覆盖**。下一环 **T-C25**（折叠的开关与文档收口），
-   之后 T-C30–T-C32（语义 run 把记法标成 `notation`）、T-C50、**T-C40/T-C41
-   （⬆ BUMP patch）**。
 
