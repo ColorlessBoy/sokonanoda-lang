@@ -17,6 +17,32 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-23，第一百三十五轮：**两条独立缺口收口（T-D30 / T-D31）**）
+
+1. **T-D30 修掉一个正确性 bug**：`documentHighlight`/`references`/`rename` 在**记法
+   符号**上会误解析到**外层 binder**——binder 的 span 覆盖**整段类型标注**
+   （`(h : a ∈ A)`）⇒ 光标在 `∈` 上被当成 `h`，`rename` 会去改 `h`。
+   两处回退（LSP 的 `highlight_uses`、front 的 `resolve_at`）都加了同一条守卫：
+   **光标落在记法符号上就直接答"没有名字"**（判据走词法 `symbol_at`）。
+   * 判据**两侧都带对照**：`∈` 上答 `None`、`highlight` 空、`rename` 被拒，
+     而**同一个 binder 的 `h` 本身仍解析得到**（别把定义点那一支修坏）。
+   * 踩到的坑：`character` 是**字符**计数，而 Rust 的 `str::find` 给的是**字节**
+     下标——行里有 `α`/`∈` 时两者不等，第一版 `offset_of` 按字节算 ⇒ 守卫不触发。
+2. **T-D31 按计划只做"立台账 + 判定实验"**：`docs/gaps/ledger.jsonl` 新增 **G-36**
+   （`position_to_offset` 按 `char` 计数而非 LSP 的 UTF-16 码元 ⇒ `𝒫` 之后整行
+   偏一格）。判定实验 `docs/gaps/repro/G36-utf16-position-mapping.sh` 起**真 LSP**
+   证明：`𝒫 A` 的 `A` 在 UTF-16 列 44 时 hover 给的是**外层表达式**，而列 43 才给
+   `A : Set α`。**两条纪律都是踩出来的**：夹具必须**编译干净**（否则红的原因是错误
+   卡片不是位置映射）；判据**不能只看 `range`**（落偏时会退化成整行表达式，range
+   照样覆盖光标 ⇒ 恒真），要看文本且**必须带对照**。真修单独立项。
+3. **顺带修掉一条静默假红**：`editing_a_dependency_refreshes_the_open_entry` 在
+   **全量** LSP 套件里失败且**没有任何 panic 文本**。三步排除法（单跑 5/5 过 ·
+   只跑 `project` 组过 · `--skip perf_course` 全绿 · 只跑两组也过）⇒ 需要全量争抢
+   才复现 ⇒ **资源饿死**（`perf_course` 整门课编一遍）。修法：重课程编译与
+   时序敏感的跨文件刷新**共用一把锁**（`testutil::HEAVY_LOCK`），**断言一条没动**。
+   修后全量 **156 通过 / 0 失败**。
+4. **下一环**：T-D40（三层测试，矩阵用例 #7/#8）。
+
 ## 本轮进度（2026-09-23，第一百三十四轮：**线 D 的 hover 收口 + 发 0.65.2**）
 
 1. **T-D03 hover 的"原始类型"三种形态齐了**：本文件声明（`⊗`）/ 语言内建（`∧`）/
@@ -75,39 +101,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    `skills/sokonanoda-dev` 门禁一节。
 6. **下一环**：**T-D03**（hover 的原始类型只对能解析出 target 的符号显示）
    ——它带 ⬆ BUMP(patch) 点，做完发 0.65.2 并**按新要求闭环确认**。
-
-## 本轮进度（2026-09-21，第一百三十二轮：**闭包增量设计 + 线 D 开工**）
-
-> 按用户拍板把 **T-K20 提前**到线 D 之前（依据：unit12 冷编译 9.8s），本轮做完
-> 它的设计 + spike，随后开工线 D（记法跳转 + hover）。
-
-1. **T-K20 闭包增量设计 + spike**（`docs/design/closure-incremental.md` +
-   `scripts/spike-closure-incremental.py`）：现状（一个 Arena + 一个 builder 跑
-   **整个闭包**）· 两个障碍（**O7** prelude 按闭包决定 ⇒ 会**静默改变判卷**；
-   **O8** 七样每轮状态必须一起提升，含 `ns` 的单元边界 `reset`）· 报告归因
-   （`split_report` 走命令下标、不用 span ⇒ 已编模块的报告也要留住）· 候选
-   （K2-b 窄版先落地 / K2-a 结构正解）· 风险（高）。
-   **spike 实测**：`unit01 → unit08 → unit12` 依次打开
-   **14859ms → 8886ms（−40.2%）**，三个前缀全部 downward-closed ✓
-   （与计划记的目标 15.06s → ≈8.5s 一致）。
-   **守卫落地**：`compile::prelude_shape` **就是 `run_pass` 的安装判据**（同一个
-   函数，不会漂）；计划要求的"脚本化验证"= `crates/front/tests/prelude_shape.rs`
-   ——课程里每一个 `.sokonanoda` 的闭包形状必须一模一样且不撞 prelude 名字。
-2. **T-D01 复现脚本**：`bash docs/gaps/repro/G23-notation-navigation.sh` → **0**
-   （修前为红）✓。
-3. **T-D02 hover 增加"原始类型"行**：计划说这是"全计划最便宜的一刀"，实测撞到
-   **闭包**问题（与 T-C30/T-C31 同族）——`symbol_at` 只看本文件 + 内建 ⇒
-   `import` 来的记法（`∈`/`⊆`）目标永远是 `None` ⇒ 连"展开成什么"都没有。
-   补 `symbol_at_with_sources`（闭包前缀回退）+ `judge_type_of_constant`。
-   实测 hover 与计划给的期望**逐字一致**：`Set.mem : forall (α : Type 0),
-   α -> Set α -> Prop` ✓。那一行**故意不折记法**（它叫"**原始**类型"）。
-   请求路径成本 `hover_ms = 0ms`（预算 50ms）✓。
-4. **踩到的坑（已修 + 已记）**：G-23 的复现件把"**修了一半**"判成 exit **2**
-   ——而 `docs/gaps/README.md` 的约定是 `2 = 环境/形状异常` ⇒ 台账（`open`）
-   判成"行为已变" ⇒ **门禁红**。改成归 0（缺口仍在），消息里仍说清哪一半还差。
-   **教训**：复现件的退出码是**契约**，不能拿 2 表达"部分完成"。
-5. **判据**：`gate` **PASS** · 课程计数**逐项不变**（36 目标 · 328 checked ·
-   99 open · **0 判负**）· `gap.py check` 全绿 · 新测试全绿。
-   **未 bump**：线 D 的 bump 点在 T-D03/T-D17/T-D41。
-6. **下一环**：**T-D03**（线 D 收尾：patch bump）。
 
