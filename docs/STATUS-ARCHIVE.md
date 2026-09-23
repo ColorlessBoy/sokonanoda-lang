@@ -5020,3 +5020,42 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    **未 bump**：线 D 的 bump 点在 T-D03/T-D17/T-D41。
 6. **下一环**：**T-D03**（线 D 收尾：patch bump）。
 
+
+## 本轮进度（2026-09-23，第一百三十三轮：**发版闭环修通 + 迭代提速 30×**）
+
+> 用户两条新要求都落到了实处：**BUMP 必须闭环（确认线上发版生效）** 与
+> **gate 太慢严重阻碍迭代**。
+
+1. **查出"发版停了三版"的根因并修通闭环**。`origin/main` 已经推到 0.65.1，
+   而线上最新发布**还停在 v0.63.0** —— 中间三次推送的 CI 全红（e2e 的
+   known-red 用例），而 `ci.yml` 的 **auto-tag 只在 CI 绿时发版** ⇒ 一个 tag
+   都没打。**bump 在本地"完成"了、线上一步没动**，正是用户那条要求要防的事。
+   * 修法：把线 D 的导航链落地（见下）⇒ e2e 从 **23/2** 变 **25/25**；
+   * **闭环实测**：CI 绿 → auto-tag `v0.65.1` → release workflow success →
+     **`gh release list` 第一行 = v0.65.1（Latest）**、**26 个资产**、
+     `Cargo.toml` 版本与之**相等** ✓。
+2. **线 D 导航链（T-D10..T-D13）**：`NotationDecl` 加 `span`/`module`
+   （记法跨 `import` 传播，只有 target 不够）· 入口记法表进 `ProjectReport`
+   （以前算完就丢）· `QueryDoc::notation_at` + `module_path` ·
+   `goto_definition` 在声明表之前先试记法分支。
+   **G-23 关账**（用户第 6 条反馈"记法不能跳转 / hover 无原始类型"整条修好）。
+3. **迭代提速（用户报"gate 太慢"）——先量再改**：
+   | 阶段 | 改前 | 改后 |
+   |---|---|---|
+   | 课程门禁 `check.py` | **164s** | **0s**（持久编译缓存） |
+   | `cargo test --workspace` | ~250s | `--fast` 只跑改动过的 crate |
+   | 缺口台账 `gap.py check` | 94s | `--fast` 跳过（提交前跑） |
+   | **完整 gate** | ~15 分钟 | **5.25 分钟** |
+   | **`gate --fast`** | — | **30 秒** |
+4. **CI 的三条假红全是测试自身的时延假设**（不是产品回归，修它们时一行产品代码
+   没改）：跨文件刷新的两条只等"被改的那份"、而下游是**异步**重发的 ⇒ 慢 runner
+   上落到排水窗口外（改用 `did_change_at_drained_expecting` 等两份）；
+   性能哨兵是**绝对秒数** ⇒ 同一用例本机 8.8s / CI 62s（150+ 用例并行抢 CPU）
+   ⇒ 改成**机器无关的相对判据** `unit12/unit01 < 12`（本机 4.5×、CI 4.1×）。
+   全部记进 `docs/CI-FAILURES.md`。
+5. **文档**：`REQUIREMENTS.md` §9（新要求 + 背景）· `AGENTS.md` 命令区两档 gate ·
+   `docs/vscode-dev-guide.md`「迭代速度」一节（含两档纪律与持久缓存的安全性）·
+   `skills/sokonanoda-dev` 门禁一节。
+6. **下一环**：**T-D03**（hover 的原始类型只对能解析出 target 的符号显示）
+   ——它带 ⬆ BUMP(patch) 点，做完发 0.65.2 并**按新要求闭环确认**。
+
