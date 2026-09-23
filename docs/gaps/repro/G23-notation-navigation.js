@@ -159,13 +159,18 @@ function positionOf(text, needle) {
     console.error('结论：G-23 仍在——hover 不给 `Set.mem` 的原始类型，definition 返回 null。');
     process.exit(0);
   }
+  // **"修了一半"归 0，不归 2**（2026-09-21 修）：`docs/gaps/README.md` 的约定是
+  // `2 = 环境/形状异常`——"一半修好"既不是已修也不是环境异常，它是**缺口仍在**
+  // （G-23 是"hover + 跳转"这一件事，两半都好了才算好）。用 2 会让台账判成
+  // "行为已变"（exit≠0）⇒ 与 `status: open` 冲突、把门禁弄红。
+  // 消息里仍然**说清哪一半还差**（人要的就是这个）。
   if (hasSignature && !jumps) {
-    console.error('   → hover 已给原始类型，但 definition 仍为 null（修了一半）⇒ 需要人看。');
-    process.exit(2);
+    console.error('结论：G-23 仍在——hover 已给原始类型，但 definition 仍为 null（还差跳转那一半）。');
+    process.exit(0);
   }
   if (!hasSignature && jumps) {
-    console.error('   → definition 已能跳，但 hover 仍无原始类型（修了一半）⇒ 需要人看。');
-    process.exit(2);
+    console.error('结论：G-23 仍在——definition 已能跳，但 hover 仍无原始类型（还差 hover 那一半）。');
+    process.exit(0);
   }
   const targetsLib = defList.some((d) => String(d.uri).endsWith('SetLib.sokonanoda'));
   if (!targetsLib) {
