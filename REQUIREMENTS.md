@@ -2225,3 +2225,19 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
     ⇒ 既没有语义高亮、也没有 hover/definition。要查为什么 `Set.powerset`/
     `Set.compl`（prefix/postfix 那两条）看起来"没事"——是同样坏、还是只在
     infixr 那三条上坏（若后者成立，机制就在 parser 的 infixr 分支）。
+
+- 2026-09-23（**`def` 的声明要显示"真正定义"**）——用户原话：
+
+  > def 的符号，再声明里要多一行内容，对应它们的 `:=` 之后的那个真正定义，
+  > 只是它们的类型已经提供不了足够的信息了。比如 Set.mem 的类型完全看不出
+  > 它的本质是什么
+
+  **要求**：Infoview 的"声明"栏里，`def`（以及 `opaque`）除了类型之外**多一行**
+  `:=` 之后的真正定义；`theorem` 的证明不显示。
+
+  **机制已查明（2026-09-23）**：内核**手里就有** value
+  （`crates/kernel/src/env.rs:58` 的 `Declar::Definition { info, val, hint }`），
+  只是 `Declar::info()` 没暴露 ⇒ 补一个纯访问器 `Declar::value()`；
+  front 侧照 `ty_text` 的算法（`kernel_phase.rs:222` 的 `pp_expr` + 线 C 折叠）
+  算 `val_text`。计划 **T-D52**（含判据与**性能必须先量**的要求——
+  报告每次编译都构建，多算一次 `pp_expr` 是新增成本，超预算就改惰性）。

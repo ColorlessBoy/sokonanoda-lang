@@ -3162,6 +3162,44 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   **语义等价**；binder 记法的回读最容易踩坑（`∀ x, p x` vs `forall x, p x`）。
   另：**判负/事件计数不得变化**（折叠只动显示副本，红线）。
 
+#### T-D52 `def` 的声明多一行"真正定义"（`:=` 之后的东西）
+
+> 用户第 8 条（2026-09-23）原话：「def 的符号，再声明里要多一行内容，对应它们的
+> `:=` 之后的那个真正定义，只是它们的类型已经提供不了足够的信息了。比如
+> `Set.mem` 的类型完全看不出它的本质是什么」。
+
+- **为什么**：`Set.mem` 的类型是
+  `forall (α : Type 0), α -> Set α -> Prop` —— 看了**不知道它是什么**；
+  而它的 `:=` 之后是 `fun (α : Type 0) (a : α) (A : Set α) => A a`
+  （"这个元素属不属于这个集合"），一眼就懂。**类型不是定义**。
+- **机制（已查清，数据都在手边）**：
+  * 内核**手里就有** value：`Declar::Definition { info, val, hint }`
+    （`crates/kernel/src/env.rs:58`）——但 `Declar::info()`（`:174`）只暴露
+    `name/uparams/ty`，**没有 value 的访问器** ⇒ 补一个
+    `Declar::value() -> Option<ExprPtr<'a>>`（`Definition`/`Opaque` 有、
+    其余 `None`）。**纯访问器，不碰判定**（红线不变）。
+  * front 侧 `ty_text` 的算法就在
+    `crates/front/src/compile/check/kernel_phase.rs:222`：
+    `tc.with_pp(|pp| pp.pp_expr(ty))` + 线 C 折叠 ⇒ `val_text` 用**同一个
+    形状**算一遍 `pp_expr(val)` 即可。
+  * `DeclState`（`report.rs:77`）加 `val_text: Option<String>`；
+    `QueryDoc`/`soko/goals` 透出 `value`；Infoview 的"声明"栏在类型下多一行。
+- **判据**：
+  1. front 单测：`def Set.mem … := A a` 的 `val_text` 含 `fun` 与 `A a`，
+     且 `theorem`/`axiom`/`inductive` 的 `val_text` 是 `None`；
+  2. e2e（真宿主，矩阵新用例 #10）：`Set.mem` 那一行的面板里出现第二行
+     （`:=` / `fun … => A a`）；
+  3. **判负/事件计数逐字节不变**（纯显示字段，红线）。
+- **风险 / 性能（生命线）**：
+  * **报告是每次编译都构建的** ⇒ 给每个 `def` 多算一次 `pp_expr` 是**新增成本**。
+    必须先量（`perf_course` / `perf_project` 的前后对比 + 记
+    `docs/perf/ledger.jsonl`），**不能默认"pp 很便宜"**；超预算就改成
+    **惰性**（只在客户端真的要那一行时算，例如放进 `soko/goals` 的
+    `--with-values` 或 hover 通道）。
+  * body 可能很长（`by` 块、`match`）⇒ 面板只显示**一行/截断**，
+    完整值留给 hover；
+  * `theorem` 的证明**不显示**（用户要的是 `def` 的"本质"；证明是另一件事）。
+
 ### ✅ 检查点 CP-D（批次 4，minor 版本）
 
 - [ ] `bash scripts/verify-editor-issues.sh` 第 6 条转「已修」
@@ -3521,6 +3559,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [ ] `T-D41` 文档同步
 - [ ] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
 - [ ] `T-D51` 折叠层扩到 prefix / postfix / binder / 零元（`forall` → `∀` 等一批符号）
+- [ ] `T-D52` `def` 的声明多一行"真正定义"（`:=` 之后的 body）
   - ⬆ **BUMP**：`patch` —— 批次 4 收尾（含 rename/highlight 不再误伤 binder）
 
 #### 批次 5 · 线 K：内核提速（minor）
