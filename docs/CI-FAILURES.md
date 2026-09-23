@@ -488,3 +488,24 @@
   跨页导航/搜索索引/sitemap 多项这些检查**没有对象可查**，留着只会腐烂成噪声，
   该删就删（本次把 5 个脚本约 2800 行换成 1 个 `check-site.py`）；
   ③ `paths:` 里列的每一个生成器都是"改了必须重新部署"的承诺，脚本删了要同步删。
+
+## 2026-09-23 —— `ci`：e2e 的 known-red 用例把 main 挂红，**发版停了三版**
+
+- **现象**：`ci` run `35741678200` / `35799608468` / `35869042558`（三次推送）
+  全部红在 `e2e (… · VS Code 1.138.0)` 的
+  `Real VS Code integration tests (recorded)`：**23 passed / 2 failed**。
+  红的正是**先写好的两条线 D 用例**：
+  * #7 `go to definition on a notation symbol lands on its declaration`（返回 null）
+  * #8 `hover on a notation symbol shows the target's signature`（无原始类型）
+- **后果（比"CI 红"严重得多）**：`ci.yml` 的 **auto-tag 只在 CI 绿时发版**
+  ⇒ 这三次推送一个 tag 都没打 ⇒ **线上最新发布停在 v0.63.0，而 main 已经 0.65.1**
+  ——**三版 bump 在本地"完成"了、线上一步没动**。用户因此追加要求
+  「BUMP 记得要闭环执行，确认线上发版生效」（`REQUIREMENTS.md` §9）。
+- **修复**：把线 D 的导航链落地（T-D02 hover 原始类型 + T-D10..T-D13 闭包记法表
+  与跳转）⇒ 本地全量 e2e **25 passed / 0 failed** ⇒ 推送后 CI 绿。
+- **预防**：① **先写红的 e2e 用例**是好的 TDD，但**别让它把 main 挂红**——
+  要么同一批次里尽快实现，要么在用例里显式标"预期红"（今天没有这个机制，
+  所以正解是**尽快实现**）；② **CI 红一次就要查"发版断了吗"**：一条
+  `gh release list --limit 1` 与 `grep -m1 '^version' Cargo.toml` 对比即可，
+  别等三版之后才发现；③ 每次 bump 的收尾动作里，"确认线上有这一版"与
+  "本地 gate 绿"是**同等重要**的两条。
