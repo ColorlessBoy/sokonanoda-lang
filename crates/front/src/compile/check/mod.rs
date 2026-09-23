@@ -420,6 +420,12 @@ fn by_step_states(
 /// **显示期的记法表**（线 C）：从闭包各单元的**已解析命令**收记法 + 内建记法，
 /// 元数从源级签名 + prelude。整趟建一次，给 `ty_text` 与 `by` 步进的展示副本共用。
 pub(crate) fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNotations {
+    // **关掉折叠的开关**（诊断/判别性测试用）：`SOKO_NO_NOTATION_FOLD=1` ⇒ 空表 ⇒
+    // `print_back` 原样返回。它存在的意义是证明"那几条 surface 测试真的抓得住"
+    // ——关掉之后它们**必须全红**（T-C24 的判别性判据）。仿 `SOKO_NO_JUDGE_BATCH`。
+    if std::env::var_os("SOKO_NO_NOTATION_FOLD").is_some() {
+        return crate::display::DisplayNotations::default();
+    }
     let commands: Vec<crate::ast::Command> = units
         .iter()
         .flat_map(|unit| unit.file.commands.iter().cloned())
@@ -846,15 +852,69 @@ pub(crate) fn top_level_def_spans(file: &FolFile) -> HashMap<String, Span> {
     defs
 }
 
+thread_local! {
+    /// 本线程正处在「静音」区里（`quiet_catch` / `resolve_hovers`）的嵌套层数。
+    static QUIET_DEPTH: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
+/// 装一次「**按线程**静音」的 panic hook。
+///
+/// **为什么不是每次调用 `take_hook` + `set_hook`**：panic hook 是**进程全局**的，
+/// 而编译自 T-A30 起跑在后台任务里、多份文档的编译**可以并发**。旧写法在 A 线程
+/// 静音的窗口里，B 线程的 panic 也一个字都不打——2026-09-23 CI 上
+/// `perf_project_dependency_edit_refreshes_dependents` 与
+/// `editing_a_dependency_refreshes_the_open_entry` 就是这样「FAILED 但日志里
+/// 连一句 `panicked` 都没有」的（`docs/CI-FAILURES.md` 2026-09-23 条）。判据
+/// 从"全局静音"改成"问本线程的计数"，别处的 panic 照常可见。
+///
+/// 顺带也是性能：`take_hook`/`set_hook` 每次都要拿全局锁并装箱，而
+/// `quiet_catch` 是**每个内核交互**都走的路。
+fn install_quiet_hook() {
+    static ONCE: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+    ONCE.get_or_init(|| {
+        let previous = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            if panic_is_quiet() {
+                return;
+            }
+            previous(info);
+        }));
+    });
+}
+
+/// 进入静音区；离开时（含 unwind）自动恢复。可嵌套。
+pub(super) fn quiet() -> QuietGuard {
+    install_quiet_hook();
+    QUIET_DEPTH.with(|depth| depth.set(depth.get() + 1));
+    QuietGuard
+}
+
+/// 本线程当前的静音嵌套层数（测试用：判据是「只静音**本**线程」）。
+pub(super) fn quiet_depth() -> u32 {
+    QUIET_DEPTH.with(|depth| depth.get())
+}
+
+/// **这个 panic 该不该被吞掉**——hook 的唯一判据，单独提出来是为了能被直接测：
+/// 「静音」只认**当前线程**的计数（见 [`install_quiet_hook`] 的教训）。
+pub(super) fn panic_is_quiet() -> bool {
+    quiet_depth() > 0
+}
+
+pub(super) struct QuietGuard;
+
+impl Drop for QuietGuard {
+    fn drop(&mut self) {
+        QUIET_DEPTH.with(|depth| depth.set(depth.get().saturating_sub(1)));
+    }
+}
+
 /// Run a kernel interaction with panic suppression: panics (assertion /
 /// internal errors) become `Err(message)` instead of unwinding through the
 /// pipeline, so the caller can classify them like any other rejection.
 /// Same contract as `resolve_hovers`.
-fn quiet_catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    let previous_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+pub(super) fn quiet_catch<R>(f: impl FnOnce() -> R) -> Result<R, String> {
+    let _quiet = quiet();
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(f));
-    std::panic::set_hook(previous_hook);
     result.map_err(|payload| {
         if let Some(s) = payload.downcast_ref::<&str>() {
             (*s).to_string()
@@ -918,8 +978,7 @@ pub(crate) fn resolve_hovers(
     out: &mut Vec<HoverType>,
     out_cmds: &mut Vec<usize>,
 ) {
-    let previous_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
+    let _quiet = quiet();
     for cmd in cmd_hovers {
         for node in cmd.nodes {
             // Binder-declaration rows render from their own source slice, so
@@ -955,7 +1014,6 @@ pub(crate) fn resolve_hovers(
             out_cmds.push(cmd.cmd);
         }
     }
-    std::panic::set_hook(previous_hook);
 }
 
 /// 内核 pp 把"binder 在被打印项之外"的松散变量渲染为 `$N`（N = de Bruijn

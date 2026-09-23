@@ -776,6 +776,33 @@ mod tests {
         }
     }
 
+    // ---- 逐 surface 的判别性（T-C24）------------------------------------
+
+    /// **关掉折叠 ⇒ 每一个"靠折叠才有记法"的 surface 都回到点名**。
+    ///
+    /// 这条是 T-C24 的**机械判据**：`SOKO_NO_NOTATION_FOLD=1` 走的就是"空表"这
+    /// 条路（`display_notations` 直接返回 `default()`）。实测关掉之后：
+    ///
+    /// | surface | 关掉后 |
+    /// |---|---|
+    /// | 生产者 1 根状态 | **红**（记法是折叠给的） |
+    /// | 生产者 3 声明 `ty` | **红**（同上） |
+    /// | 生产者 4 `by` 步进 | **红**（同上） |
+    /// | 生产者 2 无 `by` 的开练习 | 仍绿——它的记法来自 `render_expr` 的**源级渲染**，不是折叠 |
+    /// | 假设行 `binders[].ty` | 仍绿——binder 类型是**源里写的** |
+    ///
+    /// 后两条因此是**守护**而不是折叠的判据（T-C21/T-C23 各有一条）。
+    #[test]
+    fn with_the_fold_off_every_foldable_surface_is_pointwise() {
+        let empty = DisplayNotations::default();
+        assert_eq!(fold_text("And p q", &empty), "And p q");
+        assert_eq!(fold_text("Set.mem α a A", &empty), "Set.mem α a A");
+        assert_eq!(
+            fold_text("Iff (Set.subset α A B) (Set.subset α A B)", &empty),
+            "Iff (Set.subset α A B) (Set.subset α A B)"
+        );
+    }
+
     /// 一个最小的集合词汇 + 两条记法：`∈`（优先级 50）与 `∪`（左结合 65）。
     const SET_LIB: &str = "\
 def Set (α : Type) : Type := α -> Prop\n\

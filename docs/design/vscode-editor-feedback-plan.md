@@ -2358,9 +2358,52 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C24 逐 surface 的判别性测试
 
+> **✅ 完成（2026-09-21）——四条测试 + 一条机械判据 + bump minor 到 0.65.0。**
+>
+> 四条 surface 测试（都已在前面各环节落地）：
+>
+> | # | surface | 测试 |
+> |---|---|---|
+> | 1 | 根状态 | `query::tests::state_at_root_before_any_tactic`（断言 `∧`） |
+> | 2 | 无 `by` 的开练习 | `query::tests::an_open_exercise_without_by_keeps_notation_in_its_goal` |
+> | 3 | 声明 `ty` | `query::tests::a_declarations_ty_is_notation_folded_too` |
+> | 4 | `by` 步进 | `query::tests::by_step_display_is_folded_but_the_judge_input_is_not` |
+>
+> **判别性**（"折叠被关掉时必须红"）——加了开关
+> **`SOKO_NO_NOTATION_FOLD=1`**（`display_notations` 直接返回空表，仿
+> `SOKO_NO_JUDGE_BATCH`），实测关掉后：
+>
+> | surface | 关掉后 | 读法 |
+> |---|---|---|
+> | 1 根状态 | **红** | 记法是折叠给的 |
+> | 3 声明 `ty` | **红** | 同上 |
+> | 4 `by` 步进 | **红** | 同上 |
+> | 2 无 `by` 的开练习 | 仍绿 | 它的记法来自 `render_expr` 的**源级渲染**，不是折叠 ⇒ 这条是**守护**（T-C21） |
+> | 假设行 `binders[].ty` | 仍绿 | binder 类型是**源里写的** ⇒ 守护（T-C23） |
+>
+> 机械判据**两条，缺一不可**：
+>
+> * **折叠层**：`display::tests::with_the_fold_off_every_foldable_surface_is_pointwise`
+>   ——空表 ⇒ 一律点名（证明"记法确实是折叠给的"）；
+> * **整条路**：`crates/cli/tests/notation_fold.rs` 三条真二进制 A/B（开/关
+>   `SOKO_NO_NOTATION_FOLD`），把上表**逐行**变成断言：
+>   ① `the_fold_switch_turns_every_foldable_surface_pointwise`（三个可折 surface
+>   关掉 ⇒ 回到点名）· ② `source_rendered_surfaces_ignore_the_fold_switch`
+>   （两个源级 surface 关掉 ⇒ **一个字节不变**）·
+>   ③ `the_fold_switch_never_changes_the_judge`（`grade --json` **逐字节相同**）。
+>
+> **为什么非要第二条**：那条单测用的是 `DisplayNotations::default()`，它**碰不到
+> 开关本身**（`display_notations` 里那个 `if`）——开关被删、或有哪条路绕过了
+> `display_notations`，单测照样绿。第 ② 条同时是**行程开关**：谁把生产者 2 改成
+> 走内核 pp 折叠，它就会红，逼他回来更新上面那张表。
+>
+> **⬆ BUMP minor → 0.65.0**：goal / 假设 / 声明类型**第一次**显示记法（§0.2 的
+> bump 动作"用户可感知的能力落地"）。
+
 - **改什么**：四个生产者**各一条**测试，断言"该 surface 含记法"；
   并在折叠层被关掉时**必须红**（判别性）。
-- **判据**：`cargo test -p sokonanoda-front -- --nocapture`。
+- **判据**：`cargo test -p sokonanoda-front -- --nocapture` +
+  `cargo test -p sokonanoda-cli --test notation_fold`（真二进制 A/B）。
 
 #### T-C25 边界：命中不了就回退
 
@@ -2962,7 +3005,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C21` 生产者 2：无 `by` 的开练习（应当已经好，补守护）
 - [x] `T-C22` 生产者 4：`by` 步进里被 pp 化的四处
 - [x] `T-C23` binder ty（假设行的类型）
-- [ ] `T-C24` 逐 surface 的判别性测试
+- [x] `T-C24` 逐 surface 的判别性测试
   - ⬆ **BUMP**：`minor` —— goal / 假设 / 声明类型第一次显示记法
 - [ ] `T-C25` 边界：命中不了就回退
 - [ ] `T-C30` `semantic::tag_runs` 填 `Names::notations`

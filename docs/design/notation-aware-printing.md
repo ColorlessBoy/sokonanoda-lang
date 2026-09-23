@@ -401,6 +401,44 @@ mem_of_subset   | forall (α : Type 0) (A B : Set α), A ⊆ B -> (forall (a : �
 `DeclInfo.goals` 与 `query/state.rs` 都是**展示**；`suggest.rs` 读的是
 `DeclState.goal`/`sub_goals[].ty`（**另一组字段**，本轮没动）。
 
+### 3.3e as-built：逐 surface 的判别性（T-C24，2026-09-21）
+
+**判据不是"看到了记法"，而是"折叠被关掉时必须红"**——否则一条测试可能只是在断言
+`render_expr` 的**源级渲染**（那条路本来就有记法），对折叠层零覆盖。
+
+**开关 `SOKO_NO_NOTATION_FOLD=1`**：`display_notations` 直接返回空表 ⇒ `print_back`
+原样返回（仿 `SOKO_NO_JUDGE_BATCH`）。它**只关展示**：判定读的是**另一张**表
+（`notation.rs::notation_table`），与这个开关无关——所以它同时是"显示改动没碰判定"
+的开关。
+
+**机械判据两条，缺一不可**：
+
+| 层 | 判据 | 钉什么 |
+|---|---|---|
+| **折叠层**（front 单测） | `display::tests::with_the_fold_off_every_foldable_surface_is_pointwise` | 空表 ⇒ 一律点名 |
+| **整条路**（CLI 真二进制 A/B） | `crates/cli/tests/notation_fold.rs` **3 条** | ① 三个可折 surface 关掉 ⇒ 回到点名 · ② 两个源级 surface 关掉 ⇒ **一个字节不变** · ③ `grade --json` 开关前后**逐字节相同** |
+
+**为什么非要第二条**：那条单测用的是 `DisplayNotations::default()`，它**碰不到开关
+本身**（`display_notations` 里那个 `if`）——开关被删、或有哪条路绕过了
+`display_notations`，单测照样绿。真二进制那条从环境变量一路盖到 wire 字段（与
+`judge_batch.rs` 对 `SOKO_NO_JUDGE_BATCH` 的做法同构）；它的 ② 同时是**行程开关**：
+谁把生产者 2 改成走内核 pp 折叠，它就会红，逼他回来更新下面这张表。
+
+**实测矩阵**（`SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front --lib -- <六条>`，
+实测输出 `3 passed; 3 failed`）：
+
+| # | surface | 测试 | 关掉折叠 |
+|---|---|---|---|
+| 1 | 根状态 | `query::tests::state_at_root_before_any_tactic` | **红** |
+| 3 | 声明 `ty` | `query::tests::a_declarations_ty_is_notation_folded_too` | **红** |
+| 4 | `by` 步进 | `query::tests::by_step_display_is_folded_but_the_judge_input_is_not` | **红** |
+| 2 | 无 `by` 的开练习 | `query::tests::an_open_exercise_without_by_keeps_notation_in_its_goal` | 绿（**守护**：源级渲染） |
+| — | 假设行 `binders[].ty` | `query::tests::state_binders_keep_notation_in_their_types` | 绿（**守护**：源里写的类型） |
+| — | 机械判据 | `display::tests::with_the_fold_off_every_foldable_surface_is_pointwise` | 绿（空表 ⇒ 一律点名） |
+
+后两条**故意不红**：它们的记法不是折叠给的（T-C21/T-C23 的注释里写了这件事），
+红才是异常。
+
 ### 3.4b 损失护栏（T-C14）：三层，从强到弱
 
 | 层 | 护栏 | 判据 |

@@ -7983,3 +7983,47 @@ fn an_inherited_scoped_notation_needs_the_entrys_own_open_scoped() {
     crate::parser::parse_with_inherited(&opened, &inherited)
         .expect("`open scoped Foo` activates the inherited notation");
 }
+
+/// **静音窗口必须是线程局部的**（2026-09-23，`docs/CI-FAILURES.md`）。
+///
+/// 背景：`quiet_catch` / `resolve_hovers` 要把内核 panic 转成 `Err`，所以它们
+/// 暂时**不打** panic 日志。旧实现是进程全局的 `take_hook`/`set_hook`，而自
+/// T-A30 起编译跑在**后台任务**里、多份文档的编译可以并发 ⇒ A 线程静音期间
+/// B 线程的 panic 也会被吞掉。CI 上
+/// `perf_project_dependency_edit_refreshes_dependents` 与
+/// `editing_a_dependency_refreshes_the_open_entry` 因此「FAILED 但日志里连一句
+/// `panicked` 都没有」，整轮排查只能靠猜。
+///
+/// 判据两条：① 别的线程看到的层数是 0（它的 panic 照常打印）；② 可嵌套、离开
+/// 作用域（含 unwind）自动恢复——否则一次 panic 会让**这个线程此后的所有 panic
+/// 全部失声**。
+#[test]
+fn the_quiet_panic_window_is_thread_local_and_nests() {
+    assert_eq!(super::check::quiet_depth(), 0, "起点不静音");
+    {
+        let _outer = super::check::quiet();
+        assert_eq!(super::check::quiet_depth(), 1);
+        assert!(
+            super::check::panic_is_quiet(),
+            "本线程在静音区里：hook 应当吞掉这条 panic"
+        );
+        let (other_depth, other_quiet) =
+            std::thread::spawn(|| (super::check::quiet_depth(), super::check::panic_is_quiet()))
+                .join()
+                .expect("the probe thread joins");
+        assert_eq!(other_depth, 0, "别的线程不在静音区里");
+        assert!(
+            !other_quiet,
+            "**这条是本测试的要害**：静音只对本线程生效——别的线程的 panic 必须照常可见\
+             （旧实现是进程全局的 take_hook/set_hook，会把并发线程的 panic 一起吞掉）"
+        );
+        let caught = super::check::quiet_catch(|| panic!("boom"));
+        assert!(caught.is_err(), "panic 仍然被转成 Err（契约不变）");
+        assert_eq!(
+            super::check::quiet_depth(),
+            1,
+            "内层退出后回到外层，而不是把整个线程弄哑"
+        );
+    }
+    assert_eq!(super::check::quiet_depth(), 0, "离开作用域自动恢复");
+}
