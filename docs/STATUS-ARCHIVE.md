@@ -4947,3 +4947,40 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
 7. **下一环**：T-C32（着色在 Infoview 里可见）→ T-C50（真宿主 e2e，矩阵用例 #6）
    → **T-C40/T-C41（⬆ BUMP patch）**。
 
+
+## 本轮进度（2026-09-21，第一百三十一轮：**线 C 收口 + 0.65.1 + 排期提前 T-K20**）
+
+> 用户最初六条反馈里的**第 5 条**（"infoview 里的 goal 展现没有用 notation 的方式"）
+> 到此**整条闭环**：四个生产者 + 着色 + 真宿主 e2e + 检查点全过。
+
+1. **T-C32 着色在 Infoview 里可见**：渲染侧本来就通（`infoview.js` 把 run 画成
+   `tok-<kind>`），缺的是**测试**——补两条 webview 断言（目标行 + 声明卡片，
+   记法符号各是一个 `tok-keyword` span）。扩展 `_pushState` 是
+   `Object.assign({type:"state"}, state)` **全字段透传** ✓。
+2. **T-C50 真宿主 e2e**：用例 #6 `goal text uses the file's notation` 本来就在
+   （T-015..T-017 写的），本轮确认**转绿**（`--grep` → 1 passed；全量
+   **23 passed / 2 failed**，剩的两条 #7/#8 是线 D）。
+3. **T-C40 断言与 golden 更新**：不按计划给的行号审（行号早被挪走了），改成审
+   `git diff 7874dd4..HEAD` 里测试文件的**每一条 golden 改动**——全程只重钉
+   **5 处**，全是 `And` → `∧`，每处都先跑测试读实际输出再改；内核 pp
+   **一个字节没改**（红线）；空断言扫描无命中。`cargo test --workspace --locked`
+   → **exit 0**（39 suite，0 failed）。
+4. **T-C41 文档 + CHANGELOG + ⬆ BUMP patch → 0.65.1**：`goal-rendering.md` §8
+   as-built（四个生产者的最终行为 + "判定没动"的证据）、`notation-subset.md`
+   补"渲染"一节（N1–N7 一条不变，只记显示侧的边界表）、CHANGELOG、
+   REQUIREMENTS §9（第 5 条交付）、README、teacher 技能（**照面板念目标**）、
+   `vscode-dev-guide.md` 两条坑。
+5. **CP-C 检查点全过**：`verify-editor-issues.sh` → **已修 6 · 缺口仍在 1 ·
+   环境异常 0**（第 5 条 **已修** ✓；剩的第 6 条 G-23 记法导航属线 D）·
+   四生产者判别性全绿 · 课程计数**逐项不变**（36 目标 · 328 checked · 99 open ·
+   **0 判负**）· `cargo test --workspace` 全绿 · `perf-compare --since c74c0046`
+   **exit 0** · e2e #6 转绿。
+6. **踩到的坑（已记）**：bump 之后**必须重建**——`scripts/soko` 要求仓库构建的
+   版本与版本钉**匹配**，否则 exit 3，`verify-editor-issues.sh` 会把五条全报成
+   「环境异常」（假红）。
+7. **排期提前（用户拍板）**：线 C 的 4 条收完后**插 T-K20/T-K20′**（G-31 + G-34
+   的根治设施），清单已把 `T-K20` 挪到线 D 之前（`plan.py check` 只校验集合、
+   不校验顺序 ⇒ 合法）。依据：unit12 **冷编译 9.8s（release）**，其中一部分是
+   judge 每批合成文档 + 整前缀重跑（实测 126k 次调用）。
+8. **下一环**：**T-K20**（`docs/design/closure-incremental.md` + spike）。
+

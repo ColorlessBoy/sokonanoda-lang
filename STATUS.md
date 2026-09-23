@@ -17,6 +17,27 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-23，第一百三十四轮：**线 D 的 hover 收口 + 发 0.65.2**）
+
+1. **T-D03 hover 的"原始类型"三种形态齐了**：本文件声明（`⊗`）/ 语言内建（`∧`）/
+   `import` 来的（`∈`）各一条测试。
+   **"解析不出就不显示"钉在函数层**（`notation_input::target_resolution_tests`），
+   不是 hover 层——因为**在能编译的文件里这条不可达**（认得出来的符号必有 target）。
+   我试着加 LSP 级反向用例时构造不出"能编译 + 符号无 target"的文件，所以如实钉在
+   函数层、**不硬凑假用例**；hover 那侧靠"那一行写在 `if let Some(target)` 里"
+   结构性保证。
+2. **⬆ BUMP patch → 0.65.2**（§0.2："用户可感知的能力落地"）。CHANGELOG 另记了
+   本版包含的**记法跳转**（随 0.65.1 发布的 T-D10..T-D13）与**门禁提速**。
+3. **发版闭环（用户新要求）**：推 main → CI → auto-tag → release →
+   `gh release list` 核对。**上一版 v0.65.1 已确认上线**（26 资产、Latest、
+   `Cargo.toml` 与之相等）；0.65.2 已推送，等 CI 与 release 产出后核对。
+4. **bump 的已知代价实测**：bump 会让**编译缓存全失效**（缓存键含
+   `CARGO_PKG_VERSION`）⇒ bump 后第一次完整 gate 从 5.25 分钟变成 **37.7 分钟**
+   （课程门禁与测试套件都从头编一遍）。这是文档里记过的代价，不是回归；
+   `gate --fast` 仍然 ~30s。
+5. **下一环**：T-D14（parser 保留记法符号 token 的 span——AST 变更，为"表达式内
+   跳转"铺路）。
+
 ## 本轮进度（2026-09-23，第一百三十三轮：**发版闭环修通 + 迭代提速 30×**）
 
 > 用户两条新要求都落到了实处：**BUMP 必须闭环（确认线上发版生效）** 与
@@ -89,40 +110,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    99 open · **0 判负**）· `gap.py check` 全绿 · 新测试全绿。
    **未 bump**：线 D 的 bump 点在 T-D03/T-D17/T-D41。
 6. **下一环**：**T-D03**（线 D 收尾：patch bump）。
-
-## 本轮进度（2026-09-21，第一百三十一轮：**线 C 收口 + 0.65.1 + 排期提前 T-K20**）
-
-> 用户最初六条反馈里的**第 5 条**（"infoview 里的 goal 展现没有用 notation 的方式"）
-> 到此**整条闭环**：四个生产者 + 着色 + 真宿主 e2e + 检查点全过。
-
-1. **T-C32 着色在 Infoview 里可见**：渲染侧本来就通（`infoview.js` 把 run 画成
-   `tok-<kind>`），缺的是**测试**——补两条 webview 断言（目标行 + 声明卡片，
-   记法符号各是一个 `tok-keyword` span）。扩展 `_pushState` 是
-   `Object.assign({type:"state"}, state)` **全字段透传** ✓。
-2. **T-C50 真宿主 e2e**：用例 #6 `goal text uses the file's notation` 本来就在
-   （T-015..T-017 写的），本轮确认**转绿**（`--grep` → 1 passed；全量
-   **23 passed / 2 failed**，剩的两条 #7/#8 是线 D）。
-3. **T-C40 断言与 golden 更新**：不按计划给的行号审（行号早被挪走了），改成审
-   `git diff 7874dd4..HEAD` 里测试文件的**每一条 golden 改动**——全程只重钉
-   **5 处**，全是 `And` → `∧`，每处都先跑测试读实际输出再改；内核 pp
-   **一个字节没改**（红线）；空断言扫描无命中。`cargo test --workspace --locked`
-   → **exit 0**（39 suite，0 failed）。
-4. **T-C41 文档 + CHANGELOG + ⬆ BUMP patch → 0.65.1**：`goal-rendering.md` §8
-   as-built（四个生产者的最终行为 + "判定没动"的证据）、`notation-subset.md`
-   补"渲染"一节（N1–N7 一条不变，只记显示侧的边界表）、CHANGELOG、
-   REQUIREMENTS §9（第 5 条交付）、README、teacher 技能（**照面板念目标**）、
-   `vscode-dev-guide.md` 两条坑。
-5. **CP-C 检查点全过**：`verify-editor-issues.sh` → **已修 6 · 缺口仍在 1 ·
-   环境异常 0**（第 5 条 **已修** ✓；剩的第 6 条 G-23 记法导航属线 D）·
-   四生产者判别性全绿 · 课程计数**逐项不变**（36 目标 · 328 checked · 99 open ·
-   **0 判负**）· `cargo test --workspace` 全绿 · `perf-compare --since c74c0046`
-   **exit 0** · e2e #6 转绿。
-6. **踩到的坑（已记）**：bump 之后**必须重建**——`scripts/soko` 要求仓库构建的
-   版本与版本钉**匹配**，否则 exit 3，`verify-editor-issues.sh` 会把五条全报成
-   「环境异常」（假红）。
-7. **排期提前（用户拍板）**：线 C 的 4 条收完后**插 T-K20/T-K20′**（G-31 + G-34
-   的根治设施），清单已把 `T-K20` 挪到线 D 之前（`plan.py check` 只校验集合、
-   不校验顺序 ⇒ 合法）。依据：unit12 **冷编译 9.8s（release）**，其中一部分是
-   judge 每批合成文档 + 整前缀重跑（实测 126k 次调用）。
-8. **下一环**：**T-K20**（`docs/design/closure-incremental.md` + spike）。
 
