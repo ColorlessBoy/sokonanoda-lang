@@ -2502,6 +2502,28 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C32 着色在 Infoview 里可见
 
+> **✅ 完成（2026-09-21）——两条 webview 断言（判据给的二选一里的那条便宜的）。**
+>
+> **先说结论：渲染这一侧本来就是通的**——`infoview.js` 把每个 run 渲染成
+> `tok-<kind>` 的 span，CSS 的 `.tok-*` 规则读 `--soko-<category>`，四个主题里
+> `--soko-keyword` 都有定义。**服务端给对了**（T-C30）与**用户看得见**是两件事，
+> 缺的是**测试**：既有用例只覆盖 `axiom_use`/`unknown_ident`/`sort`，没有
+> **记法符号**（`keyword`）。
+>
+> 补的两条（`editor/vscode/test-webview.js`）：
+> * `state: notation symbols render as tok-keyword spans`——目标行
+>   `A ⊆ B -> (A ↔ B)` 的 runs 逐字重建文本，且 `⊆`/`↔` 各是一个
+>   `tok-keyword` span；
+> * `decls: notation symbols render as tok-keyword spans in the type line`——
+>   同一个东西在**声明卡片**那一侧（两个 surface 都要有）。
+>
+> **转发链路核对**（不需要新测试，读代码即可）：扩展 `_pushState` 是
+> `Object.assign({ type: "state", uri }, state)`——**全字段透传**，
+> `goal_runs`/`ty_runs` 不会在中途被挑拣掉 ✓。
+>
+> 判据：`node editor/vscode/test-webview.js` **13/13** ·
+> `node editor/vscode/test-extension-host.js` **34/34**。
+
 - **判据**：真宿主 e2e 或 `test-webview.js` 的 runs 断言。
 
 #### T-C50 真宿主 e2e：goal 文本用记法（矩阵用例 #6）
@@ -3082,7 +3104,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C25` 边界：命中不了就回退
 - [x] `T-C30` `semantic::tag_runs` 填 `Names::notations`
 - [x] `T-C31` 目标文本里的**导入名**不再标 `unknown_ident`
-- [ ] `T-C32` 着色在 Infoview 里可见
+- [x] `T-C32` 着色在 Infoview 里可见
 - [ ] `T-C50` 真宿主 e2e：goal 文本用记法（矩阵用例 #6）
 - [ ] `T-C40` 断言与 golden 更新（**计数中性**）
 - [ ] `T-C41` 文档 + CHANGELOG

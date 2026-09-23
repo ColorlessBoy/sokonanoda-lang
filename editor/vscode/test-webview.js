@@ -182,6 +182,89 @@ test("state: goal line starts with ⊢ and classified runs are tok- spans", () =
   assert.strictEqual(textOf(toks[0]), "A");
 });
 
+// T-C32：**记法符号要看得见**。线 C 之后 goal / 类型行里出现 `∈`/`⊆`/`∧`/`↔`，
+// 服务端把它们着成 `kind: "keyword"`（T-C30）——webview 这一侧必须真的把它渲染成
+// 一个 `tok-keyword` span（`.tok-*` 规则读 `--soko-keyword`，主题里都定义了）。
+// 这条是"着色在 Infoview 里可见"的判据：**服务端给对了**与**用户看得见**是两件事。
+test("state: notation symbols render as tok-keyword spans", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "state",
+    goal: "A ⊆ B -> (A ↔ B)",
+    goal_runs: [
+      { text: "A" },
+      { text: " " },
+      { text: "⊆", kind: "keyword" },
+      { text: " " },
+      { text: "B" },
+      { text: " " },
+      { text: "->" },
+      { text: " " },
+      { text: "(" },
+      { text: "A" },
+      { text: " " },
+      { text: "↔", kind: "keyword" },
+      { text: " " },
+      { text: "B" },
+      { text: ")" },
+    ],
+  });
+  const goal = byClass(root, "goal-ty")[0];
+  assert.ok(goal, "a goal <pre> must be rendered");
+  assert.strictEqual(
+    textOf(goal),
+    "⊢ A ⊆ B -> (A ↔ B)",
+    "the runs must reconstruct the goal text byte for byte",
+  );
+  const toks = descendants(goal).filter(
+    (node) =>
+      typeof node.className === "string" && node.className.includes("tok-"),
+  );
+  assert.deepStrictEqual(
+    toks.map((n) => n.className.split(" ").filter((c) => c.startsWith("tok-"))),
+    [["tok-keyword"], ["tok-keyword"]],
+    "each notation symbol must be its own tok-keyword span",
+  );
+  assert.deepStrictEqual(toks.map(textOf), ["⊆", "↔"]);
+});
+
+// 同一件事在**声明卡片**那一侧（`decls` 消息的 `ty_runs`）——两个 surface 都要有。
+test("decls: notation symbols render as tok-keyword spans in the type line", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "decls",
+    decls: [
+      {
+        name: "subset_refl",
+        ty: "A ⊆ A",
+        ty_runs: [
+          { text: "A" },
+          { text: " " },
+          { text: "⊆", kind: "keyword" },
+          { text: " " },
+          { text: "A" },
+        ],
+        range: { start: { line: 3, character: 0 } },
+      },
+    ],
+  });
+  const row = byClass(root, "decl")[0];
+  const ty = byClass(row, "decl-ty")[0];
+  assert.strictEqual(textOf(ty), "A ⊆ A");
+  const toks = descendants(ty).filter(
+    (node) =>
+      typeof node.className === "string" && node.className.includes("tok-"),
+  );
+  assert.strictEqual(toks.length, 1);
+  assert.ok(
+    toks[0].className.includes("tok-keyword"),
+    `expected a tok-keyword span, got ${toks[0].className}`,
+  );
+  assert.strictEqual(textOf(toks[0]), "⊆");
+});
+
 test("decls: name, 1-based line hint and type line; rows are not interactive", () => {
   const { root, messages, send } = loadInfoview();
   const before = messages.length;
