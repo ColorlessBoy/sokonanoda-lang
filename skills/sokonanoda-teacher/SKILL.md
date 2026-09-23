@@ -395,7 +395,13 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 - CodeLens 显示每个声明的练习状态（open / solved / failed）；
 - rename（F2）与 find-references 走语义解析（注释里的同名文本不受影响）；
 - **Infoview 目标面板**在**右侧辅助侧栏**，`sokonanoda: 打开目标面板 (Infoview)`
-  聚焦（需要 VS Code ≥1.106）：goal 行以 `⊢` 开头、假设逐行 `name : ty`；面板
+  聚焦（需要 VS Code ≥1.106）：goal 行以 `⊢` 开头、假设逐行 `name : ty`；
+  **面板里的目标是源文件自己的记法**（0.65.0）——内核打出来是
+  `Set.subset α A B`，面板显示 `A ⊆ B`，`∈`/`⊆`/`∧`/`↔` 都着成关键字色。
+  ⇒ 你念目标时**照面板念**（学习者写的什么样，面板就是什么样）；
+  折不了的形态（`𝒫`/`ᶜ`/`∅`/`∃` 这类一元或 binder 记法）仍是点名形式，
+  那是**已知边界**不是 bug（`docs/design/notation-aware-printing.md` §3.3e）；
+  面板
   **始终可见**（不再有 `when`），加载即骨架，并有状态行（`编译中…` /
   `已就绪 · N 个声明` / `等待 .sokonanoda 文件`）；声明列表显示每条声明的类型
   + 行号 `L<n>`（点击跳转已移除，它从未可靠工作）；

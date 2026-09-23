@@ -725,3 +725,37 @@ R2（课程全面 Lean 化，设计 `docs/design/course-lean-style.md`）把**�
 回归：`crates/cli/tests/notation.rs::inequality_delta_unfolding_carries_the_right_universe_level`
 （四条：点名对照 / `intro` 记法形态 / `apply` 点名形态 / `Prop` 档）。
 判定仍在内核——层级错一条都过不了，所以"这些证明能过"本身就是判据。
+
+## 附：渲染（记法进 goal / 类型行）
+
+N1–N7 讲的是**语言**（怎么解析、怎么消解、怎么判卷）；这一节只记**显示**——
+**它不改变 N1–N7 的任何一条**。
+
+**0.65.0 起，goal / 假设 / 声明类型第一次显示记法**：内核 pp 与
+`render_expr` 打出来的是点名形式（`Set.subset α A B`），而用户看的是
+`A ⊆ B`。做法是**显示出口的折叠**（`front::display::print_back`）——把 pp 文本
+解析回来、认出记法实例、**只替换那几段**。
+
+### 边界（N7 的"教学契约"在显示侧的样子）
+
+**折不了就原样，不猜**：
+
+| 形态 | 例（课程库里的真实写法） | 显示 |
+|---|---|---|
+| 二元 infix 族 | `infix:50 " ∈ " => Set.mem` | **折** |
+| 一元前缀 | `prefix:100 " 𝒫 " => Set.powerset` | 点名 |
+| 一元后缀 | `postfix:100 " ᶜ " => Set.compl` | 点名 |
+| 零元常量 | `notation "∅" => Set.empty` | 点名 |
+| binder 位 | `binder_notation "∃" => Exists` | 点名 |
+| 元数对不上（部分应用） | `Set.mem α a` | 点名 |
+| `scoped` 未 `open` | — | 点名 |
+
+**`scoped` 的判据是"这段文本结束时生效"**（两遍扫描：先收齐 `open scoped`，
+再按声明顺序过滤）——读回通道只有一段前缀、不关心"用在哪一行"，位置精确是
+**编译期**的关切（parser 已经做对了）。
+
+**重载**：同一符号 N 个 target **不是歧义**（反向折叠的判据是 head 名字）；
+同一 target 两个符号才要选 ⇒ **取声明顺序第一个**。
+
+**权威设计**：[`notation-aware-printing.md`](notation-aware-printing.md)（含
+"为什么不走内核 pp"、arity 口径、损失护栏三层、性能账）。

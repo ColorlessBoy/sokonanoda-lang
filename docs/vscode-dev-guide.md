@@ -408,3 +408,20 @@ HTTPS_PROXY=http://127.0.0.1:7890 npx --yes @vscode/vsce show <publisher>.<name>
     `ensureDeclarations()` 全空转。用 URI（`_declsUri`）记，别用真值。
     第三条：**取数失败（`response === undefined`）不算"取过了"**——
     否则"激活时活动编辑器已是 `.sokonanoda`"（VS Code 重启的常态）会永久空转。
+
+## 坑：显示层的"每层都做一遍"在声明上千的文件上是 O(n·深度)（2026-09-21）
+
+线 C 的记法折叠第一版让**每一层** `App` 祖先都 `render_expr` 一遍整棵子树
+（"折过的子树被应用时把替换范围上提到应用脊根"那条规则）——结果 `did_open`
+三档全中 **+18~22%**。改成只让**最外层**记一次（`fold_collecting_inner` 的
+`in_spine` 开关）后回到噪声内。**显示层挂在每条声明的出口上时，先问一句
+"这个操作是每声明一次还是每节点一次"。** 账见 `docs/PERF.md`。
+
+## 坑：`perf_course` 的 LSP 用例量的是 **debug 构建**
+
+`crates/lsp/src/tests/perf_course.rs` 走 `testutil::test_service()`——**进程内**
+服务 ⇒ 它量的是 debug（`cli_profile=release` 指的是另跑的 CLI 档）。debug 下
+每声明的额外开销会被放大、代码布局变化也会整体影响内联决策 ⇒ 拿它当"用户能
+感觉到的退化"会误判。要看用户侧的数字得量 release（`query`/`grade` 冷跑）。
+台账里 `did_open` 比 26 小时前高 ~18% 这件事的排查记录在 `docs/PERF.md`
+（已排除折叠与防抖，待查）。

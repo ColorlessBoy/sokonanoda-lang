@@ -2551,6 +2551,32 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C40 断言与 golden 更新（**计数中性**）
 
+> **✅ 完成（2026-09-21）——审计：只动了 5 处，全部按实测重钉。**
+>
+> **做法**：不按计划里给的行号审（那些行号早被前面的环节挪走了），改成审
+> **`git diff 7874dd4..HEAD` 里测试文件的每一条 golden 改动**——这才是"逐条按实测
+> 重钉、不做机械替换"的可核对形式。
+>
+> **结果**：线 C 全程只重钉了 **5 处**，全是 `And` → `∧`（折叠给的），每一处都是
+> 先跑测试、读**实际输出**再改的：
+>
+> | 文件 | 改动 | 属于 |
+> |---|---|---|
+> | `crates/front/src/query/tests.rs` | `forall (a b : Prop), And a b -> And b a` → `… a ∧ b -> b ∧ a` | 生产者 1（根状态） |
+> | `crates/front/src/query/tests.rs` | `state.goals[0].goal`: `And b a` → `b ∧ a` | 生产者 4（by 步进） |
+> | `crates/front/src/compile/tests.rs` | `s0.goals[0].ty`: `And a a -> a` → `a ∧ a -> a` | 生产者 4 |
+> | `crates/front/src/compile/tests.rs` | `s1.goals[0].binders[1].ty`: `And a a` → `a ∧ a` | 生产者 4（假设行） |
+> | `crates/cli/tests/query.rs` + `crates/lsp/src/tests/state.rs` | 同上两条的 wire 版本 | CLI / LSP |
+>
+> **没动的**（也核过）：`crates/lsp/src/tests/goals.rs`、`crates/front/src/proof.rs`、
+> 以及 `crates/kernel/tests/pretty_printer.rs`（内核 pp **一个字节没改**——T-C03 的
+> 红线：它是 `#check`/`#reduce`/`#print` 的出口）。**空断言扫描**（`contains("")`
+> / `assert!(true)` 之类）无命中。
+>
+> **判据**：`cargo test --workspace --locked` → **exit 0**（39 个 suite 全绿，0 failed）·
+> `python3 courses/set-theory/tools/check.py` → **36 目标 · 328 checked · 99 open ·
+> 0 判负**（**逐项不变**）· `scripts/soko gate` → **exit 0**。
+
 - **改什么**：列出所有断言 goal/ty 文本的测试（front / lsp / cli / 课程门禁），
   逐条按**实测**重钉（不做机械替换——仓库纪律）。已知清单（来自调研）：
   `crates/lsp/src/tests/state.rs`（`:20`/`:120`/`:150-154`/`:221-224`/`:242`/`:258`）、
@@ -3118,8 +3144,8 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C31` 目标文本里的**导入名**不再标 `unknown_ident`
 - [x] `T-C32` 着色在 Infoview 里可见
 - [x] `T-C50` 真宿主 e2e：goal 文本用记法（矩阵用例 #6）
-- [ ] `T-C40` 断言与 golden 更新（**计数中性**）
-- [ ] `T-C41` 文档 + CHANGELOG
+- [x] `T-C40` 断言与 golden 更新（**计数中性**）
+- [x] `T-C41` 文档 + CHANGELOG
   - ⬆ **BUMP**：`patch` —— 批次 3 收尾（着色 + golden 重钉）
 
 #### 批次 4 · 线 D：记法跳转 + hover（minor）

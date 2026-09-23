@@ -192,3 +192,45 @@
 校验：`crates/lsp/src/lib.rs` 的 `code_fences_always_use_the_sokonanoda_language`
 + hover/completion 断言；`crates/cli/tests/extension.rs` 的
 `rendered_language_text_uses_the_sokonanoda_fence`。
+
+## 8. As-built：goal 文本用上源文件的记法（0.65.0/0.65.1，2026-09-21）
+
+用户报的原话：「infoview 里的 goal 展现没有用 notation 的方式」。缺口号 **G-26**
+（已关账，`fixed_in = 0.64.2`）。
+
+**权威设计在 [`notation-aware-printing.md`](notation-aware-printing.md)**（线 C 的
+全部取舍、实测表、红线都在那里）。这一节只记**与本文有关的那部分**：呈现面的
+四个生产者、各自的行为、以及"判定没动"的证据。
+
+### 8.1 四个生产者的最终行为
+
+| # | 生产者 | 走什么 | 0.65.0 之前 | 现在 |
+|---|---|---|---|---|
+| 1 | **根状态**（光标在 `by`/`sorry` 上） | `DeclState.ty_text`（内核 pp） | 点名 | **记法**（折叠） |
+| 2 | **无 `by` 的开练习** | `DeclState.goal`（`render_expr`） | 记法 | 记法（不变） |
+| 3 | **声明卡片** | `DeclState.ty_text` | 点名 | **记法**（折叠） |
+| 4 | **`by` 步进**（含 `apply` 出来的子目标） | `ByStepState`（报告层） | `apply` 之后点名 | **记法**（折叠） |
+| — | **假设行** `binders[].ty` | 源里写的类型 / by-step | 记法 | 记法（不变） |
+
+**只有记法那几段被替换**：binder 分组（`(A B : Set α)`）、`Type 0` 的写法、折行与
+缩进都**逐字节保留**（按 span 拼接，不做整棵树重渲染——重渲染会把 `forall (a b : T),`
+拆成箭头链、`Type 0` 排成 `Sort 1`）。
+
+### 8.2 "判定一个字节没动"的证据
+
+* 折叠只作用在**展示副本**上：`ty_text`（T-C02 的审计：只有给人看的消费者）与
+  `by_step_states`（`ByGoal` → `ByStepState` 是展示边界）。引擎手里的
+  `nodes[id].ty`、以及 judge 的输入（`goal` / `binders[].ty` / `sub_goals[].ty`）
+  一个字节没动。
+* **判别性测试**：`query::tests::by_step_display_is_folded_but_the_judge_input_is_not`
+  ——展示含记法 **且** 同一个 `by` 块后面的 `exact h` 仍然判过。
+* **课程门禁计数逐项不变**：36 目标 · 328 checked · 99 open · **0 判负**。
+* 关掉折叠的开关 `SOKO_NO_NOTATION_FOLD=1`：生产者 1/3/4 回到点名（红），
+  2 与假设行**不受影响**（它们的记法来自源级渲染，不是折叠）。
+
+### 8.3 着色（§7 的延伸）
+
+记法符号在 runs 里是 `kind: "keyword"`（T-C30）：源里声明的与**语言内建的**都要收
+（内建的不在任何源文本里），而且要**喂给词法**（`↔`/`¬`/`≠` 不在数学符号码点类里）。
+导入名也不再是 `unknown_ident`（T-C31，闭包级声明表）。
+渲染侧 `infoview.js` 把每个 run 画成 `tok-<kind>` span（`test-webview.js` 有断言）。

@@ -53,7 +53,10 @@ skills.
   your proof: multi-goal columns with each goal's hypotheses, `by k/n`
   progress, the declaration list, and the live server version. Goal and
   hypothesis text is coloured from the **same single source** as the editor's
-  semantic highlighting (no separate, drifting rules), it reads the same
+  semantic highlighting (no separate, drifting rules), **and it uses your
+  file's own notation** — a goal the kernel prints as `Set.subset α A B`
+  shows up as `A ⊆ B`, exactly as you wrote it (binder grouping, `Type 0`
+  and line breaks are preserved byte for byte), it reads the same
   kernel-checked data as the tree, updates only on debounced caret moves
   (never refetches the declaration list on cursor movement), and falls back to
   the Explorer tree's 「当前光标处」 group when webviews are unavailable. Open it

@@ -12,4 +12,4 @@
 #
 # Demo.sokonanoda 是这个子项目的自检入口：它**真的** import 两个模块并判卷。
 name = "course-shared"
-requires = "0.65.0"
+requires = "0.65.1"
