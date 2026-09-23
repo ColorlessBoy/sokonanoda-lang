@@ -4780,3 +4780,48 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    A ⊆ B` → `(α : Sort 1) -> (A : Set α) -> (B : Set α) -> A ⊆ B`）。接受，还是让
    显示出口做**源保留拼接**（只替换折过的子树）。
 
+
+## 本轮进度（2026-09-21，第一百二十八轮：**goal 用上记法** —— 用户报的那条关账）
+
+> 用户最初那条：「infoview 里的 goal 展现没有用 notation 的方式」。本轮把它
+> **修掉并关账**（G-26），并给已经好的那条路补上守护。
+
+1. **T-C20 接进生产者 1+3（根状态 / 声明卡片的 `ty_text`）**：`finish_pass` 里
+   建一次 `DisplayNotations`，两处 `ty_text` 各过一遍 `print_back`。只动
+   `ty_text`（T-C02 的审计：它只有给人看的消费者）；`goal`/`binders[].ty`/
+   `sub_goals[].ty` **一个字节没动**（它们同时喂 judge）。
+
+   ```
+   demo_subset_def | forall (α : Type 0) (A B : Set α), (A ⊆ B) ↔ ((x : α) -> A x -> B x)
+   mem_of_subset   | forall (α : Type 0) (A B : Set α), A ⊆ B -> (forall (a : α), a ∈ A -> a ∈ B)
+   根状态（L45）    | 同上（学习者的光标就在 tactic 上，看到的就是它）
+   ```
+   **`⊆` ✓ `↔` ✓ `∈` ✓，而 binder 分组、`Type 0`、折行全部原样。**
+   **G-26 关账**（`fixed_in = 0.64.2`），它的复现件转绿。
+
+2. **接进生产者时撞到的两件事**（设计里没写、实测才知道）：
+   * **必须按 span 拼接，不能重渲染整棵树**——重渲染会把折过之外的东西也改样
+     （`forall (a b : T),` 拆成箭头链、`Type 0` 重排成 `Sort 1`；`render_expr` 是
+     回读通道的输入，它必须那样写）。改成把每处折叠记成 `(span, 文本)`、**只替换
+     那几段**（取最外层、从右往左）。两处细节：`parse_expr_text_with` 的 span 多一个
+     `"#check "` 前缀（**头部反推**，不硬编码）；解析器给**带括号的原子**的 span
+     **不含括号** ⇒ 替换范围要**按括号配平**。
+   * **内建记法要自己补**：`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里（parser 有
+     硬编码的 `BUILTIN_NOTATIONS`）⇒ `notation_table` 收不到，`Iff` 永远折不成 `↔`。
+3. **顺带修正 arity 的口径**：**元数 = 显式 binder 的个数**——内核 pp **省略隐式
+   参数**。`Eq {α : Sort u} (a b : α)` ⇒ 元数 **2**（pp 是 `Eq A B`）；
+   `Ne (α : Sort u) (a b : α)` ⇒ **3**。用 telescope 层数会让 `=` 永远折不出来。
+4. **T-C21 给生产者 2 补三条守护**：不带 `by` 的开练习那条路本来就保留记法
+   （T-C01 的实测），但**此前零测试**。补 front 两条 + LSP wire 一条，断言
+   `goal`/`ty` 含记法**且不含点名**。
+5. **判据**：`display` **20 条** + `query`/`goals` 新守护全绿 ·
+   `scripts/soko gate` **exit 0** · 课程门禁计数**逐项不变**
+   （36 目标 · 328 checked · 99 open · **0 判负**）· `perf-check --case perf_course`
+   **无退化**（±2.3% 内）· `gap.py check` 全绿（G-26/G-35 已关账）。
+   更新的 golden 两处（`query::tests::state_at_root_before_any_tactic` + LSP 两条
+   state 用例）都是**预期的**可见变化，注释写明是线 C 的效果。
+6. **还剩一处没记法**（实测，下一环 T-C22）：**`apply` 之后的子目标**——
+   `apply Set.ext` 后是 `(x : α) -> Iff (A x) (B x)`（子目标来自被应用引理的
+   **内核 pp 望远镜**）。那四处同时是**判定输入**，折叠只能作用在**展示副本**上。
+   **未 bump**：线 C 的 patch 点在 T-C41。
+
