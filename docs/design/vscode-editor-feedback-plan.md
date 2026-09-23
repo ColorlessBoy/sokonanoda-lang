@@ -2528,6 +2528,18 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C50 真宿主 e2e：goal 文本用记法（矩阵用例 #6）
 
+> **✅ 完成（2026-09-21）——用例本来就在（T-015..T-017 时写的），本轮确认它转绿。**
+>
+> `editor/vscode/src/test/extension.test.js` 的
+> `test("goal text uses the file's notation")` 就是判据点名的用例 #6 ✓：
+> 光标落在夹具 `units/u01.sokonanoda` 的 `sorry` **行内**（不是行后——注释里写了
+> 那次假绿的教训：`revealRange` 把光标停在 range 末尾，正好落到"无 by 的声明级
+> 目标"那一支 ⇒ 记法本来就在 ⇒ 假绿），断言 `lastState().goal` 含 `⊆` 或 `∈`。
+>
+> **实测**：`scripts/vscode-e2e.sh --grep "goal text uses the file's notation"
+> --profile debug` → **1 passed / 0 failed** ✓（线 C 之前它是 known-red 的三条之一）。
+> 台账条目如实记了 `grep` 字段（filtered run 不会被误读成全量）。
+
 - **改什么**：新增用例 `goal text uses the file's notation`：把光标放到夹具
   `units/u01.sokonanoda` 的 `sorry` 上，断言 `infoview.lastState().goal`
   含 `∈` 或 `⊆`（修复前必须是红的）。
@@ -3105,7 +3117,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C30` `semantic::tag_runs` 填 `Names::notations`
 - [x] `T-C31` 目标文本里的**导入名**不再标 `unknown_ident`
 - [x] `T-C32` 着色在 Infoview 里可见
-- [ ] `T-C50` 真宿主 e2e：goal 文本用记法（矩阵用例 #6）
+- [x] `T-C50` 真宿主 e2e：goal 文本用记法（矩阵用例 #6）
 - [ ] `T-C40` 断言与 golden 更新（**计数中性**）
 - [ ] `T-C41` 文档 + CHANGELOG
   - ⬆ **BUMP**：`patch` —— 批次 3 收尾（着色 + golden 重钉）
