@@ -2705,6 +2705,37 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D02 hover 增加"原始类型"行
 
+> **✅ 完成（2026-09-21）——比计划写的多一件事：`import` 来的记法够不着目标。**
+>
+> 计划说这是"全计划最便宜的一刀（一个 `pub` API 调用 + 一行文本）"。
+> 实测撞到一条**闭包**问题（与 T-C30/T-C31 同族）：
+> `notation_input::symbol_at` 解析展开目标时只看**本文件**的声明 + 内建
+> ⇒ **`import` 来的记法（`∈`/`⊆`）目标永远是 `None`**（声明在别的文件里）
+> ⇒ 连"展开成什么"那一行都没有，更谈不上签名。
+>
+> **修法**：加 `symbol_at_with_sources(text, offset, closure_srcs)`——目标解析
+> 多一条**闭包前缀**的回退（LSP 侧就是 `judge_prefix` 那段）。签名走
+> `judge_type_of_constant(prefix, options, target)`（自带**常量键**缓存）。
+>
+> **实测 hover**（G-23 的复现件）：
+> ```
+> `∈` —— 记法符号
+> 展开成 `Set.mem`
+> `Set.mem : forall (α : Type 0), α -> Set α -> Prop`     ← 原始类型 ✓
+> 输入：`\in`（别名 `\mem`）
+> `a ∈ A : Prop`
+> ```
+> 与计划给的期望文本**逐字一致** ✓。
+>
+> **那一行故意不折记法**：它叫"**原始**类型"，要回答的就是"底下站着什么"
+> ——折成 `A ⊆ B` 反而把它要回答的问题盖掉了。
+>
+> **请求路径成本**（计划要求按 `spine-meta-a.md` 的纪律测一次）：
+> `lsp-project/request_latency` 的 `hover_ms = 0ms`（交互预算 50ms）✓。
+>
+> 判据：新增 `crates/lsp/src/tests/hover.rs::hover_on_an_imported_notation_symbol_shows_the_raw_type`
+> （**真项目**：lib + 入口，断言"展开成 `Set.mem`"与签名那一行）。
+
 - **改什么**：`notation_symbol_hover`（`crates/lsp/src/lib.rs:809-858`）在
   `target` 已知时，用 `judge::judge_type_of_constant(query.judge_prefix(offset),
   query.mode, &target)` 取签名并渲染一行。
@@ -3195,8 +3226,8 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 - [x] `T-K20` 设计文档 `docs/design/closure-incremental.md` + spike
       （**⬆ 提前**：2026-09-21 用户拍板"先收完线 C 的 4 条，再插 T-K20′"——依据是 unit12 冷编译 9.8s、其中一部分是 G-31/G-34）
-- [ ] `T-D01` 复现脚本
-- [ ] `T-D02` hover 增加"原始类型"行
+- [x] `T-D01` 复现脚本
+- [x] `T-D02` hover 增加"原始类型"行
 - [ ] `T-D03` hover 的"原始类型"只对**能解析出 target** 的符号显示
   - ⬆ **BUMP**：`patch` —— hover 显示记法的原始类型（全计划最便宜的一刀）
 - [ ] `T-D30` 记法符号不再误解析到外层 binder（**独立正确性 bug**）

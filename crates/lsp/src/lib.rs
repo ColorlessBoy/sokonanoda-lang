@@ -1163,9 +1163,14 @@ fn notation_symbol_hover(
     offset: usize,
     report: &DocumentReport,
     pos: Position,
+    query: &QueryDoc,
 ) -> Option<Hover> {
     use sokonanoda_front::notation_input;
-    let (symbol, target) = notation_input::symbol_at(text, offset)?;
+    // **闭包前缀**（拓扑序里本文件之前的模块）——两处都要用：解析 `import` 来的
+    // 记法的展开目标（T-D02），以及问内核要它的签名。
+    let prefix = query.judge_prefix(offset);
+    let (symbol, target) =
+        notation_input::symbol_at_with_sources(text, offset, &[prefix.as_str()])?;
     let locally_declared = notation_input::declared_notation_at(text, offset).is_some();
     let mut lines: Vec<String> = Vec::new();
     let mut head = format!("`{symbol}` —— 记法符号");
@@ -1175,6 +1180,25 @@ fn notation_symbol_hover(
     lines.push(head);
     if let Some(target) = target {
         lines.push(format!("展开成 `{target}`"));
+        // **原始类型**（T-D02 / 用户第 6 条反馈："hover 信息也没有对应的原始类型"）：
+        // "展开成什么"是一回事，"它本身是什么"是另一回事——学习者点 `∈` 常常
+        // 想看的是 `Set.mem` 的签名。走内核问（`judge_type_of_constant`），
+        // 它自带**常量键**缓存（`judge.rs` 的 `CACHE`），拿不到就不编这一行。
+        //
+        // 与 `render::hover_type_at` 的那行（外层表达式的类型）分工不同：
+        // 那行说的是"这个表达式 : Prop"，这行说的是"这个符号背后的常量 :
+        // 它的签名"。两行都在时先给签名（更能解释"底下站着什么"）。
+        let options = sokonanoda_front::compile::CompileOptions {
+            prelude: query.mode,
+        };
+        if let Ok(ty) = sokonanoda_front::judge::judge_type_of_constant(&prefix, &options, &target)
+        {
+            // 松散变量（`$N`）的文本不可信——与 `render::hover_type_at` 同一条
+            // 纪律：拿不到干净的类型就不编。
+            if !ty.is_empty() && !ty.contains('$') {
+                lines.push(format!("`{target} : {ty}`"));
+            }
+        }
     }
     match notation_input::input_for(&symbol) {
         Some(entry) if entry.supported => {
@@ -1544,7 +1568,7 @@ impl LanguageServer for Backend {
         // **怎么输入**（用户要求，D5）。必须在下面的关键字闸门**之前**——
         // 已声明的记法符号被 `front::semantic` 归进 `Keyword`，闸门会把它们
         // 一起吞掉（实测：本文件声明的符号 hover 完全静默）。
-        if let Some(hover) = notation_symbol_hover(doc.text(), offset, report, pos) {
+        if let Some(hover) = notation_symbol_hover(doc.text(), offset, report, pos, doc.query()) {
             return Ok(Some(hover));
         }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息

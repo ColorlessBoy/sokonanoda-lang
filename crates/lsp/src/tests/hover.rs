@@ -530,3 +530,76 @@ async fn hover_on_equality_says_it_is_typed_directly() {
     );
     shutdown(&mut service).await;
 }
+
+/// **`import` 来的记法符号要给出原始类型**（T-D02，用户第 6 条反馈
+/// 「hover 信息也没有对应的原始类型」）。
+///
+/// 这条踩到**闭包**：`∈` 声明在 `SetLib.sokonanoda` 里，入口只是 `import` 了它
+/// ——`notation_input::symbol_at` 只看本文件 + 内建 ⇒ 目标永远是 `None`
+/// ⇒ 既说不出"展开成什么"，也拿不到签名（实测：hover 里连"展开成"那一行都没有）。
+/// 修法：目标解析加一条**闭包前缀**的回退（`symbol_at_with_sources`），
+/// 签名走 `judge_type_of_constant`。
+///
+/// 那一行**故意不折记法**：它叫"**原始**类型"，给的就是"底下站着什么"——
+/// 折成 `A ⊆ B` 反而把它要回答的问题盖掉了。
+#[tokio::test]
+async fn hover_on_an_imported_notation_symbol_shows_the_raw_type() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-hover-notation-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    std::fs::write(
+        dir.join("SetLib.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write lib");
+    let entry = dir.join("Canvas.sokonanoda");
+    let src = "import SetLib\n\ntheorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
+    std::fs::write(&entry, src).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "notation raw type").await;
+
+    let pos = lsp_pos(src, src.rfind('∈').expect("use site"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("an imported notation symbol must not be silent");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("展开成 `Set.mem`"),
+        "import 来的记法也要说出展开目标：{:?}",
+        markup.value
+    );
+    assert!(
+        markup
+            .value
+            .contains("Set.mem : forall (α : Type 0), α -> Set α -> Prop"),
+        "hover 必须给出原始类型：{:?}",
+        markup.value
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}

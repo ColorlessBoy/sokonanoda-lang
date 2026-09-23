@@ -268,6 +268,36 @@ pub fn symbol_at(text: &str, offset: usize) -> Option<(String, Option<String>)> 
     Some((symbol.clone(), target))
 }
 
+/// 同 [`symbol_at`]，但展开目标还能从**闭包里**找（T-D02）。
+///
+/// `symbol_at` 只看**本文件**的声明 + 内建 ⇒ **`import` 来的记法（`∈`/`⊆`）
+/// 目标永远是 `None`**（声明在别的文件里，词法扫描够不着）。而 hover 要给
+/// 学习者的"原始类型"（`Set.mem : …`）恰恰需要那个目标名。
+///
+/// `closure_srcs` = 拓扑序里**本文件之前**那些模块的源码（LSP 侧就是
+/// `judge_prefix` 拼出来的那段）。目标按 `closure_srcs` 的顺序找**第一个**声明
+/// ——与编译期"后声明的覆盖先声明的"不同，但 hover 只要一个名字来解释符号，
+/// 而同一个符号在闭包里重复声明本来就会被 parser 报冲突。
+pub fn symbol_at_with_sources(
+    text: &str,
+    offset: usize,
+    closure_srcs: &[&str],
+) -> Option<(String, Option<String>)> {
+    let (symbol, target) = symbol_at(text, offset)?;
+    if target.is_some() {
+        return Some((symbol, target));
+    }
+    for src in closure_srcs {
+        if let Some((_, Some(found))) = crate::token::scan_notation_decls(src)
+            .into_iter()
+            .find(|(name, target)| name == &symbol && target.is_some())
+        {
+            return Some((symbol, Some(found)));
+        }
+    }
+    Some((symbol, None))
+}
+
 /// 光标处的**本文件声明的记法符号**：`(符号, 展开目标)`。
 ///
 /// 为什么需要它：`semantic` 把**已声明**的记法符号归进 `SemanticKind::Keyword`
