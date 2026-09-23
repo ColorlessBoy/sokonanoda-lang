@@ -131,6 +131,21 @@ pub enum ResolvedTarget {
     /// A top-level declaration of the same file; the span is the defining
     /// command's span.
     Declaration { name: String, span: Span },
+    /// **记法符号**（T-D15）：`span` 是**使用处那个符号自己**的 span
+    /// （T-D14 的 `Expr::Notation.symbol_span`），不是整段节点。
+    ///
+    /// 为什么需要它：以前记法行的 `resolution` 是 `None`，于是"光标在符号上"
+    /// 落到两个回退里，会误命中**外层 binder**（T-D30 的守卫是权宜之计）。
+    /// 有了这个变体，符号就是**一等目标**。
+    ///
+    /// `module` 是**声明记法的模块名**（跨模块跳转用）；本文件内声明时为 `None`
+    /// ——elaborator 拿不到记法表（它在 parser 手里），所以这里先留 `None`，
+    /// **声明点**由 LSP 侧的闭包记法表解析（`QueryDoc::notation_at`，T-D10/T-D16）。
+    Notation {
+        symbol: String,
+        span: Span,
+        module: Option<String>,
+    },
 }
 
 impl ResolvedTarget {
@@ -139,6 +154,7 @@ impl ResolvedTarget {
         match self {
             ResolvedTarget::Binder(span) => *span,
             ResolvedTarget::Declaration { span, .. } => *span,
+            ResolvedTarget::Notation { span, .. } => *span,
         }
     }
 }

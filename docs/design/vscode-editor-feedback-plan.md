@@ -2890,6 +2890,35 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D15 新增 `ResolvedTarget` 变体并绕开覆写
 
+> **✅ 完成（2026-09-21）。记法符号现在是"一等目标"。**
+>
+> `ResolvedTarget` 增加 **`Notation { symbol, span, module }`**；`elab.rs` 的记法
+> 展开路径把 `resolution: None` 换成该变体，`span` 取 **T-D14 的 `symbol_span`**
+> （使用处**那个符号自己**，不是整段节点）。
+>
+> **D5 的坑已确认 + 已加测试**：装配那一步
+> （`kernel_phase.rs`）只对 `Declaration` 回填声明 span：
+> ```ignore
+> if let Some(ResolvedTarget::Declaration { name, .. }) = &node.resolution { … }
+> ```
+> ⇒ 新变体**天然**不受影响——但"天然"不是判据，所以钉了
+> `compile::tests::a_notation_hover_row_keeps_its_notation_resolution_after_assembly`：
+> 报告装配**之后**那条记法行的 `resolution` 仍是 `Notation`，且**不等于**
+> `Set.mem` 的声明 span。
+>
+> **两处连带（编译器指出来）**：
+> * `render.rs::definition_name_span` —— 记法**不是名字**、没有可改名的 token
+>   ⇒ 返回 `None`（`rename` 因此被拒）。**T-D30 那条"记法上 rename 不得改 `h`"
+>   现在由变体本身保证**，不再只靠"光标在符号上"的守卫；
+> * `lib.rs::definition` 的跨文件分支 —— 记法的跨模块跳转走 T-D10 的记法分支
+>   （在 `definition_at` 之前就返回），走到那里的是本文件内的记法 ⇒ `None`。
+>
+> **与计划措辞的一处偏差（如实记）**：计划写的是"`resolution` 仍是**记法声明点**"，
+> 而 elaborator **拿不到记法表**（它在 parser 手里）⇒ 这里填的是**使用处符号自己**
+> 的 span，**声明点**由 LSP 侧的闭包记法表解析（`QueryDoc::notation_at`，
+> T-D10/T-D16）。判据的**实质**（"没有被改写成 `def Set.mem` 的 span"）一字不差地
+> 钉住了；`module` 字段先留 `None`，等 T-D16 需要跨模块时再填。
+
 - **改什么**：`ResolvedTarget`（`crates/front/src/compile/report.rs:128-134`）
   增加 `Notation { symbol, span, module }`；`elab.rs:2914` 把
   `None` 换成该变体（至少对**符号 span 命中**的情形）；
@@ -3398,7 +3427,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D12` 解析 API：`notation_resolve(text, table, offset)`
 - [x] `T-D13` hover 的"展开成"（import 来的记法）
 - [x] `T-D14` parser 保留记法符号 token 的 span
-- [ ] `T-D15` 新增 `ResolvedTarget` 变体并绕开覆写
+- [x] `T-D15` 新增 `ResolvedTarget` 变体并绕开覆写
 - [ ] `T-D16` LSP `definition` 处理记法变体
 - [ ] `T-D17` hover 的 `range` 收窄到符号本身
   - ⬆ **BUMP**：`minor` —— F12 在记法符号上能跳到声明

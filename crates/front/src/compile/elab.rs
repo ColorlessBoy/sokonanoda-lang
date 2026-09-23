@@ -2891,9 +2891,10 @@ pub(crate) fn elab_expr<'a>(
             rhs,
             alternatives,
             span,
-            // T-D14 的 `symbol_span` 在展开路径上用不到（它服务的是编辑器侧
-            // "光标是不是压在符号上"）。
-            ..
+            // T-D14 的 `symbol_span`：**符号自己**的 span（不是整段节点）。
+            // T-D15 用它当 `ResolvedTarget::Notation` 的 span ⇒ 记法符号从
+            // "没有名字可解析"变成**一等目标**。
+            symbol_span,
         } => {
             // binder 记法（第三刀 §12.1）：操作数是 `fun (x : A) => p`（两段式
             // 时 body 是 `And (x ∈ s) p`）。binder 没写类型时**先由 guard 反解**
@@ -2926,7 +2927,20 @@ pub(crate) fn elab_expr<'a>(
                 None,
                 ctx,
             )?;
-            record_hover(hovers, scope, *span, out, None);
+            // **T-D15**：记法符号是一等目标——`resolution` 指向**使用处那个符号
+            // 自己**（T-D14 的 `symbol_span`）。以前这里是 `None`，于是"光标在
+            // 符号上"会掉进两个回退里、误命中外层 binder（T-D30 的守卫是权宜之计）。
+            record_hover(
+                hovers,
+                scope,
+                *span,
+                out,
+                Some(ResolvedTarget::Notation {
+                    symbol: symbol.clone(),
+                    span: *symbol_span,
+                    module: None,
+                }),
+            );
             Ok(out)
         }
         // **集合字面量**（第三刀 §12.4）：新语法，内建糖——展开成点名形式

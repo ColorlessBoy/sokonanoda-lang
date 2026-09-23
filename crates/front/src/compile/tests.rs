@@ -6659,6 +6659,74 @@ fn pointful_application_without_the_leading_type_parameter_is_still_rejected() {
     );
 }
 
+/// **T-D15 的判据**：记法 hover 行的 `resolution` 在**报告装配之后**仍是
+/// `ResolvedTarget::Notation`——没有被 `kernel_phase` 的"回填顶层声明 span"
+/// 改写成 `def Set.mem` 的 span（这是 D5 记下的坑）。
+///
+/// 装配那一步（`kernel_phase.rs`）只对 `Declaration` 变体回填：
+/// ```ignore
+/// if let Some(ResolvedTarget::Declaration { name, .. }) = &node.resolution { … }
+/// ```
+/// ⇒ 新变体天然不受影响，但**"天然"不是判据**，所以钉一条测试。
+#[test]
+fn a_notation_hover_row_keeps_its_notation_resolution_after_assembly() {
+    let src = format!(
+        "{NOTATION_LIB}\
+         infix:50 \" ∈ \" => Set.mem\n\
+         def p (α : Type) (a : α) (A : Set α) : Prop := a ∈ A\n"
+    );
+    let file = parse(&src).expect("parse");
+    let report = check_document(&file);
+    let notation_start = src.find("a ∈ A").expect("notation text");
+    let symbol_start = src[notation_start..]
+        .find('∈')
+        .expect("symbol in the notation")
+        + notation_start;
+    let symbol_span = crate::span::Span::new(
+        crate::span::Pos {
+            offset: symbol_start,
+            line: 0,
+            column: 0,
+        },
+        crate::span::Pos {
+            offset: symbol_start + '∈'.len_utf8(),
+            line: 0,
+            column: 0,
+        },
+    );
+    // 找**那条记法行**：它的 `resolution` 是 `Notation` 变体（这正是 T-D15 加的）。
+    let (row, symbol, span) = report
+        .hovers
+        .iter()
+        .find_map(|h| match h.resolution.as_ref() {
+            Some(crate::compile::ResolvedTarget::Notation { symbol, span, .. }) => {
+                Some((h, symbol.clone(), *span))
+            }
+            _ => None,
+        })
+        .expect("必须有一条记法行的 resolution 是 Notation 变体");
+    assert_eq!(symbol, "∈");
+    assert_eq!(
+        (span.start.offset, span.end.offset),
+        (symbol_span.start.offset, symbol_span.end.offset),
+        "resolution 的 span 是**使用处那个符号自己**（T-D14 的 symbol_span）"
+    );
+    let _ = notation_start;
+    // 反向：它**不能**是 `Set.mem` 的声明 span（D5 的坑）。
+    let def_span = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("Set.mem"))
+        .map(|d| d.span);
+    if let Some(def_span) = def_span {
+        assert_ne!(
+            row.resolution.as_ref().map(|r| r.span()),
+            Some(def_span),
+            "记法的 resolution 不得被回填成 `Set.mem` 的声明 span"
+        );
+    }
+}
+
 #[test]
 fn notation_records_a_hover_row_covering_the_whole_notation() {
     // 记号节点整段 `lhs sym rhs` 一条 hover 行（设计 §4）。

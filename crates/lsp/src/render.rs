@@ -411,6 +411,10 @@ fn definition_name_span(text: &str, target: &ResolvedTarget) -> Option<Span> {
     match target {
         ResolvedTarget::Binder(binder) => binder_name_span(text, *binder),
         ResolvedTarget::Declaration { name, span } => decl_name_span(text, *span, name),
+        // **T-D15**：记法符号**不是名字**，没有可改名的 token ⇒ `None`
+        // （`rename` 因此被拒；T-D30 那条"记法上 rename 不得改 `h`"现在由
+        // **变体本身**保证，不再只靠"光标在符号上"的守卫）。
+        ResolvedTarget::Notation { .. } => None,
     }
 }
 

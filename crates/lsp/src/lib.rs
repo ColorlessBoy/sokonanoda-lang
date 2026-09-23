@@ -1766,6 +1766,9 @@ impl LanguageServer for Backend {
                 .project_definition(name)
                 .and_then(|(path, _)| Url::from_file_path(path).ok()),
             ResolvedTarget::Binder(_) => None,
+            // 记法符号的**跨模块**跳转走 T-D10 的记法分支（在 `definition_at`
+            // 之前就返回了）；走到这里的是本文件内声明的记法 ⇒ 没有跨文件目标。
+            ResolvedTarget::Notation { .. } => None,
         };
         Ok(Some(GotoDefinitionResponse::Scalar(Location {
             uri: cross_file.unwrap_or(request_uri),
