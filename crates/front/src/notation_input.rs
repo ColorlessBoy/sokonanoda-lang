@@ -450,3 +450,34 @@ mod tests {
         assert!(input_hint("∈").is_some());
     }
 }
+
+#[cfg(test)]
+mod target_resolution_tests {
+    use super::*;
+
+    /// **T-D03 的契约**：解析不出 target 就返回 `None`（调用方据此**不编**那一行）。
+    ///
+    /// 这条为什么钉在**函数**层而不是 hover 层：在**能编译**的文件里，凡是认得出来
+    /// 的记法符号都必有 target（本文件声明的 ✓ / 内建的 ✓ / `import` 来的 ✓），
+    /// 所以"解析不出"在 LSP 那条路上**不可达**——它是**防御性**的（半成品文件、
+    /// 表里有但没人声明的符号）。契约钉在这里，hover 那侧靠"那一行写在
+    /// `if let Some(target)` 里"结构性保证。
+    #[test]
+    fn a_symbol_nobody_declares_has_no_target() {
+        // `∈` 在**输入法表**里（有 `\in` 缩写）但这份文本既没声明它、也没 import
+        // 声明它的库 ⇒ 符号认得出来、目标解析不出。
+        let src = "theorem t (a b : Prop) : a ∈ b := sorry\n";
+        let offset = src.find('∈').expect("符号在文本里");
+        let (symbol, target) =
+            symbol_at_with_sources(src, offset, &[]).expect("输入法表里的符号认得出来");
+        assert_eq!(symbol, "∈");
+        assert_eq!(target, None, "没人声明它 ⇒ 没有目标可给");
+
+        // 对照：同一个符号，闭包里有人声明 ⇒ 目标就有了（T-D10 那条路）。
+        let lib = "def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+                   infix:50 \" ∈ \" => Set.mem\n";
+        let (symbol, target) = symbol_at_with_sources(src, offset, &[lib]).expect("认得出来");
+        assert_eq!(symbol, "∈");
+        assert_eq!(target.as_deref(), Some("Set.mem"), "闭包里有声明就能解析");
+    }
+}

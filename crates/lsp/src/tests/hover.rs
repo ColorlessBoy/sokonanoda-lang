@@ -438,6 +438,55 @@ async fn hover_on_a_locally_declared_notation_symbol_explains_it() {
         "hover must show what the symbol expands to: {:?}",
         markup.value
     );
+    // **T-D03 形态①：本文件声明的**——目标解析得出来（本文件的声明行），
+    // 所以"原始类型"那一行要在。
+    assert!(
+        markup.value.contains("myop : Prop -> Prop -> Prop"),
+        "本文件声明的记法也要给原始类型：{:?}",
+        markup.value
+    );
+    shutdown(&mut service).await;
+}
+
+/// **T-D03 形态②：语言内建的**——`∧` 不在任何源文本里（parser 硬编码），
+/// 目标从内建表来；签名问内核。
+#[tokio::test]
+async fn hover_on_a_builtin_notation_symbol_shows_the_raw_type() {
+    let src = "theorem t (a b : Prop) (h : a ∧ b) : a ∧ b := h
+";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "builtin notation hover").await;
+
+    let pos = lsp_pos(src, src.rfind('∧').expect("use site"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("a builtin notation symbol must not be silent");
+    let HoverContents::Markup(markup) = hover.contents else {
+        panic!("expected markup hover");
+    };
+    assert!(
+        markup.value.contains("展开成 `And`"),
+        "内建记法要说得出目标：{:?}",
+        markup.value
+    );
+    assert!(
+        markup.value.contains("And : "),
+        "内建记法也要给原始类型：{:?}",
+        markup.value
+    );
     shutdown(&mut service).await;
 }
 

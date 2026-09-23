@@ -2746,6 +2746,25 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D03 hover 的"原始类型"只对**能解析出 target** 的符号显示
 
+> **✅ 完成（2026-09-21）——三种形态各一条测试；反向那条钉在函数层。**
+>
+> | 形态 | 测试 | 断言 |
+> |---|---|---|
+> | **本文件声明** | `hover_on_a_locally_declared_notation_symbol_explains_it` | `myop : Prop -> Prop -> Prop` |
+> | **语言内建** | `hover_on_a_builtin_notation_symbol_shows_the_raw_type` | `展开成 \`And\`` + `And : …` |
+> | **`import` 来的** | `hover_on_an_imported_notation_symbol_shows_the_raw_type` | `展开成 \`Set.mem\`` + 签名 |
+>
+> **"解析不出就不显示"钉在函数层**（`notation_input::target_resolution_tests::
+> a_symbol_nobody_declares_has_no_target`），不是 hover 层——因为**在能编译的
+> 文件里这条不可达**：凡是认得出来的记法符号都必有 target（本文件声明的 ✓ /
+> 内建的 ✓ / `import` 来的 ✓）。它是**防御性**的（半成品文件、输入法表里有但
+> 没人声明的符号）。hover 那侧靠"那一行写在 `if let Some(target)` 里"
+> **结构性**保证——想加一条 LSP 级的反向用例时撞到过这一点（构造不出一个
+> "能编译 + 符号无 target"的文件），所以如实记在这里而不是硬凑一条假用例。
+>
+> **⬆ BUMP patch → 0.65.2**（§0.2："用户可感知的能力落地"——hover 显示记法的
+> 原始类型，全计划最便宜的一刀）。
+
 - **改什么**：本文件声明 / 内建 / **import 来的**三种都要能解析出 target
   （import 那种依赖 T-D10）。解析不出就**不显示**这一行（不编）。
 - **判据**：三种各一条 hover 测试（`crates/lsp/src/tests/hover.rs`）。
@@ -3271,7 +3290,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
       （**⬆ 提前**：2026-09-21 用户拍板"先收完线 C 的 4 条，再插 T-K20′"——依据是 unit12 冷编译 9.8s、其中一部分是 G-31/G-34）
 - [x] `T-D01` 复现脚本
 - [x] `T-D02` hover 增加"原始类型"行
-- [ ] `T-D03` hover 的"原始类型"只对**能解析出 target** 的符号显示
+- [x] `T-D03` hover 的"原始类型"只对**能解析出 target** 的符号显示
   - ⬆ **BUMP**：`patch` —— hover 显示记法的原始类型（全计划最便宜的一刀）
 - [ ] `T-D30` 记法符号不再误解析到外层 binder（**独立正确性 bug**）
 - [ ] `T-D31` `position_to_offset` 的 UTF-16 语义（**独立缺口**）
