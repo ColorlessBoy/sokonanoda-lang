@@ -2171,3 +2171,35 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   **背景（2026-09-23 实测）**：`origin/main` 已经推到 0.65.1，而线上最新发布还停在
   **v0.63.0**——中间三次推送的 CI 全红（e2e 的 known-red 用例），auto-tag 因此
   一次都没发版。**bump 在本地"完成"了、线上一步没动**，正是这条要求要防的事。
+
+- 2026-09-23（**Infoview 声明栏的 `forall`；记法声明行的目标名不高亮 / 不能跳转**）
+  ——用户原话：
+
+  > 1. infoview里的"声明"栏，"forall" 可以用 "∀"，对应背后是不是丢了一批符号的
+  >    改写呢？查一下完整的bug产生的原因，统一一起修掉；
+  > 2. `prefix:100 " 𝒫 " => Set.powerset` / `postfix:100 " ᶜ " => Set.compl` /
+  >    `infixr:80 " '' " => Set.image` / `infixr:80 " ⁻¹' " => Set.preimage` /
+  >    `infixr:80 " ×ˢ " => Set.prod` 这部分代码在 vscode 里有两个问题，
+  >    `Set.image` `Set.preimage` 和 `Set.prod` 没有高亮，另外 `Set.xxx`（ctrl+点击）
+  >    不能跳转到定义。背后的 bug 机制先搞明白，然后再统一修复，这个应该是一个
+  >    共性问题。
+
+  **要求**：
+  1. **先搞清机制再修**，两条都要**统一一起修**（用户明确怀疑是"一批符号的改写
+     丢了"与"共性问题"——不要逐个打补丁）；
+  2. 结论要写进 `docs/design/vscode-editor-feedback-plan.md`（新增环节），
+     机制、判据、影响面三件套齐全；
+  3. 判据必须是**可跑的一条命令**（e2e 或单测），不接受"看起来好了"。
+
+  **初步定位（本轮已查，供下一轮接着做）**：
+  * 第 1 条的现场是 `courses/set-theory/lib/Set.sokonanoda`；声明栏文本来自
+    `decl.ty`（走线 C 的折叠）。**假设**：线 C 只折 `Infix|Infixl|Infixr`
+    （见 `crates/front/src/display.rs` 的 `fold_collecting`），而 `∀` 是
+    **binder 记法** ⇒ `forall (a : T), …` 不折。若成立，则**不止 `∀`**：
+    prefix（`𝒫`）、postfix（`ᶜ`）、binder（`∀`/`∃`）、零元（`∅`）都漏折
+    ——正是用户说的"丢了一批符号"。
+  * 第 2 条的现场是同一个文件的 **124–128 行**（用户逐字引用的那五行）。
+    **假设**：记法声明里的**目标名**（`=> Set.image`）没有被登记成"使用点"
+    ⇒ 既没有语义高亮、也没有 hover/definition。要查为什么 `Set.powerset`/
+    `Set.compl`（prefix/postfix 那两条）看起来"没事"——是同样坏、还是只在
+    infixr 那三条上坏（若后者成立，机制就在 parser 的 infixr 分支）。
