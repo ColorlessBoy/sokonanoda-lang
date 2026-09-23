@@ -3275,10 +3275,10 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   - ⬆ **BUMP**：`patch` —— hover 显示记法的原始类型（全计划最便宜的一刀）
 - [ ] `T-D30` 记法符号不再误解析到外层 binder（**独立正确性 bug**）
 - [ ] `T-D31` `position_to_offset` 的 UTF-16 语义（**独立缺口**）
-- [ ] `T-D10` `NotationDecl` re-export + 补 `span`/`module`
-- [ ] `T-D11` 闭包级记法表进 `ProjectReport`/`QueryDoc`
-- [ ] `T-D12` 解析 API：`notation_resolve(text, table, offset)`
-- [ ] `T-D13` hover 的"展开成"（import 来的记法）
+- [x] `T-D10` `NotationDecl` re-export + 补 `span`/`module`
+- [x] `T-D11` 闭包级记法表进 `ProjectReport`/`QueryDoc`
+- [x] `T-D12` 解析 API：`notation_resolve(text, table, offset)`
+- [x] `T-D13` hover 的"展开成"（import 来的记法）
 - [ ] `T-D14` parser 保留记法符号 token 的 span
 - [ ] `T-D15` 新增 `ResolvedTarget` 变体并绕开覆写
 - [ ] `T-D16` LSP `definition` 处理记法变体
