@@ -2946,6 +2946,27 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D31 `position_to_offset` 的 UTF-16 语义（**独立缺口**）
 
+> **✅ 完成（2026-09-21，按计划只做"立台账 + 判定实验"，不做修复）。**
+>
+> * **台账**：`docs/gaps/ledger.jsonl` 新增 **G-36**（`status: open`，
+>   `repro_expect: script` ⇒ 复现件 exit 0 = 缺口仍在）；`gap.py check` 全绿。
+> * **判定实验**：`docs/gaps/repro/G36-utf16-position-mapping.sh`（+ `.js`）——
+>   起**真 LSP**、说 JSON-RPC。夹具
+>   `theorem demo (α : Type) (A : Set α) (h : 𝒫 A = 𝒫 A) : 𝒫 A = 𝒫 A := h`
+>   （`soko grade` 退出 0、零诊断）里 `𝒫 A` 的 `A` 在 **UTF-16 列 44**：
+>   服务端给的 hover 是**外层表达式** `𝒫 A = 𝒫 A : Prop`，而**列 43** 的 hover
+>   才是 `A : Set α` ⇒ 差的就是那 1 个码元。
+> * **两条纪律（都踩过）**：① 夹具必须**编译干净**，否则 hover 退化成"未通过，
+>   见诊断"的错误卡片，红的原因就不是位置映射了；② 判据**不能只看 range**
+>   （落偏时服务端回退成"整行表达式"，range 照样覆盖光标 ⇒ 恒真、量不出缺口），
+>   要看**文本**，并且**必须带对照**（列号减一 ⇒ 命中 `A`），否则排除不掉
+>   "`A` 本来就没有 hover"。形状不对 ⇒ exit 2。
+> * **为什么仓库内测试抓不到**：`crates/lsp/src/testutil.rs` 的 `lsp_pos` 刻意
+>   **镜像**了服务端的数法 ⇒ 单测里两边一起偏、永远一致。只有像本实验这样走
+>   **真 JSON-RPC** 才看得见。
+> * **真修单独立项**：改成 UTF-16 计数会动**所有**位置映射与夹具
+>   （含 front 的 `references::offset_of`，T-D30 里有意与它同口径），要一起改。
+
 - **根因**：§2.7 第 3 条（`crates/lsp/src/lib.rs:615-629`；`docs/protocol.md:806-811`
   已记为独立缺口）。
 - **改什么**：本轮**只立台账 + 写判定实验**（用 `𝒫` 造一个偏离用例）；
@@ -3318,7 +3339,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D03` hover 的"原始类型"只对**能解析出 target** 的符号显示
   - ⬆ **BUMP**：`patch` —— hover 显示记法的原始类型（全计划最便宜的一刀）
 - [x] `T-D30` 记法符号不再误解析到外层 binder（**独立正确性 bug**）
-- [ ] `T-D31` `position_to_offset` 的 UTF-16 语义（**独立缺口**）
+- [x] `T-D31` `position_to_offset` 的 UTF-16 语义（**独立缺口**）
 - [x] `T-D10` `NotationDecl` re-export + 补 `span`/`module`
 - [x] `T-D11` 闭包级记法表进 `ProjectReport`/`QueryDoc`
 - [x] `T-D12` 解析 API：`notation_resolve(text, table, offset)`

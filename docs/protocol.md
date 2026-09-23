@@ -814,8 +814,13 @@ Envelope (every answer, success or failure):
 - Positions are 1-based `line`/`col`; `--offset` is a **byte** offset. The column
   counts `char`s today (`crates/front/src/token.rs`) — identical to the LSP's
   UTF-16 `character` for BMP text (all course material), and one short per astral
-  character (emoji); that drift is a separate, separately tracked gap, not
-  something a consumer of this protocol should compensate for. Every position in
+  character (emoji); that drift is a separate, separately tracked gap (**G-36**,
+  `docs/gaps/ledger.jsonl`, 判定实验 `docs/gaps/repro/G36-utf16-position-mapping.sh`),
+  not something a consumer of this protocol should compensate for.
+  **编辑器侧的后果**（G-36 的实测）：LSP 的 `character` 是 UTF-16 码元，而服务端
+  按 `char` 计数 ⇒ `𝒫`（U+1D4AB，代理对）之后的同一行**整体偏一格**——
+  hover/definition/highlight/rename 都会落到隔壁字符上。复现脚本自带对照
+  （列号减一才命中 `A : Set α`），所以那不是"A 没有 hover"。 Every position in
   this document (event `span`, `query check`'s `start_line`/`start_col`/…, LSP
   diagnostics) is the **same** number, so read it, don't recompute it.
 - `query check`'s `failed[]`/`warnings[]` report in the **entry file**'s
