@@ -238,6 +238,38 @@ pub fn declaration_kinds(src: &str) -> Vec<(String, SemanticKind)> {
 /// names in scope at that goal (hypotheses). Lexing failures degrade to one
 /// plain run, never an error.
 pub fn tag_runs(text: &str, decls: &[(String, SemanticKind)], binders: &[String]) -> Vec<Run> {
+    tag_runs_with_notations(text, decls, binders, &[])
+}
+
+/// 本文件**可见的记法符号**：源里声明的 + **语言内建的**。
+///
+/// 内建那几个（`∧`/`∨`/`↔`/`¬`/`=`/`≠`）**不在任何源文本里**——parser 有一张
+/// 硬编码表，词法与解析直接认。所以"扫源里的 `Command::Notation`"收不到它们；
+/// 而**线 C 之后 goal / 类型行里会出现它们**（`a ∧ b`、`A ↔ B`），不补上就会掉成
+/// 裸 run（`{"text":"∧"}`，没有 `kind`）——那正是 T-C30 的判据。
+pub fn notation_symbols(src: &str) -> Vec<String> {
+    // **词法级扫描，不 parse**：库里的记法要能收进来（使用它的文件单文件 parse
+    // 必然失败——记法随 `import` 传播），而且这是**每次查询**都要走的路，
+    // parse 一遍整个闭包太贵。`scan_notation_decls` 就是为这件事写的。
+    let mut out: Vec<String> = crate::token::scan_notation_symbols(src);
+    for (symbol, ..) in crate::parser::builtin_notations() {
+        if !out.iter().any(|s| s == symbol) {
+            out.push((*symbol).to_string());
+        }
+    }
+    out
+}
+
+/// 同 [`tag_runs`]，另外把 `notations` 里的符号着成
+/// [`SemanticKind::Keyword`]——与 `classify` 里 `Command::Notation` 那条**同一条
+/// 规则**（G-04 / WO-011：已声明的符号归 `Keyword`，先例是 `∀` 的 `Forall` token；
+/// **不新增 `SemanticKind`**）。
+pub fn tag_runs_with_notations(
+    text: &str,
+    decls: &[(String, SemanticKind)],
+    binders: &[String],
+    notations: &[String],
+) -> Vec<Run> {
     let plain = |s: &str| Run {
         text: s.to_string(),
         kind: None,
@@ -246,10 +278,17 @@ pub fn tag_runs(text: &str, decls: &[(String, SemanticKind)], binders: &[String]
     for (name, kind) in decls {
         names.decls.insert(name.clone(), *kind);
     }
+    for symbol in notations {
+        names
+            .notations
+            .insert(symbol.clone(), SemanticKind::Keyword);
+    }
     for name in binders {
         names.binders.insert(name.clone());
     }
-    let toks = match crate::token::tokenize(text) {
+    // **要把记法符号喂给词法**：`↔`/`¬`/`≠` 不在数学符号码点类里，不喂就切成
+    // `Ident`（于是走 `classify_ident` ⇒ `unknown_ident`，而不是 `Keyword`）。
+    let toks = match crate::token::tokenize_with_symbols(text, notations) {
         Ok(mut toks) => {
             toks.pop(); // Eof
             toks
@@ -1066,6 +1105,56 @@ end
                 "runs must reconstruct {text:?} exactly"
             );
         }
+    }
+
+    /// **T-C30**：记法符号要有着色，而且**内建的也算**。
+    ///
+    /// 判据（wire 层）：`∈` 的 run 有 `kind`，不再是裸 `{"text":"∈"}`。
+    #[test]
+    fn tag_runs_marks_notation_symbols_as_keywords() {
+        let src = "def Set.mem (α : Type) (a : α) (A : α -> Prop) : Prop := A a\n\
+                   infix:50 \" ∈ \" => Set.mem\n";
+        let symbols = notation_symbols(src);
+        assert!(
+            symbols.contains(&"∈".to_string()),
+            "源里声明的要收到：{symbols:?}"
+        );
+        // **内建也要在**：它们不在任何源文本里（parser 硬编码），而线 C 之后
+        // goal / 类型行里会出现 `a ∧ b`、`A ↔ B`。
+        for builtin in ["∧", "∨", "↔", "¬", "=", "≠"] {
+            assert!(
+                symbols.contains(&builtin.to_string()),
+                "内建 `{builtin}` 也要在：{symbols:?}"
+            );
+        }
+
+        // 目标文本里 `∈`（源里声明的）与 `↔`（内建的）都要着成 `Keyword`
+        // （与源里的 `Command::Notation` 同一条规则、同一个 kind）。
+        let runs = tag_runs_with_notations("A ∈ B -> (A ↔ B)", &[], &[], &symbols);
+        assert_eq!(
+            tagged(&runs),
+            vec![
+                ("A", SemanticKind::UnknownIdent),
+                ("∈", SemanticKind::Keyword),
+                ("B", SemanticKind::UnknownIdent),
+                // 括号里那个 `A`（`(A ↔ B)`）——两个 `A` 都要在。
+                ("A", SemanticKind::UnknownIdent),
+                ("↔", SemanticKind::Keyword),
+                ("B", SemanticKind::UnknownIdent),
+            ],
+            "记法符号必须有着色：{runs:?}"
+        );
+        // **不喂符号表**时 `↔` 会掉成 `unknown_ident`（它不在数学符号码点类里，
+        // 不喂就切成 `Ident`）——这正是没修之前 wire 上的样子。
+        let bare = tag_runs_with_notations("A ↔ B", &[], &[], &[]);
+        assert_eq!(
+            tagged(&bare),
+            vec![
+                ("A", SemanticKind::UnknownIdent),
+                ("↔", SemanticKind::UnknownIdent),
+                ("B", SemanticKind::UnknownIdent),
+            ]
+        );
     }
 
     #[test]

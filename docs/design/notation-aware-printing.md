@@ -476,6 +476,39 @@ Set.mem α a A -> P  →  a ∈ A -> P     （父节点是 Arrow，不是应用 
 **外层丢掉**（实测：`(A ∪ B) ∪ C` 退化成 `Set.union α (A ∪ B) C`）。
 修法：按 `(起点, 终点倒序)` 排——**起点相同时长的在前**。
 
+### 3.3f as-built：记法符号的着色（T-C30，2026-09-21）
+
+线 C 让 goal / 类型行里出现了 `∈`/`⊆`/`∧`/`↔`——但**那些符号没有 `kind`**：
+wire 上是裸的 `{"text":"⊆"}`（语义着色掉了一档）。
+
+**根因两条**（都是实测才知道）：
+
+1. **`tag_runs` 没填 `Names::notations`**。`classify`（源路径）在 `Command::Notation`
+   那条臂里登记符号，而 `tag_runs`（内核渲染文本路径）只填 `decls`/`binders`
+   ⇒ `TokenKind::Sym(symbol)` 查不到、不产 run。
+2. **符号表要扫整个闭包，而且不能 parse**：`∈`/`⊆` 声明在
+   `lib/Set.sokonanoda` 里，入口只是 `import` 了它（只扫入口 ⇒ `⊆` 仍然掉）。
+   而"使用库记法的文件**单文件 parse 必然失败**"（记法随 `import` 传播）
+   ⇒ 只能用**词法级扫描** `token::scan_notation_decls`（它本来就是为这件事写的），
+   顺带省掉"每次查询 parse 一遍闭包"的钱。
+3. **还要把符号喂给词法**：`↔`/`¬`/`≠` **不在数学符号码点类里**，不喂就切成
+   `Ident` ⇒ 走 `classify_ident` ⇒ `unknown_ident`（比"没有 kind"更糟）。
+   `tag_runs` 因此改用 `tokenize_with_symbols(text, notations)`。
+
+**内建也要算**：`∧`/`∨`/`↔`/`¬`/`=`/`≠` 不在任何源文本里（parser 有硬编码表），
+而线 C 之后 goal 里就是它们——`semantic::notation_symbols` 把内建并进去。
+
+**实测**（`query goals` unit01 的 `ty_runs`）：
+
+```
+{"kind": "keyword", "text": "⊆"}
+{"kind": "keyword", "text": "↔"}
+重建校验: ''.join(runs.text) == ty  →  True
+```
+
+判据：`semantic::tests::tag_runs_marks_notation_symbols_as_keywords`（含一条**反向**
+断言：不喂符号表时 `↔` 掉成 `unknown_ident`——那就是修之前的样子）。
+
 ### 3.4b 损失护栏（T-C14）：三层，从强到弱
 
 | 层 | 护栏 | 判据 |

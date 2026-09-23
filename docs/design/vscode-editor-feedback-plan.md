@@ -2436,6 +2436,24 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C30 `semantic::tag_runs` 填 `Names::notations`
 
+> **✅ 完成（2026-09-21）——实测撞到三件事，比计划写的多两件。**
+>
+> 计划只写了"补 `notations`"，实测发现补齐它**还不够**：
+> ① 符号表要**扫整个闭包**（`∈`/`⊆` 声明在 `lib/Set.sokonanoda`，入口只 `import`
+> 了它），而且**不能 parse**——"使用库记法的文件单文件 parse 必然失败"（记法随
+> `import` 传播）⇒ 用**词法级扫描** `token::scan_notation_decls`（省掉"每次查询
+> parse 一遍闭包"的钱）；
+> ② 还要把符号**喂给词法**：`↔`/`¬`/`≠` 不在数学符号码点类里，不喂就切成 `Ident`
+> ⇒ `unknown_ident`（比"没有 kind"更糟）⇒ 改用
+> `tokenize_with_symbols(text, notations)`；
+> ③ **内建也要算**（`∧`/`∨`/`↔`/`¬`/`=`/`≠` 不在任何源文本里）。
+>
+> 判据实测：`query goals` 的 `ty_runs` 里 `⊆`/`↔` 都是 `{"kind":"keyword"}` ✓
+> 且 runs 能逐字重建文本 ✓。测试
+> `semantic::tests::tag_runs_marks_notation_symbols_as_keywords`（带一条**反向**
+> 断言：不喂符号表时 `↔` 掉成 `unknown_ident`——修之前的样子）。
+> 顺带把 T-C22 里弱化的 LSP 断言**加强回来**（`goal_kinds` 现在含 `keyword`）。
+
 - **根因**：§2.7 第 2 条。
 - **改什么**：`crates/front/src/semantic.rs:240` 建 `Names` 时补 `notations`
   （对齐 `classify` 在 `:544` 的做法）。
@@ -3029,7 +3047,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C24` 逐 surface 的判别性测试
   - ⬆ **BUMP**：`minor` —— goal / 假设 / 声明类型第一次显示记法
 - [x] `T-C25` 边界：命中不了就回退
-- [ ] `T-C30` `semantic::tag_runs` 填 `Names::notations`
+- [x] `T-C30` `semantic::tag_runs` 填 `Names::notations`
 - [ ] `T-C31` 目标文本里的**导入名**不再标 `unknown_ident`
 - [ ] `T-C32` 着色在 Infoview 里可见
 - [ ] `T-C50` 真宿主 e2e：goal 文本用记法（矩阵用例 #6）

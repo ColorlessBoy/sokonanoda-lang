@@ -54,10 +54,13 @@ async fn state_at_carries_semantic_runs_for_goals_and_hypotheses() {
         goal_kinds.contains(&"binder"),
         "the hypothesis `a` must classify as a binder: {goal_kinds:?}"
     );
-    // **线 C（T-C22）之后**：目标折成 `a ∧ a -> a` ⇒ 这里不再有 `And` 的
-    // `axiom_use` 运行（`∧` 是**记法符号**）。它今天**还没被分类**（上面只剩
-    // `binder`）——把记法符号标成 `notation` 是计划里的 **T-C30**，不在本环节。
-    // 这里守住"别把它当未知标识符"这条底线。
+    // **线 C（T-C22/T-C30）之后**：目标折成 `a ∧ a -> a` ⇒ 这里不再有 `And` 的
+    // `axiom_use` 运行（`∧` 是**记法符号**），取而代之的是 `keyword`
+    // ——T-C30 把记法符号喂进了 runs 分类（与源里 `Command::Notation` 同一条规则）。
+    assert!(
+        goal_kinds.contains(&"keyword"),
+        "记法符号要着成 `keyword`：{goal_kinds:?}"
+    );
     assert!(
         !goal_kinds.contains(&"unknown_ident"),
         "记法符号不该被当成未知标识符：{goal_kinds:?}"

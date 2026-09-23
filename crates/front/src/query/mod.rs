@@ -373,14 +373,36 @@ impl QueryDoc {
         semantic::declaration_kinds(&self.text)
     }
 
+    /// 文档可见的记法符号（每次查询算一次，与 `decl_kinds` 同一条路）——
+    /// 线 C 之后 goal / 类型行里会出现 `∈`/`⊆`/`∧`，没有它那些符号就掉成裸 run。
+    ///
+    /// **要扫整个闭包**：`∈`/`⊆` 声明在 `lib/Set.sokonanoda` 里，入口文件只是
+    /// `import` 了它——只扫入口文本会让 `⊆` 掉成裸 run（实测）。
+    /// 扫描是**词法级**的（`scan_notation_decls`），不 parse、不依赖单文件能编过。
+    fn notation_symbols(&self) -> Vec<String> {
+        let mut out = semantic::notation_symbols(&self.text);
+        if let Some(modules) = self.project_modules() {
+            for module in modules.iter().take(modules.len().saturating_sub(1)) {
+                let src = crate::project::importless_source(&module.source);
+                for symbol in semantic::notation_symbols(&src) {
+                    if !out.contains(&symbol) {
+                        out.push(symbol);
+                    }
+                }
+            }
+        }
+        out
+    }
+
     /// 把一段内核文本切成 wire runs（着色单一来源）。
     fn runs(
         &self,
         decls: &[(String, SemanticKind)],
+        notations: &[String],
         text: &str,
         binders: &[String],
     ) -> Vec<RunInfo> {
-        semantic::tag_runs(text, decls, binders)
+        semantic::tag_runs_with_notations(text, decls, binders, notations)
             .into_iter()
             .map(|run| RunInfo {
                 text: run.text,
@@ -569,18 +591,19 @@ impl QueryDoc {
         let selection = select_state_at(d, cursor);
         // 一次 parse，然后每个 goal/binder 纯分类（goal-rendering §2.1）。
         let decls = self.decl_kinds();
+        let notations = self.notation_symbols();
         let goal = |g: &ByGoalState| {
             let names: Vec<String> = g.binders.iter().map(|b| b.name.clone()).collect();
             GoalInfo {
                 goal: g.ty.clone(),
-                goal_runs: self.runs(&decls, &g.ty, &names),
+                goal_runs: self.runs(&decls, &notations, &g.ty, &names),
                 binders: g
                     .binders
                     .iter()
                     .map(|b| BinderInfo {
                         name: b.name.clone(),
                         ty: b.ty.clone(),
-                        ty_runs: self.runs(&decls, &b.ty, &names),
+                        ty_runs: self.runs(&decls, &notations, &b.ty, &names),
                     })
                     .collect(),
             }
@@ -630,6 +653,7 @@ impl QueryDoc {
         // （`docs/design/redundant-sorry.md`）。
         let redundant_spans = redundant_hole_spans(&report);
         let decls = self.decl_kinds();
+        let notations = self.notation_symbols();
         Ok(report
             .decls
             .iter()
@@ -639,7 +663,7 @@ impl QueryDoc {
                 let ty_runs = d
                     .ty_text
                     .as_deref()
-                    .map(|ty| self.runs(&decls, ty, &binder_names))
+                    .map(|ty| self.runs(&decls, &notations, ty, &binder_names))
                     .unwrap_or_default();
                 let open = d.status == DeclStatus::Open;
                 DeclInfo {
@@ -665,7 +689,7 @@ impl QueryDoc {
                         .map(|b| BinderInfo {
                             name: b.name.clone(),
                             ty: b.ty.clone(),
-                            ty_runs: self.runs(&decls, &b.ty, &binder_names),
+                            ty_runs: self.runs(&decls, &notations, &b.ty, &binder_names),
                         })
                         .collect(),
                     hole: if open {

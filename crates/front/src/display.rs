@@ -242,7 +242,7 @@ fn splice(text: &str, base: usize, mut edits: Vec<(Span, String)>) -> Option<Str
 /// 记进 `edits`（`(被替换那段的 span, 换上去的文本)`）。内外都记；[`splice`]
 /// 只取最外层的那些。
 fn fold_collecting(expr: Expr, dn: &DisplayNotations, edits: &mut Vec<(Span, String)>) -> Expr {
-    fold_collecting_inner(expr, dn, edits).0
+    fold_collecting_inner(expr, dn, edits, false).0
 }
 
 /// 同 [`fold_collecting`]，另外回报"这棵子树变了没有"。
@@ -256,14 +256,21 @@ fn fold_collecting(expr: Expr, dn: &DisplayNotations, edits: &mut Vec<(Span, Str
 ///
 /// 只上提到 `App`：`Set.mem α a A -> P` 的父节点是 `Arrow`（不是应用），
 /// 就地换是安全的（`∈` 比 `->` 紧，重解析一致）⇒ 保留原文的其它部分。
+///
+/// **`in_spine` 是性能开关**（不是正确性开关）：只让**最外层**那条应用脊记一次。
+/// 不传它的话，折点之上的**每一层** `App` 祖先都会 `render_expr` 一遍整棵子树
+/// ——实测 `did_open` 因此退化 **+18~22%**（`lsp-course` 三档全中），改回 O(1) 次。
+/// 记多次也不影响结果（[`splice`] 只取最外层），纯粹是白烧。
 fn fold_collecting_inner(
     expr: Expr,
     dn: &DisplayNotations,
     edits: &mut Vec<(Span, String)>,
+    in_spine: bool,
 ) -> (Expr, bool) {
+    let is_app = matches!(expr, Expr::App { .. });
     let mut child_changed = false;
     let expr = map_children_with(expr, &mut |e| {
-        let (out, changed) = fold_collecting_inner(e, dn, edits);
+        let (out, changed) = fold_collecting_inner(e, dn, edits, is_app);
         child_changed |= changed;
         out
     });
@@ -271,7 +278,7 @@ fn fold_collecting_inner(
         edits.push((folded.span(), crate::proof::render_expr(&folded)));
         return (folded, true);
     }
-    if child_changed && matches!(expr, Expr::App { .. }) {
+    if child_changed && is_app && !in_spine {
         edits.push((expr.span(), crate::proof::render_expr(&expr)));
         return (expr, true);
     }
