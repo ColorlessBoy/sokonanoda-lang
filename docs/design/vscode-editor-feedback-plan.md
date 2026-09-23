@@ -2977,6 +2977,27 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D40 三层测试（矩阵用例 #7/#8）
 
+> **✅ 完成（2026-09-21）。三层齐，且每一层都有"前提守卫"。**
+>
+> | 层 | 用例 | 钉住什么 |
+> |---|---|---|
+> | **front** | `query::tests::notation_folding_does_not_clobber_a_use_points_resolution` | 线 C 的折叠只动**显示副本**，点名使用点的 `resolution` 仍在；**前提守卫**：这条夹具确实折了记法（`h.ty` 含 `⊆`），否则断言证明不了什么 |
+> | **LSP** | `hover_on_{a_locally_declared,a_builtin,an_imported}_notation_symbol_*`（三条）· `goto_definition_on_a_notation_symbol_lands_on_its_declaration` · `a_notation_symbol_does_not_resolve_to_the_enclosing_binder` | hover 的三种形态 + 跳转到**声明它的模块**那一行 + highlight/rename 不误命中 binder |
+> | **真宿主 e2e** | 矩阵 #7 `go to definition on a notation symbol lands on its declaration` · #8 `hover on a notation symbol shows the target's signature` | 真 VS Code 的 `executeDefinitionProvider`/`executeHoverProvider` |
+>
+> **判据实跑**（T-D40 验收这一轮）：
+> ```
+> SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh --grep "notation symbol" --profile debug
+>   ⇒ e2e: 2 passed / 0 failed（46s；台账进 docs/e2e/ledger.jsonl）
+> ```
+> **LSP 的 definition 用例是这轮补的**（T-D10 的记法分支此前只有 e2e 覆盖，
+> 单元层缺一条）；**front 那条也是这轮补的**——原来三层里 front 层是空的。
+>
+> **一处如实记录**：front 那条最初想断言"记法符号自己的 hover 行没有
+> `resolution`"，实测**这个夹具里没有正好落在 `⊆` 上的 hover 行**（hover 行按
+> 表达式/名字给），所以那半条是**空断言**——删掉，换成"前提守卫 + resolution 仍在"
+> 两条真能失败的前提。**不凑数**。
+
 - **改什么**：front（`resolution` 不被覆写）、LSP（hover/definition/highlight）、
   真宿主 e2e 两条：
   7. `go to definition on a notation symbol lands on its declaration` ——
@@ -3354,7 +3375,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [ ] `T-D22` `scoped` 记法的导航是否尊重作用域
 - [ ] `T-D23` 重载：一个 `Location` 还是 N 个
 - [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
-- [ ] `T-D40` 三层测试（矩阵用例 #7/#8）
+- [x] `T-D40` 三层测试（矩阵用例 #7/#8）
 - [ ] `T-D41` 文档同步
   - ⬆ **BUMP**：`patch` —— 批次 4 收尾（含 rename/highlight 不再误伤 binder）
 

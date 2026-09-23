@@ -338,3 +338,67 @@ theorem t (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
     );
     shutdown(&mut service).await;
 }
+
+/// **T-D40 的 LSP 层**：`go to definition` 在**记法符号**上跳到**声明它的模块**里
+/// 那一行（`infix:50 " ∈ " => Set.mem`）。
+///
+/// 这是 T-D10 加的记法分支的判据：`definition_at` 只认"名字的使用点"，
+/// 而记法符号的 `resolution` 是 `None` ⇒ 以前直接返回 `null`
+/// （e2e 用例 #7 覆盖的是同一条路的真宿主版本）。
+#[tokio::test]
+async fn goto_definition_on_a_notation_symbol_lands_on_its_declaration() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-def-notation-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    let lib = dir.join("SetLib.sokonanoda");
+    std::fs::write(
+        &lib,
+        "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write lib");
+    let entry = dir.join("Canvas.sokonanoda");
+    let src = "import SetLib\n\ntheorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
+    std::fs::write(&entry, src).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+    let lib_uri = Url::from_file_path(&lib).expect("lib url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "notation definition").await;
+
+    let pos = lsp_pos(src, src.rfind('∈').expect("use site"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(3)
+            .finish(),
+    )
+    .await
+    .expect("definition must answer");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid definition response");
+    let location = location.expect("记法符号必须有跳转目标（以前返回 null）");
+    let (uri, range) = match location {
+        GotoDefinitionResponse::Scalar(location) => (location.uri, location.range),
+        other => panic!("expected a single location: {other:?}"),
+    };
+    assert_eq!(uri, lib_uri, "要跳到**声明它的模块**");
+    // 声明那一行（0-based 2）里的 `infix`。
+    assert_eq!(range.start.line, 2, "落在 `infix` 那一行：{range:?}");
+    assert_eq!(range.start.character, 0, "从行首开始：{range:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}

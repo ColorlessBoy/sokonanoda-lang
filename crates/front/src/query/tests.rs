@@ -607,6 +607,46 @@ infix:50 \" ⊆ \" => Set.subset
 theorem open_prefix (α : Type) (A B : Set α) : A ⊆ B -> A ⊆ B := fun (h : A ⊆ B) => sorry
 ";
 
+/// **T-D40 的 front 层**：线 C 的记法折叠**不得覆写 `resolution`**。
+///
+/// 折叠走的是**显示副本**（`ty_text` / `by_step_states` 的 `ty`），而
+/// `hovers[].resolution` 是**语义**（use point → 定义点）——两者在同一个
+/// `DocumentReport` 上，最容易被"顺手改一改"弄坏。这条钉住：含记法的夹具里，
+/// 名字使用点的 `resolution` 仍在、且指向真正的定义。
+#[test]
+fn notation_folding_does_not_clobber_a_use_points_resolution() {
+    let doc = doc(BINDER_NOTATION_CANVAS);
+    let report = doc.report.as_ref().expect("the fixture compiles");
+    // 夹具里的**点名**使用（`Set α` 那些）必须有 resolution。
+    let resolved: Vec<&str> = report
+        .hovers
+        .iter()
+        .filter_map(|h| h.resolution.as_ref())
+        .filter_map(|r| match r {
+            crate::compile::ResolvedTarget::Declaration { name, .. } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        resolved.iter().any(|name| *name == "Set"),
+        "点名形式的使用点仍要有 resolution（折叠只动显示副本）：{resolved:?}"
+    );
+    // **前提守卫**：这个夹具必须真的在折记法，否则上面那条断言证明不了什么。
+    let state = doc
+        .state_at(BINDER_NOTATION_CANVAS.find("sorry").expect("hole"))
+        .expect("state");
+    let h = state
+        .binders
+        .iter()
+        .find(|b| b.name == "h")
+        .expect("the lambda binder `h` is in scope");
+    assert!(
+        h.ty.contains('⊆'),
+        "前提：这条夹具的**显示**确实折了记法：{}",
+        h.ty
+    );
+}
+
 /// **生产者 3 的守护**（T-C21 顺带）：同一个声明的 `ty` 走内核 pp + 线 C 的折叠
 /// （T-C20）⇒ 现在也带记法。这条同时钉住"折叠真的接到了 `ty_text` 上"。
 #[test]
