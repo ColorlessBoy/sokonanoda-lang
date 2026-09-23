@@ -628,7 +628,7 @@ fn notation_folding_does_not_clobber_a_use_points_resolution() {
         })
         .collect();
     assert!(
-        resolved.iter().any(|name| *name == "Set"),
+        resolved.contains(&"Set"),
         "点名形式的使用点仍要有 resolution（折叠只动显示副本）：{resolved:?}"
     );
     // **前提守卫**：这个夹具必须真的在折记法，否则上面那条断言证明不了什么。
