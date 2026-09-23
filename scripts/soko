@@ -71,12 +71,27 @@ function changedCrates() {
   const names = []
   let out
   try {
-    out = spawnSync('git', ['diff', '--name-only', 'HEAD'], { cwd: REPO, encoding: 'utf8' })
+    // ⚠ **不只看工作区**：`gate --fast` 最常是在**提交之后**跑的，那时
+    // `git diff HEAD` 是空的 ⇒ 会静默跳过所有单测（实测踩到：提交后跑 --fast，
+    // 它打印"crates/ 下没有改动"）。所以取三段并集：
+    //   ① 相对 **origin/main** 的差异（本轮已提交的改动）
+    //   ② 工作区未提交的改动
+    //   ③ 未跟踪的新文件
+    // origin/main 不在（新克隆/无远端）时退回 `HEAD~1`，再不行就只看工作区。
+    let base = 'origin/main'
+    if (spawnSync('git', ['rev-parse', '--verify', '--quiet', base], { cwd: REPO }).status !== 0) {
+      base = 'HEAD~1'
+    }
+    out = spawnSync('git', ['diff', '--name-only', `${base}...HEAD`], {
+      cwd: REPO,
+      encoding: 'utf8',
+    })
+    const working = spawnSync('git', ['diff', '--name-only', 'HEAD'], { cwd: REPO, encoding: 'utf8' })
     const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard'], {
       cwd: REPO,
       encoding: 'utf8',
     })
-    const files = `${out.stdout || ''}\n${untracked.stdout || ''}`.split('\n')
+    const files = `${out.stdout || ''}\n${working.stdout || ''}\n${untracked.stdout || ''}`.split('\n')
     for (const f of files) {
       const m = /^crates\/([^/]+)\//.exec(f.trim())
       if (!m) continue
