@@ -624,3 +624,30 @@ best-of-3）/`336ms`（红那次），本地（M 系 mac）17–20ms。**4× 的
 （`fold_collecting_inner` 的 `in_spine` 开关）后回到噪声内
 （unit08 从 +21.1% 落到 +6.3%，unit12 从 +22.5% 落到 +12.0%=环境漂移）。
 **教训**：显示层的"每层都做一遍"在声明上千的文件上是 O(n·深度)，必须只做最外层。
+
+
+## 待查：`lsp-course/did_open` 比 26 小时前的台账高 ~18%（2026-09-21 记）
+
+**现象**：`c45af52f`（0.65.0）的台账里 `did_open` unit01/08/12 = 1942/4512/8785 ms，
+而 `c74c0046`（0.64.1，26 小时前）是 1709/3902/7420 ms（+14.6%/+15.6%/+19.8%）。
+
+**已排除**（都做了实测）：
+
+| 嫌疑 | 实测 | 结论 |
+|---|---|---|
+| 记法折叠（线 C 的显示工作） | 背靠背 `SOKO_NO_NOTATION_FOLD=1` vs 开：unit12 **8318 vs 8314**、unit08 4085 vs 4149、unit01 1818 vs 1951 | **≈0**，不是它 |
+| T-A30 的防抖（120ms） | `SOKO_DEBOUNCE_MS=0`：unit12 **8974**（没变快） | 不是它 |
+| 编译路径的提交 | `git log c74c0046..HEAD -- crates/front/src/compile crates/lsp/src/lib.rs` 只有 **5 条**，全是线 C 的显示层 | 只有这 5 条可能 |
+
+**注意**：`perf_course` 的 LSP 用例走 `testutil::test_service()`——**进程内**服务
+⇒ 它量的是 **debug 构建**（`cli_profile=release` 指的是另跑的 CLI 档）。debug 下
+每声明的额外开销会被放大，代码布局变化也会整体影响内联决策 ⇒ 这个 +18% 未必是
+"用户能感觉到的退化"。**要看用户侧的数字得量 release**（`query`/`grade` 冷跑）。
+
+**下一步**（下一轮或用户点名时）：① 用 release CLI 量 unit12 冷编译，与
+`docs/perf/ledger.jsonl` 的 CLI 档对照；② 若 release 也涨，用
+`SOKO_STAGE_STATS=1` 按阶段（parse/elab/kernel/judge）二分；
+③ 把 `perf_course` 的 LSP 用例改成**跨进程**（spawn 真二进制）——否则它永远量的是
+debug，作为"生命线"指标是错的。
+
+**这一条不改台账纪律**：台账是记录，不是目标——新条目就是新基线，历史条目留作对照。
