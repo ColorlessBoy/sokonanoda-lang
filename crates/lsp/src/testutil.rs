@@ -31,6 +31,17 @@ pub(crate) fn test_service() -> (LspService<Backend>, ClientSocket) {
 /// 2026-09-13 两次 ci 红、本地与相邻提交均绿）。加宽到 30s——它只在
 /// 「消息永远不来」的真回归时才会拖慢失败，平时零成本。
 pub(crate) const TIMEOUT: Duration = Duration::from_secs(30);
+
+/// **重活互斥锁**（2026-09-23）：课程规模的编译用例（`perf_course` / `perf` 的
+/// 项目档）会**整门课编一遍**，几个并行就能把 CPU 抢干；而**时序敏感的跨文件刷新
+/// 用例**（`editing_a_dependency_refreshes_the_open_entry`）需要"改依赖 → 下游
+/// 重发"这条链在合理时间内跑完。
+///
+/// 实测：`cargo test -p sokonanoda-lsp --lib` 全量跑时那条**静默失败**（没有任何
+/// panic 文本），而 `--skip perf_course` 立刻全绿（151 通过、3.4s）、单跑 5/5 过、
+/// 只跑 `project` + `perf_course` 两组也过 ⇒ **是争抢，不是逻辑**。
+/// 这把锁让"重课程编译"与"时序敏感的跨文件刷新"**互斥**，不动任何断言。
+pub(crate) static HEAVY_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 pub(crate) const URI: &str = "file:///test.sokonanoda";
 
 /// 0-based LSP position for a **byte** offset in the source text.
@@ -296,6 +307,39 @@ pub(crate) async fn did_change_at_drained_expecting(
         expect,
     )
     .await
+}
+
+/// 排空版 didChange，**等到 `expect` 的每一份文档都发过一轮、且 `done` 成立**。
+///
+/// 为什么还要 `done`：跨文件刷新时下游可能**先发一轮旧的**（上一趟编译的结果）、
+/// 再发一轮新的。只等"发过一轮"会抓到旧的那份 ⇒ 断言假红（本机与 CI 都实测到过：
+/// `editing_a_dependency_refreshes_the_open_entry`）。判据应当是**内容**而不是
+/// "有没有发过"。
+pub(crate) async fn did_change_until(
+    service: &mut LspService<Backend>,
+    socket: &mut ClientSocket,
+    uri: &Url,
+    version: i32,
+    text: &str,
+    expect: &[Url],
+    done: impl Fn(&[PublishDiagnosticsParams]) -> bool,
+) -> Vec<PublishDiagnosticsParams> {
+    let deadline = tokio::time::Instant::now() + TIMEOUT;
+    let mut collected: Vec<PublishDiagnosticsParams> = Vec::new();
+    loop {
+        let batch =
+            did_change_at_drained_expecting(service, socket, uri, version, text, expect).await;
+        collected.extend(batch);
+        if done(&collected) {
+            return collected;
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return collected;
+        }
+        // 再推一次同样的 didChange：**同文本通知**不重编（T-A21 的短路），
+        // 但会把已经算好的结果再发一遍——用它把"晚到的第二轮"取出来。
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
 }
 
 /// 指定 URI 的 didClose（当前没有测试消费它：多文档刷新是 P5 余项，

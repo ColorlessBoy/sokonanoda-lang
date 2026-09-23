@@ -36,10 +36,10 @@ fn course_root() -> Option<std::path::PathBuf> {
     dir.join("sokonanoda.toml").is_file().then_some(dir)
 }
 
-/// 三个课程用例**互相串行**（同 `perf.rs` 的 `PROJECT_PERF_LOCK` 的理由）。
-static COURSE_PERF_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
-
 /// 打开一个真实课程单元，返回 `didOpen → 诊断` 的毫秒数与诊断条数。
+///
+/// 调用方都先取 `testutil::HEAVY_LOCK`——课程规模的编译会整门课编一遍，
+/// 几个并行就把 CPU 抢干（还会饿死时序敏感的跨文件刷新用例）。
 async fn open_course_unit(
     service: &mut tower_lsp::LspService<Backend>,
     socket: &mut ClientSocket,
@@ -72,7 +72,7 @@ async fn open_course_unit(
 
 #[tokio::test]
 async fn perf_course_did_open_is_recorded() {
-    let _serial = COURSE_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let Some(root_dir) = course_root() else {
         eprintln!("PERF course: 跳过（找不到 courses/set-theory/sokonanoda.toml）");
         return;
@@ -146,7 +146,7 @@ async fn perf_course_by_block_is_recorded() {
         eprintln!("PERF course: 跳过 by_block（慢例，约 36s；设 SOKO_PERF_COURSE_SLOW=1 打开）");
         return;
     }
-    let _serial = COURSE_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let Some(root_dir) = course_root() else {
         eprintln!("PERF course: 跳过（找不到 courses/set-theory/sokonanoda.toml）");
         return;
@@ -174,7 +174,7 @@ async fn perf_course_by_block_is_recorded() {
 /// 与 `perf.rs` 的合成夹具同族，但用真课程（8 个模块），量的是用户按键时的真实延迟。
 #[tokio::test]
 async fn perf_course_keystroke_is_recorded() {
-    let _serial = COURSE_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let Some(root_dir) = course_root() else {
         eprintln!("PERF course: 跳过（找不到 courses/set-theory/sokonanoda.toml）");
         return;
@@ -246,7 +246,7 @@ async fn perf_course_keystroke_is_recorded() {
 /// 写文件都会走这条路，而它们的内容往往和缓冲区一模一样。
 #[tokio::test]
 async fn perf_course_save_same_text_is_recorded() {
-    let _serial = COURSE_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let Some(root_dir) = course_root() else {
         eprintln!("PERF course: 跳过（找不到 courses/set-theory/sokonanoda.toml）");
         return;
@@ -302,7 +302,7 @@ async fn perf_course_save_same_text_is_recorded() {
 /// 内容一致** ⇒ 文本一个字节没变。
 #[tokio::test]
 async fn perf_course_watched_unchanged_file_is_recorded() {
-    let _serial = COURSE_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let Some(root_dir) = course_root() else {
         eprintln!("PERF course: 跳过（找不到 courses/set-theory/sokonanoda.toml）");
         return;

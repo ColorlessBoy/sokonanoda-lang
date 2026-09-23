@@ -43,8 +43,24 @@ pub fn binder_name_span(doc: &str, binder_span: Span) -> Option<Span> {
 ///   span covers the cursor — the same bidirectional rule as the LSP
 ///   document highlight (crates/lsp/src/render.rs::highlight_uses).
 ///
-/// `None` when the cursor sits on a prelude name or outside any name.
-pub fn resolve_at(hovers: &[HoverType], line: u32, character: u32) -> Option<ResolvedTarget> {
+/// `None` when the cursor sits on a prelude name, on a **notation symbol**,
+/// or outside any name.
+///
+/// **T-D30（正确性 bug）**：`doc` 是必需的——光标落在**记法符号**（`∈`/`⊆`/`∧`…）
+/// 上时必须直接答 `None`。以前没有这条守卫，第二个回退（"找一条 target span
+/// 覆盖光标的使用点"）会命中**外层 binder**：binder 的 span 覆盖**整段类型标注**
+/// （`(h : a ∈ A)`），于是 `∈` 被解析成 `h`，`rename` 会去改 `h`。
+/// 同一个病在 LSP 的 `render.rs::highlight_uses` 里也有一份（documentHighlight）。
+pub fn resolve_at(
+    doc: &str,
+    hovers: &[HoverType],
+    line: u32,
+    character: u32,
+) -> Option<ResolvedTarget> {
+    // 光标在记法符号上 ⇒ **不是名字**，两个回退都不该往下走。
+    if cursor_is_on_notation(doc, line, character) {
+        return None;
+    }
     // Use point: the smallest enclosing hover's own resolution.
     let smallest = hovers
         .iter()
@@ -58,6 +74,41 @@ pub fn resolve_at(hovers: &[HoverType], line: u32, character: u32) -> Option<Res
         let target = h.resolution.clone()?;
         pos_within(line, character, target.span()).then_some(target)
     })
+}
+
+/// 光标是不是落在**记法符号**上（T-D30 的守卫）。
+///
+/// 判据走词法（`notation_input::symbol_at`）：它认得本文件声明的符号、语言内建的、
+/// 以及**输入法表**里的符号——正是"看起来像符号、但不是名字"的那一类。
+/// 用 (line, character) 换算成 offset（都是 1-based / 0-based 的既有约定）。
+fn cursor_is_on_notation(doc: &str, line: u32, character: u32) -> bool {
+    let Some(offset) = offset_of(doc, line, character) else {
+        return false;
+    };
+    crate::notation_input::symbol_at(doc, offset).is_some()
+}
+
+/// LSP (0-based) 位置 → 字节 offset。越界返回 `None`。
+///
+/// `character` 按**字符**计数（不是字节）：行里只要有 `α`/`∈` 这类多字节字符，
+/// 按字节算就会错位——实测踩到过（`(h : a ∈ A)` 的 `∈` 前面有 4 个 `α`，
+/// 按字节算的 offset 落到别处 ⇒ 守卫不触发、`rename` 照样改 `h`）。
+/// 与 LSP 侧 `position_to_offset` 同一口径；星平面符号的偏差是 **T-D31** 的
+/// 独立缺口（那边要改成 UTF-16 码元，两边一起改）。
+fn offset_of(doc: &str, line: u32, character: u32) -> Option<usize> {
+    let mut current = 0usize;
+    for (index, text) in doc.split_inclusive('\n').enumerate() {
+        if index == line as usize {
+            let add = text
+                .char_indices()
+                .nth(character as usize)
+                .map(|(i, _)| i)
+                .unwrap_or(text.len());
+            return Some(current + add);
+        }
+        current += text.len();
+    }
+    None
 }
 
 /// LSP (0-based) position inside a front (1-based) span.
@@ -248,6 +299,52 @@ mod tests {
     // offsets: f's binder 28..38 (line 0); g's binder 72..82, g's body use
     // 86..87 — both on line 1, the use at line-character 42.
 
+    /// **T-D30 的判据**：光标在 `(h : a ∈ A)` 的 **`∈`** 上时，不得解析到 `h`。
+    ///
+    /// 改前实测：`resolve_at` 的第二个回退（"找一条 target span 覆盖光标的使用点"）
+    /// 会命中**外层 binder**——binder 的 span 覆盖**整段类型标注**（`(h : a ∈ A)`）
+    /// ⇒ `∈` 被解析成 `h`，`rename` 会去改 `h`（同一个病在 LSP 的
+    /// `render.rs::highlight_uses` 里也有一份）。
+    ///
+    /// 修法：光标落在**记法符号**上就直接答 `None`（判据走词法：本文件声明的 /
+    /// 内建的 / 输入法表里的符号都认得出来）。
+    #[test]
+    fn resolve_at_does_not_mistake_a_notation_symbol_for_the_enclosing_binder() {
+        const SRC: &str = "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n\
+theorem t (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
+        let report = check_report(SRC);
+        // 第 4 行（0-based 3）里 `(h : a ∈ A)` 那个 `∈` 的列。
+        let line = 3u32;
+        let line_text = SRC.lines().nth(line as usize).expect("第四行");
+        // ⚠ `character` 是**字符**计数（LSP 口径），而 Rust 的 `str::find` 给的是
+        // **字节**下标——行里有 `α`/`∈`，两者不等（实测踩到：传字节下标 ⇒ offset
+        // 落到 `) :` 上 ⇒ 守卫不触发）。
+        let col = line_text[..line_text.find('∈').expect("那一行有 ∈")]
+            .chars()
+            .count() as u32;
+        let resolved = resolve_at(SRC, &report.hovers, line, col);
+        assert!(resolved.is_none(), "记法符号上没有名字可解析：{resolved:?}");
+
+        // 对照：**同一个 binder 的 `h` 本身**仍然解析得到（别把定义点那一支修坏）
+        // ——它的 span 就是 `(h : a ∈ A)` 那一段（binder 的 span 覆盖整段标注，
+        // 这正是误命中的来源）。
+        let h_col = line_text[..line_text.find("(h :").expect("binder 在那一行")]
+            .chars()
+            .count() as u32
+            + 1;
+        let resolved = resolve_at(SRC, &report.hovers, line, h_col);
+        let Some(ResolvedTarget::Binder(span)) = resolved else {
+            panic!("光标在 `h` 上仍应解析到 binder：{resolved:?}");
+        };
+        let binder_text = &SRC[span.start.offset..span.end.offset];
+        assert!(
+            binder_text.starts_with("(h :") && binder_text.contains('∈'),
+            "解析到的是 `h` 那个 binder：{binder_text:?}"
+        );
+    }
+
     fn check_report(doc: &str) -> crate::compile::DocumentReport {
         crate::compile::check_document(&crate::parser::parse(doc).expect("parses"))
     }
@@ -256,7 +353,7 @@ mod tests {
     fn resolve_at_resolves_a_use_point_to_its_target() {
         let report = check_report(DOC);
         // `#check id` sits on line 1; `id` starts at line-character 7.
-        let target = resolve_at(&report.hovers, 1, 7).expect("use point resolves");
+        let target = resolve_at(DOC, &report.hovers, 1, 7).expect("use point resolves");
         let ResolvedTarget::Declaration { name, span } = target else {
             panic!("a top-level use resolves to its declaration, got {target:?}");
         };
@@ -268,7 +365,7 @@ mod tests {
     fn resolve_at_resolves_the_definition_under_the_cursor() {
         let report = check_report(DOC);
         // Cursor on the binder `(x : Prop)`: the body use points back at it.
-        let target = resolve_at(&report.hovers, 0, 30).expect("binder resolves");
+        let target = resolve_at(CROSS, &report.hovers, 0, 30).expect("binder resolves");
         assert!(
             matches!(target, ResolvedTarget::Binder(s) if s.start.offset == 29),
             "the binder's own span, got {target:?}"
@@ -280,13 +377,13 @@ mod tests {
         // No use points anywhere: a cursor on the type-position `Prop`
         // (line-character 9..13) has nothing to resolve through.
         let report = check_report("def id : Prop -> Prop := fun (x : Prop) => x\n");
-        assert!(resolve_at(&report.hovers, 0, 9 + 1).is_none());
+        assert!(resolve_at(CROSS, &report.hovers, 0, 9 + 1).is_none());
     }
 
     #[test]
     fn resolve_at_inner_binder_wins_over_outer_shadow() {
         let report = check_report(SHADOW);
-        let target = resolve_at(&report.hovers, 0, 68).expect("inner body use resolves");
+        let target = resolve_at(SHADOW, &report.hovers, 0, 68).expect("inner body use resolves");
         let ResolvedTarget::Binder(inner) = target else {
             panic!("shadowed use must resolve to its binder, got {target:?}");
         };
@@ -309,7 +406,7 @@ mod tests {
     fn references_for_same_named_binders_in_different_decls_stay_separate() {
         let report = check_report(CROSS);
         // Cursor inside g's body `x` (second line, character 42).
-        let target = resolve_at(&report.hovers, 1, 42).expect("g's body use resolves");
+        let target = resolve_at(SHADOW, &report.hovers, 1, 42).expect("g's body use resolves");
         let ResolvedTarget::Binder(g_binder) = target else {
             panic!("g's use resolves to g's binder, got {target:?}");
         };

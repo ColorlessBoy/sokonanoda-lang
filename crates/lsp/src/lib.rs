@@ -964,7 +964,7 @@ impl Backend {
 }
 
 /// 0-based LSP position → byte offset（与本服务器的 char 计数约定一致）。
-fn position_to_offset(text: &str, position: Position) -> usize {
+pub(crate) fn position_to_offset(text: &str, position: Position) -> usize {
     let mut offset = 0usize;
     for (i, line) in text.lines().enumerate() {
         if i == position.line as usize {
@@ -1784,7 +1784,8 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
-        let Some(ranges) = highlight_uses(&report.hovers, pos.line, pos.character) else {
+        let Some(ranges) = highlight_uses(doc.text(), &report.hovers, pos.line, pos.character)
+        else {
             return Ok(None);
         };
         Ok(Some(
@@ -2013,6 +2014,7 @@ impl LanguageServer for Backend {
         // 光标在 binder（局部名字）上 / 单文件文档 → 走下面的单文件路径。
         if let Some(ResolvedTarget::Declaration { name, .. }) =
             sokonanoda_front::references::resolve_at(
+                docs.text(),
                 &report.hovers,
                 position.line,
                 position.character,
@@ -2051,6 +2053,7 @@ impl LanguageServer for Backend {
         let position = params.text_document_position.position;
         if let Some(ResolvedTarget::Declaration { name, .. }) =
             sokonanoda_front::references::resolve_at(
+                docs.text(),
                 &report.hovers,
                 position.line,
                 position.character,

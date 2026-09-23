@@ -81,6 +81,9 @@ async fn a_missing_import_is_a_diagnostic_not_a_crash() {
 async fn definition_jumps_into_the_imported_module() {
     let dir = tmp_dir("goto");
     let root = Url::from_directory_path(&dir).expect("dir url");
+    // **与重课程编译互斥**：这条链（改依赖 → 下游重发）时序敏感，课程规模的
+    // 用例并行抢 CPU 时它会静默失败（见 `testutil::HEAVY_LOCK`）。
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
@@ -263,6 +266,9 @@ async fn rename_rejects_a_name_that_already_exists_in_the_project() {
 async fn editing_a_dependency_refreshes_the_open_entry() {
     let dir = tmp_dir("invalidate");
     let root = Url::from_directory_path(&dir).expect("dir url");
+    // **与重课程编译互斥**：这条链（改依赖 → 下游重发）时序敏感，课程规模的
+    // 用例并行抢 CPU 时它会静默失败（见 `testutil::HEAVY_LOCK`）。
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
@@ -289,17 +295,29 @@ async fn editing_a_dependency_refreshes_the_open_entry() {
     let renamed = LOGIC.replace("And.intro", "And.mk");
     // **等两份都发过一轮**：改的是依赖，断言的是**入口**的重发——只等依赖那份
     // 会让"入口稍后重发"落在排水窗口外（CI 慢 runner 上实测假红）。
-    let msgs = testutil::did_change_at_drained_expecting(
+    // **等到入口那一轮里真的出现"未知标识符"**：下游可能先发一轮**旧的**
+    // （上一趟编译的结果），只等"发过一轮"会抓到它 ⇒ 假红（本机与 CI 都实测到）。
+    let msgs = testutil::did_change_until(
         &mut service,
         &mut socket,
         &logic,
         2,
         &renamed,
         &[logic.clone(), canvas.clone()],
+        |collected| {
+            collected.iter().any(|params| {
+                params.uri == canvas
+                    && params
+                        .diagnostics
+                        .iter()
+                        .any(|diag| testutil::code_of(diag) == "elab-unknown-identifier")
+            })
+        },
     )
     .await;
     let broken = msgs
         .iter()
+        .rev()
         .find(|params| params.uri == canvas)
         .unwrap_or_else(|| panic!("the entry must be republished: {msgs:?}"));
     assert!(
@@ -367,6 +385,9 @@ async fn goal_names(service: &mut LspService<Backend>, uri: &Url) -> Vec<String>
 async fn each_request_answers_for_its_own_document() {
     let dir = tmp_dir("focus");
     let root = Url::from_directory_path(&dir).expect("dir url");
+    // **与重课程编译互斥**：这条链（改依赖 → 下游重发）时序敏感，课程规模的
+    // 用例并行抢 CPU 时它会静默失败（见 `testutil::HEAVY_LOCK`）。
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
@@ -491,6 +512,9 @@ theorem and_intro_x (a b : Prop) (h : a) (k : b) : And a b :=\n  sorry\n";
 async fn an_external_change_to_a_dependency_refreshes_the_open_entry() {
     let dir = tmp_dir("watched");
     let root = Url::from_directory_path(&dir).expect("dir url");
+    // **与重课程编译互斥**：这条链（改依赖 → 下游重发）时序敏感，课程规模的
+    // 用例并行抢 CPU 时它会静默失败（见 `testutil::HEAVY_LOCK`）。
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 
@@ -587,6 +611,9 @@ async fn project_answer(service: &mut LspService<Backend>, uri: &Url) -> serde_j
 async fn project_request_describes_the_closure_of_the_requested_document() {
     let dir = tmp_dir("view");
     let root = Url::from_directory_path(&dir).expect("dir url");
+    // **与重课程编译互斥**：这条链（改依赖 → 下游重发）时序敏感，课程规模的
+    // 用例并行抢 CPU 时它会静默失败（见 `testutil::HEAVY_LOCK`）。
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let (mut service, mut socket) = test_service();
     testutil::handshake_with_root(&mut service, &root).await;
 

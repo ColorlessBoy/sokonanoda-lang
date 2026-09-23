@@ -278,3 +278,63 @@ async fn selection_range_grows_from_arrow_to_enclosing_type() {
     );
     shutdown(&mut service).await;
 }
+
+/// **T-D30 的判据（LSP 侧）**：光标在 `(h : a ∈ A)` 的 **`∈`** 上时，
+/// `documentHighlight` 不得返回任何东西，`rename` 不得改 `h`。
+///
+/// 改前实测：`highlight_uses` 的"包含光标即命中"回退会命中**外层 binder**
+/// ——binder 的 span 覆盖**整段类型标注** ⇒ `∈` 被解析成 `h`，面板上会把 `h`
+/// 的每一处都点亮、`rename` 会去改 `h`。同一个病在 front 的
+/// `references::resolve_at` 里也有一份（两条都在 T-D30 修）。
+#[tokio::test]
+async fn a_notation_symbol_does_not_resolve_to_the_enclosing_binder() {
+    let src = "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n\
+theorem t (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "T-D30 diagnostics").await;
+
+    // 第 4 行（0-based 3）里 `(h : a ∈ A)` 那个 `∈`。
+    let line_text = src.lines().nth(3).expect("第四行");
+    let line = 3usize;
+    let col = line_text.find('∈').expect("那一行有 ∈");
+    let offset = src.lines().take(line).map(|l| l.len() + 1).sum::<usize>() + col;
+
+    let highlights = document_highlight_at(&mut service, src, offset).await;
+    assert!(
+        highlights.as_ref().is_none_or(|h| h.is_empty()),
+        "`∈` 上不该点亮任何名字（尤其不该是外层 binder `h`）：{highlights:?}"
+    );
+
+    // `rename` 在 `∈` 上必须被**拒绝**（`InvalidParams`）——改前它会改掉外层
+    // binder `h`（实测：两处编辑，其中一处正是行尾那个 `h`）。
+    let req = RpcRequest::build("textDocument/rename")
+        .params(json!({
+            "textDocument": {"uri": URI},
+            "position": position_json(lsp_pos(src, offset)),
+            "newName": "k",
+        }))
+        .id(9)
+        .finish();
+    use tower::Service;
+    use tower::ServiceExt;
+    let err = service
+        .ready()
+        .await
+        .expect("service ready")
+        .call(req)
+        .await
+        .expect("rename answers")
+        .expect("an error response")
+        .into_parts()
+        .1
+        .expect_err("记法符号上没有可以改名的名字");
+    assert!(
+        err.message.contains("没有可以改名的名字"),
+        "拒绝的理由要说清：{err:?}"
+    );
+    shutdown(&mut service).await;
+}

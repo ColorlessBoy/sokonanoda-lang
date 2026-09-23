@@ -189,11 +189,10 @@ pub(super) fn perf_json(value: serde_json::Value) {
 /// 它们都要编译 2–3 个模块的整个闭包，在同一台机器上互相抢 CPU 会把单次计时抬高。
 /// 2026-09-19 CI 上 `perf_project_did_open_and_keystroke` 的假红就是这一族（详见该用例注释）。
 /// `tokio::sync::Mutex` 的 guard 可以跨 await 持有（std 的会触发 `await_holding_lock`）。
-static PROJECT_PERF_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 #[tokio::test]
 async fn perf_project_did_open_and_keystroke() {
-    let _serial = PROJECT_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     let (dir, entry_uri, entry_text) = gen_project("keystroke", 2, 12);
     let root = Url::from_directory_path(&dir).expect("dir url");
     let (mut service, mut socket) = test_service();
@@ -276,7 +275,7 @@ async fn perf_project_did_open_and_keystroke() {
 
 #[tokio::test]
 async fn perf_project_dependency_edit_refreshes_dependents() {
-    let _serial = PROJECT_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     // 两条文档都打开：改**根依赖**（声明 `P` 的那个模块）⇒ 依赖自己 + 下游入口
     // 各一条诊断（这是最坏的一次通知：一次按键要重编译两份文档）。
     let (dir, entry_uri, entry_text) = gen_project("dependency", 3, 12);
@@ -296,13 +295,20 @@ async fn perf_project_dependency_edit_refreshes_dependents() {
     // 根依赖里 `P` 改名 ⇒ 链上每个模块（含入口）都会看到未知标识符。
     let broken = root_dep_text.replace("axiom P : Prop", "axiom Q : Prop");
     let start = std::time::Instant::now();
-    let published = testutil::did_change_at_drained_expecting(
+    // **等到入口那一轮里真的有诊断**：下游可能先发一轮**旧的**（改之前是干净的
+    // ⇒ 那一轮是空的），只等"发过一轮"会抓到它 ⇒ 假红。
+    let published = testutil::did_change_until(
         &mut service,
         &mut socket,
         &root_dep_uri,
         2,
         &broken,
         &[root_dep_uri.clone(), entry_uri.clone()],
+        |collected| {
+            collected
+                .iter()
+                .any(|params| params.uri == entry_uri && !params.diagnostics.is_empty())
+        },
     )
     .await;
     let elapsed = start.elapsed().as_millis();
@@ -340,7 +346,7 @@ async fn perf_project_dependency_edit_refreshes_dependents() {
 
 #[tokio::test]
 async fn perf_project_requests_are_interactive() {
-    let _serial = PROJECT_PERF_LOCK.lock().await;
+    let _serial = testutil::HEAVY_LOCK.lock().await;
     // 项目入口上的 hover / definition / goals 都必须在"光标移动"量级（各 < 10ms）。
     let (dir, entry_uri, entry_text) = gen_project("requests", 3, 12);
     let root = Url::from_directory_path(&dir).expect("dir url");

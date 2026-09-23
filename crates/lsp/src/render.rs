@@ -317,10 +317,19 @@ pub(crate) fn definition_at(
 /// use containing the cursor, or from a use whose definition contains it
 /// (cursor on the binder / declaration itself).
 pub(crate) fn highlight_uses(
+    doc: &str,
     hovers: &[HoverType],
     line: u32,
     character: u32,
 ) -> Option<Vec<Range>> {
+    // **T-D30**：光标在**记法符号**上时不许回退到"包含光标的任意 hover 行"——
+    // binder 的 span 覆盖整段类型标注（`(h : a ∈ A)`），那个回退会把 `∈` 解析成
+    // `h`（同一个病在 front 的 `references::resolve_at` 里也有一份）。
+    // `documentHighlight` 以前因此会把 `h` 的每一处都点亮。
+    let offset = crate::position_to_offset(doc, Position::new(line, character));
+    if sokonanoda_front::notation_input::symbol_at(doc, offset).is_some() {
+        return None;
+    }
     let from_use = hover_type_at(hovers, line, character).and_then(|h| h.resolution.as_ref());
     let def_span = match from_use {
         Some(target) => Some(target.span()),
@@ -412,7 +421,7 @@ pub(crate) fn prepare_rename(
     report: &DocumentReport,
     position: Position,
 ) -> Option<PrepareRenameResponse> {
-    let target = resolve_at(&report.hovers, position.line, position.character)?;
+    let target = resolve_at(text, &report.hovers, position.line, position.character)?;
     let name_span = definition_name_span(text, &target)?;
     let placeholder = text
         .get(name_span.start.offset..name_span.end.offset)?
@@ -433,7 +442,7 @@ pub(crate) fn rename(
 ) -> tower_lsp::jsonrpc::Result<Option<WorkspaceEdit>> {
     ensure_valid_new_name(&params.new_name)?;
     let position = params.text_document_position.position;
-    let Some(target) = resolve_at(&report.hovers, position.line, position.character) else {
+    let Some(target) = resolve_at(text, &report.hovers, position.line, position.character) else {
         return Err(tower_lsp::jsonrpc::Error::invalid_params(
             "这里没有可以改名的名字",
         ));
@@ -481,7 +490,7 @@ pub(crate) fn find_references(
     position: Position,
     include_declaration: bool,
 ) -> Option<Vec<Location>> {
-    let target = resolve_at(&report.hovers, position.line, position.character)?;
+    let target = resolve_at(text, &report.hovers, position.line, position.character)?;
     let mut spans: Vec<Span> = Vec::new();
     if include_declaration {
         spans.extend(definition_name_span(text, &target));

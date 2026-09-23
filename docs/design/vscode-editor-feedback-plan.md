@@ -2911,6 +2911,31 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D30 记法符号不再误解析到外层 binder（**独立正确性 bug**）
 
+> **✅ 完成（2026-09-21）——两处回退都加了守卫，含一条"别修坏定义点"的对照。**
+>
+> **病**：`render.rs::highlight_uses`（LSP `documentHighlight`）与
+> `references::resolve_at`（front，`rename`/`references` 共用）都有"回退到包含光标
+> 的任意 hover 行"的逻辑，而 **binder 的 span 覆盖整段类型标注**（`(h : a ∈ A)`）
+> ⇒ 光标在 `∈` 上会被解析成外层 binder `h`，`rename` 会去改 `h`。
+> （`definition` 反而因为**没有**回退而返回 `null`——四个 handler 行为不一致，是
+> 构造性的。）
+>
+> **修法**：两处都加同一条守卫——**光标落在记法符号上就直接答"没有名字"**
+> （判据走词法 `notation_input::symbol_at`：本文件声明的 / 内建的 / 输入法表里的
+> 符号都认得出来）。`resolve_at` 因此多一个 `doc: &str` 参数（它没有文本就判不了）。
+>
+> **判据**（两侧都有，且都带**对照**）：
+> * front：`references::tests::resolve_at_does_not_mistake_a_notation_symbol_for_the_enclosing_binder`
+>   —— `∈` 上答 `None`，**而同一个 binder 的 `h` 本身仍解析得到**（别把定义点
+>   那一支修坏）；
+> * LSP：`tests::navigation::a_notation_symbol_does_not_resolve_to_the_enclosing_binder`
+>   —— `documentHighlight` 在 `∈` 上返回空、`rename` 被拒（`没有可以改名的名字`）。
+>
+> **踩到的坑（值得记）**：`character` 是**字符**计数（LSP 口径），而 Rust 的
+> `str::find` 给的是**字节**下标——行里有 `α`/`∈`，两者不等。我第一版 `offset_of`
+> 按字节算 ⇒ offset 落到 `) :` 上 ⇒ 守卫不触发、测试照红。
+> **星平面符号的偏差是 T-D31 的独立缺口**（LSP 要的是 UTF-16 码元），两侧一起改。
+
 - **根因**：§2.7 第 1 条。
 - **改什么**：`render.rs:327-331` 与 `references.rs:57-60` 的"包含光标即命中"回退
   必须排除"光标落在记法符号上"的情形（或改成"命中最近的最小 span"）。
@@ -3292,7 +3317,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D02` hover 增加"原始类型"行
 - [x] `T-D03` hover 的"原始类型"只对**能解析出 target** 的符号显示
   - ⬆ **BUMP**：`patch` —— hover 显示记法的原始类型（全计划最便宜的一刀）
-- [ ] `T-D30` 记法符号不再误解析到外层 binder（**独立正确性 bug**）
+- [x] `T-D30` 记法符号不再误解析到外层 binder（**独立正确性 bug**）
 - [ ] `T-D31` `position_to_offset` 的 UTF-16 语义（**独立缺口**）
 - [x] `T-D10` `NotationDecl` re-export + 补 `span`/`module`
 - [x] `T-D11` 闭包级记法表进 `ProjectReport`/`QueryDoc`
