@@ -374,6 +374,43 @@ impl QueryDoc {
         None
     }
 
+    /// **闭包里的记法符号解析**（T-D12）：光标处的符号 → `(符号, 目标, 模块名,
+    /// 声明点 span)`。
+    ///
+    /// 与 `notation_input::symbol_at` 的分工：那个只看**本文件 + 内建**（词法，
+    /// 不依赖 parse 成功）；这里多一层**闭包记法表**（T-D11 存进报告的那份），
+    /// 所以 `import` 来的 `∈` 也能给出**声明它的模块与那一行**——那正是"跳转"
+    /// 需要的数据。内建记法 `module` 是 `None`（不在任何源文本里，无处可跳）。
+    pub fn notation_at(
+        &self,
+        text: &str,
+        offset: usize,
+    ) -> Option<(String, Option<String>, Option<String>, crate::Span)> {
+        let (symbol, _) = crate::notation_input::symbol_at(text, offset)?;
+        let decl = self
+            .project
+            .as_ref()?
+            .notations
+            .iter()
+            .find(|decl| decl.symbol == symbol)?;
+        Some((
+            symbol,
+            Some(decl.target.clone()),
+            decl.module.clone(),
+            decl.span,
+        ))
+    }
+
+    /// 模块名 → 模块文件路径（记法跳转要拿它拼 URI）。
+    pub fn module_path(&self, name: &str) -> Option<std::path::PathBuf> {
+        let project = self.project.as_ref()?;
+        project
+            .modules
+            .iter()
+            .find(|module| module.name == name)
+            .map(|module| module.path.clone())
+    }
+
     /// 当前 prelude 模式对应的编译选项。
     fn options(&self) -> CompileOptions {
         CompileOptions { prelude: self.mode }

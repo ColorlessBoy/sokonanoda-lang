@@ -40,6 +40,11 @@ pub struct Closure {
     pub diagnostics: Vec<ProjectDiagnostic>,
     /// 入口模块名。
     pub entry: String,
+    /// **入口可见的记法表**（T-D11）：符号 → 声明点（`span`）+ **声明它的模块名**
+    /// （`module`）。继承来的那份保留它原来的模块名——那才是它的声明点。
+    ///
+    /// 以前这张表在加载期算完就丢（`exports` 是局部量）⇒ "跳转"没有数据可用。
+    pub notations: Vec<NotationDecl>,
 }
 
 impl Closure {
@@ -104,10 +109,12 @@ pub fn load_closure_with_overlay(
         &mut exports,
     );
 
+    let notations = exports.remove(&entry_name).unwrap_or_default();
     let mut closure = Closure {
         modules,
         diagnostics,
         entry: entry_name,
+        notations,
     };
     let mut extra: Vec<ProjectDiagnostic> = Vec::new();
     propagate_blocked(&mut closure, &mut extra);
@@ -116,11 +123,15 @@ pub fn load_closure_with_overlay(
 }
 
 /// 把一个模块**自己**声明的记法并进继承表（同符号覆盖 = 遮蔽）。
-fn absorb_notations(file: &FolFile, inherited: &mut Vec<NotationDecl>) {
+fn absorb_notations(file: &FolFile, inherited: &mut Vec<NotationDecl>, module: &str) {
     for command in &file.commands {
-        let Some(decl) = command.notation_decl() else {
+        let Some(mut decl) = command.notation_decl() else {
             continue;
         };
+        // **声明它的模块名**（T-D10）：这条命令自己不知道自己在哪个模块里，
+        // 加载层知道。跨 `import` 传播时这个字段跟着走（继承来的那份保留
+        // 它**原来的**模块名——那才是它的声明点）。
+        decl.module = Some(module.to_string());
         match inherited.iter_mut().find(|it| it.symbol == decl.symbol) {
             Some(slot) => *slot = decl,
             None => inherited.push(decl),
@@ -408,7 +419,7 @@ fn visit(
     }
     // 本模块**导出**的记法 = 继承来的 + 自己声明的（同符号自己覆盖）。
     let mut table = inherited;
-    absorb_notations(&file, &mut table);
+    absorb_notations(&file, &mut table, name);
     exports.insert(name.to_string(), table);
 
     // **后序登记**：依赖已经在 `modules` 里，入口最后（拓扑序）。

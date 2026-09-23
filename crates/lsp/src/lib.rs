@@ -1732,6 +1732,29 @@ impl LanguageServer for Backend {
             return Ok(None);
         };
         let pos = params.text_document_position_params.position;
+        // **记法符号**（T-D12/T-D13，用户第 6 条反馈的后半："代码里的 notation
+        // 不能跳转"）：`∈` 不是声明名，`definition_at`（走 hover span + 声明表）
+        // 答不上来。先试记法：闭包记法表给出**声明它的模块 + 那一行的 span**。
+        {
+            let text = docs.text().to_string();
+            let offset = position_to_offset(&text, pos);
+            let resolved =
+                docs.query()
+                    .notation_at(&text, offset)
+                    .and_then(|(_, _, module, span)| {
+                        let module = module?;
+                        let path = docs.query().module_path(&module)?;
+                        Some((path, span))
+                    });
+            if let Some((path, span)) = resolved {
+                if let Ok(uri) = Url::from_file_path(&path) {
+                    return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                        uri,
+                        range: range_of(span),
+                    })));
+                }
+            }
+        }
         let Some(target) = definition_at(&report.hovers, pos.line, pos.character) else {
             return Ok(None);
         };

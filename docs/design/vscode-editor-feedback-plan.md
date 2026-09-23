@@ -2754,6 +2754,18 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D10 `NotationDecl` re-export + 补 `span`/`module`
 
+> **✅ 完成（2026-09-21）。** `NotationDecl` 加 `span`（声明那一行的 span，
+> 在**声明它的模块**的坐标里）+ `module: Option<String>`（声明它的模块名；
+> `None` = 语言内建的记法，不在任何源文本里、无处可跳）。两个构造点都填了：
+> `Command::notation_decl()` 填 `span`、`absorb_notations` 填 `module`
+> （命令自己不知道自己在哪个模块里，加载层知道）。顺带给 `NotationDecl`/
+> `NotationAssoc` 加 `Serialize`/`Deserialize`——`ProjectReport` 要过项目缓存，
+> 记法表是报告的一部分，缓存命中时它必须一起回来（否则"跳转"在热路径上会
+> 突然失效）。
+>
+> 判据：`notation::span_tests::a_notation_decl_carries_its_own_span`（span **逐字**
+> 等于 `infix:50 " ∈ " => Set.mem` 那一行）+ `builtin_notations_have_no_declaration_site`。
+
 - **改什么**：① `crates/front/src/lib.rs` re-export `NotationDecl`
   （以及需要的话 `parse_with_inherited`）；② `NotationDecl` 增加声明点信息
   （`span` + 所属模块）。**注意它是跨模块传播的纯数据，加字段要考虑
@@ -2763,11 +2775,36 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D11 闭包级记法表进 `ProjectReport`/`QueryDoc`
 
+> **✅ 完成（2026-09-21）。** 加载期算好的入口记法表（`exports` 是局部量、
+> 以前算完就丢）现在搬到 `Closure.notations` → `ProjectReport.notations`。
+> 继承来的那份**保留它原来的模块名**——那才是它的声明点。
+>
+> 判据：`crates/front/tests/prelude_shape.rs::the_entry_notation_table_points_at_the_declaring_module`
+> ——unit01 的记法表里 `∈` → `Set.mem`、`module = "lib.Set"`，且 `span` 切出来的
+> 文本含 `infix:50` 与 `Set.mem`（**声明点在库里，不在入口**）。
+
 - **改什么**：闭包编译时收集每模块的记法声明（符号 → 声明点 + 模块），
   存进报告层（现在 `graph.rs:92` 算了又丢）。
 - **判据**：单测：unit01 的记法表里 `∈` 指向 `lib/Set.sokonanoda` 的第 N 行。
 
 #### T-D12 解析 API：`notation_resolve(text, table, offset)`
+
+> **✅ 完成（2026-09-21）——落地成 `QueryDoc::notation_at`。**
+>
+> 计划想要的是"比 `symbol_at` 的 `(String, Option<String>)` 更完整"的 API。
+> 实测发现**分工**更清楚：`notation_input::symbol_at` 是**词法**的（只看本文件 +
+> 内建，不依赖 parse 成功），而"声明点"必须来自**闭包记法表**（T-D11）——
+> 所以新的入口放在 `QueryDoc` 上：
+>
+> ```rust
+> QueryDoc::notation_at(text, offset) -> Option<(符号, 目标, 模块名, 声明点 span)>
+> QueryDoc::module_path(name)        -> Option<PathBuf>   // 模块名 → 文件路径
+> ```
+>
+> `symbol_at` **保留原样**（hover 那条路用它 + `symbol_at_with_sources`）；
+> 它不需要"声明点"，硬塞进去只会让词法层背上闭包。
+>
+> 判据：G-23 的复现件（它同时走 hover 与 definition 两条路）。
 
 - **改什么**：新 API 返回 `{ symbol, target, decl_span, module, fixity, precedence,
   candidates }`（比 `symbol_at` 的 `(String, Option<String>)` 完整）。
@@ -2776,6 +2813,12 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   重载符号返回全部候选。
 
 #### T-D13 hover 的"展开成"（import 来的记法）
+
+> **✅ 完成（2026-09-21）——T-D02 顺带做掉了。**
+>
+> `symbol_at_with_sources`（闭包前缀回退）让 hover 对 `import` 来的记法也说得出
+> "展开成 `Set.mem`" ✓。判据：`crates/lsp/src/tests/hover.rs::hover_on_an_imported_notation_symbol_shows_the_raw_type`
+> 断言 `展开成 \`Set.mem\`` 与原始类型那一行。
 
 - **判据**：hover 含 `` 展开成 `Set.mem` ``。
 

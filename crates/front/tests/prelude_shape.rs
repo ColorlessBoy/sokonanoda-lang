@@ -92,3 +92,32 @@ fn every_course_entry_has_the_same_prelude_shape() {
         first.shadowed
     );
 }
+
+/// **T-D11 的判据**：unit01 的记法表里 `∈` 指向 `lib/Set.sokonanoda` 的声明行。
+///
+/// 以前这张表在加载期算完就丢（`exports` 是局部量）⇒ "跳转"没有数据可用。
+#[test]
+fn the_entry_notation_table_points_at_the_declaring_module() {
+    let entry = course_dir().join("units/unit01-sets-membership.sokonanoda");
+    let text = std::fs::read_to_string(&entry).expect("读入口");
+    let plan = project::plan_project(&entry, Some(&text), None);
+    let report = project::compile_plan(plan, &Default::default());
+    let mem = report
+        .notations
+        .iter()
+        .find(|n| n.symbol == "∈")
+        .expect("入口可见 `∈`（它声明在被 import 的库里）");
+    assert_eq!(mem.target, "Set.mem");
+    assert_eq!(
+        mem.module.as_deref(),
+        Some("lib.Set"),
+        "声明它的模块（不是入口）"
+    );
+    // 声明点的文本**逐字**是那一行——这是"跳转"要落到的位置。
+    let lib = std::fs::read_to_string(course_dir().join("lib/Set.sokonanoda")).expect("读库");
+    let line = &lib[mem.span.start.offset..mem.span.end.offset];
+    assert!(
+        line.contains("infix:50") && line.contains("Set.mem"),
+        "声明点必须落在 `infix:50 \" ∈ \" => Set.mem` 那一行：{line:?}"
+    );
+}

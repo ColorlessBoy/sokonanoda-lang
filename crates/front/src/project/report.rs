@@ -131,6 +131,10 @@ pub struct ProjectReport {
     pub diagnostics: Vec<ProjectDiagnostic>,
     /// 清单 `requires` 与当前二进制的版本不一致时的提示（v1 只警告，不阻断）。
     pub requires_warning: Option<String>,
+    /// **入口可见的记法表**（T-D11）：符号 → 声明点 + 模块名。单文件编译时
+    /// 就是本文件的记法（`Closure` 的同一份数据，单文件路径下为空——那条路
+    /// 由 `notation_input::symbol_at` 自己扫本文件）。
+    pub notations: Vec<crate::ast::NotationDecl>,
 }
 
 impl ProjectReport {

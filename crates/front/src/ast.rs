@@ -1,6 +1,7 @@
 //! `.sokonanoda` 抽象语法树：排序、表达式、binder、命令与文件结构。
 
 use crate::span::Span;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SortKind {
@@ -127,7 +128,7 @@ pub enum Expr {
 }
 
 /// 记法命令的结合性 / 元数（`docs/design/notation-subset.md` N1 + §10.1）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NotationAssoc {
     /// `infix:N`：无结合，两边同级。
     Infix,
@@ -164,7 +165,9 @@ impl NotationAssoc {
 ///
 /// 用途：跨 `import` 的记法传播（第二刀，设计 §10.3）——闭包按拓扑序把前面
 /// 模块声明的记法作为**继承表**喂给后面的模块，所以它必须是可复制的纯数据。
-#[derive(Debug, Clone, PartialEq, Eq)]
+// `Serialize`/`Deserialize`：`ProjectReport` 要过项目缓存（T-D11）——记法表是
+// 报告的一部分，缓存命中时它必须一起回来，否则"跳转"在热路径上会突然失效。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NotationDecl {
     pub symbol: String,
     /// 零元记法为 `None`。
@@ -175,6 +178,18 @@ pub struct NotationDecl {
     /// 默认**不生效**，要 `open scoped Foo` 才生效；`None` ⇒ 一直生效（第二刀
     /// 行为）。作用域名 = 声明点所在 `namespace` 的累积全前缀。
     pub scope: Option<String>,
+    /// **声明点**（T-D10）：`infix:50 " ∈ " => Set.mem` **那一行**的 span
+    /// （在**声明它的模块**的坐标里）。
+    ///
+    /// 为什么要有：线 D 的"记法跳转"要跳到声明处——而记法是**跨 `import`
+    /// 传播**的（入口里写 `∈`，声明在 `lib/Set.sokonanoda`），所以只有
+    /// `target` 这个名字不够，还得知道**在哪个模块的哪一段**。
+    pub span: Span,
+    /// **声明它的模块名**（拓扑序里的模块名，如 `lib.Set`）。
+    ///
+    /// `None` = 语言内建的记法（`↔`/`∧`/`=`…）：它们**不在任何源文本里**
+    /// （parser 有一张硬编码表），没有可跳的声明点。
+    pub module: Option<String>,
 }
 
 /// `open` / `export` 的**过滤与改名子句**（第二刀，设计
@@ -654,13 +669,17 @@ impl Command {
                 assoc,
                 target,
                 scope,
-                ..
+                span,
             } => Some(NotationDecl {
                 symbol: symbol.clone(),
                 precedence: *precedence,
                 assoc: *assoc,
                 target: target.clone(),
                 scope: scope.clone(),
+                span: *span,
+                // 模块名由**加载层**补（`absorb_notations` 知道自己在哪个模块里，
+                // 而这条命令自己不知道）——见 `project/graph.rs`。
+                module: None,
             }),
             _ => None,
         }

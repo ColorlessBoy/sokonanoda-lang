@@ -75,6 +75,10 @@ pub(crate) fn builtin_notation_decls() -> Vec<NotationDecl> {
             target: (*target).to_string(),
             // 内建记法一直生效（没有 `scoped` 形式）。
             scope: None,
+            // **没有声明点**（T-D10）：内建记法不在任何源文本里（parser 硬编码），
+            // 所以 `span` 是空的、`module` 是 `None`——"跳转"对它们无意义。
+            span: crate::Span::default(),
+            module: None,
         })
         .collect()
 }
@@ -153,5 +157,40 @@ mod tests {
     fn plain_notation_is_always_in_the_table() {
         let got = table("def A : Prop := True\ninfix:50 \" ∈ \" => A\n");
         assert_eq!(got.len(), 1, "普通记法一直生效：{got:?}");
+    }
+}
+
+#[cfg(test)]
+mod span_tests {
+    use super::*;
+
+    /// **T-D10 的判据**：`infix:50 " ∈ " => Set.mem` 的 `span` **逐字等于那一行**。
+    ///
+    /// 这条是"记法跳转"的地基：只有 `target` 这个名字不够——记法跨 `import`
+    /// 传播，入口里写 `∈`、声明在 `lib/Set.sokonanoda`，所以还得知道**在哪一段**。
+    #[test]
+    fn a_notation_decl_carries_its_own_span() {
+        let src = "def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+                   infix:50 \" ∈ \" => Set.mem\n";
+        let file = crate::parse(src).expect("夹具必须能解析");
+        let decl = file.commands[1].notation_decl().expect("第二条是记法");
+        let line = src.lines().nth(1).expect("第二行");
+        assert_eq!(
+            &src[decl.span.start.offset..decl.span.end.offset],
+            line,
+            "span 必须逐字等于声明那一行"
+        );
+        assert_eq!(decl.span.start.line, 2, "1-based 行号");
+        // 模块名由加载层补（`absorb_notations`）——命令自己不知道。
+        assert_eq!(decl.module, None);
+    }
+
+    /// 内建记法**没有**声明点（不在任何源文本里）——"跳转"对它们无意义。
+    #[test]
+    fn builtin_notations_have_no_declaration_site() {
+        for decl in builtin_notation_decls() {
+            assert_eq!(decl.module, None, "内建没有模块：{}", decl.symbol);
+            assert_eq!(decl.span.start.offset, 0, "内建没有声明点：{}", decl.symbol);
+        }
     }
 }

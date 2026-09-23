@@ -406,6 +406,8 @@ pub fn compile_plan(mut plan: ProjectPlan, options: &CompileOptions) -> ProjectR
         modules,
         diagnostics,
         requires_warning,
+        // 入口可见的记法表（T-D11）：加载期算好的那份，直接搬到报告层。
+        notations: closure.notations.clone(),
     };
     project.attach_diagnostics();
     project
