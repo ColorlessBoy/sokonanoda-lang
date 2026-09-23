@@ -2191,7 +2191,29 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
      机制、判据、影响面三件套齐全；
   3. 判据必须是**可跑的一条命令**（e2e 或单测），不接受"看起来好了"。
 
-  **初步定位（本轮已查，供下一轮接着做）**：
+  **机制已查明（2026-09-23 现场取证；缺口 G-37/G-38 + 复现件 + 计划 §7.6 的
+  T-D50/T-D51）**：
+
+  * 第 1 条**不止 `∀`，是"一批符号"**，而且**三层叠加**：
+    ① `display.rs::fold_spine` 只放行 `Infix|Infixl|Infixr`（prefix `𝒫` /
+    postfix `ᶜ` / binder `∀∃` / 零元 `∅` 全漏）；
+    ② **`∀`/`∃` 不在内建记法表**（`BUILTIN_NOTATIONS` 只有 `∧ ∨ ↔ ¬ = ≠`），
+    它们是 parser 级 binder 语法 ⇒ 光改过滤器也折不出来；
+    ③ 声明栏那个 `forall` 是**内核 pp 打的 telescope**，不是源码里的 `∀`
+    ⇒ 折叠要认 `forall (x : T), body` 这个**形状**。
+    实测：`ty` = `forall (α : Type 0) (a : α) (A : Set α), a ∈ A -> a ∈ A`
+    （`∈` 折了、`forall` 没折）。
+  * 第 2 条**确实是共性问题**：真 LSP 探针打在五条记法声明的**目标名**上，
+    `definition`/`hover`/`documentHighlight` **15 个请求全为 null**
+    ⇒ 目标名**从来不是使用点**。用户看到的"只有三条没高亮"是**同一根因的第二种
+    症状**：语义 token 类型号不同——在本文件里声明的名字（`Set.mem`/
+    `Set.powerset`/`Set.compl`…）着色 **4 = FUNCTION**；不在本文件作用域的
+    （`Set.image`/`Set.preimage`/`Set.prod`，在 `lib/Image.sokonanoda` / 单元⑤
+    画布里）落成 **5 = VARIABLE**（= `UnknownIdent`），因为分类只能退回作用域查找。
+  * **统一修法**：T-D50（目标名成为使用点：已知引用 + 跳转走闭包 + hover 说明）
+    与 T-D51（折叠扩四种记法 + 补 `∀`/`∃` 表项）。
+
+  **（以下是当轮写下的初步定位，保留备查）**：
   * 第 1 条的现场是 `courses/set-theory/lib/Set.sokonanoda`；声明栏文本来自
     `decl.ty`（走线 C 的折叠）。**假设**：线 C 只折 `Infix|Infixl|Infixr`
     （见 `crates/front/src/display.rs` 的 `fold_collecting`），而 `∀` 是

@@ -3081,6 +3081,87 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   `skills/` 三个技能同轮。
 - **判据**：`cargo test -p sokonanoda-cli --test skill` 绿。
 
+### 7.6 用户第 7 条反馈（2026-09-23 现场取证后新增）
+
+> **机制已查明（两条都查到根因，不是猜的）。** 现场文件
+> `courses/set-theory/lib/Set.sokonanoda`（记法声明在 115–128 行）。
+>
+> #### 机制 A：声明栏的 `forall` = **折叠层只认 infix 族**
+>
+> `crates/front/src/display.rs::fold_spine` 里明写：
+> ```ignore
+> // **第一刀只做二元 infix 族**（Infix/Infixl/Infixr）——一元前缀/后缀与
+> // binder 记法的折叠留给后续环节
+> if !matches!(decl.assoc, NotationAssoc::Infix | Infixl | Infixr) { return None; }
+> ```
+> **实测**（`query goals`）：`t_infix` 的 `ty` =
+> `forall (α : Type 0) (a : α) (A : Set α), a ∈ A -> a ∈ A`
+> —— `∈` **折了**、`forall` **没折**。⇒ 用户说的"**丢了一批符号**"成立：
+> **prefix（`𝒫`）、postfix（`ᶜ`）、binder（`∀`/`∃`）、零元（`∅`）全都漏折**。
+>
+> **而且是三层叠加**（只改过滤器不够——这是查完才敢下的结论）：
+> 1. `fold_spine` 只放行 infix 族（上面那段代码）；
+> 2. **`∀`/`∃` 根本不在内建记法表里**（`BUILTIN_NOTATIONS` 只有
+>    `∧ ∨ ↔ ¬ = ≠` 等）——它们是 **parser 级 binder 语法**，不在表里就永远
+>    折不出来；
+> 3. 声明栏那个 `forall` 是**内核 pp 打的 telescope**
+>    （`forall (α : Type 0) (a : α) …,`），**不是源码里的 `∀`** ⇒ 折叠要认的是
+>    `forall (x : T), body` 这个**形状**，而不是"查表找符号"。
+>    （回读通道 `render_expr` 正是把内核 pp 重新 parse 回来 ⇒ 它给出的
+>    `forall` 落在 AST 的哪个节点上，是 T-D51 第一件要查清的事。）
+>
+> #### 机制 B：记法声明行的目标名**从来不是使用点**
+>
+> 真 LSP 探针（`textDocument/{definition,hover,documentHighlight}`）打在
+> 115–128 行每一条的**目标名**上：**五条全是 `null`** ——
+> `Set.mem` / `Set.powerset` / `Set.compl` / `Set.image` / `Set.preimage` /
+> `Set.prod` 无一例外。⇒ **ctrl+点击不能跳转**是**共性问题**，与符号种类无关。
+>
+> **为什么"高亮"只坏了三条**（用户观察到的差异）——语义 token 的**类型号**不同：
+>
+> | 行 | 目标名 | token 类型 | 说明 |
+> |---|---|---|---|
+> | 115–125 | `Set.mem` / `Set.subset` / `Set.union` / … / `Set.powerset` / `Set.compl` | **4 = `FUNCTION`** | 名字**在本文件里声明** ⇒ 作用域查得到 |
+> | 126–128 | `Set.image` / `Set.preimage` / `Set.prod` | **5 = `VARIABLE`** | 名字**不在本文件作用域**（在 `lib/Image.sokonanoda` / 单元⑤ 的画布里）⇒ 落成 `SemanticKind::UnknownIdent` |
+>
+> ⇒ 三条"没高亮"的**直接原因**是它们被当成**未知标识符**（`variable.other`），
+> 而不是"记法目标"。**根因仍是机制 B**：目标名不是一个**已知引用**，
+> 于是只能退回作用域查找；查不到就只好说"不知道这是什么"。
+
+#### T-D50 记法声明的**目标名**是使用点（**修机制 B，一条修两个症状**）
+
+- **改什么**：解析/编译记法声明时，把 `=>` 后面的**目标名 token** 登记成
+  **使用点**：① 语义分类给**已知引用**（`FUNCTION` 族，不是 `UnknownIdent`）；
+  ② 记录 `resolution`（目标在闭包里就指向它的声明；不在就**仍然着色为已知引用**，
+  因为**记法声明就是这个名字作为词汇的引入处**——课程注释原话：
+  "`Set.prod` 是**单元⑤ 给出的词汇**"）；③ hover 说清"这是记法 `''` 的目标"；
+  ④ `definition` 走闭包跳到声明（跨模块，复用 T-D10/T-D11 的表）。
+- **判据**：
+  1. 单测（front `semantic`）：记法声明行的目标名 token 的 kind **不是**
+     `UnknownIdent`；
+  2. LSP：`definition` 打在 `infix:50 " ∈ " => Set.mem` 的 `Set.mem` 上返回非空；
+  3. **e2e**（真宿主，矩阵新用例 #9）：在 `lib/Set.sokonanoda` 的
+     `Set.image` 上 `vscode.executeDefinitionProvider` 非空 + 该处语义 token
+     不是 `variable`。
+- **风险**：`Set.image`/`Set.preimage`/`Set.prod` **在本文件里根本不在作用域**
+  ⇒ 它们的 `resolution` 只能"诚实地说找不到声明"（`None`），**但着色必须仍按
+  "已知引用"**——否则用户看到的就是今天这个"没高亮"。这条要在测试里钉住，
+  免得下一刀又把"查不到声明"退化成"未知标识符"。
+
+#### T-D51 折叠层扩到 prefix / postfix / binder / 零元 + 给 `∀`/`∃` 补表（**修机制 A**）
+
+- **改什么**：`display.rs::fold_spine` 去掉"只放行 infix 族"的限制，按**每种记法
+  自己的形状**折：一元 prefix（`𝒫 A` ⇒ 操作数 1 个、在**右**）、一元 postfix
+  （`Aᶜ` ⇒ 操作数 1 个、在**左**）、binder（`∀ x, p x` ⇒ 操作数 2 个、第 2 个是
+  lambda）、零元（`∅` ⇒ 无操作数，`span` 就等于符号）。四种的 `arity`/操作数位
+  都不同，`fold_spine` 现在硬编码 `args[arity - 2..]` 只对 infix 成立。
+- **判据**：单测四组（每种记法一条）：声明栏的 `ty` 里出现 `∀` / `𝒫` / `ᶜ` / `∅`；
+  **且** `print_back` 的**回读**仍能解析（折过的文本必须还能被 parser 吃回去——
+  T-C20 那条 `folded_text_reparses` 的守护要扩到这四种）。
+- **风险**：`render_expr` 是**回读通道**的输入 ⇒ 折出来的文本必须**可解析**且
+  **语义等价**；binder 记法的回读最容易踩坑（`∀ x, p x` vs `forall x, p x`）。
+  另：**判负/事件计数不得变化**（折叠只动显示副本，红线）。
+
 ### ✅ 检查点 CP-D（批次 4，minor 版本）
 
 - [ ] `bash scripts/verify-editor-issues.sh` 第 6 条转「已修」
@@ -3438,6 +3519,8 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
 - [x] `T-D40` 三层测试（矩阵用例 #7/#8）
 - [ ] `T-D41` 文档同步
+- [ ] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
+- [ ] `T-D51` 折叠层扩到 prefix / postfix / binder / 零元（`forall` → `∀` 等一批符号）
   - ⬆ **BUMP**：`patch` —— 批次 4 收尾（含 rename/highlight 不再误伤 binder）
 
 #### 批次 5 · 线 K：内核提速（minor）
