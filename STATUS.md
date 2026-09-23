@@ -17,6 +17,25 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-23，第一百三十七轮：**T-D14 AST 变更（`symbol_span`）**）
+
+1. **`Expr::Notation` 增加 `symbol_span`**（只覆盖那个符号，不是整段节点）；
+   `bump_operator` 改为**返回 `Token`**（以前 `bump()` 的返回值被丢掉）；
+   `notation_node` 加参数。六处构造点全填（infix 族 / prefix / postfix / binder /
+   零元）。**为什么要它**：节点 span 覆盖整段（`a ∈ A` 三个 token），而编辑器要问的
+   是"光标是不是正好压在这个**符号**上"——`notation_at` 以前只能靠**词法重新扫
+   文本**回答；现在 AST 侧直接有答案。
+2. **判据**：`a_notation_nodes_symbol_span_covers_only_the_symbol`（`∈` 正好 3 字节
+   且是节点 span 的真子区间）；并按本条"风险"提示给
+   `notation_records_a_hover_row_covering_the_whole_notation` 补断言——"hover 行
+   覆盖整段"与"`symbol_span` 只覆盖符号"**不矛盾**（两者回答不同问题）。
+3. **AST 变更的连带面**：`by.rs` / `compile/elab.rs` / `compile/goals.rs` ×2 /
+   `display.rs` ×2 / `spine.rs` ×4，编译器全部指出来、逐个改。
+4. **⚠ 过程事故（第三次同类）**：一次 `str.replace` 把 `elab.rs` **写少了 4852 行**
+   ——`git diff --stat` 立刻暴露 ⇒ 恢复重来，之后**每处改动都先断言匹配唯一、
+   再核对行数增减**。教训写进 `skills/sokonanoda-dev` 新增的"批量文本替换的纪律"。
+5. **下一环**：T-D15（`ResolvedTarget` 增加 `Notation` 变体并绕开覆写）。
+
 ## 本轮进度（2026-09-23，第一百三十六轮：**T-D40 三层测试补齐 + `gate --fast` 修缺陷**）
 
 1. **T-D40 三层测试补齐**（矩阵用例 #7/#8）。e2e 两条早在 T-D02/T-D10..T-D13
@@ -64,25 +83,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    时序敏感的跨文件刷新**共用一把锁**（`testutil::HEAVY_LOCK`），**断言一条没动**。
    修后全量 **156 通过 / 0 失败**。
 4. **下一环**：T-D40（三层测试，矩阵用例 #7/#8）。
-
-## 本轮进度（2026-09-23，第一百三十四轮：**线 D 的 hover 收口 + 发 0.65.2**）
-
-1. **T-D03 hover 的"原始类型"三种形态齐了**：本文件声明（`⊗`）/ 语言内建（`∧`）/
-   `import` 来的（`∈`）各一条测试。
-   **"解析不出就不显示"钉在函数层**（`notation_input::target_resolution_tests`），
-   不是 hover 层——因为**在能编译的文件里这条不可达**（认得出来的符号必有 target）。
-   我试着加 LSP 级反向用例时构造不出"能编译 + 符号无 target"的文件，所以如实钉在
-   函数层、**不硬凑假用例**；hover 那侧靠"那一行写在 `if let Some(target)` 里"
-   结构性保证。
-2. **⬆ BUMP patch → 0.65.2**（§0.2："用户可感知的能力落地"）。CHANGELOG 另记了
-   本版包含的**记法跳转**（随 0.65.1 发布的 T-D10..T-D13）与**门禁提速**。
-3. **发版闭环（用户新要求）**：推 main → CI → auto-tag → release →
-   `gh release list` 核对。**上一版 v0.65.1 已确认上线**（26 资产、Latest、
-   `Cargo.toml` 与之相等）；0.65.2 已推送，等 CI 与 release 产出后核对。
-4. **bump 的已知代价实测**：bump 会让**编译缓存全失效**（缓存键含
-   `CARGO_PKG_VERSION`）⇒ bump 后第一次完整 gate 从 5.25 分钟变成 **37.7 分钟**
-   （课程门禁与测试套件都从头编一遍）。这是文档里记过的代价，不是回归；
-   `gate --fast` 仍然 ~30s。
-5. **下一环**：T-D14（parser 保留记法符号 token 的 span——AST 变更，为"表达式内
-   跳转"铺路）。
 
