@@ -95,6 +95,13 @@ pub enum Expr {
     /// 都是 `None`。
     Notation {
         symbol: String,
+        /// **符号 token 自己的 span**（T-D14）：只覆盖那个符号，不是整个节点。
+        ///
+        /// 为什么要它：节点 span 覆盖整段（`a ∈ A` 三个 token），而编辑器要问的是
+        /// "光标是不是正好压在这个**符号**上"——`notation_at` 现在是靠词法重新扫
+        /// 一遍回答的；有了这个字段，AST 侧直接就有答案（表达式内部的记法跳转、
+        /// 以及"点哪一段算点了记法"都不必再扫文本）。
+        symbol_span: Span,
         target: String,
         assoc: NotationAssoc,
         lhs: Option<Box<Expr>>,

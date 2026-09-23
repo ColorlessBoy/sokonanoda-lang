@@ -365,10 +365,12 @@ fn restore_universe_levels(
             rhs,
             alternatives,
             span,
+            symbol_span,
         } => Expr::Notation {
             symbol: symbol.clone(),
             target: target.clone(),
             assoc: *assoc,
+            symbol_span: *symbol_span,
             lhs: lhs.as_deref().map(|e| {
                 Box::new(restore_universe_levels(
                     e, defs, binders, prefix_src, options,

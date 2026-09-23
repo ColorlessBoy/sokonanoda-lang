@@ -6689,6 +6689,33 @@ fn notation_records_a_hover_row_covering_the_whole_notation() {
             .map(|h| (h.span.start.offset, h.span.end.offset))
             .collect::<Vec<_>>()
     );
+
+    // **T-D14**：AST 侧的 `Expr::Notation.symbol_span` **只覆盖 `∈`**，与上面那条
+    // "hover 行覆盖整段"**不矛盾**——两者回答的是不同的问题：
+    // hover 行是"这一段表达式是什么类型"，`symbol_span` 是"光标是不是压在符号上"。
+    // 补这条断言是因为 `Expr::Notation` 加了字段（AST 变更），而这段测试正好在
+    // 同一个夹具上（计划 T-D14 的"风险"一节点名了它）。
+    let mut symbol_spans = Vec::new();
+    for command in &file.commands {
+        // 夹具里 `a ∈ A` 在 `def p` 的**值**里（不是类型）。
+        let crate::ast::Command::Def { val, .. } = command else {
+            continue;
+        };
+        let mut visit = |e: crate::ast::Expr| {
+            if let crate::ast::Expr::Notation { symbol_span, .. } = &e {
+                symbol_spans.push(*symbol_span);
+            }
+            e
+        };
+        visit(val.clone());
+        let _ = crate::display::map_children_with(val.clone(), &mut visit);
+    }
+    assert!(
+        symbol_spans
+            .iter()
+            .any(|s| &src[s.start.offset..s.end.offset] == "∈"),
+        "AST 里那条记法的 `symbol_span` 只覆盖 `∈`：{symbol_spans:?}"
+    );
 }
 
 #[test]

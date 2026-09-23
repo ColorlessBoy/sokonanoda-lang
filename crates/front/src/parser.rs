@@ -2091,6 +2091,7 @@ impl Parser {
                     Some(Box::new(lhs)),
                     None,
                     span,
+                    tok.span,
                 );
                 continue;
             }
@@ -2136,7 +2137,7 @@ impl Parser {
             let Some(op) = self.binary_op_ahead(min_precedence) else {
                 break;
             };
-            self.bump_operator(&op);
+            let op_tok = self.bump_operator(&op);
             let next_min = if op.assoc == NotationAssoc::Infixr {
                 op.precedence
             } else {
@@ -2157,6 +2158,7 @@ impl Parser {
                     Some(Box::new(lhs)),
                     Some(Box::new(rhs)),
                     span,
+                    op_tok.span,
                 )
             };
         }
@@ -2250,14 +2252,24 @@ impl Parser {
         (entry.precedence? >= min_precedence).then_some(entry)
     }
 
-    fn bump_operator(&mut self, op: &BinaryOp) {
+    /// 吃掉运算符 token 并**把它交回给调用方**（T-D14：记法节点要留符号自己的
+    /// span，而 `bump()` 的返回值以前被丢掉了）。
+    fn bump_operator(&mut self, op: &BinaryOp) -> Token {
         let _ = op;
-        self.bump();
+        self.bump()
     }
 
     /// 零元记法：`Sym(s)` 且已声明为 `Nullary` ⇒ 记号节点。
     fn parse_nullary_notation(&mut self, symbol: &str, tok: &Token) -> Expr {
-        self.notation_node(symbol, NotationAssoc::Nullary, None, None, tok.span)
+        // 零元记法的节点 span 本来就只覆盖那个符号。
+        self.notation_node(
+            symbol,
+            NotationAssoc::Nullary,
+            None,
+            None,
+            tok.span,
+            tok.span,
+        )
     }
 
     /// 拼一个记号节点：**目标候选表**（第三刀 §12.2 的重载）从当前生效表里取，
@@ -2269,6 +2281,7 @@ impl Parser {
         lhs: Option<Box<Expr>>,
         rhs: Option<Box<Expr>>,
         span: Span,
+        symbol_span: Span,
     ) -> Expr {
         let targets = self.notation_targets(symbol);
         let (target, alternatives) = match targets.split_first() {
@@ -2283,6 +2296,7 @@ impl Parser {
             rhs,
             alternatives,
             span,
+            symbol_span,
         }
     }
 
@@ -2360,6 +2374,7 @@ impl Parser {
             None,
             Some(Box::new(operand)),
             span,
+            tok.span,
         ))
     }
 
@@ -2917,6 +2932,7 @@ impl Parser {
             None,
             Some(Box::new(operand)),
             span,
+            tok.span,
         ))
     }
 
@@ -4618,6 +4634,55 @@ end
             matches!(rhs.as_deref(), Some(Expr::Notation { symbol, .. }) if symbol == "⋃"),
             "right association puts the inner notation on the right: {rhs:?}"
         );
+    }
+
+    /// **T-D14 的判据**：`Expr::Notation.symbol_span` **只覆盖那个符号**。
+    ///
+    /// 为什么要这个字段：节点 span 覆盖整段（`a ∈ A` 三个 token），而编辑器要问的是
+    /// "光标是不是正好压在这个**符号**上"。以前只能靠词法重新扫一遍文本回答；
+    /// 现在 AST 侧直接有答案。
+    #[test]
+    fn a_notation_nodes_symbol_span_covers_only_the_symbol() {
+        // 整份文件一起解析 ⇒ 所有 span 都在**文件**坐标里（不必再算 `#check ` 前缀）。
+        let src = "infix:50 \" ∈ \" => Set.mem\n#check a ∈ A\n";
+        let file = super::parse(src).expect("parses");
+        let expr = file
+            .commands
+            .iter()
+            .find_map(|command| match command {
+                crate::ast::Command::Check { expr, .. } => Some(expr.clone()),
+                _ => None,
+            })
+            .expect("the fixture has a #check");
+        let mut found = 0;
+        let mut visit = |e: crate::ast::Expr| {
+            if let crate::ast::Expr::Notation {
+                symbol,
+                span,
+                symbol_span,
+                ..
+            } = &e
+            {
+                assert_eq!(symbol, "∈");
+                let text = &src[symbol_span.start.offset..symbol_span.end.offset];
+                assert_eq!(text, "∈", "符号 span 只覆盖符号本身：{text:?}");
+                assert_eq!(
+                    symbol_span.end.offset - symbol_span.start.offset,
+                    "∈".len(),
+                    "正好是 `∈` 的字节数"
+                );
+                assert!(
+                    span.start.offset < symbol_span.start.offset
+                        && span.end.offset > symbol_span.end.offset,
+                    "节点 span 覆盖整段，符号 span 是它的真子区间：{span:?} vs {symbol_span:?}"
+                );
+                found += 1;
+            }
+            e
+        };
+        visit(expr.clone());
+        let _ = crate::display::map_children_with(expr, &mut visit);
+        assert_eq!(found, 1, "夹具里正好一条 `∈` 记法");
     }
 
     #[test]

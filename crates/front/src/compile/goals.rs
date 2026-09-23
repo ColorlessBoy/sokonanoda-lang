@@ -840,12 +840,14 @@ pub(crate) fn substitute_names(
             lhs,
             rhs,
             alternatives,
+            symbol_span,
             ..
         } => Expr::Notation {
             symbol: symbol.clone(),
             target: target.clone(),
             assoc: *assoc,
             alternatives: alternatives.clone(),
+            symbol_span: *symbol_span,
             lhs: lhs
                 .as_ref()
                 .map(|e| Box::new(substitute_names(e, map, levels))),
@@ -997,6 +999,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             lhs,
             rhs,
             alternatives,
+            symbol_span,
             ..
         } => Expr::Notation {
             symbol,
@@ -1006,6 +1009,7 @@ fn with_root_span(expr: Expr, span: Span) -> Expr {
             rhs,
             alternatives,
             span,
+            symbol_span,
         },
     }
 }

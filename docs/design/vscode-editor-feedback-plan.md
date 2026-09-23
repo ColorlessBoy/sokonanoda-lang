@@ -2845,6 +2845,38 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D14 parser 保留记法符号 token 的 span
 
+> **✅ 完成（2026-09-21）。AST 变更落地，六处构造点全填。**
+>
+> `Expr::Notation` 增加 **`symbol_span: Span`**（只覆盖那个符号，不是整段节点）；
+> `bump_operator` 改为**返回 `Token`**（以前 `bump()` 的返回值被丢掉）；
+> `notation_node` 加参数。填的位置：**infix 族**（用 `op_tok.span`）、**prefix**
+> （`tok.span`）、**postfix**（`tok.span`）、**binder**（`tok.span`）、
+> **零元**（节点 span 本来就只覆盖符号 ⇒ 两者相同）。
+>
+> **为什么要这个字段**：节点 span 覆盖整段（`a ∈ A` 三个 token），而编辑器要问的是
+> "光标是不是正好压在这个**符号**上"——`notation_at` 以前只能靠**词法重新扫一遍
+> 文本**回答；现在 AST 侧直接有答案（表达式内部的记法跳转、以及"点哪一段算点了
+> 记法"都不必再扫文本）。
+>
+> **判据**：`parser::tests::a_notation_nodes_symbol_span_covers_only_the_symbol`
+> —— `∈` 的 `symbol_span` 正好 3 个字节、且是节点 span 的**真子区间**。
+> 另按本条的"风险"提示，给 `compile::tests::
+> notation_records_a_hover_row_covering_the_whole_notation` **补了断言**：
+> hover 行覆盖整段与 `symbol_span` 只覆盖符号**不矛盾**——两者回答不同的问题
+> （"这段表达式是什么类型" vs "光标是不是压在符号上"）。
+>
+> **AST 变更的连带面**（编译器全指出来了，逐个改并**每次核对行数**）：
+> `by.rs`（恢复）、`compile/elab.rs`（展开路径用不到 ⇒ 模式里写 `..` 并注明）、
+> `compile/goals.rs` ×2（重建）、`display.rs` ×2（折叠产物是**渲染产物**、
+> 没有源里的符号 token ⇒ 退化成节点 span）、`spine.rs` ×4（beta 归约 /
+> 改名 / 替换）。
+>
+> **⚠ 过程事故（第三次同类）**：这轮的一次 `str.replace` 把 `elab.rs`
+> **写少了 4852 行**（`git diff --stat` 立刻暴露）。处置：`git checkout --` 恢复，
+> 之后**每处改动都先 `count(old)` 断言唯一、再核对行数增减**。
+> 教训写进 `skills/sokonanoda-dev`：**批量文本替换前后必须核对行数**，
+> 看到 `git diff --stat` 的删除行数远大于预期就立刻停下。
+
 - **改什么**：`Expr::Notation` 增加 `symbol_span: Span`；
   `bump_operator`（`parser.rs:2248-2251`）改为返回 `Token`；
   `notation_node`（`parser.rs:2260-2282`）加参数；infix 族（`:2141`）、
@@ -3365,7 +3397,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D11` 闭包级记法表进 `ProjectReport`/`QueryDoc`
 - [x] `T-D12` 解析 API：`notation_resolve(text, table, offset)`
 - [x] `T-D13` hover 的"展开成"（import 来的记法）
-- [ ] `T-D14` parser 保留记法符号 token 的 span
+- [x] `T-D14` parser 保留记法符号 token 的 span
 - [ ] `T-D15` 新增 `ResolvedTarget` 变体并绕开覆写
 - [ ] `T-D16` LSP `definition` 处理记法变体
 - [ ] `T-D17` hover 的 `range` 收窄到符号本身

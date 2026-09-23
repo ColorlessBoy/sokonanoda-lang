@@ -404,6 +404,7 @@ fn instantiate_universes(expr: &Expr, uparams: &[String], actual: &[String]) -> 
                 target,
                 span,
                 alternatives,
+                symbol_span,
             } => Expr::Notation {
                 symbol: symbol.clone(),
                 assoc: *assoc,
@@ -412,6 +413,7 @@ fn instantiate_universes(expr: &Expr, uparams: &[String], actual: &[String]) -> 
                 target: target.clone(),
                 span: *span,
                 alternatives: alternatives.clone(),
+                symbol_span: *symbol_span,
             },
             other => other.clone(),
         }
@@ -502,6 +504,7 @@ pub(crate) fn beta_normalize(expr: &Expr) -> Expr {
             rhs,
             alternatives,
             span,
+            symbol_span,
         } => Expr::Notation {
             symbol: symbol.clone(),
             target: target.clone(),
@@ -510,6 +513,7 @@ pub(crate) fn beta_normalize(expr: &Expr) -> Expr {
             rhs: rhs.as_deref().map(|e| Box::new(beta_normalize(e))),
             alternatives: alternatives.clone(),
             span: *span,
+            symbol_span: *symbol_span,
         },
         Expr::Let {
             binder,
@@ -734,6 +738,7 @@ pub(crate) fn rename_free(expr: &Expr, from: &str, to: &str) -> Expr {
             rhs,
             alternatives,
             span,
+            symbol_span,
         } => Expr::Notation {
             symbol: symbol.clone(),
             target: target.clone(),
@@ -742,6 +747,7 @@ pub(crate) fn rename_free(expr: &Expr, from: &str, to: &str) -> Expr {
             rhs: rhs.as_deref().map(|e| Box::new(rename_free(e, from, to))),
             alternatives: alternatives.clone(),
             span: *span,
+            symbol_span: *symbol_span,
         },
         Expr::Lambda {
             binders,
@@ -1171,6 +1177,7 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             rhs,
             alternatives,
             span,
+            symbol_span,
         } => Expr::Notation {
             symbol: symbol.clone(),
             target: target.clone(),
@@ -1179,6 +1186,7 @@ pub(crate) fn substitute(expr: &Expr, sigma: &std::collections::HashMap<String, 
             rhs: rhs.as_ref().map(|e| Box::new(substitute(e, sigma))),
             alternatives: alternatives.clone(),
             span: *span,
+            symbol_span: *symbol_span,
         },
     }
 }

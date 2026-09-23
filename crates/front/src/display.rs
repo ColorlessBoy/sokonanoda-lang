@@ -318,6 +318,8 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
         // 折叠出来的是**唯一的**写法（head 名字就是判据），没有候选列表。
         alternatives: Vec::new(),
         span: expr.span(),
+        // 折出来的节点是**渲染产物**，没有源里的符号 token ⇒ 退化成节点 span。
+        symbol_span: expr.span(),
     })
 }
 
@@ -334,7 +336,7 @@ fn head_name(head: &Expr) -> Option<&str> {
 ///
 /// 参数化成一个 `f`（而不是把折叠逻辑写进来）是为了让"折"与"折 + 记下替换"
 /// **共用同一份结构知识**：两份手写的 16 变体匹配迟早会漂。
-fn map_children_with(expr: Expr, f: &mut impl FnMut(Expr) -> Expr) -> Expr {
+pub(crate) fn map_children_with(expr: Expr, f: &mut impl FnMut(Expr) -> Expr) -> Expr {
     match expr {
         Expr::App {
             fun,
@@ -416,6 +418,7 @@ fn map_children_with(expr: Expr, f: &mut impl FnMut(Expr) -> Expr) -> Expr {
             rhs,
             alternatives,
             span,
+            symbol_span,
         } => Expr::Notation {
             symbol,
             target,
@@ -424,6 +427,7 @@ fn map_children_with(expr: Expr, f: &mut impl FnMut(Expr) -> Expr) -> Expr {
             rhs: rhs.map(|e| Box::new(f(*e))),
             alternatives,
             span,
+            symbol_span,
         },
         Expr::SetLiteral { elements, span } => Expr::SetLiteral {
             elements: elements.into_iter().map(&mut *f).collect(),

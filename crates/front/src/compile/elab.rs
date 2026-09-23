@@ -2891,6 +2891,9 @@ pub(crate) fn elab_expr<'a>(
             rhs,
             alternatives,
             span,
+            // T-D14 的 `symbol_span` 在展开路径上用不到（它服务的是编辑器侧
+            // "光标是不是压在符号上"）。
+            ..
         } => {
             // binder 记法（第三刀 §12.1）：操作数是 `fun (x : A) => p`（两段式
             // 时 body 是 `And (x ∈ s) p`）。binder 没写类型时**先由 guard 反解**
