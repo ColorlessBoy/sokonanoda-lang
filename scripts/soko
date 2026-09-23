@@ -61,6 +61,40 @@ function releaseBase() {
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const REPO = path.dirname(HERE)
 
+/// **改动过的 crate**（`gate --fast` 的判据）：工作区里被改/新增的文件落在哪个
+/// `crates/<dir>` 下，就返回那个 crate 的 **package 名**（`crates/kernel` 的包名
+/// 是 `sokonanoda`，不是目录名——所以从各自的 `Cargo.toml` 读，不靠猜）。
+///
+/// 只看 `crates/`：`courses/`、`editor/`、`docs/` 的改动由**课程门禁**与
+/// 集成测试覆盖，不在这个内环里（它们是提交前那一轮的事）。
+function changedCrates() {
+  const names = []
+  let out
+  try {
+    out = spawnSync('git', ['diff', '--name-only', 'HEAD'], { cwd: REPO, encoding: 'utf8' })
+    const untracked = spawnSync('git', ['ls-files', '--others', '--exclude-standard'], {
+      cwd: REPO,
+      encoding: 'utf8',
+    })
+    const files = `${out.stdout || ''}\n${untracked.stdout || ''}`.split('\n')
+    for (const f of files) {
+      const m = /^crates\/([^/]+)\//.exec(f.trim())
+      if (!m) continue
+      const manifest = path.join(REPO, 'crates', m[1], 'Cargo.toml')
+      try {
+        const line = readFileSync(manifest, 'utf8').split('\n').find((l) => l.startsWith('name ='))
+        const name = line && /"([^"]+)"/.exec(line)
+        if (name && !names.includes(name[1])) names.push(name[1])
+      } catch {
+        /* 没有清单就不是 crate */
+      }
+    }
+  } catch {
+    /* git 不在也不该让 gate 挂——退回"什么都不跑"由调用方决定 */
+  }
+  return names
+}
+
 // ── environment facts ────────────────────────────────────────────────────────
 
 function cacheDir() {
@@ -876,6 +910,14 @@ async function main(argv) {
       // anchor) **plus** the course gate (`courses/set-theory/tools/check.py`,
       // criteria G1–G5). Design: docs/design/course-gate-in-ci.md §2.4 / §7 S3.
       //
+      // **`--fast` = 迭代内环**（2026-09-23，用户报"gate 太慢、严重阻碍迭代"）：
+      //   * 跳过 `cargo test --workspace`（最贵的是**课程规模**的 suite：
+      //     LSP 库 129s、`judge_batch` 87s——实测 CI 数据）；
+      //   * 改成只跑**改动过的 crate** 的**单测**（`cargo test -p … --lib`）；
+      //   * 跳过缺口门禁（~94s；它是**提交前**的台账契约）；
+      //   * **保留** fmt + clippy + anchor + 课程门禁（后者现在走持久缓存 ⇒ 秒级）。
+      // 完整 gate（不带 `--fast`）仍是提交/推送/CI 的判据。
+      //
       // python3 is probed *before* anything expensive: a missing interpreter is
       // exit 3 and never a silent skip — a local "green" that skipped the course
       // layer would be a lie (CI is the backstop, not the excuse).
@@ -892,12 +934,36 @@ async function main(argv) {
       const r = resolver('sokonanoda', cliOverride)
       const found = await r.resolve()
       if (!canExec(found)) return refuseUntrusted('sokonanoda', found, r.pin)
+      const fast = rest.includes('--fast')
       const cargoGate = spawnSync(found.path, ['gate', ...rest], { stdio: 'inherit' })
       if (cargoGate.error) {
         process.stderr.write(`scripts/soko gate: failed to run ${found.path}: ${cargoGate.error.message}\n`)
         return 3
       }
       const cargoStatus = cargoGate.status ?? 3
+      if (fast) {
+        const crates = changedCrates()
+        if (crates.length === 0) {
+          process.stderr.write(
+            'scripts/soko gate --fast: `crates/` 下没有改动 ⇒ 跳过 Rust 单测（课程门禁照跑）。\n',
+          )
+        } else {
+          const argv = ['test', ...crates.flatMap((c) => ['-p', c]), '--lib']
+          process.stderr.write(`+ cargo ${argv.join(' ')}（--fast：只跑改动过的 crate 的单测）\n`)
+          const t = spawnSync('cargo', argv, {
+            stdio: 'inherit',
+            cwd: REPO,
+            // 课程规模的测试（`perf_course` / `project` / `judge_batch`）会整门课
+            // 编一遍——给它们同一个**持久缓存**，第二次起就是命中。
+            env: {
+              ...process.env,
+              SOKONANODA_CACHE_DIR:
+                process.env.SOKONANODA_CACHE_DIR || path.join(REPO, 'target', 'gate-cache'),
+            },
+          })
+          if ((t.status ?? 3) !== 0) return t.status ?? 3
+        }
+      }
       if (cargoStatus !== 0) return cargoStatus
       const courseCheck = path.join(REPO, 'courses', 'set-theory', 'tools', 'check.py')
       if (!existsSync(courseCheck)) {
@@ -914,7 +980,17 @@ async function main(argv) {
         const course = spawnSync(python.cmd, [...python.args, courseCheck], {
           stdio: 'inherit',
           cwd: REPO,
-          env: { ...process.env, SOKONANODA_BIN: found.path },
+          env: {
+            ...process.env,
+            SOKONANODA_BIN: found.path,
+            // **持久编译缓存**（迭代速度，2026-09-23）：课程门禁要判 34 个目标，
+            // 冷缓存实测 **164s**、暖缓存几秒——而它以前每次都是冷的（`grade()`
+            // 只继承环境，没人给它缓存目录）。缓存是**内容键**的，且 `soko` 对
+            // 版本不匹配**拒绝运行**（G-16）⇒ 复用不会掩盖过期。
+            // 想回到冷缓存：`SOKONANODA_CACHE_DIR=$(mktemp -d) scripts/soko gate`。
+            SOKONANODA_CACHE_DIR:
+              process.env.SOKONANODA_CACHE_DIR || path.join(REPO, 'target', 'gate-cache'),
+          },
         })
         if (course.error) {
           process.stderr.write(`scripts/soko gate: failed to run ${courseCheck}: ${course.error.message}\n`)
@@ -972,7 +1048,14 @@ async function main(argv) {
         return 3
       }
       if ((versionCheck.status ?? 3) !== 0) return versionCheck.status ?? 3
+      if (fast) {
+        process.stderr.write(
+          'scripts/soko gate --fast: 跳过缺口台账门禁（~94s；它是**提交前**的契约，' +
+            '提交前跑完整 `scripts/soko gate`）。\n',
+        )
+      }
       const ledgerCheck = path.join(REPO, 'scripts', 'gap.py')
+      if (fast) return 0
       if (!existsSync(ledgerCheck)) return 0
       const ledger = spawnSync(python.cmd, [...python.args, ledgerCheck, 'check'], {
         stdio: 'inherit',

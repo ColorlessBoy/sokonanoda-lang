@@ -296,8 +296,15 @@ async fn perf_project_dependency_edit_refreshes_dependents() {
     // 根依赖里 `P` 改名 ⇒ 链上每个模块（含入口）都会看到未知标识符。
     let broken = root_dep_text.replace("axiom P : Prop", "axiom Q : Prop");
     let start = std::time::Instant::now();
-    let published =
-        testutil::did_change_at_drained(&mut service, &mut socket, &root_dep_uri, 2, &broken).await;
+    let published = testutil::did_change_at_drained_expecting(
+        &mut service,
+        &mut socket,
+        &root_dep_uri,
+        2,
+        &broken,
+        &[root_dep_uri.clone(), entry_uri.clone()],
+    )
+    .await;
     let elapsed = start.elapsed().as_millis();
     let dependent = published
         .iter()

@@ -425,3 +425,37 @@ HTTPS_PROXY=http://127.0.0.1:7890 npx --yes @vscode/vsce show <publisher>.<name>
 感觉到的退化"会误判。要看用户侧的数字得量 release（`query`/`grade` 冷跑）。
 台账里 `did_open` 比 26 小时前高 ~18% 这件事的排查记录在 `docs/PERF.md`
 （已排除折叠与防抖，待查）。
+
+## 迭代速度：`gate --fast`（2026-09-23，用户报"gate 太慢、严重阻碍迭代"）
+
+**先量再改**。完整 gate 的账（本机，warm 构建；CI 侧的 suite 耗时见下）：
+
+| 阶段 | 改前 | 改后 | 怎么省的 |
+|---|---|---|---|
+| `cargo fmt --check` | 1s | 1s | — |
+| `cargo clippy --workspace --all-targets` | 0s（缓存） | 0s | — |
+| `cargo test --workspace` | ~250s | 只跑**改动过的 crate** 的 `--lib` | 最贵的是**课程规模**的 suite：LSP 库 129s、`judge_batch` 87s（CI 实测） |
+| 课程门禁 `check.py` | **164s** | **0s** | **持久编译缓存**（`target/gate-cache`）：它以前每次都是冷的（`grade()` 只继承环境，没人给缓存目录） |
+| 缺口台账门禁 `gap.py check` | 94s | 跳过（提交前跑） | 它是**提交前**的契约，不是迭代信号 |
+| **合计** | **~15 分钟** | **~30 秒**（`gate --fast`） | |
+
+**用法**：
+
+```bash
+scripts/soko gate --fast   # 迭代：改了就敲这条（~30s）
+scripts/soko gate          # 提交/推送前：完整那一条（~6.6 分钟）
+```
+
+**两条纪律**：
+1. **`--fast` 不是"更弱的判据"，是"更小的范围"**：它照样跑 fmt / clippy / 锚点 /
+   **课程门禁**（那条最要紧的不变量，现在免费）；只是**只测改动过的 crate**、
+   不跑集成测试、不查台账契约。**推送前必须跑完整 gate**（CI 也会跑）。
+2. **持久缓存是安全的，但要知道它在**：缓存是**内容键**的，且 `soko` 对版本不匹配
+   **拒绝运行**（G-16）⇒ 复用不会掩盖过期。想回到冷缓存：
+   `SOKONANODA_CACHE_DIR=$(mktemp -d) scripts/soko gate`。
+
+**为什么课程门禁能快 164s → 0s**：`check.py` 的 `grade()` 用 `subprocess.run` 且
+**只继承环境**——没人给它 `SOKONANODA_CACHE_DIR` ⇒ 34 个目标每次都从头编。
+给它一个**仓库内的持久目录**（`scripts/soko` 里注入）之后，第二次起全是命中。
+CI 侧同理（但 CI 每次是全新 runner，所以那边省不掉——这也是"本地快、CI 慢"
+这条差异的来源之一）。

@@ -270,6 +270,34 @@ pub(crate) async fn did_change_at_drained(
     .await
 }
 
+/// 排空版 didChange，**等指定的每一份文档都发过一轮**（跨文件刷新用）。
+///
+/// 为什么需要它：`did_change_at_drained` 只等**被改的那份**文档的诊断，而
+/// 改依赖会让**下游**重新编译并稍后发诊断（T-A30 起编译在别的任务里跑）——
+/// 在快机器上"稍后"落在排水窗口里（**碰巧过**），在 CI 的慢 runner 上落到窗口
+/// 外（**假红**）。实测：2026-09-23 CI 上 `editing_a_dependency_refreshes_the_open_entry`
+/// 与 `perf_project_dependency_edit_refreshes_dependents` 就是这么红的，本机全绿。
+pub(crate) async fn did_change_at_drained_expecting(
+    service: &mut LspService<Backend>,
+    socket: &mut ClientSocket,
+    uri: &Url,
+    version: i32,
+    text: &str,
+    expect: &[Url],
+) -> Vec<PublishDiagnosticsParams> {
+    notify_with_drain(
+        service,
+        socket,
+        "textDocument/didChange",
+        json!({
+            "textDocument": {"uri": uri, "version": version},
+            "contentChanges": [{"text": text}],
+        }),
+        expect,
+    )
+    .await
+}
+
 /// 指定 URI 的 didClose（当前没有测试消费它：多文档刷新是 P5 余项，
 /// 见 `crates/lsp/src/tests/project.rs` 末尾的说明）。
 #[allow(dead_code)]

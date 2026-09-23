@@ -155,7 +155,10 @@ scripts/soko update                       # 刷新缓存；0=写成了 3=没写�
 ## 命令（贡献者：需要 Rust；用户/agent 用 `scripts/soko` / `sokonanoda` 子命令）
 
 ```bash
-scripts/soko gate   # = CI 门禁：fmt + clippy + test + playground 锚点 + 课程门禁（卷 I）+ 缺口台账门禁（python3）
+scripts/soko gate --fast   # **迭代内环**（~30s）：fmt + clippy + **改动过的 crate 的单测**
+                    #   + 锚点 + 课程门禁（走持久缓存）；跳过缺口台账门禁与集成测试
+scripts/soko gate   # = CI 门禁（**提交/推送前**跑这条）：fmt + clippy + test + playground 锚点
+                    #   + 课程门禁（卷 I）+ 缺口台账门禁（python3）
 python3 courses/set-theory/tools/check.py --selftest   # 课程判据通道自检（故意坏文件必须被拒）
 python3 courses/set-theory/tools/check.py --only "单元 5" --bisect   # 二分到第一个判红的声明
 python3 scripts/gap.py selftest   # 台账判据自检（judge() 的期望推导 / repro_expect / 非法值）

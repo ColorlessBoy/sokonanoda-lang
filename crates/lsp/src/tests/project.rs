@@ -287,8 +287,17 @@ async fn editing_a_dependency_refreshes_the_open_entry() {
     // 改**依赖**（未落盘）：把 `And.intro` 改名。入口里的使用点必须立刻报未知标识符——
     // 这就是跨文件失效：不重编译下游的话，入口会停在"全绿"的旧状态。
     let renamed = LOGIC.replace("And.intro", "And.mk");
-    let msgs =
-        testutil::did_change_at_drained(&mut service, &mut socket, &logic, 2, &renamed).await;
+    // **等两份都发过一轮**：改的是依赖，断言的是**入口**的重发——只等依赖那份
+    // 会让"入口稍后重发"落在排水窗口外（CI 慢 runner 上实测假红）。
+    let msgs = testutil::did_change_at_drained_expecting(
+        &mut service,
+        &mut socket,
+        &logic,
+        2,
+        &renamed,
+        &[logic.clone(), canvas.clone()],
+    )
+    .await;
     let broken = msgs
         .iter()
         .find(|params| params.uri == canvas)

@@ -241,7 +241,13 @@ fn repo_workspace_version() -> Option<String> {
 /// while the repo has moved on), the anchor would silently gate the repo with
 /// old logic — a 0.27.0 cache cannot parse newer syntax and the failure looks
 /// like a source bug. Refuse to run when the repo's version disagrees.
-pub fn gate() -> ExitCode {
+pub fn gate(args: &[String]) -> ExitCode {
+    let _ = args;
+    // `--fast`：**迭代用的内环**——只跑 fmt + clippy + anchor（+ 调用方补的
+    // "改动过的 crate 的单测"）。`cargo test --workspace` 里最贵的是**课程规模**
+    // 的那几个 suite（实测 LSP 库 129s、`judge_batch` 87s），迭代时每轮跑它们
+    // 是纯浪费；提交/推送前跑**完整** gate（不带 `--fast`）。
+    let fast = args.iter().any(|a| a == "--fast");
     if let Some(repo) = repo_workspace_version() {
         let binary = env!("CARGO_PKG_VERSION");
         if repo != binary {
@@ -268,9 +274,9 @@ pub fn gate() -> ExitCode {
         &["clippy", "--workspace", "--all-targets"],
         &["test", "--workspace", "--locked"],
     ];
-    for args in STEPS {
+    for args in STEPS.iter().take(if fast { 2 } else { 3 }) {
         eprintln!("+ cargo {}", args.join(" "));
-        match std::process::Command::new("cargo").args(args).status() {
+        match std::process::Command::new("cargo").args(*args).status() {
             Ok(status) if status.success() => {}
             Ok(status) => {
                 eprintln!("sokonanoda: gate failed (cargo exit {status})");
@@ -281,6 +287,9 @@ pub fn gate() -> ExitCode {
                 return ExitCode::from(3);
             }
         }
+    }
+    if fast {
+        eprintln!("+ （--fast：跳过 `cargo test --workspace`——调用方会补改动过的 crate 的单测）");
     }
     let anchor = "playground.sokonanoda";
     match std::fs::read_to_string(anchor) {

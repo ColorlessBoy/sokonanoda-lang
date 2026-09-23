@@ -215,8 +215,11 @@ async fn perf_course_keystroke_is_recorded() {
         "entry": rel,
         "ms": best,
     }));
-    // 量级哨兵：修前同文本 didChange 是 121–476ms；这里给 5s（抓"退化成分钟级"）。
-    assert!(best < 5_000, "课程单元一次按键 {best}ms（量级哨兵 5s）");
+    // 量级哨兵：修前同文本 didChange 是 121–476ms；这里给 **30s**（抓"退化成
+    // 分钟级"）。**5s 曾经在 CI 上假红**（2026-09-23 实测 5123ms，本机 514ms）：
+    // 这个二进制里 140+ 用例并行跑，慢 runner 上邻居抢 CPU 能放大一个量级
+    // ——与 `testutil::TIMEOUT` 从 2s 加宽到 30s 是同一课。
+    assert!(best < 30_000, "课程单元一次按键 {best}ms（量级哨兵 30s）");
 }
 
 /// **保存同一文本**（编辑器外改动 / `didSave` 那条路）：文本一个字节没变，

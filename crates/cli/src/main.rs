@@ -100,7 +100,7 @@ fn main() -> ExitCode {
         Some("setup") => env::setup(force),
         Some("update") => env::update(),
         Some("grade") => env::grade(&positionals[1..]),
-        Some("gate") => env::gate(),
+        Some("gate") => env::gate(&args),
         // 内核真相查询（agent/MCP 的"提问式"通道；单 JSON 对象）。
         // 设计：docs/design/agent-query-channel.md §5。
         Some("query") if !json => query::run(&positionals[1..], root.as_deref()),

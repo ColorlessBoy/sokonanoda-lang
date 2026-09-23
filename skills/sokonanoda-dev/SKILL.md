@@ -78,6 +78,19 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 
 ## 3. 质量门禁（CI 与本地一致）
 
+**两档**（2026-09-23 起，用户报"gate 太慢、严重阻碍迭代"）：
+
+```bash
+scripts/soko gate --fast   # **迭代内环 ~30s**：fmt + clippy + 改动过的 crate 的单测
+                           #   + 锚点 + 课程门禁（持久缓存 ⇒ 秒级）；跳过缺口台账与集成测试
+scripts/soko gate          # **提交/推送前**（~5 分钟）：上面那些 + 全量 test + 缺口台账
+```
+
+`--fast` 不是"更弱的判据"而是"更小的范围"（课程门禁照跑）；推送前必须跑完整那条。
+细则与账见 `docs/vscode-dev-guide.md`「迭代速度」一节。
+
+手动等价（需要单跑某一步时）：
+
 ```bash
 cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 # 禁止 `cargo fmt --all`：会重排**冻结内核**（kernel 快照不得改动）；
