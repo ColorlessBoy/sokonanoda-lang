@@ -4862,3 +4862,51 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    之后 T-C30–T-C32（语义 run 把记法标成 `notation`）、T-C50、**T-C40/T-C41
    （⬆ BUMP patch）**。
 
+
+## 本轮进度（2026-09-21，第一百二十九轮：**逐 surface 的判别性** —— 线 C 收口，bump 0.65.0）
+
+> 上一轮把记法接进了 goal / 声明类型 / `by` 步进。本轮回答一个更硬的问题：
+> **这些测试真的抓得住折叠层吗？** 判据不是"看到了记法"，而是**把折叠关掉必须红**
+> ——而且这条判据要**从折叠层一直钉到 wire 字段**。
+
+1. **开关 `SOKO_NO_NOTATION_FOLD=1`**（`display_notations` 直接返回空表，仿
+   `SOKO_NO_JUDGE_BATCH`）。它**只关展示**：判定读的是另一张表
+   （`notation.rs::notation_table`），所以它同时是"显示改动没碰判定"的开关。
+2. **两条机械判据（缺一不可）**：
+   * **折叠层**（front 单测）`display::tests::with_the_fold_off_every_foldable_surface_is_pointwise`
+     ——空表 ⇒ 一律点名；
+   * **整条路**（CLI 真二进制 A/B，新文件 `crates/cli/tests/notation_fold.rs` **3 条**）
+     ——① 三个可折 surface 关掉 ⇒ 回到点名；② 两个源级 surface 关掉 ⇒ **一个字节不变**；
+     ③ `grade --json` 开关前后**逐字节相同**（判定没被碰）。
+     **为什么非要第二条**：单测用的是 `DisplayNotations::default()`，它**碰不到开关本身**
+     （`display_notations` 里那个 `if`）——开关被删、或有哪条路绕过 `display_notations`，
+     单测照样绿。② 同时是**行程开关**：谁把生产者 2 改成走内核 pp 折叠，它就会红。
+3. **实测矩阵**（`SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front --lib -- <六条>`
+   → `3 passed; 3 failed`，与设计逐格一致）：
+
+   | surface | 关掉折叠 | 读法 |
+   |---|---|---|
+   | 根状态 `state_at_root_before_any_tactic` | **红** | 记法是折叠给的 |
+   | 声明 `ty` `a_declarations_ty_is_notation_folded_too` | **红** | 同上 |
+   | `by` 步进 `by_step_display_is_folded_but_the_judge_input_is_not` | **红** | 同上 |
+   | 无 `by` 的开练习 `an_open_exercise_without_by_keeps_notation_in_its_goal` | 绿 | **守护**：源级渲染（T-C21） |
+   | 假设行 `state_binders_keep_notation_in_their_types` | 绿 | **守护**：源里写的类型（T-C23） |
+   | 机械判据 `with_the_fold_off_every_foldable_surface_is_pointwise` | 绿 | 空表 ⇒ 一律点名 |
+
+   后两条**故意不红**（它们的记法不是折叠给的），红才是异常。设计 §3.3e 记了全表。
+4. **真宿主 e2e 用例 #6 转绿**（`goal text uses the file's notation`）：它此前是矩阵里
+   三条已知红之一（断言 `infoview.lastState().goal` 含 `⊆`/`∈`）——线 C 落地后
+   **第一次通过**（`1 passed / 0 failed`，server 0.65.0 bundled）。剩下两条红是线 D 的
+   （记法跳定义 / hover 原始类型）。
+5. **版本 0.64.2 → 0.65.0**（minor，§13 给 T-C24 标的发版点）：`Cargo.toml` +
+   `editor/vscode/package.json` + `Cargo.lock` + 两处 `requires`（`course/shared`、
+   `courses/set-theory`）。CHANGELOG 逐 surface 写清"以前点名 / 现在记法"，
+   并写明**判定一个字节没动**。
+6. **判据**：`scripts/soko gate` **exit 0**（fmt · clippy · test · playground 锚点 ·
+   课程门禁 · 记法 lint 84 文件 · 版本一致 0.65.0 · 缺口台账 41 条全一致）·
+   课程门禁计数**逐项不变**（36 目标 · 328 checked · 99 open · **0 判负**）·
+   `plan.py check` OK（120 环节）。
+7. **下一环**：T-C25（命中不了就回退：`prefix` / `postfix` / 零元 `notation` /
+   binder 记法 / 重载歧义各一条）→ C-IV 着色（T-C30/T-C31/T-C32）→ 矩阵其余用例
+   （T-C50）→ T-C40/T-C41 收尾。
+
