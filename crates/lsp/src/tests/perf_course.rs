@@ -82,8 +82,12 @@ async fn perf_course_did_open_is_recorded() {
     testutil::handshake_with_root(&mut service, &root).await;
 
     let mut slowest = 0u128;
+    let mut first = 0u128;
     for (rel, before) in COURSE_ENTRIES {
         let (ms, diagnostics, uri) = open_course_unit(&mut service, &mut socket, &root, rel).await;
+        if first == 0 {
+            first = ms;
+        }
         println!(
             "PERF course lsp: didOpen {rel} = {ms}ms（{diagnostics} 条诊断；修前基线 {before}）"
         );
@@ -102,11 +106,23 @@ async fn perf_course_did_open_is_recorded() {
         testutil::did_close_at(&mut service, &uri).await;
     }
 
-    // 量级哨兵：修前最慢 8.5s。这里给 60s——抓的是"退化成分钟级"（O(n²) 或
-    // 每次打开都重编整个闭包 ×N），不是 ±20% 的波动。
+    // **量级哨兵**。2026-09-23 修：绝对值在 CI 上**不可靠**——这个二进制里
+    // 150+ 用例并行跑，几个课程规模的用例互相抢 CPU，同一个 unit12 实测
+    // **本机 8.8s / CI 61.97s（7×）**，于是 60s 的绝对阈值把 CI 判红。
+    //
+    // 改成**两条互补**的判据：
+    // ① 绝对量级放到 180s（抓"退化成几分钟"这种真事故；CI 基线 62s 有 2.9× 余量）；
+    // ② **相对形状**：`unit12 / unit01` 的比值——它与机器快慢**无关**，
+    //    抓的正是这条用例真正关心的"闭包越大越慢得离谱"（每次打开重编 ×N、
+    //    O(n²)）。本机 4.5×、CI 4.1×，阈值给 12×。
     assert!(
-        slowest < 60_000,
-        "课程入口 didOpen 最慢 {slowest}ms（修前基线 8.5s；量级哨兵 60s）"
+        slowest < 180_000,
+        "课程入口 didOpen 最慢 {slowest}ms（修前基线 8.5s；量级哨兵 180s）"
+    );
+    let ratio = slowest as f64 / first.max(1) as f64;
+    assert!(
+        ratio < 12.0,
+        "unit12/unit01 的 didOpen 比值 {ratio:.1}（本机 ~4.5、CI ~4.1；阈值 12）         ——比值与机器快慢无关，涨上去说明闭包变大时慢得离谱"
     );
     // 会话级复用：同一个 LSP 里再开一次同一份文档，必须**明显**快于冷开。
     let (again, _, _) =
