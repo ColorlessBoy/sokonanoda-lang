@@ -1,9 +1,9 @@
 {
   "schema": "soko.perf-ledger/1",
   "version": "0.65.0",
-  "commit": "8249d17f20e1e9e38faac8ef9be29dddad6a32c3",
+  "commit": "c45af52fe452d59d0e40aa16248ee88492496976",
   "dirty": false,
-  "date": "2026-09-23T08:05:54Z",
+  "date": "2026-09-23T09:11:38Z",
   "cli_profile": "release",
   "host": {
     "system": "Darwin",
@@ -15,7 +15,7 @@
       "case": "judge_prefix_with_imports",
       "matches": 10,
       "modules": 2,
-      "ms": 86.1,
+      "ms": 79.24,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
@@ -28,42 +28,42 @@
         16
       ],
       "ms": [
-        22.69,
-        39.92,
-        69.8
+        22.43,
+        39.75,
+        75.16
       ],
-      "ratio_4x": 3.08,
+      "ratio_4x": 3.35,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
     {
       "case": "closure_stages",
-      "compile_ms": 40.87,
+      "compile_ms": 42.3,
       "decls_per_module": 20,
       "digest_ms": 0.006,
       "modules": 4,
-      "plan_ms": 0.52,
+      "plan_ms": 0.47,
       "schema": "soko.perf/1",
       "scope": "front-project",
-      "total_ms": 41.4
+      "total_ms": 42.78
     },
     {
       "case": "overlay_overhead",
       "decls_per_module": 20,
-      "disk_ms": 43.77,
+      "disk_ms": 40.88,
       "modules": 4,
-      "overlay_ms": 40.53,
+      "overlay_ms": 39.92,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
     {
-      "best_ms": 39.64,
+      "best_ms": 41.89,
       "case": "keystroke_recompile_closure",
       "decls_per_module": 20,
       "modules": 4,
       "schema": "soko.perf/1",
       "scope": "front-project",
-      "worst_ms": 56.32
+      "worst_ms": 49.6
     },
     {
       "case": "teaching_scale_keystroke",
@@ -74,9 +74,9 @@
         5
       ],
       "ms": [
-        16.84,
-        21.38,
-        30.86
+        16.98,
+        21.47,
+        31.29
       ],
       "schema": "soko.perf/1",
       "scope": "front-project"
@@ -94,9 +94,9 @@
     {
       "case": "did_open_and_keystroke",
       "decls_per_module": 12,
-      "keystroke_ms": 20,
+      "keystroke_ms": 17,
       "modules": 2,
-      "open_ms": 22,
+      "open_ms": 18,
       "publishes_per_keystroke": 1,
       "schema": "soko.perf/1",
       "scope": "lsp-project"
@@ -116,7 +116,7 @@
       "case": "did_open",
       "diagnostics": 6,
       "entry": "units/unit01-sets-membership.sokonanoda",
-      "ms": 2076,
+      "ms": 1942,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
@@ -125,7 +125,7 @@
       "case": "did_open",
       "diagnostics": 9,
       "entry": "units/unit08-images-preimages.sokonanoda",
-      "ms": 4839,
+      "ms": 4512,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
@@ -134,21 +134,21 @@
       "case": "did_open",
       "diagnostics": 9,
       "entry": "units/unit12-synthesis.sokonanoda",
-      "ms": 9345,
+      "ms": 8785,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "did_open_same_session",
       "entry": "units/unit01-sets-membership.sokonanoda",
-      "ms": 146,
+      "ms": 139,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "keystroke",
       "entry": "units/unit08-images-preimages.sokonanoda",
-      "ms": 551,
+      "ms": 514,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
@@ -168,15 +168,15 @@
     },
     {
       "case": "cold_warm_check",
-      "cold_ms": 40.57,
+      "cold_ms": 33.17,
       "decls_per_module": 12,
       "modules": 3,
       "schema": "soko.perf/1",
       "scope": "cli-project",
-      "warm_ms": 3.72
+      "warm_ms": 3.57
     },
     {
-      "after_dependency_edit_ms": 37.83,
+      "after_dependency_edit_ms": 32.54,
       "case": "dependency_edit_cache_miss",
       "decls_per_module": 12,
       "modules": 3,
@@ -184,12 +184,12 @@
       "scope": "cli-project"
     },
     {
-      "build_ms": 53.13,
+      "build_ms": 46.3,
       "case": "query_and_build",
       "decls_per_module": 12,
       "modules": 3,
-      "query_cold_ms": 35.83,
-      "query_warm_ms": 4.28,
+      "query_cold_ms": 30.42,
+      "query_warm_ms": 4.08,
       "schema": "soko.perf/1",
       "scope": "cli-project"
     }
