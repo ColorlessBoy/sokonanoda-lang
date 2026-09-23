@@ -1,9 +1,9 @@
 {
   "schema": "soko.perf-ledger/1",
-  "version": "0.64.1",
-  "commit": "c74c004618763741ed2a642378b94997a8d3e73e",
-  "dirty": true,
-  "date": "2026-09-22T06:52:49Z",
+  "version": "0.65.0",
+  "commit": "8249d17f20e1e9e38faac8ef9be29dddad6a32c3",
+  "dirty": false,
+  "date": "2026-09-23T08:05:54Z",
   "cli_profile": "release",
   "host": {
     "system": "Darwin",
@@ -15,7 +15,7 @@
       "case": "judge_prefix_with_imports",
       "matches": 10,
       "modules": 2,
-      "ms": 74.74,
+      "ms": 86.1,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
@@ -28,42 +28,42 @@
         16
       ],
       "ms": [
-        21.21,
-        36.56,
-        67.3
+        22.69,
+        39.92,
+        69.8
       ],
-      "ratio_4x": 3.17,
+      "ratio_4x": 3.08,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
     {
       "case": "closure_stages",
-      "compile_ms": 40.37,
+      "compile_ms": 40.87,
       "decls_per_module": 20,
       "digest_ms": 0.006,
       "modules": 4,
-      "plan_ms": 0.53,
+      "plan_ms": 0.52,
       "schema": "soko.perf/1",
       "scope": "front-project",
-      "total_ms": 40.9
+      "total_ms": 41.4
     },
     {
       "case": "overlay_overhead",
       "decls_per_module": 20,
-      "disk_ms": 40.55,
+      "disk_ms": 43.77,
       "modules": 4,
-      "overlay_ms": 40.79,
+      "overlay_ms": 40.53,
       "schema": "soko.perf/1",
       "scope": "front-project"
     },
     {
-      "best_ms": 39.12,
+      "best_ms": 39.64,
       "case": "keystroke_recompile_closure",
       "decls_per_module": 20,
       "modules": 4,
       "schema": "soko.perf/1",
       "scope": "front-project",
-      "worst_ms": 45.12
+      "worst_ms": 56.32
     },
     {
       "case": "teaching_scale_keystroke",
@@ -74,9 +74,9 @@
         5
       ],
       "ms": [
-        15.34,
-        19.99,
-        30.26
+        16.84,
+        21.38,
+        30.86
       ],
       "schema": "soko.perf/1",
       "scope": "front-project"
@@ -85,7 +85,7 @@
       "case": "dependency_edit_refresh",
       "decls_per_module": 12,
       "dependent_diagnostics": 1,
-      "elapsed_ms": 6,
+      "elapsed_ms": 7,
       "modules": 3,
       "publishes": 2,
       "schema": "soko.perf/1",
@@ -94,9 +94,9 @@
     {
       "case": "did_open_and_keystroke",
       "decls_per_module": 12,
-      "keystroke_ms": 15,
+      "keystroke_ms": 20,
       "modules": 2,
-      "open_ms": 18,
+      "open_ms": 22,
       "publishes_per_keystroke": 1,
       "schema": "soko.perf/1",
       "scope": "lsp-project"
@@ -116,7 +116,7 @@
       "case": "did_open",
       "diagnostics": 6,
       "entry": "units/unit01-sets-membership.sokonanoda",
-      "ms": 1709,
+      "ms": 2076,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
@@ -125,7 +125,7 @@
       "case": "did_open",
       "diagnostics": 9,
       "entry": "units/unit08-images-preimages.sokonanoda",
-      "ms": 3902,
+      "ms": 4839,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
@@ -134,49 +134,49 @@
       "case": "did_open",
       "diagnostics": 9,
       "entry": "units/unit12-synthesis.sokonanoda",
-      "ms": 7420,
+      "ms": 9345,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "did_open_same_session",
       "entry": "units/unit01-sets-membership.sokonanoda",
-      "ms": 135,
+      "ms": 146,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "keystroke",
       "entry": "units/unit08-images-preimages.sokonanoda",
-      "ms": 526,
+      "ms": 551,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "save_same_text",
       "entry": "units/unit08-images-preimages.sokonanoda",
-      "ms": 5,
+      "ms": 3,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "watched_unchanged",
       "entry": "units/unit08-images-preimages.sokonanoda",
-      "ms": 5,
+      "ms": 3,
       "schema": "soko.perf/1",
       "scope": "lsp-course"
     },
     {
       "case": "cold_warm_check",
-      "cold_ms": 38.67,
+      "cold_ms": 40.57,
       "decls_per_module": 12,
       "modules": 3,
       "schema": "soko.perf/1",
       "scope": "cli-project",
-      "warm_ms": 4.0
+      "warm_ms": 3.72
     },
     {
-      "after_dependency_edit_ms": 31.28,
+      "after_dependency_edit_ms": 37.83,
       "case": "dependency_edit_cache_miss",
       "decls_per_module": 12,
       "modules": 3,
@@ -184,12 +184,12 @@
       "scope": "cli-project"
     },
     {
-      "build_ms": 46.46,
+      "build_ms": 53.13,
       "case": "query_and_build",
       "decls_per_module": 12,
       "modules": 3,
-      "query_cold_ms": 30.63,
-      "query_warm_ms": 3.9,
+      "query_cold_ms": 35.83,
+      "query_warm_ms": 4.28,
       "schema": "soko.perf/1",
       "scope": "cli-project"
     }

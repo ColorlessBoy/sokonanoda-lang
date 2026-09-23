@@ -2462,6 +2462,29 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C31 目标文本里的**导入名**不再标 `unknown_ident`
 
+> **✅ 完成（2026-09-21）。**
+>
+> **根因**：`decl_kinds()` 只看入口文件 ⇒ 项目文件里 `Set`/`Set.mem` 全被标成
+> `unknown_ident`（线 C 之后 goal 里全是这些名字，一眼就看得出来）。
+>
+> **做法**：闭包级声明表在**编译期算一次**（`QueryDoc::compute_closure_decls`，
+> 每个模块一次 `parse`——编译本来就在解析它们），并进 runs 计算。
+> **不是每次查询算一遍**：`state_at` 是**光标一动就问一次**的，12 个模块 × 每次
+> 光标移动的 parse 是白烧。剥 `import` 行用 `importless_source`（与
+> `judge_prefix` 同一手法——被导入的模块自己也有 `import`）。
+>
+> **判据实测**（`query goals` unit01 的 `ty_runs`）：`Set` → **`def_use`** ✓
+> （修前是 `unknown_ident`）。测试
+> `crates/cli/tests/query.rs::query_goals_classifies_imported_names_and_notation_symbols`
+> ——一个**真项目**（lib + 入口），断言导入名有 kind、`∈` 是 `keyword`、
+> 且 `unknown` 里不再有导入名。
+>
+> **已知剩余**（不在本环节）：签名**自己的** binder 名（`forall (α : Type 0)
+> (A B : Set α), …` 里的 `α`/`A`/`B`）仍是 `unknown_ident`——它们不在
+> `DeclState.binders` 里（那是 **goal 的** binder 列表；没有 lambda 前缀的
+> `:= sorry` 声明它是空的），而 `ty_text` 的 binder 只存在于文本里。
+> 要修得让 `tag_runs` 认文本里的 `(name :` 形态，属于另一件事。
+
 - **根因**：`decl_kinds()` = `declaration_kinds(&self.text)`（`query/mod.rs:274`）
   只看入口文件 ⇒ 项目文件里 `Set.mem`/`Set`/`α` 全是 `unknown_ident`。
 - **改什么**：把闭包级声明表喂进 runs 计算。
@@ -3048,7 +3071,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   - ⬆ **BUMP**：`minor` —— goal / 假设 / 声明类型第一次显示记法
 - [x] `T-C25` 边界：命中不了就回退
 - [x] `T-C30` `semantic::tag_runs` 填 `Names::notations`
-- [ ] `T-C31` 目标文本里的**导入名**不再标 `unknown_ident`
+- [x] `T-C31` 目标文本里的**导入名**不再标 `unknown_ident`
 - [ ] `T-C32` 着色在 Infoview 里可见
 - [ ] `T-C50` 真宿主 e2e：goal 文本用记法（矩阵用例 #6）
 - [ ] `T-C40` 断言与 golden 更新（**计数中性**）

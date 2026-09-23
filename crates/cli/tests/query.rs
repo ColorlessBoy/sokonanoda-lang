@@ -1165,6 +1165,90 @@ fn query_state_and_lsp_agree_without_a_by_block() {
 ///
 /// 所以这里用**全新的缓存目录**、并且只跑 `query goals` 一次——任何"靠先跑别的
 /// 命令把状态捂热"的路径都盖不住它。
+/// **T-C31 的判据**：目标文本里的**导入名**要有正确 `kind`，不能是
+/// `unknown_ident`。
+///
+/// `decl_kinds()` 以前只看**入口文件** ⇒ 项目文件里 `Set`/`Set.mem` 全被标成
+/// `unknown_ident`（线 C 之后 goal 里全是这些名字，一眼就看得出来）。
+/// 现在闭包级声明表在**编译期**算一次、并进 runs 计算。
+///
+/// 同一条判据也覆盖 **T-C30**：`∈` 是记法符号，要有 `keyword`（不是裸 run）。
+#[test]
+fn query_goals_classifies_imported_names_and_notation_symbols() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-query-tc31-{}-{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    std::fs::write(
+        dir.join("SetLib.sokonanoda"),
+        "def Set (α : Type) : Type := α -> Prop\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n",
+    )
+    .expect("write lib");
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(
+        &entry,
+        "import SetLib\n\n\
+theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h\n",
+    )
+    .expect("write entry");
+
+    let cache = cache_dir("tc31");
+    let output = Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
+        .args([
+            "query",
+            "goals",
+            "--file",
+            entry.to_str().unwrap(),
+            "--compact",
+        ])
+        .env("SOKONANODA_CACHE_DIR", &cache)
+        .output()
+        .expect("spawn sokonanoda");
+    assert_eq!(output.status.code().unwrap_or(-1), 0);
+    let value: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap_or(serde_json::Value::Null);
+    let decl = value["data"]
+        .as_array()
+        .expect("data[]")
+        .iter()
+        .find(|d| d["name"] == "mem_self")
+        .expect("mem_self listed");
+    let runs = decl["ty_runs"].as_array().expect("ty_runs");
+
+    // 导入名（`Set` 来自 `SetLib`）必须有 kind。
+    let set_kind = runs
+        .iter()
+        .find(|r| r["text"] == "Set")
+        .and_then(|r| r["kind"].as_str())
+        .unwrap_or("<无>");
+    assert_eq!(set_kind, "def_use", "导入名要有正确 kind：{runs:?}");
+
+    // 记法符号（T-C30）：`∈` 是 `keyword`，不是裸 run。
+    let mem_kind = runs
+        .iter()
+        .find(|r| r["text"] == "∈")
+        .and_then(|r| r["kind"].as_str())
+        .unwrap_or("<无>");
+    assert_eq!(mem_kind, "keyword", "记法符号要有 kind：{runs:?}");
+
+    // 反向：**不该再有** `unknown_ident` 出现在这个签名里（`α`/`a`/`A`/`h`
+    // 是签名自己的 binder，见下面的"已知剩余"）。
+    let unknown: Vec<&str> = runs
+        .iter()
+        .filter(|r| r["kind"] == "unknown_ident")
+        .filter_map(|r| r["text"].as_str())
+        .collect();
+    assert!(
+        !unknown.contains(&"Set") && !unknown.contains(&"Set.mem"),
+        "导入名不该是 unknown_ident：{unknown:?}"
+    );
+}
+
 #[test]
 fn query_goals_lists_a_project_entry_with_a_cold_cache() {
     let dir = std::env::temp_dir().join(format!(

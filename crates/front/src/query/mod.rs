@@ -73,6 +73,13 @@ pub struct QueryDoc {
     /// 文本能不能 parse、有没有 `import`）决定，而这三样在 `set_text` 之后就定了
     /// ⇒ 算一次存下来。`None` = 还没算过（`set_text` 之前）。
     project_reason: Option<&'static str>,
+    /// **闭包级声明表**（T-C31）：入口之外那些模块的 `名字 → 语义 kind`。
+    ///
+    /// 以前 `decl_kinds()` 只看入口文件 ⇒ 项目文件里 `Set.mem`/`Set` 全被标成
+    /// `unknown_ident`（线 C 之后 goal 里全是这些名字，一眼就看得出来）。
+    /// 在**编译期**算一次（每个模块一次 `parse`，编译本来就在解析它们），
+    /// 不是每次查询算一遍——`state_at` 是**光标一动就问一次**的。
+    closure_decls: Vec<(String, SemanticKind)>,
 }
 
 impl Default for QueryDoc {
@@ -96,6 +103,7 @@ impl QueryDoc {
             output: crate::compile::CompileOutput::default(),
             overlay: Vec::new(),
             project_reason: None,
+            closure_decls: Vec::new(),
         }
     }
 
@@ -129,6 +137,7 @@ impl QueryDoc {
         // （T-A20）。实测：项目模式一次 `set_text` 原本要**编两遍**——先编一遍
         // 入口单文件、再编整个闭包，然后把前者的报告与事件全丢掉。
         self.project = self.project_compile(text);
+        self.closure_decls = Self::compute_closure_decls(&self.project);
         let project_entry_report = self
             .project
             .as_ref()
@@ -238,6 +247,7 @@ impl QueryDoc {
         self.report = other.report.clone();
         self.output = other.output.clone();
         self.project = other.project.clone();
+        self.closure_decls = other.closure_decls.clone();
         self.parse_error = other.parse_error.clone();
         self.project_reason = other.project_reason;
     }
@@ -309,6 +319,7 @@ impl QueryDoc {
         // 读的都是 `project_modules()`。只回放入口报告的话，命中缓存的文档
         // 会"能显示、不能跳转"。
         self.project = project;
+        self.closure_decls = Self::compute_closure_decls(&self.project);
         self.output = output;
         let mut report = report;
         crate::compile::attach_hints_to_report(text, &mut report);
@@ -368,9 +379,41 @@ impl QueryDoc {
         CompileOptions { prelude: self.mode }
     }
 
+    /// **闭包级声明表**：入口之外的模块（拓扑序里除最后一个）逐个扫。
+    ///
+    /// 用 `importless_source` 剥掉 `import` 行——被导入的模块自己也有 `import`，
+    /// 而单文件 `parse` 不认识它们指向的文件（与 `judge_prefix` 同一手法）。
+    fn compute_closure_decls(
+        project: &Option<crate::project::ProjectReport>,
+    ) -> Vec<(String, SemanticKind)> {
+        let Some(project) = project else {
+            return Vec::new();
+        };
+        let modules = &project.modules;
+        let mut out: Vec<(String, SemanticKind)> = Vec::new();
+        for module in modules.iter().take(modules.len().saturating_sub(1)) {
+            let src = crate::project::importless_source(&module.source);
+            for (name, kind) in semantic::declaration_kinds(&src) {
+                if !out.iter().any(|(n, _)| n == &name) {
+                    out.push((name, kind));
+                }
+            }
+        }
+        out
+    }
+
     /// 文档的声明类型表（每次查询算一次，供 runs 分类复用）。
+    ///
+    /// **入口 + 闭包**（T-C31）：项目文件的目标文本里出现的是**库里的**名字
+    /// （`Set.mem`/`Set`/`Set.subset`），只看入口会把它们全标成 `unknown_ident`。
     fn decl_kinds(&self) -> Vec<(String, SemanticKind)> {
-        semantic::declaration_kinds(&self.text)
+        let mut out = semantic::declaration_kinds(&self.text);
+        for (name, kind) in &self.closure_decls {
+            if !out.iter().any(|(n, _)| n == name) {
+                out.push((name.clone(), *kind));
+            }
+        }
+        out
     }
 
     /// 文档可见的记法符号（每次查询算一次，与 `decl_kinds` 同一条路）——
