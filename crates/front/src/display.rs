@@ -216,7 +216,12 @@ fn splice(text: &str, base: usize, mut edits: Vec<(Span, String)>) -> Option<Str
         }
         ranges.push((start..end, rendered));
     }
-    ranges.sort_by_key(|(range, _)| range.start);
+    // 按 `(起点, 终点倒序)` 排：**起点相同时长的在前**。
+    // 这一条是必须的——折出来的记法节点**取被折那段的 span**，而"折过的子树被
+    // 应用"时上提到脊根的那一处**起点与它相同**（`Set.union α (Set.union α A B) C`
+    // 的两处替换都从 0 开始）。只按起点稳定排序会让**内层排在前面**，随后"最外层"
+    // 规则反而把真正的**外层丢掉**（实测：`(A ∪ B) ∪ C` 变成 `Set.union α (A ∪ B) C`）。
+    ranges.sort_by_key(|(range, _)| (range.start, std::cmp::Reverse(range.end)));
     // 只保留**最外层**的替换：内层的那些已经在它渲染出来的文本里了
     // （外层是 `render_expr(折好的 AST)`，它本身带着内层的记法）。
     let mut top: Vec<(std::ops::Range<usize>, String)> = Vec::new();
@@ -234,18 +239,43 @@ fn splice(text: &str, base: usize, mut edits: Vec<(Span, String)>) -> Option<Str
 }
 
 /// 自底向上折：先把子项折好，父项才有机会看到已经折好的操作数；每一处折叠都
-/// 记进 `edits`（`(被折那段的 span, 折出来的文本)`）。（`(被折那段的 span, 折出来的文本)`）。
-///
-/// 内外都记；[`splice`] 只取最外层的那些。
+/// 记进 `edits`（`(被替换那段的 span, 换上去的文本)`）。内外都记；[`splice`]
+/// 只取最外层的那些。
 fn fold_collecting(expr: Expr, dn: &DisplayNotations, edits: &mut Vec<(Span, String)>) -> Expr {
-    let expr = map_children_collecting(expr, dn, edits);
-    match fold_spine(&expr, dn) {
-        Some(folded) => {
-            edits.push((folded.span(), crate::proof::render_expr(&folded)));
-            folded
-        }
-        None => expr,
+    fold_collecting_inner(expr, dn, edits).0
+}
+
+/// 同 [`fold_collecting`]，另外回报"这棵子树变了没有"。
+///
+/// **为什么需要"变了没有"**：折过的子树如果**被应用**（它的父节点还是 `App`），
+/// 就地替换会拼出**重解析成另一个 AST** 的文本——
+/// `(Set.mem α a A) B` 的 `Set.mem α a A` 是完整的三元应用，就地换成 `a ∈ A`
+/// 就得到 `a ∈ A B`，重新解析是 `Set.mem α a (A B)`（**换了个意思**）。
+/// 规则：那种情况下把替换范围**上提到这条应用脊的根**，整条脊交给
+/// `render_expr` 渲染——括号归它管，它本来就是干这个的。实测得到 `(a ∈ A) B` ✓
+///
+/// 只上提到 `App`：`Set.mem α a A -> P` 的父节点是 `Arrow`（不是应用），
+/// 就地换是安全的（`∈` 比 `->` 紧，重解析一致）⇒ 保留原文的其它部分。
+fn fold_collecting_inner(
+    expr: Expr,
+    dn: &DisplayNotations,
+    edits: &mut Vec<(Span, String)>,
+) -> (Expr, bool) {
+    let mut child_changed = false;
+    let expr = map_children_with(expr, &mut |e| {
+        let (out, changed) = fold_collecting_inner(e, dn, edits);
+        child_changed |= changed;
+        out
+    });
+    if let Some(folded) = fold_spine(&expr, dn) {
+        edits.push((folded.span(), crate::proof::render_expr(&folded)));
+        return (folded, true);
     }
+    if child_changed && matches!(expr, Expr::App { .. }) {
+        edits.push((expr.span(), crate::proof::render_expr(&expr)));
+        return (expr, true);
+    }
+    (expr, child_changed)
 }
 
 /// 这一层是不是一条记法实例？是就换成 [`Expr::Notation`]，否则 `None`。
@@ -292,19 +322,10 @@ fn head_name(head: &Expr) -> Option<&str> {
     }
 }
 
-/// 折 + 把每处折叠记进 `edits`。
-fn map_children_collecting(
-    expr: Expr,
-    dn: &DisplayNotations,
-    edits: &mut Vec<(Span, String)>,
-) -> Expr {
-    map_children_with(expr, &mut |e| fold_collecting(e, dn, edits))
-}
-
 /// 递归到所有子项。**列全每一个变体**——漏一个位置的后果是"那里不折"
 /// （安全但会让同一份文本里折一半），比"折错"好，但不该有。
 ///
-/// 参数化成一个 `f`（而不是直接调 [`fold`]）是为了让"只折"与"折 + 记下替换"
+/// 参数化成一个 `f`（而不是把折叠逻辑写进来）是为了让"折"与"折 + 记下替换"
 /// **共用同一份结构知识**：两份手写的 16 变体匹配迟早会漂。
 fn map_children_with(expr: Expr, f: &mut impl FnMut(Expr) -> Expr) -> Expr {
     match expr {
@@ -681,6 +702,55 @@ mod tests {
         assert_eq!(fold_text("Set.mem α a", &dn), "Set.mem α a");
     }
 
+    // ---- 边界：命中不了就回退（T-C25）-----------------------------------
+
+    /// **折叠层只做二元 infix 族**，其余形态**一律回退点名，不猜**。
+    ///
+    /// 四种形态都取课程库里的**真实写法**（`courses/set-theory/lib/Set.sokonanoda`）：
+    /// `notation "∅" => Set.empty` / `prefix:100 " 𝒫 " => …` /
+    /// `postfix:100 " ᶜ " => …` / `binder_notation "∃" => …`。
+    ///
+    /// 回退是**设计**不是缺陷：这些形态的操作数位不同（一元 / 零元 / binder 位），
+    /// 折叠规则要各写一套；第一刀（T-C10）只做 infix 族。**猜错的代价**是把
+    /// `Set.powerset α A` 打成 `𝒫 A`（丢掉 `α`）之类——那比不折坏得多。
+    #[test]
+    fn only_binary_infix_folds_and_the_rest_fall_back() {
+        let arities = arities_in_sources(&[BOUNDARY_LIB]);
+        let dn = DisplayNotations::new(
+            crate::notation::notation_table(
+                &crate::parse(BOUNDARY_LIB).expect("夹具必须能解析").commands,
+            ),
+            arities,
+        );
+        // ① 一元前缀：操作数在 `rhs`。
+        assert_eq!(fold_text("Set.powerset α A", &dn), "Set.powerset α A");
+        // ② 一元后缀：操作数在 `lhs`。
+        assert_eq!(fold_text("Set.compl α A", &dn), "Set.compl α A");
+        // ③ 零元常量记法。
+        assert_eq!(fold_text("Set.empty α", &dn), "Set.empty α");
+        // ④ binder 位记法（`∃ x, p`）。
+        assert_eq!(fold_text("Exists α p", &dn), "Exists α p");
+        // 对照：同一个夹具里的**二元 infix** 照折（证明表确实建起来了，
+        // 上面四条不是"表是空的"造成的假绿）。
+        assert_eq!(fold_text("Set.mem α a A", &dn), "a ∈ A");
+    }
+
+    /// **部分应用不回退成"看起来像"的东西**：元数对不上就不折。
+    ///
+    /// `Set.mem α a`（3 元只给了 2 个）折成 `a ∈` 是荒谬的；`Set.mem α a A B`
+    /// （多给一个）折成 `(a ∈ A) B` 更荒谬。两条都必须原样。
+    #[test]
+    fn partial_and_over_application_fall_back() {
+        let dn = notations(SET_LIB, SET_ARITY);
+        assert_eq!(fold_text("Set.mem α a", &dn), "Set.mem α a");
+        // **折过的子树被应用**时，替换范围上提到应用脊根，括号交给 `render_expr`：
+        // `(Set.mem α a A) B` 折成 `(a ∈ A) B`——**不是** `a ∈ A B`
+        // （后者重新解析是 `Set.mem α a (A B)`，换了个意思）。
+        assert_eq!(fold_text("Set.mem α a A B", &dn), "(a ∈ A) B");
+        // 头不是记法目标时也不折（`Set.union` 是，`Set` 不是）。
+        assert_eq!(fold_text("Set α", &dn), "Set α");
+    }
+
     // ---- 重载的处置（T-C13）--------------------------------------------
 
     /// **同一 target、两个符号**（`∈` 与 `∊` 都 => `Set.mem`）：取**声明顺序第一个**。
@@ -802,6 +872,20 @@ mod tests {
             "Iff (Set.subset α A B) (Set.subset α A B)"
         );
     }
+
+    /// T-C25 的夹具：四种**折叠层不做**的记法形态（写法取自课程库）。
+    const BOUNDARY_LIB: &str = "\
+def Set (α : Type) : Type := α -> Prop\n\
+def Set.empty (α : Type) : Set α := fun (x : α) => False\n\
+notation \"∅\" => Set.empty\n\
+def Set.powerset (α : Type) (A : Set α) : Set α := A\n\
+prefix:100 \" 𝒫 \" => Set.powerset\n\
+def Set.compl (α : Type) (A : Set α) : Set α := A\n\
+postfix:100 \" ᶜ \" => Set.compl\n\
+def Exists (α : Type) (p : α -> Prop) : Prop := p\n\
+binder_notation \"∃\" => Exists\n\
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a\n\
+infix:50 \" ∈ \" => Set.mem\n";
 
     /// 一个最小的集合词汇 + 两条记法：`∈`（优先级 50）与 `∪`（左结合 65）。
     const SET_LIB: &str = "\

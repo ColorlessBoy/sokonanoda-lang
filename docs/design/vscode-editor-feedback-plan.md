@@ -2407,6 +2407,27 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-C25 边界：命中不了就回退
 
+> **✅ 完成（2026-09-21）——5 种边界各一条测试 + 修掉一个真 bug。**
+>
+> **边界**（只做二元 infix 族，其余**回退点名不猜**；写法都取课程库的真实例子）：
+> `prefix:100 " 𝒫 "` / `postfix:100 " ᶜ "` / `notation "∅"` /
+> `binder_notation "∃"` / 元数对不上（`Set.mem α a`）。测试
+> `display::tests::only_binary_infix_folds_and_the_rest_fall_back` +
+> `partial_and_over_application_fall_back`（后者带一条**对照**：同一夹具里的
+> 二元 infix 照折，证明表确实建起来了、前面四条不是"空表造成的假绿"）。
+>
+> **顺带修掉一个真 bug**：折过的子树**被应用**时就地替换会**改变语义**——
+> `(Set.mem α a A) B` 折成 `a ∈ A B`，重新解析是 `Set.mem α a (A B)`。
+> 规则改成"**上提到应用脊根**，括号交给 `render_expr`" ⇒ `(a ∈ A) B` ✓。
+>
+> **踩到的排序坑**（隐蔽）：记法节点取被折那段的 span，而"上提到脊根"那一处
+> **起点相同**；只按起点稳定排序会让**内层排前面**，"取最外层"规则反而丢掉真正的
+> 外层（`(A ∪ B) ∪ C` 退化成 `Set.union α (A ∪ B) C`）。改成按
+> `(起点, 终点倒序)` 排——**起点相同时长的在前**。
+>
+> 判据：`display` **24 条**全绿；用户可见输出复测不变
+> （`(A ⊆ B) ↔ ((x : α) -> A x -> B x)` 等）。
+
 - **改什么**：`prefix` / `postfix` / 零元 `notation` / binder 记法 / 重载歧义
   ⇒ 回退点名，不猜。每种一条测试。
 - **判据**：`cargo test -p sokonanoda-front -- --nocapture`。
@@ -3007,7 +3028,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-C23` binder ty（假设行的类型）
 - [x] `T-C24` 逐 surface 的判别性测试
   - ⬆ **BUMP**：`minor` —— goal / 假设 / 声明类型第一次显示记法
-- [ ] `T-C25` 边界：命中不了就回退
+- [x] `T-C25` 边界：命中不了就回退
 - [ ] `T-C30` `semantic::tag_runs` 填 `Names::notations`
 - [ ] `T-C31` 目标文本里的**导入名**不再标 `unknown_ident`
 - [ ] `T-C32` 着色在 Infoview 里可见
