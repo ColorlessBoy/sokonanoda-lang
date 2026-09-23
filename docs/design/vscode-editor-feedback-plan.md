@@ -2599,13 +2599,26 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   `docs/design/notation-subset.md` 补"渲染"一段（N7 的边界要更新）；
   `editor/vscode/CHANGELOG.md`。
 
-### ✅ 检查点 CP-C（批次 3，minor 版本）
+### ✅ 检查点 CP-C（批次 3，minor 版本）——**已过（2026-09-21）**
 
-- [ ] `bash scripts/verify-editor-issues.sh` 第 5 条转「已修」
-- [ ] 四个生产者的判别性测试全绿
-- [ ] 课程门禁计数**逐项不变**
-- [ ] `cargo test --workspace --locked` 全绿
-- [ ] **性能无退化**：`python3 scripts/perf-compare.py --since <上一检查点>` exit 0
+- [x] `bash scripts/verify-editor-issues.sh` 第 5 条转「已修」
+      → 实测 **已修 6 · 缺口仍在 1 · 环境异常 0**（第 5 条 = G-26 **已修**；
+      剩的第 6 条 = G-23 记法导航/hover，属**线 D**）
+- [x] 四个生产者的判别性测试全绿
+      → `display` 24 条 + `query`/`goals` 的 5 条 surface 守护 + `semantic` 26 条；
+      关掉折叠（`SOKO_NO_NOTATION_FOLD=1`）后**生产者 1/3/4 红、2 与假设行仍绿**
+      ——正是设计里的分工
+- [x] 课程门禁计数**逐项不变**
+      → **36 目标 · 328 checked · 99 open · 0 判负**
+- [x] `cargo test --workspace --locked` 全绿
+      → **exit 0**（39 个 suite，0 failed）
+- [x] **性能无退化**：`python3 scripts/perf-compare.py --since c74c0046` **exit 0**
+      （"没有退化，也没有哨兵消失"）
+      → ⚠ 一处**在阈值内但未解释**的：`lsp-course/did_open` +13.6%/+15.6%/+18.4%
+      （<25% 阈值）。已排除折叠与防抖、已确认那是 **debug 构建**的度量，
+      排查记录在 `docs/PERF.md` 的"待查"一节
+- [x] **真宿主 e2e**：用例 #6 `goal text uses the file's notation` 转绿
+      （全量 **23 passed / 2 failed**，剩的两条是线 D 的 #7/#8）
       （任何 `best_ms` 退化 > 25% 必须解释或修回；新 case 提示无基线不算红）
 - [ ] **用户验收**：Infoview 里的目标/假设/声明类型与自己写的一致
 
