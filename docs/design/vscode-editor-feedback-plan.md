@@ -1781,6 +1781,36 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 ##### T-K20 设计文档 `docs/design/closure-incremental.md` + spike
 
+> **✅ 完成（2026-09-21）。** 设计文档 + spike 脚本 + **计划要求的脚本化守卫**。
+>
+> **spike 实测**（`scripts/spike-closure-incremental.py`，只量不改；release、
+> 每个入口一个全新缓存目录）：
+>
+> | 入口 | 闭包模块 | 冷编译 | 只编新增 | 合法前缀 |
+> |---|---|---|---|---|
+> | `unit01-sets-membership` | 3 | 1848ms | 1848ms | ✓ |
+> | `unit08-images-preimages` | 5 | 4125ms | **2277ms** | ✓ |
+> | `unit12-synthesis` | 8 | 8886ms | **4761ms** | ✓ |
+>
+> **依次打开三个入口：14859ms → 8886ms（−40.2%）**，与计划记的目标
+> （15.06s → ≈8.5s）一致 ✓。三个前缀全部 **downward-closed** ✓——这是 K2-b
+> 的硬条件（把已编集合当前缀用，它必须满足"每个已编模块的依赖也在里面"）。
+>
+> **守卫落地了（不只是写在文档里）**：`compile::prelude_shape(units)` 返回
+> `{explicit_nat, explicit_bool, shadowed}`，**`run_pass` 的安装判据现在就走它**
+> ——安装与守卫是**同一个函数**，不会漂。`shadowed` 用"与 `PRELUDE_NAMES` 的
+> 撞车集"而不是整个 `taken`（后者会把"用户名字不同"误判成形状不同）。
+> **脚本化验证**：`crates/front/tests/prelude_shape.rs`——课程里**每一个**
+> `.sokonanoda` 的闭包形状必须一模一样且不撞 prelude 名字（全绿 ✓）。
+> 计划里说"调研说是、但不是代码保证"，这条测试把它变成了代码保证。
+>
+> 文档内容：§1 现状（一个 Arena + 一个 builder 跑整个闭包，含 `file:line`）·
+> §2 两个障碍（**O7** prelude 按闭包决定 ⇒ 会静默改变判卷；**O8** 七样每轮状态
+> 必须一起提升，含 `ns` 的单元边界 `reset` 语义）· §2.3 报告归因（`split_report`
+> 走命令下标、不用 span ⇒ 已编模块的报告也要留住）· §3 候选（K2-b 窄版先落地、
+> K2-a 结构正解）· §4 spike 实测与**读法**（上界估计，别过度解读）·
+> §5 实现切片 · §6 风险（高）。
+
 - **改什么**：写清 ① 现状（一个 `Arena` + 一个 `EnvBuilder` 跑**整个闭包**：
   `project/mod.rs:272-295` → `compile/units.rs:113-118` → `check/mod.rs:402/497/504-505`）；
   ② **两个本刀独有的障碍**（不能靠"再克隆一次"绕过）：
@@ -3163,7 +3193,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### 批次 4 · 线 D：记法跳转 + hover（minor）
 
-- [ ] `T-K20` 设计文档 `docs/design/closure-incremental.md` + spike
+- [x] `T-K20` 设计文档 `docs/design/closure-incremental.md` + spike
       （**⬆ 提前**：2026-09-21 用户拍板"先收完线 C 的 4 条，再插 T-K20′"——依据是 unit12 冷编译 9.8s、其中一部分是 G-31/G-34）
 - [ ] `T-D01` 复现脚本
 - [ ] `T-D02` hover 增加"原始类型"行

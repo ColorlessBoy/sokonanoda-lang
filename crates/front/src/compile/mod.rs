@@ -18,7 +18,7 @@ pub mod cache;
 
 pub use check::{
     check_document, check_document_with, compile_all_with, compile_fol, compile_fol_with,
-    render_expr,
+    prelude_shape, render_expr, PreludeShape,
 };
 pub(crate) use check::{run_incremental, top_level_def_spans, TrustPlan};
 pub(crate) use elab::canonical_ctor_name;

@@ -644,22 +644,18 @@ fn run_pass(
         PreludeMode::Full => {
             // 闭包级预扫描（设计 §4.6）：**任一**单元自带顶层 `inductive Nat`
             // 就让位；单文件编译时这就是今天的行为（一个单元 = 一个文件）。
-            let explicit_nat = units.iter().any(|unit| {
-                crate::ast::effective_commands(unit.file)
-                    .iter()
-                    .any(|command| matches!(command, Command::InductiveBlock { name, .. } if name == "Nat"))
-            });
-            if !explicit_nat {
+            //
+            // 判据走 `prelude_shape`（**同一个函数**）——它是 K2 复用的守卫
+            // （设计 `closure-incremental.md` §2.1 的 O7）：复用一份共享环境之前
+            // 要比对形状，而"比对用的形状"与"安装用的判据"必须是同一份计算，
+            // 否则守卫会与实际装了什么漂移。
+            let shape = prelude_shape(units);
+            if !shape.explicit_nat {
                 // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
                 // Nat.rec 登记进 `known` 与 `match` 的 InductiveTable。
                 install_prelude(&mut builder, &mut known, &mut inductives);
             }
-            let explicit_bool = units.iter().any(|unit| {
-                crate::ast::effective_commands(unit.file)
-                    .iter()
-                    .any(|command| matches!(command, Command::InductiveBlock { name, .. } if name == "Bool"))
-            });
-            if !explicit_bool {
+            if !shape.explicit_bool {
                 // Bool 同法（非递归）：文件自带 `inductive Bool` 时让位。
                 install_bool_prelude(&mut builder, &mut known, &mut inductives);
             }
@@ -788,6 +784,50 @@ fn run_pass(
 /// that first defines it (defs/axioms/inductives, plus constructors and
 /// 闭包范围内"顶层名字 → 定义处 span"：名字在闭包里全局唯一（重名是
 /// `import-name-collision`），所以先到者胜。单文件编译时与
+/// 一个闭包的 **prelude 形状**（设计 `closure-incremental.md` §2.1 的 **O7 守卫**）。
+///
+/// 内核预装（`Nat` / `Bool` / `Eq` / L1）**是按整个闭包决定的**：
+/// 任一单元自带顶层 `inductive Nat`/`Bool` 就让位；`Eq`/L1 的让位看整个闭包
+/// 顶层名字的并集。⇒ **复用一份共享环境之前必须证明两件事的形状相同**，
+/// 否则会**静默改变判卷**（共享环境里可能装着某个入口的闭包里不存在的
+/// `Nat`/`Bool`/`Eq`）。
+///
+/// 这就是"形状"的全部内容：三个判据 + 与 prelude 名字**撞车**的那些顶层名字
+/// （排序后比较）。撞车集是 `taken` 里真正影响让位的那部分——用整个 `taken`
+/// 会把"两个闭包的用户名字不同"误判成形状不同。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreludeShape {
+    pub explicit_nat: bool,
+    pub explicit_bool: bool,
+    /// 与 prelude 名字撞车的顶层名字（**排序**，便于比较与打印）。
+    pub shadowed: Vec<String>,
+}
+
+/// 算一个闭包的 prelude 形状。**与 `run_pass` 里的安装判据同源**
+/// （`prelude_shape` 就在那段逻辑的正上方，改一处必须改两处——有测试盯着）。
+pub fn prelude_shape(units: &[SourceUnit<'_>]) -> PreludeShape {
+    let has_inductive = |want: &str| {
+        units.iter().any(|unit| {
+            crate::ast::effective_commands(unit.file).iter().any(
+                |command| matches!(command, Command::InductiveBlock { name, .. } if name == want),
+            )
+        })
+    };
+    let taken: std::collections::HashSet<String> =
+        top_level_def_spans_over(units).into_keys().collect();
+    let mut shadowed: Vec<String> = crate::compile::PRELUDE_NAMES
+        .iter()
+        .filter(|name| taken.contains(**name))
+        .map(|name| (*name).to_string())
+        .collect();
+    shadowed.sort();
+    PreludeShape {
+        explicit_nat: has_inductive("Nat"),
+        explicit_bool: has_inductive("Bool"),
+        shadowed,
+    }
+}
+
 /// `top_level_def_spans` 等价。`project` 层也用它做闭包级检查（单一实现）。
 pub(crate) fn top_level_def_spans_over(units: &[SourceUnit<'_>]) -> HashMap<String, Span> {
     let mut defs: HashMap<String, Span> = HashMap::new();
