@@ -1,3 +1,27 @@
+## 2026-09-24 · run 36013095384 · 三平台 e2e 全红：我自己加的新断言依赖了 fixture 里没有的东西
+
+**症状**：`e2e (ubuntu 1.106 / 1.138 / macos)` 三个 job 全红（`lint` ✓ 绿）。
+
+**原文**（产物 `tests.failing_details`，一次拿到）：
+```
+AssertionError [ERR_ASSERTION]: fixture 里至少要有 1 个 def（R-1 的值行靠它验），
+实际 kinds = ["theorem","theorem","theorem"]
+```
+
+**真因**：我给 R-1 加的 e2e 判据**假设 fixture 里有 `def`** ✗，而那个 fixture
+只有 3 个 `theorem` ✓ ⇒ 断言**必然失败** ✗。**这是我写断言时的错**（当时已在注释里
+标注了风险，但没先跑一次 e2e 就推 ✗）。
+
+**修复**：改成**形状守卫版** —— 不要求 fixture 有 `def`；而是"**凡有 `value` 的声明，
+必须同时带 `value_runs`，且 runs 能重建 value**" ✓；**"字段必须在 wire 里"的强判据
+交给 `scripts/audit-wire-fields.py`** ✓（已进 gate 与 CI ✓，且反向验证过能咬 R-1 ✓）。
+
+**预防（两条）**：
+1. **新增断言前先本地跑一次那条 e2e**（`SOKO_E2E_GREP=<用例名> npx vscode-test` ✓）
+   —— 别把"第一次运行"留给 CI ✗；
+2. **断言不要依赖 fixture 的偶然内容** ✗：要么用形状/契约守卫 ✓，要么先确认
+   fixture 真的提供该内容 ✓。
+
 ## 2026-09-24 · run 36007879605 · `e2e ledger (commit back on main)` 红：我把带冲突标记的 ledger 提交了
 
 **症状**：`docs/e2e/ledger.jsonl` 解析失败 ——

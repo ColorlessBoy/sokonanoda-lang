@@ -17,13 +17,29 @@
     python3 scripts/plan.py next      # 取当前环节（含完整规格）
     python3 scripts/plan.py list      # 看进度（现在应为 3/38）
     python3 scripts/plan.py done <ID> # 做完勾掉
-当前应从 T-A4（R-2 复现判红）开始；T-A1..T-A3（R-1 修复）已完成，别重做。
+当前应从 **T-A5（R-2 修复）** 开始。已完成、别重做：T-A1..T-A4。
+**T-A5 的核心已经落地**（`crates/front/src/semantic.rs`：不再把 `=` 喂给词法符号表
+—— 修前含 λ 的 goal/类型文本会整段降级成 1 个无 kind 的 run，webview 就不上色；
+实测 `flawed_equalities_refuted` 1→313 段、`project_chain` 1→216 段、
+对照组 `project_chain_cardinal` 94 段不变）。**还剩**：`goal_runs` 的父子补齐
+（front types.rs → LSP protocol.rs/query_map.rs → infoview.js + CSS）+ 一条
+**"看得见"的 e2e 断言**。
 
 ## 每个环节的完成定义
 复现判红 -> 最小改动 -> 判据 -> e2e 转绿 -> 性能无退化 -> 文档 -> commit。
 "复现判红"是硬要求：先写/跑出能证明问题存在的复现件，再动手。
 
 ## 硬规则（违反会被 CI 或用户打回）
+
+> **两条 2026-09-24 新增的纪律**（都写进了 `AGENTS.md`，务必读那两节）：
+> * **验证设计纪律**：每条用户可见改动必须先回答"**屏幕上会多/少什么？那条断言在
+>   哪一层？**"；三层各司其职（front=真相 / LSP=**wire 字段存在性** / **e2e=看得见
+>   的结果**）；**接缝要有 A∖B 守卫**（`python3 scripts/audit-wire-fields.py`）；
+>   **「有就渲染」是反模式**。**新增 e2e 断言前先在本地跑一次那条用例**
+>   （`SOKO_E2E_GREP=<用例名> npx vscode-test`）—— 别把第一次运行留给 CI。
+> * **并行与 subagent 纪律**：subagent 只做可并行/只读/边界清晰的活；**并发 2–4**；
+>   每个 prompt 自带"规则摘要 + 可执行判据 + 不许改什么"；产出**验证后才并入**；
+>   结论**回写文档**；判定与发布**留主线**。
 1. 判定红线：kernel 可以改，但同一批输入必须"接受/拒绝不变、事件计数不变、
    golden 与 --json 逐字节不变"。改内核必须跑 scripts/kernel-check.sh（五步）。
 2. 提交粒度（用户明确）：一个环节一个 commit；一个阶段可以有很多 commit；
