@@ -1815,6 +1815,30 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 > `finish_pass` 的 PendingOp 消费顺序 ⇒ **先做上面那个两遍版**（零语义风险），
 > 拿到数字后再评估要不要合。
 >
+> **🔧 实现配方（2026-09-24 定稿；剩余是机械工作）** —— 影子环境必须**自带 prelude**
+> （否则一条声明都检查不了 ✗），而 kernel 阶段的 builder 会被 `finish()` **消费** ✗
+> ⇒ 需要**第二个 builder**，且两边 prelude **必须逐条同款**（条件分叉 = 判定义分叉 ✗）：
+>
+> 1. 把 `run_pass` 里那段 prelude 安装（`PreludeMode::Full` 分支：
+>    `prelude_shape` 预扫描 + `install_prelude`/`install_bool_prelude`/
+>    `install_eq_prelude`/`install_l1_prelude`）抽成**一个共用助手**
+>    `install_all_preludes(builder, known, inductives, defs, units, options)`
+>    —— 两处调用**同一个函数** ⇒ 条件不可能分叉 ✓；
+> 2. `run_pass` 再建 **arena₂ + `shadow: EnvBuilder`**，用**一次性**的 front 表
+>    （`known₂`/`inductives₂`/`defs₂`，用完即弃）调同一个助手 ✓；
+> 3. walk 拿到 `shadow: &mut EnvBuilder`：**每 elaborate 出一个声明**就
+>    `shadow.try_check_declar_at(&d, EnvLimit::ByIndex(k))`（k = `shadow.declaration_count()`）
+>    ⇒ `Ok` 才 `add_declar`，`Err` 记进**影子失败表**（与 kernel 阶段同语义 ✓）；
+> 4. judge 侧：`run_by`/`by.rs`/`judge_infer` 加 `Option<&mut EnvBuilder>`（老签名
+>    委派给 `_with_env` 变体，调用点零改动 ✓）；拿到 env 时走
+>    `builder.with_env(|env| env.try_check_declar_at(&synth, ByIndex(k)))` ✓，
+>    拿不到就**回退**旧路径 ✓（回退是默认 ✓）；
+> 5. 判据：`SOKO_JUDGE_STATS`（`JUDGE_INFER` 的 miss 成本应塌下来 ✓）+ 全语料
+>    两态 `--json` 逐字节 + **前缀失败表相同** + 五步 ✓ + 本条的 **⬆ bump minor** ✓。
+>
+> **为什么值得这么费事**：靶心是 247 次 miss ≈ **9.5s / 12.4s = 77%** ✓，
+> 而 K1-b 三样全省（parse/elab/check ✓）。
+>
 > **实现上唯一的硬骨头**：judge 深在 walk 内部，而 `EnvBuilder` 借 `&'a ArenaRef`
 > ⇒ "arena + builder"是自引用结构（`docs/architecture.md` §8 的 arena 生命周期
 > gotcha）**不能存进 `Walk` 自己的字段** ✗。⇒ 必须由**外层作用域**（`run_pass`）
