@@ -465,6 +465,12 @@ fn check_synthesized(
         return check_document_with(file, options);
     };
     REUSED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    if reuse_stats() {
+        eprintln!(
+            "JUDGE_ENV_REUSE: 命中（before={before} prefix_commands={prefix_commands} 累计={}）",
+            REUSED.load(std::sync::atomic::Ordering::Relaxed)
+        );
+    }
     let plan = TrustPlan {
         before,
         prev_signatures: Vec::new(),
@@ -472,6 +478,13 @@ fn check_synthesized(
         allow_cutoff: false,
     };
     run_incremental(file, options, &plan, &failures).1
+}
+
+/// `SOKO_JUDGE_REUSE_STATS=1` ⇒ 每次命中打一行（判断"到底有没有触发"用；
+/// 只看耗时区分不出"触发了但收益小"与"根本没触发"）。
+fn reuse_stats() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("SOKO_JUDGE_REUSE_STATS").is_ok())
 }
 
 /// 命中"前缀复用"的次数（判据：`SOKO_JUDGE_ENV_REUSE=0/1` 下都该有正确的行为，
