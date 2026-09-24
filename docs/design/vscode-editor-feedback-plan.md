@@ -2277,7 +2277,21 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 >   而 `plan_project(path, Some(src), root_override)` 造的 plan **以该文件为入口**
 >   ✗ ⇒ **同一模块里每个文件的 digest 都不同** ✗ ⇒ 闭包（同一份！）被**重复编译**
 >   ✓（`cache::load` 永远 miss ✓ ⇒ 0 hit / 35 compiled ✓）。
->   **⇒ 最小改法（下一轮）**：按**模块根**分组 ✓，每组只 `compile_plan` **一次** ✓
+>   **⇒ 实现配方（API 已钉死，2026-09-24 第 83 轮）** ✓：
+>   1. 先对每个文件 `plan_project(path, src, root_override)` ✓（与今天同 ✓）；
+>   2. **按 `plan.root`（`ProjectPlan.root`，`project/mod.rs:136` ✓）分组** ✓ ——
+>      同一模块的文件天然同组 ✓（它们的闭包相同、只有 `entry` 不同 ✓）；
+>   3. 每组只 `compile_plan(组内第一个 plan, options)` **一次** ✓ ⇒ 得
+>      `ProjectReport` ✓（它含闭包内**各模块**的结果 ✓，`project/report.rs:121` ✓）；
+>   4. 把结果**分派回每个文件** ✓：该文件对应模块的状态 ⇒ `hit`/`compiled`/`failed` ✓
+>      （与今天逐文件编译得到的**同一份真相** ✓ ⇒ `build.summary` 语义不变 ✓）；
+>   5. 并按**各文件自己的 `plan.digest()`** 写缓存 ✓（`cache::store` ✓）——
+>      这样第二次 `build` 才会 hit ✓，与今天的缓存语义一致 ✓。
+>   **风险点**：`hit` 的判定 ✗ —— 今天 `hit` = "该文件自己的 digest 命中缓存" ✓；
+>   分组后**先查各文件 digest** ✓，全 miss 才编该组 ✓（否则会把已缓存的组白编一遍 ✗）。
+>   判据：`crates/cli/tests/build.rs` 全绿 ✓ + 前后耗时进 `docs/perf/ledger.jsonl` ✓。
+>
+>   ~~**⇒ 最小改法（下一轮）**：按**模块根**分组 ✓~~，每组只 `compile_plan` **一次** ✓
 >   （用组内任一文件的 plan ✓，它的闭包覆盖整个模块 ✓），再把该次结果里的
 >   **各文件报告**分派回每个文件 ✓、并按各文件自己的 digest **写缓存** ✓
 >   （这样第二次 `build` 才有 hit ✓，语义与今天一致 ✓）。
