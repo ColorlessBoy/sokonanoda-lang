@@ -17,6 +17,44 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第四十六轮：**批次制开工 —— T-D51 主体完成，1 条跨通道一致性待收**）
+
+> 本批 = **T-D51（折叠扩四种记法）+ T-D50（记法目标名成为使用点）**，
+> 按新的批次制**本地做完再 push 一次**（AGENTS.md「CI 节奏：批次制」）。
+
+**T-D51 已落地**（缺口 G-38）：
+1. **四种记法全折**：`fold_spine` 去掉"只放行 infix 族"的限制，按每种记法自己的
+   操作数位折（Infix 2 个 · Prefix/Binder 在**右** 1 个 · Postfix 在**左** 1 个 ·
+   零元 0 个）。测试从 `only_binary_infix_folds_and_the_rest_fall_back`
+   改写成 **`every_notation_kind_folds`**（五条都是"点名 → 记法"，另留元数不匹配
+   回退的边界）。
+2. **`forall` → `∀`**：`∀` 是 parser 关键字、**不在**内建表里，声明栏那个 `forall`
+   是**内核 pp 的 telescope** ⇒ 只能**认形状**（`Expr::Forall`）。
+   **两条编辑同时给**：① **只替换 `forall` 那 6 个字节**（顶层时逐字节保真——
+   binder 分组 `(A B : Set α)` 与 `Type 0` 原样保留）；② 同时返回折好的记法节点
+   （外层 App 重渲染时也带 `∀`）。
+3. **binder 渲染带类型**：多 binder 以前只打名字（`∀ α a A, …`）⇒ 折了反而**丢
+   信息**；现在 `∀ (α : Sort 1) (a : α) (A : Set α), …`（与 Lean 一致）。
+4. **判据**：`bash docs/gaps/repro/G38-folding-only-infix.sh` ⇒ **exit 1**（已修）；
+   `ty` = `∀ (α : Type 0) (A B : Set α), A ⊆ B -> B ⊆ A`（**只换 `forall`**）。
+
+**踩到并记下的两个坑**（都写进注释）：
+* 第一版把整个 `Forall` **重渲染**成 `∀ binders, body` ⇒ binder 分组被拆、
+  `Type 0` 变 `Sort 1`（**信息失真**）⇒ 改成关键字级替换；
+* parser 把 `(x : α) -> …` **也**解析成 `Expr::Forall`（匿名 binder）⇒ 只看 AST
+  会在 `(x : α` 那 6 字节上写 `∀`、括号配不平 ⇒ `splice` **整体放弃**、展示副本
+  退回完全不折。**判据必须是源文本**（`src[start..].starts_with("forall")`），
+  为此把 `src`/`base` 传进折叠层。
+
+**当前状态**：`cargo test -p sokonanoda-front --lib` **716 通过 / 0 失败**；
+`cargo test --workspace` 只剩 **1 条红**：`query_state_agrees_with_the_lsp_state_at_request`
+（CLI 给 `∀ (a b : Prop), …`、LSP 给 `forall (a b : Prop), …`）——已定位到
+"两条路给 `print_back` 的 `src`/`base` 不同"，**下一轮第一件事收掉它**，
+再接着做 T-D50。
+
+**环境绕过（仍然有效）**：`CARGO_TARGET_DIR=/tmp/soko-target` 构建/测试；
+`SOKONANODA_BIN=/tmp/soko-target/debug/sokonanoda` 让启动器用新构建。
+
 ## 工作方式变更（2026-09-24，用户拍板）：**CI 改成批次制**
 
 > 用户原话：「现在每做完一个环节就 push 一次、等一轮 CI（三平台矩阵 33-35 分钟），

@@ -50,7 +50,10 @@ fn state_at_root_before_any_tactic() {
     // ——折叠按 span 拼接，只换记法那几段。
     assert_eq!(
         state.goal.as_deref(),
-        Some("forall (a b : Prop), a ∧ b -> b ∧ a"),
+        // T-D51：`forall` 关键字也折成 `∀`——**只换关键字那 6 个字节**，
+        // binder 分组（`(a b : Prop)`）与 `Type 0` 之类逐字节保留（上面那条
+        // 注释说的"按 span 拼接"就是这条纪律）。
+        Some("∀ (a b : Prop), a ∧ b -> b ∧ a"),
         "the root goal is the declared type, kernel-rendered + notation-folded"
     );
     assert!(

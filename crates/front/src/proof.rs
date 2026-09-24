@@ -436,12 +436,22 @@ fn render_binder_notation(symbol: &str, operand: &Expr) -> String {
             return format!("{symbol} {}, {}", render_binder(binder), render_expr(body));
         }
     }
-    let names = binders
+    // **每个 binder 都带类型**（T-D51）：以前多 binder 时只打名字
+    // （`∀ α a A, …`），于是"把 telescope 折成 `∀`"反而**丢了类型信息**——
+    // 而声明栏存在的意义就是看类型。Lean 也是 `∀ (α : Type), α → …`。
+    // 无类型的 binder（源码里就没写）照旧只打名字，所以读回仍可解析。
+    let parts = binders
         .iter()
-        .map(|binder| binder.name.clone())
+        .map(|binder| {
+            if binder.ty.is_some() {
+                render_binder(binder)
+            } else {
+                binder.name.clone()
+            }
+        })
         .collect::<Vec<_>>()
         .join(" ");
-    format!("{symbol} {names}, {}", render_expr(body))
+    format!("{symbol} {parts}, {}", render_expr(body))
 }
 
 /// Render a `match` pattern back to teaching syntax (used by hover/error text).

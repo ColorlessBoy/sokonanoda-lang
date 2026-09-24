@@ -161,7 +161,7 @@ pub fn print_back(text: &str, notations: &DisplayNotations) -> DisplayText {
         return DisplayText::new(text);
     };
     let mut edits: Vec<(Span, String)> = Vec::new();
-    let _ = fold_collecting(ast, notations, &mut edits);
+    let _ = fold_collecting(ast, notations, &mut edits, text, base);
     if edits.is_empty() {
         return DisplayText::new(text);
     }
@@ -241,8 +241,14 @@ fn splice(text: &str, base: usize, mut edits: Vec<(Span, String)>) -> Option<Str
 /// 自底向上折：先把子项折好，父项才有机会看到已经折好的操作数；每一处折叠都
 /// 记进 `edits`（`(被替换那段的 span, 换上去的文本)`）。内外都记；[`splice`]
 /// 只取最外层的那些。
-fn fold_collecting(expr: Expr, dn: &DisplayNotations, edits: &mut Vec<(Span, String)>) -> Expr {
-    fold_collecting_inner(expr, dn, edits, false).0
+fn fold_collecting(
+    expr: Expr,
+    dn: &DisplayNotations,
+    edits: &mut Vec<(Span, String)>,
+    src: &str,
+    base: usize,
+) -> Expr {
+    fold_collecting_inner(expr, dn, edits, false, src, base).0
 }
 
 /// 同 [`fold_collecting`]，另外回报"这棵子树变了没有"。
@@ -266,14 +272,77 @@ fn fold_collecting_inner(
     dn: &DisplayNotations,
     edits: &mut Vec<(Span, String)>,
     in_spine: bool,
+    src: &str,
+    base: usize,
 ) -> (Expr, bool) {
     let is_app = matches!(expr, Expr::App { .. });
     let mut child_changed = false;
     let expr = map_children_with(expr, &mut |e| {
-        let (out, changed) = fold_collecting_inner(e, dn, edits, is_app);
+        let (out, changed) = fold_collecting_inner(e, dn, edits, is_app, src, base);
         child_changed |= changed;
         out
     });
+    // **`forall` 关键字形状 → `∀`**（T-D51 第二步 / 缺口 G-38）。
+    //
+    // 为什么不能靠"查表"：`∀` 是 **parser 关键字**（`parse_forall`），**不在**
+    // `BUILTIN_NOTATIONS` 里；而声明栏那个 `forall` 是**内核 pp 打的 telescope**
+    // （`forall (α : Type 0) (a : α), …`），回读时落成 `Expr::Forall`——头不是
+    // `Ident`，`fold_spine` 的"spine + 名字查表"那条路够不着。
+    //
+    // **只换关键字那 6 个字节**（`forall` → `∀`），其余**逐字节不动**。
+    // 这一条是踩出来的：第一版把整个 `Forall` 节点重渲染成 `∀ binders, body`，
+    // 结果 binder 分组被拆开（`(A B : Set α)` → `(A : Set α) (B : Set α)`）、
+    // `Type 0` 变成 `Sort 1`——**信息反而失真**，正是 `only_the_folded_spans_change`
+    // 那条测试在守的东西（线 C 的纪律：只有折过的 span 变）。
+    // **只有源文本真的写着 `forall` 才折**（T-D51，实测踩到的坑）：parser 把
+    // `(x : α) -> …` 也解析成 `Expr::Forall`（匿名 binder）⇒ 只看 AST 会在
+    // `(x : α` 那 6 个字节上写 `∀`，括号配不平 ⇒ `splice` **整体放弃**、
+    // 展示副本退回**完全不折**（`by_step_display_is_folded_but_the_judge_input_is_not`
+    // 就是这么红的）。判据必须是**源文本**，不是 AST 形状。
+    if let Expr::Forall { binders, body, span } = &expr {
+        let writes_forall = span
+            .start
+            .offset
+            .checked_sub(base)
+            .and_then(|start| src.get(start..))
+            .is_some_and(|rest| rest.starts_with("forall"));
+        if !writes_forall {
+            // 匿名 binder 的箭头写法（`(x : α) -> …`）：**不动它**，让子节点的
+            // 编辑照常生效（`return` 出去会把它们一起吞掉）。
+            return (expr, child_changed);
+        }
+        const KEYWORD: &str = "forall";
+        let keyword = Span::new(
+            span.start,
+            crate::span::Pos {
+                offset: span.start.offset + KEYWORD.len(),
+                ..span.start
+            },
+        );
+        // ① **关键字级编辑**：顶层（没有外层编辑盖住它）时逐字节保真。
+        edits.push((keyword, "∀".to_string()));
+        // ② 同时返回**折好的记法节点**：外层若因为"子节点变了"而重渲染
+        //    （App 父节点那条路），用的是 AST ⇒ 没有这一条就会被画回
+        //    `(x : α) -> …`（**实测踩到**：展示副本整个退回点名形式）。
+        //    两条编辑都在时，`splice` 的排序让**外层**赢——外层本来就覆盖
+        //    更全，正是我们要的。
+        let folded = Expr::Notation {
+            symbol: "∀".to_string(),
+            // `∀` 背后没有常量（它就是 binder 语法本身）⇒ target 只给读的人看。
+            target: "forall".to_string(),
+            assoc: NotationAssoc::Binder,
+            lhs: None,
+            rhs: Some(Box::new(Expr::Lambda {
+                binders: binders.clone(),
+                body: body.clone(),
+                span: *span,
+            })),
+            alternatives: Vec::new(),
+            span: *span,
+            symbol_span: *span,
+        };
+        return (folded, true);
+    }
     if let Some(folded) = fold_spine(&expr, dn) {
         edits.push((folded.span(), crate::proof::render_expr(&folded)));
         return (folded, true);
@@ -300,21 +369,39 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
     }
     // 重载：同一 target 声明了两个符号 ⇒ **取声明顺序第一个**（写进文档 + 测试）。
     let decl = dn.decls_for(name).next()?;
-    if !matches!(
-        decl.assoc,
-        NotationAssoc::Infix | NotationAssoc::Infixl | NotationAssoc::Infixr
-    ) {
-        return None;
-    }
+    // **每一种记法都要折**（T-D51 / 缺口 G-38）。以前这里只放行 infix 族
+    // （注释写着"留给后续环节"），于是声明栏里 `𝒫 A` / `Aᶜ` / `∃ x, p` / `∅`
+    // 全都保持点名形式——用户看到的"丢了一批符号"。
+    //
+    // 每种记法的**操作数位**不同（这是当初只做 infix 的原因），照 parser 的
+    // 构造形状来（`notation_node` 的调用点）：
+    //   Infix 族 2 个（左、右）· Prefix/Binder 1 个（在**右**）·
+    //   Postfix 1 个（在**左**）· Nullary 0 个。
+    let operand_count = match decl.assoc {
+        NotationAssoc::Infix | NotationAssoc::Infixl | NotationAssoc::Infixr => 2,
+        NotationAssoc::Prefix | NotationAssoc::Postfix | NotationAssoc::Binder => 1,
+        NotationAssoc::Nullary => 0,
+    };
     // 前导实参（`Set.mem α a A` 里的 `α`）**丢掉**：它们是展开时补上的隐式
     // 类型参数，源里本来就不写。
-    let operands = &args[arity - 2..];
+    let operands = &args[arity - operand_count..];
+    let (lhs, rhs) = match (decl.assoc, operands) {
+        (NotationAssoc::Infix | NotationAssoc::Infixl | NotationAssoc::Infixr, [a, b]) => {
+            (Some(Box::new((*a).clone())), Some(Box::new((*b).clone())))
+        }
+        (NotationAssoc::Prefix | NotationAssoc::Binder, [only]) => {
+            (None, Some(Box::new((*only).clone())))
+        }
+        (NotationAssoc::Postfix, [only]) => (Some(Box::new((*only).clone())), None),
+        (NotationAssoc::Nullary, []) => (None, None),
+        _ => return None,
+    };
     Some(Expr::Notation {
         symbol: decl.symbol.clone(),
         target: decl.target.clone(),
         assoc: decl.assoc,
-        lhs: Some(Box::new(operands[0].clone())),
-        rhs: Some(Box::new(operands[1].clone())),
+        lhs,
+        rhs,
         // 折叠出来的是**唯一的**写法（head 名字就是判据），没有候选列表。
         alternatives: Vec::new(),
         span: expr.span(),
@@ -670,9 +757,9 @@ mod tests {
         );
         assert_eq!(fold_text("And p q", &dn), "p ∧ q");
         assert_eq!(fold_text("Eq A B", &dn), "A = B");
-        // 一元前缀（`¬`）**还折不了**：第一刀只做二元 infix 族（T-C10 的范围），
-        // 前缀/后缀的操作数位不同，归后续环节。
-        assert_eq!(fold_text("Not p", &dn), "Not p");
+        // 一元前缀（`¬`）**现在也折**（T-D51：四种记法都折，见
+        // `every_notation_kind_folds`）；这里顺带守住"内建的前缀也走同一条路"。
+        assert_eq!(fold_text("Not p", &dn), "¬ p");
     }
 
     /// `namespace` 里的声明要按**全名**记（`NotationDecl.target` 存的是全名）。
@@ -725,7 +812,11 @@ mod tests {
     /// 折叠规则要各写一套；第一刀（T-C10）只做 infix 族。**猜错的代价**是把
     /// `Set.powerset α A` 打成 `𝒫 A`（丢掉 `α`）之类——那比不折坏得多。
     #[test]
-    fn only_binary_infix_folds_and_the_rest_fall_back() {
+    fn every_notation_kind_folds() {
+        // **T-D51 / 缺口 G-38**：这条测试以前叫
+        // `only_binary_infix_folds_and_the_rest_fall_back`——断言 prefix/postfix/
+        // 零元/binder **不折**（"留给后续环节"）。现在四种都折，所以它是
+        // **新契约**的判据（不是把断言改松：每条都从"点名"变成"记法"）。
         let arities = arities_in_sources(&[BOUNDARY_LIB]);
         let dn = DisplayNotations::new(
             crate::notation::notation_table(
@@ -734,16 +825,24 @@ mod tests {
             arities,
         );
         // ① 一元前缀：操作数在 `rhs`。
-        assert_eq!(fold_text("Set.powerset α A", &dn), "Set.powerset α A");
+        assert_eq!(fold_text("Set.powerset α A", &dn), "𝒫 A");
         // ② 一元后缀：操作数在 `lhs`。
-        assert_eq!(fold_text("Set.compl α A", &dn), "Set.compl α A");
-        // ③ 零元常量记法。
-        assert_eq!(fold_text("Set.empty α", &dn), "Set.empty α");
-        // ④ binder 位记法（`∃ x, p`）。
-        assert_eq!(fold_text("Exists α p", &dn), "Exists α p");
-        // 对照：同一个夹具里的**二元 infix** 照折（证明表确实建起来了，
-        // 上面四条不是"表是空的"造成的假绿）。
+        assert_eq!(fold_text("Set.compl α A", &dn), "A ᶜ");
+        // ③ 零元常量记法（无操作数）。
+        assert_eq!(fold_text("Set.empty α", &dn), "∅");
+        // ④ binder 位记法（`∃ x, p`）：操作数是那个 lambda。
+        // 渲染**带 binder 类型**（T-D51 顺带：以前多 binder 只打名字 ⇒ 折了反而
+        // 丢信息；现在 `∃ (x : α), p x`，与 Lean 一致）。
+        assert_eq!(
+            fold_text("Exists α (fun (x : α) => p x)", &dn),
+            "∃ (x : α), p x"
+        );
+        // ⑤ 对照：二元 infix（证明表确实建起来了，上面四条不是"表是空的"假绿）。
         assert_eq!(fold_text("Set.mem α a A", &dn), "a ∈ A");
+        // ⑥ **元数对不上仍回退**（部分应用不是记法实例）——这条是原来那条
+        // 测试真正要守的边界，保留。
+        assert_eq!(fold_text("Set.mem α a", &dn), "Set.mem α a");
+        assert_eq!(fold_text("Set.powerset α", &dn), "Set.powerset α");
     }
 
     /// **部分应用不回退成"看起来像"的东西**：元数对不上就不折。
@@ -987,7 +1086,9 @@ infixr:80 \" '' \" => Set.image\n";
         // 保留**——这正是"按 span 拼接、不重渲染整棵树"要的效果。
         assert_eq!(
             fold_text("forall (x : α), Set.mem α x (Set.union α A B)", &dn),
-            "forall (x : α), x ∈ (A ∪ B)"
+            // T-D51：`forall` 关键字也折成 `∀`（**只换关键字那 6 个字节**，
+            // binder 分组与 `Type 0` 逐字节不动）。
+            "∀ (x : α), x ∈ (A ∪ B)"
         );
     }
 
@@ -1005,13 +1106,13 @@ infixr:80 \" '' \" => Set.image\n";
                 "forall (α : Type 0) (A B : Set α), Set.subset α A B -> Set.subset α B A",
                 &dn
             ),
-            "forall (α : Type 0) (A B : Set α), A ⊆ B -> B ⊆ A",
+            "∀ (α : Type 0) (A B : Set α), A ⊆ B -> B ⊆ A",
             "binder 分组与 `Type 0` 必须原样，只换记法"
         );
         // 折行与缩进也保留（pp 的长签名会折行）。
         assert_eq!(
             fold_text("forall (α : Type 0),\n  Set.mem α a A", &dn),
-            "forall (α : Type 0),\n  a ∈ A"
+            "∀ (α : Type 0),\n  a ∈ A"
         );
     }
 
@@ -1025,9 +1126,12 @@ infixr:80 \" '' \" => Set.image\n";
         for untouched in [
             // 内核 pp 的多 binder 分组 + `Type 0` 的写法：**不带记法** ⇒
             // 一个字节都不许动（重渲染会把它变成 `(α : Sort 1) -> …`）。
-            "forall (α : Type 0) (A B : Set α), Other.thing α A B -> Other.thing α B A",
+            // ⚠ **别拿 `forall` 当"不带记法"的样本**：T-D51 起 `forall` 关键字
+            // 本身也折成 `∀`（只换关键字那 6 个字节）——这条测试的夹具因此改成
+            // 真的没有可折形状的文本。
+            "Other.thing (α : Type 0) (A B : Set α) -> Other.thing α A B",
             // 折行 + 缩进也保留。
-            "forall (α : Type 0) (A B : Set α),\n  Other.thing α A B",
+            "Other.thing (α : Type 0),\n  Other.thing α A B",
             // 元数对不上（部分应用）⇒ 不算折过。
             "Set.mem α a",
         ] {
