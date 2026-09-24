@@ -18,6 +18,13 @@
 >   `goal_runs` 被 `soko/stateAt` 的同名字段**顶包**（声明侧漏了也不报 ✗）；
 >   改成**按消费者分组**后两个字段都报 ✓；`infoview.js` 的 `decl.` 扫描也从写死
 >   行区间改成整份文件（加目标行后 renderDecls 长过了区间末端 ⇒ 守卫会瞎）✓；
+> * **T-A6 判据收口** ✓：同一光标对修前/修后各跑一次 `query state` ——
+>   `flawed_equalities_refuted` **1 → 313 段**、`project_chain` **1 → 216**、
+>   对照组 `project_chain_cardinal` **94 → 94 不变**；课程门禁计数**逐项不变**
+>   （**36 目标 · 328 checked · 99 open · 0 判负**）；提交后复跑 front **720** /
+>   LSP **161** / webview **16/16** / stub 宿主 **34/34** / 守卫 **NONE** ✓；
+>   冷缓存 `query goals` 三个大文件 old/new 中位数 **−3.6% / −0.4% / −10.9%**
+>   ⇒ **无退化** ✓；
 > * **R-2(a) 未修** ✗：那两条 goal 没记法化是**源码本身**用全显式写法（豁免注释
 >   `-- soko:notation-ok: R5`）⇒ 记法引擎能力限制（λ 操作数补不出前导类型参数），
 >   不是显示 bug；设计 as-built 见 `docs/design/goal-rendering.md` §9 ✓。

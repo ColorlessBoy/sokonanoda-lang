@@ -82,7 +82,21 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     被 `soko/stateAt` 的同名字段顶包，声明侧漏了也不报 ✗），并把 `infoview.js` 的
     `decl.` 扫描从写死行区间改成整份文件（加目标行后 renderDecls 长过了区间末端）。
     as-built：`docs/design/goal-rendering.md` §9；R-2(a)（记法引擎 R5）**未修** ✗
-- [ ] `T-A6` **R-2 判据**：复现件转绿 + LSP/e2e 各一条断言 + 课程门禁计数逐项不变 ✓
+- [x] `T-A6` **R-2 判据**：复现件转绿 + LSP/e2e 各一条断言 + 课程门禁计数逐项不变 ✓
+  - ✅ **已收口（2026-09-24）**：**复现件转绿**——同一光标（三个声明的 `sorry` 行）
+    对**修前**的 0.65.5 与修后的二进制各跑一次 `query state`：
+    `flawed_equalities_refuted` **1 → 313 段**（带 kind **0 → 96**）、
+    `project_chain` **1 → 216**（0 → 69）、对照组 `project_chain_cardinal`
+    **94 → 94 不变**（34 → 34）；声明卡片那条路（`query goals`）同样从"无字段"变成
+    289 / 165 段（全带 kind）✓。
+    **LSP/e2e 断言**在 T-A5 的 commit 里（`crates/lsp/src/tests/goals.rs` +
+    `editor/vscode/src/test/extension.test.js`，都做过修前判红）✓。
+    **课程门禁计数逐项不变**：`python3 courses/set-theory/tools/check.py` →
+    **36 个目标 · 328 checked · 99 open · 0 判负**（与基线逐项相同）✓。
+    提交后复跑：front **720 passed** / LSP **161 passed** / webview **16/16** /
+    stub 宿主 **34/34** / `audit-wire-fields.py` **NONE ✓ exit 0** ✓。
+    性能（本环节自己的差分，不是三基准）：冷缓存 `query goals` 三个大文件
+    old/new 中位数 **−3.6% / −0.4% / −10.9%** ⇒ **无退化** ✓。
 - [ ] `T-A7` **阶段 A 收尾**：三个基准数字复量（应持平 ✓）→ `scripts/soko gate` 全绿 → **一次 push** → CI 绿 → bump `0.66.0` → release → `gh release list` 核对 ✓
   - ⬆ **BUMP**：`minor` —— Infoview 的 def 值行与 goal 记法化/高亮修复（用户可见）
 

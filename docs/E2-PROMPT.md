@@ -15,15 +15,17 @@
 ## 你的任务
 按 E2 计划逐条推进，用这三条命令取活与记进度：
     python3 scripts/plan.py next      # 取当前环节（含完整规格）
-    python3 scripts/plan.py list      # 看进度（现在应为 3/38）
+    python3 scripts/plan.py list      # 看进度（现在应为 6/38）
     python3 scripts/plan.py done <ID> # 做完勾掉
-当前应从 **T-A5（R-2 修复）** 开始。已完成、别重做：T-A1..T-A4。
-**T-A5 的核心已经落地**（`crates/front/src/semantic.rs`：不再把 `=` 喂给词法符号表
-—— 修前含 λ 的 goal/类型文本会整段降级成 1 个无 kind 的 run，webview 就不上色；
-实测 `flawed_equalities_refuted` 1→313 段、`project_chain` 1→216 段、
-对照组 `project_chain_cardinal` 94 段不变）。**还剩**：`goal_runs` 的父子补齐
-（front types.rs → LSP protocol.rs/query_map.rs → infoview.js + CSS）+ 一条
-**"看得见"的 e2e 断言**。
+当前应从 **T-A7（阶段 A 收尾）** 开始。已完成、别重做：T-A1..T-A6。
+**T-A5/T-A6 已全部落地**（`=` 不再喂词法：含 λ 的 goal 1→313 段 / 1→216 段、
+对照组 94 段不变；父子 runs 补齐：front `goal_runs`/`goals_runs` → LSP 转发 →
+声明卡片 `.decl-goal-line`；三层判据都做过**修前判红**；课程计数逐项不变；
+A∖B 守卫改成按消费者分组）。
+**T-A7 要做的**：三个基准复量 → `scripts/soko gate` 全绿 → **一次 push** →
+CI 绿 → bump **0.66.0**（`Cargo.toml` + `editor/vscode/package.json` 两处）→
+auto-tag → release → `gh release list` 核对。**别忘了 CHANGELOG**：本仓库的惯例是
+CHANGELOG 条目**跟着 bump 那个 commit** 一起进（见 0.65.5 的 6490f1b）。
 
 ## 每个环节的完成定义
 复现判红 -> 最小改动 -> 判据 -> e2e 转绿 -> 性能无退化 -> 文档 -> commit。
