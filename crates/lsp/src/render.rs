@@ -327,8 +327,22 @@ pub(crate) fn highlight_uses(
     // `h`（同一个病在 front 的 `references::resolve_at` 里也有一份）。
     // `documentHighlight` 以前因此会把 `h` 的每一处都点亮。
     let offset = crate::position_to_offset(doc, Position::new(line, character));
-    if sokonanoda_front::notation_input::symbol_at(doc, offset).is_some() {
-        return None;
+    if let Some((symbol, _)) = sokonanoda_front::notation_input::symbol_at(doc, offset) {
+        // **T-D24：符号上给"这个符号在本文里的每一处"**。
+        //
+        // 原来这里直接 `return None`（T-D30 的守卫）⇒ 光标在 `∈` 上一片空白 ✗。
+        // 但那条守卫的**真正意图**是"别把外层 binder 点亮"（binder 的 span 覆盖
+        // 整段类型标注 `(h : a ∈ A)`，回退会把 `∈` 解析成 `h`）——不是"符号上
+        // 什么都不给"。所以这里换成**词法**答案：该符号的每个 token。
+        let ranges: Vec<Range> = sokonanoda_front::notation_input::symbol_occurrences(doc, &symbol)
+            .into_iter()
+            .map(range_of)
+            .collect();
+        return if ranges.is_empty() {
+            None
+        } else {
+            Some(ranges)
+        };
     }
     let from_use = hover_type_at(hovers, line, character).and_then(|h| h.resolution.as_ref());
     let def_span = match from_use {

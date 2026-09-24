@@ -299,6 +299,51 @@ fn symbol_token_at(text: &str, offset: usize, symbols: &[String]) -> Option<crat
         .cloned()
 }
 
+/// 认得出一个文件里**所有已知记法符号**（本文件声明的 + 内建静态表）——
+/// 给"把一个符号喂给词法"的调用方用（T-D24 的 `documentHighlight` 要按符号收
+/// token，不喂的话 `∈`/`↔` 这种不在数学符号码点类里的会被切成 `Ident`）。
+///
+/// 为什么放在前端：**内建表归前端所有**（`parser::lexer_builtin_symbols` 与静态
+/// `TABLE` 都是 crate-private），LSP 侧不该复制一份。
+pub fn known_symbols(doc: &str) -> Vec<String> {
+    let mut symbols: Vec<String> = crate::token::scan_notation_decls(doc)
+        .into_iter()
+        .map(|(symbol, _)| symbol)
+        .collect();
+    for builtin in crate::parser::lexer_builtin_symbols() {
+        if !symbols.iter().any(|s| s == &builtin) {
+            symbols.push(builtin.to_string());
+        }
+    }
+    for entry in TABLE {
+        let symbol = entry.symbol.to_string();
+        if !symbols.iter().any(|s| s == &symbol) {
+            symbols.push(symbol);
+        }
+    }
+    symbols
+}
+
+/// 符号在文本里的**每一处**（T-D24 的 `documentHighlight`/`references` 用它）。
+///
+/// **词法**答案，不掺语义：用 [`known_symbols`] 喂词法（不喂的话 `∈`/`↔` 这种不在
+/// 数学符号码点类里的会被切成 `Ident`），再收所有 `Sym(symbol)` token 的 span。
+/// **故意不用子串匹配**：那会把注释与字符串里的同形字符也算进来。
+pub fn symbol_occurrences(doc: &str, symbol: &str) -> Vec<crate::Span> {
+    let mut symbols = known_symbols(doc);
+    if !symbols.iter().any(|s| s == symbol) {
+        symbols.push(symbol.to_string());
+    }
+    let Ok(tokens) = crate::token::tokenize_with_symbols(doc, &symbols) else {
+        return Vec::new();
+    };
+    tokens
+        .iter()
+        .filter(|tok| matches!(&tok.kind, crate::TokenKind::Sym(s) if s == symbol))
+        .map(|tok| tok.span)
+        .collect()
+}
+
 /// 光标是不是落在**记法声明的目标名**上（T-D50 / 缺口 G-37）。
 ///
 /// 现场：`infixr:80 " '' " => Set.image` 里 `=>` 后面的 `Set.image` 是**普通

@@ -3039,6 +3039,15 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D24 `documentHighlight`/`references`/`rename` 覆盖记法符号
 
+> **✅ 完成（2026-09-24）**：**做** `documentHighlight`（文件内）—— 符号上给出
+> **它自己的每一处**（前端 `notation_input::symbol_occurrences`，词法、非子串匹配）；
+> **不做** `references`（项目级扫描与"性能是生命线"冲突；文件内需求已被
+> `documentHighlight` 覆盖）与 `rename`（符号是源级糖、可能多模块各声明一次；
+> 今天**明确拒绝** `InvalidParams`，安全且诚实）。决定与理由写进
+> `docs/design/notation-subset.md`。**T-D30 的意图一条没破**：断言从
+> "符号上必须为空"改成语义化的"每段点亮的文本必须就是符号本身"。
+> 实跑：`cargo test -p sokonanoda-lsp --lib` **160 通过**。
+
 - **改什么**：实现或明确写"不做"（给出理由）。
 - **判据**：决定写进 `docs/design/notation-subset.md`；若做，加测试。
 
@@ -3726,7 +3735,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D21` 跨文件记法的"定义"是哪个
 - [x] `T-D22` `scoped` 记法的导航是否尊重作用域
 - [x] `T-D23` 重载：一个 `Location` 还是 N 个
-- [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
+- [x] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
 - [x] `T-D40` 三层测试（矩阵用例 #7/#8）
 - [x] `T-D41` 文档同步
 - [x] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
