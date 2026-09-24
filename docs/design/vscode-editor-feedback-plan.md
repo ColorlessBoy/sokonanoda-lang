@@ -3207,6 +3207,38 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D51 折叠层扩到 prefix / postfix / binder / 零元 + 给 `∀`/`∃` 补表（**修机制 A**）
 
+> **✅ 完成（2026-09-24）。判据实跑：G-38 复现件 ⇒ exit 1。**
+>
+> **两层修法**：
+> 1. **四种记法全折**：`fold_spine` 去掉"只放行 infix 族"的限制，按每种记法
+>    自己的**操作数位**折——Infix 族 2 个（左、右）· Prefix/Binder 1 个（在**右**）·
+>    Postfix 1 个（在**左**）· 零元 0 个（照 parser 的 `notation_node` 构造形状）。
+> 2. **`forall` → `∀`**：`∀` 是 parser **关键字**、不在 `BUILTIN_NOTATIONS` 里，
+>    而声明栏那个 `forall` 是**内核 pp 打的 telescope** ⇒ 只能**认形状**
+>    （`Expr::Forall`）。**只替换关键字那 6 个字节**（顶层时逐字节保真），
+>    并**同时**返回折好的记法节点（外层 App 重渲染时也带 `∀`）。
+>    顺带：binder 渲染**带类型**（以前多 binder 只打名字 ⇒ 折了反而丢信息）。
+>
+> **判据**：`docs/gaps/repro/G38-folding-only-infix.sh` ⇒ **exit 1**；
+> `ty` = `∀ (α : Type 0) (a : α) (A : Set α), a ∈ A -> a ∈ A`；
+> 测试从 `only_binary_infix_folds_and_the_rest_fall_back` 改写成
+> **`every_notation_kind_folds`**（五条"点名 → 记法" + 元数不匹配回退）；
+> `cargo test --workspace` **exit 0**（40 个 suite）。
+>
+> **两个坑（都写进代码注释）**：
+> * 第一版把整个 `Forall` **重渲染** ⇒ binder 分组被拆（`(A B : Set α)` →
+>   `(A : Set α) (B : Set α)`）、`Type 0` 变 `Sort 1`——**信息失真**，
+>   被 `only_the_folded_spans_change` 逮住 ⇒ 改成**关键字级替换**；
+> * parser 把 `(x : α) -> …` **也**解析成 `Expr::Forall`（匿名 binder）⇒ 只看 AST
+>   会在 `(x : α` 那 6 个字节上写 `∀`、括号配不平 ⇒ `splice` **整体放弃**、
+>   展示副本退回**完全不折**。判据必须是**源文本**，为此把 `src`/`base` 传进折叠层。
+>
+> **⚠ 开发期的坑（值得记）**：改完折叠后 `query_state_agrees_with_the_lsp_state_at_request`
+> 红了一条（CLI 给 `∀`、LSP 给 `forall`）——**不是代码不一致**，而是 **LSP 的编译
+> 缓存**里还存着改动前的报告（**版本号没变 ⇒ 缓存键没变**）。
+> 用 `SOKONANODA_CACHE_DIR=$(mktemp -d)` 一跑就绿。⇒ **开发期验证一律用全新缓存
+> 目录**，别被陈旧报告骗。
+
 - **改什么**：`display.rs::fold_spine` 去掉"只放行 infix 族"的限制，按**每种记法
   自己的形状**折：一元 prefix（`𝒫 A` ⇒ 操作数 1 个、在**右**）、一元 postfix
   （`Aᶜ` ⇒ 操作数 1 个、在**左**）、binder（`∀ x, p x` ⇒ 操作数 2 个、第 2 个是
@@ -3615,7 +3647,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D40` 三层测试（矩阵用例 #7/#8）
 - [x] `T-D41` 文档同步
 - [ ] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
-- [ ] `T-D51` 折叠层扩到 prefix / postfix / binder / 零元（`forall` → `∀` 等一批符号）
+- [x] `T-D51` 折叠层扩到 prefix / postfix / binder / 零元（`forall` → `∀` 等一批符号）
 - [ ] `T-D52` `def` 的声明多一行"真正定义"（`:=` 之后的 body）
   - ⬆ **BUMP**：`patch` —— 批次 4 收尾（含 rename/highlight 不再误伤 binder）
 

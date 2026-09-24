@@ -46,11 +46,16 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
   退回完全不折。**判据必须是源文本**（`src[start..].starts_with("forall")`），
   为此把 `src`/`base` 传进折叠层。
 
-**当前状态**：`cargo test -p sokonanoda-front --lib` **716 通过 / 0 失败**；
-`cargo test --workspace` 只剩 **1 条红**：`query_state_agrees_with_the_lsp_state_at_request`
-（CLI 给 `∀ (a b : Prop), …`、LSP 给 `forall (a b : Prop), …`）——已定位到
-"两条路给 `print_back` 的 `src`/`base` 不同"，**下一轮第一件事收掉它**，
-再接着做 T-D50。
+**当前状态**：**T-D51 收口** ✓ —— `cargo test --workspace` **exit 0**（40 个 suite）·
+G-38 复现件 **exit 1**（已修）· 台账 G-38 改 `fixed` + `fixed_in 0.65.4` ·
+`plan.py done T-D51` 已勾（**107/123**）。
+
+**那条跨通道一致性红的真因（重要）**：不是代码不一致，而是 **LSP 的编译缓存**
+里存着改动前的报告（**版本号没变 ⇒ 缓存键没变**）⇒ CLI 折了 `∀`、LSP 还是
+`forall`。`SOKONANODA_CACHE_DIR=$(mktemp -d)` 一跑就绿。⇒ **开发期验证一律用
+全新缓存目录**（已写进计划 T-D51 的 as-built 与代码注释）。
+
+**本批还剩 T-D50**（记法声明的目标名成为使用点），做完一起 push 一次。
 
 **环境绕过（仍然有效）**：`CARGO_TARGET_DIR=/tmp/soko-target` 构建/测试；
 `SOKONANODA_BIN=/tmp/soko-target/debug/sokonanoda` 让启动器用新构建。
