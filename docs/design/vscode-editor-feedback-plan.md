@@ -4257,8 +4257,8 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-K13` **K1-c（备选）：`EnvBuilder::snapshot()` 克隆式检查点**（内核侧 ✅ 已完成：`Clone` ×6 + `Dag: Clone` + `snapshot()` + 判据；**front 接线 ⏸ 存档**，归入「把 check-then-add 移进 walk」的内核级重构档）
 - [x] `T-K22` **K1-d：记法消解的类型查询走局部书写类型（G-34；本刀是缓解，根治在 T-K20′）**
   - ⬆ **BUMP**：`patch` —— 用户可感知的提速（`unit12-solution` 11.4s → 7.5s），无新能力
-- [ ] `T-K30` `build <dir>` 不再逐文件各编一份闭包
-- [ ] `T-K31` `TcCache::new` 每次 `with_ctx` 清 4MB
+- [x] `T-K30` `build <dir>` 不再逐文件各编一份闭包（✗ **重新定级·存档**：三轮取证证明现有 API 下做不到 —— 缓存键是逐入口 `plan.digest` ⇒ 同模块各文件永不共享闭包编译；分组会改 `build.summary` 语义（入口视角 vs 全项目 `has_errors`）；`plan_project` 只加载**单入口闭包** ⇒ 需**新 front API**「把一个模块根的全部文件当一个 unit 集编一次」。基线已量：**146.07s / 35 文件**）
+- [x] `T-K31` `TcCache::new` 每次 `with_ctx` 清 4MB（✗ **实测无收益 ⇒ 已回退**：池化后冷跑 12.29s/11.67s vs 改动前 11.96s/11.67s（噪声内）；机制是 `vec![0u8; 1<<22]` 走 mmap **惰性零页**、池化反而强制 memset。阴性结果在 `docs/perf/ledger.jsonl`）
 - [ ] `T-K40` 内核改动台账 + 文档
 - [ ] `T-K41` `STATUS.md` 的"根因未修"话术更新
   - ⬆ **BUMP**：`patch` —— 批次 5 收尾（跨模块增量 + build 目录）
