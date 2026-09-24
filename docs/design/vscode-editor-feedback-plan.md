@@ -1788,6 +1788,33 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 > 对照：**K1-a（T-K11）只省 check 那一段**，且冷开下复用条件不成立 ⇒
 > 实测**零收益** ✗（命中 0）——两者不矛盾，是"能不能碰到 elab"的区别 ✓。
 >
+> **⛔ 一条会破红线的约束（2026-09-24 挖到，必须先遵守）**：
+> `kernel_phase.rs:60` 是 `let mut env = builder.finish();` —— kernel 阶段**消费**
+> `run_pass` 里那个 builder，而且全程严格 **check-then-add**（先 `try_check_declar`
+> 再 `add_declar`）。而 walk 发生在**它之前** ✗。
+> ⇒ **"walk 边 elaborate 边 `add_declar` 进影子环境、judge 直接用它"会错** ✗：
+> 影子环境里会出现**尚未通过内核检查**的声明 ✗ ⇒ judge 拿它当"已核前缀"用，
+> 会给出与真实环境**不同**的判定（例如前缀本该被内核拒绝 ⇒ 旧路径报 Error，
+> 新路径却判 Match）——**这正是 REQUIREMENTS §2 第 1 条的红线** ✗。
+>
+> **修正后的设计（可行且语义安全）**：影子环境必须**边生长边被内核验证**：
+>   1. walk 每 elaborate 出一个声明 ⇒ **立刻** `try_check_declar_at(&d, ByIndex(k))`
+>      （增量、O(1) 每次 ✓）⇒ 通过才 `add_declar`，失败就记进**失败表**；
+>   2. 于是任意时刻影子环境 == **已被内核验证过的前缀** ✓（与 kernel 阶段的语义
+>      逐条一致：同顺序、同 `EnvLimit::ByIndex`、同失败表）；
+>   3. judge 的 miss 路径再用 `builder.with_env(...)` 查合成声明 ✓；
+>   4. **`kernel_phase` 一个字不改** ✓ —— 它照旧 check-then-add 一遍。代价是
+>      内核检查做**两遍**，但两遍都是**增量 O(n)**，而不是现在那 247 次
+>      **整份前缀重查** ✗ ⇒ 这正是赚的那 9.5s ✓。
+>
+> **判据要点**：两遍检查必须给出**同一份**失败表（否则 judge 的可见前缀会与
+> 真实环境分叉）⇒ 对拍时除了 `--json` 逐字节，还要比"前缀失败表"。
+>
+> **另一个实现选项（更省一遍检查，但动 kernel_phase）**：让 walk 的增量检查
+> **成为** kernel 阶段的那一遍（kernel 阶段不再重查已核的）——省掉重复，但要改
+> `finish_pass` 的 PendingOp 消费顺序 ⇒ **先做上面那个两遍版**（零语义风险），
+> 拿到数字后再评估要不要合。
+>
 > **实现上唯一的硬骨头**：judge 深在 walk 内部，而 `EnvBuilder` 借 `&'a ArenaRef`
 > ⇒ "arena + builder"是自引用结构（`docs/architecture.md` §8 的 arena 生命周期
 > gotcha）**不能存进 `Walk` 自己的字段** ✗。⇒ 必须由**外层作用域**（`run_pass`）
