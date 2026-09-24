@@ -111,6 +111,11 @@ python3 scripts/plan.py done T-A2   # 勾掉一条
 | **`SOKO_JUDGE_ENV_REUSE` / 影子（`SOKO_SHADOW_CHECK`）都不是"已修"** ✗ | 见下 |
 | **别重试 T-K31**（`TcCache` 的 4MB 复用池）✗ | 实测**无收益** ✓（mmap 惰性零页 vs 强制 memset）；结论在 `docs/perf/ledger.jsonl` ✓ |
 | **别指望"影子彩排"** ✗ | E1 实测三个假设全否证 ✓；阶段 D 只能**直接做** ✓，安全网是四件套 ✓ |
+| **仓库 `target/` 在本机写不进去** ✗（cargo 删旧文件被文件策略拒 ⇒ `Operation not permitted (os error 1)`，编译能过、**只有链接/收尾失败**） | 本地构建一律 `CARGO_TARGET_DIR=/tmp/soko-target` ✓。但 `scripts/vscode-e2e.sh`（`cargo build --release`）与**部分 gap repro**（`target/debug/sokonanoda`）**硬编码仓库 `target/`** ⇒ 两条出路：① e2e 用 `--no-build` + 先手工 stage（`editor/vscode/bin/<target>/`，台账会记 staged 的 sha256 ✓）；② 把**版本匹配**的构建**就地覆盖**到 `target/release|debug/sokonanoda{,-lsp}`（那是 gitignored 的 scratch 目录；启动器的 `repo-build` 链优先于缓存 ✓） |
+| **缓存可能"内容比 marker 旧"** ✗（本机实测：marker 写 `0.65.5`，二进制其实是 **0.65.4** 的逻辑） | `scripts/soko gate` 会 exit 3 并说"anchor 结果不可信"✓（守卫是对的）。判据：`scripts/soko version --json` 的 marker **加上**二进制自己的 `--version`（两者不一致就是这种病）。修法：`scripts/soko update`，或按上一条把正确构建放进去 |
+| **本机 `scripts/soko update` 下载不了** ✗（代理下 release 资产 `HTTP 404` / `fetch failed`） | 用 `SOKONANODA_RELEASE_BASE=<本地 http 镜像>` ✓（启动器与 CLI 的下载器都读它；把 `v<版本>/sokonanoda-{cli,lsp}-<triple>.tar.gz` 放好，tar 里**顶层**就是二进制 ✓）。**很多 gap repro 会隔离 `SOKONANODA_CACHE_DIR`** ⇒ 强制走下载链 ⇒ 没有镜像时它们全报"环境异常" ✗（**不是回归**） |
+| **Node 启动器的代理警告会污染 repro 的捕获** ✗（`(node:…) [UNDICI-EHPA] Warning:` 走 **stderr**，而不少 repro `2>&1` 合并后直接 `json.loads`） | 跑 `scripts/soko gate` 时加 **`NODE_NO_WARNINGS=1`** ✓（否则缺口台账会**假红**：G-07/G-11/G-16/G-17/G-15 这一批） |
+| **缺口台账在 CI 绿、本地红** ✗ | 先按上面四条对齐环境（`NODE_NO_WARNINGS=1` + `CARGO_TARGET_DIR` + 版本匹配的 `target/` 构建 + 本地 release 镜像）；**再用"换修前的二进制复跑同一条 repro"** 判断是不是自己的回归（判据：`SOKONANODA_BIN=<旧构建> bash docs/gaps/repro/Gxx-….sh`）✓ |
 
 **关于 `SOKO_SHADOW_CHECK=1`** ✓：它打印"影子环境 vs 内核阶段的失败表对照"，
 **现在恒为 `一致=false`** ✗。**不要**把它的输出当成"产品坏了" ✗ —— 它是

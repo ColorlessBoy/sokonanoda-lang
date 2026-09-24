@@ -27,7 +27,31 @@
 >   ⇒ **无退化** ✓；
 > * **R-2(a) 未修** ✗：那两条 goal 没记法化是**源码本身**用全显式写法（豁免注释
 >   `-- soko:notation-ok: R5`）⇒ 记法引擎能力限制（λ 操作数补不出前导类型参数），
->   不是显示 bug；设计 as-built 见 `docs/design/goal-rendering.md` §9 ✓。
+>   不是显示 bug；设计 as-built 见 `docs/design/goal-rendering.md` §9 ✓；
+> * **T-A7 阶段收尾** ✓：三个基准复量（① 冷开 `unit12-solution` **11.4s**
+>   （`JUDGE_INFER` 51156 calls / 10623ms / misses 247 —— 基线 11183ms，持平略好）；
+>   ② 冷 `build courses/set-theory` **154.3s**（历史基线 146.07s）—— 这条**不是**
+>   本环节的回归：改的是 `front::query` 的展示 runs 与 webview，而 `build` 的调用图
+>   里没有 `tag_runs*`（grep 实证，见 `goal-rendering.md` §9.4）；同会话内对
+>   `query goals` 的 old/new 差分是 **−3.6% / −0.4% / −10.9%**；③ `perf_course`
+>   全绿：keystroke **639ms** · by_block_did_open **12749ms** · unit12-synthesis
+>   **9247ms** · unit01 **1344ms** · unit08 **542ms**）；`scripts/soko gate`
+>   **全绿**（含缺口台账"全部与台账一致"）；e2e **26 passed / 0 failed**（新增的
+>   T-A5 断言在内）并记账；`scripts/perf-ledger.sh` 记一条；bump **0.66.0**
+>   （`scripts/bump.py` 单一来源 ⇒ Cargo.toml · package.json · Cargo.lock ·
+>   2 个清单的 `requires`）→ 一次 push → CI → auto-tag → release →
+>   `gh release list` 核对 ✓；
+> * **本机环境的四个坑**（都已写进 `docs/E2-HANDOVER.md` §5 陷阱清单，别重踩）✗：
+>   ① **缓存"内容比 marker 旧"**（marker 写 0.65.5、二进制其实是 0.65.4 的逻辑）
+>   ⇒ `gate` exit 3 说"anchor 结果不可信"（守卫是对的）；② `scripts/soko update`
+>   在本机**下载不了**（代理下 release 资产 404）⇒ 用
+>   `SOKONANODA_RELEASE_BASE=<本地镜像>`（很多 repro 隔离缓存 ⇒ 强制走下载链）；
+>   ③ Node 启动器的代理警告走 stderr，而不少 gap repro `2>&1` 合并后 `json.loads`
+>   ⇒ 缺口台账**假红**（跑 gate 加 `NODE_NO_WARNINGS=1`）；④ 仓库 `target/`
+>   **写不进去**（cargo 删旧文件被文件策略拒）⇒ `CARGO_TARGET_DIR=/tmp/soko-target`
+>   ＋把版本匹配的构建**就地覆盖**到 `target/{release,debug}`（e2e 因此走
+>   `--no-build` + 手工 stage）。**判红是不是自己的回归**：用修前的二进制复跑同一条
+>   repro（`SOKONANODA_BIN=<旧构建> bash docs/gaps/repro/Gxx-….sh`）✓。
 
 > 快照：2026-09-24（**第 87 轮**：**0.65.5 已发版并核对**（`gh release list` 显示
 > `sokonanoda v0.65.5 Latest`，26 assets ✓）；计划进度 **120/124**；线 K 的性能线
