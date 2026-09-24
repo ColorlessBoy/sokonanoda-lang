@@ -30,6 +30,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# 单个复现件的上限：正常都在几秒内（最慢的是起 LSP 的那几条）。
+REPRO_TIMEOUT_S = 120
 LEDGER = ROOT / "docs" / "gaps" / "ledger.jsonl"
 SEVERITY_ORDER = {"blocker": 0, "painful": 1, "nice": 2}
 OPEN_STATUSES = {"open", "workaround", "wo-filed"}
@@ -87,8 +89,14 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
     if not path.exists():
         return ("missing", -1, f"复现文件不存在：{repro}")
     if path.suffix == ".sh":
-        proc = subprocess.run(["bash", str(path)], cwd=ROOT, capture_output=True, text=True,
-                              env=clean_env())
+        # **超时**（2026-09-24 加）：复现件里可能起 LSP / 等 I/O，挂住就会把整个
+        # 门禁（以及 CI 的 `Gap ledger` 步骤）一起挂住 —— 实测本机卡过 40 分钟。
+        # 超时按"环境/形状异常"判红（返回码 2 的语义），别静默跳过。
+        try:
+            proc = subprocess.run(["bash", str(path)], cwd=ROOT, capture_output=True,
+                                  text=True, env=clean_env(), timeout=REPRO_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            return ("script", 2, f"复现件超时（>{REPRO_TIMEOUT_S}s）——按环境/形状异常判红")
         # **把复现件的实测值带出来**（2026-09-24 加）：以前只留 stderr 最后一行，
         # CI 上那条 `G-10 fixed 环境异常` 就只剩一句"环境异常"——**看不见到底哪一项
         # 不对**，只能靠猜（这次为此在本机重跑才发现是 stdout 收进了 Node 代理警告）。

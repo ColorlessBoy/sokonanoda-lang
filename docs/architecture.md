@@ -499,6 +499,31 @@ by 引擎的判定合成声明不带宇宙参数（`by.rs::spec_of` 的 `univers
 > 性能改动另记 `docs/perf/ledger.jsonl`。**改之前先读 §8 gotchas**
 > （arena 生命周期、panic→Result、`quiet_catch` 不可嵌套、每命令输出通道的两个消费者）。
 
+### 6.1 改内核的验收五步（一条命令：`scripts/kernel-check.sh`）
+
+红线是**判定不变**——同一批输入**接受/拒绝不变、事件计数不变、golden 与 `--json`
+逐字节不变**。五步就是这条红线的五个面，**缺一面等于没验**：
+
+| # | 步骤 | 它挡的是什么 |
+|---|---|---|
+| ① | `cargo test --workspace --locked` | 三层回归（kernel `tests/` + front 单测 + CLI e2e） |
+| ② | `bash scripts/kernel-diff.sh` | 内核相对**上游**改了什么、为什么（改动台账） |
+| ③ | `python3 courses/set-theory/tools/check.py` | **语料级**计数红线（`36 目标 · 328 checked · 99 open · 0 判负`）——内核一动最先在这里露头 |
+| ④ | `bash scripts/perf-ledger.sh` | 性能台账（提速允许，**退化不行**） |
+| ⑤ | `cargo test -p sokonanoda --test arena` | 真 Lean 导出语料的接受/拒绝与预期一致 |
+
+```bash
+scripts/kernel-check.sh                                    # 五步全跑（⑤ 需外部语料）
+LEAN_KERNEL_ARENA=/path/to/lean-kernel-arena scripts/kernel-check.sh
+LEAN_KERNEL_ARENA=… LEAN_KERNEL_ARENA_MAX_BYTES=$((1024*1024*1024)) scripts/kernel-check.sh
+```
+
+**⑤ 是"本地可选"，但绝不假装有**：`LEAN_KERNEL_ARENA` 没设时脚本**明说跳过**
+（不是静默通过）——这条曾经是安慰剂：CI 里没设、测试静默空过，而收集逻辑本身
+还有三个缺陷（不递归、按体积静默跳过、outcome yaml 只认平铺）叠在一起，
+**"语料对拍"实际上只跑了一个用例**（T-K02 已修，并补了不依赖外部语料的夹具测试
+`collect_cases_walks_subdirectories_and_finds_nested_specs`）。
+
 快照基线 `sokonanoda@7b51784`（见 `NOTICE.md`）。下表是**已经改过**的部分
 （历史记录；新增改动请追加一行）：
 
