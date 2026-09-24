@@ -1,3 +1,32 @@
+## 2026-09-24 · run 36007879605 · `e2e ledger (commit back on main)` 红：我把带冲突标记的 ledger 提交了
+
+**症状**：`docs/e2e/ledger.jsonl` 解析失败 ——
+`json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)`（exit 1，10s）。
+
+**真因**：推送版 ledger 是 **160 行**（本地是 151 行、**0 坏行** ✓），其中 **3 行是冲突标记** ✗：
+```
+152: '<<<<<<< HEAD'
+153: '======='
+160: '>>>>>>> origin/main'
+```
+⇒ 我用 `git merge-tree --write-tree HEAD origin/main | head -1` **合成 merge commit** 时，
+这次**撞了冲突** ✗，而脚本**没检查退出码** ✗ ⇒ 把**带冲突标记的树**提交并推了 ✗✗。
+（本地工作区一直是干净的 ✓ —— merge 只存在于 `main` 的那个提交里 ✗，所以本地怎么查都正常 ✓。）
+
+**修复**：从 `origin/main` 取回 ledger ✓、**剔掉 3 行标记** ✓（157 行全部合法 ✓）、
+提交并推送 ✓（`a0071bc`）。
+
+**手法修正（必须照做）** ✗：
+```bash
+TREE=$(git merge-tree --write-tree HEAD origin/main); MT=$?      # ← **必须查退出码**
+[ $MT -ne 0 ] && { echo "有冲突，别提交"; exit 1; }              # 撞冲突 ⇒ 手工解，绝不 head -1
+```
+`merge-tree --write-tree` **冲突时退出码非 0** ✓ 且输出的树**带冲突标记** ✗ ——
+`head -1` 会把标记一起提交 ✗。**这条比"CI 红了"重要** ✓：它是**静默**的（本地全绿 ✗）。
+
+**预防**：推送前跑一次
+`git show origin/main:docs/e2e/ledger.jsonl | python3 -c "import sys,json;[json.loads(l) for l in sys.stdin if l.strip()]"` ✓
+—— 一行命令，专抓这类"本地看不见"的坏数据 ✓。
 ## 2026-09-24 · run 35994723161 · `e2e (ubuntu 1.106.0)` 红：两条记法导航用例被"项目闭包未就绪"打成假红
 
 **产物原文**（`tests.failing_details`，一次拿到）：
