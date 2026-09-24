@@ -38,6 +38,21 @@ pub(super) struct Walk<'arena> {
     /// 展示副本共用（`check/mod.rs` 的 `display_notations`）。
     pub(super) display: crate::display::DisplayNotations,
     pub(super) builder: EnvBuilder<'arena>,
+    /// **影子环境**（T-K12b）：一份**只读给 judge 用**的环境，内容是"到目前为
+    /// 止已经 elaborate 且**已通过内核检查**的前缀"。它从 `self.ops` **惰性重放**
+    /// （[`Walk::shadow_env`]），检查序列**逐条镜像** `kernel_phase` 的主路径
+    /// （主声明 `try_check_declar`＝`ByName` 形式、归纳块逐成员检查），
+    /// 失败的不进环境、记进 [`Walk::shadow_failed`]。
+    ///
+    /// 为什么不直接用 `builder`：`builder` 最终要被 `kernel_phase` 的
+    /// `finish()` **消费**，而且 walk 阶段**不往里 add** 文件声明 ✗
+    /// （它只装 prelude + intern 名字）⇒ judge 拿它查不到前缀 ✓。
+    pub(super) shadow: EnvBuilder<'arena>,
+    /// 影子环境已重放到 `ops` 的哪个下标。
+    pub(super) shadow_upto: usize,
+    /// 影子重放中**内核拒绝**的那些 `ops` 下标（与 `kernel_phase` 的失败表同键：
+    /// 都按"命令序"索引 ✓）。
+    pub(super) shadow_failed: Vec<usize>,
     pub(super) known: KnownTable,
     pub(super) inductives: InductiveTable<'arena>,
     /// 源级 `def` 表（课程 Lean 化）：跨单元累加，`by` 引擎做一层 delta 展开用。
@@ -90,6 +105,48 @@ fn local<T: ?Sized>(r: &T) -> &T {
 }
 
 impl<'arena> Walk<'arena> {
+    /// **把影子环境推进到"当前已 elaborate 的前缀"**（T-K12b）。
+    ///
+    /// 惰性：只在第一次（以及每次有新 `ops` 之后）被调用时才重放新增的那几条
+    /// ⇒ **不用就零成本** ✓。重放的检查序列**逐条镜像** `kernel_phase`：
+    /// 主声明走 `try_check_declar`（`ByName` 形式，同 `kernel_phase.rs:251`），
+    /// 归纳块逐成员检查（同 `kernel_phase.rs:315`）；**内核拒绝的不进环境**
+    /// （check-then-add 语义 ✓），名字记进 `shadow_failed`。
+    pub(super) fn shadow_env(&mut self) -> &mut EnvBuilder<'arena> {
+        while self.shadow_upto < self.ops.len() {
+            let idx = self.shadow_upto;
+            match &self.ops[idx] {
+                PendingOp::Decl { declar, .. } => {
+                    let declar = declar.clone();
+                    self.shadow_check_and_add(&declar, idx);
+                }
+                PendingOp::InductiveBlock { declars, .. } => {
+                    for declar in declars.clone() {
+                        self.shadow_check_and_add(&declar, idx);
+                    }
+                }
+                _ => {}
+            }
+            self.shadow_upto += 1;
+        }
+        &mut self.shadow
+    }
+
+    /// 影子环境的一条"检查后加入"（check-then-add，与 `kernel_phase` 同序同语义）。
+    /// 检查走 `ExportFile`（`try_check_declar` 是它的方法）⇒ 借 `with_env` 一次；
+    /// **内核拒绝的不进环境** ✓，只记下标。
+    fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, idx: usize) {
+        let declar = declar.clone();
+        let ok = self
+            .shadow
+            .with_env(|env| env.try_check_declar(&declar).is_ok());
+        if ok {
+            let _ = self.shadow.add_declar(declar);
+        } else {
+            self.shadow_failed.push(idx);
+        }
+    }
+
     /// 扁平命令序走查。`flat` 是 `(单元下标, 命令)`，单文件时只有一个单元。
     #[allow(clippy::too_many_arguments)]
     pub(super) fn run<'src>(

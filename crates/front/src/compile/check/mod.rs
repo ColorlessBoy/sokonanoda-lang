@@ -708,6 +708,19 @@ fn run_pass(
         units,
         options,
     );
+    // **影子环境**（T-K12b）：一份**只给 judge 用**的环境。prelude 走**同一个助手**
+    // ⇒ 条件与顺序不可能与主环境分叉 ✓（分叉 = 判定义分叉 = 红线）。
+    // 它从 walk 的 `ops` **惰性重放**（不用就零成本 ✓）。
+    let shadow_arena = stumpalo::Arena::new();
+    let mut shadow = EnvBuilder::new(shadow_arena.as_arena_ref(), Config::default());
+    install_all_preludes(
+        &mut shadow,
+        &mut KnownTable::new(),
+        &mut InductiveTable::new(),
+        &mut DefTable::new(),
+        units,
+        options,
+    );
     let out = CompileOutput::default();
     let report = DocumentReport::default();
     let ops: Vec<PendingOp<'_>> = Vec::new();
@@ -769,6 +782,9 @@ fn run_pass(
     // 命令走查（elaborate → `PendingOp`）：批次 3 第三刀切到 `walk.rs`；
     // 这里的累加器按值交给 `Walk`，内核阶段再从 `walk` 取回（见文件尾）。
     let mut walk = walk::Walk {
+        shadow,
+        shadow_upto: 0,
+        shadow_failed: Vec::new(),
         display: display_notations(units),
         builder,
         known,
@@ -794,6 +810,15 @@ fn run_pass(
         &all_templates,
         &closure_prefixes,
     );
+    // **T-K12b 的一致性观测**：把影子环境推进到"全部已 elaborate 的前缀"
+    // （`finish_pass` 会把 `walk` 的字段移走 ⇒ 必须在这之前取数 ✓）。
+    // `SOKO_SHADOW_CHECK=1` 时打印影子的规模与失败数，供与内核阶段对照
+    // ——"影子可不可信"就是靠这条观测来判的（下一步升级成断言 ✓）。
+    let shadow_decls = walk.shadow_env().declaration_count();
+    let shadow_failed = walk.shadow_failed.len();
+    if std::env::var("SOKO_SHADOW_CHECK").is_ok() {
+        eprintln!("SHADOW: decls={shadow_decls} failed={shadow_failed}");
+    }
     kernel_phase::finish_pass(kernel_phase::Walked {
         display: walk.display,
         units,

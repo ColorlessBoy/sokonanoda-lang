@@ -1835,7 +1835,20 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 > * **T-K12a（✅ 已完成）**：内核 `EnvBuilder::with_env`（`694d75f` ✓ + 判据 ✓）
 >   + `install_all_preludes` 唯一实现（`d763e78` ✓）。
 >   **验收**：内核 60 条测试 + 往返回归判据 ✓。
-> * **T-K12b（下一步）**：**影子环境本身** —— `Walk` 新字段 `shadow: EnvBuilder<'arena>`
+> * **T-K12b（🚧 骨架已落地，2026-09-24）**：`Walk` 新增 `shadow: EnvBuilder<'arena>`
+>   / `shadow_upto` / `shadow_failed: Vec<usize>`（**按 `ops` 下标**记失败 ——
+>   `PendingOp::Decl` 自带 `cmd: usize`，正是 kernel 失败表的键 ✓）；`run_pass`
+>   建 `shadow_arena` + 用**同一个** `install_all_preludes` 装 prelude ✓；
+>   `Walk::shadow_env()` 从 `ops` **惰性重放**（`Decl`/`InductiveBlock` 逐条
+>   `with_env(|env| env.try_check_declar(&d))` ⇒ 过则 `add_declar`，不过记下标 ✓）。
+>   `SOKO_SHADOW_CHECK=1` 打印规模供对照 ✓。
+>   **首次观测（外层真编译）**：`unit01-sets-membership` → `decls=72 failed=3`；
+>   `unit12-solution` → `decls=85 failed=27`；同一文件 pass1/pass2 两次一致 ✓。
+>   ⚠ **注意 `--json` 会触发大量嵌套编译**（judge 合成的文档也会走 `run_pass` ✓，
+>   那些只有 prelude 的 12 条 ✗）⇒ 观测要看**最大的那条** ✓。
+>   **下一步（b 的验收）**：把这两个数与**内核阶段**的结果对照 —— `failed=27`
+>   偏高 ✗，必须查清是"影子检查得更严"还是"镜像不准" ✗（**这正是 b 要回答的
+>   问题**，答不上就不进 c ✓）。 —— `Walk` 新字段 `shadow: EnvBuilder<'arena>`
 >   + 从 `self.ops` **惰性重放**（`Decl`/`InductiveBlock` 逐条
 >   `try_check_declar`，**与 `kernel_phase` 的主路径逐条同款**：
 >   主声明用 `ByName` 形式（`kernel_phase.rs:251`）、签名探针才用 `ByIndex`
