@@ -305,7 +305,19 @@ pub fn tag_runs_with_notations(
     }
     // **要把记法符号喂给词法**：`↔`/`¬`/`≠` 不在数学符号码点类里，不喂就切成
     // `Ident`（于是走 `classify_ident` ⇒ `unknown_ident`，而不是 `Keyword`）。
-    let toks = match crate::token::tokenize_with_symbols(text, notations) {
+    // **`=` 不交给词法**（2026-09-24 修，R-2 的真因）：
+    // 词法在常规分支**之前**做"声明符号最长匹配"（`token.rs` 的 `declared_symbol_ahead`）
+    // ⇒ `fun (x : Nat) => z` 里 `=>` 的 `=` 会被吃成 `Sym("=")`，剩下的 `>` 没有
+    // 匹配臂 ⇒ `Err` ⇒ 下面**整段降级**成 1 个无 kind 的 run ⇒ webview 只画纯文本
+    // ⇒ **凡是 λ 出现在 goal/类型文本里的都掉色**（不止 unit12-synthesis 那两条）。
+    // `=` 在词法里有**专用臂**（且先认 `=>`），所以把它（以及词法保留符号）从
+    // "喂给词法的符号表"里滤掉；`names.notations` 仍用**完整**表 ⇒ `=` 继续是 keyword。
+    let lexer_symbols: Vec<String> = notations
+        .iter()
+        .filter(|s| s.as_str() != "=" && crate::token::lexer_reserved_symbol_char(s).is_none())
+        .cloned()
+        .collect();
+    let toks = match crate::token::tokenize_with_symbols(text, &lexer_symbols) {
         Ok(mut toks) => {
             toks.pop(); // Eof
             toks
@@ -1453,6 +1465,49 @@ end
             names.len(),
             SemanticKind::ALL.len(),
             "wire names must be unique"
+        );
+    }
+}
+
+/// **R-2 的判据**（2026-09-24）。单独一个模块名，避免与文件里既有的 `mod tests`
+/// 撞名；测的是同一件事：含 `=>` 的文本必须切成多段且带 kind。
+#[cfg(test)]
+mod r2_semantic_tests {
+    use super::*;
+
+    /// 修前：`=` 被当"声明符号"在词法里最长匹配吃掉 ⇒ 剩下的 `>` 无匹配臂 ⇒ 词法
+    /// `Err` ⇒ 整段降级成 **1 个无 kind 的 run** ⇒ webview 只画纯文本
+    /// ⇒ **凡 λ 出现在 goal/类型文本里的都掉色**。
+    #[test]
+    fn tag_runs_keeps_fat_arrow() {
+        let runs = tag_runs_with_notations(
+            "fun (x : Nat) => z",
+            &[],
+            &[],
+            &["=".to_string()], // 内建记法表里那个 `=`（真凶），不该被喂给词法
+        );
+        let rebuilt: String = runs.iter().map(|r| r.text.as_str()).collect();
+        assert_eq!(rebuilt, "fun (x : Nat) => z", "runs 必须能重建原文");
+        assert!(
+            runs.len() > 1,
+            "含 `=>` 的文本必须切成多段，实际 = {runs:?}"
+        );
+        assert!(
+            runs.iter().any(|r| r.kind.is_some()),
+            "至少要有一段带 kind（否则 webview 不上色），实际 = {runs:?}"
+        );
+    }
+
+    /// 反例守卫：**普通的 `=` 仍要着色** —— 修法只把它从"喂给词法的符号表"里
+    /// 滤掉，没有动分类（`=` 走词法的专用臂 ⇒ `keyword`）。
+    #[test]
+    fn tag_runs_keeps_plain_equality_coloured() {
+        let runs = tag_runs_with_notations("z = z", &[], &[], &["=".to_string()]);
+        let rebuilt: String = runs.iter().map(|r| r.text.as_str()).collect();
+        assert_eq!(rebuilt, "z = z");
+        assert!(
+            runs.iter().any(|r| r.kind.is_some()),
+            "`=` 仍必须带 kind，实际 = {runs:?}"
         );
     }
 }
