@@ -299,7 +299,12 @@ fn fold_collecting_inner(
     // `(x : α` 那 6 个字节上写 `∀`，括号配不平 ⇒ `splice` **整体放弃**、
     // 展示副本退回**完全不折**（`by_step_display_is_folded_but_the_judge_input_is_not`
     // 就是这么红的）。判据必须是**源文本**，不是 AST 形状。
-    if let Expr::Forall { binders, body, span } = &expr {
+    if let Expr::Forall {
+        binders,
+        body,
+        span,
+    } = &expr
+    {
         let writes_forall = span
             .start
             .offset

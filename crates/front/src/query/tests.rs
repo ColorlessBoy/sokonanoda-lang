@@ -645,7 +645,11 @@ theorem th : ax := ax
     );
     // **反向**：定理/公理/归纳类型没有"值"这一行（证明是另一件事）。
     assert_eq!(value_of("ax"), None, "`axiom` 不该有值");
-    assert_eq!(value_of("th"), None, "`theorem` 不该有值（用户要的是 def 的本质）");
+    assert_eq!(
+        value_of("th"),
+        None,
+        "`theorem` 不该有值（用户要的是 def 的本质）"
+    );
     // （`inductive` 的语法在夹具里另说；它的值本来也不该有——构造子表不是"定义"。）
 }
 

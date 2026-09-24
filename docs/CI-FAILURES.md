@@ -1,3 +1,20 @@
+## 2026-09-24 · run 35967571830（批次 T-D51+T-D50 / 0.65.4）· `lint` 红
+
+**现象**：`lint` job **10 秒**就红 ✗ —— `Format check (teaching crates)` 报
+`cargo fmt --check` 的 diff，全在 `crates/front/src/display.rs` 的
+`if let Expr::Forall { binders, body, span } = &expr {` 那一行（rustfmt 要把它
+拆成多行）。
+
+**原因**：T-D51 那几笔改动我**只跑了 `cargo build`/`cargo test`，没跑 fmt** ✗。
+本地判据全绿 ⇒ 我以为没事 —— 而 fmt 是 **CI 的独立 job**，本地没跑就等于没验证。
+
+**修复**：`cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp`
+（**绝不** `--all`：kernel 的 rustfmt.toml 要 nightly，`--all` 会重排整个内核）。
+
+**预防（写进纪律）**：**每次落 commit 前跑 `scripts/soko gate --fast`**
+（它含 fmt ✓，~30s ✓）—— 别只跑 `cargo test`。
+「本地判据」的定义里 **fmt 与 clippy 都算**，不是只有测试。
+
 # CI 失败记录（每次失败的原因与修复）
 
 > 目的：同一类失败不犯第二次。每次 CI 红了，在这里追加一条（失败原因、
