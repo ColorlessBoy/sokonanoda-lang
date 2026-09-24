@@ -25,6 +25,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -92,11 +94,34 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
         # **超时**（2026-09-24 加）：复现件里可能起 LSP / 等 I/O，挂住就会把整个
         # 门禁（以及 CI 的 `Gap ledger` 步骤）一起挂住 —— 实测本机卡过 40 分钟。
         # 超时按"环境/形状异常"判红（返回码 2 的语义），别静默跳过。
+        #
+        # ⚠ **必须连进程组一起杀**：这些复现件会**另起 LSP 子进程**，子进程握着
+        # stdout/stderr 管道 ⇒ `subprocess.run(timeout=…)` 只杀直接子进程，
+        # `communicate()` 仍会等所有写端关闭 ⇒ **照样挂死**（实测：加了 timeout
+        # 仍然卡住）。所以 `start_new_session=True` 建新会话，超时时 `killpg` 整组。
+        proc = subprocess.Popen(["bash", str(path)], cwd=ROOT, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True, env=clean_env(),
+                                start_new_session=True)
         try:
-            proc = subprocess.run(["bash", str(path)], cwd=ROOT, capture_output=True,
-                                  text=True, env=clean_env(), timeout=REPRO_TIMEOUT_S)
+            out, err = proc.communicate(timeout=REPRO_TIMEOUT_S)
         except subprocess.TimeoutExpired:
+            try:
+                os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            except Exception:
+                proc.kill()
+            try:
+                out, err = proc.communicate(timeout=10)
+            except Exception:
+                out, err = "", ""
             return ("script", 2, f"复现件超时（>{REPRO_TIMEOUT_S}s）——按环境/形状异常判红")
+        proc_returncode = proc.returncode
+
+        class _Done:
+            returncode = proc_returncode
+            stdout = out
+            stderr = err
+
+        proc = _Done()
         # **把复现件的实测值带出来**（2026-09-24 加）：以前只留 stderr 最后一行，
         # CI 上那条 `G-10 fixed 环境异常` 就只剩一句"环境异常"——**看不见到底哪一项
         # 不对**，只能靠猜（这次为此在本机重跑才发现是 stdout 收进了 Node 代理警告）。

@@ -32,7 +32,9 @@ run() {
   if "$@"; then
     echo "-- 第 ${step} 步通过"
   else
-    echo "-- 第 ${step} 步**没过**（退出码 $?）" >&2
+    # 先把退出码存下来再 echo —— `$?` 在 echo 之后是 **echo 自己**的状态（实测踩到）。
+    local code=$?
+    echo "-- 第 ${step} 步**没过**（退出码 ${code}）" >&2
     fail=1
   fi
 }
