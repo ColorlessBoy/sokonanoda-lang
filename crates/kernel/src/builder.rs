@@ -40,6 +40,49 @@ pub struct EnvBuilder<'a> {
 }
 
 impl<'a> EnvBuilder<'a> {
+    /// **把 builder 的字段临时装进一个 `ExportFile<'a>` 交给回调，回调结束后装回**
+    /// （T-K12 / K1-b；`ExportFile` 结构体一字不改）。
+    ///
+    /// 为什么需要它（见 `docs/design/by-prefix-reuse.md` §2.2）：front 的 judge 要判
+    /// 一条**合成声明**，而检查器必须看见与 builder **完全同一份** intern 表 ——
+    /// `NameNode::decl_idx` 是挂在**被 intern 的 NameNode** 上的全局槽位，换一份表
+    /// 就会**静默取到别人的声明**（不报错）。这里让检查器直接用 builder 的活表，
+    /// 指针恒等式天然成立。
+    ///
+    /// 而且它**从不 `add_declar`** ⇒ 合成声明不进环境，`decl_idx` 与环境都不被污染。
+    ///
+    /// `ExportFile`/`TcCtx`/`eval`/`conv`/`infer` **零改动** ⇒ 不碰
+    /// `ExportFile: Sync` 与 `ArenaRef: !Send/!Sync` 那对矛盾（K1-c 被否的理由）。
+    ///
+    /// ⚠ `f` 里**不要再嵌套** `with_env`（builder 此刻是空壳）；也别在 `f` 里碰
+    /// `self` —— 借用检查器会挡住，这正是我们想要的。
+    pub fn with_env<R>(&mut self, f: impl FnOnce(&mut ExportFile<'a>) -> R) -> R {
+        // 占位 dag：回调期间 builder 不可用 ⇒ 占位不会被读到（`new_local` 很便宜）。
+        let placeholder = Dag::new_local(&self.config);
+        let dag = std::mem::replace(&mut self.dag, placeholder);
+        let anon = self.anon;
+        let name_cache = dag.mk_name_cache(anon);
+        let mut env = ExportFile {
+            dag,
+            anon,
+            zero: self.zero,
+            declars: std::mem::take(&mut self.declars),
+            notations: std::mem::take(&mut self.notations),
+            name_cache,
+            config: self.config.clone(),
+            mutual_block_sizes: std::mem::take(&mut self.mutual_block_sizes),
+        };
+        let out = f(&mut env);
+        // 装回：`dag`/`declars`/`notations`/`mutual_block_sizes` 都是"搬来搬去"，
+        // 没有克隆 ⇒ 指针恒等式与 intern 表**逐字节不变**。`name_cache` 是派生
+        // 缓存，丢弃即可（builder 本来就不持有它）。
+        self.dag = env.dag;
+        self.declars = env.declars;
+        self.notations = env.notations;
+        self.mutual_block_sizes = env.mutual_block_sizes;
+        out
+    }
+
     pub fn new(arena: &'a ArenaRef<'a>, config: Config) -> Self {
         let mut dag = Dag::new_local(&config);
         let anon = NamePtr::global(dag.names.intern(arena, Name::Anon));

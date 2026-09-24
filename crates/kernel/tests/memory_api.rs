@@ -469,3 +469,64 @@ fn synthetic_declaration_needs_an_explicit_environment_limit() {
     env.try_check_declar_at(&axiom_f, EnvLimit::ByIndex(env_before - 1))
         .expect("real declaration checks under its own index");
 }
+
+/// **T-K12 的判据（往返回归）**：`EnvBuilder::with_env` 把 builder 的 intern 表
+/// **借给**检查器用，借完必须**原样装回**。这条测试钉的就是"装回之后 builder
+/// 还是原来那个 builder"——它是 K1-b 能成立的前提（检查器必须看见**同一份**表，
+/// 见 `docs/design/by-prefix-reuse.md` §2.2：`decl_idx` 挂在被 intern 的 NameNode 上，
+/// 换一份表会**静默取到别人的声明**）。
+#[test]
+fn with_env_lends_the_intern_tables_and_takes_them_back() {
+    let arena = Arena::new();
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let prop = b.mk_sort(b.zero());
+
+    // 前缀声明：`axiom A : Prop`。
+    let prefix = Declar::Axiom {
+        info: DeclarInfo {
+            name: b.name_from_str("A"),
+            uparams: b.alloc_levels_slice(&[]),
+            ty: prop,
+        },
+    };
+    b.add_declar(prefix).expect("add prefix");
+    let before = b.declaration_count();
+
+    // **合成声明**：先用**同一个 builder** 建（名字/类型都 intern 进同一份活表），
+    // 再借表检查它 —— 这正是 front 的 judge 要走的路。
+    // （这条测试只钉"环境往返"，所以合成声明用 `axiom` —— 没有值位，
+    //  不必构造引用前缀的表达式；`judge` 那边用的是 `def`，形状差异与本题无关。）
+    let synth = Declar::Axiom {
+        info: DeclarInfo {
+            name: b.name_from_str("synth"),
+            uparams: b.alloc_levels_slice(&[]),
+            ty: prop,
+        },
+    };
+    let seen = b.with_env(|env| {
+        assert_eq!(
+            env.declars.len(),
+            before,
+            "检查器看到的必须是 builder 的**同一份**声明表"
+        );
+        env.try_check_declar_at(&synth, EnvLimit::ByIndex(before)).is_ok()
+    });
+    assert!(seen, "合成声明应当被内核接受（`A : Prop` 的前缀下）");
+    assert_eq!(
+        b.declaration_count(),
+        before,
+        "合成声明**不许**进环境（`decl_idx` 与环境都不被污染）"
+    );
+
+    // 借完之后 builder 照常可用：继续装声明 + `finish()` ⇒ intern 表指针恒等式没坏。
+    let after = Declar::Axiom {
+        info: DeclarInfo {
+            name: b.name_from_str("B"),
+            uparams: b.alloc_levels_slice(&[]),
+            ty: prop,
+        },
+    };
+    b.add_declar(after).expect("add after with_env");
+    let env = b.finish();
+    assert_eq!(env.declars.len(), before + 1, "装回之后还能继续 add_declar");
+}
