@@ -711,16 +711,24 @@ fn run_pass(
     // **影子环境**（T-K12b）：一份**只给 judge 用**的环境。prelude 走**同一个助手**
     // ⇒ 条件与顺序不可能与主环境分叉 ✓（分叉 = 判定义分叉 = 红线）。
     // 它从 walk 的 `ops` **惰性重放**（不用就零成本 ✓）。
+    // ⚠ **默认不建**（`SOKO_SHADOW_CHECK` 才建）：影子环境是 T-K12b 的**实验品**
+    // ——对照判据已判定它与内核阶段**不等价** ✗（差在增量记账：`skip`/`trust`/
+    // pass1-pass2 ⇒ 影子偏严），所以它**不能**进判定路径。但每次编译都白装一份
+    // prelude 是**热路径成本** ✗ ⇒ 关进开关：默认零成本 ✓、要复现对照实验时打开 ✓。
+    // 结论与后续见 `docs/design/vscode-editor-feedback-plan.md` 的 T-K12b。
+    let shadow_experiment = std::env::var("SOKO_SHADOW_CHECK").is_ok();
     let shadow_arena = stumpalo::Arena::new();
     let mut shadow = EnvBuilder::new(shadow_arena.as_arena_ref(), Config::default());
-    install_all_preludes(
-        &mut shadow,
-        &mut KnownTable::new(),
-        &mut InductiveTable::new(),
-        &mut DefTable::new(),
-        units,
-        options,
-    );
+    if shadow_experiment {
+        install_all_preludes(
+            &mut shadow,
+            &mut KnownTable::new(),
+            &mut InductiveTable::new(),
+            &mut DefTable::new(),
+            units,
+            options,
+        );
+    }
     let out = CompileOutput::default();
     let report = DocumentReport::default();
     let ops: Vec<PendingOp<'_>> = Vec::new();
@@ -814,7 +822,11 @@ fn run_pass(
     // （`finish_pass` 会把 `walk` 的字段移走 ⇒ 必须在这之前取数 ✓）。
     // `SOKO_SHADOW_CHECK=1` 时打印影子的规模与失败数，供与内核阶段对照
     // ——"影子可不可信"就是靠这条观测来判的（下一步升级成断言 ✓）。
-    let shadow_decls = walk.shadow_env().declaration_count();
+    let shadow_decls = if shadow_experiment {
+        walk.shadow_env().declaration_count()
+    } else {
+        0
+    };
     let mut shadow_failed = walk.shadow_failed.clone();
     // **去重**：影子按"声明"记（一个 `inductive` 块里多条失败 = 多条 ✓），
     // 内核的失败表是 `HashMap<cmd, _>`（**按命令**一条 ✗）⇒ 不去重会把
@@ -857,7 +869,7 @@ fn run_pass(
         .filter(|c| shadow_covered.contains(c))
         .collect();
     kernel_failed.sort_unstable();
-    if std::env::var("SOKO_SHADOW_CHECK").is_ok() {
+    if shadow_experiment {
         eprintln!(
             "SHADOW: decls={shadow_decls} 一致={} shadow_failed={shadow_failed:?} \
              kernel_failed={kernel_failed:?}",
