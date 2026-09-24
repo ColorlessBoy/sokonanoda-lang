@@ -89,7 +89,18 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
     if path.suffix == ".sh":
         proc = subprocess.run(["bash", str(path)], cwd=ROOT, capture_output=True, text=True,
                               env=clean_env())
-        return ("script", proc.returncode, proc.stderr.strip().splitlines()[-1] if proc.stderr.strip() else "")
+        # **把复现件的实测值带出来**（2026-09-24 加）：以前只留 stderr 最后一行，
+        # CI 上那条 `G-10 fixed 环境异常` 就只剩一句"环境异常"——**看不见到底哪一项
+        # 不对**，只能靠猜（这次为此在本机重跑才发现是 stdout 收进了 Node 代理警告）。
+        # 与 e2e 那条教训同源：**失败通道要带原文**。取 stdout 尾行（复现件把实测值
+        # 打在这里）+ stderr 尾行，各自截断。
+        def _tail(text: str, lines: int = 1, width: int = 200) -> str:
+            rows = [r for r in text.strip().splitlines() if r.strip()]
+            return " / ".join(r.strip()[:width] for r in rows[-lines:])
+        detail = _tail(proc.stdout) or _tail(proc.stderr)
+        if detail and _tail(proc.stderr):
+            detail = f"{detail} ｜ stderr: {_tail(proc.stderr, 2, 120)}"
+        return ("script", proc.returncode, detail)
     if path.suffix == ".sokonanoda":
         proc = subprocess.run(
             [str(ROOT / "scripts" / "soko"), "grade", str(path)],
@@ -244,7 +255,8 @@ def cmd_check(args: argparse.Namespace) -> int:
         observed, expected, ok = judge(e, kind, code)
         bad += not ok
         print(f"{e['id']:<6}{status:<12}{kind:<12}{observed}"
-              f"{'' if ok else f'  ← 台账写的是「{expected}」，请更新'}")
+              f"{'' if ok else f'  ← 台账写的是「{expected}」，请更新'}"
+              f"{'' if ok or not note else f' ｜复现件：{note}'}")
     if bad:
         print(f"\n{bad} 条与台账不一致 —— 台账是契约：要么修好了（写 fixed_in），要么行为回退了。",
               file=sys.stderr)

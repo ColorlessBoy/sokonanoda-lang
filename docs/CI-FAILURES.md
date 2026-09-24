@@ -1,3 +1,29 @@
+## 2026-09-24 · run 35985274389 · `test` 红在 **Gap ledger**：G-10 复现件把 CI 环境误判成 exit 2
+
+**现象**（用户直接抓到的根因）：e2e 三平台全绿、lint 绿，只有 `test` 红 35m15s；
+`gap.py check` 报「1 条与台账不一致」：`G-10 fixed script 环境异常`
+—— 台账写「已修」，复现件却自己 `exit 2`（"环境/形状不对"）。
+
+**真因（两处，都是复现件自己的判据写得太死）**：
+1. **`2>&1` 把 Node 的代理警告收进了 JSON**：设了 `HTTPS_PROXY` 时 node 会往 stderr
+   打 `[UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental…`；脚本用
+   `Q="$(node … 2>&1)"` ⇒ `Q` 不是合法 JSON ⇒ python 判"不是可解析的信封"
+   ⇒ `shape=3` ⇒ **exit 2** ✗。（这一条我**早先修过一次**，被后来的 rebase 弄丢了
+   ——所以这次把理由写进脚本注释，别再丢。）
+2. **判据比契约更严**：脚本头部写着可接受的 parse 码有五个，代码里却写死
+   `code=="unexpected-token"` + `start==9 and end==9` ✗；而这份输入
+   （`infix:50 " e " <= => mem`）实际命中的是 **`notation-shape`**（`e` 是普通标识符词、
+   不能当记法符号），span 是 `(9, 14)` ⇒ 又判"既不是旧假绿也不是修后契约" ⇒ exit 2 ✗。
+
+**修复**：只收 stdout（`2>/dev/null`）；接受码集合按契约补齐（加 `notation-shape`）；
+span 只要求"整数且 `end >= start`"；**区分"旧假绿"的那条判据一个字没动**
+（全零 + `failed` 空 + `ok:true`）⇒ 假绿照样抓得住。实测：**exit 1（已修）** ✓。
+
+**顺带固化教训**：`gap.py` 的不一致行现在会带上**复现件的实测输出**
+（stdout 尾行 + stderr 尾行）—— 这次 CI 那条只写"环境异常"，
+**看不见到底哪一项不对**，只能靠本机重跑才发现。与 e2e 那条教训同源：
+**失败通道必须带原文**。
+
 ## 2026-09-24 · run 35979240866 · `test` 红在 **Gap ledger is consistent**
 
 **现象**：e2e **三个平台全绿** ✓（那条折腾了六轮的缓存用例终于绿了），

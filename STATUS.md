@@ -17,6 +17,31 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第六十一轮：**修 G-10 复现件的 CI 误判（0.65.5 的发版阻塞项）**）
+
+**背景**：上一轮 CI（run 35985274389）里 **e2e 三平台全绿 ✓、lint 绿 ✓**，
+只有 `test` 红 ✗ ⇒ 0.65.5 没发出来（最新 release 仍是 v0.65.3）。用户抓到根因：
+`gap.py check` 报 **G-10「环境异常」**（台账写 fixed，复现件自己 exit 2）。
+
+**两处真因**（都在复现件自己的判据里，不在产品代码里）：
+1. **`2>&1` 把 Node 的代理警告收进了 JSON** ✗ —— 设了 `HTTPS_PROXY` 时 node 往
+   stderr 打 `[UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental…`；
+   `Q="$(node … 2>&1)"` ⇒ 不是合法 JSON ⇒ 判"信封不可解析" ⇒ **exit 2**。
+   （**我早先修过一次、被 rebase 弄丢了** ⇒ 这次把理由写进脚本注释，别再丢。）
+2. **判据比契约更严** ✗ —— 头部写着可接受的 parse 码有五个，代码却写死
+   `code=="unexpected-token"` + `start==9 and end==9`；而这份输入实际命中
+   **`notation-shape`**（`e` 是普通标识符词、不能当记法符号），span `(9, 14)`。
+
+**修复**：只收 stdout ✓；接受码按契约补齐（加 `notation-shape`）✓；
+span 只要求"整数且 end ≥ start" ✓；**区分"旧假绿"的那条一个字没动** ✓
+⇒ 假绿照样抓得住 ✓。**实测：exit 1（已修）** ✓。
+
+**顺带固化教训**：`gap.py` 的不一致行现在带**复现件的实测输出**（stdout 尾行 +
+stderr 尾行）✓ —— 这次 CI 只写"环境异常"，看不见哪一项不对 ✗，只能本机重跑才找到 ✓。
+与 e2e 那条教训同源：**失败通道必须带原文** ✓。
+
+**goal**：轮次上限已按用户授权提到 **140** ✓ 并重新激活 ✓（`phase: active`）。
+
 ## 本轮进度（2026-09-24，第五十四轮：**e2e 三平台红 → 本地两版本全绿**）
 
 **这一轮全是 e2e 那条用例**（`reopening a project unit hits the compile cache`），
