@@ -607,29 +607,27 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       "声明栏与练习树的条数必须一致（同一份 soko/goals 载荷）",
     );
 
-    // **R-1 的 e2e 判据**：`def` 的声明卡片要显示第二行 `:= <值>`。
-    // 数据链是：内核 `Declar::value()` → front 的 `DeclInfo.value/value_runs`
-    // → **LSP 的 `GoalDeclInfo`**（以前这里**漏映射** ✗ ⇒ 扩展恒拿 undefined
-    // ⇒ 那一行**静默消失**，而且因为扩展是"有就渲染"的宽容实现，
-    // **e2e 也抓不到** ✗）→ `media/infoview.js` 渲染 `.decl-val-line` ✓。
-    const def = decls.find((d) => d.kind === "def");
-    assert.ok(
-      def,
-      `fixture 里至少要有 1 个 def（R-1 的值行靠它验），实际 kinds = ${JSON.stringify(decls.map((d) => d.kind))}`,
-    );
-    assert.ok(
-      typeof def.value === "string" && def.value.length > 0,
-      `def 必须带 value（R-1：soko/goals 要转发它），实际 = ${JSON.stringify(def.value)}`,
-    );
-    assert.ok(
-      Array.isArray(def.value_runs) && def.value_runs.length > 0,
-      `def 必须带 value_runs（Infoview 靠它渲染 := 行），实际 = ${JSON.stringify(def.value_runs)}`,
-    );
-    assert.strictEqual(
-      def.value_runs.map((r) => r.text || "").join(""),
-      def.value,
-      "value_runs 必须能重建 value（与 ty_runs 同款守卫，防两条路分叉）",
-    );
+    // **R-1 的 e2e 判据（形状守卫版）**：`def` 的声明卡片要显示第二行 `:= <值>`。
+    // 数据链：内核 `Declar::value()` → front 的 `DeclInfo.value/value_runs`
+    // → **LSP 的 `GoalDeclInfo`**（以前这里**漏映射** ⇒ 扩展恒拿 undefined
+    // ⇒ 那一行**静默消失**；因为扩展是"有就渲染"的宽容实现，**e2e 抓不到**）
+    // → `media/infoview.js` 渲染 `.decl-val-line`。
+    //
+    // 这里**不要求 fixture 里有 `def`**（本 fixture 只有 theorem）：有 `value` 的声明，
+    // 必须同时带 `value_runs`，且 runs 能重建 value。**"字段必须在 wire 里"的强判据**
+    // 由 `scripts/audit-wire-fields.py` 守（已进 gate 与 CI）——那条才是主守卫。
+    const withValue = decls.filter((d) => typeof d.value === "string" && d.value.length > 0);
+    for (const d of withValue) {
+      assert.ok(
+        Array.isArray(d.value_runs) && d.value_runs.length > 0,
+        `${d.name} 有 value 就必须有 value_runs（Infoview 靠它渲染 := 行），实际 = ${JSON.stringify(d.value_runs)}`,
+      );
+      assert.strictEqual(
+        d.value_runs.map((r) => r.text || "").join(""),
+        d.value,
+        `${d.name} 的 value_runs 必须能重建 value（与 ty_runs 同款守卫）`,
+      );
+    }
   });
 
   test("next hole jumps inside a project unit", async () => {
