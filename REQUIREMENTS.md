@@ -2241,3 +2241,48 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
   front 侧照 `ty_text` 的算法（`kernel_phase.rs:222` 的 `pp_expr` + 线 C 折叠）
   算 `val_text`。计划 **T-D52**（含判据与**性能必须先量**的要求——
   报告每次编译都构建，多算一次 `pp_expr` 是新增成本，超预算就改惰性）。
+
+---
+
+## 2026-09-24 · 用户补充的 4 条需求（第 97 轮收到）
+
+### R-1 `Set.mem def` 在 Infoview 里看不到第二行 `:=` 之后的数据
+
+> **用户原话**：`Set.mem def` 在 infoview 里没看到 第二行的 `:=` 后的数据，
+> 你查查 bug 产生的原因。
+
+**要求**：T-D52 落地的"声明卡片多一行 `:= <值>`"**必须对 `Set.mem def` 生效** ✗
+—— 现在看不到 ⇒ 是 bug ✓，**先查成因** ✓（不是先改 ✓）。
+
+### R-2 `unit12-synthesis` 的两个 goal 很奇怪、没完全 notation 化、也没高亮
+
+> **用户原话**：`unit12-synthesis.sokonanoda` 里的 `flawed_equalities_refuted` 和
+> `project_chain` 的 goal 很奇怪，没有完全 notation 化，infoview 里的目标
+> 也没有高亮。你查查 bug 产生的原因。
+
+**要求**：① 这两个声明的 goal 文本要**完全 notation 化**（`∈`/`⊆`/`=` 等 ✓，
+与课程一律写记法的口径一致 ✓）；② Infoview 的目标面板要**高亮** ✓。
+**先查成因** ✓（可能与 R-1 同源：都是"报告/显示路径"上的洞 ✓）。
+
+### R-3 project 模式下应有编译产物目录（`.sokonanoda/`），vscode 与 code agent 共用
+
+> **用户原话**：在 project 模式下，`sokonanoda.toml` 所在的根目录下，应该有
+> `build` 的文件才对，vscode 和 code agent 都应该在这里取编译后的数据，避免
+> 重复计算。比如创建一个 `.sokonanoda` 文件夹，把编译、以及以后的依赖啥的
+> 都放到这个文件夹下。
+
+**要求**：模块根下建 **`.sokonanoda/`** ✓，编译产物（以及将来的依赖等 ✓）放进去 ✓；
+**vscode 与 code agent 都从那里取** ✓ ⇒ **避免重复计算** ✓
+（这正是 T-K30 那条线的"模块级批量编译"的**用户侧理由** ✓；与 §14 的重构无关 ✓）。
+
+### R-4 VS Code 命令名标准化
+
+> **用户原话**：`vscode` 关于 `sokonanoda` 的命令都应该标准化一点，名字统一一点，
+> `Sokonanoda: <命令>(说明)`，每个开头都大写：`Sokonanoda: Infoview (目标面板)`
+> `Sokonanoda: Restart Server(重启服务器)` 啥的。
+
+**要求**：命令标题统一成 **`Sokonanoda: <Command> (说明)`** ✓ —— 前缀固定 ✓、
+命令词**首字母大写** ✓、括号里给中文说明 ✓。
+**同步义务**（AGENTS.md 硬规则 ✓）：`editor/vscode/` 的 README/CHANGELOG/package.json
+**与** `skills/` 三个技能 + `AGENTS.md` + `docs/vscode-dev-guide.md` **同一轮**更新 ✓，
+且 `crates/cli/tests/skill.rs` / `dsh.rs` 不许漂移 ✓。
