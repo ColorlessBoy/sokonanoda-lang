@@ -1837,7 +1837,9 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 >    `install_all_preludes(builder, known, inductives, defs, units, options)`
 >    —— 两处调用**同一个函数** ⇒ 条件不可能分叉 ✓；
 > 2. `run_pass` 再建 **arena₂ + `shadow: EnvBuilder`**，用**一次性**的 front 表
->    （`known₂`/`inductives₂`/`defs₂`，用完即弃）调同一个助手 ✓；
+>    （`known₂`/`inductives₂`/`defs₂`，用完即弃）调同一个助手 ✓，然后把它作为
+>    **`Walk` 的新字段**（`shadow: EnvBuilder<'arena>`）传进去 ✓（同寿命 ⇒
+>    不需要任何 unsafe / thread-local ✓）；
 > 3. walk 拿到 `shadow: &mut EnvBuilder`：**每 elaborate 出一个声明**就
 >    `shadow.try_check_declar_at(&d, EnvLimit::ByIndex(k))`（k = `shadow.declaration_count()`）
 >    ⇒ `Ok` 才 `add_declar`，`Err` 记进**影子失败表**（与 kernel 阶段同语义 ✓）；
