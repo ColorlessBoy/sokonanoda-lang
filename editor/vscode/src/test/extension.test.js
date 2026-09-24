@@ -786,11 +786,18 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
         5,
       );
       const warm = Date.now() - start;
+      // **时间只记录，不当判据**（2026-09-24 最终定案）。
+      //
+      // 产物里的原文（`tests.failing_details`）：`冷 88ms / 热 110ms` —— ubuntu 上
+      // **冷开只有 88ms**（本地 509ms）⇒ **冷开本来就命中了缓存**，两边剩下的都只是
+      // "重启服务 + 重同步"的固定开销 ⇒ 这条用例的前提（"冷开慢、热开快"）
+      // **在该环境根本不成立**。任何形如 `warm < cold / N` 的阈值都会随机器变。
+      //
+      // ⇒ 这层只断言**结构性、任何环境都成立**的两件事：冷开与热开都拿到诊断
+      //   （见上面的 `timeOpen` 与 `waitFor`），时间进 `perfNote` 供人看趋势。
+      //   "重开命中缓存"的**结构证据**由进程内套件守（`perf_course_*`、CLI 的
+      //   "build 预热缓存"用例）——那层是确定性的。
       perfNote(`e2e cache: cold=${cold}ms warm=${warm}ms`);
-      assert.ok(
-        warm * 3 < cold,
-        `重开必须命中缓存（冷 ${cold}ms / 热 ${warm}ms，要求 热 < 冷/3；本地余量约 9×）`,
-      );
     } finally {
       watch.dispose();
       // **清理失败不算用例失败**：断言已经跑完，删不掉临时夹具是环境问题
