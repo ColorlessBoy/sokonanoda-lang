@@ -270,6 +270,21 @@
       if (decl && Array.isArray(decl.ty_runs) && decl.ty_runs.length > 0) {
         row.appendChild(codeBlock("decl-ty", decl.ty_runs, (decl && decl.ty) || ""));
       }
+      // **声明的值**（T-D52 / 用户第 8 条反馈）：`def` 的 `:=` 之后那个东西。
+      //
+      // 用户原话：「def 的符号，再声明里要多一行内容，对应它们的 `:=` 之后的那个
+      // 真正定义，只是它们的类型已经提供不了足够的信息了。比如 `Set.mem` 的类型
+      // 完全看不出它的本质是什么」——类型行下面是
+      // `:= fun (α : Type 0) (a : α) (A : Set α) => A a`。
+      //
+      // `theorem`/`axiom`/`inductive` **没有**值（证明/公设/构造子表都不是"定义"）
+      // ⇒ 服务端不给 `value`，这里自然不渲染那一行。
+      if (decl && Array.isArray(decl.value_runs) && decl.value_runs.length > 0) {
+        const valLine = el("div", "decl-val-line");
+        valLine.appendChild(el("span", "decl-val-label", ":="));
+        valLine.appendChild(codeBlock("decl-val", decl.value_runs, (decl && decl.value) || ""));
+        row.appendChild(valLine);
+      }
       declsBody.appendChild(row);
     });
   }

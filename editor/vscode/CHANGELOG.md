@@ -1,3 +1,16 @@
+## [0.65.5] - 2026-09-24
+
+### Added
+
+- **声明栏多一行"真正定义"**：`def` 的卡片在类型下面显示 `:=` 之后那个值——
+  类型常常看不出一个定义的本质（`Set.mem` 的类型是
+  `forall (α : Type 0), α -> Set α -> Prop`，而它的值是
+  `fun (α : Type 0) (a : α) (A : Set α) => A a`）。
+  `theorem`/`axiom`/`inductive` 没有值，所以不显示那一行。
+  树视图里同样能看到（悬停声明名）。
+  `soko/goals` 的每个声明因此多了 `value` / `value_runs` 两个字段
+  （`docs/protocol.md`）。
+
 ## [0.65.4] - 2026-09-24
 
 ### Added

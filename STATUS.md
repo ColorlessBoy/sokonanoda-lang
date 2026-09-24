@@ -17,6 +17,30 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第四十九轮：**T-D52 完成（数据层 + 编辑器那一行），本批可发 0.65.5**）
+
+**T-D52 完成**（用户第 8 条反馈："def 的符号，在声明里要多一行内容，对应它们的
+`:=` 之后的那个真正定义……比如 `Set.mem` 的类型完全看不出它的本质是什么"）：
+* **内核**：`Declar::value()` —— **纯读访问器**，不碰判定（红线 ✓）。
+* **前端**：`DeclState.val_text`（与 `ty_text` 同形状：`pp_expr` + 线 C 折叠）；
+  只有 `def`/`opaque` 有，`theorem`/`axiom`/`Open 练习` 为 `None`。
+* **查询层**：`DeclInfo.value` / `value_runs`（`query goals` 与 `soko/goals` 都带；
+  `docs/protocol.md` 已同步）。
+* **编辑器**：Infoview 声明卡片类型行下面多一行 `:= <值>`
+  （`media/infoview.js` + `infoview.css` 的 `.decl-val-line`/`.decl-val`——
+  值比类型**亮一档**，因为用户要它正是"类型看不出本质"）；树里放进 tooltip。
+* **实测**：`Set.mem` → `fun (α : Type 0) (a : α) (A : Set α) => A a` ✓；
+  `Set` → `fun (α : Type 0) => α -> Prop`；`axiom`/`theorem` → `None` ✓。
+* **判据**：`a_def_carries_its_value_but_a_theorem_does_not`（含反向断言）；
+  `cargo test --workspace` **exit 0**；stub 宿主 **34/34**。
+* **性能（计划要求"必须先量"）**：冷缓存 A/B `grade lib/Set.sokonanoda` ×3 ——
+  旧（0.65.3）1.74/1.70/1.51s、新 1.91/1.66/1.61s ⇒ **中位数 1.70 → 1.66s，无退化**。
+
+**⬆ BUMP 0.65.5** + CHANGELOG + 协议文档。
+**批次 e2e**：`24 passed / 1 failed`，唯一失败仍是
+`reopening a project unit hits the compile cache`（**`EPERM`**，本机删除限制 ✓
+环境 ✓ 非产品 ✓）。
+
 ## 本轮进度（2026-09-24，第四十七轮：**批次收尾 —— T-D50 完成，本批可发 0.65.4**）
 
 **本批 = T-D51 + T-D50**（用户第 7 条反馈的"统一修复"），本地全部做完、**只推一次**。

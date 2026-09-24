@@ -3302,7 +3302,13 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 > **1.91 / 1.66 / 1.61s** ⇒ **中位数 1.70 → 1.66s，无退化**（在噪声内）。
 > 报告的每次构建多算一遍 `pp_expr(value)`，在这份"很多 def"的文件上量不出成本。
 >
-> 待做：Infoview 声明栏渲染那一行（`editor/vscode/`）+ e2e 用例 #10。
+> **编辑器那一行也做完了**：Infoview 声明卡片的类型行下面多一行
+> `:= <值>`（`media/infoview.js` 的 `renderDecls` + `infoview.css` 的
+> `.decl-val-line`/`.decl-val-label`/`.decl-val`——值比类型**亮一档**，因为用户
+> 要它正是"类型看不出本质"）；树里的声明条目把值放进 **tooltip**
+> （树的行高固定，多一行会打散"一行一声明"的节奏）。
+> 客户端契约：`soko/goals` 的每个声明多 `value` / `value_runs` 两个字段
+> （`docs/protocol.md` 同步）。stub 宿主 **34/34** ✓。
 
 - **为什么**：`Set.mem` 的类型是
   `forall (α : Type 0), α -> Set α -> Prop` —— 看了**不知道它是什么**；
@@ -3695,7 +3701,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D41` 文档同步
 - [x] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
 - [x] `T-D51` 折叠层扩到 prefix / postfix / binder / 零元（`forall` → `∀` 等一批符号）
-- [ ] `T-D52` `def` 的声明多一行"真正定义"（`:=` 之后的 body）
+- [x] `T-D52` `def` 的声明多一行"真正定义"（`:=` 之后的 body）
   - ⬆ **BUMP**：`patch` —— 批次 4 收尾（含 rename/highlight 不再误伤 binder）
 
 #### 批次 5 · 线 K：内核提速（minor）

@@ -322,6 +322,8 @@ Response:
   "range": {"start": {...}, "end": {...}},
   "ty": "And a b -> And b a",
   "ty_runs": [{"text": "And", "kind": "axiom_use"}, {"text": " a b -> And b a"}],
+  "value": null,
+  "value_runs": [],
   "goal": "And b a",
   "goals": ["And b a"],
   "binders": [{"name": "a", "ty": "Prop", "ty_runs": [{"text": "Prop", "kind": "sort"}]},
@@ -338,6 +340,14 @@ Response:
   semantic runs (same vocabulary as `goal_runs`, §`soko/stateAt`) — the Infoview
   declaration list renders `ty_runs` as a small coloured hint and uses `range`
   to jump to the declaration;
+- `value`/`value_runs` are the declaration's **value** (what follows `:=`) —
+  present for `def`/`opaque` only (`theorem`/`axiom`/`inductive` have none, and
+  open exercises have none yet). Same shape as `ty`/`ty_runs`: kernel-rendered
+  text that went through the same notation folding, plus semantic runs. The
+  Infoview declaration list renders it as a second line (`:= …`) right under
+  the type — a `def`'s type often cannot tell you what it *is*
+  (`Set.mem`'s type is `forall (α : Type 0), α -> Set α -> Prop`; its value is
+  `fun (α : Type 0) (a : α) (A : Set α) => A a`);
 - `goals` lists **every** open goal after the last recorded tactic (the current
   goal first) for `by` declarations, or the single walked remaining goal for
   non-`by` open exercises; empty for non-open declarations. It is the

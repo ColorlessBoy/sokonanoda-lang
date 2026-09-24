@@ -407,6 +407,12 @@ class GoalsTreeDataProvider {
         : vscode.TreeItemCollapsibleState.None);
       item.description = `${decl.kind} · ${statusLabel(decl.status)}`;
       item.iconPath = statusIcon(decl.status);
+      // **声明的值**（T-D52 / 用户第 8 条反馈）：`def` 的 `:=` 之后那一行。
+      // Infoview 卡片里那一行是**主**展示（`media/infoview.js`）；树这边放
+      // tooltip——树的行高是固定的，多一行会把"一行一声明"的节奏打散。
+      if (typeof decl.value === "string" && decl.value !== "") {
+        item.tooltip = codeMarkdown(`${decl.ty ?? ""}\n:= ${decl.value}`);
+      }
       if (decl.status === "open") {
         item.contextValue = "openExercise";
         // 请求发起时钉住的 URI（`requestedUri`），**不是** `this.uri`：
