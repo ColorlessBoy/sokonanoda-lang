@@ -2296,6 +2296,24 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 > `project_chain` 的 goal 很奇怪，没有完全 notation 化，infoview 里的目标
 > 也没有高亮。你查查 bug 产生的原因。
 
+> **✅ 根因查明（2026-09-24，第 99 轮）—— 它其实是两个不同的问题** ✓：
+> **(a) goal 没记法化** ✗ ⇒ **源码本身就没记法化** ✓：
+> `courses/set-theory/units/unit12-synthesis.sokonanoda` 里那两条用的是**全显式**写法 ✓
+> （`Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat) …` ✓），
+> 并且带了**豁免注释** `-- soko:notation-ok: R5：λ 操作数补不出前导类型参数` ✓
+> ⇒ 记法门禁**放行**了它 ✓。**所以这是记法引擎的能力限制** ✗（**R5**：操作数是
+> λ 时补不出前导类型参数 ✓），**不是显示 bug** ✓ —— goal 忠实显示了源码 ✓。
+> **(b) goal 不高亮** ✗ ⇒ **与 R-1 完全同一类 bug** ✓：
+> `GoalDeclInfo`（`crates/lsp/src/protocol.rs`）有 `goal`/`goals` ✓
+> 但**没有 `goal_runs`** ✗；而 `soko/stateAt` 的 `StateGoalInfo` **有** `goal_runs` ✓
+> ⇒ 声明面板的 goal 拿不到语义分段 ⇒ 前端无法高亮 ✓✗（同 R-1 的"三段式断链" ✓）。
+>
+> **⇒ 拆分（T-A4 的结论）** ✓：
+> * **(b) 现在就修** ✓：`GoalDeclInfo` 加 `goal_runs`（+ 若需要 `goals_runs` ✓）
+>   并在 `query_map::decl_info` 映射 ✓（与 R-1 同款、同判据 ✓）；
+> * **(a) 重新定级** ✗：属**记法引擎特性**（R5 ✓）⇒ 单独条目 ✓
+>   —— 在引擎支持之前，那两条**只能**写显式形式 ✓（豁免注释就是为此存在的 ✓）。
+
 **要求**：① 这两个声明的 goal 文本要**完全 notation 化**（`∈`/`⊆`/`=` 等 ✓，
 与课程一律写记法的口径一致 ✓）；② Infoview 的目标面板要**高亮** ✓。
 **先查成因** ✓（可能与 R-1 同源：都是"报告/显示路径"上的洞 ✓）。
