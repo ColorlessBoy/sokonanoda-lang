@@ -1,5 +1,20 @@
 # 当前状态与进度日志（agents 先读这里）
 
+> 快照：2026-09-24（**第 87 轮**：**0.65.5 已发版并核对**（`gh release list` 显示
+> `sokonanoda v0.65.5 Latest`，26 assets ✓）；计划进度 **120/124**；线 K 的性能线
+> 经过四轮取证后**做了负责任的收口**：K1 系（T-K12c 接线 + T-K13 接线）**存档**，
+> 原因是机制级的 —— `decl_idx` 是"每个名字全局唯一"的槽位 ⇒ **两个环境无法共存**
+> ⇒ 唯一出路是"把 check-then-add 移进 walk"的内核级重构；收益（`judge_infer` 的
+> **247 次 miss = 9.5s / 12.4s**）与验收工具（`SOKO_JUDGE_STATS` +
+> `SOKO_SHADOW_CHECK` + `kernel-check.sh` 五步）**都已记录在案** ✓。
+> **T-K30**（`build <dir>` 分组）经三轮取证后**重新定级**：现有 API 下做不到
+> （`plan_project` 只加载**单入口闭包** ⇒ 同模块互不 import 的文件是不同闭包），
+> 需要**新的 front API**（"把一个模块根的全部文件当一个 unit 集编一次"）+
+> `ok` 语义论证；基线已量（**146.07s / 35 文件**，冷缓存）。
+> **T-K31**（`TcCache::new` 每声明 4MB）根因已确认，待实施。
+> 课程门禁基准 **36 目标 · 328 checked · 99 open · 0 判负**（全程未变 ✓）。
+
+
 > 快照：2026-09-21（第一百二十九轮：**逐 surface 的判别性** —— 线 C 收口并发版；
 > 折叠开关 `SOKO_NO_NOTATION_FOLD=1` 实测 **3 红 3 绿**（与设计逐格一致）；
 > 课程门禁 36 目标 · 328 checked · 99 open · 0 判负**逐项不变**；版本 **0.65.0**）
@@ -10,6 +25,25 @@
 > 经验台账 = `docs/LESSONS.md`；CI 失败台账 = `docs/CI-FAILURES.md`；发布 = `docs/RELEASE.md`；
 > agent 入口 = `AGENTS.md` + `skills/`；**harness 适配 = `docs/design/deepseek-harness.md`**；
 > **agent 查询通道 = `docs/design/agent-query-channel.md`**（ROADMAP I15）。
+
+## 第 62–87 轮（2026-09-24）：线 D 收尾 + 线 K 性能线的取证与收口
+
+**已发版** ✓：**0.65.5**（含 G-10 复现件修复、T-D24 记法符号高亮、T-K02 五步验收
+工具链、1.106 e2e 假红修复）；auto-tag → release → `gh release list` **闭环核对** ✓。
+
+**完成** ✓：T-D24（`documentHighlight`）、T-K02（`arena.rs` 收集逻辑 + 判负语义 +
+`kernel-check.sh` + `architecture.md` §6.1）、T-K10（`by-prefix-reuse.md` 设计文档）、
+T-K11（K1-a 机制，**实测零收益** ⇒ 记为阴性实验，bump 顺延）、T-K12a（内核
+`EnvBuilder::with_env` + `install_all_preludes` 唯一实现）、T-K13 内核侧
+（六个 interner + `Dag` 的 `Clone` + `snapshot()` + 判据）。
+
+**存档** ⏸（附机制级理由，非"没时间"）：T-K12c、T-K13 的 front 接线 ——
+`decl_idx` 全局槽位 ⇒ 两环境不可共存 ⇒ 需"check-then-add 移进 walk"的内核级重构。
+
+**重新定级** ✗：T-K30 —— 需新 front API（模块级批量编译）+ `ok` 语义论证。
+
+**顺带修的** ✓：`gap.py` 复现件超时要**连进程组一起杀**（子进程握管道会照样挂死）；
+`kernel-check.sh` 的 `$?` 取值；影子实验关进 `SOKO_SHADOW_CHECK`（默认零成本）。
 
 ## 一句话
 
