@@ -185,6 +185,9 @@ pending=$(grep -oE '^ +[0-9]+ pending' "$raw_log" | tail -1 | grep -oE '[0-9]+' 
 # 同时红，却只能猜"大概是那条比值断言"。mocha 的失败列表是 `  1) <用例名>` 形状
 # （套件头那一行是 `1) <套件名>`，靠"不是套件名"过滤不掉就都留着——给人和 agent 读）。
 failing_cases=$(grep -oE '^ +[0-9]+\) .+' "$raw_log" | sed -E 's/^ +[0-9]+\) //' | sort -u | paste -sd '|' - || true)
+# **失败断言原文**（2026-09-24 加）：只有用例名还是不够——上一轮为了拿到"到底哪条
+# 断言红了"白跑了两轮 CI（产物里没有当轮日志）。这里把错误行一起记进台账。
+failing_details=$(grep -aE '^ +(AssertionError|Error)[: ]' "$raw_log" | head -3 | tr '\n' ' ' | cut -c1-400 || true)
 vscode_version=$(grep -m1 -oE 'Validated version: [0-9.]+' "$raw_log" | grep -oE '[0-9.]+' || echo "unknown")
 server_line=$(grep -m1 'server-version：' "$raw_log" | sed 's/.*server-version：//' || true)
 # macOS 有 shasum、Linux 常用 sha256sum——两个都试，取不到就记 unknown（不让记账
@@ -224,7 +227,7 @@ trimmed="docs/e2e/logs/${date%%T*}-${short_sha}-vc${test_version}.log"
 
 VERSION="$version" SHA="$sha" SHORT_SHA="$short_sha" DATE="$date" \
 DIRTY="$dirty" STATUS="$status" PASSING="$passing" FAILING="$failing" PENDING="$pending" \
-FAILING_CASES="$failing_cases" \
+FAILING_CASES="$failing_cases" FAILING_DETAILS="$failing_details" \
 VSCODE_VERSION="$vscode_version" SERVER_LINE="$server_line" LSP_SHA="$lsp_sha" \
 TRIMMED="$trimmed" PROFILE="$profile" GREP="$grep_name" python3 - <<'PY'
 import json, os, pathlib, platform
@@ -252,6 +255,8 @@ entry = {
         "failing_cases": [
             name for name in os.environ.get("FAILING_CASES", "").split("|") if name
         ],
+        # 失败**断言原文**：只给用例名还要再跑一轮才知道红在哪（吃过这个亏）。
+        "failing_details": os.environ.get("FAILING_DETAILS", ""),
     },
     "exit": int(os.environ["STATUS"]),
     # 被测服务器：版本自述那行 + 二进制指纹前 16 位（能看出"测的是不是旧构建"）。

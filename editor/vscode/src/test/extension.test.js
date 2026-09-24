@@ -763,6 +763,15 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       // （全量跑时就是被这个判成假的"热开又编了一遍"）。
       const beforeCold = cacheStamp();
       const cold = await timeOpen(coldUri, "T-A60-1 冷开", () => watch.count(coldUri) >= 1);
+      // **等缓存条目落盘再断言**（2026-09-24 修）：诊断是服务端**发布**的，缓存是
+      // 编译完**写**的——两者之间有窗口，慢 runner（ubuntu）上诊断先到、写还没落
+      // ⇒ "冷开写了 ≥1 条"会**假红**。原代码假设"诊断到了 ⇒ 缓存也写好了"。
+      await waitFor(
+        "T-A60-1 冷开：缓存条目落盘",
+        () => cacheStamp().some((entry) => !beforeCold.includes(entry)),
+        WAIT_MS,
+        5,
+      );
       const added = cacheStamp().filter((entry) => !beforeCold.includes(entry));
       assert.ok(
         added.length > 0,
