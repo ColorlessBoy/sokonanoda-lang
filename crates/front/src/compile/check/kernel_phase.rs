@@ -206,6 +206,8 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                 by_steps,
                                 hints: Vec::new(),
                                 ty_text,
+                                // **Open 练习没有值**（还没证/还没写）——T-D52。
+                                val_text: None,
                             });
                         }
                     }
@@ -226,6 +228,21 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                         })
                     })
                     .ok()
+                    .map(|text| {
+                        crate::display::print_back(&text, &display)
+                            .as_display_str()
+                            .to_string()
+                    });
+                    // **声明的值**（T-D52）：与 `ty_text` 同一形状算一遍
+                    // （内核 pp + 线 C 折叠）。只有 `def`/`opaque` 有值。
+                    let val_text = quiet_catch(|| {
+                        env.with_tc(EnvLimit::Empty, |tc| {
+                            let val = declar.value()?;
+                            Some(tc.with_pp(|pp| pp.pp_expr(val)))
+                        })
+                    })
+                    .ok()
+                    .flatten()
                     .map(|text| {
                         crate::display::print_back(&text, &display)
                             .as_display_str()
@@ -264,6 +281,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                 by_steps,
                                 hints: Vec::new(),
                                 ty_text,
+                                val_text,
                             });
                         }
                         Err(e) => {
@@ -329,6 +347,7 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                 by_steps: Vec::new(),
                                 hints: Vec::new(),
                                 ty_text: None,
+                                val_text: None,
                             });
                         }
                         Some(err) => {

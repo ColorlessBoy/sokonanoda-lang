@@ -69,6 +69,13 @@ pub struct DeclInfo {
     /// 内核渲染的声明类型（签名）；未知时为 `None`。
     pub ty: Option<String>,
     pub ty_runs: Vec<RunInfo>,
+    /// **声明的值**（`:=` 之后那个东西，T-D52 / 用户第 8 条反馈）：只有
+    /// `def`/`opaque` 有。类型看不出"本质"时，这一行就是答案——
+    /// `Set.mem` 的类型是 `forall (α : Type 0), α -> Set α -> Prop`，
+    /// 而它的值是 `fun (α : Type 0) (a : α) (A : Set α) => A a`。
+    pub value: Option<String>,
+    /// 值的语义分段（与 `ty_runs` 同一口径；客户端照着上色）。
+    pub value_runs: Vec<RunInfo>,
     pub goal: Option<String>,
     /// 最后一条已记录 tactic 之后的**全部**未闭合目标（当前目标在前）；
     /// 非 `by` 的开放练习是走查得到的那一个；非开放声明为空。

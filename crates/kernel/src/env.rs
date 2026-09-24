@@ -184,6 +184,22 @@ impl<'a> Declar<'a> {
             | Opaque { info, .. } => info,
         }
     }
+
+    /// 声明的**值**（`:=` 之后那个东西）——只有 `Definition`/`Opaque` 有。
+    ///
+    /// **为什么加它**（计划 T-D52，用户第 8 条反馈）：声明栏只显示类型时，
+    /// `Set.mem` 的 `forall (α : Type 0), α -> Set α -> Prop` **看不出它的本质**；
+    /// 用户要的是 `:= fun (α : Type 0) (a : α) (A : Set α) => A a` 那一行。
+    /// 值一直在内核手里（`Declar::Definition { info, val, hint }`），只是
+    /// `info()` 没暴露 ⇒ 补一个**纯读访问器**。
+    ///
+    /// **判定红线**：这是只读访问器，不改变任何判定路径。
+    pub fn value(&self) -> Option<ExprPtr<'a>> {
+        match self {
+            Declar::Definition { val, .. } | Declar::Opaque { val, .. } => Some(*val),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

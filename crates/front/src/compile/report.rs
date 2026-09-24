@@ -107,6 +107,12 @@ pub struct DeclState {
     /// `axiom And.intro : forall (a : Prop), …`）。声明名 hover 与练习
     /// 面板显示用；Open 练习来自 elaborated type。
     pub ty_text: Option<String>,
+    /// **声明的值**（`:=` 之后那个东西，T-D52 / 用户第 8 条反馈）。
+    ///
+    /// 只有 `def`/`opaque` 有；`theorem`/`axiom`/`inductive` 是 `None`
+    /// （用户要的是 `def` 的"本质"——证明是另一件事）。
+    /// 与 `ty_text` 同一形状：内核 pp 出来再过一遍**线 C 的记法折叠**。
+    pub val_text: Option<String>,
     /// Open exercises: when the remaining goal's head is a constructor with a
     /// known template, a full-application skeleton with auto-filled parameters
     /// and `sorry` for the proof fields (e.g. `And.intro a b sorry sorry`).

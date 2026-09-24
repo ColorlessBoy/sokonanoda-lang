@@ -1006,6 +1006,7 @@ pub(crate) fn failed_state(
         by_steps: Vec::new(),
         hints: Vec::new(),
         ty_text: None,
+        val_text: None,
     }
 }
 

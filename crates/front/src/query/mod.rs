@@ -754,6 +754,12 @@ impl QueryDoc {
                     end: d.span.end.offset,
                     ty: d.ty_text.clone(),
                     ty_runs,
+                    value: d.val_text.clone(),
+                    value_runs: d
+                        .val_text
+                        .as_deref()
+                        .map(|v| self.runs(&decls, &notations, v, &[]))
+                        .unwrap_or_default(),
                     goals: if open {
                         d.by_steps
                             .last()

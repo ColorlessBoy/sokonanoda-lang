@@ -3286,6 +3286,24 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 > `:=` 之后的那个真正定义，只是它们的类型已经提供不了足够的信息了。比如
 > `Set.mem` 的类型完全看不出它的本质是什么」。
 
+> **🚧 数据层已完成（2026-09-24），编辑器那一行待做。**
+>
+> 已完成：内核 `Declar::value()`（纯读访问器 ✓ 不碰判定）· front
+> `DeclState.val_text`（与 `ty_text` 同一形状：`pp_expr` + 线 C 折叠）·
+> `DeclInfo.value`/`value_runs` 透出（`query goals` / `soko/goals` 都带）·
+> 判据 `query::tests::a_def_carries_its_value_but_a_theorem_does_not`。
+>
+> **实测**（`query goals`）：`Set.mem` 的 `value` =
+> `fun (α : Type 0) (a : α) (A : Set α) => A a` ✓（用户举的那个例子）；
+> `Set` = `fun (α : Type 0) => α -> Prop`；`axiom`/`theorem` = `None` ✓。
+>
+> **性能（计划要求"必须先量"）**：冷缓存 A/B（`grade courses/set-theory/lib/
+> Set.sokonanoda`，各 3 轮）旧（0.65.3）**1.74 / 1.70 / 1.51s**、新（0.65.4）
+> **1.91 / 1.66 / 1.61s** ⇒ **中位数 1.70 → 1.66s，无退化**（在噪声内）。
+> 报告的每次构建多算一遍 `pp_expr(value)`，在这份"很多 def"的文件上量不出成本。
+>
+> 待做：Infoview 声明栏渲染那一行（`editor/vscode/`）+ e2e 用例 #10。
+
 - **为什么**：`Set.mem` 的类型是
   `forall (α : Type 0), α -> Set α -> Prop` —— 看了**不知道它是什么**；
   而它的 `:=` 之后是 `fun (α : Type 0) (a : α) (A : Set α) => A a`

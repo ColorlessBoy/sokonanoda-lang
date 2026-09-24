@@ -610,6 +610,45 @@ infix:50 \" ⊆ \" => Set.subset
 theorem open_prefix (α : Type) (A B : Set α) : A ⊆ B -> A ⊆ B := fun (h : A ⊆ B) => sorry
 ";
 
+/// **T-D52 的判据**：`def` 的声明带**值**（`:=` 之后那个东西），
+/// `theorem`/`axiom`/`inductive` **不带**。
+///
+/// 用户原话：「def 的符号，再声明里要多一行内容，对应它们的 `:=` 之后的那个
+/// 真正定义，只是它们的类型已经提供不了足够的信息了。比如 `Set.mem` 的类型
+/// 完全看不出它的本质是什么」。
+#[test]
+fn a_def_carries_its_value_but_a_theorem_does_not() {
+    const SRC: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+axiom ax : Prop
+theorem th : ax := ax
+";
+    let doc = doc(SRC);
+    let goals = doc.goals(false).expect("the fixture compiles");
+    let value_of = |name: &str| {
+        goals
+            .iter()
+            .find(|d| d.name == name)
+            .unwrap_or_else(|| panic!("{name} listed"))
+            .value
+            .clone()
+    };
+    let mem = value_of("Set.mem").expect("`def` 必须有值（T-D52）");
+    assert!(
+        mem.contains("fun") && mem.contains("A a"),
+        "值要能看出本质（`fun … => A a`）：{mem}"
+    );
+    assert!(
+        value_of("Set").is_some_and(|v| v.contains("α -> Prop")),
+        "`Set` 的值是 `fun (α : Type 0) => α -> Prop`"
+    );
+    // **反向**：定理/公理/归纳类型没有"值"这一行（证明是另一件事）。
+    assert_eq!(value_of("ax"), None, "`axiom` 不该有值");
+    assert_eq!(value_of("th"), None, "`theorem` 不该有值（用户要的是 def 的本质）");
+    // （`inductive` 的语法在夹具里另说；它的值本来也不该有——构造子表不是"定义"。）
+}
+
 /// **T-D40 的 front 层**：线 C 的记法折叠**不得覆写 `resolution`**。
 ///
 /// 折叠走的是**显示副本**（`ty_text` / `by_step_states` 的 `ty`），而
