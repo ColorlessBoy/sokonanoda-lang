@@ -793,6 +793,7 @@ fn run_pass(
         shadow,
         shadow_upto: 0,
         shadow_failed: Vec::new(),
+        shadow_failed_msg: Vec::new(),
         shadow_skip: None,
         display: display_notations(units),
         builder,
@@ -837,14 +838,19 @@ fn run_pass(
     // 影子**覆盖**的命令（`Decl`/`InductiveBlock`）——对照只在这批命令上做：
     // `OpenExercise` 的签名探针是 `kernel_phase` 侧合成的（`ByIndex(env_before)`），
     // 影子不镜像它 ⇒ 拿它比会假报差异 ✗。
-    let shadow_covered: std::collections::HashSet<usize> = walk
+    // 命令 → 名字（只用于观测：影子失败时要知道**是哪些声明** ✗，否则只能猜 ✓）。
+    let shadow_names: std::collections::HashMap<usize, String> = walk
         .ops
         .iter()
         .filter_map(|op| match op {
-            PendingOp::Decl { cmd, .. } | PendingOp::InductiveBlock { cmd, .. } => Some(*cmd),
+            PendingOp::Decl {
+                cmd, name: Some(n), ..
+            } => Some((*cmd, n.clone())),
+            PendingOp::InductiveBlock { cmd, name, .. } => Some((*cmd, name.clone())),
             _ => None,
         })
         .collect();
+    let shadow_covered: std::collections::HashSet<usize> = shadow_names.keys().copied().collect();
     let pass = kernel_phase::finish_pass(kernel_phase::Walked {
         display: walk.display,
         units,
@@ -873,8 +879,17 @@ fn run_pass(
     if shadow_experiment {
         eprintln!(
             "SHADOW: decls={shadow_decls} 一致={} shadow_failed={shadow_failed:?} \
-             kernel_failed={kernel_failed:?}",
-            shadow_failed == kernel_failed
+             kernel_failed={kernel_failed:?} 影子失败的名字={:?}",
+            shadow_failed == kernel_failed,
+            walk.shadow_failed_msg
+                .iter()
+                .map(|(c, m)| format!(
+                    "{}@{}: {}",
+                    shadow_names.get(c).cloned().unwrap_or_else(|| "?".into()),
+                    c,
+                    m.chars().take(160).collect::<String>()
+                ))
+                .collect::<Vec<_>>()
         );
     }
     pass

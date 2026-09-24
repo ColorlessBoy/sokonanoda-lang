@@ -53,6 +53,9 @@ pub(super) struct Walk<'arena> {
     /// 影子重放中**内核拒绝**的那些 `ops` 下标（与 `kernel_phase` 的失败表同键：
     /// 都按"命令序"索引 ✓）。
     pub(super) shadow_failed: Vec<usize>,
+    /// 同上，附带**内核给的错误原文**（观测用：知道"哪条失败"还不够，要知道
+    /// **为什么** —— 例如 "unknown const" ⇒ 缺依赖、"def_eq mismatch" ⇒ 值不对）。
+    pub(super) shadow_failed_msg: Vec<(usize, String)>,
     /// 本轮 pass 的**已知失败集**（`run_pass` 的 `skip` 参数）。
     ///
     /// 影子必须**同样跳过**这些命令 ✗：`kernel_phase` 对它们**不重查**、
@@ -160,13 +163,15 @@ impl<'arena> Walk<'arena> {
     /// **内核拒绝的不进环境** ✓，只记下标。
     fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) {
         let declar = declar.clone();
-        let ok = self
-            .shadow
-            .with_env(|env| env.try_check_declar(&declar).is_ok());
-        if ok {
-            let _ = self.shadow.add_declar(declar);
-        } else {
-            self.shadow_failed.push(cmd);
+        let result = self.shadow.with_env(|env| env.try_check_declar(&declar));
+        match result {
+            Ok(()) => {
+                let _ = self.shadow.add_declar(declar);
+            }
+            Err(e) => {
+                self.shadow_failed.push(cmd);
+                self.shadow_failed_msg.push((cmd, format!("{e:?}")));
+            }
         }
     }
 
