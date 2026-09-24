@@ -2287,6 +2287,13 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 >      （与今天逐文件编译得到的**同一份真相** ✓ ⇒ `build.summary` 语义不变 ✓）；
 >   5. 并按**各文件自己的 `plan.digest()`** 写缓存 ✓（`cache::store` ✓）——
 >      这样第二次 `build` 才会 hit ✓，与今天的缓存语义一致 ✓。
+>   **分派怎么查（最后一块，已钉死）** ✓：`ProjectReport.modules: Vec<ModuleReport>`
+>   （**拓扑序、入口在最后** ✓ `report.rs:129` ✓），`ModuleReport` 带
+>   **`path: PathBuf`** ✓ 与 **`status: ModuleStatus`** ✓（`report.rs:91-106` ✓）
+>   ⇒ 每个文件用 `modules.iter().find(|m| m.path == file)` 找到自己的那份 ✓，
+>   状态直接取 `m.status` ✓（`blocked` 的模块报告为空 ✓，状态由 `compile_plan` 填 ✓）。
+>   **⇒ 至此 T-K30 无未知数** ✓，下一轮是纯机械实现 ✓。
+>
 >   **风险点**：`hit` 的判定 ✗ —— 今天 `hit` = "该文件自己的 digest 命中缓存" ✓；
 >   分组后**先查各文件 digest** ✓，全 miss 才编该组 ✓（否则会把已缓存的组白编一遍 ✗）。
 >   判据：`crates/cli/tests/build.rs` 全绿 ✓ + 前后耗时进 `docs/perf/ledger.jsonl` ✓。
