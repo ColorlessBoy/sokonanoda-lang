@@ -84,7 +84,15 @@ pub(crate) fn decl_info(decl: truth::DeclInfo, text: &str) -> GoalDeclInfo {
         value: decl.value,
         value_runs: decl.value_runs.into_iter().map(run_info).collect(),
         goal: decl.goal,
+        // T-A5 / R-2：与 `ty_runs`/`value_runs` 走**同一个** `run_info` ✓
+        // ——两条路共用一份实现，就不会再分叉（父：单值；子：与 `goals` 对齐）。
+        goal_runs: decl.goal_runs.into_iter().map(run_info).collect(),
         goals: decl.goals,
+        goals_runs: decl
+            .goals_runs
+            .into_iter()
+            .map(|runs| runs.into_iter().map(run_info).collect())
+            .collect(),
         binders: decl.binders.into_iter().map(binder_info).collect(),
         hole: decl
             .hole

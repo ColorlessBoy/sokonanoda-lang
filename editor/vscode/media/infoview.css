@@ -353,6 +353,37 @@ body {
   opacity: 0.95;
 }
 
+/* **声明的目标**（T-A5 / R-2 ②）：开放练习的 `⊢ <目标>` 行，与 `:=` 值行同款
+ * 排版（标签 + 等宽代码块），但目标用**正常前景色**——它是这一行里唯一的
+ * 语义内容，`.tok-*` 的颜色要压得住（值行也是这个理由）。 */
+.decl-goal-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  margin-top: 0.1em;
+}
+
+.decl-goal-label {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.78em;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.75;
+  flex: 0 0 auto;
+}
+
+.decl-goal {
+  margin: 0;
+  padding: 0;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.78em;
+  line-height: 1.3;
+  color: var(--vscode-foreground);
+  background: transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
+  opacity: 0.95;
+}
+
 .decl.open .decl-kind {
   color: var(--vscode-charts-yellow, #cca700);
 }

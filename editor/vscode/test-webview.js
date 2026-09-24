@@ -265,6 +265,133 @@ test("decls: notation symbols render as tok-keyword spans in the type line", () 
   assert.strictEqual(textOf(toks[0]), "⊆");
 });
 
+// T-A5 / R-2 ②：**声明卡片里的目标行要看得见，而且要有颜色**。
+//
+// 用户报的是"infoview 里的目标也没有高亮"。服务端现在给 `goal_runs`（父）与
+// `goals_runs`（子，与 `goals` 对齐）——这一层验的是**渲染结果**：卡片里真的多出
+// 一行 `⊢ …`，且记法符号是 `tok-keyword` span（不是一整段纯文本）。
+// "字段在 wire 里"由 `scripts/audit-wire-fields.py` 守，两层各司其职。
+test("decls: an open declaration renders its goal as tok- spans", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "decls",
+    decls: [
+      {
+        name: "open_subset",
+        kind: "theorem",
+        status: "open",
+        goal: "A ⊆ B",
+        goal_runs: [
+          { text: "A" },
+          { text: " " },
+          { text: "⊆", kind: "keyword" },
+          { text: " " },
+          { text: "B" },
+        ],
+        goals: ["A ⊆ B"],
+        goals_runs: [
+          [
+            { text: "A" },
+            { text: " " },
+            { text: "⊆", kind: "keyword" },
+            { text: " " },
+            { text: "B" },
+          ],
+        ],
+      },
+    ],
+  });
+  const row = byClass(root, "decl")[0];
+  const line = byClass(row, "decl-goal-line")[0];
+  assert.ok(line, "开放声明的卡片必须有目标行（R-2 ②：以前根本不画）");
+  assert.strictEqual(
+    textOf(byClass(line, "decl-goal-label")[0]),
+    "目标",
+    "目标行要有标签，否则与类型行分不清",
+  );
+  const goal = byClass(line, "decl-goal")[0];
+  assert.ok(goal, "目标行必须是一个代码块");
+  assert.strictEqual(
+    textOf(goal),
+    "⊢ A ⊆ B",
+    "目标行必须逐字节重建文本（前缀 ⊢）",
+  );
+  const toks = descendants(goal).filter(
+    (node) =>
+      typeof node.className === "string" && node.className.includes("tok-"),
+  );
+  assert.deepStrictEqual(
+    toks.map((n) => n.className.split(" ").filter((c) => c.startsWith("tok-"))),
+    [["tok-keyword"]],
+    "记法符号必须是一个 tok-keyword span（这就是「看得见的高亮」）",
+  );
+  assert.strictEqual(textOf(toks[0]), "⊆");
+});
+
+// 多目标：每个子目标一行，标签是 `目标 i/n`——与目标面板/练习树同一口径。
+test("decls: every open goal gets its own labelled row", () => {
+  const { root, send } = loadInfoview();
+  const runsOf = (text) => [{ text: text, kind: "unknown_ident" }];
+  send({
+    protocol: 1,
+    type: "decls",
+    decls: [
+      {
+        name: "both",
+        kind: "theorem",
+        status: "open",
+        goal: "P",
+        goal_runs: runsOf("P"),
+        goals: ["P", "Q"],
+        goals_runs: [runsOf("P"), runsOf("Q")],
+      },
+    ],
+  });
+  const row = byClass(root, "decl")[0];
+  const lines = byClass(row, "decl-goal-line");
+  assert.strictEqual(lines.length, 2, "两个子目标 = 两行");
+  assert.deepStrictEqual(
+    lines.map((line) => textOf(byClass(line, "decl-goal-label")[0])),
+    ["目标 1/2", "目标 2/2"],
+    "多目标要标出 i/n",
+  );
+  assert.deepStrictEqual(
+    lines.map((line) => textOf(byClass(line, "decl-goal")[0])),
+    ["⊢ P", "⊢ Q"],
+    "goals_runs[i] 必须贴到 goals[i] 上（错位就会串行）",
+  );
+});
+
+// 反例守卫：**闭合**声明（没有 goal/goals）不许出现目标行——否则每个 theorem
+// 都会多出一行空的 `⊢ `。
+test("decls: a closed declaration renders no goal row", () => {
+  const { root, send } = loadInfoview();
+  send({
+    protocol: 1,
+    type: "decls",
+    decls: [
+      {
+        name: "mem_self",
+        kind: "theorem",
+        status: "checked",
+        ty: "a ∈ A -> a ∈ A",
+        ty_runs: [{ text: "a ∈ A -> a ∈ A" }],
+        goal: null,
+        goal_runs: [],
+        goals: [],
+        goals_runs: [],
+      },
+    ],
+  });
+  const row = byClass(root, "decl")[0];
+  assert.strictEqual(
+    byClass(row, "decl-goal-line").length,
+    0,
+    "闭合声明没有目标，就不该有目标行",
+  );
+});
+
 test("decls: name, 1-based line hint and type line; rows are not interactive", () => {
   const { root, messages, send } = loadInfoview();
   const before = messages.length;

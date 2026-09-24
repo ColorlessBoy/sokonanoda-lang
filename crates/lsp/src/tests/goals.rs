@@ -32,6 +32,36 @@ async fn goals_request_lists_open_exercise_with_hole_range() {
         runs.iter().any(|r| r["kind"].as_str() == Some("sort")),
         "`Prop` in the type is a sort: {runs:?}"
     );
+    // **T-A5 / R-2 ②**：目标也要在 wire 里带 runs（父 `goal_runs` + 子
+    // `goals_runs`）。扩展的声明卡片照 `tok-*` 渲染目标行；这里漏一个字段，
+    // 用户看到的就是"目标不高亮"（R-1 同形的静默降级）。
+    let goal = decl["goal"].as_str().expect("open goal text");
+    assert_eq!(
+        reconstruct_runs(&decl["goal_runs"]),
+        goal,
+        "goal_runs 必须逐字节重建 goal"
+    );
+    assert!(
+        !run_kinds(&decl["goal_runs"]).is_empty(),
+        "目标 runs 必须有 kind（否则只能画纯文本）：{:?}",
+        decl["goal_runs"]
+    );
+    let goals = decl["goals"].as_array().expect("goals array");
+    let goals_runs = decl["goals_runs"]
+        .as_array()
+        .expect("goals_runs array (父子对齐)");
+    assert_eq!(
+        goals_runs.len(),
+        goals.len(),
+        "goals_runs 必须与 goals 按位置对齐"
+    );
+    for (text, runs) in goals.iter().zip(goals_runs) {
+        assert_eq!(
+            reconstruct_runs(runs),
+            text.as_str().expect("goal text"),
+            "goals_runs[i] 必须重建 goals[i]"
+        );
+    }
     let hole = decl["hole"].as_object().expect("hole range present");
     let start = hole["start"].as_object().expect("hole start");
     let expected = lsp_pos(EXERCISE, offset_of(EXERCISE, "sorry"));
@@ -68,6 +98,17 @@ async fn goals_request_lists_every_open_goal_after_apply() {
         &vec![json!("P"), json!("Q")],
         "both goals, current first"
     );
+    // T-A5：多目标时**每一个**子目标都要有自己的 runs，且与 `goals` 对齐
+    // （声明卡片按 `目标 i/n` 逐行上色；错位会让颜色贴到别的目标上）。
+    let goals_runs = decl["goals_runs"]
+        .as_array()
+        .expect("goals_runs array (父子对齐)");
+    assert_eq!(goals_runs.len(), goals.len(), "一个目标一段 runs");
+    assert_eq!(reconstruct_runs(&goals_runs[0]), "P", "当前目标在前");
+    assert_eq!(reconstruct_runs(&goals_runs[1]), "Q");
+    // 父字段：`goal`/`goal_runs` 也要成对（老客户端的单值回退）。
+    let single = decl["goal"].as_str().expect("single goal text");
+    assert_eq!(reconstruct_runs(&decl["goal_runs"]), single);
     shutdown(&mut service).await;
 }
 

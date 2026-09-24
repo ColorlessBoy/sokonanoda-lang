@@ -234,3 +234,87 @@
 （内建的不在任何源文本里），而且要**喂给词法**（`↔`/`¬`/`≠` 不在数学符号码点类里）。
 导入名也不再是 `unknown_ident`（T-C31，闭包级声明表）。
 渲染侧 `infoview.js` 把每个 run 画成 `tok-<kind>` span（`test-webview.js` 有断言）。
+
+## 9. As-built：声明卡片的目标行 + `=` 掉色的真因（0.66.0，T-A5）
+
+用户 R-2 报的是两件事（`REQUIREMENTS.md` §9）：「`unit12-synthesis` 的
+`flawed_equalities_refuted` / `project_chain` 的 goal 很奇怪、没完全 notation 化，
+**infoview 里的目标也没有高亮**」。查证结论是**两个不同的问题**，本环节把能修的
+那个修完（另一个是记法引擎的能力限制 R5，见下）。
+
+### 9.1 真因（a）：`=` 被喂给词法符号表 ⇒ 整段降级成 1 个无 kind 的 run
+
+`crates/front/src/semantic.rs` 的 `tag_runs` 把**内建记法表**（含 `"="`）交给
+`tokenize_with_symbols`；而词法在常规分支**之前**做"声明符号最长匹配"
+（`token.rs` 的 `declared_symbol_ahead`）⇒ `fun (x : Nat) => z` 里 `=>` 的 `=`
+被吃成 `Sym("=")`，剩下的 `>` 没有匹配臂 ⇒ `Err` ⇒ `tag_runs` **整段降级**成
+1 个无 kind 的 run ⇒ webview 只画纯文本。
+
+**修法**：`=`（以及词法保留符号）**不交给词法**，`names.notations` 仍用完整表
+（`=` 继续是 keyword）；`=` 在词法里有专用臂、且先认 `=>`。
+
+**实测**（`fun … => …` 形态的 goal）：`flawed_equalities_refuted` **1 → 313 段**、
+`project_chain` **1 → 216 段**，对照组 `project_chain_cardinal` **94 段不变**
+（对照组是"不含 λ"的 goal：修前修后都是 94 段 ⇒ 修的是那一支，不是全局行为）。
+两条 front 判据里带**反例守卫**：普通 `=`（`z = z`）仍然着色成 keyword。
+
+> 这一条解释了为什么"目标面板不高亮"：面板**一直**在渲染 `goal_runs` 的
+> `tok-*` span（§8.3），只是服务端给的 runs 退化了。**渲染没坏，数据坏了。**
+
+### 9.2 真因（b）：声明卡片**根本不画 goal**（不是字段缺失）
+
+A4 的第一版假设是"与 R-1 同形的漏字段"。**独立取证否证了它**（三条硬事实）：
+① `infoview.js` 的 `renderDecls` 只画 `name`/`kind`/`ty_runs`/`value_runs`，
+全文不读 `decl.goal`；② 树里那行「目标」是 `TreeItem.description`（纯文本，
+VS Code 平台限制，§7 表已记）；③ **真相层也没有 runs**：`DeclInfo.goal` 是
+`Option<String>`、`goals: Vec<String>` ⇒ 只给 LSP 加字段是 **no-op**（屏幕零变化）。
+
+⇒ 重新定级为**三处特性**（front → LSP → webview），见 §9.3。
+
+### 9.3 落地：父子一对的 runs + 卡片目标行
+
+| 层 | 改动 | 不变量 |
+|---|---|---|
+| front 真相 | `DeclInfo` 加 `goal_runs: Vec<RunInfo>`（父）与 `goals_runs: Vec<Vec<RunInfo>>`（子，与 `goals` **按位置对齐**） | `runs_to_text(goal_runs) == goal`；`goals_runs.len() == goals.len()` |
+| LSP wire | `GoalDeclInfo` 加同名字段，`query_map::decl_info` 用**同一个** `run_info` 映射 | 字段存在性由 `scripts/audit-wire-fields.py` 守 |
+| webview | `renderDecls` 对开放声明渲染 `.decl-goal-line`（标签 `目标` / `目标 i/n` + `codeBlock("decl-goal", runs, text, "⊢ ")`） | 非开放声明**不渲染**（`goals`/`goal` 都空） |
+
+**为什么 `goals` 不换成对象数组** ✗：协议是"只加字段"，而练习树
+（`extension.js` 的 `buildOpenChildren`）还在按**字符串**读 `goals` —— 换成对象
+就是破坏协议。并排数组是这里能加的最小形状，对齐由测试钉死。
+
+**屏幕上多什么**（验证设计纪律的第一问）：Infoview「声明」栏里，**开放练习**的
+卡片在类型行/值行下面**多一行带色的 `⊢ <目标>`**（`⊆`/`∈`/`∧` 等记法符号着成
+关键字色）；闭合声明**零变化**（不出现空 `⊢`）。**少什么**：无。
+
+### 9.4 三层各司其职（这次都补齐了）
+
+| 层 | 判据 | 修前 |
+|---|---|---|
+| front 真相 | `query::tests::an_open_exercise_ships_runs_for_its_goal_and_its_goal_list` | `query goals` 的 wire 里**没有** `goal_runs`/`goals_runs`（实测 0.65.5 二进制） |
+| LSP wire | `tests::goals::*` 断言字段存在 + runs 重建 + 父子对齐 | `GoalDeclInfo` 无这两个字段 |
+| webview 渲染 | `test-webview.js`：`.decl-goal-line` 存在、`⊢ ` 前缀、记法符号是 `tok-keyword` span；**反例**：闭合声明 0 行 | 修前 3 条里 **2 条红**（第 3 条是负例守卫，两边都绿） |
+| 真宿主 e2e | `extension.test.js`：开放声明的载荷带 `goal_runs`/`goals_runs`、能重建、至少一个 keyword run | 对着**修前**的服务器跑：`AssertionError: open_one 的 goal 必须带 goal_runs，实际 = undefined`（1 failing） |
+
+**e2e 这一层为什么断言在"载荷"上**：真 VS Code 的扩展宿主**读不到 webview 的
+DOM**（平台不暴露）⇒ e2e 能断言的最强事实是"webview 收到了什么"；**渲染结果**
+那一跳由 `test-webview.js` 的 stub DOM 承担（那里跑的是真的 `infoview.js`）。
+
+### 9.5 守卫补强：A∖B 对账改成**按消费者分组**
+
+`scripts/audit-wire-fields.py` 原来把"所有 wire 结构体的字段"取**并集** ⇒ 同名字段
+会在别的结构体里**顶包**：`goal_runs` 也是 `soko/stateAt` 的字段 ⇒ 声明侧漏了它，
+并集判定**不报** ✗（T-A5 实测：回退 `GoalDeclInfo` 的两个新字段，只报得出
+`goals_runs`）。现在每个读取点只许落在它**真正会拿到**的结构体里
+（`decl` → `GoalDeclInfo` ∪ `StateDeclInfo`，目标面板 → `StateAtResponse` 一族…），
+回退后**两个都报** ✓。同时把 `infoview.js` 的 `decl.` 扫描从**写死的行区间**
+（236–292）改成**整份文件**——加目标行后 `renderDecls` 长过了 292，新代码落在区间外
+守卫就瞎了（这正是"接缝守卫瞎掉"的形态）。
+
+### 9.6 没修的那一半（R5：记法引擎）
+
+`flawed_equalities_refuted` / `project_chain` 的 goal **没有完全记法化**，根因是
+**源码本身就没记法化**（全显式写法 + 豁免注释 `-- soko:notation-ok: R5`）：
+操作数是 **λ** 时补不出前导类型参数 ⇒ 记法引擎的能力限制，**不是显示 bug**
+（goal 忠实显示了源码）。属**记法引擎特性**，单独条目；在引擎支持之前那两条
+只能写显式形式。

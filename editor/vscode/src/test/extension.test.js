@@ -630,6 +630,70 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     }
   });
 
+  test("open declaration ships coloured goal runs to the Infoview", async () => {
+    // **T-A5 / R-2 ② 的 e2e 判据**：Infoview 的声明卡片要显示一行**带色**的
+    // `⊢ <目标>`（以前根本不画那一行；就算画了也只是纯文本）。
+    //
+    // 这一层能断言什么（验证设计纪律：三层各司其职）：
+    //  * 真 VS Code 的**扩展宿主读不到 webview 的 DOM**（平台不暴露）⇒ e2e 能
+    //    断言的最强事实是"**webview 收到了什么**"，即数据链最后一跳
+    //    （内核 → front → LSP → 扩展 → webview 载荷）的字段与内容；
+    //  * **渲染结果**那一跳由 `editor/vscode/test-webview.js` 的 stub DOM 断言
+    //    （那里跑的是真的 `media/infoview.js`，断言 `.decl-goal` + `tok-*`）；
+    //  * **字段必须在 wire 里**由 `scripts/audit-wire-fields.py` 守（它咬得住
+    //    R-1 的 `value_runs` 与 T-A5 的 `goal_runs`/`goals_runs`）。
+    // 三层缺一层就是洞——R-1/R-2 都是"每层各自绿、用户看不见"。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const decls = await infoviewDecls("T-A5");
+    const open = decls.filter((d) => d && d.status === "open");
+    assert.ok(
+      open.length > 0,
+      `夹具必须有一个开放练习，否则这条断言会空转：${JSON.stringify(decls.map((d) => d.status))}`,
+    );
+    for (const decl of open) {
+      const goal = decl.goal;
+      assert.ok(
+        typeof goal === "string" && goal.length > 0,
+        `${decl.name} 是开放练习就必须有 goal`,
+      );
+      // 父：`goal_runs` 重建 `goal`，且至少一个 run 带 `kind`——没有 kind 就
+      // 只能画纯文本，那正是用户报的"目标不高亮"。
+      assert.ok(
+        Array.isArray(decl.goal_runs) && decl.goal_runs.length > 0,
+        `${decl.name} 的 goal 必须带 goal_runs，实际 = ${JSON.stringify(decl.goal_runs)}`,
+      );
+      assert.strictEqual(
+        decl.goal_runs.map((r) => r.text || "").join(""),
+        goal,
+        `${decl.name} 的 goal_runs 必须逐字节重建 goal`,
+      );
+      // 子：`goals_runs` 与 `goals` 按位置对齐，且每一段都能重建（错位会让颜色
+      // 贴到别的目标上）。
+      const goals = Array.isArray(decl.goals) ? decl.goals : [];
+      const runs = Array.isArray(decl.goals_runs) ? decl.goals_runs : [];
+      assert.ok(goals.length > 0, `${decl.name} 开放就必须有 goals`);
+      assert.strictEqual(
+        runs.length,
+        goals.length,
+        `${decl.name} 的 goals_runs 必须与 goals 等长`,
+      );
+      goals.forEach((text, index) => {
+        assert.strictEqual(
+          runs[index].map((r) => r.text || "").join(""),
+          text,
+          `${decl.name} 的 goals_runs[${index}] 必须重建 goals[${index}]`,
+        );
+      });
+      // 夹具的 goal 含 `⊆`/`∈`（用例 #6 钉的是同一份文本的目标面板）⇒ 声明卡片
+      // 拿到的这批 runs 里必须至少有一个 keyword run，否则卡片上就是纯文本。
+      assert.ok(
+        runs.some((list) => list.some((r) => r.kind === "keyword")),
+        `${decl.name} 的目标必须至少有一个 keyword run（记法符号要着色）：${JSON.stringify(runs)}`,
+      );
+    }
+  });
+
   test("next hole jumps inside a project unit", async () => {
     // 用例 #2（G-22 同族）：`soko/nextHole` 经由 `goals` ⇒ 项目入口同样受害。
     const entry = fixtureEntry();

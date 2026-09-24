@@ -515,6 +515,60 @@ fn an_open_exercise_without_by_keeps_notation_in_its_goal() {
     );
 }
 
+/// **T-A5 的真相层判据**：开放声明的目标必须**带 runs**（父 `goal_runs` + 子
+/// `goals_runs`），而且父子**按位置对齐**。
+///
+/// 病（R-2 ②"infoview 里的目标也没有高亮"）：`goal`/`goals` 以前只有文本，
+/// 没有 runs ⇒ 声明卡片只能画纯文本。文本对了不等于用户看得见——runs 是着色的
+/// **唯一**来源（webview 不重新分词，`goal-rendering.md` §2.1）。
+///
+/// 反例守卫在最后一段：**闭合**声明没有目标，也必须没有 runs——别让"空数组"
+/// 被当成"有目标"渲染出来。
+#[test]
+fn an_open_exercise_ships_runs_for_its_goal_and_its_goal_list() {
+    let doc = doc(NOTATION_CANVAS);
+    let goals = doc.goals(false).expect("the canvas parses");
+    let open = goals
+        .iter()
+        .find(|d| d.name == "open_subset")
+        .expect("open_subset listed");
+    assert_eq!(open.status, "open");
+    let text = open
+        .goal
+        .as_deref()
+        .expect("an open exercise carries a goal");
+    // 父：`goal_runs` 逐字节重建 `goal`。
+    let projected: String = open.goal_runs.iter().map(|r| r.text.as_str()).collect();
+    assert_eq!(projected, text, "runs_to_text(goal_runs) == goal");
+    // 着色的**前提**：至少一个 run 带 kind（`⊆`/`∈` 是 keyword）。
+    assert!(
+        open.goal_runs
+            .iter()
+            .any(|r| r.kind.as_deref() == Some("keyword")),
+        "目标里的记法符号必须是 keyword run：{:?}",
+        open.goal_runs
+    );
+    // 子：非 `by` 的开练习只有一个目标，父子数组按位置对齐。
+    assert_eq!(
+        open.goals,
+        vec![text.to_string()],
+        "非 by 开练习只有一个目标"
+    );
+    assert_eq!(
+        open.goals_runs.len(),
+        open.goals.len(),
+        "goals_runs 必须与 goals 等长（按位置对齐）"
+    );
+    let child: String = open.goals_runs[0].iter().map(|r| r.text.as_str()).collect();
+    assert_eq!(child, open.goals[0], "goals_runs[i] 重建 goals[i]");
+    // 反例守卫：闭合声明没有目标，就没有文本也没有 runs。
+    let def = goals.iter().find(|d| d.name == "Set").expect("Set listed");
+    assert_eq!(def.status, "checked");
+    assert!(def.goal.is_none(), "闭合声明没有目标：{:?}", def.goal);
+    assert!(def.goal_runs.is_empty(), "没有目标就没有 runs");
+    assert!(def.goals.is_empty() && def.goals_runs.is_empty());
+}
+
 /// T-C22 的夹具：一条记法 + 一个用 `apply` 的 `by` 块。
 ///
 /// `apply` 的子目标来自被应用引理的**内核 pp 望远镜**（`judge_infer` 的文本

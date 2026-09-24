@@ -325,7 +325,9 @@ Response:
   "value": null,
   "value_runs": [],
   "goal": "And b a",
+  "goal_runs": [{"text": "And", "kind": "axiom_use"}, {"text": " b a"}],
   "goals": ["And b a"],
+  "goals_runs": [[{"text": "And", "kind": "axiom_use"}, {"text": " b a"}]],
   "binders": [{"name": "a", "ty": "Prop", "ty_runs": [{"text": "Prop", "kind": "sort"}]},
               {"name": "h", "ty": "And a b", "ty_runs": [...]}],
   "hole": {"start": {...}, "end": {...}},
@@ -353,6 +355,15 @@ Response:
   non-`by` open exercises; empty for non-open declarations. It is the
   declaration-level counterpart of `soko/stateAt`'s per-cursor `goals` — a
   multi-subgoal `apply` shows all of its sub-goals here, not just one;
+- `goal_runs` / `goals_runs` are the **semantic runs** of `goal` / `goals`
+  (`goals_runs[i]` belongs to `goals[i]`; the two arrays are always the same
+  length — a client may assert that, and the server tests do). Same vocabulary
+  and same single source as `ty_runs`/`value_runs` (`front::semantic`), so a
+  client must **colour from the runs, never re-tokenize the text**: the Infoview
+  declaration list renders them as a coloured `⊢ …` line for open declarations
+  (`editor/vscode/media/infoview.js`, one row per goal, `目标 i/n` when there
+  are several). `goal_runs` is the single-value counterpart kept for older
+  clients — exactly the `goal`/`goals` split above;
 - `holes` lists every `sorry` (multi-hole constructor/function spines
   included) as objects
   `{"range": {…}, "id": "<declName>:<index>", "redundant": false}` — the id
@@ -786,7 +797,7 @@ sokonanoda query <op> [options]
 |---|---|---|
 | `check` | — | `{version, counts{decl_checked,example_checked,exercise_open,expr_typed,expr_reduced,decl_printed}, failed[{name,code,message,start,end,start_line,start_col,end_line,end_col}], warnings[{code,message,hint,start,end,start_line,start_col,end_line,end_col}]}`. **Two coordinate systems per entry, both spelled out** (G-15 / WO-010): `start`/`end` are **byte** offsets into the **entry file**, and `start_line`/`start_col`/`end_line`/`end_col` are the same 1-based line/column pair the `--json` event `span` prints — no counting on the consumer side (measuring a byte offset as a *char* index is what produced the G-15 false gap). Dependencies live in their own coordinate space: a broken module surfaces **only** as `import-dependency-failed` on the entry's `import` line (use `grade --json`, whose diagnostic carries `file`/`module`, or `query project` for the dependency's own error). `failed[]` carries **both** kernel rejections and parse diagnostics: when the source text does not parse, `counts` stays all-zero (nothing was checked), `failed[]` has exactly the parse diagnostic (`code` one of `unexpected-token`/`unexpected-eof`/`import-malformed`/`import-not-a-valid-module-name`/`import-must-precede-declarations`, `name: null`), `ok` stays `true` (the query *was* answered) and the exit code is `1` — the same verdict `grade` gives |
 | `state` | `--line L --col C` or `--offset N` | `{version, decl{name,kind,status,start,end}\|null, goal, goal_runs, binders, goals[{goal,goal_runs,binders}], span[start,end]\|null, step, total}` |
-| `goals` | — (`--probe` runs the kernel probe) | `[{name,kind,status,start,end,ty,ty_runs,goal,goals,binders,hole[start,end]\|null,holes[{start,end,id,redundant}],sub_goals[{start,end,ty}],code_actions}]`; if the source text does not parse the whole answer is the failure envelope `ok:false` + `error.code: "not-parsable"` (exit `1`) — an empty array would read as "this canvas has no declarations" |
+| `goals` | — (`--probe` runs the kernel probe) | `[{name,kind,status,start,end,ty,ty_runs,value,value_runs,goal,goal_runs,goals,goals_runs,binders,hole[start,end]\|null,holes[{start,end,id,redundant}],sub_goals[{start,end,ty}],code_actions}]`; `goal_runs` is the runs of `goal` and `goals_runs[i]` the runs of `goals[i]` (same length, same source as `ty_runs`); if the source text does not parse the whole answer is the failure envelope `ok:false` + `error.code: "not-parsable"` (exit `1`) — an empty array would read as "this canvas has no declarations" |
 | `holes` | — (optional `--offset N --direction next\|prev`) | `{holes[{id,start,end,ty,decl,redundant}], navigated<hole>\|null}`; on a parse failure the same `not-parsable` failure envelope as `goals` (never `holes: []` + `navigated: null`) |
 | `hints` | `--line L --col C` or `--offset N` | `{hints[string]}` |
 | `reduce` | `--expr E` | `{value, ty}` |

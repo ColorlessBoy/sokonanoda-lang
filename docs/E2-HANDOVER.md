@@ -107,7 +107,7 @@ python3 scripts/plan.py done T-A2   # 勾掉一条
 | **`bash grep` 在本机会静默失联** ✗（返回空但文件里有） | 用**工具级** grep ✓；或 python 读文件判断 ✓ |
 | **`find ~` / 全仓递归 grep 极慢** ✗ | 用 glob/grep 工具 ✓，或直接读已知文件 ✓ |
 | 仓库 `target/` 有删不掉的陈旧文件 ✗ | 本地构建用 `CARGO_TARGET_DIR=/tmp/soko-target` ✓ |
-| 本机 `cargo` 需要 `DEVELOPER_DIR=/Library/CommandLineTools` ✓ | 每条命令都带上 ✓ |
+| 本机 `cargo` 需要 `DEVELOPER_DIR=<命令行工具目录>` ✓ | 每条命令都带上 ✓。**值随机器而变**：交接时写的是 `/Library/CommandLineTools`，但**这台机器上该目录不存在** ⇒ 链接期会报 `xcrun: error: missing DEVELOPER_DIR path` ✗（编译能过、**只有链接失败**，很容易误判成代码问题）。先用 `ls -d /Library/CommandLineTools /Library/Developer/CommandLineTools "$(xcode-select -p)"` 挑一个**存在**的；本机实测可用的是 **`/Library/Developer/CommandLineTools`** ✓（`xcode-select -p` 给的是 Xcode 那份，也在） |
 | **`SOKO_JUDGE_ENV_REUSE` / 影子（`SOKO_SHADOW_CHECK`）都不是"已修"** ✗ | 见下 |
 | **别重试 T-K31**（`TcCache` 的 4MB 复用池）✗ | 实测**无收益** ✓（mmap 惰性零页 vs 强制 memset）；结论在 `docs/perf/ledger.jsonl` ✓ |
 | **别指望"影子彩排"** ✗ | E1 实测三个假设全否证 ✓；阶段 D 只能**直接做** ✓，安全网是四件套 ✓ |

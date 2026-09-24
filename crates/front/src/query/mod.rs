@@ -756,6 +756,22 @@ impl QueryDoc {
                     .map(|ty| self.runs(&decls, &notations, ty, &binder_names))
                     .unwrap_or_default();
                 let open = d.status == DeclStatus::Open;
+                // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
+                // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
+                // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
+                // "目标不高亮"（runs 的 kind 是着色的唯一来源）。
+                let goals: Vec<String> = if open {
+                    d.by_steps
+                        .last()
+                        .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
+                        .unwrap_or_else(|| d.goal.clone().into_iter().collect())
+                } else {
+                    Vec::new()
+                };
+                let goals_runs: Vec<Vec<RunInfo>> = goals
+                    .iter()
+                    .map(|g| self.runs(&decls, &notations, g, &binder_names))
+                    .collect();
                 DeclInfo {
                     name,
                     kind: d.kind.as_str().to_string(),
@@ -770,15 +786,16 @@ impl QueryDoc {
                         .as_deref()
                         .map(|v| self.runs(&decls, &notations, v, &[]))
                         .unwrap_or_default(),
-                    goals: if open {
-                        d.by_steps
-                            .last()
-                            .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
-                            .unwrap_or_else(|| d.goal.clone().into_iter().collect())
-                    } else {
-                        Vec::new()
-                    },
                     goal: d.goal.clone(),
+                    // 父：声明自己的目标（老客户端只读文本，卡片读 runs）。
+                    goal_runs: d
+                        .goal
+                        .as_deref()
+                        .map(|g| self.runs(&decls, &notations, g, &binder_names))
+                        .unwrap_or_default(),
+                    goals,
+                    // 子：与 `goals` 按位置对齐（长度相等，单测钉死）。
+                    goals_runs,
                     binders: d
                         .binders
                         .iter()

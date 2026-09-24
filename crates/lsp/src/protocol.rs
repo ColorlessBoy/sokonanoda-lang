@@ -74,10 +74,20 @@ pub(crate) struct GoalDeclInfo {
     /// —— 两条路共用一份实现，就不会再分叉 ✓）。
     pub(crate) value_runs: Vec<RunInfo>,
     pub(crate) goal: Option<String>,
+    /// **`goal` 的语义分段**（T-A5 / R-2）：声明卡片照它给目标行上色。
+    ///
+    /// 为什么必须转发它 ✗：真相层算好了 runs、卡片也照 `tok-*` 渲染，但这里
+    /// 以前**没有这个字段** ⇒ 扩展恒拿 `undefined` ⇒ 目标行只能画纯文本
+    /// （与 R-1 的 `value_runs` 同形的断链；守卫 `scripts/audit-wire-fields.py`）。
+    pub(crate) goal_runs: Vec<RunInfo>,
     /// Every open goal after the last recorded tactic (current goal first),
     /// or the single walked remaining goal for non-`by` open exercises.
     /// Empty for non-open declarations. Powers the multi-goal exercise panel.
     pub(crate) goals: Vec<String>,
+    /// **`goals` 的语义分段**，与 `goals` **按位置对齐**（`goals_runs[i]` 是
+    /// `goals[i]` 的 runs；长度恒相等）。`goals` 保持字符串数组是协议要求
+    /// （练习树还在按字符串读它），runs 是给声明卡片上色的那一半。
+    pub(crate) goals_runs: Vec<Vec<RunInfo>>,
     pub(crate) binders: Vec<GoalBinderInfo>,
     pub(crate) hole: Option<Range>,
     /// Every `sorry` in the answer (main hole + constructor-spine sub-holes),

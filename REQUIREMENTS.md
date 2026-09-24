@@ -2331,6 +2331,28 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 与课程一律写记法的口径一致 ✓）；② Infoview 的目标面板要**高亮** ✓。
 **先查成因** ✓（可能与 R-1 同源：都是"报告/显示路径"上的洞 ✓）。
 
+> **✅ 交付（2026-09-24，T-A5，0.66.0）** ✓：
+> **(b) 已修** ✓ —— 真因**不是**字段缺失，是**两件**事，都落地了：
+> ① **`=` 掉色**（这才是"目标面板不高亮"的真因）：`crates/front/src/semantic.rs`
+>    把内建记法表（含 `"="`）喂给词法 ⇒ `fun … => …` 里 `=>` 的 `=` 被"声明符号
+>    最长匹配"吃掉 ⇒ 整段**降级成 1 个无 kind 的 run** ⇒ webview 只画纯文本。
+>    修法：`=`（与词法保留符号）**不交给词法**，`names.notations` 仍用完整表。
+>    实测 `flawed_equalities_refuted` **1 → 313 段**、`project_chain` **1 → 216 段**、
+>    对照组 `project_chain_cardinal` **94 段不变**；反例守卫：普通 `=` 仍着色 ✓；
+> ② **声明卡片多一行带色的目标**：`DeclInfo` 加 `goal_runs`（父）+ `goals_runs`
+>    （子，与 `goals` 按位置对齐）→ `GoalDeclInfo` 转发 → `infoview.js` 渲染
+>    `.decl-goal-line`（`目标` / `目标 i/n` + `⊢ …` 的 `tok-*` span）。
+>    屏幕上：**开放练习的声明卡片多一行 `⊢ <目标>`（带色）**，闭合声明零变化。
+> **判据**（三层，缺一层就是洞）：front 单测（父子成对 + 对齐 + 反例）✓ ·
+> LSP wire 单测（字段存在 + 重建 + 对齐）✓ · `test-webview.js` DOM（`.decl-goal-line`
+> + `tok-keyword` + 闭合反例；修前 2/3 红）✓ · 真宿主 e2e（开放声明的载荷带 runs；
+> 对**修前服务器**跑是 `1 failing`：`goal 必须带 goal_runs，实际 = undefined`）✓ ·
+> A∖B 守卫 `scripts/audit-wire-fields.py` **改成按消费者分组**（并集会让 `goal_runs`
+> 被 `soko/stateAt` 的同名字段顶包 ⇒ 漏了也不报；现在两个都报）✓。
+> **(a) 未修** ✗：属**记法引擎特性 R5**（λ 操作数补不出前导类型参数）⇒ 那两条
+> 仍只能写显式形式（豁免注释就是为此存在的）；本环节只把"显示/高亮"这一半收口。
+> 设计 as-built：`docs/design/goal-rendering.md` §9。
+
 ### R-3 project 模式下应有编译产物目录（`.sokonanoda/`），vscode 与 code agent 共用
 
 > **用户原话**：在 project 模式下，`sokonanoda.toml` 所在的根目录下，应该有

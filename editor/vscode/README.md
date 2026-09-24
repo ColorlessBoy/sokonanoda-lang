@@ -51,7 +51,9 @@ skills.
 - **Infoview panel** — a dockable, syntax-styled goal panel (Lean-Infoview
   style) in its **own container on the right side bar**, so it can sit next to
   your proof: multi-goal columns with each goal's hypotheses, `by k/n`
-  progress, the declaration list, and the live server version. Goal and
+  progress, the declaration list (an **open** declaration also shows its goal as
+  a coloured `⊢ …` line, one row per remaining goal), and the live server
+  version. Goal and
   hypothesis text is coloured from the **same single source** as the editor's
   semantic highlighting (no separate, drifting rules), **and it uses your
   file's own notation** — a goal the kernel prints as `Set.subset α A B`

@@ -285,6 +285,32 @@
         valLine.appendChild(codeBlock("decl-val", decl.value_runs, (decl && decl.value) || ""));
         row.appendChild(valLine);
       }
+      // **声明的目标**（T-A5 / R-2 ②）：开放练习在卡片里多一行带色的 `⊢ <目标>`。
+      //
+      // 数据是**父子一对**（服务端同源产出）：
+      //  * 子 = `goals` / `goals_runs`：按位置对齐的列表（`by` 块最后一步的全部
+      //    子目标，当前目标在前）——练习树也是从 `goals` 读的；
+      //  * 父 = `goal` / `goal_runs`：单值回退（非 `by` 的开放练习，或老服务端）。
+      // 两者都没有 ⇒ 不渲染（非开放声明本来就没有目标）。
+      //
+      // 为什么必须由服务端给 runs ✗：webview **不重新分词**（goal-rendering §2.1）
+      // ——没有 runs 就只能画纯文本，那正是 R-2 报的"目标不高亮"。
+      const goalList = decl && Array.isArray(decl.goals) ? decl.goals : [];
+      const goalRuns = decl && Array.isArray(decl.goals_runs) ? decl.goals_runs : [];
+      const goalRows = goalList.length > 0
+        ? goalList.map(function (text, index) {
+          return { text: text, runs: goalRuns[index] };
+        })
+        : (decl && decl.goal ? [{ text: decl.goal, runs: decl.goal_runs }] : []);
+      goalRows.forEach(function (entry, index) {
+        const line = el("div", "decl-goal-line");
+        const label = goalRows.length > 1
+          ? "目标 " + (index + 1) + "/" + goalRows.length
+          : "目标";
+        line.appendChild(el("span", "decl-goal-label", label));
+        line.appendChild(codeBlock("decl-goal", entry.runs, entry.text || "", "⊢ "));
+        row.appendChild(line);
+      });
       declsBody.appendChild(row);
     });
   }

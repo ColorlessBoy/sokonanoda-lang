@@ -77,9 +77,21 @@ pub struct DeclInfo {
     /// 值的语义分段（与 `ty_runs` 同一口径；客户端照着上色）。
     pub value_runs: Vec<RunInfo>,
     pub goal: Option<String>,
+    /// **`goal` 的语义分段**（与 `ty_runs`/`value_runs` 同一口径，T-A5）——
+    /// 声明卡片照着它给目标行上色。`goal` 与 `goal_runs` 是**父子一对**：
+    /// 文本字段留给老客户端，runs 是呈现层（不变量 `runs_to_text(goal_runs) == goal`）。
+    pub goal_runs: Vec<RunInfo>,
     /// 最后一条已记录 tactic 之后的**全部**未闭合目标（当前目标在前）；
     /// 非 `by` 的开放练习是走查得到的那一个；非开放声明为空。
     pub goals: Vec<String>,
+    /// **`goals` 的语义分段**，与 `goals` **按位置对齐**
+    /// （`goals_runs[i]` 是 `goals[i]` 的 runs；两个数组长度恒相等，单测钉死）。
+    ///
+    /// 为什么不把 `goals` 换成对象数组 ✗：这是**只加字段**的既有 wire
+    /// （`docs/protocol.md`），扩展的练习树还在按字符串读它
+    /// （`editor/vscode/extension.js` 的 `buildOpenChildren`）——换成对象就是
+    /// 破坏协议。并排数组是能加的最小形状，对齐由测试保证。
+    pub goals_runs: Vec<Vec<RunInfo>>,
     pub binders: Vec<BinderInfo>,
     pub hole: Option<(usize, usize)>,
     pub holes: Vec<HoleInfo>,
