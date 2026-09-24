@@ -2094,6 +2094,23 @@ T-K12 各段（尤其"⛔ b 的验收结果：不通过 ✗"与"📦 存档决�
 > **Step 4**：往返回归判据（快照后 builder 仍可用 ✓ + 快照里能查到前缀 ✓ +
 > **快照不污染主环境** ✓）。
 >
+> **✅ Step 3–4 也已完成（2026-09-24，第 78 轮）**：`EnvBuilder::snapshot() -> ExportFile<'a>`
+> 已落地 ✓（克隆 `dag`/`declars`/`notations`/`mutual_block_sizes` ✓，`name_cache`
+> 现造 ✓）；判据 `memory_api.rs::snapshot_is_a_read_only_copy_that_does_not_disturb_the_builder`
+> ✓（① 副本能查到前缀 ✓ ② 检查**不动** builder、之后照常 `add_declar` ✓
+> ③ 副本**不跟着长** ✓ —— 是副本不是视图 ✓）。`memory_api` **10 条全过** ✓。
+>
+> **⇒ 内核侧（T-K13 的"可复用原语"）已经齐了** ✓：`with_env`（借出装回 ✓）
+> + `snapshot`（只读副本 ✓）+ 六个 interner/`Dag` 的 `Clone` ✓。
+>
+> **⚠ 剩下的是 front 侧的接线，和 T-K12c 是**同一件事** ✗**：judge 深在 walk 内部，
+> 而它手上只有**前缀文本**（`prefix_src` ✓）⇒ 要用快照，就得让 walk **把 builder
+> 交出来**（或把"合成声明"搬到 walk 里 ✓）。**这一段的难点与 (b) 相同** ✓
+> （见上文"🧱 动手时又挖到两个结构事实"的 (b)）—— 但**现在它安全了** ✓：
+> 快照只读 ⇒ 不会重蹈 `decl_idx` 槽位耦合 ✗。
+> **所以 T-K13 的剩余工作 = (b) 那个接线 + 判据 + 性能数字 + bump** ✓，
+> 仍然是一个**独立的、可验收的**环节 ✓。
+>
 > **实施要点（照规格 + 上面的澄清）**：
 > 1. `interner!` 宏 + 三个手写 interner 加 `Clone`（~10 行，`util.rs:324-459`）✓、
 >    `Dag: Clone` ✓、`EnvBuilder::snapshot() -> ExportFile<'a>`（~25 行）✓；

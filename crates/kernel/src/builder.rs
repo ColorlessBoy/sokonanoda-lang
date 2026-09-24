@@ -56,6 +56,36 @@ impl<'a> EnvBuilder<'a> {
     ///
     /// ⚠ `f` 里**不要再嵌套** `with_env`（builder 此刻是空壳）；也别在 `f` 里碰
     /// `self` —— 借用检查器会挡住，这正是我们想要的。
+    /// **取一份只读快照**（T-K13）：把 builder 的字段**克隆**进一个 `ExportFile`。
+    ///
+    /// 与 [`EnvBuilder::with_env`] 的关键区别：`with_env` 是**借出再装回**
+    /// （回调期间 builder 是空壳 ✗），而 `snapshot` 是**复制**（builder 原封不动 ✓）。
+    /// 检查器拿快照**只读**用 ⇒ **不写任何 `decl_idx` 槽位** ✓
+    /// ⇒ 天然绕开"往独立环境里 `add_declar` 会改写共享槽位"那堵墙
+    /// （T-K12c 的死因：跳过一条声明就整体错位 ⇒ 假 `def_eq mismatch` ✓，
+    /// 见 `docs/design/vscode-editor-feedback-plan.md` 的 T-K12c）。
+    ///
+    /// ⚠ **快照必须在合成声明建好之后取**（规格里的陷阱 ✓）：内核多处依赖
+    /// "同一字面量/名字 ⇒ 同一指针"（`conv.rs` 的 `NatLit` 指针相等、
+    /// `eval.rs` 用 `ptr.get_hash()`＝**地址**做内容哈希、`NameInterner::get`
+    /// 比 `StringPtr` 的**地址**）⇒ 快照若早于合成声明里新出现的字面量，
+    /// 检查器会为同一个值造出第二个指针 ⇒ **本该判过的 def_eq 假失败** ✗。
+    ///
+    /// 成本：一次 O(表大小) memcpy（数 MB × 每个 by-site = 几十 ms，可忽略 ✓）。
+    pub fn snapshot(&self) -> ExportFile<'a> {
+        ExportFile {
+            dag: self.dag.clone(),
+            anon: self.anon,
+            zero: self.zero,
+            declars: self.declars.clone(),
+            notations: self.notations.clone(),
+            // `name_cache` 是**派生**缓存（builder 不持有它）⇒ 现造一个。
+            name_cache: self.dag.mk_name_cache(self.anon),
+            config: self.config.clone(),
+            mutual_block_sizes: self.mutual_block_sizes.clone(),
+        }
+    }
+
     pub fn with_env<R>(&mut self, f: impl FnOnce(&mut ExportFile<'a>) -> R) -> R {
         // 占位 dag：回调期间 builder 不可用 ⇒ 占位不会被读到（`new_local` 很便宜）。
         let placeholder = Dag::new_local(&self.config);

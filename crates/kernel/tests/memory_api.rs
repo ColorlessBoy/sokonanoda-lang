@@ -530,3 +530,54 @@ fn with_env_lends_the_intern_tables_and_takes_them_back() {
     let env = b.finish();
     assert_eq!(env.declars.len(), before + 1, "装回之后还能继续 add_declar");
 }
+
+/// **T-K13 的判据（快照只读、不污染主环境）**：
+/// `EnvBuilder::snapshot()` 给检查器一份**副本** —— ① 副本里能查到前缀 ✓、
+/// ② 用它检查**不会**动到 builder（声明数不变、之后照常可用 ✓）、
+/// ③ 副本取到之后 builder 再长，**副本不变**（是副本不是视图 ✓）。
+/// 这三条合起来正是"只读快照"的定义 ✓，也是它绕开 `decl_idx` 槽位耦合的依据 ✓。
+#[test]
+fn snapshot_is_a_read_only_copy_that_does_not_disturb_the_builder() {
+    let arena = Arena::new();
+    let mut b = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    let prop = b.mk_sort(b.zero());
+    let prefix = Declar::Axiom {
+        info: DeclarInfo {
+            name: b.name_from_str("A"),
+            uparams: b.alloc_levels_slice(&[]),
+            ty: prop,
+        },
+    };
+    b.add_declar(prefix).expect("add prefix");
+    let before = b.declaration_count();
+
+    let snap = b.snapshot();
+    assert_eq!(snap.declars.len(), before, "副本里能看到前缀");
+
+    // 用副本检查一条合成声明 ⇒ 副本照常工作。
+    let synth = Declar::Axiom {
+        info: DeclarInfo {
+            name: b.name_from_str("synth"),
+            uparams: b.alloc_levels_slice(&[]),
+            ty: prop,
+        },
+    };
+    assert!(
+        snap.try_check_declar_at(&synth, EnvLimit::ByIndex(before)).is_ok(),
+        "副本能当环境用来检查合成声明"
+    );
+
+    // ① 检查**不动** builder；② builder 之后照常可用。
+    assert_eq!(b.declaration_count(), before, "取快照 + 用快照检查都不许改 builder");
+    let after = Declar::Axiom {
+        info: DeclarInfo {
+            name: b.name_from_str("B"),
+            uparams: b.alloc_levels_slice(&[]),
+            ty: prop,
+        },
+    };
+    b.add_declar(after).expect("add after snapshot");
+    assert_eq!(b.declaration_count(), before + 1);
+    // ③ 副本**不跟着长**（是副本，不是视图）。
+    assert_eq!(snap.declars.len(), before, "副本取到之后不受 builder 影响");
+}
