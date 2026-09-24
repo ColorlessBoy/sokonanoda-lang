@@ -180,6 +180,11 @@ set -e
 passing=$(grep -oE '^ +[0-9]+ passing' "$raw_log" | tail -1 | grep -oE '[0-9]+' || echo 0)
 failing=$(grep -oE '^ +[0-9]+ failing' "$raw_log" | tail -1 | grep -oE '[0-9]+' || echo 0)
 pending=$(grep -oE '^ +[0-9]+ pending' "$raw_log" | tail -1 | grep -oE '[0-9]+' || echo 0)
+# **失败用例名**（2026-09-24 加）：以前台账只有计数，CI 红了要从 runner 的临时日志里
+# 找用例名——产物里根本没有（`log` 字段只有路径）。实测吃过这个亏：ubuntu 两个版本
+# 同时红，却只能猜"大概是那条比值断言"。mocha 的失败列表是 `  1) <用例名>` 形状
+# （套件头那一行是 `1) <套件名>`，靠"不是套件名"过滤不掉就都留着——给人和 agent 读）。
+failing_cases=$(grep -oE '^ +[0-9]+\) .+' "$raw_log" | sed -E 's/^ +[0-9]+\) //' | sort -u | paste -sd '|' - || true)
 vscode_version=$(grep -m1 -oE 'Validated version: [0-9.]+' "$raw_log" | grep -oE '[0-9.]+' || echo "unknown")
 server_line=$(grep -m1 'server-version：' "$raw_log" | sed 's/.*server-version：//' || true)
 # macOS 有 shasum、Linux 常用 sha256sum——两个都试，取不到就记 unknown（不让记账
@@ -219,6 +224,7 @@ trimmed="docs/e2e/logs/${date%%T*}-${short_sha}-vc${test_version}.log"
 
 VERSION="$version" SHA="$sha" SHORT_SHA="$short_sha" DATE="$date" \
 DIRTY="$dirty" STATUS="$status" PASSING="$passing" FAILING="$failing" PENDING="$pending" \
+FAILING_CASES="$failing_cases" \
 VSCODE_VERSION="$vscode_version" SERVER_LINE="$server_line" LSP_SHA="$lsp_sha" \
 TRIMMED="$trimmed" PROFILE="$profile" GREP="$grep_name" python3 - <<'PY'
 import json, os, pathlib, platform
@@ -241,6 +247,11 @@ entry = {
         "passed": int(os.environ["PASSING"]),
         "failed": int(os.environ["FAILING"]),
         "pending": int(os.environ["PENDING"]),
+        # **哪些用例失败了**（不是只有计数）：CI 产物里能直接读到，
+        # 不用再去 runner 的临时日志里捞（2026-09-24 加）。
+        "failing_cases": [
+            name for name in os.environ.get("FAILING_CASES", "").split("|") if name
+        ],
     },
     "exit": int(os.environ["STATUS"]),
     # 被测服务器：版本自述那行 + 二进制指纹前 16 位（能看出"测的是不是旧构建"）。

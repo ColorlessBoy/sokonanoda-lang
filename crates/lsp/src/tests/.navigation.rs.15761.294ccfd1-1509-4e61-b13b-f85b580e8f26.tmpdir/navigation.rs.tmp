@@ -339,13 +339,6 @@ infix:50 \" ∈ \" => Set.mem\n",
     shutdown(&mut service).await;
 }
 
-/// **T-D30 的判据（LSP 侧）**：光标在 `(h : a ∈ A)` 的 **`∈`** 上时，
-/// `documentHighlight` 不得返回任何东西，`rename` 不得改 `h`。
-///
-/// 改前实测：`highlight_uses` 的"包含光标即命中"回退会命中**外层 binder**
-/// ——binder 的 span 覆盖**整段类型标注** ⇒ `∈` 被解析成 `h`，面板上会把 `h`
-/// 的每一处都点亮、`rename` 会去改 `h`。同一个病在 front 的
-/// `references::resolve_at` 里也有一份（两条都在 T-D30 修）。
 #[tokio::test]
 async fn a_notation_symbol_does_not_resolve_to_the_enclosing_binder() {
     let src = "def Set (α : Type) : Type := α -> Prop\n\

@@ -17,6 +17,25 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第五十二轮：**T-D22 完成 + 台账开始记录失败用例名**）
+
+**T-D22 完成**（112/123）：决定 = **导航跟作用域（闭包表 + 本文件声明 + 内建），
+输入提示刻意不跟**（输入法是全局的，`\in` 在任何地方都该提示）——偏差**有意**，
+写进 `docs/design/notation-subset.md`。判据：
+`a_notation_symbol_out_of_scope_is_not_resolved`（真临时项目：`SetLib` 声明 `∈`、
+入口**不** import ⇒ `definition` 必须 `null`）。实跑 **3 passed**。
+
+**台账改进（诊断关键路径）**：`scripts/vscode-e2e.sh` 现在把**失败用例名**写进
+`docs/e2e/latest.json` 的 `tests.failing_cases`（以前只有计数，CI 红了只能从
+runner 的临时日志里捞——产物里根本没有）。抽取逻辑已在本地日志上验证：
+`reopening a project unit hits the compile cache` ✓。
+
+**⚠ 新情况（重要）**：本批 CI 里 **ubuntu 两个 VS Code 版本都红了** ✗
+（`1.106.0` 2m13s ✗、`1.138.0` **2m1s** ✗ —— 比绿时的 2m45s **更快** ⇒ 失败很早 ✗），
+而 **macos 1.138.0 绿** ✓。上一批（`c542527`）ubuntu 1.138 **是绿的** ✓
+⇒ 这是**新**失败 ✗，且**不是**我放宽的那条比值断言（更松不会致红 ✗）。
+本轮的台账改进正是为了下一次能**直接读出**是哪条用例 ✗→✓。
+
 ## 本轮进度（2026-09-24，第五十一轮：**T-D20/T-D21 完成 + 1.106 e2e 断言按证据放宽**）
 
 **T-D20 完成**（111→110 计：T-D20 ✓）：内建/prelude 记法（`∧`→`And`）**没有源码

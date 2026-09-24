@@ -3013,6 +3013,12 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D22 `scoped` 记法的导航是否尊重作用域
 
+> **✅ 完成（2026-09-24）**：决定 = **导航跟作用域（闭包表 + 本文件 + 内建），
+> 输入提示刻意不跟**（输入法是全局的）——偏差是**有意的**，写进
+> `docs/design/notation-subset.md`。判据：
+> `a_notation_symbol_out_of_scope_is_not_resolved`（真临时项目：`SetLib` 声明 `∈`、
+> 入口不 import ⇒ `definition` 必须 `null`）。实跑 **3 passed**。
+
 - **问题**：`notation_input` 刻意忽略 scoping（`docs/design/notation-input.md` §10 偏差 3）
   ⇒ 不在作用域的符号也会被当成在作用域。导航要不要跟？
 - **改什么**：决定 + 测试。
@@ -3708,7 +3714,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   - ⬆ **BUMP**：`minor` —— F12 在记法符号上能跳到声明
 - [x] `T-D20` 内建/ prelude 目标的定义跳转怎么办
 - [x] `T-D21` 跨文件记法的"定义"是哪个
-- [ ] `T-D22` `scoped` 记法的导航是否尊重作用域
+- [x] `T-D22` `scoped` 记法的导航是否尊重作用域
 - [ ] `T-D23` 重载：一个 `Location` 还是 N 个
 - [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
 - [x] `T-D40` 三层测试（矩阵用例 #7/#8）
