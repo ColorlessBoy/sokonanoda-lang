@@ -17,6 +17,40 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第四十七轮：**批次收尾 —— T-D50 完成，本批可发 0.65.4**）
+
+**本批 = T-D51 + T-D50**（用户第 7 条反馈的"统一修复"），本地全部做完、**只推一次**。
+
+**T-D50 完成**（缺口 G-37，两处实现）：
+1. **着色**：`semantic::tag_runs_with_notations` 把记法声明的**目标名**按
+   **已知引用**登记（判据走词法 `scan_notation_decls`，与 parser 同源），
+   `or_insert` ⇒ 名字真在本文件里时保留**真实**种类。⇒ 不再落 `UnknownIdent`
+   （`variable.other`）——用户看到的"三条没高亮"消失。
+2. **跳转 + hover**：新增词法助手 `notation_input::notation_target_at`
+   （找命令关键字 → 跳过符号字符串 → 取**第一个标识符** = 目标名），
+   `definition`/`hover` 各加一条分支，走**同一条闭包通道**。
+
+**判据实跑**（真 LSP，`lib/Set.sokonanoda` 124–128 行）：
+* **hover 五条全部答得上**；
+* **definition 在闭包里的两条**（`Set.powerset`/`Set.compl`）**跳转成功**；
+* 不在闭包里的三条（`Set.image`/`Set.preimage`/`Set.prod`）**诚实为 null**
+  ——那份文件没 import 声明它们的模块（计划原文的边界 ✓）；
+* front 判据 `a_notation_target_is_a_known_reference_not_an_unknown_ident`
+  （带"真未知标识符仍是 `UnknownIdent`"的对照）；
+* `cargo test --workspace` **exit 0**（40 suite）；G-37 复现件 ⇒ **exit 1**。
+
+**⚠ 如实记：G-37 的第一次取证（0.65.2）是错的** —— 复现件用
+`positionOf(SRC, "Set.powerset")` 取**第一次出现**，而它在文件更早的**注释**里
+⇒ 光标一直落在**注释**上，三种请求当然全 null。修法是"行首偏移 + 行内偏移"。
+**教训：夹具位置必须定位到"那一行里的那个 token"**（与 G-36 的"因为错的原因为真"
+同一类）。已写进台账 notes 与计划 as-built。
+
+**⬆ BUMP 0.65.4**（两条缺口的 `fixed_in` 都是它）+ CHANGELOG。
+**批次 e2e**：`24 passed / 1 failed`，唯一失败是
+`reopening a project unit hits the compile cache`，错误是 **`EPERM …
+u02.sokonanoda`**——本机**删除限制**造成（环境 ✓，不是产品 ✓）；
+权威台账由 CI 那一次回写（按批次制只记一条）。
+
 ## 本轮进度（2026-09-24，第四十六轮：**批次制开工 —— T-D51 主体完成，1 条跨通道一致性待收**）
 
 > 本批 = **T-D51（折叠扩四种记法）+ T-D50（记法目标名成为使用点）**，

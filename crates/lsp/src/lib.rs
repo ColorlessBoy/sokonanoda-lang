@@ -1574,6 +1574,29 @@ impl LanguageServer for Backend {
         if let Some(hover) = notation_symbol_hover(doc.text(), offset, report, pos, doc.query()) {
             return Ok(Some(hover));
         }
+        // **记法声明的目标名**（T-D50 / 缺口 G-37）：`=> Set.image` 里那个名字
+        // 在 AST 里不是使用点 ⇒ 以前 hover 完全静默。这里说清"它是谁的记法目标"，
+        // 名字解析得出来时再补一行签名（与 `notation_symbol_hover` 同一口径）。
+        if let Some((name, _)) =
+            sokonanoda_front::notation_input::notation_target_at(doc.text(), offset)
+        {
+            let mut lines = vec![format!("`{name}` —— 记法的目标")];
+            let options = sokonanoda_front::compile::CompileOptions {
+                prelude: doc.query().mode,
+            };
+            if let Ok(ty) = sokonanoda_front::judge::judge_type_of_constant("", &options, &name) {
+                if !ty.is_empty() && !ty.contains('$') {
+                    lines.push(format!("`{name} : {ty}`"));
+                }
+            }
+            return Ok(Some(Hover {
+                contents: HoverContents::Markup(MarkupContent {
+                    kind: MarkupKind::Markdown,
+                    value: lines.join("\n\n"),
+                }),
+                range: None,
+            }));
+        }
         // 关键字（fun/=>/theorem/axiom…）上不吐类型行：那一行的悬停信息
         // 应该来自名字/表达式，而不是把关键字所在的某个节点硬塞过来。
         if let Some(kind) = semantic_kind_at(doc.text(), pos.line, pos.character) {
@@ -1755,6 +1778,26 @@ impl LanguageServer for Backend {
                         uri,
                         range: range_of(span),
                     })));
+                }
+            }
+        }
+        // **记法声明的目标名**（T-D50 / 缺口 G-37）：`infixr:80 " '' " => Set.image`
+        // 里 `=>` 后面的名字是**普通引用**，但它在 AST 里不是使用点 ⇒
+        // `definition_at` 答不上来。词法认出它之后，走与上面**同一条闭包通道**
+        // （`project_definition` 握着整个闭包的名字 → 模块）。
+        {
+            let text = docs.text().to_string();
+            let offset = position_to_offset(&text, pos);
+            if let Some((name, span)) =
+                sokonanoda_front::notation_input::notation_target_at(&text, offset)
+            {
+                if let Some((path, _)) = docs.query().project_definition(&name) {
+                    if let Ok(uri) = Url::from_file_path(&path) {
+                        return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                            uri,
+                            range: range_of(span),
+                        })));
+                    }
                 }
             }
         }

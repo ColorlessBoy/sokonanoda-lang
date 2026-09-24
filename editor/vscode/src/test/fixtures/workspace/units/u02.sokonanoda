@@ -1,0 +1,136 @@
+-- e2e 夹具的入口（计划 T-015）：**含 import + 库记法**。
+--
+-- 用途（对应计划 §0.5 的用例矩阵）：
+--   #1 声明栏非空（G-22）· #2 alt+n 跳洞（G-22 同族）· #6 goal 用记法（G-26）
+--   #7 F12 跳记法声明 · #8 hover 出 `Set.mem` 的签名（G-23）
+
+import lib.Set
+
+theorem mem_self (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+
+theorem subset_mem (α : Type) (A B : Set α) (h : A ⊆ B) : A ⊆ B := h
+
+-- 课程写法：`:= by` + 下一行 `sorry`（走「根状态」生产者，G-26 钉的就是它）。
+theorem open_one (α : Type) (A B : Set α) : A ⊆ B → (∀ (x : α), x ∈ A → x ∈ B) := by
+  sorry
+
+theorem extra_0 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_1 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_2 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_3 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_4 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_5 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_6 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_7 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_8 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_9 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_10 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_11 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_12 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_13 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_14 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_15 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_16 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_17 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_18 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_19 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_20 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_21 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_22 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_23 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_24 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_25 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_26 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_27 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_28 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_29 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_30 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_31 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_32 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_33 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_34 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_35 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_36 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_37 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_38 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_39 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_40 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_41 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_42 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_43 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_44 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_45 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_46 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_47 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_48 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_49 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_50 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_51 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_52 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_53 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_54 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_55 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_56 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_57 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_58 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_59 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_60 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_61 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_62 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_63 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_64 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_65 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_66 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_67 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_68 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_69 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_70 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_71 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_72 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_73 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_74 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_75 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_76 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_77 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_78 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_79 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_80 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_81 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_82 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_83 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_84 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_85 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_86 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_87 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_88 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_89 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_90 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_91 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_92 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_93 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_94 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_95 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_96 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_97 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_98 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_99 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_100 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_101 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_102 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_103 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_104 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_105 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_106 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_107 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_108 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_109 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_110 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_111 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_112 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_113 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_114 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_115 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_116 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_117 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_118 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h
+theorem extra_119 (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h

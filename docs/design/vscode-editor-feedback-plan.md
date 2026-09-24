@@ -3187,6 +3187,35 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D50 记法声明的**目标名**是使用点（**修机制 B，一条修两个症状**）
 
+> **✅ 完成（2026-09-24）。判据实跑：G-37 复现件 ⇒ exit 1。**
+>
+> **两处实现**：
+> 1. **着色**（`semantic::tag_runs_with_notations`）：把记法声明的**目标名**
+>    按**已知引用**登记（判据走词法 `scan_notation_decls`，与 parser 同源），
+>    并用 `or_insert` —— 名字**真在本文件里**时保留它**真实**的种类。
+>    ⇒ 不再落 `UnknownIdent`（`variable.other`），用户看到的"三条没高亮"消失。
+> 2. **跳转 + hover**（LSP）：新增词法助手
+>    `notation_input::notation_target_at`（找记法命令关键字 → 跳过符号字符串 →
+>    取**第一个标识符** = 目标名；不需要认 `=>` 这个 token，词法里它是 `=` + `>`），
+>     `definition` 与 `hover` 各加一条分支，走**同一条闭包通道**
+>    （`project_definition`）。
+>
+> **判据实跑**（真 LSP，`lib/Set.sokonanoda` 124–128 行）：
+> * **hover 五条全部答得上**（"`Set.image` —— 记法的目标"）；
+> * **definition 在闭包里的两条**（`Set.powerset`/`Set.compl`）**跳转成功**；
+> * **不在闭包里的三条**（`Set.image`/`Set.preimage`/`Set.prod`，声明在别的模块）
+>   **诚实为 null** —— 这份文件没 import 声明它们的模块，没有可跳的目标
+>   （计划原文的边界：`resolution` 诚实为 `None`，**但着色必须仍是已知引用** ✓）。
+> * `documentHighlight` 本轮**不做**（要 use→def 映射，属于另一条线）。
+> * front 判据：`a_notation_target_is_a_known_reference_not_an_unknown_ident`
+>   （含"真未知标识符仍是 `UnknownIdent`"的对照）。
+>
+> **⚠ 这条缺口的第一次取证（0.65.2）是错的（如实记）**：复现件用
+> `positionOf(SRC, "Set.powerset")` 取**第一次出现**——它在文件更早的**注释**里
+> ⇒ 光标一直落在**注释**上，三种请求当然全 null。修法是"行首偏移 + 行内偏移"。
+> **教训：夹具位置必须定位到"那一行里的那个 token"**，用全局第一次出现是最容易
+> 骗过自己的写法（与 G-36 的"因为错的原因为真"是同一类）。
+
 - **改什么**：解析/编译记法声明时，把 `=>` 后面的**目标名 token** 登记成
   **使用点**：① 语义分类给**已知引用**（`FUNCTION` 族，不是 `UnknownIdent`）；
   ② 记录 `resolution`（目标在闭包里就指向它的声明；不在就**仍然着色为已知引用**，
@@ -3646,7 +3675,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
 - [x] `T-D40` 三层测试（矩阵用例 #7/#8）
 - [x] `T-D41` 文档同步
-- [ ] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
+- [x] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
 - [x] `T-D51` 折叠层扩到 prefix / postfix / binder / 零元（`forall` → `∀` 等一批符号）
 - [ ] `T-D52` `def` 的声明多一行"真正定义"（`:=` 之后的 body）
   - ⬆ **BUMP**：`patch` —— 批次 4 收尾（含 rename/highlight 不再误伤 binder）

@@ -286,6 +286,23 @@ pub fn tag_runs_with_notations(
     for name in binders {
         names.binders.insert(name.clone());
     }
+    // **记法声明的目标名是"已知引用"**（T-D50 / 缺口 G-37）。
+    //
+    // 病：`infixr:80 " '' " => Set.image` 里 `=>` 后面的名字以前**只能退回
+    // 作用域查找** ⇒ 不在本文件里的（`Set.image`/`Set.preimage`/`Set.prod`）
+    // 落成 `SemanticKind::UnknownIdent`（着色 `variable.other`），用户看到的
+    // 就是"这三条没高亮"（真 LSP 实测：类型号 4 = FUNCTION vs 5 = VARIABLE）。
+    //
+    // 判据走**词法**（`scan_notation_decls`，与 parser 共用同一份扫描），
+    // 并且 `or_insert` —— 名字**在本文件里声明**时保留它**真实**的种类，
+    // 只有查不到时才按"已知引用"（`DefUse`）着色。
+    // **注意**：这里只解决**着色**；跳转由 LSP 那条记法目标分支负责
+    // （目标不在作用域时 `resolution` 诚实为 `None`，但着色必须仍是已知引用）。
+    for (_, target) in crate::token::scan_notation_decls(text) {
+        if let Some(target) = target {
+            names.decls.entry(target).or_insert(SemanticKind::DefUse);
+        }
+    }
     // **要把记法符号喂给词法**：`↔`/`¬`/`≠` 不在数学符号码点类里，不喂就切成
     // `Ident`（于是走 `classify_ident` ⇒ `unknown_ident`，而不是 `Keyword`）。
     let toks = match crate::token::tokenize_with_symbols(text, notations) {
@@ -1110,6 +1127,45 @@ end
     /// **T-C30**：记法符号要有着色，而且**内建的也算**。
     ///
     /// 判据（wire 层）：`∈` 的 run 有 `kind`，不再是裸 `{"text":"∈"}`。
+    /// **T-D50 的判据（着色）**：记法声明里 `=>` 后面的**目标名**是"已知引用"，
+    /// **不是** `UnknownIdent`。
+    ///
+    /// 现场（缺口 G-37，真 LSP 实测）：`lib/Set.sokonanoda` 的五条记法声明里，
+    /// 名字**在本文件**的（`Set.mem`/`Set.powerset`/`Set.compl`）着色
+    /// `FUNCTION`；**不在本文件**的（`Set.image`/`Set.preimage`/`Set.prod`，
+    /// 声明在别的模块）落成 `VARIABLE`（= `UnknownIdent`）——用户看到的就是
+    /// "这三条没高亮"。根因是分类只能退回**作用域查找**，查不到就只好说
+    /// "不知道这是什么"。
+    ///
+    /// 修法：记法声明的目标名按**已知引用**着色（判据走词法，与 parser 同源）；
+    /// 名字真在本文件里时保留它真实的种类（`or_insert`）。
+    #[test]
+    fn a_notation_target_is_a_known_reference_not_an_unknown_ident() {
+        // `Set.image` 在这个文件里**没有声明**（真实场景：声明在别的模块）。
+        let src = "infixr:80 \" '' \" => Set.image\n";
+        let runs = tag_runs(src, &[], &[]);
+        let target = runs
+            .iter()
+            .find(|r| r.text == "Set.image")
+            .expect("目标名应当有一条 run");
+        assert!(
+            target.kind.is_some(),
+            "目标名必须是**已知引用**（不能不着色）：{target:?}"
+        );
+        assert_ne!(
+            target.kind,
+            Some(SemanticKind::UnknownIdent),
+            "目标名不是「未知标识符」——那正是用户看到的「没高亮」：{target:?}"
+        );
+        // 对照：**真**未知标识符仍然是 `UnknownIdent`（别把这条修过头）。
+        let runs = tag_runs("def f : Prop := Nope.thing\n", &[], &[]);
+        let unknown = runs
+            .iter()
+            .find(|r| r.text == "Nope.thing")
+            .expect("未知标识符有一条 run");
+        assert_eq!(unknown.kind, Some(SemanticKind::UnknownIdent));
+    }
+
     #[test]
     fn tag_runs_marks_notation_symbols_as_keywords() {
         let src = "def Set.mem (α : Type) (a : α) (A : α -> Prop) : Prop := A a\n\

@@ -299,6 +299,73 @@ fn symbol_token_at(text: &str, offset: usize, symbols: &[String]) -> Option<crat
         .cloned()
 }
 
+/// 光标是不是落在**记法声明的目标名**上（T-D50 / 缺口 G-37）。
+///
+/// 现场：`infixr:80 " '' " => Set.image` 里 `=>` 后面的 `Set.image` 是**普通
+/// 引用**，但它在 AST 里**不是使用点**（没有 hover 行）⇒ `definition_at` 答不上
+/// 来、ctrl+点击没反应（真 LSP 实测：五条声明的目标名 × {definition, hover,
+/// documentHighlight} = 15 个请求全为 null）。
+///
+/// 判据是**词法**的：找到记法命令关键字（`infix*`/`prefix`/`postfix`/
+/// `notation`/`binder_notation`），跳过紧随其后的**符号字符串**，再取**第一个
+/// 标识符**——命令的形状就是这样（`keyword [:N] "sym" => Target`），所以不需要
+/// 认 `=>` 这个 token（词法里它是 `=` + `>` 两个 token）。
+pub fn notation_target_at(text: &str, offset: usize) -> Option<(String, crate::Span)> {
+    const KEYWORDS: &[&str] = &[
+        "infix",
+        "infixl",
+        "infixr",
+        "prefix",
+        "postfix",
+        "notation",
+        "binder_notation",
+    ];
+    // 喂符号：`''`/`⁻¹'` 这些不喂就切不出来（同 `symbol_at` 的理由）。
+    let declared = crate::token::scan_notation_decls(text);
+    let mut symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
+    for symbol in crate::parser::lexer_builtin_symbols() {
+        if !symbols.contains(&symbol) {
+            symbols.push(symbol);
+        }
+    }
+    for entry in TABLE {
+        let symbol = entry.symbol.to_string();
+        if !symbols.contains(&symbol) {
+            symbols.push(symbol);
+        }
+    }
+    let toks = crate::token::tokenize_with_symbols(text, &symbols).ok()?;
+    let mut index = 0usize;
+    while index < toks.len() {
+        let is_keyword = matches!(
+            &toks[index].kind,
+            crate::TokenKind::Ident(name) if KEYWORDS.contains(&name.as_str())
+        );
+        if is_keyword {
+            // 跳过关键字之后的**符号字符串**，再取第一个标识符 = 目标名。
+            let mut cursor = index + 1;
+            while cursor < toks.len() && !matches!(toks[cursor].kind, crate::TokenKind::Str(_)) {
+                cursor += 1;
+            }
+            cursor += 1;
+            while cursor < toks.len() {
+                if let crate::TokenKind::Ident(name) = &toks[cursor].kind {
+                    let span = toks[cursor].span;
+                    if span.start.offset <= offset && offset < span.end.offset {
+                        return Some((name.clone(), span));
+                    }
+                    break; // 这条命令的目标不是光标处，继续下一条
+                }
+                cursor += 1;
+            }
+            index = cursor;
+            continue;
+        }
+        index += 1;
+    }
+    None
+}
+
 /// 同 [`symbol_at`]，但展开目标还能从**闭包里**找（T-D02）。
 ///
 /// `symbol_at` 只看**本文件**的声明 + 内建 ⇒ **`import` 来的记法（`∈`/`⊆`）

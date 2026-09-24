@@ -71,8 +71,12 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
   let id = 10;
   const pending = [];
   for (const [label, line] of cases) {
+    // ⚠ **必须取"那一行里的那个名字"**：`positionOf(SRC, 'Set.powerset')` 会命中
+    // **第一次出现**——它在文件更早的**注释**里（实测：光标落在注释上 ⇒ 三种请求
+    // 全 null，量到的根本不是"记法声明的目标名"）。用行首偏移 + 行内偏移定位。
     const at = positionOf(SRC, line);
-    const target = positionOf(SRC, line.split('=> ')[1]);
+    const inLine = line.indexOf(line.split('=> ')[1]);
+    const target = { line: at.line, character: at.character + inLine, offset: at.offset + inLine };
     for (const [method, suffix] of [['textDocument/definition', 'def'], ['textDocument/hover', 'hover'], ['textDocument/documentHighlight', 'hl']]) {
       lsp.send({ jsonrpc: '2.0', id, method, params: { textDocument: { uri }, position: { line: target.line, character: target.character + 2 } } });
       pending.push([id, label, suffix, target]);
@@ -81,26 +85,39 @@ async function responseFor(lsp, id) { for (;;) { const m = await lsp.next(); if 
     void at;
   }
   const out = new Map();
+  const missing = [];
   for (const [rid, label, suffix, target] of pending) {
     const r = await responseFor(lsp, rid);
-    out.set(`${label}|${suffix}`, { r, target });
-  }
-  lsp.stop();
-  const missing = [];
-  for (const [key, { r, target }] of out) {
     const v = r.result;
     let summary;
     if (v === null || v === undefined) summary = 'null';
     else if (Array.isArray(v)) summary = `array(${v.length})`;
     else if (v.contents) summary = JSON.stringify((v.contents.value || '').split('\n')[0]).slice(0, 60);
     else summary = JSON.stringify(v).slice(0, 80);
-    console.log(`${key.padEnd(34)} @${target.line + 1}:${target.character + 3}  ${summary}`);
-    if (summary === 'null') missing.push(key);
+    out.set(`${label}|${suffix}`, { r, target, summary });
+    console.log(`${`${label}|${suffix}`.padEnd(34)} @${target.line + 1}:${target.character + 3}  ${summary}`);
+    if (summary === 'null') missing.push(`${label}|${suffix}`);
   }
-  // 五条目标名 × 三种请求，**全部**为 null ⇒ 缺口仍在。
-  const allNull = missing.length === out.size;
-  if (!allNull) {
-    console.log(`结论：G-37 已修——有 ${out.size - missing.length}/${out.size} 个请求答上了。`);
+  lsp.stop();
+  // **修后契约**（T-D50）：
+  //   ① **hover** 五条目标名**全部**答得上（"`X` —— 记法的目标"）；
+  //   ② **definition** 对**在本文件闭包里**的目标答得上（`Set.powerset`/
+  //      `Set.compl` 就在 `lib/Set.sokonanoda` 里）——**不在**闭包里的
+  //      （`Set.image`/`Set.preimage`/`Set.prod`，声明在别的模块）**诚实为
+  //      null**：这份文件没 import 那个模块，没有可跳的目标，编不出来。
+  //   ③ `documentHighlight` 本轮**不做**（那要 use→def 映射，属于另一条线）。
+  const hoverOk = cases.every(([label]) => {
+    const entry = out.get(`${label}|hover`);
+    return entry && entry.summary && entry.summary !== 'null';
+  });
+  const inScope = ['Set.powerset (prefix)', 'Set.compl (postfix)'];
+  const defOk = inScope.every((label) => {
+    const entry = out.get(`${label}|def`);
+    return entry && entry.summary && entry.summary !== 'null';
+  });
+  if (hoverOk && defOk) {
+    console.log('结论：G-37 已修——目标名 hover 五条全答得上；在闭包里的两条 definition 也答得上');
+    console.log('      （不在闭包里的三条诚实为 null——那份文件没 import 声明它们的模块）。');
     process.exit(1);
   }
   console.error('结论：G-37 仍在——记法声明的目标名不是使用点（definition/hover/');
