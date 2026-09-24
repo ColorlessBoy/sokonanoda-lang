@@ -323,6 +323,7 @@ impl<'a> std::fmt::Debug for LevelsPtr<'a> {
 
 macro_rules! interner {
     ($name:ident, $pointee:ident) => {
+        #[derive(Clone)]
         pub(crate) struct $name<'a> {
             table: HashTable<&'a $pointee<'a>>,
         }
@@ -366,6 +367,7 @@ macro_rules! interner {
     };
 }
 
+#[derive(Clone)]
 pub(crate) struct NameInterner<'a> {
     table: HashTable<&'a crate::name::NameNode<'a>>,
 }
@@ -407,6 +409,7 @@ impl<'a> ExprInterner<'a> {
 
 }
 
+#[derive(Clone)]
 pub(crate) struct BigUintInterner<'a> {
     table: HashTable<&'a BigUint>,
 }
@@ -430,6 +433,7 @@ impl<'a> BigUintInterner<'a> {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct LevelsInterner<'a> {
     table: HashTable<&'a [LevelPtr<'a>]>,
 }
@@ -458,6 +462,7 @@ impl<'a> LevelsInterner<'a> {
     }
 }
 
+#[derive(Clone)]
 pub struct Dag<'a> {
     pub(crate) names: NameInterner<'a>,
     pub(crate) levels: LevelInterner<'a>,

@@ -2084,6 +2084,16 @@ T-K12 各段（尤其"⛔ b 的验收结果：不通过 ✗"与"📦 存档决�
 > （检查合成声明 ✓）⇒ **不写任何槽位** ✓ ⇒ **天然绕开那堵墙** ✓✓。
 > 所以顺序应当是：**先做 T-K13**（小、可控 ✓），而不是继续攻 T-K12c ✗。
 >
+> **🚧 进展（2026-09-24，第 77 轮）**：**Step 1–2 已完成** ✓ ——
+> `interner!` 宏里的结构体 + 三个手写 interner（`NameInterner`/`BigUintInterner`/
+> `LevelsInterner` ✓）全部 `#[derive(Clone)]` ✓，`Dag` 也 `Clone` ✓
+> （`util.rs`；`HashTable` 本身可克隆 ✓ 编译器确认 ✓）。内核 **60 条测试全过** ✓。
+> **Step 3（下一步）**：`EnvBuilder::snapshot() -> ExportFile<'a>`（~25 行 ✓）——
+> 把 builder 的字段**克隆**进一个 `ExportFile`（与 `with_env` 同形 ✓，但**不借出**
+> 而是**复制** ✓）⇒ 检查器只读用 ✓、**不写任何 `decl_idx` 槽位** ✓。
+> **Step 4**：往返回归判据（快照后 builder 仍可用 ✓ + 快照里能查到前缀 ✓ +
+> **快照不污染主环境** ✓）。
+>
 > **实施要点（照规格 + 上面的澄清）**：
 > 1. `interner!` 宏 + 三个手写 interner 加 `Clone`（~10 行，`util.rs:324-459`）✓、
 >    `Dag: Clone` ✓、`EnvBuilder::snapshot() -> ExportFile<'a>`（~25 行）✓；
