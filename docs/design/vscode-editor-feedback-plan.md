@@ -2272,6 +2272,15 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 >   `plan_project` + `compile_plan` ⇒ `courses/set-theory` = **33 次闭包编译** ✗。
 > * 改法：按**模块根**（`sokonanoda.toml` / 入口目录 ✓）**分组**，每个模块只编一次 ✓，
 >   再把每文件的结果分派回去 ✓。
+> * **机制已查明（2026-09-24，第 82 轮）** ✓ —— 为什么 35 个文件会编 35 次：
+>   `build_one`（`build.rs:103-139`）的缓存键是 **`plan.digest(&options)`** ✓，
+>   而 `plan_project(path, Some(src), root_override)` 造的 plan **以该文件为入口**
+>   ✗ ⇒ **同一模块里每个文件的 digest 都不同** ✗ ⇒ 闭包（同一份！）被**重复编译**
+>   ✓（`cache::load` 永远 miss ✓ ⇒ 0 hit / 35 compiled ✓）。
+>   **⇒ 最小改法（下一轮）**：按**模块根**分组 ✓，每组只 `compile_plan` **一次** ✓
+>   （用组内任一文件的 plan ✓，它的闭包覆盖整个模块 ✓），再把该次结果里的
+>   **各文件报告**分派回每个文件 ✓、并按各文件自己的 digest **写缓存** ✓
+>   （这样第二次 `build` 才有 hit ✓，语义与今天一致 ✓）。
 > * **基线已量（2026-09-24，冷缓存）** ✓：`build courses/set-theory` = **146.07s**，
 >   35 个文件（0 hit / 35 compiled / 0 failed）⇒ 收益空间很大 ✓。数字进
 >   `docs/perf/ledger.jsonl`（`build_dir_course_baseline` ✓）。
