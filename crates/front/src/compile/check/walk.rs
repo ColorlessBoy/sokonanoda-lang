@@ -53,6 +53,13 @@ pub(super) struct Walk<'arena> {
     /// 影子重放中**内核拒绝**的那些 `ops` 下标（与 `kernel_phase` 的失败表同键：
     /// 都按"命令序"索引 ✓）。
     pub(super) shadow_failed: Vec<usize>,
+    /// 本轮 pass 的**已知失败集**（`run_pass` 的 `skip` 参数）。
+    ///
+    /// 影子必须**同样跳过**这些命令 ✗：`kernel_phase` 对它们**不重查**、
+    /// 因此也不会记进 `failed_cmds` ✓；影子若无条件重查，失败表就会比内核**多**
+    /// 几条 ✗（T-K12b 的对照实测正是这样：`unit01` 内核 0 失败、影子 3 失败 ✓）。
+    /// 存**克隆**（几条而已 ✓），因为 `skip` 的寿命是 `run` 的 `'src` ✗。
+    pub(super) shadow_skip: Option<KernelFailed>,
     pub(super) known: KnownTable,
     pub(super) inductives: InductiveTable<'arena>,
     /// 源级 `def` 表（课程 Lean 化）：跨单元累加，`by` 引擎做一层 delta 展开用。
@@ -116,6 +123,20 @@ impl<'arena> Walk<'arena> {
         while self.shadow_upto < self.ops.len() {
             // 失败表按 **`cmd`（命令下标）** 记 —— 与 `kernel_phase` 的
             // `failed_cmds: KernelFailed` **同键**，这样两张表能逐条对照 ✓。
+            //
+            // **已知失败的命令整条跳过**（镜像 `kernel_phase` 的 skip 语义 ✓）：
+            // 内核不重查它们 ⇒ 也不记进失败表；影子照做，两张表才对得上 ✓。
+            let skipped = match &self.ops[self.shadow_upto] {
+                PendingOp::Decl { cmd, .. } | PendingOp::InductiveBlock { cmd, .. } => self
+                    .shadow_skip
+                    .as_ref()
+                    .is_some_and(|s| s.contains_key(cmd)),
+                _ => false,
+            };
+            if skipped {
+                self.shadow_upto += 1;
+                continue;
+            }
             match &self.ops[self.shadow_upto] {
                 PendingOp::Decl { declar, cmd, .. } => {
                     let (declar, cmd) = (declar.clone(), *cmd);
@@ -161,6 +182,8 @@ impl<'arena> Walk<'arena> {
         all_templates: &[GoalTemplates],
         closure_prefixes: &[String],
     ) {
+        // 影子重放要**同样跳过**本轮已知失败的命令（见 `shadow_skip` 的注释）。
+        self.shadow_skip = skip.cloned();
         // G-05：每个单元是否用了 namespace/open（`by` 引擎的根目标规范化开关，
         // 每单元算一次；没用到的文件零开销）。第二刀：`open … in` 与 `export`
         // 同样会改引用解析，所以一并计入。

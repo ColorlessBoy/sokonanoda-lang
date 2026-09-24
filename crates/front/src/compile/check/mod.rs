@@ -793,6 +793,7 @@ fn run_pass(
         shadow,
         shadow_upto: 0,
         shadow_failed: Vec::new(),
+        shadow_skip: None,
         display: display_notations(units),
         builder,
         known,
