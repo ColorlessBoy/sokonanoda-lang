@@ -5081,3 +5081,30 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
 5. **下一环**：T-D14（parser 保留记法符号 token 的 span——AST 变更，为"表达式内
    跳转"铺路）。
 
+
+## 本轮进度（2026-09-23，第一百三十五轮：**两条独立缺口收口（T-D30 / T-D31）**）
+
+1. **T-D30 修掉一个正确性 bug**：`documentHighlight`/`references`/`rename` 在**记法
+   符号**上会误解析到**外层 binder**——binder 的 span 覆盖**整段类型标注**
+   （`(h : a ∈ A)`）⇒ 光标在 `∈` 上被当成 `h`，`rename` 会去改 `h`。
+   两处回退（LSP 的 `highlight_uses`、front 的 `resolve_at`）都加了同一条守卫：
+   **光标落在记法符号上就直接答"没有名字"**（判据走词法 `symbol_at`）。
+   * 判据**两侧都带对照**：`∈` 上答 `None`、`highlight` 空、`rename` 被拒，
+     而**同一个 binder 的 `h` 本身仍解析得到**（别把定义点那一支修坏）。
+   * 踩到的坑：`character` 是**字符**计数，而 Rust 的 `str::find` 给的是**字节**
+     下标——行里有 `α`/`∈` 时两者不等，第一版 `offset_of` 按字节算 ⇒ 守卫不触发。
+2. **T-D31 按计划只做"立台账 + 判定实验"**：`docs/gaps/ledger.jsonl` 新增 **G-36**
+   （`position_to_offset` 按 `char` 计数而非 LSP 的 UTF-16 码元 ⇒ `𝒫` 之后整行
+   偏一格）。判定实验 `docs/gaps/repro/G36-utf16-position-mapping.sh` 起**真 LSP**
+   证明：`𝒫 A` 的 `A` 在 UTF-16 列 44 时 hover 给的是**外层表达式**，而列 43 才给
+   `A : Set α`。**两条纪律都是踩出来的**：夹具必须**编译干净**（否则红的原因是错误
+   卡片不是位置映射）；判据**不能只看 `range`**（落偏时会退化成整行表达式，range
+   照样覆盖光标 ⇒ 恒真），要看文本且**必须带对照**。真修单独立项。
+3. **顺带修掉一条静默假红**：`editing_a_dependency_refreshes_the_open_entry` 在
+   **全量** LSP 套件里失败且**没有任何 panic 文本**。三步排除法（单跑 5/5 过 ·
+   只跑 `project` 组过 · `--skip perf_course` 全绿 · 只跑两组也过）⇒ 需要全量争抢
+   才复现 ⇒ **资源饿死**（`perf_course` 整门课编一遍）。修法：重课程编译与
+   时序敏感的跨文件刷新**共用一把锁**（`testutil::HEAVY_LOCK`），**断言一条没动**。
+   修后全量 **156 通过 / 0 失败**。
+4. **下一环**：T-D40（三层测试，矩阵用例 #7/#8）。
+
