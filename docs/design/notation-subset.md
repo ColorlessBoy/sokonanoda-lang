@@ -6,7 +6,26 @@
 > （内核冻结快照）。本文是白名单的**边界文档**：`docs/architecture.md` §4.1
 > 只列命令清单，语义规则在这里。
 
-## 0. 一句话
+## 内建 / prelude 目标的导航（T-D20 的落地决定，2026-09-24）
+
+**问题**：`∧`→`And`、`=`→`Eq` 的展开目标是**内核 prelude 名**，**没有源码声明**
+（`top_level_def_spans` 按构造排除 prelude）。
+
+**决定**：
+1. **`definition` 返回 `null`** —— 没有可跳的地方，编一个目标是撒谎；
+2. **但 hover 必须把原因说出来**：内建记法的 hover 多一行
+   「内建记法（内核 prelude）：**没有源码声明**，`F12` 无处可跳」。
+   沉默的"跳不动"看起来像坏了；说明白才是诚实的行为
+   （与 T-D50「不在闭包就诚实 null」同一条原则）。
+3. **判据**：`crates/lsp/src/tests/hover.rs::hover_on_a_builtin_notation_symbol_shows_the_raw_type`
+   里断言这一行存在。
+
+**判据实现的一个坑（记下来）**：内建符号在**闭包记法表里查不到**
+（`QueryDoc::notation_at` 返回 `None`）⇒ 判据必须写成
+「**既不是本文件声明的、也不来自任何模块**」，不能写成
+`module.is_none()`（那要求 `Some`，实测把内建判成了非内建 ✗）。
+
+## ## 0. 一句话
 
 记法（notation）是**糖**：parser 只把 `lhs ∈ rhs` 记成一个带目标名的记号节点，
 elaborator 把它**源到源**降级成既有的 `App` 形状。点名形式（`Set.mem α a A`）

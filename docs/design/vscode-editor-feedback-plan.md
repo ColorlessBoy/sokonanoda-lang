@@ -2986,6 +2986,13 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D20 内建/ prelude 目标的定义跳转怎么办
 
+> **✅ 完成（2026-09-24）**：决定 = **`definition` 返回 `null`，hover 说明原因**
+> （「内建记法（内核 prelude）：没有源码声明，`F12` 无处可跳」）。
+> 判据：`hover_on_a_builtin_notation_symbol_shows_the_raw_type` 里加了这一行断言；
+> `cargo test -p sokonanoda-lsp --lib` **158 通过**。设计决定写进
+> `docs/design/notation-subset.md`（含"内建在闭包表里查不到 ⇒ 判据不能写成
+> `module.is_none()`"这个坑）。
+
 - **问题**：`∧`→`And`、`=`→`Eq` 是内核 prelude 名，**没有源码声明**
   （`top_level_def_spans` 按构造排除 prelude，`check/mod.rs:668`）。
 - **改什么**：决定并落地：跳到记法声明点（如果有）/ 返回 `null` / 跳到别的地方。
@@ -3692,7 +3699,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D16` LSP `definition` 处理记法变体
 - [x] `T-D17` hover 的 `range` 收窄到符号本身
   - ⬆ **BUMP**：`minor` —— F12 在记法符号上能跳到声明
-- [ ] `T-D20` 内建/ prelude 目标的定义跳转怎么办
+- [x] `T-D20` 内建/ prelude 目标的定义跳转怎么办
 - [ ] `T-D21` 跨文件记法的"定义"是哪个
 - [ ] `T-D22` `scoped` 记法的导航是否尊重作用域
 - [ ] `T-D23` 重载：一个 `Location` 还是 N 个

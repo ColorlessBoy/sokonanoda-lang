@@ -538,6 +538,14 @@ async fn hover_on_a_builtin_notation_symbol_shows_the_raw_type() {
         "内建记法也要给原始类型：{:?}",
         markup.value
     );
+    // **T-D20 的落地决定**：内建 / prelude 目标（`∧`→`And`）**没有源码声明**，
+    // `definition` 只能返回 `null`（`top_level_def_spans` 按构造排除 prelude）
+    // ⇒ **hover 必须把原因说出来**：沉默的"跳不动"看起来像坏了。
+    assert!(
+        markup.value.contains("没有源码声明"),
+        "内建记法要说明为什么跳不动（T-D20）：{:?}",
+        markup.value
+    );
     shutdown(&mut service).await;
 }
 

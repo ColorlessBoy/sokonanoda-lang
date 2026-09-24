@@ -1178,6 +1178,24 @@ fn notation_symbol_hover(
         head.push_str("（本文件声明）");
     }
     lines.push(head);
+    // **内建 / prelude 记法**（T-D20 的落地决定）：`∧`/`=` 的展开目标是内核
+    // **prelude 名**（`And`/`Eq`），**没有源码声明**可跳（`top_level_def_spans`
+    // 按构造排除 prelude，`check/mod.rs:668`）。
+    //
+    // 决定：**`definition` 返回 `null`，但 hover 必须把原因说出来** ——
+    // 沉默的"跳不动"看起来像坏了；说明白"这是内建记法、没有源码可跳"才是
+    // 诚实的行为（与 T-D50 里"不在闭包就诚实 null"同一条原则）。
+    // 判据：`crates/lsp` 的单测 `a_builtin_notation_says_it_has_no_source_to_jump_to`。
+    // 判据是"**既不是本文件声明的、也不来自任何模块**"——内建符号在闭包表里
+    // 根本查不到（`notation_at` 返回 `None`），所以不能写成 `module.is_none()`
+    // （那要求 `Some`，实测把内建判成了非内建 ✗）。
+    let from_module = query
+        .notation_at(text, offset)
+        .is_some_and(|(_, _, module, _)| module.is_some());
+    let builtin = !locally_declared && !from_module;
+    if builtin {
+        lines.push("内建记法（内核 prelude）：**没有源码声明**，`F12` 无处可跳".to_string());
+    }
     if let Some(target) = target {
         lines.push(format!("展开成 `{target}`"));
         // **原始类型**（T-D02 / 用户第 6 条反馈："hover 信息也没有对应的原始类型"）：
