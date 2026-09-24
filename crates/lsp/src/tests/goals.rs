@@ -296,3 +296,50 @@ async fn goals_keep_notation_in_the_goal_text() {
     );
     shutdown(&mut service).await;
 }
+
+/// **R-1 的判据**：`soko/goals` 的声明条目必须带 `value` / `value_runs` ✓
+/// —— 这是 Infoview `def` 卡片第二行（`:= <值>`）的**唯一**数据来源 ✓。
+///
+/// 修复前的形态是"三段式断链" ✗：前端算好了 `value` ✓、CLI 的 `query goals`
+/// 也给了 ✓，**唯独 LSP 的 `decl_info` 漏映射** ✗ ⇒ 扩展的
+/// `Array.isArray(decl.value_runs)` 恒为 false ⇒ 那一行**静默消失** ✓✗
+/// （扩展是"有就渲染"的宽容实现，所以 e2e 也抓不到 ✗）。
+///
+/// **防分叉守卫**：`value_runs` 必须与 `ty_runs` 走**同一个** `run_info` 实现 ✓
+/// —— 判据是"把 runs 拼起来 == 原文" ✓（`ty_runs` 的测试就是这么写的 ✓），
+/// 两条路共用一份实现就不会再分叉 ✓。
+#[tokio::test]
+async fn goals_request_carries_the_declaration_value_for_defs() {
+    const SRC: &str = "def my_id (a : Prop) : Prop := a\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, SRC).await;
+    let _ = wait_diagnostics(&mut socket, "value diagnostics").await;
+
+    let result = request_goals(&mut service).await;
+    let decls = result
+        .get("decls")
+        .and_then(|d| d.as_array())
+        .expect("goals response carries decls");
+    let decl = decls
+        .iter()
+        .find(|d| d["name"] == "my_id")
+        .expect("the def shows up in the declaration list");
+
+    let value = decl["value"].as_str().expect("def carries its value");
+    assert!(
+        value.contains('a'),
+        "value is the body after `:=`, got {value:?}"
+    );
+    let runs = decl["value_runs"]
+        .as_array()
+        .expect("value_runs array (Infoview renders this)");
+    assert!(!runs.is_empty(), "value_runs must not be empty");
+    assert_eq!(
+        runs.iter()
+            .map(|r| r["text"].as_str().unwrap_or_default())
+            .collect::<String>(),
+        value,
+        "value_runs 必须能重建 value（与 ty_runs 同款守卫，防两条路分叉）"
+    );
+}

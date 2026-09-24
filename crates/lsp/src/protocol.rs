@@ -62,6 +62,17 @@ pub(crate) struct GoalDeclInfo {
     pub(crate) ty: Option<String>,
     /// Semantic runs of `ty` (same single source as `goal_runs`, §2.1).
     pub(crate) ty_runs: Vec<RunInfo>,
+    /// **声明的值**（T-D52 / R-1）：`def`/`opaque` 的 `:=` 之后的真正定义
+    /// （内核 pp + 线 C 折叠，与 `ty` 同一形状 ✓）。`theorem`/`axiom` 没有。
+    ///
+    /// 为什么必须转发它 ✗：Infoview 的 `def` 卡片要显示第二行 `:= <值>`
+    /// （扩展侧 `media/infoview.js` 早就按 `decl.value_runs` 渲染 ✓），
+    /// 而这里以前**漏映射** ⇒ 扩展恒拿 `undefined` ⇒ 那一行永远不出现 ✓✗。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) value: Option<String>,
+    /// `value` 的语义分段（与 `ty_runs` 走**同一个** `run_info` 实现 ✓
+    /// —— 两条路共用一份实现，就不会再分叉 ✓）。
+    pub(crate) value_runs: Vec<RunInfo>,
     pub(crate) goal: Option<String>,
     /// Every open goal after the last recorded tactic (current goal first),
     /// or the single walked remaining goal for non-`by` open exercises.

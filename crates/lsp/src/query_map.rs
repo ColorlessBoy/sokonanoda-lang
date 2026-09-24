@@ -79,6 +79,10 @@ pub(crate) fn decl_info(decl: truth::DeclInfo, text: &str) -> GoalDeclInfo {
         range: range_of_offsets(text, decl.start, decl.end),
         ty: decl.ty,
         ty_runs: decl.ty_runs.into_iter().map(run_info).collect(),
+        // R-1：`value`/`value_runs` 以前在这里**漏了** ✗ ⇒ Infoview 的 `def`
+        // 卡片第二行（`:= <值>`）永远不出现。与 `ty_runs` 同实现 ✓。
+        value: decl.value,
+        value_runs: decl.value_runs.into_iter().map(run_info).collect(),
         goal: decl.goal,
         goals: decl.goals,
         binders: decl.binders.into_iter().map(binder_info).collect(),
