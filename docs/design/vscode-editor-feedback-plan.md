@@ -4297,6 +4297,20 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 | **R2** | **judge 接 `snapshot()`**：`run_by`/`judge_infer` 加 `Option<&EnvBuilder>` ✓（老签名委派 ✓，调用点零改动 ✓），拿到就查合成声明 ✓、拿不到**回退**旧路径 ✓ | 同 R1 的全部 ✓ + `SOKO_JUDGE_ENV_REUSE=0/1` 两态逐字节 ✓ |
 | **R3** | **量收益 + 发版**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓ | 冷开 `unit12-solution` 从 **12.4s → 个位数秒** ✓（目标 ~3s）+ 数字进台账 ✓ + **⬆ bump minor** ✓ → auto-tag → release → `gh release list` **闭环核对** ✓ |
 
+> **🎯 R0 的根因假设锁定（2026-09-24，第 94 轮）** ✓✓：
+> 加了**趟号**后对照显示：失败在**每一趟**都出现（`pass=76/77/78` ✓、`ops=31` ✓），
+> 而内核那张表**每趟都是空**的 ✓ ⇒ **不是跨趟口径问题** ✗（我上一轮的头号嫌疑
+> 被排除 ✓），而是**每趟之内**影子的环境就与内核不一致 ✓。
+> ⇒ 机制层：`def_eq` 比较的是**常量的 `decl_idx`** ✗ ⇒ 若影子**分配下标的顺序**
+> 与内核不同 ✓，符号就会"对不上" ✓ ⇒ 假 `def_eq mismatch` ✓。
+> **最可能的不同点** ✓：我对 `PendingOp::InductiveBlock` 是**逐成员 `add_declar`** ✗，
+> 而内核走的是 builder 的**归纳块 API**（`begin/end_inductive_block` +
+> `mutual_block_sizes` 记账 ✓，见 `architecture.md` §6 台账与 `builder.rs:300-318` ✓）
+> ⇒ **下标分配不同** ✓✓。
+> **下一个动作** ✓：让影子的重放**也走归纳块 API**（`add_inductive` / begin-end ✓），
+> 而不是逐成员 `add_declar` ✗；然后重跑对照 ✓。若 `一致=true` ⇒ R0 通过 ✓、
+> 可以进 R1 ✓；若仍不一致 ⇒ 按刹车点就地停下写结论 ✓。
+>
 > **R0 的现状与下一个具体动作（2026-09-24，第 93 轮）** ✓：
 > * 读到 `walk.rs:466-470` 的关键事实 —— **被信任/被跳过的命令根本不 push op** ✗
 >   （"Trusted prefix: keep the environment, skip the kernel" ✓）⇒ 影子重放 `ops`

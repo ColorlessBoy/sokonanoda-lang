@@ -829,6 +829,7 @@ fn run_pass(
     } else {
         0
     };
+    let walk_ops_len = walk.ops.len();
     let mut shadow_failed = walk.shadow_failed.clone();
     // **去重**：影子按"声明"记（一个 `inductive` 块里多条失败 = 多条 ✓），
     // 内核的失败表是 `HashMap<cmd, _>`（**按命令**一条 ✗）⇒ 不去重会把
@@ -878,8 +879,10 @@ fn run_pass(
     kernel_failed.sort_unstable();
     if shadow_experiment {
         eprintln!(
-            "SHADOW: decls={shadow_decls} 一致={} shadow_failed={shadow_failed:?} \
+            "SHADOW: pass={} ops={} decls={shadow_decls} 一致={} shadow_failed={shadow_failed:?} \
              kernel_failed={kernel_failed:?} 影子失败的名字={:?}",
+            crate::compile::check::stage_stats::PASSES.load(std::sync::atomic::Ordering::Relaxed),
+            walk_ops_len,
             shadow_failed == kernel_failed,
             walk.shadow_failed_msg
                 .iter()
