@@ -5,6 +5,8 @@
 
 1. `REQUIREMENTS.md` —— 用户全部要求的**权威总账**（硬规则、新要求追加到 §9）；
 2. `docs/HANDOVER.md` —— **交接汇总**（现在在哪、还剩什么、怎么继续）；
+   **接手新计划请看 `docs/E2-HANDOVER.md`** ✓（E2 计划的一页交接书：
+   当前状态、怎么开工、硬规则、陷阱清单、验收命令）；
 3. `STATUS.md` —— 当前进度（最新一轮在最上）；
 4. `ROADMAP.md` §10 —— 待办与验收标准；
 5. `docs/architecture.md` —— 流水线与内核 gotchas（§8 必读）。

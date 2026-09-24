@@ -4,6 +4,9 @@
 > **E1 的结论没有被丢掉** —— 它把"哪些路走不通"实测清楚了（见 §5），E2 从那些
 > 结论**往上走** ✓。
 >
+> **接手的人先读 `docs/E2-HANDOVER.md`** ✓（一页交接书：状态 / 开工方式 /
+> 硬规则 / 陷阱 / 验收命令 ✓）。
+>
 > **用户定的三条硬约束（2026-09-24）**：
 > 1. **每个阶段都能推送一个完整可用的东西** ✓ —— 不允许"半成品停在树上" ✗；
 > 2. **性能只升不降** ✓ —— 任何阶段若让某条路径变慢 ✗，必须**关在默认关闭的开关后** ✗；
@@ -57,9 +60,9 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 #### 批次 A：显示链路修复（R-1 / R-2）
 
-- [ ] `T-A1` **R-1 根因已确认**（E1 第 98 轮 ✓）：`crates/lsp/src/query_map.rs:74` 的 `decl_info()` 漏映射 `value`/`value_runs` ⇒ `GoalDeclInfo` 里没有这两个字段 ⇒ 扩展恒拿 `undefined`（**前端算好、CLI 给了、LSP 没转发**的三段式断链）
-- [ ] `T-A2` **R-1 修**：`GoalDeclInfo` 加 `value: Option<String>` + `value_runs: Vec<RunInfo>`；`decl_info` 里映射（与 `ty_runs` 走**同一个** `run_info` ✓）
-- [ ] `T-A3` **R-1 判据**：LSP 单测断言 `soko/goals` 的 `Set.mem` 条目带 `value`/`value_runs` ✓ + **防分叉守卫**（`ty_runs` 与 `value_runs` 同实现 ✓）+ e2e 断言 Infoview 卡片出现 `:=` 行 ✓
+- [x] `T-A1` **R-1 根因已确认**（E1 第 98 轮 ✓）：`crates/lsp/src/query_map.rs:74` 的 `decl_info()` 漏映射 `value`/`value_runs` ⇒ `GoalDeclInfo` 里没有这两个字段 ⇒ 扩展恒拿 `undefined`（**前端算好、CLI 给了、LSP 没转发**的三段式断链）
+- [x] `T-A2` **R-1 修**：`GoalDeclInfo` 加 `value: Option<String>` + `value_runs: Vec<RunInfo>`；`decl_info` 里映射（与 `ty_runs` 走**同一个** `run_info` ✓）
+- [x] `T-A3` **R-1 判据**：LSP 单测断言 `soko/goals` 的 `Set.mem` 条目带 `value`/`value_runs` ✓ + **防分叉守卫**（`ty_runs` 与 `value_runs` 同实现 ✓）+ e2e 断言 Infoview 卡片出现 `:=` 行 ✓
 - [ ] `T-A4` **R-2 复现判红**：先写复现件，证明 `unit12-synthesis` 的 `flawed_equalities_refuted` / `project_chain` 的 goal 文本**未完全记法化**、且 Infoview 目标**不高亮**（照 R-1 的"三段式断链"逐段验：前端 → LSP → 扩展）
 - [ ] `T-A5` **R-2 修**：按复现件定位的那一段修（**先查明再改** ✗）
 - [ ] `T-A6` **R-2 判据**：复现件转绿 + LSP/e2e 各一条断言 + 课程门禁计数逐项不变 ✓
