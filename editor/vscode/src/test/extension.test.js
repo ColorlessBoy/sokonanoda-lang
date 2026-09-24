@@ -135,18 +135,9 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       "activate() must expose the project provider in test mode",
     );
     await vscode.commands.executeCommand("sokonanoda.project.refresh");
-    // **等到行"完整"**：标签与描述都要是真数据。2026-09-24 CI 实测假红——
-    // 只等标签时，慢 runner 上 `description`（"2 模块"那一段）还没填，
-    // 用例在下一行的断言上挂掉（`the project tree shows the real closure of an
-    // imported module`，ubuntu 1.138 单平台，另外两个平台同代码全绿）。
     await waitFor(`project rows for ${desc}`, async () => {
       const rows = await extensionApi.project.getChildren();
-      if (rows.length !== 1) return false;
-      const row = rows[0];
-      return (
-        String(row.label) !== "正在读取项目状态…" &&
-        String(row.description || "").length > 0
-      );
+      return rows.length === 1 && String(rows[0].label) !== "正在读取项目状态…";
     });
     const rows = await extensionApi.project.getChildren();
     return rows[0];
@@ -446,7 +437,16 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       "Main.sokonanoda": "import Lib\n\ndef two : Nat := lib_value\n",
     });
     await showDoc(uris["Main.sokonanoda"]);
-    const root = await projectRoot("Main.sokonanoda");
+    // **在断言处等**（2026-09-24 修）：`projectRoot` 只保证"行出现了"，
+    // 而 `description`（"2 模块"）是**随后**填的——慢 runner 上会抢跑。
+    // 注意**不能**把它写进 `projectRoot` 的等待条件：**单文件文档的 description
+    // 本来就该是空的**（没有"模块数"可言），那样会让 `single-file` 那条用例
+    // 等一个永远不来的非空描述（实测：三平台全红、超时 30s）。
+    let root = await projectRoot("Main.sokonanoda");
+    await waitFor("the root counts the closure", async () => {
+      root = await projectRoot("Main.sokonanoda");
+      return String(root.description || "").includes("2 模块");
+    });
     assert.ok(
       String(root.label).includes("proj-ok"),
       `the root is named after the module root: ${root.label}`,

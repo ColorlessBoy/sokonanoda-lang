@@ -610,3 +610,24 @@ run `35940618087` 的两条红，**都是判据自身的余量/时序问题，�
    ② e2e 里"等到某行出现"要问清楚**这一行是不是已经填完**——只等标签、
    断言描述，就是这次这种假红；③ **e2e 红必须取 artifact 里的用例名与断言行**
    （这次做到了；上一轮"24/1 但没取到名字"是不合格的处置）。
+
+## 2026-09-24 —— **我自己的"修复"引入了三平台全红**（等一个永远不会来的描述）
+
+- **现象**：上一轮为修「项目树抢在描述填好之前」的假红，把等待条件改成
+  "标签 + **描述非空**"。结果 `35950656016` 的**三个 e2e 平台全红**（不再
+  是单平台抖动），失败用例换成 `the project tree names the file a
+  single-file document is`：
+  `Error: timed out after 30000ms waiting for project rows for single.sokonanoda`。
+- **根因**：**单文件文档的 `description` 本来就该是空的**（没有"模块数"可言）
+  ⇒ 我那条条件对它**永远不成立** ⇒ 30s 超时。**把一条用例的需求写进了公共
+  helper**，伤到了另一条用例。
+- **修法**：`projectRoot` **回退**成只等"行出现"；把等待放到**真正依赖描述的
+  那条断言**处（`waitFor("the root counts the closure", …)`）。
+- **本地验证**（这条最重要）：release 二进制 + 手工 stage +
+  `SOKO_E2E_GREP="project tree" scripts/vscode-e2e.sh --grep "project tree"
+  --profile release --no-build` ⇒ **3 passed / 0 failed**（含单文件那条）。
+- **预防**：① **公共 helper 只保证"公共前提"**（行出现了），**用例特有的前提**
+  留在用例里等；② 改 helper 前先问"这个条件对所有调用者都成立吗"——这次
+  有 4 个调用者，其中 1 个的 `description` 天生为空；
+  ③ 三平台**同时**红 ⇒ 一定是**确定性**问题（自己刚改的），不是抖动——
+  这时候先回看自己上一次的改动。
