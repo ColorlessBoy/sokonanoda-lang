@@ -1779,6 +1779,23 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 > * 全语料 `--json` 两态逐字节相同（照 K1-a 的 27 文件做法）。
 >
 > 原建议"先写对拍骨架"**不必**：批处理/逐条等价测试已经在了。
+>
+> **🎯 为什么这一刀值（决定性推论，2026-09-24）**：T-K03 的旧 profile 写死了两条
+> ——「**parse 只占 0.2%**」「**只省内核检查的刀 ≤27%**」⇒ miss 那次 38ms 里
+> **大头是 elaborate** ✗。而 **K1-b 恰好三样全省**（环境里已经有那些声明 ⇒
+> 不重 parse、不重 elab、不重 check）⇒ 它吃掉的是**几乎全部**的
+> **9.5s / 12.4s**（≈ **77%**），落点 12.4s → **~3s** ✓。
+> 对照：**K1-a（T-K11）只省 check 那一段**，且冷开下复用条件不成立 ⇒
+> 实测**零收益** ✗（命中 0）——两者不矛盾，是"能不能碰到 elab"的区别 ✓。
+>
+> **实现上唯一的硬骨头**：judge 深在 walk 内部，而 `EnvBuilder` 借 `&'a ArenaRef`
+> ⇒ "arena + builder"是自引用结构（`docs/architecture.md` §8 的 arena 生命周期
+> gotcha）**不能存进 `Walk` 自己的字段** ✗。⇒ 必须由**外层作用域**（`run_pass`）
+> 持有 arena+builder，再把它**送进** judge —— 两种走法：
+> (a) 沿调用链穿参（`walk.rs` 的方法 + `lower_value` + `by.rs` + judge 三入口）；
+> (b) 作用域内的 thread-local（生命周期由 guard 保证，但需要 `unsafe`）。
+> **下一轮先做 (a) 的最小切片**：只打通 `by` 块那条（`run_by` → `judge_pairs_with`），
+> 用 `SOKO_JUDGE_STATS` 验证 miss 成本塌下来，再推广到 `judge_infer`。
 
 > ~~建议下一轮先写"新路径 vs 旧路径逐条 `Judgement` 全字段相等"的**对拍测试骨架**~~
 > （它同时是 Stage 2 的判据），再动流水线。
