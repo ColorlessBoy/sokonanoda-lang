@@ -1673,6 +1673,23 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 
 ##### T-K11 **K1-a：纯 front 的 judge TrustPlan 复用（零内核改动，先做）**
 
+> **🚧 进行中（2026-09-24）：分析已做完，实现未动。**两条实测判断（下一轮直接照这个做）：
+>
+> 1. **只改 cache miss 那条路**：`judge_infer`/`judge_type_of`/`judge_pairs_with`
+>    的缓存键**含整段前缀**（`judge.rs:839` 一带），而 §13 探针的统计是
+>    `hits=20764 misses=89 judge_time=83.5s` ⇒ **83.5s 几乎全在 89 次 miss 上**
+>    （每次 ~938ms 重查整份前缀）。⇒ K1-a 的收益 = 把 **miss 那次** 的
+>    "前缀内核检查"拿掉，而不是去动 20764 次命中。
+> 2. **别逐点穿参**：`judge_*` 的调用点全仓 **111 处**（`elab.rs`/`by.rs` 为主），
+>    逐点加 `prefix_failures` 参数会把改动摊到 111 个地方 ✗。仓库里已有先例
+>    —— `PreludeInstallGuard`（`compile/elab.rs:181` 一带）用**线程局部**标记
+>    "正在安装 prelude"。K1-a 应当照同一条路：一个**线程局部的"当前前缀失败表"**
+>    上下文，由外层 pass 设置、judge 的 miss 路径读取；**没设置就回退到
+>    `check_document_with`**（= guard (i)：只有外层能担保前缀时才复用）。
+> 3. 三处守死（原文照旧）：trusted 前缀不产 `DeclState`/事件 ⇒ `judgement_of`
+>    只读 `_soko_judge_k`，**必须加断言**；`skip` 语义与 pass 2 的 check-then-add
+>    **逐字一致**；开关 `SOKO_JUDGE_ENV_REUSE=0/1` 两态下全语料 `--json` 逐字节相同。
+
 - **改什么**：`judge_pairs_uncached`（`judge.rs:418`）把
   `check_document_with(&file, options)` 换成
   `run_incremental(&file, options, &TrustPlan{ before: 前缀命令数, … }, &prefix_failures)`；
