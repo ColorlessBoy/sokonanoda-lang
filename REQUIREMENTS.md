@@ -2303,7 +2303,20 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 > 并且带了**豁免注释** `-- soko:notation-ok: R5：λ 操作数补不出前导类型参数` ✓
 > ⇒ 记法门禁**放行**了它 ✓。**所以这是记法引擎的能力限制** ✗（**R5**：操作数是
 > λ 时补不出前导类型参数 ✓），**不是显示 bug** ✓ —— goal 忠实显示了源码 ✓。
-> **(b) goal 不高亮** ✗ ⇒ **与 R-1 完全同一类 bug** ✓：
+> **(b) goal 不高亮** ✗ ⇒ ~~与 R-1 同一类 bug~~ **✗ 已否证（第 2 轮，独立取证 + 我复核）**：
+> **不是字段缺失** ✗。三条硬事实（都复核过 ✓）：
+> ① 扩展的**声明卡片根本不画 goal** ✗（`infoview.js` 的 `renderDecls` 只画
+>    `name`/`kind`/`ty_runs`/`value_runs` ✓，全文不读 `decl.goal` ✗）；
+> ② 树里那行「目标」是 `TreeItem.description`（`extension.js:547/518` ✓）——
+>    **纯文本，VS Code 树永远无法语义着色** ✗（平台限制 ✓）；
+> ③ **真相层也没有 runs** ✗：front 的 `DeclInfo.goal` 是 `Option<String>`、
+>    `goals: Vec<String>`（`crates/front/src/query/types.rs:79/82` ✓）
+>    ⇒ **只给 LSP 加 `goal_runs` 是 no-op** ✗（屏幕零变化 ✓）。
+> **守卫已固化** ✓：`python3 scripts/audit-wire-fields.py`（A∖B 对账：
+> 扩展读了但 LSP 从不发的字段 ✓；当前 `NONE ✓ exit 0` ✓；内存回退 R-1 时它会报
+> `value_runs` ✓ ⇒ 真能咬 ✓）。
+>
+> ~~**(b) goal 不高亮** ✗ ⇒ **与 R-1 完全同一类 bug** ✓：~~
 > `GoalDeclInfo`（`crates/lsp/src/protocol.rs`）有 `goal`/`goals` ✓
 > 但**没有 `goal_runs`** ✗；而 `soko/stateAt` 的 `StateGoalInfo` **有** `goal_runs` ✓
 > ⇒ 声明面板的 goal 拿不到语义分段 ⇒ 前端无法高亮 ✓✗（同 R-1 的"三段式断链" ✓）。
