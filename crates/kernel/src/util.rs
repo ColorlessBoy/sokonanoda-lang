@@ -1156,6 +1156,68 @@ pub struct NameCache<'p> {
 pub(crate) const PRUNE_DM_LEN: usize = 1 << 10;
 pub(crate) const PRUNE_DM_SHIFT: u32 = 64 - 10;
 
+/// **T-K31：`whnf_admit` 的可复用持有者。**
+///
+/// 这张 4MB 的表以前**每次 `TcCache::new` 都重新分配**（`vec![0u8; 1<<22]`），
+/// 而 `try_check_declar` **每条声明**都会 `with_ctx` 一次 ⇒ 每声明一次 4MB 分配 ✗。
+/// 现在 `Drop` 时把缓冲区**还进线程局部池** ✓、`new` 时先**从池里取** ✓
+/// —— 省下的是**分配**（memset 照做 ✓：表必须从"全未访问"开始，那是**语义** ✗，
+/// 不能省 ✓）。
+///
+/// 用 newtype 是为了让**使用点零改动** ✓（唯一的使用点 `eval.rs:1001` 走
+/// `IndexMut` ✓）。
+pub(crate) struct AdmitTable(Option<Box<[u8; WHNF_ADMIT_LEN]>>);
+
+thread_local! {
+    /// 线程局部池（`TcCache` 不跨线程移动 ⇒ 池也按线程分开 ✓）。
+    static ADMIT_POOL: std::cell::RefCell<Vec<Box<[u8; WHNF_ADMIT_LEN]>>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
+impl AdmitTable {
+    fn new() -> Self {
+        let mut buf = ADMIT_POOL
+            .with(|pool| pool.borrow_mut().pop())
+            .unwrap_or_else(|| {
+                vec![0u8; WHNF_ADMIT_LEN]
+                    .into_boxed_slice()
+                    .try_into()
+                    .expect("admit table size")
+            });
+        // **语义要求**：表从"全未访问"开始 ✗ ⇒ 每次都必须清零 ✓（复用省的是分配 ✓）。
+        buf.fill(0);
+        Self(Some(buf))
+    }
+}
+
+impl Drop for AdmitTable {
+    fn drop(&mut self) {
+        if let Some(buf) = self.0.take() {
+            // 池只留一份就够（同一线程不会同时持有两个 `TcCache` 的活表 ✗）；
+            // 多余的直接释放，避免池无限增长 ✓。
+            ADMIT_POOL.with(|pool| {
+                let mut pool = pool.borrow_mut();
+                if pool.is_empty() {
+                    pool.push(buf);
+                }
+            });
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for AdmitTable {
+    fn index_mut(&mut self, index: usize) -> &mut u8 {
+        &mut self.0.as_mut().expect("admit table alive")[index]
+    }
+}
+
+impl std::ops::Index<usize> for AdmitTable {
+    type Output = u8;
+    fn index(&self, index: usize) -> &u8 {
+        &self.0.as_ref().expect("admit table alive")[index]
+    }
+}
+
 pub struct TcCache<'a, 't> {
     pub(crate) unfold_const_cache: FxHashMap<(NamePtr<'t>, LevelsPtr<'t>), V<'a>>,
     pub(crate) rec_rule_cache: FxHashMap<(ExprPtr<'t>, LevelsPtr<'t>), V<'a>>,
