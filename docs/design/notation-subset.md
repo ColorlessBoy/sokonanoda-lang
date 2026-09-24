@@ -6,7 +6,22 @@
 > （内核冻结快照）。本文是白名单的**边界文档**：`docs/architecture.md` §4.1
 > 只列命令清单，语义规则在这里。
 
-## 内建 / prelude 目标的导航（T-D20 的落地决定，2026-09-24）
+## 跨文件记法的"定义"落在哪（T-D21 的落地决定，2026-09-24）
+
+**问题**：`∈` 声明在 `lib/Set`，用在 unit —— 定义是**库的那一行 `infix`**，
+还是入口的 `import` 行？
+
+**决定**：**库的那一行 `infix`**（记法真正的声明点）。理由：
+1. 用户问"这个符号是什么、谁定的"时，要看的是**声明**，不是"我把它引进来了"；
+2. `import` 行只说明**传播**（设计 §10.3），一个符号可能有多个 import 点，
+   而声明点**唯一**；
+3. 与 T-D12/T-D13 的既有实现一致（`notation_at` 给出**模块 + 那一行的 span**）。
+
+**判据**：`crates/lsp/src/tests/navigation.rs::goto_definition_on_a_notation_symbol_lands_on_its_declaration`
+—— 它建一个真临时项目（`SetLib.sokonanoda` 声明 `∈` + `Canvas.sokonanoda` import 它），
+断言跳转结果的 `uri` 是**库文件**（`assert_eq!(uri, lib_uri, "要跳到**声明它的模块**")`）。
+
+## 内建 / prelude 目标的导航（T-D20 的落地决定，2026-09-24）## 内建 / prelude 目标的导航（T-D20 的落地决定，2026-09-24）
 
 **问题**：`∧`→`And`、`=`→`Eq` 的展开目标是**内核 prelude 名**，**没有源码声明**
 （`top_level_def_spans` 按构造排除 prelude）。

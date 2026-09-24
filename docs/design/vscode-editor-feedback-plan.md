@@ -3000,6 +3000,13 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D21 跨文件记法的"定义"是哪个
 
+> **✅ 完成（2026-09-24）**：决定 = **库的那一行 `infix`**（声明点唯一；
+> `import` 只说明传播）。**实现早就在**（T-D12/T-D13 的 `notation_at` 给出
+> 模块 + 那一行的 span），**测试也早就有**：
+> `goto_definition_on_a_notation_symbol_lands_on_its_declaration` 建真临时项目
+> （`SetLib` 声明 `∈` + `Canvas` import）并断言 `uri == lib_uri`。
+> 本轮把**决定**补写进 `docs/design/notation-subset.md`（这才是这条清单项缺的东西）。
+
 - **问题**：`∈` 声明在 `lib/Set`，用在 unit。定义 = 库的 `infix` 行，
   还是入口的 `import` 行？（设计 §10.3 只说记法随 import 传播，没说定义在哪。）
 - **改什么**：决定（推荐库的 `infix` 行）+ 测试。
@@ -3700,7 +3707,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D17` hover 的 `range` 收窄到符号本身
   - ⬆ **BUMP**：`minor` —— F12 在记法符号上能跳到声明
 - [x] `T-D20` 内建/ prelude 目标的定义跳转怎么办
-- [ ] `T-D21` 跨文件记法的"定义"是哪个
+- [x] `T-D21` 跨文件记法的"定义"是哪个
 - [ ] `T-D22` `scoped` 记法的导航是否尊重作用域
 - [ ] `T-D23` 重载：一个 `Location` 还是 N 个
 - [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号

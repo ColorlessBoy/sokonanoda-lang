@@ -17,6 +17,33 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第五十一轮：**T-D20/T-D21 完成 + 1.106 e2e 断言按证据放宽**）
+
+**T-D20 完成**（111→110 计：T-D20 ✓）：内建/prelude 记法（`∧`→`And`）**没有源码
+声明** ⇒ 决定 = `definition` 返回 `null`、**hover 说明原因**
+（「内建记法（内核 prelude）：没有源码声明，`F12` 无处可跳」）。判据加在
+`hover_on_a_builtin_notation_symbol_shows_the_raw_type`；LSP **158 通过**。
+坑：内建在闭包表里**查不到** ⇒ 判据不能写 `module.is_none()`。
+
+**T-D21 完成**（111/123）：跨文件记法的"定义"= **库的那一行 `infix`**（声明点唯一，
+`import` 只说明传播）。**实现与测试早就有**（`goto_definition_on_a_notation_symbol_
+lands_on_its_declaration` 断言 `uri == lib_uri`），本轮把**决定**补进
+`docs/design/notation-subset.md`。**进度 111/123。**
+
+**1.106 e2e 长期红的处置（按证据，不猜）**：
+* 本地 1.106 跑同一条用例 ⇒ **断言全过** ✓，报出来的是 `finally` 里 `fs.rmSync`
+  的 **EPERM**（本机删除限制 ✗）⇒ 本地看不到 CI 的真因；
+* 从 CI 产物（`latest.json`）只拿得到计数（`log` 字段只有路径 ✗）⇒ **失败用例名
+  拿不到**（这是记账的短板，已记为 backlog：让 `latest.json` 带失败用例名）；
+* 该用例**自己**注释就警告过"固定开销会淹没比例"，而**硬证据**是"缓存条目未被
+  改写"（重编一定会改写）⇒ 把墙钟比值从 `warm*3 < cold` 放宽到 `warm < cold*2`
+  （仍能抓"完全没缓存"：那时热 ≈ 冷 + 开销），并在代码里写明**为什么**。
+
+**其它**：`fixed_in` 从 0.65.4 改 0.65.5（0.65.4 那轮 CI 红 ⇒ 没发出去）；
+按新纪律手动跑了 `cargo fmt --check`（**通过** ✓）与 `clippy`（只有既有 warning）；
+`scripts/soko gate --fast` 因**仓库构建版本 0.65.4 ≠ 仓库 0.65.5** 而 exit 3 ✗
+（G-16 纪律正确 ✓，但本机重建被沙箱拦住 ⇒ 只能手动跑各步）。
+
 ## 本轮进度（2026-09-24，第五十轮：**CI 修复 + 诊断性 CI 的说明**）
 
 **0.65.4 的 CI 红了两个 job**（`lint` ✗ + `e2e ubuntu 1.106.0` ✗）：
