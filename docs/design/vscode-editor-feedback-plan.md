@@ -2077,6 +2077,23 @@ T-K12 各段（尤其"⛔ b 的验收结果：不通过 ✗"与"📦 存档决�
 
 ##### T-K13 **K1-c（备选）：`EnvBuilder::snapshot()` 克隆式检查点**
 
+> **🔑 为什么它是 T-K12c 之后**可行**的路线（2026-09-24，第 76 轮补）** ✓：
+> T-K12c 死在 **`decl_idx` 全局槽位耦合** ✗ —— 影子往**独立环境**里 `add_declar`
+> 会改写**同一批 `NameNode` 上的槽位** ✓，一旦跳过某条就整体错位 ✓。
+> **`snapshot()` 不 `add_declar`** ✓：它是**取一份副本给检查器只读用** ✓
+> （检查合成声明 ✓）⇒ **不写任何槽位** ✓ ⇒ **天然绕开那堵墙** ✓✓。
+> 所以顺序应当是：**先做 T-K13**（小、可控 ✓），而不是继续攻 T-K12c ✗。
+>
+> **实施要点（照规格 + 上面的澄清）**：
+> 1. `interner!` 宏 + 三个手写 interner 加 `Clone`（~10 行，`util.rs:324-459`）✓、
+>    `Dag: Clone` ✓、`EnvBuilder::snapshot() -> ExportFile<'a>`（~25 行）✓；
+> 2. **快照必须在合成声明建好之后取** ✗（规格里的陷阱 ✓：指针恒等式 ✓
+>    —— `conv.rs:169` 的 `NatLit` **指针相等**、`eval.rs:369`/`:1072` 的
+>    `ptr.get_hash()`＝**地址**哈希、`NameInterner::get` 比 `StringPtr` **地址** ✓）；
+> 3. 成本：每 by-site 一次 O(表大小) memcpy ✓（数 MB × 20 次 = 几十 ms ✓ 可忽略 ✓）。
+> **判据同 T-K12** ✓：全语料两态 `--json` 逐字节 + 五步 + `SOKO_JUDGE_STATS` 的
+> `JUDGE_INFER` miss 成本塌下来 ✓ + 本条自带的 **⬆ bump minor** ✓。
+
 - **只在 K1-b 的状态拆分被判太侵入时用**。改什么：给 `interner!` 宏与三个手写
   interner 加 `Clone`（**~10 行**，`util.rs:324-459`），`Dag: Clone`，
   `EnvBuilder::snapshot() -> ExportFile<'a>`（**~25 行**）。
