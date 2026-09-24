@@ -4297,6 +4297,20 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 | **R2** | **judge 接 `snapshot()`**：`run_by`/`judge_infer` 加 `Option<&EnvBuilder>` ✓（老签名委派 ✓，调用点零改动 ✓），拿到就查合成声明 ✓、拿不到**回退**旧路径 ✓ | 同 R1 的全部 ✓ + `SOKO_JUDGE_ENV_REUSE=0/1` 两态逐字节 ✓ |
 | **R3** | **量收益 + 发版**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓ | 冷开 `unit12-solution` 从 **12.4s → 个位数秒** ✓（目标 ~3s）+ 数字进台账 ✓ + **⬆ bump minor** ✓ → auto-tag → release → `gh release list` **闭环核对** ✓ |
 
+> **R0 的现状与下一个具体动作（2026-09-24，第 93 轮）** ✓：
+> * 读到 `walk.rs:466-470` 的关键事实 —— **被信任/被跳过的命令根本不 push op** ✗
+>   （"Trusted prefix: keep the environment, skip the kernel" ✓）⇒ 影子重放 `ops`
+>   时**本来就看不到它们** ✓ ⇒ 我加的 `shadow_skip`（已知失败集）**是冗余的** ✓
+>   —— 这正好解释了它"改了等于没改" ✓。**⇒ `TrustPlan.before` 不需要单独镜像** ✓
+>   （ops 里没有它们 ✓）。
+> * ⇒ **分叉在别处，头号嫌疑是 pass1/pass2** ✗：`run_incremental` 把 pass1 的失败
+>   并进 pass2 的 `skip` ✓ ⇒ **pass2 的 `failed` 表里没有 pass1 的失败** ✗，
+>   而影子是**一趟一趟**重放自己的 ops ✓ ⇒ 两张表口径不同 ✓。
+>   **下一个动作** ✓：让对照器**打印趟号与影子进度**（`shadow_upto`/`ops.len()` ✓），
+>   并把"该趟的失败表"与"影子的失败表"**按趟**比 ✗ —— 先确认是不是口径问题 ✓，
+>   再决定要不要把"跨趟合并"也镜像进影子 ✓。
+
+
 **风险与刹车点** ✗：**R0 是刹车点** —— 若影子仍无法与内核阶段逐条等价 ✓，
 说明"两遍语义"比预想更纠缠 ✓ ⇒ **就地停下** ✓（不把风险带进 R1 ✓），
 并把结论写进本文档 ✓。**R1 之后每一步都必须过五步 + 课程计数 + 逐字节** ✓。
