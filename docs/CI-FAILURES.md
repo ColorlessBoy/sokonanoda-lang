@@ -1,3 +1,19 @@
+## 2026-09-24 · run 35979240866 · `test` 红在 **Gap ledger is consistent**
+
+**现象**：e2e **三个平台全绿** ✓（那条折腾了六轮的缓存用例终于绿了），
+但 `test` job 在 `Gap ledger is consistent (docs/gaps)` 步骤 exit 1。
+
+**原因**：我给新缺口 G-39 写的 `repro_expect` 是 `{"fixed": 1, "open": 0}` ——
+而契约只认 **`clean` / `rejected` / `exit0` / `nonzero`** 四个值
+（`scripts/gap.py` §判据：**期望默认由 `status` 推导**，`repro_expect` 只是显式覆盖）。
+非法值 ⇒ 当场判红 ✓（**这正是它该抓的**）。
+
+**修复**：删掉 G-39 的 `repro_expect` —— `status: fixed` 推导出的期望就是
+"repro 必须退出**非零**"，而那条复现件正好 exit 1。
+
+**教训**：**写台账字段前先看契约**（`scripts/gap.py` 顶部 docstring 就写着四个合法值）。
+与上一轮那条"写过滤条件前先看真实数据"是同一类错误：**按想象写字段/条件**。
+
 ## 2026-09-24 · run 35978542612 · **最终定案：该用例的前提在 ubuntu 不成立**
 
 **产物原文**（`tests.failing_details`，一次拿到）：
