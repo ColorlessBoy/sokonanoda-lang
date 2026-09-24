@@ -2267,6 +2267,18 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 ##### T-K30 `build <dir>` 不再逐文件各编一份闭包
 
+> **🚧 第 80 轮：落点已核（下一轮开工）** ✓
+> * 现状：`crates/cli/src/build.rs:40-57,117-148` 对目录里**每个文件**各跑一次
+>   `plan_project` + `compile_plan` ⇒ `courses/set-theory` = **33 次闭包编译** ✗。
+> * 改法：按**模块根**（`sokonanoda.toml` / 入口目录 ✓）**分组**，每个模块只编一次 ✓，
+>   再把每文件的结果分派回去 ✓。
+> * 判据（照规格 ✓）：`build.summary` 的 hit/compiled/failed **语义不变** ✓
+>   （`crates/cli/tests/build.rs` 全绿 ✓）+ 目录构建耗时降到接近 `O(闭包)` ✓
+>   （数字进 `docs/perf/ledger.jsonl` ✓）。
+> * **不碰判定** ✓（纯 CLI 编排 ✓）⇒ 风险低、可独立验收 ✓。
+
+##### T-K31 `TcCache::new` 每次 `with_ctx` 清 4MB
+
 - **改什么**：`crates/cli/src/build.rs:40-57,117-148` 现在对目录里每个文件
   各跑一次 `plan_project` + `compile_plan`（`courses/set-theory` = 33 次闭包编译）。
   改成按**模块根分组**、每个模块只编一次。
@@ -4175,7 +4187,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-K12a` **K1-b 前半：内核 `EnvBuilder::with_env` + `install_all_preludes` 唯一实现**（✅ 2026-09-24；判据：往返回归单测 + 内核 60 条测试 ✓）
 - [x] `T-K12c` **K1-b 后半：影子环境接进 judge**（⏸ **存档·不做**：机制级原因见下，5 轮调查结论）（⏸ **存档**：对照判据判定影子与内核阶段**不等价** ✗ —— 差在增量记账 `skip`/`trust`/pass1-pass2 ⇒ 需要**实质重构**；影子已关进 `SOKO_SHADOW_CHECK`，默认零成本 ✓；本条的 `⬆ bump minor` 随之顺延 ✓）
   - ⬆ **BUMP**：`minor` —— 36.1s → 个位数秒（K1-b，本轮最大的一刀）
-- [ ] `T-K13` **K1-c（备选）：`EnvBuilder::snapshot()` 克隆式检查点**
+- [x] `T-K13` **K1-c（备选）：`EnvBuilder::snapshot()` 克隆式检查点**（内核侧 ✅ 已完成：`Clone` ×6 + `Dag: Clone` + `snapshot()` + 判据；**front 接线 ⏸ 存档**，归入「把 check-then-add 移进 walk」的内核级重构档）
 - [x] `T-K22` **K1-d：记法消解的类型查询走局部书写类型（G-34；本刀是缓解，根治在 T-K20′）**
   - ⬆ **BUMP**：`patch` —— 用户可感知的提速（`unit12-solution` 11.4s → 7.5s），无新能力
 - [ ] `T-K30` `build <dir>` 不再逐文件各编一份闭包
