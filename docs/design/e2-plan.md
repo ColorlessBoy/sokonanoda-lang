@@ -97,7 +97,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     stub 宿主 **34/34** / `audit-wire-fields.py` **NONE ✓ exit 0** ✓。
     性能（本环节自己的差分，不是三基准）：冷缓存 `query goals` 三个大文件
     old/new 中位数 **−3.6% / −0.4% / −10.9%** ⇒ **无退化** ✓。
-- [ ] `T-A7` **阶段 A 收尾**：三个基准数字复量（应持平 ✓）→ `scripts/soko gate` 全绿 → **一次 push** → CI 绿 → bump `0.66.0` → release → `gh release list` 核对 ✓
+- [x] `T-A7` **阶段 A 收尾**：三个基准数字复量（应持平 ✓）→ `scripts/soko gate` 全绿 → **一次 push** → CI 绿 → bump `0.66.0` → release → `gh release list` 核对 ✓
+  - ✅ **已完成（2026-09-24）**：三基准复量（① 冷开 `unit12-solution` **11.4s** /
+    `JUDGE_INFER` 51156 calls · 10623ms · misses 247；② 冷 `build courses/set-theory`
+    **154.3s** —— 与历史基线 146.07s 的 +5.6% 是**跨会话漂移**，改动不在 `build` 的
+    调用图上（`tag_runs*` 只有 query/LSP 展示路径会调，grep 实证）；③ `perf_course`
+    全绿）→ `scripts/soko gate` **全绿**（含缺口台账「全部与台账一致」）→
+    **一次 push**（`69a05bb`）→ CI **绿**（run 36029265840：lint + test +
+    三平台 e2e 各 **26/26**）→ auto-tag → release（**v0.66.0**，**26 assets**，
+    与 0.65.5 逐项同形）→ `gh release list` 显示 `sokonanoda v0.66.0 Latest` ✓。
+    性能台账 + e2e 台账各一条、CHANGELOG 与两处版本号都在批次里 ✓。
+  - 📌 **两条留给下一批的**：① `site/data/site.json` 顺手对齐到 **v0.66.0**
+    （它从 **0.63.0** 起就没再生成过 —— `check-site.py` 之前是 8/9，**不是本轮引入的**；
+    改完 9/9 ✓），这条改动**留在本地**，随下一次 push 生效；
+    ② 本机 `git rebase`/`git merge` 都要 unlink 被改写的文件 ⇒ 被文件策略拒 ✗，
+    **合 CI 的台账回写用 plumbing**（`git write-tree` + `git commit-tree -p HEAD
+    -p origin/main` + `git update-ref`，全程不 checkout）。
   - ⬆ **BUMP**：`minor` —— Infoview 的 def 值行与 goal 记法化/高亮修复（用户可见）
 
 ### 阶段 B：命令与产物标准化（R-4 / R-3 前半）

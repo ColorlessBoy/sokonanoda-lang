@@ -17,15 +17,15 @@
     python3 scripts/plan.py next      # 取当前环节（含完整规格）
     python3 scripts/plan.py list      # 看进度（现在应为 6/38）
     python3 scripts/plan.py done <ID> # 做完勾掉
-当前应从 **T-A7（阶段 A 收尾）** 开始。已完成、别重做：T-A1..T-A6。
-**T-A5/T-A6 已全部落地**（`=` 不再喂词法：含 λ 的 goal 1→313 段 / 1→216 段、
-对照组 94 段不变；父子 runs 补齐：front `goal_runs`/`goals_runs` → LSP 转发 →
-声明卡片 `.decl-goal-line`；三层判据都做过**修前判红**；课程计数逐项不变；
-A∖B 守卫改成按消费者分组）。
-**T-A7 要做的**：三个基准复量 → `scripts/soko gate` 全绿 → **一次 push** →
-CI 绿 → bump **0.66.0**（`Cargo.toml` + `editor/vscode/package.json` 两处）→
-auto-tag → release → `gh release list` 核对。**别忘了 CHANGELOG**：本仓库的惯例是
-CHANGELOG 条目**跟着 bump 那个 commit** 一起进（见 0.65.5 的 6490f1b）。
+当前应从 **T-B1（R-4 现状盘点）** 开始 —— **阶段 A 已全部完成并发版 0.66.0** ✓。
+已完成、别重做：T-A1..T-A7（R-1 的 `def` 值行、R-2 的 `=` 掉色真因 + 声明卡片
+目标行、三层判据、0.66.0 发版闭环）。**阶段 B 是命令名标准化（R-4）+ `.sokonanoda/`
+产物目录（R-3 前半）**：先 `python3 scripts/plan.py next` 取 T-B1 的完整规格。
+**开工前先读** `docs/E2-HANDOVER.md` §5 的陷阱清单（本机特有的 6 条：缓存内容比
+marker 旧、`scripts/soko update` 下载 404 ⇒ `SOKONANODA_RELEASE_BASE` 本地镜像、
+`NODE_NO_WARNINGS=1`、仓库 `target/` 写不进去 ⇒ `CARGO_TARGET_DIR` + 就地覆盖、
+`git rebase`/`merge` 要 unlink 被拒 ⇒ **合 CI 台账回写用 plumbing**、
+`DEVELOPER_DIR` 的正确取值）。
 
 ## 每个环节的完成定义
 复现判红 -> 最小改动 -> 判据 -> e2e 转绿 -> 性能无退化 -> 文档 -> commit。

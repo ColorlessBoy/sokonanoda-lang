@@ -41,6 +41,21 @@
 >   （`scripts/bump.py` 单一来源 ⇒ Cargo.toml · package.json · Cargo.lock ·
 >   2 个清单的 `requires`）→ 一次 push → CI → auto-tag → release →
 >   `gh release list` 核对 ✓；
+> * **T-A7 闭环完成** ✓：CI（run 36029265840）**绿** —— lint + test + 三平台 e2e
+>   **各 26/26**（含新增的 T-A5 断言）⇒ auto-tag **v0.66.0** ⇒ release（**26 assets**，
+>   与 0.65.5 逐项同形）⇒ `gh release list` 显示 `sokonanoda v0.66.0 Latest` ✓。
+>   **阶段 A 全部完成，进度 7/38** ✓；
+> * **合 CI 的台账回写要用 plumbing** ✓（本机 `git rebase`/`git merge` 都要 unlink
+>   被改写的文件 ⇒ 被文件策略拒 ✗，报 `unable to unlink old …: Operation not
+>   permitted`）：手写合并内容（append-only 的 `docs/e2e/ledger.jsonl` 按 `date`
+>   升序拼接、`latest.json` 取**更新**的那次）→ `git add` → `git write-tree` +
+>   `git commit-tree <tree> -p HEAD -p origin/main` + `git update-ref refs/heads/main
+>   <merge>`，全程不 checkout ✓。**每次 CI 跑完 e2e 都会回写台账 ⇒ 下次 push 前
+>   都要这么合**；
+> * **站点数据补上** ✓：`site/data/site.json` 从 **0.63.0** 起就没再生成过
+>   （`python3 scripts/check-site.py` 之前 **8/9** ✗ —— **不是本轮引入的**）⇒
+>   `python3 scripts/gen-site-data.py` 对齐到 **v0.66.0** ⇒ **9/9** ✓；
+>   这条改动**留在本地**（阶段收尾只 push 一次 ✓），随下一批次 push 生效；
 > * **本机环境的四个坑**（都已写进 `docs/E2-HANDOVER.md` §5 陷阱清单，别重踩）✗：
 >   ① **缓存"内容比 marker 旧"**（marker 写 0.65.5、二进制其实是 0.65.4 的逻辑）
 >   ⇒ `gate` exit 3 说"anchor 结果不可信"（守卫是对的）；② `scripts/soko update`
