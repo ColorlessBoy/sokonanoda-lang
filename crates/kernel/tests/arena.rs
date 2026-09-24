@@ -191,17 +191,12 @@ fn arena_fast_tier() {
             Outcome::KernelRejected(e) => (false, format!("kernel: {e}")),
             Outcome::UnexpectedPanic(e) => (false, format!("panic: {e}")),
         };
-        // **判负语义**（T-K02 修，2026-09-24）：
-        //   * `reject` 要求的是**内核拒绝**（`def_eq failed`）——原来写 `got_accept`
-        //     ⇒ **解析失败也算通过** ✗（一条根本读不进来的导出会被当成"成功地拒绝了"
-        //     它想要拒绝的东西），这是最危险的一种假绿；
-        //   * `either` 表示"接受或拒绝都行"，但**panic 永远不行** ——原来写死
-        //     `false` ⇒ 连 panic 都不算失败 ✗。
-        let mismatch = match expected {
-            ExpectedOutcome::Accept => !got_accept || matches!(outcome, Outcome::UnexpectedPanic(_)),
-            ExpectedOutcome::Reject => !matches!(outcome, Outcome::KernelRejected(_)),
-            ExpectedOutcome::Either => matches!(outcome, Outcome::UnexpectedPanic(_)),
-        };
+        let mismatch = is_mismatch(
+            *expected,
+            got_accept,
+            matches!(outcome, Outcome::UnexpectedPanic(_)),
+            matches!(outcome, Outcome::KernelRejected(_)),
+        );
         if mismatch {
             let name = export.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
             let expected = match expected {
@@ -215,6 +210,21 @@ fn arena_fast_tier() {
 
     if !failures.is_empty() {
         panic!("{}/{} arena cases mismatched:\n{}", failures.len(), cases.len(), failures.join("\n"));
+    }
+}
+
+/// **判负语义**（T-K02 修，2026-09-24）——抽成纯函数，好在**不依赖外部语料**的
+/// 情况下把它钉死：
+///   * `reject` 要求的是**内核拒绝**（`def_eq failed`）。原来写 `got_accept`
+///     ⇒ **解析失败也算通过** ✗：一条根本读不进来的导出，会被当成"成功地拒绝了
+///     它想拒绝的东西"——最危险的一种假绿；
+///   * `either` 是"接受或拒绝都行"，但 **panic 永远不行**。原来写死 `false`
+///     ⇒ 连 panic 都不算失败 ✗。
+fn is_mismatch(expected: ExpectedOutcome, accepted: bool, panicked: bool, kernel_rejected: bool) -> bool {
+    match expected {
+        ExpectedOutcome::Accept => !accepted || panicked,
+        ExpectedOutcome::Reject => !kernel_rejected || panicked,
+        ExpectedOutcome::Either => panicked,
     }
 }
 
@@ -252,4 +262,30 @@ fn collect_cases_walks_subdirectories_and_finds_nested_specs() {
         "子目录里的 outcome yaml 要按 stem 递归找到（nested: reject）"
     );
     let _ = fs::remove_dir_all(&dir);
+}
+
+/// **T-K02 的判据（判负语义）**：三条语义各自钉住——尤其是"reject 不许拿
+/// parse error 当通过"（这条以前是**假绿**：读不进来的导出算"成功拒绝"）。
+#[test]
+fn reject_requires_a_kernel_rejection_not_a_parse_error() {
+    // 解析失败：`accepted=false`、`kernel_rejected=false` ⇒ reject **必须**判负。
+    assert!(
+        is_mismatch(ExpectedOutcome::Reject, false, false, false),
+        "reject 用例遇到 parse error 必须判负（以前算通过 —— 假绿）"
+    );
+    // 真·内核拒绝 ⇒ 通过。
+    assert!(!is_mismatch(ExpectedOutcome::Reject, false, false, true), "内核拒绝即满足 reject");
+    // panic 对任何预期都是失败。
+    assert!(is_mismatch(ExpectedOutcome::Reject, false, true, false), "panic 永远判负");
+    assert!(is_mismatch(ExpectedOutcome::Accept, true, true, false), "panic 永远判负");
+    assert!(
+        is_mismatch(ExpectedOutcome::Either, false, true, false),
+        "either 也要挡 panic（原来写死 false ⇒ 连 panic 都不算失败）"
+    );
+    // 正常的 accept / either 不该被误伤。
+    assert!(!is_mismatch(ExpectedOutcome::Accept, true, false, false));
+    assert!(!is_mismatch(ExpectedOutcome::Either, true, false, false));
+    assert!(!is_mismatch(ExpectedOutcome::Either, false, false, true));
+    // accept 用例被解析失败挡住 ⇒ 判负（这本来就是原来的行为，钉住别退化）。
+    assert!(is_mismatch(ExpectedOutcome::Accept, false, false, false));
 }

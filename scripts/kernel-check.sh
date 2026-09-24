@@ -38,7 +38,31 @@ run() {
 }
 
 run "三层回归（cargo test --workspace --locked）" cargo test --workspace --locked
-run "内核改动台账（kernel-diff.sh）" bash scripts/kernel-diff.sh
+# ② 全语料逐字节对拍（T-K01）：**改动前后两个二进制**的 stdout + 退出码逐字节比。
+# 给了 `KERNEL_DIFF_BASELINE`（改动前的二进制）就跑真对拍；没给就跑 `--self-test`
+# ——它证明**这条通道本身能发现差异**（不是安慰剂），并明确说"全量对拍这轮跳过了"。
+step=$((step + 1))
+echo
+echo "== 第 ${step} 步：全语料逐字节对拍（kernel-diff.sh） =="
+if [ -n "${KERNEL_DIFF_BASELINE:-}" ]; then
+  if bash scripts/kernel-diff.sh --fast "$KERNEL_DIFF_BASELINE" "${KERNEL_DIFF_CURRENT:-./target/debug/sokonanoda}"; then
+    echo "-- 第 ${step} 步通过"
+  else
+    echo "-- 第 ${step} 步**没过**" >&2
+    fail=1
+  fi
+else
+  echo "-- 未设 KERNEL_DIFF_BASELINE（改动前的二进制）⇒ 跑 **self-test** 证明这条通道"
+  echo "   真能发现差异；**全量对拍这轮跳过了** —— 改内核前请先留一份改动前的二进制："
+  echo "     cp target/debug/sokonanoda /tmp/sokonanoda-before"
+  echo "   改完再跑：KERNEL_DIFF_BASELINE=/tmp/sokonanoda-before scripts/kernel-check.sh"
+  if bash scripts/kernel-diff.sh --self-test ./target/debug/sokonanoda; then
+    echo "-- 第 ${step} 步通过（self-test）"
+  else
+    echo "-- 第 ${step} 步**没过**（self-test 没过 ⇒ 对拍通道本身有问题）" >&2
+    fail=1
+  fi
+fi
 run "课程门禁计数" python3 courses/set-theory/tools/check.py
 run "性能台账（perf-ledger.sh）" bash scripts/perf-ledger.sh
 

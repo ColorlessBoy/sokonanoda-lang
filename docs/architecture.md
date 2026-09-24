@@ -507,7 +507,7 @@ by 引擎的判定合成声明不带宇宙参数（`by.rs::spec_of` 的 `univers
 | # | 步骤 | 它挡的是什么 |
 |---|---|---|
 | ① | `cargo test --workspace --locked` | 三层回归（kernel `tests/` + front 单测 + CLI e2e） |
-| ② | `bash scripts/kernel-diff.sh` | 内核相对**上游**改了什么、为什么（改动台账） |
+| ② | `bash scripts/kernel-diff.sh --fast <前> <后>` | **全语料逐字节对拍**——改动前后两个二进制的 stdout + 退出码逐字节比（改之前先 `cp target/debug/sokonanoda /tmp/sokonanoda-before`，改完用 `KERNEL_DIFF_BASELINE=` 喂回来；没给基线时退化成 `--self-test`，证明这条通道本身能发现差异） |
 | ③ | `python3 courses/set-theory/tools/check.py` | **语料级**计数红线（`36 目标 · 328 checked · 99 open · 0 判负`）——内核一动最先在这里露头 |
 | ④ | `bash scripts/perf-ledger.sh` | 性能台账（提速允许，**退化不行**） |
 | ⑤ | `cargo test -p sokonanoda --test arena` | 真 Lean 导出语料的接受/拒绝与预期一致 |
