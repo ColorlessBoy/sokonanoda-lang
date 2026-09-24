@@ -2272,6 +2272,9 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 >   `plan_project` + `compile_plan` ⇒ `courses/set-theory` = **33 次闭包编译** ✗。
 > * 改法：按**模块根**（`sokonanoda.toml` / 入口目录 ✓）**分组**，每个模块只编一次 ✓，
 >   再把每文件的结果分派回去 ✓。
+> * **基线已量（2026-09-24，冷缓存）** ✓：`build courses/set-theory` = **146.07s**，
+>   35 个文件（0 hit / 35 compiled / 0 failed）⇒ 收益空间很大 ✓。数字进
+>   `docs/perf/ledger.jsonl`（`build_dir_course_baseline` ✓）。
 > * 判据（照规格 ✓）：`build.summary` 的 hit/compiled/failed **语义不变** ✓
 >   （`crates/cli/tests/build.rs` 全绿 ✓）+ 目录构建耗时降到接近 `O(闭包)` ✓
 >   （数字进 `docs/perf/ledger.jsonl` ✓）。
