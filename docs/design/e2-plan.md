@@ -64,7 +64,12 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-A2` **R-1 修**：`GoalDeclInfo` 加 `value: Option<String>` + `value_runs: Vec<RunInfo>`；`decl_info` 里映射（与 `ty_runs` 走**同一个** `run_info` ✓）
 - [x] `T-A3` **R-1 判据**：LSP 单测断言 `soko/goals` 的 `Set.mem` 条目带 `value`/`value_runs` ✓ + **防分叉守卫**（`ty_runs` 与 `value_runs` 同实现 ✓）+ e2e 断言 Infoview 卡片出现 `:=` 行 ✓
 - [x] `T-A4` **R-2 复现判红**：先写复现件，证明 `unit12-synthesis` 的 `flawed_equalities_refuted` / `project_chain` 的 goal 文本**未完全记法化**、且 Infoview 目标**不高亮**（照 R-1 的"三段式断链"逐段验：前端 → LSP → 扩展）
-- [ ] `T-A5` **R-2 修（已按实测重新定级 ✗）**：按复现件定位的那一段修（**先查明再改** ✗）
+- [ ] `T-A5` **R-2 修（真因已定位到行 ✓）**：`crates/front/src/semantic.rs:308` 把
+  **内建记法表（含 `"="`）**喂给词法 ⇒ `fun (x : Nat) => z` 里 `=>` 的 `=` 被当声明符号
+  吃掉 ⇒ 剩下的 `>` 无匹配 ⇒ 整段**降级成 1 个无 kind 的 run** ⇒ webview 只画纯文本
+  ⇒ **凡 λ 出现在 goal/类型文本里的都掉色**（实测：`fun … => …` → 1 run；`z = z` → 5 runs ✓）
+  ⇒ 修法：**别把 `=` 交给词法符号表**（它已有专用臂且先认 `=>`）；
+  另补 `goal_runs` 的父子缺口（types/protocol/query_map/infoview 四处，**但只补它治不了本** ✗）：按复现件定位的那一段修（**先查明再改** ✗）
 - [ ] `T-A6` **R-2 判据**：复现件转绿 + LSP/e2e 各一条断言 + 课程门禁计数逐项不变 ✓
 - [ ] `T-A7` **阶段 A 收尾**：三个基准数字复量（应持平 ✓）→ `scripts/soko gate` 全绿 → **一次 push** → CI 绿 → bump `0.66.0` → release → `gh release list` 核对 ✓
   - ⬆ **BUMP**：`minor` —— Infoview 的 def 值行与 goal 记法化/高亮修复（用户可见）
