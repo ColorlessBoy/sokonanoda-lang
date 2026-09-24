@@ -2265,6 +2265,28 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 >      不是 CLI 的 `query` ✓）—— 两条路分叉是这类 bug 的常见形态 ✓
 >      （参考 G-39 的教训：同一个符号在两条路上认不出来 ✓）。
 
+> **✅ 根因确认（2026-09-24，第 98 轮）—— 是 LSP 漏发字段，不是前端算不出** ✓：
+> 1. **CLI 侧正常** ✓：`query goals --file courses/set-theory/lib/Set.sokonanoda`
+>    里 `Set.mem` 的条目**确实带**
+>    `value = 'fun (α : Type 0) (a : α) (A : Set α) => A a'` ✓ 与 `value_runs` ✓；
+> 2. **扩展侧早就准备好了** ✓：`editor/vscode/media/infoview.js:282`
+>    `if (decl && Array.isArray(decl.value_runs) && decl.value_runs.length > 0)`
+>    ⇒ 渲染 `.decl-val-line` ✓（CSS ✓、CHANGELOG 也写了这两个字段 ✓）；
+> 3. **断点在 LSP** ✗：`crates/lsp/src/query_map.rs:74` 的 `decl_info()` 把
+>    `ty`/`ty_runs` 都映射了 ✓，**唯独没有 `value`/`value_runs`** ✗
+>    ⇒ `GoalDeclInfo`（wire 结构体 ✓）里也没有这两个字段 ✗
+>    ⇒ 扩展拿到的一直是 `undefined` ✗ ⇒ 那一行永远不出现 ✓✗。
+>    **这就是"前端算好、CLI 给了、LSP 没转发"的三段式断链** ✓
+>    （与 G-39 同形：同一个东西在两条路上不一致 ✓）。
+>
+> **修法（两处，约 10 行）** ✓：
+> ① `GoalDeclInfo` 加 `value: Option<String>` + `value_runs: Vec<RunInfo>` ✓
+>    （serde 字段名要与扩展读的一致 ✓：`value` / `value_runs` ✓）；
+> ② `query_map::decl_info` 里 `value: decl.value, value_runs: decl.value_runs.into_iter().map(run_info).collect()` ✓。
+> **判据** ✓：LSP 单测断言 `soko/goals` 的 `Set.mem` 条目带 `value` 与 `value_runs` ✓
+> （并加一条"`ty_runs` 与 `value_runs` 都走 `run_info` 同一实现"的守卫 ✓，
+> 防止两条路再分叉 ✓）；e2e 断言 Infoview 卡片出现 `:=` 行 ✓。
+
 **要求**：T-D52 落地的"声明卡片多一行 `:= <值>`"**必须对 `Set.mem def` 生效** ✗
 —— 现在看不到 ⇒ 是 bug ✓，**先查成因** ✓（不是先改 ✓）。
 
