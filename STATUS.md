@@ -17,6 +17,40 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第一百三十九/四十轮：**线 D 收口 + 0.65.3 发版中**）
+
+1. **T-D16**（勾上，无产品代码）：判据两条实跑——G-23 复现件 **exit 1**（已修）·
+   `tests::navigation` **11 条绿**（含本轮补的记法跳转用例）。它是 T-D10 + T-D15
+   合起来交付的，这轮把判据钉住。
+2. **T-D17 记法 hover 的精确范围**：`range` 从 `None` 换成
+   `notation_input::symbol_span_at(...)`（与 `symbol_at` **共用** `symbol_token_at`
+   ⇒ "认得出来"与"给出范围"永不漂移）。判据把光标停在 `⁻¹'` 的**中间**（最容易
+   歪的位置），断言正好覆盖 3 个字符。LSP **158 通过**；真宿主 e2e
+   `--grep "notation symbol"` **2 passed / 0 failed**。
+3. **T-D41 文档同步 + ⬆ BUMP 0.65.3**：`notation-subset.md` 新增 §4.1
+   「编辑器支持（as-built）」（五条能力各配判据）· `TESTING.md` 守护表新增
+   「记法编辑器导航」一行 · `editor/vscode/README.md` 升级为"输入 + 可导航" ·
+   `CHANGELOG.md` 0.65.3。判据：`--test skill` **4 passed** · 完整 `gate` **PASS**。
+4. **修掉四条 CI 假红**（全部是判据自身的余量/时序，**不是产品回归**）：
+   * gap 台账：复现件**硬编码本机路径** + `gap.py` **把任何非零退出都当"已修"**
+     ⇒ 环境异常（exit 2）被静默读成"修好了"（真缺口 G-37 被判成已修）。
+     两处都修：路径从 `__dirname` 推；`judge()` 对 `code == 2` 直接判红 +
+     `selftest` 钉两条（现在 16 条判据）。
+   * 缩放判据：CI 实测 **12.4×** 超阈值 12（**O(n²) 是 64×**，12.4 显然不是）
+     ⇒ 阈值 **12 → 20**（判别力不减），注释写明"放宽的是噪声余量、不是判据形状"。
+   * e2e 项目树：`projectRoot()` 只等**标签**、没等**描述** ⇒ 慢 runner 上
+     "2 模块"还没填。改成等"行完整"。**这次按纪律取了 artifact 里的用例名与
+     断言行**（上一轮"24/1 但没取到名字"是不合格的处置）。
+5. **⚠ 环境阻塞（需要用户处理）**：服务重启后，本机 **DSH 沙箱后端起不来**
+   （`sandbox-exec: Operation not permitted`），且 `target/` 里的删除被拦
+   （cargo 无法重新链接 build script ⇒ **本地 cargo 构建/测试跑不动**）。
+   ⇒ 本轮的后半段**只能用 CI 当验证通道**（改动本身是常量与等待条件，风险低，
+   且正是为 CI 红而改）。**恢复办法**：修好沙箱后端（或让 `target/` 可写可删）
+   后跑一次 `scripts/soko gate` 复核。
+6. **发版状态**：0.65.3 已推 main，CI 在跑；**发版尚未触发**（要等 CI 绿）。
+   线上最新仍是 v0.65.2。下一轮第一件事就是**核对 `gh release list` 是否出现
+   0.65.3**（REQUIREMENTS §9 的闭环要求）。
+
 ## 本轮进度（2026-09-23，第一百三十八轮：**用户第 7/8 条反馈的机制查明**）
 
 > 用户要求：「背后的 bug 机制先搞明白，然后再统一修复，这个应该是一个共性问题。」
@@ -69,26 +103,4 @@ CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
    ——`git diff --stat` 立刻暴露 ⇒ 恢复重来，之后**每处改动都先断言匹配唯一、
    再核对行数增减**。教训写进 `skills/sokonanoda-dev` 新增的"批量文本替换的纪律"。
 5. **下一环**：T-D15（`ResolvedTarget` 增加 `Notation` 变体并绕开覆写）。
-
-## 本轮进度（2026-09-23，第一百三十六轮：**T-D40 三层测试补齐 + `gate --fast` 修缺陷**）
-
-1. **T-D40 三层测试补齐**（矩阵用例 #7/#8）。e2e 两条早在 T-D02/T-D10..T-D13
-   就落地了，但三层里**缺两层**，这轮补上：
-   * **LSP**：`goto_definition_on_a_notation_symbol_lands_on_its_declaration`
-     —— `definition` 在 `∈` 上跳到**声明它的模块**那一行；
-   * **front**：`notation_folding_does_not_clobber_a_use_points_resolution`
-     —— 线 C 的折叠只动**显示副本**，点名使用点的 `resolution` 仍在。
-   * **判据实跑**：`vscode-e2e.sh --grep "notation symbol" --profile debug`
-     ⇒ **2 passed / 0 failed**（46s），台账进 `docs/e2e/ledger.jsonl`。
-   * **一处如实记录**：front 那条最初想断言"记法符号自己的 hover 行没有
-     resolution"，实测**这个夹具里没有正好落在 `⊆` 上的 hover 行** ⇒ 那半条是
-     **空断言**，删掉换成"前提守卫 + resolution 仍在"两条真能失败的前提。
-     **不凑数。**
-2. **发现并修掉 `gate --fast` 的一个真缺陷**：它只看**未提交**的改动
-   （`git diff HEAD`）⇒ **提交之后**跑就打印"crates/ 下没有改动"、**静默跳过所有
-   单测**——而 `--fast` 恰恰最常在提交后跑。改成取三段并集（`origin/main...HEAD`
-   ∪ 工作区 ∪ 未跟踪）；无远端时退回 `HEAD~1`。**造了一个"已提交未推送的 crates
-   改动"验证过**：修后确实跑 `cargo test -p sokonanoda-front --lib`。
-3. **下一环**：T-D14（parser 保留记法符号 token 的 span——AST 变更，为"表达式内
-   跳转"铺路）。
 

@@ -5108,3 +5108,26 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
    修后全量 **156 通过 / 0 失败**。
 4. **下一环**：T-D40（三层测试，矩阵用例 #7/#8）。
 
+
+## 本轮进度（2026-09-23，第一百三十六轮：**T-D40 三层测试补齐 + `gate --fast` 修缺陷**）
+
+1. **T-D40 三层测试补齐**（矩阵用例 #7/#8）。e2e 两条早在 T-D02/T-D10..T-D13
+   就落地了，但三层里**缺两层**，这轮补上：
+   * **LSP**：`goto_definition_on_a_notation_symbol_lands_on_its_declaration`
+     —— `definition` 在 `∈` 上跳到**声明它的模块**那一行；
+   * **front**：`notation_folding_does_not_clobber_a_use_points_resolution`
+     —— 线 C 的折叠只动**显示副本**，点名使用点的 `resolution` 仍在。
+   * **判据实跑**：`vscode-e2e.sh --grep "notation symbol" --profile debug`
+     ⇒ **2 passed / 0 failed**（46s），台账进 `docs/e2e/ledger.jsonl`。
+   * **一处如实记录**：front 那条最初想断言"记法符号自己的 hover 行没有
+     resolution"，实测**这个夹具里没有正好落在 `⊆` 上的 hover 行** ⇒ 那半条是
+     **空断言**，删掉换成"前提守卫 + resolution 仍在"两条真能失败的前提。
+     **不凑数。**
+2. **发现并修掉 `gate --fast` 的一个真缺陷**：它只看**未提交**的改动
+   （`git diff HEAD`）⇒ **提交之后**跑就打印"crates/ 下没有改动"、**静默跳过所有
+   单测**——而 `--fast` 恰恰最常在提交后跑。改成取三段并集（`origin/main...HEAD`
+   ∪ 工作区 ∪ 未跟踪）；无远端时退回 `HEAD~1`。**造了一个"已提交未推送的 crates
+   改动"验证过**：修后确实跑 `cargo test -p sokonanoda-front --lib`。
+3. **下一环**：T-D14（parser 保留记法符号 token 的 span——AST 变更，为"表达式内
+   跳转"铺路）。
+
