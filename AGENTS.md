@@ -226,6 +226,29 @@ CI 强制的只有 `Cargo.toml` 与 `package.json` **相等**，且版本号只�
 （需 `sokonanoda.serverOverride`），或 `SOKO_E2E_GREP=<用例名> npx vscode-test`
 只跑一个 e2e 用例。
 
+## CI 节奏：**批次制**（2026-09-24 用户拍板，长期工作方式）
+
+**默认：一个批次只 push 一次、只跑一轮 CI。**
+
+1. **同一批次内的多个环节，先在本地连续改完**；每个环节该跑的本地判据
+   （`cargo test -p …` / 该环节的验收命令 / `scripts/soko gate --fast`）**照常跑**
+   ——**不要每改一个就 push 等 CI**。
+2. 一批（或一批紧密相关的环节）**全部改完、本地验证通过**后，**才 push 一次**，
+   统一跑一轮 CI。（三平台矩阵一轮 33–35 分钟，这是要省的成本。）
+3. **例外：诊断性 CI**——只有当**本地复现不了、怀疑是平台差异**时（例如只在
+   ubuntu runner 上出现的时序问题），才为定位**单独**跑一次 CI。
+   这类 CI **必须在 `STATUS.md` 写明原因**（"为什么本地复现不了"），
+   **不许变成默认动作**。
+4. **e2e 台账按批次记一条**：`SOKO_VSCODE_TEST_VERSION=<ver> scripts/vscode-e2e.sh`
+   在**批次收尾**时跑一次、记进 `docs/e2e/ledger.jsonl`——不要每个环节一条。
+5. **BUMP 点仍然闭环**（REQUIREMENTS §9）：bump 是"批次收尾"的一部分——
+   批次改完 → 本地全绿 → **一次** push → CI 绿 → auto-tag → release →
+   `gh release list` 核对。**闭环用的就是批次那一次 CI**，不额外多跑。
+
+> 为什么这么定：单环节 push 的边际信息很小（本地判据已经覆盖了绝大多数回归），
+> 而每轮 CI 要 33–35 分钟；把 CI 用在**批次边界**上，才能既保住"线上一定绿"
+> 又保住迭代速度。
+
 ## CI 失败记录
 
 每次 CI 红了，在 `docs/CI-FAILURES.md` 追加一条（原因/修复/预防）。
