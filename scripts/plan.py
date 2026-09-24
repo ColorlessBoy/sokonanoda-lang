@@ -19,11 +19,17 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import re
 import sys
 
-PLAN = pathlib.Path(__file__).resolve().parent.parent / "docs" / "design" / "vscode-editor-feedback-plan.md"
+# 默认计划 = E2（`docs/design/e2-plan.md`；E1 的 §13 已于 2026-09-24 全部勾完 ✓）。
+# 用 `SOKO_PLAN=<路径>` 可指向别的计划文件（例如回看 E1 的清单 ✓）。
+PLAN = pathlib.Path(
+    os.environ.get("SOKO_PLAN")
+    or (pathlib.Path(__file__).resolve().parent.parent / "docs" / "design" / "e2-plan.md")
+)
 
 # §13 的一条：`- [ ] \`T-001\` 标题`（标题里可以再带反引号/加粗）
 CHECK_RE = re.compile(r"^- \[([ xX])\] `(T-[A-Z]?\d+[a-z]?)` (.*)$")
