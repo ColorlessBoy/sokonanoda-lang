@@ -918,6 +918,24 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  /// **轮询一个 LSP 请求直到它有答案**（或超时后把最后一次结果交回给断言）。
+  ///
+  /// 为什么需要它（2026-09-24 实测）：`showDoc(entry)` 只保证**文档打开**，
+  /// 而"记法符号跳转到声明它的库"还要求**项目闭包就绪**——两者之间有时序。
+  /// 同一 commit 上 1.138 绿、**1.106 红**，红的两条正是"`∈` 上跳定义"与
+  /// "`∈` 上 hover"，失败信息都是"返回 null"⇒ 典型的"请求早于闭包就绪"✗。
+  /// 断言本身没问题，缺的是**等那个条件**（与 `did_change_until` 同一条思路）。
+  async function requestUntil(label, request, ready, attempts = 60) {
+    let last;
+    for (let i = 0; i < attempts; i++) {
+      last = await request();
+      if (ready(last)) return last;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    console.log(`[--] ${label}：轮询 ${attempts} 次仍没就绪，把最后一次结果交给断言`);
+    return last;
+  }
+
   test("go to definition on a notation symbol lands on its declaration", async () => {
     // 用例 #7（G-23）：`∈` 在 `units/u01` 第 9 行。
     const entry = fixtureEntry();
@@ -928,10 +946,11 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const before = text.slice(0, offset);
     const line = before.split("\n").length - 1;
     const character = (before.split("\n").pop() || "").length;
-    const found = await vscode.commands.executeCommand(
-      "vscode.executeDefinitionProvider",
-      entry,
-      new vscode.Position(line, character),
+    const position = new vscode.Position(line, character);
+    const found = await requestUntil(
+      "`∈` 上跳定义",
+      () => vscode.commands.executeCommand("vscode.executeDefinitionProvider", entry, position),
+      (result) => Array.isArray(result) && result.length > 0,
     );
     assert.ok(
       Array.isArray(found) && found.length > 0,
@@ -953,7 +972,12 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const before = text.slice(0, offset);
     const line = before.split("\n").length - 1;
     const character = (before.split("\n").pop() || "").length;
-    const markdown = await hoverTextAt(entry, line, character);
+    // 同"跳定义"那条：hover 也要等**项目闭包就绪**（1.106 上实测假红）。
+    const markdown = await requestUntil(
+      "`∈` 上 hover",
+      () => hoverTextAt(entry, line, character),
+      (text) => typeof text === "string" && text.includes("Set.mem"),
+    );
     assert.ok(
       markdown.includes("Set.mem"),
       `hover 必须给出 \`Set.mem\` 的原始类型，实际 = ${markdown}`,
