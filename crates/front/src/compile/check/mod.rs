@@ -512,7 +512,12 @@ pub(crate) fn run_incremental(
     // 增量路径保持**单文件**语义（I8）：闭包编译不使用 TrustPlan（v1），
     // 所以这里始终是一个单元。
     let units = [SourceUnit::single("", file)];
-    let pass1 = run_pass(&units, options, true, Some(prefix_failures), Some(trust));
+    // **T-K11（K1-a）**：告诉 judge 的 miss 路径"前缀 `[0, before)` 已被担保"
+    // ——`run_pass` 期间发生的判定（`by` 块/judge_infer/judge_type_of）因此可以
+    // 走 `run_incremental` 而不重查前缀。栈式，进出成对。
+    let pass1 = crate::judge::with_trusted_prefix(trust.before, prefix_failures, || {
+        run_pass(&units, options, true, Some(prefix_failures), Some(trust))
+    });
     if pass1.failed.is_empty() {
         let mut out = pass1.out;
         out.stats.kernel_checks = pass1.checks;
@@ -539,7 +544,9 @@ pub(crate) fn run_incremental(
         text_unchanged: Vec::new(),
         allow_cutoff: false,
     };
-    let pass2 = run_pass(&units, options, true, Some(&skip2), Some(&trust2));
+    let pass2 = crate::judge::with_trusted_prefix(trust2.before, &skip2, || {
+        run_pass(&units, options, true, Some(&skip2), Some(&trust2))
+    });
     let checks = pass1.checks + pass2.checks;
     let mut out = pass2.out;
     out.stats.kernel_checks = checks;

@@ -22,8 +22,8 @@
 //! 判定永远走 kernel，不做文本比对（REQUIREMENTS §2.8）。
 
 use crate::compile::{
-    check_document_with, compile_fol_with, CheckEvent, CompileError, CompileOptions, DeclStatus,
-    DocumentReport,
+    check_document_with, compile_fol_with, run_incremental, CheckEvent, CompileError,
+    CompileOptions, DeclStatus, DocumentReport, TrustPlan,
 };
 use crate::proof::{parse_expr_text, render_expr};
 use crate::span::Pos;
@@ -396,6 +396,88 @@ pub(crate) mod stats {
     }
 }
 
+thread_local! {
+    /// **外层 pass 能担保的"已核前缀"栈**（T-K11 / K1-a）。
+    ///
+    /// 每项 = `(已核命令数, 那些命令的失败表)`。由 `run_incremental` 在跑 pass 期间
+    /// 压栈（进出成对 ✓ 见 `with_trusted_prefix`）；judge 的 **cache miss** 路径读栈顶。
+    ///
+    /// 语义（**只在满足条件时才复用**）：只有 `before` **覆盖住本次合成文档的全部
+    /// 前缀命令**，才说明这些声明的内核检查在本轮 compile 里**已经被担保过**
+    /// （增量会话里它们来自上一次会话的缓存）。否则老老实实整份重查。
+    static TRUSTED_PREFIX: std::cell::RefCell<Vec<(usize, HashMap<usize, CompileError>)>> =
+        const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// 在"外层 pass 可担保 `[0, before)` 已核"的上下文里跑 `f`（T-K11）。
+///
+/// **栈式**：judge 的合成文档在 elaborate 期间又会触发 judge（递归）⇒ 每层看到
+/// 自己那一层，不会串味；`before` 的比较在 [`check_synthesized`] 里做。
+pub(crate) fn with_trusted_prefix<R>(
+    before: usize,
+    failures: &HashMap<usize, CompileError>,
+    f: impl FnOnce() -> R,
+) -> R {
+    TRUSTED_PREFIX.with(|cell| cell.borrow_mut().push((before, failures.clone())));
+    struct Pop;
+    impl Drop for Pop {
+        fn drop(&mut self) {
+            TRUSTED_PREFIX.with(|cell| {
+                cell.borrow_mut().pop();
+            });
+        }
+    }
+    let _pop = Pop;
+    f()
+}
+
+/// 开关（仿 `SOKO_NO_JUDGE_BATCH`）：`SOKO_JUDGE_ENV_REUSE=0` 关掉前缀复用——
+/// **对拍用**：开与关必须给出**逐字节相同**的 `--json`。默认**开**。
+fn judge_env_reuse_enabled() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| {
+        std::env::var("SOKO_JUDGE_ENV_REUSE")
+            .map(|v| v != "0")
+            .unwrap_or(true)
+    })
+}
+
+/// judge 合成的文档送内核（T-K11 / K1-a）：**前缀已被外层担保**时走
+/// `run_incremental`（前缀不再重查），否则回退到原来的 `check_document_with`
+/// （整份重查）——回退是**默认**，不是异常路径。
+///
+/// `prefix_commands` = 这份合成文档里**属于前缀**的命令数（合成声明接在其后）。
+fn check_synthesized(
+    file: &FolFile,
+    options: &CompileOptions,
+    prefix_commands: usize,
+) -> DocumentReport {
+    if !judge_env_reuse_enabled() {
+        return check_document_with(file, options);
+    }
+    let trusted = TRUSTED_PREFIX.with(|cell| {
+        cell.borrow()
+            .last()
+            .filter(|(before, _)| *before >= prefix_commands)
+            .map(|(before, failures)| (*before, failures.clone()))
+    });
+    let Some((before, failures)) = trusted else {
+        return check_document_with(file, options);
+    };
+    REUSED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let plan = TrustPlan {
+        before,
+        prev_signatures: Vec::new(),
+        text_unchanged: Vec::new(),
+        allow_cutoff: false,
+    };
+    run_incremental(file, options, &plan, &failures).1
+}
+
+/// 命中"前缀复用"的次数（判据：`SOKO_JUDGE_ENV_REUSE=0/1` 下都该有正确的行为，
+/// 而开启时这个数应当 > 0 —— 否则说明条件从没满足、等于没生效）。
+pub static REUSED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 fn judge_pairs_uncached(
     key: u64,
     extra_prefix: &str,
@@ -491,6 +573,8 @@ fn judge_pairs_uncached(
     );
     // 解析不成功的那些**不合成命令**，但**保留序号**（`_soko_judge_{k}` 里的 k
     // 仍是这一批里的位置）——`judgement_of` 按名字回查，序号不能顺延。
+    // 合成声明接在前缀之后 ⇒ **此刻**的 commands.len() 就是"前缀命令数"（K1-a 用它判断能否复用）。
+    let prefix_commands = commands.len();
     let mut pre_judged: Vec<bool> = vec![false; pairs.len()];
     for (k, pair) in pairs.iter().enumerate() {
         let Ok(goal) = crate::proof::parse_expr_text_with(&pair.spec.ty, &notations) else {
@@ -531,12 +615,13 @@ fn judge_pairs_uncached(
             span: after_prefix,
         });
     }
-    let report = check_document_with(
+    let report = check_synthesized(
         &FolFile {
             commands,
             src: full_prefix,
         },
         options,
+        prefix_commands,
     );
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if pre_judged[k] {
@@ -1249,8 +1334,9 @@ fn judge_hole_fill_uncached(
     let Ok(mut file) = parse_prefix(&full_prefix) else {
         return all_parse_error("前缀源码无法解析".to_string());
     };
+    let prefix_commands = file.commands.len();
     file.commands.extend(commands);
-    let report = check_document_with(&file, options);
+    let report = check_synthesized(&file, options, prefix_commands);
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if let Some(message) = failed_parse[k].take() {
             *judgement = Judgement::Error {
@@ -1433,8 +1519,9 @@ pub fn judge_value_replace_with(
     let Ok(mut file) = parse_prefix(&full_prefix) else {
         return all_parse_error("前缀源码无法解析".to_string());
     };
+    let prefix_commands = file.commands.len();
     file.commands.extend(commands);
-    let report = check_document_with(&file, options);
+    let report = check_synthesized(&file, options, prefix_commands);
     for (k, judgement) in judgements.iter_mut().enumerate() {
         if let Some(message) = failed_parse[k].take() {
             *judgement = Judgement::Error {
