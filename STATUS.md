@@ -11,7 +11,8 @@
 > （`plan_project` 只加载**单入口闭包** ⇒ 同模块互不 import 的文件是不同闭包），
 > 需要**新的 front API**（"把一个模块根的全部文件当一个 unit 集编一次"）+
 > `ok` 语义论证；基线已量（**146.07s / 35 文件**，冷缓存）。
-> **T-K31**（`TcCache::new` 每声明 4MB）根因已确认，待实施。
+> **T-K31**（`TcCache::new` 每声明 4MB）：**实测无收益 ⇒ 已回退** ✗（池化强制 memset vs mmap 惰性零页；12.29s/11.67s vs 11.96s/11.67s ✓）。
+> **⚠ 性能根因：未修** ✗ —— `by` 每步 tactic 重判整份文档这个病灶**仍然在**（冷开 `unit12-solution` 的 `judge_infer` miss ≈ **9.5s = 77%** ✓）。**不许当成已修** ✗；修复属「把 check-then-add 移进 walk」的内核级重构档 ✓，靶心与验收工具（`SOKO_JUDGE_STATS` / `SOKO_SHADOW_CHECK` / `kernel-check.sh` 五步）都已记录在案 ✓（详见 `docs/design/by-tactics.md` 的 as-built 段与 `docs/PERF.md`）。
 > 课程门禁基准 **36 目标 · 328 checked · 99 open · 0 判负**（全程未变 ✓）。
 
 
