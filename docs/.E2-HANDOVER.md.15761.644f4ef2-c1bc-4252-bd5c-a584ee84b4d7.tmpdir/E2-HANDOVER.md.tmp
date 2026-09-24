@@ -150,6 +150,17 @@ SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh   # 批次收尾跑一次
 #       auto-tag → release → gh release list 核对
 ```
 
+**推送前自检（三条，都是"本地看不见"的坏数据 ✓）**：
+```bash
+python3 scripts/e2e-merge.py --check     # e2e 台账完整性（记录引用的日志必须在）
+git diff --stat origin/main..HEAD        # 有没有"凭空消失"的文件
+python3 scripts/audit-wire-fields.py     # 扩展读了但 LSP 不发的字段
+```
+> **为什么是这三条** ✗：它们对应三次真事故 —— ① merge-tree 合成 merge **丢了 4 个
+> 被 ledger 引用的日志** ⇒ CI 的 `e2e ledger` job 红；② 同一手法**把冲突标记提交了**；
+> ③ LSP 漏发字段 ⇒ 用户看不见但 e2e 全绿。**前两条现在已进 `scripts/soko gate`** ✓
+> （所以本地 gate 全绿 = 它们也过 ✓）。
+
 **发版前必做的一行校验**（专抓"本地看不见"的坏数据 ✓）：
 ```bash
 git show origin/main:docs/e2e/ledger.jsonl | python3 -c "import sys,json;[json.loads(l) for l in sys.stdin if l.strip()]"

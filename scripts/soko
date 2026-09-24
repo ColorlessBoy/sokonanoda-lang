@@ -1069,6 +1069,22 @@ async function main(argv) {
             '提交前跑完整 `scripts/soko gate`）。\n',
         )
       }
+      // **e2e 台账完整性**（2026-09-24 补的洞）：`docs/e2e/ledger.jsonl` 的每条记录都
+      // 引用一个 `docs/e2e/logs/*.log`；文件缺了，CI 的 `e2e ledger` job 就红 ✗
+      // —— 而以前**只有 CI 查它** ⇒ 本地推送前测不出来（真事故：merge-tree 合成
+      // merge 丢了 4 个被引用的日志）。放在这里 ⇒ 每次本地 gate 都能抓到。
+      const e2eLedger = path.join(REPO, 'scripts', 'e2e-merge.py')
+      if (!fast && existsSync(e2eLedger)) {
+        const r = spawnSync(python.cmd, [...python.args, e2eLedger, '--check'], {
+          stdio: 'inherit',
+          cwd: REPO,
+        })
+        if (r.error) {
+          process.stderr.write(`scripts/soko gate: failed to run ${e2eLedger}: ${r.error.message}\n`)
+          return 3
+        }
+        if ((r.status ?? 3) !== 0) return r.status ?? 3
+      }
       const ledgerCheck = path.join(REPO, 'scripts', 'gap.py')
       if (fast) return 0
       if (!existsSync(ledgerCheck)) return 0
