@@ -630,6 +630,60 @@ impl Drop for StageTimer<'_> {
     }
 }
 
+/// **把 prelude 装进 `builder` 的唯一实现**（T-K12）。
+///
+/// 为什么必须有这条"唯一实现"：K1-b 要给 judge 准备**第二份**环境
+/// （影子环境，`docs/design/vscode-editor-feedback-plan.md` 的 T-K12），
+/// 而两份环境的 prelude 必须**逐条同款** —— prelude 装得不一样，
+/// 两边的判定就会分叉（那是 REQUIREMENTS §2 第 1 条的红线）。
+/// 所以条件（`prelude_shape` 的预扫描结果）与顺序（先 Eq 后 L1）都**只写一遍**。
+fn install_all_preludes<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &mut KnownTable,
+    inductives: &mut InductiveTable<'a>,
+    defs: &mut DefTable,
+    units: &[SourceUnit<'a>],
+    options: &CompileOptions,
+) {
+    match options.prelude {
+        PreludeMode::Bare => {}
+        PreludeMode::Full => {
+            // 闭包级预扫描（设计 §4.6）：**任一**单元自带顶层 `inductive Nat`
+            // 就让位；单文件编译时这就是今天的行为（一个单元 = 一个文件）。
+            //
+            // 判据走 `prelude_shape`（**同一个函数**）——它是 K2 复用的守卫
+            // （设计 `closure-incremental.md` §2.1 的 O7）：复用一份共享环境之前
+            // 要比对形状，而"比对用的形状"与"安装用的判据"必须是同一份计算，
+            // 否则守卫会与实际装了什么漂移。
+            let shape = prelude_shape(units);
+            if !shape.explicit_nat {
+                // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
+                // Nat.rec 登记进 `known` 与 `match` 的 InductiveTable。
+                install_prelude(builder, known, inductives);
+            }
+            if !shape.explicit_bool {
+                // Bool 同法（非递归）：文件自带 `inductive Bool` 时让位。
+                install_bool_prelude(builder, known, inductives);
+            }
+            // `Eq` 与 L1 的"被占用名字"取整个闭包的并集（设计 §4.6）。
+            //
+            // 口径（设计 §2.3-1）：用 `top_level_def_spans_over` 的**键集**，
+            // 而不是 `user_top_level_names`——后者只看 `Command::*{name}`，
+            // 漏掉 `ctor`/`rec`。L1 之后这会漏掉"文件在别的归纳块里写了
+            // `ctor Or.inl` ⇒ 与 prelude 的 `Or.inl` 撞车"。
+            let taken: std::collections::HashSet<String> =
+                top_level_def_spans_over(units).into_keys().collect();
+            // 顺序（as-built，与提案 §6 的措辞略有出入）：**先 Eq，后 L1**。
+            // B7 的 `Eq.symm`/`Eq.trans`/`congrArg` 的定义体直接引用
+            // `Eq.subst`/`Eq.refl`，所以它们必须在 Eq 已进环境之后才装；
+            // 两者的让位读同一个 `taken`（B7 的 `EQ` 依赖），所以先后顺序
+            // 不影响让位结果。
+            install_eq_prelude(builder, known, &taken);
+            install_l1_prelude(builder, known, inductives, defs, &taken);
+        }
+    }
+}
+
 fn run_pass(
     units: &[SourceUnit<'_>],
     options: &CompileOptions,
@@ -646,43 +700,14 @@ fn run_pass(
     let mut inductives = InductiveTable::new();
     // 源级 delta 表（课程 Lean 化）：`by` 引擎靠它看穿 def 头（`A ⊆ B`/`¬ A`）。
     let mut defs = DefTable::new();
-    match options.prelude {
-        PreludeMode::Bare => {}
-        PreludeMode::Full => {
-            // 闭包级预扫描（设计 §4.6）：**任一**单元自带顶层 `inductive Nat`
-            // 就让位；单文件编译时这就是今天的行为（一个单元 = 一个文件）。
-            //
-            // 判据走 `prelude_shape`（**同一个函数**）——它是 K2 复用的守卫
-            // （设计 `closure-incremental.md` §2.1 的 O7）：复用一份共享环境之前
-            // 要比对形状，而"比对用的形状"与"安装用的判据"必须是同一份计算，
-            // 否则守卫会与实际装了什么漂移。
-            let shape = prelude_shape(units);
-            if !shape.explicit_nat {
-                // Nat 作为受信任的归纳块安装，同时把 Nat/Nat.zero/Nat.succ/
-                // Nat.rec 登记进 `known` 与 `match` 的 InductiveTable。
-                install_prelude(&mut builder, &mut known, &mut inductives);
-            }
-            if !shape.explicit_bool {
-                // Bool 同法（非递归）：文件自带 `inductive Bool` 时让位。
-                install_bool_prelude(&mut builder, &mut known, &mut inductives);
-            }
-            // `Eq` 与 L1 的"被占用名字"取整个闭包的并集（设计 §4.6）。
-            //
-            // 口径（设计 §2.3-1）：用 `top_level_def_spans_over` 的**键集**，
-            // 而不是 `user_top_level_names`——后者只看 `Command::*{name}`，
-            // 漏掉 `ctor`/`rec`。L1 之后这会漏掉"文件在别的归纳块里写了
-            // `ctor Or.inl` ⇒ 与 prelude 的 `Or.inl` 撞车"。
-            let taken: std::collections::HashSet<String> =
-                top_level_def_spans_over(units).into_keys().collect();
-            // 顺序（as-built，与提案 §6 的措辞略有出入）：**先 Eq，后 L1**。
-            // B7 的 `Eq.symm`/`Eq.trans`/`congrArg` 的定义体直接引用
-            // `Eq.subst`/`Eq.refl`，所以它们必须在 Eq 已进环境之后才装；
-            // 两者的让位读同一个 `taken`（B7 的 `EQ` 依赖），所以先后顺序
-            // 不影响让位结果。
-            install_eq_prelude(&mut builder, &mut known, &taken);
-            install_l1_prelude(&mut builder, &mut known, &mut inductives, &mut defs, &taken);
-        }
-    }
+    install_all_preludes(
+        &mut builder,
+        &mut known,
+        &mut inductives,
+        &mut defs,
+        units,
+        options,
+    );
     let out = CompileOutput::default();
     let report = DocumentReport::default();
     let ops: Vec<PendingOp<'_>> = Vec::new();

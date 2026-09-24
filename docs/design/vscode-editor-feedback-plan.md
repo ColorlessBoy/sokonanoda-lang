@@ -1815,6 +1815,18 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 > `finish_pass` 的 PendingOp 消费顺序 ⇒ **先做上面那个两遍版**（零语义风险），
 > 拿到数字后再评估要不要合。
 >
+> **✅ 更正一条我先前写错的判断（2026-09-24，动手时实测）**：
+> 本文件前面写过"**walk 根本不持有 builder**" ✗ —— **错了**。
+> `walk.rs:36-40`：`pub(super) struct Walk<'arena> { …, builder: EnvBuilder<'arena>, … }`，
+> 而 arm 里用的就是 `&mut self.builder`（`walk.rs:388`）；它最后经
+> `kernel_phase::finish_pass(kernel_phase::Walked { … })`（`mod.rs:772`）被
+> `builder.finish()` **消费**（`kernel_phase.rs:60`）。
+> 我当时的推理是"env 在之后的 kernel 阶段才建" ⇒ 误推 walk 没有 builder ✗。
+> **更正后的影响**：配方**更简单**了 —— 影子环境可以直接作为 `Walk` 的**新字段**
+> （同 `'arena` 寿命 ✓），不需要另外想办法把 builder 送进 judge 的深处；
+> 只是它仍然需要**自己那份 prelude**（因为 `self.builder` 最终要被 `finish()` 消费、
+> 且 walk 阶段**不往里 add** 文件声明 ✗）⇒ 共用的 prelude 助手照样要用 ✓。
+>
 > **🔧 实现配方（2026-09-24 定稿；剩余是机械工作）** —— 影子环境必须**自带 prelude**
 > （否则一条声明都检查不了 ✗），而 kernel 阶段的 builder 会被 `finish()` **消费** ✗
 > ⇒ 需要**第二个 builder**，且两边 prelude **必须逐条同款**（条件分叉 = 判定义分叉 ✗）：
