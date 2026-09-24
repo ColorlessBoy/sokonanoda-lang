@@ -1,0 +1,32 @@
+# scripts/vscode-e2e.sh — VS Code 1.138.0 · extension v0.65.2 · 9092ea59b2832bb28f3e03d82e1f8359c4e4be7a
+# 结果：2 passing / 0 failing / 0 pending（exit=0）
+
+## doctor（服务器解析与版本自述）
+--- doctor ---
+sokonanoda doctor — 扩展 v0.65.2 (6 checks)
+[ok] 1/6 resolution：bundled — /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+[ok] 2/6 server-version：0.65.2 (pid 33962) == 扩展 v0.65.2 (source=bundled)
+[ok] 3/6 host-version：运行宿主 v0.65.2
+[ok] 4/6 ignored-override：没有被忽略的 serverPath/env 覆盖
+[info] 5/6 download-cache：缓存 marker 0.55.0 darwin-arm64 != 扩展 v0.65.2；可运行 sokonanoda update
+[info] 6/6 obsolete-versions：检测到 0 个扩展版本快照、0 个 .obsolete 条目；完整重启 VS Code 会自动清理
+
+## 用例
+    ✔ go to definition on a notation symbol lands on its declaration (155ms)
+    ✔ hover on a notation symbol shows the target's signature (106ms)
+
+## 扩展接线日志（SOKO_E2E_LOG）
+2026-09-24T00:08:26.850Z server command: /Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/bin/darwin-arm64/sokonanoda-lsp (source=bundled)
+2026-09-24T00:08:26.851Z client state: starting
+2026-09-24T00:08:28.529Z warmCacheOnOpen: exit=0
+2026-09-24T00:08:29.478Z client state: running
+2026-09-24T00:08:29.481Z loadProject: no active .sokonanoda document
+2026-09-24T00:08:29.541Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-24T00:08:29.598Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-24T00:08:29.675Z active document changed: (none)
+2026-09-24T00:08:29.675Z loadProject: no active .sokonanoda document
+2026-09-24T00:08:29.699Z active document changed: file:///Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang/editor/vscode/src/test/fixtures/workspace/units/u01.sokonanoda
+2026-09-24T00:08:29.706Z soko/project ok: project=units.u01 (2 modules) reason=null
+2026-09-24T00:08:29.790Z active document changed: (none)
+2026-09-24T00:08:29.790Z loadProject: no active .sokonanoda document
+2026-09-24T00:08:29.803Z client state: stopped

@@ -205,7 +205,20 @@ import 边**（`project/graph.rs`），所以「记法写在 `lib/`、`units/` �
 | semantic | `crates/front/src/semantic.rs` | `Names.notations: HashMap<String, SemanticKind>`；`Command::Notation` 登记符号 + 目标名（`DefUse`/`TheoremUse`/…）；`TokenKind::Sym` 分类：**已声明 → Keyword**，未声明 → `continue`（不产 run）。**不新增 `SemanticKind`**（`ALL` 与 `tm_scope` 表逐字不变） |
 | print-back | `crates/front/src/proof.rs` | `render_expr(Expr::Notation)` 渲染成 `lhs sym rhs`（带括号规则）；`render_atom`/`render_fun_position` 视 `Notation` 为复合式 |
 | pp 复读 | 全部 `parse_expr_text` 调用点 | 内核 pp **不会**产出记法，所以回读路径不受影响；但 `render_expr` 的往返测试要能处理记法（新增，不改变既有） |
-| hover | `crates/lsp/src/render.rs` | 记号节点整段 `lhs sym rhs` 一条 hover 行（`record_hover` 的 span 是记号节点 span）；`resolution`（转到定义）v1 留空 |
+| hover | `crates/lsp/src/render.rs` | 记号节点整段 `lhs sym rhs` 一条 hover 行（`record_hover` 的 span 是记号节点 span）；**`resolution` 从 v0.65.3 起不再留空**——记法符号是 `ResolvedTarget::Notation { symbol, span, module }`（T-D15），`span` 是**符号自己**（T-D14 的 `Expr::Notation.symbol_span`） |
+
+### 4.1 编辑器支持（as-built，2026-09-21 线 D 收口）
+
+> 这一节是**用户第 6 条反馈**（"notation 不能跳转 / hover 没有原始类型"）的
+> as-built 记录，缺口 **G-23 已关账**。
+
+| 能力 | 实现 | 判据 |
+|---|---|---|
+| **跳转到定义** | `goto_definition` 在 `definition_at` **之前**先试记法分支：`QueryDoc::notation_at(text, offset)`（闭包记法表，词法精确）+ `module_path(module)` → `Location` | LSP `goto_definition_on_a_notation_symbol_lands_on_its_declaration`；e2e #7；`docs/gaps/repro/G23-notation-navigation.sh` ⇒ exit 1 |
+| **hover：展开成什么** | `notation_symbol_hover`：`展开成 \`Set.mem\`` + `\`Set.mem : <签名>\``（签名走内核 `judge_type_of_constant`，自带常量键缓存） | hover 三条（本文件声明 / 内建 / `import` 来的） |
+| **hover：精确范围** | `range` = `notation_input::symbol_span_at`（与 `symbol_at` **共用** `symbol_token_at`，不会漂移） | `a_notation_hover_range_covers_only_the_symbol`（`⁻¹'` 中间落点，正好 3 字符） |
+| **highlight / rename** | 记法符号**不是名字**：`definition_name_span` 对 `Notation` 返回 `None` ⇒ rename 被拒；`documentHighlight` 在符号上返回空（不误命中**外层 binder**——binder 的 span 覆盖整段类型标注） | `a_notation_symbol_does_not_resolve_to_the_enclosing_binder`（LSP + front 各一条，带"定义点仍可解析"的对照） |
+| **`resolution` 不被覆写** | 装配期的"回填顶层声明 span"**只**作用于 `Declaration` 变体 | `a_notation_hover_row_keeps_its_notation_resolution_after_assembly` |
 
 ## 5. 影响面（事件计数 / golden）
 

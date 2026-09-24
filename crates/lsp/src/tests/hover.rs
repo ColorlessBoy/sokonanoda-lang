@@ -448,6 +448,57 @@ async fn hover_on_a_locally_declared_notation_symbol_explains_it() {
     shutdown(&mut service).await;
 }
 
+/// **T-D17 的判据**：hover 的 `range` **只覆盖符号本身**（不是整段表达式、
+/// 也不是 `None`）。
+///
+/// 为什么较真：以前 `range: None` ⇒ 客户端按"光标词"自己高亮，而客户端的分词
+/// 规则与我们的词法不是一回事——`⁻¹'`/`×ˢ` 这种多字符符号、`𝒫` 这种星平面符号
+/// 都会歪。给了精确 range 之后，编辑器画出来的框就是符号本身。
+#[tokio::test]
+async fn a_notation_hover_range_covers_only_the_symbol() {
+    // 多字符符号（`⁻¹'` 三个字符）最能暴露"按光标词"的不准。
+    let src = "def Set (α : Type) : Type := α -> Prop\n\
+def Set.preimage (α : Type) (f : α -> α) (A : Set α) : Set α := A\n\
+infixr:80 \" ⁻¹' \" => Set.preimage\n\
+theorem t (α : Type) (f : α -> α) (A : Set α) (h : f ⁻¹' A = f ⁻¹' A) : f ⁻¹' A = f ⁻¹' A := h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "notation range").await;
+
+    // 光标停在最后一个 `⁻¹'` 的**中间**（第二个字符上）——"按光标词"最容易歪的位置。
+    // ⚠ 必须落在**字符边界**上：`⁻` 是 3 字节，`+1` 会切在它中间（`lsp_pos` 直接 panic）。
+    let at = src.rfind("⁻¹'").expect("use site") + "⁻".len();
+    let pos = lsp_pos(src, at);
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": position_json(pos),
+            }))
+            .id(4)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let hover: Option<Hover> = serde_json::from_value(result).expect("valid Hover");
+    let hover = hover.expect("a notation symbol must not be silent");
+    let range = hover.range.expect("T-D17：记法 hover 必须给精确 range");
+    let symbol_start = lsp_pos(src, src.rfind("⁻¹'").expect("use site"));
+    assert_eq!(
+        (range.start.line, range.start.character),
+        (symbol_start.line, symbol_start.character),
+        "range 从符号的第一个字符开始：{range:?}"
+    );
+    assert_eq!(
+        range.end.character - range.start.character,
+        "⁻¹'".chars().count() as u32,
+        "range 正好覆盖 `⁻¹'` 三个字符（不是整段表达式）：{range:?}"
+    );
+    shutdown(&mut service).await;
+}
+
 /// **T-D03 形态②：语言内建的**——`∧` 不在任何源文本里（parser 硬编码），
 /// 目标从内建表来；签名问内核。
 #[tokio::test]

@@ -1227,9 +1227,12 @@ fn notation_symbol_hover(
             kind: MarkupKind::Markdown,
             value: lines.join("\n\n"),
         }),
-        // 不给 range：符号的 token span 由词法扫描得出，客户端按光标词高亮即可
-        // （与 `hover_markup` 的表达式范围不同——那是 AST span）。
-        range: None,
+        // **T-D17：range 收窄到符号本身**。以前是 `None`（客户端按"光标词"高亮）
+        // ——对 `∈` 这种单字符还行，对 `⁻¹'`/`×ˢ`/`𝒫` 这种多字符或星平面符号
+        // 就不准（客户端的分词规则和我们的词法不是一回事）。
+        // span 走与 `symbol_at` **同一条**词法查找（`symbol_span_at`），
+        // 所以"认得出来"与"给出范围"永远一致。
+        range: notation_input::symbol_span_at(text, offset).map(range_of),
     })
 }
 

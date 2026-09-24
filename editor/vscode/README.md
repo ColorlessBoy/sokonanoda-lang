@@ -117,8 +117,13 @@ skills.
 - Greek binder letters (`α`, `β`, …) render plainly — the extension turns
   VS Code's confusable-character box off for `.sokonanoda` files by default
 - **Notation input, the Lean 4 way**: type `\and` and press `Tab` to get `∧`
-  (`\in` → `∈`, `\sub` → `⊆`, `\powerset` → `𝒫`, …), and hover any notation
-  symbol to see how to type it
+  (`\in` → `∈`, `\sub` → `⊆`, `\powerset` → `𝒫`, …)
+- **Notation is navigable**: hover a notation symbol to see three things — what
+  it expands to (`Set.mem`), **its own signature** (`Set.mem : forall (α : Type 0),
+  α -> Set α -> Prop`), and how to type it; the hover box covers **exactly the
+  symbol** (so `⁻¹'` and `×ˢ` are framed correctly). `F12` / ctrl+click on a
+  notation symbol jumps to the `infix:`/`prefix:`/`postfix:` line that declared
+  it — **across `import`**, into the library module.
 
 ## Typing notation (`\and` → `∧`)
 

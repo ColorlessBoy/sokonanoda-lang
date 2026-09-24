@@ -246,12 +246,7 @@ pub fn symbol_at(text: &str, offset: usize) -> Option<(String, Option<String>)> 
             symbols.push(symbol);
         }
     }
-    let tokens = crate::token::tokenize_with_symbols(text, &symbols).ok()?;
-    let token = tokens.iter().find(|token| {
-        let start = token.span.start.offset;
-        let end = token.span.end.offset;
-        start <= offset && offset < end
-    })?;
+    let token = symbol_token_at(text, offset, &symbols)?;
     let crate::TokenKind::Sym(symbol) = &token.kind else {
         return None;
     };
@@ -266,6 +261,42 @@ pub fn symbol_at(text: &str, offset: usize) -> Option<(String, Option<String>)> 
             crate::parser::builtin_notation_target(symbol).map(|target| target.to_string())
         });
     Some((symbol.clone(), target))
+}
+
+/// 光标处那个**记法符号 token** 的 span（T-D17）。
+///
+/// 为什么单独要它：hover 的 `range` 以前是 `None`（客户端按"光标词"高亮，
+/// 对 `∈` 这种单字符还行，对 `⁻¹'`/`×ˢ` 这种多字符符号就不准）。有了它，
+/// hover 能给出**精确**的符号范围。判据走的是与 [`symbol_at`] **同一条**词法
+/// 查找（共享 [`symbol_token_at`]），不会两边漂移。
+pub fn symbol_span_at(text: &str, offset: usize) -> Option<crate::Span> {
+    let declared = crate::token::scan_notation_decls(text);
+    let mut symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
+    for symbol in crate::parser::lexer_builtin_symbols() {
+        if !symbols.contains(&symbol) {
+            symbols.push(symbol);
+        }
+    }
+    for entry in TABLE {
+        let symbol = entry.symbol.to_string();
+        if !symbols.contains(&symbol) {
+            symbols.push(symbol);
+        }
+    }
+    symbol_token_at(text, offset, &symbols).map(|token| token.span)
+}
+
+/// 光标落在哪个 token 上（`symbol_at` 与 `symbol_span_at` 共用的那一步）。
+fn symbol_token_at(text: &str, offset: usize, symbols: &[String]) -> Option<crate::Token> {
+    let tokens = crate::token::tokenize_with_symbols(text, symbols).ok()?;
+    tokens
+        .iter()
+        .find(|token| {
+            let start = token.span.start.offset;
+            let end = token.span.end.offset;
+            start <= offset && offset < end
+        })
+        .cloned()
 }
 
 /// 同 [`symbol_at`]，但展开目标还能从**闭包里**找（T-D02）。

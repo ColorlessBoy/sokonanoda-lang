@@ -2929,12 +2929,54 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D16 LSP `definition` 处理记法变体
 
+> **✅ 完成（2026-09-21）。判据两条都实跑过。**
+>
+> * `bash docs/gaps/repro/G23-notation-navigation.sh` ⇒ **exit 1**（已修），
+>   台账里 G-23 是 `fixed` + `行为已变`，`gap.py check` 全绿；
+> * `cargo test -p sokonanoda-lsp --lib tests::navigation` ⇒ 绿，
+>   含本轮补的 `goto_definition_on_a_notation_symbol_lands_on_its_declaration`
+>   （`∈` 跳到**声明它的模块**那一行）。
+>
+> **实现落在两处**（计划里写的 `module` + `span` → `Location` 由它们完成）：
+> 1. **T-D10 的记法分支**：`goto_definition` 在 `definition_at` **之前**先试
+>    `query.notation_at(text, offset)`（词法，闭包记法表）⇒
+>    `query.module_path(module)` → `Location{uri, range_of(span)}`。
+>    这条路覆盖**任意位置**的记法符号（含表达式内部），也是 e2e 用例 #7 走的；
+> 2. **T-D15 的 `ResolvedTarget::Notation`**：`definition_at` 那条通用路现在
+>    也能拿到记法目标。它的跨文件分支对记法返回 `None`（**有意的**）——
+>    跨模块的记法跳转由上面第 1 条负责，走到那里的是**本文件内**声明的记法。
+>
+> 也就是说：本条**没有新增产品代码**，是 T-D10 + T-D15 合起来交付的；
+> 这一轮做的是**把两条判据实跑一遍并钉住**（免得以后有人以为它没做）。
+
 - **改什么**：`crates/lsp/src/lib.rs:1334-1364` 的 definition handler 认识新变体；
   跨模块时用 T-D11 的表把 `module` + `span` 变成 `Location`。
 - **判据**：`bash docs/gaps/repro/G23-notation-navigation.sh` → `1`；
   `cargo test -p sokonanoda-lsp navigation -- --nocapture` 新增用例绿。
 
 #### T-D17 hover 的 `range` 收窄到符号本身
+
+> **✅ 完成（2026-09-21）。**
+>
+> `notation_symbol_hover` 的 `range` 从 `None` 换成
+> `notation_input::symbol_span_at(text, offset).map(range_of)`。
+>
+> **为什么较真**：`None` 时客户端按"光标词"自己高亮——而客户端的分词规则与我们
+> 的词法**不是一回事**，`⁻¹'`/`×ˢ` 这种多字符符号、`𝒫` 这种星平面符号都会歪。
+>
+> **实现要点**：`notation_input` 新增 `symbol_span_at`，并且把 `symbol_at` 与它
+> 共用的那一步抽成 `symbol_token_at` ⇒ **"认得出来"与"给出范围"永远一致**，
+> 不会两边漂移（这是这一刀最容易写歪的地方）。
+>
+> **判据**：`crates/lsp/src/tests/hover.rs::
+> a_notation_hover_range_covers_only_the_symbol` —— 光标停在 `⁻¹'` 的**中间**
+> （第二个字符上，正是"按光标词"最容易歪的位置），断言 range 从符号第一个字符
+> 起、**正好覆盖 3 个字符**。
+> **踩到的坑**：夹具里 `src.rfind("⁻¹'") + 1` 会切在 `⁻`（3 字节）**中间**，
+> `lsp_pos` 当场 panic ⇒ 必须落在**字符边界**上（`+ "⁻".len()`）。
+>
+> **回归**：LSP 全量 **158 通过 / 0 失败**；真宿主 e2e
+> `--grep "notation symbol"` ⇒ **2 passed / 0 failed**（台账已记）。
 
 - **改什么**：现在 `notation_symbol_hover` 返回 `range: None`
   （`lib.rs:854-856`）⇒ 客户端按"光标词"高亮。有了 `symbol_span` 后可以给精确 range。
@@ -3074,6 +3116,21 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
   ```
 
 #### T-D41 文档同步
+
+> **✅ 完成（2026-09-21），并 ⬆ BUMP patch → 0.65.3。**
+>
+> | 文档 | 改了什么 |
+> |---|---|
+> | `docs/design/notation-subset.md` | §4 的 hover 行不再说"`resolution` v1 留空"；**新增 §4.1「编辑器支持（as-built）」**——五条能力（跳转 / hover 展开成 / hover 精确范围 / highlight+rename / `resolution` 不被覆写）各配**判据** |
+> | `docs/TESTING.md` | 守护表新增一行「记法编辑器导航（0.65.3；线 D 收口，缺口 G-23 关账）」：六条契约 + 全部用例名 + 两条可跑命令 |
+> | `editor/vscode/README.md` | 「Notation input」那条升级为**两条**：输入 + **可导航**（hover 三件事、框住符号本身、F12 跨 `import` 跳转） |
+> | `editor/vscode/CHANGELOG.md` | 0.65.3 条目（用户可感知：hover 精确范围；内部：记法是一等目标） |
+> | `docs/protocol.md` | 位置一节点名 **G-36**（UTF-16 缺口 + 复现件）；上一轮已随 T-D31 落 |
+>
+> **判据**：`cargo test -p sokonanoda-cli --test skill` ⇒ **4 passed**；
+> 完整 `gate` ⇒ PASS（课程计数逐项不变）。
+> **bump 闭环**：推 main → CI 绿 → auto-tag → release → `gh release list` 核对
+> （REQUIREMENTS §9 的硬要求）。
 
 - **改什么**：`docs/design/notation-subset.md` 的"编辑器支持"段 as-built
   （更新 §4/§13 与 `:208` 的"留空"话术）；`docs/protocol.md`（若新增请求/字段）；
@@ -3547,8 +3604,8 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D13` hover 的"展开成"（import 来的记法）
 - [x] `T-D14` parser 保留记法符号 token 的 span
 - [x] `T-D15` 新增 `ResolvedTarget` 变体并绕开覆写
-- [ ] `T-D16` LSP `definition` 处理记法变体
-- [ ] `T-D17` hover 的 `range` 收窄到符号本身
+- [x] `T-D16` LSP `definition` 处理记法变体
+- [x] `T-D17` hover 的 `range` 收窄到符号本身
   - ⬆ **BUMP**：`minor` —— F12 在记法符号上能跳到声明
 - [ ] `T-D20` 内建/ prelude 目标的定义跳转怎么办
 - [ ] `T-D21` 跨文件记法的"定义"是哪个
@@ -3556,7 +3613,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [ ] `T-D23` 重载：一个 `Location` 还是 N 个
 - [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
 - [x] `T-D40` 三层测试（矩阵用例 #7/#8）
-- [ ] `T-D41` 文档同步
+- [x] `T-D41` 文档同步
 - [ ] `T-D50` 记法声明的**目标名**是使用点（着色 + 跳转，一条修两个症状）
 - [ ] `T-D51` 折叠层扩到 prefix / postfix / binder / 零元（`forall` → `∀` 等一批符号）
 - [ ] `T-D52` `def` 的声明多一行"真正定义"（`:=` 之后的 body）
