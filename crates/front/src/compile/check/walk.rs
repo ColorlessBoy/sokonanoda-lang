@@ -114,15 +114,17 @@ impl<'arena> Walk<'arena> {
     /// （check-then-add 语义 ✓），名字记进 `shadow_failed`。
     pub(super) fn shadow_env(&mut self) -> &mut EnvBuilder<'arena> {
         while self.shadow_upto < self.ops.len() {
-            let idx = self.shadow_upto;
-            match &self.ops[idx] {
-                PendingOp::Decl { declar, .. } => {
-                    let declar = declar.clone();
-                    self.shadow_check_and_add(&declar, idx);
+            // 失败表按 **`cmd`（命令下标）** 记 —— 与 `kernel_phase` 的
+            // `failed_cmds: KernelFailed` **同键**，这样两张表能逐条对照 ✓。
+            match &self.ops[self.shadow_upto] {
+                PendingOp::Decl { declar, cmd, .. } => {
+                    let (declar, cmd) = (declar.clone(), *cmd);
+                    self.shadow_check_and_add(&declar, cmd);
                 }
-                PendingOp::InductiveBlock { declars, .. } => {
-                    for declar in declars.clone() {
-                        self.shadow_check_and_add(&declar, idx);
+                PendingOp::InductiveBlock { declars, cmd, .. } => {
+                    let (declars, cmd) = (declars.clone(), *cmd);
+                    for declar in declars {
+                        self.shadow_check_and_add(&declar, cmd);
                     }
                 }
                 _ => {}
@@ -135,7 +137,7 @@ impl<'arena> Walk<'arena> {
     /// 影子环境的一条"检查后加入"（check-then-add，与 `kernel_phase` 同序同语义）。
     /// 检查走 `ExportFile`（`try_check_declar` 是它的方法）⇒ 借 `with_env` 一次；
     /// **内核拒绝的不进环境** ✓，只记下标。
-    fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, idx: usize) {
+    fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) {
         let declar = declar.clone();
         let ok = self
             .shadow
@@ -143,7 +145,7 @@ impl<'arena> Walk<'arena> {
         if ok {
             let _ = self.shadow.add_declar(declar);
         } else {
-            self.shadow_failed.push(idx);
+            self.shadow_failed.push(cmd);
         }
     }
 

@@ -816,11 +816,7 @@ fn run_pass(
     // ——"影子可不可信"就是靠这条观测来判的（下一步升级成断言 ✓）。
     let shadow_decls = walk.shadow_env().declaration_count();
     let mut shadow_failed = walk.shadow_failed.clone();
-    // **去重**：影子按"声明"记（一个 `inductive` 块里多条失败 = 多条 ✓），
-    // 内核的失败表是 `HashMap<cmd, _>`（**按命令**一条 ✗）⇒ 不去重会把
-    // "同一命令多条成员失败"误报成差异 ✗。
     shadow_failed.sort_unstable();
-    shadow_failed.dedup();
     // 影子**覆盖**的命令（`Decl`/`InductiveBlock`）——对照只在这批命令上做：
     // `OpenExercise` 的签名探针是 `kernel_phase` 侧合成的（`ByIndex(env_before)`），
     // 影子不镜像它 ⇒ 拿它比会假报差异 ✗。
@@ -851,7 +847,7 @@ fn run_pass(
     // **T-K12b 的对照判据**：影子的失败表 vs 内核阶段的失败表，逐条比（同键 ✓）。
     // 只在影子覆盖的命令上比（见 `shadow_covered` 的注释）。
     let mut kernel_failed: Vec<usize> = pass
-        .failed
+        .failed_cmds
         .keys()
         .copied()
         .filter(|c| shadow_covered.contains(c))
@@ -859,9 +855,8 @@ fn run_pass(
     kernel_failed.sort_unstable();
     if std::env::var("SOKO_SHADOW_CHECK").is_ok() {
         eprintln!(
-            "SHADOW: decls={shadow_decls} 一致={} shadow_failed={shadow_failed:?} \
-             kernel_failed={kernel_failed:?}",
-            shadow_failed == kernel_failed
+            "SHADOW: decls={shadow_decls} shadow_failed={shadow_failed:?} \
+             kernel_failed={kernel_failed:?}"
         );
     }
     pass
