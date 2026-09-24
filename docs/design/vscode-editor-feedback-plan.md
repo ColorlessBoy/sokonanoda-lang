@@ -1638,6 +1638,21 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 
 ##### T-K10 设计文档 `docs/design/by-prefix-reuse.md` + 三个候选的定稿
 
+> **✅ 完成（2026-09-24）**：文档已写 —— `docs/design/by-prefix-reuse.md`。
+> 四部分齐全：① 现状调用链（`session.rs:265/276` → `run_incremental`
+> (`check/mod.rs:500`) → `walk.rs` → `kernel_phase`）；② **两条纠正**；
+> ③ 三个候选的三栏对照（侵入面/解锁收益/正确性风险）+ **为什么 K1-b 优于 K1-c**；
+> ④ 每个候选的风险与验收（共同红线 = `scripts/kernel-check.sh` 五步）。
+>
+> **写文档时实测核对过引用**（调研稿里有几处行号漂了 ✗，例如
+> `judge_pairs_uncached` 实际在 `judge.rs:399` 而不是 418）：
+> * `walk.rs:137` 的 `trusted` ✓、`:330 lower_value` ✓、`:378/:388 build_def` ✓
+>   ⇒ **纠正 ① 属实**：TrustPlan 只省"内核重查"，elaborate 与 `Declar` 构造照跑 ✓；
+> * `builder.rs:244` 往 **interned NameNode** 上写 `decl_idx` ✓、`env.rs:273/:297`
+>   读且**不校验名字** ✓ ⇒ **纠正 ② 属实**；
+> * `tc.rs:210 check_all_declars_par` + `:223 thread::scope` ✓ ⇒ K1-c 那条
+>   `ExportFile: Sync` vs `ArenaRef` 非 `Send`/`Sync` 的论证成立 ✓。
+
 - **改什么**：写清 ① 现状调用链；② **TrustPlan 不是环境复用**（见下）；
   ③ 三个候选与推荐顺序；④ 每个候选的正确性风险与验收。
 - **必须写进文档的两条纠正**（调研发现，与直觉相反）：
@@ -3748,7 +3763,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-K01` 全语料逐字节对拍工具
 - [x] `T-K02` 内核改动的验收清单 + **修语料对拍的收集逻辑**
 - [x] `T-K03` `36.1s` 花在哪：分阶段 profile
-- [ ] `T-K10` 设计文档 `docs/design/by-prefix-reuse.md` + 三个候选的定稿
+- [x] `T-K10` 设计文档 `docs/design/by-prefix-reuse.md` + 三个候选的定稿
 - [ ] `T-K11` **K1-a：纯 front 的 judge TrustPlan 复用（零内核改动，先做）**
   - ⬆ **BUMP**：`minor` —— by 判定的内核检查那一段拿掉（K1-a）
 - [ ] `T-K12` **K1-b：`EnvBuilder::with_env`（单次内核改动里性价比最高）**
