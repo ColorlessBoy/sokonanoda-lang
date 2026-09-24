@@ -17,6 +17,25 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第五十轮：**CI 修复 + 诊断性 CI 的说明**）
+
+**0.65.4 的 CI 红了两个 job**（`lint` ✗ + `e2e ubuntu 1.106.0` ✗）：
+* **`lint`（已修 ✓）**：10 秒就红，全是 `cargo fmt --check` 对
+  `crates/front/src/display.rs` 的 diff。**原因**：T-D51 那几笔我只跑了
+  `cargo build`/`cargo test`，**没跑 fmt** —— 而 fmt 是 CI 的独立 job，
+  本地没跑就等于没验证。已 `cargo fmt -p sokonanoda-front -p sokonanoda-cli
+  -p sokonanoda-lsp` 修掉，并记进 `docs/CI-FAILURES.md`。
+  **新纪律：落 commit 前跑 `scripts/soko gate --fast`**（含 fmt ✓ ~30s），
+  别只跑 `cargo test`。
+* **`e2e ubuntu 1.106.0`（诊断性 CI，原因如下）**：同一个 commit 上
+  **ubuntu 1.138.0 与 macos 1.138.0 都绿** ✓，只有 **1.106.0** 红 ✗。
+  **本地复现**（`SOKO_VSCODE_TEST_VERSION=1.106.0 scripts/vscode-e2e.sh`）也得到
+  `24 passed / 1 failed` ✓，**但失败原因是 `EPERM`**（本机删除限制，环境问题 ✗）
+  —— 也就是说**本机复现不出 CI 的真因**（本地那个失败被环境掩盖了）。
+  ⇒ 这正是用户规则里允许的**诊断性 CI** 情形：**下一次 push 的那轮 CI 就是诊断**
+  （不额外多跑），重点看 `e2e (ubuntu-latest · VS Code 1.106.0)` 的**真实报错**。
+  怀疑方向：1.106 上"重开单元命中编译缓存"那条对**新字段/新缓存键**更敏感。
+
 ## 本轮进度（2026-09-24，第四十九轮：**T-D52 完成（数据层 + 编辑器那一行），本批可发 0.65.5**）
 
 **T-D52 完成**（用户第 8 条反馈："def 的符号，在声明里要多一行内容，对应它们的
