@@ -1758,7 +1758,29 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 >   * `Judgement` 三态与**文案**逐字段不变（`Error.code` 来自 `refine_kernel_kind`
 >     这个 front 分类器 ⇒ 新路径**必须复用同一个分类器**）。
 >
-> 建议下一轮先写"新路径 vs 旧路径逐条 `Judgement` 全字段相等"的**对拍测试骨架**
+> **📊 定刀取证（2026-09-24，冷开 `unit12-solution` ≈ 12.4s）**：
+> `JUDGE_INFER calls=51156 total=**11183ms（90%）**`，其中 `misses=247 ≈ **9.6s = 77%**`
+> （每次 miss 重查整份前缀）；`hits=50909` 的 `key_ms=787`（每次哈希 170KB 前缀）+ 
+> `hit_ms=793`；`JUDGE_STATS`（pairs 路径）只有 `calls=11 total=1203ms`。
+> ⇒ **刀落在 `judge_infer` 的 miss 上**（不是 pairs 路径）；K1-a 覆盖不到它
+> （冷开 `before=0`，复用条件正确地不成立）。数字进 `docs/perf/ledger.jsonl`。
+>
+> **Stage 2 的实现设计（避开"重构 kernel_phase"这个更大的动作）**：
+> 让 **walk 自己持有一个"影子环境"**（一个 `EnvBuilder`）——walk 每 elaborate 出
+> 一个声明就 `add_declar` 进影子环境（`Declar` 本来就在手上，**零额外 elaborate**），
+> 于是**任意时刻影子环境 == 当前前缀**。judge 的 miss 路径拿到这个 builder 后
+> 走 K1-b 形态：`build_def(&mut builder, …)` 建合成声明 →
+> `builder.with_env(|env| env.try_check_declar_at(&d, EnvLimit::ByIndex(k)))`。
+> **`kernel_phase` 一个字不用改**（它照旧按 `PendingOp` 建自己的环境 ✗ 影子环境
+> 只是给 judge 用的 ⇒ 语义零风险，代价是一份额外的环境内存）。
+>
+> 判据复用**已有**的两条（不必新写骨架）：
+> * `crates/front/src/judge.rs:1626` 那条"批处理与逐条判定必须逐字相同"❌→ 已有 ✓；
+> * 全语料 `--json` 两态逐字节相同（照 K1-a 的 27 文件做法）。
+>
+> 原建议"先写对拍骨架"**不必**：批处理/逐条等价测试已经在了。
+
+> ~~建议下一轮先写"新路径 vs 旧路径逐条 `Judgement` 全字段相等"的**对拍测试骨架**~~
 > （它同时是 Stage 2 的判据），再动流水线。
 
 - **改什么**：给内核加
