@@ -20,3 +20,9 @@ __pycache__/
 .cache
 # 第三方 agent 技能（scripts/fetch-agent-skills.py 生成，配方在 dsh/agent-skills.json）
 .dsh/skills/
+
+# 原子写失败留下的临时目录（`.<name>.<pid>.<uuid>.tmpdir/`）——**别提交**：
+# 里面的 `*.tmp` 常常是**真文件的硬链接** ⇒ 编辑真文件会让这些垃圾跟着变，
+# 于是"改一个文档"变成"改一个文档 + 一堆 .tmp"（历史上有 5 个这么进过库，
+# 2026-09-24 清理并加这条兜住）。
+.*.tmpdir/
