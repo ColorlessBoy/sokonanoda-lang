@@ -386,10 +386,20 @@ impl QueryDoc {
         text: &str,
         offset: usize,
     ) -> Option<(String, Option<String>, Option<String>, crate::Span)> {
-        let (symbol, _) = crate::notation_input::symbol_at(text, offset)?;
-        let decl = self
-            .project
-            .as_ref()?
+        // **符号识别必须带上闭包的记法表**（T-D23 挖出来的真 bug）：
+        // `symbol_at` 只看**输入表 + 本文件声明**，于是**import 进来的、又不在
+        // 输入表里的**用户符号（`⊗` 这种自己定的）在**使用它的文件里完全认不出**
+        // ⇒ `definition`/hover 一律 `null`。既有跨文件用例没抓到，是因为它用的
+        // `∈` 恰好在输入表里（`\in`）——**夹具选得太顺手**，把这条路遮住了。
+        let project = self.project.as_ref()?;
+        let symbols: Vec<String> = project
+            .notations
+            .iter()
+            .map(|decl| decl.symbol.clone())
+            .collect();
+        let sources: Vec<&str> = symbols.iter().map(String::as_str).collect();
+        let (symbol, _) = crate::notation_input::symbol_at_with_sources(text, offset, &sources)?;
+        let decl = project
             .notations
             .iter()
             .find(|decl| decl.symbol == symbol)?;

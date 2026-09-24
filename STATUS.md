@@ -17,6 +17,31 @@
 练习 = 带 `sorry` 洞的 `def name : T` / `theorem name : T` / `example : T` 声明。
 CLI/REPL 的 `#check` 等只是调试/自测工具，不是文件格式。
 
+## 本轮进度（2026-09-24，第五十三轮：**T-D23 完成 + 修掉 e2e 的共享状态 flaky + 挖出并修掉 G-39**）
+
+**1. e2e 的 ubuntu 双红（CI 阻塞项）——根因拿到并修掉** ✓
+台账改进立刻见效 ✓：产物 `latest.json` 的 `tests.failing_cases` 直接给出
+`reopening a project unit hits the compile cache` ✓（以前只有计数 ✗）。
+根因：`cacheStamp()` 把 `compiled/` 下**所有**条目都算进来，而冷编译会写**整个
+闭包** ⇒ `added` 含**共享的库**条目；`restartServer` 会把**别的还开着的文档**
+一起重新同步 ✗ —— 它们重编时改写库条目是**合法**的 ✗，却被断言当成"我们又编了
+一遍" ✗ ⇒ 典型"共享状态 + 测试顺序"flaky（macos 恰好没撞上 ✓）。
+修：判据收窄到**我们这份**（`u02`）的条目 ✓。已记 `docs/CI-FAILURES.md` ✓。
+
+**2. T-D23 完成（113/123）**：决定 = **一个** `Location`，取闭包表里**第一个**
+（与展示层折叠规则同一条约定 ✓）。
+
+**3. 顺带挖出并修掉真 bug G-39** ✓：`notation_at` 原来用只看"输入表 + 本文件
+声明"的 `symbol_at` ⇒ **import 进来的用户自定义符号**（`⊗`）在使用它的文件里
+**认不出来**、导航全 `null` ✗。**既有跨文件用例没抓到**——它用的 `∈` 恰好在输入
+表里（`\in`），**夹具选得太顺手，把整条路遮住了** ✗。修：改用闭包感知的
+`symbol_at_with_sources` ✓。
+* 真 LSP 探针 `docs/gaps/repro/G39-…js` ⇒ **exit 1**（已修 ✓）
+* 单元测试 `an_imported_user_notation_symbol_resolves_into_its_module` ✓
+  （**必须用 URI 感知的 `did_open_at`**：单文件版没有项目闭包 ⇒ 假红 ✗）
+* 台账 G-39 = `fixed` / `fixed_in 0.65.5` ✓
+* LSP **160 通过** ✓；`cargo fmt --check` **通过** ✓（新纪律当场抓到一处 fmt ✗）
+
 ## 本轮进度（2026-09-24，第五十二轮：**T-D22 完成 + 台账开始记录失败用例名**）
 
 **T-D22 完成**（112/123）：决定 = **导航跟作用域（闭包表 + 本文件声明 + 内建），

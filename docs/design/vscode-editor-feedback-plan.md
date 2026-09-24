@@ -3025,6 +3025,16 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 
 #### T-D23 重载：一个 `Location` 还是 N 个
 
+> **✅ 完成（2026-09-24）**：决定 = **一个** `Location`，取闭包记法表里**第一个**
+> （与展示层折叠规则同一条约定）。**顺带挖出并修掉真 bug G-39**：
+> `notation_at` 原来用只看"输入表 + 本文件声明"的 `symbol_at` ⇒ **import 进来的
+> 用户自定义符号**（`⊗`）在使用处认不出来、导航全 `null`；
+> 既有跨文件用例用的 `∈` 恰好在输入表里，把这条路遮住了。
+> 修：改用闭包感知的 `symbol_at_with_sources`。判据：单元测试
+> `an_imported_user_notation_symbol_resolves_into_its_module`（**必须用 URI 感知的
+> `did_open_at`**，单文件版没有项目闭包）+ 真 LSP 探针
+> `docs/gaps/repro/G39-…js`（⇒ exit 1）。LSP **160 通过**。
+
 - **改什么**：决定 + 测试（LSP 的 `definition` 可以返回数组）。
 
 #### T-D24 `documentHighlight`/`references`/`rename` 覆盖记法符号
@@ -3715,7 +3725,7 @@ pass**。定位它靠两个新的常驻诊断开关：`SOKO_PASS_TRACE=<n>`（�
 - [x] `T-D20` 内建/ prelude 目标的定义跳转怎么办
 - [x] `T-D21` 跨文件记法的"定义"是哪个
 - [x] `T-D22` `scoped` 记法的导航是否尊重作用域
-- [ ] `T-D23` 重载：一个 `Location` 还是 N 个
+- [x] `T-D23` 重载：一个 `Location` 还是 N 个
 - [ ] `T-D24` `documentHighlight`/`references`/`rename` 覆盖记法符号
 - [x] `T-D40` 三层测试（矩阵用例 #7/#8）
 - [x] `T-D41` 文档同步

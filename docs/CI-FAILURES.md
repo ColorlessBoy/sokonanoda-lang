@@ -1,3 +1,23 @@
+## 2026-09-24 · run 35974098559 / 35974697596 · `e2e (ubuntu 1.106.0 + 1.138.0)` 红
+
+**现象**：ubuntu 的**两个** VS Code 版本都红（1.106 2m13s / 1.138 **1m58s**——比绿时的
+2m45s 更快 ⇒ 失败很早），而 **macos 1.138 绿**。
+
+**取证**（这轮刚加的能力）：产物 `latest.json` 的 `tests.failing_cases` 直接给出
+`reopening a project unit hits the compile cache` —— 以前只有计数，只能猜。
+
+**原因**：`cacheStamp()` 把 `compiled/` 下**所有**条目的指纹都算进来，而冷编译会把
+**整个闭包**写进缓存 ⇒ `added` 里含**共享的库**条目。`restartServer` 会把**别的还
+开着的文档**一起重新同步——它们重编时改写库条目是**合法**的，却被断言当成
+"我们又编了一遍" ⇒ 典型的"共享状态 + 测试顺序"flaky（macos 恰好没撞上）。
+
+**修复**：判据收窄到**我们这份**（`u02`）的条目：`ours(added).length > 0` +
+`deepStrictEqual(ours(surviving), ours(added))`；共享库条目不再参与。
+
+**预防**：**跨用例共享的状态（缓存/夹具/服务）不能进严格相等断言**——要么按被测
+对象过滤，要么每次全新。另外：`latest.json` 的 `failing_cases` 是这次能一眼定位的
+关键，**别再退化成只有计数**。
+
 ## 2026-09-24 · run 35967571830（批次 T-D51+T-D50 / 0.65.4）· `lint` 红
 
 **现象**：`lint` job **10 秒**就红 ✗ —— `Format check (teaching crates)` 报

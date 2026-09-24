@@ -6,7 +6,30 @@
 > （内核冻结快照）。本文是白名单的**边界文档**：`docs/architecture.md` §4.1
 > 只列命令清单，语义规则在这里。
 
-## `scoped` 记法的导航跟不跟作用域（T-D22 的落地决定，2026-09-24）
+## 重载的落点：一个 `Location` 还是 N 个（T-D23 的落地决定，2026-09-24）
+
+**问题**：同一个符号在**多个模块**里声明（或同一目标有多个符号），`definition`
+该给一个落点还是全部？
+
+**决定**：**一个** `Location`，取**闭包记法表里的第一个**（`notation_at` 的
+`.find`）。理由：
+1. 展示层的折叠规则**已经是**"同一 target 声明了两个符号 ⇒ 取声明顺序第一个"
+   （`notation.rs` 头部注释）——导航与展示用**同一条**约定，用户看到的故事才自洽；
+2. "跳到定义"这个动作的预期是**一个**落点；给菜单是另一件事（`documentHighlight`
+   才是"所有相关位置"的语义）；
+3. 顺序是**确定的**（闭包表的顺序 = 拓扑序 + 声明序），不是哈希序。
+
+**判据**：`crates/lsp/src/tests/navigation.rs::an_imported_user_notation_symbol_resolves_into_its_module`
+（跨模块的常见情形：import 进来的用户符号 ⇒ 落到**声明它的模块**）+ 真 LSP 探针
+`docs/gaps/repro/G39-imported-user-notation-has-no-navigation.js`。
+
+**⚠ 这条清单项顺带挖出一个真 bug（G-39，已修）**：`notation_at` 原来用
+`notation_input::symbol_at`（只看**输入表 + 本文件声明**）⇒ **import 进来的用户
+自定义符号**（`⊗`）在使用它的文件里**认不出来**，导航全 `null`。
+**既有跨文件用例没抓到**——它用的 `∈` 恰好在输入表里（`\in`），
+**夹具选得太顺手，把整条路遮住了**。修：改用闭包感知的 `symbol_at_with_sources`。
+
+## `scoped` 记法的导航跟不跟作用域（T-D22 的落地决定，2026-09-24）## `scoped` 记法的导航跟不跟作用域（T-D22 的落地决定，2026-09-24）
 
 **背景**：`notation_input` **刻意忽略 scoping**（`docs/design/notation-input.md`
 §10 偏差 3）——那是给**输入提示**用的：输入法是**全局**的，`\in` 在任何地方都该

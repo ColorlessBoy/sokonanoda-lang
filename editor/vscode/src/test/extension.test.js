@@ -784,10 +784,21 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       const warm = Date.now() - start;
 
       perfNote(`e2e cache: cold=${cold}ms warm=${warm}ms entries=${added.length}`);
+      // **只看"我们这份"的条目**：`added` 里还含**共享的库**条目（冷编译把整个
+      // 闭包写进缓存），而 `restartServer` 会把**别的还开着的文档**一起重新同步
+      // ——它们重编时改写库条目是**合法**的，不该算到"我们又编了一遍"头上。
+      //
+      // 实测（2026-09-24）：ubuntu 的两个 VS Code 版本都因此红，macos 恰好没撞上
+      // ——典型的"共享状态 + 测试顺序"flaky。判据收窄到我们这份单元文件。
+      const ours = (list) => list.filter((entry) => entry.includes("u02"));
+      assert.ok(
+        ours(added).length > 0,
+        `冷开必须把**这份**写进缓存（T-A11）：${JSON.stringify(added)}`,
+      );
       const surviving = cacheStamp().filter((entry) => added.includes(entry));
       assert.deepStrictEqual(
-        surviving,
-        added,
+        ours(surviving),
+        ours(added),
         "热开命中缓存 ⇒ 这份的条目不该被改写（改写了说明又编了一遍）",
       );
       // **速度是"命中缓存"的旁证，不是证据本身**：上面那条"条目没被改写"才是

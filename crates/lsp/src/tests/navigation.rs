@@ -279,6 +279,74 @@ async fn selection_range_grows_from_arrow_to_enclosing_type() {
     shutdown(&mut service).await;
 }
 
+/// **G-39 的判据（T-D23 挖出来的真 bug）**：**import 进来的用户自定义记法符号**
+/// 在使用它的文件里**必须**认得出、跳得回**声明它的模块**。
+///
+/// 病：`notation_at` 原来用 `notation_input::symbol_at`（只看**输入表 + 本文件
+/// 声明**）⇒ `⊗` 这种用户自己定的符号不在输入表里，"import 它的文件"里一律
+/// `null`。既有跨文件用例没抓到，是因为它用的 `∈` **恰好在输入表里**（`\in`）
+/// ——**夹具选得太顺手，把这条路遮住了**。
+///
+/// 修：`notation_at` 改用**闭包感知**的 `symbol_at_with_sources`（把闭包记法表里
+/// 的符号都喂给词法）。判据（真 LSP 探针 `docs/gaps/repro/G39-…js` 也钉着同一条）：
+/// definition 落到**库**文件的那一行 `infix`。
+#[tokio::test]
+async fn an_imported_user_notation_symbol_resolves_into_its_module() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-imported-notation-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    let lib = dir.join("Lib.sokonanoda");
+    std::fs::write(
+        &lib,
+        "def Lib.op (a b : Prop) : Prop := a\ninfix:60 \" ⊗ \" => Lib.op\n",
+    )
+    .expect("write lib");
+    let src = "import Lib\n\ntheorem t (a b : Prop) (h : a ⊗ b) : a ⊗ b := h\n";
+    let entry = dir.join("Canvas.sokonanoda");
+    std::fs::write(&entry, src).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+    let lib_uri = Url::from_file_path(&lib).expect("lib url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    // **必须用 URI 感知的那对 helper**（`did_open_at`/`wait_diagnostics_for`）：
+    // 单文件版（`did_open`）不会把文档挂到工作区上 ⇒ **没有项目闭包** ⇒ 量到的
+    // 还是"单文件里没有这个符号"。（实测：用单文件版时这条测试假红。）
+    testutil::did_open_at(&mut service, &uri, src).await;
+    let _ = testutil::wait_diagnostics_for(&mut socket, &uri, "imported user notation").await;
+
+    let pos = lsp_pos(src, src.rfind('⊗').expect("use site"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(2)
+            .finish(),
+    )
+    .await
+    .expect("definition must answer");
+    assert!(
+        !result.is_null(),
+        "import 的用户记法符号必须跳得回去（G-39）：{result}"
+    );
+    let location: Location = serde_json::from_value(result).expect("scalar location");
+    assert_eq!(
+        location.uri, lib_uri,
+        "落点是**声明它的模块**（库的那一行 infix）"
+    );
+    shutdown(&mut service).await;
+}
+
 /// **T-D22 的判据**：**不在作用域**的记法符号 ⇒ 导航**不编答案**（`null`）。
 ///
 /// 现场：`notation_input` **刻意忽略 scoping**（`docs/design/notation-input.md`
