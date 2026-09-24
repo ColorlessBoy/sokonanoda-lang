@@ -135,9 +135,18 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       "activate() must expose the project provider in test mode",
     );
     await vscode.commands.executeCommand("sokonanoda.project.refresh");
+    // **等到行"完整"**：标签与描述都要是真数据。2026-09-24 CI 实测假红——
+    // 只等标签时，慢 runner 上 `description`（"2 模块"那一段）还没填，
+    // 用例在下一行的断言上挂掉（`the project tree shows the real closure of an
+    // imported module`，ubuntu 1.138 单平台，另外两个平台同代码全绿）。
     await waitFor(`project rows for ${desc}`, async () => {
       const rows = await extensionApi.project.getChildren();
-      return rows.length === 1 && String(rows[0].label) !== "正在读取项目状态…";
+      if (rows.length !== 1) return false;
+      const row = rows[0];
+      return (
+        String(row.label) !== "正在读取项目状态…" &&
+        String(row.description || "").length > 0
+      );
     });
     const rows = await extensionApi.project.getChildren();
     return rows[0];
