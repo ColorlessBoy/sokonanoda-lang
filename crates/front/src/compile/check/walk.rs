@@ -143,12 +143,19 @@ impl<'arena> Walk<'arena> {
             match &self.ops[self.shadow_upto] {
                 PendingOp::Decl { declar, cmd, .. } => {
                     let (declar, cmd) = (declar.clone(), *cmd);
-                    self.shadow_check_and_add(&declar, cmd);
+                    let _ = self.shadow_check_and_add(&declar, cmd);
                 }
                 PendingOp::InductiveBlock { declars, cmd, .. } => {
+                    // **逐条镜像 `kernel_phase` 的归纳块语义**（`kernel_phase.rs:313-325`）：
+                    // 逐成员 check-then-add，**首个失败就 `break`** ✗ —— 后面的成员
+                    // **不再进环境** ✓。我原来"失败也继续" ⇒ 环境状态就此分叉 ✗
+                    // ⇒ 之后依赖它们的声明会拿到不同的 `decl_idx` ⇒ 假 `def_eq mismatch` ✓
+                    // （R0 的根因假设，2026-09-24 第 95 轮）。
                     let (declars, cmd) = (declars.clone(), *cmd);
                     for declar in declars {
-                        self.shadow_check_and_add(&declar, cmd);
+                        if !self.shadow_check_and_add(&declar, cmd) {
+                            break;
+                        }
                     }
                 }
                 _ => {}
@@ -161,16 +168,19 @@ impl<'arena> Walk<'arena> {
     /// 影子环境的一条"检查后加入"（check-then-add，与 `kernel_phase` 同序同语义）。
     /// 检查走 `ExportFile`（`try_check_declar` 是它的方法）⇒ 借 `with_env` 一次；
     /// **内核拒绝的不进环境** ✓，只记下标。
-    fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) {
+    /// 返回"是否通过"（归纳块要在首个失败处 `break` ✓）。
+    fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) -> bool {
         let declar = declar.clone();
         let result = self.shadow.with_env(|env| env.try_check_declar(&declar));
         match result {
             Ok(()) => {
                 let _ = self.shadow.add_declar(declar);
+                true
             }
             Err(e) => {
                 self.shadow_failed.push(cmd);
                 self.shadow_failed_msg.push((cmd, format!("{e:?}")));
+                false
             }
         }
     }
