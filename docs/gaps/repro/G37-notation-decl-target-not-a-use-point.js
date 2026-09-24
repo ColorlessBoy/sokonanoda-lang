@@ -21,7 +21,7 @@
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
-const ROOT = '/Users/penglingwei/Documents/lean/sokonanoda/sokonanoda-lang';
+const ROOT = path.resolve(__dirname, '..', '..', '..');
 const SOKO = path.join(ROOT, 'scripts', 'soko');
 const FILE = path.join(ROOT, 'courses', 'set-theory', 'lib', 'Set.sokonanoda');
 const SRC = fs.readFileSync(FILE, 'utf8');

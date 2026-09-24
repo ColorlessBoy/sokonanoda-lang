@@ -127,6 +127,13 @@ def judge(entry: dict, kind: str, code: int) -> tuple[str, str, bool]:
             return observed, f"非法 repro_expect={raw!r}：.sokonanoda 只吃 clean/rejected", False
         return observed, expected, clean == want
     if kind == "script":
+        # **exit 2 是"环境/形状异常"，永远判红**（2026-09-23 修）：
+        # 复现件约定 0=缺口仍在 / 1=已修 / 2=环境或形状不对。以前只看"非零即已修"
+        # ⇒ **环境异常会被静默读成"修好了"**——实测踩到：一条复现件里硬编码了
+        # 本机路径，CI 上文件不存在、脚本 exit 2，门禁却报"行为已变"，把一条
+        # 真缺口当成已修。环境异常必须是**失败**，不是"通过"。
+        if code == 2:
+            return "环境异常", "复现件自己说环境/形状不对（exit 2）——修环境，别当成已修", False
         changed = code != 0
         observed = "行为已变" if changed else "缺口仍在"
         if raw is None:
@@ -296,6 +303,10 @@ def cmd_selftest(args: argparse.Namespace) -> int:
         ("显式 nonzero+缺口仍在 = 不一致",
          {"status": "open", "repro_expect": "nonzero"}, "script", 0, False, False),
         ("script 写判卷取值 = 非法", {"repro_expect": "clean"}, "script", 0, False, True),
+        # **exit 2 = 环境/形状异常 ⇒ 永远判红**（2026-09-23 修）：
+        # 以前"非零即已修"⇒ 环境异常被静默读成"修好了"（实测踩到过一次）。
+        ("script exit 2 = 环境异常 ⇒ 判红（open）", {"status": "open"}, "script", 2, False, False),
+        ("script exit 2 = 环境异常 ⇒ 判红（fixed 也不行）", {"status": "fixed"}, "script", 2, False, False),
     ]
     bad = 0
     saved = {k: os.environ.get(k) for k in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN")}
