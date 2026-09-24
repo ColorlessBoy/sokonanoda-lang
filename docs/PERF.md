@@ -651,3 +651,19 @@ best-of-3）/`336ms`（红那次），本地（M 系 mac）17–20ms。**4× 的
 debug，作为"生命线"指标是错的。
 
 **这一条不改台账纪律**：台账是记录，不是目标——新条目就是新基线，历史条目留作对照。
+
+## 线 K 的实测账（2026-09-24）
+
+**方法**：每个候选都先量后改；数字一律进 `docs/perf/ledger.jsonl`（判据是
+"文档里每个数字都能用本计划的命令复现"）。
+
+| 候选 | 结果 | 复现命令 |
+|---|---|---|
+| `judge_infer` 的 miss（病灶） | 冷开 `unit12-solution`：`JUDGE_INFER` **11183ms / 90%**，其中 **misses=247 ≈ 9.5s = 77%** | `SOKO_JUDGE_STATS=1 sokonanoda --json courses/set-theory/units/solutions/unit12-solution.sokonanoda` |
+| **K1-a**（front `TrustPlan` 复用） | **零收益** ✗：两态 `--json` 逐字节相同 ✓（27 文件），但**命中数 = 0**（贵 miss 全在冷开路径） | `SOKO_JUDGE_REUSE_STATS=1 …`（开关 `SOKO_JUDGE_ENV_REUSE=0/1`） |
+| **K1-b**（共享内核环境） | **未修** ✗：原语就位（`with_env`/`snapshot`/`Clone`），但接线撞 `decl_idx` 全局槽位墙 ⇒ 属**内核级重构**档 | `SOKO_SHADOW_CHECK=1 …`（对照判据：影子失败表 vs 内核失败表，现为 `一致=false`） |
+| **T-K31**（`whnf_admit` 复用池） | **无收益** ✗ ⇒ 已回退：12.29s/11.67s vs 11.96s/11.67s（`vec![0u8; 1<<22]` 走 mmap **惰性零页**，池化反而强制 memset） | 冷跑 `unit12-solution` 计时 |
+| **T-K30**（`build <dir>` 分组） | **做不到** ✗（现有 API）：缓存键逐入口 ⇒ 同模块各文件不共享；`plan_project` 只加载**单入口闭包** ⇒ 需新 front API。基线 **146.07s / 35 文件** | `sokonanoda build courses/set-theory`（冷缓存） |
+
+**结论**：现有架构内"捡便宜"的空间已探明 ✓ —— 真正的 9.5s 属于
+「**把 check-then-add 移进 walk**」的内核级重构档 ✓；其余各处经实测**不成立** ✗。
