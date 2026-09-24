@@ -2251,6 +2251,20 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 > **用户原话**：`Set.mem def` 在 infoview 里没看到 第二行的 `:=` 后的数据，
 > 你查查 bug 产生的原因。
 
+> **🚧 查证进展（2026-09-24，第 97 轮）** ✓：
+> * T-D52 的显示链路是：内核 `Declar::value()`（`env.rs` 的纯访问器 ✓）→
+>   `kernel_phase.rs` 算 `val_text`（`pp_expr` + 线 C 折叠 ✓）→
+>   `front/src/query/mod.rs` 的 `DeclInfo.value/value_runs` ✓ → Infoview 卡片
+>   （`.decl-val-line` ✓）。
+> * 实测 `query goals --file courses/set-theory/lib/Set.sokonanoda` 的 JSON 形状是
+>   `{"data":[{"name","kind","ty","ty_runs","status",…}]}` ✓ —— **第一条**（`Set` ✓）
+>   的字段里**没看到 value 相关字段** ✗（但我的 dump 被截断 ✗，还不能下结论 ✓）。
+> * **下一步（两条，按顺序）** ✓：
+>   ① 打印 `Set.mem` 那一条的**完整 JSON** ✓，确认 `value`/`value_runs` 是否为空 ✗；
+>   ② 若 query 有值 ✗ ⇒ 查 **LSP 的声明负载**是否转发了它 ✓（Infoview 走的是 LSP ✓，
+>      不是 CLI 的 `query` ✓）—— 两条路分叉是这类 bug 的常见形态 ✓
+>      （参考 G-39 的教训：同一个符号在两条路上认不出来 ✓）。
+
 **要求**：T-D52 落地的"声明卡片多一行 `:= <值>`"**必须对 `Set.mem def` 生效** ✗
 —— 现在看不到 ⇒ 是 bug ✓，**先查成因** ✓（不是先改 ✓）。
 
