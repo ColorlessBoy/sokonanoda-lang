@@ -1,3 +1,37 @@
+## 2026-09-24 · run 36015196727 · `e2e ledger (commit back on main)` 红：ledger 引用了被合并丢掉的日志文件
+
+**症状**：三个 e2e job **全绿** ✓，但 `e2e ledger (commit back on main)` 红（10s，
+失败步骤 = `Merge into docs/e2e (idempotent)`）。
+
+**本地复现（比等日志快）**：
+```
+$ python3 scripts/e2e-merge.py --check
+error: 记录引用的日志不存在：docs/e2e/logs/2026-09-24-2a0f968-vc1.106.0.log   （共 4 个唯一文件）
+check exit=1
+```
+
+**真因**：ledger 里有记录**引用 `docs/e2e/logs/*.log`** ✗，而这 4 个文件
+**在我用 `git merge-tree` 合成 merge commit 时被丢掉了** ✗ ——
+它们由 CI 的两次 commit-back（`d176702`、`25e786a`）添加 ✓，目录里有 100 个日志 ✓
+却缺这 4 个 ✗ ⇒ `--check` 判红 ✓。（**不是** `.gitignore` 的问题 ✓，也不是冲突标记 ✓
+—— 冲突标记那次是另一个事故，见上一条。）
+
+**修复**：从历史提交里把 4 个文件**取回** ✓（`git show <commit>:<path>` ✓）⇒
+`e2e ledger: ok（157 条，日志齐全，按日期升序）` ✓ / exit 0 ✓ ⇒ 推上去后
+`e2e ledger` job **转绿** ✓。
+
+**教训（重要）** ✗：**`git merge-tree` 合成 merge commit 会丢文件** ✗ ——
+我连着两次栽在同一个手法上（上次是冲突标记，这次是丢文件）✓。
+**⇒ 结论：这个手法不该再用于"把 CI 的回写合进来"** ✗。
+**替代做法（下一轮就换）** ✓：用**真 `git merge`** ✓（工作区可用时 ✓）；
+若沙箱挡住 ✓，则**先 `git fetch` 再 `git rebase origin/main`** ✓，
+或**手工把 CI 的产物提交 cherry-pick 过来** ✓（`git cherry-pick <sha>` ✓）。
+**推送前自检（新增一条，专抓这类）** ✓：
+```
+git diff --stat origin/main..HEAD   # 看看有没有"凭空消失"的文件
+python3 scripts/e2e-merge.py --check # 台账完整性
+```
+
 ## 2026-09-24 · run 36013095384 · 三平台 e2e 全红：我自己加的新断言依赖了 fixture 里没有的东西
 
 **症状**：`e2e (ubuntu 1.106 / 1.138 / macos)` 三个 job 全红（`lint` ✓ 绿）。
