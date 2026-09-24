@@ -1739,6 +1739,28 @@ one command"）。⇒ 25 个 `by` 块的文件在 Lean 里与 25 个项风格证
 
 ##### T-K12 **K1-b：`EnvBuilder::with_env`（单次内核改动里性价比最高）**
 
+> **🚧 Stage 1 完成（2026-09-24，commit `694d75f`）**：内核侧 `EnvBuilder::with_env`
+> 已落地 —— 把 `dag/declars/notations/mutual_block_sizes` **借**给一个临时
+> `ExportFile`（`name_cache` 由 `dag.mk_name_cache(anon)` 现造、借完丢弃），
+> 回调结束后**原样装回** ⇒ intern 表指针恒等式不变、合成声明**从不**进环境。
+> 判据：`crates/kernel/tests/memory_api.rs::with_env_lends_the_intern_tables_and_takes_them_back`
+> （① 借出时看到的是同一份表 ✓ ② `declaration_count` 不变 ✓ ③ 装回后还能继续
+> `add_declar` + `finish()` ✓）。内核全套 **60 条通过**；五步 ①②③ 已过。
+>
+> **⚠ Stage 2 的真实体量（实测后修正，比原文写的更大）**：原文说"把
+> `&mut EnvBuilder` 从 walk 穿到 `lower_value`→`run_by`→judge" —— 但
+> **walk 现在根本不持有 builder** ✗：walk 只产出 `PendingOp`，`ExportFile` 是在
+> **之后**的 `kernel_phase` 才建的（`compile/check/kernel_phase.rs`）。
+> ⇒ Stage 2 不是"加个参数"，而是**把环境构建搬进 walk**（或让 walk 与
+> kernel_phase 共享一个 builder）—— 这是**编译流水线的结构性调整**，
+> 必须单独一轮做，且要盯死两件事：
+>   * `PendingOp` 的 check-then-add 语义（部分应用/遮蔽/prelude 决策）不能变；
+>   * `Judgement` 三态与**文案**逐字段不变（`Error.code` 来自 `refine_kernel_kind`
+>     这个 front 分类器 ⇒ 新路径**必须复用同一个分类器**）。
+>
+> 建议下一轮先写"新路径 vs 旧路径逐条 `Judgement` 全字段相等"的**对拍测试骨架**
+> （它同时是 Stage 2 的判据），再动流水线。
+
 - **改什么**：给内核加
 
   ```rust
