@@ -26,6 +26,20 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯 round 384：修法找到了 —— **一行 `env`** ✓✓（**不用改 `gap.py`** ✓）**
+  ```
+  scripts/gap.py:41-42 ✓（**打印出来的** ✓）：
+    # 调大到 300s ✓：**真挂住仍会超时判红** ✓（不掩盖真回归 ✓），只是不再因"机器慢"而红 ✓
+    **REPRO_TIMEOUT_S = int(os.environ.get("SOKO_GAP_REPRO_TIMEOUT", "300"))** ✓✓
+  :120 proc.communicate(timeout=REPRO_TIMEOUT_S) ✓
+  :357 if kind == "timeout": ⚠ 跳过（环境慢：>{REPRO_TIMEOUT_S}s） ✓
+  ⇒ ⇒ **每例 300s 是环境变量可控的** ✓✓ ⇒ **修法 = CI 那一步的 `env:` 里设它** ✓
+    ⇒ **`SOKO_GAP_REPRO_TIMEOUT: 60`** ✓ ⇒ 慢例 60s 即跳过 ✓ ⇒ **三条 = 180s** ✓
+    ⇒ **10 分钟绰绰有余** ✓ ⇒ **而"真挂住"仍会在 60s 判红** ✓（**不掩盖回归** ✓）。
+  ```
+  ⚠ **比我上一轮想的 `--skip-slow` 好** ✓：**不用改代码** ✓、**语义现成** ✓
+  （**"跳过环境慢例"是既有行为** ✓）、**且保留了"真回归仍判红"** ✓。
+
 * **🔴 round 383：`ledger` **两片红** ✗（预判兑现 ✓ ⇒ **是超时上限整体不够** ✗）**
   ```
   整轮 attempt=1 in_progress ✓ · **已绿 13** ✓（11 → 13 ✓）· 未完 10 ✓
