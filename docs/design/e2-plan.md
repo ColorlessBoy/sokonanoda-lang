@@ -641,6 +641,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ② 两态各跑一次 ✓ ⇒ **这一次的 Δ 才是 D-1 的真实收益** ✓；
     ③ 数字进 `docs/perf/ledger.jsonl` ✓ ⇒ **然后才谈 T-D6 的 (a)/(b) 与 T-D7 的发版** ✓。
 
+  - **✅ round 243：新用例的**落点**找到了（下一轮照做即可 ✓）**
+    `scripts/perf-ledger.sh`（104 行 ✓）**不含用例** ✗ —— 它只是**调度** ✓，四处调用：
+    ```
+    crates/front/tests/perf.rs          ← 单文件 ✓   ← **新用例加这里** ✓
+    crates/front/tests/perf_project.rs  ← 项目闭包 ✓
+    crates/lsp/tests/perf_course.rs     ← 编辑器交互 + 真课程闭包 ✓
+    crates/cli/tests/perf_project.rs    ← CLI e2e（release ✓ = 用户真实路径 ✓）
+    ```
+    ⇒ **做法（下一轮 ✓）**：在 `crates/front/tests/perf.rs` 加一个用例 ✓ ——
+    画布取 **`by` 密集 + 多个 `sorry` 洞** ✓（**洞是触发 `suggest` 的关键** ✓ ⇒
+    才会走到 `judge_terms_with` ✓ = 前缀复用所在的那条路 ✓），
+    按该文件**既有用例的写法**（`PERFJSON` 输出 ✓、`--nocapture` ✓）照抄 ✓；
+    ⚠ **先读该文件现有用例的形状** ✓（本 session 的教训 ✓：先读再写 ✓）。
+    **判据** ✓：① 新用例在**两态**下都通过 ✓；② 两态的 Δ **可观测** ✓
+    （若 Δ 仍≈0 ⇒ **如实记录"D-1 在真实路径上也没有可测收益"** ✓ ⇒ 那才该考虑关默认 ✗）；
+    ③ 数字进 `docs/perf/ledger.jsonl` ✓（`scope` 里能看出是新用例 ✓）。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
