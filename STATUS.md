@@ -26,6 +26,20 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 376：`attempt=1` ⇒ **没换轮** ✓（"18 未完"是**惰性创建 job** 造成的 ✓）**
+  ```
+  $ gh run view 36198062997 --json attempt,status
+    attempt=**1** ✓ · status=in_progress ✓
+  ⇒ ⇒ **没有重跑** ✗✓ —— 而"未完 5 → 18"**不是新一轮 attempt** ✓
+    ⇒ **真因** ✓：**GitHub 惰性创建 job** ✓（**前面的读数只看到已创建的** ✓）
+    ⇒ 现在 18 个未完 = perf-gate ✓ + ledger(1,2,3) ✓ + e2e×3 ✓ + **10 条 test 腿** ✓ + gates-course ✓
+    ⇒ **零失败** ✓ ⇒ **全部在跑** ✓（`startedAt` 集中在 22:43–22:45 ✓）
+  ```
+  **⇒ 判据修正（第 ⑦ 条的正解 ✓）**：**判"有没有换轮"要读 `attempt`** ✓
+  —— **不是比较 `startedAt`** ✗（**它只能说明"什么时候开始的"** ✓）。
+  **⇒ 而"未完的个数"会随 job 创建而增长** ✓ ⇒ **它不是进度条** ✗
+  ⇒ **进度要看"绿的个数 + 红的个数"** ✓。
+
 * **⏳ round 375：状态不变** ✓（5 绿 · 5 未完 · **零失败** ✓）
   ```
   未完仍是：**perf-gate** ✓ · gates-fast ✓ · **ledger (1,2,3)** ✓
