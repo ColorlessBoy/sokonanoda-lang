@@ -884,6 +884,32 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🔴 round 286：A2 也被挡住 —— **两个方案都有硬约束** ✗ ⇒ 需要第三条路 ✓**
+    ```
+    probe 的构造在 walk 里**三处**（walk.rs:567 / :791 / :1104 ✓）
+    消费在 kernel_phase.rs:293 ✓（`for (declar, hole_span) in redundant_probes { … }` ✓）
+    字段类型 check/mod.rs:82：`redundant_probes: Vec<(Declar<'a>, Span)>` ✓
+    构造需要：builder · universe · ty · val · spans · known · **ctx（ElabCtx ✓）**
+    ⇒ **`ctx` 只在 walk 期间存在** ✗ ⇒ **A2（挪到 walk 之后）不可行** ✗✓
+    而 **A1（快照）踩指针同一性陷阱** ✗（round 285 ✓）
+    ```
+    **⇒ 关键事实（本轮才看清 ✓）**：**A 之前，walk 不往 builder 里 add 文件声明** ✓
+    （`walk.rs:47-49` 原文 ✓："walk 阶段**不往里 add** 文件声明 ✓（它只装 prelude + intern 名字 ✓）"）
+    ⇒ **probe 那时的环境里"文件声明 = 0"** ✓✓（只有 prelude ✓）
+    ⇒ 而 **A 之后它含"前面所有文件声明"** ✗ ⇒ **判定翻转** ✓✓ —— **这就是那 96/100 条** ✓。
+    **⇒ 第三条路（候选 ✓，按代价排序 ✓）**：
+    * **C1（最小 ✓，推荐先试 ✓）**：**probe 用一份"只有 prelude"的环境** ✓ ——
+      `check/mod.rs:776` 那段就是现成的做法 ✓（`install_all_preludes` ✓）；
+      ⚠ **但要注意指针同一性** ✗：probe 的 `declar` 是在**哪个 builder** 里 `build_def` 的 ✓
+      ⇒ 它必须在**同一个** DAG 里分配 ✓ ⇒ 所以要用**同一个 arena** ✓（`EnvBuilder::new(shadow_arena…)` ✓
+      与 `builder` 共享 arena ✗ hmm ✓ —— **先读 `EnvBuilder::new` 的 arena 参数** ✓ 再定 ✓）；
+    * **C2**：**开关只对"没有 `sorry` 探针的文档"生效** ✓（`redundant_probes.is_empty()` ✓ 才走真 add ✓）
+      ⇒ **最保守 ✓、改动最小 ✓**，但**收益面变窄** ✓（含 `sorry` 的文档不加速 ✓）；
+    * **C3**：**放弃 A 步** ✗ ⇒ D-2 停在"A 已实现但默认关" ✓（**计划允许** ✓：
+      "该小步默认关并记录 ✓，D 可停在任一小步 ✓"）。
+    **⇒ 下一步（一条命令 ✓）**：读 `EnvBuilder::new` 的签名 ✓（arena 从哪来 ✓）
+    ⇒ 判断 C1 是否可行 ✓（**同 arena 就可行 ✓**）；不行 ⇒ **C2** ✓（一行判断 ✓）。
+
   - **🔴 round 285：`snapshot()` 的文档直接**否决了 A1** ✗（指针同一性陷阱 ✓）**
     ```
     kernel/src/builder.rs:67-74（`snapshot` 的文档 ✓）
