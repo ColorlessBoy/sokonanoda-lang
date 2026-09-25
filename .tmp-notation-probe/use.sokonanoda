@@ -1,0 +1,2 @@
+theorem t : Foo.bar a b := rfl
+theorem u : Baz.qux x y := rfl

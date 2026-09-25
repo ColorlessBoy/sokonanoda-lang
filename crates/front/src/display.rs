@@ -1238,6 +1238,50 @@ infixr:80 \" '' \" => Set.image\n";
             table.iter().map(|d| d.target.as_str()).collect::<Vec<_>>()
         );
     }
+    /// **用真实管线那套建表方式折同一段文本**（2026-09-25）：夹具与真实编译
+    /// 唯一还不同的地方就是"**表怎么建的**" ✓ —— 这条把它对齐：
+    /// `notation_table(commands)` + **splice 内建记法** + `arities_with_prelude_from(...)`
+    /// （与 `crates/front/src/compile/check/mod.rs:433-442` 逐句相同 ✓）。
+    /// 折得动 ⇒ 建表方式不是差别（继续找实例差异 ✓）；折不动 ⇒ **红复现到手** ✓✓。
+    #[test]
+    fn folds_with_the_real_pipeline_table_shape() {
+        let src = "inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
+                   ctor intro (w : A) (h : p w) : Exists A p\n\
+                   end\n\
+                   binder_notation \"∃\" => Exists\n\
+                   def Set.subset (α : Type) (A B : Set α) : Prop := True\n\
+                   infix:50 \" ⊆ \" => Set.subset\n";
+        let file = crate::parse(src).expect("夹具必须能解析");
+        let commands = &file.commands;
+        let mut table = crate::notation::notation_table(commands);
+        // **与修好后的管线一致**（内建兜底 ⇒ append ✓）；变体 A 里保留了
+        // 旧的 `splice(0..0, …)`（内建抢先）作为**永久对照** ✓ —— 它就是 ③ 的真因。
+        table.extend(crate::notation::builtin_notation_decls());
+        let arities = arities_with_prelude_from(arities_in_commands(commands));
+        println!(
+            "[real-shape] table={} decls(target=Exists)={} arity_Exists={:?} arity_keys={:?}",
+            table.len(),
+            table.iter().filter(|d| d.target == "Exists").count(),
+            arities.get("Exists"),
+            arities.keys().filter(|k| k.ends_with("Exists")).collect::<Vec<_>>()
+        );
+        let dn = DisplayNotations::new(table, arities);
+        let text = "forall (α : Type 0), Exists (Set α) (fun (U : Set α) => forall (A : Set α), Set.subset α A U)";
+        println!("[real-shape] out: {}", fold_text(text, &dn));
+        // 二分：到底是 **splice 内建** 还是 **prelude arities** 让它 bail ✗
+        let mut ta = crate::notation::notation_table(commands);
+        ta.splice(0..0, crate::notation::builtin_notation_decls());
+        let dna = DisplayNotations::new(ta, arities_in_commands(commands));
+        println!("[A 内建+splice / 无 prelude] out: {}", fold_text(text, &dna));
+        let tb = crate::notation::notation_table(commands);
+        let dnb =
+            DisplayNotations::new(tb, arities_with_prelude_from(arities_in_commands(commands)));
+        println!("[B 无内建 / 有 prelude] out: {}", fold_text(text, &dnb));
+        let tc = crate::notation::notation_table(commands);
+        let dnc = DisplayNotations::new(tc, arities_in_commands(commands));
+        println!("[C 无内建 / 无 prelude] out: {}", fold_text(text, &dnc));
+    }
+
     /// **③ 的窄到宽探针**（2026-09-25）：先**打印**真实折叠结果，再写断言 ✓
     /// （不猜期望值 ✗ —— 前面几轮猜的代价已经够大了）。
     #[test]
