@@ -769,6 +769,48 @@ fn scan_notation_target(chars: &[char], i: &mut usize) -> Option<String> {
 mod tests {
     use super::*;
 
+    /// **T-U6（2026-09-25）**：声明符号命中时，若**基础多字符算符更长**必须让路 ✓。
+    ///
+    /// **真因**（用户报的"好多目标没记法化"✗）：`next_token` 里声明符号的匹配在常规分支
+    /// **之前** ⇒ 内建记法 `=` 命中后抢走 `fun (x : Nat) => x` 里 `=>` 的开头 ✗ ⇒ 词法坏
+    /// ⇒ `print_back` 的解析失败 ⇒ **整条类型折不动、退回点形式** ✗
+    /// （`AGENTS.md` 记的 **R-2** 是同一族的另一处 ✓）。
+    ///
+    /// **反向覆盖**：不与基础算符相撞的声明符号（`𝒫` 这类，前四个是标识符字符、
+    /// 只有声明路能读 ✓）**必须仍然走声明路** ✓ —— 修法不许误伤它们 ✗。
+    #[test]
+    fn a_longer_base_operator_beats_a_declared_symbol_prefix() {
+        // `=>`（FatArrow ✓）比声明符号 `=` 长 ⇒ 让路 ✓
+        let fat = tokenize_with_symbols("fun (x : Nat) => x", &["=".to_string()])
+            .expect("带声明符号 `=` 的词法必须成功 ✓");
+        assert!(
+            fat.iter().any(|t| t.kind == TokenKind::FatArrow),
+            "`=>` 必须被读成 FatArrow，实际 {:?}",
+            fat.iter().map(|t| t.kind.clone()).collect::<Vec<_>>()
+        );
+        assert!(
+            !fat.iter().any(|t| t.kind == TokenKind::Sym("=".into())),
+            "`=` 不许吃掉 `=>` 的开头 ✗（R-2 同族 ✓）"
+        );
+
+        // `->`（Arrow ✓）比声明符号 `-` 长 ⇒ 同样让路 ✓
+        let arrow = tokenize_with_symbols("(x : Nat) -> Nat", &["-".to_string()])
+            .expect("带声明符号 `-` 的词法必须成功 ✓");
+        assert!(
+            arrow.iter().any(|t| t.kind == TokenKind::Arrow),
+            "`->` 必须被读成 Arrow ✓"
+        );
+
+        // 反例守卫：`𝒫` 不可能与 `=>`/`->` 前缀相撞 ⇒ 必须**仍然**走声明路 ✓
+        let script = tokenize_with_symbols("𝒫 x", &["𝒫".to_string()])
+            .expect("带声明符号 `𝒫` 的词法必须成功 ✓");
+        assert!(
+            script.iter().any(|t| t.kind == TokenKind::Sym("𝒫".into())),
+            "`𝒫` 只有声明路能读 ⇒ 修法不许误伤它 ✗，实际 {:?}",
+            script.iter().map(|t| t.kind.clone()).collect::<Vec<_>>()
+        );
+    }
+
     #[test]
     fn tokenizes_hello_sokonanoda() {
         let toks = tokenize("-- lesson\n#check Prop -> Prop").unwrap();

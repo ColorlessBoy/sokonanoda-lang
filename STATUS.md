@@ -1,3 +1,13 @@
+## 第 73 轮续（2026-09-25）：T-U6 ✅ 词法让路的专门判据（正反两向实测）
+
+* `token.rs::a_longer_base_operator_beats_a_declared_symbol_prefix` ✓：
+  `=>` 必须读成 `FatArrow`、`->` 必须读成 `Arrow`（哪怕符号表里有 `=`/`-` ✓），
+  且 `𝒫` 这类**不与基础算符相撞**的声明符号**必须仍走声明路** ✓（防误伤 ✓）。
+* **反向验证** ✓：撤掉让路判据（= 修复前的行为 ✗）⇒ 判据**当场判红** ✓，
+  报的正是根因症状 —— `Diagnostic { UnexpectedToken { found: ">", … } }`
+  （`=` 吃掉 `=>` 的 `=`、`>` 成了非法 token ✓）。
+* 全量：`cargo test -p sokonanoda-front --lib` ⇒ **731 passed / 0 failed** ✓。
+
 ## 第 73 轮（2026-09-25）：T-U5 ✅ 接缝守卫（正反两向实测）
 
 * **通用接缝守卫** ✓ `every_decl_ships_text_and_runs_in_lockstep`（`crates/front/src/query/tests.rs`）：
