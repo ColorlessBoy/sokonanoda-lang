@@ -26,6 +26,18 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 338：job 级完整全貌 —— **5 绿 · 5 在跑 · 零失败** ✓✓**
+  ```
+  ✅ completed/success ✓：changes · lint-fmt · lint-clippy · **contract** · **editor**
+  ⏳ in_progress ✓：gates-fast · **perf-gate** · ledger (1,2,3)
+  ⇒ **零失败** ✓✓ ⇒ **`contract` 与 `editor` 都绿** ✓（版本漂移修复在生产确认 ✓）
+  ⇒ `perf-gate` 是真在跑 ✓（21:01:47 起 ✓）—— 它要**构建** lsp/front 测试二进制 ✓
+    （round 334 那次 10 秒是**热缓存** ✓ ⇒ 这次冷 ✓ ⇒ 分钟级 ✓，正常 ✓）
+  ```
+  **⇒ 只剩 5 个在跑** ✓ ⇒ 它们全绿 ⇒ **`auto-tag`** ✓ ⇒ **release** ✓
+  ⇒ **那时** ✓：`gh release list` 核对 ✓ · `perf-gate` 的日志可读 ✓（定阈值用 ✓）·
+  `scripts/soko update` ✓（本地门恢复 ✓）。
+
 * **✅ round 337：发版轮 **10 个 job 零失败** ✓✓ —— **两个修复都被生产确认** ✓**
   ```
   run 36189154464（sha=6177335 ✓）：
