@@ -2312,6 +2312,29 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 #### 批次 E：收尾与固化
 
 - [ ] `T-E1` **性能回归进 CI**：把三个基准做成 CI 可跑的 smoke（阈值宽松 ✓，只抓**大幅退化** ✗）
+  - **🎯 round 311：T-E1 的机制齐备，而 CI **已经"报"了只是没"拦"** ✓ ⇒ 接线即可 ✓**
+    ```
+    scripts/perf-check.sh（163 行 ✓）—— "**单场景性能快跑**" ✓
+      退出码 ✓：0=无退化 ✓ · **1=有 case 退化超阈值**（默认 **25%** ✓，`--threshold` ✓）· 2=用法错 ✓
+      口径 ✓：一律 `--test-threads=1` ✓（并行把单次成本放大 3–4× ✗）
+            与台账比**优先比 `best_ms`** ✓，超出 ±25% **先复测再下结论** ✓
+    scripts/perf-compare.py ✓：`--threshold 25` ✓ · **`floor_ms = 5.0`** ✓ = **噪声地板已做** ✓
+      （注释 ✓："真台账上实测过 1.0ms → 3.0ms = '+200%'" ✓）
+    ⚠ ci.yml:215-224 ✓ 已在跑 `scripts/perf-report.sh` ✓ + **Upload perf report** ✓
+      ⇒ **只"报"不"拦"** ✗
+    ```
+    **⇒ T-E1 的形状（接线 ✓，不是新建 ✗）**：加一个 **`perf-gate` job** ✓
+    （进**快层** ✓：它要 `--suite` 快的三个套件 ✓ = lsp/front/front-project ✓）：
+    * 跑 `scripts/perf-check.sh --case <smoke 子集>` ✓ ⇒ **退出码 1 ⇒ job 红** ✓；
+    * **阈值放宽** ✓（T-E1 原文 ✓："阈值宽松 ✓，只抓**大幅退化** ✗"）
+      ⇒ 用 `--threshold 50` ✓（**比默认 25% 更松** ✓ —— 因为 CI runner 比本地更吵 ✓）；
+    * **钉 `ubuntu-24.04`** ✓（用户 g4 ✓）+ **`--test-threads=1`** ✓（`perf-check.sh` 已内建 ✓）；
+    * ⚠ **必须先量一次"CI 上的抖动"** ✗ —— 否则门禁会**假红** ✗
+      ⇒ **先跑一次 `perf-gate`（只报不拦 ✓，即 `continue-on-error` 或 `|| true`）** ✓
+      ⇒ 拿到 CI 上的 `best_ms` 与本地对比 ✓ ⇒ **再决定阈值** ✓（**这一步不能跳** ✗）。
+    **⇒ 下一步（一条命令 ✓）**：先看 `perf-check.sh --list` 有哪些 case ✓
+    ⇒ 选一个**稳定且够快**的 smoke 子集 ✓（十几秒 ✓）⇒ 再写 job ✓。
+
 - [ ] `T-E2` **文档收口**：`architecture.md` §6 台账 / `docs/PERF.md` / 技能与 `AGENTS.md` 同步 ✓
 - [ ] `T-E3` **`STATUS.md` 与 `HANDOVER.md` 更新** ✓
 - [ ] `T-E4` **阶段 E 收尾**：bump **`0.72.0`** → release → 核对 ✓
