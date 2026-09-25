@@ -649,7 +649,8 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 > 顶部「目标」永远是点形式 ✓。`AGENTS.md` 的"真相与显示是两条路"在这里升级为
 > "**连显示自己都分了四条路**" ✗。细节与证据：`REQUIREMENTS.md` §9 ㉔/㉕ ✓。
 
-- [ ] `T-U1` **统一接口的设计**（设计先行 ✓）：新增 `docs/design/notation-display.md`，定义**唯一**入口
+- [x] `T-U1` **统一接口的设计**（设计先行 ✓）：**设计已成文 ⇒ `docs/design/notation-display.md`** ✓（唯一接口 `DisplayNotations::render`/`render_text` + 四套实现去向表 + 调用白名单 + 不变量 `runs 拼接 == text` + 落地顺序 ✓）
+  - 原文如下（保留作规格）：新增 `docs/design/notation-display.md`，定义**唯一**入口
   `DisplayNotations::render(expr) -> Rendered { text, runs }` ✓ —— **一次产出文本与分段**
   （现在 ① 产文本、② 只打标签 ⇒ 合并 ✓）。设计里必须含：**四套实现的去向表** ✓、
   "谁必须用它 / 谁不许再直接调 `render_expr`·`print_back`·`tag_runs_with_notations`"的**白名单** ✓、
