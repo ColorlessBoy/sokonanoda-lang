@@ -26,6 +26,17 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 353：18 个 job **全是 `in_progress`** ✓（不是排队 ✓）⇒ 真在跑，正常等** ✓
+  ```
+  $ gh run view 36189963908 --json jobs --jq '.jobs[] | .status' | sort | uniq -c
+        6 completed ✓ · 18 in_progress ✓（**没有 queued** ✓）
+  startedAt ✓：perf-gate 21:11:20 · ledger(1/2/3) 21:11:19-20 ·
+                e2e 21:13:29-30 · gates-course 21:13:30 ✓
+  ⇒ `perf-gate` 慢是因为**先要构建** lsp/front 的测试二进制 ✓（**冷缓存** ✓，分钟级 ✓）
+  ⇒ **不是卡住** ✓ ⇒ **零失败** ✓ ⇒ **继续等** ✓（**不推** ✓）。
+  ```
+  **⇒ 判据不变** ✓：零失败 + 跑完 ⇒ `auto-tag` ⇒ release ⇒ 核对 ✓。
+
 * **⏳ round 352：同一 attempt 仍在跑** ✓（`startedAt` **21:11:20 不变** ✓ ⇒ **没换轮** ✓）
   ```
   整轮 in_progress ✓ · **失败（空）** ✓ · 已绿 6 · 未完 18 ✓
