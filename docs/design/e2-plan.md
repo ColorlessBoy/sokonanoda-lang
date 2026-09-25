@@ -433,6 +433,19 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     * ⇒ **T-D4 按"开关关"三条收口** ✓（它们才是"两遍检查语义等价"的**真正可证部分** ✓）。
 
 - [ ] `T-D5` **judge 接快照（开关默认关）**：`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>` ⇒ `snapshot()` 查合成声明 ✓；拿不到**回退**旧路径 ✓；`SOKO_JUDGE_ENV_REUSE=1` 才启用 ✓
+  - **✅ round 223 核实：T-D5 也是**部分实现**（第五次 ✓），且计划与代码**不一致** ✗**
+    | 计划写的 | 代码实际 |
+    |---|---|
+    | `SOKO_JUDGE_ENV_REUSE=1` **才启用** ✗ | 开关**已存在** ✓（`judge.rs:434/439/490` ✓），但文档写的是 **`=0` 关掉** ✗ ⇒ **默认是开** ✗ |
+    | "`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>`" ✓ | **`Option<&EnvBuilder>` 全仓 0 处** ✗ ⇒ 这段接线**可能还没做** ✓（也可能换了写法 ✗ ⇒ 下一步先确认 ✓） |
+    | "`snapshot()` 查合成声明" ✓ | **`EnvBuilder::snapshot()` 已在** ✓（`kernel/src/builder.rs:75` ✓ + 专门测试 ✓ `memory_api.rs:540` ✓） |
+    | 判据 | **已有"前缀复用命中次数"计数器** ✓（`judge.rs:490` ✓，注释写明"`SOKO_JUDGE_ENV_REUSE=0/1` 下都该有正确的行为" ✓） |
+    **⇒ 下一步（一条命令 ✓）**：`git grep -n "judge_infer\|run_by" crates/front/src/judge.rs` ✓
+    看它现在怎么拿环境 ✓ ⇒ 判断"接快照"是**已做**（换了写法 ✓）还是**待做** ✓；
+    ⚠ **顺带要解决的**：开关的**默认值语义**（计划 `=1 才启用` ✗ vs 代码 `=0 关掉` ✗）
+    ⇒ **以代码为准** ✓ 并把计划改过来 ✓（**默认开**意味着它已经在跑 ✓ ⇒ 性能与正确性都已受影响 ✓，
+    这正是"前缀复用第一刀"该关心的事 ✓）。
+
 - [ ] `T-D6` **量收益 + 默认打开**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓；**收益成立才默认打开** ✓（否则保持关闭并记录 ✗）
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
