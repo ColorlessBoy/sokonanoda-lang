@@ -109,12 +109,12 @@ def scan(files: list[Path]) -> list[dict]:
         except OSError as exc:  # 读不了 ⇒ **不能静默跳过**（那等于没判 ✗）
             hits.append({"file": rel, "line": 0, "call": "<unreadable>", "why": str(exc)})
             continue
-        prev_code = ""
+        prev_codes: list[str] = []
         for lineno, raw in enumerate(text.splitlines(), 1):
             # 注释里的提及不算（守卫判的是**调用** ✓）；文档字符串里的 `fn x(` 也不算 ✓。
             code = raw.split("//", 1)[0]
-            _prev = prev_code
-            prev_code = code
+            window3 = "\n".join(prev_codes[-3:])
+            prev_codes.append(code)
             # **定义/再导出行不算绕过** ✓（2026-09-25 补 ✗⇒✓）：`pub fn render_expr(expr)` 与
             # 它体内的 `crate::proof::render_expr(expr)` 是**再导出**（`check/mod.rs:1243` ✓），
             # 不是"绕过接口的实现" ✓ —— 它们此前贡献了 **2 条假条目** ✗（88 里的两条 ✓）。
@@ -133,7 +133,7 @@ def scan(files: list[Path]) -> list[dict]:
             # ⚠ **也要看上一行**（2026-09-25 ✓）：包成多行时
             # `fold_for_display(` / `render_msg(` 在**上一行** ✓、`render_expr(` 在下一行 ✗
             # ⇒ 只看本行会漏判 ✓（实测：A 组第 5 处 `:1364` 多行包裹后基线**没降** ✗）。
-            window = code + _prev
+            window = code + window3
             if "fold_for_display(" in window or "render_msg(" in window:
                 continue
             for call, pat in CALLS.items():
