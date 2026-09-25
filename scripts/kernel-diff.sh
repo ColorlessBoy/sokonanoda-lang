@@ -79,7 +79,11 @@ done
 FILES=()
 while IFS= read -r line; do
   [ -n "$line" ] && FILES+=("$line")
-done < <(find courses course examples docs/gaps/repro -name '*.sokonanoda' 2>/dev/null | sort)
+# **`-type f` 不能少**（审计 #4，2026-09-25 ✓）：产物目录 `.sokonanoda/` 的名字以
+# `.sokonanoda` 结尾 ⇒ `-name '*.sokonanoda'` 会把**目录**也收进来 ✗ —— CLI 对目录
+# 报 `Is a directory`，两侧输出**逐字节相同** ⇒ 那些组对拍**恒绿**、"零差异"覆盖被虚报 ✗
+# （实测实收 4 个目录 ⇒ 4×5=20 组空转 ✓）。
+done < <(find courses course examples docs/gaps/repro -type f -name '*.sokonanoda' 2>/dev/null | sort)
 [ -f playground.sokonanoda ] && FILES+=("playground.sokonanoda")
 if [ "$FAST" = 1 ]; then
   # 有代表性的子集：单文件 / 项目入口 / 项目依赖 / 坏依赖 / 解析失败 / 空壳。
