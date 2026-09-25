@@ -11,6 +11,14 @@
 //
 // 退出码：0 = 缺口仍在（位置映射偏离）· 1 = 已修（映射正确）· 2 = 环境/形状异常。
 const { spawn } = require('node:child_process');
+// ⚠ **看门狗（2026-09-25 round 363 ✓）**：LSP 不应答时 `await …` **永不 resolve**
+// ⇒ **事件循环排空 ⇒ node 静默 exit 0** ✗ ⇒ `gap.py` 会把"**没跑完**"读成
+// "**缺口仍在**" ✗（**实测** ✓：`G-37` 与本地/CI 都静默 0 ✓）。
+// 加看门狗后：够不到 LSP ⇒ **exit 2** ✓（"环境/形状异常" ✓ —— `docs/gaps/README.md` 的三态 ✓）。
+setTimeout(() => {
+  console.error('结论：复现脚本超时（LSP 未应答）——环境/形状异常，**不是**"缺口仍在"');
+  process.exit(2);
+}, 120000);
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');

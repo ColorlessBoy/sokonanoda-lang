@@ -26,6 +26,21 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 365：看门狗**推广完毕** ✓✓ —— 而它是**仓库的既有约定** ✓（**只有三个漏了** ✗）**
+  ```
+  $ for f in docs/gaps/repro/*.js; do … done      # 找"有 await 但没 setTimeout"的 ✓
+    ⚠ G36-utf16-position-mapping.js            (await=5 timeout=0) ✗
+    ⚠ G39-imported-user-notation-has-no-navigation.js (await=4 timeout=0) ✗
+  ⇒ 加同一个看门狗后 ✓（锚点是**同一行** ✓：`const { spawn } = require('node:child_process');` ✓）
+  $ 结构验证 ✓：**8 个探针全部 `setTimeout=1+`** ✓
+    G20/G22/G23/G25/G29：**本来就有** ✓ ⇒ **看门狗是这个仓库的既有约定** ✓✓
+    G36/G37/G39：**只有这三个漏了** ✗ ⇒ 已补 ✓
+  ```
+  **⇒ 读法** ✓：**这不是"发明一个修法"，而是"补上漏掉的那三个"** ✓ ——
+  **约定早就在** ✓（**五个探针都写着** ✓）⇒ ⇒ **而漏掉的三个正是"静默 0"的那三个** ✗✓。
+  ⚠ **而 `G22`/`G25` 明明有看门狗却仍在"环境慢 >300s"名单里** ✗
+  ⇒ **它们的看门狗可能比 300s 长** ✓ ⇒ **`ledger` 的 5 分钟上限仍要调** ✓（**下一批** ✓）。
+
 * **✅ round 364：探针加了看门狗 ⇒ **`exit 2`** ✓✓（**修前静默 0** ✗）**
   ```
   $ grep -nE "spawn|await " docs/gaps/repro/G37-….js
