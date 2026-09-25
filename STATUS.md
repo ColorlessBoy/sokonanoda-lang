@@ -26,6 +26,19 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯🎯 round 411：`ledger (1)`/`(2)` **已绿** ✓✓✓ —— **两个修复都生效** ✓✓**
+  ```
+  整轮 attempt=1 in_progress ✓ · **零失败** ✓ · 已绿 8 ✓（7 → 8 ✓）· 16 未完 ✓
+  **`ledger (1)` completed/success** ✓✓✓ · **`ledger (2)` completed/success** ✓✓✓
+  `ledger (3)` in_progress ✓ · `perf-gate` in_progress ✓
+  ⇒ ⇒ **两片绿了** ✓✓ ⇒ **两个修复都生效** ✓✓：
+    ① **LSP 构建** ⇒ 探针够得到 LSP ⇒ **`exit 1`（已修）** ✓（**不再 `exit 2`** ✗）
+    ② **60s 超时** ⇒ 三条慢例各 60s 即跳过 ⇒ **装得下** ✓（**不再吃满 300s** ✗）
+  ⇒ **只等 `ledger (3)`** ✓ ⇒ **三片全绿** ⇒ **`auto-tag`** ✓ ⇒ **release** ✓ ⇒ **核对** ✓
+  ```
+  ⚠ **而这是"看门狗 → 60s → 构建 LSP"三个修复的**联合验证** ✓✓** ——
+  **没有第一个就看不到 `exit 2`** ✗，**没有第二个就超时** ✗，**没有第三个就够不到 LSP** ✗。
+
 * **⏳ round 410：推进中** ✓（`attempt=1` · 零失败 · **7 绿**（6 → 7 ✓）· 17 未完 ✓）
   ```
   ⇒ **判据不变** ✓：等 ⇒ 全绿 ⇒ `auto-tag` ⇒ release ✓ · **不推** ✗。
