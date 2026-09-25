@@ -219,3 +219,22 @@ run #36186692798（sha=d116bda ✓）：
 ```
 **⇒ 读法** ✓：**`changes` + 两条 lint 只要 30 秒** ✓ ⇒ 用户第 d 条"**推完先只看快层**"✓
 的**实际代价是 30 秒 + `gates-fast`** ✓ ⇒ **这就是"识别问题"的最短路径** ✓。
+
+## 两条要求**在生产里被实测到**（2026-09-25 round 316 ✓）
+```
+① run #36186692798（sha=d116bda ✓）= **第 e 条**（顶层 concurrency + cancel-in-progress ✓）：
+   整轮 completed/**cancelled** ✗ —— 20:37:1x（约 1.5 分钟处）被掐 ✓
+   已绿 ✓：changes 6s ✓ · lint-fmt 5s ✓ · lint-clippy 30s ✓ · **contract 26s** ✓
+   被掐 ✗：ledger(1,2,3) · gates-fast · **perf-gate** · editor（都在跑 ✓）
+   未开始 ✗：e2e · gates-course · **test 矩阵** · auto-tag · fast-fail
+   ⇒ **原因** ✓：随后推了 `ff7d939` ⇒ **`cancel-in-progress: true` 掐掉旧轮** ✓✓
+   ⇒ **旧轮不再空跑 10+ 分钟** ✓（**这就是第 e 条的价值** ✓）
+② run #36186831292（sha=ff7d939 ✓，**纯 docs** ✓）= **第 g1 条**（docs-only 跳重活 ✓）：
+   ✅ changes 7s ✓ · ✅ lint-fmt 6s ✓ · ⏳ lint-clippy
+   ⏭ **skipped gates-fast** ✗ · ⏭ **skipped perf-gate** ✗
+   ⇒ `changes.outputs.rust == false` ⇒ `if` 跳过 ✓✓（本仓用 `dorny/paths-filter` ✓ **更细** ✓）
+```
+**⇒ 结论** ✓：用户八条里的 **e（掐旧轮）** 与 **g1（docs 跳重活）** **不是"已接线"** ✓，
+而是**在生产里被观测到了** ✓✓ ⇒ **这两条可以标"实测通过"** ✓。
+**⇒ 仍缺的数字** ✗：`perf-gate` 的实测 `best_ms`（两轮都没跑到 ✓ ——
+第一轮被掐 ✗、第二轮被 skip ✗）⇒ **需要一个 rust 改动的 push** ✓。
