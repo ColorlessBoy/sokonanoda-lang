@@ -1492,3 +1492,51 @@ SOKO_LSP_REPLY_TIMEOUT_MS=1 python3 scripts/gap.py check --shard 2/3 --strict  #
 ```
 （**只上 A 时**：默认仍 1 ✗（因为 180 s 在 `SOKO_LSP_REPLY_TIMEOUT_MS=1` 下照样超 ✓）；
 上完 B 后默认应转 **0** ✓ ⇒ 这就是 B 的判据 ✓。）
+
+## 2026-09-25 · `0.72.0` 发版连续红三次 —— **三条教训**（都值得记住 ✓）
+
+### ① bump 有两个隐藏依赖：`Cargo.lock` 与两个清单的 `requires`
+
+**症状** ✓：CI 的 `gates-fast` 红在 `cargo build -q -p sokonanoda-cli --locked` ✓：
+```
+error: cannot update the lock file …/Cargo.lock because --locked was passed to prevent this
+```
+**原因** ✓：只改了 `Cargo.toml`（0.68.0 → 0.72.0）✗，而 **`Cargo.lock` 还记着 0.68.0** ✗
+⇒ `--locked` 拒绝 ✓。
+**修** ✓：`cargo build -q -p sokonanoda-cli --offline`（**不带 `--locked`** ✓）⇒ 锁文件跟着更新 ✓。
+
+**而下一红又是同一类** ✗：`contract` 的第一步 `python3 scripts/bump.py --check` ✓ 报
+**版本漂移** ✓：`course/shared/sokonanoda.toml` 与 `courses/set-theory/sokonanoda.toml`
+的 `requires` 还是 `0.68.0` ✗。
+
+**⇒ 根因（`vscode-dev-guide.md` 早就写了 ✓）**：
+> **bump 用脚本，别手改**：`python3 scripts/bump.py <x.y.z>` 一次写全…
+> **手改漏掉清单的 `requires` 就是 G-24 的成因。**
+
+**⇒ 规程** ✓：**bump 一律 `python3 scripts/bump.py <x.y.z>`** ✓ ⇒ **然后 `--check` 复检** ✓
+（它会打印"版本一致：x.y.z" ✓）。**`CHANGELOG.md` 仍然手写** ✓（脚本只管数字 ✓）。
+**bump 其实是五处** ✓：`Cargo.toml` · `Cargo.lock` · `editor/vscode/package.json` ·
+**两个 `sokonanoda.toml` 的 `requires`** ✓ —— **"两处"是脚本替你写全之后的表象** ✗。
+
+### ② `auto-tag` 依赖**全部重活**，而 docs-only 轮把重活全 skip
+
+```
+auto-tag ✓：needs = [lint-fmt, lint-clippy, test, gates-fast, gates-course,
+                    ledger, contract, editor, e2e, e2e-macos] ✓
+```
+⇒ **依赖被 skip ⇒ `auto-tag` 自己也 skip** ✓（GitHub 语义 ✓）
+⇒ **纯 docs/toml 的 push 永远不会发版** ✓ —— 这是**第 g1 条的设计后果** ✓，**不是 bug** ✓，
+但**发版那一次必须让重活真的跑** ✓（**即：那一次必须碰到 rust/courses 相关文件** ✓）。
+
+### ③ **最贵的一条**：修 CI 的节奏与发版的节奏**相反** ✗
+
+- **修 CI 时** ✓：每改一处就推 ✓ ⇒ `cancel-in-progress` **帮我省时间** ✓（掐掉旧轮 ✓）；
+- **发版时** ✗：**每一推都掐掉唯一那轮 `rust == true` 的运行** ✓ ⇒
+  **`auto-tag` 永远等不到"重活全绿"** ✓ ⇒ **release 永不触发** ✓。
+
+**⇒ 规程** ✓：**发版窗口里，推一次就停手** ✓ —— 等它跑完（**别再推，哪怕发现小错** ✗；
+要改就**攒着** ✓，下一批再说 ✓）。**`gh run rerun <id>` 只能重放同一棵树** ✗
+⇒ **树里没有全部修复时，重跑一万次也没用** ✓（实测 ✓：重跑 `b4aca6e` ⇒ `contract` 照红 ✓）。
+**⇒ 判据** ✓：发版前先 `git log --oneline origin/main..HEAD` 看清"这一推带上了什么" ✓，
+再 `python3 scripts/bump.py --check` 与 `cargo build --locked` 两条本地门 ✓ ⇒ **然后才推** ✓。
+
