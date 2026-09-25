@@ -741,6 +741,16 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **真判据的写法** ✓：夹具的**源里必须写点形式** ✓（如
     `forall (x : α), Set.mem α x A -> …` ✓），再断言**显示**文本已折成记法（`∀`/`∈` ✓）
     —— 只有这样，注入"折叠失效"才会判红 ✓。当前那条只当**冒烟**用 ✗，**不算交付** ✓。
+  - **round 135 实测：诊断面判据**又**不咬** ✗（与 round 103 同一个陷阱 ✓）——
+    夹具（`theorem … : Set.subset Nat A B := 0` ✓）确实产生了诊断 ✓（`seen > 0` ✓），
+    但 **`SOKO_NO_NOTATION_FOLD=1` 下它照样绿** ✗ ⇒ 那些诊断文本里**根本没有**被折的类型 ✓
+    ⇒ 判据**空转** ✗ ⇒ 已撤回 ✓。
+    **下次要咬住，必须让夹具触发"那 4 处已折消息"之一** ✓（它们才走 `render_msg` ✓）：
+    ① `ElabBinderNotationUnsolved`（binder 记法 guard 反解失败 ✓ —— 消息里带 guard 文本 ✓）；
+    ② "`候选` 的结果类型是 `…`"（`describe_candidate_results` ✓ —— 用一个**结果类型不对**的候选名 ✓，
+       例如把 `Or.inl h` 用在期望类型不匹配处 ✓）。
+    **判据写法** ✓：先断言"确实看到了那条消息"（`seen > 0` **且**按消息里的关键词匹配 ✓），
+    **再**断言无点形式 ✓；**反向验证**用 `SOKO_NO_NOTATION_FOLD=1` ✓（不改代码 ✓）。
   - **round 134 侦察：诊断面（面 #2）的落点** ✓ —— `QueryDoc` 的公开方法里**没有**诊断入口 ✗
     （只有 `check` / `goals` / `project_report_ref` / `holes` … ✓）；而 `project_report_ref()`
     在**单文件**夹具下是 `None` ✗（审计 #14 踩过同一个坑 ✓）。⇒ 要写诊断面判据，
