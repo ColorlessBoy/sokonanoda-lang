@@ -222,7 +222,33 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 **硬规则（用户原话）**：**凡产出用户可见文本的（LSP / hover / 诊断消息 / 状态栏 / 项目树）
 必须走 ① 或 ②** ✓（① 迁移到唯一接口 / ② 补"必须折叠"的判据 ✓）；**不许拿 ③ 糊过去** ✗。
 
-**基线全貌**（`scripts/notation-paths-baseline.txt`，共 **77** 处 ✓，按 文件×调用 归组 ✓）：
+### §3 的分组表**已按当前基线（89）刷新** ✓（2026-09-25 round 111 ✓）
+> **口径**：以 `scripts/notation-paths-baseline.txt` 的**当前 89 条**为准 ✓
+> （用户 2026-09-25 要求 ✓）。与下面那张**旧 77 表**的差别有**两处原因** ✓：
+> ① 守卫修准（`(?<![\w:.])` ⇒ `(?<!\w)` ✓）**多抓 15 处** ✗（旧数是**低估** ✓）；
+> ② `round 106` 迁掉 `kernel_phase.rs` 3 处 ✓（-3 ✓）⇒ 77 + 15 − 3 = **89** ✓。
+
+| 组 | 处数（**89 版** ✓） | 位置 | 产出什么 | 处置 |
+|---|---|---|---|---|
+| **A** | **5** | `crates/lsp/src/lib.rs`（全在 `half_expression_goals_hover` :1332-1376 ✓） | **hover 文本** ✗ | **① 优先** ✓（需报告结构小扩展 ⇒ 见下 ✓） |
+| **B** | **20** | `crates/front/src/compile/elab.rs` | 诊断消息（**只有 4 处是给人看的** ✓，其余 17 处是判卷/解析输入 ✗） | **① 4 处** ✓ / **③ 17 处** ✓（§3 的 B 组逐条表 ✓） |
+| **C** | **22** | `crates/front/src/by.rs` | tactic 候选/错误文本（混判定输入 ✗） | 逐条判 ⏳ |
+| **D** | **17** | `crates/front/src/compile/goals.rs` | 目标/候选文本（混判定输入 ✗） | 逐条判 ⏳ |
+| **E** | **8** | `crates/front/src/compile/check/walk.rs`（**守卫修准后从 1 → 8** ✗） | 目标生产（**喂 judge** ✗） | **③ 不做** ✓（折它 = `suggest::*` 判红 ✓，见 §9 ㉜ ✓） |
+| **F** | **6** | `crates/front/src/semantic.rs`（`tag_runs_with_notations` ✓） | 分段标签 | **②** ✓（接缝守卫已钉 ✓） |
+| **G** | **3** | `crates/front/src/compile/prelude.rs`（**守卫修准后新可见** ✗） | prelude 的类型文本 | 逐条判 ⏳（多为**内建声明**的源级文本 ✓） |
+| **H** | **2 + 1** | `crates/front/src/compile/check/mod.rs`（`render_expr`×2 + **`print_back`×1** ✓） | 显示副本生产（**这类正是"该迁移"的** ✓） | **①** ✓（`print_back` 那处与 `kernel_phase` 同款 ✓） |
+| **I** | **3** | `crates/front/src/compile/tests.rs` | **测试期望串** | **③ 不做** ✓ |
+| **J** | **1** | `crates/front/src/judge.rs` | **判定量** | **③ 不做** ✓（内核红线 ✓） |
+| **K** | **1 + 1** | `crates/front/src/suggest.rs`(1) · `crates/front/src/query/mod.rs`(1，`tag_runs` ✓) | 候选文本 / wire runs | 逐条判 ⏳ / **②** ✓ |
+| — | **0** ✅ | ~~`kernel_phase.rs`~~ | ~~`ty_text`/`val_text`~~ | **✅ round 106 已迁** ✓（基线 -3 ✓） |
+
+**下一步顺序**（round 107 定 ✓）：**H 组的 `print_back` 那处**与 **B 组 4 处消息**最容易 ✓
+（都在 front 内部 ✓）；**A 组**需要先做报告结构扩展 ✓。
+
+---
+
+**历史（旧 77 版，保留对照 ✓）**：**基线全貌**（`scripts/notation-paths-baseline.txt`，共 **77** 处 ✓，按 文件×调用 归组 ✓）：
 
 | 组 | 处数 | 位置 | 产出什么 | 处置 | 理由 |
 |---|---|---|---|---|---|
