@@ -26,6 +26,23 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 364：探针加了看门狗 ⇒ **`exit 2`** ✓✓（**修前静默 0** ✗）**
+  ```
+  $ grep -nE "spawn|await " docs/gaps/repro/G37-….js
+    36: const child = spawn(process.execPath, [SOKO, 'lsp'], …) ✓
+    54/62/90: await lsp.next() ✓ ⇒ **LSP 不应答 ⇒ 永不 resolve** ✗ ⇒ **静默 exit 0** ✓✓ 确认
+  ⇒ 在 spawn 后加**看门狗** ✓（`setTimeout(… process.exit(2), 120000)` ✓）：
+  $ timeout 200 bash docs/gaps/repro/G37-….sh
+    结论：复现脚本超时（LSP 未应答）——环境/形状异常，**不是**"缺口仍在" ✓
+    exit=**2** ✓✓（修前是静默 0 ✗）
+  ⇒ ⇒ **矛盾解决** ✓：探针**本来就在静默 0** ✗ ⇒ 现在**如实报告环境异常** ✓
+    ⇒ `gap.py` 会判成"**环境/形状异常**" ✓（**不是"缺口仍在"** ✗）
+    ⇒ **5 分钟超时也会改善** ✓（2 分钟退出 ✓，不再空转 ✓）
+  ```
+  **⇒ 这是**第 g3 条的正解** ✓**：**不是"加 `continue-on-error`"** ✗（**那会掩盖回归** ✗），
+  而是**让探针把"环境"与"缺口"分开报** ✓ —— **三态 `0/1/2` 本来就是这个设计** ✓。
+  ⚠ **而这条修法可推广** ✓：**其余静默空转的探针也该加看门狗** ✓（**它们解释了 5 分钟超时** ✓）。
+
 * **🎯🎯 round 363：`G-37` 的真因 = **探针静默 exit 0** ✗（**台账其实是对的** ✓）**
   ```
   $ grep -nE "exit\(" docs/gaps/repro/G37-….js

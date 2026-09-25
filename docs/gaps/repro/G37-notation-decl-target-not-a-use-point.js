@@ -19,6 +19,14 @@
 //
 // 退出码：0 = 缺口仍在 · 1 = 已修（目标名成为使用点）· 2 = 环境/形状异常。
 const { spawn } = require('node:child_process');
+// ⚠ **看门狗（2026-09-25 round 362 ✓）**：LSP 不应答时 `await lsp.next()` **永不 resolve**
+// ⇒ **事件循环排空 ⇒ node 静默 exit 0** ✗ ⇒ `gap.py` 会把"**没跑完**"读成
+// "**缺口仍在**" ✗（**实测** ✓：CI 与本地都静默 0 ✓，而 `G-37` 的台账其实是 `fixed` ✓）。
+// 加这个看门狗后：够不到 LSP ⇒ **exit 2** ✓（"环境/形状异常" ✓ —— `docs/gaps/README.md` 的三态 ✓）。
+setTimeout(() => {
+  console.error('结论：复现脚本超时（LSP 未应答）——环境/形状异常，**不是**"缺口仍在"');
+  process.exit(2);
+}, 120000);
 const fs = require('node:fs');
 const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..', '..', '..');
