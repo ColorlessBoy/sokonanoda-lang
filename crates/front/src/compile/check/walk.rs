@@ -178,6 +178,27 @@ impl<'arena> Walk<'arena> {
     /// ⇒ 只写一边会让那份对照数据消失 ✗。两边都写 ⇒ 实验照旧 ✓、真环境也开始被填 ✓。
     ///
     /// **默认关** ✓（阶段 D 的护栏：先开关后默认 ✓）；要复现/推进 D-2 时打开 ✓。
+    /// **T-D8（D-2 的前缀复用）的处置 —— 2026-09-25 round 310 量清 ✓**
+    ///
+    /// **这个开关默认关** ✓，而且**没有可测收益** ✗ —— 这不是"没做完"✗，是
+    /// **前提过期** ✗：计划的措辞写在 **R-3（`.sokonanoda/compiled/`）之前** ✓，
+    /// 而 R-3 已经把"热编译"这件事做完了 ✓（小项目冷/热 **0.08s → 0.04s** ✓；
+    /// 整门课 `soko course` **压根不缓存** ✓ 且只要 **0.38s** ✓）。
+    ///
+    /// **但它不是废码** ✓：判据**超额达成** ✓（开关态 failed **100 → 0** ✗✓、
+    /// 组合态 **= 基线 11** ✓）、三层回归全过 ✓（kernel `tests/` ✓ · front 736/0 ✓ ·
+    /// CLI `--json` **逐字节相同** ✓），而且**它动过的那条热路径**
+    /// （`did_open_same_session`，**134ms** ✓）现在由 CI 的 **`perf-gate`** 守着 ✓
+    /// —— **收益量不出，但"以后慢下来会被发现"** ✓。
+    ///
+    /// **回退方式** ✓：删掉本函数 + 三处 `Self::walk_real_add_enabled()` 的 `if` 分支
+    /// （`walk.rs` 的 `build_redundant_probes` 调用点 ✓），并把内核的
+    /// `hide_declars` / `restore_declars`（`crates/kernel/src/builder.rs` ✓）一并删除 ✓
+    /// —— **默认路径不调用它们** ✓ ⇒ 删掉后判定行为**零变化** ✓。
+    ///
+    /// **复现（判它是否还值得留）** ✓：
+    /// `SOKO_WALK_REAL_ADD=1 cargo test -q -p sokonanoda-front --lib` ✓
+    /// ⇒ 期望 **736 passed / 0 failed** ✓（关掉时同样 736/0 ✓）。
     fn walk_real_add_enabled() -> bool {
         static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
         *ON.get_or_init(|| std::env::var("SOKO_WALK_REAL_ADD").is_ok_and(|v| v != "0"))
