@@ -884,6 +884,28 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **⚠ round 290：C1 五处试了一次、三个错、已回退 ✓（三处修正都已明确 ✓）**
+    ```
+    ① E0560: struct `Walked` has no field named `probe_builder`
+       ⇒ 我的锚点 `builder: walk.builder,` 命中的是 **`Walked` 的构造** ✗（不是 `Walk` ✓）
+       ⇒ `probe_builder` 该加在 **`Walk { … }`** 的构造处 ✓
+    ② E0425: cannot find function `walk_real_add_enabled` in this scope
+       ⇒ `check/mod.rs` 里也要一个**就地**读环境变量的 helper ✓（或内联 `std::env::var` ✓）
+    ③ 脚本在 a4 中止（AssertionError: ('a4', 0)）⇒ **③④⑤ 未落上** ✓
+       ⇒ 真实文本是**跨行**的 ✗：`redundant_probes: build_redundant_probes(
+    &mut self.builder,`
+       ⇒ 锚点必须**含换行** ✓（我写成了单行 ✗）
+    ⇒ **自动回退** ✓（树干净 ✓ 零损伤 ✓）
+    ```
+    **⇒ 下一轮照做（三处修正 ✓）**：
+    * ① 改用 `Walk {` 的构造锚点 ✓（`git grep -n "Walk {"` ✓ 先读实 ✓）；
+    * ② 在 `check/mod.rs` 顶部加一个同名的就地 helper ✓（**同名不同模块** ✓，各自 `OnceLock` ✓）；
+    * ③ ④ 的锚点改成**跨行**两行 ✓（`redundant_probes: build_redundant_probes(` + `    &mut self.builder,` ✓）
+      ⇒ 三处 `replace_all` ✓。
+    ⚠ **教训（第九次编译错 ✓，同类 ✓）**：**锚点必须照抄"跨行"的真实形状** ✗ ——
+    这已经是**第三次**栽在锚点上 ✓（缩进 ✗、行内 ✗、跨行 ✗）⇒ **根治办法** ✓：
+    **先 `grep -A1` 把真实文本打出来** ✓，**再写锚点** ✓ —— 而不是凭"我记得它是这么写的" ✗。
+
   - **✅ round 289：C1 的接线**再简一步** ✓（免去把 `ArenaRef` 接进 walk ✗）**
     **关键简化** ✓：**在 `check/mod.rs` 里把 `probe_builder` 建好** ✓（`arena` 与 `builder` 都在这 ✓，
     `:752` 附近 ✓）⇒ 然后**把它作为字段传给 `Walk`** ✓ ⇒ **不需要**把 `ArenaRef` 类型接进 walk ✗✓。
