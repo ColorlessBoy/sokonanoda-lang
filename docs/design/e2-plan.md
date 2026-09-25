@@ -884,6 +884,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **⚠ round 296：想用"临时关掉 C1"分离 A，**没编译过** ✗ ⇒ 改用"读" ✓**
+    `probe_builder: None` ✗ ⇒ `cargo check` 失败（**输出被 `>/dev/null` 吞了** ✗ ——
+    **本 session 的老毛病** ✓：**判据不能掩膜** ✓）⇒ 大概率是 `-D warnings` 把
+    "**未使用的 `probe_builder`**"变成错误 ✓。⇒ **已回退** ✓（树干净 ✓）。
+    **⇒ 改用"读"** ✓（**一条命令、零风险** ✓，本 session 反复奏效 ✓）：
+    ```bash
+    git grep -n "shadow_env()" -- crates/front/src
+    ```
+    ⇒ 若 `shadow_env()` 的调用点**只有**"judge / 影子实验"那几处 ✓
+    ⇒ ⇒ **A 单独使用时重放不会发生** ✓ ⇒ **A 是空转的** ✓✓
+    ⇒ **那 B（跳过重查）才是唯一需要修的东西** ✓，而 **C1 是在修一个不存在的问题** ✗
+    （它带来的 5 条新失败 ✗ 与修好的 11 条 ✓ 都要**重新归因** ✓）。
+    ⚠ **注意** ✓：**"没输出"也是一种输出** ✗ —— 这一轮我把 `cargo check` 的
+    **错误信息丢进了 `/dev/null`** ✗ ⇒ 于是"为什么没编译过"**变成了猜** ✗
+    ⇒ 这正是 `AGENTS.md` 那条"**无 grep 掩膜**"纪律的又一次实例 ✓。
+
   - **🎯🎯🎯 round 295：`with_env` 的文档答了这题 ✓，同时**推翻了对 96/100 的归因** ✗**
     ```
     builder.rs:26  pub struct EnvBuilder<'a> { … dag: Dag<'a>, … declars: DeclarMap<'a>, … }
