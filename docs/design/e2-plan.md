@@ -884,6 +884,34 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🔴 round 288：C2 的"一行判断"**不可行** ✗（闸门无法追溯 ✓）⇒ C1 才是路 ✓**
+    ```
+    enum PendingOp（check/mod.rs:25 ✓）
+      Decl { name, kind, declar, span, cmd, by_steps }        ← **无探针** ✓
+      InductiveBlock { name, declars, span, cmd }             ← **无探针** ✓
+      OpenExercise { …,
+        :80 /// 「多余的 sorry」的 kernel 探针：pass 1 造、pass 2 查、**不入环境** ✓
+        redundant_probes: Vec<(Declar, Span)> }               ← **只有它带探针** ✓
+    ⇒ 而 **replay 只处理 `Decl` 与 `InductiveBlock`** ✓（`OpenExercise` 落进 `_ => {}` ✓，walk.rs:161 ✓）
+    ⇒ **probe 自己的声明从不被真 add** ✓ ⇒ **翻转来自它前面那些 `Decl`** ✓✓
+    ```
+    **⇒ C2 否决** ✗：闸门要在**第一个 `Decl` 被 add 时**就知道"本文档后面有探针" ✗ ——
+    而那时 `OpenExercise` **还没进 `ops`** ✗（walk 是顺序进行的 ✓）⇒ **无法追溯** ✓。
+    **⇒ 所以 C1 是唯一的路** ✓：**给 probe 一份"只有 prelude"的环境** ✓
+    （同 arena ✓ ⇒ 指针同一性保住 ✓，round 287 ✓）。
+    **⇒ C1 的具体形状（现在可以写死 ✓）**：
+    ① `Walk` 加字段 `probe_builder: Option<EnvBuilder<'arena>>` ✓
+       （或 lazy 建 ✓，与 `shadow` 同一模式 ✓）；
+    ② 它用 **`builder` 的 arena** ✓（需 `Walk` 也持有 arena ✓，或建 builder 时把 arena 传进 `Walk` ✓
+       —— `check/mod.rs:752` 建 builder 时 arena 在手边 ✓）；
+    ③ 建好后 **`install_all_preludes(...)`** ✓（照 `check/mod.rs:781-786` 的写法 ✓）；
+    ④ 三处 `build_redundant_probes(&mut self.builder, …)`（`walk.rs:567/791/1104` ✓）
+       **改成 `&mut probe_builder`** ✓；
+    ⑤ **开关控制** ✓（`SOKO_WALK_REAL_ADD` 打开时才走 C1 ✓；关时保持现状 ✓
+       ⇒ **默认路径零变化** ✓）。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 回到基线 11** ✓ · 组合 **11** ✓ ·
+    四件套 ✓ · 基准再降 ✓；**反向验证** ✓：把 ④ 改回 `self.builder` ⇒ **必须回到 100** ✓。
+
   - **✅ round 287：C1 **原理可行** ✓（arena 是参数 ✓）—— 但要把 arena 接进 walk ✓**
     ```
     kernel/src/builder.rs:116   pub fn new(arena: &'a ArenaRef<'a>, config: Config) -> Self
