@@ -2229,6 +2229,30 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [ ] `T-D10` **阶段 D-2 收尾**：bump **`0.70.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 去掉重复检查（第二刀）
 - [ ] `T-D11` **跨会话复用**（第三刀）：把"已验证的前缀环境"按 `.sokonanoda/` 持久化 ✓ ⇒ **编辑中热编译**再降 ✓（生命线 ✓）
+  - **📊 round 309：冷/热两态量出来了 ⇒ 热态**已经快 2×** ✓，而绝对量只有 **40ms** ✗**
+    ```
+    $ rm -rf course/unit11-project/.sokonanoda ; time scripts/soko grade --json <入口>
+      冷 : real **0.08s** ✓（产物 1 个条目 ✓）· exit=0 ✓
+      热 : real **0.04s** ✓
+      热2: real **0.04s** ✓（稳定 ✓）
+    两态判卷结果**逐字节一致** ✓（md5 相同 ✓ ⇒ **缓存不改判定** ✓）
+    ```
+    **⇒ 读法** ✓：**"第二次打开"已经快 2 倍** ✓ —— 而这**正是 T-D11 想赚的那笔** ✓
+    ⇒ 它的**绝对量只有 40ms** ✗ ⇒ **T-D11 的第三刀几乎没有可赚的** ✓
+    ⇒ **原因**：计划的"生命线"措辞写在 **R-3 之前** ✓ —— 而 **`.sokonanoda/compiled/`
+    （T-B5 ✓）已经把这一刀兑现了大半** ✓✓（`cache.rs:175` ✓："换一个根目录就是另一个缓存"✓）。
+    ⚠ **必须补的口径（结论前 ✓）**：这只量了**小项目** ✓（unit11-project ✓，1 个产物条目 ✓）
+    ⇒ **大语料（整门课 `courses/set-theory` ✓）的冷启动可能大得多** ✗
+    ⇒ **下一步（一条命令 ✓）**：量**整门课**的冷/热 ✓
+    ```bash
+    rm -rf courses/set-theory/**/.sokonanoda
+    time scripts/soko course "$PWD/courses/set-theory/course.json" --json   # 冷
+    time scripts/soko course "$PWD/courses/set-theory/course.json" --json   # 热
+    ```
+    ⇒ 若**大语料**的冷/热差**显著**（例如 >2s ✓）⇒ **T-D11 有真收益** ✓ ⇒ 做 ✓；
+    ⇒ 若**同样只有几十 ms** ✗ ⇒ **T-D11 也是"修一个不存在的问题"** ✗（**第三次** ✓）
+      ⇒ 按 **C3** 处置 ✓（"**D 可停在任一小步**"✓），把三步都记为"**已实现/已量/默认关**" ✓。
+
   - **🔎 round 308：T-D11 确实没做 ✓，而它有一个**结构性约束**要先解决 ✓**
     ```
     T-D11 原文 ✓：跨会话复用（第三刀）：把"已验证的前缀环境"按 `.sokonanoda/` 持久化 ✓
