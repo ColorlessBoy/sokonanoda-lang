@@ -525,3 +525,20 @@ signature: Some(crate::proof::render_expr(ty)),
 ⇒ G 组 **0 条迁移 / 3 条 ③** ✓ —— 它们此前**不在**旧基线里 ✓（守卫修准后才露出来 ✓，
 `round 105` ✓），所以是**新可见、但不需要动**的一批 ✓。
 ---
+
+### **I 组（`compile/tests.rs`，3 条）· J 组（`judge.rs`，1 条）逐条处置** ✅（round 171 ✓）
+**I 组** —— 三条都在**同一个往返测试**里 ✓（`tests.rs:1501-1505` ✓）：
+```rust
+assert_eq!(render_expr(&expr), expected, "source: {source}");        // :1501
+let back = parse_expr_text(&render_expr(&expr))                      // :1503
+assert_eq!(render_expr(&back), expected, "round-trip: {source}");    // :1505
+```
+⇒ 它们验的是**渲染器的往返性质** ✓（源 → AST → 文本 → AST → 文本 ✓）⇒ **测试内部的期望串** ✗
+⇒ **③ 不做** ✓（在那里折记法就**换了一个被测对象** ✗ —— 测的就不再是"往返"了 ✓）。
+**J 组** —— `judge.rs:1113` ✓：
+```rust
+_ => render_expr(expr),          // 判定侧渲染器的**回退分支**
+```
+⇒ 它是**判定量** ✗（`judge` 模块 ✓）⇒ **折它 = 改判定** ✗（内核红线 ✓）⇒ **③ 不做** ✓。
+⇒ **两组共 4 条：0 迁移 / 4 条 ③** ✓ —— 与组级结论一致 ✓、理由各自具体 ✓。
+---
