@@ -1497,7 +1497,6 @@ fn render_msg(ctx: &ElabCtx<'_, '_>, expr: &Expr) -> String {
 /// binder 记法的操作数（`fun (x : A) => …`）在 binder 没写类型时**由 guard
 /// 反解**出类型并填进注解（第三刀 §12.1）。不需要动 ⇒ `None`（走原路径）；
 /// guard 在、但解不出 ⇒ `elab-binder-notation-unsolved`。
-
 fn binder_notation_operand(
     symbol: &str,
     operand: Option<&Expr>,
