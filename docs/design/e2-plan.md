@@ -464,6 +464,17 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ **判据成立** ✓ ⇒ **本条可勾** ✓（交付物 ✓ + 判据 ✓ 都在 ✓）。
 
 - [ ] `T-D6` **量收益 + 默认打开**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓；**收益成立才默认打开** ✓（否则保持关闭并记录 ✗）
+  - **✅ round 224 收缩：T-D6 只剩"量收益"** ✓（"默认打开"这半条**已完成** ✓）
+    计划原文 ✓："**收益成立才默认打开** ✓（否则保持关闭并记录 ✗）" —— 而代码**已经默认开** ✓
+    （`judge.rs:441` 的 `unwrap_or(true)` ✓，且 round 224 已实测**两态逐字节相同** ✓
+    ⇒ "默认打开"**已达成且已证明等价** ✓）。
+    **⇒ 本条实际只剩一件事** ✓：用 `SOKO_JUDGE_STATS` 量出**收益** ✓ ——
+    即 `JUDGE_INFER` 的 **miss 成本是否塌下来** ✓（前缀复用命中率 ↑ ⇒ 重查 ↓ ✓）。
+    **下一步（一条命令 ✓）**：`git grep -n SOKO_JUDGE_STATS` ✓ 找统计入口 ✓
+    ⇒ 在**大文件 by 密集解答**（例如 `courses/set-theory/` 的某个单元 ✓ 或
+    `examples/` 里最重的那个 ✓）上跑两态 ✓ ⇒ 记数字进 `docs/perf/ledger.jsonl` ✓
+    （**性能只升不降** ✓ ⇒ 若 miss 成本没塌 ⇒ **如实记录并说明** ✓，不许糊 ✓）。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
