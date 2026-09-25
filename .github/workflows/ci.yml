@@ -224,10 +224,16 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
       - name: Lesson corpus is valid
+        # **一次构建 + N 次直调**（2026-09-25 round 192 ✓，方案 ② ✓）：
+        # 原来把 `cargo run` 写在**循环里** ✗ ⇒ 每个样例都重新过一次 cargo ✓
+        # （检查新鲜度 + 起进程 ✓）⇒ 语料一多就线性变慢 ✗。
+        # `cargo run` 在循环外跑**一次** ✓，循环里直接调二进制 ✓ ⇒ 去掉固定开销 ✓。
         run: |
+          cargo build -q -p sokonanoda-cli --locked
+          bin=target/debug/sokonanoda
           for f in examples/*.sokonanoda; do
             echo "checking $f"
-            cargo run -q -p sokonanoda-cli --bin sokonanoda -- "$f" >/dev/null
+            "$bin" "$f" >/dev/null
           done
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
