@@ -884,6 +884,27 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯 round 282：决定性收窄 —— 污染源就在 `a*` 组**内部** ✓（空间缩到 38 个 ✓）**
+    ```
+    目标单独          : 1 passed; **0 failed** ✓
+    compile::         : 299 passed; **59 failed** ✗   ← 含目标 ✓
+    compile::tests::a : 30 passed; **8 failed** ✗   ← **不含目标** ✗
+    ```
+    ⇒ **关键** ✓：**`a*` 组（30 个测试 ✓、不含目标 ✗）自己就有 8 条失败** ✓
+    ⇒ **不是"目标被别人污染"** ✗，而是"**同组测试互相污染**" ✓✓
+    ⇒ **空间从 736 缩到 38** ✓（`a*` 组的全部 ✓）⇒ **可以二分** ✓。
+    **⇒ 下一步（对数级 ✓，一条命令一轮 ✓）**：用**更窄的前缀**二分 ✓ ——
+    ```bash
+    for p in 'compile::tests::a_a' 'compile::tests::a_c' 'compile::tests::a_e' 'compile::tests::a_i' 'compile::tests::a_k' 'compile::tests::a_n' 'compile::tests::a_p' 'compile::tests::a_r' 'compile::tests::a_s' 'compile::tests::a_t' 'compile::tests::a_u' 'compile::tests::a_w'; do
+      n=$(SOKO_WALK_REAL_ADD=1 cargo test -q -p sokonanoda-front --lib -- --test-threads=1 "$p" 2>&1 | grep -oE "[0-9]+ failed" | head -1)
+      echo "$p => ${n:-0 failed}"
+    done
+    ```
+    ⇒ 找出**第一个**含失败的最窄前缀 ✓ ⇒ 在它里面继续二分 ✓
+    ⇒ **几轮之后就能点到"哪两个测试放在一起会红"** ✓ ⇒ 那个状态**就是污染源** ✓✓。
+    ⚠ **方法（这一轮的方法价值极高 ✓）**：**"改一个猜一个"换成"用前缀二分空间"** ✓ ——
+    前者每轮排除**一个假设** ✗，后者每轮砍掉**一半空间** ✓。
+
   - **🔴 round 281：缓存层空转**也无效**（100 → 101 ✗）⇒ 判卷缓存**被排除** ✓**
     ```
     默认        : 736 passed; 0 failed ✓
