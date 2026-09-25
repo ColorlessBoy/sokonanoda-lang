@@ -462,6 +462,25 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     课程计数逐项不变 ✓ + `scripts/soko gate` 全绿 ✓；② 打开 ⇒ walk 累积的
     `decl_states`/判定量与 `finish_pass` 那条**逐项相同** ✓（"判定量逐字节一致 ✓"）。
     **不要**在开关关闭路径上顺手改行为 ✗（本环节的价值就是"默认零成本" ✓）。
+  - **🔴 2026-09-25（round 211-219）实测更正：这一条的描述已过时，且它的判据 ② 不成立** ✗
+    * **开关真名是 `SOKO_SHADOW_CHECK`** ✗（不是本条写的 `SOKO_WALK_CHECK` ✗，全仓 0 处 ✓）；
+    * **"边 elaborate 边 `with_env` 检查 + `add_declar`" 早已实现** ✓
+      （`walk.rs:125` 的 `Walk::shadow_env` ✓ + `:172` 的 `shadow_check_and_add` ✓，
+      注释自称"与 `kernel_phase` 同序同语义" ✓）；
+    * **判据 ②（打开 ⇒ 判定量逐项相同）不成立** ✗ —— 实测
+      `SOKO_SHADOW_STRICT=1 cargo test -p sokonanoda-front --lib` ⇒ **MISMATCH = 181** ✗
+      （其中 **172 条是"影子多报"** ✗ = 影子**偏严** ✓）；
+    * **但这**不是**新发现** ✓：`check/mod.rs:768-772` 的注释**早已写明** ✓ ——
+      "影子是 T-K12b 的**实验品**、**对照判据已判定它与内核阶段不等价** ✗
+      （差在**增量记账**：`skip`/`trust`/pass1-pass2 ⇒ 影子偏严）、**不能进判定路径**" ✓；
+    * ⇒ **本条的正体其实是"T-K12b 收敛"** ✓（在 `docs/design/vscode-editor-feedback-plan.md` ✓），
+      **不是**"给 walk 加一个开关" ✗（那个开关已经在 ✓）；
+    * **本轮新增的可复现判据** ✓：`SOKO_SHADOW_STRICT=1` ⇒ 断言生效（MISMATCH=181 ✓）；
+      `SOKO_SHADOW_CHECK=1` ⇒ **只观测** ✓（恢复原用途 ✓）；**默认 ⇒ 736 passed 零影响** ✓
+      （round 219 三态实测 ✓）。
+    * ⇒ **本条不勾** ✗（判据 ② 不成立 ✓）；**建议改判为指向 T-K12b** ✓ ——
+      即"让影子忠实镜像内核阶段（补上 skip/trust/pass1-pass2 的增量记账）" ✓。
+
 - [ ] `T-D4` **D3 判据**：开关两态 `--json` 逐字节相同 ✓ + 课程计数不变 ✓ + 事件计数不变 ✓（**开关开**时也相同 ✓ ⇒ 证明"两遍检查"语义等价 ✓）
 - [ ] `T-D5` **judge 接快照（开关默认关）**：`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>` ⇒ `snapshot()` 查合成声明 ✓；拿不到**回退**旧路径 ✓；`SOKO_JUDGE_ENV_REUSE=1` 才启用 ✓
 - [ ] `T-D6` **量收益 + 默认打开**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓；**收益成立才默认打开** ✓（否则保持关闭并记录 ✗）
