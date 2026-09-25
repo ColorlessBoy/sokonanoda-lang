@@ -26,6 +26,30 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🔴 round 340：三条 `test` 腿红 ⇒ **一个是我造成的 ✗，两个是 CI 矩阵本来的 bug** ✗✓**
+  ```
+  $ cargo test -q -p sokonanoda-front --doc --locked      # ← CI 的 test (front, doc) 腿 ✓
+    error: **unknown start of token: \u{ff1a}**  ← **全角冒号 `：`** ✗
+    error: expected one of `!` or `::`, found `:`
+    test result: FAILED. 3 passed; **1 failed** ✗
+  ⇒ **round 332 我写的 `///` 注释里有一行被 rustdoc 当成**代码块** ✗**
+    （`///` 后**缩进**的内容 ⇒ **doctest** ✓）⇒ 里面的**全角冒号** ⇒ 解析错 ✓✓ **这是我的** ✗
+
+  $ cargo test -q -p sokonanoda-cli --doc --locked
+    error: **no library targets found in package `sokonanoda-cli`** ✗
+  $ cargo test -q -p sokonanoda-cli --lib --locked
+    error: **no library targets found in package `sokonanoda-cli`** ✗
+  ⇒ **`sokonanoda-cli` 是纯 bin crate** ✓ ⇒ 这两条腿**问它要 lib/doc** ✗
+  ⇒ ⇒ **CI 矩阵里这两条腿**本来就是红的** ✗✓**（`b4aca6e` 那轮的三条正是它们 ✓）
+  ```
+  **⇒ 三条 = 1 个我的 ✗ + 2 个矩阵的 ✗** ⇒ 分别处置 ✓：
+  ① **修我的 doc 注释** ✓（把缩进代码块改成**行内** ✓ —— 或干脆去掉缩进 ✓）；
+  ② **报告矩阵的两条腿要修** ✓（`sokonanoda-cli` 的 `--lib`/`--doc` 腿应删 ✓
+     —— 它是**纯 bin** ✓ ⇒ 这两条腿**永远红** ✗ ⇒ **`auto-tag` 因此永远不触发** ✗✓！）。
+  ⚠ **⇒ 而 ② 解释了"release 为什么一直不触发"的**第三层原因** ✗**：
+  即使重活跑了 ✓、即使树是新的 ✓，**这两条腿也会红** ✗ ⇒ **`auto-tag` 的 `needs` 里有 `test`** ✓
+  ⇒ **必须先把矩阵修对** ✓。**⇒ 这是本轮最重要的发现** ✓。
+
 * **📊 round 339：量了 smoke 的**本地抖动** ✓（为定阈值 ✓）—— 而我又先猜了格式 ✗**
   ```
   $ scripts/perf-check.sh --case judge_prefix_with_imported --threshold 50
