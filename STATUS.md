@@ -26,6 +26,26 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯🎯 round 367：默认 target 下 **`G-37` 给出 `exit=1`（已修）** ✓✓✓（**台账一直是对的** ✓）**
+  ```
+  $ unset CARGO_TARGET_DIR && cargo build -q -p sokonanoda-cli --locked   # → target/debug/ ✓
+  $ timeout 200 bash docs/gaps/repro/G37-….sh
+    Set.powerset (prefix)|def    @124:24  {…} ✓          ← **跳转成功** ✓
+    Set.powerset (prefix)|hover  @124:24  "`Set.powerset` —— 记法的目标" ✓
+    Set.compl (postfix)|def      @125:24  {…} ✓
+    Set.image (infixr)|def       @126:23  null ✓          ← **诚实为 null** ✓（不在闭包 ✓）
+    Set.image (infixr)|hover     @126:23  "`Set.image` —— 记法的目标" ✓
+    结论：**G-37 已修**——目标名 hover 五条全答得上；在闭包里的两条 definition 也答得上 ✓
+    exit=**1** ✓✓✓
+  ```
+  **⇒ 两条结论** ✓：
+  ① **`G-37` 的台账条目正确** ✓（`fixed` ✓）—— **本地静默 0 纯粹是 `CARGO_TARGET_DIR`** ✗✓；
+  ② **CI 上 CLI 是构建好的** ✓（`--release` ✓）⇒ **探针本该给 `exit 1`** ✓
+    ⇒ **但它报了"缺口仍在"** ✗ ⇒ ⇒ **CI 上的探针也在静默 0** ✗（**别的原因** ✓）
+    ⇒ **而看门狗现在会让它显形** ✓✓ —— **这正是那个修复的价值** ✓（**`exit 2` 而非静默 0** ✓）。
+  **⇒ 下一步** ✓：**一次推**（含三个看门狗 ✓ + 全部修复 ✓）⇒ **CI 上 `ledger` 应给出
+  `exit 2`（环境）或 `exit 1`（已修）** ✓ ⇒ **无论哪个都不再是"缺口仍在"** ✓ ⇒ **三片红应消失** ✓。
+
 * **🎯🎯 round 366：本地静默 0 的真因 = **`CARGO_TARGET_DIR`** ✗（而 CI 其实是对的 ✓）**
   ```
   ledger job ✓：timeout **30** ✓（不是 5 ✗）· shard [1,2,3] ✓ · fail-fast: false ✓
