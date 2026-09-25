@@ -59,6 +59,13 @@ def main() -> int:
         )
     }
 
+    # **反向验证注入点**（AGENTS 硬要求：守卫必须能咬住已知历史 bug ✓）：设了这个环境
+    # 变量就**模拟 R-1** —— 把 `value_runs` 从"LSP 发送侧"抹掉 ✓，后文必须把它报成
+    # MISSING ✓（`--selftest` 用子进程跑这一支 ✓；咬不住的守卫等于没有 ✓）。
+    if os.environ.get("SOKO_WIRE_SELFTEST") == "1":
+        if "GoalDeclInfo" in wire:
+            wire["GoalDeclInfo"] = {f for f in wire["GoalDeclInfo"] if f != "value_runs"}
+
     missing: dict[str, list[str]] = {}
 
     def collect(path, var, structs, only=None, lo=1, hi=10**9):
@@ -106,4 +113,27 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        # **反向验证**（硬要求 ✓）：抹掉 `value_runs` ⇒ 守卫**必须判红** ✗⇒✓。
+        # 为什么值得一条专门通道：这个守卫是**唯一**能咬 R-1（`value_runs` 漏映射 ⇒
+        # Infoview 静默降级）的东西 ✓，而它此前**从不自动跑**（审计 #3 ✓）。
+        import subprocess
+
+        env = dict(os.environ, SOKO_WIRE_SELFTEST="1")
+        probe = subprocess.run(
+            [sys.executable, os.path.abspath(__file__)],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        caught = probe.returncode == 1 and "value_runs" in probe.stdout
+        if caught:
+            print("wire-fields self-test: OK（抹掉 value_runs ⇒ 被抓到 ✓ —— 能咬住 R-1 ✓）")
+            raise SystemExit(0)
+        print(
+            "wire-fields self-test: FAIL（抹掉 value_runs 却没报 ✗ ⇒ 守卫咬不住 R-1 ✓；"
+            f"exit={probe.returncode}, out={probe.stdout.strip()[:200]!r}）",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
     raise SystemExit(main())

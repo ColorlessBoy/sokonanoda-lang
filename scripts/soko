@@ -1055,6 +1055,39 @@ async function main(argv) {
         return 3
       }
       if ((paths.status ?? 3) !== 0) return paths.status ?? 3
+      // **A∖B 接缝守卫**（审计 #3，2026-09-25）：`audit-wire-fields.py` 抓"扩展读了 /
+      // LSP 从不发"的字段 —— 它是**唯一**能咬 R-1（`value_runs` 漏映射 ⇒ Infoview 静默降级）
+      // 的守卫 ✓，而文档（AGENTS.md / docs/CI-FAILURES.md）**一直宣称"已进 gate 与 CI"** ✗，
+      // 实测 `grep -c audit-wire-fields scripts/soko` = **0** ✗ ⇒ **从不自动跑** ✓
+      // —— 与 R-3「门禁崩了却不判」同形 ✓。这条补上 ✓。
+      const wireFields = path.join(REPO, 'scripts', 'audit-wire-fields.py')
+      if (!existsSync(wireFields)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, wireFields)} —— 接缝对账无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const wire = spawnSync(python.cmd, [...python.args, wireFields], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (wire.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${wireFields}: ${wire.error.message}\n`)
+        return 3
+      }
+      if ((wire.status ?? 3) !== 0) return wire.status ?? 3
+      // **守卫的反向验证**也进 gate ✓（`AGENTS.md`：咬不住的守卫等于没有 ✓）：
+      // 抹掉 `value_runs` 必须被判红 ✗⇒✓ —— 这一跑才证明上面那条守卫**真的在咬** ✓。
+      const wireSelf = spawnSync(python.cmd, [...python.args, wireFields, '--selftest'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (wireSelf.error || (wireSelf.status ?? 3) !== 0) {
+        process.stderr.write(
+          `scripts/soko gate: ${path.relative(REPO, wireFields)} --selftest 失败 —— 守卫咬不住 R-1（exit 3）。\n`,
+        )
+        return 3
+      }
       // Ledger contract: every gap's repro must still agree with its recorded
       // status (`docs/gaps/ledger.jsonl`, docs/gaps/README.md). Cheap (~3 s) and
       // it is the only thing that keeps "fixed_in" honest as the language moves.
