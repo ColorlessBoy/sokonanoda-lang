@@ -1049,3 +1049,34 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     —— **判据现成 ✓**：改完重跑 `SOKO_SHADOW_CHECK=1 cargo test -p sokonanoda-front --lib` ✓
     ⇒ **MISMATCH 数应从 181 明显下降** ✓（若掉到只剩那 9 条块级的 ✓ ⇒ 说明这一行就是主因 ✓✓）。
     **反向验证** ✓：把 limit 改回无实证的默认值 ⇒ **MISMATCH 必须回到 181** ✓。
+
+    **✅ round 216：那一行已经写准（可直接照做 ✓）**
+    **语义确认** ✓：`EnvLimit::ByIndex(usize)` ✓（`kernel/src/env.rs:227-232` ✓）；
+    内核阶段的注释 ✓：`env_before`（= **该声明若补完时会占的下标**）✓
+    ⇒ 而影子的 `EnvBuilder::declaration_count()` ✓ 在**检查那一刻**正好就是这个下标 ✓✓
+    （影子是 **check-then-add** ✓ ⇒ 环境里只有"这条之前"的声明 ✓；`declaration_count()`
+    在 `check/mod.rs:882` 已在用 ✓ ⇒ API 存在 ✓）。
+    **补丁（`walk.rs:172-185` 的 `shadow_check_and_add` ✓）**：
+    ```rust
+    fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) -> bool {
+        let declar = declar.clone();
+        // **与 kernel_phase 同视野** ✓（T-D3 ✓，2026-09-25）：`env_before` = 这条声明
+        // 若补完时会占的下标 ✓；影子此刻的环境里只有"这条之前"的声明 ✓ ⇒ 直接取计数 ✓。
+        // 此前**没有 limit** ✗ ⇒ 影子看到的是默认/更宽的环境 ✗ ⇒ 判等与宇宙层推断
+        // 的上下文不同 ✗ ⇒ 172 例"打印相同却判不等" ✓（round 214-215 实测 ✓）。
+        let env_before = self.shadow.declaration_count();
+        let result = self
+            .shadow
+            .with_env(|env| env.try_check_declar_at(&declar, EnvLimit::ByIndex(env_before)));
+        ...
+    ```
+    （`EnvLimit` 需要从 `sokonanoda_kernel::env::EnvLimit` 引入 ✓ —— 若 front 已有 re-export ✓
+    就用既有的路径 ✓，`cargo check` 会告诉你是哪个 ✓。）
+    **判据（照抄 ✓）**：
+    1. `cargo check -p sokonanoda-front` ⇒ rc=0 ✓；
+    2. `SOKO_SHADOW_CHECK=1 cargo test -p sokonanoda-front --lib` ⇒ **MISMATCH 应从 181 降** ✓
+       （若只剩 **9 条**块级的 ✓ ⇒ 这一行就是主因 ✓✓）；
+    3. **反向验证** ✓：把 limit 去掉（改回 `try_check_declar` ✓）⇒ **MISMATCH 必须回到 181** ✓。
+    **剩下的 9 条**（`missing inductive block boundaries` ✗ / `index out of bounds` ✗）另行处理 ✓：
+    影子按**逐声明**检查 inductive ✗、内核阶段按**块** ✓（`walk.rs:156` 的 break 循环 ✓）——
+    那是第二个偏差 ✓，与这一行**互不重叠** ✓。
