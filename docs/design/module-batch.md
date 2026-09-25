@@ -123,3 +123,17 @@ T-C5 量出收益并**默认打开**（数字进 `docs/perf/ledger.jsonl`）。
 **不**默认打开 `build <dir>` 的批路径；`T-C5` 的"默认打开（收益已证）"**不成立**，
 除非阶段 D 的前缀复用把"长前缀"的代价压下来（那正是 D 要啃的）。
 本结论与数字一并进 `docs/perf/ledger.jsonl`（`batch_vs_per_entry`）。
+
+## 9. T-C4 接线时要处理的一个细节（2026-09-25 规划实现时发现）
+
+`compile_all_units(units, options)` 对**整批**只有一个 `CompileOptions` ✗，而 CLI 的
+prelude 模式是**逐文件**从文件头指令推出来的（`prelude_mode_from_source(src)`，
+`crates/cli/src/build.rs`）⇒ 一批里若混了 `-- bare` 与非 bare 的文件，**不能**放进同一个
+单元列表（否则后者的 prelude 形状会被前者的选项决定 ✗）。
+
+⇒ 接线时按 **(模块根, prelude 模式)** 分组，每组各批一次；分组键也要进缓存键
+（既有纪律：prelude 形状是键的一部分，`compile-cache.md` §7）。
+
+另一条口径：批路径 v1 **不查/不写**产物缓存，只做"编一次 + 报逐文件状态"——
+它的角色是 T-C5 的**量具**（要和逐入口同口径比时间）；等收益被证明、再决定缓存怎么接
+（那时才轮到 T-C6 的"从 `.sokonanoda/` 取模块级产物"）。
