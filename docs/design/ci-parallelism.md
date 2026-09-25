@@ -47,3 +47,17 @@
 2. **全文件重复键扫描** ✓ + `yaml.safe_load` ✓（写前过一遍 ✓）；
 3. **A∖B 接缝** ✓：job 之间**只传 artifact** ✓，别再各自解析仓库状态 ✗；
 4. **失败要早可见** ✓：`ci-watch.sh`（按 job ✓）+ `$GITHUB_STEP_SUMMARY` ✓。
+
+## 附：**Actions 的 2 warnings / 4 notices 也要处置**（2026-09-25 用户要求 ✓）
+用户原话 ✓："github action 里的 **2 warnings and 4 notices 也不要忽略了**" ✓。
+**已见到的清单** ✓（取自 `check-runs` 注解 ✓）：
+| 级别 | 内容 | 处置 |
+|---|---|---|
+| ⚠ warning | `Node.js 20 is deprecated … actions/download-artifact@v5 … forced to run on Node.js 24` ✗ | **查有没有更新的 major** ✓（若 action 本身已最新 ⇒ 属 GitHub 侧 ✗ ⇒ 记档说明 ✓，不装作没看见 ✓） |
+| ⚠ warning | `push 失败（第 1 次），rebase 后重试` ✗ | **我自己脚本**的噪声 ✓（`e2e-ledger` 回提交与其它 push 抢 ✓）⇒ 先 `fetch`+`rebase` 再推 ✓，或把它降成 `::debug::` ✓ |
+| ℹ notice | `已为 <sha> 补 e2e-ledger 成功状态` ✓ | 有用 ✓（说明补状态生效 ✓）⇒ **保留** ✓，但可加一句"为什么需要补" ✓ |
+| ℹ notice | `e2e 台账已回提交（1.138.0 27/27 · 1.106.0 27/27 · 1.138.0 27/27）` ✓ | **保留** ✓（这是有价值的回执 ✓） |
+| ℹ notice | `The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026` ✓ | **记档 + 设提醒** ✓（到期前确认 runner 行为 ✓ —— 与 `SOKO_VSCODE_TEST_VERSION` 的版本纪律同源 ✓） |
+| ℹ notice | （第 4 条待逐轮抓全 ✓） | 下轮用 `gh api …/check-runs/<id>/annotations` **逐 job 收全** ✓ |
+**⇒ 待办（下一步 ✓）**：`gh api` 逐 job 把 annotations 收全 ✓ ⇒ 落成一张表 ✓ ⇒ 能修的修 ✓、
+不能修的**写进本文并说明为什么不能修** ✓（**"忽略"和"处理过但不动"是两件事** ✓）。

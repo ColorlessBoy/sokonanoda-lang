@@ -5,9 +5,33 @@ on:
   pull_request:
 
 jobs:
-  lint:
+  lint-fmt:
+    name: lint-fmt（格式，不编译）
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+    # **拆出 `fmt` 单独成 job**（2026-09-25 ✓，用户："github action 是最大瓶颈" ✓）：
+    # 它**不编译** ✓ ⇒ **故意不挂 Rust cache** ✗（省掉恢复缓存的时间 ✓）
+    # ⇒ 约 **10–20 秒**给出格式红灯 ✓ = **最快的失败信号** ✓。
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: "rustfmt, clippy"
+
+      - name: Format check (teaching crates)
+        # crates/kernel 冻结快照使用 nightly-only rustfmt 配置，stable
+        # rustfmt 无法稳定复现；fmt 门禁先覆盖教学 crates（kernel 见
+        # docs/architecture.md §6）。
+        run: cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
+
+  lint-clippy:
+    name: lint-clippy（clippy 全量 check）
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+    # `clippy` 留在自己这条 ✓（它要**全量 check** ✓ ⇒ 只有它需要 Rust cache ✓）。
       - uses: actions/checkout@v5
 
       - name: Install Rust
@@ -17,12 +41,6 @@ jobs:
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
-
-      - name: Format check (teaching crates)
-        # crates/kernel 冻结快照使用 nightly-only rustfmt 配置，stable
-        # rustfmt 无法稳定复现；fmt 门禁先覆盖教学 crates（kernel 见
-        # docs/architecture.md §6）。
-        run: cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 
       - name: Clippy
         # 严格度由教学 crates 各自的 [lints.rust] warnings = "deny" 注入；
@@ -37,7 +55,7 @@ jobs:
   # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
   # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
   auto-tag:
-    needs: [lint, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    needs: [lint-fmt, lint-clippy, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
