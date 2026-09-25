@@ -59,17 +59,18 @@ pub fn store(digest: &str, options: &CompileOptions, project: &ProjectReport) {
 
 /// 只缓存**干净**的编译产物（有诊断的结果下次仍要重新算：诊断归因依赖具体文件）。
 ///
-/// **注意（G-24）**：`is_clean()` 会被 `requires` 版本漂移一票否决
-/// （`requires_warning`），于是整个项目永不入缓存——`courses/set-theory` 的
-/// `requires = "0.61"` 就是这个现场。T-A05 会改这条判据（漂移是可回放的确定性
-/// 事实，不该关掉缓存）；在那之前，这个函数对带漂移的课程是**恒不写**的。
-pub fn store_if_clean(
-    digest: &str,
-    options: &CompileOptions,
-    project: &ProjectReport,
-    is_clean: bool,
-) {
-    if !is_clean {
+/// **判据只有一处**（审计 #1，2026-09-25 ✓）：`clean` **不再是形参** ✗ ——
+/// 那个 bool 正是分叉的接缝 ✓：调用者各算各的，`crates/cli/src/query.rs` 就漏算了
+/// 依赖模块的错误 ⇒ **`query check` 会为不干净的项目写缓存** ✗ ⇒ 之后所有
+/// `grade`/`check` **静默丢掉依赖模块的警告** ✓（实测：冷跑 1 条 → 跑一次
+/// `query check` → 再跑 **0 条** ✗）。现在由函数自己对 `&ProjectReport` 现取
+/// `project.is_clean()` ✓ ⇒ 谁调用都不会算错 ✓。
+///
+/// **注意（G-24 的历史，已由 T-A05 解决 ✓）**：旧的过期注释说 `is_clean()` 会被
+/// `requires` 漂移一票否决 ⇒ 课程永不入缓存 ✗ —— **已不成立** ✓：
+/// `report.rs::is_clean` 明确写着 `requires_warning` **不算**不干净 ✓。
+pub fn store_if_clean(digest: &str, options: &CompileOptions, project: &ProjectReport) {
+    if !project.is_clean() {
         return;
     }
     store(digest, options, project);
@@ -236,9 +237,9 @@ pub fn store_if_clean_at(
     digest: &str,
     options: &CompileOptions,
     project: &ProjectReport,
-    is_clean: bool,
 ) {
-    if !is_clean {
+    // 判据与全局那条**同一处**（审计 #1 ✓）：不再收 `is_clean` 形参 ✗。
+    if !project.is_clean() {
         return;
     }
     store_at(root, digest, options, project);

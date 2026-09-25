@@ -282,7 +282,6 @@ impl Doc {
         // 内部的 `ProjectReport::is_clean`）。
         if let Some(digest) = &project_digest {
             if let Some(project) = self.doc.project_report_ref() {
-                let clean = project.is_clean();
                 // R-3（T-C6）：**磁盘状态的产物落模块根** `<root>/.sokonanoda/` ——
                 // 这样编辑器编出来的东西与 CLI 预热出来的**落在同一处**，
                 // "vscode 与 code agent 一处取用"才是完整的 ✓。
@@ -298,9 +297,9 @@ impl Doc {
                 });
                 match (&project_root, disk_state) {
                     (Some(root), true) => {
-                        project_cache::store_if_clean_at(root, digest, &options, project, clean)
+                        project_cache::store_if_clean_at(root, digest, &options, project)
                     }
-                    _ => project_cache::store_if_clean(digest, &options, project, clean),
+                    _ => project_cache::store_if_clean(digest, &options, project),
                 }
             }
         }

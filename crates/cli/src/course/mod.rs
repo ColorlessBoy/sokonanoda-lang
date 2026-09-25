@@ -428,13 +428,7 @@ fn count_unit(path: &Path, course_dir: &Path, src: &str) -> Result<UnitCounts, S
         // and exercises are not part of the unit's score.
         tally(&mut counts, &entry.events.events);
         // 只缓存干净的项目（与 `check`/`build`/`query` 同一份摘要键）。
-        crate::project_cache::store_if_clean_at(
-            &artifacts_root,
-            &digest,
-            &options,
-            &project,
-            project.is_clean(),
-        );
+        crate::project_cache::store_if_clean_at(&artifacts_root, &digest, &options, &project);
     }
     Ok(counts)
 }

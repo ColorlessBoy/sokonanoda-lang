@@ -81,13 +81,7 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         }
         let project = sokonanoda_front::project::compile_plan(plan, &options);
         let ok = report_project(&project, src, json);
-        crate::project_cache::store_if_clean_at(
-            &artifacts_root,
-            &digest,
-            &options,
-            &project,
-            project.is_clean(),
-        );
+        crate::project_cache::store_if_clean_at(&artifacts_root, &digest, &options, &project);
         return ok;
     }
 

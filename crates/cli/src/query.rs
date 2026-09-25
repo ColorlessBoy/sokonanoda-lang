@@ -168,12 +168,11 @@ fn load_document(doc: &mut QueryDoc, src: &str) {
     doc.set_text(src, 1, None);
     let _ = plan; // 计划已在上面算过摘要；编译走 QueryDoc 自己的路径
     if let Some(report) = doc.project_report_ref() {
-        let output = doc.compiled_output().clone();
-        let entry_ok = report
-            .entry_module()
-            .is_none_or(|module| module.report.errors.is_empty());
-        let clean = output.errors.is_empty() && entry_ok;
-        crate::project_cache::store_if_clean_at(&artifacts_root, &digest, &options, report, clean);
+        // **判据不在这里**（审计 #1 ✓）：原来这里自算 `clean = output.errors.is_empty()
+        // && entry_ok` ✗ —— 只算**入口**模块 ⇒ 为「依赖有错」的项目也写缓存 ✗
+        // ⇒ 之后所有 `grade`/`check` 静默丢掉依赖模块的警告 ✓（实测 1 → 0 ✓）。
+        // 现在由 `store_if_clean_at` 自己对 `report.is_clean()` 判定 ✓。
+        crate::project_cache::store_if_clean_at(&artifacts_root, &digest, &options, report);
     }
 }
 
