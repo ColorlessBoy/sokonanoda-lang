@@ -884,6 +884,40 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 297：需要一个小的内核 API ✓（而内核**可以改** ✓）**
+    ```
+    builder.rs:31   declars: DeclarMap<'a>,        ← **私有字段** ✓，无换它的现成手段 ✗
+    builder.rs:89   pub fn with_env<R>(&mut self, f: …) -> R   ← 唯一的 with_* ✓
+    builder.rs:99       declars: std::mem::take(&mut self.declars),   ← 把 declars **搬进** ExportFile ✓
+    builder.rs:110      self.declars = env.declars;                    ← 再**搬回** ✓
+    ⇒ `with_env` 给的是"**完整 declars 的 `ExportFile`**"✗ ⇒ **不是**"只有 prelude" ✗
+    ```
+    **⇒ 加一个小 API（内核可改 ✓）** ✓ —— `AGENTS.md` 硬规则 1 ✓：
+    "kernel 可以改 ✓，唯一红线是**判定正确性不变** ✓"⇒ 新增一个**默认路径用不到**的方法 ✓
+    ⇒ **红线不受影响** ✓（三层回归照跑 ✓）。
+    ```rust
+    /// **T-D8**：给合成探针一个"**看不见文件声明**"的环境 ✓ ——
+    /// 只把 `declars` 暂时挪走 ✓、**`dag` 不动** ✓ ⇒ **指针同一性保住** ✓
+    ///（这正是 `with_env` 那套"搬来搬去"的同一手法 ✓，见 `:99`/`:110` ✓）。
+    /// 默认路径**不调用它** ✓ ⇒ 判定行为零变化 ✓。
+    pub fn with_declars_hidden<R>(&mut self, f: impl FnOnce(&mut EnvBuilder<'a>) -> R) -> R {
+        let saved = std::mem::take(&mut self.declars);
+        let r = f(self);
+        self.declars = saved;
+        r
+    }
+    ```
+    **⇒ C1 改成用它（而不是新建 builder ✓）**：
+    ```rust
+    // walk.rs 三处 ✓
+    redundant_probes: self.with_declars_hidden(|b| build_redundant_probes(b, universe, ty, val, spans, &self.known, ctx)),
+    ```
+    ⚠ **借用检查** ✗：`self.known` 与 `&mut self` 冲突 ✓ ⇒ 先把 `known` 借出来 ✓
+    （或把 `known` 也挪进闭包 ✓）⇒ **先试，编译错会告诉我** ✓。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed ≤ 11**（现在 5 ✓，应降到 **0** ✓）·
+    四件套 ✓ · 基准再降 ✓；**反向验证** ✓：把 `with_declars_hidden` 去掉（回到真 builder ✓）
+    ⇒ **必须回到 96** ✓。
+
   - **🎯🎯🎯 round 296 续：`shadow_env()` 只有两处调用 ⇒ **A 是空转的** ✓✓ 账结清了 ✓**
     ```
     shadow_env() 的调用点只有两处 ✓：
