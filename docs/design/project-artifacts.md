@@ -269,7 +269,23 @@ $ git status --porcelain      # 目录内 .gitignore = `*` ⇒ 输出为空（�
 **修前判红**：把 `store_at` 改回只写全局 ⇒ ① **exit 101**；抽掉跨根守卫 ⇒ ⑤
 **exit 101**；恢复后 5/5 绿 ✓。
 
-**后续判据**（T-B6 补）：
+**T-B6 已落地的判据**（三层各一，R-3 的验收口径）：
+* **真相层**（front）：`query::project::tests::artifacts_snapshot_is_read_only_and_counts_only_entries`
+  —— 目录缺失 ⇒ `None` **且绝不创建**；只数 `*.json`（`*.tmp-*` 不算）；字节只累计条目；
+  `compiler` 来自 `meta.json`；空 `compiled/` ⇒ `Some{entries:0}`；
+* **wire 层**（LSP）：`tests::project::project_request_describes_the_closure_of_the_requested_document`
+  增断言 —— `soko/project` 的 `project.artifacts` 字段**必须在**且值正确（确定性夹具）；
+* **可见层**（CLI）：`crates/cli/tests/artifacts.rs::query_project_lists_the_artifacts_of_its_module_root`
+  —— `query project` 能**列出**产物（`dir`/`entries`/`bytes`/`compiler`），逃生门下如实报 `null`；
+* **数字**（台账）：`crates/cli/tests/perf_project.rs::project_build_hit_is_far_cheaper_than_a_cold_build`
+  —— 同一模块连跑两次 `build`：**冷 41.9ms → 热 3.4ms（12.2×）**，`PERFJSON` 进
+  `docs/perf/ledger.jsonl`（`case: build_cold_warm_artifacts`，附 `artifacts` 条数）；
+* **`.gitignore` 指引**（本条就是要给人照抄的）：产物目录**自带**一行 `*` 的
+  `.gitignore` ⇒ 默认**什么都不用做**；想显式忽略（例如工具没跑过、想先写进仓库根的
+  `.gitignore`）就加一行 `.sokonanoda/`（本仓库自己就这么做了，双保险）；
+  想**提交**产物则要 `git add -f`（自忽略会挡住普通 `git add`）。
+
+**后续判据**（T-C6 补）：
 1. 项目条目落在 `<模块根>/.sokonanoda/compiled/`，单文件条目**不在**那里；
 2. 同模块连跑两次 `build` ⇒ 第二次 `hit == files`（数字进台账）；
 3. `query project` 的 `artifacts.dir/entries/bytes` 与实际目录一致；

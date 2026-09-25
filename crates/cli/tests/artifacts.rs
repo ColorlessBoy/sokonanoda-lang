@@ -68,6 +68,30 @@ fn run_with_env(cache: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, Vec<
     (out.status.code().unwrap_or(-1), events)
 }
 
+/// 跑到结束并拿**整段 stdout**（`query` 的输出是**美化过的多行 JSON**，
+/// 不能像 `build --json` 那样逐行解析）。
+fn run_raw(cache: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, String) {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_sokonanoda"));
+    command
+        .args(args)
+        .env("SOKONANODA_CACHE_DIR", cache)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    for (key, value) in env {
+        command.env(key, value);
+    }
+    let out = command
+        .spawn()
+        .expect("spawn sokonanoda")
+        .wait_with_output()
+        .unwrap();
+    (
+        out.status.code().unwrap_or(-1),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+    )
+}
+
 fn summary(events: &[Value]) -> &Value {
     events
         .iter()
@@ -283,4 +307,70 @@ fn a_project_entry_is_never_replayed_across_module_roots() {
 
     let _ = std::fs::remove_dir_all(&base);
     let _ = std::fs::remove_dir_all(&cache);
+}
+
+#[test]
+fn query_project_lists_the_artifacts_of_its_module_root() {
+    // **T-B6 的可见层判据**：产物目录"有什么"要能**查**（`--json` 能列），
+    // 而不是让人去 `ls` 一个隐藏目录 —— 这正是用户说的"vscode 和 code agent
+    // 都应该在这里取编译后的数据"。
+    let root = scratch("query");
+    let cache = scratch("cache-query");
+    project(&root);
+    let entry = root.join("Main.sokonanoda");
+    run(&cache, &["build", "--json", entry.to_str().unwrap()]);
+
+    // 注意：`query` 自带 JSON 输出、**不接受 `--json`**（加了会 exit 1），
+    // 而且是**美化过的多行 JSON** ⇒ 整段解析。
+    let (code, stdout) = run_raw(
+        &cache,
+        &["query", "project", "--file", entry.to_str().unwrap()],
+        &[],
+    );
+    assert_eq!(code, 0, "{stdout}");
+    let answer: Value = serde_json::from_str(&stdout).expect("query prints one JSON object");
+    let view = &answer["data"]["project"];
+    let artifacts = view
+        .get("artifacts")
+        .unwrap_or_else(|| panic!("project view must carry `artifacts` (R-3): {view}"));
+    assert!(!artifacts.is_null(), "{view}");
+    assert!(
+        artifacts["entries"].as_u64().unwrap_or(0) >= 1,
+        "{artifacts}"
+    );
+    assert!(artifacts["bytes"].as_u64().unwrap_or(0) > 0, "{artifacts}");
+    assert_eq!(
+        artifacts["compiler"].as_str(),
+        Some(env!("CARGO_PKG_VERSION")),
+        "{artifacts}"
+    );
+    assert!(
+        artifacts["dir"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with(".sokonanoda"),
+        "{artifacts}"
+    );
+
+    // 逃生门 ⇒ 没有产物目录 ⇒ 字段是 `null`（如实报告，不编一个假的）。
+    let escape_root = scratch("query-escape");
+    let escape_cache = scratch("cache-query-escape");
+    project(&escape_root);
+    let escape_entry = escape_root.join("Main.sokonanoda");
+    let (escape_code, escape_stdout) = run_raw(
+        &escape_cache,
+        &["query", "project", "--file", escape_entry.to_str().unwrap()],
+        &[("SOKONANODA_NO_PROJECT_ARTIFACTS", "1")],
+    );
+    assert_eq!(escape_code, 0, "{escape_stdout}");
+    let escape_answer: Value = serde_json::from_str(&escape_stdout).expect("query JSON");
+    assert!(
+        escape_answer["data"]["project"]["artifacts"].is_null(),
+        "the escape hatch must report `null`, not a fabricated snapshot: {escape_stdout}"
+    );
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&cache);
+    let _ = std::fs::remove_dir_all(&escape_root);
+    let _ = std::fs::remove_dir_all(&escape_cache);
 }

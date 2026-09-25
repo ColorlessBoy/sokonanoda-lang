@@ -244,7 +244,9 @@ are hits instead of full recompiles. Two commands drive it from the editor:
   `build --clean` to drop the cache, i.e. "recompile everything from scratch"
   (it clears **both** the global cache and the module root's `.sokonanoda/`).
   Project artifacts live in **`<module root>/.sokonanoda/`** — a self-ignoring
-  `.gitignore` (one line, `*`) keeps them out of your repository — and the
+  `.gitignore` (one line, `*`) keeps them out of your repository, so there is
+  nothing to configure; add `.sokonanoda/` to your own `.gitignore` only if you
+  want it visible there too (committing the artifacts needs `git add -f`) — and the
   language server reads that directory first, so `build` warms exactly what the
   editor then opens. Single-file entries still live in the global cache.
   `SOKONANODA_NO_PROJECT_ARTIFACTS=1` opts back into the global-only behaviour.

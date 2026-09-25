@@ -314,6 +314,27 @@ pub struct ProjectCounts {
     pub open_exercises: usize,
 }
 
+/// **模块根下的产物目录**（R-3 / 0.67.0）：`<模块根>/.sokonanoda/` 的**只读快照**。
+///
+/// 为什么放在项目视图里：用户的原话是"vscode 和 code agent 都应该在这里取编译后的
+/// 数据"——那么"这里有什么"本身就该是**可查**的（`--json` 能列），而不是让人去
+/// `ls` 一个隐藏目录。
+///
+/// 纪律（`docs/design/project-view.md`：`project_view()` 不改文件、不写缓存、
+/// 不编译第二次）：这里只 `read_dir` + `metadata`，**目录不存在就返回 `None`，
+/// 绝不创建**。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProjectArtifacts {
+    /// 产物目录（绝对路径）。
+    pub dir: String,
+    /// `compiled/` 里的条目数（只数 `*.json`；`*.tmp-*` 是写了一半的，不算）。
+    pub entries: usize,
+    /// 条目总字节数 —— 项目条目是整份报告，实测 MB 量级，让人/agent 一眼看到代价。
+    pub bytes: u64,
+    /// `meta.json` 记的编译器版本（`None` = 还没有 meta 或读不出）。
+    pub compiler: Option<String>,
+}
+
 /// 项目状态视图：**根、清单来源、闭包模块表、每模块状态、项目级诊断**。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProjectView {
@@ -329,4 +350,8 @@ pub struct ProjectView {
     pub modules: Vec<ProjectModule>,
     pub diagnostics: Vec<ProjectDiagnosticInfo>,
     pub counts: ProjectCounts,
+    /// 模块根下的产物目录快照（R-3）；`None` = 还没有产物。
+    /// `#[serde(default)]`：老消费者/老条目反序列化时缺字段也不炸（协议只加不删）。
+    #[serde(default)]
+    pub artifacts: Option<ProjectArtifacts>,
 }

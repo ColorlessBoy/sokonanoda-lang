@@ -487,7 +487,9 @@ Request params: `{"textDocument": {"uri"}}`. Response:
              "diagnostics": [{"code": "import-not-found", "message": "…", "module": "Canvas",
                               "severity": "error", "start": 7, "end": 14}],
              "counts": {"modules": 2, "compiled": 2, "failed": 0, "blocked": 0,
-                        "decls": 7, "errors": 0, "warnings": 0, "open_exercises": 2}},
+                        "decls": 7, "errors": 0, "warnings": 0, "open_exercises": 2},
+             "artifacts": {"dir": "/abs/project/.sokonanoda", "entries": 1,
+                           "bytes": 3626, "compiler": "0.67.0"}},
  "reason": null}
 ```
 
@@ -513,6 +515,13 @@ Request params: `{"textDocument": {"uri"}}`. Response:
   buffer without `--root`) or `parse-error` (fix the syntax first). The
   extension renders the first two as a one-line placeholder instead of an
   empty tree.
+- `artifacts` (R-3 / 0.67.0) is a **read-only snapshot of the module root's
+  `<root>/.sokonanoda/`**: the directory path, how many `compiled/*.json`
+  entries it holds, their total bytes, and the `compiler` recorded in its
+  `meta.json`. `null` when the directory does not exist (nothing was built yet,
+  or `SOKONANODA_NO_PROJECT_ARTIFACTS=1` was used) — it is **never created** by
+  reading the view. This is what makes "vscode and code agents read the compiled
+  data from the project root" checkable instead of folklore.
 - Read-only derivation: the answer comes from the already-compiled closure
   (no recompile, no cache write, no digest). `uri`/`version` are echoed so a
   client can drop answers for another document (same discipline as

@@ -1,12 +1,14 @@
 # 当前状态与进度日志（agents 先读这里）
 
-> 快照：2026-09-24（**E2 第 3 轮 / 阶段 B 进行中**：**T-B5 完成**（进度 **12/38**）——
+> 快照：2026-09-24（**E2 第 3 轮 / 阶段 B 收尾在即**：**T-B5 + T-B6 完成**（进度 **13/38**）——
 > **R-3 前半落地**：项目闭包产物现在落在**模块根** `<模块根>/.sokonanoda/`（`compiled/<key>.json`
 > + 自忽略 `.gitignore` + `meta.json`），**vscode 与 agent 一处取用**；单文件条目仍在全局缓存；
 > `--clean` **两处都清**；逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`。判据
 > `crates/cli/tests/artifacts.rs`（5 条真进程用例，两条做过修前判红 ✓）；全量 **1260 通过 /
-> 35 套件 / 0 失败** ✓。阶段 B 只剩 **T-B6**（判据与数字进台账）→ **T-B7**（收尾：一次 push →
-> CI → bump **0.67.0** → release → 核对）。
+> 35 套件 / 0 失败** ✓。**T-B6**：`build` 第二次 **40.3ms → 3.6ms（11.3×）** 记进
+> `docs/perf/ledger.jsonl`；`query project` / `soko/project` 增只读 `artifacts{dir,entries,
+> bytes,compiler}`（目录不存在 ⇒ `null`、绝不创建），三层判据各一条 ✓。阶段 B 只剩
+> **T-B7**（收尾：`gate` + e2e + 三基准 → 一次 push → CI → bump **0.67.0** → release → 核对）。
 >
 > 快照：2026-09-24（**E2 第 2 轮 / 阶段 B 进行中**：**T-B1..T-B3 完成**（进度
 > **10/38**）—— R-4 命令名标准化：盘点表 + 15 条命令改成

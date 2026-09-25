@@ -221,7 +221,24 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （闭包加载 `canonicalize`、CLI 用原样路径）⇒ **符号链接路径**（macOS `/tmp`、`/var`）
     下两者摘要不同、共用失效；实测规范化路径 ⇒ 命中、`/var` 原样 ⇒ miss。已记进设计 §6.3a
     （修法 = 统一归一化，会让旧条目作废，排在 R-3 之后）。
-- [ ] `T-B6` **R-3 判据**：同一模块连跑两次 `build`，第二次**显著更快** ✓（数字进台账）+ 产物目录内容可读（`--json` 能列 ✓）+ `.gitignore` 指引 ✓
+- [x] `T-B6` **R-3 判据**：同一模块连跑两次 `build`，第二次**显著更快** ✓（数字进台账）+ 产物目录内容可读（`--json` 能列 ✓）+ `.gitignore` 指引 ✓
+  - ✅ **已完成（2026-09-24）**，三件事 + **三层判据**各一条：
+    **① 数字进台账**：`crates/cli/tests/perf_project.rs` 增
+    `project_build_hit_is_far_cheaper_than_a_cold_build` —— 同一模块连跑两次 `build`：
+    **冷 40.3ms → 热 3.6ms（11.3×）**，并断言"产物确实在模块根"（否则这条数字与 R-3 无关）；
+    经 `scripts/perf-ledger.sh` 记进 `docs/perf/ledger.jsonl`
+    （`case: build_cold_warm_artifacts`，20 条记录那一批）✓。
+    **② 产物目录可读（`--json` 能列）**：`ProjectView` 增**只读派生**字段
+    `artifacts {dir, entries, bytes, compiler}`（`query project` 与 LSP `soko/project`
+    共用同一份类型 ⇒ wire 自动带上；`#[serde(default)]` 保持协议只加不删）。
+    纪律：只 `read_dir`，**目录不存在返回 `null`、绝不创建**（守 `project-view.md`
+    的"只读派生"）。三层判据：**真相层** front 单测（`None` + 不创建 + 只数 `*.json` +
+    字节/meta）、**wire 层** LSP 断言 `project.artifacts` 字段存在且值正确（确定性夹具）、
+    **可见层** CLI 断言 `query project` 列出条目、逃生门下如实报 `null`。
+    **③ `.gitignore` 指引**：产物目录**自带**一行 `*` 的 `.gitignore` ⇒ 默认零配置；
+    想显式忽略就加一行 `.sokonanoda/`（本仓自己就这么做，双保险）；要提交则 `git add -f`
+    —— 写进 README / AGENTS / 技能 / 设计文档 ✓。
+    回归：**1263 通过 / 35 套件 / 0 失败** · fmt ✓ · clippy exit 0（我改的文件零提示）✓。
 - [ ] `T-B7` **阶段 B 收尾**：基准复量（① ② 应变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.67.0` → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 命令名标准化 + `.sokonanoda/` 产物目录（vscode 与 agent 共用，首次之后不再重复算）
 

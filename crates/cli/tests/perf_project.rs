@@ -226,3 +226,72 @@ fn project_cli_query_and_build_costs_are_recorded() {
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// **T-B6 的数字**（R-3）：同一模块连跑两次 `build`，第二次必须**显著更快**，
+/// 并把产物目录的事实一起记进台账（`scripts/perf-ledger.sh` 收 `PERFJSON`）。
+///
+/// 为什么用 `build` 而不是 `check`：`build` 是用户/agent 明确"预热"的那条命令
+/// （编辑器 `alt+b` 也走它），R-3 的承诺就是"第二次调用命中、不再重复计算"。
+/// 哨兵同时断言**产物落在模块根**（否则这条数字量的就不是 R-3 的路径了）。
+#[test]
+fn project_build_hit_is_far_cheaper_than_a_cold_build() {
+    let dir = tmp_dir("build-cold-warm");
+    let cache = dir.join(".cache");
+    gen_project(&dir, 3, 12);
+    warm_up(&dir, &cache);
+    // 冷跑前清干净（本机可能残留上一次的产物）：`tmp_dir` 已经重建过目录，
+    // 这里再显式删一次 `.sokonanoda`，让"冷"是真的冷。
+    let _ = std::fs::remove_dir_all(dir.join(".sokonanoda"));
+
+    let (cold, out) = run_timed(&dir, &cache, &["build", "Main.sokonanoda"]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    // **产物必须落在模块根**（R-3 的可见结果）——否则这条数字与 R-3 无关。
+    let compiled = dir.join(".sokonanoda/compiled");
+    assert!(
+        compiled.is_dir(),
+        "R-3: project artifacts must live in <module root>/.sokonanoda/"
+    );
+    let (warm, out) = run_timed(&dir, &cache, &["build", "Main.sokonanoda"]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let (warm_again, _) = run_timed(&dir, &cache, &["build", "Main.sokonanoda"]);
+    let warm_best = warm.min(warm_again);
+    let artifacts = std::fs::read_dir(&compiled)
+        .map(|read| {
+            read.flatten()
+                .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "json"))
+                .count()
+        })
+        .unwrap_or(0);
+    assert!(artifacts >= 1, "the artifacts directory must hold entries");
+
+    println!(
+        "PERF project cli build: cold {:.1}ms · warm {:.1}ms ({artifacts} artifact(s) in <root>/.sokonanoda)",
+        ms(cold),
+        ms(warm_best)
+    );
+    perf_json(serde_json::json!({
+        "schema": "soko.perf/1",
+        "scope": "cli-project",
+        "case": "build_cold_warm_artifacts",
+        "modules": 3,
+        "decls_per_module": 12,
+        "cold_ms": ms(cold),
+        "warm_ms": ms(warm_best),
+        "artifacts": artifacts,
+    }));
+    assert!(
+        ms(warm_best) * 2.0 < ms(cold),
+        "the second `build` must be far cheaper than a cold one (cold {:.1}ms, warm {:.1}ms)",
+        ms(cold),
+        ms(warm_best)
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
