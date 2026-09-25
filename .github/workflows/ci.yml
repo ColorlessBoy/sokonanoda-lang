@@ -1,5 +1,14 @@
 name: ci
 
+# **顶层并发**（2026-09-25 用户要求 ✓）：同一分支上**新的 push 取消上一轮还在跑的** ✓
+# —— 之前只有 `e2e-ledger` 有 concurrency 且是 `cancel-in-progress: false` ✗，
+# 于是"连推 10 个"就把 runner 配额和队列一起堵死 ✗（本 session 实测过 ✓）。
+# `cancel-in-progress: true` 与"推前先关旧 run"（`scripts/ci-push.sh` ✓）**互补** ✓：
+# 前者管 CI 侧 ✓、后者管本地侧 ✓ —— 两层都不依赖我记得 ✓。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
   pull_request:
@@ -7,7 +16,7 @@ on:
 jobs:
   lint-fmt:
     name: lint-fmt（格式，不编译）
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
     # **拆出 `fmt` 单独成 job**（2026-09-25 ✓，用户："github action 是最大瓶颈" ✓）：
@@ -28,7 +37,7 @@ jobs:
 
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
     # `clippy` 留在自己这条 ✓（它要**全量 check** ✓ ⇒ 只有它需要 Rust cache ✓）。
@@ -57,7 +66,7 @@ jobs:
   auto-tag:
     needs: [lint-fmt, lint-clippy, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       # workflow_dispatch 需要它（403 "Resource not accessible by
@@ -92,7 +101,7 @@ jobs:
     # **只跑相关的**（2026-09-25 用户要求 ✓："现在 github action 过于阻碍开发进度了" ✓）：
     # 纯文档 / 纯课程改动**不该**跑 4 路 crate 矩阵与 e2e ✗（它们是大头 ✓）。
     # 用生态里最常见的 paths-filter ✓（按大版本钉 ✓，与仓库其它 action 同风格 ✓）。
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       rust: ${{ steps.f.outputs.rust }}
@@ -127,7 +136,7 @@ jobs:
   test:
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     # **按 crate 的 4 路矩阵**（2026-09-25 用户要求 ✓："能尽可能细吗？现在 github action
     # 过于阻碍开发进度了" ✓）：一条 `cargo test --workspace` 在 CI 上 ~19 分钟 ✗ ⇒ 拆四路并排 ✓
@@ -220,7 +229,7 @@ jobs:
     name: gates-fast（课程语料 + 契约，debug 路径）
     needs: changes
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     # **拆成两条并行路径**（2026-09-25 用户要求 ✓："gates 要跑 16 分钟…完全阻碍了前期开发" ✓）：
     # 原来一条 job 串起 **debug 路径**（语料 `cargo run` + 契约 `cargo test`）与
@@ -252,7 +261,7 @@ jobs:
     name: gates-course（release 构建 + 课程门禁）
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     # **拆成两条并行路径**（2026-09-25 用户要求 ✓："gates 要跑 16 分钟…完全阻碍了前期开发" ✓）：
     # 同一个 job 的另一半：release 路径（原来与 debug 路径串行 ✓） **debug 路径**（语料 `cargo run` + 契约 `cargo test`）与
@@ -328,7 +337,7 @@ jobs:
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     # **矩阵并行 3 片**（2026-09-25 用户要求 ✓："能不能再多拆一些，让 github 也并行测试" ✓）：
     # `gap.py check --shard i/3` 只跑第 i 片 ✓ ⇒ 三片同时跑 ✓、某片坏只重跑那片 ✓。
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -395,7 +404,7 @@ jobs:
     # 其余 job 还在跑 ✓）⇒ 这里把整轮掐掉 ✓，不再空等 ✓。
     needs: [changes, lint-fmt, lint-clippy, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos, e2e-ledger]
     if: ${{ always() && contains(needs.*.result, 'failure') }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: write          # `gh run cancel` 需要它 ✓
     steps:
@@ -409,7 +418,7 @@ jobs:
   contract:
     needs: changes
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -441,7 +450,7 @@ jobs:
   editor:
     needs: changes
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # **从原 `test` 拆出**（2026-09-25 用户要求 ✓）：6 步 ✓
     timeout-minutes: 40
     steps:
@@ -518,11 +527,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             vscode: "1.138.0"
           # 声明的最低版本（engines.vscode ^1.106.0）：2026-09-18 本地 14/14 验过
           # （docs/e2e 有那条台账），守"用的 API 没超出声明范围"。
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             vscode: "1.106.0"
     steps:
       - uses: actions/checkout@v5
@@ -556,10 +565,10 @@ jobs:
       - name: Real VS Code integration tests (recorded)
         # 与本地同一条命令：构建 release（被测即发布形态）→ stage 到
         # bin/<target>/ → vscode-test → docs/e2e/{ledger.jsonl,latest.json,logs}。
-        # Linux 上 Electron 需要显示器，xvfb 在 ubuntu-latest 镜像里预装。
+        # Linux 上 Electron 需要显示器，xvfb 在 ubuntu-24.04 镜像里预装。
         env:
           SOKO_VSCODE_TEST_VERSION: ${{ matrix.vscode }}
-        # Linux 上 Electron 需要显示器，xvfb 在 ubuntu-latest 镜像里预装。
+        # Linux 上 Electron 需要显示器，xvfb 在 ubuntu-24.04 镜像里预装。
         run: xvfb-run -a scripts/vscode-e2e.sh
 
       - name: Job summary (VS Code integration)
@@ -649,7 +658,7 @@ jobs:
     name: e2e ledger (commit back on main)
     needs: [e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       # 回提交后要给它补一条 commit status：GITHUB_TOKEN 推的提交**不触发** workflow，
