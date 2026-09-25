@@ -2312,6 +2312,28 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 #### 批次 E：收尾与固化
 
 - [ ] `T-E1` **性能回归进 CI**：把三个基准做成 CI 可跑的 smoke（阈值宽松 ✓，只抓**大幅退化** ✗）
+  - **🔴 round 313：job 已写 ✓，而**最重要的发现**是 —— 拿台账名当过滤器 ⇒ **守卫空转** ✗✓**
+    ```
+    job perf-gate（第 15 个 ✓，进快层 ✓）：needs changes ✓ + if outputs.rust ✓ ·
+      ubuntu-24.04 ✓ · timeout 20min ✓ · **continue-on-error: true（第一轮只报不拦 ✓）** ·
+      --threshold 50 ✓（比默认 25% 更松 ✓）；smoke 子集 ~1 秒 ✓
+    ⚠ 实测 ✓：**`--case` 是"测试名子串"** ✗ —— **不是**台账里的 `(scope, case)` 名 ✗
+      ⇒ 拿台账名当过滤器 ⇒ **5 个里 3 个 `exit=2`** ✗（= "没跑到任何 case" ✓）
+      ⇒ **守卫空转** ✗✓（**它会永远是绿的** ✗ —— 正是"**咬不住的守卫等于没有**" ✓）
+    真名映射 ✓（`git grep -nE "fn .*(judge_prefix|recompile|...)"` ✓）：
+      台账 judge_prefix_with_imports      → `judge_prefix_with_imported_declarations_stays_within_budget` ✓
+      台账 keystroke_recompile_closure    → `project_keystroke_recompiles_the_closure_within_budget` ✓
+      台账 teaching_scale_keystroke       → `project_sizes_teaching_scale_keystroke_cost` ✓
+      台账 did_open_same_session          → ✗ **未找到** ✗（`perf_course.rs` 命名不同 ✓ ⇒ **待补** ✓）
+    改后逐个验证 ✓：**四个全部 `exit=0`** ✓（**没有 exit=2** ✗）⇒ **咬得住** ✓✓
+    ```
+    **⇒ 待补（一条命令 ✓）**：`git grep -n "fn " -- crates/lsp/src/tests/perf_course.rs` ✓
+    ⇒ 找到 `did_open_same_session`（**134ms** ✓ = **D-1/D-2 动过的那条热路径** ✓）的真名 ✓
+    ⇒ 补进过滤器 ✓（当前 `keystroke` ✓ 已覆盖 lsp 的 4 处 ✓）。
+    **⇒ 然后（下一轮 ✓）**：push ⇒ CI 跑一轮 ✓ ⇒ 看 `perf-gate` 的**实测数字** ✓
+    ⇒ **定阈值** ✓（`--threshold 50` 是否够松 ✓）⇒ **转成拦**（去掉 `continue-on-error` ✓）
+    ⇒ **那时 T-E1 才真正完成** ✓（**这一轮只是"先只报不拦"** ✓）。
+
   - **🎯 round 312：smoke 子集选好了 ✓（~1 秒 ✓，且含 D-1/D-2 动过的那条热路径 ✓）**
     ```
     $ scripts/perf-check.sh --list   （台账最后一条 = v0.68.0 d476508 ✓）
