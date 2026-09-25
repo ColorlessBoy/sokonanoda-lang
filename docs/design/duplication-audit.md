@@ -32,7 +32,7 @@
 | 18 | 版本钉源链 **4 份**（`perf-ledger.sh:39`/`perf-report.sh:12`/`vscode-e2e.sh:102`/`new-course-repo.sh:37` 各自只读 `Cargo.toml` ✗） | `scripts/soko:224-346` 的源链 ✓ | 中（**未证实漂移** ✓：当前四处都 `0.67.0` ✓）—— 风险在**看不见**：一旦加 `sokonanoda-version.txt`，台账仍按 `Cargo.toml` 记版本 ✗ | 唯一归属 `scripts/soko version --json` ✓ | `grep -rn "grep -m1 '\^version' Cargo.toml" scripts/` ✓ | 立台账（暂不做 ✓） |
 | 19 | `bump.py:90-97` 要求 `requires` **全等 `x.y.z`** ✗ vs `manifest.rs:135-150`（只比 **major.minor** ✓）与 `soko:300-313`（`x.y` 是合法约束 ✓） | 三处语义相反 ✗ | 中（**未证实**：现生效清单都是 `0.67.0` ✓，`bump.py` 现为绿 ✓） | 以 `manifest.rs` 的语义为唯一判据 ✓ | `python3 scripts/bump.py` ✓ | 立台账（暂不做 ✓） |
 | 20 | `gap.py:14` 把**用法错误折进 exit 1** ✗（全仓约定 1 = 有拒绝/漂移 ✓；同一条件在 `notation-lint.py` 是 2、`check-site.py` 是 3 ✗） | 各脚本 docstring 各写一遍退出码 ✗ | 中 —— 调用方把"命令行写错"读成"台账漂移" ✗ | 一份 `scripts/_exit.py` ✓ | `grep -n '退出码' scripts/*.py` ✓ | 立台账（暂不做 ✓） |
-| 21 | 状态栏"N 练习"（当前文件 ✗）vs 项目树（整闭包 ✓），都只写"练习" ✗ | `extension.js:391` vs `project-tree.js:28` | 中 —— 同一窗口两个数、用户无法分辨 ✗ | JS 只显示服务端给的数 ✓ | `grep -n openCount editor/vscode/extension.js` ✓ | 立刻做（小改 ✓） |
+| 21 ✅**已修**（round 89 ✓）：状态栏说出范围（"本文件 N" ✓）+ tooltip 点明对比 | `extension.js:391` vs `project-tree.js:28` | 中 —— 同一窗口两个数、用户无法分辨 ✗ | ✅ 状态栏文本改为 `本文件 N` ✓、tooltip 注明"下面那行是**整个项目**的" ✓ —— 数**本身**没改（当前文件那个数是对的 ✓），改的是**用户能不能分辨** ✓ | `grep -n openCount editor/vscode/extension.js` ✓ | 立刻做（小改 ✓） |
 | 22 | 测试夹具手拼 `file://` URI vs 服务端 `Url::from_file_path` ✗ | 两条 URI 构造路（已咬过人 ✓） | 低 | 夹具统一 `Url::from_file_path(canonicalize(p)?)` ✓ | `grep -rn 'file://{}' crates/lsp/tests` → 3 处 ✓ | 立台账（暂不做 ✓） |
 | 23 | `counts.decls`（`project.rs:95`）与 `ProjectModule.decls`（`:110`）同表达式写两遍 | 自身 | 低（今天恒等 ✓，潜伏 ✓） | 求和派生 ✓ | `sed -n '95p;110p' crates/front/src/query/project.rs` ✓ | 立台账（暂不做 ✓） |
 | 24 | 首个目标在 wire 上出现**两次**（`protocol.rs:184-191` = `goals[0]` ✓，映射走两条路 ✗） | 自身 | 低（已被 `lsp/tests/state.rs:158,162` 钉住 ✓） | 单值三字段标记 deprecated、由 `goals.first()` 派生 ✓ | `grep -n 'goals\[0\]' crates/lsp/src/tests/state.rs` ✓ | 立台账（暂不做 ✓） |
@@ -156,6 +156,21 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
   它是 `None` ✓ ⇒ `unwrap_or(0)` 得到 0 ⇒ 报"0 < 1"✗（看着像产品 bug ✓）。
   改用 **query 自己的答案**（`goals()` 的 `status` ✓，与 wire 同源 ✓）后通过 ✓。
   这段教训写进了测试注释 ✓（免得下一个人重犯 ✓）。
+
+### #21 ✅ 已修（round 89 ✓）：两个"N 练习"各自说出范围
+* **症状** ✗：状态栏 `extension.js:1154` 原来只显示**裸数字** `$(circle-outline) N`
+  （= **当前文件** `decls.filter(status === "open")` ✓），tooltip 也只说"N 个练习未完成" ✗；
+  而项目树/`projectStatusLine` 那个数 = **整个闭包** `counts.open_exercises` ✓
+  ⇒ 同一窗口两个数、**用户无法分辨** ✓。
+* **修法** ✓：状态栏文本改为 `$(circle-outline) 本文件 N` ✓；
+  tooltip 首行点明"**本文件**还有 N 个…"✓，并在附上项目那行时明确写
+  "下面这行是**整个项目**的：" ✓ —— **范围写进文本**，不只写进 tooltip ✓
+  （状态栏本来就只有一瞥的时间 ✓）。
+  **数本身没动** ✗：当前文件那个数是**对的**（它就是本文件的 ✓），错的是"没说清是谁的" ✓。
+* **判据** ✓：`node editor/vscode/test-extension-host.js` ⇒ **34/34 passed** ✓ · 语法自检 ✓
+* ⏳ 仍未动：项目树那行的文案（`project-tree.js:28` 的 `${counts.open_exercises} 练习` ✓）——
+  它坐在"`N 模块 · M 失败 · K 练习`"这种**项目级**行里 ✓、范围已由上下文隐含 ✓，
+  且 e2e 可能断言这行文本 ✗ ⇒ 先不动 ✓（真要改，连同 e2e 一起 ✓）。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 

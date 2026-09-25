@@ -1151,9 +1151,19 @@ function updateStatusBar(provider) {
     statusBar.hide();
     return;
   }
-  statusBar.text = `$(circle-outline) ${provider.openCount}`;
-  const lines = [`sokonanoda：${provider.openCount} 个练习未完成（点击查看练习面板）`];
-  if (projectStatusLine) lines.push(projectStatusLine);
+  // **两个"N 练习"必须各自说出范围**（审计 #21，2026-09-25 ✗⇒✓）：
+  // 这一个数是**当前文件**的（`decls.filter(status === "open")` ✓），
+  // 而项目树/`projectStatusLine` 那个是**整个闭包**的（`counts.open_exercises` ✓）——
+  // 原来两处都只写"练习"✗ ⇒ 同一窗口两个数、**用户无法分辨** ✓。这里把范围写进
+  // **文本**（不是只写进 tooltip ✓：状态栏本来就只有一瞥的时间 ✓）。
+  statusBar.text = `$(circle-outline) 本文件 ${provider.openCount}`;
+  const lines = [
+    `sokonanoda：**本文件**还有 ${provider.openCount} 个练习未完成（点击查看练习面板）`,
+  ];
+  if (projectStatusLine) {
+    lines.push(`下面这行是**整个项目**的：`);
+    lines.push(projectStatusLine);
+  }
   statusBar.tooltip = new vscode.MarkdownString(lines.join("\n\n"));
   statusBar.show();
 }
