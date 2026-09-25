@@ -100,7 +100,7 @@ jobs:
       courses: ${{ steps.f.outputs.courses }}
     steps:
       - uses: actions/checkout@v5
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: f
         with:
           filters: |
@@ -330,7 +330,7 @@ jobs:
       # ⇒ **三片全红** ✗。定位方式 ✓：**忠实复现 CI 处境**（`env -i` + 空缓存 + 无仓库构建 ✓）
       # ⇒ 本地立刻重现同一批 `需要 node` ✓（见 `docs/CI-FAILURES.md` ✓）。
       # `gates` job 早有"Setup Node for the course gate" ✓ ⇒ 这里补同款 ✓。
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
       # **必须构建本仓库的 CLI**（2026-09-25 round 179 **日志证实** ✓）：

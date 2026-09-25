@@ -61,3 +61,20 @@
 | ℹ notice | （第 4 条待逐轮抓全 ✓） | 下轮用 `gh api …/check-runs/<id>/annotations` **逐 job 收全** ✓ |
 **⇒ 待办（下一步 ✓）**：`gh api` 逐 job 把 annotations 收全 ✓ ⇒ 落成一张表 ✓ ⇒ 能修的修 ✓、
 不能修的**写进本文并说明为什么不能修** ✓（**"忽略"和"处理过但不动"是两件事** ✓）。
+
+### annotations 逐条处置（round 186 ✓ 收全 ✓）
+**实测** ✓（`43d73b1` 那轮 ✓，逐 check-run 收 ✓）：`2 notices`（`ubuntu-latest` 迁移 ✓ ×2）
++ `1 warning`（**`dorny/paths-filter@v3`** 目标是 Node 20 ✗）。
+⚠ **注解集合会随跑到的 job 变化** ✓（先前看到的是 `download-artifact@v5` ✗）⇒ **要逐轮收** ✓。
+**版本对照** ✓（`gh api repos/<a>/releases/latest` ✓）：
+| action | 我用 | 最新 | 处置 |
+|---|---|---|---|
+| `dorny/paths-filter` ✗ | v3 | **v4.0.3** | **✅ 已升到 v4** ✓（低风险 ✓，且**直接消掉被点名的那条** ✓） |
+| `actions/setup-node` ✗ | v4（1 处）/ v5（4 处） | **v7** | **✅ 已把 v4 对齐到 v5** ✓（消掉同仓两种版本 ✓）；v5→v7 待办 ✓ |
+| `actions/checkout` ✗ | v5（13 处） | **v7** | ⏳ **大跳，先读 release notes** ✗（默认行为可能变 ✓） |
+| `actions/download-artifact` ✗ | v5 | **v8** | ⏳ **大跳** ✗ —— 本仓库**已有它的布局坑**记录 ✓（`skills/sokonanoda-ci` ✓）⇒ **必须读文档再动** ✗ |
+| `actions/upload-artifact` ✓ | v7 | v7.0.1 | ✅ 同 major ✓ 不动 ✓ |
+| `actions/cache` ✓ | v4 | v4.x | ✅ 不动 ✓ |
+| ℹ `ubuntu-latest → Ubuntu 26`（**2026-10-19** ✓） | — | — | **记档 ✓ + 到期前确认 runner 行为** ✓ |
+**⇒ 口径** ✓：**能安全修的在当轮修掉** ✓（两条 ✓）；**大跳的写明"为什么这轮不动"** ✓
+—— 这就是用户说的"**不要忽略**" ✓：**不是每条都必须改，但每条都必须有交代** ✓。
