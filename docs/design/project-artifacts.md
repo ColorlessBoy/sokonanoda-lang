@@ -208,7 +208,7 @@ $ git status --porcelain      # 目录内 .gitignore = `*` ⇒ 输出为空（�
 |---|---|
 | **T-B5**（CLI）✅ 已落地 | `front::project::cache`：`load_at`/`store_at`/`store_if_clean_at`/`clean_at`/`artifacts_dir` + `.gitignore`/`meta.json` 初始化 + 32 条上限；CLI 四处（`build`/`check`(grade)/`query`/`course`）传 `plan.root`；`--clean` 两处都清（事件 additive 加 `global`/`project`）；逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`。**外加两件"不留红"的**：① LSP 的**读**路径也走 `load_at`（否则 CLI 预热不再帮到编辑器 = 性能退化 ✗，见 §2）；② VS Code e2e 的 `cacheStamp()` 改扫两处（它原来直接读 `<cacheDir>/compiled`，产物挪窝后会红 ✗），顺带成为 R-3 在 e2e 层的断言。`overlay` 非空 ⇒ 只写全局（§2 的不变量）——LSP 的**写**路径仍在全局，留给 T-C6 |
 | **T-B6**（判据） | ① 同模块连跑两次 `build`：第二次 `hit == files`；② `query project` 增**只读派生**字段 `artifacts{dir, entries, bytes}`（不重跑编译，守 `project-view.md` 的纪律）；③ 体积数字进 `docs/perf/ledger.jsonl`；④ `.gitignore` 指引 |
-| **T-C6**（LSP/agent 接入） | `lsp/src/lib.rs:191` 现在把 plan 丢掉（`let (_, digest)`）⇒ 保留 `plan.root` 并走 `load_at`；`:278` 的写同理 |
+| **T-C6**（LSP 接入）✅ 已落地 | 读路径见 T-B5（保留 `plan.root` + `load_at`）；**写**路径也搬进模块根 ✓ —— 判据不是 `overlay.is_empty()`（编辑器里**永远非空**：打开文档本身就带文本 ✗），而是"**overlay 里每份文本都与磁盘一致**"才算"磁盘状态产物"；有未落盘编辑 ⇒ 退回全局缓存（守住 §2 的不变量）。判据：`crates/lsp/src/tests/project.rs::project_request_describes_the_closure_of_the_requested_document` 断"打开项目文档后 `<模块根>/.sokonanoda/compiled/` 真有条目、`artifacts` 非空且 `compiler` 为当前版本" ✓ |
 | **T-D11** | 在 `.sokonanoda/prefix/` 里落"已验证前缀环境"（本文只预留目录名） |
 
 **协议**：`build.clean` 加两个字段、`query project` 加一个对象 —— 都是 **additive**

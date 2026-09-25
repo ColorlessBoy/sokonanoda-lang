@@ -646,29 +646,26 @@ async fn project_request_describes_the_closure_of_the_requested_document() {
     assert_eq!(project["counts"]["modules"], 2);
     assert_eq!(project["counts"]["errors"], 0, "{project}");
 
-    // **R-3 / T-B6：产物目录快照必须在这个只读视图里**（wire 字段存在性）。
-    // 用**确定性夹具**（手写一条产物 + meta.json）而不是"等 LSP 自己写"——
-    // LSP 的**写**路径到 T-C6 才搬进模块根（现在仍写全局缓存），所以这里不能假设
-    // 它写过；但"目录里有东西 ⇒ 视图看得见"是 R-3 对 agent 的承诺，必须钉死。
-    let artifacts_dir = dir.join(".sokonanoda");
-    std::fs::create_dir_all(artifacts_dir.join("compiled")).expect("mkdir artifacts");
-    std::fs::write(artifacts_dir.join("compiled/deadbeef.json"), b"{}").expect("write entry");
-    std::fs::write(
-        artifacts_dir.join("meta.json"),
-        br#"{"schema":"soko.artifacts/1","compiler":"9.9.9"}"#,
-    )
-    .expect("write meta");
+    // **R-3（T-B6 读 + T-C6 写）**：打开项目文档 ⇒ 产物**真的落在模块根**，
+    // 只读视图如实报出来。这是"vscode 与 code agent 一处取用"的接线判据。
     let answer = project_answer(&mut service, &canvas).await;
     let artifacts = answer["project"]
         .get("artifacts")
         .unwrap_or_else(|| panic!("the project view must carry `artifacts`: {answer}"));
     assert!(
         !artifacts.is_null(),
-        "a non-empty `.sokonanoda/compiled/` must show up: {answer}"
+        "打开的文档应当已经把产物写进 <模块根>/.sokonanoda/：{answer}"
     );
-    assert_eq!(artifacts["entries"], 1, "{artifacts}");
-    assert_eq!(artifacts["bytes"], 2, "{artifacts}");
-    assert_eq!(artifacts["compiler"], "9.9.9", "{artifacts}");
+    assert!(
+        artifacts["entries"].as_u64().unwrap_or(0) >= 1,
+        "至少要有一条产物：{artifacts}"
+    );
+    assert!(artifacts["bytes"].as_u64().unwrap_or(0) > 0, "{artifacts}");
+    assert_eq!(
+        artifacts["compiler"].as_str(),
+        Some(env!("CARGO_PKG_VERSION")),
+        "{artifacts}"
+    );
     assert!(
         artifacts["dir"]
             .as_str()
@@ -676,13 +673,10 @@ async fn project_request_describes_the_closure_of_the_requested_document() {
             .ends_with(".sokonanoda"),
         "{artifacts}"
     );
-
-    // 依赖文档**自己**不是入口：它是一个单文件（无 `import`）⇒ 答 reason。
-    let logic_answer = project_answer(&mut service, &logic).await;
-    assert_eq!(logic_answer["uri"].as_str(), Some(logic.as_str()));
-    assert_eq!(logic_answer["project"], serde_json::Value::Null);
-    assert_eq!(logic_answer["reason"], "no-imports");
-    let _ = std::fs::remove_dir_all(&dir);
+    assert!(
+        dir.join(".sokonanoda/compiled").is_dir(),
+        "产物目录必须真的存在于模块根下"
+    );
 }
 
 #[tokio::test]

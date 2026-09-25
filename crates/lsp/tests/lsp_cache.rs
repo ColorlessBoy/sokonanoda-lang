@@ -60,6 +60,13 @@ impl Drop for Fixture {
     }
 }
 
+/// **两处都算**（T-C6）：项目条目现在落 `<模块根>/.sokonanoda/compiled/`，
+/// 单文件条目仍在全局缓存 —— 判据必须把两处加起来，否则会误红 ✗
+/// （这条测试原本只看全局缓存，T-C5 的取证 B 早就点名了这处布局耦合）。
+fn written_entries(fixture: &Fixture) -> usize {
+    cache_entries(&fixture.cache) + cache_entries(&fixture.dir.join(".sokonanoda"))
+}
+
 fn cache_entries(cache: &Path) -> usize {
     std::fs::read_dir(cache.join("compiled"))
         .map(|dir| dir.filter_map(Result::ok).count())
@@ -73,7 +80,7 @@ fn cache_entries(cache: &Path) -> usize {
 #[test]
 fn opening_a_project_document_writes_a_cache_entry() {
     let fixture = Fixture::new("write");
-    assert_eq!(cache_entries(&fixture.cache), 0, "夹具前提：缓存是空的");
+    assert_eq!(written_entries(&fixture), 0, "夹具前提：缓存是空的");
 
     let mut client = Client::start(&fixture.cache);
     let diagnostics = client.open(&fixture.dir, &fixture.uri(), ENTRY);
@@ -83,9 +90,9 @@ fn opening_a_project_document_writes_a_cache_entry() {
     );
 
     assert!(
-        cache_entries(&fixture.cache) >= 1,
+        written_entries(&fixture) >= 1,
         "LSP 打开之后必须写出项目缓存条目（T-A11），实际 {}",
-        cache_entries(&fixture.cache)
+        written_entries(&fixture)
     );
 }
 
@@ -103,7 +110,7 @@ fn a_warm_process_publishes_byte_identical_diagnostics() {
         let mut client = Client::start(&fixture.cache);
         client.open(&fixture.dir, &fixture.uri(), ENTRY)
     };
-    assert!(cache_entries(&fixture.cache) >= 1, "冷跑必须写下条目");
+    assert!(written_entries(&fixture) >= 1, "冷跑必须写下条目");
 
     // 热：另一个进程，同一份缓存。
     let warm = {

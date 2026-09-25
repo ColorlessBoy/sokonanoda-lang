@@ -283,7 +283,25 @@ impl Doc {
         if let Some(digest) = &project_digest {
             if let Some(project) = self.doc.project_report_ref() {
                 let clean = project.is_clean();
-                project_cache::store_if_clean(digest, &options, project, clean);
+                // R-3（T-C6）：**磁盘状态的产物落模块根** `<root>/.sokonanoda/` ——
+                // 这样编辑器编出来的东西与 CLI 预热出来的**落在同一处**，
+                // "vscode 与 code agent 一处取用"才是完整的 ✓。
+                // **不变量**：带未落盘编辑（overlay 非空）的摘要仍进**全局缓存** ——
+                // 项目目录只放"磁盘状态的产物"（要给人和 agent 读，瞬时条目是噪声）。
+                // 判据不是 `overlay.is_empty()`（编辑器里**永远非空** —— 打开文档
+                // 本身就带着文本 ✗），而是"**overlay 里每份文本都与磁盘一致**"
+                // ⇒ 这份摘要代表的就是磁盘状态 ✓。有未落盘编辑 ⇒ 退回全局缓存。
+                let disk_state = overlay.iter().all(|(path, text)| {
+                    std::fs::read_to_string(path)
+                        .map(|on_disk| &on_disk == text)
+                        .unwrap_or(false)
+                });
+                match (&project_root, disk_state) {
+                    (Some(root), true) => {
+                        project_cache::store_if_clean_at(root, digest, &options, project, clean)
+                    }
+                    _ => project_cache::store_if_clean(digest, &options, project, clean),
+                }
             }
         }
         if !cfg!(test) && !has_imports {

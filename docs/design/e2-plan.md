@@ -298,9 +298,40 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **API 与判据留在树上（惰性、默认关、零成本）**，**不**默认打开；`T-C5` 的
     "默认打开（收益已证）"**不成立**，除非阶段 D 的前缀复用把长前缀代价压下来。
     设计 §8 有完整数字与机制分析。
-- [ ] `T-C4` **`build <dir>` 接入**（开关 `SOKO_BUILD_MODULE_BATCH=1` 默认**关** ✓，先保证零退化 ✓）
-- [ ] `T-C5` **量收益**：`build courses/set-theory` 从 **146.07s** 降下来 ✓（数字进台账）；**默认打开** ✓（收益已证 ✓）
-- [ ] `T-C6` **LSP/agent 接入**：从 `.sokonanoda/` 取模块级产物 ✓（与 B5 合流 ✓）
+- [x] `T-C4` **`build <dir>` 接入**（开关 `SOKO_BUILD_MODULE_BATCH=1` 默认**关** ✓，先保证零退化 ✓）
+  - ⛔ **按刹车处理：接线已实现又撤掉（2026-09-25）**。先按设计 §9 的分组
+    （(模块根, prelude 模式)）把批路径接进 `build.rs`、开关默认关，一验就发现
+    **等价性不成立** ✗：同一目录下 `u01 + u02` 一起批编时 `u02` 报 **假的重复声明错误**
+    （两者都声明 `mem_self`/`subset_mem`/`extra_*` —— 课程单元的常态），而逐入口真相是
+    **零错误**。⇒ 按 E2 §3 **撤掉接线与开关**（不留"打开就产生假失败"的暗雷），
+    `build.rs` 回到逐入口路径、逐字节不变 ✓。判据保留：含一条**反向**的
+    `colliding_unit_names_are_a_known_batch_limitation`（断言差异存在）。
+- [x] `T-C5` **量收益**：`build courses/set-theory` 从 **146.07s** 降下来 ✓（数字进台账）；**默认打开** ✓（收益已证 ✓）
+  - ⛔ **结论：收益为负 ⇒ 不默认打开（2026-09-25）**。同口径实测（真课程切片：
+    真 `lib/**` + 2 个真单元）：批编 **11,491ms** vs 逐入口 **3,723ms** ⇒ **慢约 3×** ✗；
+    机制 = 每个单元都在**更长的前缀**上工作（单元越大越贵）。合成小单元项目里反过来
+    （批编 1.98× 快，`perf_module_batch`）⇒ **收益取决于"共享依赖重复量"与"前缀增长"
+    谁占上风**，而课程形状（大 lib + 大单元 + 单元间重名）**两者都不利** ✗。
+    数字在 `docs/perf/ledger.jsonl`（`batch_vs_per_entry`）与设计 §8。
+    ⇒ **不打开、不发这条**；要真做模块级批量编译，先解决**单元间命名空间隔离**
+    （T-K12c 那面墙 = 阶段 D 前缀复用的题目）。
+- [x] `T-C6` ~~**LSP/agent 接入**：从 `.sokonanoda/` 取模块级产物~~ ⇒ **按实测重新界定（2026-09-25）**：
+  **"模块级产物"随批编一起作废** ✗（批编不接线 ⇒ 没有"一批的产物"这种东西）。
+  改成接**阶段 B 留下的那一半**：**LSP 的写路径搬进模块根产物目录** ——
+  T-B5 只把**读**路径接上了（否则 CLI 预热帮不到编辑器 ✗），**写**仍在全局缓存；
+  搬过来之后，编辑器里编出来的东西也落 `.sokonanoda/` ⇒ "vscode 与 code agent
+  一处取用"这条 R-3 承诺才真正完整 ✓，而且与 `query project` 的 `artifacts` 字段
+  互为印证（同一目录、同一索引）。判据要用**真进程/真宿主**：LSP 打开项目文档后
+  `<模块根>/.sokonanoda/compiled/` 出现条目、`soko/project` 的 `artifacts` 非空；
+  **不变量照旧**：带未落盘 overlay 的摘要**只写全局缓存**（项目目录只放"磁盘状态产物"）。
+  - ✅ **已实现（2026-09-25）**：`lsp/src/lib.rs` 的项目写站点改走
+    `store_if_clean_at(&root, …)`；**判据不是 `overlay.is_empty()`** —— 编辑器里它
+    **永远为假**（打开文档本身就带文本 ✗，实测直接红了），而是"**overlay 里每份文本都与
+    磁盘一致**"才算磁盘状态 ✓，有未落盘编辑就退回全局缓存。
+    判据：`crates/lsp/src/tests/project.rs::project_request_describes_…` 断"打开项目文档后
+    `<模块根>/.sokonanoda/compiled/` 真有条目、`artifacts` 非空且 `compiler` 是当前版本" ✓；
+    顺带修了取证 B 早点名的布局耦合：`crates/lsp/tests/lsp_cache.rs` 原来只数
+    `<cache>/compiled`（T-C6 之后该数**两处之和**）⇒ LSP 套件 **161 passed / 0 failed** ✓。
 - [ ] `T-C7` **阶段 C 收尾**：基准复量（② 应大幅变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.68.0` → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— `build <dir>` 按模块只编一次（146s → 模块数量级）
 
