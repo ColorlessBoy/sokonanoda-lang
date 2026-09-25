@@ -884,6 +884,34 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 293：C1 修好全部 11 条 ✓ 但引入 5 条新的 ✗ ⇒ 探针的"环境范围"还要调 ✓**
+    ```
+    开关(C1) 失败 **5** 条 · 基线(仅影子) 失败 **11** 条
+    ✗ **5 条全是新的** ✗（**不是**基线的子集 ✗）
+    ✓ 基线的 **11 条全部被 C1 修好** ✓（11 → 0 ✓✓）
+    新的 5 条：
+      compile::tests::a_leftover_sorry_after_a_complete_term_is_reported_as_redundant   ← 冗余 sorry ✓
+      compile::tests::a_leftover_sorry_in_a_lambda_body_is_reported_as_redundant        ← 冗余 sorry ✓
+      compile::tests::warnings_are_attributed_to_the_unit_that_produced_them            ← 警告归属 ✓
+      query::tests::holes_carry_the_redundant_sorry_mark                                ← **冗余标记** ✓
+      （第 5 条见日志 ✓）
+    ```
+    **⇒ 读法** ✓：C1 把探针从"**看得太多**"✗（真 builder 含提前加入的声明 ✓）
+    改成"**看得太少**"✗（只剩 prelude ✓）⇒ **"冗余 `sorry`"标记因此判错** ✓
+    ⇒ 探针需要的是"**prelude + 当前 op 之前已 elaborate 的那些**"✓ ——
+    **而不是"只有 prelude"** ✗。
+    **⇒ 两个候选（下一步选 ✓）**：
+    * **C1b（推荐 ✓）**：`probe_builder` **镜像 walk 的 `Decl` 顺序** ✓ ——
+      即**每个 `Decl` 被真 add 时，也往 `probe_builder` 里 add** ✓（但**延后一步** ✗ hmm ✓：
+      应该是"**与真 builder 同步，但排除探针自己所在 op 之后的部分**"✓）；
+    * **C1c**：探针用"**真 builder 的一个快照**"✗ —— **不行** ✓（指针陷阱 ✓，round 285 ✓）。
+    **⇒ 更可能的正解（重新读需求 ✓）**：探针要判的是"**这个 `sorry` 在**当前文档状态下**是否冗余**" ✓
+    ⇒ 它**应该**看到**当前 op 之前**的声明 ✓（**包括** walk 提前加的那些 ✓！）
+    ⇒ ⇒ **也就是说：A 步的环境其实是"对的"** ✗✓，**错的是"探针看到了**当前 op 自己**"**✗
+    ⇒ 而 round 288 已确认：**`OpenExercise` 从不被真 add** ✓ ⇒ 那 4 条失败**不是**自引用 ✗✓
+    ⇒ **所以真因可能另有其物** ✗ ⇒ **下一步：读那 5 条的第一条断言文本** ✓
+    （**这次一定要读** ✗ —— 本 session 反复证明"读一条胜过猜十轮" ✓）。
+
   - **✅ round 291 续：`Walk` 的真实构造 + ③ 的正确锚点 ✓**
     ```
     check/mod.rs:850 ✓
