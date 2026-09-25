@@ -773,8 +773,8 @@ fn run_pass(
     // **STRICT 也必须建影子**（2026-09-25 round 219 实测）：否则 `SOKO_SHADOW_STRICT=1`
     // 单独用时影子根本没建 => 断言所在的分支不执行 => 那个开关等于空转 ✗
     // （实测：STRICT=1 => MISMATCH=0 且退出码 0 ✗）。
-    let shadow_experiment = std::env::var("SOKO_SHADOW_CHECK").is_ok()
-        || std::env::var("SOKO_SHADOW_STRICT").is_ok();
+    let shadow_experiment =
+        std::env::var("SOKO_SHADOW_CHECK").is_ok() || std::env::var("SOKO_SHADOW_STRICT").is_ok();
     let shadow_arena = stumpalo::Arena::new();
     let mut shadow = EnvBuilder::new(shadow_arena.as_arena_ref(), Config::default());
     if shadow_experiment {
