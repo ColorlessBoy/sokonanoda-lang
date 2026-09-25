@@ -783,6 +783,31 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⚠ **教训（第八次同形 ✗）**：**没查到就写"确定"，比不写更糟** ✗ ——
     上一格如果被下一段直接照做 ✓，会在一个**不存在的文件**上动手 ✗。
 
+  - **🎯🎯 round 249：既有 codeAction 用例**已经在走那条路** ✓（决定性证据 ✓）**
+    ```
+    SOKO_JUDGE_STATS=1 cargo test -q -p sokonanoda-lsp --lib code_action_offers_intro_on_open_exercise
+    ⇒ test result: ok. 1 passed ✓
+      JUDGE_STATS       calls=1  total_ms=0  pairs=0  prefix_bytes=0
+      JUDGE_INFER       calls=2  total_ms=2  avg_us=1419  fails=0
+      JUDGE_INFER_SPLIT **hits=0  misses=2** ✓
+    ```
+    ⇒ **那条路可达、也确实被测到** ✓✓（`crates/lsp/src/tests/lenses.rs:105` ✓
+    发 `textDocument/codeAction` 对 **open 练习** ✓ ⇒ `actions.rs` ⇒ `suggest_with`
+    ⇒ `judge_terms_with` ⇒ `judge_pairs_uncached` ✓）。
+    ⇒ **round 245 的"没覆盖"只对 front 的 perf 用例成立** ✓ —— **LSP 侧早已覆盖** ✓
+    （这是**第九次**"可能已经做了" ✓，而这次是**好消息** ✓）。
+    **⚠ 但 `hits=0 / misses=2`** ✗ ⇒ 那个用例画布太小 ✓ ⇒ **前缀复用一次都没命中** ✓
+    ⇒ **两态在那里也不会有差** ✗。**缺的正是**：**画布够大 ⇒ 出现 hits ⇒ Δ 可测** ✓。
+    **⇒ 下一步（配方完整 ✓，可机械照做 ✓）**：
+    在 `crates/lsp/src/tests/perf_course.rs` 加一条 ✓ —— 照**两个现成模板**拼 ✓：
+    * `lenses.rs:105-136` ✓ 的 **codeAction 请求形状** ✓（`RpcRequest::build("textDocument/codeAction")` ✓
+      + 解析 `CodeActionResponse` ✓）；
+    * `perf_course.rs` ✓ 的**计时 + `perf_json` 形状** ✓（`scope: "lsp-course"` ✓、
+      `testutil::HEAVY_LOCK` ✓、`COURSE_PERF_LOCK` 串行 ✓）；
+    输入取**真实课程单元** ✓（`COURSE_ENTRIES` 里已有的 ✓）**或**多洞画布 ✓
+    ⇒ 对**多个洞**各发一次 codeAction ✓ ⇒ `JUDGE_INFER calls` 与 **`hits` 都 > 0** ✓✓
+    ⇒ 然后两态各跑 ✓ ⇒ **Δ 即 D-1 的真实收益** ✓ ⇒ 数字入 `docs/perf/ledger.jsonl` ✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
