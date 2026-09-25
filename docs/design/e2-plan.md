@@ -415,6 +415,16 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
       ```
       ⇒ **"边 elaborate 边 `with_env` 检查 + `add_declar`"已经存在** ✓（`decl_states`
       在 `kernel_phase.rs` 里 38 处 ✓，是**既有累积量** ✓）。
+    * **✅ round 198：精确锚点** ✓ —— 那两行属于一个**命名方法** ✓，其文档注释
+      已经写明设计意图 ✓：
+      ```rust
+      /// 影子环境的一条"检查后加入"（check-then-add，与 `kernel_phase` **同序同语义**）。
+      fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) -> bool
+      ```
+      ⇒ walk 侧是一条 **"影子环境"**（shadow ✓）—— 即**与主路平行的第二遍检查** ✓
+      ⇒ **天生适合"开关默认关"** ✓✓（它本来就是**附加**的东西 ✓，不是主判定 ✓）。
+      **第一步具体到** ✓：`git grep -n shadow_check_and_add` ✓ ⇒ 找它的**调用点** ✓
+      ⇒ 把**整条影子走查**接到 `SOKO_WALK_CHECK` 上 ✓（关 ⇒ 连走都不走 ✓ = 零成本 ✓）。
     ⇒ **T-D3 的真实工作** ✓：① 把这条既有检查**接到开关**上 ✓（默认关 ⇒ 零变化 ✓）；
     ② **两态对拍** ✓（关：全语料 `--json` 逐字节相同 ✓；开：判定量与 `finish_pass`
     逐项相同 ✓）。**比交接写的"内核级从零改"小得多** ✓ —— 而且它现在更像是
