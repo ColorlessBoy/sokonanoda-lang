@@ -950,3 +950,23 @@ run `35940618087` 的两条红，**都是判据自身的余量/时序问题，�
 
 **预防**：① "缓存上限"这类策略上线前，必须用**真实用法**（同一批文件反复判）量一次
 命中率，而不是只看单文件场景；② 慢 job 先取证再取消。
+
+## 2026-09-25 · 两条 CI 健康事实（不是失败，是"别再误判"的记录）
+
+**① CI 的 `test` job 25–35 分钟是数量级正常的，不要当 hang 处理。**
+本机用 **CI 等价的并行度**跑一次全仓测试（`cargo test --workspace --locked -- --test-threads=2`）
+实测 **15m05s**（real）/ 9m14s（user）⇒ 在更慢的 runner 上 25–35 分钟是同一数量级 ✓。
+（我先前把它当成 hang、连取消两次 ✗ —— 教训已记在上面同一天的条目里。）
+最大单套件：front lib **31s**、LSP lib **86s**、另一个 **22s**；没有单套件病态慢 ✓。
+
+**② 一条既有用例在 CI 那样的并行度下会偶发失败** ✗：
+```
+cargo test -p sokonanoda-lsp --lib --locked -- --test-threads=2
+test tests::project::editing_a_dependency_refreshes_the_open_entry ... FAILED
+test result: FAILED. 160 passed; 1 failed
+```
+它是**跨文件时序敏感**用例（同文件头就写着这类链路"改依赖 → 下游重发"在课程规模并行抢
+CPU 时会静默失败，需要 `testutil::HEAVY_LOCK` 串行 ✓）。默认并行度下本机没复现 ✓。
+**风险**：它可能在 CI 的 Workspace tests 那步偶发把整轮打红 ✗。
+**待办**：下一轮确认它是否已取 `HEAVY_LOCK`；若没有（或仍偶发），给它加锁或加重试，
+并把判据写成"并行度 2 下连跑 N 次不红"。
