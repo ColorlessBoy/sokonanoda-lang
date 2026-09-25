@@ -37,7 +37,7 @@ jobs:
   # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
   # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
   auto-tag:
-    needs: [lint, test, gates, ledger, contract, editor, e2e, e2e-macos]
+    needs: [lint, test, gates-fast, gates-course, ledger, contract, editor, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -187,11 +187,16 @@ jobs:
           path: perf-report-*.txt
           include-hidden-files: false
 
-  gates:
+  gates-fast:
+    name: gates-fast（课程语料 + 契约，debug 路径）
     needs: changes
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
+    # **拆成两条并行路径**（2026-09-25 用户要求 ✓："gates 要跑 16 分钟…完全阻碍了前期开发" ✓）：
+    # 原来一条 job 串起 **debug 路径**（语料 `cargo run` + 契约 `cargo test`）与
+    # **release 路径**（`cargo build --release` + 课程门禁 ✓）⇒ 墙钟 = **两段之和** ✗；
+    # 拆开后 = **两段的最大值** ✓（两者互不依赖 ✓）。
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
@@ -208,6 +213,24 @@ jobs:
           done
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
+  gates-course:
+    name: gates-course（release 构建 + 课程门禁）
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    # **拆成两条并行路径**（2026-09-25 用户要求 ✓："gates 要跑 16 分钟…完全阻碍了前期开发" ✓）：
+    # 同一个 job 的另一半：release 路径（原来与 debug 路径串行 ✓） **debug 路径**（语料 `cargo run` + 契约 `cargo test`）与
+    # **release 路径**（`cargo build --release` + 课程门禁 ✓）⇒ 墙钟 = **两段之和** ✗；
+    # 拆开后 = **两段的最大值** ✓（两者互不依赖 ✓）。
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Setup Node for the course gate
         # 课程门禁的判据在 courses/set-theory/tools/check.py（python3）；判卷通道是
         # `grade`（node 启动器解析二进制，或直接用下面给的当轮二进制）。
