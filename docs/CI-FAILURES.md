@@ -1305,3 +1305,18 @@ workspace 测试 ✓ · 协议一致性 ✓ · 性能报告 ✓ · 课程语料 
 ① 那条复现的**环境依赖**要修 ✓（让它在本机与 CI 同结论 ✓）；或
 ② 把"**非零退出**"也像超时那样分档 ✓（**环境异常** ≠ **行为已变** ✓ ——
    但**必须**配一条本地兜底判据 ✓，否则会掩盖真回归 ✗，与 round 126 同款取舍 ✓）。
+
+### round 161：**假设未证实** ✗ + 一次**自己的编辑错误**（已撤回 ✓）
+1. **假设** ✓：`ledger` job 只有 `Install Rust` + `Rust cache`、**没有 build** ✗，而复现件里
+   **14/45 条**要用 `soko`/`sokonanoda` ✓ ⇒ 猜"CI 上二进制不存在 ⇒ 三片全红" ✓。
+   **实验（决定性 ✓）**：`SOKONANODA_BIN=/nonexistent/nope python3 scripts/gap.py check --shard 1/3`
+   ⇒ **仍然全绿** ✓ ✗ ⇒ **假设不成立** ✓ —— `scripts/soko` 的解析链是
+   `$SOKONANODA_BIN` → **版本匹配的仓库构建** → **缓存** → 扩展自带 → **按版本钉下载** ✓
+   ⇒ 本机有仓库构建/缓存 ⇒ 照样跑得动 ✓。（CI 上也会走到"下载"那一档 ✓，只是慢 ✓。）
+2. **我自己的编辑错误** ✗：加"Build CLI"那一步时，我把它插在了 **`steps:` 之后、`checkout` 之前** ✗
+   ⇒ 那样的 job **必然红** ✗（连仓库都还没拉 ✓）。**已 `git checkout` 撤回** ✓（零损伤 ✓）。
+3. **⇒ 下一步（换成可证伪的做法 ✓）**：不要再猜环境差异 ✗ —— **直接读 CI 上那片日志** ✓
+   （`gh run view --job <id> --log` ✓；注解通道只给 "exit code 1" ✗ 不够 ✓）；
+   若日志已过期 ✗ ⇒ **在本地忠实复现 CI 环境** ✓：
+   `env -i PATH=/usr/bin:/bin HOME=/tmp …` + **空缓存**（`SOKONANODA_CACHE_DIR=/tmp/empty` ✓）
+   + **无 `target/` 构建**（`SOKONANODA_BIN` 不设 ✓ 且临时改名 target ✓）⇒ 看它**红在哪一条** ✓。
