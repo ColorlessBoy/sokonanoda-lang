@@ -160,6 +160,18 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
         detail = _tail(proc.stdout) or _tail(proc.stderr)
         if detail and _tail(proc.stderr):
             detail = f"{detail} ｜ stderr: {_tail(proc.stderr, 2, 120)}"
+        # **把 Node 自身定时器超时归到 timeout 档**（2026-09-25 round 202）:
+        # G-23 的复现件用 Node 写 LSP 客户端、等应答有上限 => CI 慢 runner 上到点
+        # => Node 抛 listOnTimeout / processTimers => 脚本 exit 2 => 此前按'环境异常' 永远判红，与台账 fixed 不一致 => 假红。
+        # 只分这一种形状: 其余 exit 2 仍判红（2026-09-23 那层保护一字不动）。
+        # 走既有 timeout 档 = 响亮跳过（--strict 才判红）。
+        # 判据必须在**这一层**（原件在手）—— 放进 judge() 只能拿到拼好的 note。
+        if proc.returncode == 2 and any(
+            kk in ((proc.stderr or "") + (proc.stdout or ""))
+            for kk in ("listOnTimeout", "processTimers", "LSP 超时未应答")
+        ):
+            return ("timeout", proc.returncode,
+                    "LSP 应答超时（Node 自身定时器）=> 环境慢，非形状不对 ｜" + detail)
         return ("script", proc.returncode, detail)
     if path.suffix == ".sokonanoda":
         proc = subprocess.run(
