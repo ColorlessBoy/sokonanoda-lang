@@ -884,6 +884,29 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 287：C1 **原理可行** ✓（arena 是参数 ✓）—— 但要把 arena 接进 walk ✓**
+    ```
+    kernel/src/builder.rs:116   pub fn new(arena: &'a ArenaRef<'a>, config: Config) -> Self
+    ⇒ **arena 是参数** ✓ ⇒ 第二个 builder 可**共享同一个 arena** ✓ ⇒ **指针同一性保住** ✓✓
+    影子环境（check/mod.rs:778 ✓）：let shadow_arena = stumpalo::Arena::new();  ← **独立 arena** ✗
+      ⇒ 影子自成一体 ✓（只检查自己分配的声明 ✓）⇒ 与本问题无关 ✓
+    ⚠ 但 **walk 手里是 `builder` ✓、不是 arena** ✗ ⇒ C1 需把 arena 接进 walk ✓
+      （或让 `Walk` 存一份 `ArenaRef` ✓ —— `check/mod.rs:752` 建 builder 时 arena 就在手边 ✓）
+    ```
+    **⇒ C1 的改动面（估 ✓）**：`Walk` 加一个 arena 字段 ✓（构造时传入 ✓）⇒
+    在 walk 里建一个"**只装 prelude**"的 `EnvBuilder` ✓（同 arena ✓）⇒
+    三处 `build_redundant_probes` 改用它 ✓ ⇒ **中等改动 ✓**（比 C2 大 ✓、比 A2 小 ✓）。
+    **⇒ C2 的改动面（估 ✓）**：**一行判断** ✓ —— `redundant_probes.is_empty()` ✓ 才走真 add ✓
+    （即"含 `sorry` 的文档不启用真 add" ✓）⇒ **最小 ✓**，但**收益面窄** ✓。
+    **⇒ 决策建议（按代价/收益 ✓）**：
+    * **先做 C2** ✓（一行 ✓、**立刻可验证** ✓：`failed` 回到 11 ✓）⇒ **让 D-2 先达标** ✓；
+    * **C1 作为后续优化** ✓（扩大收益面 ✓，但在 D-2 之外 ✓ ⇒ 可留给 D-3/T-D13 ✓）；
+    * **C3 保底** ✓（若 C2 也不行 ⇒ 停在"A 已实现默认关" ✓，**计划允许** ✓）。
+    **⇒ 下一步（一条命令 ✓）**：在 A 步的写入点加 `redundant_probes.is_empty()` 判断 ✓
+    —— 但**写入点在 `shadow_check_and_add`（walk.rs ✓），它看不到"当前 op 有没有探针"** ✗
+    ⇒ 需要把"本 op 是否有探针"传进去 ✓（或让 `PendingOp::Decl`/`OpenExercise` 携带标记 ✓）
+    ⇒ **先读 `PendingOp` 的两个变体** ✓（`Decl` 与 `OpenExercise` ✓）再定 ✓。
+
   - **🔴 round 286：A2 也被挡住 —— **两个方案都有硬约束** ✗ ⇒ 需要第三条路 ✓**
     ```
     probe 的构造在 walk 里**三处**（walk.rs:567 / :791 / :1104 ✓）
