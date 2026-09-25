@@ -5154,3 +5154,34 @@ cargo run -q -p sokonanoda-lsp --bin sokonanoda-lsp           # LSP（editor/vsc
 **T-K31**（`TcCache::new` 每声明 4MB）：**实测无收益 ⇒ 已回退** ✗（池化强制 memset vs mmap 惰性零页；12.29s/11.67s vs 11.96s/11.67s ✓）。
 **⚠ 性能根因：未修** ✗ —— `by` 每步 tactic 重判整份文档这个病灶**仍然在**（冷开 `unit12-solution` 的 `judge_infer` miss ≈ **9.5s = 77%** ✓）。**不许当成已修** ✗；修复属「把 check-then-add 移进 walk」的内核级重构档 ✓，靶心与验收工具（`SOKO_JUDGE_STATS` / `SOKO_SHADOW_CHECK` / `kernel-check.sh` 五步）都已记录在案 ✓（详见 `docs/design/by-tactics.md` 的 as-built 段与 `docs/PERF.md`）。
 课程门禁基准 **36 目标 · 328 checked · 99 open · 0 判负**（全程未变 ✓）。
+
+## 第 122 轮（2026-09-25）：**push 前本地全跑**变成一条命令 ✓ · CI 拆分已验证 ✓
+
+* **用户观察经数据核实 ✓**：最后一次**完全成功**的 `ci` = `2026-09-24T16:42:46Z`（本地 00:42 ✓）
+  ⇒ 之后 **14 轮全红** ✗。**根因不是"机器不行"** ✗（慢机器只是**放大**了它 ✓）：
+  ① `test` 是 **26 步巨无霸**、卡住 ⇒ 整轮永不绿 ✗（**已拆 3 条** ✓，见下）；
+  ② e2e 判据"**数事件** + **空转 `waitFor`**" ✗ ⇒ ubuntu 必红 ✓（**已修** ✓）。
+* **新增 `scripts/ci-local.sh`** ✓（用户要求 ✓）：把 CI 的 5 条 job 在本机**分阶段**跑一遍 ✓，
+  任一条红就**停并指名** ✓；`--fast` 跳过 workspace 全套 ✓、`--e2e` 追加真宿主 ✓。
+  **自检通过 ✓**（10 项绿 ✓：fmt/clippy/课程门禁/缺口台账/版本/记法/两个守卫+反向验证/stub 宿主 ✓）。
+  ⚠ 第一版我多写了 `-D warnings` ✗ ⇒ 内核既有 62 条 warning 被当错误 ✗ ⇒ **脚本比 CI 更严**
+  = 自造红 ✗ ⇒ 已改成**与 CI 逐字一致** ✓（这条本身就是"本地提前测"要防的东西 ✓）。
+* **CI 拆分已验证 ✓**（`36138540072` ✓）：`lint` · **`editor`** · `e2e ×3` · `e2e ledger`
+  = **6 条独立绿** ✓（`editor` 那条**自己跑完自己绿** ✓ = 用户要的性质 ✓）；
+  `test`/`gates` 仍在跑 ⏳（上限 40 分钟 ⇒ 必给结论 ✓）。
+* **对照测量 ✓**：本地 `cargo test --workspace` = **161 秒 / 43 套全绿** ✓ vs CI 上 `test` >20 分钟 ✗
+  ⇒ 差 ~10 倍 ⇒ 非套件慢 ✓，而是 CI 侧特有的慢/卡 ✓（待 `Per-suite timing` 区分"冷编译/某套慢"✓）。
+
+## 第 96 轮（2026-09-25）：阶段 D 交接（T-D3 **故意未开工** ✗）
+
+* 发布已闭环（0.68.0 ✓ Latest ✓ assets=26 ✓），本轮回到主线看 `plan.py next` ⇒ **T-D3** ✓。
+* **判断：不开工** ✗ —— T-D3 是**内核级**改动（walk 里边 elaborate 边 `with_env` 检查 +
+  `add_declar` ✓），剩余上下文不足以安全做完 ⇒ 按纪律**不留半成品** ✓
+  （半成品的内核改动比没做更糟 ✗）。
+* **已留精确交接** ✓（写进 `docs/design/e2-plan.md` 的 T-D3 条目 ✓）：
+  要读的三个文件（`walk.rs` / `check/mod.rs` / `architecture.md` **§8 gotchas** ✓，
+  其中 **`quiet_catch` 不可嵌套** ✗ 对"walk 里再进一次检查"尤其要命 ✓）、
+  开关 `SOKO_WALK_CHECK=1`（默认关 ⇒ **零变化零成本** ✓）、两态判据（默认关：全语料
+  `--json` 逐字节相同 ✓；打开：walk 累积量与 `finish_pass` **逐项相同** ✓）。
+* **下一步建议**：新会话/下一轮**开局**就做 T-D3（此时上下文新鲜 ✓），
+  而不是在一轮末尾硬塞 ✗。
