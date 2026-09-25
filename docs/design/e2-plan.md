@@ -884,6 +884,31 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 284：机制完全清楚 ✓ —— 而它同时暴露 A1 的难点 ✗（可能要走 A2 ✓）**
+    ```rust
+    walk.rs:1466  fn build_redundant_probes<'arena>(
+    :1467      builder: &mut EnvBuilder<'arena>,                    ← **借真 builder** ✓
+    :1481      let name = format!("_soko_redundant_sorry_{i}");     ← **合成声明** ✓
+    :1482      if let Ok(declar) = build_def(builder, &name, universe, ty, &modified, known, &mut hovers, ctx) {
+    :1492          probes.push((declar, *span));
+    ```
+    ⇒ **probe 是"合成声明"** ✓，用 **`build_def`** 在**真 `builder`** 上 **elaborate** ✓
+    ⇒ **A 步让真 `builder` 提前含了声明** ✓ ⇒ probe 的 elaborate **看到更多名字** ✗
+    ⇒ **判定翻转** ✓✓（`a_leftover_sorry_*` 那 4 条 ✓）**机制确认** ✓。
+    **⚠ A1 的难点（新发现 ✗）**：probe 需要的是"**A 之前**那个环境"✗ ——
+    而它**已经被就地改掉了** ✗（`builder` 被逐步填充 ✓）
+    ⇒ "让 probe 用自己的环境"✗ **做不到** ✓，除非：
+    * **存一份 A 之前的快照** ✓（`EnvBuilder::snapshot()` ✓ 现成 ✓，`kernel/src/builder.rs:75` ✓）
+      ⇒ **可行 ✓**（A 步第一次 add 之前 `snapshot()` 一次 ✓，probe 用那份 ✓）；
+    * **或 A2** ✓：把 probe 的构造**挪到 walk 之后** ✓（真 `builder` 已稳定 ✓）
+      ⇒ 简单 ✓，但**失去"walk 期间当场做"的初衷** ✓（`check_then_add_decl` 抽出来的理由 ✓）。
+    **⇒ 倾向 A1 + 快照** ✓（**保住初衷** ✓，且 `snapshot()` 是现成原语 ✓，
+    `docs/design/e2-plan.md` 的"三个内核原语 ✓"里就有它 ✓）。
+    **⇒ 下一步（一条命令 ✓）**：读 `snapshot()` 的签名与用法 ✓
+    （`kernel/src/builder.rs:75` ✓ + `kernel/tests/memory_api.rs:540` 的用例 ✓）
+    ⇒ 确认"快照是一份只读副本、不干扰 builder" ✓（测试名就是这么写的 ✓）
+    ⇒ 然后 A 步**第一次 add 之前**存快照 ✓、`build_redundant_probes` 改用它 ✓。
+
   - **🎯🎯🎯 round 283 续：测试名就是烟枪 —— 是「冗余 `sorry`」判定（`redundant_probes`）✓**
     ```
     crates/front/src/compile/tests.rs
