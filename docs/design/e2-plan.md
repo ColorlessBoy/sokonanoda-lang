@@ -884,6 +884,29 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 277：修法 A 的形状确定 ✓（两处各两行 ✓ + 暴露开关一行 ✓）**
+    ```rust
+    judge.rs:228  pub fn judge_terms_with(extra_prefix, prefix_src, options, open, terms) -> Vec<Judgement> {
+    :235      let key = judge_cache_key(&[extra_prefix, prefix_src, &options_key(options), …]);  // **键含文本、不含环境** ✗
+    :242      if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) { return j; }        // ← 读 ✓
+    :246      stats::MISSES.fetch_add(1, …);
+    :254      let j = judge_pairs_uncached(key, extra_prefix, prefix_src, options, &pairs);
+    :255      judge_cache_put(key, JudgeCacheValue::Terms(j.clone()));                          // ← 写 ✓
+    ```
+    ⇒ **修法 A** ✓：开关打开时**跳过 `:242` 的读与 `:255` 的写** ✓（**只算** ✓），
+    `:284` 附近（`judge_pairs_with` ✓）同形两处**照做** ✓。
+    **具体（四段 ✓）**：
+    ① **暴露开关** ✓：`walk.rs` 的 `walk_real_add_requested` 是 `pub(super)` 方法 ✗
+       ⇒ 再加一个**自由函数** ✓（如 `pub(crate) fn walk_real_add_enabled() -> bool` ✓，
+       读同一个环境变量 ✓，两处共用一个 `OnceLock` ✓）；
+    ② `judge_terms_with` ✓：`if walk_real_add_enabled() { …直接算并 return… }` 放**最前** ✓
+       （比"条件化读/写"更简单 ✓，且**不动** HITS/MISSES 计数语义 ✓ —— 绕开时本就不该计 ✓）；
+    ③ `judge_pairs_with`（`:284` ✓）**同形** ✓；
+    ④ `type_cache`（`:130` ✓）**同问** ✓：它的键若同样只含文本 ✗ ⇒ 也要绕 ✓
+       （**先读它的键** ✓，别假设 ✓ —— 本 session 的教训 ✓）。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 回到基线 11** ✓ · 组合 **11** ✓ ·
+    四件套 ✓ · 基准再降 ✓；**反向验证** ✓：去掉 ① 的绕开 ⇒ **必须回到 96/100** ✓。
+
   - **🎯 round 276 续：键的形状**确认了假设** ✓（键里只有字符串 ✗，没有环境状态 ✓）**
     ```
     judge.rs:99   type JudgeCacheStore = (HashMap<u64, JudgeCacheValue>, Vec<u64>);
