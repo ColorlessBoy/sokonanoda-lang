@@ -151,6 +151,16 @@ jobs:
         # 拆开后最长杆从 ~10m41s 降到 ~4 分钟，且**输出格式不变**（注解步骤照旧有效）。
         # ⚠ 不用 `cargo nextest`：它**不跑 doctest**，且输出格式会打断既有的失败注解。
         kind: [lib, tests, doc]
+        # **`sokonanoda-cli` 是纯 bin crate** ✓ ⇒ 它的 `--lib` / `--doc` 腿**永远红** ✗
+        # （`error: no library targets found in package sokonanoda-cli` ✓）
+        # ⇒ 2026-09-25 起**排除这两条** ✓（12 条腿 → **10 条** ✓）。
+        # ⚠ 为什么重要 ✓：`auto-tag` 的 `needs` 里有 `test` ✓ ⇒ 这两条红腿
+        # **会挡住发版** ✗（实测 ✓：`0.72.0` 因此一直发不出去 ✓）。
+        exclude:
+          - pkg: sokonanoda-cli
+            kind: lib
+          - pkg: sokonanoda-cli
+            kind: doc
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
