@@ -23,10 +23,23 @@ crates/front/src/by.rs|render_expr|spec.ty = render_expr(ty);
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&restore_universe_levels(
+crates/front/src/compile/check/kernel_phase.rs|print_back|crate::display::print_back(&text, &display)
+crates/front/src/compile/check/kernel_phase.rs|print_back|crate::display::print_back(&text, display)
+crates/front/src/compile/check/kernel_phase.rs|print_back|crate::display::print_back(&text, display)
+crates/front/src/compile/check/mod.rs|print_back|crate::display::print_back(text, display)
+crates/front/src/compile/check/mod.rs|render_expr|crate::proof::render_expr(expr)
 crates/front/src/compile/check/mod.rs|render_expr|pub fn render_expr(expr: &Expr) -> String {
 crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
 crates/front/src/compile/elab.rs|render_expr|&render_expr(scrutinee),
 crates/front/src/compile/elab.rs|render_expr|Some(result) => format!("`{candidate}` 的结果类型是 `{}`", render_expr(result)),
+crates/front/src/compile/elab.rs|render_expr|crate::proof::render_expr(expected)
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(val))
 crates/front/src/compile/elab.rs|render_expr|let ctor_src_sig = render_expr(&ctor_ty);
@@ -61,6 +74,9 @@ crates/front/src/compile/goals.rs|render_expr|let text = render_expr(ty_ast);
 crates/front/src/compile/goals.rs|render_expr|other => format!("({})", render_expr(other)),
 crates/front/src/compile/goals.rs|render_expr|return Some(render_expr(ty));
 crates/front/src/compile/goals.rs|render_expr|ty: render_expr(ty_ast),
+crates/front/src/compile/prelude.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/prelude.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/prelude.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
 crates/front/src/compile/tests.rs|render_expr|assert_eq!(render_expr(&back), expected, "round-trip: {source}");
 crates/front/src/compile/tests.rs|render_expr|assert_eq!(render_expr(&expr), expected, "source: {source}");
 crates/front/src/compile/tests.rs|render_expr|let back = parse_expr_text(&render_expr(&expr))
@@ -72,7 +88,6 @@ crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_no
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("z = z", &[], &[], &["=".to_string()]);
 crates/front/src/semantic.rs|tag_runs_with_notations|pub fn tag_runs_with_notations(
 crates/front/src/semantic.rs|tag_runs_with_notations|tag_runs_with_notations(text, decls, binders, &[])
-crates/front/src/suggest.rs|render_expr|let s = render_expr(expr);
 crates/lsp/src/lib.rs|render_expr|goals.push(render_expr(
 crates/lsp/src/lib.rs|render_expr|goals.push(render_expr(domain));
 crates/lsp/src/lib.rs|render_expr|let codomain = render_expr(cur);

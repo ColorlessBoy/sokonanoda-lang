@@ -50,9 +50,15 @@ WHITELIST = {
     "crates/front/src/proof.rs",
 }
 # **唯一接口**：绕过这三个函数的调用点都在守卫范围内 ✓。
+# ⚠ **不要把 `:` 排除在外**（2026-09-25 修 ✗⇒✓）：原来的 lookbehind `(?<![\w:.])`
+# 想跳过**方法调用**（`x.print_back(` ✓），但它同时把**路径限定调用**
+# `crate::display::print_back(` ✗ 也排除了 ⇒ **漏检** ✓ ——
+# 实测：`crates/front/src/compile/check/kernel_phase.rs` 的 3 处 `print_back` **不在基线里** ✗
+#（而 `ty_text` 正是由它们折的 ✓，见 `docs/design/e2-plan.md` 的 T-U12 副发现 ✓）
+# ⇒ 那 77 处是**低估** ✓。现在只排除**紧邻标识符**（`\w` ✓）⇒ 路径形式照样命中 ✓。
 CALLS = {
-    "render_expr": re.compile(r"(?<![\w:.])render_expr\s*\("),
-    "print_back": re.compile(r"(?<![\w:.])print_back\s*\("),
+    "render_expr": re.compile(r"(?<!\w)render_expr\s*\("),
+    "print_back": re.compile(r"(?<!\w)print_back\s*\("),
     "tag_runs_with_notations": re.compile(r"tag_runs_with_notations\s*\("),
 }
 BASELINE = REPO / "scripts" / "notation-paths-baseline.txt"
