@@ -1263,16 +1263,29 @@ infixr:80 \" '' \" => Set.image\n";
             table.len(),
             table.iter().filter(|d| d.target == "Exists").count(),
             arities.get("Exists"),
-            arities.keys().filter(|k| k.ends_with("Exists")).collect::<Vec<_>>()
+            arities
+                .keys()
+                .filter(|k| k.ends_with("Exists"))
+                .collect::<Vec<_>>()
         );
         let dn = DisplayNotations::new(table, arities);
         let text = "forall (α : Type 0), Exists (Set α) (fun (U : Set α) => forall (A : Set α), Set.subset α A U)";
-        println!("[real-shape] out: {}", fold_text(text, &dn));
+        // **判据（2026-09-25 修复后转断言 ✓）**：修前这里是**原样返回** ✗ ——
+        // 内建 `=` 把 `fun … =>` 的 `=` 吃掉 ⇒ 解析失败 ⇒ 整条 bail。
+        // 修在 `crates/front/src/token.rs` 的声明符号匹配处（基础多字符算符更长时让路 ✓）。
+        assert_eq!(
+            fold_text(text, &dn),
+            "∀ (α : Type 0), ∃ (U : Set α), ∀ (A : Set α), A ⊆ U",
+            "λ 操作数里的 `∃` 必须折出来（用户报的 ③：凡类型含 `fun … =>` 的声明都退化 ✗）"
+        );
         // 二分：到底是 **splice 内建** 还是 **prelude arities** 让它 bail ✗
         let mut ta = crate::notation::notation_table(commands);
         ta.splice(0..0, crate::notation::builtin_notation_decls());
         let dna = DisplayNotations::new(ta, arities_in_commands(commands));
-        println!("[A 内建+splice / 无 prelude] out: {}", fold_text(text, &dna));
+        println!(
+            "[A 内建+splice / 无 prelude] out: {}",
+            fold_text(text, &dna)
+        );
         let tb = crate::notation::notation_table(commands);
         let dnb =
             DisplayNotations::new(tb, arities_with_prelude_from(arities_in_commands(commands)));

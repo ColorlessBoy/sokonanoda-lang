@@ -210,13 +210,26 @@ impl<'a> Lexer<'a> {
         // `𝒫`/`ᶜ`/`''`/`⁻¹'`/`×ˢ` 里前四个是标识符字符、`''` 今天根本不是
         // 合法 token，只有这条路能把它们读成 `Sym`。
         if let Some(symbol) = self.declared_symbol_ahead() {
-            for _ in symbol.chars() {
-                self.bump();
+            // ⚠ **基础多字符算符更长时，让常规分支赢**（2026-09-25，bug ③ 的真因）：
+            // 内建记法 `=` 命中后会抢走 `fun … =>` 里 `=>` 的开头 ⇒ 词法坏 ⇒
+            // `print_back` 的解析失败 ⇒ **整条类型折不动、退回点形式** ✗
+            // （用户报的"好多目标都没记法化"；`AGENTS.md` 记的 R-2 是同一族的另一处）。
+            // 基础多字符算符只有 `=>`（:306）与 `->`（:291）两种，都比单字符记法符号长，
+            // 所以判据是"**声明符号是它们的真前缀**"⇒ 放行给常规分支 ✓。
+            // （`𝒫`/`''`/`⁻¹'`/`×ˢ` 这些不可能与它们前缀相撞 ⇒ 一条都不会被误放 ✓。）
+            let rest = &self.src[self.offset.min(self.src.len())..];
+            let base_wins = ["=>", "->"]
+                .iter()
+                .any(|op| rest.starts_with(op) && op.len() > symbol.len());
+            if !base_wins {
+                for _ in symbol.chars() {
+                    self.bump();
+                }
+                return Ok(Token {
+                    kind: TokenKind::Sym(symbol),
+                    span: Span::new(start, self.pos()),
+                });
             }
-            return Ok(Token {
-                kind: TokenKind::Sym(symbol),
-                span: Span::new(start, self.pos()),
-            });
         }
         match c {
             '#' => {
