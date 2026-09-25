@@ -658,6 +658,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （若 Δ 仍≈0 ⇒ **如实记录"D-1 在真实路径上也没有可测收益"** ✓ ⇒ 那才该考虑关默认 ✗）；
     ③ 数字进 `docs/perf/ledger.jsonl` ✓（`scope` 里能看出是新用例 ✓）。
 
+  - **🎯 round 244：既有用例**可能已经覆盖**那条路 ⇒ 先判别，别重复加** ✗**
+    `crates/front/tests/perf.rs`（214 行 ✓）的**文件头文档**就写着 ✓：
+    ```
+    //! - **judge 缓存断言**：命中缓存跳过全前缀重编译。
+    fn gen_canvas(checked: usize, open: usize) -> String {
+        … for i in 1..=open { lines.push(format!("theorem exercise_{i} : P := sorry")); }   // **洞** ✓
+    ```
+    ⇒ 既有用例 `incremental_edit_anywhere_is_fast` ✓ **编辑的就是那些洞** ✓
+    ⇒ **很可能已经在走 `suggest` ⇒ `judge_terms_with`** ✓ = 前缀复用所在的路 ✓✓
+    ⇒ **那我要加的用例可能已经存在** ✗（**本 session 第六次**遇到这种 ✓）。
+    **⇒ 便宜的判别（下一轮一条命令 ✓，不要先写代码 ✗）**：
+    ① `SOKO_JUDGE_STATS=1 cargo test -p sokonanoda-front --test perf -- --nocapture --test-threads=1`
+       ⇒ 若打出 `JUDGE_INFER calls>0` ✓ ⇒ **那条路已经被走到** ✓（用例已覆盖 ✓）；
+    ② 再两态各跑一次 ✓ ⇒ **Δ 就是 D-1 的真实收益** ✓（**无需新增用例** ✓）；
+    ③ 若 `calls==0` ✗ ⇒ **才**按 round 243 的落点新增 ✓（洞更多 / `by` 更多 ✓）。
+    ⚠ **先判别再动手** ✓ —— 这正是本 session 反复奏效的那一步 ✓（也反复被我忘掉 ✗）。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
