@@ -5,6 +5,35 @@
 > **你只需要读这一页 + `docs/design/e2-plan.md`，就能接着干** ✓。
 > 本文件写于 2026-09-24，交接时的仓库状态是：**版本 0.65.5（已发版上线 ✓）**、
 > **E1 计划的 124 条全部勾完 ✓**、**E2 计划刚定稿、0/38 条已开工** ✓。
+>
+> ---
+>
+> **⚡ 2026-09-25 状态更新（接手前必读）**：进度 **19/38**，阶段 A 已发 **0.66.0** ✓；
+> 阶段 B（R-4 命令名 + R-3 产物目录）**代码全部完成**（T-B1..T-B6 ✓）、版本已 bump
+> **0.67.0**，**但 release 还没走完** ✗ —— 卡在 CI 的 `test` job 极慢（每轮 30–80 分钟）
+> 与 `auto-tag` 的机制：**`auto-tag` 只在 `event_name == 'push'` 时运行**
+> （`.github/workflows/ci.yml`），用 `gh run rerun` 触发的重跑**永远不会出 tag** ✗
+> —— 要出 tag 必须往 `main` **push** 一次 ✓。当前有一轮 push 事件 CI 在跑
+> （head 见 `gh run list`），绿了就会 auto-tag **v0.67.0** 并 dispatch release ✓；
+> 之后核对 `gh release list` 并把 **T-B7** 勾上。
+>
+> **阶段 C 已按实测重新定位**：T-C1 设计 ✓、T-C2 `plan_module` API ✓、T-C3 等价性判据 ✓
+> （**负结果**：平坦批编对课程形状**不等价** —— 单元间重名 ⇒ 假重复声明 —— 且同口径慢 3×）
+> ⇒ T-C4/T-C5 按 E2 §3 **刹车**（不接 `build`、不默认打开）；T-C6 重新界定为
+> "把 LSP 的**写**路径也搬进模块根产物目录" ✓ 并**已随 0.67.0 一起发布**；
+> ⇒ **T-C7 不发空的 0.68.0**（没有第二个用户可见增量）。详见
+> `docs/design/module-batch.md` §8/§10 与 `docs/design/project-artifacts.md` §8b。
+>
+> **阶段 D 已开工准备**：T-D1（纯重构：抽出 `check_then_add_one`）的执行方案已写死在
+> `e2-plan.md` 的 T-D1 下（抽取位置/签名/不许抽走的东西/风险），判据用现成工具
+> `scripts/kernel-diff.sh --fast <改前> <改后>`（自检已过：`2/2，人为差异被抓到` ✓），
+> 改前二进制已存档在 `target/debug/sokonanoda.before` ✓。
+>
+> **已知的两条环境事实**（免得重复踩）：① 受限沙箱会**拒绝仓库内的 rename 与删除**
+> ⇒ 在仓库内跑项目构建时产物条目落不了盘（本地 gate 可加
+> `SOKONANODA_NO_PROJECT_ARTIFACTS=1` 绕开，CI 不需要）；② 本机 `scripts/soko` 的缓存
+> 二进制要**与仓库版本一致**（现在是 0.67.0），否则 gate 直接 exit 3 —— 重建后把二进制
+> 落到 `target/debug/` 即可 ✓。
 
 ---
 
