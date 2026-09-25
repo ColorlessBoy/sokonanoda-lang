@@ -733,7 +733,18 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     报告里只有 `notations: Vec<NotationDecl>` ✓，而 `DisplayNotations` 需要 arity ✓；
     `ty_text`/`val_text` 只覆盖**整类型** ✓，`peel_pi_layers` 剥出的 `domain`/`codomain`
     **子项**没有副本 ✗）⇒ 先 B 后 A ✓。**不许**在 LSP 重建 arity ✗（那是第五套实现 ✓，守卫会抓 ✓）。
-- [ ] `T-U12` **面级 sweep 判据**（用户要求 ✓）
+- [~] `T-U12` **面级 sweep 判据**（用户要求 ✓）
+  - **✅ 面 #4（状态栏）· 面 #5（项目树）⇒ ③ 不判**（2026-09-25 round 145 **实测** ✓）：
+    `editor/vscode/project-tree.js` 渲染的是 **标签 / 计数 / 状态 / 路径** ✓ ——
+    `item.description` = 状态标签 ✓（`:65`）、`item.tooltip = moduleTooltip(module)` ✓（`:66`）、
+    根节点 `root.description = projectSummary(project)` ✓（`:172`）、根 tooltip = 根路径 +
+    清单来源 + `requires_warning` ✓（`:173-174`）；
+    全文件 grep `ty_text` / `value_text` / `goal_text` / `.ty` ⇒ **0 命中** ✓。
+    状态栏同理 ✓（`本文件 N` + 计数 tooltip ✓，round 89 读过 ✓）。
+    ⇒ 这两面**不显示类型文本** ✓ ⇒ **没有"点形式"可漏** ✗ ⇒ 按 ③ **不做判据** ✓
+    （用户硬规则的**对象是类型文本** ✓ —— 不是"任何文本都要有判据" ✗）。
+    **⚠ 前提条件（要写清 ✓）**：将来若给树/状态栏加"显示类型"的字段 ✓，
+    必须**同轮**补判据 ✓（否则这两面就变成新的漏点 ✓）。
   - **round 103 的负面结果（必须记 ✓）**：第一版 sweep 扫的是 `NOTATION_CANVAS` /
     `BY_NOTATION_CANVAS` ✓ —— 它们都是**源级渲染** ✓（学习者写的记法直接进显示文本 ✓，
     **不需要折叠** ✓）⇒ 把 `fold` 注入成恒等（**折叠失效** ✗）它**依然通过** ✗
