@@ -40,6 +40,113 @@ pub(super) struct Walked<'a, 'arena> {
     pub(super) kernel_checks: usize,
 }
 
+/// **检查→加入**一条声明（T-D1：把这段逻辑收进单一函数）。
+///
+/// 从 `finish_pass` 的 `PendingOp::Decl` 分支**逐字搬过来**（纯重构、零行为变化 ✓）——
+/// 目的不是"更漂亮"，而是让 T-D3 的 walk 能在 elaborate 之后**当场**做同一件事，
+/// 从而消掉"走一遍再查一遍"的重复（阶段 D 的两刀都建立在"只有一个 check-then-add"上）。
+///
+/// 返回值 = **这条被内核拒绝了吗**。被拒绝会让第一阶段的环境变成"临时"的
+/// （后续命令不再可信）⇒ 调用方必须据此关掉早期截断 ✓ —— 所以它**不能**留在函数里
+/// 当副作用，必须是返回值 ✓（原代码里的 `allow_cutoff = false; op_failed = true;`）。
+#[allow(clippy::too_many_arguments)]
+fn check_then_add_decl<'arena>(
+    env: &mut ExportFile<'arena>,
+    display: &crate::display::DisplayNotations,
+    out: &mut CompileOutput,
+    decl_states: &mut Vec<DeclState>,
+    failed_cmds: &mut KernelFailed,
+    kernel_checks: &mut usize,
+    j: usize,
+    op: PendingOp<'arena>,
+) -> bool {
+    let PendingOp::Decl {
+        name,
+        kind,
+        declar,
+        by_steps,
+        span,
+        cmd,
+    } = op
+    else {
+        unreachable!("check_then_add_decl 只接 PendingOp::Decl");
+    };
+    *kernel_checks += 1;
+    let ty_text = quiet_catch(|| {
+        env.with_tc(EnvLimit::Empty, |tc| {
+            let ty = declar.info().ty;
+            tc.with_pp(|pp| pp.pp_expr(ty))
+        })
+    })
+    .ok()
+    .map(|text| {
+        crate::display::print_back(&text, display)
+            .as_display_str()
+            .to_string()
+    });
+    // **声明的值**（T-D52）：与 `ty_text` 同一形状算一遍
+    // （内核 pp + 线 C 折叠）。只有 `def`/`opaque` 有值。
+    let val_text = quiet_catch(|| {
+        env.with_tc(EnvLimit::Empty, |tc| {
+            let val = declar.value()?;
+            Some(tc.with_pp(|pp| pp.pp_expr(val)))
+        })
+    })
+    .ok()
+    .flatten()
+    .map(|text| {
+        crate::display::print_back(&text, display)
+            .as_display_str()
+            .to_string()
+    });
+    match env.try_check_declar(&declar) {
+        Ok(()) => {
+            match kind {
+                DeclKind::Example => out.push_event(cmd, CheckEvent::ExampleChecked),
+                _ => {
+                    if let Some(n) = &name {
+                        out.push_event(cmd, CheckEvent::DeclarationChecked { name: n.clone() });
+                    } else {
+                        out.push_event(cmd, CheckEvent::ExampleChecked);
+                    }
+                }
+            }
+            decl_states.push(DeclState {
+                kind,
+                name,
+                span,
+                status: DeclStatus::Checked,
+                error: None,
+                goal: None,
+                binders: Vec::new(),
+                cmd,
+                universe: Vec::new(),
+                holes: Vec::new(),
+                sub_goals: Vec::new(),
+                refine_template: None,
+                by_steps,
+                hints: Vec::new(),
+                ty_text,
+                val_text,
+            });
+            false
+        }
+        Err(e) => {
+            let msg = format!("{e}");
+            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
+            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
+                err.message = format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
+                err.expected = Some(expected);
+                err.actual = Some(actual);
+            }
+            failed_cmds.insert(cmd, err.clone());
+            out.push_error(j, err.clone());
+            decl_states.push(failed_state(kind, name, span, err, cmd));
+            true
+        }
+    }
+}
+
 pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
     let Walked {
         display,
@@ -212,95 +319,21 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                         }
                     }
                 }
-                PendingOp::Decl {
-                    name,
-                    kind,
-                    declar,
-                    by_steps,
-                    span,
-                    cmd,
-                } => {
-                    kernel_checks += 1;
-                    let ty_text = quiet_catch(|| {
-                        env.with_tc(EnvLimit::Empty, |tc| {
-                            let ty = declar.info().ty;
-                            tc.with_pp(|pp| pp.pp_expr(ty))
-                        })
-                    })
-                    .ok()
-                    .map(|text| {
-                        crate::display::print_back(&text, &display)
-                            .as_display_str()
-                            .to_string()
-                    });
-                    // **声明的值**（T-D52）：与 `ty_text` 同一形状算一遍
-                    // （内核 pp + 线 C 折叠）。只有 `def`/`opaque` 有值。
-                    let val_text = quiet_catch(|| {
-                        env.with_tc(EnvLimit::Empty, |tc| {
-                            let val = declar.value()?;
-                            Some(tc.with_pp(|pp| pp.pp_expr(val)))
-                        })
-                    })
-                    .ok()
-                    .flatten()
-                    .map(|text| {
-                        crate::display::print_back(&text, &display)
-                            .as_display_str()
-                            .to_string()
-                    });
-                    match env.try_check_declar(&declar) {
-                        Ok(()) => {
-                            match kind {
-                                DeclKind::Example => {
-                                    out.push_event(cmd, CheckEvent::ExampleChecked)
-                                }
-                                _ => {
-                                    if let Some(n) = &name {
-                                        out.push_event(
-                                            cmd,
-                                            CheckEvent::DeclarationChecked { name: n.clone() },
-                                        );
-                                    } else {
-                                        out.push_event(cmd, CheckEvent::ExampleChecked);
-                                    }
-                                }
-                            }
-                            decl_states.push(DeclState {
-                                kind,
-                                name,
-                                span,
-                                status: DeclStatus::Checked,
-                                error: None,
-                                goal: None,
-                                binders: Vec::new(),
-                                cmd,
-                                universe: Vec::new(),
-                                holes: Vec::new(),
-                                sub_goals: Vec::new(),
-                                refine_template: None,
-                                by_steps,
-                                hints: Vec::new(),
-                                ty_text,
-                                val_text,
-                            });
-                        }
-                        Err(e) => {
-                            let msg = format!("{e}");
-                            let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
-                            if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                                err.message =
-                                    format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
-                                err.expected = Some(expected);
-                                err.actual = Some(actual);
-                            }
-                            // Check-then-add: a rejected declaration makes pass 1's
-                            // environment provisional — stop trusting any cutoff.
-                            allow_cutoff = false;
-                            op_failed = true;
-                            failed_cmds.insert(cmd, err.clone());
-                            out.push_error(j, err.clone());
-                            decl_states.push(failed_state(kind, name, span, err, cmd));
-                        }
+                PendingOp::Decl { .. } => {
+                    if check_then_add_decl(
+                        &mut env,
+                        &display,
+                        &mut out,
+                        &mut decl_states,
+                        &mut failed_cmds,
+                        &mut kernel_checks,
+                        j,
+                        op,
+                    ) {
+                        // Check-then-add: a rejected declaration makes pass 1's
+                        // environment provisional — stop trusting any cutoff.
+                        allow_cutoff = false;
+                        op_failed = true;
                     }
                 }
                 PendingOp::InductiveBlock {

@@ -293,6 +293,7 @@ theorem flawed_equalities_refuted :
           (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：同上
             (Set.singleton (Set Nat) (Set.univ Nat))) := by
   sorry
+
 theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) :
     Rel.comp α β γ (fun (a : α) => fun (b : β) => f a = b)
         (fun (b : β) => fun (c : γ) => g b = c)

@@ -363,7 +363,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 > **E1 的教训**（已实测 ✓）：**影子彩排路走不通** ✗（三个假设全否证 ✓）⇒ D 只能
 > **直接做** ✓，安全网是"五步 + 课程计数 + 全语料逐字节 + 事件计数"四件套 ✓。
 
-- [ ] `T-D1` **把 check-then-add 收进单一函数**（纯重构，**零行为变化** ✓）：`kernel_phase` 里逐条"检查→加入"的逻辑抽成一个可复用单元 ✓
+- [x] `T-D1` **把 check-then-add 收进单一函数**（纯重构，**零行为变化** ✓）：`kernel_phase` 里逐条"检查→加入"的逻辑抽成一个可复用单元 ✓
   - 📌 **执行方案（已勘定，2026-09-25，照着做即可）**：
     * **抽取位置**：`crates/front/src/compile/check/kernel_phase.rs` 的
       `finish_pass(walked)`（:43）里那个**逐命令循环**（`for (j, sig_slot) in sigs.iter_mut().enumerate()`，
@@ -388,7 +388,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     * **风险**：这个循环同时管**判定**与**呈现**（`kernel_checks` 喂判卷、`decl_states` 喂 UI）
       ⇒ 抽取时最容易漏掉"哪几个累积量是判定用的、哪几个是显示用的" ✗；
       按"判定量必须逐字节一致、显示量也必须"来对拍最稳 ✓。
-- [ ] `T-D2` **D1 判据**：全语料两态 `--json` **逐字节相同** ✓ + 课程计数逐项不变 ✓ + 五步全绿 ✓（**不变量**：这一步不改任何行为 ✓）
+- [x] `T-D2` **D1 判据**：全语料两态 `--json` **逐字节相同** ✓ + 课程计数逐项不变 ✓ + 五步全绿 ✓（**不变量**：这一步不改任何行为 ✓）
 - [ ] `T-D3` **walk 增量检查（开关默认关）**：walk 边 elaborate 边 `with_env` 检查并 `add_declar` ✓；`SOKO_WALK_CHECK=1` 才启用 ✓ ⇒ 默认路径**零变化零成本** ✓
 - [ ] `T-D4` **D3 判据**：开关两态 `--json` 逐字节相同 ✓ + 课程计数不变 ✓ + 事件计数不变 ✓（**开关开**时也相同 ✓ ⇒ 证明"两遍检查"语义等价 ✓）
 - [ ] `T-D5` **judge 接快照（开关默认关）**：`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>` ⇒ `snapshot()` 查合成声明 ✓；拿不到**回退**旧路径 ✓；`SOKO_JUDGE_ENV_REUSE=1` 才启用 ✓
