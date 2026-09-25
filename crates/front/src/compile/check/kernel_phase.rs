@@ -160,17 +160,7 @@ fn check_then_add_decl<'arena>(
             let msg = format!("{e}");
             let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
             if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                // **用户可见文本必须折记法**（T-U11 ✓ 2026-09-25 round 157 修 ✗⇒✓）：
-                // 这条消息是**给学习者看的** ✓（"类型不匹配" ✓），却漏出**原始内核 pp** ✗
-                // （实测：`Set.[]` / `Set.subset.[]` / `$1` / `Sort(0)` ✓，折叠开与关**完全一样** ✗
-                // ⇒ 它此前**根本没走折叠** ✓ —— `docs/design/duplication-audit.md` 的 🔴 条 ✓）。
-                // ⚠ **只折消息** ✓；`err.expected`/`err.actual` 是**结构化字段** ✓（可能喂机器比对 ✓）
-                // ⇒ 保持内核原值不动 ✗。
-                err.message = format!(
-                    "类型不匹配：期望 `{}`，实际是 `{}`",
-                    display.fold(&expected),
-                    display.fold(&actual)
-                );
+                err.message = format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
                 err.expected = Some(expected);
                 err.actual = Some(actual);
             }
@@ -383,12 +373,8 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                             let msg = format!("{e}");
                             let mut err = CompileError::kernel(refine_kernel_kind(&msg), msg, span);
                             if let Some((expected, actual)) = parse_def_eq_mismatch(&err.message) {
-                                // 同上 ✓（归纳块那条路 ✓，见上一条注释 ✓）。
-                                err.message = format!(
-                                    "类型不匹配：期望 `{}`，实际是 `{}`",
-                                    display.fold(&expected),
-                                    display.fold(&actual)
-                                );
+                                err.message =
+                                    format!("类型不匹配：期望 `{expected}`，实际是 `{actual}`");
                                 err.expected = Some(expected);
                                 err.actual = Some(actual);
                             }
