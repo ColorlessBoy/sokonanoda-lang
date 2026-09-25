@@ -384,3 +384,46 @@ fn query_project_lists_the_artifacts_of_its_module_root() {
     let _ = std::fs::remove_dir_all(&escape_root);
     let _ = std::fs::remove_dir_all(&escape_cache);
 }
+
+#[test]
+fn every_entry_keeps_its_own_artifact_round_after_round() {
+    // **性能回归的判据**（2026-09-25）：产物目录的语义是"**每个入口当前的编译结果**"
+    // ⇒ 它天然有界（= 入口文件数），**不该**按条数淘汰 —— 一旦淘汰，像课程门禁那样
+    // "反复判同一批文件"的用法就会**互相淘汰刚写下的条目**，命中率崩掉、反复重编 ✗
+    // （阶段 B 收尾那次 CI 从 ~15 分钟变成 50+ 分钟就是这个）。
+    //
+    // 判据：建 34 个入口（> 曾经的 32 条上限），逐个 `build` ⇒
+    // ① 34 条产物**一条不少**；② 再跑一轮**全部命中**。
+    let root = scratch("retention");
+    let cache = scratch("cache-retention");
+    std::fs::write(root.join("sokonanoda.toml"), "name = \"many\"\n").unwrap();
+    std::fs::write(
+        root.join("Lib.sokonanoda"),
+        "axiom P : Prop\naxiom proofP : P\n",
+    )
+    .unwrap();
+    let entries: Vec<std::path::PathBuf> = (0..34)
+        .map(|i| {
+            let path = root.join(format!("U{i}.sokonanoda"));
+            std::fs::write(&path, "import Lib\n\ntheorem u : P := proofP\n").unwrap();
+            path
+        })
+        .collect();
+
+    for entry in &entries {
+        let (code, events) = run(&cache, &["build", "--json", entry.to_str().unwrap()]);
+        assert_eq!(code, 0, "{events:?}");
+    }
+    let kept = project_entries(&root);
+    assert_eq!(
+        kept.len(),
+        entries.len(),
+        "每个入口都该留下自己的产物（不许按条数互相淘汰）"
+    );
+
+    let (_, again) = run(&cache, &["build", "--json", entries[0].to_str().unwrap()]);
+    assert_eq!(summary(&again)["hit"], 1, "第二轮必须命中：{again:?}");
+
+    let _ = std::fs::remove_dir_all(&root);
+    let _ = std::fs::remove_dir_all(&cache);
+}

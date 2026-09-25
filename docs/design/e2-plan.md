@@ -203,7 +203,9 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     vscode 与 code agent 都能直接取；单文件（无 `import`）不产生它；`--clean` 两处都清。
     落点：`front::project::cache` 增 `load_at`/`store_at`/`store_if_clean_at`/`clean_at`/
     `artifacts_dir`（复用 `compile::cache` 的三个目录原语，**不造第二套格式**）+
-    `MAX_ENTRIES=32` 按 mtime 淘汰（取证实测项目条目 **0.6–5.9 MB** ⇒ 无上限会涨到上百 MB ✗）+
+    保留策略：**先按"32 条上限 + mtime 淘汰"做，实测踩到互相淘汰 ⇒ 已改成
+    "每个入口只留最新一条"**（索引在 `meta.json` 的 `entries`，天然有界；设计 §3.6/§8b、
+    判据 `every_entry_keeps_its_own_artifact_round_after_round`）+
     逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；CLI 四处（`build`/`check`(grade)/`query`/
     `course`）传 `plan.root`；**LSP 读路径同轮接上**（否则 CLI 预热不再帮到编辑器 =
     **性能退化** ✗，写路径留给 T-C6）；`--clean` 两处都清（事件 additive：`{removed, global,

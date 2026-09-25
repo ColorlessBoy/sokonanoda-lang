@@ -162,21 +162,6 @@ fn ensure_layout(root: &Path) -> bool {
     true
 }
 
-/// 每次写入后刷新 `meta.json` 的 `written_unix`（best-effort，文件很小）。
-fn touch_meta(root: &Path) {
-    let path = artifacts_dir(root).join("meta.json");
-    let Ok(bytes) = std::fs::read(&path) else {
-        return;
-    };
-    let Ok(mut meta) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
-        return;
-    };
-    if let Some(object) = meta.as_object_mut() {
-        object.insert("written_unix".into(), serde_json::json!(now_unix()));
-    }
-    let _ = std::fs::write(&path, format!("{meta}\n"));
-}
-
 /// 读一条**项目**条目：**模块根产物目录 → 全局缓存**（升级平滑：升级前写进全局的
 /// 条目仍然命中）。
 pub fn load_at(root: &Path, digest: &str, options: &CompileOptions) -> Option<CachedCompile> {
@@ -231,17 +216,18 @@ pub fn store_at(root: &Path, digest: &str, options: &CompileOptions, project: &P
     let Some(entry) = project.entry_module() else {
         return;
     };
+    let key = compiled::key(digest, options);
     compiled::store_in(
         &compiled_at(root),
-        &compiled::key(digest, options),
+        &key,
         &CachedCompile {
             report: entry.report.clone(),
             output: Some(entry.events.clone()),
             project: Some(project.clone()),
         },
     );
-    enforce_cap(root);
-    touch_meta(root);
+    // `entry.path` 就是这个入口**文件**的路径（模块根下的某个 `.sokonanoda`）。
+    update_index(root, &entry.path, &key);
 }
 
 /// [`store_at`] 的"只缓存干净项目"版本（判据与全局那条完全一致）。
@@ -260,40 +246,55 @@ pub fn store_if_clean_at(
 
 /// 清掉某个模块根的产物**条目**（保留 `.gitignore` 与 `meta.json`）；返回删除条数。
 pub fn clean_at(root: &Path) -> usize {
-    compiled::clean_in(&compiled_at(root))
+    let removed = compiled::clean_in(&compiled_at(root));
+    // 条目都删了 ⇒ 索引里的旧键一并清掉（否则它会一直指向不存在的文件）。
+    let path = artifacts_dir(root).join("meta.json");
+    if let Ok(bytes) = std::fs::read(&path) {
+        if let Ok(mut meta) = serde_json::from_slice::<serde_json::Value>(&bytes) {
+            if let Some(object) = meta.as_object_mut() {
+                object.insert("entries".into(), serde_json::json!({}));
+                let _ = std::fs::write(&path, format!("{meta}\n"));
+            }
+        }
+    }
+    removed
 }
 
-/// 一个模块根最多留多少条产物。超了按 **mtime 淘汰最旧**。
+/// 写完之后更新**索引**与 `written_unix`（best-effort；`meta.json` 只有几百字节）。
 ///
-/// 为什么必须有上限（实测，取证 A）：**项目条目是整份 `ProjectReport` + 事件流，
-/// 0.6–5.9 MB 一条**（`courses/set-theory` 的解答在 4.78 MB 一档；只有单文件条目
-/// 才是几十 KB），而**每次编辑都会产生新摘要 ⇒ 新条目**。没有上限时一个课程根会
-/// 只增不减地涨到上百 MB ✗。
+/// 索引 = `入口路径 → 条目的磁盘键`，它承担两件事：
+/// ① **替换**：同一个入口的新结果把**它的**旧条目删掉（而不是让别的入口被淘汰）；
+/// ② **有界**：一份产物对应一个入口文件 ⇒ 目录大小天然有界（= 入口文件数）。
 ///
-/// 淘汰**不影响正确性**：被淘汰的条目只是下次重编（缓存永远只省重复劳动）。
-/// 取 32 是为了容下"一次 `build <dir>` 把整门课预热一遍"的条目数（set-theory
-/// 35 个文件里多数是同一个模块根的入口）而不立刻互相淘汰。
-const MAX_ENTRIES: usize = 32;
-
-/// 超过上限就删最旧的若干条（只删 `*.json`，不碰写了一半的 `*.tmp-*`）。
-fn enforce_cap(root: &Path) {
-    let dir = compiled_at(root);
-    let Ok(entries) = std::fs::read_dir(&dir) else {
+/// 为什么不用"条数上限 + mtime 淘汰"（早先的做法，**实测踩到** ✗）：课程门禁反复判
+/// `courses/set-theory` 的 ~35 个文件，而上限取 32 ⇒ 每一轮都在**互相淘汰刚写下的
+/// 条目**，命中率崩掉、反复重编（CI 的 `test` job 从 ~15 分钟变成 50+ 分钟）。
+/// 判据：`crates/cli/tests/artifacts.rs::every_entry_keeps_its_own_artifact_round_after_round`
+/// （34 个入口 ⇒ 34 条产物、第二轮全命中；条数上限版本实测 **32 ≠ 34** ✗）。
+fn update_index(root: &Path, entry_path: &Path, key: &str) {
+    let path = artifacts_dir(root).join("meta.json");
+    let Ok(bytes) = std::fs::read(&path) else {
         return;
     };
-    let mut files: Vec<(std::time::SystemTime, PathBuf)> = entries
-        .flatten()
-        .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "json"))
-        .filter_map(|entry| {
-            let modified = entry.metadata().ok()?.modified().ok()?;
-            Some((modified, entry.path()))
-        })
-        .collect();
-    if files.len() <= MAX_ENTRIES {
+    let Ok(mut meta) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
         return;
+    };
+    let Some(object) = meta.as_object_mut() else {
+        return;
+    };
+    let index = object
+        .entry("entries")
+        .or_insert_with(|| serde_json::json!({}));
+    let Some(entries) = index.as_object_mut() else {
+        return;
+    };
+    let entry = entry_path.display().to_string();
+    if let Some(previous) = entries.get(&entry).and_then(|value| value.as_str()) {
+        if previous != key {
+            let _ = std::fs::remove_file(compiled_at(root).join(format!("{previous}.json")));
+        }
     }
-    files.sort_by_key(|(modified, _)| *modified);
-    for (_, path) in files.iter().take(files.len() - MAX_ENTRIES) {
-        let _ = std::fs::remove_file(path);
-    }
+    entries.insert(entry, serde_json::json!(key));
+    object.insert("written_unix".into(), serde_json::json!(now_unix()));
+    let _ = std::fs::write(&path, format!("{meta}\n"));
 }
