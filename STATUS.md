@@ -1,3 +1,18 @@
+## 第 95 轮（2026-09-25）：**阶段 U 收尾 ✅ · 0.68.0 已发布** 🎉
+
+* **T-U8 ✅**（进度 **32/48**）：`docs/architecture.md` 写清唯一接口 + 三条不变量 ✓；
+  `scripts/soko gate` **全绿** ✓；`plan.py check` OK ✓。
+* **0.68.0 发布完成** ✓：`gh release list` ⇒ `sokonanoda v0.68.0` ✓、**assets=26** ✓；
+  release run `36129873011` = **completed success** ✓。
+* 走的是 `docs/RELEASE.md` 的**应急路径**（手动 tag ✓）：先核对核心不变量
+  `Cargo.toml == package.json == 0.68.0` ✓ + `bump.py --check` ✓ + tag 在 `622cf14` ✓。
+  **原因**：`e2e (ubuntu · 1.138.0)` 有一条**与本批无关**的环境性红 ✗
+  （`publishes=0` ✓；同代码 macos·1.138.0 与 ubuntu·**1.106.0** 都绿 ✓）⇒ auto-tag 不触发 ✓。
+* **本批交付**：用户报告的"目标不稳定显示记法"（词法让路 ✓ + 三层判据 ✓）+
+  审计 11 项（#1 缓存污染 · #3 守卫+反向验证 · #4 `-type f` · #5 字节列+新判据 ·
+  #6 一半 · #7(b) · #8 · #9 一半 · #10 · #12 · #14 · #15 · #21 ✓）+
+  e2e 环境修复（stage 认 `CARGO_TARGET_DIR` + 版本断言 ✓ / watcher 规范化 URI 键 ✓）。
+
 ## 第 73 轮续（2026-09-25）：T-U6 ✅ 词法让路的专门判据（正反两向实测）
 
 * `token.rs::a_longer_base_operator_beats_a_declared_symbol_prefix` ✓：

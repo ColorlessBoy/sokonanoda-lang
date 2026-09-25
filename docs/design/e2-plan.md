@@ -692,7 +692,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   判据：审计报告进 `docs/design/duplication-audit.md` ✓（含"风险排序 + 建议唯一归属 + 可执行判据"✓）。
 - [ ] `T-U10` **审计结论收口**：对每一项或"立刻做"或"立守卫"或"写进台账（不做，说明理由）"✓；
   新增守卫一律**棘轮化**（基线 + 只拦新增 ✓，照 `audit-notation-paths.py` 的先例 ✓）。
-- [ ] `T-U8` **阶段收尾**：`docs/architecture.md` 写明**唯一接口 + 四套实现的退役** ✓；
+- [x] `T-U8` **阶段收尾**：`docs/architecture.md` 写明**唯一接口 + 四套实现的退役** ✓；
   `cargo test --workspace` + `scripts/soko gate` 全绿 ✓；**一次 push** → CI 绿 → bump → auto-tag →
   release → `gh release list` 核对 ✓。
 

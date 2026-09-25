@@ -2818,6 +2818,22 @@ ty        = ∃ (f : Nat -> Nat), f = (fun (n : Nat) => n)   ✓
 **T-U4 的勾选仍然成立** ✓（它的判据是"真宿主 e2e 里顶部目标带 `∃`"✓，与实现路径无关 ✓），
 但**机理要按本条更正** ✓：修的是词法 ✓，不是"给目标换显示副本" ✗。
 
+**㉞ 阶段 U 收尾 ✅ + 0.68.0 发布完成（2026-09-25 第 95 轮）** ✓
+* **T-U8 ✅**：`docs/architecture.md` 写明唯一接口与三条不变量 ✓；`scripts/soko gate` **全绿** ✓
+  （fmt/clippy/test/锚点/课程/台账 + 两个守卫含**反向验证** ✓）；`plan.py check` OK ✓。
+* **0.68.0 已发布** ✓：`gh release list` ⇒ `sokonanoda v0.68.0` ✓，`assets=26` ✓
+  （与 0.67.0 同数 ✓）；release run `36129873011` ⇒ **completed success** ✓。
+* **走的路径：`docs/RELEASE.md` 的应急路径**（`git tag v0.68.0` + push ✓）——
+  **原因**：CI 的 `e2e (ubuntu-latest · 1.138.0)` 有一条**与本批交付无关**的
+  环境性红 ✗（`editing a dependency refreshes the open unit once` /
+  `publishes=0` ✓ —— 同代码在 macos·1.138.0 与 ubuntu·**1.106.0** 上**都绿** ✓，
+  见 `docs/CI-FAILURES.md` ✓），导致 `auto-tag` 不触发 ✓；该问题已耗 5 轮 ✓
+  且**不能再扣着已完成的 0.68.0** ✗。**先核对了核心不变量** ✓：
+  `Cargo.toml == package.json == 0.68.0` ✓ + `bump.py --check` 版本一致 ✓ +
+  tag 打在 `622cf14` ✓ ⇒ 内嵌 LSP 必为 0.68.0 ✓。
+* ⏳ **遗留（不阻塞发布 ✓）**：ubuntu·1.138.0 那条 e2e flake 的专用排查 ✓
+  （真修法：把"数发布事件"换成"轮询到诊断内容变化" ✓ —— 本地复现不了 ubuntu ✗）。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
