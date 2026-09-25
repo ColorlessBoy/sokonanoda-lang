@@ -741,6 +741,17 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **真判据的写法** ✓：夹具的**源里必须写点形式** ✓（如
     `forall (x : α), Set.mem α x A -> …` ✓），再断言**显示**文本已折成记法（`∀`/`∈` ✓）
     —— 只有这样，注入"折叠失效"才会判红 ✓。当前那条只当**冒烟**用 ✗，**不算交付** ✓。
+  - **round 137 实测（第 1 步就卡住 ⇒ 撤回 ✓）**：夹具已按**课程真实语法**造 ✓
+    （`inductive Exists (A : Type) (p : A → Prop) : Prop` + `ctor intro …` + `end` ✓
+    + `binder_notation "∃" => Exists` ✓ —— 抄自 `lib/Exists.sokonanoda:88-103` ✓），
+    但 `theorem … : ∃ x ∈ s, True` 触发的是 **`elab-untyped-binder`** ✗：
+    > `cannot infer the type of this binder: the declared type does not provide a matching position (write it explicitly, e.g. fun (x : Nat) => x)`
+    —— 那是**"一段式要写标注"**那条规则 ✓，**不是** binder 记法 guard 那条 ✓。
+    **差的这一步** ✓：要走到 `split_and_guard` 的**反解失败**分支 ✓ ——
+    按 `elab.rs:71` 的说明 ✓，得让**类型参数在 guard 里不出现** ✓
+    （它的例子：`Eq.symm` 的 `h : Eq a b` 里 `α` 不见了 ⇒ 反解不出来 ✓）。
+    ⇒ **下次从"造一个 guard 里看不到类型参数"的两段式入手** ✓；
+    **判据顺序不变**（先"看到消息" ✓、再"无点形式" ✓、最后 `SOKO_NO_NOTATION_FOLD=1` 反向验证 ✓）。
   - **round 136 侦察：**① **没有任何既有测试触发那 4 处已折消息** ✗（`git grep` 只在
     `elab.rs` 的实现处命中 ✓）⇒ **B 组折过的诊断其实没有测试覆盖** ✗ —— 这本身就是个缺口 ✓。
     ② **夹具的可靠来源 = 课程里的真实用法** ✓：
