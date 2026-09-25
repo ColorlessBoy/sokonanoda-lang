@@ -72,6 +72,13 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    # **必须有上限**（2026-09-25 修 ✗⇒✓）：run `36135584403` 的 `test` 在
+    # ~90 分钟后仍 `in_progress` ✗ —— 主步骤全完、零失败标记、只差 `Post *` 收尾，
+    # 却**永远不给结论** ⇒ 整个 workflow 不绿 ⇒ `auto-tag` 结构性地触发不了 ✗
+    #（0.68.0 因此走了 `docs/RELEASE.md` 应急路径 ✓）。
+    # 没有上限时，"卡住"就等于"挂到 GitHub 的 6 小时上限才判失败" ✗ ——
+    # 加了这个至少**结论可预期** ✓。本地同套测试只要几分钟 ⇒ 40 分钟极宽 ✓。
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
 
@@ -88,9 +95,21 @@ jobs:
         # 失败时把完整日志作为 artifact 上传（公开仓库也能从 run 页下载），
         # 避免「CI 红了但拿不到日志」的排查死角（2026-09-13 实况）。
         shell: bash
+        # 步骤级也有上限 ✓ ⇒ 卡住时能**指名是哪一步** ✓（job 级上限只给"失败"✗）。
+        timeout-minutes: 35
         run: |
           set -o pipefail
           cargo test --workspace --locked --no-fail-fast 2>&1 | tee /tmp/cargo-test.log
+      - name: Per-suite timing (always)
+        # **分套回显**（2026-09-25 补 ✓）：一条 `cargo test --workspace` 是一大块 ✗，
+        # 慢在哪一套看不出来 ✓ ⇒ 把每套的 `test result:` 行列出来 ✓（含耗时 ✓）。
+        if: always()
+        shell: bash
+        run: |
+          echo "=== 每套测试的结果与耗时 ==="
+          grep -E "^(test result:|running [0-9]+ tests?|     Running)" /tmp/cargo-test.log || echo "(没有日志 ✗ —— 说明卡在上一步之前)"
+          echo "=== 最慢的 10 套（按耗时排序）==="
+          grep -E "^test result:" /tmp/cargo-test.log | sed -E 's/.*finished in ([0-9.]+)s.*/\1 &/' | sort -rn | head -10 || true
       # 注解走 check-runs API，**无需鉴权即可公开读取**（logs/artifact 都要
       # token）——这是无 gh/token 环境下唯一的自服务诊断通道。
       - name: Surface failing tests as annotations
