@@ -83,10 +83,20 @@ fn check_then_add_decl<'arena>(
     if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
         let who = name.clone().unwrap_or_else(|| "<anon>".to_string());
         match &ty_res {
-            Ok(raw) => eprintln!(
-                "[trace-notations] {who} pp raw: {}",
-                raw.chars().take(96).collect::<String>().replace('\n', " ")
-            ),
+            Ok(raw) => {
+                // **③ 最后一层**：`print_back` 是不是**解析失败就原样返回** ✗ ——
+                // 拿同一段文本单独 parse 一次就知道 ✓（这段文本是**内核 pp 的产物**，
+                // 形状未必等于源级写法 ✓）。
+                eprintln!(
+                    "[trace-notations] {who} parse_ok={} pp raw: {}",
+                    crate::parse(raw).is_ok(),
+                    raw.chars().take(96).collect::<String>().replace('\n', " ")
+                );
+                // **逐字节**（转义）—— 与单测夹具的字符串做字符级比对用 ✓
+                if who == "exists_univ" || who == "subset_univ" {
+                    eprintln!("[trace-notations] {who} RAWDBG: {raw:?}");
+                }
+            }
             Err(e) => eprintln!("[trace-notations] {who} ty pp FAILED: {e:?}"),
         }
     }

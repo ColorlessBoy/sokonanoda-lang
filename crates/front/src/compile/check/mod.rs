@@ -440,6 +440,19 @@ pub(crate) fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::Dis
     table.splice(0..0, crate::notation::builtin_notation_decls());
     let arities =
         crate::display::arities_with_prelude_from(crate::display::arities_in_commands(&commands));
+    // **③ 的第二层诊断**：那条声明**本身**长什么样（③ 已经夹到"实例里的声明" ✗）。
+    if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
+        let n = table.iter().filter(|d| d.target == "Exists").count();
+        let syms: Vec<&str> = table
+            .iter()
+            .filter(|d| d.target == "Exists")
+            .map(|d| d.symbol.as_str())
+            .collect();
+        let keys: Vec<&String> = arities.keys().filter(|k| k.ends_with("Exists")).collect();
+        eprintln!(
+            "[trace-notations] decls(target=Exists)={n} symbols={syms:?} arity_keys={keys:?}"
+        );
+    }
     // **诊断开关**（`SOKO_TRACE_NOTATIONS=1`，默认零输出）：把线 C 的两张表打出来。
     // 存在的理由：③ 那条报告（Infoview 里 `∃` 折不了）逐层排查时，需要一眼看到
     // "这次编译到底看到了哪些命令、表里有没有目标" —— 别再靠读代码猜 ✗。
