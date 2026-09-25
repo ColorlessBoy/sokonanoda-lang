@@ -419,17 +419,27 @@ fn by_step_states(
 /// 元数从源级签名 + prelude。整趟建一次，给 `ty_text` 与 `by` 步进的展示副本共用。
 /// **给 front 的消费者建表用**（同上 ✓）：由 front 算 arity ✓，调用方**只拿结果** ✓。
 pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNotations {
+    let commands: Vec<crate::ast::Command> = units
+        .iter()
+        .flat_map(|unit| unit.file.commands.iter().cloned())
+        .collect();
+    display_notations_from_commands(&commands)
+}
+
+/// **建表的唯一实现**（T-U11 ✓ 2026-09-25 从 `display_notations` 抽出来 ✓）：
+/// 源侧的两条路（项目里已有 `SourceUnit` ✓ / front 之外只有**源文本** ✓）
+/// 都汇到这里 ✓ —— **front 是唯一建表方** ✓，调用方**不许**自己造 arity ✗
+/// （= 第五套实现 ✓，`audit-notation-paths.py` 会抓 ✓）。
+pub fn display_notations_from_commands(
+    commands: &[crate::ast::Command],
+) -> crate::display::DisplayNotations {
     // **关掉折叠的开关**（诊断/判别性测试用）：`SOKO_NO_NOTATION_FOLD=1` ⇒ 空表 ⇒
     // `print_back` 原样返回。它存在的意义是证明"那几条 surface 测试真的抓得住"
     // ——关掉之后它们**必须全红**（T-C24 的判别性判据）。仿 `SOKO_NO_JUDGE_BATCH`。
     if std::env::var_os("SOKO_NO_NOTATION_FOLD").is_some() {
         return crate::display::DisplayNotations::default();
     }
-    let commands: Vec<crate::ast::Command> = units
-        .iter()
-        .flat_map(|unit| unit.file.commands.iter().cloned())
-        .collect();
-    let mut table = crate::notation::notation_table(&commands);
+    let mut table = crate::notation::notation_table(commands);
     // **内建记法要自己补**（`↔`/`∧`/`∨`/`¬`/`=`/`≠` 不在任何源文本里，
     // parser 有硬编码表）——否则 `Iff` 永远折不成 `↔`。
     //
@@ -438,7 +448,7 @@ pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNot
     // `query::tests::state_at_root_before_any_tactic` 立刻红）。
     table.splice(0..0, crate::notation::builtin_notation_decls());
     let arities =
-        crate::display::arities_with_prelude_from(crate::display::arities_in_commands(&commands));
+        crate::display::arities_with_prelude_from(crate::display::arities_in_commands(commands));
     // **③ 的第二层诊断**：那条声明**本身**长什么样（③ 已经夹到"实例里的声明" ✗）。
     if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
         let n = table.iter().filter(|d| d.target == "Exists").count();
@@ -460,7 +470,7 @@ pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNot
         eprintln!(
             "[trace-notations] units={} commands={} table={} binding_Exists={} \
              symbols={:?} arity_Exists={:?} arity_len={}",
-            units.len(),
+            commands.len(),
             commands.len(),
             table.len(),
             targets.contains(&"Exists"),
@@ -474,6 +484,17 @@ pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNot
         );
     }
     crate::display::DisplayNotations::new(table, arities)
+}
+
+/// **给 front 之外的消费者（LSP hover 等）折一段文本**（T-U11 A 组 ✓ 2026-09-25）。
+/// 从**源文本**建表 ✓（front 是唯一建表方 ✓），再折 ✓。
+/// ⚠ 只给**显示路径**用 ✓ —— 判定/解析路径**不许**折 ✗（折了会改判定 = 内核红线 ✓）。
+/// 源解析不了 ⇒ **原样返回** ✓（宁可少折一点，也不让 hover 崩 ✓）。
+pub fn fold_for_display(source: &str, text: &str) -> String {
+    match crate::parser::parse(source) {
+        Ok(file) => display_notations_from_commands(&file.commands).fold(text),
+        Err(_) => text.to_string(),
+    }
 }
 
 pub(crate) fn run(
