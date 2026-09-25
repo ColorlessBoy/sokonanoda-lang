@@ -365,3 +365,18 @@ A 组 5 处与 B 组 19 处改成读那份副本 ✓ —— **而不是**在 `ls
 其体内再导出**不是绕过** ✗ ⇒ 去掉 2 条假条目 ✓） | 88 → **86** ✓ |
 **判据** ✓：每次迁移后 `cargo test -p sokonanoda-front --lib` 全绿 ✓（735 ✓，含 T-U12 面级判据 ✓）；
 每次 `--rebless` 后 `audit-notation-paths.py` ⇒ 无新增绕过 ✓；`--self-test` ⇒ **仍咬得住** ✓。
+
+### A 组与 B 组的**共同卡点**（round 111 实测 ✓）⇒ 需要**同一次**结构扩展
+* **A 组**（LSP hover ✓）：`half_expression_goals_hover(report, …)` 里 **LSP 拿不到 arity 表** ✗
+  （报告只有 `notations: Vec<NotationDecl>` ✓，`DisplayNotations` 需要 arity ✓）。
+* **B 组**（`elab.rs` 的 4 处消息 ✓）：`ElabCtx`（`elab.rs:445` ✓，字段 `prefix_src`/`options`/
+  `inductives`/`ns`/`defs` ✓）**完全没有** `DisplayNotations` ✗（`grep DisplayNotations elab.rs`
+  ⇒ **零命中** ✓）⇒ 那 4 处**就地折不了** ✗。
+⇒ **两个组卡在同一条**：**"表不在这一层"** ✓（本 session 第 **4** 次 ✓：`query::runs` ✓、
+`goal_display` ✓、A 组 ✓、B 组 ✓）。
+**一次扩展同时解两组** ✓（下一步的设计 ✓）：
+1. `ElabCtx` 加 `notations: &'b DisplayNotations` ✗ ⇒ B 组 4 处走 `ctx.notations.fold(text)` ✓；
+2. `ProjectReport` 带上**表 + arity**（或一个公开的 `fold_text(&self, text)` ✓）⇒ A 组 5 处走它 ✓。
+**红线** ✓：**不许**在任何一层"重建" arity ✗（= 第五套实现 ✓，守卫会抓 ✓）；
+**也不许**把 `ElabCtx` 的表用在**判定路径**上 ✗（B 组那 17 处 ③ 的理由不变 ✓）。
+**顺序** ✓：先 1（B 组 ✓，改动面小、判据现成 ✓）后 2（A 组 ✓）。
