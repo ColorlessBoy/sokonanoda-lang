@@ -2746,6 +2746,25 @@ scripts·编辑器 ✓）、`T-U10`（把审计结论收口成"唯一归属 + �
 ⇒ `ty_text` 就是它合适的目标显示副本 ✓。
 判据：`exists_fun` 顶部「目标」带 `∃` ✓（真宿主 e2e ✓）+ front 729 ✓ + 课程 0 判负 ✓。
 
+**㉚ e2e 层被**测试环境缺陷**污染（2026-09-25 第 57/68/69 轮，连续三次同形 ✗）**
+`scripts/vscode-e2e.sh` 跑出来的结果**不能直接当第三层判据** ✗，两个可复现的缺陷：
+1. **陈旧服务器** ✗：告警原文
+   `server 运行 0.65.0 (pid …) != 扩展 v0.67.0；serverOverride 关闭，本应始终使用内置服务器。
+    请 "Developer: Reload Window" 或清空 sokonanoda.serverPath`
+   ⇒ 跑的是**旧 LSP** ✓，被测行为根本不是仓库里的代码 ✗ ⇒ 任何"e2e 红了/绿了"都不成立 ✗。
+   第 69 轮的红名单里，除我新加的 `goal text folds a binder notation whose type contains a lambda`
+   之外，还有三条**记法相关的老用例**（`open declaration ships coloured goal runs…`、
+   `go to definition on a notation symbol…`、`hover on a notation symbol…`）✗ ——
+   与"服务器是旧件"这一条**一致** ✓，**不能据此判 T-U4 失败** ✗。
+2. **夹具被删** ✗✗：`editor/vscode/src/test/fixtures/workspace/units/u02.sokonanoda`
+   在**第 57 轮与第 69 轮两次**被这趟 e2e 删掉 ✓（`git status` 显示 `D` ✓）⇒
+   跑完必须 `git show HEAD:<path>` 恢复 ✓，否则后续用例全歪 ✗。
+**另外**：`SOKO_E2E_GREP` **不生效** ✗（日志写着"全量" ✓）⇒ 想只跑一条做不到 ✓。
+**必须先修**（否则 T-U4/T-U7 的第三层永远判不了 ✗）：
+① 让 e2e 用**干净的用户数据目录 + 强制内置服务器** ✓（`serverOverride` 关闭时不许读
+`serverPath` / `SOKONANODA_LSP_BIN` / 工作区构建 ✓）；② 查清是谁删 `u02` 并在
+`finally` 里恢复 ✓；③ 修 `SOKO_E2E_GREP` ✓。修完后**重跑**才能给 T-U4 定判 ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。

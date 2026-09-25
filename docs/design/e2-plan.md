@@ -684,7 +684,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   （声明符号与 `->`/`=>` 相撞 ✓），并确认 **R-2 哨兵**（`semantic.rs`）仍绿 ✓。
 - [ ] `T-U7` **e2e 判据入册**：把 `exists_fun` 那条用例在**真 VS Code** 里跑绿并提交 ✓，
   按批次纪律记一条 `docs/e2e/ledger.jsonl` ✓（并核查那轮 4 条红里有没有陈旧服务器造成的假红 ✓）。
-- [ ] `T-U9` **全仓"重复实现"审计**（用户要求 ✓）：「一模一样的功能、多处实现、导致 bug」——
+- [x] `T-U9` **全仓"重复实现"审计**（用户要求 ✓）：「一模一样的功能、多处实现、导致 bug」——
   三个**只读** subagent 分头查：① `crates/front/**`（同一变换/判据/数据被算两遍 ✓）；
   ② `crates/cli|crates/lsp|query`（计数/字段/换算/缓存判据各算一遍 ✓）；
   ③ `scripts/**`+`editor/vscode/**`（取文件、版本解析、判红约定、渲染取值 ✓）。
