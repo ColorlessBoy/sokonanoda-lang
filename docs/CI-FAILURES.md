@@ -1075,3 +1075,38 @@ CI    ：G-35  fixed  script  行为已变            ⇒ exit 1 ✗
 1. 给 `test` job 的 gap 步加**超时预算**（或把 `>120s` 的复现件从"判红"降为"跳过并标注"✓）
    —— 判据是"两条环境都能一致地判" ✓，而不是"快的那台机器说了算" ✗；
 2. 两个 job 都加 `timeout-minutes` + 失败时**回显失败用例名** ✓（`STATUS.md` 里早有这条待办 ✓）。
+
+## 2026-09-25 · run 36128240448（审计批次 2bb6482）· **两个 ubuntu e2e 红在同一条用例**
+
+**现象** ✗（与上一轮不同：不再是"只有 1.106.0" ✗）：
+| job | 结果 |
+|---|---|
+| `lint` | ✓ success |
+| `e2e (macos-latest · 1.138.0)` | ✓ **success** |
+| `e2e (ubuntu-latest · 1.138.0)` | ✗ failure |
+| `e2e (ubuntu-latest · 1.106.0)` | ✗ failure |
+
+**两个 ubuntu job 的失败用例完全相同** ✓（从 artifact 里读的 ✓）：
+```
+26 passing / 1 failing（exit=1）
+1) editing a dependency refreshes the open unit once
+   AssertionError [ERR_ASSERTION]: 改依赖必须让打开的入口重新发诊断（跨文件失效）
+```
+⇒ **同一份代码**：macos 绿 ✓、ubuntu（两个 VS Code 版本）红 ✗、本地（两个版本）绿 ✓
+⇒ 这**不是**版本相关、也**不是**本次改动引入 ✗，而是 **ubuntu 平台相关** ✓
+（上一轮只有 1.106.0 红 ✓、这轮两个都红 ✓ ⇒ 至少是**不稳定 + 平台偏置** ✗）。
+
+**最可能的机理** ✓（假设，未证实 ✗）：这条用例验的是"**改依赖 ⇒ 打开的入口重新发诊断**"，
+即**跨文件失效** ✓ —— 它依赖文件变更的**通知/重编译**在时限内到达 ✓。
+Linux（ubuntu runner）的文件监听/时序与 macOS 不同 ✓，且 runner 更慢 ✓
+⇒ 固定的等待窗口不够 ✓。（本地与 macos 均绿 ✓ = 与"时序/平台"一致 ✓。）
+
+**下一步（需要专用排查，不宜靠猜 ✗）**：
+1. 读该用例的等待实现 ✓（`editor/vscode/src/test/extension.test.js` ✓）：把**固定重试次数**
+   换成**轮询到诊断出现**（带宽松上限 ✓），并把超时值写进失败信息 ✓ —— 这是**低风险**的
+   第一步 ✓（本地仍应绿 ✓，但**无法本地验证 ubuntu 是否转绿** ✗）；
+2. 若仍红 ⇒ 记"ubuntu 平台差异"进台账 ✓，并在 `docs/E2E.md` 写明"该用例在 ubuntu 上
+   已知不稳定" ✓（**不许**用 `skip` 掩盖 ✗ —— 那等于把守的东西扔掉 ✗）。
+**prevention（与上一轮同款 ✓）**：e2e job 失败时把 `docs/e2e/logs/*.log` 作为 artifact 上传
+**已经**是现状 ✓（`ci.yml:375-381` ✓，本轮就是靠它拿到用例名的 ✓）；仍缺的是
+`timeout-minutes` 与失败用例回显 ✓（`STATUS.md` 里的老待办 ✓）。
