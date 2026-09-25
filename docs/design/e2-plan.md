@@ -884,6 +884,29 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **⚠ round 262：强制重放写了一次、**失败**、已回退 ✓ —— 但观察很有用 ✓**
+    **做法** ✓：在 `check/mod.rs:901` 之前（**恰好早于** `shadow_covered` 的计算 ✓）
+    插入"开关打开 ⇒ `let _ = walk.shadow_env();` 强制推到底" ✓
+    （开关改成 `pub(super) fn walk_real_add_requested(&self)` ✓ 以便此处可调 ✓），
+    并加一行 `eprintln!("WALK_REAL_ADD: 已强制重放 shadow_upto={}/{}")` 作**可观测证据** ✓。
+    **结果** ✗：
+    ```
+    cargo check = 0 ✓
+    默认态测试 ⇒ 0 ✓
+    开关态测试 ⇒ **101** ✗（有测试失败 ⇒ 改动**确实生效**了 ✓）
+    --json: 默认 = 开关 = a2bdf9c4fad1… ✓（相同 ✓）
+    **WALK_REAL_ADD 行数 = 0** ✗ ⇒ 这段代码在 **CLI 路径上没被走到** ✓
+    ```
+    **⇒ 两条观察（下一轮直接用 ✓）**：
+    ① **CLI 的 `--json` 路径不经过这里** ✗（`playground.sokonanoda` 走的是别的编译入口 ✓）
+       ⇒ **判据不能只用 CLI 的 `--json`** ✗ —— 要用**测试路径**（开关态 101 ✓ 证明它走到 ✓）；
+    ② **开关态 101 说明强制重放**真的改变了什么** ✓ ⇒ **但改变了什么、为什么错** ✗
+       需要看那 101 的**第一条失败** ✓（下一步第一件事 ✓）。
+    **已回退** ✓（失败的状态不留 ✓，`crates/front/src/compile/check/` diff 干净 ✓）。
+    **⇒ 下一步（一条命令 ✓）**：`SOKO_WALK_REAL_ADD=1 cargo test -p sokonanoda-front --lib 2>&1 | grep -A6 "failures:" | head -20`
+    ⇒ 看第一条失败 ✓ ⇒ 判断是"**重放时机不对**"✗ 还是"**两边都 add 造成重复**"✗（后者更可能 ✓ ——
+    A 步已让 walk 写真 `builder` ✓，B 步还没做 ✓ ⇒ 内核阶段**又 add 一遍** ✗ ⇒ 可能是重复声明 ✗）。
+
   - **🎯 round 261：B 步的接线看清了 + 一个**致命前提** ✗**
     **接线很容易** ✓：`shadow_covered` 在 `check/mod.rs:912` 算好 ✓，
     `finish_pass` 在 **`:913`** 紧邻调用 ✓ ⇒ **同一层** ✓ ⇒ 给 `Walked` 加个字段即可 ✓。
