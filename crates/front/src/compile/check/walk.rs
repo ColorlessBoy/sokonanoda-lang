@@ -165,6 +165,24 @@ impl<'arena> Walk<'arena> {
         &mut self.shadow
     }
 
+    /// **D-2 的 A 步开关**（2026-09-25 round 260）：让 walk 的 check-then-add
+    /// **同时**落到真 `builder`（而不只落到 `self.shadow`）✓。
+    ///
+    /// 为什么可以这么做（round 259 读传递链确认 ✓）：walk 运行期间**持有** `builder`
+    /// —— `check/mod.rs:857` 把它交给 walk ✓、`:920` 取回 ✓、
+    /// `kernel_phase.rs:192` 才 `finish()` 消费 ✓ ⇒ **没有任何结构性障碍** ✓
+    /// （我 round 258 曾误判为"要动所有权设计" ✗，那是照注释推断的 ✓）。
+    ///
+    /// 为什么**同时**写两边而不是只写真 `builder` ✓：`self.shadow` 是 T-D3 的
+    /// **对照实验**（影子与内核阶段的一致性 ✓，`SOKO_SHADOW_STRICT` 可复现 ✓）
+    /// ⇒ 只写一边会让那份对照数据消失 ✗。两边都写 ⇒ 实验照旧 ✓、真环境也开始被填 ✓。
+    ///
+    /// **默认关** ✓（阶段 D 的护栏：先开关后默认 ✓）；要复现/推进 D-2 时打开 ✓。
+    fn walk_real_add_enabled() -> bool {
+        static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *ON.get_or_init(|| std::env::var("SOKO_WALK_REAL_ADD").is_ok_and(|v| v != "0"))
+    }
+
     /// 影子环境的一条"检查后加入"（check-then-add，与 `kernel_phase` 同序同语义）。
     /// 检查走 `ExportFile`（`try_check_declar` 是它的方法）⇒ 借 `with_env` 一次；
     /// **内核拒绝的不进环境** ✓，只记下标。
@@ -174,6 +192,12 @@ impl<'arena> Walk<'arena> {
         let result = self.shadow.with_env(|env| env.try_check_declar(&declar));
         match result {
             Ok(()) => {
+                // **A 步**（round 260）：开关下**同时**落到真 `builder` ✓ ——
+                // 真环境由此开始被 walk 填满，B 步（内核阶段跳过已覆盖的 cmd）
+                // 才有依据 ✓。`declar` 已被 clone 一次 ⇒ 再 clone 一次给第二个环境 ✓。
+                if Self::walk_real_add_enabled() {
+                    let _ = self.builder.add_declar(declar.clone());
+                }
                 let _ = self.shadow.add_declar(declar);
                 true
             }
