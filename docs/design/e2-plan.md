@@ -356,6 +356,25 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 > **直接做** ✓，安全网是"五步 + 课程计数 + 全语料逐字节 + 事件计数"四件套 ✓。
 
 - [ ] `T-D1` **把 check-then-add 收进单一函数**（纯重构，**零行为变化** ✓）：`kernel_phase` 里逐条"检查→加入"的逻辑抽成一个可复用单元 ✓
+  - 📌 **执行方案（已勘定，2026-09-25，照着做即可）**：
+    * **抽取位置**：`crates/front/src/compile/check/kernel_phase.rs` 的
+      `finish_pass(walked)`（:43）里那个**逐命令循环**（`for (j, sig_slot) in sigs.iter_mut().enumerate()`，
+      :82 起）—— 循环体里 `PendingOp::Decl` 分支就是"检查→加入"本体（`declar_signature` /
+      类型检查 / `add_declar` / 记录 `decl_states` 与 `kernel_checks`）。
+    * **抽成什么**：`fn check_then_add_one(env: &mut Env, declar: &Declar, cmd: usize, …) -> Contribution`
+      —— 入参 = 环境 + 那条声明的 payload + 命令下标 + 它要写回的累积量
+      （`decl_states` / `kernel_checks` / `failed_cmds` / hover）；返回值 = 这一条对环境的
+      **贡献**（`sigs[j]` 用它算签名，早期截断用它做 `acc_new == acc_old` 比较 ✓）。
+    * **必须留在循环里的**（**不许**抽进去 ✗）：早期截断（`allow_cutoff` / `before` /
+      `text_unchanged` / `acc_new`/`acc_old` 比较，:88-95）—— 它是**跨命令**的状态机 ✓；
+      以及**趟级**的东西（`display` 记法表、`env.config.pp_options.proofs`，:63-71 ✓）。
+    * **重构判据（= T-D2）**：① 全语料两态 `--json` **逐字节相同**；② 课程计数逐项不变
+      （36 目标 · 328 checked · 99 open · 0 判负）；③ 五步全绿（kernel tests + front 单测 +
+      CLI e2e + 语料对拍 + 性能）。**做法**：动手前先跑一次存档 `--json` 输出（两态各一份），
+      改完再跑、`cmp` 逐字节比 ✓ —— 比"看代码觉得没变"强得多 ✓。
+    * **风险**：这个循环同时管**判定**与**呈现**（`kernel_checks` 喂判卷、`decl_states` 喂 UI）
+      ⇒ 抽取时最容易漏掉"哪几个累积量是判定用的、哪几个是显示用的" ✗；
+      按"判定量必须逐字节一致、显示量也必须"来对拍最稳 ✓。
 - [ ] `T-D2` **D1 判据**：全语料两态 `--json` **逐字节相同** ✓ + 课程计数逐项不变 ✓ + 五步全绿 ✓（**不变量**：这一步不改任何行为 ✓）
 - [ ] `T-D3` **walk 增量检查（开关默认关）**：walk 边 elaborate 边 `with_env` 检查并 `add_declar` ✓；`SOKO_WALK_CHECK=1` 才启用 ✓ ⇒ 默认路径**零变化零成本** ✓
 - [ ] `T-D4` **D3 判据**：开关两态 `--json` 逐字节相同 ✓ + 课程计数不变 ✓ + 事件计数不变 ✓（**开关开**时也相同 ✓ ⇒ 证明"两遍检查"语义等价 ✓）
