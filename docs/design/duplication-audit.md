@@ -214,3 +214,41 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 
 **守卫（T-U10 的硬要求 ✓）**：这一批里凡引入"唯一归属"的，都要配**棘轮化**守卫 ✓
 （照 `audit-notation-paths.py` 的先例：基线 + 只拦新增 ✓ + **反向验证** ✓）。
+
+---
+
+## 3. **T-U10 收口：77 处绕过的逐条处置**（用户 2026-09-25 要求 ✓，见 `REQUIREMENTS.md` §9 ㉟）
+
+**硬规则（用户原话）**：**凡产出用户可见文本的（LSP / hover / 诊断消息 / 状态栏 / 项目树）
+必须走 ① 或 ②** ✓（① 迁移到唯一接口 / ② 补"必须折叠"的判据 ✓）；**不许拿 ③ 糊过去** ✗。
+
+**基线全貌**（`scripts/notation-paths-baseline.txt`，共 **77** 处 ✓，按 文件×调用 归组 ✓）：
+
+| 组 | 处数 | 位置 | 产出什么 | 处置 | 理由 |
+|---|---|---|---|---|---|
+| **A** | **5** | `crates/lsp/src/lib.rs`（全在 `half_expression_goals_hover` ✓ :1332-1376 ✓） | **hover 文本** ✗ | **① 优先** ✓ | **用户可见** ⇒ 硬规则强制 ①/② ✓。5 处逐条见下表 ✓ |
+| **B** | **19** | `crates/front/src/compile/elab.rs` | **诊断消息**片段 ✓（含拼消息 ✗） | **① 优先** ✓ | **用户可见**（诊断会显示给学习者 ✓）⇒ 硬规则 ✓ |
+| **C** | **17** | `crates/front/src/compile/goals.rs` | **开放练习的候选/目标文本** ✓ | 逐条判 ✗ | 有些是**判卷输入** ✗（红线 ✓：不许折 ✓）⇒ 只迁**显示副本** ✓ |
+| **D** | **22** | `crates/front/src/by.rs` | tactic 引擎的**候选/错误文本** ✓ | 逐条判 ✗ | 同上：判定量不许折 ✗；显示量走显示副本 ✓ |
+| **E** | **6** | `crates/front/src/semantic.rs`（`tag_runs_with_notations` ✗） | **分段标签** ✓ | **②**（已有 ✓） | 它靠 `runs` 那层 ✓：接缝守卫已钉"`runs` 拼接 == `text`" ✓；**再补**"输入必须已折过" ✓ |
+| **F** | **1** | `crates/front/src/query/mod.rs`（`tag_runs_with_notations` ✓） | **wire 的 runs** ✓ | **②**（已有 ✓） | 同上 ✓；`text` 侧已改显示副本 ✓（T-U4 ✓） |
+| **G** | **3** | `crates/front/src/compile/tests.rs` | **测试夹具** ✓ | **③ 不做** ✓ | 测试自己的期望串 ✓，不是用户可见文本 ✓ |
+| **H** | **1** | `crates/front/src/compile/check/mod.rs` | 编译期诊断拼串 ✓ | 并入 **B** ✓ | 与 B 同类 ✓ |
+| **I** | **1** | `crates/front/src/compile/check/walk.rs` | 目标生产 ✓ | **③ 不做** ✓ | **它是判卷输入** ✗（红线 ✓：折它 = `suggest::*` 当场判红 ✓；见 §9 ㉜ ✓） |
+| **J** | **1** | `crates/front/src/judge.rs` | 判定用文本 ✓ | **③ 不做** ✓ | **判定量** ✗（折它就会改变接受/拒绝 ✓ —— 内核红线 ✓） |
+| **K** | **1** | `crates/front/src/suggest.rs` | 候选文本 ✓ | 逐条判 ✗ | 候选要**能解析**✓ ⇒ 折与不折都可能对 ✓；**② 补判据**为主 ✓ |
+
+**A 组 5 处逐条**（用户点名 ✓）：
+| # | 位置 | 产出 | 处置 |
+|---|---|---|---|
+| A1 | `lsp/lib.rs:1332` `term_text = render_expr(body)` | hover 里的**项**文本 ✗ | **①**：走 `render_text`（用报告里的 `notations` ✓） |
+| A2 | `lsp/lib.rs:1340` `goal_text = render_expr(&goal_ty)` | hover 里的**目标**文本 ✗ | **①**（同上 ✓） |
+| A3 | `lsp/lib.rs:1359` `goals.push(render_expr(domain))` | 部分应用的目标列表 ✗ | **①**（同上 ✓） |
+| A4 | `lsp/lib.rs:1364` `goals.push(render_expr(…))` | 同上 ✗ | **①**（同上 ✓） |
+| A5 | `lsp/lib.rs:1376` `codomain = render_expr(cur)` | 同上 ✗ | **①**（同上 ✓） |
+
+**落地要点（A/B 两组 ✓）**：front 已有 `DisplayNotations`（`print_back` 那一族 ✓），
+而 `ProjectReport` 里带着 `notations: Vec<NotationDecl>` ✓（`report.rs:137` ✓）
+⇒ 需要一个**公开的**"按报告折一段文本"入口 ✓（例如
+`query::fold_text_with(report, text) -> String` ✓），LSP/hover 与 elab 的诊断拼串都走它 ✓
+—— **本次未实现** ✗（上下文不足 ✓），但落点已精确到行 ✓。
