@@ -249,6 +249,37 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 ## 7. 收尾清单（每次阶段结束时）
 
+### 7.0 **发版五条检查单**（2026-09-25 round 335 ✓ —— **从三次连续失败里长出来的** ✓）
+
+```bash
+# ① 版本一致（bump 有隐藏依赖：Cargo.lock + 两个清单的 requires）
+python3 scripts/bump.py --check          # 期望"版本一致：x.y.z"
+# ② 锁文件已跟上（否则 CI 的 --locked 报 cannot update the lock file）
+cargo build -q -p sokonanoda-cli --locked
+# ③ **这一推必须包含 rust 改动**（否则重活全 skip ⇒ auto-tag 也 skip ⇒ 永不发版）
+git diff --name-only origin/main..HEAD   # 必须有 crates/… 或 Cargo.*
+# ④ 先 fetch（**CI 会往 main 回写** —— e2e 台账 job ⇒ 本地落后是常态）
+git fetch origin && git pull --rebase
+# ⑤ **推一次就停手**（再推 = cancel-in-progress 掐掉自己那轮 ⇒ release 永不触发）
+git push
+```
+
+**五条各自的代价（都是实测 ✓）**：
+| 条 | 漏了会怎样 |
+|---|---|
+| ① | `contract` 红：`bump.py --check` 报**版本漂移** ✓（**手改漏掉清单的 `requires` = G-24** ✓） |
+| ② | `gates-fast` 红 + 三条 `test` 腿红：`--locked` 拒绝过期锁文件 ✓ |
+| ③ | **CI 全绿但 release 不触发** ✗（最隐蔽 ✗ —— `auto-tag` 依赖十个重活 job ✓） |
+| ④ | 推送被拒（non-fast-forward ✓ —— **CI 刚回写了台账** ✓） |
+| ⑤ | **release 永不触发** ✗（**每一推都掐掉唯一那轮 `rust == true`** ✓） |
+
+⚠ **③ 与 ⑤ 是最贵的两条** ✓：它们**不报错** ✗ —— CI 可能**全绿** ✓，
+而 **`gh release list` 里什么都没有** ✓ ⇒ **发版后必须核对** ✓：
+`gh release list --limit 1` ✓（期望 `sokonanoda v<新版本>  Latest` ✓）。
+**发布后补** ✓：`scripts/soko update` ✓（**本地门禁的缓存二进制会因 bump 过期** ✓
+⇒ 课程门禁 `exit 2` 拒绝判绿 ✓ —— 这是设计行为 ✓，不是 bug ✓）。
+
+
 ```bash
 scripts/soko gate                                   # fmt + clippy + test + 锚点 + 课程门禁 + 缺口台账
 python3 courses/set-theory/tools/check.py           # 计数必须逐项不变：36 目标 · 328 checked · 99 open · 0 判负
