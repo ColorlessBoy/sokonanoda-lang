@@ -26,6 +26,23 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 330-331：等 `perf-gate` 的同时，把**发版检查单**补齐了 ✓（**本地提交，不推** ✓）**
+  ```
+  本地领先 4 个 commit ✓ —— **全部是 docs** ✗（STATUS ✓ · CI-FAILURES ✓）
+  ⇒ 若就这样推 ⇒ changes.outputs.rust == false ✗ ⇒ 重活 skip ⇒ **auto-tag 也 skip** ✓
+  ⇒ ⇒ **发版那一推必须包含一个 rust 改动** ✓ —— 而树已经完整 ✓
+    ⇒ 唯一**合法**的 rust 改动：把 D-1/D-2 的**处置与回退方式写进代码注释** ✓
+      （本来就该有 ✓ —— 现在只有 commit message 里有 ✓）。
+  ```
+  **⇒ 发版检查单（写进 `docs/CI-FAILURES.md` ✓，round 330 ✓）**：
+  ① `python3 scripts/bump.py --check` ✓（报"版本一致" ✓）；
+  ② `cargo build -q -p sokonanoda-cli --locked` ✓（锁文件已跟上 ✓）；
+  ③ **这一推包含 rust 改动** ✓（否则 `auto-tag` 必 skip ✓）；
+  ④ **推一次就停手** ✓（再推 = 掐掉自己 ✓）。
+  **⇒ `docs/CI-FAILURES.md` 的三条教训（1542 行 ✓）**：① bump 的隐藏依赖（`Cargo.lock` +
+  两个清单的 `requires` ✓ —— 手改漏掉就是 **G-24** ✓）；② `auto-tag` 依赖全部重活而
+  docs-only 轮全 skip ✓；③ **修 CI 的节奏与发版的节奏相反** ✗（最贵的一条 ✓）。
+
 * **🔴 round 329：重跑也过不了 —— 而原因是"树里没有全部修复"** ✗✓
   ```
   36188218357（**重跑 `b4aca6e`** ✓）：
