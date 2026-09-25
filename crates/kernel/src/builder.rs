@@ -86,6 +86,23 @@ impl<'a> EnvBuilder<'a> {
         }
     }
 
+    /// **T-D8**：给**合成探针**一个"**看不见文件声明**"的环境 ✓ ——
+    /// 只把 `declars` **暂时挪走** ✓、**`dag` 不动** ✓ ⇒ **指针同一性保住** ✓
+    ///（与 `with_env` 那套"搬来搬去"**同一手法** ✓，见 `:99`/`:110` ✓）。
+    ///
+    /// 为什么需要它（T-D8 的 C1 ✓）：`build_redundant_probes` 造的探针是**合成声明** ✓，
+    /// 它要在**真 `builder` 的 DAG** 里 elaborate（否则 `def_eq` 因指针不同而**假失败** ✗，
+    /// 见 `snapshot` 的 ⚠ 与 round 285/294 ✓），**但**它不该看见文件里的声明 ✓
+    ///（A 步把声明提前加进真 `builder` 之后 ✓，探针看到它们 ⇒ 冗余判定翻转 ✗）。
+    ///
+    /// **默认路径不调用它** ✓ ⇒ 判定行为**零变化** ✓（硬规则 1 的红线不受影响 ✓）。
+    pub fn with_declars_hidden<R>(&mut self, f: impl FnOnce(&mut EnvBuilder<'a>) -> R) -> R {
+        let saved = std::mem::take(&mut self.declars);
+        let r = f(self);
+        self.declars = saved;
+        r
+    }
+
     pub fn with_env<R>(&mut self, f: impl FnOnce(&mut ExportFile<'a>) -> R) -> R {
         // 占位 dag：回调期间 builder 不可用 ⇒ 占位不会被读到（`new_local` 很便宜）。
         let placeholder = Dag::new_local(&self.config);
