@@ -1344,3 +1344,20 @@ workspace 测试 ✓ · 协议一致性 ✓ · 性能报告 ✓ · 课程语料 
 —— 那次实验（`SOKONANODA_BIN=/nonexistent` ✓）**当时就否掉了它** ✓，我却没顺着"**忠实复现**"再走一步 ✗。
 **用户给出 job 直链** ✓ 之后才逼出正解 ✓ ⇒ **"红在哪一条、日志拿不到时怎么复现"应当第一时间做** ✓，
 而不是先猜环境差异 ✗。
+
+### round 162 续 ✓：Node 修复**有效但不完整** ✗ —— `ledger (3)` 仍红
+**CI（`#36149763897` ✓，第一次真的跑到 `ledger` ✓）** ✓：`ledger (3)` **failure** ✗（(1)/(2) 尚在跑 ✓）；
+其余已绿 ✓（`lint` ✓ `changes` ✓ `editor` ✓ `contract` ✓ + 三条 e2e ✓）。
+**忠实复现（同一手法 ✓，这次**带 node** ✓）** ✓：
+```
+env -i PATH=<node>:/usr/bin:/bin HOME=/tmp SOKONANODA_CACHE_DIR=<空> CARGO_TARGET_DIR=<无>   SOKO_GAP_REPRO_TIMEOUT=30 python3 scripts/gap.py check --shard 3/3
+⇒ L-06 跳过（没有复现文件）· G-21 缺口仍在 · G-24/G-27/G-39 行为已变 · G-30/G-33 仍有失败
+⇒ **"全部与台账一致。"** ✓（**本地是绿的** ✓）
+```
+⇒ **Node 那批（6 条）确实归零了** ✓（修复有效 ✓），但 `ledger (3)` 在 CI 上**仍红** ✗
+⇒ **另有原因** ✗，而它**不在**这个忠实复现里 ✓（说明还差一个环境维度 ✗ ——
+最可能是**二进制来源** ✓：本机 `scripts/soko` 会**下载** ✓，CI 上可能被限流/超时 ✗；
+或 `G-30/G-33` 这类 `sokonanoda` 复现件在 CI 的**冷环境**下更慢 ✓）。
+**下一步（日志一可用就做 ✓）**：`run 36149763897` 结束后 ✓
+`gh run view --job <ledger (3) 的 id> --log` ✓ ⇒ 看那片**具体哪条**不一致 ✓
+（`--shard` 已把范围缩到 15 条 ✓，而 `run_repro` 的 `note` 会带**原文** ✓）。
