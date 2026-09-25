@@ -1570,3 +1570,17 @@ cargo test -p sokonanoda-front --doc --locked    # 失败输出第一行就写�
 **⚠ 另一条** ✓：**`yaml.dump` 的输出不能当锚点** ✗ —— 它**重新缩进** ✓，
 而文件里可能是**行内写法**（`kind: [lib, tests, doc]` ✓）⇒ **锚点只认"刚打印出来的文件原文"** ✓。
 
+## 2026-09-25 · 新 run 长时间 `pending` 且 **0 个 job** ⇒ 并发组被**旧 run**占着 ✗
+
+**症状** ✓：推上去后 `gh run view <新 id>` 一直 `pending/` ✓、`job 数 0` ✗ ——
+而**前面的 run 都是秒起** ✓。
+**根因** ✓：顶层 `concurrency: {group: ci-${{ github.ref }}, cancel-in-progress: true}` ✓
+⇒ **同一组里有一个 `in_progress` 的旧 run** ✗（它**注定红** ✗ —— 树里没有修复 ✓）
+⇒ **新 run 排队等它** ✓。`cancel-in-progress` 只在**新 run 真正开始时**才掐旧的 ✓，
+而**它自己还没开始** ✗ ⇒ **死等** ✓。
+**修** ✓：`gh run cancel <旧 id>` ✓ ⇒ **新 run 立刻起** ✓（实测 ✓：`job 数 10` ✓）。
+
+**⇒ 规程** ✓：**新 run 长时间 `pending` + 0 job ⇒ 先查同组的旧 run** ✓
+（`gh run list --limit 5` ✓）⇒ **取消注定失败的那个** ✓ ⇒ **别再推** ✗
+（**推解决不了排队** ✗ —— 它只会再加一个排队的 ✓）。
+
