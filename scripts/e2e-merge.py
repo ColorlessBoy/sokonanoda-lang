@@ -70,10 +70,13 @@ def write_ledger(rows: list[dict]) -> None:
 def find_records(root: pathlib.Path) -> list[tuple[pathlib.Path, dict]]:
     """在 artifact 目录里找 `**/latest.json`，返回 (目录, 记录)。"""
     found: list[tuple[pathlib.Path, dict]] = []
-    for path in sorted(root.rglob("latest.json")):
+    # **只收文件**（审计 #10 ✓）：同名**目录**会让 `read_text()` 抛
+    # `IsADirectoryError` —— 而下面的 `except` 只接 `JSONDecodeError` ✗
+    # ⇒ 那是 **traceback 而不是 `SystemExit`**（"崩了却不判"的原形 ✓）。
+    for path in sorted(p for p in root.rglob("latest.json") if p.is_file()):
         try:
             entry = json.loads(path.read_text())
-        except json.JSONDecodeError as error:  # 半截文件不算记录，直接报出来
+        except (json.JSONDecodeError, OSError) as error:  # 半截文件/读不了都不算记录，直接报出来
             raise SystemExit(f"error: {path} 不是合法 JSON：{error}")
         if entry.get("schema") != "soko.e2e/1":
             continue

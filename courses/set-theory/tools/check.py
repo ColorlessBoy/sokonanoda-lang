@@ -522,7 +522,11 @@ def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, Manif
         raise Prerequisite("course.json 里没有任何单元")
 
     targets: list[Target] = []
-    modules = sorted(lib_dir.glob("*.sokonanoda"))
+    # **只收文件**（审计 #10，2026-09-25 ✓）：产物目录 `<模块根>/.sokonanoda/` 的
+    # 名字以 `.sokonanoda` 结尾 ⇒ `glob("*.sokonanoda")` 会把**目录**也收进来 ✗
+    #（Python 3.14 实测 ✓，pathlib 不像 glob 模块那样隐藏点开头项 ✓）⇒ 之后
+    # `read_text()` 直接 `IsADirectoryError` ⇒ **门禁崩掉却不判** ✗（R-3 同形 ✓）。
+    modules = sorted(p for p in lib_dir.glob("*.sokonanoda") if p.is_file())
     if not modules:
         problems.append(f"课程标准库是空的：{lib_dir}")
     for module in modules:
@@ -542,7 +546,10 @@ def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, Manif
         targets.append(Target(f"单元 {number}", canvas, "unit", unit=int(number)))
 
     by_unit: dict[int, Path] = {}
-    for solution in sorted(solutions_dir.glob("*-solution.sokonanoda")):
+    # 同上：只收文件 ✓（审计 #10 ✓）。
+    for solution in sorted(
+        p for p in solutions_dir.glob("*-solution.sokonanoda") if p.is_file()
+    ):
         number = solution_unit(solution)
         if number is None:
             continue  # 非单元页面的解答由**画布**那一侧发现（见下）
@@ -560,7 +567,8 @@ def discover(course: Path = COURSE) -> tuple[list[Target], list[str], int, Manif
             targets.append(Target(f"解答 unit{number:02d}（画布不在 course.json）", solution, "solution", unit=number))
 
     # 非单元页面：画布 + 解答成对进目标，判据与单元同一条 G1/G3/G4。
-    for canvas in sorted(units_dir.glob("*.sokonanoda")):
+    # 同上：只收文件 ✓（审计 #10 ✓）。
+    for canvas in sorted(p for p in units_dir.glob("*.sokonanoda") if p.is_file()):
         if canvas in listed:
             continue
         targets.append(Target(f"页面 {canvas.stem}", canvas, "page"))
