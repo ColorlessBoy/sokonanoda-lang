@@ -225,3 +225,53 @@ fn the_real_course_module_batch_matches_per_entry_compilation() {
         "真课程上批编与逐入口编必须逐项相同；差异见上（按 T-C1 §3 分类）"
     );
 }
+
+/// **已知限制（2026-09-25 实测，阶段 C 的刹车依据）**：同一模块根里的多个单元
+/// **声明同名顶层名字**时，平坦批编会让后者撞上前者 ⇒ 报**假的重复声明错误** ✗，
+/// 而"以它为入口单独编"是正确的。课程正是这种形状（每个 unit 自成一体、复用同一批
+/// 名字，例如 e2e 夹具的 `u01`/`u02` 都声明 `mem_self`/`subset_mem`/`extra_*`）。
+///
+/// 这条**不是**要修的行为，而是**要知道的边界**：所以判据反过来写 —— 断言"两者
+/// **确实不同**"，这样将来若有人让它一致了（或让差异消失/变大），测试会提醒。
+#[test]
+fn colliding_unit_names_are_a_known_batch_limitation() {
+    let root = tmp("collision");
+    write(&root, "sokonanoda.toml", "name = \"collide\"\n");
+    write(
+        &root,
+        "Lib.sokonanoda",
+        "axiom P : Prop\naxiom proofP : P\n",
+    );
+    // 两个单元**声明同名**（课程里很常见：每个 unit 自成一体）。
+    write(
+        &root,
+        "U1.sokonanoda",
+        "import Lib\n\ntheorem same : P := proofP\n",
+    );
+    write(
+        &root,
+        "U2.sokonanoda",
+        "import Lib\n\ntheorem same : P := proofP\n",
+    );
+
+    let options = CompileOptions::default();
+    let plan = plan_module_subset(&root, &module_files(&root));
+    let batch = compile_module(&plan, &options);
+    let u2 = root.join("U2.sokonanoda");
+    let batched = batch.reports.get(&u2).expect("U2 report");
+    // 逐入口（真相）：U2 自己编是干净的。
+    let legacy = plan_project(&u2, None, Some(&root));
+    let legacy = compile_plan(legacy, &options);
+    let legacy = legacy.entry_module().expect("legacy entry").report.clone();
+    assert!(
+        legacy.errors.is_empty(),
+        "逐入口编 U2 本来就该是干净的：{:?}",
+        legacy.errors
+    );
+    assert!(
+        !batched.errors.is_empty(),
+        "**已知限制**：U2 与 U1 重名，平坦批编会把 U1 的同名声明算成重复 ⇒ 报错。\
+         这条差异是阶段 C 不接 `build` 的依据（`docs/design/module-batch.md` §8/§10）"
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
