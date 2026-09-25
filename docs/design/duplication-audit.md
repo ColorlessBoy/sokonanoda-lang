@@ -436,3 +436,15 @@ error: field `notations` is never read
 * **判据** ✓：`cargo check` **rc=0** ✓（`dead_code` 那条错误消失 ⇒ 字段确实被读了 ✓）·
   `cargo test -p sokonanoda-front --lib` ⇒ **735 passed / 0 failed** ✓（行为不变 ✓）·
   `audit-notation-paths.py` ⇒ **无新增** ✓ · 基线 **86 → 84** ✓（`--rebless` ✓）· fmt ✓
+
+### ✅ **B 组（`elab.rs` 诊断消息）** 全部迁完 ✓（round 130 ✓）—— 4/4
+* 第 4 处 = `describe_candidate_results` ✓（产出"`候选` 的结果类型是 `…`" ✓ —— **给学习者看的消息** ✓）：
+  给它加了 `ctx: &ElabCtx<'_, '_>` 参数 ✓、`render_expr(result)` ⇒ `render_msg(ctx, result)` ✓、
+  调用点（`elab.rs:1738` ✓）同步补 `ctx` ✓。
+* **判据** ✓：`cargo check` 干净 ✓ · `cargo test -p sokonanoda-front --lib` ⇒ **735 passed / 0 failed** ✓ ·
+  `audit-notation-paths.py` ⇒ **无新增** ✓ · `--self-test` ⇒ **仍咬得住** ✓（`walk.rs` 8 处 ✓）·
+  基线 **84 → 83** ✓（`--rebless` ✓）· fmt ✓
+* **B 组小结** ✓：4 处**用户可见诊断**全部走唯一接口 ✓（`render_msg` ✓）；
+  其余 17 处按 ③ **不做** ✓（判卷输入 ✗ / 名字解析 ✗ / 喂 judge ✗ —— 折它们会改判定 ✓）。
+* ⏳ **下一步 = A 组**（LSP hover 5 处 ✓）：需要 `ProjectReport` 带表 + arity ✓
+  （或公开 `fold_text` ✓）；红线 ✓：**不许**任何一层**重建 arity** ✗（第五套实现 ✓，守卫会抓 ✓）。

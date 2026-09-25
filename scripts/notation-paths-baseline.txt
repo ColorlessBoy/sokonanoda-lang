@@ -34,7 +34,6 @@ crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof:
 crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
 crates/front/src/compile/elab.rs|render_expr|&render_expr(scrutinee),
 crates/front/src/compile/elab.rs|render_expr|None => crate::proof::render_expr(expr),
-crates/front/src/compile/elab.rs|render_expr|Some(result) => format!("`{candidate}` 的结果类型是 `{}`", render_expr(result)),
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(val))
 crates/front/src/compile/elab.rs|render_expr|let ctor_src_sig = render_expr(&ctor_ty);

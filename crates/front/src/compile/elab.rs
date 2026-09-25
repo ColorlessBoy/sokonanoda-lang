@@ -1735,7 +1735,7 @@ fn choose_notation_target<'a>(
             format!(
                 "记法 `{symbol}` 的候选目标（{}）没有一个能对上这里的期望类型：{}",
                 candidate_list(candidates),
-                describe_candidate_results(&results)
+                describe_candidate_results(ctx, &results)
             ),
             span,
         )),
@@ -1765,11 +1765,13 @@ fn candidate_list(candidates: &[&str]) -> String {
 
 /// `Set.mem → Prop；Set.singleton → Set α` 这样的候选结果类型清单（读不到
 /// 签名的候选标 `?`）。
-fn describe_candidate_results(results: &[(&str, Option<Expr>)]) -> String {
+/// **候选结果的消息文本**（T-U11 ✓）：走 `render_msg` ✓ ⇒ 有记法表就折 ✓
+/// （这串文本是**给学习者看的诊断** ✓ —— 用户硬规则：用户可见文本必须折 ✓）。
+fn describe_candidate_results(ctx: &ElabCtx<'_, '_>, results: &[(&str, Option<Expr>)]) -> String {
     results
         .iter()
         .map(|(candidate, result)| match result {
-            Some(result) => format!("`{candidate}` 的结果类型是 `{}`", render_expr(result)),
+            Some(result) => format!("`{candidate}` 的结果类型是 `{}`", render_msg(ctx, result)),
             None => format!("`{candidate}` 的签名读不到"),
         })
         .collect::<Vec<_>>()
