@@ -1,3 +1,26 @@
+## [0.72.0] — 2026-09-25
+
+> **维护版**：本次没有用户可见的行为变化 —— 改动是**性能回归门禁**、**文档收口**
+> 与**两个默认不调用的内核原语**。
+
+### Internal
+
+- **性能回归门禁进 CI**（`perf-gate`，第 15 个 job，进快层）：每次 rust 改动的 push 跑一组
+  smoke（合计 **~1 秒**），与 `docs/perf/ledger.jsonl` 的上一次同名记录比较，**大幅退化就红**。
+  它**不是"再快一点"，而是"以后慢下来会被发现"**。第一轮为**只报不拦**（`continue-on-error`）
+  —— CI runner 比本地吵，必须先量一次抖动再定阈值。
+- **内核新增两个原语** `EnvBuilder::hide_declars` / `restore_declars`（只挪声明表、**DAG 不动**，
+  保住指针同一性）；**默认路径不调用** ⇒ **判定行为零变化**（三层回归：kernel `tests/`、
+  front 单测、CLI `--json` 逐字节相同）。
+- **文档收口**：`docs/architecture.md` §6 内核改动台账 · `docs/PERF.md` 性能门禁一节 ·
+  `AGENTS.md` · `skills/sokonanoda-ci` · `STATUS.md` / `docs/E2-HANDOVER.md`。
+
+### 说明
+
+- **阶段 D 的三刀（前缀复用）全部落地/量清，收益均不可测** ⇒ **默认全关**
+  （`SOKO_JUDGE_ENV_REUSE` / `SOKO_WALK_REAL_ADD` 都是 opt-in），**不进入本版行为**。
+  它们的热路径（同一会话再判一次，**134ms**）现在由上面的 `perf-gate` 守着。
+
 ## [0.68.0] — 2026-09-25
 
 ### Fixed
