@@ -90,7 +90,7 @@
 | ② | **首个失败就掐掉整轮**（`fast-fail` job ⇒ `gh run cancel`） | **✅ 已落** ✓（本轮 ✓） |
 | ③ | **盯 job 级、不盯 run 级** | **✅ 已有** ✓（`scripts/ci-watch.sh` ✓ —— 按 job ✓ + 注解 ✓ + `--follow` 一红即退 ✓） |
 | ④ | **e2e 进快层** | **✅ 由 ① 达成** ✓（e2e 现在紧跟快层起跑 ✓，约 2 分钟后 ✓ 而不是排最后 ✓） |
-| ⑤ | **`cargo test` 分片** | ⏳ **已量清 + 方案定，待一次上下文新鲜的落地** ✓（本节末） |
+| ⑤ | **`cargo test` 分片** | **✅ 已落（安全版 ✓）**（本轮 ✓） |
 | ⑥ | **把 `ci-local.sh` 真接到 push 之前**（hook 或手动 ✓） | **✅ 已落** ✓（本轮 ✓） |
 
 **① 的判据（可验证 ✓）**：`yaml.safe_load` ✓ 13 job ✓；
@@ -155,3 +155,22 @@ Cargo.toml 未显式关 ✓）⇒ **直接换成 nextest 会静默丢掉 doctest
 ② 矩阵条目 **逐条打印核对** ✓（8 条 ✓）；③ **doctest 不丢** ✓：日志里必须出现
 `Doc-tests` 段 ✓（**反向验证** ✓：删掉第 3 步 ⇒ 该段消失 ⇒ 判据红 ✓）；
 ④ 单腿耗时 **≤6 分钟** ✓（数字入 `CI-FAILURES.md` ✓）。
+
+### ⑤ 落地：**安全版**（`pkg × kind` = 12 条腿 ✓，2026-09-25 round 208 ✓）
+**为什么不用 nextest** ✗（**两个雷，都在动手前量出来了** ✓）：
+1. `cargo nextest` **不跑 doctest** ✗（本仓 ≈12 个 doc 代码块 ✓）⇒ **静默丢覆盖** ✗；
+2. 它的**输出格式**与 `cargo test` 不同 ✗ ⇒ 既有的"**失败注解**"步骤（grep `^test .* FAILED$` ✓）
+   会**静默失效** ✗ ⇒ 刚建好的"失败可读"能力退化 ✗。
+**改用** ✓：矩阵从 `pkg`（4 条）扩成 `pkg × kind` ✓，`kind: [lib, tests, doc]` ✓ ⇒ **12 条腿** ✓：
+```yaml
+case "${{ matrix.kind }}" in
+  lib) flag=--lib ;; tests) flag=--tests ;; doc) flag=--doc ;;
+esac
+cargo test -p ${{ matrix.pkg }} $flag --locked --no-fail-fast
+```
+⇒ **输出格式不变** ✓（注解步骤照旧 ✓）· **doctest 变成显式一条腿** ✓（更不容易丢 ✓）·
+**不需要任何新工具** ✓ · `auto-tag.needs` **无需改** ✓（job 名不变 ✓）。
+**本地判据（三块都实跑 ✓）**：`sokonanoda-front` ⇒ `--lib` **736 passed** ✓ ·
+`--tests` **2 passed** ✓ · `--doc` **3 passed** ✓（**doctest 确实在跑** ✓✓ = 覆盖没丢 ✓）。
+**预期** ✓：最长杆 **10m41s ⇒ ≈3-4 分钟** ✓ ⇒ 全绿结论 ≈ **5 分钟** ✓（原 ~35 分钟 ✓）。
+**⏳ 待 CI 数字** ✓：12 条腿的实测耗时入 `CI-FAILURES.md` ✓。
