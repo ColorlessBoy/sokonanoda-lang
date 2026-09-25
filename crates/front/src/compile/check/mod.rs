@@ -440,6 +440,27 @@ pub(crate) fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::Dis
     table.splice(0..0, crate::notation::builtin_notation_decls());
     let arities =
         crate::display::arities_with_prelude_from(crate::display::arities_in_commands(&commands));
+    // **诊断开关**（`SOKO_TRACE_NOTATIONS=1`，默认零输出）：把线 C 的两张表打出来。
+    // 存在的理由：③ 那条报告（Infoview 里 `∃` 折不了）逐层排查时，需要一眼看到
+    // "这次编译到底看到了哪些命令、表里有没有目标" —— 别再靠读代码猜 ✗。
+    if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
+        let targets: Vec<&str> = table.iter().map(|d| d.target.as_str()).collect();
+        eprintln!(
+            "[trace-notations] units={} commands={} table={} binding_Exists={} \
+             symbols={:?} arity_Exists={:?} arity_len={}",
+            units.len(),
+            commands.len(),
+            table.len(),
+            targets.iter().any(|t| *t == "Exists"),
+            table
+                .iter()
+                .filter(|d| d.target == "Exists")
+                .map(|d| d.symbol.as_str())
+                .collect::<Vec<_>>(),
+            arities.get("Exists"),
+            arities.len()
+        );
+    }
     crate::display::DisplayNotations::new(table, arities)
 }
 
