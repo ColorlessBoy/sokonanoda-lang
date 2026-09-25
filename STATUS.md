@@ -26,6 +26,21 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯🎯 round 373：**重活跑起来了** ✓✓✓（`ci.yml` 改动触发了 `rust` ✓）**
+  ```
+  推 `165c3ee..4ceb501` ✓ —— **diff 含 `.github/workflows/ci.yml`** ✓✓（**过滤器认它** ✓）
+  ✅ 五条检查单全过 ✓（**hook 全绿 ⇒ 放行** ✓ —— 第三次不跳过就放行 ✓）
+  新一轮 `36198062997` ✓：整轮 in_progress ✓ · **job 数 10** ✓ · 未完 7 ✓
+    editor · **perf-gate** · contract · gates-fast · **ledger (1,2,3)** ✓✓
+  ⇒ ⇒ **重活全部跑起来了** ✓✓ ⇒ **`changes` 报了 rust=true** ✓（**`.github/workflows/**` 生效** ✓）
+  ⇒ **`ledger` 带着 10 分钟超时在跑** ✓ ⇒ **`G-37` 应给 `exit 1`（已修）或 `exit 2`（环境）** ✓
+    ⇒ **不再有"缺口仍在"** ✓ ⇒ **三片应转绿** ✓
+  ⇒ **`perf-gate` 也在跑** ✓ ⇒ **它的数字（T-E1 阈值的依据）这一轮就有** ✓
+  ```
+  **⇒ 判据** ✓：**10 个 job 全绿** ⇒ **`auto-tag`** ✓ ⇒ **release** ✓ ⇒ **`gh release list` 核对** ✓
+  ⚠ **`ledger` 是唯一有风险的** ✗（**它红了两轮** ✓）—— 而**两处都已修** ✓：
+  ① **三个探针的看门狗** ✓（**静默 0 ⇒ `exit 2`** ✓）；② **超时 5 → 10** ✓。
+
 * **✅ round 372：确认 `rust` 过滤器**含 `.github/workflows/**`** ✓✓ ⇒ **一石二鸟** ✓**
   ```
   ci.yml:115-134 ✓（**打印出来的** ✓）：
