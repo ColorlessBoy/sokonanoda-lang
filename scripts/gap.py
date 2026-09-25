@@ -370,8 +370,34 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"\n--strict：{len(got_env_skips)} 条超时**判红** ✗（快机器上必须跑完 ✓）。",
               file=sys.stderr)
         return 1
+    # **把结果写进 GitHub Step Summary**（2026-09-25 用户指出 ✓）：整轮 `in_progress`
+    # 期间 **job 日志取不到** ✗（`gh run view --job … --log` 会回
+    # "run … is still in progress" ✓）⇒ 失败**已经发生却看不见** ✗
+    # （用户原话："ledger 立马就失败了，但是整个 github action 还在继续，
+    #   导致你不知道已经失败了" ✓）。写进 summary ⇒ 在**页面上一眼可见** ✓、不必等整轮 ✓。
+    _write_step_summary(bad, got_env_skips)
     print("\n全部与台账一致。")
     return 0
+
+
+def _write_step_summary(bad: int, skips: list) -> None:
+    """把"这一片是否一致"写进 `$GITHUB_STEP_SUMMARY`（本地没有这个变量 ⇒ 静默跳过 ✓）。"""
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            if bad:
+                f.write(f"## ❌ 缺口台账：**{bad} 条与台账不一致**\n\n")
+                f.write("上面的 `← 台账写的是 …` 行就是细节（在**本 job 的日志**里 ✓）；\n")
+                f.write("本地复跑这一片即可看到同样的输出 ✓：\n\n")
+                f.write("```\npython3 scripts/gap.py check --shard <i>/<N> --strict\n```\n")
+            else:
+                f.write("## ✅ 缺口台账：这一片全部与台账一致\n")
+            if skips:
+                f.write(f"\n> ⚠ 环境异常跳过 {len(skips)} 条（非产品回归 ✓）：{', '.join(skips)}\n")
+    except OSError:
+        pass
 
 
 def cmd_close(args: argparse.Namespace) -> int:
