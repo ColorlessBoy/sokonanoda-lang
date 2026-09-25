@@ -187,16 +187,41 @@ const stateNames = {
   [State.Stopped]: "stopped",
 };
 
+// **未知声明状态不许伪装成"已解决"**（审计 #9，2026-09-25 ✗⇒✓）。
+//
+// 原来这两支都是"**兜底 = solved**"✗：`open`/`failed` 之外**一律**显示 `solved` +
+// `check` 图标 ✓ ⇒ 只要 wire 上多出一个新状态（或字段缺失 ✓），学习者会看到
+// **"已解决"而其实没解决** ✗✗ —— 这是**会骗人**的那类显示 bug ✓。
+// 修法（AGENTS 验证纪律 §规则 4：「有就渲染」是反模式 ⇒ 缺失时给**可见信号** ✓）：
+//   已知三态**逐个显式**映射 ✓；未知 ⇒ **原样回显** + 问号图标 + 一次性 `console.warn` ✓。
+// 词表的唯一来源仍是 `query/mod.rs::status_str`（wire 上的 `status` ✓）——
+// 这里只做 1:1 映射，不许再发明新词 ✗。
+let warnedUnknownStatus = false; // 一次就够，别刷屏 ✓
+
+function warnUnknownStatus(status) {
+  if (warnedUnknownStatus) return;
+  warnedUnknownStatus = true;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `sokonanoda: 未知的声明状态 ${JSON.stringify(status)} —— 已原样显示；` +
+      `多半是扩展与 LSP 版本不一致（wire 上新增了状态词）。`,
+  );
+}
+
 function statusIcon(status) {
   if (status === "open") return new vscode.ThemeIcon("circle-outline");
   if (status === "failed") return new vscode.ThemeIcon("error");
-  return new vscode.ThemeIcon("check");
+  if (status === "checked") return new vscode.ThemeIcon("check");
+  warnUnknownStatus(status);
+  return new vscode.ThemeIcon("question");
 }
 
 function statusLabel(status) {
   if (status === "open") return "open";
   if (status === "failed") return "failed";
-  return "solved";
+  if (status === "checked") return "solved";
+  warnUnknownStatus(status);
+  return typeof status === "string" && status.length > 0 ? status : "(unknown)";
 }
 
 class GoalsTreeDataProvider {

@@ -20,7 +20,7 @@
 | 6 ⏳**一半已修**（round 81 ✓） | `suggest.rs:499 atom_text` ✅ + `:464 eq_refl_candidate` ⏳ | `proof.rs:562 render_atom` + `by.rs:2225 rfl_candidate`（`by.rs:2266` **已改为委托** ✓，suggest 这份**漏了** ✗） | **高** —— 漏 `Notation`/`SetLiteral`/`AnonCtor` ⇒ `rfl` 建议在**记法操作数上静默消失** ✓（同 G-04 第二刀那次 bug ✓） | `proof::render_atom` ✅（`atom_text` 两边都改成**委托** ✓）；`rfl_candidate` 仍待共享 ⏳ | `grep -rn "fn atom_text\|fn eq_refl_candidate\|fn rfl_candidate" crates/front/src` ✓ | **立刻做** |
 | 7 ⏳**已核清单、待定规则归属**（round 82 ✓） | 词法符号表：**两条不同的规则 + 四份逐字副本**（见下 ✓） | 互相 | **高** —— 这是 **R-2 的复发通道** ✗（`=` 吃 `=>` ⇒ 整段降级 ✓）；`notation_input.rs:308 known_symbols` 已是统一实现，同文件 4 处各抄一遍 ✗ | **先定哪条规则为准** ✗（见下 ✓），再让其余全部委托它 ✓ | `grep -rn "lexer_builtin_symbols()" crates/front/src` ✓ | **立刻做** |
 | 8 ✅**已修**（round 69） | ~~**`display.rs:188 DisplayNotations::render` 与 `:235 render_folded` 函数体逐字等价** ✗~~ ⇒ **`render_folded` 已删除**（无调用者 ✓），接口恢复唯一 ✓；盲区已写进守卫文档 ✓ | 我自己的 T-U2 接口 ✗ | **高（元风险）** —— T-U2 刚立的"唯一接口"**当场分成两个入口**，而且两者**都在 `audit-notation-paths.py` 白名单里**（整文件豁免 ✗）⇒ **无人守** ✗✗ | 只保留 `DisplayNotations::render` ✓，删 `render_folded` ✓ | `grep -n "pub fn render\b\|pub fn render_folded" crates/front/src/display.rs` ✓ | **立刻做（T-U5 一并）** |
-| 9 | `DeclStatus→可见文字` **三处**硬写（`query/mod.rs:1004-1007`、`lsp/render.rs:411-417`、`extension.js:196-201`） | 互相；wire 只发 stringly-typed `status` ✗ | **高** —— JS 的 `solved` 是**兜底分支** ⇒ **任何新 status 被静默显示成"已解决"** ✗✗ | wire 发 label，或 JS 只做 1:1 映射并**删兜底** ✓ | `grep -n 'status === "open"' editor/vscode/extension.js` ✓ | **立刻做** |
+| 9 ⏳**最危险的一半已修**（round 85 ✓）：JS 的"兜底=solved" ✗⇒✓；三处词表仍在 | `DeclStatus→可见文字` **三处**硬写（`query/mod.rs:1004-1007`、`lsp/render.rs:411-417`、`extension.js:196-201`） | 互相；wire 只发 stringly-typed `status` ✗ | **高** —— JS 的 `solved` 是**兜底分支** ⇒ **任何新 status 被静默显示成"已解决"** ✗✗ | wire 发 label，或 JS 只做 1:1 映射并**删兜底** ✓ | `grep -n 'status === "open"' editor/vscode/extension.js` ✓ | **立刻做** |
 | 10 | 课程文件收集器 **2/5 已修** ✗（`check.py:525/545/563` 的 `glob` 无 `is_file()`；`e2e-merge.py:73-76` 的 `rglob` 无 `is_file()` 且 `except` 不接 `OSError`） | R-3 那一族 ✓ | **高（形状已证、触发未证 ✓）** —— `Path.glob("*.sokonanoda")` **确实**返回 `.sokonanoda` 目录 ✓（Python 3.14 ✓）；`e2e-merge.py` 遇同名目录会 **traceback 而非 `SystemExit`** ✗ | 一个带 `is_file()` + `except OSError` 的共享收集器 ✓ | `grep -n 'glob("' courses/set-theory/tools/check.py` ✓ | **立刻做** |
 | 11 | `query::notation_symbols()` 扫文本拿符号 ✗（**第五套**，见 `REQUIREMENTS.md` §9 ㉗） | 记法表 `notation_table` | 中 —— 只能打标签不能折叠 ✗；且 query **够不到**记法表 ✓ | 阶段 U 的显示副本方案（T-U4 ✓） | 已在 §9 ㉗ 记录 ✓ | **并入 T-U4/U5** |
 | 12 | `lsp/render.rs:52` 与 `project_refs.rs:145` **逐字相同**的 `range_of(Span)` | 彼此 + `query_map.rs:32 range_of_offsets` | 中 —— 同一 wire `Range` 两条换算路（span 列 vs offset）⇒ 非 ASCII 下不一致 ✓ | 只留 `query_map::range_of_offsets` ✓ | `diff` 两份片段 → 无差异 ✓ | 并入 #5 |
@@ -109,6 +109,21 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
     这个影响**所有**经词法产生的 span ✓，改动面大、需要独立判据 ✓（先记 ✓）；
   - `query/mod.rs:1040` 的 `line_col(span)` 直转发 `span.column` ✗（与 CLI `--col` 的
     UTF-16 解释不同单位 ✓）—— 同族 ✓。
+
+### #9 的进展（round 85 ✓）：**"会骗人"的那一半已修**
+* **症状** ✗：`editor/vscode/extension.js` 的 `statusLabel`/`statusIcon` 都是
+  "**兜底 = solved**" ✗ —— `open`/`failed` 之外**一律**显示 `solved` + `check` 图标 ✓
+  ⇒ wire 上多一个新状态（或字段缺失 ✓）时，学习者会看到**"已解决"而其实没解决** ✗✗。
+* **修法** ✓（AGENTS 验证纪律规则 4：「有就渲染」是反模式 ⇒ 缺失时给**可见信号** ✓）：
+  三个已知态**逐个显式**映射 ✓；未知 ⇒ **原样回显** + **问号图标** + **一次性
+  `console.warn`** ✓。词表的唯一来源仍是 `query/mod.rs::status_str` ✓（JS 只做 1:1 ✓）。
+* **判据** ✓：`node editor/vscode/test-extension-host.js` ⇒ **34/34 passed** ✓
+  （stub 宿主整轮 ✓）。
+* ⏳ **仍未做**（审计给的正解 ✓）：让 **wire 带上 label**（或从生成物取常量 ✓），
+  这样"三处词表"根本不会存在 ✓ —— `lsp/render.rs::status_label` 用 "solved ✓"/"exercise: open"
+  而 JS 用 "solved"/"open"（**字符串本来就不同** ✗）⇒ 要合并得先决定可见文案归谁 ✓；
+  另：一条专门断言"未知状态**不**显示成 solved"的判据还没加（stub 宿主未导出该映射 ✓）
+  ⇒ 记着 ✓。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 
