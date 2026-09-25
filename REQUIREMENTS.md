@@ -2290,6 +2290,21 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 参数，或给语言加类型标注 `(e : T)`）**，而不是继续加标记 ✓；补上之后 unit12 能用记法写 ✓、
 Infoview 也能折 ✓（**一个修法同时消掉两个症状** ✓）。
 
+**⑤ ③ 的根因与修法（2026-09-25 定位完成，未修）**：
+`editor/vscode/src/test/extension.test.js:986-1000` 那条 e2e 用例把行为写明了 ✗：
+**光标落在 `sorry`（tactic 块）内** ⇒ 目标文本走「**根状态**」生产者
+（`DeclState.ty_text` ＝ **内核 pp**）⇒ **点名形式** ✗；光标在块**之后** ⇒ 另一支
+（声明级目标）⇒ **记法保留** ✓。也就是说：
+* 折叠能力**是有的**（`crates/front/src/display.rs` 的 `fold_spine` **已支持
+  `NotationAssoc::Binder`** ✓，`crates/front/src/display.rs:338/387/397`，
+  且有 `folds_nested_occurrences_including_inside_binders` ✓）；
+* 但**根状态这条路没接折叠** ✗（用的是内核 pp 的原始文本）⇒ 用户光标一进 `sorry`
+  就看到点形式 ✓。
+**修法（下一轮）**：把根状态生产者也过一遍 `print_back(text, display_notations)`
+（与声明级那支**同一条线 C** ✓）；判据 = **把那条 e2e 用例从"点名形式"翻成"记法
+保留"** ✓（它是**用户可见**断言 ✓，符合"验收必须断言用户可见结果" ✓），
+并在 `crates/lsp/src/tests/` 补 wire 层字段存在性 ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
