@@ -26,6 +26,11 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 408：`attempt=1` · 零失败 · 6 绿 · 18 未完** ✓（在跑 ✓）
+  ```
+  ⇒ **判据不变** ✓：等 ⇒ 全绿 ⇒ `auto-tag` ⇒ release ✓ · **不推** ✗。
+  ```
+
 * **✅ round 407：`attempt=1` ⇒ **不是重跑** ✓✓（**round 376 的纪律起作用** ✓）**
   ```
   整轮 attempt=**1** **queued** ✓ · 已绿 6 ✓ · 未完 **18** ✗（原 5 ✓）
