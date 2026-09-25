@@ -1019,12 +1019,16 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
         vscode.languages.getDiagnostics(entry).length > 0,
       );
       await sleep(1500); // 让可能的重复发布也发生完，再取签名 ✓
+      // ⚠ **必须在 `try` 内做**（本轮实测踩到 ✓）：`finally` 会把 lib **恢复**✓，
+      // 恢复本身**又**改一次诊断 ✓ ⇒ 放在 `finally` 之后就会把"恢复导致的正常变化"
+      // 误判成"重复发布" ✗（本地 e2e 当场抓到：初值是 `∈` 报错 ✓、
+      // "现在"是恢复后的两条 `sorry` 警告 ✓ ⇒ 正是我的放置错 ✗）。
+      const settled = signature();
+      await assertNoFurtherChanges("T-A60-3：入口诊断稳定后不再变（幂等）", signature);
+      perfNote(`e2e fanout: entry diagnostics signature=${settled.length} 字节 · 稳定 ✓`);
     } finally {
       fs.writeFileSync(lib, original);
     }
-    const settled = signature();
-    await assertNoFurtherChanges("T-A60-3：入口诊断稳定后不再变（幂等）", signature);
-    perfNote(`e2e fanout: entry diagnostics signature=${settled.length} 字节 · 稳定 ✓`);
   });
 
   test("goal text uses the file's notation", async () => {
