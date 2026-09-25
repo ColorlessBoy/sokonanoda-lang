@@ -622,6 +622,25 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     但"收益成立"**不成立** ✗ ⇒ **按计划自己的措辞，本条不该勾** ✗ ⇒
     下一步 = **把决策点交给用户** ✓（这正是"否则保持关闭并记录"里那个"记录" ✓）。
 
+  - **🎯 round 242：收益的**落点**找到了 ⇒ "量不出"是因为**没有覆盖它的用例** ✗**
+    **调用链** ✓（`git grep` ✓）：
+    * `judge_terms_with` ← **`suggest.rs:157/170`** ✓（**洞的建议**机制 ✓）+ `judge.rs:200/659` ✓（public 包装 ✓）
+    * `judge_pairs_with` ← `judge.rs:787/1760` ✓（`by` 批处理那条 ✓）
+    ⇒ 即：**前缀复用的收益只在"`by` 战术 / 洞的建议"这条路上出现** ✓。
+    **⇒ 这解释了为什么 `perf-ledger.sh` 量不出** ✗：它的用例是
+    **project / query / edit** 那几类 ✓（`docs/perf/ledger.jsonl` 里的 `scope` 可见 ✓），
+    **没有一个覆盖"`by` 密集 / 多洞建议"** ✗ ⇒ 两态当然一样 ✓。
+    **⇒ 所以 T-D6/T-D7 的正确结论是** ✓：
+    **不是"收益不存在"** ✗，而是"**没有能测到它的用例**" ✓ —— 而这两者的**处置完全不同** ✓：
+    * 前者 ⇒ 该关掉默认 ✗；
+    * 后者 ⇒ **补一个覆盖该路径的 perf 用例** ✓ ⇒ 收益**立刻可测** ✓ ⇒ 再按数字决定默认 ✓。
+    **⇒ 下一步（明确 ✓，且是阶段 D 该做的事 ✓）**：
+    ① 在 `scripts/perf-ledger.sh` 的套件里**加一个 case** ✓ —— 输入取
+       **`by` 密集 + 多洞**（如 `course/unit4-by-tactics.sokonanoda` 一类 ✓，
+       或造一个含多个 `sorry` 洞的画布 ✓ ⇒ 触发 `suggest` ⇒ 触发 `judge_terms_with` ✓）；
+    ② 两态各跑一次 ✓ ⇒ **这一次的 Δ 才是 D-1 的真实收益** ✓；
+    ③ 数字进 `docs/perf/ledger.jsonl` ✓ ⇒ **然后才谈 T-D6 的 (a)/(b) 与 T-D7 的发版** ✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
