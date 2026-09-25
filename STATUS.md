@@ -26,6 +26,23 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🚀 round 335：**发版那一推已上** ✓（`e2d9d01..6177335` ✓）—— 而检查单要加第 ⑤ 条** ✗
+  ```
+  ✅ ① 版本一致：0.72.0 ✓（bump.py --check ✓）
+  ✅ ② cargo build --locked 通过 ✓（锁文件已跟上 ✓）
+  ✅ ③ 这一推包含 rust（crates/front/src/compile/check/walk.rs ✓）
+  ✅ ④ 只推一次 ✓
+  ⚠ **第一次被拒** ✗：non-fast-forward —— 远端多了
+     `e2d9d01 perf(e2e): 台账 b4aca6e —— VS Code 1.138.0 27/27 · 1.106.0 27/27 · 1.138.0 27/27` ✓
+     ⇒ 来源 ✓：CI 的 **`e2e ledger (commit back on main)`** job **会往 main 回写** ✓✓
+     ⇒ **`git pull --rebase`** ✓ ⇒ **复检 ①②** ✓ ⇒ **再推** ✓（成功 ✓）
+  ⇒ ⇒ **检查单第 ⑤ 条（新 ✓）**：**推之前先 `git fetch`** ✓ ——
+    **CI 会写 main** ✗（e2e 台账回写 ✓）⇒ **本地落后是常态** ✓。
+  ```
+  **⇒ 现在：停手** ✓（**不再推任何东西** ✓）⇒ 等 ⇒ 重活跑 ⇒ **`auto-tag`** ✓ ⇒
+  **release** ✓ ⇒ **`gh release list` 核对** ✓ ⇒ **`scripts/soko update`** ✓ ⇒
+  **`perf-gate` 的数字**（那时日志可读 ✓）。
+
 * **🔴 round 334：重跑的 job 级全貌 ⇒ **5 个失败全是那两个已修的因** ✓ ⇒ **已取消** ✓**
   ```
   36188218357（重跑 b4aca6e ✓）job 级 ✓：
