@@ -26,6 +26,22 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯 round 370：`changes` 报 **`Matching files: none`** ✗✓ ⇒ 一切 skip 的源头找到了** ✓
+  ```
+  changes → dorny/paths-filter@v4 ✓：
+    **Matching files: none** ✗ · **Changes output set to []** ✗
+  ⇒ ⇒ **一个文件都没匹配到** ✗ ⇒ `rust`/`editor`/`courses` **全 false** ✗
+    ⇒ **重活全 skip** ✗ ⇒ **`auto-tag` skip** ✗ ⇒ **没发版** ✓
+  ⇒ **而这一推明明含 `crates/front/src/judge.rs`** ✓ ⇒ ⇒ **过滤器没看到差异** ✗
+  ⇒ 最可能 ✓：**它比的是 `github.event.before..after`** ✓ —— 而**我做了 `git pull --rebase`** ✗
+    ⇒ `before`（`d073bfb` ✓）在**浅克隆里不可达** ✗ ⇒ **退化成"没有匹配"** ✗✓
+    ⇒ ⇒ **这是"rebase × paths-filter"的组合陷阱** ✗
+      （**而 round 335 我才把"先 fetch"写进检查单** ✗ —— **它是为推送被拒写的，没想到还有这一面** ✗）
+  ```
+  **⇒ 下一步** ✓：**再推一次**（**内容不变** ✓ —— 只为**产生一个 `before` 可达的 push** ✓）
+  ⇒ ⚠ **但这次推送必须**只加一个 docs commit** ✓（**不再 rebase** ✗）⇒
+  `changes` 应报**真实文件列表** ✓ ⇒ **重活跑** ✓ ⇒ **`auto-tag`** ✓ ⇒ **release** ✓。
+
 * **⚠ round 369：整轮 **success 但只有 3 个 job** ✗ ⇒ **重活全 skip ⇒ `auto-tag` skip ⇒ 没发版** ✓**
   ```
   run 36197582528（sha=960fe92 ✓）：completed/**success** ✓ · **只有 3 个 job** ✗ · 未完 0 ✓
