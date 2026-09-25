@@ -2592,6 +2592,25 @@ let Ok(ast) = crate::proof::parse_expr_text_with(text, &notations.table) else {
 **判据（已在树，转断言即可 ✓）**：`folds_with_the_real_pipeline_table_shape` ✓、
 `query goals` 的 `ty_runs` 带 `∃` ✓、e2e 翻绿 ✓。
 
+**㉑ ③ 单点问题回答完毕（2026-09-25，第 53 轮）—— 修法确定** ✓
+* **匹配在哪**：`crates/front/src/token.rs:612` `tokenize_with_symbols` / `:635`
+  `scan_notation_symbols` ✓（`parser.rs:10` 引入 ✓；`parse_expr_text_with` → `parse_with_inherited`
+  → 词法带 `inherited` 符号表 ✓）。
+* **有没有最长匹配**：**有，但只在"记法符号之间"** ✓ —— `token.rs:630` 原文：
+  "交给 `tokenize_with_symbols` 做**最长匹配**" ✓。
+* **那为什么 `=` 还能吃掉 `=>`** ✗：因为 **`=>` 不在这张记法符号表里** ✓ ⇒
+  最长匹配**不会拿它和基础算符比** ✗ ⇒ 记法 `=` 先命中、把 `=>` 的开头抢走 ✓。
+  **这一条已由我的二分量到** ✓（给表里加 `Eq` ⇒ **任何含 lambda 的文本**都 bail ✗；
+  其余 5 条内建都不影响 ✓）。
+* **修法（通用 ✓，与 R-2 同方 ✓）**：让记法的匹配**与基础算符一起做最长匹配** ✓ ——
+  即在同一位置比较"记法符号串"与"基础算符串"（`=>`、`->`、`:=` 等 ✓），**取更长的那个** ✓。
+  只修 `display.rs` 那条路的表 ✗（治标：`ty_text` 好了，但 `semantic.rs` 之外的其它
+  词法消费者仍会踩 ✓）；**改词法的比较规则才是通配** ✓（`=>`/`->`/`:=`/`==>` 一起受益 ✓）。
+* **判据**：① `folds_with_the_real_pipeline_table_shape` 转断言 ✓；
+  ② `query goals` 的 `ty_runs` 带 `∃` ✓；③ e2e 翻绿 ✓；
+  ④ **新增**：`cargo test -p sokonanoda-front` 全绿（含既有的 `semantic.rs` R-2 判据 ✓
+  —— 那条必须仍然绿 ✓，因为这次动的是**它上游的词法** ✓）。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
