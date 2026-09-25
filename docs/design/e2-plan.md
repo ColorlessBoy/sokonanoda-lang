@@ -884,6 +884,29 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯 round 274：那个"失败"的用例**单独跑是通过的** ✗✓ ⇒ 前面所有数字都要重测 ✓**
+    ```
+    SOKO_WALK_REAL_ADD=1 cargo test -p sokonanoda-front --lib \
+        compile::tests::match_prop_result_checks -- --nocapture
+    ⇒ test result: ok. **1 passed; 0 failed** ✓   ← 而在全套里它**失败** ✗
+    ```
+    **⇒ 结论（决定性 ✓）**：**失败不是逐用例确定的** ✗ —— 它取决于**哪些测试先跑过** ✓
+    ⇒ **共享可变状态**（全局缓存 / `OnceLock` / 静态 ✓）+ **默认并行** ✗。
+    ⇒ ⚠ **round 263/266/269/272 的"96 / 100 / 140 / 208"全部是在默认并行下测的** ✗
+    ⇒ **这些数字里有一部分可能是并行/顺序的产物** ✗ ⇒ **不能作为"改动对错"的判据** ✗✓。
+    **⇒ 下一步（必须先做 ✓，否则继续白测 ✓）**：
+    **用 `--test-threads=1` 重测三态** ✓ —— 这正是 `perf.rs` 里那把 `PERF_LOCK` 的
+    **同一个理由** ✓（"perf 用例互相抢 CPU ⇒ 串行化" ✓，见 `perf.rs:47-56` ✓）：
+    ```bash
+    python3 /tmp/patch_d2_b2.py
+    cargo test -q -p sokonanoda-front --lib -- --test-threads=1 2>&1 | grep "^test result"
+    SOKO_WALK_REAL_ADD=1 cargo test -q -p sokonanoda-front --lib -- --test-threads=1 2>&1 | grep "^test result"
+    SOKO_SHADOW_CHECK=1 cargo test -q -p sokonanoda-front --lib -- --test-threads=1 2>&1 | grep "^test result"
+    ```
+    ⇒ **只有在串行下**，数字才是"改动造成的" ✓ ⇒ 再谈 11 / 96 / 100 谁对 ✓。
+    ⚠ **本 session 的教训再次应验** ✓：**判据的口径**（并行 vs 串行 ✓）**本身就能决定结论** ✗
+    —— 这与"退出码 vs 计数"✗（round 262-264 ✓）是**同一类错** ✓。
+
   - **✅ round 273：读到了失败的**分布** ✓（正文没抓到 ✗，但分布已经说明问题 ✓）**
     ```
     失败分布 ✓：compile **59** · query 17 · judge 9 · suggest 7 · session 3（≈95 ✓）
