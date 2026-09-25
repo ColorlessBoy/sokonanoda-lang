@@ -26,6 +26,20 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯 round 400：探针**硬编码 `scripts/soko`** ✗（**而 CI 里 `SOKONANODA_BIN` 是设了的** ✓）**
+  ```
+  docs/gaps/repro/G37-….js ✓（**打印出来的** ✓）：
+    :33  const SOKO = path.join(ROOT, 'scripts', 'soko');   ← **硬编码** ✗
+    :44  const child = spawn(process.execPath, [SOKO, 'lsp'], …)  ← **用 node 跑它** ✓（它是 Node 脚本 ✓）
+  ⇒ `scripts/soko` 的解析顺序 ✓：`$SOKONANODA_BIN` → **版本匹配的仓库构建** → 缓存 → 下载 ✓
+    ⇒ **CI 里 `SOKONANODA_BIN` 是设了的** ✓ ⇒ **本该工作** ✓ ⇒ **但它没工作** ✗（**看门狗 120s 触发** ✓）
+  ⇒ ⇒ **下一步的诊断法是现成的** ✓（**round 162 用过** ✓✓）：
+    **忠实复现 CI 处境** —— `env -i` + 空缓存 + **不带仓库构建** ✓ ⇒ **本地立刻重现** ✓
+    ⇒ 而**有仓库构建时本地秒答** ✓ ⇒ **两者之差就是答案** ✓。
+  ```
+  ⚠ **而这也解释了为什么"本地绿、CI 红"** ✓：**探针依赖的解析链在 CI 上断了一环** ✗
+  —— **而 `gap.py` 的 `exit 2` 设计让它诚实地红** ✓（**不是假绿** ✓）。
+
 * **🎯🎯 round 399：代码给出定论 —— **`repro_expect` 帮不上忙** ✗✓（**这是设计** ✓）**
   ```
   scripts/gap.py judge() 的 `kind == "script"` 分支 ✓（**打印出来的** ✓）：
