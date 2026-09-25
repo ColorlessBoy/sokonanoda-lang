@@ -2419,7 +2419,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     —— D-1/D-2 收益量不出 ✗，但它们的热路径（`did_open_same_session` **134ms** ✓）
     从此**有守卫** ✓。
 
-- [ ] `T-E3` **`STATUS.md` 与 `HANDOVER.md` 更新** ✓
+- [x] `T-E3` **`STATUS.md` 与 `HANDOVER.md` 更新** ✓
 - [ ] `T-E4` **阶段 E 收尾**：bump **`0.72.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 性能回归进 CI + 文档/技能收口
 
