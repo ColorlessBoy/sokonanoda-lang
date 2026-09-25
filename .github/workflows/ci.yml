@@ -258,10 +258,14 @@ jobs:
           # ⚠ **`--case` 是"测试名子串"** ✗ —— **不是**台账里的 `(scope, case)` 名 ✗
           # （2026-09-25 round 313 实测 ✓：拿台账名当过滤器 ⇒ **5 个里 3 个 exit=2** ✗
           #  = "没跑到任何 case" ⇒ **守卫空转** ✗）。下面用**真实测试名子串** ✓：
+          # `perf_course_did_open_is_recorded` ✓ 一条覆盖台账四条 ✓：
+          # `did_open` 的 1905/4644/9085ms **与** `did_open_same_session` 的 **134ms** ✓
+          # —— 后者正是 **D-1/D-2 动过的那条热路径** ✓（"同一会话里再判一次" ✓）。
           for case in judge_prefix_with_imported \
                       keystroke_recompiles_the_closure \
                       teaching_scale_keystroke \
-                      keystroke; do
+                      keystroke \
+                      perf_course_did_open_is_recorded; do
             echo "── perf smoke: $case"
             scripts/perf-check.sh --case "$case" --threshold 50 || true
           done
