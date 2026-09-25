@@ -1009,14 +1009,21 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       JSON.stringify(
         vscode.languages.getDiagnostics(entry).map((d) => [d.range.start.line, d.message]),
       );
+    // ★ **基线**（写坏之前 ✓）—— 这一条是本轮从 CI artifact 里学到的 ✗⇒✓：
+    // 夹具**本来就有**两条 `sorry` 警告 ✓ ⇒ 原来那个 `length > 0` 的 `waitFor`
+    // **立刻就满足** ✓、**根本没等"跨文件失效"** ✗（ubuntu 1.138.0 上因此取样过早 ✓：
+    // 初值取到的是"恢复态"的两条 sorry ✓、"现在"才是库坏掉的 `∈` 报错 ✓ —— 反方向 ✓）。
+    // 正确信号是"诊断**相对基线变了**" ✓。
+    const before = signature();
     try {
       // 把 `⊆` 的定义改坏：入口里 `A ⊆ B` 的两条定理必须立刻报错。
       fs.writeFileSync(
         lib,
         original.replace(target, "def Set.subset (α : Type) (A B : Set α) : Prop := True"),
       );
-      await waitFor("T-A60-3：入口诊断跟着依赖更新", async () =>
-        vscode.languages.getDiagnostics(entry).length > 0,
+      await waitFor(
+        "T-A60-3：入口诊断跟着依赖更新（相对基线变了 ✓）",
+        async () => signature() !== before,
       );
       await sleep(1500); // 让可能的重复发布也发生完，再取签名 ✓
       // ⚠ **必须在 `try` 内做**（本轮实测踩到 ✓）：`finally` 会把 lib **恢复**✓，
