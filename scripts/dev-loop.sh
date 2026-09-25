@@ -18,7 +18,7 @@
 #   A. **serverOverride 回路**（Rust 侧改动，推荐）
 #      用户设置里一次性开 `sokonanoda.serverOverride: true` +
 #      `sokonanoda.serverPath` 指向本仓 `target/debug/sokonanoda-lsp`；
-#      之后每环节只要 `scripts/dev-loop.sh lsp` + 命令面板 `sokonanoda: restart server`。
+#      之后每环节只要 `scripts/dev-loop.sh lsp` + 命令面板 `Sokonanoda: Restart Server (重启服务器)`。
 #      **限制**：这只换服务器二进制，**换不了扩展代码** ⇒ 客户端改动看不到。
 #
 #   B. **F5 开发宿主**（扩展侧改动）
@@ -86,7 +86,7 @@ case "${1:-}" in
        "sokonanoda.serverOverride": true,
        "sokonanoda.serverPath": "<本仓绝对路径>/target/debug/sokonanoda-lsp"
      （不设 serverOverride 的话，扩展会优先用它自带的 bundled 服务器，这份 debug 构建被忽略）
-  2) 每个环节：命令面板 → `sokonanoda: restart server`
+  2) 每个环节：命令面板 → `Sokonanoda: Restart Server (重启服务器)`
      （它走与激活同一条解析链，回执会显示重启前后的版本与 pid）
 
 看不到效果的两种情况：
@@ -108,7 +108,7 @@ EOF
   1) cd editor/vscode && npm run clean:lsp      # 让解析落到 target/debug（否则 bin/ 优先）
   2) editor/vscode 里按 F5（Run Extension）——开发宿主窗口里 extensionPath 是本仓
   3) 改 extension.js 后按开发宿主的**重载**按钮；改 Rust 后先 scripts/dev-loop.sh lsp，
-     再在开发宿主里 `sokonanoda: restart server`
+     再在开发宿主里 `Sokonanoda: Restart Server (重启服务器)`
   4) 秒级回归：node editor/vscode/test-extension-host.js（stub 宿主）
 EOF
     report_paths

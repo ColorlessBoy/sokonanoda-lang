@@ -146,7 +146,7 @@ async fn full_mode_still_has_nat_without_directive() {
 
 #[tokio::test]
 async fn version_request_reports_version_and_pid() {
-    // `sokonanoda: restart server` 在重启前后各问一次 soko/version：
+    // `Sokonanoda: Restart Server (重启服务器)` 在重启前后各问一次 soko/version：
     // 旧 pid 消失 + 新 pid 出现 + 版本号变化，把「旧进程退出、新进程是
     // 新版本」变成可验证的事实。
     let (mut service, _socket) = open_and_wait(EXERCISE).await;

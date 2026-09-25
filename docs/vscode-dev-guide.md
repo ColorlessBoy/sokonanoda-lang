@@ -151,7 +151,7 @@ CI 的 `e2e` job 跑的是**同一条命令**（3 条腿：ubuntu × VS Code 1.1
 - **Rust 侧改动（绝大多数）**——`serverOverride` 回路：
   ```bash
   scripts/dev-loop.sh lsp        # cargo build -p sokonanoda-lsp -p sokonanoda-cli（debug）
-  # VS Code 命令面板 → sokonanoda: restart server
+  # VS Code 命令面板 → Sokonanoda: Restart Server (重启服务器)
   ```
   一次性设置：`"sokonanoda.serverOverride": true` +
   `"sokonanoda.serverPath": "<本仓绝对路径>/target/debug/sokonanoda-lsp"`。
@@ -215,7 +215,7 @@ export DEVELOPER_DIR=/Library/Developer/CommandLineTools     # 绕过（只影�
    （`warmCacheOnOpen` 就是）测试没法事后开：stub 宿主用
    `activateExtension({ warmCacheOnOpen: true })`，真宿主靠夹具工作区的
    `.vscode/settings.json`（`src/test/fixtures/workspace/.vscode/settings.json`）。
-7. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；二进制原地更新（重建 / 缓存刷新 / 改 `serverPath`）可用命令 `sokonanoda: restart server` 重新解析并重启（命令回执会显示重启前后的服务器版本与 pid）。**0.27.1 起**：restart 走与激活同一条解析链（含 `v<扩展版本>` 锁定下载兜底），解析不到可用服务器时直接报错而**不再静默重启旧命令/旧缓存**；若检测到磁盘上已安装更新的扩展而当前宿主仍是旧版，会提示 `Developer: Reload Window`（扩展本体升级仍需重载——restart 只能换服务器二进制，换不了扩展代码）。**0.31.0 起**：解析默认 **bundled-first**（`sokonanoda.serverOverride` 默认 `false`，`serverPath`/env/工作区构建被忽略并弹一次提示），杜绝「陈旧本地构建静默压过内置服务器」；`sokonanoda: doctor` 只读输出解析来源（`source=`）、运行/扩展版本、被忽略的覆盖、缓存与旧版本堆积等自检项；
+7. **服务器更新后须重载窗口**——LSP 进程在窗口激活时 spawn，改 Rust 代码后不重载 = 旧服务器；二进制原地更新（重建 / 缓存刷新 / 改 `serverPath`）可用命令 `Sokonanoda: Restart Server (重启服务器)` 重新解析并重启（命令回执会显示重启前后的服务器版本与 pid）。**0.27.1 起**：restart 走与激活同一条解析链（含 `v<扩展版本>` 锁定下载兜底），解析不到可用服务器时直接报错而**不再静默重启旧命令/旧缓存**；若检测到磁盘上已安装更新的扩展而当前宿主仍是旧版，会提示 `Developer: Reload Window`（扩展本体升级仍需重载——restart 只能换服务器二进制，换不了扩展代码）。**0.31.0 起**：解析默认 **bundled-first**（`sokonanoda.serverOverride` 默认 `false`，`serverPath`/env/工作区构建被忽略并弹一次提示），杜绝「陈旧本地构建静默压过内置服务器」；`Sokonanoda: Doctor (诊断服务器与版本)` 只读输出解析来源（`source=`）、运行/扩展版本、被忽略的覆盖、缓存与旧版本堆积等自检项；
 7. **`code` CLI 与已开实例冲突**——集成测试在 macOS 上报"another instance running"时关掉 VS Code 再跑；
 8. **代理**——vsce/Node 不读系统代理；需要时设 `HTTPS_PROXY=http://127.0.0.1:7890`。
 9. **exec 位只能在 Linux/macOS 打包**——Windows 上 `vsce package` 会丢 unix

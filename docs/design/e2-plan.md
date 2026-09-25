@@ -157,7 +157,21 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     `test-extension-host.js` **34/34** · `test-webview.js` **16/16** ✓。
     **说明**：命令面板的**显示文本本身没有 API 可断言**（VS Code 只暴露 id）⇒ 这一环的
     可判层就是 `contributes.commands` 的静态契约（它同时是唯一事实源）✓。
-- [ ] `T-B3` **R-4 同步四份**（AGENTS.md 硬规则）：`editor/vscode/` 的 README/CHANGELOG ✓ + `skills/` 三个技能 ✓ + `AGENTS.md` ✓ + `docs/vscode-dev-guide.md` ✓；`crates/cli/tests/skill.rs` / `dsh.rs` 不许漂移 ✓
+- [x] `T-B3` **R-4 同步四份**（AGENTS.md 硬规则）：`editor/vscode/` 的 README/CHANGELOG ✓ + `skills/` 三个技能 ✓ + `AGENTS.md` ✓ + `docs/vscode-dev-guide.md` ✓；`crates/cli/tests/skill.rs` / `dsh.rs` 不许漂移 ✓
+  - ✅ **已同步（2026-09-24）**：旧标题引用**一处不剩**（`git grep` 复核；只剩历史
+    记录：`REQUIREMENTS.md` §9 的旧轮次、`STATUS-ARCHIVE.md`、
+    `docs/design/site-rebuild/**`（已标历史存档）、`CHANGELOG.md` 的旧版本条目）——
+    改的 11 个文件：`editor/vscode/README.md`（8 处）·`skills/sokonanoda-teacher/SKILL.md`（3）·
+    `AGENTS.md`（2）·`docs/vscode-dev-guide.md`（3）·`docs/protocol.md`（1）·
+    `scripts/dev-loop.sh`（3）·`media/infoview.js` 的用户可见提示（1，见 T-B2）·
+    `crates/lsp/src/lib.rs` / `tests/lifecycle.rs` / `crates/cli/tests/extension.rs` /
+    `extension.js` / `extension.test.js` 的注释各 1。
+    契约复跑：`skill.rs` **4 passed**（含 `skill_referenced_repo_paths_exist` ——
+    改标题不许带坏路径）· `dsh.rs` **8 passed**（`.agents/skills/` 入口不漂移）·
+    `extension.rs` **39 passed** ✓。
+    **CHANGELOG 条目按仓库惯例留到 T-B7 的 bump commit**（`6490f1b`/`b0c35da` 两次
+    都是这么做的：CHANGELOG 与版本号在同一个 commit 里进，日期才是发布日）——
+    草稿："命令面板 15 条统一成 `Sokonanoda: <Command> (说明)`"，T-B7 直接抄。
 - [ ] `T-B4` **R-3 设计**：`.sokonanoda/` 目录的**契约**（放什么：编译产物 / 依赖 / 元数据；命名；清理策略；`--clean` 语义；与现有缓存 `~/.local/share/sokonanoda` 的关系 —— **模块根下的产物 vs 全局缓存**的分工 ✓）
 - [ ] `T-B5` **R-3 实现（CLI 侧）**：`build`/`grade` 把模块级产物写进 `<模块根>/.sokonanoda/` ✓；第二次调用**命中** ✓
 - [ ] `T-B6` **R-3 判据**：同一模块连跑两次 `build`，第二次**显著更快** ✓（数字进台账）+ 产物目录内容可读（`--json` 能列 ✓）+ `.gitignore` 指引 ✓

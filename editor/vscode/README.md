@@ -62,7 +62,7 @@ skills.
   kernel-checked data as the tree, updates only on debounced caret moves
   (never refetches the declaration list on cursor movement), and falls back to
   the Explorer tree's 「当前光标处」 group when webviews are unavailable. Open it
-  with `sokonanoda: 打开目标面板 (Infoview)` (needs VS Code 1.106+).
+  with `Sokonanoda: Infoview (目标面板)` (needs VS Code 1.106+).
 - **Hint ladders** — each exercise carries 2–3 progressive hints
   (`-- soko:hint` directives); reveal them one at a time when stuck.
 - **Your own notation** — declare `infix:50 " ∈ " => Set.mem` (or `infixl:`,
@@ -92,7 +92,7 @@ skills.
   project-level diagnostics. Click a module to open it; click the root to open
   the manifest. The status bar tooltip names the project too, and a single
   file (no `import`) says so instead of showing an empty tree. Refresh with
-  the view's refresh button or `sokonanoda: refresh project view`.
+  the view's refresh button or `Sokonanoda: Refresh Project View (刷新项目视图)`.
 - **Course map** — an 11-unit structured course with verified solutions
   (propositional logic first; `by` tactic blocks early for fast feedback;
   universes only when you naturally ask "what's the type of a function
@@ -113,7 +113,7 @@ skills.
   offered
 - Semantic highlighting (including `sorry`), folding ranges, smart
   select that visualises precedence
-- Restart the language server in place (`sokonanoda: restart server`) after
+- Restart the language server in place (`Sokonanoda: Restart Server (重启服务器)`) after
   rebuilding or refreshing the binary — no window reload needed (extension
   updates themselves still apply on reload)
 - Greek binder letters (`α`, `β`, …) render plainly — the extension turns
@@ -193,7 +193,7 @@ The server is discovered **bundled-first** by default:
 `target/debug|release` builds are **ignored unless you opt in** with the
 `sokonanoda.serverOverride` setting (default `false`). This prevents a stale
 local build (a common cause of "the server is still 0.26.0" surprises) from
-silently overriding the bundled server. Use **`sokonanoda: doctor`** any time
+silently overriding the bundled server. Use **`Sokonanoda: Doctor (诊断服务器与版本)`** any time
 to see which server is in use, its `source` (bundled / override / cache), the
 running vs extension version, and other version-skew issues.
 
@@ -227,7 +227,7 @@ command.
 
 ## Build and rebuild the compile cache
 
-> **`sokonanoda: build`（`alt+b`）在大项目上是分钟级**：它按**文件**逐个预热，
+> **`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`（`alt+b`）在大项目上是分钟级**：它按**文件**逐个预热，
 > 每个文件各编一遍自己那一份 import 闭包（文件之间不共享）。实测
 > `courses/set-theory`（35 个文件）约 **2.5 分钟**（debug CLI、冷热都一样——
 > 冷热差异取决于项目缓存有没有命中，见 `docs/PERF.md`）。只想快速看一个文件时
@@ -237,10 +237,10 @@ The compiler keeps a **persistent compile cache** (`.sokonanoda` → compiled
 report), so the second run of a file — and the first keystroke in a project —
 are hits instead of full recompiles. Two commands drive it from the editor:
 
-- **`sokonanoda: build`** (`alt+b`) — compile the active `.sokonanoda` file
+- **`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`** (`alt+b`) — compile the active `.sokonanoda` file
   (the CLI follows its `import` closure), or the first workspace folder when no
   file is open. The result line reports `files · compiled · hit · failed`.
-- **`sokonanoda: rebuild`** (`alt+shift+b`) — the same, but first runs
+- **`Sokonanoda: Rebuild (清空编译缓存后重编译)`** (`alt+shift+b`) — the same, but first runs
   `build --clean` to drop the cache, i.e. "recompile everything from scratch".
 
 Both write the CLI's JSON Lines events (`build.file` / `build.clean` /
@@ -254,7 +254,7 @@ the window activates, so the first unit you open is already a cache hit.
 **Off by default**: it costs CPU/IO, and "opening the editor" itself gets
 slower — the other side of the same complaint. It never steals focus (progress
 goes to the *sokonanoda build* channel) and never errors (a failed warm-up just
-means nothing was pre-built; `sokonanoda: doctor` tells you why).
+means nothing was pre-built; `Sokonanoda: Doctor (诊断服务器与版本)` tells you why).
 
 ## The course map
 

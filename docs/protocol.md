@@ -525,7 +525,7 @@ Request params: `{"textDocument": {"uri"}}`. Response:
 
 Request params: `{}`. Response: `{"version": "<CARGO_PKG_VERSION>",
 "pid": <server pid>}`. Consumers: the extension's
-`sokonanoda: restart server` command asks before and after a restart — the
+`Sokonanoda: Restart Server (重启服务器)` command asks before and after a restart — the
 receipt (`0.16.2 (pid 1001) → 0.19.0 (pid 2002)`) turns "old process died,
 new process is the new version" into a verifiable fact.
 

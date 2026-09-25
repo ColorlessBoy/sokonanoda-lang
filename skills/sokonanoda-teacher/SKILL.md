@@ -394,7 +394,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （`by` 写法下逐 tactic；服务端选取，客户端只渲染）；
 - CodeLens 显示每个声明的练习状态（open / solved / failed）；
 - rename（F2）与 find-references 走语义解析（注释里的同名文本不受影响）；
-- **Infoview 目标面板**在**右侧辅助侧栏**，`sokonanoda: 打开目标面板 (Infoview)`
+- **Infoview 目标面板**在**右侧辅助侧栏**，`Sokonanoda: Infoview (目标面板)`
   聚焦（需要 VS Code ≥1.106）：goal 行以 `⊢` 开头、假设逐行 `name : ty`；
   **面板里的目标是源文件自己的记法**（0.65.0）——内核打出来是
   `Set.subset α A B`，面板显示 `A ⊆ B`，`∈`/`⊆`/`∧`/`↔` 都着成关键字色。
@@ -414,8 +414,8 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 - `sokonanoda build [<file>|<dir>…]` 预热共享编译缓存，之后打开/判卷大文件更快
   （`SOKONANODA_CACHE_DIR` 改缓存根、`SOKONANODA_NO_CACHE=1` 关闭；内核仍是
   唯一判定者，设计 `docs/design/compile-cache.md`）。**编辑器里等价的两个命令**
-  （0.60.0 起）：`sokonanoda: build`（`alt+b`，编当前文件/工作区）与
-  `sokonanoda: rebuild`（`alt+shift+b`，先 `--clean` 再编）——学习者说"面板像是
+  （0.60.0 起）：`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`（`alt+b`）与
+  `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先 `--clean` 再编）——学习者说"面板像是
   没反应 / 第一次按键很慢"时先让他跑 rebuild，再判断是不是真问题；
 - `soko/goals` / `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供
   工具深挖 goal 视图、提示与光标处 goal（见 `docs/protocol.md`）。

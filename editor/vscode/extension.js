@@ -1259,7 +1259,7 @@ async function serverVersion() {
 
 // Resolve the language-server command for a fresh start, including the
 // version-pinned download fallback for the universal package. Shared by
-// activation and `sokonanoda: restart server` so a stale cache is never
+// activation and `Sokonanoda: Restart Server (重启服务器)` so a stale cache is never
 // silently reused: re-resolution rejects a stale marker (server.js
 // `cachedServerIsCurrent`), and this then fetches the release pinned to the
 // extension version instead of leaving the old command in place.

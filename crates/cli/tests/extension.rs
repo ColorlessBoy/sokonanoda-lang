@@ -42,7 +42,7 @@ fn repo_root() -> std::path::PathBuf {
 
 #[test]
 fn restart_server_re_resolves_and_never_keeps_a_stale_command() {
-    // `sokonanoda: restart server` must go through the same version-aware
+    // `Sokonanoda: Restart Server (重启服务器)` must go through the same version-aware
     // resolution as activation (including the version-pinned download
     // fallback), and must bail out instead of silently restarting the old
     // server when re-resolution yields nothing.

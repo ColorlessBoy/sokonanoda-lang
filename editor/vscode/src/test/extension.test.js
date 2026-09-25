@@ -391,7 +391,7 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   });
 
   test("restart server command re-syncs open documents", async () => {
-    // `sokonanoda: restart server` 重新解析二进制并重启客户端；重启后
+    // `Sokonanoda: Restart Server (重启服务器)` 重新解析二进制并重启客户端；重启后
     // 打开中的文档要重新拿到诊断（场景：本地二进制重建/缓存刷新后，
     // 不想重载整个窗口）。
     const uri = await writeDoc("restart.sokonanoda", EXERCISE);

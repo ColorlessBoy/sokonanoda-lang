@@ -182,7 +182,7 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定。
 **编译缓存**：`sokonanoda build [--clean] [<file>|<dir>]`（CLI）与编辑器里的
-`sokonanoda: build`（`alt+b`）/ `sokonanoda: rebuild`（`alt+shift+b`，先清缓存）
+`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`（`alt+b`）/ `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先清缓存）
 是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。
 两种接线：
 
@@ -224,7 +224,7 @@ CI 强制的只有 `Cargo.toml` 与 `package.json` **相等**，且版本号只�
 扩展改动后的例行三层：`scripts/soko gate`（Rust/契约）→
 `node editor/vscode/test-extension-host.js`（stub 宿主）→ `scripts/vscode-e2e.sh`
 （**真 VS Code**，结果记进 `docs/e2e/`；手册 `docs/E2E.md`）。
-单环节快速反馈：`scripts/dev-loop.sh lsp` + 命令面板 `sokonanoda: restart server`
+单环节快速反馈：`scripts/dev-loop.sh lsp` + 命令面板 `Sokonanoda: Restart Server (重启服务器)`
 （需 `sokonanoda.serverOverride`），或 `SOKO_E2E_GREP=<用例名> npx vscode-test`
 只跑一个 e2e 用例。
 

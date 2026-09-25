@@ -897,7 +897,7 @@ impl Backend {
         })
     }
 
-    /// 服务器自述：版本 + 进程号。`sokonanoda: restart server` 用它在重启前后
+    /// 服务器自述：版本 + 进程号。`Sokonanoda: Restart Server (重启服务器)` 用它在重启前后
     /// 各问一次，让「旧进程确实退出、新进程确实是新版本」变成**可见的事实**
     /// 而不是一句口头保证——扩展更新后跑着旧版服务器正是用户最常见的困惑
     /// （docs/vscode-dev-guide.md §5.6）。
