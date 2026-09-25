@@ -23,14 +23,6 @@ crates/front/src/by.rs|render_expr|spec.ty = render_expr(ty);
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&restore_universe_levels(
-crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
-crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
-crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
 crates/front/src/compile/elab.rs|render_expr|&render_expr(scrutinee),
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(val))
@@ -63,13 +55,6 @@ crates/front/src/compile/goals.rs|render_expr|let text = render_expr(ty_ast);
 crates/front/src/compile/goals.rs|render_expr|other => format!("({})", render_expr(other)),
 crates/front/src/compile/goals.rs|render_expr|return Some(render_expr(ty));
 crates/front/src/compile/goals.rs|render_expr|ty: render_expr(ty_ast),
-crates/front/src/compile/prelude.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/prelude.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/prelude.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
-crates/front/src/compile/tests.rs|render_expr|assert_eq!(render_expr(&back), expected, "round-trip: {source}");
-crates/front/src/compile/tests.rs|render_expr|assert_eq!(render_expr(&expr), expected, "source: {source}");
-crates/front/src/compile/tests.rs|render_expr|let back = parse_expr_text(&render_expr(&expr))
-crates/front/src/judge.rs|render_expr|_ => render_expr(expr),
 crates/front/src/query/mod.rs|tag_runs_with_notations|semantic::tag_runs_with_notations(text, decls, binders, notations)
 crates/front/src/semantic.rs|tag_runs_with_notations|let bare = tag_runs_with_notations("A ↔ B", &[], &[], &[]);
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations(

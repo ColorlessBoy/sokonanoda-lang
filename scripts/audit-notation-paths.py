@@ -48,6 +48,18 @@ SCAN_ROOTS = [REPO / "crates"]
 WHITELIST = {
     "crates/front/src/display.rs",
     "crates/front/src/proof.rs",
+    # ── **已逐条判过 ③（写台账不做）的组**（2026-09-25 round 171 ✓）──────────────
+    # 为什么放进白名单 ✓：基线是**棘轮** ✓ —— 它记的是"**待迁移**" ✓；
+    # 而 ③ 的条目**永远不会迁** ✗ ⇒ 留在里面会让数字**失去意义** ✗
+    # （分不清"还没做"与"已判不动" ✓）。这四组都已在
+    # `docs/design/duplication-audit.md` 里**逐条**给过结论 ✓：
+    "crates/front/src/judge.rs",              # J 组(1)：判定量 ⇒ 折它 = 改判定 ✗（内核红线）
+    "crates/front/src/compile/tests.rs",      # I 组(3)：**往返测试**的内部期望串 ✗
+    "crates/front/src/compile/prelude.rs",    # G 组(3)：造 `GoalBinderSpec` ⇒ 喂 judge ✗
+    "crates/front/src/compile/check/walk.rs", # E 组(8)：目标生产 ⇒ 喂 judge ✗（§9 ㉜ 的行程开关钉着）
+    # ⚠ **代价（要记住 ✓）**：白名单是**按文件**的 ✗ ⇒ 这些文件里**将来**新出现的
+    # 真绕过**不会被这条守卫抓到** ✓ ⇒ 改动它们时**要人工看一眼** ✓
+    # （或给守卫加"按行/按符号"的细粒度排除 ✓ —— 那是下一步可选工作 ✓）。
 }
 # **唯一接口**：绕过这三个函数的调用点都在守卫范围内 ✓。
 # ⚠ **不要把 `:` 排除在外**（2026-09-25 修 ✗⇒✓）：原来的 lookbehind `(?<![\w:.])`
