@@ -884,6 +884,37 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯🎯 round 295：`with_env` 的文档答了这题 ✓，同时**推翻了对 96/100 的归因** ✗**
+    ```
+    builder.rs:26  pub struct EnvBuilder<'a> { … dag: Dag<'a>, … declars: DeclarMap<'a>, … }
+    :43  /// **把 builder 的字段临时装进一个 `ExportFile<'a>` 交给回调，回调结束后装回**
+    :46  /// 为什么需要它：front 的 judge 要判一条**合成声明**，而检查器必须看见与 builder
+    :47  /// **完全同一份** intern 表 —— `NameNode::decl_idx` 挂在**被 intern 的 NameNode** 上，
+    :48  /// 换一份表就会**静默取到别人的声明**（不报错）✓
+    :50  /// ⇒ 让检查器直接用 builder 的活表，**指针恒等式天然成立** ✓
+    :52  /// 而且它**从不 `add_declar`** ⇒ 合成声明不进环境 ✓
+    ```
+    ⇒ **`with_env` 就是为"判合成声明"造的** ✓ ⇒ **指针恒等式天然成立** ✓
+    ⇒ 这也是 `docs/design/e2-plan.md` 里"**三个内核原语**（`with_env`/`snapshot`/`Clone`）"的第一个 ✓。
+    **⚠ 而归因被推翻** ✗：**A 单独使用时，真 add 只在"影子被请求"时才发生** ✓
+    （`shadow_env()` 惰性 ✓）⇒ **那发生在 walk 之后** ✓ ⇒ **探针在真 add 之前就建好了** ✓✓
+    ⇒ **A 单独不该破坏任何东西** ✓ —— 而 round 263 实测正是 **11**（= 基线 ✓）✓✓
+    ⇒ ⇒ **96/100 来自 B（跳过重查）** ✗，**不是来自探针** ✗✓！！
+    ⇒ **⇒ C1 这个方向可能整个是错的** ✗（它修好了 11 条 ✓，但那 11 条**本来就是基线** ✓
+    ⇒ 也就是说：**C1 让"仅影子"的既有失败也消失了** ✓ —— 这本身是个**副作用** ✓，值得记 ✓）。
+    **⇒ 下一步（回到 B ✓，这才是本步的正题 ✓）**：
+    ① **先确认** ✓：`SOKO_WALK_REAL_ADD=1`（**不带** `SHADOW_CHECK` ✓）下
+       真 add 是否**真的没发生** ✗（因为没人请求影子 ✓）⇒ 若是 ⇒ **A 是空转的** ✗
+       ⇒ 那 **B（跳过重查）才是唯一需要修的东西** ✓；
+    ② 而 **B 的失败**（96/100 ✓）与探针**无关** ✗ ⇒ 是"**跳过 `try_check_declar` 之后
+       `env` 少了什么**" ✗ ⇒ **回到 round 267 的结构图** ✓（记账①② ✓ 都保留了 ✓
+       ⇒ 那少的是 **`try_check_declar` 的副作用** ✓ —— 而它的副作用就是 **`add_declar`** ✓
+       ⇒ **而 walk 已经加过了** ✓ ⇒ hmm ✓ ⇒ **除非 walk 加的不是同一条** ✗）。
+    **⇒ 一条命令就能分开这两件事** ✓：
+    ```bash
+    SOKO_WALK_REAL_ADD=1 cargo test -q -p sokonanoda-front --lib 2>&1 | grep "^test result"   # A 单独
+    ```
+
   - **🎯🎯🎯 round 294：读了断言 ⇒ 机制点破（**又是指针/DAG** ✗）**
     ```
     assertion `left == right` failed: the leftover line is redundant; the missing argument is not:
