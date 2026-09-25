@@ -884,6 +884,26 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 276：全局缓存候选清单到手 ✓（最可疑 = 判卷缓存 ✓）**
+    ```
+    crates/front/src/judge.rs（12 处 ✓）
+      static CACHE: OnceLock<Mutex<JudgeCacheStore>> = OnceLock::new();   ← **判卷缓存** ✓（两处 ✓）
+      thread_local! { … }                                                  ← TRUSTED_PREFIX ✓
+    crates/front/src/display.rs
+      static CACHE: OnceLock<HashMap<String, usize>>                       ← 记法元数表 ✓（prelude 派生 ✓）
+    crates/front/src/compile/{prelude,elab,check}.rs
+      thread_local! / OnceLock                                              ← prelude / 静默窗口等 ✓
+    ```
+    ⇒ **判卷缓存最可疑** ✓：若它的**键不含环境内容** ✗ ⇒ 被污染的条目会**一直留着** ✓
+    ⇒ 正好是 round 275 说的"**共享热状态**" ✓。
+    **⇒ 下一步（一条命令 ✓）**：读它的**键**是什么 ✓
+    （`JudgeCacheStore` 的 key 构造 ✓ / `judge_infer_cached` ✓）
+    ⇒ 若键里**只有前缀文本**✗（不含 walk 提前改动的环境内容 ✓）⇒ **就是它** ✓
+    ⇒ 修法：把开关打开时的路径**绕开缓存** ✓（或让键含环境状态 ✓）—— 两种都小 ✓。
+    ⚠ 另一条线索（同样便宜 ✓）：`display.rs` 的 `CACHE` ✓ 是
+    `HashMap<String, usize>`（记法**元数**表 ✓，prelude 派生 ✓）⇒
+    **若 walk 的提前 add 改了 prelude 派生结果** ✗ ⇒ 它也会污染 ✓ ⇒ 一并查 ✓。
+
   - **🎯 round 275：串行重测 —— 数字**确定** ✓，而 round 274 的"并行产物"推断**被证否** ✗**
     ```
     串行（--test-threads=1 ✓）:
