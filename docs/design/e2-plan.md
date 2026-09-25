@@ -1029,3 +1029,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
        **TC/宇宙层状态**与**声明入库顺序** ✓，再看是否少了 `add_declar` 前后某一步 ✓）；
     ③ 每修一档 ✓ ⇒ 重跑 `SOKO_SHADOW_CHECK=1 cargo test -p sokonanoda-front --lib` ✓
        ⇒ **MISMATCH 数必须下降** ✓（可量化的进度 ✓）。
+
+    **🎯 round 215：172 例"多报"的根因找到了 —— 而且很可能是一行** ✓✓
+    **对比两边怎么借环境** ✓：
+    ```rust
+    // 影子（walk.rs:174）—— **没有 limit** ✗
+    let result = self.shadow.with_env(|env| env.try_check_declar(&declar));
+
+    // 内核阶段（kernel_phase.rs）—— **显式指定"只看这条命令之前的声明"** ✓
+    env.try_check_declar_at(&declar, EnvLimit::ByIndex(env_before))
+    ```
+    ⇒ `try_check_declar`（无 limit ✓）与 `try_check_declar_at(…, ByIndex(env_before))` ✓
+    是**两个不同的视野** ✗：影子看到的是**默认/更宽**的环境 ✓，内核阶段看的是
+    "**这条命令之前**"的环境 ✓ ⇒ 判等与宇宙层推断的上下文不同 ✗
+    ⇒ 正好解释那 172 例"`expected` 与 `actual` 打印相同却判不等" ✓
+    （差异在**视野**，不在类型本身 ✓）。
+    **⇒ 修法（下一轮第一步 ✓）**：把 `walk.rs:174` 改成
+    `try_check_declar_at(&declar, EnvLimit::ByIndex(<与 kernel_phase 同源的 env_before>))` ✓
+    —— **判据现成 ✓**：改完重跑 `SOKO_SHADOW_CHECK=1 cargo test -p sokonanoda-front --lib` ✓
+    ⇒ **MISMATCH 数应从 181 明显下降** ✓（若掉到只剩那 9 条块级的 ✓ ⇒ 说明这一行就是主因 ✓✓）。
+    **反向验证** ✓：把 limit 改回无实证的默认值 ⇒ **MISMATCH 必须回到 181** ✓。
