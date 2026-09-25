@@ -464,7 +464,7 @@ pub(crate) fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::Dis
             units.len(),
             commands.len(),
             table.len(),
-            targets.iter().any(|t| *t == "Exists"),
+            targets.contains(&"Exists"),
             table
                 .iter()
                 .filter(|d| d.target == "Exists")

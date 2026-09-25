@@ -1232,7 +1232,7 @@ infixr:80 \" '' \" => Set.image\n";
     ///   （`units.iter().flat_map(|u| u.file.commands)`）✓，而
     ///   `arities_in_commands` **也已经**处理 `InductiveBlock`
     ///   （`params.len() + telescope_len(ty)` = 2 ✓）✓。
-    /// ⇒ **两处看起来都对，`Exists` 却仍然不在表里** ✗ —— 下一个动作**不是**改代码，
+    ///   ⇒ **两处看起来都对，`Exists` 却仍然不在表里** ✗ —— 下一个动作**不是**改代码，
     ///   而是**量真实管线的那张表**（下面的第二个测试就是那个量具 ✓）。
     #[test]
     fn prelude_arities_cover_their_own_targets() {

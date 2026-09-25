@@ -2779,6 +2779,26 @@ scripts·编辑器 ✓）、`T-U10`（把审计结论收口成"唯一归属 + �
    而不是靠人看告警 ✓（`AGENTS.md`：咬不住的守卫等于没有 ✓；这也是本会话**三次**踩同一个坑的原因 ✗）。
 修完后重跑一次全量 e2e ✓，才能给 **T-U4 / T-U7** 的第三层定判 ✓。
 
+**㉜ T-U8 的 gate 追出一条**真冲突**（2026-09-25 第 74 轮）—— 下一条要修的 ✓
+`crates/cli/tests/notation_fold.rs:245`（`source_rendered_surfaces_ignore_the_fold_switch` ✗）：
+```
+开: ∀ (α : Type 0) (A B : Set α), A ⊆ B -> (∀ (a : α), a ∈ A -> a ∈ B)   ← 源级/折叠形 ✓
+关: forall (α : Type 0) (A B : Set α), Set.subset α A B -> (…)           ← 内核 pp 点形式 ✗
+断言 `left == right` failed: 生产者 2 是源级渲染，开关不该动它 ✗
+```
+**它说什么**：该 surface（T-U4 改的"目标显示副本"那一条 ✓）必须**恒为源级（折叠）形** ✓，
+**与 `SOKO_NO_NOTATION_FOLD` 这个调试开关无关** ✗ —— 开关只许动"可折 surface" ✓
+（另两条测试 `the_fold_switch_turns_every_foldable_surface_pointwise` ✓ 与
+`the_fold_switch_never_changes_the_judge` ✓ 仍然绿 ✓）。
+**修法（精确 ✓）**：把**显示副本**的折叠做成**无条件**（不看调试开关 ✓），
+即 T-U4 取 `ty_text` 时不能用"受开关影响的那份" ✗ ⇒ 需要一个**恒折**的入口
+（例如 `DisplayNotations::fold_always(text)` ✓，内部忽略 `SOKO_NO_NOTATION_FOLD` ✓），
+`query` 的 `goal_display` 走它 ✓ ⇒ 开关 开/关两侧都得到源级形 ✓ ✓ 断言当场变绿 ✓。
+**别做**：改那条测试的期望 ✗（它钉的是"源级 surface 稳定"这条**合理**不变量 ✓，
+而用户要的正是**稳定地**显示记法 ✓）；也**别**把 `goal` 退回点形式 ✗（那是用户报的 bug ✓）。
+**判据**：`cargo test -p sokonanoda-cli --test notation_fold` 三条全绿 ✓ +
+`every_decl_ships_text_and_runs_in_lockstep` 仍绿 ✓ + `exists_fun` 顶部目标带 `∃` ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
