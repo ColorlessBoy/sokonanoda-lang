@@ -733,7 +733,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     报告里只有 `notations: Vec<NotationDecl>` ✓，而 `DisplayNotations` 需要 arity ✓；
     `ty_text`/`val_text` 只覆盖**整类型** ✓，`peel_pi_layers` 剥出的 `domain`/`codomain`
     **子项**没有副本 ✗）⇒ 先 B 后 A ✓。**不许**在 LSP 重建 arity ✗（那是第五套实现 ✓，守卫会抓 ✓）。
-- [ ] `T-U12` **面级 sweep 判据**（用户要求 ✓）—— **进行中** ⏳（面 #1 ✅ · 面 #4/#5 ✅ ③ ·
+- [ ] `T-U12` **面级 sweep 判据**（用户要求 ✓）—— **进行中** ⏳
+  - **面 #3（hover）现状：✗ 无判据**（round 165 **实测** ✓，两侧都查了 ✓）
+    * **LSP 单测侧** ✓：`crates/lsp/tests/` 里 **hover 相关 0 处** ✗（这一面**根本没有单测** ✓）；
+    * **e2e 侧** ✓：有 `hoverTextAt(uri, line, character)` ✓（`extension.test.js:163` ✓）与两处用法 ✓——
+      但一处只断言"**非空**"✓（`:342` "a hover on the hole" ✓ ⇒ `text.trim().length > 0` ✓），
+      另一处是 **`\and` 输入法**的教学 hover ✓（`:355` ✓）⇒ **都不是**"类型文本里有记法" ✓。
+    * ⇒ **要求 ② 的这一面确实缺覆盖** ✓。
+  - **落点（下轮照做 ✓）**：在 `extension.test.js` 里**紧挨 `:342`** 加一个用例 ✓ ——
+    夹具写**含记法的类型** ✓（例如 `def Set.subset …` + `infix:50 " ⊆ " => Set.subset` ✓，
+    照 §9 的"**先给常量声明记法**" ✓ —— 否则折叠没有规则 ✓，round 154/155 两次都栽在这 ✓），
+    用 `hoverTextAt` 取 hover ✓，断言 **含 `⊆` 且不含 `Set.subset `** ✓。
+  - **为什么它会咬** ✓：hover 文本走的正是 **round 132/133 迁移过的那 5 处**
+    `fold_for_display` ✓ ⇒ 折叠失效 ⇒ 漏点形式 ⇒ 断言红 ✓
+    （⚠ 但**必须在修饰符号处**取 hover ✓ —— 那是 `half_expression_goals_hover` 那条路 ✓）。
+  - **反向验证** ✓（e2e 里改环境较重 ✗）：沿用 round 104 的做法 ✓ —— 临时把
+    `print_back` 注入成恒等 ✓ ⇒ **判红** ✓；或更省 ✓：先在 **front** 侧用同样的夹具跑
+    `fold_for_display` 的单测 ✓（`SOKO_NO_NOTATION_FOLD=1` 直接可验 ✓）⇒ 再补 e2e ✓。（面 #1 ✅ · 面 #4/#5 ✅ ③ ·
   面 #2/#3 待做 ✓；**计划记号只能是 `[ ]` / `[x]`** ✗ —— 我 145 轮用了 `[~]` ✓
   ⇒ `plan.py check` 会把这一条算成"清单里没有" ✗ ⇒ **gate 红** ✓ ⇒ 已改回 ✓）
   - **✅ 面 #4（状态栏）· 面 #5（项目树）⇒ ③ 不判**（2026-09-25 round 145 **实测** ✓）：
