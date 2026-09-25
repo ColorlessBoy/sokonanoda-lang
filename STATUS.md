@@ -26,6 +26,27 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯🎯 round 401：根因找到 —— `ledger` job **只构建 CLI，没构建 LSP** ✗✓**
+  ```
+  scripts/soko ✓（**打印出来的** ✓）：
+    :739  **const lspOverride = process.env.SOKONANODA_LSP_BIN** ✓✓ ← **LSP 有独立覆盖** ✓
+    :785  const lsp = await ensure('sokonanoda-lsp', lspOverride, { force }) ✓
+    :797  if (!cli || !lsp || stale.length) ⇒ **拒绝执行** ✓
+  ⇒ ⇒ **`soko lsp` 解析的是**独立的 LSP 二进制**（`sokonanoda-lsp`）** ✓
+    ⇒ 而 **CI 的 `ledger` job 只构建了 CLI** ✗✓：
+      `cargo build --release -p sokonanoda-cli --locked` ✓ —— **没有 `-p sokonanoda-lsp`** ✗
+    ⇒ ⇒ **所以 `target/release/sokonanoda-lsp` 不存在** ✗
+      ⇒ **落到缓存（CI 上空 ✗）或下载（无网络/慢 ✗）** ⇒ **挂住** ✗✓
+      ⇒ ⇒ **这就是"本地绿、CI 红"的根因** ✓✓
+  ```
+  **⇒ 修法（一行 ✓）**：**`ledger` job 同时构建 LSP** ✓ ——
+  `cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked` ✓
+  ⇒ **`soko lsp` 即可解析到** ✓ ⇒ **`G-37` 的探针够得到 LSP** ✓ ⇒ **`exit 1`（已修）** ✓
+  ⇒ ⇒ **而它同时是 `ci.yml` 改动** ✓ ⇒ **顺带触发重活** ✓（**item g 的性质** ✓）。
+  ⚠ **本地为什么没暴露** ✓：**我的缓存里有 LSP** ✓（`soko setup` 跑过 ✓）
+  ⇒ **`env -i` 也挡不住它** ✗（**缓存按 `HOME` 找** ✓ —— 而我保留了 `HOME` ✓）
+  ⇒ ⇒ **判据** ✓：**要连 `HOME` 一起换** ✓ 才等价于 CI ✓。
+
 * **🎯 round 400：探针**硬编码 `scripts/soko`** ✗（**而 CI 里 `SOKONANODA_BIN` 是设了的** ✓）**
   ```
   docs/gaps/repro/G37-….js ✓（**打印出来的** ✓）：
