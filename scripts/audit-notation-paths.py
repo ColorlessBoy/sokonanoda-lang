@@ -22,6 +22,14 @@
     crates/front/src/display.rs        （唯一接口的实现 ✓）
     crates/front/src/proof.rs          （`render_expr` 的**定义** ✓）
 
+## ⚠ 守卫的**盲区**（2026-09-25 实例，务必知道 ✓）
+白名单按**文件**豁免 ⇒ **同一个文件内**再长出一个等价入口，它**抓不到** ✗。
+真实实例：`display.rs` 里 `DisplayNotations::render`（T-U2 的唯一接口 ✓）与
+`render_folded`（round 60 加的 ✓）**函数体逐字等价** ✗，两个都在白名单里 ⇒ 无人守 ✗
+（审计 #8；已删 `render_folded` ✓）。⇒ `display.rs` 内的"接口唯一性"**只能靠评审** ✓ ——
+改那个文件前，先看它顶部的接口清单：`fold` / `render` / `runs` / `Rendered::is_consistent` ✓，
+**不要**再加第二个等价函数 ✗。
+
 ## 用法
     python3 scripts/audit-notation-paths.py            # 0=干净 1=有绕过 2=用法/扫描错误
     python3 scripts/audit-notation-paths.py --json     # 单 JSON 对象

@@ -1,3 +1,16 @@
+## 第 69 轮（2026-09-25）：T-U4 前端层修好 + 审计台账 + 修掉自己的接口分叉
+
+* **T-U4 前端层 ✅**（`cf311a4`）：声明级 `goal_runs`/`goals` 兜底/wire `goal` **三者同源**，
+  都用折过的显示副本 `ty_text` ✓；front 的 `DeclState.goal`（喂 judge ✗）未动 ✓。
+  夹具 `exists_fun` 现在 `goal`/`goal_runs`/`ty` **都是** `∃ (f : Nat → Nat), f = (fun (n : Nat) => n)` ✓
+  （修前整条点形式 ✗）。判据：front **729 passed** ✓ · 课程 **0 判负** ✓ · ⏳ 真宿主 e2e 跑着。
+* **T-U9 ✅**（`70e9fbc`）：三份只读审计并入 [duplication-audit.md](docs/design/duplication-audit.md) ——
+  **25 条**"同一件事多处实现" ✓，抽查 3 条**全部证实** ✓（`audit-wire-fields` 没进 gate ✗、
+  `kernel-diff.sh` 无 `-type f` ⇒ 20 组对拍恒绿 ✗、`references.rs:157` 是字节列 ✗）。
+* **#8 已修**（本轮）：我 round 60 加的 `render_folded` 与 T-U2 的 `DisplayNotations::render`
+  **函数体逐字等价** ✗ 且都在白名单里 ⇒ **唯一接口当场分成两个入口、无人守** ✗ ⇒ 已删除 ✓，
+  并把"守卫按文件豁免 ⇒ 同文件内重复入口抓不到"这个**盲区**写进守卫文档 ✓。
+
 # 当前状态与进度日志（agents 先读这里）
 
 > 快照：2026-09-25（**E2 第 6–14 轮 · 阶段 B 已发版 0.67.0 ✓ · 阶段 D 已开两刀 · 用户四条报告三条已修**）
