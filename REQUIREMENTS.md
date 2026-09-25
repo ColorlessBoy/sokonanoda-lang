@@ -2329,9 +2329,29 @@ Infoview 也能折 ✓（**一个修法同时消掉两个症状** ✓）。
   wire 上 `goal`/`ty` 仍是内核 pp 原文 ✗，折叠结果只在 `goal_runs`/`ty_runs` ✓
   （`crates/lsp/src/query_map.rs:74-118`），而 e2e 用例把"光标在 tactic 内 ⇒ 点名"
   钉成了期望 ✗（`extension.test.js:986-1000`）。
-**修法（两选一，取更小者）**：① 编辑器在渲染目标/声明时**优先用 `*_runs`**（与声明级
-那支同一条路 ✓）；或 ② LSP 在映射 `goal`/`ty` 时**也过一遍线 C**（wire 字段语义随之
-变成"已折叠" ✓，需同步 `docs/protocol.md` ✓）。
+**⑧ 更正 ⑦ 的结论（2026-09-25，同日实测推翻）**：**不是编辑器挑错字段** ✗。
+证据（同一次 `query goals --json` 的两条对照，字段取自 `/tmp/g11.json`）：
+```
+subset_univ : ty = ∀ (α : Type 0) (A : Set α), A ⊆ (Set.univ α)   ← 带记法 ✓
+              ty_runs 文本 = 同上（也带记法 ✓）
+exists_univ : ty = forall (α : Type 0), Exists (Set α) (fun (U : Set α) => … Set.subset …  ← 点形式 ✗
+              ty_runs 文本 = **与 ty 逐字相同**（也是点形式 ✗）
+```
+而渲染器**早就优先用 `*_runs`** ✓（`editor/vscode/media/infoview.js`：
+`codeBlock("goal-ty", state && state.goal_runs, (state && state.goal) || "", "⊢ ")` ✓、
+`decl-ty` 同理 ✓）⇒ **runs 里装的就是点形式** ⇒ 病在**生产者**（线 C）那一步没折叠成功 ✗。
+
+**⇒ 真正的修法（收窄到一处）**：查**真实管线里的 arity / 记法表**为什么没让
+`Exists (fun …)` 折起来 —— 单测 `folds_nested_occurrences_including_inside_binders`
+是手工搭 arity 表过的 ✓，真实管线里 prelude 的 binder 记法（`∃`/`∀`）**可能没进那张表**
+⇒ 修 `display_notations` / arity 来源（`crates/front/src/display.rs:686` 一带"把 prelude
+源文本也算进来"的那段 ✓）。
+**判据（直接、便宜、可复跑）**：
+```
+soko query goals --file courses/set-theory/units/unit11-universe-russell.sokonanoda
+  ⇒ exists_univ 的 ty_runs 拼出来必须带 `∃`/`∀`（现在是 `Exists (fun …)` ✗）
+```
+外加 e2e 那条（`extension.test.js:986-1000`）从"点名"翻成"记法保留" ✓。
 **判据**：e2e 从"点名形式"**翻成"记法保留"** ✓ + wire 字段存在性断言 ✓ +
 `python3 scripts/audit-wire-fields.py` 守卫仍绿 ✓（A∖B 对账 ✓）。
 
