@@ -26,6 +26,25 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🔴 round 341：**更正 round 340 的归因** ✗ —— **三条红腿都不是我造成的** ✓✓**
+  ```
+  $ cargo test -p sokonanoda-front --doc --locked
+  test **crates/front/src/judge.rs - judge::judge_env_reuse_enabled (line 442)** ... FAILED ✗
+  error: unknown start of token: \u{ff1a}
+  ⇒ ⇒ **是 `judge.rs:442`** ✗✓ —— **D-1 的 doc 注释** ✓（**round 233 写的** ✓，约 100 轮前 ✓）
+    **不是**我 round 332 的 `walk.rs` 注释 ✗✓（**我的注释没有缩进 ≥4 的 `///` 行** ✓，实测 ✓）
+  ⇒ ⇒ **三条红腿全部是既有的** ✓✓：`judge.rs:442` ✓ + cli 的 `--lib`/`--doc` 两条 ✓
+  ⇒ ⇒ 而 `test (front, doc)` **从 round 233 起就红** ✓ ⇒ **`b4aca6e` 那轮也红** ✓（**早于我的改动** ✓）
+  ```
+  **⇒ 结论（修正 ✓）**：**release 一直不触发的第三层原因** ✓ ——
+  **`test` 矩阵里有三条**长期红**的腿** ✗（**与本次发版无关** ✓，但**挡着 `auto-tag`** ✗）
+  ⇒ ⇒ **必须修它们** ✓（否则**永远发不了版** ✗）：
+  ① `judge.rs:442` 的 doc 注释 ✓（**找出被 rustdoc 当代码块的那一段** ✓ ⇒ 改成**行内** ✓）；
+  ② **删 cli 的 `--lib`/`--doc` 两条腿** ✓（**纯 bin crate** ✓ ⇒ 永远 `no library targets` ✗）。
+  ⚠ **教训（第四次"推断错"✗）**：**我把 round 332 的注释当成了肇事者** ✗（因为**它最近改过** ✓）
+  ⇒ 而**真正的肇事者 100 轮前就在** ✓ ⇒ **"最近改过的"不等于"造成问题的"** ✗
+  ⇒ **看失败清单的**名字**（`judge.rs:442` ✓），而不是**猜谁改的** ✓**。
+
 * **🔴 round 340：三条 `test` 腿红 ⇒ **一个是我造成的 ✗，两个是 CI 矩阵本来的 bug** ✗✓**
   ```
   $ cargo test -q -p sokonanoda-front --doc --locked      # ← CI 的 test (front, doc) 腿 ✓
