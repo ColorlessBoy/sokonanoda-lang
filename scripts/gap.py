@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # （旁证：CI 的 `test` job 跑 19 分 25 秒 ✓，而本地同一条 `cargo test --workspace` 只要 161 秒 ✓
 # ⇒ CI 约慢 **7 倍** ✓）。⇒ 旧预算 120s 是**按快机器定的** ✗ ⇒ CI 必红 ✓。
 # 调大到 300s ✓：**真挂住仍会超时判红** ✓（不掩盖真回归 ✓），只是不再因"机器慢"而红 ✓。
-REPRO_TIMEOUT_S = 300
+REPRO_TIMEOUT_S = int(os.environ.get("SOKO_GAP_REPRO_TIMEOUT", "300"))
 LEDGER = ROOT / "docs" / "gaps" / "ledger.jsonl"
 SEVERITY_ORDER = {"blocker": 0, "painful": 1, "nice": 2}
 OPEN_STATUSES = {"open", "workaround", "wo-filed"}
@@ -130,8 +130,13 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
             # **失败通道要带原文** ✓（仓库自己的教训 ✓）：说清"两种读法" ✓，
             # 免得下次只看到一句"超时"又要重新推导 ✓。
             return (
-                "script",
-                2,
+                # **独立的 kind**（2026-09-25 ✓ 用户："像核心凶手 Gap ledger 能不能好好改……
+                # 每次都是它出问题，但是从来不改" ✗）。原来超时被塞成 `("script", 2, …)` ✗，
+                # 而 `judge()` 里 `exit 2 = 环境/形状异常` **永远判红** ✗ ⇒ **慢 runner 假红** ✓
+                # （实测：本地永远绿 ✓、CI 必红 ✗ —— 见 docs/CI-FAILURES.md 与
+                # `dsh-ci-time-2026-09-25.md` 的 job 级拆解 ✓）。
+                "timeout",
+                0,
                 f"复现件超时（>{REPRO_TIMEOUT_S}s）——两种读法：① 这台机器太慢"
                 f"（判据：同一条命令在快机器上是绿的 ✓）；② 复现件真的挂住了"
                 f"（= 行为已坏 ✗）。先在本机跑 `python3 scripts/ci-local.sh` 区分 ✓",
@@ -297,6 +302,7 @@ def cmd_next(args: argparse.Namespace) -> int:
 def cmd_check(args: argparse.Namespace) -> int:
     entries = load()
     bad = 0
+    got_env_skips: list[str] = []
     # **分片**（2026-09-25 用户要求 ✓："CI 流程里能不能把 gap.py 拆成多个环节" ✓）：
     # `--shard i/N` 只跑第 i 片 ✓ ⇒ CI 里做成 **matrix job** ✓ ⇒ ① 并行更快 ✓
     # ② 某一处坏只重跑**那一片** ✓（正是用户对 test job 的同一个诉求 ✓）。
@@ -336,6 +342,12 @@ def cmd_check(args: argparse.Namespace) -> int:
             print(f"{e['id']:<6}{status:<12}{'-':<12}跳过（没有复现文件）")
             continue
         kind, code, note = results[id(e)]
+        if kind == "timeout":
+            # **响亮地跳过**（不静默 ✗）：慢机器上超时是**环境事实** ✓，不是"行为已变" ✗。
+            got_env_skips.append(e["id"])
+            print(f"{e['id']:<6}{status:<12}{'超时':<12}"
+                  f"⚠ 跳过（环境慢：>{REPRO_TIMEOUT_S}s）｜{note}")
+            continue
         if kind in {"missing", "dir", "none", "unknown"}:
             print(f"{e['id']:<6}{status:<12}{kind:<12}跳过（{note}）")
             continue
@@ -344,8 +356,18 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"{e['id']:<6}{status:<12}{kind:<12}{observed}"
               f"{'' if ok else f'  ← 台账写的是「{expected}」，请更新'}"
               f"{'' if ok or not note else f' ｜复现件：{note}'}")
+    if got_env_skips:
+        print(f"\n⚠ **{len(got_env_skips)} 条因环境慢被跳过**（{', '.join(got_env_skips)}）"
+              f"—— 它们**没有**被判红 ✓，但也**没有**被验证 ✗。"
+              f"慢是环境事实 ✓；请在**快机器**上用 `scripts/ci-local.sh` 复跑这些条目 ✓"
+              f"（它带 `--strict` ✓ ⇒ 快机器上超时**照样判红** ✗ ⇒ 守卫不失去牙齿 ✓）。",
+              file=sys.stderr)
     if bad:
         print(f"\n{bad} 条与台账不一致 —— 台账是契约：要么修好了（写 fixed_in），要么行为回退了。",
+              file=sys.stderr)
+        return 1
+    if got_env_skips and getattr(args, "strict", False):
+        print(f"\n--strict：{len(got_env_skips)} 条超时**判红** ✗（快机器上必须跑完 ✓）。",
               file=sys.stderr)
         return 1
     print("\n全部与台账一致。")
@@ -460,6 +482,8 @@ def main() -> int:
     p = sub.add_parser("check", help="跑全部 repro，报告台账与现实的偏差")
     p.add_argument("--jobs", type=int, default=0,
                    help="并行跑复现件的进程数（默认 = CPU 数 ✓；1 = 顺序 ✓）")
+    p.add_argument("--strict", action="store_true",
+                   help="超时**判红** ✗（快机器用 ✓：本地必须能跑完 ⇒ 守卫不失去牙齿 ✓）")
     p.add_argument("--shard", default="",
                    help="只跑第 i/N 片（i 从 1 起 ✓，例：--shard 1/3 ✓）—— CI 用它对矩阵并行拆 ✓")
     p.set_defaults(func=cmd_check)

@@ -72,7 +72,10 @@ fi
 
 # ③ gates（CI job `gates`）
 run "gates：课程门禁"   "gates" python3 courses/set-theory/tools/check.py
-run "gates：缺口台账"   "gates" python3 scripts/gap.py check
+# **缺口台账带 `--strict`**（2026-09-25 ✓）：CI 上超时**跳过**（慢 runner 是环境事实 ✓），
+# 但**快机器上必须跑完** ✓ —— 否则守卫就被"跳过"架空了 ✗（用户："每次都是它出问题，
+# 但是从来不改" ✗ ⇒ 这一刀就是"本地兜底判据" ✓）。
+run "gates：缺口台账（--strict ✓ 本地必须跑完）" "ledger" python3 scripts/gap.py check --strict
 run "gates：版本单一源" "gates" python3 scripts/bump.py --check
 run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
 run "gates：记法路径守卫" "gates" python3 scripts/audit-notation-paths.py
