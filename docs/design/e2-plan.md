@@ -119,7 +119,25 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 #### 批次 B：命令与产物标准化（R-4 / R-3 前半）
 
-- [ ] `T-B1` **R-4 现状盘点**：列出 `editor/vscode/package.json` 里**全部** `sokonanoda.*` 命令的当前标题（做一张对照表 ✓）
+- [x] `T-B1` **R-4 现状盘点**：列出 `editor/vscode/package.json` 里**全部** `sokonanoda.*` 命令的当前标题（做一张对照表 ✓）
+  - ✅ **已盘点（2026-09-24）**：交付 `docs/design/command-naming.md` —— **15 条**命令的
+    "现状（title/category/面板实际显示）→ 目标（`Sokonanoda: <Command> (说明)`）"对照表，
+    外加机制取舍、静态契约影响、判据、T-B2/T-B3 清单。三个发现：
+    ① **两套机制混用** ✗（9 条用 `category: "sokonanoda"`、6 条把前缀写进 `title`）；
+    ② **前缀双写**两条 ✗：`openInfoview` 的 title 里又写一遍 `sokonanoda:`、`doctor`
+    写成 `doctor:` ⇒ 面板里是 `sokonanoda: sokonanoda: 打开目标面板 (Infoview)` /
+    `sokonanoda: doctor: 诊断服务器与版本`；③ 括号（全角/半角）与语言（纯英文/纯中文）
+    都不统一。
+    **判据**：`crates/cli/tests/extension.rs::command_naming_inventory_covers_every_contributed_command`
+    —— 表里第一列的 id 集合与 `contributes.commands` **双向相等**（少一条 = 漏盘点、
+    多一条 = 表说谎）；**抽掉一行实测判红**（exit 101）✓ 恢复后绿 ✓。
+    **机制推荐 (A)**：`category: "Sokonanoda"` + 纯 `title`（前缀只写一处、命令面板还会
+    按类别分组）；备选 (B) 把前缀写进 title（表里两列都已备好，切换只改一列）。
+    **红线**：只改显示名，**`command` id 一个都不动**（键位/菜单/executeCommand/文档/
+    技能都在用）。
+    ⚠ **T-B2 的先决动作**：`build`/`rebuild` 的契约断言 `title.contains("build")`
+    **大小写敏感**，而目标名是 `Build (…)` ⇒ 必须同时把断言改成大小写不敏感，
+    否则必红 ✗。
 - [ ] `T-B2` **R-4 改标题**：统一 `Sokonanoda: <Command> (说明)` ✓（前缀固定、命令词首字母大写、括号内中文说明 ✓），含 `Infoview (目标面板)`、`Restart Server (重启服务器)` 等
 - [ ] `T-B3` **R-4 同步四份**（AGENTS.md 硬规则）：`editor/vscode/` 的 README/CHANGELOG ✓ + `skills/` 三个技能 ✓ + `AGENTS.md` ✓ + `docs/vscode-dev-guide.md` ✓；`crates/cli/tests/skill.rs` / `dsh.rs` 不许漂移 ✓
 - [ ] `T-B4` **R-3 设计**：`.sokonanoda/` 目录的**契约**（放什么：编译产物 / 依赖 / 元数据；命名；清理策略；`--clean` 语义；与现有缓存 `~/.local/share/sokonanoda` 的关系 —— **模块根下的产物 vs 全局缓存**的分工 ✓）

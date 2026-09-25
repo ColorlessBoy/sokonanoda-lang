@@ -1558,3 +1558,42 @@ fn notation_input_tab_binding_is_gated_by_its_context_key() {
         "eager replacement must default to off (design §8 NI-2: Tab is the explicit path)"
     );
 }
+
+#[test]
+fn command_naming_inventory_covers_every_contributed_command() {
+    // **T-B1（R-4）的判据**：`docs/design/command-naming.md` §1 的盘点表必须覆盖
+    // `contributes.commands` 的**每一条**命令，且**双向相等**：
+    //   * 少了 ⇒ 有命令没盘点（R-4 改名时必漏）✗；
+    //   * 多了 ⇒ 表里写了不存在的命令（表在说谎）✗。
+    //
+    // 为什么这条能长期用：改名只动**显示名**（`title`/`category`），`command` id 是
+    // 协议（键位/菜单/`executeCommand`/文档/技能都在用）——一条都不动 ✓。所以表里
+    // 那一列同时就是"命令清单"的契约。
+    let manifest = manifest();
+    let commands = manifest["contributes"]["commands"]
+        .as_array()
+        .expect("contributes.commands");
+    let mut from_manifest: Vec<&str> = commands
+        .iter()
+        .map(|c| c["command"].as_str().expect("command id"))
+        .collect();
+    from_manifest.sort_unstable();
+
+    let doc = fs::read_to_string(repo_root().join("docs/design/command-naming.md"))
+        .expect("docs/design/command-naming.md（T-B1 的交付物）必须在仓库里");
+    // 表行形如 `| 3 | \`sokonanoda.nextHole\` | …`：第二列（split 后 index 2）是 id。
+    let mut from_doc: Vec<&str> = doc
+        .lines()
+        .filter_map(|line| {
+            let cell = line.split('|').nth(2)?.trim();
+            let id = cell.strip_prefix('`')?.strip_suffix('`')?;
+            id.starts_with("sokonanoda.").then_some(id)
+        })
+        .collect();
+    from_doc.sort_unstable();
+
+    assert_eq!(
+        from_doc, from_manifest,
+        "盘点表与 contributes.commands 必须双向相等（左 = 表，右 = package.json）"
+    );
+}
