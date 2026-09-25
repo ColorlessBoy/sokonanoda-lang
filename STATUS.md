@@ -26,6 +26,24 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯 round 328：`0.72.0` 为什么一直没发 ⇒ **两个原因叠在一起** ✓**
+  ```
+  auto-tag 的定义 ✓：needs = [lint-fmt, lint-clippy, test, gates-fast, gates-course,
+                            ledger, contract, editor, e2e, e2e-macos] ✓
+                    if = push && refs/heads/main ✓
+  ⇒ ① **docs-only 轮把重活全 skip** ✗（第 g1 条生效 ✓）⇒ **依赖被 skip ⇒ auto-tag 自己也 skip** ✗✓
+     （实测 ✓：run 36188388061（f450559 ✓，纯 docs/toml ✓）⇒ 12 个重活全 **skipped** ✗）
+  ⇒ ② **唯一 `rust == true` 的那轮**（`b4aca6e` ✓）**被我下一次 push 掐掉了** ✗✓
+     （实测 ✓：36188218357 **cancelled** ✗ · 36188328822 **cancelled** ✗）
+  ⇒ ⇒ **两者叠加 ⇒ 从来没有一轮同时满足"重活会跑"+"没被掐"** ✗ ⇒ **release 永不触发** ✓
+  ```
+  **⇒ 修法（已做 ✓）**：**重跑那一轮** ✓ —— `gh run rerun 36188218357` ✓
+  （它 `rust == true` ✓、`Cargo.toml` 已是 `0.72.0` ✓ ⇒ 重活会跑 ⇒ **auto-tag 会触发** ✓）
+  ⇒ **然后：不再推任何东西** ✓，等它跑完 ✓（**这是第 e 条的另一面** ✗：
+  连推三次 ⇒ **永远没有一轮跑完** ✓ ⇒ **发版时必须停手** ✓）。
+  ⚠ **教训**：**"每修一处就推一次"在发版窗口里是有害的** ✗ ——
+  修 CI 时它救了我 ✓（快速迭代 ✓），**但发版时它让 release 永远不触发** ✗。
+
 * **✅ round 326：`contract` 红 = **版本漂移** ✗ —— 而仓库有专门的工具，我手工改了两处** ✗
   ```
   $ python3 scripts/bump.py --check          # ← contract job 的第一步 ✓
