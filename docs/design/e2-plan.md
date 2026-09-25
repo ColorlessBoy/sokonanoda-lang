@@ -676,11 +676,11 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   （`:555` / `:735` / `:778` ✓）全部走统一接口 ✓。
   **判据（三层齐 ✓）**：front 单测断"目标文本带 `∃`" ✓；wire 断言 `goal`/`goal_runs` **同源** ✓；
   **真宿主 e2e**：夹具 `exists_fun`（已在工作区 ✓）的**顶部「目标」出现 `∃`** ✓。
-- [ ] `T-U5` **类型/值链统一**：`kernel_phase` 的 `ty_text`/`val_text` 与 `query::runs`
+- [x] `T-U5` **类型/值链统一**：`kernel_phase` 的 `ty_text`/`val_text` 与 `query::runs`
   （`goal_runs`/`ty_runs`/`goals_runs` ✓）改走统一接口 ✓。
   **判据（新增接缝守卫 ✓）**：同一声明**同一份文本**经两条路（`text` 与 `runs` 拼接）
   **逐字节相同** ✓ —— 这条断言正是这次 bug 的直接守卫 ✓。
-- [ ] `T-U6` **词法根因的独立判据**：给 `token.rs` 的"基础多字符算符更长时让路"补一条专门用例 ✓
+- [x] `T-U6` **词法根因的独立判据**：给 `token.rs` 的"基础多字符算符更长时让路"补一条专门用例 ✓
   （声明符号与 `->`/`=>` 相撞 ✓），并确认 **R-2 哨兵**（`semantic.rs`）仍绿 ✓。
 - [x] `T-U7` **e2e 判据入册**：把 `exists_fun` 那条用例在**真 VS Code** 里跑绿并提交 ✓，
   按批次纪律记一条 `docs/e2e/ledger.jsonl` ✓（并核查那轮 4 条红里有没有陈旧服务器造成的假红 ✓）。
