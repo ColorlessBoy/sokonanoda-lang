@@ -22,7 +22,11 @@ set -o pipefail   # **不用 -u** ✗：gh 的输出里常有空字段 ✓（ski
 ann() {  # 打印某个 job 的注解（含逐条缺口 ✓）
   local rid="$1" name="$2"
   local jid
-  jid=$(gh run view "$rid" --json jobs --jq --arg n "$name" '.jobs[] | select(.name==$n) | .databaseId' 2>/dev/null | head -1)
+  # ⚠ **`gh run view --jq` 不支持 `--arg`** ✗（那是 `gh api` 的 ✓）⇒ 用**内插** ✓
+  # （job 名里有 `(`/`)`/中文 ✓，但不含 `"` ✓ ⇒ 内插安全 ✓）；这是一个**静默失败**的坑 ✗：
+  # jq 报错被 `2>/dev/null` 吞掉 ✓ ⇒ 表现为"拿不到 job id" ✓（我为此多花了一轮 ✓）。
+  jid=$(gh run view "$rid" --json jobs \
+        --jq ".jobs[] | select(.name==\"$name\") | .databaseId" 2>/dev/null | head -1)
   [ -z "$jid" ] && { echo "          ↳ （拿不到 job id ✗）"; return 0; }
   gh api "repos/${REPO}/check-runs/$jid/annotations" \
       --jq '.[] | "        [\(.annotation_level)] \(.title // ""): \(.message)"' 2>/dev/null \
