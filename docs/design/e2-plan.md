@@ -711,6 +711,28 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     找 suggest 的公开入口 ✓ ⇒ **在用例里直接调它** ✓（这样**必然**走到那条路 ✓，
     自验判据才有意义 ✓）⇒ 再两态各跑 ✓ ⇒ Δ 即 D-1 的真实收益 ✓。
 
+  - **🎯 round 247：落点**改判** —— 用例应放进 **LSP 侧**，不是 front 的 `perf.rs`** ✗⇒✓
+    **签名读到了** ✓：`suggest.rs:74`
+    ```rust
+    pub fn suggest(prefix_src: &str, decl_src: Option<&str>, options: &CompileOptions, d: &DeclState) -> Vec<Suggestion>
+    ```
+    （`prefix_src` = 文档开头到该声明 span 结束 ✓ **含**声明本身 ✓；
+     `decl_src` = 该声明命令全文 ✓，**Open 练习传 `None`** ✓）
+    **而它的真实调用者全在 LSP 侧** ✓：
+    ```
+    crates/lsp/src/actions.rs:51   suggest::suggest_with(…)
+    crates/lsp/src/actions.rs:96   suggest::suggest_with(&judge_prefix(d.span.start.offset), src, None, &options, d)
+    ```
+    ⇒ **round 243 定的落点（front 的 `perf.rs`）是错的** ✗ —— round 246 的失败已经证明 ✓
+    （`Session::update` 到不了 `suggest` ✓，因为**建议是按需的 LSP 动作** ✓）。
+    **⇒ 正确的落点是 `crates/lsp/tests/perf_course.rs`** ✓ —— 那里走的是
+    **真实路径**（LSP 动作 ⇒ `suggest` ⇒ `judge_terms_with` ⇒ `judge_pairs_uncached` ✓），
+    而不是"在 front 里硬调一个内部 API" ✗（那既不代表真实路径 ✓，`DeclState` 也不好拿 ✗）。
+    **⇒ 下一步（明确 ✓）**：读 `crates/lsp/src/actions.rs:40-100` ✓ 看它怎么构造
+    `suggest` 的入参 ✓（`judge_prefix` ✓、`d` ✓ 从哪来 ✓）⇒ 在
+    `crates/lsp/tests/perf_course.rs` 里照那条路写用例 ✓ ⇒ **自验判据仍是
+    `SOKO_JUDGE_STATS=1` 必须打出 `JUDGE_INFER calls>0`** ✓✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
