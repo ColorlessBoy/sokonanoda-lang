@@ -26,6 +26,13 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 355：整轮未完成 ⇒ `rerun --failed` 待命** ✓（**不推** ✗）
+  ```
+  整轮 in_progress ✓ · 已绿 8 ✓ · 未完 15 ✓ · 失败 `ledger (3)` ✗（不变 ✓）
+  ⇒ **等整轮结束** ✓ ⇒ 再 `gh run rerun --failed` ✓（**第 f 条** ✓）
+  ⇒ **不推** ✗（推 = 掐掉 8 个已绿的 ✓）。
+  ```
+
 * **🔴 round 354：`ledger (3)` 红了** ✗ ⇒ **按第 f 条用 `rerun --failed`** ✓（**不推** ✗）
   ```
   整轮 in_progress ✓ · **已绿 8** ✓ · 未完 15 ✓ · **失败：`ledger (3)`** ✗
