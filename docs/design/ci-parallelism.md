@@ -87,7 +87,7 @@
 | # | 改法 | 状态 |
 |---|---|---|
 | ① | **快速失败链**：`test`/`gates-course`/`e2e`/`e2e-macos` ⇒ `needs: [changes, lint-fmt, lint-clippy, gates-fast]` | **✅ 已落** ✓（本轮 ✓） |
-| ② | **首个失败就掐掉整轮**（`gh run cancel $GITHUB_RUN_ID` / gatekeeper + `if: failure()`） | ⏳ 下一轮 |
+| ② | **首个失败就掐掉整轮**（`fast-fail` job ⇒ `gh run cancel`） | **✅ 已落** ✓（本轮 ✓） |
 | ③ | **盯 job 级、不盯 run 级** | **✅ 已有** ✓（`scripts/ci-watch.sh` ✓ —— 按 job ✓ + 注解 ✓ + `--follow` 一红即退 ✓） |
 | ④ | **e2e 进快层** | **✅ 由 ① 达成** ✓（e2e 现在紧跟快层起跑 ✓，约 2 分钟后 ✓ 而不是排最后 ✓） |
 | ⑤ | **`cargo test` 分片**（`nextest --partition count:i/4` 或按 crate ✓） | ⏳ 下一轮（目标 19-37min ⇒ 8-12min ✓） |
@@ -109,3 +109,22 @@
   * **反向** ✓：故意加一行坏格式 ⇒ hook **exit 1** ✓，并**指名** `lint：fmt 失败（exit=1，1s）`
     与"**拒绝推送**" ✓ ⇒ **它咬得住** ✓（还原后 diff 干净 ✓）；
   * **正向** ✓：干净树 ⇒ hook **exit 0** ✓（"放行" ✓），随后**真实 push** 也过了它 ✓ = 端到端 ✓。
+
+### ② 详情（`fast-fail` job ✓，2026-09-25 ✓）
+```yaml
+  fast-fail:
+    needs: [changes, lint-fmt, lint-clippy, gates-fast, test, gates-course,
+            ledger, contract, editor, e2e, e2e-macos, e2e-ledger]
+    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    permissions: { actions: write }
+    steps: [gh run cancel "${{ github.run_id }}"]
+```
+* **⚠ 与 ① 的关系（诚实说明 ✓）**：①（快速失败链 ✓）已让慢 job **等**快层 ⇒ 快层红时它们
+  **不会起跑** ✓ ⇒ 那部分②是冗余的 ✓；② 真正补的是"**慢 job 自己早早失败**" ✓
+  （如 `test (sokonanoda-cli)` 第 3 分钟红 ⇒ 掐掉其余 ✓）。
+* **我当场发现并修掉的两个错** ✗：① `needs` 只写 `[changes]` ✗ ⇒ `needs.*.result` **只看它**
+  ⇒ 等于没用 ✓（已扩到 **12 个 job** ✓）；② 漏了 `e2e-ledger` ✓（它失败也该掐 ✓，已补 ✓）。
+* **判据** ✓：`yaml.safe_load` ✓ **14 job** ✓ · **全文件重复键扫描** ✓ 无重复 ✓ ·
+  `fast-fail.needs` **覆盖除 `auto-tag`/自身外的全部 job** ✓（脚本断言"未监视 = 无" ✓）·
+  `auto-tag.needs` **未动** ✓（`fast-fail` 不是它的依赖 ✓）。
+* ⏳ **待 CI 首验** ✓：下一轮若快层红 ⇒ 预期看到 `fast-fail` 跑起来并 `cancel` 整轮 ✓。

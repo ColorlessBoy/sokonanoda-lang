@@ -370,6 +370,31 @@ jobs:
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" check --shard ${{ matrix.shard }}/3
 
+  fast-fail:
+    # **首个失败就掐掉整轮**（2026-09-25 用户要求 ✓，第 ② 条 ✓）
+    #
+    # 用途：`lint-fmt` 只要 8-20 秒就能红，而 `test`(19-37min) / `gates-course`(35min 上限)
+    # 一旦**已经起跑**就会跑到底 ⇒ run 的"结论"被拖到最长那个 job 结束 ✗
+    # ⇒ 使用者**不知道已经失败了** ✗（用户原话 ✓："ledger 立马就失败了，但整个
+    # github action 还在继续，导致你不知道已经失败了" ✓）。
+    #
+    # ⚠ **与第 ① 条的关系（诚实说明 ✓）**：①（快速失败链 ✓）让慢 job **等**快层 ⇒
+    # 快层红时它们**根本不会起跑** ✓ ⇒ 那部分②已经覆盖 ✓；② 真正补的是
+    # "**慢 job 自己早早失败**"（例如 `test (sokonanoda-cli)` 第 3 分钟红 ✓，
+    # 其余 job 还在跑 ✓）⇒ 这里把整轮掐掉 ✓，不再空等 ✓。
+    needs: [changes, lint-fmt, lint-clippy, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    if: ${{ always() && contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write          # `gh run cancel` 需要它 ✓
+    steps:
+      - name: Cancel this run on first failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          echo "检测到失败 ⇒ 掐掉整轮 ${{ github.run_id }} ✓（不再空等最长的 job ✓）"
+          gh run cancel "${{ github.run_id }}" --repo "${{ github.repository }}" || true
   contract:
     needs: changes
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
