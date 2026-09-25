@@ -26,6 +26,16 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 403：零失败 · `ledger` 三片**带着两个修复在跑** ✓（**决定性检验** ✓）**
+  ```
+  整轮 attempt=1 in_progress ✓ · **失败（空）** ✓✓ · 已绿 5 ✓ · 未完 5 ✓
+  未完 = `gates-fast` ✓ · **`perf-gate`** ✓ · **`ledger`(1,2,3)** ✓
+  ⇒ ⇒ **`ledger` 三片带着两个修复在跑** ✓✓：
+    ① **LSP 构建** ✓ ⇒ `soko lsp` 可解析 ✓ ⇒ 探针**应给 `exit 1`（已修）** ✓；
+    ② **60s 超时** ✓ ⇒ 三条慢例**各 60s 即跳过** ✓ ⇒ **装得下** ✓。
+  ⇒ **判据** ✓：**三片全绿** ⇒ 全绿 ⇒ `auto-tag` ⇒ release ✓。
+  ```
+
 * **🚀 round 402：两处 `ci.yml` 修复已推** ✓（`9ac5d32..1fc2c70` ✓ · **hook 第四次全绿** ✓）
   ```
   ✅ 五条检查单全过 ✓（diff = **`.github/workflows/ci.yml`** ✓ + STATUS.md + CI-FAILURES.md ✓）
