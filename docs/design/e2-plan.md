@@ -475,6 +475,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     `examples/` 里最重的那个 ✓）上跑两态 ✓ ⇒ 记数字进 `docs/perf/ledger.jsonl` ✓
     （**性能只升不降** ✓ ⇒ 若 miss 成本没塌 ⇒ **如实记录并说明** ✓，不许糊 ✓）。
 
+  - **✅ round 225：收益量到了（复用开 ✓），但对拍未完成 ⇒ 本条**不勾** ✗**
+    **选中的 by 密集文件** ✓：`course/unit4-by-tactics.sokonanoda` ✓（`by` 行 **14** ✓，
+    候选里最重的 ✓；次重 `unit9-relations-connectives-solution` 13 ✓）。
+    **复用开（默认 ✓）的统计** ✓（`SOKO_JUDGE_STATS=1` ✓）：
+    ```
+    JUDGE_STATS       calls=6  total_ms=101  avg_ms=16  pairs=10  prefix_bytes=24283
+    JUDGE_INFER       calls=144 total_ms=107 avg_us=747 fails=0
+    JUDGE_INFER_SPLIT **hits=132  misses=12**  key_ms=1  hit_ms=1
+    ```
+    ⇒ **命中率 132/144 = 91.7%** ✓✓ —— 前缀复用**确实在起作用** ✓（`hit_ms=1` ⇒ 命中极便宜 ✓）。
+    **⚠ 未完成** ✗：`SOKO_JUDGE_ENV_REUSE=0` 那一态**没有打出统计** ✗
+    （`SOKO_JUDGE_STATS` 的打印在**进程退出前** ✓ ⇒ 可能是那次运行**没走到**退出点 ✗，
+    或 stderr 重定向的顺序把它吞了 ✗）⇒ **两态对拍尚未完成** ✓ ⇒ **不勾** ✗。
+    **下一步（一条命令 ✓）**：把两态各跑一次并把 stderr **落到文件** ✓
+    （`… 2>/tmp/x.log; tail -6 /tmp/x.log` ✓）⇒ 比较 `JUDGE_INFER` 的 `total_ms`/`calls` ✓
+    ⇒ 数字进 `docs/perf/ledger.jsonl` ✓（**性能只升不降** ✓）。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
