@@ -69,6 +69,21 @@ scripts/soko grade playground.sokonanoda --json
 | **job 级 `if` 引用 `matrix`** | `jobs.<job_id>.if` 的可用上下文只有 `github`/`needs`/`vars`/`inputs`，**没有 `matrix`**（`runs-on`/`continue-on-error` 才有）。写 `if: matrix.os != 'macos-latest'` 要么按空值求值（该腿在 PR 上也跑），要么被判成未识别命名值让**整个 workflow 校验失败**（一条 job 都不会跑） | 想按矩阵值筛腿：把条件放到 **step 级**（那里有 `matrix`），或拆成**独立的 job** 只用 `github` 条件（`github.event_name == 'push' && github.ref == 'refs/heads/main'`）；改完先推**临时分支**验证 workflow 能被接受（本地 YAML 解析查不出上下文可用性） |
 | runner 上的未鉴权 GitHub API 调用会假 404/403 | 匿名额度按 IP 共享，限流/风控返回 403/404，与资源真实状态无关（pages 门禁曾因此误判"未启用"→ 部署全 skipped） | workflow 里查仓库状态一律 `gh api` + `GH_TOKEN: ${{ github.token }}` |
 
+## 1.5 **两条踩过的坑**（2026-09-25，各值一轮 CI 的时间）
+
+**① `auto-tag` 只在 `push` 事件上运行 —— `gh run rerun` 永远出不了 tag** ✗
+`ci.yml` 的 `auto-tag` 有 `if: github.event_name == 'push' && github.ref == 'refs/heads/main'`。
+所以"CI 全绿却没有 tag/release"时，先看那一轮是不是 **rerun**：是 ⇒ 无论多绿都不会打 tag ✓。
+**出路**：往 `main` **push** 一次（哪怕只是文档提交；版本号没变也不会重复发版 ✓ ——
+auto-tag 自己幂等：tag 已存在就跳过）。
+
+**② 慢 ≠ 卡住：取消一个 job 之前先取日志** ✗
+`test` job 正常就要 25–35 分钟（本机用 CI 等价并行度 `--test-threads=2` 实测 15m05s ✓），
+其中 "Workspace tests" 一步就占 20–30 分钟。我把它当 hang、连取消两次 ✗ —— 取消后才发现
+它一直在推进。**而且进行中的 job 取不到日志**（取消后才可取）⇒ 想取证就得牺牲那一轮 ✗。
+**纪律**：先 `gh run view <id> --json jobs` 看**当前 step 与已完成 step**（这不消耗那轮），
+只有确认它长时间停在同一 step 且无进展才考虑取消，并在 `STATUS.md` 写明原因 ✓。
+
 ## 2. 触发与监控
 
 ```bash
