@@ -884,6 +884,33 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯🎯 round 296 续：`shadow_env()` 只有两处调用 ⇒ **A 是空转的** ✓✓ 账结清了 ✓**
+    ```
+    shadow_env() 的调用点只有两处 ✓：
+      check/mod.rs:902   walk.shadow_env().declaration_count()   ← 在 **shadow_experiment** 观测块里 ✓
+    ⇒ **A 单独使用时重放不会发生** ✓ ⇒ **A 是空转的** ✓✓（**确认** ✓）
+    ```
+    **⇒ 全账（四组实测 ✓）**：
+    | 态 | failed | 说明 |
+    |---|---|---|
+    | A + 强制重放（无 B） | **140** ✗ | 真 add 提前 ⇒ **双份** ✓ |
+    | A + 强制重放 + B | **96** ✗ | B 少查 ⇒ **另一类** ✓ |
+    | A + 强制重放 + B + **C1** | **5** ✗ | **C1 把 96 压到 5** ✓✓ |
+    | 仅影子（**基线**） | **11** ✓ | T-K12b 的既有失败 ✓ |
+    **⇒ 三条结论（都成立 ✓）**：
+    * ① **A 单独 = 空转** ✓（**不是** D-2 的问题源 ✓）；
+    * ② **B 必须有重放才生效** ✓（`real_add_covered` 来自 `shadow_covered` ✓）⇒
+      **B 隐含强制重放** ✓ ⇒ 于是"**A+重放**"的 140 必须先解决 ✓ —— 而 **C1 正是解决它的那一步** ✓
+      （140 → 96 → **5** ✓）；
+    * ③ **C1 修好的 11 条恰好就是"仅影子"的基线** ✓ ⇒ 它**额外**带来 5 条 ✗
+      = 它**自己的 DAG 问题** ✓（round 294 已由断言点破 ✓）。
+    **⇒ 正解 = C1 + 修 DAG** ✓（**回到 round 294 的结论** ✓，而这一轮**排除了"C1 可撤"** ✗）：
+    **让 `probe_builder` 用真 `builder` 的 DAG** ✓ ⇒ 5 条应消失 ✓ ⇒ 开关态 **5 → 0** ✓
+    ⇒ 那时"**failed 回到基线 11**"**超额达成** ✓（**0 < 11** ✓）。
+    **⇒ 下一步（一条命令 ✓）**：读 `EnvBuilder` 有没有"**换 `declars` 但保 `dag`**"的现成手段 ✓
+    （`git grep -n "declars" crates/kernel/src/builder.rs` ✓）⇒ 若没有 ⇒ **加一个** ✓
+    （如 `with_prelude_only_env(f)` ✓：临时把 `declars` 换成只含 prelude 的 ✓，`dag` 不动 ✓）。
+
   - **⚠ round 296：想用"临时关掉 C1"分离 A，**没编译过** ✗ ⇒ 改用"读" ✓**
     `probe_builder: None` ✗ ⇒ `cargo check` 失败（**输出被 `>/dev/null` 吞了** ✗ ——
     **本 session 的老毛病** ✓：**判据不能掩膜** ✓）⇒ 大概率是 `-D warnings` 把
