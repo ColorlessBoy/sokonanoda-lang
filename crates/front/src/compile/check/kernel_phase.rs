@@ -72,14 +72,21 @@ fn check_then_add_decl<'arena>(
         unreachable!("check_then_add_decl 只接 PendingOp::Decl");
     };
     *kernel_checks += 1;
-    let ty_text = quiet_catch(|| {
+    let ty_res = quiet_catch(|| {
         env.with_tc(EnvLimit::Empty, |tc| {
             let ty = declar.info().ty;
             tc.with_pp(|pp| pp.pp_expr(ty))
         })
-    })
-    .ok()
-    .map(|text| {
+    });
+    // **诊断**（`SOKO_TRACE_NOTATIONS=1`，默认零输出）：③ 那条报告（`∃` 不折）量到
+    // `ty_text` 全是 `None` ✗ ⇒ 这里的 pp 失败了；打出原因才知道该修哪里，不许猜 ✗。
+    if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
+        match &ty_res {
+            Ok(_) => eprintln!("[trace-notations] ty pp ok"),
+            Err(e) => eprintln!("[trace-notations] ty pp FAILED: {e:?}"),
+        }
+    }
+    let ty_text = ty_res.ok().map(|text| {
         crate::display::print_back(&text, display)
             .as_display_str()
             .to_string()

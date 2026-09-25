@@ -2439,6 +2439,28 @@ P
 ② 或把折叠**搬到 runs 生产线上**（对已经分好段的文本做记法替换 ✓）——
 后者更贴近"四个生产者都该折"的设计 ✓。
 
+**⑬ ③ 第六轮：⚠ 我的量具坏了三轮（旧二进制），以下是**唯一可信**的数据**：
+* **病因（我的）**：我一直在跑 `./target/debug/sokonanoda` —— 那是 **0.67.0 时手工拷的副本** ✗，
+  而 `cargo build` 的产物在 `/tmp/soko-target/debug/` ✓ ⇒ 我改的插桩**根本没进被我跑的那个二进制** ✗
+  ⇒ ⑫ 里"query 不走这条路""pp 失败"等结论**全部作废** ✗（教训与 ① 同族：
+  **先验证量具本身**，再看它量出来的数 ✓）。
+* **可信数据（刷新二进制后，`SOKONANODA_NO_PROJECT_ARTIFACTS=1` + 全新缓存 ⇒ 真冷跑 ✓）**：
+```
+[trace-notations] units=4 commands=53 table=18 binding_Exists=true symbols=["∃"] arity_Exists=Some(2) arity_len=69
+[trace-notations] ty pp ok
+```
+  ⇒ **两张表都是对的** ✓（`∃` 绑定在 ✓、`Exists` arity=2 ✓）、**pp 也没失败** ✓。
+  但同一批声明里：
+```
+subset_univ              : ty_text=None | ty/runs = ∀ (α : Type 0) (A : Set α), A ⊆ (Set.univ α)   ← 带记法 ✓
+exists_univ              : ty_text=None | ty/runs = forall (α : Type 0), Exists (Set α) (fun …)     ← **连外层 forall 都是点形式** ✗
+no_univ_strictly_larger  : ty_text=None | ty/runs = forall (α : Type 0), Not (Exists (Set α) …)      ← 同上 ✗
+```
+  ⇒ 关键差别不是"某条记法缺失"✗，而是**内核 pp 对这两条压根没用记法**（外层 `forall` vs `∀` 就是铁证 ✓）。
+* **下一轮的量具（一行，hook 已在 ✓）**：把 pp 的**原始输出**（`print_back` 之前）也打出来
+  （同一个 `SOKO_TRACE_NOTATIONS` ✓）—— 这样就能一刀切开：
+  **pp 没写记法** ✗ vs **`print_back` 折不动** ✗。**先拿到这一行，再决定改哪一层** ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
