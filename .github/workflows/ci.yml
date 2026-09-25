@@ -225,6 +225,47 @@ jobs:
           path: perf-report-*.txt
           include-hidden-files: false
 
+  # ── T-E1：性能 smoke 门禁（2026-09-25 ✓）────────────────────────────────
+  # **为什么**：`perf-report` job 只**报**不**拦** ✗ ⇒ 性能退化没人发现 ✗。
+  # T-E1 的原文是"把三个基准做成 CI 可跑的 smoke ✓（阈值宽松 ✓，只抓**大幅退化** ✗）"。
+  # **复用现成机制** ✓（不新建 ✗）：`scripts/perf-check.sh` 已有退出码语义 ✓
+  # （0=无退化 ✓ / **1=超阈值** ✓ / 2=用法错 ✓）与口径 ✓（一律 `--test-threads=1` ✓、
+  # 优先比 `best_ms` ✓），`scripts/perf-compare.py` 已有**噪声地板** ✓（`floor_ms=5.0` ✓）。
+  # **smoke 子集**（~1 秒 ✓，2026-09-25 round 312 实测 ✓）：全部 `front-project` 四条 ✓
+  # + `lsp-course did_open_same_session`（134ms ✓ —— **正是 D-1/D-2 动过的那条热路径** ✓）
+  # + `keystroke`（504ms ✓）。**排除重条** ✓（`did_open` 的 1.9/4.6/9.1s ✗ 与
+  # `cli-project` 的 release 构建 ✗）⇒ 它们仍由 `perf-report` **只报不拦** 覆盖 ✓。
+  # ⚠ **第一轮 `continue-on-error: true`（只报不拦 ✓）**：CI runner 比本地吵 ✗
+  # ⇒ **必须先量一次 CI 上的抖动** ✓ ⇒ 再定阈值 ✓ ⇒ 再转成拦 ✓
+  # （**门禁假红比没有门禁更糟** ✗）。
+  perf-gate:
+    name: perf-gate（性能 smoke，第一轮只报不拦）
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+      - name: Perf smoke（对比台账，阈值放宽到 50%）
+        # `--threshold 50` = **比默认 25% 更松** ✓（T-E1 要求"阈值宽松 ✓"）
+        # ⇒ CI runner 的抖动比本地大 ✗，宽松阈值只抓**大幅退化** ✓。
+        run: |
+          # ⚠ **`--case` 是"测试名子串"** ✗ —— **不是**台账里的 `(scope, case)` 名 ✗
+          # （2026-09-25 round 313 实测 ✓：拿台账名当过滤器 ⇒ **5 个里 3 个 exit=2** ✗
+          #  = "没跑到任何 case" ⇒ **守卫空转** ✗）。下面用**真实测试名子串** ✓：
+          for case in judge_prefix_with_imported \
+                      keystroke_recompiles_the_closure \
+                      teaching_scale_keystroke \
+                      keystroke; do
+            echo "── perf smoke: $case"
+            scripts/perf-check.sh --case "$case" --threshold 50 || true
+          done
+
   gates-fast:
     name: gates-fast（课程语料 + 契约，debug 路径）
     needs: changes
