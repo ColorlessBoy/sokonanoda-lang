@@ -884,6 +884,28 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 290 续：三个锚点的**真实文本**都拿到了 ✓（下一轮完全机械 ✓）**
+    ```
+    walk.rs:567 / :791 / :1104 ✓（三处**同形** ✓）：
+        redundant_probes: build_redundant_probes(
+            &mut self.builder,                      ← **20 空格** ✓
+    check/mod.rs:850 ✓：
+        let mut walk = walk::Walk {                 ← **Walk 的构造在这** ✓（不是 :857 ✗）
+    ```
+    **⇒ 下一轮的五步（照抄 ✓）**：
+    ① `check/mod.rs` 顶部加**就地** helper ✓（`fn walk_real_add_enabled() -> bool` ✓，
+       与 `walk.rs` 那份**同名不同模块** ✓，各自 `OnceLock` ✓ —— **读取幂等** ✓）；
+    ② `check/mod.rs` 在影子环境那段之后建 `probe_builder` ✓（**同 arena** ✓ + `install_all_preludes` ✓）；
+    ③ `check/mod.rs:850` 的 `walk::Walk {` 里加
+       `probe_builder: walk_real_add_enabled().then_some(probe_builder),` ✓；
+    ④ `walk.rs` 的 `Walk` 结构体加字段 `pub(super) probe_builder: Option<EnvBuilder<'arena>>` ✓；
+    ⑤ `walk.rs` **三处**（`replace_all` ✓）把
+       `redundant_probes: build_redundant_probes(
+                    &mut self.builder,`
+       换成 `… self.probe_builder.as_mut().unwrap_or(&mut self.builder),` ✓。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 回到基线 11** ✓ · 组合 **11** ✓；
+    **反向验证** ✓：⑤ 改回 `&mut self.builder` ⇒ **必须回到 100** ✓。
+
   - **⚠ round 290：C1 五处试了一次、三个错、已回退 ✓（三处修正都已明确 ✓）**
     ```
     ① E0560: struct `Walked` has no field named `probe_builder`
