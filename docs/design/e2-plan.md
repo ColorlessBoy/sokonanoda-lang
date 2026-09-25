@@ -884,6 +884,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🔴 round 291：同一个锚点错**第二次** ✗ ⇒ `Walk` 的构造形状**必须先读** ✓**
+    ```
+    E0063: missing field `probe_builder` in initializer of `Walk<'_>`（mod.rs:866 ✓）
+    E0560: struct `Walked` has no field named `probe_builder`（mod.rs:938 ✓）
+    ⇒ **`builder: walk.builder,` 属于 `Walked` 的构造** ✓（**不是** `Walk` ✓）
+    ⇒ 我**连续两轮**用同一个锚点、犯同一个错 ✗✗ —— 因为**我没读 `Walk` 的真实字段表** ✗。
+    ⇒ 自动回退 ✓（树干净 ✓）
+    ```
+    **⚠ 教训（第十次编译错 ✓、第四次锚点错 ✓ —— 而这次是"同一个错第二次" ✗）**：
+    **`Walk` 与 `Walked` 两个构造里都有 `builder`** ✓ ⇒ **只看 `builder` 一行无法区分** ✗
+    ⇒ **锚点必须包含"能区分两者的上下文"** ✓（例如 `walk::Walk {` 那一行 ✓）。
+    **⇒ 下一轮（先读再写 ✓，本 session 的硬纪律 ✓）**：
+    ① `python3 -c` 打出 `let mut walk = walk::Walk {` 之后的 20 行 ✓ ⇒ **照抄**字段表 ✓；
+    ② 在其中**任意一行之后**插 `probe_builder: …,` ✓；
+    ③ 其余四步（①②④⑤ ✓）**上一轮都已跑通** ✓（`①②③ ✓` / `④⑤ ✓` 的输出 ✓）
+    ⇒ **只差 ③ 的正确锚点** ✓。
+
   - **✅ round 290 续：三个锚点的**真实文本**都拿到了 ✓（下一轮完全机械 ✓）**
     ```
     walk.rs:567 / :791 / :1104 ✓（三处**同形** ✓）：
