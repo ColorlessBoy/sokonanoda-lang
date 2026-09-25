@@ -90,7 +90,7 @@
 | ② | **首个失败就掐掉整轮**（`fast-fail` job ⇒ `gh run cancel`） | **✅ 已落** ✓（本轮 ✓） |
 | ③ | **盯 job 级、不盯 run 级** | **✅ 已有** ✓（`scripts/ci-watch.sh` ✓ —— 按 job ✓ + 注解 ✓ + `--follow` 一红即退 ✓） |
 | ④ | **e2e 进快层** | **✅ 由 ① 达成** ✓（e2e 现在紧跟快层起跑 ✓，约 2 分钟后 ✓ 而不是排最后 ✓） |
-| ⑤ | **`cargo test` 分片**（`nextest --partition count:i/4` 或按 crate ✓） | ⏳ 下一轮（目标 19-37min ⇒ 8-12min ✓） |
+| ⑤ | **`cargo test` 分片** | ⏳ **已量清 + 方案定，待一次上下文新鲜的落地** ✓（本节末） |
 | ⑥ | **把 `ci-local.sh` 真接到 push 之前**（hook 或手动 ✓） | **✅ 已落** ✓（本轮 ✓） |
 
 **① 的判据（可验证 ✓）**：`yaml.safe_load` ✓ 13 job ✓；
@@ -128,3 +128,30 @@
   `fast-fail.needs` **覆盖除 `auto-tag`/自身外的全部 job** ✓（脚本断言"未监视 = 无" ✓）·
   `auto-tag.needs` **未动** ✓（`fast-fail` 不是它的依赖 ✓）。
 * ⏳ **待 CI 首验** ✓：下一轮若快层红 ⇒ 预期看到 `fast-fail` 跑起来并 `cancel` 整轮 ✓。
+
+### ⑤ `cargo test` 分片（**量清了 ✓**，2026-09-25 round 207 ✓）
+**现状（实测 ✓）**：`test` job 是**按 crate 的 4 路矩阵** ✓（`pkg: [sokonanoda, sokonanoda-front,
+sokonanoda-cli, sokonanoda-lsp]` ✓，`timeout-minutes: 40` ✓），命令是
+`cargo test -p <pkg> --locked --no-fail-fast` ✓。**实测耗时** ✓（run 36148084664 ✓）：
+`sokonanoda` 7m39s ✓ · `-front` 8m27s ✓ · `-cli` 10m41s ✓ · `-lsp` 9m12s ✓
+⇒ **四条相当均衡** ✓ ⇒ 所以"再按 crate 拆"**没有空间** ✗（只有 4 个 crate ✓）
+⇒ 要压只能**在 crate 内部再分片** ✓。
+
+**⚠ 必须先说的雷** ✗：`cargo nextest` **不跑 doctest** ✗（实测本仓 `doc 代码块 ≈ 12` ✓，
+Cargo.toml 未显式关 ✓）⇒ **直接换成 nextest 会静默丢掉 doctest 覆盖** ✗ ——
+那正是本 session 反复说的"**静默降级**" ✗。**⇒ 分片必须与 doctest 并存** ✓。
+
+**方案（下轮照做 ✓）**：
+1. `test` job 加一步 `taiki-e/install-action@nextest` ✓；
+2. 主命令改 `cargo nextest run -p ${{ matrix.pkg }} --locked --partition count:${{ matrix.shard }}/2`
+   并把矩阵扩成 `pkg × shard: [1, 2]` ✓ ⇒ **8 条腿** ✓ ⇒ 每条 ≈ **4-5 分钟** ✓；
+3. **同 job 内保留一条** `cargo test -p ${{ matrix.pkg }} --doc --locked` ✓
+   （只在 `shard == 1` 上跑 ✓，避免重复 ✓）⇒ **doctest 覆盖不丢** ✓；
+4. `auto-tag.needs` **无需改** ✓（`test` 这个 job 名不变 ✓，只是矩阵变大 ✓）——
+   ⚠ 但仍要跑一遍"未监视 job = 无"的断言 ✓（`fast-fail` 那条 ✓）。
+**预期** ✓：最长杆 **10m41s ⇒ ≈5 分钟** ✓ ⇒ 全绿结论 ≈ **6 分钟** ✓（原 ~35 分钟 ✓）。
+
+**判据（可验证 ✓）**：① `yaml.safe_load` ✓ + **全文件重复键扫描** ✓；
+② 矩阵条目 **逐条打印核对** ✓（8 条 ✓）；③ **doctest 不丢** ✓：日志里必须出现
+`Doc-tests` 段 ✓（**反向验证** ✓：删掉第 3 步 ⇒ 该段消失 ⇒ 判据红 ✓）；
+④ 单腿耗时 **≤6 分钟** ✓（数字入 `CI-FAILURES.md` ✓）。
