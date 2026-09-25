@@ -333,6 +333,15 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     顺带修了取证 B 早点名的布局耦合：`crates/lsp/tests/lsp_cache.rs` 原来只数
     `<cache>/compiled`（T-C6 之后该数**两处之和**）⇒ LSP 套件 **161 passed / 0 failed** ✓。
 - [ ] `T-C7` **阶段 C 收尾**：基准复量（② 应大幅变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.68.0` → release → 核对 ✓
+  - 📌 **收尾口径已按实测改写（2026-09-25，待执行）**：本阶段的**用户可见产出只有
+    T-C6**（编辑器编出来的产物也落 `<模块根>/.sokonanoda/`）—— 而它**随 0.67.0 一起发布**
+    （那一批的 CHANGELOG 已并入，见 `editor/vscode/CHANGELOG.md` 的 `[0.67.0]`）。
+    剩下的 T-C4/T-C5 是**刹车后的负结果**（不接线、不默认打开），T-C1..T-C3 是内部 API
+    与判据（惰性、零成本）⇒ **阶段 C 没有第二个用户可见增量**。
+    ⇒ **不发空的 `0.68.0`** ✗（一个没有任何变化的版本号只会污染发版历史）。
+    T-C7 因此改为：**基准复量 + gate 全绿 + 文档收口**，并在本文与
+    `docs/design/module-batch.md` 里写明"阶段 C 的发布已并入 0.67.0、0.68.0 取消"。
+    下一批有真实用户可见改动时再 bump（阶段 D 的前缀复用若成功，就是那批的内容）。
   - ⬆ **BUMP**：`minor` —— `build <dir>` 按模块只编一次（146s → 模块数量级）
 
 ### 阶段 D：前缀复用（重型重构；**5 个小步，每步都可发布**）
