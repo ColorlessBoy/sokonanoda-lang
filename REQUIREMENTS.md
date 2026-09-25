@@ -2478,6 +2478,25 @@ exists_univ pp raw: forall (α : Type 0), Exists (Set α) (fun (U : Set α) => �
 ③ 整条链（`forall … , Exists (fun …) => forall …`）。
 哪一步先红就是哪一步的锅 ✓ —— 然后才动 `fold_spine` ✓（**先红再改** ✓）。
 
+**⑮ ③ 第 46 轮：三条事实把范围夹到一条缝**：
+* **单测里折得动** ✓（新探针 `narrow_to_wide_binder_fold_probe`，逐字用 pp 原文）：
+```
+①窄  Exists (Set α) (fun (U : Set α) => …)        →  ∃ (U : Set α), …                    ✓
+③整  forall …, Exists (fun …) => forall …          →  ∀ …, ∃ …, ∀ …                       ✓
+④多行（含换行）                                     →  ∀ …,\n∃ (U : Set α), ∀ …             ✓
+⑤`Not (Exists (fun …))`                            →  ∀ …,\nNot (∃ (U : Set α), ∀ …, …)     ✓
+```
+* **真实编译时表里有 `∃`** ✓：把 trace 日志按顺序相关（每次 `exists_univ pp raw` 之前那条建表行）
+  ⇒ **每一次都是 `units=1 commands=44 table=18 binding_Exists=true`** ✓✓（不是我先前猜的
+  `units=1 table=6` 那种贫表 ✗）。
+* **可最终 `ty`/`ty_runs` 仍是折叠前的** ✗，而 `ty_text` 是 `None` ✗。
+⇒ **结论**：折叠**做出来了**却**没进最终字段** ✓ —— 丢掉的位置在"折完之后、进 wire(`ty`/`*_runs`)
+之前" ✓（或者 `ty`/`*_runs` 压根不是从 `ty_text` 来的 ✓）。
+**下一轮那一行探针（就一处）**：紧挨 `ty_text` 算出来之后打一行
+（`[trace-notations] {who} folded: {ty_text:?}` ✓）—— 它会一刀切开：
+* 打出**带 `∃` 的字符串** ⇒ 折叠成功但被丢 ⇒ 顺着 `decl_states` → `report` → wire 找丢点 ✓；
+* 打出 `None` ⇒ 折叠那一步本身在真实上下文里失败 ⇒ 再往里查 `print_back` 的入参 ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。

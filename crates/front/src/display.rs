@@ -1238,4 +1238,28 @@ infixr:80 \" '' \" => Set.image\n";
             table.iter().map(|d| d.target.as_str()).collect::<Vec<_>>()
         );
     }
+    /// **③ 的窄到宽探针**（2026-09-25）：先**打印**真实折叠结果，再写断言 ✓
+    /// （不猜期望值 ✗ —— 前面几轮猜的代价已经够大了）。
+    #[test]
+    fn narrow_to_wide_binder_fold_probe() {
+        let dn = notations(
+            "binder_notation \"∃\" => Exists\n",
+            &[("Exists", 2), ("Set.subset", 3)],
+        );
+        // ① 最窄：只有 `Exists` 一层
+        let a = "Exists (Set α) (fun (U : Set α) => Set.subset α A U)";
+        // ② 中层：外层 `forall`
+        let b = "forall (α : Type 0) (A : Set α), Set.subset α A U";
+        // ③ 真实形状（unit11 的 `exists_univ`，逐字来自 pp 的原始输出）
+        let c = "forall (α : Type 0), Exists (Set α) (fun (U : Set α) => forall (A : Set α), Set.subset α A U)";
+        // ④ **多行**输入（真实 pp 输出里就有换行；我 trace 时把 `\n` 换成了空格 ✗）
+        let d = "forall (α : Type 0),\nExists (Set α) (fun (U : Set α) => forall (A : Set α), Set.subset α A U)";
+        // ⑤ 逐字复刻 `no_univ_strictly_larger` 的 pp 原文（含换行与 `Not`/`And`/`Ne`）
+        let e = "forall (α : Type 0),\nNot (Exists (Set α) (fun (U : Set α) => forall (A : Set α), And (Set.subset α A U) (Ne (Set α) A U)))";
+        for (label, text) in [("①窄", a), ("②中", b), ("③整", c), ("④多行", d), ("⑤No", e)]
+        {
+            println!("[probe {label}] in : {text}");
+            println!("[probe {label}] out: {}", fold_text(text, &dn));
+        }
+    }
 }
