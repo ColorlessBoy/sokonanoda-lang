@@ -15,12 +15,24 @@
 ## 你的任务
 按 E2 计划逐条推进，用这三条命令取活与记进度：
     python3 scripts/plan.py next      # 取当前环节（含完整规格）
-    python3 scripts/plan.py list      # 看进度（现在应为 6/38）
+    python3 scripts/plan.py list      # 看进度（现在应为 19/38）
     python3 scripts/plan.py done <ID> # 做完勾掉
-当前应从 **T-B1（R-4 现状盘点）** 开始 —— **阶段 A 已全部完成并发版 0.66.0** ✓。
-已完成、别重做：T-A1..T-A7（R-1 的 `def` 值行、R-2 的 `=` 掉色真因 + 声明卡片
-目标行、三层判据、0.66.0 发版闭环）。**阶段 B 是命令名标准化（R-4）+ `.sokonanoda/`
-产物目录（R-3 前半）**：先 `python3 scripts/plan.py next` 取 T-B1 的完整规格。
+**当前状态（2026-09-25）**：**19/38**。阶段 A 已发 0.66.0 ✓；阶段 B（R-4 命令名 +
+R-3 产物目录）**代码全完**（T-B1..T-B6 ✓）、版本已 bump **0.67.0**，**但 release 未走完** ✗；
+阶段 C 已按实测**重新定位并收口**（T-C1..T-C6 ✓、T-C4/T-C5 按刹车、**不发空的 0.68.0**）；
+**下一步是 T-D1**（阶段 D 第一刀：纯重构抽出 `check_then_add_one`，执行方案与判据都已写死在
+`e2e-plan.md` 的 T-D1 下）。
+
+**⚡ 先解决 0.67.0 的 release**：`auto-tag` **只在 push 事件上运行**
+（`if: github.event_name == 'push'`）⇒ `gh run rerun` 的重跑**永远不会打 tag** ✗。
+要看 tag 必须往 `main` **push** 一次；绿了就会 auto-tag + dispatch release，
+之后核对 `gh release list` 并把 **T-B7** 勾上 ✓。
+
+已完成、别重做：T-A1..T-A7（R-1 的 `def` 值行、R-2 的 `=` 掉色真因 + 声明卡片目标行、
+三层判据、0.66.0 闭环）；T-B1..T-B6（命令面板 15 条统一成 `Sokonanoda: <Command> (说明)`；
+`<模块根>/.sokonanoda/` 产物目录 + 自忽略 + 每入口只留最新一条 + `query project` 的
+只读 `artifacts` 字段；LSP 读写都落模块根）；T-C1..T-C3（`plan_module` API + 等价性判据，
+**负结论**：平坦批编对课程形状不等价且慢 3× ⇒ 刹车）；T-C6（重新界定为 LSP 写路径）。
 **开工前先读** `docs/E2-HANDOVER.md` §5 的陷阱清单（本机特有的 6 条：缓存内容比
 marker 旧、`scripts/soko update` 下载 404 ⇒ `SOKONANODA_RELEASE_BASE` 本地镜像、
 `NODE_NO_WARNINGS=1`、仓库 `target/` 写不进去 ⇒ `CARGO_TARGET_DIR` + 就地覆盖、
@@ -61,7 +73,15 @@ marker 旧、`scripts/soko update` 下载 404 ⇒ `SOKONANODA_RELEASE_BASE` 本�
   读原文件再写回；
 - git merge-tree --write-tree 冲突时退出码非 0 且输出带冲突标记的树 =>
   必须查退出码，非 0 就手工解，绝不 `| head -1`；
-- bash 的 grep 在本机会静默返回空 => 用工具级 grep；find ~ / 全仓递归 grep 极慢。
+- bash 的 grep 在本机会静默返回空 => 用工具级 grep；find ~ / 全仓递归 grep 极慢；
+- **受限沙箱会拒绝仓库内的 rename 与删除** ⇒ 在仓库内跑项目构建时，产物条目落不了盘
+  （`*.tmp-*` 残留、下次不命中）⇒ 本地跑 gate/基准时加 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`
+  退回旧语义即可（CI 不需要）；
+- `scripts/soko` 用的缓存二进制必须与仓库版本**一致**（现在 0.67.0），否则 gate 直接
+  exit 3 ⇒ 重建后把二进制落到 `target/debug/`（`cargo build -p sokonanoda-cli -p sokonanoda-lsp`
+  再复制过去）；
+- **慢 ≠ 卡住**：`test` job 正常 25–35 分钟（本机 CI 等价 `--test-threads=2` 实测 15m05s），
+  **进行中的 job 取不到日志**（取消后才可取）⇒ 先看 step 级状态再决定要不要取消。
 
 ## 已经做完的（别重做）
 - R-1（Infoview 的 def 卡片缺 := 值行）已修：crates/lsp/src/query_map.rs 的
