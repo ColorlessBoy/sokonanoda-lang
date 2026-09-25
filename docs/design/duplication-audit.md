@@ -23,7 +23,7 @@
 | 9 ⏳**最危险的一半已修**（round 85 ✓）：JS 的"兜底=solved" ✗⇒✓；三处词表仍在 | `DeclStatus→可见文字` **三处**硬写（`query/mod.rs:1004-1007`、`lsp/render.rs:411-417`、`extension.js:196-201`） | 互相；wire 只发 stringly-typed `status` ✗ | **高** —— JS 的 `solved` 是**兜底分支** ⇒ **任何新 status 被静默显示成"已解决"** ✗✗ | wire 发 label，或 JS 只做 1:1 映射并**删兜底** ✓ | `grep -n 'status === "open"' editor/vscode/extension.js` ✓ | **立刻做** |
 | 10 | 课程文件收集器 **2/5 已修** ✗（`check.py:525/545/563` 的 `glob` 无 `is_file()`；`e2e-merge.py:73-76` 的 `rglob` 无 `is_file()` 且 `except` 不接 `OSError`） | R-3 那一族 ✓ | **高（形状已证、触发未证 ✓）** —— `Path.glob("*.sokonanoda")` **确实**返回 `.sokonanoda` 目录 ✓（Python 3.14 ✓）；`e2e-merge.py` 遇同名目录会 **traceback 而非 `SystemExit`** ✗ | 一个带 `is_file()` + `except OSError` 的共享收集器 ✓ | `grep -n 'glob("' courses/set-theory/tools/check.py` ✓ | **立刻做** |
 | 11 | `query::notation_symbols()` 扫文本拿符号 ✗（**第五套**，见 `REQUIREMENTS.md` §9 ㉗） | 记法表 `notation_table` | 中 —— 只能打标签不能折叠 ✗；且 query **够不到**记法表 ✓ | 阶段 U 的显示副本方案（T-U4 ✓） | 已在 §9 ㉗ 记录 ✓ | **并入 T-U4/U5** |
-| 12 | `lsp/render.rs:52` 与 `project_refs.rs:145` **逐字相同**的 `range_of(Span)` | 彼此 + `query_map.rs:32 range_of_offsets` | 中 —— 同一 wire `Range` 两条换算路（span 列 vs offset）⇒ 非 ASCII 下不一致 ✓ | 只留 `query_map::range_of_offsets` ✓ | `diff` 两份片段 → 无差异 ✓ | 并入 #5 |
+| 12 ✅**已修**（round 86 ✓）：两份逐字相同的 `range_of(Span)` 收成一份 | 彼此 + `query_map.rs:32 range_of_offsets` | 中 —— 同一 wire `Range` 两条换算路（span 列 vs offset）⇒ 非 ASCII 下不一致 ✓ | 已合并到 `render::range_of` ✓（`project_refs` 改调它 ✓）；与 `query_map::range_of_offsets`（按 offset ✓）的**进一步**统一仍待做 ⏳ | `diff` 两份片段 → 无差异 ✓ | 并入 #5 |
 | 13 | 事件计数**三份**（`query/mod.rs:519-534`、`cli/course/mod.rs:461-472`、`cli/check.rs:261`+`json_report.rs:27-74`） | 互相 | 中 —— "`checked` 是几 / `failed` 算不算依赖模块"**两套口径** ✓ | `CheckCounts::tally()` 唯一 ✓ | `grep -rn "DeclarationChecked" crates/cli/src crates/front/src/query` → 3 处 ✓ | 并入 #2 |
 | 14 | "还剩几个练习"**两套**（事件口径 `query/mod.rs:529` vs 声明口径 `report.rs:109-116`） | 互相，且都进 wire ✗ | 中 —— 两条通道给出两个数，**无断言钉死相等** ✗ | 保留一个口径或加交叉断言 ✓ | `grep -rn "open_exercises\|exercise_open"…` → 生产者 2 个、**无相等断言** ✓ | 立刻做（加断言） |
 | 15 | `redundant` 判据 front↔lsp **两份**（`query/mod.rs:1012/1023` vs `lsp/lib.rs:1082-1095`） | 互相；`query/mod.rs:1021` 自己写着"与 LSP 侧同一条规则" ✓ | 中 —— 分叉时"多余的 `sorry`"两侧给出**相反**的下一步指令 ✗ | 真相层导出、LSP 只调 ✓ | `grep -rn "hole_is_redundant" crates/front/src/query/mod.rs crates/lsp/src/lib.rs` ✓ | 立刻做 |
@@ -124,6 +124,14 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
   而 JS 用 "solved"/"open"（**字符串本来就不同** ✗）⇒ 要合并得先决定可见文案归谁 ✓；
   另：一条专门断言"未知状态**不**显示成 solved"的判据还没加（stub 宿主未导出该映射 ✓）
   ⇒ 记着 ✓。
+
+### #12（#5 的一部分）✅ 已修（round 86 ✓）
+`crates/lsp/src/render.rs:52` 与 `crates/lsp/src/project_refs.rs:145` 的 `range_of(Span)`
+**函数体逐字相同** ✓（diff 只差可见性与 doc ✓）⇒ 删掉 `project_refs` 那份 ✓、
+改 `use crate::render::range_of;` ✓ ⇒ `span → LSP range` 在 `lsp/` 里只剩**一份实现** ✓。
+**判据** ✓：`cargo test -p sokonanoda-lsp` ⇒ **161 passed** ✓（+ 其余套件 3/2 ✓）。
+⏳ 仍待做：与 `query_map.rs:32 range_of_offsets`（**按 offset** 换算 ✓）的统一——
+那是**另一条路**（不是副本 ✓），合并要先证明两者在非 ASCII 下等价 ✓（同 #5 的剩余项 ✓）。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 

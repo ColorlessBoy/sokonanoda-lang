@@ -10,6 +10,9 @@
 //! `resolution` 指向该声明的行——注释/字符串里同名的文本不会被碰到。
 
 use sokonanoda_front::references::decl_name_span;
+// **span → LSP range 的唯一实现**（审计 #5，2026-09-25 ✓）：这里原来有一份
+// **逐字相同**的副本 ✗ ⇒ 收掉 ✓（两份都在 `lsp/` 里、函数体一模一样 ✓）。
+use crate::render::range_of;
 use sokonanoda_front::Span;
 use tower_lsp::lsp_types::*;
 
@@ -139,20 +142,6 @@ pub(crate) fn rename_edits(
         });
     }
     edits
-}
-
-/// front（1-based 行列）span → LSP range（0-based）。
-fn range_of(span: Span) -> Range {
-    Range {
-        start: Position {
-            line: span.start.line.saturating_sub(1) as u32,
-            character: span.start.column.saturating_sub(1) as u32,
-        },
-        end: Position {
-            line: span.end.line.saturating_sub(1) as u32,
-            character: span.end.column.saturating_sub(1) as u32,
-        },
-    }
 }
 
 #[cfg(test)]
