@@ -884,6 +884,33 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯🎯 round 294：读了断言 ⇒ 机制点破（**又是指针/DAG** ✗）**
+    ```
+    assertion `left == right` failed: the leftover line is redundant; the missing argument is not:
+      left:  [("t:0", **false**), ("genuine:0", false)]   ← C1 下：**没证明出冗余** ✗
+      right: [("t:0", **true**),  ("genuine:0", false)]   ← 期望：`t` 的那行**是**冗余 ✓
+    ```
+    **⇒ 机制** ✓：**`probe_builder` 是新的 `EnvBuilder`** ✗ ⇒ **它有**自己的 DAG** ✗**
+    （`EnvBuilder` 的 `dag` 是**自有字段** ✓ —— `snapshot` 里 `dag: self.dag.clone()` 可见 ✓）
+    ⇒ **探针的声明拿到新指针** ✗ ⇒ **`def_eq` 证不出相等** ✓✓
+    ⇒ **正是 round 285 那个指针陷阱** ✗✓ —— 而**同 arena 不够** ✓，**DAG 才是关键** ✗。
+    **⇒ 读法 A 与 B 都不完全对** ✓：真因是"**探针必须在真 `builder` 的 DAG 里 elaborate**"✓，
+    而**环境内容**（看得多/少）是**第二位的** ✓。
+    **⇒ 修法候选（下一步选 ✓）**：
+    * **C1d（推荐 ✓）**：**不用新 builder** ✗ —— 而是让探针在**真 `builder`** 里 elaborate ✓
+      （保住 DAG ✓），但**临时"看不见"当前 op 之后的东西** ✗ hmm ✓ —— 而 round 288 已确认
+      `OpenExercise` **从不被真 add** ✓ ⇒ **真 builder 在探针时刻本来就只含"当前 op 之前"** ✓✓
+      ⇒ ⇒ **那 A 步的环境本来就是对的** ✓✓ ⇒ **A 步根本不需要 C1** ✗✓！！
+    * ⇒ **那 100 条失败的真因是什么** ✗ ⇒ **回到 round 283 的起点** ✓：
+      只有 `a_leftover_sorry_*` 等 4+1 条 ✓ ⇒ 而 **A 之前这些是绿的** ✓ ⇒
+      ⇒ **A 让真 builder 含了"当前 op 之前"的声明** ✓，而**探针原本看不到它们** ✓（walk 不 add ✓）
+      ⇒ **探针原本在"空环境"里 elaborate** ✓ ⇒ 于是 **`t` 的冗余证明**在当时也**不成立** ✗ hmm ✓
+      ⇒ **但它当时是绿的** ✓ ⇒ **矛盾** ✗ ⇒ **说明"空环境"下探针本来就能证明** ✓
+      ⇒ ⇒ **而 C1 的"空环境"证不出** ✗ ⇒ **差别只能是 DAG** ✓✓（**同 arena 但不同 DAG** ✗）。
+    **⇒ 结论（下一步照做 ✓）**：**保留 C1 的"只装 prelude"意图 ✓，但必须用真 `builder` 的 DAG** ✓
+    ⇒ 即 **`probe_builder` 改成 `builder` 的一个"浅视图"** ✓（同 DAG ✓、环境只含 prelude ✓）
+    ⇒ **先读 `EnvBuilder` 的字段** ✓（`dag` 能否被借/克隆而不破坏指针 ✓）⇒ 再定 ✓。
+
   - **🎯 round 293：C1 修好全部 11 条 ✓ 但引入 5 条新的 ✗ ⇒ 探针的"环境范围"还要调 ✓**
     ```
     开关(C1) 失败 **5** 条 · 基线(仅影子) 失败 **11** 条
