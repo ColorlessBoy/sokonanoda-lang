@@ -2461,6 +2461,23 @@ no_univ_strictly_larger  : ty_text=None | ty/runs = forall (α : Type 0), Not (E
   （同一个 `SOKO_TRACE_NOTATIONS` ✓）—— 这样就能一刀切开：
   **pp 没写记法** ✗ vs **`print_back` 折不动** ✗。**先拿到这一行，再决定改哪一层** ✓。
 
+**⑭ ③ 定性完成（2026-09-25，第 45 轮）**：那一行诊断切开了二选一 ✓✓
+```
+subset_univ pp raw: forall (α : Type 0) (A : Set α), Set.subset α A (Set.univ α)   ← 点形式 ✗
+exists_univ pp raw: forall (α : Type 0), Exists (Set α) (fun (U : Set α) => …)    ← 点形式 ✗
+```
+* **pp 永远出点形式** ✓（两条都是 ✗）⇒ 我们看到的 `∀`/`⊆`/`∈` 是 **`print_back` 折出来的** ✓；
+* `print_back` 对 `subset_univ` **成功** ✓、对 `exists_univ` **整条放弃** ✗
+  ⇒ **归属落定：`crates/front/src/display.rs` 的 `fold_spine` / `print_back`** ✓✓；
+* 表都是对的 ✓（`symbols=["∃"]`、`arity_Exists=Some(2)` ✓），pp 也没失败 ✓
+  ⇒ **不是"没数据"，是"折叠这条路在这个形状上放弃"** ✓。
+**下一轮（复现判红，单元级）**：在 `display.rs` 的测试里用**现成的** `fold_text`
+对**同一个字符串**做折叠，从窄到宽各断言一次：
+① `Exists (Set α) (fun (U : Set α) => Set.subset α A U)` 单独折；
+② 外层 `forall (α : Type 0), …` 折成 `∀`；
+③ 整条链（`forall … , Exists (fun …) => forall …`）。
+哪一步先红就是哪一步的锅 ✓ —— 然后才动 `fold_spine` ✓（**先红再改** ✓）。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。

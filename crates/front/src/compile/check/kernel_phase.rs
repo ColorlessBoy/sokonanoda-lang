@@ -81,9 +81,13 @@ fn check_then_add_decl<'arena>(
     // **诊断**（`SOKO_TRACE_NOTATIONS=1`，默认零输出）：③ 那条报告（`∃` 不折）量到
     // `ty_text` 全是 `None` ✗ ⇒ 这里的 pp 失败了；打出原因才知道该修哪里，不许猜 ✗。
     if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
+        let who = name.clone().unwrap_or_else(|| "<anon>".to_string());
         match &ty_res {
-            Ok(_) => eprintln!("[trace-notations] ty pp ok"),
-            Err(e) => eprintln!("[trace-notations] ty pp FAILED: {e:?}"),
+            Ok(raw) => eprintln!(
+                "[trace-notations] {who} pp raw: {}",
+                raw.chars().take(96).collect::<String>().replace('\n', " ")
+            ),
+            Err(e) => eprintln!("[trace-notations] {who} ty pp FAILED: {e:?}"),
         }
     }
     let ty_text = ty_res.ok().map(|text| {
