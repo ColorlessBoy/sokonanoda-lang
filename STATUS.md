@@ -26,6 +26,23 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 328 续：重跑成功且**没有被掐** ✓ ⇒ **这一轮起停手，等它跑完** ✓**
+  ```
+  $ gh run rerun 36188218357        # b4aca6e：rust == true ✓、Cargo.toml 已 0.72.0 ✓
+  $ gh run list --limit 4
+    36188388061 sha=f450559 push completed/**success** ✓   ← 纯 docs ✓（重活 skip ✓）
+    36188328822 sha=2728df6 push completed/cancelled ✗
+    **36188218357 sha=b4aca6e push in_progress** ✓✓        ← **重跑成功、正在跑、rust == true** ✓
+    36188127649 sha=21f2284 push completed/success ✓
+  ⇒ **那次 docs push（`35ec39b`）没有掐掉它** ✓（**重跑在 concurrency 组之外** ✓）
+  ```
+  **⇒ 动作：提交，但**不推** ✗** —— **推 = 掐** ✓（`cancel-in-progress` 按 `github.ref` 分组 ✓）
+  ⇒ **这一轮起停手** ✓，等 `36188218357` 跑完 ✓ ⇒ 重活会跑 ✓ ⇒ **`auto-tag` 会触发** ✓
+  ⇒ **然后** ✓：`gh release list` 核对 ✓ · `scripts/soko update` 恢复本地门 ✓ ·
+  **读 `perf-gate` 的输出** ✓（定阈值 ⇒ 转拦 ⇒ **T-E1 完成** ✓）。
+  ⚠ **批次纪律在这里第二次救命** ✓（第一次是 hook ✓）：**"阶段收尾才 push"** ✓
+  —— 而我这一轮**连推了五次** ✗ ⇒ **release 永远触发不了** ✓。
+
 * **🎯 round 328：`0.72.0` 为什么一直没发 ⇒ **两个原因叠在一起** ✓**
   ```
   auto-tag 的定义 ✓：needs = [lint-fmt, lint-clippy, test, gates-fast, gates-course,
