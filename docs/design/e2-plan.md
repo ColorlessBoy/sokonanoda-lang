@@ -1080,3 +1080,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **剩下的 9 条**（`missing inductive block boundaries` ✗ / `index out of bounds` ✗）另行处理 ✓：
     影子按**逐声明**检查 inductive ✗、内核阶段按**块** ✓（`walk.rs:156` 的 break 循环 ✓）——
     那是第二个偏差 ✓，与这一行**互不重叠** ✓。
+
+    **❌ round 217：`EnvLimit` 假设**被否证**（改了、量了、回退了 ✓）**
+    照 round 216 的补丁改了 ✓：`let env_before = self.shadow.declaration_count();` +
+    `try_check_declar_at(&declar, EnvLimit::ByIndex(env_before))` ✓
+    （引入行只加 `use sokonanoda::env::EnvLimit;` ✓ —— 第一版复制了整行导致 `Declar` 重复引入 ✗，
+    被 `cargo check` 拦下并回退 ✓，**零损伤** ✓）。
+    **判据结果** ✓：`cargo check` ⇒ **rc=0** ✓；但
+    `SOKO_SHADOW_CHECK=1 cargo test -p sokonanoda-front --lib` ⇒
+    **MISMATCH = 181** ✗（**与改前完全相同** ✗）· `555 passed; 181 failed` ✗。
+    **⇒ 假设不成立** ✗：影子此刻的环境**本来就只含"这条之前"的声明** ✓
+    （它是 check-then-add ✓）⇒ `ByIndex(declaration_count())` 与**默认视野等价** ✗
+    ⇒ **"视野不同"不是那 172 例的原因** ✓。**已回退** ✓（不留无效果的改动 ✗）。
+    **⇒ 下一个假设（更贴合冒烟枪 ✓）**：差异在**判等本身** ✗ ——
+    `expected: Nat.[]` 与 `actual: Nat.[]` 打印相同却判不等 ✓ ⇒ 两边拿到的**类型虽同形、
+    但内部状态不同** ✗（宇宙层变量 / 定义展开状态 ✓）⇒ 下一个探针应比对
+    **影子环境的构造**（`walk.rs:776` 那个 `if shadow_experiment` 分支 ✓）与
+    `kernel_phase` 用的 `Env` **是不是同一份/同样装满** ✗（尤其 **prelude 与宇宙层** ✓）。
+    **方法记录** ✓：这一轮**改了、量了、发现无效、回退** ✓ —— 全程 4 条命令 ✓，
+    比"改完就宣布修好"✗ 便宜得多 ✓（那会留下一个**声称修好却毫无效果**的改动 ✗）。
