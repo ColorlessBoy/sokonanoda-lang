@@ -507,6 +507,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （**就用先前奏效的那个形状** ✓）分别跑两态 ✓ ⇒ 取 `JUDGE_INFER` 的 `calls`/`total_ms` ✓
     ⇒ 数字进 `docs/perf/ledger.jsonl` ✓。
 
+  - **⚠ round 227：计时统计"时有时无"，原因未定 ⇒ 本条**不勾** ✗（但收益已有旁证 ✓）**
+    **现象** ✓：round 225 **同一条命令**（`SOKO_JUDGE_STATS=1 … 2>&1 >/dev/null | tail -6` ✓）
+    **打出过** `JUDGE_STATS` / `JUDGE_INFER` / `JUDGE_INFER_SPLIT` 三行 ✓；
+    而 round 226（`2>/tmp/a.log` ✓）与 round 227（`| grep` ✓、`| tail -8` ✓）**都没有** ✗。
+    **已排除的猜测** ✗：① 重定向落点 ✗（`2>` 与 `2>&1 >/dev/null` 都试过 ✓）；
+    ② `head` 提前关管道触发 SIGPIPE ✗（换 `tail` 仍无 ✓）。
+    **⇒ 未定** ✗ ⇒ **下一步三条（任选其一 ✓）**：
+    ① `SOKO_JUDGE_STATS=2`（verbose ✓，`judge.rs:352` ✓）看有没有更早的输出 ✓；
+    ② 换 `playground.sokonanoda` 跑 ✓（排除"课程文件路径"这个变量 ✗）；
+    ③ 读 `judge.rs:340-365` 的打印条件与落点 ✓（**这一条最直接** ✓ ——
+       本轮我就是没读它 ✗，才在重定向上绕了两轮 ✓）。
+    **⚠ 但收益已有旁证 ✓（不足以勾 ✓，但方向明确 ✓）**：
+    `JUDGE_INFER_SPLIT **hits=132 misses=12**`（**命中率 91.7%** ✓）· `hit_ms=1` ✓ ·
+    两态 `--json` **逐字节相同** ✓（`886c747ac5ff…` ✓）· 两态退出码 **0** ✓
+    ⇒ **前缀复用确实在跑、且不改变结果** ✓；缺的只是"**关掉时慢多少**"这个基线数字 ✗。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
