@@ -750,6 +750,17 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ 在**那个**文件里照 `actions.rs:96` 的配方写用例 ✓（**Open 声明 + `suggest_with`** ✓）
     ⇒ 自验判据仍是 `SOKO_JUDGE_STATS=1` 必须打出 `JUDGE_INFER calls>0` ✓✓。
 
+  - **✅ round 248 续：文件找到了 —— 是 **`crates/lsp/tests/lsp_cache.rs` 里的
+    `mod perf_course`** ✓**（脚本注释自己写明了 ✓：`perf_` 过滤收走 `tests::perf_course::*` ✓，
+    `scope=lsp-course` ✓ ⇒ 自动进台账 ✓）。
+    **⇒ 下一步（明确 ✓，可以直接动手 ✓）**：在 `crates/lsp/tests/lsp_cache.rs` 的
+    `mod perf_course` 里加一条用例 ✓ —— 照 `actions.rs:96` 的配方 ✓：
+    **一个含多个 `:= sorry` 洞的画布 ⇒ 对某个 Open 声明调 `suggest_with`** ✓
+    ⇒ 走到 `judge_terms_with` ⇒ `judge_pairs_uncached` ✓；
+    **自验判据** ✓：`SOKO_JUDGE_STATS=1 cargo test -p sokonanoda-lsp --test lsp_cache -- --nocapture`
+    ⇒ **必须打出 `JUDGE_INFER calls>0`** ✓✓（否则用例又白写 ✓）；
+    然后两态各跑 ✓ ⇒ **Δ 即 D-1 的真实收益** ✓ ⇒ 数字入 `docs/perf/ledger.jsonl` ✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
