@@ -717,6 +717,15 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   （`half_expression_goals_hover` :1332/1340/1359/1364/1376 ✓）与 `compile/elab.rs`
   的 19 处诊断拼串 ✓。分组处置表见 `docs/design/duplication-audit.md` §3 ✓。
   判据：基线**只许变短** ✓（每迁一处 `--rebless` 削一条 ✓）。
+  - **round 111–112 实测：A/B 两组卡在**同一条** ✓** —— `ElabCtx`（`elab.rs:445` ✓）
+    **没有** `DisplayNotations` ✗（`grep` 零命中 ✓）；**9 个构造点** ✗
+    （`walk.rs`×6 ✓ / `elab.rs:662` ✓ / `prelude.rs:446/557` ✓），
+    而记法表在其中 **3 处根本不存在** ✗（那 3 处不在 check 阶段 ✓）
+    ⇒ **不是"加个字段"** ✗。**可行设计** ✓：加 **`Option<&DisplayNotations>`** ✓
+    （`walk.rs` 6 处 `Some(&self.display)` ✓、其余 3 处 `None` ✓），
+    4 处消息在 `Some` 时 `fold` ✓、`None` 时原样 ✓ —— 依据 `prelude.rs` 既有约定
+    "**没有表的地方传空表（不影响）**" ✓。A 组同理（`ProjectReport` 带表+arity ✓）。
+    **红线** ✓：不许在任一层**重建** arity ✗（第五套实现 ✓，守卫会抓 ✓）。
   - **round 106 ✅ 第一次迁移**：`kernel_phase.rs:104/123/321` 走 `display.fold` ✓（基线 92 → **89** ✓）。
   - **round 107 的顺序调整** ✓：**B 组（`elab.rs`，20 处）优先** ✓ —— 它**在 front 内部** ✓、
     那里**本来就有**记法表 ✓ ⇒ 就地走 `fold` ✓、**零结构改动** ✓；
