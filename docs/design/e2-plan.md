@@ -884,6 +884,39 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 298：验证了 round 296 的猜测（对了一半 ✓）⇒ 最终改动清单定稿 ✓**
+    ```
+    $ cargo check（**不掩膜** ✓）
+    error: **function `walk_real_add_enabled` is never used**
+      --> crates/front/src/compile/check/mod.rs:1319
+    ⇒ 确实是"未使用 ⇒ 错误" ✓（`dead_code` 被 deny ✓）
+    ⇒ **但不是我猜的"未使用的 `probe_builder` 变量"** ✗ ⇒ 是**未使用的函数** ✓
+    ```
+    **⇒ 最终改动清单（定稿 ✓，共 6 处 ✓）**：
+    * **① 内核加 API** ✓：`crates/kernel/src/builder.rs` 加 `with_declars_hidden` ✓（round 297 的形状 ✓）；
+    * **② 撤掉 C1 的 `probe_builder` 建设** ✓（`check/mod.rs` 里那段 `EnvBuilder::new(arena…)` +
+      `install_all_preludes` ✓ 整段删 ✓ —— **arena 与 prelude 都不再需要** ✓）；
+    * **③ 撤掉 `Walk {}` 里的 `probe_builder:` 一行** ✓；
+    * **④ 撤掉 `walk.rs` 结构体的 `probe_builder` 字段** ✓；
+    * **⑤ 三处调用改成"开关下用 hidden-declars，否则原样"** ✓：
+      ```rust
+      redundant_probes: if walk_real_add_enabled() {
+          self.with_declars_hidden(|b| {
+              build_redundant_probes(b, universe, ty, val, spans, &known, ctx)
+          })
+      } else {
+          build_redundant_probes(&mut self.builder, universe, ty, val, spans, &known, ctx)
+      },
+      ```
+      （⚠ 借用：`known` 是 `&KnownTable` 字段 ✓ ⇒ 与 `&mut self` 冲突 ✗ ⇒
+      **先把 `known` 复制出引用** ✓（`let known = &self.known;` ✗ 仍冲突 ✓）
+      ⇒ **最省**：把 `known` 作为参数传进闭包 ✗ ⇒ 或 **`with_declars_hidden` 改成
+      接收 `&mut KnownTable` 之外的东西** ✗ —— **先试，编译错会告诉我** ✓）；
+    * **⑥ `mod.rs` 的 helper 保留** ✓（⑤ 用到 ✓ —— **撤掉它会 `never used` 报错** ✓，
+      round 298 实测 ✓）。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 应降到 0**（现 5 ✓）· 四件套 ✓ · 基准再降 ✓；
+    **反向验证** ✓：⑤ 的 `if` 去掉（永远走真 builder ✓）⇒ **必须回到 96** ✓。
+
   - **✅ round 297：需要一个小的内核 API ✓（而内核**可以改** ✓）**
     ```
     builder.rs:31   declars: DeclarMap<'a>,        ← **私有字段** ✓，无换它的现成手段 ✗
