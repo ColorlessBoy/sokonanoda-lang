@@ -96,11 +96,17 @@ impl<'a> EnvBuilder<'a> {
     ///（A 步把声明提前加进真 `builder` 之后 ✓，探针看到它们 ⇒ 冗余判定翻转 ✗）。
     ///
     /// **默认路径不调用它** ✓ ⇒ 判定行为**零变化** ✓（硬规则 1 的红线不受影响 ✓）。
-    pub fn with_declars_hidden<R>(&mut self, f: impl FnOnce(&mut EnvBuilder<'a>) -> R) -> R {
-        let saved = std::mem::take(&mut self.declars);
-        let r = f(self);
+    /// **T-D8**：把 `declars` **挪走并返回** ✓（调用方随后用 `restore_declars` 还回 ✓）。
+    /// 为什么拆成两个方法而**不是**闭包 ✗：调用点要同时给出 `&mut self.builder` 与
+    /// `&self.known` ✓（两个**不同字段** ✓，靠**字段级借用拆分**才合法 ✓）——
+    /// 闭包形式会让 `self` 被**可变借两次** ✗ ⇒ **必然借用错** ✗（round 301 预判 ✓）。
+    pub fn hide_declars(&mut self) -> DeclarMap<'a> {
+        std::mem::take(&mut self.declars)
+    }
+
+    /// 与 [`Self::hide_declars`] 配对 ✓：把声明表还回去 ✓。
+    pub fn restore_declars(&mut self, saved: DeclarMap<'a>) {
         self.declars = saved;
-        r
     }
 
     pub fn with_env<R>(&mut self, f: impl FnOnce(&mut ExportFile<'a>) -> R) -> R {

@@ -847,25 +847,9 @@ fn run_pass(
     let kernel_checks = 0usize;
     // 命令走查（elaborate → `PendingOp`）：批次 3 第三刀切到 `walk.rs`；
     // 这里的累加器按值交给 `Walk`，内核阶段再从 `walk` 取回（见文件尾）。
-    // **C1（round 292）**：给「多余的 `sorry`」探针一份**只装 prelude** 的环境 ✓。
-    // A 步让 walk 把声明提前加进真 `builder` ⇒ **探针的 elaborate 会看到那些名字** ✗
-    // ⇒ 判定翻转（`a_leftover_sorry_*` 那 4 条 ✓）。**A 之前** walk 不往 builder 里 add
-    // 文件声明 ✓（`walk.rs:47-49` ✓）⇒ 这份 builder 就是**恢复那个语义** ✓。
-    // ⚠ **必须与真 `builder` 同 arena** ✓（round 287 ✓）：内核依赖"同值同指针" ✓。
-    // 开关关 ⇒ `None` ⇒ 走原路径 ✓（**类型上的必然** ✓）。
-    let mut probe_builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
-    install_all_preludes(
-        &mut probe_builder,
-        &mut KnownTable::new(),
-        &mut InductiveTable::new(),
-        &mut DefTable::new(),
-        units,
-        options,
-    );
     let mut walk = walk::Walk {
         shadow,
         shadow_upto: 0,
-        probe_builder: walk_real_add_enabled().then_some(probe_builder),
         shadow_failed: Vec::new(),
         shadow_failed_msg: Vec::new(),
         shadow_skip: None,
@@ -1312,11 +1296,4 @@ fn name_loose_bvars(text: &str, scope_names: &[String]) -> String {
 /// Render an AST expression back to source text (used for open-exercise goals).
 pub fn render_expr(expr: &Expr) -> String {
     crate::proof::render_expr(expr)
-}
-
-/// **C1 的开关**（round 292）：**就地**读环境变量 ✓（跨模块会 `E0603` ✗）。
-/// 与 `walk.rs` 那份**同名不同模块** ✓（各自 `OnceLock` ✓ —— 读取幂等 ✓）。
-fn walk_real_add_enabled() -> bool {
-    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| std::env::var("SOKO_WALK_REAL_ADD").is_ok_and(|v| v != "0"))
 }

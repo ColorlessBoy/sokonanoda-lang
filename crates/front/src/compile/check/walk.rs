@@ -48,9 +48,6 @@ pub(super) struct Walk<'arena> {
     /// `finish()` **消费**，而且 walk 阶段**不往里 add** 文件声明 ✗
     /// （它只装 prelude + intern 名字）⇒ judge 拿它查不到前缀 ✓。
     pub(super) shadow: EnvBuilder<'arena>,
-    /// **C1（round 292）**：只装 prelude 的探针环境 ✓（与真 `builder` **同 arena** ✓）。
-    /// `None`（开关关 ✓）⇒ 探针走真 `builder` = 原路径 ✓。
-    pub(super) probe_builder: Option<EnvBuilder<'arena>>,
     /// 影子环境已重放到 `ops` 的哪个下标。
     pub(super) shadow_upto: usize,
     /// 影子重放中**内核拒绝**的那些 `ops` 下标（与 `kernel_phase` 的失败表同键：
@@ -567,15 +564,31 @@ impl<'arena> Walk<'arena> {
                 name: Some(name.to_string()),
                 kind: DeclKind::Definition,
                 universe: universe.to_vec(),
-                redundant_probes: build_redundant_probes(
-                    self.probe_builder.as_mut().unwrap_or(&mut self.builder),
-                    universe,
-                    ty,
-                    val,
-                    &redundant_spans,
-                    &self.known,
-                    &elab_ctx,
-                ),
+                redundant_probes: {{
+                    // **T-D8**：开关下**看不见文件声明** ✓（探针仍在真 `builder` 的 DAG 里
+                    // elaborate ✓ ⇒ 指针同一性保住 ✓；只是环境里没有文件声明 ✓）。
+                    // 用 hide/restore **两个方法**而**不是**闭包 ✗：这里同时借
+                    // `&mut self.builder` 与 `&self.known`（**不同字段** ✓）⇒ 闭包会让
+                    // `self` 被可变借两次 ✗（round 301 预判 ✓）。
+                    let saved = if Self::walk_real_add_enabled() {{
+                        Some(self.builder.hide_declars())
+                    }} else {{
+                        None
+                    }};
+                    let probes = build_redundant_probes(
+                        &mut self.builder,
+                        universe,
+                        ty,
+                        val,
+                        &redundant_spans,
+                        &self.known,
+                        &elab_ctx,
+                    );
+                    if let Some(s) = saved {{
+                        self.builder.restore_declars(s);
+                    }}
+                    probes
+                }},
                 env_before: c.env_before,
                 declared_ty: Some(signature.declared_ty),
                 sig_probe: signature.probe,
@@ -791,15 +804,31 @@ impl<'arena> Walk<'arena> {
                 name: Some(name.to_string()),
                 kind: DeclKind::Theorem,
                 universe: universe.to_vec(),
-                redundant_probes: build_redundant_probes(
-                    self.probe_builder.as_mut().unwrap_or(&mut self.builder),
-                    universe,
-                    ty,
-                    val,
-                    &redundant_spans,
-                    &self.known,
-                    &elab_ctx,
-                ),
+                redundant_probes: {{
+                    // **T-D8**：开关下**看不见文件声明** ✓（探针仍在真 `builder` 的 DAG 里
+                    // elaborate ✓ ⇒ 指针同一性保住 ✓；只是环境里没有文件声明 ✓）。
+                    // 用 hide/restore **两个方法**而**不是**闭包 ✗：这里同时借
+                    // `&mut self.builder` 与 `&self.known`（**不同字段** ✓）⇒ 闭包会让
+                    // `self` 被可变借两次 ✗（round 301 预判 ✓）。
+                    let saved = if Self::walk_real_add_enabled() {{
+                        Some(self.builder.hide_declars())
+                    }} else {{
+                        None
+                    }};
+                    let probes = build_redundant_probes(
+                        &mut self.builder,
+                        universe,
+                        ty,
+                        val,
+                        &redundant_spans,
+                        &self.known,
+                        &elab_ctx,
+                    );
+                    if let Some(s) = saved {{
+                        self.builder.restore_declars(s);
+                    }}
+                    probes
+                }},
                 env_before: c.env_before,
                 declared_ty: Some(signature.declared_ty),
                 sig_probe: signature.probe,
@@ -1104,15 +1133,31 @@ impl<'arena> Walk<'arena> {
                 name: None,
                 kind: DeclKind::Example,
                 universe: Vec::new(),
-                redundant_probes: build_redundant_probes(
-                    self.probe_builder.as_mut().unwrap_or(&mut self.builder),
-                    &[],
-                    ty,
-                    val,
-                    &redundant_spans,
-                    &self.known,
-                    &elab_ctx,
-                ),
+                redundant_probes: {{
+                    // **T-D8**：开关下**看不见文件声明** ✓（探针仍在真 `builder` 的 DAG 里
+                    // elaborate ✓ ⇒ 指针同一性保住 ✓；只是环境里没有文件声明 ✓）。
+                    // 用 hide/restore **两个方法**而**不是**闭包 ✗：这里同时借
+                    // `&mut self.builder` 与 `&self.known`（**不同字段** ✓）⇒ 闭包会让
+                    // `self` 被可变借两次 ✗（round 301 预判 ✓）。
+                    let saved = if Self::walk_real_add_enabled() {{
+                        Some(self.builder.hide_declars())
+                    }} else {{
+                        None
+                    }};
+                    let probes = build_redundant_probes(
+                        &mut self.builder,
+                        &[],
+                        ty,
+                        val,
+                        &redundant_spans,
+                        &self.known,
+                        &elab_ctx,
+                    );
+                    if let Some(s) = saved {{
+                        self.builder.restore_declars(s);
+                    }}
+                    probes
+                }},
                 env_before: c.env_before,
                 declared_ty: Some(signature.declared_ty),
                 sig_probe: signature.probe,
