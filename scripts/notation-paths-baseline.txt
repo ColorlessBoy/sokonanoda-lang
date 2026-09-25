@@ -1,0 +1,80 @@
+# **棘轮基线**（阶段 U / T-U3）：阶段 U 之前就存在的绕过调用点 ✓。
+# 迁移（T-U5）每迁一处就 `python3 scripts/audit-notation-paths.py --rebless` 削一条 ✓；
+# **只许变短**（新增的会被守卫判红 ✗）。指纹 = 文件|调用|该行代码（行号无关 ✓）。
+crates/front/src/by.rs|render_expr|&render_expr(&nodes[cur].ty),
+crates/front/src/by.rs|render_expr|&render_expr(ty),
+crates/front/src/by.rs|render_expr|crate::judge::judge_render_type(prefix_src, options, &spec.binders, &render_expr(ty))
+crates/front/src/by.rs|render_expr|infer(&infer(&render_expr(first))?)?
+crates/front/src/by.rs|render_expr|infer(&render_expr(first))?
+crates/front/src/by.rs|render_expr|judge_infer(prefix_src, options, binders, &render_expr(first))
+crates/front/src/by.rs|render_expr|let Some(text) = crate::judge::judge_render_type(prefix_src, options, &specs, &render_expr(ty))
+crates/front/src/by.rs|render_expr|let probe = render_expr(&sigma[&layers[j].0]);
+crates/front/src/by.rs|render_expr|let term = render_expr(&value_expr);
+crates/front/src/by.rs|render_expr|let term = render_expr(expr);
+crates/front/src/by.rs|render_expr|let term = render_expr(expr);
+crates/front/src/by.rs|render_expr|render_expr(&codomain),
+crates/front/src/by.rs|render_expr|render_expr(&goal)
+crates/front/src/by.rs|render_expr|render_expr(&goal_ty)
+crates/front/src/by.rs|render_expr|render_expr(&restore_universe_levels(
+crates/front/src/by.rs|render_expr|render_expr(&scrutinee_ty)
+crates/front/src/by.rs|render_expr|render_expr(&scrutinee_ty)
+crates/front/src/by.rs|render_expr|render_expr(expr),
+crates/front/src/by.rs|render_expr|spec.ty = render_expr(ty);
+crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
+crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
+crates/front/src/by.rs|render_expr|ty: render_expr(&restore_universe_levels(
+crates/front/src/compile/check/mod.rs|render_expr|pub fn render_expr(expr: &Expr) -> String {
+crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/elab.rs|render_expr|&render_expr(scrutinee),
+crates/front/src/compile/elab.rs|render_expr|Some(result) => format!("`{candidate}` 的结果类型是 `{}`", render_expr(result)),
+crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
+crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(val))
+crates/front/src/compile/elab.rs|render_expr|let ctor_src_sig = render_expr(&ctor_ty);
+crates/front/src/compile/elab.rs|render_expr|let head_text = render_expr(head);
+crates/front/src/compile/elab.rs|render_expr|let term = render_expr(expected_src);
+crates/front/src/compile/elab.rs|render_expr|let term = render_expr(src_ty);
+crates/front/src/compile/elab.rs|render_expr|let text = judge_infer(ctx.prefix_src, ctx.options, &judge, &render_expr(args[n])).ok()?;
+crates/front/src/compile/elab.rs|render_expr|let text = render_expr(&Expr::Ident {
+crates/front/src/compile/elab.rs|render_expr|let text = render_expr(&Expr::Ident {
+crates/front/src/compile/elab.rs|render_expr|let text = render_expr(&Expr::Ident {
+crates/front/src/compile/elab.rs|render_expr|render_expr(guard),
+crates/front/src/compile/elab.rs|render_expr|render_expr(head)
+crates/front/src/compile/elab.rs|render_expr|render_expr(head),
+crates/front/src/compile/elab.rs|render_expr|signature: Some(render_expr(&ind_ty_src)),
+crates/front/src/compile/elab.rs|render_expr|signature: Some(render_expr(&rec.ty)),
+crates/front/src/compile/elab.rs|render_expr|ty: Some(render_expr(ty)),
+crates/front/src/compile/elab.rs|render_expr|ty: Some(render_expr(ty)),
+crates/front/src/compile/goals.rs|render_expr|Expr::Arrow { domain, .. } => Some(render_expr(&domain)),
+crates/front/src/compile/goals.rs|render_expr|Expr::Ident { .. } | Expr::Num { .. } => render_expr(expr),
+crates/front/src/compile/goals.rs|render_expr|Some(render_expr(&substitute_names(ty, &map, &HashMap::new())))
+crates/front/src/compile/goals.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/goals.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/goals.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/goals.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/goals.rs|render_expr|let arm_r = render_expr(&arm_ty);
+crates/front/src/compile/goals.rs|render_expr|let mut term = render_expr(head);
+crates/front/src/compile/goals.rs|render_expr|let r = render_expr(ty);
+crates/front/src/compile/goals.rs|render_expr|let text = render_expr(&domain);
+crates/front/src/compile/goals.rs|render_expr|let text = render_expr(&substitute_names(ty, &map, levels));
+crates/front/src/compile/goals.rs|render_expr|let text = render_expr(domain);
+crates/front/src/compile/goals.rs|render_expr|let text = render_expr(ty_ast);
+crates/front/src/compile/goals.rs|render_expr|other => format!("({})", render_expr(other)),
+crates/front/src/compile/goals.rs|render_expr|return Some(render_expr(ty));
+crates/front/src/compile/goals.rs|render_expr|ty: render_expr(ty_ast),
+crates/front/src/compile/tests.rs|render_expr|assert_eq!(render_expr(&back), expected, "round-trip: {source}");
+crates/front/src/compile/tests.rs|render_expr|assert_eq!(render_expr(&expr), expected, "source: {source}");
+crates/front/src/compile/tests.rs|render_expr|let back = parse_expr_text(&render_expr(&expr))
+crates/front/src/judge.rs|render_expr|_ => render_expr(expr),
+crates/front/src/query/mod.rs|tag_runs_with_notations|semantic::tag_runs_with_notations(text, decls, binders, notations)
+crates/front/src/semantic.rs|tag_runs_with_notations|let bare = tag_runs_with_notations("A ↔ B", &[], &[], &[]);
+crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations(
+crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("A ∈ B -> (A ↔ B)", &[], &[], &symbols);
+crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("z = z", &[], &[], &["=".to_string()]);
+crates/front/src/semantic.rs|tag_runs_with_notations|pub fn tag_runs_with_notations(
+crates/front/src/semantic.rs|tag_runs_with_notations|tag_runs_with_notations(text, decls, binders, &[])
+crates/front/src/suggest.rs|render_expr|let s = render_expr(expr);
+crates/lsp/src/lib.rs|render_expr|goals.push(render_expr(
+crates/lsp/src/lib.rs|render_expr|goals.push(render_expr(domain));
+crates/lsp/src/lib.rs|render_expr|let codomain = render_expr(cur);
+crates/lsp/src/lib.rs|render_expr|let goal_text = render_expr(&goal_ty);
+crates/lsp/src/lib.rs|render_expr|let term_text = render_expr(body);

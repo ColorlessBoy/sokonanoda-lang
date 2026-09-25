@@ -629,6 +629,14 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 见 §13 清单里 `T-U8` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
 
+##### T-U9 **全仓"重复实现"审计**（用户要求）：三个只读 subagent 分头查 front / CLI·LSP·query / scripts·编辑器；每条结论带 file:line 或可复跑命令，报告进 `docs/design/duplication-audit.md`
+
+见 §13 清单里 `T-U9` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U10 **审计结论收口**：每项或立刻做 / 或立守卫 / 或写台账（不做，说明理由）；新增守卫一律棘轮化（基线 + 只拦新增）
+
+见 §13 清单里 `T-U10` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
 ---
 
 ## 阶段 U —— **记法转化统一接口**（2026-09-25 用户要求：「我要求完全统一接口」✓）
@@ -656,11 +664,11 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   "谁必须用它 / 谁不许再直接调 `render_expr`·`print_back`·`tag_runs_with_notations`"的**白名单** ✓、
   以及**不变量**（`text` 与 `runs` 拼出来必须逐字节相同 ✓ —— 这次 bug 的接缝就在这条 ✓）。
   判据：设计被 `docs/design/e2-plan.md` 与 `docs/architecture.md` 双向引用 ✓、白名单**可执行** ✓。
-- [ ] `T-U2` **接口落地（先零行为变化 ✓）**：实现 `render`（内部 = `render_expr` → `print_back` →
+- [x] `T-U2` **接口落地（先零行为变化 ✓）**：实现 `render`（内部 = `render_expr` → `print_back` →
   `tag_runs` ✓ 三段固定顺序 ✓），并让**四处**逐个改为调用它 ✓。
   **判据**：全语料 `--json` **逐字节相同**（`scripts/kernel-diff.sh --fast <前> <后>` ✓）+
   `cargo test -p sokonanoda-front` 全绿 ✓ + 课程门禁 `36 目标 · 328 checked · 99 open · 0 判负` ✓。
-- [ ] `T-U3` **A∖B 守卫：防止长出第五套** ✓：新增 `scripts/audit-notation-paths.py` —— 扫描
+- [x] `T-U3` **A∖B 守卫：防止长出第五套** ✓：新增 `scripts/audit-notation-paths.py` —— 扫描
   `render_expr(` / `print_back(` / `tag_runs_with_notations(` 的**每一个调用点**，凡不在白名单
   （= 统一接口内部 ✓）就**判红** ✓；**反向验证**：把它指向本阶段之前的版本必须报红 ✓
   （咬不住的守卫等于没有 ✓）。进 `scripts/soko gate` 与 CI ✓。
@@ -676,6 +684,14 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   （声明符号与 `->`/`=>` 相撞 ✓），并确认 **R-2 哨兵**（`semantic.rs`）仍绿 ✓。
 - [ ] `T-U7` **e2e 判据入册**：把 `exists_fun` 那条用例在**真 VS Code** 里跑绿并提交 ✓，
   按批次纪律记一条 `docs/e2e/ledger.jsonl` ✓（并核查那轮 4 条红里有没有陈旧服务器造成的假红 ✓）。
+- [ ] `T-U9` **全仓"重复实现"审计**（用户要求 ✓）：「一模一样的功能、多处实现、导致 bug」——
+  三个**只读** subagent 分头查：① `crates/front/**`（同一变换/判据/数据被算两遍 ✓）；
+  ② `crates/cli|crates/lsp|query`（计数/字段/换算/缓存判据各算一遍 ✓）；
+  ③ `scripts/**`+`editor/vscode/**`（取文件、版本解析、判红约定、渲染取值 ✓）。
+  每条结论必须带 **file:line 或可复跑命令** ✓；**产出验证后才并入** ✓。
+  判据：审计报告进 `docs/design/duplication-audit.md` ✓（含"风险排序 + 建议唯一归属 + 可执行判据"✓）。
+- [ ] `T-U10` **审计结论收口**：对每一项或"立刻做"或"立守卫"或"写进台账（不做，说明理由）"✓；
+  新增守卫一律**棘轮化**（基线 + 只拦新增 ✓，照 `audit-notation-paths.py` 的先例 ✓）。
 - [ ] `T-U8` **阶段收尾**：`docs/architecture.md` 写明**唯一接口 + 四套实现的退役** ✓；
   `cargo test --workspace` + `scripts/soko gate` 全绿 ✓；**一次 push** → CI 绿 → bump → auto-tag →
   release → `gh release list` 核对 ✓。

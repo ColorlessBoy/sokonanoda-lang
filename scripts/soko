@@ -1033,6 +1033,28 @@ async function main(argv) {
         return 3
       }
       if ((lint.status ?? 3) !== 0) return lint.status ?? 3
+      // **记法转化调用点守卫**（阶段 U / T-U3，2026-09-25）：谁绕过唯一接口
+      // `DisplayNotations::{fold, render, runs}` 就判红 ✗。**棘轮**：基线
+      // （`scripts/notation-paths-baseline.txt`）里"阶段 U 之前就存在"的调用点
+      // 不判红 ✓，**新增**的才判红 ✗；迁移（T-U5）每迁一处就 `--rebless` 削一条 ✓。
+      // 为什么必须进 gate：`AGENTS.md` —— **咬不住的守卫等于没有** ✓；而 77 处
+      // 存量若一次性判红，gate 就常红、别的东西就没法判了 ✗。
+      const notationPaths = path.join(REPO, 'scripts', 'audit-notation-paths.py')
+      if (!existsSync(notationPaths)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, notationPaths)} —— 记法接口守卫无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const paths = spawnSync(python.cmd, [...python.args, notationPaths], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (paths.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${notationPaths}: ${paths.error.message}\n`)
+        return 3
+      }
+      if ((paths.status ?? 3) !== 0) return paths.status ?? 3
       // Ledger contract: every gap's repro must still agree with its recorded
       // status (`docs/gaps/ledger.jsonl`, docs/gaps/README.md). Cheap (~3 s) and
       // it is the only thing that keeps "fixed_in" honest as the language moves.
