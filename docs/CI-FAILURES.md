@@ -1584,3 +1584,30 @@ cargo test -p sokonanoda-front --doc --locked    # 失败输出第一行就写�
 （`gh run list --limit 5` ✓）⇒ **取消注定失败的那个** ✓ ⇒ **别再推** ✗
 （**推解决不了排队** ✗ —— 它只会再加一个排队的 ✓）。
 
+## 2026-09-25 · 整轮 **success 却什么都没跑** —— `paths-filter` 看的是"**这一推的 diff**" ✗
+
+**症状** ✓：`0.72.0` 的发版推之后，整轮 **`success`** ✓ 而**只有 3 个 job** ✗
+（`changes` + `lint-fmt` + `lint-clippy` ✓）⇒ **重活与 `auto-tag` 全 `skipped`** ✗ ⇒ **没发版** ✓。
+**日志原文** ✓（`changes` job ✓）：
+```
+Run dorny/paths-filter@v4
+  **Matching files: none** ✗
+  **Changes output set to []** ✗
+```
+**根因** ✓：**`paths-filter` 只比"这一推的 `before..after`"** ✓ ——
+**不是"仓库里有什么"** ✗、**也不是"前几推带了什么"** ✗。
+⇒ 我那次推的 diff **只有 `STATUS.md`** ✓（**rust 改动在**上一推**里** ✗）⇒ **过滤器报"无 rust"是对的** ✓。
+
+**⇒ 规程（这是"发版推"的硬条件 ✓）**：**发版那一推必须自带过滤器认的路径** ✓：
+```
+crates/** · Cargo.toml · Cargo.lock · scripts/** · .github/workflows/**   ← rust ✓
+editor/** ← editor ✓    courses/** · playground.sokonanoda ← courses ✓
+```
+⇒ **而"改 `.github/workflows/**` 也算 rust"** ✓ 是一条**很有用**的性质 ✓：
+**修 CI 的推会自动触发重活** ✓ ⇒ **不用为了触发而造改动** ✓（**真实待办自己就是触发器** ✓）。
+
+**⚠ 而一个"看起来很像"的错误结论** ✗：我一度推断是 **`git pull --rebase` 让 `before` 不可达** ✗
+⇒ **错了** ✓（**快进推也一样** ✓）⇒ **真因是 diff 内容** ✓。
+**⇒ 教训** ✓：**"这推带了什么"和"仓库里有什么"是两个问题** ✗ ——
+**判据要问对**：`git diff --name-only origin/main...HEAD` ✓（**这一推的 diff** ✓）。
+
