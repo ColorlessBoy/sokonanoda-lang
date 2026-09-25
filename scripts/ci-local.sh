@@ -81,6 +81,22 @@ run "gates：缺口台账（--strict ✓ 本地必须跑完）" "ledger" python3
 # ⇒ 报"正文里有环节但清单没有排入" ✓、进度 50 → 49 ✗ —— 而 `plan.py check` **是 gate 与 CI 的一步** ✓
 # ⇒ 那会变成一次 CI 红 ✗。是**收尾时的完整性检查**抓到的 ✓，不是这道门 ✗ ⇒ 补进来 ✓。
 run "gates：计划一致性" "gates" python3 scripts/plan.py check
+# **折叠判据的"反向验证"**（2026-09-25 round 167 补 ✓，落实 §9.1 ✓）：
+# §9.1 说"**新判据必须附一条反向验证命令**" ✗ —— 但此前**没有任何门在跑它** ✓
+# ⇒ 判据可能悄悄变成"永远绿"的摆设 ✗（本 session 为此撤回过**三次**空转判据 ✓）。
+# 这里把那两条**已证明咬得住**的判据在 `SOKO_NO_NOTATION_FOLD=1` 下重跑 ✓：
+# 它们**必须判红** ✗ —— 若仍然绿 ⇒ 说明判据咬不住 ⇒ **门自己红** ✓。
+run "gates：折叠判据的反向验证（必须判红 ✗）" "gates" bash -c '
+set -u
+fails=0
+for t in a_kernel_pp_display_surface_must_be_folded hover_text_is_folded_like_the_lsp_does; do
+  if SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front --lib "$t" >/tmp/soko-rev-verify.log 2>&1; then
+    printf "  ✗ %s 在关掉折叠时**仍然绿** ⇒ 它咬不住 ✗\n" "$t"; fails=1
+  else
+    printf "  ✓ %s 如预期判红 ✗\n" "$t"
+  fi
+done
+exit $fails' 
 run "gates：版本单一源" "gates" python3 scripts/bump.py --check
 run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
 run "gates：记法路径守卫" "gates" python3 scripts/audit-notation-paths.py
