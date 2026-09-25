@@ -26,6 +26,22 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⚠ round 349-350：同一 run 的 job 被**重新排队** ✗（疑似 attempt 重启 ✓）**
+  ```
+  round 349 ✓：run 36189963908 ⇒ 5 绿 · **5 未完**（gates-fast/perf-gate/ledger×3）· **零失败** ✓✓
+  round 350 ✓：**同一个 run id** ⇒ 整轮 **queued** ✗ · **未完 18 个** ✗
+    （**10 条 `test` 腿全在里面** ✗ —— 而 round 347 它们是**绿的** ✓）
+  $ gh run list --limit 4
+    36189963908 sha=a6eaf40 push **in_progress** ✓   ← 最新 ✓
+    36189154464 sha=6177335 push completed/**cancelled** ✓
+    36188388061 sha=f450559 push completed/**success** ✓
+  ⇒ ⇒ **job 被重新排队** ✗ ⇒ **先前"10 条腿全绿"是第一轮的读数** ✓
+  ⇒ **原因未知** ✗（无失败 ✓ —— 不是 `--failed` 重跑 ✓）⇒ **处置：等** ✓，**不推** ✓。
+  ```
+  **⇒ 判据不变** ✓：**零失败** ✓ + **等它跑完** ✓ ⇒ `auto-tag` ⇒ release ✓。
+  ⚠ **注意** ✓：**同一个 run id 可能有多轮 job** ✗ ⇒ **读 job 级时要看**最新一轮** ✓**
+  （否则会把**上一轮的绿**当成**这一轮的绿** ✗ —— 这正是 round 347 发生的事 ✓）。
+
 * **✅ round 348：零失败 · 只剩 **5 个** ✓（`editor` 已绿 ✓）**
   ```
   run 36189963908 ✓：**失败（空）** ✓✓ · 未完 5 个：gates-fast · **perf-gate** · ledger(1,2,3) ✓
