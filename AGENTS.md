@@ -314,6 +314,27 @@ CI 强制的只有 `Cargo.toml` 与 `package.json` **相等**，且版本号只�
 > 一句话：**把"可并行的取证与验证"外包，把"判定与发布"留在主线，
 > 每条外包都带判据、都要验、结论都要回写。**
 
+## 性能回归门禁（`perf-gate`，T-E1，2026-09-25 ✓）
+
+CI 的第 15 个 job ✓（**快层** ✓）：**每次 rust 改动的 push** 跑一组 **smoke** ✓
+（合计 **~1 秒** ✓），与 `docs/perf/ledger.jsonl` 的**上一次同名记录**比较 ✓，
+**大幅退化就红** ✗。**它不是"再快一点"✗，而是"以后慢下来会被发现"** ✓ ——
+**D-1/D-2 那两刀收益量不出** ✗，但它们的**热路径**（`did_open_same_session`，**134ms** ✓）
+从此有守卫 ✓。
+
+- **本地跑** ✓：`scripts/perf-check.sh --case judge_prefix_with_imported --threshold 50` ✓
+  （`--list` 看台账里有哪些 `(scope, case)` ✓；`scripts/perf-ledger.sh` 跑全量 ✓）；
+- ⚠ **`--case` 是"测试名子串"** ✗ —— **不是**台账里的 `(scope, case)` 名 ✗
+  （实测：拿台账名 ⇒ **5 个里 3 个 `exit=2`** ✗ = "没跑到任何 case" ⇒ **守卫空转** ✗✓）。
+  **新增过滤器必须先 `git grep` 出真实测试名 ✓，再逐个验证 `exit != 2`** ✓
+  —— **咬不住的守卫等于没有** ✓；
+- **阈值 `--threshold 50`** ✓（比默认 25% **更松** ✓）：**CI runner 比本地吵** ✗
+  ⇒ **门禁假红比没有门禁更糟** ✗✓；
+- **第一轮 `continue-on-error: true`** ✓（只报不拦 ✓）⇒ **CI 会绿** ✗
+  ⇒ **读它必须 job 级** ✓（`scripts/ci-watch.sh` ✓ / `gh run view <id> --json jobs` ✓），
+  **不能看整轮结论** ✗（**批次制第 d 条** ✓）；
+- **详见** `docs/PERF.md` 的"性能回归**门禁**"一节 ✓ 与 `docs/design/ci-parallelism.md` ✓。
+
 ## CI 失败记录
 
 每次 CI 红了，在 `docs/CI-FAILURES.md` 追加一条（原因/修复/预防）。
