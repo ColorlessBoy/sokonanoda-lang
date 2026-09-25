@@ -26,6 +26,14 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🚀 round 402：两处 `ci.yml` 修复已推** ✓（`9ac5d32..1fc2c70` ✓ · **hook 第四次全绿** ✓）
+  ```
+  ✅ 五条检查单全过 ✓（diff = **`.github/workflows/ci.yml`** ✓ + STATUS.md + CI-FAILURES.md ✓）
+  ⇒ **含两个修复** ✓：① **`ledger` job 同时构建 LSP** ✓（**根因** ✓）；
+    ② **`SOKO_GAP_REPRO_TIMEOUT=60`** ✓（**三条慢例不再吃满 10 分钟** ✓）
+  ⇒ **判据** ✓：重活跑 ✓ ⇒ **`ledger` 三片转绿** ✓ ⇒ 全绿 ⇒ `auto-tag` ⇒ release ✓。
+  ```
+
 * **🎯🎯🎯 round 401：根因找到 —— `ledger` job **只构建 CLI，没构建 LSP** ✗✓**
   ```
   scripts/soko ✓（**打印出来的** ✓）：
