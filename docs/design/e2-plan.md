@@ -884,6 +884,45 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 301：⑤ 的**真正难点**是借用 ✗ ⇒ 正解 = 闭包体做成自由函数 ✓**
+    ```
+    walk.rs:570 三处同形 ✓：
+        redundant_probes: build_redundant_probes(
+            self.probe_builder.as_mut().unwrap_or(&mut self.builder),   ← `&mut self`（字段 ✓）
+            universe, ty, val, &redundant_spans,
+            &self.known,                                                ← `& self`（另一字段 ✓）
+            &elab_ctx,
+        ),
+    ⇒ 现在能编译 ✓ 靠的是**字段级借用拆分** ✓（两个字段的借用互不重叠 ✓）
+    ⚠ 而 ⑤ 写成 `self.with_declars_hidden(|b| … &self.known …)` ✗
+       ⇒ **`self` 被可变借两次** ✗ ⇒ **必然借用错** ✗✓
+    ```
+    **⇒ 正解（⑥ 的形状 ✓）**：**把闭包体做成一个**自由函数** ✓** ——
+    它只接 `&mut EnvBuilder` + 其余参数（含 `&KnownTable` ✓）⇒ 调用点**只借 `self` 一次** ✓：
+    ```rust
+    // walk.rs 加一个自由函数 ✓
+    fn build_probes_in(b: &mut EnvBuilder<'arena>, universe: &[String], ty: &Expr,
+                       val: &Expr, spans: &[Span], known: &KnownTable,
+                       ctx: &ElabCtx<'arena, '_>) -> Vec<(Declar<'arena>, Span)> {
+        build_redundant_probes(b, universe, ty, val, spans, known, ctx)
+    }
+    // 三处调用 ✓（**仍然借 self 两次** ✗ hmm ✓ —— 见下 ✓）
+    ```
+    ⚠ **但调用点仍要同时给出 `&mut self`（for hidden）与 `&self.known`** ✗
+    ⇒ **唯一干净的办法** ✓：**把 `known` 也一起挪进闭包** ✓ —— 即
+    `with_declars_hidden` **改成接两个 `&mut`** ✗ 不行 ✓ ⇒
+    ⇒ **或者：先把 `known` 从 `self` 里"借出一次"** ✗ 借用期覆盖整个调用 ✓ ⇒ 冲突 ✓。
+    **⇒ 最省且必然可行的办法（推荐 ✓）**：**让 `with_declars_hidden` 不做闭包** ✗ ——
+    改成**两个方法**：`hide_declars(&mut self) -> DeclarMap<'a>`（挪走并返回 ✓）+
+    `restore_declars(&mut self, saved: DeclarMap<'a>)` ✓ ⇒ 调用点：
+    ```rust
+    let saved = if on { Some(self.builder.hide_declars()) } else { None };
+    let probes = build_redundant_probes(&mut self.builder, universe, ty, val, &redundant_spans, &self.known, &elab_ctx);
+    if let Some(s) = saved { self.builder.restore_declars(s); }
+    ```
+    ⇒ **借用不重叠** ✓（`&mut self.builder` 与 `&self.known` 是不同字段 ✓，与现在**完全同形** ✓）
+    ⇒ **改动最小、必然编译过** ✓✓。
+
   - **🎯 round 300：① 的**三层回归全过** ✓ ⇒ 硬规则 1 清账 ✓（D-2 的第一处内核改动安全落地 ✓）**
     ```
     内核包真名 = `sokonanoda` ✓（crates/kernel/Cargo.toml:3 ✓；:34 是 `[lib] name` ✓）
