@@ -2575,6 +2575,23 @@ exists_univ pp raw: forall (α : Type 0), Exists (Set α) (fun (U : Set α) => �
 * `soko query goals --file …/unit11-…` ⇒ `exists_univ` 的 `ty_runs` 必须带 `∃` ✓；
 * e2e：`extension.test.js:986-1000` 从"点名"翻成"记法保留" ✓。
 
+**⑳ ③ 的修法落点与下一个问题（2026-09-25，第 52 轮）**
+**落点**：`crates/front/src/display.rs:153`
+```rust
+let Ok(ast) = crate::proof::parse_expr_text_with(text, &notations.table) else {
+    return DisplayText::new(text);   // ← 解析失败 ⇒ 原样返回 = 我们看到的 bail ✓
+};
+```
+`notations.table` 里带着**内建 `=`** ⇒ 词法把 `fun … =>` 里那个 `=` 吃掉 ⇒ 解析失败 ⇒ bail ✓
+（与量到的 `parse_ok=false` 完全自洽 ✓；`subset_univ` 的类型**没有 lambda** ⇒ 没有 `=>` ⇒
+解析通过 ⇒ 折得动 ✓ —— 两个观察同一机制 ✓）。
+**下一个问题（单点）**：记法符号的匹配在哪里做、**有没有最长匹配** ✓
+（`crats/front/src/lexer.rs` 里**没有**记法匹配 ✗ ⇒ 在 parser / notation 那一带 ✓）。
+若有最长匹配 ⇒ `=>` 会先于 `=` 被吃掉 ✓（那这里的问题就是**表里不该带 `=`** ✗）；
+若没有 ⇒ **补最长匹配**是通用修法 ✓（`=>`/`==>`/`<->` 之类都会受益 ✓）。
+**判据（已在树，转断言即可 ✓）**：`folds_with_the_real_pipeline_table_shape` ✓、
+`query goals` 的 `ty_runs` 带 `∃` ✓、e2e 翻绿 ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
