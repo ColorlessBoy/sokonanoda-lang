@@ -492,6 +492,21 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （`… 2>/tmp/x.log; tail -6 /tmp/x.log` ✓）⇒ 比较 `JUDGE_INFER` 的 `total_ms`/`calls` ✓
     ⇒ 数字进 `docs/perf/ledger.jsonl` ✓（**性能只升不降** ✓）。
 
+  - **✅ round 226：正确性那半条**验到了**（`by` 密集的**课程**文件上 ✓）；计时那半条仍缺 ⇒ 不勾 ✗**
+    **在 `course/unit4-by-tactics.sokonanoda`（by 行 14 ✓）上 ✓**：
+    | 项 | 结果 |
+    |---|---|
+    | 态 A（复用开 ✓） | 退出码 **0** ✓ |
+    | 态 B（`SOKO_JUDGE_ENV_REUSE=0` ✓） | 退出码 **0** ✓ |
+    | **两态 `--json`** ✓ | 开 `886c747ac5ff…` = 关 `886c747ac5ff…` ⇒ **逐字节相同** ✓✓ |
+    ⇒ **正确性判据成立** ✓（且比 round 224 的 `playground` 更强 ✓：这是**课程**里 by 最重的文件 ✓）。
+    **⚠ 计时仍缺** ✗：两态的 `JUDGE_STATS`/`JUDGE_INFER` 行**没落进文件** ✗
+    （`… 2>/tmp/a.log` ✓ 后 grep 无命中 ✗ —— 而**同一命令**先前在终端上（`2>&1 >/dev/null | tail` ✓）
+    却打出来过 ✓ ⇒ 说明统计的落点/时机对重定向敏感 ✗）。
+    **下一步（一条命令 ✓）**：`SOKO_JUDGE_STATS=1 … 2>&1 >/dev/null | grep JUDGE_` ✓
+    （**就用先前奏效的那个形状** ✓）分别跑两态 ✓ ⇒ 取 `JUDGE_INFER` 的 `calls`/`total_ms` ✓
+    ⇒ 数字进 `docs/perf/ledger.jsonl` ✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
