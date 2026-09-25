@@ -26,6 +26,15 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 348：零失败 · 只剩 **5 个** ✓（`editor` 已绿 ✓）**
+  ```
+  run 36189963908 ✓：**失败（空）** ✓✓ · 未完 5 个：gates-fast · **perf-gate** · ledger(1,2,3) ✓
+  ⇒ `editor` **已绿** ✓（不在未完里 ✓）⇒ 只剩 5 个 ⇒ 全绿 ⇒ **`auto-tag` 会出现** ✓
+  ```
+  **⇒ 下一轮** ✓：**`auto-tag` 出现 ⇒ release ⇒ `gh release list` 核对** ✓；
+  **同时** ✓：`perf-gate` 跑完 ⇒ **它的日志可读** ✓ ⇒ **读那 5 个 case 的 `best_ms`** ✓
+  ⇒ **与本地台账比** ✓（本地抖动 **~3%** ✓）⇒ **定阈值** ✓（`--threshold 50` 是否够宽 ✓）。
+
 * **✅ round 346-347：并发组解开 ⇒ **10 条 `test` 腿全绿** ✓✓（**第三个阻塞清掉** ✓）**
   ```
   round 346 ✓：新 run 长时间 pending + 0 job ✗ ⇒ 查同组 ⇒ 旧 run `36189154464`
