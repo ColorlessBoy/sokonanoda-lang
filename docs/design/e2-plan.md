@@ -396,7 +396,15 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **开工前先读**：① `crates/front/src/compile/check/walk.rs`（walk 的累积量 ✓）；
     ② `crates/front/src/compile/check/mod.rs`（`display_notations` / `finish_pass` ✓）；
     ③ `docs/architecture.md` **§8 gotchas**（arena 生命周期 / panic→Result /
-    `quiet_catch` **不可嵌套** ✓ —— 这一条对"walk 里再进一次检查"尤其要命 ✗）。
+    ~~`quiet_catch` **不可嵌套**~~）—— ⚠ **这条已过时** ✗（round 180 **读代码核实** ✓）：
+    `quiet_catch` 现在是**可嵌套**的 ✓ —— 它走一个**线程局部计数守卫** ✓
+    （`check/mod.rs:1067-1070` 的 `QUIET_DEPTH: Cell<u32>` ✓ + `:1128` 的
+    `let _quiet = quiet();` ✓），注释里写明缘由 ✓（panic hook 是**进程全局**的 ✗，
+    而编译自 T-A30 起**并发跑在后台** ✓ ⇒ 旧写法会让别的线程的 panic 也静音 ✗ ——
+    正是 2026-09-23 CI 上那两条"`FAILED` 却连 `panicked` 都没有"的假象 ✓）。
+    ⇒ **T-D3 的这个前置风险比交接写的要小** ✓：walk 里再进一次检查 ✓
+    不会和既有静音区打架 ✓（**但 depth 是线程局部的 ✗** —— 若 walk 的再检查跑在
+    **另一个线程**上 ✓，静音仍只覆盖各自线程 ✓ ⇒ 这点在写判据时要照顾到 ✓）。
     **开关** ✓：`SOKO_WALK_CHECK=1`（默认关 ✓ ⇒ 默认路径**零变化零成本** ✓ —— 
     这正是可以**分步落地**的原因 ✓）。
     **判据（两态都要 ✓）**：① 默认关 ⇒ 全语料 `--json` **逐字节相同** ✓ +
