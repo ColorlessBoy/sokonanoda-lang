@@ -1221,4 +1221,21 @@ infixr:80 \" '' \" => Set.image\n";
              不在 ⇒ `Exists (fun …)` 永远折不成 `∃ …` ✗（实测 {arities:?}）"
         );
     }
+    /// **量具 ③**（2026-09-25）：`notation_table` 收不收 **`binder_notation`**？
+    ///
+    /// 这是 ③ 最后一个嫌疑：课程库 `lib/Exists.sokonanoda:103` 用
+    /// `binder_notation "∃" => Exists` 声明存在量词记法 ✓；若这一步**没进记法表**，
+    /// `fold_spine` 连名字都找不到 ⇒ `Exists (fun …)` 静默不折 ✗ ⇒ 整条类型退回
+    /// 点形式（`exists_univ` 的实测形状 ✓）。
+    #[test]
+    fn notation_table_collects_binder_notation() {
+        let file = crate::parse("binder_notation \"∃\" => Exists\n").expect("夹具必须能解析");
+        let table = crate::notation::notation_table(&file.commands);
+        let hit = table.iter().find(|decl| decl.target == "Exists");
+        assert!(
+            hit.is_some(),
+            "`binder_notation \"∃\" => Exists` 必须进记法表；表里现有目标：{:?}",
+            table.iter().map(|d| d.target.as_str()).collect::<Vec<_>>()
+        );
+    }
 }

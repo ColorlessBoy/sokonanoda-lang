@@ -2396,6 +2396,24 @@ P
 （lib 里 `inductive Exists` + `binder_notation "∃"`，入口用 `Exists (fun …)`），
 跑真实编译，**打印 `ty_text` 前 40 字** —— 带 `∃` ⇒ 嫌疑 ① 排除 ✓；不带 ⇒ 就是它 ✓。
 
+**⑪ ③ 第四轮测量（2026-09-25）：两个嫌疑清掉，一个夹具陷阱记下来**：
+* **清掉**：`notation_table` **确实**收 `binder_notation` ✓
+  （新增量具 `notation_table_collects_binder_notation` ✓ 过）；
+* **清掉**：闭包里 import 来的 `inductive` **确实**进 arity 表 ✓（⑩ 的量具 ✓ 过）；
+* ⚠ **夹具陷阱（我的端到端量具失败了，别学）**：我拿 `/tmp/nota5/`（自带 `lib/Exists.sokonanoda`
+  + 一个 `binder_notation` ✓）跑 `query goals`，结果**连内建的 `=` 都没折**
+  （`ty`/`ty_runs` 都是 `Exists Nat (fun (n : Nat) => Eq n n)` ✗）⇒
+  说明那个夹具**根本没有课程上下文**（没有清单/闭包规则 ✓）⇒ **这一测不作数** ✗。
+  **教训**：端到端量具必须跑在**真实课程**上下文里（或在 `courses/set-theory` 下临时加文件 ✓），
+  否则量到的是夹具的贫瘠，不是产品行为 ✗。
+* **剩下的那一个嫌疑（下一轮量）**：**真实 `unit11` 编译时**，
+  `crates/front/src/compile/check/mod.rs:429-432` 那个 `commands`
+  （`units.iter().flat_map(...)`）**到底含不含 `lib/Exists` 的命令** ✓。
+  量法（便宜、不改产品）：在 `display_notations` 建表处**临时**加一个
+  `SOKO_TRACE_NOTATIONS=1` 打印（表大小 + 是否含 `Exists`/`∃`），
+  拿 `unit11` 跑一次 `query goals` ✓ —— 含 ⇒ 嫌疑清掉（那就去量 pp 的 spine 形状 ✓）；
+  不含 ⇒ **就是它** ✓（修法：建表用的 `units` 要含闭包，而不是只有入口 ✓）。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
