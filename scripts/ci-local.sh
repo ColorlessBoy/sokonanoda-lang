@@ -76,6 +76,11 @@ run "gates：课程门禁"   "gates" python3 courses/set-theory/tools/check.py
 # 但**快机器上必须跑完** ✓ —— 否则守卫就被"跳过"架空了 ✗（用户："每次都是它出问题，
 # 但是从来不改" ✗ ⇒ 这一刀就是"本地兜底判据" ✓）。
 run "gates：缺口台账（--strict ✓ 本地必须跑完）" "ledger" python3 scripts/gap.py check --strict
+# **计划一致性**（2026-09-25 round 148 补 ✓，来自一次真实的漏网 ✗）：
+# round 145 我给 `T-U12` 用了 `- [~]`（想表达"进行中" ✓）⇒ `plan.py check` **不认**它 ✗
+# ⇒ 报"正文里有环节但清单没有排入" ✓、进度 50 → 49 ✗ —— 而 `plan.py check` **是 gate 与 CI 的一步** ✓
+# ⇒ 那会变成一次 CI 红 ✗。是**收尾时的完整性检查**抓到的 ✓，不是这道门 ✗ ⇒ 补进来 ✓。
+run "gates：计划一致性" "gates" python3 scripts/plan.py check
 run "gates：版本单一源" "gates" python3 scripts/bump.py --check
 run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
 run "gates：记法路径守卫" "gates" python3 scripts/audit-notation-paths.py
