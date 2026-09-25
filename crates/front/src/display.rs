@@ -1280,6 +1280,22 @@ infixr:80 \" '' \" => Set.image\n";
         let tc = crate::notation::notation_table(commands);
         let dnc = DisplayNotations::new(tc, arities_in_commands(commands));
         println!("[C 无内建 / 无 prelude] out: {}", fold_text(text, &dnc));
+        // **机械二分**：一次加一条内建，看哪一条一加就 bail ✓（不再猜 ✗）
+        let builtins = crate::notation::builtin_notation_decls();
+        println!("[bisect] builtins 共 {} 条", builtins.len());
+        for (i, b) in builtins.iter().enumerate() {
+            let mut t = crate::notation::notation_table(commands);
+            t.push(b.clone());
+            let dn_i = DisplayNotations::new(t, arities_in_commands(commands));
+            let out = fold_text(text, &dn_i);
+            println!(
+                "[bisect] +{:>2} target={:<14} symbol={:<4} folded={}",
+                i,
+                b.target,
+                b.symbol,
+                out != text
+            );
+        }
     }
 
     /// **③ 的窄到宽探针**（2026-09-25）：先**打印**真实折叠结果，再写断言 ✓
