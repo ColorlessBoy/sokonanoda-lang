@@ -88,21 +88,21 @@ run "gates：计划一致性" "gates" python3 scripts/plan.py check
 # 它们**必须判红** ✗ —— 若仍然绿 ⇒ 说明判据咬不住 ⇒ **门自己红** ✓。
 run "gates：折叠判据的反向验证（必须判红 ✗）" "gates" bash -c '
 set -u
-fails=0
+# **用 `expect-red.sh` 而不是手写循环** ✓（round 172 ✓）：手写循环里"看输出"与"看退出码"
+# 容易混 ✗ —— 而本 session **三次**就是这么把坏东西推上去的 ✓。
 for t in a_kernel_pp_display_surface_must_be_folded hover_text_is_folded_like_the_lsp_does; do
-  if SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front --lib "$t" >/tmp/soko-rev-verify.log 2>&1; then
-    printf "  ✗ %s 在关掉折叠时**仍然绿** ⇒ 它咬不住 ✗\n" "$t"; fails=1
-  else
-    printf "  ✓ %s 如预期判红 ✗\n" "$t"
-  fi
-done
-exit $fails' 
+  scripts/expect-red.sh "$t 在关掉折叠时" -- \
+    env SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front --lib "$t" || exit 1
+done'
+# **守卫自检也必须按退出码拦** ✓（round 171 ✓：我正是在这里放过了 `FAIL` ✗）
 run "gates：版本单一源" "gates" python3 scripts/bump.py --check
 run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
 run "gates：记法路径守卫" "gates" python3 scripts/audit-notation-paths.py
 run "gates：wire 字段守卫" "gates" python3 scripts/audit-wire-fields.py
-run "gates：两个守卫的自检（反向验证 ✓）" "gates" bash -c \
-  'python3 scripts/audit-notation-paths.py --self-test && python3 scripts/audit-wire-fields.py --selftest'
+run "gates：两个守卫的自检（显式按退出码 ✓）" "gates" bash -c '
+set -u
+python3 scripts/audit-notation-paths.py --self-test || exit 1
+python3 scripts/audit-wire-fields.py --selftest || exit 1' 
 
 # ④ editor（CI job `editor`）
 run "editor：stub 宿主" "editor" node editor/vscode/test-extension-host.js
