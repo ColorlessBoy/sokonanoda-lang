@@ -2378,6 +2378,24 @@ P
 `spine.len() == arity` ✓，若 arity 记成 3 而 spine 是 2 ⇒ **静默不折** ✗（这正是
 "单测手工搭表过、真实管线不过"的形状 ✓）。**先量这个数，再决定改哪一行** ✓。
 
+**⑩ ③ 的第三轮测量（2026-09-25，两条量具已进树 ✓）**：
+既然"先量再改"，我把两个数**量死了**（都写成 `crates/front/src/display.rs` 的单测 ✓，
+可复跑 ✓）：
+* `prelude_arities_cover_their_own_targets` ✓ **过**：prelude 段里
+  `And`=2 · `Or`=2 · `Not`=1 · `Iff`=2 · `Eq`=2 ✓，而 **`Exists` 正确地不在里面**
+  （它住在课程库 `courses/set-theory/lib/Exists.sokonanoda:88` 的 `inductive` ✓）。
+* `closure_arities_include_an_imported_inductive` ✓ **过**：
+  `arities_with_prelude_from(arities_in_commands(...))` 对
+  `inductive Exists (A : Type) (p : A -> Prop)` + `ctor` + `end` + `binder_notation "∃" => Exists`
+  ⇒ **`Exists` = 2 在表里** ✓✓。
+⇒ **元数（arity）这条路不是病根** ✗ —— 把它从嫌疑名单划掉 ✓（这是有价值的否定结果 ✓）。
+**剩下的嫌疑（下一轮量，不许猜 ✗）**：① `notation_table(&commands)` 有没有收下
+**`binder_notation`** 这条（若没进**记法表**，`fold_spine` 连名字都找不到 ✗）；
+② 真实 pp 出来的 `Exists (Set α) (fun …)` 的 **spine 形状**与 `arity` 是否真的相等。
+**下一轮的量具（端到端，一次就能定性）**：造一个**真的** import 夹具
+（lib 里 `inductive Exists` + `binder_notation "∃"`，入口用 `Exists (fun …)`），
+跑真实编译，**打印 `ty_text` 前 40 字** —— 带 `∃` ⇒ 嫌疑 ① 排除 ✓；不带 ⇒ 就是它 ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。

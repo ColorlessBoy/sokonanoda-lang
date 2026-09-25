@@ -1168,4 +1168,57 @@ infixr:80 \" '' \" => Set.image\n";
         let broken = "Set.mem α (";
         assert_eq!(fold_text(broken, &dn), broken);
     }
+    /// **量一次真实的数**（2026-09-25）：prelude 段里**本来就该有**的记法目标。
+    ///
+    /// 已经量到的事实（别再猜 ✗）：
+    /// * `prelude_arities()` 里 `And`=2 · `Or`=2 · `Not`=1 · `Iff`=2 · `Eq`=2 ✓，
+    ///   而 **`Exists` = `None`** ✗ —— 因为 `Exists` **不在 prelude 段里**，
+    ///   它是课程库 `courses/set-theory/lib/Exists.sokonanoda:88` 的
+    ///   **`inductive`** ✓ ⇒ 元数只能从**闭包的命令**里来 ✓；
+    /// * 建表处 `crates/front/src/compile/check/mod.rs:429-442` 用的**已经是全闭包**
+    ///   （`units.iter().flat_map(|u| u.file.commands)`）✓，而
+    ///   `arities_in_commands` **也已经**处理 `InductiveBlock`
+    ///   （`params.len() + telescope_len(ty)` = 2 ✓）✓。
+    /// ⇒ **两处看起来都对，`Exists` 却仍然不在表里** ✗ —— 下一个动作**不是**改代码，
+    ///   而是**量真实管线的那张表**（下面的第二个测试就是那个量具 ✓）。
+    #[test]
+    fn prelude_arities_cover_their_own_targets() {
+        let a = prelude_arities();
+        for (name, want) in [("And", 2), ("Or", 2), ("Not", 1), ("Iff", 2), ("Eq", 2)] {
+            assert_eq!(
+                a.get(name),
+                Some(&want),
+                "prelude 自己的目标 {name} 必须元数={want}"
+            );
+        }
+        // `Exists` **不在** prelude 段里（在课程库里）⇒ 这里为 None 是**对的** ✓
+        assert_eq!(
+            a.get("Exists"),
+            None,
+            "Exists 住在课程库，不该出现在 prelude 段里"
+        );
+    }
+
+    /// **真实管线的元数表**：闭包里的 `inductive Exists` 必须进表（否则 `∃` 折不了 ✗）。
+    ///
+    /// 这条是"③ Infoview 点形式"的**测量入口**：它若红，就把
+    /// `crates/front/src/compile/check/mod.rs:441-442` 那张表的来源打出来看
+    /// （谁被收集了、`Exists` 的键长什么样），**别再从下游猜** ✗。
+    #[test]
+    fn closure_arities_include_an_imported_inductive() {
+        // `inductive` 块里只允许 `ctor`/`rec`/`iota`/`end` ⇒ **必须写 `end`** 才能
+        // 接着写 `binder_notation`（实测：漏了 `end` 直接 parse 报错 ✗）。
+        let lib = "inductive Exists (A : Type) (p : A -> Prop) : Prop\n\
+                   ctor intro (w : A) (h : p w) : Exists A p\n\
+                   end\n\
+                   binder_notation \"∃\" => Exists\n";
+        let file = crate::parse(lib).expect("夹具必须能解析");
+        let arities = arities_with_prelude_from(arities_in_commands(&file.commands));
+        assert_eq!(
+            arities.get("Exists"),
+            Some(&2),
+            "闭包里的 `inductive Exists (A) (p)` 必须在元数表里=2；\
+             不在 ⇒ `Exists (fun …)` 永远折不成 `∃ …` ✗（实测 {arities:?}）"
+        );
+    }
 }
