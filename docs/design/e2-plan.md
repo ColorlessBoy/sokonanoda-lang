@@ -884,6 +884,27 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯 round 263：双重发现 ✓ —— A 步无害 ✓ + **round 262 的回退基于误读** ✗**
+    **实测** ✓（A 步在 `main` 上 ✓，只补"影子被请求"这一半 ✓）：
+    ```
+    SOKO_WALK_REAL_ADD=1 SOKO_SHADOW_CHECK=1 cargo test -q -p sokonanoda-front --lib
+    ⇒ 725 passed · **11 failed** ✗
+    ```
+    **发现 ①** ✓：这 **11 条**正是 round 219 记录的"**`SOKO_SHADOW_CHECK=1` 下本来就失败**"的
+    那 11 条 ✓（与影子/内核不等价同源 ✓，属 **T-K12b** ✓）⇒
+    **A 步没有引入任何新失败** ✓（与"只开 SHADOW_CHECK"**完全相同** ✓）。
+    **发现 ②（重要 ✗）** ✓：**round 262 的"开关态测试 ⇒ 101"是**退出码**，不是失败条数** ✗ ——
+    我把 `cargo test` 的退出码读成了"101 条失败" ✗ ⇒ 于是**回退了一个很可能无害的改动** ✗✓。
+    ⇒ **教训** ✓：**退出码与计数必须分清** ✗（`101` 是 cargo test 的失败退出码 ✓；
+    要知道**几条**失败，必须读 `test result: … N failed` ✓）。
+    **⇒ 下一步（两条 ✓）**：
+    ① **重做 round 262 的强制重放** ✓（它是无害的 ✓ —— 本轮已证明"真 `builder` 被填"
+       不引入新失败 ✓）⇒ 并**用 `test result` 行**当判据 ✗（不用退出码 ✗）；
+    ② 然后做 **B 步** ✓（`Walked` 加 `real_add_covered` ⇒ `finish_pass` 跳过 ✓），
+    判据 = **`test result` 行里 failed 数不增** ✓ + **四件套** ✓ + **基准再降** ✓；
+    ⚠ **反向验证** ✓：**只做 B 不做 A 后半** ⇒ **必须出现新失败** ✓
+    （这正是 round 261 记的致命前提 ✓，**要实测** ✓）。
+
   - **⚠ round 262：强制重放写了一次、**失败**、已回退 ✓ —— 但观察很有用 ✓**
     **做法** ✓：在 `check/mod.rs:901` 之前（**恰好早于** `shadow_covered` 的计算 ✓）
     插入"开关打开 ⇒ `let _ = walk.shadow_env();` 强制推到底" ✓
