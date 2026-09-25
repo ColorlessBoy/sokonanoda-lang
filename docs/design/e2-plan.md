@@ -2312,6 +2312,25 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 #### 批次 E：收尾与固化
 
 - [ ] `T-E1` **性能回归进 CI**：把三个基准做成 CI 可跑的 smoke（阈值宽松 ✓，只抓**大幅退化** ✗）
+  - **✅ round 314：第五个过滤器补齐 ✓ ⇒ **五个全部咬得住** ✓（门禁完整且不空转 ✓）**
+    ```
+    perf_course.rs 的真实测试名 ✓：
+      perf_course_did_open_is_recorded ✓          （:74 ✓）
+      perf_course_by_block_is_recorded ✓          （:144 ✓，被 SOKO_PERF_COURSE_SLOW 门控 ✓，约 36s ✗）
+      perf_course_keystroke_is_recorded ✓         （:176 ✓）
+      perf_course_save_same_text_is_recorded ✓    （:248 ✓）
+      perf_course_watched_unchanged_file_is_recorded ✓（:304 ✓）
+    ⇒ 台账的 `did_open`（1905/4644/9085ms ✓）**与** `did_open_same_session`（**134ms** ✓）
+      是**同一个测试的四条记录** ✓ ⇒ 过滤器 `perf_course_did_open_is_recorded` ✓ **一条覆盖四条** ✓✓
+    五个过滤器逐个实测 ✓：**全部 `exit=0`** ✓（**没有 `exit=2`** ✗）⇒ **咬得住** ✓✓
+    ```
+    **⇒ 下一步（下一轮 ✓）**：push ⇒ **看 CI 上 `perf-gate` 的实测数字** ✓
+    ⇒ 判断 `--threshold 50` 是否够松 ✓（**若 CI 抖动 >50% ✗ ⇒ 再放宽 ✓**）
+    ⇒ **转成拦**（去掉 `continue-on-error` ✓）⇒ **那时 T-E1 才算完成** ✓。
+    ⚠ **注意** ✓：`perf-gate` 第一轮是 `continue-on-error: true` ✓ ⇒ **CI 会绿** ✓
+    ⇒ **必须去 `gh run view <id> --json jobs` 里看它自己的结论** ✓
+    （**这正是用户第 d 条的要求** ✓："**盯 job 级而不是 run 级**"✓）。
+
   - **🔴 round 313：job 已写 ✓，而**最重要的发现**是 —— 拿台账名当过滤器 ⇒ **守卫空转** ✗✓**
     ```
     job perf-gate（第 15 个 ✓，进快层 ✓）：needs changes ✓ + if outputs.rust ✓ ·
