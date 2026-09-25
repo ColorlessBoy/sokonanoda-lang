@@ -418,6 +418,7 @@ impl<'arena> Walk<'arena> {
         // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
         let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
+            notations: Some(&self.display),
             prefix_src,
             options,
             inductives: &self.inductives,
@@ -649,6 +650,7 @@ impl<'arena> Walk<'arena> {
         // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
         let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
+            notations: Some(&self.display),
             prefix_src,
             options,
             inductives: &self.inductives,
@@ -863,6 +865,7 @@ impl<'arena> Walk<'arena> {
         // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
         let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
+            notations: Some(&self.display),
             prefix_src,
             options,
             inductives: &self.inductives,
@@ -984,6 +987,7 @@ impl<'arena> Walk<'arena> {
         // 登记，快照正合适：def 不递归）。课程规模下克隆成本可忽略。
         let defs_for_ctx = self.defs.clone();
         let elab_ctx = ElabCtx {
+            notations: Some(&self.display),
             prefix_src,
             options,
             inductives: &self.inductives,
@@ -1265,6 +1269,7 @@ impl<'arena> Walk<'arena> {
             None,
             None,
             &ElabCtx {
+                notations: Some(&self.display),
                 prefix_src,
                 options,
                 inductives: &self.inductives,
@@ -1311,6 +1316,7 @@ impl<'arena> Walk<'arena> {
             None,
             None,
             &ElabCtx {
+                notations: Some(&self.display),
                 prefix_src,
                 options,
                 inductives: &self.inductives,

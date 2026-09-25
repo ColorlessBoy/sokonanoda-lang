@@ -448,6 +448,11 @@ pub(crate) struct ElabCtx<'a, 'b> {
     pub inductives: &'b InductiveTable<'a>,
     /// G-05：当前命名空间栈 + `open` 集合（引用解析用，只读）。
     pub ns: &'b NamespaceScope,
+    /// **显示用的记法表**（T-U11 ✓）：**只许消息路径用** ✓（诊断文本给学习者看 ⇒ 要折记法 ✓）；
+    /// ⚠ **绝不许**用于**判定/解析**路径 ✗（折了会改判定 = 内核红线 ✓），
+    /// 也**绝不许**在这层**重建** arity ✗（= 第五套实现 ✓，守卫会抓 ✓）。
+    /// `None` = "这里不是显示上下文" ✓（沿用 `prelude.rs` 的既有约定 ✓）。
+    pub notations: Option<&'b crate::display::DisplayNotations>,
     /// 已声明的 `def` 体表（只读）。隐式实参的**期望类型 delta 展开**要用它：
     /// `Or.inl h` 的目标常写成 `a ∈ A ∪ B`（`Set.mem … (Set.union …)`，两层
     /// `def`），不展开到 `Or …` 就头部匹配不上。没有表的地方传空表（不影响）。
@@ -660,6 +665,7 @@ pub(crate) fn install_inductive_block<'a>(
     // 不在 v1 支持内）。这里借用既有登记表，插入在本函数末尾进行。
     let empty_defs: DefTable = DefTable::new();
     let elab_ctx = ElabCtx {
+        notations: None,
         prefix_src,
         options,
         inductives: table,
@@ -1480,6 +1486,18 @@ fn split_and_guard<'a>(body: &'a Expr, binder_name: &str) -> Option<&'a Expr> {
 /// binder 记法的操作数（`fun (x : A) => …`）在 binder 没写类型时**由 guard
 /// 反解**出类型并填进注解（第三刀 §12.1）。不需要动 ⇒ `None`（走原路径）；
 /// guard 在、但解不出 ⇒ `elab-binder-notation-unsolved`。
+
+/// **诊断消息里的表达式文本**（T-U11 第一次真迁移 ✓ 2026-09-25）：
+/// 走唯一接口 `DisplayNotations::render` ✓（= `fold(render_expr(e))` ✓）；
+/// **没有表 ⇒ 原样** ✓（那说明这里不是显示上下文 ✓，沿用 `prelude.rs` 的约定 ✓）。
+/// ⚠ 只给**消息**用 ✓ —— 判定/解析路径一律走 `render_expr` ✗（内核红线 ✓）。
+fn render_msg(ctx: &ElabCtx<'_, '_>, expr: &Expr) -> String {
+    match ctx.notations {
+        Some(n) => n.render(expr),
+        None => crate::proof::render_expr(expr),
+    }
+}
+
 fn binder_notation_operand(
     symbol: &str,
     operand: Option<&Expr>,
@@ -1510,7 +1528,7 @@ fn binder_notation_operand(
                     format!(
                         "binder 记法 `{symbol}` 里 `{}` 的类型从 guard `{}` 反解不出来：给 binder 补类型标注（例如 {symbol} ({} : α) ∈ s, p），或改用点名写法",
                         binder.name,
-                        render_expr(guard),
+                        render_msg(ctx, guard),
                         binder.name
                     ),
                     binder.span,
@@ -2155,7 +2173,7 @@ fn try_implicit_application<'a>(
             ErrorKind::ElabImplicitArgumentUnsolved,
             format!(
                 "`{}` 的签名 `{}` 里有 {} 个**隐式**参数，但补不出来（本子集按「后续显式实参的类型 + 期望类型」反解）。把参数写全，例如 `{} …` 逐位写下来",
-                render_expr(head),
+                render_msg(ctx, head),
                 ty_text,
                 k,
                 render_expr(head)
@@ -2431,7 +2449,7 @@ fn anon_ctor_target(
             ErrorKind::ElabAnonCtorNoExpectedType,
             format!(
                 "`⟨…⟩` 的期望类型 `{}` 不是「头 + 参数」形状，看不出该用哪个构造子：改用点名构造子",
-                crate::proof::render_expr(expected)
+                render_msg(ctx, expected)
             ),
             span,
         ));

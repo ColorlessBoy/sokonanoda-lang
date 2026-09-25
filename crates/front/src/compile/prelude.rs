@@ -444,6 +444,7 @@ fn install_l1_command<'a>(
     let ns = NamespaceScope::new();
     let empty_defs: DefTable = DefTable::new();
     let ctx = ElabCtx {
+        notations: None,
         prefix_src: "",
         options,
         inductives,
@@ -555,6 +556,7 @@ pub(crate) fn install_eq_prelude(
     let ns = NamespaceScope::new();
     let empty_defs: DefTable = DefTable::new();
     let ctx = ElabCtx {
+        notations: None,
         prefix_src: "",
         options: &options,
         inductives: &empty,

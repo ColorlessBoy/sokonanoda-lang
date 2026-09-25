@@ -419,3 +419,20 @@ error: field `notations` is never read
 | `elab.rs:2434` | `anon_ctor_target` | 有 ✓ |
 ⇒ 第一处改 `binder_notation_operand` 的**消息文本** ✓（折它 ✓）；其余三处随后 ✓
 （`candidate_list` 要么加参数 ✓、要么不折 ✓ —— 它是**消息** ✓ ⇒ 按硬规则该折 ✓）。
+
+### ✅ **T-U11 第二次迁移**（round 129 ✓）：`ElabCtx` 拿到记法表 + 3 处诊断消息走唯一接口
+* **字段** ✓：`ElabCtx.notations: Option<&'b DisplayNotations>`（`elab.rs:445` ✓）——
+  **只许消息路径用** ✓，判定/解析路径一律不折 ✗（内核红线 ✓）。
+* **9 个构造点全填** ✓（用**编译器行号、从后往前**插 ✓，一次成功 ✓）：
+  `walk.rs` ×6 ⇒ `Some(&self.display)` ✓；`elab.rs:668`、`prelude.rs:446/557` ⇒ `None` ✓
+  （`None` = "这里不是显示上下文" ✓，沿用 `prelude.rs` 既有约定 ✓）。
+* **助手 `render_msg(ctx, expr)`** ✓：`Some` ⇒ `n.render(expr)` ✓（= 唯一接口 ✓）；
+  `None` ⇒ `render_expr(expr)` ✓（原样 ✓）。
+* **迁移的 3 处消息** ✓：`binder_notation_operand`（`render_expr(guard)` ✓）、
+  `try_implicit_application`（`render_expr(head)` ✓）、`anon_ctor_target`（`render_expr(expected)` ✓）
+  —— 都是**给人看的诊断文本** ✓（按用户硬规则必须折 ✓）。
+* ⏳ **剩 1 处**：`candidate_list(candidates: &[&str])`（`:1754`）**没有 `ctx`** ✗
+  ⇒ 要么给它加参数 ✓、要么不折 ✓（它是消息 ⇒ 按硬规则该折 ✓）。
+* **判据** ✓：`cargo check` **rc=0** ✓（`dead_code` 那条错误消失 ⇒ 字段确实被读了 ✓）·
+  `cargo test -p sokonanoda-front --lib` ⇒ **735 passed / 0 failed** ✓（行为不变 ✓）·
+  `audit-notation-paths.py` ⇒ **无新增** ✓ · 基线 **86 → 84** ✓（`--rebless` ✓）· fmt ✓
