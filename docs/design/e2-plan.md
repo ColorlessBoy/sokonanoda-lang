@@ -580,6 +580,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     * **缺** ✗：**关掉复用时的基线耗时** ✓（`docs/perf/ledger.jsonl` 要的那个数字 ✓）；
     * ⇒ **不勾** ✗（本条的重点是"miss 成本是否塌下来" ✓，那需要两态计时 ✓）。
 
+  - **🎯 round 231：调用点找到，并指向**正规途径** —— 不是手搓 CLI** ✗**
+    **`judge_pairs_uncached` 的调用者** ✓（`git grep` ✓）：
+    * `judge.rs:254` ✓ 在 **`judge_terms_with`** ✓（public ✓）
+    * `judge.rs:295` ✓ 在 **`judge_pairs_with`** ✓（public ✓）
+    * `judge.rs:692` ✓ 的 `batching_on()` ✓ —— 注释写着"每一次 `judge_pairs_uncached`
+      都要把整份前缀重跑一遍" ✓ ⇒ 批量开关 ✓（`SOKO_NO_JUDGE_BATCH` ✓）
+    ⇒ 即：判卷统计**只在走 public judge API（tactic/`by` 那条路）时才产生** ✓；
+    我用 `sokonanoda <file>` 直跑**未必**走到它 ✗ ⇒ 这解释了 round 225-230 的反复 ✗。
+    **⇒ 而更该先问的是** ✓：**仓库本来就有记录性能的正规途径** ✓ ——
+    `scripts/perf-ledger.sh` ✓（`AGENTS.md` ✓："性能台账：跑全部 perf 套件 →
+    `docs/perf/ledger.jsonl`（提交它）" ✓）⇒ **T-D6 的数字应该由它产出** ✓，
+    **不是**我手搓 CLI 调用 ✗（**这正是本 session 反复出现的"先找正规入口"** ✓）。
+    **⇒ 下一步（一条命令 ✓）**：`bash scripts/perf-ledger.sh` ✓
+    ⇒ 它会把全套 perf 跑一遍并写进 `docs/perf/ledger.jsonl` ✓
+    ⇒ 再与 `SOKO_JUDGE_ENV_REUSE=0` 跑一遍对比 ✓ ⇒ **两态基线就有了** ✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
