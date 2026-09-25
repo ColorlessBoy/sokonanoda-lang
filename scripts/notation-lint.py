@@ -302,7 +302,13 @@ class Linter:
             if root.is_file():
                 out.append(root)
             elif root.is_dir():
-                out.extend(sorted(root.rglob("*.sokonanoda")))
+                # **只收真正的文件**：R-3 之后模块根下多了个 `.sokonanoda/`
+                # 产物**目录**，而它的名字正好以 `.sokonanoda` 结尾 ⇒
+                # `rglob("*.sokonanoda")` 会把它当命中，`read_text()` 随即抛
+                # `IsADirectoryError` ✗ —— 那会让这条门禁**从判卷退化成崩溃**
+                # （崩了就不判，等于没有守卫 ✗）。按"是不是文件"过滤是**通用**修法：
+                # 以后任何同名目录/软链都不会再把它打崩 ✓。
+                out.extend(sorted(p for p in root.rglob("*.sokonanoda") if p.is_file()))
         return out
 
     def scan_file(self, path: Path) -> tuple[list[dict], str]:
