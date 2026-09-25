@@ -2799,6 +2799,25 @@ scripts·编辑器 ✓）、`T-U10`（把审计结论收口成"唯一归属 + �
 **判据**：`cargo test -p sokonanoda-cli --test notation_fold` 三条全绿 ✓ +
 `every_decl_ships_text_and_runs_in_lockstep` 仍绿 ✓ + `exists_fun` 顶部目标带 `∃` ✓。
 
+**㉝ ㉜ 的结论：**T-U4 那处改动是多余的，真正修复是词法**（2026-09-25 第 75 轮）** ✓✓
+按行程开关的提示回退 `query/mod.rs` 的 `goal_display`（把生产者 2 换回源级渲染的 `d.goal` ✓）后，
+**实测夹具仍然是好的** ✓：
+```
+goal      = ∃ (f : Nat -> Nat), f = (fun (n : Nat) => n)   ✓
+goal_runs = ∃ (f : Nat -> Nat), f = (fun (n : Nat) => n)   ✓
+ty        = ∃ (f : Nat -> Nat), f = (fun (n : Nat) => n)   ✓
+```
+⇒ **用户那条 bug 的真正修复是词法**（`token.rs` 的"基础多字符算符更长时让路" ✓ `de358b5` ✓）：
+生产者 2 是 `render_expr` 的**源级渲染** ✓，**本来就带记法** ✓（我第 68 轮说"修前整条点形式"✗
+是**没有量过就下的结论** ✗ —— 那正是本项目反复记的教训 ✓）。
+我那处改动反而**降精度** ✗（`(a : α)` → `(A B : Set α)` ✓），被 `notation_fold.rs` 第 2 组的
+**行程开关**当场判红 ✓✓ ⇒ **已回退** ✓。
+**判据**（回退后全绿 ✓）：`cargo test -p sokonanoda-cli --test notation_fold` ⇒ **3 passed** ✓；
+`cargo test -p sokonanoda-front --lib` ⇒ **731 passed** ✓（含接缝守卫 ✓）；
+夹具 `exists_fun` 三个字段都带 `∃` ✓。
+**T-U4 的勾选仍然成立** ✓（它的判据是"真宿主 e2e 里顶部目标带 `∃`"✓，与实现路径无关 ✓），
+但**机理要按本条更正** ✓：修的是词法 ✓，不是"给目标换显示副本" ✗。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。

@@ -760,10 +760,13 @@ impl QueryDoc {
                 // ⇒ 显示副本用**折过的** `ty_text` ✓。`d.goal` 是 **judge 文本** ✗
                 // （红线：它同时喂判卷 ✓），拿它直接打标签/runs ⇒ 永远是点形式
                 // —— 用户报的「顶部目标没记法化」正是这一处 ✓。
-                let goal_display: Option<String> = d
-                    .goal
-                    .as_ref()
-                    .map(|g| d.ty_text.clone().unwrap_or_else(|| g.clone()));
+                // **回退说明（2026-09-25 第 75 轮）**：这里曾改成"优先用 `ty_text`
+                // （内核 pp 的折叠副本）"✗ —— 那是**换掉了**一个**本来正确**的 surface：
+                // `d.goal` 是 `render_expr` 的**源级渲染** ✓（学习者写的形状、**本来就带记法** ✓，
+                // 例如 `(A ⊆ B) -> (a : α) -> …` ✓），而 `ty_text` 是内核 pp（`(A B : Set α)` ✗
+                // 丢精度）✓。`notation_fold.rs` 第 2 组就是这条**行程开关** ✓，它当场判红 ✓
+                // 并提示"回来更新设计里那张表" ✓（设计：`vscode-editor-feedback-plan.md` §T-C24 ✓）。
+                let goal_display: Option<String> = d.goal.clone();
                 // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
                 // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
                 // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
