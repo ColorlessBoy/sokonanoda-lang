@@ -884,6 +884,51 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 265：四段式补丁已写准（下一轮机械照做 ✓）**
+    **已读到的两处结构** ✓：
+    ```rust
+    // kernel_phase.rs:23-41  Walked 的字段表（builder 在 :33 ✓）
+    // kernel_phase.rs:175-191  finish_pass 的解构表（逐字段列出 ✓，builder 在 :183 ✓）
+    ```
+    **① `Walked` 加字段** ✓（放在 `builder` 旁 ✓）：
+    ```rust
+    /// **B 步**：开关打开时 = walk **已经** check-then-add 过的 `cmd` 集合 ✓
+    /// ⇒ 内核阶段对它们**跳过重查** ✓（否则就是"两边都 add" ⇒ 重复 ⇒ round 264 实测 140 失败 ✗）。
+    /// 开关关 ⇒ `None` ✓ ⇒ 默认路径**零变化** ✓。
+    pub(super) real_add_covered: Option<std::collections::HashSet<usize>>,
+    ```
+    **② 解构表加一行** ✓：在 `mut kernel_checks,` 之后加 `real_add_covered,` ✓。
+    **③ `PendingOp::Decl` 分支改成跳过** ✓（`kernel_phase.rs:346` ✓）：
+    ```rust
+    PendingOp::Decl { cmd, .. } => {          // ← 现在写的是 `{ .. }` ⇒ 要**绑上 cmd** ✓
+        // **B 步**（round 265）：walk 已经 check-then-add 过的 ⇒ **跳过** ✓。
+        // ⚠ 被跳过的是**已通过**的 ✓ ⇒ `allow_cutoff` / `op_failed` **都不动** ✓
+        // （它们表达的是"这条被内核拒绝了" ✓，而跳过意味着它**没被拒** ✓）。
+        let covered = real_add_covered.as_ref().is_some_and(|s| s.contains(&cmd));
+        if !covered
+            && check_then_add_decl(&mut env, &display, &mut out, &mut decl_states,
+                                   &mut failed_cmds, &mut kernel_checks, j, op)
+        {
+            allow_cutoff = false;
+            op_failed = true;
+        }
+    }
+    ```
+    （⚠ `cmd` 是 `usize` ✓ Copy ✓ ⇒ 绑定它不影响把 `op` 移进函数 ✓。）
+    **④ `check/mod.rs` 两处** ✓：
+    * 强制重放（round 264 的插入 ✓）**保持** ✓；
+    * `Walked { … }` 里加 ✓：
+      ```rust
+      real_add_covered: walk.walk_real_add_requested().then(|| shadow_covered.clone()),
+      ```
+    **判据** ✓（**读 `test result` 行** ✗，不看退出码 ✗）：
+    1. 默认态 ⇒ **736 passed / 0 failed** ✓；
+    2. `SOKO_WALK_REAL_ADD=1` ⇒ **failed 数回到基线 11** ✓（**不是 0** ✗）；
+    3. `SOKO_WALK_REAL_ADD=1 SOKO_SHADOW_CHECK=1` ⇒ 同为 **11** ✓；
+    4. 四件套 ✓ + 基准再降 ✓（数字进台账 ✓）。
+    ⚠ **反向验证** ✓：把 ③ 的 `if !covered &&` 去掉（只留 ④）⇒ **必须回到 140** ✓
+    （round 264 已实测过这个数 ✓ ⇒ 这就是"撤掉修复必须判红" ✓）。
+
   - **🎯 round 264：判据修对了（读 `test result` ✓）⇒ 问题看清了 ⇒ **强制重放确实有害** ✗**
     ```
     默认        : 736 passed; 0 failed ✓
