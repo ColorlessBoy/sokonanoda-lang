@@ -884,6 +884,27 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 273：读到了失败的**分布** ✓（正文没抓到 ✗，但分布已经说明问题 ✓）**
+    ```
+    失败分布 ✓：compile **59** · query 17 · judge 9 · suggest 7 · session 3（≈95 ✓）
+    （正文段 `---- … stdout ----` **没抓到** ✗ —— 日志里没有那一段 ✓，见下 ✓）
+    ```
+    ⇒ **失败横跨 5 个模块** ✓ ⇒ **不是"某一处记账丢了"** ✗（那会集中在一两个模块 ✓），
+    而更像"**环境状态整体不同**"✓ —— 即 **round 269 记的那个"时机差"假设** ✓：
+    walk 在 elaborate 后加 ✓、内核在第二阶段加 ✓ ⇒ 两次之间 `env` 上的操作不同 ✓ ⇒ 状态不同 ✓。
+    **⇒ 下一步（更省的一条命令 ✓）**：**只跑一个**失败用例 ✓，直接读它的断言文本 ✓：
+    ```bash
+    python3 /tmp/patch_d2_b2.py
+    SOKO_WALK_REAL_ADD=1 cargo test -p sokonanoda-front --lib compile::tests::match_prop_result_checks -- --nocapture 2>&1 | tail -30
+    ```
+    （round 263 的输出里，失败名带 `compile::tests::` 前缀 ✓ ⇒ 可直接点名 ✓；
+    比"跑全套再 grep"省得多 ✓ —— **一次跑一个**，消息就在眼前 ✓。）
+    **⇒ 判断标准（先说清 ✓，免得又猜 ✗）**：
+    * 若是"**unknown const / 找不到名字**"✗ ⇒ 某处**登记**丢了 ✓（`known`/`defs`/interning ✓）；
+    * 若是"**def_eq mismatch / 层级不一致**"✗ ⇒ **时机/顺序** ✓（环境里多了或少了几条 ✓）；
+    * 若是"**事件计数不符**"✗ ⇒ 记账被**多算/少算** ✓（`kernel_checks` ✓）。
+    ⇒ **三类对应三种修法** ✓ ⇒ **读到哪一类再动手** ✓。
+
   - **🔴 round 272：round 271 的推断**被证否**（96 → **100** ✗）⇒ 已回退 ✓**
     ```
     默认          : 736 passed; **0 failed** ✓
