@@ -423,8 +423,17 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
       ```
       ⇒ walk 侧是一条 **"影子环境"**（shadow ✓）—— 即**与主路平行的第二遍检查** ✓
       ⇒ **天生适合"开关默认关"** ✓✓（它本来就是**附加**的东西 ✓，不是主判定 ✓）。
-      **第一步具体到** ✓：`git grep -n shadow_check_and_add` ✓ ⇒ 找它的**调用点** ✓
-      ⇒ 把**整条影子走查**接到 `SOKO_WALK_CHECK` 上 ✓（关 ⇒ 连走都不走 ✓ = 零成本 ✓）。
+      **✅ round 199：实现点已指名到行** ✓（T-D3 现在是**约十行**的改动 ✓）
+      * **入口** ✓：`Walk::shadow_env()` ✓（`walk.rs:125` ✓）——
+        它就是"**整条影子走查**"✓（`while self.shadow_upto < self.ops.len()` ✓）；
+      * **调用点** ✓：`shadow_check_and_add` 的两处**都在它里面** ✓（`:146` ✓ `:156` ✓）；
+      * **状态** ✓：`shadow_upto: usize` ✓（`:52` ✓）· `shadow_failed: Vec<usize>` ✓（`:55` ✓）
+        —— **后者正是"两态对拍"现成的对象** ✓（`finish_pass` 那条也有对应的失败集 ✓）；
+      * **开关落点** ✓：`shadow_env()` 的**开头** ✓ —— 关 ⇒ `self.shadow_upto = self.ops.len();`
+        **直接返回** ✓（连一次 op 都不走 ✓ = **零成本** ✓）。
+      ⇒ **改法（下轮照做 ✓）**：① 加一个读 `SOKO_WALK_CHECK` 的小函数 ✓（默认关 ✓）；
+      ② `shadow_env()` 开头加护栏 ✓；③ **两态判据** ✓（关：全语料 `--json` **逐字节相同** ✓；
+      开：`shadow_failed` / 判定量与 `finish_pass` **逐项相同** ✓）。
     ⇒ **T-D3 的真实工作** ✓：① 把这条既有检查**接到开关**上 ✓（默认关 ⇒ 零变化 ✓）；
     ② **两态对拍** ✓（关：全语料 `--json` 逐字节相同 ✓；开：判定量与 `finish_pass`
     逐项相同 ✓）。**比交接写的"内核级从零改"小得多** ✓ —— 而且它现在更像是
