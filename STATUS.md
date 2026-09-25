@@ -26,6 +26,23 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 372：确认 `rust` 过滤器**含 `.github/workflows/**`** ✓✓ ⇒ **一石二鸟** ✓**
+  ```
+  ci.yml:115-134 ✓（**打印出来的** ✓）：
+    filters: |
+      rust:
+        - "crates/**" ✓ · "Cargo.toml" ✓ · "Cargo.lock" ✓ · "scripts/**" ✓
+        - **".github/workflows/**"** ✓✓ ← **改 ci.yml 就触发重活** ✓
+      editor:  - "editor/**" ✓
+      courses: - "courses/**" · "playground.sokonanoda" ✓
+  ⇒ ⇒ **下一件事（修 `ledger` 步骤超时 ✓）本身就是 `ci.yml` 改动** ✓
+    ⇒ **它同时触发重活** ✓ ⇒ **`auto-tag`** ✓ ⇒ **release** ✓
+  ```
+  **⇒ 修法（下一批 ✓）**：把 `Gap ledger is consistent (docs/gaps)` 那一步的
+  **超时从 300s 调大** ✓（**或给 `gap.py` 加 `--timeout`** ✓）——
+  因为 `G22`/`G25` 的看门狗**比 300s 长** ✗ ⇒ **那一步必然超时** ✗
+  ⇒ ⇒ **而修它 = 改 `ci.yml` = 触发重活** ✓ ⇒ **顺带把 release 推出去** ✓。
+
 * **🎯🎯 round 371：**更正 —— rebase 假设错了** ✗✓（**过滤器是对的，是我没带 rust** ✗）**
   ```
   推 `960fe92..165c3ee`（**快进** ✓，`before` 可达 ✓）⇒ **又是全 skip** ✗（`auto-tag` 也 skip ✓）
