@@ -285,3 +285,26 @@ A 组 5 处与 B 组 19 处改成读那份副本 ✓ —— **而不是**在 `ls
   **路径限定**调用 ✗，见守卫自己的注释 ✓）；本轮的 **89** 是新基准 ✓。
   §3 的分组表**仍按旧 77 编** ✗ ⇒ 待按 **89** 刷新 ⏳（新抓的那些集中在
   `walk.rs`(8) / `kernel_phase.rs`(3，本轮已迁 ✓) / `check/mod.rs` 等 ✓）。
+
+### A 组的**精确落点**（round 107 实测 ✓）
+`crates/lsp/src/lib.rs:1283 half_expression_goals_hover(report, text, offset, decls)` ✓
+自己 `parse_expr_text` + `peel_pi_layers` + `render_expr` ✓ ⇒ 它渲染的是**源码 AST**
+与**剥出来的 Pi 层** ✓。**点形式从哪里漏** ✗：剥出来的 `domain`/`codomain`
+是**内核侧**的类型 ✓（不是源码里的记法 ✓）⇒ 5 处 `render_expr` 里，
+真正需要折叠的是这些**内核侧子项** ✓。
+
+**好消息（少走一步 ✓）**：报告里的 `DeclState` **已经带折过的副本** ✓：
+`ty_text` / `val_text`（`report.rs:109/114` ✓）—— 它们就是**整个类型/值**的折叠结果 ✓
+⇒ A 组的**整类型**那一类（`goal_text = render_expr(&goal_ty)` ✓）可以直接改读它 ✓。
+
+**卡点（与 round 102 同一条墙 ✓）**：`domain`/`codomain` 是**子项** ✗，
+报告里**没有**对应的折叠副本 ✓，而 LSP **拿不到 arity 表** ✗（`DisplayNotations` 需要它 ✓）
+⇒ 折不了 ✓。**正解（下一步 ✓，设计与 T-U4 同款 ✓）**：让 **front 把"折叠能力"带进报告** ✓
+—— 最小改法是在 `ProjectReport` 里带上**记法表 + arity**（或直接带一个
+`Vec<NotationDecl>` + `HashMap<String,usize>` ✓，即 `DisplayNotations` 的字段 ✓），
+并给 front 一个**公开的** `fold_text(&self, text) -> String` ✓；LSP 只调它 ✓。
+**不许**在 LSP 侧重建 arity ✗（那会变成第五套实现 ✓ —— 守卫会抓 ✓）。
+
+**本轮结论** ✓：A 组**不能**用"简单替换"完成 ✗（需要一次 wire/报告结构的小扩展 ✓）；
+**先做 B 组更容易** ✓（`elab.rs` 在 front 内部 ✓ —— 那里**本来就有**表 ✓，
+可以就地走 `fold` ✓，零结构改动 ✓）。⇒ **顺序调整：B 组优先** ✓。

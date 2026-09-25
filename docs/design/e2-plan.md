@@ -717,6 +717,13 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   （`half_expression_goals_hover` :1332/1340/1359/1364/1376 ✓）与 `compile/elab.rs`
   的 19 处诊断拼串 ✓。分组处置表见 `docs/design/duplication-audit.md` §3 ✓。
   判据：基线**只许变短** ✓（每迁一处 `--rebless` 削一条 ✓）。
+  - **round 106 ✅ 第一次迁移**：`kernel_phase.rs:104/123/321` 走 `display.fold` ✓（基线 92 → **89** ✓）。
+  - **round 107 的顺序调整** ✓：**B 组（`elab.rs`，20 处）优先** ✓ —— 它**在 front 内部** ✓、
+    那里**本来就有**记法表 ✓ ⇒ 就地走 `fold` ✓、**零结构改动** ✓；
+    而 **A 组（LSP hover 5 处）需要一次报告结构的小扩展** ✓（LSP **拿不到 arity 表** ✗：
+    报告里只有 `notations: Vec<NotationDecl>` ✓，而 `DisplayNotations` 需要 arity ✓；
+    `ty_text`/`val_text` 只覆盖**整类型** ✓，`peel_pi_layers` 剥出的 `domain`/`codomain`
+    **子项**没有副本 ✗）⇒ 先 B 后 A ✓。**不许**在 LSP 重建 arity ✗（那是第五套实现 ✓，守卫会抓 ✓）。
 - [ ] `T-U12` **面级 sweep 判据**（用户要求 ✓）
   - **round 103 的负面结果（必须记 ✓）**：第一版 sweep 扫的是 `NOTATION_CANVAS` /
     `BY_NOTATION_CANVAS` ✓ —— 它们都是**源级渲染** ✓（学习者写的记法直接进显示文本 ✓，
