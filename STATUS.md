@@ -26,6 +26,21 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🚀🎯 round 368：**hook 第一次不跳过就放行** ✓✓✓ ⇒ **发版推已上** ✓（`d073bfb..960fe92` ✓）
+  ```
+  ✅ ① 版本一致：0.72.0 ✓      ✅ ② `--locked` 通过 ✓
+  ✅ ③ 关键文件数 = 3（含 rust ✓）✅ ④ 远端多了 `d073bfb`（e2e 台账回写 ✓）⇒ rebase ✓
+  ✅ ⑤ **`[pre-push] ✅ 本地快层全绿 ✓ ⇒ 放行 ✓`** ✓✓✓ ⇒ **`d073bfb..960fe92`** ✓
+  ⇒ ⇒ **两个里程碑** ✓：
+    ① **pre-push hook 自 bump 以来第一次全绿** ✓ —— 因为 **`target/debug/sokonanoda`
+       现在是 0.72.0** ✓（**与版本钉匹配** ✓）⇒ ⇒ **`SOKO_SKIP_HOOK` 例外**不再需要** ✓
+       （**round 323 那条留痕的例外，到此关闭** ✓）；
+    ② **发版推已上** ✓（**23 个 commit** ✓：三个看门狗 ✓ + 全部修复 ✓）。
+  ```
+  **⇒ 判据** ✓：CI 的 `ledger` 三片应给 **`exit 2`（环境 ✓）或 `exit 1`（已修 ✓）**
+  ⇒ **不再有"缺口仍在"** ✓ ⇒ **三片应转绿** ✓ ⇒ 10 条 `test` 腿 ✓ + `gates-course` ✓
+  ⇒ **全绿** ⇒ **`auto-tag`** ⇒ **release** ⇒ **`gh release list` 核对** ✓。
+
 * **🎯🎯🎯 round 367：默认 target 下 **`G-37` 给出 `exit=1`（已修）** ✓✓✓（**台账一直是对的** ✓）**
   ```
   $ unset CARGO_TARGET_DIR && cargo build -q -p sokonanoda-cli --locked   # → target/debug/ ✓
