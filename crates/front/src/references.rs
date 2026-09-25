@@ -151,11 +151,17 @@ fn rebase(mut span: Span, doc: &str, base: usize) -> Span {
     span
 }
 
+/// 位置换算：字节 offset → 1-based 行/列（**列按 UTF-16 code unit** ✓）。
+///
+/// **审计 #5（2026-09-25）修** ✗⇒✓：这里原来是
+/// `column = offset - line_start + 1` ⇒ **字节列** ✗，而消费端
+/// （`lsp/render.rs`、`lsp/project_refs.rs`）把 `span.column - 1` 当 LSP 的
+/// `character`（**UTF-16** ✓）发出去 ⇒ 行里有 `α`/`∈` 时 rename/highlight 的
+/// range **右移** ✗。既有夹具是**纯 ASCII** ⇒ 两种口径恒等 ⇒ 一直咬不住 ✓
+/// （判据已补：`line_col_counts_utf16_units_not_bytes` ✓）。
+/// **唯一归属**：`crate::query::line_col_of`（re-export 自 `query::pos` ✓） ✓ —— 真相层只该有**一份**换算 ✓。
 fn line_col_of(doc: &str, offset: usize) -> (usize, usize) {
-    let before = &doc[..offset.min(doc.len())];
-    let line = before.matches('\n').count() + 1;
-    let column = offset - before.rfind('\n').map(|i| i + 1).unwrap_or(0) + 1;
-    (line, column)
+    crate::query::line_col_of(doc, offset)
 }
 
 fn first_ident_span(slice: &str, doc: &str, base: usize, name: Option<&str>) -> Option<Span> {
@@ -184,6 +190,35 @@ fn first_ident_span(slice: &str, doc: &str, base: usize, name: Option<&str>) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// **审计 #5（2026-09-25）**：`line_col_of` 的列必须是 **UTF-16 code unit**
+    /// （= LSP 的 `character` 口径 ✓），不是**字节** ✗。
+    ///
+    /// 为什么必须有一条**含非 ASCII** 的判据：老实现用
+    /// `offset - line_start + 1`（**字节** ✗），而整个既有夹具是**纯 ASCII** ✓
+    /// ⇒ 两者**恒等** ⇒ 这个 bug 一直咬不住 ✓。消费端（`lsp/render.rs`、
+    /// `lsp/project_refs.rs`）把 `span.column - 1` 当 LSP `character` 发出去 ✓
+    /// ⇒ 行里有 `α`/`∈` 时 rename/highlight 的 range 会**右移** ✗。
+    #[test]
+    fn line_col_counts_utf16_units_not_bytes() {
+        // `α` 是 2 字节、1 个 UTF-16 code unit ✓；`x` 在它后面。
+        let doc = "def α : Prop := x\n";
+        let x = doc.find('x').expect("夹具里有 x");
+        assert_eq!(x, 17, "字节偏移（α 占 2 字节 ⇒ 比 code unit 多 1 ✓）");
+        let (line, col) = line_col_of(doc, x);
+        assert_eq!(line, 1);
+        // 列按 **UTF-16**：`def α : Prop := ` 在 `x` 前有 16 个 code unit ⇒ 第 17 列 ✓
+        assert_eq!(
+            col, 17,
+            "列必须是 UTF-16 code unit（LSP character 口径 ✓），不是字节 ✗"
+        );
+        // 更锋利的一条：**两个**多字节字符 ⇒ 两种口径的差距从 1 变 2 ✓
+        let doc2 = "def αα : Prop := y\n";
+        let y = doc2.find('y').expect("夹具里有 y");
+        assert_eq!(y, 19, "字节偏移（两个 α ⇒ 多 2 ✓）");
+        let (_, col2) = line_col_of(doc2, y);
+        assert_eq!(col2, 18, "两个 α ⇒ UTF-16 列 18 ✓（字节口径会给 20 ✗）");
+    }
     use crate::span::Pos;
 
     const DOC: &str = "def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n";

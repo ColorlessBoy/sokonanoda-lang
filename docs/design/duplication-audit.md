@@ -16,7 +16,7 @@
 | 2 ❌**假阳性**（round 80 实测 ✓） | `query/mod.rs:522-578`（`failed` 只由入口事件合成） | `cli/check.rs:156-175`（把**每个非入口模块**的诊断也发出） | **高** —— 同一项目 `grade` 出 2 条诊断、`query check` 的 `warnings` 是 `[]` ⇒ MCP/agent 漏一整层 | **不动** ✗：这是**已文档化的设计** ✓ —— 见下 | `soko --json X \| wc -l` = 2 vs `query check` 的 `"warnings":[]` ✓ | **不做**（设计如此 ✓） |
 | 3 ✅**已修**（round 72） | `scripts/audit-wire-fields.py` **没进 gate** ✗ | `AGENTS.md` / `docs/CI-FAILURES.md` 都宣称"已进 gate 与 CI" ✗ | **高** —— 咬 R-1（`value_runs` 漏映射）的**唯一**守卫**从不自动跑** ✓（与 R-3「门禁崩了却不判」同形 ✗） | 接进 `scripts/soko` 步骤表 + CI ✓ | `grep -c audit-wire-fields scripts/soko` ⇒ **0** ✓（已抽查证实 ✓） | **立刻做** |
 | 4 | `scripts/kernel-diff.sh:82` 收集器无 `-type f` | `notation-lint.py:364` / `verify-decl-panel.py:63`（后者已补 `is_file()` ✓） | **高** —— 实收 **4 个目录** ⇒ 20 组对拍**恒绿**、**"零差异"覆盖被虚报** ✗ | 收集器唯一化 + `-type f` ✓ | `find courses course examples docs/gaps/repro -name '*.sokonanoda' ! -type f` ⇒ **4 行** ✓（已抽查 ✓） | **立刻做** |
-| 5 | offset↔line/col **六份**实现、列口径**三种**（byte/char/UTF-16） | `query/pos.rs:9`（UTF-16，自称唯一 ✗）、`session.rs:467`、`references.rs:98/154`（**byte** ✗）、`lsp/lib.rs:993`、`lsp/render.rs:381`（与上一份**逐字相同**）+ `lsp/tokens.rs:88` 内联 | **高** —— byte 列**直接喂** LSP `character`（`lsp/render.rs:52`、`project_refs.rs:145`）⇒ 含 `α`/`∈` 的行上高亮/rename 右移 ✓（已立台账 G-36/T-D31，但**重复未消除** ⇒ 修一处不会一起好 ✗） | `front::query::pos` 唯一入口 ✓ | `grep -rn "fn line_col\|fn offset_of" crates/front/src crates/lsp/src` ⇒ 9 命中 ✓；`references.rs:157` 确为字节（已抽查 ✓） | **立刻做** |
+| 5 ⏳**最硬的一处已修**（round 84 ✓）：`references.rs` 的**字节列** ✅（判据已加 ✓）；其余见下 | `query/pos.rs:9`（UTF-16，自称唯一 ✗）、`session.rs:467`、`references.rs:98/154`（**byte** ✗）、`lsp/lib.rs:993`、`lsp/render.rs:381`（与上一份**逐字相同**）+ `lsp/tokens.rs:88` 内联 | **高** —— byte 列**直接喂** LSP `character`（`lsp/render.rs:52`、`project_refs.rs:145`）⇒ 含 `α`/`∈` 的行上高亮/rename 右移 ✓（已立台账 G-36/T-D31，但**重复未消除** ⇒ 修一处不会一起好 ✗） | `front::query::pos` 唯一入口 ✓ | `grep -rn "fn line_col\|fn offset_of" crates/front/src crates/lsp/src` ⇒ 9 命中 ✓；`references.rs:157` 确为字节（已抽查 ✓） | **立刻做** |
 | 6 ⏳**一半已修**（round 81 ✓） | `suggest.rs:499 atom_text` ✅ + `:464 eq_refl_candidate` ⏳ | `proof.rs:562 render_atom` + `by.rs:2225 rfl_candidate`（`by.rs:2266` **已改为委托** ✓，suggest 这份**漏了** ✗） | **高** —— 漏 `Notation`/`SetLiteral`/`AnonCtor` ⇒ `rfl` 建议在**记法操作数上静默消失** ✓（同 G-04 第二刀那次 bug ✓） | `proof::render_atom` ✅（`atom_text` 两边都改成**委托** ✓）；`rfl_candidate` 仍待共享 ⏳ | `grep -rn "fn atom_text\|fn eq_refl_candidate\|fn rfl_candidate" crates/front/src` ✓ | **立刻做** |
 | 7 ⏳**已核清单、待定规则归属**（round 82 ✓） | 词法符号表：**两条不同的规则 + 四份逐字副本**（见下 ✓） | 互相 | **高** —— 这是 **R-2 的复发通道** ✗（`=` 吃 `=>` ⇒ 整段降级 ✓）；`notation_input.rs:308 known_symbols` 已是统一实现，同文件 4 处各抄一遍 ✗ | **先定哪条规则为准** ✗（见下 ✓），再让其余全部委托它 ✓ | `grep -rn "lexer_builtin_symbols()" crates/front/src` ✓ | **立刻做** |
 | 8 ✅**已修**（round 69） | ~~**`display.rs:188 DisplayNotations::render` 与 `:235 render_folded` 函数体逐字等价** ✗~~ ⇒ **`render_folded` 已删除**（无调用者 ✓），接口恢复唯一 ✓；盲区已写进守卫文档 ✓ | 我自己的 T-U2 接口 ✗ | **高（元风险）** —— T-U2 刚立的"唯一接口"**当场分成两个入口**，而且两者**都在 `audit-notation-paths.py` 白名单里**（整文件豁免 ✗）⇒ **无人守** ✗✗ | 只保留 `DisplayNotations::render` ✓，删 `render_folded` ✓ | `grep -n "pub fn render\b\|pub fn render_folded" crates/front/src/display.rs` ✓ | **立刻做（T-U5 一并）** |
@@ -89,6 +89,26 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 ⇒ 可安全收成"一个私有 `assemble(scanned)` + 四个薄壳" ✓（**纯重构、零行为变化** ✓，
 判据 = 全语料 `--json` 逐字节对拍 + front 731 ✓）。**下次做** ✓。
 **(c) `parser.rs:3206/3231`** 那两处要单独看 ✓（面对的是 token/继承表，不是 `&str` ✓）。
+
+### #5 的进展（round 84 ✓）：**字节列那一处已修，且第一次有了能咬住它的判据**
+* **复现判红** ✓：`crates/front/src/references.rs::line_col_of` 原来是
+  `column = offset - line_start + 1` ⇒ **字节列** ✗。既有夹具是**纯 ASCII** ✓
+  ⇒ 两种口径恒等 ⇒ **一直咬不住** ✓。新判据
+  `line_col_counts_utf16_units_not_bytes`（`def α : Process :=` 形状 ✓）修前报红：
+  ```
+  assertion failed: 列必须是 UTF-16 code unit（LSP character 口径 ✓），不是字节 ✗
+    left: 18   right: 17
+  ```
+* **修法** ✓：改为**委托** `crate::query::line_col_of`（re-export 自 `query::pos` ✓，
+  它数 UTF-16 code unit ✓ —— 那份文档自己写着"**只有这里一份实现**" ✓）⇒ 唯一归属 ✓。
+* **判据** ✓：新判据绿 ✓ · `cargo test -p sokonanoda-front --lib` ⇒ **732 passed** ✓（731+1 ✓）。
+* ⏳ **仍未做**：
+  - `lsp/render.rs:52` 与 `lsp/project_refs.rs:145` 两份**逐字相同**的 `range_of(Span)`
+    ✗（合并零风险 ✓，下次做 ✓）；
+  - `token.rs` 写 `Span.column` 用的是**字符**数 ✗（与 LSP 的 UTF-16 口径不同 ✗）——
+    这个影响**所有**经词法产生的 span ✓，改动面大、需要独立判据 ✓（先记 ✓）；
+  - `query/mod.rs:1040` 的 `line_col(span)` 直转发 `span.column` ✗（与 CLI `--col` 的
+    UTF-16 解释不同单位 ✓）—— 同族 ✓。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 
