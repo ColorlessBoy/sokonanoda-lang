@@ -26,6 +26,24 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🏁 round 420（**预算最后一轮** ⚠）：14 绿 · 11 未完 · 零失败** ✓（**`auto-tag` 尚未创建** ✓）
+  ```
+  整轮 attempt=1 in_progress ✓ · **失败（空）** ✓ · 已绿 14 ✓ · 未完 11 ✓
+  ⇒ **`auto-tag` 不在 job 列表里** ✓（**它要等 `needs` 全完** ✓）⇒ **release 未触发** ✓
+  ⇒ ⇒ **工作未完成** ✓ ⇒ **目标保持 active** ✓（**不标记完成** ✗）。
+  ```
+  **⇒ 交接（接手只需两步 ✓）**：
+  ```bash
+  gh run view 36199359056 --json jobs | grep -c failure   # 期望 0
+  gh release list --limit 1                               # 期望 sokonanoda v0.72.0 Latest
+  ```
+  **⚠ 本段（rounds 361–420）的成果** ✓：
+  ① **三个修复** ✓（**看门狗 → 60s → 构建 LSP** ✓）⇒ **`ledger` 三片转绿** ✓✓
+     —— **解开了一条从 `0.65.5` 就红的链** ✗（**根因是"CI 少构建一个二进制"** ✗）；
+  ② **本地 18 个 commit** ✓（**含两个 `ci.yml` 修复** ✓）；**远端 `1fc2c70` 完整** ✓；
+  ③ **文档** ✓：`CI-FAILURES.md`（**+4 条** ✓）· `STATUS.md` · `docs/PERF.md` · `AGENTS.md` · skills ✓。
+  **⚠ 仍待** ✓：**T-E1 的阈值**（**待 `perf-gate` 日志** ✓）· **T-D7 的选择** ⚠ · **release** ✓。
+
 * **⏳ round 419：**14 绿**（12 → 14 ✓）· 11 未完 · 零失败** ✓（**快了** ✓ · **预算剩 1 轮** ⚠）
   ```
   ⇒ **判据不变** ✓：等 ⇒ 全绿 ⇒ `auto-tag` ⇒ release ✓ · **不推** ✗
