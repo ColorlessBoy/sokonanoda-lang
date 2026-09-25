@@ -1,3 +1,13 @@
+## 第 73 轮（2026-09-25）：T-U5 ✅ 接缝守卫（正反两向实测）
+
+* **通用接缝守卫** ✓ `every_decl_ships_text_and_runs_in_lockstep`（`crates/front/src/query/tests.rs`）：
+  遍历**每一条**声明的**每一对** `text`/`runs` —— `ty`/`value`/`goal`/`goals[i]`/`binders[i].ty` ✓，
+  跑在两个夹具上（非 `by` + `by` ✓）。
+* **反向验证（硬要求 ✓）**：注入 T-U4 之前的形状（`goal` 未折、runs 折过 ✗）⇒ 守卫**当场判红** ✓
+  （`goal_runs 拼不回 goal ✗（成对性破坏 ✓）`）；恢复 ⇒ **730 passed / 0 failed** ✓。
+* 这条守卫正是 2026-09-25 用户 bug（"runs 折了、文本没折" ✗）的**直接守卫** ✓ ——
+  推广到全部字段后，**任何**字段上同形状的破坏都会被抓住 ✓。
+
 ## 第 69 轮（2026-09-25）：T-U4 前端层修好 + 审计台账 + 修掉自己的接口分叉
 
 * **T-U4 前端层 ✅**（`cf311a4`）：声明级 `goal_runs`/`goals` 兜底/wire `goal` **三者同源**，

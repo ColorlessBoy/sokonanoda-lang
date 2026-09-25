@@ -569,6 +569,78 @@ fn an_open_exercise_ships_runs_for_its_goal_and_its_goal_list() {
     assert!(def.goals.is_empty() && def.goals_runs.is_empty());
 }
 
+/// **接缝守卫（T-U5，2026-09-25）**：每一条声明的**每一对** `text`/`runs` 必须
+/// **逐字节成对** ✓ —— `ty`/`ty_runs`、`value`/`value_runs`、`goal`/`goal_runs`、
+/// `goals[i]`/`goals_runs[i]`、`binders[i].ty`/`binders[i].ty_runs` ✓。
+///
+/// **为什么值得一条通用断言**（而不是照上面那样逐字段点测）：2026-09-25 的用户 bug
+/// 正是"**runs 折了、文本没折**"这种**成对性破坏** ✗ —— 点测只护住写它的那一个字段 ✓，
+/// 通用断言能在**任何**字段上抓住同一形状的破坏 ✓（这条断言在 T-U4 的实现中途
+/// 当场抓到过我一次 ✗⇒✓，所以把它推广到全部字段 ✓）。
+///
+/// 跑在**两个**夹具上 ✓：`NOTATION_CANVAS`（非 `by` 的开练习 ✓）与
+/// `BY_NOTATION_CANVAS`（`by` 块 ✓）⇒ 两条目标生产路都覆盖 ✓。
+fn assert_text_runs_in_lockstep(doc: &QueryDoc, what: &str) {
+    let goals = doc.goals(false).expect("the canvas parses");
+    assert!(!goals.is_empty(), "{what}: 夹具必须至少有一条声明");
+    for d in &goals {
+        let pairs: Vec<(&str, &str, &[crate::query::types::RunInfo])> = vec![
+            ("ty", d.ty.as_deref().unwrap_or(""), &d.ty_runs),
+            (
+                "value",
+                d.value.as_deref().unwrap_or(""),
+                &d.value_runs,
+            ),
+            ("goal", d.goal.as_deref().unwrap_or(""), &d.goal_runs),
+            (
+                "binders[i].ty",
+                "",
+                &[],
+            ),
+        ];
+        for (field, text, runs) in pairs {
+            if field == "binders[i].ty" {
+                for b in &d.binders {
+                    let joined: String = b.ty_runs.iter().map(|r| r.text.as_str()).collect();
+                    assert_eq!(
+                        joined, b.ty,
+                        "{what}: {} 的 binders[{}].ty_runs 拼不回文本 ✗（成对性破坏 ✓）",
+                        d.name, b.name
+                    );
+                }
+                continue;
+            }
+            let joined: String = runs.iter().map(|r| r.text.as_str()).collect();
+            assert_eq!(
+                joined, text,
+                "{what}: {} 的 {field}_runs 拼不回 {field} ✗（成对性破坏 ✓）",
+                d.name
+            );
+        }
+        assert_eq!(
+            d.goals.len(),
+            d.goals_runs.len(),
+            "{what}: {} 的 goals/goals_runs 必须等长（按位置对齐 ✓）",
+            d.name
+        );
+        for (i, (text, runs)) in d.goals.iter().zip(d.goals_runs.iter()).enumerate() {
+            let joined: String = runs.iter().map(|r| r.text.as_str()).collect();
+            assert_eq!(
+                &joined, text,
+                "{what}: {} 的 goals_runs[{i}] 拼不回 goals[{i}] ✗",
+                d.name
+            );
+        }
+    }
+}
+
+/// 两个夹具都过一遍接缝守卫 ✓（非 `by` + `by` ✓）。
+#[test]
+fn every_decl_ships_text_and_runs_in_lockstep() {
+    assert_text_runs_in_lockstep(&doc(NOTATION_CANVAS), "非 by 画布");
+    assert_text_runs_in_lockstep(&doc(BY_NOTATION_CANVAS), "by 画布");
+}
+
 /// T-C22 的夹具：一条记法 + 一个用 `apply` 的 `by` 块。
 ///
 /// `apply` 的子目标来自被应用引理的**内核 pp 望远镜**（`judge_infer` 的文本
