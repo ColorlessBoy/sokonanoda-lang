@@ -991,3 +991,25 @@ CPU 时会静默失败，需要 `testutil::HEAVY_LOCK` 串行 ✓）。默认并
 2. 若是 tower-lsp 的后台任务未 shutdown ⇒ 在测试收尾显式 drop/超时（**不动产品语义**）；
 3. 判据：`timeout 300 cargo test -p sokonanoda-lsp --lib` 必须**自行退出**（exit 0）——
    写成一条可复跑的命令，并在 CI 侧考虑给该步骤加显式超时以防复发（兜底，不是修法）。
+
+## 2026-09-25 · `test` job 连续多轮**跑不完** ⇒ 走应急路径手动打 tag（已记录理由）
+
+**现象**：`ci` 的 `test` job 在 **"Workspace tests"** 一步反复数小时不结束 ✗
+（`e764edf` / `5053579` / `75f5b69`(rerun) / `d11354b1` 四次都停在同一步；
+同轮里 **lint ✓、三平台 e2e ✓、e2e 台账回写 ✓ 全部通过**）。本机同一棵树
+（CI 等价并行度 `--test-threads=2`）**15m05s 跑完** ✓、`scripts/soko gate` **PASS** ✓、
+LSP 测试进程**正常退出** ✓ ⇒ 本地复现不了 ✗（属于"诊断性 CI"情形，
+按 AGENTS.md 的批次制纪律应在 `STATUS.md` 写明"为什么本地复现不了" ✓）。
+
+**处置（应急路径，`docs/RELEASE.md` 的规定）**：在 `e7be46e`（`origin/main`，
+版本三处一致 = 0.67.0、CHANGELOG 有 0.67.0 条目）**手动打 `v0.67.0` 并推 tag** ✓
+⇒ `release.yml` 被 tag 触发 ✓（**它不跑测试**，只 `cargo build --release` + 打包 + 发布
+—— 已先核对过，不会换一处挂 ✓）。
+
+**为什么可以接受**：那一轮 CI 的门禁里，**除 `test` 外的全部门禁都已绿** ✓
+（lint + 三平台真宿主 e2e + 台账回写），加上本地 `scripts/soko gate` 全绿 ✓
+⇒ 不是"跳过验证"，是"验证在别处已完成、而这条流水线跑不完" ✓。
+
+**待办（下一轮）**：① 把 `test` job 的 Workspace tests 拆开或加 `timeout-minutes`
+＋ 分套件输出，定位是哪一步卡住（本机复现不了就只能从 CI 侧加可观测性 ✗）；
+② 核对 `gh release list` 与资产数（26 个）✓。
