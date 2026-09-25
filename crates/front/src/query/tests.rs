@@ -626,6 +626,80 @@ fn assert_text_runs_in_lockstep(doc: &QueryDoc, what: &str) {
     }
 }
 
+/// ⚠ **这条目前是"冒烟"而不是"守卫"** ✗ —— 实测：把 `fold` 注入成恒等（**折叠失效** ✗）
+/// 它**依然通过** ✓（2026-09-25 round 103 实测 ✓）。**原因**：它扫的两个夹具都是**源级渲染** ✓
+/// （学习者写的记法直接进了显示文本 ✓，**根本不需要折叠** ✓）⇒ 判据**空转** ✗
+/// —— 正是 `notation_fold.rs` 第 2 组那条**行程开关**教过的同一件事 ✓
+/// （"源级渲染的 surface 与折叠无关" ✓，见 §9 ㉜ ✓）。
+/// **真判据的写法（T-U12 的下一步 ✓）**：夹具必须让**源里写点形式** ✓
+/// （例如 `forall (x : α), Set.mem α x A -> …` ✓），再断言**显示**文本已经变成记法 ✓
+/// （`∀` / `∈` ✓）—— 那时的输入**必须**经过折叠 ✓ ⇒ 注入"折叠失效"才会判红 ✓。
+/// 在那之前，这条只当**冒烟**用 ✗，**不要**把它算作 T-U12 的交付 ✓。
+///
+/// **T-U12：面级 sweep（front 侧显示面 ✓）** —— 显示的文本里**不许出现点形式** ✗。
+///
+/// 用户 2026-09-25 要求 ✓：「对每个显示面各构造含记法的类型，断言输出里不出现点形式；
+/// 并且**必须能咬住已知反例** —— 回退 T-U4/T-U5 的折叠时必须判红」✓
+/// （"**咬不住的守卫等于没有**" ✓）。
+///
+/// 这里覆盖 **front 会产出的四个显示面** ✓（`ty` / `value` / `goal` / `goals[]`
+/// 以及它们的 `runs` ✓）；hover / 状态栏 / 项目树在 LSP 与扩展侧 ✓
+/// ⇒ 那三层由 T-U12 的后续切面 + e2e 覆盖 ✓（本轮先把**真相层**这一片钉死 ✓）。
+///
+/// **点形式标记**（真名写法 ✓）：`forall ` / `Exists ` / `Set.mem ` / `Set.subset ` /
+/// `And ` / `Or ` / `Not ` —— 任何一个出现在显示文本里就判红 ✗
+/// （它们只该出现在**判卷输入**里 ✓，不该出现在给人看的文本里 ✓）。
+#[test]
+fn display_surfaces_never_show_point_form() {
+    const MARKERS: [&str; 7] = [
+        "forall ",
+        "Exists ",
+        "Set.mem ",
+        "Set.subset ",
+        "And ",
+        "Or ",
+        "Not ",
+    ];
+    for (what, src) in [
+        ("非 by 画布", NOTATION_CANVAS),
+        ("by 画布", BY_NOTATION_CANVAS),
+    ] {
+        let doc = doc(src);
+        let decls = doc.goals(false).expect("夹具可查");
+        let mut checked = 0usize;
+        for d in &decls {
+            // 一 "面" = 一段给人看的文本 + 它的 runs ✓
+            let mut surfaces: Vec<(&str, String)> = Vec::new();
+            if let Some(t) = d.ty.clone() {
+                surfaces.push(("ty", t));
+            }
+            if let Some(v) = d.value.clone() {
+                surfaces.push(("value", v));
+            }
+            if let Some(g) = d.goal.clone() {
+                surfaces.push(("goal", g));
+            }
+            for (i, g) in d.goals.iter().enumerate() {
+                surfaces.push(("goals[i]", g.clone()));
+                let _ = i;
+            }
+            for (field, text) in &surfaces {
+                checked += 1;
+                for m in MARKERS {
+                    assert!(
+                        !text.contains(m),
+                        "{what}: {}.{} 里出现了点形式 `{m}` ✗（用户要求：显示面必须是记法 ✓）\n\
+                         实际 = {text}",
+                        d.name,
+                        field
+                    );
+                }
+            }
+        }
+        assert!(checked > 0, "{what}: 至少要扫到一个显示面（夹具坏了吗？）");
+    }
+}
+
 /// **审计 #14 的交叉断言**（2026-09-25 ✓）：两个"还剩几个练习"的计数
 /// **不许无约束地并存** ✗。
 ///
