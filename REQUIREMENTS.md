@@ -2712,6 +2712,22 @@ scripts·编辑器 ✓）、`T-U10`（把审计结论收口成"唯一归属 + �
   它"**只有给人看的消费者**" ✓ —— R-1/T-D52 那条线 ✓），wire/query/扩展渲染**读显示副本** ✓，
   judge 继续读原字段 ✓。判据三条一起绿 ✓（front 729 ✓ + `exists_fun` 顶部「目标」带 `∃` ✓ + 课程 0 判负 ✓）。
 
+**㉘ T-U4 剩余工作缩小成两处（2026-09-25 第 66 轮）** ✓
+实测 `crates/front/src/compile/check/kernel_phase.rs:311-320` ✓：**开放练习的
+`ty_text` 本来就是折过的显示副本** ✓（与 checked 那条同款：pp 之后再过 `print_back` ✓）。
+而 `DeclState.goal`（judge 输入 ✗）**一个字都不该动** ✓。
+
+⇒ **缺的不是"造显示副本"，而是"把已有的显示副本送到用户面前"** ✗✓：
+1. **wire**：`crates/lsp/src/protocol.rs` + `crates/front/src/query/*` /`crates/lsp/src/query_map.rs`
+   —— 现在**根本没有 `ty_text` 这个字段** ✗（早先实测：wire 上 `ty_text` 恒为 `None`/缺失 ✓）
+   ⇒ 把 `ty_text`（以及需要时的"折过的目标副本" ✓）映射上去 ✓；
+2. **扩展**：`editor/vscode/media/infoview.js` —— 渲染时**优先用显示副本** ✓
+   （现在的 `codeBlock(…, runs, text || "")` 用的是 `*_runs` + 原文回退 ✓ ⇒ 回退到原文时
+   就是点形式 ✗）。
+**判据**：`exists_fun` 顶部「目标」带 `∃` ✓（真宿主 e2e ✓）+ front 729 ✓ + 课程 0 判负 ✓。
+**注意**（防第五套 ✗）：折叠**仍然只在 front 生产侧发生一次** ✓；wire/扩展**只做搬运与优选** ✓，
+不许再引入任何折叠实现 ✗（守卫 `scripts/audit-notation-paths.py` 已就位 ✓）。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
