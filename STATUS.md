@@ -26,6 +26,20 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯 round 371：**更正 —— rebase 假设错了** ✗✓（**过滤器是对的，是我没带 rust** ✗）**
+  ```
+  推 `960fe92..165c3ee`（**快进** ✓，`before` 可达 ✓）⇒ **又是全 skip** ✗（`auto-tag` 也 skip ✓）
+  ⇒ 我的"rebase 让 paths-filter 失明"假设**不成立** ✗✓（**第五次推断错** ✗）
+  ⇒ ⇒ **真因** ✓✓：**我本地那 3 个 commit 全是 docs** ✗（`STATUS.md` ×3 ✓）
+    ⇒ **`judge.rs` 的改动在上一推（`960fe92`）里** ✓ ⇒ **这一推的 diff 就是 docs-only** ✓
+    ⇒ ⇒ **`changes` 报"无 rust"是对的** ✓✓ —— **错的是"这一推没带 rust"** ✗✓
+  ```
+  **⇒ 结论** ✓：**发版推必须自己带 rust** ✓（**不能指望上一推带** ✗ ——
+  因为 `paths-filter` 只看**这一推的 diff** ✓）⇒ **这补强了检查单第 ③ 条** ✓：
+  "**这一推包含 rust 改动**" ✓ —— 而**我 round 366 那一推带了** ✓（`judge.rs` ✓），
+  **这一推没带** ✗ ⇒ **所以它被正确地 skip 了** ✓。
+  **⇒ 下一步** ✓：**加一个 rust 改动再推** ✓（**下一批** ✓）⇒ 重活跑 ⇒ `auto-tag` ⇒ release ✓。
+
 * **🎯🎯 round 370：`changes` 报 **`Matching files: none`** ✗✓ ⇒ 一切 skip 的源头找到了** ✓
   ```
   changes → dorny/paths-filter@v4 ✓：
