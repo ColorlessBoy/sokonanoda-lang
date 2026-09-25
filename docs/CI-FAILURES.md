@@ -1459,3 +1459,36 @@ G-07  fixed  script  缺口仍在  ← 台账写的是「行为已变」，请�
 
 **顺带确认两件事** ✓：`ledger (1)` ✅ 与 `ledger (3)` ✅ **都转绿了** ✓（原来三片全红 ✗）
 ⇒ **构建 + Node 两处修复都生效** ✓；`gates-fast` **2 分 09 秒** ✓（原来 3 分钟+ ✓）。
+
+### round 201：`G-23` 假红的修复（**A 已落 ✓，B 留锚点 ⏳**）
+**A ✅ 主修复** ✓：`G23-notation-navigation.js` 的 LSP 应答超时 **60 s ⇒ 180 s** ✓
+（并支持 `SOKO_LSP_REPLY_TIMEOUT_MS` 覆盖 ✓）—— 这是 CI 慢 runner 上**直接**的成因 ✓。
+**B ⏳ 分档（下一轮一步 ✓）**：把"`exit 2` + Node 定时器栈"归到 `timeout` 档 ✓
+（响亮跳过 ✓，`--strict` 才红 ✓；**其余 `exit 2` 仍判红** ✓ ⇒ 2026-09-23 的保护不动 ✓）。
+**锚点（精确到行 ✓）**：`scripts/gap.py` 的 `run_repro` 里，`.sh` 分支的
+```python
+           detail = _tail(proc.stdout) or _tail(proc.stderr)
+           if detail and _tail(proc.stderr):
+               detail = f"{detail} ｜ stderr: {_tail(proc.stderr, 2, 120)}"
+           return ("script", proc.returncode, detail)
+```
+⇒ 在 `return` 之前插入：
+```python
+           if proc.returncode == 2 and any(
+               k in ((proc.stderr or "") + (proc.stdout or ""))
+               for k in ("listOnTimeout", "processTimers", "LSP 超时未应答")
+           ):
+               return ("timeout", proc.returncode, "LSP 应答超时（Node 自身定时器）⇒ 环境慢 ｜" + detail)
+```
+⚠ **我第一版的两处错（记下来 ✓）**：① 判断放进了 `judge()` ✗ —— 它只拿到调用方拼好的
+`note` ✓、**拿不到 stderr 原件** ✗ ⇒ 永不触发 ✓；② 返回值写成**三元组** ✗（`judge()` 回两元 ✓）。
+⇒ **判据要放在"原件在手"的那一层** ✓。
+
+**本地复现判据（已验证可用 ✓✓）**：用新加的环境变量把 CI 的慢条件**造出来** ✓：
+```bash
+SOKO_LSP_REPLY_TIMEOUT_MS=1 bash docs/gaps/repro/G23-notation-navigation.sh   # ⇒ exit 2 + Node 栈 ✓
+SOKO_LSP_REPLY_TIMEOUT_MS=1 python3 scripts/gap.py check --shard 2/3           # 期望 0（A+B 都上之后 ✓）
+SOKO_LSP_REPLY_TIMEOUT_MS=1 python3 scripts/gap.py check --shard 2/3 --strict  # 期望 1 ✓
+```
+（**只上 A 时**：默认仍 1 ✗（因为 180 s 在 `SOKO_LSP_REPLY_TIMEOUT_MS=1` 下照样超 ✓）；
+上完 B 后默认应转 **0** ✓ ⇒ 这就是 B 的判据 ✓。）

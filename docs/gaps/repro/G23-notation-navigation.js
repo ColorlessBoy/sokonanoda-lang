@@ -75,7 +75,10 @@ function startLsp() {
       child.stdin.write(`Content-Length: ${body.length}\r\n\r\n`);
       child.stdin.write(body);
     },
-    next(timeoutMs = 60000) {
+    // **CI 慢 runner 上 60 秒不够** ✗（2026-09-25 ✓：注解显示复现件撞了 Node 自身定时器
+    // 超时 ✓ `listOnTimeout`/`processTimers` ✓ ⇒ 判成"环境异常" ⇒ `ledger (2)` 假红 ✗）。
+    // 提到 180 秒 ✓，并允许用环境变量覆盖 ✓（排查时可临时调大 ✓）。
+    next(timeoutMs = Number(process.env.SOKO_LSP_REPLY_TIMEOUT_MS || 180000)) {
       if (queue.length) return Promise.resolve(queue.shift());
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error('LSP 超时未应答')), timeoutMs);
