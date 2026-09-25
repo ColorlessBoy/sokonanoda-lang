@@ -667,3 +667,51 @@ debug，作为"生命线"指标是错的。
 
 **结论**：现有架构内"捡便宜"的空间已探明 ✓ —— 真正的 9.5s 属于
 「**把 check-then-add 移进 walk**」的内核级重构档 ✓；其余各处经实测**不成立** ✗。
+
+## 性能回归**门禁**（`perf-gate`，2026-09-25 T-E1 ✓）
+
+**它是什么** ✓：CI 里的第 15 个 job ✓（进**快层** ✓）—— 在**每次 rust 改动的 push** 上
+跑一组 **smoke** ✓，与 `docs/perf/ledger.jsonl` 的**上一次同名记录**比较 ✓，
+**大幅退化就红** ✗。**它不是"再快一点"✗，而是"以后慢下来会被发现"** ✓。
+
+**为什么复用而不是新建** ✓：`scripts/perf-check.sh` 已有**退出码语义** ✓
+（0 = 跑完且无退化 ✓ · **1 = 有 case 退化超阈值** ✓ · 2 = 用法错/没跑到 case ✓）
+与**口径** ✓（一律 `--test-threads=1` ✓ —— 并行会把单次成本放大 3–4× ✗；
+与台账比**优先比 `best_ms`** ✓，超出阈值**先复测再下结论** ✓）；
+`scripts/perf-compare.py` 已有**噪声地板** ✓（`floor_ms = 5.0` ✓ ——
+低于它的量级不判红 ✓，因为台账上实测过 1.0ms → 3.0ms = "+200%" 的纯噪声 ✓）。
+
+**smoke 子集**（合计 **~1 秒** ✓，2026-09-25 round 312 实测 ✓）：
+
+| 过滤器（**测试名子串** ✓） | 台账 `(scope, case)` ✓ | 量级 ✓ |
+|---|---|---|
+| `judge_prefix_with_imported` | `front-project judge_prefix_with_imports` | 73.63ms ✓ |
+| `keystroke_recompiles_the_closure` | `front-project keystroke_recompile_closure` | 43.67ms ✓ |
+| `teaching_scale_keystroke` | `front-project teaching_scale_keystroke` | 17–33ms ✓ |
+| `keystroke` | （覆盖 4 处 ✓，含 lsp ✓） | — |
+| `perf_course_did_open_is_recorded` | `lsp-course did_open` **+ `did_open_same_session`** | 1905/4644/9085ms **+ 134ms** ✓ |
+
+⚠ **`--case` 是"测试名子串"** ✗ —— **不是**台账里的 `(scope, case)` 名 ✗
+（2026-09-25 round 313 实测 ✓：拿台账名当过滤器 ⇒ **5 个里 3 个 `exit=2`** ✗
+= "没跑到任何 case" ⇒ **守卫空转** ✗✓ —— **它会永远是绿的** ✗）。
+**⇒ 新增过滤器时，必须先 `git grep` 出真实测试名 ✓，再逐个验证 `exit != 2`** ✓
+（**咬不住的守卫等于没有** ✓）。
+
+**排除的重条** ✗（仍由既有的 `perf-report` job **只报不拦** ✓ 覆盖）：
+`perf_course_by_block_is_recorded`（`SOKO_PERF_COURSE_SLOW` 门控 ✓，约 **36s** ✗）
+与 `cli-project` 那几条（要 **release 构建** ✗）。
+
+**阈值** ✓：`--threshold 50` ✓ —— **比默认 25% 更松** ✓（T-E1 要求"阈值宽松 ✓"）。
+**为什么松** ✓：**CI runner 比本地吵** ✗ ⇒ **门禁假红比没有门禁更糟** ✗✓。
+
+**第一轮只报不拦** ✓（`continue-on-error: true` ✓）：**必须先量一次 CI 上的抖动** ✓
+⇒ 再定阈值 ✓ ⇒ 再转成拦 ✓。⚠ **因此这一轮的 CI 会绿** ✗ ——
+**读它必须用 job 级** ✓（`gh run view <id> --json jobs` ✓ 或 `scripts/ci-watch.sh` ✓），
+**不能看整轮结论** ✗（用户第 d 条 ✓："**盯 job 级而不是 run 级**"✓）。
+
+**本地怎么跑** ✓：
+```bash
+scripts/perf-check.sh --case judge_prefix_with_imported --threshold 50   # 单条 ✓
+scripts/perf-check.sh --list                                             # 台账里有哪些 (scope, case) ✓
+scripts/perf-ledger.sh                                                   # 全量四套件 → docs/perf/ledger.jsonl（提交它 ✓）
+```
