@@ -527,7 +527,7 @@ function buildOpenChildren(decl, uriString) {
   hint.iconPath = new vscode.ThemeIcon("lightbulb");
   hint.command = {
     command: "sokonanoda.revealHint",
-    title: "揭示下一条提示",
+    title: "Reveal Hint (揭示下一条提示)",
     arguments: [uriString, decl.name, decl.range],
   };
   children.push(hint);

@@ -138,7 +138,25 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⚠ **T-B2 的先决动作**：`build`/`rebuild` 的契约断言 `title.contains("build")`
     **大小写敏感**，而目标名是 `Build (…)` ⇒ 必须同时把断言改成大小写不敏感，
     否则必红 ✗。
-- [ ] `T-B2` **R-4 改标题**：统一 `Sokonanoda: <Command> (说明)` ✓（前缀固定、命令词首字母大写、括号内中文说明 ✓），含 `Infoview (目标面板)`、`Restart Server (重启服务器)` 等
+- [x] `T-B2` **R-4 改标题**：统一 `Sokonanoda: <Command> (说明)` ✓（前缀固定、命令词首字母大写、括号内中文说明 ✓），含 `Infoview (目标面板)`、`Restart Server (重启服务器)` 等
+  - ✅ **已改（2026-09-24）**：按 T-B1 的对照表改 **15 条**命令 —— 机制取推荐 **(A)
+    `category: "Sokonanoda"` + 纯 `title`**（前缀只写一处、命令面板按类别分组）。
+    `package.json` 的改动**只有 commands 块**（36+/28−）。
+    **屏幕上**：命令面板 15 行全部变成 `Sokonanoda: <Command> (说明)`；两条**前缀双写**
+    消失（`sokonanoda: sokonanoda: 打开目标面板 (Infoview)`、`sokonanoda: doctor: …`）；
+    语言统一成"英文命令词 + 中文说明"；括号统一半角。另更新一处**用户可见文案**
+    （声明栏读不到时的提示里那句命令名，`media/infoview.js`）。
+    **判据**：静态契约两条（都做过修前判红 ✓）——
+    `command_titles_follow_the_r4_naming_rule`（**四条断言**：`category == "Sokonanoda"`、
+    title 里不许再出现包名、title 形如 `<Title Case 命令词> (中文说明)`、只用半角括号；
+    回退 category 大小写 ⇒ exit 101、回退前缀双写 ⇒ exit 101，恢复后绿 ✓）+
+    `command_naming_inventory_covers_every_contributed_command`（表↔manifest 双向相等）；
+    同时把 `build`/`rebuild` 的 needle 断言改成**大小写不敏感**（目标名是 `Build (…)`，
+    原断言大小写敏感必红 —— T-B1 盘点时发现并写进文档 ✓）。
+    三层复跑：`cargo test -p sokonanoda-cli --test extension` **39 passed** ·
+    `test-extension-host.js` **34/34** · `test-webview.js` **16/16** ✓。
+    **说明**：命令面板的**显示文本本身没有 API 可断言**（VS Code 只暴露 id）⇒ 这一环的
+    可判层就是 `contributes.commands` 的静态契约（它同时是唯一事实源）✓。
 - [ ] `T-B3` **R-4 同步四份**（AGENTS.md 硬规则）：`editor/vscode/` 的 README/CHANGELOG ✓ + `skills/` 三个技能 ✓ + `AGENTS.md` ✓ + `docs/vscode-dev-guide.md` ✓；`crates/cli/tests/skill.rs` / `dsh.rs` 不许漂移 ✓
 - [ ] `T-B4` **R-3 设计**：`.sokonanoda/` 目录的**契约**（放什么：编译产物 / 依赖 / 元数据；命名；清理策略；`--clean` 语义；与现有缓存 `~/.local/share/sokonanoda` 的关系 —— **模块根下的产物 vs 全局缓存**的分工 ✓）
 - [ ] `T-B5` **R-3 实现（CLI 侧）**：`build`/`grade` 把模块级产物写进 `<模块根>/.sokonanoda/` ✓；第二次调用**命中** ✓

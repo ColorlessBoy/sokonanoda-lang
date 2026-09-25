@@ -119,7 +119,7 @@
   function emptyDeclsText() {
     if (lastStatusState === "loading") return "编译中…（声明列表稍后出现）";
     if (lastStatusState === "error") {
-      return "读取声明失败——看「sokonanoda」输出面板，或跑一次 sokonanoda: restart server。";
+      return "读取声明失败——看「sokonanoda」输出面板，或跑一次 Sokonanoda: Restart Server (重启服务器)。";
     }
     if (lastStatusState === "idle") return "等待 .sokonanoda 文件。";
     return "这个文件没有声明。";

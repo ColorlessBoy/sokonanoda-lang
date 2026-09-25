@@ -58,79 +58,87 @@
     "commands": [
       {
         "command": "sokonanoda.showStatus",
-        "title": "sokonanoda: show exercise status",
-        "icon": "$(checklist)"
+        "title": "Show Exercise Status (练习状态)",
+        "icon": "$(checklist)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.status",
-        "title": "sokonanoda: show declaration status"
+        "title": "Show Declaration Status (声明状态)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.nextHole",
-        "title": "sokonanoda: go to next hole",
-        "icon": "$(arrow-down)"
+        "title": "Next Hole (下一个洞)",
+        "icon": "$(arrow-down)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.previousHole",
-        "title": "sokonanoda: go to previous hole",
-        "icon": "$(arrow-up)"
+        "title": "Previous Hole (上一个洞)",
+        "icon": "$(arrow-up)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.goals.refresh",
-        "title": "sokonanoda: refresh exercise panel",
-        "icon": "$(refresh)"
+        "title": "Refresh Exercise Panel (刷新练习面板)",
+        "icon": "$(refresh)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.courseRefresh",
-        "title": "sokonanoda: 刷新课程地图",
-        "icon": "$(refresh)"
+        "title": "Refresh Course Map (刷新课程地图)",
+        "icon": "$(refresh)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.revealRange",
-        "title": "sokonanoda: reveal range"
+        "title": "Reveal Range (跳到该范围)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.revealHint",
-        "title": "揭示下一条提示",
-        "category": "sokonanoda"
+        "title": "Reveal Hint (揭示下一条提示)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.restartServer",
-        "title": "restart server",
+        "title": "Restart Server (重启服务器)",
         "icon": "$(debug-restart)",
-        "category": "sokonanoda"
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.openInfoview",
-        "title": "sokonanoda: 打开目标面板 (Infoview)",
+        "title": "Infoview (目标面板)",
         "icon": "$(open-preview)",
-        "category": "sokonanoda"
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.doctor",
-        "title": "doctor: 诊断服务器与版本",
+        "title": "Doctor (诊断服务器与版本)",
         "icon": "$(heart)",
-        "category": "sokonanoda"
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.build",
-        "title": "build（编译当前文件/工作区，预热缓存）",
-        "category": "sokonanoda"
+        "title": "Build (编译当前文件/工作区，预热缓存)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.rebuild",
-        "title": "rebuild（清空编译缓存后重编译）",
-        "category": "sokonanoda"
+        "title": "Rebuild (清空编译缓存后重编译)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.project.refresh",
-        "title": "sokonanoda: refresh project view",
-        "icon": "$(refresh)"
+        "title": "Refresh Project View (刷新项目视图)",
+        "icon": "$(refresh)",
+        "category": "Sokonanoda"
       },
       {
         "command": "sokonanoda.input.replaceAbbreviation",
-        "title": "替换记法缩写（\\and → ∧）",
-        "category": "sokonanoda"
+        "title": "Replace Notation Abbreviation (替换记法缩写：\\and → ∧)",
+        "category": "Sokonanoda"
       }
     ],
     "viewsContainers": {

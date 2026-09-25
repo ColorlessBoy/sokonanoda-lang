@@ -1358,6 +1358,10 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
         );
     }
     // 命令面板标题里带 build/rebuild 字样（用户是照这个名字找的）。
+    //
+    // **大小写不敏感**（T-B2 / R-4）：R-4 要求命令词首字母大写 ⇒ 标题是
+    // `Build (编译当前文件/工作区，预热缓存)`；原来的 `contains("build")` 会因为
+    // 大写 B 而判红 ✗。找的是"这个名字还在不在"，不是它的字面大小写。
     for (id, needle) in [
         ("sokonanoda.build", "build"),
         ("sokonanoda.rebuild", "rebuild"),
@@ -1368,8 +1372,8 @@ fn build_and_rebuild_commands_warm_the_compile_cache() {
             .and_then(|c| c["title"].as_str())
             .unwrap_or_default();
         assert!(
-            title.contains(needle),
-            "{id} 的标题必须含 {needle}（命令面板可见），实际 {title:?}"
+            title.to_lowercase().contains(needle),
+            "{id} 的标题必须含 {needle}（命令面板可见，大小写不敏感），实际 {title:?}"
         );
     }
     // 键位指向已声明命令（manifest 级一致性；alt+b / alt+shift+b）。
@@ -1596,4 +1600,56 @@ fn command_naming_inventory_covers_every_contributed_command() {
         from_doc, from_manifest,
         "盘点表与 contributes.commands 必须双向相等（左 = 表，右 = package.json）"
     );
+}
+
+#[test]
+fn command_titles_follow_the_r4_naming_rule() {
+    // **T-B2（R-4）的判据**：命令面板里每一行都必须是
+    // `Sokonanoda: <Command> (说明)`（用户原话见 `REQUIREMENTS.md` §9 R-4，
+    // 盘点表见 `docs/design/command-naming.md`）。
+    //
+    // 机制是 `category: "Sokonanoda"` + 纯 `title`（VS Code 用 `category: title`
+    // 渲染面板行）—— 前缀**只写一处**。所以这里逐条钉四件事：
+    //   ① `category` 必须是 `Sokonanoda`（大写 S；小写会被原样显示成 `sokonanoda:`）；
+    //   ② `title` 里**不许**再出现包名（**前缀双写**是盘点出来的真实毛病：
+    //      `openInfoview` 曾显示成 `sokonanoda: sokonanoda: 打开目标面板 (Infoview)`，
+    //      `doctor` 曾显示成 `sokonanoda: doctor: 诊断服务器与版本`）；
+    //   ③ `title` 形如 `<Title Case 命令词> (<说明>)`、说明含中文；
+    //   ④ 括号统一**半角**（全角 `（）` 会让 15 行看起来是两种风格）。
+    let manifest = manifest();
+    let commands = manifest["contributes"]["commands"]
+        .as_array()
+        .expect("contributes.commands");
+    for command in commands {
+        let id = command["command"].as_str().expect("command id");
+        assert_eq!(
+            command["category"].as_str(),
+            Some("Sokonanoda"),
+            "{id} 的 category 必须是 Sokonanoda（面板靠它显示前缀）"
+        );
+        let title = command["title"].as_str().expect("title");
+        assert!(
+            !title.to_lowercase().contains("sokonanoda"),
+            "{id} 的 title 不许再写包名前缀（前缀由 category 提供）：{title:?}"
+        );
+        assert!(
+            !title.contains('（') && !title.contains('）'),
+            "{id} 的 title 必须用半角括号：{title:?}"
+        );
+        let (name, hint) = title
+            .split_once(" (")
+            .unwrap_or_else(|| panic!("{id} 的 title 必须形如 `<Command> (说明)`：{title:?}"));
+        let hint = hint
+            .strip_suffix(')')
+            .unwrap_or_else(|| panic!("{id} 的说明必须以半角 `)` 收尾：{title:?}"));
+        assert!(
+            name.chars().next().is_some_and(|ch| ch.is_ascii_uppercase())
+                && name.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == ' '),
+            "{id} 的命令词必须首字母大写、只用 ASCII 字母/数字/空格：{name:?}"
+        );
+        assert!(
+            hint.chars().any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch)),
+            "{id} 的括号里必须是中文说明：{title:?}"
+        );
+    }
 }
