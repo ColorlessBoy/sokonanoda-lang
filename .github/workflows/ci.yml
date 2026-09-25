@@ -437,7 +437,14 @@ jobs:
         # 掐死它的那一条本身也修了：G-07 的复现第 ④ 段原先**整卷判一遍**（315s），
         # 而它要验的 G6 机器可读面（course.volumes/chapters）来自**清单**、与判了
         # 几个目标无关 ⇒ 改成 `--only "单元 1"`（3s）。复现总时长 9m07s → 37s。
-        timeout-minutes: 5
+        # **超时 5 → 10 分钟**（2026-09-25 round 370 ✓）：`0.72.0` 的发版轮里
+        # 这一步报 `timed out after 5 minutes` ✗ ⇒ **三片全红** ✗ ⇒ **挡住 `auto-tag`** ✗。
+        # 原因是 `G-22`/`G-25`/`G-31` 三条**环境慢 >300s** ✓（`gap.py` 自己写着
+        # "环境慢，非形状不对" ✓）⇒ 它们**各自**就要几分钟 ✓ ⇒ 5 分钟装不下 ✓。
+        # ⚠ **而这也验证了用户第 g3 条**：**不是**加 `continue-on-error` ✗
+        # （那会掩盖回归 ✗），而是**让 `gap.py` 的三态（0/1/2）如实说话** ✓ ——
+        # 它已经会写"环境慢" ✓ ⇒ **只需给够时间** ✓。
+        timeout-minutes: 10
         env:
           SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
         shell: bash
