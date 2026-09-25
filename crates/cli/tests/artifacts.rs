@@ -48,6 +48,11 @@ fn run_with_env(cache: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, Vec<
     command
         .args(args)
         .env("SOKONANODA_CACHE_DIR", cache)
+        // 这些用例测的**就是**项目产物（R-3）⇒ 必须自己控制这个开关：
+        // 继承来的 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`（例如本地为了绕开受限环境
+        // 的文件策略而给 gate 开的逃生门）会把被测功能关掉，让判据变成假红 ✗。
+        // 显式 `env_remove` ⇒ 下面的 `env` 参数仍可把它设回来（逃生门那条用例）。
+        .env_remove("SOKONANODA_NO_PROJECT_ARTIFACTS")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -75,6 +80,11 @@ fn run_raw(cache: &Path, args: &[&str], env: &[(&str, &str)]) -> (i32, String) {
     command
         .args(args)
         .env("SOKONANODA_CACHE_DIR", cache)
+        // 这些用例测的**就是**项目产物（R-3）⇒ 必须自己控制这个开关：
+        // 继承来的 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`（例如本地为了绕开受限环境
+        // 的文件策略而给 gate 开的逃生门）会把被测功能关掉，让判据变成假红 ✗。
+        // 显式 `env_remove` ⇒ 下面的 `env` 参数仍可把它设回来（逃生门那条用例）。
+        .env_remove("SOKONANODA_NO_PROJECT_ARTIFACTS")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

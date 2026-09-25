@@ -67,6 +67,9 @@ fn run_timed(dir: &Path, cache: &Path, args: &[&str]) -> (Duration, std::process
         .args(args)
         .current_dir(dir)
         .env("SOKONANODA_CACHE_DIR", cache)
+        // 本哨兵断言"产物落在模块根"（R-3）⇒ 必须自己控制那个开关：
+        // 继承来的逃生门会让被测路径消失、判据变成假红 ✗（gate 那次就是这样红的）。
+        .env_remove("SOKONANODA_NO_PROJECT_ARTIFACTS")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

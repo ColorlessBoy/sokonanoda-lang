@@ -1,3 +1,33 @@
+## [0.67.0] - 2026-09-24
+
+### Added
+
+- **项目产物目录 `<模块根>/.sokonanoda/`**（R-3）：项目（带 `import`）文件第一次
+  `build`/`grade` 之后，编译产物落在**模块根**下，vscode 与 code agent 都从那里取，
+  不再重复计算。目录里是 `compiled/<key>.json`（与全局缓存**同格式**）、`meta.json`
+  （schema / 编译器版本 / build stamp / 平台）和一份**自忽略**的 `.gitignore`
+  （内容一行 `*`）—— 默认什么都不用配，也不会脏你的仓库。
+  实测**同一模块第二次 `build`：40.3ms → 3.6ms（11.3×）**。
+  单文件（无 `import`）**不产生**这个目录；每个模块根最多留 32 条（按时间淘汰最旧）；
+  `SOKONANODA_NO_PROJECT_ARTIFACTS=1` 可退回旧行为（只写全局缓存）。
+- `query project` 与 `soko/project` 多一个**只读**字段
+  `artifacts {dir, entries, bytes, compiler}` —— 一眼看到产物在哪、有多少、多大；
+  目录不存在时是 `null`（**查询不会创建它**）。
+
+### Changed
+
+- **命令面板 15 条命令统一成 `Sokonanoda: <Command> (说明)`**：以前有的把前缀写进
+  标题、有的靠 category，于是出现 `sokonanoda: sokonanoda: 打开目标面板 (Infoview)`、
+  `sokonanoda: doctor: 诊断服务器与版本` 这类**前缀双写**。现在统一
+  `category: "Sokonanoda"` + 纯标题，命令词首字母大写、括号内中文说明、括号统一半角。
+- **`build --clean` 两处都清**（全局缓存 + 当前模块根的 `.sokonanoda/`）：以前项目
+  条目只清全局，`rebuild` 会命中项目条目 ⇒ 表面清空、实际什么都没重编。
+  `--json` 的 `build.clean` 多两个计数 `global`/`project`（`removed` 仍是总数，老消费者不变）。
+- 顺手修：`SOKONANODA_NO_CACHE=1` 时 `--clean` 恒报 `removed 0`（关掉缓存后就再也
+  清不掉已经写下的条目）。
+- 「先清后编」的预热链路也跟着变快：CLI `build` 预热出来的产物，语言服务器现在会
+  **从模块根直接读**（否则产物挪窝后编辑器读不到预热 = 变慢）。
+
 ## [0.66.0] - 2026-09-24
 
 ### Added
