@@ -884,6 +884,34 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯 round 267：结构图到手 ⇒ B 步的形状**极简** ✓（只包住一行 ✓）**
+    ```
+    fn check_then_add_decl = 行 53..174（**122 行** ✓，不是 300 ✓）
+      :74   *kernel_checks += 1;                        ┐
+      :75   let ty_res = quiet_catch(…)  → ty_text      │ **记账①**（显示文本 ✓，与检查无关 ✓）
+      :114  let val_text = quiet_catch(…)               ┘
+      :127  match env.try_check_declar(&declar) {       ← **唯一的检查** ✓（全函数只此一处 ✓）
+      :130      out.push_event(ExampleChecked)          ┐
+      :133      out.push_event(DeclarationChecked)      │ **记账②**（事件 + decl_states ✓）
+      :139      decl_states.push(DeclState { … })       │
+      :159  Err(e) => { failed_cmds.insert / out.push_error / decl_states.push }  ┘
+    ```
+    **⇒ B 步的正确形状（只包住 `:127` 一行 ✓）**：
+    ```rust
+    // `already_checked` = 该 cmd 在 `real_add_covered` 里 ✓（B 步的入参 ✓）
+    let checked = if already_checked { Ok(()) } else { env.try_check_declar(&declar) };
+    match checked { … }   // ← 其余**全部照旧** ✓（记账①② 都保留 ✓）
+    ```
+    ⇒ **这正好解释了 208** ✗：我把**整个函数**跳过了 ⇒ 记账①② **全丢** ✓。
+    ⇒ **也说明"加入"不在这里** ✗：全函数**没有 `add_declar`** ✓ ⇒ 加入是
+    `env.try_check_declar` **自己做的** ✓（"check-that-adds" ✓）⇒ 所以
+    "**跳过检查**"与"**不加入**"是**同一件事** ✓ ⇒ **A 步必须先做** ✓（walk 已加 ✓）。
+    **⇒ 下一步（实现 ✓，形状已无歧义 ✓）**：
+    ① `check_then_add_decl` 加一个参数 ✓（如 `already_checked: bool` ✓）；
+    ② `:127` 按上面的三元式包一层 ✓；
+    ③ 调用点（`kernel_phase.rs:346` ✓）传 `real_add_covered.as_ref().is_some_and(|s| s.contains(&cmd))` ✓；
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 回到基线 11** ✓ · 组合同 **11** ✓ · 四件套 ✓ · 基准再降 ✓。
+
   - **🔴 round 266：A+B 同做**更差**（208 vs A 单独 140）⇒ 设计有缺陷 ⇒ 已回退 ✓**
     ```
     check = 0 ✓
