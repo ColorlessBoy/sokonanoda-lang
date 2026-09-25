@@ -970,3 +970,24 @@ CPU 时会静默失败，需要 `testutil::HEAVY_LOCK` 串行 ✓）。默认并
 **风险**：它可能在 CI 的 Workspace tests 那步偶发把整轮打红 ✗。
 **待办**：下一轮确认它是否已取 `HEAVY_LOCK`；若没有（或仍偶发），给它加锁或加重试，
 并把判据写成"并行度 2 下连跑 N 次不红"。
+
+## 2026-09-25 · **真凶找到**：`test` job 卡在 "Workspace tests" 是因为 **LSP 测试进程不退出** ✗
+
+**证据**（取消那轮后取到的 job 日志 ✓，进行中取不到、取消后可取）：
+```
+05:10:22  步骤开始（cargo test --workspace --locked）
+05:16:47  最后一条测试行：test tests::perf::perf_project_requests_are_interactive ... ok
+          —— 此时 1285 条测试**已全部报完**（含 LSP 的 perf_* 与 perf_course_*）
+05:17:23  Cleaning up orphan processes
+          Terminate orphan process: pid (5786) (sokonanoda_lsp-285aa16ed40e2e6e)   ← LSP 测试二进制仍存活
+```
+⇒ 不是某个测试慢、也不是死锁在某条断言，而是 **LSP 的测试二进制跑完之后不退出** ✗
+（尚有非 daemon 线程/任务活着 ⇒ 进程不结束 ⇒ `cargo test` 一直等它 ✗）。
+这解释了"每轮 CI 都在这一步挂 30–80 分钟、本地从不复现"（本地并行度/线程调度不同 ✓）。
+
+**下一轮定位方案**（按序）：
+1. 本机复现退出挂起：`cargo test -p sokonanoda-lsp --lib --locked` 后检查进程是否退出；
+   必要时 `--test-threads=1`、或对单条 `tests::perf*` 单独跑，找**留下线程**的那条；
+2. 若是 tower-lsp 的后台任务未 shutdown ⇒ 在测试收尾显式 drop/超时（**不动产品语义**）；
+3. 判据：`timeout 300 cargo test -p sokonanoda-lsp --lib` 必须**自行退出**（exit 0）——
+   写成一条可复跑的命令，并在 CI 侧考虑给该步骤加显式超时以防复发（兜底，不是修法）。
