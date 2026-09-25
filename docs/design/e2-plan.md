@@ -884,6 +884,33 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **⚠ round 278：修法 A ①② 试了一次、**括号错**、已回退 ✓（教训已明确 ✓）**
+    **错** ✗：我在 ① 里给方法**加了个委托体** ✓ 又留了原方法体 ✗ ⇒
+    `walk.rs` **两个函数体** ⇒ `unexpected closing delimiter` ✗ ⇒ **自动回退** ✓ 零损伤 ✓。
+    **⇒ 修法（下一轮照做 ✓，两处都极简 ✓）**：
+    * **① 只追加自由函数** ✓ —— **不动** `walk_real_add_requested` 方法 ✓
+      （它本来就直接读环境变量 ✓，**不需要**委托 ✓）：
+      ```rust
+      // 追加到 crates/front/src/compile/check/walk.rs **文件末尾** ✓
+      pub(crate) fn walk_real_add_enabled() -> bool {
+          static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+          *ON.get_or_init(|| std::env::var("SOKO_WALK_REAL_ADD").is_ok_and(|v| v != "0"))
+      }
+      ```
+    * **② `judge.rs` 的 `judge_terms_with` 最前短路** ✓ —— 锚点是
+      `    let key = judge_cache_key(&[
+        extra_prefix,
+        prefix_src,
+        &options_key(options),
+        &format!("{open:?}"),
+        &format!("{terms:?}"),
+    ]);
+    if let Some(JudgeCacheValue::Terms(j)) = judge_cache_get(key) {`
+      ✓（**4 空格缩进** ✓，round 277 已读实 ✓）⇒ 在它**之前**插
+      `if crate::compile::check::walk_real_add_enabled() { …直接算并 return… }` ✓。
+    **⚠ 教训（本 session 第 N 次同类 ✗）**：**改函数体时，只加"新东西"，别碰"旧东西"** ✓ ——
+    我这次**多加了一句占位** ✗ ⇒ 括号就乱了 ✓。⇒ **最小改动不只是纪律，也是防括号错的手段** ✓。
+
   - **✅ round 277：修法 A 的形状确定 ✓（两处各两行 ✓ + 暴露开关一行 ✓）**
     ```rust
     judge.rs:228  pub fn judge_terms_with(extra_prefix, prefix_src, options, open, terms) -> Vec<Judgement> {
