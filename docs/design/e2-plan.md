@@ -884,6 +884,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 255：D-2 的落点精确到函数 ✓（三处重查全在一处 ✓）**
+    ```
+    crates/front/src/compile/check/kernel_phase.rs（624 行 ✓）· fn check_then_add_decl
+      :127  match env.try_check_declar(&declar) {                        ← 重查点 ①
+      :296  .try_check_declar_at(&declar, EnvLimit::ByIndex(env_before)) ← ②（D-1 的 limit ✓）
+      :372  if let Err(e) = env.try_check_declar(declar) {               ← ③
+    ```
+    ⇒ **D-2 = 在这个函数里，当 walk 已核过该声明时跳过这三处** ✓
+    （`:583` 与 `:606` 是**文档注释与 `open_signature_failure`** ✓，**不在**跳过范围 ✓）。
+    **⇒ 下一步（两步 ✓）**：
+    ① 读 `check_then_add_decl` 的函数体 ✓ —— 关键问题是 **"walk 已核过"这个事实在这里怎么拿到** ✗
+       （可能需要一个**已核集合** ✓ 或按 `cmd` 序号判断 ✓ ⇒ **先读再定** ✓，本 session 的教训 ✓）；
+    ② 加开关 ✓（**先开关后默认** ✓，按阶段 D 护栏 ✓）—— 命名随既有风格 ✓
+       （如 `SOKO_SKIP_KERNEL_RECHECK=1` 才跳过 ✓）；
+    **判据（照 D4 的现成标准 ✓）**：**两态 `--json` 逐字节相同** ✓ + 四件套 ✓ + 基准 ① 再降 ✓（数字进台账 ✓）。
+
   - **✅ round 254：D-2 的安全前提**已验证** ✓ ⇒ 可以开工 ✓**
     **前提** ✓："跳过重查"只有在"**walk 的通过蕴含内核的通过**"时才安全 ✓
     （否则会**少查** ✗）。**判据 + 实测** ✓：
