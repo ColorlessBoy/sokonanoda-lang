@@ -26,6 +26,14 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 357：有进展** ✓ —— **已绿 8 → 9** ✓（最慢的 `e2e (macos-latest)` 绿了 ✓）
+  ```
+  整轮 in_progress ✓ · **已绿 9** ✓ · 未完 15 ✓ · 失败 `ledger (3)` ✗（不变 ✓）
+  ⇒ **`e2e (macos-latest …)` 不在未完里了** ✓ ⇒ 它绿了 ✓
+  ⇒ 而 **`e2e ledger (commit back on main)` 出现** ✓（依赖 e2e ✓）⇒ **进展正常** ✓
+  ⇒ **继续等** ✓ ⇒ 整轮结束 ⇒ `gh run rerun --failed` ✓（**第 f 条** ✓）⇒ **不推** ✗。
+  ```
+
 * **⏳ round 356：整轮仍未完成** ✓（8 绿 · 15 未完 · 1 红 ✓ 不变 ✓）
   ```
   ⇒ 冷构建 + 3 条 e2e（真 VS Code ✓）⇒ ~30 分钟 ✓ ⇒ **正常** ✓
