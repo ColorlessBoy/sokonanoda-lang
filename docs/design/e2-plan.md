@@ -884,6 +884,35 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 258：A 步为什么**不平凡** —— 答案也在注释里 ✓（walk.rs:47-49 ✓）**
+    ```
+    /// 为什么不直接用 `builder`：`builder` 最终要被 `kernel_phase` 的
+    /// `finish()` **消费**，而且 walk 阶段**不往里 add** 文件声明 ✗
+    /// （它只装 prelude + intern 名字）⇒ judge 拿它查不到前缀 ✓。
+    pub(super) shadow: EnvBuilder<'arena>,
+    ```
+    ⇒ **walk 刻意用独立的 `shadow` 环境** ✓，原因有两条 ✓：
+    ① 真 `builder` 会被 `finish()` **消费**（所有权 ✗）；② walk 阶段**不往里加声明** ✗。
+    **⇒ 所以 A 步（让 walk 往真 `env` 里 check-then-add）要动所有权设计** ✗ ——
+    不是"换个参数"那么简单 ✓。
+    **⇒ 但 D-2 需要的机制**已经齐了 ✓（`shadow_env` 的镜像语义 ✓）：
+    * `:121-124` ✓：重放的检查序列**逐条镜像** `kernel_phase` ✓
+      （主声明走 `try_check_declar` ✓、归纳块逐成员 ✓、**内核拒绝的不进环境** ✓）；
+    * `:132-142` ✓：**已知失败的命令整条跳过** ✓（镜像 `kernel_phase` 的 skip 语义 ✓）；
+    * `:155-159` ✓：归纳块**首个失败就 `break`** ✓（与 `kernel_phase.rs:313-325` 同 ✓）；
+    * **两张失败表同键**（都按 `cmd` 命令序 ✓，`:53-55` ✓）⇒ **可逐条对照** ✓。
+    **⇒ 设计选项（两条 ✓，A 步取其一 ✓）**：
+    * **A1 共享环境** ✓：让 walk 与 `kernel_phase` **共用同一个 `EnvBuilder`** ✓
+      （需要把 `finish()` 的消费顺序后移 ✓ / 或让 walk 先 add、`finish()` 只读 ✓）；
+    * **A2 让影子成为唯一执行者** ✓：开关打开时**内核阶段不再执行** ✓，
+      而是**采信 walk 已 add 的环境** ✓ —— 但**真 `env` 必须已经被 walk 填过** ✗
+      ⇒ 仍然回到 A1 的所有权问题 ✓。
+    ⇒ **结论** ✓：**A 步的核心是"环境所有权"** ✓，而**不是**检查逻辑 ✓
+    （检查逻辑已经镜像好了 ✓）。**⇒ 下一步（一条命令 ✓）**：读
+    `kernel_phase` 里 `finish()` 的调用点与 `builder` 的传递链 ✓
+    （`git grep -n "finish()" crates/front/src/compile/check/` ✓）
+    ⇒ 看 `builder` 在 walk 之后是否**还有别的用途** ✓ ⇒ 决定 A1 是否可行 ✓。
+
   - **🎯 round 257：调用点看清了，并暴露出 D-2 的**真正难点** ✗**
     ```
     kernel_phase.rs:346-372（第二阶段的 `PendingOp` 循环 ✓）
