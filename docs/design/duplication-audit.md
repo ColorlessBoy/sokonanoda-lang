@@ -17,7 +17,7 @@
 | 3 ✅**已修**（round 72） | `scripts/audit-wire-fields.py` **没进 gate** ✗ | `AGENTS.md` / `docs/CI-FAILURES.md` 都宣称"已进 gate 与 CI" ✗ | **高** —— 咬 R-1（`value_runs` 漏映射）的**唯一**守卫**从不自动跑** ✓（与 R-3「门禁崩了却不判」同形 ✗） | 接进 `scripts/soko` 步骤表 + CI ✓ | `grep -c audit-wire-fields scripts/soko` ⇒ **0** ✓（已抽查证实 ✓） | **立刻做** |
 | 4 | `scripts/kernel-diff.sh:82` 收集器无 `-type f` | `notation-lint.py:364` / `verify-decl-panel.py:63`（后者已补 `is_file()` ✓） | **高** —— 实收 **4 个目录** ⇒ 20 组对拍**恒绿**、**"零差异"覆盖被虚报** ✗ | 收集器唯一化 + `-type f` ✓ | `find courses course examples docs/gaps/repro -name '*.sokonanoda' ! -type f` ⇒ **4 行** ✓（已抽查 ✓） | **立刻做** |
 | 5 | offset↔line/col **六份**实现、列口径**三种**（byte/char/UTF-16） | `query/pos.rs:9`（UTF-16，自称唯一 ✗）、`session.rs:467`、`references.rs:98/154`（**byte** ✗）、`lsp/lib.rs:993`、`lsp/render.rs:381`（与上一份**逐字相同**）+ `lsp/tokens.rs:88` 内联 | **高** —— byte 列**直接喂** LSP `character`（`lsp/render.rs:52`、`project_refs.rs:145`）⇒ 含 `α`/`∈` 的行上高亮/rename 右移 ✓（已立台账 G-36/T-D31，但**重复未消除** ⇒ 修一处不会一起好 ✗） | `front::query::pos` 唯一入口 ✓ | `grep -rn "fn line_col\|fn offset_of" crates/front/src crates/lsp/src` ⇒ 9 命中 ✓；`references.rs:157` 确为字节（已抽查 ✓） | **立刻做** |
-| 6 | `suggest.rs:499 atom_text` + `:464 eq_refl_candidate` | `proof.rs:562 render_atom` + `by.rs:2225 rfl_candidate`（`by.rs:2266` **已改为委托** ✓，suggest 这份**漏了** ✗） | **高** —— 漏 `Notation`/`SetLiteral`/`AnonCtor` ⇒ `rfl` 建议在**记法操作数上静默消失** ✓（同 G-04 第二刀那次 bug ✓） | `proof::render_atom` / 共享 `rfl_candidate` ✓ | `grep -rn "fn atom_text\|fn eq_refl_candidate\|fn rfl_candidate" crates/front/src` ✓ | **立刻做** |
+| 6 ⏳**一半已修**（round 81 ✓） | `suggest.rs:499 atom_text` ✅ + `:464 eq_refl_candidate` ⏳ | `proof.rs:562 render_atom` + `by.rs:2225 rfl_candidate`（`by.rs:2266` **已改为委托** ✓，suggest 这份**漏了** ✗） | **高** —— 漏 `Notation`/`SetLiteral`/`AnonCtor` ⇒ `rfl` 建议在**记法操作数上静默消失** ✓（同 G-04 第二刀那次 bug ✓） | `proof::render_atom` ✅（`atom_text` 两边都改成**委托** ✓）；`rfl_candidate` 仍待共享 ⏳ | `grep -rn "fn atom_text\|fn eq_refl_candidate\|fn rfl_candidate" crates/front/src` ✓ | **立刻做** |
 | 7 | 词法符号表**两套判据 + 六份装配**（`semantic.rs:318` vs `parser.rs:3187`；`parser.rs:3206/3231`、`notation_input.rs:238/275/313/371`） | 互相 | **高** —— 这是 **R-2 的复发通道** ✗（`=` 吃 `=>` ⇒ 整段降级 ✓）；`notation_input.rs:308 known_symbols` 已是统一实现，同文件 4 处各抄一遍 ✗ | `parser::lexer_builtin_symbols()` / `notation_input::known_symbols()` ✓ | `grep -rn "lexer_builtin_symbols()" crates/front/src` ✓ | **立刻做** |
 | 8 ✅**已修**（round 69） | ~~**`display.rs:188 DisplayNotations::render` 与 `:235 render_folded` 函数体逐字等价** ✗~~ ⇒ **`render_folded` 已删除**（无调用者 ✓），接口恢复唯一 ✓；盲区已写进守卫文档 ✓ | 我自己的 T-U2 接口 ✗ | **高（元风险）** —— T-U2 刚立的"唯一接口"**当场分成两个入口**，而且两者**都在 `audit-notation-paths.py` 白名单里**（整文件豁免 ✗）⇒ **无人守** ✗✗ | 只保留 `DisplayNotations::render` ✓，删 `render_folded` ✓ | `grep -n "pub fn render\b\|pub fn render_folded" crates/front/src/display.rs` ✓ | **立刻做（T-U5 一并）** |
 | 9 | `DeclStatus→可见文字` **三处**硬写（`query/mod.rs:1004-1007`、`lsp/render.rs:411-417`、`extension.js:196-201`） | 互相；wire 只发 stringly-typed `status` ✗ | **高** —— JS 的 `solved` 是**兜底分支** ⇒ **任何新 status 被静默显示成"已解决"** ✗✗ | wire 发 label，或 JS 只做 1:1 映射并**删兜底** ✓ | `grep -n 'status === "open"' editor/vscode/extension.js` ✓ | **立刻做** |
@@ -57,6 +57,17 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 `query project`（`modules[].warnings/errors` ✓ —— 实测那条 `reserved-declaration-name`
 就活在 `modules[Dep].warnings` 里 ✓，而 `project.diagnostics` 是空的 ✗）。
 **已回退** ✓ 我的改动，只留一段说明注释 ✓（免得下一个人再走一遍 ✓）。
+
+### #6 的进展（round 81 ✓）
+* ✅ **`atom_text` 已同源**：`suggest.rs` 那份原来少列
+  `Notation`/`SetLiteral`/`AnonCtor` **三个变体** ✗（7 vs `proof::render_atom` 的 10 ✓）
+  ⇒ `rfl` 的实参是记法操作数（`Aᶜ`、`{a, b}`、匿名构造子）时**不加括号** ⇒ 候选解析失败
+  ⇒ 该建议**静默消失** ✓（正是 `by.rs:2260` 注释里那次 G-04 第二刀的同一形状 ✓）。
+  现在 `by.rs:2266` 与 `suggest.rs:507` **都只是委托** ✓ ⇒ 规则唯一归属
+  `proof::render_atom` ✓；判据：`grep -rn "fn atom_text" crates/front/src` 只剩两份**委托** ✓。
+* ⏳ **`eq_refl_candidate`（`suggest.rs:464`）与 `rfl_candidate`（`by.rs:2225`）仍是两份** ✗
+  —— 签名不同（前者收 `&str` + `&DeclState` ✓、后者收 `&Expr` 并返回 `(String, Expr)` ✓）
+  ⇒ 共享需要先定一个共同形状 ✓，下次做 ✓。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 

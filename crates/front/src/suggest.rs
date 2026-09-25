@@ -23,7 +23,7 @@
 //!   期望类型。这也顺带修复了旧 `exact` 把"匹配外层 goal 的假设"塞进子洞
 //!   的错位建议：外层匹配者与子洞期望类型不合，kernel 拒绝即不出现。
 
-use crate::compile::{render_expr, CompileOptions, DeclState, DeclStatus};
+use crate::compile::{CompileOptions, DeclState, DeclStatus};
 use crate::judge::{
     judge_hole_fill_with, judge_terms_with, judge_value_replace_with, GoalBinderSpec, Judgement,
     OpenGoalSpec,
@@ -496,18 +496,16 @@ fn spine_of(expr: &Expr) -> (&Expr, Vec<&Expr>) {
 }
 
 /// 实参文本：复合表达式加括号，嵌入候选后仍按原子解析。
+///
+/// **委托 `proof::render_atom`**（审计 #6，2026-09-25 ✓）：这里曾经是**第三份**
+/// 括号规则 ✗，而它少列了 `Notation`/`SetLiteral`/`AnonCtor` **三个变体** ✗
+/// ⇒ 当 `rfl` 的实参是**记法操作数**（`Aᶜ`、`{a, b}`、匿名构造子 ✓）时，
+/// 生成的候选**不加括号** ⇒ 解析失败 ⇒ 该建议**静默消失** ✓
+/// （`by.rs:2266` 早就是委托了 ✓，且 `proof::render_atom` 的文档里写着
+/// 两份规则必须同源、并记着第二刀实测踩过的那个形状 ✓ —— 只是**漏了这份** ✗）。
+/// 判据（同源）：`grep -rn "fn atom_text" crates/front/src` 只应剩**委托**那一份 ✓。
 fn atom_text(expr: &Expr) -> String {
-    let s = render_expr(expr);
-    match expr {
-        Expr::App { .. }
-        | Expr::Lambda { .. }
-        | Expr::Forall { .. }
-        | Expr::Arrow { .. }
-        | Expr::Plus { .. }
-        | Expr::Let { .. }
-        | Expr::Match { .. } => format!("({s})"),
-        _ => s,
-    }
+    crate::proof::render_atom(expr)
 }
 
 #[cfg(test)]
