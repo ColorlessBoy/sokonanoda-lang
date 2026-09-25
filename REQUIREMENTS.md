@@ -2497,6 +2497,20 @@ exists_univ pp raw: forall (α : Type 0), Exists (Set α) (fun (U : Set α) => �
 * 打出**带 `∃` 的字符串** ⇒ 折叠成功但被丢 ⇒ 顺着 `decl_states` → `report` → wire 找丢点 ✓；
 * 打出 `None` ⇒ 折叠那一步本身在真实上下文里失败 ⇒ 再往里查 `print_back` 的入参 ✓。
 
+**⑯ ③ 第 47 轮：**`print_back` 原样返回**（bail）—— 差别只在那个实例**：
+```
+[trace-notations] subset_univ folded = Some("∀ (α : Type 0) (A : Set α), A ⊆ (Set.univ α)")                 ✓ 折了
+[trace-notations] exists_univ folded = Some("forall (α : Type 0), Exists (Set α) (fun (U : Set α) => …)")  ✗ 原样
+```
+⇒ `print_back` **没有抛错、也没有部分折**，而是**整体 bail** ✗；输入字符串**逐字相同**于我在
+单测里折得动的那个 ✓（④多行那条 ✓）；表里 `symbols=["∃"]` ✓、`arity_Exists=Some(2)` ✓。
+⇒ **差别只能在 `DisplayNotations` 实例本身** ✓（`table` 里那条 `∃` 声明的
+`assoc`/`prec`，或 `arity` 的**键**，或 `builtin_notation_decls()` 里是否有同名的
+**另一条**把它盖住/抢先 ✓）。
+**下一行探针（就一处）**：在真实管线里把 `table` 中 **target==`Exists`** 的**全部**条目打出来
+（`symbol`/`assoc`/`prec` ✓，注意可能有**多条** ✓），以及 `arity` 里以 `Exists` 结尾的**所有键** ✓
+—— 与单测夹具（只有一条 `binder_notation` ✓）逐字对比，差在哪就是哪 ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。

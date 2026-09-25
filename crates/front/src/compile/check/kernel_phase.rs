@@ -95,6 +95,10 @@ fn check_then_add_decl<'arena>(
             .as_display_str()
             .to_string()
     });
+    if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
+        let who = name.clone().unwrap_or_else(|| "<anon>".to_string());
+        eprintln!("[trace-notations] {who} folded: {ty_text:?}");
+    }
     // **声明的值**（T-D52）：与 `ty_text` 同一形状算一遍
     // （内核 pp + 线 C 折叠）。只有 `def`/`opaque` 有值。
     let val_text = quiet_catch(|| {
