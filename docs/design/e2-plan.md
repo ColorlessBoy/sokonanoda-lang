@@ -1002,3 +1002,30 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ 默认路径与 CI **零影响** ✓（本轮 CI 会证明 ✓）；它现在的价值是**把这 181 条差异变成可复现的** ✓。
     **下一步（如实 ✓）**：① 把这 181 条分档（是**影子漏了**什么 ✗ 还是**多算了**什么 ✗）；
     ② 按档修影子 ✓（这才是 T-D3 的正体 ✓）；③ 收敛后再决定是否把断言接进 CI ✓。
+
+    **✅ round 214：181 条差异**分档完毕**，原因已指向** ✓
+    ```
+    181 条不一致：
+      172  **影子多报**（影子说失败 ✗、内核说通过 ✓）      ← 95% ✓
+        7  两边都非空但不同（inductive 块相关）
+        2  两边都非空但不同
+    ```
+    **冒烟枪（最有力的一条 ✓）** ✓：
+    ```
+    影子失败的名字 = ["a@0: Rejected(\"def_eq failed: def_eq mismatch
+                       expected: Nat.[] | actual: Nat.[]\")"]
+                      ↑ expected 与 actual **看起来一模一样** ✗ 却被判不等 ✓
+    ```
+    ⇒ 这是"**在两个环境/两个 TC 状态下比较类型**"的典型特征 ✗（结构相等而非同一 ✓）
+    ⇒ **影子在错误的时机、用不完整的环境做了检查** ✗。
+    ⇒ `walk.rs:168` 那句"check-then-add，与 `kernel_phase` **同序同语义**"✓
+    在 **172 例上不成立** ✗ —— **注释是意图，不是事实** ✗（本 session 第三次撞到这一点 ✓）。
+    其余 9 条 ✓：`missing inductive block boundaries` ✗ / `index out of bounds` ✗
+    ⇒ 影子把 **inductive 块**按"逐声明"检查 ✗，而内核阶段按**块**检查 ✓
+    （`walk.rs:156` 那句 `if !self.shadow_check_and_add(&declar, cmd) { break }` 就是逐声明 ✓）。
+    **⇒ 修法方向（下一轮 ✓）**：
+    ① **按块**检查 inductive（与 `kernel_phase` 对齐 ✓）；
+    ② 找出 172 例"多报"的**时机差** ✓（`expected == actual` 却被拒 ⇒ 先查
+       **TC/宇宙层状态**与**声明入库顺序** ✓，再看是否少了 `add_declar` 前后某一步 ✓）；
+    ③ 每修一档 ✓ ⇒ 重跑 `SOKO_SHADOW_CHECK=1 cargo test -p sokonanoda-front --lib` ✓
+       ⇒ **MISMATCH 数必须下降** ✓（可量化的进度 ✓）。
