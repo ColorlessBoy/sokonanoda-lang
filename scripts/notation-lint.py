@@ -93,6 +93,55 @@ POINTFUL = [
     ("Set.pair", re.compile(r"\bSet\.pair\s"), "{a, b}"),
 ]
 
+# ── **从记法声明自动派生**的点形式判据（2026-09-25：用户报"不通配"之后的修法）
+#
+# 起因：判据原来是一张**手维护**的表 —— 只能抓"当初想到的"点形式，每加一条新记法
+# 就得有人记得回来补一行 ✗（用户原话："现在方案不是通配的，而是拆东墙补西墙的吗？"）。
+# 现在改成：**扫仓库里所有记法声明**（`infix[lr]:N " sym " => Head` /
+# `notation " sym " => Head`），为每个 **Head** 自动生成"源码里出现 `Head ` 应用
+# ⇒ 判红、并告诉作者该写哪个符号" ✓。将来任何新记法（lib / 课程 / prelude 新增）
+# **自动进判据** ✓，不需要再有人回来加一行 ✓。
+# 手写表只作为**底座**（内核内建记法的声明不在 `.sokonanoda` 里，派不出来）✓。
+NOTATION_DECL = re.compile(
+    r'^\s*(?:infix[lr]?|prefix|postfix):\d+\s+"([^"]+)"\s*=>\s*([A-Za-z_][\w.]*)'
+)
+NOTATION_PLAIN = re.compile(r'^\s*notation\s+"([^"]+)"\s*=>\s*([A-Za-z_][\w.]*)')
+
+
+def derived_pointful(files) -> list[tuple[str, re.Pattern, str]]:
+    """扫 `files` 里的记法声明，生成点形式判据（按 Head 去重）。"""
+    out: dict[str, tuple[str, re.Pattern, str]] = {}
+    for path in files:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for raw in text.splitlines():
+            m = NOTATION_DECL.match(raw) or NOTATION_PLAIN.match(raw)
+            if not m:
+                continue
+            sym, head = m.group(1).strip(), m.group(2)
+            out.setdefault(
+                head,
+                (head, re.compile(r"\b" + re.escape(head) + r"\s"), sym),
+            )
+    return list(out.values())
+
+
+# 由 `Linter.__init__` 填充（= 手写底座 + 从记法声明派生）。见 `merged_pointful`。
+POINTFUL_ALL: list[tuple[str, re.Pattern, str]] = []
+
+
+def merged_pointful(files) -> list[tuple[str, re.Pattern, str]]:
+    """手写底座 + 从声明派生（按 label 去重，派生优先保留手写的修法提示）。"""
+    seen = {label for label, _, _ in POINTFUL}
+    out = list(POINTFUL)
+    for label, pat, fix in derived_pointful(files):
+        if label not in seen:
+            seen.add(label)
+            out.append((label, pat, fix))
+    return out
+
 # ── 旧写法：基础类型点名调用写全了前导隐式实参 ────────────────────────────
 # name → (新写法允许的显式实参个数, 记法提示)。计数 > 允许值 ⇒ 旧写法。
 PRELUDE_CALLS = {
@@ -271,7 +320,7 @@ def scan_text(text: str, line_no: int, is_comment: bool) -> list[dict]:
                     "text": text.strip(),
                 }
             )
-    for label, pat, fix in POINTFUL:
+    for label, pat, fix in (POINTFUL_ALL or POINTFUL):
         for m in pat.finditer(text):
             hits.append(
                 {
@@ -295,6 +344,10 @@ def scan_text(text: str, line_no: int, is_comment: bool) -> list[dict]:
 class Linter:
     def __init__(self, roots: list[Path]) -> None:
         self.roots = roots
+        # 判据 = 手写底座 + **从记法声明派生**（见 derived_pointful 的说明）。
+        # 存成模块级全局：消费点 `scan_text` 是自由函数，拿不到 `self` ✓。
+        global POINTFUL_ALL
+        POINTFUL_ALL = merged_pointful(self.files())
 
     def files(self) -> list[Path]:
         out: list[Path] = []
