@@ -1320,3 +1320,27 @@ workspace 测试 ✓ · 协议一致性 ✓ · 性能报告 ✓ · 课程语料 
    若日志已过期 ✗ ⇒ **在本地忠实复现 CI 环境** ✓：
    `env -i PATH=/usr/bin:/bin HOME=/tmp …` + **空缓存**（`SOKONANODA_CACHE_DIR=/tmp/empty` ✓）
    + **无 `target/` 构建**（`SOKONANODA_BIN` 不设 ✓ 且临时改名 target ✓）⇒ 看它**红在哪一条** ✓。
+
+### ✅ **根因确认并修好**（round 162 ✓）：`ledger` job **缺 Node** ✗
+**定位方式（用户给了 job 直链 ✓ 之后）** ✓：
+1. 日志取不到 ✓（`run … is still in progress` ✗ —— `gates` 那条还在跑 ✓ ⇒ 整轮未结束 ✓）；
+2. ⇒ 改用**忠实复现 CI 处境** ✓：`env -i PATH=… HOME=/tmp SOKONANODA_CACHE_DIR=<空> CARGO_TARGET_DIR=<无> python3 scripts/gap.py check --shard 1/3` ✓
+   ⇒ **当场重现** ✓：
+   ```
+   G-17/G-22/G-25/G-31/G-37  script  环境异常 ｜复现件：需要 node ｜ stderr: 需要 node
+   G-34                      script  环境异常 ｜env: node: No such file or directory
+   ```
+3. **根因** ✓：`ledger` job 的步骤只有 `checkout` + `Install Rust` + `Rust cache` + 检查 ✗ ——
+   **没有 Node** ✓，而**若干复现件要跑扩展侧逻辑（node）** ✓ ⇒ 它们 `exit 2` ✓
+   ⇒ `judge` 判"环境异常" ⇒ **整片红** ✗ ⇒ 三片全红 ✓（每片都分到几条 ✓）。
+4. **修法** ✓：给 `ledger` job 加 `actions/setup-node@v4`（`node-version: 20` ✓，
+   与 `gates` 的"Setup Node for the course gate"同款 ✓），插在 gap 检查**之前** ✓。
+5. **判据（同一忠实环境 ✓，修复前后对照 ✓）**：
+   * 修复前 ✓：「需要 node」**6 条** ✗、判红 ✗；
+   * 修复后 ✓：「需要 node」**0 条** ✓、结论行 **"全部与台账一致。"** ✓。
+   ⇒ 这就是"**先复现、再修、再用同一实验确认**"的闭环 ✓。
+
+**⚠ 教训（我上一轮差点走反）** ✗：我先猜是"缺二进制" ✗ 并据此改 CI ✗（还把步骤插错位置 ✗）
+—— 那次实验（`SOKONANODA_BIN=/nonexistent` ✓）**当时就否掉了它** ✓，我却没顺着"**忠实复现**"再走一步 ✗。
+**用户给出 job 直链** ✓ 之后才逼出正解 ✓ ⇒ **"红在哪一条、日志拿不到时怎么复现"应当第一时间做** ✓，
+而不是先猜环境差异 ✗。

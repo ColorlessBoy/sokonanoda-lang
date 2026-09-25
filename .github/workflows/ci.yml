@@ -279,6 +279,14 @@ jobs:
           components: rustfmt
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
+      # **必须有 Node**（2026-09-25 round 162 **复现确认** ✓）：若干复现件要用 `node`
+      # （跑扩展侧逻辑 ✓）⇒ 没有它 ⇒ 复现件 `exit 2`（"需要 node"）⇒ 门禁判红 ✗
+      # ⇒ **三片全红** ✗。定位方式 ✓：**忠实复现 CI 处境**（`env -i` + 空缓存 + 无仓库构建 ✓）
+      # ⇒ 本地立刻重现同一批 `需要 node` ✓（见 `docs/CI-FAILURES.md` ✓）。
+      # `gates` job 早有"Setup Node for the course gate" ✓ ⇒ 这里补同款 ✓。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Gap ledger is consistent (docs/gaps)
         # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
         # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。只有它能让 `fixed_in` 不随语言
