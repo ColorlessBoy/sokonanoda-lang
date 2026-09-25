@@ -884,6 +884,31 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 291 续：`Walk` 的真实构造 + ③ 的正确锚点 ✓**
+    ```
+    check/mod.rs:850 ✓
+        let mut walk = walk::Walk {
+            shadow,
+            shadow_upto: 0,          ← **这两行是唯一锚点** ✓
+            shadow_failed: Vec::new(),
+            …
+            builder,                 ← **裸字段简写** ✓（不是 `builder: walk.builder,` ✗！）
+            …
+        };
+    ```
+    ⇒ **原因清楚了** ✓：`Walk` 用**字段简写** `builder,` ✗ ⇒ 我的锚点
+    `builder: walk.builder,` **必然**命中 `Walked` ✗✓（**连续两轮同一个错** ✗）。
+    **⇒ ③ 的锚点（唯一 ✓）**：
+    ```
+            shadow,
+            shadow_upto: 0,
+    ```
+    ⇒ 在它**之后**插 `        probe_builder: walk_real_add_enabled().then_some(probe_builder),` ✓。
+    **⇒ 其余四步上一轮**已跑通** ✓**（输出 `①②③ ✓` / `④⑤ ✓（⑤ 覆盖 3 处 ✓）` ✓）
+    ⇒ **只差 ③ 这一行** ✓ ⇒ 下一轮：**重跑五步 + ③ 换新锚点** ✓。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 回到基线 11** ✓ · 组合 **11** ✓；
+    **反向验证** ✓：⑤ 改回 `&mut self.builder` ⇒ **必须回到 100** ✓。
+
   - **🔴 round 291：同一个锚点错**第二次** ✗ ⇒ `Walk` 的构造形状**必须先读** ✓**
     ```
     E0063: missing field `probe_builder` in initializer of `Walk<'_>`（mod.rs:866 ✓）
