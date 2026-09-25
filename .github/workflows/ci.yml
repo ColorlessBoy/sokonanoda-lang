@@ -37,7 +37,7 @@ jobs:
   # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
   # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
   auto-tag:
-    needs: [lint, test, gates, editor, e2e, e2e-macos]
+    needs: [lint, test, gates, ledger, contract, editor, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -144,7 +144,6 @@ jobs:
 
   gates:
     runs-on: ubuntu-latest
-    # **从原 `test` 拆出**（2026-09-25 用户要求 ✓）：10 步 ✓
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
@@ -218,6 +217,24 @@ jobs:
           path: /tmp/course-gate.json
           include-hidden-files: false
           if-no-files-found: warn
+
+  ledger:
+    # **矩阵并行 3 片**（2026-09-25 用户要求 ✓："能不能再多拆一些，让 github 也并行测试" ✓）：
+    # `gap.py check --shard i/3` 只跑第 i 片 ✓ ⇒ 三片同时跑 ✓、某片坏只重跑那片 ✓。
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Gap ledger is consistent (docs/gaps)
         # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
         # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。只有它能让 `fixed_in` 不随语言
@@ -237,7 +254,19 @@ jobs:
         shell: bash
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
-          python3 "$GITHUB_WORKSPACE/scripts/gap.py" check
+          python3 "$GITHUB_WORKSPACE/scripts/gap.py" check --shard ${{ matrix.shard }}/3
+
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Version single-source (manifests)
         # 每个声明了 `requires` 的 `sokonanoda.toml` 必须等于仓库版本（T-A08）。
         # 用户原话："开发没有默认提升这个 project 的 requires，这是根因" ——
@@ -257,7 +286,6 @@ jobs:
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \
             | cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json \
             | python3 -c 'import json,sys; [json.loads(l) for l in sys.stdin]'
-
   editor:
     runs-on: ubuntu-latest
     # **从原 `test` 拆出**（2026-09-25 用户要求 ✓）：6 步 ✓
