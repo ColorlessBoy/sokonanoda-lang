@@ -81,13 +81,6 @@ jobs:
           components: rustfmt
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
-      - uses: actions/checkout@v5
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
       - name: Workspace tests
         # tee 保留完整输出；--no-fail-fast 让所有失败一次暴露。
         # 失败时把完整日志作为 artifact 上传（公开仓库也能从 run 页下载），
