@@ -18,7 +18,7 @@
 | 4 | `scripts/kernel-diff.sh:82` 收集器无 `-type f` | `notation-lint.py:364` / `verify-decl-panel.py:63`（后者已补 `is_file()` ✓） | **高** —— 实收 **4 个目录** ⇒ 20 组对拍**恒绿**、**"零差异"覆盖被虚报** ✗ | 收集器唯一化 + `-type f` ✓ | `find courses course examples docs/gaps/repro -name '*.sokonanoda' ! -type f` ⇒ **4 行** ✓（已抽查 ✓） | **立刻做** |
 | 5 | offset↔line/col **六份**实现、列口径**三种**（byte/char/UTF-16） | `query/pos.rs:9`（UTF-16，自称唯一 ✗）、`session.rs:467`、`references.rs:98/154`（**byte** ✗）、`lsp/lib.rs:993`、`lsp/render.rs:381`（与上一份**逐字相同**）+ `lsp/tokens.rs:88` 内联 | **高** —— byte 列**直接喂** LSP `character`（`lsp/render.rs:52`、`project_refs.rs:145`）⇒ 含 `α`/`∈` 的行上高亮/rename 右移 ✓（已立台账 G-36/T-D31，但**重复未消除** ⇒ 修一处不会一起好 ✗） | `front::query::pos` 唯一入口 ✓ | `grep -rn "fn line_col\|fn offset_of" crates/front/src crates/lsp/src` ⇒ 9 命中 ✓；`references.rs:157` 确为字节（已抽查 ✓） | **立刻做** |
 | 6 ⏳**一半已修**（round 81 ✓） | `suggest.rs:499 atom_text` ✅ + `:464 eq_refl_candidate` ⏳ | `proof.rs:562 render_atom` + `by.rs:2225 rfl_candidate`（`by.rs:2266` **已改为委托** ✓，suggest 这份**漏了** ✗） | **高** —— 漏 `Notation`/`SetLiteral`/`AnonCtor` ⇒ `rfl` 建议在**记法操作数上静默消失** ✓（同 G-04 第二刀那次 bug ✓） | `proof::render_atom` ✅（`atom_text` 两边都改成**委托** ✓）；`rfl_candidate` 仍待共享 ⏳ | `grep -rn "fn atom_text\|fn eq_refl_candidate\|fn rfl_candidate" crates/front/src` ✓ | **立刻做** |
-| 7 | 词法符号表**两套判据 + 六份装配**（`semantic.rs:318` vs `parser.rs:3187`；`parser.rs:3206/3231`、`notation_input.rs:238/275/313/371`） | 互相 | **高** —— 这是 **R-2 的复发通道** ✗（`=` 吃 `=>` ⇒ 整段降级 ✓）；`notation_input.rs:308 known_symbols` 已是统一实现，同文件 4 处各抄一遍 ✗ | `parser::lexer_builtin_symbols()` / `notation_input::known_symbols()` ✓ | `grep -rn "lexer_builtin_symbols()" crates/front/src` ✓ | **立刻做** |
+| 7 ⏳**已核清单、待定规则归属**（round 82 ✓） | 词法符号表：**两条不同的规则 + 四份逐字副本**（见下 ✓） | 互相 | **高** —— 这是 **R-2 的复发通道** ✗（`=` 吃 `=>` ⇒ 整段降级 ✓）；`notation_input.rs:308 known_symbols` 已是统一实现，同文件 4 处各抄一遍 ✗ | **先定哪条规则为准** ✗（见下 ✓），再让其余全部委托它 ✓ | `grep -rn "lexer_builtin_symbols()" crates/front/src` ✓ | **立刻做** |
 | 8 ✅**已修**（round 69） | ~~**`display.rs:188 DisplayNotations::render` 与 `:235 render_folded` 函数体逐字等价** ✗~~ ⇒ **`render_folded` 已删除**（无调用者 ✓），接口恢复唯一 ✓；盲区已写进守卫文档 ✓ | 我自己的 T-U2 接口 ✗ | **高（元风险）** —— T-U2 刚立的"唯一接口"**当场分成两个入口**，而且两者**都在 `audit-notation-paths.py` 白名单里**（整文件豁免 ✗）⇒ **无人守** ✗✗ | 只保留 `DisplayNotations::render` ✓，删 `render_folded` ✓ | `grep -n "pub fn render\b\|pub fn render_folded" crates/front/src/display.rs` ✓ | **立刻做（T-U5 一并）** |
 | 9 | `DeclStatus→可见文字` **三处**硬写（`query/mod.rs:1004-1007`、`lsp/render.rs:411-417`、`extension.js:196-201`） | 互相；wire 只发 stringly-typed `status` ✗ | **高** —— JS 的 `solved` 是**兜底分支** ⇒ **任何新 status 被静默显示成"已解决"** ✗✗ | wire 发 label，或 JS 只做 1:1 映射并**删兜底** ✓ | `grep -n 'status === "open"' editor/vscode/extension.js` ✓ | **立刻做** |
 | 10 | 课程文件收集器 **2/5 已修** ✗（`check.py:525/545/563` 的 `glob` 无 `is_file()`；`e2e-merge.py:73-76` 的 `rglob` 无 `is_file()` 且 `except` 不接 `OSError`） | R-3 那一族 ✓ | **高（形状已证、触发未证 ✓）** —— `Path.glob("*.sokonanoda")` **确实**返回 `.sokonanoda` 目录 ✓（Python 3.14 ✓）；`e2e-merge.py` 遇同名目录会 **traceback 而非 `SystemExit`** ✗ | 一个带 `is_file()` + `except OSError` 的共享收集器 ✓ | `grep -n 'glob("' courses/set-theory/tools/check.py` ✓ | **立刻做** |
@@ -68,6 +68,28 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 * ⏳ **`eq_refl_candidate`（`suggest.rs:464`）与 `rfl_candidate`（`by.rs:2225`）仍是两份** ✗
   —— 签名不同（前者收 `&str` + `&DeclState` ✓、后者收 `&Expr` 并返回 `(String, Expr)` ✓）
   ⇒ 共享需要先定一个共同形状 ✓，下次做 ✓。
+
+### #7 的精确清单（round 82 实测 ✓）—— **不能机械替换** ✗
+我按审计的说法去核，发现"两套判据 + 六份装配"要**分开看** ✓：
+
+**(a) 两条规则确实不同** ✗（所以不能简单合并 ✓）：
+| 位置 | 规则 |
+|---|---|
+| `crates/front/src/parser.rs:3187 lexer_builtin_symbols()` | `builtin_notation_symbols()` **只滤掉 `LEXER_NATIVE_SYMBOLS = ["="]`** ✓ |
+| `crates/front/src/semantic.rs:313-321` | 滤 `s != "="` **且** `lexer_reserved_symbol_char(s).is_none()` ✓ —— **更严** ✓ |
+
+⇒ 想收口成一处，必须**先决定哪条为准** ✓：
+`semantic` 那条更严（多滤"词法保留符号"✓），而 `parser` 那条是给**解析**用的 ✓ ——
+两者面对的输入不同（一个喂 `tokenize_with_symbols` 做着色 ✓、一个喂 parser 做解析 ✓）
+⇒ **"更严"不一定对解析也成立** ✗。**这是设计问题，不是机械替换** ✓
+（先记着 ✓；改之前要证明"解析用更严的表"不改变任何语料的接受/拒绝 ✓）。
+
+**(b) 四份逐字副本** ✓（同文件、同三步装配：扫声明 → 并 builtins → 并 `TABLE` ✓）：
+`notation_input.rs:238` / `:275` / `:313`（= `known_symbols` ✓）/ `:371` ✓
+—— 这四份**形状相同** ✓，其中 `known_symbols(doc)` 已是公开入口 ✓
+⇒ 可安全收成"一个私有 `assemble(scanned)` + 四个薄壳" ✓（**纯重构、零行为变化** ✓，
+判据 = 全语料 `--json` 逐字节对拍 + front 731 ✓）。**下次做** ✓。
+**(c) `parser.rs:3206/3231`** 那两处要单独看 ✓（面对的是 token/继承表，不是 `&str` ✓）。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 
