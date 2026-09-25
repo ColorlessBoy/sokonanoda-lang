@@ -1217,3 +1217,35 @@ workspace 测试 ✓ · 协议一致性 ✓ · 性能报告 ✓ · 课程语料 
 **下一步** ✓：等 `36138540072` 的 `test` 给出结论（步骤级上限 35 分钟 ✓ 必给 ✓）⇒
 看 `Per-suite timing (always)` 里**哪一套**慢 ✓；若"没日志" ⇒ 说明卡在**测试之前**（编译 ✓）⇒
 那就是**冷编译**问题 ✓（⇒ 查 `Swatinem/rust-cache` 是否命中 ✓）。
+
+## 2026-09-25 · run 36138540072（**拆分后的第一轮** ✓）· 失败被**精确隔离**到一步 ✓
+
+| job | 结论 | 耗时 |
+|---|---|---|
+| `lint` · **`editor`** · `e2e ×3` · `e2e ledger` | ✓ 绿 | 快 ✓ |
+| **`test`**（10 步 ✓） | **✓ 绿** | **19 分 25 秒** ✓ |
+| **`gates`**（13 步 ✓） | **✗ 红** | 22 分 32 秒 ✗ |
+
+**`test` 是"慢"不是"卡"** ✓：19.4 分钟收尾并**绿** ✓（本地同命令 161 秒 ✓ ⇒ CI 慢 ~7 倍 ✓，
+但不影响结论 ✓）。⇒ 之前"永远 in_progress" ✗ 的真身就是**这条 job 太长 + 后面还挂着 16 步** ✗ ✓。
+
+**`gates` 的失败步（逐条定位 ✓）**：
+```
+✓ Lesson corpus is valid
+✓ Course layer is guarded (canvases, solutions, course.json)
+✓ Setup Node / Release CLI for the course gate
+✓ Course gate (set-theory, G1–G5)          ← 门禁本身全过 ✓
+✓ Upload course gate report (always)
+✗ **Gap ledger is consistent (docs/gaps)** ← **就红在这一步** ✗
+- Version single-source / Notation rule / Machine events  （被 skip ✗）
+```
+
+**而它在本地是绿的** ✓（同一轮我刚跑过 `scripts/ci-local.sh --fast` ⇒ "✅ gates：缺口台账" ✓）
+⇒ 与早先那条已记录的"**gap 台账环境敏感**"完全吻合 ✓：CI 上 G-35 报"行为已变" ✗，
+本地却报"复现件超时（>120s）—— 按环境/形状异常判红" ✓ 且 **exit 0** ✓。
+
+**⇒ 修法方向（下一步 ✓，已可动手 ✓）**：让"**复现件超时**"这一支**环境无关** ✓ ——
+慢 runner 上超时是**环境事实** ✓，不该被折算成"行为已变"的判红 ✗。
+具体二选一 ✓：① 把该复现件的超时预算**调到慢机器也够**（并写明依据 ✓）；
+② 超时 ⇒ 归为"**不确定/环境异常**"（**不判红** ✓，但在报告里显式标出 ✓）。
+**判据** ✓：同一条命令在**本地**与 **CI** 上给出**相同**结论 ✓（现在是不同 ✗）。
