@@ -2312,6 +2312,32 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 #### 批次 E：收尾与固化
 
 - [ ] `T-E1` **性能回归进 CI**：把三个基准做成 CI 可跑的 smoke（阈值宽松 ✓，只抓**大幅退化** ✗）
+  - **🎯 round 312：smoke 子集选好了 ✓（~1 秒 ✓，且含 D-1/D-2 动过的那条热路径 ✓）**
+    ```
+    $ scripts/perf-check.sh --list   （台账最后一条 = v0.68.0 d476508 ✓）
+    front-project  judge_prefix_with_imports      **73.63ms** ✓
+    front-project  closure_compile_scaling        [23.37, 40.61, 76.58]ms ✓
+    front-project  keystroke_recompile_closure    **43.67ms** ✓
+    front-project  teaching_scale_keystroke       [17.31, 22.35, 32.9]ms ✓
+    lsp-course     did_open                       1905 / 4644 / 9085ms ✗（三条重 ✗ ⇒ **不进快层** ✓）
+    lsp-course     did_open_same_session          **134ms** ✓ ← **正是 D-1/D-2 动过的热路径** ✓✓
+    lsp-course     keystroke                      **504ms** ✓
+    lsp-course     save_same_text / watched_unchanged   3ms ✓
+    cli-project    那几条 = Nonems ✓（要 release 构建 ✗ ⇒ 不进快层 ✓）
+    ```
+    **⇒ smoke 子集（合计 ~1 秒 ✓）**：**全部 `front-project`** ✓（几十 ms ✓）
+    + **`lsp-course did_open_same_session`** ✓（134ms ✓）+ **`keystroke`** ✓（504ms ✓）。
+    **⇒ 为什么这个子集好** ✓：
+    ① **快** ✓（~1 秒 ✓ ⇒ 可进快层 ✓，符合"**CI 快速层 ≤2–3 分钟**"的用户要求 ✓）；
+    ② **含"生命线"** ✓：`did_open_same_session` ✓ 正是 **"同一会话里再判一次"** ✓
+      = **D-1/D-2 动过的那条路** ✓ ⇒ **即使它们的收益量不出** ✗，
+      **这条门禁也能保证"以后不会变慢"** ✓✓（**这才是 T-E1 的真正价值** ✓：
+      **不是"再快一点"✗，而是"以后慢下来会被发现"** ✓）；
+    ③ **排除重条** ✓（`did_open` 的 1.9/4.6/9.1s ✗ + `cli-project` 的 release 构建 ✗）
+      ⇒ 它们仍由既有的 `perf-report` job **只报不拦** ✓ 覆盖 ✓。
+    **⇒ 下一步（一条命令 ✓）**：写 `perf-gate` job ✓ ——
+    **先只报不拦**（`|| true` ✓）量 CI 抖动 ✓ ⇒ 再定阈值（**建议 `--threshold 50`** ✓）⇒ 转成拦 ✓。
+
   - **🎯 round 311：T-E1 的机制齐备，而 CI **已经"报"了只是没"拦"** ✓ ⇒ 接线即可 ✓**
     ```
     scripts/perf-check.sh（163 行 ✓）—— "**单场景性能快跑**" ✓
