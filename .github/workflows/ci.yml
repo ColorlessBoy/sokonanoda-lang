@@ -90,6 +90,11 @@ jobs:
               - "crates/**"
               - "Cargo.toml"
               - "Cargo.lock"
+              # **scripts/** 也算"会改变验证结果"** ✓（2026-09-25 ✓ 我自己的过滤器漏洞 ✗）：
+              # 改 `scripts/gap.py` / `audit-*.py` / `ci-local.sh` **必须**触发
+              # `gates`/`ledger`/`contract` ✓ —— 否则"改了判据却没人验" ✗，
+              # 正是用户抱怨的那种形态 ✓。
+              - "scripts/**"
             editor:
               - "editor/**"
             courses:
