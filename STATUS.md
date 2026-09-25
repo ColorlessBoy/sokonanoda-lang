@@ -26,6 +26,13 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 388：只剩 4 个** ✓（**已绿 18 → 19** ✓ · 2 红 ✗）
+  ```
+  未完 4 ✓：`gates-course` ✓ + `test (sokonanoda-cli, tests)` ✓ +
+    `test (sokonanoda-lsp, lib)` ✓ + `test (sokonanoda-lsp, tests)` ✓
+  ⇒ **日志即将可读** ✓ ⇒ **那时读 `ledger (1)` 的真因** ✓ ⇒ 对号入座 ✓ · **不推** ✗。
+  ```
+
 * **⏳ round 387：整轮仍在跑** ✓（5 未完 ✓ · 2 红 ✗ · **日志待整轮** ✗）
   ```
   ⇒ **判据不变** ✓：等 ⇒ 读 `ledger (1)` 日志 ⇒ 对号入座 ✓ · **不推** ✗。
