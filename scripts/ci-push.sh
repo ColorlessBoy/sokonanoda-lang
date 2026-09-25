@@ -24,7 +24,14 @@ if [ "$cancel" = 1 ]; then
   done
   [ "$n" = 0 ] && echo "  （没有未完成的旧 run ✓）"
 fi
-git push "${args[@]:-origin main}" 2>&1 | tail -3
+# ⚠ **必须按退出码判** ✓（本 session 第四次同类教训 ✗）：推送失败时**不许**报"新一轮" ✗。
+# ⚠ 并且 `${args[@]:-origin main}` 会展开成**一个**参数 `"origin main"` ✗（实测 ✓：
+# git 报 "repository does not exist" ✓）⇒ 空数组要**分开写** ✓。
+if [ "${#args[@]}" -eq 0 ]; then
+  if ! git push origin main; then echo "  ❌ 推送失败 ✗（没有产生新一轮 ✓）"; exit 1; fi
+else
+  if ! git push "${args[@]}"; then echo "  ❌ 推送失败 ✗"; exit 1; fi
+fi
 sleep 5
 rid=$(gh run list --workflow ci --limit 1 --json databaseId --jq '.[0].databaseId')
 echo "  ⇒ 新一轮 #$rid ✓（用 scripts/ci-watch.sh --follow 看 ✓）"
