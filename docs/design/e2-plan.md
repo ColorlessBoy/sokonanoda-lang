@@ -540,6 +540,16 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     例如只有 `judge` **batch** 那条路才装 ✓ —— `SOKO_NO_JUDGE_BATCH` 这个开关的存在暗示了这一点 ✓。）
     ⇒ 找到入口后 ✓，T-D6 的计时基线就能取到 ✓（两态各跑**同一条**入口 ✓）。
 
+  - **✅ round 228 续：`install_printer` 的调用点找到了** ✓ —— **`judge.rs:501`** ✓
+    ⇒ 它装在 **`judge` 那条入口**上 ✓ ⇒ `CALLS==0` 意味着**那条入口没被走到** ✗
+    ⇒ 问题收窄成 ✓：**为什么同一个课程文件，round 225 走了 judge 入口（CALLS=144 ✓），
+    后两次没走（CALLS=0 ✗）？** ⇒ 下一步直接读 `judge.rs:495-510` ✓ 看它在哪个函数里 ✓
+    （大概率是 **`judge` 的批量/缓存入口** ✓ —— `SOKO_NO_JUDGE_BATCH` 的存在暗示有两条路 ✓）。
+  - **⚠ 顺带发现 `scripts/ci-push.sh` 的小 bug** ✗（不阻塞 ✓，但要修 ✓）：
+    网络超时（`TLS handshake timeout` ✓）时它仍打印 `⇒ 新一轮 # ✓` ✗ —— **run id 是空的** ✗
+    ⇒ 应加判据 ✓：拿到 id 才打印 ✓，拿不到就说"推送成功但取不到 run id（网络）" ✓
+    （**与"没按退出码判"同源** ✗：这次是"没按**有没有拿到值**判" ✓）。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
