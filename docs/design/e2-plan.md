@@ -884,6 +884,32 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🔴 round 281：缓存层空转**也无效**（100 → 101 ✗）⇒ 判卷缓存**被排除** ✓**
+    ```
+    默认        : 736 passed; 0 failed ✓
+    开关(缓存层): 635 passed; **101 failed** ✗   ← 修前 100 ✗ ⇒ **毫无改善** ✗
+    仅影子基线  : 725 passed; **11 failed** ✓
+    ```
+    ⇒ **把 `judge.rs` 的缓存（`judge_cache_get`/`judge_cache_put`）全部空转** ✗
+    **什么都没改变** ✓ ⇒ **"共享热状态"不是判卷缓存** ✓ ⇒ **排除一个假设** ✓。
+    **⇒ 剩下的候选（按可能性 ✓）**：
+    * **`check/mod.rs` 的 `SPEC` / `ONCE`** ✓（`OnceLock<Option<String>>` ✓ / `thread_local!` ✓）；
+    * **`display.rs` 的 `CACHE`** ✓（`OnceLock<HashMap<String, usize>>` ✓ = 记法元数表 ✓，prelude 派生 ✓）；
+    * **`prelude.rs` / `elab.rs` 的 `thread_local!`** ✓；
+    * **`judge.rs` 的 `TRUSTED_PREFIX`** ✓（`thread_local!` ✓ —— 它**不在** `judge_cache_*` 里 ✓
+      ⇒ 本轮**没被覆盖** ✗✓）；
+    * **`type_cache`** ✓（第二个 CACHE ✓ —— 本轮也**没覆盖** ✗）。
+    **⇒ 下一步（更省的一条命令 ✓）**：**不再逐个猜缓存** ✗ ——
+    **直接问"哪个测试先跑会让它失败"** ✓（这能把候选**一次缩到一处** ✓）：
+    ```bash
+    # 用 --exact 两两组合：先跑一个"疑似污染源"，再跑目标用例
+    SOKO_WALK_REAL_ADD=1 cargo test -p sokonanoda-front --lib --       --test-threads=1 compile::tests::match_prop_result_checks <另一个用例名>
+    ```
+    ⇒ 若**某个**同伴让它失败 ✓ ⇒ **那个同伴碰过的共享状态**就是嫌疑 ✓
+    ⇒ 而它比"逐个空转缓存"✗ **便宜得多** ✓（一次一个 ✓，直接指向 ✓）。
+    ⚠ **方法（第三次同类 ✓）**：**"改了没变化"继续在排除假设** ✓ ——
+    这一轮排除了**判卷缓存** ✓，上一轮排除了**单点调用** ✓ ⇒ **两个假设都死了，但方向更清楚了** ✓。
+
   - **🎯 round 280 续：缓存点**比想的多 ⇒ 修法应落在**缓存层** ✓（三个函数覆盖全部 ✓）**
     ```
     judge.rs:115  fn judge_cache_get(key)          ← **缓存层** ✓
