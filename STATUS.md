@@ -1,5 +1,15 @@
 # 当前状态与进度日志（agents 先读这里）
 
+> 快照：2026-09-24（**E2 第 2 轮 / 阶段 B 进行中**：**T-B1..T-B3 完成**（进度
+> **10/38**）—— R-4 命令名标准化：盘点表 + 15 条命令改成
+> `Sokonanoda: <Command> (说明)` + 四份同步；**屏幕上**命令面板 15 行统一、两条
+> **前缀双写**消失（`sokonanoda: sokonanoda: 打开目标面板 (Infoview)`、
+> `sokonanoda: doctor: …`）。判据是两条**静态契约**（都做过修前判红 ✓）：
+> `command_titles_follow_the_r4_naming_rule`（4 条断言）+ 盘点表↔
+> `contributes.commands` **双向相等**。阶段 B 还剩 **T-B4**（`.sokonanoda/` 契约设计）
+> → T-B5（CLI 实现）→ T-B6（判据 + 数字进台账）→ **T-B7**（收尾：一次 push →
+> CI 绿 → bump **0.67.0** → release → 核对）✓。
+>
 > 快照：2026-09-24（**E2 第 1 轮**：**T-A5 完成**（R-2 显示链路），阶段 A 只剩
 > T-A6（判据收口）/T-A7（0.66.0 发版闭环）✓）：
 > * **R-2 的"目标不高亮"真因已修** ✓ —— `crates/front/src/semantic.rs` 把内建记法表
