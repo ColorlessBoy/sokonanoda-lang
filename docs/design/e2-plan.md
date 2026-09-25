@@ -884,6 +884,35 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 257：调用点看清了，并暴露出 D-2 的**真正难点** ✗**
+    ```
+    kernel_phase.rs:346-372（第二阶段的 `PendingOp` 循环 ✓）
+      PendingOp::Decl { .. } => {
+          if check_then_add_decl(&mut env, &display, &mut out, &mut decl_states,
+                                 &mut failed_cmds, &mut kernel_checks, j, op) {
+              allow_cutoff = false;   // 被拒 ⇒ 第一阶段环境变"临时" ✓
+              op_failed = true;
+          }
+      }
+      PendingOp::InductiveBlock { name, declars, span, cmd } => {
+          for declar in &declars {
+              kernel_checks += 1;
+              if let Err(e) = env.try_check_declar(declar) {   // ← 重查点 ③ 在**这个**分支 ✓
+    ```
+    **⚠ 关键（决定了 D-2 的顺序 ✓）**：`check_then_add_decl` 是 **check-`then-add`** ✓
+    ⇒ **跳过它 = 不把声明加进 `env`** ✗ ⇒ 而 **walk 目前只往"影子环境"检查** ✓（round 256 ✓）
+    ⇒ **如果只是在内核阶段加 `if` 跳过 ⇒ 真 `env` 会缺声明** ✗ ⇒ **直接崩** ✗。
+    **⇒ 所以 D-2 的顺序是** ✓（**先做 A，再做 B** ✓）：
+    * **A（前置 ✓）**：让 **walk 往真 `env` 里做 check-then-add** ✓ ——
+      这正是 `check_then_add_decl` 被抽出来的理由 ✓（它的注释原文 ✓："让 T-D3 的 walk
+      能在 elaborate 之后**当场做同一件事**" ✓）；
+    * **B（跳过 ✓）**：内核阶段对 `shadow_covered` 里的 `cmd` **跳过** `check_then_add_decl` ✓
+      （开关控制 ✓，**先开关后默认** ✓）。
+    **⇒ 下一步（一条命令 ✓）**：读 walk 里"影子环境"的构造与用法 ✓
+    （`walk.rs:125` 的 `shadow_env` ✓ + `:172` 的 `shadow_check_and_add` ✓）
+    ⇒ 看它离"往真 `env` 里 add"**差什么** ✗（大概率只差"借哪个 `ExportFile`" ✓）
+    ⇒ 那就是 A 的全部内容 ✓。
+
   - **🎯🎯 round 256：函数自己的注释就写着 D-2 的路径 ✓（而"walk 已核过"是现成的 ✓）**
     ```
     kernel_phase.rs:43-47（fn check_then_add_decl 的文档 ✓）
