@@ -1013,3 +1013,27 @@ LSP 测试进程**正常退出** ✓ ⇒ 本地复现不了 ✗（属于"诊断�
 **待办（下一轮）**：① 把 `test` job 的 Workspace tests 拆开或加 `timeout-minutes`
 ＋ 分套件输出，定位是哪一步卡住（本机复现不了就只能从 CI 侧加可观测性 ✗）；
 ② 核对 `gh release list` 与资产数（26 个）✓。
+
+## 2026-09-25 · run 36120772640（0.68.0 批次）· `e2e (ubuntu-latest · VS Code 1.106.0)` 失败
+
+**现象** ✗：同一轮里 `lint` ✓、`e2e (macos 1.138.0)` ✓、`e2e (ubuntu 1.138.0)` ✓，
+只有 **`e2e (ubuntu-latest · VS Code 1.106.0)`** 判红 ✗（`test` job 当时仍在跑 ✓）。
+
+**本地复现：复现不了** ✓（按 AGENTS 的"诊断性 CI"条款记录原因 ✓）：
+```
+$ SOKO_VSCODE_TEST_VERSION=1.106.0 scripts/vscode-e2e.sh
+e2e: 27 passed / 0 failed (v0.68.0 2be03e5, VS Code 1.106.0,
+     server 0.68.0 (pid 94997) == 扩展 v0.68.0 (source=bundled))
+```
+⇒ 同一 VS Code 版本、同一套用例，本地 **27/27 全绿** ✓（含新增那条记法用例 ✓）。
+1.138.0 在 CI 上也绿 ✓ ⇒ 差异只在"**ubuntu + 1.106.0**"这个组合 ✓
+（既非代码差异、也非版本差异 ⇒ 疑为该组合下的环境/flake ✗）。
+
+**旁证** ✓：上一轮 CI（`36098950145`，v0.67.0 的 push）红的是 **`test`** job ✗，
+而 `e2e (ubuntu · 1.106.0)` 那次是**绿的** ✓ ⇒ 1.106.0 的这次红**不是长期稳定复现** ✗。
+
+**处置** ✓：不据此改代码 ✗（没有可复现的本地判据 ⇒ 改了也不知道对不对 ✗）。
+下一步：等整轮结束后取失败 job 的日志 ✓（`gh run view --log-failed` 需 run 完成 ✓），
+按日志决定是"环境/flake"（则记 prevention）还是"真差异"（则修）✓。
+**预防（待定）**：若确认 flake，考虑给该 job 加 `timeout-minutes` 与失败用例名回显 ✓
+（与 `test` job 同款待办 ✓，见 `STATUS.md` 的 CI 待办 ✓）。
