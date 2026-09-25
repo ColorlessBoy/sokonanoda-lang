@@ -208,3 +208,37 @@ curl -sS -X POST "https://marketplace.visualstudio.com/_apis/public/gallery/exte
 | 陷阱 | 事实 | 规程 |
 |---|---|---|
 | GitHub Actions Node 20 弃用 | runner 把 node20 action 强制跑在 Node 24，annotation 点名 `actions/checkout@v4` / `setup-node@v4` | 升到 node24 版本：`checkout@v5`、`setup-node@v5`、`upload-artifact@v6+`、`download-artifact@v7+`；`Swatinem/rust-cache@v2` 已是 node24；`mlugg/setup-zig@v2`（最新 v2.2.1）仍 node20，暂无替代，留观察。判断某版本运行时：`gh api -H "Accept: application/vnd.github.raw" repos/<owner>/<repo>/contents/action.yml?ref=<tag>` 看 `using:` |
+
+## 性能回归门禁 `perf-gate`（T-E1，2026-09-25 ✓）
+
+CI 第 15 个 job ✓（**快层** ✓）：**每次 rust 改动的 push** 跑一组 smoke ✓（合计 **~1 秒** ✓），
+与 `docs/perf/ledger.jsonl` 的**上一次同名记录**比 ✓，**大幅退化就红** ✗。
+
+```bash
+scripts/perf-check.sh --case judge_prefix_with_imported --threshold 50   # 单条 ✓
+scripts/perf-check.sh --list      # 台账里有哪些 (scope, case) ✓
+scripts/perf-ledger.sh            # 全量四套件 → docs/perf/ledger.jsonl（提交它 ✓）
+```
+
+⚠ **`--case` 是"测试名子串"** ✗ —— **不是**台账里的 `(scope, case)` 名 ✗。
+**实测**（round 313 ✓）：拿台账名当过滤器 ⇒ **5 个里 3 个 `exit=2`** ✗
+（= "没跑到任何 case" ⇒ **守卫空转** ✗✓ —— **它会永远是绿的** ✗）。
+**⇒ 新增过滤器：先 `git grep` 出真实测试名 ✓，再逐个验证 `exit != 2`** ✓
+—— **咬不住的守卫等于没有** ✓。
+
+| 过滤器（**测试名子串** ✓） | 台账 `(scope, case)` ✓ |
+|---|---|
+| `judge_prefix_with_imported` | `front-project judge_prefix_with_imports` ✓ |
+| `keystroke_recompiles_the_closure` | `front-project keystroke_recompile_closure` ✓ |
+| `teaching_scale_keystroke` | `front-project teaching_scale_keystroke` ✓ |
+| `keystroke` | 覆盖 4 处 ✓（含 lsp ✓） |
+| `perf_course_did_open_is_recorded` | `lsp-course did_open`（1905/4644/9085ms）**+ `did_open_same_session`（134ms）** ✓ |
+
+- **阈值 `--threshold 50`** ✓（比默认 25% **更松** ✓）：**CI runner 比本地吵** ✗
+  ⇒ **假红比没有门禁更糟** ✗✓；
+- ⚠ **第一轮 `continue-on-error: true`** ✓（只报不拦 ✓）⇒ **CI 会绿** ✗
+  ⇒ **读它必须 job 级** ✓（`scripts/ci-watch.sh` ✓ / `gh run view <id> --json jobs` ✓），
+  **不能看整轮结论** ✗（批次制第 d 条 ✓）；
+- **排除的重条** ✗（仍由 `perf-report` **只报不拦** 覆盖 ✓）：`by_block`（门控 ✓ ~36s ✗）·
+  `cli-project` 那几条（要 **release 构建** ✗）；
+- **详见** `docs/PERF.md` 的"性能回归**门禁**"一节 ✓。
