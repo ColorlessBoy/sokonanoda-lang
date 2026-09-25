@@ -884,6 +884,35 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **✅ round 289：C1 的接线**再简一步** ✓（免去把 `ArenaRef` 接进 walk ✗）**
+    **关键简化** ✓：**在 `check/mod.rs` 里把 `probe_builder` 建好** ✓（`arena` 与 `builder` 都在这 ✓，
+    `:752` 附近 ✓）⇒ 然后**把它作为字段传给 `Walk`** ✓ ⇒ **不需要**把 `ArenaRef` 类型接进 walk ✗✓。
+    ```rust
+    // ① check/mod.rs（:752 附近 ✓）：同 arena + 只装 prelude
+    let mut probe_builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    install_all_preludes(&mut probe_builder, &mut KnownTable::new(),
+                         &mut InductiveTable::new(), &mut DefTable::new(), units, options);
+    // ② check/mod.rs（:857 的 Walk 构造 ✓）：开关控制 ⇒ 关时 None ⇒ 原样 ✓
+    probe_builder: walk_real_add_enabled().then_some(probe_builder),
+    // ③ walk.rs 三处（:567 / :791 / :1104 ✓）
+    build_redundant_probes(self.probe_builder.as_mut().unwrap_or(&mut self.builder), …)
+    ```
+    ⇒ **`Option<EnvBuilder>` 让"开关关 ⇒ 走原路径"变成类型上的必然** ✓
+    （**不需要**在每个调用点写 if ✓）⇒ **默认路径零变化** ✓ 由类型保证 ✓✓。
+    **⇒ 改动清单（五处 ✓，都已定位 ✓）**：
+    ① `check/mod.rs:752` 附近建 `probe_builder` ✓；
+    ② `check/mod.rs:857` 的 `Walk { … }` 加 `probe_builder:` ✓；
+    ③ `walk.rs` 的 `Walk` 结构体加字段 ✓（`pub(super) probe_builder: Option<EnvBuilder<'arena>>` ✓）；
+    ④ `walk.rs:567/791/1104` 三处改用 `self.probe_builder.as_mut().unwrap_or(&mut self.builder)` ✓；
+    ⑤ `walk.rs` 加一个**就地读环境变量**的 `walk_real_add_enabled()` ✓（round 279/280 已确认
+       "就地读"是唯一可行 ✗ —— 跨模块会 `E0603` ✓）。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 回到基线 11** ✓ · 组合 **11** ✓ ·
+    四件套 ✓ · 基准再降 ✓；**反向验证** ✓：把 ④ 改回 `&mut self.builder` ⇒ **必须回到 100** ✓。
+    ⚠ **一处风险要先确认** ✓：`probe_builder` 只装 prelude ✓ ⇒ probe 的 `build_def`
+    **看不见文件里的名字** ✗ —— 而 **A 之前正是这样** ✓（walk 不 add ✓）
+    ⇒ **语义一致** ✓；但若有 probe **依赖前置声明**（例如引用了前面定义的定理 ✓）
+    ⇒ 那**在 A 之前也会失败** ✓ ⇒ **行为不变** ✓ ⇒ **不引入新失败** ✓（判据会验证 ✓）。
+
   - **🔴 round 288：C2 的"一行判断"**不可行** ✗（闸门无法追溯 ✓）⇒ C1 才是路 ✓**
     ```
     enum PendingOp（check/mod.rs:25 ✓）
