@@ -1483,10 +1483,6 @@ fn split_and_guard<'a>(body: &'a Expr, binder_name: &str) -> Option<&'a Expr> {
     (is_and && guard_is_binder(guard, binder_name)).then_some(guard)
 }
 
-/// binder 记法的操作数（`fun (x : A) => …`）在 binder 没写类型时**由 guard
-/// 反解**出类型并填进注解（第三刀 §12.1）。不需要动 ⇒ `None`（走原路径）；
-/// guard 在、但解不出 ⇒ `elab-binder-notation-unsolved`。
-
 /// **诊断消息里的表达式文本**（T-U11 第一次真迁移 ✓ 2026-09-25）：
 /// 走唯一接口 `DisplayNotations::render` ✓（= `fold(render_expr(e))` ✓）；
 /// **没有表 ⇒ 原样** ✓（那说明这里不是显示上下文 ✓，沿用 `prelude.rs` 的约定 ✓）。
@@ -1497,6 +1493,10 @@ fn render_msg(ctx: &ElabCtx<'_, '_>, expr: &Expr) -> String {
         None => crate::proof::render_expr(expr),
     }
 }
+
+/// binder 记法的操作数（`fun (x : A) => …`）在 binder 没写类型时**由 guard
+/// 反解**出类型并填进注解（第三刀 §12.1）。不需要动 ⇒ `None`（走原路径）；
+/// guard 在、但解不出 ⇒ `elab-binder-notation-unsolved`。
 
 fn binder_notation_operand(
     symbol: &str,
