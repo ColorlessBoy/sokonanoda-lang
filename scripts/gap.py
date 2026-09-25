@@ -79,13 +79,13 @@ def clean_env() -> dict:
     env = dict(os.environ)
     for key in ("SOKONANODA_BIN", "SOKONANODA_LSP_BIN"):
         env.pop(key, None)
-    # **产物目录要隔离**（2026-09-25）：缺口复现件断言的是**缓存**行为
-    # （"第一次冷、第二次热"），而 R-3 之后项目产物会落在**模块根**
-    # `<模块根>/.sokonanoda/` —— 仓库内的夹具（`courses/set-theory`、
-    # `playground.sokonanoda` …）会被**前面的步骤**（课程门禁、workspace 测试）
-    # 写过条目 ⇒ 复现件的"第一次"直接命中、期望落空 ✗（CI 的缺口台账门禁
-    # 就是这么红的）。复现件验的是"这条老缺口还成不成立"，不是产物落点
-    # ——产物落点由 `crates/cli/tests/artifacts.rs` 专门覆盖 ✓。
+    # **复现环境固定为"旧语义"**（2026-09-25 复核后的理由，与最初的推断不同 ✗）：
+    # 最初我以为 CI 的缺口台账门禁红是因为"仓库内产物跨步骤存活"，后来证明那一步
+    # **从未执行**（`test` job 卡在它前面的 Workspace tests ✗）⇒ 那个前提是错的。
+    # 保留这条设置的理由变成：复现件验的是**老缺口**成不成立，把它们固定在
+    # "只写全局缓存"的语义上 ⇒ 复现件的结果与 R-3 的产物落点**解耦**，
+    # 不会因为"产物换了地方"而漂移 ✓；产物落点本身由
+    # `crates/cli/tests/artifacts.rs` 专门覆盖 ✓。
     env["SOKONANODA_NO_PROJECT_ARTIFACTS"] = "1"
     return env
 
