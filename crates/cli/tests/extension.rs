@@ -1643,12 +1643,17 @@ fn command_titles_follow_the_r4_naming_rule() {
             .strip_suffix(')')
             .unwrap_or_else(|| panic!("{id} 的说明必须以半角 `)` 收尾：{title:?}"));
         assert!(
-            name.chars().next().is_some_and(|ch| ch.is_ascii_uppercase())
-                && name.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == ' '),
+            name.chars()
+                .next()
+                .is_some_and(|ch| ch.is_ascii_uppercase())
+                && name
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || ch == ' '),
             "{id} 的命令词必须首字母大写、只用 ASCII 字母/数字/空格：{name:?}"
         );
         assert!(
-            hint.chars().any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch)),
+            hint.chars()
+                .any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch)),
             "{id} 的括号里必须是中文说明：{title:?}"
         );
     }
