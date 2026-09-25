@@ -626,6 +626,44 @@ fn assert_text_runs_in_lockstep(doc: &QueryDoc, what: &str) {
     }
 }
 
+/// **审计 #14 的交叉断言**（2026-09-25 ✓）：两个"还剩几个练习"的计数
+/// **不许无约束地并存** ✗。
+///
+/// 它们的**判据本就不同** ✓：`ModuleReport::open_exercises()` 数
+/// `DeclStatus::Open` 的**声明** ✓（`project/report.rs:109-116`）；
+/// `CheckCounts::exercise_open` 数 `ExerciseOpen` **事件** ✓（`query/mod.rs:529`）。
+/// G-01 那类"**签名坏 ⇒ 不发 `exercise.open`**"会让声明仍是 Open 而事件不出现 ✓
+/// ⇒ **相等是不成立的** ✗（谁写 `assert_eq!` 谁错 ✓）。
+/// 但**下界**必须成立 ✓：**每个事件都对应一条 Open 声明** ✓
+/// ⇒ `open_exercises() >= exercise_open` ✓。
+/// 这条抓的是"**声明状态与事件流打架**"✓（例如给非 Open 的声明发了 open 事件 ✗，
+/// 或事件计数在多模块闭包里被漏掉 ✓）。
+#[test]
+fn open_exercise_counts_never_contradict_each_other() {
+    for (what, src) in [
+        ("非 by 画布", NOTATION_CANVAS),
+        ("by 画布", BY_NOTATION_CANVAS),
+    ] {
+        let doc = doc(src);
+        // 声明侧要用 **query 自己的答案** ✓（`goals()` 的 `status` ⇒ 与 wire 上那份同源 ✓）。
+        // ⚠ 我第一版用 `project_report_ref()` ✗ —— 这个单文件夹具里它是 `None` ✓
+        // ⇒ `unwrap_or(0)` 让断言**假红**过一次 ✓（判据写错，不是产品 bug ✗）。
+        let declared = doc
+            .goals(false)
+            .expect("夹具可查")
+            .iter()
+            .filter(|d| d.status == "open")
+            .count();
+        let events = doc.check().counts.exercise_open;
+        assert!(
+            declared >= events,
+            "{what}: 声明侧 {declared} < 事件侧 {events} ✗ \
+             （事件流说开了 {events} 个练习，却没有那么多 Open 声明 ✓ —— \
+              说明声明状态与事件流打架了 ✗）"
+        );
+    }
+}
+
 /// 两个夹具都过一遍接缝守卫 ✓（非 `by` + `by` ✓）。
 #[test]
 fn every_decl_ships_text_and_runs_in_lockstep() {

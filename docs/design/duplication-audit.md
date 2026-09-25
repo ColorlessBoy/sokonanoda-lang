@@ -25,7 +25,7 @@
 | 11 | `query::notation_symbols()` 扫文本拿符号 ✗（**第五套**，见 `REQUIREMENTS.md` §9 ㉗） | 记法表 `notation_table` | 中 —— 只能打标签不能折叠 ✗；且 query **够不到**记法表 ✓ | 阶段 U 的显示副本方案（T-U4 ✓） | 已在 §9 ㉗ 记录 ✓ | **并入 T-U4/U5** |
 | 12 ✅**已修**（round 86 ✓）：两份逐字相同的 `range_of(Span)` 收成一份 | 彼此 + `query_map.rs:32 range_of_offsets` | 中 —— 同一 wire `Range` 两条换算路（span 列 vs offset）⇒ 非 ASCII 下不一致 ✓ | 已合并到 `render::range_of` ✓（`project_refs` 改调它 ✓）；与 `query_map::range_of_offsets`（按 offset ✓）的**进一步**统一仍待做 ⏳ | `diff` 两份片段 → 无差异 ✓ | 并入 #5 |
 | 13 | 事件计数**三份**（`query/mod.rs:519-534`、`cli/course/mod.rs:461-472`、`cli/check.rs:261`+`json_report.rs:27-74`） | 互相 | 中 —— "`checked` 是几 / `failed` 算不算依赖模块"**两套口径** ✓ | `CheckCounts::tally()` 唯一 ✓ | `grep -rn "DeclarationChecked" crates/cli/src crates/front/src/query` → 3 处 ✓ | 并入 #2 |
-| 14 | "还剩几个练习"**两套**（事件口径 `query/mod.rs:529` vs 声明口径 `report.rs:109-116`） | 互相，且都进 wire ✗ | 中 —— 两条通道给出两个数，**无断言钉死相等** ✗ | 保留一个口径或加交叉断言 ✓ | `grep -rn "open_exercises\|exercise_open"…` → 生产者 2 个、**无相等断言** ✓ | 立刻做（加断言） |
+| 14 ✅**已加交叉断言**（round 88 ✓）：两套计数不再"无约束并存" | "还剩几个练习"**两套**（事件口径 `query/mod.rs:529` vs 声明口径 `report.rs:109-116`） | 互相，且都进 wire ✗ | 中 —— 两条通道给出两个数，**无断言钉死相等** ✗ | ✅ 加了**下界**断言 ✓（`声明侧 >= 事件侧` ✓）—— **相等是错的** ✗（G-01：签名坏 ⇒ 不发事件而声明仍 Open ✓） | `grep -rn "open_exercises\|exercise_open"…` → 生产者 2 个、**无相等断言** ✓ | 立刻做（加断言） |
 | 15 ✅**已修**（round 87 ✓）：`redundant` 判据收进真相层、LSP 只调 |（`query/mod.rs:1012/1023` vs `lsp/lib.rs:1082-1095`） | 互相；`query/mod.rs:1021` 自己写着"与 LSP 侧同一条规则" ✓ | 中 —— 分叉时"多余的 `sorry`"两侧给出**相反**的下一步指令 ✗ | ✅ `sokonanoda_front::query::{redundant_hole_spans, hole_is_redundant}` 已公开 ✓，LSP 内联副本已删 ✓ | `grep -rn "hole_is_redundant" crates/front/src/query/mod.rs crates/lsp/src/lib.rs` ✓ | 立刻做 |
 | 16 | LSP 合成 `code:"sorry"` 警告 + 全冗余抑制（`lsp/lib.rs:1095-1122`） | `query/mod.rs:579-596`（CLI **无**合成/抑制 ✗） | 中 —— 编辑器比 CLI 多一条警告；"该不该提示"只活在 LSP 一侧 ✗ | 规则下沉到真相层 ✓ | `sed -n '1105,1125p' crates/lsp/src/lib.rs` vs `sed -n '579,596p' crates/front/src/query/mod.rs` ✓ | 立台账（暂不做 ✓） |
 | 17 ⏳**已实测、未修**（round 72 ✓） | `audit-wire-fields.py` 消费点表**不扫 `project-tree.js`** ✗ | `project-tree.js:24-28,45-53,62-72,169-197` 读 `soko/project` 大载荷 ✗ | 中 —— 它是"有就渲染"的宽容实现 ⇒ 停发字段**静默降级**、守卫永不响 ✗（R-1 同类、换文件 ✓） | 把 `project-tree.js` + `ProjectView` 加进守卫 ✓ | `grep -n 'collect(' scripts/audit-wire-fields.py`（只有 IV/EX ✓） | 立刻做需**先扩守卫**：直连 `ProjectResponse` 会报 8 个 MISSING ✗，但**实测是假阳性** ✓（`soko query project` 响应 = `{project, reason}` ✓，字段嵌在 front 侧 `ProjectView`/`ModuleView` ✓）⇒ 先让 `fields()` 能读 `crates/front/src/query/types.rs` ✓，在那之前**不接** ✗（常红守卫比没有更糟 ✓） |
@@ -144,6 +144,18 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
   hole_is_redundant}` ✓（顺手删掉因此未用的 `use sokonanoda_front::Span;` ✗）。
 * **判据** ✓：`cargo test -p sokonanoda-lsp` ⇒ **161 passed** ✓；
   `cargo test -p sokonanoda-front --lib` ⇒ **732 passed** ✓；`check`/`fmt` ✓。
+
+### #14 ✅ 已加交叉断言（round 88 ✓）—— 且**刻意不加等号**
+`crates/front/src/query/tests.rs::open_exercise_counts_never_contradict_each_other` ✓：
+* 两个计数**判据本就不同** ✓（`open_exercises()` 数 `DeclStatus::Open` **声明** ✓ vs
+  `counts.exercise_open` 数 `ExerciseOpen` **事件** ✓）—— G-01 那类"**签名坏 ⇒ 不发
+  `exercise.open`**"会让声明仍 Open 而事件缺失 ✓ ⇒ **`assert_eq!` 是错的** ✗。
+* 所以断言的是**下界** ✓：**每个事件都对应一条 Open 声明** ⇒ `声明侧 >= 事件侧` ✓
+  （抓"声明状态与事件流打架" ✗：例如给非 Open 声明发了 open 事件 ✓）。
+* ⚠ **我第一版判据假红过一次** ✗：用 `project_report_ref()` 取声明侧，而单文件夹具里
+  它是 `None` ✓ ⇒ `unwrap_or(0)` 得到 0 ⇒ 报"0 < 1"✗（看着像产品 bug ✓）。
+  改用 **query 自己的答案**（`goals()` 的 `status` ✓，与 wire 同源 ✓）后通过 ✓。
+  这段教训写进了测试注释 ✓（免得下一个人重犯 ✓）。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 
