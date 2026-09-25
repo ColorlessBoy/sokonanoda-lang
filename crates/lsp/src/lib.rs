@@ -1361,8 +1361,9 @@ fn half_expression_goals_hover(
             }
             Expr::Forall { binders, body, .. } => {
                 for binder in binders {
-                    goals.push(render_expr(
-                        binder.ty.as_deref().unwrap_or_else(|| body.as_ref()),
+                    goals.push(fold_for_display(
+                        text,
+                        &render_expr(binder.ty.as_deref().unwrap_or_else(|| body.as_ref())),
                     ));
                 }
                 cur = body;

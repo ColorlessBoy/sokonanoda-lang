@@ -79,4 +79,4 @@ crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_no
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("A ∈ B -> (A ↔ B)", &[], &[], &symbols);
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("z = z", &[], &[], &["=".to_string()]);
 crates/front/src/semantic.rs|tag_runs_with_notations|tag_runs_with_notations(text, decls, binders, &[])
-crates/lsp/src/lib.rs|render_expr|goals.push(render_expr(
+crates/lsp/src/lib.rs|render_expr|&render_expr(binder.ty.as_deref().unwrap_or_else(|| body.as_ref())),
