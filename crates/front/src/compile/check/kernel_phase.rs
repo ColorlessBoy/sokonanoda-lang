@@ -101,9 +101,9 @@ fn check_then_add_decl<'arena>(
         }
     }
     let ty_text = ty_res.ok().map(|text| {
-        crate::display::print_back(&text, display)
-            .as_display_str()
-            .to_string()
+        // **走唯一接口**（T-U11，2026-09-25 ✓）：`fold` 就是 `print_back(text, self)` ✓
+        // ⇒ **零行为变化** ✓（判据：T-U12 的面级判据 + front 全量 + 全语料对拍 ✓）。
+        display.fold(&text)
     });
     if std::env::var_os("SOKO_TRACE_NOTATIONS").is_some() {
         let who = name.clone().unwrap_or_else(|| "<anon>".to_string());
@@ -120,9 +120,9 @@ fn check_then_add_decl<'arena>(
     .ok()
     .flatten()
     .map(|text| {
-        crate::display::print_back(&text, display)
-            .as_display_str()
-            .to_string()
+        // **走唯一接口**（T-U11，2026-09-25 ✓）：`fold` 就是 `print_back(text, self)` ✓
+        // ⇒ **零行为变化** ✓（判据：T-U12 的面级判据 + front 全量 + 全语料对拍 ✓）。
+        display.fold(&text)
     });
     match env.try_check_declar(&declar) {
         Ok(()) => {
@@ -318,9 +318,8 @@ pub(super) fn finish_pass(walked: Walked<'_, '_>) -> PassResult {
                                     .ok()
                                 })
                                 .map(|text| {
-                                    crate::display::print_back(&text, &display)
-                                        .as_display_str()
-                                        .to_string()
+                                    // **走唯一接口**（T-U11 ✓，同上）
+                                    display.fold(&text)
                                 });
                             decl_states.push(DeclState {
                                 kind,

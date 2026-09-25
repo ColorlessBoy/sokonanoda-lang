@@ -271,3 +271,17 @@ A 组 5 处与 B 组 19 处改成读那份副本 ✓ —— **而不是**在 `ls
 **因此 T-U11 的第一步是**：找出 A/B 两组各自**该由哪个 front 生产者**产出显示副本 ✓
 （`half_expression_goals_hover` 的输入从哪来 ✓、`elab.rs` 的诊断消息在哪一步拼 ✓），
 **先定这个再动代码** ✗（否则就是又一次"在错的层上修" ✓）。
+
+### ✅ **T-U11 的第一次实际迁移**（round 106 ✓）：`kernel_phase.rs` 的 `ty_text` 走唯一接口
+* **迁移前**：`crates/front/src/compile/check/kernel_phase.rs:104/123/321` 直接调
+  `crate::display::print_back(&text, display).as_display_str().to_string()` ✗
+  （正是 T-U12 副发现指出的那条路 ✓ —— `ty_text`/`val_text` 与开放练习的类型副本 ✓）。
+* **迁移后**：`display.fold(&text)` ✓ —— **零行为变化** ✓（`fold` 就是
+  `print_back(text, self).as_display_str().to_string()` ✓，见设计 §2 ✓）。
+* **判据** ✓：`cargo check` ✓ · `cargo test -p sokonanoda-front --lib` ⇒ **735 passed** ✓
+  （含 T-U12 的面级判据 `a_kernel_pp_display_surface_must_be_folded` ✓）
+  · 守卫：**92 → 89** ✓（`--rebless` ✓）· `audit-notation-paths.py` ⇒ 无新增绕过 ✓。
+* ⚠ **基线数字更新** ✓：上一轮修好守卫后是 **92** ✓（不是 77 ✓ —— 旧数字漏检了
+  **路径限定**调用 ✗，见守卫自己的注释 ✓）；本轮的 **89** 是新基准 ✓。
+  §3 的分组表**仍按旧 77 编** ✗ ⇒ 待按 **89** 刷新 ⏳（新抓的那些集中在
+  `walk.rs`(8) / `kernel_phase.rs`(3，本轮已迁 ✓) / `check/mod.rs` 等 ✓）。
