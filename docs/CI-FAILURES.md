@@ -1540,3 +1540,33 @@ auto-tag ✓：needs = [lint-fmt, lint-clippy, test, gates-fast, gates-course,
 **⇒ 判据** ✓：发版前先 `git log --oneline origin/main..HEAD` 看清"这一推带上了什么" ✓，
 再 `python3 scripts/bump.py --check` 与 `cargo build --locked` 两条本地门 ✓ ⇒ **然后才推** ✓。
 
+## 2026-09-25 · 发版被两条**从来就红**的腿挡住 —— 而它们红了约 100 轮 ✗
+
+**症状** ✓：`0.72.0` 的 bump 推上去后，`test` 矩阵里**三条腿红** ✗：
+```
+test (sokonanoda-front, doc)   → error: unknown start of token: \u{ff1a}   （全角冒号 ✗）
+test (sokonanoda-cli, doc)     → error: no library targets found in package `sokonanoda-cli`
+test (sokonanoda-cli, lib)     → 同上
+```
+**根因（两条，都不是本次改动造成的 ✗）**：
+1. **`crates/front/src/judge.rs:442` 的围栏代码块没有语言标记** ✗ ——
+   ` ``` ` 开头 ⇒ **rustdoc 当成 Rust 代码编译** ✓ ⇒ 而内容是**中文 + 全角冒号** ✗
+   ⇒ 解析错 ✓。**修法** ✓：加语言标记（` ```text ` ✓）。
+   **它从 round 233 起就红** ✗（约 **100 轮** ✓），**每一次发版都被它挡住** ✓。
+2. **`sokonanoda-cli` 是纯 bin crate** ✗ ⇒ 矩阵里的 `--lib` / `--doc` 两条腿
+   **永远 `no library targets`** ✗。**修法** ✓：`matrix.exclude` 删掉这两条
+   （**12 条腿 → 10 条** ✓）。
+
+**⇒ 规程（这一条最贵 ✓）**：**`auto-tag` 要的是"全绿"，不是"这次改的部分绿"** ✗
+⇒ **发版会把所有旧账翻出来** ✓ —— 而**旧账可能已经红了几十上百轮** ✓，
+**因为平时的 push 里它们是 skip 的** ✓（docs-only ✓）或**没人看** ✗。
+⇒ **发版前先看 `test` 矩阵的**最近一次全量**结果** ✓（不是本次改动的结果 ✓）。
+**⇒ 而诊断一条红腿，最省的办法是**本地跑 CI 的原命令** ✓**：
+```bash
+cargo test -p sokonanoda-front --doc --locked    # 失败输出第一行就写着文件名与行号 ✓
+```
+（**不要猜是谁改的** ✗ —— `unknown start of token: \u{ff1a}` 已经说了是**全角冒号** ✓。）
+
+**⚠ 另一条** ✓：**`yaml.dump` 的输出不能当锚点** ✗ —— 它**重新缩进** ✓，
+而文件里可能是**行内写法**（`kind: [lib, tests, doc]` ✓）⇒ **锚点只认"刚打印出来的文件原文"** ✓。
+
