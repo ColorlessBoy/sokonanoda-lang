@@ -26,6 +26,14 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 374：零失败 · 只剩 5 个** ✓（`perf-gate` + `gates-fast` + `ledger`(1,2,3) ✓）
+  ```
+  整轮 in_progress ✓ · **失败（空）** ✓✓ · 已绿 5 ✓ · 未完 5 ✓
+  ⇒ **`contract` 与 `editor` 已绿** ✓ ⇒ 只剩 **`perf-gate`** ✓ · `gates-fast` ✓ ·
+    **`ledger`(1,2,3)** ✓（**带着 10 分钟超时在跑** ✓）
+  ⇒ **判据** ✓：全绿 ⇒ `auto-tag` ⇒ release ⇒ 核对 ✓。
+  ```
+
 * **🎯🎯🎯 round 373：**重活跑起来了** ✓✓✓（`ci.yml` 改动触发了 `rust` ✓）**
   ```
   推 `165c3ee..4ceb501` ✓ —— **diff 含 `.github/workflows/ci.yml`** ✓✓（**过滤器认它** ✓）
