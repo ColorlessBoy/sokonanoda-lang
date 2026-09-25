@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# pre-push —— **推送前跑本地快层**（2026-09-25 用户要求 ✓，第 ⑥ 条 ✓）
+#
+# 用户原话 ✓：「`scripts/ci-local.sh` 已存在（注释写着"CI 只当平台矩阵确认，不当第一次测试"），
+# **关键是要真的接到 push 之前**（git hook 或手动执行），**否则等于白写**」✓ —— 完全对 ✓。
+#
+# 设计取舍：
+#  * 只看**快层**（`--fast` ✓，约 1 分钟 ✓）—— 与"本地 ≤1 分钟识别问题"的验收一致 ✓；
+#  * 全量（含 e2e ✓）留给批次收尾手动跑 ✓（`scripts/ci-local.sh --e2e` ✓）；
+#  * **逃生门** ✓：`git push --no-verify`（诊断性推送 / 紧急修复 ✓），
+#    或 `SOKO_SKIP_HOOK=1 git push …` ✓ —— 但**不许**成为默认动作 ✗
+#    （本 session 的教训 ✓：纪律要能被绕过，但不能被遗忘 ✓）。
+#
+# 安装：`scripts/install-hooks.sh`（设置 core.hooksPath ✓，一条命令 ✓）
+set -uo pipefail
+[ "${SOKO_SKIP_HOOK:-0}" = "1" ] && { echo "[pre-push] SOKO_SKIP_HOOK=1 ⇒ 跳过本地快层 ✗"; exit 0; }
+
+# 只在本仓库根跑（hook 可能从别处被调用 ✓）
+root=$(git rev-parse --show-toplevel)
+[ -x "$root/scripts/ci-local.sh" ] || { echo "[pre-push] 找不到 scripts/ci-local.sh ⇒ 跳过 ✓"; exit 0; }
+
+echo "[pre-push] 跑本地快层（scripts/ci-local.sh --fast ✓，约 1 分钟 ✓）……"
+if ! (cd "$root" && ./scripts/ci-local.sh --fast); then
+  cat >&2 <<'MSG'
+
+[pre-push] ❌ 本地快层红了 ✗ ⇒ **拒绝推送** ✓（这就是它的用途 ✓）。
+  * 修掉上面第一个红项 ✓（它**指名**了是哪一条 ✓）；
+  * 诊断性推送可用 `git push --no-verify` ✓ 或 `SOKO_SKIP_HOOK=1 git push` ✓
+    —— 但要在 `STATUS.md` 写明原因 ✓（纪律：例外要留痕 ✓）。
+MSG
+  exit 1
+fi
+echo "[pre-push] ✅ 本地快层全绿 ✓ ⇒ 放行 ✓"

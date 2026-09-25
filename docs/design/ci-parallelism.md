@@ -91,10 +91,21 @@
 | ③ | **盯 job 级、不盯 run 级** | **✅ 已有** ✓（`scripts/ci-watch.sh` ✓ —— 按 job ✓ + 注解 ✓ + `--follow` 一红即退 ✓） |
 | ④ | **e2e 进快层** | **✅ 由 ① 达成** ✓（e2e 现在紧跟快层起跑 ✓，约 2 分钟后 ✓ 而不是排最后 ✓） |
 | ⑤ | **`cargo test` 分片**（`nextest --partition count:i/4` 或按 crate ✓） | ⏳ 下一轮（目标 19-37min ⇒ 8-12min ✓） |
-| ⑥ | **把 `ci-local.sh` 真接到 push 之前**（hook 或手动 ✓） | ⏳ 下一轮（否则等于白写 ✗） |
+| ⑥ | **把 `ci-local.sh` 真接到 push 之前**（hook 或手动 ✓） | **✅ 已落** ✓（本轮 ✓） |
 
 **① 的判据（可验证 ✓）**：`yaml.safe_load` ✓ 13 job ✓；
 `test`/`gates-course`/`e2e`/`e2e-macos` 的 `needs` **逐条打印核对** ✓；
 快层自身**不等慢层** ✓（`lint-fmt`/`lint-clippy` 无 `needs` ✓、`gates-fast` 只等 `changes` ✓）；
 `auto-tag.needs` **未被削弱** ✓ ⇒ 快层红 ⇒ 慢 job skipped ⇒ `auto-tag` skipped ✓ = **不给坏提交打标签** ✓。
 **验收（用户给的）** ✓：识别"这轮有问题"的时间 **约 30 分钟 ⇒ 本地 ≤1 分钟 / CI 快层 ≤2-3 分钟** ✓。
+
+### ⑥ 详情（`scripts/githooks/pre-push` + `scripts/install-hooks.sh` ✓，2026-09-25 ✓）
+* **装** ✓：`scripts/install-hooks.sh` ⇒ `git config core.hooksPath scripts/githooks` ✓
+  （git hook **不随仓库分发** ✗ ⇒ 必须有人执行一次 ✓ ⇒ 已写进 Setup ✓）；
+* **跑什么** ✓：只跑**快层** `ci-local.sh --fast` ✓（约 1 分钟 ✓，与"本地 ≤1 分钟"的验收一致 ✓）；
+* **逃生门** ✓：`git push --no-verify` ✓ 或 `SOKO_SKIP_HOOK=1 git push` ✓
+  —— 但要在 `STATUS.md` 写明原因 ✓（**例外要留痕** ✓）。
+* **判据（两向都实测 ✓）**：
+  * **反向** ✓：故意加一行坏格式 ⇒ hook **exit 1** ✓，并**指名** `lint：fmt 失败（exit=1，1s）`
+    与"**拒绝推送**" ✓ ⇒ **它咬得住** ✓（还原后 diff 干净 ✓）；
+  * **正向** ✓：干净树 ⇒ hook **exit 0** ✓（"放行" ✓），随后**真实 push** 也过了它 ✓ = 端到端 ✓。
