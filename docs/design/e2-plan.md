@@ -241,7 +241,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     想显式忽略就加一行 `.sokonanoda/`（本仓自己就这么做，双保险）；要提交则 `git add -f`
     —— 写进 README / AGENTS / 技能 / 设计文档 ✓。
     回归：**1263 通过 / 35 套件 / 0 失败** · fmt ✓ · clippy exit 0（我改的文件零提示）✓。
-- [ ] `T-B7` **阶段 B 收尾**：基准复量（① ② 应变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.67.0` → release → 核对 ✓
+- [x] `T-B7` **阶段 B 收尾**：基准复量（① ② 应变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.67.0` → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 命令名标准化 + `.sokonanoda/` 产物目录（vscode 与 agent 共用，首次之后不再重复算）
 
 ### 阶段 C：模块级批量编译（T-K30 的正解）
@@ -250,6 +250,14 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 > **为什么必须在这里做** ✗：E1 已实测"按模块根分组、每模块编一次"在**现有 API 下做不到** —— `plan_project` 只加载**单入口闭包** ⇒ 同模块互不 import 的文件是**不同闭包** ⇒ 需**新 API** ✓。
 
+  - ✅ **闭环（2026-09-25）**：`v0.67.0` 已打 tag 并发布 ——
+    `gh release list` 显示 **sokonanoda v0.67.0（Latest，2026-09-25T05:37:07Z）** ✓、
+    资产 **26 个**（手册要求恰好 26 ✓）、非 draft ✓。
+    那一轮的 CI：**lint ✓ · 三平台真宿主 e2e ✓ · e2e 台账回写 ✓**，唯独 `test` job 的
+    "Workspace tests" 一步**连续四轮跑不完**（本机 CI 等价并行度 15m05s 跑完 ✓、
+    `scripts/soko gate` PASS ✓ ⇒ 本地复现不了 ✗）⇒ 按 `docs/RELEASE.md` 的**应急路径**
+    手动打 tag（已先核对 `release.yml` **不跑测试**，不会换一处挂 ✓），
+    理由与待办记在 `docs/CI-FAILURES.md` ✓。
 - [x] `T-C1` **设计**：`plan_module(root)` 的契约 —— 把模块根下**全部**文件作为**一个 unit 集**编一次 ✓、按文件给出报告 ✓、`ok(file)` 的语义与今天"以它为入口编一次"**逐项等价**（或明确记录差异 ✓）
   - ✅ **已出设计（2026-09-25）**：`docs/design/module-batch.md`（99 行）。
     关键事实（都带出处）：编译层**已经**支持多单元（`SourceUnit`/`unit_ranges`/
