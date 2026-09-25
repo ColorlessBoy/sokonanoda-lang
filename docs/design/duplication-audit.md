@@ -84,8 +84,7 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 ⇒ **"更严"不一定对解析也成立** ✗。**这是设计问题，不是机械替换** ✓
 （先记着 ✓；改之前要证明"解析用更严的表"不改变任何语料的接受/拒绝 ✓）。
 
-**(b) 四份逐字副本** ✓（同文件、同三步装配：扫声明 → 并 builtins → 并 `TABLE` ✓）：
-`notation_input.rs:238` / `:275` / `:313`（= `known_symbols` ✓）/ `:371` ✓
+**(b) 四份逐字副本 ✅ 已收（round 83 ✓）**：`notation_input.rs` 的 `symbol_at`/`symbol_span_at`/`known_symbols`/`symbol_occurrences` 现在**都调同一个** `merge_known(symbols)` ✓ —— 实测本文件里 `lexer_builtin_symbols()` 从 **4 次 → 1 次** ✓、`merge_known` 被调 **4 次** ✓、front **731 passed** ✓（零行为变化 ✓）
 —— 这四份**形状相同** ✓，其中 `known_symbols(doc)` 已是公开入口 ✓
 ⇒ 可安全收成"一个私有 `assemble(scanned)` + 四个薄壳" ✓（**纯重构、零行为变化** ✓，
 判据 = 全语料 `--json` 逐字节对拍 + front 731 ✓）。**下次做** ✓。

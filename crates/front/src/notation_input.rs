@@ -228,13 +228,19 @@ pub fn input_hint(symbol: &str) -> Option<String> {
 ///
 /// 展开目标只在**本文件声明**时给得出（词法扫描本文件）；import 来的符号目标
 /// 在别的文件里，这里返回 `None`。
-pub fn symbol_at(text: &str, offset: usize) -> Option<(String, Option<String>)> {
-    let declared = crate::token::scan_notation_decls(text);
-    let mut symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
-    // 用**喂给词法**的那一份（`lexer_builtin_symbols`，剔除 `=`）：`=` 一旦
-    // 进了最长匹配表，`=>` 会被吃成 `=` + `>`，整份源码分词就错了（实测：
-    // L1 prelude 的 `fun … => …` 当场解析失败）。`=` 本身仍认得出来——词法的
-    // `'='` 分支**原生**产出 `Sym("=")`，不依赖符号表。
+/// **符号表的唯一装配**（审计 #7(b)，2026-09-25 ✓）：把"词法内建 + `TABLE`"
+/// 并进**已扫到的声明符号**里（去重、保持顺序 ✓）。
+///
+/// 这三步原来在本文件里**抄了四遍** ✗（`symbol_at` / `symbol_span_at` /
+/// `known_symbols` / `symbol_occurrences` ✓），四份**逐字相同** ✓ ⇒ 收成一处 ✓。
+/// **纯重构、零行为变化** ✓：判据 = 全语料 `--json` 逐字节对拍 + front 单测全绿 ✓。
+///
+/// ⚠ **只收本文件的这四份** ✗：`parser.rs` 那两处与 `semantic.rs:313-321` 面对的是
+/// 不同输入、且规则**确实不同**（`semantic` 更严 ✓）⇒ 合并它们要先定设计 ✓
+/// （台账 #7(a) ✓）。
+fn merge_known(mut symbols: Vec<String>) -> Vec<String> {
+    // 用**喂给词法**的那一份（`lexer_builtin_symbols`，剔除 `=`）：`=` 一旦进了
+    // 最长匹配表，`=>` 会被吃成 `=` + `>`，整份源码分词就错了（R-2 的真因 ✓）。
     for symbol in crate::parser::lexer_builtin_symbols() {
         if !symbols.contains(&symbol) {
             symbols.push(symbol);
@@ -246,6 +252,17 @@ pub fn symbol_at(text: &str, offset: usize) -> Option<(String, Option<String>)> 
             symbols.push(symbol);
         }
     }
+    symbols
+}
+
+pub fn symbol_at(text: &str, offset: usize) -> Option<(String, Option<String>)> {
+    let declared = crate::token::scan_notation_decls(text);
+    let symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
+    // 用**喂给词法**的那一份（`lexer_builtin_symbols`，剔除 `=`）：`=` 一旦
+    // 进了最长匹配表，`=>` 会被吃成 `=` + `>`，整份源码分词就错了（实测：
+    // L1 prelude 的 `fun … => …` 当场解析失败）。`=` 本身仍认得出来——词法的
+    // `'='` 分支**原生**产出 `Sym("=")`，不依赖符号表。
+    let symbols = merge_known(symbols);
     let token = symbol_token_at(text, offset, &symbols)?;
     let crate::TokenKind::Sym(symbol) = &token.kind else {
         return None;
@@ -271,18 +288,8 @@ pub fn symbol_at(text: &str, offset: usize) -> Option<(String, Option<String>)> 
 /// 查找（共享 [`symbol_token_at`]），不会两边漂移。
 pub fn symbol_span_at(text: &str, offset: usize) -> Option<crate::Span> {
     let declared = crate::token::scan_notation_decls(text);
-    let mut symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
-    for symbol in crate::parser::lexer_builtin_symbols() {
-        if !symbols.contains(&symbol) {
-            symbols.push(symbol);
-        }
-    }
-    for entry in TABLE {
-        let symbol = entry.symbol.to_string();
-        if !symbols.contains(&symbol) {
-            symbols.push(symbol);
-        }
-    }
+    let symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
+    let symbols = merge_known(symbols);
     symbol_token_at(text, offset, &symbols).map(|token| token.span)
 }
 
@@ -306,21 +313,11 @@ fn symbol_token_at(text: &str, offset: usize, symbols: &[String]) -> Option<crat
 /// 为什么放在前端：**内建表归前端所有**（`parser::lexer_builtin_symbols` 与静态
 /// `TABLE` 都是 crate-private），LSP 侧不该复制一份。
 pub fn known_symbols(doc: &str) -> Vec<String> {
-    let mut symbols: Vec<String> = crate::token::scan_notation_decls(doc)
+    let symbols: Vec<String> = crate::token::scan_notation_decls(doc)
         .into_iter()
         .map(|(symbol, _)| symbol)
         .collect();
-    for builtin in crate::parser::lexer_builtin_symbols() {
-        if !symbols.iter().any(|s| s == &builtin) {
-            symbols.push(builtin.to_string());
-        }
-    }
-    for entry in TABLE {
-        let symbol = entry.symbol.to_string();
-        if !symbols.iter().any(|s| s == &symbol) {
-            symbols.push(symbol);
-        }
-    }
+    let symbols = merge_known(symbols);
     symbols
 }
 
@@ -367,18 +364,8 @@ pub fn notation_target_at(text: &str, offset: usize) -> Option<(String, crate::S
     ];
     // 喂符号：`''`/`⁻¹'` 这些不喂就切不出来（同 `symbol_at` 的理由）。
     let declared = crate::token::scan_notation_decls(text);
-    let mut symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
-    for symbol in crate::parser::lexer_builtin_symbols() {
-        if !symbols.contains(&symbol) {
-            symbols.push(symbol);
-        }
-    }
-    for entry in TABLE {
-        let symbol = entry.symbol.to_string();
-        if !symbols.contains(&symbol) {
-            symbols.push(symbol);
-        }
-    }
+    let symbols: Vec<String> = declared.iter().map(|(symbol, _)| symbol.clone()).collect();
+    let symbols = merge_known(symbols);
     let toks = crate::token::tokenize_with_symbols(text, &symbols).ok()?;
     let mut index = 0usize;
     while index < toks.len() {
