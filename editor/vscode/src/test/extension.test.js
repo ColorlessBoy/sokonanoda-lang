@@ -792,16 +792,34 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   }
 
   /// 诊断发布的计数器（见上面陷阱 1/2）。
+  // **URI → 规范键**（2026-09-25：这条用例在 ubuntu 上必红的真因 ✗）。
+  //
+  // 原来键就是 `uri.toString()` ✗ ⇒ 只要两边**字符串**不同就计不上 ✓：
+  // 夹具用它自己的 `path.join(root, …)` 拼 URI（可能带 `..`/未规范化 ✓），
+  // 而服务端发的是 `Url::from_file_path` 规范化后的 ✓（这个形状
+  // `docs/design/duplication-audit.md` #22 已经记过 ✗）⇒ macOS 上侥幸相同、
+  // ubuntu runner 上不同 ⇒ `count(entry)` 恒 0 ⇒
+  // `assert.ok(publishes >= 1, "改依赖必须让打开的入口重新发诊断（跨文件失效）")` 必红 ✗
+  //（实测：**两个** ubuntu job 红在同一条、macos 同代码绿 ✓；本轮 CI `36128240448` ✓）。
+  // 修法：**用 realpath 规范化路径**再构造键 ✓ ⇒ 两种写法归一到同一个键 ✓。
+  function canonicalKey(uri) {
+    try {
+      return vscode.Uri.file(fs.realpathSync(uri.fsPath)).toString();
+    } catch {
+      return uri.toString();
+    }
+  }
+
   function diagnosticsWatcher() {
     const counts = new Map();
     const sub = vscode.languages.onDidChangeDiagnostics((event) => {
       for (const uri of event.uris) {
-        const key = uri.toString();
+        const key = canonicalKey(uri);
         counts.set(key, (counts.get(key) ?? 0) + 1);
       }
     });
     return {
-      count: (uri) => counts.get(uri.toString()) ?? 0,
+      count: (uri) => counts.get(canonicalKey(uri)) ?? 0,
       dispose: () => sub.dispose(),
     };
   }
