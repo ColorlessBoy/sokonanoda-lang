@@ -754,6 +754,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **真判据的写法** ✓：夹具的**源里必须写点形式** ✓（如
     `forall (x : α), Set.mem α x A -> …` ✓），再断言**显示**文本已折成记法（`∀`/`∈` ✓）
     —— 只有这样，注入"折叠失效"才会判红 ✓。当前那条只当**冒烟**用 ✗，**不算交付** ✓。
+  - **✅ round 151：夹具**终于命中**了那条消息 ✓（**代码推导**而非猜测 ✓）**
+    —— 但**第 3 步证明它结构上咬不住** ✗，于是把范围收窄到"**哪条消息才可能咬**" ✓。
+    **命中条件（从 `elab.rs:1597-1634` 的 `guarded_binder_type` 推出 ✓）**：
+    ① guard 是 `Notation` ✓；② 正好两个操作数 ✓；③ **第一个操作数是 binder 名本身** ✓；
+    ④ 记法目标的**望远镜层数 ≥ 操作数个数** ✗ —— 用一个**只有 1 个显式参数**的 `Prop` def
+    做中缀（`def One (α : Type) : Prop := True` + `infix:50 " ⋈ " => One` ✓）
+    ⇒ 层数 1 < 2 ✓ ⇒ `checked_sub` 返回 `None` ✓ ⇒ 上层报"**反解不出来**" ✓。
+    **为什么它咬不住** ✗：那条消息里被折的是 **guard 的文本** ✓，而 guard 是**源级 `Notation`** ✓
+    （`x ⋈ Nat` ✓）⇒ `render_expr` 出来**本来就是记法** ✗ ⇒ **没有点形式可漏** ✓
+    ⇒ `SOKO_NO_NOTATION_FOLD=1` 下照样绿 ✗（**与 round 103 同一个道理** ✓：
+    **折一个源级渲染的文本 ⇒ 判据不可能咬** ✓）。
+    ⇒ **收窄结论** ✓：那 4 处 `render_msg` 里，**只有输入是"内核 pp 文本"的才可能咬** ✓ ——
+    即 **`describe_candidate_results`** ✓（`render_msg(ctx, result)` 里的 `result` 是**内核类型** ✓）
+    与 **`try_implicit_application`** ✓（`render_msg(ctx, head)` ✓ hmm ✓：`head` 是源码里的头 ✓
+    ⇒ 也可能源级 ✓ 需要在写判据时**先确认它渲染的是内核文本** ✓）。
+    **免走弯路** ✓：写判据前先问一句"**这条消息里被折的那段，源里写的是点形式吗？**" ✗
+    —— 源里就是记法 ⇒ **永远咬不住** ✓，别浪费两轮 ✓。
   - **round 137 实测（第 1 步就卡住 ⇒ 撤回 ✓）**：夹具已按**课程真实语法**造 ✓
     （`inductive Exists (A : Type) (p : A → Prop) : Prop` + `ctor intro …` + `end` ✓
     + `binder_notation "∃" => Exists` ✓ —— 抄自 `lib/Exists.sokonanoda:88-103` ✓），
