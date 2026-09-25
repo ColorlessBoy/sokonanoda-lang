@@ -967,3 +967,16 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   `cargo test --workspace` + `scripts/soko gate` 全绿 ✓；**一次 push** → CI 绿 → bump → auto-tag →
   release → `gh release list` 核对 ✓。
 
+    **✅ round 212 落地（含**未验证**的如实标注 ✗）**：
+    在 `check/mod.rs:934` 的 `if shadow_experiment` 块内加了**断言** ✓：
+    `shadow_failed != kernel_failed` ⇒ **先 `eprintln!("SHADOW MISMATCH …")` 再 `panic!`** ✓
+    （先打印是因为编译路径上 panic 会被 `quiet_catch` 转成诊断 ⇒ 只 panic 会丢信息 ✗）。
+    **已验证** ✓：`cargo check -p sokonanoda-front` ⇒ **rc=0** ✓；
+    默认路径**结构上不可能变** ✓（改动**在 `if shadow_experiment` 里** ✓ ⇒ 关开关时那一段根本不会执行 ✓）。
+    **⚠ 未验证（下一步 ✓）** ✗：我**没能让开关生效** ✓ ——
+    `SOKO_SHADOW_CHECK=1 cargo run … --json playground.sokonanoda` 的 stderr 里
+    **SHADOW 行数 = 0** ✗ ⇒ `shadow_experiment` 仍为 false ✓ ⇒ **断言从未被执行** ✗。
+    **下一步（一步 ✓）**：`git grep -n shadow_experiment` ✓ 找它在哪里被读 ✓ ——
+    很可能：① 只在**某个测试/工具路径**上开 ✓；② 或读的是**别的变量名** ✓（如 `SOKO_WALK_SHADOW` ✓）。
+    ⇒ **找到真开关后**，判据是：开关开 ⇒ 全语料跑一遍 ⇒ **必须不出现 `SHADOW MISMATCH`** ✓；
+    **反向验证** ✓：人为把 `kernel_failed` 改错 ⇒ 必须 panic ✓。

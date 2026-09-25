@@ -948,6 +948,29 @@ fn run_pass(
                 ))
                 .collect::<Vec<_>>()
         );
+        // **T-D3：把观测升级成断言**（2026-09-25 round 212 ✓）。
+        // 设计 `docs/design/e2-plan.md` 的 T-D3 原文是"下一步升级成断言" ✓ ——
+        // 影子走查（`Walk::shadow_env` / `shadow_check_and_add` ✓）与对照比较（T-K12b ✓）
+        // **早已存在** ✓，缺的只是"**不一致就判红**" ✗。
+        //
+        // 只在 `SOKO_SHADOW_CHECK=1`（**既有的 opt-in 开关** ✓，默认关 ✓）下失败
+        // => 默认路径**零变化零风险** ✓；开关打开时不一致 = **影子不可信** ✓，
+        // 那正是要判红的事情 ✓（`shadow_failed` 已去重、只比影子覆盖的命令 ✓，
+        // 见上面的注释 —— 假差异的两个来源都排掉了 ✓）。
+        //
+        // ⚠ **先打印再失败** ✓：编译路径上 panic 会被 `quiet_catch` 捕获并转成诊断 ✓，
+        // 只 panic 的话上面那行关键信息会丢 ✗。
+        if shadow_failed != kernel_failed {
+            eprintln!(
+                "SHADOW MISMATCH（影子与内核阶段的失败表不一致 ⇒ 影子不可信 ✗）：\
+                 shadow_failed={shadow_failed:?} kernel_failed={kernel_failed:?} \
+                 差分只在影子覆盖的命令上 ✓（见 shadow_covered 的注释 ✓）"
+            );
+            panic!(
+                "T-D3 影子一致性断言失败：shadow_failed != kernel_failed \
+                 （SOKO_SHADOW_CHECK=1 时这是硬判据 ✓）"
+            );
+        }
     }
     pass
 }
