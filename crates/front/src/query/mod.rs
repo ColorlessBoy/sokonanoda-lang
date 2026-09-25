@@ -576,7 +576,7 @@ impl QueryDoc {
                 end_col,
             });
         }
-        let warnings = output
+        let warnings: Vec<WarningInfo> = output
             .warnings
             .iter()
             .map(|w| {
@@ -594,6 +594,17 @@ impl QueryDoc {
                 }
             })
             .collect();
+        // **为什么这里只有入口的警告**（审计 #2 的结论：**不是 bug，是设计** ✓✓）：
+        // `CheckSummary` 的坐标空间**是入口文件**（见本文档上方"字节 offset
+        // （坐标空间 = 入口文件）"✓）—— 把依赖模块的诊断并进来，就会把**别的文件的
+        // 偏移**当成入口的偏移发出去 ✗。`crates/cli/tests/query.rs` 有一条判据专钉
+        // 这件事：`query_check_still_reports_a_broken_dependency_in_a_project`
+        // （"only the entry's own diagnostic — the dependency's parse error stays in
+        // the dependency's coordinate space" ✓）。我照审计的"并进来"试过一版 ✗ ⇒
+        // 它当场判红（left 3 ≠ right 1 ✓），**已回退** ✓。
+        // **依赖模块那一层要看哪里** ✓：`grade --json`（全量事件流，带 `file`/`module` ✓）
+        // 与 `query project`（`modules[].warnings/errors` + `project.diagnostics` ✓）——
+        // 两条通道本来就带 `module` 归属 ✓。这条边界现已写进 `docs/protocol.md` ✓。
         // **清单 `requires` 漂移也要说出来**（T-A05 / G-24 的另一半）。
         //
         // 为什么必须在这里说：那条漂移**不再关掉缓存**了（`is_clean()` 把它摘了

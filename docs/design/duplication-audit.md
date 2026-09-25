@@ -13,7 +13,7 @@
 | # | 位置 | 重复了谁 | 风险 | 唯一归属 | 可执行判据 | 处置 |
 |---|---|---|---|---|---|---|
 | 1 | `crates/cli/src/query.rs:170-176` 自算 `clean` | `ProjectReport::is_clean()`（[report.rs:163](crates/front/src/project/report.rs#L163)）；另 4 处调用者 | **高** —— `query check` 为不干净的项目写缓存 ⇒ **之后所有 `grade`/`check` 静默丢掉依赖模块的警告**（子代理已复现 `1 → 0` ✓） | 判据收进 `store_if_clean*`（**删掉 `is_clean` 形参**，函数内部自取 ✓） | `grep -rn "is_clean()" crates/cli/src crates/lsp/src` → 4 处、**`query.rs` 不在其中** ✓ | ✅ 已修（守卫进 gate ✓ + **反向验证**补上 ✓ —— 实测抹掉 `value_runs` 会被抓到 ✓） |
-| 2 | `query/mod.rs:522-578`（`failed` 只由入口事件合成） | `cli/check.rs:156-175`（把**每个非入口模块**的诊断也发出） | **高** —— 同一项目 `grade` 出 2 条诊断、`query check` 的 `warnings` 是 `[]` ⇒ MCP/agent 漏一整层 | `CheckSummary` 归并各模块诊断（数据已在 `query/project.rs:134-150` ✓） | `soko --json X \| wc -l` = 2 vs `query check` 的 `"warnings":[]` ✓ | **立刻做** |
+| 2 ❌**假阳性**（round 80 实测 ✓） | `query/mod.rs:522-578`（`failed` 只由入口事件合成） | `cli/check.rs:156-175`（把**每个非入口模块**的诊断也发出） | **高** —— 同一项目 `grade` 出 2 条诊断、`query check` 的 `warnings` 是 `[]` ⇒ MCP/agent 漏一整层 | **不动** ✗：这是**已文档化的设计** ✓ —— 见下 | `soko --json X \| wc -l` = 2 vs `query check` 的 `"warnings":[]` ✓ | **不做**（设计如此 ✓） |
 | 3 ✅**已修**（round 72） | `scripts/audit-wire-fields.py` **没进 gate** ✗ | `AGENTS.md` / `docs/CI-FAILURES.md` 都宣称"已进 gate 与 CI" ✗ | **高** —— 咬 R-1（`value_runs` 漏映射）的**唯一**守卫**从不自动跑** ✓（与 R-3「门禁崩了却不判」同形 ✗） | 接进 `scripts/soko` 步骤表 + CI ✓ | `grep -c audit-wire-fields scripts/soko` ⇒ **0** ✓（已抽查证实 ✓） | **立刻做** |
 | 4 | `scripts/kernel-diff.sh:82` 收集器无 `-type f` | `notation-lint.py:364` / `verify-decl-panel.py:63`（后者已补 `is_file()` ✓） | **高** —— 实收 **4 个目录** ⇒ 20 组对拍**恒绿**、**"零差异"覆盖被虚报** ✗ | 收集器唯一化 + `-type f` ✓ | `find courses course examples docs/gaps/repro -name '*.sokonanoda' ! -type f` ⇒ **4 行** ✓（已抽查 ✓） | **立刻做** |
 | 5 | offset↔line/col **六份**实现、列口径**三种**（byte/char/UTF-16） | `query/pos.rs:9`（UTF-16，自称唯一 ✗）、`session.rs:467`、`references.rs:98/154`（**byte** ✗）、`lsp/lib.rs:993`、`lsp/render.rs:381`（与上一份**逐字相同**）+ `lsp/tokens.rs:88` 内联 | **高** —— byte 列**直接喂** LSP `character`（`lsp/render.rs:52`、`project_refs.rs:145`）⇒ 含 `α`/`∈` 的行上高亮/rename 右移 ✓（已立台账 G-36/T-D31，但**重复未消除** ⇒ 修一处不会一起好 ✗） | `front::query::pos` 唯一入口 ✓ | `grep -rn "fn line_col\|fn offset_of" crates/front/src crates/lsp/src` ⇒ 9 命中 ✓；`references.rs:157` 确为字节（已抽查 ✓） | **立刻做** |
@@ -41,6 +41,22 @@
 **明确排除（查过，避免下一轮重查 ✓）**：路径↔模块名（`graph.rs:176-193` 唯一 ✓）、
 URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、cache key 构造（`project/mod.rs:236`
 唯一 ✓ —— **分叉不在键，在键右边的"干净"判据** ✓ 即第 1 条 ✓）。
+
+### #2 的实测结论（round 80 ✓）：**不是 bug，是刻意设计且已文档化** ✓✓
+我照审计的"归并各模块诊断"做了一版 ✗，被三条独立证据挡回来 ✓：
+1. **判据** ✗：`crates/cli/tests/query.rs::query_check_still_reports_a_broken_dependency_in_a_project`
+   当场判红 ✓，断言语义是 "only the entry's own diagnostic — the dependency's parse error
+   stays in the dependency's **coordinate space**" ✓（left 3 ≠ right 1 ✓）；
+2. **坐标空间** ✗：`query/mod.rs` 上方文档写明 "**字节** offset（**坐标空间 = 入口文件**）" ✓
+   ⇒ 把依赖模块的诊断并进来，等于**把别的文件的偏移当入口的偏移**发出去 ✗；
+3. **协议** ✓：`docs/protocol.md:875` **本来就写着**
+   "`query check`'s `failed[]`/`warnings[]` report in the **entry file**'s …" ✓
+   ⇒ 审计漏读了这一条 ✗（它自己也留了备选："否则必须把'只算入口'写进 `docs/protocol.md`" ✓ ——
+   而**它早就写进去了** ✓）。
+**依赖模块那一层该看哪里** ✓：`grade --json`（事件流带 `file`/`module` ✓）与
+`query project`（`modules[].warnings/errors` ✓ —— 实测那条 `reserved-declaration-name`
+就活在 `modules[Dep].warnings` 里 ✓，而 `project.diagnostics` 是空的 ✗）。
+**已回退** ✓ 我的改动，只留一段说明注释 ✓（免得下一个人再走一遍 ✓）。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 
