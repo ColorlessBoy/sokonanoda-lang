@@ -42,8 +42,8 @@ use render::{
 };
 use sokonanoda_front::compile::cache::{self, CachedCompile};
 use sokonanoda_front::compile::{
-    prelude_mode_from_source, CompileOptions, DeclState, DeclStatus, DocumentReport, GoalBinder,
-    HoverType, PreludeMode, ResolvedTarget,
+    fold_for_display, prelude_mode_from_source, CompileOptions, DeclState, DeclStatus,
+    DocumentReport, GoalBinder, HoverType, PreludeMode, ResolvedTarget,
 };
 use sokonanoda_front::project::cache as project_cache;
 use sokonanoda_front::query::{decl_name, QueryDoc};
@@ -1329,7 +1329,7 @@ fn half_expression_goals_hover(
     if binders.is_empty() {
         return None; // 没有引入 binder 的半截表达式：诊断已足够
     }
-    let term_text = render_expr(body);
+    let term_text = fold_for_display(text, &render_expr(body));
     // 声明目标 = 声明类型剥掉值已消耗的层数。
     let file = parse(slice).ok()?;
     let ty = match file.commands.first()? {
@@ -1337,7 +1337,7 @@ fn half_expression_goals_hover(
         _ => return None,
     };
     let goal_ty = peel_pi_layers(&ty, binders.len())?;
-    let goal_text = render_expr(&goal_ty);
+    let goal_text = fold_for_display(text, &render_expr(&goal_ty));
 
     // 问内核：这一项在上下文里的类型（推断，不是判定；有缓存）。
     let prefix = &text[..d.span.start.offset];
@@ -1356,7 +1356,7 @@ fn half_expression_goals_hover(
             Expr::Arrow {
                 domain, codomain, ..
             } => {
-                goals.push(render_expr(domain));
+                goals.push(fold_for_display(text, &render_expr(domain)));
                 cur = codomain;
             }
             Expr::Forall { binders, body, .. } => {
@@ -1373,7 +1373,7 @@ fn half_expression_goals_hover(
     if goals.is_empty() {
         return None; // 不是部分应用：诊断已足够
     }
-    let codomain = render_expr(cur);
+    let codomain = fold_for_display(text, &render_expr(cur));
     let (headline, tail) = if codomain == goal_text {
         (
             format!(
