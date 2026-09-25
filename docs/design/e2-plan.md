@@ -884,6 +884,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 304 续：真实形式 = `Self::walk_real_add_enabled()` ✓（文件里就有例子 ✓）**
+    ```
+    walk.rs:184   fn walk_real_add_enabled() -> bool {        ← **关联函数** ✓
+                     （不是方法 ✗ —— 没有 `self` ✓；也不是模块级自由函数 ✗）
+    walk.rs:201       if Self::walk_real_add_enabled() {      ← **`impl Walk` 里现成的调用形式** ✓✓
+    mod.rs:1319   fn walk_real_add_enabled() -> bool {        ← mod.rs 那份是**模块级** ✓
+    ⇒ ⑤ 应写 **`Self::walk_real_add_enabled()`** ✓
+    ```
+    **⇒ 修正（一个 token ✓）**：补丁文件里把 `self.walk_real_add_requested()` ✓ 改成
+    **`Self::walk_real_add_enabled()`** ✓ ⇒ 再跑 ✓。
+    **⚠ 而这条信息**一直就在文件里** ✓** —— `walk.rs:201` 的 `Self::walk_real_add_enabled()` ✓
+    是**同一个函数的既有调用** ✓ ⇒ **我只要 `git grep` 一次就能看到** ✓
+    ⇒ ⇒ **"怎么调一个函数"这个问题，答案永远在它的既有调用点里** ✓
+    （**第七次"我以为"** ✗ —— 而这一次**连"读定义"都不够** ✓：
+    定义只告诉我它是关联函数 ✓，**调用形式**要读**调用点** ✓）。
+
   - **⚠ round 304：五段全部落上 ✓，只差**开关的名字** ✗（我记错了 ✗）⇒ 树干净 ✓**
     ```
     第一次: error E0425 cannot find function `walk_real_add_enabled` in this scope
