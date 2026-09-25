@@ -884,6 +884,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **⚠ round 304：五段全部落上 ✓，只差**开关的名字** ✗（我记错了 ✗）⇒ 树干净 ✓**
+    ```
+    第一次: error E0425 cannot find function `walk_real_add_enabled` in this scope
+      ⇒ walk.rs 里没有那个**自由函数** ✗（我以为有 ✗）
+    第二次: error E0599 no method named `walk_real_add_requested` for `&mut Walk`
+      ⇒ 也**没有**那个**方法** ✗（我以为有 ✗）
+    ⇒ **两次都是"我以为"** ✗ —— 而两次**树都干净** ✓（写入在最后 ✓，自动回退 ✓）
+    ```
+    **⇒ 下一步（先读再写 ✓，第 N 次 ✓）**：
+    ```bash
+    git grep -n "walk_real_add" -- crates/front/src/compile/check/walk.rs crates/front/src/compile/check/mod.rs
+    ```
+    ⇒ **用打印出来的真实名字** ✓ 改补丁的 ⑤（三处 ✓）⇒ 再跑 ✓。
+    ⚠ **教训（第七次锚点/名字错 ✓，同一个根因 ✓）**：**"我以为"三个字是全部错误的原因** ✗ ——
+    这一轮我连续两次**凭记忆**写标识符 ✗（先是自由函数 ✗，再是方法名 ✗）
+    ⇒ ⇒ **凡是标识符，一律 `git grep` 打印** ✓ —— 与"锚点一律先打印"是同一条纪律 ✓。
+
   - **🎯 round 303：③ 的锚点修对了 ✓（脚本走到 ⑤ ✓）⇒ 而 ⑤ 三处**只有两处同形** ✗**
     ```
     第 1 处（:570 ✓）:  self.probe_builder… / **universe,** / ty, / val, / &redundant_spans, / &self.known, / &elab_ctx,
