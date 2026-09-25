@@ -884,6 +884,27 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯 round 256：函数自己的注释就写着 D-2 的路径 ✓（而"walk 已核过"是现成的 ✓）**
+    ```
+    kernel_phase.rs:43-47（fn check_then_add_decl 的文档 ✓）
+    /// 从 finish_pass 的 PendingOp::Decl 分支逐字搬过来（纯重构、零行为变化 ✓）——
+    /// 目的不是"更漂亮"，而是**让 T-D3 的 walk 能在 elaborate 之后当场做同一件事** ✓，
+    /// 从而**消掉"走一遍再查一遍"的重复**（**阶段 D 的两刀都建立在"只有一个 check-then-add"上**）✓
+    ```
+    ⇒ **T-D1 抽出这个函数，本来就是为 D-2 铺路** ✓✓（不是泛泛的"重构"✓）。
+    **而"walk 已核过"的事实是现成的** ✓：`check/mod.rs:912` 的
+    ```rust
+    let shadow_covered: std::collections::HashSet<usize> = shadow_names.keys().copied().collect();
+    ```
+    = **影子（T-D3 的 walk ✓）覆盖的命令集合** ✓ ⇒ **D-2 = 用 `shadow_covered` 决定是否跳过重查** ✓。
+    **⚠ 但注意当前状态** ✗：`check_then_add_decl` **只被 `kernel_phase.rs:347` 调用** ✓
+    （`git grep` 确认 ✓）⇒ **walk 侧还没接上它** ✗ ⇒ D-2 的完整形态是
+    **"walk 当场 check-then-add ✓ ⇒ 内核阶段跳过已覆盖的命令 ✓"** ✓，
+    而不只是"在内核阶段加个 if" ✓。
+    **⇒ 下一步（明确 ✓）**：读 `kernel_phase.rs:340-360` ✓（`check_then_add_decl` 的**唯一调用点** ✓）
+    ⇒ 看清它在 `PendingOp::Decl` 循环里怎么被调 ✓ ⇒ 在那层加"**若该 `cmd` 已被覆盖则跳过**"的开关 ✓
+    （**先开关后默认** ✓）；判据仍是 **两态 `--json` 逐字节相同** ✓ + 四件套 ✓ + 基准再降 ✓。
+
   - **✅ round 255：D-2 的落点精确到函数 ✓（三处重查全在一处 ✓）**
     ```
     crates/front/src/compile/check/kernel_phase.rs（624 行 ✓）· fn check_then_add_decl
