@@ -26,6 +26,12 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 377：`attempt=1` · 零失败 · 6 绿 · 18 未完** ✓（还在跑 ✓）
+  ```
+  ⇒ 18 个未完里最慢的是 **3 条 e2e（真 VS Code ✓）** 与 **`ledger`（含三条环境慢例 ✓，
+    现在有 10 分钟超时 ✓）** ⇒ 分钟级 ✓ ⇒ **正常** ✓ ⇒ **不推** ✗ · **等** ✓。
+  ```
+
 * **✅ round 376：`attempt=1` ⇒ **没换轮** ✓（"18 未完"是**惰性创建 job** 造成的 ✓）**
   ```
   $ gh run view 36198062997 --json attempt,status
