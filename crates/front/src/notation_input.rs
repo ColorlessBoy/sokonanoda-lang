@@ -317,8 +317,7 @@ pub fn known_symbols(doc: &str) -> Vec<String> {
         .into_iter()
         .map(|(symbol, _)| symbol)
         .collect();
-    let symbols = merge_known(symbols);
-    symbols
+    merge_known(symbols)
 }
 
 /// 符号在文本里的**每一处**（T-D24 的 `documentHighlight`/`references` 用它）。
