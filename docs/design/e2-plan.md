@@ -432,7 +432,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
       ⇒ 这半条**归 T-K12b** ✓（"让影子忠实镜像内核阶段" ✓），**不在 T-D4** ✓。
     * ⇒ **T-D4 按"开关关"三条收口** ✓（它们才是"两遍检查语义等价"的**真正可证部分** ✓）。
 
-- [ ] `T-D5` **judge 接快照（开关默认关）**：`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>` ⇒ `snapshot()` 查合成声明 ✓；拿不到**回退**旧路径 ✓；`SOKO_JUDGE_ENV_REUSE=1` 才启用 ✓
+- [x] `T-D5` **judge 接快照（开关默认关）**：`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>` ⇒ `snapshot()` 查合成声明 ✓；拿不到**回退**旧路径 ✓；`SOKO_JUDGE_ENV_REUSE=1` 才启用 ✓
   - **✅ round 223 核实：T-D5 也是**部分实现**（第五次 ✓），且计划与代码**不一致** ✗**
     | 计划写的 | 代码实际 |
     |---|---|
@@ -445,6 +445,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⚠ **顺带要解决的**：开关的**默认值语义**（计划 `=1 才启用` ✗ vs 代码 `=0 关掉` ✗）
     ⇒ **以代码为准** ✓ 并把计划改过来 ✓（**默认开**意味着它已经在跑 ✓ ⇒ 性能与正确性都已受影响 ✓，
     这正是"前缀复用第一刀"该关心的事 ✓）。
+
+  - **✅ round 224：已实现且**判据实测成立** ✓（这次不用重述 ✓ —— 判据是**满足**的 ✓）**
+    * **开关** ✓：`judge.rs:434-443` ✓ —— 文档写"`SOKO_JUDGE_ENV_REUSE=0` 关掉前缀复用 ✓，
+      **对拍用：开与关必须给出逐字节相同的 `--json`** ✓。**默认开** ✓（`unwrap_or(true)` ✓）。
+      ⚠ **与计划写的"默认关"不一致** ✗ ⇒ **以代码为准** ✓：它比计划**走得更远** ✓
+      （计划是保守的分步落地 ✓，代码已直接默认开 ✓ 并**证明了等价** ✓）。
+    * **实现路线与计划的草图不同** ✗：不是"`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>`
+      ⇒ `snapshot()`" ✓（`Option<&EnvBuilder>` 全仓 0 处 ✗），而是
+      **"前缀已被外层担保 ⇒ 走 `run_incremental`（前缀不再重查）✓，否则回退整份重查 ✓
+      ——**回退是默认，不是异常路径**"** ✓（`judge.rs:445-447` ✓）。
+    * **判据实测（本机 ✓）**：
+      | 态 | 结果 |
+      |---|---|
+      | 默认（复用开 ✓） | `cargo test -p sokonanoda-front --lib` ⇒ **736 passed / 0 failed** ✓ |
+      | `SOKO_JUDGE_ENV_REUSE=0`（复用关 ✓） | 同上 ⇒ **736 passed / 0 failed** ✓ |
+      | CLI `--json` 对拍 ✓ | 开 `a2bdf9c4fad1…` = 关 `a2bdf9c4fad1…` ⇒ **逐字节相同** ✓✓ |
+    ⇒ **判据成立** ✓ ⇒ **本条可勾** ✓（交付物 ✓ + 判据 ✓ 都在 ✓）。
 
 - [ ] `T-D6` **量收益 + 默认打开**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓；**收益成立才默认打开** ✓（否则保持关闭并记录 ✗）
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
