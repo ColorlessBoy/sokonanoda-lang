@@ -390,6 +390,19 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
       按"判定量必须逐字节一致、显示量也必须"来对拍最稳 ✓。
 - [x] `T-D2` **D1 判据**：全语料两态 `--json` **逐字节相同** ✓ + 课程计数逐项不变 ✓ + 五步全绿 ✓（**不变量**：这一步不改任何行为 ✓）
 - [ ] `T-D3` **walk 增量检查（开关默认关）**：walk 边 elaborate 边 `with_env` 检查并 `add_declar` ✓；`SOKO_WALK_CHECK=1` 才启用 ✓ ⇒ 默认路径**零变化零成本** ✓
+  - **交接（2026-09-25 第 96 轮，**故意未开工** ✗）**：这是**内核级**改动 ✓（walk 里
+    边 elaborate 边 `with_env` 检查 + `add_declar` ✓），而当时的上下文**不足以**安全做完 ✓
+    ⇒ 按纪律**不留半成品** ✗（半成品的内核改动比没做更糟 ✓）。
+    **开工前先读**：① `crates/front/src/compile/check/walk.rs`（walk 的累积量 ✓）；
+    ② `crates/front/src/compile/check/mod.rs`（`display_notations` / `finish_pass` ✓）；
+    ③ `docs/architecture.md` **§8 gotchas**（arena 生命周期 / panic→Result /
+    `quiet_catch` **不可嵌套** ✓ —— 这一条对"walk 里再进一次检查"尤其要命 ✗）。
+    **开关** ✓：`SOKO_WALK_CHECK=1`（默认关 ✓ ⇒ 默认路径**零变化零成本** ✓ —— 
+    这正是可以**分步落地**的原因 ✓）。
+    **判据（两态都要 ✓）**：① 默认关 ⇒ 全语料 `--json` **逐字节相同** ✓ +
+    课程计数逐项不变 ✓ + `scripts/soko gate` 全绿 ✓；② 打开 ⇒ walk 累积的
+    `decl_states`/判定量与 `finish_pass` 那条**逐项相同** ✓（"判定量逐字节一致 ✓"）。
+    **不要**在开关关闭路径上顺手改行为 ✗（本环节的价值就是"默认零成本" ✓）。
 - [ ] `T-D4` **D3 判据**：开关两态 `--json` 逐字节相同 ✓ + 课程计数不变 ✓ + 事件计数不变 ✓（**开关开**时也相同 ✓ ⇒ 证明"两遍检查"语义等价 ✓）
 - [ ] `T-D5` **judge 接快照（开关默认关）**：`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>` ⇒ `snapshot()` 查合成声明 ✓；拿不到**回退**旧路径 ✓；`SOKO_JUDGE_ENV_REUSE=1` 才启用 ✓
 - [ ] `T-D6` **量收益 + 默认打开**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓；**收益成立才默认打开** ✓（否则保持关闭并记录 ✗）
