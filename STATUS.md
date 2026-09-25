@@ -26,6 +26,21 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯 round 360：三片 `ledger` **全红** ⇒ 判据自己完成了** ✓✓（**确定不是 flake** ✗）
+  ```
+  整轮 in_progress ✓ · 已绿 11 ✓ · 未完 11 ✓
+  失败 ✗：**`ledger (1)`** ✗ + **`ledger (2)`** ✗ + **`ledger (3)`** ✗ —— **三片全红** ✗✓
+  ⇒ **分片数的判据** ✓：**1 片 = flake** ✓ → **2 片 = 真问题** ✓ → **3 片 = 确定** ✓
+  ⇒ 日志仍要等整轮 ✗（`--log-failed` 拒绝 ✓）⇒ **接手者第一步就是读它** ✓
+  ```
+  **⇒ 交接（安全 ✓，三步 ✓）**：
+  ```bash
+  gh run view 36189963908 --json status                      # ① 等整轮结束
+  gh run view --job <ledger(1) id> --log-failed              # ② 读真因（三片全红 ⇒ 不是 flake）
+  # ③ 修 ⇒ 一次推 ⇒ CI 绿 ⇒ auto-tag ⇒ gh release list --limit 1 核对 v0.72.0
+  ```
+  **⚠ 而这一步**必须由下一批做** ✗**（**本轮是预算最后一轮** ⚠ ⇒ **不再推** ✗）。
+
 * **🔴 round 359：**两片 `ledger` 都红了 ⇒ 不是 flake** ✗✓（`perf-gate` 绿了 ✓）
   ```
   整轮 in_progress ✓ · **已绿 11** ✓（10 → 11 ✓ —— **`perf-gate` 绿** ✓）
