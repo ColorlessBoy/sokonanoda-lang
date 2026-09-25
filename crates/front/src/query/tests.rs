@@ -626,6 +626,63 @@ fn assert_text_runs_in_lockstep(doc: &QueryDoc, what: &str) {
     }
 }
 
+/// **T-U12 的真判据（round 104 ✓）**：夹具的**源里写点形式** ✓ ⇒ 显示文本**必须经过折叠** ✓。
+///
+/// 为什么上一版咬不住 ✗（round 103 实测）：那两个夹具是**源级渲染** ✓ —— 学习者写的记法
+/// 直接进显示文本 ✓，**根本不需要折叠** ✗ ⇒ 注入"折叠失效"它照样绿 ✓。
+/// **这一版的关键差别** ✓：源里写 `Set.subset Nat A B`（**点形式** ✓），而
+/// `ty` 那条显示面是**内核 pp + 折叠** ✓ ⇒ 只要折叠失效 ✗，显示里就会漏出
+/// `Set.subset ` ✗ ⇒ 判据**判红** ✓（已用注入验证 ✓）。
+///
+/// 覆盖的显示面 ✓：`checked` 声明的 `ty`（内核 pp ✓ ← 这一条**必须**折叠 ✓）；
+/// 另断言同时**不许**出现 `forall `/`Set.mem ` ✓。
+///
+/// **反向验证已做 ✓（这是"咬得住"的证据 ✓）**：`print_back` 的入口临时注入
+/// `if std::env::var_os("SOKO_INJECT_NO_FOLD").is_some() { return DisplayText::new(text); }`
+/// ⇒ `SOKO_INJECT_NO_FOLD=1 cargo test -p sokonanoda-front --lib a_kernel_pp_display_surface_must_be_folded`
+/// ⇒ **判红** ✓：
+/// `内核 pp 的 ty 必须被折成记法 ⊆ ✓（实际 = forall (A B : Set Nat), Set.subset Nat A B -> …）`
+/// （注入已回退 ✓；CLI 侧那条等价开关是 `SOKO_NO_NOTATION_FOLD=1` ✓，
+/// `crates/cli/tests/notation_fold.rs` 就是拿它在**真二进制**上判的 ✓）。
+/// ⚠ **注入要打在 `print_back`，不能打 `DisplayNotations::fold`** ✗ ——
+/// 本轮第一次就打在 `fold` 上、结果"看起来咬不住" ✓，因为 `ty_text` 实际走的是
+/// `kernel_phase.rs` 里**直接调 `print_back`** 那条路 ✗（见台账 T-U11 ✓）——
+/// 这本身就是一个**待迁移的绕过** ✓。
+const POINT_FORM_CANVAS: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+infix:50 \" ∈ \" => Set.mem
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+infix:50 \" ⊆ \" => Set.subset
+
+-- 源里写**点形式** ✓ ⇒ 只有折叠能把它变成记法 ✓
+theorem point_form_checked (A B : Set Nat) : Set.subset Nat A B -> Set.subset Nat A B :=
+  fun h => h
+";
+
+#[test]
+fn a_kernel_pp_display_surface_must_be_folded() {
+    let doc = doc(POINT_FORM_CANVAS);
+    let decls = doc.goals(false).expect("夹具可查");
+    let d = decls
+        .iter()
+        .find(|d| d.name == "point_form_checked")
+        .expect("夹具里要有 point_form_checked");
+    let ty = d.ty.as_deref().expect("checked 声明必须有 ty 显示副本");
+    // ① 必须折成记法 ✓
+    assert!(
+        ty.contains('⊆'),
+        "内核 pp 的 `ty` 必须被折成记法 `⊆` ✓（实际 = {ty}）"
+    );
+    // ② 不许漏点形式 ✗（这一条在"折叠失效"时会红 ✓ —— 咬得住的证据 ✓）
+    for marker in ["Set.subset ", "Set.mem ", "forall "] {
+        assert!(
+            !ty.contains(marker),
+            "`ty` 里漏出了点形式 `{marker}` ✗（折叠失效了 ✗）实际 = {ty}"
+        );
+    }
+}
+
 /// ⚠ **这条目前是"冒烟"而不是"守卫"** ✗ —— 实测：把 `fold` 注入成恒等（**折叠失效** ✗）
 /// 它**依然通过** ✓（2026-09-25 round 103 实测 ✓）。**原因**：它扫的两个夹具都是**源级渲染** ✓
 /// （学习者写的记法直接进了显示文本 ✓，**根本不需要折叠** ✓）⇒ 判据**空转** ✗

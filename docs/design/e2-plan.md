@@ -724,7 +724,14 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ **咬不住** ✓（用户原话："咬不住的守卫等于没有" ✓）。
     **真判据的写法** ✓：夹具的**源里必须写点形式** ✓（如
     `forall (x : α), Set.mem α x A -> …` ✓），再断言**显示**文本已折成记法（`∀`/`∈` ✓）
-    —— 只有这样，注入"折叠失效"才会判红 ✓。当前那条只当**冒烟**用 ✗，**不算交付** ✓。：hover / goal / 诊断 / 状态栏 / 项目树
+    —— 只有这样，注入"折叠失效"才会判红 ✓。当前那条只当**冒烟**用 ✗，**不算交付** ✓。
+  - **✅ round 104 完成** ✓：真判据 `a_kernel_pp_display_surface_must_be_folded`
+    （夹具 `POINT_FORM_CANVAS` ✓：源里写 `Set.subset Nat A B` 点形式 ✓ ⇒ `ty` 必须折成 `⊆` ✓）
+    + **反向验证做过了** ✓：在 `print_back` 入口注入"原样返回" ✗ ⇒ **判红** ✓
+    （报 `实际 = forall (A B : Set Nat), Set.subset Nat A B -> …` ✓），注入已回退 ✓。
+    ⚠ **重要副发现** ✗：`ty_text` 走的是 `kernel_phase.rs` **直接调 `print_back`** 那条路 ✗
+    （不是统一接口 `DisplayNotations::fold` ✓）⇒ 它本身就是 **T-U11 的一处待迁移绕过** ✓
+    （第一次注入打在 `fold` 上"看起来不咬" ✓ 就是这个原因 ✓）。：hover / goal / 诊断 / 状态栏 / 项目树
   各造含记法类型 ✓，断言**无点形式** ✓；**反向验证**：回退 T-U4/T-U5 的折叠必须**判红** ✓
   （"咬不住的守卫等于没有" ✓）。
 - [ ] `T-U10` **审计结论收口**：对每一项或"立刻做"或"立守卫"或"写进台账（不做，说明理由）"✓；
