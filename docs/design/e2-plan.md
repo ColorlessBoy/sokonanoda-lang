@@ -1121,3 +1121,18 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ 那会让这个开关**无法再用于它本来的用途** ✗（"打开看 SHADOW 观测行" ✓
     —— 现在一开就 181 条 panic ✗）⇒ 应**另设一个开关** ✓：
     `SOKO_SHADOW_STRICT=1` 才断言 ✓，`SOKO_SHADOW_CHECK=1` 只观测 ✓（恢复原用途 ✓）。
+
+    **✅ round 219：开关拆好了，三态都实测** ✓
+    | 态 | 结果 | 判定 |
+    |---|---|---|
+    | **`SOKO_SHADOW_STRICT=1`** | 退出码 **101** ✓ · **MISMATCH = 181** ✓ | **断言生效** ✓ |
+    | **默认（两个都不设）** | 退出码 **0** ✓ · **736 passed** ✓ | **零影响** ✓ |
+    | `SOKO_SHADOW_CHECK=1` | 退出码 101 ✗ · **11 failed** ✗ | **开关下既有的失败** ✓（改前是 181 ✗ = 11 + **我引入的 170 个 panic** ✓） |
+    **改法（两处 ✓）**：
+    ① 断言加条件 ✓：`std::env::var("SOKO_SHADOW_STRICT").is_ok() && shadow_failed != kernel_failed` ✓
+       —— 因为"不等价"是**已知**的（见 :768-772 ✓），在 `CHECK` 下就 panic 会让那个开关**失去观测用途** ✗；
+    ② `shadow_experiment` 也要认 `STRICT` ✓：`CHECK.is_ok() || STRICT.is_ok()` ✓
+       —— 否则**单独用 STRICT 时影子根本没建** ✗ ⇒ 断言所在分支不执行 ⇒ 开关**空转** ✗
+       （实测抓到 ✓：第一版 `STRICT=1` ⇒ MISMATCH=0 且退出码 0 ✗）。
+    **⇒ 顺带查出一条既有事实（不是我引入的 ✓）**：`SOKO_SHADOW_CHECK=1` 下有 **11 条测试**本来就失败 ✗
+    —— 与影子/内核不等价同源 ✓（T-K12b 的范畴 ✓），**记录在案** ✓，不在本环节处理 ✓。

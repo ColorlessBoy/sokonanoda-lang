@@ -770,7 +770,11 @@ fn run_pass(
     // pass1-pass2 ⇒ 影子偏严），所以它**不能**进判定路径。但每次编译都白装一份
     // prelude 是**热路径成本** ✗ ⇒ 关进开关：默认零成本 ✓、要复现对照实验时打开 ✓。
     // 结论与后续见 `docs/design/vscode-editor-feedback-plan.md` 的 T-K12b。
-    let shadow_experiment = std::env::var("SOKO_SHADOW_CHECK").is_ok();
+    // **STRICT 也必须建影子**（2026-09-25 round 219 实测）：否则 `SOKO_SHADOW_STRICT=1`
+    // 单独用时影子根本没建 => 断言所在的分支不执行 => 那个开关等于空转 ✗
+    // （实测：STRICT=1 => MISMATCH=0 且退出码 0 ✗）。
+    let shadow_experiment = std::env::var("SOKO_SHADOW_CHECK").is_ok()
+        || std::env::var("SOKO_SHADOW_STRICT").is_ok();
     let shadow_arena = stumpalo::Arena::new();
     let mut shadow = EnvBuilder::new(shadow_arena.as_arena_ref(), Config::default());
     if shadow_experiment {
@@ -960,7 +964,12 @@ fn run_pass(
         //
         // ⚠ **先打印再失败** ✓：编译路径上 panic 会被 `quiet_catch` 捕获并转成诊断 ✓，
         // 只 panic 的话上面那行关键信息会丢 ✗。
-        if shadow_failed != kernel_failed {
+        // **断言另设开关**（2026-09-25 round 219）：`SOKO_SHADOW_CHECK=1` 只观测
+        // （恢复它原本的用途：打开看 SHADOW 观测行），`SOKO_SHADOW_STRICT=1` 才断言。
+        // 原因：影子与内核阶段的不等价是**已知**的（见本函数上方 :768-772 的注释：
+        // 差在增量记账 skip/trust/pass1-pass2 => 影子偏严），若在 CHECK 下就 panic，
+        // 那个开关就再也无法用来观测了。
+        if std::env::var("SOKO_SHADOW_STRICT").is_ok() && shadow_failed != kernel_failed {
             eprintln!(
                 "SHADOW MISMATCH（影子与内核阶段的失败表不一致 ⇒ 影子不可信 ✗）：\
                  shadow_failed={shadow_failed:?} kernel_failed={kernel_failed:?} \
