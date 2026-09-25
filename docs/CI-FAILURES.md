@@ -1037,3 +1037,30 @@ e2e: 27 passed / 0 failed (v0.68.0 2be03e5, VS Code 1.106.0,
 按日志决定是"环境/flake"（则记 prevention）还是"真差异"（则修）✓。
 **预防（待定）**：若确认 flake，考虑给该 job 加 `timeout-minutes` 与失败用例名回显 ✓
 （与 `test` job 同款待办 ✓，见 `STATUS.md` 的 CI 待办 ✓）。
+
+**整轮结束后补齐（同一条目的续记 ✓）**：本轮是 `failure` ✗，两个 job 红，**都与本次改动无关** ✓：
+
+### ① `e2e (ubuntu-latest · VS Code 1.106.0)` ⇒ `26 passed / 1 failed` ✗
+* **我的版本断言在 CI 上是绿的** ✓：`+ stage 版本断言 ✓ staged=0.68.0 · repo=0.68.0` ✓
+  ⇒ `stage-lsp.js` 的 `CARGO_TARGET_DIR` 修复**在 CI 上生效** ✓（本轮的主要修复 ✓）。
+* 本地同版本复现**全绿** ✓（27/27 ✓，见上）⇒ 差异只在"ubuntu + 1.106.0"组合 ✗。
+* 失败用例名未能取到 ✗：该 job 写的 `docs/e2e/logs/2026-09-25-598f112-vc1.106.0.log`
+  **在 runner 上**，而回写 job（`e2e ledger`）被 skip ✗ ⇒ 日志没回仓库 ✓
+  ⇒ **prevention**：让 e2e job 在失败时把 `docs/e2e/logs/*.log` 作为 artifact 上传 ✓
+  （与 `test` job 的 "Upload test log (on failure)" 同款 ✓）。
+
+### ② `test` ⇒ 红在 **`Gap ledger is consistent (docs/gaps)`** ✗（exit 1）
+**决定性对比** ✓：
+```
+CI    ：G-35  fixed  script  行为已变            ⇒ exit 1 ✗
+本地  ：G-35  fixed  script  环境异常 ← 复现件超时（>120s）——按环境/形状异常判红 ⇒ exit 0 ✓
+```
+⇒ **同一个 gap、同一份代码，CI 与本地给出不同判定** ✗ —— 复现件在 CI 上**超时** ✓（报告方
+自己把它归类为"**环境/形状异常**"✓）⇒ 这是**环境敏感**的判红 ✗，**不是代码漂移** ✓。
+**旁证**：上一轮 CI（`36098950145`）红的就是 **`test`** ✗，且 `e2e(ubuntu·1.106.0)` 那次是绿的 ✓
+⇒ 两条红都属于**本仓库 CI 的既有环境问题** ✗（会在别的批次重复出现 ✓）。
+
+**prevention（两条都待做 ✓）**：
+1. 给 `test` job 的 gap 步加**超时预算**（或把 `>120s` 的复现件从"判红"降为"跳过并标注"✓）
+   —— 判据是"两条环境都能一致地判" ✓，而不是"快的那台机器说了算" ✗；
+2. 两个 job 都加 `timeout-minutes` + 失败时**回显失败用例名** ✓（`STATUS.md` 里早有这条待办 ✓）。
