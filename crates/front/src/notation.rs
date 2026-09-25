@@ -29,7 +29,10 @@ use crate::ast::{Command, NotationDecl};
 /// 表），也会记住作用域让**之后**声明的直接生效。读回通道只有一段前缀、
 /// 不关心"用在哪一行"，所以正确答案就是"前缀结束时生效的那些"——那正是
 /// 两遍扫描。
-pub(crate) fn notation_table(commands: &[Command]) -> Vec<NotationDecl> {
+/// **给 front 的消费者建表用**（T-U11 ✓ 2026-09-25 由 `pub(crate)` 放开 ✓）：
+/// LSP 那侧要折 hover 文本 ✓，但它**不许自己造 arity** ✗（= 第五套实现 ✓，守卫会抓 ✓）
+/// ⇒ 由 front 提供入口 ✓（见 `display::fold_for_display` ✓）。
+pub fn notation_table(commands: &[Command]) -> Vec<NotationDecl> {
     // 第一遍：这段文本里开过哪些作用域。
     let mut opened_scopes: Vec<String> = Vec::new();
     for command in commands {

@@ -417,7 +417,8 @@ fn by_step_states(
 
 /// **显示期的记法表**（线 C）：从闭包各单元的**已解析命令**收记法 + 内建记法，
 /// 元数从源级签名 + prelude。整趟建一次，给 `ty_text` 与 `by` 步进的展示副本共用。
-pub(crate) fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNotations {
+/// **给 front 的消费者建表用**（同上 ✓）：由 front 算 arity ✓，调用方**只拿结果** ✓。
+pub fn display_notations(units: &[SourceUnit<'_>]) -> crate::display::DisplayNotations {
     // **关掉折叠的开关**（诊断/判别性测试用）：`SOKO_NO_NOTATION_FOLD=1` ⇒ 空表 ⇒
     // `print_back` 原样返回。它存在的意义是证明"那几条 surface 测试真的抓得住"
     // ——关掉之后它们**必须全红**（T-C24 的判别性判据）。仿 `SOKO_NO_JUDGE_BATCH`。
