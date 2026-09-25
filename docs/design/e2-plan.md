@@ -884,6 +884,32 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **⚠ round 279：修法 A ①② 试了、**可达性错**、已回退 ✓（修法再简一步 ✓）**
+    ```
+    E0603: module `check` is private            ← `judge.rs` 到不了 `crate::compile::check::…` ✗
+    E0425: cannot find function `walk_real_add_enabled` in `crate::compile::check`
+           note: `crate::compile::check::walk::walk_real_add_enabled` exists but is inaccessible
+    ⇒ 自动回退 ✓（树干净 ✓ 零损伤 ✓）
+    ```
+    **⇒ 修法再简一步（下一轮 ✓，**不做跨模块接线** ✗）**：
+    **在 `judge.rs` 里就地读环境变量** ✓ —— 三行 ✓，零可达性问题 ✓：
+    ```rust
+    /// **D-2 的开关**（round 279）：`judge.rs` **就地**读 ✓ ——
+    /// 不跨模块接线 ✗（`check` 是私有模块 ✓，`E0603` 实测 ✓）。
+    /// 开关打开 ⇒ 判卷路径**绕开缓存** ✓（键只含文本 ✗、不含环境 ✓ ⇒ 旧值会被复用 ✗）。
+    fn walk_real_add_enabled() -> bool {
+        static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *ON.get_or_init(|| std::env::var("SOKO_WALK_REAL_ADD").is_ok_and(|v| v != "0"))
+    }
+    ```
+    ⇒ ② 的短路里把 `crate::compile::check::walk_real_add_enabled()` 改成
+    **`walk_real_add_enabled()`**（本模块的 ✓）。
+    ⚠ **`walk.rs` 的追加可以省掉** ✗（不再需要 ✓）⇒ **改动更小** ✓。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 回到基线 11** ✓ · 组合 **11** ✓。
+    ⚠ **教训（第八次编译错 ✓，全部来自"多改/接错线" ✗）**：**能就地解决的，不要跨模块** ✓ ——
+    我为了"共用一个 `OnceLock`"✗ 去做跨模块暴露 ✓，而**代价是两个可达性错** ✗。
+    ⇒ **同一个环境变量读两处** ✓ 完全可接受 ✓（**读环境变量本来就是幂等的** ✓）。
+
   - **⚠ round 278：修法 A ①② 试了一次、**括号错**、已回退 ✓（教训已明确 ✓）**
     **错** ✗：我在 ① 里给方法**加了个委托体** ✓ 又留了原方法体 ✗ ⇒
     `walk.rs` **两个函数体** ⇒ `unexpected closing delimiter` ✗ ⇒ **自动回退** ✓ 零损伤 ✓。
