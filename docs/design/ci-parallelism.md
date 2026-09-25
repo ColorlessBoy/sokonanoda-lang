@@ -78,3 +78,23 @@
 | ℹ `ubuntu-latest → Ubuntu 26`（**2026-10-19** ✓） | — | — | **记档 ✓ + 到期前确认 runner 行为** ✓ |
 **⇒ 口径** ✓：**能安全修的在当轮修掉** ✓（两条 ✓）；**大跳的写明"为什么这轮不动"** ✓
 —— 这就是用户说的"**不要忽略**" ✓：**不是每条都必须改，但每条都必须有交代** ✓。
+
+## 更快识别问题（2026-09-25 用户要求 ✓，六条）
+**诊断（用户已核实 ✓）**：`needs` 图里除 `auto-tag` 外**所有 job 都只 `needs: [changes]`** ✗
+⇒ `lint-fmt` 8-20 秒能红 ✓，但 `test`(19-37min) / `gates-course`(35min 上限) **照样从头跑到尾** ✗
+⇒ run 的"结论"要等**最长的那个 job** ✓ —— 这就是"非要等 CI 完全结束"的机制原因 ✓。
+
+| # | 改法 | 状态 |
+|---|---|---|
+| ① | **快速失败链**：`test`/`gates-course`/`e2e`/`e2e-macos` ⇒ `needs: [changes, lint-fmt, lint-clippy, gates-fast]` | **✅ 已落** ✓（本轮 ✓） |
+| ② | **首个失败就掐掉整轮**（`gh run cancel $GITHUB_RUN_ID` / gatekeeper + `if: failure()`） | ⏳ 下一轮 |
+| ③ | **盯 job 级、不盯 run 级** | **✅ 已有** ✓（`scripts/ci-watch.sh` ✓ —— 按 job ✓ + 注解 ✓ + `--follow` 一红即退 ✓） |
+| ④ | **e2e 进快层** | **✅ 由 ① 达成** ✓（e2e 现在紧跟快层起跑 ✓，约 2 分钟后 ✓ 而不是排最后 ✓） |
+| ⑤ | **`cargo test` 分片**（`nextest --partition count:i/4` 或按 crate ✓） | ⏳ 下一轮（目标 19-37min ⇒ 8-12min ✓） |
+| ⑥ | **把 `ci-local.sh` 真接到 push 之前**（hook 或手动 ✓） | ⏳ 下一轮（否则等于白写 ✗） |
+
+**① 的判据（可验证 ✓）**：`yaml.safe_load` ✓ 13 job ✓；
+`test`/`gates-course`/`e2e`/`e2e-macos` 的 `needs` **逐条打印核对** ✓；
+快层自身**不等慢层** ✓（`lint-fmt`/`lint-clippy` 无 `needs` ✓、`gates-fast` 只等 `changes` ✓）；
+`auto-tag.needs` **未被削弱** ✓ ⇒ 快层红 ⇒ 慢 job skipped ⇒ `auto-tag` skipped ✓ = **不给坏提交打标签** ✓。
+**验收（用户给的）** ✓：识别"这轮有问题"的时间 **约 30 分钟 ⇒ 本地 ≤1 分钟 / CI 快层 ≤2-3 分钟** ✓。

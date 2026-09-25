@@ -125,7 +125,7 @@ jobs:
               - "playground.sokonanoda"
 
   test:
-    needs: changes
+    needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -239,7 +239,7 @@ jobs:
         run: cargo test -p sokonanoda-cli --test course --locked
   gates-course:
     name: gates-course（release 构建 + 课程门禁）
-    needs: changes
+    needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -474,7 +474,7 @@ jobs:
   # 上跑 macOS"只能靠第二个 job 的 github-only 条件；两条腿的步骤因此各写一份
   # （比再引一层 `workflow_call` 少一个文件、也少一处需要同步的版本号）。
   e2e:
-    needs: changes
+    needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true'
     name: e2e (${{ matrix.os }} · VS Code ${{ matrix.vscode }})
     runs-on: ${{ matrix.os }}
@@ -551,7 +551,7 @@ jobs:
   # 不敏感文件系统）只有 macOS 才暴露，值得守；但每个 PR 多 ~10 分钟不划算。
   # 条件只用 `github` 上下文（原因见上面 `e2e` 的注释）。
   e2e-macos:
-    needs: changes
+    needs: [changes, lint-fmt, lint-clippy, gates-fast]
     name: e2e (macos-latest · VS Code 1.138.0)
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true')
     runs-on: macos-latest
