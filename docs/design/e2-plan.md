@@ -368,10 +368,15 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     * **必须留在循环里的**（**不许**抽进去 ✗）：早期截断（`allow_cutoff` / `before` /
       `text_unchanged` / `acc_new`/`acc_old` 比较，:88-95）—— 它是**跨命令**的状态机 ✓；
       以及**趟级**的东西（`display` 记法表、`env.config.pp_options.proofs`，:63-71 ✓）。
-    * **重构判据（= T-D2）**：① 全语料两态 `--json` **逐字节相同**；② 课程计数逐项不变
-      （36 目标 · 328 checked · 99 open · 0 判负）；③ 五步全绿（kernel tests + front 单测 +
-      CLI e2e + 语料对拍 + 性能）。**做法**：动手前先跑一次存档 `--json` 输出（两态各一份），
-      改完再跑、`cmp` 逐字节比 ✓ —— 比"看代码觉得没变"强得多 ✓。
+    * **重构判据（= T-D2）—— 用现成工具，别自己造** ✓：
+      `scripts/kernel-diff.sh --fast <改前二进制> <改后二进制>`（`scripts/kernel-diff.sh:2-24`）
+      —— 它逐字节比 `grade --json` / `query check|goals|holes|project` **外加课程门禁计数**，
+      `exit 0 = 零差异`、`1 = 有差异（不许合入）`、`2 = 环境/用法`，还有 `--self-test`
+      自证"它真能发现差异" ✓。
+      **做法**：动手前把当前 0.67.0 的二进制**另存一份**（`cp target/debug/sokonanoda{,.before}`），
+      重构后重新构建、`kernel-diff.sh --fast before after` ⇒ 必须 exit 0 ✓；
+      再用 `--self-test` 抽验工具本身有效 ✓。（我先写的是"手工存档两份 --json"✗ ——
+      有工具就用工具 ✓。）
     * **风险**：这个循环同时管**判定**与**呈现**（`kernel_checks` 喂判卷、`decl_states` 喂 UI）
       ⇒ 抽取时最容易漏掉"哪几个累积量是判定用的、哪几个是显示用的" ✗；
       按"判定量必须逐字节一致、显示量也必须"来对拍最稳 ✓。
