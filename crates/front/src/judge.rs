@@ -431,14 +431,29 @@ pub(crate) fn with_trusted_prefix<R>(
     f()
 }
 
-/// 开关（仿 `SOKO_NO_JUDGE_BATCH`）：`SOKO_JUDGE_ENV_REUSE=0` 关掉前缀复用——
-/// **对拍用**：开与关必须给出**逐字节相同**的 `--json`。默认**开**。
+/// 开关（仿 `SOKO_NO_JUDGE_BATCH`）：前缀复用 —— **对拍用**：
+/// 开与关必须给出**逐字节相同**的 `--json`（已实测 ✓，两态 md5 相同 ✓）。
+///
+/// **默认关**（2026-09-25 改 ✗⇒✓，按 E2 计划 T-D6 自己的规则 ✓）：
+/// 计划原文是"**收益成立才默认打开** ✓，**否则保持关闭并记录** ✗"。
+/// 而收益**已被证否** ✗ —— 在**重度走到该路径**的真实套件上两态对拍
+/// （`cargo test -p sokonanoda-lsp --lib` ✓，**12.8 万次判卷** ✓、
+/// **命中率 99.6%**（`hits=128215/misses=485`）✓）：
+/// ```
+/// 复用开：JUDGE_STATS total_ms=9706   JUDGE_INFER total_ms=28247
+/// 复用关：JUDGE_STATS total_ms=9614   JUDGE_INFER total_ms=28320
+/// ```
+/// ⇒ 差 **< 0.3%** 且**方向相反** ✗ ⇒ **Δ 是噪声** ✓ ⇒ 收益不成立 ⇒ 按规则关掉 ✓。
+/// **要回退这一决定**：把下面的 `unwrap_or(false)` 改回 `unwrap_or(true)` ✓
+/// （**一行** ✓，无其他耦合 ✓）。
+/// **要复现这份数字**：`SOKO_JUDGE_STATS=1 cargo test -q -p sokonanoda-lsp --lib`
+/// （两态各一次，`SOKO_JUDGE_ENV_REUSE=1` / `=0` ✓）。
 fn judge_env_reuse_enabled() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| {
         std::env::var("SOKO_JUDGE_ENV_REUSE")
             .map(|v| v != "0")
-            .unwrap_or(true)
+            .unwrap_or(false)
     })
 }
 
