@@ -121,6 +121,14 @@ def scan(files: list[Path]) -> list[dict]:
             # 简单起见只跳签名行 ✓，并在基线刷新时把再导出体内的那 1 行一起处理 ✓。
             if re.match(r"\s*(pub(\(crate\))?\s+)?fn\s+(render_expr|print_back|tag_runs_with_notations)\b", code):
                 continue
+            # **已折的写法不算绕过** ✓（2026-09-25 T-U11 A/B 组 ✓）：当同一行还出现
+            # `fold_for_display(`（front 的公开折文本入口 ✓）或 `render_msg(`（elab 的消息入口 ✓）时，
+            # 这一行的 `render_expr` 是**折叠管线的一部分** ✓（`render` = `fold ∘ render_expr` ✓），
+            # 不是"绕过接口直接渲染" ✗。实测依据：LSP 的 4 处改成
+            # `fold_for_display(text, &render_expr(…))` ✓ 后基线**没有下降** ✗ ——
+            # 那说明守卫把它们仍当绕过 ✓，是守卫的判据该细化 ✓（而不是改回去 ✗）。
+            if "fold_for_display(" in code or "render_msg(" in code:
+                continue
             for call, pat in CALLS.items():
                 if pat.search(code):
                     hits.append(
