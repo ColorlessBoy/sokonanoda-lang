@@ -766,9 +766,19 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
       `def Weird (P : Prop) : Set.subset Nat A B := …` ✓ ⇒ 消息会打印
       "`Weird` 的结果类型是 `Set.subset Nat A B`" ✓ ⇒ 折后应是 `A ⊆ B` ✓
       ⇒ 关掉折叠 ⇒ 漏出 `Set.subset ` ✓ ⇒ **判红** ✓。
-    * **施工顺序（照 151 的方法 ✓）**：先读 `choose_notation_target` 的**候选从哪来** ✓
-      （`candidates` / `results` 怎么填 ✓）⇒ 造"**无候选能对上**"的最小画布 ✓
-      ⇒ 三步验证 ✓（看到消息 → 无点形式 → `SOKO_NO_NOTATION_FOLD=1` **判红** ✓）。
+    * **✅ round 153：施工第 ① 步读完 ⇒ 发现一个结构性前提** ✓（**必须满足，否则白做** ✗）
+      —— `choose_notation_target`（`elab.rs:1701-1703` ✓）开头就是：
+      ```rust
+      if rest.is_empty() { return Ok(first); }   // ← **只有 1 个候选 ⇒ 直接返回** ✗
+      ```
+      ⇒ **`ElabNotationNoCandidate` 只在候选 ≥ 2 个时才会触发** ✓
+      ⇒ round 152 写的"单候选对不上"配方**是错的** ✗（单候选**短路**了 ✓）。
+      **要满足的前提** ✓：让**同一个符号解析出 ≥ 2 个候选目标** ✓ ——
+      候选从 `candidates: &[&str]` 来 ✓（`notation_input` 那侧收集 ✓）；
+      最可能的做法（**下一步先验这一步** ✓）：**同名符号声明/可见两次、目标不同** ✓
+      （本文件声明一次 + 从 import 的模块再可见一次 ✓），或同名符号有两个 `resolve_known` 结果 ✓。
+      ⇒ **顺序调整为**：①' **先写出"≥2 候选且都对不上"** 的最小画布并确认能报出那条错误 ✓
+      ⇒ ②' 再让它"咬住"（候选结果类型含被记法化常量 ✓，配方见上 ✓）。
     * ⚠ **注意** ✓：`ElabNotationNoCandidate` 与 151 那条**不是同一个** ✓ ——
       151 折的是**源级 guard**（结构上不可能咬 ✗），这条折的是**内核类型**（能咬 ✓）。
   - **✅ round 151：夹具**终于命中**了那条消息 ✓（**代码推导**而非猜测 ✓）**
