@@ -23,7 +23,6 @@ crates/front/src/by.rs|render_expr|spec.ty = render_expr(ty);
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&restore_universe_levels(
-crates/front/src/compile/check/mod.rs|render_expr|crate::proof::render_expr(expr)
 crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
 crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
 crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),

@@ -136,6 +136,16 @@ def scan(files: list[Path]) -> list[dict]:
             window = code + window3
             if "fold_for_display(" in window or "render_msg(" in window:
                 continue
+            # **再导出的函数体也不算绕过** ✓（2026-09-25 round 170 补 ✓，round 111 的残留 ✗）：
+            # `check/mod.rs:1265-1266` 是
+            # `pub fn render_expr(expr: &Expr) -> String { crate::proof::render_expr(expr) }` ✓
+            # —— round 111 只跳了**签名行** ✓，**函数体那一行**仍被算作绕过 ✗
+            # ⇒ 那是一条**假条目**（它不是"绕过接口的实现"✗，是**再导出** ✓）。
+            # 用同一个窗口 ✓：本行是纯调用 ✓、且前三行里出现同名 `fn` 签名 ✓ ⇒ 跳过 ✓。
+            if re.match(r"^\s*(crate::proof::)?render_expr\([^)]*\)\s*$", code) and re.search(
+                r"fn\s+(render_expr|print_back|tag_runs_with_notations)\b", window3
+            ):
+                continue
             for call, pat in CALLS.items():
                 if pat.search(code):
                     hits.append(
