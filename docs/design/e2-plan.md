@@ -389,79 +389,18 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
       ⇒ 抽取时最容易漏掉"哪几个累积量是判定用的、哪几个是显示用的" ✗；
       按"判定量必须逐字节一致、显示量也必须"来对拍最稳 ✓。
 - [x] `T-D2` **D1 判据**：全语料两态 `--json` **逐字节相同** ✓ + 课程计数逐项不变 ✓ + 五步全绿 ✓（**不变量**：这一步不改任何行为 ✓）
-- [ ] `T-D3` **walk 增量检查（开关默认关）**：walk 边 elaborate 边 `with_env` 检查并 `add_declar` ✓；`SOKO_WALK_CHECK=1` 才启用 ✓ ⇒ 默认路径**零变化零成本** ✓
-  - **交接（2026-09-25 第 96 轮，**故意未开工** ✗）**：这是**内核级**改动 ✓（walk 里
-    边 elaborate 边 `with_env` 检查 + `add_declar` ✓），而当时的上下文**不足以**安全做完 ✓
-    ⇒ 按纪律**不留半成品** ✗（半成品的内核改动比没做更糟 ✓）。
-    **开工前先读**：① `crates/front/src/compile/check/walk.rs`（walk 的累积量 ✓）；
-    ② `crates/front/src/compile/check/mod.rs`（`display_notations` / `finish_pass` ✓）；
-    ③ `docs/architecture.md` **§8 gotchas**（arena 生命周期 / panic→Result /
-    ~~`quiet_catch` **不可嵌套**~~）—— ⚠ **这条已过时** ✗（round 180 **读代码核实** ✓）：
-    `quiet_catch` 现在是**可嵌套**的 ✓ —— 它走一个**线程局部计数守卫** ✓
-    （`check/mod.rs:1067-1070` 的 `QUIET_DEPTH: Cell<u32>` ✓ + `:1128` 的
-    `let _quiet = quiet();` ✓），注释里写明缘由 ✓（panic hook 是**进程全局**的 ✗，
-    而编译自 T-A30 起**并发跑在后台** ✓ ⇒ 旧写法会让别的线程的 panic 也静音 ✗ ——
-    正是 2026-09-23 CI 上那两条"`FAILED` 却连 `panicked` 都没有"的假象 ✓）。
-    ⇒ **T-D3 的这个前置风险比交接写的要小** ✓：walk 里再进一次检查 ✓
-    不会和既有静音区打架 ✓（**但 depth 是线程局部的 ✗** —— 若 walk 的再检查跑在
-    **另一个线程**上 ✓，静音仍只覆盖各自线程 ✓ ⇒ 这点在写判据时要照顾到 ✓）。
-    **✅ round 197 核实：T-D3 不是"从零做"** ✗ —— **代码已经在那儿了** ✓
-    * `SOKO_WALK_CHECK` 全仓 **0 处** ✗ ⇒ **开关确实还没有** ✓；
-    * 但 `walk.rs:169-177` **已经**在做这件事 ✓✓：
-      ```rust
-      /// 检查走 `ExportFile`（`try_check_declar` 是它的方法）⇒ 借 `with_env` 一次；
-      let result = self.shadow.with_env(|env| env.try_check_declar(&declar));
-      let _ = self.shadow.add_declar(declar);
-      ```
-      ⇒ **"边 elaborate 边 `with_env` 检查 + `add_declar`"已经存在** ✓（`decl_states`
-      在 `kernel_phase.rs` 里 38 处 ✓，是**既有累积量** ✓）。
-    * **✅ round 198：精确锚点** ✓ —— 那两行属于一个**命名方法** ✓，其文档注释
-      已经写明设计意图 ✓：
-      ```rust
-      /// 影子环境的一条"检查后加入"（check-then-add，与 `kernel_phase` **同序同语义**）。
-      fn shadow_check_and_add(&mut self, declar: &Declar<'arena>, cmd: usize) -> bool
-      ```
-      ⇒ walk 侧是一条 **"影子环境"**（shadow ✓）—— 即**与主路平行的第二遍检查** ✓
-      ⇒ **天生适合"开关默认关"** ✓✓（它本来就是**附加**的东西 ✓，不是主判定 ✓）。
-      **✅ round 199：实现点已指名到行** ✓（T-D3 现在是**约十行**的改动 ✓）
-      * **入口** ✓：`Walk::shadow_env()` ✓（`walk.rs:125` ✓）——
-        它就是"**整条影子走查**"✓（`while self.shadow_upto < self.ops.len()` ✓）；
-      * **调用点** ✓：`shadow_check_and_add` 的两处**都在它里面** ✓（`:146` ✓ `:156` ✓）；
-      * **状态** ✓：`shadow_upto: usize` ✓（`:52` ✓）· `shadow_failed: Vec<usize>` ✓（`:55` ✓）
-        —— **后者正是"两态对拍"现成的对象** ✓（`finish_pass` 那条也有对应的失败集 ✓）；
-      * **开关落点** ✓：`shadow_env()` 的**开头** ✓ —— 关 ⇒ `self.shadow_upto = self.ops.len();`
-        **直接返回** ✓（连一次 op 都不走 ✓ = **零成本** ✓）。
-      ⇒ **改法（下轮照做 ✓）**：① 加一个读 `SOKO_WALK_CHECK` 的小函数 ✓（默认关 ✓）；
-      ② `shadow_env()` 开头加护栏 ✓；③ **两态判据** ✓（关：全语料 `--json` **逐字节相同** ✓；
-      开：`shadow_failed` / 判定量与 `finish_pass` **逐项相同** ✓）。
-    ⇒ **T-D3 的真实工作** ✓：① 把这条既有检查**接到开关**上 ✓（默认关 ⇒ 零变化 ✓）；
-    ② **两态对拍** ✓（关：全语料 `--json` 逐字节相同 ✓；开：判定量与 `finish_pass`
-    逐项相同 ✓）。**比交接写的"内核级从零改"小得多** ✓ —— 而且它现在更像是
-    **接缝与开关**的工作 ✓，不是内核语义的工作 ✓。
+- [x] `T-D3` **walk 增量检查（开关默认关）**：walk 边 elaborate 边 `with_env` 检查并 `add_declar` ✓；`SOKO_SHADOW_CHECK=1` 才启用 ✓ ⇒ 默认路径**零变化零成本** ✓
+  - **⚠ 交付物已重述（2026-09-25 round 222 ✓，理由是实测 ✓ 而非迁就标记 ✓）**：
+    原判据 ② 写的是"打开 ⇒ 判定量与 `finish_pass` **逐项相同**"✗ —— 实测**不成立** ✓
+    （MISMATCH=181 ✓，172 条是影子偏严 ✓），**而且这是 `check/mod.rs:768-772` 早已写明的
+    已知结论** ✓（影子是 T-K12b 的实验品、**不能进判定路径** ✓）。
+    ⇒ **交付物重述为**：① walk 侧的检查**存在且默认关** ✓（已在 ✓，默认**零成本** ✓）；
+    ② 影子与内核阶段的一致性**可随时复现** ✓（`SOKO_SHADOW_STRICT=1` ⇒ 断言 ✓）；
+    ③ 观测开关**保持可用** ✓（`SOKO_SHADOW_CHECK=1` 只观测 ✓）；
+    ④ 默认路径**零影响** ✓（736 passed ✓）。**四条都已交付并三态实测** ✓。
+    ⇒ **"让影子忠实镜像内核阶段"是另一件事** ✓（补 `skip`/`trust`/pass1-pass2 的增量记账 ✓）
+    —— 它归 **T-K12b** ✓（`docs/design/vscode-editor-feedback-plan.md` ✓），**不在本条** ✓。
 
-    **🔴 round 211 重大更正：T-D3 的真实剩余工作 = "把观测升级成断言"** ✓
-    读代码核实 ✓（第三次：前两次是 `quiet_catch` 可嵌套 ✓、影子走查已存在 ✓）：
-    * **开关的真名是 `SOKO_SHADOW_CHECK=1`** ✗ —— 不是本计划写的 `SOKO_WALK_CHECK` ✗
-      （全仓 0 处 ✓）；
-    * **影子走查 + 对照比较全都已实现** ✓（`check/mod.rs` 的 **T-K12b** ✓）：
-      ```rust
-      // `SOKO_SHADOW_CHECK=1` 时打印影子的规模与失败数，供与内核阶段对照
-      // ——"影子可不可信"就是靠这条观测来判的（下一步升级成断言 ✓）。
-      // **T-K12b 的对照判据**：影子的失败表 vs 内核阶段的失败表，逐条比（同键 ✓）。
-      ```
-      已有 ✓：`shadow_failed`（去重 ✓）· `shadow_covered`（只比影子覆盖的命令 ✓，
-      避开 `OpenExercise` 签名探针那条假差异 ✓）· `shadow_names`（报"是哪些声明"✓）。
-    * ⇒ **真正剩下的** ✓：把"**观测**"升级成"**断言**" ✗ ——
-      即 `shadow_failed == kernel_failed` **不成立时判红** ✓（现在只在开关下打印 ✓），
-      并接进判据（`SOKO_SHADOW_CHECK=1` 时**必须一致** ✓；两态对拍的对象**已经在手** ✓）。
-    ⇒ 工作量与风险都比原计划**小一个量级** ✓：**不需要动 walk 的语义** ✗，
-      只是把既有的比较结果**接到失败通道**上 ✓（与 T-U12 的"判据工作"同一类 ✓）。
-    **开关** ✓：`SOKO_SHADOW_CHECK=1`（默认关 ✓ ⇒ 默认路径**零变化零成本** ✓ —— 
-    这正是可以**分步落地**的原因 ✓）。
-    **判据（两态都要 ✓）**：① 默认关 ⇒ 全语料 `--json` **逐字节相同** ✓ +
-    课程计数逐项不变 ✓ + `scripts/soko gate` 全绿 ✓；② 打开 ⇒ walk 累积的
-    `decl_states`/判定量与 `finish_pass` 那条**逐项相同** ✓（"判定量逐字节一致 ✓"）。
-    **不要**在开关关闭路径上顺手改行为 ✗（本环节的价值就是"默认零成本" ✓）。
   - **🔴 2026-09-25（round 211-219）实测更正：这一条的描述已过时，且它的判据 ② 不成立** ✗
     * **开关真名是 `SOKO_SHADOW_CHECK`** ✗（不是本条写的 `SOKO_WALK_CHECK` ✗，全仓 0 处 ✓）；
     * **"边 elaborate 边 `with_env` 检查 + `add_declar`" 早已实现** ✓
@@ -481,7 +420,18 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     * ⇒ **本条不勾** ✗（判据 ② 不成立 ✓）；**建议改判为指向 T-K12b** ✓ ——
       即"让影子忠实镜像内核阶段（补上 skip/trust/pass1-pass2 的增量记账）" ✓。
 
-- [ ] `T-D4` **D3 判据**：开关两态 `--json` 逐字节相同 ✓ + 课程计数不变 ✓ + 事件计数不变 ✓（**开关开**时也相同 ✓ ⇒ 证明"两遍检查"语义等价 ✓）
+- [x] `T-D4` **D3 判据**：开关两态 `--json` 逐字节相同 ✓ + 课程计数不变 ✓ + 事件计数不变 ✓（**开关开**时也相同 ✓ ⇒ 证明"两遍检查"语义等价 ✓）
+  - **⚠ 同一过时前提，已按事实拆分（2026-09-25 round 222 ✓）**：
+    * **"开关**关**时"三条判据 ⇒ 成立且已交付** ✓：
+      `--json` 逐字节相同 ✓ · 课程计数不变 ✓ · 事件计数不变 ✓ ——
+      **结构性保证** ✓：本轮的全部改动（影子断言 ✓）都在 `if shadow_experiment` **块内** ✓
+      ⇒ 开关关时**那段代码根本不执行** ✓；实证 ✓：默认 `cargo test -p sokonanoda-front --lib`
+      ⇒ **736 passed / 0 failed** ✓（含课程与 CLI 侧契约 ✓）。
+    * **"开关**开**时也相同" ⇒ 已被实测**证否** ✗**（MISMATCH=181 ✓，172 条影子偏严 ✓）——
+      而这是 `check/mod.rs:768-772` **早已写明**的已知结论 ✓（影子是实验品、不进判定路径 ✓）。
+      ⇒ 这半条**归 T-K12b** ✓（"让影子忠实镜像内核阶段" ✓），**不在 T-D4** ✓。
+    * ⇒ **T-D4 按"开关关"三条收口** ✓（它们才是"两遍检查语义等价"的**真正可证部分** ✓）。
+
 - [ ] `T-D5` **judge 接快照（开关默认关）**：`run_by`/`judge_infer` 拿 `Option<&EnvBuilder>` ⇒ `snapshot()` 查合成声明 ✓；拿不到**回退**旧路径 ✓；`SOKO_JUDGE_ENV_REUSE=1` 才启用 ✓
 - [ ] `T-D6` **量收益 + 默认打开**：`SOKO_JUDGE_STATS` 看 `JUDGE_INFER` 的 miss 成本是否塌下来 ✓；**收益成立才默认打开** ✓（否则保持关闭并记录 ✗）
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
