@@ -382,7 +382,7 @@ jobs:
     # 快层红时它们**根本不会起跑** ✓ ⇒ 那部分②已经覆盖 ✓；② 真正补的是
     # "**慢 job 自己早早失败**"（例如 `test (sokonanoda-cli)` 第 3 分钟红 ✓，
     # 其余 job 还在跑 ✓）⇒ 这里把整轮掐掉 ✓，不再空等 ✓。
-    needs: [changes, lint-fmt, lint-clippy, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos]
+    needs: [changes, lint-fmt, lint-clippy, gates-fast, test, gates-course, ledger, contract, editor, e2e, e2e-macos, e2e-ledger]
     if: ${{ always() && contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     permissions:
