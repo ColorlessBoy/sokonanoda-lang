@@ -37,7 +37,7 @@ jobs:
   # workflow_dispatch 恰是这条规则的例外，GITHUB_TOKEN 触发它有效。
   # 幂等：tag 已存在就跳过（版本号没变时每个 push 都不会重复发布）。
   auto-tag:
-    needs: [lint, test, e2e, e2e-macos]
+    needs: [lint, test, gates, editor, e2e, e2e-macos]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -72,24 +72,22 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    # **必须有上限**（2026-09-25 修 ✗⇒✓）：run `36135584403` 的 `test` 在
-    # ~90 分钟后仍 `in_progress` ✗ —— 主步骤全完、零失败标记、只差 `Post *` 收尾，
-    # 却**永远不给结论** ⇒ 整个 workflow 不绿 ⇒ `auto-tag` 结构性地触发不了 ✗
-    #（0.68.0 因此走了 `docs/RELEASE.md` 应急路径 ✓）。
-    # 没有上限时，"卡住"就等于"挂到 GitHub 的 6 小时上限才判失败" ✗ ——
-    # 加了这个至少**结论可预期** ✓。本地同套测试只要几分钟 ⇒ 40 分钟极宽 ✓。
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
-
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
-
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Workspace tests
         # tee 保留完整输出；--no-fail-fast 让所有失败一次暴露。
         # 失败时把完整日志作为 artifact 上传（公开仓库也能从 run 页下载），
@@ -129,7 +127,6 @@ jobs:
           name: cargo-test-log
           path: /tmp/cargo-test.log
           include-hidden-files: false
-
       - name: Protocol conformance (--json events)
         run: cargo test -p sokonanoda-cli --test protocol --locked
 
@@ -145,7 +142,6 @@ jobs:
           version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
           out="perf-report-v${version}-$(git rev-parse --short HEAD).txt"
           scripts/perf-report.sh "$out"
-
       - name: Upload perf report
         uses: actions/upload-artifact@v7
         with:
@@ -153,16 +149,26 @@ jobs:
           path: perf-report-*.txt
           include-hidden-files: false
 
+  gates:
+    runs-on: ubuntu-latest
+    # **从原 `test` 拆出**（2026-09-25 用户要求 ✓）：10 步 ✓
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Lesson corpus is valid
         run: |
           for f in examples/*.sokonanoda; do
             echo "checking $f"
             cargo run -q -p sokonanoda-cli --bin sokonanoda -- "$f" >/dev/null
           done
-
       - name: Course layer is guarded (canvases, solutions, course.json)
         run: cargo test -p sokonanoda-cli --test course --locked
-
       - name: Setup Node for the course gate
         # 课程门禁的判据在 courses/set-theory/tools/check.py（python3）；判卷通道是
         # `grade`（node 启动器解析二进制，或直接用下面给的当轮二进制）。
@@ -198,7 +204,6 @@ jobs:
         # release profile 的依赖在上面的 perf report 步（`--release ... perf_project`）
         # 已经编好，这一步只补 `--bin sokonanoda` 这一个目标。
         run: cargo build --release -p sokonanoda-cli --locked
-
       - name: Course gate (set-theory, G1–G5)
         timeout-minutes: 20
         env:
@@ -210,7 +215,6 @@ jobs:
             --annotations \
             --report /tmp/course-gate.json \
             --summary "$GITHUB_STEP_SUMMARY"
-
       - name: Upload course gate report (always)
         # 判负时也要拿到全量报告（`--json` 的落盘版）：artifact + step summary 是
         # 公开仓库上无需 token 的自助诊断通道（同 cargo-test-log 的先例）。
@@ -221,7 +225,6 @@ jobs:
           path: /tmp/course-gate.json
           include-hidden-files: false
           if-no-files-found: warn
-
       - name: Gap ledger is consistent (docs/gaps)
         # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
         # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。只有它能让 `fixed_in` 不随语言
@@ -242,7 +245,6 @@ jobs:
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" check
-
       - name: Version single-source (manifests)
         # 每个声明了 `requires` 的 `sokonanoda.toml` 必须等于仓库版本（T-A08）。
         # 用户原话："开发没有默认提升这个 project 的 requires，这是根因" ——
@@ -250,7 +252,6 @@ jobs:
         # 就是它发生的方式。bump 走 `python3 scripts/bump.py <x.y.z>`。
         shell: bash
         run: python3 "$GITHUB_WORKSPACE/scripts/bump.py" --check
-
       - name: Notation rule (courses, fast)
         # 课程记法规则（2026-09-21 用户拍板）：lib + 正文 + 入门课 + playground
         # 一律 Lean 4 记法（`Eq.{1} T a b` → `a = b`、`Set.mem α a A` → `a ∈ A`、
@@ -258,23 +259,32 @@ jobs:
         # 不需要判卷通道；`scripts/soko gate` 里的同一条就是它。
         shell: bash
         run: python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py"
-
       - name: Machine events are well-formed JSON
         run: |
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \
             | cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json \
             | python3 -c 'import json,sys; [json.loads(l) for l in sys.stdin]'
 
+  editor:
+    runs-on: ubuntu-latest
+    # **从原 `test` 拆出**（2026-09-25 用户要求 ✓）：6 步 ✓
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
       - name: Build server + CLI for editor integration tests
         # editor/vscode 的集成测试不自己构建：它只发现 target/ 下的二进制
         # （extension.js 的自动发现逻辑），所以必须先构建两者。
         run: cargo build -p sokonanoda-lsp -p sokonanoda-cli --locked
-
       - name: Stage bundled binaries (VSIX layout)
         # 按打包布局 stage 到 bin/<target>/：bundled 解析优先于 target/ 发现，
         # 因此集成测试验证的就是用户安装平台包后的那条路径（LSP + CLI）。
         run: node editor/vscode/scripts/stage-lsp.js --profile debug
-
       - name: Setup Node for editor integration tests
         uses: actions/setup-node@v5
         with:
@@ -282,17 +292,14 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: editor/vscode/package-lock.json
-
       - name: Install editor test dependencies
         working-directory: editor/vscode
         run: npm ci --no-fund --no-audit
-
       - name: Download + resolution logic unit tests
         # 纯 Node.js 单元测试：server.js 的 bundled 解析/版本锁定 URL/平台映射，
         # 以及 followRedirects 与 tar 解压逻辑；不依赖 Rust / VS Code，秒级完成。
         working-directory: editor/vscode
         run: npm run test:unit
-
       - name: Package host VSIX (bundled payload smoke)
         # 每次 CI 都走一遍真实打包：断言 bin/<target>/ 在包里且可执行位正确
         # （exec 位只能在 Linux/macOS 打包时保留）。发布 dry-run 之外的第一道闸。
@@ -316,7 +323,6 @@ jobs:
       # 真 VS Code 集成测试已移到独立的 `e2e` job（多 OS/多版本矩阵 + 留档），
       # 见文件末尾：它跑的是 `scripts/vscode-e2e.sh`（构建 release + stage +
       # 真宿主 + 记账），并用 `needs` 卡住 auto-tag。
-
   # 真 VS Code 集成测试（e2e · Linux 腿）：与本地例行同一条命令
   # （`scripts/vscode-e2e.sh` = 构建 release → stage → 真宿主 → 记
   # `docs/e2e/`），覆盖**当前稳定版**与**声明的最低 VS Code 版本**。
