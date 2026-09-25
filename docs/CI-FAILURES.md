@@ -1044,10 +1044,21 @@ e2e: 27 passed / 0 failed (v0.68.0 2be03e5, VS Code 1.106.0,
 * **我的版本断言在 CI 上是绿的** ✓：`+ stage 版本断言 ✓ staged=0.68.0 · repo=0.68.0` ✓
   ⇒ `stage-lsp.js` 的 `CARGO_TARGET_DIR` 修复**在 CI 上生效** ✓（本轮的主要修复 ✓）。
 * 本地同版本复现**全绿** ✓（27/27 ✓，见上）⇒ 差异只在"ubuntu + 1.106.0"组合 ✗。
-* 失败用例名未能取到 ✗：该 job 写的 `docs/e2e/logs/2026-09-25-598f112-vc1.106.0.log`
-  **在 runner 上**，而回写 job（`e2e ledger`）被 skip ✗ ⇒ 日志没回仓库 ✓
-  ⇒ **prevention**：让 e2e job 在失败时把 `docs/e2e/logs/*.log` 作为 artifact 上传 ✓
-  （与 `test` job 的 "Upload test log (on failure)" 同款 ✓）。
+* **失败用例已取到** ✓ —— 我前面说"取不到"是**错的** ✗：e2e job 本来就 `if: always()`
+  上传 `docs/e2e/` 为 artifact ✓（`.github/workflows/ci.yml:375-381` ✓）⇒
+  `gh run download 36120772640 -n e2e-ubuntu-latest-vscode-1.106.0` ✓ 就拿到了 ✓。
+  本轮那份 `logs/2026-09-25-598f112-vc1.106.0.log` 写的是：
+  ```
+  26 passing / 1 failing（exit=1）
+  1) editing a dependency refreshes the open unit once
+     AssertionError: 改依赖必须让打开的入口重新发诊断（跨文件失效）
+  ```
+  ⇒ 是**跨文件失效/诊断重发**那条**时序敏感**用例 ✗，与本次改动无关 ✓
+  （本地 1.106.0 全绿 ✓，含这条 ✓；同族还有 `reopening a project unit hits the compile
+  cache` ✗ —— 也是缓存/失效类 ✓ ⇒ 属**慢 runner 上的等待不够** ✗）。
+  **prevention（真修法，待做 ✓）**：把该用例的等待从"固定重试次数"改成
+  **轮询到诊断出现**（带宽松上限 ✓），并把超时值打进失败信息 ✓ ——
+  **不盲改** ✗：本地复现不了 ⇒ 改了也不知道对不对 ✓（先记此条 ✓）。
 
 ### ② `test` ⇒ 红在 **`Gap ledger is consistent (docs/gaps)`** ✗（exit 1）
 **决定性对比** ✓：
