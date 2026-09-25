@@ -439,7 +439,7 @@ pub(crate) fn with_trusted_prefix<R>(
 /// 而收益**已被证否** ✗ —— 在**重度走到该路径**的真实套件上两态对拍
 /// （`cargo test -p sokonanoda-lsp --lib` ✓，**12.8 万次判卷** ✓、
 /// **命中率 99.6%**（`hits=128215/misses=485`）✓）：
-/// ```
+/// ```text
 /// 复用开：JUDGE_STATS total_ms=9706   JUDGE_INFER total_ms=28247
 /// 复用关：JUDGE_STATS total_ms=9614   JUDGE_INFER total_ms=28320
 /// ```
