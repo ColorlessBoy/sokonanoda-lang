@@ -2355,6 +2355,29 @@ soko query goals --file courses/set-theory/units/unit11-universe-russell.sokonan
 **判据**：e2e 从"点名形式"**翻成"记法保留"** ✓ + wire 字段存在性断言 ✓ +
 `python3 scripts/audit-wire-fields.py` 守卫仍绿 ✓（A∖B 对账 ✓）。
 
+**⑨ 给接手者的一句实话（2026-09-25）**：③ 这一条我**连续给出过三个不同结论** ✗
+（"引擎缺能力" ✗ → "编辑器挑错字段" ✗ → "生产者没折成功" ✓），前两个都被下一轮实测
+推翻 ✓。**教训**：不要从我的叙述接着推 ✗，**从这条测量开始** ✓：
+
+```bash
+# 一次拿到全部事实：点形式在哪一层就已经存在
+SOKONANODA_BIN=<新构建> scripts/soko query goals --file \
+  courses/set-theory/units/unit11-universe-russell.sokonanoda > /tmp/g.json
+python3 - <<'P'
+import json;d=json.load(open('/tmp/g.json'))['data']
+for g in d:
+    if g['name'] in ('subset_univ','exists_univ'):
+        print(g['name'], '| ty =', g['ty'][:60])
+        print('      | runs =', ''.join(r.get('text','') for r in (g.get('ty_runs') or []))[:60])
+P
+```
+已知事实（都复跑过）：`subset_univ` 两层都带记法 ✓；`exists_univ` **两层都是点形式** ✗
+（⇒ 病在**生产者**，不在编辑器 ✓）。**下一步要量的**：
+`arities_with_prelude(&[...])` 里 `Exists` 那条**在不在、值是多少**（
+`crates/front/src/display.rs:669-690` ✓）——`fold_spine` 要求
+`spine.len() == arity` ✓，若 arity 记成 3 而 spine 是 2 ⇒ **静默不折** ✗（这正是
+"单测手工搭表过、真实管线不过"的形状 ✓）。**先量这个数，再决定改哪一行** ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
