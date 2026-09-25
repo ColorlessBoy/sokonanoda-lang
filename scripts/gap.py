@@ -33,7 +33,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 # 单个复现件的上限：正常都在几秒内（最慢的是起 LSP 的那几条）。
-REPRO_TIMEOUT_S = 120
+# **慢机器预算**（2026-09-25 ✓ 用户报告"最近两轮 action 都报错"后定位 ✓）：
+# 实测差异 = **机器速度** ✗：同一条复现件**本地 <120s 绿** ✓，而 CI 上 >120s 超时 ✗
+# （旁证：CI 的 `test` job 跑 19 分 25 秒 ✓，而本地同一条 `cargo test --workspace` 只要 161 秒 ✓
+# ⇒ CI 约慢 **7 倍** ✓）。⇒ 旧预算 120s 是**按快机器定的** ✗ ⇒ CI 必红 ✓。
+# 调大到 300s ✓：**真挂住仍会超时判红** ✓（不掩盖真回归 ✓），只是不再因"机器慢"而红 ✓。
+REPRO_TIMEOUT_S = 300
 LEDGER = ROOT / "docs" / "gaps" / "ledger.jsonl"
 SEVERITY_ORDER = {"blocker": 0, "painful": 1, "nice": 2}
 OPEN_STATUSES = {"open", "workaround", "wo-filed"}
@@ -121,7 +126,15 @@ def run_repro(entry: dict) -> tuple[str, int, str]:
                 out, err = proc.communicate(timeout=10)
             except Exception:
                 out, err = "", ""
-            return ("script", 2, f"复现件超时（>{REPRO_TIMEOUT_S}s）——按环境/形状异常判红")
+            # **失败通道要带原文** ✓（仓库自己的教训 ✓）：说清"两种读法" ✓，
+            # 免得下次只看到一句"超时"又要重新推导 ✓。
+            return (
+                "script",
+                2,
+                f"复现件超时（>{REPRO_TIMEOUT_S}s）——两种读法：① 这台机器太慢"
+                f"（判据：同一条命令在快机器上是绿的 ✓）；② 复现件真的挂住了"
+                f"（= 行为已坏 ✗）。先在本机跑 `python3 scripts/ci-local.sh` 区分 ✓",
+            )
         proc_returncode = proc.returncode
 
         class _Done:
