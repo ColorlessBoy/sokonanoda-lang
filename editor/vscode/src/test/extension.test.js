@@ -985,13 +985,21 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
 
   test("goal text uses the file's notation", async () => {
     // 用例 #6（G-26）：课程写法 `:= by` + `sorry`，**光标落在 tactic 内**时
-    // 走「根状态」生产者（`DeclState.ty_text` = 内核 pp）⇒ 点名形式。
+    // 走「根状态」生产者；目标文本必须是**源文件的记法**（断言见下面 `⊆`/`∈`）。
     //
     // ⚠ 光标位置是这条用例的关键（实测逐列量过 `units/u01` 的 `sorry` 行）：
-    //   在 `sorry` **内**（半开区间 start<=cursor<end）⇒ 根状态 ⇒ 点名；
-    //   在 `sorry` **之后** ⇒ 另一支（无 by 的声明级目标）⇒ **记法保留**。
+    //   在 `sorry` **内**（半开区间 start<=cursor<end）⇒ 根状态；
+    //   在 `sorry` **之后** ⇒ 另一支（无 by 的声明级目标）。
     //   用 `revealRange` 会把光标停在 range **末尾**（= 之后），于是假绿过一次——
     //   所以这里显式设 selection。
+    //
+    // 📌 **这条用例覆盖不到什么**（2026-09-25 查明）：夹具 `u01` 的类型里**没有 lambda**
+    // ⇒ 它**碰不到**「内建 `=` 抢走 `fun … =>` 的 `=` ⇒ 记法折叠整条 bail」那个 bug ✗
+    // （那个 bug 让**凡类型含 `fun … =>` 的声明**都退回点形式 ✓，用户在 Infoview 里
+    //   看到的就是它 ✓）。修在 `crates/front/src/token.rs` 的声明符号匹配处 ✓，
+    // front 层判据是 `display.rs::folds_with_the_real_pipeline_table_shape` ✓。
+    // **覆盖缺口**：夹具里没有 `∃`/`Exists` ⇒ 要真正在 e2e 层钉住它，得给夹具加一条
+    // 「类型含 lambda 的 `∃` 声明」+ 一条 `∃` 断言 ✓（登记在 REQUIREMENTS §9 ✓）。
     const entry = fixtureEntry();
     await showDoc(entry);
     const editor = vscode.window.activeTextEditor;

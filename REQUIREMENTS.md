@@ -2632,6 +2632,21 @@ match c { … }   // ← `=>` / `->` / `:=` 这些**基础多字符算符**在�
 尤其 `semantic.rs` 那条 **R-2 判据** ✓（这次动的正是它上游的词法 ✓）、
 `display.rs` 的 27 条线 C 判据 ✓、以及 `folds_with_the_real_pipeline_table_shape` 转断言 ✓。
 
+**㉓ ③ 的覆盖缺口（2026-09-25，第 56 轮）—— 代码已修，e2e 层还差一条** ✓
+* **已修** ✓：`crates/front/src/token.rs` 的声明符号匹配处（基础多字符算符 `=>`/`->`
+  更长时让路 ✓）；两层判据已绿（front **729 passed** ✓、真实管线两条声明都带 `∃` ✓）。
+* ⚠ **e2e 层覆盖不到它** ✗：`editor/vscode/src/test/extension.test.js:985` 那条
+  （`goal text uses the file's notation`）虽然**断言记法**（`⊆`/`∈` ✓），
+  但夹具 `u01` 的类型里**没有 lambda** ⇒ **碰不到**这个 bug ✗
+  （它修前也一直是绿的 ✗ —— 又一个"假绿" ✓）。夹具里也**没有** `∃`/`Exists` ✗。
+* **要补的 e2e 用例（下一轮）**：给 `editor/vscode/src/test/fixtures/workspace/`
+  加一条**类型含 lambda 的 `∃` 声明**（照课程库的形状：`inductive Exists` +
+  `ctor` + `end` + `binder_notation "∃" => Exists` ✓，因 `inductive` 块里只允许
+  `ctor`/`rec`/`iota`/`end` ✓），再断 `goal.includes("∃")` ✓ ——
+  **这才是"用户看得见"那一层的判据** ✓（三层纪律 ✓）。
+  注：该用例的注释里"根状态 ⇒ 点名形式"这句在修前就已是**过时**的 ✗（`u01` 无 lambda ✓），
+  本轮已一并更正 ✓。
+
 **要求**：① ② 按上面的通用修法做；③④ **合并成"记法第三刀"排进计划**（引擎修，不是加标记 ✗）；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
 看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
 不只单测 ✓）。
