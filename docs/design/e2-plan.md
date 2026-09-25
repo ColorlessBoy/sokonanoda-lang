@@ -733,6 +733,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     `crates/lsp/tests/perf_course.rs` 里照那条路写用例 ✓ ⇒ **自验判据仍是
     `SOKO_JUDGE_STATS=1` 必须打出 `JUDGE_INFER calls>0`** ✓✓。
 
+  - **✅ round 248：真实调用点的**配方**拿到了 ✓（但文件位置要再找 ✓）**
+    **`crates/lsp/src/actions.rs:96`** ✓ 的真实构造 ✓：
+    ```rust
+    let options = CompileOptions { prelude: mode };
+    let src = &text[..d.span.end.offset.min(text.len())];   // **给到该声明结束为止** ✓
+    // 分支：d.status != Checked（即 Open / Failed ⇒ **有洞** ✓）
+    suggest::suggest_with(&judge_prefix(d.span.start.offset), src, None, &options, d)
+    ```
+    ⇒ 即：**要触发那条路，只需对一个 Open 声明调 `suggest_with`** ✓ ——
+    `d: &DeclState` 从**文档的声明状态**来 ✓（LSP 侧本来就有 ✓）。
+    **⚠ 但 `crates/lsp/tests/perf_course.rs` **不存在** ✗** ——
+    那是 `scripts/perf-ledger.sh` 的 **echo 文案**里写的名字 ✓（"…incl. project + 真实课程闭包
+    perf_course.rs" ✓），实际文件名**待查** ✓（`ls crates/lsp/tests/` ✓）。
+    **⇒ 下一步（一条命令 ✓）**：`ls crates/lsp/tests/` ✓ + 看哪个文件里有 `PERFJSON` ✓
+    ⇒ 在**那个**文件里照 `actions.rs:96` 的配方写用例 ✓（**Open 声明 + `suggest_with`** ✓）
+    ⇒ 自验判据仍是 `SOKO_JUDGE_STATS=1` 必须打出 `JUDGE_INFER calls>0` ✓✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
