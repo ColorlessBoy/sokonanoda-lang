@@ -73,6 +73,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # **按 crate 的 4 路矩阵**（2026-09-25 用户要求 ✓："能尽可能细吗？现在 github action
+    # 过于阻碍开发进度了" ✓）：一条 `cargo test --workspace` 在 CI 上 ~19 分钟 ✗ ⇒ 拆四路并排 ✓
+    # ⇒ 单条 ~5 分钟 ✓、**失败直接指名哪个 crate** ✓（改 front 不必等 cli 的测试 ✓）。
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: [sokonanoda, sokonanoda-front, sokonanoda-cli, sokonanoda-lsp]
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
@@ -90,7 +97,7 @@ jobs:
         timeout-minutes: 35
         run: |
           set -o pipefail
-          cargo test --workspace --locked --no-fail-fast 2>&1 | tee /tmp/cargo-test.log
+          cargo test -p ${{ matrix.pkg }} --locked --no-fail-fast 2>&1 | tee /tmp/cargo-test.log
       - name: Per-suite timing (always)
         # **分套回显**（2026-09-25 补 ✓）：一条 `cargo test --workspace` 是一大块 ✗，
         # 慢在哪一套看不出来 ✓ ⇒ 把每套的 `test result:` 行列出来 ✓（含耗时 ✓）。
