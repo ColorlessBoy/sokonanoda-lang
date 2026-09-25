@@ -26,6 +26,12 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 389：不变** ✓（19 绿 · 4 未完 · 2 红 ✓）
+  ```
+  ⇒ 那 4 个是 `gates-course`（**release 构建** ✓）+ 3 条 `test` 腿 ✓ ⇒ **分钟级** ✓
+  ⇒ **判据不变** ✓：等 ⇒ 读日志 ⇒ 对号入座 ✓ · **不推** ✗。
+  ```
+
 * **⏳ round 388：只剩 4 个** ✓（**已绿 18 → 19** ✓ · 2 红 ✗）
   ```
   未完 4 ✓：`gates-course` ✓ + `test (sokonanoda-cli, tests)` ✓ +
