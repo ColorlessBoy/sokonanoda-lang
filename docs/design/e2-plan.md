@@ -761,6 +761,28 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ **必须打出 `JUDGE_INFER calls>0`** ✓✓（否则用例又白写 ✓）；
     然后两态各跑 ✓ ⇒ **Δ 即 D-1 的真实收益** ✓ ⇒ 数字入 `docs/perf/ledger.jsonl` ✓。
 
+  - **🔴 round 248 更正：上一格写错了位置 ✗ ⇒ 真实位置如下 ✓**
+    （我上一格写"`crates/lsp/tests/lsp_cache.rs` 的 `mod perf_course`" ✗ —— **那是猜的** ✗，
+    因为 `grep mod perf_course crates/lsp/tests/lsp_cache.rs` **没有输出** ✗，
+    而我仍然把它写成了"落点确定" ✗。**查实后** ✓：）
+    ```
+    crates/lsp/src/tests/mod.rs:26        mod perf_course;
+    crates/lsp/src/tests/perf_course.rs   ← **真位置** ✓（在 crate 的 src/ 里 ✓，
+                                            不是 crates/lsp/tests/ ✗）
+    ```
+    **它已有 5 条 `async` 用例** ✓，**全都驱动真实 LSP 服务器** ✓：
+    `perf_course_did_open_is_recorded` ✓ · `_by_block_is_recorded` ✓ ·
+    `_keystroke_is_recorded` ✓ · `_save_same_text_is_recorded` ✓ ·
+    `_watched_unchanged_file_is_recorded` ✓（`SOKO_PERF_COURSE_SLOW=1` 才跑慢的那几条 ✓）。
+    **⇒ 下一步（这次是有依据的 ✓）**：在这 5 条旁边加一条 ✓ ——
+    **对洞发一个 codeAction 请求** ✓（LSP 的 code-action 处理器就是 `actions.rs` ✓
+    ⇒ 会走到 `suggest_with` ✓ ⇒ `judge_terms_with` ✓ ⇒ 前缀复用那条路 ✓✓）；
+    照既有用例的写法 ✓（它们已经建好 LSP 服务器与课程画布 ✓）；
+    **自验判据** ✓：`SOKO_JUDGE_STATS=1 cargo test -p sokonanoda-lsp --lib perf_course -- --nocapture`
+    ⇒ **必须打出 `JUDGE_INFER calls>0`** ✓✓。
+    ⚠ **教训（第八次同形 ✗）**：**没查到就写"确定"，比不写更糟** ✗ ——
+    上一格如果被下一段直接照做 ✓，会在一个**不存在的文件**上动手 ✗。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
