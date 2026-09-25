@@ -26,6 +26,27 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯 round 366：本地静默 0 的真因 = **`CARGO_TARGET_DIR`** ✗（而 CI 其实是对的 ✓）**
+  ```
+  ledger job ✓：timeout **30** ✓（不是 5 ✗）· shard [1,2,3] ✓ · fail-fast: false ✓
+  steps ✓：… · **setup-node@v5（node 20）** ✓ · **Build CLI for the gap repros** ✓
+         （`cargo build --release -p sokonanoda-cli --locked` ✓）· Gap ledger is consistent ✓
+  注释原文 ✓（都是踩过的坑 ✓）：
+    "**必须有 Node**"（round 162 ✓）—— 否则复现件 `exit 2`（"需要 node"）⇒ **三片全红** ✗
+    "**必须构建本仓库的 CLI**"（round 179 ✓）—— 否则 `scripts/soko` 解析到**已发布版** ✗
+      ⇒ 复现件量的是**旧版** ✗ ⇒ **本地永远绿、CI 永远红** ✓
+  ⇒ ⇒ **CI 已经构建 CLI** ✓ ⇒ **`G-37` 在 CI 上本应跑通** ✓
+    ⇒ **本地静默 0 的真因** ✗✓：**我设了 `CARGO_TARGET_DIR=/tmp/soko-target`** ✗
+      ⇒ `scripts/soko` **找不到"版本匹配的仓库构建"** ✗ ⇒ 探针够不到 LSP ⇒ 空转 ✓✓
+  ⇒ 而 **"5 分钟"** ✓：**GitHub 的 step 默认无超时** ✗ ⇒ **很可能是 `gap.py` 内部的 300s** ✓
+  ```
+  **⇒ 下一步（本地复跑要用默认 target ✓）**：
+  ```bash
+  unset CARGO_TARGET_DIR && cargo build -q -p sokonanoda-cli --locked   # 落到默认 target/ ✓
+  bash docs/gaps/repro/G37-notation-decl-target-not-a-use-point.sh      # 应给出真结论 ✓
+  ```
+  ⇒ 若给出 **`exit 1`**（已修 ✓）⇒ **`G-37` 全绿** ✓ ⇒ **`ledger` 三片红的根因清掉** ✓。
+
 * **✅ round 365：看门狗**推广完毕** ✓✓ —— 而它是**仓库的既有约定** ✓（**只有三个漏了** ✗）**
   ```
   $ for f in docs/gaps/repro/*.js; do … done      # 找"有 await 但没 setTimeout"的 ✓
