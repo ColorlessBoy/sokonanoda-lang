@@ -884,6 +884,32 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 275：串行重测 —— 数字**确定** ✓，而 round 274 的"并行产物"推断**被证否** ✗**
+    ```
+    串行（--test-threads=1 ✓）:
+      默认           : 736 passed; **0 failed** ✓
+      A+B(开关)      : 636 passed; **100 failed** ✗   ← 与并行**完全相同** ✓
+      A+B+影子(组合)  : 687 passed; **49 failed** ✗   ← 相同 ✓
+      仅影子(基线)    : 725 passed; **11 failed** ✓   ← 相同 ✓
+    ```
+    ⇒ **两个事实并存** ✓（都要保留 ✓）：
+    * ① **数字是确定的** ✓（串行 = 并行 ✓）⇒ **不是并行/顺序的噪声** ✗；
+    * ② **那个用例"单跑通过、全套失败"** ✓ ⇒ 差别**不在并行** ✗，而在
+      **"共享的**热**状态"** ✓ —— 别的用例**先把某个全局状态焐热** ✓ ⇒ 它才失败 ✓。
+    **⇒ 这指向真正的机制（下一步 ✓）**：**某个全局缓存被 walk 的 add 污染** ✓ ——
+    候选（按可能性 ✓）：
+    * `judge.rs` 的 **判卷缓存**（`judge_infer_cached` ✓ / `TRUSTED_PREFIX` ✓ `judge.rs:425` ✓）；
+    * **`OnceLock` 缓存的 prelude / 记法表** ✓（`install_all_preludes` ✓ / 记法表 ✓）；
+    * `suggest` 侧的缓存 ✓（`suggest.rs` ✓）。
+    **⇒ 下一步（一条命令 ✓）**：**找出被污染的缓存** ✓ ——
+    ```bash
+    git grep -n "OnceLock\|thread_local\|static .*Mutex\|static .*RwLock" -- crates/front/src/ | head -20
+    ```
+    ⇒ 逐个问"**它的键里含环境内容吗**"✗ ⇒ 含 ⇒ 就是它 ✓（walk 提前改了环境 ⇒ 键变/值变 ✓）。
+    ⚠ **教训（连续第三类"口径"错 ✗）** ✓：**"单跑 vs 全套"是一个口径** ✓ ——
+    我 round 274 把它读成了"并行噪声"✗，而它其实是"**共享状态冷热**"✓
+    ⇒ 与"退出码 vs 计数"✗、"并行 vs 串行"✗ 同源 ✓：**先问"这个现象在什么条件下出现"，再解释它** ✓。
+
   - **🎯🎯 round 274：那个"失败"的用例**单独跑是通过的** ✗✓ ⇒ 前面所有数字都要重测 ✓**
     ```
     SOKO_WALK_REAL_ADD=1 cargo test -p sokonanoda-front --lib \
