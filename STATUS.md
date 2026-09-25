@@ -26,6 +26,17 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯 round 381：更正 —— `--log` 要求**整轮**结束** ✗✓（**不是"该 job 结束"** ✗）**
+  ```
+  $ gh run view --job 108278370453 --log      # perf-gate，**已 completed** ✓
+    run 36198062997 is **still in progress**; logs will be available when it is complete ✗
+  ⇒ ⇒ **即使那个 job 已完成，日志也读不到** ✗ ⇒ **`--log` 检查的是整轮状态** ✓
+  ⇒ **我 round 380 的"已完成 job 的日志现在就能读"是错的** ✗✓（**第六次推断错** ✗）
+  ⇒ ⇒ **所以只有一个动作：等整轮** ✓（**不推** ✗）。
+  ```
+  ⚠ **而这条限制的后果** ✓：**`perf-gate` 的数字、`ledger (3)` 的日志**
+  ⇒ **都要等整轮** ✗ ⇒ **而整轮的最慢项是 3 条 e2e + `ledger`（10 分钟超时 ✓）** ✓。
+
 * **⏳ round 380：整轮仍在跑** ✓（**日志还读不到** ✗）
   ```
   ⇒ **判据不变** ✓：**等整轮** ✓ ⇒ 读 `ledger (3)` 日志 ⇒ 按两条分支处置 ✓
