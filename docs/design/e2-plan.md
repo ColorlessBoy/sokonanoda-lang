@@ -733,7 +733,9 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     报告里只有 `notations: Vec<NotationDecl>` ✓，而 `DisplayNotations` 需要 arity ✓；
     `ty_text`/`val_text` 只覆盖**整类型** ✓，`peel_pi_layers` 剥出的 `domain`/`codomain`
     **子项**没有副本 ✗）⇒ 先 B 后 A ✓。**不许**在 LSP 重建 arity ✗（那是第五套实现 ✓，守卫会抓 ✓）。
-- [~] `T-U12` **面级 sweep 判据**（用户要求 ✓）
+- [ ] `T-U12` **面级 sweep 判据**（用户要求 ✓）—— **进行中** ⏳（面 #1 ✅ · 面 #4/#5 ✅ ③ ·
+  面 #2/#3 待做 ✓；**计划记号只能是 `[ ]` / `[x]`** ✗ —— 我 145 轮用了 `[~]` ✓
+  ⇒ `plan.py check` 会把这一条算成"清单里没有" ✗ ⇒ **gate 红** ✓ ⇒ 已改回 ✓）
   - **✅ 面 #4（状态栏）· 面 #5（项目树）⇒ ③ 不判**（2026-09-25 round 145 **实测** ✓）：
     `editor/vscode/project-tree.js` 渲染的是 **标签 / 计数 / 状态 / 路径** ✓ ——
     `item.description` = 状态标签 ✓（`:65`）、`item.tooltip = moduleTooltip(module)` ✓（`:66`）、
