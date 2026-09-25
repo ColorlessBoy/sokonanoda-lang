@@ -564,6 +564,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ 取 `JUDGE_INFER calls/total_ms` 与 `JUDGE_INFER_SPLIT hits/misses` ✓
     ⇒ **数字进 `docs/perf/ledger.jsonl`** ✓ ⇒ 然后才谈勾 ✓。
 
+  - **⚠ round 230：冷跑也**没有**统计 ⇒ "热缓存"解释**不充分** ✗ ⇒ 本条**不勾** ✗**
+    **做法** ✓：把文件复制成 `course/_coldA.sokonanoda` / `_coldB.sokonanoda` ✓
+    （同目录 ⇒ import 仍可解析 ✓；路径不同 ⇒ 前缀键不同 ⇒ **必然冷** ✓），两态各跑一次 ✓，
+    跑完**已清理** ✓（`git status` 干净 ✓）。
+    **结果** ✓：**两态都没有任何 `JUDGE_*` 输出** ✗（`SOKO_JUDGE_STATS=2` verbose 也没有 ✗）
+    ⇒ 说明**这条 CLI 路径根本没走到 `judge_pairs_uncached`** ✗（而不是缓存冷热 ✗）
+    —— 即 round 225 的 `CALLS=144` 与现在的 `CALLS=0` 之间，**变的不只是缓存** ✗。
+    **⇒ 下一步（一条命令 ✓，直取答案 ✓）**：读**谁调用 `judge_pairs_uncached`** ✓
+    （`git grep -n judge_pairs_uncached` ✓）⇒ 看它是 **`judge` 批量入口**还是别的 ✓
+    ⇒ 再决定用哪条命令去量 ✓。**⚠ 不要再试形状** ✗（本轮已经证明冷跑也不行 ✓）。
+    **⇒ T-D6 的证据状态（如实 ✓）**：
+    * **已有** ✓：命中率 **91.7%**（`hits=132 misses=12` ✓）· 两态 `--json` **逐字节相同** ✓ ·
+      两态退出码 **0** ✓ ⇒ **正确性 + "复用确实在跑"** ✓；
+    * **缺** ✗：**关掉复用时的基线耗时** ✓（`docs/perf/ledger.jsonl` 要的那个数字 ✓）；
+    * ⇒ **不勾** ✗（本条的重点是"miss 成本是否塌下来" ✓，那需要两态计时 ✓）。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
