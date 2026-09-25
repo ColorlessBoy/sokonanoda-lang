@@ -241,7 +241,13 @@ are hits instead of full recompiles. Two commands drive it from the editor:
   (the CLI follows its `import` closure), or the first workspace folder when no
   file is open. The result line reports `files · compiled · hit · failed`.
 - **`Sokonanoda: Rebuild (清空编译缓存后重编译)`** (`alt+shift+b`) — the same, but first runs
-  `build --clean` to drop the cache, i.e. "recompile everything from scratch".
+  `build --clean` to drop the cache, i.e. "recompile everything from scratch"
+  (it clears **both** the global cache and the module root's `.sokonanoda/`).
+  Project artifacts live in **`<module root>/.sokonanoda/`** — a self-ignoring
+  `.gitignore` (one line, `*`) keeps them out of your repository — and the
+  language server reads that directory first, so `build` warms exactly what the
+  editor then opens. Single-file entries still live in the global cache.
+  `SOKONANODA_NO_PROJECT_ARTIFACTS=1` opts back into the global-only behaviour.
 
 Both write the CLI's JSON Lines events (`build.file` / `build.clean` /
 `build.summary`) to the **sokonanoda build** output channel, refresh the

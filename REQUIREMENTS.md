@@ -2361,6 +2361,18 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 > 都放到这个文件夹下。
 
 **要求**：模块根下建 **`.sokonanoda/`** ✓，编译产物（以及将来的依赖等 ✓）放进去 ✓；
+
+> **交付记录（2026-09-24，0.67.0 / T-B5）**：**项目**闭包产物已落**模块根**
+> `<模块根>/.sokonanoda/compiled/<key>.json`（同格式同键；模块根下另有自忽略的
+> `.gitignore` 与 `meta.json`）；**单文件**条目仍在全局缓存（键只含内容 ⇒ 那里才
+> 谈得上跨项目共享）。CLI 四条命令（`build`/`grade`(`check`)/`query`/`course`）都走
+> 新路径，**LSP 的读路径**同轮接上（否则 `build` 预热不再帮到编辑器 = 性能退化）；
+> `--clean` **两处都清**（事件 additive：`{removed, global, project}`）；上限 32 条
+> 按 mtime 淘汰；逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`。判据
+> `crates/cli/tests/artifacts.rs`（5 条真进程用例，两条做过修前判红 ✓）。
+> 设计：`docs/design/project-artifacts.md`（含取舍与"别重踩"清单）。
+> **未做**（后续阶段）：LSP 的**写**路径与 `query project` 的产物清单（T-C6）、
+> `.sokonanoda/prefix/`（T-D11）、依赖目录（未设计）。
 **vscode 与 code agent 都从那里取** ✓ ⇒ **避免重复计算** ✓
 （这正是 T-K30 那条线的"模块级批量编译"的**用户侧理由** ✓；与 §14 的重构无关 ✓）。
 

@@ -197,7 +197,30 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     缓存"的散文**已过期**（`report.rs:163-177` 实测：漂移不算"不干净"）。
     取证由 3 个只读 subagent 并行做（落盘清单 / 消费者清单 / 既有约束），
     已并入并**逐条复核**：其中"风险 #6（漂移挡写缓存）"与代码事实不符 ⇒ **未采纳**。
-- [ ] `T-B5` **R-3 实现（CLI 侧）**：`build`/`grade` 把模块级产物写进 `<模块根>/.sokonanoda/` ✓；第二次调用**命中** ✓
+- [x] `T-B5` **R-3 实现（CLI 侧）**：`build`/`grade` 把模块级产物写进 `<模块根>/.sokonanoda/` ✓；第二次调用**命中** ✓
+  - ✅ **已实现（2026-09-24）**。**屏幕上**：项目文件第一次 `build`/`grade` 之后，**模块根下
+    出现 `.sokonanoda/`**（`compiled/<key>.json` + `.gitignore` 一行 `*` + `meta.json`），
+    vscode 与 code agent 都能直接取；单文件（无 `import`）不产生它；`--clean` 两处都清。
+    落点：`front::project::cache` 增 `load_at`/`store_at`/`store_if_clean_at`/`clean_at`/
+    `artifacts_dir`（复用 `compile::cache` 的三个目录原语，**不造第二套格式**）+
+    `MAX_ENTRIES=32` 按 mtime 淘汰（取证实测项目条目 **0.6–5.9 MB** ⇒ 无上限会涨到上百 MB ✗）+
+    逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；CLI 四处（`build`/`check`(grade)/`query`/
+    `course`）传 `plan.root`；**LSP 读路径同轮接上**（否则 CLI 预热不再帮到编辑器 =
+    **性能退化** ✗，写路径留给 T-C6）；`--clean` 两处都清（事件 additive：`{removed, global,
+    project}`）；顺手修 `SOKONANODA_NO_CACHE=1` 会让 `--clean` 恒 0 的 bug。
+    **判据**：新增 `crates/cli/tests/artifacts.rs`（5 条**真进程**用例：①产物落模块根 + 同格式 +
+    自忽略 + meta schema + 全局无项目条目 + 第二次 **hit**；②单文件不建目录；③逃生门 ⇒ 不建目录 +
+    退回全局 + 仍命中；④`--clean` 两处都清且保留元数据；⑤**跨根不回放**）。**修前判红**：
+    `store_at` 改回只写全局 ⇒ ①**exit 101**；抽掉跨根守卫 ⇒ ⑤**exit 101**；恢复后 5/5 绿 ✓。
+    全量回归 **1260 通过 / 35 套件 / 0 失败**（front+cli+lsp）· fmt ✓ · clippy exit 0 ✓。
+    **取证 B 揪出的两个真问题都已处理**：① 项目摘要只含**入口路径**、不含模块根 ⇒
+    `load_at` 的全局兜底按 `ProjectReport::root` 校验（上面判据⑤）；② VS Code e2e 的
+    `cacheStamp()` 原来直接扫 `<cacheDir>/compiled` ⇒ 产物挪窝后会红，已改成**两处都扫**
+    （顺带成为 R-3 在 e2e 层的断言），`scripts/vscode-e2e.sh` 每次跑前清夹具产物。
+    **另外发现一条历史遗留**（不是本环节引入）：`course` 与 `build` 对入口路径的写法不同
+    （闭包加载 `canonicalize`、CLI 用原样路径）⇒ **符号链接路径**（macOS `/tmp`、`/var`）
+    下两者摘要不同、共用失效；实测规范化路径 ⇒ 命中、`/var` 原样 ⇒ miss。已记进设计 §6.3a
+    （修法 = 统一归一化，会让旧条目作废，排在 R-3 之后）。
 - [ ] `T-B6` **R-3 判据**：同一模块连跑两次 `build`，第二次**显著更快** ✓（数字进台账）+ 产物目录内容可读（`--json` 能列 ✓）+ `.gitignore` 指引 ✓
 - [ ] `T-B7` **阶段 B 收尾**：基准复量（① ② 应变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.67.0` → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 命令名标准化 + `.sokonanoda/` 产物目录（vscode 与 agent 共用，首次之后不再重复算）

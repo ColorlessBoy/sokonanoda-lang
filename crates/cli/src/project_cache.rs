@@ -6,4 +6,4 @@
 //! **为什么实现搬到了 `front`**：LSP 也要读这份缓存（含 `import` 的文档），
 //! 而 LSP 依赖不到 CLI crate。见 `docs/design/compile-cache.md` §1。
 
-pub(crate) use sokonanoda_front::project::cache::{load, plan, store_if_clean};
+pub(crate) use sokonanoda_front::project::cache::{load_at, plan, store_if_clean_at};

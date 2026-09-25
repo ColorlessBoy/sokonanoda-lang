@@ -404,7 +404,9 @@ fn count_unit(path: &Path, course_dir: &Path, src: &str) -> Result<UnitCounts, S
     let root_override = closure_root(path, course_dir);
     let (plan, digest) =
         crate::project_cache::plan(path, Some(src), root_override.as_deref(), &[], &options);
-    if let Some(cached) = crate::project_cache::load(&digest, &options) {
+    // R-3（T-B5）：模块根产物目录优先，全局缓存兜底。
+    let artifacts_root = plan.root.clone();
+    if let Some(cached) = crate::project_cache::load_at(&artifacts_root, &digest, &options) {
         if let Some(output) = cached.output {
             let mut counts = UnitCounts::default();
             tally(&mut counts, &output.events);
@@ -426,7 +428,13 @@ fn count_unit(path: &Path, course_dir: &Path, src: &str) -> Result<UnitCounts, S
         // and exercises are not part of the unit's score.
         tally(&mut counts, &entry.events.events);
         // 只缓存干净的项目（与 `check`/`build`/`query` 同一份摘要键）。
-        crate::project_cache::store_if_clean(&digest, &options, &project, project.is_clean());
+        crate::project_cache::store_if_clean_at(
+            &artifacts_root,
+            &digest,
+            &options,
+            &project,
+            project.is_clean(),
+        );
     }
     Ok(counts)
 }

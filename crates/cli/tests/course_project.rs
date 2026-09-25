@@ -32,6 +32,21 @@ fn fixture_dir() -> PathBuf {
 }
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
+/// 把 G-06 夹具拷进一个临时目录（项目产物会写在模块根 ⇒ 不能跑在仓库里）。
+fn temp_fixture_copy() -> PathBuf {
+    let dir = temp_dir("fixture-copy");
+    std::fs::create_dir_all(dir.join("proj")).expect("mkdir proj");
+    std::fs::copy(fixture_dir().join("course.json"), dir.join("course.json"))
+        .expect("copy course.json");
+    for name in ["U4.sokonanoda", "Lib2.sokonanoda", "sokonanoda.toml"] {
+        std::fs::copy(
+            fixture_dir().join("proj").join(name),
+            dir.join("proj").join(name),
+        )
+        .expect("copy fixture file");
+    }
+    std::fs::canonicalize(&dir).unwrap_or(dir)
+}
 
 /// 每个测试一份独立空目录（缓存 dir / 临时课程）——互不串味。
 fn temp_dir(tag: &str) -> PathBuf {
@@ -71,6 +86,10 @@ fn run(cwd: &Path, cache: &Path, args: &[&str]) -> Run {
         .args(args)
         .current_dir(cwd)
         .env("SOKONANODA_CACHE_DIR", cache)
+        // 这些用例的夹具在**仓库内**，而项目产物现在落模块根（R-3）⇒ 会往工作区写
+        // `.sokonanoda/` ✗。它们测的是 course 语义、不是产物布局 ⇒ 显式走逃生门
+        // （退回"只写全局缓存"的旧语义，与 0.66 之前逐字节相同）。
+        .env("SOKONANODA_NO_PROJECT_ARTIFACTS", "1")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -406,11 +425,31 @@ fn course_is_relative_path_and_cwd_independent() {
 }
 
 /// 闭包摘要键与 `build` 共用：course 冷跑一次后，`build` 必须是 `hit`。
+///
+/// **本用例测的是"两个命令算出同一个摘要"**，不是产物落在哪 —— 所以显式打开
+/// `SOKONANODA_NO_PROJECT_ARTIFACTS=1`（两个命令都走全局缓存，与 0.66 之前的
+/// 语义逐字节相同）。两个理由：
+/// ① 夹具在**仓库内**（`docs/gaps/repro/G06-course-import`），项目产物会写进
+///    仓库工作区 ✗；
+/// ② 产物布局由 `crates/cli/tests/artifacts.rs` 专门测（临时目录里跑，
+///    既验落盘位置也验第二次命中）✓。
+///
+/// **顺带暴露一条历史遗留**（不属于 R-3）：`course` 与 `build` 对入口路径的写法
+/// 不同——闭包加载会 `canonicalize`（`course.json` 里是相对路径），命令行给的是
+/// **原样路径** ⇒ 在**符号链接路径**下（macOS `/tmp` → `/private/tmp`、
+/// `/var` → `/private/var`）两个摘要不同、共用失效 ✗（实测：规范化路径命中、
+/// `/var` 原样路径不命中）。所以本用例把入口路径 `canonicalize` 之后再传，
+/// 让判据只测"共用"这一件事；归一化本身待修，记在
+/// `docs/design/project-artifacts.md` §6。
+///
+/// **夹具要拷到临时目录**：项目产物现在落在**模块根**（R-3）⇒ 直接在仓库夹具上跑
+/// 会往工作区写 `.sokonanoda/` ✗（而且本机文件策略会拦仓库内的 `rename`，
+/// 条目根本写不成）。拷到临时目录两个问题都没有，且判据仍是真的跨进程判据 ✓。
 #[test]
 fn course_shares_the_closure_cache_with_build() {
     let cache = temp_dir("shared-cache");
-    let fixture = fixture_dir();
-    let unit = fixture.join("proj/U4.sokonanoda");
+    let fixture = temp_fixture_copy();
+    let unit = std::fs::canonicalize(fixture.join("proj/U4.sokonanoda")).expect("canonical unit");
 
     let (course_unit, _) = course_events(&fixture.join("course.json"), &repo_root(), &cache);
     assert_eq!(u64_field(&course_unit, "failed"), 0, "{course_unit}");

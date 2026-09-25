@@ -171,7 +171,10 @@ pub fn load(src: &str, options: &CompileOptions) -> Option<CachedCompile> {
     load_in(&compiled_dir()?, &key(src, options))
 }
 
-fn load_in(dir: &Path, key: &str) -> Option<CachedCompile> {
+/// 目录化的三个原语（`load_in`/`store_in`/`clean_in`）：**同一个条目格式**，
+/// 换一个根目录就是"另一个缓存"。模块根下的 `.sokonanoda/compiled/` 就是靠
+/// 这三个复用它（`crate::project::cache`）——不造第二套格式、不造第二个键。
+pub(crate) fn load_in(dir: &Path, key: &str) -> Option<CachedCompile> {
     let bytes = std::fs::read(dir.join(format!("{key}.json"))).ok()?;
     let file: CacheFile = serde_json::from_slice(&bytes).ok()?;
     if file.format != CACHE_FORMAT {
@@ -191,7 +194,7 @@ pub fn store(src: &str, options: &CompileOptions, entry: &CachedCompile) {
     }
 }
 
-fn store_in(dir: &Path, key: &str, entry: &CachedCompile) {
+pub(crate) fn store_in(dir: &Path, key: &str, entry: &CachedCompile) {
     if std::fs::create_dir_all(dir).is_err() {
         return;
     }
@@ -215,11 +218,38 @@ fn store_in(dir: &Path, key: &str, entry: &CachedCompile) {
 }
 
 /// Remove all cache files; returns how many entries were removed.
+///
+/// **不受 `SOKONANODA_NO_CACHE` 影响**（实测踩到）：`compiled_dir()` 走 `root()`，
+/// 而 `NO_CACHE` 让 `root()` 返回 `None` ⇒ 用户"关掉缓存"之后 `--clean` 恒
+/// `removed 0`，已有条目**再也清不掉**（只能手动删目录）✗。清理的语义是"把这堆
+/// 文件删掉"，与"这次要不要写缓存"无关 ⇒ 这里只认 `SOKONANODA_CACHE_DIR` 与平台默认。
 pub fn clean() -> usize {
-    compiled_dir().map(|dir| clean_in(&dir)).unwrap_or(0)
+    clean_dir().map(|dir| clean_in(&dir)).unwrap_or(0)
 }
 
-fn clean_in(dir: &Path) -> usize {
+/// `compiled/` 的目录，**故意不看 `NO_CACHE`**（只给清理用）。
+fn clean_dir() -> Option<PathBuf> {
+    if let Some(dir) = std::env::var_os("SOKONANODA_CACHE_DIR") {
+        return Some(PathBuf::from(dir).join("compiled"));
+    }
+    root_for_clean().map(|root| root.join("compiled"))
+}
+
+/// 平台默认缓存根（与 `root()` 的最后一支相同，但忽略 `NO_CACHE`）。
+fn root_for_clean() -> Option<PathBuf> {
+    if cfg!(target_os = "macos") {
+        std::env::var_os("HOME").map(|h| PathBuf::from(h).join("Library/Caches/sokonanoda"))
+    } else if cfg!(target_os = "windows") {
+        std::env::var_os("LOCALAPPDATA").map(|h| PathBuf::from(h).join("sokonanoda"))
+    } else {
+        std::env::var_os("XDG_CACHE_HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))
+            .map(|p| p.join("sokonanoda"))
+    }
+}
+
+pub(crate) fn clean_in(dir: &Path) -> usize {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return 0;
     };

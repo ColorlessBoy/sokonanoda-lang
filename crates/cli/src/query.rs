@@ -157,7 +157,9 @@ fn load_document(doc: &mut QueryDoc, src: &str) {
     };
     let (plan, digest) =
         crate::project_cache::plan(&entry, Some(src), doc.root.as_deref(), &[], &options);
-    if let Some(cached) = crate::project_cache::load(&digest, &options) {
+    // R-3（T-B5）：模块根产物目录优先，全局缓存兜底。
+    let artifacts_root = plan.root.clone();
+    if let Some(cached) = crate::project_cache::load_at(&artifacts_root, &digest, &options) {
         if let Some(output) = cached.output {
             doc.set_cached_entry(src, 1, cached.report, output, cached.project);
             return;
@@ -171,7 +173,7 @@ fn load_document(doc: &mut QueryDoc, src: &str) {
             .entry_module()
             .is_none_or(|module| module.report.errors.is_empty());
         let clean = output.errors.is_empty() && entry_ok;
-        crate::project_cache::store_if_clean(&digest, &options, report, clean);
+        crate::project_cache::store_if_clean_at(&artifacts_root, &digest, &options, report, clean);
     }
 }
 

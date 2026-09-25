@@ -182,7 +182,11 @@ cargo run -q -p sokonanoda-lsp                        # 编辑器反馈通道
 
 - 编译缓存（dev aid）：`sokonanoda build [--json] [--clean] [<file>|<dir>…]`
   预热/清理共享落盘缓存（key = 编译器版本 + 二进制构建指纹 + prelude 模式 +
-  源文本；内核仍是唯一判定者）；`SOKONANODA_CACHE_DIR` 改缓存根、
+  源文本；内核仍是唯一判定者）；**项目**闭包产物落**模块根**
+  `<模块根>/.sokonanoda/compiled/`（同格式同键、自忽略、上限 32 条按 mtime 淘汰、
+  `--clean` 两处都清、逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1`；
+  设计 `docs/design/project-artifacts.md`，判据 `crates/cli/tests/artifacts.rs`）；
+  `SOKONANODA_CACHE_DIR` 改缓存根、
   `SOKONANODA_NO_CACHE=1` 关闭；测试用临时 cache dir 隔离。设计
   `docs/design/compile-cache.md`。
 

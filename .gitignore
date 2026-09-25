@@ -1,4 +1,8 @@
 /target
+
+# 模块根下的编译产物（R-3 / 0.67.0 起）：目录自带一行 `*` 的 .gitignore，
+# 这里再加一条是**双保险**——`courses/set-theory`、`course/` 本身就是模块根。
+.sokonanoda/
 .DS_Store
 
 # editor/vscode（npm / vsce / 扩展测试产物）

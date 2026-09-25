@@ -743,17 +743,37 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   }
 
   /// 缓存条目的**指纹**：条目名 + 大小 + mtime。写一次缓存它就变。
+  ///
+  /// **两处都要看**（T-B5 / R-3）：项目闭包条目现在落在**模块根**的
+  /// `<模块根>/.sokonanoda/compiled/`，只有**单文件**条目还在
+  /// `SOKONANODA_CACHE_DIR/compiled/`。只看全局那份的话，T-A60 的"缓存不膨胀"
+  /// 断言会因为**什么都没看见**而失去意义（前置断言 `stamp.length > 0` 还会直接红）。
   function cacheStamp() {
-    const root = path.join(cacheDir(), "compiled");
-    if (!fs.existsSync(root)) return [];
-    return fs
-      .readdirSync(root, { recursive: true })
-      .map(String)
-      .map((rel) => {
+    const roots = [path.join(cacheDir(), "compiled")];
+    for (const folder of vscode.workspace.workspaceFolders ?? []) {
+      const ws = folder.uri.fsPath;
+      // 工作区自己的模块根 + 嵌套模块根（课程仓就是"一个工作区多个模块根"）。
+      roots.push(path.join(ws, ".sokonanoda", "compiled"));
+      try {
+        for (const rel of fs.readdirSync(ws, { recursive: true }).map(String)) {
+          const parts = rel.split(path.sep);
+          if (parts.includes(".sokonanoda") && parts[parts.length - 1] === "compiled") {
+            roots.push(path.join(ws, rel));
+          }
+        }
+      } catch {
+        // 工作区扫不动就算了：指纹是"看得见的条目"的集合，不是断言本身。
+      }
+    }
+    const out = [];
+    for (const root of roots) {
+      if (!fs.existsSync(root)) continue;
+      for (const rel of fs.readdirSync(root, { recursive: true }).map(String)) {
         const stat = fs.statSync(path.join(root, rel));
-        return `${rel}:${stat.size}:${stat.mtimeMs}`;
-      })
-      .sort();
+        out.push(`${rel}:${stat.size}:${stat.mtimeMs}`);
+      }
+    }
+    return out.sort();
   }
 
   /// 把一行**给人判读**的数字记进 e2e 留档。

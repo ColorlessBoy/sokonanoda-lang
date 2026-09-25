@@ -738,16 +738,35 @@ Warming is best-effort and never changes the kernel's verdict; a read or parse
 failure counts as `failed` but does not abort the batch. Exit is 0 whenever at
 least one file resolved (nothing resolved is usage, exit non-zero).
 
-- `build --clean` removes every cached entry and prints `removed N cached
-  file(s)`;
+**Artifacts live next to the project** (R-3 / 0.67.0): **project** closure entries
+go to `<module root>/.sokonanoda/compiled/<key>.json` (same format and key as the
+global cache), and the module root also gets `.gitignore` (one line: `*`, so git
+never sees the directory) and `meta.json` (`schema`/`compiler`/`build_stamp`/
+`platform`/`created_unix`/`written_unix`). **Single-file** entries stay in
+`SOKONANODA_CACHE_DIR` (platform cache dir by default). Lookup order is
+**module root → global**, so entries written by older versions still hit. Each
+module root keeps at most 32 entries (oldest by mtime is evicted first);
+`SOKONANODA_NO_PROJECT_ARTIFACTS=1` restores the old global-only behaviour. The
+global fallback validates that the entry's module root matches the current one
+(project digests carry only the entry path, so the same entry under two different
+`--root`s would otherwise replay the other root's paths).
+
+- `build --clean` clears **both** stores — the global cache and the module roots it
+  can resolve from the positionals (without positionals: global only, and
+  `project` is reported as 0) — and prints `removed N cached file(s)
+  (G global, P project)`;
 - `--json` emits one `build.file` per resolved file
   (`{type, file, status}` with `status` ∈ `hit` / `compiled` / `failed`),
   then `build.summary` (`{type, files, hit, compiled, failed}`); `build --clean
-  --json` emits `build.clean` (`{type, removed}`);
+  --json` emits `build.clean` (`{type, removed, global, project}`, additive:
+  `removed == global + project`);
 - the human summary is `built K file(s) — H hit, M compiled, F failed`.
 
-Environment: `SOKONANODA_CACHE_DIR` relocates the cache root, and
-`SOKONANODA_NO_CACHE=1` disables it (loads always miss, stores are skipped).
+Environment: `SOKONANODA_CACHE_DIR` relocates the cache root,
+`SOKONANODA_NO_CACHE=1` disables it (loads always miss, stores are skipped — but
+`--clean` still works, it only deletes files), and
+`SOKONANODA_NO_PROJECT_ARTIFACTS=1` keeps project closures in the global cache
+instead of writing `<module root>/.sokonanoda/`.
 
 ## REPL history
 

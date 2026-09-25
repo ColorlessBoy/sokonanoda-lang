@@ -415,7 +415,8 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   （`SOKONANODA_CACHE_DIR` 改缓存根、`SOKONANODA_NO_CACHE=1` 关闭；内核仍是
   唯一判定者，设计 `docs/design/compile-cache.md`）。**编辑器里等价的两个命令**
   （0.60.0 起）：`Sokonanoda: Build (编译当前文件/工作区，预热缓存)`（`alt+b`）与
-  `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先 `--clean` 再编）——学习者说"面板像是
+  `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先 `--clean` 再编；
+  `--clean` **两处都清**：全局缓存 + 模块根 `.sokonanoda/`）——学习者说"面板像是
   没反应 / 第一次按键很慢"时先让他跑 rebuild，再判断是不是真问题；
 - `soko/goals` / `soko/nextHole` / `soko/hints` / `soko/stateAt` 自定义请求可供
   工具深挖 goal 视图、提示与光标处 goal（见 `docs/protocol.md`）。

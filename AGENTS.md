@@ -181,7 +181,10 @@ cargo run -q -p sokonanoda-cli --bin sokonanoda -- --json playground.sokonanoda
 ```
 
 编辑器/agent 反馈通道：`.sokonanoda` 文件的 LSP 诊断由完整 kernel 判定。
-**编译缓存**：`sokonanoda build [--clean] [<file>|<dir>]`（CLI）与编辑器里的
+**编译缓存**：**项目**闭包产物落**模块根** `<模块根>/.sokonanoda/compiled/`
+（同格式同键、自忽略；`--clean` **两处都清**；逃生门
+`SOKONANODA_NO_PROJECT_ARTIFACTS=1`；设计 `docs/design/project-artifacts.md`）。
+`sokonanoda build [--clean] [<file>|<dir>]`（CLI）与编辑器里的
 `Sokonanoda: Build (编译当前文件/工作区，预热缓存)`（`alt+b`）/ `Sokonanoda: Rebuild (清空编译缓存后重编译)`（`alt+shift+b`，先清缓存）
 是同一条路——第一次按键慢、或在编辑器外改了依赖后面板像"没反应"，先 rebuild。
 两种接线：

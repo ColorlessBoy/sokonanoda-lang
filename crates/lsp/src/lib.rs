@@ -184,13 +184,21 @@ impl Doc {
         // 在磁盘上被改了，文本没变但结果会变。它只读文件 + 哈希（毫秒级），而
         // 短路省下的是一次整闭包编译（秒级）。`cfg!(test)` 只挡**缓存读写**，
         // 不挡摘要本身（摘要不碰缓存目录）。
-        let project_digest = if !has_imports {
-            None
+        // R-3（T-B5）：**顺便留下模块根** —— 项目条目现在落在
+        // `<模块根>/.sokonanoda/compiled/`，读的时候要用它。
+        // 之前这里把 plan 丢掉（`let (_, digest)`）⇒ 编辑器读不到 CLI 预热出来的
+        // 产物 = "`build` 之后打开"变慢 ✗（那是性能退化，不是新功能缺失）。
+        let (project_root, project_digest) = if !has_imports {
+            (None, None)
         } else {
-            path.as_deref().map(|entry| {
-                let (_, digest) = project_cache::plan(entry, Some(text), None, overlay, &options);
-                digest
-            })
+            match path.as_deref() {
+                Some(entry) => {
+                    let (plan, digest) =
+                        project_cache::plan(entry, Some(text), None, overlay, &options);
+                    (Some(plan.root.clone()), Some(digest))
+                }
+                None => (None, None),
+            }
         };
         // **文本、prelude 模式、入口路径、依赖覆盖都没变 ⇒ 不重编**（A7 / T-A21）。
         // 保存（`didSave`）与编辑器外改动（`workspace/didChangeWatchedFiles`）
@@ -226,8 +234,8 @@ impl Doc {
         // 摘要**只算一次**，读（T-A10）与写（T-A11）共用同一个键。
         let cached = if cfg!(test) {
             None
-        } else if let Some(digest) = &project_digest {
-            project_cache::load(digest, &options)
+        } else if let (Some(root), Some(digest)) = (&project_root, &project_digest) {
+            project_cache::load_at(root, digest, &options)
         } else {
             // 单文件条目形状不变（`project` 恒为 `None`）。
             cache::load(text, &options)

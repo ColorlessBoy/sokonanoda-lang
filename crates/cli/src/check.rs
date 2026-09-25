@@ -67,7 +67,9 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         // 键与 `build`/`query` 共用（`crate::project_cache`）。
         let (plan, digest) =
             crate::project_cache::plan(&entry, Some(src), root_override.as_deref(), &[], &options);
-        if let Some(cached) = crate::project_cache::load(&digest, &options) {
+        // R-3（T-B5）：模块根产物目录优先，全局缓存兜底。
+        let artifacts_root = plan.root.clone();
+        if let Some(cached) = crate::project_cache::load_at(&artifacts_root, &digest, &options) {
             if let Some(output) = cached.output {
                 if json {
                     report_json(&output, src);
@@ -79,7 +81,13 @@ pub(crate) fn check_source(request: CheckRequest<'_>) -> bool {
         }
         let project = sokonanoda_front::project::compile_plan(plan, &options);
         let ok = report_project(&project, src, json);
-        crate::project_cache::store_if_clean(&digest, &options, &project, project.is_clean());
+        crate::project_cache::store_if_clean_at(
+            &artifacts_root,
+            &digest,
+            &options,
+            &project,
+            project.is_clean(),
+        );
         return ok;
     }
 

@@ -20,14 +20,28 @@ pub(crate) fn build(
     no_project: bool,
 ) -> ExitCode {
     if clean {
-        let removed = cache::clean();
+        // R-3（T-B5）：项目条目现在落在**模块根**的 `.sokonanoda/compiled/`，所以
+        // `--clean` 必须**两处都清** —— 只清全局的话 `rebuild`（= `build --clean`）
+        // 会命中项目条目 ⇒ 表面"清空了"，实际什么都没重编（用户可见的假动作 ✗）。
+        let global = cache::clean();
+        let mut project = 0usize;
+        for root in project_roots(args) {
+            project += sokonanoda_front::project::cache::clean_at(&root);
+        }
+        let removed = global + project;
         if json {
             println!(
                 "{}",
-                serde_json::json!({"type": "build.clean", "removed": removed})
+                serde_json::json!({
+                    "type": "build.clean",
+                    "removed": removed,
+                    // additive：老消费者读 `removed`（= 两处之和）语义不变 ✓
+                    "global": global,
+                    "project": project,
+                })
             );
         } else {
-            println!("removed {removed} cached file(s)");
+            println!("removed {removed} cached file(s) ({global} global, {project} project)");
         }
         return ExitCode::SUCCESS;
     }
@@ -97,6 +111,31 @@ pub(crate) fn build(
     ExitCode::SUCCESS
 }
 
+/// `--clean` 用：从位置参数解析出**模块根**（项目入口的 `plan.root`）并去重。
+///
+/// 无参数（`build --clean`）⇒ 返回空 ⇒ 只清全局缓存，并在输出里如实报告
+/// `project=0`（设计 §3.7：解不出模块根时不清项目产物，但不假装清了）。
+fn project_roots(args: &[String]) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    for arg in args {
+        collect_files(Path::new(arg), &mut files);
+    }
+    let mut roots: Vec<PathBuf> = Vec::new();
+    for file in files {
+        let Ok(src) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        if !sokonanoda_front::project::is_project_source(&src) {
+            continue;
+        }
+        let root = sokonanoda_front::project::plan_project(&file, Some(&src), None).root;
+        if !roots.contains(&root) {
+            roots.push(root);
+        }
+    }
+    roots
+}
+
 /// Compile one source through the cache, returning `"hit"`, `"compiled"` or
 /// `"failed"`. Options mirror the batch checker (file-directive prelude mode)
 /// so a `build` warms exactly the entries `check`/`course` later load.
@@ -123,7 +162,12 @@ fn build_one(
         let plan =
             sokonanoda_front::project::plan_project(path, Some(src), root_override.as_deref());
         let digest = plan.digest(&options);
-        if let Some(entry) = cache::load(&digest, &options) {
+        // R-3（T-B5）：项目条目落**模块根**的 `.sokonanoda/compiled/`
+        // （`plan.root` 是发现规则算出来的模块根，这里现成）。
+        let artifacts_root = plan.root.clone();
+        if let Some(entry) =
+            sokonanoda_front::project::cache::load_at(&artifacts_root, &digest, &options)
+        {
             if entry.output.is_some() {
                 return Ok("hit");
             }
@@ -134,7 +178,12 @@ fn build_one(
             .is_none_or(|module| module.events.errors.is_empty())
             && !project.has_errors();
         if ok && project.is_clean() {
-            sokonanoda_front::project::cache::store(&digest, &options, &project);
+            sokonanoda_front::project::cache::store_at(
+                &artifacts_root,
+                &digest,
+                &options,
+                &project,
+            );
         }
         return Ok(if ok { "compiled" } else { "failed" });
     }

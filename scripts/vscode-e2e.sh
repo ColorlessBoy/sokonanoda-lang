@@ -166,6 +166,11 @@ fi
 # 变成"拿两个热开比大小"（而且结果取决于上一次谁跑过）。用例自己也会读这个变量来
 # 清缓存，所以必须是显式给的。
 e2e_cache="$(mktemp -d)"
+# **模块根产物也要每次清干净**（T-B5 / R-3）：项目闭包条目现在落在夹具的
+# `<模块根>/.sokonanoda/compiled/`，它**不在** `SOKONANODA_CACHE_DIR` 里 ⇒ 不清的话
+# "冷开"用例在下一次跑就变成热开（结果取决于上一次谁跑过 ✗ —— 与上面同一条纪律）。
+# 这些目录是**自忽略**的产物（`.sokonanoda/.gitignore` 内容是一行 `*`），删掉安全。
+find editor/vscode/src/test/fixtures -type d -name .sokonanoda -prune -exec rm -rf {} + 2>/dev/null || true
 # 别把 111 行那个 `$run_dir` 的 trap 覆盖掉——两个目录都要清。
 trap 'rm -rf "$run_dir" "$e2e_cache"' EXIT
 (cd editor/vscode &&

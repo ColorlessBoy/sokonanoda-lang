@@ -43,6 +43,8 @@ fn run_course_args(args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_sokonanoda"))
         .args(args)
         .env("SOKONANODA_CACHE_DIR", cache_dir("manifest"))
+        // 夹具在仓库内 ⇒ 产物别落工作区（同上，走逃生门）。
+        .env("SOKONANODA_NO_PROJECT_ARTIFACTS", "1")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
