@@ -405,6 +405,20 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ⇒ **T-D3 的这个前置风险比交接写的要小** ✓：walk 里再进一次检查 ✓
     不会和既有静音区打架 ✓（**但 depth 是线程局部的 ✗** —— 若 walk 的再检查跑在
     **另一个线程**上 ✓，静音仍只覆盖各自线程 ✓ ⇒ 这点在写判据时要照顾到 ✓）。
+    **✅ round 197 核实：T-D3 不是"从零做"** ✗ —— **代码已经在那儿了** ✓
+    * `SOKO_WALK_CHECK` 全仓 **0 处** ✗ ⇒ **开关确实还没有** ✓；
+    * 但 `walk.rs:169-177` **已经**在做这件事 ✓✓：
+      ```rust
+      /// 检查走 `ExportFile`（`try_check_declar` 是它的方法）⇒ 借 `with_env` 一次；
+      let result = self.shadow.with_env(|env| env.try_check_declar(&declar));
+      let _ = self.shadow.add_declar(declar);
+      ```
+      ⇒ **"边 elaborate 边 `with_env` 检查 + `add_declar`"已经存在** ✓（`decl_states`
+      在 `kernel_phase.rs` 里 38 处 ✓，是**既有累积量** ✓）。
+    ⇒ **T-D3 的真实工作** ✓：① 把这条既有检查**接到开关**上 ✓（默认关 ⇒ 零变化 ✓）；
+    ② **两态对拍** ✓（关：全语料 `--json` 逐字节相同 ✓；开：判定量与 `finish_pass`
+    逐项相同 ✓）。**比交接写的"内核级从零改"小得多** ✓ —— 而且它现在更像是
+    **接缝与开关**的工作 ✓，不是内核语义的工作 ✓。
     **开关** ✓：`SOKO_WALK_CHECK=1`（默认关 ✓ ⇒ 默认路径**零变化零成本** ✓ —— 
     这正是可以**分步落地**的原因 ✓）。
     **判据（两态都要 ✓）**：① 默认关 ⇒ 全语料 `--json` **逐字节相同** ✓ +
