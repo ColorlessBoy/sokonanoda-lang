@@ -423,7 +423,11 @@ jobs:
       # ⇒ 与 `gates` job 的"Release CLI for the course gate"同款 ✓（那一步就是为此存在的 ✓）。
       - name: Build CLI for the gap repros
         shell: bash
-        run: cargo build --release -p sokonanoda-cli --locked
+        # **同时构建 LSP**（2026-09-25 round 401 ✓）：`soko lsp` 解析的是**独立的**
+        # `sokonanoda-lsp`（`scripts/soko:785` ✓），而这里原先**只构建 CLI** ✗
+        # ⇒ `target/release/sokonanoda-lsp` 不存在 ⇒ 落到缓存（CI 空 ✗）/下载 ⇒ **挂住** ✗
+        # ⇒ 探针看门狗 120s 触发 ⇒ `exit 2` ⇒ `gap.py` 判"环境异常" ⇒ **`G-37` 判红** ✗。
+        run: cargo build --release -p sokonanoda-cli -p sokonanoda-lsp --locked
       - name: Gap ledger is consistent (docs/gaps)
         # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
         # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。只有它能让 `fixed_in` 不随语言
