@@ -447,6 +447,13 @@ jobs:
         timeout-minutes: 10
         env:
           SOKONANODA_BIN: ${{ github.workspace }}/target/release/sokonanoda
+          # **每例复现的超时降到 60s**（2026-09-25 round 384 ✓）：`gap.py:42` 是
+          # `REPRO_TIMEOUT_S = int(os.environ.get("SOKO_GAP_REPRO_TIMEOUT", "300"))` ✓
+          # ⇒ **默认每例 300s** ✗ ⇒ `G-22`/`G-25`/`G-31` **三条环境慢例 = 900s** ✗
+          # ⇒ **> 10 分钟** ✗ ⇒ **三片全超时** ✗（实测 ✓：`ledger (1)`/`(3)` 红 ✓）。
+          # 降到 60s ⇒ 三条 = 180s ✓ ⇒ **装得下** ✓；而**真挂住仍会在 60s 判红** ✓
+          # （**不掩盖回归** ✓ —— 这正是 `gap.py` 既有的"环境慢 ⇒ 跳过"语义 ✓）。
+          SOKO_GAP_REPRO_TIMEOUT: 60
         shell: bash
         run: |
           python3 "$GITHUB_WORKSPACE/scripts/gap.py" selftest
