@@ -26,6 +26,21 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⚠ round 369：整轮 **success 但只有 3 个 job** ✗ ⇒ **重活全 skip ⇒ `auto-tag` skip ⇒ 没发版** ✓**
+  ```
+  run 36197582528（sha=960fe92 ✓）：completed/**success** ✓ · **只有 3 个 job** ✗ · 未完 0 ✓
+  ⇒ 3 个 ≈ `changes` + `lint-fmt` + `lint-clippy` ✓ ⇒ **重活全被 `if` 跳过** ✗
+  ⇒ **`auto-tag` 依赖全部重活** ✓ ⇒ **它也 skip** ✗ ⇒ **release 没触发** ✓
+  ⇒ ⚠ **而这一推含 `crates/front/src/judge.rs`** ✓（**是 rust** ✓）
+    ⇒ **为什么 `rust` 过滤器没中** ✗ ⇒ **要查 `changes` 的输出** ✓
+    ⇒ 可能是 **`paths-filter` 的 `rust` 定义**（如只列 `crates/**/*.rs` 与 `Cargo.*` ✓）
+      ⇒ 而这一推的**多数文件**是 `docs/` ✓ + `.github/` ✓ + `docs/gaps/repro/*.js` ✓
+      ⇒ ⇒ **`judge.rs` 只有一处** ✓ ⇒ **它应当命中** ✗ ⇒ **所以要读它的输出** ✓。
+  ```
+  **⇒ 下一步** ✓：**读 `changes` job 的日志** ✓（看 `rust` 的判定 ✓）⇒
+  若确实为 `false` ✗ ⇒ **过滤器定义要修** ✓（**这又是一条"发版被 skip"** ✗）；
+  若为 `true` ✗ ⇒ **那是 `if` 的问题** ✓。
+
 * **🚀🎯 round 368：**hook 第一次不跳过就放行** ✓✓✓ ⇒ **发版推已上** ✓（`d073bfb..960fe92` ✓）
   ```
   ✅ ① 版本一致：0.72.0 ✓      ✅ ② `--locked` 通过 ✓
