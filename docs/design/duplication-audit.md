@@ -252,3 +252,22 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 ⇒ 需要一个**公开的**"按报告折一段文本"入口 ✓（例如
 `query::fold_text_with(report, text) -> String` ✓），LSP/hover 与 elab 的诊断拼串都走它 ✓
 —— **本次未实现** ✗（上下文不足 ✓），但落点已精确到行 ✓。
+
+### A/B 组的**落地设计**（round 102 实测定的 ✓ —— 不是简单委托 ✗）
+**实测**：`DisplayNotations { table: Vec<NotationDecl>, arity: HashMap<String,usize> }`
+（`display.rs:108-116` ✓）⇒ 建表**必须有 ARITY 表** ✗，而 arity 是从**声明的类型**算出来的
+（`arities_in_commands` ✓，`display.rs:641` ✓）。`ProjectReport` 里带的
+`notations: Vec<NotationDecl>`（`report.rs:137` ✓）**只有声明点** ✓ ⇒
+**LSP / hover 这一侧拿不到 arity** ✗ ⇒ **折不了** ✗（本 session 第三次撞到同一堵墙 ✓：
+`query::runs` 那次、`goal_display` 那次、这次 ✓ —— 每次都是"**表不在这一层**" ✓）。
+
+⇒ **正解（与 T-U4 同款 ✓）**：**显示副本在 front 的生产/查询层折好** ✓，
+LSP 只**搬运** ✓。具体：给 hover/诊断要用的文本在 **front 侧**产出**折过的副本** ✓
+（照 `ty_text` / `val_text` / T-U4 的 `goal_display` 的样板 ✓），
+A 组 5 处与 B 组 19 处改成读那份副本 ✓ —— **而不是**在 `lsp/lib.rs` 里调 `render_expr` ✗。
+**这条设计结论取代**本文件 §3 里"加一个公开 `fold_text_with(report, text)`"的初稿 ✗
+（那需要 front 侧把 arity 也放进报告 ✓，改动面更大且没必要 ✓）。
+
+**因此 T-U11 的第一步是**：找出 A/B 两组各自**该由哪个 front 生产者**产出显示副本 ✓
+（`half_expression_goals_hover` 的输入从哪来 ✓、`elab.rs` 的诊断消息在哪一步拼 ✓），
+**先定这个再动代码** ✗（否则就是又一次"在错的层上修" ✓）。
