@@ -95,6 +95,11 @@ jobs:
               # `gates`/`ledger`/`contract` ✓ —— 否则"改了判据却没人验" ✗，
               # 正是用户抱怨的那种形态 ✓。
               - "scripts/**"
+              # **改 CI 自身也要跑**（2026-09-25 round 161 ✓ 我自己撞上的洞 ✗）：
+              # 只改 `.github/workflows/**` 时，三个标志全 false ✗ ⇒ `ledger`/`gates`/`test`
+              # 全被 skip ✗ ⇒ **刚改的那条 job 永远得不到验证** ✓（本轮修 `ledger` 的 Node
+              # 就是这么被 skip 掉的 ✗）。⇒ 把工作流文件也算进"会改变验证结果" ✓。
+              - ".github/workflows/**"
             editor:
               - "editor/**"
             courses:
