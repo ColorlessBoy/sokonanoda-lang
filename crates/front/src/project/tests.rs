@@ -536,6 +536,46 @@ fn closure_digest_marks_the_module_set() {
 }
 
 #[test]
+fn closure_digest_is_scoped_to_the_entry_location() {
+    // **T-B4 的判据**（`docs/design/project-artifacts.md` §1.1/§2 的承重主张）：
+    // 项目条目的键里**含入口的绝对路径**（T-A06）⇒ 两份**逐字相同**、只是放在不同
+    // 目录的项目，digest 必须**不同**。
+    //
+    // 为什么这条是承重的：`.sokonanoda/` 的分工决定（项目条目落模块根、单文件条目留
+    // 全局缓存）建立在"项目条目**天生按位置隔离**"之上。若它其实与位置无关，把产物
+    // 放进模块根就会**丢掉跨项目复用** ✗ —— 那分工得推翻重来。反过来，单文件条目的
+    // 键只含内容（`compile::cache::key(src, options)` 连路径参数都没有）⇒ 它留在
+    // 全局缓存才对。
+    //
+    // 反例守卫：把 `ProjectPlan::digest` 里 `digest_path(&self.entry)` 那一行去掉，
+    // 本测试立刻红 ✗（T-A06 的原始 bug 就是把它漏了）。
+    let a = tmp_dir("digest-loc-a");
+    let b = tmp_dir("digest-loc-b");
+    for dir in [&a, &b] {
+        write(dir, "sokonanoda.toml", "name = \"x\"\n");
+        write(dir, "Bar.sokonanoda", "def bar : Nat := 2\n");
+        write(
+            dir,
+            "Main.sokonanoda",
+            "import Bar\n\ndef two : Nat := bar\n",
+        );
+    }
+    let options = CompileOptions::default();
+    let digest_in =
+        |dir: &Path| plan_project(&dir.join("Main.sokonanoda"), None, None).digest(&options);
+
+    assert_eq!(digest_in(&a), digest_in(&a), "same location ⇒ stable");
+    assert_ne!(
+        digest_in(&a),
+        digest_in(&b),
+        "identical content at a different path must not share a digest \
+         (the project entry is location-scoped by construction)"
+    );
+    let _ = std::fs::remove_dir_all(&a);
+    let _ = std::fs::remove_dir_all(&b);
+}
+
+#[test]
 fn an_overlay_makes_unsaved_dependency_edits_visible() {
     let dir = tmp_dir("overlay");
     write(

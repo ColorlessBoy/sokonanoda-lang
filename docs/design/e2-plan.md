@@ -172,7 +172,31 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **CHANGELOG 条目按仓库惯例留到 T-B7 的 bump commit**（`6490f1b`/`b0c35da` 两次
     都是这么做的：CHANGELOG 与版本号在同一个 commit 里进，日期才是发布日）——
     草稿："命令面板 15 条统一成 `Sokonanoda: <Command> (说明)`"，T-B7 直接抄。
-- [ ] `T-B4` **R-3 设计**：`.sokonanoda/` 目录的**契约**（放什么：编译产物 / 依赖 / 元数据；命名；清理策略；`--clean` 语义；与现有缓存 `~/.local/share/sokonanoda` 的关系 —— **模块根下的产物 vs 全局缓存**的分工 ✓）
+- [x] `T-B4` **R-3 设计**：`.sokonanoda/` 目录的**契约**（放什么：编译产物 / 依赖 / 元数据；命名；清理策略；`--clean` 语义；与现有缓存 `~/.local/share/sokonanoda` 的关系 —— **模块根下的产物 vs 全局缓存**的分工 ✓）
+  - ✅ **已出设计（2026-09-24）**：`docs/design/project-artifacts.md`（240 行，含 8 节 +
+    逐条出处）。**刹车点解除** ✓（`e2-plan.md` §3 要求"分工说不清就只做 R-4"）——
+    分工一句话：**产物按项目落盘、全局缓存退居跨项目共享的后备；项目条目只认模块根、
+    单文件条目只认全局**，依据是**实测**：项目条目的键含**入口绝对路径**（两份逐字相同的
+    项目 = **2 个条目**；同目录第二次 = **命中**），单文件条目的键只含内容
+    （2 处相同文本 = **1 个条目**）。
+    设计要点：目录树（`.gitignore`/`meta.json`/`compiled/<key>.json`，**预留** `prefix/`
+    给 T-D11、`deps/` 给将来的依赖）· 命名**沿用**既有格式与键（不造第二套）·
+    `--clean` **改成两处都清**（否则 `rebuild` 会命中项目条目 = 假动作 ✗），事件
+    additive 加 `global`/`project` · `.gitignore` 采用**自忽略一行 `*`**（实测
+    `git status` 完全看不见；变体 `*`+`!.gitignore` 会漏 `?? .sokonanoda/` ✗）·
+    **红线：产物扩展名不许是 `.sokonanoda`**（`build <dir>` 的 `collect_files`
+    **不跳隐藏目录** ⇒ 自我吞掉；VS Code 又监视 `**/*.sokonanoda` ⇒ 写-编回声）·
+    **新不变量**：项目目录只放"磁盘状态产物"（带未落盘 overlay 的条目仍进全局缓存）·
+    逃生门 `SOKONANODA_NO_PROJECT_ARTIFACTS=1` ⇒ 行为逐字节回到今天。
+    **判据**：新增 `project::tests::closure_digest_is_scoped_to_the_entry_location`
+    （两份逐字相同、不同目录 ⇒ digest 必须不同；抽掉 `digest_path(&self.entry)` 那行
+    实测 **exit 101** ✓ 恢复后绿 ✓）——它钉的正是分工决定的地基。
+    **两处口径纠正**：① `REQUIREMENTS`/计划里写的"现有缓存
+    `~/.local/share/sokonanoda`"是**二进制**缓存；**编译产物**缓存在平台缓存目录
+    （`compile/cache.rs:67-79`）；② `compile-cache.md` 里"`requires` 漂移 ⇒ 永不写
+    缓存"的散文**已过期**（`report.rs:163-177` 实测：漂移不算"不干净"）。
+    取证由 3 个只读 subagent 并行做（落盘清单 / 消费者清单 / 既有约束），
+    已并入并**逐条复核**：其中"风险 #6（漂移挡写缓存）"与代码事实不符 ⇒ **未采纳**。
 - [ ] `T-B5` **R-3 实现（CLI 侧）**：`build`/`grade` 把模块级产物写进 `<模块根>/.sokonanoda/` ✓；第二次调用**命中** ✓
 - [ ] `T-B6` **R-3 判据**：同一模块连跑两次 `build`，第二次**显著更快** ✓（数字进台账）+ 产物目录内容可读（`--json` 能列 ✓）+ `.gitignore` 指引 ✓
 - [ ] `T-B7` **阶段 B 收尾**：基准复量（① ② 应变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.67.0` → release → 核对 ✓
