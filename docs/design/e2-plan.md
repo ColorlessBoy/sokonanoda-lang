@@ -884,6 +884,21 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 303：③ 的锚点修对了 ✓（脚本走到 ⑤ ✓）⇒ 而 ⑤ 三处**只有两处同形** ✗**
+    ```
+    第 1 处（:570 ✓）:  self.probe_builder… / **universe,** / ty, / val, / &redundant_spans, / &self.known, / &elab_ctx,
+    第 2 处（:794 ✓）:  同上 ✓
+    第 3 处（:1107 ✓）: self.probe_builder… / **&[],** / ty, / val, / &redundant_spans, / &self.known, / &elab_ctx,
+    ⇒ **第三处传的是 `&[]`** ✗（不是 `universe` ✓）⇒ 我的锚点（含 `universe,` ✗）只匹配 **2** ✓✓
+    ⇒ `AssertionError: ('w5', 2)` ✓ ⇒ **树仍干净** ✓（写入在最后 ✓，**无部分写入** ✓）
+    ```
+    **⇒ 修正（⑤ 分两趟 ✓）**：`/tmp/patch_d2_c.py` 的 ⑤ 改成
+    **先替换 `universe,` 版（`count == 2` ✓）**，**再替换 `&[],` 版（`count == 1` ✓）**
+    ⇒ 两趟都用**同一段 hide/restore 代码** ✓（只是第二趟锚点里的第三行不同 ✓）。
+    ⚠ **教训（第六次锚点错 ✓）**：**"三处同形"是我假设的，不是读出来的** ✗ ——
+    round 302 我只**打印了一处**（`:570` ✓）就写了"三处同形"✗ ⇒ 而 round 303 打印**三处** ✓
+    才发现第三处是 `&[]` ✓。⇒ **"几处同形"这个判断，必须打印每一处才算数** ✓。
+
   - **⚠ round 302：②–⑤ 一次没落上（③ 的锚点差一行 ✗）⇒ 已确认树干净 ✓、修正只有一行 ✓**
     ```
     $ git status --short ; git diff --quiet -- crates/ => **树干净** ✓（**写入在脚本最后** ✓
