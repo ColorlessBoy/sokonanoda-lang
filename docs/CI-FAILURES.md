@@ -1391,3 +1391,29 @@ env -i PATH=<node>:/usr/bin:/bin HOME=/tmp SOKONANODA_CACHE_DIR=<空> CARGO_TARG
 把 `target/` 临时改名（或 `SOKONANODA_BIN=/nonexistent` + `--no-project-artifacts` ✓
 + 断网 ✓ 三者同时上 ✓）⇒ 让"下载"成为唯一出路 ✓ ⇒ 再看它红在哪一条 ✓。
 ⚠ **不推荐**在 CI 里加"更响的诊断"来换信息 ✗ —— 先读日志 ✓，那是零成本的一条路 ✓。
+
+## ✅ **根因确认**（round 179 ✓，**日志到手** ✓）：`ledger` job 没有 build ⇒ 复现件量的是**已发布版** ✗
+**日志原文** ✓（`ledger (3)` ✓，405 行 ✓，14:47:23 ✓）—— 唯一不一致的一条 ✓：
+```
+G-07  fixed  script  缺口仍在  ← 台账写的是「行为已变」，请更新 ｜复现件：→ G6 机器可读面（修后预期）：yes
+```
+⇒ **`G-07` 期望"已修"** ✓（`query check` 的机器可读面 ✓），**CI 上却"缺口仍在"** ✗，
+而**本机是绿的** ✓ ⇒ **差在量的是哪个二进制** ✓✓：
+`ledger` job 只有 `Install Rust` + `Rust cache` ✗ ⇒ `scripts/soko` 解析到
+**按版本钉下载的已发布版** ✓ —— 而那版**还没有工作树里的修复** ✗ ⇒ **量错对象** ✓。
+（这正是 round 161 那个假设 ✓ —— 当时我用 `SOKONANODA_BIN=/nonexistent` 试 ✓、它**绿** ✓
+⇒ 我判它"不成立" ✗ —— **判早了** ✗：那次绿是因为本机仍能解析到**仓库构建** ✓，
+而 CI 上**没有**它也**没有缓存** ✓ ⇒ 只能下载 ✓。**教训** ✓：**"否证"也要否证得干净** ✗。）
+
+## 修复 ✓
+`ledger` job 加一步（与 `gates` job 的"Release CLI for the course gate"同款 ✓）：
+```yaml
+- name: Build CLI for the gap repros
+  run: cargo build --release -p sokonanoda-cli --locked
+```
+⇒ `scripts/soko` 的解析顺序里"**版本匹配的仓库构建**"在"下载"**之前** ✓ ⇒ 从此量的是
+**本仓库的代码** ✓ = 与本地同口径 ✓（`env: SOKONANODA_BIN` 的显式钉可选 ✓，非必需 ✓）。
+
+## 判据
+本机行为**不变** ✓（本地本来就解析仓库构建 ✓）；**CI 侧由下一轮确认** ✓
+—— 这是**必须推**的那类改动 ✓（本地绿 ≠ CI 绿 ✓ 本 session 已证 ✓）。

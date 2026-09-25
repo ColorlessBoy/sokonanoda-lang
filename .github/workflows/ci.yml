@@ -292,6 +292,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # **必须构建本仓库的 CLI**（2026-09-25 round 179 **日志证实** ✓）：
+      # `ledger` job 原来只有 `Install Rust` + `Rust cache` ✗ ⇒ `scripts/soko` 解析到
+      # **已发布版**（下载 ✓）⇒ 而复现件量的是**工作树里的修复** ✗（如 `G-07`：
+      # 台账写 `fixed` ✓、CI 却报"缺口仍在" ✗）⇒ **本地永远绿、CI 永远红** ✓。
+      # 证据原文（`ledger (3)` 日志 ✓）：
+      #   `G-07 fixed script 缺口仍在 ← 台账写的是「行为已变」，请更新 ｜复现件：→ G6 机器可读面`
+      # ⇒ 与 `gates` job 的"Release CLI for the course gate"同款 ✓（那一步就是为此存在的 ✓）。
+      - name: Build CLI for the gap repros
+        shell: bash
+        run: cargo build --release -p sokonanoda-cli --locked
       - name: Gap ledger is consistent (docs/gaps)
         # 台账是**契约**：每条缺口的复现必须与它的 status 对得上（fixed ⇒ 应转绿 /
         # open ⇒ 应仍复现 / 显式 repro_expect 覆盖）。只有它能让 `fixed_in` 不随语言
