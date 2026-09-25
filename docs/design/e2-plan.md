@@ -884,6 +884,32 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯🎯 round 283 续：测试名就是烟枪 —— 是「冗余 `sorry`」判定（`redundant_probes`）✓**
+    ```
+    crates/front/src/compile/tests.rs
+    :5836  a_leftover_sorry_after_a_complete_term_is_reported_as_redundant        ← 冗余 sorry ✓
+    :5874  a_leftover_sorry_in_a_lambda_body_is_reported_as_redundant             ← 冗余 sorry ✓
+    :5928  a_leftover_sorry_whose_term_does_not_prove_the_goal_is_not_reported    ← 冗余 sorry ✓
+    :5950  a_leftover_sorry_with_a_forward_reference_is_not_reported_as_redundant ← 冗余 sorry ✓
+    :7614  a_loose_postfix_binds_outside_the_binary_operator                      ← 无关 ✓
+    ⇒ **5 个里 4 个是 `a_leftover_sorry_*`** ✓
+    ```
+    **⇒ 根因（明确 ✓）**：那 4 条测的是 **"冗余 `sorry`"** ✓ = **`redundant_probes`** 机制 ✓
+    （`build_redundant_probes` ✓，见 `walk.rs:767` ✓）—— 而它**在 walk 期间就跑** ✓
+    ⇒ **判卷看到的是 walk 已经提前加过声明的环境** ✗ ⇒ **自引用** ✓✓：
+    probe 问"这个 `sorry` 冗余吗" ✓，而环境里**已经含有正在被测的那条声明** ✗ ⇒ 判定翻转 ✓。
+    **⇒ 这与"A 步的 `--json` 逐字节相同"不矛盾** ✓：CLI 那次比对**没有 `sorry` 探针** ✓
+    （`playground` 与 `unit4` 走的是普通路径 ✓）⇒ **A 步在"普通路径"上恒等 ✓、
+    在"冗余 sorry 探针"上不恒等** ✗ ⇒ **A 步的适用边界由此确定** ✓✓。
+    **⇒ 修法（两条 ✓，都小 ✓）**：
+    * **A1（推荐 ✓）**：`redundant_probes` **不看 walk 提前加的环境** ✓ ——
+      即 probe 走**自己的**环境（如同从前 ✓）⇒ 需要让 probe 在"影子/真"之间选对 ✓；
+    * **A2**：把 `redundant_probes` 的构造**挪到 walk 之后** ✓（等真 `builder` 稳定 ✓）
+      ⇒ 但那样就失去了"walk 期间当场做"的初衷 ✓ ⇒ **A1 更对** ✓。
+    **⇒ 下一步（一条命令 ✓）**：读 `build_redundant_probes`（`walk.rs:767` 附近 ✓）
+    ⇒ 看它**用的哪个环境** ✓ ⇒ 若用 `self.builder`（真 ✓）⇒ **改成用影子环境** ✓（或传一个"只用 prelude"的 ✓）
+    ⇒ 那就是 A1 ✓，**一行到几行** ✓。
+
   - **🎯🎯 round 283：二分**一步到位** —— 污染源在 `a_l*`（5 个测试 ✓，3 个失败 ✓）**
     ```
     a_l => **2 passed; 3 failed** ✗      ← **唯一的失败组** ✓
