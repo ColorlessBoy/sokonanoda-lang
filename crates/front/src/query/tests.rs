@@ -586,17 +586,9 @@ fn assert_text_runs_in_lockstep(doc: &QueryDoc, what: &str) {
     for d in &goals {
         let pairs: Vec<(&str, &str, &[crate::query::types::RunInfo])> = vec![
             ("ty", d.ty.as_deref().unwrap_or(""), &d.ty_runs),
-            (
-                "value",
-                d.value.as_deref().unwrap_or(""),
-                &d.value_runs,
-            ),
+            ("value", d.value.as_deref().unwrap_or(""), &d.value_runs),
             ("goal", d.goal.as_deref().unwrap_or(""), &d.goal_runs),
-            (
-                "binders[i].ty",
-                "",
-                &[],
-            ),
+            ("binders[i].ty", "", &[]),
         ];
         for (field, text, runs) in pairs {
             if field == "binders[i].ty" {

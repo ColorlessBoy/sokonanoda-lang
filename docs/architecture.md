@@ -661,3 +661,46 @@ scripts/kernel-diff.sh --self-test target/debug/sokonanoda
 
 **为什么测试不够**：内核改动可能"测试全绿但判定变了"（阈值、边界、归因）。
 逐字节对拍把**整个语料**的判定结果钉死，这是单测覆盖不到的。
+
+## 记法转化的**唯一接口**（阶段 U，2026-09-25 用户要求「完全统一接口」✓）
+
+> **一句话**：**AST/文本 → 给人看的文本与分段**这件事，全仓**只有一个入口**
+> `DisplayNotations::{fold, render, runs}` ✓（`crates/front/src/display.rs` ✓）。
+> 谁要"带记法的文本/分段"都必须经它 ✓；绕过它 = 又长出一套实现 ✗。
+
+### 为什么（真实事故：四处实现 ⇒ 用户 bug）
+2026-09-25 用户报"Infoview 顶部「目标」里 `∃` 没转化" ✗。查证：**不是一处 bug，
+是四处各自为政的实现** ✗：
+
+| 实现 | 干什么 | 曾经的消费者 | 现状 |
+|---|---|---|---|
+| `display::print_back` | **真的转化**（文本→文本 ✓） | `ty_text`/`val_text` | ✅ 收进 `fold` ✓ |
+| `semantic::tag_runs_with_notations` | **只打标签**（不转化 ✗） | `query::runs` ⇒ `goal_runs`/`ty_runs`（Infoview 读它 ✓） | ✅ 收进 `runs` ✓ |
+| `display::render_expr` | **只渲染**（AST→文本 ✗） | `goals::open_goal`、walk 的三处目标 | ⚠ 仍是底层原语 ✓（只许接口内部调 ✓） |
+| 内核 pp（`info.goal`） | 点形式 ✗ | walk 的两处 tactic 目标 | ⚠ 同上 ✓（文本进来后**必过折叠** ✓） |
+
+**后果**：目标生产链（③④⇒②）**只渲染不折叠** ⇒ 顶部目标永远是点形式 ✓。
+`AGENTS.md` 的 R-1/R-2 教训"真相与显示是两条路"在这里升级为"**连显示自己都分了四条路**" ✗。
+
+### 三条不变量（改这块前先读 ✓）
+1. **折叠只发生一次** ✓，在 **front 生产侧** ✓；query/wire/扩展**只搬运不许再折** ✗。
+2. **`text` 与 `runs` 必须逐字节成对** ✓ —— 守卫：
+   `query::tests::every_decl_ships_text_and_runs_in_lockstep` ✓（覆盖 `ty`/`value`/`goal`/
+   `goals[i]`/`binders[i].ty` ✓，正反两向实测过 ✓）。
+3. **judge 输入一个字节都不许动** ✗ —— `DeclState.goal` / `binders[].ty` / `sub_goals[].ty`
+   **同时喂判卷** ✓；折它们 ⇒ `suggest::*` 当场判红 ✓（2026-09-25 踩过 ✓，见
+   `crates/front/src/compile/check/kernel_phase.rs` 的注释 ✓）。
+   ⇒ **要折就折"显示副本"** ✓（`ty_text`/`val_text` 就是这个形状 ✓）。
+
+### 守卫（防第五套 ✓，都已进 `scripts/soko gate`）
+* `scripts/audit-notation-paths.py` ✓ —— 白名单之外出现 `render_expr(`/`print_back(`/
+  `tag_runs_with_notations(` 即判红 ✗；**棘轮**（基线 `scripts/notation-paths-baseline.txt` ✓
+  冻结存量、只拦新增 ✓）；`--self-test` 反向验证 ✓。
+  ⚠ **盲区**：白名单按**文件**豁免 ⇒ `display.rs` **内部**再长一个等价入口它抓不到 ✗
+  （真实实例：`render_folded` ✓ 已删 ✓）⇒ 改那个文件前先看顶部接口清单 ✓。
+* `scripts/audit-wire-fields.py` ✓ —— A∖B 对账（扩展读了 / LSP 从不发 ✓），
+  `--selftest` 能咬住 R-1（`value_runs` ✓）。
+
+细节与迁移表：`docs/design/notation-display.md` ✓；
+审计（25 条"同一件事多处实现"）：`docs/design/duplication-audit.md` ✓。
+
