@@ -523,6 +523,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     两态 `--json` **逐字节相同** ✓（`886c747ac5ff…` ✓）· 两态退出码 **0** ✓
     ⇒ **前缀复用确实在跑、且不改变结果** ✓；缺的只是"**关掉时慢多少**"这个基线数字 ✗。
 
+  - **🎯 round 228：读到了条件 —— "时有时无"= `CALLS == 0`，与重定向**无关** ✗**
+    ```rust
+    judge.rs:355-366
+    pub(crate) fn install_printer() {
+        if std::env::var_os("SOKO_JUDGE_STATS").is_none() { return; }   // 没变量 ⇒ 不装 ✓
+        PRINTED.call_once(|| { /* atexit：进程退出前打一次 ✓ */ });
+    }
+    :365  if calls == 0 { return; }                                     // **CALLS==0 ⇒ 什么都不打** ✗
+    ```
+    ⇒ 那两次"没输出" = **判卷没被调用** ✗（`CALLS==0` ✓），**不是**重定向/SIGPIPE ✗
+    —— **我在形状上绕的两轮完全白费** ✗（正是 round 227 记下的那条教训 ✓，本轮读 15 行就解决了 ✓）。
+    **⇒ 下一步（一条命令 ✓）**：`git grep -n install_printer` ✓ 找**谁装它** ✓
+    —— 关键问题变成 ✓：**为什么 round 225 那次 `CALLS=144` ✓，而后两次是 0** ✗？
+    （最可能：**装打印机的路径**与**真正判卷的路径**不是同一个入口 ✗，
+    例如只有 `judge` **batch** 那条路才装 ✓ —— `SOKO_NO_JUDGE_BATCH` 这个开关的存在暗示了这一点 ✓。）
+    ⇒ 找到入口后 ✓，T-D6 的计时基线就能取到 ✓（两态各跑**同一条**入口 ✓）。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
