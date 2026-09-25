@@ -20,6 +20,17 @@ import sys
 PROTO = "crates/lsp/src/protocol.rs"
 IV = "editor/vscode/media/infoview.js"
 EX = "editor/vscode/extension.js"
+PT = "editor/vscode/project-tree.js"
+# **审计 #17 的现状（2026-09-25 实测，别照"看起来对"的写法接 ✓）**：
+# `project-tree.js` 读 `project.{root,manifest,counts,modules,diagnostics,requires_warning,entry,module}`
+# 与 `module.<12 个字段>`，而它**不在消费点表里** ✗（"有就渲染"的宽容实现 ⇒ 停发字段静默降级 ✓）。
+# 我试过直接把 `ProjectResponse` 接进来 ⇒ 报 8 个 MISSING ✗，但**实测是假阳性** ✓：
+#   `soko query project --file …` 的响应是 `{project, reason}` ✓（真二进制实测 ✓），
+#   那 8 个字段**确实发送**了 ✓ —— 只是嵌在 `ProjectResponse.project`
+#   （**front 侧** `crates/front/src/query/types.rs::ProjectView` / `ModuleView` ✓）里，
+#   而本守卫只解析 `crates/lsp/src/protocol.rs` ✗ ⇒ **解析不到 ≠ 没发** ✓。
+# ⇒ 要真正覆盖它，必须先让 `fields()` 也能读 front 侧那个文件 ✓（下一步 ✓）；
+#   在那之前**不要**接 ✗（常红的守卫比没有守卫更糟 ✓）。
 
 # JS 自有的局部字段（不是 wire 字段）。
 LOCAL = {"start", "line", "length", "text", "kind"}
@@ -104,6 +115,7 @@ def main() -> int:
     # （`soko/hints` 的 `response.hints`、树视图自己的 `state`）。
     collect(EX, "state", ("StateAtResponse",), only=("goal", "binders"))
     collect(EX, "response", ("GoalsResponse",), only=("uri", "decls", "version"))
+
 
     print(
         "MISSING (扩展读了 / LSP 从不发):",
