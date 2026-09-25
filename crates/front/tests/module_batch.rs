@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 
 use sokonanoda_front::compile::CompileOptions;
 use sokonanoda_front::project::compile_plan;
-use sokonanoda_front::project::module_plan::{compile_module, module_files, plan_module};
+use sokonanoda_front::project::module_plan::{compile_module, module_files, plan_module_subset};
 use sokonanoda_front::project::plan_project;
 
 const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
@@ -30,6 +30,23 @@ fn tmp(tag: &str) -> PathBuf {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("create temp dir");
     dir
+}
+
+/// 递归拷贝目录（切片夹具用）。
+fn copy_tree(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).expect("create dir");
+    let Ok(read) = std::fs::read_dir(from) else {
+        return;
+    };
+    for entry in read.flatten() {
+        let path = entry.path();
+        let target = to.join(entry.file_name());
+        if path.is_dir() {
+            copy_tree(&path, &target);
+        } else {
+            std::fs::copy(&path, &target).expect("copy file");
+        }
+    }
 }
 
 fn write(dir: &Path, name: &str, text: &str) {
@@ -45,19 +62,23 @@ fn write(dir: &Path, name: &str, text: &str) {
 /// 比较口径**逐项**：声明状态、错误、警告、事件序列（含重基后的 `cmd`）。
 fn differences(root: &Path) -> Vec<String> {
     let options = CompileOptions::default();
-    let plan = plan_module(root);
-    let batch = compile_module(&plan, &options);
-    let mut out = Vec::new();
-    // 规模旋钮：`SOKO_BATCH_SUBSET=<n>` 只比前 n 个文件（真课程整根比较是分钟级，
-    // 排查时先用小 n 拿结论；默认 0 = 全部）。
+    let mut files = module_files(root);
     let subset = std::env::var("SOKO_BATCH_SUBSET")
         .ok()
         .and_then(|raw| raw.parse::<usize>().ok())
         .unwrap_or(0);
-    let mut files = module_files(root);
     if subset > 0 {
         files.truncate(subset);
     }
+    let subset_or_all = files.len();
+    // **同口径**：批编只规划这批文件（`plan_module_subset`），否则批编会把整根都编进去、
+    // 与"逐入口只编这几个"不可比 ✗（第一次量就是这样得出 12× 慢的假结论）。
+    let started = std::time::Instant::now();
+    let plan = plan_module_subset(root, &files);
+    let batch = compile_module(&plan, &options);
+    let batch_ms = started.elapsed().as_secs_f64() * 1000.0;
+    let mut out = Vec::new();
+    let started = std::time::Instant::now();
     for file in files {
         // 旧路径：以这个文件为入口，编它自己的闭包（今天 `build <file>`/`grade` 走的路）。
         let legacy = plan_project(&file, None, Some(root));
@@ -120,6 +141,12 @@ fn differences(root: &Path) -> Vec<String> {
             ));
         }
     }
+    println!(
+        "PERF module batch compare: 批编一趟 {batch_ms:.0}ms · 逐入口 {} 趟 {:.0}ms · 差异 {} 条",
+        subset_or_all,
+        started.elapsed().as_secs_f64() * 1000.0,
+        out.len()
+    );
     out
 }
 
@@ -158,9 +185,32 @@ fn a_module_batch_matches_per_entry_compilation_file_by_file() {
 #[test]
 #[ignore]
 fn the_real_course_module_batch_matches_per_entry_compilation() {
-    let root = PathBuf::from(REPO).join("courses/set-theory");
+    // **真实的课程切片**：把真 `lib/**` 与 N 个真单元拷进临时目录再比 ——
+    // 直接在整根上比会慢到不可用 ✗（`plan_module` 会对**每个**文件各 `plan_project`
+    // 一次 ⇒ 共享库被重复解析 35 遍；批编又把 35 个单元一次全编）。
+    // 切片保留了"真课程的形状"（大 lib + 多个 unit、`import lib.X` 跨文件），
+    // 成本却可控：`SOKO_BATCH_SUBSET=<n>` 决定单元数（默认 2）。
+    let course = PathBuf::from(REPO).join("courses/set-theory");
+    let take = std::env::var("SOKO_BATCH_SUBSET")
+        .ok()
+        .and_then(|raw| raw.parse::<usize>().ok())
+        .filter(|n| *n > 0)
+        .unwrap_or(2);
+    let root = tmp("course-slice");
+    copy_tree(&course.join("lib"), &root.join("lib"));
+    if course.join("sokonanoda.toml").exists() {
+        std::fs::copy(course.join("sokonanoda.toml"), root.join("sokonanoda.toml")).unwrap();
+    }
+    std::fs::create_dir_all(root.join("units")).expect("create units dir");
+    let mut units: Vec<PathBuf> = module_files(&course.join("units"));
+    units.sort();
+    for unit in units.iter().take(take) {
+        let name = unit.file_name().expect("unit name");
+        std::fs::copy(unit, root.join("units").join(name)).expect("copy unit");
+    }
     let files = module_files(&root);
-    assert!(files.len() > 10, "课程文件数异常：{}", files.len());
+    assert!(files.len() > take, "切片文件数异常：{}", files.len());
+    println!("切片：{} 个文件（真 lib + {take} 个真单元）", files.len());
     let differences = differences(&root);
     println!(
         "PERF course module batch: {} files · {} differences",

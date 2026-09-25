@@ -84,11 +84,21 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
 /// 而"先出现的先入列"只可能把一个单元**提前**——若 X 排在它的依赖 Y 前面，说明 X 在
 /// 更早那趟闭包里先出现，可那一趟里 Y 是 X 的传递依赖、本该更早入列 ⇒ 矛盾。
 pub fn plan_module(root: &Path) -> ModulePlan {
+    plan_module_subset(root, &module_files(root))
+}
+
+/// 只规划**指定文件**（各自闭包的并集）—— 与 [`plan_module`] 同一条路径，
+/// 只是文件清单由调用方给。
+///
+/// 为什么需要它：`plan_module(root)` 会把根下**全部**文件编进去；当调用方只想
+/// 处理其中几个（例如 `build <dir>` 的增量场景，或"同口径对比"的量本）时，
+/// 用这个入口才不会把无关文件的成本算进来 ✓。
+pub fn plan_module_subset(root: &Path, files: &[PathBuf]) -> ModulePlan {
     let mut units: Vec<PlannedUnit> = Vec::new();
     let mut seen: BTreeSet<PathBuf> = BTreeSet::new();
     let mut diagnostics: Vec<ProjectDiagnostic> = Vec::new();
-    for file in module_files(root) {
-        let plan = plan_project(&file, None, Some(root));
+    for file in files {
+        let plan = plan_project(file, None, Some(root));
         for diagnostic in &plan.diagnostics {
             if !diagnostics.iter().any(|known| {
                 known.module == diagnostic.module && known.message == diagnostic.message

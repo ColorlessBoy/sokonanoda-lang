@@ -275,7 +275,18 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     `plan_module_dedups_shared_dependencies_and_keeps_topological_order`
     （Lib 被 B/C 共享 ⇒ 单元序 `[Lib, B, C]` 且 Lib **只出现一次**、三个文件都有报告 ——
     抽掉去重 ⇒ **exit 101** ✓）。恢复后 front **724 passed** ✓。
-- [ ] `T-C3` **等价性判据**：对同一门课，**逐文件**比较"新 API 的报告"与"旧路径（逐入口编译）的报告" —— 状态、诊断、`decl.checked` 事件**逐项相同** ✓
+- [x] `T-C3` **等价性判据**：对同一门课，**逐文件**比较"新 API 的报告"与"旧路径（逐入口编译）的报告" —— 状态、诊断、`decl.checked` 事件**逐项相同** ✓
+  - ✅ **等价性成立（2026-09-25）**：`crates/front/tests/module_batch.rs` ——
+    夹具用例（进 CI）**绿**；**真课程切片**（真 `lib/**` + 2 个真单元，11 文件）
+    **逐文件差异 0 条**（声明状态 / 错误 / 警告 / 事件序列含重基 `cmd` 全同；
+    T-C1 §3 点名的三类差异在真实内容上**没有出现**）。
+  - ⚠ **但量出负结果（这条改变了阶段 C 的结论）**：**同口径**下平坦批编
+    **11,491ms** vs 逐入口 **3,723ms** ⇒ **慢约 3×** ✗。机制：批里每个单元都在
+    **更长的前缀**上工作，单元越大越贵；合成小单元项目里反而是批编快 1.98×
+    （`crates/front/tests/perf_module_batch.rs`）。⇒ 按 E2 §3 的刹车精神：
+    **API 与判据留在树上（惰性、默认关、零成本）**，**不**默认打开；`T-C5` 的
+    "默认打开（收益已证）"**不成立**，除非阶段 D 的前缀复用把长前缀代价压下来。
+    设计 §8 有完整数字与机制分析。
 - [ ] `T-C4` **`build <dir>` 接入**（开关 `SOKO_BUILD_MODULE_BATCH=1` 默认**关** ✓，先保证零退化 ✓）
 - [ ] `T-C5` **量收益**：`build courses/set-theory` 从 **146.07s** 降下来 ✓（数字进台账）；**默认打开** ✓（收益已证 ✓）
 - [ ] `T-C6` **LSP/agent 接入**：从 `.sokonanoda/` 取模块级产物 ✓（与 B5 合流 ✓）
