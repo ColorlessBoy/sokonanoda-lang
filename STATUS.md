@@ -26,6 +26,23 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🔴 round 362：`G-37` 的复现件**本地也返回 0** ✗（**而且一个字节都没打印** ✗✓）**
+  ```
+  $ python3 scripts/gap.py show G-37
+    "repro": "docs/gaps/repro/G37-notation-decl-target-not-a-use-point.sh" ✓
+    "notes": "… **修后判据：G37-….sh ⇒ exit 1**。" ✓ ⇒ **0 = 缺口仍在** ✗
+    "fixed_in": "0.65.5" ✓
+  $ timeout 300 bash docs/gaps/repro/G37-….sh ; echo $?
+    exit=**0** ✗（**无任何输出** ✗）
+  ⇒ ⇒ **本地也是 0** ✗ ⇒ **不是环境问题** ✗✓（`G-37` 也不在"环境慢"名单里 ✓）
+  ⇒ **两种可能** ✓：① **真回归** ✗（0.65.5 之后又坏了 ✓）
+    ② **复现件静默失败** ✗（**一个字节都没打印** ✗ ⇒ 可疑 ✓ —— 可能缺工具就 exit 0 ✗）
+  ```
+  **⇒ 下一步** ✓：**读那个复现件** ✓（它为什么不打印 ✓）⇒ 若是静默失败 ⇒ **修复现件** ✓；
+  若真回归 ⇒ **那是真回归** ✗ ⇒ **修代码** ✓（**一个环节一个 commit** ✓）。
+  ⚠ **而 `gap.py check` 本地跑不完** ✗（`timeout 400` 被它跑满 ✓ —— **全部 repro 都要跑** ✓）
+  ⇒ **只查一条要用 `show`** ✓（**它不跑复现** ✓）⇒ **单条复现就直接 `bash` 那个 .sh** ✓。
+
 * **🎯🎯 round 361：`ledger` 三片红的**真因**拿到了 ✓✓（**而且它证明第 g3 条的判断是对的** ✓）**
   ```
   ledger (1) → "Gap ledger is consistent (docs/gaps)"：
