@@ -189,3 +189,19 @@ cargo test -p ${{ matrix.pkg }} $flag --locked --no-fail-fast
   （`gap.py` ✓ + `--strict` 在快机器上判红 ✓ ⇒ **守卫不掉牙** ✓）；
 * **"独立汇总 job"暂不做** ✗ —— 跳过项**已经**在两处可见 ✓（`::error::` 注解 ✓ + step summary ✓）；
   若将来真出现"**某个具体步骤**因环境红"✓，**再单独给那一步**加 ✓ 并**写明理由** ✓（**不猜着标** ✗）。
+
+## 用户八条的**复审**（2026-09-25 round 301 ✓，**当前工作树实测** ✓ 非凭记忆 ✗）
+| 项 | 状态 | 证据 |
+|---|---|---|
+| a 分片 | ✅ | `pkg(4) × kind(lib/tests/doc)` = **12 条腿** ✓ |
+| b 快速失败链 | ✅ | `test.needs=[changes,lint-fmt,lint-clippy,gates-fast]` ✓；`gates-course`/`e2e`/`e2e-macos` 同 ✓ |
+| c 首个失败掐整轮 | ✅ | `fast-fail` ✓，**needs 12 个 job** ✓ |
+| d 盯 job 级 | ✅ | `scripts/ci-watch.sh`（per-job + 注解 + `--follow` 一红即退 ✓） |
+| e 顶层 concurrency | ✅ | `{group: ci-${{ github.ref }}, cancel-in-progress: **true**}` ✓ |
+| f `rerun --failed` | ✅ | 已记 `docs/CI-FAILURES.md` ✓ |
+| g1 `paths-ignore` | ✅ 等价 | 本仓用 `dorny/paths-filter` ✓（**更细** ✓） |
+| g2 `fail-fast: false` | ✅ | `test`/`ledger`/`e2e` ✓ |
+| g3 `continue-on-error` | ✗ **按证据不做** ✓ | `gap.py` 能区分环境与回归 ✓，`continue-on-error` 不能 ✗ |
+| g4 钉 `ubuntu-24.04` | ✅ | 全文已无 `ubuntu-latest` ✓ |
+| h `ci-local` 前置 | ✅ | pre-push hook ✓，**实战拦截 2 次** ✓ |
+⇒ **#1 闭环 ✓** ⇒ 转入 **#2：阶段 D（D-2 的 ②–⑤ ✓）**。
