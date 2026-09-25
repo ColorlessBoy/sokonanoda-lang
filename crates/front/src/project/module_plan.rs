@@ -36,9 +36,12 @@ pub struct ModulePlan {
     pub diagnostics: Vec<ProjectDiagnostic>,
 }
 
-/// 批编结果：**逐文件**报告 + 扁平事件流。
+/// 批编结果：**逐文件**报告与事件 + 扁平事件流（原样保留，供 CLI `--json` 用）。
 pub struct ModuleBatch {
     pub reports: BTreeMap<PathBuf, DocumentReport>,
+    /// 逐文件事件（按单元区间从扁平流切出、`cmd` 已重基到模块内）——
+    /// 与 `ProjectReport` 里"逐模块事件"的切法**同一套**（`project/mod.rs:326` 附近）。
+    pub events: BTreeMap<PathBuf, CompileOutput>,
     pub output: CompileOutput,
 }
 
@@ -126,14 +129,28 @@ pub fn compile_module(plan: &ModulePlan, options: &CompileOptions) -> ModuleBatc
         })
         .collect();
     let (output, reports) = compile_all_units(&units, options);
-    let per_file = plan
-        .units
-        .iter()
-        .map(|unit| unit.path.clone())
-        .zip(reports)
-        .collect();
+    let ranges = crate::compile::unit_ranges(&units);
+    let mut per_file = BTreeMap::new();
+    let mut per_file_events = BTreeMap::new();
+    for (slot, unit) in plan.units.iter().enumerate() {
+        let range = ranges[slot].clone();
+        let report = reports[slot].clone();
+        let mut events = CompileOutput::default();
+        for (position, event) in output.events.iter().enumerate() {
+            let cmd = output.event_cmds[position];
+            if range.contains(&cmd) {
+                events.events.push(event.clone());
+                events.event_cmds.push(cmd - range.start);
+            }
+        }
+        events.errors = report.errors.clone();
+        events.warnings = report.warnings.clone();
+        per_file.insert(unit.path.clone(), report);
+        per_file_events.insert(unit.path.clone(), events);
+    }
     ModuleBatch {
         reports: per_file,
+        events: per_file_events,
         output,
     }
 }
