@@ -542,3 +542,15 @@ _ => render_expr(expr),          // 判定侧渲染器的**回退分支**
 ⇒ 它是**判定量** ✗（`judge` 模块 ✓）⇒ **折它 = 改判定** ✗（内核红线 ✓）⇒ **③ 不做** ✓。
 ⇒ **两组共 4 条：0 迁移 / 4 条 ③** ✓ —— 与组级结论一致 ✓、理由各自具体 ✓。
 ---
+
+### **F 组（`semantic.rs`，5 条）· K2 组（`query/mod.rs`，1 条）逐条处置** ✅（round 173 ✓）
+`tag_runs_with_notations` 这一族**不是**"绕过接口"✗ —— 它是 **`runs` 的**生产机制**** ✓
+（T-U4/T-U5 的"显示副本"正建立在它上面 ✓）。
+| 位置 | 产出 | 结论 |
+|---|---|---|
+| `semantic.rs:241` | **真实生产调用** ✓（`text, decls, binders, &[]` ✓ 由编译侧喂入 ✓） | **② 已有** ✓（T-U5 的**接缝守卫**钉着 `runs` 拼接 == `text` ✓） |
+| `semantic.rs:1201/1217/1483/1505` | **测试内部**的调用 ✓（断言 `runs` 的分段 ✓） | **③** ✓（测试自己的期望 ✓） |
+| `query/mod.rs:495` | **wire 的 `runs` 生产者** ✓（`semantic::tag_runs_with_notations(text, decls, binders, notations)` ✓） | **② 已有** ✓（同上 ✓） |
+**K 组（`suggest.rs`）现在是 0 条** ✓ —— 该文件的 `render_expr` 已被 `render_msg` 包装 ✓
+（守卫的"已折写法不算绕过"规则 ✓，round 133 ✓）⇒ **无事可办** ✓。
+---
