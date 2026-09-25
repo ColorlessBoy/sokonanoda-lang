@@ -172,6 +172,59 @@ pub fn print_back(text: &str, notations: &DisplayNotations) -> DisplayText {
     }
 }
 
+/// **唯一接口（阶段 U / T-U2）**：记法转化的三个动作，**只在这里实现** ✓。
+///
+/// 设计：`docs/design/notation-display.md` ✓。**三步固定顺序**：
+/// `render_expr`（AST → 点形式）→ `fold`（**点形式 → 记法**，真的转化 ✓）→
+/// `runs`（给**已折过**的文本打分段标签 ✓，不转化 ✗）。
+/// 任何调用点都不许重做其中任一步 ✗（守卫 `scripts/audit-notation-paths.py` ✓）。
+impl DisplayNotations {
+    /// 唯一转化入口：**文本 → 带记法的文本** ✓。
+    pub fn fold(&self, text: &str) -> String {
+        print_back(text, self).as_display_str().to_string()
+    }
+
+    /// 唯一转化入口（AST 版 ✓）：渲染**之后必过折叠** ✓。
+    pub fn render(&self, expr: &Expr) -> String {
+        self.fold(&crate::proof::render_expr(expr))
+    }
+
+    /// 唯一分段入口 ✓：给**已经折过**的文本打标签。
+    ///
+    /// ⚠ 入参 `folded` **必须是 `fold`/`render` 的产物** ✓ —— 传点形式文本进来就会
+    /// 得到点形式分段（2026-09-25 的用户报告正是这么来的 ✗：`query::runs` 拿的是
+    /// 未折过的文本 ✓）。
+    pub fn runs(
+        &self,
+        folded: &str,
+        decls: &[(String, crate::semantic::SemanticKind)],
+        binders: &[String],
+        notations: &[String],
+    ) -> Vec<crate::semantic::Run> {
+        crate::semantic::tag_runs_with_notations(folded, decls, binders, notations)
+    }
+}
+
+/// **`text` 与 `runs` 是同一次转化的两个投影** ✓（设计 `notation-display.md` §2 ✓）。
+///
+/// 不变量：`runs` 的文本拼接**逐字节等于** `text` ✓ —— 它把"① 与 ② 各算各的"
+/// 这种分叉在**运行时**暴露出来 ✓（T-U5 的接缝守卫 ✓）。
+pub struct Rendered {
+    pub text: String,
+    pub runs: Vec<crate::semantic::Run>,
+}
+
+impl Rendered {
+    /// 不变量成立吗 ✓（不成立就说明有人绕过了唯一接口 ✗）。
+    pub fn is_consistent(&self) -> bool {
+        let mut joined = String::new();
+        for run in &self.runs {
+            joined.push_str(&run.text);
+        }
+        joined == self.text
+    }
+}
+
 /// **唯一的"AST → 给人看的文本"入口**（2026-09-25 收口 ✓）：渲染之后**必过折叠** ✓。
 ///
 /// 为什么要有它：记法转化曾经散在**四处** ✗ —— `print_back`（真的转化 ✓）、
