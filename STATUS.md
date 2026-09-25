@@ -26,6 +26,11 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 406：不变** ✓（零失败 · 5 绿 · 5 未完 ✓）
+  ```
+  ⇒ **判据不变** ✓：`ledger` 三片全绿 ⇒ 全绿 ⇒ `auto-tag` ⇒ release ✓ · **不推** ✗。
+  ```
+
 * **⏳ round 405：不变** ✓（零失败 · 5 绿 · 5 未完 ✓）
   ```
   ⇒ `ledger` 三片在**构建 LSP** ✓（**release 构建，分钟级** ✓）⇒ **正常** ✓
