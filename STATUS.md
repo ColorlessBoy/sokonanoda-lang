@@ -26,6 +26,19 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🔴 round 354：`ledger (3)` 红了** ✗ ⇒ **按第 f 条用 `rerun --failed`** ✓（**不推** ✗）
+  ```
+  整轮 in_progress ✓ · **已绿 8** ✓ · 未完 15 ✓ · **失败：`ledger (3)`** ✗
+  ⇒ `ledger` 三片之一 ✓ —— 它有**已知根因** ✓（记在 `docs/CI-FAILURES.md` ✓）
+  ⇒ **第 f 条** ✓："环境敏感的 flake 用 `gh run rerun --failed` 重跑失败 job，
+    **不要"再推一个提交"** ✓" ⇒ **推 = 掐掉整轮** ✗（**而且它现在 8 绿** ✓）
+  ⇒ `auto-tag` 需要**全部 job 绿** ✓ ⇒ **这片红会挡住 release** ✗
+  ```
+  **⇒ 计划** ✓：① **等整轮跑完** ✓ ② **`gh run rerun --failed <id>`** ✓
+  ③ **那时 `auto-tag` 才会触发** ✓ ⇒ release ⇒ 核对 ✓。
+  ⚠ **注意** ✓：`rerun --failed` **只重跑失败的那些** ✓ ⇒ **已绿的 8 个不重跑** ✓
+  ⇒ **省时间** ✓（对比 `rerun` 全量 ✓）。
+
 * **⏳ round 353：18 个 job **全是 `in_progress`** ✓（不是排队 ✓）⇒ 真在跑，正常等** ✓
   ```
   $ gh run view 36189963908 --json jobs --jq '.jobs[] | .status' | sort | uniq -c
