@@ -695,6 +695,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （**这一条同时证明"用例落在被测路径上"** ✓ —— 正是 round 243 强调的那点 ✓）；
     然后两态各跑 ✓ ⇒ **Δ 才是 D-1 的真实收益** ✓ ⇒ 数字入 `docs/perf/ledger.jsonl` ✓。
 
+  - **⚠ round 246：写了一次用例、**失败**、已回退 ✓ —— 但两条发现很有用 ✓**
+    按 round 243/245 的落点写了用例 ✓（`gen_canvas(0, 30)` 多洞 ✓ + 补一个洞 ✓），
+    自验判据是"`SOKO_JUDGE_STATS=1` 必须打出 `JUDGE_INFER calls>0`" ✓。
+    **结果：`3 passed; 1 failed`** ✗，且**没有 `JUDGE_*` 输出** ✗ ⇒ 两条发现 ✓：
+    ① **光"编译"走不到 `suggest`** ✗ —— 建议是**按需**算的 ✓（很可能只在 LSP 侧触发 ✓）
+       ⇒ **front 侧的 `Session::update` 到不了 `judge_terms_with`** ✓
+       ⇒ 要么**直接调 `suggest` 的公开入口** ✓、要么把用例放到 **`crates/lsp/tests/perf_course.rs`** ✓；
+    ② **我的断言写错了** ✗：`kernel_checks == 0` 不成立 ✓ —— 既有用例的注释就写着
+       "**kernel_checks = checked theorems + axioms（axiom 也过内核）**" ✓
+       ⇒ `gen_canvas(0, 30)` 的 kernel_checks 是 **2** ✓（**读过的注释里就有答案** ✗，
+       我又没先读完 ✓ —— 本 session 第七次 ✓）。
+    **已回退** ✓（失败的用例不留 ✓，`perf.rs` diff 干净 ✓）。
+    **⇒ 下一步（明确 ✓）**：`git grep -n "pub fn suggest" crates/front/src/` ✓
+    找 suggest 的公开入口 ✓ ⇒ **在用例里直接调它** ✓（这样**必然**走到那条路 ✓，
+    自验判据才有意义 ✓）⇒ 再两态各跑 ✓ ⇒ Δ 即 D-1 的真实收益 ✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
