@@ -675,6 +675,26 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     ③ 若 `calls==0` ✗ ⇒ **才**按 round 243 的落点新增 ✓（洞更多 / `by` 更多 ✓）。
     ⚠ **先判别再动手** ✓ —— 这正是本 session 反复奏效的那一步 ✓（也反复被我忘掉 ✗）。
 
+  - **✅ round 245：判别跑完了 —— 既有用例**没有**覆盖那条路 ⇒ **要加用例** ✓**
+    ```
+    SOKO_JUDGE_STATS=1 cargo test -q -p sokonanoda-front --test perf -- --nocapture --test-threads=1
+    两态都**没有任何 JUDGE_* 输出** ✗ ⇒ judge_pairs_uncached 没被走到 ✓
+    ⇒ round 244 的"可能已覆盖"**被否证** ✗ ⇒ round 243 的"要加用例"**是对的** ✓
+    ```
+    两态数字 ✓（各 3 个用例都过 ✓）：
+    ```
+    check_document scaling  [50,200,400]  开 22.27/83.23/165.73  关 22.61/84.27/166.27  Δ≈+0.4~1.0ms
+    edit-at-top scaling     [50,250]      开 3.94/11.22          关 4.12/11.60          Δ≈+0.2~0.4ms
+    incremental             median/worst  开 4.3/5.4             关 4.5/5.5             Δ≈+0.2ms
+    ```
+    ⇒ 这些 Δ **不是**前缀复用的收益 ✗（那条路根本没走 ✓）⇒ **必须补用例** ✓。
+    **⇒ 下一步（一条命令写 + 一条命令验 ✓）**：按 round 243 的落点，
+    在 `crates/front/tests/perf.rs` 加一个用例 ✓ —— 画布用 `gen_canvas(0, N)` 的**多洞**形状 ✓
+    （**洞是触发 `suggest` 的关键** ✓）+ **编辑一个洞** ✓ ⇒ 走到 `judge_terms_with` ✓；
+    **自验判据** ✓：`SOKO_JUDGE_STATS=1` 跑它 ⇒ **必须打出 `JUDGE_INFER calls>0`** ✓✓
+    （**这一条同时证明"用例落在被测路径上"** ✓ —— 正是 round 243 强调的那点 ✓）；
+    然后两态各跑 ✓ ⇒ **Δ 才是 D-1 的真实收益** ✓ ⇒ 数字入 `docs/perf/ledger.jsonl` ✓。
+
 - [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
