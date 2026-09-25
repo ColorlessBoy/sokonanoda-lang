@@ -26,6 +26,18 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 351：时间戳确认了"新 attempt"** ✓（**零失败** ✓ ⇒ **继续等** ✓）
+  ```
+  run 36189963908 ✓（**perf-gate 的 startedAt = 21:11:20** ✓ ⇒ **21:11 重开了一次 attempt** ✓）
+    整轮 in_progress ✓ · **失败（空）** ✓✓ · 已绿 6 个 ✓
+    未完 **18 个** ✓ = 10 条 test + 3 条 e2e + 3 片 ledger + gates-course + perf-gate ✓
+  ⇒ ⇒ **18 个 job 全部重跑** ✗ ⇒ **先前几轮的"5 绿"是第一轮的读数** ✓（round 350 的结论 ✓）
+  ```
+  **⇒ 处置：等** ✓（**in_progress** ✓ · **零失败** ✓ ⇒ **没有任何要修的** ✓）
+  ⇒ **不推** ✓（**推 = 掐掉它** ✗ —— 而它现在干净 ✓）。
+  ⚠ **第 ⑦ 条（细化 ✓）**：**读 job 级要带 `startedAt`** ✓ —— 同一个 run id
+  可能有**多轮 attempt** ✗ ⇒ **只比较"同一时间窗"的读数** ✓。
+
 * **⚠ round 349-350：同一 run 的 job 被**重新排队** ✗（疑似 attempt 重启 ✓）**
   ```
   round 349 ✓：run 36189963908 ⇒ 5 绿 · **5 未完**（gates-fast/perf-gate/ledger×3）· **零失败** ✓✓
