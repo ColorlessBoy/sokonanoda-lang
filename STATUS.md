@@ -26,6 +26,23 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **📊 round 339：量了 smoke 的**本地抖动** ✓（为定阈值 ✓）—— 而我又先猜了格式 ✗**
+  ```
+  $ scripts/perf-check.sh --case judge_prefix_with_imported --threshold 50
+  scope         case                       entry            这次     台账上次    变化
+  --------------------------------------------------------------------------------
+  front-project judge_prefix_with_imports                 72ms     73.63     **-2.7%**
+  没有超过 50% 的退化。
+  ⇒ **输出是表格** ✓（scope / case / entry / **这次** / **台账上次** / **变化** ✓）
+  ⇒ **本地抖动 ~3%** ✓ ⇒ **`--threshold 50` 非常宽裕** ✓✓
+  ```
+  ⚠ **又一次"先猜格式"** ✗：我用 `grep -oE "[0-9]+\.[0-9]+ms"` ✗ ⇒ **空输出** ✓
+  （**真实格式是 `72ms` 而台账列是 `73.63`** ✓ —— **两种写法混在一张表里** ✓）
+  ⇒ **教训（本 session 第 N 次 ✓）**：**先打印原始输出，再写解析** ✓
+  （与"锚点先打印"✓、"标识符先 grep"✓ 是同一条 ✓）。
+  **⇒ 这条数据对定阈值有用** ✓：本地 3% ⇒ 若 CI 也在 10% 以内 ✓，
+  `--threshold 50` 就**足够宽** ✓；若 CI 抖动 >50% ✗ ⇒ 再放宽 ✓（**等 CI 的数字** ✓）。
+
 * **✅ round 338：job 级完整全貌 —— **5 绿 · 5 在跑 · 零失败** ✓✓**
   ```
   ✅ completed/success ✓：changes · lint-fmt · lint-clippy · **contract** · **editor**
