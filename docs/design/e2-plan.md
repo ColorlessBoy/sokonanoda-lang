@@ -884,6 +884,21 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 300：① 的**三层回归全过** ✓ ⇒ 硬规则 1 清账 ✓（D-2 的第一处内核改动安全落地 ✓）**
+    ```
+    内核包真名 = `sokonanoda` ✓（crates/kernel/Cargo.toml:3 ✓；:34 是 `[lib] name` ✓）
+    第一层 内核自身测试 ✓：0 / **3** / **10** / **5** / 0 passed ⇒ **全 0 failed** ✓
+    第二层 front 单测 ✓：**736 passed / 0 failed** ✓
+    第三层 CLI e2e 锚点 ✓：--json md5 = **a2bdf9c4fad1…** ✓ = 与改前**逐字节相同** ✓
+    ⇒ **判定行为零变化** ✓✓
+    ```
+    **⇒ ① 完成 ✓ ⇒ 下一步 ②–⑤（round 298 的清单 ✓，共 5 处 ✓）**：
+    ② 撤 C1 的 `probe_builder` 建设（`check/mod.rs` 整段 ✓）· ③ 撤 `Walk {}` 的字段 ✓ ·
+    ④ 撤 `walk.rs` 结构体字段 ✓ · ⑤ 三处调用改成"**开关下 `with_declars_hidden`，否则原样**" ✓ ·
+    ⑥ 保留 `mod.rs` 的 helper ✓（撤了会 `never used` ✗）。
+    **判据** ✓：默认 **736/0** ✓ · 开关 **failed 应降到 0**（现 5 ✓）· 四件套 ✓ · 基准再降 ✓；
+    **反向验证** ✓：⑤ 去掉 `if` ⇒ **必须回到 96** ✓。
+
   - **✅ round 299：① 内核 API 已落地 ✓（惰性新增 ✓，默认路径零变化 ✓）**
     ```
     cargo check -p sokonanoda-front = 0 ✓
