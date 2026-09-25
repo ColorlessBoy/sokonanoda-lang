@@ -26,7 +26,7 @@
 | 12 ✅**已修**（round 86 ✓）：两份逐字相同的 `range_of(Span)` 收成一份 | 彼此 + `query_map.rs:32 range_of_offsets` | 中 —— 同一 wire `Range` 两条换算路（span 列 vs offset）⇒ 非 ASCII 下不一致 ✓ | 已合并到 `render::range_of` ✓（`project_refs` 改调它 ✓）；与 `query_map::range_of_offsets`（按 offset ✓）的**进一步**统一仍待做 ⏳ | `diff` 两份片段 → 无差异 ✓ | 并入 #5 |
 | 13 | 事件计数**三份**（`query/mod.rs:519-534`、`cli/course/mod.rs:461-472`、`cli/check.rs:261`+`json_report.rs:27-74`） | 互相 | 中 —— "`checked` 是几 / `failed` 算不算依赖模块"**两套口径** ✓ | `CheckCounts::tally()` 唯一 ✓ | `grep -rn "DeclarationChecked" crates/cli/src crates/front/src/query` → 3 处 ✓ | 并入 #2 |
 | 14 | "还剩几个练习"**两套**（事件口径 `query/mod.rs:529` vs 声明口径 `report.rs:109-116`） | 互相，且都进 wire ✗ | 中 —— 两条通道给出两个数，**无断言钉死相等** ✗ | 保留一个口径或加交叉断言 ✓ | `grep -rn "open_exercises\|exercise_open"…` → 生产者 2 个、**无相等断言** ✓ | 立刻做（加断言） |
-| 15 | `redundant` 判据 front↔lsp **两份**（`query/mod.rs:1012/1023` vs `lsp/lib.rs:1082-1095`） | 互相；`query/mod.rs:1021` 自己写着"与 LSP 侧同一条规则" ✓ | 中 —— 分叉时"多余的 `sorry`"两侧给出**相反**的下一步指令 ✗ | 真相层导出、LSP 只调 ✓ | `grep -rn "hole_is_redundant" crates/front/src/query/mod.rs crates/lsp/src/lib.rs` ✓ | 立刻做 |
+| 15 ✅**已修**（round 87 ✓）：`redundant` 判据收进真相层、LSP 只调 |（`query/mod.rs:1012/1023` vs `lsp/lib.rs:1082-1095`） | 互相；`query/mod.rs:1021` 自己写着"与 LSP 侧同一条规则" ✓ | 中 —— 分叉时"多余的 `sorry`"两侧给出**相反**的下一步指令 ✗ | ✅ `sokonanoda_front::query::{redundant_hole_spans, hole_is_redundant}` 已公开 ✓，LSP 内联副本已删 ✓ | `grep -rn "hole_is_redundant" crates/front/src/query/mod.rs crates/lsp/src/lib.rs` ✓ | 立刻做 |
 | 16 | LSP 合成 `code:"sorry"` 警告 + 全冗余抑制（`lsp/lib.rs:1095-1122`） | `query/mod.rs:579-596`（CLI **无**合成/抑制 ✗） | 中 —— 编辑器比 CLI 多一条警告；"该不该提示"只活在 LSP 一侧 ✗ | 规则下沉到真相层 ✓ | `sed -n '1105,1125p' crates/lsp/src/lib.rs` vs `sed -n '579,596p' crates/front/src/query/mod.rs` ✓ | 立台账（暂不做 ✓） |
 | 17 ⏳**已实测、未修**（round 72 ✓） | `audit-wire-fields.py` 消费点表**不扫 `project-tree.js`** ✗ | `project-tree.js:24-28,45-53,62-72,169-197` 读 `soko/project` 大载荷 ✗ | 中 —— 它是"有就渲染"的宽容实现 ⇒ 停发字段**静默降级**、守卫永不响 ✗（R-1 同类、换文件 ✓） | 把 `project-tree.js` + `ProjectView` 加进守卫 ✓ | `grep -n 'collect(' scripts/audit-wire-fields.py`（只有 IV/EX ✓） | 立刻做需**先扩守卫**：直连 `ProjectResponse` 会报 8 个 MISSING ✗，但**实测是假阳性** ✓（`soko query project` 响应 = `{project, reason}` ✓，字段嵌在 front 侧 `ProjectView`/`ModuleView` ✓）⇒ 先让 `fields()` 能读 `crates/front/src/query/types.rs` ✓，在那之前**不接** ✗（常红守卫比没有更糟 ✓） |
 | 18 | 版本钉源链 **4 份**（`perf-ledger.sh:39`/`perf-report.sh:12`/`vscode-e2e.sh:102`/`new-course-repo.sh:37` 各自只读 `Cargo.toml` ✗） | `scripts/soko:224-346` 的源链 ✓ | 中（**未证实漂移** ✓：当前四处都 `0.67.0` ✓）—— 风险在**看不见**：一旦加 `sokonanoda-version.txt`，台账仍按 `Cargo.toml` 记版本 ✗ | 唯一归属 `scripts/soko version --json` ✓ | `grep -rn "grep -m1 '\^version' Cargo.toml" scripts/` ✓ | 立台账（暂不做 ✓） |
@@ -132,6 +132,18 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 **判据** ✓：`cargo test -p sokonanoda-lsp` ⇒ **161 passed** ✓（+ 其余套件 3/2 ✓）。
 ⏳ 仍待做：与 `query_map.rs:32 range_of_offsets`（**按 offset** 换算 ✓）的统一——
 那是**另一条路**（不是副本 ✓），合并要先证明两者在非 ASCII 下等价 ✓（同 #5 的剩余项 ✓）。
+
+### #15 ✅ 已修（round 87 ✓）：`redundant` 判据的**唯一归属**回到真相层
+* **症状** ✗：`crates/lsp/src/lib.rs:1082-1095` **内联抄了** front 的
+  `redundant_hole_spans` + `hole_is_redundant`（`query/mod.rs:1026/1037` ✓）——
+  而 `query/mod.rs` 那段注释自己写着"（与 LSP 侧同一条规则）"✓ ⇒ **公认重复** ✓。
+  分叉时的后果：同一个"多余的 `sorry`"，一侧算**真缺口**、另一侧算**多写一行**
+  ⇒ 学生看到的**下一步指令相反** ✗。
+* **修法** ✓：把真相层那两个 helper 改 `pub` ✓（`query` 的公开面 ✓），
+  LSP 删掉内联副本 ✓、改调 `sokonanoda_front::query::{redundant_hole_spans,
+  hole_is_redundant}` ✓（顺手删掉因此未用的 `use sokonanoda_front::Span;` ✗）。
+* **判据** ✓：`cargo test -p sokonanoda-lsp` ⇒ **161 passed** ✓；
+  `cargo test -p sokonanoda-front --lib` ⇒ **732 passed** ✓；`check`/`fmt` ✓。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 

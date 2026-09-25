@@ -48,7 +48,6 @@ use sokonanoda_front::compile::{
 use sokonanoda_front::project::cache as project_cache;
 use sokonanoda_front::query::{decl_name, QueryDoc};
 use sokonanoda_front::semantic::{semantic_tokens as front_semantic_tokens, SemanticKind};
-use sokonanoda_front::Span;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -1078,21 +1077,16 @@ fn report_diagnostics(report: &sokonanoda_front::compile::DocumentReport) -> Vec
     // 证出来"，而是多写了一行——由 `redundant-sorry` 那条 warning（带 hint）
     // 说明。声明**全部**洞都属于这种情况时，不再叠一条 "not yet solved"，
     // 否则学生以为是自己没做出来。还有真缺口的声明照旧报。
-    let redundant_spans: Vec<Span> = report
-        .warnings
-        .iter()
-        .filter(|w| w.code() == "redundant-sorry")
-        .map(|w| w.span)
-        .collect();
-    // 洞 span 与 warning span 形状未必相同（多余洞走 generic fallback 时洞是
-    // 整段值、warning 收窄到 `sorry` token），所以用**包含**判定。
-    let hole_is_redundant = |hole: &Span| {
-        redundant_spans
-            .iter()
-            .any(|r| hole.start.offset <= r.start.offset && r.end.offset <= hole.end.offset)
+    // **判据在真相层**（审计 #15，2026-09-25 ✓）：这里原来**内联抄了同一份规则** ✗
+    //（"多余洞"的包含判定 ✓）⇒ 分叉时会给学生**相反**的下一步指令 ✗。
+    // 现在只用 `sokonanoda_front::query` 的两个公开 helper ✓（唯一归属 ✓）。
+    let redundant_spans = sokonanoda_front::query::redundant_hole_spans(report);
+    let all_holes_redundant = |d: &DeclState| {
+        !d.holes.is_empty()
+            && d.holes
+                .iter()
+                .all(|hole| sokonanoda_front::query::hole_is_redundant(hole, &redundant_spans))
     };
-    let all_holes_redundant =
-        |d: &DeclState| !d.holes.is_empty() && d.holes.iter().all(hole_is_redundant);
     if report
         .decls
         .iter()

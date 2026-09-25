@@ -1023,7 +1023,11 @@ pub fn status_str(status: DeclStatus) -> &'static str {
 
 /// 「多余的 `sorry`」的 warning span（内核终审过的那种，
 /// `docs/design/redundant-sorry.md`）。
-fn redundant_hole_spans(report: &DocumentReport) -> Vec<Span> {
+/// 「多余的 `sorry`」的 warning span —— **真相层唯一实现** ✓（审计 #15，2026-09-25）。
+/// `pub` 是给 LSP 用的 ✓：它原来**内联抄了一遍** ✗（`lib.rs:1082-1095`）⇒
+/// 判据分叉时"多余的 `sorry`"在一侧算真缺口、另一侧算多写一行 ⇒ 学生看到的
+/// **下一步指令相反** ✗。
+pub fn redundant_hole_spans(report: &DocumentReport) -> Vec<Span> {
     report
         .warnings
         .iter()
@@ -1033,8 +1037,10 @@ fn redundant_hole_spans(report: &DocumentReport) -> Vec<Span> {
 }
 
 /// 洞 span 与 warning span 形状未必相同（多余洞走 generic fallback 时洞是整段
-/// 值、warning 收窄到 `sorry` token）⇒ 用**包含**判定（与 LSP 侧同一条规则）。
-fn hole_is_redundant(hole: &Span, redundant: &[Span]) -> bool {
+/// 值、warning 收窄到 `sorry` token）⇒ 用**包含**判定。
+///
+/// **真相层唯一实现** ✓（审计 #15）：LSP 侧原来有**同一份**闭包 ✗ ⇒ 现在它调这里 ✓。
+pub fn hole_is_redundant(hole: &Span, redundant: &[Span]) -> bool {
     redundant
         .iter()
         .any(|r| hole.start.offset <= r.start.offset && r.end.offset <= hole.end.offset)
