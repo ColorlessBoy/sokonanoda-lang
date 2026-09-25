@@ -22,7 +22,14 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
   （`Eq.refl/symm/trans/subst`、`congrArg`）的宇宙层级；`congrArg` 参数顺序是
   Lean 的 `{α β} {a b} (f) (h)`；`Set.univ α`；
   `intro` 派生的目标/假设、`Exists`-headed def、嵌套 `Exists.elim`、
-  复合记法操作数（`{aa} ∩ {bb}`、字面 λ 的 `''`/`⁻¹'`）、`And.left h x` 续应用等。
+  复合记法操作数（`{aa} ∩ {bb}`、**字面 λ 体内含零元构造**的 `''`/`⁻¹'`）
+  ——**2026-09-25 实测把这条边界切准了**：λ **操作数本身**已经能用记法
+  （`(fun … ) '' A` 可 elaborate ✓，含 `⁻¹'` ✓）；真正卡住的是 **λ 体内的 `∅`**
+  （补不出类型参数，只能写 `Set.empty Nat`，而那是点名形式、门禁判红 ✗）
+  ⇒ 要么保留点名 + 行内标记（现状 ✓），要么等语言给出类型标注 `(e : T)` ✓。
+  另：**注释里的点名写法同样判红**（`--` 注释、`soko:hint` 都算 ✓）
+  ⇒ 讨论这条边界时别在注释里写出点形式的例子 ✗（实测踩过 ✓）；
+  以及 `And.left h x` 这类**续应用**、`Set.univ α` 等（见上）。
   **`by rfl` 已能认 `=` 记法目标**（2026-09-21 修）。
   细则见 `docs/notes/course-lean-style/notation-rewrite-brief.md`。
 - **画布（`units/*.sokonanoda`）里的 tactic 块不动，term 保持 term**；纯记法改写必须
