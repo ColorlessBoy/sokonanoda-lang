@@ -884,6 +884,29 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🔴 round 285：`snapshot()` 的文档直接**否决了 A1** ✗（指针同一性陷阱 ✓）**
+    ```
+    kernel/src/builder.rs:67-74（`snapshot` 的文档 ✓）
+    /// ⚠ **快照必须在合成声明建好之后取**（规格里的陷阱 ✓）：内核多处依赖
+    /// "同一字面量/名字 ⇒ 同一指针"（`conv.rs` 的 NatLit 指针相等、`eval.rs` 用
+    /// ptr.get_hash()＝**地址**做内容哈希、`NameInterner::get` 比 `StringPtr` 的**地址**）
+    /// ⇒ 快照若早于合成声明里新出现的字面量，检查器会为同一个值造出第二个指针
+    /// ⇒ **本该判过的 def_eq 假失败** ✗。
+    ```
+    ⇒ **probe 正是"合成声明"** ✓（`_soko_redundant_sorry_{i}` ✓，round 284 ✓）
+    ⇒ **"A 步第一次 add 之前取快照"**（round 284 的 A1 方案 ✗）**必踩这个陷阱** ✗✓。
+    ⇒ **A1 被否决** ✗ ⇒ **A2（把 probe 构造挪到 walk 之后 ✓）成为唯一可行** ✓ ——
+    因为那时**真 `builder` 已稳定** ✓，而 probe 拿到的就是"**最终**环境" ✓
+    （与 A 步之后的语义一致 ✓）。
+    **⚠ 但要重新确认一件事** ✓：A2 之后，probe 看到的环境**含**walk 加的全部声明 ✓
+    ⇒ 那与**A 之前**（probe 看到的是"当时已 elaborate 的那些"✓）**不同** ✓
+    ⇒ 所以 A2 也**不是**"恢复原样" ✗，而是"**换成一个确定的、最终的环境**"✓ ——
+    **判据仍是"failed 回到基线 11"** ✓ ⇒ **数字说了算** ✓。
+    **⇒ 下一步（一条命令 ✓）**：读 `walk.rs:763-790` ✓（`OpenExercise` 里 `redundant_probes`
+    的构造点 ✓）⇒ 看把它**挪到 `finish_pass` 之后**要动多少 ✓
+    （大概率是"把 `spans` 与 `ty/val` 存进 `PendingOp` ✓、在 `kernel_phase` 里建 ✓"✓）
+    ⇒ **先估改动面，再动手** ✓（本 session 的教训 ✓）。
+
   - **🎯 round 284：机制完全清楚 ✓ —— 而它同时暴露 A1 的难点 ✗（可能要走 A2 ✓）**
     ```rust
     walk.rs:1466  fn build_redundant_probes<'arena>(
