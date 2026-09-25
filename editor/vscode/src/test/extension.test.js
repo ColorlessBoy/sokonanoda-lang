@@ -1032,6 +1032,37 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("goal text folds a binder notation whose type contains a lambda", async () => {
+    // **③ 的 e2e 判据（2026-09-25）**：类型里含 `fun … =>` 时，内建的 `=` 会抢走
+    // `=>` 里的 `=`（`crates/front/src/token.rs` 的声明符号匹配处 ⇒ 基础多字符算符
+    // 更长时必须让路 ✓）⇒ 修复前 `print_back` 的解析失败、**整条 bail** ⇒ goal 退回
+    // 点形式（`Exists (fun …)` 而不是 `∃ …`）。这里钉住修好后的**用户可见**结果 ✓。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "必须有一个活动编辑器");
+    const doc = editor.document;
+    // 夹具里**最后**一个恰好是 `sorry` 的行 = `exists_fun` 的占位符 ✓
+    // （前一个是 `open_one`，那条用例找的是**第一个** ⇒ 两条互不干扰 ✓）。
+    const sorryLines = [...Array(doc.lineCount).keys()].filter(
+      (i) => doc.lineAt(i).text.trim() === "sorry",
+    );
+    assert.ok(sorryLines.length >= 2, `夹具里应当有两条 sorry（open_one + exists_fun），实际 ${sorryLines.length}`);
+    const lineIndex = sorryLines[sorryLines.length - 1];
+    const pos = new vscode.Position(lineIndex, doc.lineAt(lineIndex).text.indexOf("sorry") + 1);
+    editor.selection = new vscode.Selection(pos, pos);
+
+    await waitFor("③：exists_fun 的根状态到达", async () => {
+      const state = extensionApi.infoview.lastState();
+      return state && typeof state.goal === "string" && state.goal.includes("∃");
+    });
+    const goal = extensionApi.infoview.lastState().goal;
+    assert.ok(
+      goal.includes("∃"),
+      `类型含 lambda 的 \`∃\` 必须折成记法（修复前是 \`Exists (fun …)\`），实际 = ${goal}`,
+    );
+  });
+
   /// **轮询一个 LSP 请求直到它有答案**（或超时后把最后一次结果交回给断言）。
   ///
   /// 为什么需要它（2026-09-24 实测）：`showDoc(entry)` 只保证**文档打开**，

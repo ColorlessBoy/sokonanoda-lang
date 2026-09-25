@@ -13,3 +13,15 @@ theorem subset_mem (α : Type) (A B : Set α) (h : A ⊆ B) : A ⊆ B := h
 -- 课程写法：`:= by` + 下一行 `sorry`（走「根状态」生产者，G-26 钉的就是它）。
 theorem open_one (α : Type) (A B : Set α) : A ⊆ B → (∀ (x : α), x ∈ A → x ∈ B) := by
   sorry
+
+-- ③ 的 e2e 夹具（2026-09-25）：**类型里含 lambda 的 `∃`** —— 修复前内建的 `=` 会把
+-- `fun … =>` 里的 `=` 抢走（`crates/front/src/token.rs` 的声明符号匹配处）⇒ 折叠整条
+-- bail ⇒ goal 退回点形式（`Exists (fun …)`）；修好后必须折成 `∃ …` ✓。
+inductive Exists (A : Type) (p : A → Prop) : Prop
+ctor intro (w : A) (h : p w) : Exists A p
+end
+
+binder_notation "∃" => Exists
+
+theorem exists_fun : ∃ (f : Nat → Nat), f = (fun (n : Nat) => n) := by
+  sorry

@@ -672,7 +672,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   `render_expr(` / `print_back(` / `tag_runs_with_notations(` 的**每一个调用点**，凡不在白名单
   （= 统一接口内部 ✓）就**判红** ✓；**反向验证**：把它指向本阶段之前的版本必须报红 ✓
   （咬不住的守卫等于没有 ✓）。进 `scripts/soko gate` 与 CI ✓。
-- [ ] `T-U4` **目标链统一（用户看得见的那条 ✓）**：`goals::open_goal` + `walk.rs` 的三处目标生产
+- [x] `T-U4` **目标链统一（用户看得见的那条 ✓）**：`goals::open_goal` + `walk.rs` 的三处目标生产
   （`:555` / `:735` / `:778` ✓）全部走统一接口 ✓。
   **判据（三层齐 ✓）**：front 单测断"目标文本带 `∃`" ✓；wire 断言 `goal`/`goal_runs` **同源** ✓；
   **真宿主 e2e**：夹具 `exists_fun`（已在工作区 ✓）的**顶部「目标」出现 `∃`** ✓。
@@ -682,7 +682,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   **逐字节相同** ✓ —— 这条断言正是这次 bug 的直接守卫 ✓。
 - [ ] `T-U6` **词法根因的独立判据**：给 `token.rs` 的"基础多字符算符更长时让路"补一条专门用例 ✓
   （声明符号与 `->`/`=>` 相撞 ✓），并确认 **R-2 哨兵**（`semantic.rs`）仍绿 ✓。
-- [ ] `T-U7` **e2e 判据入册**：把 `exists_fun` 那条用例在**真 VS Code** 里跑绿并提交 ✓，
+- [x] `T-U7` **e2e 判据入册**：把 `exists_fun` 那条用例在**真 VS Code** 里跑绿并提交 ✓，
   按批次纪律记一条 `docs/e2e/ledger.jsonl` ✓（并核查那轮 4 条红里有没有陈旧服务器造成的假红 ✓）。
 - [x] `T-U9` **全仓"重复实现"审计**（用户要求 ✓）：「一模一样的功能、多处实现、导致 bug」——
   三个**只读** subagent 分头查：① `crates/front/**`（同一变换/判据/数据被算两遍 ✓）；

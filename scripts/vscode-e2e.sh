@@ -159,9 +159,9 @@ else
   # 而**告警是可以被忽略的** ✗ ⇒ 这里把它变成**一次判红** ✓
   # （AGENTS：**咬不住的守卫等于没有** ✓）。只在"刚构建+stage"这条路上断言 ✓：
   # `--no-build` 是显式选择"可能测旧件" ✓，那条路由台账的 `dirty`/`lsp_sha256_16` 判读 ✓。
-  repo_version=$(node "$REPO_ROOT/scripts/soko" version --json 2>/dev/null |
+  repo_version=$(node scripts/soko version --json 2>/dev/null |
     sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-  staged_cli="$REPO_ROOT/editor/vscode/bin/$(host_target)/sokonanoda"
+  staged_cli="$PWD/editor/vscode/bin/$(host_target)/sokonanoda"
   if [ -n "$repo_version" ] && [ -x "$staged_cli" ]; then
     staged_version=$("$staged_cli" --version 2>/dev/null | awk '{print $NF}')
     if [ "$staged_version" != "$repo_version" ]; then
