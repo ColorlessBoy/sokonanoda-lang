@@ -340,7 +340,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     `<模块根>/.sokonanoda/compiled/` 真有条目、`artifacts` 非空且 `compiler` 是当前版本" ✓；
     顺带修了取证 B 早点名的布局耦合：`crates/lsp/tests/lsp_cache.rs` 原来只数
     `<cache>/compiled`（T-C6 之后该数**两处之和**）⇒ LSP 套件 **161 passed / 0 failed** ✓。
-- [ ] `T-C7` **阶段 C 收尾**：基准复量（② 应大幅变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.68.0` → release → 核对 ✓
+- [x] `T-C7` **阶段 C 收尾**：基准复量（② 应大幅变好 ✓）→ gate 全绿 → 一次 push → CI 绿 → bump `0.68.0` → release → 核对 ✓
   - 📌 **收尾口径已按实测改写（2026-09-25，待执行）**：本阶段的**用户可见产出只有
     T-C6**（编辑器编出来的产物也落 `<模块根>/.sokonanoda/`）—— 而它**随 0.67.0 一起发布**
     （那一批的 CHANGELOG 已并入，见 `editor/vscode/CHANGELOG.md` 的 `[0.67.0]`）。
@@ -596,3 +596,86 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 ##### T-E4 **阶段 E 收尾**：bump **`0.72.0`** → release → 核对 ✓
 
 见 §13 清单里 `T-E4` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U1 **统一接口的设计**：新增 `docs/design/notation-display.md`，定义唯一入口 `DisplayNotations::render(expr) -> Rendered { text, runs }`（一次产出文本与分段）；含**四套实现的去向表**、**调用白名单**、"`text` 与 `runs` 拼接必须逐字节相同"的不变量
+
+见 §13 清单里 `T-U1` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U2 **接口落地（零行为变化）**：实现 `render`（内部固定 `render_expr` → `print_back` → `tag_runs` 三段），四处实现逐个改调它
+
+见 §13 清单里 `T-U2` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U3 **A∖B 守卫：防止长出第五套**：新增 `scripts/audit-notation-paths.py`，扫描 `render_expr(`/`print_back(`/`tag_runs_with_notations(` 的每个调用点，不在白名单就判红；**反向验证**（指向本阶段之前的版本必须报红）；进 `scripts/soko gate` 与 CI
+
+见 §13 清单里 `T-U3` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U4 **目标链统一（用户看得见的那条）**：`goals::open_goal` + `walk.rs:555/735/778` 全部走统一接口；判据三层齐（front 单测带 `∃`、wire `goal`/`goal_runs` 同源、**真宿主 e2e 顶部目标出现 `∃`**）
+
+见 §13 清单里 `T-U4` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U5 **类型/值链统一**：`kernel_phase` 的 `ty_text`/`val_text` 与 `query::runs` 改走统一接口；**新增接缝守卫**：同一声明的 `text` 与 `runs` 拼接逐字节相同
+
+见 §13 清单里 `T-U5` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U6 **词法根因的独立判据**：`token.rs` 的"基础多字符算符更长时让路"补专门用例（声明符号与 `->`/`=>` 相撞），并确认 `semantic.rs` 的 R-2 哨兵仍绿
+
+见 §13 清单里 `T-U6` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U7 **e2e 判据入册**：`exists_fun` 用例在真 VS Code 跑绿并提交，按批次记 `docs/e2e/ledger.jsonl`；顺带核查陈旧服务器造成的假红
+
+见 §13 清单里 `T-U7` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+##### T-U8 **阶段收尾**：`docs/architecture.md` 写明唯一接口与四套实现的退役；`cargo test --workspace` + `scripts/soko gate` 全绿；一次 push → CI 绿 → bump → auto-tag → release → `gh release list` 核对
+
+见 §13 清单里 `T-U8` 那一条（含交付物与判据）。**发版**：见该阶段收尾条目。
+
+---
+
+## 阶段 U —— **记法转化统一接口**（2026-09-25 用户要求：「我要求完全统一接口」✓）
+
+> **⚡ 优先级（2026-09-25 用户要求）**：**本阶段排在阶段 D/E 之前** ✓ ——
+> 它修的是**用户看得见**的东西（Infoview 顶部「目标」✗），且是**架构级**要求
+> （"完全统一接口" ✓）；阶段 D/E 是性能与文档收口，可以随后 ✓。
+>
+> **为什么单独立一个阶段**：2026-09-25 的用户报告（Infoview 顶部「目标」里 `∃` 不转化 ✗）
+> 查出来的**不是一处 bug，而是四处实现** ✗：
+> | # | 实现 | 干什么 | 谁在用 |
+> |---|---|---|---|
+> | ① | `display::print_back` | **真的转化**（文本→文本 ✓） | `ty_text`/`val_text` |
+> | ② | `semantic::tag_runs_with_notations` | **只打标签**（不转化 ✗） | `query::runs` ⇒ `goal_runs`/`ty_runs`（**Infoview 渲染读它** ✓） |
+> | ③ | `display::render_expr`（=`proof::render_expr`） | **只渲染**（AST→文本 ✗） | `goals::open_goal`、`walk.rs` 三处目标 |
+> | ④ | 内核 pp（`info.goal`） | 点形式 ✗ | `walk.rs:555/778`（tactic 步进） |
+> ⇒ "渲染"与"折叠"被拆成两步 ✓，而目标生产链（③④⇒②）**只渲染不折叠** ✗ ⇒
+> 顶部「目标」永远是点形式 ✓。`AGENTS.md` 的"真相与显示是两条路"在这里升级为
+> "**连显示自己都分了四条路**" ✗。细节与证据：`REQUIREMENTS.md` §9 ㉔/㉕ ✓。
+
+- [ ] `T-U1` **统一接口的设计**（设计先行 ✓）：新增 `docs/design/notation-display.md`，定义**唯一**入口
+  `DisplayNotations::render(expr) -> Rendered { text, runs }` ✓ —— **一次产出文本与分段**
+  （现在 ① 产文本、② 只打标签 ⇒ 合并 ✓）。设计里必须含：**四套实现的去向表** ✓、
+  "谁必须用它 / 谁不许再直接调 `render_expr`·`print_back`·`tag_runs_with_notations`"的**白名单** ✓、
+  以及**不变量**（`text` 与 `runs` 拼出来必须逐字节相同 ✓ —— 这次 bug 的接缝就在这条 ✓）。
+  判据：设计被 `docs/design/e2-plan.md` 与 `docs/architecture.md` 双向引用 ✓、白名单**可执行** ✓。
+- [ ] `T-U2` **接口落地（先零行为变化 ✓）**：实现 `render`（内部 = `render_expr` → `print_back` →
+  `tag_runs` ✓ 三段固定顺序 ✓），并让**四处**逐个改为调用它 ✓。
+  **判据**：全语料 `--json` **逐字节相同**（`scripts/kernel-diff.sh --fast <前> <后>` ✓）+
+  `cargo test -p sokonanoda-front` 全绿 ✓ + 课程门禁 `36 目标 · 328 checked · 99 open · 0 判负` ✓。
+- [ ] `T-U3` **A∖B 守卫：防止长出第五套** ✓：新增 `scripts/audit-notation-paths.py` —— 扫描
+  `render_expr(` / `print_back(` / `tag_runs_with_notations(` 的**每一个调用点**，凡不在白名单
+  （= 统一接口内部 ✓）就**判红** ✓；**反向验证**：把它指向本阶段之前的版本必须报红 ✓
+  （咬不住的守卫等于没有 ✓）。进 `scripts/soko gate` 与 CI ✓。
+- [ ] `T-U4` **目标链统一（用户看得见的那条 ✓）**：`goals::open_goal` + `walk.rs` 的三处目标生产
+  （`:555` / `:735` / `:778` ✓）全部走统一接口 ✓。
+  **判据（三层齐 ✓）**：front 单测断"目标文本带 `∃`" ✓；wire 断言 `goal`/`goal_runs` **同源** ✓；
+  **真宿主 e2e**：夹具 `exists_fun`（已在工作区 ✓）的**顶部「目标」出现 `∃`** ✓。
+- [ ] `T-U5` **类型/值链统一**：`kernel_phase` 的 `ty_text`/`val_text` 与 `query::runs`
+  （`goal_runs`/`ty_runs`/`goals_runs` ✓）改走统一接口 ✓。
+  **判据（新增接缝守卫 ✓）**：同一声明**同一份文本**经两条路（`text` 与 `runs` 拼接）
+  **逐字节相同** ✓ —— 这条断言正是这次 bug 的直接守卫 ✓。
+- [ ] `T-U6` **词法根因的独立判据**：给 `token.rs` 的"基础多字符算符更长时让路"补一条专门用例 ✓
+  （声明符号与 `->`/`=>` 相撞 ✓），并确认 **R-2 哨兵**（`semantic.rs`）仍绿 ✓。
+- [ ] `T-U7` **e2e 判据入册**：把 `exists_fun` 那条用例在**真 VS Code** 里跑绿并提交 ✓，
+  按批次纪律记一条 `docs/e2e/ledger.jsonl` ✓（并核查那轮 4 条红里有没有陈旧服务器造成的假红 ✓）。
+- [ ] `T-U8` **阶段收尾**：`docs/architecture.md` 写明**唯一接口 + 四套实现的退役** ✓；
+  `cargo test --workspace` + `scripts/soko gate` 全绿 ✓；**一次 push** → CI 绿 → bump → auto-tag →
+  release → `gh release list` 核对 ✓。
+
