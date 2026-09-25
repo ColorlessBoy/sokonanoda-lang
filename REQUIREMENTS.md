@@ -2765,7 +2765,7 @@ scripts·编辑器 ✓）、`T-U10`（把审计结论收口成"唯一归属 + �
 `serverPath` / `SOKONANODA_LSP_BIN` / 工作区构建 ✓）；② 查清是谁删 `u02` 并在
 `finally` 里恢复 ✓；③ 修 `SOKO_E2E_GREP` ✓。修完后**重跑**才能给 T-U4 定判 ✓。
 
-**㉛ 陈旧服务器的**根因已定位**（2026-09-25 第 70 轮）—— 修法一句话** ✓
+**㉛ 陈旧服务器的根因已定位**（2026-09-25 第 70 轮）· ✅ **两步都已修**（第 71 轮）✓
 **实测**：`editor/vscode/bin/darwin-arm64/sokonanoda-lsp` 内嵌版本串 = **0.65.0** ✗
 （mtime 是刚写的 ✓ ⇒ 确实是这趟 e2e stage 出来的 ✓），而仓库 = **0.67.0** ✗。
 **根因**：stage 步走 `editor/vscode/scripts/stage-lsp.js`（`scripts/vscode-e2e.sh:154` ✓），

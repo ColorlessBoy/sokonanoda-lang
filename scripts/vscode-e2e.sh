@@ -152,6 +152,27 @@ else
   fi
   echo "+ stage: editor/vscode/bin/<target>/（bundled 优先，必须是最新构建；profile=${profile}）"
   (cd editor/vscode && node scripts/stage-lsp.js --profile "$profile")
+
+  # **stage 后断言版本**（2026-09-25 §9 ㉛ 第二条 ✓）：刚 stage 的 CLI 自述版本必须
+  # 等于仓库版本 ⇒ 否则"被测二进制**不是当前源码**" ✗——本会话连续三轮真宿主 e2e
+  # 被 `bin/` 里那份 0.65.0 旧件污染（症状是告警里 `server 运行 0.65.0 != 扩展 v0.67.0`），
+  # 而**告警是可以被忽略的** ✗ ⇒ 这里把它变成**一次判红** ✓
+  # （AGENTS：**咬不住的守卫等于没有** ✓）。只在"刚构建+stage"这条路上断言 ✓：
+  # `--no-build` 是显式选择"可能测旧件" ✓，那条路由台账的 `dirty`/`lsp_sha256_16` 判读 ✓。
+  repo_version=$(node "$REPO_ROOT/scripts/soko" version --json 2>/dev/null |
+    sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+  staged_cli="$REPO_ROOT/editor/vscode/bin/$(host_target)/sokonanoda"
+  if [ -n "$repo_version" ] && [ -x "$staged_cli" ]; then
+    staged_version=$("$staged_cli" --version 2>/dev/null | awk '{print $NF}')
+    if [ "$staged_version" != "$repo_version" ]; then
+      echo "error: staged CLI 报 \`$staged_version\`，仓库是 \`$repo_version\` —— 被测二进制不是当前源码 ✗" >&2
+      echo "       多半是构建落在 CARGO_TARGET_DIR 而 stage 没跟（见 REQUIREMENTS.md §9 ㉛）" >&2
+      exit 3
+    fi
+    echo "+ stage 版本断言 ✓ staged=$staged_version · repo=$repo_version"
+  else
+    echo "  ⚠ stage 版本断言跳过（repo_version='${repo_version}' 或 staged CLI 不可执行）"
+  fi
 fi
 
 echo "+ vscode-test（VS Code ${test_version}，真宿主 + 真 LSP）"

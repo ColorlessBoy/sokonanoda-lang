@@ -70,10 +70,17 @@ function findBinary(rustTarget, profile, baseName, explicit) {
   if (explicit) return explicit;
   const exe = rustTarget.includes("windows") ? ".exe" : "";
   const name = `${baseName}${exe}`;
-  const candidates = [
-    path.join(REPO_ROOT, "target", rustTarget, profile, name),
-    path.join(REPO_ROOT, "target", profile, name),
-  ];
+  // **`CARGO_TARGET_DIR` 必须尊重**（2026-09-25 修；真实事故 ✗）：原来只找
+  // `REPO_ROOT/target/...` ⇒ 构建落在别处时（例如 `/tmp/soko-target`），这里会
+  // **静默**拷到仓库里那份**旧**构建 ⇒ e2e 测的**不是当前源码** ✗
+  // （症状 `server 运行 0.65.0 != 扩展 v0.67.0`，连续污染三轮真宿主 e2e ✓）。
+  // 设了 `CARGO_TARGET_DIR` 就**只认它** ✓：找不到**报错**，绝不回退到旧构建 ✗。
+  const envDir = process.env.CARGO_TARGET_DIR;
+  const roots = envDir ? [path.resolve(envDir)] : [path.join(REPO_ROOT, "target")];
+  const candidates = roots.flatMap((root) => [
+    path.join(root, rustTarget, profile, name),
+    path.join(root, profile, name),
+  ]);
   const found = candidates.find((candidate) => fs.existsSync(candidate));
   if (!found) {
     throw new Error(
