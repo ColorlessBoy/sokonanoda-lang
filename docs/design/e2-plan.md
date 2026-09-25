@@ -741,6 +741,14 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **真判据的写法** ✓：夹具的**源里必须写点形式** ✓（如
     `forall (x : α), Set.mem α x A -> …` ✓），再断言**显示**文本已折成记法（`∀`/`∈` ✓）
     —— 只有这样，注入"折叠失效"才会判红 ✓。当前那条只当**冒烟**用 ✗，**不算交付** ✓。
+  - **round 134 侦察：诊断面（面 #2）的落点** ✓ —— `QueryDoc` 的公开方法里**没有**诊断入口 ✗
+    （只有 `check` / `goals` / `project_report_ref` / `holes` … ✓）；而 `project_report_ref()`
+    在**单文件**夹具下是 `None` ✗（审计 #14 踩过同一个坑 ✓）。⇒ 要写诊断面判据，
+    **先定走哪条** ✓：① 扩 `QueryDoc` 一个 `diagnostics()` ✓（最干净 ✓）；
+    ② 或按 `check()` 的返回形状取 ✓（**先读它的签名与字段** ✗ 别猜 ✓）。
+    **反向验证的干净做法（本轮实测可用 ✓）**：`SOKO_NO_NOTATION_FOLD=1 cargo test …` ✓ ——
+    仓库既有开关 ✓（`display_notations` 见它返回**空表** ✓ ⇒ 一切折叠失效 ✓），
+    **不必注入代码** ✓；判红即证明判据咬得住 ✓。
   - **✅ round 104 完成** ✓：真判据 `a_kernel_pp_display_surface_must_be_folded`
     （夹具 `POINT_FORM_CANVAS` ✓：源里写 `Set.subset Nat A B` 点形式 ✓ ⇒ `ty` 必须折成 `⊆` ✓）
     + **反向验证做过了** ✓：在 `print_back` 入口注入"原样返回" ✗ ⇒ **判红** ✓
