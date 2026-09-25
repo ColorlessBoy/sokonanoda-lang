@@ -105,6 +105,7 @@ provenance + Marketplace 发布），历史上 gallery 会间歇超时（`docs/C
 | 层 | 工具 | 覆盖 | 文件 |
 |---|---|---|---|
 | 纯 Node 单测 | `npm run test:unit` | server.js 解析顺序/版本锁定 URL/exec 位修复、重定向、解压 | `test-server.js` / `test-download.js` |
+| Infoview **渲染结果**（看不看得见） | `node editor/vscode/test-webview.js`（`npm run test:unit` 的第 3 个文件） | 把**真的** `media/infoview.js` 放进最小 DOM stub 跑，断言 **DOM**：目标行 `.decl-goal-line`、`tok-*` span、空态三态文案、行不可点。**服务端给对了 ≠ 用户看得见** —— R-1（`def` 的值行）与 R-2（目标行）两次事故都是"每层各自绿、用户看不见"，就是缺这一层 | `editor/vscode/test-webview.js` |
 | 静态契约 | `cargo test -p sokonanoda-cli --test extension` | package.json 字段完整性、命令注册一致性、依赖打包安全、bundled 解析/版本一致/市场元数据 | `crates/cli/tests/extension.rs` |
 | 打包冒烟 | CI `Package host VSIX` step | `bin/<target>/` 入包、exec 位、`TargetPlatform` | ci.yml |
 | 宿主接线（stub host） | `node editor/vscode/test-extension-host.js`（`npm run test:unit` 的第 4 个文件） | **行为**：诊断事件过滤/去抖/合并、并发 `soko/goals` 合并、切文件丢弃过期答案、Infoview `decls` 去重、课程树缓存、**项目树三态**（闭包渲染 / 单文件占位 / 丢弃他人答案）、**记法缩写改写器**（`\and`+Tab、前缀陷阱、孤立 `\`、多光标、一次 undo 单元、eager 开关、Tab 的 context key）。用 stub 的 `vscode` / `vscode-languageclient` / `child_process` + 假定时器跑真 `extension.js`，零依赖、毫秒级 | `editor/vscode/test-extension-host.js` |
@@ -113,6 +114,15 @@ provenance + Marketplace 发布），历史上 gallery 会间歇超时（`docs/C
 | 手动验证 | F5 开发宿主 | 全功能（面板、树、inlay、跳转、补全、安装态离线） | — |
 
 **commit 前**：至少跑静态契约 + 集成测试；**发 tag 前**：三层全跑。
+
+### 接缝守卫（A∖B）：`python3 scripts/audit-wire-fields.py`
+
+凡"**扩展读了 / LSP 发**"的字段都要过它（已进 `scripts/soko gate` 与 CI）。它按
+**消费者分组**列出"读了但从**不**发"的字段。为什么必须有 ✗：扩展是「**有就渲染**」的
+宽容实现 ⇒ 缺字段是**静默降级**（那一行直接不出现）⇒ **e2e 天然抓不到**。R-1 的
+`value_runs`、T-A5 的 `goal_runs`/`goals_runs` 都是这么潜伏的；**回退字段时它必须报**
+（两个都实测验证过 ✓）。分组是 2026-09-24 补的：原来取"全体结构体字段的**并集**"
+⇒ `goal_runs` 被 `soko/stateAt` 的同名字段**顶包**，声明侧漏了也不报 ✗。
 **扩展改动后**：`scripts/soko gate`（Rust + 契约层）+ `node test-extension-host.js`（stub 层）+
 `scripts/vscode-e2e.sh`（真宿主层，~1 分钟；结果进 `docs/e2e/`）。
 CI 的 `e2e` job 跑的是**同一条命令**（3 条腿：ubuntu × VS Code 1.138.0 与 1.106.0
