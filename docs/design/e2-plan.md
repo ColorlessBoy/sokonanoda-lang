@@ -2402,7 +2402,23 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：先看 `perf-check.sh --list` 有哪些 case ✓
     ⇒ 选一个**稳定且够快**的 smoke 子集 ✓（十几秒 ✓）⇒ 再写 job ✓。
 
-- [ ] `T-E2` **文档收口**：`architecture.md` §6 台账 / `docs/PERF.md` / 技能与 `AGENTS.md` 同步 ✓
+- [x] `T-E2` **文档收口**：`architecture.md` §6 台账 / `docs/PERF.md` / 技能与 `AGENTS.md` 同步 ✓
+  - **✅ round 317-320：文档收口完成 ✓（四块 ✓）⇒ 本条可勾 ✓**
+    ```
+    ① `docs/architecture.md` **§6 内核改动台账** ✓ —— 补上 T-D8 的
+       `hide_declars` / `restore_declars` ✓（**硬规则 1 的欠账** ✗：我做了三层回归 ✓
+       却漏了台账 ✗ —— 而 §6 开头就写着"**务必先读**"✓，我改内核前**没读** ✗）；
+    ② `docs/PERF.md` **"性能回归门禁"一节** ✓（717 行 ✓）：它是什么 / 为什么复用 /
+       smoke 子集表 / **`--case` 陷阱** ✗ / 排除的重条 / 阈值 50 的理由 / 第一轮只报不拦 ✓；
+    ③ `AGENTS.md` **新增"性能回归门禁（`perf-gate`）"一节** ✓（**运行时文件已确认含它** ✓✓）；
+    ④ `skills/sokonanoda-ci/SKILL.md` **末尾追加一节** ✓（210 → **244 行** ✓，
+       **零锚点风险** ✓ —— round 302 的教训 ✓）；薄入口 `.agents/skills/sokonanoda-ci`
+       **仍指向它** ✓ ⇒ **守卫通过** ✓：`dsh` **8 passed** ✓ · `skill` **4 passed** ✓。
+    ```
+    **⇒ 一句总结（写给以后 ✓）**：**`perf-gate` 的价值不是"更快"✗，而是"不许更慢"** ✓
+    —— D-1/D-2 收益量不出 ✗，但它们的热路径（`did_open_same_session` **134ms** ✓）
+    从此**有守卫** ✓。
+
 - [ ] `T-E3` **`STATUS.md` 与 `HANDOVER.md` 更新** ✓
 - [ ] `T-E4` **阶段 E 收尾**：bump **`0.72.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 性能回归进 CI + 文档/技能收口
