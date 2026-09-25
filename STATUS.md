@@ -26,6 +26,25 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 326：`contract` 红 = **版本漂移** ✗ —— 而仓库有专门的工具，我手工改了两处** ✗
+  ```
+  $ python3 scripts/bump.py --check          # ← contract job 的第一步 ✓
+  版本漂移（仓库版本 0.72.0）：
+    - course/shared/sokonanoda.toml 的 requires = 0.68.0（应为 0.72.0）
+    - courses/set-theory/sokonanoda.toml 的 requires = 0.68.0（应为 0.72.0）
+  修：**python3 scripts/bump.py 0.72.0（写全仓库，一处来源）** ✓
+  ⇒ $ python3 scripts/bump.py 0.72.0
+    0.72.0 → 0.72.0：Cargo.toml · editor/vscode/package.json · Cargo.lock · **2 个清单的 requires** ✓
+    ⚠ **别忘了手写 editor/vscode/CHANGELOG.md**（脚本只管数字一致）✓
+  ⇒ $ python3 scripts/bump.py --check ⇒ **版本一致：0.72.0** ✓✓
+  ```
+  **⇒ bump 是**五处** ✗**（不是两处 ✗、不是三处 ✗）：`Cargo.toml` ✓ + `Cargo.lock` ✓ +
+  `editor/vscode/package.json` ✓ + **两个 `sokonanoda.toml` 的 `requires`** ✓
+  ⇒ **而"一处来源"的工具一直在仓库里** ✓（`scripts/bump.py` ✓）—— **我手工改了两处** ✗✓
+  ⇒ ⚠ **待办**：`editor/vscode/CHANGELOG.md` **要手写** ✗（脚本只保证数字一致 ✓）。
+  ⚠ **教训（第四次"没先找 sanctioned 入口"✗）**：**改版本号这种有工具的事，我又手改了** ✗
+    ⇒ **先 `ls scripts/` / 先 `grep` 工具名** ✓（本 session 的纪律 ✓，而我这次跳过了 ✓）。
+
 * **✅ round 325：上面那段"死锁"是**我推断错的** ✗ —— 真因是 `Cargo.lock` 过期** ✓
   ```
   $ gh run view --job … --log-failed
