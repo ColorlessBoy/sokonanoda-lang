@@ -23,6 +23,14 @@ crates/front/src/by.rs|render_expr|spec.ty = render_expr(ty);
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&restore_universe_levels(
+crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
+crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
 crates/front/src/compile/elab.rs|render_expr|&render_expr(scrutinee),
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(operand)).ok()
 crates/front/src/compile/elab.rs|render_expr|judge_infer(ctx.prefix_src, ctx.options, &binders, &render_expr(val))
