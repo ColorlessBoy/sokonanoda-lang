@@ -626,6 +626,44 @@ fn assert_text_runs_in_lockstep(doc: &QueryDoc, what: &str) {
     }
 }
 
+/// **T-U12 面 #3：hover 文本**（round 166 ✓ **咬得住** ✓）—— 走的是**与 LSP 同一条入口** ✓。
+///
+/// LSP 的 `half_expression_goals_hover` 5 处（round 132/133 迁移 ✓）调的就是
+/// **`sokonanoda_front::compile::fold_for_display(text, &render_expr(…))`** ✓
+/// ⇒ 在 front 侧对**同一个入口**写判据 ✓ = 咬住**同一个缺陷** ✓，而且**便宜** ✓
+/// （不必起真宿主 ✓ —— e2e 那份留作"看得见"的确认 ✓）。
+///
+/// **它为什么咬** ✓：夹具里**给常量声明了记法** ✓，而被折的文本是**内核 pp 形状**
+/// （`Set.subset Nat A B` ✓，不是源级渲染 ✓）⇒ 折叠**真的会改文本** ✓
+/// ⇒ `SOKO_NO_NOTATION_FOLD=1` 下**判红** ✓（那个开关让建表返回**空表** ✓）。
+///
+/// **反向验证** ✓（**不改代码** ✓）：
+/// ```
+/// SOKO_NO_NOTATION_FOLD=1 cargo test -p sokonanoda-front --lib hover_text_is_folded_like_the_lsp_does
+/// ⇒ 必须**判红** ✗
+/// ```
+const HOVER_FOLD_SRC: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+infix:50 \" ⊆ \" => Set.subset
+";
+#[test]
+fn hover_text_is_folded_like_the_lsp_does() {
+    use crate::compile::fold_for_display; // crate 内部用 crate:: ✓（外部才用 sokonanoda_front:: ✗）
+                                          // LSP hover 里被折的正是这种**内核 pp 形状**的文本 ✓（`render_expr` 的产物 ✓）。
+    let folded = fold_for_display(HOVER_FOLD_SRC, "Set.subset Nat A B");
+    assert!(
+        folded.contains('⊆'),
+        "hover 文本没有被折成记法 ✗（实际 = {folded}）—— 这正是用户看得见的那一面 ✓"
+    );
+    for marker in ["Set.subset ", "forall "] {
+        assert!(
+            !folded.contains(marker),
+            "hover 文本里漏出点形式 `{marker}` ✗ 实际 = {folded}"
+        );
+    }
+}
+
 /// **T-U12 的真判据（round 104 ✓）**：夹具的**源里写点形式** ✓ ⇒ 显示文本**必须经过折叠** ✓。
 ///
 /// 为什么上一版咬不住 ✗（round 103 实测）：那两个夹具是**源级渲染** ✓ —— 学习者写的记法

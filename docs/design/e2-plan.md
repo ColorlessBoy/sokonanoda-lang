@@ -734,6 +734,19 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     `ty_text`/`val_text` 只覆盖**整类型** ✓，`peel_pi_layers` 剥出的 `domain`/`codomain`
     **子项**没有副本 ✗）⇒ 先 B 后 A ✓。**不许**在 LSP 重建 arity ✗（那是第五套实现 ✓，守卫会抓 ✓）。
 - [ ] `T-U12` **面级 sweep 判据**（用户要求 ✓）—— **进行中** ⏳
+  - **✅ 面 #3 判据已落地并验证咬得住**（round 166 ✓）
+    `hover_text_is_folded_like_the_lsp_does`（`crates/front/src/query/tests.rs` ✓）——
+    走的是**与 LSP 同一条入口** ✓（`crate::compile::fold_for_display` ✓ =
+    round 132/133 那 5 处调的同一个函数 ✓）⇒ **同一个缺陷、更便宜的判据** ✓。
+    **两态判据（按退出码 ✓）**：
+    * 正常 ⇒ **退出码 0** ✓（`1 passed` ✓）；
+    * `SOKO_NO_NOTATION_FOLD=1` ⇒ **非 0** ✗、报
+      `hover 文本没有被折成记法 ✗（实际 = Set.subset Nat A B）` ✓。
+    ⚠ **过程中撞到一个验证缺口** ✗：crate **内部**的 `cargo check -p …` **不检查 `#[cfg(test)]`** ✗
+    ⇒ 我第一版写错了名字（`sokonanoda_front::` ✗，crate 内要 `crate::` ✓）却**过了 check** ✓
+    ⇒ **gate 必须用 `cargo test`（或 `--all-targets`）** ✓，别用 `cargo check` 当门 ✗。
+    ⏳ **e2e 那一份仍建议补** ✓（同样是这个断言 ✓，但走**真宿主 + 真 hover** ✓ ——
+    它才是"用户看得见"的确认 ✓；夹具要点见上 ✓）。
   - **面 #3（hover）现状：✗ 无判据**（round 165 **实测** ✓，两侧都查了 ✓）
     * **LSP 单测侧** ✓：`crates/lsp/tests/` 里 **hover 相关 0 处** ✗（这一面**根本没有单测** ✓）；
     * **e2e 侧** ✓：有 `hoverTextAt(uri, line, character)` ✓（`extension.test.js:163` ✓）与两处用法 ✓——
