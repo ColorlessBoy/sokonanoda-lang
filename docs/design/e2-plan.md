@@ -741,6 +741,16 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **真判据的写法** ✓：夹具的**源里必须写点形式** ✓（如
     `forall (x : α), Set.mem α x A -> …` ✓），再断言**显示**文本已折成记法（`∀`/`∈` ✓）
     —— 只有这样，注入"折叠失效"才会判红 ✓。当前那条只当**冒烟**用 ✗，**不算交付** ✓。
+  - **round 136 侦察：**① **没有任何既有测试触发那 4 处已折消息** ✗（`git grep` 只在
+    `elab.rs` 的实现处命中 ✓）⇒ **B 组折过的诊断其实没有测试覆盖** ✗ —— 这本身就是个缺口 ✓。
+    ② **夹具的可靠来源 = 课程里的真实用法** ✓：
+    `courses/set-theory/lib/Exists.sokonanoda:103` 的 `binder_notation "∃" => Exists` ✓
+    + `units/unit08-images-preimages.sokonanoda:128` 的 **binder 位置**用法 `∃ (x : α), p` ✓。
+    要触发 `ElabBinderNotationUnsolved` ✓ 得用 **guard 形式**（`∃ x ∈ s, p` ✓ ——
+    `split_and_guard` 那条路 ✓）；`elab.rs:71` 的注释给了"反解不出来"的判据 ✓
+    （"`Eq.symm` 的 `h : Eq a b` 里 `α` 不见了 ⇒ 反解不出来" ✓）⇒ **照它造** ✓。
+    **做法** ✓：先写一个**只断言"看到了那条消息"**的测试 ✓（关键词匹配 ✓）⇒ 绿了再加"无点形式" ✓
+    ⇒ 最后用 `SOKO_NO_NOTATION_FOLD=1` 反向验证 ✓（**分三步走** ✓，别一次写完 ✗）。
   - **round 135 实测：诊断面判据**又**不咬** ✗（与 round 103 同一个陷阱 ✓）——
     夹具（`theorem … : Set.subset Nat A B := 0` ✓）确实产生了诊断 ✓（`seen > 0` ✓），
     但 **`SOKO_NO_NOTATION_FOLD=1` 下它照样绿** ✗ ⇒ 那些诊断文本里**根本没有**被折的类型 ✓
