@@ -884,6 +884,28 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 276 续：键的形状**确认了假设** ✓（键里只有字符串 ✗，没有环境状态 ✓）**
+    ```
+    judge.rs:99   type JudgeCacheStore = (HashMap<u64, JudgeCacheValue>, Vec<u64>);
+    judge.rs:106  fn judge_cache_key(parts: &[&str]) -> u64 { … }   ← 键 = **字符串**拼出的 u64 ✗
+    judge.rs:235  let key = judge_cache_key(&[ … ]);                ← `judge_infer_cached` ✓
+    judge.rs:284  let key = judge_cache_key(&[ … ]);                ← 另一处 ✓
+    judge.rs:130  fn type_cache() → **第二个** static CACHE ✓
+    ```
+    ⇒ **键只由字符串构成** ✗（前缀文本 / 词项 / 选项 ✓），**不含环境状态** ✗
+    ⇒ 若 walk 的提前 add **改变了同一键下的结果** ✓ ⇒ **缓存的旧值被复用** ✓✓
+    ⇒ **这就是 round 275 的"共享热状态"** ✓（也解释了"单跑通过、全套失败" ✓：
+    单跑时缓存**冷** ✓ ⇒ 算一次对的 ✓；全套时**别的用例先塞了旧值** ✓ ⇒ 复用它 ⇒ 错 ✓）。
+    **⇒ 修法（两个选项 ✓，都小 ✓）**：
+    * **A（推荐 ✓）**：开关打开时**判卷路径绕开这两个缓存** ✓
+      （`SOKO_WALK_REAL_ADD` ⇒ `judge_cache`/`type_cache` 直接算、不读不写 ✓）
+      ⇒ **语义最保守** ✓（"缓存只是加速 ✓，绕开它不改变正确结果" ✓）；
+    * **B**：让键**含环境状态** ✓（如 `builder.declaration_count()` ✓ 或影子覆盖集合的哈希 ✓）
+      ⇒ 更"对"但**改动面大** ✓（两处键构造 ✓ + 值语义 ✓）。
+    **⇒ 下一步（一条命令 ✓）**：确认 A 可行 ✓ ——
+    读 `judge_infer_cached`（`:235` 附近 ✓）看**能不能在最外层短路** ✓
+    （即"开关开 ⇒ 直接走 `judge_infer_uncached`" ✓）⇒ 那就**一行** ✓。
+
   - **✅ round 276：全局缓存候选清单到手 ✓（最可疑 = 判卷缓存 ✓）**
     ```
     crates/front/src/judge.rs（12 处 ✓）
