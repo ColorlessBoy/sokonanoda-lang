@@ -12,6 +12,7 @@ pub mod cache;
 pub mod graph;
 pub mod manifest;
 pub mod module_name;
+pub mod module_plan;
 pub mod report;
 pub mod resolve;
 

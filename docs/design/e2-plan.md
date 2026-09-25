@@ -263,7 +263,18 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （名字遮蔽、重复声明诊断、未使用类警告）——因为平坦序让 `F` 的环境包含它**没有 import**
     的模块。**刹车沿用 E2 §3**：判不过就不接 `build`，只留 API + 判据 + 差异记录 ✓。
 
-- [ ] `T-C2` **实现 API**：新增规划入口（底层 `units: &[SourceUnit]` 本来就支持多单元 ✓）
+- [x] `T-C2` **实现 API**：新增规划入口（底层 `units: &[SourceUnit]` 本来就支持多单元 ✓）
+  - ✅ **已实现（2026-09-25）**：`crates/front/src/project/module_plan.rs` ——
+    `module_files(root)`（递归、排序、**跳过 `.sokonanoda/`**）、`plan_module(root)`
+    （逐文件取自己的闭包 → **按路径去重**、保拓扑序地合并 → 加载期诊断去重）、
+    `compile_module(plan, options)`（`compile_all_units` **编一次**，报告按文件归位）。
+    单文件/单入口路径一行未动（新增模块，`build` 是否用它由 T-C4 的开关决定）。
+    **判据**（2 条，都做过修前判红 ✓）：
+    `module_files_are_sorted_and_skip_the_artifacts_directory`（产物目录里的
+    `README.sokonanoda` **不许**出现在清单里 —— 抽掉跳过逻辑 ⇒ **exit 101** ✓）、
+    `plan_module_dedups_shared_dependencies_and_keeps_topological_order`
+    （Lib 被 B/C 共享 ⇒ 单元序 `[Lib, B, C]` 且 Lib **只出现一次**、三个文件都有报告 ——
+    抽掉去重 ⇒ **exit 101** ✓）。恢复后 front **724 passed** ✓。
 - [ ] `T-C3` **等价性判据**：对同一门课，**逐文件**比较"新 API 的报告"与"旧路径（逐入口编译）的报告" —— 状态、诊断、`decl.checked` 事件**逐项相同** ✓
 - [ ] `T-C4` **`build <dir>` 接入**（开关 `SOKO_BUILD_MODULE_BATCH=1` 默认**关** ✓，先保证零退化 ✓）
 - [ ] `T-C5` **量收益**：`build courses/set-theory` 从 **146.07s** 降下来 ✓（数字进台账）；**默认打开** ✓（收益已证 ✓）
