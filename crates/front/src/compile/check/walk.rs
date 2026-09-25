@@ -732,7 +732,8 @@ impl<'arena> Walk<'arena> {
             None if expr_has_hole(val) => {
                 // spine 走查无法分解，但值有洞 → generic open exercise
                 Some(crate::compile::goals::OpenGoalInfo {
-                    goal: render_expr(ty),
+                    // ③ 收口（2026-09-25）：AST → 文本**必过折叠** ✓（原来只渲染 ⇒ 点形式 ✗）
+                    goal: crate::display::render_folded(ty, &self.display),
                     binders: Vec::new(),
                     holes: vec![val.span()],
                     sub_goals: Vec::new(),

@@ -172,6 +172,18 @@ pub fn print_back(text: &str, notations: &DisplayNotations) -> DisplayText {
     }
 }
 
+/// **唯一的"AST → 给人看的文本"入口**（2026-09-25 收口 ✓）：渲染之后**必过折叠** ✓。
+///
+/// 为什么要有它：记法转化曾经散在**四处** ✗ —— `print_back`（真的转化 ✓）、
+/// `semantic::tag_runs_with_notations`（只打标签 ✗）、`render_expr`（只渲染 ✗）、
+/// 内核 pp（点形式 ✗）⇒ 目标生产那条链**只渲染不折叠** ⇒ Infoview 顶部「目标」
+/// **永远是点形式** ✗（用户 2026-09-25 报的就是它 ✓，`REQUIREMENTS.md` §9 ㉔）。
+/// **新代码一律用它**；绕过它就等于又长出一套实现 ✗。
+pub fn render_folded(expr: &Expr, notations: &DisplayNotations) -> String {
+    let text = crate::proof::render_expr(expr);
+    print_back(&text, notations).as_display_str().to_string()
+}
+
 /// 把折出来的记法**拼回原文本**：只替换折过的那几段，其余**逐字节保留**。
 ///
 /// **为什么不是"重渲染整棵 AST"**（`render_expr(&folded)`）：那样会把折过之外
