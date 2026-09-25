@@ -112,6 +112,15 @@ def scan(files: list[Path]) -> list[dict]:
         for lineno, raw in enumerate(text.splitlines(), 1):
             # 注释里的提及不算（守卫判的是**调用** ✓）；文档字符串里的 `fn x(` 也不算 ✓。
             code = raw.split("//", 1)[0]
+            # **定义/再导出行不算绕过** ✓（2026-09-25 补 ✗⇒✓）：`pub fn render_expr(expr)` 与
+            # 它体内的 `crate::proof::render_expr(expr)` 是**再导出**（`check/mod.rs:1243` ✓），
+            # 不是"绕过接口的实现" ✓ —— 它们此前贡献了 **2 条假条目** ✗（88 里的两条 ✓）。
+            # ⚠ 只跳**签名行**（`fn <name>(` ✓）：体内的调用会被上一行的签名"带过"吗 ✗ ——
+            # 不会 ✓（逐行判 ✓），所以再导出体内的那一行仍会被算 ✓ …… 因此这里跳过
+            # **整段再导出**是靠"名字即调用名 + 出现在 fn 签名里"这一条 ✓：
+            # 简单起见只跳签名行 ✓，并在基线刷新时把再导出体内的那 1 行一起处理 ✓。
+            if re.match(r"\s*(pub(\(crate\))?\s+)?fn\s+(render_expr|print_back|tag_runs_with_notations)\b", code):
+                continue
             for call, pat in CALLS.items():
                 if pat.search(code):
                     hits.append(

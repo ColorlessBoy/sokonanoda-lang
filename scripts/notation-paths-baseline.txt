@@ -23,9 +23,7 @@ crates/front/src/by.rs|render_expr|spec.ty = render_expr(ty);
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&nodes[id].ty),
 crates/front/src/by.rs|render_expr|ty: render_expr(&restore_universe_levels(
-crates/front/src/compile/check/mod.rs|print_back|crate::display::print_back(text, display)
 crates/front/src/compile/check/mod.rs|render_expr|crate::proof::render_expr(expr)
-crates/front/src/compile/check/mod.rs|render_expr|pub fn render_expr(expr: &Expr) -> String {
 crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
 crates/front/src/compile/check/walk.rs|render_expr|goal: render_expr(ty),
 crates/front/src/compile/check/walk.rs|render_expr|signature: Some(crate::proof::render_expr(ty)),
@@ -83,7 +81,6 @@ crates/front/src/semantic.rs|tag_runs_with_notations|let bare = tag_runs_with_no
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations(
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("A ∈ B -> (A ↔ B)", &[], &[], &symbols);
 crates/front/src/semantic.rs|tag_runs_with_notations|let runs = tag_runs_with_notations("z = z", &[], &[], &["=".to_string()]);
-crates/front/src/semantic.rs|tag_runs_with_notations|pub fn tag_runs_with_notations(
 crates/front/src/semantic.rs|tag_runs_with_notations|tag_runs_with_notations(text, decls, binders, &[])
 crates/lsp/src/lib.rs|render_expr|goals.push(render_expr(
 crates/lsp/src/lib.rs|render_expr|goals.push(render_expr(domain));

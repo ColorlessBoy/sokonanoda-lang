@@ -389,11 +389,9 @@ fn by_step_states(
     // **展示副本**（线 C / T-C22）：`ByStepState` 只给目标栏看（T-C02 的审计），
     // 所以这里折记法。**引擎内部那份 AST 一个字节没动**——`apply`/`cases` 的子目标
     // 是**判定输入**（要回读），折了就会把判定搅坏。
-    let fold = |text: &str| {
-        crate::display::print_back(text, display)
-            .as_display_str()
-            .to_string()
-    };
+    // **走唯一接口**（T-U11，2026-09-25 ✓）：`fold` 就是 `print_back(text, self)` ✓
+    // ⇒ **零行为变化** ✓（判据：front 全量 + T-U12 面级判据 ✓）。
+    let fold = |text: &str| display.fold(text);
     steps
         .iter()
         .map(|s| ByStepState {
