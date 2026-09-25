@@ -28,6 +28,17 @@ theorem open_one (α : Type) (A B : Set α) : A ⊆ B := by\n  sorry\n\n\
 theorem uses_lib (α : Type) (a : α) (A : Set α) : Set.mem α a A -> Set.mem α a A :=\n\
   fun (h : Set.mem α a A) => h\n";
 
+// **不要手拼 `file://{}`**（审计 #22，2026-09-25 ✓）：手拼出来的可能带 `..`，
+// 而服务端发的是 `Url::from_file_path` 规范化后的字符串 ✗ ⇒ 两边**字符串不同** ✓
+// ⇒ 谁也认不出谁（这个形状**已经咬过人** ✓：`perf_course.rs` 的注释里记着它 ✓，
+// 而 2026-09-25 的 ubuntu e2e flake 是同族的 JS 版本 ✗）。
+// 这里用 `canonicalize` 把路径规范化后再拼 ✓（不引新依赖 ✓，与 `from_file_path`
+// 对**已规范化路径**的输出一致 ✓）。若 canonicalize 失败就退回原路径 ✓。
+pub fn file_uri(path: &std::path::Path) -> String {
+    let p = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    format!("file://{}", p.display())
+}
+
 struct Fixture {
     dir: PathBuf,
     cache: PathBuf,
@@ -50,7 +61,7 @@ impl Fixture {
     }
 
     fn uri(&self) -> String {
-        format!("file://{}", self.entry.display())
+        file_uri(&self.entry)
     }
 }
 

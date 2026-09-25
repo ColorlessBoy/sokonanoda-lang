@@ -33,7 +33,7 @@
 | 19 | `bump.py:90-97` 要求 `requires` **全等 `x.y.z`** ✗ vs `manifest.rs:135-150`（只比 **major.minor** ✓）与 `soko:300-313`（`x.y` 是合法约束 ✓） | 三处语义相反 ✗ | 中（**未证实**：现生效清单都是 `0.67.0` ✓，`bump.py` 现为绿 ✓） | 以 `manifest.rs` 的语义为唯一判据 ✓ | `python3 scripts/bump.py` ✓ | 立台账（暂不做 ✓） |
 | 20 | `gap.py:14` 把**用法错误折进 exit 1** ✗（全仓约定 1 = 有拒绝/漂移 ✓；同一条件在 `notation-lint.py` 是 2、`check-site.py` 是 3 ✗） | 各脚本 docstring 各写一遍退出码 ✗ | 中 —— 调用方把"命令行写错"读成"台账漂移" ✗ | 一份 `scripts/_exit.py` ✓ | `grep -n '退出码' scripts/*.py` ✓ | 立台账（暂不做 ✓） |
 | 21 ✅**已修**（round 89 ✓）：状态栏说出范围（"本文件 N" ✓）+ tooltip 点明对比 | `extension.js:391` vs `project-tree.js:28` | 中 —— 同一窗口两个数、用户无法分辨 ✗ | ✅ 状态栏文本改为 `本文件 N` ✓、tooltip 注明"下面那行是**整个项目**的" ✓ —— 数**本身**没改（当前文件那个数是对的 ✓），改的是**用户能不能分辨** ✓ | `grep -n openCount editor/vscode/extension.js` ✓ | 立刻做（小改 ✓） |
-| 22 | 测试夹具手拼 `file://` URI vs 服务端 `Url::from_file_path` ✗ | 两条 URI 构造路（已咬过人 ✓） | 低 | 夹具统一 `Url::from_file_path(canonicalize(p)?)` ✓ | `grep -rn 'file://{}' crates/lsp/tests` → 3 处 ✓ | 立台账（暂不做 ✓） |
+| 22 ✅**已修**（round 98 ✓）：夹具改用 `canonicalize` 后的路径拼 URI | 两条 URI 构造路（已咬过人 ✓） | 低 | ✅ 三处都改成 `file_uri()`（`canonicalize` 后拼 ✓，不引新依赖 ✓）| `grep -rn 'file://{}' crates/lsp/tests` → 3 处 ✓ | 立台账（暂不做 ✓） |
 | 23 | `counts.decls`（`project.rs:95`）与 `ProjectModule.decls`（`:110`）同表达式写两遍 | 自身 | 低（今天恒等 ✓，潜伏 ✓） | 求和派生 ✓ | `sed -n '95p;110p' crates/front/src/query/project.rs` ✓ | 立台账（暂不做 ✓） |
 | 24 | 首个目标在 wire 上出现**两次**（`protocol.rs:184-191` = `goals[0]` ✓，映射走两条路 ✗） | 自身 | 低（已被 `lsp/tests/state.rs:158,162` 钉住 ✓） | 单值三字段标记 deprecated、由 `goals.first()` 派生 ✓ | `grep -n 'goals\[0\]' crates/lsp/src/tests/state.rs` ✓ | 立台账（暂不做 ✓） |
 | 25 | 三份 JSONL 台账的 read/write/schema 各写一遍 ✗ | `e2e-merge.py` / `e2e-summary.py` / `gap.py` | 低 | 一份 `scripts/_ledger.py` ✓ | `grep -n 'ledger.jsonl\|schema' scripts/e2e-merge.py scripts/gap.py` ✓ | 立台账（暂不做 ✓） |
@@ -171,6 +171,17 @@ URI↔路径（Rust 侧一律库调用 ✓，重复只在测试夹具 ✓）、c
 * ⏳ 仍未动：项目树那行的文案（`project-tree.js:28` 的 `${counts.open_exercises} 练习` ✓）——
   它坐在"`N 模块 · M 失败 · K 练习`"这种**项目级**行里 ✓、范围已由上下文隐含 ✓，
   且 e2e 可能断言这行文本 ✗ ⇒ 先不动 ✓（真要改，连同 e2e 一起 ✓）。
+
+### #22 ✅ 已修（round 98 ✓）：夹具不再手拼 `file://`
+三处（`tests/common/mod.rs:130` 的 `rootUri` ✓、`tests/lsp_cache.rs:53`、
+`tests/lsp_edit_concurrency.rs:54` ✓）原来是 `format!("file://{}", path.display())` ✗
+⇒ 手拼出的可能带 `..` ✓，而服务端发的是 `Url::from_file_path` 规范化后的 ✓
+⇒ **两边字符串不同、谁也认不出谁** ✗ —— 这个形状**已经咬过人** ✓
+（`perf_course.rs` 的注释记着它 ✓；2026-09-25 的 ubuntu e2e flake 是**同族的 JS 版** ✗，
+那处已在 e2e watcher 上用 `realpathSync` 规范化键修掉 ✓）。
+修法 ✓：新增 `file_uri()`（`std::fs::canonicalize` 后拼 ✓，不引新依赖 ✓；
+`common/mod.rs` 里因落在 `impl` 内 ⇒ 用 `Self::file_uri` ✓）。
+**判据** ✓：`cargo test -p sokonanoda-lsp` ⇒ **161 passed / 0 failed** ✓（+ 附带 3 / 2 ✓）。
 
 ## 2. 主线的抽查验证（纪律：产出**验证后才并入** ✓）
 
