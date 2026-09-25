@@ -353,9 +353,21 @@ def cmd_check(args: argparse.Namespace) -> int:
             continue
         observed, expected, ok = judge(e, kind, code)
         bad += not ok
-        print(f"{e['id']:<6}{status:<12}{kind:<12}{observed}"
-              f"{'' if ok else f'  ← 台账写的是「{expected}」，请更新'}"
-              f"{'' if ok or not note else f' ｜复现件：{note}'}")
+        line = (
+            f"{e['id']:<6}{status:<12}{kind:<12}{observed}"
+            f"{'' if ok else f'  ← 台账写的是「{expected}」，请更新'}"
+            f"{'' if ok or not note else f' ｜复现件：{note}'}"
+        )
+        print(line)
+        # **逐条发 GitHub 注解**（2026-09-25 用户指出 ✓："ledger 是不是本身实现的时候，
+        # 信息就打印得太少了" ✓ —— 完全对 ✓）。此前注解里**只有** `Process completed
+        # with exit code 1.` ✗ ⇒ 细节只在 stdout ✓，而**整轮结束前 job 日志读不到** ✗
+        # ⇒ 失败**已经发生却拿不到原因** ✓（本 session 为此耗过半小时 ✓）。
+        # 注解**边跑边可读** ✓（`gh api …/check-runs/<id>/annotations` ✓，不必等整轮 ✓）。
+        if not ok and os.environ.get("GITHUB_ACTIONS"):
+            # 注解里的 `%` / 换行要转义 ✓（GitHub 的命令语法 ✓）
+            msg = line.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+            print(f"::error title=缺口台账 {e['id']} 与台账不一致::{msg}")
     if got_env_skips:
         print(f"\n⚠ **{len(got_env_skips)} 条因环境慢被跳过**（{', '.join(got_env_skips)}）"
               f"—— 它们**没有**被判红 ✓，但也**没有**被验证 ✗。"
@@ -376,8 +388,31 @@ def cmd_check(args: argparse.Namespace) -> int:
     # （用户原话："ledger 立马就失败了，但是整个 github action 还在继续，
     #   导致你不知道已经失败了" ✓）。写进 summary ⇒ 在**页面上一眼可见** ✓、不必等整轮 ✓。
     _write_step_summary(bad, got_env_skips)
+    # **同时发 GitHub 注解**（2026-09-25 用户指出"失败了却不知道" ✓ 的最后一环 ✓）：
+    # Step summary 只在**页面**上可见 ✗（**没有 API** ✓）⇒ 而 `::error::` 会变成
+    # **check-run 注解** ✓ ⇒ `gh api …/check-runs/<id>/annotations` **立刻可读** ✓
+    # —— 整轮还在跑也读得到 ✓（本 session 为"拿不到失败细节"耗过半小时 ✓）。
+    if bad and os.environ.get("GITHUB_ACTIONS"):
+        shard = _shard_label()
+        print(
+            f"::error title=缺口台账不一致（{shard}）::"
+            f"这一片有 {bad} 条与台账不一致 ✓ ⇒ 细节见本 job 的 **Step Summary** 与日志 ✓；"
+            f"本地复跑：python3 scripts/gap.py check {shard} --strict"
+        )
     print("\n全部与台账一致。")
     return 0
+
+
+def _shard_label() -> str:
+    """当前分片标签 ✓（没分片时给空串 ✓）。"""
+    import sys as _sys
+
+    for i, a in enumerate(_sys.argv):
+        if a == "--shard" and i + 1 < len(_sys.argv):
+            return f"--shard {_sys.argv[i + 1]}"
+        if a.startswith("--shard="):
+            return f"--shard {a.split('=', 1)[1]}"
+    return ""
 
 
 def _write_step_summary(bad: int, skips: list) -> None:
