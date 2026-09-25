@@ -884,6 +884,29 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯 round 271：96 的来源已由**数字本身**指出 ✓（不用再跑一次 ✓）**
+    **关键对比** ✓（三次实测的数字 ✓）：
+    ```
+    仅影子（真 builder 被**晚**填 ✓）      ⇒ **11** ✓  ← 基线 ✓
+    强制**提前**填 + **无** B              ⇒ **140** ✗
+    强制提前填 + B（**只覆盖 `PendingOp::Decl`** ✗）⇒ **96** ✗
+    ```
+    ⇒ **"晚填"是 11 ✓、"提前填 + 只覆盖 Decl" 是 96** ✗ ⇒ 而
+    **`kernel_phase.rs:363` 的 `PendingOp::InductiveBlock` 分支有自己的检查** ✓：
+    ```rust
+    PendingOp::InductiveBlock { name, declars, span, cmd } => {
+        for declar in &declars {
+            kernel_checks += 1;
+            if let Err(e) = env.try_check_declar(declar) { … }   // ← **没被 B 覆盖** ✗
+    ```
+    ⇒ **我的 B 只覆盖了 `PendingOp::Decl`** ✗ ⇒ **归纳块的成员被 walk 加一次 ✓、内核又加一次** ✗
+    ⇒ 这正是**剩下的 96** ✓✓（而 140 里包含了它 ✓ ⇒ 140 − 96 = 44 是 `Decl` 那部分的重复 ✓）。
+    **⇒ 下一步（明确 ✓）**：把 B 也覆盖 `InductiveBlock` ✓ ——
+    在该分支里对 `cmd` 同样判断 `real_add_covered` ✓ ⇒ 命中则**只做记账**（`kernel_checks += 1` ✓）
+    **不做 `env.try_check_declar`** ✓；判据仍是 **failed 回到基线 11** ✓。
+    ⚠ 注意 ✓：walk 那侧对归纳块是**逐成员、首个失败就 `break`** ✓（`walk.rs:155-159` ✓），
+    与内核分支的语义**一致** ✓ ⇒ 覆盖它不会引入新的语义差 ✓。
+
   - **🎯 round 269：收窄 B **有效**（208→96 ✓、166→45 ✓）但仍未达标 ⇒ 已回退 ✓**
     ```
     默认          : 736 passed; **0 failed** ✓
