@@ -26,7 +26,29 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 325：上面那段"死锁"是**我推断错的** ✗ —— 真因是 `Cargo.lock` 过期** ✓
+  ```
+  $ gh run view --job … --log-failed
+  gates-fast → "Lesson corpus is valid"：
+    $ cargo build -q -p sokonanoda-cli --locked
+    error: **cannot update the lock file …/Cargo.lock because --locked was passed to prevent this**
+    ##[error]Process completed with exit code 101
+  ⇒ **与版本/缓存无关** ✗✓ —— 是 **`Cargo.lock` 还记着 `0.68.0`** ✗ 而 `Cargo.toml` 已是 `0.72.0` ✓
+  ⇒ **`--locked` 拒绝** ✓ ⇒ **CI 红** ✗
+  ⇒ **修法（已做 ✓）**：`cargo build -q -p sokonanoda-cli --offline`（**不带 `--locked`** ✓）
+    ⇒ `Cargo.lock` 三行 `0.68.0 → 0.72.0` ✓ ⇒ **复跑 CI 的原命令 `--locked` 通过** ✓✓
+  ⇒ ⇒ **所以 bump 其实是**三处** ✗**：`Cargo.toml` ✓ + **`Cargo.lock`** ✓ + `editor/vscode/package.json` ✓
+    —— "**bump 两处**"的说法里，**`Cargo.lock` 默认跟着 `cargo build` 更新** ✓
+    ⇒ **而我只 bump 了两处** ✗ ⇒ **CI 红** ✓（**hook 在本地没拦到** ✗ —— 因为本地跑的是
+    `--offline`/`--locked` 之外的路径 ✓ ⇒ **这是一条本地门覆盖不到的错** ✓）。
+  ⚠ **教训（本 session 第三次"推断错了"✗）**：**日志一句话就说清了，而我先推了一大段** ✗
+    ⇒ **先读日志，再推理** ✓（**又一次** ✓）。
+  ```
+  <details><summary>当时（错误）的推断 ✗，留作对照 ✓</summary>
+
 * **🔴 round 324：`0.72.0` 的发布**死锁**了** ✗（**鸡生蛋打到了 CI 上** ✓）
+  </details>
+
   ```
   run 36188040629（b48279a ✓）：
     ✅ **success  perf-gate**  20:49:32..**20:49:42** ✓✓ ← **首次实跑成功，10 秒** ✓（smoke ~1 秒 ✓）
