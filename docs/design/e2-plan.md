@@ -779,6 +779,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
       （本文件声明一次 + 从 import 的模块再可见一次 ✓），或同名符号有两个 `resolve_known` 结果 ✓。
       ⇒ **顺序调整为**：①' **先写出"≥2 候选且都对不上"** 的最小画布并确认能报出那条错误 ✓
       ⇒ ②' 再让它"咬住"（候选结果类型含被记法化常量 ✓，配方见上 ✓）。
+    * **✅ round 154：①' 已成功 ✓、②' 只差一行（下轮一步就能收口 ✓）**
+      —— 探针**正中目标** ✓：
+      ```
+      code = "elab-notation-no-candidate"
+      message = 记法 `∈` 的候选目标（`Set.mem`、`Set.subset`）没有一个能对上这里的期望类型：
+                `Set.mem` 的结果类型是 `Prop`；`Set.subset` 的结果类型是 `Prop`
+      ```
+      **可用的最小画布**（已验证命中 ✓）：`Set`/`Set.mem` + `infix:50 " ∈ " => Set.mem` ✓
+      **再声明一次**同名符号指向另一个目标 ✓（重复声明**不报错** ✓ —— 实测 ✓）
+      + `theorem t (A B : Set Nat) : Nat := A ∈ B` ✓（期望 `Nat` ⇒ 两个候选都对不上 ✓）。
+      **②' 缺的那一行** ✓：夹具里**必须真的给那个常量声明记法** ✓ ——
+      `infix:50 " ⊆ " => Set.subset` ✓；否则**折叠没有规则**可用 ✗ ⇒
+      `SOKO_NO_NOTATION_FOLD=1` 下照样绿 ✗（round 154 连试两版都因此不咬 ✓）。
+      ⚠ **改夹具时不要用全局字符串替换** ✗ —— `def Set.subset (α : Type) …` 那行在
+      **5 个夹具里都有** ✓（本轮就撞上了 ✓，断言把它挡住了 ✓）；
+      要把改动**限定在 `DIAG_SURFACE_CANVAS` 这个常量内部** ✓。
     * ⚠ **注意** ✓：`ElabNotationNoCandidate` 与 151 那条**不是同一个** ✓ ——
       151 折的是**源级 guard**（结构上不可能咬 ✗），这条折的是**内核类型**（能咬 ✓）。
   - **✅ round 151：夹具**终于命中**了那条消息 ✓（**代码推导**而非猜测 ✓）**
