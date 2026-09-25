@@ -2244,6 +2244,38 @@ assumption / rfl**，另加 `by sorry` 占位（目标保持开放，与值位 s
 
 ---
 
+### 2026-09-25 · 用户报告：记法化"不通配"的三个现场（课程 + Infoview）
+
+用户原话：「unit12-synthesis 没有完整的 notation 化；unit11 里 `exists_univ` 与
+`no_univ_strictly_larger` 在 infoview 的声明里也没有正确 notation 化。这些 bug 都是
+怎么形成的？好多"目标"都没有正确 notation 化。现在方案不是通配的，而是拆东墙补西墙的吗？」
+
+**查证结果（三个不同成因，别混为一谈）**：
+
+1. **记法门禁一直在崩，不是在判** ✗（**我们的回归**，R-3 引发）：`scripts/notation-lint.py`
+   对 `rglob("*.sokonanoda")` 的命中直接 `read_text()`，而模块根下的产物**目录**
+   `.sokonanoda/` 名字正好以 `.sokonanoda` 结尾 ⇒ `IsADirectoryError` ⇒ **崩了就不判** ✓。
+   已修（只收 `is_file()` ✓，通用修法）。**教训**：新增目录/文件形态后，要扫一遍
+   "按名字取文件"的所有工具（这次扫出 `verify-decl-panel.py` 早有过滤 ✓、其它无隐患 ✓）。
+2. **门禁的判据是 28 条正则的"模式清单"** ✗ ⇒ 只抓当初枚举过的点形式，新记法/新写法天然漏 ✓
+   —— 用户"不通配"的判断**成立** ✓。**修法（通用）**：改成**语义判据**——用 front 自己的
+   解析器取每个声明的头名，若该头名在本闭包/prelude **有记法声明**而源码没用记法 ⇒ 判红 ✓；
+   过渡期可从 `infix`/`notation` 声明**自动生成**模式，不再手维护清单 ✓。
+3. **Infoview 里 `exists_univ` / `no_univ_strictly_larger` 显示点形式** = **记法第三刀**
+   （**binder 记法**：`∃ x,` 的本质是 `Exists (fun x => …)`，**lambda 在操作数位**）✓
+   —— 这不是"忘了"，而是**已登记并主动推迟**的项（`docs/design/notation-subset.md:355`
+   「另立」；`REQUIREMENTS.md:1716` 留第二刀），而且**症状被预言过**
+   （`REQUIREMENTS.md:2220`：「binder 记法 ⇒ `forall (a : T), …` 不折。若成立，则**不止 `∀`**」）✓。
+   本次用户报告是它**第一次被确认是用户可见的** ✓：折叠失败会**整条**退回点形式（连外层
+   `∀` 一起 ✗），所以 `ty` 里出现 `forall … Exists (Set α) (fun …)`、`Not (Exists … And …)` ✓
+   （同文件的 `subset_univ` 等 6 条正常 ✓，因为它们的类型里没有 lambda 位的记法 ✓）。
+   **另外查到**：`ty_text` 字段**全 8 条都是 `None`** ✗（不是转失败，是**没生成**）——
+   卡片实际渲染走 `ty_runs`/`goal_runs`；`ty_text` 这条路径是否还需要、由谁消费，需要一并厘清 ✓。
+
+**要求**：① ② 按上面的通用修法做；③ 作为**记法第三刀**排进计划（用户在 Infoview 里
+看得见它 ⇒ 不再是"可选优化" ✓），并给出判据（`∃`/`∀` 位记法折回的**真宿主 e2e 可见断言** ✓，
+不只单测 ✓）。
+
 ## 2026-09-24 · 用户补充的 4 条需求（第 97 轮收到）
 
 ### R-1 `Set.mem def` 在 Infoview 里看不到第二行 `:=` 之后的数据
