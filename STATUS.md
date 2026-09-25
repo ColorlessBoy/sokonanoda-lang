@@ -26,6 +26,12 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 414：不变** ✓（11 绿 · 13 未完 · 零失败 ✓）
+  ```
+  ⇒ **`auto-tag` 还没出现** ✓（**它要等 `needs` 全完** ✓）⇒ **正常** ✓
+  ⇒ **判据不变** ✓：等 ⇒ 全绿 ⇒ `auto-tag` ⇒ release ✓ · **不推** ✗。
+  ```
+
 * **⏳ round 413：推进中** ✓（`attempt=1` · 零失败 · **11 绿**（9 → 11 ✓）· 13 未完 ✓）
   ```
   未完 13 = **10 条 `test` 腿** ✓ + `gates-course` ✓ + `e2e (macos)` ✓ + **`perf-gate`** ✓
