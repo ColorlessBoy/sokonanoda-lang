@@ -884,6 +884,31 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     **⇒ 下一步（一条命令 ✓）**：重跑那次分档 ✓ 明确断言
     "**不存在 shadow=[] 而 kernel≠[] 的用例**" ✓ ⇒ 成立 ⇒ D-2 可以安全开工 ✓。
 - [ ] `T-D8` **去掉重复检查**（第二刀）：`kernel_phase` 不再重查 walk 已核的声明 ✓（**只删重复** ✓，语义由 D4 的对拍保证 ✓）
+  - **🎯🎯 round 259：A1 **可行**，而且所有权**已经是对的** ✓（**上一轮的悲观结论被纠正** ✗）**
+    **传递链读全了** ✓：
+    ```
+    check/mod.rs:752   let mut builder = EnvBuilder::new(arena.as_arena_ref(), Config::default());
+    check/mod.rs:758   install_all_preludes(&mut builder, …)          ← 装 prelude ✓
+    check/mod.rs:857   builder,                                       ← **交给 walk** ✓
+    check/mod.rs:920   builder: walk.builder,                         ← **walk 之后取回** ✓
+    kernel_phase.rs:33  pub(super) builder: EnvBuilder<'arena>,       ← `Walked` 里带着它 ✓
+    kernel_phase.rs:192 let mut env = builder.finish();               ← **在 walk 之后**才消费 ✓
+    ```
+    ⇒ **walk 在运行期间持有 `builder`** ✓ ⇒ **它本来就能往里 add** ✓
+    ⇒ **没有任何结构性障碍** ✗（**我 round 258 说的"要动所有权设计"是错的** ✗ ——
+    那是**照注释推断** ✗，没读传递链 ✓；**第十二次"读了才知道"** ✓）。
+    ⇒ 它不往里 add 的**唯一原因是设计选择** ✓：`walk.rs:47-49` 写的是当时的目标是
+    **影子实验** ✗（"judge 拿它查不到前缀" ✓），**不是真路径** ✓。
+    **⇒ D-2 的 A 步因此变成一个小改动** ✓：
+    **开关打开时，让 walk 的 `shadow_check_and_add` 把声明 add 进 `builder`** ✓
+    （而不是只 add 进 `self.shadow` ✓）⇒ 之后 `finish()` 照常消费 ✓ ⇒
+    内核阶段对 `shadow_covered` 里的 `cmd` **跳过** ✓（B 步 ✓）。
+    **⇒ 下一步（可以动手 ✓，仍是"先开关后默认" ✓）**：
+    ① 在 `walk.rs` 加开关（如 `SOKO_WALK_REAL_ADD=1` ✓）；
+    ② 该开关下 `shadow_check_and_add` 的 `add_declar` **同时**落到 `self.builder` ✓；
+    ③ 内核阶段按 `shadow_covered` 跳过 ✓；
+    **判据** ✓：**两态 `--json` 逐字节相同** ✓ + 四件套 ✓ + 基准再降 ✓（数字进台账 ✓）。
+
   - **🎯 round 258：A 步为什么**不平凡** —— 答案也在注释里 ✓（walk.rs:47-49 ✓）**
     ```
     /// 为什么不直接用 `builder`：`builder` 最终要被 `kernel_phase` 的
