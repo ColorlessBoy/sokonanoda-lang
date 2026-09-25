@@ -756,6 +756,14 @@ impl QueryDoc {
                     .map(|ty| self.runs(&decls, &notations, ty, &binder_names))
                     .unwrap_or_default();
                 let open = d.status == DeclStatus::Open;
+                // **T-U4（2026-09-25）**：非 `by` 的开放练习，**目标 ≈ 声明的类型** ✓
+                // ⇒ 显示副本用**折过的** `ty_text` ✓。`d.goal` 是 **judge 文本** ✗
+                // （红线：它同时喂判卷 ✓），拿它直接打标签/runs ⇒ 永远是点形式
+                // —— 用户报的「顶部目标没记法化」正是这一处 ✓。
+                let goal_display: Option<String> = d
+                    .goal
+                    .as_ref()
+                    .map(|g| d.ty_text.clone().unwrap_or_else(|| g.clone()));
                 // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
                 // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
                 // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
@@ -764,7 +772,7 @@ impl QueryDoc {
                     d.by_steps
                         .last()
                         .map(|s| s.goals.iter().map(|g| g.ty.clone()).collect())
-                        .unwrap_or_else(|| d.goal.clone().into_iter().collect())
+                        .unwrap_or_else(|| goal_display.clone().into_iter().collect())
                 } else {
                     Vec::new()
                 };
@@ -786,10 +794,13 @@ impl QueryDoc {
                         .as_deref()
                         .map(|v| self.runs(&decls, &notations, v, &[]))
                         .unwrap_or_default(),
-                    goal: d.goal.clone(),
+                    // **T-U4**：wire 的 `goal` 是**显示副本** ✓ ⇒ 与 `goal_runs` **同源同形** ✓
+                    // （下面那条 `runs_to_text(goal_runs) == goal` 的不变量必须成立 ✓ ——
+                    // 只折 runs 不折文本就会自相矛盾 ✗，单测当场抓到过 ✓）。
+                    // ⚠ front 内部的 `DeclState.goal`（**喂 judge** ✗）一个字节都没动 ✓。
+                    goal: goal_display.clone(),
                     // 父：声明自己的目标（老客户端只读文本，卡片读 runs）。
-                    goal_runs: d
-                        .goal
+                    goal_runs: goal_display
                         .as_deref()
                         .map(|g| self.runs(&decls, &notations, g, &binder_names))
                         .unwrap_or_default(),
