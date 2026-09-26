@@ -1950,14 +1950,14 @@ fn solve_prefix_args(
                 )
             };
             let unfolded_actual = unfold(&actual);
-            if &unfolded_actual != &actual {
+            if unfolded_actual != actual {
                 if let Some(found) = unify_extract(&layer.1, &unfolded_actual, &name) {
                     arg = Some(found);
                     break;
                 }
             }
             let unfolded_template = unfold(&layer.1);
-            if &unfolded_template != &layer.1 {
+            if unfolded_template != layer.1 {
                 if let Some(found) = unify_extract(&unfolded_template, &actual, &name) {
                     arg = Some(found);
                     break;
@@ -1994,11 +1994,11 @@ fn solve_prefix_args(
                 };
                 if arg.is_none() {
                     let unfolded = unfold(&rest);
-                    if &unfolded != &rest {
+                    if unfolded != rest {
                         arg = unify_extract(&unfolded, expected, &name);
                         if arg.is_none() {
                             let unfolded_expected = unfold(expected);
-                            if &unfolded_expected != expected {
+                            if unfolded_expected != *expected {
                                 arg = unify_extract(&unfolded, &unfolded_expected, &name);
                             }
                         }
