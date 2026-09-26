@@ -772,7 +772,14 @@ jobs:
   e2e-ledger:
     name: e2e ledger (commit back on main)
     needs: [e2e, e2e-macos]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # **实验（2026-09-26 ✓）**：`e2e` 与 `e2e-macos` **都 success**、`if` 也为真，
+    # 而那一轮它是 **skipped**（`steps=0`）✗ —— 机制未明 ✓。
+    # 按文档语义，只有 `needs` 里有 **skipped** 的依赖才会拖垮下游 ✗，**除非 `if`
+    # 里带"状态函数"**（`always()` / `!cancelled()` …）✓ ⇒ 加上 `!cancelled()`
+    # **再复现一次** ✓：若它开始跑 ⇒ 就是这条规则 ✓；若仍 skipped ⇒ 机制在别处 ✓。
+    if: >-
+      !cancelled()
+      && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
