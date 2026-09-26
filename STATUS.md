@@ -26,6 +26,14 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 466：两个后台作业并行** ✓（**机制 ③** ✓ —— 模型不参与等待 ✓）
+  ```
+  **`bash-1204`** ✓：`gh run watch 36205039299 --exit-status` + 收 `perf-gate` 结论 → `/tmp/ci-wait.log`
+  **`bash-1216`** ✓：`SOKO_VSCODE_TEST_VERSION=1.138.0 scripts/vscode-e2e.sh`（**真 VS Code** ✓）
+    ⇒ **验证 T-U12 面 #3 那条新用例咬得住** ✓（**27 → 28 个 test** ✓）
+  ⇒ ⇒ **两条都不依赖对方** ✓ · **都不需要模型轮询** ✓ ⇒ **等待期间模型调用 = 0** ✓✓
+  ```
+
 * **✅ round 465：T-U12 面 #3 的 e2e 判据已落地** ✓（**不依赖 CI** ✓）
   ```
   `docs/design/e2-plan.md` T-U12 ✓ 写明落点 ✓：在 `extension.test.js:342`（**只断言非空** ✗）
