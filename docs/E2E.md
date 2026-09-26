@@ -222,3 +222,22 @@ CI 有**两个** e2e job（`.github/workflows/ci.yml`），合计 3 条腿：
 本地的不可替代之处：macOS 的真宿主差异（`/var`→`/private/var` 符号链接、大小写不敏感
 文件系统）、换 VS Code 版本复现历史、以及"钉住版本 + 提交台账"这件事本身（CI 的
 runner 每次都是干净的，历史趋势只在仓库里）。
+
+## ⚠ **跑完 e2e 必须 `git status`**（2026-09-26 实测 ✓）
+
+**e2e 会改工作区** ✓ —— 实测两处 ✓：
+1. **它会删掉夹具** ✗：跑完后
+   `editor/vscode/src/test/fixtures/workspace/units/u02.sokonanoda` 变成 **`D`（deleted）** ✗
+   ⇒ **工作区变脏** ✗ ⇒ **下一次 e2e / CI 会坏** ✗
+   ⇒ **恢复** ✓：`git checkout -- editor/vscode/src/test/fixtures/workspace/units/` ✓；
+2. **它会写台账** ✓：`docs/e2e/ledger.jsonl` 与 `docs/e2e/latest.json` ✓
+   （**这两个是要提交的** ✓）。
+
+⇒ ⇒ **纪律** ✓：**跑完 e2e 先 `git status --short`** ✓ ——
+**该提交的提交（台账 ✓）、该恢复的恢复（夹具 ✓）** ✓。
+
+⚠ **而 `| tail` 会掩膜退出码** ✗（**round 468 实测** ✓）：
+`scripts/vscode-e2e.sh | tail -25` ✗ ⇒ **你看到的是 `tail` 的 0** ✗，
+**而脚本其实失败了** ✗ ⇒ ⇒ **改成 `> /tmp/e2e.log 2>&1` 再 `grep`** ✓
+（**与"grep 掩膜"同类** ✗ —— 见 `skills/sokonanoda-ci` ✓）。
+
