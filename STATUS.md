@@ -26,6 +26,21 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯🎯 round 424：161 个是 **`crates/lsp/src/tests/**` 的单元测试** ✓✓ ⇒ **可并行** ✓**
+  ```
+  本地核查 ✓：
+    `crates/lsp/tests/common/mod.rs` **0 个 `#[test]`** ✓（**辅助模块** ✓）
+    `tests/lsp_cache.rs` 3 ✓ · `tests/lsp_edit_concurrency.rs` 2 ✓（**只有 5 个** ✓）
+    ⇒ `grep -rln "#\[test\]" crates/lsp/` ⇒ **`src/tests/tokens.rs` · `hover.rs` ·
+      `src/actions.rs` · `src/project_refs.rs`** ✓ ⇒ ⇒ **161 个是**单元测试**（`src/tests/`）** ✓
+      ⇒ **而 `cargo test --tests` 也跑它们** ✓ ⇒ **在一个进程内**串行** ✗（278.58 秒 ✓）
+      ⇒ **`nextest` 会**多进程并行**它们** ✓✓
+  **共享资源检查** ✓：**没有端口 ✓ · 没有临时目录 ✓ · 没有全局单例** ✓
+    ⇒ ⇒ **可以安全并行** ✓✓
+  ```
+  **⇒ 收益可量** ✓：**278.58 秒 ÷ 并行度** ✓（**8 路 ⇒ ~35 秒** ✓）
+  ⇒ **`lsp` 两条腿 12分13秒 → ~5 分钟** ✓ ⇒ **整轮 21 分钟 → ~15 分钟** ✓。
+
 * **🎯🎯🎯 round 423：瓶颈是**测试执行**，不是编译** ✗✓ ⇒ **item (a) 对，但理由不同** ✓✓**
   ```
   test (sokonanoda-lsp, tests) 日志 ✓（**整轮已完成 ⇒ 日志可读** ✓）：
