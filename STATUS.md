@@ -26,6 +26,14 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🚀 round 435：`perf-check.sh` 的同宿主修复已推** ✓（`753184d..de9a547` ✓ · **hook 第六次全绿** ✓）
+  ```
+  ✅ diff = STATUS.md + docs/CI-FAILURES.md + **scripts/perf-check.sh** ✓✓
+    ⇒ **`scripts/**` 在 `rust` 过滤器里** ✓ ⇒ **`perf-gate` 会跑** ✓
+  ⇒ **判据** ✓：**`perf-gate` 应报"（无基线）"** ✓（**而不是 +585%~+1189%** ✗）
+    ⇒ ⇒ **若如此** ✓ ⇒ **跨机器假回归消掉** ✓ ⇒ **T-E1 可勾** ✓
+  ```
+
 * **🎯🎯🎯 round 433：基线到手 ⇒ **按预先判据：`nextest` 不做** ✓✓**
   ```
   本机串行基线 ✓（`bash-1131` 完成 ✓ · exit 0 ✓）：
