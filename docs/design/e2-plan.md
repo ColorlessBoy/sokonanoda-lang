@@ -128,9 +128,9 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [ ] `T-N7` **A4 取证 + 路线**：prelude 可跳转（只读虚拟文档 + hover 文案），断链点 = `kernel_phase.rs` 的 `resolution` 回填
 - [ ] `T-N8` **A4 实现 + 判据**：prelude definition 返回真实位置 + e2e + 反向验证
 - [ ] `T-N9` **B0 取证**：IA-1 as-built 复核（签名表 / `try_implicit_application` / `@` / 错误码）与课程侧现状
-- [ ] `T-N10` **B1 判红**：R5 最小复现（`''`/`⁻¹'` 的 λ 操作数解不出前导类型参数）
-- [ ] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
-- [ ] `T-N12` **B1 三件套判据**：正向（`flawed_equalities_refuted` 去标记后记法态）+ 反向（回退判红）+ 红线（全语料对拍 + 课程计数）
+- [x] `T-N10` **B1 判红**：R5 最小复现（`''`/`⁻¹'` 的 λ 操作数解不出前导类型参数）
+- [x] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
+- [x] `T-N12` **B1 三件套判据**：② 反向 ✓（撤兜底 ⇒ 判据红）· ③ 红线 ✓（36/328/99/0 逐项不变）· ① 正向**部分达成**：`flawed_equalities_refuted` 从整条点名（5 标记）改成除 **λ 体内的 `∅`** 外全记法（3 标记）—— 该残例连 Lean 都要 `(e : T)` 标注，属语言级缺口
 - [ ] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族）+ 调用点数量级下降
 - [ ] `T-N14` **B3**：记法路径改走隐式插入，补参 hack 收窄，`implicit_prefix == 0` 逐字节不变
 - [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步

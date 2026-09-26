@@ -274,24 +274,19 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 --   · 第二条反例：同一个 f，A 取 `{∅}`、
 --     B 取 `{(Set.univ Nat)}`；此时 A ∩ B = ∅，两个像却都含 ∅。
 -- 判词：两条等式**都假**（详情与"错在哪一步"写在上面 12.2 的评阅规矩里）。
--- 写法提醒：常函数写成 λ，而记法 `''` / `⁻¹'` 补不出 λ 操作数的前导类型参数
---   （语言也没有类型标注 `(e : T)`），所以这一条的像/原像/交写**点名形式**。
+-- 写法提醒：像/原像/交一律写**记法**（λ **操作数**本身没问题：`(fun …) '' A` 与
+--   `⁻¹'` 都 elaborate 得出来 ✓ —— R5 修好后连 `{∅} ∩ {(Set.univ Nat)}` 这种嵌套
+--   也解得出来 ✓）。唯一剩下的是**常函数体那一处**：λ **体内**的零元记法没有类型
+--   来源（语言还没有类型标注 `(e : T)`）⇒ 那里写成空集的点名展开（行内标记说明）。
 -- soko:hint 思路：每条都是 intro 一个等式假设、再从"某个元素被搬过去"造出 False：第一条用 Set.univ Nat（它不在像里），第二条用 ∅（两个像的共同点）。
 -- soko:hint 目标形态：两个 ≠ 的合取；每个 ≠ 展开后目标都是 False，手里是一条把两个集合划等号的假设。
 -- soko:hint 关键件：触发条件是"等式两边只差一个具体元素"⇒ 先备好成员证据（第一条 Set.mem_univ (Set Nat) (Set.univ Nat)，第二条两个 Exists.intro + Eq.refl 打进 ∩），再沿 Eq.symm 过的等式用 Eq.subst 搬成员关系，最后 Exists.elim 拆出"∅ 与 univ 撞上"：第一条用 Set.notMem_empty Nat 0 与 Set.mem_univ Nat 0，第二条由 x = ∅、x = univ 经 Eq.trans / Eq.symm 合成 ∅ = univ 再照第一条收尾。
 theorem flawed_equalities_refuted :
-    Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：λ 操作数补不出前导类型参数（无类型标注）
-        (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
-          (Set.univ (Set Nat)))
+    (fun (_ : Set Nat) => Set.empty Nat) '' ((fun (_ : Set Nat) => Set.empty Nat) ⁻¹' (Set.univ (Set Nat)))  -- soko:notation-ok: λ **体内**的零元记法没有类型来源（无类型标注 `(e : T)`）⇒ 空集只能点名展开
       ≠ Set.univ (Set Nat)
-    ∧ Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：同上
-        (Set.inter (Set Nat) (Set.singleton (Set Nat) ∅)
-          (Set.singleton (Set Nat) (Set.univ Nat)))  -- soko:notation-ok: R5：λ 操作数补不出前导类型参数（无类型标注）
-      ≠ Set.inter (Set Nat)
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：同上
-            (Set.singleton (Set Nat) ∅))
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R5：同上
-            (Set.singleton (Set Nat) (Set.univ Nat))) := by
+    ∧ (fun (_ : Set Nat) => Set.empty Nat) '' ({∅} ∩ {(Set.univ Nat)})  -- soko:notation-ok: 同上
+      ≠ ((fun (_ : Set Nat) => Set.empty Nat) '' {∅}) ∩ ((fun (_ : Set Nat) => Set.empty Nat) '' {(Set.univ Nat)})  -- soko:notation-ok: 同上
+      := by
   sorry
 
 theorem project_chain (α β γ : Type) (f : α → β) (g : β → γ) (A : Set α) :

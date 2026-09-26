@@ -1931,12 +1931,79 @@ fn solve_prefix_args(
                 arg = Some(found);
                 break;
             }
+            // **delta 展开兜底**（R5，2026-09-26）：`implicit::solve_prefix` 早就有
+            // 这一条（它展开的是**实参**侧），记法这条路线**两边都可能要展开**：
+            //   · 实参侧：`Set.mem α a (Set.union α A B)`（def 头）⇒ 展开到 `Or`；
+            //   · **模板侧**：`Set.inter` 的 α 层域是 `Set α`（`Set` 是 **def**），
+            //     而操作数的类型文本是**箭头形态**（`Set (Set Nat)` 的 pp 就是
+            //     `Set Nat -> Prop`）⇒ `App(Set, α)` 与 `Arrow{…}` 头对不上 ⇒
+            //     不展开就报 `elab-notation-argument-unsolved`（实测：`{∅} ∩ {…}`
+            //     这一族——unit12 的 `soko:notation-ok: R5` 标记正是它）。
+            // **只加解、不改既有解**：先按原样试，失败才展开。
+            let unfold = |e: &Expr| {
+                crate::spine::unfold_to_inductive(
+                    e,
+                    &|n| ctx.inductives.get(n).is_some(),
+                    ctx.defs,
+                    8,
+                    None,
+                )
+            };
+            let unfolded_actual = unfold(&actual);
+            if &unfolded_actual != &actual {
+                if let Some(found) = unify_extract(&layer.1, &unfolded_actual, &name) {
+                    arg = Some(found);
+                    break;
+                }
+            }
+            let unfolded_template = unfold(&layer.1);
+            if &unfolded_template != &layer.1 {
+                if let Some(found) = unify_extract(&unfolded_template, &actual, &name) {
+                    arg = Some(found);
+                    break;
+                }
+                if let Some(found) = unify_extract(&unfolded_template, &unfolded_actual, &name) {
+                    arg = Some(found);
+                    break;
+                }
+            }
         }
         // ② 由期望类型解出：把已解出的参数代入 telescope 剩余部分。
+        //
+        // **delta 展开兜底（R5，2026-09-26）**：`∅`（零元记法）只能走这条路，
+        // 而它的模板是 `Set α`（`Set` 是 **def**），期望类型却常常是**箭头形态**
+        // ——`Set (Set Nat)` 的 pp 就是 `Set Nat -> Prop`，`Set Nat` 的是
+        // `Nat -> Prop` ⇒ `App(Set, α)` 与 `Arrow{…}` **头对不上** ⇒ 不展开就报
+        // 「记法 `∅` 展开成 `Set.empty` 时补不出前面的类型参数」✗
+        // （实测：`{∅} ∩ {(Set.univ Nat)}` 这一族 —— unit12 的
+        // `soko:notation-ok: R5` 标记正是它）。
+        // **展开的是模板侧**（`Set α` ⇒ `Arrow{α, Prop}`）：把期望侧展开成
+        // `Set` 的形状是做不到的（没有"反向折叠"），而模板展开后两边同形 ✓。
         if arg.is_none() {
             if let Some(expected) = expected_src {
                 let rest = substitute_prefix_params(layers, &solved, i, result);
                 arg = unify_extract(&rest, expected, &name);
+                let unfold = |e: &Expr| {
+                    crate::spine::unfold_to_inductive(
+                        e,
+                        &|n| ctx.inductives.get(n).is_some(),
+                        ctx.defs,
+                        8,
+                        None,
+                    )
+                };
+                if arg.is_none() {
+                    let unfolded = unfold(&rest);
+                    if &unfolded != &rest {
+                        arg = unify_extract(&unfolded, expected, &name);
+                        if arg.is_none() {
+                            let unfolded_expected = unfold(expected);
+                            if &unfolded_expected != expected {
+                                arg = unify_extract(&unfolded, &unfolded_expected, &name);
+                            }
+                        }
+                    }
+                }
             }
         }
         solved.push(arg?);

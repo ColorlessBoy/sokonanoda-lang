@@ -22,10 +22,17 @@ python3 scripts/notation-lint.py --root <file>   # 单文件
   （`Eq.refl/symm/trans/subst`、`congrArg`）的宇宙层级；`congrArg` 参数顺序是
   Lean 的 `{α β} {a b} (f) (h)`；`Set.univ α`；
   `intro` 派生的目标/假设、`Exists`-headed def、嵌套 `Exists.elim`、
-  复合记法操作数（`{aa} ∩ {bb}`、**字面 λ 体内含零元构造**的 `''`/`⁻¹'`）
-  ——**2026-09-25 实测把这条边界切准了**：λ **操作数本身**已经能用记法
-  （`(fun … ) '' A` 可 elaborate ✓，含 `⁻¹'` ✓）；真正卡住的是 **λ 体内的 `∅`**
-  （补不出类型参数，只能写 `Set.empty Nat`，而那是点名形式、门禁判红 ✗）
+  **字面 λ 体内含零元构造**的 `''`/`⁻¹'`。
+  ——**2026-09-26 更新（R5 修好，边界收窄一格 ✓）**：λ **操作数本身**能用记法
+  （`(fun …) '' A` 含 `⁻¹'` ✓，2026-09-25 就成立），而**复合记法操作数**
+  （`{∅} ∩ {(Set.univ Nat)}`、`(…) '' {∅}`）曾是**另一个**卡点（前导类型参数解不出
+  ——`Set α` 是 def、操作数类型文本却是箭头形态，头对不上），**现已修**
+  （`solve_prefix_args` 两条路线都补了 delta 展开兜底 ✓，判据
+  `crates/front/src/compile/tests.rs::notation_solves_leading_parameters_when_the_expected_type_is_an_arrow` ✓）
+  ⇒ `unit12-synthesis` 的 `flawed_equalities_refuted` 从**整条点名**（5 个标记）
+  改成**除 λ 体外全记法**（3 个标记）✓。
+  仍然卡住的只剩 **λ 体内的 `∅`**：它没有类型来源（λ 的陪域要等期望类型，而期望
+  类型又依赖 λ 的类型 ⇒ 循环），Lean 同样解不了（要 `(e : T)` 标注或元变量）
   ⇒ 要么保留点名 + 行内标记（现状 ✓），要么等语言给出类型标注 `(e : T)` ✓。
   另：**注释里的点名写法同样判红**（`--` 注释、`soko:hint` 都算 ✓）
   ⇒ 讨论这条边界时别在注释里写出点形式的例子 ✗（实测踩过 ✓）；

@@ -8174,3 +8174,51 @@ theorem sing_eq (\u{3b1} : Type) (a : \u{3b1}) : Set.singleton \u{3b1} a = {a} :
         "`{{a}}` 必须记一条指向 `Set.singleton` 的 hover（A3 的判据）"
     );
 }
+
+/// **R5 判据**（A5，2026-09-26 用户要求）：**集合字面量 / 零元记法嵌套在记法里**
+/// 时，前导类型参数必须解得出来。
+///
+/// 这是 `courses/set-theory/units/unit12-synthesis.sokonanoda` 里那 **5 个**
+/// `-- soko:notation-ok: R5` 标记的根因 —— 学习者被迫把整条式子写成点名形式
+/// （`Set.singleton (Set Nat) ∅` …）✗。
+///
+/// 病灶是 `elab.rs::solve_prefix_args` 的**两条路线都缺 delta 展开**
+/// （`implicit::solve_prefix` 早就有，记法这条没有）：
+/// * **路线 ①**（由实参类型反解）：`Set.inter` 的 α 层域是 `Set α`（`Set` 是
+///   **def**），而操作数的类型文本是**箭头形态**（`Set (Set Nat)` 的 pp 就是
+///   `Set Nat -> Prop`）⇒ `App(Set, α)` 与 `Arrow{…}` **头对不上** ⇒
+///   `elab-notation-argument-unsolved`；
+/// * **路线 ②**（由期望类型反解）：`∅` 的模板是 `Set α`，期望是 `Nat -> Prop`
+///   （= `Set Nat`）⇒ 同样头对不上 ⇒ 「记法 `∅` 展开成 `Set.empty` 时补不出
+///   前面的类型参数」。
+///
+/// 修法是**只加解、不改既有解**：先按原样试，失败才把**模板侧**（必要时还有
+/// 实参/期望侧）δ 展开再试。
+///
+/// **反向验证**：把两处兜底删掉 ⇒ 本判据当场判红（实测：`elab-notation-argument-unsolved`）。
+#[test]
+fn notation_solves_leading_parameters_when_the_expected_type_is_an_arrow() {
+    let src = "\
+axiom Exists (\u{3b1} : Type) (p : \u{3b1} -> Prop) : Prop\n\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.empty (\u{3b1} : Type) : Set \u{3b1} := fun (x : \u{3b1}) => False\n\
+def Set.univ (\u{3b1} : Type) : Set \u{3b1} := fun (x : \u{3b1}) => True\n\
+def Set.singleton (\u{3b1} : Type) (a : \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => x = a\n\
+def Set.inter (\u{3b1} : Type) (A B : Set \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => A x \u{2227} B x\n\
+def Set.image (\u{3b1} \u{3b2} : Type) (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) : Set \u{3b2} := fun (y : \u{3b2}) => Exists \u{3b1} (fun (x : \u{3b1}) => f x = y)\n\
+notation \"\u{2205}\" => Set.empty\n\
+infixl:70 \" \u{2229} \" => Set.inter\n\
+infixr:80 \" '' \" => Set.image\n\
+theorem r5 :\n\
+    (fun (_ : Set Nat) => Set.empty Nat) '' ({\u{2205}} \u{2229} {(Set.univ Nat)})\n\
+      \u{2260} ((fun (_ : Set Nat) => Set.empty Nat) '' {\u{2205}}) \u{2229} ((fun (_ : Set Nat) => Set.empty Nat) '' {(Set.univ Nat)}) := by\n\
+  sorry\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::ExerciseOpen { name: Some(n) } if n == "r5")),
+        "R5 家族必须解得出来（修前是 elab-notation-argument-unsolved）：{:?}",
+        out.events
+    );
+}
