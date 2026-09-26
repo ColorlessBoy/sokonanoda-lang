@@ -2123,6 +2123,70 @@ fn operand_type_expr(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Exp
 /// 算法（设计 §3.1）：实参按**风格**对齐到显式层；被跳过的前导隐式层由**第一个
 /// 显式实参的类型**头部匹配唯一确定（[`implicit::solve_prefix`]）；解不出报
 /// `elab-implicit-argument-unsolved`，**不猜**。
+/// **B3-①（缺口 G-40）**：**裸常量**（零实参）的前导隐式实参插入。
+///
+/// 为什么必须是**独立一条**：`try_implicit_application` 只挂在 `Expr::App` 臂上
+/// （设计 §3.2 的"唯一钩子"），而 `∅` 展开成的是**光秃秃的 `Set.empty`** ——
+/// 它根本不是 `App` ✗ ⇒ 钩子永远够不着 ⇒ 词项停在 `{α : Type} → Set α` 那个 Pi
+/// 上（`rfl` 判不出来，实测见缺口 G-40 的复现件）。
+///
+/// **只在期望类型真的给了、且签名确实有前导隐式 binder 时**才动；**解不出就原样
+/// 返回**（不报错、不猜）—— 裸常量当函数值用是合法的 ✓。
+#[allow(clippy::too_many_arguments)]
+fn try_bare_implicit_constant<'a>(
+    builder: &mut EnvBuilder<'a>,
+    known: &KnownTable,
+    canonical: &str,
+    bare: ExprPtr<'a>,
+    expected_src: Option<&Expr>,
+    scope: &mut ElabScope<'a>,
+    univ: &UnivMap<'a>,
+    hovers: &mut Vec<HoverNode<'a>>,
+    ctx: &ElabCtx<'a, '_>,
+) -> Result<ExprPtr<'a>, CompileError> {
+    let Some(expected) = expected_src else {
+        return Ok(bare);
+    };
+    // 与那条唯一钩子同款的两道闸门（`@` 那条不适用：裸常量没有脊）。
+    if prelude_install_active() {
+        return Ok(bare);
+    }
+    let Some(declared) = known.get(canonical) else {
+        return Ok(bare);
+    };
+    let k = declared.implicit_prefix();
+    if k == 0 {
+        return Ok(bare);
+    }
+    let Some(ty_text) = declared.signature() else {
+        return Ok(bare);
+    };
+    let Some((layers, result)) = crate::compile::implicit::telescope(ty_text) else {
+        return Ok(bare);
+    };
+    if k > layers.len() {
+        return Ok(bare);
+    }
+    let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+    let Some(solved) = crate::compile::implicit::solve_prefix(
+        &layers,
+        &result,
+        k,
+        &[],
+        Some(expected),
+        ctx.defs,
+        &is_inductive,
+    ) else {
+        return Ok(bare);
+    };
+    let mut out = bare;
+    for value in &solved {
+        let term = elab_expr(builder, value, scope, univ, known, hovers, None, None, ctx)?;
+        out = builder.mk_app(out, term);
+    }
+    Ok(out)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn try_implicit_application<'a>(
     builder: &mut EnvBuilder<'a>,
@@ -2152,10 +2216,18 @@ fn try_implicit_application<'a>(
     // 一行都不跑。这一条兜住两个东西——安全性质（今天所有签名都是 0 ⇒ 逐字节
     // 不变）与成本（否则**每个**应用都要 `judge_infer`，而判定会**递归**重编译
     // 前缀 ⇒ 栈溢出，实测）。
-    let head_name = match head {
+    let raw_head = match head {
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
         _ => return Ok(None),
     };
+    // **必须用"解析后的规范名"查签名表**（B3 的真 bug，2026-09-26 实测）：
+    // `namespace Set` 里写 `subset B A` 时 AST 上是**裸名** `subset`，而签名表按
+    // **规范名** `Set.subset` 建 ⇒ 直接拿裸名查**永远查不到** ⇒ 隐式插入整条不触发 ✗
+    // （5 行最小复现：`namespace Foo` + `def subset {α : Type} …` +
+    //  `def powerset … := fun (B : Foo α) => subset B A` ⇒
+    //  `类型不匹配：期望 Sort(1)，实际是 (Foo.[] $2)`；**去掉 namespace 就好** ✓）。
+    // 解析不出来的名字（真未定义）⇒ 交回老路，让它照旧报 `unknown identifier` ✓。
+    let head_name = raw_head;
 
     let declared = match known.get(head_name) {
         Some(k) if k.implicit_prefix() > 0 => k,
@@ -2683,7 +2755,36 @@ pub(crate) fn elab_expr<'a>(
                     let levels: Vec<LevelPtr<'a>> = params.iter().map(|_| builder.zero()).collect();
                     let levels = builder.alloc_levels_slice(&levels);
                     let name = builder.name_from_str(&canonical);
-                    (builder.mk_const(name, levels), Some(target))
+                    let bare = builder.mk_const(name, levels);
+                    // **B3-①（缺口 G-40）**：签名带**前导隐式 binder** 的常量
+                    // **裸着写**（零实参）时也要能补出来 —— 零元记法 `∅`
+                    // （= 裸 `Set.empty`）正是这一档：以前它只是那个 **Pi**
+                    // （`{α : Type} → Set α`）⇒ `rfl` 判不出来 ✗、课程库也就
+                    // 没法把前导类型参数改成隐式 ✗。
+                    //
+                    // 走与 `try_implicit_application` **同一条**求解器
+                    // （`implicit::solve_prefix` 的路线 ②：期望类型 vs 结果类型）。
+                    // 三条安全性质：
+                    //   · **免费闸门**：`implicit_prefix == 0` 一行不跑 ⇒ 老路
+                    //     **逐字节不变** ✓；
+                    //   · **没有期望类型就不动**（`expected_src` 为 `None` ⇒ 原样
+                    //     返回 ✓）—— 裸常量当**函数值**用（`Set.empty` 本身）
+                    //     时不会被误插 ✓；
+                    //   · **解不出也原样返回**（不报错、不猜 ✗）—— 与 App 臂那条
+                    //     不同：那里报 `elab-implicit-argument-unsolved` 是对的
+                    //     （用户在写应用），这里"裸常量"本身就可能是想要的词项 ✓。
+                    let bare = try_bare_implicit_constant(
+                        builder,
+                        known,
+                        &canonical,
+                        bare,
+                        expected_src,
+                        scope,
+                        univ,
+                        hovers,
+                        ctx,
+                    )?;
+                    (bare, Some(target))
                 }
             };
             record_hover(hovers, scope, *span, out, resolution);

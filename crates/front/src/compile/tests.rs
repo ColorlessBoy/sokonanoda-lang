@@ -8358,3 +8358,32 @@ theorem hole_surface (\u{3b1} : Type) (A B : Set \u{3b1}) : A \u{2286} B -> A = 
         "显示副本必须折成 `\u{2192}`（A0/A1）：{folded}"
     );
 }
+
+/// **B3-① 判据**（缺口 G-40，2026-09-26）：签名带**前导隐式 binder** 的常量
+/// **裸着写**（零实参）时，也要能从**期望类型**补出那些参数。
+///
+/// 为什么它是独立一条：`try_implicit_application` 只挂在 `Expr::App` 臂上，
+/// 而 `∅` 展开成的是**光秃秃的 `Set.empty`** —— 它根本不是 `App` ✗ ⇒ 钩子永远
+/// 够不着 ⇒ 词项停在 `{α : Type} → Set α` 那个 Pi 上 ⇒ `rfl` 判不出来 ✗、
+/// 课程库也就没法把前导类型参数改成隐式 ✗（真库实测：改成 `{α}` 后课程门禁从
+/// `328 checked · 0 判负` 掉到 `249 / 7`）。
+///
+/// **反向验证**：把 `Ident` 臂里那次 `try_bare_implicit_constant` 去掉 ⇒ 判据红 ✓。
+#[test]
+fn a_bare_constant_with_implicit_binders_takes_them_from_the_expected_type() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+def Set.empty {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => False\n\
+notation \"\u{2205}\" => Set.empty\n\
+theorem bare_constant (\u{3b1} : Type) (a : \u{3b1}) : (a \u{2208} \u{2205}) = False := by rfl\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events
+            .iter()
+            .any(|e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "bare_constant")),
+        "`∅`（裸 `Set.empty`）必须能从期望类型补出 α 并判绿（修前是 rfl 判红 / 词项停在 Pi 上）：{:?}",
+        out.events
+    );
+}
