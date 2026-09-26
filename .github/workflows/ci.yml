@@ -772,11 +772,17 @@ jobs:
   e2e-ledger:
     name: e2e ledger (commit back on main)
     needs: [e2e, e2e-macos]
-    # **实验（2026-09-26 ✓）**：`e2e` 与 `e2e-macos` **都 success**、`if` 也为真，
-    # 而那一轮它是 **skipped**（`steps=0`）✗ —— 机制未明 ✓。
-    # 按文档语义，只有 `needs` 里有 **skipped** 的依赖才会拖垮下游 ✗，**除非 `if`
-    # 里带"状态函数"**（`always()` / `!cancelled()` …）✓ ⇒ 加上 `!cancelled()`
-    # **再复现一次** ✓：若它开始跑 ⇒ 就是这条规则 ✓；若仍 skipped ⇒ 机制在别处 ✓。
+    # ⚠ **`if` 里必须有"状态函数"** ✗✓（2026-09-26 **实验证实** ✓）：
+    # editor-only 推送时（`rust=false`）这一轮**曾经**是 **skipped**（`steps=0`）✗，
+    # 尽管 `e2e` 与 `e2e-macos` **都 success** ✓、这行 `if` 也为真 ✓。
+    # **机制** ✓：**skip 沿依赖链传播** —— `gates-fast` 被 skip ✗ ⇒ `e2e` 靠**它自己的**
+    # `!cancelled()` 跑起来了 ✓，**但那个 skip 仍污染链条** ✗ ⇒ 本 job 的 `if` 里
+    # **没有状态函数** ⇒ 被跳过 ✗（GitHub 文档："a failure or skip applies to all jobs
+    # in the dependency chain from the point of failure or skip onwards" ✓）。
+    # **实验** ✓：加上 `!cancelled()` 后，**同样的 editor-only 场景**下它
+    # **从 skipped 变成 success** ✓✓（run 36211689598 ✓）—— 这是**唯一的变量** ✓。
+    # ⇒ **凡 `needs` 里可能有 skipped 的 job，`if` 都要带状态函数** ✓
+    #（`e2e` / `e2e-macos` / 本 job 都已带 ✓）。
     if: >-
       !cancelled()
       && github.event_name == 'push' && github.ref == 'refs/heads/main'
