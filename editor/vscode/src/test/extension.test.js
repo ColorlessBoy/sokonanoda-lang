@@ -366,8 +366,14 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const entry = fixtureEntry();
     await showDoc(entry);
     await infoviewDecls("T-U12 面 #3 前置");
-    // 第 11 行（0 基第 10 行）的 `subset_mem`：名字从第 8 列起，取第 10 列。
-    const text = await hoverTextAt(entry, 10, 10);
+    // ⚠ **行列号从夹具文本推导** ✓ —— 原来写死 `(10, 10)` ✗：
+    // 夹具一改行数，那个坐标就**静默指到别处** ✗（测试可能仍"绿"却测了别的东西 ✗）。
+    const lines = fs.readFileSync(entry.fsPath, "utf8").split("\n");
+    const line = lines.findIndex((l) => l.includes("theorem subset_mem"));
+    assert.ok(line >= 0, "夹具前提：u01 里要有 `theorem subset_mem`");
+    const col = lines[line].indexOf("subset_mem");
+    assert.ok(col >= 0, "夹具前提：该行要有 `subset_mem` 这个名字");
+    const text = await hoverTextAt(entry, line, col);
     assert.ok(text.includes("⊆"), `hover 应含记法 ⊆（实际 = ${text}）`);
     assert.ok(
       !text.includes("Set.subset "),
