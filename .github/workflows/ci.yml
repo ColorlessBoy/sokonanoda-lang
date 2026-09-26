@@ -53,6 +53,21 @@ jobs:
       - name: STATUS.md 瘦身 lint（≤200 行 · 禁词 0 · 每段 ≤30 · 净增 ≤60）
         run: python3 scripts/status-lint.py
 
+  # **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」✗）。
+  # 与 `status-lint` 同形、同样**独立且不设 `if:`** ✗（理由同上：只改 docs 的推送
+  # 是最常见的情况 ✓，挂在 rust 驱动的 job 里就永远不跑 ✗）。判据见
+  # `scripts/docs-lint.py`：活文档总量 / 单文件 / 入口文件 / 设计文档冻结表 /
+  # 禁垃圾 / **归档可追溯**（`docs/archive/README.md` 必须逐文件点名 ✓）。
+  # ~1 秒 ⇒ 永远跑 ✓；`scripts/soko gate` 与 `scripts/ci-local.sh` 也各有一条同源判据 ✓。
+  docs-lint:
+    name: docs-lint（文档预算 + 归档索引）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: 文档预算 lint（活文档 ≤3.0 MB · 入口 ≤800 行 · 设计 ≤150 行/冻结 · 归档索引齐）
+        run: python3 scripts/docs-lint.py
+
   lint-clippy:
     name: lint-clippy（clippy 全量 check）
     runs-on: ubuntu-24.04

@@ -1088,6 +1088,41 @@ async function main(argv) {
         )
         return 3
       }
+      // **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」✗）：
+      // 六条判据 —— ① 活文档总量 ② 单文件行数 ③ 入口文件行数 ④ 设计文档预算
+      // （`scripts/docs-budget.json` 冻结表，只许减不许增）⑤ `docs/**` 禁垃圾
+      // ⑥ **归档可追溯**（每个归档文件必须在 `docs/archive/README.md` 被点名 ——
+      // 红线「**归档 ≠ 销毁**」✓）。设计 `docs/design/docs-diet.md` ✓。
+      // 为什么必须进 gate：**清理一次没用** ✗ —— 没有判据就一定回胖 ✗。
+      // 快（~1 秒）⇒ `--fast` 也跑 ✓。
+      const docsLint = path.join(REPO, 'scripts', 'docs-lint.py')
+      if (!existsSync(docsLint)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, docsLint)} —— 文档预算无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const docs = spawnSync(python.cmd, [...python.args, docsLint], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (docs.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${docsLint}: ${docs.error.message}\n`)
+        return 3
+      }
+      if ((docs.status ?? 3) !== 0) return docs.status ?? 3
+      // **反向验证也进 gate** ✓（`AGENTS.md`：**咬不住的守卫等于没有** ✓）：
+      // 六条判据逐条弄红一次、必须都被报出来 ✗⇒✓；改完自动还原 ✓。
+      const docsSelf = spawnSync(python.cmd, [...python.args, docsLint, '--selftest'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (docsSelf.error || (docsSelf.status ?? 3) !== 0) {
+        process.stderr.write(
+          `scripts/soko gate: ${path.relative(REPO, docsLint)} --selftest 失败 —— 文档判据咬不住（exit 3）。\n`,
+        )
+        return 3
+      }
       // Ledger contract: every gap's repro must still agree with its recorded
       // status (`docs/gaps/ledger.jsonl`, docs/gaps/README.md). Cheap (~3 s) and
       // it is the only thing that keeps "fixed_in" honest as the language moves.

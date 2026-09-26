@@ -104,12 +104,14 @@ done'
 run "gates：版本单一源" "gates" python3 scripts/bump.py --check
 run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
 run "gates：STATUS 瘦身（用户 2026-09-26 ✓）" "gates" python3 scripts/status-lint.py
+run "gates：文档预算（用户 2026-09-26 ✓）" "gates" python3 scripts/docs-lint.py
 run "gates：记法路径守卫" "gates" python3 scripts/audit-notation-paths.py
 run "gates：wire 字段守卫" "gates" python3 scripts/audit-wire-fields.py
 run "gates：两个守卫的自检（显式按退出码 ✓）" "gates" bash -c '
 set -u
 python3 scripts/audit-notation-paths.py --self-test || exit 1
-python3 scripts/audit-wire-fields.py --selftest || exit 1' 
+python3 scripts/audit-wire-fields.py --selftest || exit 1
+python3 scripts/docs-lint.py --selftest || exit 1' 
 
 # ④ editor（CI job `editor`）
 run "editor：stub 宿主" "editor" node editor/vscode/test-extension-host.js
