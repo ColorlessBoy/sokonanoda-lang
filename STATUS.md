@@ -17,6 +17,10 @@
   **git 只推 commit ⇒ 未提交的 WIP 不会被推** ✓。
 - **待办（不急 ✓）**：`scripts/ci-yml-lint.py` 缺 `pyyaml` 时 **`exit=2`** ✗ 与真红同形 ⇒
   将来分档为"**环境异常**" ✓。
+- **遗留（文档瘦身，不急 ✓）**：`scripts/check-site.py` **仍未接进 CI/gate** ✗ —— 接之前
+  要先解决"CI 里怎么拿最新 tag"（`actions/checkout` 默认 `fetch-depth: 1` **不取 tag** ✗）；
+  78 份**既有**设计文档**未逐份重写** ✗（改用**棘轮**：`scripts/docs-budget.json` **只许减不许增** ✓，
+  设计 `docs/design/docs-diet.md` §3/§8 ✓）。
 
 ## 硬事实（接手先读这 5 条 ✓）
 
