@@ -330,7 +330,22 @@ async fn editing_a_dependency_refreshes_the_open_entry() {
     );
 
     // 依赖改回来 ⇒ 入口重新变干净（证明是真的重编译，而不是"一旦报错就锁死"）。
-    let msgs = testutil::did_change_at_drained(&mut service, &mut socket, &logic, 3, LOGIC).await;
+    //
+    // ⚠ **显式声明"要等入口也发一轮"**（2026-09-26 修，P1 编译进度那一刀踩到）：
+    // 这里断言的是**入口**（`canvas`）的诊断，而入口是被**扇出**编的、不是这次
+    // `didChange` 的目标 ⇒ 只等 `logic` 一轮的话，入口那一轮到没到**全靠时序**
+    // ✗。以前侥幸绿；P1 在 `compile_worker` 里加了两次 `await`（报进度）后
+    // **稳定判红**（实测：撤掉 P1 就绿、加回来就红 ✓）—— 这正是"验证环节没
+    // 设计正确就是白做功"那条纪律说的：断言什么，就要**等到**什么 ✓。
+    let msgs = testutil::did_change_at_drained_expecting(
+        &mut service,
+        &mut socket,
+        &logic,
+        3,
+        LOGIC,
+        &[logic.clone(), canvas.clone()],
+    )
+    .await;
     let healed = msgs
         .iter()
         .find(|params| params.uri == canvas)

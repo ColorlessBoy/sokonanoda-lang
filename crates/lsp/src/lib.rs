@@ -743,8 +743,34 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
             return;
         };
         let version = job.version;
+        // **编译进度 P1**（2026-09-26 用户需求）：慢文件（或在编辑器外改了依赖）
+        // 编译时，编辑器在此之前**一个信号都没有** ⇒ 看起来像"冻住了" ✗。
+        // 起止各报一次 `$/progress`：令牌按 **uri** 定（同一文件的连续编译复用
+        // 同一个令牌 ⇒ 客户端不会堆出一串假任务 ✓）；**百分比不编**
+        // （`percentage: None` ⇒ 界面画"进行中…"，绝不画假进度 ✓）。
+        let token = progress_token(&uri);
+        send_progress(
+            &client,
+            &token,
+            WorkDoneProgress::Begin(WorkDoneProgressBegin {
+                title: "sokonanoda".to_string(),
+                cancellable: Some(false),
+                message: Some(format!("编译 {}", uri.path())),
+                percentage: None,
+            }),
+        )
+        .await;
         let started = std::time::Instant::now();
         let out = compile_one(&client, &docs, &compile, &uri, job);
+        // **成对**：`Begin` 之后任何路径都要 `End`（否则客户端那把进度条永远转 ✗）。
+        // 这里 `compile_one` 不返回 `Result`，所以顺序执行就够；将来它要是会早退，
+        // 必须换成 guard（见缺口台账的纪律：成对通知要能被"漏发"抓住）。
+        send_progress(
+            &client,
+            &token,
+            WorkDoneProgress::End(WorkDoneProgressEnd { message: None }),
+        )
+        .await;
         let cost = started.elapsed();
         compile.record_cost(&uri, cost);
         // 常驻诊断（`SOKO_LSP_TRACE=1`）：每次编译一行。它直接回答"编译有没有
@@ -763,6 +789,38 @@ async fn compile_worker(uri: Url, client: Client, docs: Arc<Mutex<Docs>>, compil
                 .await;
         }
     }
+}
+
+/// **编译进度的令牌**（P1，2026-09-26）：按 **uri** 定 ⇒ 同一文件的连续编译
+/// 复用同一个令牌（客户端不会堆出一串假任务 ✓），不同文件各自一条 ✓。
+fn progress_token(uri: &Url) -> NumberOrString {
+    NumberOrString::String(format!("sokonanoda/compile{}", uri.path()))
+}
+
+/// 发一条 `$/progress`（P1）。失败**不影响编译** ✓（结果丢掉即可）。
+///
+/// ⚠ **两条写在这里免得下一个人踩**（S2 调研实测到源码行，2026-09-26）：
+///
+/// 1. **不要加"客户端声明了才发"的判断**：`initialize` 从来不保存
+///    `params.capabilities`（`lib.rs` 的 initialize 只读 `root_uri`/`workspace_folders`），
+///    而且 `tower-lsp 0.20.0` 的 `Client::send_notification`（`service/client.rs:442`）
+///    **只看服务端自己的 `State`**、根本不看能力表 ⇒ 这个判断做不了、也没必要 ✓。
+///    （本节最初的注释写成"客户端没声明时会失败"，是**错的** —— 已改 ✓。）
+/// 2. **这里刻意*不*发 `window/workDoneProgress/create`**，而由扩展**裸读**
+///    `$/progress` 自己渲染。两者**互斥**：`vscode-jsonrpc` 的通知处理表按方法名唯一
+///    ⇒ 扩展 `client.onNotification("$/progress", …)` 会**覆盖**内建分发器；
+///    这时若再发 create，`ProgressPart` 会被造出来却永远收不到 `begin`
+///    ⇒ 永不 resolve，而且**每次编译泄漏一个**（`activeParts` 只由 `end→done` 清）。
+///    ⇒ 要么 create + 走内建（扩展不裸读），要么**不 create + 扩展裸读**（现状 ✓）。
+///    选现状的理由：token 是**按 uri** 定的，且 `compile_one` 的下游扇出编的**不是**
+///    当前文档 ⇒ 内建 `client.onProgress` 那条路（要求事先知道 token）**必然被丢** ✓。
+async fn send_progress(client: &Client, token: &NumberOrString, value: WorkDoneProgress) {
+    let _ = client
+        .send_notification::<tower_lsp::lsp_types::notification::Progress>(ProgressParams {
+            token: token.clone(),
+            value: ProgressParamsValue::WorkDone(value),
+        })
+        .await;
 }
 
 /// 三段式的**中段与末段**：锁外编译，回锁内按版本校验后装回、扇出。

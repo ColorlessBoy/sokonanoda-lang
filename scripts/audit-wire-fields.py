@@ -33,7 +33,13 @@ PT = "editor/vscode/project-tree.js"
 #   在那之前**不要**接 ✗（常红的守卫比没有守卫更糟 ✓）。
 
 # JS 自有的局部字段（不是 wire 字段）。
-LOCAL = {"start", "line", "length", "text", "kind"}
+#
+# **2026-09-26 加入 `phase`/`label`/`percent`**（编译进度 P1/P3）：它们由**扩展自己
+# 合成**——LSP 发的是标准的 `$/progress`（`WorkDoneProgressBegin/Report/End`），
+# 扩展把它翻成 `{type:"progress", phase, label, percent}` 再转给 Infoview ✓。
+# ⇒ 它**不是** LSP wire 字段，登记在这里是**如实**而不是放宽 ✗：
+# 本守卫的契约是"扩展读了 / **LSP** 从不发"，而这条缝里 LSP 本来就不该发这三个名字 ✓。
+LOCAL = {"start", "line", "length", "text", "kind", "phase", "label", "percent"}
 
 
 def fields(src: str, struct: str) -> set[str]:

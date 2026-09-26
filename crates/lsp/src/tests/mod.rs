@@ -24,6 +24,7 @@ mod lifecycle;
 mod navigation;
 mod perf;
 mod perf_course;
+mod progress;
 mod state;
 mod tokens;
 
