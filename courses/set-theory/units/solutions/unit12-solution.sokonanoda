@@ -169,35 +169,17 @@ theorem fix_image_inter (α β : Type) (f : α → β) (A B : Set α)
 -- Set.notMem_empty Nat 0 再把它挡回来（本语言没有 Decidable，这是最省的分辨手段）。
 -- 常函数是 λ，记法 `''` / `⁻¹'` / `∩` 补不出它的前导类型参数 ⇒ 这一条写点名形式。
 theorem flawed_equalities_refuted :
-    Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
-          (Set.univ (Set Nat)))
+    (fun (_ : Set Nat) => Set.empty Nat) '' ((fun (_ : Set Nat) => Set.empty Nat) ⁻¹' (Set.univ (Set Nat)))  -- soko:notation-ok: λ **体内**的零元记法没有类型来源（无类型标注 `(e : T)`）⇒ 空集只能点名展开
       ≠ Set.univ (Set Nat)
-    ∧ Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.inter (Set Nat) (Set.singleton (Set Nat) ∅)
-          (Set.singleton (Set Nat) (Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      ≠ Set.inter (Set Nat)
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            (Set.singleton (Set Nat) ∅))
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            (Set.singleton (Set Nat) (Set.univ Nat))) :=
+    ∧ (fun (_ : Set Nat) => Set.empty Nat) '' ({∅} ∩ {(Set.univ Nat)})  -- soko:notation-ok: λ **体内**的零元记法没有类型来源（无类型标注 `(e : T)`）⇒ 空集只能点名展开
+      ≠ ((fun (_ : Set Nat) => Set.empty Nat) '' {∅}) ∩ ((fun (_ : Set Nat) => Set.empty Nat) '' {(Set.univ Nat)}) :=  -- soko:notation-ok: λ **体内**的零元记法没有类型来源（无类型标注 `(e : T)`）⇒ 空集只能点名展开
   And.intro
-    (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
-          (Set.univ (Set Nat)))
+    ((fun (_ : Set Nat) => Set.empty Nat) '' ((fun (_ : Set Nat) => Set.empty Nat) ⁻¹' (Set.univ (Set Nat)))  -- soko:notation-ok: λ **体内**的零元记法没有类型来源（无类型标注 `(e : T)`）⇒ 空集只能点名展开
       ≠ Set.univ (Set Nat))
-    (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-        (Set.inter (Set Nat) (Set.singleton (Set Nat) ∅)
-          (Set.singleton (Set Nat) (Set.univ Nat)))  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-      ≠ Set.inter (Set Nat)
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            (Set.singleton (Set Nat) ∅))
-          (Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-            (Set.singleton (Set Nat) (Set.univ Nat))))
+    ((fun (_ : Set Nat) => Set.empty Nat) '' ({∅} ∩ {(Set.univ Nat)})  -- soko:notation-ok: λ **体内**的零元记法没有类型来源（无类型标注 `(e : T)`）⇒ 空集只能点名展开
+      ≠ ((fun (_ : Set Nat) => Set.empty Nat) '' {∅}) ∩ ((fun (_ : Set Nat) => Set.empty Nat) '' {(Set.univ Nat)}))
     (fun (h :
-      Set.image (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)  -- soko:notation-ok: R1/R2：点名叫法写全前导类型参数（短写在 def-headed 目标/嵌套 λ 里补不出）
-          (Set.preimage (Set Nat) (Set Nat) (fun (_ : Set Nat) => Set.empty Nat)
-            (Set.univ (Set Nat)))
+      (fun (_ : Set Nat) => Set.empty Nat) '' ((fun (_ : Set Nat) => Set.empty Nat) ⁻¹' (Set.univ (Set Nat)))  -- soko:notation-ok: λ **体内**的零元记法没有类型来源（无类型标注 `(e : T)`）⇒ 空集只能点名展开
         = Set.univ (Set Nat)
     ) =>
       -- `cases` 吃不了 `have` 绑定的 `∈ 像` 假设本身（类型要 delta 两步才到 `Exists`）；
