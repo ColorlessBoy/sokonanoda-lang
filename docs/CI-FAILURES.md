@@ -1785,3 +1785,39 @@ AssertionError: 内容没变 ⇒ 不许写出新的缓存条目（说明闭包�
 ⇒ **优先复用夹具** ✓；确实必须新建时，**要在测试末尾等它落盘** ✓
 （或把新文件放进工作区，让它成为闭包的一部分 ✓）。
 
+## 2026-09-26 · **改 `editor/**` 永远不会跑真宿主 e2e：skipped 的依赖把它拖走了** ✗
+
+**症状** ✓：`afceda9`（只改 `editor/vscode/src/test/extension.test.js` + docs）那一轮
+**`success`** ✓，但 **5/16 绿、11 skipped** ✗ —— **三条 e2e 全 skipped** ✗
+（而 `editor` job **success** ✓）。⇒ ⇒ **"success" 是"什么都没验"的 success** ✗。
+
+**根因** ✓：`e2e` 的条件**本来是对的** ✓：
+```yaml
+    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true'
+```
+**但它还写着** ✗：`needs: [changes, lint-fmt, lint-clippy, gates-fast]`
+—— 而 **`gates-fast` 的条件是 `rust == 'true'`** ✗ ⇒ **editor-only 推送时它 `skipped`** ✗
+⇒ ⇒ **skipped 的依赖把 `e2e` 也拖成 `skipped`** ✗✓（**仓库里记过的那个坑，这次撞在自己身上** ✗）。
+
+**⇒ 这是一个真洞** ✗：**改 `editor/vscode/**` 时，真宿主 e2e 一次都不跑** ✗ ——
+而 `if:` 里写着 `|| editor == 'true'` ✓ ⇒ **本意是要跑的** ✓，**是 `needs` 列表把它废掉了** ✗。
+
+**修复** ✓（**两条 e2e 一起** ✓）：**`!cancelled()` + 逐条"依赖没失败"** ✓
+```yaml
+    if: >-
+      !cancelled()
+      && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true')
+      && needs.lint-fmt.result != 'failure'
+      && needs.lint-clippy.result != 'failure'
+      && needs.gates-fast.result != 'failure'
+```
+⇒ **保留原意** ✓（**便宜门禁红了就别跑贵的** ✓），**同时让 skipped 的依赖不再阻塞** ✓。
+
+**⚠ 过程中守卫又咬了一次** ✓：我第一次改用的锚点是那行 `if:` 本身 ✗ ——
+而**它和 `editor` job 的那行一字不差** ✗ ⇒ **`assert count == 1` 拦住了** ✓
+（**否则会误改 `editor`** ✗）⇒ **改成带 `name:` 的锚点** ✓。
+⇒ **这就是"锚点必须先验唯一性"的价值** ✓（**`AGENTS.md` 里那条** ✓）。
+
+**预防** ✓：**新增/修改 `needs` 时，先问"它会不会在本次路径下被 skip"** ✗ ——
+**skipped 的依赖会让下游静默消失** ✗，而**整轮还报 `success`** ✗。
+

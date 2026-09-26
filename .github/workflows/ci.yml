@@ -616,7 +616,19 @@ jobs:
   # （比再引一层 `workflow_call` 少一个文件、也少一处需要同步的版本号）。
   e2e:
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
-    if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true'
+    # ⚠ **条件必须带 `!cancelled()` 与"依赖没失败"** ✗（2026-09-26 实测 ✓）：
+    # 原来只写 `rust || editor` ✗ ⇒ 而 `needs` 里的 `gates-fast` 在 **editor-only**
+    # 推送时是 **skipped** ✗ ⇒ **skipped 的依赖把 e2e 也拖成 skipped** ✗
+    # ⇒ **改 `editor/vscode/**` 永远不会跑真宿主 e2e** ✗
+    # （实测 `afceda9` ✓：`editor` job **success**，而三条 e2e **全 skipped** ✓）。
+    # `!cancelled()` + 逐条 `!= 'failure'` **保留原意**（便宜门禁红了就别跑贵的 ✓），
+    # 同时让 **skipped 的依赖不再阻塞** ✓。
+    if: >-
+      !cancelled()
+      && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true')
+      && needs.lint-fmt.result != 'failure'
+      && needs.lint-clippy.result != 'failure'
+      && needs.gates-fast.result != 'failure'
     name: e2e (${{ matrix.os }} · VS Code ${{ matrix.vscode }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -694,7 +706,14 @@ jobs:
   e2e-macos:
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
     name: e2e (macos-latest · VS Code 1.138.0)
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true')
+    # 同 `e2e`：`!cancelled()` + 逐条"依赖没失败" ⇒ **skipped 的依赖不再阻塞** ✓。
+    if: >-
+      !cancelled()
+      && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.editor == 'true')
+      && needs.lint-fmt.result != 'failure'
+      && needs.lint-clippy.result != 'failure'
+      && needs.gates-fast.result != 'failure'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
