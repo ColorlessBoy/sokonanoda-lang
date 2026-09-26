@@ -26,6 +26,12 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 457：整轮仍在跑** ✓（**`perf-gate` 日志待整轮** ✗）
+  ```
+  10 未完 ✓ = **`test` 腿 + `gates-course`** ✓ ⇒ **分钟级** ✓ ⇒ **正常** ✓
+  ⇒ **判据不变** ✓：日志写"（无基线）" ⇒ 勾 T-E1 ✓ · **不推** ✗。
+  ```
+
 * **✅ round 456：`perf-gate` 已完成** ✓✓（**但 `continue-on-error` 让 success 证明不了修复** ✗）
   ```
   整轮 attempt=1 in_progress ✓ · 零失败 ✓ · **15 绿**（14 → 15 ✓）· 10 未完 ✓
