@@ -123,10 +123,10 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-N2` **A2 修**：`Set.singleton α a` → `{a}` / `Set.pair α a b` → `{a, b}`（`fold_spine` 里照 `forall` 先例单独认内建语法）
 - [x] `T-N3` **A0 取证结论**：68 条基线逐条判过（迁移 9 / 立判据 19 / 台账不做 40，结论进 `docs/design/duplication-audit.md`）+ 修正设计文档 `notation-display.md`（`render_text`/`Rendered` 与 as-built 不符）
 - [x] `T-N4` **A0 迁移**：`query::runs` 改走唯一接口 + `by.rs` 8 处用户可见诊断消息改 `fold_for_display` ⇒ `--rebless` 削基线
-- [ ] `T-N5` **A1/A2 真宿主 e2e**：`⊢` 后文本含 `→`、`{a}` 显示为 `{a}`、`runs` 拼接 == `text`
-- [ ] `T-N6` **A3**：`{a}` 的 goto-definition → `Set.singleton`（front hover 节点 + LSP definition）+ e2e
-- [ ] `T-N7` **A4 取证 + 路线**：prelude 可跳转（只读虚拟文档 + hover 文案），断链点 = `kernel_phase.rs` 的 `resolution` 回填
-- [ ] `T-N8` **A4 实现 + 判据**：prelude definition 返回真实位置 + e2e + 反向验证
+- [x] `T-N5` **A1/A2 真宿主 e2e**：`⊢` 后文本含 `→`、`{a}` 显示为 `{a}`、`runs` 拼接 == `text`
+- [x] `T-N6` **A3**：`{a}` 的 goto-definition → `Set.singleton`（front hover 节点 + LSP definition）+ e2e
+- [x] `T-N7` **A4 取证 + 路线**：断链点确认 = prelude 名字的 hover 行 `resolution: None`（受信任安装、闭包里没有位置）；**路线定为真文件**（Lean 的 `Init/Prelude.lean` 同款）而不是虚拟文档 —— 本仓库只有 `file:` 一种 URI 形态 ✓
+- [x] `T-N8` **A4 实现 + 判据**：`prelude_source` / `prelude_def_span` / `prelude_source_path` + F12 兜底（**必须在 `definition_at` 之后**）+ 三层判据 + 反向验证；顺带抓到并修掉「抢走被 import 模块自定义的 `Or`」这条真回归 ✓
 - [ ] `T-N9` **B0 取证**：IA-1 as-built 复核（签名表 / `try_implicit_application` / `@` / 错误码）与课程侧现状
 - [x] `T-N10` **B1 判红**：R5 最小复现（`''`/`⁻¹'` 的 λ 操作数解不出前导类型参数）
 - [x] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
