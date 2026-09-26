@@ -353,46 +353,26 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
   });
 
   test("hover 的类型文本折成记法（T-U12 面 #3，e2e 那一份）", async () => {
-    // **同一个缺陷、更便宜的判据已有 front 版**（`hover_text_is_folded_like_the_lsp_does` ✓）；
-    // 这一份走**真宿主 + 真 hover** ✓ —— 它才是"用户看得见"的确认 ✓（`docs/design/e2-plan.md` T-U12 ✓）。
+    // **同一个缺陷、更便宜的判据已有 front 版**（`hover_text_is_folded_like_the_lsp_does`）；
+    // 这一份走**真宿主 + 真 hover** —— 它才是"用户看得见"的确认（docs/design/e2-plan.md T-U12）。
     //
-    // ⚠ **必须先在夹具里给常量声明记法**（§9："先给常量声明记法" ✓）——
-    // 否则**折叠没有规则** ✗（round 154/155 两次都栽在这 ✓）。
-    // ⚠ **折叠出现在"某物的类型提到了被记法化的常量"处** ✓ ——
-    // **不是**在记法符号本身的 hover 上 ✗（round 468 实测：那里显示的是
-    // 记法目标的类型 `Set Nat → Set Nat → Prop` ✓ ⇒ 里面没有 `⊆` ✗）。
-    // ⇒ **照 `docs/design/e2-plan.md` face #2 的配方** ✓：让一个 `def` 的**类型**
-    // 就是 `Set.subset Nat A B` ✓ ⇒ hover 它的用处 ⇒ 折后应是 `A ⊆ B` ✓。
-    const SRC = [
-      // ⚠ **`Set` 本身要声明** ✗（这个文件里其它夹具都没用到它 ✓）；
-      // ⚠ **`Set.subset` 的元数要对** ✗ —— 我第一版写 `Set.subset Nat A B` ✗
-      // （3 个参数 ✗），而这里它是 **2 个** ✓ ⇒ 声明 elaborate 不了 ⇒
-      // hover 只说"未通过，见诊断" ✗（round 471 实测踩到 ✓）。
-      'def Set (α : Type) : Type := α → Prop',
-      'def Set.subset (A B : Set Nat) : Prop := True',
-      'infix:50 " ⊆ " => Set.subset',
-      // ⚠ **用 `axiom`（无体）** ✗ —— `def … := True` 要求 `True` 与 `Set.subset A B`
-      // 定义相等 ✗，而 elaborate 不展开它 ⇒ 声明不过 ⇒ hover 只说"未通过，见诊断" ✗
-      // （round 473 实测：失败文本从 `def usesWeird` 前进到 `def Weird` ✓）。
-      'axiom Weird (A B : Set Nat) (P : Prop) : Set.subset A B',
-      'def usesWeird (A B : Set Nat) : Prop := Weird A B True',
-    ].join('\n');
-    const uri = await writeDoc("notation-hover.sokonanoda", SRC);
-    await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
-    // 光标落在第 2 行 `A ⊆ B` 的 `⊆` 上（修饰符号处 ✓ —— 那是
-    // `half_expression_goals_hover` 那条路 ✓）。
-    const line = 3;
-    const col = SRC.split('\n')[line].indexOf('Weird');
-    // ⚠ **`waitFor` 只等"hover 到了"（非空 ✓），断言留给 `assert`** ✓ ——
-    // 否则失败信息只有"超时" ✗，而**看不出实际文本是什么** ✗（round 468 实测踩到 ✓）。
-    let text = "";
-    await waitFor("a hover on the type line", async () => {
-      text = await hoverTextAt(uri, line, col);
-      return text.trim().length > 0;
-    });
-    assert.ok(text.includes('⊆'), `hover 应含记法 ⊆（实际 = ${text}）`);
-    assert.ok(!text.includes('Set.subset '), `hover 不应漏点形式 Set.subset（实际 = ${text}）`);
+    // ⚠ **复用现有夹具，绝不新建文件**（2026-09-26 实测的教训）：
+    // 第一版把夹具写进 tmpDir —— 那个文件会被编译 ⇒ **写进全局缓存**
+    // ⇒ 在**慢速 CI** 上这次落盘**迟到**，正好落进后面那条
+    // "rewriting an unchanged project unit does not recompile" 的 1.5s 窗口
+    // ⇒ 它的 `cacheStamp()` 多出一条 ⇒ **它红了**（本机快，所以本机一直绿）。
+    // 而夹具里本来就有：`lib/Set.sokonanoda` 声明 `infix:50 " ⊆ " => Set.subset`，
+    // 且 `units/u01.sokonanoda:11` 的 `subset_mem` 类型正是 `A ⊆ B -> A ⊆ B`。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    await infoviewDecls("T-U12 面 #3 前置");
+    // 第 11 行（0 基第 10 行）的 `subset_mem`：名字从第 8 列起，取第 10 列。
+    const text = await hoverTextAt(entry, 10, 10);
+    assert.ok(text.includes("⊆"), `hover 应含记法 ⊆（实际 = ${text}）`);
+    assert.ok(
+      !text.includes("Set.subset "),
+      `hover 不应漏点形式 Set.subset（实际 = ${text}）`,
+    );
   });
 
   test("notation input: the rewriter produces ∧ and hover teaches \\and", async () => {
