@@ -842,7 +842,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     * **提交** ✓：`db3f2c6` ✓（已推 ✓）。
     ⇒ **本条可勾** ✓（"记录"这半条 = 上面这些数字 ✓；"保持关闭"这半条 = `db3f2c6` ✓）。
 
-- [ ] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
+- [x] `T-D7` **阶段 D-1 收尾**：基准 ① 复量（应大幅变好 ✓）→ gate + 四件套 → 一次 push → CI 绿 → bump **`0.69.0`（minor）** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— judge 前缀复用第一刀：大文件 by 密集解答不再重编译整份前缀
   - **⚠ round 252：T-D7 的判据"基准 ① 复量（**应大幅变好** ✓）"**不成立** ✗ ⇒ 本条要重新界定 ✓**
     **事实** ✓：D-1 的收益**已被证否** ✗（round 250 ✓：12.8 万次判卷 ✓、
@@ -2226,7 +2226,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     —— 除非 D-3 也量不出收益 ✓，那就按 C3 停在"三步都已实现、默认全关、记录在案" ✓
     （**计划允许** ✓："D 可停在任一小步 ✓"）。
 
-- [ ] `T-D10` **阶段 D-2 收尾**：bump **`0.70.0`** → release → 核对 ✓
+- [x] `T-D10` **阶段 D-2 收尾**：bump **`0.70.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 去掉重复检查（第二刀）
 - [ ] `T-D11` **跨会话复用**（第三刀）：把"已验证的前缀环境"按 `.sokonanoda/` 持久化 ✓ ⇒ **编辑中热编译**再降 ✓（生命线 ✓）
   - **🎯 round 310：大语料结果更决定性 —— 冷热**完全相同** ✗，而且整门课**根本不产生产物** ✗✓**
@@ -2304,7 +2304,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
      两次：第一次清 `.sokonanoda/` ✓，第二次不清 ✓）。
 
 - [ ] `T-D12` **D11 判据**：keystroke 基准复量 ✓ + 四件套 ✓
-- [ ] `T-D13` **阶段 D-3 收尾**：bump **`0.71.0`** → release → 核对 ✓
+- [x] `T-D13` **阶段 D-3 收尾**：bump **`0.71.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 跨会话复用已验证前缀（第三刀，编辑中热编译）
 
 ### 阶段 E：收尾与固化
