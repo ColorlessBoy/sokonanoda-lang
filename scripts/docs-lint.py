@@ -13,8 +13,10 @@
   ② **单文件** ≤ `MAX_FILE_LINES` 行（任何活文档 `.md`）；
   ③ **入口文件** ≤ `MAX_ENTRY_LINES` 行 —— 接手必读的那几份必须短 ✓；
   ④ **设计文档预算**：`docs/design/**` 的**新增** `.md` ≤ `MAX_NEW_DESIGN_LINES` 行；
-     **既有**文件按 `scripts/docs-budget.json` **冻结**（**只许减不许增** ✗，
-     要放宽必须手改那份 JSON ⇒ 评审可见 ✓）；
+     **既有**（**非入口** ✓）文件按 `scripts/docs-budget.json` **冻结**
+     （**只许减不许增** ✗，要放宽必须手改那份 JSON ⇒ 评审可见 ✓）；
+     **入口文件不进冻结** ✓ —— 它们由 ③ 管：计划会随新批次**合法长大** ✓，
+     冻结它必然**误红** ✗（2026-09-26 实测过一次真阻塞 ⇒ 用户要求"修判据不是改冻结值" ✓）；
   ⑤ **禁垃圾**：`docs/**` 下不得有 `.tmpdir` / `.tmp` / `.tmp-<pid>` / `.DS_Store`
      / `*.orig` / `*.rej` / `*~` —— **含未跟踪的本地残留** ✗（判据要咬得住
      2026-09-26 实测的那两类：`.e2-plan.md.*.tmpdir/` 与 `*.json.tmp-<pid>` ✓）；
@@ -142,12 +144,23 @@ def check() -> tuple[list[str], dict]:
         if f in ENTRY_FILES and n > MAX_ENTRY_LINES:
             bad.append(f"③ {f}：{n} 行 > 入口文件上限 {MAX_ENTRY_LINES}")
         cap = budget.get(f)
-        if cap is None:
+        if f in ENTRY_FILES:
+            # **入口文件不进冻结**（2026-09-26 用户要求 ✓，修**判据**而不是改冻结值 ✓）：
+            # 入口文件有自己的专属上限（判据 ③ ≤800 行 ✓ —— 它抓的是"变成巨石" ✗），
+            # 而"冻结在当前行数"在"**计划随新批次长大**"时**必然误红** ✗ ——
+            # 实测：另一会话往 `e2-plan.md` 加「批次 N」+138 行（**合法推进** ✓）
+            # ⇒ 撞死"冻结在 379" ✗ ⇒ **真阻塞**：它会让**所有人**（含后续 notation 的推送）
+            # 都推不动 ✗。⇒ 正确形态：**③ 管入口文件，④ 只管非入口的既有文档** ✓。
+            pass
+        elif cap is None:
             cap = MAX_NEW_DESIGN_LINES if f.startswith("docs/design/") else MAX_NEW_LINES_DEFAULT
             if n > cap:
                 bad.append(f"④ {f}：{n} 行 > 新增文件预算 {cap}（没在 {BUDGET} 里）")
         elif n > cap:
-            bad.append(f"④ {f}：{n} 行 > 冻结预算 {cap}（只许减不许增）")
+            bad.append(
+                f"④ {f}：{n} 行 > 冻结预算 {cap}（**只许减不许增** ✓；"
+                f"确需长大 ⇒ `--freeze` 重新基线，或手改 {BUDGET} ⇒ 评审可见 ✓）"
+            )
 
     # ⑤ 垃圾
     bad += [f"⑤ 垃圾残留：{j}" for j in scan_junk()]
@@ -186,12 +199,14 @@ def check() -> tuple[list[str], dict]:
 def selftest() -> int:
     """**反向验证**（`AGENTS.md`：**咬不住的守卫等于没有** ✓）。
 
-    把六条判据**逐条故意弄红一次** ⇒ 每条都必须被报出来 ✗；改完**一律还原** ✓
-    （`finally` 里还原，跑完再核对工作区回到原样 ✓）。判据：
-    `python3 scripts/docs-lint.py --selftest` ⇒ exit 0 + `6/6`。
+    把判据**逐条故意弄红一次** ⇒ 每条都必须被报出来 ✗；再加**三条方向性**用例
+    （用户 2026-09-26 要求 ✓）：**回胖必须判红** ✓、**正常推进必须不误红** ✓、
+    **非入口的冻结仍要咬** ✓。改完**一律还原** ✓（`finally` 里还原，跑完再核对
+    工作区回到原样 ✓）。判据：`python3 scripts/docs-lint.py --selftest` ⇒ exit 0 + `9/9`。
 
     为什么要有它 ✗：本仓**三次**出现过"判据永远绿"的摆设 ✓ —— 一条判据如果
-    没人证明它咬得住，就不能算守卫 ✓。
+    没人证明它咬得住，就不能算守卫 ✓；而**误红**同样是坏判据 ✗（它会把所有人的
+    推送一起拦下 ⇒ 真阻塞 ✓）。
     """
     results: list[tuple[str, str, bool]] = []
 
@@ -224,6 +239,42 @@ def selftest() -> int:
             restore()
         results.append(("③", "入口文件 > 800 行", any(b.startswith("③") for b in bad)))
 
+    # ③/④ **方向性**（用户 2026-09-26 要求 ✓）：入口文件（`e2-plan` 这类**计划**）
+    # ① 正常推进（+138 行 = 「批次 N」的量级）⇒ **不误红** ✓
+    # ② 回胖（+300 行）⇒ 由 ③ 判红 ✓（**不是**由冻结判红 —— 冻结不管入口文件 ✓）
+    # ③ 非入口的冻结文档回胖（+300）⇒ 由 ④ 判红 ✓（棘轮仍然活着 ✓）
+    ep = Path("docs/design/e2-plan.md")
+    if ep.exists():
+        restore = append_lines("docs/design/e2-plan.md", 138)
+        try:
+            bad, _ = check()
+        finally:
+            restore()
+        results.append(
+            ("③", "入口计划 +138 行（正常推进）⇒ **不误红**", not any(
+                b.startswith(("③", "④")) and "e2-plan" in b for b in bad))
+        )
+        restore = append_lines("docs/design/e2-plan.md", 300)
+        try:
+            bad, _ = check()
+        finally:
+            restore()
+        results.append(
+            ("③", "入口计划 +300 行（回胖）⇒ 判红", any(
+                b.startswith("③") and "e2-plan" in b for b in bad))
+        )
+    nsub = Path("docs/design/notation-subset.md")
+    if nsub.exists():
+        restore = append_lines("docs/design/notation-subset.md", 300)
+        try:
+            bad, _ = check()
+        finally:
+            restore()
+        results.append(
+            ("④", "非入口冻结文档 +300 行 ⇒ 判红（棘轮活着）", any(
+                b.startswith("④") and "notation-subset" in b for b in bad))
+        )
+
     # ⑤ 垃圾残留
     junk = Path("docs/__docs-lint-selftest.tmp")
     junk.write_text("junk", encoding="utf-8")
@@ -253,14 +304,18 @@ def selftest() -> int:
 
 
 def freeze() -> int:
-    """把当前行数写进冻结表 —— **只收紧** ✓（已存在的更小 cap 不会被抬高）。"""
+    """把当前行数写进冻结表 —— **只收紧** ✓（已存在的更小 cap 不会被抬高）。
+
+    **入口文件不写进来** ✓（2026-09-26 用户要求 ✓）：它们由判据 ③（≤800 行）管 ——
+    计划会随新批次合法长大 ✓，冻结它必然误红 ✗（详见 `check()` 里那段注释）。
+    """
     files = tracked()
     old = load_budget()
     new: dict[str, int] = {}
     tightened = 0
     for f in live_docs(files):
         p = Path(f)
-        if p.suffix != ".md" or not p.exists():
+        if p.suffix != ".md" or not p.exists() or f in ENTRY_FILES:
             continue
         n = max(line_count(p), MIN_FROZEN)
         cap = min(old[f], n) if f in old else n
@@ -272,7 +327,9 @@ def freeze() -> int:
             {
                 "_comment": (
                     "文档预算冻结表（REQUIREMENTS.md §9 / docs/design/docs-diet.md）："
-                    "每个既有活文档的行数上限 —— **只许减不许增**。"
+                    "每个既有**非入口**活文档的行数上限 —— **只许减不许增**。"
+                    "**入口文件不在此表**（它们由判据 ③ ≤800 行管 ✓ —— 计划会随新批次"
+                    "合法长大，冻结它必然误红 ✗）。"
                     "`python3 scripts/docs-lint.py --freeze` 只会收紧；"
                     "要放宽必须手改本文件（评审可见）。"
                 ),
