@@ -371,7 +371,10 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       'def Set (α : Type) : Type := α → Prop',
       'def Set.subset (A B : Set Nat) : Prop := True',
       'infix:50 " ⊆ " => Set.subset',
-      'def Weird (A B : Set Nat) (P : Prop) : Set.subset A B := True',
+      // ⚠ **用 `axiom`（无体）** ✗ —— `def … := True` 要求 `True` 与 `Set.subset A B`
+      // 定义相等 ✗，而 elaborate 不展开它 ⇒ 声明不过 ⇒ hover 只说"未通过，见诊断" ✗
+      // （round 473 实测：失败文本从 `def usesWeird` 前进到 `def Weird` ✓）。
+      'axiom Weird (A B : Set Nat) (P : Prop) : Set.subset A B',
       'def usesWeird (A B : Set Nat) : Prop := Weird A B True',
     ].join('\n');
     const uri = await writeDoc("notation-hover.sokonanoda", SRC);
