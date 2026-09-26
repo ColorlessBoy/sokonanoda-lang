@@ -26,6 +26,14 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 428：两个后台任务并行** ✓（**`bash-1131` 基线 ✓ · `bash-1133` 装 nextest ✓**）
+  ```
+  ⇒ 基线还在编译+跑 ✓（**161 个测试** ✓）⇒ **装 nextest 同时进行** ✓
+  ⇒ ⇒ **两者都完成后即可对比** ✓：**`cargo test -p sokonanoda-lsp --lib` vs
+    `cargo nextest run -p sokonanoda-lsp --lib`** ✓
+  ⇒ **判据不变** ✓：**>3 分钟收益 ⇒ 做对** ✓ / **<1 分钟 ⇒ 不做** ✓。
+  ```
+
 * **⏳ round 427：先量收益 —— 串行基线在跑** ✓（**后台 `bash-1131`** ✓）
   ```
   基线 ✓：`cargo test -p sokonanoda-lsp --lib --locked`（**161 个测试 ✓**）
