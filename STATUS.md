@@ -26,6 +26,19 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 465：T-U12 面 #3 的 e2e 判据已落地** ✓（**不依赖 CI** ✓）
+  ```
+  `docs/design/e2-plan.md` T-U12 ✓ 写明落点 ✓：在 `extension.test.js:342`（**只断言非空** ✗）
+  与 `:355`（**输入法教学** ✓）**之间**加一个用例 ✓ ⇒ **已加** ✓：
+    **夹具** ✓：`def Set.subset …` + **`infix:50 " ⊆ " => Set.subset`** ✓
+      （**§9："先给常量声明记法"** ✓ —— 否则**折叠没有规则** ✗，round 154/155 两次都栽在这 ✓）
+    **断言** ✓：hover **含 `⊆`** ✓ **且不含 `Set.subset `** ✗（**漏点形式就红** ✓）
+    **取值位置** ✓：第 2 行 `A ⊆ B` 的 **`⊆` 处** ✓（**修饰符号处** ✓ = `half_expression_goals_hover` 那条路 ✓）
+  ⇒ `node --check` ✓ · **test 总数 27 → 28** ✓
+  ```
+  **⇒ 而 front 侧那份判据早就在** ✓（`hover_text_is_folded_like_the_lsp_does` ✓ · round 166 ✓）
+  ⇒ ⇒ **这一份补的是"用户看得见"的那层** ✓（**真宿主 + 真 hover** ✓）。
+
 * **✅ round 464：异步兑现 ✓ —— 找到"与 CI 无关"的下一批工作** ✓
   ```
   `python3 scripts/plan.py list` ✓ ⇒ **剩 3 个环节** ✓（**全与 CI 无关** ✓✓）：

@@ -352,6 +352,34 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     assert.ok(text.trim().length > 0, "hover markup must be non-empty");
   });
 
+  test("hover 的类型文本折成记法（T-U12 面 #3，e2e 那一份）", async () => {
+    // **同一个缺陷、更便宜的判据已有 front 版**（`hover_text_is_folded_like_the_lsp_does` ✓）；
+    // 这一份走**真宿主 + 真 hover** ✓ —— 它才是"用户看得见"的确认 ✓（`docs/design/e2-plan.md` T-U12 ✓）。
+    //
+    // ⚠ **必须先在夹具里给常量声明记法**（§9："先给常量声明记法" ✓）——
+    // 否则**折叠没有规则** ✗（round 154/155 两次都栽在这 ✓）。
+    const SRC = [
+      'def Set.subset (A B : Set Nat) : Prop := ∀ x, x ∈ A → x ∈ B',
+      'infix:50 " ⊆ " => Set.subset',
+      'def usesSubset (A B : Set Nat) : Prop := A ⊆ B',
+      '',
+    ].join('\n');
+    const uri = await writeDoc("notation-hover.sokonanoda", SRC);
+    await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
+    // 光标落在第 2 行 `A ⊆ B` 的 `⊆` 上（修饰符号处 ✓ —— 那是
+    // `half_expression_goals_hover` 那条路 ✓）。
+    const line = 2;
+    const col = SRC.split('\n')[line].indexOf('⊆');
+    let text = "";
+    await waitFor("hover on the ⊆ in the type", async () => {
+      text = await hoverTextAt(uri, line, col);
+      return text.includes('⊆');
+    });
+    assert.ok(text.includes('⊆'), `hover 应含记法 ⊆（实际 = ${text}）`);
+    assert.ok(!text.includes('Set.subset '), `hover 不应漏点形式 Set.subset（实际 = ${text}）`);
+  });
+
   test("notation input: the rewriter produces ∧ and hover teaches \\and", async () => {
     // NI-2（docs/design/notation-input.md §6.4）：真宿主 + 真命令 + 真 hover。
     //
