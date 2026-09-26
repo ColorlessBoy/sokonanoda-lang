@@ -408,12 +408,9 @@ fn fold_collecting_inner(
             // **A1**：但那个 `->` 本身要折成 `→`（`forall` 分支折的是关键字，
             // 这条折的是 binder 组之后的箭头）。
             if let (Some(last), body) = (binders.last(), body) {
-                if let Some(tok) = arrow_token_between(
-                    src,
-                    base,
-                    last.span.end.offset,
-                    body.span().start.offset,
-                ) {
+                if let Some(tok) =
+                    arrow_token_between(src, base, last.span.end.offset, body.span().start.offset)
+                {
                     edits.push((tok, "→".to_string()));
                 }
             }
@@ -1579,4 +1576,3 @@ infixr:80 \" '' \" => Set.image\n";
         }
     }
 }
-
