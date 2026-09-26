@@ -26,6 +26,17 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 427：先量收益 —— 串行基线在跑** ✓（**后台 `bash-1131`** ✓）
+  ```
+  基线 ✓：`cargo test -p sokonanoda-lsp --lib --locked`（**161 个测试 ✓**）
+  对比 ✓：装 `cargo-nextest` ⇒ `cargo nextest run -p sokonanoda-lsp --lib` ✓
+  ⇒ **判据** ✓：**CI 上的 278.58s → 本地并行的 ?s** ✓
+    ⇒ **若收益 >3 分钟** ⇒ **做对**（**`lib` 腿用 nextest + 注解兼容两格式 + 验证** ✓）；
+    ⇒ **若收益 <1 分钟** ⇒ **不做** ✓（**21 分钟已可接受** ✓）。
+  ⚠ **注意** ✓：**CI 的 278.58s 是 2 核 runner** ✗ ⇒ **本地多核会更快** ✗
+    ⇒ ⇒ **所以要按"核数归一"再比** ✓（**或直接看 CI 上的并行度上限** ✓）。
+  ```
+
 * **🎯🎯 round 426：注解步骤依赖 **libtest 的格式** ✗✓（**所以 nextest 要动它** ✗）**
   ```
   ci.yml:179-186 `Workspace tests` ✓：
