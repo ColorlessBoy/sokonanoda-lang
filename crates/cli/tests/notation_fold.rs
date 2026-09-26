@@ -238,17 +238,34 @@ fn source_rendered_surfaces_ignore_the_fold_switch() {
 
     // ---- 生产者 2：不带 `by` 的开练习 ----------------------------------
     // 这条 `goal` 走 `render_expr` 的**源级渲染**（T-C01 实测），记法来自源文本
-    // 本身，不经过折叠 ⇒ 开关对它**必须无影响**。它此前零测试（T-C21 补的守护
-    // 在 front 单测里，这里从真二进制再钉一遍）。
+    // 本身。
+    //
+    // **判据在 2026-09-26（A1/T-N5）收紧了，不是放松了**：以前断言的是
+    // 「开关对它**逐字节无影响**」✗ —— 那一条与用户报告第 1 条冲突：wire 的
+    // `goal` 是**显示副本**，必须过唯一接口（`->` 是 `→` 的**词法别名**，
+    // 显示面统一打 `→`）。⇒ 现在断言的是**更强的**逐项判据：
+    //   **开关两态之间唯一的差别只能是箭头别名归一化**（把 `->` 换成 `→`），
+    //   **不许增删任何记法符号**。这样既保住了老守卫要保的东西（记法来自源、
+    //   不因折叠而增删），又钉住了新增的那一处归一化。
     let open_on = goal_field(&path, "open_subset", "goal", true);
     let open_off = goal_field(&path, "open_subset", "goal", false);
     assert_eq!(
-        open_on, open_off,
-        "生产者 2 是源级渲染，开关不该动它：\n开 {open_on}\n关 {open_off}"
+        open_on,
+        open_off.replace("->", "→"),
+        "开关两态只许差箭头别名（`->` ⇒ `→`），不许动别的：\n开 {open_on}\n关 {open_off}"
+    );
+    assert_eq!(
+        open_on.matches('⊆').count(),
+        open_off.matches('⊆').count(),
+        "记法不许因折叠而增减：\n开 {open_on}\n关 {open_off}"
     );
     assert!(
         open_on.contains('⊆') && open_on.contains('∈'),
         "生产者 2 的 goal 必须带记法：{open_on}"
+    );
+    assert!(
+        open_on.contains('→') && !open_on.contains("->"),
+        "显示副本的箭头必须是 `→`（A1）：{open_on}"
     );
 
     // ---- 假设行：`binders[].ty` ---------------------------------------
@@ -268,8 +285,9 @@ fn source_rendered_surfaces_ignore_the_fold_switch() {
     };
     let (binder_on, binder_off) = (binder_ty(true), binder_ty(false));
     assert_eq!(
-        binder_on, binder_off,
-        "假设行是源级渲染，开关不该动它：\n开 {binder_on}\n关 {binder_off}"
+        binder_on,
+        binder_off.replace("->", "→"),
+        "开关两态只许差箭头别名（同上）：\n开 {binder_on}\n关 {binder_off}"
     );
     assert!(
         binder_on.contains('∈') && binder_on.contains('↔'),

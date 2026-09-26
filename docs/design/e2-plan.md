@@ -121,7 +121,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 #### 批次 N：记法 × 隐式参数 × 产品交互（2026-09-26 用户专项）
 - [x] `T-N1` **A1 修**：`fold` 折 `->` → `→`（`Expr::Arrow` + 匿名 binder `Forall`）+ **副发现**：`print_back` 的 `base` 反推对"整条表达式带括号"是错的 ⇒ 改用 `proof::CHECK_PREFIX`
 - [x] `T-N2` **A2 修**：`Set.singleton α a` → `{a}` / `Set.pair α a b` → `{a, b}`（`fold_spine` 里照 `forall` 先例单独认内建语法）
-- [ ] `T-N3` **A0 取证结论**：68 条基线逐条判过（迁移 9 / 立判据 19 / 台账不做 40，结论进 `docs/design/duplication-audit.md`）+ 修正设计文档 `notation-display.md`（`render_text`/`Rendered` 与 as-built 不符）
+- [x] `T-N3` **A0 取证结论**：68 条基线逐条判过（迁移 9 / 立判据 19 / 台账不做 40，结论进 `docs/design/duplication-audit.md`）+ 修正设计文档 `notation-display.md`（`render_text`/`Rendered` 与 as-built 不符）
 - [x] `T-N4` **A0 迁移**：`query::runs` 改走唯一接口 + `by.rs` 8 处用户可见诊断消息改 `fold_for_display` ⇒ `--rebless` 削基线
 - [ ] `T-N5` **A1/A2 真宿主 e2e**：`⊢` 后文本含 `→`、`{a}` 显示为 `{a}`、`runs` 拼接 == `text`
 - [ ] `T-N6` **A3**：`{a}` 的 goto-definition → `Set.singleton`（front hover 节点 + LSP definition）+ e2e
