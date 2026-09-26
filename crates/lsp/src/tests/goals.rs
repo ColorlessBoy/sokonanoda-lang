@@ -15,11 +15,11 @@ async fn goals_request_lists_open_exercise_with_hole_range() {
     assert_eq!(decls.len(), 1, "one open exercise: {result:?}");
     let decl = &decls[0];
     assert_eq!(decl["status"], "open");
-    assert_eq!(decl["goal"], "Prop -> Prop");
+    assert_eq!(decl["goal"], "Prop → Prop");
     // The declaration's own type ships with the wire so the Infoview can
     // show it as a hint; runs reconstruct it exactly (§2.1).
     let ty = decl["ty"].as_str().expect("declared type");
-    assert_eq!(ty, "Prop -> Prop", "declared type text");
+    assert_eq!(ty, "Prop → Prop", "declared type text");
     let runs = decl["ty_runs"].as_array().expect("ty_runs array");
     assert_eq!(
         runs.iter()

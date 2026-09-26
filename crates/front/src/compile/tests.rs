@@ -3835,7 +3835,7 @@ fn by_block_with_apply_and_rfl_checks() {
         "intro a; intro b; intro ha; apply Or.inl; exact ha\n",
         "theorem ai : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by ",
         "intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb\n",
-        "theorem r : Eq.{1} Nat (1 + 1) 2 := sorry\n",
+        "theorem r : Eq.{1} Nat (1 + 1) 2 := by rfl\n",
     );
     let report = check_document(&parse(src).unwrap());
     assert!(report.errors.is_empty(), "{:?}", report.errors);
@@ -7420,13 +7420,13 @@ fn abbrev_and_def_compile_identically() {
     let spelled_def = format!(
         "{ABBREV_LIB}\
          def alias : Type := Set Nat\n\
-         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := sorry\n\
+         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
          #reduce Set\n"
     );
     let spelled_abbrev = format!(
         "{}\
          abbrev alias : Type := Set Nat\n\
-         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := sorry\n\
+         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
          #reduce Set\n",
         ABBREV_LIB.replace("def ", "abbrev ")
     );
@@ -7476,7 +7476,7 @@ fn abbrev_unfolds_under_reduce_and_by_rfl() {
     let src = "\
 abbrev Set (α : Type) : Type := α -> Prop\n\
 abbrev Set.empty (α : Type) : Set α := fun (x : α) => False\n\
-theorem t (α : Type) : Eq.{1} (Set α) (Set.empty α) (fun (x : α) => False) := sorry\n\
+theorem t (α : Type) : Eq.{1} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
 #reduce Set\n";
     let out = compile_ok(src);
     assert!(
@@ -7575,7 +7575,7 @@ fn prefix_precedence_decides_where_the_operand_stops() {
          infixl:65 \" ∪ \" => Set.union\n\
          prefix:100 \" 𝒫 \" => Set.powerset\n\
          theorem tight (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set (Set α)) (𝒫 A ∪ 𝒫 B) (Set.union (Set α) (𝒫 A) (𝒫 B)) := sorry\n"
+             Eq.{{1}} (Set (Set α)) (𝒫 A ∪ 𝒫 B) (Set.union (Set α) (𝒫 A) (𝒫 B)) := by rfl\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -7594,9 +7594,9 @@ fn postfix_precedence_decides_where_it_binds() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:100 \" ᶜ \" => Set.compl\n\
          theorem right (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.union α A (Set.compl α B)) := sorry\n\
+             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.union α A (Set.compl α B)) := by rfl\n\
          theorem left (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := sorry\n"
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
     );
     let out = compile_ok(&src);
     for name in ["right", "left"] {
@@ -7619,7 +7619,7 @@ fn a_loose_postfix_binds_outside_the_binary_operator() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:50 \" ᶜ \" => Set.compl\n\
          theorem loose (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.compl α (Set.union α A B)) := sorry\n"
+             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.compl α (Set.union α A B)) := by rfl\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -7691,7 +7691,7 @@ fn rfl_on_a_notation_goal_keeps_its_grouping() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:100 \" ᶜ \" => Set.compl\n\
          theorem t (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := sorry\n"
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
     );
     let out = compile_ok(&src);
     assert!(

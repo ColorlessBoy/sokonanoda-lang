@@ -18,7 +18,7 @@ async fn state_at_inside_a_tactic_shows_the_entering_state() {
     );
     assert_eq!(result["total"], 2);
     // 线 C（T-C22）：`by` 步进的展示副本带记法 ⇒ `And a a -> a` 打成 `a ∧ a -> a`。
-    assert_eq!(result["goal"], "a ∧ a -> a");
+    assert_eq!(result["goal"], "a ∧ a → a");
     let binders = result["binders"].as_array().expect("binders array");
     assert_eq!(binders.len(), 1);
     assert_eq!(binders[0]["name"], "a");
@@ -252,7 +252,18 @@ async fn state_at_without_by_steps_returns_the_declaration_goal() {
 
     let result = ask_state_at(&mut service, EXERCISE, offset_of(EXERCISE, "sorry")).await;
     assert_eq!(result["decl"]["status"], "open");
-    assert_eq!(result["goal"], "Prop -> Prop");
+    // **A1（2026-09-26）**：无 `by` 的开放练习，wire 的 `goal` 是**显示副本**
+    // ⇒ 必须过唯一接口的折叠（`->` ⇒ `→`）。以前这里是 `"Prop -> Prop"` ✗
+    // —— 那正是用户看到的「Infoview 顶部 `⊢` 后面没记法化」。
+    assert_eq!(result["goal"], "Prop → Prop");
+    // **不变量**：`goal_runs` 的文本拼接**逐字节等于** `goal`（同一次转化 ✓）。
+    let joined: String = result["goal_runs"]
+        .as_array()
+        .expect("goal_runs")
+        .iter()
+        .map(|r| r["text"].as_str().unwrap_or_default())
+        .collect();
+    assert_eq!(joined, result["goal"].as_str().unwrap_or_default());
     assert_eq!(result["step"], -1);
     assert_eq!(result["total"], 0);
     shutdown(&mut service).await;

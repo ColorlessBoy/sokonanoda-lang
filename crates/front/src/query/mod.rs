@@ -80,6 +80,16 @@ pub struct QueryDoc {
     /// 在**编译期**算一次（每个模块一次 `parse`，编译本来就在解析它们），
     /// 不是每次查询算一遍——`state_at` 是**光标一动就问一次**的。
     closure_decls: Vec<(String, SemanticKind)>,
+    /// **显示期的记法表**（A1 / T-N5，2026-09-26 ✓）：从**闭包全部源文本**建一次，
+    /// 与 `closure_decls` 同一时机（`set_text` 之后，查询期复用 ✓）。
+    ///
+    /// 为什么必须是**显示副本**才折：`DeclState.goal`/`binders[].ty` 是**判定
+    /// 输入**（`render → 回读`，一个字节都不能折 ✗）；而 wire 上的
+    /// `goal`/`goal_runs`/`binders[].ty` 是**显示副本** ✓ ⇒ 折只能发生在
+    /// 「取显示副本」这一步，而这一步就在本模块。
+    /// 修之前：非 `by` 的开放练习在 Infoview 顶部显示的是**未折**的
+    /// `Prop -> Prop`（`state_at` 对无 `by_steps` 的声明退回 `d.goal` ✗）。
+    display: crate::display::DisplayNotations,
 }
 
 impl Default for QueryDoc {
@@ -104,6 +114,7 @@ impl QueryDoc {
             overlay: Vec::new(),
             project_reason: None,
             closure_decls: Vec::new(),
+            display: crate::display::DisplayNotations::default(),
         }
     }
 
@@ -138,6 +149,7 @@ impl QueryDoc {
         // 入口单文件、再编整个闭包，然后把前者的报告与事件全丢掉。
         self.project = self.project_compile(text);
         self.closure_decls = Self::compute_closure_decls(&self.project);
+        self.display = Self::compute_display(&self.project, text);
         let project_entry_report = self
             .project
             .as_ref()
@@ -248,6 +260,7 @@ impl QueryDoc {
         self.output = other.output.clone();
         self.project = other.project.clone();
         self.closure_decls = other.closure_decls.clone();
+        self.display = other.display.clone();
         self.parse_error = other.parse_error.clone();
         self.project_reason = other.project_reason;
     }
@@ -320,6 +333,7 @@ impl QueryDoc {
         // 会"能显示、不能跳转"。
         self.project = project;
         self.closure_decls = Self::compute_closure_decls(&self.project);
+        self.display = Self::compute_display(&self.project, text);
         self.output = output;
         let mut report = report;
         crate::compile::attach_hints_to_report(text, &mut report);
@@ -430,6 +444,32 @@ impl QueryDoc {
     ///
     /// 用 `importless_source` 剥掉 `import` 行——被导入的模块自己也有 `import`，
     /// 而单文件 `parse` 不认识它们指向的文件（与 `judge_prefix` 同一手法）。
+    /// **显示期的记法表**（A1 / T-N5）：入口 + 闭包全部源文本 **parse 一次**，
+    /// 交给唯一建表方（`compile::display_notations_from_commands` ✓ —— 元数由
+    /// front 算 ✓，本模块只拿结果 ✓）。
+    ///
+    /// 为什么放在**闭包**而不是入口：`∈`/`⊆`/`''` 声明在 `lib/Set.sokonanoda`
+    /// 里，入口只是 `import` 了它 ⇒ 只看入口，库记法一个都折不出来（与
+    /// `notation_symbols` 同一条理由 ✓）。
+    fn compute_display(
+        project: &Option<crate::project::ProjectReport>,
+        text: &str,
+    ) -> crate::display::DisplayNotations {
+        let mut commands: Vec<crate::ast::Command> = Vec::new();
+        if let Ok(file) = crate::parse(text) {
+            commands.extend(file.commands);
+        }
+        if let Some(project) = project {
+            for module in &project.modules {
+                let src = crate::project::importless_source(&module.source);
+                if let Ok(file) = crate::parse(&src) {
+                    commands.extend(file.commands);
+                }
+            }
+        }
+        crate::compile::display_notations_from_commands(&commands)
+    }
+
     fn compute_closure_decls(
         project: &Option<crate::project::ProjectReport>,
     ) -> Vec<(String, SemanticKind)> {
@@ -706,16 +746,24 @@ impl QueryDoc {
         let notations = self.notation_symbols();
         let goal = |g: &ByGoalState| {
             let names: Vec<String> = g.binders.iter().map(|b| b.name.clone()).collect();
+            // **显示副本走唯一接口**（A1 / T-N5 ✓）：`by` 步进那份在
+            // `by_step_states` 里已经折过（幂等 ✓），而**根状态退回的
+            // `d.goal`** 是**判定文本**、一个字节都不能折 ✗ ⇒ 折发生在这里
+            // （wire 的 `goal` + `goal_runs` 都取自折过的那一份 ⇒ 同源 ✓）。
+            let goal = self.display.fold(&g.ty);
             GoalInfo {
-                goal: g.ty.clone(),
-                goal_runs: self.runs(&decls, &notations, &g.ty, &names),
+                goal_runs: self.runs(&decls, &notations, &goal, &names),
+                goal,
                 binders: g
                     .binders
                     .iter()
-                    .map(|b| BinderInfo {
-                        name: b.name.clone(),
-                        ty: b.ty.clone(),
-                        ty_runs: self.runs(&decls, &notations, &b.ty, &names),
+                    .map(|b| {
+                        let ty = self.display.fold(&b.ty);
+                        BinderInfo {
+                            name: b.name.clone(),
+                            ty_runs: self.runs(&decls, &notations, &ty, &names),
+                            ty,
+                        }
                     })
                     .collect(),
             }
@@ -788,7 +836,12 @@ impl QueryDoc {
                 // 例如 `(A ⊆ B) -> (a : α) -> …` ✓），而 `ty_text` 是内核 pp（`(A B : Set α)` ✗
                 // 丢精度）✓。`notation_fold.rs` 第 2 组就是这条**行程开关** ✓，它当场判红 ✓
                 // 并提示"回来更新设计里那张表" ✓（设计：`vscode-editor-feedback-plan.md` §T-C24 ✓）。
-                let goal_display: Option<String> = d.goal.clone();
+                // **显示副本折**（A1 / T-N5）：`d.goal` 是**判定文本**（红线：
+                // 它同时喂判卷 ✓）⇒ 只折**副本** ✓。修之前这一行是
+                // `d.goal.clone()` ⇒ 非 `by` 的开放练习在 Infoview 里显示的
+                // 是未折的 `Prop -> Prop` ✗（T-U4 的注释写着"显示副本"，
+                // 但它当时并没有折 ✗）。
+                let goal_display: Option<String> = d.goal.as_deref().map(|g| self.display.fold(g));
                 // 最后一步的全部未闭合目标（当前在前）；非 `by` 的开练习回退到
                 // 走查得到的那个目标。**文本与 runs 必须成对产出**（T-A5）：只给
                 // 文本不给 runs，声明卡片就只能画纯文本——那正是 R-2 的
@@ -835,10 +888,13 @@ impl QueryDoc {
                     binders: d
                         .binders
                         .iter()
-                        .map(|b| BinderInfo {
-                            name: b.name.clone(),
-                            ty: b.ty.clone(),
-                            ty_runs: self.runs(&decls, &notations, &b.ty, &binder_names),
+                        .map(|b| {
+                            let ty = self.display.fold(&b.ty);
+                            BinderInfo {
+                                name: b.name.clone(),
+                                ty_runs: self.runs(&decls, &notations, &ty, &binder_names),
+                                ty,
+                            }
                         })
                         .collect(),
                     hole: if open {
