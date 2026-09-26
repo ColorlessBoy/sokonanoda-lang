@@ -26,6 +26,12 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **⏳ round 436：`perf-gate` 在跑** ✓（零失败 ✓ · 5 绿 · 5 未完 ✓）
+  ```
+  ⇒ **冷构建 ⇒ 分钟级** ✓ ⇒ **正常** ✓
+  ⇒ **判据不变** ✓：**`perf-gate` 应报"（无基线）"** ✓ ⇒ **勾 T-E1** ✓ · **不推** ✗。
+  ```
+
 * **🚀 round 435：`perf-check.sh` 的同宿主修复已推** ✓（`753184d..de9a547` ✓ · **hook 第六次全绿** ✓）
   ```
   ✅ diff = STATUS.md + docs/CI-FAILURES.md + **scripts/perf-check.sh** ✓✓
