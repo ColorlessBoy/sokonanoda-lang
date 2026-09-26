@@ -1,11 +1,22 @@
 # 当前快照（2026-09-26）
 
-- **进度**：**50/50** ✓（E2 计划全部收口 ✓ · `python3 scripts/plan.py list`）
+- **进度**：**57/65**（E2 50/50 收口 ✓ + **批次 N** 记法×隐式参数×产品交互 7/15 ✓ ·
+  `python3 scripts/plan.py list`）
 - **已发布**：**`sokonanoda v0.72.0`** ✓（`gh release list` 显示 **Latest** ✓ · 2026-09-25T23:25:07Z ✓）
-- **本轮（第 476 轮）** ✓：**文档瘦身 + 判据守护** —— `docs/` **8.84 → 4.98 MB** ✓
-  （**活文档 2.90 MB** = 基线 **33%** ✓）、垃圾 **1.54 MB → 0** ✓、
-  `docs-lint` **已进 `scripts/soko gate`（含 `--fast`）/ `ci-local.sh` / CI** ✓、
-  反向验证 **6/6** ✓。判据：`python3 scripts/docs-lint.py` ✓。
+- **本轮（记法专项，用户 2026-09-26）** ✓：**A1/A2/A3/A0 + A5/R5** 六条里落成五条半 ——
+  * **A1** 显示层混合形态：`ty_text` 里 ASCII `->` **227 → 0**（另修出 `print_back` 的
+    `base` 反推对"整条带括号"是错的**潜伏 bug** + 第二趟折叠）；
+  * **A2** `{a}` / `{a, b}` 折回（残留 `Set.singleton` **5 → 0**）；
+  * **A3** `{a}` 可跳转；**根因是开放练习的签名一条 hover 行都没有**
+    （`open_signature` 把 hover 收进局部 Vec 丢掉）⇒ 未解出的练习里 hover/F12/高亮/引用全失效；
+  * **A0** 守卫基线 **68 → 59**（迁移 9 处，含 `query::runs` 与 `by.rs` 8 处诊断消息，
+    **反向验证** ✓）；68 条逐条结论进 `docs/design/notation-paths-audit.md`；
+  * **A5/R5** 记法路径两条求解路线都补 **delta 展开兜底** ⇒
+    `flawed_equalities_refuted` 从整条点名改成记法（标记 **5 → 3**，剩下的只有
+    λ 体内的 `∅`，语言级缺口、Lean 同样要 `(e : T)`）。
+  判据：课程门禁 **36/328/99/0**（逐项不变 ✓）· front **740** / LSP **162** / CLI **25 套件** 全绿 ✓ ·
+  `notation-lint` **84 个文件零旧写法** ✓ · playground 锚点 exit 0 ✓。
+  **未做**：T-N5/T-N6 的**真宿主 e2e**、A4（prelude F12）、B2/B3、Infoview 字号、进度展示。
 
 ## 未决项
 
