@@ -31,3 +31,10 @@ theorem exists_fun : ∃ (f : Nat → Nat), f = (fun (n : Nat) => n) := by
 -- 且 F12 落在 `{` 上必须跳到 `lib/Set.sokonanoda` 的 `Set.singleton` 声明行。
 theorem singleton_use (α : Type) (a : α) : a ∈ {a} := by
   sorry
+
+-- **A4 的 e2e 夹具**（2026-09-26 用户报告第 4 条）：`Or` 是**内置前奏**
+-- （不是 import 来的）。它的 hover 行按设计没有 `resolution`（prelude 名字在
+-- 闭包里没有定义位置）⇒ 以前 F12 **什么都不发生**；现在必须落到**前奏源文件**
+-- 里的真 span（`inductive Or …` 那一行）。
+theorem prelude_or (a b : Prop) : Or a b → Or a b := by
+  sorry

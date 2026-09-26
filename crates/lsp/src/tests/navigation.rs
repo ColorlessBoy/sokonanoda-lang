@@ -630,3 +630,87 @@ def Set.singleton (\u{3b1} : Type) (a : \u{3b1}) : Set \u{3b1} := fun (x : \u{3b
     );
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// **A4 判据**（2026-09-26 用户报告第 4 条）：prelude 要像 Lean 4 —— 有内嵌代码
+/// 且**可跳转**。`Or` / `And` / `Iff` / `False` 这些**内置前奏**的名字，F12 必须
+/// 落到**前奏源文件里的真 span**。
+///
+/// 判据不是"返回了个位置就算" ✗ —— 要**读回那个位置**、断言那一行**就是**
+/// `Or` 的声明行 ✓（否则"跳到哪都算绿"）。
+///
+/// 为什么以前跳不了：prelude 名字的 hover 行按设计 `resolution: None`
+/// （`report.rs`：prelude 没有定义位置）⇒ `definition_at` 答不上来 ⇒ F12 静默无反应 ✗。
+///
+/// **反向验证**：把 `goto_definition` 里那段 prelude 分支删掉 ⇒ 本判据判红
+/// （实测返回 `null`）。
+#[tokio::test]
+async fn goto_definition_on_a_prelude_name_lands_in_the_prelude_source() {
+    let src = "theorem use_or (a b : Prop) : Or a b -> Or a b := fun (h : Or a b) => h\n";
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    did_open(&mut service, src).await;
+    let _ = wait_diagnostics(&mut socket, "didOpen (prelude definition)").await;
+
+    let at = src.find("Or").expect("source mentions Or") as u32;
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": {"line": 0, "character": at},
+            }))
+            .id(9)
+            .finish(),
+    )
+    .await
+    .expect("definition must answer");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid GotoDefinitionResponse");
+    let Some(GotoDefinitionResponse::Scalar(location)) = location else {
+        panic!("`Or` 上 F12 必须给一个**标量位置**（A4 之前是 null ✗），实际 = {location:?}");
+    };
+    let path = location.uri.to_file_path().expect("file url");
+    assert!(
+        path.file_name().and_then(|n| n.to_str()) == Some("Prelude.sokonanoda"),
+        "跳转必须落在**前奏源文件**上，实际 = {}",
+        path.display()
+    );
+    let text = std::fs::read_to_string(&path).expect("prelude source must be readable");
+    let line = text
+        .lines()
+        .nth(location.range.start.line as usize)
+        .expect("range line must exist in the prelude source");
+    assert!(
+        line.starts_with("inductive Or "),
+        "range 必须指向 `Or` 的**声明行**，实际第 {} 行 = {line:?}",
+        location.range.start.line
+    );
+    assert_eq!(
+        location.range.start.character, 0,
+        "声明行必须从行首开始（span 来自真 parser ✓）"
+    );
+
+    // 用户第 4 条要的是"**真实位置与签名**"两件 ⇒ hover 那一半也要有断言
+    // （它以前就不是静默的，但没有任何测试钉住"prelude 名字上 hover 有内容"）。
+    let hover = call(
+        &mut service,
+        RpcRequest::build("textDocument/hover")
+            .params(json!({
+                "textDocument": {"uri": URI},
+                "position": {"line": 0, "character": at},
+            }))
+            .id(10)
+            .finish(),
+    )
+    .await
+    .expect("hover must answer");
+    let value = hover
+        .get("contents")
+        .and_then(|c| c.get("value"))
+        .and_then(|v| v.as_str())
+        .unwrap_or_default();
+    assert!(
+        value.contains("Or"),
+        "prelude 名字上 hover 必须给出签名（含名字本身），实际 = {value:?}"
+    );
+}

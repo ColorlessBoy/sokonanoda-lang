@@ -1282,6 +1282,54 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     );
   });
 
+  test("go to definition on a prelude name lands in the prelude source", async () => {
+    // **A4 的真宿主判据**（2026-09-26 用户报告第 4 条）：prelude 要像 Lean 4 ——
+    // 有内嵌代码且**可跳转**。`Or` / `And` / `Iff` / `False` 是**内置前奏**，
+    // 它们的 hover 行按设计 `resolution: None` ⇒ 以前 F12 **静默无反应**。
+    //
+    // 判据不是"返回了个位置就算"✗ —— 要**把跳过去的那个文件打开、读出那一行**，
+    // 断言屏幕上看到的就是 `inductive Or …` ✓。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const doc = await vscode.workspace.openTextDocument(entry);
+    const text = doc.getText();
+    const declAt = text.indexOf("theorem prelude_or");
+    assert.notStrictEqual(declAt, -1, "夹具里必须有 `theorem prelude_or`");
+    const offset = text.indexOf("Or", declAt);
+    assert.notStrictEqual(offset, -1, "`prelude_or` 的语句里必须有 `Or`");
+    const before = text.slice(0, offset);
+    const position = new vscode.Position(
+      before.split("\n").length - 1,
+      (before.split("\n").pop() || "").length,
+    );
+    const found = await requestUntil(
+      "`Or` 上跳定义",
+      () => vscode.commands.executeCommand("vscode.executeDefinitionProvider", entry, position),
+      (result) => Array.isArray(result) && result.length > 0,
+    );
+    assert.ok(
+      Array.isArray(found) && found.length > 0,
+      "在 `Or` 上跳定义必须返回至少一个位置（A4 之前返回 null）",
+    );
+    const target = found[0];
+    assert.ok(
+      String(target.uri.fsPath).endsWith("Prelude.sokonanoda"),
+      "跳转必须落在前奏源文件上，实际 = " + String(target.uri.fsPath),
+    );
+    // **把那个文件打开、读那一行** —— 用户看到的就是它。
+    const preludeDoc = await vscode.workspace.openTextDocument(target.uri);
+    const line = preludeDoc.lineAt(target.range.start.line).text;
+    assert.ok(
+      line.startsWith("inductive Or "),
+      `跳过去的第 ${target.range.start.line} 行必须是 \`Or\` 的声明行，实际 = ${line}`,
+    );
+    assert.strictEqual(
+      target.range.start.character,
+      0,
+      "声明行必须从行首开始（span 来自真 parser）",
+    );
+  });
+
   /// **轮询一个 LSP 请求直到它有答案**（或超时后把最后一次结果交回给断言）。
   ///
   /// 为什么需要它（2026-09-24 实测）：`showDoc(entry)` 只保证**文档打开**，

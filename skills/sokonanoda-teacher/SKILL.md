@@ -274,6 +274,7 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
   `absurd ha hna`、`Exists.intro w hw`、`Exists.elim h f`（旧的全参数写法仍可用）。
   逐符号对照与优先级见 `course/README.md` 与 `docs/design/notation-subset.md`；
   输入法（`\and` 之类缩写）见编辑器「notation 缩写」与 `docs/design/notation-input.md`。
+  **F12 在记法符号上跳声明它的库、在 prelude 名字（`Or`/`And`/`False`…）上跳前奏源文件**——向学习者解释"这条规则从哪来"时直接让他按 F12 ✓。
   **边界**（保留点名 + 行内 `-- soko:notation-ok`）：等式族证明项
   （`Eq.symm`/`Eq.trans`/`congrArg`）的宇宙层级、`Set.univ α`、`intro` 派生的
   目标/假设、`Exists`-headed def、嵌套 `Exists.elim`、复合记法操作数。

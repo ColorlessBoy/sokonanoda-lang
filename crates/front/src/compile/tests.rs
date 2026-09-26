@@ -8222,3 +8222,80 @@ theorem r5 :\n\
         out.events
     );
 }
+
+/// **A4 判据（真相层，2026-09-26 用户报告第 4 条）**：prelude 的源文本与它的
+/// span 表必须**同源** —— 每个在源里有文字的 prelude 名字，`prelude_def_span`
+/// 都要指向**那一行**（不是"返回了个 span 就算" ✗：要**读回那一行**、断言它确实
+/// 在声明这个名字 ✓）。
+///
+/// 另一半同样重要：**没有源文字的名字要正好是已知的那 9 个**（`Nat`/`Bool` 家族
+/// 是 Rust AST 手搓的，**今天确实没有定义位置**）⇒ 谁给它们补上源文字，这条会
+/// 提醒他把名字从"无源"名单里划掉 ✓（否则 F12 会静默继续跳不了）。
+#[test]
+fn prelude_source_and_its_span_table_agree() {
+    let src = crate::compile::prelude_source();
+    assert!(
+        src.starts_with(crate::compile::PRELUDE_EQ_SRC),
+        "前奏源必须以 Eq 三件套开头（与喂进编译的是同一份字节 ✓）"
+    );
+    assert!(
+        src.contains(crate::compile::PRELUDE_L1_SRC),
+        "前奏源必须**逐字包含** L1 源文本"
+    );
+
+    let mut with_source: Vec<&str> = Vec::new();
+    let mut without_source: Vec<&str> = Vec::new();
+    for name in crate::compile::PRELUDE_NAMES {
+        match crate::compile::prelude_def_span(name) {
+            Some(span) => {
+                with_source.push(name);
+                let start = span.start.offset;
+                let end = span.end.offset;
+                assert!(
+                    start < end && end <= src.len(),
+                    "`{name}` 的 span 越界：{span:?}"
+                );
+                let line_start = src[..start].rfind('\n').map(|i| i + 1).unwrap_or(0);
+                let line_end = src[start..]
+                    .find('\n')
+                    .map(|i| start + i)
+                    .unwrap_or(src.len());
+                let line = &src[line_start..line_end];
+                assert!(
+                    !line.trim_start().starts_with("--"),
+                    "`{name}` 的 span 落在注释上：{line:?}"
+                );
+                // 派生名（`And.rec` / `Or.rec`）退到**所属归纳块**的块头行
+                // ⇒ 那一行里有的是块名（`And`），不是 `rec` ✓。
+                let last = name.rsplit('.').next().unwrap_or(name);
+                let head = name.rsplit_once('.').map(|(h, _)| h).unwrap_or(name);
+                let head_last = head.rsplit('.').next().unwrap_or(head);
+                assert!(
+                    line.contains(last) || line.contains(head_last),
+                    "`{name}` 的 span 必须指向它的**声明行**（或所属归纳块的块头行），实际 = {line:?}"
+                );
+            }
+            None => without_source.push(name),
+        }
+    }
+    assert!(
+        with_source.len() >= 30,
+        "有源文字的 prelude 名字太少了（{} 个）：F12 会大面积跳不了",
+        with_source.len()
+    );
+    assert_eq!(
+        without_source,
+        vec![
+            "Nat",
+            "Nat.zero",
+            "Nat.succ",
+            "Nat.rec",
+            "Nat.add",
+            "Bool",
+            "Bool.true",
+            "Bool.false",
+            "Bool.rec",
+        ],
+        "无源文字的名字必须正好是 Nat/Bool 家族（手搓 AST，今天确实没有定义位置）"
+    );
+}

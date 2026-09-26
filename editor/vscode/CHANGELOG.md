@@ -1,3 +1,19 @@
+## [Unreleased]
+
+### Fixed
+
+- **`F12` on a prelude name now works.** `Or` / `And` / `Iff` / `False` /
+  `Eq.refl` … are installed by the trusted prelude, so their hover rows carry no
+  `resolution` — jumping did **nothing** (silently). The command now materializes
+  the prelude source (byte-identical to what the checker installs) and lands on
+  the declaration line. `Nat` / `Bool` families are built from a hand-written AST
+  and still have no source; they return **no** location rather than a made-up one.
+- **Notation reads as notation everywhere the user sees text** (Infoview
+  `⊢` target, declaration types, goals): `->` is folded to `→`, and
+  `Set.singleton α a` / `Set.pair α a b` fold back to `{a}` / `{a, b}`.
+- **`F12` on a `{a}` set literal** now lands on `Set.singleton` (it used to
+  return nothing).
+
 ## [0.72.0] — 2026-09-25
 
 > **维护版**：本次没有用户可见的行为变化 —— 改动是**性能回归门禁**、**文档收口**

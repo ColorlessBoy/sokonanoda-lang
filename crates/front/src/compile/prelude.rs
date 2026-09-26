@@ -239,6 +239,89 @@ def Eq.mpr {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) : β -> α := @Eq
 def cast {u} {α β : Sort u} (h : @Eq.{u+1} (Sort u) α β) (a : α) : β := Eq.mp.{u} α β h a
 ";
 
+/// **A4（2026-09-26 用户报告第 4 条）**：prelude 的**只读源文本** —— 编辑器要
+/// "跳进 prelude"就得有一份能打开的源 ✓。
+///
+/// 它**不是**新真相：就是内嵌常量本身（`PRELUDE_EQ_SRC` + `PRELUDE_L1_SRC`，
+/// 与真正喂进编译的是**同一份字节** ✓）。`OnceLock` 缓存：拼一次。
+pub fn prelude_source() -> &'static str {
+    static SRC: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    SRC.get_or_init(|| format!("{PRELUDE_EQ_SRC}\n{PRELUDE_L1_SRC}"))
+}
+
+/// prelude 名字 → 它在 [`prelude_source`] 里的**真 span**。
+///
+/// `None` = 那份源里**没有它的文字**：`Nat`/`Bool` 家族 9 个名字是 **Rust AST
+/// 手搓**的（`Span::default()`），**今天确实没有定义位置** ⇒ 返回 `None`，
+/// 调用方**不编造位置**（`docs/design/notation-subset.md` §88-105 的先例 ✓）。
+///
+/// span 来自**真 parser**（`check::top_level_def_spans` ✓，含归纳块的构造子与
+/// 消去子）⇒ 与判定同源，**不是文本比对** ✓。整份源 parse 一次并缓存。
+pub fn prelude_def_span(name: &str) -> Option<Span> {
+    static SPANS: std::sync::OnceLock<std::collections::HashMap<String, Span>> =
+        std::sync::OnceLock::new();
+    let spans = SPANS.get_or_init(|| {
+        crate::parse(prelude_source())
+            .map(|file| super::check::top_level_def_spans(&file))
+            .unwrap_or_default()
+    });
+    if let Some(span) = spans.get(name) {
+        return Some(*span);
+    }
+    // **派生名**（`And.rec` / `Or.rec`）：递归子是归纳块**自动派生**的，源里只写了
+    // 块头 + 构造子 ⇒ 源里没有它们的文字。退到**所属归纳块**的声明位置 ✓ ——
+    // 这是**真话**（递归子就是那个块派生的 ✓），不是编一个位置 ✗。
+    // `Nat.rec` 这种连块头都没有源文字的，退不到 ⇒ 仍然 `None` ✓。
+    let head = name.rsplit_once('.').map(|(h, _)| h)?;
+    spans.get(head).copied()
+}
+
+/// [`prelude_source`] 落成**真实文件**的路径（**幂等**：内容一样就不重写）。
+///
+/// **路线取舍（A4，2026-09-26 ✓）**：Lean 4 的做法就是"工具链里有一份**真源
+/// 文件**"（`Init/Prelude.lean` ✓）；而本仓库**只有 `file:` 一种 URI 形态**
+/// （零 `TextDocumentContentProvider`、零自定义 scheme）。虚拟文档要同时改
+/// LSP 与扩展两侧（含 stub 宿主）✗，真文件只需这一处 + 一个 `file:` 位置 ✓。
+/// 落在**平台缓存目录**（`compile::cache::root()` ✓，`SOKONANODA_CACHE_DIR`
+/// 可重定向）—— **不落工作区** ✓（不污染用户的树、不进 `build`）。
+/// 缓存被禁用（`root()` = `None`）⇒ 返回 `None` ⇒ 调用方**不编造位置** ✓。
+///
+/// 实测前提：这份源作为**普通文档**编译是**干净**的（35 条声明 / 0 诊断 ✓）
+/// ⇒ 在编辑器里打开它不会满屏红 ✓。
+pub fn prelude_source_path() -> Option<std::path::PathBuf> {
+    let src = prelude_source();
+    // ① 缓存目录（**首选**：路径稳定 ⇒ 编辑器里的打开文档/书签不会漂）；
+    // ② 系统临时目录（**兜底**：缓存被禁用或**不可写**时——例如受限沙箱、
+    //    只读 HOME——仍然要能给一个**真实存在**的位置 ✓。临时目录是易失的，
+    //    但它们本来就每次重新落盘（幂等 ✓），代价只是路径不如缓存稳定）。
+    // 两处都写不进去 ⇒ `None` ⇒ 调用方**不编造位置** ✓。
+    let candidates = super::cache::root()
+        .map(|d| d.join("prelude").join("Prelude.sokonanoda"))
+        .into_iter()
+        .chain(std::iter::once(
+            std::env::temp_dir()
+                .join("sokonanoda-prelude")
+                .join("Prelude.sokonanoda"),
+        ));
+    for path in candidates {
+        // 幂等：内容一致就不重写（避免每次 F12 都动一次 mtime ⇒ 编辑器反复重载）。
+        if matches!(std::fs::read_to_string(&path), Ok(old) if old == src) {
+            return Some(path);
+        }
+        let written = path
+            .parent()
+            .map(std::fs::create_dir_all)
+            .transpose()
+            .ok()
+            .flatten()
+            .and_then(|()| std::fs::write(&path, src).ok());
+        if written.is_some() {
+            return Some(path);
+        }
+    }
+    None
+}
+
 /// 让位的粒度 = **族**，族之间按依赖做闭包让位（设计 §2.2）。
 ///
 /// 一个族要么整族来自 prelude，要么整族来自文件——避免"prelude 的 `And`

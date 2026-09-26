@@ -1840,6 +1840,43 @@ impl LanguageServer for Backend {
             }
         }
         let Some(target) = definition_at(&report.hovers, pos.line, pos.character) else {
+            // **prelude 名字**（A4，2026-09-26 用户报告第 4 条）：`Or` / `And` /
+            // `Iff` / `False` 这些是**内置前奏**（受信任安装），它们的 hover 行按
+            // 设计 `resolution: None`（`report.rs`：prelude 名字没有定义位置）
+            // ⇒ `definition_at` 答不上来 ⇒ 以前 F12 **什么都不发生** ✗。
+            //
+            // 现在返回**前奏源文件里的真 span**：源就是内嵌常量本身（与喂进编译的
+            // 同一份字节 ✓），落成一个**真实文件**（Lean 4 的 `Init/Prelude.lean`
+            // 同款 ✓）。落盘失败 / 那份源里没有这个文字（`Nat`/`Bool` 家族是 Rust
+            // AST 手搓的）⇒ **不编造位置**，返回 `None` ✓。
+            //
+            // ⚠ **必须放在 `definition_at` 之后**（实测教训）：文件/项目**自己声明**
+            // 了同名名字时，prelude 会**让位**（族级让位 ✓），此时 `definition_at`
+            // 已经答上了 ⇒ 前奏分支抢在前面就是**回归** ✗
+            // （`tests::project::definition_jumps_into_the_imported_module` 抓到的
+            // 正是它：被 import 的模块自己定义了 `Or`）。
+            {
+                let text = docs.text().to_string();
+                let at_cursor = render::hover_type_at(&report.hovers, pos.line, pos.character)
+                    .and_then(|h| {
+                        let (s, e) = (h.span.start.offset, h.span.end.offset);
+                        text.get(s..e)
+                    });
+                if let Some(name) = at_cursor {
+                    if sokonanoda_front::compile::PRELUDE_NAMES.contains(&name) {
+                        if let Some((path, span)) = sokonanoda_front::compile::prelude_source_path()
+                            .zip(sokonanoda_front::compile::prelude_def_span(name))
+                        {
+                            if let Ok(uri) = Url::from_file_path(&path) {
+                                return Ok(Some(GotoDefinitionResponse::Scalar(Location {
+                                    uri,
+                                    range: range_of(span),
+                                })));
+                            }
+                        }
+                    }
+                }
+            }
             return Ok(None);
         };
         // 跨文件：项目模式下目标可能住在被 import 的模块里（I16 P5）。

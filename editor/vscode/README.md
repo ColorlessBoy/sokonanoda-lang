@@ -126,6 +126,10 @@ skills.
   symbol** (so `⁻¹'` and `×ˢ` are framed correctly). `F12` / ctrl+click on a
   notation symbol jumps to the `infix:`/`prefix:`/`postfix:` line that declared
   it — **across `import`**, into the library module.
+- **The built-in prelude is navigable too**: `F12` on `Or`, `And`, `Iff`,
+  `False`, `Eq.refl`, … opens the **prelude source** (the same bytes the
+  checker installs, materialized as a real read-only-by-convention file) and
+  lands on the declaration line.
 
 ## Typing notation (`\and` → `∧`)
 
