@@ -224,7 +224,22 @@ def selftest() -> int:
         p.write_text(old + line * n, encoding="utf-8")
         return lambda: p.write_text(old, encoding="utf-8")
 
-    # ① 活文档总量 + ② 单文件行数 + ④ 冻结预算：往一份活文档灌 ≈800 KB / 2200 行
+    # ① 活文档总量：**跟着上限走**（2026-09-26 修 ✓）——上限从 3 MB 提到 **10 MB**
+    # 之后，原来写死的"灌 ≈800 KB"再也撑不破 ⇒ **自检自己报「① 咬不住」** ✗
+    # （那正是自检该干的事 ✓ —— 判据上限一改，就得回头验判据还咬不咬得住 ✓）。
+    # 修法不是把数字改大（下次提上限又失效 ✗），而是把上限**临时压到
+    # "当前总量 − 1"** ⇒ 立刻超 ✓，**与上限取值无关** ✓，也省掉往仓库灌 7 MB。
+    global MAX_LIVE_BYTES
+    saved_cap = MAX_LIVE_BYTES
+    _, base_stats = check()
+    try:
+        MAX_LIVE_BYTES = max(0, int(base_stats["live_bytes"]) - 1)
+        bad, _ = check()
+    finally:
+        MAX_LIVE_BYTES = saved_cap
+    results.append(("①", "活文档总量 > 上限", any(b.startswith("①") for b in bad)))
+
+    # ② 单文件行数 + ④ 冻结预算：往一份活文档灌 2200 行
     p = Path("docs/LESSONS.md")
     if p.exists():
         old = p.read_text(encoding="utf-8")
@@ -233,7 +248,6 @@ def selftest() -> int:
             bad, _ = check()
         finally:
             p.write_text(old, encoding="utf-8")
-        results.append(("①", "活文档总量 > 3.0 MB", any(b.startswith("①") for b in bad)))
         results.append(("②", "单文件 > 2000 行", any(b.startswith("②") for b in bad)))
         results.append(("④", "冻结预算被撑大", any(b.startswith("④") for b in bad)))
 
