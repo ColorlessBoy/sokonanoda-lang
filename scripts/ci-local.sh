@@ -55,6 +55,12 @@ summary() {
                         || printf '  ⇒ **别 push** ✗：先修上面那条 ✓\n'
 }
 
+# ⓪ **workflow 文件本身的静态校验** ✓（2026-09-26 事故 ✓）——
+# 我把新 `run:` 写进了上一个 step 里 ✗ ⇒ 同一 step 两个 `run:` 键 ✗ ⇒
+# `yaml.safe_load` 静默取最后一个（所以我"验过了"是假的 ✗），而 **GitHub 拒绝整个
+# workflow** ✗ ⇒ 整轮 0 job、0 秒失败 ✗。**这条脚本是唯一能在 push 前拦住它的地方** ✓。
+run "workflow：YAML 严格校验（禁重复键）" "gates" python3 scripts/ci-yml-lint.py
+
 # ① lint（CI job `lint`）—— 注意：**绝不** `cargo fmt --all`（kernel 的 rustfmt.toml 要 nightly ✓）
 run "lint：fmt"  "lint" cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 # ⚠ **与 CI 逐字一致**：CI 是 `cargo clippy --workspace --all-targets`（**不带** `-D warnings` ✓）。

@@ -1687,3 +1687,39 @@ bash /tmp/ci-wait-and-collect.sh    # gh run watch --exit-status && 读 perf-gat
 **⚠ 反面教材就在本仓库** ✗：`STATUS.md` 的 round 450–461 ✓（**12 轮** ✗）
 **全是"不变"** ✗ ⇒ **它们本可以是 0 轮** ✓。
 
+## 2026-09-26 · **整个 workflow 被 GitHub 拒绝：同一 step 里两个 `run:` 键** ✗
+
+**症状** ✓：推上去的那一轮 CI **`completed/failure`、`jobs=0`、耗时 `0s`** ✗
+—— **不是测试红，是 workflow 文件没通过校验** ✓。
+
+**根因** ✓（**我的错** ✗）：我给 `ci.yml` 加"STATUS.md 瘦身 lint"那一步时，
+把新的 `run:` **写进了上一个 step 的映射里** ✗ ⇒ 同一个 step 出现**两个 `run:` 键** ✗：
+```yaml
+      - name: 课程记法规则
+        shell: bash
+        run: python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py"
+        run: python3 "$GITHUB_WORKSPACE/scripts/status-lint.py"   # ← 同一个 step ✗
+```
+
+**为什么我没发现** ✓✓（**这条最贵** ✗）：我用 `python3 -c "yaml.safe_load(...)"` 验过 ✗ ——
+**而 `yaml.safe_load` 对重复键不报错** ✗，**它静默取最后一个** ✗
+⇒ 我甚至打印出"`status-lint` 出现 1 次 ✓" ✗ —— **那正是它把 `notation-lint` 顶掉了** ✗✓。
+
+**⇒ 两个后果，第二个更糟** ✗：
+1. GitHub 拒绝整个 workflow ⇒ 0 job、0 秒失败 ✗（**响亮** ✓，所以发现了 ✓）；
+2. **如果 GitHub 接受它，`notation-lint` 会被悄悄关掉** ✗ ——
+   **一条既有的课程门禁消失** ✗，而**本地看起来全绿** ✗✓。
+
+**修复** ✓：拆成**独立的 step**（各自的 `- name:` ✓）。
+
+**⇒ 新增守卫** ✓：**`scripts/ci-yml-lint.py`** ✓ —— 用**禁止重复键的严格 loader** ✓
+（`yaml.safe_load` 不够用 ✗），并检查每个 job 有 steps、每步有 `run` 或 `uses` ✓。
+已接进 **`scripts/ci-local.sh` 的 ⓪ 号阶段**（**最前面** ✓ —— 它是唯一能在 push 前拦住的地方 ✓）
+与 **`ci.yml`** ✓。
+
+**反向验证** ✓（**咬得住** ✓）：把重复键塞回去 ⇒
+`ci-yml-lint：1 条不通过 ✗ - :518:9 YAML 不合法 ✗：重复键 \`run\`` ✓（**带精确位置** ✓）。
+
+**预防** ✓：**改 workflow 之后，验证命令只能是 `python3 scripts/ci-yml-lint.py`** ✓ ——
+**不要再用 `yaml.safe_load` 当门** ✗（**它连重复键都不报** ✗）。
+
