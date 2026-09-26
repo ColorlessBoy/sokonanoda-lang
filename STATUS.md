@@ -17,6 +17,17 @@
   **git 只推 commit ⇒ 未提交的 WIP 不会被推** ✓。
 - **待办（不急 ✓）**：`scripts/ci-yml-lint.py` 缺 `pyyaml` 时 **`exit=2`** ✗ 与真红同形 ⇒
   将来分档为"**环境异常**" ✓。
+- **遗留（2026-09-26 ✓，**当前挡着 push** ✗）**：`docs-lint.py` 的 **① 活文档总量**
+  **已经超了**（实测 **3.018 MB > 3.00 MB**，而且 `origin/main` 上就超 ✓）——
+  超的不是 `.md`（**2.078 MB** ✓），而是 **`docs/e2e/logs/*.log`（43 份 / 528 KB）**：
+  ① 的判据是"`docs/**`（git 跟踪）**所有文件**"✓（docstring 与代码一致 ✓），而
+  e2e 台账每次跑都**新增一对 log** ⇒ 它会**单调增长**、迟早撞死所有人 ✗。
+  **正解（归 e2e/文档线）**：要么把 ① 的判据与 ②③④ 对齐成"**只算 `.md`**" ✓
+  （②③④ 都写着 `if p.suffix != ".md": continue` ✓），要么让 `scripts/vscode-e2e.sh`
+  **只留最近一对 log**（其余归档 ⇒ `docs/archive/README.md` 点名 ✓）。
+  **处置**：本次 push 用 `SOKO_SKIP_HOOK=1`（pre-push 的 `ci-local.sh --fast` 会在
+  这一条上红 ✗）—— 按 `scripts/githooks/pre-push` 自己的约定**留痕在此** ✓；
+  其余 14 项本地快层**全绿** ✓。
 - **遗留（文档瘦身，不急 ✓）**：`scripts/check-site.py` **仍未接进 CI/gate** ✗ —— 接之前
   要先解决"CI 里怎么拿最新 tag"（`actions/checkout` 默认 `fetch-depth: 1` **不取 tag** ✗）；
   78 份**既有**设计文档**未逐份重写** ✗（改用**棘轮**：`scripts/docs-budget.json` **只许减不许增** ✓，
