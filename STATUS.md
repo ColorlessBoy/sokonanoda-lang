@@ -26,6 +26,19 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯🎯 round 431：根因 = `perf-check.sh` 的内联比较**不看 `host`** ✗✓**
+  ```
+  `perf-compare.py:98-108` ✓：**`comparable()` 确实比 `system`/`machine`** ✓✓
+    `for key in ("system", "machine"): … if a != b: return False, f"宿主不同…"` ✓
+  **但 CI 走的是 `perf-check.sh`** ✗ —— 它 `:77-162` 是**自己的内联 Python** ✓：
+    `:141 if ms > threshold:` ✓ · `:146 if pct > threshold:` ✓
+    ⇒ ⇒ **完全没有 `host` 检查** ✗✓ ⇒ ⇒ **这就是"跨机器比"的根因** ✓✓
+  ⇒ **修法** ✓：**让 `perf-check.sh` 的内联比较也看 `host`** ✓
+    （**或让它调用 `perf-compare.py`** ✓ —— **但那是更大的改动** ✗）
+  ```
+  **⇒ 另** ✓：**`bash-1133` 完成 ✓（exit 0）** ⇒ **`nextest` 装好了** ✓
+  ⇒ **只等 `bash-1131` 基线** ✓ ⇒ **对比串行 vs 并行** ✓。
+
 * **🎯🎯🎯 round 430：`perf-gate` 的数字到手 —— **跨机器比** ✗✓（**T-E1 的答案** ✓）**
   ```
   perf-gate 日志 ✓（`continue-on-error: true` ⇒ **没拦住** ✓）：
