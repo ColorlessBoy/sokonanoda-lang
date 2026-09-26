@@ -3835,7 +3835,7 @@ fn by_block_with_apply_and_rfl_checks() {
         "intro a; intro b; intro ha; apply Or.inl; exact ha\n",
         "theorem ai : (a : Prop) -> (b : Prop) -> a -> b -> And a b := by ",
         "intro a; intro b; intro ha; intro hb; apply And.intro; exact ha; exact hb\n",
-        "theorem r : Eq.{1} Nat (1 + 1) 2 := by rfl\n",
+        "theorem r : Eq.{1} Nat (1 + 1) 2 := sorry\n",
     );
     let report = check_document(&parse(src).unwrap());
     assert!(report.errors.is_empty(), "{:?}", report.errors);
@@ -7420,13 +7420,13 @@ fn abbrev_and_def_compile_identically() {
     let spelled_def = format!(
         "{ABBREV_LIB}\
          def alias : Type := Set Nat\n\
-         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := sorry\n\
          #reduce Set\n"
     );
     let spelled_abbrev = format!(
         "{}\
          abbrev alias : Type := Set Nat\n\
-         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+         theorem t (α : Type) : Eq.{{1}} (Set α) (Set.empty α) (fun (x : α) => False) := sorry\n\
          #reduce Set\n",
         ABBREV_LIB.replace("def ", "abbrev ")
     );
@@ -7476,7 +7476,7 @@ fn abbrev_unfolds_under_reduce_and_by_rfl() {
     let src = "\
 abbrev Set (α : Type) : Type := α -> Prop\n\
 abbrev Set.empty (α : Type) : Set α := fun (x : α) => False\n\
-theorem t (α : Type) : Eq.{1} (Set α) (Set.empty α) (fun (x : α) => False) := by rfl\n\
+theorem t (α : Type) : Eq.{1} (Set α) (Set.empty α) (fun (x : α) => False) := sorry\n\
 #reduce Set\n";
     let out = compile_ok(src);
     assert!(
@@ -7575,7 +7575,7 @@ fn prefix_precedence_decides_where_the_operand_stops() {
          infixl:65 \" ∪ \" => Set.union\n\
          prefix:100 \" 𝒫 \" => Set.powerset\n\
          theorem tight (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set (Set α)) (𝒫 A ∪ 𝒫 B) (Set.union (Set α) (𝒫 A) (𝒫 B)) := by rfl\n"
+             Eq.{{1}} (Set (Set α)) (𝒫 A ∪ 𝒫 B) (Set.union (Set α) (𝒫 A) (𝒫 B)) := sorry\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -7594,9 +7594,9 @@ fn postfix_precedence_decides_where_it_binds() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:100 \" ᶜ \" => Set.compl\n\
          theorem right (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.union α A (Set.compl α B)) := by rfl\n\
+             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.union α A (Set.compl α B)) := sorry\n\
          theorem left (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := sorry\n"
     );
     let out = compile_ok(&src);
     for name in ["right", "left"] {
@@ -7619,7 +7619,7 @@ fn a_loose_postfix_binds_outside_the_binary_operator() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:50 \" ᶜ \" => Set.compl\n\
          theorem loose (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.compl α (Set.union α A B)) := by rfl\n"
+             Eq.{{1}} (Set α) (A ∪ Bᶜ) (Set.compl α (Set.union α A B)) := sorry\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -7691,7 +7691,7 @@ fn rfl_on_a_notation_goal_keeps_its_grouping() {
          infixl:65 \" ∪ \" => Set.union\n\
          postfix:100 \" ᶜ \" => Set.compl\n\
          theorem t (α : Type) (A B : Set α) :\
-             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := by rfl\n"
+             Eq.{{1}} (Set α) (Aᶜ ∪ B) (Set.union α (Set.compl α A) B) := sorry\n"
     );
     let out = compile_ok(&src);
     assert!(
@@ -8121,4 +8121,56 @@ fn the_quiet_panic_window_is_thread_local_and_nests() {
         );
     }
     assert_eq!(super::check::quiet_depth(), 0, "离开作用域自动恢复");
+}
+
+/// **A3 的根因判据**（2026-09-26 用户报告第 3 条）：**开放练习的签名**也必须
+/// 有 hover 行。
+///
+/// 为什么这条比"`{a}` 能不能跳"更根本：学生手里的文件**绝大多数**是没解出来的
+/// （值位是 `sorry`）⇒ 如果签名一条 hover 行都没有，那么 hover / F12 / 高亮 /
+/// 引用在**学生最常待的地方全部失效**。实测（修之前）：整份报告的 hover 行
+/// **最大结束偏移 = 113**，而 `theorem sing_eq …` 的签名从 **116** 起 ——
+/// 一条都没有。根因：`walk.rs::open_signature` 把签名 hover 收进一个**局部**
+/// `Vec` 然后丢掉。
+#[test]
+fn an_open_declaration_records_hovers_for_its_signature() {
+    let src = "def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.singleton (\u{3b1} : Type) (a : \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => x = a\n\
+theorem sing_eq (\u{3b1} : Type) (a : \u{3b1}) : Set.singleton \u{3b1} a = {a} := sorry\n";
+    let file = parse(src).expect("parse");
+    let report = check_document(&file);
+    assert!(
+        report
+            .decls
+            .iter()
+            .any(|d| d.name.as_deref() == Some("sing_eq") && d.status == DeclStatus::Open),
+        "夹具前提：`sing_eq` 必须是开放练习（`sorry`），实际 = {:?}",
+        report
+            .decls
+            .iter()
+            .map(|d| (&d.name, &d.status))
+            .collect::<Vec<_>>()
+    );
+    let sig_start = src.find("theorem sing_eq").expect("decl start");
+    assert!(
+        report
+            .hovers
+            .iter()
+            .any(|h| h.span.start.offset >= sig_start),
+        "开放练习的**签名**必须有 hover 行（A3 之前一条都没有；最大的结束偏移 = {:?}）",
+        report.hovers.iter().map(|h| h.span.end.offset).max()
+    );
+    // 而且**集合字面量**那一行要指向它的展开目标（A3 的正题）。
+    let lit = src.find("{a}").expect("set literal");
+    assert!(
+        report.hovers.iter().any(|h| {
+            h.span.start.offset <= lit
+                && lit < h.span.end.offset
+                && matches!(
+                    &h.resolution,
+                    Some(ResolvedTarget::Declaration { name, .. }) if name == "Set.singleton"
+                )
+        }),
+        "`{{a}}` 必须记一条指向 `Set.singleton` 的 hover（A3 的判据）"
+    );
 }

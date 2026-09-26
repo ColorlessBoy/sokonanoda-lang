@@ -566,7 +566,7 @@ impl<'arena> Walk<'arena> {
         let open_info = open_goal(ty, val, templates, &mut redundant_spans);
         if let Some(info) = open_info {
             // G-01：签名必须先过 elaborate；`Err` 与值位 elaborate 失败同罪。
-            let signature =
+            let mut signature =
                 match open_signature(&mut self.builder, universe, ty, &self.known, &elab_ctx) {
                     Ok(sig) => sig,
                     Err(e) => {
@@ -581,6 +581,14 @@ impl<'arena> Walk<'arena> {
                         return;
                     }
                 };
+            // **签名里的 hover 行**（A3）：开放练习也是声明，它的签名同样要能
+            // hover / 跳转。`env_at` 取 `env_before` —— 签名就是在**本声明入环境
+            // 之前** elaborate 的（与 `#check` 同一条口径）。
+            self.cmd_hovers.push(CmdHover {
+                env_at: c.env_before,
+                nodes: std::mem::take(&mut signature.hovers),
+                cmd: idx,
+            });
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Definition,
@@ -814,7 +822,7 @@ impl<'arena> Walk<'arena> {
         };
         if let Some(info) = open_info {
             // G-01：签名必须先过 elaborate；`Err` 与值位 elaborate 失败同罪。
-            let signature =
+            let mut signature =
                 match open_signature(&mut self.builder, universe, ty, &self.known, &elab_ctx) {
                     Ok(sig) => sig,
                     Err(e) => {
@@ -829,6 +837,14 @@ impl<'arena> Walk<'arena> {
                         return;
                     }
                 };
+            // **签名里的 hover 行**（A3）：开放练习也是声明，它的签名同样要能
+            // hover / 跳转。`env_at` 取 `env_before` —— 签名就是在**本声明入环境
+            // 之前** elaborate 的（与 `#check` 同一条口径）。
+            self.cmd_hovers.push(CmdHover {
+                env_at: c.env_before,
+                nodes: std::mem::take(&mut signature.hovers),
+                cmd: idx,
+            });
             self.ops.push(PendingOp::OpenExercise {
                 name: Some(name.to_string()),
                 kind: DeclKind::Theorem,
@@ -1156,16 +1172,24 @@ impl<'arena> Walk<'arena> {
         };
         if let Some(info) = open_info {
             // G-01：`example` 没有宇宙参数，签名同样必须先过 elaborate。
-            let signature = match open_signature(&mut self.builder, &[], ty, &self.known, &elab_ctx)
-            {
-                Ok(sig) => sig,
-                Err(e) => {
-                    self.out.push_error(idx, e.clone());
-                    self.decl_states
-                        .push(failed_state(DeclKind::Example, None, span, e, idx));
-                    return;
-                }
-            };
+            let mut signature =
+                match open_signature(&mut self.builder, &[], ty, &self.known, &elab_ctx) {
+                    Ok(sig) => sig,
+                    Err(e) => {
+                        self.out.push_error(idx, e.clone());
+                        self.decl_states
+                            .push(failed_state(DeclKind::Example, None, span, e, idx));
+                        return;
+                    }
+                };
+            // **签名里的 hover 行**（A3）：开放练习也是声明，它的签名同样要能
+            // hover / 跳转。`env_at` 取 `env_before` —— 签名就是在**本声明入环境
+            // 之前** elaborate 的（与 `#check` 同一条口径）。
+            self.cmd_hovers.push(CmdHover {
+                env_at: c.env_before,
+                nodes: std::mem::take(&mut signature.hovers),
+                cmd: idx,
+            });
             self.ops.push(PendingOp::OpenExercise {
                 name: None,
                 kind: DeclKind::Example,
@@ -1496,6 +1520,14 @@ pub(super) struct OpenSignature<'arena> {
     pub(super) probe: Box<Declar<'arena>>,
     /// 诊断 span：**签名**的 AST 范围（G-01 要求报在签名上；G-15 已修，内核 span 本身精确）。
     pub(super) span: Span,
+    /// **签名里每一个子表达式的 hover 行**（A3 的根因，2026-09-26）。
+    ///
+    /// 以前这个 Vec 是 `open_signature` 的**局部变量**，elaborate 完就丢 ✗ ⇒
+    /// 开放练习的**签名**一条 hover 行都没有 ⇒ 在未解出的练习里 hover / F12 /
+    /// 高亮 / 引用**全部失效**（学生最常见的状态就是这个 ✗）。判据：
+    /// `report.hovers` 里没有任何 span 落在开放练习的签名区间内（实测
+    /// `max end offset = 113`，而签名从 116 起）。
+    pub(super) hovers: Vec<HoverNode<'arena>>,
 }
 
 /// 开练习的签名检查（G-01 / WO-004）：把签名 elaborate 成内核类型并造终审探针。
@@ -1539,6 +1571,7 @@ fn open_signature<'arena>(
         declared_ty,
         probe: Box::new(probe),
         span: ty.span(),
+        hovers,
     })
 }
 

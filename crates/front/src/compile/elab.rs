@@ -2972,7 +2972,7 @@ pub(crate) fn elab_expr<'a>(
             } else {
                 ("{a, b}", "Set.pair")
             };
-            if resolve_known(known, ctx.ns, target, *span).is_err() {
+            let Ok(canonical) = resolve_known(known, ctx.ns, target, *span) else {
                 return Err(CompileError::elab(
                     ErrorKind::ElabSetLiteralUnknownTarget,
                     format!(
@@ -2980,7 +2980,7 @@ pub(crate) fn elab_expr<'a>(
                     ),
                     *span,
                 ));
-            }
+            };
             let operands: Vec<&Expr> = elements.iter().collect();
             // 元素类型 `α` 的**回退解**：期望类型 `Set α₀` ⇒ `α := α₀`。
             // `{∅}` 这类"元素自己的类型也要从期望类型解"的嵌套只有这条路
@@ -3000,7 +3000,24 @@ pub(crate) fn elab_expr<'a>(
                 fallback.as_deref(),
                 ctx,
             )?;
-            record_hover(hovers, scope, *span, out, None);
+            // **A3**（用户 2026-09-26 报告第 3 条）：`{a}` 要能跳转到它展开成的
+            // `Set.singleton`。为什么以前不行：`∈` 那类**记法符号**走
+            // `notation_at`（查记法表 ✓），而 `{a}` 是**内建语法**、不在记法表里
+            // ⇒ 那条分支够不着；`definition_at` 又只读 hover 的 `resolution`，
+            // 这里以前记的是 `None` ⇒ F12 直接 `null`。
+            // 记法与点名的 `ResolvedTarget::Declaration` 同形：真实位置由既有
+            // 回填（`kernel_phase` 的 `top_level_def_spans_over`）给，跨文件
+            // 跳转走 `project_definition` ⇒ 与普通名字**同一条通道**。
+            record_hover(
+                hovers,
+                scope,
+                *span,
+                out,
+                Some(ResolvedTarget::Declaration {
+                    name: canonical,
+                    span: Span::default(),
+                }),
+            );
             Ok(out)
         }
         // **匿名构造子**（课程 Lean 化 L2.7）：`⟨a, b⟩`。

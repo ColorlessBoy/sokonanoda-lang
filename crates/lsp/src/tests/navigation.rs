@@ -549,3 +549,84 @@ infix:50 \" ∈ \" => Set.mem\n",
     assert_eq!(range.start.character, 0, "从行首开始：{range:?}");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// **A3**（用户 2026-09-26 报告第 3 条）：**带操作数的括号记法** `{a}` 也要能跳
+/// 到它的展开目标 `Set.singleton`。
+///
+/// 为什么它和 `∈` 不是一条路：`∈` 是 `infix:` 声明出来的**记法**，跳转走
+/// `notation_at`（查记法表 ✓）；`{a}` 是**内建语法**（`ast::Expr::SetLiteral`），
+/// 根本不在记法表里 ⇒ 那条分支够不着，而 `definition_at` 只读 hover 的
+/// `resolution`，`elab.rs` 当年给集合字面量记的是 `resolution: None`
+/// ⇒ F12 直接 `null`。修法：记它指向展开目标（`Set.singleton` / `Set.pair`）的
+/// `ResolvedTarget::Declaration`，真实位置由既有回填给。
+#[tokio::test]
+async fn goto_definition_on_a_set_literal_lands_on_its_expansion_target() {
+    let dir = std::env::temp_dir().join(format!(
+        "sokonanoda-def-setlit-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("temp project");
+    let lib = dir.join("SetLib.sokonanoda");
+    std::fs::write(
+        &lib,
+        "def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.singleton (\u{3b1} : Type) (a : \u{3b1}) : Set \u{3b1} := fun (x : \u{3b1}) => x = a\n",
+    )
+    .expect("write lib");
+    let entry = dir.join("Canvas.sokonanoda");
+    let src = "import SetLib\n\ntheorem sing_eq (\u{3b1} : Type) (a : \u{3b1}) : Set.singleton \u{3b1} a = {a} := sorry\n";
+    std::fs::write(&entry, src).expect("write entry");
+    let uri = Url::from_file_path(&entry).expect("file url");
+    let lib_uri = Url::from_file_path(&lib).expect("lib url");
+
+    let (mut service, mut socket) = test_service();
+    handshake(&mut service).await;
+    testutil::did_open_at(&mut service, &uri, src).await;
+    // **夹具自检前置断言**（纪律：编排出来的夹具先证明它自己是好的 ——
+    // 2026-09-26 实测踩过 5 轮：`({a} : Prop)` 非法、删了 `∈` 却没定义
+    // `Set.mem`、`{a}` 缺期望类型，全是夹具自身坏，与产品无关）。
+    let diags = testutil::wait_diagnostics_for(&mut socket, &uri, "set literal definition").await;
+    assert!(
+        !diags
+            .diagnostics
+            .iter()
+            .any(|d| d.severity == Some(DiagnosticSeverity::ERROR)),
+        "夹具不许有**错误级**诊断（`sorry` 警告是合法状态）：{:?}",
+        diags.diagnostics
+    );
+
+    // 光标落在**左花括号**上：`{a}` 内部那个 `a` 是局部变量（它自己有一条
+    // `ResolvedTarget::Binder` 的 hover 行，"最小的使用点胜出"⇒ 在 `a` 上按 F12
+    // 应该跳**变量**，那是 Lean 的行为）。符号位是括号 ⇒ 判据取 `{`。
+    let pos = lsp_pos(src, src.find("{a}").expect("set literal use site"));
+    let result = call(
+        &mut service,
+        RpcRequest::build("textDocument/definition")
+            .params(json!({
+                "textDocument": {"uri": uri},
+                "position": position_json(pos),
+            }))
+            .id(3)
+            .finish(),
+    )
+    .await
+    .expect("definition must answer");
+    let location: Option<GotoDefinitionResponse> =
+        serde_json::from_value(result).expect("valid definition response");
+    let location = location.expect("`{a}` 必须有跳转目标（A3 之前返回 null）");
+    let (uri, range) = match location {
+        GotoDefinitionResponse::Scalar(location) => (location.uri, location.range),
+        other => panic!("expected a single location: {other:?}"),
+    };
+    assert_eq!(uri, lib_uri, "要跳到声明 `Set.singleton` 的模块");
+    assert_eq!(
+        range.start.line, 1,
+        "落在 `def Set.singleton` 那一行：{range:?}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
