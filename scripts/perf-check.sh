@@ -120,7 +120,13 @@ if ledger.exists():
         for r in entry.get("records", []):
             ms = representative_ms(r)
             if ms is not None:
-                baseline[(r.get("scope"), r.get("case"), str(r.get("entry", "")))] = ms
+                # **宿主也要进 key**（2026-09-25 round 432 ✓）：台账的 `host.system`
+                # 是 `platform.system()`（`perf-ledger.sh:88` ✓）⇒ 本机 Darwin/arm64 与
+                # CI 的 Linux 2 核**不可比** ✗ ⇒ 不加这一维就会报 +585%~+1189% 的假回归 ✗
+                # （实测 ✓：`0.72.0` 的发版轮 ✓）。
+                _h = entry.get("host") or {}
+                baseline[(r.get("scope"), r.get("case"), str(r.get("entry", "")),
+                          _h.get("system"), _h.get("machine"))] = ms
 
 threshold = float(os.environ["THRESHOLD"])
 print()
@@ -130,7 +136,9 @@ regressed = []
 for r in records:
     ms = representative_ms(r)
     key = (r.get("scope"), r.get("case"), str(r.get("entry", "")))
-    before = baseline.get(key)
+    # **只在同宿主同架构里比** ✓（`platform` 与 `perf-ledger.sh:88` 同源 ✓）
+    import platform as _plat
+    before = baseline.get(key + (_plat.system(), _plat.machine()))
     if ms is None:
         delta = "（这条没有 *_ms 字段）"
     elif before is None:

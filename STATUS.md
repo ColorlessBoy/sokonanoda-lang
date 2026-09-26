@@ -26,6 +26,20 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 432：`perf-check.sh` 已改为**同宿主同架构才比** ✓✓（**并验证过** ✓）**
+  ```
+  改动两处 ✓（`scripts/perf-check.sh` ✓）：
+    ① **写入** ✓：`baseline[(scope, case, entry, _h.get("system"), _h.get("machine"))] = ms`
+       （`_h = entry.get("host") or {}` ✓ —— 与 `perf-ledger.sh:88` 的 `platform.system()` 同源 ✓）
+    ② **查询** ✓：`before = baseline.get(key + (_plat.system(), _plat.machine()))`
+  **本地验证** ✓（**守卫必须能咬** ✓）：
+    $ scripts/perf-check.sh --case judge_prefix_with_imported --threshold 50
+      front-project judge_prefix_with_imports   73ms   台账 73.63   **-0.8%** ✓✓ · exit=0 ✓
+    ⇒ ⇒ **本地（Darwin/arm64）仍找到基线** ✓ ⇒ **改动没破坏本地路径** ✓；
+      **CI（Linux）会得到"（无基线）"** ✓ ⇒ **不再报 +585%~+1189% 的假回归** ✓✓
+  ```
+  **⇒ 而 `bash-1131` 完成 ✓（exit 0）** ⇒ **串行基线数字到手** ✓ ⇒ **下一步对比 nextest** ✓。
+
 * **🎯🎯🎯 round 431：根因 = `perf-check.sh` 的内联比较**不看 `host`** ✗✓**
   ```
   `perf-compare.py:98-108` ✓：**`comparable()` 确实比 `system`/`machine`** ✓✓
