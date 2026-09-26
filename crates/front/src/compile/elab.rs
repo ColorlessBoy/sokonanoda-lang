@@ -2303,7 +2303,7 @@ fn try_implicit_application<'a>(
         // 那一档没有这个歧义：**没有**显式层可吃 ⇒ 写出来的实参只可能落在结果上 ✓。
         // 放宽它需要先能**判定旧写法是否良型**（Lean 用 whnf + 元变量做这件事，
         // 本路线 C 没有元变量 ✗）⇒ 留给缺口台账，别在这里猜 ✓。
-        if explicit_layers == 0 && args.len() > 0 {
+        if explicit_layers == 0 && !args.is_empty() {
             let surplus = args.len() - explicit_layers;
             let mut tail: Vec<crate::compile::implicit::Layer> = Vec::with_capacity(surplus);
             let mut cur = result.clone();
