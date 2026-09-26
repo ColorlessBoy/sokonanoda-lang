@@ -226,10 +226,13 @@ runner 每次都是干净的，历史趋势只在仓库里）。
 ## ⚠ **跑完 e2e 必须 `git status`**（2026-09-26 实测 ✓）
 
 **e2e 会改工作区** ✓ —— 实测两处 ✓：
-1. **它会删掉夹具** ✗：跑完后
-   `editor/vscode/src/test/fixtures/workspace/units/u02.sokonanoda` 变成 **`D`（deleted）** ✗
-   ⇒ **工作区变脏** ✗ ⇒ **下一次 e2e / CI 会坏** ✗
-   ⇒ **恢复** ✓：`git checkout -- editor/vscode/src/test/fixtures/workspace/units/` ✓；
+1. ~~它会删掉夹具~~ ⇒ **✅ 已根治**（2026-09-26 ✓）：
+   原来那条"冷开"用例**自己写** `units/u02.sokonanoda` ✗ ——
+   而**它是 git 跟踪的文件** ✓ ⇒ 用例先**覆盖**它、再在 `finally` **删掉**它 ✗
+   ⇒ **每跑一次 e2e，工作区就多一个"已删除"的夹具** ✗。
+   **修法** ✓：换成一个**不被跟踪**的名字
+   （`units/u02-cold-open.sokonanoda` ✓ —— **目录不变、模块根不变** ✓）。
+   **判据** ✓：**跑完 `git status` 里不再有 `D …/u02.sokonanoda`** ✓（实测 ✓）。
 2. **它会写台账** ✓：`docs/e2e/ledger.jsonl` 与 `docs/e2e/latest.json` ✓
    （**这两个是要提交的** ✓）。
 

@@ -916,7 +916,13 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
           `theorem extra_${i} (α : Type) (a : α) (A : Set α) (h : a ∈ A) : a ∈ A := h`,
       ).join("\n") +
       "\n";
-    const coldPath = path.join(fixtureRoot(), "units", "u02.sokonanoda");
+    // ⚠ **文件名不能撞 git 跟踪的夹具** ✗（2026-09-26 实测 ✓）：
+    // 这里原本写 `u02.sokonanoda` ✗ —— 而**它是 git 跟踪的文件** ✓
+    // ⇒ 本用例先**覆盖**它、再在 `finally` **删掉**它 ✗
+    // ⇒ **每跑一次 e2e，工作区就多一个"已删除"的夹具** ✗
+    // （CI 上被 `git status` 之外的地方掩盖，本地每次都要手工 `git checkout --` 还原 ✗）。
+    // 换成一个**不会被跟踪**的名字 ✓ —— 目录不变（模块根不变 ✓）。
+    const coldPath = path.join(fixtureRoot(), "units", "u02-cold-open.sokonanoda");
     fs.writeFileSync(coldPath, coldBody);
     const coldUri = vscode.Uri.file(coldPath);
 
