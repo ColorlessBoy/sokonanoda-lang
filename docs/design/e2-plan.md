@@ -127,12 +127,12 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-N6` **A3**：`{a}` 的 goto-definition → `Set.singleton`（front hover 节点 + LSP definition）+ e2e
 - [x] `T-N7` **A4 取证 + 路线**：断链点确认 = prelude 名字的 hover 行 `resolution: None`（受信任安装、闭包里没有位置）；**路线定为真文件**（Lean 的 `Init/Prelude.lean` 同款）而不是虚拟文档 —— 本仓库只有 `file:` 一种 URI 形态 ✓
 - [x] `T-N8` **A4 实现 + 判据**：`prelude_source` / `prelude_def_span` / `prelude_source_path` + F12 兜底（**必须在 `definition_at` 之后**）+ 三层判据 + 反向验证；顺带抓到并修掉「抢走被 import 模块自定义的 `Or`」这条真回归 ✓
-- [ ] `T-N9` **B0 取证**：IA-1 as-built 复核（签名表 / `try_implicit_application` / `@` / 错误码）与课程侧现状
+- [x] `T-N9` **B0 取证** ✓：IA-1 as-built 三条用法实测全通（记法 `a ∈ A` · 点名短写 `Set.mem a A` · `@` 全显式），且**改签名向后兼容**（老的点名带类型实参写法照样过 ✓）；课程侧普查 **585** 处点名（`univ` 189 · `empty` 103 · `singleton` 84 · `mem` 64 · `image` 46 · …）；**⛔ 结论：B2 被 B3 挡住** —— 把库的前导类型参数改成 `{α : Type}` 会让课程门禁从 `328 checked · 0 判负` 掉到 `249 checked · 81 open · 7 判负` ✗（最小复现 + 完整证据：缺口 **G-40**）
 - [x] `T-N10` **B1 判红**：R5 最小复现（`''`/`⁻¹'` 的 λ 操作数解不出前导类型参数）
 - [x] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
 - [x] `T-N12` **B1 三件套判据**：② 反向 ✓（撤兜底 ⇒ 判据红）· ③ 红线 ✓（36/328/99/0 逐项不变）· ① 正向**部分达成**：`flawed_equalities_refuted` 从整条点名（5 标记）改成除 **λ 体内的 `∅`** 外全记法（3 标记）—— 该残例连 Lean 都要 `(e : T)` 标注，属语言级缺口
-- [ ] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族）+ 调用点数量级下降
-- [ ] `T-N14` **B3**：记法路径改走隐式插入，补参 hack 收窄，`implicit_prefix == 0` 逐字节不变
+- [ ] `T-N13` **B2**（**⛔ 被 T-N14 挡住**，见 G-40）：课程库改隐式风格（`Set.image`/`Set.preimage` 一族）+ 调用点数量级下降
+- [ ] `T-N14` **B3**（**先行**：B2 的前置）：隐式插入补齐三档 —— ① **零显式实参的常量**（`∅` = 裸 `Set.empty`，设计 §8 的 X14 推迟档）② 陪域是 `Set` 的函数体 ③ 记法套 `∅` 的那一族；记法路径改走隐式插入，补参 hack 收窄，`implicit_prefix == 0` 逐字节不变
 - [x] `T-N16` **A0 立判据收尾**：`SubGoal.ty` 那 9 处**两半分开钉** —— 显示副本（wire 克隆 + LSP hover）**必须折** + 真相字段（`DeclState.sub_goals[].ty`，`suggest.rs` 回读它算建议）**一个字节都不许折**；两条判据各带反向验证 ✓；**「59 是地板」的结论**进审计 §1.5（再降要改记账口径，不是再迁几处 ✓）
 - [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
 ## 3. 风险与刹车点（每阶段都有一条"停下"的判据）
