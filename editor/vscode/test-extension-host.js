@@ -113,6 +113,8 @@ const vscodeStub = {
       this.id = id;
     }
   },
+  // 真 API 的取值（`vscode.OverviewRulerLane`）：Left=1 / Center=2 / Right=4 / Full=7 ✓。
+  OverviewRulerLane: { Left: 1, Center: 2, Right: 4, Full: 7 },
   ThemeColor: class ThemeColor {
     constructor(id) {
       this.id = id;
@@ -196,6 +198,12 @@ const vscodeStub = {
   window: {
     activeTextEditor: undefined,
     visibleTextEditors: [],
+    // **P4**（空间进度）：装饰类型与 `editor.setDecorations` 的 stub —— 真宿主里
+    // 前者是 `createTextEditorDecorationType`，后者挂在 editor 上 ✓。
+    createTextEditorDecorationType: (options) => {
+      vscodeStub.__decorationOptions = options;
+      return { key: "sokonanoda-compiling", dispose() {} };
+    },
     onDidChangeActiveTextEditor: (listener) => listeners.activeEditor.event(listener),
     onDidChangeTextEditorSelection: (listener) => listeners.selection.event(listener),
     onDidChangeVisibleTextEditors: () => makeDisposable(),
@@ -396,6 +404,8 @@ function fakeDocument(fsPath, languageId = "sokonanoda", text = "") {
 // replacement back in one step"), so the test asserts on this stack rather
 // than on a re-implementation of the rewriter.
 function fakeEditor(document, positions, { anchor } = {}) {
+  // 见上：P4 的装饰记录（`[{type, ranges}]`，便于断言"成对"✓）。
+  const decorationCalls = [];
   const points = positions ?? [{ line: 0, character: 0 }];
   const selections = points.map((active) => ({
     active,
@@ -407,6 +417,10 @@ function fakeEditor(document, positions, { anchor } = {}) {
     selections,
     selection: selections[0],
     editCalls: 0,
+    decorationCalls,
+    setDecorations(type, ranges) {
+      decorationCalls.push({ type, ranges });
+    },
     async edit(callback) {
       editor.editCalls += 1;
       const edits = [];
@@ -1446,6 +1460,48 @@ assert.strictEqual(
   40,
   "窗口到点必须刷**最后一次**（不是第一次、也不是每一条都刷）",
 );
+});
+
+test("compile progress marks the active document in the overview ruler", async () => {
+  await activateExtension();
+  const editor = focus(
+    fakeDocument("/repo/playground.sokonanoda", "sokonanoda", "theorem a : True := True.intro\n"),
+  );
+  await settle();
+  const notify = notificationHandlers["$/progress"];
+
+  notify({ value: { kind: "begin", message: "编译 x" } });
+  assert.strictEqual(
+    editor.decorationCalls.length,
+    1,
+    "`begin` 必须给当前文档加一层装饰（P4：状态栏只说在编，不说在哪编 ✗）",
+  );
+  assert.ok(
+    editor.decorationCalls[0].ranges.length >= 1,
+    "装饰必须落在**实际范围**上（空范围 = 概览尺上什么都没画 ✗）",
+  );
+  const options = vscodeStub.__decorationOptions;
+  assert.ok(
+    options && options.overviewRulerColor,
+    "装饰必须带 `overviewRulerColor` —— 否则概览尺上看不见，P4 就白做了 ✗",
+  );
+  assert.strictEqual(
+    options.overviewRulerLane,
+    4,
+    "概览尺要画在 **Right** 道（与 VS Code 自己的诊断同一侧 ✓）",
+  );
+
+  notify({ value: { kind: "end" } });
+  assert.strictEqual(
+    editor.decorationCalls.length,
+    2,
+    "`end` 必须再调一次 `setDecorations`",
+  );
+  assert.strictEqual(
+    editor.decorationCalls[1].ranges.length,
+    0,
+    "`end` 必须把装饰**清空** —— 否则那条高亮会永远留在文件上 ✗",
+  );
 });
 
 // ── runner ───────────────────────────────────────────────────────────────

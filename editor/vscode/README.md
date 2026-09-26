@@ -126,6 +126,10 @@ skills.
   symbol** (so `⁻¹'` and `×ˢ` are framed correctly). `F12` / ctrl+click on a
   notation symbol jumps to the `infix:`/`prefix:`/`postfix:` line that declared
   it — **across `import`**, into the library module.
+- **Compile progress you can see**: the status bar switches to a *compiling…* state,
+  the Infoview shows a three-line progress block, and the overview ruler marks the
+  document being compiled (`sokonanoda.progress.throttleMs` throttles the in-between
+  refreshes; no fake percentage is shown)
 - **Readable declarations**: the Infoview prints types, `:=` values and `⊢`
   goals at body size with generous line height (no double-dimming), and
   `sokonanoda.infoview.fontScale` scales them to taste

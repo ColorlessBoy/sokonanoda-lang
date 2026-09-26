@@ -2,6 +2,15 @@
 
 ### Changed
 
+- **You can see that it is compiling.** The language server reports `$/progress`
+  around every compile; the extension turns it into a status-bar *compiling…*
+  state, a three-line progress block in the Infoview, and a whole-document mark
+  on the overview ruler — so you can tell *that* something is happening and
+  *where*. `begin`/`end` are never throttled (they are the paired state
+  boundaries); `sokonanoda.progress.throttleMs` (default `250`) throttles only
+  the in-between refreshes. No fake percentage is shown: the server does not
+  know one yet, so the block says 进行中…
+
 - **The Infoview is readable now.** Declaration types, `:=` values and `⊢` goals
   were rendered at `0.78em` **and** dimmed twice (a grey foreground multiplied by
   `opacity: 0.85`), so the one thing the panel exists to show was the hardest

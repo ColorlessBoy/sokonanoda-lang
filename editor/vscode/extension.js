@@ -1225,13 +1225,50 @@ function onCompileProgress(value) {
   applyProgress(info);
 }
 
+/// **P4（空间进度，2026-09-26 用户需求）**：状态栏只说"在编"，不说"**在哪编**" ✓。
+/// 编译期间给当前文档加一层**整行装饰** ⇒ 编辑器右侧**概览尺**（overview ruler）
+/// 与行背景同时亮起 ✓。
+///
+/// **刻意不用 `gutterIconPath`**：那要往扩展里打包一张 svg ✗；`overviewRulerColor`
+/// 与 `backgroundColor` 都是纯声明式的，**零资源** ✓。
+/// 范围 = **整个文档** —— 与当前的进度粒度（"这一份在编"）一致 ✓，别假装更精确 ✗。
+let compileDecorationType = null;
+
+function ensureCompileDecoration() {
+  if (compileDecorationType) return compileDecorationType;
+  compileDecorationType = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    // `OverviewRulerLane.Right` —— 与 VS Code 自己的诊断同一侧 ✓。
+    overviewRulerColor: new vscode.ThemeColor("progressBar.background"),
+    overviewRulerLane: vscode.OverviewRulerLane.Right,
+    backgroundColor: new vscode.ThemeColor("editor.wordHighlightBackground"),
+  });
+  return compileDecorationType;
+}
+
+function setCompileDecorations(on) {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || !editor.document) return;
+  // **成对**：`end` 必须把装饰**清空**（`setDecorations(type, [])`）—— 否则那条
+  // 高亮会永远留在文件上 ✗（进度通知最常见的第二类 bug ✓）。
+  const text = editor.document.getText();
+  const ranges = on
+    ? [new vscode.Range(editor.document.positionAt(0), editor.document.positionAt(text.length))]
+    : [];
+  if (typeof editor.setDecorations === "function") {
+    editor.setDecorations(ensureCompileDecoration(), ranges);
+  }
+}
+
 function applyProgress(info) {
   if (info.phase === "begin") {
     statusBarCompiling = true;
     updateStatusBar(goalProvider);
+    setCompileDecorations(true);
   } else if (info.phase === "end") {
     statusBarCompiling = false;
     updateStatusBar(goalProvider);
+    setCompileDecorations(false);
     // 收工时把进度块**清干净**（webview 侧 `end` 会删块 ✓）；同时别让
     // 下一次面板重开回放出一块**已经结束**的进度 ✗（T8 的边界）。
     infoviewProvider?.setProgress({ phase: "end", label: null, percent: null });
