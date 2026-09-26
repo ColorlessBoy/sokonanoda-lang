@@ -326,6 +326,7 @@
     if (!msg || msg.protocol !== PROTOCOL) return;
     switch (msg.type) {
       case "state":
+        applyFontScale(msg.fontScale);
         renderState(msg);
         break;
       case "decls":
@@ -342,6 +343,14 @@
         break;
     }
   });
+
+  /// **Infoview 字号**（2026-09-26）：把主机下发的倍率落到 CSS 变量上。
+  /// 用**行内 `style` 属性**（而不是 `documentElement.style` 那种 API）——
+  /// 这样纯 Node 的 DOM 桩也能断言到它 ✓（`editor/vscode/test-webview.js`）。
+  function applyFontScale(scale) {
+    const value = typeof scale === "number" && isFinite(scale) && scale > 0 ? scale : 1;
+    document.body.setAttribute("style", "--soko-font-scale: " + value);
+  }
 
   vscode.postMessage({ protocol: PROTOCOL, type: "ready" });
 })();

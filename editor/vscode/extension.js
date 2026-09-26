@@ -719,10 +719,22 @@ class InfoviewProvider {
     this._view.webview.postMessage(Object.assign({ protocol: INFOVIEW_PROTOCOL }, payload));
   }
 
+  // **Infoview 字号**（2026-09-26 用户反馈「字太小太暗」）：配置**每条消息都带**
+  // ⇒ 改设置后下一条状态就生效，不用重开面板 ✓。webview 侧把它落到
+  // `--soko-font-scale` 上（`media/infoview.js`）✓。
+  _fontScale() {
+    const value = vscode.workspace
+      .getConfiguration("sokonanoda")
+      .get("infoview.fontScale");
+    return typeof value === "number" && isFinite(value) && value > 0 ? value : 1;
+  }
+
   setState(uri, state) {
     this._lastState = { uri, state };
     if (!this._view || !this._ready) return;
-    this._post(Object.assign({ type: "state", uri }, state));
+    this._post(
+      Object.assign({ type: "state", uri, fontScale: this._fontScale() }, state),
+    );
   }
 
   // ---- 测试可见的只读访问器（计划 T-016）--------------------------------

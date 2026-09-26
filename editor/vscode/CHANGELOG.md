@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+### Changed
+
+- **The Infoview is readable now.** Declaration types, `:=` values and `⊢` goals
+  were rendered at `0.78em` **and** dimmed twice (a grey foreground multiplied by
+  `opacity: 0.85`), so the one thing the panel exists to show was the hardest
+  thing to read. They are now at body size, `line-height: 1.5`, with no extra
+  opacity, and rows have real padding. New setting
+  `sokonanoda.infoview.fontScale` (default `1`, range `0.8`–`2`) scales them
+  relative to the editor font; changing it applies on the next state update —
+  no need to reopen the panel.
+
 ### Fixed
 
 - **`F12` on a prelude name now works.** `Or` / `And` / `Iff` / `False` /

@@ -552,5 +552,66 @@ test("theme: message keys the CSS palette off body[data-theme]", () => {
   );
 });
 
+// ── Infoview 字号（2026-09-26 用户反馈「字太小太暗」）────────────────────────
+//
+// 判据分两半，缺一不可：
+//   ① **CSS 契约**（静态解析 `media/infoview.css`）：声明类型/值/目标的字号必须
+//      在 **1em 级别**（不是修订前的 `0.78em`）、行高 ≥ 1.5、**不许**再叠
+//      `opacity`（前景色已经在压一档，再乘透明度就是**双重压暗** ✗）；
+//      按默认基字号 13px 折算出的**实际像素必须 ≥ 12px** ✓。
+//   ② **倍率管道**：主机发的 `fontScale` 必须落到 `body` 的行内 style 上
+//      ⇒ 改设置后立刻生效，不用重开面板 ✓。
+test("CSS: declaration type/value/goal text is body-sized, bright and airy", () => {
+  const css = fs.readFileSync(path.join(__dirname, "media", "infoview.css"), "utf8");
+  const rule = (selector) => {
+    const m = new RegExp("\\" + selector + "\\s*\\{([^}]*)\\}").exec(css);
+    assert.ok(m, `infoview.css must define ${selector}`);
+    return m[1];
+  };
+  // VS Code 的基字号兜底（`:root` 里的 `--vscode-font-size, 13px`）。
+  const BASE_PX = 13;
+  for (const selector of [".decl-ty", ".decl-val", ".decl-goal"]) {
+    const body = rule(selector);
+    const size = /font-size:\s*([^;]+);/.exec(body);
+    assert.ok(size, `${selector} must set a font-size`);
+    const px = /calc\(1em \* var\(--soko-font-scale/.test(size[1])
+      ? BASE_PX
+      : parseFloat(size[1]) * BASE_PX;
+    assert.ok(
+      px >= 12,
+      `${selector} 的实际字号必须 ≥ 12px（用户反馈「太小」），实际 ${px}px（${size[1].trim()}）`,
+    );
+    const lh = /line-height:\s*([\d.]+)/.exec(body);
+    assert.ok(
+      lh && parseFloat(lh[1]) >= 1.5,
+      `${selector} 的行高必须 ≥ 1.5，实际 ${lh ? lh[1] : "（没写）"}`,
+    );
+    assert.ok(
+      !/opacity:/.test(body),
+      `${selector} **不许**再叠 opacity —— 前景色已经压了一档，再乘透明度就是双重压暗 ✗`,
+    );
+  }
+  assert.ok(
+    /\.decl\s*\{[^}]*padding:\s*4px 8px;/.test(css),
+    "`.decl` 的内边距必须是 4px 8px（行与行不再挤在一起）",
+  );
+});
+
+test("font scale: the host message lands on --soko-font-scale", () => {
+  const { document, send } = loadInfoview();
+  send({ protocol: 1, type: "state", fontScale: 1.25 });
+  assert.strictEqual(
+    document.body.attributes["style"],
+    "--soko-font-scale: 1.25",
+    "`fontScale` 必须落到 body 的行内 style 上（改设置后立刻生效 ✓）",
+  );
+  send({ protocol: 1, type: "state" });
+  assert.strictEqual(
+    document.body.attributes["style"],
+    "--soko-font-scale: 1",
+    "缺省/非法值必须回落到 1 ✓",
+  );
+});
+
 console.log(`\n${passed + failed} tests, ${passed} passed, ${failed} failed\n`);
 process.exit(failed > 0 ? 1 : 0);

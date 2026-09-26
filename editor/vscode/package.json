@@ -240,6 +240,13 @@
     "configuration": {
       "title": "sokonanoda",
       "properties": {
+        "sokonanoda.infoview.fontScale": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.8,
+          "maximum": 2,
+          "markdownDescription": "Infoview 里声明类型/值/目标的字号倍率（1 = 跟随编辑器字号）。2026-09-26 用户反馈「字太小太暗」后新增；同时把字号从 0.78em 提到 1em、去掉叠在前景色上的透明度。"
+        },
         "sokonanoda.serverPath": {
           "type": "string",
           "default": "",
