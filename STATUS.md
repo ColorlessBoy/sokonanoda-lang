@@ -26,6 +26,18 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **✅ round 456：`perf-gate` 已完成** ✓✓（**但 `continue-on-error` 让 success 证明不了修复** ✗）
+  ```
+  整轮 attempt=1 in_progress ✓ · 零失败 ✓ · **15 绿**（14 → 15 ✓）· 10 未完 ✓
+  **`perf-gate`: completed · started=00:29:41** ✓✓
+  ⇒ ⚠ **它有 `continue-on-error: true`** ✓ ⇒ **即使报 +585% 也是 success** ✗
+    ⇒ ⇒ **所以 status 证明不了修复** ✗ ⇒ **仍要读日志** ✓（**待整轮结束** ✗）
+  ⇒ **判据不变** ✓：日志写"（无基线）" ⇒ 勾 T-E1 ✓ · **不推** ✗。
+  ```
+  ⚠ **而这条正是"第一轮只报不拦"的另一面** ✓：**它让发版不被挡住** ✓✓，
+  **但也让"门禁的结论"必须去日志里读** ✗ —— **而 `continue-on-error` 的 job
+  在 `gh run view --json jobs` 里永远是 `success`** ✗。
+
 * **⏳ round 455：不变** ✓（14 绿 · 11 未完 · 零失败 ✓）
   ```
   ⇒ **判据不变** ✓：报"（无基线）" ⇒ 勾 T-E1 ✓ · **不推** ✗。
