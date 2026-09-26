@@ -8497,3 +8497,39 @@ infix:50 \" \u{2208} \" => Set.mem\n\
         "`a ∈ A` 的短写必须照旧可用（`a : α` 与 `Type 0` **不贴合** ⇒ 短写 ✓）：{texts:?}"
     );
 }
+
+/// **B3 路线③ 的加宽判据**（2026-09-26）：签名里只有隐式 binder、但**不止一个**，
+/// 而且实参**比望远镜还多**时（`Set.image f A y` —— `image {α β} (f) (A) : Set β`，
+/// 写出来的是 `f A y` ⇒ `y` 落到**结果** `Set β` 上）也要能解 ✓。
+///
+/// 修前的读法：`layers.len() (4) < k (2) + args (3)` ⇒ 守卫直接 `Ok(None)` ⇒
+/// 交回**裸应用** ⇒ `α := f` ✗ ⇒ 内核报
+/// `rejected: def_eq failed: def_eq mismatch expected: Sort(1) | actual: Pi ( : $4), $4` ✗
+/// （实测：`lib/Image` 与 `unit08/unit12` 都卡在这一条 ✓）。
+///
+/// **反向验证**：把路线③ 的加宽闸门关掉 ⇒ 本判据当场判红 ✓。
+#[test]
+fn a_multi_parameter_constant_takes_surplus_arguments_on_its_result() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Set\n\
+def image {\u{3b1} \u{3b2} : Type} (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) : Set \u{3b2} := fun (y : \u{3b2}) => True\n\
+end Set\n\
+theorem t (\u{3b1} \u{3b2} : Type) (f : \u{3b1} -> \u{3b2}) (A : Set \u{3b1}) (y : \u{3b2}) : Set.image f A y := by\n\
+  sorry\n";
+    // `compile_ok` 已经保证**零诊断** ✓（修前这里会因内核拒绝而 panic ✓）。
+    // 值的 `sorry` 走 `ExerciseOpen`、完整的走 `DeclarationChecked` ⇒ 两种都算"语句被接受" ✓。
+    let out = compile_ok(src);
+    let accepted = out.events.iter().any(|e| match e {
+        CheckEvent::DeclarationChecked { name } => name == "t",
+        CheckEvent::ExerciseOpen { name } => name.as_deref() == Some("t"),
+        _ => false,
+    });
+    assert!(
+        accepted,
+        "`Set.image f A y` 必须读成「`α β` 由 `f`/`A` 解出，`y` 落到**结果** `Set β` 上」；\
+         修前交回裸应用 ⇒ `α := f` ⇒ 内核 `def_eq mismatch expected: Sort(1) | actual: Pi ( : $4), $4` ✗。\
+         事件：{:?}",
+        out.events
+    );
+}

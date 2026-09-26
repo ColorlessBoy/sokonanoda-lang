@@ -4,13 +4,13 @@
 # 实测（2026-09-26，**修掉转换脚本自己的 bug 之后**）：
 #   · 只改**签名**（`def Set` 的 α 必须**保持显式** ✓ —— 它是集合类型构造子）
 #     + 库里**自己的调用点**（`univ α` ⇒ `univ` ✓）⇒ **`lib/Set` 编得干净（0 诊断 ✓）**；
-#   · 但**单元**里还写着 `Set.subset α A B` 这类**多写了类型实参**的调用点
-#     ⇒ 整门课 `286 checked · 86 open · 18 判负` ✗（红线是 `328 · 99 · 0` ✗）；
+#   · 路线③ 加宽之后 `lib/Set` **干净** ✓、单元 3/11 也**干净** ✓，
+#     但 `lib/Image` 还红 ✗ ⇒ 整门课 `238 checked · 81 open · 12 判负` ✗（红线是 `328 · 99 · 0` ✗）；
 #   · 再用**一刀切正则**改 197 处调用点 ⇒ **反而更差**（`279 · 88 · 20` ✗）
 #     ⇒ 调用点必须**逐文件**改 ✗（纪律：同一处连红 3 次 ⇒ 换思路 ✓）。
 #
 # 期望：缺口**仍在**时 exit 0（单元还红）；B2 做完后 exit 1（全绿）。
-# 只判**一个单元**（快 ✓）；`trap` 还原，**不留副作用** ✓。
+# 只判**一个文件**（快 ✓）；`trap` 还原，**不留副作用** ✓。
 set -uo pipefail
 cd "$(dirname "$0")/../../.." || exit 2
 ROOT=$PWD
@@ -34,7 +34,7 @@ PY
 
 BIN=./target/release/sokonanoda
 [ -x "$BIN" ] || { echo "G-43：先跑 cargo build --release -p sokonanoda-cli" >&2; exit 2; }
-UNIT=courses/set-theory/units/unit03-union-inter-powerset.sokonanoda
+UNIT=courses/set-theory/lib/Image.sokonanoda
 out=$("$BIN" grade "$UNIT" 2>&1)
 if printf '%s' "$out" | grep -q '"code"'; then
   echo "G-43 仍在：库隐式化之后单元 $UNIT 还红（B2 未完成）" >&2

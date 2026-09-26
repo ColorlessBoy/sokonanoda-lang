@@ -2388,20 +2388,29 @@ fn try_implicit_application<'a>(
     // `layers[k..]` 对齐的，接长一层就自动对齐到富余实参 ✓）。
     // **解不出 / 结果展不成 Π**（`And.intro a b ha hb` 的 `And a b` 是归纳类型 ✗）
     // ⇒ 静默退回下面的旧写法 ⇒ **既有行为不变** ✓。
+    let explicit_layers = layers.len().saturating_sub(k);
+    // **先算"旧写法是否贴合"**（G-42 的规则 ✓）—— 它决定路线③ 让不让位 ✓：
+    // `And.intro a b ha hb` 逐位贴合 ⇒ 旧写法 ✓（不许被"富余实参落到结果上"抢走 ✗）；
+    // `Set.image f A y` 不贴合（`f` 是函数、不是 `Type` ✗）⇒ 让给路线③ ✓。
+    // ⚠ 必须在块**外**算：下面两个分支都要用它 ✓。
+    let fits_old_style =
+        args.len() <= layers.len() && args_fit_layers_in_order(&layers, &args, ctx, scope);
     {
-        let explicit_layers = layers.len().saturating_sub(k);
-        // **收紧到 `explicit_layers == 0`**（即"签名里**只有**隐式 binder"）——
-        // 这正是 G-41/G-42 那一族（`Set.univ x`、`Set.empty α`、`Set.empty2`…）✓。
+        // **闸门 = 「实参比显式层多」且「旧写法不贴合」** ✓。
         //
-        // 为什么不放宽到"任意富余实参"：第一版就是那样，**当场打红 prelude**
-        // （`l1_prelude_is_available_in_full_mode`：`期望 Pi (_ : Pi (_ : $1), False), False`
-        // 实际 `Sort(0)` ✗）—— 因为"实参个数 > 显式层数"这条判据**本来就有歧义**
-        // （`And.intro a b ha hb` 与"把一个返回值继续应用"同形 ✗），
-        // 而本语言**故意**支持前一种（课程的点名旧写法 ✓）。`explicit_layers == 0`
-        // 那一档没有这个歧义：**没有**显式层可吃 ⇒ 写出来的实参只可能落在结果上 ✓。
-        // 放宽它需要先能**判定旧写法是否良型**（Lean 用 whnf + 元变量做这件事，
-        // 本路线 C 没有元变量 ✗）⇒ 留给缺口台账，别在这里猜 ✓。
-        if explicit_layers == 0 && !args.is_empty() {
+        // 演进过程（都实测过，别退回去 ✗）：
+        // * 第一版放宽到"任意富余实参"⇒ **当场打红 prelude**
+        //   （`l1_prelude_is_available_in_full_mode`：`期望 Pi (_ : Pi (_ : $1), False), False`
+        //   实际 `Sort(0)` ✗）—— 因为"实参个数 > 显式层数"**分不清**
+        //   「隐式位也逐位写了」与「把返回值继续应用」✗；
+        // * 于是收紧到 `explicit_layers == 0`（G-41 那一族 ✓）—— 但那只覆盖**全隐式**，
+        //   `Set.image f A y`（`{α β}` 两个隐式 + 两个显式，实参 3 个 ✗）漏在外面 ✗
+        //   ⇒ `lib/Image` / `unit08` / `unit12` 都卡在
+        //   `def_eq mismatch expected: Sort(1) | actual: Pi ( : $4), $4` ✗；
+        // * 现在用 **G-42 的"贴合"判据**把那个歧义**真的判掉**了 ✓（`args_fit_layers_in_order`
+        //   —— 逐位比对应层的**类型头** ✓）⇒ 可以安全地放宽到"实参比显式层多" ✓：
+        //   贴合 ⇒ 旧写法 ✓；不贴合 ⇒ 富余实参落到**结果**上 ✓。
+        if !fits_old_style && !args.is_empty() && args.len() > explicit_layers {
             let surplus = args.len() - explicit_layers;
             let mut tail: Vec<crate::compile::implicit::Layer> = Vec::with_capacity(surplus);
             let mut cur = result.clone();
@@ -2514,8 +2523,6 @@ fn try_implicit_application<'a>(
     // 而正确读法是**旧写法**（`A := Nat` ⇒ `Nat -> Option Nat` ✓）。光看**个数**
     // 分不开（两种读法都是 1 个实参 ✗）⇒ 多一条**可判定**的入口：写出来的实参
     // **逐位贴合**对应层的域 ⇒ 这就是"把隐式位也逐位写出来" ✓。
-    let fits_old_style =
-        args.len() <= layers.len() && args_fit_layers_in_order(&layers, &args, ctx, scope);
     if args.len() > declared.explicit_arity() || fits_old_style {
         if args.len() > layers.len() {
             return Ok(None);
