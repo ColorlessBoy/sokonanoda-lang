@@ -2104,34 +2104,32 @@ fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr)
 ///
 /// 拿不到书写类型（隐式插入的 binder、复合项）⇒ 原路 `infer_type_text`，
 /// 逐字节不变。
-/// 把类型文本里的**宇宙写法**归一（只用于比较 ✓）：`Type` 与 `Sort 1` 在这个语言里
-/// 是**同一个东西**（Lean：`Type u = Sort (u+1)` ✓；parser 的注释也这么写 ✓），
-/// 但它们在 AST 里是**两个变体**（`SortKind::Type` / `SortKind::Sort(1)`）、pp 也
-/// 不一样 ✗ ⇒ 不归一就会**假阴**（实测：签名侧渲染 `Type`、源码侧渲染 `Sort 1` ✓）。
-/// 只按**词边界**替换，绝不碰标识符（`TypeOf` 这类名字原样留下 ✓）。
-fn canonical_sorts(text: &str) -> String {
-    let is_word = |c: char| c.is_alphanumeric() || c == '_' || c == '\'';
-    let chars: Vec<char> = text.chars().collect();
-    let mut out = String::with_capacity(text.len());
-    let mut i = 0;
-    while i < chars.len() {
-        if chars[i].is_ascii_alphabetic() && (i == 0 || !is_word(chars[i - 1])) {
-            let start = i;
-            while i < chars.len() && is_word(chars[i]) {
-                i += 1;
-            }
-            let word: String = chars[start..i].iter().collect();
-            out.push_str(match word.as_str() {
-                "Type" => "Sort 1",
-                "Prop" => "Sort 0",
-                other => other,
-            });
-            continue;
-        }
-        out.push(chars[i]);
-        i += 1;
+/// 类型表达式的**头**（G-42 的贴合比较用 ✓）。
+///
+/// `Sort` 家族按**层级**归一 —— `Prop` = `Sort 0`、`Type` = `Sort 1` ✓
+/// （Lean：`Type u = Sort (u+1)`；parser 的注释也这么写 ✓）。**这正是"`Type` 与
+/// `Sort 1` 同义而异形"那个坑的解** ✓：它们在 AST 里是**两个变体**
+/// （`SortKind::Type` / `SortKind::Sort(1)`）✗，按层级归一就一致了 ✓。
+/// 应用取**函数位置**的头（`Set α` ⇒ `Set` ✓）。
+///
+/// **返回 `None` = "认不出" ⇒ 调用方按"不贴合"处理** ✓（宁可不猜 ✗）。
+/// ⚠ 这里**刻意不用 `render_expr`** ✗ —— 那是**显示**路径（唯一接口是
+/// `DisplayNotations` ✓，`scripts/audit-notation-paths.py` 会抓 ✓），而本函数只是
+/// "试哪种读法"的启发式 ✓；也**不能**直接比 `Expr` ✗ —— `PartialEq` 含 `span` ✓。
+fn type_head(e: &Expr) -> Option<String> {
+    match e {
+        Expr::Sort { sort, .. } => Some(match sort {
+            SortKind::Prop => "0".to_string(),
+            SortKind::Type => "1".to_string(),
+            SortKind::Sort(n) => n.to_string(),
+            SortKind::Level(_) => return None,
+        }),
+        Expr::Ident { name, .. } => Some(name.clone()),
+        Expr::App { fun, .. } => type_head(fun),
+        Expr::Arrow { .. } => Some("->".to_string()),
+        Expr::Forall { .. } => Some("forall".to_string()),
+        _ => None,
     }
-    out
 }
 
 /// **写出来的实参是否逐位贴合对应层的域**（G-42 第二半，2026-09-26）。
@@ -2148,6 +2146,7 @@ fn canonical_sorts(text: &str) -> String {
 ///    （两边都是 `Sort { sort: Type, span: … }`、只差 offset 就判不等 ✓）；
 /// 2. **也不能直接比 pp 文本** —— `Type` 与 `Sort 1` 同义而异形 ✗
 ///    ⇒ 必须先过 [`canonical_sorts`] ✓。
+///
 /// 这里要的只是"两种写法是不是同一个类型"的**启发式**（决定试哪种读法 ✓，
 /// **不是判定** ✗ —— 判定永远走 kernel ✓），所以比归一的 pp 文本是合适的 ✓。
 fn args_fit_layers_in_order(
@@ -2177,9 +2176,15 @@ fn args_fit_layers_in_order(
             return false;
         };
         let domain = crate::spine::substitute(&layers[i].domain, &sigma);
-        let d = canonical_sorts(&crate::compile::elab::render_expr(&unfold(&domain)));
-        let t = canonical_sorts(&crate::compile::elab::render_expr(&unfold(&actual)));
-        if d != t {
+        // ⚠ **既不比 `Expr` 结构、也不比 pp 文本**：
+        // * 比结构 ✗ —— `Expr` 的 `PartialEq` **含 `span`**（只差 offset 就判不等 ✓）；
+        // * 比 pp ✗ —— 那是**显示**路径（唯一接口是 `DisplayNotations` ✓，记法守卫会抓 ✓），
+        //   而且 `Type` 与 `Sort 1` 同义而异形 ✓。
+        // ⇒ 比**类型表达式的头**（`Sort` 家族按层级归一 ✓、应用取函数位置的头 ✓）。
+        let Some(d) = type_head(&unfold(&domain)) else {
+            return false;
+        };
+        if type_head(&unfold(&actual)).as_deref() != Some(d.as_str()) {
             return false;
         }
         if !layers[i].name.is_empty() {
