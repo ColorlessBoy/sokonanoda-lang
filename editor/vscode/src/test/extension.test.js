@@ -373,6 +373,7 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
       'infix:50 " ⊆ " => Set.subset',
       'def Weird (A B : Set Nat) (P : Prop) : Set.subset A B := True',
       'def usesWeird (A B : Set Nat) : Prop := Weird A B True',
+    ].join('\n');
     const uri = await writeDoc("notation-hover.sokonanoda", SRC);
     await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
