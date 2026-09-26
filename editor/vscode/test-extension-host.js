@@ -252,6 +252,8 @@ const vscodeStub = {
 // ── fake language client ─────────────────────────────────────────────────
 const requests = [];
 const stateEmitters = [];
+/// 扩展注册的通知处理器（按方法名）——测试用 `notify(method, params)` 驱动 ✓。
+const notificationHandlers = {};
 class LanguageClient {
   constructor() {
     this.outputChannel = { appendLine() {}, append() {}, show() {}, dispose() {} };
@@ -259,6 +261,13 @@ class LanguageClient {
   }
   onDidChangeState(listener) {
     this._stateListener = listener;
+    return makeDisposable();
+  }
+  // **P1→P2/P3 的接缝**（2026-09-26）：扩展现在**裸读** `$/progress` 自己渲染
+  // ⇒ 假客户端必须也提供 `onNotification`，否则 `activate()` 直接 TypeError、
+  // 34 条宿主测试全红 ✗（S2 调研的 T4）。
+  onNotification(type, handler) {
+    notificationHandlers[type] = handler;
     return makeDisposable();
   }
   async start() {}
@@ -1372,6 +1381,73 @@ test("the course tree keeps unreadable units visible when grouping", async () =>
   }
 });
 
+test("compile progress drives the status bar from idle to compiling and back", async () => {
+await activateExtension();
+focus(fakeDocument("/repo/playground.sokonanoda"));
+await settle();
+const notify = notificationHandlers["$/progress"];
+assert.strictEqual(
+  typeof notify,
+  "function",
+  "扩展必须**裸读** `$/progress`（P1→P2 的接缝；不是 `client.onProgress`，见 T5）",
+);
+
+notify({
+  token: "sokonanoda/compile/repo/playground.sokonanoda",
+  value: { kind: "begin", title: "sokonanoda", message: "编译 /repo/playground.sokonanoda" },
+});
+assert.ok(
+  String(statusBarStub().text).includes("编译中"),
+  `\`begin\` 必须让状态栏说"编译中"（P2），实际 = ${JSON.stringify(statusBarStub().text)}`,
+);
+
+notify({
+  token: "sokonanoda/compile/repo/playground.sokonanoda",
+  value: { kind: "end" },
+});
+assert.ok(
+  !String(statusBarStub().text).includes("编译中"),
+  `\`end\` 必须退出"编译中"态（否则进度条永远转 ✗），实际 = ${JSON.stringify(statusBarStub().text)}`,
+);
+});
+
+test("a burst of progress reports collapses into one refresh", async () => {
+await activateExtension();
+focus(fakeDocument("/repo/playground.sokonanoda"));
+await settle();
+const notify = notificationHandlers["$/progress"];
+const progressOf = () => vscodeStub.__infoview._lastProgress;
+
+notify({ value: { kind: "begin", message: "编译 x" } });
+assert.strictEqual(
+  progressOf().phase,
+  "begin",
+  "`begin` **不许**被节流（它是成对的状态边界，漏一个界面就卡住 ✗）",
+);
+
+// 一串 `report`（长文件编译时会很密）⇒ 窗口内只该挂**一个**定时器 ✓。
+const before = timers.length;
+for (let i = 0; i < 5; i++) {
+  notify({ value: { kind: "report", message: "编译 x", percentage: i * 10 } });
+}
+assert.strictEqual(
+  timers.length - before,
+  1,
+  `5 条 \`report\` 只许挂 1 个定时器（P6 节流），实际多了 ${timers.length - before} 个`,
+);
+assert.strictEqual(
+  progressOf().phase,
+  "begin",
+  "节流窗口内**先不刷**（还没到点）",
+);
+fireTimers();
+assert.strictEqual(
+  progressOf().percent,
+  40,
+  "窗口到点必须刷**最后一次**（不是第一次、也不是每一条都刷）",
+);
+});
+
 // ── runner ───────────────────────────────────────────────────────────────
 (async () => {
   let failed = 0;
@@ -1384,7 +1460,8 @@ test("the course tree keeps unreadable units visible when grouping", async () =>
       console.error(`FAIL ${name}\n     ${error.message}`);
     }
   }
-  console.log(`\n${tests.length - failed}/${tests.length} passed`);
+
+console.log(`\n${tests.length - failed}/${tests.length} passed`);
   global.setTimeout = realSetTimeout;
   global.clearTimeout = realClearTimeout;
   process.exit(failed === 0 ? 0 : 1);

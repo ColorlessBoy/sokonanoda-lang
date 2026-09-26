@@ -247,6 +247,12 @@
           "maximum": 2,
           "markdownDescription": "Infoview 里声明类型/值/目标的字号倍率（1 = 跟随编辑器字号）。2026-09-26 用户反馈「字太小太暗」后新增；同时把字号从 0.78em 提到 1em、去掉叠在前景色上的透明度。"
         },
+        "sokonanoda.progress.throttleMs": {
+          "type": "number",
+          "default": 250,
+          "minimum": 0,
+          "markdownDescription": "编译进度的刷新节流（毫秒）。`report` 可能在长文件编译时很密 —— 窗口内只刷最后一次；`begin`/`end` **不受**它影响（成对的状态边界，漏一个界面就卡住）。0 = 不节流。"
+        },
         "sokonanoda.serverPath": {
           "type": "string",
           "default": "",

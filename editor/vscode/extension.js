@@ -771,6 +771,15 @@ class InfoviewProvider {
     this._post(Object.assign({ type: "status" }, status));
   }
 
+  // **编译进度**（P3 主机侧，2026-09-26）：与 `setStatus` 同款 —— **先存再发**，
+  // 面板重开（`retainContextWhenHidden` 默认 false ⇒ webview 会被重建）时由
+  // `_pushAll` 回放 ✓，否则进度块在重开后**凭空消失** ✗（S2 调研的 T8）。
+  setProgress(progress) {
+    this._lastProgress = progress;
+    if (!this._view || !this._ready) return;
+    this._post(Object.assign({ type: "progress" }, progress));
+  }
+
   postTheme() {
     this._post({ type: "theme", kind: themeKindName() });
   }
@@ -800,7 +809,13 @@ class InfoviewProvider {
     this._pushDecls();
     this._pushState();
     this.postStatus();
+    this.postProgress();
     this.postServer();
+  }
+
+  postProgress() {
+    if (!this._lastProgress) return;
+    this._post(Object.assign({ type: "progress" }, this._lastProgress));
   }
 
   _pushState() {
@@ -1109,6 +1124,9 @@ class CourseTreeDataProvider {
 let statusBar;
 let projectProvider;
 let goalProvider;
+/// Infoview provider（`activate()` 里建，模块级留一个引用）：编译进度要推给它 ✓
+/// （`goalProvider` 同款的理由：进度是**模块级**回调在推，不是 `activate` 的局部）✓。
+let infoviewProvider;
 // 状态栏 tooltip 里的项目那一行（由 `soko/project` 的答案派生）。
 let projectStatusLine;
 
@@ -1157,9 +1175,90 @@ async function loadProject() {
   updateStatusBar(goalProvider);
 }
 
+/// `$/progress` 的载荷 → webview 的消息（`{phase, label, percent}`）。
+///
+/// **必须显式翻译，不许把 `kind` 原样传**：webview 侧 `renderProgress` 认不出
+/// `phase` 就**静默删块**（"有就渲染"的反模式 ⇒ 键名写错=看不见 ✗，S2 调研的 T6）
+/// ⇒ 键名由这一处**唯一**决定，并由宿主层判据钉住 ✓。
+function translateProgress(value) {
+  const kind = value && value.kind;
+  const percent =
+    value && typeof value.percentage === "number" ? value.percentage : null;
+  if (kind === "begin") {
+    return { phase: "begin", label: value.message || value.title || "编译中…", percent };
+  }
+  if (kind === "report") {
+    return { phase: "report", label: value.message || "编译中…", percent };
+  }
+  if (kind === "end") {
+    return { phase: "end", label: value.message || null, percent: null };
+  }
+  return null;
+}
+
+/// **P6 节流**：`report` 可能很密（长文件编译）⇒ 窗口内只刷**最后一次** ✓。
+/// `begin`/`end` **绝不节流**：它们是成对的状态边界，漏一个界面就卡住 ✗。
+function progressThrottleMs() {
+  const value = vscode.workspace
+    .getConfiguration("sokonanoda")
+    .get("progress.throttleMs");
+  return typeof value === "number" && isFinite(value) && value >= 0 ? value : 250;
+}
+
+let progressTimer = null;
+let pendingProgress = null;
+
+function onCompileProgress(value) {
+  const info = translateProgress(value);
+  if (!info) return;
+  if (info.phase === "report") {
+    pendingProgress = info;
+    if (progressTimer) return;
+    progressTimer = setTimeout(() => {
+      progressTimer = null;
+      const latest = pendingProgress;
+      pendingProgress = null;
+      if (latest) applyProgress(latest);
+    }, progressThrottleMs());
+    return;
+  }
+  applyProgress(info);
+}
+
+function applyProgress(info) {
+  if (info.phase === "begin") {
+    statusBarCompiling = true;
+    updateStatusBar(goalProvider);
+  } else if (info.phase === "end") {
+    statusBarCompiling = false;
+    updateStatusBar(goalProvider);
+    // 收工时把进度块**清干净**（webview 侧 `end` 会删块 ✓）；同时别让
+    // 下一次面板重开回放出一块**已经结束**的进度 ✗（T8 的边界）。
+    infoviewProvider?.setProgress({ phase: "end", label: null, percent: null });
+    return;
+  }
+  infoviewProvider?.setProgress(info);
+}
+
+/// **编译中**（P2，2026-09-26 用户需求）：慢文件编译时状态栏先动起来 ✓。
+/// **必须排在"没文档就 hide"之前**：编译可能在文档刚关掉时还在跑，这时
+/// 状态栏该说"在编"，不是消失 ✓。`end` 一到就退回原来的两态 ✓。
+let statusBarCompiling = false;
+
 function updateStatusBar(provider) {
   if (!statusBar) return;
+  if (statusBarCompiling) {
+    statusBar.text = "$(sync~spin) Sokonanoda: 编译中…";
+    statusBar.tooltip = new vscode.MarkdownString(
+      "正在编译当前文件所在的 import 闭包（长文件第一次编会比较久）。",
+    );
+    statusBar.show();
+    return;
+  }
   if (!provider || provider.uri === undefined) {
+    // 顺手清文本：隐藏项留着上一次的文本，会让"状态栏现在说什么"变成假象 ✗
+    // （测试与人都可能读到它）✓。
+    statusBar.text = "";
     statusBar.hide();
     return;
   }
@@ -1894,7 +1993,7 @@ async function activate(context) {
   // and its soko/goals declaration list out to the webview. Hidden context is
   // released (`retainContextWhenHidden: false`); the provider caches the last
   // state/decls/status and replays them on the next `ready` (docs/design §5).
-  const infoviewProvider = new InfoviewProvider(context.extensionUri, provider);
+  infoviewProvider = new InfoviewProvider(context.extensionUri, provider);
   provider.onDecls = (decls) => infoviewProvider.setDecls(decls);
   provider.onState = (uriString, state) => infoviewProvider.setState(uriString, state);
   provider.onStatus = (status) => infoviewProvider.setStatus(status);
@@ -2036,6 +2135,20 @@ async function activate(context) {
       client.outputChannel.appendLine(`[client] ${name}`);
       console.log(`[sokonanoda] client state: ${name}`);
       e2eLog(`client state: ${name}`);
+    });
+    // **编译进度**（P1→P2/P3 的接缝，2026-09-26）：**裸读** `$/progress` 自己
+    // 翻译并渲染（状态栏 + Infoview）✓。
+    //
+    // 为什么不用 `client.onProgress(type, token, handler)`：它要求**事先知道令牌**，
+    // 而令牌是按 uri 定的（`sokonanoda/compile<path>`）⇒ ① 切文档要重注册
+    // ② `compile_one` 的**下游扇出**编的不是当前文档 ⇒ 那一路**必然被丢** ✗。
+    // 裸读一次拿到所有令牌，"在编什么"才完整 ✓（S2 调研的 T5）。
+    //
+    // ⚠ **与它绑定的一条**：服务端**刻意不发** `window/workDoneProgress/create`
+    // —— jsonrpc 的通知处理表按方法名**唯一**，裸读会覆盖内建分发器；两者同时上
+    // 会让 `ProgressPart` 造出来却收不到 `begin` ⇒ **每次编译泄漏一个** ✗（T3）。
+    client.onNotification("$/progress", (params) => {
+      onCompileProgress(params && params.value);
     });
     context.subscriptions.push(client);
     await client.start();
