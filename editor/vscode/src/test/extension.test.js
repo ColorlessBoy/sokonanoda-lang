@@ -366,8 +366,10 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const SRC = [
       'def Set.subset (A B : Set Nat) : Prop := True',
       'infix:50 " ⊆ " => Set.subset',
-      'def Weird (P : Prop) : Set.subset Nat A B := True',
-      'def usesWeird : Prop := Weird True',
+      // ⚠ **`A`/`B` 必须是参数** ✗ —— 否则 `Set.subset Nat A B` 里的名字不在作用域，
+      // 声明**编译不过** ⇒ hover 只会说"未通过，见诊断" ✗（round 468 实测踩到 ✓）。
+      'def Weird (A B : Set Nat) (P : Prop) : Set.subset Nat A B := True',
+      'def usesWeird (A B : Set Nat) : Prop := Weird A B True',
       '',
     ].join('\n');
     const uri = await writeDoc("notation-hover.sokonanoda", SRC);
