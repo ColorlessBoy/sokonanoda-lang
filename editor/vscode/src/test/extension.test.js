@@ -364,14 +364,15 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     // ⇒ **照 `docs/design/e2-plan.md` face #2 的配方** ✓：让一个 `def` 的**类型**
     // 就是 `Set.subset Nat A B` ✓ ⇒ hover 它的用处 ⇒ 折后应是 `A ⊆ B` ✓。
     const SRC = [
+      // ⚠ **`Set` 本身要声明** ✗（这个文件里其它夹具都没用到它 ✓）；
+      // ⚠ **`Set.subset` 的元数要对** ✗ —— 我第一版写 `Set.subset Nat A B` ✗
+      // （3 个参数 ✗），而这里它是 **2 个** ✓ ⇒ 声明 elaborate 不了 ⇒
+      // hover 只说"未通过，见诊断" ✗（round 471 实测踩到 ✓）。
+      'def Set (α : Type) : Type := α → Prop',
       'def Set.subset (A B : Set Nat) : Prop := True',
       'infix:50 " ⊆ " => Set.subset',
-      // ⚠ **`A`/`B` 必须是参数** ✗ —— 否则 `Set.subset Nat A B` 里的名字不在作用域，
-      // 声明**编译不过** ⇒ hover 只会说"未通过，见诊断" ✗（round 468 实测踩到 ✓）。
-      'def Weird (A B : Set Nat) (P : Prop) : Set.subset Nat A B := True',
+      'def Weird (A B : Set Nat) (P : Prop) : Set.subset A B := True',
       'def usesWeird (A B : Set Nat) : Prop := Weird A B True',
-      '',
-    ].join('\n');
     const uri = await writeDoc("notation-hover.sokonanoda", SRC);
     await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
