@@ -26,6 +26,21 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯 round 426：注解步骤依赖 **libtest 的格式** ✗✓（**所以 nextest 要动它** ✗）**
+  ```
+  ci.yml:179-186 `Workspace tests` ✓：
+    case "${{ matrix.kind }}" in lib) flag=--lib ;; tests) flag=--tests ;; doc) flag=--doc ;; esac
+    **cargo test -p ${{ matrix.pkg }} $flag --locked --no-fail-fast 2>&1 | tee /tmp/cargo-test.log** ✓
+  ci.yml:202-207 `Surface failing tests as annotations` ✓（`if: failure()` ✓）：
+    **grep -E "^test .* FAILED$" /tmp/cargo-test.log** ✓ ← **libtest 格式** ✗
+    **grep -E "^error(\[E[0-9]+\])?:" /tmp/cargo-test.log** ✓
+  ⇒ ⇒ **nextest 的输出格式不同** ✗ ⇒ **"只在 `lib` 腿用它"也会打断注解** ✗
+    ⇒ **除非同时改注解** ✓（**两种格式都认** ✓）⇒ **那是一个真正的改动** ✓（**含风险** ✗）
+  ```
+  **⇒ 结论** ✓：**`nextest` 这条路要动注解步骤** ✗ ⇒ **风险 = "注解静默失效"** ✗ ·
+  **收益 ~4 分钟** ✓ ⇒ ⇒ **要么做对（兼容两格式 + 验证 ✓）要么不做** ✓。
+  **⇒ 而下一步应该是"先量收益"** ✓：**本地装 nextest 跑 `lsp` 的 lib 测试** ✓ ⇒ **拿真数字** ✓。
+
 * **🎯🎯🎯 round 425：仓库**早就否决过 `nextest`** ✗✓（**两条理由** ✓）**
   ```
   .github/workflows/ci.yml:148-153 ✓（**打印出来的** ✓）：
