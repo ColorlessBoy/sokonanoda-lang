@@ -19,6 +19,7 @@
 use crate::ast::{BinderKind, Expr};
 
 /// 签名的一层：名字 / 域 / 风格。
+#[derive(Clone)]
 pub(crate) struct Layer {
     pub name: String,
     pub domain: Expr,

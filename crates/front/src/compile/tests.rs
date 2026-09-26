@@ -8387,3 +8387,38 @@ theorem bare_constant (\u{3b1} : Type) (a : \u{3b1}) : (a \u{2208} \u{2205}) = F
         out.events
     );
 }
+
+/// **B3 路线③ 判据**（G-41 / G-42 是同一个洞，2026-09-26 用户专项）。
+///
+/// **签名里只有隐式 binder 的常量被应用时**（`Set.univ x`）：富余实参落到**结果
+/// 类型**上，那些参数要从**富余实参自己的类型**解出来 ✓。
+///
+/// 以前的读法：`args.len() (1) > explicit_arity (0)` ⇒ 落进"旧写法逐位对齐"
+/// 分支 ⇒ `x` 被装到 `layers[0]`（域 `Type`）上 ⇒ `Set.univ x : Set x` ✗
+/// （S1 只读侦察的 REPL 直证：`#check fun (α : Type) (x : α) => Set.univ x`
+/// ⇒ `forall (α : Type 0) (x : α), Set x`；对照 `Set.univ α x` ⇒ `α -> Prop` ✓）。
+///
+/// 这一条同时是 **G-41**（`x ∈ Set.univ` 证不出来）与 **G-42**（`namespace` 里裸名
+/// 调用不触发钩子）的**共同前置**：钩子一旦真的被触发（G-42 的修法），这个歧义就
+/// 立刻暴露 ⇒ 两条必须一起绿 ✓。
+///
+/// **反向验证**：把路线③ 关掉 ⇒ 本判据当场判红 ✓。
+#[test]
+fn a_constant_with_only_implicit_binders_applies_to_its_result() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+def Set.univ {\u{3b1} : Type} : Set \u{3b1} := fun (x : \u{3b1}) => True\n\
+theorem univ_applies (\u{3b1} : Type) (x : \u{3b1}) : (x \u{2208} Set.univ) = Set.univ x := by rfl\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events.iter().any(
+            |e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "univ_applies")
+        ),
+        "`Set.univ x` 必须读成「把**结果** `Set α` 应用到 `x`」（α 从 `x` 的类型解出）\
+         ⇒ `(x ∈ Set.univ) = Set.univ x` 由 `rfl` 判绿；\
+         修前是把 `x` 装到 α 位上（`Set.univ x : Set x`）⇒ 判红。事件：{:?}",
+        out.events
+    );
+}

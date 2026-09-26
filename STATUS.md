@@ -6,22 +6,27 @@
   `{a}` 可跳转（根因：开放练习的签名**一条 hover 行都没有**）· prelude 可跳转（F12 落到前奏源文件
   的真 span）· `flawed_equalities_refuted` 去点名（标记 5 → 3）· 洞的期望类型**两半分开钉**
   （显示副本必折 / 真相字段一个字节都不许折）。A0 守卫基线 **68 → 59**（结论：**59 是地板**）。
-- **真宿主 e2e**：A1/A2/A3/A4 四条 ✓（全量 **32/32**），反向验证撤修复 ⇒ **1 passed / 3 failed** ✓。
+- **真宿主 e2e**：A1/A2/A3/A4 四条 ✓（全量 **32/32**）· 反向验证撤修复 ⇒ **1 passed / 3 failed** ✓。
 - **B3 第一刀** ✓（`04d863a`）：**裸常量**的隐式插入（G-40 收口）—— `∅` = 裸 `Set.empty` 以前停在
   那个 Pi 上、`rfl` 判不出来 ✗ ⇒ 走 `solve_prefix` 路线 ② 从期望类型补 ✓；判据 + 反向验证 ✓。
   新登记 **G-41**（记法路径 + 隐式 binder ⇒ 真库 `328/0` 掉到 `226 checked · 14 判负` ✗）与
   **G-42**（查签名表用裸名 ⇒ `namespace` 里裸名引用不触发；显然修法会回归 `#check some Nat` ✗）。
   **⇒ B2 仍被 G-41 挡住** ✗。
-- **判据**：课程门禁 **36/328/99/0**（逐项不变 ✓）· front **743** / LSP **163** ✓ ·
-  `notation-lint` 84 文件 ✓ · `docs-lint` ✓ · `gap.py check` ✓ · `ci-local --fast` 全绿 ✓。
-- **Infoview 字号** ✓（`b210974`：`0.78em` ⇒ 1em、去掉**双重压暗**的 opacity、行高 1.5、
-  `.decl` 内边距 4px 8px、新设置 `sokonanoda.infoview.fontScale`；CSS 契约判据 + 反向验证 ✓）。
-- **编译进度 P1/P2/P3主机侧/P6** ✓（`deeaf8b` + `a26bd33` + `b182972`）：LSP **成对**报
-  `$/progress`（令牌按 uri，判据 + 反向验证 ✓）· 状态栏"编译中"态（P2）· Infoview **3 行**
-  进度区（P3，判据钉"正好 3 行 / 就地更新 / end 清干净"✓）· 节流
-  `sokonanoda.progress.throttleMs`（只节流 `report`，`begin`/`end` 是成对边界不节流 ✓）。
-- **未做**：**P4（gutter/滚动条空间进度）**、P5 的 e2e 段（e2e **够不到** webview DOM 与状态栏
-  ⇒ 只能钉"载荷到达"，S2 调研已把边界写清 ✓）→ B2（被 G-41/G-42 挡，见下）。
+- **判据**：课程门禁 **36/328/99/0**（逐项不变 ✓）· front **744** / LSP **164** ✓ ·
+  `notation-lint` 84 文件 ✓ · `docs-lint` ✓ · `gap.py check` ✓。
+- **Infoview 字号** ✓（`b210974`）：`0.78em` ⇒ 1em、去掉**双重压暗**的 opacity、行高 1.5、
+  新设置 `sokonanoda.infoview.fontScale`；CSS 契约判据 + 反向验证 ✓。
+- **编译进度 P1/P2/P3主机侧/P6** ✓（`deeaf8b`+`a26bd33`+`b182972`）：LSP **成对**报 `$/progress`
+  （令牌按 uri ✓）· 状态栏"编译中"态（P2）· Infoview **3 行**进度区（P3，判据钉"正好 3 行 /
+  就地更新 / end 清干净"✓）· 节流 `sokonanoda.progress.throttleMs`（只节流 `report` ✓）。
+- **B3 第二刀（路线③）** ✓：**只有隐式 binder 的常量被应用**时（`Set.univ x`）富余实参落到
+  **结果类型**上、参数从富余实参的类型解出 ✓ —— **G-41 收口**（判据先判红 + 反向验证 ✓；
+  内核零改动 ✓；课程门禁 **36/328/99/0** 逐项不变 ✓；front **744** ✓）。
+  ⚠ **第一版放宽到"任意富余实参"当场打红 prelude** ⇒ 收紧到 `explicit_layers == 0`（那一档
+  **没有**旧写法歧义 ✓）；放宽要先能判定"旧写法是否良型"（Lean 用元变量，路线 C 没有 ✗）。
+- **未做**：**P4（gutter/滚动条空间进度）**、**G-42**（路线③ 之后再试 `resolve_known` 仍撞红
+  `#check some Nat` ✗ —— 新根因：**短写路线太宽**，层域是裸变量时"解"永远成功 ✓）、
+  S1 地图的模式 B/D → **B2**（仍被 G-42 挡）。
 
 ## 未决项
 

@@ -2234,6 +2234,20 @@ fn try_implicit_application<'a>(
     // 一次"（`Set.univ x`、`some Nat`）—— 一旦钩子真的被触发，这个歧义就暴露 ✓。
     // ⇒ 修 G-42 必须**同时**给求解器加"富余实参应用到结果类型"那一档（路线③），
     // 判据是**两条一起绿**：本文件的 Option 测试 + G-42 的复现件 ✓。
+    // ⚠ **已知缺口 G-42**（2026-09-26 实测）：这里**应该**用**解析后的规范名**
+    // 查签名表 —— `namespace Set` 里写 `subset B A` 时 AST 上是**裸名** `subset`，
+    // 而签名表按**规范名** `Set.subset` 建 ⇒ 拿裸名查**永远查不到** ⇒ 隐式插入
+    // 整条不触发 ✗（5 行最小复现见 `docs/gaps/repro/G42-*.sh`；**去掉 namespace
+    // 就好**，这正是它躲过所有既有测试的原因 ✓）。
+    //
+    // **为什么还没改**：显然的改法（先 `resolve_known`）**修好 G-42 却回归**
+    // `#check some Nat`（`Nat -> Option Nat` ⇒ `Option Type 0` ✗，撞红既有
+    // `parameterized_option_checks_and_derives_recursor`）。两者是**同一个洞**：
+    // 下面 `:2260` 那条"实参个数 > 显式层数 ⇒ 当成旧写法（隐式位也逐位写了）"的
+    // 判据，**分不清**"隐式位也写了"（`Eq.symm α a b h`）与"把结果函数又应用了
+    // 一次"（`Set.univ x`、`some Nat`）—— 一旦钩子真的被触发，这个歧义就暴露 ✓。
+    // ⇒ 修 G-42 必须**同时**给求解器加"富余实参应用到结果类型"那一档（路线③），
+    // 判据是**两条一起绿**：本文件的 Option 测试 + G-42 的复现件 ✓。
     let head_name = raw_head;
 
     let declared = match known.get(head_name) {
@@ -2258,6 +2272,139 @@ fn try_implicit_application<'a>(
     let k = declared.implicit_prefix();
     if k == 0 || k > layers.len() {
         return Ok(None);
+    }
+    // **路线③（B3，2026-09-26；缺口 G-41 / G-42 的共同前置）**：
+    // 签名里**只有隐式 binder** 的常量被应用时（`Set.univ x`），富余实参落到
+    // **结果类型**上 —— 正确读法是 `@Set.univ ?α x`，而 `?α` 要从**富余实参自己
+    // 的类型**解出来（`x : ?α`）✓。
+    //
+    // 为什么必须排在"旧写法"**之前**：那条分支的判据是"实参个数 > 显式层数"，
+    // 它**分不清**「隐式位也逐位写了」（`And.intro a b ha hb`）与「把**结果函数**
+    // 又应用了一次」（`Set.univ x`）✗。全隐式参数的常量最惨：`explicit_arity == 0`
+    // ⇒ **任何**应用都落进旧写法 ⇒ `x` 被装到 `layers[0]`（域 `Type`）上 ⇒
+    // `Set.univ x : Set x` ✗（S1 只读侦察的 REPL 直证：
+    // `#check fun (α : Type) (x : α) => Set.univ x` ⇒ `forall (α : Type 0) (x : α), Set x`）。
+    //
+    // 实现上**不改求解器**：把结果类型沿 Π 展开 `surplus` 层，**接在望远镜后面**
+    // 当"虚拟层"⇒ 直接复用同一条 `solve_prefix` ✓（`arg_tys` 本来就是按
+    // `layers[k..]` 对齐的，接长一层就自动对齐到富余实参 ✓）。
+    // **解不出 / 结果展不成 Π**（`And.intro a b ha hb` 的 `And a b` 是归纳类型 ✗）
+    // ⇒ 静默退回下面的旧写法 ⇒ **既有行为不变** ✓。
+    {
+        let explicit_layers = layers.len().saturating_sub(k);
+        // **收紧到 `explicit_layers == 0`**（即"签名里**只有**隐式 binder"）——
+        // 这正是 G-41/G-42 那一族（`Set.univ x`、`Set.empty α`、`Set.empty2`…）✓。
+        //
+        // 为什么不放宽到"任意富余实参"：第一版就是那样，**当场打红 prelude**
+        // （`l1_prelude_is_available_in_full_mode`：`期望 Pi (_ : Pi (_ : $1), False), False`
+        // 实际 `Sort(0)` ✗）—— 因为"实参个数 > 显式层数"这条判据**本来就有歧义**
+        // （`And.intro a b ha hb` 与"把一个返回值继续应用"同形 ✗），
+        // 而本语言**故意**支持前一种（课程的点名旧写法 ✓）。`explicit_layers == 0`
+        // 那一档没有这个歧义：**没有**显式层可吃 ⇒ 写出来的实参只可能落在结果上 ✓。
+        // 放宽它需要先能**判定旧写法是否良型**（Lean 用 whnf + 元变量做这件事，
+        // 本路线 C 没有元变量 ✗）⇒ 留给缺口台账，别在这里猜 ✓。
+        if explicit_layers == 0 && args.len() > 0 {
+            let surplus = args.len() - explicit_layers;
+            let mut tail: Vec<crate::compile::implicit::Layer> = Vec::with_capacity(surplus);
+            let mut cur = result.clone();
+            for i in 0..surplus {
+                // `Set α` 是 **def** ⇒ 不 δ 展开就看不到 `α -> Prop` 那一层 ✗。
+                let mut pi = cur.clone();
+                for _ in 0..8 {
+                    if matches!(pi, Expr::Arrow { .. } | Expr::Forall { .. }) {
+                        break;
+                    }
+                    match crate::spine::unfold_one(&pi, ctx.defs, None) {
+                        Some(next) if next != pi => pi = next,
+                        _ => break,
+                    }
+                }
+                let (domain, codomain) = match &pi {
+                    Expr::Arrow {
+                        domain, codomain, ..
+                    } => (domain.as_ref().clone(), codomain.as_ref().clone()),
+                    Expr::Forall { binders, body, .. }
+                        if binders.len() == 1 && binders[0].ty.is_some() =>
+                    {
+                        (
+                            binders[0]
+                                .ty
+                                .as_ref()
+                                .expect("checked above")
+                                .as_ref()
+                                .clone(),
+                            body.as_ref().clone(),
+                        )
+                    }
+                    _ => {
+                        tail.clear();
+                        break;
+                    }
+                };
+                tail.push(crate::compile::implicit::Layer {
+                    name: format!("\0soko_r3_{i}"),
+                    domain,
+                    style: BinderKind::Explicit,
+                });
+                cur = codomain;
+            }
+            if tail.len() == surplus {
+                let mut extended = layers.clone();
+                extended.extend(tail);
+                let mut arg_tys: Vec<Option<Expr>> = Vec::with_capacity(args.len());
+                for a in &args {
+                    arg_tys.push(operand_type_expr(ctx, scope, a));
+                }
+                let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+                if let Some(solved) = crate::compile::implicit::solve_prefix(
+                    &extended,
+                    &result,
+                    k,
+                    &arg_tys,
+                    expected_src,
+                    ctx.defs,
+                    &is_inductive,
+                ) {
+                    let mut out =
+                        elab_expr(builder, head, scope, univ, known, hovers, None, None, ctx)?;
+                    for (i, value) in solved.iter().enumerate() {
+                        let term =
+                            elab_expr(builder, value, scope, univ, known, hovers, None, None, ctx)?;
+                        out = builder.mk_app(out, term);
+                        // 隐式实参算完之后，**写出来的那些实参**照旧逐位接上 ✓
+                        // （它们的期望类型就是对应层的域 ✓，与旧写法同一口径）。
+                        if i + 1 == k {
+                            let mut sigma: HashMap<String, Expr> = HashMap::new();
+                            for (j, s) in solved.iter().enumerate() {
+                                if !extended[j].name.is_empty() {
+                                    sigma.insert(extended[j].name.clone(), s.clone());
+                                }
+                            }
+                            for (j, a) in args.iter().enumerate() {
+                                let expected_src =
+                                    crate::spine::substitute(&extended[k + j].domain, &sigma);
+                                let t = elab_expr(
+                                    builder,
+                                    a,
+                                    scope,
+                                    univ,
+                                    known,
+                                    hovers,
+                                    None,
+                                    Some(&expected_src),
+                                    ctx,
+                                )?;
+                                out = builder.mk_app(out, t);
+                                if !extended[k + j].name.is_empty() {
+                                    sigma.insert(extended[k + j].name.clone(), (*a).clone());
+                                }
+                            }
+                        }
+                    }
+                    return Ok(Some(out));
+                }
+            }
+        }
     }
     // **旧写法（把隐式位也逐位写出来）**：`And.intro a b ha hb`、
     // `Eq.symm α a b h`、`cast.{1} α β h`、`Iff.mpr A B h`。判据 = 实参个数 >
