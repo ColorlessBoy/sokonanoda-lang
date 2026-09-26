@@ -613,5 +613,53 @@ test("font scale: the host message lands on --soko-font-scale", () => {
   );
 });
 
+// ── 编译进度（P3，2026-09-26 用户需求：慢文件编译时面板像"冻住了"）──────────
+//
+// 判据钉**用户看得见的三件事**：① `begin` 画出**恰好 3 行**（标题/进度条/明细）；
+// ② `report` **就地更新**（不许叠第二块 —— 那是进度条最常见的 bug）；
+// ③ `end` 把整块**移除**（不留空壳 ⇒ 面板回到原样）。
+test("progress: begin renders three lines, report updates in place, end removes it", () => {
+  const { root, send } = loadInfoview();
+  send({ protocol: 1, type: "progress", phase: "begin", label: "编译 units/u01.sokonanoda" });
+  let blocks = byClass(root, "progress");
+  assert.strictEqual(blocks.length, 1, "`begin` 必须画出进度块");
+  assert.strictEqual(
+    blocks[0].childNodes.length,
+    3,
+    "进度块必须**恰好 3 行**（标题 / 进度条 / 明细）",
+  );
+  assert.strictEqual(
+    byClass(root, "progress-label")[0].textContent,
+    "编译 units/u01.sokonanoda",
+    "第一行是**在编什么**",
+  );
+  assert.strictEqual(byClass(root, "progress-bar-fill").length, 1, "第二行必须是进度条");
+  assert.strictEqual(
+    byClass(root, "progress-detail")[0].textContent,
+    "进行中…",
+    "还没报百分比时明细要有话说（不许空着）",
+  );
+  send({
+    protocol: 1,
+    type: "progress",
+    phase: "report",
+    label: "编译 units/u01.sokonanoda",
+    percent: 42,
+  });
+  blocks = byClass(root, "progress");
+  assert.strictEqual(blocks.length, 1, "`report` 必须**就地更新**，不许叠第二块");
+  assert.strictEqual(
+    byClass(root, "progress-bar-fill")[0].attributes["style"],
+    "width: 42%",
+  );
+  assert.strictEqual(byClass(root, "progress-detail")[0].textContent, "42%");
+  send({ protocol: 1, type: "progress", phase: "end" });
+  assert.strictEqual(
+    byClass(root, "progress").length,
+    0,
+    "`end` 必须把整块**移除**（不留空壳）",
+  );
+});
+
 console.log(`\n${passed + failed} tests, ${passed} passed, ${failed} failed\n`);
 process.exit(failed > 0 ? 1 : 0);

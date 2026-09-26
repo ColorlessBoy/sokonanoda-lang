@@ -147,6 +147,41 @@
     if (showingEmptyDecls) renderDecls(lastDeclsPayload);
   }
 
+  /// **编译进度**（P3，2026-09-26 用户需求：慢文件编译时面板像"冻住了"）。
+  ///
+  /// 消息形状（主机侧 `extension.js` 定义）：`{type:"progress", phase, label, percent}`
+  ///   · `phase: "begin"` ⇒ 画出**恰好 3 行**的块（标题 / 进度条 / 明细）；
+  ///   · `phase: "report"` ⇒ **就地更新**（不许叠第二块）；
+  ///   · `phase: "end"`（或没写）⇒ **整块移除**（不留空壳 ⇒ 面板回到原样）。
+  /// 用 `appendChild`（而不是 `insertBefore`）：webview 的 stub DOM 只实现了最小
+  /// 集合，`insertBefore` 会让测试在无关的地方炸掉 ✓。
+  let progressNode = null;
+  function renderProgress(msg) {
+    const phase = (msg && msg.phase) || "end";
+    if (progressNode) {
+      root.removeChild(progressNode);
+      progressNode = null;
+    }
+    if (phase === "end") return;
+    const percent =
+      msg && typeof msg.percent === "number" && isFinite(msg.percent)
+        ? Math.max(0, Math.min(100, Math.round(msg.percent)))
+        : null;
+    progressNode = el("div", "progress");
+    progressNode.appendChild(
+      el("div", "progress-label", (msg && msg.label) || "编译中…"),
+    );
+    const bar = el("div", "progress-bar");
+    const fill = el("div", "progress-bar-fill");
+    fill.setAttribute("style", "width: " + (percent === null ? 0 : percent) + "%");
+    bar.appendChild(fill);
+    progressNode.appendChild(bar);
+    progressNode.appendChild(
+      el("div", "progress-detail", percent === null ? "进行中…" : percent + "%"),
+    );
+    root.appendChild(progressNode);
+  }
+
   function renderGoals(msg) {
     clear(goalsBody);
     const decl = msg.decl || null;
@@ -328,6 +363,9 @@
       case "state":
         applyFontScale(msg.fontScale);
         renderState(msg);
+        break;
+      case "progress":
+        renderProgress(msg);
         break;
       case "decls":
         renderDecls(msg.decls);
