@@ -1,45 +1,54 @@
 #!/usr/bin/env bash
-# G-43：课程库隐式化（**B2**）之后，**用它的单元**还不能保持全绿 ✗。
+# G-43：**跨模块**（`import`）之后，记法路径就解不出前导隐式参数 ✗。
 #
-# 实测（2026-09-26，**修掉转换脚本自己的 bug 之后**）：
-#   · 只改**签名**（`def Set` 的 α 必须**保持显式** ✓ —— 它是集合类型构造子）
-#     + 库里**自己的调用点**（`univ α` ⇒ `univ` ✓）⇒ **`lib/Set` 编得干净（0 诊断 ✓）**；
-#   · 路线③ 加宽之后 `lib/Set` **干净** ✓、单元 3/11 也**干净** ✓，
-#     但 `lib/Image` 还红 ✗ ⇒ 整门课 `238 checked · 81 open · 12 判负` ✗（红线是 `328 · 99 · 0` ✗）；
-#   · 再用**一刀切正则**改 197 处调用点 ⇒ **反而更差**（`279 · 88 · 20` ✗）
-#     ⇒ 调用点必须**逐文件**改 ✗（纪律：同一处连红 3 次 ⇒ 换思路 ✓）。
+# 这是 **B2（课程库隐式化）** 的最后一块：`lib/Image` 的 `Set.mem_image` /
+# `Set.mem_preimage` 两条定理卡在这里，而 `scripts/notation-lint.py:89` **要求**
+# 写 `f '' A`（点名 `Set.image ` 会被判红 ✗）⇒ 没有"改成点名"的退路 ✓。
 #
-# 期望：缺口**仍在**时 exit 0（单元还红）；B2 做完后 exit 1（全绿）。
-# 只判**一个文件**（快 ✓）；`trap` 还原，**不留副作用** ✓。
+# **最小复现（两个文件，别的地方都不需要）**：
+#   A.sokonanoda：`def Set.image {α β} (f : α → β) (A : Set α) : Set β` + `infix '' `
+#   B.sokonanoda：`import A` + `theorem … : y ∈ f '' A ↔ …`
+# ⇒ **红** ✗：`类型不匹配：期望 Sort(1)，实际是 Pi ( : $4), $4`
+# **把同样内容放进一个文件** ⇒ **绿** ✓ ⇒ 触发条件是 **import** ✓（不是记法本身 ✗）。
+#
+# 临时探针（`SOKO_DEBUG_IP`，已撤 ✓）显示：钩子**根本没被调用**到 `Set.image` 上
+# （只看到 `head=Set`）⇒ 跨模块时记法的展开路径**没走**那条隐式插入钩子 ✓。
+#
+# 期望：缺口**仍在**时 exit 0；修好后 exit 1。
 set -uo pipefail
 cd "$(dirname "$0")/../../.." || exit 2
-ROOT=$PWD
-restore() { git -C "$ROOT" checkout -- courses/set-theory/ 2>/dev/null; }
-trap restore EXIT
-
-python3 - <<'PY'
-import re
-NAMES = 'mem|subset|empty|univ|singleton|pair|union|inter|sdiff|compl|powerset'
-for p in ('courses/set-theory/lib/Set.sokonanoda', 'courses/set-theory/lib/Image.sokonanoda'):
-    lines = open(p).read().split("\n")
-    for i, l in enumerate(lines):
-        # ⚠ `def Set` 必须排除（α 显式 ✓）—— 第一次漏了它 ⇒ 整门课塌掉、误判成语言缺口 ✗。
-        if (l.startswith('def ') or l.startswith('theorem ')) and not l.startswith('def Set '):
-            lines[i] = re.sub(r'\((α(?: β)?) : Type\)', r'{\1 : Type}', l, count=1)
-    src = "\n".join(lines)
-    # 库里自己的调用点：`univ α` ⇒ `univ`（只动**裸名 + α**，不碰 `Set.` 前缀的单元调用 ✓）
-    src = re.sub(r'\b(' + NAMES + r') α\b', r'\1', src)
-    open(p, 'w').write(src)
-PY
-
 BIN=./target/release/sokonanoda
 [ -x "$BIN" ] || { echo "G-43：先跑 cargo build --release -p sokonanoda-cli" >&2; exit 2; }
-UNIT=courses/set-theory/lib/Image.sokonanoda
-out=$("$BIN" grade "$UNIT" 2>&1)
+
+DIR=$(mktemp -d)
+trap 'rm -rf "$DIR"' EXIT
+cat > "$DIR/A.sokonanoda" <<'EOF'
+def Set (α : Type) : Type := α -> Prop
+namespace Set
+def image {α β : Type} (f : α -> β) (A : Set α) : Set β := fun (y : β) => True
+end Set
+infix:60 " '' " => Set.image
+EOF
+cat > "$DIR/B.sokonanoda" <<'EOF'
+import A
+
+theorem t {α β : Type} (f : α → β) (A : Set α) (y : β) :
+    y ∈ f '' A ↔ (y ∈ f '' A) :=
+    Iff.intro (fun (h : y ∈ f '' A) => h) (fun (h : y ∈ f '' A) => h)
+EOF
+# 让 `∈` 也可用：放进 A（`Set.mem` + infix）✓
+python3 - "$DIR/A.sokonanoda" <<'PY'
+import sys
+p=sys.argv[1]; s=open(p).read()
+s=s.replace("end Set\n", "def mem {α : Type} (a : α) (A : Set α) : Prop := A a\nend Set\ninfix:50 \" ∈ \" => Set.mem\n")
+open(p,'w').write(s)
+PY
+
+out=$("$BIN" grade --root "$DIR" "$DIR/B.sokonanoda" 2>&1)
 if printf '%s' "$out" | grep -q '"code"'; then
-  echo "G-43 仍在：库隐式化之后单元 $UNIT 还红（B2 未完成）" >&2
+  echo "G-43 仍在：跨模块（import）之后记法解不出前导隐式参数（B2 的最后一块）" >&2
   printf '%s' "$out" | grep -oE '"message":"[^"]{0,84}' | head -2 >&2
   exit 0
 fi
-echo "G-43 已修：课程库可以隐式化，单元仍绿 ✓" >&2
+echo "G-43 已修：跨模块记法也能解出隐式参数 ✓" >&2
 exit 1
