@@ -2104,6 +2104,91 @@ fn infer_type_text(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr)
 ///
 /// 拿不到书写类型（隐式插入的 binder、复合项）⇒ 原路 `infer_type_text`，
 /// 逐字节不变。
+/// 把类型文本里的**宇宙写法**归一（只用于比较 ✓）：`Type` 与 `Sort 1` 在这个语言里
+/// 是**同一个东西**（Lean：`Type u = Sort (u+1)` ✓；parser 的注释也这么写 ✓），
+/// 但它们在 AST 里是**两个变体**（`SortKind::Type` / `SortKind::Sort(1)`）、pp 也
+/// 不一样 ✗ ⇒ 不归一就会**假阴**（实测：签名侧渲染 `Type`、源码侧渲染 `Sort 1` ✓）。
+/// 只按**词边界**替换，绝不碰标识符（`TypeOf` 这类名字原样留下 ✓）。
+fn canonical_sorts(text: &str) -> String {
+    let is_word = |c: char| c.is_alphanumeric() || c == '_' || c == '\'';
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i].is_ascii_alphabetic() && (i == 0 || !is_word(chars[i - 1])) {
+            let start = i;
+            while i < chars.len() && is_word(chars[i]) {
+                i += 1;
+            }
+            let word: String = chars[start..i].iter().collect();
+            out.push_str(match word.as_str() {
+                "Type" => "Sort 1",
+                "Prop" => "Sort 0",
+                other => other,
+            });
+            continue;
+        }
+        out.push(chars[i]);
+        i += 1;
+    }
+    out
+}
+
+/// **写出来的实参是否逐位贴合对应层的域**（G-42 第二半，2026-09-26）。
+///
+/// 把"把隐式位也逐位写出来"（`some Nat`、`And.intro a b ha hb`）与"短写"
+/// （`Set.mem a A`）分开 —— 光看**个数**分不开（两种读法的个数可以一样 ✗）。
+///
+/// 做法：从左到右比 `arg` 的类型与 `layers[i].domain`（**边比边代入**已认下的实参
+/// ⇒ 后面的层能引用前面的 ✓），两侧都先 δ 展开头部（`Set α` 是 def ⇒ 与 `α -> Prop`
+/// 要能比上 ✓）。**有一位不贴合就整体否掉** ⇒ 交回短写 ✓（宁可不猜 ✗）。
+///
+/// ⚠ **两个坑都踩过（实测）**：
+/// 1. **不能比 `Expr` 结构** —— `Expr` 的 `PartialEq` **含 `span`** ✗
+///    （两边都是 `Sort { sort: Type, span: … }`、只差 offset 就判不等 ✓）；
+/// 2. **也不能直接比 pp 文本** —— `Type` 与 `Sort 1` 同义而异形 ✗
+///    ⇒ 必须先过 [`canonical_sorts`] ✓。
+/// 这里要的只是"两种写法是不是同一个类型"的**启发式**（决定试哪种读法 ✓，
+/// **不是判定** ✗ —— 判定永远走 kernel ✓），所以比归一的 pp 文本是合适的 ✓。
+fn args_fit_layers_in_order(
+    layers: &[crate::compile::implicit::Layer],
+    args: &[&Expr],
+    ctx: &ElabCtx<'_, '_>,
+    scope: &ElabScope<'_>,
+) -> bool {
+    if args.is_empty() || args.len() > layers.len() {
+        return false;
+    }
+    let is_inductive = |n: &str| ctx.inductives.contains_key(n);
+    let unfold = |e: &Expr| {
+        let mut cur = e.clone();
+        for _ in 0..4 {
+            let next = crate::spine::unfold_to_inductive(&cur, &is_inductive, ctx.defs, 4, None);
+            if next == cur {
+                break;
+            }
+            cur = next;
+        }
+        cur
+    };
+    let mut sigma: HashMap<String, Expr> = HashMap::new();
+    for (i, a) in args.iter().enumerate() {
+        let Some(actual) = operand_type_expr(ctx, scope, a) else {
+            return false;
+        };
+        let domain = crate::spine::substitute(&layers[i].domain, &sigma);
+        let d = canonical_sorts(&crate::compile::elab::render_expr(&unfold(&domain)));
+        let t = canonical_sorts(&crate::compile::elab::render_expr(&unfold(&actual)));
+        if d != t {
+            return false;
+        }
+        if !layers[i].name.is_empty() {
+            sigma.insert(layers[i].name.clone(), (*a).clone());
+        }
+    }
+    true
+}
+
 fn operand_type_expr(ctx: &ElabCtx<'_, '_>, scope: &ElabScope<'_>, operand: &Expr) -> Option<Expr> {
     if let Expr::Ident { name, .. } = operand {
         if let Some(src) = scope.source_type_of(name) {
@@ -2248,7 +2333,15 @@ fn try_implicit_application<'a>(
     // 一次"（`Set.univ x`、`some Nat`）—— 一旦钩子真的被触发，这个歧义就暴露 ✓。
     // ⇒ 修 G-42 必须**同时**给求解器加"富余实参应用到结果类型"那一档（路线③），
     // 判据是**两条一起绿**：本文件的 Option 测试 + G-42 的复现件 ✓。
-    let head_name = raw_head;
+    // **用解析后的规范名查签名表**（G-42，2026-09-26）：`namespace Foo` 里写
+    // `subset B A` 时 AST 上是**裸名** `subset`，而签名表按**规范名** `Foo.subset`
+    // 建 ⇒ 拿裸名查永远查不到 ⇒ 隐式插入整条不触发 ✗。解析不出来的名字（真未定义）
+    // ⇒ 交回老路，让它照旧报 `unknown identifier` ✓。
+    let head_name = match resolve_known(known, ctx.ns, raw_head, head.span()) {
+        Ok(canonical) => canonical,
+        Err(_) => raw_head.to_string(),
+    };
+    let head_name = head_name.as_str();
 
     let declared = match known.get(head_name) {
         Some(k) if k.implicit_prefix() > 0 => k,
@@ -2411,7 +2504,14 @@ fn try_implicit_application<'a>(
     // 显式层数（Lean 短写法只会给显式层的实参）。满足就**在这里一次装完**，
     // 按 `layers[0..args.len()]` 逐位对齐，绝不递归到前缀——前缀
     // （`cast.{1} α β`、`And.right a`）会被误判成"隐式短写"而报错。
-    if args.len() > declared.explicit_arity() {
+    // **第二半（G-42）**：钩子真被触发之后，这条闸门里的歧义就暴露了 —— `some Nat`
+    // 会被**短写**抢走（`a := Nat`、`A` 从 `Nat` 的类型解 ⇒ `Option Type 0` ✗），
+    // 而正确读法是**旧写法**（`A := Nat` ⇒ `Nat -> Option Nat` ✓）。光看**个数**
+    // 分不开（两种读法都是 1 个实参 ✗）⇒ 多一条**可判定**的入口：写出来的实参
+    // **逐位贴合**对应层的域 ⇒ 这就是"把隐式位也逐位写出来" ✓。
+    let fits_old_style =
+        args.len() <= layers.len() && args_fit_layers_in_order(&layers, &args, ctx, scope);
+    if args.len() > declared.explicit_arity() || fits_old_style {
         if args.len() > layers.len() {
             return Ok(None);
         }

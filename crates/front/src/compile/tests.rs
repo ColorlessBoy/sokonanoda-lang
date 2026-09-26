@@ -8422,3 +8422,78 @@ theorem univ_applies (\u{3b1} : Type) (x : \u{3b1}) : (x \u{2208} Set.univ) = Se
         out.events
     );
 }
+
+/// **G-42 判据**（2026-09-26）：`namespace` 里的**裸名**调用也要触发隐式插入。
+///
+/// `namespace Foo` 里写 `subset B A` 时，AST 上是**裸名** `subset`，而签名表按
+/// **规范名** `Foo.subset` 建 ⇒ 拿裸名查**永远查不到** ⇒ 隐式插入整条不触发 ✗。
+/// 5 行最小复现（**去掉 `namespace` 就好** —— 这正是它躲过所有既有测试的原因 ✓）。
+///
+/// **反向验证**：把 `resolve_known` 那一行撤掉 ⇒ 本条当场判红 ✓。
+#[test]
+fn a_bare_name_inside_a_namespace_triggers_implicit_insertion() {
+    let src = "\
+def Foo (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+namespace Foo\n\
+def subset {\u{3b1} : Type} (A B : Foo \u{3b1}) : Prop := forall (x : \u{3b1}), A x -> B x\n\
+def powerset {\u{3b1} : Type} (A : Foo \u{3b1}) : Foo (Foo \u{3b1}) := fun (B : Foo \u{3b1}) => subset B A\n\
+end Foo\n";
+    let out = compile_ok(src);
+    assert!(
+        out.events.iter().any(
+            |e| matches!(e, CheckEvent::DeclarationChecked { name } if name == "Foo.powerset")
+        ),
+        "`namespace Foo` 里的裸名 `subset B A` 必须查得到规范名 `Foo.subset` 并插入隐式 α；\
+         修前报 `类型不匹配：期望 Sort(1)，实际是 (Foo.[] $2)`。事件：{:?}",
+        out.events
+    );
+}
+
+/// **G-42 的第二半**（与上一条**必须一起绿**）：`some Nat` 这种"把隐式位逐位写出来"
+/// 的**旧写法**不能被短写路线抢走。
+///
+/// `Option.some : {A : Type} → (a : A) → Option A`。`some Nat` 只有一个实参：
+/// * **旧写法**（对）⇒ `A := Nat` ⇒ `Nat -> Option Nat` ✓
+/// * **短写**（错）⇒ `a := Nat`、`A` 从 `Nat` 的类型解 ⇒ `A := Type 0` ⇒ `Option Type 0` ✗
+///
+/// 判据是**实参是否真的贴合对应层的域**：`Nat : Type 0` 与 `layers[0].domain = Type 0`
+/// **贴合** ⇒ 旧写法 ✓；而 `Set.mem a A` 里 `a : α` 与 `Type 0` **不贴合** ⇒ 短写 ✓。
+/// ⚠ 这条比较踩过两个坑（`Expr` 的 `PartialEq` 含 `span`；`Type` 与 `Sort 1` 同义
+/// 而异形）⇒ 现在比的是**宇宙归一后的 pp 文本** ✓（见 `canonical_sorts`）。
+#[test]
+fn old_style_arguments_win_only_when_they_actually_fit_the_layer_domains() {
+    let src = "\
+inductive Option (A : Type) : Type\n\
+ctor none : Option A\n\
+ctor some (a : A) : Option A\n\
+end\n\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.mem {\u{3b1} : Type} (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+#check some Nat\n\
+#check fun (\u{3b1} : Type) (a : \u{3b1}) (A : Set \u{3b1}) => a \u{2208} A\n";
+    let out = compile_ok(src);
+    let texts: Vec<String> = out
+        .events
+        .iter()
+        .filter_map(|e| match e {
+            CheckEvent::TypeChecked { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        texts.iter().any(|t| t == "Nat -> Option Nat"),
+        "`some Nat` 是**旧写法**（`Nat` 贴合 `A : Type 0`）⇒ 必须是 `Nat -> Option Nat`；\
+         修前被短写抢走 ⇒ `Option Type 0` ✗。实际：{texts:?}"
+    );
+    assert!(
+        !texts.iter().any(|t| t == "Option Type 0"),
+        "不许把 `Nat` 当成显式实参 `a`（那会把 `A` 解成 `Type 0`）✗：{texts:?}"
+    );
+    assert!(
+        texts
+            .iter()
+            .any(|t| t.contains("Set.mem") || t.contains("-> Prop")),
+        "`a ∈ A` 的短写必须照旧可用（`a : α` 与 `Type 0` **不贴合** ⇒ 短写 ✓）：{texts:?}"
+    );
+}
