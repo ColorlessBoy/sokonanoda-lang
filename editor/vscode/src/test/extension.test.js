@@ -358,10 +358,16 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     //
     // ⚠ **必须先在夹具里给常量声明记法**（§9："先给常量声明记法" ✓）——
     // 否则**折叠没有规则** ✗（round 154/155 两次都栽在这 ✓）。
+    // ⚠ **折叠出现在"某物的类型提到了被记法化的常量"处** ✓ ——
+    // **不是**在记法符号本身的 hover 上 ✗（round 468 实测：那里显示的是
+    // 记法目标的类型 `Set Nat → Set Nat → Prop` ✓ ⇒ 里面没有 `⊆` ✗）。
+    // ⇒ **照 `docs/design/e2-plan.md` face #2 的配方** ✓：让一个 `def` 的**类型**
+    // 就是 `Set.subset Nat A B` ✓ ⇒ hover 它的用处 ⇒ 折后应是 `A ⊆ B` ✓。
     const SRC = [
-      'def Set.subset (A B : Set Nat) : Prop := ∀ x, x ∈ A → x ∈ B',
+      'def Set.subset (A B : Set Nat) : Prop := True',
       'infix:50 " ⊆ " => Set.subset',
-      'def usesSubset (A B : Set Nat) : Prop := A ⊆ B',
+      'def Weird (P : Prop) : Set.subset Nat A B := True',
+      'def usesWeird : Prop := Weird True',
       '',
     ].join('\n');
     const uri = await writeDoc("notation-hover.sokonanoda", SRC);
@@ -369,12 +375,14 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     await vscode.window.showTextDocument(uri, { preview: false, preserveFocus: true });
     // 光标落在第 2 行 `A ⊆ B` 的 `⊆` 上（修饰符号处 ✓ —— 那是
     // `half_expression_goals_hover` 那条路 ✓）。
-    const line = 2;
-    const col = SRC.split('\n')[line].indexOf('⊆');
+    const line = 3;
+    const col = SRC.split('\n')[line].indexOf('Weird');
+    // ⚠ **`waitFor` 只等"hover 到了"（非空 ✓），断言留给 `assert`** ✓ ——
+    // 否则失败信息只有"超时" ✗，而**看不出实际文本是什么** ✗（round 468 实测踩到 ✓）。
     let text = "";
-    await waitFor("hover on the ⊆ in the type", async () => {
+    await waitFor("a hover on the type line", async () => {
       text = await hoverTextAt(uri, line, col);
-      return text.includes('⊆');
+      return text.trim().length > 0;
     });
     assert.ok(text.includes('⊆'), `hover 应含记法 ⊆（实际 = ${text}）`);
     assert.ok(!text.includes('Set.subset '), `hover 不应漏点形式 Set.subset（实际 = ${text}）`);
