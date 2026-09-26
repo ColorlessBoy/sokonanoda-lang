@@ -1225,6 +1225,14 @@ infixr:80 \" '' \" => Set.image\n";
         );
         // 源级 `(x : α) -> β`（parser 给的是匿名 binder 的 `Forall`）
         assert_eq!(fold_text("(x : α) -> β", &dn), "(x : α) → β");
+        // 域是**带括号的记法**（课程产物里残留的那一例：`mem_union_comm` 的 goal）
+        assert_eq!(
+            fold_text(
+                "(Set.mem α a (Set.union α A B)) -> Set.mem α a (Set.union α B A)",
+                &dn
+            ),
+            "(a ∈ (A ∪ B)) → a ∈ (B ∪ A)"
+        );
         // 幂等：折过的文本再折一次逐字节不变
         let once = fold_text("forall (α : Type 0), α -> α", &dn);
         assert_eq!(fold_text(&once, &dn), once);
