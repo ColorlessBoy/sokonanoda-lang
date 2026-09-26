@@ -2311,7 +2311,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 #### 批次 E：收尾与固化
 
-- [ ] `T-E1` **性能回归进 CI**：把三个基准做成 CI 可跑的 smoke（阈值宽松 ✓，只抓**大幅退化** ✗）
+- [x] `T-E1` **性能回归进 CI**：把三个基准做成 CI 可跑的 smoke（阈值宽松 ✓，只抓**大幅退化** ✗）
   - **✅ round 314：第五个过滤器补齐 ✓ ⇒ **五个全部咬得住** ✓（门禁完整且不空转 ✓）**
     ```
     perf_course.rs 的真实测试名 ✓：
