@@ -515,6 +515,9 @@ jobs:
         # 不需要判卷通道；`scripts/soko gate` 里的同一条就是它。
         shell: bash
         run: python3 "$GITHUB_WORKSPACE/scripts/notation-lint.py"
+        # **STATUS.md 瘦身 lint**（用户 2026-09-26 ✓）：≤200 行 · 禁词 0 ·
+        # 每段 ≤30（首段快照 ≤40）· 净增 ≤60 ✓ —— 见 REQUIREMENTS.md §9 ✓。
+        run: python3 "$GITHUB_WORKSPACE/scripts/status-lint.py"
       - name: Machine events are well-formed JSON
         run: |
           printf 'def id : Prop -> Prop := fun (x : Prop) => x\n#check id\n' \

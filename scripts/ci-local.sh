@@ -97,6 +97,7 @@ done'
 # **守卫自检也必须按退出码拦** ✓（round 171 ✓：我正是在这里放过了 `FAIL` ✗）
 run "gates：版本单一源" "gates" python3 scripts/bump.py --check
 run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
+run "gates：STATUS 瘦身（用户 2026-09-26 ✓）" "gates" python3 scripts/status-lint.py
 run "gates：记法路径守卫" "gates" python3 scripts/audit-notation-paths.py
 run "gates：wire 字段守卫" "gates" python3 scripts/audit-wire-fields.py
 run "gates：两个守卫的自检（显式按退出码 ✓）" "gates" bash -c '
