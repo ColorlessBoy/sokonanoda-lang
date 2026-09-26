@@ -133,6 +133,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-N12` **B1 三件套判据**：② 反向 ✓（撤兜底 ⇒ 判据红）· ③ 红线 ✓（36/328/99/0 逐项不变）· ① 正向**部分达成**：`flawed_equalities_refuted` 从整条点名（5 标记）改成除 **λ 体内的 `∅`** 外全记法（3 标记）—— 该残例连 Lean 都要 `(e : T)` 标注，属语言级缺口
 - [ ] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族）+ 调用点数量级下降
 - [ ] `T-N14` **B3**：记法路径改走隐式插入，补参 hack 收窄，`implicit_prefix == 0` 逐字节不变
+- [x] `T-N16` **A0 立判据收尾**：`SubGoal.ty` 那 9 处**两半分开钉** —— 显示副本（wire 克隆 + LSP hover）**必须折** + 真相字段（`DeclState.sub_goals[].ty`，`suggest.rs` 回读它算建议）**一个字节都不许折**；两条判据各带反向验证 ✓；**「59 是地板」的结论**进审计 §1.5（再降要改记账口径，不是再迁几处 ✓）
 - [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
 ## 3. 风险与刹车点（每阶段都有一条"停下"的判据）
 
@@ -494,6 +495,14 @@ kernel_phase.rs` 的 `resolution` 回填只查用户文件的 `top_level_def_spa
 标记**后自动记法化；② **反向**——回退该修复 ⇒ 立刻退化（判红）；③ **红线**——
 判定正确性不变（全语料逐字节对拍 + 课程计数 `check.py` 逐项不变）。
 判据：三条都要有可执行命令与输出。
+
+### T-N16 A0 立判据收尾（2026-09-26）
+
+基线 89 → 68 → **59** 之后，剩下的 59 已不是待办而是「两类别动」（§3 立判据 19 / §4 台账不做 40）。
+本轮补齐**最后一格**：`goals.rs` 的 9 处 `SubGoal.ty`（审计 §3 标 ⏳ 的那一组）——
+它的产物**同时**是用户可见文本（wire + hover）**和**判定输入（`suggest.rs::hole_goal_text`
+把它当 `OpenGoalSpec.ty` 回读）⇒ 拆成两半：**显示副本折**（`query/mod.rs` 与 LSP hover 各做一份克隆）、
+**真相字段不折**。判据两半各一条，都带反向验证；`59 是地板`的结论写进审计 §1.5。
 
 ### T-N13 B2：课程库改隐式风格
 契约：`courses/set-theory/lib/Image.sokonanoda` 的 `Set.image`/`Set.preimage` 一族
