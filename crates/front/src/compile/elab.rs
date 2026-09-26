@@ -2145,7 +2145,7 @@ fn type_head(e: &Expr) -> Option<String> {
 /// 1. **不能比 `Expr` 结构** —— `Expr` 的 `PartialEq` **含 `span`** ✗
 ///    （两边都是 `Sort { sort: Type, span: … }`、只差 offset 就判不等 ✓）；
 /// 2. **也不能直接比 pp 文本** —— `Type` 与 `Sort 1` 同义而异形 ✗
-///    ⇒ 必须先过 [`canonical_sorts`] ✓。
+///    ⇒ 要按**层级**归一（见 [`type_head`] ✓）。
 ///
 /// 这里要的只是"两种写法是不是同一个类型"的**启发式**（决定试哪种读法 ✓，
 /// **不是判定** ✗ —— 判定永远走 kernel ✓），所以比归一的 pp 文本是合适的 ✓。
