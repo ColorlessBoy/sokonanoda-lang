@@ -801,6 +801,7 @@ jobs:
     if: >-
       !cancelled()
       && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.e2e.result == 'success' && needs.e2e-macos.result == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -811,6 +812,15 @@ jobs:
       statuses: write
     # 同一时刻只允许一个"写台账"的 job：两次 main push 挨得近时，串行化比抢 push 简单
     # （cancel-in-progress: false —— 不取消正在跑的那次，排队执行）。
+    #
+    # ⚠ **`needs.*.result == 'success'` 是必须的** ✗✓（2026-09-26 实测）：
+    # 两条 e2e 腿被 **skip** 时（editor-only 推送、或整轮被 cancel ✓），本 job 仍会跑 ✓，
+    # 而第一步 `actions/download-artifact` 带 `pattern: e2e-*` **找不到任何 artifact**
+    # ⇒ **直接失败** ✗（download-artifact **没有** `if-no-files-found` 这种输入 ✗）——
+    # 实测 `36269524406` / `36270403704` 两轮都是这个形状 ✓（`e2e` 全 skipped +
+    # 本 job `failure` ✓）。加上状态函数之后，这种情况**直接 skip** ✓，不再假红 ✓。
+    # 注意与上面那条"skip 沿依赖链传播"是**两件不同的事** ✓：那条讲**要不要跑** ✓，
+    # 这条讲**跑起来会不会假红** ✓。
     concurrency:
       group: e2e-ledger
       cancel-in-progress: false

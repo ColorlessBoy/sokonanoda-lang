@@ -449,3 +449,17 @@ AssertionError: 内容没变 ⇒ 不许写出新的缓存条目（说明闭包�
 （`always()` / `!cancelled()` / `success()` / `failure()` ✓）——
 **否则它会静默消失，而整轮还报 `success`** ✗。
 
+## 2026-09-26 · `e2e-ledger` 在 e2e 全 skipped 时**假红** ✗
+
+**现象**：连续三轮 `e2e`/`e2e-macos` 矩阵**全 skipped**，而 `e2e-ledger` job **failure**、
+整轮 `cancelled` —— 看起来像"CI 从来没绿过"，把"推完确认绿"这条纪律堵死 ✗。
+
+**真因**：本 job 的 `if` 没查两条 e2e 腿的结果 ✗ ⇒ 它们被 skip 时本 job 照样跑，
+而第一步 `actions/download-artifact`（`pattern: e2e-*`）**找不到 artifact 就直接失败** ✗
+（该 action **没有** `if-no-files-found` 这种输入 —— 那是 `upload-artifact` 的）。
+
+**修复**：`if` 里加 `&& needs.e2e.result == 'success' && needs.e2e-macos.result == 'success'` ✓。
+
+**预防**：凡 `needs` 里可能有 skipped 的 job，`if` 都要带**状态函数**，且要分清两件事 ——
+① "**要不要跑**"（`!cancelled()` 之类）；② "**跑起来会不会假红**"（`needs.X.result == 'success'`）。
+`download-artifact` 这种"没产物就报错"的步骤必须用 ② 兜住 ✓。
