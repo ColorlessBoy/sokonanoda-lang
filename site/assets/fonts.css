@@ -1,7 +1,7 @@
 /* site/assets/fonts.css — 由 scripts/gen-site-fonts.py 生成，请勿手改。
  *
  * 自托管 Latin 子集（woff2 only）。CJK **不**自托管，走系统栈（见下）。
- * 依据与全部实测数据：docs/design/site-rebuild/research/R4-fonts.md
+ * 依据与全部实测数据：docs/archive/site-rebuild-2026-09-26/R4-fonts.md.gz（gunzip -c）
  *
  * 字体与许可证（均为 SIL OFL 1.1，允许子集化与再分发）：
  *   "Soko Serif"        ← Source Serif 4      (Frank Grießhammer / Adobe)

@@ -105,8 +105,8 @@ agent 从零讲课、出题；用户作答；我们自己的编译器实时给�
   与测试再决定收尾或重跑（细则见 docs/LESSONS.md 工程流程节）；
 - **持续头脑风暴**：新功能先出设计方案（写进 docs），再动手；
 - **文档先行、交接友好**：`REQUIREMENTS.md`（本文）、`STATUS.md`（进度日志）、
-  `docs/architecture.md`（架构事实）、`docs/notes/lsp-notes.md` / `docs/notes/vscode-notes.md`
-  （外部标准调研）、`docs/teaching-session.md`（教学循环）、`docs/protocol.md`（事件协议）；
+  `docs/architecture.md`（架构事实）、`docs/teaching-session.md`（教学循环）、
+  `docs/protocol.md`（事件协议）；〔外部标准调研 `lsp-notes`/`vscode-notes` 已归档 ✓〕
   每轮进度落 commit 前先更新 STATUS；
 - LSP/VS Code 集成遵循业界标准做法（tower-lsp[-server]、vscode-languageclient、
   版本化诊断、FULL sync、自定义请求承载 goal 视图——见两份 notes 文档）。

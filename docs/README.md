@@ -1,8 +1,13 @@
 # 文档地图（docs/）
 
-> 文档分三层：**仓库根**（入口与权威总账）→ **核心**（`docs/` 顶层，开发者
-> 参考）→ **设计 / 笔记**（`docs/design/`、`docs/notes/`，长尾归档）。
+> 文档分四层：**仓库根**（入口与权威总账）→ **核心**（`docs/` 顶层，开发者
+> 参考）→ **设计 / 笔记**（`docs/design/`、`docs/notes/`）→ **归档**
+> （`docs/archive/`，历史层 —— **不进"活文档"预算** ✗，见文末「归档」一节）。
 > 接手项目先看仓库根 `AGENTS.md`，再按下方顺序读。
+>
+> **预算与判据** ✓：`python3 scripts/docs-lint.py`（活文档 ≤3.0 MB · 单文件 ≤2000 行 ·
+> 入口 ≤800 行 · 新设计 ≤150 行 / 既有冻结 · `docs/**` 禁垃圾 · **归档必须被索引点名** ✓）
+> —— 设计 `docs/design/docs-diet.md` ✓，已进 `scripts/soko gate` 与 CI ✓。
 
 ## 仓库根（入口与权威，与 `README.md`/`AGENTS.md`/`ROADMAP.md` 并列）
 
@@ -27,12 +32,12 @@
 | `protocol.md` | `--json` 事件、`soko/*` 自定义请求的对外契约 | 改事件/输出格式前 |
 | `TESTING.md` | 测试地图（哪类改动跑哪层） | 加测试时 |
 | `RELEASE.md` | 发布手册（main 全绿自动 tag、8 平台 + 9 VSIX、Marketplace） | 发版前 |
-| `STATUS-ARCHIVE.md` | STATUS 的历史轮次归档（第 1–94 轮原文） | 查旧轮/缺陷修复时间线 |
+| `STATUS-ARCHIVE.md` | STATUS 的历史轮次（**只留最近 8 段** ✓；更早 ⇒ `docs/archive/status-archive-older-rounds.md.gz`） | 查旧轮/缺陷修复时间线 |
 | `vscode-dev-guide.md` | VS Code 扩展开发规范（版本纪律、测试三层、常见坑） | 改 `editor/vscode/` 前 |
 | `LESSONS.md` | 经验台账（subagent/流程教训） | 接手/复盘 |
 | `PERF.md` | 性能测试结构、阈值原则与基线 | 改动涉及热路径/验收 |
 | `E2E.md` | **真 VS Code 集成测试的例行化**（`scripts/vscode-e2e.sh`、`docs/e2e/` 台账、`SOKO_E2E_LOG` 判读） | 改 `editor/vscode/` 后；真宿主回归 |
-| `CI-FAILURES.md` | CI 失败台账（原因/修复/预防） | CI 红时；同类不二犯 |
+| `CI-FAILURES.md` | CI 失败台账（原因/修复/预防；**只留最近 15 条** ✓，更早 ⇒ `docs/archive/ci-failures-2026-09-10-to-2026-09-25.md.gz`） | CI 红时；同类不二犯 |
 | `teaching-session.md` | 教学循环与解答钥匙（agent 老师用） | 讲课时 |
 
 ## 设计记录（`docs/design/`）
@@ -41,7 +46,7 @@
 
 - `infrastructure.md` — LSP-first 总体设计 v2
 - `i8-i9.md` — 真增量（Session/TrustPlan）+ goal 视图第一段
-- `goal-refine.md` / `round14.md` — 多洞/refine、hole_id、recursor 自动派生、spine meta 路线
+- `goal-refine.md` — 多洞/refine、hole_id、recursor 自动派生、spine meta 路线
 - `goal-func-spine.md` — 函数实参洞 + hover 开项 pp 修复（第二十四轮）
 - `hints-suggestions.md` — 提示阶梯 + 下一步建议
 - `hover-brackets.md` / `hover-refactor.md` — 括号 hover、良构表达式 + range
@@ -55,9 +60,11 @@
 - `reserved-decl-warning.md` — 声明名撞内核已定义名字（`Prop`/`Sort`/`Type`）的 warning 通道
 - `type-level-syntax.md` — `Type n`（= `Sort (n+1)`）记法解析糖
 - `binary-cli.md` — 环境能力进 `sokonanoda` 二进制子命令（内嵌下载器），删除 `scripts/soko.sh`
-- `term-intro.md` — 值位关键字设计（**已废弃**：`funintro` 于 0.27.0 移除，见 `remove-funintro.md`）
-- `term-apply.md` — 值位 `funapply` 关键字（**已废弃**：0.22.0 移除）
-- `value-keywords-v2.md` — 值位关键字 v2（**已废弃**：`funintro`/`funapply` 均已移除）
+- `term-apply.md` — 值位 `funapply` 关键字（**已废弃**：0.22.0 移除；仍被
+  `crates/front/src/spine.rs` 引用作对照）
+- ~~`term-intro.md` / `value-keywords-v2.md` / `round14.md`~~ — 已废弃/历史轮次设计
+  ⇒ **已归档** `docs/archive/design-deprecated-2026-09-26/`（`term-intro.md.gz` /
+  `value-keywords-v2.md.gz` / `round14.md.gz`）
 - `remove-funintro.md` — 移除值位关键字 `funintro`（0.27.0）
 - `goal-list.md` — 多目标显示：`by` 每步记录全部剩余目标 + 协议 `goals[]`（0.27.0）
 - `tactic-hover.md` — tactic 关键字高亮 + hover 中间 goal state（0.27.0）
@@ -76,14 +83,15 @@
 - `early-cutoff.md` — I8 依赖精确化：conservative early-cutoff 签名比较（0.32.1）
 - `extension-server-policy.md` — VS Code 扩展强制内置 LSP + `sokonanoda: doctor` 自检（0.31.0）
 - `compiler-service-events.md` — 编译器服务事件流（`file.didChange` 等，L1/L3）
-- `real-input-tests.md` — 真人输入测试体系 + 四写法共存风险矩阵（**已废弃**：`char_steps` 基建随值位关键字一并删除）
+- ~~`real-input-tests.md`~~ — 真人输入测试体系（**已废弃**）⇒ **已归档**
+  `docs/archive/design-deprecated-2026-09-26/real-input-tests.md.gz`
 - **`site-single-page.md`** — **官网（GitHub Pages）当前权威（2026-09-21）**：单页站点
   （是什么 / 怎么安装 / 核心特点 / 未来的计划）、`site/` 的文件清单、留在里面的三条防漂移机制、
   以及"为什么把 28 页砍成 1 页"。验收：`python3 scripts/check-site.py`（10 项，exit 0 才算过）
-- `site.md`、`site-rebuild/` — **历史存档（已被 `site-single-page.md` 取代）**：
-  2026-09-20 的 28 页全面重构（`STATE.md` 的实测修正清单仍然有效；`spec/D1-design-rules.md`
-  的设计主张被单页版**原样继承**，色值与令牌未改）。**不要照着它们新建页面**——
-  导航生成器 / 搜索索引 / 走查数据 / 诊断码表页都已随简化删除。
+- ~~`site.md`、`site-rebuild/`~~ — **历史存档**（已被 `site-single-page.md` 取代 ✗）：
+  2026-09-20 的 28 页全面重构 ⇒ **已归档** `docs/archive/site-rebuild-2026-09-26/`
+  （`STATE.md.gz` 的实测修正清单、`D1-design-rules.md.gz` 的视觉层参考、
+  `R4-fonts.md.gz` 的字体实测依据**仍然有效** ✓）。**不要照着它们新建页面** ✗。
 - `decl-binders.md` — 声明级 binder（Lean 风格）设计（已实现，0.15.0 发布）
 - `deepseek-harness.md` — **DeepSeek Harness 适配（设计 + 计划 H0–H4）**：差距
   G1–G10、DSH 侧事实（技能根/斜杠命令/LSP 只有 4 项只读操作且忽略诊断/patch 形状）、
@@ -146,7 +154,9 @@
   含四个前端 bug 的根因定位到行）、语言侧 L1–L4 / 课程侧 C1–C7 / 同步 F 工作项、
   分期 **R1 语言地基 → R2 引擎扩展 + 卷 I 全量 → R2.5 记法输入 + 隐式实参 → R3 入门课 + 收尾**
   → R4（可选）print-back、subagent 分工 S1–S10、§9 逐轮 as-built、§10 明确不做 N-1…N-12。
-  调研底稿九篇在 `docs/notes/course-lean-style/`；**红线段：内核零改动**
+  调研底稿九篇**已归档** ⇒ `docs/archive/course-lean-style-2026-09-26/` ✓
+  （施工手册 `notation-rewrite-brief.md` / `R3-rewrite-brief.md` / `notation-input-plan.md`
+  仍在 `docs/notes/course-lean-style/` ✓）；**红线段：内核零改动**
 - `notation-input.md` — **记法输入法（`\xxx` 缩写）+ hover 提示**（2026-09-19，配套 D5）：
   19 个符号的 **Lean 逐字缩写表**（含别名与 `supported` 标记）、四条输入路线对比
   （**推荐客户端缩写改写器 + Tab**，不做 LSP 补全——DSH/opencode 都不消费补全项，
@@ -163,68 +173,47 @@
 
 ## 调研与笔记（`docs/notes/`）
 
-- `research.md` — 教学型形式化证明语言与基础设施调研
-- `lsp-notes.md` / `vscode-notes.md` — LSP / VS Code 接入实践调研
-- `gap-analysis.md` — 业内标准差距审计
-- `dsh-project-assets.md` — **DeepSeek Harness 源码勘察记录**（技能根/斜杠命令/
-  LSP 能力/patch 形状/hooks/子 agent/客户端插件能否被项目自带，逐条 `path:line`；
-  配套设计 `docs/design/deepseek-harness.md`）
-- `inductive.md` — `inductive`/`ctor`/`rec`/`iota` 讲解
-- `rust-cross-platform-binary.md` — 为什么跨 OS 没有单一 Rust 二进制、引导器（`soko.sh`/插件）的角色
-- `multifile-prior-art.md` — **多文件/项目模型的横向调研**（Coq/Rocq、Agda、Isabelle、
-  Idris 2、Rust、Go、Python、JS/TS、Haskell/OCaml、JVM：单文件模式、清单发现、模块身份、
-  产物与失效；配套设计 `docs/design/imports-and-projects.md`，I16）
-- **项目状态视图**（`query project` / `soko/project` / VS Code 项目树：
-  根、清单来源、闭包模块表、每模块状态与项目诊断；0.58.0 批次 4）
-  —— 文档在 **`docs/design/project-view.md`**，不在 `docs/notes/` 下
-  （站点索引页 `site/docs.html` 的作者核出过这处错：`docs/notes/project-view.md` 不存在，
-  在任何 git 历史里也不存在）。
-- **`course-lean-style/`** — **全课程 Lean 4 化的九篇调研底稿**（2026-09-19，配套设计
-  `docs/design/course-lean-style.md`）：`notation-audit.md`（记法能力审计 903 行）、
-  `tactic-audit.md`（tactic 能力审计 767 行）、`course-inventory.md`（卷 I 逐声明清单 1701 行）、
-  `tooling-impact.md`（门禁/工具/文档影响面 657 行）、`printback-feasibility.md`（print-back 614 行）、
-  `intro-course-constraints.md`（入门课结构性约束 406 行）、
-  `implicit-args-plan.md`（隐式实参引擎侧 1027 行）、
-  `notation-input-plan.md`（记法输入面 461 行）、
-  `course-impact-implicit-args.md`（隐式实参课程侧影响面 659 行）。
-  **每篇都带 `文件:行号` 证据与实测探针**（"结论不是读代码猜的"）。
-  另有 **`R2-rewrite-brief.md`**——R2 改写轮次发给 subagent 的**施工说明书**
-  （记法表 / tactic 白名单 / `⟨a, b⟩` 与多层展开 / 已知引擎边界 / lib 与入门课的
-  额外规则 / 判卷命令 / 阻塞上报格式）。它不是调研，是操作手册；
-  改课程前先读它，能省一轮返工。
-  **`R3-rewrite-brief.md`**——入门课 `course/` 那一刀的施工说明书（CN/EN 同步、
-  本课可用的记法集、**本课的 tactic 白名单**（不含 `constructor`/`cases`——骨架是
-  自建 `axiom`）、**计数纪律**（纯记法改写 count-neutral）、单元④ 的特例、阻塞上报格式）。
-  样板 = **单元①**（已按它改完并通过全部门禁）；§9 另有**subagent 半途停掉后的接管
-  记录**——「没有收尾消息 ≠ 没改文件」，验收要看残留扫描而不是自述。
-  **`R2-full-rewrite-brief.md`**——**卷 I `courses/set-theory/` 的收尾手册**
-  （2026-09-21 第 114 轮建）：§0 逐区域现状表（哪些是机械替换已做、哪些还没）、
-  §1 剩下的三类活（`Exists X (fun …)` → `∃ …`、跨行 `And` → `∧`、项模式证明 → `by`）、
-  §2 纪律（门禁必须始终 328/99/0、`notation-cheatsheet` 故意并列两种写法**不许动**）、
-  §3 交付格式。**背景**：卷 I 的第 110–112 轮只交付了「语言地基 + 单元② 试点」，
-  「36 目标全绿」被误记成「全量改写完成」——门禁只证明**能判卷**，不证明**改写过**。
-- `lean-style-0.62.md` — **全课程 Lean 4 化（0.62.0 批次）的"给站点/文档 agent"事实清单**：
-  这一批用户可见的 12 项特性（记法 / tactic / 隐式实参 / 记法输入 / 判定侧修复 / 新诊断码）、
-  课程内容的事实变化（两门课 + playground 的当前计数、入门课删自建 `And`/`Or` 骨架的后果）、
-  以及**站点不该误解的三件事**（G-21 的报错仍半修、记法在实参位的边界、记法对照页的双写法是故意的）。
-  ⚠️ 它明确标注了"工作树 = 未发布 0.62.0"，并指向 `docs/design/site-rebuild/STATE.md` #13 的测量陷阱；
-  **不要**把它当已发布事实，除非 0.62.0 已发。
-- `project-roots-and-incremental-caches.md` — **语言服务器根发现 + 增量缓存调研**
-  （LSP 契约、rust-analyzer/clangd/tsserver/pyright/gopls/ocaml-lsp/Agda/lean4 的根发现与
-  错根症状、Lake trace / GHC 指纹 / OCaml `.cmi` / Coq `.vo` digest / `.tsbuildinfo`、
-  "缓存判定结果安全吗"的三条规则）
-- `docs/gaps/spike/README.md`（见 `docs/gaps/README.md`）— **卷 I 试做稿**：2 个单元 + 66 条标准库，
-  全部真内核判卷（0 failed），逐条标出 `L-xx` 标准库欠账
-- `settheory-survey/` — **集合论教学调研**（2026-09-18，教学项目 P0 的两路调研，共 ~2,200 行）：
-  `set-theory-teaching-survey.zh.md`（教材顺序之争：集合/逻辑、有序对、幂集、关系 vs 函数、
-  基数 vs 选择、Russell 六组取证 + 推荐十单元）、`prior-art-report.md`（证明助手先例：
-  MIL/MoP/L&P/FM/LPA、**`djvelleman/stg4` 集合论游戏 8 世界 51 关**、analysis §3 逐节解剖）、
-  `proof-book-tocs.md`（Hammack/Macbeth/Avigad/Velleman/Solow/Cummings 的真实目录取证 +
-  五处前提勘误）、`lean4-sets-functions-prior-art.md`（长版底稿）、
-  **`learning-difficulties.md`（学习障碍实证：2874 行 / ~190 条来源、逐条核验级别
-  [F]/[A]/[M]；含两条实测的否定结果——有序对与选择公理没有任何实证研究）**、
-  `repro/`（内核实测：`lib.sokonanoda` 29 checked / 0 failed；调研探针 P1 产出台账 G-13）。
-  结论已综合进 `docs/design/set-theory-syllabus.md`
+> **大多数调研笔记已归档** ✓（结论已升格进 `docs/design/`，底稿属过程记录 ✗）：
+> 顶层九篇（`research` / `lsp-notes` / `vscode-notes` / `gap-analysis` / `inductive` /
+> `rust-cross-platform-binary` / `multifile-prior-art` / `project-roots-and-incremental-caches` /
+> `cache-key-build-stamp`）⇒ `docs/archive/notes-2026-09-26/` ✓；
+> `settheory-survey/` 十篇 ⇒ `docs/archive/settheory-survey-2026-09-26/` ✓
+> （结论在 `docs/design/set-theory-syllabus.md` 与 `docs/design/teaching-project.md` ✓）。
+
+**仍留在 `docs/notes/` 的** ✓（各有活消费者钉住 —— 不许随手归档 ✗）：
+
+- `dsh-project-assets.md` — **DeepSeek Harness 源码勘察记录**（技能根 / 斜杠命令 /
+  LSP 能力 / patch 形状 / hooks / 子 agent，逐条 `path:line`）—— 被
+  `crates/cli/tests/dsh.rs` 的**契约测试**钉住 ✓；配套设计 `docs/design/deepseek-harness.md`
+- `course-lean-style/notation-rewrite-brief.md` — 记法改写**施工细则**
+  （`AGENTS.md` 指定；可执行判据 = `python3 scripts/notation-lint.py` ✓）
+- `course-lean-style/R3-rewrite-brief.md` — 入门课改写的施工说明书
+  （`skills/sokonanoda-teacher/references/curriculum.md` 指其 §1 ✓）
+- `course-lean-style/notation-input-plan.md` — 记法输入面
+  （`crates/front/src/notation_input.rs` 指其缩写表 ✓）
+
+**其它现场记录**：`docs/gaps/spike/README.md` — 卷 I 试做稿（2 单元 + 66 条标准库，
+全部真内核判卷 0 failed，逐条标 `L-xx` 欠账）。
+
+> **项目状态视图**（`query project` / `soko/project` / VS Code 项目树）的文档在
+> **`docs/design/project-view.md`**，不在 `docs/notes/` 下 ✓（站点索引页
+> `site/docs.html` 的作者核出过这处错：`docs/notes/project-view.md` 在任何 git 历史里都不存在）。
+
+## 归档（`docs/archive/`）—— **归档 ≠ 销毁** ✓
+
+> **索引** ✓：`docs/archive/README.md`（**每个归档文件都在那里被点名** ——
+> `scripts/docs-lint.py` 判据 ⑥ 机械检查 ✗）。读法：`gunzip -c <文件> | less` ✓。
+>
+> **布局** ✓：`docs/archive/<批次>-<日期>/<原文件名>.gz`（**保留原相对路径** ⇒
+> 映射机械可算 ✓）。**全局规则** ✓：仓库里凡出现 `docs/notes/**`、
+> `docs/design/site-rebuild/**`、`docs/gaps/WO-*.md`、`docs/E2-PROMPT.md` 的路径
+> ⇒ **已归档**，到 `docs/archive/` 取**同名 + `.gz`** ✓。
+>
+> **不许动的例外** ✗（有真消费者，动了就判红）：`docs/gaps/repro/**`（38 条复现被
+> `gap.py check` 在 gate + CI 三片矩阵里真跑 ✓）、活台账里**被引用**的
+> `docs/e2e/logs/*.log`（`e2e-merge.py --check` 校验存在 ✓）、`docs/protocol.md`
+> （**4 个测试读它正文并断言** ✗）、`docs/perf/ledger.jsonl` / `docs/gaps/ledger.jsonl` /
+> `docs/courses/ledger.jsonl`（门禁基线 ✓）。设计与判据：`docs/design/docs-diet.md` ✓。
 
 ## 关联目录
 

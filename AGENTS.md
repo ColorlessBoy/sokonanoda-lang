@@ -19,8 +19,8 @@ harness 适配（各 harness 能用什么、缺什么）见 **`docs/design/deeps
 
 **改站点之前先读 `docs/design/site-single-page.md`**（2026-09-21 简化：官网是
 **一个页面**，只讲 是什么 / 怎么安装 / 核心特点 / 未来的计划）。它取代了
-2026-09-20 的 28 页重构（`docs/design/site-rebuild/` 与 `docs/design/site.md`
-已降级为历史存档，**不要照着它们新建页面**）。一条命令验收：
+2026-09-20 的 28 页重构（**已归档** ⇒ `docs/archive/site-rebuild-2026-09-26/`，
+含 `site.md.gz`；**不要照着它们新建页面** ✗）。一条命令验收：
 
 ```bash
 python3 scripts/check-site.py            # 10 项：结构 + 链接 + 版本 + 元数据 + 体积 + 已发布版本一致
@@ -30,8 +30,8 @@ python3 scripts/check-site.py --browser  # 额外跑真 Chrome（资源零 404 +
 **站点写的是「已发布版本」的事实。** 本仓库常有并行开发，`crates/` 与 `courses/`
 的未提交改动会让 `scripts/soko` 量到**未发布代码**（它优先解析仓库构建）。
 量内核行为前先钉发布产物，或确认 `git status --short crates/ courses/` 干净 ——
-详见 `docs/design/site-single-page.md` §4 与 `docs/design/site-rebuild/STATE.md` §5
-（后者是那批"实测与文档不符"的原始清单，仍然有效）。
+详见 `docs/design/site-single-page.md` §4 与 `docs/archive/site-rebuild-2026-09-26/STATE.md.gz` §5
+（后者是"实测与文档不符"的原始清单，仍然有效 ✓；`gunzip -c … | less` ✓）。
 
 **第二大课（卷 I 集合论）已建在 `courses/set-theory/`**：入口
 `courses/set-theory/README.md`；写课程内容前先读**硬规则 10**（课程标准库三层分界，
@@ -352,6 +352,13 @@ CI 的第 15 个 job ✓（**快层** ✓）：**每次 rust 改动的 push** �
 
 - 落 commit 前更新 `STATUS.md`（只保留最近 3 轮，旧轮归档
   `docs/STATUS-ARCHIVE.md`）；
+- **文档预算**（用户 2026-09-26：「文档太重了，还没实现多少东西文档先爆炸了」）：
+  `python3 scripts/docs-lint.py`（已进 `scripts/soko gate` 与 CI）—— 活文档 ≤3.0 MB ·
+  单文件 ≤2000 行 · 入口文件 ≤800 行 · 新设计文档 ≤150 行（**既有按
+  `scripts/docs-budget.json` 冻结：只许减不许增**）· `docs/**` 禁 `.tmp`/`.tmpdir` ·
+  **归档必须被 `docs/archive/README.md` 点名**（归档≠销毁）。**设计先行只写契约不写过程**
+  （过程进 commit message 与 `STATUS.md`）；要放宽预算 ⇒ **手改那份 JSON**（评审可见）。
+  设计与判据：`docs/design/docs-diet.md`。
 - 用户新要求追加进 `REQUIREMENTS.md` §9 并注明日期（冲突以该文件为准）；
 - 设计先行：新功能先写设计进 `docs/`，再动手；多用 subagent 并行调研。
 - **VS Code + skills 同步**：任何用户可见改动（命令/键位/视图/反馈/语法/协议/发布形态）

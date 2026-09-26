@@ -10,7 +10,7 @@
 为什么是 tag 而不是 `Cargo.toml`：站点写的是**已发布版本的事实**。本仓库
 常有并行开发，`Cargo.toml` 会在 tag 之前就 bump 到下一个版本；照抄它就会
 写出一个"没有 tag、没有产物、没有下载 URL"的版本号（2026-09-20 实测踩过，
-详见 `docs/design/site-rebuild/STATE.md` §5 与 `#13`）。
+详见 `docs/archive/site-rebuild-2026-09-26/STATE.md.gz` §5 与 `#13`）。
 
 用法：
 

@@ -66,6 +66,12 @@ description: Develop and extend the sokonanoda-lang teaching compiler stack (Rus
 - **模块化**：任何文件接近 ~500 行即拆分；公开 API 用 re-export 保持稳定；
 - **交接友好**：落 commit 前先更新 `STATUS.md`；用户新要求追加进
   `REQUIREMENTS.md` §9 并注明日期，冲突时以该文件为准。
+- **文档预算**（用户 2026-09-26：「文档太重了」）：`python3 scripts/docs-lint.py`
+  —— 活文档 ≤3.0 MB · 单文件 ≤2000 行 · **入口文件 ≤800 行** · **新设计文档 ≤150 行**
+  （既有按 `scripts/docs-budget.json` **冻结：只许减不许增**）· `docs/**` 禁
+  `.tmp`/`.tmpdir` · **归档必须被 `docs/archive/README.md` 点名**（归档≠销毁）。
+  **设计先行只写契约不写过程**（过程进 commit message 与 `STATUS.md`）；
+  要放宽预算 ⇒ 手改那份 JSON（评审可见）。设计与判据：`docs/design/docs-diet.md`。
 - **性能例行化**：动编译/项目/LSP 路径后跑 `scripts/perf-ledger.sh`
   （分阶段 `PERFJSON` → `docs/perf/ledger.jsonl`，提交这份记录）；口径与阈值
   原则见 `docs/PERF.md`「项目层与编辑器宿主」。扩展有独立的宿主层行为测试

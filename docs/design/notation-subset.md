@@ -31,7 +31,7 @@
   今天的行为是**明确拒绝**（`InvalidParams`）✓ —— 安全且诚实 ✓，
   由 `a_notation_symbol_does_not_resolve_to_the_enclosing_binder` 钉住 ✓。
 
-## 重载的落点：一个 `Location` 还是 N 个（T-D23 的落地决定，2026-09-24）## 重载的落点：一个 `Location` 还是 N 个（T-D23 的落地决定，2026-09-24）
+## 重载的落点：一个 `Location` 还是 N 个（T-D23 的落地决定，2026-09-24）
 
 **问题**：同一个符号在**多个模块**里声明（或同一目标有多个符号），`definition`
 该给一个落点还是全部？
