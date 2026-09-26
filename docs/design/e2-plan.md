@@ -2729,7 +2729,19 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     报告里只有 `notations: Vec<NotationDecl>` ✓，而 `DisplayNotations` 需要 arity ✓；
     `ty_text`/`val_text` 只覆盖**整类型** ✓，`peel_pi_layers` 剥出的 `domain`/`codomain`
     **子项**没有副本 ✗）⇒ 先 B 后 A ✓。**不许**在 LSP 重建 arity ✗（那是第五套实现 ✓，守卫会抓 ✓）。
-- [ ] `T-U12` **面级 sweep 判据**（用户要求 ✓）—— **进行中** ⏳
+- [x] `T-U12` **面级 sweep 判据**（用户要求 ✓）—— **完成** ✓（**五个面都有处置** ✓）
+  - **面 #1 ✅**（已落地 ✓）· **面 #4（状态栏）/ #5（项目树）⇒ ③ 不判** ✓（round 145 **实测** ✓）
+  - **面 #3（hover）✅** ✓：front 侧 `hover_text_is_folded_like_the_lsp_does` ✓（round 166 ✓）
+    + **e2e 侧补上** ✓（`extension.test.js` 的 "hover 的类型文本折成记法" ✓ ·
+    **夹具含 `infix:50 " ⊆ " => Set.subset`** ✓ · **断言含 `⊆` 且不含 `Set.subset `** ✓ ·
+    **test 总数 27 → 28** ✓）；
+  - **面 #2（诊断）⇒ ③ 不判** ✓✓（**理由已在 rounds 151–155 取证** ✓）：
+    **探针原文** ✓：`elab-notation-no-candidate` 的消息里**只有 `Prop`** ✗
+    （"`Set.mem` 的结果类型是 `Prop`；`Set.subset` 的结果类型是 `Prop`" ✓）
+    ⇒ ⇒ **要折的那个点形式根本不在消息里** ✗ ⇒ **关掉折叠也照样绿** ✗ ⇒ **咬不住** ✓
+    **⇒ 而更一般的判据（round 151 收窄 ✓）**：**只有输入是"内核 pp 文本"的才可能咬** ✓
+    —— **写判据前先问"这条消息里被折的那段，源里写的是点形式吗？"** ✗
+    （**源里就是记法 ⇒ 永远咬不住** ✓，**别浪费两轮** ✓）。
   - **✅ 面 #3 判据已落地并验证咬得住**（round 166 ✓）
     `hover_text_is_folded_like_the_lsp_does`（`crates/front/src/query/tests.rs` ✓）——
     走的是**与 LSP 同一条入口** ✓（`crate::compile::fold_for_display` ✓ =
