@@ -2220,13 +2220,20 @@ fn try_implicit_application<'a>(
         Expr::Ident { name, .. } | Expr::UniverseApp { name, .. } => name.as_str(),
         _ => return Ok(None),
     };
-    // **必须用"解析后的规范名"查签名表**（B3 的真 bug，2026-09-26 实测）：
-    // `namespace Set` 里写 `subset B A` 时 AST 上是**裸名** `subset`，而签名表按
-    // **规范名** `Set.subset` 建 ⇒ 直接拿裸名查**永远查不到** ⇒ 隐式插入整条不触发 ✗
-    // （5 行最小复现：`namespace Foo` + `def subset {α : Type} …` +
-    //  `def powerset … := fun (B : Foo α) => subset B A` ⇒
-    //  `类型不匹配：期望 Sort(1)，实际是 (Foo.[] $2)`；**去掉 namespace 就好** ✓）。
-    // 解析不出来的名字（真未定义）⇒ 交回老路，让它照旧报 `unknown identifier` ✓。
+    // ⚠ **已知缺口 G-42**（2026-09-26 实测）：这里**应该**用**解析后的规范名**
+    // 查签名表 —— `namespace Set` 里写 `subset B A` 时 AST 上是**裸名** `subset`，
+    // 而签名表按**规范名** `Set.subset` 建 ⇒ 拿裸名查**永远查不到** ⇒ 隐式插入
+    // 整条不触发 ✗（5 行最小复现见 `docs/gaps/repro/G42-*.sh`；**去掉 namespace
+    // 就好**，这正是它躲过所有既有测试的原因 ✓）。
+    //
+    // **为什么还没改**：显然的改法（先 `resolve_known`）**修好 G-42 却回归**
+    // `#check some Nat`（`Nat -> Option Nat` ⇒ `Option Type 0` ✗，撞红既有
+    // `parameterized_option_checks_and_derives_recursor`）。两者是**同一个洞**：
+    // 下面 `:2260` 那条"实参个数 > 显式层数 ⇒ 当成旧写法（隐式位也逐位写了）"的
+    // 判据，**分不清**"隐式位也写了"（`Eq.symm α a b h`）与"把结果函数又应用了
+    // 一次"（`Set.univ x`、`some Nat`）—— 一旦钩子真的被触发，这个歧义就暴露 ✓。
+    // ⇒ 修 G-42 必须**同时**给求解器加"富余实参应用到结果类型"那一档（路线③），
+    // 判据是**两条一起绿**：本文件的 Option 测试 + G-42 的复现件 ✓。
     let head_name = raw_head;
 
     let declared = match known.get(head_name) {
