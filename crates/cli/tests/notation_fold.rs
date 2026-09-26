@@ -297,6 +297,89 @@ fn source_rendered_surfaces_ignore_the_fold_switch() {
     let _ = std::fs::remove_file(&path);
 }
 
+/// 洞的期望类型画布（A0 的"立判据"组，2026-09-26 T-N16）。
+///
+/// 它同时踩到**两条路**：记法符号（`∈`/`↔`）来自**源级渲染**（记法写在源里），
+/// 而箭头来自 `Set.ext` 的签名 ⇒ 洞的期望类型是"源级渲染"的正身 ✓。
+const HOLE_CANVAS: &str = "\
+def Set (α : Type) : Type := α -> Prop
+def Set.mem (α : Type) (a : α) (A : Set α) : Prop := A a
+infix:50 \" ∈ \" => Set.mem
+def Set.subset (α : Type) (A B : Set α) : Prop := forall (x : α), A x -> B x
+infix:50 \" ⊆ \" => Set.subset
+axiom Set.ext (α : Type) (A B : Set α) : (∀ (x : α), x ∈ A ↔ x ∈ B) -> A = B
+
+theorem hole_surface (α : Type) (A B : Set α) : A ⊆ B -> A = B :=
+  Set.ext α A B sorry
+";
+
+/// **A0 的最后一格**：洞的期望类型（`sub_goals[].ty`）。
+///
+/// 这 9 处的产物分两路走：
+/// * **显示副本**（wire 的 `SubGoalInfo.ty` + LSP hover 的「此处 `sorry` 的期望
+///   类型」）⇒ **必须过唯一接口** ✓ —— 它以前是 `sub.ty.clone()` 的**直通**
+///   （用户看到 `(x : α) -> …` 这种混合形态 ✗），2026-09-26 改成折一份克隆 ✓；
+/// * **真相层**（`DeclState.sub_goals[].ty`）⇒ **一个字节都不许折** ✗ ——
+///   `suggest.rs::hole_goal_text` 把它当 `OpenGoalSpec.ty` **回读**去算
+///   exact/rfl 建议，折了就是**改判定**（内核红线）。
+///
+/// 本判据钉住第一路（开关两态必须不同、关掉必须回到点形式）；第二路由
+/// `crates/front/src/compile/tests.rs::hole_expected_type_is_judge_input_and_stays_raw`
+/// 直接钉真相字段本身 ✓（比"`grade --json` 逐字节相同"更直接 —— 后者在
+/// 建议是**按需**算的前提下碰不到这个字段）。
+#[test]
+fn hole_expected_types_fold_on_the_display_copy() {
+    let path = std::env::temp_dir().join(format!(
+        "sokonanoda-hole-surface-{}-{}.sokonanoda",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::write(&path, HOLE_CANVAS).expect("write hole canvas");
+    let holes_ty = |fold: bool| -> String {
+        let (value, code) = query_json(
+            &["holes", "--file", path.to_str().expect("utf-8 path")],
+            fold,
+        );
+        assert_eq!(code, 0, "query holes must succeed: {value}");
+        value["data"]["holes"][0]["ty"]
+            .as_str()
+            .unwrap_or_else(|| panic!("洞必须有期望类型：{value}"))
+            .to_string()
+    };
+    let (on, off) = (holes_ty(true), holes_ty(false));
+    assert!(
+        on.contains('→') && !on.contains("->"),
+        "洞的期望类型是**显示副本** ⇒ 箭头必须是 `→`（A1 的别名归一化）：{on}"
+    );
+    assert!(
+        off.contains("->") && !off.contains('→'),
+        "关掉折叠后必须回到 ASCII 点形式：{off}"
+    );
+    assert!(
+        on.contains('∈') && on.contains('↔') && off.contains('∈') && off.contains('↔'),
+        "记法符号来自**源文本**，开关不该动它们：\n开 {on}\n关 {off}"
+    );
+    assert_ne!(
+        on, off,
+        "开关必须真的改变洞的期望类型（以前是直通 ⇒ 两态相同）"
+    );
+    // 判定侧：`grade --json` 两态逐字节相同（与"最重要的一条"同口径）。
+    let (code_on, grade_on) = run(
+        &["grade", "--json", path.to_str().expect("utf-8 path")],
+        true,
+    );
+    let (code_off, grade_off) = run(
+        &["grade", "--json", path.to_str().expect("utf-8 path")],
+        false,
+    );
+    assert_eq!(code_on, code_off, "开关不该改判卷退出码");
+    assert_eq!(
+        grade_on, grade_off,
+        "折叠只许动展示副本：判卷事件流必须逐字节相同"
+    );
+    let _ = std::fs::remove_file(&path);
+}
+
 /// **最重要的一条**：开关只许动**展示副本**，判定必须一个字节不变。
 ///
 /// 折叠误伤判定输入的后果是静默的——`apply` 的子目标回读会失败、声明变红，

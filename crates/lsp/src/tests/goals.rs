@@ -204,9 +204,16 @@ async fn goals_request_probes_preceding_hole_penetration() {
     let sub_goals = decl["sub_goals"].as_array().expect("sub_goals array");
     assert_eq!(sub_goals.len(), 2, "{result:?}");
     assert_eq!(sub_goals[0]["ty"], "Prop");
+    // **A0 / T-N13（2026-09-26）**：wire 的 `sub_goals[].ty` 是**显示副本**
+    // ⇒ 过唯一接口 ✓（实测 `Not` 折成 `¬`）。**probe 这件事本身没变**：
+    // 这一条钉的仍是"第二个洞的类型由内核探针填出来"（`null` ⇒ 有文本 ✓），
+    // 只是填出来的那份**给用户看的克隆**现在折了 ✓。
+    // ⚠ 真相层（`DeclState.sub_goals[].ty`）**不折** —— `suggest.rs` 回读它算
+    // 建议 ⇒ 那是判定输入，由
+    // `crates/front/src/compile/tests.rs::hole_expected_type_is_judge_input_and_stays_raw` 钉住 ✓。
     assert_eq!(
-        sub_goals[1]["ty"], "Not _h0",
-        "the second hole's expected type comes from the kernel probe"
+        sub_goals[1]["ty"], "\u{ac} _h0",
+        "the second hole's expected type comes from the kernel probe（显示副本已折记法）"
     );
     // 契约不变：客户端不得文本扫洞——id 仍在 holes 里，位置对齐。
     assert_eq!(decl["holes"][1]["id"], "t:1");

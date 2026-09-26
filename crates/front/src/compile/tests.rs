@@ -8299,3 +8299,62 @@ fn prelude_source_and_its_span_table_agree() {
         "无源文字的名字必须正好是 Nat/Bool 家族（手搓 AST，今天确实没有定义位置）"
     );
 }
+
+/// **A0 的"立判据"组**（T-N16，2026-09-26）：洞的期望类型（`sub_goals[].ty`）
+/// 是**判定输入** ⇒ 真相字段**一个字节都不许折** ✗。
+///
+/// 为什么：`suggest.rs::hole_goal_text` 把它当 `OpenGoalSpec.ty` **回读**去算
+/// exact/rfl 建议 —— 折了就是**改判定**（内核红线）。
+///
+/// ⚠ 这条判据**必须直接读真相字段**：显示副本（wire 的 `SubGoalInfo.ty` / LSP
+/// hover 的「此处 `sorry` 的期望类型」）是**另做的克隆**、**已经折了** ✓
+/// ⇒ `grade --json` 的"两态逐字节相同"在"建议**按需**算"的前提下**碰不到**
+/// 这个字段，拿它当判据是**咬不住的守卫** ✗（本仓的纪律：守卫必须能咬住已知 bug）。
+///
+/// **判据断言的是字段本身、不是某一条路** ⇒ 两条产出路（源级 `instantiate_binder_type`
+/// 与请求期内核探针 `probe_arg_type`）**任何一条**被折都会判红 ✓
+/// （本夹具走源级那条 —— 实测它的 `ty` 由 `instantiate_binder_type` 给出；
+/// 探针那条只在源级算不出时才填，本条判据不依赖它也能咬住 ✓）。
+///
+/// **反向验证**：在 `goals.rs` 的 `instantiate_binder_type` 产出处把 `->` 换成 `→`
+/// ⇒ 当场判红（失败信息就是折过的那串 ✓）；还原 ⇒ 绿 ✓。
+#[test]
+fn hole_expected_type_is_judge_input_and_stays_raw() {
+    let src = "\
+def Set (\u{3b1} : Type) : Type := \u{3b1} -> Prop\n\
+def Set.mem (\u{3b1} : Type) (a : \u{3b1}) (A : Set \u{3b1}) : Prop := A a\n\
+infix:50 \" \u{2208} \" => Set.mem\n\
+def Set.subset (\u{3b1} : Type) (A B : Set \u{3b1}) : Prop := forall (x : \u{3b1}), A x -> B x\n\
+infix:50 \" \u{2286} \" => Set.subset\n\
+axiom Set.ext (\u{3b1} : Type) (A B : Set \u{3b1}) : (\u{2200} (x : \u{3b1}), x \u{2208} A \u{2194} x \u{2208} B) -> A = B\n\
+theorem hole_surface (\u{3b1} : Type) (A B : Set \u{3b1}) : A \u{2286} B -> A = B :=\n\
+  Set.ext \u{3b1} A B sorry\n";
+    let mut doc = crate::query::QueryDoc::new();
+    doc.set_text(src, 1, None);
+    let report = doc.probed_report();
+    let decl = report
+        .decls
+        .iter()
+        .find(|d| d.name.as_deref() == Some("hole_surface"))
+        .unwrap_or_else(|| panic!("`hole_surface` 必须在报告里：{:?}", report.decls.len()));
+    let raw = decl
+        .sub_goals
+        .first()
+        .and_then(|s| s.ty.as_deref())
+        .unwrap_or_else(|| panic!("洞必须有期望类型（含探针）：{:?}", decl.sub_goals));
+    assert!(
+        !raw.contains('\u{2192}'),
+        "**真相字段不许做显示归一化**（`suggest.rs` 回读它算建议 ⇒ 折了就是改判定）：{raw}"
+    );
+    assert!(
+        raw.contains("->"),
+        "真相字段要保持**源级点形式**的箭头（它是 `render_expr` 的产物）：{raw}"
+    );
+    // **对照组**：同一个洞、同一份源 —— **显示副本必须折** ✓
+    //（两条一起看才说明"折的是克隆、不是真相字段"）。
+    let folded = doc.fold_display(raw);
+    assert!(
+        folded.contains('\u{2192}') && !folded.contains("->"),
+        "显示副本必须折成 `\u{2192}`（A0/A1）：{folded}"
+    );
+}

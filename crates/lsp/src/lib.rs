@@ -1698,10 +1698,16 @@ impl LanguageServer for Backend {
                         .sub_goals
                         .iter()
                         .find(|s| s.span.start.offset <= offset && offset <= s.span.end.offset);
+                    // **显示副本**（A0，2026-09-26）：报告里那份
+                    //（`sub_goals[].ty`）是**判定输入**（`suggest.rs` 回读它算建议）
+                    // ⇒ 这里折的是**给用户看的那一份克隆** ✓（与 wire 同源 ✓）。
+                    let hole_ty_display = hole_ty
+                        .and_then(|sg| sg.ty.as_deref())
+                        .map(|t| doc.query().fold_display(t));
                     match (&d.goal, hole_ty) {
                         (Some(goal), Some(sg)) if sg.ty.is_some() => value.push_str(&format!(
                             "\n此处 `sorry` 的期望类型：\n{}\n\n剩余目标：\n{}",
-                            code_block(sg.ty.as_deref().unwrap_or_default()),
+                            code_block(hole_ty_display.as_deref().unwrap_or_default()),
                             goal_block(&decls, &d.binders, goal)
                         )),
                         (Some(goal), _) => {

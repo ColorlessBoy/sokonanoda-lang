@@ -917,12 +917,17 @@ impl QueryDoc {
                         Vec::new()
                     },
                     sub_goals: if open {
+                        // **显示副本**（A0，2026-09-26）：洞的期望类型在 LSP hover
+                        // 上给用户看 ⇒ 过唯一接口 ✓。真相层那份
+                        // （`DeclState.sub_goals[].ty`）**一个字节都不折** ——
+                        // `suggest.rs` 会回读它算 exact/rfl 建议 ✗。这里折的是
+                        // **wire 上那份克隆** ✓。
                         d.sub_goals
                             .iter()
                             .map(|sub| SubGoalInfo {
                                 start: sub.span.start.offset,
                                 end: sub.span.end.offset,
-                                ty: sub.ty.clone(),
+                                ty: sub.ty.as_deref().map(|t| self.display.fold(t)),
                             })
                             .collect()
                     } else {
@@ -934,6 +939,17 @@ impl QueryDoc {
                 }
             })
             .collect())
+    }
+
+    /// **显示副本**：把一段**源级渲染**文本过唯一接口（A0 / A1，2026-09-26）。
+    ///
+    /// ⚠ **判定的输入绝不许走这里**：`DeclState.sub_goals[].ty` 被
+    /// `suggest.rs::hole_goal_text` 当 `OpenGoalSpec.ty` **回读**去算 exact/rfl
+    /// 建议 ⇒ 那是**判定输入**，折了就是改判定（内核红线 ✗）。
+    /// 本方法只给"**另做一份克隆给用户看**"的调用方用（wire 的 `SubGoalInfo.ty`、
+    /// LSP hover 的「此处 `sorry` 的期望类型」）✓。
+    pub fn fold_display(&self, text: &str) -> String {
+        self.display.fold(text)
     }
 
     /// 请求期内核探针后的报告：只补开放练习里 `sub_goals[i].ty == None` 的项

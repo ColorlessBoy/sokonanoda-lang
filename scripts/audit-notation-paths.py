@@ -49,7 +49,7 @@ WHITELIST = {
     "crates/front/src/display.rs",
     "crates/front/src/proof.rs",
     # ── **已逐条判过 ③（写台账不做）的组**（2026-09-25 round 171 ✓）──────────────
-    # 为什么放进白名单 ✓：基线是**棘轮** ✓ —— 它记的是"**待迁移**" ✓；
+    # 为什么放进白名单 ✓：基线是**棘轮** ✓ —— 它记的是"**还没核实的绕过**" ✓；
     # 而 ③ 的条目**永远不会迁** ✗ ⇒ 留在里面会让数字**失去意义** ✗
     # （分不清"还没做"与"已判不动" ✓）。这四组都已在
     # `docs/design/duplication-audit.md` 里**逐条**给过结论 ✓：
@@ -214,14 +214,16 @@ def main(argv: list[str]) -> int:
                          ensure_ascii=False))
     elif new_hits:
         print(f"notation-paths: **新增** {len(new_hits)} 处绕过唯一记法接口 ✗"
-              f"（另有基线内 {len(hits) - len(new_hits)} 处待迁移 ✓；扫了 {len(files)} 个 .rs）")
+              f"（另有基线内 {len(hits) - len(new_hits)} 处**已核实** ✓；扫了 {len(files)} 个 .rs）")
         for h in new_hits[:20]:
             print(f"  {h['file']}:{h['line']}  {h['call']}  ⇒ {h['why']}")
         if len(new_hits) > 20:
             print(f"  … 其余 {len(new_hits) - 20} 处见 --json ✓")
     else:
         print(f"notation-paths: OK —— 没有**新增**绕过 ✓"
-              f"（基线内 {len(hits)} 处待迁移，见 scripts/notation-paths-baseline.txt ✓）")
+              f"（基线内 {len(hits)} 处**已逐条核实**：迁移 9 · 立判据 19 · 台账不做 40"
+              f" —— 见 docs/design/notation-paths-audit.md ✓；"
+              f"**59 是地板**，再降要改记账口径，不是再迁几处 ✓）")
     return 1 if new_hits else 0
 
 
