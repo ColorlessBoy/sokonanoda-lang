@@ -2707,7 +2707,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
   ③ `scripts/**`+`editor/vscode/**`（取文件、版本解析、判红约定、渲染取值 ✓）。
   每条结论必须带 **file:line 或可复跑命令** ✓；**产出验证后才并入** ✓。
   判据：审计报告进 `docs/design/duplication-audit.md` ✓（含"风险排序 + 建议唯一归属 + 可执行判据"✓）。
-- [ ] `T-U11` **77 处绕过逐条收口**（用户 2026-09-25 要求 ✓）：硬规则 = **凡产出用户可见
+- [x] `T-U11` **77 处绕过逐条收口**（用户 2026-09-25 要求 ✓）：硬规则 = **凡产出用户可见
   文本的（LSP / hover / 诊断 / 状态栏 / 项目树）必须迁移唯一接口或补"必须折叠"判据** ✓
   （不许"写台账不做"糊过去 ✗）。**优先**：`crates/lsp/src/lib.rs` 的 **5 处**
   （`half_expression_goals_hover` :1332/1340/1359/1364/1376 ✓）与 `compile/elab.rs`
@@ -2910,7 +2910,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （第一次注入打在 `fold` 上"看起来不咬" ✓ 就是这个原因 ✓）。：hover / goal / 诊断 / 状态栏 / 项目树
   各造含记法类型 ✓，断言**无点形式** ✓；**反向验证**：回退 T-U4/T-U5 的折叠必须**判红** ✓
   （"咬不住的守卫等于没有" ✓）。
-- [ ] `T-U10` **审计结论收口**：对每一项或"立刻做"或"立守卫"或"写进台账（不做，说明理由）"✓；
+- [x] `T-U10` **审计结论收口**：对每一项或"立刻做"或"立守卫"或"写进台账（不做，说明理由）"✓；
   新增守卫一律**棘轮化**（基线 + 只拦新增 ✓，照 `audit-notation-paths.py` 的先例 ✓）。
 - [x] `T-U8` **阶段收尾**：`docs/architecture.md` 写明**唯一接口 + 四套实现的退役** ✓；
   `cargo test --workspace` + `scripts/soko gate` 全绿 ✓；**一次 push** → CI 绿 → bump → auto-tag →
