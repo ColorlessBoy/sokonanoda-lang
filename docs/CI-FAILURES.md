@@ -1723,3 +1723,29 @@ bash /tmp/ci-wait-and-collect.sh    # gh run watch --exit-status && 读 perf-gat
 **预防** ✓：**改 workflow 之后，验证命令只能是 `python3 scripts/ci-yml-lint.py`** ✓ ——
 **不要再用 `yaml.safe_load` 当门** ✗（**它连重复键都不报** ✗）。
 
+## 2026-09-26 · **`status-lint` 挂在过滤过的 job 里 ⇒ 只改 `STATUS.md` 时它根本不跑** ✗
+
+**症状** ✓：我把 `status-lint.py` 接进 `gates-fast` ✗ ⇒ 而 `gates-fast` 由 **`rust` 过滤器**驱动 ✓
+⇒ **只改 `STATUS.md` 的推送不碰 rust 路径** ✗ ⇒ **`gates-fast` 被 `skipped`** ✗
+⇒ **lint 永远不跑** ✗（**实测** ✓：`675491b` 只改 `docs/` + `STATUS.md` ⇒
+那一轮 **15 个 job 里只有 3 个绿、其余全 `skipped`** ✓，含 `gates-fast` ✓）。
+
+**⇒ 为什么这条最讽刺** ✗✓：**"只改 `STATUS.md`"恰恰是最常发生的情况** ✓
+—— 每轮收尾都要改它 ✓ ⇒ **我加的那条守卫，在最需要它的场景下不跑** ✗
+（**"咬不住的守卫等于没有"** ✓ 的又一个变体：**"不跑的守卫等于没有"** ✗）。
+
+**修复** ✓：**独立的 `status-lint` job** ✓，**不设 `if:`、不加过滤器** ✓ ——
+它只要 **~1 秒** ✓，所以**永远跑** ✓（**顺带避开"skipped 的依赖会拖垮 `auto-tag`"** ✗，
+见 `changes` job 的注释 ✓）。同时**从 `gates-fast` 里撤掉那一步** ✓（**避免两处重复** ✓）。
+
+**⇒ 顺带暴露的第二条** ✓：**`675491b` 那一轮 `success` 是"什么都没跑"的 success** ✗
+（**3/15 绿、其余 skipped** ✓）—— 与 2026-09-25 记的那条**同一个形态** ✓：
+**`paths-filter` 看的是"这一推的 before..after"** ✗，**不是仓库里有什么** ✗。
+
+**⇒ 第三条（我自己又犯的）** ✗：**在 run 在飞的时候又推了一次** ✗
+⇒ 顶层 `concurrency: cancel-in-progress: true` **把上一轮掐了** ✗
+（`36207207425` ⇒ **`cancelled`** ✓，**6/27 绿** ✓）⇒ ⇒
+**于是"验证 ci.yml 修复"的那一轮永远没跑完** ✗ ——
+**要验证 `.github/**` 的改动，就得让那一推带 `.github/**` 路径** ✓，
+**而且推完要等它跑完再推下一次** ✓。
+
