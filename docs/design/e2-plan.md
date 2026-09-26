@@ -118,6 +118,22 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-E3` **`STATUS.md` 与 `HANDOVER.md` 更新** ✓
 - [x] `T-E4` **阶段 E 收尾**：bump **`0.72.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 性能回归进 CI + 文档/技能收口
+#### 批次 N：记法 × 隐式参数 × 产品交互（2026-09-26 用户专项）
+- [x] `T-N1` **A1 修**：`fold` 折 `->` → `→`（`Expr::Arrow` + 匿名 binder `Forall`）+ **副发现**：`print_back` 的 `base` 反推对"整条表达式带括号"是错的 ⇒ 改用 `proof::CHECK_PREFIX`
+- [x] `T-N2` **A2 修**：`Set.singleton α a` → `{a}` / `Set.pair α a b` → `{a, b}`（`fold_spine` 里照 `forall` 先例单独认内建语法）
+- [ ] `T-N3` **A0 取证结论**：68 条基线逐条判过（迁移 9 / 立判据 19 / 台账不做 40，结论进 `docs/design/duplication-audit.md`）+ 修正设计文档 `notation-display.md`（`render_text`/`Rendered` 与 as-built 不符）
+- [ ] `T-N4` **A0 迁移**：`query::runs` 改走唯一接口 + `by.rs` 8 处用户可见诊断消息改 `fold_for_display` ⇒ `--rebless` 削基线
+- [ ] `T-N5` **A1/A2 真宿主 e2e**：`⊢` 后文本含 `→`、`{a}` 显示为 `{a}`、`runs` 拼接 == `text`
+- [ ] `T-N6` **A3**：`{a}` 的 goto-definition → `Set.singleton`（front hover 节点 + LSP definition）+ e2e
+- [ ] `T-N7` **A4 取证 + 路线**：prelude 可跳转（只读虚拟文档 + hover 文案），断链点 = `kernel_phase.rs` 的 `resolution` 回填
+- [ ] `T-N8` **A4 实现 + 判据**：prelude definition 返回真实位置 + e2e + 反向验证
+- [ ] `T-N9` **B0 取证**：IA-1 as-built 复核（签名表 / `try_implicit_application` / `@` / 错误码）与课程侧现状
+- [ ] `T-N10` **B1 判红**：R5 最小复现（`''`/`⁻¹'` 的 λ 操作数解不出前导类型参数）
+- [ ] `T-N11` **B1 修**：扩宽 `solve_prefix`（期望类型参与 + 逐层 deferral）
+- [ ] `T-N12` **B1 三件套判据**：正向（`flawed_equalities_refuted` 去标记后记法态）+ 反向（回退判红）+ 红线（全语料对拍 + 课程计数）
+- [ ] `T-N13` **B2**：课程库改隐式风格（`Set.image`/`Set.preimage` 一族）+ 调用点数量级下降
+- [ ] `T-N14` **B3**：记法路径改走隐式插入，补参 hack 收窄，`implicit_prefix == 0` 逐字节不变
+- [ ] `T-N15` **C 收尾**：台账 + 「看得见的变化」清单 + `REQUIREMENTS.md` §9（2026-09-26）+ VS Code/skills 同步
 ## 3. 风险与刹车点（每阶段都有一条"停下"的判据）
 
 | 阶段 | 刹车点 | 停下后做什么 |
@@ -377,3 +393,125 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 - [x] `T-U12` **面级 sweep 判据**（用户要求 ✓）—— **完成** ✓（**五个面都有处置** ✓）
 - [x] `T-U10` **审计结论收口**：对每一项或"立刻做"或"立守卫"或"写进台账（不做，说明理由）"✓；
 - [x] `T-U8` **阶段收尾**：`docs/architecture.md` 写明**唯一接口 + 四套实现的退役** ✓；
+
+---
+
+## 阶段 N —— **记法 × 隐式参数 × 产品交互**（2026-09-26 用户专项）
+
+> **用户原话**：「全面一点，专门针对 notation，产品交互。包括多来点隐式参数，让
+> notation 更直观」。⇒ 三条主线：**A** 记法铺到每一个用户可见面（唯一接口
+> `DisplayNotations`）、**B** 隐式实参（IA-2：扩宽求解 + 课程库隐式化 + 收窄补参
+> hack）、**C** 验收留档。**纪律**：每条先判红 → 一处一 commit → 自带判据 +
+> 反向验证；用户可见面必须有**真宿主 e2e**（`editor/vscode/src/test/extension.test.js`）。
+
+### T-N1 A1：`fold` 折 `->` → `→`（**用户报告第 1 条**）
+契约：`DisplayNotations::fold` 把内核 pp 的 ASCII `->` 折成 `→`；**只换那两个
+字节**（与 `forall` 关键字同一条"只有折过的 span 变"纪律）。两处都要认：
+`Expr::Arrow`（`α -> β`）与**匿名 binder 的 `Forall`**（源级 `(x : α) -> β`）。
+**副发现（同轮修）**：`print_back` 的 `base` 原来"反推"成
+`ast.span().start.offset - 前导空白`，而 parser 给带括号原子的 span **不含括号**
+⇒ 整条表达式被括号包住时（`(α -> β) -> γ`）`base` 偏大、`splice` 每次都切在字符
+中间 ⇒ **一个字节都不折**。改成用唯一源 `proof::CHECK_PREFIX`。
+判据：`crates/front/src/display.rs` 的 `arrows_fold_to_the_unicode_arrow`（含幂等）。
+
+### T-N2 A2：集合字面量折回 `{a}` / `{a, b}`（**用户报告第 2 条**）
+契约：`fold_spine` 里照 `forall` 先例单独认**内建语法**（`{a}` 不是记法声明，
+表里查不到）：`Set.singleton α a` → `Expr::SetLiteral{[a]}`、`Set.pair α a b` →
+`{[a, b]}`；**只有完全应用**才折（与记法同规则）。渲染复用既有的
+`render_expr(SetLiteral)`，不新增第二套括号/逗号规则。
+判据：`crates/front/src/display.rs` 的 `set_literals_fold_back_to_braces`。
+
+### T-N3 A0：68 条基线逐条结论 + 设计文档对齐 as-built
+契约：`scripts/notation-paths-baseline.txt` 的**每一条**都要有结论（迁移 / 立判据 /
+台账不做），带 `文件:行号` 证据链，写进 `docs/design/duplication-audit.md`；
+`docs/design/notation-display.md` 的接口形状必须与 as-built 一致（当前文档写着
+`render_text` / `Rendered` / `render(...).text`，而代码里 `render`/`fold` 返回
+`String`、`render_text` **不存在**、`DisplayNotations::runs` **零调用者** ⇒ 照文档
+写会编译不过）。
+判据：审计表 + `python3 scripts/plan.py check` 不漂移。
+
+### T-N4 A0：把**用户可见**的绕过迁到唯一接口，并削基线
+契约：`crates/front/src/query/mod.rs` 的 `runs()`（Infoview 的**每一个**目标/类型/
+假设着色，7 条 wire 字段都出自它）与 `crates/front/src/by.rs` 的 **8 处用户可见
+诊断消息**（`exact`/`have`/`apply`/`cases` 的报错，`prefix_src` 已在签名里 ⇒ 就地
+`fold_for_display(prefix_src, &render_expr(x))`，零签名改动）改走唯一接口。
+**修正既有审计**：`duplication-audit.md` 的 C 组把 `by.rs` 22 条全判成"判定侧"是
+错的（8 条是显示面）。
+判据：迁移后 `python3 scripts/audit-notation-paths.py --rebless` 基线**变短**；
+反向验证 = 把一处改回直调 ⇒ 守卫判红。
+
+### T-N5 A1/A2：真宿主 e2e
+契约：真 VS Code 里断言 Infoview 的 `⊢` 后文本（a）含 `→`（b）`runs` 拼接**逐字节
+等于** `text`；含 `{a}` 的声明在 Infoview/ty 面显示 `{a}`。
+判据：`editor/vscode/src/test/extension.test.js` 两条用例名入册 `docs/e2e/ledger.jsonl`。
+
+### T-N6 A3：`{a}` 的 goto-definition（**用户报告第 3 条**）
+契约：光标落在 `{a}` 上按 F12 ⇒ 跳到 `Set.singleton` 的**声明处**（跨文件到
+`courses/set-theory/lib/Set.sokonanoda`）。符号型记法（`∈`）的 goto 已有 e2e
+（`extension.test.js` 的 `go to definition on a notation symbol …`）⇒ 本条补的是
+**带操作数的括号记法**这一档。做法与符号记法同一条通道（front 的 hover 节点带
+`ResolvedTarget::Notation`/`Declaration` + LSP 的 `project_definition`）。
+判据：真宿主 e2e；反向验证 = 撤掉该分支 ⇒ 判红。
+
+### T-N7 A4 取证 + 路线（**用户报告第 4 条**）
+契约：查清 prelude 为什么跳不动（断链点 = `crates/front/src/compile/check/
+kernel_phase.rs` 的 `resolution` 回填只查用户文件的 `top_level_def_spans`），并在
+三条路线（物化成真文件 / 合成位置 / **只读虚拟文档**）里拍板一条。
+判据：断链点有 `文件:行号` 证据；路线写清改动面与风险。
+
+### T-N8 A4：prelude 可跳转
+契约：`Or` / `And` / `Iff` / `False` 等 prelude 名的 definition 返回**真实位置**
+（由 `top_level_def_spans(&parse(PRELUDE_*_SRC))` 算出的真 span，**不是文本比对**），
+指向**只读**虚拟文档；hover 说明"内置前奏 + 位置"。
+判据：三层各一条（front 真值表 / LSP wire 契约 / 真宿主 e2e）；**反向验证** =
+注掉 prelude 分支 ⇒ 三层同时红。**已知缺口**：`Nat`/`Bool` 家族 9 名没有源码常量
+（Rust AST 手搓）⇒ 要么补源码常量，要么明确记账。
+
+### T-N9 B0：IA-1 as-built 复核
+契约：不重新设计。核对 `docs/design/implicit-arguments.md` §9 的 as-built 与代码
+一致：签名表 `implicit_prefix`（`compile/elab.rs`、`compile/check/walk.rs`）、
+`compile/implicit.rs` 的 `telescope`/`leading_implicit`/`solve_prefix`、唯一钩子
+`try_implicit_application`（`Expr::App` 臂）、`@` 真语义、错误码
+`elab-implicit-argument-unsolved`；并复核课程侧 `Function.comp`/`Rel.comp` 现状。
+判据：每条 as-built 都能指到 `文件:行号`；不符的写进结论。
+
+### T-N10 B1 判红：R5 最小复现
+契约：先造出**判红**的最小复现——记法 `''` / `⁻¹'` 的操作数是 λ 或"类型标注写不出
+来"的形状时，`solve_prefix_args` 的路线 ① 拿不到实参类型 ⇒
+`elab-notation-argument-unsolved`（`courses/set-theory/units/unit12-synthesis.sokonanoda`
+的 `soko:notation-ok: R5` 标记就是这么来的）。复现件进
+`crates/cli/tests/notation.rs`（或 `implicit.rs` 单测）。
+判据：复现件在修复前**红**。
+
+### T-N11 B1 修：扩宽 `solve_prefix`
+契约：按设计 §3.1 把求解扩宽——(a) **期望类型**（bidirectional）参与、(b) 允许
+**推迟求解**（deferral）到上下文足够、(c) 诊断给"把参数写全"的可执行引导。
+**不猜、不搜索、不回溯、不引入元变量**（路线 C 的红线）。内核零改动。
+判据：T-N10 的复现件转绿 + `crates/front/src/compile/implicit.rs` 单测。
+
+### T-N12 B1 三件套判据
+契约：① **正向**——`flawed_equalities_refuted` 那一族在**删掉 `soko:notation-ok`
+标记**后自动记法化；② **反向**——回退该修复 ⇒ 立刻退化（判红）；③ **红线**——
+判定正确性不变（全语料逐字节对拍 + 课程计数 `check.py` 逐项不变）。
+判据：三条都要有可执行命令与输出。
+
+### T-N13 B2：课程库改隐式风格
+契约：`courses/set-theory/lib/Image.sokonanoda` 的 `Set.image`/`Set.preimage` 一族
+（及同族的 `Function.comp`/`Rel.comp`）签名改**隐式**前导类型参数；调用点不必再写
+全 `α β`。**口径**：与设计 §3.4 的护城河话术同轮改（`Set.mem a A` 从"被拒"变
+"通过"是**有意**的契约变更）。
+判据：课程文件里点名应用点**数量级下降**（给前后数字）+ 显示面呈记法态 + 课程
+计数与判定不变（`python3 courses/set-theory/tools/check.py`）。
+
+### T-N14 B3：记法路径改走隐式插入，收窄补参 hack
+契约：`elab_notation` 今天自己 `mk_const` + 补前导实参（绕过 `Expr::App` 的唯一
+钩子）⇒ 让它复用 `try_implicit_application` 的同一条机械；`notation_prefix_args` /
+`solve_prefix_args` 的调用点数量**降到 0**（给前后数字），
+`implicit_prefix == 0` 时行为**逐字节不变**（免费闸门仍在）。
+判据：N7 五元组相等契约（`crates/cli/tests/notation.rs`）仍绿 + 全语料对拍。
+
+### T-N15 C 收尾：台账 + 清单 + 需求登记
+契约：每条改动的数字进 `docs/perf/ledger.jsonl` 或对应台账；给一份**「看得见的
+变化」清单**（逐条对应用户报的 6 条 + 隐式参数，带 e2e 断言名）；登记
+`REQUIREMENTS.md` §9（日期 2026-09-26）；同轮同步 `editor/vscode/` 与 `skills/`。
+判据：`python3 scripts/docs-lint.py` + `python3 scripts/plan.py check` + 课程门禁。

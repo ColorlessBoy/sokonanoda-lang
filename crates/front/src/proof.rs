@@ -42,6 +42,16 @@ impl std::fmt::Display for ProofError {
     }
 }
 
+/// `parse_expr_text_with` 回读表达式时套在源文本前面的前缀（**唯一源**）。
+///
+/// 为什么要有这个名字（2026-09-26）：AST 的 span 是**带前缀解析**出来的，任何
+/// 要把 span 换算回原文本的地方（`display::print_back` 的 `splice`）都必须减掉
+/// 它。以前 `display.rs` 靠"根节点 span 减去前导空白"**反推**这个长度，而
+/// parser 给带括号原子的 span **不含括号** ⇒ 整条表达式被括号包住时反推出来的
+/// 偏移是错的（`(α -> β) -> γ` 一个字节都折不了）。前缀在这里定义一次，
+/// 换算方直接用它。
+pub(crate) const CHECK_PREFIX: &str = "#check ";
+
 pub fn parse_expr_text(text: &str) -> Result<Expr, ProofError> {
     parse_expr_text_with(text, &[])
 }
@@ -54,7 +64,7 @@ pub fn parse_expr_text_with(
     text: &str,
     inherited: &[crate::ast::NotationDecl],
 ) -> Result<Expr, ProofError> {
-    let file = crate::parser::parse_with_inherited(&format!("#check {text}"), inherited)
+    let file = crate::parser::parse_with_inherited(&format!("{CHECK_PREFIX}{text}"), inherited)
         .map_err(|e| ProofError::Parse(e.message))?;
     match file.commands.into_iter().next() {
         Some(Command::Check { expr, .. }) => Ok(expr),

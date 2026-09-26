@@ -3618,7 +3618,7 @@ fn decl_state_carries_kernel_rendered_signature() {
         .as_deref()
         .expect("axiom carries signature");
     assert!(
-        ty.contains("And a b") && ty.contains("forall") || ty.contains("->"),
+        ty.contains("And a b") && ty.contains("forall") || ty.contains("→"),
         "signature should be the kernel-rendered type: {ty}"
     );
     // 开放练习：ty_text 来自 elaborated type
@@ -3876,7 +3876,7 @@ fn partial_by_block_records_per_step_states() {
     // `query::tests::by_step_display_is_folded_but_the_judge_input_is_not`。
     let s0 = &d.by_steps[0];
     assert_eq!(s0.goals.len(), 1);
-    assert_eq!(s0.goals[0].ty, "a ∧ a -> a");
+    assert_eq!(s0.goals[0].ty, "a ∧ a → a");
     assert_eq!(s0.goals[0].binders.len(), 1);
     assert_eq!(s0.goals[0].binders[0].name, "a");
     assert_eq!(s0.goals[0].binders[0].ty, "Prop");
@@ -3930,7 +3930,7 @@ fn checked_by_block_records_closed_final_step() {
         .unwrap();
     assert_eq!(d.status, DeclStatus::Checked);
     assert_eq!(d.by_steps.len(), 3);
-    assert_eq!(d.by_steps[0].goals[0].ty, "a -> a");
+    assert_eq!(d.by_steps[0].goals[0].ty, "a → a");
     assert!(
         d.by_steps[2].goals.is_empty(),
         "all goals closed by `exact`"

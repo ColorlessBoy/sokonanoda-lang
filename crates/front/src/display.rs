@@ -154,12 +154,18 @@ pub fn print_back(text: &str, notations: &DisplayNotations) -> DisplayText {
         return DisplayText::new(text);
     };
     // `parse_expr_text_with` 解析的是 `"#check " + text` ⇒ AST 的 span 比 `text`
-    // 多一个前缀。**反推**这个偏移（而不是硬编码 `"#check ".len()`）：`text` 里
-    // 第一个非空白字符的位置就是表达式该在的位置。
-    let lead = text.len() - text.trim_start().len();
-    let Some(base) = ast.span().start.offset.checked_sub(lead) else {
-        return DisplayText::new(text);
-    };
+    // 多**那个前缀**。偏移量**只有一个源**：前缀常量自己（`proof::CHECK_PREFIX`）。
+    //
+    // **2026-09-26 修（A1 的副发现）**：这里原来"反推"成
+    // `ast.span().start.offset - lead`（`lead` = `text` 的前导空白），依据是
+    // "第一个非空白字符的位置就是表达式该在的位置"。**那条依据是错的**：
+    // parser 给「带括号的原子」的 span **不含括号**，所以整条表达式被括号包住时
+    // （`(α -> β) -> γ`、`(A ∪ B) -> C`）根节点 span 从**括号里面**开始 ⇒ 反推
+    // 出来的 `base` 比真前缀**大**，于是 `splice` 的每一次 `span - base` 都偏左，
+    // 落到字符中间 ⇒ `text.get(..)` 返回 `None` ⇒ **整条文本一个字节都不折**
+    // （实测：`(α -> β) -> γ` 折前折后一模一样）。这正是用户看到的"混合形态"
+    // 里那批带括号根节点的来源之一。
+    let base = crate::proof::CHECK_PREFIX.len();
     let mut edits: Vec<(Span, String)> = Vec::new();
     let _ = fold_collecting(ast, notations, &mut edits, text, base);
     if edits.is_empty() {
@@ -367,6 +373,18 @@ fn fold_collecting_inner(
         if !writes_forall {
             // 匿名 binder 的箭头写法（`(x : α) -> …`）：**不动它**，让子节点的
             // 编辑照常生效（`return` 出去会把它们一起吞掉）。
+            // **A1**：但那个 `->` 本身要折成 `→`（`forall` 分支折的是关键字，
+            // 这条折的是 binder 组之后的箭头）。
+            if let (Some(last), body) = (binders.last(), body) {
+                if let Some(tok) = arrow_token_between(
+                    src,
+                    base,
+                    last.span.end.offset,
+                    body.span().start.offset,
+                ) {
+                    edits.push((tok, "→".to_string()));
+                }
+            }
             return (expr, child_changed);
         }
         const KEYWORD: &str = "forall";
@@ -401,6 +419,28 @@ fn fold_collecting_inner(
         };
         return (folded, true);
     }
+    if let Expr::Arrow {
+        domain,
+        codomain,
+        span: _,
+    } = &expr
+    {
+        // **A1（2026-09-26 用户报告第 1 条）**：内核 pp 打的是 ASCII `->`，
+        // 而源里的 `→` 与它同义。不折它，Infoview 顶部就是**混合形态**
+        // （`∀ (α β γ : Type 0), (α -> β) -> …`）——`∀` 折了、`->` 没折。
+        // 折法是**只换 `->` 那两个字节**（与 `forall` 关键字同一条纪律：只有折过
+        // 的 span 变，别的逐字节不动）。`->` 自己的 span 不在 AST 里，所以按
+        // 「domain 结束 .. codomain 开始」这段空隙去找它。
+        if let Some(tok) = arrow_token_between(
+            src,
+            base,
+            domain.span().end.offset,
+            codomain.span().start.offset,
+        ) {
+            edits.push((tok, "→".to_string()));
+        }
+        return (expr, child_changed);
+    }
     if let Some(folded) = fold_spine(&expr, dn) {
         edits.push((folded.span(), crate::proof::render_expr(&folded)));
         return (folded, true);
@@ -412,6 +452,32 @@ fn fold_collecting_inner(
     (expr, child_changed)
 }
 
+/// 两个子节点之间的 `->` 记号（A1）。找不到（源里写的是 `→`，或者这一段根本
+/// 不是箭头——`∀ x, p` 的 `,`）⇒ `None`，**不猜、不动**。
+///
+/// `Expr::Arrow` 的 span 覆盖 `domain .. codomain`，`Expr::Forall`（`(x : α) -> β`
+/// 那条匿名 binder 形状）的 span 从 binder 组起、body 结束——两处的 `->` 都落在
+/// 「上一个子节点结束 .. 下一个子节点开始」这段空隙里。
+fn arrow_token_between(src: &str, base: usize, from: usize, to: usize) -> Option<Span> {
+    let start = from.checked_sub(base)?;
+    let end = to.checked_sub(base)?;
+    if start > end || end > src.len() {
+        return None;
+    }
+    let at = src.get(start..end)?.find("->")?;
+    let offset = from + at;
+    Some(Span::new(
+        crate::span::Pos {
+            offset,
+            ..crate::span::Pos::default()
+        },
+        crate::span::Pos {
+            offset: offset + 2,
+            ..crate::span::Pos::default()
+        },
+    ))
+}
+
 /// 这一层是不是一条记法实例？是就换成 [`Expr::Notation`]，否则 `None`。
 ///
 /// **第一刀只做二元 infix 族**（`Infix`/`Infixl`/`Infixr`）——一元前缀/后缀与
@@ -420,6 +486,14 @@ fn fold_collecting_inner(
 fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
     let (head, args) = crate::spine::spine_of(expr);
     let name = head_name(head)?;
+    // **集合字面量（A2，2026-09-26 用户报告第 2 条）**：`{a}` / `{a, b}` 是
+    // **内建语法**（`ast::Expr::SetLiteral`，展开成 `Set.singleton α a` /
+    // `Set.pair α a b`）——它**不是记法声明**，`dn.arity` 里查不到它，所以照
+    // `forall` 关键字那条先例单独认。判据与记法**同一条**：只有**完全应用**
+    // 才是那个形状（`Set.singleton α` 是部分应用 ⇒ 不折）。
+    if let Some(folded) = fold_set_literal(name, &args, expr.span()) {
+        return Some(folded);
+    }
     let arity = *dn.arity.get(name)?;
     // §3.2 硬规则：只有完全应用才是记法实例。
     if args.len() != arity {
@@ -466,6 +540,21 @@ fn fold_spine(expr: &Expr, dn: &DisplayNotations) -> Option<Expr> {
         // 折出来的节点是**渲染产物**，没有源里的符号 token ⇒ 退化成节点 span。
         symbol_span: expr.span(),
     })
+}
+
+/// 集合字面量的**点名展开** → [`Expr::SetLiteral`]（A2）。
+///
+/// `{a}` 的展开是 `Set.singleton α a`（`elab.rs` 的 `set_literal_*`），`{a, b}` 是
+/// `Set.pair α a b`；第一个实参是**元素类型**（展开时补上的前导参数）⇒ 丢掉。
+/// `render_expr(SetLiteral)` 本来就打成 `{a}` / `{a, b}` ✓，所以折出来的节点直接
+/// 复用**既有**渲染规则，不新增第二套括号/逗号规则。
+fn fold_set_literal(name: &str, args: &[&Expr], span: Span) -> Option<Expr> {
+    let elements: Vec<Expr> = match (name, args.len()) {
+        ("Set.singleton", 2) => vec![args[1].clone()],
+        ("Set.pair", 3) => vec![args[1].clone(), args[2].clone()],
+        _ => return None,
+    };
+    Some(Expr::SetLiteral { elements, span })
 }
 
 /// spine 的头是不是一个可以当记法目标的名字（`Ident` 或 `UniverseApp`）。
@@ -1079,6 +1168,62 @@ infixr:80 \" '' \" => Set.image\n";
         print_back(text, dn).as_display_str().to_string()
     }
 
+    /// **A1 判据**（2026-09-26 用户报告第 1 条）：内核 pp 的 `->` 必须折成 `→`。
+    ///
+    /// 证据：`courses/set-theory/.sokonanoda/compiled/*.json` 的 `ty_text` 里
+    /// **227 条**是混合形态（`∀ (α β γ : Type 0), (α -> β) -> …`）——`∀` 折了、
+    /// `->` 没折 ⇒ Infoview 顶部「目标」看起来"没记法化"。根因是
+    /// `fold_collecting_inner` 只处理了 `forall` **关键字**，`Expr::Arrow` 一个
+    /// 字节都没动。
+    #[test]
+    fn arrows_fold_to_the_unicode_arrow() {
+        let dn = notations(SET_LIB, SET_ARITY);
+        assert_eq!(fold_text("α -> β", &dn), "α → β");
+        assert_eq!(
+            fold_text("Set.mem α a A -> Set.mem α b B", &dn),
+            "a ∈ A → b ∈ B"
+        );
+        // 右结合链 + 左操作数是复合式（括号必须留着）
+        assert_eq!(fold_text("(α -> β) -> γ", &dn), "(α → β) → γ");
+        assert_eq!(fold_text("α -> β -> γ", &dn), "α → β → γ");
+        // 内核 pp 的 telescope 形态（A1 的原始证据形状）
+        assert_eq!(
+            fold_text(
+                "forall (α β γ : Type 0), (β -> γ) -> (α -> β) -> α -> γ",
+                &dn
+            ),
+            "∀ (α β γ : Type 0), (β → γ) → (α → β) → α → γ"
+        );
+        // 源级 `(x : α) -> β`（parser 给的是匿名 binder 的 `Forall`）
+        assert_eq!(fold_text("(x : α) -> β", &dn), "(x : α) → β");
+        // 幂等：折过的文本再折一次逐字节不变
+        let once = fold_text("forall (α : Type 0), α -> α", &dn);
+        assert_eq!(fold_text(&once, &dn), once);
+    }
+
+    /// **A2 判据**（2026-09-26 用户报告第 2 条）：集合字面量的**点名展开**必须折回
+    /// `{a}` / `{a, b}`。
+    ///
+    /// 证据：产物里是 `Set.singleton (Set Nat) (∅)`，而源里写的是 `{∅}` ⇒
+    /// Infoview/ty 面显示的是展开式。`{a}` 是**内建语法**（不是记法声明）⇒
+    /// `fold_spine` 查表查不到它，得照 `forall` 的先例单独给一条规则。
+    #[test]
+    fn set_literals_fold_back_to_braces() {
+        let dn = notations(SET_LIB, SET_ARITY);
+        assert_eq!(
+            fold_text("Set.singleton Nat zero", &dn),
+            "{zero}",
+            "一元集合字面量"
+        );
+        assert_eq!(
+            fold_text("Set.pair Nat zero one", &dn),
+            "{zero, one}",
+            "二元集合字面量"
+        );
+        // **部分应用不折**（与记法同一条硬规则：只有完全应用才是那个形状）
+        assert_eq!(fold_text("Set.singleton Nat", &dn), "Set.singleton Nat");
+    }
+
     #[test]
     fn folds_a_binary_infix_and_drops_the_leading_type_argument() {
         let dn = notations(SET_LIB, SET_ARITY);
@@ -1164,8 +1309,10 @@ infixr:80 \" '' \" => Set.image\n";
                 "forall (α : Type 0) (A B : Set α), Set.subset α A B -> Set.subset α B A",
                 &dn
             ),
-            "∀ (α : Type 0) (A B : Set α), A ⊆ B -> B ⊆ A",
-            "binder 分组与 `Type 0` 必须原样，只换记法"
+            // `->` 自 2026-09-26（A1）起**也是**被折的 span（`→`），所以它不再
+            // 属于"没折的部分"；binder 分组、`Type 0`、换行、缩进仍逐字节不动。
+            "∀ (α : Type 0) (A B : Set α), A ⊆ B → B ⊆ A",
+            "binder 分组与 `Type 0` 必须原样，只换记法与箭头"
         );
         // 折行与缩进也保留（pp 的长签名会折行）。
         assert_eq!(
@@ -1389,3 +1536,4 @@ infixr:80 \" '' \" => Set.image\n";
         }
     }
 }
+

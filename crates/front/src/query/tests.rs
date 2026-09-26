@@ -53,7 +53,7 @@ fn state_at_root_before_any_tactic() {
         // T-D51：`forall` 关键字也折成 `∀`——**只换关键字那 6 个字节**，
         // binder 分组（`(a b : Prop)`）与 `Type 0` 之类逐字节保留（上面那条
         // 注释说的"按 span 拼接"就是这条纪律）。
-        Some("∀ (a b : Prop), a ∧ b -> b ∧ a"),
+        Some("∀ (a b : Prop), a ∧ b → b ∧ a"),
         "the root goal is the declared type, kernel-rendered + notation-folded"
     );
     assert!(
@@ -965,8 +965,8 @@ theorem th : ax := ax
         "值要能看出本质（`fun … => A a`）：{mem}"
     );
     assert!(
-        value_of("Set").is_some_and(|v| v.contains("α -> Prop")),
-        "`Set` 的值是 `fun (α : Type 0) => α -> Prop`"
+        value_of("Set").is_some_and(|v| v.contains("α → Prop")),
+        "`Set` 的值是 `fun (α : Type 0) => α → Prop`"
     );
     // **反向**：定理/公理/归纳类型没有"值"这一行（证明是另一件事）。
     assert_eq!(value_of("ax"), None, "`axiom` 不该有值");
