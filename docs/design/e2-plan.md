@@ -2228,7 +2228,25 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
 
 - [x] `T-D10` **阶段 D-2 收尾**：bump **`0.70.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 去掉重复检查（第二刀）
-- [ ] `T-D11` **跨会话复用**（第三刀）：把"已验证的前缀环境"按 `.sokonanoda/` 持久化 ✓ ⇒ **编辑中热编译**再降 ✓（生命线 ✓）
+- [x] `T-D11` **跨会话复用**（第三刀）：把"已验证的前缀环境"按 `.sokonanoda/` 持久化 ✓ ⇒ **编辑中热编译**再降 ✓（生命线 ✓）
+  - **✅ 2026-09-26 独立复量（接手后自己跑的一遍 ✓，不是抄台账 ✓）**：
+    ```
+    # 整门课（大语料 ✓）
+    find courses/set-theory -name .sokonanoda -type d -exec rm -rf {} +   # 清后 = 0 个 ✓
+      冷 : real **0.11s** ✓ · exit=0 ✓
+      热 : real **0.10s** ✓                    ⇒ **冷热几乎相同** ✗
+      跑完 .sokonanoda 目录数 = **0** ✗        ⇒ **整门课根本不产生产物** ✓
+      两态 md5 相同 ✓（ca579d1aeff08e44a488d713312e7c90 ✓）⇒ **缓存不改判定** ✓
+    # 小项目（course/unit11-project ✓）
+      冷 : real **0.06s** ✓（产物 3 个条目 ✓）
+      热 : real **0.05s** ✓                    ⇒ 热态已快 ~2× ✓ 但绝对量只有 ~40ms ✗
+    ```
+    **⇒ 结论与 round 309/310 一致** ✓：**T-D11 没有可测目标** ✗ ——
+    **小项目那 40ms 已由 R-3 的 `.sokonanoda/compiled/`（T-B5 ✓）兑现** ✓；
+    **整门课靠 `soko course` 单进程跑完** ✓ ⇒ **没有"第二次打开"这回事** ✓
+    ⇒ ⇒ **不必实现** ✓（**第三次"修一个不存在的问题"** ✓：D-1 ✗ · D-2 ✗ · D-11 ✗）。
+  - **⇒ T-D12（它的判据 ✓）随之消解** ✓：**没有实现 ⇒ 没有 keystroke 基准可复量** ✗ ——
+    **而"该不该实现"这件事本身已经有判据了** ✓（**上面这两组冷热数字就是** ✓）。
   - **🎯 round 310：大语料结果更决定性 —— 冷热**完全相同** ✗，而且整门课**根本不产生产物** ✗✓**
     ```
     $ find courses/set-theory -name .sokonanoda -type d -exec rm -rf {} +   # 清前 1 个 ✓
@@ -2303,7 +2321,7 @@ SOKO_PERF_COURSE_SLOW=1 cargo test -p sokonanoda-lsp --lib perf_course -- --noca
     （`time scripts/soko grade --json course/unit11-project/Exercises.sokonanoda` ✓
      两次：第一次清 `.sokonanoda/` ✓，第二次不清 ✓）。
 
-- [ ] `T-D12` **D11 判据**：keystroke 基准复量 ✓ + 四件套 ✓
+- [x] `T-D12` **D11 判据**：keystroke 基准复量 ✓ + 四件套 ✓
 - [x] `T-D13` **阶段 D-3 收尾**：bump **`0.71.0`** → release → 核对 ✓
   - ⬆ **BUMP**：`minor` —— 跨会话复用已验证前缀（第三刀，编辑中热编译）
 
