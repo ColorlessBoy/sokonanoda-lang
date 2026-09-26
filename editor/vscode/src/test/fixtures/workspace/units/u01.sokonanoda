@@ -25,3 +25,9 @@ binder_notation "∃" => Exists
 
 theorem exists_fun : ∃ (f : Nat → Nat), f = (fun (n : Nat) => n) := by
   sorry
+
+-- **A2 / A3 的 e2e 夹具**（2026-09-26 用户报告第 2、3 条）：`{a}` 是**内建语法**
+-- （展开成 `Set.singleton`）——显示面必须折回 `{a}`（不是 `Set.singleton α a`），
+-- 且 F12 落在 `{` 上必须跳到 `lib/Set.sokonanoda` 的 `Set.singleton` 声明行。
+theorem singleton_use (α : Type) (a : α) : a ∈ {a} := by
+  sorry

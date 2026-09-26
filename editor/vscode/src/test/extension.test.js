@@ -1134,11 +1134,18 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     const doc = editor.document;
     // 夹具里**最后**一个恰好是 `sorry` 的行 = `exists_fun` 的占位符 ✓
     // （前一个是 `open_one`，那条用例找的是**第一个** ⇒ 两条互不干扰 ✓）。
-    const sorryLines = [...Array(doc.lineCount).keys()].filter(
-      (i) => doc.lineAt(i).text.trim() === "sorry",
+    // **从声明推导坐标**（2026-09-26 修）：原来取"**最后一个**恰好是 `sorry` 的行"，
+    // 而那是**夹具形状**的假设 ✗ —— 夹具尾部一加题（今天加了 `singleton_use`），
+    // 它就**静默指到别处**、还报"等 `∃` 超时"这种看不出真因的假红（本轮实测踩到）。
+    // 改成：先找 `theorem exists_fun` 那一行，再取它**之后**第一条 `sorry`。
+    const declLine = [...Array(doc.lineCount).keys()].find((i) =>
+      doc.lineAt(i).text.includes("theorem exists_fun"),
     );
-    assert.ok(sorryLines.length >= 2, `夹具里应当有两条 sorry（open_one + exists_fun），实际 ${sorryLines.length}`);
-    const lineIndex = sorryLines[sorryLines.length - 1];
+    assert.notStrictEqual(declLine, undefined, "夹具里必须有 `theorem exists_fun`");
+    const lineIndex = [...Array(doc.lineCount).keys()].find(
+      (i) => i > declLine && doc.lineAt(i).text.trim() === "sorry",
+    );
+    assert.notStrictEqual(lineIndex, undefined, "`exists_fun` 之后必须有一行 `sorry`");
     const pos = new vscode.Position(lineIndex, doc.lineAt(lineIndex).text.indexOf("sorry") + 1);
     editor.selection = new vscode.Selection(pos, pos);
 
@@ -1150,6 +1157,128 @@ suiteRunner("sokonanoda extension (VS Code integration)", () => {
     assert.ok(
       goal.includes("∃"),
       `类型含 lambda 的 \`∃\` 必须折成记法（修复前是 \`Exists (fun …)\`），实际 = ${goal}`,
+    );
+  });
+
+  test("Infoview 的 `⊢` 用记法箭头 `→`，且 runs 与 text 同源", async () => {
+    // **A1 的真宿主判据**（2026-09-26 用户报告第 1 条）：根状态的文本必须是
+    // **唯一接口折过**的那一份 —— 修复前是混合形态（`∀` 折了、`->` 没折）。
+    // 判据三件：① 出现 `→`；② **不得**出现 ASCII `->`；③
+    // `goal_runs` 的文本拼接**逐字节等于** `goal`（不变量：同一次转化 ✓）。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "必须有一个活动编辑器");
+    const doc = editor.document;
+    // **从声明推导坐标**（同上）：找 `theorem open_one`，再取它之后第一条 `sorry`。
+    const declLine = [...Array(doc.lineCount).keys()].find((i) =>
+      doc.lineAt(i).text.includes("theorem open_one"),
+    );
+    assert.notStrictEqual(declLine, undefined, "夹具里必须有 `theorem open_one`");
+    const lineIndex = [...Array(doc.lineCount).keys()].find(
+      (i) => i > declLine && doc.lineAt(i).text.trim() === "sorry",
+    );
+    assert.notStrictEqual(lineIndex, undefined, "`open_one` 之后必须有一行 `sorry`");
+    const pos = new vscode.Position(lineIndex, doc.lineAt(lineIndex).text.indexOf("sorry") + 1);
+    editor.selection = new vscode.Selection(pos, pos);
+
+    await waitFor("A1：open_one 的根状态到达", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state && state.decl && state.decl.name === "open_one" && typeof state.goal === "string"
+      );
+    });
+    const state = extensionApi.infoview.lastState();
+    const goal = state.goal;
+    assert.ok(
+      goal.includes("→"),
+      `\`⊢\` 后的文本必须用记法箭头 \`→\`（A1 之前是混合形态），实际 = ${goal}`,
+    );
+    assert.ok(
+      !goal.includes("->"),
+      `\`⊢\` 后的文本不许留 ASCII \`->\`，实际 = ${goal}`,
+    );
+    const runs = state.goal_runs || [];
+    assert.ok(runs.length > 0, "`goal_runs` 必须非空（它决定高亮）");
+    assert.strictEqual(
+      runs.map((r) => r.text).join(""),
+      goal,
+      "`goal_runs` 的拼接必须逐字节等于 `goal`（同一次转化 ✓）",
+    );
+  });
+
+  test("Infoview 里集合字面量显示成 `{a}`（不是 `Set.singleton α a`）", async () => {
+    // **A2 的真宿主判据**（用户报告第 2 条）：`{a}` 是内建语法、展开成
+    // `Set.singleton α a` ⇒ 显示面必须**折回** `{a}`。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const editor = vscode.window.activeTextEditor;
+    assert.ok(editor, "必须有一个活动编辑器");
+    const doc = editor.document;
+    const lineIndex = [...Array(doc.lineCount).keys()].find(
+      (i) => doc.lineAt(i).text.includes("singleton_use"),
+    );
+    assert.notStrictEqual(lineIndex, undefined, "夹具里必须有 `singleton_use`");
+    const sorryLine = lineIndex + 1;
+    assert.strictEqual(
+      doc.lineAt(sorryLine).text.trim(),
+      "sorry",
+      "夹具前提：`singleton_use` 的下一行是 `sorry`",
+    );
+    const pos = new vscode.Position(sorryLine, doc.lineAt(sorryLine).text.indexOf("sorry") + 1);
+    editor.selection = new vscode.Selection(pos, pos);
+
+    await waitFor("A2：singleton_use 的根状态到达", async () => {
+      const state = extensionApi.infoview.lastState();
+      return (
+        state && state.decl && state.decl.name === "singleton_use" && typeof state.goal === "string"
+      );
+    });
+    const goal = extensionApi.infoview.lastState().goal;
+    assert.ok(
+      goal.includes("{a}"),
+      `\`{a}\` 必须折回花括号写法，实际 = ${goal}`,
+    );
+    assert.ok(
+      !goal.includes("Set.singleton"),
+      `\`{a}\` 不许显示成点名展开 \`Set.singleton …\`，实际 = ${goal}`,
+    );
+  });
+
+  test("go to definition on a `{a}` set literal lands on `Set.singleton`", async () => {
+    // **A3 的真宿主判据**（用户报告第 3 条）：光标落在**左花括号**上按 F12
+    // 必须跳到 `lib/Set.sokonanoda` 的 `Set.singleton`。
+    //
+    // ⚠ **已知限制**（判据取符号位，不取操作数）：`{a}` 内部那个 `a` 是**局部
+    // 变量**，它自己有一条 `ResolvedTarget::Binder` 的 hover 行，而
+    // "最小的使用点胜出" ⇒ 在 `a` 上按 F12 跳的是**变量**（与 Lean 一致：
+    // `{a}` 展开成 `Set.singleton a`，那个 `a` 就是变量）。
+    const entry = fixtureEntry();
+    await showDoc(entry);
+    const doc = await vscode.workspace.openTextDocument(entry);
+    const text = doc.getText();
+    const declAt = text.indexOf("singleton_use");
+    assert.notStrictEqual(declAt, -1, "夹具里必须有 `singleton_use`");
+    const offset = text.indexOf("{a}", declAt);
+    assert.notStrictEqual(offset, -1, "`singleton_use` 的语句里必须有 `{a}`");
+    const before = text.slice(0, offset);
+    const position = new vscode.Position(
+      before.split("\n").length - 1,
+      (before.split("\n").pop() || "").length,
+    );
+    const found = await requestUntil(
+      "`{a}` 上跳定义",
+      () => vscode.commands.executeCommand("vscode.executeDefinitionProvider", entry, position),
+      (result) => Array.isArray(result) && result.length > 0,
+    );
+    assert.ok(
+      Array.isArray(found) && found.length > 0,
+      "在 `{a}` 上跳定义必须返回至少一个位置（A3 之前返回 null）",
+    );
+    assert.ok(
+      found.some((loc) => String(loc.uri.fsPath).endsWith("Set.sokonanoda")),
+      "跳转必须落在 `Set.singleton` 的库里，实际 = " +
+        JSON.stringify(found.map((l) => l.uri.fsPath)),
     );
   });
 
