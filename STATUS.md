@@ -26,6 +26,26 @@
   **T-E2 ✅** —— 文档收口四块 ✓：`architecture.md` **§6 内核台账** ✓（补 T-D8 ✓，
   **硬规则 1 的欠账** ✗）· `docs/PERF.md` ✓ · `AGENTS.md` ✓ · `skills/sokonanoda-ci` ✓
   （210 → 244 行 ✓，`dsh` 8 ✓ / `skill` 4 ✓ 守卫通过 ✓）。
+* **🎯🎯🎯 round 430：`perf-gate` 的数字到手 —— **跨机器比** ✗✓（**T-E1 的答案** ✓）**
+  ```
+  perf-gate 日志 ✓（`continue-on-error: true` ⇒ **没拦住** ✓）：
+    lsp-course  did_open  unit01-sets-membership   **16460ms**  vs 台账 1905.0  **+764.0%** ✗
+    lsp-course  did_open  unit08-images-preimage   **31837ms**  vs 台账 4644.0  **+585.6%** ✗
+    lsp-course  did_open  unit12-synthesis.sokon   **74036ms**  vs 台账 9085.0  **+714.9%** ✗
+    lsp-course  did_open_same_session  unit01      **1727ms**   vs 台账 134.0  **+1188.8%** ✗
+  台账结构 ✓（**打印出来的** ✓）：
+    host = **{"system": "Darwin", "machine": "arm64", "release": "25.6.0"}** ✓✓ ← **本机 Mac** ✗
+    records[0] = {"case": …, "ms": **73.63**, "scope": "front-project", "matches": 10, "modules": 2} ✓
+      ⇒ **字段是 `ms`**（不是 `best_ms` ✗）
+  ⇒ ⇒ **`perf-gate` 拿 CI（ubuntu-24.04 · 2 核）与本机 arm64 比** ✗✓
+    ⇒ **+585% ~ +1189% 是"机器差异"，不是回归** ✓✓
+    ⇒ ⇒ **`--threshold 50` 永远不够** ✗ ⇒ **门禁会永远红** ✗✓
+  ```
+  **⇒ T-E1 的答案** ✓：**修法二选一** ✓ ——
+  ① **在 CI 上记一次基线** ✓（`scripts/perf-ledger.sh` 跑在 runner 上 ✓ ⇒ 台账多一条 `Linux` ✓）；
+  ② **让门禁只比同 `host.system` 的记录** ✓✓（**这是"有原则"的修法** ✓）。
+  ⇒ ⇒ **而在此之前 `continue-on-error: true` **必须留着** ✓**（**它不是临时拐杖，是承重的** ✓）。
+
 * **⏳ round 428：两个后台任务并行** ✓（**`bash-1131` 基线 ✓ · `bash-1133` 装 nextest ✓**）
   ```
   ⇒ 基线还在编译+跑 ✓（**161 个测试** ✓）⇒ **装 nextest 同时进行** ✓
